@@ -1,0 +1,237 @@
+{
+ "version": 1,
+ "updated": "2026-11-07",
+ "note": "預覽版寶箱清單。法遵要求：寶箱文章只能靠簽到解鎖，付費方案不得直接打開。",
+ "config": {
+  "nodes": [
+   3,
+   7,
+   14,
+   20
+  ],
+  "makeup_cost": [
+   5,
+   7,
+   10
+  ],
+  "makeup_max": 3,
+  "makeup_days": 7,
+  "wish_max": 5,
+  "wish_ticket_days": 60,
+  "teach_rotation": [
+   "tech",
+   "chip",
+   "macro"
+  ]
+ },
+ "lines": [
+  {
+   "id": "tech",
+   "name": "技術指標"
+  },
+  {
+   "id": "chip",
+   "name": "籌碼"
+  },
+  {
+   "id": "macro",
+   "name": "總經"
+  },
+  {
+   "id": "ind",
+   "name": "產業深度"
+  }
+ ],
+ "packs": [
+  {
+   "id": "T1",
+   "line": "tech",
+   "order": 1,
+   "title": "K 線與價量",
+   "articles": [
+    "ck-T01",
+    "ck-T02"
+   ]
+  },
+  {
+   "id": "T2",
+   "line": "tech",
+   "order": 2,
+   "title": "均線上手",
+   "articles": [
+    "ck-T03"
+   ],
+   "pending": "待補：技術指標第 2 篇"
+  },
+  {
+   "id": "C1",
+   "line": "chip",
+   "order": 1,
+   "title": "法人籌碼",
+   "articles": [
+    "ck-C01",
+    "ck-C02"
+   ]
+  },
+  {
+   "id": "C2",
+   "line": "chip",
+   "order": 2,
+   "title": "融資融券",
+   "articles": [
+    "ck-C05"
+   ],
+   "pending": "待補：籌碼第 2 篇"
+  },
+  {
+   "id": "M1",
+   "line": "macro",
+   "order": 1,
+   "title": "FED 與利率",
+   "articles": [
+    "ck-M01",
+    "ck-M02"
+   ]
+  },
+  {
+   "id": "M2",
+   "line": "macro",
+   "order": 2,
+   "title": "通膨 CPI",
+   "articles": [
+    "ck-M03"
+   ],
+   "pending": "待補：總經第 2 篇"
+  },
+  {
+   "id": "I1",
+   "line": "ind",
+   "order": 1,
+   "title": "AI 伺服器與製程",
+   "articles": [
+    "ck-I03",
+    "ck-I08"
+   ]
+  },
+  {
+   "id": "I2",
+   "line": "ind",
+   "order": 2,
+   "title": "記憶體循環",
+   "articles": [
+    "ck-I11"
+   ],
+   "pending": "待補：產業深度第 2 篇"
+  }
+ ],
+ "articles": [
+  {
+   "id": "ck-C01",
+   "title": "三大法人是誰：外資、投信、自營商差在哪",
+   "subtitle": "同一個月、同一檔股票，三類法人可以一個買、一個賣、一個幾乎不動；先分清楚是誰，再看數字。",
+   "line": "chip",
+   "reading_min": 5,
+   "review": "draft",
+   "confidence": "高"
+  },
+  {
+   "id": "ck-C02",
+   "title": "外資買賣超怎麼看：看趨勢、別看單日",
+   "subtitle": "外資一天買賣幾十億很常見；真正有資訊的是方向持續多久、占成交多少、跟匯率一起怎麼動。",
+   "line": "chip",
+   "reading_min": 5,
+   "review": "draft",
+   "confidence": "高"
+  },
+  {
+   "id": "ck-C05",
+   "title": "融資融券是什麼：借錢買與借券賣",
+   "subtitle": "融資是借錢買股、融券是借股票來賣；看餘額的位置和變化速度，比看單日增減更有資訊。",
+   "line": "chip",
+   "reading_min": 5,
+   "review": "draft",
+   "confidence": "中高"
+  },
+  {
+   "id": "ck-I03",
+   "title": "AI 伺服器 BOM：一台機櫃的錢花在哪",
+   "subtitle": "從 GB200 NVL72 拆開看：運算晶片之外，還有電源、散熱、板材、網路與組裝各自在做什麼。",
+   "line": "ind",
+   "reading_min": 7,
+   "review": "draft",
+   "confidence": "中"
+  },
+  {
+   "id": "ck-I08",
+   "title": "製程節點：5 奈米、3 奈米、2 奈米到底在比什麼",
+   "subtitle": "奈米數字早已是行銷名稱；真正的分水嶺是電晶體結構從 FinFET 換成 GAA，再加上背面供電。",
+   "line": "ind",
+   "reading_min": 7,
+   "review": "draft",
+   "confidence": "中"
+  },
+  {
+   "id": "ck-I11",
+   "title": "記憶體景氣循環：DRAM 與 NAND 為什麼大起大落",
+   "subtitle": "標準品、少數廠商、重資本，再加上庫存：從 2018 年高點到 2023 年谷底，以及 AI 如何改變需求結構。",
+   "line": "ind",
+   "reading_min": 7,
+   "review": "draft",
+   "confidence": "中"
+  },
+  {
+   "id": "ck-M01",
+   "title": "FED 是什麼：聯準會、FOMC 與點陣圖怎麼讀",
+   "subtitle": "聯準會為什麼每年只開 8 次會，卻能牽動全球市場？從組織、公布時間到點陣圖，一次講清楚。",
+   "line": "macro",
+   "reading_min": 4,
+   "review": "published",
+   "confidence": "高"
+  },
+  {
+   "id": "ck-M02",
+   "title": "利率怎麼影響資產：折現、成本與資金流向",
+   "subtitle": "為什麼利率一升，成長股、債券和新台幣常常同時承壓？用 2022 年的升息當案例拆解。",
+   "line": "macro",
+   "reading_min": 4,
+   "review": "published",
+   "confidence": "中高"
+  },
+  {
+   "id": "ck-M03",
+   "title": "CPI 是什麼：物價指數怎麼算、怎麼讀",
+   "subtitle": "通膨率 9.1% 是什麼意思？年增、月增、核心 CPI 三組容易混的概念，用 2022 年的高峰與回落一次分清楚。",
+   "line": "macro",
+   "reading_min": 4,
+   "review": "published",
+   "confidence": "中高"
+  },
+  {
+   "id": "ck-T01",
+   "title": "K 線怎麼讀：四個價格說一天的故事",
+   "subtitle": "開盤、最高、最低、收盤四個數字畫成一根 K 棒：實體比的是收盤與開盤，影線記錄盤中被推回多遠。",
+   "line": "tech",
+   "reading_min": 6,
+   "review": "published",
+   "confidence": "高"
+  },
+  {
+   "id": "ck-T02",
+   "title": "價量關係：量是價的證人",
+   "subtitle": "價格告訴你往哪走，成交量告訴你有多少人參與；同樣漲五百點，量大量小意思不一樣。",
+   "line": "tech",
+   "reading_min": 6,
+   "review": "published",
+   "confidence": "高"
+  },
+  {
+   "id": "ck-T03",
+   "title": "MA 均線：用平均線看趨勢",
+   "subtitle": "均線把過去 N 天的收盤平均成一條線，濾掉每天的雜訊；它永遠落後價格，是「確認」不是「預測」。",
+   "line": "tech",
+   "reading_min": 6,
+   "review": "published",
+   "confidence": "中高"
+  }
+ ]
+}

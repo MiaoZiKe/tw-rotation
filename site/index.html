@@ -5709,6 +5709,8 @@ h3 .howbtn.pop{font-family:inherit}
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
   <!-- ★ 2026-09-24 晚（Andy：「明暗切換移動到右邊」）：放到頂欄最右邊。 -->
+  <!-- 2026-11-07 每日簽到入口（site/checkin.js）：小圖示，今天還沒簽時右上角有小圓點；手機（≤820）頂欄放不下，改由總覽第一張「簽到」卡進入 -->
+  <button class="evbtn" id="ciBtn" type="button" aria-label="每日簽到" title="每日簽到"></button>
   <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <!-- ★ 2026-09-23 手機優先改版 G1／G9（`docs/mobile_audit.md`）：
        390px 量到頂欄需要 528px 卻只有 390px 而且是 overflow:hidden ——
@@ -6249,6 +6251,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="tape.js"></script>
 <script src="flowcheck.js"></script><script src="flowcheck3.js"></script><script src="flowcheck4.js"></script><!-- 2026-10-30 流向驗證頁（#flowcheck）：輪盤／資金樹／熱力圖與族群走勢、成分股走勢同步 -->
 <link rel="stylesheet" href="advdec.css"><script src="advdec.js"></script><!-- 2026-11-06 漲跌家數卡的族群字卡檢視（要早於 app.js：renderUpDown 會呼叫 AdvDec） -->
+<script src="checkin.js"></script><!-- 2026-11-07 每日簽到（月曆）＋比比寶箱＋比比補簽＋許願（預覽版，狀態存本機）；要早於 app.js（總覽卡）與 articles.js -->
 <script src="fearcard.js"></script><!-- 2026-11-06 總覽摘要卡「恐慌指數」（台指選擇權隱含波動率・本站自算＋美股 VIX）；app.js 的 renderOvSummary 會叫它，所以放在前面 -->
 <script src="app.js"></script>
 <script src="theme4.js"></script>

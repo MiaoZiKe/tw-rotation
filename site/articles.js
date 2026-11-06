@@ -49,6 +49,7 @@
     intro: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     premarket: '<path d="M12 2v6"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
     postmarket: '<path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
+    vault: '<path d="M3 10h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M4 10V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/><path d="M12 10v4"/><rect x="10" y="13" width="4" height="3" rx=".5"/>',
     know: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   };
   const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || CAT_IC.all}</svg>`;
@@ -56,7 +57,7 @@
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
   /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
      2026-10-16 Andy「手機版的分頁需要適當調整寬度」—— 360 寬四格各只有 ~84px，「比比產業鏈＋篇數」塞不下，短名才能四格等寬、不換行、不被切 */
-  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識', premarket: '盤前', postmarket: '盤後' };
+  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識', premarket: '盤前', postmarket: '盤後', vault: '寶箱' };
   const ALL_T = '全部文章';
   const CAT_KEYS = Object.keys(CATS);
   /* 「消息」型分頁（卡片版面相同，只差資料檔與文字）：10-26 盤前消息；10-27 Andy「還需要新增盤後消息，在盤前旁邊」→ 盤後消息。
@@ -64,6 +65,8 @@
   const NW = {
     premarket: { t: '盤前消息', file: 'articles/premarket.json', how: 'artpre', head: '台股盤前消息', empty: '尚無盤前消息，交易日開盤前會更新。' },
     postmarket: { t: '盤後消息', file: 'articles/postmarket.json', how: 'artpost', head: '台股盤後消息', empty: '今天的盤後消息還沒整理好' },
+    /* 2026-11-07 比比寶箱（每日簽到兌換的文章；site/checkin.js 畫內容）：沒有資料檔，paintPre 轉給 TwCheckin.paintVault。法遵：只能靠簽到解鎖，不看方案 */
+    vault: { t: '比比寶箱', file: '', how: 'artvault', head: '比比寶箱', empty: '' },
   };
   const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW));   // 分頁由左到右
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
@@ -100,19 +103,19 @@
     if (document.getElementById('artCss')) return;
     const s = document.createElement('style'); s.id = 'artCss';
     s.textContent = `
-:root{--art-all:var(--ink-2);--art-pre:#5b9cff;--art-post:#f08bc4;--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
+:root{--art-all:var(--ink-2);--art-pre:#5b9cff;--art-post:#f08bc4;--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;--art-vault:#f0b429;
   --art-t-chip:#5b9cff;--art-t-mem:#2ec4b6;--art-t-interposer:#f2c14e;--art-t-substrate:#ff8a65;--art-t-board:#a88bff;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220;
   /* 文章說明圖調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
      ⚠ 10-17 起 ECharts 圖表不吃這一組（改用網站 --cat-*，Andy：「圖表風格需要 Follow 我網頁內的風格」），只剩數字卡／關係圖／流程圖等說明圖。
      刻意避開紅、綠（紅漲綠跌保留給漲跌）與標註用的金色（--art-hl）；彩度壓在不刺眼的範圍。深淺主題各一組，淺色每色都 ≥ 3:1。 */
   --art-p1:#5b9cff;--art-p2:#2ec4b6;--art-p3:#a88bff;--art-p4:#ff8a65;--art-p5:#ec74b5;--art-p6:#d39b5b;--art-p7:#4cc3ef;
   --art-tn-neutral:#8e9bb8;--art-tn-accent:#5b9cff;--art-tn-warn:#f2a93b;--art-tn-good:#2ec4b6}
-:root[data-theme="light"]{--art-pre:#2563c9;--art-post:#b83a7f;--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;
+:root[data-theme="light"]{--art-pre:#2563c9;--art-post:#b83a7f;--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;--art-vault:#a15c00;
   --art-t-chip:#2f5fb3;--art-t-mem:#0f7d72;--art-t-interposer:#946200;--art-t-substrate:#c0461e;--art-t-board:#6d4bd1;--art-t-bump:#6b7385;--art-t-other:#5d6b88;--art-t-ink:#ffffff;
   --art-p1:#2563c9;--art-p2:#0e8a74;--art-p3:#6e44d6;--art-p4:#c9502b;--art-p5:#b83a7f;--art-p6:#8a5a1e;--art-p7:#0f7fa8;
   --art-tn-neutral:#5d6b88;--art-tn-accent:#2563c9;--art-tn-warn:#a86400;--art-tn-good:#0e8a74}
 .pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
-.k-all{--k:var(--art-all)}.k-premarket{--k:var(--art-pre)}.k-postmarket{--k:var(--art-post)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
+.k-all{--k:var(--art-all)}.k-premarket{--k:var(--art-pre)}.k-postmarket{--k:var(--art-post)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}.k-vault{--k:var(--art-vault)}
 .artic{flex:none;display:block}
 /* 10-26 盤前消息：每天一張卡（5 則、依分類色塊、可點連結）＋「複製整包」。分類色用 --art-p*／--art-tn-*（不用紅綠，紅綠留給漲跌）。 */
 #artCard #artPre{display:none}
@@ -847,7 +850,7 @@
      額度：今天這一篇已經算過 → 照常；還沒算、而且已經用滿 → 擋（跟 quota.js evaluate 同一條規則）。*/
   function artBlocked(cat) {
     const P = window.TwPerm, Q = window.TwQuota, h = location.hash || '';
-    return ['art.read', 'art.cat.' + cat].some((fid) => {
+    return (cat === 'vault' ? ['art.cat.vault'] : ['art.read', 'art.cat.' + cat]).some((fid) => {
       try {
         if (P && P.can && !P.can(fid)) return true;
         const lim = Q && Q.limit ? Q.limit(fid) : Infinity;
@@ -860,6 +863,7 @@
   function recordOpen(id, fresh) {   // fresh＝真的剛打開這一篇（showPost）；帳號 API 晚就緒的補送不再記一次流量細項
     if (S.cur !== id || (location.hash || '').replace(/^#/, '').split('/')[0] !== 'article') return;
     const cat = (S.curData && S.curData.id === id && S.curData.cat) || catOf(id);
+    if (cat === 'vault') return;   // 寶箱文章不計點閱（/v1/articles/view 不認識它們）
     if (artBlocked(cat)) { loadStats(); return; }
     /* 流量觀測（管理區 → 精選文章分頁）的「被點最多的文章」：細項＝標題（account.js 會截成 24 字、拿掉引號等字元），一篇打開一次記一次 */
     try { if (fresh && window.TwT && S.curData && S.curData.id === id) window.TwT('read', S.curData.title || id); } catch (e) { /* 統計失敗不影響閱讀 */ }
@@ -1008,6 +1012,11 @@
     const A = window.App;
     return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   })();
+  const HOW_VAULT = (() => {
+    const li = ['比比寶箱放的是你用「每日簽到」兌換來的文章：累積簽到滿 3／7／14／20 天可以兌換教學包、產業深度包。', '未解鎖的文章會顯示鎖頭和需要簽到幾天；已解鎖的可以隨時重讀。', '寶箱文章只能靠簽到解鎖，付費方案不能直接打開，也不佔精選文章的全文額度。', '預覽版：解鎖紀錄只存在這個瀏覽器。'];
+    const A = window.App;
+    return A && A.howHTML ? A.howHTML('比比寶箱怎麼看', li) : `<b class="howq">比比寶箱怎麼看</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  })();
   const EYE_ON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   const EYE_OFF = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9.9 4.2A10 10 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-3.2 4.4"/><path d="M6.6 6.6A17 17 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>';
   function skeletonList(root) {
@@ -1017,6 +1026,7 @@
   <div class="howtxt" id="how-artlist" hidden>${HOW_ART}</div>
   <div class="howtxt" id="how-artpre" hidden>${HOW_PRE}</div>
   <div class="howtxt" id="how-artpost" hidden>${HOW_POST}</div>
+  <div class="howtxt" id="how-artvault" hidden>${HOW_VAULT}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
     ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em><span class="arteye" role="button" tabindex="0" hidden data-cat="${k}">${EYE_ON}</span></button>`).join('')}
   </div>
@@ -1193,6 +1203,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
   function paintPre(root) {
     const box = $('#artPre', root); if (!box) return;
+    if (S.cat === 'vault') { const u0 = $('#artUpd', root); if (u0) u0.textContent = ''; if (window.TwCheckin) window.TwCheckin.paintVault(box); else box.innerHTML = '<div class="artempty">寶箱載入失敗，請重新整理。</div>'; return; }
     const key = S.cat, st = S.nw[key] || (S.nw[key] = { data: null, p: null, n: 0, open: null });
     if (!st.data) {
       box.innerHTML = '<div class="artempty">載入中…</div>';
@@ -2104,7 +2115,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const toc = blocks.map((b, i) => (b && b.t === 'h' && b.text ? `<button type="button" data-bi="${i}" title="${esc(b.text)}">${esc(b.text)}</button>` : '')).join('');
     const codes = [];
     blocks.forEach((b) => { if (b && b.t === 'stocks' && Array.isArray(b.items)) b.items.forEach((x) => { if (x && okCode(x.code) && !codes.some((c) => c.code === x.code)) codes.push({ code: x.code, name: x.name || '' }); }); });
-    const listHash = CATS[cat] ? '#articles/' + cat : '#articles';
+    const listHash = CATS[cat] || cat === 'vault' ? '#articles/' + cat : '#articles';
     return `
 <div class="artpage k-${kk}">
 <article class="card artpost" id="artPost" data-id="${esc(d.id)}" data-cat="${esc(cat)}">
@@ -2135,8 +2146,25 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     markSub(catOf(id));
     if (changed) { disposeCharts(root); root.innerHTML = '<div class="card artpost"><div class="arterr">載入中…</div></div>'; window.scrollTo({ top: 0 }); }
     const gone = () => S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article';
+    const notFoundV = () => { root.innerHTML = '<div class="card artpost" id="artPost"><div class="arterr" id="artErr">這篇文章暫時讀不到。<br><a href="#articles/vault">回比比寶箱</a></div></div>'; };
     const [idx] = await Promise.all([loadIndex(), permReady()]);
     if (gone()) return;
+    /* 比比寶箱的文章（ck- 開頭）：解鎖只看簽到兌換紀錄（法遵：付費、站主身分都不能直接打開）；不佔 art.read.n 額度 */
+    if (/^ck-/.test(id) && window.TwCheckin) {
+      await window.TwCheckin.ready(); if (gone()) return;
+      const vm = window.TwCheckin.vaultMeta(id);
+      if (vm) {
+        S.sig = '';
+        if (!window.TwCheckin.unlocked(id)) { S.curData = null; disposeCharts(root); root.innerHTML = window.TwCheckin.lockedPageHTML(id); hydrate(root, {}); document.title = vm.title + '｜比比寶箱'; return; }
+        const vd = await fetchJson('articles/vault/posts/' + encodeURIComponent(id) + '.json').catch(() => null); if (gone()) return;
+        if (!vd || !vd.title) return notFoundV();
+        const d2 = Object.assign({}, vd, { cat: 'vault' });
+        disposeCharts(root);
+        root.innerHTML = postHTML(d2, { cat: 'vault', id }, { mode: 'full' });
+        S.curData = d2; hydrate(root, d2); adminCopyBtns(root); document.title = d2.title + '｜比比寶箱';
+        return;
+      }
+    }
     const meta = idx ? idx.list.find((a) => a.id === id) : null;
     const notFound = () => {
       S.curData = null; S.sig = sigOf(access());

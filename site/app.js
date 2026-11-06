@@ -4849,6 +4849,8 @@
 
     /* ⑤ 恐慌指數（2026-11-06，Andy：「另外需要新增恐慌指數再右上」）：邏輯全在 site/fearcard.js（自己載 data/fear.json），這裡只排進同一排最右邊。*/
     if (window.FearCard) cards.push(window.FearCard.card());
+    /* 每日簽到卡（2026-11-07，site/checkin.js）：排在摘要卡列第一張；點了開簽到月曆 */
+    if (window.TwCheckin) cards.unshift(window.TwCheckin.card());
 
     host.classList.add('ovsum');
     host.classList.remove('hero', 'ovstrip');
@@ -4881,6 +4883,7 @@
         ovsJump('熱門題材', 'ovThemeCard');
         return;
       }
+      if (k === 'ci') { if (window.TwCheckin) window.TwCheckin.open(); return; }   // 每日簽到卡：開月曆面板（不捲動、不換頁）
       if (k === 'fear') {   // 恐慌指數（Andy 11-06：曲線圖放最底下）：捲到總覽最底下的走勢圖卡、亮一下；圖第一次露出才建
         ovsJump('市場寬度', 'ovFearCard', true, 2);
         if (window.FearCard) window.FearCard.reveal();
@@ -4916,6 +4919,7 @@
     ovlStamp();
     // 恐慌指數卡（site/fearcard.js）：補「?」說明盒、資料到了原地換、開著的完整圖掛回來。放最後、包 try：它出任何事都不能擋到上面四張卡的即時補回
     try { if (window.FearCard) window.FearCard.mounted(host); } catch (e) { /* 只影響恐慌指數卡 */ }
+    try { if (window.TwCheckin) window.TwCheckin.mounted(host); } catch (e) { /* 只影響簽到卡 */ }
   }
 
   /* ================================================================ 總覽摘要卡即時（DECISIONS #296，2026-10-02）

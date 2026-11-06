@@ -1,0 +1,373 @@
+{
+ "id": "ck-I08",
+ "cat": "know",
+ "title": "製程節點：5 奈米、3 奈米、2 奈米到底在比什麼",
+ "subtitle": "奈米數字早已是行銷名稱；真正的分水嶺是電晶體結構從 FinFET 換成 GAA，再加上背面供電。",
+ "date": "2026-11-06",
+ "updated": "2026-11-06",
+ "tags": [
+  "製程節點",
+  "FinFET",
+  "GAA",
+  "晶圓代工",
+  "2 奈米",
+  "背面供電"
+ ],
+ "summary": "5 奈米、3 奈米、2 奈米的數字不再等於電晶體的實際尺寸，各家也不能直接比大小。真正的技術轉折是電晶體結構由鰭式（FinFET）換成環繞閘極（GAA）奈米片，以及把電源線移到晶片背面。本文整理各大廠的量產時間線，並對照台灣晶圓代工、設備與材料族群的位置。",
+ "reading_min": 7,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "三句話重點"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "「奈米」現在是命名，不是尺寸：不同公司的 3 奈米不能直接比較，業界也沒有統一的命名標準。",
+    "真正的技術分水嶺是電晶體結構：N5、N3 世代的台積電用 FinFET，2 奈米世代起換成奈米片（nanosheet）GAA；三星 2022 年就先走了 GAA，英特爾 18A 則同時引入 GAA 與背面供電。",
+    "製程的演進需要整條供應鏈配合——設備、材料、矽晶圓、代工與後段封裝，本站半導體產業鏈頁可以逐段對照。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "奈米數字原本代表什麼，現在代表什麼"
+  },
+  {
+   "t": "p",
+   "text": "早期半導體的製程名稱確實對應某個物理尺寸，例如線寬或閘極長度。但在進入 FinFET 世代之後，名稱與任何一個實際尺寸脫鉤，成了各家公司自己決定的世代標記。多篇技術媒體的整理一致指出：不同公司的「3 奈米」在電晶體密度與功耗上並不相同，業界沒有統一的命名規則；也有分析指出，台積電 N3 的實際閘極長度約在 12 奈米上下，遠大於 3。"
+  },
+  {
+   "t": "p",
+   "text": "命名被拿來當行銷工具的例子很具體：2021 年英特爾把原本的 10 奈米製程改名為 Intel 7，並改採類似台積電的世代命名；2024 年 3 月有媒體報導，三星把原稱 3 奈米的製程改名為 2 奈米，並據此改寫合約。所以看到「某廠搶先量產 X 奈米」的標題，第一步是確認它跟別家的同名製程到底是不是同一等級。"
+  },
+  {
+   "t": "h",
+   "text": "真正的差別：電晶體結構怎麼長"
+  },
+  {
+   "t": "p",
+   "text": "電晶體是晶片裡的開關，核心問題是「閘極能不能把通道管得住」。通道漏電越少，電壓就能越低、功耗越小。結構演進的邏輯就是讓閘極從更多面包住通道。"
+  },
+  {
+   "t": "compare",
+   "title": "三種結構的差別",
+   "cols": [
+    {
+     "label": "FinFET（鰭式）",
+     "tone": "neutral",
+     "points": [
+      "通道是立起來的鰭，閘極從三面包住",
+      "台積電 N5（2020 年量產）、N3（2022 年量產）都用它",
+      "結構成熟，但再往下縮，三面包覆的控制力不夠"
+     ],
+     "verdict": "N3 之前的先進製程主流"
+    },
+    {
+     "label": "GAA 奈米片",
+     "tone": "accent",
+     "points": [
+      "通道改成一片片水平堆疊的薄片，閘極四面環繞",
+      "三星稱為 MBCFET，2022 年 6 月 30 日宣布 3 奈米量產",
+      "台積電 N2 為其第一代奈米片，2025 年第四季量產"
+     ],
+     "verdict": "2 奈米世代的共同方向"
+    },
+    {
+     "label": "GAA ＋ 背面供電",
+     "tone": "good",
+     "points": [
+      "把電源線移到晶圓背面，正面專心走訊號線",
+      "英特爾 18A 同時採用 RibbonFET 與 PowerVia",
+      "台積電 A16 的「Super Power Rail」為其背面供電，目標 2026 年第四季量產；N2 本身不含背面供電"
+     ],
+     "verdict": "下一個分水嶺"
+    }
+   ]
+  },
+  {
+   "t": "h",
+   "text": "量產時間線（只列有公開來源的）"
+  },
+  {
+   "t": "table",
+   "head": [
+    "廠商與節點",
+    "電晶體結構",
+    "量產時點",
+    "備註"
+   ],
+   "rows": [
+    [
+     "台積電 N5",
+     "FinFET",
+     "2020 年",
+     "台積電官網：2020 年首家將 5 奈米 FinFET 帶入量產"
+    ],
+    [
+     "台積電 N3",
+     "FinFET",
+     "2022 年",
+     "台積電官網：2022 年量產；刻意沿用 FinFET 以求成熟度與成本"
+    ],
+    [
+     "三星 3 奈米",
+     "GAA（MBCFET）",
+     "2022 年 6 月 30 日",
+     "宣稱較其 5 奈米第一代降功耗最多 45%、提升效能最多 23%、縮面積 16%；為廠商宣稱值"
+    ],
+    [
+     "台積電 N2",
+     "奈米片 GAA",
+     "2025 年第四季",
+     "台積電官網：第一代奈米片電晶體；兩處量產據點為新竹與高雄"
+    ],
+    [
+     "英特爾 18A",
+     "RibbonFET（GAA）＋PowerVia",
+     "2025 年底至 2026 年初",
+     "各來源對量產月份說法不一；首個大量產品為 Panther Lake"
+    ],
+    [
+     "台積電 A16",
+     "奈米片＋Super Power Rail",
+     "目標 2026 年第四季",
+     "為公司規劃，非已量產"
+    ]
+   ]
+  },
+  {
+   "t": "p",
+   "text": "看這張表可以發現兩件事：第一，三星早在 2022 年就先導入 GAA，台積電則到 N2 才換結構；公開報導對三星初期良率的說法不一，本文不下判斷。第二，台積電在 N3 繼續沿用成熟的 FinFET，依其自述是為了技術成熟度、效能與成本的平衡——這是不同公司對同一技術問題的不同取捨，並無對錯可言。"
+  },
+  {
+   "t": "h",
+   "text": "讀製程新聞時的三個檢查點"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "結構有沒有換：是 FinFET 微調，還是換到 GAA；背面供電有沒有同步導入。這比奈米數字更能說明技術跳幅。",
+    "宣稱的是什麼等級的數字：「降功耗最多 45%」這類說法是在特定條件下對比自家上一代，不是跨廠比較，也不是量產後的平均值。",
+    "是試產還是量產：risk production（風險試產）、volume production（量產）與實際對客戶出貨是三個不同階段，新聞標題常把它們混在一起。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "一顆先進晶片靠哪些環節"
+  },
+  {
+   "t": "steps",
+   "title": "製程節點背後的台灣供應鏈",
+   "items": [
+    {
+     "label": "矽晶圓",
+     "text": "長晶、切片、拋光，是晶圓廠最上游的原料",
+     "icon": "wafer"
+    },
+    {
+     "label": "製程材料",
+     "text": "靶材、光阻與顯影材料、研磨材、載具耗材",
+     "icon": "package"
+    },
+    {
+     "label": "製程設備",
+     "text": "濕製程清洗、電鍍、原子層沉積（ALD）等機台",
+     "icon": "factory"
+    },
+    {
+     "label": "晶圓代工",
+     "text": "把設計變成晶片，營收看產能利用率與製程組合",
+     "icon": "chip"
+    },
+    {
+     "label": "先進封裝與測試",
+     "text": "把晶片接成可出貨的模組",
+     "icon": "substrate"
+    }
+   ]
+  },
+  {
+   "t": "table",
+   "head": [
+    "環節",
+    "本站族群",
+    "族群內公司（僅列角色，不比較）"
+   ],
+   "rows": [
+    [
+     "矽晶圓",
+     "矽晶圓",
+     "環球晶、中美晶、合晶、台勝科、昇陽半導體（長晶、切片、拋光與再生晶圓）"
+    ],
+    [
+     "製程材料",
+     "前段製程材料",
+     "光洋科、新應材、台特化、達興材料、翔名、晶呈科技、中砂"
+    ],
+    [
+     "製程設備",
+     "前段製程設備",
+     "弘塑、天虹、辛耘（自有品牌的濕製程與 ALD 機台）"
+    ],
+    [
+     "晶圓代工",
+     "晶圓代工",
+     "台積電、聯電、世界、力積電；穩懋、宏捷科、環宇-KY 為化合物半導體（GaAs）代工"
+    ]
+   ]
+  },
+  {
+   "t": "p",
+   "text": "晶圓代工族群內的公司並不都在比誰的奈米數字小。例如聯電在 2017 年退出 10 奈米以下的競賽，把技術停在 14／12 奈米並轉向特殊製程，近年擴產重心放在 28／22 奈米；它與英特爾在 2024 年 1 月宣布合作開發 12 奈米平台，雙方目標是 2027 年量產，且 12 奈米不需要極紫外光（EUV）設備。這提醒我們，成熟製程與先進製程是兩個不同的市場，景氣驅動因素也不同。"
+  },
+  {
+   "t": "h",
+   "text": "需要留意的風險"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "名稱不可比：跨廠比較奈米數字沒有意義，要看電晶體密度、功耗、良率與實際出貨。",
+    "良率與成本：新結構的初期良率常是關注點，例如有報導指英特爾 18A 初期使用低良率、高成本晶圓，這類說法來自二手分析，需以公司實際揭露為準。",
+    "資本支出門檻：先進節點的建廠與設備投入極高，能跟進的廠商越來越少，客戶也高度集中。",
+    "規劃不等於實績：A16 等節點的量產時間是公司規劃，時程可能調整。",
+    "地緣與出口管制：設備、材料與客戶的流向會受政策影響。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "怎麼用本站追蹤"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "半導體產業鏈頁：從上游矽晶圓、材料、設備，看到中游代工與下游封測，確認每個環節的族群歸屬。",
+    "晶圓代工、前段製程設備、前段製程材料各族群頁：看資金流向與熱度是否同步，比較設備、材料與代工是否同向。",
+    "題材熱度頁的「半導體設備／材料」「CoWoS／先進封裝」題材：觀察先進製程與先進封裝的資金輪動。",
+    "個股頁月營收：晶圓代工族群內各公司的月營收，可以和公司自己公布的製程別營收比重對照，了解製程組合如何反映到營收。"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文為產業結構介紹，所列公司依本站族群分類列出，只說明在產業鏈中的角色，不比較優劣，也不代表與任何訂單或營收的關係。文中機構估計與公司展望均為第三方或公司自己的說法，本站未查證其準確性。本站不是證券投資顧問事業，不推介任何有價證券；任何投資決定請自行判斷並自負風險。"
+  }
+ ],
+ "site_links": [
+  {
+   "label": "半導體產業鏈",
+   "hash": "#industry/semiconductor"
+  },
+  {
+   "label": "晶圓代工族群",
+   "hash": "#industry/group/foundry"
+  },
+  {
+   "label": "前段製程設備族群",
+   "hash": "#industry/group/fab_process_equip"
+  },
+  {
+   "label": "前段製程材料族群",
+   "hash": "#industry/group/fab_material"
+  },
+  {
+   "label": "半導體設備／材料題材熱度",
+   "hash": "#heatmap/theme/semi_equipment"
+  },
+  {
+   "label": "相關：IC 代工是什麼",
+   "hash": "#article/2026-10-19-know-foundry"
+  }
+ ],
+ "sources": [
+  {
+   "title": "TSMC Logic Technology（N5 於 2020 年、N3 於 2022 年量產；N2 於 4Q25 量產，第一代奈米片電晶體）",
+   "publisher": "台積公司",
+   "date": "2026",
+   "url": "https://www.tsmc.com/dedicatedFoundry/technology/logic"
+  },
+  {
+   "title": "TSMC's 2nm N2 process node enters production this year, A16 and N2P arriving next year",
+   "publisher": "Tom's Hardware",
+   "date": "2025",
+   "url": "https://www.tomshardware.com/tech-industry/tsmcs-2nm-n2-process-node-enters-production-this-year-a16-and-n2p-arriving-next-year"
+  },
+  {
+   "title": "TSMC Dishes on 5nm and 3nm Process Nodes, Introduces 3DFabric Technology",
+   "publisher": "Tom's Hardware",
+   "date": "2020-08",
+   "url": "https://www.tomshardware.com/uk/news/tsmc-5nm-4nm-3nm-process-node-introduces-3dfabric-technology"
+  },
+  {
+   "title": "Samsung kicks off mass production of 3nm GAA chips",
+   "publisher": "TweakTown",
+   "date": "2022-06-30",
+   "url": "https://www.tweaktown.com/news/87161/samsung-kicks-off-mass-production-of-3nm-gaa-chips-next-gen-begins/index.html"
+  },
+  {
+   "title": "Samsung starts mass production on 3nm process node",
+   "publisher": "Club386",
+   "date": "2022-06",
+   "url": "https://www.club386.com/samsung-starts-mass-production-on-3nm-process-node"
+  },
+  {
+   "title": "Samsung Foundry renames '3nm' process tech to '2nm,' rewrites contract: Report",
+   "publisher": "Tom's Hardware",
+   "date": "2024-03",
+   "url": "https://www.tomshardware.com/pc-components/cpus/samsung-foundry-renames-3nm-process-technology-to-2nm-production-node-following-industry-trends-report"
+  },
+  {
+   "title": "Nanometer no more: Intel changes its process names to match TSMC",
+   "publisher": "PC Gamer",
+   "date": "2021",
+   "url": "https://pcgamer.com/intel-renames-process-nodes-intros-angstrom-era-of-semiconductors"
+  },
+  {
+   "title": "Life at 10nm (or is it 7nm) and 3nm?",
+   "publisher": "EE Journal",
+   "date": "2017",
+   "url": "https://www.eejournal.com/article/life-at-10nm-or-is-it-7nm-and-3nm/"
+  },
+  {
+   "title": "Intel 18A anchors Intel's Panther Lake and Xeon 6 platforms",
+   "publisher": "eeNews Europe",
+   "date": "2025",
+   "url": "https://www.eenewseurope.com/en/intel-18a-anchors-intels-panther-lake-and-xeon-6-platforms"
+  },
+  {
+   "title": "TSMC's 1.6nm Technology Announced for Late 2026: A16 with Super Power Rail Backside Power",
+   "publisher": "AnandTech",
+   "date": "2024-04",
+   "url": "https://www.anandtech.com/show/21369"
+  },
+  {
+   "title": "聯電和英特爾共同宣布合作開發 12 奈米製程平台",
+   "publisher": "科技新報",
+   "date": "2024-01-25",
+   "url": "https://technews.tw/?p=1182632"
+  }
+ ],
+ "confidence": "中",
+ "status": "draft",
+ "groups": [
+  {
+   "id": "foundry",
+   "name": "晶圓代工"
+  },
+  {
+   "id": "fab_process_equip",
+   "name": "前段製程設備"
+  },
+  {
+   "id": "fab_material",
+   "name": "前段製程材料"
+  },
+  {
+   "id": "silicon_wafer",
+   "name": "矽晶圓"
+  }
+ ],
+ "vault": {
+  "line": "ind",
+  "source_status": "draft"
+ }
+}

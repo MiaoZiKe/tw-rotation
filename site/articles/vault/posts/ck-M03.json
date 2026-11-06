@@ -1,0 +1,216 @@
+{
+ "id": "ck-M03",
+ "cat": "know",
+ "title": "CPI 是什麼：物價指數怎麼算、怎麼讀",
+ "subtitle": "通膨率 9.1% 是什麼意思？年增、月增、核心 CPI 三組容易混的概念，用 2022 年的高峰與回落一次分清楚。",
+ "date": "2026-11-06",
+ "updated": "2026-11-06",
+ "tags": [
+  "CPI",
+  "通膨",
+  "核心CPI",
+  "主計總處",
+  "總經入門"
+ ],
+ "summary": "說明 CPI 的一籃子商品、年增與月增的差別、核心 CPI 的口徑（美國與台灣不同），並以 2022 年 6 月高峰 9.1% 至 2023 年 6 月回落為已結束的歷史案例。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "一句結論"
+  },
+  {
+   "t": "p",
+   "text": "消費者物價指數（CPI）衡量一籃子消費者常買的商品與服務，價格比一年前變了多少。我們常聽到的「通膨率」，多半就是 CPI 的年增率；核心 CPI 則是把價格波動特別大的項目先拿掉，用來看比較持久的趨勢。"
+  },
+  {
+   "t": "h",
+   "text": "三個重點"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "一籃子：美國勞工統計局（BLS）把消費支出分成許多類，以 1982～1984 年平均為 100 當基期。各類的比重不同，其中居住（shelter）約占三分之一（依 BLS 2021 年 12 月的相對重要性表推算），所以房租變動對整體 CPI 影響很大。",
+    "年增與月增：年增率是和去年同月比，月增率是和上個月比（通常經過季節調整）。新聞標題說的「通膨 9.1%」是年增率，不是一個月漲了 9.1%。",
+    "核心不等於全部：美國的核心 CPI 剔除整個食品和能源類；台灣主計總處的核心 CPI 剔除的是蔬果和能源，口徑不一樣，比較兩國數字時要看清楚。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "多久公布、去哪裡看"
+  },
+  {
+   "t": "p",
+   "text": "美國 CPI 每月由 BLS 公布上個月的資料，例如 2022 年 6 月的資料是在 2022 年 7 月 13 日公布，確切日期請看 BLS 的公布日程。台灣的 CPI 由主計總處公布，近幾年多落在每月 5 日到 10 日之間（這是觀察，非官方規定），日期請以主計總處的發布時間表為準。兩邊的網站都提供歷史資料可下載。"
+  },
+  {
+   "t": "h",
+   "text": "影響路徑：數字如何變成市場價格"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "對利率預期：通膨降不下來，市場會預期央行維持較高利率更久；通膨明顯降溫，預期就會往另一邊移動。聯準會正式的 2% 目標用的是 PCE 物價指數，不是 CPI，但 CPI 公布得早，所以常被當成先行參考。",
+    "對股債匯：利率預期一變，股票估值、債券價格、美元與新台幣就跟著重新定價（路徑見上一篇）。",
+    "對台股：外資資金流向與新台幣匯率，是美國通膨數據影響台股最常見的管道，但不是唯一的。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "歷史案例：2022 年的通膨高峰與回落"
+  },
+  {
+   "t": "p",
+   "text": "2022 年 6 月，美國 CPI 年增 9.1%，是自 1981 年 11 月以來最大的年增幅；其中能源年增 41.6%、家用食品年增 12.2%、汽油年增 59.9%。2022 年 9 月整體 CPI 年增 8.2%，核心 CPI 年增 6.6%，是自 1982 年 8 月以來最大的核心年增幅。聯準會從 2022 年 3 月起一路升息，到 2023 年 7 月累計升了 11 次。2023 年 6 月，整體 CPI 年增降到 3.0%，是 2021 年 3 月以來最小，核心為 4.8%，前一個月（5 月）是 5.3%。"
+  },
+  {
+   "t": "chart",
+   "kind": "bar",
+   "title": "美國 CPI 年增率：幾個月份對照",
+   "unit": "%",
+   "x": [
+    "2022-06 整體",
+    "2022-09 整體",
+    "2022-09 核心",
+    "2023-06 整體",
+    "2023-06 核心"
+   ],
+   "series": [
+    {
+     "name": "年增率",
+     "type": "bar",
+     "data": [
+      9.1,
+      8.2,
+      6.6,
+      3.0,
+      4.8
+     ],
+     "axis": 0
+    }
+   ],
+   "note": "只列已查證到的月份。核心 CPI 指剔除食品與能源。",
+   "source": "BLS 與新聞報導，見文末來源"
+  },
+  {
+   "t": "h",
+   "text": "常見誤解"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "「通膨降到 3% 代表物價下跌」：不是。年增率從 9.1% 降到 3.0%，只是漲得變慢；物價水準仍然比一年前高。",
+    "「核心 CPI 把食物和能源拿掉，所以比較不重要」：剔除是為了看趨勢，不是說它們對生活沒影響。2022 年 6 月正是能源和食品拉高了整體 CPI。",
+    "「CPI 就是我自己的感受」：CPI 是平均籃子，你的支出結構（例如租屋或開車比重）和平均不同，感受自然會有落差。",
+    "「各國核心 CPI 可以直接比」：像台灣和美國的剔除項目不同，要先對口徑。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "這跟你有什麼關係"
+  },
+  {
+   "t": "p",
+   "text": "看 CPI 新聞時，先確認三件事：是整體還是核心？是年增還是月增？是美國還是台灣？這三件事分清楚，你就不會被「通膨 X%」這種單一標題誤導。"
+  },
+  {
+   "t": "callout",
+   "text": "本文為教學內容，以已經發生的歷史資料說明觀念，不構成投資建議，也不預測未來走勢。本站不是證券投資顧問事業，任何投資決定請自行判斷並自負風險。"
+  }
+ ],
+ "site_links": [
+  {
+   "label": "總覽",
+   "hash": "#overview"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Consumer prices up 9.1 percent over the year ended June 2022, largest increase in 40 years",
+   "publisher": "美國勞工統計局（BLS）",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.bls.gov/opub/ted/2022/consumer-prices-up-9-1-percent-over-the-year-ended-june-2022-largest-increase-in-40-years.htm"
+  },
+  {
+   "title": "Inflation quickens to 9.1%（2022-07-13）",
+   "publisher": "Daily Business Review",
+   "date": "查閱 2026-11-06",
+   "url": "https://law.com/dailybusinessreview/2022/07/13/inflation-quickens-to-9-1-amping-up-fed-pressure-to-go-big"
+  },
+  {
+   "title": "Consumer Price Index, September 2022（轉載 BLS 新聞稿）",
+   "publisher": "Wichita Liberty",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.wichitaliberty.org/economics/consumer-price-index-2022-09"
+  },
+  {
+   "title": "Core inflation continues to surge despite Fed's response（2022-10-13）",
+   "publisher": "RISMedia",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.rismedia.com/2022/10/13/core-inflation-continues-to-surge-despite-feds-aggressive-response/"
+  },
+  {
+   "title": "US June CPI y/y 3.0% versus 3.1% expected（2023-07-12）",
+   "publisher": "InvestingLive",
+   "date": "查閱 2026-11-06",
+   "url": "https://images.investinglive.com/news/us-june-cpi-yy-30-versus-31-expected-20230712/"
+  },
+  {
+   "title": "US consumer inflation eases sharply to 3% in June",
+   "publisher": "Anadolu Agency",
+   "date": "查閱 2026-11-06",
+   "url": "https://aa.com.tr/en/americas/us-consumer-inflation-eases-sharply-to-3-in-june/2943945"
+  },
+  {
+   "title": "Release CPI December 2021（相對重要性，經 Hawaii DBEDT 資料簿轉引）",
+   "publisher": "夏威夷州經發局",
+   "date": "查閱 2026-11-06",
+   "url": "https://files.hawaii.gov/dbedt/economic/databook/2021-individual/14/140721.pdf"
+  },
+  {
+   "title": "Statement on Longer-Run Goals, January 25, 2012",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20120125c.htm"
+  },
+  {
+   "title": "Federal Reserve Resumes Interest Rate Hikes（2023-07-26）",
+   "publisher": "Advisor Perspectives",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.advisorperspectives.com/commentaries/2023/08/01/federal-reserve-resumes-interest-rate-hikes"
+  },
+  {
+   "title": "Frequently Asked Questions (CPI 基期 1982-84=100)",
+   "publisher": "美國勞工統計局（BLS）",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.bls.gov/bls/faqs.htm"
+  },
+  {
+   "title": "COST OF LIVING／Core CPI up faster over past three years（台灣核心 CPI 口徑）",
+   "publisher": "Focus Taiwan",
+   "date": "查閱 2026-11-06",
+   "url": "https://focustaiwan.tw/business/202404090009"
+  },
+  {
+   "title": "核心物價指數（剔除蔬果及能源）說明",
+   "publisher": "臺中市政府主計處轉引主計總處",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.dbas.taichung.gov.tw/media/245070/3121616525371.pdf"
+  },
+  {
+   "title": "主計總處 CPI 公布日期觀察：2026-02-05",
+   "publisher": "Focus Taiwan",
+   "date": "查閱 2026-11-06",
+   "url": "https://focustaiwan.tw/business/202602050026"
+  }
+ ],
+ "confidence": "中高",
+ "status": "published",
+ "groups": [],
+ "pack": "P3",
+ "domain": "macro",
+ "vault": {
+  "line": "macro",
+  "source_status": "published"
+ }
+}

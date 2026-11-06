@@ -34,6 +34,8 @@
     /* 2026-10-16 新分類（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制 這些都要在確認」）：
        排在總覽後面＝跟左側選單「今日市場：總覽 → 精選文章 → 財經日曆」同一個順序（#admin/perm 的卡片順序就是這份宣告順序） */
     { id: 'articles', name: '精選文章' },
+    /* 2026-11-07 新分類「簽到」（每日簽到＋比比補簽＋簽到許願；site/checkin.js）：排在精選文章後面 */
+    { id: 'checkin', name: '簽到' },
     { id: 'flow', name: '資金流向' },
     { id: 'industry', name: '產業地圖／產業鏈' },
     { id: 'heatmap', name: '熱力圖' },
@@ -470,6 +472,18 @@
   LIST.push(Object.assign(pickF('art.read.n', 'articles', '精選文章可讀全文篇數（累計）', '篇', 999, [0, 1, 3, 5, 10, 20, 50, 999], 0, 0,
     '精選文章全文最多可讀幾篇（所有分類合計、累計不歸零、同一篇重讀不重算）。0＝只看標題與分類；超過的文章只顯示標題與升級提示。擁有者／管理員不受限'),
     { defBy: { guest: 0, free: 0, plus: 5 } }));
+  /* ★ 2026-11-07 每日簽到（Andy 11-07；規格 docs/feature_proposals/checkin_spec_1107.md 第 9 節；CLAUDE.md 11-02：新功能一律要有功能鍵與四方案值）。
+     · ci.sign 每日簽到（開關）：訪客關（只能預覽月曆，按簽到要求登入），註冊會員以上開。
+     · ci.makeup 比比補簽每月次數（0～3）：訪客 0，其他 3。ci.wish 簽到許願每月批數（0～1）：訪客 0，其他 1。這兩個是「每月」上限，不是每日，由 site/checkin.js 自己算。
+     · art.cat.vault 比比寶箱單篇內文（開關）：只擋單篇內文，不擋分頁列表；不佔 art.read／art.read.n（articles.js artBlocked 對 vault 只看這一鍵）。
+     · ★ 法遵：寶箱文章「只能靠簽到解鎖」。這裡的開關只決定「已解鎖的人看不看得到」，不是付費解鎖：任何方案、站主都不會讓未簽到兌換的文章變成已解鎖（checkin.js unlocked() 不看方案）。
+     體驗額度不替 Andy 預設：不在 GRANT_BAN，自動出現在「編輯：新會員體驗」清單，次數由他自己設。 */
+  LIST.push(
+    { id: 'ci.sign', name: '每日簽到', cat: 'checkin', def: true, kind: 'bool', defBy: { guest: false }, desc: '每日簽到月曆（關掉：簽到鈕鎖住、顯示需開通；訪客只能預覽月曆）', veil: [], mark: [], block: [] },
+    pickF('ci.makeup', 'checkin', '比比補簽（每月次數）', '次', 3, [0, 1, 2, 3], 0, 3, '每個月可以用比比互動換幾次補簽（0＝不能補簽；上限 3）。每月計算，不是每日'),
+    pickF('ci.wish', 'checkin', '簽到許願（每月批數）', '批', 1, [0, 1], 0, 1, '累積滿 20 天的許願券：每個月可以許幾批願望（0＝許願券兌換鈕鎖住）。每月計算，不是每日'),
+    Object.assign(box('art.cat.vault', 'articles', '比比寶箱（單篇）', ['#artPost[data-cat="vault"]'], '「比比寶箱」的文章內文（關掉：單篇蓋需開通卡，分頁列表照常；文章仍只能靠簽到解鎖）'), { route: /^#article\// })
+  );
   LIST.forEach(function (f) { if (SUB_OF[f.id]) f.sub = SUB_OF[f.id]; });
   function bySub(k) { return LIST.filter(function (f) { return (f.sub || []).indexOf(k) >= 0; }).map(function (f) { return f.id; }); }
 

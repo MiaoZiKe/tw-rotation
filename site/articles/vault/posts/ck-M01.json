@@ -1,0 +1,238 @@
+{
+ "id": "ck-M01",
+ "cat": "know",
+ "title": "FED 是什麼：聯準會、FOMC 與點陣圖怎麼讀",
+ "subtitle": "聯準會為什麼每年只開 8 次會，卻能牽動全球市場？從組織、公布時間到點陣圖，一次講清楚。",
+ "date": "2026-11-06",
+ "updated": "2026-11-06",
+ "tags": [
+  "聯準會",
+  "FOMC",
+  "點陣圖",
+  "利率",
+  "總經入門"
+ ],
+ "summary": "用白話說明聯準會的雙重使命、FOMC 組成與開會節奏、點陣圖的正確讀法，並以 2020 年 3 月降息、2022 年 3 月起升息為已結束的歷史案例。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "一句結論"
+  },
+  {
+   "t": "p",
+   "text": "聯準會（Fed）是美國的中央銀行，國會交給它的任務是「充分就業」與「物價穩定」。它每年開 8 次利率會議，主要用調整短期利率來靠近這兩個目標。因為美元利率是全球資金的基準價格，這 8 次會議的結果會傳到美股、台股、匯率和債市。"
+  },
+  {
+   "t": "h",
+   "text": "三個重點"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "誰決定：負責利率的是聯邦公開市場委員會（FOMC），最多 12 位有投票權：聯準會理事最多 7 位、紐約聯邦準備銀行總裁 1 位，另有 4 位由其他地區聯邦準備銀行總裁輪流擔任，任期一年。沒輪到投票的地區銀行總裁仍會出席並參與討論。",
+    "何時公布：每年例行 8 次，兩天會議，決定在第二天。聲明自 2013 年起固定在美東時間下午 2 點公布，主席記者會約在 2 點 30 分開始。3 月、6 月、9 月、12 月的會議，會同時公布經濟預測摘要（SEP），裡面有「點陣圖」。",
+    "看什麼：先看利率目標區間有沒有變，再看聲明措辭和前一次差在哪，最後才看點陣圖與記者會。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "它的任務到底是什麼"
+  },
+  {
+   "t": "p",
+   "text": "法律（《聯邦準備法》）列出三個目標：充分就業、物價穩定、適度的長期利率。第三個通常被視為前兩個達成後的結果，所以一般簡稱「雙重使命」。「物價穩定」在 2012 年 1 月 25 日的聲明中被具體化：以個人消費支出（PCE）物價指數衡量，長期通膨率 2% 最符合法定使命。"
+  },
+  {
+   "t": "h",
+   "text": "去哪裡看"
+  },
+  {
+   "t": "p",
+   "text": "所有一手資料都在聯準會官網 federalreserve.gov：FOMC 的年度行事曆、每次的聲明、會議紀要與經濟預測摘要。想先看白話解說，可以看聖路易聯邦準備銀行的 FOMC 入門頁。財經新聞通常在台灣時間隔天凌晨報導結果。"
+  },
+  {
+   "t": "h",
+   "text": "點陣圖怎麼讀"
+  },
+  {
+   "t": "p",
+   "text": "點陣圖把每位官員（含沒有投票權的）對年底聯邦資金利率的看法畫成一個個匿名的點。它是官員當下的預期，不是承諾；經濟數據一變，點就會跟著移動。把它當成「官員的天氣預報」，而不是「已簽約的行程」。"
+  },
+  {
+   "t": "h",
+   "text": "影響路徑：從華盛頓傳到台北"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "美股：利率預期改變企業借錢成本，也改變未來獲利折現後的價值（下一篇會細講）。",
+    "全球資金：美元利率變高，資金傾向回到美元資產。2022 年台灣央行總裁楊金龍在新台幣貶破 32 元時說，美台利差擴大不一定使新台幣貶值，外資賣股匯出才是關鍵。",
+    "台股：外資是台股的重要參與者，2022 年外資全年賣超台股約 1.23 兆元，是當時單一年度最大的賣超金額（證交所年報）。賣超的原因不只一個，利率只是其中一個背景。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "歷史案例：同一個機構，兩個方向"
+  },
+  {
+   "t": "p",
+   "text": "2020 年 3 月，新冠疫情擴大。聯準會先在 3 月 3 日臨時降息 2 碼（50 個基點）到 1.00%～1.25%，這是 2008 年金融海嘯以來第一次臨時降息；3 月 15 日再降到 0%～0.25%，3 月 16 日生效。兩年後方向相反：2022 年 3 月 16 日，在通膨升高下升息 1 碼到 0.25%～0.50%，投票結果 8 比 1，這是自 2018 年以來第一次升息。此後一路升到 2023 年 7 月 26 日的 5.25%～5.50%，是 2001 年 1 月以來最高，也是這輪的第 11 次升息。"
+  },
+  {
+   "t": "chart",
+   "kind": "bar",
+   "title": "聯邦資金利率目標區間上限（幾個關鍵決議日）",
+   "unit": "%",
+   "x": [
+    "2020-03-03",
+    "2020-03-16",
+    "2022-03-17",
+    "2022-12-14",
+    "2023-07-26"
+   ],
+   "series": [
+    {
+     "name": "目標區間上限",
+     "type": "bar",
+     "data": [
+      1.25,
+      0.25,
+      0.5,
+      4.5,
+      5.5
+     ],
+     "axis": 0
+    }
+   ],
+   "note": "2020-03-16 與 2022-03-17 為生效日。這是歷史紀錄，不代表未來走向。",
+   "source": "聯準會（federalreserve.gov）與新聞報導，見文末來源"
+  },
+  {
+   "t": "h",
+   "text": "常見誤解"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "「聯準會決定房貸利率和股價」：它設定的是短期政策利率，房貸利率與股價是市場在這個基礎上自己決定的。",
+    "「點陣圖是承諾」：它不是官方的政策工具，只是官員預期的分布。",
+    "「維持不變就沒消息」：聲明裡一兩個字的改動，常常才是市場最在意的地方。",
+    "「FOMC 就是 Fed 的全部」：Fed 還包括理事會與十二家地區銀行，FOMC 只是負責利率決策的委員會。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "這跟你有什麼關係"
+  },
+  {
+   "t": "p",
+   "text": "下次看到「Fed 升息一碼」，你可以先問三件事：目標區間變到哪裡？跟市場預期有沒有落差？聲明的措辭改了哪裡？先把這三件事看懂，再去看股市反應，就不會被標題帶著走。"
+  },
+  {
+   "t": "callout",
+   "text": "本文為教學內容，以已經發生的歷史資料說明觀念，不構成投資建議，也不預測未來走勢。本站不是證券投資顧問事業，任何投資決定請自行判斷並自負風險。"
+  }
+ ],
+ "site_links": [
+  {
+   "label": "總覽",
+   "hash": "#overview"
+  }
+ ],
+ "sources": [
+  {
+   "title": "St. Louis Fed：Introduction to the FOMC",
+   "publisher": "聖路易聯邦準備銀行",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.stlouisfed.org/in-plain-english/introduction-to-the-fomc"
+  },
+  {
+   "title": "Who is on the Federal Open Market Committee?",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/faqs/who-is-on-federal-open-market-committee-fomc.htm"
+  },
+  {
+   "title": "FOMC statement, March 13, 2013（聲明改為下午 2 點公布）",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20130313a.htm"
+  },
+  {
+   "title": "Statement on Longer-Run Goals, January 25, 2012",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20120125c.htm"
+  },
+  {
+   "title": "Dual mandate",
+   "publisher": "芝加哥聯邦準備銀行",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.chicagofed.org/research/dual-mandate/dual-mandate"
+  },
+  {
+   "title": "Why the Big Fuss about Little Dots?（點陣圖）",
+   "publisher": "亞特蘭大聯邦準備銀行",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.atlantafed.org/economy-matters/economic-research/2019/12/05/why-the-big-fuss-about-little-dots"
+  },
+  {
+   "title": "FOMC press release, March 15, 2020",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200315a.htm"
+  },
+  {
+   "title": "Fed cuts interest rates by 50 basis points（2020-03-03）",
+   "publisher": "InvestingLive",
+   "date": "查閱 2026-11-06",
+   "url": "https://investinglive.com/centralbank/!/fed-cuts-interest-rates-by-50-basis-points-20200303/"
+  },
+  {
+   "title": "FOMC implementation note, March 16, 2022",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/monetarypolicy/files/monetary20220316a1.pdf"
+  },
+  {
+   "title": "Fed raises interest rates for first time since 2018（8 比 1）",
+   "publisher": "The Washington Times",
+   "date": "查閱 2026-11-06",
+   "url": "https://m.washingtontimes.com/news/2022/mar/16/fed-raises-interest-rates-first-time-2018-citing-h/"
+  },
+  {
+   "title": "Federal Reserve Resumes Interest Rate Hikes（2023-07-26）",
+   "publisher": "Advisor Perspectives",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.advisorperspectives.com/commentaries/2023/08/01/federal-reserve-resumes-interest-rate-hikes"
+  },
+  {
+   "title": "Fed Raises Interest Rates to Highest Levels in 22 Years",
+   "publisher": "Entrepreneur",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.entrepreneur.com/business-news/fed-raises-interest-rates-again-hits-22-year-high/456468"
+  },
+  {
+   "title": "新台幣跌跌不休貶破 32 元，央行：外資賣股匯出是關鍵（2022-10-19）",
+   "publisher": "TechNews",
+   "date": "查閱 2026-11-06",
+   "url": "https://finance.technews.tw/2022/10/19/ntd-selling-foreign-shares-abroad-is-the-key/"
+  },
+  {
+   "title": "臺灣證券交易所 2022 年年報",
+   "publisher": "臺灣證券交易所",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.twse.com.tw/downloads/en/about/company/annual/2022/P3.pdf"
+  }
+ ],
+ "confidence": "高",
+ "status": "published",
+ "groups": [],
+ "pack": "P1",
+ "domain": "macro",
+ "vault": {
+  "line": "macro",
+  "source_status": "published"
+ }
+}

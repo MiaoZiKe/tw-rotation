@@ -1,0 +1,396 @@
+{
+ "id": "ck-I03",
+ "cat": "know",
+ "title": "AI 伺服器 BOM：一台機櫃的錢花在哪",
+ "subtitle": "從 GB200 NVL72 拆開看：運算晶片之外，還有電源、散熱、板材、網路與組裝各自在做什麼。",
+ "date": "2026-11-06",
+ "updated": "2026-11-06",
+ "tags": [
+  "AI 伺服器",
+  "BOM",
+  "機櫃",
+  "ODM",
+  "液冷",
+  "電源",
+  "PCB"
+ ],
+ "summary": "AI 伺服器的成本大頭是運算晶片與記憶體，但整櫃還要 PCB、電源、液冷、網路互連、機殼滑軌與系統組裝。本文以 GB200 NVL72 為例，把機櫃拆成七個環節，對照本站產業鏈頁的族群，並整理各家機構對整櫃價格的估計為何落差很大。",
+ "reading_min": 7,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "三句話重點"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "一座 GB200 NVL72 機櫃裡有 72 顆 GPU、36 顆 Grace CPU，裝在 18 個運算托盤；晶片與記憶體是成本主體，但不是全部。",
+    "晶片以外的零組件分成七個環節：板材與載板、網路互連、電源與備援、散熱、機構件、整機組裝，各自對應本站的一個或數個族群。",
+    "公開的整櫃成本拆解都是機構或媒體的估計，口徑不同、落差很大；本文只用有出處的數字，並標明是估計。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "先看一櫃裡有什麼"
+  },
+  {
+   "t": "p",
+   "text": "BOM 是物料清單（Bill of Materials），白話講就是「做出這台機器要買哪些東西、各花多少錢」。AI 伺服器的特殊之處在於，它賣的不是一台一台的伺服器，而是把整個機櫃當成一台電腦：輝達（NVIDIA）在 2024 年 3 月的 GTC 大會發表 GB200 NVL72，一座機櫃包含 36 顆 GB200 超級晶片（每顆是 2 顆 Blackwell GPU 搭 1 顆 Grace CPU），合計 72 顆 GPU，經由 NVLink 連成同一個運算網域。多家設備商的規格表列出機櫃由 18 個運算托盤組成，整櫃功耗約 120 kW，且必須用液冷。"
+  },
+  {
+   "t": "p",
+   "text": "功耗的部分，本站已有〈AI 伺服器一櫃 120 kW，是氣冷機櫃的 3 倍〉專文，這裡不重複，只談「錢」與「誰做什麼」。"
+  },
+  {
+   "t": "h",
+   "text": "整櫃價格：估計值差了一倍以上"
+  },
+  {
+   "t": "p",
+   "text": "沒有任何一份公開文件由輝達本身列出 BOM 比例，市面上的數字全是研調與券商的推估。能查到有明確出處的有三筆：研究機構 SemiAnalysis 在 2025 年 8 月估計，GB200 NVL72 整櫃約 310 萬美元，加上網路與儲存的全部署成本約 390 萬美元；摩根士丹利（Morgan Stanley）在 2026 年 5 月的報告估計，下一代 Vera Rubin VR200 NVL72 向超大型雲端業者出貨的整櫃約 780 萬美元，其中記憶體約 200 萬美元，占 25% 至 26%，而記憶體成本比 GB300 世代高出約 435%（約 37 萬美元增至約 200 萬美元）。多家媒體轉述的數字一致；少數報導的網址或英文標題寫成 485%，與內文金額不符，應為誤植。以上都是二手媒體轉述，原報告未能直接閱讀。"
+  },
+  {
+   "t": "chart",
+   "kind": "bar",
+   "title": "整櫃成本的公開估計（百萬美元）",
+   "unit": "百萬美元",
+   "x": [
+    "GB200 NVL72（SemiAnalysis，單櫃）",
+    "GB200 NVL72（SemiAnalysis，含網路儲存）",
+    "VR200 NVL72（摩根士丹利）"
+   ],
+   "series": [
+    {
+     "name": "估計整櫃成本",
+     "type": "bar",
+     "data": [
+      3.1,
+      3.9,
+      7.8
+     ],
+     "axis": 0
+    }
+   ],
+   "highlight": [
+    2
+   ],
+   "marks": [
+    {
+     "x": "VR200 NVL72（摩根士丹利）",
+     "text": "其中記憶體約 2.0 百萬美元"
+    }
+   ],
+   "note": "三個數字世代不同、口徑不同（有無網路儲存），不能當作同一種成本的時間序列；皆為估計，非公司公布。",
+   "source": "SemiAnalysis（2025-08-20，經二手轉述）；摩根士丹利（2026-05，經鉅亨網、工商時報轉述）"
+  },
+  {
+   "t": "p",
+   "text": "值得注意的是，摩根士丹利另有一個說法：在舊的記憶體價格結構下，記憶體只占 GB200 NVL72 的 5% 至 10%。也就是同一個零組件，占比會隨報價大幅變動。這是為什麼「某零件占整櫃幾 %」的說法一律要標年份——BOM 是會動的。"
+  },
+  {
+   "t": "h",
+   "text": "把機櫃拆成七個環節"
+  },
+  {
+   "t": "stack",
+   "title": "一座 AI 伺服器機櫃的環節（寬度為示意，不代表成本占比）",
+   "layers": [
+    {
+     "label": "運算晶片與記憶體",
+     "sub": "GPU、CPU、HBM：成本主體，多由海外廠與台積電供應，不在本站 AI 伺服器鏈內",
+     "w": 1,
+     "tone": "chip"
+    },
+    {
+     "label": "板材與載板",
+     "sub": "伺服器主板、通用基板、IC 載板：本站「PCB 硬板製造」「PCB 載板」族群",
+     "w": 0.9,
+     "tone": "board"
+    },
+    {
+     "label": "網路互連",
+     "sub": "機櫃內 NVLink 銅纜、機櫃間交換器與光模組：本站「高速交換器」「高速光模組」族群",
+     "w": 0.8,
+     "tone": "interposer"
+    },
+    {
+     "label": "電源與備援",
+     "sub": "電源供應器、電池備援模組（BBU）：本站「電源供應器」「BBU 電池備援」族群",
+     "w": 0.7,
+     "tone": "bump"
+    },
+    {
+     "label": "散熱",
+     "sub": "水冷板、分歧管、冷卻分配單元（CDU）、快接頭：本站「液冷散熱」族群",
+     "w": 0.6,
+     "tone": "mem"
+    },
+    {
+     "label": "機構件",
+     "sub": "機櫃與伺服器鈑金、滑軌：本站「機殼與滑軌」族群",
+     "w": 0.5,
+     "tone": "other"
+    },
+    {
+     "label": "系統組裝與測試",
+     "sub": "主機板到整機櫃的代工組裝與整合：本站「AI 伺服器組裝」族群",
+     "w": 0.9,
+     "tone": "substrate"
+    }
+   ]
+  },
+  {
+   "t": "table",
+   "head": [
+    "環節",
+    "在做什麼",
+    "本站族群",
+    "族群內的公司（僅列角色，不比較）"
+   ],
+   "rows": [
+    [
+     "板材與載板",
+     "承載晶片與訊號的電路板；載板在晶片與主板之間",
+     "PCB 硬板製造、PCB 載板",
+     "硬板：金像電、臻鼎-KY、健鼎、華通、精成科、瀚宇博、定穎投控；載板：欣興、南電、景碩"
+    ],
+    [
+     "網路互連",
+     "機櫃之間的乙太網路交換與光訊號收發",
+     "高速交換器與無線網路、高速光模組",
+     "交換器：智邦、明泰、啟碁、立端等；光模組：華星光、波若威、眾達-KY、光聖等"
+    ],
+    [
+     "電源與備援",
+     "把市電轉成機櫃用的電，斷電時撐住資料寫回",
+     "電源供應器、BBU 電池備援",
+     "電源：台達電、光寶科、旭隼、康舒、群電；BBU：AES-KY、順達、新盛力、加百裕、興能高、新普"
+    ],
+    [
+     "散熱",
+     "單櫃超過氣冷極限後，用液體帶走晶片的熱",
+     "液冷散熱",
+     "奇鋐、雙鴻、高力、健策、富世達"
+    ],
+    [
+     "機構件",
+     "機櫃鈑金、伺服器機殼、滑軌、液冷快接頭的金屬件",
+     "機殼與滑軌",
+     "勤誠、營邦、晟銘電、川湖、富世達、南俊國際、新日興"
+    ],
+    [
+     "系統組裝與測試",
+     "把主機板、托盤組成整櫃並出貨給雲端業者",
+     "AI 伺服器組裝",
+     "鴻海、廣達、緯穎、緯創、英業達、技嘉、永擎、神達、AMAX-KY"
+    ]
+   ]
+  },
+  {
+   "t": "p",
+   "text": "表中公司名單與本站 groups.yaml 的族群歸屬一致，只表示該公司被歸在這個族群、以其主要營收來源為依據；同一家公司可能同時出現在兩個族群（例如富世達在機殼與滑軌、液冷散熱），也不代表與任何一座機櫃的訂單關係。"
+  },
+  {
+   "t": "h",
+   "text": "組裝廠的位置：L6 到 L11"
+  },
+  {
+   "t": "p",
+   "text": "伺服器業界習慣用 L6 到 L11 描述組裝的層級：L6 約是主機板，往上依序是模組、托盤，到 L11 是整機櫃。本站「AI 伺服器組裝」族群的說明就是「主機板、節點到整機櫃（L6～L11）的代工組裝與系統整合」。層級越高，代表組裝廠承擔的整合、測試與出貨責任越多，但也越依賴上游供應的晶片與零組件。"
+  },
+  {
+   "t": "steps",
+   "title": "從零件到整櫃",
+   "items": [
+    {
+     "label": "零組件",
+     "text": "晶片、板材、電源、散熱件由各族群供應",
+     "icon": "chip"
+    },
+    {
+     "label": "主機板／模組",
+     "text": "L6 前後，焊上晶片的電路板",
+     "icon": "board"
+    },
+    {
+     "label": "運算托盤",
+     "text": "GB200 NVL72 共 18 個",
+     "icon": "server"
+    },
+    {
+     "label": "整機櫃",
+     "text": "加上交換、電源、液冷，約 120 kW",
+     "icon": "power"
+    },
+    {
+     "label": "出貨與部署",
+     "text": "運到雲端業者資料中心上線",
+     "icon": "truck"
+    }
+   ]
+  },
+  {
+   "t": "h",
+   "text": "台廠的位置與過去的關鍵事件"
+  },
+  {
+   "t": "p",
+   "text": "組裝端的規模可以從 DIGITIMES 的 2025 年全球 EMS／ODM 排名看出（經媒體轉述）：第一名鴻海，營收 2,610 億美元；第二名緯創（該報告把緯穎全額併入），營收 706 億美元；第三名廣達，營收 682 億美元。要注意這是集團口徑，包含伺服器以外的業務，不能直接等同於 AI 伺服器營收。"
+  },
+  {
+   "t": "p",
+   "text": "公司自己的說法可以看廣達 2025 年 11 月的第三季法說會：伺服器產品中 AI 機種比重已超過七成，預期隔年可達八成以上；財務長也預估 AI 伺服器占整體雲端業務的比重，將由超過五成再提高到超過七成。同一次法說也提到，因輝達新平台轉換，第四季整體伺服器出貨與前季持平。這些是公司的展望，不是已實現的結果。"
+  },
+  {
+   "t": "p",
+   "text": "另一個結構性事件是分工界線的移動。據摩根大通（J.P. Morgan）相關報導，輝達規劃自 Vera Rubin 世代起，把運算托盤以整合完成的 L10 形式交給夥伴，ODM 保留機殼、電源整合、管理軟體與整機櫃組裝測試。這個說法來自券商與媒體轉述，輝達沒有證實；若屬實，意味著組裝端的附加價值會向 L11 與系統服務傾斜。"
+  },
+  {
+   "t": "h",
+   "text": "需要留意的風險"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "世代換手：GB200、GB300、Rubin 的規格與供應商組成不同，過渡季常出現出貨暫時持平或遞延，月營收可能因此波動，不一定代表需求改變。",
+    "占比會動：記憶體報價大漲會推高整櫃成本，也會擠壓其他環節在 BOM 中的相對占比；引用任何「占 X%」都要確認年份與口徑。",
+    "分工重畫：若輝達把更多整合工作收回自己，組裝與部分零組件的議價空間可能改變，這一點目前停留在報導階段。",
+    "客戶集中：機櫃主要賣給少數超大型雲端業者，資本支出計畫的調整會一路傳到所有環節。",
+    "名單不是訂單：族群成分只說明公司的主要業務，不能推論它在某座機櫃上拿到多少價值。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "怎麼用本站追蹤"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "到產業鏈頁「AI 伺服器」，從下游組裝一路看到中游零組件，確認每個環節的族群與成分。",
+    "進入各族群頁，看該族群近期的資金流向與成交熱度，比較同一條鏈上不同環節的表現是否同步。",
+    "題材熱度頁的「AI 伺服器」「散熱／液冷」「電源／BBU」題材，可以看資金目前集中在哪一段。",
+    "個股頁的月營收與基本面分頁，用來對照公司自己公布的數字，而不是依賴第三方的占比推估。"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文為產業結構介紹，所列公司依本站族群分類列出，只說明在產業鏈中的角色，不比較優劣，也不代表與任何訂單或營收的關係。文中機構估計與公司展望均為第三方或公司自己的說法，本站未查證其準確性。本站不是證券投資顧問事業，不推介任何有價證券；任何投資決定請自行判斷並自負風險。"
+  }
+ ],
+ "site_links": [
+  {
+   "label": "AI 伺服器產業鏈",
+   "hash": "#industry/ai_server"
+  },
+  {
+   "label": "AI 伺服器組裝族群",
+   "hash": "#industry/group/ai_server_odm"
+  },
+  {
+   "label": "液冷散熱族群",
+   "hash": "#industry/group/liquid_cooling"
+  },
+  {
+   "label": "電源供應器族群",
+   "hash": "#industry/group/server_psu"
+  },
+  {
+   "label": "AI 伺服器題材熱度",
+   "hash": "#heatmap/theme/ai_server"
+  },
+  {
+   "label": "相關：AI 伺服器一櫃 120 kW",
+   "hash": "#article/2026-10-14-intro-ai-server"
+  }
+ ],
+ "sources": [
+  {
+   "title": "gb200 hardware architecture and component（GB200 BOM 研究）",
+   "publisher": "SemiAnalysis",
+   "date": "2025",
+   "url": "https://newsletter.semianalysis.com/p/gb200-hardware-architecture-and-component"
+  },
+  {
+   "title": "大摩：輝達記憶體成本飆 435% Vera Rubin 恐天價",
+   "publisher": "科技新報",
+   "date": "2026-05-22",
+   "url": "https://finance.technews.tw/2026/05/22/nvidias-memory-costs-soar-485-percent/"
+  },
+  {
+   "title": "大摩估：輝達記憶體成本暴增435% 最新AI機櫃成本逼近780萬美元",
+   "publisher": "鉅亨網",
+   "date": "2026-05-22",
+   "url": "https://m.cnyes.com/news/id/6466876"
+  },
+  {
+   "title": "大摩：輝達記憶體成本飆435% Vera Rubin恐天價",
+   "publisher": "工商時報",
+   "date": "2026-05-22",
+   "url": "https://www.ctee.com.tw/news/20260522701265-430702"
+  },
+  {
+   "title": "Morgan Stanley's BOM Analysis of NVIDIA's Rubin: GPU Share Declines, PCB, MLCC, and ABF Substrate Values Soar",
+   "publisher": "Tiger Brokers 新聞",
+   "date": "2026",
+   "url": "https://www.itiger.com/news/1188068712"
+  },
+  {
+   "title": "NVIDIA GB200 NVL72 規格（36 Grace CPU、72 Blackwell GPU、18 運算托盤、約 120 kW、液冷）",
+   "publisher": "HPE／Gigabyte 產品規格頁",
+   "date": "2025",
+   "url": "https://www.gigabyte.com/Enterprise/GIGAPOD-Rack-Scale/AI-DLC-Rack_NVIDIA-GB200-NVL72"
+  },
+  {
+   "title": "NVIDIA Blackwell 與 GB200 NVL72 於 GTC 2024 發表",
+   "publisher": "SiliconANGLE",
+   "date": "2024-03-18",
+   "url": "https://siliconangle.com/?p=649299"
+  },
+  {
+   "title": "2025年全球前20大EMS/ODM排名洗牌 緯創躍居全球第二大",
+   "publisher": "優分析（引 DIGITIMES）",
+   "date": "2026",
+   "url": "https://uanalyze.com.tw/articles/3630247119"
+  },
+  {
+   "title": "廣達第三季營收、EPS創新高 法說會估明年AI伺服器營收將「三位數成長」",
+   "publisher": "Yahoo 股市",
+   "date": "2025-11",
+   "url": "https://tw.stock.yahoo.com/news/%E5%BB%A3%E9%81%94%E7%AC%AC%E4%B8%89%E5%AD%A3%E7%87%9F%E6%94%B6-eps%E5%89%B5%E6%96%B0%E9%AB%98-%E6%B3%95%E8%AA%AA%E6%9C%83%E4%BC%B0%E6%98%8E%E5%B9%B4ai%E4%BC%BA%E6%9C%8D%E5%99%A8%E7%87%9F%E6%94%B6%E5%B0%87-%E4%B8%89%E4%BD%8D%E6%95%B8%E6%88%90%E9%95%B7-003900320.html"
+  },
+  {
+   "title": "JP Morgan says Nvidia is gearing up to sell entire AI servers instead of just AI GPUs",
+   "publisher": "Tom's Hardware",
+   "date": "2025-2026",
+   "url": "https://www.tomshardware.com/tech-industry/artificial-intelligence/jp-morgan-says-nvidia-is-gearing-up-to-sell-entire-ai-servers-instead-of-just-ai-gpus-and-componentry-jensens-master-plan-of-vertical-integration-will-boost-profits-purportedly-starting-with-vera-rubin"
+  }
+ ],
+ "confidence": "中",
+ "status": "draft",
+ "groups": [
+  {
+   "id": "ai_server_odm",
+   "name": "AI 伺服器組裝"
+  },
+  {
+   "id": "chassis_rail",
+   "name": "機殼與滑軌"
+  },
+  {
+   "id": "server_psu",
+   "name": "電源供應器"
+  },
+  {
+   "id": "liquid_cooling",
+   "name": "液冷散熱"
+  },
+  {
+   "id": "pcb_rigid",
+   "name": "PCB 硬板製造"
+  }
+ ],
+ "vault": {
+  "line": "ind",
+  "source_status": "draft"
+ }
+}

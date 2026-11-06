@@ -1,0 +1,239 @@
+{
+ "id": "ck-M02",
+ "cat": "know",
+ "title": "利率怎麼影響資產：折現、成本與資金流向",
+ "subtitle": "為什麼利率一升，成長股、債券和新台幣常常同時承壓？用 2022 年的升息當案例拆解。",
+ "date": "2026-11-06",
+ "updated": "2026-11-06",
+ "tags": [
+  "利率",
+  "折現",
+  "殖利率",
+  "匯率",
+  "總經入門"
+ ],
+ "summary": "說明利率透過折現、借貸成本與資產比較三條路徑影響股、債、匯，並以 2022 年快速升息期間的市場表現為已結束的歷史案例。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "一句結論"
+  },
+  {
+   "t": "p",
+   "text": "利率可以想成「錢的價格」。利率上升時，未來賺到的錢折現後變少、借錢變貴、無風險資產的吸引力提高，資金傾向離開價格偏高、現金流較遠的資產；利率下降時方向相反。這是傾向，不是定律，實際結果還要看市場原本預期什麼、通膨與獲利同時怎麼變。"
+  },
+  {
+   "t": "h",
+   "text": "三個重點"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "折現：股票的價值，是把未來會賺的現金流用一個折現率換算成今天的價值。折現率變高，現值就變低；越遠的現金流受影響越大，所以獲利集中在未來的成長型公司通常對利率更敏感。一個假設性的算例是折現率從 6% 升到 7%，某家成長公司的現值約少 9%（WisdomTree 的示範）。",
+    "成本：企業和家庭借錢的利息變高，投資、買房、買車的意願與能力都會受影響，這是利率影響經濟活動的主要管道。",
+    "比較：公債殖利率上升，等於「什麼都不做」的報酬變高，其他資產必須提供更高的報酬，價格才有吸引力。債券價格和殖利率反向，殖利率升，已發行的舊債價格就下跌。"
+   ]
+  },
+  {
+   "t": "steps",
+   "title": "一次升息怎麼一層一層傳出去",
+   "items": [
+    {
+     "label": "央行調高政策利率",
+     "text": "例如聯準會升息"
+    },
+    {
+     "label": "市場利率跟著動",
+     "text": "公債殖利率、銀行放款利率上升"
+    },
+    {
+     "label": "資產價格重新定價",
+     "text": "股票折現率提高、舊債價格下跌"
+    },
+    {
+     "label": "資金與匯率移動",
+     "text": "美元資產吸引力提高，非美貨幣承壓"
+    }
+   ]
+  },
+  {
+   "t": "h",
+   "text": "多久公布、去哪裡看"
+  },
+  {
+   "t": "p",
+   "text": "美國的利率決議每年 8 次，見聯準會官網；台灣央行（中央銀行）每季召開理監事會，會後公布政策利率（重貼現率），可在央行官網查詢。美國 10 年期公債殖利率每天都有資料，聖路易聯邦準備銀行的 FRED 資料庫可以查。"
+  },
+  {
+   "t": "h",
+   "text": "對台股和全球的影響路徑"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "股市估值：利率上升時，市場願意給成長股的本益比傾向下降。",
+    "債市：殖利率上升，債券價格下跌，而且天期越長跌得越多。",
+    "匯率與資金：美元利率相對變高，資金傾向流向美元，外資賣股匯出會讓新台幣承壓。台灣央行總裁在 2022 年 10 月 19 日也強調，外資賣股匯出是新台幣貶值的關鍵。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "歷史案例：2022 年的快速升息"
+  },
+  {
+   "t": "p",
+   "text": "2022 年 3 月 16 日，聯準會把利率從 0%～0.25% 升到 0.25%～0.50%。到當年 12 月 14 日升半碼至 4.25%～4.50%（之前連續四次升 3 碼），累計升了 425 個基點。10 年期公債殖利率從 1 月初約 1.63% 升到年底約 3.88%，10 月 24 日曾到約 4.25%。台灣央行也跟著升息：2022 年重貼現率合計升了 2.5 碼，到年底為 1.75%。"
+  },
+  {
+   "t": "p",
+   "text": "市場結果：美國 S&P 500 指數全年下跌 19.4%（不含股息），那斯達克綜合指數下跌 33.1%，彭博美國綜合債券指數下跌約 13%，是該指數 1976 年成立以來最差的一年；台灣加權指數 2022 年最後一個交易日收在 14,137.69 點，全年下跌 22.4%，外資全年賣超約 1.23 兆元。"
+  },
+  {
+   "t": "chart",
+   "kind": "bar",
+   "title": "2022 年主要資產全年報酬",
+   "unit": "%",
+   "x": [
+    "S&P 500（價格）",
+    "那斯達克綜合",
+    "彭博美國綜合債券",
+    "台灣加權指數"
+   ],
+   "series": [
+    {
+     "name": "2022 全年報酬",
+     "type": "bar",
+     "data": [
+      -19.4,
+      -33.1,
+      -13.0,
+      -22.4
+     ],
+     "axis": 0
+    }
+   ],
+   "note": "S&P 500、那斯達克與加權指數為價格報酬，債券指數為總報酬，口徑不同，只能看大方向。同一年還有高通膨、俄烏戰爭等因素，不能把跌幅全部歸因於利率。",
+   "source": "AP、彭博與證交所年報，見文末來源"
+  },
+  {
+   "t": "h",
+   "text": "常見誤解"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "「升息股市一定跌」：2022 年是下跌，但市場反映的是利率預期，不是升息這件事本身；若升息已被充分預期，當天反應可能很小。",
+    "「債券一定穩」：2022 年債券與股票同步下跌，彭博美國綜合債券指數創下紀錄的跌幅，原因就是殖利率快速上升。",
+    "「台灣利率沒動就不受影響」：台灣央行 2022 年也升息；而且資金面主要經由外資買賣與匯率傳進來。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "這跟你有什麼關係"
+  },
+  {
+   "t": "p",
+   "text": "看到利率新聞，不要只問「升了還是降了」，而要問：升降幅度比預期大還是小？長天期殖利率有沒有跟著動？美元和新台幣的反應如何？這三個問題，比一句「升息利空」更接近真實的傳導。"
+  },
+  {
+   "t": "callout",
+   "text": "本文為教學內容，以已經發生的歷史資料說明觀念，不構成投資建議，也不預測未來走勢。本站不是證券投資顧問事業，任何投資決定請自行判斷並自負風險。"
+  }
+ ],
+ "site_links": [
+  {
+   "label": "總覽",
+   "hash": "#overview"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Why growth stocks hate higher interest rates",
+   "publisher": "First Merchants Trust",
+   "date": "查閱 2026-11-06",
+   "url": "https://fmtrust.bank/money-moves/why-growth-stocks-hate-higher-interest-rates/"
+  },
+  {
+   "title": "The Stock Market Threw Its Interest Rate Rules of Thumb Out the Window",
+   "publisher": "WisdomTree",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.wisdomtree.com/us/insights/blog/the-stock-market-threw-its-interest-rate-rules-of-thumb-out-the-window/pdf"
+  },
+  {
+   "title": "Why Are US Growth Stocks Struggling?",
+   "publisher": "Morningstar",
+   "date": "查閱 2026-11-06",
+   "url": "https://morningstar.co.uk/uk/news/219125/why-are-us-growth-stocks-struggling.aspx"
+  },
+  {
+   "title": "FOMC implementation note, March 16, 2022",
+   "publisher": "聯準會",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.federalreserve.gov/monetarypolicy/files/monetary20220316a1.pdf"
+  },
+  {
+   "title": "Fed Announces 50 Basis Points Rate Hike（2022-12-14）",
+   "publisher": "Advisor Perspectives",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.advisorperspectives.com/commentaries/2022/12/15/fed-announces-50-basis-points-rate-hike"
+  },
+  {
+   "title": "Fed raises interest rates by half a point（2022-12-14）",
+   "publisher": "Fortune",
+   "date": "查閱 2026-11-06",
+   "url": "https://fortune.com/2022/12/14/fed-interest-rate-hike-half-point-inflation-jerome-powell/"
+  },
+  {
+   "title": "Historical Year Data · 2022（10 年期公債殖利率）",
+   "publisher": "Convex（資料彙整，單一來源，信心中）",
+   "date": "查閱 2026-11-06",
+   "url": "https://convextrade.com/metrics/dgs10/history/2022"
+  },
+  {
+   "title": "S&P 500 closes out dismal year with worst loss since 2008",
+   "publisher": "美聯社（AP）",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.ksl.com/article/50548249/sp-500-closes-out-dismal-year-with-worst-loss-since-2008"
+  },
+  {
+   "title": "Just How Bad Was 2022's Stock and Bond Market Performance?",
+   "publisher": "Morningstar",
+   "date": "查閱 2026-11-06",
+   "url": "https://global.morningstar.com/en-ca/markets/just-how-bad-was-2022s-stock-and-bond-market-performance"
+  },
+  {
+   "title": "Why ordinary investors got hit so hard in 2022（Bloomberg U.S. Aggregate）",
+   "publisher": "Yahoo Finance",
+   "date": "查閱 2026-11-06",
+   "url": "https://news.yahoo.com/why-ordinary-investors-got-hit-so-hard-in-2022-morning-brief-110004332.html"
+  },
+  {
+   "title": "臺灣證券交易所 2022 年年報",
+   "publisher": "臺灣證券交易所",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.twse.com.tw/downloads/en/about/company/annual/2022/P3.pdf"
+  },
+  {
+   "title": "新台幣跌跌不休貶破 32 元，央行：外資賣股匯出是關鍵（2022-10-19）",
+   "publisher": "TechNews",
+   "date": "查閱 2026-11-06",
+   "url": "https://finance.technews.tw/2022/10/19/ntd-selling-foreign-shares-abroad-is-the-key/"
+  },
+  {
+   "title": "央行升息半碼，連續五次調高利率（2023-03）",
+   "publisher": "台灣英文新聞",
+   "date": "查閱 2026-11-06",
+   "url": "https://www.taiwannews.com.tw/zh/news/4844632"
+  }
+ ],
+ "confidence": "中高",
+ "status": "published",
+ "groups": [],
+ "pack": "P2",
+ "domain": "macro",
+ "vault": {
+  "line": "macro",
+  "source_status": "published"
+ }
+}

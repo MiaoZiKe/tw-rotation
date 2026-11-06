@@ -1372,6 +1372,9 @@
   /* once：素材是播一次的專屬動作（播一輪＝MS 毫秒就回待機）；沒有 once 的是現有素材代替（循環素材，播兩輪） */
   const ACTS = [
     { id: 'ask', name: '問比比', ask: true },
+    /* 2026-11-07 每日簽到補簽（site/checkin.js）：聽比比說、比比考考你各一顆小圈；點了開小卡片，看完／答完算一次互動 */
+    { id: 'say', name: '聽比比說', ci: 'say' },
+    { id: 'quiz', name: '比比考考你', ci: 'quiz' },
     { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
     { id: 'pet', name: '摸摸頭', file: 'pet_q', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
     { id: 'grass', name: '餵牧草', file: 'eat_q', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
@@ -1399,6 +1402,8 @@
     /* 玩具六件組（10-12）：動畫單位的 *_icon96.png 放進同款奶油圓底（bibi_site.py icons） */
     snack: 'carrot', bubble: 'bubble', feather: 'feather', yarn: 'yarn', plane: 'plane', leaf: 'leaf' };
   const SVG = {
+    say: '<path d="M9 18h6M10 21h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.1 1 1.9h5c0-.8.4-1.4 1-1.9A6 6 0 0 0 12 3z" fill="#ffe08a" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    quiz: '<circle cx="12" cy="12" r="9" fill="#b9a3ff" fill-opacity=".55" stroke="currentColor" stroke-width="1.6"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .7-1 1.4v.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1" fill="currentColor"/>',
     ask: '<path d="M5 5.5h14a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 19 17.5h-6l-4.2 3.3v-3.3H5A2.5 2.5 0 0 1 2.5 15V8A2.5 2.5 0 0 1 5 5.5z" fill="#7cc4ff" fill-opacity=".35" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 9.6a2 2 0 1 1 2.6 1.9c-.5.2-.6.5-.6 1v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="14.9" r=".95" fill="currentColor"/>',
     pet: '<ellipse cx="12" cy="15" rx="5" ry="4.2" fill="#ffb3c4" stroke="currentColor" stroke-width="1.5"/><circle cx="6.4" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/>',
     grass: '<path d="M4 20.5h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 20.5C6.6 15 5 12 3.5 10.5c3 .8 5 3.6 5.4 7.4M12 20.5c-.2-6 .3-10 1.6-14 1 4.3.8 9.2-.4 14M17 20.5c.3-4 2-7 3.8-8.6-.4 3.6-1.4 6.4-2.6 8.6" fill="#6cc46a" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
@@ -1816,6 +1821,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0, pendingAct = 0, waitingAct = false;
   async function act(id, btn) {
     const a0 = ACTS.find((x) => x.id === id); if (!a0) return;
+    if (a0.ci) { stopRun('ci'); closeRing(true); if (window.TwCheckin && window.TwCheckin.bibi) window.TwCheckin.bibi(a0.ci); return; }
     if (a0.ask) { stopRun('ask'); pendingAct++; waitingAct = false; closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
     if (mode === 'act') return;                       // 冷卻：上一個動作還沒播完
     stopFidget(); freezeIdle();
