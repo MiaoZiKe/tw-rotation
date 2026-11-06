@@ -740,6 +740,12 @@ def build() -> None:
         _write("tape_codes", tape_codes(gdetail, _th, markets, latest))
     except Exception as exc:  # noqa: BLE001
         log.warning("當日快照名單產出失敗：%s", exc)
+    # 2026-11-07 個股「大戶／散戶買賣（推估）」：資料湖 bigsmall_daily → site/data/bigsmall/（功能鍵 stock.bigsmall 開著才會被前端讀）
+    try:
+        from .compute import bigsmall as _bs
+        log.info("大戶散戶買賣（推估）：%s", _bs.export(config.SITE_DATA, price, store.read("bigsmall_daily")))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("大戶散戶買賣（推估）產出失敗：%s", exc)
     try:
         _write("industry_map", industry_map(today, gdetail, fund_rows, gval, latest, odetail))
     except Exception as exc:  # noqa: BLE001
