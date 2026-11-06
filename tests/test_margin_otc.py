@@ -146,6 +146,7 @@ def test_run_writes_state_and_ignore(tmp_path, monkeypatch):
     st = open_watch.run(fetch=fetch, fm_get=lambda *a, **k: None)
     assert st["open"] and "tpex_margin_maintenance" in st["msg"] and "可以接上" in st["msg"]
     assert st["sources"]["finmind"]["n_datasets"] == 2 and st["sources"]["twse"]["ok"]
+    assert st["sources"]["finmind"]["listed"] == []
     first = st["hits"][0]["first_seen"]
     # 人工確認是誤判 → 寫進 ignore，下週不再提示；first_seen 保留
     s = json.loads((tmp_path / "w.json").read_text(encoding="utf-8"))
@@ -164,3 +165,23 @@ def test_run_all_sources_down(tmp_path, monkeypatch):
     assert st["open"] and any(h["src"] == "finmind" for h in st["hits"])     # 試探資料集真的有資料 → 提示
     monkeypatch.setattr(open_watch, "STATE_FILE", tmp_path / "none.json")
     assert open_watch.for_meta() == {}
+
+
+def test_finmind_listed_but_not_free_does_not_alert(tmp_path, monkeypatch):
+    """FinMind 清單有維持率資料集、但目前 token 取不到（贊助限定）→ 記 listed，不亮「可以接上」。"""
+    monkeypatch.setattr(open_watch, "STATE_FILE", tmp_path / "w.json")
+    fm_src = 'TaiwanStockMarginMaintenance = "TaiwanStockMarginMaintenance"\nTaiwanStockPrice = "TaiwanStockPrice"\n'
+    calls = []
+
+    def fm_get(ds, **kw):
+        calls.append((ds, kw.get("data_id")))
+        return None
+    st = open_watch.run(fetch=lambda url, **kw: fm_src if "githubusercontent" in url else {"paths": {}}, fm_get=fm_get)
+    assert st["sources"]["finmind"]["listed"] == ["TaiwanStockMarginMaintenance"]
+    assert st["sources"]["finmind"]["probe"]["TaiwanStockMarginMaintenance"] is False
+    assert ("TaiwanStockMarginMaintenance", "2330") in calls        # 全市場拿不到再帶個股試一次
+    assert not st["open"] and st["msg"] == ""
+    # 拿得到 → 亮
+    st2 = open_watch.run(fetch=lambda url, **kw: fm_src if "githubusercontent" in url else {"paths": {}},
+                         fm_get=lambda ds, **kw: [{"x": 1}] if ds == "TaiwanStockMarginMaintenance" else None)
+    assert st2["open"] and "TaiwanStockMarginMaintenance" in st2["msg"]

@@ -72,7 +72,7 @@ def _load() -> dict:
 def run(fetch=http.get, fm_get=http.finmind_get) -> dict:
     """掃一輪，回傳新的狀態並寫檔。fetch／fm_get 可替換（測試用）。
 
-    狀態格式：{checked_at, sources:{twse:{ok,n_paths}, tpex:{...}, finmind:{ok,n_datasets,probe}},
+    狀態格式：{checked_at, sources:{twse:{ok,n_paths}, tpex:{...}, finmind:{ok,n_datasets,listed,probe}},
               hits:[{src, path, summary, first_seen}], ignore:[path...], open: bool, msg}
     open＝有任何未忽略的命中；msg 是前端資料狀態直接顯示的一句話。"""
     old = _load()
@@ -90,11 +90,14 @@ def run(fetch=http.get, fm_get=http.finmind_get) -> dict:
     src = fetch(FINMIND_LIST, expect_json=False)
     names = finmind_names(src if isinstance(src, str) else None)
     fm = {"ok": bool(names), "n_datasets": len(names), "probe": {}}
-    for nm in names:
-        if is_hit(nm):
-            hits.append({"src": "finmind", "path": nm, "summary": "FinMind 資料集清單"})
-    for ds in FINMIND_PROBE:
-        rows = fm_get(ds, start_date=(datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d"))
+    # FinMind 清單裡有名字不等於免費版拿得到（2026-11-06 第一輪就掃到 TaiwanStockMarginMaintenance）：
+    # 清單命中的名字＋猜的名字都用目前這把 token 實際問一次（先全市場、再帶 2330），拿得到資料才算「可以接上」；
+    # 只在清單上、拿不到的記成 listed（多半是贊助會員限定），不亮提示。每週最多多花十幾次額度。
+    start = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    listed = [nm for nm in names if is_hit(nm)]
+    fm["listed"] = listed
+    for ds in list(dict.fromkeys(listed + list(FINMIND_PROBE))):
+        rows = fm_get(ds, start_date=start) or fm_get(ds, data_id="2330", start_date=start)
         fm["probe"][ds] = bool(rows)
         if rows:
             hits.append({"src": "finmind", "path": ds, "summary": "FinMind 資料集（目前 token 等級取得到資料）"})
