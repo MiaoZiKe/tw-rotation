@@ -264,6 +264,8 @@ JS = """() => {
  return {bad,oob,ovf,small,clip,wide,n:rects.length,clipdbg:[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible').map(e=>[e.tagName,e.scrollWidth,e.clientWidth])};
 }"""
 
+if os.environ.get("TITLE_C2"):   # 2026-11-06 第四輪：正圓、膠囊在 12 點鐘（title_c2.py）
+    import title_c2; title_c2.main(globals()); sys.exit(0)
 if os.environ.get("TITLE_EC"):   # 2026-11-06 第三輪：橢圓／正圓放大版 LOGO（title_ec.py）
     import title_ec; title_ec.main(globals()); sys.exit(0)
 if os.environ.get("TITLE_R"):   # 2026-11-06 第二輪：公司名開口環＋透明說橘色（title_r.py）
