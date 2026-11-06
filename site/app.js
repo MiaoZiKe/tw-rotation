@@ -15975,6 +15975,9 @@
     /* 2026-11-06（稽核）：永久缺口只列出來，不亮燈 —— 超過來源保存期、補不回來，不是「這一輪壞掉」。 */
     const gaps = meta.gaps || [];
     if (gaps.length) bits.push(`盤中快照有 <b>${gaps.length}</b> 個交易日<b>永久缺口</b>（${gaps.map(g => fmt.esc(String(g.date))).join('、')}），來源已過期、無法補回`);
+    /* 2026-11-06：缺口已用替代來源（Yahoo 5 分 K）補回的日子，講清楚口徑不同；不亮燈。 */
+    const rb = meta.tape_rebuilt || [];
+    if (rb.length) bits.push(`盤中快照 <b>${rb.map(g => fmt.esc(String(g.date))).join('、')}</b> 原始資料已過期，改用<b>替代來源重建</b>（價格逐格近似、成交量依證交所日量還原，與其他日子口徑略有不同）`);
     /* 2026-11-06（稽核 B）：來源連續失敗 ≥2 天才講（單日回空可能是端點偶發）。只講幾項、連續幾天，不列內部代號（2026-09-28 規則）。 */
     const sfail = meta.source_failing || [];
     if (sfail.length) {

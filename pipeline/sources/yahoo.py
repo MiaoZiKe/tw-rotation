@@ -94,7 +94,7 @@ def _split_by_ticker(raw: pd.DataFrame, symbols: dict[str, str]) -> list[pd.Data
 
 
 def intraday(codes: list[str], markets: dict[str, str], interval: str, period: str,
-             batch: int = 40, start: str | None = None) -> pd.DataFrame:
+             batch: int = 40, start: str | None = None, end: str | None = None) -> pd.DataFrame:
     """分 K 長格式：ts（台北時間 ISO 字串）, code, open, high, low, close, volume。
 
     interval 支援 "60m" / "15m"，period 對應 "730d" / "60d"（Yahoo 的保留上限）。
@@ -122,6 +122,8 @@ def intraday(codes: list[str], markets: dict[str, str], interval: str, period: s
         symbols = {symbol_of(c, markets): c for c in chunk}
         try:
             span = {"start": start} if start else {"period": period}
+            if start and end:           # 補歷史缺口（tape_rebuild）只要指定那幾天，不必把起日之後全部拉回來
+                span["end"] = end
             raw = yf.download(list(symbols), interval=interval, **span,
                               group_by="ticker", auto_adjust=False,
                               progress=False, threads=True)

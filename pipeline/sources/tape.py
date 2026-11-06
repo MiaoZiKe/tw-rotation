@@ -14,8 +14,10 @@
   順序同 codes，沒有就 null。`GET /tape?date=YYYYMMDD` 取指定日；沒有那天回 404。
 
 怎麼避免漏抓（保底）：
-  KV 的 TTL 是 8 天，所以不必擠在收盤後的某一個時間點 —— 每一輪 daily 管線（含隔天清晨、盤中的 news 輪）
-  都回頭掃最近 8 天，湖裡還沒收齊（沒有 13:30 之後那一格）的交易日就補抓；收齊的不再打 Worker。
+  KV 的 TTL 是 30 天（2026-11-06 由 8 天拉長），所以不必擠在收盤後的某一個時間點 —— 每一輪 daily 管線（含隔天清晨、盤中的 news 輪）
+  都回頭掃最近 30 天（GAP_SINCE 之後），湖裡還沒收齊（沒有 13:30 之後那一格）的交易日就補抓；收齊的不再打 Worker。
+  最後一道保底（2026-11-06）：Worker 對某交易日隔了 2 天仍是 404（KV 根本沒存到），就用 Yahoo 5 分 K ＋ 證交所日收重建，
+  見 tape_rebuild.py（src 標 rebuild:yahoo5m、資料狀態明說口徑不同）。
   另有 .github/workflows/tape-lake.yml 在 14:07 專門抓一次、可手動觸發。
 """
 from __future__ import annotations
@@ -36,7 +38,9 @@ log = logging.getLogger(__name__)
 DEFAULT_PROXY = "https://tw-quote.kcq01010909.workers.dev"
 # Worker 對有帶 Origin 的請求會檢查白名單；帶自家網域最保險（沒帶 Origin 也放行）。
 ORIGIN = "https://liguligu-puipui.com"
-KV_DAYS = 8                       # Worker 的 TAPE_TTL（8 天）；往回掃的天數
+KV_DAYS = 30                      # Worker 的 TAPE_TTL（2026-11-06 由 8 天拉長到 30 天）；往回掃的天數
+REBUILD_AFTER_DAYS = 2            # Worker 的 KV 對某個交易日回 404 滿這麼多天，就改用 Yahoo 5 分 K 重建（見 tape_rebuild.py）
+REBUILD_LIMIT_DAYS = 55           # 重建的來源（Yahoo 5 分 K）只保留約 60 天；超過就真的補不回來（永久缺口）
 COMPLETE_SLOT = "13:30"           # 湖裡某天有 ≥ 這一格就視為收齊（最後一格是 13:35，13:30 是收盤試撮）
 READY_AFTER = (13, 40)            # 今天要 13:40 之後才抓：盤中抓會寫進半天，雖然之後會補齊，但白白多 commit
 
@@ -133,6 +137,8 @@ def candidate_dates(now: datetime, complete: set[str]) -> list[str]:
         if d.weekday() >= 5:
             continue
         d8 = d.strftime("%Y%m%d")
+        if d8 < GAP_SINCE:                 # 快照功能上線前的日子沒有資料，不用每輪去打 404
+            continue
         if back == 0 and (now.hour, now.minute) < READY_AFTER:
             continue
         if d8 in complete:
@@ -174,8 +180,26 @@ def collect(now: datetime | None = None) -> pd.DataFrame:
         else:
             log.info("tape %s：%d 列、%d 格", d8, len(df), df["ts"].nunique())
             parts.append(df)
+    # 保底（2026-11-06）：Worker 的 KV 沒有、又已經隔了 REBUILD_AFTER_DAYS 天（盤後每輪都重試過了）的交易日，
+    # 改用 Yahoo 5 分 K ＋ 證交所日收重建。只動「交易日」（price_daily 有列），休市日天然略過。
+    still_miss = list(miss)
+    if miss:
+        try:
+            trade, _ = lake_calendar(now)
+            ripe = [d for d in miss if d in trade and (now.date() - datetime.strptime(d, "%Y%m%d").date()).days >= REBUILD_AFTER_DAYS]
+            if ripe:
+                from . import tape_rebuild         # 延後匯入：tape_rebuild 也會 import 這支的常數
+                codes = tape_rebuild.universe()
+                for d8 in ripe:
+                    rb = tape_rebuild.rebuild_day(d8, codes)
+                    if not rb.empty:
+                        parts.append(rb)
+                        still_miss.remove(d8)
+                        log.info("tape %s：Worker 沒有，已用 Yahoo 5 分 K 重建 %d 列", d8, len(rb))
+        except Exception as exc:  # noqa: BLE001 —— 保底失敗不能拖垮管線
+            log.warning("tape 重建保底失敗：%s", exc)
     out = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=COLUMNS)
-    out.attrs["todo"], out.attrs["miss"] = todo, miss
+    out.attrs["todo"], out.attrs["miss"] = todo, still_miss
     return out
 
 
@@ -199,7 +223,7 @@ def lake_calendar(now: datetime) -> tuple[set[str], set[str]]:
 
 
 def gap_report(now: datetime, trade_days, complete) -> list[dict]:
-    """永久缺口：開過市、超過 Worker 保存期（KV_DAYS 天，留 1 天緩衝）、湖裡仍沒收齊的交易日。
+    """永久缺口：開過市、超過所有來源的保存期（Worker KV 與 Yahoo 重建都補不到，REBUILD_LIMIT_DAYS 天）、湖裡仍沒收齊的交易日。
 
     純函式，方便用假資料測。回傳 [{"date": "2026-10-28", "reason": ...}]，日期新到舊之前先由舊到新排。
     還在保存期內的不算缺口（仍可回頭補），那段的失敗由 tape.collect 的 pending 處理、會亮黃。"""
@@ -209,11 +233,28 @@ def gap_report(now: datetime, trade_days, complete) -> list[dict]:
         if d8 < GAP_SINCE or d8 in complete:
             continue
         d = datetime.strptime(d8, "%Y%m%d").date()
-        if (today - d).days < KV_DAYS - 1:
+        if (today - d).days < REBUILD_LIMIT_DAYS:
             continue
         out.append({"date": f"{d8[:4]}-{d8[4:6]}-{d8[6:]}",
-                    "reason": f"盤中快照超過 Worker 保存期限（{KV_DAYS} 天）仍未落地，無法補回（永久缺口）"})
+                    "reason": f"盤中快照超過保存期限（Worker {KV_DAYS} 天、替代來源 {REBUILD_LIMIT_DAYS} 天）仍未落地，無法補回（永久缺口）"})
     return out
+
+
+def rebuilt_report(now: datetime) -> list[dict]:
+    """已用替代來源補回的交易日（src 以 rebuild: 開頭）。資料狀態要明說，因為口徑與原始快照不同。純讀湖。"""
+    years = sorted({int(GAP_SINCE[:4]), now.year})
+    try:
+        have = store.read("tape_5m", years=years)
+    except Exception:  # noqa: BLE001
+        return []
+    if have.empty or "src" not in have.columns:
+        return []
+    r = have[have["src"].astype(str).str.startswith("rebuild:")]
+    out = []
+    for d, g in r.groupby(r["ts"].astype(str).str[:10]):
+        out.append({"date": d, "src": str(g["src"].iloc[0]),
+                    "note": "原始快照過期，改用 Yahoo 5 分 K 重建；價格逐格近似、成交量依證交所日量等比還原"})
+    return sorted(out, key=lambda x: x["date"])
 
 
 def main() -> int:

@@ -35,7 +35,7 @@ log = logging.getLogger("run_daily")
 # 就這樣靜默失敗很久）。現在分開記，前端可以把它攤在頁面頂端。
 # gaps：永久缺口（超過來源保存期、補不回來的交易日）。明列在資料狀態，但不進 errors、不亮紅燈 ——
 # 缺口是「已知且無法挽回」，不是「這一輪壞掉」；壞掉的是 empty／errors。
-RESULT: dict = {"steps": {}, "errors": [], "empty": [], "gaps": []}
+RESULT: dict = {"steps": {}, "errors": [], "empty": [], "gaps": [], "rebuilt": []}
 
 
 def finmind_company_extra(info: pd.DataFrame, company: pd.DataFrame,
@@ -147,6 +147,10 @@ def _tape_step() -> pd.DataFrame:
     except Exception:  # noqa: BLE001 —— 缺口判斷失敗不能拖垮管線，但要留痕跡
         log.exception("tape 缺口判斷失敗（本輪 gaps 留空）")
     RESULT["gaps"] = gaps
+    try:
+        RESULT["rebuilt"] = tape.rebuilt_report(now)
+    except Exception:  # noqa: BLE001
+        log.exception("tape 重建紀錄讀取失敗（本輪 rebuilt 留空）")
     gap8 = {g["date"].replace("-", "") for g in gaps}
     miss = list(_tp.attrs.get("miss") or [])
     pending = [d for d in miss if d in trade and d not in complete and d not in gap8]
