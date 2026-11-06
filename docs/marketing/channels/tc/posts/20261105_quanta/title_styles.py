@@ -58,16 +58,16 @@ def build(n, g):
                 f'<div class="ar" data-k="acc"><b></b><i></i></div><div class="hl" data-k="rule"></div><div class="s1" data-k="sub">{SUB}</div>')
         allow |= {("tab", "photo"), ("photo", "title"), ("tab", "title")}
     elif n == 2:
-        T = PB + 60
-        tiles = [("廣", INK, "#fff"), ("達", INK, "#fff"), ("透", TINT, BLUE), ("明", TINT, BLUE), ("說", ORG, INK)]
+        pic_h = PIC_H + 50; PB = PIC_TOP + pic_h; T = PB + 50
+        tiles = [("廣", INK, "#fff"), ("達", INK, "#fff"), ("透", "#DCE8FB", BLUE), ("明", "#DCE8FB", BLUE), ("說", ORG, INK)]
         tw = (960 - 4 * 6) / 5
-        th = "".join(f'<div class="tl" style="left:{i*(tw+6):.1f}px;width:{tw:.1f}px;background:{bg}"></div>' for i, (c, bg, fg) in enumerate(tiles))
+        th = "".join(f'<div class="tl" style="left:{i*(tw+6):.1f}px;width:{tw:.1f}px;background:{bg};border-color:{BLUE if bg=="#DCE8FB" else bg}"></div>' for i, (c, bg, fg) in enumerate(tiles))
         ch = "".join(f'<div class="tc" data-k="c{i}" style="left:{60+i*(tw+6):.1f}px;width:{tw:.1f}px;color:{fg}">{c}</div>' for i, (c, bg, fg) in enumerate(tiles))
         css = f"""
 .tr{{position:absolute;left:60px;top:{T}px;width:960px;height:{tw:.1f}px}}
-.tl{{position:absolute;top:0;height:{tw:.1f}px;border-radius:18px}}
+.tl{{position:absolute;top:0;height:{tw:.1f}px;border-radius:18px;border:2px solid transparent;box-sizing:border-box}}
 .tc{{position:absolute;top:{T}px;height:{tw:.1f}px;line-height:{tw:.1f}px;text-align:center;font-weight:900;font-size:150px;white-space:nowrap}}
-.s2{{position:absolute;left:60px;top:{T+tw+36:.0f}px;font-weight:700;font-size:58px;line-height:80px;color:{INK};white-space:nowrap;letter-spacing:.04em}}
+.s2{{position:absolute;left:60px;top:{T+tw+30:.0f}px;font-weight:700;font-size:58px;line-height:80px;color:{INK};white-space:nowrap;letter-spacing:.04em}}
 """
         body = f'<div class="tr" data-k="tiles">{th}</div>{ch}<div class="s2" data-k="sub">{SUB}</div>'
         allow |= {("tiles", f"c{i}") for i in range(5)}
@@ -95,15 +95,15 @@ def build(n, g):
         body = f'<div class="gl" data-k="glass"></div><div class="g1" data-k="title">{TITLE}</div><div class="g2" data-k="sub">{SUB}</div>'
         allow |= {("glass", "photo"), ("glass", "title"), ("glass", "sub"), ("photo", "title"), ("photo", "sub")}
     elif n == 5:
-        T = PB + 26; LH = 198
+        T = PB + 14; LH = 188
         css = f"""
-.m1,.m2{{position:absolute;left:54px;font-size:196px;line-height:{LH}px;color:{INK};white-space:nowrap}}
+.m1,.m2{{position:absolute;left:54px;font-size:186px;line-height:{LH}px;color:{INK};white-space:nowrap}}
 .m1{{top:{T}px;font-weight:900}}
-.m2{{top:{T+LH+4}px;font-weight:100}}
-.s5{{position:absolute;right:60px;top:{T+LH-66}px;font-weight:400;font-size:56px;line-height:80px;color:{INK};white-space:nowrap;letter-spacing:.06em}}
+.m2{{top:{T+LH+4}px;font-weight:200;color:{BLUE}}}
+.s5{{position:absolute;right:60px;top:{T+LH-58}px;font-weight:400;font-size:56px;line-height:80px;color:{INK};white-space:nowrap;letter-spacing:.06em}}
 """
         body = f'<div class="m1" data-k="a">廣達</div><div class="m2" data-k="b">透明說</div><div class="s5" data-k="sub">{SUB}</div>'
-    pic = (f'<div class="pic" data-k="photo" style="box-shadow:none;height:{pic_h}px;background-image:url({photo});background-position:50% 0%"></div>')
+    pic = (f'<div class="pic" data-k="photo" style="box-shadow:none;background-size:cover;height:{pic_h}px;background-image:url({photo});background-position:50% 0%"></div>')
     sw = g["SWIPE"].replace('<div class="sw">', '<div class="sw" data-k="swipe">')
     html = f'<div class="cv">{base_hd}{pic}{body}{sw}</div>'
     return html, css, allow
@@ -140,7 +140,8 @@ def main(g):
         # 墨跡外框要排除洋紅底本身：洋紅底 G=0，其他有色處 G>0；白字、深字皆 G>0（INK 的 G=27）
         boxes = ink_boxes(pg, keys)
         fs = pg.evaluate("[...document.querySelectorAll('[data-k]')].filter(e=>e.textContent.trim()&&!e.querySelector('*')).map(e=>[e.dataset.k,parseFloat(getComputedStyle(e).fontSize)])")
-        ph = boxes["photo"]; sign = (ph[0] + 430, ph[1] + 310, ph[0] + 925, ph[1] + 480)
+        ph = boxes["photo"]; sc = (ph[3] - ph[1]) / 690 if n == 2 else 1; sc = max(sc, 1); ox0 = (1032 * sc - 1032) / 2
+        sign = (ph[0] + 430 * sc - ox0, ph[1] + 310 * sc - (0 if n == 2 else 0), ph[0] + 925 * sc - ox0, ph[1] + 480 * sc)
         bad, onpic, oob = [], [], []
         ks = [k for k in keys]
         for i in range(len(ks)):
