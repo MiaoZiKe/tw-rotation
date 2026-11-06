@@ -931,17 +931,29 @@ MARGIN_COLUMNS = ["date", "margin_balance", "short_balance", "margin_change", "s
 
 
 def margin_asof(margin: pd.DataFrame | None, daytrade: pd.DataFrame | None,
-                sbl: pd.DataFrame | None) -> dict:
-    """資券三個來源在**整個資料湖**裡最新到哪一天（{margin, daytrade, sbl}，沒有就 None）。
+                sbl: pd.DataFrame | None, codes: set | None = None) -> dict:
+    """資券三個來源最新到哪一天（{margin, daytrade, sbl}，沒有就 None）。
 
     ★ 2026-10-03（DECISIONS #304）：當沖／借券賣出被誤封印、09-25 之後全市場一筆都沒有，
       個股頁每日表那兩欄一路「—」，讀者會以為是 0 或這檔沒人當沖。
       用全市場的最新日期（不是單一檔自己的最後一天）判斷「資料源只更新到哪天」：
-      某一檔自己沒有（不能當沖的處置股）是那檔的事，全市場都沒有才是資料源的事，頁面兩種要講得不一樣。"""
+      某一檔自己沒有（不能當沖的處置股）是那檔的事，全市場都沒有才是資料源的事，頁面兩種要講得不一樣。
+
+    ★ 2026-11-06（稽核 D）：「最新」要是**完整日**，而且要看該檔所屬市場（codes＝該市場的代號集合）。
+      上市與上櫃的融資融券不同時到：上市先到 11-05 的少數幾筆（或只有上櫃到），取全湖 max(date) 會得到 11-05，
+      但上櫃那檔 11-05 其實整列空白，表格就出現「asof 寫 11-05、融資融券是空的」。
+      做法：只看 codes 內的列；最新日 = 近 10 個日期中，列數 ≥ 該來源近 10 日列數中位數 50% 的最後一天（未到齊的日子不算）。"""
     def last(df):
         if df is None or not isinstance(df, pd.DataFrame) or df.empty or "date" not in df.columns:
             return None
-        return str(df["date"].astype(str).max())[:10]
+        d = df
+        if codes is not None and "code" in d.columns:
+            d = d[d["code"].astype(str).isin(codes)]
+            if d.empty:
+                return None
+        cnt = d["date"].astype(str).str[:10].value_counts().sort_index().tail(10)
+        full = cnt[cnt >= cnt.median() * 0.5]
+        return str((full.index[-1] if len(full) else cnt.index[-1]))
     return {"margin": last(margin), "daytrade": last(daytrade), "sbl": last(sbl)}
 
 

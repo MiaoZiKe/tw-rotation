@@ -365,6 +365,12 @@
 .acctonpop .opl{list-style:none;margin:0;padding:4px 0}.acctonpop .opl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;padding:7px 2px;border-bottom:1px solid var(--line)}
 .acctonpop .opn{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acctonpop .ope{grid-column:1/-1;color:var(--ink-2);font-size:12.5px;word-break:break-all;user-select:all}.acctonpop .opr{grid-row:1;grid-column:2;color:var(--ink-2);font-size:12px;white-space:nowrap}
 .acctonpop .opz{margin:8px 0;color:var(--ink-2);font-size:13px}.acctonpop .opf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px}
+.acctonpop .opt{border-top:1px solid var(--line);margin-top:4px;padding-top:8px}.acctonpop .opth{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.acctonpop .opth small,.acctonpop .optg{color:var(--ink-2);font-size:12.5px}.acctonpop .optg{margin:2px 0 6px}
+.acctonpop .optl{list-style:none;margin:0;padding:0;height:288px;max-height:288px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;border:1px solid var(--line);border-radius:8px}
+.acctonpop .optl.few{height:auto}.acctonpop .optl::-webkit-scrollbar{width:10px}.acctonpop .optl::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+.acctonpop .optl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;padding:7px 8px;border-bottom:1px solid var(--line)}.acctonpop .optl li:last-child{border-bottom:0}
+.acctonpop .optl .opn{grid-column:1}.acctonpop .optl .opd{grid-row:1;grid-column:2;font-size:13px;font-weight:700;white-space:nowrap}.acctonpop .optl .ope{grid-column:1/-1;word-break:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text}.acctonpop .optl .opp{grid-column:1/-1;color:var(--ink-2);font-size:12px}
+.acctonpop .optz{margin:6px 0 0;color:var(--ink-2);font-size:12.5px}
 .acctonpop .opcp{border:1px solid var(--line-2);background:none;color:var(--ink);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}.acctonpop .opcp:hover{background:var(--row-hover)}.acctonpop .opf a{color:var(--accent,#3b82f6);font-size:13px;text-decoration:none}
 /* 10-17 Andy：「這邊太長，需要有拉Bar」→ 選單最高到視窗底（留 12px），超過就在選單裡捲動，捲軸看得到 */
 .acctmenu{max-height:calc(100vh - var(--am-top,60px) - 12px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent}
@@ -585,7 +591,10 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     }
     const r = anchor.getBoundingClientRect();
     p.style.top = Math.round(r.bottom + 6) + 'px'; p.style.setProperty('--op-top', Math.round(r.bottom + 6) + 'px');
-    p.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+    /* 2026-11-06：改用 left 並夾在畫面內。手機的「N 人在線」在頂欄偏左，原本的 right 對齊會讓 372px 寬的框左緣掉到螢幕外（-60px）；
+       桌機錨點靠右、放得下時結果與原本完全相同（右緣對齊錨點右緣）。*/
+    const pw = Math.min(420, window.innerWidth - 16);
+    p.style.right = 'auto'; p.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, Math.round(r.right - pw))) + 'px';
     p.innerHTML = '<div class="oph"><b>目前在線</b><small>讀取中…</small></div>'; p.hidden = false;
     const d = await call('/v1/admin/online', {});
     if (!d || d._s !== 200) { p.innerHTML = '<div class="oph"><b>目前在線</b><small>讀不到線上名單（會員伺服器沒回應）</small></div>'; return; }
@@ -594,9 +603,51 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
       + (us.length ? `<ul class="opl">${us.map((u) => `<li><span class="opn">${esc(u.name || '（未命名）')}</span><span class="ope">${esc(u.email)}</span><span class="opr">${esc(rtName(u.route))}・${ago(u.seen)}</span></li>`).join('')}</ul>`
         : '<p class="opz">目前沒有登入的會員在線（訪客看不到名字）</p>')
       + `<div class="opf">${mails.length ? `<button type="button" class="opcp" id="acctOnCopy">複製 email 清單（${mails.length}）</button>` : ''}<a href="#admin/traffic" id="acctOnMore">完整流量頁 →</a></div>`;
+    paintToday(p);
     const cp = document.getElementById('acctOnCopy');
     if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(mails.join(', ')); cp.textContent = '已複製 ' + mails.length + ' 個 email'; } catch (e) { cp.textContent = '複製失敗，請手動選取'; } };
     document.getElementById('acctOnMore').onclick = () => { p.hidden = true; };
+  }
+
+  /* 2026-11-06 Andy：「只有站主看得到 今天有誰來 累積多久 主要看什麼 … 太長就改成拉Bar 形式 也需要新增訪客累積數量」
+     在線框的「目前在線」下面多一段「今天」：今天來過的每位會員（累積停留、主要看的前 3 頁、最後出現）＋訪客累積（今天／本週／累積）。
+     資料：POST /v1/admin/online/today（worker.js 檔尾 pdwell／visagg 區塊，只認管理者）。端點還沒部署（404）→ 寫一行「需要更新後端」，不影響上面的在線名單。
+     測試帳排除：沿用 admin.js 的 SHA-256 雜湊名單（TwAdmin.testEmails），跟管理區統計同一套規則；admin.js 載不進來就不排除（寧可多列，不可漏列真會員）。
+     清單固定高度、框內捲動（桌機滾輪／拖捲軸，手機手指拖），不把整個框撐長。 */
+  const TDN = { overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計', delivery: '任務板', stock: '個股', legal: '法律頁',
+    watch: '自選清單', etf: 'ETF 專區', explore: '選股策略', earnings: '財經日曆', events: '今日事件', support: '客服', pricing: '訂閱方案', notices: '公告', articles: '精選文章', other: '其他' };
+  const tdDur = (ms) => { const m = Math.round(Number(ms) / 60000); return m < 1 ? '不到 1 分' : m < 60 ? m + ' 分' : Math.floor(m / 60) + ' 小時' + (m % 60 ? ' ' + (m % 60) + ' 分' : ''); };
+  const tdClock = (ms) => { try { return new Date(Number(ms)).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; } };
+  async function paintToday(p) {
+    const box = document.createElement('section'); box.className = 'opt'; box.id = 'acctOnToday';
+    box.innerHTML = '<div class="opth"><b>今天</b><small>讀取中…</small></div>';
+    const foot = p.querySelector('.opf'); p.insertBefore(box, foot);
+    const d = await call('/v1/admin/online/today', {});
+    if (p.hidden || !box.isConnected) return;
+    if (!d || d._s !== 200 || !Array.isArray(d.members)) {
+      box.innerHTML = '<div class="opth"><b>今天</b></div><p class="optz">' + (d && d._s === 404 ? '「今天」清單需要更新會員後端（尚未部署）' : '讀不到今天的資料（會員伺服器沒回應）') + '</p>';
+      return;
+    }
+    let ms = d.members;
+    try {
+      if (!window.TwAdmin) await Promise.race([loadAdmin(), new Promise((r) => setTimeout(r, 4000))]);
+      if (window.TwAdmin && window.TwAdmin.testEmails) {
+        const t = await window.TwAdmin.testEmails(ms.map((m) => m.email), S.user && S.user.email);
+        ms = ms.filter((m) => !t.has(String(m.email || '').toLowerCase()));
+      }
+    } catch (e) { /* 排除失敗：照列 */ }
+    if (p.hidden || !box.isConnected) return;
+    const g = d.guests || {};
+    const row = (m) => {
+      const byT = m.by !== 'pv';
+      const pg = (m.pages || []).map((x) => esc(TDN[x[0]] || x[0]) + ' ' + (byT ? tdDur(x[1]) : x[1] + ' 次')).join('・');
+      return `<li><span class="opn">${esc(m.name || '（未命名）')}</span><span class="opd" title="今天累積在線時間">${m.ms > 0 ? tdDur(m.ms) : '剛到'}</span>`
+        + `<span class="ope" title="${esc(m.email)}">${esc(m.email)}</span>`
+        + `<span class="opp">${pg ? '主要看：' + pg + '　' : ''}最後出現 ${tdClock(m.seen)}</span></li>`;
+    };
+    box.innerHTML = `<div class="opth"><b>今天</b><small>會員 ${ms.length} 位來過・訪客 ${esc(g.today != null ? g.today : 0)} 台裝置</small></div>`
+      + `<div class="optg">訪客累積：本週 ${esc(g.week || 0)}・累積 ${esc(g.total || 0)}${g.since ? '（自 ' + esc(g.since) + ' 起統計，同一台一天算一次）' : ''}</div>`
+      + (ms.length ? `<ul class="optl${ms.length <= 4 ? ' few' : ''}" id="acctOnTodayList" tabindex="0" aria-label="今天來過的會員，依累積時間排序">${ms.map(row).join('')}</ul>` : '<p class="optz">今天還沒有登入的會員來過</p>');
   }
   function onBtn(e) {
     e.stopPropagation();

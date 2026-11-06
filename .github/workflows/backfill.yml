@@ -36,7 +36,7 @@ on:
       datasets:
         description: "要補的資料集（plan＝跑 default 計畫）"
         type: choice
-        options: [plan, logos, intraday, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
+        options: [plan, daytrade_zerofix, logos, intraday, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
         default: plan
       relay_n:
         description: "接力棒次（工作流自己派下一輪時填；手動觸發留 0）"
@@ -132,6 +132,10 @@ jobs:
                   # 2026-09-28：櫃買 Yahoo 代號改 IX0043.TWO（yahoo_v 3）＋加權真實 1 分 K（tse1m_v 1）是新步驟，
                   # 舊進度的 done 不涵蓋它們 —— 版本對不上就放行一輪，讓 run_backfill 自己重開。
                   if isinstance(ii, dict) and (ii.get("yahoo_v") != 3 or ii.get("tse1m_v") != 1):
+                      done = False
+                  # 2026-11-06 恐慌指數（opt_ivx）回補是計畫補齊後才加的步驟：還沒補完就放行一輪（同上理由）
+                  oi = json.loads(p.read_text()).get("complete", {}).get("opt_ivx") or {}
+                  if not (isinstance(oi, dict) and oi.get("done")):
                       done = False
                   # 2026-09-27：三大法人歷史步驟（計畫補齊後才加的，同上理由）＋法人每日續補
                   # （每天一次，complete.inst_fresh.date＝台北日期；當天還沒做完就放行一輪）。
@@ -240,6 +244,9 @@ jobs:
             if [ "$LOGOS_ONLY" = "true" ]; then EX="logos"; fi
             if [ "$INTRADAY_ONLY" = "true" ]; then EX="${EX:+$EX+}intraday"; fi
             python -m pipeline.run_backfill --datasets "$EX"
+          elif [ "$DATASETS" = "daytrade_zerofix" ]; then
+            # 2026-11-06 稽核 B：把最近 3 個交易日當沖「全 0 的佔位列」重抓（結果走 store.append）
+            python -m pipeline.run_backfill --fix-daytrade-zeros 3
           elif [ "$DATASETS" = "plan" ]; then
             python -m pipeline.run_backfill --limit "$LIMIT" --plan default
           else

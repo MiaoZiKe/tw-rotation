@@ -818,6 +818,51 @@ def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str
     return latest, out
 
 
+ZERO_FIX_DAYS = 2         # 當沖「全 0 列」往回重抓幾個交易日（佔位 0 通常隔天就補正，見 zero_daytrade_codes）
+
+
+def zero_daytrade_codes(tbl: pd.DataFrame, price: pd.DataFrame, days: int = ZERO_FIX_DAYS) -> tuple[list[str], str | None]:
+    """當沖表裡「最近 days 個交易日有全 0 列」的代號，以及其中最早的日期。
+
+    為什麼（2026-11-06 稽核 B）：FinMind 當天先回 0 的佔位列，舊版直接存進湖、之後 `stale_inst_codes`
+    看到「最後一天＝最新交易日」就認定這檔不落後，永遠不會重抓 → 11-05 有 417 檔當沖是 0（平常約 50～160）。
+    現在源頭（finmind.drop_placeholder_rows）已擋掉新的佔位列；這裡處理已經在湖裡的：
+    量與買賣金額全 0 的列，往回 days 個交易日內都重抓一次（append 後到的為準，會蓋掉佔位 0）。
+    真的當沖為 0 的股票也會被重問一次，確認後 done 鍵就不再問（每天一組鍵）；days 取 2 是成本與正確性的折衷。
+    交易日以 price_daily 的日期為準（不用執行當下的日期）。
+    """
+    if tbl is None or tbl.empty or price is None or price.empty:
+        return [], None
+    dates = sorted(price["date"].astype(str).unique())[-days:]
+    if not dates:
+        return [], None
+    t = tbl[tbl["date"].astype(str).isin(dates)]
+    cols = [c for c in ("daytrade_volume", "daytrade_buy_amount", "daytrade_sell_amount") if c in t.columns]
+    if "daytrade_volume" not in cols:
+        return [], None
+    z = t[(t[cols].apply(pd.to_numeric, errors="coerce").fillna(0) == 0).all(axis=1)]
+    if z.empty:
+        return [], None
+    return sorted(z["code"].astype(str).unique()), str(z["date"].astype(str).min())
+
+
+def fix_daytrade_zeros(days: int = ZERO_FIX_DAYS) -> dict:
+    """一次性／手動：把最近 days 個交易日的當沖全 0 列重抓（workflow_dispatch：datasets＝daytrade_zerofix）。
+
+    結果走 store.append（只增不改，後到的為準）。額度用完就停，進度記在 done 鍵 daytrade@zfix<最新日>:<代號>，
+    下一輪接續；FinMind 重新回 0 的佔位列會被 finmind.drop_placeholder_rows 丟掉，不會再寫進去。
+    """
+    price = store.read("price_daily")
+    tbl = store.read("daytrade_daily")
+    codes, start = zero_daytrade_codes(tbl, price, days)
+    latest = str(price["date"].astype(str).max()) if price is not None and not price.empty else "na"
+    log.info("當沖全 0 列重抓：%d 檔，從 %s 起（最近 %d 個交易日，價量最新日 %s）", len(codes), start, days, latest)
+    if not codes:
+        return {}
+    return run("daytrade", None, start, codes=codes, datasets_key=f"daytrade@zfix{latest}",
+               tag=f"zfix{latest}", respect_time=False)
+
+
 def fresh_start(latest: str, last_dates: list[str]) -> str:
     """續補的起始日：平常往回 INST_FRESH_DAYS 天；有股票落後更久就往前拉到它的最後一天，
     但最多 FRESH_MAX_LOOKBACK 天（一檔一次請求，拉長區間不多花額度）。"""
@@ -885,12 +930,20 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
         cap = cap * boost
         tbl = store.read(table)
         lt, codes = stale_inst_codes(tbl, price, universe, cap=cap)
+        extra_dates: list[str] = []
+        if key == "daytrade":
+            # 已在湖裡的佔位 0 列：最近 ZERO_FIX_DAYS 個交易日全 0 的優先重抓（排最前面，不受 cap 擠掉）
+            zc, zstart = zero_daytrade_codes(tbl, price)
+            if zc:
+                log.info("daytrade 每日續補：另有 %d 檔最近 %d 個交易日有全 0 列，一併重抓（%s 起）", len(zc), ZERO_FIX_DAYS, zstart)
+                codes = zc + [c for c in codes if c not in set(zc)]
+                extra_dates = [zstart]
         latest = latest or lt
         n_codes[key] = len(codes)
         if not codes:
             continue
         last = tbl.assign(code=tbl["code"].astype(str), date=tbl["date"].astype(str)).groupby("code")["date"].max()
-        start = fresh_start(lt, [last[c] for c in codes])
+        start = fresh_start(lt, [last[c] for c in codes if c in last.index] + extra_dates)
         log.info("%s 每日續補：%d 檔落後於 %s（每日上限 %d，從 %s 起抓）", key, len(codes), lt, cap, start)
         lists.append((key, codes, start, lt))
 
@@ -1669,10 +1722,19 @@ def main() -> int:
     mode.add_argument("--plan", default=None, choices=sorted(PLANS),
                       help="改跑預設回補計畫（依序多步驟，忽略 --start；與 --datasets 二擇一）")
     ap.add_argument("--start", default=config.BACKFILL_START)
+    ap.add_argument("--fix-daytrade-zeros", type=int, default=None, metavar="DAYS",
+                    help="只重抓最近 DAYS 個交易日當沖全 0 的列（佔位 0 的一次性回補，2026-11-06）")
     args = ap.parse_args()
 
     if not config.FINMIND_TOKEN:
         log.warning("未設定 FINMIND_TOKEN，額度只有 300/hr，回補會很慢")
+
+    if args.fix_daytrade_zeros is not None:
+        if not finmind_reachable(_progress()):
+            log.error("FinMind 不通，本輪不跑")
+            return 0
+        fix_daytrade_zeros(max(1, args.fix_daytrade_zeros))
+        return 0
 
     limit_raw = (args.limit or "").strip()
     limit = int(limit_raw) if limit_raw.isdigit() and int(limit_raw) > 0 else None
@@ -1699,6 +1761,12 @@ def main() -> int:
             optpc.backfill_opt_pc(_progress(), _save_progress)
         except Exception as exc:  # noqa: BLE001
             log.warning("opt_pc 回補失敗（不影響其他步驟）：%s", exc)
+        # 2026-11-06 恐慌指數（臺指選擇權隱含波動率・本站自算）：同一個資料集，按月游標，一輪最多 48 次請求（第一輪就補完 2023 起）；放在個股計畫前面，理由同上。
+        try:
+            from .sources import optivx
+            optivx.backfill(_progress(), _save_progress)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("opt_ivx 回補失敗（不影響其他步驟）：%s", exc)
     if args.plan:
         summary = run_plan(args.plan, limit)
     else:

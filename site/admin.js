@@ -3502,5 +3502,22 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       });
     }; });
   }
-  window.TwAdmin = { render, guard: () => guard() };
+  /* 2026-11-06 頂欄「N 人在線」框的「今天」清單排除測試帳（account.js paintToday）：規則與 isTest() 完全一樣（站主標記 ∪ 雜湊名單 − 恢復計入的例外），
+     只是不依賴管理頁有沒有畫過（沒畫過時 localStorage 還沒有標記鍵 → 預設把登入中的站主本人當測試帳，跟 testSet() 的第一次預設一致，但這裡不寫入）。 */
+  async function testEmails(list, me) {
+    let marked = PS.testSet;
+    if (!marked) {
+      let arr = null; try { const raw = localStorage.getItem(TEST_KEY); if (raw !== null) arr = JSON.parse(raw); } catch (e) { arr = null; }
+      if (!Array.isArray(arr)) arr = me ? [String(me).toLowerCase()] : [];
+      marked = new Set(arr);
+    }
+    const hs = new Set(DEF_TEST_HASH.concat(window.__TW_TEST_HASHES || [])), ex = exSet(), out = new Set();
+    for (const raw of list || []) {
+      const e = String(raw || '').toLowerCase(); if (!e) continue;
+      let h = false; try { h = hs.has(await sha256Hex(e)); } catch (x) { h = false; }
+      if (marked.has(e) || (h && !ex.has(e))) out.add(e);
+    }
+    return out;
+  }
+  window.TwAdmin = { render, guard: () => guard(), testEmails };
 })();

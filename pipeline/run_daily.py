@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
+from .sources import exright_notice, inst_official, etf_pcf, tpex_margin, finmind, macro, mis, mktfut, mops, news, optivx, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -33,7 +33,9 @@ log = logging.getLogger("run_daily")
 # empty：抓得到端點但回 0 筆的步驟。以前這種只寫 log，errors 一直是空的，
 # 網站上完全看不出來哪個來源掛了（twse.dividend / tdcc.shareholding / macro.fred
 # 就這樣靜默失敗很久）。現在分開記，前端可以把它攤在頁面頂端。
-RESULT: dict = {"steps": {}, "errors": [], "empty": []}
+# gaps：永久缺口（超過來源保存期、補不回來的交易日）。明列在資料狀態，但不進 errors、不亮紅燈 ——
+# 缺口是「已知且無法挽回」，不是「這一輪壞掉」；壞掉的是 empty／errors。
+RESULT: dict = {"steps": {}, "errors": [], "empty": [], "gaps": [], "rebuilt": []}
 
 
 def finmind_company_extra(info: pd.DataFrame, company: pd.DataFrame,
@@ -122,6 +124,43 @@ def _inst_bulk_step() -> pd.DataFrame:
     RESULT["steps"]["finmind.institutional_bulk"] = {"ok": rows > 0, "rows": rows,
                                                      "seconds": round(time.time() - t0, 1)}
     return df if df is not None else pd.DataFrame()
+
+
+def _tape_step() -> pd.DataFrame:
+    """盤中 5 分鐘快照（tape）的落地步驟，兩條路徑（full／inst）共用。
+
+    ★ 以前這裡兩處把 tape.collect 從 RESULT["empty"] 移掉，於是 tape 整段壞掉也不會有任何紀錄
+    （2026-11-06 稽核：10-28、10-29 miss 了好幾輪，last_run.errors 一直是空的）。
+    現在的判定只看「還有沒有可以回頭補的交易日」：
+      · pending（還在保存期內、開過市、湖裡沒收齊、KV 也沒有）→ 記進 empty，亮黃燈，下一輪會再補；
+      · gaps（已超過保存期限、補不回來）→ 寫進 RESULT["gaps"] 明列在資料狀態，不進 errors、不亮紅燈；
+      · 休市日（price_daily 沒有那天）KV 沒有是正常的，不算 pending，也不算缺口。
+    """
+    _tp = step("tape.collect", tape.collect)
+    now = tape._tpe_now()
+    gaps: list[dict] = []
+    trade: set[str] = set()
+    complete: set[str] = set()
+    try:
+        trade, complete = tape.lake_calendar(now)
+        gaps = tape.gap_report(now, trade, complete)
+    except Exception:  # noqa: BLE001 —— 缺口判斷失敗不能拖垮管線，但要留痕跡
+        log.exception("tape 缺口判斷失敗（本輪 gaps 留空）")
+    RESULT["gaps"] = gaps
+    try:
+        RESULT["rebuilt"] = tape.rebuilt_report(now)
+    except Exception:  # noqa: BLE001
+        log.exception("tape 重建紀錄讀取失敗（本輪 rebuilt 留空）")
+    gap8 = {g["date"].replace("-", "") for g in gaps}
+    miss = list(_tp.attrs.get("miss") or [])
+    pending = [d for d in miss if d in trade and d not in complete and d not in gap8]
+    if pending:
+        if "tape.collect" not in RESULT["empty"]:
+            RESULT["empty"].append("tape.collect")
+        RESULT["steps"]["tape.collect"]["dates_pending"] = pending
+    elif "tape.collect" in RESULT["empty"]:
+        RESULT["empty"].remove("tape.collect")
+    return _tp
 
 
 def save(table: str, df: pd.DataFrame) -> int:
@@ -370,7 +409,35 @@ def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
         return pd.DataFrame()
     log.info("openapi 停在 %s、%s 的上市只有 %d 檔 —— 用 mis 補 %d 檔",
              openapi_date or "（沒有）", mis_date, have_twse, len(pairs))
-    return mis.price_snapshot(pairs)
+    return drop_rows_already_official(mis.price_snapshot(pairs))
+
+
+def drop_rows_already_official(df: pd.DataFrame) -> pd.DataFrame:
+    """mis 暫定列絕不蓋掉湖裡已經是官方值的列（2026-11-06 稽核 A 的守門）。
+
+    store.append 是「後到的為準」，mis 步驟排在 openapi／tpex 之後，所以只要同一個 (date, code)
+    湖裡已有官方列（px_source 空），mis 的暫定值就不該再進去，否則會把官方值降級成暫定值。
+    """
+    if df is None or df.empty:
+        return df
+    try:
+        d0 = str(df["date"].iloc[0])
+        cur = store.read("price_daily", years=[int(d0[:4])])
+    except Exception:  # noqa: BLE001 - 讀不到就維持原行為，不擋管線
+        return df
+    if cur is None or cur.empty:
+        return df
+    cur = cur[cur["date"].astype(str).isin(set(df["date"].astype(str)))]
+    if "px_source" in cur.columns:
+        cur = cur[cur["px_source"].isna() | (cur["px_source"].astype(str) != "mis")]
+    if cur.empty:
+        return df
+    off = set(zip(cur["date"].astype(str), cur["code"].astype(str)))
+    keep = [(str(d), str(c)) not in off for d, c in zip(df["date"], df["code"])]
+    n = len(df) - sum(keep)
+    if n:
+        log.info("mis 暫定列 %d 檔湖裡已有官方值，不覆蓋", n)
+    return df[keep].reset_index(drop=True)
 
 
 # ★ 2026-09-30：名單從「成交值前 400」擴到全市場（普通股全部＋成交值前段 ETF），邏輯搬到 pipeline/intraday60.py。
@@ -593,6 +660,20 @@ def collect_etf_holdings_monthly() -> pd.DataFrame:
     return sitca.top10(names, have_yms=have)
 
 
+def _otc_margin() -> int:
+    """上櫃整體融資融券（櫃買 OpenAPI，免 FinMind 額度）→ margin_total_otc。只有最新一天，所以 price／full／news 每輪都抓、依 date 去重。
+    phase=inst（收盤後每 30 分）不抓：那一輪只為了搶法人，多一個網路請求會讓「法人還沒出就整輪不動」的判斷變複雜。
+    探測紀錄（端點、HTTP 狀態、欄位名）寫進 last_run.json 的 steps，容器連不到外網時靠它修欄位對應。"""
+    try:
+        df = tpex_margin.fetch()
+        n = save("margin_total_otc", df) if not df.empty else 0
+        RESULT["steps"]["tpex.margin_total_otc"] = {"ok": not df.empty, "rows": int(len(df)), "diag": tpex_margin.DIAG[-12:]}
+        return n or 0
+    except Exception as exc:  # noqa: BLE001
+        log.warning("上櫃信用彙總抓取失敗（不影響其他步驟）：%s", exc)
+        return 0
+
+
 def _set_gh_output(key: str, value: str) -> None:
     """把結果交給 GitHub Actions 的後續步驟（本機跑沒有這個環境變數就略過）。"""
     import os
@@ -660,9 +741,7 @@ def run_inst_with_tape(args) -> int:
     """
     n_tape = 0
     try:
-        _tp = step("tape.collect", tape.collect)
-        if _tp.empty and "tape.collect" in RESULT["empty"]:
-            RESULT["empty"].remove("tape.collect")
+        _tp = _tape_step()
         n_tape = save("tape_5m", _tp) if not _tp.empty else 0
     except Exception:  # noqa: BLE001
         log.exception("inst 輪 tape 落地失敗（不影響法人）")
@@ -862,6 +941,19 @@ def main() -> int:
     else:
         log.error("拿不到交易日期，融資券與法人資料本輪跳過")
 
+    if news_only:
+        # ★ 2026-11-06 稽核 A：news 輪也要抓價量（openapi，不吃 FinMind 額度）。
+        #   收盤當晚 mis 補的是「暫定值」（量與值是盤中口徑，偏低 2～20%）；官方值 openapi 隔天上午就有，
+        #   但清晨 05:07、盤中 09:07／12:07 都是 news 輪、整段不抓價量，結果暫定值一路掛到隔天 15:37
+        #   （11-06 實測：台積電成交值 821 億，官方 1,018 億）。這裡抓到官方值，store.append 去重
+        #   「後到的為準」就把 px_source=mis 的暫定列換成官方列（官方列沒有 px_source → 變空值＝已正式）。
+        #   刻意不設 trade_date：它會帶動下游「法人／融資券」那些 news 輪本來不碰的步驟。
+        #   週末抓到的是週五的官方值，與湖裡相同，append 去重後不增列。
+        _np = step("twse.price_daily", twse.price_daily)
+        save("price_daily", _np)
+        if not _np.empty:
+            save("market_daily", step("twse.market", twse.market_daily))
+        save("price_daily", step("tpex.price_daily", tpex.price_daily))
     if not news_only:
         save("price_daily", price)
         save("valuation_daily", step("twse.valuation", twse.valuation_daily))
@@ -904,9 +996,7 @@ def main() -> int:
     # 2026-10-30：研究「盤中資金占比能否提前判斷族群強弱」要累積 ≥ 60 個交易日。每一輪（含 news 輪）都回頭掃 KV 還留著、
     # 湖裡還沒收齊的交易日，所以 15:30 那輪失敗也會被後面幾輪補回來。沒有要補的 ＝ 常態，不記進「沒回資料的來源」（避免天天黃燈）。
     # 失敗只記錄、不擋其他步驟（step() 吃例外；save() 也吃例外）。
-    _tp = step("tape.collect", tape.collect)
-    if _tp.empty and "tape.collect" in RESULT["empty"]:
-        RESULT["empty"].remove("tape.collect")
+    _tp = _tape_step()
     if not _tp.empty or _tp.attrs.get("miss"):
         RESULT["steps"]["tape.collect"].update({"dates_todo": _tp.attrs.get("todo"), "dates_miss": _tp.attrs.get("miss")})
     save("tape_5m", _tp)
@@ -1037,6 +1127,9 @@ def main() -> int:
                 RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
         except Exception as exc:  # noqa: BLE001
             log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
+        # 2026-11-06 恐慌指數（Andy：「另外需要新增恐慌指數再右上」）：TXO 逐履約價 → 本站自算隱含波動率，湖裡最後一天的隔天起增量，1 次額度。
+        save("opt_ivx", step("optivx.daily", optivx.daily_update))
+    _otc_margin()
 
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:
@@ -1087,6 +1180,15 @@ def main() -> int:
                 "tables": store.table_summary().to_dict("records"),
                 "groups_health": loader.health(),
             })
+        # 來源健康紀錄（跨執行累積，跟 data/ 一起 commit）：每次寫入都更新，同一天重複寫是冪等的（見 util/source_health.py）
+        try:
+            from datetime import timedelta as _td
+            from .util import source_health as _sh
+            day = trade_date or (now + _td(hours=8)).date().isoformat()
+            hp = config.STATE / "source_health.json"
+            _sh.save(hp, _sh.update(_sh.load(hp), RESULT["steps"], day, now_iso=now.isoformat()))
+        except Exception:  # noqa: BLE001 —— 健康紀錄寫不進去不能拖垮管線，但要留痕跡
+            log.exception("來源健康紀錄寫入失敗（不影響其他步驟）")
         (config.STATE / "last_run.json").write_text(
             json.dumps(RESULT, ensure_ascii=False, indent=2))
 

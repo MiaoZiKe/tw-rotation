@@ -362,8 +362,9 @@ def main() -> int:
         lay = state["overview"]["layout"]
         # ★ 2026-09-28：KPI 細列（4 格、≤64px）換成四張摘要卡（Andy：「以這種方式呈現數據在K線圖上方」）。
         #   1440 四張一排，卡高約 110px；上限 140px ＝ 四張沒有被擠成兩排（兩排會 > 220px）。
-        if lay["heroH"] > 140 or lay["kpis"] != 4:
-            problems.append(f"總覽摘要卡列應該 4 張、一排（高度 ≤ 140px）：{lay}")
+        # ★ 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：第 5 張「恐慌指數」排在最右邊（site/fearcard.js）。
+        if lay["heroH"] > 140 or lay["kpis"] != 5:
+            problems.append(f"總覽摘要卡列應該 5 張、一排（高度 ≤ 140px）：{lay}")
         if not lay["candGone"] or lay["m3Cards"] != 3 or not lay["ud"] or not lay["theme"]:
             problems.append(f"總覽改版後的版面不完整：{lay}")
         visit("flow", "flow")

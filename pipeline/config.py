@@ -24,10 +24,15 @@ TABLES: dict[str, list[str]] = {
     "margin_daily":       ["date", "code"],   # 融資融券
     # v17（2026-10-20，市場明細大盤融資維持率＋期貨三大法人／微台散戶多空比頁；來源 pipeline/sources/mktfut.py，FinMind）
     "margin_total":       ["date"],           # 整體市場融資融券（上市）：張數與融資金額（元）
+    # 2026-11-06：上櫃整體融資融券（櫃買 OpenAPI 信用交易彙總，sources/tpex_margin.py）：信用交易頁「上櫃／合計」維持率估算的分母
+    "margin_total_otc":   ["date"],
     "fut_inst":           ["date", "futures_id", "who"],   # 期貨三大法人未平倉口數（TX 大台／TMF 微台；foreign／trust／dealer）
     "fut_oi":             ["date", "futures_id"],          # 微台全市場未平倉口數（各月份加總）
     # 2026-10-26（台指期第四輪，選擇權情緒資料）：臺指選擇權（TXO）每日買賣權比；來源 sources/optpc.py（FinMind TaiwanOptionDaily 逐契約加總）。
     "opt_pc":             ["date"],
+    # 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：臺指選擇權隱含波動率指數（本站自算，非期交所官方臺指VIX）。
+    #   一天一列：ivx（年化 %）＋近／次近月到期日、剩餘天數、各自 σ²、遠期價、用到的履約價數。來源 sources/optivx.py（FinMind TaiwanOptionDaily）、公式 compute/ivx.py。
+    "opt_ivx":            ["date"],
     "index_daily":        ["date", "index"],  # 各類股指數
     "market_daily":       ["date"],           # 大盤成交統計
     "inst_daily":         ["date", "code"],   # 三大法人買賣超（個股別）
@@ -396,6 +401,20 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
+
+# 恐慌指數（臺指選擇權隱含波動率・本站自算，2026-11-06；公式 compute/ivx.py，口徑 DECISIONS）
+# 無風險利率：固定 1.5%（近兩年臺灣 30～90 天期商業本票次級市場利率約 1.5～1.8%、臺銀一年期定存約 1.7%）。
+#   選 1.5% 的理由：30 天期、利率差 0.3 個百分點對指數的影響 < 0.05 點，固定值比每天去接利率來源更不會出錯（CBOE 白皮書用美國公債利率）。
+IVX_RATE = 0.015
+IVX_TARGET_DAYS = 30           # 插補到 30 天期（CBOE VIX 同一口徑）
+IVX_MIN_DAYS = 3               # 近月剩不到 3 個日曆天（≈最後 2 個交易日）就改用次近月＋第三近月：期交所臺指VIX常見問答「近月距到期只剩兩個交易日時換月」，跟官方對齊
+IVX_BACKFILL_FLOOR = "2023-01-01"   # FinMind 回補起點（≥ 1 年；分位數要夠長的歷史才有意義）
+# 狀態分位門檻（本站自算序列、到當天為止的歷史；不偷看未來）：< 50% 平靜、50～85% 警戒、≥ 85% 恐慌。
+#   50% ＝中位數，「比一半的日子高」才開始警戒；85% ≈ 平均＋1 個標準差（常態下 84.1%），
+#   一年大約 37 個交易日落在這一段 —— 這兩條是慣用的分位切法，不是對著歷史挑出來「好看」的數字。
+IVX_PCT_CALM = 0.50
+IVX_PCT_PANIC = 0.85
+IVX_MIN_HIST = 120             # 歷史少於 120 個交易日：只給數字、不給狀態標籤（樣本不足）
 
 # 綜合評分權重（階段 4 會用 walk-forward 檢驗後回頭調）
 SCORE_WEIGHTS = {

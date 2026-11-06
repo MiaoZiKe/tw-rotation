@@ -87,6 +87,11 @@
       qblock: ['#udView button[data-v="tiles"]:not(.on)', '#adtGrid .adt-g', '#adtBins button'], qcount: ['#udView button[data-v="tiles"]:not(.on)', '#adtGrid .adt-g', '#adtBins button'],
       qnoteAfter: '#udView', desc: '總覽漲跌家數卡切成「族群字卡」：全部族群的字卡矩陣（-10%～+10% 深綠到深紅）、點族群看個股字卡、依級距篩選；切進去、點族群、點級距各算一次',
       veil: [], mark: [], block: [] },
+    /* ★ 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：摘要卡列最右邊的「恐慌指數」卡（site/fearcard.js）。
+       卡片（主數字、走勢線、狀態）人人看得到；計次的是「點開的完整圖」#ovFearFull —— 只有打開時它才在畫面上，所以 veil 只蓋它：
+       一次造訪裡打開過＝一次（quota.js visit 單位）；用完 → 完整圖反灰＋一行字（qnote），卡片照常。 */
+    { id: 'ov.fear', name: '總覽：恐慌指數完整圖', cat: 'overview', def: true, kind: 'bool', desc: '恐慌指數卡點開後的完整走勢圖（台指選擇權隱含波動率・本站自算＋美股 VIX）', limBy: { guest: 3, free: 5 },
+      qnote: '恐慌指數完整圖今日 {n} 次已用完・Plus 以上可增加', route: /^(#overview([/?]|$)|#?$)/, veil: [['#ovFearFull']], mark: [], block: [] },
     // ---- 精選文章（site/articles.js，2026-10-16 接上全站開關與每日次數）
     /* ★ 預設全部開、不設 defBy／limBy、不進 METERED（全站共用額度）＝上線這一刻任何人看得到的文章一篇都不變；
        Andy 要收費或限篇數時，在 #admin/perm 對訪客／註冊會員／Plus／Pro 範本關掉或填「每日 N 次」。
@@ -442,7 +447,7 @@
      清單＝方案草案裡訪客要計次的那 41 項（總覽、產業地圖首頁、事件、自選、工具類不算 —— 那些是鉤子或不是「看資料」）。
      共用額度存在範本的 dq 欄位（account-api 每日額度區塊；TwPerm.lim('quota.all') 讀它），不是一個開關 —— 所以這裡不另外列一項「quota.all」，
      不然 #admin/perm 會把它畫成一顆開關。單位＝這一頁（site/quota.js 的 pageKey：個股代號／剖析圖／題材／族群／一次造訪）。*/
-  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.credit", "mkt.fut", "mkt.inst.day", "mkt.ma", "mkt.streak", "mkt.updown", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
+  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.credit", "mkt.fut", "mkt.inst.day", "mkt.ma", "mkt.streak", "mkt.updown", "ov.fear", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
   METERED.forEach(function (id) { var f = LIST.filter(function (x) { return x.id === id; })[0]; if (f) f.metered = true; });
 
   /* ★ 2026-10-10（網頁手機同步稽核 7-1、Andy 10-10 經手機 session 轉達）：側欄子分頁 → 功能鍵。

@@ -16,9 +16,11 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
+from .util import source_health
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
+from .compute import ivx as ivx_c
 from .compute import lab as lab_compute
 from .compute import analysis, digest, earnings, etf, etf_holdings, flow, flowcheck, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
@@ -440,7 +442,8 @@ def build() -> None:
     try:
         _ohlc = store.read("index_ohlc")
         _fi, _oi = store.read("fut_inst"), store.read("fut_oi")
-        _write("market_fut", mktfut_c.build(store.read("margin_total"), margin, company, price, _ohlc, loader.membership()))
+        _write("market_fut", mktfut_c.build(store.read("margin_total"), margin, company, price, _ohlc, loader.membership(),
+                                            mt_otc=store.read("margin_total_otc")))
         _write("fut_oi", mktfut_c.fut_oi_json(_fi, _ohlc, "期交所三大法人區分各期貨契約（經 FinMind TaiwanFuturesInstitutionalInvestors），臺股期貨 TX，所有到期月份合計"))
         _write("retail_ratio", mktfut_c.retail_ratio_json(_fi, _oi, _ohlc, "期交所三大法人未平倉＋期貨每日行情未平倉（經 FinMind），大台 TX／小台 MTX／微台 TMF，所有到期月份合計"))
     except Exception as exc:  # noqa: BLE001
@@ -511,6 +514,13 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("季節性 v3 產出失敗：%s", exc)
         _write("seasonality_v3", {"periods": {}, "groups": [], "note": str(exc)})
+    # 總覽「恐慌指數」卡（2026-11-06，Andy：「另外需要新增恐慌指數再右上」）：本站自算臺指選擇權隱含波動率＋美股 VIX。
+    # 只重算這一份：python -m pipeline.compute.ivx（不用跑整份 payload）。
+    try:
+        _write("fear", ivx_c.build_json(store.read("opt_ivx"), intl_all))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("恐慌指數產出失敗（只影響總覽恐慌指數卡）：%s", exc)
+        _write("fear", {"tw": None, "us": None, "note": str(exc)})
 
     lap("M4 季節性")
 
@@ -1003,8 +1013,26 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "table_summary": tbl,
         "last_run_errors": errors,
         "meta_token": meta_token,
+        # 2026-11-06 每週官方開放檢查（pipeline/open_watch.py）：儀表板那類維持率／追繳／處分資料一旦進官方 OpenAPI，資料狀態提示可以接上
+        "official_open": _official_open(),
         "last_run_empty": last_run.get("empty", []),
+        # 永久缺口：已超過來源保存期、補不回來。刻意不放進 last_run_errors，也不影響燈號；
+        # 資料狀態列會把它講出來，讓人知道「那幾天的盤中資料本來就沒有」，而不是以為是今天沒抓到。
+        "gaps": list(last_run.get("gaps") or []),
+        # 已用替代來源補回的交易日（口徑與原始快照略有不同，資料狀態要明說）
+        "tape_rebuilt": list(last_run.get("rebuilt") or []),
+        # 來源健康（B）：連續失敗 ≥2 天的來源，資料狀態列講「幾項來源連續沒有資料」（不列內部代號）
+        "source_failing": source_health.failing(source_health.load(config.STATE / "source_health.json")),
     }
+
+
+def _official_open() -> dict:
+    try:
+        from . import open_watch
+        return open_watch.for_meta()
+    except Exception as exc:  # noqa: BLE001 —— 狀態檔壞掉不該讓 meta.json 掛掉
+        log.warning("讀官方開放檢查狀態失敗：%s", exc)
+        return {}
 
 
 def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
@@ -1303,6 +1331,12 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     sbl_by = _by_code(deep.get("sbl"))
     # 資券三個來源全市場最新到哪天（#304）：頁面據此寫「資料源更新到 MM-DD」，不讓空格被當成 0
     mg_asof = stockpage.margin_asof(deep.get("margin"), deep.get("daytrade"), deep.get("sbl"))
+    # 2026-11-06（稽核 D）：上市／上櫃資券不同時到 → 每檔用自己所屬市場的最新完整日（沒有市場資料的檔用全湖值）
+    _mk_codes: dict = {}
+    for _c, _m in (markets or {}).items():
+        _mk_codes.setdefault(str(_m), set()).add(str(_c))
+    mg_asof_mk = {m_: stockpage.margin_asof(deep.get("margin"), deep.get("daytrade"), deep.get("sbl"), codes=cs_)
+                  for m_, cs_ in _mk_codes.items()}
     insth_by = _by_code(inst_hist)
     instd_by = _by_code(inst_today)
     valt_by = _by_code(val_today)
@@ -1454,7 +1488,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                                                      daytrade=dtr_by.get(code), sbl=sbl_by.get(code),
                                                      price=raw_by.get(code, g))),
             "margin_columns": stockpage.MARGIN_COLUMNS,
-            "margin_asof": mg_asof,
+            "margin_asof": mg_asof_mk.get(str(markets.get(code)), mg_asof),
             # ★ 2026-09-27「指標」分頁：事實條件標籤（stockpage.stock_tags，不做推介）
             "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
@@ -1615,7 +1649,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code, daytrade=dtr_by.get(code),
                                                      sbl=sbl_by.get(code), price=thin_raw.get(code))),
             "margin_columns": stockpage.MARGIN_COLUMNS,
-            "margin_asof": mg_asof,
+            "margin_asof": mg_asof_mk.get(str(markets.get(code)), mg_asof),
             "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
             "insider": _clean(stockpage.insider_series(ins_by.get(code), shw_by.get(code), code)),
@@ -1641,15 +1675,21 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         if c not in seen_idx and is_tradable_security(c):
             index_codes.append(c); seen_idx.add(c)
     index = []
+    # ★ 2026-11-06 資料稽核（Andy：「每個資訊都更新到最新不可以有資訊誤差」）：
+    #   今天（latest）沒有成交列的代號 —— 已下市（0054 停在 2022-05-26）、停牌、今天沒成交 ——
+    #   rows 裡帶的是「它自己最後一天」的收盤與漲跌幅。以前原樣寫進索引，於是 238 檔多年前的漲跌被算進今天的
+    #   漲跌家數（updown.json all.n 2583，官方同口徑 2332）。收盤留著給搜尋看，漲跌幅與成交值只給今天有成交的。
+    traded_today = set(day_one.index)
     for code in index_codes:
         r = row_idx.get(code)
         gi = group_of.get(code, {})
         close = r["close"] if r else _cell(day_one, code, "close")
+        today = code in traded_today
         index.append({
             "code": code, "name": names.get(code) or (r["name"] if r else code),
             "market": markets.get(code), "group": gi.get("group_name"), "group_id": gi.get("group_id"),
-            "close": close, "chg_pct": r["chg_pct"] if r else _chg(code, close),
-            "turnover": r["turnover"] if r else _cell(day_one, code, "turnover"),
+            "close": close, "chg_pct": (r["chg_pct"] if r else _chg(code, close)) if today else None,
+            "turnover": (r["turnover"] if r else _cell(day_one, code, "turnover")) if today else None,
             "pe": r["pe"] if r else _cell(val_one, code, "pe"),
             "grade": r["grade"] if r else None,
             "tier": ("full" if m60_state.get(code) == "ok" else "daily") if r else "thin",

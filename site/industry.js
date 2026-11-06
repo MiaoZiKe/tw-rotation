@@ -8554,10 +8554,11 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
     const AS = pg.margin_asof || {};
     const asRef = [AS.margin, AS.daytrade, AS.sbl].filter(Boolean).sort().pop() || '';
     const cutOf = (k) => (AS[k] && asRef && AS[k] < asRef ? AS[k] : null);
-    const CUT = { dt: cutOf('daytrade'), sbl: cutOf('sbl') };
+    /* 2026-11-06（稽核 D）：融資融券也可能比當沖／借券晚到（上櫃先、上市後，或反過來）；pg.margin_asof 已改成該檔所屬市場的最新完整日 */
+    const CUT = { dt: cutOf('daytrade'), sbl: cutOf('sbl'), mg: cutOf('margin') };
     const naCut = (k, d) => !!(CUT[k] && d > CUT[k]);
-    const srcNote = (CUT.dt || CUT.sbl)
-      ? `<div class="note" id="mgSrcNote" data-dt-cut="${CUT.dt || ''}" data-sbl-cut="${CUT.sbl || ''}" style="margin:-4px 0 10px">${[CUT.dt && `當沖資料目前只更新到 <b class="mono">${md5(CUT.dt)}</b>`, CUT.sbl && `借券賣出資料目前只更新到 <b class="mono">${md5(CUT.sbl)}</b>`].filter(Boolean).join('、')}；之後寫「未提供」，不是 0</div>`
+    const srcNote = (CUT.dt || CUT.sbl || CUT.mg)
+      ? `<div class="note" id="mgSrcNote" data-dt-cut="${CUT.dt || ''}" data-sbl-cut="${CUT.sbl || ''}" data-mg-cut="${CUT.mg || ''}" style="margin:-4px 0 10px">${[CUT.mg && `融資融券資料目前只更新到 <b class="mono">${md5(CUT.mg)}</b>`, CUT.dt && `當沖資料目前只更新到 <b class="mono">${md5(CUT.dt)}</b>`, CUT.sbl && `借券賣出資料目前只更新到 <b class="mono">${md5(CUT.sbl)}</b>`].filter(Boolean).join('、')}；之後寫「未提供」，不是 0</div>`
       : '';
     if (mg.length < CHIP_MIN) {
       el.innerHTML = srcNote + chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
@@ -8606,7 +8607,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
         const rows = dates.slice().reverse().map(d => [d, mmap.get(d)]).filter(x => x[1]);
         const th = (t, v) => `<th${seg.v === v ? ' class="sel"' : ''}>${t}</th>`;
         /* 2026-10-02（#294 對帳）：欄名寫全（改前只寫「融資」「融券」，內容卻是增減，讀者拿去跟總覽的餘額比就對不上），餘額欄補回來 */
-        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr data-k="${d}"><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt', naCut('dt', d))}${num(r[7], false, seg.v === 'sbl', naCut('sbl', d))}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
+        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr data-k="${d}"><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm', naCut('mg', d))}${num(r[3], true, seg.v === 'm', naCut('mg', d))}${num(r[2], false, seg.v === 's', naCut('mg', d))}${num(r[4], true, seg.v === 's', naCut('mg', d))}${num(r[5], false, seg.v === 'dt', naCut('dt', d))}${num(r[7], false, seg.v === 'sbl', naCut('sbl', d))}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
       }
       // 10-19 連動：資券柱＋餘額線 ↔ 每日明細表（鍵＝交易日）；當沖／借券沒資料時圖是空狀態，只剩表格自己亮
       stLink('mg', { root: el, code: (pg.meta && pg.meta.code) || '', rows: '#mgTbl tr[data-k]', charts: [{ id: 'marginChart', keys: dates }] });

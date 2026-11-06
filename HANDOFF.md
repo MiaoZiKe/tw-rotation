@@ -9,6 +9,51 @@
 - 市場明細的漲跌家數頁是另一個元件（#distMkt 清單），這次沒動。
 - 桌機多了切換鈕屬 Andy 明確要求的改動，桌機守門基準依需要用 `TW_DESK_BASELINE=write` 更新。
 
+## 2026-11-06 總覽新增「恐慌指數」卡（Andy：「另外需要新增恐慌指數再右上」；DECISIONS #383）
+- 主數字＝臺指選擇權隱含波動率（本站自算，CBOE 白皮書公式、TXO 月契約近月＋次近月結算價、30 天期），標「非期交所官方」；副數字＝美股 VIX（intl_daily ^VIX）。
+- 新表 `opt_ivx`：每日 `optivx.daily_update`（run_daily）＋回補 `optivx.backfill`（run_backfill，一輪補完 2023-01 起；backfill.yml 的跳過閘門已放行 opt_ivx 未完成）。
+- 前端 `site/fearcard.js`／`fearcard.css`／`m4/20261106-fearcard.css`；app.js 只加三個接點。功能鍵 `ov.fear`（計的是點開的完整圖）。
+- 既有驗收「摘要卡四張」改五張（`_uitest.py` 四處、`_preview.py` 一處）；即時口徑檢查排除恐慌指數卡（它沒有即時）。
+- 這批只驗了：pytest 全部、`恐慌指數1106`、`總覽摘要卡列`、`總覽摘要卡即時`、`KPI工具列頁尾0926`、`總覽`、`新-大盤三張圖`、`手機v3`、`手機一屏`、`桌機守門1008`（基準重寫）、`_preview.py`。
+- 待確認：回補跑完後拿公開報導的臺指VIX（2026-03-02 30.38、03-03 32.42、08-18 30.45）比對自算值，結果補在 DECISIONS #383。
+
+## 2026-11-06 稽核 A／B：暫定價量掛到隔天、FinMind 當沖佔位 0 永遠不補（fix/provisional-price；爬蟲專家）
+- **A 根因**：收盤當晚上市個股是 mis 暫定值（`px_source=mis`，量與值是盤中口徑，偏低 2～20%）。openapi 隔天上午就有官方值，但 daily.yml 清晨 05:07、盤中 09:07／12:07 三輪是 `--phase news`，`run_daily` 在 news 整段不抓價量 → 暫定值一路掛到 15:37。修前湖裡 11-05：2330 成交值 821 億（官方 1,018 億）、上市成交值合計 9,227 億、上漲／下跌／平盤＝上市 252/1,023/61、上櫃 233/718/47（上櫃湖裡本來就是官方值，tpex 沒有同樣問題）。
+- **A 修法**：`run_daily.py` news 輪新增抓 `twse.price_daily`、`twse.market_daily`、`tpex.price_daily`（openapi，不吃 FinMind）；`store.append` 本來就是「後到的為準」，官方列沒有 `px_source`，覆蓋後暫定標記自動消失。新增 `drop_rows_already_official`：mis 暫定列絕不蓋掉湖裡已是官方值的列。news 輪沒有設 `trade_date`（避免帶動法人／融資券等下游步驟）。news 輪原本就會 build_payload＋部署，不需另外觸發。
+- **B 根因**：FinMind 當沖當天先回 0 佔位列，舊版直接入湖；續補以「最後一天＝最新交易日」判斷不落後，永遠不重抓。11-05 湖裡 417 檔當沖全 0（平常 50～160），2330 顯示 0 張、FinMind 現在 7,532 張。借券（sbl_daily）湖裡全零列每天約 141 檔持平，沒有佔位跡象，只加「日期晚於價量最新日就丟」。
+- **B 修法**：`sources/finmind.py` 新增 `drop_placeholder_rows`：當沖丟「日期晚於價量最新日」與「價量最新日（含）之後全 0」的列（真的 0 的股票晚一天入湖）；`run_backfill.py` 新增 `zero_daytrade_codes`（最近 2 個交易日全 0 的重抓，每日續補排最前面）與 `fix_daytrade_zeros`、CLI `--fix-daytrade-zeros N`；`backfill.yml` 的 datasets 加選項 `daytrade_zerofix`（一次性回補，結果走 store.append）。代價：真的當沖為 0 的股票（約 100 檔/天）每天會多問 1～2 次 FinMind。
+- 測試：`tests/test_provisional_price_1106.py`（15 條）＋改 `test_stage_pipeline_news.py`（news 輪要抓官方價量）。
+- **這批只驗了**：pytest 41 個與 run_daily／run_backfill／finmind／price_daily 相關的測試檔（812 passed；全套 pytest 因機器被其他 agent 佔滿跑不完，未跑）與上述新測試；線上驗證見交付回報（daily workflow_dispatch phase=news、backfill datasets=daytrade_zerofix）。前端沒動，未跑 `_preview`／`_uitest`。
+
+## 2026-11-06 頂欄「N 人在線」框加「今天」段（站主專用；前端已推 main，後端在分支 feat/online-today 等 Andy 同意才部署）
+- 前端：`site/account.js` `paintToday()`（今天來過的會員：累積停留、前 3 頁、最後出現；訪客今天／本週／累積；固定高度框內捲動）；`site/admin.js` 多 `TwAdmin.testEmails()`（測試帳雜湊排除）；順手修手機上框左緣掉出螢幕外（改 left 夾在畫面內）。
+- **後端沒部署**：`/v1/admin/online/today`、`pdwell`／`visagg` 兩表在分支 `feat/online-today`（`workers/account-api/worker.js` 檔尾、`tests/today.test.mjs`），**不准推 main 觸發 deploy-account-worker.yml，要 Andy 明確同意**。部署前前端顯示「需要更新會員後端」。部署時隱私權政策「個人使用明細」那段要補「各頁停留時間」。
+- 驗：`_uitest --sections 線上今天1106`（站主 1440／手機 390、假 Worker 回應、20 筆固定高度可捲、一般會員與訪客看不到）、`線上名單1017`、`站主工具1101`、`桌機守門1008`、`node --test workers/account-api/tests/*.mjs`（206 條）。
+
+## 2026-11-06 信用交易「全市場信用風險（官方儀表板）」人工登錄（Andy 11-06 決定：儀表板條款不准自動抓 → 站主每天手動填五個數字）
+- 前端（已推 main）：`site/margindash.js`（新檔）接在 #market/credit 大盤分頁的融資維持率卡下方；`marketfut.js` 只在 `render()` 加一行 `TwMarginDash.mount`。整塊在 #mktBody 裡 → 沿用 `mkt.credit` 閘門，不另開功能鍵。公告 `f-20261106-credit-official`。
+- 資料來源順序：會員 Worker `/v1/mdash/get` → 沒有這支端點時讀 `site/margin_dashboard_seed.json`（Andy 截圖 11/05、10/30 兩筆）。站主在 Worker 沒開通時按儲存＝只存這台瀏覽器（表單明寫）。
+- ⚠ Worker 端點**還沒部署**：程式在分支 `feat/margin-dashboard-worker`（`workers/account-api/margindash.js`＋`tests/margindash.test.mjs`＋worker.js 兩行＋deploy 工作流測試清單），合併 main 會觸發 deploy-account-worker.yml，**要 Andy 同意才合併**。合併前 Andy 填的數字只在他自己的瀏覽器。
+- 這批只驗了：`信用風險登錄1106`（新）、`大盤融資維持率1020`、`信用交易r3`、`信用排行1104`、`新功能次數1102`、`功能公告1019`、`桌機守門1008`、`_preview.py`；Worker 測試 `node --test workers/account-api/tests/margindash.test.mjs`。
+
+## 2026-11-06 午 全站資料稽核（Andy：「每個資訊都更新到最新不可以有資訊誤差」；probe/audit-1106，run 42154202438、第三輪補查同分支）
+- 方法：Actions 上抓線上 JSON（GitHub Pages＋正式網域）與證交所／櫃買／期交所 openapi、FinMind 逐項比對（抓取時間 11-06 11:03 台北，最新交易日 11-05）。
+- 已修（本批）：① stocks.json 今天沒成交的代號（已下市、停牌，238 檔）不再帶「它自己最後一天」的漲跌幅與成交值 → 漲跌家數不再把多年前的漲跌算進今天（updown all.n 2583 → 2346，官方同口徑 2332）；
+  ② index_lastday 開高低改用當天日 K（1 分 K 取樣漏極值：加權最高 42,850.61 → 官方 42,873.81）；③ 信用交易「資料未更新」提示框把 `${last.d}` 原樣印出來（單引號字串）。
+- 未修、已交 CEO：上市個股 T 日價量整晚到隔天 15:37 都是 mis 暫定值（成交值低估 2～20%，76 檔收盤與官方不同）；FinMind 當沖先給 0 的佔位列被存進湖、之後不再重抓（11-05 有 417 檔當沖＝0，含 2330）。
+- 這批只驗了：pytest 全跑（sparse 工作樹缺 docs／workers 的 34 失敗＋12 錯誤與 origin/main 相同，新增 2 條守門測試綠）、`_uitest` 大盤融資維持率1020／信用交易r3／總覽摘要卡列／漲跌家數市場別 0 問題；
+  漲跌連結1006 手機 m4 前提、新-大盤三張圖 夜盤三條在 origin/main 同樣紅（既有）；`_preview.py` 只有本機資料不全的 404。本機沒有重算 payload，用線上 JSON 套同一規則模擬。
+
+## 2026-11-06 上午 信用交易：融資維持率（估算）上市／上櫃／合計＋每週檢查官方有沒有開放儀表板資料（金融專家；DECISIONS #382）
+- 追繳／處分戶數與金額**不做**（只在證交所儀表板頁，背後 rwd／tpex-api 禁爬；OpenAPI、FinMind 免費版都沒有）。
+- 上櫃分母新表 `margin_total_otc`（`pipeline/sources/tpex_margin.py`，櫃買 OpenAPI 信用交易彙總；swagger 自動找端點）。**端點名與欄位沒有實測**（容器連不到櫃買）：
+  第一次 daily 跑完看 `data/_state/last_run.json` 的 `steps["tpex.margin_total_otc"].diag`；`ok:false` 就照裡面的端點與欄位名修 `parse_summary`。
+- 櫃買 OpenAPI 只給最新一天 → 上櫃／合計從第一筆起逐日累積，畫面沒資料時顯示「資料累積中」。
+- 每週檢查 `.github/workflows/open-data-watch.yml`（週六台北 11:43）→ `data/_state/official_open_watch.json` → meta.json `official_open` → 資料狀態提示。誤判寫進狀態檔 `ignore`。
+- 這批只驗了：pytest（sparse checkout 缺 docs／data 的 39 條環境性失敗除外）、`信用上櫃1106`（新）、`信用排行1104`、`大盤融資維持率1020`、`信用交易r3`、`資料狀態`、`_preview.py`（5 條都在總覽／資金流向／財報日曆，本機 site/data 是 10-26 舊檔，跟這批無關）。
+  本機完整 `build_payload` 三次都在記憶體不足被系統砍掉（主機與其他 session 共用 15G），只確認到 `market_fut.json` 新格式寫得出來；線上由 pages.yml 重算。
+- 遠端臨時分支 `probe/margin-call` 刪不掉（git 代理斷線、gh api 刪除被權限擋），要刪請 Andy 或有權限的 session 處理。
+
 ## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
 - 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
 - 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。
@@ -5840,3 +5885,16 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 驗了：pytest 全 1409 通過；_preview 正常；`桌機守門1008` 0 問題；`科技透明圈1025` 0 問題（含 390 寬公司頁 ≤4 屏）；`科技透明圈LOGO不裁切` 0 問題。
 - 未收斂：`科技透明圈圖表1026`（5 項）與 `科技透明圈站內LOGO`（2 項）在容器紅，原因是容器連不到 Google／gstatic 外部 LOGO 圖（改動前同樣紅，線上不受影響）。
 - 樣本數 Andy 要再查；網站那邊的來源由他請人繼續找。
+
+## 2026-11-06 資料來源健康 A 段（盤中快照缺口明示）
+- 改了：`pipeline/sources/tape.py`（`lake_calendar`、`gap_report`，`GAP_SINCE=20261028`）、`pipeline/run_daily.py`（`_tape_step()` 取代兩處靜默移除；`RESULT["gaps"]`）、`pipeline/build_payload.py`（`meta_payload()` 輸出 `gaps`，不進 errors）、`site/app.js`（資料狀態提示列出永久缺口，`renderFreshness` 只加 3 行）。
+- 驗了：pytest 相關檔（tape／freshness／meta／daily／inst／heal）112 項全綠；`_uitest --sections 永久缺口1106` 0 問題。
+- 未驗（要寫清楚）：資料狀態段因機器負載 `Page.goto` 逾時未驗；`_preview.py` 在 412 行崩潰（`#themeDiagram` 找不到元素），因為本機 site/data 是 10-22 舊快照沒有題材圖資料，屬環境問題，未跑完。
+- 沒跑：social_*、gh_cron、delivery_log、mis、mops、taifex（sparse 缺 social/、workers/、data/）。
+- 未做：B（source_health.json）、C（盤後官方交叉比對）。
+
+## 2026-11-06 來源健康 B／C（同日）
+- B：`pipeline/util/source_health.py`；run_daily 每次寫狀態時更新 `data/_state/source_health.json`（依天累積 consecutive_fail，同日多輪只計一次）；meta 輸出 `source_failing`（連續 ≥2 天才在資料狀態列講，不列內部代號）。驗了：pytest 相關檔 141 項綠；前端用獨立 route 腳本三項斷言通過。**未驗**：`_uitest` 段落「來源健康1106」因機器負載（共用 helper 第 145 行 networkidle 逾時）。
+- C：`pipeline/compute/crosscheck.py`，daily.yml 獨立步驟（continue-on-error，放在回寫資料湖之前）。結果寫進 source_health.json 的 `crosscheck`。驗了：tests/test_crosscheck.py 7 項綠。**未驗**：真實官方端點與湖的比對結果（要等 Actions 跑一輪看 crosscheck 欄位）；前端還沒顯示 crosscheck。
+- A 的部署：`deploy_wait --branch main` 對 f4427f7e 仍在等 Pages（佇列排隊）。B、C 之後再跑一次 deploy_wait 對 c5dca60ae。
+- 仍未做：`_preview.py` 在 412 行崩潰（本機 site/data 是 10-22 舊快照，缺題材圖資料，環境問題）；`_uitest 資料狀態` 因機器負載 goto 逾時未驗。

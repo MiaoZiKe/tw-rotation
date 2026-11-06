@@ -5573,6 +5573,7 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
 <link rel="stylesheet" href="layout4.css">
 <link rel="stylesheet" href="flowcheck.css"><link rel="stylesheet" href="flowcheck3.css"><link rel="stylesheet" href="flowcheck4.css"><!-- 2026-10-30 流向驗證頁 #flowcheck（手機規則在 m4/20261030-flowcheck.css） -->
+<link rel="stylesheet" href="fearcard.css"><!-- 2026-11-06 總覽恐慌指數卡（site/fearcard.js） -->
 <link rel="stylesheet" href="mobile4.css">
 <!-- m4:css 開始（scripts/m4_css_links.py 依 site/m4/*.css 檔名排序產生，不要手改；合併撞到這段就重跑那支） -->
 <link rel="stylesheet" href="m4/20261016-01-card-frame.css">
@@ -5624,6 +5625,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261102-relgraph.css">
 <link rel="stylesheet" href="m4/20261102-topbar-quota.css">
 <link rel="stylesheet" href="m4/20261104-channels.css">
+<link rel="stylesheet" href="m4/20261106-fearcard.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -6238,6 +6240,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="tape.js"></script>
 <script src="flowcheck.js"></script><script src="flowcheck3.js"></script><script src="flowcheck4.js"></script><!-- 2026-10-30 流向驗證頁（#flowcheck）：輪盤／資金樹／熱力圖與族群走勢、成分股走勢同步 -->
 <link rel="stylesheet" href="advdec.css"><script src="advdec.js"></script><!-- 2026-11-06 漲跌家數卡的族群字卡檢視（要早於 app.js：renderUpDown 會呼叫 AdvDec） -->
+<script src="fearcard.js"></script><!-- 2026-11-06 總覽摘要卡「恐慌指數」（台指選擇權隱含波動率・本站自算＋美股 VIX）；app.js 的 renderOvSummary 會叫它，所以放在前面 -->
 <script src="app.js"></script>
 <script src="theme4.js"></script>
 <!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->
@@ -6257,6 +6260,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="artsched.js"></script><!-- 2026-10-16 產貼文頻率設定（第 2 版：日期→整點時段→類別篇數→加入排程清單→啟用）：由 articles.js 掛進 #admin/articles「文章主題」分頁最下面（僅管理者） -->
 <script src="market3.js"></script>
 <script src="marketfut.js"></script><!-- 2026-10-20 市場明細：融資餘額／外資期貨口數／期貨多空比 -->
+<script src="margindash.js"></script><!-- 2026-11-06 信用交易：全市場信用風險（官方儀表板）人工登錄 -->
 <script src="tasks.js"></script>
 <script src="live.js"></script>
 <script src="snap.js"></script>

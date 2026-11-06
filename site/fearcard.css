@@ -1,0 +1,38 @@
+/* 總覽摘要卡「恐慌指數」（site/fearcard.js，2026-11-06 Andy：「另外需要新增恐慌指數再右上」）。
+   卡片本體沿用同一排的 .osc（index.html），這裡只補這張卡特有的：分位比例條、狀態膠囊、小走勢線、展開的完整圖。
+   顏色全走主題變數（深／淺主題自動跟著換）；漲跌字色照台股慣例紅漲綠跌。手機（≤640／html.m4）的調整在 m4/20261106-fearcard.css。*/
+.osc-bar.track i.fz-pct{background:linear-gradient(90deg,color-mix(in srgb,var(--c) 45%,transparent),var(--c));border-radius:99px}
+.osc.fz .osn-v{gap:3px}
+.osc.fz .osn-v b{font-size:17px}
+.osc.fz .osn-v em{font-size:11px}
+.osc.fz .osn-v em.fz-up{color:var(--rise)} .osc.fz .osn-v em.fz-dn{color:var(--fall)}
+.osc.fz svg.fz-sp{display:block;flex:none;width:40px;height:16px}
+.osc.fz .osc-f{display:flex;align-items:center;gap:5px}
+.fz-st{flex:none;font-style:normal;font-size:11.5px;line-height:16px;padding:0 7px;border-radius:var(--r-pill,99px);font-weight:700;
+  color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
+.fz-st.na{--c:var(--ink-3);font-weight:500}
+.osc.fz .osc-f .muted{overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 展開的完整圖：卡列正下方一整條，高度固定（圖表不跟內容伸縮，避免 ECharts resize 抖動） */
+.fz-full{margin-top:var(--sp-2,8px);border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel-3) 55%,transparent);
+  padding:var(--sp-2,8px) var(--sp-3,12px);box-sizing:border-box;min-width:0;position:relative}
+.fz-fh{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;min-width:0}
+.fz-fh > b{font-size:13.5px;color:var(--ink)}
+.fz-tag{font-size:11.5px;line-height:18px;padding:0 7px;border-radius:99px;border:1px dashed var(--line-2,var(--line));color:var(--ink-3)}
+.fz-leg{display:inline-flex;align-items:center;gap:4px 8px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.fz-leg i{display:inline-block;width:12px;height:2px;background:var(--c);vertical-align:middle;margin-right:2px}
+.fz-x{margin-left:auto;flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink-2);font-size:17px;line-height:1;cursor:pointer}
+.fz-x:hover{border-color:var(--cyan);color:var(--cyan)}
+.fz-cv{height:300px;min-width:0;margin-top:6px}
+.fz-note{font-size:12px;line-height:17px;color:var(--ink-3);margin-top:4px}
+.fz-note b{color:var(--ink);font-family:var(--mono)}
+/* 標題列：五張一排時卡片約 218px，「恐慌指數」＋「非期交所官方」＋「?」要擠得下 —— 這張是原地展開、不換頁，所以不放右上「›」；標題不准被壓縮成「恐…」*/
+.osc.fz .osc-h{gap:5px}
+.osc.fz .osc-t{flex:none}
+.osc.fz .osc-h .fz-tag{flex:none;font-size:11px;line-height:16px;padding:0 3px;white-space:nowrap}
+.osc.fz .osc-h > .howbtn{margin-left:auto}
+/* 五張一排（1440 每張約 218px）時，站主看得到的「即時」鈕會把「資金分流樹」卡名擠成「資金分流…」：
+   有恐慌指數卡的那一排，標題列間距 8→6、即時鈕左右留白 8→6（只動這一排的桌機寬；手機 ≤640 本來就是 7px／另有規則）。*/
+@media (min-width:641px){
+  #hero .ovsum-track:has(.osc.fz) .osc-h{gap:6px}
+  #hero .ovsum-track:has(.osc.fz) .osc-d{padding:0 6px}
+}
