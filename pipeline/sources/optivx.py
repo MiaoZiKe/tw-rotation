@@ -54,6 +54,11 @@ def daily_update(today: date | None = None, fetch=None, last: str | None = None)
         return out
     if out.empty and rows is None:
         out.attrs["error"] = "FinMind 沒回應或額度用完"
+    elif out.empty and len(rows) == 0:
+        # FinMind 有回應、但 start～today 沒有任何列：休市日，或當天的選擇權結算資料晚上才出 —— 常態
+        out.attrs["skipped"] = f"FinMind 尚無 {start}～{today} 的臺指選擇權資料（休市或當天還沒出）"
+    elif out.empty:
+        out.attrs["error"] = f"FinMind 回 {len(rows)} 列但算不出隱含波動率（欄位或契約月份可能改了）"
     return out
 
 

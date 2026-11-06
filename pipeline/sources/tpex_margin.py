@@ -31,6 +31,11 @@ from ..util.roc import roc_to_iso, to_float
 log = logging.getLogger(__name__)
 
 ROOT = "https://www.tpex.org.tw/openapi"
+# 2026-11-06 在 Actions 實測（probe/tpex-1106）：櫃買 OpenAPI 沒有「整體市場融資金額」的總表 ——
+#   · /v1/tpex_margin_trading_marginspot 摘要寫「信用交易餘額概況表」，內容其實是各券商月均融資排名（Month／Ranking／CompanyName）；
+#   · 唯一的當日融資融券是 /v1/tpex_mainboard_margin_balance（上櫃股票融資融券餘額，919 列個股，單位＝張，沒有金額）。
+# 所以這裡改成：把個股餘額加總成整體融資／融券張數（官方、當日、含前日餘額），融資金額留空（不拿市值硬湊，湖只增不改）。
+BALANCE = "/v1/tpex_mainboard_margin_balance"
 SWAGGER = ROOT + "/swagger.json"
 CANDIDATES = ["/v1/tpex_mainboard_margin_summary", "/v1/tpex_margin_summary", "/v1/tpex_mainboard_margin_trading_summary"]
 _DISCOVER = re.compile(r"信用交易|融資融券.*(概況|彙總|總表|統計)|margin.*(summ|total|stat|overview)", re.I)
@@ -130,6 +135,37 @@ def parse_summary(raw) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COLS) if rows else pd.DataFrame()
 
 
+def parse_balance(raw) -> pd.DataFrame:
+    """tpex_mainboard_margin_balance（個股一列，單位＝張）→ 整體一天一列。
+
+    只加總官方欄位：MarginPurchaseBalance（融資餘額）、MarginPurchaseBalancePreviousDay、ShortSaleBalance、ShortSaleBalancePreviousDay。
+    margin_money 留 NaN：OpenAPI 沒有金額總表，用「張數×收盤價」算出來是市值不是融資金額，放進去維持率會錯。
+    日期只認回應裡的 Date（民國 1151106）；一份回應有多個日期、或少於 100 列（整份不完整）都不收。"""
+    if not isinstance(raw, list) or len(raw) < 100 or not isinstance(raw[0], dict):
+        return pd.DataFrame()
+    df = pd.DataFrame(raw)
+    need = {"Date", "MarginPurchaseBalance", "ShortSaleBalance"}
+    if not need <= set(df.columns):
+        log.warning("上櫃融資融券餘額欄位認不得（缺 %s），實際欄位：%s", sorted(need - set(df.columns)), list(df.columns)[:20])
+        return pd.DataFrame()
+    dates = {roc_to_iso(str(x).strip()) for x in df["Date"]} - {None}
+    if len(dates) != 1:
+        log.warning("上櫃融資融券餘額日期不是單一一天：%s", sorted(dates)[:5])
+        return pd.DataFrame()
+
+    def tot(col):
+        if col not in df.columns:
+            return None
+        v = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce")
+        return None if v.isna().all() else float(v.sum())
+    row = {"date": dates.pop(), "margin_lots": tot("MarginPurchaseBalance"), "margin_lots_prev": tot("MarginPurchaseBalancePreviousDay"),
+           "margin_money": float("nan"), "margin_money_prev": float("nan"),
+           "short_lots": tot("ShortSaleBalance"), "short_lots_prev": tot("ShortSaleBalancePreviousDay")}
+    if not row["margin_lots"]:
+        return pd.DataFrame()
+    return pd.DataFrame([row], columns=COLS)
+
+
 def _get(url: str):
     try:
         r = http.session().get(url, headers=_HEADERS, timeout=config.HTTP_TIMEOUT)
@@ -162,6 +198,14 @@ def discover(sw: dict | None) -> list[str]:
 def fetch() -> pd.DataFrame:
     """抓上櫃信用交易彙總（只有最新一天）；失敗或認不得回空 DataFrame。"""
     DIAG.clear()
+    for _ in range(4):                       # 這支端點回應大，常被切斷（2026-11-06 實測約 1/6 失敗），多試幾次
+        st, js = _get(ROOT + BALANCE)
+        if st == 200 and js is not None:
+            break
+    bal = parse_balance(js) if st == 200 and js is not None else pd.DataFrame()
+    if not bal.empty:
+        log.info("上櫃融資融券餘額加總：%s 融資 %.0f 張、融券 %.0f 張", bal.iloc[0]["date"], bal.iloc[0]["margin_lots"], bal.iloc[0]["short_lots"])
+        return bal
     _, sw = _get(SWAGGER)
     cands = discover(sw if isinstance(sw, dict) else None)
     for p in CANDIDATES:

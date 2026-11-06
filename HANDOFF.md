@@ -1,5 +1,15 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-06 夜 資料維修：last_run 8 個 ok:false 的真相（爬蟲專家；Andy：「找不到的 要在安排 維修人員去修復」）
+- **8 個步驟分類**（證據＝11-06 19:00 台北那輪 full，run 42206369140 的 collect log）：
+  tape.collect／taifex.futures_minute／sitca.etf_top10／finmind.futures_60m／finmind.otc_60m／optivx.daily／news.broker_views ＝ **(a) 本輪本來就不用抓**（log：「窗內 34 個候選日都處理過了」「公會前十大 202609 已在資料湖，跳過」「台指期 2026-11-05 的 60 分 K 已在湖裡，跳過」「櫃買 …已在湖裡」；optivx 當天 FinMind 選擇權還沒出；券商引述當天新聞沒有目標價句），但 `step()` 一律把 rows==0 記成 ok:false。
+  tpex.margin_total_otc ＝ **(c) 程式錯誤**：猜的端點不存在。
+- **修法**：`run_daily.step()` 新增約定——來源在空回傳的 `attrs["skipped"]` 寫原因，就記 `ok:true + skipped:<原因>`、不進 empty；有 `attrs["error"]` 仍算失敗。套用在 sitca／60 分 K 兩支／券商引述／optivx（FinMind 回空列表＝skipped；回 None 或有列卻算不出＝error）／tape（無待補日）／taifex。
+- **上櫃融資（5.）**：Actions 實測（probe/tpex-1106）櫃買 OpenAPI **沒有整體融資金額總表**；`tpex_margin_trading_marginspot` 摘要寫「信用交易餘額概況表」，內容其實是各券商月均融資排名。唯一當日資料是 `/v1/tpex_mainboard_margin_balance`（個股 919 列、單位＝張、無金額）。改成加總成整體融資／融券張數（含前日），`margin_money` 留空。**上櫃融資維持率（估算）仍算不出來**（分母是金額）——要嘛站主人工登錄（比照上市信用風險那塊）、要嘛找得到合法的金額來源，這項沒解決。
+- **crosscheck 上櫃 unknown（4.）**：`tpex_mainboard_daily_close_quotes` 回應大，櫃買常傳一半切斷（"Response ended prematurely"，實測 6 次約 5 次成功，加 Accept-Encoding: identity 沒改善）。交叉比對的上櫃抓取重試由 3 次改 6 次（退避 1+2+4+8+16 秒）。
+- **擋住整條管線的另一個紅燈**：21:30 那輪 full 死在 pytest——`test_exrights::test_真實資料_6669本益比…` 寫死 15≤PE≤25，11-06 大跌後 PE＝14.7。窗放寬成 10～40（抓的是股本／除權處理錯造成差一倍以上，不該隨行情）。
+- 測試：`tests/test_step_skipped_1106.py`、`tests/test_tpex_margin_balance_1106.py`、改 `test_crosscheck.py`。
+
 
 ## 2026-11-06 總覽漲跌家數卡新增「族群字卡」檢視（Andy 11-06 原話：「這邊多一個切換，可以看到全部族群的字卡，整齊排列 字卡需要剛好矩陣填滿，並且點擊該族群也會有對應股票字卡，字卡顏色 -10~+10% 深綠~深紅，目的是更直觀看到 哪些市場跌停 狀況，以及可以依照級距篩選」）
 - 新檔 `site/advdec.js`／`site/advdec.css`；`app.js renderUpDown` 只加 3 處接口（AdvDec.render／toggle／has）與 `adt:view`／`adt:sel` 事件；`index.html` 加「分布｜族群字卡」分段鈕與 `#adtWrap`。

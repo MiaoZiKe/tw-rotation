@@ -91,7 +91,8 @@ def run(now: datetime | None = None, path: Path | None = None) -> dict:
         out = {}
         for market, fetch in (("TWSE", twse.price_daily), ("TPEX", tpex.price_daily)):
             try:
-                off_df = fetch()
+                # 上櫃日行情常被櫃買端傳一半切斷，3 次不夠（2026-11-06 上櫃 unknown）；退避 1+2+4+8+16 秒
+                off_df = fetch(retries=6) if market == "TPEX" else fetch()
                 off = _summ(off_df, market) if off_df is not None and not off_df.empty else None
             except Exception as exc:  # noqa: BLE001
                 log.warning("官方 %s 抓取失敗：%s", market, exc)
