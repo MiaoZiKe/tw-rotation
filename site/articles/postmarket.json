@@ -5,11 +5,19 @@
    "date": "2026-11-06",
    "items": [
     {
+     "cat": "科技",
+     "title": "強攻 AI 與企業級市場，潘健成：群聯擺脫依賴低價庫存邁入 AI 營運收割期",
+     "url": "https://finance.technews.tw/2026/11/06/phison-breaks-free-from-reliance-on-low-priced-inventory-and-enters-a-period-of-reaping-the-benefits-of-ai-driven-operations/",
+     "source": "科技新報",
+     "time": "2026-11-06T20:50:00+08:00",
+     "desc": "快閃記憶體控制晶片大廠群聯電子（Phison）舉辦法人說明會，執行長潘健成親自回覆法人提問。面對消費性電子疲軟"
+    },
+    {
      "cat": "新聞",
-     "title": "營收速報 - 群聯(8299)10月營收315.30億元年增率高達346.27％",
-     "url": "https://news.cnyes.com/news/id/6651101",
+     "title": "營收速報 - 樺漢(6414)10月營收162.19億元年增率高達39.3％",
+     "url": "https://news.cnyes.com/news/id/6651086",
      "source": "鉅亨",
-     "time": "2026-11-06T18:54:42+08:00",
+     "time": "2026-11-06T18:54:19+08:00",
      "desc": ""
     },
     {
@@ -21,20 +29,12 @@
      "desc": "美國期中選舉變天牽動市場對再生能源政策期待，太陽能廠元晶（6443）今（6）日以跌停板21.25元開出後，隨即在買盤點火拉抬下，一路向上，終場收漲停板25.95…"
     },
     {
-     "cat": "科技",
-     "title": "ChatGPT 搜尋量逼近 Google 兩成，搜尋龍頭面臨挑戰",
-     "url": "https://technews.tw/2026/11/06/chatgpt-search-reaches-roughly-20-percent-of-google-s-search-volume/",
-     "source": "科技新報",
-     "time": "2026-11-06T16:49:24+08:00",
-     "desc": "OpenAI 的 ChatGPT 消費性產品負責人 Adam Fry 近日表示，ChatGPT 一直以相當快的"
-    },
-    {
-     "cat": "科技",
-     "title": "台積電盤中下挫 220 元史上最大，今天市值降 2.72 兆元",
-     "url": "https://finance.technews.tw/2026/11/06/tsmc-2135-stock-price/",
-     "source": "科技新報",
-     "time": "2026-11-06T16:00:04+08:00",
-     "desc": "美國期中選舉後，多州 AI 資料中心政策可能調整，重創全球股市，台股早盤慘跌 3,737.67 點至 37,8"
+     "cat": "事件",
+     "title": "今日最夯股／保瑞為何逆勢漲2.7%？美國藥價政策有望鬆綁 外資5天買超近千張",
+     "url": "https://money.udn.com/money/story/5607/9862330",
+     "source": "聯合新聞網",
+     "time": "2026-11-06T19:08:25+08:00",
+     "desc": "股市瞬息萬變，標的五花八門，哪一檔個股是每天市場最關注的人氣指標及話題，請看經濟日報每日精選的今日最夯股。一、股價走勢保瑞（6472）6日開盤下跌，旋即向上反攻…"
     },
     {
      "cat": "總經",
