@@ -636,7 +636,8 @@
   /* 2026-10-09 加 #twTourBtn（tour.js 的「平台導覽」，本來就放在 #t4Btn 右邊）：舊清單沒有它 → 這裡每次重排都把它擠到最前面、
      tour.js 的觀察器再把它搬回 #t4Btn 後面，開站頭幾秒兩邊互搬，按鈕左右跳、點不到（導覽普查1009 實測 1440 總覽 5 秒內被搬 10 次）。
      排進固定順序之後兩邊要的位置一樣，誰都不再動它；版面位置跟原本相同。 */
-  const TOOL_ORDER = ['#themeBtn', '#t4Btn', '#twTourBtn', '#acctOnline', '#acctBtn', '#l4Login'];
+  /* 2026-11-07 每日簽到鈕（site/checkin.js）排在最前面：桌機入口要在右上角看得到，不能留在左欄底下 */
+  const TOOL_ORDER = ['#ciBtn', '#themeBtn', '#t4Btn', '#twTourBtn', '#acctOnline', '#acctBtn', '#l4Login'];
   let tools = null;
   function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
   function syncTools() {
@@ -690,6 +691,7 @@
     if (bar && tb && tb.parentNode !== bar) bar.insertBefore(tb, mb && mb.parentNode === bar ? mb : null);
     if (bar && t4 && tb && t4.parentNode !== bar) bar.insertBefore(t4, tb);
     ['#acctOnline', '#acctBtn'].forEach((s) => { const e = $(s); if (e && abar && e.parentNode !== abar) abar.appendChild(e); });
+    const cb = $('#ciBtn'); if (bar && cb && cb.parentNode !== bar) bar.insertBefore(cb, tb && tb.parentNode === bar ? tb : null);   // 簽到鈕跟著回頂欄（≤820 本來就隱藏）
     const lg = $('#l4Login'); if (lg) lg.remove();
     const tip = $('#l4LoginTip'); if (tip) tip.remove();
     tools = null;

@@ -38,9 +38,12 @@
   const lineName = (id) => { const l = ((M && M.lines) || []).find((x) => x.id === id); return l ? l.name : id; };
 
   /* ------------------------------------------------------------------ 時間（台北） */
-  const nowMs = () => Date.now() + T.off;
+  /* ★ 2026-11-07 實測 A2：假時間（T.off／T.today）只有「站主或管理員」或「本機驗收旗標」才生效；一般會員就算在主控台把 T 改掉，
+     nowMs()／today() 也完全不讀它。旗標只認 localhost／127.0.0.1，上線的網域設了也沒用。 */
+  const testOK = () => { try { return isAdm() || ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') && window.__TW_UITEST === 1); } catch (e) { return false; } };
+  const nowMs = () => Date.now() + (testOK() ? T.off : 0);
   const tpe = (ms) => new Date(ms + 8 * 3600e3).toISOString().slice(0, 10);
-  const today = () => T.today || tpe(nowMs());
+  const today = () => (T.today && testOK() ? T.today : tpe(nowMs()));   // 一律台北時區
   const ymOf = (d) => d.slice(0, 7);
   const dim = (ym) => new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
   const dstr = (ym, i) => ym + '-' + String(i).padStart(2, '0');
@@ -60,18 +63,39 @@
 
   /* ------------------------------------------------------------------ 儲存層（本機） */
   const KEY = 'tw.ci.v1';
-  const blank = () => ({ v: 1, signs: {}, claims: {}, unlock: {}, fresh: [], pts: {}, mk: {}, dayPts: {}, lastAt: 0, lastClick: 0, seen: { say: [], quiz: [] }, wishes: [], badges: [], ticket: {}, seq: 0 });
-  let S = null, SU = '';
+  const blank = () => ({ v: 1, signs: {}, claims: {}, unlock: {}, fresh: [], pts: {}, mk: {}, dayPts: {}, lastAt: 0, lastClick: 0, seen: { say: [], quiz: [] }, wishes: [], badges: [], ticket: {}, seq: 0, hw: 0 });
+  let S = null, SU = '', RAW = null;
+  const rd = (id) => { try { return localStorage.getItem(KEY + ':' + id); } catch (e) { return null; } };
+  /* ★ 2026-11-07 實測 A4：多分頁互相覆蓋。load() 每次都先看 localStorage 有沒有被別的分頁改過（字串不同才重新解析，平常只花一次 getItem），
+     save() 存檔前把「簽到、兌換、解鎖」跟已存的合併、只增不減；站主工具要刻意刪除時用 save(true) 直接覆寫。 */
   function load() {
-    const id = uid();
-    if (S && SU === id) return S;
-    SU = id; S = blank();
-    try { const j = JSON.parse(localStorage.getItem(KEY + ':' + id) || 'null'); if (j && j.v === 1) S = Object.assign(blank(), j); } catch (e) { /* 私密視窗：只留在記憶體 */ }
+    const id = uid(), raw = rd(id);
+    if (S && SU === id && raw === RAW) return S;
+    SU = id; RAW = raw; S = blank();
+    try { const j = JSON.parse(raw || 'null'); if (j && j.v === 1) S = Object.assign(blank(), j); } catch (e) { /* 私密視窗：只留在記憶體 */ }
     return S;
   }
-  function save() { try { localStorage.setItem(KEY + ':' + SU, JSON.stringify(S)); } catch (e) { /* 存不了就只留記憶體 */ } window.dispatchEvent(new CustomEvent('tw:ci')); }
+  const uni = (a, b) => Object.assign({}, b || {}, a || {});
+  function mergeIn(cur, o) {
+    cur.signs = uni(cur.signs, o.signs); cur.claims = uni(cur.claims, o.claims); cur.unlock = uni(cur.unlock, o.unlock);
+    cur.fresh = Array.from(new Set((cur.fresh || []).concat(o.fresh || [])));
+    cur.badges = Array.from(new Set((cur.badges || []).concat(o.badges || [])));
+    const ids = new Set((cur.wishes || []).map((w) => w.id)); (o.wishes || []).forEach((w) => { if (!ids.has(w.id)) cur.wishes.push(w); });
+    Object.keys(o.mk || {}).forEach((k) => { cur.mk[k] = Math.max(cur.mk[k] || 0, o.mk[k]); });
+    Object.keys(o.dayPts || {}).forEach((k) => { cur.dayPts[k] = Math.max(cur.dayPts[k] || 0, o.dayPts[k]); });
+    cur.lastAt = Math.max(cur.lastAt || 0, o.lastAt || 0); cur.seq = Math.max(cur.seq || 0, o.seq || 0); cur.hw = Math.max(cur.hw || 0, o.hw || 0);
+  }
+  function save(replace) {
+    if (S) {
+      if (!replace) { try { const j = JSON.parse(rd(SU) || 'null'); if (j && j.v === 1) mergeIn(S, j); } catch (e) { /* 略 */ } }
+      try { localStorage.setItem(KEY + ':' + SU, JSON.stringify(S)); } catch (e) { /* 存不了就只留記憶體 */ }
+      RAW = rd(SU);
+    }
+    window.dispatchEvent(new CustomEvent('tw:ci'));
+  }
 
-  const signsIn = (ym) => Object.keys(load().signs).filter((d) => d.slice(0, 7) === ym).sort();
+  /* ★ 2026-11-07 實測 A3：今天（台北）以後的紀錄一律不算累積天數、月曆上也不打勾（改電腦時鐘簽出來的未來日子，調回來就失效） */
+  const signsIn = (ym) => Object.keys(load().signs).filter((d) => d.slice(0, 7) === ym && d <= today()).sort();
   const total = (ym) => signsIn(ym).length;
   const nodes = () => cfg().nodes;
   const claimed = (ym, i) => !!load().claims[ym + ':' + i];
@@ -95,7 +119,11 @@
   /* ------------------------------------------------------------------ 動作 */
   function doSign(d, kind) {
     const s = load(), t = d || today();
+    if (t > today()) return { ok: false, error: 'future' };
     if (s.signs[t]) return { ok: false, error: 'already' };
+    /* 一般簽到：電腦時間比上次簽到時還早（時鐘被往回調）就不收；站主測試工具（kind 有值）不受限 */
+    if (!kind && nowMs() + 120e3 < (s.hw || 0)) return { ok: false, error: 'clock' };
+    if (!kind) s.hw = Math.max(s.hw || 0, nowMs());
     s.signs[t] = { k: kind || 'live', at: nowMs() }; save();
     return { ok: true, day: t, total: total(ymOf(t)) };
   }
@@ -158,18 +186,22 @@
     const w = { id: code, ym, at: nowMs(), why: why || '', items: items.map((t, i) => ({ n: i + 1, text: t, st: 'new', reply: '', sent: false })), result: 'pending', granted: false };
     s.wishes.unshift(w); s.ticket = {}; save();
     const a = A();
+    const sentMap = {};
     for (const it of w.items) {
       if (!a || !a.call || !acctOn()) continue;
       const body = { type: 'wish', cat: 'idea', body: `【願望清單】【簽到願望】【預覽】【簽到願望#${code}-${it.n}】${it.text}${why ? '\n為什麼需要：' + why : ''}`.slice(0, 2000), url: location.href.slice(0, 300) };
-      try { const j = await a.call('/v1/feedback', body); it.sent = !!(j && j._s === 200 && j.ok); } catch (e) { it.sent = false; }
+      try { const j = await a.call('/v1/feedback', body); sentMap[it.n] = !!(j && j._s === 200 && j.ok); } catch (e) { sentMap[it.n] = false; }
     }
-    save();
-    return w;
+    /* await 期間別的分頁可能已改過紀錄（load() 會換掉 S）：回頭用願望編號找，再寫入送達結果 */
+    const cur = load().wishes.find((x) => x.id === code);
+    if (cur) cur.items.forEach((it) => { if (it.n in sentMap) it.sent = sentMap[it.n]; });
+    save(true);
+    return cur || w;
   }
   /* 站主在管理區標狀態 → 回流到使用者畫面（站主身分才讀得到清單；其他人用「模擬願望回覆」工具） */
   async function syncWishes() {
-    const a = A(); if (!isAdm() || !a || !a.call) return 0;
-    const j = await a.call('/v1/admin/feedback/list', {}); if (!j || j._s !== 200) return 0;
+    const a = A(); if (!isAdm() || !a || !a.call) return -1;
+    const j = await a.call('/v1/admin/feedback/list', {}); if (!j || j._s !== 200) return -1;
     let n = 0;
     (j.feedback || []).forEach((r) => {
       const m = /【簽到願望#(W[\w]+)-(\d+)】/.exec(String(r.body || '')); if (!m) return;
@@ -212,7 +244,7 @@
         const i = (pool.length ? pool : F.facts.map((_, k) => k))[Math.floor(Math.random() * (pool.length || F.facts.length))];
         if (!pool.length) s.seen.say = [];
         s.seen.say.push(i); save();
-        box.innerHTML = `<h4>聽比比說</h4><p class="ci-bq">${esc(F.facts[i])}</p><div class="ci-bp" id="ciBP"></div><div class="ci-ba"><button type="button" class="ci-btn" id="ciBOk" disabled>知道了</button><button type="button" class="ci-btn ghost" id="ciBX">關閉</button></div>`;
+        box.innerHTML = `<h4>聽比比說</h4><p class="ci-bq">${esc(F.facts[i])}</p><div class="ci-bp" id="ciBP"></div><div class="ci-ba"><button type="button" class="ci-btn" id="ciBOk" disabled>知道了</button><button type="button" class="ci-btn ghost" id="ciBSw">改玩考考你</button><button type="button" class="ci-btn ghost" id="ciBX">關閉</button></div>`;
         setTimeout(() => { const b = $('#ciBOk'); if (b) b.disabled = false; }, 2000);   // 看卡片至少 2 秒才可按，避免秒按
         $('#ciBOk').onclick = () => { if (done) return; done = true; const r = countPoint(); $('#ciBOk').disabled = true; $('#ciBP').innerHTML = r.counted ? '+1 互動！' + prog() + (mkReady() ? '<br><b>可以補簽了</b>，到簽到月曆按「開始補簽」' : '') : esc(WHY[r.why] || ''); at = 1; };
       } else {
@@ -221,7 +253,7 @@
         const qi = (pool.length ? pool : qs.map((_, k) => k))[Math.floor(Math.random() * (pool.length || qs.length))];
         if (!pool.length) s.seen.quiz = []; s.seen.quiz.push(qi); save();
         const q = qs[qi], order = q.opts.map((o, k) => ({ o, k })).sort(() => Math.random() - 0.5);   // 選項順序隨機
-        box.innerHTML = `<h4>比比考考你</h4><p class="ci-bq">${esc(q.q)}</p><div class="ci-bo">${order.map((x) => `<button type="button" class="ci-opt" data-k="${x.k}" disabled>${esc(x.o)}</button>`).join('')}</div><div class="ci-bp" id="ciBP"></div><div class="ci-ba"><button type="button" class="ci-btn ghost" id="ciBX">關閉</button></div>`;
+        box.innerHTML = `<h4>比比考考你</h4><p class="ci-bq">${esc(q.q)}</p><div class="ci-bo">${order.map((x) => `<button type="button" class="ci-opt" data-k="${x.k}" disabled>${esc(x.o)}</button>`).join('')}</div><div class="ci-bp" id="ciBP"></div><div class="ci-ba"><button type="button" class="ci-btn ghost" id="ciBSw">改聽比比說</button><button type="button" class="ci-btn ghost" id="ciBX">關閉</button></div>`;
         setTimeout(() => $$('.ci-opt', box).forEach((b) => { b.disabled = false; }), 3000);   // 出題 3 秒後才能作答
         $$('.ci-opt', box).forEach((b) => { b.onclick = () => {
           if (done) return; done = true;
@@ -232,6 +264,7 @@
         }; });
       }
       $('#ciBX').onclick = () => { box.remove(); paintCard(); };
+      $('#ciBSw').onclick = () => bibiCard(kind === 'say' ? 'quiz' : 'say');
       void at;
       window.dispatchEvent(new CustomEvent('tw:ci'));
     });
@@ -242,10 +275,16 @@
     if (document.getElementById('ciCss')) return;
     const s = document.createElement('style'); s.id = 'ciCss';
     s.textContent = `
-.evbtn#ciBtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0}
-.evbtn#ciBtn svg{width:18px;height:18px}
-.evbtn#ciBtn i{position:absolute;right:3px;top:3px;width:8px;height:8px;border-radius:50%;background:var(--amber,#e0a21b)}
+.evbtn#ciBtn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:32px;height:32px;padding:0 9px;font-size:13px;font-weight:700;white-space:nowrap}
+.evbtn#ciBtn svg{width:18px;height:18px;flex:none}
+.evbtn#ciBtn i{position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--amber,#e0a21b);border:2px solid var(--panel,#111);box-sizing:content-box}
 .evbtn#ciBtn i[hidden]{display:none}
+.evbtn#ciBtn.un{border-color:var(--amber,#e0a21b);color:var(--amber,#e0a21b)}
+.evbtn#ciBtn.un i{animation:cipulse2 1.8s ease-in-out infinite}
+@keyframes cipulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+:root.l4 #l4Tools>#ciBtn{display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));color:var(--ink-2);cursor:pointer;box-shadow:none}
+:root.l4 #l4Tools>#ciBtn:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
+:root.l4 #l4Tools>#ciBtn.un{border-color:var(--amber,#e0a21b);color:var(--amber,#e0a21b)}
 @media (max-width:820px){.evbtn#ciBtn{display:none}}
 .ciov{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px}
 .ciov[hidden]{display:none}
@@ -269,9 +308,13 @@
 .ci-c.bl{color:var(--ink-2)}
 .ci-c.sg{background:color-mix(in srgb,var(--accent,var(--cyan)) 22%,var(--panel));color:var(--ink);border-color:color-mix(in srgb,var(--accent,var(--cyan)) 40%,transparent)}
 .ci-c.mk{border:1.5px dashed var(--accent,var(--cyan))}
-.ci-c.mk b.tg{position:absolute;left:2px;top:1px;font-size:11px;line-height:12px;padding:0 3px;border-radius:3px;background:var(--accent,var(--cyan));color:var(--ontop,#04121a);font-weight:700}
+.ci-c.mk b.tg{position:absolute;right:2px;top:1px;font-size:11px;line-height:12px;padding:0 3px;border-radius:3px;background:var(--accent,var(--cyan));color:var(--ontop,#04121a);font-weight:700}
 .ci-c.td{border:2px solid var(--accent,var(--cyan));color:var(--ink)}
-.ci-c.td.go{cursor:pointer}
+.ci-c.td.go{cursor:pointer;animation:cipulse 1.8s ease-in-out infinite}
+@keyframes cipulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent,var(--cyan)) 55%,transparent)}50%{box-shadow:0 0 0 5px transparent}}
+.ci-c.fu{cursor:not-allowed}
+.ci-next{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:2px 0 6px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--accent,var(--cyan)) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--accent,var(--cyan)) 35%,transparent);font-size:13px;line-height:1.5}
+.ci-next a{color:var(--cyan);white-space:nowrap}
 .ci-c.mkok{cursor:pointer;border:1.5px dashed var(--amber,#e0a21b);color:var(--ink)}
 .ci-c svg.ck{position:absolute;right:2px;bottom:2px;width:13px;height:13px;color:var(--accent,var(--cyan))}
 .ci-c small{font-size:11px;line-height:12px;color:var(--accent,var(--cyan))}
@@ -321,7 +364,7 @@
 .ci-badge{display:inline-block;padding:0 6px;border-radius:8px;font-size:12px;background:var(--panel-2);border:1px solid var(--line)}
 .ci-badge.eval{border-color:var(--cyan);color:var(--cyan)}
 .ci-badge.grant{border-color:var(--amber,#e0a21b);color:var(--amber,#e0a21b)}
-.ci-toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:1500;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 14px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);font-size:14px;max-width:90vw}
+.ci-toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:1500;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 14px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);font-size:14px;max-width:90vw}
 .ci-bibi{position:fixed;right:20px;bottom:84px;z-index:1450;width:min(320px,calc(100vw - 24px));background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 16px 40px -14px rgba(0,0,0,.6);box-sizing:border-box}
 .ci-bibi h4{margin:0 0 6px;font-size:14px;color:var(--cyan)}
 .ci-bq{margin:4px 0 8px;line-height:1.6;font-size:14px}
@@ -348,12 +391,22 @@
 .ci-vl{border:1px solid var(--line);border-radius:10px;margin:8px 0;padding:0 10px}
 .ci-vl>summary{cursor:pointer;min-height:40px;display:flex;align-items:center;gap:8px;font-weight:700}
 .ci-vl>summary small{color:var(--ink-3);font-weight:400}
+.ci-vl>summary{list-style:none}.ci-vl>summary::-webkit-details-marker{display:none}
+.ci-vl>summary:before{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(-45deg);transition:transform .15s;margin:0 4px 0 2px}
+.ci-vl[open]>summary:before{transform:rotate(45deg)}
+.ci-vl>summary .ci-ar{margin-left:auto;font-size:12px;color:var(--ink-3);font-weight:400}
+.ci-vl[open]>summary .ci-ar{display:none}
+/* B10 寶箱文章閱讀版面：內文 16px、行寬上限 720px 置中；哩股哩股浮水印退到內文後面（protect.js 預設 z-index:5 蓋在字上） */
+#artPost[data-cat="vault"] .artbody{font-size:16px;line-height:1.85;max-width:720px;margin-left:auto;margin-right:auto}
+#artPost[data-cat="vault"] .artbody h4{font-size:17px}
+html.twwm #artPost[data-cat="vault"]::after{z-index:0}
+#artPost[data-cat="vault"]>*{position:relative;z-index:1}
 .ci-vl .artgrid{padding-bottom:10px}
 .artc.lkd.vlk{cursor:default}
 .artc .newb{position:absolute;right:12px;top:-9px;z-index:2;font-size:11px;padding:0 6px;border-radius:8px;background:var(--amber,#e0a21b);color:#1a1200;font-weight:700}
 .artc.vnew{box-shadow:0 0 0 2px var(--amber,#e0a21b)}
 .artlocked.cilk .ci-lkbox{padding:16px;border:1px dashed var(--line);border-radius:10px;margin:10px 0;line-height:1.7}
-@media (prefers-reduced-motion: reduce){.ci-c,.ciov{transition:none}}
+@media (prefers-reduced-motion: reduce){.ci-c,.ciov{transition:none}.ci-c.td.go{animation:none}}
 @media (max-width:640px){
   .ciov{align-items:flex-end;padding:0}
   .cidlg{width:100%;max-height:92vh;border-radius:14px 14px 0 0;padding:6px 12px 10px}
@@ -368,6 +421,16 @@
   .ci-foot{margin-top:6px;padding-top:4px}
   .ci-bibi{right:8px;bottom:78px}
   .ci-adm input[type=date]{max-width:150px}
+  /* B9 手機點擊區 ≥44px（只在 ≤640，桌機不受影響） */
+  .ci-q,.ci-x,.ci-mnav button{min-width:44px;min-height:44px;width:44px;height:44px}
+  .ci-q{border-radius:50%;font-size:15px}
+  .ci-btn.sm{min-height:44px;height:44px}
+  .ci-foot a,.ci-foot button.lk{min-height:44px;display:inline-flex;align-items:center;padding:0 4px}
+  .ci-c{height:44px}
+  .ci-opt,.ci-adm input,.ci-adm select{min-height:44px}
+  .ci-next a{min-height:44px;display:inline-flex;align-items:center}
+  .ci-vseg button,.ci-vl>summary,.ci-vh .ci-btn{min-height:44px}
+  .ci-nl-d>summary{min-height:44px}
 }
 @media (min-width:641px){.ci-nl-d>summary{display:none}}`;
     document.head.appendChild(s);
@@ -388,6 +451,16 @@
   const vaultTotal = () => allVault().length;
   const vaultGot = () => allVault().filter((a) => unlocked(a.id)).length;
   function nextNode(ym) { const n = nodes().find((x, i) => !claimed(ym, i) && x > total(ym)); return n || null; }
+  /* B4：簽完要告訴使用者下一步拿什麼、去哪看。ready＝已經可以兌換的節點索引（有就優先講）；其餘講「再簽 N 天可換○○」 */
+  function nextStep() {
+    const tm = ymOf(today()), tot = total(tm), ns = nodes();
+    const ri = ns.findIndex((n, i) => tot >= n && !claimed(tm, i));
+    if (ri >= 0) return { ready: ri, txt: ri === 3 ? '許願券可以兌換了' : `「${NODE_NAMES[ri]}」可以兌換了（2 篇文章）`, short: '可以兌換了' };
+    const i = ns.findIndex((n, k) => !claimed(tm, k) && n > tot);
+    if (i < 0) return { ready: -1, txt: '本月的獎勵都兌換完了，下個月 1 日重新累積', short: '本月獎勵都兌換了' };
+    const left = ns[i] - tot;
+    return { ready: -1, txt: `再簽 ${left} 天可換「${NODE_NAMES[i]}」${i === 3 ? '（可以許願）' : '（2 篇文章，在精選文章的「比比寶箱」看）'}`, short: `再 ${left} 天可換${NODE_NAMES[i]}` };
+  }
 
   function calHTML() {
     const t = today(), ym = V.ym, n = dim(ym), first = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1)).getUTCDay();
@@ -396,19 +469,19 @@
     let h = WK.map((w) => `<div class="ci-wk" aria-hidden="true">${w}</div>`).join('');
     for (let i = 0; i < first; i++) h += '<div class="ci-c out"></div>';
     for (let d = 1; d <= n; d++) {
-      const k = dstr(ym, d), sg = load().signs[k], isT = k === t, fu = k > t;
+      const k = dstr(ym, d), fu = k > t, sg = fu ? null : load().signs[k], isT = k === t;
       const idx = signed.indexOf(k) + 1, nb = sg && nodes().indexOf(idx) >= 0 ? idx : 0;
       const cl = ['ci-c'];
       if (cg && cg.cls) cl.push(cg.cls(k).trim());
       let aria = `${md(k)}`, tag = 'div', go = '';
       if (sg) { cl.push('sg'); if (sg.k === 'makeup') { cl.push('mk'); aria += ' 已簽到（補簽）'; } else aria += ' 已簽到'; if (nb) aria += `，達成累積 ${nb} 天`; }
       else if (isT) { aria += '，今天，尚未簽到，按下簽到'; }
-      else if (fu) { cl.push('fu'); aria += ' 尚未到'; }
+      else if (fu) { cl.push('fu'); aria += ' 尚未到'; tag = 'button'; go = ' data-future="1"'; }
       else { cl.push('bl'); aria += ' 未簽到'; }
       if (isT) { cl.push('td'); if (!sg) { cl.push('go'); tag = 'button'; go = ' data-sign="1"'; } }
       if (okMk.indexOf(k) >= 0) { cl.push('mkok'); tag = 'button'; go = ` data-mk="${k}"`; aria += '，可補簽'; }
       const tagTxt = cg && cg.tag && !sg ? '' : '';
-      h += `<${tag} class="${cl.join(' ')}" data-d="${k}"${go} aria-label="${esc(aria)}"${tag === 'button' ? ' type="button"' : ''}>${sg && sg.k === 'makeup' ? '<b class="tg">補</b>' : ''}<span>${d}</span>${isT && !sg ? '<small>簽</small>' : ''}${nb ? `<span class="nb" title="達成累積 ${nb} 天">${nb}</span>` : ''}${sg ? CK : ''}${tagTxt}</${tag}>`;
+      h += `<${tag} class="${cl.join(' ')}" data-d="${k}"${go} aria-label="${esc(aria)}"${tag === 'button' ? ' type="button"' : ''}>${sg && sg.k === 'makeup' ? '<b class="tg">補</b>' : ''}<span>${d}</span>${nb ? `<span class="nb" title="達成累積 ${nb} 天">${nb}</span>` : ''}${sg ? CK : ''}${tagTxt}</${tag}>`;
     }
     return `<div class="ci-grid" role="grid" aria-label="${ym} 簽到月曆">${h}</div>`;
   }
@@ -433,15 +506,17 @@
       return `<li data-node="${i}"><span class="t"><b>${n} 天</b> ${esc(NODE_NAMES[i])}<small>${esc(desc)}</small></span>${act}</li>`;
     }).join('');
     const used = mkUsed(tm), cap = mkCap(), need = mkCost(tm), pp = pts(tm);
-    const mk = !cur ? '' : `<div class="ci-mkr" id="ciMk"><span><i class="ring" style="--p:${Math.min(100, Math.round(100 * pp / need))}"></i>補簽：互動 <b>${Math.min(pp, need)}／${need}</b>・本月已補 ${used}／${cap} 次</span>`
+    const mk = !cur || !loggedIn() ? '' : `<div class="ci-mkr" id="ciMk"><span><i class="ring" style="--p:${Math.min(100, Math.round(100 * pp / need))}"></i>補簽：互動 <b>${Math.min(pp, need)}／${need}</b>・本月已補 ${used}／${cap} 次</span>`
       + (V.mkMode ? '<button type="button" class="ci-btn sm ghost" data-mkx="1">取消補簽</button>' : mkReady() ? '<button type="button" class="ci-btn sm" data-mkgo="1">開始補簽</button>' : '<button type="button" class="ci-btn sm ghost" data-findbibi="1">找比比</button>') + '</div>';
     const mkNote = V.mkMode ? `<div class="ci-warn" role="status">點一個虛線的空白日補簽（最近 ${cfg().makeup_days} 天內）</div>` : '';
     const adm = isAdm() ? admHTML() : '';
-    const sg = cur ? (signedToday ? '<button type="button" class="ci-btn" disabled>今天已簽到</button>' : `<button type="button" class="ci-btn" id="ciSign" data-sign="1"${canS ? '' : ' disabled'}>${canS ? '簽到今天' : '🔒 需開通'}</button>`) : '';
+    const sg = cur ? (!loggedIn() ? '<button type="button" class="ci-btn" id="ciSign" data-login="1">登入後簽到</button>' : signedToday ? '<button type="button" class="ci-btn" disabled>今天已簽到</button>' : `<button type="button" class="ci-btn" id="ciSign" data-sign="1"${canS ? '' : ' disabled'}>${canS ? '簽到今天' : '🔒 需開通'}</button>`) : '';
+    const ns_ = nextStep();
+    const nxt = cur && loggedIn() ? `<div class="ci-next" id="ciNextStep" role="status"><span>${signedToday ? '今天簽好了。' : ''}${esc(ns_.txt)}</span>${ns_.ready >= 0 ? `<button type="button" class="ci-btn sm" data-claim="${ns_.ready}">馬上兌換</button>` : '<a href="#articles/vault" data-vault="1">去寶箱看</a>'}</div>` : '';
     const help = V.help ? `<div class="ci-help" id="ciHelp"><b>怎麼用</b><ul><li>每天按一次「簽到今天」，月曆會留下勾；沒簽的日子保持空白。每月 1 日累積歸零，已拿到的文章永久保留。</li><li>累積滿 ${ns.join('／')} 天各可兌換一次：前兩個是教學包、第三個是產業深度包、最後是許願券。兌換後到精選文章的「比比寶箱」分頁閱讀。</li><li>漏簽可以跟比比互動換補簽（見下方補簽列），每月最多 ${cfg().makeup_max} 次，只能補最近 ${cfg().makeup_days} 天。</li><li>寶箱文章只能靠簽到解鎖，付費方案不能直接打開。</li><li>預覽版：資料只存在這個瀏覽器；許願會真的送給站主，Plus 3 天只是畫面模擬。</li></ul></div>` : '';
     return `<div class="ci-h"><h2 id="ciTtl">每日簽到</h2><button type="button" class="ci-q" id="ciQ" aria-label="每日簽到怎麼用" aria-expanded="${V.help}">?</button><button type="button" class="ci-x" id="ciX" aria-label="關閉">✕</button></div>${help}
 <div class="ci-body">
- <div class="ci-top"><div class="ci-sum"><span>${cur ? '本月' : ym.replace('-', ' 年 ') + ' 月'}累積 <b class="n" id="ciTot">${tot}</b> 天${u || !acctOn() ? '' : '<small class="st"> （登入後才能簽到）</small>'}</span>${sg}</div>${pg}${mkNote}</div>
+ <div class="ci-top"><div class="ci-sum"><span>${cur ? '本月' : ym.replace('-', ' 年 ') + ' 月'}累積 <b class="n" id="ciTot">${tot}</b> 天</span>${sg}</div>${nxt}${pg}${mkNote}</div>
  <div class="ci-calw"><div class="ci-mnav"><button type="button" id="ciPrev" aria-label="上個月">‹</button><span id="ciMon">${ym.slice(0, 4)} 年 ${+ym.slice(5, 7)} 月</span><button type="button" id="ciNext" aria-label="下個月"${cur ? ' disabled' : ''}>›</button></div>${calHTML()}</div>
  <div class="ci-rest"><details class="ci-nl-d"${V.nlOpen || WIDE() ? ' open' : ''} id="ciNlD"><summary>節點與獎勵</summary><ul class="ci-nl" id="ciNodes">${rows}</ul></details>${mk}</div>
 </div>
@@ -477,9 +552,9 @@
     const ws = load().wishes;
     const res = (w) => w.result === 'granted' ? '<span class="ci-badge grant">這批願望站主評估後都無法實作，已送你 Plus 3 天（預覽模擬，未真的開通）</span>'
       : w.result === 'eval' ? `<span class="ci-badge eval">站主打算做：${esc(w.items.filter((i) => i.st === 'eval' || i.st === 'done').map((i) => i.text).join('、'))}</span>`
-      : w.result === 'void' ? '<span class="ci-badge">這批願望不在受理範圍</span>' : '<span class="ci-badge">評估中</span>';
+      : w.result === 'void' ? '<span class="ci-badge">這批願望不在受理範圍</span>' : '<span class="ci-badge">等待站主評估</span>';
     return `<div class="ci-h"><h2>我的願望</h2><button type="button" class="ci-x" id="ciX" aria-label="關閉">✕</button></div><div class="ci-pane">
-${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data-result="${w.result}"><li style="list-style:none"><b>${esc(w.id)}</b>・${w.items.length} 個願望 <span class="st">${md(tpe(w.at))}</span><div class="ci-res">${res(w)}</div><ul style="margin:6px 0 0;padding-left:18px">${w.items.map((i) => `<li>${esc(i.text)} <span class="ci-badge" data-st="${i.st}">${ST[i.st]}</span>${i.reply ? `<small>（站主：${esc(i.reply)}）</small>` : ''}${i.sent ? '' : ' <small class="st">（未送達站主：本機測試或未登入）</small>'}</li>`).join('')}</ul></li></div>`).join('') : '<p>還沒有許過願。簽到滿 20 天可以兌換許願券。</p>'}
+${ws.length ? ws.map((w, wi) => `<div class="ci-list" data-batch="${esc(w.id)}" data-result="${w.result}"><li style="list-style:none"><b title="${esc(w.id)}">第 ${ws.length - wi} 批</b>・${w.items.length} 個願望 <span class="st">${md(tpe(w.at))}</span><div class="ci-res">${res(w)}</div><ul style="margin:6px 0 0;padding-left:18px">${w.items.map((i) => `<li>${esc(i.text)} <span class="ci-badge" data-st="${i.st}">${ST[i.st]}</span>${i.reply ? `<small>（站主：${esc(i.reply)}）</small>` : ''}${i.sent ? '' : ' <small class="st">（未送達站主：本機測試或未登入）</small>'}</li>`).join('')}</ul></li></div>`).join('') : '<p>還沒有許過願。簽到滿 20 天可以兌換許願券。</p>'}
 <button type="button" class="ci-btn ghost" id="ciBack">回月曆</button></div>`;
   }
   function claimDoneHTML() {
@@ -509,6 +584,9 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
     on('#ciPrev', () => { V.ym = shiftYm(V.ym, -1); V.mkMode = false; paint(); });
     on('#ciNext', () => { if (V.ym < ymOf(today())) { V.ym = shiftYm(V.ym, 1); V.mkMode = false; paint(); } });
     on('[data-sign]', () => sign());
+    on('[data-login]', () => { close(); try { A().login(); } catch (e) { toast('請先從右上角登入'); } });
+    on('[data-future]', () => toast('還沒到這天，不能先簽'));
+    on('[data-vault]', () => close(true));
     on('[data-claim]', (e) => claim(+e.currentTarget.dataset.claim));
     on('[data-mkgo]', () => { V.mkMode = true; paint(); });
     on('[data-mkx]', () => { V.mkMode = false; paint(); });
@@ -518,7 +596,7 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
       const r = doMakeup(d); V.mkPick = '';
       if (r.ok) { V.mkMode = false; toast(`已補簽 ${md(d)}`); paint(); } else toast('補簽失敗：' + (r.error === 'notready' ? '互動次數還不夠' : '這天不能補簽'));
     });
-    on('[data-findbibi]', () => { close(); toast('點右下角的比比，選「聽比比說」或「比比考考你」，每次互動都會累積補簽進度'); });
+    on('[data-findbibi]', () => { bibiCard('quiz'); });   // B3：直接開「比比考考你」，不再叫人去 20 顆圖示裡找
     on('#ciVault', () => close(true));
     on('#ciWishes', () => { V.pane = 'list'; paint(); });
     on('#ciBack', () => { V.pane = 'main'; paint(); });
@@ -549,7 +627,7 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
     const b = $('#ciSign'); if (b) { b.disabled = true; b.textContent = '簽到中…'; }
     const r = doSign();
     V.ym = ymOf(today());
-    if (r.ok) { toast(`今天簽到完成，本月累積 ${r.total} 天`); } else toast('今天已經簽到過了');
+    if (r.ok) { toast(`今天簽到完成，本月累積 ${r.total} 天。${nextStep().txt}`); } else toast(r.error === 'clock' ? '電腦時間比上次簽到時還早，請把系統時間調回正確再簽' : r.error === 'future' ? '不能簽今天以後的日子' : '今天已經簽到過了');
     paint();
   }
   function claim(i) {
@@ -563,17 +641,17 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
     const s = load(), tm = ymOf(today());
     let m = '';
     if (t === 'signtoday') { const r = doSign(today(), 'test'); m = r.ok ? '已簽今天（測試）' : '今天已經簽過了'; }
-    else if (t === 'signday') { const d = ($('#admDay') || {}).value; if (d && ymOf(d) === tm) { const r = doSign(d, 'makeup'); m = r.ok ? `已補簽 ${d}（不扣互動點數）` : '那天已簽過'; } else m = '請選本月的日期'; }
+    else if (t === 'signday') { const d = ($('#admDay') || {}).value; if (d && d > today()) m = '不能簽今天以後的日子'; else if (d && ymOf(d) === tm) { const r = doSign(d, 'makeup'); m = r.ok ? `已補簽 ${d}（不扣互動點數）` : '那天已簽過'; } else m = '請選本月的日期'; }
     else if (t === 'fill') {
+      /* 只往「今天以前」填（A3／B8）：今天往回數 N 天；本月今天以前不夠 N 天就提示，請先用「模擬今天日期」把今天往後移 */
       const nn = Math.max(0, Math.min(31, +($('#admN') || {}).value || 0)), t0 = today(); let k = 0, back = 0;
       Object.keys(s.signs).filter((d) => ymOf(d) === tm).forEach((d) => delete s.signs[d]);
       while (k < nn && back < 31) { const d = addDays(t0, -back); back++; if (ymOf(d) === tm) { s.signs[d] = { k: 'test', at: nowMs() }; k++; } }
-      for (let f = 1; k < nn && f < 40; f++) { const d = addDays(t0, f); if (ymOf(d) === tm) { s.signs[d] = { k: 'test', at: nowMs() }; k++; } }
-      save(); m = `本月已填到 ${total(tm)} 天`;
+      save(true); m = k < nn ? `本月天數不足：今天（${t0}）以前只有 ${k} 天，已全部填上；要填更多請先用「模擬今天日期」把今天往後移` : `本月已填到 ${total(tm)} 天`;
     }
-    else if (t === 'clear') { Object.keys(s.signs).filter((d) => ymOf(d) === tm).forEach((d) => delete s.signs[d]); Object.keys(s.claims).filter((k) => k.indexOf(tm) === 0).forEach((k) => delete s.claims[k]); s.pts[tm] = 0; s.mk[tm] = 0; s.ticket = {}; save(); m = '本月已清空（簽到、兌換紀錄、補簽進度）'; }
-    else if (t === 'resetunlock') { s.unlock = {}; s.fresh = []; Object.keys(s.claims).forEach((k) => { s.claims[k].articles = []; s.claims[k].packs = []; }); save(); m = '解鎖紀錄已清空'; }
-    else if (t === 'claim') { const i = +($('#admNode') || {}).value; if (claimed(tm, i)) delete s.claims[tm + ':' + i]; const r = doClaim(i, true); if (r.ok) { if (i === 3) { V.pane = 'wish'; } else { V.claim = r; V.pane = 'done'; } paint(); return; } m = r.error === 'soldout' ? '寶箱已全部打開（補貨中）' : '兌換失敗：' + r.error; }
+    else if (t === 'clear') { Object.keys(s.signs).filter((d) => ymOf(d) === tm).forEach((d) => delete s.signs[d]); Object.keys(s.claims).filter((k) => k.indexOf(tm) === 0).forEach((k) => delete s.claims[k]); s.pts[tm] = 0; s.mk[tm] = 0; s.ticket = {}; save(true); m = '本月已清空（簽到、兌換紀錄、補簽進度）'; }
+    else if (t === 'resetunlock') { s.unlock = {}; s.fresh = []; Object.keys(s.claims).forEach((k) => { s.claims[k].articles = []; s.claims[k].packs = []; }); save(true); m = '解鎖紀錄已清空'; }
+    else if (t === 'claim') { const i = +($('#admNode') || {}).value; if (claimed(tm, i)) { delete s.claims[tm + ':' + i]; save(true); } const r = doClaim(i, true); if (r.ok) { if (i === 3) { V.pane = 'wish'; } else { V.claim = r; V.pane = 'done'; } paint(); return; } m = r.error === 'soldout' ? '寶箱已全部打開（補貨中）' : '兌換失敗：' + r.error; }
     else if (t === 'settoday') { const d = ($('#admToday') || {}).value; if (d) { T.today = d; V.ym = ymOf(d); m = '「今天」改成 ' + d; } }
     else if (t === 'realtoday') { T.today = ''; V.ym = ymOf(today()); m = '已恢復真實日期'; }
     else if (t === 'ptsfull') { s.pts[tm] = Math.max(pts(tm), mkCost(tm)); save(); m = '互動已加滿：' + pts(tm); }
@@ -583,7 +661,12 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
       const id = ($('#admBatch') || {}).value, st = ($('#admSt') || {}).value, w = s.wishes.find((x) => x.id === id);
       if (!w) m = '沒有可以回覆的願望'; else { w.items.forEach((i) => { i.st = st; i.reply = st === 'eval' ? '排進開發清單' : st === 'no' ? '目前做不到' : ''; }); evalBatch(w); save(); m = `已把 ${id} 全部標成「${ST[st]}」→ ${w.result}`; }
     }
-    else if (t === 'wishsync') { syncWishes().then((n) => { admMsg(`從意見回饋同步了 ${n} 項狀態`); paint(); admMsg(`從意見回饋同步了 ${n} 項狀態`); }); return; }
+    else if (t === 'wishsync') {
+      /* B7：同步一定要有結果（畫面下方文字＋跳出提示），失敗也講 */
+      admMsg('同步中…');
+      syncWishes().then((n) => { const tx = n < 0 ? '同步失敗：讀不到意見回饋（請確認用站主帳號登入）' : n === 0 ? '同步完成：沒有新的狀態需要更新' : `同步完成：更新了 ${n} 項願望狀態`; paint(); admMsg(tx); toast(tx); });
+      return;
+    }
     paint(); admMsg(m);
   }
 
@@ -611,18 +694,20 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
     const b = document.getElementById('ciBtn'); if (!b) return;
     const d = $('i', b); const un = loggedIn() && !load().signs[today()];
     if (d) d.hidden = !un;
-    b.title = un ? '每日簽到（今天還沒簽）' : '每日簽到';
+    b.classList.toggle('un', un);
+    b.title = un ? '每日簽到（今天還沒簽，點一下簽到）' : '每日簽到';
   }
   function mountTop() {
     const b = document.getElementById('ciBtn'); if (!b || b._ci) return; b._ci = 1;
-    css(); b.innerHTML = ICON_CAL + '<i hidden></i>';
+    css(); b.innerHTML = ICON_CAL + '<span class="ci-bl">簽到</span><i hidden></i>';
     b.onclick = () => open();
     paintDot();
   }
   function cardInner() {
     const tm = ymOf(today()), tot = total(tm), ns = nodes(), nx = nextNode(tm);
     const ready_ = ns.map((n, i) => (tot >= n && !claimed(tm, i) ? i : -1)).filter((i) => i >= 0);
-    const sub = ready_.length ? `有 ${ready_.length} 個節點可以兌換` : nx ? `再 ${nx - tot} 天可兌換` : '本月節點都兌換了';
+    const sub = ready_.length ? `有 ${ready_.length} 個節點可以兌換` : nextStep().short;
+    if (!loggedIn()) return `<div class="ci-n"><div class="ci-big" data-v="tot">0<small>天・本月</small></div><div class="ci-bar" aria-hidden="true"><i style="width:0"></i></div><div class="ci-sub" data-v="sub">登入後就能簽到，累積換教學文章</div></div>`;
     return `<div class="ci-n"><div class="ci-big" data-v="tot">${tot}<small>天・本月</small></div><div class="ci-bar" aria-hidden="true"><i style="width:${Math.min(100, Math.round(100 * tot / ns[ns.length - 1]))}%"></i></div><div class="ci-sub" data-v="sub">${esc(load().signs[today()] ? '今天已簽到・' + sub : '今天還沒簽・' + sub)}</div></div>`;
   }
   function card() {
@@ -658,18 +743,21 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
   function paintVault(box) {
     css(); load();
     if (!M) { box.innerHTML = '<div class="artempty">載入中…</div>'; ready().then(() => { if (box.isConnected) paintVault(box); }); return; }
+    tabCount();
     const got = vaultGot(), tot = vaultTotal(), tm = ymOf(today()), nx = nextNode(tm);
     if (!got && VF.f === 'unl' && !VF._u) VF.f = 'all';
     const lines = ((M && M.lines) || []).map((l) => ({ l, list: allVault().filter((a) => a.line === l.id) }));
     box.innerHTML = `<div class="ci-vh"><span class="sum" id="vaultSum">已解鎖 ${got}／${tot} 篇${nx ? `・下一個節點：滿 ${nx} 天` : ''}</span><div class="ci-vseg" role="tablist" aria-label="篩選"><button type="button" data-f="unl" class="${VF.f === 'unl' ? 'on' : ''}" role="tab">已解鎖</button><button type="button" data-f="all" class="${VF.f === 'all' ? 'on' : ''}" role="tab">全部</button></div><button type="button" class="ci-btn sm" id="vaultGo">去簽到</button></div>`
       + lines.map(({ l, list }) => { const n = list.filter((a) => unlocked(a.id)).length, shown = VF.f === 'unl' ? list.filter((a) => unlocked(a.id)) : list; const hasNew = list.some((a) => load().fresh.indexOf(a.id) >= 0);
-        return `<details class="ci-vl" data-line="${esc(l.id)}"${hasNew || V['vo' + l.id] ? ' open' : ''}><summary>${esc(l.name)}<small>已解鎖 ${n}／${list.length}</small></summary><div class="artgrid">${shown.length ? shown.map(vcard).join('') : '<div class="artempty">這個系列還沒有解鎖的文章，簽到滿天數就能兌換。</div>'}</div></details>`; }).join('');
+        return `<details class="ci-vl" data-line="${esc(l.id)}"${hasNew || V['vo' + l.id] || lines.length === 1 ? ' open' : ''}><summary>${esc(l.name)}<small>已解鎖 ${n}／${list.length}</small><span class="ci-ar" aria-hidden="true">${'點開看'}</span></summary><div class="artgrid">${shown.length ? shown.map(vcard).join('') : '<div class="artempty">這個系列還沒有解鎖的文章，簽到滿天數就能兌換。</div>'}</div></details>`; }).join('');
     $$('.ci-vseg button', box).forEach((b) => { b.onclick = () => { VF.f = b.dataset.f; VF._u = 1; paintVault(box); }; });
     $$('.ci-vl', box).forEach((d) => { d.ontoggle = () => { V['vo' + d.dataset.line] = d.open; }; });
     $('#vaultGo', box).onclick = () => open();
     // 看過就把「新」記號清掉（下次打開不再亮邊）
-    if (load().fresh.length) setTimeout(() => { load().fresh = []; try { localStorage.setItem(KEY + ':' + SU, JSON.stringify(load())); } catch (e) { /* 略 */ } }, 4000);
+    if (load().fresh.length) setTimeout(() => { load().fresh = []; save(true); }, 4000);
   }
+  const vaultCount = () => (M && allVault().length ? `${vaultGot()}／${vaultTotal()}` : '');
+  function tabCount() { const em = document.querySelector('#artCats>button[data-cat="vault"] em'); if (em) em.textContent = vaultCount(); }
   function vaultMeta(id) { const a = artMeta(id); return a ? Object.assign({}, a, { pack: packOf(id) }) : null; }
   function lockedPageHTML(id) {
     const a = artMeta(id); if (!a) return '';
@@ -684,9 +772,10 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
   /* ------------------------------------------------------------------ 對外 */
   window.TwCheckin = {
     open, close, card, mounted, wantCard: () => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } }, paintCard, ready, bibi: bibiCard,
-    unlocked, vaultMeta, paintVault, lockedPageHTML, vaultIcon: CHEST,
+    unlocked, vaultMeta, paintVault, lockedPageHTML, vaultCount, vaultIcon: CHEST,
     state: () => ({ ym: ymOf(today()), today: today(), total: total(ymOf(today())), signs: Object.assign({}, load().signs), unlock: Object.keys(load().unlock), pts: pts(ymOf(today())), mk: mkUsed(ymOf(today())), wishes: load().wishes.length, uid: uid(), admin: isAdm() }),
-    test: { enable() { T.on = true; }, skip(ms) { T.off += ms; }, today(d) { T.today = d || ''; }, reset() { S = blank(); SU = uid(); save(); } },
+    /* 驗收／站主用的後門：一般會員呼叫一律無效（A2）；站主或本機驗收旗標才動 */
+    test: { enable() { if (testOK()) T.on = true; }, skip(ms) { if (testOK()) T.off += ms; }, today(d) { if (testOK()) T.today = d || ''; }, reset() { if (!testOK()) return; S = blank(); SU = uid(); save(true); } },
   };
   document.addEventListener('click', (e) => {
     const t = e.target.closest && e.target.closest('#ciLkGo'); if (t) { e.preventDefault(); open(); }
@@ -694,7 +783,16 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
   });
   function boot() {
     css(); ready(); mountTop();
-    window.addEventListener('tw:account', () => { S = null; paintDot(); paintCard(); if (V.open) paint(); });
+    window.addEventListener('tw:account', () => { S = null; RAW = null; paintDot(); paintCard(); if (V.open) paint(); });
+    /* A4：別的分頁改了簽到紀錄 → 這個分頁立刻同步畫面（面板、總覽卡、頂欄小點、寶箱頁、分頁篇數） */
+    window.addEventListener('storage', (e) => {
+      if (!e.key || String(e.key).indexOf(KEY + ':') < 0) return;
+      load(); paintDot(); paintCard(); tabCount(); if (V.open) paint();
+      const vb = document.getElementById('artPre'); if (vb && /^#articles\/vault/.test(location.hash || '') && vb.querySelector('.ci-vh')) paintVault(vb);
+    });
+    /* C8：視窗在桌機／手機之間來回（跨過 820）時，總覽的簽到卡要跟著出現或消失，不用重新整理 */
+    try { const mq = window.matchMedia('(max-width:820px)'); const fn = () => { if (/^(#overview)?$/.test(location.hash || '')) window.dispatchEvent(new HashChangeEvent('hashchange')); }; if (mq.addEventListener) mq.addEventListener('change', fn); } catch (e) { /* 略 */ }
+    ready().then(tabCount);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

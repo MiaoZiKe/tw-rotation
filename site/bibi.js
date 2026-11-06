@@ -1469,6 +1469,8 @@
   transform:translate(0,0) scale(.3);opacity:0;transition:transform .32s cubic-bezier(.3,1.5,.5,1),opacity .2s,border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
 .bibiring.on .bopt{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
 .bibiring .bopt svg{width:26px;height:26px;display:block;pointer-events:none}
+/* 2026-11-07 簽到補簽的兩顆（聽比比說、比比考考你）圖示下方加文字標籤：新手不用猜哪顆是哪個 */
+.bibiring .bopt .blbl{position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);padding:1px 6px;border-radius:8px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);font-size:11px;line-height:14px;font-weight:600;white-space:nowrap;pointer-events:none}
 .bibiring .bopt img{width:100%;height:100%;display:block;pointer-events:none;border-radius:50%}
 /* 有動畫單位圖示的小圈：圖示自己就是圓底＋描邊，按鈕不再加底色與框（只留陰影）；叫醒（線條圖示）用同款奶油底＋深描邊 */
 .bibiring .bopt.bpic{background:none;border:0}
@@ -1685,7 +1687,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     ring = document.createElement('div'); ring.id = 'bibiRing'; ring.className = 'bibiring'; ring.hidden = true;
     ring.setAttribute('role', 'menu'); ring.setAttribute('aria-label', '跟比比玩');
     ring.innerHTML = '<div class="bzone"></div><svg class="btrack" aria-hidden="true"></svg>'
-      + ACTS.map((a) => `<button type="button" class="bopt${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ' bsvg2'}" role="menuitem" data-act="${a.id}">${iconOf(a.id)}</button>`).join('');
+      + ACTS.map((a) => `<button type="button" class="bopt${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ' bsvg2'}" role="menuitem" data-act="${a.id}">${iconOf(a.id)}${a.ci ? `<span class="blbl">${a.name}</span>` : ''}</button>`).join('');
     document.body.appendChild(ring);
     ring.querySelectorAll('.bopt[data-act]').forEach((b) => { const a = ACTS.find((x) => x.id === b.dataset.act); b.title = a.name; b.setAttribute('aria-label', a.name); });
     ring.addEventListener('click', (e) => {

@@ -850,7 +850,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
       if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
     }, 0); }
   });
-  function logout() { track('logout'); setUser(null, null); toast('已登出。這台裝置上不會留下你的雲端清單。'); if ((location.hash || '').startsWith('#admin')) route('admin'); }
+  function logout() { track('logout'); setUser(null, null); toast('已登出。雲端清單不會留在這台裝置；每日簽到紀錄仍存在這台裝置，用同一個帳號登入會接著顯示。'); if ((location.hash || '').startsWith('#admin')) route('admin'); }
   async function deleteMe() {
     const j = await call('/v1/delete', {});
     if (j && j.deleted) { closeDlg(); setUser(null, null); toast('你的會員資料與雲端清單已經刪除'); }

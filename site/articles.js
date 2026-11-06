@@ -1124,7 +1124,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('#artCats>button', root).forEach((b) => {
       const on = b.dataset.cat === S.cat;
       b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
-      const em = $('em', b); if (em) em.textContent = S.idx && !NW[b.dataset.cat] ? String(filtered(b.dataset.cat).length) : '';
+      const em = $('em', b); if (em) em.textContent = b.dataset.cat === 'vault' ? (window.TwCheckin && window.TwCheckin.vaultCount ? window.TwCheckin.vaultCount() : '') : S.idx && !NW[b.dataset.cat] ? String(filtered(b.dataset.cat).length) : '';
     });
     paintHide(root);
     const isPre = !!NW[S.cat];
@@ -2123,7 +2123,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
 <div class="artpage k-${kk}">
 <article class="card artpost" id="artPost" data-id="${esc(d.id)}" data-cat="${esc(cat)}">
   <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
-  <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
+  <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : cat === 'vault' ? `<a class="kc" href="#articles/vault">${icon('vault', 14)}比比寶箱</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
   <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${qnote}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
   <h2 class="artttl">${esc(d.title)}</h2>
   ${hdHTML(d, groups)}
