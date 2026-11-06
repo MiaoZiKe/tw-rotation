@@ -157,7 +157,7 @@
         <div class="mf-rkgrid" id="mfRankBody"></div></div>` : '';
     const isRank = st.tab === 'rank';
     const bar = `<div class="mf-bar"><div class="seg fp-prod mf-tab" id="mfTab" role="group" aria-label="信用交易分頁"><button type="button" data-k="mkt" class="${isRank ? '' : 'on'}">大盤</button><button type="button" data-k="rank" class="${isRank ? 'on' : ''}">個股排行</button></div>${howBtn('credit')}
-        <div class="mf-ctl">${dayStale ? '<span class="mf-stale" title="資料日 ${last.d}，比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>' : ''}${isRank ? '' : `<div class="seg tiny" id="mfDays" role="group" aria-label="期間">${dayBtns}</div>`}</div></div>`;
+        <div class="mf-ctl">${dayStale ? `<span class="mf-stale" title="資料日 ${last.d}，比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>` : ''}${isRank ? '' : `<div class="seg tiny" id="mfDays" role="group" aria-label="期間">${dayBtns}</div>`}</div></div>`;
     const mktPane = `${hero}${tiles}<div class="mf-split" data-chart="${st.chart}"><div class="mf-charts">
         <div class="mf-cseg"><div class="seg tiny" id="mfCSeg" role="group" aria-label="圖表"><button type="button" data-k="ratio" class="${st.chart === 'bal' ? '' : 'on'}">維持率</button><button type="button" data-k="bal" class="${st.chart === 'bal' ? 'on' : ''}">融資餘額</button></div></div>
         <div class="mf-cbox" data-c="ratio"><h4 class="mf-h">融資維持率 × 加權指數</h4><div id="mfChart" class="chart mf-ch"></div></div>

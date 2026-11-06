@@ -72,10 +72,16 @@ def build(lake: pd.DataFrame, ohlc: dict) -> dict:
                 last = float(bar[4])
                 if pts[-1][0] < s1:
                     pts.append([s1, round(last, 2)])
+            # ★ 2026-11-06 資料稽核：開高低也以當天日 K 為準。1 分 K 是取樣值，最高／最低會漏掉兩次取樣之間的極值
+            #   （11-05 加權：分 K 最高 42,850.61、最低 41,515.08；證交所 MI_5MINS_HIST 是 42,873.81／41,513.57，
+            #   台指期 43,033／41,673 對期交所 43,114／41,666），數字列就會跟下面的日 K 對不起來。
+            o_, h_, l_ = float(d["open"].iloc[0]), float(d["high"].max()), float(d["low"].min())
+            if bar and all(v is not None for v in bar[1:4]):
+                o_, h_, l_ = float(bar[1]), float(bar[2]), float(bar[3])
             out[sym] = {
                 "date": day.replace("-", ""),
                 "prev": prev, "prev_date": str(prevs[-1][0])[:10],
-                "open": float(d["open"].iloc[0]), "high": float(d["high"].max()), "low": float(d["low"].min()),
+                "open": o_, "high": h_, "low": l_,
                 "last": last, "chg": round(last - prev, 2), "pct": round((last / prev - 1) * 100, 2),
                 "points": pts,
                 "bar": bar, "lastbar": daily[-1] if daily else None,

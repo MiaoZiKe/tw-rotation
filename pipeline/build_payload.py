@@ -1641,15 +1641,21 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         if c not in seen_idx and is_tradable_security(c):
             index_codes.append(c); seen_idx.add(c)
     index = []
+    # ★ 2026-11-06 資料稽核（Andy：「每個資訊都更新到最新不可以有資訊誤差」）：
+    #   今天（latest）沒有成交列的代號 —— 已下市（0054 停在 2022-05-26）、停牌、今天沒成交 ——
+    #   rows 裡帶的是「它自己最後一天」的收盤與漲跌幅。以前原樣寫進索引，於是 238 檔多年前的漲跌被算進今天的
+    #   漲跌家數（updown.json all.n 2583，官方同口徑 2332）。收盤留著給搜尋看，漲跌幅與成交值只給今天有成交的。
+    traded_today = set(day_one.index)
     for code in index_codes:
         r = row_idx.get(code)
         gi = group_of.get(code, {})
         close = r["close"] if r else _cell(day_one, code, "close")
+        today = code in traded_today
         index.append({
             "code": code, "name": names.get(code) or (r["name"] if r else code),
             "market": markets.get(code), "group": gi.get("group_name"), "group_id": gi.get("group_id"),
-            "close": close, "chg_pct": r["chg_pct"] if r else _chg(code, close),
-            "turnover": r["turnover"] if r else _cell(day_one, code, "turnover"),
+            "close": close, "chg_pct": (r["chg_pct"] if r else _chg(code, close)) if today else None,
+            "turnover": (r["turnover"] if r else _cell(day_one, code, "turnover")) if today else None,
             "pe": r["pe"] if r else _cell(val_one, code, "pe"),
             "grade": r["grade"] if r else None,
             "tier": ("full" if m60_state.get(code) == "ok" else "daily") if r else "thin",
