@@ -88,9 +88,12 @@ def _run(monkeypatch, phase, tmp_path):
 
 def test_news模式不碰價量(monkeypatch, tmp_path):
     called, _ = _run(monkeypatch, "news", tmp_path)
-    for name in ("twse.price_daily", "tpex.price_daily", "mis.price_snapshot",
-                 "twse.valuation_daily", "twse.margin_daily"):
+    # 2026-11-06 稽核 A：news 輪現在要抓官方價量（twse.price_daily／tpex.price_daily／market_daily），
+    # 才能把 mis 暫定值換成官方值；但 mis 補價、估值、融資券仍不碰。
+    for name in ("mis.price_snapshot", "twse.valuation_daily", "twse.margin_daily"):
         assert name not in called, f"phase=news 不該呼叫 {name}"
+    for name in ("twse.price_daily", "tpex.price_daily", "twse.market_daily"):
+        assert name in called, f"phase=news 要抓官方價量 {name}（把暫定值換成官方值）"
 
 
 def test_news模式有抓新聞與國際盤(monkeypatch, tmp_path):

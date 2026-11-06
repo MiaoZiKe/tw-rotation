@@ -1,6 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-06 稽核 A／B：暫定價量掛到隔天、FinMind 當沖佔位 0 永遠不補（fix/provisional-price；爬蟲專家）
+- **A 根因**：收盤當晚上市個股是 mis 暫定值（`px_source=mis`，量與值是盤中口徑，偏低 2～20%）。openapi 隔天上午就有官方值，但 daily.yml 清晨 05:07、盤中 09:07／12:07 三輪是 `--phase news`，`run_daily` 在 news 整段不抓價量 → 暫定值一路掛到 15:37。修前湖裡 11-05：2330 成交值 821 億（官方 1,018 億）、上市成交值合計 9,227 億、上漲／下跌／平盤＝上市 252/1,023/61、上櫃 233/718/47（上櫃湖裡本來就是官方值，tpex 沒有同樣問題）。
+- **A 修法**：`run_daily.py` news 輪新增抓 `twse.price_daily`、`twse.market_daily`、`tpex.price_daily`（openapi，不吃 FinMind）；`store.append` 本來就是「後到的為準」，官方列沒有 `px_source`，覆蓋後暫定標記自動消失。新增 `drop_rows_already_official`：mis 暫定列絕不蓋掉湖裡已是官方值的列。news 輪沒有設 `trade_date`（避免帶動法人／融資券等下游步驟）。news 輪原本就會 build_payload＋部署，不需另外觸發。
+- **B 根因**：FinMind 當沖當天先回 0 佔位列，舊版直接入湖；續補以「最後一天＝最新交易日」判斷不落後，永遠不重抓。11-05 湖裡 417 檔當沖全 0（平常 50～160），2330 顯示 0 張、FinMind 現在 7,532 張。借券（sbl_daily）湖裡全零列每天約 141 檔持平，沒有佔位跡象，只加「日期晚於價量最新日就丟」。
+- **B 修法**：`sources/finmind.py` 新增 `drop_placeholder_rows`：當沖丟「日期晚於價量最新日」與「價量最新日（含）之後全 0」的列（真的 0 的股票晚一天入湖）；`run_backfill.py` 新增 `zero_daytrade_codes`（最近 2 個交易日全 0 的重抓，每日續補排最前面）與 `fix_daytrade_zeros`、CLI `--fix-daytrade-zeros N`；`backfill.yml` 的 datasets 加選項 `daytrade_zerofix`（一次性回補，結果走 store.append）。代價：真的當沖為 0 的股票（約 100 檔/天）每天會多問 1～2 次 FinMind。
+- 測試：`tests/test_provisional_price_1106.py`（15 條）＋改 `test_stage_pipeline_news.py`（news 輪要抓官方價量）。
+- **這批只驗了**：pytest（`tests/` 排除 test_social*）與上述新測試；線上驗證見交付回報（daily workflow_dispatch phase=news、backfill datasets=daytrade_zerofix）。前端沒動，未跑 `_preview`／`_uitest`。
+
 ## 2026-11-06 頂欄「N 人在線」框加「今天」段（站主專用；前端已推 main，後端在分支 feat/online-today 等 Andy 同意才部署）
 - 前端：`site/account.js` `paintToday()`（今天來過的會員：累積停留、前 3 頁、最後出現；訪客今天／本週／累積；固定高度框內捲動）；`site/admin.js` 多 `TwAdmin.testEmails()`（測試帳雜湊排除）；順手修手機上框左緣掉出螢幕外（改 left 夾在畫面內）。
 - **後端沒部署**：`/v1/admin/online/today`、`pdwell`／`visagg` 兩表在分支 `feat/online-today`（`workers/account-api/worker.js` 檔尾、`tests/today.test.mjs`），**不准推 main 觸發 deploy-account-worker.yml，要 Andy 明確同意**。部署前前端顯示「需要更新會員後端」。部署時隱私權政策「個人使用明細」那段要補「各頁停留時間」。
