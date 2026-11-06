@@ -55,7 +55,7 @@ def test_官方抓不到_判unknown():
 def test_run_寫進source_health的crosscheck(monkeypatch, tmp_path):
     import json
     monkeypatch.setattr(cc.twse, "price_daily", lambda: pd.DataFrame())
-    monkeypatch.setattr(cc.tpex, "price_daily", lambda: pd.DataFrame())
+    monkeypatch.setattr(cc.tpex, "price_daily", lambda **k: pd.DataFrame())
     monkeypatch.setattr(cc, "_lake_by_market", lambda now: pd.DataFrame())
     p = tmp_path / "source_health.json"
     p.write_text(json.dumps({"twse.price_daily": {"consecutive_fail": 1}}))

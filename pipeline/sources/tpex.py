@@ -34,10 +34,13 @@ def available() -> bool:
     return http.get(url, headers=_BROWSER_HEADERS, retries=1) is not None
 
 
-def price_daily() -> pd.DataFrame:
-    """上櫃主板日行情。欄位是英文，與證交所的中文欄位不同，這裡統一。"""
+def price_daily(retries: int | None = None) -> pd.DataFrame:
+    """上櫃主板日行情。欄位是英文，與證交所的中文欄位不同，這裡統一。
+
+    retries：這支端點（回應很大）常在傳到一半被櫃買端切斷（"Response ended prematurely"），
+    2026-11-06 實測 daily 抓得到、交叉比對連 3 次都被切 → 上櫃那邊 unknown。交叉比對傳大一點的次數。"""
     url = config.TPEX_OPENAPI + config.TPEX_ENDPOINTS["price_daily"]
-    raw = http.get(url, headers=_BROWSER_HEADERS)
+    raw = http.get(url, headers=_BROWSER_HEADERS, retries=retries)
     if not isinstance(raw, list) or not raw:
         log.warning("TPEx 日行情不可用，上櫃資料本輪改走備援來源")
         return pd.DataFrame()

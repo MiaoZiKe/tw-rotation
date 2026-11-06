@@ -272,4 +272,7 @@ def extract_broker_views(news: pd.DataFrame) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if not df.empty:
         log.info("券商目標價引述：%d 筆", len(df))
+    else:
+        # 新聞有抓到、只是這批沒有「券商＋目標價＋股票代號」的句子：常態，不是壞掉（新聞本身抓不到由 news.* 步驟記）
+        df.attrs["skipped"] = f"{len(news)} 則新聞中沒有帶目標價的券商引述"
     return df

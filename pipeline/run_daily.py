@@ -82,10 +82,25 @@ def step(name: str, fn, *args, **kwargs):
     err = (getattr(df, "attrs", None) or {}).get("error") if df is not None else None
     if err:
         RESULT["steps"][name]["error"] = str(err)[:500]
-    if rows == 0:
+    skipped = (getattr(df, "attrs", None) or {}).get("skipped") if df is not None else None
+    if rows == 0 and skipped and not err:
+        # 2026-11-06 資料維修：「這一輪本來就不用抓」（湖裡已有、窗內都處理過、資料源還沒出）不是失敗。
+        # 以前一律記 ok:false + 進 empty，監工每天誤報 8 個步驟。來源用 attrs["skipped"]=原因 宣告，
+        # 這裡記成 ok:true + skipped，不進 empty；真的失敗（有 error、或沒宣告）照舊 ok:false。
+        RESULT["steps"][name]["ok"] = True
+        RESULT["steps"][name]["skipped"] = str(skipped)[:200]
+        log.info("%s 本輪略過：%s", name, skipped)
+    elif rows == 0:
         log.warning("%s 沒有取得資料%s", name, f"：{err}" if err else "")
         RESULT["empty"].append(name)          # ← 不再只寫 log
     return df if df is not None else pd.DataFrame()
+
+
+def skipped_df(reason: str) -> pd.DataFrame:
+    """空 DataFrame + 「本輪不用抓」的原因（給 step() 辨識，見上）。"""
+    df = pd.DataFrame()
+    df.attrs["skipped"] = reason
+    return df
 
 
 def _etf_notice_step() -> pd.DataFrame:
@@ -160,6 +175,10 @@ def _tape_step() -> pd.DataFrame:
         RESULT["steps"]["tape.collect"]["dates_pending"] = pending
     elif "tape.collect" in RESULT["empty"]:
         RESULT["empty"].remove("tape.collect")
+    if not pending and _tp.empty and not RESULT["steps"].get("tape.collect", {}).get("error"):
+        # 沒有可補的交易日（休市日、或湖裡／KV 都已收齊）→ 不是失敗，別留 ok:false 讓監工誤報
+        RESULT["steps"]["tape.collect"]["ok"] = True
+        RESULT["steps"]["tape.collect"]["skipped"] = "沒有待補的交易日"
     return _tp
 
 
@@ -568,7 +587,7 @@ def collect_futures_60m(day: str) -> pd.DataFrame:
         fut = have[have["symbol"].astype(str) == "FUT"]
         if fut["ts"].astype(str).str.startswith(str(day)).any():
             log.info("台指期 %s 的 60 分 K 已在湖裡，跳過", day)
-            return pd.DataFrame()
+            return skipped_df(f"{day} 的 60 分 K 已在湖裡")
     out = ticks_to_60m(finmind.futures_ticks(str(day)))
     if out.empty:
         # 逐筆在 register 等級回 400（2026-09-25 Actions 實測），改試期貨分 K；兩條都沒有就回空、記 log。
@@ -627,7 +646,7 @@ def collect_otc_60m(day: str) -> pd.DataFrame:
         otc = have[have["symbol"].astype(str) == "OTC"]
         if otc["ts"].astype(str).str.startswith(str(day)).any():
             log.info("櫃買 %s 的分 K 已在湖裡，跳過", day)
-            return pd.DataFrame()
+            return skipped_df(f"{day} 的分 K 已在湖裡")
     for data_id in finmind.OTC_KBAR_IDS:
         out = kbar_to_60m(finmind.index_kbar(str(day), data_id), symbol="OTC")
         if not out.empty:
@@ -1016,6 +1035,8 @@ def main() -> int:
         if tx.empty and "taifex.futures_minute" in RESULT["empty"]:
             # 窗內都處理過了（或今天的檔還沒出）是常態，不是壞掉 —— 不記進「沒回資料的來源」
             RESULT["empty"].remove("taifex.futures_minute")
+            RESULT["steps"]["taifex.futures_minute"]["ok"] = True
+            RESULT["steps"]["taifex.futures_minute"]["skipped"] = "窗內候選日都處理過或今天的檔還沒出"
         save("index_intraday", tx)
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，

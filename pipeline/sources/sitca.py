@@ -216,7 +216,9 @@ def top10(names: dict[str, str], ym: str | None = None, classes: list[str] | Non
     if ym and have_yms and ym in have_yms:
         # 資料湖已經有公會最新這個月 → 不重抓（DECISIONS #155：會重複用到的存湖、抓取一律增量）
         log.info("公會前十大 %s 已在資料湖，跳過", ym)
-        return pd.DataFrame(columns=COLS)
+        out = pd.DataFrame(columns=COLS)
+        out.attrs["skipped"] = f"公會最新月份 {ym} 已在資料湖"   # run_daily.step() 據此記 ok:true，不算失敗
+        return out
     base = hidden_fields(first)
     if not ym or "__VIEWSTATE" not in base:
         log.warning("公會前十大頁面認不得（前 200 字）：%s", _snip(first))
