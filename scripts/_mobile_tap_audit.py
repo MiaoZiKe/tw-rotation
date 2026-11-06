@@ -834,16 +834,17 @@ class Auditor:
         layers0 = {L["key"] for L in pg.evaluate(LAYERS_JS)}
         pg.evaluate(ARM_JS, it["i"])
         url0 = pg.url
+        single = False   # 下拉只有一個選項＝沒有可切換的東西，點了不變是正常（2026-11-06：自訂組合只剩一組時被誤判成沒反應）
         if it.get("hasSel"):
             # 下拉選單：手機點下去開的是系統原生選單（不在 DOM 裡、Playwright 也看不到），
             # 所以「點得到」照上面驗中心點，「有反應」改成真的選另一個選項，看畫面有沒有跟著變。
-            pg.evaluate("""(i) => { const __get = (i) => { const a = window.__taEls || [], e = a[+i]; if (e && e.isConnected) return e; const p = (window.__taPaths || [])[+i]; try { return p ? document.querySelector(p) : null; } catch (x) { return null; } }; let s = __get(i); if (s && s.tagName !== 'SELECT') s = s.querySelector('select, input[type=range]');
-                if (!s) return;
+            single = pg.evaluate("""(i) => { const __get = (i) => { const a = window.__taEls || [], e = a[+i]; if (e && e.isConnected) return e; const p = (window.__taPaths || [])[+i]; try { return p ? document.querySelector(p) : null; } catch (x) { return null; } }; let s = __get(i); if (s && s.tagName !== 'SELECT') s = s.querySelector('select, input[type=range]');
+                if (!s) return false;
                 if (s.type === 'range') { const lo = +s.min || 0, hi = +(s.max || 100); s.value = (+s.value >= (lo + hi) / 2) ? lo : hi;
                   s.dispatchEvent(new Event('input', {bubbles: true})); s.dispatchEvent(new Event('change', {bubbles: true})); return; }
-                if (s.options.length < 2) return;
+                if (s.options.length < 2) return true;   // 只有一個選項：沒有可以切換的東西（例如自訂組合只剩一組）
                 s.selectedIndex = (s.selectedIndex + 1) % s.options.length;
-                s.dispatchEvent(new Event('input', {bubbles: true})); s.dispatchEvent(new Event('change', {bubbles: true})); }""", it["i"])
+                s.dispatchEvent(new Event('input', {bubbles: true})); s.dispatchEvent(new Event('change', {bubbles: true})); return false; }""", it["i"])
         else:
             pg.touchscreen.tap(p["x"], p["y"])
         why: list[str] = []
@@ -887,6 +888,8 @@ class Auditor:
         if not why:
             if it.get("selected"):
                 row["note"] = "已選取的那顆（點了不變是正常）"
+            elif single:
+                row["note"] = "下拉只有一個選項，沒有可切換的東西（點了不變是正常；有兩個以上選項時另外驗切換）"
             elif any(pg.evaluate("(s) => { const __get = (i) => { const a = window.__taEls || [], e = a[+i]; if (e && e.isConnected) return e; const p = (window.__taPaths || [])[+i]; try { return p ? document.querySelector(p) : null; } catch (x) { return null; } }; const e = __get(s[0]); return !!e && e.matches(s[1]); }", [it["i"], k]) for k in EXEMPT):
                 row["note"] = "白名單"
             elif it.get("tbl"):

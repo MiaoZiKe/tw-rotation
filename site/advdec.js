@@ -22,7 +22,7 @@
    ============================================================================ */
 (function () {
   'use strict';
-  var S = { mode: 'dist', sel: new Set(), group: null, ctx: null };
+  var S = { mode: 'dist', sel: new Set(), group: null, ctx: null, all: false };
   var GAP = 6;
   var $ = function (s) { return document.querySelector(s); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -51,10 +51,16 @@
     }
     return best;
   }
-  function layRows(html, W, minW) {
+  function layRows(html, W, minW, unit) {
     var n = html.length; if (!n) return '';
-    var c = pickCols(n, W, minW), out = '';
-    for (var i = 0; i < n; i += c) out += '<div class="adt-row">' + html.slice(i, i + c).join('') + '</div>';
+    var c = pickCols(n, W, minW), out = '', part = '';
+    /* 不到一整列（n < 最多欄數）時不補滿：靠左、維持一般單卡寬（1～2 張被拉成整列寬很醜，Andy 11-06） */
+    var maxC = Math.max(2, Math.floor((W + GAP) / (minW + GAP)));
+    if (n < maxC) { c = maxC; part = ' part" style="--c:' + maxC; }
+    /* 手機五條準則「一屏看重點」：先 4 列，其餘收在「看全部 N 個…」後面；桌機一律完整顯示 */
+    var cap = innerWidth <= 640 && !S.all && n > c * 4 ? c * 4 : n;
+    for (var i = 0; i < cap; i += c) out += '<div class="adt-row' + part + '">' + html.slice(i, Math.min(i + c, cap)).join('') + '</div>';
+    if (cap < n) out += '<button type="button" class="adt-more" id="adtMore">看全部 ' + n + ' ' + unit + '</button>';
     return out;
   }
 
@@ -111,7 +117,7 @@
         return '<button type="button" class="adt-g" data-g="' + esc(g.name) + '" data-n="' + g.n + '" data-avg="' + (Math.round(g.avg * 10000) / 10000) + '" data-lu="' + g.lu + '" data-ld="' + g.ld + '" style="--tb:' + t.bg + ';--tf:' + t.fg + '" title="' + esc(g.name + '：平均 ' + pct(g.avg) + '，' + g.n + ' 檔' + (S.sel.size ? '（符合級距；族群共 ' + g.total + ' 檔）' : '') + (g.lu ? '，漲停 ' + g.lu : '') + (g.ld ? '，跌停 ' + g.ld : '')) + '">'
           + '<span class="nm">' + esc(g.name) + '</span><span class="ln"><b class="pc">' + pct(g.avg) + '</b>'
           + (g.lu ? '<b class="lim">漲停' + g.lu + '</b>' : '') + (g.ld ? '<b class="lim">跌停' + g.ld + '</b>' : '') + '</span></button>';
-      }), W, minW);
+      }), W, minW, '個族群');
       return;
     }
     // ---- 個股字卡 ----
@@ -123,7 +129,7 @@
       return '<a class="adt-s ' + lim + '" data-pct="' + (+r.chg_pct || 0) + '" href="#stock/' + esc(r.code) + '" style="--tb:' + t.bg + ';--tf:' + t.fg + '" title="' + esc((r.name || '') + ' ' + r.code + ' ' + pct(+r.chg_pct || 0) + (lim ? (lim === 'lu' ? '（漲幅 ≥9.5%，視為漲停）' : '（跌幅 ≥9.5%，視為跌停）') : '')) + '">'
         + '<span class="nm">' + esc(r.name || r.code) + '</span><span class="cd">' + esc(r.code) + '</span><span class="ln"><b class="pc">' + pct(+r.chg_pct || 0) + '</b>'
         + (lim ? '<b class="lim">' + (lim === 'lu' ? '漲停' : '跌停') + '</b>' : '') + '</span></a>';
-    }), W, innerWidth <= 640 ? 96 : 112);
+    }), W, innerWidth <= 640 ? 96 : 112, '檔');
   }
 
   function setMode(v) {
@@ -134,7 +140,7 @@
     if (aw) aw.hidden = v !== 'tiles';
     var pn = $('#udPanel'); if (pn && v === 'tiles') pn.hidden = true;
     document.querySelectorAll('#udView button').forEach(function (b) { var on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-    if (v === 'tiles') S.group = null;
+    if (v === 'tiles') { S.group = null; S.all = false; }
     updClear();
     fire('adt:view', { v: v });
     if (v === 'tiles') draw();
@@ -162,8 +168,9 @@
     if (t.closest('#adtClear')) { clear(); return; }
     var b = t.closest('#adtBins button');
     if (b) { toggle(+b.dataset.b); return; }
-    var g = t.closest('#adtGrid .adt-g'); if (g) { S.group = g.dataset.g; draw(); var gr = $('#adtGrid'); if (gr) gr.scrollTop = 0; return; }
-    if (t.closest('#adtBack')) { S.group = null; draw(); }
+    if (t.closest('#adtMore')) { S.all = true; draw(); return; }
+    var g = t.closest('#adtGrid .adt-g'); if (g) { S.group = g.dataset.g; S.all = false; draw(); return; }
+    if (t.closest('#adtBack')) { S.group = null; S.all = false; draw(); }
   });
   window.addEventListener('hashchange', function () { if (location.hash && !/^#overview/.test(location.hash)) reset(); });
   if (window.ResizeObserver) {

@@ -185,6 +185,22 @@ class _NoCache(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store, must-revalidate")
         super().end_headers()
 
+    # ★ 2026-11-06：本機 site/data 是舊版建的、沒有 fear.json（總覽恐慌指數卡的資料，只有 build_payload 產）時，
+    #   fetch 該檔的 404 在這個環境裡永遠算「進行中」（跟 app.js loadLite 註解寫的 404 一樣），
+    #   `goto(wait_until="networkidle")` 30 秒逾時，每一段都在進場就死。fearcard.js 本身沒問題
+    #   （正式站與 pages.yml 一定會產 fear.json，失敗時也寫 {tw:null,us:null}）。
+    #   所以只針對這一個檔：缺檔時回 build_payload 失敗備援同款內容，讓請求正常收尾；有檔就照原檔。
+    def do_GET(self):
+        if self.path.split("?", 1)[0] == "/data/fear.json" and not os.path.exists(os.path.join(self.directory, "data", "fear.json")):
+            body = b'{"tw": null, "us": null, "note": "uitest: local data has no fear.json"}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
 
 def serve():
     """起本機伺服器。**埠被佔走就往後找一個沒人用的**，不要直接死掉。

@@ -2165,10 +2165,14 @@
   function openView(svg, title) {
     if (!svg || !isM() || !isM4()) return null;
     closeView();
-    const clone = svg.cloneNode(true);
-    clone.removeAttribute('height'); clone.removeAttribute('style');
-    clone.querySelectorAll('.anc').forEach(a => a.remove());
-    clone.id = ''; clone.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));   // 重複 id 會讓漸層／濾鏡指到原圖
+    const cloneOf = () => {
+      const c = svg.cloneNode(true);
+      c.removeAttribute('height'); c.removeAttribute('style');
+      c.querySelectorAll('.anc').forEach(a => a.remove());
+      c.id = ''; c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));   // 重複 id 會讓漸層／濾鏡指到原圖
+      return c;
+    };
+    const clone = cloneOf();
     const o = document.createElement('div');
     o.id = 'mDgView'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', (title || '剖析圖') + ' 大圖');
     o.innerHTML = `<div class="mdv-bar"><b>${esc(title || '剖析圖')}</b><span class="mdv-z"><button type="button" data-z="-1" aria-label="縮小">－</button><i>100%</i><button type="button" data-z="1" aria-label="放大">＋</button></span><button type="button" class="mdv-x" aria-label="關閉大圖">✕</button></div><div class="mdv-body"><div class="mdv-fig"></div></div>`;
@@ -2186,6 +2190,18 @@
       const z = e.target.closest('[data-z]');
       if (z) { zi = Math.max(0, Math.min(Z.length - 1, zi + (+z.dataset.z))); apply(); return; }
       if (e.target.closest('.mdv-x')) { closeView(); return; }
+      /* 2026-11-06 手機按鈕普查：大圖裡的章節摺疊列（g.dgfold）是 cloneNode 複製出來的，事件監聽不會跟著複製，點了完全沒反應。
+         改成：把點擊轉給原圖同一條章節列（狀態只有一份），過一下再用原圖重新複製一份換進來；倍率（fig 寬度）不動。 */
+      const fb = e.target.closest('g.dgfold');
+      if (fb) {
+        const id = fb.getAttribute('data-fold');
+        const og = $$('g.dgfold', svg).find(x => x.getAttribute('data-fold') === id);
+        if (og) {
+          og.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          setTimeout(() => { if (!o.isConnected) return; const old = fig.querySelector('svg'); if (old) old.replaceWith(cloneOf()); }, 120);
+        }
+        return;
+      }
       if (!e.target.closest('svg')) closeView();                  // 點圖外的暗處＝關
     });
     return o;
