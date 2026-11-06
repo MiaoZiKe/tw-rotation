@@ -136,7 +136,9 @@
   "category": "AI伺服器",
   "queries": [
    "Quanta Computer headquarters",
-   "Quanta Computer building"
+   "Quanta Computer building",
+   "Quanta Computer Guishan Taoyuan",
+   "廣達電腦 龜山 總部"
   ],
   "product_queries": [
    "server rack",
@@ -148,6 +150,11 @@
   ],
   "commons_categories": [
    "Quanta Computer"
+  ],
+  "official_sites": [
+   "https://www.quantatw.com/",
+   "https://www.quantatw.com/Quanta/chinese/",
+   "https://www.quantatw.com/Quanta/english/"
   ]
  },
  {
