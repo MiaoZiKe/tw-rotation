@@ -98,8 +98,8 @@ def t_testacct_1102(b, base):
           return { cls: tr.className, shadow: getComputedStyle(w).boxShadow, badgeBg: getComputedStyle(b).backgroundColor, badgeFs: parseFloat(getComputedStyle(b).fontSize), badgeFw: +getComputedStyle(b).fontWeight, op: getComputedStyle(o).opacity,
             lgBar: lg('#pmLegend .bar.tst', 'backgroundColor'), lgBadge: lg('#pmLegend .tbadge', 'backgroundColor'), lgOk: lg('#pmLegend .stt.ok', 'backgroundColor'), okReal: lg('#ptTable .stt.ok', 'backgroundColor'),
             lgSoon: lg('#lgSoon', 'color'), lgExp: lg('#lgExp', 'color'), n: document.querySelectorAll("#pmLegend .lgi").length }; }""", andy)
-        ok(f"{T}：①測試帳列有 tst 類別、4px 紫色左條、其他格淡化（.55）", "tst" in rowv["cls"] and "4px" in rowv["shadow"] and abs(float(rowv["op"]) - 0.55) < 0.01, rowv)
-        ok(f"{T}：①徽章是實心色塊（≥12px 粗體）、顏色＝圖例的色條與徽章", rowv["badgeFs"] >= 12 and rowv["badgeFw"] >= 600 and rowv["badgeBg"] == rowv["lgBadge"] == rowv["lgBar"] and rowv["badgeBg"] != "rgba(0, 0, 0, 0)", rowv)
+        ok(f"{T}：①測試帳列有 tst 類別、3px 灰色左條（11-07 起改灰，跟圖例色條同色）、其他格淡化（.55）", "tst" in rowv["cls"] and "3px" in rowv["shadow"] and rowv["shadow"].startswith(rowv["lgBar"]) and abs(float(rowv["op"]) - 0.55) < 0.01, rowv)
+        ok(f"{T}：①徽章是小小的灰色「測試」（11-07 Andy 簡化：≥11px、有底色）、顏色＝圖例的徽章", rowv["badgeFs"] >= 11 and rowv["badgeBg"] == rowv["lgBadge"] and rowv["badgeBg"] != "rgba(0, 0, 0, 0)", rowv)
         ok(f"{T}：①圖例有 {rowv['n']} 項，「有效」綠色＝名單實際狀態色、琥珀與灰字兩色不同", rowv["n"] >= 6 and rowv["lgOk"] == rowv["okReal"] and rowv["lgSoon"] != rowv["lgExp"], rowv)
         ok(f"{T}：①「隱藏測試帳」旁顯示數量（1）", "（1）" in ad.inner_text("#pmHideTxt"), ad.inner_text("#pmHideTxt"))
         if shots:

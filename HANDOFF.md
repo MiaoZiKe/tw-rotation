@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）
+- 改：`site/admin.js`（compName／SUB_NAME、memTable 重寫、方案選單與確認、欄位拖曳、固定欄寬與橫捲）、`scripts/uitest_sections/20261107_會員清單表.py`、`docs/account_analytics.md`。
+- 後端另案：`feat/member-plan-worker`（`/v1/admin/grants/issue`，已推遠端分支、**未推 main、未部署**）；部署前要 Andy 同意。前端先探測，舊後端自動停用體驗選項。
+- 這批只驗：會員清單表1107＋會員名單1006、管理區1005、管理區v3、會員權限開關、測試帳不計1102、邀請欄1102、管理區重疊普查1017 等管理區段落。
+
 ## 2026-11-06 夜 資料維修：last_run 8 個 ok:false 的真相（爬蟲專家；Andy：「找不到的 要在安排 維修人員去修復」）
 - **8 個步驟分類**（證據＝11-06 19:00 台北那輪 full，run 42206369140 的 collect log）：
   tape.collect／taifex.futures_minute／sitca.etf_top10／finmind.futures_60m／finmind.otc_60m／optivx.daily／news.broker_views ＝ **(a) 本輪本來就不用抓**（log：「窗內 34 個候選日都處理過了」「公會前十大 202609 已在資料湖，跳過」「台指期 2026-11-05 的 60 分 K 已在湖裡，跳過」「櫃買 …已在湖裡」；optivx 當天 FinMind 選擇權還沒出；券商引述當天新聞沒有目標價句），但 `step()` 一律把 rows==0 記成 ok:false。

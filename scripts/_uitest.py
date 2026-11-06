@@ -62750,9 +62750,9 @@ def t_admin_sw_1005(b, base, code):
         wait_until(pg, "() => document.querySelector('table.memtbl tbody tr')", 6000)
         m = pg.evaluate("""() => { const t = document.querySelector('table.memtbl'); if (!t) return null;
           const cells = [...t.querySelectorAll('thead th'), ...t.querySelectorAll('tbody tr:not(.pmdet) > td')];
-          return { n: cells.length, notC: cells.filter(c => !c.classList.contains('c-who') && getComputedStyle(c).textAlign !== 'center').map(c => c.className).slice(0, 5), whoL: [...t.querySelectorAll('th.c-who, tbody tr:not(.pmdet) > td.c-who')].every(c => getComputedStyle(c).textAlign === 'left'),
+          return { n: cells.length, notC: cells.filter(c => !c.classList.contains('c-who') && !c.classList.contains('num') && !/c-(feat|stk)/.test(c.className) && getComputedStyle(c).textAlign !== 'center').map(c => c.className).slice(0, 5), numR: cells.filter(c => c.classList.contains('num')).every(c => getComputedStyle(c).textAlign === 'right'), whoL: [...t.querySelectorAll('th.c-who, tbody tr:not(.pmdet) > td.c-who')].every(c => getComputedStyle(c).textAlign === 'left'),
                    bad: [...t.querySelectorAll('tbody tr')].filter(r => r.querySelector('.pdbadge:not(.off)')).map(r => r.querySelector('.c-tpl').textContent).filter(x => /^(訪客|註冊會員)/.test(x)) }; }""")
-        ok(f"{T}：會員名單欄位置中，「會員」（email）欄靠左（Andy 10-05）", m and m["n"] > 0 and not m["notC"] and m["whoL"], m)
+        ok(f"{T}：會員名單欄位置中，「會員」與 Top3 靠左、數字欄靠右（Andy 10-05；11-07 追加：數字靠右）", m and m["n"] > 0 and not m["notC"] and m["whoL"] and m["numR"], m)
         ok(f"{T}：有金色 ★ 的人，方案欄不會寫「訪客／註冊會員」", m and not m["bad"], m)
     # ★ 10-05 預設（DECISIONS）：所有分頁列字級＝產業地圖分頁字級、文字置中
     tq = """(sel) => [...document.querySelectorAll(sel)].filter(b => b.offsetParent).map(b => { const cs = getComputedStyle(b); return [cs.fontSize, cs.justifyContent, b.textContent.trim().slice(0, 8)]; })"""
@@ -63191,7 +63191,7 @@ def t_admin_v3(b, base, code):
           if (!cells.length) return; const w = cells[0].getBoundingClientRect().width; out[k] = [Math.round(w), Math.round(Math.max(...cells.map(cw)))]; });
         return out; }"""
     nw = pg.evaluate(NUMW)
-    ok(f"{T}・perm-v4：數字欄（到期日／最後上線／累計在線／造訪／觀看／狀態）欄寬 ≤ 內容寬＋24px", len(nw) == 6 and all(w <= cwid + 24 for w, cwid in nw.values()), nw)
+    ok(f"{T}・perm-v4：數字欄（到期日／最後上線／累計在線／造訪／觀看／狀態）欄寬 ≤ 內容寬＋48px（11-07 改固定欄寬）", len(nw) == 6 and all(w <= cwid + 48 for w, cwid in nw.values()), nw)
     ok(f"{T}・perm-v4：會員欄比任何一個數字欄都寬（剩下的寬度給文字）", pg.evaluate("() => document.querySelector('#ptTable th.c-who').getBoundingClientRect().width") > max(w for w, _ in nw.values()), nw)
     # ⑤ 展開明細
     pg.click("#ptTable tr[data-email='a399@example.com'] td.c-who")
