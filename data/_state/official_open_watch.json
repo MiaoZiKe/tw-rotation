@@ -1,0 +1,33 @@
+{
+ "checked_at": "2026-11-06T03:59:21Z",
+ "hits": [
+  {
+   "first_seen": "2026-11-06T03:59:21Z",
+   "path": "TaiwanStockMarginMaintenance",
+   "src": "finmind",
+   "summary": "FinMind 資料集清單"
+  }
+ ],
+ "ignore": [],
+ "msg": "官方已開放融資維持率／追繳／處分相關資料（finmind TaiwanStockMarginMaintenance），可以接上",
+ "open": true,
+ "sources": {
+  "finmind": {
+   "n_datasets": 86,
+   "ok": true,
+   "probe": {
+    "TaiwanStockMarginMaintenanceRatio": false,
+    "TaiwanStockTotalMarginMaintenance": false,
+    "TaiwanTotalMarginMaintenanceRatio": false
+   }
+  },
+  "tpex": {
+   "n_paths": 225,
+   "ok": true
+  },
+  "twse": {
+   "n_paths": 143,
+   "ok": true
+  }
+ }
+}
