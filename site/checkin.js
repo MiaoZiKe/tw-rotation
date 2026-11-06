@@ -256,7 +256,7 @@
 .ci-x{margin-left:auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:16px}
 .ci-help{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 8px;font-size:13px;line-height:1.6;color:var(--ink-2)}
 .ci-help ul{margin:4px 0 0;padding-left:18px}
-.ci-body{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"cal top" "cal rest";gap:10px 16px;align-items:start}
+.ci-body{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"cal top" "cal rest";grid-template-rows:auto 1fr;gap:10px 16px;align-items:start}
 .ci-calw{grid-area:cal}.ci-top{grid-area:top}.ci-rest{grid-area:rest}
 .ci-mnav{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;font-weight:700}
 .ci-mnav button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:16px}
@@ -350,7 +350,7 @@
 .ci-vl>summary small{color:var(--ink-3);font-weight:400}
 .ci-vl .artgrid{padding-bottom:10px}
 .artc.lkd.vlk{cursor:default}
-.artc .newb{position:absolute;right:8px;top:8px;font-size:11px;padding:0 6px;border-radius:8px;background:var(--amber,#e0a21b);color:#1a1200;font-weight:700}
+.artc .newb{position:absolute;right:12px;top:-9px;z-index:2;font-size:11px;padding:0 6px;border-radius:8px;background:var(--amber,#e0a21b);color:#1a1200;font-weight:700}
 .artc.vnew{box-shadow:0 0 0 2px var(--amber,#e0a21b)}
 .artlocked.cilk .ci-lkbox{padding:16px;border:1px dashed var(--line);border-radius:10px;margin:10px 0;line-height:1.7}
 @media (prefers-reduced-motion: reduce){.ci-c,.ciov{transition:none}}
@@ -384,6 +384,7 @@
     e = document.createElement('div'); e.id = 'ciToast'; e.className = 'ci-toast'; e.setAttribute('role', 'status'); e.textContent = t; document.body.appendChild(e);
     setTimeout(() => { if (e.parentNode) e.remove(); }, 3500);
   }
+  const WIDE = () => { try { return window.matchMedia('(min-width:641px)').matches; } catch (e) { return true; } };   // 桌機：節點清單一律攤開（沒有可收的摺疊）；手機預設收起
   const vaultTotal = () => allVault().length;
   const vaultGot = () => allVault().filter((a) => unlocked(a.id)).length;
   function nextNode(ym) { const n = nodes().find((x, i) => !claimed(ym, i) && x > total(ym)); return n || null; }
@@ -442,7 +443,7 @@
 <div class="ci-body">
  <div class="ci-top"><div class="ci-sum"><span>${cur ? '本月' : ym.replace('-', ' 年 ') + ' 月'}累積 <b class="n" id="ciTot">${tot}</b> 天${u || !acctOn() ? '' : '<small class="st"> （登入後才能簽到）</small>'}</span>${sg}</div>${pg}${mkNote}</div>
  <div class="ci-calw"><div class="ci-mnav"><button type="button" id="ciPrev" aria-label="上個月">‹</button><span id="ciMon">${ym.slice(0, 4)} 年 ${+ym.slice(5, 7)} 月</span><button type="button" id="ciNext" aria-label="下個月"${cur ? ' disabled' : ''}>›</button></div>${calHTML()}</div>
- <div class="ci-rest"><details class="ci-nl-d"${V.nlOpen ? ' open' : ''} id="ciNlD"><summary>節點與獎勵</summary><ul class="ci-nl" id="ciNodes">${rows}</ul></details>${mk}</div>
+ <div class="ci-rest"><details class="ci-nl-d"${V.nlOpen || WIDE() ? ' open' : ''} id="ciNlD"><summary>節點與獎勵</summary><ul class="ci-nl" id="ciNodes">${rows}</ul></details>${mk}</div>
 </div>
 <div class="ci-foot"><a href="#articles/vault" id="ciVault">我的寶箱 ${vaultGot()}／${vaultTotal()} 篇 ›</a><button type="button" class="lk" id="ciWishes">我的願望 ${load().wishes.length} ›</button>${nextNode(tm) && cur ? `<span class="st">下一個節點：滿 ${nextNode(tm)} 天</span>` : ''}</div>${adm}`;
   }
