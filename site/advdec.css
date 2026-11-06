@@ -1,0 +1,47 @@
+/* 漲跌家數卡「族群字卡」檢視（site/advdec.js，Andy 2026-11-06）。色階與間距照 style_guide：間距 4/8/12、圓角 --r-sm、字 ≥ 11px。*/
+#ovBreadthCard{--adt-n:var(--bg-2);--adt-up:#c4213f;--adt-dn:#0d8458}
+:root[data-theme="light"] #ovBreadthCard{--adt-n:#eceae4;--adt-up:#c81234;--adt-dn:#07794f}
+#ovBreadthCard > .row.spread{flex-wrap:wrap;gap:8px}
+#ovBreadthCard .row .seg + .seg{margin-left:0}
+#adtWrap[hidden],#breadthWrap[hidden],#adtClear[hidden]{display:none!important}
+#adtWrap{display:flex;flex-direction:column;gap:8px}
+.adt-bins,#adtSub{flex:none}
+.adt-bins{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:thin}
+.adt-b,.adt-clr{flex:1 0 auto;min-height:32px;padding:0 8px;border-radius:var(--r-sm,8px);border:1px solid var(--line);background:var(--bg-2);color:var(--ink-2);font-size:12.5px;white-space:nowrap;cursor:pointer;display:inline-flex;gap:4px;align-items:center;justify-content:center}
+.adt-b em{font-style:normal;font:600 11px/1 var(--mono,monospace);opacity:.85}
+.adt-b::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--tb);flex:none}
+.adt-b.on{background:var(--tb);color:var(--tf);border-color:var(--ink);font-weight:600}
+.adt-b.on::before{background:var(--tf)}
+#adtClear{flex:none;min-height:26px;padding:0 8px;color:var(--cyan);border-style:dashed;font-size:12px}
+#adtSub{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);min-height:28px}
+#adtSub .adt-l{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+#adtSub .m{color:var(--ink-3)}
+.adt-back{min-height:32px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:transparent;color:var(--cyan);font-size:13px;cursor:pointer}
+.adt-go{color:var(--cyan);font-size:12.5px}
+.adt-lg{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-3)}
+.adt-lg u{width:84px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--adt-dn),var(--adt-n),var(--adt-up))}
+.adt-lg i{font-style:normal}
+/* 卡高固定＝直方圖那一格（300px，A9 切換不晃）：上面級距鈕＋小標列，剩下的是字卡區，超過就框內捲 */
+#adtWrap{height:300px}
+#adtGrid{display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}
+.adt-row{display:flex;gap:6px;flex:none}
+.adt-g,.adt-s{flex:1 1 0;min-width:0;height:46px;padding:5px 8px;border-radius:var(--r-sm,8px);border:1px solid rgba(255,255,255,.06);background:var(--tb);color:var(--tf);display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;text-decoration:none;position:relative;font-family:inherit}
+.adt-s{height:58px}
+.adt-g:hover,.adt-s:hover{outline:2px solid var(--ink);outline-offset:-2px}
+.adt-g .nm,.adt-s .nm{font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.adt-g .ln,.adt-s .ln{display:flex;gap:4px;align-items:center;justify-content:space-between;white-space:nowrap;overflow:hidden}
+.pc{font:700 13px/1.2 var(--mono,monospace)}
+.adt-s .cd{font:11px/1.2 var(--mono,monospace);opacity:.9}
+.lim{font-size:11px;font-weight:700;line-height:1;padding:2px 4px;border-radius:3px;background:rgba(0,0,0,.45);color:#fff;flex:none}
+.adt-s.lu,.adt-s.ld{box-shadow:inset 0 0 0 2px #fff}
+:root[data-theme="light"] .adt-s.lu,:root[data-theme="light"] .adt-s.ld{box-shadow:inset 0 0 0 2px var(--ink)}
+.adt-empty{padding:32px 8px;text-align:center;color:var(--ink-3);font-size:13px}
+@media (max-width:640px){
+  #ovBreadthCard:has(#adtWrap:not([hidden])) #udSum{display:none}   /* 字卡模式小標列已經寫了「共 N 檔」，手機不放第二份（一行放不下兩組分段鈕＋讀數） */
+  #ovBreadthCard > .row.spread > .row{width:100%;justify-content:space-between;flex-wrap:wrap}   /* 清除篩選鈕放不下就換到第二行，不擠壞兩組分段鈕 */
+  #adtClear{order:3;flex:1 0 100%;min-height:32px}
+  #adtWrap{height:340px}
+  .adt-g{height:46px;padding:4px 6px}
+  .adt-s{height:56px;padding:4px 6px}
+  .adt-b,.adt-clr{min-height:40px}
+}

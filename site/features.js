@@ -77,6 +77,16 @@
     box('ov.rot', 'overview', '強弱輪動', ['#rotClockMiniWrap', '#ovRotKpi'], '總覽右欄的族群強弱輪盤'),
     box('ov.flow', 'overview', '昨日資金分流樹', ['#ovFlowWrap'], '總覽右欄的資金分流樹簡圖'),
     box('ov.breadth', 'overview', '漲跌家數分佈', ['#ovBreadthCard'], '依漲跌幅分級的家數直條（全部／上市／上櫃）'),
+    /* ★ 2026-11-06（Andy：「這邊多一個切換，可以看到全部族群的字卡…點擊該族群也會有對應股票字卡…可以依照級距篩選」；新功能一律要有功能鍵與次數）：
+       漲跌家數卡右上「分布｜族群字卡」。切進字卡、點族群字卡、點級距篩選鈕，每點一次算一次（qcount，quota.js 捕獲點擊）；
+       返回族群、切回分布、清除篩選、點個股字卡進個股頁不算。直方圖模式點長條不計（它本來就受 heat.link 管）。
+       訪客 3、註冊會員 5（limBy，plan_presets.js 同步）；用完：這三種鈕反灰、點了沒反應，「分布｜族群字卡」旁一行小字。
+       體驗額度不替 Andy 預設：不在 GRANT_BAN，自動出現在「編輯：新會員體驗」清單。 */
+    { id: 'ov.advdec.tiles', name: '總覽漲跌家數：族群字卡', cat: 'overview', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', route: /^(#overview([/?]|$)|#?$)/,
+      qblock: ['#udView button[data-v="tiles"]:not(.on)', '#adtGrid .adt-g', '#adtBins button'], qcount: ['#udView button[data-v="tiles"]:not(.on)', '#adtGrid .adt-g', '#adtBins button'],
+      qnoteAfter: '#udView', desc: '總覽漲跌家數卡切成「族群字卡」：全部族群的字卡矩陣（-10%～+10% 深綠到深紅）、點族群看個股字卡、依級距篩選；切進去、點族群、點級距各算一次',
+      veil: [], mark: [], block: [] },
     // ---- 精選文章（site/articles.js，2026-10-16 接上全站開關與每日次數）
     /* ★ 預設全部開、不設 defBy／limBy、不進 METERED（全站共用額度）＝上線這一刻任何人看得到的文章一篇都不變；
        Andy 要收費或限篇數時，在 #admin/perm 對訪客／註冊會員／Plus／Pro 範本關掉或填「每日 N 次」。

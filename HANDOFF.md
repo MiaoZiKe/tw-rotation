@@ -1,6 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-06 總覽漲跌家數卡新增「族群字卡」檢視（Andy 11-06 原話：「這邊多一個切換，可以看到全部族群的字卡，整齊排列 字卡需要剛好矩陣填滿，並且點擊該族群也會有對應股票字卡，字卡顏色 -10~+10% 深綠~深紅，目的是更直觀看到 哪些市場跌停 狀況，以及可以依照級距篩選」）
+- 新檔 `site/advdec.js`／`site/advdec.css`；`app.js renderUpDown` 只加 3 處接口（AdvDec.render／toggle／has）與 `adt:view`／`adt:sel` 事件；`index.html` 加「分布｜族群字卡」分段鈕與 `#adtWrap`。
+- 口徑：族群＝stocks.json 的 `group`（一檔一族群，加總＝直方圖「共 N 檔」）；平均＝成分股**等權**（熱力圖是前一日成交值加權，逐檔資料沒有前一日成交值，且套了級距篩選加權會被大型股吃掉）；選了級距＝只算符合的個股、沒有符合股的族群不顯示。寫在「?」。
+- 功能鍵 `ov.advdec.tiles`（features.js＋plan_presets.js 四方案；訪客 3、註冊會員 5、Plus 50、Pro 不限；切進字卡／點族群／點級距各算一次）；體驗額度不替 Andy 預設，自動出現在「編輯：新會員體驗」。公告 `f-20261106-advdec-tiles`。
+- 驗收段落 `scripts/uitest_sections/20261106_漲跌家數字卡.py`（漲跌家數字卡1106）。
+- 市場明細的漲跌家數頁是另一個元件（#distMkt 清單），這次沒動。
+- 桌機多了切換鈕屬 Andy 明確要求的改動，桌機守門基準依需要用 `TW_DESK_BASELINE=write` 更新。
+
 ## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
 - 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
 - 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。

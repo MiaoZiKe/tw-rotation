@@ -9767,6 +9767,13 @@
      · want：摘要卡點下去的時候這張圖可能還沒畫（首屏下方的卡是捲近了才畫，whenNear）→ 記下來，畫好那一刻再打開。
      · last：最近一次畫圖用的資料（摘要卡要把市場別切回「全部」時，原地重畫一次就好，不必重新抓）。*/
   const UDJ = { sel: null, want: null, last: null, open: null, mark: null };
+  /* 2026-11-06 族群字卡（advdec.js）通知：切檢視、篩選變了 → 直方圖亮暗重畫；切回分布時圖原本藏著，補一次 resize */
+  document.addEventListener('adt:sel', () => { if (UDJ.mark) UDJ.mark(); });
+  document.addEventListener('adt:view', (e) => {
+    if (e.detail && e.detail.v === 'tiles') { const b = $('#udPanel'); if (b) b.hidden = true; UDJ.sel = null; }
+    if (UDJ.mark) UDJ.mark();
+    const el = $('#breadth'), ci = el && window.echarts && echarts.getInstanceByDom(el); if (ci) setTimeout(() => ci.resize(), 0);
+  });
   const UD_SIDE = { up: { name: '上漲', bins: [6, 7, 8, 9, 10] }, down: { name: '下跌', bins: [0, 1, 2, 3, 4] } };
   const udSelOf = (side) => (side === 'flat' ? { bin: 5 } : UD_SIDE[side] ? { side, lv: null } : null);
   const udLab = (i) => (i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%'));
@@ -9822,6 +9829,7 @@
       if (sum) sum.textContent = ''; el.style.height = ''; el.dataset.total = '0';
       if (box) box.hidden = true;
       UDJ.sel = null; UDJ.want = null; UDJ.open = null; UDJ.mark = null;
+      if (window.AdvDec) AdvDec.render({ pool: [], bins: [], cnt: [], UD: UD_BINS, mktName: UD_MKT_NAME[udMkt], date: heat && heat.date });   // 2026-11-06 族群字卡也要跟著清空
       return empty('breadth', every.length ? `${UD_MKT_NAME[udMkt]}沒有逐檔漲跌資料` : '尚無逐檔漲跌資料');
     }
     const bins = UD_BINS.map(() => []);
@@ -9833,6 +9841,8 @@
       heatN: heat ? (heat.advancers || 0) + (heat.decliners || 0) + (heat.unchanged || 0) : null };
     if (sum) sum.innerHTML = `共 <b>${pool.length}</b> 檔`;
     el.dataset.total = String(pool.length);                 // 驗收用：直條加總要等於這個數
+    // 2026-11-06（Andy：族群字卡）：同一份級距分好的資料交給 advdec.js 畫字卡，家數跟直方圖一定對得起來
+    if (window.AdvDec) AdvDec.render({ pool, bins, cnt, UD: UD_BINS, mktName: UD_MKT_NAME[udMkt], date: heat && heat.date });
     el.dataset.mkt = udMkt;
     el.style.height = '300px'; el.style.minHeight = '300px';
     if (!box || box.hidden) UDJ.sel = null;                  // 清單沒開著：直條全部原色
@@ -9840,7 +9850,10 @@
     const col = (i) => { const m = UD_BINS[i].m; if (!m) return CH.ink3;
       const a = .38 + .62 * Math.min(1, Math.abs(m) / 10); return hexA(m > 0 ? CH.up : CH.down, a); };
     // 清單開著時：清單那一段的直條原色、其他淡掉（opacity 另外一格，不動 color —— 紅漲綠跌的驗收讀的是 color）
-    const lit = (i) => { const s = UDJ.sel; if (!s) return true;
+    const lit = (i) => { const s = UDJ.sel;
+      // 2026-11-06：級距篩選（族群字卡那一組，點長條也能加減）選著的長條原色，其他淡掉
+      if (window.AdvDec && AdvDec.size()) return AdvDec.has(i) || (!!s && (s.side ? (s.lv != null ? i === s.lv : UD_SIDE[s.side].bins.includes(i)) : i === s.bin));
+      if (!s) return true;
       if (s.side) return s.lv != null ? i === s.lv : UD_SIDE[s.side].bins.includes(i);
       return i === s.bin; };
     const barData = () => cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), opacity: lit(i) ? 1 : .28, borderRadius: [3, 3, 0, 0] } }));
@@ -9877,6 +9890,7 @@
     UDJ.open = show;
     if (c) c.off('click').on('click', (p) => {
       const i = p.dataIndex; if (!box || i == null) return;
+      if (window.AdvDec && ovLinkOk()) AdvDec.toggle(i);   // 2026-11-06：點長條同時加減級距篩選（跟「族群字卡」同一組）
       show({ bin: i });
     });
     // 重畫時清單正開著（切市場、換主題）→ 同一段原地換成新市場的股票（不是關掉，也不是留著舊市場的名單）
@@ -10585,9 +10599,16 @@
     breadth: () => howHTML('今天是大家都在漲，還是少數幾檔撐盤。', [
       /* ★ 2026-09-29 說明精簡（上限 5 條、每條 ≤ 30 字）：改前 6 條＋家數讀數 1 條＝7 條。
          「紅漲綠跌、越外側越深」併進第一條，「普漲普跌」與「兩頭高＝分歧」併成一條，意思一個都沒少。*/
+      ...(window.AdvDec && AdvDec.mode() === 'tiles' ? [
+        '一張字卡＝一個族群，顏色＝平均漲跌幅，-10% 深綠到 +10% 深紅',
+        '平均＝成分股等權平均，跟熱力圖的成交值加權不同',
+        '點字卡看該族群個股，個股字卡點了進個股頁',
+        '級距鈕可多選：只算符合的個股，沒有的族群不顯示；盤後資料',
+      ] : [
       '每根直條＝一級漲跌幅的家數，紅漲綠跌',
       '重心偏右＝普漲、偏左＝普跌，兩頭高＝分歧',
       '盤後資料，盤中不跳動',
+      ]),
       // howHTML 不印第三個參數（說明精簡），所以三組家數的讀數要放在條列裡才看得到；
       // 市場別不明的（other）只算在「全部」，有的話一定寫出來，不讓兩個按鈕加起來默默少於全部
       ...(udStat ? [`全部 ${udStat.nAll} 檔＝上市 ${udStat.twse}＋上櫃 ${udStat.tpex}`

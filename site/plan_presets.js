@@ -46,6 +46,7 @@
      所有分類合計）——訪客 0、註冊會員 0（只看標題與分類）、Plus 5、Pro 999（＝不限）。features.js 的 defBy 也寫了同樣的預設，按「套用建議方案」之前就照這個跑。
      計數在 site/quota.js 的 TwQuota.total，只擋畫面、非伺服器端。
    · ★★ 2026-11-02（Andy：「『信用交易』『期貨籌碼』是新加入的功能，以後只要有新加入功能都需要限制使用次數在權限那邊進行設定，這次也是，但體驗就 Follow 我設定的次數」）：
+     2026-11-06 新鍵 ov.advdec.tiles（總覽漲跌家數卡「族群字卡」）：四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限（同 flow.rank.click 口徑：切進字卡、點族群、點級距各算一次）。
      新鍵 mkt.credit（信用交易）、mkt.fut（期貨籌碼）、mkt.inst.day（三大法人當天報告）：四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限
      （跟市場明細漲跌家數／法人連買賣／站上均線同一口徑，單位＝一次造訪；features.js 的 limBy 也寫了 訪客 3／註冊會員 5，按「套用建議方案」之前就照這個跑）。
      這三個鍵不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗的次數由 Andy 自己在那邊設，這裡不預設。
@@ -70,6 +71,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.advdec.tiles": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -173,6 +175,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown.filter": 3,
     "mkt.credit": 3,
     "mkt.fut": 3,
+    "ov.advdec.tiles": 3,
     "mkt.inst.day": 3,
     "etf.cal.click": 3,
     "earn.click": 3,
@@ -208,6 +211,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.advdec.tiles": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -319,6 +323,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.ma": 5,
     "mkt.credit": 5,
     "mkt.fut": 5,
+    "ov.advdec.tiles": 5,
     "mkt.inst.day": 5,
     "season.month": 10,
     "flow.rank.click": 5,
@@ -360,6 +365,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.advdec.tiles": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -450,6 +456,7 @@ window.TW_PLAN_PRESETS = {
     "stock.page": 50,
     "mkt.credit": 50,
     "mkt.fut": 50,
+    "ov.advdec.tiles": 50,
     "mkt.inst.day": 50
    },
    "meta": {
@@ -484,6 +491,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.advdec.tiles": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
