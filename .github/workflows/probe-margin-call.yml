@@ -1,0 +1,20 @@
+name: 探測-擔保維持率追繳處分
+on:
+  push:
+    branches: ["probe/margin-call"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: probe
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python scripts/probe_margin_call.py
+        continue-on-error: true
