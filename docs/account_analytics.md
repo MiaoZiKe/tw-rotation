@@ -278,3 +278,17 @@ Andy：流量觀測「即時」要看今天 0–24 時每小時、「使用者�
 `to` 沒帶＝今天、晚於今天＝今天；`from` 沒帶＝`to` 往前 30 天（含 `to` 共 30 天）；日期格式不對、`from` 晚於 `to`、`from` 比今天早超過 400 天 → 400 `{error:'bad_range'}`。
 回應形狀不變：`from`／`to` 是實際起訖，`rows`、`e2`、`hourly`、`hstat.period` 依起訖重算；`hours`／`hstat.day` 永遠是今天（即時用）；`users` 不受影響。程式在 `worker.js` 檔尾「起訖日區塊」，測試在 `tests/hourly.test.mjs`。
 
+
+## 頂欄「N 人在線」框的「今天」段（2026-11-06，只有站主／管理員）
+
+Andy 11-06：「只有站主看得到 今天有誰來 累積多久 主要看什麼 … 太長就改成拉Bar 形式 也需要新增訪客累積數量」。
+
+- 前端：`site/account.js` `paintToday()`（點「N 人在線」才打一支 `POST /v1/admin/online/today`）。清單固定高度 288px、框內捲動（桌機滾輪／拖捲軸，手機手指拖）；
+  測試帳用 `site/admin.js` 的 `TwAdmin.testEmails()`（SHA-256 雜湊名單，與管理區統計同一套規則）排除。端點 404（後端還沒部署）→ 寫「需要更新會員後端」，不影響上面的「目前在線」。
+- 後端（`workers/account-api/worker.js` 檔尾「今天誰來過」區塊）：
+  - `pdwell(uid, day, page, ms)`：登入會員每天每一頁的停留毫秒，加時規則同 `visits.ms`（兩次心跳相隔 ≤150 秒才算、單次最多 2 分鐘）。保留 90 天、刪帳號一起刪。
+  - `visagg(day, n)`：每天不重複裝置數（`dayvis` 只留今天與昨天，這裡永久留一天一列的數字）。**是裝置數不是人數**，含會員的裝置；只有日期與數字。
+  - 回應：`{ day, now, members:[{ name, email, ms, seen, pages:[[頁面, 毫秒]×3], by:'time'|'pv' }], guests:{ today, week, total, since } }`。
+    `by:'pv'`＝今天還沒有停留資料（例如 Worker 剛部署、只有瀏覽次數）時退而用瀏覽次數，`pages` 第二欄是次數。`week`＝近 7 天每日不重複裝置加總。
+  - 只認管理者；一般會員、訪客 403。驗收：`node --test workers/account-api/tests/today.test.mjs`。
+- 隱私：停留資料是「誰看了哪一頁多久」的個人資料，等級同 `uev`（只記登入者、只有管理者讀得到）；隱私權政策那段（個人使用明細）部署後要一併補一句「各頁停留時間」。

@@ -3276,3 +3276,107 @@ const promoOrigExpInit = Hub.prototype.expInit;
 Hub.prototype.expInit = function () { promoOrigExpInit.call(this); this.promoInit(); };
 for (const t of ['survey', 'invites', 'invite_uses', 'invite_reward', 'invite_upg', 'promo_tier', 'promo_pending', 'wishes', 'ann_seen']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
 /* ============================================================================ 問卷／邀請／公告區塊結束 */
+
+/* ============================================================================ 「今天誰來過」區塊（2026-11-06，Andy：「只有站主看得到 今天有誰來 累積多久 主要看什麼 也需要新增訪客累積數量」）
+   前端：頂欄「N 人在線」點開的框裡多一段「今天」（site/account.js openOnline）。這裡補三樣原本沒有的資料：
+   ① pdwell（uid、台北日期、頁面、毫秒）：每位登入會員每天在每一頁停留多久。加時規則與 visits.ms 完全相同（兩次心跳相隔 ≤150 秒才算，單次最多 2 分鐘），
+      只是多記「在哪一頁」。為什麼不塞進 uev：v3Members／v3Detail 會把 uev 的非 _pv 元件當成功能次數列出，新增一個 _ms 元件會污染那兩份。
+      只記登入者、保留 90 天（同 uev）、刪帳號一起刪，隱私等級同 uev。
+   ② visagg（台北日期、不重複裝置數）：dayvis 只留今天與昨天，這裡每次心跳批次把「今天 dayvis 的列數」寫成當天一列，永久保留（只有日期＋數字），
+      才算得出「本週」「累積」。數字是「不重複裝置」（同一台一天一次），含會員的裝置，不是人數。
+   ③ POST /v1/admin/online/today（只有管理者；訪客與一般會員 403）：
+        { day, now, members:[{ name, email, ms, seen, pages:[[頁面, 毫秒]×3], by }], guests:{ today, week, total, since } }
+      members＝今天有在線時間或有瀏覽紀錄的登入者，依 ms 由多到少；by 是 'time'（pages 的第二欄是毫秒）或 'pv'（今天還沒有停留資料時退而用瀏覽次數）。
+      guests.week＝近 7 天（含今天）每日不重複裝置加總；total＝visagg 全部加總；since＝visagg 最早那天（開始統計日）。
+   ★ 只在檔尾新增、包一層 prototype，既有函式一行不動；前端在端點不存在（404）時隱藏這一段，所以 Worker 部署前後前端都不會壞。
+   ============================================================================ */
+const TD_KEEP_DAYS = 90;
+Hub.prototype.tdInit = function () {
+  if (this._tdOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS pdwell (uid TEXT, day TEXT, page TEXT, ms INTEGER DEFAULT 0, PRIMARY KEY (uid, day, page))');
+  this.q('CREATE TABLE IF NOT EXISTS visagg (day TEXT PRIMARY KEY, n INTEGER DEFAULT 0)');
+  this._tdOk = true;
+};
+const tdOrigBeat = Hub.prototype.beat;
+Hub.prototype.beat = async function (req, b) {
+  /* 要在原本的 beat 之前讀 users.ob（原本的會把它更新成現在），才算得出「這次加了多少」*/
+  let uid = null, ob = 0;
+  try {
+    const v = b && b.t && !b.leave ? await this.verify(b.t) : null;
+    if (v) { uid = v.user.uid; const r = this.q('SELECT ob FROM users WHERE uid = ?', uid)[0]; ob = r && r.ob ? r.ob : 0; }
+  } catch (e) { uid = null; }
+  const res = await tdOrigBeat.call(this, req, b);
+  if (res.status !== 200 || !uid) return res;
+  try {
+    const now = this.now(), gap = ob ? now - ob : 0;
+    const add = gap > 0 && gap <= ONLINE_WINDOW_MS ? Math.min(gap, V3_ONLINE_STEP_MS) : 0;
+    if (add) {
+      this.tdInit();
+      const page = VIEWS.includes(b.r) ? b.r : 'other';
+      this.q('INSERT INTO pdwell (uid, day, page, ms) VALUES (?, ?, ?, ?) ON CONFLICT(uid, day, page) DO UPDATE SET ms = ms + excluded.ms', uid, tpeDay(now), page, add);
+    }
+  } catch (e) { /* 寫不進去：心跳照樣算成功 */ }
+  return res;
+};
+const tdOrigBatch = Hub.prototype.trackBatch;
+Hub.prototype.trackBatch = async function (req, b) {
+  const res = await tdOrigBatch.call(this, req, b);
+  if (res.status !== 200) return res;
+  try {
+    this.tdInit();
+    const day = tpeDay(this.now());
+    if (this.dayvisReady) {
+      const c = this.q('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day)[0].c;
+      if (c) this.q('INSERT INTO visagg (day, n) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET n = excluded.n', day, c);
+    }
+  } catch (e) { /* 略 */ }
+  return res;
+};
+Hub.prototype.tdToday = function () {
+  this.tdInit(); this.v3Init();
+  const now = this.now(), day = tpeDay(now), wk = tpeDay(now - 6 * 86400 * 1000);
+  const ms = {}; this.q('SELECT uid, COALESCE(ms, 0) AS ms FROM visits WHERE day = ?', day).forEach((r) => { ms[r.uid] = r.ms; });
+  const dw = {}; this.q('SELECT uid, page, ms FROM pdwell WHERE day = ? AND ms > 0 ORDER BY ms DESC', day).forEach((r) => { (dw[r.uid] = dw[r.uid] || []).push([r.page, r.ms]); });
+  const pv = {}; this.q("SELECT uid, page, SUM(n) AS n FROM uev WHERE day = ? AND comp = '_pv' GROUP BY uid, page ORDER BY n DESC", day).forEach((r) => { (pv[r.uid] = pv[r.uid] || []).push([r.page, r.n]); });
+  const uids = new Set([...Object.keys(ms).filter((k) => ms[k] > 0), ...Object.keys(dw), ...Object.keys(pv)]);
+  const members = [];
+  for (const uid of uids) {
+    const u = this.q('SELECT name, email, ob, seen FROM users WHERE uid = ?', uid)[0];
+    if (!u || !u.email) continue;
+    const t = dw[uid] && dw[uid].length;
+    members.push({ name: u.name || '', email: u.email, ms: ms[uid] || 0, seen: Math.max(u.ob || 0, 0) || u.seen || 0,
+      pages: (t ? dw[uid] : pv[uid] || []).slice(0, 3), by: t ? 'time' : 'pv' });
+  }
+  members.sort((a, b) => b.ms - a.ms || b.seen - a.seen);
+  const g = (sql, ...a) => this.q(sql, ...a)[0] || {};
+  const guests = {
+    today: g('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day).c || 0,
+    week: g('SELECT COALESCE(SUM(n), 0) AS c FROM visagg WHERE day >= ?', wk).c || 0,
+    total: g('SELECT COALESCE(SUM(n), 0) AS c FROM visagg').c || 0,
+    since: g('SELECT MIN(day) AS d FROM visagg').d || '',
+  };
+  /* dayvis 沒表（還沒有人送過 vd）時上面 today 會丟例外，所以先確保表在 */
+  return { day, now, members, guests };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/online/today': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.dayvisReady) { this.q('CREATE TABLE IF NOT EXISTS dayvis (day TEXT, vd TEXT, PRIMARY KEY (day, vd))'); this.dayvisReady = true; }
+    return this.json(req, this.tdToday());
+  },
+});
+const tdOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await tdOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.tdInit(); this.q('DELETE FROM pdwell WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+const tdOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  tdOrigCleanup.call(this);
+  this.tdInit();
+  this.q('DELETE FROM pdwell WHERE day < ?', tpeDay(this.now() - TD_KEEP_DAYS * 86400 * 1000));
+  this.q('DELETE FROM pdwell WHERE uid NOT IN (SELECT uid FROM users)');
+};
+/* ============================================================================ 「今天誰來過」區塊結束 */
