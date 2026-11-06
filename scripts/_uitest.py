@@ -23935,7 +23935,7 @@ def t_ov_kpi_live_1002(b, base, code):
     ok("★ [摘要卡即時] 跨過收盤之後數字就停住（11 秒一格都沒動）", vals(pg) == v_close and pg.evaluate(OVL_SIG) == sig_close, [v_close, vals(pg)])
     ok("[摘要卡即時] 跨過收盤：不是換回前一天的盤後資料（仍是今天的收盤快照、底線照寫即時估算）",
        v_close != eod_v and pg.evaluate("() => +document.getElementById('hero').dataset.udN") == v_close["udN"] and v_close["udN"] <= 550   # 上限＝MUD_CAP（見 ① 的註解）
-       and all("即時估算" in t for t in pg.evaluate("() => [...document.querySelectorAll('#hero .osc .osc-f')].map(e => e.textContent)")),
+       and all("即時估算" in t for t in pg.evaluate("() => [...document.querySelectorAll('#hero .osc:not([data-k=fear]) .osc-f')].map(e => e.textContent)")),
        [v_close, eod_v])
     ctx.close()
 

@@ -1699,7 +1699,7 @@ def main() -> int:
             optpc.backfill_opt_pc(_progress(), _save_progress)
         except Exception as exc:  # noqa: BLE001
             log.warning("opt_pc 回補失敗（不影響其他步驟）：%s", exc)
-        # 2026-11-06 恐慌指數（臺指選擇權隱含波動率・本站自算）：同一個資料集，按月游標每輪最多 12 次請求；放在個股計畫前面，理由同上。
+        # 2026-11-06 恐慌指數（臺指選擇權隱含波動率・本站自算）：同一個資料集，按月游標，一輪最多 48 次請求（第一輪就補完 2023 起）；放在個股計畫前面，理由同上。
         try:
             from .sources import optivx
             optivx.backfill(_progress(), _save_progress)

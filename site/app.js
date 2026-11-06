@@ -4864,7 +4864,6 @@
       /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：四格摘要卡各一顆「?」，說明盒放在卡片外（howPop 關的時候搬回這裡）。*/
       + ['updown', 'rot', 'flow', 'theme'].map(k => `<div class="howtxt" id="how-ovs-${k}" hidden></div>`).join('');
     Object.keys(OVS.eod).forEach(k => Object.entries(OVS.eod[k].ds || {}).forEach(([a, v]) => { host.dataset[a] = String(v); }));
-    if (window.FearCard) window.FearCard.mounted(host);   // 恐慌指數卡：補「?」說明盒、資料到了原地換、開著的完整圖掛回來
 
     const track = $('#ovSumTrack');
     const go = (k, e) => {
@@ -4910,6 +4909,8 @@
     if (window.Live && window.Live.want) window.Live.want('ovs', ovlFill, { fill: true });
     Object.keys(OVL.live).forEach(k => { if (OVL.live[k] && OVL.html[k]) ovsApply(k, OVL.html[k], false); });
     ovlStamp();
+    // 恐慌指數卡（site/fearcard.js）：補「?」說明盒、資料到了原地換、開著的完整圖掛回來。放最後、包 try：它出任何事都不能擋到上面四張卡的即時補回
+    try { if (window.FearCard) window.FearCard.mounted(host); } catch (e) { /* 只影響恐慌指數卡 */ }
   }
 
   /* ================================================================ 總覽摘要卡即時（DECISIONS #296，2026-10-02）

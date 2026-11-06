@@ -6,7 +6,7 @@
 
 兩條路：
   · daily_update()：每日管線用；從湖裡最後一天的隔天抓到今天（最多回看 10 天），1 次額度。
-  · backfill()：回補用；按月游標（backfill_progress.json 的 complete.opt_ivx），每輪最多 12 個月，
+  · backfill()：回補用；按月游標（backfill_progress.json 的 complete.opt_ivx），每輪最多 48 個月（一輪補完），
     起點 config.IVX_BACKFILL_FLOOR。連兩個月都空就停（多半是額度或資料集暫時不給），下一輪再試，不把游標推過去。
 ⚠ 容器連不到 FinMind，欄位名照 FinMind 文件（date, option_id, contract_date, strike_price, call_put, open, max, min,
   close, volume, settlement_price, open_interest, trading_session）；認不得就回空並記 log，不寫壞資料進湖。
@@ -23,7 +23,7 @@ from ..compute import ivx
 from .optpc import month_range
 
 log = logging.getLogger(__name__)
-MONTHS_PER_RUN = 12          # 一次請求一個月（約 7 萬列）；額度只算請求數，12 次很小，三輪就補完 2023 起
+MONTHS_PER_RUN = 48          # 一次請求一個月（約 7 萬列）；額度只算請求數（每小時 510 次），一輪約 47 次就把 2023-01 起全部補完
 
 
 def _fetch(a: str, b: str):

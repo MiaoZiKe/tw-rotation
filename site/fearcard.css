@@ -30,3 +30,9 @@
 .osc.fz .osc-t{flex:none}
 .osc.fz .osc-h .fz-tag{flex:none;font-size:11px;line-height:16px;padding:0 3px;white-space:nowrap}
 .osc.fz .osc-h > .howbtn{margin-left:auto}
+/* 五張一排（1440 每張約 218px）時，站主看得到的「即時」鈕會把「資金分流樹」卡名擠成「資金分流…」：
+   有恐慌指數卡的那一排，標題列間距 8→6、即時鈕左右留白 8→6（只動這一排的桌機寬；手機 ≤640 本來就是 7px／另有規則）。*/
+@media (min-width:641px){
+  #hero .ovsum-track:has(.osc.fz) .osc-h{gap:6px}
+  #hero .ovsum-track:has(.osc.fz) .osc-d{padding:0 6px}
+}
