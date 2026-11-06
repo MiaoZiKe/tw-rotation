@@ -4850,7 +4850,7 @@
     /* ⑤ 恐慌指數（2026-11-06，Andy：「另外需要新增恐慌指數再右上」）：邏輯全在 site/fearcard.js（自己載 data/fear.json），這裡只排進同一排最右邊。*/
     if (window.FearCard) cards.push(window.FearCard.card());
     /* 每日簽到卡（2026-11-07，site/checkin.js）：排在摘要卡列第一張；點了開簽到月曆 */
-    if (window.TwCheckin) cards.unshift(window.TwCheckin.card());
+    if (window.TwCheckin && window.TwCheckin.wantCard()) cards.unshift(window.TwCheckin.card());   // 只在手機（≤820）排進去：桌機頂欄有簽到小圖示，摘要卡列維持原本五張、版面不動（CLAUDE.md 10-08：手機不准影響桌機）
 
     host.classList.add('ovsum');
     host.classList.remove('hero', 'ovstrip');

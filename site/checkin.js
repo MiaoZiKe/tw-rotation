@@ -683,7 +683,7 @@ ${ws.length ? ws.map((w) => `<div class="ci-list" data-batch="${esc(w.id)}" data
 
   /* ------------------------------------------------------------------ 對外 */
   window.TwCheckin = {
-    open, close, card, mounted, paintCard, ready, bibi: bibiCard,
+    open, close, card, mounted, wantCard: () => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } }, paintCard, ready, bibi: bibiCard,
     unlocked, vaultMeta, paintVault, lockedPageHTML, vaultIcon: CHEST,
     state: () => ({ ym: ymOf(today()), today: today(), total: total(ymOf(today())), signs: Object.assign({}, load().signs), unlock: Object.keys(load().unlock), pts: pts(ymOf(today())), mk: mkUsed(ymOf(today())), wishes: load().wishes.length, uid: uid(), admin: isAdm() }),
     test: { enable() { T.on = true; }, skip(ms) { T.off += ms; }, today(d) { T.today = d || ''; }, reset() { S = blank(); SU = uid(); save(); } },

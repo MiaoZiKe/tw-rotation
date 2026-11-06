@@ -67,7 +67,7 @@ def t_articles_all_hide_1106(b, base, code):
             wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden])').length === 6", 10000)
         pg.wait_for_timeout(1500)   # 等 /v1/articles/tabs 回來並重畫（含一般人的導向）
 
-    vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length).map(b => b.dataset.cat)"
+    vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length && b.dataset.cat !== 'vault').map(b => b.dataset.cat)"   # 11-07 起多一格「比比寶箱」（簽到兌換、不進隱藏機制），這支只看原本六格
     on = "() => (document.querySelector('#artCats>button.on') || {dataset: {}}).dataset.cat"
     for W in (1440, 390):
         st["hidden"] = []; st["puts"].clear()

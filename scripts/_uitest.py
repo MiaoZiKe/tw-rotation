@@ -21343,7 +21343,7 @@ def t_ov_summary_0928(pg, b, base, code):
         const r = h ? h.getBoundingClientRect() : null;
         return { afterHome: !!(h && mb && mb.nextElementSibling === h), top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : 0,
                  n: h ? h.querySelectorAll('.osc').length : 0, vh: innerHeight, sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }""")
-    ok("★ [摘要卡 手機] 摘要卡列緊貼指數列下面、五張都在（含恐慌指數）、第一屏看得到", pos["afterHome"] and pos["n"] == 5 and pos["h"] > 0 and pos["top"] is not None and pos["top"] < pos["vh"], pos)
+    ok("★ [摘要卡 手機] 摘要卡列緊貼指數列下面、五張都在（含恐慌指數；手機另有第一張「簽到」卡，11-07 每日簽到）、第一屏看得到", pos["afterHome"] and pos["n"] == 6 and pos["h"] > 0 and pos["top"] is not None and pos["top"] < pos["vh"], pos)
     ok("[摘要卡 手機] 沒有橫向捲軸", not pos["sideways"], pos)
     # 切到第②步再點「資金輪盤」卡：要自己切回第①步、捲到輪盤
     if count(mp, "#v-overview .mspine>button") >= 2:

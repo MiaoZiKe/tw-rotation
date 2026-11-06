@@ -76,7 +76,7 @@ def t_articles_hide_1027(b, base, code):
             wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden])').length === 6", 10000)
         pg.wait_for_timeout(900)   # 等 /v1/articles/tabs 回來並重畫
 
-    vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length).map(b => b.dataset.cat)"
+    vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length && b.dataset.cat !== 'vault').map(b => b.dataset.cat)"   # 11-07 起多一格「比比寶箱」（簽到兌換、不進隱藏機制），這支只看原本六格
     for W in (1440, 390):
         mob = W <= 640
         st["hidden"] = []; st["fail"] = False; st["puts"].clear()
@@ -119,7 +119,7 @@ def t_articles_hide_1027(b, base, code):
             open_articles(pg)
             ok(f"★ [{T}（{W}）] {who}：只看到 全部／快訊／產業鏈／知識（盤前、盤後不見）", pg.evaluate(vis) == ["all", "news", "intro", "know"], pg.evaluate(vis))
             ok(f"[{T}（{W}）] {who}：看不到任何眼睛、欄數跟著變 4（分頁沒擠成一角）", pg.evaluate("() => [...document.querySelectorAll('.arteye')].every(e => e.getClientRects().length === 0)")
-               and pg.evaluate("() => getComputedStyle(document.getElementById('artCats')).gridTemplateColumns.split(' ').length") == 4)
+               and pg.evaluate("() => getComputedStyle(document.getElementById('artCats')).gridTemplateColumns.split(' ').length") == 5   # 4 格＋比比寶箱)
             pg.goto(base + "#articles/premarket", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
             ok(f"★ [{T}（{W}）] {who}：直接打 #articles/premarket → 導回 #articles（停在全部文章）", pg.evaluate("() => location.hash") == "#articles"
                and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "all", pg.evaluate("() => location.hash"))

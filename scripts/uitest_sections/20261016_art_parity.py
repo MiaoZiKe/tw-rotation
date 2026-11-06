@@ -147,8 +147,8 @@ def t_art_parity_1016(b, base):
             const ids = [...c.querySelectorAll('input[role=switch][data-f]')].map(i => [i.dataset.f, i.checked]);
             const order = [...document.querySelectorAll('#pmCats .pmcat')].map(x => x.dataset.cat);
             return { ids, h: (c.querySelector('h3') || {}).textContent || '', order }; }""")
-        ok(f"{T}[限制] #admin/perm 有「精選文章」分類卡，五個開關（清單、單篇、三個類別）預設全開",
-           bool(cat) and [x[0] for x in cat["ids"]] == ["art.list", "art.read", "art.cat.news", "art.cat.intro", "art.cat.know"] and all(x[1] for x in cat["ids"]) and "精選文章" in cat["h"], cat)
+        ok(f"{T}[限制] #admin/perm 有「精選文章」分類卡，六個開關（清單、單篇、三個類別、11-07 新增的比比寶箱單篇）預設全開",
+           bool(cat) and [x[0] for x in cat["ids"]] == ["art.list", "art.read", "art.cat.news", "art.cat.intro", "art.cat.know", "art.cat.vault"] and all(x[1] for x in cat["ids"]) and "精選文章" in cat["h"], cat)
         ok(f"{T}[限制] 卡片順序跟左側選單一樣：總覽 → 精選文章", bool(cat) and cat["order"][:2] == ["overview", "articles"], cat and cat["order"][:4])
 
         def save_plan():

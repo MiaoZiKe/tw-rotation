@@ -69,6 +69,7 @@
     vault: { t: '比比寶箱', file: '', how: 'artvault', head: '比比寶箱', empty: '' },
   };
   const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW));   // 分頁由左到右
+  const HID_KEYS = TAB_KEYS.filter((k) => k !== 'vault');       // 管理者眼睛（對外隱藏）只管這六個；比比寶箱是簽到兌換的專屬分頁，不進隱藏機制
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
   const okUrl = (u) => /^https?:\/\/[^\s"'<>]+$/i.test(String(u || ''));
   const okHash = (h) => /^#[^\s"'<>]*$/.test(String(h || ''));   // 站內連結只收 # 開頭（族群 id 可能是中文：#industry/group/ind_半導體業）
@@ -1028,7 +1029,7 @@
   <div class="howtxt" id="how-artpost" hidden>${HOW_POST}</div>
   <div class="howtxt" id="how-artvault" hidden>${HOW_VAULT}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em><span class="arteye" role="button" tabindex="0" hidden data-cat="${k}">${EYE_ON}</span></button>`).join('')}
+    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em>${k === 'vault' ? '' : `<span class="arteye" role="button" tabindex="0" hidden data-cat="${k}">${EYE_ON}</span>`}</button>`).join('')}
   </div>
   <div class="nbbody">
     <div id="artPre"></div>
@@ -1247,7 +1248,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      · 11-06 Andy：「補上隱藏功能」→ 「全部文章」也有眼睛、也能隱藏（以前不行，因為它是導回點）。
        被隱藏的分頁（一般人）一律導到第一個沒被隱藏的分頁；全部都隱藏就導回 #overview。文章本身不受影響：隱藏的是分頁入口，不是文章。 */
   const HID_KEY = window.TW_PREVIEW ? 'tw.art.hid.pv' : 'tw.art.hid';
-  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k)) : []); } catch (e) { return new Set(); } };
+  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => HID_KEYS.includes(k)) : []); } catch (e) { return new Set(); } };
   const hidSave = () => { try { localStorage.setItem(HID_KEY, JSON.stringify([...S.hid])); } catch (e) { /* 存不了就只留在記憶體 */ } };
   const hiddenNow = () => (S.hid || (S.hid = hidRead()));
   const canEye = () => !!window.TW_PREVIEW || isAdminUser();
@@ -1258,7 +1259,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
       const ready = !(cfg && cfg.api) || (A && A.on && A.on()) ? Promise.resolve() : new Promise((res) => { const t = setTimeout(res, 3000); window.addEventListener('tw:account-config', () => { clearTimeout(t); res(); }, { once: true }); });
       S.hidP = ready.then(() => acctCall('/v1/articles/tabs', {})).then((j) => {
-        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden.filter((k) => TAB_KEYS.includes(k))); hidSave(); }
+        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden.filter((k) => HID_KEYS.includes(k))); hidSave(); }
         return hiddenNow();
       }).catch(() => hiddenNow()).finally(() => { setTimeout(() => { S.hidP = null; }, 60000); });   // 一分鐘內不重問；回來看時會再讀一次
     }
@@ -1271,7 +1272,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (canEye()) return false;
     const hid = hiddenNow();
     if (!hid.has(S.cat)) return false;
-    const first = TAB_KEYS.find((k) => !hid.has(k));
+    const first = HID_KEYS.find((k) => !hid.has(k));
     location.replace(first ? (first === 'all' ? '#articles' : '#articles/' + first) : '#overview');
     return true;
   }
@@ -1304,14 +1305,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
   }
   async function toggleHide(k) {
-    if (!canEye() || !TAB_KEYS.includes(k)) return;
+    if (!canEye() || !HID_KEYS.includes(k)) return;
     const root = document.getElementById('v-articles'); if (!root) return;
     const was = new Set(hiddenNow()), next = new Set(was);
     if (next.has(k)) next.delete(k); else next.add(k);
     S.hid = next; hidSave(); paintHide(root);   // 先改畫面（點了馬上有感），伺服器回失敗再還原
     if (window.TW_PREVIEW) return;
     const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next] });
-    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = new Set(r.hidden.filter((x) => TAB_KEYS.includes(x))); hidSave(); paintHide(root); return; }
+    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = new Set(r.hidden.filter((x) => HID_KEYS.includes(x))); hidSave(); paintHide(root); return; }
     S.hid = was; hidSave(); paintHide(root);
     const e = $(`.arteye[data-cat="${k}"]`, root);
     if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
