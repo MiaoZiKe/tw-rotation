@@ -179,6 +179,43 @@ def collect(now: datetime | None = None) -> pd.DataFrame:
     return out
 
 
+# 盤中快照開始「應該」累積的第一個交易日。10-28 以前 tape 還沒上線，不算缺口；
+# 10-28、10-29 是第一批落地失敗的日子（tape_last.json 的 miss），KV 已過期、補不回來 → 永久缺口。
+GAP_SINCE = "20261028"
+
+
+def lake_calendar(now: datetime) -> tuple[set[str], set[str]]:
+    """回傳 (交易日集合, 湖裡已收齊的日期集合)，皆為 YYYYMMDD。
+
+    交易日以 price_daily 為準：價量表有列 ＝ 那天開過市，休市日不會進來，
+    所以休市不會被誤判成缺口或「待補」。"""
+    years = sorted({int(GAP_SINCE[:4]), now.year})
+    px = store.read("price_daily", years=years)
+    trade: set[str] = set()
+    if not px.empty and "date" in px.columns:
+        trade = set(px["date"].astype(str).str[:10].str.replace("-", "", regex=False))
+    trade = {d for d in trade if d >= GAP_SINCE}
+    return trade, complete_days(now)
+
+
+def gap_report(now: datetime, trade_days, complete) -> list[dict]:
+    """永久缺口：開過市、超過 Worker 保存期（KV_DAYS 天，留 1 天緩衝）、湖裡仍沒收齊的交易日。
+
+    純函式，方便用假資料測。回傳 [{"date": "2026-10-28", "reason": ...}]，日期新到舊之前先由舊到新排。
+    還在保存期內的不算缺口（仍可回頭補），那段的失敗由 tape.collect 的 pending 處理、會亮黃。"""
+    today = now.date()
+    out = []
+    for d8 in sorted(set(trade_days)):
+        if d8 < GAP_SINCE or d8 in complete:
+            continue
+        d = datetime.strptime(d8, "%Y%m%d").date()
+        if (today - d).days < KV_DAYS - 1:
+            continue
+        out.append({"date": f"{d8[:4]}-{d8[4:6]}-{d8[6:]}",
+                    "reason": f"盤中快照超過 Worker 保存期限（{KV_DAYS} 天）仍未落地，無法補回（永久缺口）"})
+    return out
+
+
 def main() -> int:
     """獨立入口（.github/workflows/tape-lake.yml）：抓、寫進資料湖、寫 data/_state/tape_last.json。
 

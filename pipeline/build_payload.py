@@ -1004,6 +1004,9 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "last_run_errors": errors,
         "meta_token": meta_token,
         "last_run_empty": last_run.get("empty", []),
+        # 永久缺口：已超過來源保存期、補不回來。刻意不放進 last_run_errors，也不影響燈號；
+        # 資料狀態列會把它講出來，讓人知道「那幾天的盤中資料本來就沒有」，而不是以為是今天沒抓到。
+        "gaps": list(last_run.get("gaps") or []),
     }
 
 

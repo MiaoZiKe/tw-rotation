@@ -15972,6 +15972,9 @@
     /* 2026-09-28（Andy：讀者不需要知道資料集名稱）：只講「幾項沒更新」，不列 twse.price_daily 這類內部代號 */
     if (errs.length) { bits.push(`部分資料更新失敗（<b>${errs.length}</b> 項）`); level = 'bad'; }
     if (empt.length) { bits.push(`部分資料這一輪沒有更新（<b>${empt.length}</b> 項）`); level = level || 'warn'; }
+    /* 2026-11-06（稽核）：永久缺口只列出來，不亮燈 —— 超過來源保存期、補不回來，不是「這一輪壞掉」。 */
+    const gaps = meta.gaps || [];
+    if (gaps.length) bits.push(`盤中快照有 <b>${gaps.length}</b> 個交易日<b>永久缺口</b>（${gaps.map(g => fmt.esc(String(g.date))).join('、')}），來源已過期、無法補回`);
     /* 2026-10-20（Andy：「確保數據每天都有更新」）資料新鮮度把關：管線每輪檢查法人／融資券／期貨籌碼，
        最新交易日缺資料或筆數不到近期中位數 8 成就列在這裡（徽章提示會寫出是哪幾項過期）。 */
     const stale = meta.freshness_warn || [];

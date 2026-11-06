@@ -33,7 +33,9 @@ log = logging.getLogger("run_daily")
 # empty：抓得到端點但回 0 筆的步驟。以前這種只寫 log，errors 一直是空的，
 # 網站上完全看不出來哪個來源掛了（twse.dividend / tdcc.shareholding / macro.fred
 # 就這樣靜默失敗很久）。現在分開記，前端可以把它攤在頁面頂端。
-RESULT: dict = {"steps": {}, "errors": [], "empty": []}
+# gaps：永久缺口（超過來源保存期、補不回來的交易日）。明列在資料狀態，但不進 errors、不亮紅燈 ——
+# 缺口是「已知且無法挽回」，不是「這一輪壞掉」；壞掉的是 empty／errors。
+RESULT: dict = {"steps": {}, "errors": [], "empty": [], "gaps": []}
 
 
 def finmind_company_extra(info: pd.DataFrame, company: pd.DataFrame,
@@ -122,6 +124,39 @@ def _inst_bulk_step() -> pd.DataFrame:
     RESULT["steps"]["finmind.institutional_bulk"] = {"ok": rows > 0, "rows": rows,
                                                      "seconds": round(time.time() - t0, 1)}
     return df if df is not None else pd.DataFrame()
+
+
+def _tape_step() -> pd.DataFrame:
+    """盤中 5 分鐘快照（tape）的落地步驟，兩條路徑（full／inst）共用。
+
+    ★ 以前這裡兩處把 tape.collect 從 RESULT["empty"] 移掉，於是 tape 整段壞掉也不會有任何紀錄
+    （2026-11-06 稽核：10-28、10-29 miss 了好幾輪，last_run.errors 一直是空的）。
+    現在的判定只看「還有沒有可以回頭補的交易日」：
+      · pending（還在保存期內、開過市、湖裡沒收齊、KV 也沒有）→ 記進 empty，亮黃燈，下一輪會再補；
+      · gaps（已超過保存期限、補不回來）→ 寫進 RESULT["gaps"] 明列在資料狀態，不進 errors、不亮紅燈；
+      · 休市日（price_daily 沒有那天）KV 沒有是正常的，不算 pending，也不算缺口。
+    """
+    _tp = step("tape.collect", tape.collect)
+    now = tape._tpe_now()
+    gaps: list[dict] = []
+    trade: set[str] = set()
+    complete: set[str] = set()
+    try:
+        trade, complete = tape.lake_calendar(now)
+        gaps = tape.gap_report(now, trade, complete)
+    except Exception:  # noqa: BLE001 —— 缺口判斷失敗不能拖垮管線，但要留痕跡
+        log.exception("tape 缺口判斷失敗（本輪 gaps 留空）")
+    RESULT["gaps"] = gaps
+    gap8 = {g["date"].replace("-", "") for g in gaps}
+    miss = list(_tp.attrs.get("miss") or [])
+    pending = [d for d in miss if d in trade and d not in complete and d not in gap8]
+    if pending:
+        if "tape.collect" not in RESULT["empty"]:
+            RESULT["empty"].append("tape.collect")
+        RESULT["steps"]["tape.collect"]["dates_pending"] = pending
+    elif "tape.collect" in RESULT["empty"]:
+        RESULT["empty"].remove("tape.collect")
+    return _tp
 
 
 def save(table: str, df: pd.DataFrame) -> int:
@@ -660,9 +695,7 @@ def run_inst_with_tape(args) -> int:
     """
     n_tape = 0
     try:
-        _tp = step("tape.collect", tape.collect)
-        if _tp.empty and "tape.collect" in RESULT["empty"]:
-            RESULT["empty"].remove("tape.collect")
+        _tp = _tape_step()
         n_tape = save("tape_5m", _tp) if not _tp.empty else 0
     except Exception:  # noqa: BLE001
         log.exception("inst 輪 tape 落地失敗（不影響法人）")
@@ -904,9 +937,7 @@ def main() -> int:
     # 2026-10-30：研究「盤中資金占比能否提前判斷族群強弱」要累積 ≥ 60 個交易日。每一輪（含 news 輪）都回頭掃 KV 還留著、
     # 湖裡還沒收齊的交易日，所以 15:30 那輪失敗也會被後面幾輪補回來。沒有要補的 ＝ 常態，不記進「沒回資料的來源」（避免天天黃燈）。
     # 失敗只記錄、不擋其他步驟（step() 吃例外；save() 也吃例外）。
-    _tp = step("tape.collect", tape.collect)
-    if _tp.empty and "tape.collect" in RESULT["empty"]:
-        RESULT["empty"].remove("tape.collect")
+    _tp = _tape_step()
     if not _tp.empty or _tp.attrs.get("miss"):
         RESULT["steps"]["tape.collect"].update({"dates_todo": _tp.attrs.get("todo"), "dates_miss": _tp.attrs.get("miss")})
     save("tape_5m", _tp)
