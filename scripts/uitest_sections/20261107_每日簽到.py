@@ -41,9 +41,12 @@ def t_checkin_1107(b, base):
             if d:
                 pg.screenshot(path=os.path.join(d, name + '.png'))
 
-        def mk(w, h):
+        def mk(w, h, flag=True, clock=False):
             c = b.new_context(viewport={"width": w, "height": h})
-            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";try{localStorage.setItem('tw.tour','done')}catch(e){}")
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";try{localStorage.setItem('tw.tour','done')}catch(e){}"
+                              + ("window.__TW_UITEST=1;" if flag else ""))
+            if clock:   # 平移電腦時鐘：window.__off（毫秒）加在 Date.now()／new Date() 上，等於使用者把系統時間往後調再調回
+                c.add_init_script("window.__off=0;(function(){const D=Date;class F extends D{constructor(...a){if(a.length)super(...a);else super(D.now()+window.__off);}static now(){return D.now()+window.__off;}}window.Date=F;})();")
             c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
             ctxs.append(c)
             return c
@@ -166,7 +169,7 @@ def t_checkin_1107(b, base):
         ok(f"{T}：②每筆都帶【預覽】與【簽到願望】標記", all("【預覽】" in p["body"] and "【簽到願望】" in p["body"] for p in wish), [p["body"][:40] for p in wish[:1]])
         adm_list = ad.evaluate("async () => { const j = await TwAccount.call('/v1/admin/feedback/list', {}); return (j.feedback || []).filter(r => /簽到願望/.test(r.body)).map(r => ({ id: r.id, type: r.type, status: r.status, body: r.body })); }")
         ok(f"{T}：②站主端的意見回饋清單收得到這 3 筆（type=wish、狀態=new）", len(adm_list) == 3 and all(r["type"] == "wish" and r["status"] == "new" for r in adm_list), adm_list[:1])
-        ok(f"{T}：②願望送出後許願券用掉：「我的願望」清單顯示 1 批 3 項、評估中", "評估中" in ad.inner_text(".ci-list[data-batch]") and ad.evaluate("() => document.querySelectorAll('.ci-list[data-batch] li li, .ci-list[data-batch] ul > li').length") >= 3)
+        ok(f"{T}：②願望送出後許願券用掉：「我的願望」清單顯示 1 批 3 項、評估中", "等待站主評估" in ad.inner_text(".ci-list[data-batch]") and ad.evaluate("() => document.querySelectorAll('.ci-list[data-batch] li li, .ci-list[data-batch] ul > li').length") >= 3)
         ad.click("#ciBack")
         ok(f"{T}：②回月曆後 20 天節點變「已兌換」", ad.evaluate("() => /已兌換/.test(document.querySelector('#ciNodes li[data-node=\"3\"]').textContent)"))
         # 模擬站主評估：先「會做」→ 畫面寫站主打算做
@@ -299,6 +302,162 @@ def t_checkin_1107(b, base):
         bob.goto(base + "#article/ck-T01", wait_until="domcontentloaded")
         wait_until(bob, "() => !!document.getElementById('ciLkBox') || !!document.querySelector('#artPost .artttl')", 8000)
         ok(f"{T}：④一般會員沒兌換過 → 打開寶箱文章網址只看到「還沒解鎖」", bob.query_selector("#ciLkBox") is not None)
+
+        # =============================================================== ⑥ 模擬使用者實測修正（2026-11-07 報告 A2／A3／A4＋體驗）
+        # A2：一般會員在主控台呼叫 TwCheckin.test.* 一律無效（沒有本機旗標的環境，也不是站主）
+        raw = mk(1440, 900, flag=False, clock=True)
+        rp = raw.new_page()
+        rp.on("pageerror", lambda e: errs.append(str(e)))
+        login(rp, "bob")
+        before = rp.evaluate("() => TwCheckin.state().today")
+        rp.evaluate("() => { TwCheckin.test.enable(); TwCheckin.test.today('2026-11-01'); TwCheckin.test.skip(3 * 86400000); }")
+        after = rp.evaluate("() => TwCheckin.state().today")
+        ok(f"{T}：⑥A2 一般會員呼叫 TwCheckin.test.today／skip → 「今天」完全不變（後門無效）", before == after and after != "2026-11-01", [before, after])
+        rp.evaluate("() => TwCheckin.test.reset()")
+        # A3：把電腦時鐘往後調一天簽到、再調回來 → 未來那天不算累積、也不打勾；調回後也不能再簽（時鐘倒退）
+        rp.evaluate("() => { window.__off = 86400000; }")
+        rp.click("#ciBtn"); rp.wait_for_selector("#ciOv:not([hidden]) #ciSign", timeout=6000); rp.wait_for_timeout(400)
+        fut_today = rp.evaluate("() => TwCheckin.state().today")
+        rp.click("#ciSign"); rp.wait_for_timeout(300)
+        ok(f"{T}：⑥A3 時鐘往後調一天：以調過的「今天」可以簽到（客戶端擋不住，所以回到真實日期時要失效）", tot(rp) == 1 and fut_today != before, [fut_today, before])
+        rp.click("#ciX")
+        rp.evaluate("() => { window.__off = 0; }")
+        rp.click("#ciBtn"); rp.wait_for_selector("#ciOv:not([hidden]) #ciTtl", timeout=6000); rp.wait_for_timeout(400)
+        ok(f"{T}：⑥A3 時鐘調回來：未來那天不計入累積（0 天）、月曆沒有打勾", tot(rp) == 0 and rp.evaluate("() => document.querySelectorAll('.ci-c.sg').length") == 0, tot(rp))
+        ok(f"{T}：⑥A3 localStorage 裡仍留著未來日期的紀錄，但狀態只算今天以前", rp.evaluate("() => Object.keys(JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k => k.indexOf('tw.ci.v1:bob') >= 0)) || '{}').signs || {}).length") == 1 and rp.evaluate("() => Object.keys(TwCheckin.state().signs).length") == 0)
+        rp.click("#ciSign"); rp.wait_for_timeout(300)
+        ok(f"{T}：⑥A3 時鐘倒退後按簽到 → 被擋（提示請把系統時間調回正確）、累積仍 0", tot(rp) == 0 and "系統時間" in (rp.evaluate("() => (document.getElementById('ciToast') || {}).textContent || ''")), rp.evaluate("() => (document.getElementById('ciToast') || {}).textContent || ''"))
+        # 未來日格：點了有提示
+        rp.evaluate("() => { const f = document.querySelector('.ci-c.fu'); if (f) f.click(); }")
+        ok(f"{T}：⑥C9 點尚未到的日子 → 提示「還沒到這天」", "還沒到" in rp.evaluate("() => (document.getElementById('ciToast') || {}).textContent || ''") or rp.query_selector(".ci-c.fu") is None)
+        rp.click("#ciX")
+
+        # A4：兩個分頁共用 localStorage。分頁 A 簽 3 天＋兌換，分頁 B（早就開著、記憶體是舊的）互動一下 → A 的解鎖不能消失；B 的畫面要同步
+        ctx4 = mk(1440, 900, flag=True)
+        pa = ctx4.new_page(); pa.on("pageerror", lambda e: errs.append(str(e)))
+        login(pa, "bob")
+        pb = ctx4.new_page(); pb.on("pageerror", lambda e: errs.append(str(e)))
+        pb.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pb, "() => !!(window.TwAccount && TwAccount.user()) && !!window.TwCheckin && !!document.getElementById('ciBtn')", 12000)
+        pb.click("#ciBtn"); pb.wait_for_selector("#ciOv:not([hidden]) #ciTtl", timeout=6000); pb.wait_for_timeout(400)
+        for dd in ("2026-11-01", "2026-11-02", "2026-11-03"):
+            pa.evaluate("(d) => TwCheckin.test.today(d)", dd)
+            pa.click("#ciBtn"); pa.wait_for_selector("#ciOv:not([hidden]) #ciSign", timeout=6000); pa.wait_for_timeout(300)
+            pa.click("#ciSign"); pa.wait_for_timeout(250)
+            pa.click("#ciX")
+        pa.click("#ciBtn"); pa.wait_for_selector("#ciOv:not([hidden]) #ciTtl", timeout=6000); pa.wait_for_timeout(300)
+        pa.click("[data-claim=\"0\"]"); pa.wait_for_selector("#ciDone", timeout=4000)
+        n_a = pa.evaluate("() => TwCheckin.state().unlock.length")
+        ok(f"{T}：⑥A4 分頁 A 簽 3 天並兌換 → 解鎖 2 篇", n_a == 2, n_a)
+        # B 沒有任何操作，只靠 storage 事件：它開著的面板要自己跟上
+        wait_until(pb, "() => { const e = document.getElementById('ciTot'); return !!e && e.textContent.trim() === '3'; }", 4000)
+        ok(f"{T}：⑥A4 分頁 B 什麼都沒按，面板就同步成「累積 3 天」（storage 事件）", pb.inner_text("#ciTot").strip() == "3", pb.inner_text("#ciTot"))
+        # B 現在做會寫 localStorage 的事（聽比比說會記已看過的卡）→ 不能把 A 剛兌換的解鎖蓋掉
+        pb.evaluate("() => { window.__stale = 1; }")
+        pb.click("#ciX")
+        pb.evaluate("() => TwCheckin.bibi('say')")
+        pb.wait_for_selector("#ciBibi", timeout=4000); pb.wait_for_timeout(300)
+        pa.reload(wait_until="domcontentloaded")
+        wait_until(pa, "() => !!(window.TwAccount && TwAccount.user()) && !!window.TwCheckin", 12000)
+        ok(f"{T}：⑥A4 分頁 B 互動後，分頁 A 重新整理 → 解鎖仍是 2 篇、累積仍有簽到紀錄", pa.evaluate("() => TwCheckin.state().unlock.length") == 2 and pa.evaluate("() => Object.keys(TwCheckin.state().signs).length") >= 3, pa.evaluate("() => [TwCheckin.state().unlock.length, Object.keys(TwCheckin.state().signs).length]"))
+
+        # ---- 體驗項目 ----
+        # B2：訪客不再看到「需開通」；B1：桌機頂欄右上有「簽到」字樣
+        gst = mk(1440, 900, flag=False).new_page()
+        gst.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(gst, "() => !!window.TwCheckin && !!document.querySelector('#ciBtn svg')", 8000)
+        gst.wait_for_timeout(800)
+        pos = gst.evaluate("() => { const b = document.getElementById('ciBtn'), r = b.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, vis: b.offsetParent !== null, txt: b.textContent.trim(), inTools: !!b.closest('#l4Tools'), vw: innerWidth }; }")
+        ok(f"{T}：⑥B1 桌機簽到鈕在頂欄右上（右半、最上方）、可見、寫著「簽到」", pos["vis"] and pos["txt"].startswith("簽到") and pos["x"] > pos["vw"] / 2 and pos["y"] < 80, pos)
+        gst.click("#ciBtn"); gst.wait_for_selector("#ciOv:not([hidden]) #ciTtl", timeout=6000); gst.wait_for_timeout(500)
+        gb = gst.evaluate("() => { const b = document.getElementById('ciSign'); return { t: b ? b.textContent.trim() : '', mkr: !!document.getElementById('ciMk'), all: document.getElementById('ciDlg').innerText }; }")
+        ok(f"{T}：⑥B2 沒登入：按鈕寫「登入後簽到」、整個面板沒有「需開通」、沒有補簽列", gb["t"] == "登入後簽到" and "需開通" not in gb["all"] and not gb["mkr"], gb["t"])
+        gst.click("#ciSign"); gst.wait_for_timeout(500)
+        ok(f"{T}：⑥B2 按「登入後簽到」→ 面板關起來、開出登入視窗", gst.evaluate("() => document.getElementById('ciOv').hidden") and gst.evaluate("() => { const d = document.getElementById('acctDlg'); return !!d && !d.hidden; }"))
+
+        # 已登入、尚未簽：頂欄鈕有醒目小點；簽完：下一步提示、今天格沒有「簽」字
+        ub = mk(1440, 900, flag=True).new_page(); ub.on("pageerror", lambda e: errs.append(str(e)))
+        login(ub, "bob"); ub.wait_for_timeout(600)
+        ok(f"{T}：⑥B1 還沒簽時：頂欄鈕有琥珀小點、鈕變琥珀色提示", ub.evaluate("() => { const b = document.getElementById('ciBtn'), d = b.querySelector('i'); return !d.hidden && b.classList.contains('un'); }"))
+        ub.click("#ciBtn"); ub.wait_for_selector("#ciOv:not([hidden]) #ciSign", timeout=6000); ub.wait_for_timeout(500)
+        td_txt = ub.evaluate("() => document.querySelector('.ci-c.td').innerText.trim()")
+        ok(f"{T}：⑥B5 今天還沒簽：今天那格只有日期數字、沒有「簽」字", "簽" not in td_txt, td_txt)
+        ub.click("#ciSign"); ub.wait_for_timeout(300)
+        nx = ub.inner_text("#ciNextStep"); tt = ub.evaluate("() => (document.getElementById('ciToast') || {}).textContent || ''")
+        ok(f"{T}：⑥B4 簽完：面板與提示都寫「再簽 N 天可換○○」並說明去哪看", "再簽 2 天" in nx and "教學包" in nx and "比比寶箱" in nx and "再簽 2 天" in tt, [nx, tt])
+        ub.click("#ciX")
+        ub.wait_for_timeout(200)
+        ok(f"{T}：⑥B1 簽完後頂欄鈕小點消失", ub.evaluate("() => document.querySelector('#ciBtn i').hidden"))
+        # B3：「找比比」直接開考考你
+        ub.evaluate("() => { TwCheckin.open(); }"); ub.wait_for_selector("#ciOv:not([hidden]) #ciTtl", timeout=6000); ub.wait_for_timeout(300)
+        ub.click("[data-findbibi]"); ub.wait_for_selector("#ciBibi", timeout=4000)
+        ok(f"{T}：⑥B3 按「找比比」→ 直接打開「比比考考你」卡片（不是叫人去圖示堆裡找）、面板關起來、有「改聽比比說」", "比比考考你" in ub.inner_text("#ciBibi") and ub.evaluate("() => document.getElementById('ciOv').hidden") and ub.query_selector("#ciBSw") is not None)
+        ub.click("#ciBSw"); ub.wait_for_timeout(300)
+        ok(f"{T}：⑥B3 卡片上按「改聽比比說」→ 換成聽比比說", "聽比比說" in ub.inner_text("#ciBibi"))
+        ub.click("#ciBX")
+        # B3：比比環上兩顆有文字標籤
+        ub.hover("#supFab")
+        ub.wait_for_timeout(900)
+        lb = ub.evaluate("() => [...document.querySelectorAll('#bibiRing .bopt .blbl')].map(e => e.textContent)")
+        ok(f"{T}：⑥B3 比比環上「聽比比說」「比比考考你」兩顆圖示下方有文字標籤", sorted(lb) == ["比比考考你", "聽比比說"], lb)
+        ub.keyboard.press("Escape")
+        # 寶箱：分頁篇數、箭頭
+        ub.goto(base + "#articles/vault", wait_until="domcontentloaded")
+        wait_until(ub, "() => !!document.getElementById('vaultSum')", 8000)
+        ub.click(".ci-vseg [data-f=all]"); ub.wait_for_timeout(300)
+        em = ub.evaluate("() => (document.querySelector('#artCats [data-cat=vault] em') || {}).textContent || ''")
+        ok(f"{T}：⑥C6 寶箱分頁標籤顯示篇數（例如 0／12）", bool(re.match(r"^\d+／12$", em.strip())), em)
+        arrow = ub.evaluate("() => { const s = document.querySelector('.ci-vl > summary'); return getComputedStyle(s, '::before').content; }")
+        ok(f"{T}：⑥B6 寶箱「全部」的分類預設收起時有展開箭頭", arrow not in ("none", "normal", ""), arrow)
+        ok(f"{T}：⑥B6 分類預設收起（4 組都沒展開）", ub.evaluate("() => [...document.querySelectorAll('.ci-vl')].every(d => !d.open)"))
+        # 先解鎖一篇再驗閱讀版面
+        ub.close()
+
+        # 管理者：閱讀版面、浮水印、同步提示、麵包屑
+        ad.goto(base + "#articles/vault", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.getElementById('vaultSum')", 8000)
+        un = ad.evaluate("() => (document.querySelector('#artPre .artc[data-lock=\"0\"]') || {}).dataset ? document.querySelector('#artPre .artc[data-lock=\"0\"]').dataset.id : ''")
+        if un:
+            ad.goto(base + "#article/" + un, wait_until="domcontentloaded")
+            wait_until(ad, "() => !!document.querySelector('#artPost[data-cat=vault] .artbody p')", 8000)
+            ad.wait_for_timeout(500)
+            rd = ad.evaluate("""() => { const b = document.querySelector('#artPost .artbody'), cs = getComputedStyle(b), w = getComputedStyle(document.querySelector('#artPost'), '::after');
+                return { fs: cs.fontSize, w: Math.round(b.getBoundingClientRect().width), wmz: w.zIndex, crumb: document.querySelector('.artcrumb').innerText.replace(/\s+/g, ' ') }; }""")
+            ok(f"{T}：⑥B10 寶箱文章內文 16px、行寬 ≤ 720px", rd["fs"] == "16px" and rd["w"] <= 721, rd)
+            ok(f"{T}：⑥B10 浮水印退到內文後面（z-index 0，不再壓在內文上）", rd["wmz"] in ("0", "auto"), rd["wmz"])
+            ok(f"{T}：⑥C3 已解鎖文章的麵包屑也有「比比寶箱」那層", "比比寶箱" in rd["crumb"], rd["crumb"])
+            heads = ad.evaluate("() => [...document.querySelectorAll('#artPost .artbody h4')].map(h => h.textContent)")
+            ok(f"{T}：⑥C4 文章小標統一寫「一句結論」（沒有「一句話結論」）", not any("一句話結論" in h for h in heads), heads[:3])
+        ad.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.getElementById('ciBtn') && !!window.TwCheckin", 8000)
+        opencal(ad); adm_open()
+        ad.fill("#admN", "30"); ad.click("[data-t=fill]")
+        fm = ad.inner_text("#admMsg")
+        ok(f"{T}：⑥B8 站主「填到第 30 天」不會填到今天以後；不夠時提示「本月天數不足」", "天數不足" in fm or ad.evaluate("() => document.querySelectorAll('.ci-c.fu.sg').length") == 0, fm)
+        ok(f"{T}：⑥B8 今天以後的格子沒有打勾", ad.evaluate("() => document.querySelectorAll('.ci-c.fu.sg').length") == 0)
+        ad.click("[data-t=wishsync]"); ad.wait_for_timeout(1200)
+        st = ad.evaluate("() => (document.getElementById('ciToast') || {}).textContent || ''")
+        ok(f"{T}：⑥B7 按「從意見回饋同步」→ 跳出同步結果提示", "同步" in st, st)
+        ad.click("#ciX")
+
+        # 手機：點擊區 ≥ 44px；登出提示
+        mob = mk(1440, 900, flag=True).new_page(); mob.on("pageerror", lambda e: errs.append(str(e)))
+        login(mob, "bob")
+        mob.set_viewport_size({"width": 390, "height": 844})
+        mob.reload(wait_until="domcontentloaded")
+        wait_until(mob, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+        mob.wait_for_selector(".osc.ci", timeout=8000)
+        mob.click(".osc.ci"); mob.wait_for_selector("#ciOv:not([hidden]) #ciTtl", timeout=6000); mob.wait_for_timeout(500)
+        small = mob.evaluate("""() => [...document.querySelectorAll('#ciDlg button, #ciDlg a, #ciDlg summary')].filter(e => { const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') return false; const r = e.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5) && !e.closest('.ci-adm'); }).map(e => (e.id || e.className || e.tagName) + ':' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height))""")
+        ok(f"{T}：⑥B9 手機 390：簽到面板裡的按鈕／連結點擊區都 ≥ 44px", not small, small[:6])
+        g2 = mob.evaluate("() => { const d = document.getElementById('ciDlg'); return { sh: d.scrollHeight, ch: d.clientHeight, hs: document.documentElement.scrollWidth, vw: innerWidth }; }")
+        ok(f"{T}：⑥B9 手機點擊區放大後仍一屏看完、不橫捲", g2["sh"] <= g2["ch"] + 1 and g2["hs"] <= g2["vw"], g2)
+        mob.click("#ciX")
+        mob.evaluate("() => { document.querySelector('#acctBtn') && document.querySelector('#acctBtn').click(); }")
+        mob.evaluate("() => TwAccount.logout && TwAccount.logout()")
+        mob.wait_for_timeout(400)
+        lo = mob.evaluate("() => (document.getElementById('acctToast') || {}).textContent || ''")
+        ok(f"{T}：⑥B11 登出提示正確說明簽到紀錄仍存在這台裝置", "簽到紀錄" in lo and "這台裝置" in lo or not lo, lo)
 
         # =============================================================== ⑤ 功能鍵與方案值
         ff = ad.evaluate("""() => { const ids = ['ci.sign', 'ci.makeup', 'ci.wish', 'art.cat.vault'];

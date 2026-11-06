@@ -415,7 +415,7 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
   .ci-c{height:36px}
   .ci-c .cg-hl{display:none}
   .ci-sum{margin-bottom:2px}.ci-sum b.n{font-size:17px}
-  .ci-btn{height:40px}
+  .ci-btn{height:44px}
   .ci-pg{margin:2px 4px}
   .ci-nl-d>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:13px}
   .ci-foot{margin-top:6px;padding-top:4px}
@@ -773,7 +773,7 @@ ${ws.length ? ws.map((w, wi) => `<div class="ci-list" data-batch="${esc(w.id)}" 
   window.TwCheckin = {
     open, close, card, mounted, wantCard: () => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } }, paintCard, ready, bibi: bibiCard,
     unlocked, vaultMeta, paintVault, lockedPageHTML, vaultCount, vaultIcon: CHEST,
-    state: () => ({ ym: ymOf(today()), today: today(), total: total(ymOf(today())), signs: Object.assign({}, load().signs), unlock: Object.keys(load().unlock), pts: pts(ymOf(today())), mk: mkUsed(ymOf(today())), wishes: load().wishes.length, uid: uid(), admin: isAdm() }),
+    state: () => ({ ym: ymOf(today()), today: today(), total: total(ymOf(today())), signs: Object.keys(load().signs).filter((d) => d <= today()).reduce((o, d) => { o[d] = load().signs[d]; return o; }, {}), unlock: Object.keys(load().unlock), pts: pts(ymOf(today())), mk: mkUsed(ymOf(today())), wishes: load().wishes.length, uid: uid(), admin: isAdm() }),
     /* 驗收／站主用的後門：一般會員呼叫一律無效（A2）；站主或本機驗收旗標才動 */
     test: { enable() { if (testOK()) T.on = true; }, skip(ms) { if (testOK()) T.off += ms; }, today(d) { if (testOK()) T.today = d || ''; }, reset() { if (!testOK()) return; S = blank(); SU = uid(); save(true); } },
   };
