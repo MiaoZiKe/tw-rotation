@@ -826,6 +826,40 @@
       if ((d.getAttribute('style') || '').indexOf('9999999') >= 0) { d.style.left = '0px'; d.style.top = '0px'; d.style.transform = 'none'; }
     }
   }, { passive: true });
+  /* ★ 2026-11-06（Andy：「偶爾會跑出左上角那問題 幫我處理不要讓他顯示」）：
+     左上角（側欄 LOGO 上）殘留「0:00 ● 走勢（相對大盤） -0.76 ● 資金占比 2.44」的提示框。
+     根因：上面 tipSafe 讓所有 ECharts 提示框都掛在 <body>。有些卡片（今日走勢驗證 #tvChart 每 5 秒、輪動時鐘等）重畫時是
+     `el.innerHTML = ...` 整塊換掉，舊的圖容器被拆下來，但**舊的 ECharts 實例沒 dispose** —— 它的提示框 DOM 還留在 body 裡，
+     滑鼠剛好停在圖上的那一刻被拆，就再也沒有 mouseout 把它收掉；視窗縮放又會把它歸位到 (0,0)，於是就卡在左上角。
+     修法（共用工具，全站圖都吃到）：① chart() 建的每個實例都登記；② 容器已經不在頁面上的實例一律 hideTip＋dispose（連 body 上的提示框一起拆掉）；
+     ③ 保險：任何可見的 ECharts 提示框若貼在 (0,0) 附近、而滑鼠底下又不是圖 → 直接藏起來（下次 showTip 時 ECharts 會重設樣式）。
+     觸發時機：每秒一次＋換路由＋分頁切回來。只動提示框，不動版面。 */
+  const _ecAll = new Set();
+  function sweepGhostTips() {
+    _ecAll.forEach((c) => {
+      try {
+        if (c.isDisposed()) { _ecAll.delete(c); return; }
+        const d = c.getDom();
+        if (!d || !d.isConnected) { c.dispatchAction({ type: 'hideTip' }); c.dispose(); _ecAll.delete(c); }
+      } catch (e) { _ecAll.delete(c); }
+    });
+    if (!document.body) return;
+    const hoverChart = !!document.querySelector('[_echarts_instance_]:hover');
+    for (const d of document.body.children) {
+      if (d.style.zIndex !== '9999999') continue;
+      const cs = getComputedStyle(d);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) continue;
+      const r = d.getBoundingClientRect();
+      // 提示框是 position:absolute 掛在 body，(0,0) 指的是整頁座標，所以要加上捲動量
+      if (!hoverChart && r.left + scrollX < 8 && r.top + scrollY < 8) { d.style.visibility = 'hidden'; d.style.opacity = '0'; }
+    }
+  }
+  if (typeof window !== 'undefined') {
+    setInterval(sweepGhostTips, 1000);
+    window.addEventListener('hashchange', () => { setTimeout(sweepGhostTips, 0); setTimeout(sweepGhostTips, 400); });
+    document.addEventListener('visibilitychange', sweepGhostTips);
+    window.__sweepGhostTips = sweepGhostTips;
+  }
   function tipSafe(o, inst) {
     if (!o || typeof o !== 'object' || !o.tooltip) return o;
     const fix = (t) => {
@@ -859,7 +893,7 @@
     // renderer 是 init 當下決定的，中途要換只能整個 dispose 重建
     if (c && el._renderer && el._renderer !== want) { c.dispose(); c = null; }
     let fresh = false;
-    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; fresh = true; }
+    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; fresh = true; _ecAll.add(c); }
     if (!c._soft) {                      // 圓滑化：包住這個實例的 setOption（之後的局部更新也吃得到，見 softenOption）
       const raw = c.setOption.bind(c);
       c.setOption = (o2, ...rest) => { const o3 = tipSafe(softenOption(o2, c), c); bgFlipReset(c, o3); return raw(o3, ...rest); };
@@ -5941,6 +5975,7 @@
     el.hidden = false;
     { const mob = window.matchMedia && matchMedia('(max-width:640px)').matches; if (mob) { el.style.setProperty('background', 'var(--panel)', 'important'); el.style.setProperty('backdrop-filter', 'none', 'important'); } else { el.style.removeProperty('background'); el.style.removeProperty('backdrop-filter'); } }
     el.dataset.gid = TV.gid; el.dataset.pat = r.pat ? r.pat.name : '';
+    try { const oc = window.echarts && echarts.getInstanceByDom(document.getElementById('tvChart')); if (oc) { oc.dispatchAction({ type: 'hideTip' }); oc.dispose(); } } catch (e) { /* 還沒有舊圖 */ }   // 整塊 innerHTML 換掉之前先拆舊圖，提示框才不會留在 body
     el.innerHTML = `<div class="tvhead"><h3 style="margin:0">${fmt.esc(r.name)} <small>今日走勢驗證</small> <button class="howbtn pop" data-how="tverify" data-ttl="今日走勢驗證" type="button" aria-label="今日走勢驗證怎麼看">?</button></h3>`
       + (r.pat ? `<span class="tvtag" style="color:${tagColor(r.pat.name)};font-weight:700" id="tvPat">${r.pat.name}</span>` : '')
       + `<span style="flex:1"></span><button type="button" class="btn small tvx" aria-label="關閉">✕</button></div>`
