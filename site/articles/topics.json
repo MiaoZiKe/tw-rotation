@@ -1,6 +1,136 @@
 {
- "updated": "2026-11-05",
+ "updated": "2026-11-06",
  "topics": [
+  {
+   "id": "n_oil_truce_hope",
+   "cat": "news",
+   "title": "油價一週重挫，戰爭降溫預期從何而來",
+   "why": "油價 11/4 單日約 -9%、收 94.62 美元；起因是伊朗調停會談與期中選舉後的預期，尚無正式停火協議（工商時報 11/6、鉅亨網）",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "keywords": [
+    "油價",
+    "伊朗",
+    "停火預期"
+   ],
+   "added": "2026-11-06"
+  },
+  {
+   "id": "n_gold_4000",
+   "cat": "news",
+   "title": "黃金單日大漲逾 3%，重回 4000 美元為哪樁",
+   "why": "金價美東 11/4 單日約 +3%、重站 4,000 美元，為 8 月以來最大單日漲幅；美元走弱與殖利率下滑（CNBC、24/7 Wall St. 11/5）",
+   "site_links": [
+    "#overview"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "keywords": [
+    "黃金",
+    "避險",
+    "美元"
+   ],
+   "added": "2026-11-06"
+  },
+  {
+   "id": "n_thousand_stocks",
+   "cat": "news",
+   "title": "千金股退位潮：58檔剩39檔是怎麼回事",
+   "why": "台股 11/5 收 41,574.72 點、-3.2%、連六黑；千金股家數由 58 檔縮至 39 檔（經濟日報 11/6）",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 5,
+   "format_hint": "文章",
+   "keywords": [
+    "千金股",
+    "高價股",
+    "台股修正"
+   ],
+   "added": "2026-11-06"
+  },
+  {
+   "id": "k_underfill",
+   "cat": "know",
+   "title": "底部填充膠是什麼？覆晶封裝為何要灌一層膠",
+   "why": "先進封裝的凸塊間距縮小，底部填充決定熱應力下的可靠度；可借 CoWoS 2.5D 與載板 3D 剖面說明",
+   "site_links": [
+    "#heatmap/theme/cowos",
+    "#industry/group/ic_substrate"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "k_probe_card",
+   "cat": "know",
+   "title": "探針卡是什麼？晶圓測試怎麼接上每一顆晶粒",
+   "why": "晶圓與封測的測試介面，AI 晶片測試時間拉長後常被問到；可借半導體設備 2.5D 圖",
+   "site_links": [
+    "#heatmap/theme/semi_equipment",
+    "#industry/group/ic_test_service"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "k_tim",
+   "cat": "know",
+   "title": "散熱介面材料是什麼？晶片與散熱器之間那層膏",
+   "why": "單櫃功耗上看 120 kW，熱要先過介面才進散熱器；可借氣冷 3D 與液冷 3D 場景說明",
+   "site_links": [
+    "#industry/group/air_cooling",
+    "#industry/group/liquid_cooling"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "i_battery_chain",
+   "cat": "intro",
+   "title": "電池鏈：材料、電芯到模組怎麼分工",
+   "why": "站內有電芯製造與電池關鍵材料兩個族群，儲能與電動車都靠這條鏈，環節分工常被混為一談",
+   "site_links": [
+    "#industry/group/battery_cell",
+    "#industry/group/battery_material"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "i_solar_wind",
+   "cat": "intro",
+   "title": "太陽能與離岸風電鏈：設備、施工到併網怎麼分段",
+   "why": "綠電需求跟資料中心用電連動，站內有太陽能與離岸風電兩個族群，環節分工值得拆開講",
+   "site_links": [
+    "#industry/group/solar",
+    "#industry/group/wind_power"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "i_ar_vr_optics",
+   "cat": "intro",
+   "title": "AR／VR 光學鏈：顯示、光學模組到整機怎麼銜接",
+   "why": "智慧眼鏡新品話題升溫，站內有 AR VR XR 光學族群，環節分工需要一張圖講清楚",
+   "site_links": [
+    "#industry/group/ar_vr_optics"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
   {
    "id": "n_midterm_dc_policy",
    "cat": "news",
