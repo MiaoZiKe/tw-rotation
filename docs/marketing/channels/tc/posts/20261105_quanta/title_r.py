@@ -10,14 +10,16 @@ from pathlib import Path
 from PIL import Image
 import title_styles as T
 
-OUTER_H, SW, FS = 188, 22, 108          # 外框高、線粗（0.117×外高，較 LOGO 的 0.18 細，字才放得進）、字級
+OUTER_H, SW, FS = 188, 22, 108
+DOT_D = float(os.environ.get('DOT_D', 34))   # 橘點直徑（美編第二次審查：44→34；與線頭不足 10px 就改 32）
+PILL_H = 168                          # 橘膠囊高度（原 188）          # 外框高、線粗（0.117×外高，較 LOGO 的 0.18 細，字才放得進）、字級
 R = (OUTER_H - SW) / 2                  # 中心線半徑
 DEEP = "#C95F00"
 
 
 def ring_svg(n_chars, BLUE, ORG, solid=False):
     tw = n_chars * FS
-    wr = tw + 2 * 58                    # 中心線寬（左右各留 46，含半個線粗）
+    wr = tw + 2 * 56                    # 中心線寬（左右各留 46，含半個線粗）
     ow = wr + SW
     a = (wr - 2 * R) / 2                # 上緣直線半段
     x0, y0 = SW / 2, SW / 2             # 外框左上（中心線）
@@ -29,19 +31,20 @@ def ring_svg(n_chars, BLUE, ORG, solid=False):
     g = math.radians(72) * R            # LOGO 缺口 72°
     p0 = s + g / 2
     off = Lp - p0
-    dx, dy = xr + R * math.cos(math.radians(-45)), cy + R * math.sin(math.radians(-45))
-    dot = f'<circle cx="{dx:.2f}" cy="{dy:.2f}" r="{0.264*R:.2f}" fill="{ORG}"/>'
+    ro = R + SW / 2                     # 橘點圓心落在環的外緣線上（-45°）
+    dx, dy = xr + ro * math.cos(math.radians(-45)), cy + ro * math.sin(math.radians(-45))
+    dot = f'<svg data-k="dot" width="{ow:.1f}" height="{OUTER_H}" viewBox="0 0 {ow:.1f} {OUTER_H}" style="position:absolute;left:0;top:0"><circle cx="{dx:.2f}" cy="{dy:.2f}" r="{DOT_D/2:.2f}" fill="{ORG}"/></svg>'
     if solid:
         body = f'<rect x="0" y="0" width="{ow:.1f}" height="{OUTER_H}" rx="{OUTER_H/2}" fill="{BLUE}"/>'
     else:
-        body = (f'<path d="{path}" fill="none" stroke="{BLUE}" stroke-width="{SW}" stroke-linecap="round" stroke-dasharray="{Lp-g:.2f} {g:.2f}" stroke-dashoffset="{off:.2f}"/>' + dot)
-    return ow, f'<svg data-k="ring" width="{ow:.1f}" height="{OUTER_H}" viewBox="0 0 {ow:.1f} {OUTER_H}" style="display:block">{body}</svg>'
+        body = (f'<path d="{path}" fill="none" stroke="{BLUE}" stroke-width="{SW}" stroke-linecap="round" stroke-dasharray="{Lp-g:.2f} {g:.2f}" stroke-dashoffset="{off:.2f}"/>')
+    return ow, f'<svg data-k="ring" width="{ow:.1f}" height="{OUTER_H}" viewBox="0 0 {ow:.1f} {OUTER_H}" style="display:block">{body}</svg>' + ("" if solid else dot)
 
 
 def build(style, g, company):
     BG, INK, BLUE, ORG, GREY = (g[k] for k in ("BG", "INK", "BLUE", "ORG", "GREY"))
     global FS
-    n = len(company); FS = min(108, (960 - 236) // (n + 3))   # 公司名越長字級越小（最小 96），確保整列不超過右邊界 1020
+    n = len(company); FS = min(108, (960 - 244) // (n + 3))   # 公司名越長字級越小（最小 96），確保整列不超過右邊界 1020
     ow, ring = ring_svg(n, BLUE, ORG, solid=(style == 3))
     photo = g["photo_uri_abs"](Path(g["__file__"]).resolve().parent / "cover_photo.jpg")
     PB = g["PIC_TOP"] + g["PIC_H"]
@@ -54,19 +57,19 @@ def build(style, g, company):
     if style == 1:
         sp = f'<div class="sp" data-k="shuo" style="color:{DEEP}">透明說</div>'; spw = 3 * FS
     elif style == 2:
-        spw = 3 * FS + 72
-        sp = f'<div class="pill" data-k="pill" style="width:{spw}px;background:{ORG}"></div><div class="sp" data-k="shuo" style="color:{INK};left:36px">透明說</div>'
+        spw = 3 * FS + 80
+        sp = f'<div class="pill" data-k="pill" style="width:{spw}px;background:{ORG}"></div><div class="sp" data-k="shuo" style="color:{INK};left:40px">透明說</div>'
     else:
-        spw = 3 * FS + 72
-        sp = f'<div class="pill" data-k="pill" style="width:{spw}px;background:{INK}"></div><div class="sp" data-k="shuo" style="color:{ORG};left:36px">透明說</div>'
+        spw = 3 * FS + 80
+        sp = f'<div class="pill" data-k="pill" style="width:{spw}px;background:{INK}"></div><div class="sp" data-k="shuo" style="color:{ORG};left:40px">透明說</div>'
     css = f"""
-.trow{{position:absolute;left:60px;top:{top}px;height:{OUTER_H}px;display:flex;align-items:center;gap:26px}}
+.trow{{position:absolute;left:60px;top:{top}px;height:{OUTER_H}px;display:flex;align-items:center;gap:27px}}
 .rw{{position:relative;width:{ow:.1f}px;height:{OUTER_H}px;flex:none}}
 .rw svg{{position:absolute;left:0;top:0}}
 .cname{{position:absolute;left:0;top:0;width:{ow:.1f}px;height:{OUTER_H}px;line-height:{OUTER_H}px;text-align:center;font-weight:900;font-size:{FS}px;color:{co_color};white-space:nowrap}}
-.sw5{{position:relative;width:{spw}px;height:{OUTER_H}px;flex:none}}
-.pill{{position:absolute;left:0;top:0;height:{OUTER_H}px;border-radius:{OUTER_H//2}px}}
-.sp{{position:absolute;left:0;top:0;line-height:{OUTER_H}px;font-weight:900;font-size:{FS}px;white-space:nowrap}}
+.sw5{{position:relative;width:{spw}px;height:{PILL_H}px;flex:none}}
+.pill{{position:absolute;left:0;top:0;height:{PILL_H}px;border-radius:{PILL_H//2}px}}
+.sp{{position:absolute;left:0;top:0;line-height:{PILL_H}px;font-weight:900;font-size:{FS}px;white-space:nowrap}}
 .rsb{{position:absolute;left:60px;top:{top+OUTER_H+GAP_ROW}px;line-height:{SUB_H}px;font-weight:700;font-size:58px;color:{INK};white-space:nowrap;letter-spacing:.04em}}
 """
     body = (f'<div class="trow"><div class="rw">{ring}<div class="cname" data-k="co">{company}</div></div><div class="sw5">{sp}</div></div>'
@@ -76,7 +79,7 @@ def build(style, g, company):
     base_hd = f'<div class="hd"></div><div class="strip"><i></i></div><div class="lg">{g["OPEN_RING"]}</div>'
     html = f'<div class="cv">{base_hd}{pic}{body}{sw}</div>'
     allow = {("ring", "co")} if style != 2 and style != 3 else {("ring", "co")}
-    allow |= {("pill", "shuo")}
+    allow |= {("pill", "shuo"), ("ring", "dot")}
     return html, css, allow
 
 
@@ -106,10 +109,26 @@ def main(g):
                 if ox > 2 and oy > 2: (ok if ((a, c) in allow or (c, a) in allow) else bad).append((a, c, ox, oy))
         sign_hit = [k for k in keys if k != "photo" and boxes[k] and min(boxes[k][2], sign[2]) - max(boxes[k][0], sign[0]) > 0 and min(boxes[k][3], sign[3]) - max(boxes[k][1], sign[1]) > 0]
         oob = [k for k in keys if boxes[k] and (boxes[k][0] < 0 or boxes[k][1] < 0 or boxes[k][2] > 1080 or boxes[k][3] > 1350)]
+        clear = None
+        if "dot" in boxes:   # 橘點與環線頭的最小距離（像素）：環遮罩膨脹 N px 後與橘點相交就代表距離 < N
+            from PIL import ImageFilter
+            def mask(k):
+                pg.evaluate("""k=>{let s=document.getElementById('iso');if(!s){s=document.createElement('style');s.id='iso';document.head.appendChild(s)}
+                  s.textContent=%r+'[data-k="'+k+'"],[data-k="'+k+'"] *{visibility:visible !important}'}""" % T.ISO, k)
+                im = Image.open(io.BytesIO(pg.screenshot())).convert("RGB").split()[1]
+                return im.point(lambda v: 255 if v > 12 else 0)
+            mr, md = mask("ring"), mask("dot")
+            pg.evaluate("document.getElementById('iso').remove()")
+            clear = 0
+            for N in range(1, 40):
+                dil = mr.filter(ImageFilter.MaxFilter(2 * N + 1))
+                from PIL import ImageChops
+                if ImageChops.multiply(dil, md).getbbox(): clear = N - 1; break
+            else: clear = 40
         right = max(boxes[k][2] for k in ("ring", "shuo", "pill") if k in boxes and boxes[k])
-        res = {"style": style, "company": company, "boxes": boxes, "重疊": bad, "容器內(刻意)": ok, "壓到Quanta字": sign_hit, "出界": oob, "標題列最右": right,
+        res = {"style": style, "company": company, "boxes": boxes, "重疊": bad, "容器內(刻意)": ok, "壓到Quanta字": sign_hit, "出界": oob, "標題列最右": right, "橘點到線頭最小距離px(方形近似，偏保守)": clear, "橘點bbox": boxes.get("dot"),
                "與標籤垂直距": boxes["swipe"][1] - max(boxes[k][3] for k in ("ring", "sub"))}
         json.dump(res, open(OUT / f"overlap_{name}.json", "w"), ensure_ascii=False, indent=1)
-        print(f"{name}（{company}）：重疊 {len(bad)} 出界 {len(oob)} 壓到Quanta {len(sign_hit)} 標題列最右 x={right}（上限 1020） 副標到標籤 {res['與標籤垂直距']}px", bad[:3])
+        print(f"{name}（{company}）：重疊 {len(bad)} 出界 {len(oob)} 壓到Quanta {len(sign_hit)} 標題列最右 x={right}（上限 1020） 副標到標籤 {res['與標籤垂直距']}px 橘點離線頭≥{clear}px 橘點bbox {boxes.get('dot')}", bad[:3])
         b.close()
     f.unlink()
