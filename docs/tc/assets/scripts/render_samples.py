@@ -133,25 +133,59 @@ PH = lambda t: f'<span class="ph">{t}</span>'
 DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 
 # ---------------- 範例 A：公司行情（法遵 7-3 六條）----------------
-# 封面：公司已審實景照＋標題；職類／學歷／年資移到副標，碩畢月薪放標題第二行；不放公司 LOGO（整篇有加班等負面欄位，法遵 ④）。
-S["A1_cover"] = cover(
-    f'{NAME}薪資行情<br>碩畢月薪 {PH("〔待填〕")}K',
-    f'職類{PH("〔待填〕")}・碩畢・年資{PH("〔待填〕")}', "往右滑 →",
-    photo_uri("tsmc/photo_18.jpg"), "50% 55%")
-rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
-        ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
-trs = "".join(f'<div style="display:flex;align-items:center;height:118px;border-top:2px solid {LINE}">'
-              f'<div class="n" style="width:70px;font-size:32px;color:{BLUE}">{i+1:02d}</div>'
-              f'<div style="width:230px;font-size:40px;font-weight:800;white-space:nowrap">{a}</div>'
-              f'<div style="width:380px;font-size:36px"><span class="ph">{b}</span></div>'
-              f'<div style="flex:1;font-size:34px;color:{GREY};white-space:nowrap">〔一句評語〕</div></div>' for i, (a, b) in enumerate(rows))
-# 含「加班」等負面欄位：只寫公司名、不放 LOGO（法遵 ④）
+# 2026-11-06 Andy：「需要有句話代表我的頻道，所以寫在上面」「右滑看透明圈，並且需要不一樣的箭頭」「提示下方的空白不平均」
+# 封面下半部：頻道標語（TAGLINE，一處可換，7～10 字單行）＋「〇〇行情」大標題＋右側「右滑看透明圈」膠囊鈕（自繪 SVG 圓盤箭頭＋橘點，不用文字箭頭），
+# 三者在照片下緣到頁底之間垂直置中（上下留白差 ≤ 2px）。
+TAGLINE = os.environ.get("TC_TAGLINE") or "談薪前，先看這張"   # 頻道標語（暫定；Andy 還沒定稿）
+COVER_HINT = "右滑看透明圈"
+SECTION_TITLE = "工程師待遇"     # 欄位標題；文章若是特定單位，寫成「廣達 BU9 透明圈」這種
+HQ_LABEL = "總部：〔待填〕"   # 地圖上的標示，填成「總部：桃園龜山」之類
+TAG_PX, TT_PX = 48, 108
+SWIPE = (f'<div class="sw"><span>{COVER_HINT}</span>'
+         f'<svg data-b width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="36" fill="#fff"/>'
+         f'<path d="M20 38 H50 M40 26 L52 38 L40 50" fill="none" stroke="{BLUE}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+         f'<circle cx="62" cy="14" r="9" fill="{ORG}" stroke="#fff" stroke-width="3"/></svg></div>')
+SWIPE_CSS = f"""
+.cv .low{{position:absolute;left:{M_L}px;top:{PIC_TOP+PIC_H}px;width:{W-2*M_L}px;height:{H-PIC_TOP-PIC_H}px;display:flex;align-items:center;justify-content:space-between}}
+.cv .tg{{font-size:{TAG_PX}px;font-weight:700;line-height:64px;margin-bottom:16px;color:{INK};white-space:nowrap}}
+.cv .nm{{font-size:{TT_PX}px;font-weight:900;line-height:132px;color:{BLUE};white-space:nowrap}}
+.cv .sw{{display:flex;align-items:center;gap:18px;height:92px;padding:0 8px 0 34px;border-radius:46px;background:{BLUE};color:#fff;font-size:34px;font-weight:700;white-space:nowrap;box-shadow:{SHADOW}}}
+.cv .sw svg{{display:block}}
+"""
+# 封面：公司已審實景照＋標語＋標題；不放公司 LOGO（整篇有加班等負面欄位，法遵 ④）。職類／年資等限定語寫進文案。
+S["A1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
+    f'<div class="pic" data-b style="background-image:url({photo_uri("tsmc/photo_18.jpg")});background-position:50% 55%"></div>'
+    f'<div class="low"><div><div class="tg">{TAGLINE}</div><div class="nm">{NAME}行情</div></div>{SWIPE}</div></div>')
+# 待遇表：上半台灣地圖＋總部位置（world-atlas countries-50m，ISC／Natural Earth 公有領域），下半「工程師待遇」6 欄；每欄只有欄名＋重點值，不放備註與頁底免責（Andy 11-06）
+rows = [("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
+        ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕"), ("出差頻率", "〔待填〕")]
+trs = "".join(f'<div class="rw" style="display:flex;align-items:center;flex:1;border-top:2px solid {LINE}">'
+              f'<div class="n" style="width:66px;font-size:32px;color:{BLUE}">{i+1:02d}</div>'
+              f'<div style="width:220px;font-size:38px;font-weight:800;white-space:nowrap">{a}</div>'
+              f'<div style="flex:1;min-width:0;font-size:36px;font-weight:700;white-space:nowrap"><span class="ph">{b}</span></div></div>' for i, (a, b) in enumerate(rows))
+TW = json.load(open(Path(__file__).resolve().parent / "taiwan_path.json"))   # 由 make_taiwan_path.mjs 產生
+MAP_W, MAP_H = 980, 496           # 地圖 svg 尺寸（卡片 984x500 扣 2px 邊框；body 左右各 48）
+IS_H = 448                        # 台灣本島高度（寬依比例）
+IS_W = IS_H * TW["w"] / TW["h"]
+IS_X, IS_Y = (MAP_W - IS_W) / 2, (MAP_H - IS_H) / 2
+k = IS_H / TW["h"]
+PX_, PY_ = IS_X + TW["pt"][0] * k, IS_Y + TW["pt"][1] * k   # 桃園龜山（25.03N、121.36E）；換公司時改 make_taiwan_path.mjs 的座標
+LBL_W, LBL_H = 380, 76
+LBL_X, LBL_Y = 70, PY_ - LBL_H / 2
+MAP_SVG = (f'<svg data-b width="{MAP_W}" height="{MAP_H}" viewBox="0 0 {MAP_W} {MAP_H}" style="display:block">'
+    f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TW["d"]}" fill="#D3E2FA" stroke="#fff" stroke-width="{4/k:.1f}" stroke-linejoin="round"/></g>'
+    f'<line x1="{LBL_X+LBL_W}" y1="{PY_:.1f}" x2="{PX_-30:.1f}" y2="{PY_:.1f}" stroke="{BLUE}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>'
+    f'<circle cx="{PX_:.1f}" cy="{PY_:.1f}" r="30" fill="#fff" fill-opacity=".7" stroke="{BLUE}" stroke-width="8"/>'
+    f'<circle cx="{PX_+19:.1f}" cy="{PY_-19:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'
+    f'<rect x="{LBL_X}" y="{LBL_Y:.1f}" width="{LBL_W}" height="{LBL_H}" rx="38" fill="#fff" stroke="{LINE}" stroke-width="2"/>'
+    f'<text x="{LBL_X+LBL_W/2}" y="{LBL_Y+LBL_H/2+1:.1f}" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="800" fill="{INK}" font-family="Noto Sans TC">{HQ_LABEL}</text></svg>')
 S["A2_fields_textonly"] = f"""{top('公司行情', '2 / 2')}
-<div class="body" style="padding-top:40px">
-  <div style="display:flex;gap:14px"><span class="tag">{NAME}</span><span class="tag g">七欄固定，方便比較</span></div>
-  <div style="font-size:78px;font-weight:900;line-height:1.2;margin-top:24px">七個欄位，一次看完</div>
-  <div class="box" style="margin-top:28px">{trs}</div>
-</div>{ft(DISC)}"""
+<div class="body" style="padding-top:28px">
+  <div style="display:flex;gap:14px"><span class="tag">{NAME}</span><span class="tag g">代號：〔待填〕</span></div>
+  <div class="card" style="margin-top:20px;height:{MAP_H+4}px;background:{TINT};border-color:#CFE0FA;overflow:hidden;flex:none">{MAP_SVG}</div>
+  <div style="font-size:58px;font-weight:900;line-height:80px;margin-top:20px;flex:none">{SECTION_TITLE}</div>
+  <div class="box" style="margin-top:8px;margin-bottom:36px;flex:1;display:flex;flex-direction:column;min-height:0">{trs}</div>
+</div>"""
 S["A3_cta"] = f"""{top('公司行情', '3 / 3')}
 <div class="body">
   <div style="font-size:50px;font-weight:700;color:{GREY};margin-top:40px">你那一組的行情是多少？</div>
@@ -281,7 +315,7 @@ report = {}
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
     for name, html in S.items():
-        doc = f'<!doctype html><html><head><meta charset="utf-8">{FONTCSS}<style>{CSS}{COVER_CSS}</style></head><body>{html}</body></html>'
+        doc = f'<!doctype html><html><head><meta charset="utf-8">{FONTCSS}<style>{CSS}{COVER_CSS}{SWIPE_CSS}</style></head><body>{html}</body></html>'
         f = OUT / f"_{name}.html"; f.write_text(doc, encoding="utf8")
         pg = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
         pg.goto(f"file://{f}", wait_until="networkidle"); pg.wait_for_timeout(600)
