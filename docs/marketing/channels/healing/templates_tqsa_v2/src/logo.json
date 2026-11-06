@@ -1,0 +1,8 @@
+{
+  "說明": "左上角 LOGO 設定。mode=symbol_text：只取圖檔左邊的符號（crop_x 以左），字標「談晴說礙」用 HTML 文字畫（晴＝加深太陽橘、礙＝加深雲灰，對比≥4.5，可被對比檢查）。mode=image：整張圖當字標，不再另畫文字（logo_tqsa2 做好含晴礙二字的新 LOGO 後用這個）。",
+  "mode": "symbol_text",
+  "src": "../../logo_tqsa/06_雲朵對話框/字標_透明_{tone}.png",
+  "crop_x": 430,
+  "height": 72,
+  "fallback_tone": "奶油晨光"
+}
