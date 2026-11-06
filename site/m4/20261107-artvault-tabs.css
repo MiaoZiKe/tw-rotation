@@ -1,0 +1,6 @@
+/* 2026-11-07 精選文章多了第 7 個分頁「比比寶箱」（每日簽到兌換）。
+   管理者（#artCats.adm）每格右邊要留 24px 給眼睛，7 格塞同一列每格只剩一個字寬、點標籤中央會點到眼睛 →
+   手機（≤640）管理者改兩列（4＋3）；一般會員與訪客最多 5 格，維持原本單列。桌機不動。 */
+@media (max-width:640px){
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.adm{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+}

@@ -143,6 +143,8 @@
 #artCats>button.hid span{text-decoration:line-through}
 #artCats>button{min-width:0;overflow:hidden;text-overflow:ellipsis;gap:6px}
 #artCats>button .artic{color:var(--k)}
+/* 11-07 第 7 格「比比寶箱」：桌機窄視窗（641～1180）每格不到 130px，圖示讓位給文字，避免「比比產業鏈 7」被切 */
+@media (min-width:641px) and (max-width:1180px){#artCats>button{gap:3px;padding-left:6px;padding-right:6px}#artCats.adm>button{padding-right:28px}#artCats>button .artic{display:none}}
 #artCats>button.on{color:var(--k);box-shadow:inset 0 3px 0 var(--k)}
 #artCats>button.on em{color:var(--k)}
 #artCats>button:hover{border-color:var(--k)}
