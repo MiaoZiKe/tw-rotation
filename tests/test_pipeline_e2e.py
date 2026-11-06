@@ -533,3 +533,31 @@ def test_fundamental_payload_end_to_end(populated):
     cands = json.loads((site / "candidates.json").read_text(encoding="utf-8"))
     assert all(c["name"] and c["name"] != c["code"] for c in cands), "候選股必須有簡稱"
     assert any(c.get("momentum_score") is not None for c in cands)
+
+
+def test_index_drops_stale_change_for_codes_not_traded_today(lake):
+    """2026-11-06 資料稽核：今天沒有成交列的代號（已下市、停牌）不可以把「它自己最後一天」的漲跌幅
+    帶進 stocks.json —— 那會被算進今天的漲跌家數（線上 updown.json all.n 2583，官方同口徑 2332）。
+    收盤照留（搜尋要看得到），漲跌幅、成交值、級距一律空。"""
+    from pipeline import build_payload
+    store, site = lake
+    price, inst, val, margin, market, company = _synth()
+    gone = list(CODES)[-1]                                   # 假裝它最後 20 個交易日已經下市
+    last20 = sorted(price["date"].unique())[-20:]
+    price = price[~((price["code"] == gone) & price["date"].isin(last20))]
+    store.append("price_daily", price)
+    store.append("inst_daily", inst)
+    store.append("valuation_daily", val)
+    store.append("margin_daily", margin)
+    store.append("market_daily", market)
+    store.append("company_info", company)
+    build_payload.build()
+
+    index = json.loads((site / "stocks.json").read_text(encoding="utf-8"))
+    row = next(r for r in index if r["code"] == gone)
+    assert row["chg_pct"] is None and row["ud"] is None and row["turnover"] is None
+    assert row["close"] is not None, "收盤要留著給搜尋看"
+    traded = [r for r in index if r["code"] != gone]
+    assert all(r["chg_pct"] is not None for r in traded)
+    ud = json.loads((site / "updown.json").read_text(encoding="utf-8"))
+    assert ud["all"]["n"] == len(traded)

@@ -22,6 +22,103 @@ def _f(v):
     return None if v is None or pd.isna(v) else float(v)
 
 
+def _caps(m: pd.DataFrame, px: pd.DataFrame) -> tuple[dict, set]:
+    """Σ(個股融資餘額張數×1000×當日收盤價)，一天一個值（元）；回 ({date: 市值}, 部分估算日集合)。
+
+    m：date／code／margin_balance（張），已篩成同一個市場；px：date／code／close。
+    當天個股融資只到一部分（FinMind 逐檔回補還沒跟上）時，缺的檔用「前一次有資料的餘額」順延再乘當日收盤價：
+    融資餘額一天的變動遠小於持股數，實測 2026-10-16 隨機拿掉一半檔數用順延補，誤差 0.35pp（183.73 vs 183.38）；
+    檔數不到中位數一半的日子仍不收（回傳裡沒有那天），免得畫出假的暴跌；不到中位數 95% 的日子標「部分估算」。
+    沒有收盤價的檔（停牌）那天不計入分子 —— 跟上市版本同一口徑。"""
+    if m is None or m.empty:
+        return {}, set()
+    bal = m.pivot_table(index="date", columns="code", values="margin_balance", aggfunc="last").sort_index()
+    n_have = bal.notna().sum(axis=1)
+    full = n_have.median() if len(bal) else 0
+    bal = bal.ffill()
+    pxp = px.pivot_table(index="date", columns="code", values="close", aggfunc="last").reindex(index=bal.index, columns=bal.columns)
+    capser = (bal * 1000 * pxp).sum(axis=1, min_count=1)
+    keep = n_have >= 0.5 * full
+    return capser[keep].dropna().to_dict(), set(n_have[keep & (n_have < 0.95 * full)].index)
+
+
+def _idx_map(idx: pd.DataFrame | None, symbol: str) -> dict:
+    """index_ohlc 某一個指數（TSE 加權／OTC 櫃買）的 {date: 收盤}。"""
+    if idx is None or idx.empty or "symbol" not in idx.columns:
+        return {}
+    t = idx[idx["symbol"] == symbol]
+    return dict(zip(t["date"].astype(str), pd.to_numeric(t["close"], errors="coerce")))
+
+
+def _rows(mt: pd.DataFrame, caps: dict, partial_days: set, tx: dict) -> list[dict]:
+    """整體融資表（margin_total／margin_total_otc，同一組欄位）＋分子市值 → 前端一天一列。
+
+    ratio ＝ 市值 ÷ 融資金額(元) × 100；分子或分母任一缺、或分母為 0 → None（不補、不外推）。
+    margin_money 實際單位是「元」（資料湖 2026-10-19 上市 = 640,618,432,000 ＝ 6,406 億）；
+    舊版當成仟元（÷1e5、×1000）→ 融資金額差 1000 倍、維持率貼在 0%。"""
+    rows = []
+    for r in mt.tail(MARGIN_DAYS + 1).itertuples():
+        money = getattr(r, "margin_money", None)
+        money = None if money is None or pd.isna(money) else float(money)
+        cap = caps.get(r.date)
+        ratio = (cap / money * 100) if cap is not None and money else None
+        lp, sp = getattr(r, "margin_lots_prev", None), getattr(r, "short_lots_prev", None)
+        ml, sl = getattr(r, "margin_lots", None), getattr(r, "short_lots", None)
+        rows.append({"d": r.date, "ratio": _f(ratio), "margin_lots": _f(ml),
+                     "margin_chg": _f(ml - lp) if ml is not None and lp is not None and not pd.isna(ml) and not pd.isna(lp) else None,
+                     "margin_yi": _f(money / 1e8) if money is not None else None, "cap_yi": _f(cap / 1e8) if cap is not None else None,
+                     "short_lots": _f(sl), "partial": r.date in partial_days,
+                     "short_chg": _f(sl - sp) if sl is not None and sp is not None and not pd.isna(sl) and not pd.isna(sp) else None,
+                     "taiex": _f(tx.get(r.date))})
+    return rows[-MARGIN_DAYS:]
+
+
+def otc_rows(mt_otc: pd.DataFrame | None, md: pd.DataFrame | None, company: pd.DataFrame | None,
+             price: pd.DataFrame | None, idx: pd.DataFrame | None = None) -> list[dict]:
+    """上櫃融資維持率（估算），口徑跟上市完全相同，只是換成上櫃：
+    Σ(上櫃個股融資餘額張數×1000×當日收盤價) ÷ 上櫃整體融資金額(元，櫃買 OpenAPI 信用交易彙總) × 100。
+    分子的個股融資來自 margin_daily（market＝TPEX，FinMind 逐檔續補），缺檔順延與「不到中位數一半不收」同 _caps。
+    指數欄（taiex）放櫃買指數（index_ohlc symbol＝OTC），讓上櫃的維持率對照上櫃大盤。
+    分母只有從 margin_total_otc 開始累積的日子才有，所以列數＝那張表的天數（沒有回補歷史）。"""
+    if mt_otc is None or mt_otc.empty:
+        return []
+    mt_otc = mt_otc.sort_values("date").drop_duplicates("date", keep="last")
+    first = mt_otc["date"].tail(MARGIN_DAYS + 1).iloc[0]
+    caps, partial = {}, set()
+    if md is not None and not md.empty and company is not None and not company.empty and price is not None and not price.empty:
+        codes = set(company[company["market"] == "TPEX"]["code"].astype(str))
+        # 往前多留 30 天，讓第一天的缺檔也能順延（分母第一天之前的個股餘額只當順延來源，不輸出）
+        lo = (pd.Timestamp(first) - pd.Timedelta(days=30)).strftime("%Y-%m-%d")
+        m = md[(md["date"].astype(str) >= lo) & md["code"].astype(str).isin(codes)][["date", "code", "margin_balance"]]
+        px = price[(price["date"].astype(str) >= lo) & price["code"].astype(str).isin(codes)][["date", "code", "close"]]
+        caps, partial = _caps(m, px)
+    return _rows(mt_otc, caps, partial, _idx_map(idx, "OTC"))
+
+
+def combine_rows(tw: list[dict], otc: list[dict], idx: pd.DataFrame | None = None) -> list[dict]:
+    """上市＋上櫃合計：只收兩邊都有融資金額的日子（只有一邊的日子不收，免得合計值跳一階）。
+
+    ratio ＝ (上市市值＋上櫃市值) ÷ (上市融資金額＋上櫃融資金額) × 100 —— 是加總後再除，**不是**兩個比率平均；
+    兩邊市值任一缺 → ratio None（不拿一邊的比率代表合計）。指數放加權指數。"""
+    o = {r["d"]: r for r in otc if r.get("margin_yi") is not None}
+    tx = _idx_map(idx, "TSE")
+
+    def add(a, b):
+        return None if a is None or b is None else a + b
+    rows = []
+    for a in tw:
+        b = o.get(a["d"])
+        if b is None or a.get("margin_yi") is None:
+            continue
+        cap, yi = add(a.get("cap_yi"), b.get("cap_yi")), a["margin_yi"] + b["margin_yi"]
+        rows.append({"d": a["d"], "ratio": _f(cap / yi * 100) if cap is not None and yi else None,
+                     "margin_lots": add(a.get("margin_lots"), b.get("margin_lots")), "margin_chg": add(a.get("margin_chg"), b.get("margin_chg")),
+                     "margin_yi": yi, "cap_yi": cap, "short_lots": add(a.get("short_lots"), b.get("short_lots")),
+                     "short_chg": add(a.get("short_chg"), b.get("short_chg")),
+                     "partial": bool(a.get("partial") or b.get("partial")), "taiex": _f(tx.get(a["d"])) if tx else a.get("taiex")})
+    return rows
+
+
 def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, price: pd.DataFrame,
                  idx: pd.DataFrame | None = None, members: pd.DataFrame | None = None) -> dict:
     """上市大盤融資維持率（估算）＋融資／融券餘額＋加權指數＋個股融資增減排行＋個股融券增減排行（short_rank，同一天）。
@@ -42,18 +139,7 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
         m = md[(md["date"].astype(str) >= first) & md["code"].astype(str).isin(codes)][["date", "code", "margin_balance", "margin_change"] + scol].copy()
         px = price[price["date"].astype(str) >= first][["date", "code", "close"]]
         m = m.merge(px, on=["date", "code"], how="left")
-        # 當天個股融資只到一部分（FinMind 逐檔回補還沒跟上）時，缺的檔用「前一次有資料的餘額」順延再乘當日收盤價：
-        # 融資餘額一天的變動遠小於持股數，實測 2026-10-16 隨機拿掉一半檔數用順延補，誤差 0.35pp（183.73 vs 183.38）；
-        # 檔數不到中位數一半的日子仍不收，免得畫出假的暴跌。
-        bal = m.pivot_table(index="date", columns="code", values="margin_balance", aggfunc="last").sort_index()
-        n_have = bal.notna().sum(axis=1)
-        full = n_have.median() if len(bal) else 0
-        bal = bal.ffill()
-        pxp = px.pivot_table(index="date", columns="code", values="close", aggfunc="last").reindex(index=bal.index, columns=bal.columns)
-        capser = (bal * 1000 * pxp).sum(axis=1, min_count=1)
-        keep = n_have >= 0.5 * full
-        caps = capser[keep].to_dict()
-        partial_days = set(n_have[keep & (n_have < 0.95 * full)].index)
+        caps, partial_days = _caps(m[["date", "code", "margin_balance"]], px)
         m["cap"] = m["margin_balance"] * 1000 * m["close"]
         if caps:
             d = max(caps)
@@ -75,23 +161,7 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
                 srank = {"d": d, "rows": [{"code": str(r.code), "name": names.get(r.code), "chg": float(r.short_change),
                                            "bal": _f(getattr(r, "short_balance", None)), "g": gmap.get(str(r.code), [])}
                                           for r in y.itertuples()]}
-    tx = {}
-    if idx is not None and not idx.empty:
-        t = idx[idx["symbol"] == "TSE"]
-        tx = dict(zip(t["date"].astype(str), pd.to_numeric(t["close"], errors="coerce")))
-    rows, prev = [], None
-    for r in mt.tail(MARGIN_DAYS + 1).itertuples():
-        # margin_money 實際單位是「元」（資料湖 2026-10-19 = 640,618,432,000 ＝ 6,406 億）；
-        # 舊版當成仟元（÷1e5、×1000）→ 融資金額差 1000 倍、維持率貼在 0%。
-        yi = None if pd.isna(r.margin_money) else r.margin_money / 1e8
-        cap = caps.get(r.date)
-        ratio = (cap / r.margin_money * 100) if cap is not None and not pd.isna(r.margin_money) and r.margin_money else None
-        rows.append({"d": r.date, "ratio": _f(ratio), "margin_lots": _f(r.margin_lots),
-                     "margin_chg": _f(r.margin_lots - r.margin_lots_prev) if not pd.isna(r.margin_lots_prev) else None,
-                     "margin_yi": _f(yi), "cap_yi": _f(cap / 1e8) if cap is not None else None,
-                     "short_lots": _f(r.short_lots), "partial": r.date in partial_days,
-                     "short_chg": _f(r.short_lots - r.short_lots_prev) if not pd.isna(r.short_lots_prev) else None,
-                     "taiex": _f(tx.get(r.date))})
+    rows = _rows(mt, caps, partial_days, _idx_map(idx, "TSE"))
     out["rows"] = rows[-MARGIN_DAYS:]
     out["asof"] = rows[-1]["d"]
     out["rank"] = rank
@@ -189,5 +259,12 @@ def retail_ratio_json(fi: pd.DataFrame, oi: pd.DataFrame, idx=None, source="") -
     return {"asof": max(last) if last else None, "source": source, "order": "asc", "products": prods}
 
 
-def build(mt, md, company, price, idx=None, members=None) -> dict:
-    return {"margin": margin_block(mt, md, company, price, idx, members)}
+def build(mt, md, company, price, idx=None, members=None, mt_otc=None) -> dict:
+    """market_fut.json。margin.rows＝上市（舊鍵，舊前端照讀）；margin.mkts＝{twse, tpex, all} 三組同格式的列，
+    前端「上市／上櫃／合計」分段開關切換用；margin.idx_name 給圖例。"""
+    mb = margin_block(mt, md, company, price, idx, members)
+    otc = otc_rows(mt_otc, md, company, price, idx)
+    mb["mkts"] = {"twse": mb["rows"], "tpex": otc, "all": combine_rows(mb["rows"], otc, idx)}
+    mb["idx_name"] = {"twse": "加權指數", "tpex": "櫃買指數", "all": "加權指數"}
+    mb["otc_from"] = otc[0]["d"] if otc else None
+    return {"margin": mb}
