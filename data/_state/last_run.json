@@ -6,9 +6,9 @@
       "seconds": 0.0
     },
     "inst_official": {
-      "ok": false,
-      "rows": 0,
-      "date": null,
+      "ok": true,
+      "rows": 918,
+      "date": "2026-11-06",
       "diag": [
         {
           "url": "https://openapi.twse.com.tw/v1/swagger.json",
@@ -135,62 +135,16 @@
           "summary": "上櫃股票外資及陸資買賣超彙總表"
         },
         {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading",
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
           "http": 200,
-          "head": "[ {\"Date\":\"1151106\",\"Rank\":\"1\",\"SecuritiesCompanyCode\":\"3264\",\"CompanyName\":\"欣銓\",\"Buy\":\"570\",\"Sell\":\"0\",\"NetBuy\":\"570\"}, {\"Date\":\"1151106\",\"Rank\":\"2\",\"SecuritiesCompanyCode\":\"4123\",\"CompanyName\":\"晟德\","
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading",
-          "cols": [
-            "Date",
-            "Rank",
-            "SecuritiesCompanyCode",
-            "CompanyName",
-            "Buy",
-            "Sell",
-            "NetBuy"
-          ],
-          "n": 50
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii",
-          "http": 200,
-          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_industry",
-          "http": 200,
-          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_daily_trading",
-          "http": 200,
-          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_dealer_trading",
-          "http": 200,
-          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_summary",
-          "http": 200,
-          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_trading",
-          "http": 404,
-          "head": "<html>\r <head><title>404 Not Found</title></head>\r <body>\r <center><h1>404 Not Found</h1></center>\r <hr><center>nginx</center>\r <script>(function(){function c(){var b=a.contentDocument||(a.contentWind"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_trading",
-          "http": 200,
-          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+          "head": "[ {\"Date\":\"1151106\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1931000\",\" Foreign Investors inc"
         },
         {
           "market": "上櫃",
-          "rows": 0,
-          "parts": []
+          "rows": 918,
+          "parts": [
+            918
+          ]
         }
       ]
     },
@@ -209,107 +163,49 @@
       "rows": 81
     },
     "fut_oi": {
-      "stored": 0
+      "stored": 3
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 24
+      "rows": 27
     },
     "finmind.institutional_bulk": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.2
-    },
-    "institutional_codes": {
-      "requested": 5,
-      "returned": 3
-    },
-    "finmind.institutional": {
       "ok": true,
-      "rows": 3,
-      "seconds": 1.5
+      "rows": 918,
+      "seconds": 0.3
     },
     "inst_daily": {
-      "stored": 3
+      "stored": 0
+    },
+    "institutional_codes": {
+      "requested": 2,
+      "returned": 0
+    },
+    "finmind.institutional": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.5
     },
     "inst_flags": {
-      "rebuild": true,
+      "rebuild": false,
       "post": true
     },
     "build_payload": {
       "ok": true,
-      "deferred": true
+      "skipped": "沒有新增今天的法人"
     }
   },
   "errors": [],
-  "empty": [],
+  "empty": [
+    "finmind.institutional"
+  ],
   "gaps": [],
   "rebuilt": [],
   "phase": "inst",
-  "freshness": {
-    "trade_date": "2026-11-06",
-    "tables": {
-      "inst_daily": {
-        "label": "個股三大法人",
-        "latest": "2026-11-06",
-        "rows": 1376,
-        "median": 2051.5,
-        "status": "warn",
-        "reason": "thin"
-      },
-      "inst_market_daily": {
-        "label": "全市場三大法人金額",
-        "latest": "2026-11-06",
-        "rows": 1,
-        "median": 1.0,
-        "status": "ok",
-        "reason": null
-      },
-      "margin_total": {
-        "label": "整體融資融券",
-        "latest": "2026-11-05",
-        "rows": 0,
-        "median": 1.0,
-        "status": "warn",
-        "reason": "behind"
-      },
-      "fut_inst": {
-        "label": "期貨三大法人",
-        "latest": "2026-11-06",
-        "rows": 9,
-        "median": 9.0,
-        "status": "ok",
-        "reason": null
-      },
-      "fut_oi": {
-        "label": "期貨全市場未平倉",
-        "latest": "2026-11-05",
-        "rows": 0,
-        "median": 3.0,
-        "status": "warn",
-        "reason": "behind"
-      }
-    },
-    "warn": [
-      "inst_daily",
-      "margin_total",
-      "fut_oi"
-    ],
-    "warn_labels": [
-      "個股三大法人",
-      "整體融資融券",
-      "期貨全市場未平倉"
-    ]
-  },
-  "warn": [
-    "inst_daily",
-    "margin_total",
-    "fut_oi"
-  ],
-  "started_at": "2026-11-06T12:25:30.872857+00:00",
-  "finished_at": "2026-11-06T12:25:58.796417+00:00",
-  "duration_seconds": 27.9,
+  "started_at": "2026-11-06T12:48:16.141074+00:00",
+  "finished_at": "2026-11-06T12:48:32.062171+00:00",
+  "duration_seconds": 15.9,
   "trade_date": "2026-11-06",
   "complete": true,
-  "finmind_budget_left": 496
+  "finmind_budget_left": 500
 }
