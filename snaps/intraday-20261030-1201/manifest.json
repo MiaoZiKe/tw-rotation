@@ -1,0 +1,21 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-10-30T12:06:33+08:00",
+  "data_date": "2026-10-30",
+  "threads": {
+    "text": "🕛 盤中3分鐘\n🧭 盤面分析：\n・族群普跌：83 個族群 8 漲 75 跌，族群平均 -3.80%\n・成交比重增加但族群走低：晶圓代工 -3.6%、被動元件 MLCC -8.1%\n・權值族群成交比重下降：AI 伺服器組裝 -3.1%\n🎡 資金輪盤：\n・領先 石化與塑膠產業、PCB 硬板製造；\n・落後 CCL 銅箔基板、PCB 載板\n🌳 資金分流樹：\n・流入 晶圓代工、被動元件 MLCC；\n・流出 PCB 載板、HPC 與網通 IC\n🔥 熱力圖：\n・漲最多 貨櫃航運 +2.9%、資安防護 +1.8%；\n・跌最多 電源供應器 -8.8%、被動元件 MLCC -8.1%\n#台股 #資金流向 #熱力圖 #族群輪動\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-id-20261030#industry/traditional",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_sankey-tree.png",
+      "threads_rotation-rank.png",
+      "threads_heat.png"
+    ],
+    "reply": "📰 新聞焦點：\n・打破 AI 高耗能迷思：Google 於 29 日發布 Gemini Apps 的最新技術論文\n・瑞昱(2379)第三季毛利率回升至47.4%：網通撐起成長，PC衰退與記憶體成本成隱憂\n・Google搜尋業務失速後換亞馬遜零售業：Alphabet自由現金流連兩季為負；Google搜尋與YouTube廣告疲弱\n・AI 算力暴增百倍推升驗證難度：台積電業務開發副總經理袁立本指出，全球 AI 產業已從實驗室階段的「創新週期」\n・AI 代理寫程式爆量：AI 代理帶動程式碼活動爆量，GitHub 在年度大會公布每月 74 億次提交"
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_sankey-tree.png",
+    "story_rotation-rank.png",
+    "story_heat.png"
+  ]
+}

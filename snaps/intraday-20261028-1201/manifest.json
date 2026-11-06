@@ -1,0 +1,18 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-10-28T12:03:19+08:00",
+  "data_date": "2026-10-28",
+  "threads": {
+    "text": "🕛 盤中3分鐘\n🎡 資金輪盤：\n・領先 PCB 硬板製造、石化與塑膠產業；\n・落後 晶圓代工、CCL 銅箔基板\n🌳 資金分流樹：\n・流入 HPC 與網通 IC、電源供應器；\n・流出 被動元件 MLCC、CCL 銅箔基板\n#台股 #資金流向 #熱力圖 #族群輪動\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-id-20261028#flow/rotation",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_sankey-tree.png",
+      "threads_rotation-rank.png"
+    ]
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_sankey-tree.png",
+    "story_rotation-rank.png"
+  ]
+}

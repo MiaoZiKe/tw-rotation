@@ -1,0 +1,24 @@
+{
+  "kind": "close",
+  "taken_at": "2026-10-27T17:36:03+08:00",
+  "data_date": "2026-10-27",
+  "threads": {
+    "text": "🌙 盤後3分鐘\n🧭 盤面分析：\n・加權指數漲 55 點（+0.12%）；上市櫃（含 ETF）上漲 897 家、下跌 1,278 家\n・漲停 22 家、跌停 9 家\n・外資賣超 81.0 億，已連 2 日賣超，累計 896.9 億\n・投信買超 236.4 億，已連 11 日買超，累計 1,800.9 億\n・外資賣超以聯發科最多（-92.6 億，占外資當日賣超 114%）\n・外資空單回補台指期 1,254 口，未平倉淨空單降至 86,043 口\n・小台散戶多空比 +33.33%（多方部位較多），與外資期貨淨空方向相反\n🏦 三大法人買賣超：\n・外資 -81.0億、投信 +236.4億；\n・自營 -124.0億、合計 +31.4億\n🌏 外資：\n・買超 南亞科、健策、力積電、華邦電、貿聯-KY；\n・賣超 聯發科、台達電、台光電、臻鼎-KY、台積電\n#台股 #法人買賣超 #外資 #投信 #台指期\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-cl-20261027#market/inst",
+    "images": [
+      "threads_fut-oi.png",
+      "threads_retail-ratio.png",
+      "threads_inst-today.png",
+      "threads_streak-foreign.png",
+      "threads_streak-trust.png",
+      "threads_etf-buy.png"
+    ]
+  },
+  "story": [
+    "story_fut-oi.png",
+    "story_retail-ratio.png",
+    "story_inst-today.png",
+    "story_streak-foreign.png",
+    "story_streak-trust.png",
+    "story_etf-buy.png"
+  ]
+}

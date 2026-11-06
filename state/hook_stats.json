@@ -1,0 +1,267 @@
+{
+ "updated": "2026-11-07T04:53+08:00",
+ "v2_start": "2026-11-02",
+ "posts": 32,
+ "by_version": {
+  "v1": {
+   "n": 20,
+   "views": 2164,
+   "inter": 18,
+   "avg_views": 108.2,
+   "avg_inter": 0.9,
+   "inter_rate": 0.0083
+  },
+  "v2": {
+   "n": 12,
+   "views": 1708,
+   "inter": 35,
+   "avg_views": 142.3,
+   "avg_inter": 2.92,
+   "inter_rate": 0.0205
+  }
+ },
+ "by_version_kind": {
+  "v1": {
+   "premarket": {
+    "n": 4,
+    "views": 244,
+    "inter": 3,
+    "avg_views": 61.0,
+    "avg_inter": 0.75,
+    "inter_rate": 0.0123
+   },
+   "intraday": {
+    "n": 4,
+    "views": 224,
+    "inter": 1,
+    "avg_views": 56.0,
+    "avg_inter": 0.25,
+    "inter_rate": 0.0045
+   },
+   "close": {
+    "n": 5,
+    "views": 1076,
+    "inter": 4,
+    "avg_views": 215.2,
+    "avg_inter": 0.8,
+    "inter_rate": 0.0037
+   },
+   "article": {
+    "n": 7,
+    "views": 620,
+    "inter": 10,
+    "avg_views": 88.6,
+    "avg_inter": 1.43,
+    "inter_rate": 0.0161
+   }
+  },
+  "v2": {
+   "premarket": {
+    "n": 1,
+    "views": 11,
+    "inter": 6,
+    "avg_views": 11.0,
+    "avg_inter": 6.0,
+    "inter_rate": 0.5455
+   },
+   "intraday": {
+    "n": 1,
+    "views": 58,
+    "inter": 1,
+    "avg_views": 58.0,
+    "avg_inter": 1.0,
+    "inter_rate": 0.0172
+   },
+   "close": {
+    "n": 6,
+    "views": 1326,
+    "inter": 9,
+    "avg_views": 221.0,
+    "avg_inter": 1.5,
+    "inter_rate": 0.0068
+   },
+   "article": {
+    "n": 4,
+    "views": 313,
+    "inter": 19,
+    "avg_views": 78.2,
+    "avg_inter": 4.75,
+    "inter_rate": 0.0607
+   }
+  }
+ },
+ "by_hook_type": {
+  "冷知識": {
+   "n": 4,
+   "views": 351,
+   "inter": 13,
+   "avg_views": 87.8,
+   "avg_inter": 3.25,
+   "inter_rate": 0.037
+  },
+  "反差": {
+   "n": 3,
+   "views": 311,
+   "inter": 9,
+   "avg_views": 103.7,
+   "avg_inter": 3.0,
+   "inter_rate": 0.0289
+  },
+  "對話": {
+   "n": 2,
+   "views": 511,
+   "inter": 9,
+   "avg_views": 255.5,
+   "avg_inter": 4.5,
+   "inter_rate": 0.0176
+  },
+  "趨勢": {
+   "n": 1,
+   "views": 202,
+   "inter": 2,
+   "avg_views": 202.0,
+   "avg_inter": 2.0,
+   "inter_rate": 0.0099
+  },
+  "數據": {
+   "n": 1,
+   "views": 167,
+   "inter": 1,
+   "avg_views": 167.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.006
+  },
+  "對比": {
+   "n": 1,
+   "views": 166,
+   "inter": 1,
+   "avg_views": 166.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.006
+  }
+ },
+ "by_emotion": {
+  "吐槽": {
+   "n": 5,
+   "views": 580,
+   "inter": 25,
+   "avg_views": 116.0,
+   "avg_inter": 5.0,
+   "inter_rate": 0.0431
+  },
+  "好笑": {
+   "n": 4,
+   "views": 593,
+   "inter": 6,
+   "avg_views": 148.2,
+   "avg_inter": 1.5,
+   "inter_rate": 0.0101
+  },
+  "專業": {
+   "n": 3,
+   "views": 535,
+   "inter": 4,
+   "avg_views": 178.3,
+   "avg_inter": 1.33,
+   "inter_rate": 0.0075
+  }
+ },
+ "by_template": {
+  "p_k2": {
+   "n": 1,
+   "views": 11,
+   "inter": 6,
+   "avg_views": 11.0,
+   "avg_inter": 6.0,
+   "inter_rate": 0.5455
+  },
+  "i_f5": {
+   "n": 1,
+   "views": 58,
+   "inter": 1,
+   "avg_views": 58.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.0172
+  },
+  "c_k3": {
+   "n": 1,
+   "views": 266,
+   "inter": 1,
+   "avg_views": 266.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.0038
+  },
+  "c_f5": {
+   "n": 1,
+   "views": 233,
+   "inter": 2,
+   "avg_views": 233.0,
+   "avg_inter": 2.0,
+   "inter_rate": 0.0086
+  },
+  "c_d2": {
+   "n": 1,
+   "views": 292,
+   "inter": 2,
+   "avg_views": 292.0,
+   "avg_inter": 2.0,
+   "inter_rate": 0.0068
+  },
+  "c_t3": {
+   "n": 1,
+   "views": 202,
+   "inter": 2,
+   "avg_views": 202.0,
+   "avg_inter": 2.0,
+   "inter_rate": 0.0099
+  },
+  "c_d4": {
+   "n": 1,
+   "views": 167,
+   "inter": 1,
+   "avg_views": 167.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.006
+  },
+  "c_c3": {
+   "n": 1,
+   "views": 166,
+   "inter": 1,
+   "avg_views": 166.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.006
+  },
+  "a_d2": {
+   "n": 1,
+   "views": 219,
+   "inter": 7,
+   "avg_views": 219.0,
+   "avg_inter": 7.0,
+   "inter_rate": 0.032
+  },
+  "a_k2": {
+   "n": 1,
+   "views": 64,
+   "inter": 5,
+   "avg_views": 64.0,
+   "avg_inter": 5.0,
+   "inter_rate": 0.0781
+  },
+  "g_k1": {
+   "n": 1,
+   "views": 10,
+   "inter": 1,
+   "avg_views": 10.0,
+   "avg_inter": 1.0,
+   "inter_rate": 0.1
+  },
+  "a_f4": {
+   "n": 1,
+   "views": 20,
+   "inter": 6,
+   "avg_views": 20.0,
+   "avg_inter": 6.0,
+   "inter_rate": 0.3
+  }
+ }
+}

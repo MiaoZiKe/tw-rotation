@@ -1,0 +1,24 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-10-21T11:15:05+08:00",
+  "data_date": "2026-10-20",
+  "threads": {
+    "text": "台股資金地圖｜10/21 11:14\n資金輪盤：領先 石化與塑膠產業、PCB 硬板製造；落後 晶圓代工、ETF → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=intraday_1021#flow/rotation\n資金分流樹：流入 被動元件 MLCC、CCL 銅箔基板；流出 軟板、晶圓代工 → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=intraday_1021#flow/sankey\n熱力圖：漲最多 AR VR XR 光學 +9.4%、CNC 工具機 +8.3%；跌最多 玻纖布 -3.6%、高速交換器與無線網路 -2.4%\n漲跌家數：上漲 461 家、下跌 70 家\n資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議\n#台股 #資金流向 #熱力圖 #族群輪動",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_rotation-rank.png",
+      "threads_sankey-tree.png",
+      "threads_heat.png",
+      "threads_market-index.png",
+      "threads_market-breadth.png"
+    ]
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_rotation-rank.png",
+    "story_sankey-tree.png",
+    "story_heat.png",
+    "story_market-index.png",
+    "story_market-breadth.png"
+  ]
+}
