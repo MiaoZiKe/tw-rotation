@@ -7278,3 +7278,30 @@ Andy 原話：「為何需要限制200 我有幾個就能勾幾個 我後面如�
 2. 後端 `workers/account-api/worker.js` 只剩 `GRANT_FEAT_GUARD = 2000` 這道防濫用安全網（防有人灌爆一列資料），超過才回 `too_many_feats`；0 項仍回 `bad_feats`；鍵格式檢查保留，JSON 同名鍵只算一次。管理區清單不再回 `max_feats`。
 3. 本體大小：2000 項 × 40 字鍵 × 999 次 ≈ 96KB，所以**只有** `/v1/admin/grants/defs/put`（管理者專用）本體上限放寬到 256KB（`GRANT_PUT_MAX_BYTES`，含管理者閘門讀權杖那一段）；其他公開端點維持 16KB。Durable Object SQLite 單一字串／單列上限 2MB，存得下（測試實測 2000 個 40 字鍵）。
 4. 前端 `site/admin_grants.js` 拿掉「最多 N 項」預檢與計數列上限提示，只寫「已勾 X／總數 項」（總數＝features.js 可勾數量）；`too_many_feats` 訊息留著當後備。
+
+## #384 個股「大戶／散戶買賣（推估）」：mis 快照增量推估大單／小單 × 內外盤；日 K 級別自己盤中收集逐日累積；功能鍵暫不開放（2026-11-07；合併時若撞號請改號）
+
+Andy 原話：「個股可以看到 大戶 散戶 當前買賣狀況，即時的資訊 以及 日K級別資訊 這功能記得也要顯在權限內 但暫不開放」。查證與口徑全文：`docs/bigsmall_sources.md`。
+
+**定案（不要重新討論、不要順手改回去）**
+1. **沒有免費合規的單量分級資料**：FinMind 逐筆／分 K／分點 2026-11-07 實測都是「Your level is register」；證交所 openapi 143 支、櫃買 225 支沒有個股逐筆或單量分級。不碰 rwd、不碰分點（第 1、7 條）。
+2. **演算法**（`pipeline/compute/bigsmall.py`＝`site/bigsmall.js` 的 `Acc`，逐行同一套，`tests/test_bigsmall.py` 用同一組向量對兩邊）：
+   mis 快照增量 dv；看得到的那一筆 `tv` 依單筆金額分大小；沒看到的量依當天已看到的大單占量比例分攤；
+   方向＝成交價對上一次最佳賣／買價（外盤／內盤），中間用 tick test；開盤／收盤集合競價不分方向。
+   **大單門檻＝max(100 萬元, 4 × 近 20 日平均每筆成交金額)**（成交金額 ÷ 成交筆數，證交所日成交資訊）。
+3. **日 K 級別**：`.github/workflows/bigsmall-collect.yml` 台北 08:50 起一個 job 輪詢 mis 到 13:36（族群成分股約 455 檔，一請求 100 檔、間隔 ≥ 2 秒、失敗退避），
+   收盤後一天一列 `store.append("bigsmall_daily")`（config.TABLES v19）。**從第一個收集日起累積，補不了過去**；回補只能付費（FinMind 贊助或證交所 Data E-Shop）。
+   這是 #108「只抓需要的代號」的延伸：盤中持續輪詢一份固定名單，不是全市場；要停就拿掉 schedule。
+4. **即時**：個股頁打開時每 5 秒打一次 Worker `/quote`（`Live.proxy()`），從打開那一刻起累計，存 localStorage（當天、該檔）。只有站主／管理員（livegate，#326），鈕標 `data-live-ui`。
+5. **權限**：`stock.bigsmall`（cat stocktab、def false、veil `#bsCard`），`plan_presets.js` 訪客／註冊會員／Plus／Pro 全寫 false、不設次數；站主不受限。
+   不在 GRANT_BAN（會出現在「編輯：新會員體驗」，次數由 Andy 設）。即時部分另一個鍵 `stock.bigsmall.live`＝adminOnly＋ownerOnly（比照 live.tick）：
+   adminOnly 已讓體驗清單（admin_grants.js）與訂閱頁權益表不列，等同 GRANT_BAN，**不改會員 Worker 的 GRANT_BAN**（改了要重新部署 account-api，沒有必要）。
+6. **沒開的人整張卡不畫**（手機也不列「買賣推估」分段），不蓋鎖頭卡：鎖頭卡寫「升級 Plus」，但目前沒有方案有它，那句話不實。不抓資料、不打報價。
+   `pricing.js`：四個方案都沒開的功能不再算進「其他基礎功能（N 項）全部方案皆可用」。
+7. **暫不開放＝不發 `site/notices/features.json` 公告**；Andy 開放那天（在 #admin/perm 撥開某個方案）同一批發公告。
+8. 位置：個股「大戶／散戶」分頁，集保圖下面一張卡；分段「今日即時｜日 K」、期間 20／60／120 日（收集天數不到一半的反灰、title 寫原因）；
+   KPI 四格：大單（大戶）淨額、小單（散戶）淨額、涵蓋率、集保千張大戶（週級參考）；圖（日 K＋大單／小單淨額實色柱）與明細表並排；說明全在「?」。
+
+### 驗收
+`_uitest`「大戶散戶買賣1107」（scripts/uitest_sections/20261107_大戶散戶買賣.py）：功能鍵與四方案值、體驗清單、#admin/perm 有開關；
+站主即時 5 秒真的再打一次、數字與走勢真的變、量守恆；切日 K、期間鈕真的改點數；一般會員／訪客（桌機＋390）看不到、0 請求；390 站主沒有橫向捲軸。
