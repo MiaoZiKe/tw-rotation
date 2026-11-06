@@ -6,7 +6,8 @@
   "small": [],
   "clip": [],
   "wide": [],
-  "n": 5
+  "n": 6,
+  "clipdbg": []
  },
  "2_fields": {
   "bad": [],
@@ -15,6 +16,7 @@
   "small": [],
   "clip": [],
   "wide": [],
-  "n": 37
+  "n": 26,
+  "clipdbg": []
  }
 }

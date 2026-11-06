@@ -137,35 +137,68 @@ def cover(title, sub, hint, photo, pos="50% 50%"):
 PH = lambda t: f'<span class="ph">{t}</span>'
 DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 
-# ================= 廣達待遇文（2 頁）：A1 封面＋A2 待遇欄位表 =================
+# ================= 廣達待遇文（2 頁）：A1 封面＋A2 台灣地圖＋待遇表 =================
 NAME = "廣達"
+TAGLINE = os.environ.get("TC_TAGLINE") or "談薪前，先看這張"          # 頻道標語（暫定；Andy 還沒定稿，換字只改這一處，7～10 字都單行）
+COVER_HINT = "右滑看透明圈"
+SECTION_TITLE = "工程師待遇"          # 欄位標題；若文章是特定單位，寫成「廣達 BU9 透明圈」
+HQ_LABEL = "總部：桃園龜山"
 S = {}
-# 2026-11-05 Andy：「下方只需要表示廣達行情 並且嘗試有點偷偷說的感覺標題」→ 兩行標題、第二行瑞士紅，提示與第二行基線對齊靠右；不放副標、不放表情符號
+TW = json.load(open(Path(__file__).resolve().parent / "taiwan_path.json"))   # world-atlas countries-50m（ISC／Natural Earth 公有領域）→ make_taiwan_path.mjs
+
+# ---- 封面：標語＋標題＋「右滑」提示，三者在照片下緣到頁底之間垂直置中 ----
+TAG_PX, TT_PX = 48, 108
+# 提示鈕：藍色膠囊，右端白色圓盤放圓角箭頭（線＋箭頭帽），圓盤右上角一顆橘點（呼應 LOGO 的橘點），不用文字箭頭
+SWIPE = (f'<div class="sw"><span>{COVER_HINT}</span>'
+         f'<svg data-b width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="36" fill="#fff"/>'
+         f'<path d="M20 38 H50 M40 26 L52 38 L40 50" fill="none" stroke="{BLUE}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+         f'<circle cx="62" cy="14" r="9" fill="{ORG}" stroke="#fff" stroke-width="3"/></svg></div>')
+SWIPE_CSS = f"""
+.cv .low{{position:absolute;left:{M_L}px;top:{PIC_TOP+PIC_H}px;width:{W-2*M_L}px;height:{H-PIC_TOP-PIC_H}px;display:flex;align-items:center;justify-content:space-between}}
+.cv .tg{{font-size:{TAG_PX}px;font-weight:700;line-height:64px;margin-bottom:16px;color:{INK};white-space:nowrap}}
+.cv .nm{{font-size:{TT_PX}px;font-weight:900;line-height:132px;color:{BLUE};white-space:nowrap}}
+.cv .sw{{display:flex;align-items:center;gap:18px;height:92px;padding:0 8px 0 34px;border-radius:46px;background:{BLUE};color:#fff;font-size:34px;font-weight:700;white-space:nowrap;box-shadow:{SHADOW}}}
+.cv .sw svg{{display:block}}
+"""
 S["1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
     f'<div class="pic" data-b style="background-image:url({photo_uri_abs(Path(__file__).resolve().parent / "cover_photo.jpg")});background-position:50% 50%"></div>'
-    f'<div class="rl"><b></b><i></i></div><div class="tt" style="line-height:124px"><div>噓，偷偷跟你說</div>'
-    f'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="color:{BLUE};font-weight:900">{NAME}行情</span>'
-    f'<span class="hint" style="font-size:34px;line-height:44px;white-space:nowrap">往右滑看行情 →</span></div></div></div>')
+    f'<div class="low"><div><div class="tg">{TAGLINE}</div><div class="nm">{NAME}行情</div></div>{SWIPE}</div></div>')
+
+# ---- 待遇表：上半台灣地圖＋總部位置，下半「工程師待遇」6 欄（欄名＋重點值，不放備註） ----
 rows = [
-    ("總部地點", "桃園龜山", "網友提到的地點另有林口、桃園"),
-    ("碩畢月薪", "約 58～69K・中位約 62K", "業內朋友 1 位＋網友 21 筆（2025～2026）對得上<br>網友樣本多未標學歷"),
-    ("年終・分紅", "整包約 18～22 個月", "含底薪年度總額；網友 17 筆，隨單位差很多"),
-    ("升等路徑", "依單位而異", "網友回報近年較難升；調薪幅度各單位不同"),
-    ("加班時數", "網友多回報經常加班", "網友 171 筆（不限職位）58% 選「經常」<br>週工時中位約 48 小時"),
-    ("繁忙程度", "網友普遍回報工時長、壓力大", "隨單位與專案差很多"),
-    ("出差頻率", "時間不定，依客戶與專案", "網友樣本多數未提；少數評價提到赴中國、東南亞廠"),
+    ("碩畢月薪", "約 58～69K・中位約 62K"),
+    ("年終・分紅", "整包約 18～22 個月"),
+    ("升等路徑", "依單位而異"),
+    ("加班時數", "網友多回報經常加班"),
+    ("繁忙程度", "網友普遍回報工時長、壓力大"),
+    ("出差頻率", "時間不定，依客戶與專案"),
 ]
-trs = "".join(f'<div class="rw" style="display:flex;align-items:center;flex:{1.2 if "<br>" in c else 1};border-top:2px solid {LINE}">'
+trs = "".join(f'<div class="rw" style="display:flex;align-items:center;flex:1;border-top:2px solid {LINE}">'
               f'<div class="n" style="width:66px;font-size:32px;color:{BLUE}">{i+1:02d}</div>'
               f'<div style="width:220px;font-size:38px;font-weight:800;white-space:nowrap">{a}</div>'
-              f'<div style="flex:1;min-width:0"><div style="font-size:36px;font-weight:700;line-height:56px;white-space:nowrap">{b}</div>'
-              f'<div style="font-size:26px;line-height:32px;color:{GREY};margin-top:0">{c}</div></div></div>' for i, (a, b, c) in enumerate(rows))
+              f'<div style="flex:1;min-width:0;font-size:36px;font-weight:700;white-space:nowrap">{b}</div></div>' for i, (a, b) in enumerate(rows))
+MAP_W, MAP_H = 980, 496           # 地圖 svg 尺寸（卡片 984x500 扣 2px 邊框；body 左右各 48）
+IS_H = 448                        # 台灣本島高度（寬依比例）
+IS_W = IS_H * TW["w"] / TW["h"]
+IS_X, IS_Y = (MAP_W - IS_W) / 2, (MAP_H - IS_H) / 2   # 本島左上角（置中）
+k = IS_H / TW["h"]
+PX_, PY_ = IS_X + TW["pt"][0] * k, IS_Y + TW["pt"][1] * k   # 龜山點位
+LBL_W, LBL_H = 380, 76
+LBL_X, LBL_Y = 70, PY_ - LBL_H / 2
+MAP_SVG = (f'<svg data-b width="{MAP_W}" height="{MAP_H}" viewBox="0 0 {MAP_W} {MAP_H}" style="display:block">'
+    f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TW["d"]}" fill="#D3E2FA" stroke="#fff" stroke-width="{4/k:.1f}" stroke-linejoin="round"/></g>'
+    f'<line x1="{LBL_X+LBL_W}" y1="{PY_:.1f}" x2="{PX_-30:.1f}" y2="{PY_:.1f}" stroke="{BLUE}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>'
+    f'<circle cx="{PX_:.1f}" cy="{PY_:.1f}" r="30" fill="#fff" fill-opacity=".7" stroke="{BLUE}" stroke-width="8"/>'
+    f'<circle cx="{PX_+19:.1f}" cy="{PY_-19:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'
+    f'<rect x="{LBL_X}" y="{LBL_Y:.1f}" width="{LBL_W}" height="{LBL_H}" rx="38" fill="#fff" stroke="{LINE}" stroke-width="2"/>'
+    f'<text x="{LBL_X+LBL_W/2}" y="{LBL_Y+LBL_H/2+1:.1f}" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="800" fill="{INK}" font-family="Noto Sans TC">{HQ_LABEL}</text></svg>')
 S["2_fields"] = f"""{top('公司行情', '2 / 2')}
-<div class="body" style="padding-top:32px">
+<div class="body" style="padding-top:28px">
   <div style="display:flex;gap:14px"><span class="tag">{NAME}</span><span class="tag g">代號：肉鬆</span></div>
-  <div style="font-size:68px;font-weight:900;line-height:1.2;margin-top:20px">七個欄位，一次看完</div>
-  <div class="box" style="margin-top:20px;margin-bottom:26px;flex:1;display:flex;flex-direction:column;min-height:0">{trs}</div>
-</div>{ft(DISC, "")}"""
+  <div class="card" style="margin-top:20px;height:{MAP_H+4}px;background:{TINT};border-color:#CFE0FA;overflow:hidden;flex:none">{MAP_SVG}</div>
+  <div style="font-size:58px;font-weight:900;line-height:80px;margin-top:20px;flex:none">{SECTION_TITLE}</div>
+  <div class="box" style="margin-top:8px;margin-bottom:36px;flex:1;display:flex;flex-direction:column;min-height:0">{trs}</div>
+</div>"""
 
 # ---------------- 轉圖 + 重疊檢查 ----------------
 JS = """() => {
@@ -187,14 +220,14 @@ JS = """() => {
  const small=[...document.querySelectorAll('body *')].filter(e=>[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<24).map(e=>e.textContent.trim().slice(0,10));
  const clip=[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible'||(e.classList.contains('rw')&&e.scrollHeight>e.clientHeight+1)).map(e=>e.textContent.trim().slice(0,10));
  const wide=[...document.querySelectorAll('.rw div div')].filter(e=>e.getBoundingClientRect().right>1020+1).map(e=>e.textContent.slice(0,10));
- return {bad,oob,ovf,small,clip,wide,n:rects.length};
+ return {bad,oob,ovf,small,clip,wide,n:rects.length,clipdbg:[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible').map(e=>[e.tagName,e.scrollWidth,e.clientWidth])};
 }"""
 
 report = {}
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
     for name, html in S.items():
-        doc = f'<!doctype html><html><head><meta charset="utf-8">{FONTCSS}<style>{CSS}{COVER_CSS}</style></head><body>{html}</body></html>'
+        doc = f'<!doctype html><html><head><meta charset="utf-8">{FONTCSS}<style>{CSS}{COVER_CSS}{SWIPE_CSS}</style></head><body>{html}</body></html>'
         f = OUT / f"_{name}.html"; f.write_text(doc, encoding="utf8")
         pg = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
         pg.goto(f"file://{f}", wait_until="networkidle"); pg.wait_for_timeout(600)
