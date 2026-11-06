@@ -1,0 +1,29 @@
+name: probe-grant（一次性探測，用完刪分支）
+# 2026-11-07：會員後端體驗上限 200 部署後實測——不帶權杖打體驗的寫入／管理端點，應一律 403。不帶任何金鑰。
+on:
+  push:
+    branches: [probe-grant-max-tmp]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 不帶權杖打 grant 端點
+        run: |
+          set +e
+          B=https://tw-account.kcq01010909.workers.dev
+          O=https://liguligu-puipui.com
+          fail=0
+          chk() { # $1 名稱 $2 路徑 $3 本體 $4 期望碼
+            code=$(curl -sS -m 30 -o /tmp/r.json -w '%{http_code}' -X POST -H "Origin: $O" -H 'content-type: text/plain' --data "$3" "$B$2")
+            echo "$1 → HTTP $code 本體 $(head -c 200 /tmp/r.json)"
+            [ "$code" = "$4" ] || { echo "  ✗ 期望 $4"; fail=1; }
+          }
+          echo "health: $(curl -sS -m 30 $B/health)"
+          chk "defs/put 沒帶權杖" /v1/admin/grants/defs/put '{"id":"welcome","kind":"welcome","name":"x","feats":{"stock.draw":1},"days":1}' 403
+          chk "defs/put 帶假權杖" /v1/admin/grants/defs/put '{"t":"not-a-real-token","id":"welcome","kind":"welcome","name":"x","feats":{"stock.draw":1},"days":1}' 403
+          chk "defs/del 沒帶權杖" /v1/admin/grants/defs/del '{"id":"welcome"}' 403
+          chk "defs/list 沒帶權杖" /v1/admin/grants/defs/list '{}' 403
+          chk "grants/user 沒帶權杖" /v1/admin/grants/user '{"email":"a@example.com","extend_days":1}' 403
+          exit $fail
