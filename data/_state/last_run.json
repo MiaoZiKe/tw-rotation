@@ -3,25 +3,9 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.6
+      "seconds": 1.9
     },
     "price_daily": {
-      "stored": 0
-    },
-    "twse.valuation": {
-      "ok": true,
-      "rows": 1087,
-      "seconds": 0.2
-    },
-    "valuation_daily": {
-      "stored": 0
-    },
-    "twse.index": {
-      "ok": true,
-      "rows": 267,
-      "seconds": 0.2
-    },
-    "index_daily": {
       "stored": 0
     },
     "twse.market": {
@@ -35,40 +19,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1010,
-      "seconds": 25.4
-    },
-    "mis.date_check": {
-      "mis_date": "2026-11-06",
-      "openapi_date": "2026-11-05",
-      "lake_latest": "2026-11-06",
-      "twse_rows_on_mis_date": 1336,
-      "min_needed": 800,
-      "session_closed": true,
-      "will_fill": false
-    },
-    "mis.price_snapshot": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.7
-    },
-    "intraday.since": {
-      "since": "2026-11-06T13:00:00+08:00",
-      "codes": 2058,
-      "skipped_no_data": 0,
-      "period": "8d",
-      "lake_last": "2026-11-06T13:00:00+08:00",
-      "got_codes": 2058,
-      "rows": 0
-    },
-    "yahoo.intraday_60m": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 146.6
-    },
-    "yahoo.index_intraday": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.6
+      "seconds": 9.1
     },
     "tape.collect": {
       "ok": true,
@@ -79,109 +30,24 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.3
+      "seconds": 1.5
     },
     "index_intraday": {
-      "stored": 1350
+      "stored": 0
     },
     "taifex.futures_minute": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "skipped": "窗內候選日都處理過或今天的檔還沒出"
-    },
-    "twse.margin": {
-      "ok": true,
-      "rows": 1306,
-      "seconds": 1.7
-    },
-    "margin_daily": {
-      "stored": 0
-    },
-    "twse.company_info": {
-      "ok": true,
-      "rows": 1099,
-      "seconds": 0.6
-    },
-    "company_info": {
-      "stored": 0
-    },
-    "finmind.stock_info": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.5
-    },
-    "twse.revenue": {
-      "ok": true,
-      "rows": 1088,
-      "seconds": 0.3
-    },
-    "revenue_monthly": {
-      "stored": 0
-    },
-    "twse.financial": {
-      "ok": true,
-      "rows": 158,
-      "seconds": 0.2
-    },
-    "financial_q": {
-      "stored": 0
-    },
-    "twse.dividend": {
-      "ok": true,
-      "rows": 1183,
-      "seconds": 1.5
-    },
-    "dividend": {
-      "stored": 0
-    },
-    "twse.dividend_events": {
-      "ok": true,
-      "rows": 966,
-      "seconds": 0.0
-    },
-    "etf.exright_notice": {
-      "ok": true,
-      "rows": 16,
-      "seconds": 2.2
-    },
-    "tdcc.shareholding": {
-      "ok": true,
-      "rows": 69887,
-      "seconds": 3.9
-    },
-    "shareholding_weekly": {
-      "stored": 0
-    },
-    "etf_pcf.holdings": {
-      "ok": true,
-      "rows": 24690,
-      "seconds": 519.1
-    },
-    "etf_holdings": {
-      "stored": 0
-    },
-    "sitca.etf_top10": {
-      "ok": true,
-      "rows": 0,
-      "seconds": 2.7,
-      "skipped": "公會最新月份 202609 已在資料湖"
-    },
-    "next_wave.forward_log": {
-      "ok": true,
-      "rows": 10,
-      "seconds": 1.6
-    },
-    "next_wave_forward": {
-      "stored": 0
     },
     "news.collect": {
       "ok": true,
       "rows": 117,
-      "seconds": 2.5
+      "seconds": 3.0
     },
     "news": {
-      "stored": 28
+      "stored": 32
     },
     "news.broker_views": {
       "ok": true,
@@ -192,62 +58,33 @@
     "mops.material_news": {
       "ok": true,
       "rows": 381,
-      "seconds": 2.1
+      "seconds": 1.0
     },
     "material_news": {
       "stored": 0
     },
-    "mops.insider_holdings": {
-      "ok": true,
-      "rows": 1979,
-      "seconds": 24.5
-    },
-    "insider_holding": {
-      "stored": 0
-    },
     "macro.intl": {
       "ok": true,
-      "rows": 4522,
-      "seconds": 1.4
+      "rows": 4516,
+      "seconds": 1.9
     },
     "intl_daily": {
-      "stored": 5
+      "stored": 0
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15613,
-      "seconds": 4.6
+      "rows": 15615,
+      "seconds": 3.9
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 2.7
+      "seconds": 1.3
     },
     "macro_calendar": {
-      "stored": 0
-    },
-    "finmind.index_ohlc": {
-      "ok": true,
-      "rows": 52,
-      "seconds": 2629.0
-    },
-    "index_ohlc": {
-      "stored": 0
-    },
-    "finmind.futures_ohlc": {
-      "ok": true,
-      "rows": 52,
-      "seconds": 0.3
-    },
-    "finmind.market_institutional": {
-      "ok": true,
-      "rows": 26,
-      "seconds": 0.2
-    },
-    "inst_market_daily": {
       "stored": 0
     },
     "margin_total": {
@@ -290,63 +127,17 @@
         }
       ]
     },
-    "finmind.futures_60m": {
-      "ok": true,
-      "rows": 0,
-      "seconds": 0.1,
-      "skipped": "2026-11-05 的 60 分 K 已在湖裡"
-    },
-    "finmind.otc_60m": {
-      "ok": true,
-      "rows": 0,
-      "seconds": 0.1,
-      "skipped": "2026-11-05 的分 K 已在湖裡"
-    },
-    "finmind.tse_minute": {
-      "ok": true,
-      "rows": 1350,
-      "seconds": 3.3
-    },
-    "finmind.institutional_bulk": {
-      "ok": true,
-      "rows": 918,
-      "seconds": 7.2
-    },
-    "inst_daily": {
-      "stored": 0
-    },
-    "institutional_codes": {
-      "requested": 2,
-      "returned": 2
-    },
-    "finmind.institutional": {
-      "ok": true,
-      "rows": 9,
-      "seconds": 0.7
-    },
-    "balance_q": {
-      "stored": 0
-    },
-    "finmind.financial_refresh": {
-      "ok": true,
-      "rows": 184,
-      "seconds": 27.7
-    },
     "build_payload": {
       "ok": true
     }
   },
   "errors": [],
   "empty": [
-    "mis.price_snapshot",
-    "yahoo.intraday_60m",
-    "yahoo.index_intraday",
-    "finmind.stock_info",
     "optivx.daily"
   ],
   "gaps": [],
   "rebuilt": [],
-  "phase": "full",
+  "phase": "news",
   "index_minute_days": {
     "FUT": [
       "2026-11-06"
@@ -358,10 +149,10 @@
       "2026-11-06"
     ]
   },
-  "started_at": "2026-11-06T15:24:33.455004+00:00",
-  "finished_at": "2026-11-06T16:44:46.216426+00:00",
-  "duration_seconds": 4812.8,
-  "trade_date": "2026-11-05",
+  "started_at": "2026-11-06T21:17:19.819469+00:00",
+  "finished_at": "2026-11-06T21:30:48.477755+00:00",
+  "duration_seconds": 808.7,
+  "trade_date": null,
   "complete": true,
   "freshness": {
     "trade_date": "2026-11-06",
@@ -369,7 +160,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-06",
-        "rows": 1426,
+        "rows": 1476,
         "median": 2051.5,
         "status": "warn",
         "reason": "thin"
@@ -417,7 +208,7 @@
   "warn": [
     "inst_daily"
   ],
-  "finmind_budget_left": 366,
+  "finmind_budget_left": 445,
   "tables": [
     {
       "table": "price_daily",
@@ -431,7 +222,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2697937,
+      "rows": 2697987,
       "latest": "2026-11-06"
     },
     {
@@ -476,7 +267,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5500052,
+      "rows": 5500152,
       "latest": "2026-11-06"
     },
     {
@@ -551,8 +342,8 @@
     },
     {
       "table": "news",
-      "rows": 10233,
-      "latest": "2026-11-06"
+      "rows": 10265,
+      "latest": "2026-11-07"
     },
     {
       "table": "broker_views",
@@ -566,7 +357,7 @@
     },
     {
       "table": "macro",
-      "rows": 15613,
+      "rows": 15615,
       "latest": "2026-11-06"
     },
     {
@@ -636,7 +427,7 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 737962,
+      "rows": 738367,
       "latest": "2026-11-06"
     },
     {
@@ -648,6 +439,11 @@
       "table": "insider_holding",
       "rows": 3954,
       "latest": "2026-09"
+    },
+    {
+      "table": "bigsmall_daily",
+      "rows": 0,
+      "latest": "—"
     }
   ],
   "groups_health": {
