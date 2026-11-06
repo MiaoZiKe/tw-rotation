@@ -22,14 +22,17 @@
 .adt-lg u{width:84px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--adt-dn),var(--adt-n),var(--adt-up))}
 .adt-lg i{font-style:normal}
 /* 卡高固定＝直方圖那一格（300px，A9 切換不晃）：上面級距鈕＋小標列，剩下的是字卡區，超過就框內捲 */
-#adtWrap{height:300px}
-#adtGrid{display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}
+/* 2026-11-06 Andy「這邊可以顯示完整畫面」：字卡模式不再固定 300px、不再框內捲動，高度跟著內容走、整頁往下捲看全部；切回分布時 #adtWrap 隱藏，直方圖回到原本高度 */
+#adtWrap{height:auto}
+#adtGrid{display:flex;flex-direction:column;gap:6px;flex:none;min-height:0;overflow:visible}
+.adt-more{align-self:stretch;min-height:36px;border-radius:var(--r-sm,8px);border:1px dashed var(--cyan);background:transparent;color:var(--cyan);font-size:13px;cursor:pointer}
 .adt-row{display:flex;gap:6px;flex:none}
-.adt-g,.adt-s{flex:1 1 0;min-width:0;height:46px;padding:5px 8px;border-radius:var(--r-sm,8px);border:1px solid rgba(255,255,255,.06);background:var(--tb);color:var(--tf);display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;text-decoration:none;position:relative;font-family:inherit}
-.adt-s{height:58px}
+.adt-g,.adt-s{flex:1 1 0;min-width:0;min-height:46px;padding:5px 8px;border-radius:var(--r-sm,8px);border:1px solid rgba(255,255,255,.06);background:var(--tb);color:var(--tf);display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;text-decoration:none;position:relative;font-family:inherit}
+.adt-s{min-height:58px}
+.adt-row.part > *{flex:0 0 calc((100% - (var(--c) - 1) * 6px) / var(--c))}   /* 不到一列：一般單卡寬、靠左 */
 .adt-g:hover,.adt-s:hover{outline:2px solid var(--ink);outline-offset:-2px}
 .adt-g .nm,.adt-s .nm{font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-.adt-g .ln,.adt-s .ln{display:flex;gap:4px;align-items:center;justify-content:space-between;white-space:nowrap;overflow:hidden}
+.adt-g .ln,.adt-s .ln{display:flex;flex-wrap:wrap;gap:2px 4px;align-items:center;justify-content:space-between;white-space:nowrap;min-width:0}   /* 漲停＋跌停兩個標籤放不下就換到第二行，不截斷、不重疊 */
 .pc{font:700 13px/1.2 var(--mono,monospace)}
 .adt-s .cd{font:11px/1.2 var(--mono,monospace);opacity:.9}
 .lim{font-size:11px;font-weight:700;line-height:1;padding:2px 4px;border-radius:3px;background:rgba(0,0,0,.45);color:#fff;flex:none}
@@ -40,9 +43,8 @@
   #ovBreadthCard:has(#adtWrap:not([hidden])) #udSum{display:none}   /* 字卡模式小標列已經寫了「共 N 檔」，手機不放第二份（一行放不下兩組分段鈕＋讀數） */
   #ovBreadthCard > .row.spread > .row{width:100%;justify-content:space-between;flex-wrap:wrap}   /* 清除篩選鈕放不下就換到第二行，不擠壞兩組分段鈕 */
   #adtClear{order:3;flex:1 0 100%;min-height:32px}
-  #adtWrap{height:340px}
-  .adt-g{height:46px;padding:4px 6px}
-  .adt-s{height:56px;padding:4px 6px}
+  .adt-g{min-height:46px;padding:4px 6px}
+  .adt-s{min-height:56px;padding:4px 6px}
   .adt-b,.adt-clr{min-height:40px}
   .adt-go{display:inline-flex;align-items:center;min-height:40px;padding:0 8px}   /* 手機按鈕普查：觸控目標 ≥ 40px */
 }

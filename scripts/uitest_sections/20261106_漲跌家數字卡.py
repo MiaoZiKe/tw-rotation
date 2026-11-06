@@ -48,7 +48,7 @@ def t_advdec_tiles_1106(b, base, code):
           return { n: k.length, left: Math.abs(k[0].left - a.left), right: Math.abs(a.right - k[k.length - 1].right), minW: Math.min(...k.map(x => x.width)) }; });
         const per = full.slice(0, -1).map(x => x.n);
         return { rows: rows.length, tiles: full.reduce((a, x) => a + x.n, 0), cols: per.length ? per[0] : full[0].n, sameCols: per.every(x => x === per[0]),
-                 lastFill: full[full.length - 1].n / (per.length ? per[0] : full[0].n), flush: full.every(x => x.left <= 1.5 && x.right <= 1.5), minW: Math.min(...full.map(x => x.minW)),
+                 lastFill: full[full.length - 1].n / (per.length ? per[0] : full[0].n), flush: full.every(x => x.left <= 1.5 && x.right <= 1.5) || !!document.querySelector('#adtGrid .adt-row.part'), part: !!document.querySelector('#adtGrid .adt-row.part'), w: rows[0].children[0].getBoundingClientRect().width, minW: Math.min(...full.map(x => x.minW)),
                  hScroll: document.getElementById('adtGrid').scrollWidth > document.getElementById('adtGrid').clientWidth + 1 }; }"""
 
     # ---------------------------------------------------------------- 0. 功能鍵登記、範本、體驗編輯器
@@ -75,6 +75,7 @@ def t_advdec_tiles_1106(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg)
     dist_h = pg.evaluate("() => document.getElementById('ovBreadthCard').getBoundingClientRect().height")
+    bw_h0 = pg.evaluate("() => document.getElementById('breadthWrap').getBoundingClientRect().height")   # 直方圖那一格原本的高（卡高會隨頁首小標列載入差幾十 px，所以比這格）
     a0 = pg.evaluate("""() => ({ labels: [...document.querySelectorAll('#udView button')].map(x => x.textContent), on: [...document.querySelectorAll('#udView button.on')].map(x => x.dataset.v),
         tilesHidden: document.getElementById('adtWrap').hidden, chartVis: document.getElementById('breadthWrap').getClientRects().length > 0,
         vals: echarts.getInstanceByDom(document.getElementById('breadth')).getOption().series[0].data.map(d => d.value), total: +document.getElementById('breadth').dataset.total }); """)
@@ -95,8 +96,22 @@ def t_advdec_tiles_1106(b, base, code):
     mx = pg.evaluate(MATRIX)
     ok(f"{T} 矩陣剛好填滿：每一整列欄數相同、每一列左右貼齊容器（含最後一列）、最後一列至少 60% 滿、不橫捲、字卡寬 ≥ 80",
        mx and mx["sameCols"] and mx["flush"] and mx["lastFill"] >= 0.6 and not mx["hScroll"] and mx["minW"] >= 80 and mx["tiles"] == n_all, mx)
-    ok(f"{T} 切換不改變卡片高度（A9）：分布 {dist_h:.0f}px → 字卡 ±2px", abs(pg.evaluate("() => document.getElementById('ovBreadthCard').getBoundingClientRect().height") - dist_h) <= 2,
-       pg.evaluate("() => document.getElementById('ovBreadthCard').getBoundingClientRect().height"))
+    pg.evaluate("() => { const gs = document.querySelectorAll('#adtGrid .adt-g'); gs[gs.length - 1].scrollIntoView({ block: 'center', behavior: 'instant' }); }"); pg.wait_for_timeout(600)
+    full = pg.evaluate("""() => { const g = document.getElementById('adtGrid'), gs = [...g.querySelectorAll('.adt-g')], last = gs[gs.length - 1];
+        const r = last.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const bad = gs.filter(t => { const tr = t.getBoundingClientRect(); const tags = [...t.querySelectorAll('.lim')].map(x => x.getBoundingClientRect());
+          const out = tags.some(x => x.left < tr.left - 0.5 || x.right > tr.right + 0.5 || x.top < tr.top - 0.5 || x.bottom > tr.bottom + 0.5);
+          const ov = tags.some((a, i) => tags.some((b, j) => j > i && a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5));
+          const nm = t.querySelector('.nm').getBoundingClientRect(), pc = t.querySelector('.pc').getBoundingClientRect();
+          const ovN = tags.some(x => x.top < nm.bottom - 0.5 && x.bottom > nm.top + 0.5 && x.left < nm.right && x.right > nm.left);
+          return out || ov || ovN; }).length;
+        return { sh: g.scrollHeight, ch: g.clientHeight, n: gs.length, lastVis: !!hit && last.contains(hit) && r.top >= 0 && r.top < innerHeight, bad, both: gs.filter(t => +t.dataset.lu && +t.dataset.ld).length }; }""")
+    ok(f"{T} 字卡模式完整顯示：容器沒有內部捲動（scrollHeight ≤ clientHeight+2）、最後一張字卡在頁面上看得到、所有標籤不超出卡片也不互相重疊", full["sh"] <= full["ch"] + 2 and full["n"] == n_all and full["lastVis"] and full["bad"] == 0, full)
+    shot(pg, "desk_full_all_tiles.png")
+    pg.click('#udView button[data-v="dist"]'); pg.wait_for_timeout(700)
+    h_back = pg.evaluate("() => ({ bw: document.getElementById('breadthWrap').getBoundingClientRect().height, card: document.getElementById('ovBreadthCard').getBoundingClientRect().height })")
+    ok(f"{T} 切回分布 → 直方圖那一格恢復原本高度（{bw_h0:.0f}px ±2）、卡片沒有留著字卡的高度（< 字卡模式高）", abs(h_back["bw"] - bw_h0) <= 2 and h_back["card"] < full["sh"] * 0.8, (h_back, full))
+    pg.click('#udView button[data-v="tiles"]'); pg.wait_for_timeout(600)
     avgs = pg.evaluate("() => [...document.querySelectorAll('#adtGrid .adt-g')].map(g => +g.dataset.avg)")
     ok(f"{T} 預設依平均漲跌幅由高到低排", all(avgs[i] >= avgs[i + 1] for i in range(len(avgs) - 1)), avgs[:6])
     cl = pg.evaluate("""() => { const rgb = (e) => getComputedStyle(e).backgroundColor.match(/[\\d.]+/g).map(Number); const gs = [...document.querySelectorAll('#adtGrid .adt-g')];
@@ -114,6 +129,16 @@ def t_advdec_tiles_1106(b, base, code):
     ok(f"{T} 篩選之後右上出現「清除篩選（1）」", f0["clr"] and "清除篩選（1）" in pg.evaluate("() => document.getElementById('adtClear').textContent"), f0)
     mx2 = pg.evaluate(MATRIX)
     ok(f"{T} 篩選後矩陣仍然填滿（欄數會跟著張數重算）", mx2 and mx2["sameCols"] and mx2["flush"] and not mx2["hScroll"], mx2)
+    w_norm = mx["w"]
+    ok(f"{T} 單卡不拉寬：族群字卡不到一列時不補滿，單卡寬 ≤ 正常單卡寬 {w_norm:.0f}px 的 1.2 倍", mx2["w"] <= w_norm * 1.2 + 1, (mx2["w"], w_norm, mx2["part"]))
+    # 只剩 1 張：篩「跌停」後點進只有 1 檔的族群（個股字卡）也不能被拉成整列寬
+    one = pg.evaluate("""() => { const gs = [...document.querySelectorAll('#adtGrid .adt-g')]; const g = gs.find(x => +x.dataset.n === 1); return g ? g.dataset.g : null; }""")
+    if one:
+        pg.click('#adtGrid .adt-g[data-g="' + one.replace('"', '\\"') + '"]'); pg.wait_for_timeout(500)
+        m1 = pg.evaluate("""() => { const t = document.querySelectorAll('#adtGrid .adt-s'); return { n: t.length, w: t[0].getBoundingClientRect().width, grid: document.getElementById('adtGrid').getBoundingClientRect().width }; }""")
+        ok(f"{T} 只有 1 張個股字卡時寬度 ≤ 正常單卡寬的 1.2 倍（{w_norm:.0f}px），不拉滿整列（格寬 {m1['grid']:.0f}）", m1["n"] == 1 and m1["w"] <= w_norm * 1.2 + 1, (m1, w_norm))
+        shot(pg, "desk_one_stock_tile.png")
+        pg.click('#adtBack'); pg.wait_for_timeout(400)
     shot(pg, "desk_filter_limitdown.png")
     # 多選：再點漲停
     pg.click('#adtBins button[data-b="10"]'); pg.wait_for_timeout(400)
@@ -207,6 +232,11 @@ def t_advdec_tiles_1106(b, base, code):
     ok(f"{T} 手機 390：級距鈕一排放不下 → 框內橫拖（不換行）", mm["binsScroll"], mm)
     mxm = pm.evaluate(MATRIX)
     ok(f"{T} 手機 390：矩陣欄數自動適應（2～4 欄）、每列貼齊、不橫捲", mxm and 2 <= mxm["cols"] <= 4 and mxm["sameCols"] and mxm["flush"] and not mxm["hScroll"], mxm)
+    mmore = pm.evaluate("""() => ({ rows: document.querySelectorAll('#adtGrid .adt-row').length, btn: (document.getElementById('adtMore') || {}).textContent || '', tiles: document.querySelectorAll('#adtGrid .adt-g').length }); """)
+    ok(f"{T} 手機：先顯示前 4 列、下面有「看全部 N 個族群」鈕", mmore["rows"] == 4 and mmore["btn"].startswith("看全部") and "個族群" in mmore["btn"], mmore)
+    pm.tap('#adtMore'); pm.wait_for_timeout(500)
+    mall = pm.evaluate("() => ({ rows: document.querySelectorAll('#adtGrid .adt-row').length, tiles: document.querySelectorAll('#adtGrid .adt-g').length, more: !!document.getElementById('adtMore'), sh: document.getElementById('adtGrid').scrollHeight - document.getElementById('adtGrid').clientHeight })")
+    ok(f"{T} 手機：按「看全部」→ 全部族群字卡展開、鈕消失、沒有內部捲動", mall["tiles"] > mmore["tiles"] and mall["tiles"] == n_all and not mall["more"] and mall["sh"] <= 2, (mall, n_all))
     pm.tap('#adtBins button[data-b="0"]'); pm.wait_for_timeout(400)
     pm.locator('#adtGrid .adt-g').first.tap(); pm.wait_for_timeout(500)
     ms = pm.evaluate("() => ({ back: !!document.getElementById('adtBack'), n: document.querySelectorAll('#adtGrid .adt-s').length, over: document.documentElement.scrollWidth > innerWidth + 1, backH: document.getElementById('adtBack').getBoundingClientRect().height })")

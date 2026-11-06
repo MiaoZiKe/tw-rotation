@@ -5901,3 +5901,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - C：`pipeline/compute/crosscheck.py`，daily.yml 獨立步驟（continue-on-error，放在回寫資料湖之前）。結果寫進 source_health.json 的 `crosscheck`。驗了：tests/test_crosscheck.py 7 項綠。**未驗**：真實官方端點與湖的比對結果（要等 Actions 跑一輪看 crosscheck 欄位）；前端還沒顯示 crosscheck。
 - A 的部署：`deploy_wait --branch main` 對 f4427f7e 仍在等 Pages（佇列排隊）。B、C 之後再跑一次 deploy_wait 對 c5dca60ae。
 - 仍未做：`_preview.py` 在 412 行崩潰（本機 site/data 是 10-22 舊快照，缺題材圖資料，環境問題）；`_uitest 資料狀態` 因機器負載 goto 逾時未驗。
+
+## 2026-11-06 字卡寬度／完整顯示、手機紅燈、_uitest 進場卡住（fix/tiles-and-reds）
+- 漲跌家數字卡：不到一整列不補滿（靠左、一般單卡寬）；字卡模式完整顯示（無框內捲動，手機先 4 列＋「看全部 N 個族群」）；漲停＋跌停標籤換行完整顯示。
+- 手機按鈕普查：剖析圖大圖浮層的章節摺疊列（cloneNode 不帶事件，已轉給原圖）；自訂組合下拉只剩一組時改註記不算沒反應。
+- _uitest 進場 networkidle 逾時：本機 site/data 沒有 fear.json（舊資料）→ 404 一直算進行中；_NoCache 缺檔時回備援內容。fearcard.js 沒動。
+- 這批只驗了：漲跌家數字卡1106、手機紅燈1106、總覽、桌機守門1008、手機按鈕普查（ETF現金流／產業鏈-半導體兩段）、_preview（與 main 基準同樣 4 筆 404＋財報日曆，是本機舊資料）。
