@@ -71,7 +71,7 @@ def sc_dusk_tall(E_=80):
     o += P('M%d %d H%d C%d %d %d %d %d %d C%d %d %d %d %d %d Z' % (bx - 76, dy - 56, bx + 76, bx + 72, dy - 8, bx + 40, dy - 2, bx, dy - 2, bx - 40, dy - 2, bx - 72, dy - 8, bx - 76, dy - 56), F3) + E(bx, dy - 56, 76, 12, DK) + P('M%d %d q 76 12 152 0' % (bx - 76, dy - 34), at("none", 1.3, op=.45)) + R(bx - 26, dy - 4, 52, 6, 2, F1) + C(bx - 24, dy - 60, 6, at("var(--w-face3)", 1.2)) + C(bx + 10, dy - 58, 6, at("var(--w-face3)", 1.2)) + C(bx + 38, dy - 61, 5, at("var(--w-face3)", 1.2)) + steam(bx - 30, dy - 70, 54, .6) + steam(bx + 6, dy - 72, 44, .5) + steam(bx + 40, dy - 70, 50, .55)
     return o + Ln(bx + 96, dy - 52, bx + 150, dy - 14, at("none", 3.2)) + Ln(bx + 110, dy - 56, bx + 162, dy - 18, at("none", 3.2))
 
-SH_SC = {"gap": (sc_gap, 740, 764), "room": (sc_room_tall, 540, 560), "dusk": (lambda: sc_dusk_tall(20), 500, 500)}
+SH_SC = {"gap": (sc_gap, 780, 764), "room": (sc_room_tall, 600, 560), "dusk": (lambda: sc_dusk_tall(100), 580, 580)}
 def scene_s(name, top):
     fn, H, VH = SH_SC[name]; I._uid[0] = 0
     defs = '<radialGradient id="gl"><stop offset="0" stop-color="var(--w-lamp)" stop-opacity="1"/><stop offset="1" stop-color="var(--w-lamp)" stop-opacity="0"/></radialGradient>'
@@ -79,33 +79,55 @@ def scene_s(name, top):
 
 BODY = "font-size:40px;line-height:60px;color:var(--w-text);white-space:pre-wrap;overflow-wrap:anywhere;line-break:strict"
 def lines(ls): return "<br>".join(html.escape(l) for l in ls)
-def short_page(n, theme):
+LOGO_TIGHT = os.path.join(B, "logo_tight_晝版.png")
+def pager(style, n, total=3):
+    """右下角頁數＋下一頁記號（圖形，無文字指令）。A：頁數＋細線箭頭；B：頁點＋小箭頭；C：頁數＋雲···→小太陽（礙到晴）。最後一頁不放箭頭。"""
+    last = n == total
+    num = '<span style="font-size:30px;line-height:40px;color:var(--w-sub)">%d／%d</span>' % (n, total)
+    ln, lp = "var(--w-line)", "var(--w-lamp)"
+    if style == "A":
+        svg = '' if last else '<svg width="64" height="36" viewBox="0 0 64 36"><path d="M2 18 H58" stroke="%s" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M48 9 L60 18 L48 27" stroke="%s" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' % (ln, ln)
+        return num + svg
+    if style == "B":
+        dots = ''.join('<circle cx="%d" cy="18" r="7.5" fill="%s" stroke="%s" stroke-width="2"/>' % (10 + i * 26, lp if (i + 1 == n or last) else "none", lp if (i + 1 == n or last) else ln) for i in range(total))
+        arrow = '' if last else '<path d="M92 10 L102 18 L92 26" stroke="%s" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' % ln
+        return '<svg width="112" height="36" viewBox="0 0 112 36">%s%s</svg>' % (dots, arrow)
+    if last: return num
+    cloud = '<path d="M4 28 H34 C42 28 42 15 34 15 C33 7 20 5 17 13 C10 11 3 17 7 24 C3 24 2 28 4 28 Z" fill="var(--w-face)" stroke="%s" stroke-width="2.2" stroke-linejoin="round"/>' % ln
+    dots = ''.join('<circle cx="%d" cy="20" r="%.1f" fill="%s" opacity="%.2f"/>' % (54 + i * 17, 2.6 + i * 1.6, lp, .3 + i * .3) for i in range(3))
+    arrow = '<path d="M104 20 H114 M110 15 L115 20 L110 25" stroke="%s" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' % ln
+    rays = ''.join('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="2" stroke-linecap="round"/>' % (138 + 12 * math.cos(a), 18 + 12 * math.sin(a), 138 + 16.5 * math.cos(a), 18 + 16.5 * math.sin(a), lp) for a in [k * math.pi / 4 for k in range(8)])
+    sun = '<circle cx="138" cy="18" r="8" fill="%s"/>' % lp + rays
+    return num + '<svg width="192" height="43" viewBox="0 0 160 36">%s%s%s%s</svg>' % (cloud, dots, arrow, sun)
+import math
+def short_page(n, theme, style="C"):
     p = PAL[theme]; W, H = 1080, 1350
     o = ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--W:%dpx;--H:%dpx;%s}%s .hintuse{font-weight:700}</style></head><body>' % (W, H, css_vars(p), CSS), GRAIN % (W, H, W, H)]
-    o.append('<div data-o="lab" class="abs lab" style="left:96px;top:96px">觀察者手記</div><div data-o="pg" class="abs lab" style="right:96px;top:96px">%d／3</div>' % n)
-    o.append('<div data-o="logo" class="abs" style="right:96px;top:1196px;line-height:72px">%s</div>' % logo_img(theme))
+    o.append('<div data-o="logo" class="abs" style="left:96px;top:84px;line-height:0"><img src="file://%s" style="height:64px;display:block"></div>' % LOGO_TIGHT)
+    o.append('<div data-o="pager" class="abs" style="right:96px;top:1252px;height:40px;display:flex;align-items:center;gap:14px">%s</div>' % pager(style, n))
     M = 'class="m" style="top:%dpx;font-size:%dpx;line-height:%dpx"'
     if n == 1:
-        o.append(scene_s("gap", 176))
-        o.append('<div data-o="main" ' + M % (960, 80, 100) + '>談晴，也說礙</div>')
-        o.append('<div data-o="small" class="s" style="top:1100px;font-size:40px;line-height:56px">說這一代的難，也說還在的光。</div>')
-        o.append('<div data-o="foot" class="abs lab" style="left:96px;top:1222px">往右滑 →</div>')
+        o.append(scene_s("gap", 180))
+        o.append('<div data-o="main" ' + M % (1008, 80, 100) + '>談晴，也說礙</div>')
+        o.append('<div data-o="small" class="s" style="top:1156px;font-size:40px;line-height:56px">說這一代的難，也說還在的光。</div>')
     elif n == 2:
-        o.append(scene_s("room", 176))
-        o.append('<div data-o="main" ' + M % (756, 72, 88) + '>這一代的「礙」</div>')
-        o.append('<div data-o="body1" class="abs" style="left:96px;top:884px;width:888px;%s">%s</div>' % (BODY, lines(["薪水追不上房價，", "租屋一換再換。", "被問何時結婚，心裡在算房租。", "經濟在成長，日子卻沒變輕。"])))
+        o.append(scene_s("room", 180))
+        o.append('<div data-o="main" ' + M % (824, 72, 88) + '>這一代的「礙」</div>')
+        o.append('<div data-o="body1" class="abs" style="left:96px;top:956px;width:888px;%s">%s</div>' % (BODY, lines(["薪水追不上房價，", "租屋一換再換。", "被問何時結婚，心裡在算房租。", "經濟在成長，日子卻沒變輕。"])))
     else:
-        o.append(scene_s("dusk", 176))
-        o.append('<div data-o="main" ' + M % (724, 72, 88) + '>也有「晴」</div>')
-        o.append('<div class="abs" style="left:96px;top:852px;width:888px;display:flex;flex-direction:column;align-items:flex-start;gap:32px"><div data-o="body1" style="%s">%s</div><div data-o="body2" style="%s;font-weight:700;color:var(--w-hint)">今天的一小段晴是什麼？</div></div>' % (BODY, lines(["下班路上的一段夕陽，", "朋友傳來一句「辛苦了」。", "日子很硬，光還在縫裡。", "一起觀察，一起往晴的那邊走。"]), BODY))
-        o.append('<div data-o="foot" class="abs lab cta" style="left:96px;top:1222px">傳給一個也在撐的朋友 →</div>')
+        o.append(scene_s("dusk", 180))
+        o.append('<div data-o="main" ' + M % (808, 72, 88) + '>也有「晴」</div>')
+        o.append('<div class="abs" style="left:96px;top:940px;width:888px;display:flex;flex-direction:column;align-items:flex-start;gap:32px"><div data-o="body1" style="%s">%s</div><div data-o="body2" style="%s;font-weight:700;color:var(--w-hint)">今天的一小段晴是什麼？</div></div>' % (BODY, lines(["下班路上的一段夕陽，", "朋友傳來一句「辛苦了」。", "日子很硬，光還在縫裡。", "一起觀察，一起往晴的那邊走。"]), BODY))
     return "".join(o) + "</body></html>"
 
 mf = []
 os.makedirs(B + "/tmp", exist_ok=True)
-for th in ("晝版", "奶油晨光"):
-    for n in (1, 2, 3):
-        hd = os.path.join(B, "html", th, "短版"); os.makedirs(hd, exist_ok=True); hp = os.path.join(hd, f"{n}.html"); open(hp, "w", encoding="utf-8").write(short_page(n, th))
-        od = os.path.join(OUT, "首篇_短版3張", th); os.makedirs(od, exist_ok=True)
-        mf.append(dict(html=os.path.relpath(hp, B), png=os.path.relpath(os.path.join(od, f"{n}.png"), B), W=1080, H=1350, key=f"首篇_短版3張/{th}/{n}", safe=None))
+th = "晝版"
+for n in (1, 2, 3):
+    hd = os.path.join(B, "html", th, "短版"); os.makedirs(hd, exist_ok=True); hp = os.path.join(hd, f"{n}.html"); open(hp, "w", encoding="utf-8").write(short_page(n, th))
+    od = os.path.join(OUT, "首篇_短版3張", th); os.makedirs(od, exist_ok=True)
+    mf.append(dict(html=os.path.relpath(hp, B), png=os.path.relpath(os.path.join(od, f"{n}.png"), B), W=1080, H=1350, key=f"首篇_短版3張/{th}/{n}", safe=None))
+for st in "ABC":   # 下一頁記號比較：同一張封面套三種
+    hp = os.path.join(B, "html", th, "短版", f"pager_{st}.html"); open(hp, "w", encoding="utf-8").write(short_page(1, th, st))
+    mf.append(dict(html=os.path.relpath(hp, B), png=f"tmp/pager_{st}.png", W=1080, H=1350, key=f"首篇_短版3張/比較/{st}", safe=None))
 json.dump(mf, open(B + "/manifest_short.json", "w"), ensure_ascii=False, indent=1); print("頁數", len(mf))
