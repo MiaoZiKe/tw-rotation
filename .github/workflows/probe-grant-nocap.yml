@@ -1,0 +1,25 @@
+name: 臨時探測：體驗上限取消（不帶權杖）
+on:
+  push:
+    branches: ['probe/grant-nocap']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 不帶權杖打體驗寫入與其他端點（只印狀態碼與 error 欄）
+        run: |
+          A=https://tw-account.kcq01010909.workers.dev
+          O=https://liguligu-puipui.com
+          hit() { code=$(curl -s -o /tmp/r.json -w '%{http_code}' -X POST -H "Origin: $O" -H 'content-type: text/plain' --data-binary @"$2" "$A$1"); echo "$3｜HTTP $code｜$(head -c 120 /tmp/r.json)"; }
+          echo '{"id":"welcome","kind":"welcome","name":"x","feats":{"stock.draw":3},"per":"total","days":7}' > /tmp/s.json
+          python3 -c "import json;print(json.dumps({'id':'welcome','kind':'welcome','name':'x','per':'total','days':7,'feats':{('k%04d'%i).ljust(40,'z'):999 for i in range(2000)}}))" > /tmp/b.json
+          python3 -c "import json;print(json.dumps({'pad':'x'*17000}))" > /tmp/p.json
+          wc -c /tmp/b.json /tmp/p.json
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$A/health"); echo "health｜HTTP $code"
+          hit /v1/admin/grants/defs/put /tmp/s.json "①小本體、不帶權杖 → 要 403"
+          hit /v1/admin/grants/defs/put /tmp/b.json "②2000 項約 96KB、不帶權杖 → 要 403（不是 413）"
+          hit /v1/admin/grants/defs/list /tmp/s.json "③清單、不帶權杖 → 要 403"
+          hit /v1/me /tmp/p.json "④公開端點 17KB → 要 413"
+          hit /v1/grants/public /tmp/p.json "⑤公開端點 17KB → 要 413"
