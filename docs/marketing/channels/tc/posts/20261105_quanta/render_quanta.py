@@ -142,8 +142,11 @@ NAME = "廣達"
 TITLE_FMT = "{公司}透明說"            # 封面第一行大標（公司名＋透明說）
 HINT = os.environ.get("TC_HINT") or "大人才知道的那些事"   # 封面第二行（隱晦、不直白；Andy 還會從候選挑，7～10 字單行；法遵：不得出現內部／爆料／內幕／獨家／祕密）
 COVER_HINT = "右滑看透明圈"
-SECTION_TITLE = "工程師待遇"          # 欄位標題；若文章是特定單位，寫成「廣達 BU9 透明圈」
+SECTION_TITLE = "待遇透明圈"          # 欄位標題（2026-11-06 Andy：預設「待遇透明圈」）。特定單位用環境變數 TC_UNIT（例如 TC_UNIT=BU9）→ 顯示「待遇透明圈（BU9）」，單位括號比主標小一級、藍色；沒值就不加括號
+UNIT = os.environ.get("TC_UNIT", "").strip()
+SECTION_HTML = SECTION_TITLE + (f'<span style="font-size:44px;font-weight:800;color:{BLUE};margin-left:6px">（{UNIT}）</span>' if UNIT else "")
 HQ_LABEL = "總部：桃園龜山"
+TOWNS = json.load(open(Path(__file__).resolve().parent / "towns_path.json"))   # make_towns.mjs：taiwan-atlas towns-10t（MIT；內政部國土測繪中心鄉(鎮、市、區)界線，政府資料開放授權條款第1版）
 S = {}
 TW = json.load(open(Path(__file__).resolve().parent / "taiwan_path.json"))   # taiwan-atlas（MIT；內政部國土測繪中心縣市界線，政府資料開放授權條款第1版）→ make_taiwan_path.mjs
 
@@ -225,23 +228,42 @@ k = IS_H / TW["h"]
 PX_, PY_ = IS_X + TW["pt"][0] * k, IS_Y + TW["pt"][1] * k   # 龜山點位
 LBL_W, LBL_H = 380, 76
 LBL_X, LBL_Y = 70, PY_ - LBL_H / 2
-MAP_SVG = (f'<svg data-b width="{MAP_W}" height="{MAP_H}" viewBox="0 0 {MAP_W} {MAP_H}" style="display:block">'
+GRAY = "#566580"
+_g = (f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TOWNS["grat"]}" fill="none" stroke="#D2E1F6" stroke-width="{1.6/k:.1f}"/></g>')   # (d) 海面極淡經緯網格（色深淺，不用漸層）
+_refs = "".join(f'<circle cx="{IS_X + r["x"]*k:.1f}" cy="{IS_Y + r["y"]*k:.1f}" r="8" fill="#8A97AE" stroke="#fff" stroke-width="3"/>'
+                f'<text x="{IS_X + r["x"]*k - 18:.1f}" y="{IS_Y + r["y"]*k:.1f}" text-anchor="end" dominant-baseline="central" font-size="32" font-weight="800" fill="{GRAY}" font-family="Noto Sans TC">{r["n"]}</text>'
+                for r in TOWNS["refs"] if r["n"] != "台北")                  # (b) 科技重鎮參考點：竹科、中科、南科（台北離總部太近，會疊在一起，不標）
+_I = TOWNS["inset"]; IX, IY, IW_, IH_ = MAP_W - _I["W"] - 24, MAP_H - _I["H"] - 20, _I["W"], _I["H"]
+_inset = (f'<rect x="{IX-4}" y="{IY-4}" width="{IW_+8}" height="{IH_+8}" rx="16" fill="#fff" fill-opacity=".92" stroke="{LINE}" stroke-width="2"/>'
+          f'<g transform="translate({IX} {IY})"><path d="{_I["land"]}" fill="#EAF1FC"/><path d="{_I["borders"]}" fill="none" stroke="#B9CDEA" stroke-width="1.4" stroke-linejoin="round"/>'
+          f'<path d="{_I["guishan"]}" fill="{BLUE}"/></g><text x="{IX+IW_+4}" y="{IY-18}" text-anchor="end" font-size="32" font-weight="800" fill="{BLUE}" font-family="Noto Sans TC" data-lbl="gs">龜山區</text>')   # (a) 桃園市區界放大，龜山區藍色填滿
+MAP_SVG = (f'<svg data-b width="{MAP_W}" height="{MAP_H}" viewBox="0 0 {MAP_W} {MAP_H}" style="display:block">' + _g +
     f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TW["land"]}" fill="#D3E2FA" stroke="#fff" stroke-width="{3/k:.1f}" stroke-linejoin="round"/>'
-    f'<path d="{TW["borders"]}" fill="none" stroke="#A9C3EC" stroke-width="{1.6/k:.1f}" stroke-linejoin="round" stroke-linecap="round"/></g>'
+    f'<path d="{TW["borders"]}" fill="none" stroke="#A9C3EC" stroke-width="{1.6/k:.1f}" stroke-linejoin="round" stroke-linecap="round"/></g>' + _refs + _inset +
     f'<line x1="{LBL_X+LBL_W}" y1="{PY_:.1f}" x2="{PX_-30:.1f}" y2="{PY_:.1f}" stroke="{BLUE}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>'
-    f'<circle cx="{PX_:.1f}" cy="{PY_:.1f}" r="30" fill="#fff" fill-opacity=".7" stroke="{BLUE}" stroke-width="8"/>'
-    f'<circle cx="{PX_+19:.1f}" cy="{PY_-19:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'
-    f'<rect x="{LBL_X}" y="{LBL_Y:.1f}" width="{LBL_W}" height="{LBL_H}" rx="38" fill="#fff" stroke="{LINE}" stroke-width="2"/>'
-    f'<text x="{LBL_X+LBL_W/2}" y="{LBL_Y+LBL_H/2+1:.1f}" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="800" fill="{INK}" font-family="Noto Sans TC">{HQ_LABEL}</text></svg>')
+    f'<circle data-lbl="hqc" cx="{PX_:.1f}" cy="{PY_:.1f}" r="30" fill="#fff" fill-opacity=".7" stroke="{BLUE}" stroke-width="8"/>'
+    f'<circle data-lbl="hqc" cx="{PX_+19:.1f}" cy="{PY_-19:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'
+    f'<rect x="{LBL_X}" y="{LBL_Y:.1f}" width="{LBL_W}" height="{LBL_H}" rx="38" fill="#fff" stroke="{LINE}" stroke-width="2" data-lbl="hqbox"/>'
+    f'<text x="{LBL_X+LBL_W/2}" y="{LBL_Y+LBL_H/2+1:.1f}" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="800" fill="{INK}" font-family="Noto Sans TC" data-lbl="hq">{HQ_LABEL}</text></svg>')
 S["2_fields"] = f"""{top('公司行情', '2 / 2')}
 <div class="body" style="padding-top:28px">
   <div style="display:flex;gap:14px"><span class="tag">{NAME}</span><span class="tag g">代號：肉鬆</span></div>
   <div class="card" style="margin-top:20px;height:{MAP_H+4}px;background:{TINT};border-color:#CFE0FA;overflow:hidden;flex:none">{MAP_SVG}</div>
-  <div style="font-size:58px;font-weight:900;line-height:80px;margin-top:20px;flex:none">{SECTION_TITLE}</div>
+  <div style="font-size:58px;font-weight:900;line-height:80px;margin-top:20px;flex:none">{SECTION_HTML}</div>
   <div class="box" style="margin-top:8px;margin-bottom:36px;flex:1;display:flex;flex-direction:column;min-height:0">{trs}</div>
 </div>"""
 
 # ---------------- 轉圖 + 重疊檢查 ----------------
+MAPJS = """() => { const svg=document.querySelector('.card svg'); const it=[];
+  svg.querySelectorAll('text').forEach(e=>it.push({k:'txt:'+e.textContent,r:e.getBoundingClientRect(),t:e.dataset.lbl||''}));
+  svg.querySelectorAll('circle').forEach(e=>it.push({k:'dot',r:e.getBoundingClientRect(),t:(e.dataset.lbl||'dot')}));
+  const hq=svg.querySelector('[data-lbl=hqbox]'); it.push({k:'hqbox',r:hq.getBoundingClientRect(),t:'hqbox'});
+  const ib=svg.querySelector('rect[rx="16"]'); it.push({k:'inset',r:ib.getBoundingClientRect(),t:'inset'});
+  const bad=[]; const ok=(a,b)=>(a.t==='hq'&&b.t==='hqbox')||(b.t==='hq'&&a.t==='hqbox')||(a.t==='hqc'&&b.t==='hqc');
+  for(let i=0;i<it.length;i++)for(let j=i+1;j<it.length;j++){const a=it[i],b=it[j]; if(ok(a,b))continue;
+    const ox=Math.min(a.r.right,b.r.right)-Math.max(a.r.left,b.r.left), oy=Math.min(a.r.bottom,b.r.bottom)-Math.max(a.r.top,b.r.top); if(ox>1&&oy>1)bad.push(['map:'+a.k,'map:'+b.k,Math.round(ox),Math.round(oy)]);}
+  return bad; }"""
+
 JS = """() => {
  const out=[]; const els=[...document.querySelectorAll('body *')];
  const rects=[];
@@ -264,6 +286,16 @@ JS = """() => {
  return {bad,oob,ovf,small,clip,wide,n:rects.length,clipdbg:[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible').map(e=>[e.tagName,e.scrollWidth,e.clientWidth])};
 }"""
 
+# ★ 2026-11-06 Andy 定案（d6_best）：沒帶任何 TITLE_* 參數時，1_cover 預設就是定案版（開口正圓＋橘膠囊＋旁白＋茶杯，見 title_d.py 與 tc/asset-lib 的 README）。
+#   公司名用 TC_COMPANY（預設廣達）；四字中文自動 2×2；舊試作仍可用 TITLE_STYLE／TITLE_R／TITLE_EC／TITLE_C2／TITLE_C3／TITLE_D，或 TC_LEGACY_COVER=1 回舊版。
+if not any(os.environ.get(k) for k in ("TITLE_STYLE", "TITLE_R", "TITLE_EC", "TITLE_C2", "TITLE_C3", "TITLE_D", "TITLE_FX", "TC_LEGACY_COVER")):
+    for k, v in (("TC_VAR", "D6"), ("TC_SW", "46"), ("TC_PW", "176"), ("TC_PH", "66"), ("TC_PF", "48"), ("TC_LG", "18")): os.environ.setdefault(k, v)
+    os.environ.setdefault("TC_OUTNAME", "1_cover")
+    import title_d; title_d.main(globals())
+    if os.environ["TC_OUTNAME"] != "1_cover": sys.exit(0)   # 試套公司名只出那一張，不重畫第 2 張
+    S.pop("1_cover", None)
+if os.environ.get("TITLE_D"):   # 2026-11-06 第六輪：線粗一致徽章＋茶杯（title_d.py）
+    import title_d; title_d.main(globals()); sys.exit(0)
 if os.environ.get("TITLE_C3"):   # 2026-11-06 第五輪：膠囊在右上缺口中間（title_c3.py）
     import title_c3; title_c3.main(globals()); sys.exit(0)
 if os.environ.get("TITLE_C2"):   # 2026-11-06 第四輪：正圓、膠囊在 12 點鐘（title_c2.py）
@@ -285,6 +317,8 @@ with sync_playwright() as p:
         pg.goto(f"file://{f}", wait_until="networkidle"); pg.wait_for_timeout(600)
         pg.evaluate("document.fonts.ready")
         res = pg.evaluate(JS)
+        if name == "2_fields":   # 地圖 svg 內的標籤／圓點／小框彼此不得相交（上面的 JS 會略過同一個 svg 內部，這裡補檢查）
+            res["bad"] += pg.evaluate(MAPJS)
         pg.screenshot(path=str(OUT / f"{name}.png"))
         pg.close(); f.unlink()
         report[name] = res

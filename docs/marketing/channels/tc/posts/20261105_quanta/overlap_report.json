@@ -1,14 +1,4 @@
 {
- "1_cover": {
-  "bad": [],
-  "oob": [],
-  "ovf": false,
-  "small": [],
-  "clip": [],
-  "wide": [],
-  "n": 6,
-  "clipdbg": []
- },
  "2_fields": {
   "bad": [],
   "oob": [],
@@ -16,7 +6,7 @@
   "small": [],
   "clip": [],
   "wide": [],
-  "n": 26,
+  "n": 31,
   "clipdbg": []
  }
 }
