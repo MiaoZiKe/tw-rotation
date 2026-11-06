@@ -1,20 +1,20 @@
 {
  "首篇_短版3張/晝版/1": {
-  "n": 7,
+  "n": 5,
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
-   "L": 130,
-   "T": 334,
-   "R": 950,
-   "B": 910,
+   "L": 117,
+   "T": 351,
+   "R": 964,
+   "B": 946,
    "box": [
     96,
-    176,
+    180,
     984,
-    916
+    960
    ],
    "inside": true
   },
@@ -23,44 +23,44 @@
   "contrast_pass": true
  },
  "首篇_短版3張/晝版/2": {
-  "n": 6,
+  "n": 5,
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
-   "L": 120,
-   "T": 203,
-   "R": 955,
-   "B": 687,
+   "L": 104,
+   "T": 228,
+   "R": 970,
+   "B": 730,
    "box": [
     96,
-    176,
+    180,
     984,
-    716
+    780
    ],
    "inside": true
   },
   "scrollH": 1350,
-  "contrast_min": 6.34,
+  "contrast_min": 12.0,
   "contrast_pass": true
  },
  "首篇_短版3張/晝版/3": {
-  "n": 8,
+  "n": 6,
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
    "L": 126,
-   "T": 190,
+   "T": 194,
    "R": 954,
-   "B": 656,
+   "B": 740,
    "box": [
     96,
-    176,
+    180,
     984,
-    676
+    760
    ],
    "inside": true
   },
@@ -68,73 +68,27 @@
   "contrast_min": 5.02,
   "contrast_pass": true
  },
- "首篇_短版3張/奶油晨光/1": {
-  "n": 7,
+ "首篇_短版3張/比較/B": {
+  "n": 5,
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
-   "L": 130,
-   "T": 334,
-   "R": 950,
-   "B": 910,
+   "L": 117,
+   "T": 351,
+   "R": 964,
+   "B": 946,
    "box": [
     96,
-    176,
+    180,
     984,
-    916
+    960
    ],
    "inside": true
   },
   "scrollH": 1350,
-  "contrast_min": 6.6,
-  "contrast_pass": true
- },
- "首篇_短版3張/奶油晨光/2": {
-  "n": 6,
-  "overlap": [],
-  "gap32": [],
-  "oob": [],
-  "minFont": 30,
-  "ink": {
-   "L": 120,
-   "T": 203,
-   "R": 955,
-   "B": 687,
-   "box": [
-    96,
-    176,
-    984,
-    716
-   ],
-   "inside": true
-  },
-  "scrollH": 1350,
-  "contrast_min": 6.65,
-  "contrast_pass": true
- },
- "首篇_短版3張/奶油晨光/3": {
-  "n": 8,
-  "overlap": [],
-  "gap32": [],
-  "oob": [],
-  "minFont": 30,
-  "ink": {
-   "L": 126,
-   "T": 190,
-   "R": 954,
-   "B": 656,
-   "box": [
-    96,
-    176,
-    984,
-    676
-   ],
-   "inside": true
-  },
-  "scrollH": 1350,
-  "contrast_min": 5.31,
+  "contrast_min": 6.24,
   "contrast_pass": true
  }
 }
