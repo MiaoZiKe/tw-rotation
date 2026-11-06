@@ -1,0 +1,209 @@
+{
+ "首篇_三色系/單色黑/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 11.37,
+  "contrast_pass": true
+ },
+ "首篇_三色系/單色黑/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 11.37,
+  "contrast_pass": true
+ },
+ "首篇_三色系/單色黑/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 147,
+   "T": 281,
+   "R": 926,
+   "B": 843,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 11.37,
+  "contrast_pass": true
+ },
+ "首篇_三色系/晝版/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "首篇_三色系/晝版/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "首篇_三色系/晝版/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 147,
+   "T": 281,
+   "R": 926,
+   "B": 843,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "首篇_三色系/奶油晨光/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.6,
+  "contrast_pass": true
+ },
+ "首篇_三色系/奶油晨光/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.6,
+  "contrast_pass": true
+ },
+ "首篇_三色系/奶油晨光/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 147,
+   "T": 281,
+   "R": 926,
+   "B": 843,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.31,
+  "contrast_pass": true
+ }
+}

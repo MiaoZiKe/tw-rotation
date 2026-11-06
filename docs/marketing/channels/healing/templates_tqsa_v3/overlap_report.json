@@ -1,0 +1,600 @@
+{
+ "首篇_3張/夜版/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "首篇_3張/夜版/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "首篇_3張/夜版/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 147,
+   "T": 281,
+   "R": 926,
+   "B": 843,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "長輩的期待/夜版/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 237,
+   "T": 210,
+   "R": 843,
+   "B": 861,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "長輩的期待/夜版/2": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 167,
+   "T": 194,
+   "R": 938,
+   "B": 873,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "長輩的期待/夜版/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 154,
+   "T": 208,
+   "R": 933,
+   "B": 851,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "長輩的期待/夜版/4": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 237,
+   "T": 210,
+   "R": 843,
+   "B": 861,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "長輩的期待/夜版/5": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": null,
+  "scrollH": 1350,
+  "contrast_min": 5.78,
+  "contrast_pass": true
+ },
+ "模板/夜版/1_封面": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.23,
+  "contrast_pass": true
+ },
+ "模板/夜版/2_內頁一句話": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.23,
+  "contrast_pass": true
+ },
+ "模板/夜版/3_數據頁": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 267,
+   "T": 189,
+   "R": 831,
+   "B": 685,
+   "box": [
+    96,
+    176,
+    984,
+    696
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.23,
+  "contrast_pass": true
+ },
+ "模板/夜版/4_出處與求助": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": null,
+  "scrollH": 1350,
+  "contrast_min": 5.86,
+  "contrast_pass": true
+ },
+ "模板/夜版/5_Threads單張": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 142,
+   "T": 484,
+   "R": 930,
+   "B": 1053,
+   "box": [
+    96,
+    378,
+    984,
+    1098
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.95,
+  "contrast_pass": true
+ },
+ "模板/夜版/6_Reels封面": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 117,
+   "T": 531,
+   "R": 964,
+   "B": 1126,
+   "box": [
+    96,
+    350,
+    984,
+    1150
+   ],
+   "inside": true
+  },
+  "scrollH": 1920,
+  "outside_safe": [],
+  "contrast_min": 6.16,
+  "contrast_pass": true
+ },
+ "首篇_3張/晝版/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "首篇_3張/晝版/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "首篇_3張/晝版/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 147,
+   "T": 281,
+   "R": 926,
+   "B": 843,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "長輩的期待/晝版/1": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 237,
+   "T": 210,
+   "R": 843,
+   "B": 861,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "長輩的期待/晝版/2": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 167,
+   "T": 194,
+   "R": 938,
+   "B": 873,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "長輩的期待/晝版/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 154,
+   "T": 208,
+   "R": 933,
+   "B": 851,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "長輩的期待/晝版/4": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 237,
+   "T": 210,
+   "R": 843,
+   "B": 861,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "長輩的期待/晝版/5": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": null,
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "模板/晝版/1_封面": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 145,
+   "T": 328,
+   "R": 935,
+   "B": 882,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "模板/晝版/2_內頁一句話": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 149,
+   "T": 208,
+   "R": 926,
+   "B": 832,
+   "box": [
+    96,
+    176,
+    984,
+    888
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "模板/晝版/3_數據頁": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 267,
+   "T": 189,
+   "R": 831,
+   "B": 685,
+   "box": [
+    96,
+    176,
+    984,
+    696
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "模板/晝版/4_出處與求助": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": null,
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "模板/晝版/5_Threads單張": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 142,
+   "T": 484,
+   "R": 930,
+   "B": 1053,
+   "box": [
+    96,
+    378,
+    984,
+    1098
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "模板/晝版/6_Reels封面": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 117,
+   "T": 531,
+   "R": 964,
+   "B": 1126,
+   "box": [
+    96,
+    350,
+    984,
+    1150
+   ],
+   "inside": true
+  },
+  "scrollH": 1920,
+  "outside_safe": [],
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ }
+}
