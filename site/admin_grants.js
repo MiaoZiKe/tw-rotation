@@ -21,12 +21,12 @@
   const BAN0 = ['live.tick', 'stock.k_min'];   // 2026-11-02 Andy 決定：只剩盤中即時、分 K 不能放進體驗（四週期同看／今日關注／選股完整名單／AI 分析開放）
   const ERR = { banned: '含不能放進體驗的功能；若勾的是四週期同看、今日關注、選股完整名單、AI 分析，是後端尚未更新（黑名單縮小在待部署批次，部署後才存得進去）', bad_feats: '至少要勾一個功能', bad_m: '每項次數要是 1～999 的整數', bad_time: '起訖日不對（結束要在開始之後）',
     bad_days: '新會員天數要是 1～60', bad_name: '請填名稱（20 字內）', bad_id: '代號只能用小寫英數、- 與 _', kind_fixed: '已建立的活動不能改種類', too_many: '活動最多 50 個', forbidden: '不是管理者' };
-  /* 2026-11-07：一份體驗最多幾項功能。Worker 的管理區清單會回 max_feats（後端放寬到 200 的版本才有）；
-     沒回＝還是舊後端（上限 40），前端就照 40 預檢，免得前端放行、後端照擋。後端部署後自動跟著放寬，這裡不必再改。 */
-  const MAX0 = 40;
-  const S = { d: null, edit: null, ban: BAN0, max: MAX0, maxSrv: false };
-  const setMax = (j) => { const m = j && j.max_feats; S.maxSrv = Number.isInteger(m) && m > 0; S.max = S.maxSrv ? m : MAX0; };
-  const tooMany = (n, max) => `勾太多了，最多 ${max} 項（目前勾了 ${n} 項）` + (S.maxSrv ? '' : '；會員伺服器放寬上限的更新還沒部署，部署後就能存更多項');
+  /* 2026-11-07：一份體驗最多幾項功能。以 Worker 管理區清單回的 max_feats 為準（＝worker.js GRANT_MAX_FEATS，11-07 起 200）；
+     沒回時才用 MAX0（同一個值，改後端時這裡一起改）。超過就在前端先擋、不送出。 */
+  const MAX0 = 200;
+  const S = { d: null, edit: null, ban: BAN0, max: MAX0 };
+  const setMax = (j) => { const m = j && j.max_feats; S.max = Number.isInteger(m) && m > 0 ? m : MAX0; };
+  const tooMany = (n, max) => `勾太多了，最多 ${max} 項（目前勾了 ${n} 項）`;
   function feats() {
     const F = window.TwFeatures; if (!F) return [];
     return F.list.filter((f) => f.kind === 'bool' && !f.adminOnly && f.cat !== 'grp' && !S.ban.includes(f.id));
@@ -209,7 +209,7 @@
       const r = await T().call('/v1/admin/grants/defs/put', body);
       $('#agrSave').disabled = false;
       if (r && r._s === 200) { S.d = r; setMax(r); paint(v); const s2 = v.querySelector('#agrSt'); if (s2) { s2.textContent = `已儲存「${body.name}」${body.on ? '（開著）' : '（關著）'}`; s2.className = 'st ok'; } if (window.TwGrants) window.TwGrants.refresh(true); return; }
-      if (r && r.error === 'too_many_feats') { if (Number.isInteger(r.max)) { S.max = r.max; S.maxSrv = true; } st('沒有存進去：' + tooMany(nF, S.max), true); sync(); return; }
+      if (r && r.error === 'too_many_feats') { if (Number.isInteger(r.max)) S.max = r.max; st('沒有存進去：' + tooMany(nF, S.max), true); sync(); return; }
       st('沒有存進去：' + (ERR[r && r.error] || (r ? r._s : '連不到')) + (r && r.k ? `（${fname(r.k)}）` : ''), true);
     };
     const del = $('#agrDel');
