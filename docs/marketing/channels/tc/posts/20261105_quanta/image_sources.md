@@ -10,6 +10,9 @@
 - 照片解析度僅 640×427，放大約 1.6 倍，略軟；若 Andy 找到原始頁面的大圖，換檔重出即可。
 - 封面不放我方公司 LOGO；照片裡建築上的「Quanta」立體字是實景，不算我方放的 LOGO。
 
-## 2026-11-06 第 2 張台灣地圖
-- 本島輪廓：npm 套件 `world-atlas@2.0.2`（ISC 授權，© Michael Bostock；資料來自 Natural Earth，公有領域）的 `countries-50m.json`，取 Taiwan 的本島多邊形，用 `make_taiwan_path.mjs`（topojson-client＋d3-geo 麥卡托）轉成 `taiwan_path.json`。非 AI 繪製、非手描。
+## 2026-11-06 第 2 張台灣地圖（第二版，取代 world-atlas 版）
+- 海岸線與縣市界線：npm `taiwan-atlas@2021.9.20`（MIT 授權，© Daniel Kao）的 `counties-10t.json`，用 `make_taiwan_path.mjs`（topojson-client＋d3-geo 麥卡托）轉成 `taiwan_path.json`；含本島、澎湖與周邊小島，不含金門、連江。非 AI 繪製、非手描。
+- 原始資料：內政部國土測繪中心「直轄市、縣市界線(TWD97經緯度)」（data.gov.tw），授權方式為政府資料開放授權條款－第 1 版（使用須標示來源；同機關同系列資料集頁面皆標示此授權，本資料集頁面本身未能直接開啟，為推定，標「待法遵確認」）。
+- 文案署名（貼文最後一行）：「地圖資料：內政部國土測繪中心（政府資料開放授權條款第1版）」。
+- 為什麼不用 world-atlas：海岸線與縣市線要同一份資料才對得齊；world-atlas 沒有縣市界。
 - 總部點位：桃園龜山，北緯 25.03、東經 121.36（同一投影算出）。
