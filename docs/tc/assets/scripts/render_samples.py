@@ -1,7 +1,7 @@
-"""頻道二「科技透明圈」瑞士極簡版型套版範例（1080x1350）。
+"""頻道二「科技透明圈」糖果陽光（收斂版）套版範例（1080x1350）。
 用法：python render_samples.py <素材根目錄 ASSETS> <輸出目錄 OUT>
 ASSETS 內要有 logos/、diagrams/、brand/icon_light.svg。字型 Noto Sans TC 由 TW_FONT_DIR（fontsource 解開的 package 目錄）提供。
-色票：白底、黑 #111111、瑞士紅 #D4231A、輔助灰 #595959、細線 #CFCFCF、淡灰面 #EFEFEF。
+色票（2026-11-06 Andy：跟頭貼一樣、類似糖果陽光風，但不用那麼甜）：頁底 #F4F7FB、卡片白、深藍黑 #0F1B33、LOGO 藍 #1F6FEB、LOGO 橘 #FF9F1C、淡藍 #E8F0FD、輔助灰 #55627A、細線 #DCE4F0。
 輸出每張 PNG 之後，用 DOM 量每個文字／圖片的外框，兩兩比對重疊（程式檢查），結果印出並寫 overlap_report.json。"""
 import base64, json, os, random, sys
 from pathlib import Path
@@ -10,7 +10,10 @@ from playwright.sync_api import sync_playwright
 ASSETS = Path(sys.argv[1]); OUT = Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 FD = Path(os.environ.get("TW_FONT_DIR", ""))
 W, H = 1080, 1350
-INK, RED, GREY, LINE, PALE = "#111111", "#D4231A", "#595959", "#CFCFCF", "#EFEFEF"
+INK, BLUE, ORG, GREY, LINE, PALE = "#0F1B33", "#1F6FEB", "#FF9F1C", "#55627A", "#DCE4F0", "#E8EEF7"
+BG, TINT = "#F4F7FB", "#E8F0FD"   # 頁底很淡的藍灰；淡藍（標籤、提示塊）
+SHADOW = "0 6px 18px rgba(31,111,235,.08)"   # 柔和陰影（藍色低透明度）
+RAD = 20   # 卡片圓角；標籤／小塊用 14
 
 
 def b64(p):
@@ -21,28 +24,31 @@ def b64(p):
 FONTCSS = "".join(f'<link rel="stylesheet" href="file://{FD}/{w}.css">' for w in (400, 700, 900)) if FD.exists() else ""
 CSS = f"""
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{width:{W}px;height:{H}px;font-family:'Noto Sans TC','WenQuanYi Zen Hei',sans-serif;color:{INK};background:#fff;display:flex;flex-direction:column;overflow:hidden}}
+body{{width:{W}px;height:{H}px;font-family:'Noto Sans TC','WenQuanYi Zen Hei',sans-serif;color:{INK};background:{BG};display:flex;flex-direction:column;overflow:hidden}}
 .n{{font-family:Inter,'Noto Sans TC',sans-serif;font-weight:800;font-variant-numeric:tabular-nums}}
-.top{{height:128px;flex:none;padding:0 64px;display:flex;align-items:center;gap:20px;border-bottom:4px solid {INK}}}
+.strip{{position:absolute;left:0;top:0;width:{W}px;height:14px;background:{BLUE}}}
+.strip i{{position:absolute;right:0;top:0;width:170px;height:14px;background:{ORG}}}
+.top{{height:128px;flex:none;padding:14px 48px 0;display:flex;align-items:center;gap:20px;background:#fff;border-bottom:2px solid {LINE}}}
 .top .b{{font-size:38px;font-weight:900;letter-spacing:.02em}}
 .top .t{{font-size:32px;font-weight:400;color:{GREY}}}
-.top .p{{margin-left:auto;font-size:32px;font-weight:700}}
-.body{{padding:52px 64px 0;flex:1;display:flex;flex-direction:column;min-height:0}}
-.tag{{display:inline-flex;align-items:center;height:52px;padding:0 20px;font-size:32px;font-weight:700;border:2px solid {INK};white-space:nowrap}}
-.tag.g{{border-color:#BDBDBD;color:{GREY}}}
-.ft{{margin:auto 64px 40px;height:52px;border-top:2px solid {LINE};display:flex;align-items:flex-end;justify-content:space-between;flex:none}}
+.top .p{{margin-left:auto;font-size:30px;font-weight:700;color:{BLUE};background:{TINT};padding:6px 20px;border-radius:14px}}
+.body{{padding:52px 48px 0;flex:1;display:flex;flex-direction:column;min-height:0}}
+.tag{{display:inline-flex;align-items:center;height:52px;padding:0 22px;font-size:32px;font-weight:700;background:{TINT};color:{BLUE};border-radius:14px;white-space:nowrap}}
+.tag.g{{background:#fff;border:2px solid {LINE};color:{GREY}}}
+.ft{{margin:auto 48px 40px;height:52px;border-top:2px solid {LINE};display:flex;align-items:flex-end;justify-content:space-between;flex:none}}
 .ft span{{font-size:28px;color:{GREY};font-weight:400}}
 .lab{{font-size:32px;font-weight:700;color:{GREY}}}
-.ph{{border-bottom:4px solid {RED};font-weight:700;padding:0 4px;white-space:nowrap}}
-.callout{{border-left:12px solid {RED};background:#F4F4F4;padding:26px 34px}}
-.box{{border-top:3px solid {INK}}}
-.red{{color:{RED}}}
+.ph{{border-bottom:4px solid {ORG};font-weight:700;padding:0 4px;white-space:nowrap}}
+.card{{background:#fff;border:2px solid {LINE};border-radius:{RAD}px;box-shadow:{SHADOW}}}
+.callout{{background:{TINT};border-radius:18px;padding:26px 34px}}
+.box{{background:#fff;border:2px solid {LINE};border-radius:{RAD}px;box-shadow:{SHADOW};padding:0 24px}}
+.box>div:first-child{{border-top:0 !important}}
+.red{{color:{BLUE}}}
 """
 
 
 def top(label, pg):   # 統一決策：A/B/C 全系列頁首只放純文字「科技透明圈」，不放開口圈（A1 帶公司 LOGO，法遵 ② 不與開口圈組合；三系列一致才像同一頻道）
-    ic = ""   # 不放開口圈
-    return f'<div class="top">{ic}<div class="b">科技透明圈</div><div class="t">{label}</div><div class="p">{pg}</div></div>'
+    return f'<div class="strip"><i></i></div><div class="top"><div class="b">科技透明圈</div><div class="t">{label}</div><div class="p">{pg}</div></div>'
 
 
 def ft(left, right="示意・範例"):
@@ -77,14 +83,15 @@ def _hlogo():
 _LU, _LS = _hlogo()
 # ---- 封面版面常數（2026-11-04 Andy：LOGO 縮小靠左、拿掉圖上備註、排版整齊；A1／B1／C1 與時事範例 01～04 共用同一組數值）----
 M_L = 60                      # 左右邊界：LOGO、紅短線、標題、副標、「往右滑」右緣（W-60）同一條線
-BAR_H = 14                    # 頂紅條
+BAR_H = 14                    # 頂色條（藍底、右端橘塊 170px）
+PX = 24                       # 照片左右內縮（與 LOGO 左緣同線）、圓角 20
 LOGO_X = 24                   # LOGO 左緣（淡藍底塊左緣距畫布左緣；只管 LOGO，其餘仍用 M_L）
 LOGO_H = 48                   # 橫式 LOGO 高度（原 76）
 LOGO_PAD = 20                 # LOGO 上方（紅條下緣到 LOGO）與下方（LOGO 到照片）留白相等
 LOGO_TOP = BAR_H + LOGO_PAD   # 34
 PIC_TOP = LOGO_TOP + LOGO_H + LOGO_PAD   # 102：照片上緣（頂列總高 = 紅條 + 88）
 GAP = 56                      # 照片到紅短線、副標到頁底，兩段留白相等
-RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 6, 24, 180, 20, 44   # 紅短線高、紅線到標題、標題兩行高（72px／90 行高）、標題到副標、副標列高
+RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 8, 24, 180, 20, 44   # 紅短線高、紅線到標題、標題兩行高（72px／90 行高）、標題到副標、副標列高
 BELOW = GAP + RL_H + RL_GAP + TT_H + SUB_GAP + SUB_H + GAP   # 照片以下總高 386
 PIC_H = H - PIC_TOP - BELOW   # 862：拿掉備註後的空間全部給照片
 RL_TOP = PIC_TOP + PIC_H + GAP
@@ -93,16 +100,18 @@ SUB_TOP = TT_TOP + TT_H + SUB_GAP
 LOGO_W = round(LOGO_H * _LS[0] / _LS[1])
 OPEN_RING = f'<img data-b src="{_LU}" width="{LOGO_W}" height="{LOGO_H}" style="display:block">'
 COVER_CSS = f"""
-.cv{{position:absolute;left:0;top:0;width:{W}px;height:{H}px;background:#fff}}
-.cv .bar{{position:absolute;left:0;top:0;width:{W}px;height:{BAR_H}px;background:{RED}}}
+.cv{{position:absolute;left:0;top:0;width:{W}px;height:{H}px;background:{BG}}}
+.cv .hd{{position:absolute;left:0;top:0;width:{W}px;height:{PIC_TOP}px;background:#fff}}
 .cv .lg{{position:absolute;left:{LOGO_X}px;top:{LOGO_TOP}px;height:{LOGO_H}px}}
-.cv .pic{{position:absolute;left:0;top:{PIC_TOP}px;width:{W}px;height:{PIC_H}px;background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
-.cv .rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px;background:{RED}}}
+.cv .pic{{position:absolute;left:{PX}px;top:{PIC_TOP}px;width:{W-2*PX}px;height:{PIC_H}px;border-radius:{RAD}px;box-shadow:{SHADOW};background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
+.cv .rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px}}
+.cv .rl b{{position:absolute;left:0;top:0;width:88px;height:{RL_H}px;border-radius:4px;background:{BLUE}}}
+.cv .rl i{{position:absolute;left:100px;top:0;width:20px;height:{RL_H}px;border-radius:4px;background:{ORG}}}
 .cv .tt{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{W-2*M_L}px;height:{TT_H}px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
 .cv .row{{position:absolute;left:{M_L}px;top:{SUB_TOP}px;width:{W-2*M_L}px;height:{SUB_H}px;display:flex;justify-content:space-between;align-items:baseline;font-size:34px;line-height:{SUB_H}px;white-space:nowrap}}
 .cv .sub{{color:{GREY}}}
-.cv .hint{{font-weight:700;color:{RED}}}
-.cv .ph{{border-bottom:0;color:{RED};padding:0}}
+.cv .hint{{font-weight:700;color:{BLUE}}}
+.cv .ph{{border-bottom:0;color:{BLUE};padding:0}}
 """
 
 
@@ -115,9 +124,9 @@ def photo_uri(rel, box=None):
 
 def cover(title, sub, hint, photo, pos="50% 50%"):
     """封面不放任何署名／免責／商標句（Andy 11-04：下方備註不用，文案備註就好）；署名與免責寫進貼文文案，範本句見 README。"""
-    return (f'<div class="cv"><div class="bar"></div><div class="lg">{OPEN_RING}</div>'
+    return (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
             f'<div class="pic" data-b style="background-image:url({photo});background-position:{pos}"></div>'
-            f'<div class="rl"></div><div class="tt">{title}</div><div class="row"><div class="sub">{sub}</div><div class="hint">{hint}</div></div></div>')
+            f'<div class="rl"><b></b><i></i></div><div class="tt">{title}</div><div class="row"><div class="sub">{sub}</div><div class="hint">{hint}</div></div></div>')
 
 
 PH = lambda t: f'<span class="ph">{t}</span>'
@@ -132,13 +141,13 @@ S["A1_cover"] = cover(
 rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
 trs = "".join(f'<div style="display:flex;align-items:center;height:118px;border-top:2px solid {LINE}">'
-              f'<div class="n" style="width:78px;font-size:32px;color:{RED}">{i+1:02d}</div>'
-              f'<div style="width:240px;font-size:40px;font-weight:800;white-space:nowrap">{a}</div>'
-              f'<div style="width:400px;font-size:36px"><span class="ph">{b}</span></div>'
+              f'<div class="n" style="width:70px;font-size:32px;color:{BLUE}">{i+1:02d}</div>'
+              f'<div style="width:230px;font-size:40px;font-weight:800;white-space:nowrap">{a}</div>'
+              f'<div style="width:380px;font-size:36px"><span class="ph">{b}</span></div>'
               f'<div style="flex:1;font-size:34px;color:{GREY};white-space:nowrap">〔一句評語〕</div></div>' for i, (a, b) in enumerate(rows))
 # 含「加班」等負面欄位：只寫公司名、不放 LOGO（法遵 ④）
-S["A2_fields_textonly"] = f"""{top('公司行情', '2 / 3')}
-<div class="body" style="padding-top:44px">
+S["A2_fields_textonly"] = f"""{top('公司行情', '2 / 2')}
+<div class="body" style="padding-top:40px">
   <div style="display:flex;gap:14px"><span class="tag">{NAME}</span><span class="tag g">七欄固定，方便比較</span></div>
   <div style="font-size:78px;font-weight:900;line-height:1.2;margin-top:24px">七個欄位，一次看完</div>
   <div class="box" style="margin-top:28px">{trs}</div>
@@ -148,8 +157,8 @@ S["A3_cta"] = f"""{top('公司行情', '3 / 3')}
   <div style="font-size:50px;font-weight:700;color:{GREY};margin-top:40px">你那一組的行情是多少？</div>
   <div style="font-size:112px;font-weight:900;line-height:1.25;margin-top:30px">留言告訴我們，<br>幫大家<span class="red">補齊</span>這張表</div>
   <div class="callout" style="margin-top:70px;font-size:46px;font-weight:700;line-height:1.5">所有數字為網友自述、未經查證，<br>區間僅供參考，有誤請指正。</div>
-  <div style="margin-top:70px;display:flex;border-top:3px solid {INK};border-bottom:2px solid {LINE}">
-    <div style="flex:1;padding:22px 24px 22px 0"><div class="lab">下一篇</div><div style="font-size:42px;font-weight:800;margin-top:6px">〔下一家公司〕</div></div>
+  <div class="card" style="margin-top:70px;display:flex">
+    <div style="flex:1;padding:22px 24px"><div class="lab">下一篇</div><div style="font-size:42px;font-weight:800;margin-top:6px">〔下一家公司〕</div></div>
     <div style="flex:1;padding:22px 24px;border-left:2px solid {LINE}"><div class="lab">追蹤</div><div style="font-size:42px;font-weight:800;margin-top:6px">科技透明圈</div></div></div>
 </div>{ft(DISC)}"""
 
@@ -176,7 +185,7 @@ S["B2_diagram"] = f"""{top('技術白話', '2 / 3')}
 <div class="body" style="padding-top:36px">
   <div style="display:flex;gap:14px;align-items:center"><span class="tag">2.5D 先進封裝剖面（以 CoWoS 為例）</span></div>
   <div style="font-size:60px;font-weight:900;line-height:1.25;margin-top:22px">接點由下往上，<span class="red">一路變小</span></div>
-  <div style="margin-top:22px;border-top:3px solid {INK};padding-top:14px"><img data-b src="{dgc}" width="{_IW}" style="display:block;margin:0 auto;border-bottom:2px solid {LINE}"></div>
+  <div class="card" style="margin-top:22px;padding:14px 14px 0;overflow:hidden"><img data-b src="{dgc}" width="{_IW}" style="display:block;margin:0 auto"></div>
   <div style="margin-top:10px">{_lab}</div>
   <div style="margin-top:8px;font-size:26px;color:{GREY};line-height:1.4">兩側是記憶體，中間是運算晶粒（其上另疊一顆晶粒，SoIC 混合鍵合）；<br>虛線＝訊號、供電、熱的走向示意。</div>
 </div>{ft('示意圖，非實物比例。CoWoS 為台積電之商標。', '科技透明圈')}"""
@@ -184,7 +193,7 @@ S["B3_points"] = f"""{top('技術白話', '3 / 3')}
 <div class="body">
   <div style="display:flex;gap:14px"><span class="tag">三個重點</span></div>
   <div style="font-size:84px;font-weight:900;line-height:1.25;margin-top:30px">看懂這張圖，<br>記住三件事</div>
-  {''.join(f'<div style="display:flex;gap:26px;align-items:flex-start;margin-top:40px;border-top:2px solid {LINE};padding-top:28px"><div class="n red" style="font-size:64px;line-height:1;width:84px">{i}</div><div><div style="font-size:50px;font-weight:800">{a}</div><div style="font-size:36px;color:{GREY};margin-top:8px;line-height:1.5">{b}</div></div></div>' for i, a, b in [("01", "晶片之間靠「中介層」連", "線路密度比一般載板高很多，所以訊號又短又快"), ("02", "記憶體貼在運算晶粒旁邊", "距離縮短，頻寬才拉得上去"), ("03", "封裝本身變成產能瓶頸", "不只是製程，連「怎麼組起來」都排隊")])}
+  {''.join(f'<div class="card" style="display:flex;gap:26px;align-items:flex-start;margin-top:32px;padding:26px 30px"><div class="n red" style="font-size:64px;line-height:1;width:84px">{i}</div><div><div style="font-size:50px;font-weight:800">{a}</div><div style="font-size:36px;color:{GREY};margin-top:8px;line-height:1.5">{b}</div></div></div>' for i, a, b in [("01", "晶片之間靠「中介層」連", "線路密度比一般載板高很多，所以訊號又短又快"), ("02", "記憶體貼在運算晶粒旁邊", "距離縮短，頻寬才拉得上去"), ("03", "封裝本身變成產能瓶頸", "不只是製程，連「怎麼組起來」都排隊")])}
 </div>{ft('示意圖，非實物比例', '科技透明圈')}"""
 
 
@@ -199,9 +208,9 @@ def wafer(die_w, die_h, defects, size=380):
             if all((px - cx) ** 2 + (py - cy) ** 2 <= (R - 6) ** 2 for px, py in cs):
                 hit = any(x0 <= dx < x0 + die_w and y0 <= dy < y0 + die_h for dx, dy in defects)
                 nd += 1; bd += hit
-                rects.append(f'<rect x="{x0+2:.1f}" y="{y0+2:.1f}" width="{die_w-4:.1f}" height="{die_h-4:.1f}" rx="3" fill="{RED if hit else "#EDEDED"}" stroke="{RED if hit else "#BDBDBD"}" stroke-width="1.5"/>')
+                rects.append(f'<rect x="{x0+2:.1f}" y="{y0+2:.1f}" width="{die_w-4:.1f}" height="{die_h-4:.1f}" rx="3" fill="{"#FFD99A" if hit else "#E8EEF7"}" stroke="{ORG if hit else "#B9C6DB"}" stroke-width="1.5"/>')
     dots = "".join(f'<circle cx="{dx:.1f}" cy="{dy:.1f}" r="7" fill="{INK}" stroke="#fff" stroke-width="2.5"/>' for dx, dy in defects)
-    return (f'<svg data-b width="{size}" height="{size}" viewBox="0 0 {size} {size}"><circle cx="{cx}" cy="{cy}" r="{R-2}" fill="#fff" stroke="#BDBDBD" stroke-width="3"/>{"".join(rects)}{dots}</svg>'), nd, bd
+    return (f'<svg data-b width="{size}" height="{size}" viewBox="0 0 {size} {size}"><circle cx="{cx}" cy="{cy}" r="{R-2}" fill="#fff" stroke="#B9C6DB" stroke-width="3"/>{"".join(rects)}{dots}</svg>'), nd, bd
 
 
 def defects(seed, size=380):
@@ -219,7 +228,7 @@ yS, yB = (nS - bS) / nS, (nB - bB) / nB
 
 
 def panel(title, svg, n, b, y):
-    return (f'<div style="flex:1;border-top:3px solid {INK};padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:10px">{svg}'
+    return (f'<div class="card" style="flex:1;padding:18px 0 16px;display:flex;flex-direction:column;align-items:center;gap:10px">{svg}'
             f'<div style="font-size:42px;font-weight:800;margin-top:4px">{title}</div><div class="n" style="font-size:38px;color:{GREY}">良品 {n-b} / 共 {n}</div>'
             f'<div class="n red" style="font-size:64px;line-height:1.1">{y*100:.0f}%</div></div>')
 
@@ -237,13 +246,13 @@ S["C2_diagram"] = f"""{top('面試題庫', '2 / 3')}
 </div>{ft('示意圖，非實際晶圓資料（缺陷位置為隨機示意）', '科技透明圈')}"""
 S["C3_answer"] = f"""{top('面試題庫', '3 / 3')}
 <div class="body">
-  <div style="display:flex;align-items:center;gap:26px"><div class="n" style="width:150px;height:150px;background:{RED};color:#fff;font-size:112px;display:flex;align-items:center;justify-content:center;flex:none">A</div>
+  <div style="display:flex;align-items:center;gap:26px"><div class="n" style="width:150px;height:150px;background:{BLUE};border-radius:30px;color:#fff;font-size:112px;display:flex;align-items:center;justify-content:center;flex:none">A</div>
     <div style="font-size:38px;font-weight:700;color:{GREY};letter-spacing:.12em">參考答案</div></div>
   <div style="font-size:76px;font-weight:900;line-height:1.3;margin-top:36px">不是剛好剩一半，<br>而是<span class="ph">良率變平方</span></div>
   <div class="callout" style="margin-top:32px;padding:20px 34px"><div class="lab">一階模型（Poisson）</div><div class="n" style="font-size:64px;margin-top:6px">Y ＝ e<sup style="font-size:.55em">−A·D₀</sup></div></div>
-  <div style="margin-top:30px;border-top:3px solid {INK}">
+  <div class="box" style="margin-top:30px">
     <div style="display:flex;align-items:center;height:96px;border-bottom:2px solid {LINE}"><div style="width:420px;font-size:36px;font-weight:700">面積 1 倍（D₀ 0.1）</div><div class="n" style="font-size:48px">e<sup style="font-size:.55em">−0.1</sup> ≈ 90.5%</div></div>
-    <div style="display:flex;align-items:center;height:96px;border-bottom:2px solid {LINE}"><div style="width:420px;font-size:36px;font-weight:700">面積 2 倍（D₀ 0.1）</div><div class="n red" style="font-size:48px">e<sup style="font-size:.55em">−0.2</sup> ≈ 81.9%</div></div></div>
+    <div style="display:flex;align-items:center;height:96px"><div style="width:420px;font-size:36px;font-weight:700">面積 2 倍（D₀ 0.1）</div><div class="n red" style="font-size:48px">e<sup style="font-size:.55em">−0.2</sup> ≈ 81.9%</div></div></div>
   <div style="margin-top:22px;font-size:36px;line-height:1.5;font-weight:500">面積加倍 ＝ 良率自己乘自己（0.905² ≈ 0.819）。<br>真正變貴的是：每片晶圓能切的顆數少一半，<br>每顆好晶粒的成本因此不止翻倍。</div>
 </div>{ft('教學用假設值，非任何公司實際良率', '科技透明圈')}"""
 
