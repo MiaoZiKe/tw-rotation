@@ -91,9 +91,10 @@ LOGO_PAD = 20                 # LOGO 上方（紅條下緣到 LOGO）與下方�
 LOGO_TOP = BAR_H + LOGO_PAD   # 34
 PIC_TOP = LOGO_TOP + LOGO_H + LOGO_PAD   # 102：照片上緣（頂列總高 = 紅條 + 88）
 GAP = 56                      # 照片到紅短線、副標到頁底，兩段留白相等
-RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 8, 24, 212, 0, 0   # 紅短線高、紅線到標題、標題兩行高（72px／106 行高，兩行分開的 div 字框不互疊）；廣達這篇沒有副標列（Andy 11-05：「下方只需要表示廣達行情」），提示併入標題第二行右側
-BELOW = GAP + RL_H + RL_GAP + TT_H + SUB_GAP + SUB_H + GAP   # 照片以下總高 386
-PIC_H = H - PIC_TOP - BELOW   # 862：拿掉備註後的空間全部給照片
+RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 8, 40, 248, 0, 0   # 紅短線高、紅線到標題、標題兩行高（72px／106 行高，兩行分開的 div 字框不互疊）；廣達這篇沒有副標列（Andy 11-05：「下方只需要表示廣達行情」），提示併入標題第二行右側
+PIC_H = 690                   # 2026-11-06 Andy 提供廣達總部照（640x427）：照片框 1032x690（比例同原圖 1.5），放大約 1.6 倍，避免糊；多出的高度給標題區
+BELOW = H - PIC_TOP - PIC_H
+GAP = (BELOW - RL_H - RL_GAP - TT_H - SUB_GAP - SUB_H) // 2   # 照片到紅線、標題到頁底兩段留白相等
 RL_TOP = PIC_TOP + PIC_H + GAP
 TT_TOP = RL_TOP + RL_H + RL_GAP
 SUB_TOP = TT_TOP + TT_H + SUB_GAP
@@ -107,7 +108,7 @@ COVER_CSS = f"""
 .cv .rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px}}
 .cv .rl b{{position:absolute;left:0;top:0;width:88px;height:{RL_H}px;border-radius:4px;background:{BLUE}}}
 .cv .rl i{{position:absolute;left:100px;top:0;width:20px;height:{RL_H}px;border-radius:4px;background:{ORG}}}
-.cv .tt{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{W-2*M_L}px;height:{TT_H}px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
+.cv .tt{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{W-2*M_L}px;height:{TT_H}px;font-size:84px;font-weight:700;line-height:90px;color:{INK}}}
 .cv .row{{position:absolute;left:{M_L}px;top:{SUB_TOP}px;width:{W-2*M_L}px;height:{SUB_H}px;display:flex;justify-content:space-between;align-items:baseline;font-size:34px;line-height:{SUB_H}px;white-space:nowrap}}
 .cv .sub{{color:{GREY}}}
 .cv .hint{{font-weight:700;color:{BLUE}}}
@@ -120,6 +121,10 @@ def photo_uri(rel, box=None):
     if box: im = im.crop(box)
     bio = io.BytesIO(); im.save(bio, "JPEG", quality=92)
     return "data:image/jpeg;base64," + base64.b64encode(bio.getvalue()).decode()
+
+
+def photo_uri_abs(p):
+    return 'data:image/jpeg;base64,' + base64.b64encode(Path(p).read_bytes()).decode()
 
 
 def cover(title, sub, hint, photo, pos="50% 50%"):
@@ -137,8 +142,8 @@ NAME = "廣達"
 S = {}
 # 2026-11-05 Andy：「下方只需要表示廣達行情 並且嘗試有點偷偷說的感覺標題」→ 兩行標題、第二行瑞士紅，提示與第二行基線對齊靠右；不放副標、不放表情符號
 S["1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
-    f'<div class="pic" data-b style="background-image:url({photo_uri("quanta/photo_12.jpg", (0, 130, 1920, 1440))});background-position:10% 50%"></div>'
-    f'<div class="rl"><b></b><i></i></div><div class="tt" style="line-height:106px"><div>噓，偷偷跟你說</div>'
+    f'<div class="pic" data-b style="background-image:url({photo_uri_abs(Path(__file__).resolve().parent / "cover_photo.jpg")});background-position:50% 50%"></div>'
+    f'<div class="rl"><b></b><i></i></div><div class="tt" style="line-height:124px"><div>噓，偷偷跟你說</div>'
     f'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="color:{BLUE};font-weight:900">{NAME}行情</span>'
     f'<span class="hint" style="font-size:34px;line-height:44px;white-space:nowrap">往右滑看行情 →</span></div></div></div>')
 rows = [
