@@ -162,10 +162,47 @@ SWIPE_CSS = f"""
 .cv .tg{{font-size:{HT_PX}px;font-weight:700;line-height:80px;margin-top:16px;color:{INK};white-space:nowrap}}
 .cv .sw{{position:absolute;right:{SW_R}px;bottom:{SW_B}px;height:{SW_H}px;display:flex;align-items:center;gap:14px;padding:0 24px 0 28px;border-radius:{SW_H//2}px;background:#fff;border:3px solid {BLUE};color:{BLUE};font-size:32px;font-weight:700;white-space:nowrap}}
 .cv .sw svg{{display:block}}
+.cv .co{{font-size:44px;font-weight:700;line-height:60px;margin-top:12px;color:{BLUE};white-space:nowrap}}
 """
+# ---- 「透明」二字特效（2026-11-06 第三輪 Andy：「透明 就需要點特效在文字上 廣達兩字可能不用」）----
+# TITLE_FX：空＝一般實心；A 鏤空透視（藍描邊、字內透出封面照片）、B 玻璃質感（35% 淡藍＋白內高光＋細描邊）、
+# C 淡出掃光（左 100%→右 25% 藍＋斜白光帶）、D 只寫「透明說」（透明用 A 款），公司名放副標之後。
+TITLE_FX = os.environ.get("TITLE_FX", "").upper()
+_ph = "data:image/jpeg;base64," + base64.b64encode((Path(__file__).resolve().parent / "cover_photo.jpg").read_bytes()).decode()
+# 用 SVG 畫「透明」二字：描邊改用濾鏡（字形外擴 N px 再扣掉字形本身＝只留外環），避免可變字型的重疊輪廓在字內畫出多餘的線。
+FX_W, FX_H, FX_PAD, FX_BASE = 108 * 2 + 12, 132, 6, 111   # svg 寬（兩字＋左右各 6px 給外環）、高、左右內距、字基線 y
+
+
+def fx_svg(kind):
+    ring = {"A": (3.5, BLUE, 1), "D": (3.5, BLUE, 1), "B": (2.5, BLUE, 1), "C": (2, BLUE, .5)}[kind]
+    t = lambda extra: (f'<text x="{FX_PAD}" y="{FX_BASE}" font-size="108" font-weight="700" font-family="Noto Sans TC" {extra}>透明</text>')
+    defs = (f'<filter id="rg" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="{ring[0]}" result="d"/>'
+            f'<feComposite in="d" in2="SourceAlpha" operator="out" result="r"/><feFlood flood-color="{ring[1]}" flood-opacity="{ring[2]}"/><feComposite in2="r" operator="in"/></filter>')
+    if kind in ("A", "D"):
+        defs += (f'<pattern id="ph" patternUnits="userSpaceOnUse" x="0" y="0" width="{FX_W}" height="{FX_H}"><rect width="{FX_W}" height="{FX_H}" fill="#fff"/>'
+                 f'<image href="{_ph}" x="-110" y="-26" width="640" height="427" preserveAspectRatio="none"/></pattern>')
+        body = t('fill="url(#ph)"') + t('fill="#000" filter="url(#rg)"')
+    elif kind == "B":
+        defs += (f'<linearGradient id="hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".4" stop-color="#fff" stop-opacity=".5"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>'
+                 f'<filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset dy="6"/><feFlood flood-color="{BLUE}" flood-opacity=".28"/><feComposite in2="SourceAlpha" operator="in" result="x"/></filter>')
+        body = t(f'fill="{BLUE}" fill-opacity=".35"') + t('fill="url(#hl)"') + t('fill="#000" filter="url(#rg)"')
+    else:
+        defs += (f'<linearGradient id="fd" gradientUnits="userSpaceOnUse" x1="{FX_PAD}" y1="0" x2="{FX_W-FX_PAD}" y2="0"><stop offset="0" stop-color="{BLUE}" stop-opacity="1"/><stop offset="1" stop-color="{BLUE}" stop-opacity=".25"/></linearGradient>'
+                 f'<linearGradient id="bd" gradientUnits="userSpaceOnUse" x1="70" y1="20" x2="120" y2="110"><stop offset=".34" stop-color="#fff" stop-opacity="0"/><stop offset=".45" stop-color="#fff" stop-opacity=".95"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>')
+        body = t('fill="url(#fd)"') + t('fill="url(#bd)"') + t('fill="#000" filter="url(#rg)"')
+    return f'<svg data-b width="{FX_W}" height="{FX_H}" viewBox="0 0 {FX_W} {FX_H}" style="display:block;flex:none"><defs>{defs}</defs>{body}</svg>'
+
+
+if TITLE_FX == "D":
+    TITLE_HTML = f'<div class="nm" style="display:flex">{fx_svg("D")}<span>說</span></div>'
+    EXTRA = f'<div class="co">{NAME}</div>'
+elif TITLE_FX:
+    TITLE_HTML = f'<div class="nm" style="display:flex"><span>{NAME}</span>{fx_svg(TITLE_FX)}<span>說</span></div>'; EXTRA = ""
+else:
+    TITLE_HTML = f'<div class="nm">{TITLE_FMT.format(公司=NAME)}</div>'; EXTRA = ""
 S["1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
     f'<div class="pic" data-b style="background-image:url({photo_uri_abs(Path(__file__).resolve().parent / "cover_photo.jpg")});background-position:50% 50%"></div>'
-    f'<div class="low"><div class="nm">{TITLE_FMT.format(公司=NAME)}</div><div class="tg">{HINT}</div></div>{SWIPE}</div>')
+    f'<div class="low">{TITLE_HTML}<div class="tg">{HINT}</div>{EXTRA}</div>{SWIPE}</div>')
 
 # ---- 待遇表：上半台灣地圖＋總部位置，下半「工程師待遇」6 欄（欄名＋重點值，不放備註） ----
 rows = [
@@ -227,6 +264,7 @@ JS = """() => {
  return {bad,oob,ovf,small,clip,wide,n:rects.length,clipdbg:[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible').map(e=>[e.tagName,e.scrollWidth,e.clientWidth])};
 }"""
 
+if TITLE_FX: S = {f'cover_{TITLE_FX}': S['1_cover']}
 report = {}
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
@@ -242,6 +280,6 @@ with sync_playwright() as p:
         report[name] = res
         print(name, "重疊", len(res["bad"]), "出界", len(res["oob"]), "溢出", res["ovf"], "小字(<24px)", res["small"], "截切", res["clip"], "超右界", res["wide"], res["bad"][:3])
     b.close()
-json.dump(report, open(OUT / "overlap_report.json", "w"), ensure_ascii=False, indent=1)
+json.dump(report, open(OUT / (f"overlap_report_{TITLE_FX}.json" if TITLE_FX else "overlap_report.json"), "w"), ensure_ascii=False, indent=1)
 tot = sum(len(v["bad"]) + len(v["oob"]) + int(v["ovf"]) + len(v["clip"]) + len(v["wide"]) + len(v["small"]) for v in report.values())
 print(f"重疊檢查：程式 {len(report)} 張 {tot} 筆")

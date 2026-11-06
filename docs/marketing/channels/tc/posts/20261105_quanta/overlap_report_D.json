@@ -1,0 +1,12 @@
+{
+ "cover_D": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "clip": [],
+  "wide": [],
+  "n": 10,
+  "clipdbg": []
+ }
+}
