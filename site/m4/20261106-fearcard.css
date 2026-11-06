@@ -1,6 +1,5 @@
-/* 手機（≤640）恐慌指數卡（site/fearcard.js）：卡片一張＝整個可用寬（mobile4.css 的 scroll-snap），時速表＋右邊大數字排得下；
-   卡片高度守同一排的上限（_uitest「總覽摘要卡列」390：≤ 120px）。只限 ≤640，桌機不受影響（CLAUDE.md 2026-10-08）。*/
+/* 手機（≤640）恐慌指數卡：卡片一張＝整個可用寬（mobile4.css 的 scroll-snap），時速表置中、下面一行數值。高度守同一排上限（_uitest「總覽摘要卡列」390：≤ 120px）。只限 ≤640。*/
 @media (max-width:640px){
-  .osc.fz .fz-g{height:62px}
-  .osc.fz .fz-row small{font-size:12px}
+  .osc.fz .fz-g{min-height:50px}
+  .osc.fz .fz-num{font-size:24px}
 }

@@ -1,15 +1,21 @@
 /* 總覽摘要卡「恐慌指數」（site/fearcard.js，2026-11-06 Andy：「另外需要新增恐慌指數再右上」「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」）。
    卡片外框沿用同一排的 .osc（index.html）；本體＝左邊時速表（ECharts gauge）＋右邊小字。顏色全走主題變數，深淺主題自動跟著換。
    手機（≤640／html.m4）的調整在 m4/20261106-fearcard.css。*/
-.osc.fz .osc-n.fz-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-flow:row;gap:8px;align-items:center;flex:1 1 auto;min-height:0}
-.osc.fz .fz-g{height:64px;min-width:0}
-.osc.fz .fz-na{font-size:12px;line-height:64px;text-align:center}
-.osc.fz .fz-side{display:flex;flex-direction:column;gap:2px;min-width:0;justify-content:center}
-.osc.fz .fz-big{display:flex;flex-direction:column;gap:0;min-width:0}
-.osc.fz .fz-num{font:700 28px/30px var(--mono);letter-spacing:-.5px;white-space:nowrap}
-.osc.fz .fz-st{font-size:13px;line-height:18px;font-weight:700}
-.osc.fz .fz-row small{display:block;font-size:12px;line-height:16px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.osc.fz .fz-row small b{color:var(--ink);font-family:var(--mono);font-size:12px}
+/* 本體：時速表（置中、吃剩下的高度，所以不會撐高同一排）＋正下方一行數值置中 */
+.osc.fz{gap:4px}
+.osc.fz .osc-n.fz-body{display:flex;flex-direction:column;align-items:stretch;gap:2px;flex:1 1 auto;min-height:0}
+.osc.fz .fz-g{flex:1 1 auto;min-height:34px;min-width:0}
+.osc.fz .fz-na{font-size:12px;line-height:40px;text-align:center}
+.osc.fz .fz-val{flex:none;display:flex;align-items:baseline;justify-content:center;gap:6px;min-width:0;white-space:nowrap;height:24px}
+.osc.fz .fz-num{font:700 22px/24px var(--mono);letter-spacing:-.5px}
+.osc.fz .fz-st{font-size:13px;font-weight:700}
+.osc.fz .fz-sep{align-self:center;width:1px;height:14px;background:var(--ink-3);opacity:.5}
+.osc.fz .fz-us{font-size:12px;color:var(--ink-3)}
+.osc.fz .fz-us b{color:var(--ink);font-family:var(--mono);font-size:12px}
+/* 桌機（摘要卡列放得下五張、>=960）：恐慌指數卡窄一點（約其他卡的 0.7 倍），其餘四張平分剩下的寬度。≤959 是固定寬可橫滑，照舊；手機不動 */
+@container ovsum (min-width:960px){
+  #hero .ovsum-track:has(.osc.fz){grid-auto-flow:column;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,.7fr)}
+}
 .osc.fz .osc-h > .howbtn{margin-left:auto}
 /* 五張一排（1440 每張約 218px）時，站主看得到的「即時」鈕會把「資金分流樹」卡名擠成「資金分流…」：
    有恐慌指數卡的那一排，標題列間距 8→6、即時鈕左右留白 8→6（只動這一排的桌機寬；手機 ≤640 另有規則）。*/
@@ -25,7 +31,5 @@
 .fz-note{font-size:12px;line-height:17px;color:var(--ink-3);margin-top:4px}
 .fz-note b{color:var(--ink);font-family:var(--mono)}
 @media (max-width:640px){
-  .osc.fz .fz-g{height:62px}
-  .osc.fz .fz-num{font-size:26px}
   .fz-cv{height:240px}
 }

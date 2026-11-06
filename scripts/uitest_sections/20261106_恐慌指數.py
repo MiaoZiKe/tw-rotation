@@ -42,7 +42,7 @@ def t_fear_1106(b, base, code):
         return {{ ks, last: t.lastElementChild === c, title: c.querySelector('.osc-t').innerText,
           gauge: (() => {{ const g = document.getElementById('ovFearGauge'), ch = g && echarts.getInstanceByDom(g); if (!ch) return null; const o = ch.getOption().series[0];
             return {{ type: o.type, v: o.data[0].value, segs: (o.axisLine.lineStyle.color || []).length, cv: g.querySelectorAll('canvas, svg').length, h: Math.round(g.getBoundingClientRect().height) }}; }})(),
-          us: c.querySelector('.fz-us b') ? c.querySelector('.fz-us b').innerText : null, side: c.querySelector('.fz-side').innerText,
+          us: c.querySelector('.fz-us b') ? c.querySelector('.fz-us b').innerText : null, side: c.querySelector('.fz-val').innerText,
           dtw: D.tw ? D.tw.value : null, dus: D.us ? D.us.value : null, dstate: D.tw ? D.tw.state : null, text: c.innerText,
           lines: c.querySelector('.fz-body').innerText.split('\\n').map(x => x.trim()).filter(Boolean).length, under: !!document.querySelector('#hero #ovFearFull'),
           h: Math.round(c.getBoundingClientRect().height), hs: [...t.children].map(x => Math.round(x.getBoundingClientRect().height)) }}; }}""")
@@ -52,8 +52,14 @@ def t_fear_1106(b, base, code):
     # Andy 11-06：「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」
     ok(f"{T} 主視覺是時速表（ECharts gauge），指針值＝fear.json 台指自算；有狀態時刻度分三段顏色", g.get("type") == "gauge" and g.get("cv", 0) > 0 and g.get("h", 0) > 40
        and (d["dtw"] is None or abs(g.get("v", -1) - d["dtw"]) < 1e-9) and (g.get("segs") == 3 if d["dstate"] else True), d)
-    ok(f"{T} 右側小字：美股 VIX＝fear.json、帶日期；卡片畫面上沒有「非期交所官方」那句", d["us"] == ("—" if d["dus"] is None else f"{d['dus']:.1f}") and "美股 VIX" in d["side"] and "分位" not in d["side"] and "n=" not in d["side"] and "非期交所官方" not in d["text"] and "非官方" not in d["text"], d)
+    ok(f"{T} 右側小字：美股 VIX＝fear.json、帶日期；卡片畫面上沒有「非期交所官方」那句", d["us"] == ("—" if d["dus"] is None else f"{d['dus']:.1f}") and "VIX" in d["side"] and "分位" not in d["side"] and "n=" not in d["side"] and "非期交所官方" not in d["text"] and "非官方" not in d["text"], d)
     ok(f"{T} 卡片文字行數 ≤ 3（大數字、狀態字、美股 VIX 一行）、日期／漲跌／分位／n 都不在卡片上", d["lines"] <= 3 and not re.search(r"\d\d/\d\d|▲|▼", d["text"]), d)
+    wd = pg.evaluate(f"""() => {{ const c = document.querySelector('{_FEAR1106_CARD}').getBoundingClientRect(), u = document.querySelector('#hero .osc[data-k="updown"]').getBoundingClientRect(),
+        g = document.getElementById('ovFearGauge').getBoundingClientRect(), v = document.querySelector('{_FEAR1106_CARD} .fz-val').getBoundingClientRect(), n = document.querySelector('{_FEAR1106_CARD} .fz-val').children;
+        return {{ cw: Math.round(c.width), uw: Math.round(u.width), ratio: +(c.width / u.width).toFixed(3), gb: Math.round(g.bottom), vt: Math.round(v.top), vl: Math.round(v.left - c.left), vr: Math.round(c.right - v.right),
+          gl: Math.round(g.left + g.width / 2 - (c.left + c.width / 2)), one: new Set([...n].map(x => Math.round(x.getBoundingClientRect().top / 8))).size <= 2, cut: v.right > c.right }}; }}""")
+    ok(f"{T} 卡寬小於旁邊漲跌家數卡寬的 0.75 倍（Andy：不用跟左邊一樣寬）", wd["ratio"] < 0.75 and wd["ratio"] > 0.4, wd)
+    ok(f"{T} 數值列在時速表正下方（數值列 top ≥ 時速表 bottom）、同一行、置中、沒被切到卡外", wd["vt"] >= wd["gb"] and wd["one"] and not wd["cut"] and abs(wd["vl"] - wd["vr"]) <= 8 and abs(wd["gl"]) <= 3, wd)
     ok(f"{T} 五張卡同一排等高", len(set(d["hs"])) == 1, d["hs"])
     pg.locator(f"{_FEAR1106_CARD} .howbtn").click()
     wait_until(pg, "() => { const e = document.getElementById('how-ovs-fear'); return !!e && !e.hidden && e.getClientRects().length > 0; }", 4000)
@@ -91,7 +97,7 @@ def t_fear_1106(b, base, code):
     pg.evaluate("() => { const t = document.querySelector('#ovSumTrack'); t.scrollLeft = t.scrollWidth; }"); pg.wait_for_timeout(700)
     m = pg.evaluate(f"""() => {{ const c = document.querySelector('{_FEAR1106_CARD}').getBoundingClientRect();
         return {{ l: Math.round(c.left), r: Math.round(c.right), h: Math.round(c.height), vw: innerWidth, sw: document.documentElement.scrollWidth,
-          st: (document.getElementById('ovFearGauge') || {{}}).offsetHeight || 0, sd: (document.querySelector('{_FEAR1106_CARD} .fz-side') || {{}}).offsetHeight || 0 }}; }}""")
+          st: (document.getElementById('ovFearGauge') || {{}}).offsetHeight || 0, sd: (document.querySelector('{_FEAR1106_CARD} .fz-val') || {{}}).offsetHeight || 0 }}; }}""")
     ok(f"{T} 390：滑到最後一張，恐慌指數卡整張在畫面內、整頁沒有橫向捲軸、卡高 ≤ 120、時速表與右側小字都看得到",
        m["l"] >= 0 and m["r"] <= m["vw"] and m["sw"] <= m["vw"] and m["h"] <= 120 and m["st"] > 40 and m["sd"] > 0, m)
     opened = open_full(pg)

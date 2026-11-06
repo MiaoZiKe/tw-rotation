@@ -55,10 +55,12 @@
     const tw = d && d.tw, us = d && d.us;
     const st = tw && ST[tw.state];
     /* 卡片只留：大數字＋狀態字（右側）、一行美股 VIX。日期、漲跌、分位、n 全在「?」裡（Andy 11-06：文字有點多；#329 日期不放卡片）。*/
+    /* Andy 11-06（看過線上版）：數值放在時速表正下方、排成一行置中「40.0 恐慌 ｜ VIX 28.2」；卡片窄（桌機約 0.7 倍寬）放不下「美股」兩字，
+       完整名稱在 title／aria／「?」裡。*/
     const side = !d ? '<span class="muted">載入中…</span>'
-      : `<div class="fz-big" data-v="tw"><b class="fz-num" style="color:${st ? st.c : 'var(--ink)'}">${tw ? Number(tw.value).toFixed(1) : '—'}</b>`
-        + `<span class="fz-st" style="color:${st ? st.c : 'var(--ink-3)'}">${tw ? (st ? st.n : '樣本不足') : '回補中'}</span></div>`
-        + `<div class="fz-row fz-us" data-v="us"><small>美股 VIX <b>${us && us.value != null ? Number(us.value).toFixed(1) : '—'}</b></small></div>`;
+      : `<b class="fz-num" data-v="tw" style="color:${st ? st.c : 'var(--ink)'}">${tw ? Number(tw.value).toFixed(1) : '—'}</b>`
+        + `<span class="fz-st" style="color:${st ? st.c : 'var(--ink-3)'}">${tw ? (st ? st.n : '樣本不足') : '回補中'}</span>`
+        + `<i class="fz-sep" aria-hidden="true"></i><span class="fz-us" data-v="us" title="美股恐慌指數 VIX">VIX <b>${us && us.value != null ? Number(us.value).toFixed(1) : '—'}</b></span>`;
     return { side, st, aria: `恐慌指數 ${n2(tw && tw.value)}${st ? '，' + st.n : ''}；美股 VIX ${n2(us && us.value)}。點一下捲到走勢圖` };
   }
   function card() {
@@ -66,7 +68,7 @@
     return `<div class="osc fz" data-k="fear" role="button" tabindex="0" aria-label="${esc(o.aria)}" title="點一下看走勢圖">`
       + `<div class="osc-h"><span class="osc-ic" data-icon="gauge" style="--ic:var(--rise)" aria-hidden="true">${ICON}</span><b class="osc-t">恐慌指數</b>`
       + `<button class="howbtn pop" data-how="ovs-fear" data-ttl="恐慌指數" type="button" aria-label="恐慌指數怎麼看">?</button></div>`
-      + `<div class="osc-n fz-body"><div class="fz-g" id="ovFearGauge" role="img" aria-label="${esc(o.aria)}"></div><div class="fz-side">${o.side}</div></div></div>`;
+      + `<div class="osc-n fz-body"><div class="fz-g" id="ovFearGauge" role="img" aria-label="${esc(o.aria)}"></div><div class="fz-val">${o.side}</div></div></div>`;
   }
   function howText(d) {
     const m = (d && d.method) || {};
@@ -96,21 +98,23 @@
     if (!tw) { el.innerHTML = '<div class="fz-na muted">台指自算值回補中</div>'; return; }
     const { lo, hi } = gaugeRange(tw);
     const f = (v) => Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
-    const C = { calm: cssv('--fall', '#2ee59d'), alert: cssv('--amber', '#ffb454'), panic: cssv('--rise', '#ff4d6d') };
+    /* 淺色主題的 --amber 是給文字用的深琥珀，畫在弧線上偏暗、像橄欖色（Andy 11-06）：弧線的黃改用亮一點的固定值 */
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    const C = { calm: cssv('--fall', '#2ee59d'), alert: light ? '#E0A100' : cssv('--amber', '#ffb454'), panic: cssv('--rise', '#ff4d6d') };
     const stops = tw.q50 != null && tw.q85 != null && tw.state
       ? [[f(tw.q50), C.calm], [f(tw.q85), C.alert], [1, C.panic]]
       : [[1, line]];                                   // 樣本不足：不畫分段（不給狀態就不准用顏色暗示狀態）
     /* 版面：只畫弧與指針（數字、狀態字改在右側 HTML，大而清楚）。圓心貼近底邊、半徑用像素算（ECharts 的 % 在矮卡片會縮成一小團）；
        弧線粗 10、兩端圓頭；分界靠顏色變化（不畫刻度與刻度數字）；指針細長、圓心加一圈與卡底同色的外框，深淺主題都清楚。*/
-    const W = el.clientWidth || 90, H = el.clientHeight || 64;
-    const CY = H - 8, R = Math.max(24, Math.min(W / 2 - 3, CY - 2));
+    const W = el.clientWidth || 90, H = el.clientHeight || 44;
+    const CY = H - 7, R = Math.max(20, Math.min(W / 2 - 4, CY - 1));
     const bg = cssv('--panel', '#0d1426');
     a.chart(el, {
       animation: false, m4dz: false, timeGrid: false,
       series: [{
         type: 'gauge', startAngle: 180, endAngle: 0, min: lo, max: hi, splitNumber: 2,
         center: ['50%', CY], radius: R,
-        axisLine: { roundCap: true, lineStyle: { width: 10, color: stops } },
+        axisLine: { roundCap: true, lineStyle: { width: R > 50 ? 10 : 8, color: stops } },
         pointer: { length: '66%', width: 4, offsetCenter: [0, 0], itemStyle: { color: ink } },
         anchor: { show: true, size: 9, showAbove: true, itemStyle: { color: ink, borderColor: bg, borderWidth: 3 } },
         axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
@@ -124,7 +128,7 @@
   function refresh() {
     const c = document.querySelector('#hero .osc[data-k="fear"]'); if (!c) return;
     const o = inner(S.data);
-    const side = c.querySelector('.fz-side'); if (side && side.innerHTML !== o.side) side.innerHTML = o.side;
+    const side = c.querySelector('.fz-val'); if (side && side.innerHTML !== o.side) side.innerHTML = o.side;
     c.setAttribute('aria-label', o.aria);
     ['how-ovs-fear', 'how-fearfull'].forEach((id) => { const hb = document.getElementById(id); if (hb) hb.innerHTML = howText(S.data); });
     const host = document.getElementById('hero');
