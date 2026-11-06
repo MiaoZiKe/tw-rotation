@@ -8,7 +8,9 @@
   第一次 daily 跑完看 `data/_state/last_run.json` 的 `steps["tpex.margin_total_otc"].diag`；`ok:false` 就照裡面的端點與欄位名修 `parse_summary`。
 - 櫃買 OpenAPI 只給最新一天 → 上櫃／合計從第一筆起逐日累積，畫面沒資料時顯示「資料累積中」。
 - 每週檢查 `.github/workflows/open-data-watch.yml`（週六台北 11:43）→ `data/_state/official_open_watch.json` → meta.json `official_open` → 資料狀態提示。誤判寫進狀態檔 `ignore`。
-- 這批只驗了：pytest（sparse checkout 缺 docs／data 的 39 條環境性失敗除外）、`信用上櫃1106`（新）、`信用排行1104`、`大盤融資維持率1020`、`信用交易r3`、`資料狀態`、`_preview.py`。
+- 這批只驗了：pytest（sparse checkout 缺 docs／data 的 39 條環境性失敗除外）、`信用上櫃1106`（新）、`信用排行1104`、`大盤融資維持率1020`、`信用交易r3`、`資料狀態`、`_preview.py`（5 條都在總覽／資金流向／財報日曆，本機 site/data 是 10-26 舊檔，跟這批無關）。
+  本機完整 `build_payload` 三次都在記憶體不足被系統砍掉（主機與其他 session 共用 15G），只確認到 `market_fut.json` 新格式寫得出來；線上由 pages.yml 重算。
+- 遠端臨時分支 `probe/margin-call` 刪不掉（git 代理斷線、gh api 刪除被權限擋），要刪請 Andy 或有權限的 session 處理。
 
 ## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
 - 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
