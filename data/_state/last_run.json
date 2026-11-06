@@ -3,7 +3,7 @@
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.1
+      "seconds": 0.0
     },
     "inst_official": {
       "ok": true,
@@ -172,19 +172,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 918,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "inst_daily": {
-      "stored": 424
+      "stored": 31
     },
     "institutional_codes": {
-      "requested": 457,
-      "returned": 424
+      "requested": 33,
+      "returned": 31
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 424,
-      "seconds": 106.7
+      "rows": 31,
+      "seconds": 6.5
     },
     "inst_flags": {
       "rebuild": true,
@@ -248,10 +248,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-06T09:08:24.217413+00:00",
-  "finished_at": "2026-11-06T09:10:27.926159+00:00",
-  "duration_seconds": 123.7,
+  "started_at": "2026-11-06T09:50:15.329279+00:00",
+  "finished_at": "2026-11-06T09:50:56.317677+00:00",
+  "duration_seconds": 41.0,
   "trade_date": "2026-11-06",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 470
 }
