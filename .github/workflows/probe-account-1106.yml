@@ -14,12 +14,12 @@ jobs:
         run: |
           U="${U%/}"
           [ -z "$U" ] && { echo "ACCOUNT_API_URL 未設"; exit 1; }
-          H='Content-Type: application/json'
-          echo "== mdash/get (POST)"; curl -s -o /tmp/m.json -w "HTTP %{http_code}\n" -X POST -H "$H" -d '{}' "$U/v1/mdash/get"; cat /tmp/m.json; echo
-          echo "== mdash/get (GET)"; curl -s -o /dev/null -w "HTTP %{http_code}\n" "$U/v1/mdash/get"
-          echo "== admin/online/today 無權杖"; curl -s -o /tmp/t.json -w "HTTP %{http_code}\n" -X POST -H "$H" -d '{}' "$U/v1/admin/online/today"; cat /tmp/t.json; echo
-          echo "== admin/mdash/put 無權杖"; curl -s -o /tmp/p.json -w "HTTP %{http_code}\n" -X POST -H "$H" -d '{"row":{"d":"2026-01-01","call_n":1}}' "$U/v1/admin/mdash/put"; cat /tmp/p.json; echo
-          echo "== admin/mdash/del 無權杖"; curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST -H "$H" -d '{"d":"2026-10-30"}' "$U/v1/admin/mdash/del"
+          H='Content-Type: application/json'; O='Origin: https://liguligu-puipui.com'
+          echo "== mdash/get (POST)"; curl -s -o /tmp/m.json -w "HTTP %{http_code}\n" -X POST -H "$H" -H "$O" -d '{}' "$U/v1/mdash/get"; cat /tmp/m.json; echo
+          echo "== mdash/get (GET)"; curl -s -o /dev/null -w "HTTP %{http_code}\n" -H "$O" "$U/v1/mdash/get"
+          echo "== admin/online/today 無權杖"; curl -s -o /tmp/t.json -w "HTTP %{http_code}\n" -X POST -H "$H" -H "$O" -d '{}' "$U/v1/admin/online/today"; cat /tmp/t.json; echo
+          echo "== admin/mdash/put 無權杖"; curl -s -o /tmp/p.json -w "HTTP %{http_code}\n" -X POST -H "$H" -H "$O" -d '{"row":{"d":"2026-01-01","call_n":1}}' "$U/v1/admin/mdash/put"; cat /tmp/p.json; echo
+          echo "== admin/mdash/del 無權杖"; curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST -H "$H" -H "$O" -d '{"d":"2026-10-30"}' "$U/v1/admin/mdash/del"
           SID="probe$(date +%s)xyz"
-          echo "== beat（公開在線人數格式）"; curl -s -w "\nHTTP %{http_code}\n" -X POST -H "$H" -d "{\"sid\":\"$SID\",\"r\":\"overview\",\"ev\":{}}" "$U/v1/beat"
-          curl -s -o /dev/null -X POST -H "$H" -d "{\"sid\":\"$SID\",\"leave\":true,\"ev\":{}}" "$U/v1/beat"
+          echo "== beat（公開在線人數格式）"; curl -s -w "\nHTTP %{http_code}\n" -X POST -H "$H" -H "$O" -d "{\"sid\":\"$SID\",\"r\":\"overview\",\"ev\":{}}" "$U/v1/beat"
+          curl -s -o /dev/null -X POST -H "$H" -H "$O" -d "{\"sid\":\"$SID\",\"leave\":true,\"ev\":{}}" "$U/v1/beat"
