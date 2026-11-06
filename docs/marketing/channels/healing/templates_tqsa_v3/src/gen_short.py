@@ -88,6 +88,17 @@ def pager(style, n, total=3):
     if style == "A":
         svg = '' if last else '<svg width="64" height="36" viewBox="0 0 64 36"><path d="M2 18 H58" stroke="%s" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M48 9 L60 18 L48 27" stroke="%s" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' % (ln, ln)
         return num + svg
+    if style == "S":   # 新 B：頁點，目前頁用小太陽；其餘頁雲灰空心；最後一頁前兩點淡色實心、最後一點是太陽、不放箭頭
+        def sun(cx):
+            r = ''.join('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="2.6" stroke-linecap="round"/>' % (cx + 12 * math.cos(a), 22 + 12 * math.sin(a), cx + 18 * math.cos(a), 22 + 18 * math.sin(a), lp) for a in [k * math.pi / 4 for k in range(8)])
+            return '<circle cx="%d" cy="22" r="9" fill="%s"/>' % (cx, lp) + r
+        out = ''
+        for i in range(total):
+            cx = 22 + i * 40
+            if i + 1 == n: out += sun(cx)
+            elif last: out += '<circle cx="%d" cy="22" r="7.5" fill="%s" opacity=".4"/>' % (cx, lp)
+            else: out += '<circle cx="%d" cy="22" r="7.5" fill="none" stroke="%s" stroke-width="2"/>' % (cx, ln)
+        return '<svg width="124" height="44" viewBox="0 0 124 44">%s</svg>' % out
     if style == "B":
         dots = ''.join('<circle cx="%d" cy="18" r="7.5" fill="%s" stroke="%s" stroke-width="2"/>' % (10 + i * 26, lp if (i + 1 == n or last) else "none", lp if (i + 1 == n or last) else ln) for i in range(total))
         arrow = '' if last else '<path d="M92 10 L102 18 L92 26" stroke="%s" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' % ln
@@ -100,11 +111,11 @@ def pager(style, n, total=3):
     sun = '<circle cx="138" cy="18" r="8" fill="%s"/>' % lp + rays
     return num + '<svg width="192" height="43" viewBox="0 0 160 36">%s%s%s%s</svg>' % (cloud, dots, arrow, sun)
 import math
-def short_page(n, theme, style="C"):
+def short_page(n, theme, style="S"):
     p = PAL[theme]; W, H = 1080, 1350
     o = ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--W:%dpx;--H:%dpx;%s}%s .hintuse{font-weight:700}</style></head><body>' % (W, H, css_vars(p), CSS), GRAIN % (W, H, W, H)]
     o.append('<div data-o="logo" class="abs" style="left:96px;top:84px;line-height:0"><img src="file://%s" style="height:64px;display:block"></div>' % LOGO_TIGHT)
-    o.append('<div data-o="pager" class="abs" style="right:96px;top:1252px;height:40px;display:flex;align-items:center;gap:14px">%s</div>' % pager(style, n))
+    o.append('<div data-o="pager" class="abs" style="right:96px;top:1250px;height:44px;display:flex;align-items:center;gap:14px">%s</div>' % pager(style, n))
     M = 'class="m" style="top:%dpx;font-size:%dpx;line-height:%dpx"'
     if n == 1:
         o.append(scene_s("gap", 180))
@@ -127,7 +138,7 @@ for n in (1, 2, 3):
     hd = os.path.join(B, "html", th, "短版"); os.makedirs(hd, exist_ok=True); hp = os.path.join(hd, f"{n}.html"); open(hp, "w", encoding="utf-8").write(short_page(n, th))
     od = os.path.join(OUT, "首篇_短版3張", th); os.makedirs(od, exist_ok=True)
     mf.append(dict(html=os.path.relpath(hp, B), png=os.path.relpath(os.path.join(od, f"{n}.png"), B), W=1080, H=1350, key=f"首篇_短版3張/{th}/{n}", safe=None))
-for st in "ABC":   # 下一頁記號比較：同一張封面套三種
+for st in "B":   # 下一頁記號比較：同一張封面套三種
     hp = os.path.join(B, "html", th, "短版", f"pager_{st}.html"); open(hp, "w", encoding="utf-8").write(short_page(1, th, st))
     mf.append(dict(html=os.path.relpath(hp, B), png=f"tmp/pager_{st}.png", W=1080, H=1350, key=f"首篇_短版3張/比較/{st}", safe=None))
 json.dump(mf, open(B + "/manifest_short.json", "w"), ensure_ascii=False, indent=1); print("頁數", len(mf))

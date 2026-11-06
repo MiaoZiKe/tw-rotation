@@ -4,7 +4,7 @@
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
    "L": 117,
    "T": 351,
@@ -27,7 +27,7 @@
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
    "L": 104,
    "T": 228,
@@ -42,7 +42,7 @@
    "inside": true
   },
   "scrollH": 1350,
-  "contrast_min": 6.24,
+  "contrast_min": 12.0,
   "contrast_pass": true
  },
  "首篇_短版3張/晝版/3": {
@@ -50,7 +50,7 @@
   "overlap": [],
   "gap32": [],
   "oob": [],
-  "minFont": 30,
+  "minFont": 40,
   "ink": {
    "L": 126,
    "T": 194,
@@ -68,58 +68,12 @@
   "contrast_min": 5.02,
   "contrast_pass": true
  },
- "首篇_短版3張/比較/A": {
-  "n": 5,
-  "overlap": [],
-  "gap32": [],
-  "oob": [],
-  "minFont": 30,
-  "ink": {
-   "L": 117,
-   "T": 351,
-   "R": 964,
-   "B": 946,
-   "box": [
-    96,
-    180,
-    984,
-    960
-   ],
-   "inside": true
-  },
-  "scrollH": 1350,
-  "contrast_min": 6.24,
-  "contrast_pass": true
- },
  "首篇_短版3張/比較/B": {
   "n": 5,
   "overlap": [],
   "gap32": [],
   "oob": [],
   "minFont": 40,
-  "ink": {
-   "L": 117,
-   "T": 351,
-   "R": 964,
-   "B": 946,
-   "box": [
-    96,
-    180,
-    984,
-    960
-   ],
-   "inside": true
-  },
-  "scrollH": 1350,
-  "contrast_min": 6.24,
-  "contrast_pass": true
- },
- "首篇_短版3張/比較/C": {
-  "n": 5,
-  "overlap": [],
-  "gap32": [],
-  "oob": [],
-  "minFont": 30,
   "ink": {
    "L": 117,
    "T": 351,
