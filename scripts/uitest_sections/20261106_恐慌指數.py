@@ -1,5 +1,6 @@
 # 驗收段落「恐慌指數1106」
 # 這支由 _uitest.py 用 exec 載入它自己的全域命名空間：ok()、wait_until()、_p12_ctx()、_sub_ctx()、P12_INL、OP_POP 直接可用，不要 import _uitest。
+# ⚠ 全域名稱一律用 _FEAR1106_ 開頭：所有段落 exec 進同一個命名空間，11-06 另一段（漲跌家數字卡）也用了 _T1106_KEY，撞名會互相蓋掉。
 # Andy 2026-11-06：「另外需要新增恐慌指數再右上」「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」—— 總覽摘要卡列最右邊一張「恐慌指數」（site/fearcard.js）。
 # 真的操作：
 #   1. 卡片排在同一排最右邊、主視覺是時速表（指針值＝fear.json）、卡片上沒有「非期交所官方」那句；按「?」說明寫明本站自算、與期交所台指VIX有差異、門檻
@@ -7,11 +8,11 @@
 #   3. 390 手機：卡片在可視寬內、整頁沒有橫向捲軸、卡片高度 ≤ 120；滑到最後一張看得到它
 #   4. 功能鍵 ov.fear：註冊會員第 5 次照常、第 6 次（新分頁）完整圖反灰＋一行字；訪客第 4 次被鎖；站主種 99 次不鎖；
 #      體驗中的會員被鎖後按「繼續看」→ 真的打 /v1/grants/hit、完整圖出現
-import json as _t1106_json
+import json as _fear1106_json
 
-_T1106_KEY = "ov.fear"
-_T1106_NOTE = "恐慌指數完整圖今日 {n} 次已用完・Plus 以上可增加"
-_T1106_CARD = "#hero .osc[data-k=\"fear\"]"
+_FEAR1106_KEY = "ov.fear"
+_FEAR1106_NOTE = "恐慌指數完整圖今日 {n} 次已用完・Plus 以上可增加"
+_FEAR1106_CARD = "#hero .osc[data-k=\"fear\"]"
 
 
 def t_fear_1106(b, base, code):
@@ -20,22 +21,22 @@ def t_fear_1106(b, base, code):
 
     def go(pg, h="#overview"):
         pg.goto(base + h, wait_until="domcontentloaded")
-        wait_until(pg, f"() => !!document.querySelector('{_T1106_CARD}') && !!window.FearCard && !!FearCard._s.data", 30000)
+        wait_until(pg, f"() => !!document.querySelector('{_FEAR1106_CARD}') && !!window.FearCard && !!FearCard._s.data", 30000)
         pg.wait_for_timeout(600)
 
     def open_full(pg):
         # 新會員歡迎彈窗（promo_welcome.js）會蓋住整頁：照使用者的做法按 Esc 關掉再點
         if pg.evaluate("() => { const o = document.getElementById('pwOv'); return !!o && o.getClientRects().length > 0; }"):
             pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
-        pg.evaluate(f"() => document.querySelector('{_T1106_CARD}').scrollIntoView({{block: 'center'}})")
-        pg.locator(_T1106_CARD).click(position={"x": 30, "y": 60})
+        pg.evaluate(f"() => document.querySelector('{_FEAR1106_CARD}').scrollIntoView({{block: 'center'}})")
+        pg.locator(_FEAR1106_CARD).click(position={"x": 30, "y": 60})
         return wait_until(pg, "() => !!document.querySelector('#ovFearFull')", 6000)
 
     # ---------------------------------------------------------------- 1～2. 桌機 1440：位置、數字、說明、展開、拉Bar、收起
     c, sent, st = _sub_ctx(b, "admin", owner=True, plan="free")
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg)
-    d = pg.evaluate(f"""() => {{ const t = document.querySelector('#ovSumTrack'), c = document.querySelector('{_T1106_CARD}');
+    d = pg.evaluate(f"""() => {{ const t = document.querySelector('#ovSumTrack'), c = document.querySelector('{_FEAR1106_CARD}');
         const ks = [...t.children].map(x => x.dataset.k); const D = FearCard._s.data || {{}};
         return {{ ks, last: t.lastElementChild === c, title: c.querySelector('.osc-t').innerText,
           gauge: (() => {{ const g = document.getElementById('ovFearGauge'), ch = g && echarts.getInstanceByDom(g); if (!ch) return null; const o = ch.getOption().series[0];
@@ -51,7 +52,7 @@ def t_fear_1106(b, base, code):
        and (d["dtw"] is None or abs(g.get("v", -1) - d["dtw"]) < 1e-9) and (g.get("segs") == 3 if d["dstate"] else True), d)
     ok(f"{T} 右側小字：美股 VIX＝fear.json、帶日期；卡片畫面上沒有「非期交所官方」那句", d["us"] == fmt2(d["dus"]) and "美股VIX" in d["side"] and "/" in d["side"] and "非期交所官方" not in d["text"] and "非官方" not in d["text"], d)
     ok(f"{T} 五張卡同一排等高", len(set(d["hs"])) == 1, d["hs"])
-    pg.locator(f"{_T1106_CARD} .howbtn").click()
+    pg.locator(f"{_FEAR1106_CARD} .howbtn").click()
     wait_until(pg, "() => { const e = document.getElementById('how-ovs-fear'); return !!e && !e.hidden && e.getClientRects().length > 0; }", 4000)
     hw = pg.evaluate("() => (document.getElementById('how-ovs-fear') || {}).innerText || ''")
     ok(f"{T} 按「?」→ 說明打開，寫明本站自算、與期交所台指VIX有差異、資料來源、平靜／警戒／恐慌門檻與樣本數", all(s in hw for s in ("本站", "自算", "會有差異", "資料來源", "50%", "85%", "平靜", "恐慌", "n")), hw[:300])
@@ -84,9 +85,9 @@ def t_fear_1106(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg)
     pg.evaluate("() => { const t = document.querySelector('#ovSumTrack'); t.scrollLeft = t.scrollWidth; }"); pg.wait_for_timeout(700)
-    m = pg.evaluate(f"""() => {{ const c = document.querySelector('{_T1106_CARD}').getBoundingClientRect();
+    m = pg.evaluate(f"""() => {{ const c = document.querySelector('{_FEAR1106_CARD}').getBoundingClientRect();
         return {{ l: Math.round(c.left), r: Math.round(c.right), h: Math.round(c.height), vw: innerWidth, sw: document.documentElement.scrollWidth,
-          st: (document.getElementById('ovFearGauge') || {{}}).offsetHeight || 0, sd: (document.querySelector('{_T1106_CARD} .fz-side') || {{}}).offsetHeight || 0 }}; }}""")
+          st: (document.getElementById('ovFearGauge') || {{}}).offsetHeight || 0, sd: (document.querySelector('{_FEAR1106_CARD} .fz-side') || {{}}).offsetHeight || 0 }}; }}""")
     ok(f"{T} 390：滑到最後一張，恐慌指數卡整張在畫面內、整頁沒有橫向捲軸、卡高 ≤ 120、時速表與右側小字都看得到",
        m["l"] >= 0 and m["r"] <= m["vw"] and m["sw"] <= m["vw"] and m["h"] <= 120 and m["st"] > 40 and m["sd"] > 0, m)
     opened = open_full(pg)
@@ -105,7 +106,7 @@ def t_fear_1106(b, base, code):
           lims: ['guest', 'free', 'plus', 'pro'].map(t => tier(t).lims[k] == null ? null : tier(t).lims[k]), feats: ['guest', 'free', 'plus', 'pro'].map(t => tier(t).feats[k]), ed: ed.includes(k) }; }""")
     ok(f"{T} ov.fear 登記（bool、總覽、limBy／route／qnote、算進全站共用額度）、四方案 3／5／50／不限都開、在體驗編輯清單",
        r["reg"] == ["bool", "overview", True, True, True, True] and r["lim"] == 5 and r["lims"] == [3, 5, 50, None] and r["feats"] == [True] * 4 and r["ed"], r)
-    used0 = pg.evaluate(f"() => (TwQuota.used('{_T1106_KEY}') || []).length")
+    used0 = pg.evaluate(f"() => (TwQuota.used('{_FEAR1106_KEY}') || []).length")
     ok(f"{T} 只看卡片（沒點開）不計次", used0 == 0, used0)
     c.close()
 
@@ -115,30 +116,30 @@ def t_fear_1106(b, base, code):
                " localStorage.setItem('tw.quota', JSON.stringify({ day, k })); } } catch (e) {}")
     locked = f"() => !!document.querySelector('#ovFearFull > .qcov .qcard.qcnote')"
 
-    c = _p12_ctx(b, plan="free", seed={_T1106_KEY: 4})
+    c = _p12_ctx(b, plan="free", seed={_FEAR1106_KEY: 4})
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg); open_full(pg); pg.wait_for_timeout(900)
     a = pg.evaluate(P12_INL, "#ovFearFull")
-    n5 = pg.evaluate(f"() => (TwQuota.used('{_T1106_KEY}') || []).length")
+    n5 = pg.evaluate(f"() => (TwQuota.used('{_FEAR1106_KEY}') || []).length")
     ok(f"{T} 註冊會員第 5 次打開完整圖照常、計數 5", not a["on"] and n5 == 5, (a, n5))
     pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(str(e)))
     go(pg2); open_full(pg2); wait_until(pg2, locked, 8000)
     a2 = pg2.evaluate(P12_INL, "#ovFearFull")
-    want = _T1106_NOTE.replace("{n}", "5")
+    want = _FEAR1106_NOTE.replace("{n}", "5")
     ok(f"{T} 註冊會員第 6 次（新分頁）完整圖反灰＋一行「{want}」、不蓋大卡、沒有彈出層、卡片照常",
-       a2["on"] and want in a2["txt"] and not a2["big"] and not pg2.evaluate(OP_POP) and pg2.evaluate(f"() => !document.querySelector('{_T1106_CARD}').closest('[data-qlk]')"), a2)
+       a2["on"] and want in a2["txt"] and not a2["big"] and not pg2.evaluate(OP_POP) and pg2.evaluate(f"() => !document.querySelector('{_FEAR1106_CARD}').closest('[data-qlk]')"), a2)
     c.close()
 
-    c = _p12_ctx(b, plan="guest", seed={_T1106_KEY: 3})
+    c = _p12_ctx(b, plan="guest", seed={_FEAR1106_KEY: 3})
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg); open_full(pg); wait_until(pg, locked, 8000)
     g = pg.evaluate(P12_INL, "#ovFearFull")
-    ok(f"{T} 訪客用滿 3 次後第 4 次被鎖（{_T1106_NOTE.replace('{n}', '3')}）、卡片的盤後值照樣看得到",
-       g["on"] and _T1106_NOTE.replace("{n}", "3") in g["txt"] and pg.evaluate(f"() => !!document.querySelector('{_T1106_CARD} .osc-n')"), g)
+    ok(f"{T} 訪客用滿 3 次後第 4 次被鎖（{_FEAR1106_NOTE.replace('{n}', '3')}）、卡片的盤後值照樣看得到",
+       g["on"] and _FEAR1106_NOTE.replace("{n}", "3") in g["txt"] and pg.evaluate(f"() => !!document.querySelector('{_FEAR1106_CARD} .osc-n')"), g)
     c.close()
 
     c, sent, st = _sub_ctx(b, "admin", owner=True, plan="free")
-    c.add_init_script(seed_js % _t1106_json.dumps({_T1106_KEY: 99}))
+    c.add_init_script(seed_js % _fear1106_json.dumps({_FEAR1106_KEY: 99}))
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg); open_full(pg); pg.wait_for_timeout(900)
     o = pg.evaluate(P12_INL, "#ovFearFull")
@@ -164,18 +165,18 @@ def t_fear_1106(b, base, code):
             out = {"now": now, "promo": [], "welcome": []}
         elif path == "/v1/grants/me":
             out = {"now": now, "today": {}, "grants": [{"gid": "welcome", "name": "新會員體驗", "kind": "welcome", "start": now, "end": now + 14 * 86400000 - 1000, "per": "day",
-                                                     "feats": {_T1106_KEY: {"max": 3, "used": 3 - stt["left"], "left": stt["left"]}}}]}
+                                                     "feats": {_FEAR1106_KEY: {"max": 3, "used": 3 - stt["left"], "left": stt["left"]}}}]}
         elif path == "/v1/grants/hit":
             stt["hit"] += 1; stt["left"] -= 1
             out = {"ok": True, "gid": "welcome", "left": stt["left"]}
         elif path == "/v1/plans/public":
             out = {"plans": []}
-        route.fulfill(status=200, body=_t1106_json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+        route.fulfill(status=200, body=_fear1106_json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
     c = b.new_context(viewport={"width": 1440, "height": 900})
-    c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + _t1106_json.dumps({"api": API}) + ";"
+    c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + _fear1106_json.dumps({"api": API}) + ";"
                       "try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.tourDone','1');localStorage.setItem('tw.acct.tok','tok-test')}catch(e){}")
-    c.add_init_script(seed_js % _t1106_json.dumps({_T1106_KEY: 5}))
+    c.add_init_script(seed_js % _fear1106_json.dumps({_FEAR1106_KEY: 5}))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route("**/notices/features.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="[]"))
     c.route(API + "/**", handle)
@@ -184,12 +185,15 @@ def t_fear_1106(b, base, code):
     ag = pg.get_by_role("button", name="同意並繼續")
     if ag.count() and ag.first.is_visible():
         ag.first.click(); pg.wait_for_timeout(300)
-    wait_until(pg, f"() => !!document.querySelector('{_T1106_CARD}') && !!window.FearCard && !!FearCard._s.data && window.TwGrants && TwGrants.left('{_T1106_KEY}') === 3", 30000)
+    wait_until(pg, f"() => !!document.querySelector('{_FEAR1106_CARD}') && !!window.FearCard && !!FearCard._s.data && window.TwGrants && TwGrants.left('{_FEAR1106_KEY}') === 3", 30000)
     open_full(pg)
     wait_until(pg, "() => !!document.querySelector('#ovFearFull .qc-try')", 8000)
     btn = pg.locator("#ovFearFull .qc-try")
     ok(f"{T} 體驗中的註冊會員用完 5 次後，完整圖原位置多一顆「繼續看」、體驗剩 3 次", btn.count() == 1, pg.evaluate("() => ((document.querySelector('#ovFearFull') || {}).innerText || '').slice(0, 200)"))
     if btn.count():
+        # 新會員歡迎彈窗（promo_welcome.js）可能晚一點才跳出來蓋住整頁：照使用者的做法按 Esc 關掉再按
+        if pg.evaluate("() => { const o = document.getElementById('pwOv'); return !!o && o.getClientRects().length > 0; }"):
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
         with pg.expect_response(lambda r: "/v1/grants/hit" in r.url, timeout=6000) as ri:
             btn.first.click()
         hj = ri.value.json()
