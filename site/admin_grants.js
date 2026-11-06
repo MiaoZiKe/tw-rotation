@@ -21,12 +21,11 @@
   const BAN0 = ['live.tick', 'stock.k_min'];   // 2026-11-02 Andy 決定：只剩盤中即時、分 K 不能放進體驗（四週期同看／今日關注／選股完整名單／AI 分析開放）
   const ERR = { banned: '含不能放進體驗的功能；若勾的是四週期同看、今日關注、選股完整名單、AI 分析，是後端尚未更新（黑名單縮小在待部署批次，部署後才存得進去）', bad_feats: '至少要勾一個功能', bad_m: '每項次數要是 1～999 的整數', bad_time: '起訖日不對（結束要在開始之後）',
     bad_days: '新會員天數要是 1～60', bad_name: '請填名稱（20 字內）', bad_id: '代號只能用小寫英數、- 與 _', kind_fixed: '已建立的活動不能改種類', too_many: '活動最多 50 個', forbidden: '不是管理者' };
-  /* 2026-11-07：一份體驗最多幾項功能。以 Worker 管理區清單回的 max_feats 為準（＝worker.js GRANT_MAX_FEATS，11-07 起 200）；
-     沒回時才用 MAX0（同一個值，改後端時這裡一起改）。超過就在前端先擋、不送出。 */
-  const MAX0 = 200;
-  const S = { d: null, edit: null, ban: BAN0, max: MAX0 };
-  const setMax = (j) => { const m = j && j.max_feats; S.max = Number.isInteger(m) && m > 0 ? m : MAX0; };
-  const tooMany = (n, max) => `勾太多了，最多 ${max} 項（目前勾了 ${n} 項）`;
+  /* 2026-11-07（第二次）：體驗功能數不設上限 —— Andy：「為何需要限制200 我有幾個就能勾幾個 我後面如果繼續新增呢? 把這問題處理」。
+     前端不再預檢「最多 N 項」；計數列只顯示「已勾 X／總數 項」，總數＝features.js 可放進體驗的功能數，新增功能自動跟著加。
+     後端只剩 2000 項的防濫用安全網（worker.js GRANT_FEAT_GUARD），萬一真的碰到才顯示下面這句（後備）。 */
+  const S = { d: null, edit: null, ban: BAN0 };
+  const tooMany = (n, max) => `勾太多了，超過系統安全上限${Number.isInteger(max) ? ' ' + max + ' 項' : ''}（目前勾了 ${n} 項）`;
   function feats() {
     const F = window.TwFeatures; if (!F) return [];
     return F.list.filter((f) => f.kind === 'bool' && !f.adminOnly && f.cat !== 'grp' && !S.ban.includes(f.id));
@@ -70,7 +69,7 @@
 #v-subadm .agr .fg input[type=number]:disabled{opacity:.4}
 #v-subadm .agr .ban{font-size:12.5px;color:var(--ink-3);margin:6px 0 0}
 #v-subadm .agr .st{font-size:13px;min-height:18px;margin-top:8px}
-#v-subadm .agr .st.bad,#v-subadm .agr #agrFCnt.over{color:var(--rise,#e5484d)}#v-subadm .agr .st.ok{color:var(--fall,#2fbf71)}
+#v-subadm .agr .st.bad#v-subadm .agr .st.ok{color:var(--fall,#2fbf71)}
 #v-subadm .agr .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 #v-subadm .agr .row input{flex:1 1 220px}
 #v-subadm .agr .act{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
@@ -104,7 +103,7 @@
     const j = await T().call('/v1/admin/grants/defs/list', {});
     if (!(location.hash || '').startsWith('#admin/grants')) return;
     if (!j || j._s !== 200) { v.innerHTML = `<div class="card agr"><h3>體驗額度</h3><p class="muted">${j && j._s === 403 ? '這個帳號不是管理者。' : '讀不到體驗活動（' + esc(j ? j._s : '連不到會員伺服器') + '）。'}</p></div>`; return; }
-    S.d = j; setMax(j); /* 不再採用 Worker 回的 ban：後端黑名單縮小還沒部署，採用會把 Andy 已決定開放的四項又藏起來 */
+    S.d = j; /* 不再採用 Worker 回的 ban：後端黑名單縮小還沒部署，採用會把 Andy 已決定開放的四項又藏起來 */
     paint(v);
   }
   function paint(v) {
@@ -132,7 +131,7 @@
         const d = defs.find((x) => x.id === inp.dataset.on); if (!d) return;
         inp.disabled = true;
         const r = await T().call('/v1/admin/grants/defs/put', { id: d.id, kind: d.kind, name: d.name, feats: d.feats, per: d.per, days: d.days, t0: d.t0, t1: d.t1, audience: d.audience, on: inp.checked });
-        if (r && r._s === 200) { S.d = r; setMax(r); paint(v); st(`「${d.name}」已${inp.checked ? '打開' : '關閉'}`); if (window.TwGrants) window.TwGrants.refresh(true); }
+        if (r && r._s === 200) { S.d = r; paint(v); st(`「${d.name}」已${inp.checked ? '打開' : '關閉'}`); if (window.TwGrants) window.TwGrants.refresh(true); }
         else { inp.checked = !inp.checked; inp.disabled = false; st('沒有成功：' + (ERR[r && r.error] || (r ? r._s : '連不到')), true); }
       };
     });
@@ -184,8 +183,7 @@
     const sync = () => {
       const all = cks(), on = all.filter((c) => c.checked).length;
       const cnt = $('#agrFCnt');
-      cnt.textContent = `已勾 ${on}／${all.length} 項` + (on > S.max ? `（超過上限 ${S.max} 項，存不進去）` : '');
-      cnt.classList.toggle('over', on > S.max);
+      cnt.textContent = `已勾 ${on}／${all.length} 項`;   // 總數＝features.js 可放進體驗的功能數；不設上限
       box.querySelectorAll('button[data-cat]').forEach((b) => { const g = all.filter((c) => c.dataset.fc === b.dataset.cat); const full = g.length && g.every((c) => c.checked); b.textContent = full ? '全不選' : '全選'; b.dataset.full = full ? '1' : '0'; });
     };
     cks().forEach((c) => { c.onchange = () => { setOne(c, c.checked, c.checked); sync(); }; });
@@ -202,14 +200,13 @@
       const body = { id: $('#agrId').value.trim(), kind, name: $('#agrName').value.trim(), feats: fs, per: $('#agrPer').value, audience: $('#agrAud').value, on: $('#agrOn').checked };
       const nF = Object.keys(fs).length;
       if (!nF) { st('沒有存進去：' + ERR.bad_feats, true); return; }
-      if (nF > S.max) { st('沒有存進去：' + tooMany(nF, S.max), true); return; }   // 存檔前先擋，不送出
       if (kind === 'promo') { const a = $('#agrT0').value, b = $('#agrT1').value; if (!a || !b) { st('請選活動日期', true); return; } body.t0 = fromYmd(a); body.t1 = fromYmd(b) + DAY - 1; }
       else { body.days = parseInt($('#agrDays').value, 10); if (!isNew && d.t0) { body.t0 = d.t0; body.t1 = d.t1; } }
       $('#agrSave').disabled = true;
       const r = await T().call('/v1/admin/grants/defs/put', body);
       $('#agrSave').disabled = false;
-      if (r && r._s === 200) { S.d = r; setMax(r); paint(v); const s2 = v.querySelector('#agrSt'); if (s2) { s2.textContent = `已儲存「${body.name}」${body.on ? '（開著）' : '（關著）'}`; s2.className = 'st ok'; } if (window.TwGrants) window.TwGrants.refresh(true); return; }
-      if (r && r.error === 'too_many_feats') { if (Number.isInteger(r.max)) S.max = r.max; st('沒有存進去：' + tooMany(nF, S.max), true); sync(); return; }
+      if (r && r._s === 200) { S.d = r; paint(v); const s2 = v.querySelector('#agrSt'); if (s2) { s2.textContent = `已儲存「${body.name}」${body.on ? '（開著）' : '（關著）'}`; s2.className = 'st ok'; } if (window.TwGrants) window.TwGrants.refresh(true); return; }
+      if (r && r.error === 'too_many_feats') { st('沒有存進去：' + tooMany(nF, r.max), true); return; }   // 只有後端 2000 項防濫用安全網會回這個
       st('沒有存進去：' + (ERR[r && r.error] || (r ? r._s : '連不到')) + (r && r.k ? `（${fname(r.k)}）` : ''), true);
     };
     const del = $('#agrDel');
@@ -217,7 +214,7 @@
       const D = T().dialog;
       D(`<h3>刪除「${esc(d.name)}」？</h3><p>刪掉之後，已經發給會員的這份體驗會立刻失效（用量紀錄保留給統計）。只是想暫停的話，用清單上的開關就好。</p>
         <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="agrDelGo">確定刪除</button></div>`, (dl) => {
-        dl.querySelector('#agrDelGo').onclick = async () => { dl.hidden = true; const r = await T().call('/v1/admin/grants/defs/del', { id: d.id }); if (r && r._s === 200) { S.d = r; setMax(r); paint(v); } else st('刪除失敗', true); };
+        dl.querySelector('#agrDelGo').onclick = async () => { dl.hidden = true; const r = await T().call('/v1/admin/grants/defs/del', { id: d.id }); if (r && r._s === 200) { S.d = r; paint(v); } else st('刪除失敗', true); };
       });
     };
     box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });

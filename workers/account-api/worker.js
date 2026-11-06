@@ -884,7 +884,8 @@ Hub.prototype.fetch = async function (req) {
     this.subInit();
     if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
     const raw = await req.text();
-    if (raw.length > 16384) return this.json(req, { error: 'too_large' }, 413);
+    if (raw.length > (p === GRANT_PUT_PATH ? GRANT_PUT_MAX_BYTES : 16384))   // 只有體驗範本寫入（管理者專用）放寬到 256KB
+      return this.json(req, { error: 'too_large' }, 413);
     let b; try { b = JSON.parse(raw || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
     if (!b || typeof b !== 'object' || Array.isArray(b)) return this.json(req, { error: 'bad_json' }, 400);
     return await h.call(this, req, b);
@@ -2156,7 +2157,7 @@ Hub.prototype.fetch = async function (req) {
   const p = new URL(req.url).pathname;
   if (req.method === 'POST' && p.startsWith('/v1/admin/') && p !== '/v1/admin/export' && p !== '/v1/admin/import') {
     let b = {};
-    try { const raw = await req.clone().text(); if (raw.length <= 16384) b = JSON.parse(raw || '{}') || {}; } catch (e) { b = {}; }
+    try { const raw = await req.clone().text(); if (raw.length <= (p === GRANT_PUT_PATH ? GRANT_PUT_MAX_BYTES : 16384)) b = JSON.parse(raw || '{}') || {}; } catch (e) { b = {}; }
     if (!(b && typeof b === 'object' && !Array.isArray(b) && (await this.admin(req, b)))) {
       if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
       return this.json(req, { error: 'forbidden' }, 403);
@@ -2408,10 +2409,15 @@ export const WELCOME_1027_FEATS = { 'ind.3d': 10, 'ind.rel': 10, 'ind.groups': 1
   'flow.sankey.drill': 20, 'etf.cashflow': 10, 'etf.inc.params': 10, 'etf.inc.comp': 10, 'etf.cmp': 10, 'etf.ret.period': 5, 'stock.draw': 10, 'stock.ind': 10,
   'stock.page': 20, 'season.groups': 20 };
 const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
-/* 2026-11-07：40 → 200（Andy 在新會員體驗勾 88／93 項被擋）。目前 features.js 共 105 個鍵、能放進體驗的 93 個，200 留約一倍餘裕。
-   大小：200 項 × 最長鍵 40 字 × 999 次 ≈ 9.4KB JSON，仍在 POST 本體上限 16KB 內（測試有一條實測 200 個 40 字鍵存得進去）；
-   grant_defs.feats 是 Durable Object SQLite 的 TEXT 欄（單值上限 2MB），不受影響。管理區清單回 max_feats，前端照這個值預檢。 */
-export const GRANT_MAX_FEATS = 200;
+/* 2026-11-07（第二次）：體驗功能數不設業務上限 —— Andy：「為何需要限制200 我有幾個就能勾幾個 我後面如果繼續新增呢? 把這問題處理」。
+   以後 features.js 新增多少鍵，管理區就能勾多少個，不必再回來改這裡。GRANT_FEAT_GUARD 只是防濫用的安全網（防有人灌爆一列資料），
+   設在功能數量絕對到不了的量級：2000（目前 features.js 105 個鍵、可放進體驗 93 個）。只有超過它才回 too_many_feats。
+   大小：2000 項 × 最長鍵 40 字 × 999 次 ≈ 96KB JSON → 只有 /v1/admin/grants/defs/put（管理者專用）的本體上限放寬到 GRANT_PUT_MAX_BYTES 256KB，
+   其他公開端點維持 16KB。儲存：grant_defs.feats 是 Durable Object SQLite 的 TEXT 欄，Cloudflare 單一字串／單列上限 2MB，96KB 存得下（測試實測 2000 個 40 字鍵）。
+   JSON 物件的鍵本來就不會重複（JSON.parse 同名鍵只留最後一個），所以「同一個 key」只算一次。 */
+export const GRANT_FEAT_GUARD = 2000;
+export const GRANT_PUT_MAX_BYTES = 262144;
+const GRANT_PUT_PATH = '/v1/admin/grants/defs/put';
 const GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
 const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
 /* 範本沒寫這一項時的預設（＝site/features.js 的 defBy；改一邊要改另一邊）：熱力圖跳頁訪客／註冊會員預設關 */
@@ -2567,7 +2573,7 @@ Hub.prototype.grantClean = function (b) {
   if (!b.feats || typeof b.feats !== 'object' || Array.isArray(b.feats)) return { error: 'bad_feats' };
   const ent = Object.entries(b.feats);
   if (!ent.length) return { error: 'bad_feats' };
-  if (ent.length > GRANT_MAX_FEATS) return { error: 'too_many_feats', max: GRANT_MAX_FEATS };   // 和「一個都沒勾」分開，前端才不會講錯
+  if (ent.length > GRANT_FEAT_GUARD) return { error: 'too_many_feats', max: GRANT_FEAT_GUARD };   // 只有防濫用安全網會觸發；和「一個都沒勾」分開，前端才不會講錯
   const feats = {};
   for (const [k, m] of ent) {
     if (!V3_FEAT_K_RE.test(k) || k.startsWith('grp.')) return { error: 'bad_feats' };
@@ -2635,7 +2641,7 @@ Object.assign(Hub.prototype.subRoutes, {
     const defs = this.grantDefs().map((d) => ({ ...d,
       issued: this.q('SELECT COUNT(*) AS c FROM grants WHERE gid = ?', d.id)[0].c,
       used: this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE gid = ?', d.id)[0].c }));
-    return this.json(req, { defs, ban: GRANT_BAN, max_feats: GRANT_MAX_FEATS, now: this.now() });
+    return this.json(req, { defs, ban: GRANT_BAN, now: this.now() });   // 11-07 起不回 max_feats：體驗功能數不設業務上限
   },
   '/v1/admin/grants/defs/put': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);

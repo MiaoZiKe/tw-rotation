@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeHub } from '../harness.mjs';
-import { GRANT_BAN, GRANT_MAX_FEATS, grantMailNorm, WELCOME_1027_FEATS } from '../worker.js';
+import { GRANT_BAN, GRANT_FEAT_GUARD, GRANT_PUT_MAX_BYTES, grantMailNorm, WELCOME_1027_FEATS } from '../worker.js';
 
 const ORIGIN = 'https://miaozike.github.io';
 const API = 'https://tw-account.example.workers.dev';
@@ -251,27 +251,50 @@ test('2026-10-27 T-1：新會員體驗 14 天、每天計次、不含 GRANT_BAN�
   assert.deepEqual((await pj(hub, '/v1/grants/me', { t: rf2 })).j.grants, [], '退款過不能再領體驗');
 });
 
-/* 2026-11-07 Andy：新會員體驗勾 88／93 項按儲存，紅字「至少要勾一個功能」——原因是上限 40，而且「太多」跟「沒勾」共用 bad_feats */
-test('體驗功能上限 200：88 項存得進去、201 項回 too_many_feats、0 項回 bad_feats、清單回 max_feats', async () => {
+/* 2026-11-07 Andy：新會員體驗勾 88／93 項按儲存，紅字「至少要勾一個功能」——原因是上限 40，而且「太多」跟「沒勾」共用 bad_feats。
+   同日第二次：「為何需要限制200 我有幾個就能勾幾個 我後面如果繼續新增呢? 把這問題處理」→ 不設業務上限，只剩 2000 的防濫用安全網 */
+test('體驗功能數不設業務上限：93 項、500 項都存得進去；2001 項回 too_many_feats；0 項回 bad_feats；清單不回 max_feats', async () => {
   const { hub, andy } = await setup();
-  assert.equal(GRANT_MAX_FEATS, 200);
-  const mk = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => ['fx.k' + String(i).padStart(3, '0'), 3]));
-  const f88 = mk(88);
-  let r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: f88 });
+  assert.equal(GRANT_FEAT_GUARD, 2000);
+  const mk = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => ['fx.k' + String(i).padStart(4, '0'), 3]));
+  const f93 = mk(93);
+  let r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: f93 });
   assert.equal(r.s, 200, JSON.stringify(r.j));
-  const w = r.j.defs.find((d) => d.id === 'welcome');
-  assert.equal(Object.keys(w.feats).length, 88, '88 項全部存進去');
-  assert.deepEqual(w.feats, f88);
-  assert.equal(r.j.max_feats, 200, '清單回 max_feats（前端預檢用）');
-  assert.equal((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.max_feats, 200);
-  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: mk(201) });
-  assert.equal(r.s, 400); assert.equal(r.j.error, 'too_many_feats'); assert.equal(r.j.max, 200);
+  assert.deepEqual(r.j.defs.find((d) => d.id === 'welcome').feats, f93, '93 項（目前可放進體驗的全部）全部存進去');
+  assert.equal('max_feats' in r.j, false, '清單不再回 max_feats（前端不再預檢上限）');
+  /* 模擬以後功能變多：500 項 */
+  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: mk(500) });
+  assert.equal(r.s, 200, JSON.stringify(r.j).slice(0, 200));
+  assert.equal(Object.keys((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.defs.find((d) => d.id === 'welcome').feats).length, 500, '500 項全部存進去');
+  /* 只有防濫用安全網 2000 會擋 */
+  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: mk(2001) });
+  assert.equal(r.s, 400, JSON.stringify(r.j)); assert.equal(r.j.error, 'too_many_feats'); assert.equal(r.j.max, 2000);
   r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: {} });
   assert.equal(r.s, 400); assert.equal(r.j.error, 'bad_feats', '一個都沒勾仍是 bad_feats');
-  assert.equal(Object.keys((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.defs.find((d) => d.id === 'welcome').feats).length, 88, '被擋的沒蓋掉原本的');
-  /* 最壞情況：剛好 200 項、每個鍵都是最長 40 字、次數 999 —— 本體仍在 16KB 內，存得進去 */
-  const big = Object.fromEntries(Array.from({ length: 200 }, (_, i) => [('k' + String(i).padStart(3, '0')).padEnd(40, 'z'), 999]));
+  assert.equal(Object.keys((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.defs.find((d) => d.id === 'welcome').feats).length, 500, '被擋的沒蓋掉原本的');
+  /* 同一個鍵在 JSON 裡寫兩次只算一次 */
+  const dup = '{"t":' + JSON.stringify(andy) + ',"id":"welcome","kind":"welcome","name":"新會員體驗","per":"total","days":7,"on":true,"feats":{"stock.draw":3,"stock.draw":5,"ind.rel":2}}';
+  const rd = await hub.fetch(new Request(API + '/v1/admin/grants/defs/put', { method: 'POST', headers: { Origin: ORIGIN, 'content-type': 'text/plain' }, body: dup }));
+  assert.equal(rd.status, 200);
+  assert.deepEqual((await rd.json()).defs.find((d) => d.id === 'welcome').feats, { 'stock.draw': 5, 'ind.rel': 2 });
+  /* 最壞情況：剛好 2000 項、每個鍵都是最長 40 字、次數 999 —— 本體約 96KB，在這支端點的 256KB 內，存得進去 */
+  const big = Object.fromEntries(Array.from({ length: 2000 }, (_, i) => [('k' + String(i).padStart(4, '0')).padEnd(40, 'z'), 999]));
+  const bigBody = JSON.stringify({ t: andy, ...WELCOME, feats: big });
+  assert.ok(bigBody.length > 16384 && bigBody.length < GRANT_PUT_MAX_BYTES, '本體 ' + bigBody.length + ' 字');
   r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: big });
   assert.equal(r.s, 200, JSON.stringify(r.j).slice(0, 200));
-  assert.equal(Object.keys(r.j.defs.find((d) => d.id === 'welcome').feats).length, 200);
+  assert.equal(Object.keys(r.j.defs.find((d) => d.id === 'welcome').feats).length, 2000);
+  /* 放寬只限這一支：其他端點超過 16KB 仍回 too_large */
+  /* 管理區其他端點：超過 16KB 時管理者閘門讀不到權杖就先擋（403），一樣存不進去 */
+  r = await pj(hub, '/v1/admin/grants/defs/del', { t: andy, id: 'welcome', pad: 'x'.repeat(17000) });
+  assert.ok(r.s === 403 || r.s === 413, String(r.s));
+  assert.ok((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.defs.some((d) => d.id === 'welcome'), '超過 16KB 的刪除沒有生效');
+  r = await pj(hub, '/v1/grants/public', { pad: 'x'.repeat(17000) });
+  assert.equal(r.s, 413); assert.equal(r.j.error, 'too_large');
+  r = await pj(hub, '/v1/me', { t: andy, pad: 'x'.repeat(17000) });
+  assert.equal(r.s, 413); assert.equal(r.j.error, 'too_large');
+  /* 超過 256KB 這支也擋 */
+  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: f93, pad: 'x'.repeat(GRANT_PUT_MAX_BYTES) });
+  assert.ok(r.s === 403 || r.s === 413, String(r.s));
+  assert.equal(Object.keys((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.defs.find((d) => d.id === 'welcome').feats).length, 2000, '超過 256KB 的沒蓋掉原本的');
 });

@@ -5,13 +5,13 @@
 
 # ===================================================================== 體驗上限
 # Andy 11-07：「編輯：新會員體驗」勾 88／93 項按儲存，紅字「沒有存進去：至少要勾一個功能」。
-# 根因是 Worker 上限 40、超過也回 bad_feats。11-07 後端放寬到 200（清單回 max_feats、超過回 too_many_feats），前端照 max_feats 預檢。
-# 本機起真的 worker.js（devserver），預檢與錯誤訊息用 Playwright 攔截 grants 兩支 API 當假 Worker：
-# ① 假 Worker 回 max_feats 40：全部全選 → 計數列紅字「超過上限 40 項」；按儲存不送出、訊息「勾太多了，最多 40 項」，不講「至少要勾一個」
+# 根因是 Worker 上限 40、超過也回 bad_feats。11-07 先放寬到 200；同日 Andy：「為何需要限制200 我有幾個就能勾幾個 我後面如果繼續新增呢? 把這問題處理」
+# → 不設業務上限：前端不再預檢、計數列只寫「已勾 X／總數 項」；後端只剩 2000 項防濫用安全網（too_many_feats 後備訊息）。
+# 本機起真的 worker.js（devserver），錯誤訊息用 Playwright 攔截 grants 兩支 API 當假 Worker：
+# ① 假 Worker 清單仍回舊的 max_feats 40（模擬舊後端）：全部全選 → 計數列「已勾 N／N 項」、沒有任何上限提示、不是紅字；
+#    按儲存真的送出全部 N 項到真 worker.js → 200、「已儲存」，重新打開仍是 N 項
 # ② 全部清除後按儲存 → 「至少要勾一個功能」、不送出
-# ③ 真 Worker（上限 200）：勾 88 項 → 存檔真的送出 88 項、200、清單寫「已儲存」，重新打開仍是 88 項
-# ④ 假 Worker 回 too_many_feats（max 200）→ 訊息「勾太多了，最多 200 項」
-
+# ③ 假 Worker 回 too_many_feats（max 2000，安全網）→ 後備訊息「勾太多了，超過系統安全上限 2000 項」，不講「至少要勾一個」
 
 def t_grantmax_1107(b, base):
     T = "體驗上限"
@@ -64,7 +64,7 @@ def t_grantmax_1107(b, base):
             body = json.loads(route.request.post_data or "{}")
             puts.append(body)
             if fake["mode"] == "too_many":
-                route.fulfill(status=400, json={"error": "too_many_feats", "max": 200}, headers={"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"})
+                route.fulfill(status=400, json={"error": "too_many_feats", "max": 2000}, headers={"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"})
                 return
             route.continue_()   # 真的送到本機 worker.js
 
@@ -81,54 +81,43 @@ def t_grantmax_1107(b, base):
             ad.click("#agrList button[data-edit=\"welcome\"]")
             wait_until(ad, "() => document.querySelectorAll('#agrFeats input[data-fk]').length > 10", 5000)
 
-        # ---------- ① 假 Worker 回 max_feats 40：前端預檢
+        # ---------- ① 全選後存檔成功，不再有上限提示（假 Worker 清單回舊的 max_feats 40，前端必須忽略）
         open_welcome()
         ad.click("#agrAllOn")
         tot = ad.evaluate(TOT)
+        if not ok(f"{T}：①可勾功能至少 88 項", tot >= 88, tot):
+            return
         cnt_txt = ad.inner_text("#agrFCnt")
-        ok(f"{T}：①全部全選（{tot} 項）→ 計數列寫「超過上限 40 項」且是紅字", "超過上限 40 項" in cnt_txt and ad.evaluate("() => document.getElementById('agrFCnt').classList.contains('over')"), cnt_txt)
-        n0 = len(puts)
-        ad.click("#agrSave"); ad.wait_for_timeout(400)
-        msg = ad.inner_text("#agrFSt")
-        ok(f"{T}：①按儲存 → 不送出", len(puts) == n0, len(puts) - n0)
-        ok(f"{T}：①訊息是「勾太多了，最多 40 項（目前勾了 {tot} 項）」、不再講「至少要勾一個」", f"勾太多了，最多 40 項（目前勾了 {tot} 項）" in msg and "至少要勾一個" not in msg, msg)
+        ok(f"{T}：①全部全選 → 計數列只寫「已勾 {tot}／{tot} 項」、沒有上限提示", cnt_txt.strip() == f"已勾 {tot}／{tot} 項" and "上限" not in cnt_txt, cnt_txt)
+        ok(f"{T}：①計數列不是紅字", not ad.evaluate("() => document.getElementById('agrFCnt').classList.contains('over')"))
+        keys = ad.evaluate("() => [...document.querySelectorAll('#agrFeats input[data-fk]')].map(i => i.dataset.fk)")
+        with ad.expect_response(lambda r: "/v1/admin/grants/defs/put" in r.url, timeout=8000) as ri:
+            ad.click("#agrSave")
+        body = json.loads(ri.value.request.post_data or "{}")
+        ok(f"{T}：①存檔送出的是全部 {tot} 項", sorted((body.get("feats") or {}).keys()) == sorted(keys), len(body.get("feats") or {}))
+        ok(f"{T}：①存檔成功（200）", ri.value.status == 200, ri.value.status)
+        wait_until(ad, "() => /已儲存/.test((document.getElementById('agrSt') || {}).textContent || '')", 5000)
+        ok(f"{T}：①清單寫「已儲存「新會員體驗」」", "已儲存" in (ad.inner_text("#agrSt") if ad.query_selector("#agrSt") else ""), ad.inner_text("#agrSt") if ad.query_selector("#agrSt") else None)
+        open_welcome()
+        ok(f"{T}：①重新打開編輯 → 仍是全部 {tot} 項", ad.evaluate(CNT) == tot, ad.evaluate(CNT))
+        ok(f"{T}：①重新打開後計數列仍沒有上限提示", "上限" not in ad.inner_text("#agrFCnt"), ad.inner_text("#agrFCnt"))
 
         # ---------- ② 一個都沒勾
+        n0 = len(puts)
         ad.click("#agrAllOff")
         ad.click("#agrSave"); ad.wait_for_timeout(300)
         msg = ad.inner_text("#agrFSt")
         ok(f"{T}：②全部清除後儲存 → 「至少要勾一個功能」、不送出", "至少要勾一個功能" in msg and len(puts) == n0, [msg, len(puts) - n0])
 
-        # ---------- ③ 真 Worker（上限 200）：88 項存得進去
-        fake["mode"] = "real"
-        open_welcome()
-        ad.click("#agrAllOn")
-        tot = ad.evaluate(TOT)
-        if not ok(f"{T}：③可勾功能至少 88 項", tot >= 88, tot):
-            return
-        ok(f"{T}：③上限 200 → 全選 {tot} 項不顯示超過上限", "超過上限" not in ad.inner_text("#agrFCnt"), ad.inner_text("#agrFCnt"))
-        keys = ad.evaluate("() => [...document.querySelectorAll('#agrFeats input[data-fk]')].map(i => i.dataset.fk)")
-        for k in keys[88:]:
-            ad.click(f"#agrFeats input[data-fk='{k}']")
-        ok(f"{T}：③取消 {tot - 88} 項後剩 88 項、計數列寫「已勾 88／{tot} 項」", ad.evaluate(CNT) == 88 and f"已勾 88／{tot} 項" in ad.inner_text("#agrFCnt"), ad.inner_text("#agrFCnt"))
-        with ad.expect_response(lambda r: "/v1/admin/grants/defs/put" in r.url, timeout=8000) as ri:
-            ad.click("#agrSave")
-        body = json.loads(ri.value.request.post_data or "{}")
-        ok(f"{T}：③存檔送出的就是那 88 項", sorted((body.get("feats") or {}).keys()) == sorted(keys[:88]), len(body.get("feats") or {}))
-        ok(f"{T}：③存檔成功（200）", ri.value.status == 200, ri.value.status)
-        wait_until(ad, "() => /已儲存/.test((document.getElementById('agrSt') || {}).textContent || '')", 5000)
-        ok(f"{T}：③清單寫「已儲存「新會員體驗」」", "已儲存" in (ad.inner_text("#agrSt") if ad.query_selector("#agrSt") else ""), ad.inner_text("#agrSt") if ad.query_selector("#agrSt") else None)
-        open_welcome()
-        ok(f"{T}：③重新打開編輯 → 仍是 88 項", ad.evaluate(CNT) == 88, ad.evaluate(CNT))
-
-        # ---------- ④ 假 Worker 回 too_many_feats
+        # ---------- ③ 假 Worker 回 too_many_feats（2000 項安全網，後備訊息）
         fake["mode"] = "too_many"
+        open_welcome()
         with ad.expect_response(lambda r: "/v1/admin/grants/defs/put" in r.url, timeout=8000) as ri:
             ad.click("#agrSave")
-        ok(f"{T}：④後端回 400", ri.value.status == 400, ri.value.status)
+        ok(f"{T}：③後端回 400", ri.value.status == 400, ri.value.status)
         wait_until(ad, "() => /勾太多/.test(document.getElementById('agrFSt').textContent)", 4000)
         msg = ad.inner_text("#agrFSt")
-        ok(f"{T}：④訊息「勾太多了，最多 200 項」、不講「至少要勾一個」", "勾太多了，最多 200 項" in msg and "至少要勾一個" not in msg, msg)
+        ok(f"{T}：③後備訊息「勾太多了，超過系統安全上限 2000 項」、不講「至少要勾一個」", "超過系統安全上限 2000 項" in msg and "至少要勾一個" not in msg, msg)
         ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
     finally:
         for cx in ctxs:
