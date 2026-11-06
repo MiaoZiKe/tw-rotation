@@ -5814,8 +5814,10 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-11-06（Andy：「圖示需要在優化，文字有點多，曲線圖放在最底下即可」）：恐慌指數走勢圖放總覽最底下的獨立卡（site/fearcard.js）。
          單一組、預設直接展開；圖本體（#ovFearFull）捲到才建（功能鍵 ov.fear 才不會沒看到就被計次）。點上方摘要卡＝捲到這裡並亮一下。 -->
     <div class="grid ovlow" style="margin-top:var(--gap-card)">
-      <div class="card" id="ovFearCard"><div class="row spread"><h3>恐慌指數走勢 <button class="howbtn pop" data-how="fearfull" data-ttl="恐慌指數走勢" type="button" aria-label="恐慌指數走勢怎麼看">?</button></h3>
-        <span class="fz-leg"><i style="--c:var(--rise)"></i>台指自算<i style="--c:var(--cyan)"></i>美股 VIX</span></div>
+      <div class="card" id="ovFearCard"><div class="fz-hd"><h3>恐慌指數走勢 <button class="howbtn pop" data-how="fearfull" data-ttl="恐慌指數走勢" type="button" aria-label="恐慌指數走勢怎麼看">?</button></h3>
+        <div class="seg fz-mkt" id="fzMkt" role="group" aria-label="市場"><button type="button" data-mkt="tw" class="on" aria-pressed="true">台股</button><button type="button" data-mkt="us" aria-pressed="false">美股</button></div>
+        <span class="fz-leg" id="fzLeg"></span>
+        <div class="seg fz-per" id="fzPer" role="group" aria-label="期間"><button type="button" data-p="1m">1月</button><button type="button" data-p="3m" class="on" aria-pressed="true">3月</button><button type="button" data-p="6m">6月</button><button type="button" data-p="1y">1年</button><button type="button" data-p="all">全部</button></div></div>
         <div class="howtxt" id="how-fearfull" hidden></div></div>
     </div>
   </section>

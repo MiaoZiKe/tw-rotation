@@ -235,7 +235,7 @@ def percentile_series(s: pd.Series, window: int = 750) -> tuple[pd.Series, pd.Se
     return pd.Series(pct, index=s.index), pd.Series(n, index=s.index)
 
 
-def build_json(ivx: pd.DataFrame, intl: pd.DataFrame | None, spark: int = 60) -> dict:
+def build_json(ivx: pd.DataFrame, intl: pd.DataFrame | None, spark: int = 60, ohlc: pd.DataFrame | None = None) -> dict:
     """opt_ivx ＋ intl_daily 的 ^VIX → site/data/fear.json。
 
     tw.state 只在歷史 ≥ config.IVX_MIN_HIST 天時給；樣本數 n_hist 一律帶出去讓前端顯示。"""
@@ -279,6 +279,25 @@ def build_json(ivx: pd.DataFrame, intl: pd.DataFrame | None, spark: int = 60) ->
                          "chg": round(float(u["close"].iloc[-1] - u["close"].iloc[-2]), 2) if len(u) > 1 else None,
                          "series": [[d, round(float(v), 2)] for d, v in zip(uu["date"], uu["close"])],
                          "spark": [[d, round(float(v), 2)] for d, v in zip(u["date"].iloc[-spark:], u["close"].iloc[-spark:])]}
+    # 走勢圖上格的對照指數（Andy 11-06：「台股VIX 就是加權 櫃買；美股 就是 那斯達克 費城 S&P 比較」）：只輸出日收盤，
+    # 前端以「期間起點＝100」畫相對走勢。台股取資料湖 index_ohlc 的 TSE（加權）／OTC（櫃買）；美股取 intl_daily 的 ^IXIC／^SOX／^GSPC
+    # （美東交易日，日期照原樣不挪；前端用同一條 X 軸、沒開盤的那天留空）。起點＝恐慌指數序列的第一天。
+    first = out["tw"]["series"][0][0] if out["tw"] else None
+    def _cl(df, sym, col_sym, name):
+        if df is None or df.empty or not {col_sym, "date", "close"} <= set(df.columns):
+            return None
+        u = df[df[col_sym] == sym].dropna(subset=["close"]).copy()
+        u["date"] = u["date"].astype(str).str[:10]
+        u = u.sort_values("date").drop_duplicates("date", keep="last")
+        if first:
+            u = u[u["date"] >= first]
+        if not len(u):
+            return None
+        return {"name": name, "date": u["date"].iloc[-1], "series": [[d, round(float(v), 2)] for d, v in zip(u["date"], u["close"])]}
+    tw_idx = {k: v for k, v in (("TSE", _cl(ohlc, "TSE", "symbol", "加權指數")), ("OTC", _cl(ohlc, "OTC", "symbol", "櫃買指數"))) if v}
+    us_idx = {k: v for k, v in (("IXIC", _cl(intl, "^IXIC", "symbol", "那斯達克")), ("SOX", _cl(intl, "^SOX", "symbol", "費城半導體")),
+                                ("GSPC", _cl(intl, "^GSPC", "symbol", "標普 500"))) if v}
+    out["idx"] = {"tw": tw_idx, "us": us_idx}
     return out
 
 
@@ -295,7 +314,8 @@ if __name__ == "__main__":     # 只重算這一張卡：python -m pipeline.comp
     from ..util import store
     logging.basicConfig(level=logging.INFO)
     j = build_json(store.read("opt_ivx"), store.read("intl_daily", years=[datetime.now().year - 3, datetime.now().year - 2,
-                                                                         datetime.now().year - 1, datetime.now().year]))
+                                                                         datetime.now().year - 1, datetime.now().year]),
+                   ohlc=store.read("index_ohlc"))
     p = config.ROOT / "site" / "data" / "fear.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(j, ensure_ascii=False, allow_nan=False), encoding="utf-8")

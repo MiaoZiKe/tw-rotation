@@ -23,13 +23,14 @@
   #hero .ovsum-track:has(.osc.fz) .osc-h{gap:6px}
   #hero .ovsum-track:has(.osc.fz) .osc-d{padding:0 6px}
 }
-/* 總覽最底下的走勢圖卡（#ovFearCard）：高度固定（圖表不跟內容伸縮，避免 ECharts resize 抖動） */
+/* 總覽最底下的走勢圖卡（#ovFearCard，2026-11-06 第三版）：標題列＝標題＋台股｜美股＋圖例（靠右）＋期間鈕；高度固定（ECharts 不跟內容伸縮，避免 resize 抖動） */
+.fz-hd{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.fz-hd h3{margin:0}
+.fz-hd .seg button{min-height:28px;padding:0 12px;font-size:13px}
+.fz-leg{display:inline-flex;align-items:center;gap:4px 14px;font-size:12px;color:var(--ink-2);flex-wrap:wrap;margin-left:auto;min-width:0}
+.fz-lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.fz-lg i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--c)}
+.fz-hd .seg button:disabled{opacity:.4;cursor:not-allowed}
 .fz-full{min-width:0}
-.fz-leg{display:inline-flex;align-items:center;gap:4px 8px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
-.fz-leg i{display:inline-block;width:12px;height:2px;background:var(--c);vertical-align:middle;margin-right:2px}
-.fz-cv{height:280px;min-width:0;margin-top:6px}
-.fz-note{font-size:12px;line-height:17px;color:var(--ink-3);margin-top:4px}
-.fz-note b{color:var(--ink);font-family:var(--mono)}
-@media (max-width:640px){
-  .fz-cv{height:240px}
-}
+.fz-cv{height:336px;min-width:0;margin-top:6px}
+.fz-lg.fz-base{color:var(--ink-3)}

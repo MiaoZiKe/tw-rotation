@@ -26,7 +26,8 @@ def t_fear_1106(b, base, code):
         pg.wait_for_timeout(600)
 
     def open_full(pg):
-        # 新會員歡迎彈窗（promo_welcome.js）會蓋住整頁：照使用者的做法按 Esc 關掉再點
+        # 新會員歡迎彈窗（promo_welcome.js）會蓋住整頁（重新整理後晚一點才跳出）：先等一下，照使用者的做法按 Esc 關掉再點
+        pg.wait_for_timeout(700)
         if pg.evaluate("() => { const o = document.getElementById('pwOv'); return !!o && o.getClientRects().length > 0; }"):
             pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
         pg.evaluate(f"() => document.querySelector('{_FEAR1106_CARD}').scrollIntoView({{block: 'center'}})")
@@ -70,24 +71,60 @@ def t_fear_1106(b, base, code):
     opened = open_full(pg)
     pg.wait_for_timeout(1200)
     wait_until(pg, "() => !!(window.App && App._fear && App._fear.n > 0) || !!document.querySelector('#ovFearChart .empty')", 6000)
-    f = pg.evaluate("""() => { const el = document.getElementById('ovFearChart'); const ch = el && echarts.getInstanceByDom(el);
-        const o = ch && ch.getOption(); return { n: o ? o.xAxis[0].data.length : 0, ser: o ? o.series.map(s => s.name) : [],
-          dz: o ? [o.dataZoom[1].start, o.dataZoom[1].end] : null, exp: document.querySelector('#hero .osc[data-k="fear"]').getAttribute('aria-expanded'),
-          inCard: !!document.querySelector('#ovFearCard #ovFearFull'), under: !!document.querySelector('#hero #ovFearFull'),
+    # 第三版（Andy 11-06：「曲線圖優化，好醜，需要搭配大盤走勢圖才可以發現差異」「分成台股美股：台股＝加權、櫃買；美股＝那斯達克、費城、S&P」）
+    # 走勢圖＝上下兩格共用時間軸：上格對照指數（期間起點＝100）、下格恐慌指數；台股｜美股切換；期間鈕 1月／3月／6月／1年／全部。
+    FJS = """() => { const el = document.getElementById('ovFearChart'); const ch = el && echarts.getInstanceByDom(el); const o = ch && ch.getOption();
+        const z = o && o.dataZoom && o.dataZoom[0]; const sr = o ? o.series : [], bot = sr.find(s => /^bot-/.test(s.id || ''));
+        return { ok: !!o, names: sr.map(s => s.name), grids: o ? o.grid.length : 0, xs: o ? o.xAxis.length : 0, ys: o ? o.yAxis.length : 0,
+          bands: bot && bot.markArea ? bot.markArea.data.length : 0, bandNames: bot && bot.markArea ? bot.markArea.data.map(d => d[0].name) : [], pts: sr.length ? sr[0].data.length : 0,
+          win: z ? [+z.startValue, +z.endValue] : null, xmin: FearCard._s.xmin, xmax: FearCard._s.xmax, per: document.getElementById('ovFearFull').dataset.per,
+          base: sr.filter(s => /^top-/.test(s.id || '')).map(s => { const a = z ? +z.startValue : 0; const p = s.data.find(q => q[0] >= a); return p ? p[1] : null; }),
+          mkt: document.getElementById('ovFearFull').dataset.mkt, ls: (() => { try { return localStorage.getItem('tw.fear.mkt'); } catch (e) { return null; } })(),
+          btns: [...document.querySelectorAll('#fzMkt button')].map(b => b.innerText + (b.classList.contains('on') ? '*' : '')), pbtns: [...document.querySelectorAll('#fzPer button')].map(b => b.innerText + (b.classList.contains('on') ? '*' : '') + (b.disabled ? '!' : '')),
+          leg: document.getElementById('fzLeg').innerText, inCard: !!document.querySelector('#ovFearCard #ovFearFull'), under: !!document.querySelector('#hero #ovFearFull'),
           top: Math.round(document.getElementById('ovFearCard').getBoundingClientRect().top), vh: innerHeight, y: scrollY,
-          last: [...document.querySelector('#v-overview').children].filter(x => x.tagName !== 'SCRIPT').pop().contains(document.getElementById('ovFearCard')) }; }""")
-    ok(f"{T} 點卡片 → 捲到總覽最底下的走勢圖卡（在視窗內、卡片下方沒有展開的大圖、圖有資料點、預設近 60 日）", bool(opened) and f["n"] > 0 and f["inCard"] and not f["under"] and f["last"] and 0 <= f["top"] < f["vh"] and f["y"] > y0 and f["dz"] and f["dz"][0] > 0, (f, y0))
-    # 拖拉Bar 左把手往右：可視區間真的變
-    box = pg.evaluate("() => { const r = document.getElementById('ovFearChart').getBoundingClientRect(); return [r.left, r.bottom, r.width]; }")
-    if f["dz"] and f["dz"][0] > 1:
-        # 抓住拉Bar 上「已選區間」的中間往左拖（平移視窗）：起訖兩端都要跟著變
-        sw = box[2] - 44 - 64                              # 拉Bar 寬（fearcard.js：left 44、right 64）
-        hx, hy = box[0] + 44 + sw * (f["dz"][0] + f["dz"][1]) / 200, box[1] - 8 - 11
-        pg.mouse.move(hx, hy)
-        pg.mouse.down(); pg.mouse.move(hx - sw * 0.25, hy, steps=12); pg.mouse.up()
-        pg.wait_for_timeout(400)
-        dz2 = pg.evaluate("() => { const o = echarts.getInstanceByDom(document.getElementById('ovFearChart')).getOption(); return [o.dataZoom[1].start, o.dataZoom[1].end]; }")
-        ok(f"{T} 拖下方拉Bar → 可視區間真的變了", dz2 != f["dz"], (f["dz"], dz2))
+          last: [...document.querySelector('#v-overview').children].filter(x => x.tagName !== 'SCRIPT').pop().contains(document.getElementById('ovFearCard')) }; }"""
+    f = pg.evaluate(FJS)
+    ok(f"{T} 點卡片 → 捲到總覽最底下的走勢圖卡（在視窗內、卡片下方沒有展開的大圖、圖有資料點、預設近 3 個月）", bool(opened) and f["pts"] > 0 and f["inCard"] and not f["under"] and f["last"] and 0 <= f["top"] < f["vh"] and f["y"] > y0 and f["per"] == "3m" and f["win"] and f["win"][0] > f["xmin"], (f, y0))
+    ok(f"{T} 台股模式：名稱＝加權指數、櫃買指數、台指自算；上下兩格（grid 2、X 軸 2、Y 軸 2）；下格有平靜／警戒／恐慌三段色帶；上格以起點為 100",
+       f["names"] == ["加權指數", "櫃買指數", "台指自算"] and f["grids"] == 2 and f["xs"] == 2 and f["ys"] == 2 and f["bands"] == 3 and f["bandNames"] == ["平靜", "警戒", "恐慌"]
+       and all(abs(x - 100) < 1e-6 for x in f["base"] if x is not None) and len([x for x in f["base"] if x is not None]) == 2, f)
+    ok(f"{T} 切換鈕與期間鈕：台股｜美股（台股亮）、1月 3月 6月 1年 全部（3月亮）、圖例有三條線名稱", f["btns"] == ["台股*", "美股"] and f["pbtns"][1] == "3月*" and all(n in f["leg"] for n in ("加權指數", "櫃買指數", "台指自算")), f)
+    # 滑鼠移到圖上（提示框全站統一掛在 body、z-index 9999999，見 app.js tipSafe）：提示框同時出現加權、櫃買、台指自算與狀態字（兩格連動）
+    bx = pg.evaluate("() => { const r = document.getElementById('ovFearChart').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+    pg.mouse.move(bx[0] + bx[2] * 0.55, bx[1] + 60); pg.mouse.move(bx[0] + bx[2] * 0.56, bx[1] + 70); pg.wait_for_timeout(500)
+    tip = pg.evaluate("() => { const t = [...document.body.children].filter(d => d.style.zIndex === '9999999' && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0).map(e => e.innerText).join(' | '); return t; }")
+    ok(f"{T} 滑鼠移上去：提示框同時有加權指數、櫃買指數、台指自算三個數值與狀態字（平靜／警戒／恐慌）", all(k in tip for k in ("加權指數", "櫃買指數", "台指自算")) and any(k in tip for k in ("平靜", "警戒", "恐慌")) and len(re.findall(r"\d[\d,]*\.\d\d", tip)) >= 3, tip[:200])
+    # 期間鈕真的有效：1月 → 視窗起點變晚、上格基準重算（起點＝100）；全部 → 起點＝資料最早一天
+    w3 = f["win"]
+    pg.locator("#fzPer button", has_text="1月").click(); pg.wait_for_timeout(500)
+    f1 = pg.evaluate(FJS)
+    ok(f"{T} 按「1月」→ X 軸範圍真的變短（起點往後）、1月鈕亮、上格重新以起點為 100", f1["win"][0] > w3[0] and 25 <= (f1["win"][1] - f1["win"][0]) / 86400000 <= 33 and f1["per"] == "1m" and all(abs(x - 100) < 1e-6 for x in f1["base"] if x is not None), (w3, f1))
+    pg.locator("#fzPer button", has_text="全部").click(); pg.wait_for_timeout(500)
+    fa = pg.evaluate(FJS)
+    ok(f"{T} 按「全部」→ X 軸範圍擴到最早一天、全部鈕亮", abs(fa["win"][0] - fa["xmin"]) < 3 * 86400000 and fa["per"] == "all", fa)
+    pg.locator("#fzPer button", has_text="3月").click(); pg.wait_for_timeout(500)
+    # 拖下方細拉Bar：可視區間真的變（上格起點基準也跟著重算）
+    f3 = pg.evaluate(FJS)
+    sw = bx[2] - 40 - 42
+    hx = bx[0] + 40 + sw * ((f3["win"][0] + f3["win"][1]) / 2 - f3["xmin"]) / (f3["xmax"] - f3["xmin"]); hy = bx[1] + bx[3] - 4 - 6
+    pg.mouse.move(hx, hy); pg.mouse.down(); pg.mouse.move(hx - sw * 0.25, hy, steps=12); pg.mouse.up(); pg.wait_for_timeout(600)
+    fd = pg.evaluate(FJS)
+    ok(f"{T} 拖下方拉Bar → 可視區間真的變了、上格仍以新起點為 100", fd["win"][0] < f3["win"][0] and all(abs(x - 100) < 1e-6 for x in fd["base"] if x is not None), (f3["win"], fd["win"], fd["base"]))
+    # 切到美股：名稱換掉、localStorage 記住、重新整理後仍是美股
+    pg.locator("#fzMkt button", has_text="美股").click(); pg.wait_for_timeout(700)
+    fu = pg.evaluate(FJS)
+    ok(f"{T} 切到「美股」→ 線名稱換成那斯達克、費城半導體、標普 500、美股 VIX；色帶仍三段；localStorage 記住 us", fu["names"] == ["那斯達克", "費城半導體", "標普 500", "美股 VIX"] and fu["bands"] >= 2 and fu["ls"] == "us" and fu["btns"] == ["台股", "美股*"] and fu["mkt"] == "us", fu)
+    pg.mouse.move(bx[0] + bx[2] * 0.5, bx[1] + 60); pg.mouse.move(bx[0] + bx[2] * 0.51, bx[1] + 70); pg.wait_for_timeout(500)
+    tip2 = pg.evaluate("() => [...document.body.children].filter(d => d.style.zIndex === '9999999' && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0).map(e => e.innerText).join(' | ')")
+    ok(f"{T} 美股模式滑鼠移上去：提示框有那斯達克、費城半導體、標普 500、美股 VIX 四個數值與狀態字", all(k in tip2 for k in ("那斯達克", "費城半導體", "標普 500", "美股 VIX")) and any(k in tip2 for k in ("平靜", "警戒", "恐慌")) and len(re.findall(r"\d[\d,]*\.\d\d", tip2)) >= 4, tip2[:240])
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => !!window.FearCard && !!FearCard._s.data", 30000); open_full(pg); pg.wait_for_timeout(1200)
+    fr = pg.evaluate(FJS)
+    ok(f"{T} 重新整理後仍是「美股」（選項被記住）、線名稱仍是美股那四條", fr["mkt"] == "us" and fr["names"] == ["那斯達克", "費城半導體", "標普 500", "美股 VIX"] and fr["btns"] == ["台股", "美股*"], fr)
+    pg.locator("#fzMkt button", has_text="台股").click(); pg.wait_for_timeout(600)
+    ft = pg.evaluate(FJS)
+    ok(f"{T} 切回「台股」→ 線名稱換回加權指數／櫃買指數／台指自算、localStorage 改回 tw", ft["names"] == ["加權指數", "櫃買指數", "台指自算"] and ft["ls"] == "tw", ft)
     c.close()
 
     # ---------------------------------------------------------------- 3. 手機 390
@@ -103,6 +140,11 @@ def t_fear_1106(b, base, code):
     opened = open_full(pg)
     mm = pg.evaluate("() => { const r = document.getElementById('ovFearFull').getBoundingClientRect(); return { w: Math.round(r.width), r: Math.round(r.right), vw: innerWidth, sw: document.documentElement.scrollWidth }; }") if opened else {}
     ok(f"{T} 390：點卡片捲到底部走勢圖，寬度不超出畫面", bool(opened) and mm.get("r", 999) <= mm.get("vw", 0) and mm.get("sw", 999) <= mm.get("vw", 0), mm)
+    pg.wait_for_timeout(1200)
+    mz = pg.evaluate("""() => { const c = document.getElementById('ovFearCard').getBoundingClientRect(), ch = echarts.getInstanceByDom(document.getElementById('ovFearChart')), o = ch && ch.getOption(), cv = document.getElementById('ovFearChart').getBoundingClientRect();
+        return { h: Math.round(c.height), vh: innerHeight, cvh: Math.round(cv.height), hs: o ? o.dataZoom[0].handleSize : 0, sh: o ? o.dataZoom[0].height : 0, per: [...document.querySelectorAll('#fzPer button')].map(b => Math.round(b.getBoundingClientRect().height)),
+          inView: cv.right <= innerWidth && cv.left >= 0 }; }""")
+    ok(f"{T} 390：走勢卡（標題、切換、期間鈕、圖例、上下兩格）整張 ≤ 一屏（卡高 ≤ 視窗高）、拉Bar 把手 ≥ 30px 可用手指拖、期間鈕高 ≥ 32", mz["h"] <= mz["vh"] and mz["hs"] >= 30 and all(x >= 32 for x in mz["per"]) and mz["inView"], mz)
     c.close()
 
     # ---------------------------------------------------------------- 4. 功能鍵 ov.fear

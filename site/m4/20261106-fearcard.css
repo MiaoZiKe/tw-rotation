@@ -3,3 +3,11 @@
   .osc.fz .fz-g{min-height:50px}
   .osc.fz .fz-num{font-size:24px}
 }
+
+/* 恐慌指數走勢卡（#ovFearCard）手機：標題＋台股｜美股一行、期間鈕獨立一行、圖例一行；上下兩格總高 ≤ 一屏（圖 290px）。只限 ≤640 */
+@media (max-width:640px){
+  .fz-hd h3{margin-right:auto}
+  .fz-hd .fz-per{order:4}   /* 分段鈕的尺寸（高 40、內距）吃 mobile4.css 的全站統一樣式，這裡不另外覆蓋 */
+  .fz-hd .fz-leg{order:5;flex-basis:100%;margin-left:0;gap:2px 12px}
+  .fz-cv{height:290px}
+}

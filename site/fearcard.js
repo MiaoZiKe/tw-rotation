@@ -86,7 +86,11 @@
       + `<li>門檻依據：${lo}%＝中位數（比一半的日子高才開始警戒）；${hi}%≈平均加一個標準差（常態分配下約 84%），不是對著歷史挑出來的數字</li>`
       + `<li>歷史不到 ${m.min_hist || 120} 個交易日只給數字、不給狀態；右邊的 n＝分位用到的天數</li>`
       + '<li>卡片下方的「美股 VIX」＝美股恐慌指數（芝加哥期權交易所），日期是美國交易日，跟台股差一天是正常的</li>'
-      + '<li>點卡片捲到總覽最底下的走勢圖：預設顯示近 60 個交易日，拖下方拉Bar 看更早</li></ul>';
+      + '<li>走勢圖分兩格、共用同一條日期軸：<b>上格</b>放對照指數（台股＝加權指數、櫃買指數；美股＝那斯達克、費城半導體、標普 500），<b>下格</b>放恐慌指數（台股＝台指自算；美股＝美股 VIX）。「台股｜美股」切換看哪一邊，會記住你的選擇</li>'
+      + '<li>上格全部<b>以所選期間的第一天當 100</b> 畫相對走勢（各指數點數差太多，直接放一起看不出誰漲得多）；切換期間或拖下方的細拉Bar，起點就跟著重算。提示框裡寫的是各指數當天的實際點數與單日漲跌幅（紅漲綠跌）</li>'
+      + `<li>下格背景三段色帶：台指自算用上面講的分位（${lo}%、${hi}% 對應的數值）；美股 VIX 用公開慣例的固定門檻——低於 20 平靜、20～30 警戒、30 以上恐慌。色帶畫的是「現在」的門檻，提示框裡的狀態字是「那一天當下」的狀態</li>`
+      + '<li>提示框標的美股日期是美國交易日；台股與美股休市日不同，沒有開盤的那天該指數留空</li>'
+      + '<li>預設看近 3 個月；期間鈕有 1 月／3 月／6 月／1 年／全部，資料不夠長的鈕會反灰</li></ul>';
   }
 
   /* 時速表本體。每次卡列重畫（換主題、回總覽）節點都是新的，所以每次 refresh 都重新 setOption；顏色當下從主題變數讀。*/
@@ -153,52 +157,249 @@
     let p = document.getElementById('ovFearFull');
     if (!p) {
       p = document.createElement('div'); p.id = 'ovFearFull'; p.className = 'fz-full'; p.setAttribute('aria-label', '恐慌指數走勢圖');
-      p.innerHTML = '<div class="fz-cv" id="ovFearChart"></div><div class="fz-note" id="ovFearNote"></div>';
+      p.innerHTML = '<div class="fz-cv" id="ovFearChart"></div>';
       host.appendChild(p);
     }
     refresh();
     draw();
   }
-  /* 底部卡：標題列（含圖例與「?」）由 index.html 放好；這裡只負責「露出才畫」 */
+  /* 底部卡：標題列（標題、台股｜美股、圖例、期間鈕、「?」）由 index.html 放好；這裡只負責「露出才畫」 */
   function watch() {
     const host = document.getElementById('ovFearCard'); if (!host || host._fzIO) return;
+    bindCtl();
     if (typeof IntersectionObserver === 'undefined') { load().then(openFull); return; }
     const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); host._fzIO = null; load().then(openFull); } }, { rootMargin: '200px' });
     host._fzIO = io; io.observe(host);
   }
   function reveal() { load().then(() => { if (!S.open || !document.getElementById('ovFearFull')) openFull(); else draw(); }); }
+
+  /* ======================================================================================
+     走勢圖（2026-11-06 第三版，Andy：「這邊的曲線圖優化，我覺得好醜，並且需要搭配大盤走勢圖才可以發現差異」
+     「分成台股美股：台股 VIX 就是加權、櫃買；美股就是那斯達克、費城、S&P 比較」）
+     ·上下兩格共用同一條時間軸（一個 ECharts、兩個 grid）：上格＝對照指數（期間起點＝100 的相對走勢，因為量級差太多，
+       雙 Y 軸會讓兩條線的交會點沒有意義）；下格＝恐慌指數；十字線與提示框兩格連動。
+     ·背景三段色帶（平靜／警戒／恐慌）取代原本兩條虛線：台指自算＝50%／85% 分位對應的值；美股 VIX＝公開慣例 20／30。
+     ·期間鈕（1月／3月／6月／1年／全部，預設 3 月）＝ 時間軸視窗；視窗一變（按鈕或拖拉Bar）上格就重新以視窗起點為 100。
+     ·台股｜美股 的選擇存 localStorage（tw.fear.mkt）。
+     ====================================================================================== */
+  const LSK = 'tw.fear.mkt';
+  const lsGet = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
+  S.mkt = lsGet(LSK, 'tw') === 'us' ? 'us' : 'tw';
+  S.per = '3m';
+  const DAY = 86400000;
+  const ts = (d) => Date.parse(d + 'T00:00:00Z');
+  const ymd = (t) => new Date(t).toISOString().slice(0, 10);
+  const PER = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, all: 0 };
+  const rgba = (c, a) => {
+    let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c).trim());
+    if (m) { let h = m[1]; if (h.length === 3) h = h.replace(/./g, '$&$&'); return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`; }
+    m = /rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/.exec(String(c)); return m ? `rgba(${m[1]},${m[2]},${m[3]},${a})` : c;
+  };
+  const fmtN = (v, dp) => (v == null || !isFinite(v) ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }));
+  /* 美股 VIX 的狀態門檻：公開慣例（20 以下平靜、20～30 警戒、30 以上恐慌）；台指自算用自己的歷史分位（見 howText） */
+  const VIX_Q = [20, 30];
+
+  /* 這個市場要畫的東西：上格 top（相對走勢的指數們）、下格 bot（恐慌指數）、色帶門檻 */
+  function model() {
+    const d = S.data || {}, idx = (d.idx && d.idx[S.mkt]) || {};
+    const tw = S.mkt === 'tw';
+    const top = tw
+      ? [{ k: 'TSE', c: CHc('cyan'), w: 2 }, { k: 'OTC', c: CHc('violet'), w: 1.6 }]
+      : [{ k: 'IXIC', c: CHc('cyan'), w: 2 }, { k: 'SOX', c: CHc('violet'), w: 1.6 }, { k: 'GSPC', c: CHc('amber'), w: 1.6 }];
+    const tops = top.filter((x) => idx[x.k] && idx[x.k].series && idx[x.k].series.length).map((x) => ({ k: x.k, name: idx[x.k].name, c: x.c, w: x.w, raw: idx[x.k].series }));
+    let bot = null;
+    if (tw && d.tw && d.tw.series && d.tw.series.length) {
+      const mh = (d.method && d.method.min_hist) || 120;
+      bot = { k: 'ivx', name: '台指自算', c: CHc('up'), raw: d.tw.series, q: d.tw.q50 != null && d.tw.q85 != null ? [d.tw.q50, d.tw.q85] : null,
+        stateAt: (i) => { const p = d.tw.pct_series && d.tw.pct_series[i] ? d.tw.pct_series[i][1] : null; return p == null || i + 1 < mh ? null : p >= ((d.method && d.method.panic) || 0.85) ? 'panic' : p >= ((d.method && d.method.calm) || 0.5) ? 'alert' : 'calm'; } };
+    } else if (!tw && d.us && d.us.series && d.us.series.length) {
+      bot = { k: 'vix', name: '美股 VIX', c: CHc('ink'), raw: d.us.series, q: VIX_Q, stateAt: (i, v) => (v >= VIX_Q[1] ? 'panic' : v >= VIX_Q[0] ? 'alert' : 'calm') };
+    }
+    [...tops, ...(bot ? [bot] : [])].forEach((x) => { x.t = x.raw.map((p) => ts(p[0])); x.v = x.raw.map((p) => p[1]); });
+    return { tops, bot };
+  }
+  const CHc = (k) => ((A() && A().CH) || {})[k] || { up: '#ff4d6d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', ink: '#e8eeff' }[k];
+  /* 在序列 x 裡找「時間 ≤ t 的最後一筆」；差超過 6 天（長假、沒資料）就當沒有 */
+  function at(x, t) {
+    let lo = 0, hi = x.t.length - 1, r = -1;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (x.t[m] <= t) { r = m; lo = m + 1; } else hi = m - 1; }
+    return r >= 0 && t - x.t[r] <= 6 * DAY ? r : -1;
+  }
+  /* X 軸刻度：視窗內平均取 n 個日期（各往內縮半格，頭尾標籤才不會被切），間隔一致、不會出現「08/29 與 09/01 擠在一起」 */
+  const xTicks = (a, b, n) => Array.from({ length: n }, (_, k) => Math.round((a + (k + 0.5) / n * (b - a)) / DAY) * DAY);
+  function periodStart(per, xmin, xmax) {
+    if (per === 'all') return xmin;
+    const d = new Date(xmax); d.setUTCMonth(d.getUTCMonth() - PER[per]);
+    return Math.max(xmin, d.getTime());
+  }
+
+  /* 依視窗 [a,b] 算出所有「會隨視窗變」的東西：上格以視窗起點為 100 的資料、兩個 Y 軸範圍、色帶 */
+  function build(m, a, b) {
+    const topSer = m.tops.map((x) => {
+      const i0 = x.t.findIndex((t) => t >= a);
+      const base = i0 >= 0 ? x.v[i0] : null;
+      return { x, base, data: base ? x.t.map((t, i) => [t, x.v[i] / base * 100]) : [] };
+    });
+    let lo = Infinity, hi = -Infinity;
+    topSer.forEach((s) => s.data.forEach((p) => { if (p[0] >= a && p[0] <= b) { lo = Math.min(lo, p[1]); hi = Math.max(hi, p[1]); } }));
+    if (!isFinite(lo)) { lo = 95; hi = 105; }
+    lo = Math.min(lo, 100); hi = Math.max(hi, 100);
+    const pad = Math.max(1, (hi - lo) * 0.06), sp = hi - lo + 2 * pad, stepT = sp <= 12 ? 2 : sp <= 30 ? 5 : sp <= 70 ? 10 : 20;
+    const yTop = { step: stepT, min: Math.floor((lo - pad) / stepT) * stepT, max: Math.ceil((hi + pad) / stepT) * stepT };
+    let yBot = { min: 0, max: 40, step: 10 }, bands = [];
+    if (m.bot) {
+      let l2 = Infinity, h2 = -Infinity;
+      m.bot.t.forEach((t, i) => { if (t >= a && t <= b) { l2 = Math.min(l2, m.bot.v[i]); h2 = Math.max(h2, m.bot.v[i]); } });
+      if (!isFinite(l2)) { l2 = 10; h2 = 40; }
+      const step = h2 - l2 > 22 ? 10 : 5;
+      yBot = { step, min: Math.max(0, Math.floor((l2 - 1) / step) * step), max: Math.ceil((h2 + 1) / step) * step };
+      if (yBot.max - yBot.min < 2 * step) yBot.max = yBot.min + 2 * step;
+      // 色帶的最上一段（恐慌）要看得到：值已進到警戒、軸頂卻沒超過恐慌門檻時，再往上留一格
+      if (m.bot.q && h2 >= m.bot.q[0] && yBot.max <= m.bot.q[1]) yBot.max = (Math.floor(m.bot.q[1] / step) + 1) * step + step;
+      if (m.bot.q) {
+        const [q1, q2] = m.bot.q, cl = (v) => Math.min(yBot.max, Math.max(yBot.min, v));
+        [['calm', yBot.min, q1], ['alert', q1, q2], ['panic', q2, yBot.max]].forEach(([k, u, w]) => { u = cl(u); w = cl(w); if (w - u > 0.01) bands.push({ k, lo: u, hi: w }); });
+      }
+    }
+    return { topSer, yTop, yBot, bands };
+  }
+  const stateColors = () => {
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    return { calm: cssv('--fall', '#2ee59d'), alert: light ? '#E0A100' : cssv('--amber', '#ffb454'), panic: cssv('--rise', '#ff4d6d') };
+  };
+  const stateText = () => ({ calm: cssv('--fall', '#2ee59d'), alert: cssv('--amber', '#ffb454'), panic: cssv('--rise', '#ff4d6d') });
+  const bandMark = (bands) => {
+    const C = stateColors(), T = stateText(), light = document.documentElement.getAttribute('data-theme') === 'light';
+    return { silent: true, animation: false, data: bands.map((b) => [{ yAxis: b.lo, name: ST[b.k].n, itemStyle: { color: rgba(C[b.k], light ? 0.13 : 0.11) }, label: { show: true, position: 'right', color: T[b.k], fontSize: 12, fontWeight: 600, distance: 4 } }, { yAxis: b.hi }]) };
+  };
+
+  function tipHtml(m, t) {
+    const T = stateText(), ink3 = cssv('--ink-3', '#8a94a6');
+    const dot = (c) => `<i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></i>`;
+    const rows = [];
+    let head = ymd(t);
+    m.tops.forEach((x) => {
+      const i = at(x, t); if (i < 0) { rows.push([dot(x.c) + x.name, '—', '']); return; }
+      const c = i > 0 ? (x.v[i] / x.v[i - 1] - 1) * 100 : null;
+      const cc = c == null ? '' : `<span style="color:${c > 0 ? cssv('--rise', '#ff4d6d') : c < 0 ? cssv('--fall', '#2ee59d') : ink3};margin-left:8px">${c > 0 ? '▲' : c < 0 ? '▼' : ''}${Math.abs(c).toFixed(2)}%</span>`;
+      rows.push([dot(x.c) + x.name, fmtN(x.v[i], 2), cc]);
+    });
+    if (m.bot) {
+      const x = m.bot, i = at(x, t);
+      if (i < 0) rows.push([dot(x.c) + x.name, '—', '']);
+      else { const st = x.stateAt(i, x.v[i]); rows.push([dot(x.c) + x.name, fmtN(x.v[i], 2), st ? `<b style="color:${T[st]};margin-left:8px">${ST[st].n}</b>` : `<span style="color:${ink3};margin-left:8px">樣本不足</span>`]); }
+    }
+    return `<div style="font-size:12px;color:${ink3};margin-bottom:4px">${head}</div>` + rows.map((r) => `<div style="display:flex;gap:14px;justify-content:space-between;align-items:baseline;line-height:20px"><span>${r[0]}</span><span style="font-family:var(--mono);white-space:nowrap"><b>${r[1]}</b>${r[2]}</span></div>`).join('');
+  }
+
+  function legend(m) {
+    const el = document.getElementById('fzLeg'); if (!el) return;
+    el.innerHTML = [...m.tops.map((x) => ({ x, up: 1 })), ...(m.bot ? [{ x: m.bot }] : [])].map((o) => `<span class="fz-lg"><i style="--c:${o.x.c}"></i>${esc(o.x.name)}</span>`).join('') + (m.tops.length ? '<span class="fz-lg fz-base">上格：期間起點＝100</span>' : '');
+  }
+  function ctlSync(m, win) {
+    document.querySelectorAll('#fzMkt button').forEach((b) => { const on = b.dataset.mkt === S.mkt; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const per = S.winPer;
+    document.querySelectorAll('#fzPer button').forEach((b) => {
+      const on = b.dataset.p === per; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      const first = S.xmin, need = b.dataset.p === 'all' ? null : periodStart(b.dataset.p, -Infinity, S.xmax);
+      const short = need != null && first != null && first > need + 3 * DAY;
+      b.disabled = !!short; b.title = short ? `資料從 ${ymd(first)} 才開始，不足${b.textContent}` : '';
+    });
+  }
+  function bindCtl() {
+    const root = document.getElementById('ovFearCard'); if (!root || root._fzBound) return; root._fzBound = true;
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('#fzMkt button, #fzPer button'); if (!b || b.disabled) return;
+      if (b.dataset.mkt) { if (b.dataset.mkt === S.mkt) return; S.mkt = b.dataset.mkt; lsSet(LSK, S.mkt); S.win = null; draw(); }
+      else if (b.dataset.p) setPeriod(b.dataset.p);
+    });
+  }
+  function setPeriod(p) {
+    S.per = p; const a = periodStart(p, S.xmin, S.xmax);
+    S.win = [a, S.xmax];
+    const ch = S.chart; if (!ch) return draw();
+    ch.dispatchAction({ type: 'dataZoom', dataZoomIndex: 0, startValue: a, endValue: S.xmax });
+    applyWin(a, S.xmax);
+  }
+  /* 視窗變了（按期間鈕、拖拉Bar、滾輪）：重算上格基準與兩個 Y 軸、色帶，只更新資料不重建圖 */
+  function applyWin(a, b) {
+    const ch = S.chart, m = S.m; if (!ch || !m) return;
+    S.win = [a, b];
+    const r = build(m, a, b);
+    ch.setOption({
+      yAxis: [{ min: r.yTop.min, max: r.yTop.max, interval: r.yTop.step }, { min: r.yBot.min, max: r.yBot.max, interval: r.yBot.step }],
+      xAxis: [{ axisLabel: { customValues: xTicks(a, b, S.nTick) } }, { axisLabel: { customValues: xTicks(a, b, S.nTick) } }],
+      series: [...r.topSer.map((s) => ({ id: 'top-' + s.x.k, data: s.data })), ...(m.bot ? [{ id: 'bot-' + m.bot.k, markArea: bandMark(r.bands) }] : [])],
+    });
+    // 視窗剛好等於某顆期間鈕 → 亮那顆；拖成別的範圍 → 全部不亮
+    S.winPer = null;
+    Object.keys(PER).forEach((k) => { if (Math.abs(periodStart(k, S.xmin, S.xmax) - a) <= 2 * DAY && Math.abs(b - S.xmax) <= 2 * DAY) S.winPer = k; });
+    ctlSync(m);
+    if (window.App && window.App._fear) { Object.assign(window.App._fear, { per: S.winPer, win: [ymd(a), ymd(b)], base: r.topSer.map((s) => s.base) }); }
+    const host = document.getElementById('ovFearFull'); if (host) { host.dataset.per = S.winPer || ''; host.dataset.win = ymd(a) + '~' + ymd(b); }
+  }
+
   function draw() {
     const el = document.getElementById('ovFearChart'); const a = A(); const d = S.data || {};
-    const tw = d.tw, us = d.us;
-    const note = document.getElementById('ovFearNote');
-    /* 圖下面只留一行（其餘在標題旁的「?」）：台指自算 ＋ 美股 VIX 的最新值 */
-    if (note) note.innerHTML = tw
-      ? `台指自算 <b>${n2(tw.value)}</b>・50% 分位 ${n2(tw.q50)}／85% 分位 ${n2(tw.q85)}` + (us ? `・美股 VIX <b>${n2(us.value)}</b>` : '')
-      : '台指自算值還在回補；先只顯示美股 VIX。';
     if (!el || !a || !a.chart) return;
-    if (!tw && !us) { el.innerHTML = '<div class="empty">尚無資料</div>'; return; }
-    const CH = a.CH || {};
-    const ax = a.axisStyle || {};   // app.js 的共用軸樣式（物件，不是函式）
-    const dates = [...new Set([...(tw ? tw.series.map((p) => p[0]) : []), ...(us ? us.series.map((p) => p[0]) : [])])].sort();
-    const toMap = (s) => { const m = {}; (s || []).forEach((p) => { m[p[0]] = p[1]; }); return m; };
-    const mt = toMap(tw && tw.series), mu = toMap(us && us.series);
-    // 預設顯示近 60 個交易日（Andy 11-06：60 日走勢放進點開後的完整圖），拖拉Bar 看更早
-    const start = Math.max(0, 100 - 60 / Math.max(1, dates.length) * 100);
+    const m = model(); S.m = m;
+    legend(m);
+    if (!m.bot && !m.tops.length) { el.innerHTML = '<div class="empty">' + (d.tw || d.us ? '這個市場的資料回補中' : '尚無資料') + '</div>'; ctlSync(m); return; }
+    const CH = a.CH || {}, ax = a.axisStyle || {};
     const mob = window.matchMedia && window.matchMedia('(max-width:640px)').matches;
+    const all = [...m.tops, ...(m.bot ? [m.bot] : [])];
+    S.xmin = Math.min(...all.map((x) => x.t[0])); S.xmax = Math.max(...all.map((x) => x.t[x.t.length - 1]));
+    const reuse = S.win && S.win[0] >= S.xmin && S.win[1] <= S.xmax;
+    const w0 = reuse ? S.win : [periodStart(S.per, S.xmin, S.xmax), S.xmax];
+    S.winPer = null; Object.keys(PER).forEach((k) => { if (Math.abs(periodStart(k, S.xmin, S.xmax) - w0[0]) <= 2 * DAY && Math.abs(w0[1] - S.xmax) <= 2 * DAY) S.winPer = k; });
+    const r = build(m, w0[0], w0[1]);
+    S.win = w0;
+    const grid = mob ? { l: 34, r: 36, top: 6, h1: 122, gap: 14, h2: 78 } : { l: 40, r: 42, top: 8, h1: 150, gap: 16, h2: 96 };
+    const ink3 = CH.ink3 || '#8a94a6', grid2 = CH.grid || 'rgba(128,128,128,.12)';
+    const yBase = { type: 'value', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: grid2 } }, axisLabel: { color: ink3, fontFamily: a.NUM_FONT, fontSize: 12 } };
+    S.nTick = mob ? 4 : 7;
+    const spanDays = (w0[1] - w0[0]) / DAY;
+    const xLab = (v) => { const s = ymd(v); return (S.win[1] - S.win[0]) / DAY > 400 ? s.slice(0, 4) + '/' + s.slice(5, 7) : s.slice(5, 7) + '/' + s.slice(8, 10); };
+    const xBase = (i) => ({ type: 'time', gridIndex: i, min: S.xmin, max: S.xmax, boundaryGap: false, splitLine: { show: false }, axisTick: { show: false }, axisLine: { lineStyle: { color: CH.line || '#2a3860' } },
+      axisLabel: i === 1 ? { color: ink3, fontFamily: a.NUM_FONT, fontSize: 12, hideOverlap: true, margin: 8, formatter: xLab, customValues: xTicks(w0[0], w0[1], S.nTick) } : { show: false }, axisPointer: { show: true, lineStyle: { color: ink3, width: 1, type: 'solid', opacity: 0.55 }, label: { show: false } } });
     const ser = [];
-    if (tw) ser.push({ name: '台指自算', type: 'line', data: dates.map((x) => (x in mt ? mt[x] : null)), connectNulls: true, showSymbol: false, lineStyle: { width: 1.8, color: CH.up }, itemStyle: { color: CH.up },
-      markLine: tw.q85 != null ? { symbol: 'none', silent: true, lineStyle: { type: 'dashed', width: 1 }, label: { formatter: (p) => p.name, position: mob ? 'insideEndTop' : 'end', color: CH.ink3 || '#8a94a6', fontSize: 11 },
-        data: [{ name: '50% 分位', yAxis: tw.q50, lineStyle: { color: CH.amber } }, { name: '85% 分位', yAxis: tw.q85, lineStyle: { color: CH.up } }] } : undefined });
-    if (us) ser.push({ name: '美股 VIX', type: 'line', data: dates.map((x) => (x in mu ? mu[x] : null)), connectNulls: true, showSymbol: false, lineStyle: { width: 1.4, color: CH.cyan }, itemStyle: { color: CH.cyan } });
+    r.topSer.forEach((s, i) => ser.push({ id: 'top-' + s.x.k, name: s.x.name, type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: s.data, showSymbol: false, symbol: 'circle', symbolSize: 6, lineStyle: { width: s.x.w, color: s.x.c }, itemStyle: { color: s.x.c }, emphasis: { disabled: true }, z: 3 - i / 10,
+      markLine: i === 0 ? { silent: true, symbol: 'none', animation: false, label: { show: false }, lineStyle: { type: 'dashed', width: 1, color: ink3, opacity: 0.6 }, data: [{ yAxis: 100 }] } : undefined }));
+    if (m.bot) ser.push({ id: 'bot-' + m.bot.k, name: m.bot.name, type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: m.bot.t.map((t, i) => [t, m.bot.v[i]]), showSymbol: false, lineStyle: { width: 2.2, color: m.bot.c }, itemStyle: { color: m.bot.c }, emphasis: { disabled: true },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: rgba(m.bot.c, 0.22) }, { offset: 1, color: rgba(m.bot.c, 0) }] } },
+      markArea: bandMark(r.bands), z: 3 });
     S.chart = a.chart(el, {
-      animation: false, grid: { left: 44, right: mob ? 12 : 64, top: 14, bottom: mob ? 64 : 58 },
-      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '—' : Number(v).toFixed(2)) },
-      xAxis: Object.assign({ type: 'category', data: dates, boundaryGap: false }, ax, { splitLine: { show: false } }),
-      yAxis: Object.assign({ type: 'value', scale: true, name: '年化 %', nameTextStyle: { fontSize: 11, color: CH.ink3 } }, ax),
-      dataZoom: [{ type: 'inside', start, end: 100 }, { type: 'slider', start, end: 100, left: 44, right: mob ? 12 : 64, height: mob ? 30 : 22, bottom: 8, handleSize: mob ? '140%' : '100%', brushSelect: false }],
+      animation: false, timeGrid: false, m4dz: false,
+      axisPointer: { link: [{ xAxisIndex: [0, 1] }] },
+      grid: [{ left: grid.l, right: grid.r, top: grid.top, height: grid.h1 }, { left: grid.l, right: grid.r, top: grid.top + grid.h1 + grid.gap, height: grid.h2 }],
+      tooltip: Object.assign({}, a.tip || {}, { trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: ink3, opacity: 0.55 } }, confine: true, formatter: (ps) => { const p = Array.isArray(ps) ? ps[0] : ps; const t = p && (p.axisValue != null ? p.axisValue : p.value && p.value[0]); return t == null ? '' : tipHtml(m, +t); } }),
+      xAxis: [xBase(0), xBase(1)],
+      yAxis: [Object.assign({ gridIndex: 0, min: r.yTop.min, max: r.yTop.max, interval: r.yTop.step }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { formatter: (v) => String(Math.round(v)) }) }),
+        Object.assign({ gridIndex: 1, min: r.yBot.min, max: r.yBot.max, splitNumber: 2, interval: r.yBot.step }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { formatter: (v) => String(Math.round(v)) }) })],
+      dataZoom: [
+        { type: 'slider', xAxisIndex: [0, 1], filterMode: 'none', startValue: w0[0], endValue: w0[1], left: grid.l, right: grid.r, bottom: 4, height: mob ? 22 : 12, showDetail: false, brushSelect: false,
+          borderColor: 'transparent', backgroundColor: rgba(ink3, 0.12), fillerColor: rgba(CH.cyan || '#3ee0ff', 0.28), handleSize: mob ? 30 : 16, handleStyle: { color: CH.cyan || '#3ee0ff', borderColor: 'transparent' },
+          dataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } }, selectedDataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } }, moveHandleSize: 0 },
+        { type: 'inside', xAxisIndex: [0, 1], filterMode: 'none', startValue: w0[0], endValue: w0[1], zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: true },
+      ],
       series: ser,
+    }, { notMerge: true });
+    S.chart.off('datazoom');
+    S.chart.on('datazoom', () => {
+      if (S._rf) cancelAnimationFrame(S._rf);
+      S._rf = requestAnimationFrame(() => {
+        const o = S.chart && S.chart.getOption(); const z = o && o.dataZoom && o.dataZoom[0]; if (!z) return;
+        const a2 = z.startValue != null ? +z.startValue : S.xmin + z.start / 100 * (S.xmax - S.xmin), b2 = z.endValue != null ? +z.endValue : S.xmin + z.end / 100 * (S.xmax - S.xmin);
+        if (S.win && Math.abs(a2 - S.win[0]) < DAY / 2 && Math.abs(b2 - S.win[1]) < DAY / 2) return;
+        applyWin(a2, b2);
+      });
     });
-    if (window.App) window.App._fear = { n: dates.length, tw: tw ? tw.series.length : 0, us: us ? us.series.length : 0, open: true };
+    ctlSync(m);
+    const host = document.getElementById('ovFearFull');
+    if (host) { host.dataset.mkt = S.mkt; host.dataset.per = S.winPer || ''; host.dataset.win = ymd(w0[0]) + '~' + ymd(w0[1]); host.dataset.names = [...m.tops, ...(m.bot ? [m.bot] : [])].map((x) => x.name).join(','); }
+    if (window.App) window.App._fear = { mkt: S.mkt, per: S.winPer, win: [ymd(w0[0]), ymd(w0[1])], base: r.topSer.map((s) => s.base), names: [...m.tops, ...(m.bot ? [m.bot] : [])].map((x) => x.name), n: S.xmax > 0 ? Math.round((S.xmax - S.xmin) / DAY) : 0,
+      tw: d.tw ? d.tw.series.length : 0, us: d.us ? d.us.series.length : 0, open: true };
   }
-  window.FearCard = { card, mounted, reveal, load, refresh, _s: S };
+  window.FearCard = { card, mounted, reveal, load, refresh, setPeriod, _s: S };
 })();

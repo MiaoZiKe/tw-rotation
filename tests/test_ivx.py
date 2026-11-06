@@ -169,3 +169,18 @@ def test_backfill_quota_exhausted_keeps_cursor():
     prog = {"complete": {"opt_ivx": {"next": "2025-01-01"}}}
     assert optivx.backfill(prog, lambda p: None, today=date(2026, 11, 6), fetch=lambda a, b: None) == 0
     assert prog["complete"]["opt_ivx"]["next"] == "2025-01-01"
+
+
+def test_build_json_idx_closes():
+    """走勢圖上格的對照指數：台股 TSE／OTC（index_ohlc）、美股 ^IXIC／^SOX／^GSPC（intl_daily），日期從恐慌指數第一天起，只輸出日收盤。"""
+    vals = list(np.linspace(15, 30, 150))
+    j0 = ivx.build_json(_ivx_frame(vals), None)
+    d0 = j0["tw"]["series"][0][0]
+    days = [d0, j0["tw"]["series"][1][0], j0["tw"]["series"][2][0]]
+    oh = pd.DataFrame([{"date": d, "symbol": s, "close": c} for d, c in zip(days, (100.0, 101.0, 102.0)) for s in ("TSE", "OTC")]
+                      + [{"date": "2000-01-01", "symbol": "TSE", "close": 1.0}])
+    intl = pd.DataFrame([{"date": d, "symbol": s, "close": 10.0 + i} for i, d in enumerate(days) for s in ("^IXIC", "^SOX", "^GSPC", "^VIX")])
+    j = ivx.build_json(_ivx_frame(vals), intl, ohlc=oh)
+    assert set(j["idx"]["tw"]) == {"TSE", "OTC"} and set(j["idx"]["us"]) == {"IXIC", "SOX", "GSPC"}
+    assert j["idx"]["tw"]["TSE"]["name"] == "加權指數" and len(j["idx"]["tw"]["TSE"]["series"]) == 3      # 2000 年那筆在恐慌指數起點之前，不輸出
+    assert ivx.build_json(None, None)["idx"] == {"tw": {}, "us": {}}
