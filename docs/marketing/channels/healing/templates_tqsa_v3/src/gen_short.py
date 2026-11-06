@@ -96,7 +96,7 @@ def pager(style, n, total=3):
         for i in range(total):
             cx = 22 + i * 40
             if i + 1 == n: out += sun(cx)
-            else: out += '<circle cx="%d" cy="22" r="7.5" fill="%s"/>' % (cx, ln)   # 2026-11-06 Andy：「圈都是實心」
+            else: out += '<circle cx="%d" cy="22" r="7.5" fill="%s" opacity=".4"/>' % (cx, lp)   # 2026-11-06 Andy：「圈都是實心」「實心但是顏色是剛剛那樣」＝淡晴光橘
         if last: return '<svg width="124" height="44" viewBox="0 0 124 44">%s</svg>' % out
         # 2026-11-06 Andy：「右下角需要補上箭頭 除了最後一頁」
         out += '<path d="M134 22 H156 M148 14 L157 22 L148 30" stroke="%s" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' % ln
