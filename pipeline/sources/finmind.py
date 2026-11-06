@@ -472,6 +472,39 @@ def margin_history(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
     return out.dropna(subset=["margin_balance"]).reset_index(drop=True)
 
 
+def _price_latest_date() -> str | None:
+    """資料湖價量最新日（用資料裡的日期，不用執行當下的日期）。讀不到回 None。"""
+    try:
+        from ..util import store
+        d = store.latest_date("price_daily")
+        return str(d) if d else None
+    except Exception:  # noqa: BLE001 - 守門讀不到就不過濾，不擋管線
+        return None
+
+
+def drop_placeholder_rows(df: pd.DataFrame, value_cols: list[str], price_latest: str | None) -> pd.DataFrame:
+    """丟掉 FinMind 的「佔位列」，避免它進資料湖後永遠不會被補正（2026-11-06 稽核 B）。
+
+    事故：FinMind 當沖資料在當天先回 0 的佔位列，數字要等一陣子才補上；
+    11-05 有 417 檔當沖是 0（平常約 50～160 檔），2330 顯示 0 張，實際 7,532 張。
+    資料湖是 append 去重，佔位列一旦存進去，只有「重抓並覆蓋」才補得回來，所以在源頭擋掉：
+      1. 日期晚於價量最新日的列（那天的價量都還沒有，不可能已有正式數字）→ 丟；
+      2. 價量最新日（含）之後、`value_cols` 全是 0 的列 → 丟（真的 0 的股票隔天就不是最新日，
+         那時再存進去，只晚一天，換來不會把佔位 0 當成正式值）。
+    price_latest 為 None（湖裡沒價量）時不過濾。
+    """
+    if df is None or df.empty or not price_latest:
+        return df
+    d = df["date"].astype(str)
+    bad = d > str(price_latest)
+    vals = df[value_cols].apply(pd.to_numeric, errors="coerce").fillna(0)
+    bad = bad | ((d >= str(price_latest)) & (vals == 0).all(axis=1))
+    n = int(bad.sum())
+    if n:
+        log.info("FinMind 佔位列 %d 筆已丟棄（日期晚於或等於價量最新日 %s 且全為 0）", n, price_latest)
+    return df[~bad].reset_index(drop=True)
+
+
 def day_trading(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
     """單檔當日沖銷（TaiwanStockDayTrading）。2026-09-27 加（個股頁籌碼「當沖」）。
 
@@ -490,7 +523,9 @@ def day_trading(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
                         "daytrade_volume": num("Volume"), "daytrade_buy_amount": num("BuyAmount"),
                         "daytrade_sell_amount": num("SellAmount"),
                         "buy_after_sale": df.get("BuyAfterSale", pd.Series([None] * len(df))).astype(str)})
-    return out.dropna(subset=["daytrade_volume"]).reset_index(drop=True)
+    out = out.dropna(subset=["daytrade_volume"]).reset_index(drop=True)
+    return drop_placeholder_rows(out, ["daytrade_volume", "daytrade_buy_amount", "daytrade_sell_amount"],
+                                 _price_latest_date())
 
 
 def short_sale_balances(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
@@ -515,7 +550,13 @@ def short_sale_balances(code: str, start: str, *, wait: bool = True) -> pd.DataF
                         "sbl_quota": num("SBLShortSalesQuota"),
                         "short_sell_ms": num("MarginShortSalesShortSales"),
                         "short_balance_ms": num("MarginShortSalesCurrentDayBalance")})
-    return out.dropna(subset=["sbl_balance"]).reset_index(drop=True)
+    out = out.dropna(subset=["sbl_balance"]).reset_index(drop=True)
+    # 借券：湖裡 11-05 全零列約 141 檔、每天持平，沒有當沖那種佔位 0 的跡象；
+    # 只擋「日期晚於價量最新日」的列（沒有任何數字能是正式值），不丟最新日全零（餘額 0 是真的）。
+    pl = _price_latest_date()
+    if pl and not out.empty:
+        out = out[out["date"].astype(str) <= pl].reset_index(drop=True)
+    return out
 
 
 def _level_lookup() -> dict[str, int]:
