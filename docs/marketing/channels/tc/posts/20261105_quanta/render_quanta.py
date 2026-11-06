@@ -264,6 +264,8 @@ JS = """() => {
  return {bad,oob,ovf,small,clip,wide,n:rects.length,clipdbg:[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible').map(e=>[e.tagName,e.scrollWidth,e.clientWidth])};
 }"""
 
+if os.environ.get("TITLE_R"):   # 2026-11-06 第二輪：公司名開口環＋透明說橘色（title_r.py）
+    import title_r; title_r.main(globals()); sys.exit(0)
 if os.environ.get("TITLE_STYLE"):   # 2026-11-06 標題字五款排版（title_styles.py），只產 title_N.png，不動 1_cover
     import title_styles; title_styles.main(globals()); sys.exit(0)
 if TITLE_FX: S = {f'cover_{TITLE_FX}': S['1_cover']}
