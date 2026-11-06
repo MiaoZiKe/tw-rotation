@@ -1,6 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-06 信用交易「全市場信用風險（官方儀表板）」人工登錄（Andy 11-06 決定：儀表板條款不准自動抓 → 站主每天手動填五個數字）
+- 前端（已推 main）：`site/margindash.js`（新檔）接在 #market/credit 大盤分頁的融資維持率卡下方；`marketfut.js` 只在 `render()` 加一行 `TwMarginDash.mount`。整塊在 #mktBody 裡 → 沿用 `mkt.credit` 閘門，不另開功能鍵。公告 `f-20261106-credit-official`。
+- 資料來源順序：會員 Worker `/v1/mdash/get` → 沒有這支端點時讀 `site/margin_dashboard_seed.json`（Andy 截圖 11/05、10/30 兩筆）。站主在 Worker 沒開通時按儲存＝只存這台瀏覽器（表單明寫）。
+- ⚠ Worker 端點**還沒部署**：程式在分支 `feat/margin-dashboard-worker`（`workers/account-api/margindash.js`＋`tests/margindash.test.mjs`＋worker.js 兩行＋deploy 工作流測試清單），合併 main 會觸發 deploy-account-worker.yml，**要 Andy 同意才合併**。合併前 Andy 填的數字只在他自己的瀏覽器。
+- 這批只驗了：`信用風險登錄1106`（新）、`大盤融資維持率1020`、`信用交易r3`、`信用排行1104`、`新功能次數1102`、`功能公告1019`、`桌機守門1008`、`_preview.py`；Worker 測試 `node --test workers/account-api/tests/margindash.test.mjs`。
+
 ## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
 - 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
 - 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。

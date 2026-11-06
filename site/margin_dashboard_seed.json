@@ -1,0 +1,9 @@
+{
+  "_note": "全市場信用風險（官方儀表板）人工登錄的種子資料。來源：證交所臺股儀表板 https://www.twse.com.tw/dashboard/zh/credit/margin.html（條款不准自動抓，Andy 手動抄錄）。單位：維持率 %、戶數 戶、金額 億元；不知道的欄位填 null。會員 Worker 還沒存過資料時，站上顯示這份；Worker 的 MDASH_SEED（workers/account-api/margindash.js）要跟這份一致。",
+  "src": "證交所臺股儀表板（人工登錄）",
+  "url": "https://www.twse.com.tw/dashboard/zh/credit/margin.html",
+  "rows": [
+    { "d": "2026-10-30", "mmr": null, "call_n": 199, "call_amt": null, "disp_n": 21, "disp_amt": null, "note": "" },
+    { "d": "2026-11-05", "mmr": 159.77, "call_n": 2352, "call_amt": 26.86, "disp_n": 222, "disp_amt": 6.42, "note": "" }
+  ]
+}
