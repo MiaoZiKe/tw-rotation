@@ -409,7 +409,35 @@ def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
         return pd.DataFrame()
     log.info("openapi 停在 %s、%s 的上市只有 %d 檔 —— 用 mis 補 %d 檔",
              openapi_date or "（沒有）", mis_date, have_twse, len(pairs))
-    return mis.price_snapshot(pairs)
+    return drop_rows_already_official(mis.price_snapshot(pairs))
+
+
+def drop_rows_already_official(df: pd.DataFrame) -> pd.DataFrame:
+    """mis 暫定列絕不蓋掉湖裡已經是官方值的列（2026-11-06 稽核 A 的守門）。
+
+    store.append 是「後到的為準」，mis 步驟排在 openapi／tpex 之後，所以只要同一個 (date, code)
+    湖裡已有官方列（px_source 空），mis 的暫定值就不該再進去，否則會把官方值降級成暫定值。
+    """
+    if df is None or df.empty:
+        return df
+    try:
+        d0 = str(df["date"].iloc[0])
+        cur = store.read("price_daily", years=[int(d0[:4])])
+    except Exception:  # noqa: BLE001 - 讀不到就維持原行為，不擋管線
+        return df
+    if cur is None or cur.empty:
+        return df
+    cur = cur[cur["date"].astype(str).isin(set(df["date"].astype(str)))]
+    if "px_source" in cur.columns:
+        cur = cur[cur["px_source"].isna() | (cur["px_source"].astype(str) != "mis")]
+    if cur.empty:
+        return df
+    off = set(zip(cur["date"].astype(str), cur["code"].astype(str)))
+    keep = [(str(d), str(c)) not in off for d, c in zip(df["date"], df["code"])]
+    n = len(df) - sum(keep)
+    if n:
+        log.info("mis 暫定列 %d 檔湖裡已有官方值，不覆蓋", n)
+    return df[keep].reset_index(drop=True)
 
 
 # ★ 2026-09-30：名單從「成交值前 400」擴到全市場（普通股全部＋成交值前段 ETF），邏輯搬到 pipeline/intraday60.py。
@@ -913,6 +941,19 @@ def main() -> int:
     else:
         log.error("拿不到交易日期，融資券與法人資料本輪跳過")
 
+    if news_only:
+        # ★ 2026-11-06 稽核 A：news 輪也要抓價量（openapi，不吃 FinMind 額度）。
+        #   收盤當晚 mis 補的是「暫定值」（量與值是盤中口徑，偏低 2～20%）；官方值 openapi 隔天上午就有，
+        #   但清晨 05:07、盤中 09:07／12:07 都是 news 輪、整段不抓價量，結果暫定值一路掛到隔天 15:37
+        #   （11-06 實測：台積電成交值 821 億，官方 1,018 億）。這裡抓到官方值，store.append 去重
+        #   「後到的為準」就把 px_source=mis 的暫定列換成官方列（官方列沒有 px_source → 變空值＝已正式）。
+        #   刻意不設 trade_date：它會帶動下游「法人／融資券」那些 news 輪本來不碰的步驟。
+        #   週末抓到的是週五的官方值，與湖裡相同，append 去重後不增列。
+        _np = step("twse.price_daily", twse.price_daily)
+        save("price_daily", _np)
+        if not _np.empty:
+            save("market_daily", step("twse.market", twse.market_daily))
+        save("price_daily", step("tpex.price_daily", tpex.price_daily))
     if not news_only:
         save("price_daily", price)
         save("valuation_daily", step("twse.valuation", twse.valuation_daily))

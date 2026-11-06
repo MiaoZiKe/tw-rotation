@@ -255,7 +255,9 @@
       el.querySelectorAll('button').forEach(b => b.onclick = () => { const v = b.dataset.k; st[key] = key === 'days' ? +v : v; render(kind, body); }); };
     if (kind !== 'credit') on('mfDays', 'days');
   }
-  function render(kind, body) { DRAW[kind](body); wire(kind, body); }
+  function render(kind, body) { DRAW[kind](body); wire(kind, body);
+    if (kind === 'credit' && st.tab !== 'rank' && window.TwMarginDash) window.TwMarginDash.mount(body, { meta: META, chart: H && H.chart });   // 2026-11-06 全市場信用風險（官方儀表板）人工登錄，site/margindash.js
+  }
 
   async function draw(kind, body, title, helpers) {
     H = helpers;

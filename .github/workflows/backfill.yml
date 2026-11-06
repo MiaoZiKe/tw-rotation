@@ -36,7 +36,7 @@ on:
       datasets:
         description: "要補的資料集（plan＝跑 default 計畫）"
         type: choice
-        options: [plan, logos, intraday, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
+        options: [plan, daytrade_zerofix, logos, intraday, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
         default: plan
       relay_n:
         description: "接力棒次（工作流自己派下一輪時填；手動觸發留 0）"
@@ -244,6 +244,9 @@ jobs:
             if [ "$LOGOS_ONLY" = "true" ]; then EX="logos"; fi
             if [ "$INTRADAY_ONLY" = "true" ]; then EX="${EX:+$EX+}intraday"; fi
             python -m pipeline.run_backfill --datasets "$EX"
+          elif [ "$DATASETS" = "daytrade_zerofix" ]; then
+            # 2026-11-06 稽核 B：把最近 3 個交易日當沖「全 0 的佔位列」重抓（結果走 store.append）
+            python -m pipeline.run_backfill --fix-daytrade-zeros 3
           elif [ "$DATASETS" = "plan" ]; then
             python -m pipeline.run_backfill --limit "$LIMIT" --plan default
           else
