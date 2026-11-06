@@ -39,3 +39,10 @@ def test_no_prev_close_gives_nothing():
 
 def test_empty():
     assert lastday.build(pd.DataFrame(), {}) == {}
+
+
+def test_open_high_low_follow_daily_bar():
+    """2026-11-06 稽核：1 分 K 取樣會漏掉極值，開高低跟收盤一樣以當天日 K 為準（數字列才對得上 K 線）。"""
+    ohlc = {"TSE": [["2026-09-30", 1, 1, 1, 90.0, 0], ["2026-10-01", 93.0, 101.5, 88.0, 95.0, 0]]}
+    t = lastday.build(pd.DataFrame(_day("2026-10-01", 270)), ohlc)["TSE"]
+    assert (t["open"], t["high"], t["low"], t["last"]) == (93.0, 101.5, 88.0, 95.0)
