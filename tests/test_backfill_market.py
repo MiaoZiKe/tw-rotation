@@ -194,7 +194,10 @@ def _all_done_complete() -> dict:
     # 2026-10-26：2012 起法人／財報（universe）與台指期研究 2008 起三塊，守門也要看
     for k in ("inst@2012-01-01", "balance+financial+revenue@2012-01-01",
               "inst@2012-01-01@pit", "delisted_px",
-              "futlab2_intl", "futlab2_dgs10", "futlab2_fut", "opt_pc"):
+              "futlab2_intl", "futlab2_dgs10", "futlab2_fut", "opt_pc",
+              # 2026-11-06：守門多看 opt_ivx（恐慌指數回補），測試的「全部補齊」假資料沒補上這把鍵，
+              # 導致 3 個守門測試紅、daily.yml 的 pytest 關卡把當天價量與法人整條管線擋掉
+              "opt_ivx"):
         cp[k] = {"done": True}
     for s in run_backfill.PLAN_DEFAULT:
         if s.get("scope") in ("market", "etf"):   # 2026-10-05 起多了 ETF 兩步
