@@ -1,0 +1,32 @@
+[
+ {
+  "page": "out/01_奶油晨光.png",
+  "checked": 15,
+  "fails": [],
+  "ill_ratio": 0.42
+ },
+ {
+  "page": "out/02_奶油晨光.png",
+  "checked": 15,
+  "fails": [],
+  "ill_ratio": 0.49
+ },
+ {
+  "page": "out/03_奶油晨光.png",
+  "checked": 15,
+  "fails": [],
+  "ill_ratio": 0.45
+ },
+ {
+  "page": "out/04_奶油晨光.png",
+  "checked": 15,
+  "fails": [],
+  "ill_ratio": 0.4
+ },
+ {
+  "page": "out/05_奶油晨光.png",
+  "checked": 21,
+  "fails": [],
+  "ill_ratio": 0.47
+ }
+]
