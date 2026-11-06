@@ -112,6 +112,7 @@ const CODE_RE = /^[0-9A-Z]{4,6}$/;
 import { installPay } from './pay.js';
 import { installArticles } from './articles.js';
 import { installAlertMail } from './alertmail.js';
+import { installMarginDash } from './margindash.js';
 
 export default {
   async fetch(req, env) {
@@ -2745,6 +2746,7 @@ for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.inclu
    ============================================================================ */
 installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
 installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
+installMarginDash(Hub);   // 2026-11-06 全市場信用風險（官方儀表板）人工登錄：/v1/mdash/get 公開讀、/v1/admin/mdash/put|del 管理者寫（margindash.js）
 installAlertMail(Hub, { tpeDay });    // 2026-11-02 自設提醒 email 通知（alertmail.js；cron 18:40 比對 digest.json、寫進 pay.js 的寄信佇列）
 
 /* ============================================================================ 今日造訪人數 dayvis（2026-10-17）
