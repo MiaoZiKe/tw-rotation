@@ -1083,7 +1083,9 @@ body.miaon #skHead>.disc-line{display:none}
   #skTools>.sktags{min-width:46px}
   .sktags>.sktmore{min-height:34px}
 }
-@media (max-width:760px){
+/* 2026-11-07 週健康檢查：實測 761～769 寬時工具列內容比卡片寬 8px（「?」那顆伸出卡片、整頁多出橫捲），
+   原本只到 760。門檻抬到 780：內容放得下時 overflow:auto 不會出捲軸、畫面完全不變，只是放不下時改成可滑。 */
+@media (max-width:780px){
   #skTools{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   #skTools::-webkit-scrollbar{display:none}
 }

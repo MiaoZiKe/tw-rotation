@@ -82,7 +82,9 @@ def t_artnav_1016(b, base):
        side["subs"] == 0 and not any(t in SUBT for t in side["txt"]) and "精選文章" in side["txt"] and "articles" not in side["nav"], side)
     pg.click("#tabs .tab[data-view=articles]")
     wait_until(pg, "() => location.hash === '#articles' && document.querySelectorAll('#artList .artc').length > 0", 10000); pg.wait_for_timeout(400)
-    st = pg.evaluate("() => ({ on: (document.querySelector('#artCats>button.on') || {}).dataset.cat, l4sub: document.documentElement.getAttribute('data-l4sub'), tab: getComputedStyle(document.querySelector('#tabs .tab[data-view=articles]')).backgroundColor })")
+    # 2026-11-07：側欄選中項的實心反白現在是漸層底圖（background-image: linear-gradient），backgroundColor 本來就是透明；
+    #   舊斷言只看 backgroundColor 就把「有漸層填色」誤判成透明。改成：有底圖取底圖、沒有才取底色，兩者都沒有才算透明（斷言沒放寬）。
+    st = pg.evaluate("() => ({ on: (document.querySelector('#artCats>button.on') || {}).dataset.cat, l4sub: document.documentElement.getAttribute('data-l4sub'), tab: (cs => cs.backgroundImage !== 'none' ? 'img:' + cs.backgroundImage.slice(0, 30) : cs.backgroundColor)(getComputedStyle(document.querySelector('#tabs .tab[data-view=articles]'))) })")
     ok(f"{T}[1440]：點側欄「精選文章」→ #articles、分頁亮「全部文章」、不掛 data-l4sub、母項實心反白（不是讓位給子項的透明底）",
        st["on"] == "all" and st["l4sub"] is None and st["tab"] not in ("rgba(0, 0, 0, 0)", "transparent"), st)
     tabs_ok("1440", pg.evaluate(TABST), False)
