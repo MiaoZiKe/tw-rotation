@@ -32949,7 +32949,7 @@ BIBI_RING = """() => { const r = document.getElementById('bibiRing'), f = docume
 
 
 # 環裡全部的小圈（10-12：拿掉「跳跳」＝12 顆；再加玩具六件組＝18 顆）
-BIBI_IDS = ["ask", "popcorn", "pet", "grass", "ball", "snack", "bubble", "feather", "yarn", "plane", "leaf", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]
+BIBI_IDS = ["ask", "say", "quiz", "popcorn", "pet", "grass", "ball", "snack", "bubble", "feather", "yarn", "plane", "leaf", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]
 
 
 def _bibi_no_overlap(R):
