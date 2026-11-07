@@ -282,9 +282,11 @@
 .evbtn#ciBtn.un{border-color:var(--amber,#e0a21b);color:var(--amber,#e0a21b)}
 .evbtn#ciBtn.un i{animation:cipulse2 1.8s ease-in-out infinite}
 @keyframes cipulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+@media (min-width:821px){
 :root.l4 #l4Tools>#ciBtn{display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));color:var(--ink-2);cursor:pointer;box-shadow:none}
 :root.l4 #l4Tools>#ciBtn:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
 :root.l4 #l4Tools>#ciBtn.un{border-color:var(--amber,#e0a21b);color:var(--amber,#e0a21b)}
+}
 @media (max-width:820px){.evbtn#ciBtn{display:none}}
 .ciov{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px}
 .ciov[hidden]{display:none}
@@ -756,7 +758,7 @@ ${ws.length ? ws.map((w, wi) => `<div class="ci-list" data-batch="${esc(w.id)}" 
     // 看過就把「新」記號清掉（下次打開不再亮邊）
     if (load().fresh.length) setTimeout(() => { load().fresh = []; save(true); }, 4000);
   }
-  const vaultCount = () => (M && allVault().length ? `${vaultGot()}／${vaultTotal()}` : '');
+  const vaultCount = () => (M && allVault().length ? `${vaultGot()}/${vaultTotal()}` : '');
   function tabCount() { const em = document.querySelector('#artCats>button[data-cat="vault"] em'); if (em) em.textContent = vaultCount(); }
   function vaultMeta(id) { const a = artMeta(id); return a ? Object.assign({}, a, { pack: packOf(id) }) : null; }
   function lockedPageHTML(id) {

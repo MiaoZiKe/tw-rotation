@@ -406,7 +406,7 @@ def t_checkin_1107(b, base):
         wait_until(ub, "() => !!document.getElementById('vaultSum')", 8000)
         ub.click(".ci-vseg [data-f=all]"); ub.wait_for_timeout(300)
         em = ub.evaluate("() => (document.querySelector('#artCats [data-cat=vault] em') || {}).textContent || ''")
-        ok(f"{T}：⑥C6 寶箱分頁標籤顯示篇數（例如 0／12）", bool(re.match(r"^\d+／12$", em.strip())), em)
+        ok(f"{T}：⑥C6 寶箱分頁標籤顯示篇數（例如 0／12）", bool(re.match(r"^\d+/12$", em.strip())), em)
         arrow = ub.evaluate("() => { const s = document.querySelector('.ci-vl > summary'); return getComputedStyle(s, '::before').content; }")
         ok(f"{T}：⑥B6 寶箱「全部」的分類預設收起時有展開箭頭", arrow not in ("none", "normal", ""), arrow)
         ok(f"{T}：⑥B6 分類預設收起（4 組都沒展開）", ub.evaluate("() => [...document.querySelectorAll('.ci-vl')].every(d => !d.open)"))
