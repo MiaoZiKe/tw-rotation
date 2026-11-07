@@ -1373,8 +1373,8 @@
   const ACTS = [
     { id: 'ask', name: '問比比', ask: true },
     /* 2026-11-07 每日簽到補簽（site/checkin.js）：聽比比說、比比考考你各一顆小圈；點了開小卡片，看完／答完算一次互動 */
-    { id: 'say', name: '聽比比說', ci: 'say' },
-    { id: 'quiz', name: '比比考考你', ci: 'quiz' },
+    { id: 'say', name: '聽比比說', ci: 'say', lbl: '比比說' },
+    { id: 'quiz', name: '比比考考你', ci: 'quiz', lbl: '考考你' },
     { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
     { id: 'pet', name: '摸摸頭', file: 'pet_q', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
     { id: 'grass', name: '餵牧草', file: 'eat_q', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
@@ -1469,8 +1469,11 @@
   transform:translate(0,0) scale(.3);opacity:0;transition:transform .32s cubic-bezier(.3,1.5,.5,1),opacity .2s,border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
 .bibiring.on .bopt{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
 .bibiring .bopt svg{width:26px;height:26px;display:block;pointer-events:none}
-/* 2026-11-07 簽到補簽的兩顆（聽比比說、比比考考你）圖示下方加文字標籤：新手不用猜哪顆是哪個 */
-.bibiring .bopt .blbl{position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);padding:1px 6px;border-radius:8px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);font-size:11px;line-height:14px;font-weight:600;white-space:nowrap;pointer-events:none}
+/* 2026-11-07 簽到補簽的兩顆（聽比比說、比比考考你）：圖示縮小、圓圈下緣加一行字（比比說／考考你），新手不用猜哪顆是哪個；
+   字寫在圓圈裡面，不往外長，所以不會壓到旁邊的圖示（圈子之間只隔幾 px） */
+.bibiring .bopt[data-hl="1"]{grid-template-rows:auto auto;align-content:center;row-gap:0}
+.bibiring .bopt[data-hl="1"] svg{width:22px;height:22px}
+.bibiring .bopt .blbl{font-size:11px;line-height:12px;font-weight:700;color:inherit;white-space:nowrap;pointer-events:none;margin-top:-1px}
 .bibiring .bopt img{width:100%;height:100%;display:block;pointer-events:none;border-radius:50%}
 /* 有動畫單位圖示的小圈：圖示自己就是圓底＋描邊，按鈕不再加底色與框（只留陰影）；叫醒（線條圖示）用同款奶油底＋深描邊 */
 .bibiring .bopt.bpic{background:none;border:0}
@@ -1687,7 +1690,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     ring = document.createElement('div'); ring.id = 'bibiRing'; ring.className = 'bibiring'; ring.hidden = true;
     ring.setAttribute('role', 'menu'); ring.setAttribute('aria-label', '跟比比玩');
     ring.innerHTML = '<div class="bzone"></div><svg class="btrack" aria-hidden="true"></svg>'
-      + ACTS.map((a) => `<button type="button" class="bopt${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ' bsvg2'}" role="menuitem" data-act="${a.id}">${iconOf(a.id)}${a.ci ? `<span class="blbl">${a.name}</span>` : ''}</button>`).join('');
+      + ACTS.map((a) => `<button type="button" class="bopt${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ' bsvg2'}" role="menuitem" data-act="${a.id}" data-hl="${a.ci ? 1 : 0}">${iconOf(a.id)}${a.ci ? `<span class="blbl">${a.lbl}</span>` : ''}</button>`).join('');
     document.body.appendChild(ring);
     ring.querySelectorAll('.bopt[data-act]').forEach((b) => { const a = ACTS.find((x) => x.id === b.dataset.act); b.title = a.name; b.setAttribute('aria-label', a.name); });
     ring.addEventListener('click', (e) => {

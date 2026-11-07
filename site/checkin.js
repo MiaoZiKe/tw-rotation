@@ -364,7 +364,7 @@
 .ci-badge{display:inline-block;padding:0 6px;border-radius:8px;font-size:12px;background:var(--panel-2);border:1px solid var(--line)}
 .ci-badge.eval{border-color:var(--cyan);color:var(--cyan)}
 .ci-badge.grant{border-color:var(--amber,#e0a21b);color:var(--amber,#e0a21b)}
-.ci-toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:1500;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 14px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);font-size:14px;max-width:90vw}
+.ci-toast{position:fixed;left:50%;top:56px;transform:translateX(-50%);z-index:1500;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 14px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);font-size:14px;max-width:90vw}
 .ci-bibi{position:fixed;right:20px;bottom:84px;z-index:1450;width:min(320px,calc(100vw - 24px));background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 16px 40px -14px rgba(0,0,0,.6);box-sizing:border-box}
 .ci-bibi h4{margin:0 0 6px;font-size:14px;color:var(--cyan)}
 .ci-bq{margin:4px 0 8px;line-height:1.6;font-size:14px}
@@ -459,7 +459,7 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
     const i = ns.findIndex((n, k) => !claimed(tm, k) && n > tot);
     if (i < 0) return { ready: -1, txt: '本月的獎勵都兌換完了，下個月 1 日重新累積', short: '本月獎勵都兌換了' };
     const left = ns[i] - tot;
-    return { ready: -1, txt: `再簽 ${left} 天可換「${NODE_NAMES[i]}」${i === 3 ? '（可以許願）' : '（2 篇文章，在精選文章的「比比寶箱」看）'}`, short: `再 ${left} 天可換${NODE_NAMES[i]}` };
+    return { ready: -1, txt: `再簽 ${left} 天可換「${NODE_NAMES[i]}」${i === 3 ? '（可以許願）' : '（2 篇文章，在精選文章的「比比寶箱」看）'}`, short: `再簽 ${left} 天可換${NODE_NAMES[i]}` };
   }
 
   function calHTML() {
@@ -627,7 +627,7 @@ ${ws.length ? ws.map((w, wi) => `<div class="ci-list" data-batch="${esc(w.id)}" 
     const b = $('#ciSign'); if (b) { b.disabled = true; b.textContent = '簽到中…'; }
     const r = doSign();
     V.ym = ymOf(today());
-    if (r.ok) { toast(`今天簽到完成，本月累積 ${r.total} 天。${nextStep().txt}`); } else toast(r.error === 'clock' ? '電腦時間比上次簽到時還早，請把系統時間調回正確再簽' : r.error === 'future' ? '不能簽今天以後的日子' : '今天已經簽到過了');
+    if (r.ok) { toast(`簽到完成，本月累積 ${r.total} 天。${nextStep().short}`); } else toast(r.error === 'clock' ? '電腦時間比上次簽到時還早，請把系統時間調回正確再簽' : r.error === 'future' ? '不能簽今天以後的日子' : '今天已經簽到過了');
     paint();
   }
   function claim(i) {

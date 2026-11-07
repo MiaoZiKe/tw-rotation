@@ -399,7 +399,7 @@ def t_checkin_1107(b, base):
         ub.hover("#supFab")
         ub.wait_for_timeout(900)
         lb = ub.evaluate("() => [...document.querySelectorAll('#bibiRing .bopt .blbl')].map(e => e.textContent)")
-        ok(f"{T}：⑥B3 比比環上「聽比比說」「比比考考你」兩顆圖示下方有文字標籤", sorted(lb) == ["比比考考你", "聽比比說"], lb)
+        ok(f"{T}：⑥B3 比比環上「聽比比說」「比比考考你」兩顆圖示下方有文字標籤", sorted(lb) == ["比比說", "考考你"], lb)
         ub.keyboard.press("Escape")
         # 寶箱：分頁篇數、箭頭
         ub.goto(base + "#articles/vault", wait_until="domcontentloaded")
