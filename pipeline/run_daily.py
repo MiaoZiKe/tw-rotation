@@ -431,6 +431,34 @@ def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
     return drop_rows_already_official(mis.price_snapshot(pairs))
 
 
+def official_refresh_status(official: pd.DataFrame, lake: pd.DataFrame) -> dict:
+    """news 輪抓到的上市官方價量，是不是湖裡暫定列那一天的官方值？（2026-11-07 事故）
+
+    事故：11-06 收盤後湖裡上市是 mis 暫定列（px_source=mis，1336 檔）。11-07 05:17 台北的 news 輪
+    openapi 還停在 11-05，回 1336 列——跟湖裡 11-05 一字不差，所以 store.append 寫回去等於沒動，
+    `twse.price_daily` 卻記 ok、rows=1336，看起來像「覆蓋成功」，實際上暫定值還掛著。
+    官方 11-06 是 05:30 才看得到（交叉比對那一刻才抓到）。綠燈必須代表「真的是那一天的資料」，
+    所以這裡把「官方日期 < 暫定列日期」明寫成 stale，不准混成成功。
+
+    回傳 status：
+      empty          ：這一輪沒抓到官方列
+      no_provisional ：湖裡沒有暫定列，沒有要覆蓋的東西（官方列照常存）
+      ready          ：官方日期 ≥ 湖裡最新的暫定日 → 能覆蓋
+      stale          ：官方日期 < 湖裡最新的暫定日 → openapi 還沒出那一天，下一輪再補
+    """
+    if official is None or official.empty or "date" not in official.columns:
+        return {"status": "empty"}
+    off_date = str(official["date"].astype(str).max())[:10]
+    if lake is None or lake.empty or "px_source" not in lake.columns:
+        return {"status": "no_provisional", "official_date": off_date}
+    prov = lake[(lake["px_source"].astype(str) == "mis") & (lake["market"].astype(str) == "TWSE")]
+    if prov.empty:
+        return {"status": "no_provisional", "official_date": off_date}
+    prov_date = str(prov["date"].astype(str).max())[:10]
+    status = "ready" if off_date >= prov_date else "stale"
+    return {"status": status, "official_date": off_date, "provisional_date": prov_date}
+
+
 def drop_rows_already_official(df: pd.DataFrame) -> pd.DataFrame:
     """mis 暫定列絕不蓋掉湖裡已經是官方值的列（2026-11-06 稽核 A 的守門）。
 
@@ -969,6 +997,15 @@ def main() -> int:
         #   刻意不設 trade_date：它會帶動下游「法人／融資券」那些 news 輪本來不碰的步驟。
         #   週末抓到的是週五的官方值，與湖裡相同，append 去重後不增列。
         _np = step("twse.price_daily", twse.price_daily)
+        # ★ 2026-11-07：存檔前先判日期。openapi 還沒出暫定那一天時，這裡拿到的是前一天的舊官方值，
+        #   寫回去等於沒動，所以要明寫 stale（還沒到），不准只看 ok。覆蓋判定要在 save 之前讀湖裡的暫定列。
+        _ref = official_refresh_status(
+            _np, store.read("price_daily", years=[int(str(_np["date"].iloc[0])[:4])]) if not _np.empty else pd.DataFrame())
+        RESULT["steps"]["official_refresh"] = _ref
+        if _ref.get("status") == "stale":
+            log.warning("官方上市價量還停在 %s，湖裡暫定列是 %s：這輪覆蓋不了，下一輪 news 再補",
+                        _ref.get("official_date"), _ref.get("provisional_date"))
+            RESULT["steps"].setdefault("twse.price_daily", {})["stale"] = True
         save("price_daily", _np)
         if not _np.empty:
             save("market_daily", step("twse.market", twse.market_daily))
