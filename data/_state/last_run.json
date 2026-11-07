@@ -3,7 +3,7 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.6
+      "seconds": 1.8
     },
     "official_refresh": {
       "status": "no_provisional",
@@ -23,7 +23,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1010,
-      "seconds": 17.4
+      "seconds": 8.8
     },
     "tape.collect": {
       "ok": true,
@@ -34,7 +34,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.4
+      "seconds": 1.7
     },
     "index_intraday": {
       "stored": 0
@@ -47,11 +47,11 @@
     },
     "news.collect": {
       "ok": true,
-      "rows": 126,
-      "seconds": 3.8
+      "rows": 127,
+      "seconds": 3.2
     },
     "news": {
-      "stored": 20
+      "stored": 28
     },
     "news.broker_views": {
       "ok": true,
@@ -72,23 +72,23 @@
     "macro.intl": {
       "ok": true,
       "rows": 4516,
-      "seconds": 1.5
+      "seconds": 1.8
     },
     "intl_daily": {
       "stored": 0
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15617,
-      "seconds": 3.1
+      "rows": 15619,
+      "seconds": 3.3
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 1.1
+      "seconds": 1.2
     },
     "macro_calendar": {
       "stored": 0
@@ -154,9 +154,9 @@
       "2026-11-06"
     ]
   },
-  "started_at": "2026-11-07T08:45:27.682599+00:00",
-  "finished_at": "2026-11-07T09:11:07.401209+00:00",
-  "duration_seconds": 1539.7,
+  "started_at": "2026-11-07T17:48:11.409491+00:00",
+  "finished_at": "2026-11-07T18:12:38.878543+00:00",
+  "duration_seconds": 1467.5,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -165,8 +165,8 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-06",
-        "rows": 1790,
-        "median": 2052.5,
+        "rows": 2063,
+        "median": 2054.5,
         "status": "ok",
         "reason": null
       },
@@ -221,7 +221,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2698455,
+      "rows": 2699742,
       "latest": "2026-11-06"
     },
     {
@@ -266,7 +266,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5500496,
+      "rows": 5500785,
       "latest": "2026-11-06"
     },
     {
@@ -341,8 +341,8 @@
     },
     {
       "table": "news",
-      "rows": 10318,
-      "latest": "2026-11-07"
+      "rows": 10346,
+      "latest": "2026-11-08"
     },
     {
       "table": "broker_views",
@@ -356,8 +356,8 @@
     },
     {
       "table": "macro",
-      "rows": 15617,
-      "latest": "2026-11-06"
+      "rows": 15619,
+      "latest": "2026-11-07"
     },
     {
       "table": "macro_calendar",
