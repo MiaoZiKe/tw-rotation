@@ -49,6 +49,10 @@ PLATFORMS = {
         "me_fields": "user_id",
     },
 }
+# 2026-11-08 頻道④「談晴說礙」（Andy：「開通自動發文，這部分幫我想辦法自動化」）：同一套續期，權杖分開。
+# 沒設 HEALING_* 的時候狀態是 missing（不算失敗、不告警）。
+PLATFORMS["healing_threads"] = dict(PLATFORMS["threads"], env="HEALING_THREADS_ACCESS_TOKEN")
+PLATFORMS["healing_ig"] = dict(PLATFORMS["ig"], env="HEALING_IG_ACCESS_TOKEN")
 
 _SECRETS: list[str] = []
 

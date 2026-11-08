@@ -1,0 +1,115 @@
+name: healing_post
+# 頻道④「談晴說礙」自動發文（IG 輪播＋Threads 輪播）。
+# 2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。說明：docs/marketing/channels/healing/auto_post.md
+# - 佇列 docs/marketing/channels/healing/queue/<YYYYMMDD>_<名稱>/，每次最多發 1 則（最早一則 approved 且還沒發的）。
+# - 開關 docs/marketing/channels/healing/post_quota.json（live／per_day）；跟頻道①的開關無關。
+# - 只用頻道④自己的 Secrets（HEALING_*）；沒設好 → 空跑、以成功結束，摘要寫「等待 Andy 設定權杖」。
+# - 權杖第一次出現：先自動跑驗證模式（只建容器、等 FINISHED，不發布），state/verify.json 記 verified 後才正式發。
+# - 手動 mode=delete／test_delete（2026-11-08 Andy：「我希望可以自動化全部 包含測試發文 還有自動刪文」）。
+# - 發文紀錄 state/posted.json（完成證據：貼文網址）寫回 main；同一則不重發。失敗 → 重試後仍失敗就紅燈（GitHub 寄信）。
+on:
+  schedule:
+    - cron: "27 12 * * *"   # 台北 20:27（主時段，避開整點）
+    - cron: "57 13 * * *"   # 台北 21:57（保底補跑：主時段沒跑到或失敗時補；今天已發過就不會再發）
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "post＝正式發；verify＝驗證模式（只建輪播容器不發布）；delete＝刪 target；test_delete＝Threads 真發一則測試、60 秒內自動刪"
+        type: choice
+        options: [post, verify, delete, test_delete]
+        default: post
+      dry_run:
+        description: "空跑（true＝只印出會做什麼，不呼叫 Meta、不寫紀錄；false＝真的做）"
+        type: boolean
+        default: true
+      target:
+        description: "mode=delete：佇列資料夾名（例如 20261108_intro）或貼文 id"
+        type: string
+        default: ""
+      platform:
+        description: "mode=delete：all／ig／threads"
+        type: choice
+        options: [all, ig, threads]
+        default: all
+      confirm:
+        description: "mode=delete 或 test_delete 且不是空跑時必填：我確定刪除"
+        type: string
+        default: ""
+permissions:
+  contents: write   # 把 state/posted.json、last_run.json、補轉的 JPEG 推回 main（不含權杖）
+concurrency:
+  group: healing-post
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests pillow
+      - name: 推回 main 的共用函式
+        run: |
+          cat > "$RUNNER_TEMP/push.sh" <<'EOF'
+          # 用法：bash push.sh "<commit 訊息>" <路徑>...   被拒就對齊遠端最新 main、只把這幾個路徑放回去重 commit（不 force push）
+          set -u
+          MSG="$1"; shift
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add -- "$@"
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "$MSG"
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            rm -rf "$RUNNER_TEMP/keep"; mkdir -p "$RUNNER_TEMP/keep"
+            for p in "$@"; do [ -e "$p" ] && cp -r --parents "$p" "$RUNNER_TEMP/keep/"; done
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp -r "$RUNNER_TEMP/keep/." .
+            git add -- "$@"
+            git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
+            git commit -q -m "$MSG"
+            sleep $((2 ** i))
+          done
+          echo "::error::推不上 main"; exit 1
+          EOF
+      - name: 判斷空跑
+        id: mode
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          MODE="${{ inputs.mode }}"; [ -z "$MODE" ] && MODE=post      # 排程觸發沒有 inputs → post
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          if [ -z "$DRY" ] && { [ "$MODE" = "delete" ] || [ "$MODE" = "test_delete" ]; } && [ "${{ inputs.confirm }}" != "我確定刪除" ]; then
+            echo "::error::mode=$MODE 要在 confirm 填「我確定刪除」，什麼都沒做"; exit 2
+          fi
+      - name: IG 用的 JPEG（缺的從 PNG 轉，先推上 main 讓 Meta 抓得到）
+        if: steps.mode.outputs.dry == '' && steps.mode.outputs.mode != 'delete'
+        run: |
+          python scripts/healing_post.py --prepare
+          bash "$RUNNER_TEMP/push.sh" "談晴說礙：佇列補轉 IG 用 JPEG $(date -u '+%Y-%m-%d')" docs/marketing/channels/healing/queue
+      - name: 發文（失敗會紅燈）
+        id: post
+        env:
+          HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
+          HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+          HEALING_THREADS_ACCESS_TOKEN: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN }}
+          HEALING_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN_AUTO }}
+          HEALING_THREADS_USER_ID: ${{ secrets.HEALING_THREADS_USER_ID }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
+          IN_TARGET: ${{ inputs.target }}
+          IN_PLATFORM: ${{ inputs.platform }}
+        run: |
+          P="${IN_PLATFORM:-all}"
+          python scripts/healing_post.py ${{ steps.mode.outputs.dry }} --mode "${{ steps.mode.outputs.mode }}" --target "$IN_TARGET" --platform "$P"
+      - name: 發文紀錄寫回 main（只有貼文網址與狀態，沒有權杖）
+        if: always() && steps.mode.outputs.dry == ''
+        run: |
+          bash "$RUNNER_TEMP/push.sh" "談晴說礙：發文紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')" \
+            docs/marketing/channels/healing/state docs/marketing/channels/healing/queue
