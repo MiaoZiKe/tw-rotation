@@ -103,7 +103,7 @@ test("follow_gate=false：不查追蹤，留言後直接私回開頭句＋重點
   globalThis.fetch = async (u, i) => (String(u).endsWith("dm_config.json") ? new Response(JSON.stringify(cfg)) : orig(u, i));
   await handle(comment(), s.env, Date.UTC(2026, 10, 10, 12));
   await handle(message(), s.env, Date.UTC(2026, 10, 10, 12, 5));
-  assert.match(s.sent()[0].message.text, /^謝謝留言！重點整理在下一則，想看後續可以追蹤 @tc_ig[\s\S]*58～69K/);
+  assert.match(s.sent()[0].message.text, /^謝謝留言！重點整理在下面，想看後續可以追蹤 @tc_ig[\s\S]*58～69K/);
   assert.ok(!s.calls.some((c) => c.u.includes("/u9?")));
   assert.ok(!s.sent().some((b) => /還沒看到你追蹤/.test(b.message.text)));
 });

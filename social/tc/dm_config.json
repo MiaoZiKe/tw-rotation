@@ -27,7 +27,7 @@
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
-    "prompt_no_gate": "謝謝留言！重點整理在下一則，想看後續可以追蹤 @{handle}"
+    "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}"
   },
   "threads_reply": {
     "enabled": true,

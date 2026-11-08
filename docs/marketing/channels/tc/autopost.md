@@ -79,7 +79,7 @@ social/tc/queue/20261105_quanta/
 - 評估：Worker 新建 `workers/tc-dm`，不併進既有 Worker —— 既有的 account-api 管付款與會員、quote-proxy 管報價，權杖與 KV 分開，出事不互相拖累。
 - 上限：每則留言 1 次、每人每天 1 次私回（`per_user_per_day`）、每分鐘 10 則（`max_per_minute`）。
 - 隱私：只存雜湊（留言 id、使用者 id）與時間，30 天後清掉；不存留言內容、帳號名稱、私訊內容。
-- **follow_gate**（`dm_config.json` 的 `ig_dm.follow_gate`，預設 `true`）：true＝上面的兩段式（Andy 指示私訊前要檢查追蹤；法遵查不到 Meta 明文禁止，信心低，屬未確認風險）。改成 `false`＝法遵給的替代做法：不查追蹤，留言後直接私回「謝謝留言！重點整理在下一則，想看後續可以追蹤 @帳號」＋重點內容，追蹤只當鼓勵。因為 Meta 每則留言只准私回 1 則、對方回覆前不能再傳，開頭句與重點是**合在同一則**送出。
+- **follow_gate**（`dm_config.json` 的 `ig_dm.follow_gate`，預設 `true`）：true＝上面的兩段式（Andy 指示私訊前要檢查追蹤；法遵查不到 Meta 明文禁止，信心低，屬未確認風險）。改成 `false`＝法遵給的替代做法：不查追蹤，留言後直接私回「謝謝留言！重點整理在下面，想看後續可以追蹤 @帳號」＋重點內容，追蹤只當鼓勵。因為 Meta 每則留言只准私回 1 則、對方回覆前不能再傳，開頭句與重點是**合在同一則**送出。
 - 法遵：2026-11-09 審過，修改後可用（「完整整理」改「重點整理」、面試題型改「網友分享的面試方向」、隱私權政策補一句），`legal_reviewed` 已改 true。
 - **法遵閘**：`legal_reviewed` 不是 `true` 時兩版都只記錄「會送什麼」、不送出。私訊與 Threads 回覆文案要先過 legal-compliance（不寫投資建議、內部、爆料；有「網友公開分享整理，非公司公告，未經查證，僅供參考」）。
 - 會不會發給一般網友：開發模式（Standard Access）下，Meta 文件寫只對 App 有角色的帳號有效（信心：中）；一般網友要 Advanced Access → 送審包在 `docs/marketing/channels/tc/app_review/`。

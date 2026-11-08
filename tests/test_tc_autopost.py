@@ -565,7 +565,7 @@ def test_follow_gate關閉_不查追蹤直接私回重點(monkeypatch, tmp_path)
     assert not any(c[2] == "/u9" for c in api.calls)                 # 不查追蹤
     first = api.sent[0]
     assert first[0] == {"comment_id": "c1"}
-    assert first[1].startswith("謝謝留言！重點整理在下一則，想看後續可以追蹤 @tc_ig") and "58～69K" in first[1]
+    assert first[1].startswith("謝謝留言！重點整理在下面，想看後續可以追蹤 @tc_ig") and "58～69K" in first[1]
     assert all("還沒看到你追蹤" not in t for _, t in api.sent)        # 對方回「好了」也不會被要求追蹤
 
 

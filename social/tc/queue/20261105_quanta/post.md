@@ -18,5 +18,5 @@ source_branch: tc/post-quanta 7b2841539（docs/marketing/channels/tc/posts/20261
 ## 核准前還沒完成的事（來源：分支上的 legal_review.md、image_sources.md）
 1. 封面照片（Andy 11-06 提供的廣達總部照）還沒經 art-director 審。
 2. 封面照片原始網址待 Andy 確認（文案寫「待確認原始頁面」）。
-3. 法遵要求產稿方重算一次資料口徑並更正 crosscheck.md。
+3. 法遵要求的資料口徑重算：**已重算（2026-11-09）**，crosscheck.md 已在 tc/post-quanta 更正（commit 4e63893ac）。21 筆、2025～2026、整包 17 筆、加班 171 筆／58%／週工時中位 48 核對無誤；**只有「中位約 62K」重算為 61K**（出現在 ig.txt、threads.txt 主文、第 2 張圖），改不改字**待 CEO 決定**，佇列稿與圖先沒動。
 4. ~~Threads 主文超長~~ **已處理（2026-11-09）**：threads.txt 主文刪掉 4 個裝飾表情符號（🥩、😂、🖥️、👇），數字與聲明一字未動；現在 494 字（同一套算法，上限 500），格式檢查通過。ig.txt 沒動。佇列這份 threads.txt 已和 tc/post-quanta 分支版本不同，以佇列為準。
