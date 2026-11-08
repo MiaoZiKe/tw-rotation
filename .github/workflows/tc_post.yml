@@ -1,0 +1,110 @@
+name: 頻道② 科技透明圈 發文
+# 2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。說明：docs/marketing/channels/tc/autopost.md
+# - 每 15 分鐘看 social/tc/queue/：只發 Andy 核准（status: approved）且到點的稿；沒有 approved 稿就什麼都不做。
+# - 權杖只用 TC_*（跟頻道一股市帳號完全分開）；頻道一只傳「帳號 id」進來比對，防止發到股市帳號，不傳頻道一權杖。
+# - 沒有 TC 權杖 → 安靜跳過（成功結束、不寄失敗信）；approved 超過 30 分鐘沒發 → 開 issue。
+# - 手動觸發預設 dry_run＝true：只驗證格式、圖檔與帳號，不發、不寫檔。
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只驗證不發（true＝安全試跑；false＝真的發 approved 稿）"
+        type: boolean
+        default: true
+      post:
+        description: "只處理這個資料夾（例如 20261105_quanta）；留空＝全部"
+        type: string
+        default: ""
+permissions:
+  contents: write   # 回寫 post.md 的 urls／status 與 state/tc/posted.json
+  issues: write     # 監工告警
+concurrency:
+  group: tc-post
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 先檢查格式（不連外）
+        run: python scripts/tc_post.py --check
+      - name: 發文（或 dry-run）
+        id: post
+        continue-on-error: true
+        env:
+          TC_THREADS_TOKEN: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO || secrets.TC_THREADS_ACCESS_TOKEN }}
+          TC_IG_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO || secrets.TC_IG_ACCESS_TOKEN }}
+          TC_THREADS_USER_ID: ${{ secrets.TC_THREADS_USER_ID }}
+          TC_IG_USER_ID: ${{ secrets.TC_IG_USER_ID }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IN_POST: ${{ inputs.post }}
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
+          case "$IN_POST" in ''|*[!A-Za-z0-9_-]*) ;; *) args="$args --post $IN_POST" ;; esac
+          python scripts/tc_post.py $args
+      - name: Threads 留言關鍵字 → 公開回覆（輪詢；文案沒過法遵前只記錄）
+        id: replies
+        continue-on-error: true
+        env:
+          TC_THREADS_TOKEN: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO || secrets.TC_THREADS_ACCESS_TOKEN }}
+          TC_THREADS_USER_ID: ${{ secrets.TC_THREADS_USER_ID }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
+          python scripts/tc_threads_replies.py $args
+      - name: 回寫發文結果（只 add 頻道② 的佇列與紀錄）
+        if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add social/tc/queue state/tc 2>/dev/null || true
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "頻道② 科技透明圈 發文紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && { echo "推送成功"; exit 0; }
+            sleep $((i*3))
+          done
+          echo "::warning::發文紀錄推不上 main"
+      - name: 監工：已核准沒發出 → 開 issue
+        if: always() && steps.post.outputs.alert == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASONS: ${{ steps.post.outputs.reasons }}
+        run: |
+          T="⚠️ 頻道② 科技透明圈：已核准貼文沒發出"
+          N=$(gh issue list -R "${{ github.repository }}" --state open --search "in:title 頻道② 科技透明圈：已核准貼文沒發出" --json number -q '.[0].number' || true)
+          if [ -n "$N" ]; then echo "已有 issue #$N，不重複開"; exit 0; fi
+          gh issue create -R "${{ github.repository }}" --title "$T" --body "原因：${REASONS}
+
+          這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          處理方式：docs/marketing/channels/tc/autopost.md「沒發出怎麼辦」。修好後把 post.md 改回 status: approved，下一輪只補沒發的平台。" || echo "::warning::開 issue 失敗"
+      - name: IG 到了 delete_at → 開 issue 請人工刪（Instagram 登入版 API 不能刪貼文）
+        if: always() && steps.post.outputs.ig_delete == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIST: ${{ steps.post.outputs.ig_delete_list }}
+        run: |
+          gh issue create -R "${{ github.repository }}" --title "頻道② 科技透明圈：IG 貼文到期，請手動刪除" --body "到了 delete_at 的 IG 貼文：${LIST}
+
+          Threads 已自動刪除；IG（Instagram 登入版 API）官方不提供刪除，請手動刪：
+          1. 用手機打開上面的連結（或 IG App → 個人檔案 → 點那篇貼文）。
+          2. 點貼文右上角「⋯」→「刪除」→ 再按一次「刪除」確認。
+          3. 刪完回這個 issue 留言「已刪」並關閉。
+
+          這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || echo "::warning::開 issue 失敗"
+      - name: 發文失敗就讓流程失敗（會收到 GitHub 通知）
+        if: steps.post.outcome == 'failure'
+        run: |
+          echo "發文失敗，請看上一步的訊息；post.md 已標 status: error"
+          exit 1

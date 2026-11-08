@@ -7,6 +7,13 @@
 - 只讀 HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN（＋選填 THREADS_APP_SECRET 自動換長效）；權杖續期併入 meta_token_refresh。
 - 待辦：Andy 放權杖→第一輪驗證→首篇；實測「是否追蹤」查詢能否用、IG 能否用 API 刪文、開發模式下一般網友收不收得到私訊。這批只跑了相關 pytest（73＋110 passed）；全套 pytest 有 115 失敗是 main 既有問題（抽查三檔在乾淨 main 一樣失敗）。
 
+## 2026-11-08 頻道②「科技透明圈」自動發文管線（social-ops-lead；Andy：「開通自動發文，這部分幫我想辦法自動化」＋「我希望可以自動化全部，包含測試發文、還有自動刪文，以及讀主留言我自動傳訊息功能」）
+- 說明：`docs/marketing/channels/tc/autopost.md`。權杖全用 TC_*，跟頻道一完全隔離（發文前比對帳號 id，等於頻道一就整篇不發）。
+- 已推 main：權杖收件 `tc_token_intake.yml`、每週續期加 TC 組、發文 `tc_post.yml`（每 15 分鐘，只發 approved；手動預設 dry_run）、自動測試 `tc_selftest.yml`（收件成功後自動跑）、Threads 自動刪文（delete_at）、IG 到期開 issue、Threads 留言關鍵字公開回覆（文案過法遵前只記錄）。
+- 廣達稿在 `social/tc/queue/20261105_quanta/`，status: draft。核准前要處理：Threads 主文 515 字（上限 500）、封面照未經 art-director、照片原始網址、法遵要求重算口徑。
+- 待處理：TC_* 權杖還沒收件（等 Andy 貼 Secrets）；IG 私訊 Worker `workers/tc-dm` 見下一批。
+- 這批 pytest 跑全套（sparse worktree，缺檔的測試補拉後重跑全綠）；沒動 site/**，沒跑 _preview／_uitest。
+
 ## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）
 - 改：`site/admin.js`（compName／SUB_NAME、memTable 重寫、方案選單與確認、欄位拖曳、固定欄寬與橫捲）、`scripts/uitest_sections/20261107_會員清單表.py`、`docs/account_analytics.md`。
 - 後端另案：`feat/member-plan-worker`（`/v1/admin/grants/issue`，已推遠端分支、**未推 main、未部署**）；部署前要 Andy 同意。前端先探測，舊後端自動停用體驗選項。

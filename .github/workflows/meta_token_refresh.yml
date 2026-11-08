@@ -42,6 +42,11 @@ jobs:
           HEALING_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN_AUTO }}
           HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
           HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          # 2026-11-08 頻道②「科技透明圈」：TC_* 這一組（AUTO 優先；還沒收件就安靜略過）
+          TC_THREADS_ACCESS_TOKEN: ${{ secrets.TC_THREADS_ACCESS_TOKEN }}
+          TC_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO }}
+          TC_IG_ACCESS_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN }}
+          TC_IG_ACCESS_TOKEN_AUTO: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO }}
           META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
         run: |
           DRY=""
