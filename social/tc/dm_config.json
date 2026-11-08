@@ -2,11 +2,21 @@
   "note": "頻道②「科技透明圈」留言關鍵字自動回覆設定（2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」）。Worker workers/tc-dm（IG 私訊）與 scripts/tc_threads_replies.py（Threads 公開回覆）都讀這個檔；改這裡、推 main 即生效（Worker 5 分鐘內會讀到新版）。",
   "legal_reviewed": false,
   "legal_note": "文案要先過 legal-compliance。false＝程式只記錄「會回什麼」，不真的送出；法遵通過後改成 true。",
-  "keywords": ["透明"],
+  "keywords": [
+    "透明"
+  ],
   "ig_dm": {
     "enabled": true,
+    "mode": "poll",
+    "mode_note": "poll＝tc_post.yml 每 15 分鐘輪詢（不需 webhook／App Review）；webhook＝workers/tc-dm 即時（要 App Live＋Advanced Access）。同時只開一種。",
     "prompt": "謝謝留言！追蹤 @{handle} 後回覆「好了」，我把完整整理傳給你",
-    "followed_keywords": ["好了", "好囉", "好喔", "已追蹤", "追蹤了"],
+    "followed_keywords": [
+      "好了",
+      "好囉",
+      "好喔",
+      "已追蹤",
+      "追蹤了"
+    ],
     "not_following": "還沒看到你追蹤喔，追蹤 @{handle} 後再回一次「好了」",
     "already_sent": "這篇的整理已經傳給你囉，往上滑就看得到",
     "contents": {

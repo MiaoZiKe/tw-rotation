@@ -451,3 +451,101 @@ def test_Threads回覆沒過法遵只記錄(monkeypatch, tmp_path):
     monkeypatch.setattr(tc, "api", api)
     rc, res = tr.run(dict(ENV), NOW, False, config_path=_cfg(tmp_path, legal=False), state_path=tmp_path / "rep.json")
     assert res["replied"] == 0 and res["would_reply"] == 1 and not [c for c in api.calls if c[1] == "POST"]
+
+
+# ---------------- IG 留言 → 私訊 → 回「好了」→ 查追蹤 → 送整理 ----------------
+
+import tc_ig_dm as dm  # noqa: E402
+
+
+class DMAPI(FakeAPI):
+    def __init__(self, follows=True, reply_text="好了", **kw):
+        super().__init__(**kw)
+        self.follows, self.reply_text, self.sent = follows, reply_text, []
+
+    def __call__(self, platform, method, path, token, params=None):
+        p = dict(params or {})
+        self.calls.append((platform, method, path, token, p))
+        if path == "/me":
+            return {"user_id": "222", "username": "tc_ig"}
+        if path == "/222/media":
+            return {"data": [{"id": "m1"}]}
+        if path == "/m1/comments":
+            return {"data": [{"id": "c1", "text": "想看透明整理", "timestamp": "2026-11-10T12:00:00+0000", "from": {"id": "u9", "username": "amy"}},
+                             {"id": "c2", "text": "路過", "timestamp": "2026-11-10T12:00:00+0000", "from": {"id": "u8"}}]}
+        if path == "/me/conversations":
+            return {"data": [{"id": "cv1", "updated_time": "2026-11-10T12:50:00+0000"}]}
+        if path == "/cv1":
+            return {"messages": {"data": [{"id": "msg1", "from": {"id": "u9"}, "message": self.reply_text}]}}
+        if path == "/u9":
+            return {"is_user_follow_business": self.follows}
+        if path == "/222/messages":
+            self.sent.append((json.loads(p["recipient"]), json.loads(p["message"])["text"]))
+            return {"message_id": "x"}
+        raise AssertionError(path)
+
+
+def dm_run(monkeypatch, tmp_path, api, legal=True, now=NOW):
+    monkeypatch.setattr(tc, "api", api)
+    return dm.run(dict(ENV), now, False, config_path=_cfg(tmp_path, legal), state_path=tmp_path / "igdm.json",
+                  posted_path=tmp_path / "posted.json")
+
+
+def test_IG兩段式_先私回再查追蹤才送內容(monkeypatch, tmp_path):
+    (tmp_path / "posted.json").write_text(json.dumps({"posts": [{"id": "20261105_quanta", "ids_ig": "m1"}]}))
+    api = DMAPI(follows=True)
+    rc, res = dm_run(monkeypatch, tmp_path, api)
+    assert rc == 0 and res["prompted"] == 1 and res["delivered"] == 1
+    first, second = api.sent
+    assert first[0] == {"comment_id": "c1"} and "@tc_ig" in first[1] and "好了" in first[1]
+    assert second[0] == {"id": "u9"} and "58～69K" in second[1] and "liguligu-puipui.com" in second[1]
+    # 追蹤查詢一定在第 1 則私訊之後（Meta：要對方先傳訊息才查得到）
+    idx_prof = next(i for i, c in enumerate(api.calls) if c[2] == "/u9")
+    idx_first = next(i for i, c in enumerate(api.calls) if c[2] == "/222/messages")
+    assert idx_first < idx_prof
+    disk = (tmp_path / "igdm.json").read_text()
+    assert "amy" not in disk and "u9" not in disk and "透明" not in disk
+    api2 = DMAPI(follows=True)                                   # 再跑一輪：不重複私回、不重送
+    rc, res = dm_run(monkeypatch, tmp_path, api2)
+    assert api2.sent == []
+
+
+def test_IG沒追蹤回提醒(monkeypatch, tmp_path):
+    api = DMAPI(follows=False)
+    rc, res = dm_run(monkeypatch, tmp_path, api)
+    assert res["not_following"] == 1 and "還沒看到你追蹤" in api.sent[-1][1]
+
+
+def test_IG沒過法遵只記錄不送(monkeypatch, tmp_path):
+    api = DMAPI()
+    rc, res = dm_run(monkeypatch, tmp_path, api, legal=False)
+    assert api.sent == [] and res["would"] == 1
+
+
+def test_IG_mode是webhook時輪詢不動作(monkeypatch, tmp_path):
+    p = _cfg(tmp_path)
+    c = json.loads(p.read_text(encoding="utf-8"))
+    c["ig_dm"]["mode"] = "webhook"
+    p.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
+    api = DMAPI()
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = dm.run(dict(ENV), NOW, False, config_path=p, state_path=tmp_path / "s.json", posted_path=tmp_path / "p.json")
+    assert rc == 0 and api.calls == []
+
+
+def test_私訊文案沒有禁用字():
+    c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+    blob = json.dumps(c["ig_dm"], ensure_ascii=False) + c["threads_reply"]["text"]
+    for w in ("投資建議", "內部", "爆料", "買進", "賣出", "保證", "飆"):
+        assert w not in blob
+
+
+def test_Worker_tc_dm_node測試():
+    import shutil
+    import subprocess
+    if not shutil.which("node"):
+        pytest.skip("沒有 node")
+    root = Path(__file__).resolve().parent.parent
+    r = subprocess.run(["node", "--test", "workers/tc-dm/test/worker.test.mjs"], cwd=root, capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-1000:]
+    assert "workers_dev = true" in (root / "workers/tc-dm/wrangler.toml").read_text(encoding="utf-8")

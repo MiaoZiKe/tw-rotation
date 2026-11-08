@@ -63,6 +63,17 @@ jobs:
           args=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
           python scripts/tc_threads_replies.py $args
+      - name: IG 留言關鍵字 → 私訊 → 回「好了」查追蹤 → 送整理（輪詢版；文案沒過法遵前只記錄）
+        id: igdm
+        continue-on-error: true
+        env:
+          TC_IG_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO || secrets.TC_IG_ACCESS_TOKEN }}
+          TC_IG_USER_ID: ${{ secrets.TC_IG_USER_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
+          python scripts/tc_ig_dm.py $args
       - name: 回寫發文結果（只 add 頻道② 的佇列與紀錄）
         if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)
         run: |
