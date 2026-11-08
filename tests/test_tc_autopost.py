@@ -536,7 +536,7 @@ def test_IG_mode是webhook時輪詢不動作(monkeypatch, tmp_path):
 def test_私訊文案沒有禁用字():
     c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
     blob = json.dumps(c["ig_dm"], ensure_ascii=False) + c["threads_reply"]["text"]
-    for w in ("投資建議", "內部", "爆料", "買進", "賣出", "保證", "飆"):
+    for w in ("投資建議", "內部", "爆料", "買進", "賣出", "保證", "飆", "完整整理", "FW 面談"):
         assert w not in blob
 
 
@@ -549,3 +549,39 @@ def test_Worker_tc_dm_node測試():
     r = subprocess.run(["node", "--test", "workers/tc-dm/test/worker.test.mjs"], cwd=root, capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-1000:]
     assert "workers_dev = true" in (root / "workers/tc-dm/wrangler.toml").read_text(encoding="utf-8")
+
+
+# ---------------- 2026-11-09 法遵審後修改 ----------------
+
+def test_follow_gate關閉_不查追蹤直接私回重點(monkeypatch, tmp_path):
+    p = _cfg(tmp_path)
+    c = json.loads(p.read_text(encoding="utf-8"))
+    c["ig_dm"]["follow_gate"] = False
+    p.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
+    (tmp_path / "posted.json").write_text(json.dumps({"posts": [{"id": "20261105_quanta", "ids_ig": "m1"}]}))
+    api = DMAPI(follows=False)
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = dm.run(dict(ENV), NOW, False, config_path=p, state_path=tmp_path / "s.json", posted_path=tmp_path / "posted.json")
+    assert not any(c[2] == "/u9" for c in api.calls)                 # 不查追蹤
+    first = api.sent[0]
+    assert first[0] == {"comment_id": "c1"}
+    assert first[1].startswith("謝謝留言！重點整理在下一則，想看後續可以追蹤 @tc_ig") and "58～69K" in first[1]
+    assert all("還沒看到你追蹤" not in t for _, t in api.sent)        # 對方回「好了」也不會被要求追蹤
+
+
+def test_法遵審後的正式設定():
+    root = Path(__file__).resolve().parent.parent
+    c = json.loads((root / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+    blob = json.dumps(c, ensure_ascii=False)
+    assert c["legal_reviewed"] is True and "2026-11-09 法遵審過" in c["legal_note"]
+    assert c["ig_dm"]["follow_gate"] is True
+    assert "完整整理" not in blob and "FW 面談" not in blob and "網友分享的面試方向" in blob
+    assert c["threads_reply"]["text"].startswith("謝謝留言！重點整理放在這")
+    assert "僅保存去識別化的編號與時間，30 天後刪除" in (root / "docs/marketing/channels/tc/app_review/README.md").read_text(encoding="utf-8")
+
+
+def test_廣達Threads主文在500字內():
+    d = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue" / "20261105_quanta"
+    p = tc.load(d)
+    assert tc.validate(p) == []
+    assert "58～69K" in p["main"] and "非公司公告" in p["main"]

@@ -19,4 +19,4 @@ source_branch: tc/post-quanta 7b2841539（docs/marketing/channels/tc/posts/20261
 1. 封面照片（Andy 11-06 提供的廣達總部照）還沒經 art-director 審。
 2. 封面照片原始網址待 Andy 確認（文案寫「待確認原始頁面」）。
 3. 法遵要求產稿方重算一次資料口徑並更正 crosscheck.md。
-4. **Threads 主文超長**：`threads_post.py` 同一套算法（表情符號以 UTF-8 位元組計，寧可高估）算 515 字，上限 500。實際 478 個字元、其中 14 個表情符號（每個算 3～4）。核准前要刪約 15 字或拿掉 5～6 個表情符號，否則核准後檢查會擋下並開 issue。
+4. ~~Threads 主文超長~~ **已處理（2026-11-09）**：threads.txt 主文刪掉 4 個裝飾表情符號（🥩、😂、🖥️、👇），數字與聲明一字未動；現在 494 字（同一套算法，上限 500），格式檢查通過。ig.txt 沒動。佇列這份 threads.txt 已和 tc/post-quanta 分支版本不同，以佇列為準。

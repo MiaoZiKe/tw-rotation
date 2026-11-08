@@ -9,6 +9,8 @@
 // 安全：POST 一律驗 X-Hub-Signature-256（HMAC-SHA256，IG_APP_SECRET）；不符回 403。先回 200，處理放 ctx.waitUntil。
 // 去重：KV 以 comment_id 雜湊去重（Meta 會重送）；每人每天 per_user_per_day 次；每分鐘 max_per_minute 則。
 // 隱私：KV 只存 SHA-256 雜湊、時間與結果；不存留言內容、帳號名稱、私訊內容。紀錄 log:* 保留 30 天。
+// follow_gate（2026-11-09 法遵審後加，預設 true）：false＝不查追蹤，留言後直接私回 prompt_no_gate＋重點內容（同一則；
+//   Meta 每則留言只准私回 1 則），追蹤只當鼓勵。true＝上面的兩段式（Andy 指示；追蹤門檻屬未確認風險）。
 // 閘門：dm_config.json 的 ig_dm.mode 不是 "webhook"，或 legal_reviewed 不是 true → 只記錄不送。
 
 const DAY = 86400;
@@ -52,6 +54,7 @@ export async function sha(s) {
   return [...d].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+const contentOf = (d, post) => ((d.contents || {})[post]) || ((d.contents || {}).default) || "";
 export const norm = (s) => String(s || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "");
 export const hasKw = (t, kws) => (kws || []).some((k) => norm(k) && norm(t).includes(norm(k)));
 const today = (now) => new Date(now + 8 * 3600e3).toISOString().slice(0, 10); // 台北日期
@@ -127,15 +130,18 @@ async function onComment(v, own, cfg, env, now, live) {
   if (!live) { await logEvent(env, now, "comment", "dry"); return "只記錄"; }
   if (!(await rateOk(env, now, Number(d.max_per_minute || 10)))) { await logEvent(env, now, "comment", "rate-limited"); return "速率上限"; }
   const handle = await handleName(env, cfg);
-  try {
-    await graph(env, "POST", "/me/messages", { recipient: { comment_id: cid }, message: { text: String(d.prompt || "").replaceAll("{handle}", handle) } });
-  } catch (e) { await logEvent(env, now, "comment", "send-failed"); return "失敗：" + String(e).slice(0, 100); }
   const posted = await cachedJson(env, "posted", env.POSTED_URL, { posts: [] });
   const mid = String((v.media || {}).id || "");
   const post = ((posted.posts || []).find((p) => String(p.ids_ig || p.ig_id || "") === mid) || {}).id || "default";
+  const gate = d.follow_gate !== false;
+  const text = gate ? String(d.prompt || "").replaceAll("{handle}", handle)
+    : String(d.prompt_no_gate || "").replaceAll("{handle}", handle) + "\n\n" + contentOf(d, post);
+  try {
+    await graph(env, "POST", "/me/messages", { recipient: { comment_id: cid }, message: { text } });
+  } catch (e) { await logEvent(env, now, "comment", "send-failed"); return "失敗：" + String(e).slice(0, 100); }
   await env.KV.put(ck, "1", { expirationTtl: 8 * DAY });
   await env.KV.put(dayKey, String(Number((await env.KV.get(dayKey)) || 0) + 1), { expirationTtl: 2 * DAY });
-  await env.KV.put("p:" + uh, JSON.stringify({ post, sent: false, nf: {} }), { expirationTtl: 7 * DAY });
+  await env.KV.put("p:" + uh, JSON.stringify({ post, sent: !gate, nf: {} }), { expirationTtl: 7 * DAY });
   await logEvent(env, now, "comment", "prompted");
   return "已私回";
 }
@@ -157,7 +163,7 @@ async function onMessage(m, own, cfg, env, now, live) {
     if (p.sent) { await send(d.already_sent || ""); return "已送過"; }
     const prof = await graph(env, "GET", "/" + who, { fields: "is_user_follow_business" });
     if (prof.is_user_follow_business === true) {
-      await send(((d.contents || {})[p.post]) || ((d.contents || {}).default) || "");
+      await send(contentOf(d, p.post));
       p.sent = true;
       await env.KV.put(pk, JSON.stringify(p), { expirationTtl: 30 * DAY });
       await logEvent(env, now, "message", "delivered");

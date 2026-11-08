@@ -12,7 +12,8 @@
 - 已推 main：權杖收件 `tc_token_intake.yml`、每週續期加 TC 組、發文 `tc_post.yml`（每 15 分鐘，只發 approved；手動預設 dry_run）、自動測試 `tc_selftest.yml`（收件成功後自動跑）、Threads 自動刪文（delete_at）、IG 到期開 issue、Threads 留言關鍵字公開回覆（文案過法遵前只記錄）。
 - 廣達稿在 `social/tc/queue/20261105_quanta/`，status: draft。核准前要處理：Threads 主文 515 字（上限 500）、封面照未經 art-director、照片原始網址、法遵要求重算口徑。
 - 第二批：IG 留言關鍵字 → 私訊 → 回「好了」查追蹤 → 送整理（兩段式，Meta 規定追蹤要對方先傳訊息才查得到）。輪詢版 `scripts/tc_ig_dm.py`（預設、跑在 tc_post.yml）＋即時版 Worker `workers/tc-dm`（`deploy-tc-dm.yml`，App Review 審過才切 mode）。送審包 `docs/marketing/channels/tc/app_review/`。私訊與 Threads 回覆文案 `social/tc/dm_config.json`，`legal_reviewed: false` → 只記錄不送，**待 legal-compliance 審**。
-- 待處理：TC_* 權杖還沒收件（等 Andy，必做清單在 autopost.md 四之三）；Worker 尚未部署（CEO 安排，要 TC_IG_APP_SECRET）；私訊文案待法遵。
+- 2026-11-09 法遵審過 dm_config.json（改完可用）：「完整整理」→「重點整理」、面試題型改「網友分享的面試方向」、隱私權政策補一句、新增 follow_gate（預設 true，false＝不查追蹤直接送重點）、legal_reviewed=true。廣達 threads.txt 主文刪 4 個表情符號到 494 字。
+- 待處理：TC_* 權杖還沒收件（等 Andy，必做清單在 autopost.md 四之三）；Worker 尚未部署（CEO 安排，要 TC_IG_APP_SECRET）。
 - 這批 pytest 跑全套（sparse worktree，缺檔的測試補拉後重跑全綠）；沒動 site/**，沒跑 _preview／_uitest。
 
 ## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）

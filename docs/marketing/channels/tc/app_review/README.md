@@ -26,9 +26,9 @@
 
 ### instagram_business_manage_comments
 English（貼這段）:
-> Our app manages a single Instagram professional account that we own ("科技透明圈", a salary-transparency education account). We read comments on our own posts so that when a user comments a specific keyword (for example "透明"), we can send that user one private reply inviting them to receive the full summary by direct message. We only read comments on media owned by our account, we never post comments on other accounts, and we store only a one-way hash of the comment ID for de-duplication (no comment text, no usernames).
+> Our app manages a single Instagram professional account that we own ("科技透明圈", a salary-transparency education account). We read comments on our own posts so that when a user comments a specific keyword (for example "透明"), we can send that user one private reply inviting them to receive the key-point summary by direct message. We only read comments on media owned by our account, we never post comments on other accounts, and we store only a one-way hash of the comment ID for de-duplication (no comment text, no usernames).
 
-中文對照：我們只管理自己的一個 IG 專業帳號。讀自己貼文的留言，留言含關鍵字的人，私回一次邀請他收完整整理。只讀自己貼文的留言、不到別人帳號留言、只存留言編號的雜湊。
+中文對照：我們只管理自己的一個 IG 專業帳號。讀自己貼文的留言，留言含關鍵字的人，私回一次邀請他收重點整理。只讀自己貼文的留言、不到別人帳號留言、只存留言編號的雜湊。
 
 ### instagram_business_manage_messages
 English:
@@ -58,6 +58,8 @@ Meta 要看到「真的在用」的畫面。需要兩個帳號：A＝科技透�
 ## 四、隱私權政策要補的一段（貼到網站隱私權頁）
 
 > 科技透明圈 Instagram 帳號的自動回覆：當你在我們的貼文留言特定關鍵字，或在私訊回覆我們，我們會使用 Meta 提供的介面回覆你一則訊息，並查詢你是否追蹤本帳號以決定回覆內容。我們只保存留言與帳號編號的單向雜湊值與時間（用來避免重複回覆），保存 30 天後自動刪除；不保存留言內容、私訊內容或帳號名稱。要刪除資料請私訊「刪除我的資料」，我們會在 7 天內處理。
+>
+> 留言含關鍵字時，我們會透過 Instagram 私訊傳送整理；僅保存去識別化的編號與時間，30 天後刪除。
 
 ## 五、送審步驟（Andy 做，附連結）
 

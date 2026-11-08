@@ -10,6 +10,11 @@ Andy 原話：「讀主留言我自動傳訊息功能，傳之前還會檢查是
     第 2 段：對方在私訊回「好了」（這時同意成立、開了 24 小時回覆窗）→ 查 is_user_follow_business：
              true → 送整理內容；false → 回「還沒看到你追蹤喔」（每人每天最多 3 次，避免洗版）。
 
+follow_gate（2026-11-09 法遵審後加的開關，預設 true）：
+  true  → 上面的兩段式（Andy 指示：私訊前要檢查追蹤）。法遵查不到 Meta 明文禁止「以追蹤為條件」，信心低，屬未確認風險。
+  false → 法遵給的替代做法：不查追蹤，留言後直接私回重點（prompt_no_gate＋重點內容），追蹤只當鼓勵。
+          ★ Meta 規定每則留言只能私回 1 則、對方回覆前不能再傳，所以開頭句和重點內容是合在同一則送出。
+
 兩種收件方式，用 dm_config.json 的 ig_dm.mode 切換（同時只開一種，避免重複送）：
   "poll"（預設，本程式）：tc_post.yml 每 15 分鐘讀留言與私訊。好處：不用 webhook，所以不需要「comments／messages webhook」
         要求的 App 上線（Live）與 Advanced Access；壞處：最多延遲約 15 分鐘。
@@ -66,6 +71,11 @@ def ts(s) -> datetime | None:
         return datetime.fromisoformat(s)
     except ValueError:
         return None
+
+
+def content_of(d: dict, post: str) -> str:
+    c = d.get("contents") or {}
+    return c.get(post) or c.get("default", "")
 
 
 def send(uid: str, tok: str, recipient: dict, text: str) -> None:
@@ -141,16 +151,19 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                 res["would"] += 1
                 T.log("[只記錄] 會私回 1 則留言（第 1 段：請對方追蹤後回『好了』）；不寫紀錄，法遵通過後照樣會送")
                 continue
+            post = post_of.get(str(m["id"])) or "default"
+            gate = d.get("follow_gate", True) is not False
+            body = fill(d.get("prompt")) if gate else (
+                fill(d.get("prompt_no_gate")) + "\n\n" + content_of(d, post))
             try:
-                send(uid, tok, {"comment_id": c["id"]}, fill(d.get("prompt")))
+                send(uid, tok, {"comment_id": c["id"]}, body)
             except T.PostError as e:
                 T.log(f"✗ 私回失敗：{e}")
                 rc = 1
                 continue
             comments[ck] = {"at": now.isoformat(timespec="seconds"), "result": "prompted"}
             users[uk] = {"day": today, "n": users.get(uk, {}).get("n", 0) + 1}
-            pending[uk] = {"post": post_of.get(str(m["id"])) or "default", "at": now.isoformat(timespec="seconds"),
-                           "sent": False, "nf": {}}
+            pending[uk] = {"post": post, "at": now.isoformat(timespec="seconds"), "sent": not gate, "nf": {}}
             budget -= 1
             res["prompted"] += 1
 
@@ -190,8 +203,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                     break
                 prof = T.api("ig", "GET", f"/{who}", tok, {"fields": "is_user_follow_business"})
                 if prof.get("is_user_follow_business") is True:
-                    body = (d.get("contents") or {}).get(p.get("post")) or (d.get("contents") or {}).get("default", "")
-                    send(uid, tok, {"id": who}, body)
+                    send(uid, tok, {"id": who}, content_of(d, p.get("post")))
                     p["sent"] = True
                     res["delivered"] += 1
                 elif p.get("nf", {}).get(today, 0) < NOT_FOLLOW_MAX_PER_DAY:
