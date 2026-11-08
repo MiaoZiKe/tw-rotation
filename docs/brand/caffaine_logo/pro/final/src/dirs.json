@@ -1,0 +1,159 @@
+[
+ {
+  "name": "對話杯",
+  "en": "Prompt Mug",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "馬克杯就是一個對話框：杯裡打下 A，焦糖色游標閃著當 I——一杯咖啡的時間，等你問一個問題。",
+  "color": "深可可線條、奶茶色杯底；游標是焦糖由亮到深的漸層加一道內光；兩縷蒸氣用可可中間色。",
+  "tech": "對話框外形、帶內光的文字游標（可做閃爍動畫）、文字標 AI 的焦糖→薰衣草漸層。",
+  "cupTheme": "light",
+  "id": "F1",
+  "dir": "F1_P3對話杯",
+  "sub": "主推：AI 漸層字標",
+  "ai": "圖形是「A＋游標 I」；文字標 AI 用 Inter Display ExtraBold＋襯線 I，填焦糖→薰衣草漸層（同 P2），名字裡唯一有漸層的兩個字。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）漸層。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 600
+    },
+    {
+     "t": "AI",
+     "fam": "Inter Display",
+     "wt": 800,
+     "fill": "grad",
+     "feat": true,
+     "pre": 0.015,
+     "post": 0.025
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 600
+    }
+   ]
+  }
+ },
+ {
+  "name": "對話杯",
+  "en": "Prompt Mug",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "馬克杯就是一個對話框：杯裡打下 A，焦糖色游標閃著當 I——一杯咖啡的時間，等你問一個問題。",
+  "color": "深可可線條、奶茶色杯底；游標是焦糖由亮到深的漸層加一道內光；兩縷蒸氣用可可中間色。",
+  "tech": "對話框外形、帶內光的文字游標（可做閃爍動畫）、文字標 AI 的焦糖→薰衣草漸層。",
+  "cupTheme": "light",
+  "id": "F1b",
+  "dir": "F1b_P3對話杯_等寬AI",
+  "sub": "比較版：等寬字 AI",
+  "ai": "圖形同 F1；文字標 AI 維持 JetBrains Mono ExtraBold 焦糖色（等寬 I 天生有上下襯線）。",
+  "type": "Inter SemiBold ＋ AI 用 JetBrains Mono ExtraBold。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter",
+     "wt": 600
+    },
+    {
+     "t": "AI",
+     "fam": "JetBrains Mono",
+     "wt": 800,
+     "fill": "ac",
+     "k": 1.04,
+     "pre": 0.04,
+     "post": 0.04
+    },
+    {
+     "t": "ne",
+     "fam": "Inter",
+     "wt": 600
+    }
+   ]
+  }
+ },
+ {
+  "id": "F2",
+  "dir": "F2_P7豆中靈光",
+  "name": "豆中靈光",
+  "en": "Bean Cursor",
+  "sub": "修：拿掉星形，豆縫改成游標",
+  "ratio": [
+   60,
+   40
+  ],
+  "meaning": "咖啡豆的那道縫就是一根閃爍的游標（I），左半邊留白出一個 A——每一顆豆子裡，都在打一個 AI 的答案。",
+  "ai": "圖形負空間直接讀得出「A＋游標 I」（與主推 P3 同一套語言）；文字標 AI 焦糖 Bold＋襯線 I。",
+  "color": "豆子焦糖→深焙的光澤漸層＋右上一抹高光，A 與豆縫是底色留白；不再有任何星形。",
+  "type": "Inter Display Medium ＋ AI 用 Inter Display Bold（cv08 襯線 I）。",
+  "tech": "負空間的 A 與游標、豆縫末端收細成資料線；光澤漸層。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 500
+    },
+    {
+     "t": "AI",
+     "fam": "Inter Display",
+     "wt": 700,
+     "fill": "ac",
+     "feat": true,
+     "pre": 0.01,
+     "post": 0.025
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 500
+    }
+   ]
+  },
+  "cupTheme": "dark"
+ },
+ {
+  "id": "F3",
+  "dir": "F3_P5像素蒸氣",
+  "name": "像素蒸氣",
+  "en": "Pixel Steam",
+  "sub": "修：點陣 A 重畫（尖頂、橫槓下移），杯套加紋理",
+  "ratio": [
+   45,
+   55
+  ],
+  "meaning": "外帶杯的熱氣往上飄，在空中凝成一行點陣的「AI」——咖啡是載體，AI 是升起來的那一口新知。",
+  "ai": "AI 本身就是圖形主角；點陣 A 改成尖頂封口、橫槓在第 5 列，不會再讀成 H；文字標同一套點陣字。",
+  "color": "深可可杯、焦糖杯套（細直紋）；點陣由焦糖（下）漸變到淡薰衣草（上）。",
+  "type": "Inter Display SemiBold ＋ AI 為手刻點陣字（5×7 格）。",
+  "tech": "點陣字、由下往上的色溫漸層、逸散的小像素。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 600
+    },
+    {
+     "kind": "pixel",
+     "fill": "pix",
+     "pre": 0.06,
+     "post": 0.06
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 600
+    }
+   ]
+  },
+  "cupTheme": "dark"
+ }
+]

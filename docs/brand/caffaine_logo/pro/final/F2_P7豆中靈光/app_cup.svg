@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000"><defs><linearGradient id="k44oeu3bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFE5D8"/><stop offset="1" stop-color="#E2D3C0"/></linearGradient>
+ <linearGradient id="k44oeu3sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset=".25" stop-color="#fff" stop-opacity=".10"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+ <clipPath id="k44oeu3k"><path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z"/></clipPath></defs>
+ <rect class="bgx" width="800" height="1000" fill="url(#k44oeu3bg)"/>
+ <ellipse cx="400" cy="930" rx="230" ry="26" fill="#000" opacity=".10"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="#2B1D16"/>
+ <rect x="150" y="620" width="500" height="140" fill="#47322A" clip-path="url(#k44oeu3k)"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="url(#k44oeu3sh)"/>
+ <path d="M222 128 Q226 96 262 96 H538 Q574 96 578 128 Z" fill="#1C130F"/>
+ <rect x="184" y="126" width="432" height="38" rx="19" fill="#1C130F"/>
+ <g data-el="mark" transform="translate(285 222) scale(1.15)"><defs><linearGradient id="k451jq9b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2B983"/><stop offset=".55" stop-color="#D58A50"/><stop offset="1" stop-color="#9A5A30"/></linearGradient></defs>
+  <g transform="rotate(-16 100 104)"><ellipse cx="100" cy="104" rx="66" ry="84" fill="url(#k451jq9b)"/>
+  <ellipse cx="140" cy="66" rx="11" ry="22" fill="#FFFFFF" opacity=".14"/>
+  <path d="M54.54 134 L76 76 L97.46000000000001 134 M63.124 116.6 H88.876" fill="none" stroke="#2B1D16" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="111" y="70" width="13" height="70" rx="4" fill="#2B1D16"/>
+  <path d="M117.5 60 C118 46 114 36 108 28 M117.5 150 C117 164 120 174 124 180" fill="none" stroke="#2B1D16" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+ <g data-el="word"><text x="276.5" y="560.0" font-family="Inter Display" font-weight="500" font-size="60.0" fill="#F6EEE3">Caff</text><text x="389.4" y="560.0" font-family="Inter Display" font-weight="700" font-size="60.0" fill="#EB8D4E" style="font-feature-settings:'cv08' 1">AI</text><text x="457.2" y="560.0" font-family="Inter Display" font-weight="500" font-size="60.0" fill="#F6EEE3">ne</text></g>
+ <g data-el="tag"><text x="400" y="680" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#F6EEE3" fill-opacity=".9">一杯咖啡的時間</text><text x="400" y="722" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#F6EEE3" fill-opacity=".9">看懂一個 <tspan font-family="Inter" font-weight="800" fill="#EB8D4E">AI</tspan> 新知</text></g></svg>
