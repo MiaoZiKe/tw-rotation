@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-08 頻道④「談晴說礙」自動發文＋留言私訊管線上線（空跑中，等 Andy 放權杖）
+- Andy 原話：「開通自動發文，這部分幫我想辦法自動化」「包含測試發文 還有自動刪文 ，以及讀留言自動傳訊息功能，傳之前還會檢查是否有追蹤」。
+- 發文：scripts/healing_post.py＋.github/workflows/healing_post.yml（台北 20:27、21:57 補跑；驗證模式→正式發；delete／test_delete）；佇列 docs/marketing/channels/healing/queue/，首篇 20261108_intro 已排；開關 docs/marketing/channels/healing/post_quota.json。commit 053a88456、2dfd87281。
+- 留言私訊：scripts/healing_comments.py＋healing_comments.yml（每 15 分鐘，只私訊追蹤者，自傷字走關懷訊息）；設定 dm_config.json。commit 19b840905。
+- 只讀 HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN（＋選填 THREADS_APP_SECRET 自動換長效）；權杖續期併入 meta_token_refresh。
+- 待辦：Andy 放權杖→第一輪驗證→首篇；實測「是否追蹤」查詢能否用、IG 能否用 API 刪文、開發模式下一般網友收不收得到私訊。這批只跑了相關 pytest（73＋110 passed）；全套 pytest 有 115 失敗是 main 既有問題（抽查三檔在乾淨 main 一樣失敗）。
+
 ## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）
 - 改：`site/admin.js`（compName／SUB_NAME、memTable 重寫、方案選單與確認、欄位拖曳、固定欄寬與橫捲）、`scripts/uitest_sections/20261107_會員清單表.py`、`docs/account_analytics.md`。
 - 後端另案：`feat/member-plan-worker`（`/v1/admin/grants/issue`，已推遠端分支、**未推 main、未部署**）；部署前要 Andy 同意。前端先探測，舊後端自動停用體驗選項。
