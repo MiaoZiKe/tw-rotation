@@ -8,6 +8,7 @@ def gap(a,b):
 rows=[];worst=1e9
 for i in range(1,N+1):
   for th in ('dark','light'):
+    if not os.path.exists(f'{base}{PFX}{i}_{th}_gi.png'): continue
     p={k:bb(f'{base}{PFX}{i}_{th}_{k}.png') for k in ('gi','gw','gt')}
     g=(gap(p['gi'],p['gw']),gap(p['gi'],p['gt']),gap(p['gw'],p['gt']))
     worst=min(worst,*g); rows.append((f'{PFX}{i}',th)+g)
