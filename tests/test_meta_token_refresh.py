@@ -140,3 +140,25 @@ def test_meta_payload告警算一項失敗(monkeypatch, tmp_path):
     m = bp.meta_payload("2026-10-30", 10)
     assert "meta_token_refresh" in m["last_run_errors"]
     assert m["meta_token"]["days_left"] == {"threads": 5}
+
+
+def test_24小時內續過就跳過不打Meta(monkeypatch, tmp_path):
+    """2026-11-08：排程晚跑、前面剛手動續過 → 跳過，不亮紅燈；滿 24 小時才真的續。"""
+    exp = (NOW + timedelta(days=59)).isoformat()
+    prev = {"platforms": {p: {"ok": True, "source_after": "auto", "expires_at": exp,
+                              "last_ok_at": (NOW - timedelta(hours=6)).isoformat()} for p in ("threads", "ig")}}
+    (tmp_path / "meta_token.json").write_text(json.dumps(prev))
+    fh = fake_http(fail_for=("threads", "ig"))
+    monkeypatch.setattr(mtr, "http_get", fh)
+    rc, st = mtr.run(dict(ENV), NOW, False, state_path=tmp_path / "meta_token.json", saver=lambda *a: True,
+                     pat_checker=lambda p, r: {"present": True, "ok": True})
+    assert rc == 0 and st["status"] == "ok" and not st["alert"]
+    assert all(st["platforms"][p]["status"] == "recent-skip" for p in ("threads", "ig"))
+    assert st["platforms"]["threads"]["days_left"] == 59.0
+    assert not any("refresh_access_token" in u for u, _ in fh.calls)
+    # 滿 24 小時 → 真的去續（這裡 mock 失敗 → 紅燈）
+    prev["platforms"]["threads"]["last_ok_at"] = (NOW - timedelta(hours=25)).isoformat()
+    (tmp_path / "meta_token.json").write_text(json.dumps(prev))
+    rc2, st2 = mtr.run(dict(ENV), NOW, False, state_path=tmp_path / "meta_token.json", saver=lambda *a: True,
+                       pat_checker=lambda p, r: {"present": True, "ok": True})
+    assert rc2 == 1 and st2["platforms"]["threads"]["status"] == "refresh-failed"

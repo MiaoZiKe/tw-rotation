@@ -203,6 +203,16 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             st["platforms"][name] = ps
             continue
 
+        # 2026-11-08：Meta 規定權杖要滿 24 小時才能再續；排程常晚跑好幾小時，
+        # 若剛剛手動續過，排程那次會被 Meta 拒絕而誤亮紅燈。24 小時內續過且成功 → 跳過。
+        last = _parse(old.get("last_ok_at"))
+        if old.get("ok") and last is not None and now - last < timedelta(hours=24):
+            ps.update(ok=True, status="recent-skip", source=old.get("source_after") or source)
+            log(f"[{name}] 24 小時內已續期成功，這次跳過（Meta 規定滿 24 小時才能再續）")
+            ps["days_left"] = days_left(ps.get("expires_at"), now)
+            st["platforms"][name] = ps
+            continue
+
         try:
             new, exp = refresh(name, token)
         except Exception as e:  # noqa: BLE001
