@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-08T03:07:59+00:00",
+  "updated_at": "2026-11-08T09:05:44+00:00",
   "mode": "refresh",
   "platforms": {
     "threads": {
@@ -7,20 +7,16 @@
       "ok": true,
       "last_ok_at": "2026-11-08T03:07:59+00:00",
       "expires_at": "2027-01-07T03:07:59+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "recent-skip",
+      "days_left": 59.8
     },
     "ig": {
       "source": "auto",
       "ok": true,
       "last_ok_at": "2026-11-08T03:07:59+00:00",
       "expires_at": "2027-01-07T03:07:59+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "recent-skip",
+      "days_left": 59.8
     }
   },
   "alert": false,
