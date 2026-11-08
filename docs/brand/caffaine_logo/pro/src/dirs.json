@@ -1,0 +1,317 @@
+[
+ {
+  "id": "P1",
+  "dir": "P1_手沖A",
+  "name": "手沖 A",
+  "en": "Pour-over A",
+  "ratio": [
+   70,
+   30
+  ],
+  "meaning": "手沖下壺的三角輪廓就是字母 A，木頸圈是 A 的橫槓；上方那一滴正在落下的是 I——知識一滴一滴萃取進你的杯子。",
+  "ai": "圖形：A＝下壺、I＝滴落的焦糖襯線；文字標：AI 改用襯線 Charter Bold 焦糖色，大寫 I 有上下襯線，不會讀成 l。",
+  "color": "深可可＋焦糖，壺內咖啡用可可→濃縮的柔和漸層，頸圈帶一道金屬光澤漸層。",
+  "type": "Inter Display Medium（Caff／ne）＋ Bitstream Charter Bold（AI）。",
+  "tech": "精準等腰三角與 1:2 比例網格、頸圈的金屬光澤、滴落點的等距節奏。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 500
+    },
+    {
+     "t": "AI",
+     "fam": "Bitstream Charter",
+     "wt": 700,
+     "fill": "ac",
+     "k": 1.06,
+     "pre": 0.02,
+     "post": 0.03
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 500
+    }
+   ]
+  },
+  "cupTheme": "light"
+ },
+ {
+  "id": "P2",
+  "dir": "P2_波形蒸氣",
+  "name": "波形蒸氣",
+  "en": "Steam Signal",
+  "ratio": [
+   60,
+   40
+  ],
+  "meaning": "卡布奇諾杯上升起的不是煙，是一段訊號波形——一杯咖啡的熱度，正在把新知傳給你。",
+  "ai": "文字標的 AI 用焦糖→薰衣草漸層＋ExtraBold＋襯線 I（Inter cv08），是整個名字裡唯一有漸層的字；圖形的蒸氣波形同一組漸層呼應。",
+  "color": "深可可杯身、焦糖杯緣，蒸氣由焦糖漸層到淡薰衣草（唯一點綴色，象徵 AI 的一點涼）。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）。",
+  "tech": "等距圓頭柱狀的音訊／資料波形、柔和雙色漸層。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 600
+    },
+    {
+     "t": "AI",
+     "fam": "Inter Display",
+     "wt": 800,
+     "fill": "grad",
+     "feat": true,
+     "pre": 0.01,
+     "post": 0.02
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 600
+    }
+   ]
+  },
+  "cupTheme": "dark"
+ },
+ {
+  "id": "P3",
+  "dir": "P3_對話杯",
+  "name": "對話杯",
+  "en": "Prompt Mug",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "馬克杯就是一個對話框：杯裡打下 A，焦糖色游標閃著當 I——一杯咖啡的時間，等你問一個問題。",
+  "ai": "圖形裡的 AI 是「A＋閃爍游標」，一看就是在跟 AI 對話；文字標的 AI 換成等寬字 JetBrains Mono ExtraBold，等寬 I 天生有上下襯線。",
+  "color": "深可可線條、焦糖游標，杯身內淡奶茶色填底，兩縷蒸氣用可可中間色。",
+  "type": "Inter SemiBold ＋ AI 用 JetBrains Mono ExtraBold。",
+  "tech": "對話框外形、文字游標、等寬字點綴。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter",
+     "wt": 600
+    },
+    {
+     "t": "AI",
+     "fam": "JetBrains Mono",
+     "wt": 800,
+     "fill": "ac",
+     "k": 1.04,
+     "pre": 0.04,
+     "post": 0.04
+    },
+    {
+     "t": "ne",
+     "fam": "Inter",
+     "wt": 600
+    }
+   ]
+  },
+  "cupTheme": "light"
+ },
+ {
+  "id": "P4",
+  "dir": "P4_分層拿鐵",
+  "name": "分層拿鐵",
+  "en": "Layered Latte",
+  "ratio": [
+   70,
+   30
+  ],
+  "meaning": "冰拿鐵的三層是 AI 新知被「分層萃取」：濃縮、焦糖、牛奶，交界是一道道波形；那根吸管就是 I，插進去一口就懂。",
+  "ai": "文字標的 AI 放進焦糖膠囊色塊（反白），是名字裡唯一有底色的兩個字，40px 也看得到一顆焦糖膠囊。",
+  "color": "濃縮→焦糖→牛奶的三層暖色層次，吸管是淡薰衣草（點綴色）。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）反白於膠囊。",
+  "tech": "正弦波形的分層交界、玻璃高光、精準的錐度。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 600
+    },
+    {
+     "t": "AI",
+     "fam": "Inter Display",
+     "wt": 800,
+     "fill": "bg",
+     "feat": true,
+     "pill": true,
+     "pre": 0.2,
+     "post": 0.2
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 600
+    }
+   ]
+  },
+  "cupTheme": "light"
+ },
+ {
+  "id": "P5",
+  "dir": "P5_像素蒸氣",
+  "name": "像素蒸氣",
+  "en": "Pixel Steam",
+  "ratio": [
+   45,
+   55
+  ],
+  "meaning": "外帶杯的熱氣往上飄，在空中凝成一行點陣的「AI」——咖啡是載體，AI 是升起來的那一口新知。",
+  "ai": "AI 本身就是圖形的主角（點陣字，I 有襯線）；文字標的 AI 也用同一套點陣字，圖文同一套語言。",
+  "color": "深可可杯、焦糖杯套；點陣由焦糖（下）漸變到淡薰衣草（上），像熱氣變涼。",
+  "type": "Inter Display SemiBold ＋ AI 為手刻點陣字（5×7 格）。",
+  "tech": "點陣／像素字、由下往上的色溫漸層、逸散的小像素。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 600
+    },
+    {
+     "kind": "pixel",
+     "fill": "pix",
+     "pre": 0.06,
+     "post": 0.06
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 600
+    }
+   ]
+  },
+  "cupTheme": "dark"
+ },
+ {
+  "id": "P6",
+  "dir": "P6_充電杯",
+  "name": "充電杯",
+  "en": "Charge Mug",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "杯裡的咖啡是四格電量——咖啡因替上班族充電，AI 新知替腦袋充電；喝完一杯，就充飽一格。",
+  "ai": "文字標的 AI 用焦糖 ExtraBold＋襯線 I，下方加一條「讀取進度條」只襯在 AI 底下，視線一定先落在 AI。",
+  "color": "深可可杯線、焦糖到深焙的橫向漸層電量格，第五格留空（淡色）。",
+  "type": "Inter Display Medium ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）。",
+  "tech": "電量格／讀取進度的介面語彙、水平漸層。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 500
+    },
+    {
+     "t": "AI",
+     "fam": "Inter Display",
+     "wt": 800,
+     "fill": "ac",
+     "feat": true,
+     "progress": true,
+     "pre": 0.01,
+     "post": 0.02
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 500
+    }
+   ]
+  },
+  "cupTheme": "light"
+ },
+ {
+  "id": "P7",
+  "dir": "P7_豆中靈光",
+  "name": "豆中靈光",
+  "en": "Bean Spark",
+  "ratio": [
+   60,
+   40
+  ],
+  "meaning": "咖啡豆中間那道縫，被畫成一顆四芒星的靈光——每一顆豆子裡，都藏著一個讓你「原來如此」的 AI 瞬間。",
+  "ai": "文字標的 AI 用焦糖 Bold＋襯線 I，I 的右上角掛一顆同款小四芒星，名字裡只有 AI 會發光。",
+  "color": "豆子用焦糖→深焙的光澤漸層（含一抹高光），縫隙是底色留白，外側一顆焦糖小星。",
+  "type": "Inter Display Medium ＋ AI 用 Inter Display Bold（cv08 襯線 I）。",
+  "tech": "精密的負空間星芒、光澤漸層；不靠任何電子元件就有「靈光」的科技暗示。",
+  "wm": {
+   "parts": [
+    {
+     "t": "Caff",
+     "fam": "Inter Display",
+     "wt": 500
+    },
+    {
+     "t": "AI",
+     "fam": "Inter Display",
+     "wt": 700,
+     "fill": "ac",
+     "feat": true,
+     "spark": true,
+     "pre": 0.01,
+     "post": 0.07
+    },
+    {
+     "t": "ne",
+     "fam": "Inter Display",
+     "wt": 500
+    }
+   ]
+  },
+  "cupTheme": "dark"
+ },
+ {
+  "id": "P8",
+  "dir": "P8_點單小票",
+  "name": "點單小票",
+  "en": "Order Ticket",
+  "ratio": [
+   55,
+   45
+  ],
+  "meaning": "咖啡館的點單小票：今天點的不是拿鐵，是一份 AI——撕下就能帶走，一杯咖啡的時間看完。",
+  "ai": "圖形主角就是一個大大的襯線 AI（Charter Bold），文字標用全大寫 CAFF·AI·NE，AI 換焦糖襯線字＋下方一條撕線虛線。",
+  "color": "奶油紙色小票、深可可字，焦糖只用在小杯印章與文字標 AI；不用橘字深底，避開 Illustrator 圖示。",
+  "type": "Inter Display Bold 全大寫字距 6% ＋ AI 用 Bitstream Charter Bold；票面小字用 JetBrains Mono。",
+  "tech": "感熱紙小票的等寬字、撕線虛線、票號 N°01——像一張系統列印出來的單據。",
+  "wm": {
+   "parts": [
+    {
+     "t": "CAFF",
+     "fam": "Inter Display",
+     "wt": 700,
+     "ls": 0.06
+    },
+    {
+     "t": "AI",
+     "fam": "Bitstream Charter",
+     "wt": 700,
+     "fill": "ac",
+     "k": 1.04,
+     "perf": true,
+     "pre": 0.08,
+     "post": 0.08
+    },
+    {
+     "t": "NE",
+     "fam": "Inter Display",
+     "wt": 700,
+     "ls": 0.06
+    }
+   ]
+  },
+  "cupTheme": "light"
+ }
+]

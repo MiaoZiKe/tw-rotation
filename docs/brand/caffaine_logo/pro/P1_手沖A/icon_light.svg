@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><rect width="200" height="200" fill="#F6EEE3"/><defs><clipPath id="k1vfpck"><path d="M100 76 L156 178 L44 178 Z"/></clipPath>
+  <linearGradient id="k1vfpcc" x1="0" y1="134" x2="0" y2="182" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7A4B2E"/><stop offset="1" stop-color="#2B1D16"/></linearGradient>
+  <linearGradient id="k1vfpcb" x1="62" y1="0" x2="138" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#C2652B"/><stop offset=".42" stop-color="#E8A066"/><stop offset="1" stop-color="#C2652B"/></linearGradient></defs>
+  <rect x="30" y="134" width="140" height="52" fill="url(#k1vfpcc)" clip-path="url(#k1vfpck)"/>
+  <path d="M100 76 L156 178 L44 178 Z" fill="none" stroke="#2B1D16" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="61" y="119" width="78" height="18" rx="9" fill="url(#k1vfpcb)"/>
+  <path d="M84 16 H116 M100 16 V36" fill="none" stroke="#C2652B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 45 C100 45 106.5 53 106.5 57.5 A6.5 6.5 0 0 1 93.5 57.5 C93.5 53 100 45 100 45 Z" fill="#C2652B"/></svg>

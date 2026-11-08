@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350"><defs><linearGradient id="k48gbqg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F8F1E7"/><stop offset="1" stop-color="#EFE2D0"/></linearGradient></defs>
+ <rect class="bgx" width="1080" height="1350" fill="url(#k48gbqg)"/>
+ <g data-el="mark" transform="translate(72 72) scale(0.52)"><defs><clipPath id="k49wo92k"><path d="M50 42 H150 L141 177 Q140 182 135 182 H65 Q60 182 59 177 Z"/></clipPath></defs>
+  <g clip-path="url(#k49wo92k)"><path d="M40 62 C70 54 92 70 120 62 S158 56 164 60 V192 H40 Z" fill="#3A261C"/><path d="M40 98 C70 90 92 106 120 98 S158 92 164 96 V192 H40 Z" fill="#B4713F"/><path d="M40 134 C70 126 92 142 120 134 S158 128 164 132 V192 H40 Z" fill="#EADBC6"/>
+   <path d="M114 172 L122 64" fill="none" stroke="#8676D6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
+   <path d="M64 58 L71 160" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".28"/></g>
+  <path d="M122 64 L128 18 L150 8" fill="none" stroke="#8676D6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 42 L59 177 Q60 182 65 182 H135 Q140 182 141 177 L150 42" fill="none" stroke="#2B1D16" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42 42 H158" fill="none" stroke="#2B1D16" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></g>
+ <g data-el="word"><text x="204.0" y="140.7" font-family="Inter Display" font-weight="600" font-size="46.0" fill="#2B1D16">Caff</text><rect x="294.6" y="101.3" width="66.8" height="45.4" rx="22.7" fill="#C2652B"/><text x="301.5" y="140.7" font-family="Inter Display" font-weight="800" font-size="46.0" fill="#F6EEE3" style="font-feature-settings:'cv08' 1">AI</text><text x="363.6" y="140.7" font-family="Inter Display" font-weight="600" font-size="46.0" fill="#2B1D16">ne</text></g>
+ <g data-el="label"><rect x="824" y="94" width="184" height="60" rx="30" fill="none" stroke="#2B1D16" stroke-width="2.5"/><text x="916" y="134" text-anchor="middle" font-family="JetBrains Mono" font-weight="700" font-size="25" fill="#2B1D16">TIPS #01</text></g>
+ <g data-el="head"><text font-family="WenQuanYi Zen Hei" font-size="112" fill="#2B1D16"><tspan x="72" y="470">3 個提示詞</tspan><tspan x="72" y="620">讓週報</tspan><tspan x="72" y="770"><tspan fill="#C2652B">5 分鐘</tspan>寫完</tspan></text></g>
+ <g data-el="sub"><rect x="72" y="852" width="92" height="6" rx="3" fill="#C2652B"/><text x="72" y="924" font-family="WenQuanYi Zen Hei" font-size="38" fill="#2B1D16" fill-opacity=".8">複製就能用，範本在第 2 頁</text></g>
+ <g data-el="tag"><text x="72.0" y="1278.0" font-family="WenQuanYi Zen Hei" font-size="30" fill="#2B1D16" fill-opacity=".86">一杯咖啡的時間，看懂一個 <tspan font-family="Inter" font-weight="800" fill="#C2652B" fill-opacity="1">AI</tspan> 新知</text></g>
+ <g data-el="ui"><text x="1008" y="1278" text-anchor="end" font-family="JetBrains Mono" font-weight="700" font-size="26" fill="#2B1D16" fill-opacity=".7">SWIPE →</text></g></svg>

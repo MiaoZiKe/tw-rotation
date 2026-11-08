@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000"><defs><linearGradient id="k10366lbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFE5D8"/><stop offset="1" stop-color="#E2D3C0"/></linearGradient>
+ <linearGradient id="k10366lsh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset=".25" stop-color="#fff" stop-opacity=".10"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+ <clipPath id="k10366lk"><path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z"/></clipPath></defs>
+ <rect class="bgx" width="800" height="1000" fill="url(#k10366lbg)"/>
+ <ellipse cx="400" cy="930" rx="230" ry="26" fill="#000" opacity=".10"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="#FFFBF5"/>
+ <rect x="150" y="620" width="500" height="140" fill="#E3C9A6" clip-path="url(#k10366lk)"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="url(#k10366lsh)"/>
+ <path d="M222 128 Q226 96 262 96 H538 Q574 96 578 128 Z" fill="#2B1D16"/>
+ <rect x="184" y="126" width="432" height="38" rx="19" fill="#2B1D16"/>
+ <g data-el="mark" transform="translate(285 222) scale(1.15)"><defs><clipPath id="k11xrs9k"><path d="M100 76 L156 178 L44 178 Z"/></clipPath>
+  <linearGradient id="k11xrs9c" x1="0" y1="134" x2="0" y2="182" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7A4B2E"/><stop offset="1" stop-color="#2B1D16"/></linearGradient>
+  <linearGradient id="k11xrs9b" x1="62" y1="0" x2="138" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#C2652B"/><stop offset=".42" stop-color="#E8A066"/><stop offset="1" stop-color="#C2652B"/></linearGradient></defs>
+  <rect x="30" y="134" width="140" height="52" fill="url(#k11xrs9c)" clip-path="url(#k11xrs9k)"/>
+  <path d="M100 76 L156 178 L44 178 Z" fill="none" stroke="#2B1D16" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="61" y="119" width="78" height="18" rx="9" fill="url(#k11xrs9b)"/>
+  <path d="M84 16 H116 M100 16 V36" fill="none" stroke="#C2652B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 45 C100 45 106.5 53 106.5 57.5 A6.5 6.5 0 0 1 93.5 57.5 C93.5 53 100 45 100 45 Z" fill="#C2652B"/></g>
+ <g data-el="word"><text x="273.9" y="560.0" font-family="Inter Display" font-weight="500" font-size="60.0" fill="#2B1D16">Caff</text><text x="387.4" y="560.0" font-family="Bitstream Charter" font-weight="700" font-size="63.6" fill="#C2652B">AI</text><text x="459.9" y="560.0" font-family="Inter Display" font-weight="500" font-size="60.0" fill="#2B1D16">ne</text></g>
+ <g data-el="tag"><text x="400" y="680" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">一杯咖啡的時間</text><text x="400" y="722" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">看懂一個 <tspan font-family="Inter" font-weight="800" fill="#C2652B">AI</tspan> 新知</text></g></svg>

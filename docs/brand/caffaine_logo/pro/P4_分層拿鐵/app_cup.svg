@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000"><defs><linearGradient id="k46rf8lbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFE5D8"/><stop offset="1" stop-color="#E2D3C0"/></linearGradient>
+ <linearGradient id="k46rf8lsh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset=".25" stop-color="#fff" stop-opacity=".10"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+ <clipPath id="k46rf8lk"><path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z"/></clipPath></defs>
+ <rect class="bgx" width="800" height="1000" fill="url(#k46rf8lbg)"/>
+ <ellipse cx="400" cy="930" rx="230" ry="26" fill="#000" opacity=".10"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="#FFFBF5"/>
+ <rect x="150" y="620" width="500" height="140" fill="#E3C9A6" clip-path="url(#k46rf8lk)"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="url(#k46rf8lsh)"/>
+ <path d="M222 128 Q226 96 262 96 H538 Q574 96 578 128 Z" fill="#2B1D16"/>
+ <rect x="184" y="126" width="432" height="38" rx="19" fill="#2B1D16"/>
+ <g data-el="mark" transform="translate(285 222) scale(1.15)"><defs><clipPath id="k479y39k"><path d="M50 42 H150 L141 177 Q140 182 135 182 H65 Q60 182 59 177 Z"/></clipPath></defs>
+  <g clip-path="url(#k479y39k)"><path d="M40 62 C70 54 92 70 120 62 S158 56 164 60 V192 H40 Z" fill="#3A261C"/><path d="M40 98 C70 90 92 106 120 98 S158 92 164 96 V192 H40 Z" fill="#B4713F"/><path d="M40 134 C70 126 92 142 120 134 S158 128 164 132 V192 H40 Z" fill="#EADBC6"/>
+   <path d="M114 172 L122 64" fill="none" stroke="#8676D6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
+   <path d="M64 58 L71 160" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".28"/></g>
+  <path d="M122 64 L128 18 L150 8" fill="none" stroke="#8676D6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 42 L59 177 Q60 182 65 182 H135 Q140 182 141 177 L150 42" fill="none" stroke="#2B1D16" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42 42 H158" fill="none" stroke="#2B1D16" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></g>
+ <g data-el="word"><text x="262.1" y="560.0" font-family="Inter Display" font-weight="600" font-size="60.0" fill="#2B1D16">Caff</text><rect x="380.3" y="508.6" width="87.1" height="59.2" rx="29.6" fill="#C2652B"/><text x="389.3" y="560.0" font-family="Inter Display" font-weight="800" font-size="60.0" fill="#F6EEE3" style="font-feature-settings:'cv08' 1">AI</text><text x="470.3" y="560.0" font-family="Inter Display" font-weight="600" font-size="60.0" fill="#2B1D16">ne</text></g>
+ <g data-el="tag"><text x="400" y="680" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">一杯咖啡的時間</text><text x="400" y="722" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">看懂一個 <tspan font-family="Inter" font-weight="800" fill="#C2652B">AI</tspan> 新知</text></g></svg>

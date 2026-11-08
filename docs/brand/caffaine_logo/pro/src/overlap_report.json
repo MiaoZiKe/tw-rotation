@@ -1,0 +1,3677 @@
+{
+ "pairs": [
+  {
+   "comp": "P1_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 223,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 81,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 107,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 191,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 51,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 170,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 44,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 311,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 209,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 235,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 665,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 426,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 684,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1085,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1090,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 48,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 710,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1116,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P1_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 137,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 141,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 137,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 141,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P1_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 209,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 107,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 191,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 51,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 169,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 44,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 311,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 202,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 235,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 653,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 424,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 677,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1078,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1083,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 36,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 710,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1116,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P2_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 99,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 103,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 99,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 103,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P2_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 225,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 82,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 107,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 191,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 50,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 152,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 44,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 310,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 210,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 235,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 652,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 409,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 685,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1086,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1091,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 36,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 710,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1116,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P3_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 102,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 102,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P3_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 89,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 101,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 185,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 45,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 150,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 38,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 305,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 208,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 230,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 666,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 407,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 683,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1084,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1089,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 49,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 705,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1106,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P4_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 138,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 142,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 54,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 138,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 142,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P4_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 54,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 216,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 74,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 107,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 191,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 51,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 175,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 44,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 311,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 206,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 235,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 673,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 430,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 681,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1082,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1087,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 56,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 710,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1116,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P5_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 160,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 164,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 160,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 164,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P5_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 227,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 85,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 86,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 98,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 182,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 51,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 172,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 35,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 311,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 211,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 227,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 651,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 428,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 686,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1087,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1092,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 34,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 702,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1103,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1108,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P6_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 92,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 46,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 92,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P6_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 46,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 228,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 75,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 96,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 107,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 191,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 41,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 172,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 44,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 301,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 211,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 235,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 657,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 428,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 686,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1087,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1092,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 40,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 710,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1116,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P7_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 115,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 111,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 115,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P7_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 72,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_cup",
+   "a": "mark",
+   "b": "tag",
+   "gap": 224,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_cup",
+   "a": "mark",
+   "b": "word",
+   "gap": 82,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_cup",
+   "a": "tag",
+   "b": "word",
+   "gap": 88,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "bio",
+   "b": "btn",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "bio",
+   "b": "mark",
+   "gap": 196,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "bio",
+   "b": "stats",
+   "gap": 250,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "bio",
+   "b": "tag",
+   "gap": 33,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "bio",
+   "b": "ui",
+   "gap": 456,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "bio",
+   "b": "word",
+   "gap": 101,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "btn",
+   "b": "mark",
+   "gap": 280,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "btn",
+   "b": "stats",
+   "gap": 334,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "btn",
+   "b": "tag",
+   "gap": 117,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "btn",
+   "b": "ui",
+   "gap": 540,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "btn",
+   "b": "word",
+   "gap": 185,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "mark",
+   "b": "stats",
+   "gap": 179,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "mark",
+   "b": "tag",
+   "gap": 133,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "mark",
+   "b": "ui",
+   "gap": 60,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "mark",
+   "b": "word",
+   "gap": 51,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "stats",
+   "b": "tag",
+   "gap": 187,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "stats",
+   "b": "ui",
+   "gap": 126,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "stats",
+   "b": "word",
+   "gap": 107,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "tag",
+   "b": "ui",
+   "gap": 393,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "tag",
+   "b": "word",
+   "gap": 38,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_ig_profile",
+   "a": "ui",
+   "b": "word",
+   "gap": 311,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "head",
+   "b": "label",
+   "gap": 221,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "head",
+   "b": "mark",
+   "gap": 209,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "head",
+   "b": "sub",
+   "gap": 67,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "head",
+   "b": "tag",
+   "gap": 468,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "head",
+   "b": "ui",
+   "gap": 473,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "head",
+   "b": "word",
+   "gap": 230,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "label",
+   "b": "mark",
+   "gap": 667,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "label",
+   "b": "sub",
+   "gap": 696,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "label",
+   "b": "tag",
+   "gap": 1097,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "label",
+   "b": "ui",
+   "gap": 1102,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "label",
+   "b": "word",
+   "gap": 368,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "mark",
+   "b": "sub",
+   "gap": 684,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "mark",
+   "b": "tag",
+   "gap": 1085,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "mark",
+   "b": "ui",
+   "gap": 1090,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "mark",
+   "b": "word",
+   "gap": 50,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "sub",
+   "b": "tag",
+   "gap": 323,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "sub",
+   "b": "ui",
+   "gap": 366,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "sub",
+   "b": "word",
+   "gap": 705,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "tag",
+   "b": "ui",
+   "gap": 361,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "tag",
+   "b": "word",
+   "gap": 1106,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_app_post_cover",
+   "a": "ui",
+   "b": "word",
+   "gap": 1111,
+   "need": 24,
+   "ok": true,
+   "core": false
+  },
+  {
+   "comp": "P8_lockup_dark",
+   "a": "mark",
+   "b": "tag",
+   "gap": 147,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_lockup_dark",
+   "a": "mark",
+   "b": "word",
+   "gap": 150,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_lockup_dark",
+   "a": "tag",
+   "b": "word",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_lockup_light",
+   "a": "mark",
+   "b": "tag",
+   "gap": 142,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_lockup_light",
+   "a": "mark",
+   "b": "word",
+   "gap": 145,
+   "need": 24,
+   "ok": true,
+   "core": true
+  },
+  {
+   "comp": "P8_lockup_light",
+   "a": "tag",
+   "b": "word",
+   "gap": 53,
+   "need": 24,
+   "ok": true,
+   "core": true
+  }
+ ],
+ "fails": []
+}
