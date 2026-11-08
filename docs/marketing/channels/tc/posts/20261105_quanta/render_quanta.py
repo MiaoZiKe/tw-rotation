@@ -225,8 +225,8 @@ IS_H = 448                        # 台灣（含澎湖）高度，寬依比例
 IS_W = IS_H * TW["w"] / TW["h"]
 IS_X, IS_Y = (MAP_W - IS_W) / 2, (MAP_H - IS_H) / 2   # 本島左上角（置中）
 k = IS_H / TW["h"]
-PX_, PY_ = IS_X + TW["pt"][0] * k, IS_Y + TW["pt"][1] * k   # 龜山點位
-LBL_W, LBL_H = 380, 76
+PX_, PY_ = IS_X + TOWNS["hq"][0] * k, IS_Y + TOWNS["hq"][1] * k   # 龜山（廣達總部）點位：經緯度 25.03N,121.39E 用與輪廓相同的投影換算（make_towns.mjs），不手動擺
+LBL_W, LBL_H = 350, 76
 LBL_X, LBL_Y = 70, PY_ - LBL_H / 2
 GRAY = "#566580"
 _g = (f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TOWNS["grat"]}" fill="none" stroke="#D2E1F6" stroke-width="{1.6/k:.1f}"/></g>')   # (d) 海面極淡經緯網格（色深淺，不用漸層）
@@ -242,7 +242,7 @@ MAP_SVG = (f'<svg data-b width="{MAP_W}" height="{MAP_H}" viewBox="0 0 {MAP_W} {
     f'<path d="{TW["borders"]}" fill="none" stroke="#A9C3EC" stroke-width="{1.6/k:.1f}" stroke-linejoin="round" stroke-linecap="round"/></g>' + _refs + _inset +
     f'<line x1="{LBL_X+LBL_W}" y1="{PY_:.1f}" x2="{PX_-30:.1f}" y2="{PY_:.1f}" stroke="{BLUE}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>'
     f'<circle data-lbl="hqc" cx="{PX_:.1f}" cy="{PY_:.1f}" r="30" fill="#fff" fill-opacity=".7" stroke="{BLUE}" stroke-width="8"/>'
-    f'<circle data-lbl="hqc" cx="{PX_+19:.1f}" cy="{PY_-19:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'
+    f'<circle data-lbl="hqc" cx="{PX_:.1f}" cy="{PY_:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'
     f'<rect x="{LBL_X}" y="{LBL_Y:.1f}" width="{LBL_W}" height="{LBL_H}" rx="38" fill="#fff" stroke="{LINE}" stroke-width="2" data-lbl="hqbox"/>'
     f'<text x="{LBL_X+LBL_W/2}" y="{LBL_Y+LBL_H/2+1:.1f}" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="800" fill="{INK}" font-family="Noto Sans TC" data-lbl="hq">{HQ_LABEL}</text></svg>')
 S["2_fields"] = f"""{top('公司行情', '2 / 2')}
