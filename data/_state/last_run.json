@@ -3,7 +3,7 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.8
+      "seconds": 1.1
     },
     "official_refresh": {
       "status": "no_provisional",
@@ -15,7 +15,7 @@
     "twse.market": {
       "ok": true,
       "rows": 5,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "market_daily": {
       "stored": 0
@@ -23,7 +23,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1010,
-      "seconds": 8.8
+      "seconds": 6.9
     },
     "tape.collect": {
       "ok": true,
@@ -34,7 +34,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.7
+      "seconds": 1.0
     },
     "index_intraday": {
       "stored": 0
@@ -42,16 +42,16 @@
     "taifex.futures_minute": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "skipped": "窗內候選日都處理過或今天的檔還沒出"
     },
     "news.collect": {
       "ok": true,
-      "rows": 127,
-      "seconds": 3.2
+      "rows": 123,
+      "seconds": 2.2
     },
     "news": {
-      "stored": 28
+      "stored": 45
     },
     "news.broker_views": {
       "ok": true,
@@ -63,16 +63,16 @@
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 401,
-      "seconds": 1.1
+      "rows": 5,
+      "seconds": 0.7
     },
     "material_news": {
-      "stored": 0
+      "stored": 5
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4516,
-      "seconds": 1.8
+      "rows": 4515,
+      "seconds": 1.2
     },
     "intl_daily": {
       "stored": 0
@@ -80,15 +80,15 @@
     "macro.fred": {
       "ok": true,
       "rows": 15619,
-      "seconds": 3.3
+      "seconds": 2.4
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 1.2
+      "seconds": 1.5
     },
     "macro_calendar": {
       "stored": 0
@@ -98,27 +98,27 @@
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 8
+      "rows": 7
     },
     "fut_inst": {
       "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 72
+      "rows": 63
     },
     "fut_oi": {
       "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 24
+      "rows": 21
     },
     "optivx.daily": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.2,
-      "skipped": "FinMind 尚無 2026-11-07～2026-11-07 的臺指選擇權資料（休市或當天還沒出）"
+      "seconds": 0.1,
+      "skipped": "FinMind 尚無 2026-11-07～2026-11-08 的臺指選擇權資料（休市或當天還沒出）"
     },
     "margin_total_otc": {
       "stored": 0
@@ -154,9 +154,9 @@
       "2026-11-06"
     ]
   },
-  "started_at": "2026-11-07T17:48:11.409491+00:00",
-  "finished_at": "2026-11-07T18:12:38.878543+00:00",
-  "duration_seconds": 1467.5,
+  "started_at": "2026-11-08T08:57:57.860133+00:00",
+  "finished_at": "2026-11-08T09:15:59.149661+00:00",
+  "duration_seconds": 1081.3,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -341,7 +341,7 @@
     },
     {
       "table": "news",
-      "rows": 10346,
+      "rows": 10391,
       "latest": "2026-11-08"
     },
     {
@@ -416,8 +416,8 @@
     },
     {
       "table": "material_news",
-      "rows": 3947,
-      "latest": "2026-11-06"
+      "rows": 3952,
+      "latest": "2026-11-07"
     },
     {
       "table": "company_website",
@@ -447,7 +447,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 47,
+    "days_since_review": 48,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
