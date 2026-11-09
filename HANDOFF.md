@@ -6035,3 +6035,11 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - `scripts/healing_post.py` 的 `fb_ig_candidates`（多路徑探查）＋`ig_choices`（username 對應）＋驗證模式逐一建容器，通過的路名記 `state/verify.json` 的 `via`（只記路名，不記編號）；`*_IG_USER_ID` 有填仍優先。上一段「待 Andy 加權限重貼權杖」撤銷。
 - 實測：healing run 42670394709、channel_post run 42670385893，三個 IG＋三個 Threads 容器都 FINISHED、未發布。commit ab08e3de1、2d6eb0ec9、7d1d74989＋本筆測試。
 - 尚未實測：IG 正式發文（下次排程會走同一條路）、EAA 留言私訊（沒有粉絲專頁權杖，私訊大概會失敗，留言用 /{media}/comments 應可）。
+
+## 2026-11-09 多頻道成效收集（healing／tech／caffaine）
+- 新增 `scripts/channel_insights.py`、`.github/workflows/channel_insights.yml`（台北 23:23 每天，matrix 三頻道各自只帶自己前綴的 Secrets）、`tests/test_channel_insights.py`。
+- 輸出：`docs/marketing/channels/<頻道>/state/insights/`（`account_daily.csv`、`posts_daily.csv`、`last_run.json`）。
+- 缺權限不紅燈，摘要寫明需要重新授權的權限（IG：instagram_manage_insights；Threads：threads_manage_insights）。
+- 已改：`docs/marketing/channels/healing/plan_202611_內容規劃.md` E 節的成效資料來源。
+- 這批驗過：`pytest tests/test_channel_insights.py`（17 綠）；全套 pytest 其餘失敗為環境問題（缺 yfinance）與 `test_exrights` 真實資料斷言，與本批無關。
+- 下次有人回報成效怪象：先看 `state/insights/last_run.json` 的 status 與 missing。
