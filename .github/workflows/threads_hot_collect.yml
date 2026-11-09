@@ -18,12 +18,6 @@ on:
         type: choice
         options: [TOP, RECENT]
         default: TOP
-  push:
-    branches: [claude/auto-reply-1109]
-    paths:
-      - .github/workflows/threads_hot_collect.yml
-      - scripts/threads_hot_collect.py
-      - scripts/threads_search.py
 permissions:
   contents: write
 concurrency:

@@ -13,9 +13,6 @@ on:
         description: "只記錄不送（true＝安全試跑）"
         type: boolean
         default: true
-  push:                              # 開發分支只做「只讀＋只記錄」試跑，驗 A 層讀留言權限；正式送出只在 main 的排程
-    branches: [claude/auto-reply-1109]
-    paths: [.github/workflows/auto_reply.yml, scripts/auto_reply.py, scripts/reply_lint.py]
 permissions:
   contents: write
 concurrency:
