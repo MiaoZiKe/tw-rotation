@@ -60,6 +60,12 @@ PRICE_CLOSE = time(15, 30)       # 台股收盤後，價量才會有當天
 PRICE_DEADLINE = time(16, 15)    # 價量截止（Andy 11-09：16:15 前價量要進湖）
 INST_DEADLINE = time(17, 15)     # 三大法人截止（inst 輪 16:15～17:15 搶當天法人）
 DATA_DEADLINE = time(18, 40)     # 融資券／來源健康／畫面資料日的截止（18:30 那輪落地後留 10 分鐘）
+# ETF（Andy 2026-11-09：「ETF 資訊也是否都有更新到」）。截止 21:40：full 輪 21:30 落地之後才算數。
+# 成分股（投信 PCF）的基準日＝當天（2026-10-08 實測：晚上公告、基準日仍是當天），所以應有日＝價量應有日，不另加一天。
+ETF_DEADLINE = time(21, 40)
+ETF_HOLD_SRC = "etf_pcf.holdings"       # source_health 的鍵（run_daily 的 step 名稱）
+ETF_NOTICE_SRC = "etf.exright_notice"
+ETF_MONTH_TOLERANCE = 1                 # 月資料最多落後幾個月（公會月底後一兩週才齊，所以不要求當月）
 TC_GRACE = timedelta(minutes=30)  # 排定時間過 30 分鐘還沒發，才算沒發
 SOURCE_FAIL_RED = 2              # 來源連續失敗 2 天以上才算壞（1 天可能是 GitHub 排程延遲）
 META_DAYS_RED = 7                # Meta 權杖剩 7 天以下就要續期
@@ -69,7 +75,9 @@ REMEDY_LOST_MIN = 10             # 派出後超過這分鐘還找不到對應的
 SITE_FILES = {"liguligu": "https://liguligu-puipui.com/data/",
               "gh_pages": "https://miaozike.github.io/tw-rotation/data/"}
 GATE_NAMES = {"run": "執行", "content": "內容", "publish": "發布", "price": "價量", "inst": "三大法人",
-              "margin": "融資券", "health": "來源與錯誤", "screen": "畫面資料日"}
+              "margin": "融資券", "health": "來源與錯誤", "screen": "畫面資料日",
+              "etf_hold": "ETF 成分股", "etf_notice": "ETF 除權息預告", "etf_month": "ETF 月資料",
+              "etf_screen": "ETF 畫面日"}
 
 
 # ---------------------------------------------------------------- 日曆
@@ -210,6 +218,66 @@ def screen_gate(screen: dict | None, exp_s: str) -> dict:
     return gate(ok, "；".join(parts) + f"（應有 {exp_s}）")
 
 
+def etf_holdings_gate(lake_date: str | None, health: dict | None, exp_s: str) -> dict:
+    """ETF 成分股（投信 PCF）：湖裡最新基準日要 ≥ 應有日，而且 source_health 的最後成功日也要 ≥ 應有日。
+    兩個都要看：湖裡有、但來源紀錄停在前一天，代表最後一次抓取失敗（11-06 那次就是這樣：湖停在 11-05）。"""
+    if lake_date is None or health is None:
+        return gate(None, "查不到 ETF 成分股（資料湖或 source_health）")
+    h = health.get(ETF_HOLD_SRC) or {}
+    last_ok = h.get("last_ok_date")
+    ok = lake_date >= exp_s and last_ok is not None and last_ok >= exp_s
+    return gate(ok, f"ETF 成分股湖內最新 {lake_date}、來源最後成功 {last_ok or '無'}、"
+                    f"連續失敗 {int(h.get('consecutive_fail') or 0)} 天（應有 {exp_s}）",
+                [SOURCE_HEALTH_FILE.name])
+
+
+def etf_notice_gate(health: dict | None, exp_s: str) -> dict:
+    """ETF 除權息預告：不看湖（湖裡的日期是除息日，不是抓到的日期），只看 source_health 的最後成功日。
+    端點回應但當天沒有 ETF 列是正常的，那種情況 raw_ok 仍為 true，last_ok_date 照樣會前進。"""
+    if health is None:
+        return gate(None, "查不到 source_health")
+    h = health.get(ETF_NOTICE_SRC) or {}
+    last_ok = h.get("last_ok_date")
+    ok = last_ok is not None and last_ok >= exp_s
+    return gate(ok, f"ETF 除權息預告來源最後成功 {last_ok or '無'}、連續失敗 {int(h.get('consecutive_fail') or 0)} 天"
+                    f"（應有 {exp_s}）", [SOURCE_HEALTH_FILE.name])
+
+
+def _month_index(ym: str) -> int:
+    y, m = int(ym[:4]), int(ym[5:7])
+    return y * 12 + m - 1
+
+
+def etf_monthly_gate(lake_month_end: str | None, exp_s: str) -> dict:
+    """公會每月前十大（月資料）：應有最新完整月＝應有日的上一個月；最新月落後不超過 ETF_MONTH_TOLERANCE 個月才算過。
+    月資料不做每日紅燈：當月還沒齊、上個月也還沒齊，都還在容忍範圍內。"""
+    if lake_month_end is None:
+        return gate(None, "查不到 ETF 月資料（etf_holdings_monthly）")
+    exp = date.fromisoformat(exp_s)
+    last_full = _month_index(f"{exp.year:04d}-{exp.month:02d}") - 1
+    lag = last_full - _month_index(lake_month_end)
+    ok = lag <= ETF_MONTH_TOLERANCE
+    return gate(ok, f"ETF 月資料最新 {lake_month_end[:7]}，落後 {max(lag, 0)} 個月（容許 {ETF_MONTH_TOLERANCE}）")
+
+
+def etf_screen_gate(screen: dict | None, exp_s: str) -> dict:
+    """ETF 畫面日：兩個站各自的 etf.json（價量日）與 etf_holdings.json（成分股基準日）都要 ＝ 應有日。
+    讀不到就是不過（不准當綠），兩站各自的日期都寫進說明。"""
+    if not screen:
+        return gate(None, "查不到兩站線上 ETF 檔")
+    parts, ok = [], True
+    for key, label in (("liguligu", "主站"), ("gh_pages", "備援")):
+        s = screen.get(key) or {}
+        if s.get("etf_error") or s.get("etf_asof") is None or s.get("etf_hold_asof") is None:
+            ok = False
+            parts.append(f"{label}讀不到 ETF 檔（{s.get('etf_error') or '沒有 asof'}）")
+            continue
+        a, h = s["etf_asof"], s["etf_hold_asof"]
+        ok = ok and a == exp_s and h == exp_s
+        parts.append(f"{label}：ETF 頁 {a}／成分股 {h}")
+    return gate(ok, "；".join(parts) + f"（應有 {exp_s}）")
+
+
 def bad_text(s: str) -> bool:
     return (not s) or s.strip().lower() in {"nan", "none", "null"}
 
@@ -225,10 +293,13 @@ def http_json(url: str, timeout: int = 20):
 
 
 def collect_screen(http) -> dict:
-    """畫面實際讀的資料日：總覽讀 meta.json（data_date、inst_date），三大法人頁讀 inst_market.json（latest）。"""
+    """畫面實際讀的資料日：總覽讀 meta.json（data_date、inst_date），三大法人頁讀 inst_market.json（latest）。
+    ETF 頁讀 etf.json（頂層 asof＝價量日），成分股分頁讀 etf_holdings.json（頂層 asof＝基準日）。
+    ETF 的讀取與上面分開 try：ETF 檔讀不到不能把總覽／法人的判定也連帶弄成「讀不到」。"""
     out: dict = {}
     for key, base in SITE_FILES.items():
-        s: dict = {"data_date": None, "inst_date": None, "inst_market_latest": None, "error": None}
+        s: dict = {"data_date": None, "inst_date": None, "inst_market_latest": None, "error": None,
+                   "etf_asof": None, "etf_hold_asof": None, "etf_error": None}
         try:
             meta = http(base + "meta.json") or {}
             s["data_date"] = meta.get("data_date")
@@ -236,6 +307,11 @@ def collect_screen(http) -> dict:
             s["inst_market_latest"] = (http(base + "inst_market.json") or {}).get("latest")
         except Exception as e:  # noqa: BLE001 - 讀不到就記下來，關卡判不過
             s["error"] = str(e)[:200]
+        try:
+            s["etf_asof"] = (http(base + "etf.json") or {}).get("asof")
+            s["etf_hold_asof"] = (http(base + "etf_holdings.json") or {}).get("asof")
+        except Exception as e:  # noqa: BLE001
+            s["etf_error"] = str(e)[:200]
         out[key] = s
     return out
 
@@ -292,7 +368,8 @@ def collect_facts(now: datetime, holidays: set[str], gh, http=None) -> dict:
     f["lake"] = {}
     try:  # 讀不到就是 None，關卡會判「查不到」而不是綠
         from pipeline.util import store
-        for t in ("price_daily", "inst_daily", "inst_market_daily", "margin_total"):
+        for t in ("price_daily", "inst_daily", "inst_market_daily", "margin_total",
+                  "etf_holdings", "etf_holdings_monthly"):
             f["lake"][t] = store.latest_date(t)
     except Exception as e:  # noqa: BLE001
         f.setdefault("errors", []).append(f"讀資料湖失敗：{e}")
@@ -543,9 +620,17 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
     # 網站那一項的「內容」沿用同一套（價量／法人／融資券／來源健康）
     data_content = gate(all(g["ok"] for g in (price_g, inst_g, margin_g, health_g)),
                         "價量／法人／融資券／來源健康（同每日資料關卡）")
-    finish("data", "每日資料更新（價量／法人／融資券）", True, at_tpe(expected, DATA_DEADLINE), {
+    # ETF 四關（各自 21:40 截止；未到截止＝還沒到，不紅）。成分股與除權息預告是 full 輪的產出，
+    # 所以補救也是派 daily.yml phase=full（同一個補救，不另開）。
+    etf_hold_g = by(etf_holdings_gate(lake.get("etf_holdings"), f.get("source_health"), exp_s), ETF_DEADLINE)
+    etf_notice_g = by(etf_notice_gate(f.get("source_health"), exp_s), ETF_DEADLINE)
+    etf_month_g = by(etf_monthly_gate(lake.get("etf_holdings_monthly"), exp_s), ETF_DEADLINE)
+    etf_screen_g = by(etf_screen_gate(f.get("screen"), exp_s), ETF_DEADLINE)
+    finish("data", "每日資料更新（價量／法人／融資券／ETF）", True, at_tpe(expected, DATA_DEADLINE), {
         "run": run_g, "price": price_g, "inst": inst_g, "margin": margin_g,
         "health": health_g, "screen": screen_g,
+        "etf_hold": etf_hold_g, "etf_notice": etf_notice_g, "etf_month": etf_month_g,
+        "etf_screen": etf_screen_g,
         "publish": site_result["site"],
     }, remedy={"action": "dispatch", "workflow": "daily.yml", "inputs": {"phase": "full"}})
 

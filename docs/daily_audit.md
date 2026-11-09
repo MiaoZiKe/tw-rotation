@@ -33,7 +33,7 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 |---|---|---|---|---|---|
 | 盤前消息 | 交易日 | 08:40 | social-live 今天有成功執行 | `site/articles/premarket.json` 的 `days[0].date` ＝今天、有則數、沒有空標題／空網址 | 網站兩站包含最新 commit |
 | 盤後消息 | 交易日 | 21:40 | daily.yml 今天 15:00 後有成功 | `postmarket.json` 的日期＝今天 | 網站兩站包含最新 commit |
-| 每日資料更新 | 每天（看應有日） | **分段**：價量 16:15、法人 17:15、融資券／來源健康／畫面 18:40（截止錨在應有日） | daily.yml 的 price／full 輪：最近一次失敗之後沒有成功的一輪 → **立刻紅**（不等截止，附失敗網址與失敗步驟名）；還在跑＝還沒到 | 價量最新日＝應有日（16:15 前）；三大法人＝應有日（17:15 前）；融資券＝應有日；`last_run.json` 沒有錯誤；`source_health` 沒有來源連續失敗 2 天以上 | **畫面資料日**：兩站線上檔 `data/meta.json` 的 `data_date`、`inst_date`，與 `data/inst_market.json` 的 `latest`，都要＝應有日（18:40 前還沒到，之後落後就紅）；再加網站兩站包含最新 commit |
+| 每日資料更新 | 每天（看應有日） | **分段**：價量 16:15、法人 17:15、融資券／來源健康／畫面資料日 18:40、ETF 21:40（截止錨在應有日） | daily.yml 的 price／full 輪：最近一次失敗之後沒有成功的一輪 → **立刻紅**（不等截止，附失敗網址與失敗步驟名）；還在跑＝還沒到 | 價量最新日＝應有日（16:15 前）；三大法人＝應有日（17:15 前）；融資券＝應有日；`last_run.json` 沒有錯誤；`source_health` 沒有來源連續失敗 2 天以上；**ETF**：成分股湖內最新＝應有日且 `etf_pcf.holdings` 最後成功日＝應有日；除權息預告 `etf.exright_notice` 最後成功日＝應有日；公會月資料最新月落後不超過 1 個月 | **畫面資料日**：兩站線上檔 `data/meta.json` 的 `data_date`、`inst_date`，與 `data/inst_market.json` 的 `latest`，都要＝應有日（18:40 前還沒到，之後落後就紅）；**ETF 畫面**：兩站 `data/etf.json` 的 `asof`（價量日）與 `data/etf_holdings.json` 的 `asof`（成分股基準日）都要＝應有日（21:40）；再加網站兩站包含最新 commit |
 | 頻道①盤後主貼文 | 交易日（quota 的 close 開著才檢查） | 18:20 | social-live 今天 15:00 後有成功 | social-snaps `state/posted.json` 有 `close-<今天>` | 有發布網址（threads.link 或 story.link） |
 | 頻道②科技透明圈 | 每天（只看 approved 且排定時間已過 30 分鐘的稿；draft 不算） | 排定時間＋30 分鐘 | tc_post.yml 今天有成功 | approved 且已到時間的稿，`post.md` 狀態是 posted | main 的 `state/tc/posted.json` 有該稿紀錄（tc_post.yml 直接 commit 到 main） |
 | 頻道④談晴說礙 | 每天（只看 `docs/marketing/channels/healing/post_quota.json` 的 `live` 是 true；false＝整個停發，未啟用） | 21:40 | healing_post.yml 今天有成功 | 佇列 `queue/*/meta.json` 是 approved 且 publish_at（null＝當天 20:27 時段）已到 | `healing/state/posted.json` 每個平台都有該資料夾紀錄且未被刪 |
@@ -41,6 +41,28 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 | 網站部署 | 每天 | 無（即時） | pages.yml 兩天內有成功 | 資料日同上 | GitHub Pages＋Cloudflare 都包含最新 commit，主站不比備援舊 |
 
 **目前的開關狀態**：頻道①盤後主貼文看 `docs/marketing/social_unit/post_quota.json` 的 `live.close`；頻道②看同一檔的 `tc.enabled`；頻道④看 `docs/marketing/channels/healing/post_quota.json` 的 `live`（頻道④自己的開關，跟頻道①無關）。
+
+## ETF 規則（2026-11-09 Andy：「ETF 資訊也是否都有更新到」）
+
+事故：11-06 的 full 輪被 pytest 擋掉，`etf_pcf.holdings`、`etf.exright_notice`、`sitca.etf_top10` 的 `last_ok_date` 都停在 11-05，
+每日稽核只看價量、法人、融資券，ETF 落後三天沒人知道。
+
+| 項目 | 應有日 | 截止 | 怎麼判 | 為什麼 |
+|---|---|---|---|---|
+| 成分股（投信 PCF，`etf_pcf.holdings`） | 應有日＝價量應有日（不另加一天） | 21:40 | 湖內最新基準日 ≥ 應有日，**且** `source_health` 的 `last_ok_date` ≥ 應有日 | 2026-10-08 實測：投信晚上公告，基準日仍是當天（`pipeline/sources/etf_pcf.py` 的 `parse_tsit` 註解）。不是 T+1，所以不把應有日往前推一天 |
+| 除權息預告（`etf.exright_notice`） | 同上 | 21:40 | `source_health` 的 `last_ok_date` ≥ 應有日；**不看湖** | 湖裡的日期是「除息日」，不是「抓到的日期」；預告表當天沒有 ETF 列是正常的，那種情況 raw_ok 仍為 true |
+| 公會月資料（`sitca.etf_top10`） | 月資料：應有完整月＝應有日的上一個月 | 21:40 | 湖內最新月落後不超過 **1 個月**（`ETF_MONTH_TOLERANCE`） | 公會月底後一兩週才齊，當月不要求；容忍 1 個月＝不會天天紅 |
+| 畫面（兩站） | 同成分股 | 21:40 | `etf.json.asof` ＝ 應有日，`etf_holdings.json.asof` ＝ 應有日 | 畫面實際讀的檔；讀不到就是不過 |
+
+- 四關都是「還沒到截止＝還沒到」，21:40 後不過才紅；失敗的補救是 `daily.yml phase=full`（跟每日資料同一個補救，不另開）。
+- `consecutive_fail` 只放在說明文字裡當證據，不另設門檻：ETF 的截止本來就是單日 21:40，「最後成功日落後應有日」已經涵蓋連續失敗。
+- 讀不到（湖讀失敗、source_health 不存在、線上檔讀不到）一律不過，不准當綠。
+
+### ETF 的已知限制（照實寫）
+
+1. **部分投信失敗抓不出來**：`etf_holdings` 湖內最新日是「所有投信的最大日期」，只要有一家抓到當天，湖內最新就是應有日，這一關會綠。要抓這種狀況需要「每家投信當天筆數」，目前沒有這個事實。這是已知的缺口，不是綠燈的證據。
+2. **21:40 截止與 1 個月容忍都沒有實測樣本**（樣本數 0）。收窄或放寬要附日期與實際完成時間。
+3. **11-06 補抓**：端點有日期參數的有富邦（`qDate`）、國泰（`StartDate`）、凱基（`queryDate`）、美國投信（`sDate`）、中信（`StartDate`），理論上可以補；但官網保留歷史多久沒有實測，`etf_pcf.fetch_all` 目前也沒把日期往下傳。要補抓得先用既有的 `probe-etf-pcf.yml`（mode=dates）確認 11-06 的回應、再加日期參數，由 Andy 決定是否派。
 
 ## 排程（UTC 寫在 cron，台北時間是 +8）
 
@@ -100,3 +122,4 @@ python -m pytest tests/test_daily_audit.py -q                  # 測試（全部
 7. 分段截止（價量 16:15、法人 17:15、融資券／畫面 18:40）是 Andy 2026-11-09 指定的第一版，**沒有實測樣本**。收窄或放寬要附樣本數（日期、實際完成時間）。
 8. 畫面資料日直接抓線上檔（加時間戳防快取）。本機容器打不開那兩個網址，本機跑會顯示「讀不到」，這是預期，不是故障；正式結果以 GitHub Actions 為準。
 9. price／full 輪的分辨：run-name 帶 `(price)`／`(full)` 的看標題；排程的沒有字樣，看「跑指標庫測試」步驟是不是被跳過（法人輪會跳過）。daily.yml 若改了這個步驟的名稱或條件，`is_round()` 要一起改。
+10. ETF 三關與截止時間（21:40）同第 7 點性質：第一版，沒有實測樣本。ETF 的湖內日期與 source_health 的判定規則見上面「ETF 規則」。

@@ -48,6 +48,12 @@ INST_STEPS = [{"name": "跑指標庫測試", "conclusion": "skipped"},
               {"name": "抓取與計算", "conclusion": "success"}]
 
 
+def prev_month_end(s: str) -> str:
+    """應有日的上一個月月底（月資料 date 欄位是月底）。"""
+    d = datetime.fromisoformat(s).replace(day=1) - timedelta(days=1)
+    return d.date().isoformat()
+
+
 def green_facts(today=TODAY, expected=TODAY):
     ok_runs = [run()]
     return {
@@ -61,10 +67,14 @@ def green_facts(today=TODAY, expected=TODAY):
         "postmarket": {"updated": today, "days": [{"date": today, "items": [
             {"title": "盤後一", "url": "https://news.example/2"}]}]},
         "last_run": {"errors": []},
-        "source_health": {"twse": {"consecutive_fail": 0}},
-        "lake": {"price_daily": expected, "inst_daily": expected, "margin_total": expected},
+        "source_health": {"twse": {"consecutive_fail": 0},
+                          "etf_pcf.holdings": {"consecutive_fail": 0, "last_ok_date": expected},
+                          "etf.exright_notice": {"consecutive_fail": 0, "last_ok_date": expected}},
+        "lake": {"price_daily": expected, "inst_daily": expected, "margin_total": expected,
+                 "etf_holdings": expected, "etf_holdings_monthly": prev_month_end(expected)},
         "screen": {k: {"data_date": expected, "inst_date": expected, "inst_market_latest": expected,
-                       "error": None} for k in ("liguligu", "gh_pages")},
+                       "error": None, "etf_asof": expected, "etf_hold_asof": expected, "etf_error": None}
+                   for k in ("liguligu", "gh_pages")},
         "snaps_posted": {f"close-{today}": {"threads": {"id": "1", "link": "https://threads.com/p/1"},
                                             "story": []}},
         "quota": {"live": {"close": {"threads": True}}, "tc": {"enabled": True}},
@@ -359,10 +369,10 @@ def test_site_gate_pending_and_unknown():
 
 def test_source_consecutive_fail_is_red_only_when_repeated():
     f = green_facts()
-    f["source_health"] = {"macro.fred": {"consecutive_fail": 1}}
+    f["source_health"]["macro.fred"] = {"consecutive_fail": 1}  # 只更新這一個來源，ETF 鍵保留
     items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T19:00:00")))
     assert items["data"]["status"] == "ok"  # 只壞一天不紅
-    f["source_health"] = {"macro.fred": {"consecutive_fail": 2}}
+    f["source_health"]["macro.fred"] = {"consecutive_fail": 2}
     items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T19:00:00")))
     assert items["data"]["status"] == "fail"
 
@@ -477,3 +487,107 @@ def test_facts_json_round_trip_is_plain():
     f = green_facts()
     items = da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T19:00:00"))
     json.dumps(items, ensure_ascii=False, default=str)
+
+
+# ---------------------------------------------------------------- ETF（2026-11-09 Andy：ETF 資訊是否都有更新）
+# 事故：11-06 的 full 輪被 pytest 擋掉，etf_pcf.holdings／etf.exright_notice 停在 11-05，
+# 每日稽核只看價量法人融資券，所以 ETF 落後了三天沒人知道。下面的測試就是要把這種情況變紅。
+
+def data_item(f, now):
+    return by_id(da.evaluate(f, HOL, {"site": SITE_OK}, now))["data"]
+
+
+def stale_etf_facts():
+    """11-09 的事實，但 ETF 停在 11-05（etf 湖與 source_health 都停在前一天）。"""
+    f = green_facts()
+    f["lake"]["etf_holdings"] = "2026-11-05"
+    f["source_health"]["etf_pcf.holdings"]["last_ok_date"] = "2026-11-05"
+    f["source_health"]["etf.exright_notice"]["last_ok_date"] = "2026-11-05"
+    for k in ("liguligu", "gh_pages"):
+        f["screen"][k]["etf_asof"] = "2026-11-05"
+        f["screen"][k]["etf_hold_asof"] = "2026-11-05"
+    return f
+
+
+def test_etf_stale_is_pending_before_deadline_and_red_after_2140():
+    # 21:00 還沒到 21:40 截止：是還沒到，不紅
+    assert data_item(stale_etf_facts(), at("2026-11-09T21:00:00"))["status"] == "pending"
+    # 21:45 已過截止：紅，而且是 ETF 那幾關不過，補救是 daily.yml full
+    it = data_item(stale_etf_facts(), at("2026-11-09T21:45:00"))
+    assert it["status"] == "fail"
+    for g in ("etf_hold", "etf_notice", "etf_screen"):
+        assert it["gates"][g]["ok"] is False, g
+    assert it["gates"]["etf_month"]["ok"] is True  # 月資料只落後 0 個月（11-05 落在 10 月）
+    assert it["remedy"] == {"action": "dispatch", "workflow": "daily.yml", "inputs": {"phase": "full"}}
+
+
+def test_etf_holdings_lake_current_but_health_stale_is_not_green():
+    # 湖裡有 11-09 但來源紀錄停在 11-05：不准只看湖就綠
+    f = green_facts()
+    f["lake"]["etf_holdings"] = "2026-11-09"
+    f["source_health"]["etf_pcf.holdings"]["last_ok_date"] = "2026-11-05"
+    g = data_item(f, at("2026-11-09T21:45:00"))["gates"]["etf_hold"]
+    assert g["ok"] is False and "2026-11-05" in g["why"]
+
+
+def test_etf_holdings_t_plus_0_basis_rule():
+    # 成分股基準日＝當天（10-08 實測）→ 應有日＝價量應有日。週一 08:00 的應有日是上週五，不是今天。
+    assert da.expected_price_date(at("2026-11-09T08:00:00"), HOL).isoformat() == "2026-11-06"
+    assert da.expected_price_date(at("2026-11-09T22:00:00"), HOL).isoformat() == "2026-11-09"
+    # 週六查：應有日是週五（11-06），湖裡有 11-06 就綠，不會因為今天是週六就要求週六的資料
+    f = green_facts(today="2026-11-07", expected="2026-11-06")
+    f["lake"]["etf_holdings"] = "2026-11-06"
+    f["source_health"]["etf_pcf.holdings"]["last_ok_date"] = "2026-11-06"
+    assert data_item(f, at("2026-11-07T22:00:00"))["gates"]["etf_hold"]["ok"] is True
+    f["lake"]["etf_holdings"] = "2026-11-05"
+    assert data_item(f, at("2026-11-07T22:00:00"))["gates"]["etf_hold"]["ok"] is False
+
+
+def test_etf_monthly_tolerates_one_month_only_and_never_reds_daily():
+    f = green_facts()
+    # 11-09 應有的完整月是 10 月；湖裡最新是 9 月底＝落後 1 個月，容許
+    f["lake"]["etf_holdings_monthly"] = "2026-09-30"
+    assert data_item(f, at("2026-11-09T22:00:00"))["gates"]["etf_month"]["ok"] is True
+    # 落後 2 個月：紅
+    f["lake"]["etf_holdings_monthly"] = "2026-08-31"
+    it = data_item(f, at("2026-11-09T22:00:00"))
+    assert it["gates"]["etf_month"]["ok"] is False and it["status"] == "fail"
+    # 11-01 是週日：應有完整月＝9 月，湖裡 9 月底就是零落後
+    f2 = green_facts(today="2026-11-01", expected="2026-10-30")
+    f2["lake"]["etf_holdings_monthly"] = "2026-09-30"
+    assert da.etf_monthly_gate("2026-09-30", "2026-11-01")["ok"] is True
+
+
+def test_etf_monthly_unknown_is_not_green():
+    g = da.etf_monthly_gate(None, TODAY)
+    assert g["ok"] is False and "查不到" in g["why"]
+
+
+def test_etf_notice_only_looks_at_health():
+    # 除權息預告不看湖：湖的日期是除息日，不代表抓到了
+    h = {"etf.exright_notice": {"last_ok_date": "2026-11-09"}}
+    assert da.etf_notice_gate(h, TODAY)["ok"] is True
+    assert da.etf_notice_gate({"etf.exright_notice": {"last_ok_date": "2026-11-06"}}, TODAY)["ok"] is False
+    assert da.etf_notice_gate({}, TODAY)["ok"] is False   # 沒有紀錄＝沒有驗證過，不准綠
+    assert da.etf_notice_gate(None, TODAY)["ok"] is False  # 讀不到 source_health＝查不到，不准綠
+
+
+def test_etf_screen_mismatch_and_read_error_are_not_green():
+    f = green_facts()
+    f["screen"]["liguligu"]["etf_asof"] = "2026-11-06"   # 主站 ETF 頁還停在前一天
+    it = data_item(f, at("2026-11-09T21:45:00"))
+    g = it["gates"]["etf_screen"]
+    assert g["ok"] is False and "主站" in g["why"] and "2026-11-06" in g["why"]
+    assert it["status"] == "fail"
+    f = green_facts()
+    f["screen"]["gh_pages"]["etf_error"] = "HTTP 503"    # 讀不到 ≠ 綠
+    assert da.etf_screen_gate(f["screen"], TODAY)["ok"] is False
+    assert da.etf_screen_gate(None, TODAY)["ok"] is False
+
+
+def test_etf_gate_none_when_lake_missing_becomes_red_after_deadline():
+    f = green_facts()
+    f["lake"]["etf_holdings"] = None   # 資料湖讀失敗
+    it = data_item(f, at("2026-11-09T21:45:00"))
+    assert it["gates"]["etf_hold"]["ok"] is False and "查不到" in it["gates"]["etf_hold"]["why"]
+    assert it["status"] == "fail"
