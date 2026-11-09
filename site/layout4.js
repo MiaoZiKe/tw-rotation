@@ -62,6 +62,7 @@
     explore: { grp: '族群與個股', t: '選股策略', d: 'Strategy Lab：每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出前 3 檔；點一列看入選原因，點 i 看條件與資料出處。' },
     season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
     etf: { grp: '族群與個股', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
+    portfolio: { grp: '專案', t: '我的持股', d: '輸入你的持股，看錢集中在哪幾個族群，以及那些族群近 5、20 日的資金占比與輪動狀態；持股只存在這台裝置，不上傳。' },
     watch: { grp: '專案', t: '自選', d: '你自己的自選清單（最多五頁）：今天的漲跌與走勢，點名稱進個股頁。' },
     channels: { grp: '專案', t: '頻道規劃', d: '所有社群頻道的規劃：主題方向、短中長期目標、經營與發文方式、IG／Threads 分配、時段、法遵紅線與每週檢討指標。只給管理者看。' },
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
@@ -365,7 +366,7 @@
     { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap', 'flowcheck'] },
     { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'tc', 'stock', 'market', 'explore', 'etf'] },
     { g: 'hist', t: '歷史規律', first: 'season', views: ['season', 'lab'] },
-    { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'channels', 'admin'] },
+    { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'portfolio', 'delivery', 'channels', 'admin'] },
   ];
   const FOLD_KEY = 'l4.navFold';
   function readFold() {

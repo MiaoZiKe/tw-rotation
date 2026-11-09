@@ -18,6 +18,11 @@
 - 總覽強弱輪動／昨日資金分流樹／恐慌指數走勢、資金流向輪盤、產業地圖族群漲跌幅，標題列有「分享圖卡」鈕；視窗選尺寸、下載 PNG（手機走 navigator.share）；圖卡網址 `?src=card#路由`，account.js 記成第一次來源 card（不必動 Worker）。
 - 功能鍵 share.card（訪客 3／註冊會員 5／Plus 50／Pro 不限）、share.card.plus（去角標、選方形／限動；Plus 以上）。公告 f-20261109-share-card。細節 DECISIONS 該日條目。
 - 這批只驗了：`_uitest --sections 分享圖卡1109,漏斗事件1026,體驗額度1027,體驗全選,體驗上限,新功能次數1102,桌機守門1008`（全 0 問題）、`_preview.py`（只剩 data/bigsmall/_index.json 404，是本機舊 site/data 缺大小戶資料，與本批無關）、`會員權限開關`（2 個紅燈是既有：stock.bigsmall／chan.page／flow.play 等不在例外清單，本批新增的 share.card.plus 已補進例外）。沒跑 pytest（只動 site/、scripts/_uitest 與 uitest_sections、DECISIONS／HANDOFF）。
+## 2026-11-09 新功能「我的持股」（#portfolio；P-1107-03，Andy 11-09 點頭；DECISIONS #3xx）
+- 輸入持股（代號＋股數或金額／從自選帶入／Plus 以上匯入 CSV）→ 各族群曝險甜甜圈＋每個族群的 5／20 日資金占比、變化、輪動；**持股只存這台裝置的 localStorage，不上傳、不存成本價**。
+- 功能鍵 portfolio.exposure（每日 3／5／50／不限）、portfolio.size（5／10／30／50 檔）、portfolio.import（Plus 以上）；公告已加；沒有雲端同步（等隱私權政策＋Andy 同意）。
+- 檔案：site/portfolio.js、m4/20261109-portfolio.css、features.js、plan_presets.js、viewreset.js、app.js／layout4.js／mobile3.js／mobile4.js／quota.js（路由）、index.html、notices/features.json、scripts/uitest_sections/20261109_我的持股曝險.py；順手修 20261019_feature_notices.py 的 ②。
+- 這批驗了：`_uitest --sections 我的持股曝險1109`（新，0 問題）、功能公告1019（維持原本 3 個舊問題）、桌機守門1008、會員權限開關、管理權限1007、次數覆蓋掃描1007、重新整理回預設1003、風格規範、導覽普查1009、平台導覽1007、會員與自選五分頁、手機按鈕普查、積木清單、體驗額度1009、圓餅風格1006、網頁版號、全站共用額度1007；_preview.py（見回報）。
 
 ## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
 - Andy 原話：「可以，做成績表」。資料 site/channels/scores.json（陣列：date／channel／title／platforms／score／comment／template／rule_added／links／cover），首筆為 11-09 頻道①「黃仁勳承認婚外情，輝達啟動調查」90 分範本，links 空白待今晚 20:30 發出後補。

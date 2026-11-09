@@ -5630,6 +5630,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261104-channels.css">
 <link rel="stylesheet" href="m4/20261106-fearcard.css">
 <link rel="stylesheet" href="m4/20261109-channel-scores.css">
+<link rel="stylesheet" href="m4/20261109-portfolio.css">
 <link rel="stylesheet" href="m4/20261109-riskflag.css">
 <link rel="stylesheet" href="m4/20261109-sharecard.css">
 <!-- m4:css 結束 -->
@@ -5678,6 +5679,8 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-09-28（Andy：「自選是需要在獨立分頁 在最後一頁，"自選分頁替代"交付清單」）：最後一格換成「自選」（#watch，site/watchpage.js）。
          交付清單的入口收掉，`#delivery` 路由與 #v-delivery 照舊留著（直接貼網址仍然進得去，`#tasks` 也還是導到它）。 -->
     <button class="tab" data-view="watch">自選</button>
+    <!-- 2026-11-09 我的持股曝險（site/portfolio.js；持股只存在使用者自己的瀏覽器）：DOM 放在自選之後（手機底部列用 nth-child，不插中間） -->
+    <button class="tab" data-view="portfolio">我的持股</button>
     <!-- ★ 2026-10-05（Andy：「總覽下方新增"財報日曆"，並不是子分頁」）：site/earnings.js。
          DOM 放最後（手機底部列用 nth-child 排兩列，插在中間會把後面每一顆往後推一格）；
          電腦版側欄由 layout4.css 的 order 把它排到「總覽」正下方、同一組「今日市場」。≤820 先藏（手機版暫停中，同選股策略）。 -->
@@ -6045,6 +6048,8 @@ h3 .howbtn.pop{font-family:inherit}
   <!-- ================= 自選（#watch，2026-09-28） =================
        最多五頁的自選清單（儲存在 site/watchlists.js，DECISIONS #270）；整頁由 site/watchpage.js 畫。 -->
   <section class="view" id="v-watch"></section>
+  <!-- ================= 我的持股曝險（#portfolio，2026-11-09） ================= 整頁由 site/portfolio.js 畫 -->
+  <section class="view" id="v-portfolio"></section>
   <section class="view" id="v-etf"></section>
   <!-- ================= 財報日曆（#earnings，2026-10-05） ================= 整頁由 site/earnings.js 畫 -->
   <section class="view" id="v-earnings"></section>
@@ -6269,6 +6274,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="etfpage.js"></script>
 <script src="futpages.js"></script><!-- 2026-10-20 市場明細：台指期三大法人未平倉、微台指散戶多空比 -->
 <script src="earnings.js"></script>
+<script src="portfolio.js"></script><!-- 2026-11-09 我的持股曝險（#portfolio）：持股只存 localStorage，不送後端 -->
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
 <script src="tc/logos.js"></script><script src="tc/tc.js"></script><!-- 2026-10-25 科技透明圈 -->
 <script src="channels/channels.js"></script><!-- 2026-11-04 頻道規劃（管理者限定） -->

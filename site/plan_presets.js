@@ -61,6 +61,10 @@
    · ★ 2026-11-09（Andy 點頭 P-1107-02「02 05 03 04 06」）：新鍵 risk.flag（風險警示牌：個股頁注意／處置警示條、自選角標、族群頁計數）
      四個方案都寫 true、不設每日次數＝全部免費（提案建議層級：風險揭露不鎖，鎖起來會有「為了收費把風險藏起來」的觀感）。
      不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單；體驗次數不預設（本來就不限次）。寄信提醒 risk.flag.mail 下一批才做（要動 Worker）。
+   · ★★ 2026-11-09（Andy 點頭 P-1107-03「我的持股曝險」）：新鍵 portfolio.exposure（整頁 #portfolio）、portfolio.size（持股檔數）、portfolio.import（匯入 CSV）。
+     portfolio.exposure 四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限（同 mkt.credit 口徑，單位＝一次造訪）。
+     portfolio.size：訪客 5、註冊會員 10、Plus 30、Pro 50 檔；portfolio.import：訪客／註冊會員 false、Plus／Pro true（提案：用「省時間」分層，不用資料量分）。
+     持股只存在使用者自己的瀏覽器，沒有雲端同步鍵。不在 GRANT_BAN，exposure 會出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -87,6 +91,9 @@ window.TW_PLAN_PRESETS = {
     "share.card": true,
     "share.card.plus": false,
     "risk.flag": true,
+    "portfolio.exposure": true,
+    "portfolio.size": 5,
+    "portfolio.import": false,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -193,6 +200,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.credit": 3,
     "ov.fear": 3,
     "share.card": 3,
+    "portfolio.exposure": 3,
     "mkt.fut": 3,
     "ov.advdec.tiles": 3,
     "mkt.inst.day": 3,
@@ -235,6 +243,9 @@ window.TW_PLAN_PRESETS = {
     "share.card": true,
     "share.card.plus": false,
     "risk.flag": true,
+    "portfolio.exposure": true,
+    "portfolio.size": 10,
+    "portfolio.import": false,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -349,6 +360,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.credit": 5,
     "ov.fear": 5,
     "share.card": 5,
+    "portfolio.exposure": 5,
     "mkt.fut": 5,
     "ov.advdec.tiles": 5,
     "mkt.inst.day": 5,
@@ -397,6 +409,9 @@ window.TW_PLAN_PRESETS = {
     "share.card": true,
     "share.card.plus": true,
     "risk.flag": true,
+    "portfolio.exposure": true,
+    "portfolio.size": 30,
+    "portfolio.import": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -490,6 +505,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.credit": 50,
     "ov.fear": 50,
     "share.card": 50,
+    "portfolio.exposure": 50,
     "mkt.fut": 50,
     "ov.advdec.tiles": 50,
     "mkt.inst.day": 50
@@ -531,6 +547,9 @@ window.TW_PLAN_PRESETS = {
     "share.card": true,
     "share.card.plus": true,
     "risk.flag": true,
+    "portfolio.exposure": true,
+    "portfolio.size": 50,
+    "portfolio.import": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,

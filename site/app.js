@@ -2378,7 +2378,7 @@
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
   // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
   // 2026-10-14：'articles'＝精選文章（site/articles.js）；單篇 #article/<id> 也落在這個 view（見 route() 的 view 對照）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc', 'lab', 'flowcheck', 'channels'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'portfolio', 'explore', 'earnings', 'articles', 'tc', 'lab', 'flowcheck', 'channels'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -3445,6 +3445,8 @@
     if (view === 'articles') { if (window.TwArticles) await window.TwArticles.show(head, rest); mia(); return; }
     if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
+    // 我的持股（2026-11-09）：每次進來都重畫一次（別頁改過自選、或資料換了新一天）
+    if (view === 'portfolio' && rendered.portfolio && window.TwPortfolio) { window.TwPortfolio.render(); return; }
     // 自選分頁：第一次進來整頁畫；之後每次回來重畫一次（別頁按 ☆ 改過清單、或換過主題）
     if (view === 'watch' && rendered.watch && window.TwWatchPage) window.TwWatchPage.paint();
     // 選股探索（2026-10-05，site/explore.js）：第一次整頁畫；之後換題目（#explore/<id>）只重畫圖與名單，不重載資料
@@ -3455,6 +3457,7 @@
       watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); },
       explore: () => (window.TwExplore ? window.TwExplore.render(rest[0]) : null),
       etf: () => (window.TwEtfPage ? window.TwEtfPage.render(rest[0]) : null),
+      portfolio: () => (window.TwPortfolio ? window.TwPortfolio.render() : null),
       earnings: () => (window.TwEarnings ? window.TwEarnings.render() : null) })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);

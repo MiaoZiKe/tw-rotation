@@ -42,6 +42,7 @@
     { id: 'stocktab', name: '個股頁：分頁' },
     { id: 'global', name: '即時與全站工具' },
     { id: 'watch', name: '自選' },
+    { id: 'portfolio', name: '我的持股' },   // 2026-11-09 新分類（site/portfolio.js；持股只存在使用者自己的瀏覽器）
     { id: 'etf', name: 'ETF 專區' },
     /* 2026-10-05（admin-v2，Andy B）：族群觀測。項目不寫死在這裡 —— 由 groups.yaml 產生的 groups_today.json 決定，
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
@@ -356,6 +357,19 @@
     { id: 'earn.click', name: '財經日曆：點事件標題／右側清單', cat: 'earnings', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
       qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#earnGrid .chip', '#earnPanel .erow'], qcount: ['#earnGrid .chip', '#earnPanel .erow'],
       qnoteAfter: '#earnToday', route: /^#earnings/, desc: '月曆上的事件標題、右側清單的每一列，點一次算一次（回本週重點、切分類不算）', veil: [], mark: [], block: [] },
+    /* ★★ 2026-11-09（Andy 點頭 P-1107-03「我的持股曝險」；11-02 規定：新加入的使用者功能一律先登記功能鍵與次數）：
+       portfolio.exposure 整頁（#portfolio）：每日次數，一次＝這個瀏覽器分頁進來一次；訪客 3、註冊會員 5（limBy，plan_presets.js 同步）、Plus 50、Pro 不限。
+         用完：整頁反灰＋一行字（qnote），有體驗額度時多一顆「繼續看」。擁有者／管理員不受限。算進全站共用每日額度（METERED）。
+       portfolio.size 持股檔數上限（limit）：訪客 5、註冊會員 10、Plus 30、Pro 50。只擋「新增」，已經輸入的不刪（降級的人清單不會不見）。
+       portfolio.import 匯入 CSV（bool）：Plus、Pro 才有，省掉逐檔打字；訪客／註冊會員一樣能逐檔輸入或從自選一鍵帶入，只是慢（提案：用「省時間」分層，不用資料量分）。
+       ⚠ 持股只存在使用者自己的瀏覽器（localStorage），不送後端、不進 repo；所以沒有「雲端同步」這個鍵（提案裡 Plus 的雲端同步等隱私權政策，第一版不做）。
+       體驗額度不替 Andy 預設：不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單。 */
+    { id: 'portfolio.exposure', name: '我的持股曝險（整頁）', cat: 'portfolio', def: true, kind: 'bool', desc: '輸入持股後，看各族群的曝險比重，以及該族群近 5／20 日的資金占比與輪動狀態（持股只存在使用者自己的瀏覽器）', limBy: { guest: 3, free: 5 },
+      qnote: '我的持股曝險今日 {n} 次已用完・Plus 以上可增加', route: /^#portfolio/, veil: [['#v-portfolio']], mark: [], block: [] },
+    { id: 'portfolio.size', name: '持股檔數上限', cat: 'portfolio', def: 10, defBy: { guest: 5, free: 10, plus: 30, pro: 50 }, kind: 'limit', max: 100, unit: '檔', opts: [0, 3, 5, 10, 20, 30, 50, 100],
+      desc: '我的持股頁最多能輸入幾檔（已經輸入的不會被刪，只是不能再加）', veil: [], mark: [], block: [] },
+    { id: 'portfolio.import', name: '持股匯入 CSV', cat: 'portfolio', def: false, defBy: { plus: true, pro: true }, kind: 'bool', desc: '一次貼上或選檔匯入「代號,股數」多檔持股（省掉逐檔輸入）；逐檔輸入與從自選帶入所有人都能用',
+      route: /^#portfolio/, veil: [], mark: [], block: ['#pfImp'] },
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     /* ★ 2026-10-07（Andy：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」，docs/quota_plan.md）：
@@ -481,7 +495,7 @@
      清單＝方案草案裡訪客要計次的那 41 項（總覽、產業地圖首頁、事件、自選、工具類不算 —— 那些是鉤子或不是「看資料」）。
      共用額度存在範本的 dq 欄位（account-api 每日額度區塊；TwPerm.lim('quota.all') 讀它），不是一個開關 —— 所以這裡不另外列一項「quota.all」，
      不然 #admin/perm 會把它畫成一顆開關。單位＝這一頁（site/quota.js 的 pageKey：個股代號／剖析圖／題材／族群／一次造訪）。*/
-  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.credit", "mkt.fut", "mkt.inst.day", "mkt.ma", "mkt.streak", "mkt.updown", "ov.fear", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
+  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.credit", "mkt.fut", "mkt.inst.day", "mkt.ma", "mkt.streak", "mkt.updown", "ov.fear", "portfolio.exposure", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
   METERED.forEach(function (id) { var f = LIST.filter(function (x) { return x.id === id; })[0]; if (f) f.metered = true; });
 
   /* ★ 2026-10-10（網頁手機同步稽核 7-1、Andy 10-10 經手機 session 轉達）：側欄子分頁 → 功能鍵。

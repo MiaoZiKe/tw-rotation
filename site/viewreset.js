@@ -35,6 +35,7 @@
     'tw.theme', 'tw.theme4', 'tw.layout4.nav', 'tw.dg3d.pal',          // 主題與外觀
     'tw.themeOv', 'tw.themeMig',                                       // 2026-10-18 手動明暗（到下一個切換點為止）、舊偏好已遷移過（DECISIONS #360）
     'tw.acct.tok', 'tw.acct.user', 'tw.acct.n', 'tw.sess', 'tw.perm',  // 登入、帳號、權限（tw.acct.n／tw.sess 在 sessionStorage）
+    'tw.portfolio',                                                    // 2026-11-09 我的持股（使用者自己輸入的持股，只存這台裝置；不是檢視狀態，不能被「重新整理回預設」清掉）
     'tw.watch', 'tw.watchlists', 'tw.watchlists.u', 'tw.watchcur',     // 自選清單（含目前在第幾頁）
     'tw.draw.style',                                                   // 畫筆樣式（手繪物件本身見下面前綴）
     'tw.consent', 'tw.tour', 'tw.tour.defer',                          // 同意條款、新手導覽看過、導覽延後（深層連結進站，2026-11-02）

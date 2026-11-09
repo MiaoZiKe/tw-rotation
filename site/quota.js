@@ -336,7 +336,7 @@
     'heat.link': /^#(overview)?([/?]|$)|^#heatmap/, 'mkt.cand': /^#market\/cand/, 'etf.inc.params': /^#etf\/inc/, 'etf.inc.comp': /^#etf\/inc/,
   };
   const CAT_HEAD = { overview: /^#(overview)?([/?]|$)/, flow: /^#flow/, industry: /^#industry/, heatmap: /^#heatmap/, market: /^#market/, stockk: /^#stock\//, stocktab: /^#stock\//,
-    etf: /^#etf(\/list)?([/?]|$)/, explore: /^#explore/, earnings: /^#earnings/, watch: /^#watch/, articles: /^#articles?([/?]|$)/ };
+    etf: /^#etf(\/list)?([/?]|$)/, explore: /^#explore/, earnings: /^#earnings/, watch: /^#watch/, portfolio: /^#portfolio/, articles: /^#articles?([/?]|$)/ };
   const UNIT_TXT = { tab: '切分頁', filter: '篩選', drill: '下鑽', obj: '看' };
   function onPage(f, h) {
     if (PAGE_OF[f.id]) return PAGE_OF[f.id].test(h);

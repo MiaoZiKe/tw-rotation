@@ -68,12 +68,13 @@ def t_feature_notices_1019(b, base, code):
         # ② 點一則（第二則，避免剛好是置頂那一則）→ 展開、紅點 −1、localStorage
         fid = pg.evaluate("() => (document.querySelector('#ntDrop .ntitem:not([data-route])') || document.querySelectorAll('#ntDrop .ntitem')[1]).dataset.id")   # 10-27 起有路由的卡點了會跳頁，② 驗展開要挑沒路由的
         h0 = pg.evaluate(f"() => document.querySelector(\"#ntDrop .ntitem[data-id='{fid}'] .bd\").getBoundingClientRect().height")
+        rt = pg.evaluate(f"() => document.querySelector(\"#ntDrop .ntitem[data-id='{fid}']\").dataset.route || ''")   # 11-09：下拉只列前 20 則，新公告一多就沒有「沒路由」的卡可挑；有路由的卡點了會跳頁（標已讀）
         pg.click(f"#ntDrop .ntitem[data-id='{fid}'] .ttl")
         got = wait_until(pg, f"() => document.getElementById('ntDot').textContent === '{n0 - 1}'", 3000)
         ex = pg.evaluate(f"() => {{ const e = document.querySelector(\"#ntDrop .ntitem[data-id='{fid}']\"); return {{ ex: e.classList.contains('ex'), unread: e.classList.contains('unread'), h: e.querySelector('.bd').getBoundingClientRect().height }}; }}")
         st = pg.evaluate(_FN_ST)
         ok(f"{T}（{W}）② 點「{fid}」→ 展開（內文高度 {h0:.0f} → {ex['h']:.0f}）、不再是未讀、紅點 {n0 - 1}、已讀記進 localStorage",
-           bool(got) and ex["ex"] and not ex["unread"] and ex["h"] >= h0 and fid in st["read"], [ex, st])
+           bool(got) and ((ex["ex"] and not ex["unread"] and ex["h"] >= h0 and fid in st["read"]) if not rt else (fid in st["read"] and pg.evaluate("() => location.hash") == rt)), [ex, st, rt])
         if shot_dir:
             pg.screenshot(path=os.path.join(shot_dir, f"ntf_expand_{W}.png"))
         # ③ 重新整理 → 仍已讀

@@ -1,0 +1,23 @@
+/* 我的持股曝險（#portfolio，2026-11-09）：選擇器前綴 body 是為了贏過 portfolio.js 內注入的桌機樣式（它在 head 較後面）；手機規則全包在 @media (max-width:640px)，不動桌機。
+   手機五準則：有持股時先看到甜甜圈＋前三大族群（輸入區排後面）、次要欄位（近 5 日、5／20 日占比）預設隱藏、族群表只列前三大＋「看全部」。 */
+@media (max-width:640px){
+  body #v-portfolio .pfwrap{grid-template-columns:minmax(0,1fr)}
+  body #v-portfolio .pfwrap.has #pfOut{order:-1}
+  body #v-portfolio .pftop{flex-direction:column;align-items:stretch;gap:var(--sp-2)}
+  body #v-portfolio .pfdn{width:168px;height:168px;align-self:center}
+  body #v-portfolio .pfside{gap:var(--sp-1)}
+  body #v-portfolio .pflg li{min-height:32px}
+  body #v-portfolio .pfgt{max-height:none;overflow-x:auto}
+  body #v-portfolio .pfgt:not(.all) tr.pfx{display:none}
+  body #v-portfolio .pft .mx{display:none}
+  body #v-portfolio .pfgt td.bar{min-width:72px}
+  body #v-portfolio .pfgt tr.g td{height:40px}
+  body #v-portfolio .pfmore{display:block;width:100%;height:40px;margin-top:var(--sp-2)}
+  body #v-portfolio .pfform input,#v-portfolio .pfrow2 input{height:40px}
+  body #v-portfolio .pfbtns .btn,#v-portfolio .pfrow2 .btn{height:40px}
+  body #v-portfolio #pfMode button{min-height:32px}
+  body #v-portfolio .pflist input.q{height:32px;width:96px}
+  body #v-portfolio .pflist .x{width:36px;height:36px}
+  body #v-portfolio table.pft td{height:40px}
+  body #v-portfolio .pfpriv{white-space:normal}
+}
