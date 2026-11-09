@@ -1,5 +1,5 @@
 {
- "at": "2026-11-10T00:43:29+08:00",
+ "at": "2026-11-10T01:01:15+08:00",
  "mode": "verify",
  "item": "20261108_intro",
  "posted": {},
@@ -9,5 +9,5 @@
  "notes": [
   "本頻道佇列是空的，借 healing/20261108_intro 的圖驗證（只建容器、不發布）"
  ],
- "summary": "驗證模式：threads 通過（容器 18129934972669775 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
+ "summary": "驗證模式：threads 通過（容器 18129938881669775 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
 }
