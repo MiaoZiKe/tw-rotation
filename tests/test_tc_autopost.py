@@ -584,4 +584,6 @@ def test_廣達Threads主文在500字內():
     d = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue" / "20261105_quanta"
     p = tc.load(d)
     assert tc.validate(p) == []
-    assert "58～69K" in p["main"] and "非公司公告" in p["main"]
+    # 2026-11-09 起改用 Andy 親寫文案（docs/marketing/channels/tc/andy_style.md）：主文不放聲明，出處一行放第 1 則留言
+    assert "52～64K" in p["main"] and "非公司公告" not in p["main"]
+    assert "國土測繪中心" in p["reply"] and "廣達官方" in p["reply"]

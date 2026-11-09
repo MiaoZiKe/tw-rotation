@@ -22,4 +22,6 @@ source_branch: tc/post-quanta 7b2841539（docs/marketing/channels/tc/posts/20261
 2. 封面照片原始網址待 Andy 確認（文案寫「待確認原始頁面」）。
 3. ~~法遵要求的資料口徑重算~~ **已完成（2026-11-09 CEO 定案）**：全部採 D 篩選＋排除重複。ig.txt、threads.txt（主文與第 1 則留言）已改：中位約 62K → 61K、加班 171 筆 → 165 筆、58% → 57%（週工時中位 48 不變）；Threads 主文 494 字。crosscheck.md 在 tc/post-quanta 更正（commit 2bb406fc5）。第 2 張圖（2_fields.jpg）已由設計總監重出（61K＋地圖修正），已 commit。
 4. ~~Threads 主文超長~~ **已處理（2026-11-09）**：threads.txt 主文刪掉 4 個裝飾表情符號（🥩、😂、🖥️、👇），數字與聲明一字未動；現在 494 字（同一套算法，上限 500），格式檢查通過。ig.txt 沒動。佇列這份 threads.txt 已和 tc/post-quanta 分支版本不同，以佇列為準。
-5. **待確認**：新版第 2 張圖的表頭寫「待遇透明圈（BU9）」。crosscheck.md 與法遵審查都寫過「文案一律改『伺服器事業群』、不用內部代號（BU9）」，圖上這個代號要不要拿掉，請 CEO／法遵決定。
+5. ~~待確認 BU9~~ **已定案（2026-11-09 Andy）**：第 2 頁只放括號外內容、標題「待遇透明圈」不加括號。原註：新版第 2 張圖的表頭寫「待遇透明圈（BU9）」。crosscheck.md 與法遵審查都寫過「文案一律改『伺服器事業群』、不用內部代號（BU9）」，圖上這個代號要不要拿掉，請 CEO／法遵決定。
+
+6. **2026-11-09 文案改用 Andy 親寫版**（Andy：「從現在開始的幾篇文章我會親自做」），ig.txt、threads.txt 照原文；出處一行放 Threads 第 1 則留言與 IG 文末。發文方式筆記：docs/marketing/channels/tc/andy_style.md。第 2 頁圖改 4 列（碩畢、整包、加班、出差），設計總監重出中。
