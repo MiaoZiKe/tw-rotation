@@ -1,11 +1,20 @@
 {
- "at": "2026-11-10T02:04:59+08:00",
- "mode": "verify",
+ "at": "2026-11-10T06:38:38+08:00",
+ "mode": "live",
  "item": "20261108_intro",
- "posted": {},
+ "posted": {
+  "ig": {
+   "id": "18078135347726039",
+   "link": "https://www.instagram.com/p/DfibI4ljJys/",
+   "at": "2026-11-10T06:38:38+08:00"
+  },
+  "threads": {
+   "id": "18098432636395883",
+   "link": "https://www.threads.com/@talk_01010909/post/DfibMtmiTCx",
+   "at": "2026-11-10T06:38:38+08:00"
+  }
+ },
  "errors": {},
- "notes": [
-  "IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：已授權權限：ads_management、ads_read、instagram_basic、instagram_content_publish、instagram_manage_comments、instagram_manage_messages、public_profile；缺少權限：pages_show_list（列出粉絲專頁（找 IG 帳號用））、pages_read_engagement（讀粉絲專頁內容）；讀不到權杖到期資訊（debug_token）：HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 /me：回傳 dict，權杖身分編號 （無），欄位 []；探查 /me?（無欄位）：回傳 list[0]；含 IG 0 個；探查 /me?id：回傳 list[0]；含 IG 0 個；探查 /me?user_id,username：失敗 HTTP 400 {\"message\": \"(#100) Tried accessing nonexisting field (user_id)\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrace_id\": \"Ae8UF3cQt85；探查 /me?instagram_business_account{id,username}：失敗 HTTP 400 {\"message\": \"(#100) Tried accessing nonexisting field (instagram_business_account)\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrac；探查 /me/assigned_instagram_accounts?id,username：回傳 ['data', 'paging']；含 IG 1 個；探查 /me/instagram_accounts?id,username：失敗 HTTP 400 {\"message\": \"(#100) Tried accessing nonexisting field (instagram_accounts)\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrace_id\": \"；探查 /me/assigned_pages?name,instagram_business_account{id,username}：回傳 ['data']；含 IG 0 個；探查 /me/assigned_ad_accounts?name：失敗 HTTP 400 {\"message\": \"(#270) This Ads API request is not allowed for apps with development access level (Development access is by default fo；探查 /me 底下的 IG 欄位或邊：找到 1 個：@talk_01010909（…5066）；探查 權杖授權範圍（debug_token）：失敗 HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 粉絲專頁連結的 IG（/me/accounts）：找到 0 個（粉絲專頁 0 個）；探查 企業管理平台的 IG（/me/businesses）：失敗 HTTP 400 {\"message\": \"(#100) Missing Permission\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrace_id\": \"AVtov6RrevMZOQAEyogIDNr\"}；探查 廣告帳號連結的 IG（/me/adaccounts）：找到 0 個（廣告帳號 0 個）；本頻道使用：對到 IG @talk_01010909；來源：/me 底下的 IG 欄位或邊（…5066）"
- ],
- "summary": "驗證模式：ig 通過（帳號編號來源：/me 底下的 IG 欄位或邊；容器 17967516209998522 FINISHED，未發布）；threads 通過（容器 17922815103246114 FINISHED，未發布）"
+ "notes": [],
+ "summary": "20261108_intro：已發 ig https://www.instagram.com/p/DfibI4ljJys/；threads https://www.threads.com/@talk_01010909/post/DfibMtmiTCx"
 }

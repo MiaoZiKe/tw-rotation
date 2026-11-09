@@ -4,7 +4,11 @@
   "ig",
   "threads"
  ],
- "status": "approved",
+ "status": "posted",
  "publish_at": null,
- "note": "publish_at 留 null＝排在下一個發文時段（台北 20:27）；要指定最早時間就填 2026-11-10T20:27+08:00 這種台北時間。來源：templates_tqsa_v3/首篇_短版3張/晝版（art-director 審查與重疊檢查見該資料夾 overlap_report.json）"
+ "note": "publish_at 留 null＝排在下一個發文時段（台北 20:27）；要指定最早時間就填 2026-11-10T20:27+08:00 這種台北時間。來源：templates_tqsa_v3/首篇_短版3張/晝版（art-director 審查與重疊檢查見該資料夾 overlap_report.json）",
+ "urls": {
+  "ig": "https://www.instagram.com/p/DfibI4ljJys/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DfibMtmiTCx"
+ }
 }
