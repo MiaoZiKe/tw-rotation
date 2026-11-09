@@ -1,0 +1,97 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>
+:root{--bg:#F4ECDF;--cd:#FFF8EC;--ln:#3B281F;--tx:#3B281F;--ac:#C77A3A;--ac2:#8F4E18;--st:#E9A25D;--hl:#F6DDB8;--sh:#C77A3A}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{position:relative;font-family:'WenQuanYi Zen Hei','文泉驛正黑',sans-serif;color:var(--tx);background-color:var(--bg);
+background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect x='21' y='21' width='6' height='6' fill='%23C77A3A' fill-opacity='.28'/></svg>");background-size:48px 48px}
+.pix{font-family:'Unifont','Unifont-JP',monospace;font-weight:400}
+.ai{font-family:'Unifont','Unifont-JP',monospace;font-weight:400;color:var(--ac)}
+.o{position:absolute;opacity:0}
+.pc{isolation:isolate;filter:drop-shadow(8px 8px 0 var(--sh))}
+.pc::before{content:"";position:absolute;inset:0;background:var(--ln);clip-path:var(--p8);z-index:-1}
+.pc::after{content:"";position:absolute;inset:6px;background:var(--cd);clip-path:var(--p8);z-index:-1}
+.pcs{isolation:isolate}
+.pcs::before{content:"";position:absolute;inset:0;background:var(--ln);clip-path:var(--p4);z-index:-1}
+.pcs::after{content:"";position:absolute;inset:4px;background:var(--cd);clip-path:var(--p4);z-index:-1}
+.t{font-weight:700;line-height:1.2;letter-spacing:.5px;-webkit-text-stroke:.022em var(--tx)}
+.t .ai{-webkit-text-stroke:0}
+.chip{--cd:var(--st);font-family:'Unifont','Unifont-JP',monospace;font-size:36px;line-height:1;padding:14px 22px;white-space:nowrap}
+.card{padding:0 34px;display:flex;flex-direction:column;justify-content:center}
+.row{display:flex;gap:24px;align-items:center}
+.nb{--cd:var(--ac);position:relative;width:84px;height:84px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Unifont','Unifont-JP',monospace;font-size:52px;color:#FFF8EC}
+.nm{font-size:58px;font-weight:700;line-height:1.2;-webkit-text-stroke:.022em var(--tx);white-space:nowrap}
+.ds{font-size:36px;font-weight:600;line-height:1.4;margin-top:6px;white-space:nowrap}
+.sub{--cd:#3B281F;--ln:#3B281F;color:#F5EBDC;font-size:46px;font-weight:700;line-height:1.35;text-align:center;display:flex;align-items:center;justify-content:center;padding:0 28px;-webkit-text-stroke:.01em #F5EBDC}
+.sub .ai{color:#F0B572}
+.sq{position:absolute;width:52px;height:52px;background:var(--st)}
+</style></head><body>
+<div id="stage"></div>
+<script>
+const poly=s=>{const a=s,b=2*s,R=x=>`calc(100% - ${x}px)`;return `polygon(0 ${b}px,${a}px ${b}px,${a}px ${a}px,${b}px ${a}px,${b}px 0,${R(b)} 0,${R(b)} ${a}px,${R(a)} ${a}px,${R(a)} ${b}px,100% ${b}px,100% ${R(b)},${R(a)} ${R(b)},${R(a)} ${R(a)},${R(b)} ${R(a)},${R(b)} 100%,${b}px 100%,${b}px ${R(a)},${a}px ${R(a)},${a}px ${R(b)},0 ${R(b)})`};
+document.documentElement.style.setProperty('--p8',poly(8));document.documentElement.style.setProperty('--p4',poly(4));
+const AI=s=>s.replace(/\bAI\b/g,'<span class="ai">AI</span>');
+const LOGO="<div style=\"zoom:__S__;display:flex;gap:20px;align-items:center;width:max-content\"><svg width=\"88\" height=\"92\" viewBox=\"14 6 172 182\" style=\"flex:none\"><path d=\"M64 50 H30 V58 H22 V174 H30 V182 H170 V174 H178 V58 H170 V50 H112\" fill=\"none\" stroke=\"#3B281F\" stroke-width=\"7\" stroke-linejoin=\"miter\"></path>\n    <path d=\"M40 92h8v8h-8zM48 92h8v8h-8zM56 92h8v8h-8zM64 92h8v8h-8zM72 92h8v8h-8zM80 92h8v8h-8zM88 92h8v8h-8zM96 92h8v8h-8zM104 92h8v8h-8zM112 92h8v8h-8zM120 92h8v8h-8zM128 92h8v8h-8zM136 92h8v8h-8zM40 100h8v8h-8zM48 100h8v8h-8zM56 100h8v8h-8zM64 100h8v8h-8zM72 100h8v8h-8zM80 100h8v8h-8zM88 100h8v8h-8zM96 100h8v8h-8zM104 100h8v8h-8zM112 100h8v8h-8zM120 100h8v8h-8zM128 100h8v8h-8zM136 100h8v8h-8zM40 108h8v8h-8zM48 108h8v8h-8zM56 108h8v8h-8zM64 108h8v8h-8zM72 108h8v8h-8zM80 108h8v8h-8zM88 108h8v8h-8zM96 108h8v8h-8zM104 108h8v8h-8zM112 108h8v8h-8zM120 108h8v8h-8zM128 108h8v8h-8zM136 108h8v8h-8zM144 108h8v8h-8zM152 108h8v8h-8zM40 116h8v8h-8zM48 116h8v8h-8zM56 116h8v8h-8zM64 116h8v8h-8zM72 116h8v8h-8zM80 116h8v8h-8zM88 116h8v8h-8zM96 116h8v8h-8zM104 116h8v8h-8zM112 116h8v8h-8zM120 116h8v8h-8zM128 116h8v8h-8zM136 116h8v8h-8zM152 116h8v8h-8zM40 124h8v8h-8zM48 124h8v8h-8zM56 124h8v8h-8zM64 124h8v8h-8zM72 124h8v8h-8zM80 124h8v8h-8zM88 124h8v8h-8zM96 124h8v8h-8zM104 124h8v8h-8zM112 124h8v8h-8zM120 124h8v8h-8zM128 124h8v8h-8zM136 124h8v8h-8zM152 124h8v8h-8zM40 132h8v8h-8zM48 132h8v8h-8zM56 132h8v8h-8zM64 132h8v8h-8zM72 132h8v8h-8zM80 132h8v8h-8zM88 132h8v8h-8zM96 132h8v8h-8zM104 132h8v8h-8zM112 132h8v8h-8zM120 132h8v8h-8zM128 132h8v8h-8zM136 132h8v8h-8zM152 132h8v8h-8zM40 140h8v8h-8zM48 140h8v8h-8zM56 140h8v8h-8zM64 140h8v8h-8zM72 140h8v8h-8zM80 140h8v8h-8zM88 140h8v8h-8zM96 140h8v8h-8zM104 140h8v8h-8zM112 140h8v8h-8zM120 140h8v8h-8zM128 140h8v8h-8zM136 140h8v8h-8zM144 140h8v8h-8zM152 140h8v8h-8zM40 148h8v8h-8zM48 148h8v8h-8zM56 148h8v8h-8zM64 148h8v8h-8zM72 148h8v8h-8zM80 148h8v8h-8zM88 148h8v8h-8zM96 148h8v8h-8zM104 148h8v8h-8zM112 148h8v8h-8zM120 148h8v8h-8zM128 148h8v8h-8zM136 148h8v8h-8zM48 156h8v8h-8zM56 156h8v8h-8zM64 156h8v8h-8zM72 156h8v8h-8zM80 156h8v8h-8zM88 156h8v8h-8zM96 156h8v8h-8zM104 156h8v8h-8zM112 156h8v8h-8zM120 156h8v8h-8zM128 156h8v8h-8zM56 164h8v8h-8zM64 164h8v8h-8zM72 164h8v8h-8zM80 164h8v8h-8zM88 164h8v8h-8zM96 164h8v8h-8zM104 164h8v8h-8zM112 164h8v8h-8zM120 164h8v8h-8z\" fill=\"#C77A3A\"></path><path d=\"M64 108h8v8h-8zM72 108h8v8h-8zM80 108h8v8h-8zM104 108h8v8h-8zM112 108h8v8h-8zM120 108h8v8h-8zM56 116h8v8h-8zM88 116h8v8h-8zM112 116h8v8h-8zM56 124h8v8h-8zM64 124h8v8h-8zM72 124h8v8h-8zM80 124h8v8h-8zM88 124h8v8h-8zM112 124h8v8h-8zM56 132h8v8h-8zM88 132h8v8h-8zM112 132h8v8h-8zM56 140h8v8h-8zM88 140h8v8h-8zM104 140h8v8h-8zM112 140h8v8h-8zM120 140h8v8h-8z\" fill=\"#FFF6E8\"></path><path d=\"M48 100h8v8h-8z\" fill=\"#E9A25D\"></path><path d=\"M56 76h8v8h-8zM64 68h8v8h-8zM56 60h8v8h-8zM80 76h8v8h-8zM88 68h8v8h-8zM88 60h8v8h-8zM80 52h8v8h-8zM80 44h8v8h-8zM88 36h8v8h-8zM88 28h8v8h-8zM80 20h8v8h-8zM80 12h8v8h-8zM112 76h8v8h-8zM104 68h8v8h-8zM112 60h8v8h-8z\" fill=\"#E9A25D\"></path></svg><svg width=\"340\" height=\"61\" viewBox=\"446 -104 656 118\" style=\"flex:none\"><text x=\"452\" y=\"0\" font-family=\"JetBrains Mono\" font-weight=\"700\" font-size=\"124\" fill=\"#3B281F\">Caff</text><path d=\"M783.049375 -91h13v13h-13zM796.049375 -91h13v13h-13zM861.049375 -91h13v13h-13zM874.049375 -91h13v13h-13zM887.049375 -91h13v13h-13zM900.049375 -91h13v13h-13zM913.049375 -91h13v13h-13zM926.049375 -91h13v13h-13zM770.049375 -78h13v13h-13zM783.049375 -78h13v13h-13zM796.049375 -78h13v13h-13zM809.049375 -78h13v13h-13zM887.049375 -78h13v13h-13zM900.049375 -78h13v13h-13zM757.049375 -65h13v13h-13zM770.049375 -65h13v13h-13zM809.049375 -65h13v13h-13zM822.049375 -65h13v13h-13zM887.049375 -65h13v13h-13zM900.049375 -65h13v13h-13zM757.049375 -52h13v13h-13zM770.049375 -52h13v13h-13zM809.049375 -52h13v13h-13zM822.049375 -52h13v13h-13zM887.049375 -52h13v13h-13zM900.049375 -52h13v13h-13zM757.049375 -39h13v13h-13zM770.049375 -39h13v13h-13zM783.049375 -39h13v13h-13zM796.049375 -39h13v13h-13zM809.049375 -39h13v13h-13zM822.049375 -39h13v13h-13zM887.049375 -39h13v13h-13zM900.049375 -39h13v13h-13zM757.049375 -26h13v13h-13zM770.049375 -26h13v13h-13zM809.049375 -26h13v13h-13zM822.049375 -26h13v13h-13zM887.049375 -26h13v13h-13zM900.049375 -26h13v13h-13zM757.049375 -13h13v13h-13zM770.049375 -13h13v13h-13zM809.049375 -13h13v13h-13zM822.049375 -13h13v13h-13zM861.049375 -13h13v13h-13zM874.049375 -13h13v13h-13zM887.049375 -13h13v13h-13zM900.049375 -13h13v13h-13zM913.049375 -13h13v13h-13zM926.049375 -13h13v13h-13z\" fill=\"#C77A3A\"></path><text x=\"947.7293750000001\" y=\"0\" font-family=\"JetBrains Mono\" font-weight=\"700\" font-size=\"124\" fill=\"#3B281F\">ne</text></svg></div>";
+const st=document.getElementById('stage');
+const items=[];
+function add(id,x,y,w,h,cls,html,t0,t1,extra={}){const d=document.createElement('div');d.className='o '+cls;d.dataset.o=id;
+ Object.assign(d.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});d.innerHTML=html;st.appendChild(d);
+ const it={d,t0,t1,id,...extra};items.push(it);return it}
+const SUB=(id,t0,t1,txt)=>add(id,64,1410,880,128,'sub pcs',`<span>${AI(txt)}</span>`,t0,t1,{sub:1});
+// ===== 場景 A 鉤子 0–4.6
+add('A標題',64,360,880,380,'pc card t',`<div style="font-size:116px">${AI('AI 新聞<br>每天幾十則')}</div>`,0.1,4.4);
+const gridIt=add('A格',64,790,880,180,'',``,0.1,4.4,{grid:1});
+const lit=[7,18,29];
+for(let i=0;i<36;i++){const q=document.createElement('div');q.className='sq';q.style.left=(i%12)*72+'px';q.style.top=Math.floor(i/12)*64+'px';gridIt.d.appendChild(q)}
+add('A問題',64,1020,880,300,'pc card t',`<div style="font-size:76px">跟你上班有關的<br>只有<span class="pix" style="color:var(--ac);font-size:92px">幾</span>則？</div>`,1.2,4.4);
+SUB('A字幕',0.4,4.4,'真正跟上班有關的，可能只有一兩則');
+// ===== 場景 B LOGO 5.0–10.4
+add('B標籤',64,360,230,64,'chip pcs','頻道介紹',5.0,10.2);
+const steams=[];
+const sIt=add('B蒸氣',474,470,132,132,'',``,5.2,10.2,{steam:1});steams.push(sIt);
+add('BLOGO',137,650,806,170,'',LOGO.replace('__S__','1.8'),5.4,10.2);
+add('B標語',64,880,880,330,'pc card t',`<div style="font-size:72px;text-align:center">一杯咖啡的時間，<br>看懂一個 ${AI('AI')} 新知</div>`,6.6,10.2);
+SUB('B字幕',6.0,10.2,'我先試、先篩，只留一杯咖啡看得完的那一則');
+// ===== 場景 C 菜單 10.8–21.6
+add('C標籤',64,310,300,64,'chip pcs','四種杯子',10.8,21.4);
+const menu=[['01','試飲報告','親手試過的 AI 工具，好壞和花費都寫',11.2],['02','手沖教室','可以直接複製的提示詞和做法',13.2],['03','本週三杯','一週只挑三則跟工作有關的新聞',15.2],['04','這杯有點苦','AI 出錯、踩雷的真實紀錄',17.2]];
+menu.forEach((m,i)=>add('C杯'+m[0],64,410+i*(215+24),880,215,'pc card',`<div class="row"><div class="nb pcs" data-i="1">${m[0]}</div><div data-i="1"><div class="nm">${m[1]}</div><div class="ds">${AI(m[2])}</div></div></div>`,m[3],21.4));
+SUB('C字幕1',11.0,17.0,'四種杯子，每週輪流上桌');
+SUB('C字幕2',17.4,21.4,'有試、有教、有整理，也有翻車');
+// ===== 場景 D 原則 22.0–31.6
+add('D標籤',64,310,300,64,'chip pcs','三個原則',22.0,31.4);
+const pr=[['1','沒試過的，不說「好用」',22.4],['2','有業配，一定標明',25.0],['3','AI 也會出錯，翻車的經驗照樣寫出來',27.6]];
+pr.forEach((m,i)=>add('D條'+m[0],64,410+i*(280+32),880,280,'pc card',`<div class="row"><div class="nb pcs" data-i="1">${m[0]}</div><div class="t" data-i="1" style="font-size:54px;width:640px">${AI(m[1])}</div></div>`,m[2],31.4));
+SUB('D字幕',22.2,31.4,'寫下來的，就是我真的做到的事');
+// ===== 場景 E 結尾 32.0–40.2
+const s2=add('E蒸氣',474,330,132,132,'',``,32.2,40.0,{steam:1});steams.push(s2);
+add('ELOGO',197,500,686,145,'',LOGO.replace('__S__','1.53'),32.4,40.0);
+add('E句',64,720,880,420,'pc card t',`<div style="font-size:92px;text-align:center">咖啡涼之前，<br>先存起來！</div>`,33.2,40.0);
+add('E見',64,1190,880,150,'pc card t',`<div style="font-size:60px;text-align:center">一杯咖啡的時間見</div>`,34.8,40.0);
+SUB('E字幕',33.6,40.0,'追蹤 CaffAIne，下一杯見');
+function drawSteam(it,t){const z=[0,12,12,0],ph=Math.floor(t*4);let r='';[[9,'#E9A25D'],[7,'#C77A3A'],[8,'#E9A25D']].forEach(([h,col],c)=>{const off=((ph+c)%2)*0;for(let i=0;i<h;i++)r+=`<rect x="${c*48+z[(i+ph)%4]}" y="${(h-1-i)*12+(c===1?24:0)}" width="12" height="12" fill="${col}" opacity="${0.45+0.55*((i+1)/h)}"/>`});it.d.innerHTML=`<svg style="display:block" width="132" height="132" viewBox="0 0 132 132">${r}</svg>`}
+const FADE=0.3;
+function render(t,opt={}){
+ for(const it of items){let a=0,dy=0;
+  if(opt.noSub&&it.sub){it.d.style.opacity=0;continue}
+  if(t>=it.t0&&t<=it.t1+FADE){const fi=Math.min(1,(t-it.t0)/FADE),fo=Math.min(1,(it.t1+FADE-t)/FADE);a=Math.max(0,Math.min(fi,fo));dy=Math.round((1-fi)*40/8)*8}
+  it.d.style.opacity=a;it.d.style.transform=`translateY(${dy}px)`;
+  if(a>0&&it.steam)drawSteam(it,t);
+  if(a>0&&it.grid){const qs=it.d.children;for(let i=0;i<36;i++){const q=qs[i];const on=t>=0.1+i*0.045;let op=on?0.9:0,bg='#E9A25D';
+    if(t>=2.6){if(lit.includes(i)){bg='#C77A3A';op=1;if(t>3.0&&Math.floor(t*4)%2)op=.75}else op=on?0.18:0}
+    q.style.opacity=op;q.style.background=bg}}}
+}
+// ===== 重疊與版面檢查
+const I=(a,b)=>Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l))*Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t));
+function box(el,pad){const r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right+pad,b:r.bottom+pad}}
+function check(){const out=[];const vis=items.filter(it=>parseFloat(it.d.style.opacity)>0.02);
+ const bx=vis.map(it=>({id:it.id,b:box(it.d,it.d.classList.contains('pc')?8:0),it}));
+ for(let i=0;i<bx.length;i++){const a=bx[i];
+  if(a.b.l<0||a.b.r>960||a.b.t<250||a.b.b>1570)out.push('越出安全區 '+a.id);
+  for(let j=i+1;j<bx.length;j++)if(I(a.b,bx[j].b)>0)out.push('相交 '+a.id+' × '+bx[j].id);
+  const kids=[...a.it.d.querySelectorAll('[data-i]')];
+  kids.forEach(k=>{const kb=box(k,0),pb=box(a.it.d,0);if(kb.l<pb.l+6||kb.r>pb.r-6||kb.t<pb.t+6||kb.b>pb.b-6)out.push('內部越框 '+a.id)});
+  for(let x=0;x<kids.length;x++)for(let y=x+1;y<kids.length;y++)if(I(box(kids[x],0),box(kids[y],0))>0)out.push('內部相交 '+a.id);
+  const sw=a.it.d.scrollWidth>a.it.d.clientWidth+1||a.it.d.scrollHeight>a.it.d.clientHeight+1;if(sw&&!a.it.grid)out.push('文字溢出 '+a.id)}
+ return out}
+window.render=render;window.check=check;
+</script></body></html>
