@@ -21,6 +21,8 @@ Andy 原話（2026-11-08）：「開通自動發文，這部分幫我想辦法�
     寫回 HEALING_THREADS_ACCESS_TOKEN_AUTO；沒有 app secret 就在摘要提醒換長效。
   · 失敗：每個平台重試 3 次（social_publish.retry_once）；仍失敗 → state/last_run.json 記原因、結束碼 1（工作流紅燈、GitHub 寄信）。
   · 權杖、帳號編號一律 ::add-mask:: 並經 social_publish.redact 才輸出。
+  · 2026-11-09 起多頻道共用：--channel <代碼>（docs/marketing/channels/channels.json）換佇列、state、開關檔與權杖前綴；
+    入口 scripts/channel_post.py、工作流 .github/workflows/channel_post.yml。不給 --channel 就是頻道④，行為不變。
 """
 from __future__ import annotations
 
@@ -47,6 +49,12 @@ IG_MAX_CAPTION, IG_MAX_TAGS, IG_MAX_IMAGES = 2200, 30, 10
 PLATFORMS = ("ig", "threads")
 THREADS_EXCHANGE = "https://graph.threads.net/access_token"
 THREADS_REFRESH = "https://graph.threads.net/refresh_access_token"
+# 2026-11-09 多頻道（Andy：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」）：
+# 同一套邏輯給 docs/marketing/channels/channels.json 裡的每個頻道用（入口 scripts/channel_post.py --channel <代碼>）。
+# 每個函式都吃 prefix（權杖密碼前綴）；不給就是頻道④的 HEALING_，所以 healing_post.py 原本的用法、路徑、行為都沒變。
+PREFIX = "HEALING_"
+LABEL = "談晴說礙"
+CHANNELS_FILE = ROOT / "docs" / "marketing" / "channels" / "channels.json"
 
 
 class QueueError(Exception):
@@ -69,16 +77,30 @@ def load_quota(p: Path = QUOTA) -> dict:
     return {"live": bool(q.get("live")), "per_day": int(q.get("per_day", 1) or 0)}
 
 
-def tokens(env: dict) -> dict:
-    """只讀頻道④的權杖：先讀續期寫回的 _AUTO，沒有才用 Andy 設的那把。"""
+def tokens(env: dict, prefix: str | None = None) -> dict:
+    """只讀這個頻道自己前綴的權杖（預設頻道④）：先讀續期寫回的 _AUTO，沒有才用 Andy 設的那把。
+    絕不讀別的前綴，也不讀頻道①沒有前綴的 IG_ACCESS_TOKEN／THREADS_ACCESS_TOKEN。"""
+    prefix = _pfx(prefix)
     out = {}
     for p in PLATFORMS:
-        base = f"HEALING_{p.upper()}_ACCESS_TOKEN"
+        base = f"{prefix}{p.upper()}_ACCESS_TOKEN"
         t = (env.get(base + "_AUTO") or "").strip() or (env.get(base) or "").strip()
         if t:
             mask(t)
         out[p] = t
     return out
+
+
+def _pfx(prefix: str | None) -> str:
+    prefix = PREFIX if prefix is None else prefix
+    if not re.fullmatch(r"[A-Z]+_", prefix or ""):      # 空前綴＝頻道①的權杖名稱，絕不准
+        raise ValueError(f"權杖前綴要是大寫英文加底線（例如 TECH_），目前是 {prefix!r}")
+    return prefix
+
+
+def wait_token_msg(prefix: str | None = None) -> str:
+    prefix = _pfx(prefix)
+    return f"等待 Andy 設定權杖：{prefix}IG_ACCESS_TOKEN、{prefix}THREADS_ACCESS_TOKEN"
 
 
 def mask(s: str) -> None:
@@ -219,14 +241,14 @@ def check_public(url: str, want: str, tries: int = 6) -> None:
 
 
 # ---------- Threads 權杖：短效自動換長效 ----------
-def threads_token_check(token: str, env: dict, notes: list[str], saver=None) -> str:
+def threads_token_check(token: str, env: dict, notes: list[str], saver=None, prefix: str | None = None) -> str:
     """先試續期（長效權杖滿 24 小時才能續）；續期失敗＝可能是 1 小時短效 → 有 app secret 就換成 60 天長效並寫回。"""
     try:
         d = SP.http("GET", THREADS_REFRESH, params={"grant_type": "th_refresh_token", "access_token": token})
         new = str(d.get("access_token") or token)
         if new != token:
             mask(new)
-            _writeback(new, env, notes, saver, "續期後拿到新字串")
+            _writeback(new, env, notes, saver, "續期後拿到新字串", prefix)
         return new
     except Exception as e:  # noqa: BLE001
         SP.log(f"[threads] 權杖續期失敗（可能是 1 小時短效，或長效權杖未滿 24 小時）：{SP.redact(e)}")
@@ -248,11 +270,12 @@ def threads_token_check(token: str, env: dict, notes: list[str], saver=None) -> 
     mask(new)
     days = int(d.get("expires_in", 0) or 0) // 86400
     SP.log(f"[threads] 短效權杖已換成長效（約 {days} 天）")
-    _writeback(new, env, notes, saver, "已換成長效")
+    _writeback(new, env, notes, saver, "已換成長效", prefix)
     return new
 
 
-def _writeback(new: str, env: dict, notes: list[str], saver, why: str) -> None:
+def _writeback(new: str, env: dict, notes: list[str], saver, why: str, prefix: str | None = None) -> None:
+    name = f"{_pfx(prefix)}THREADS_ACCESS_TOKEN_AUTO"
     pat = (env.get("META_SECRETS_PAT") or "").strip()
     mask(pat)
     if not pat:
@@ -261,10 +284,10 @@ def _writeback(new: str, env: dict, notes: list[str], saver, why: str) -> None:
     if saver is None:
         import meta_token_refresh as MTR
         saver = MTR.save_secret
-    ok = saver("HEALING_THREADS_ACCESS_TOKEN_AUTO", new, env.get("GITHUB_REPOSITORY", "MiaoZiKe/tw-rotation"), pat)
-    SP.log("[threads] 新權杖已寫回 HEALING_THREADS_ACCESS_TOKEN_AUTO" if ok else "[threads] 新權杖寫回失敗")
+    ok = saver(name, new, env.get("GITHUB_REPOSITORY", "MiaoZiKe/tw-rotation"), pat)
+    SP.log(f"[threads] 新權杖已寫回 {name}" if ok else "[threads] 新權杖寫回失敗")
     if not ok:
-        notes.append(f"Threads 權杖{why}，但寫回 HEALING_THREADS_ACCESS_TOKEN_AUTO 失敗")
+        notes.append(f"Threads 權杖{why}，但寫回 {name} 失敗")
 
 
 # ---------- IG 輪播（流程同 ig_post.publish，改走 social_publish.http 以便遮蔽與輪詢）----------
@@ -353,11 +376,12 @@ def mark_verified(state: Path, p: str, now: datetime, cid: str) -> None:
     (state / "verify.json").write_text(SP.redact(json.dumps(v, ensure_ascii=False, indent=1)) + "\n", encoding="utf-8")
 
 
-def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver) -> tuple[str, str]:
+def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver, prefix: str | None = None) -> tuple[str, str]:
+    prefix = _pfx(prefix)
     token = tok[p]
     if p == "threads":
-        token = threads_token_check(token, env, notes, saver)
-    uid = SP.resolve_user_id(p, (env.get(f"HEALING_{p.upper()}_USER_ID") or "").strip(), token)
+        token = threads_token_check(token, env, notes, saver, prefix)
+    uid = SP.resolve_user_id(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token)
     if not uid:
         raise RuntimeError("查不到帳號編號（權杖無效或權限不足）")
     return token, uid
@@ -383,7 +407,8 @@ def sample_item(queue: Path, posted: dict, now: datetime) -> dict | None:
 
 
 def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, state: Path = STATE,
-               check=check_public, saver=None, verifiers: dict | None = None) -> tuple[int, dict]:
+               check=check_public, saver=None, verifiers: dict | None = None,
+               prefix: str | None = None) -> tuple[int, dict]:
     """mode=verify：有權杖的平台各建一次輪播容器、等 FINISHED，不發布；通過寫 state/verify.json。"""
     ver = {**VERIFIERS, **(verifiers or {})}
     res = {"at": now.isoformat(timespec="seconds"), "mode": "verify" + ("（dry-run）" if dry_run else ""),
@@ -393,10 +418,10 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
         res["summary"] = "佇列裡沒有可用來驗證的圖"
         return 1, res
     res["item"] = it["name"]
-    tok = tokens(env)
+    tok = tokens(env, prefix)
     if dry_run or not any(tok.values()):
         res["summary"] = (f"驗證模式空跑：會用 {it['name']} 的圖建容器（不發布）" if dry_run else
-                          "等待 Andy 設定權杖（HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN），驗證模式沒有跑")
+                          wait_token_msg(prefix) + "；驗證模式沒有跑")
         return 0, res
     fail, ok = False, []
     for p in PLATFORMS:
@@ -407,7 +432,7 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
             urls = [public_url(it, f) for f in (ig_files(it) if p == "ig" else it["images"])]
             for u in urls:
                 check(u, "image/jpeg" if p == "ig" else "image/png")
-            token, uid = _live_token(p, env, tok, res["notes"], saver)
+            token, uid = _live_token(p, env, tok, res["notes"], saver, prefix)
             cid = ver[p](uid, token, urls, it["caption"] if p == "ig" else _threads_text(it["caption"]))
             mark_verified(state, p, now, cid)
             ok.append(f"{p} 通過（容器 {cid} FINISHED，未發布）")
@@ -430,7 +455,7 @@ def delete_media(p: str, mid: str, token: str) -> dict:
 
 
 def run_delete(env: dict, now: datetime, target: str, dry_run: bool = False, platforms=PLATFORMS,
-               state: Path = STATE, deleter=delete_media) -> tuple[int, dict]:
+               state: Path = STATE, deleter=delete_media, prefix: str | None = None) -> tuple[int, dict]:
     """mode=delete：target＝佇列資料夾名（刪該則已發的 IG／Threads）或貼文 id（在 posted.json 找；找不到當 Threads id）。
     Threads 刪掉 → posted.json 標 deleted；IG 刪不掉 → 列進 state/manual_delete.json，摘要寫「需手動」。"""
     res = {"at": now.isoformat(timespec="seconds"), "mode": "delete" + ("（dry-run）" if dry_run else ""),
@@ -460,7 +485,7 @@ def run_delete(env: dict, now: datetime, target: str, dry_run: bool = False, pla
     if not jobs:
         res["summary"] = f"{target}：沒有找到還沒刪的貼文"
         return 0, res
-    tok = tokens(env)
+    tok = tokens(env, prefix)
     if dry_run or not any(tok[p] for p, _, _ in jobs):
         res["summary"] = (("刪文空跑：會刪 " if dry_run else "等待 Andy 設定權杖，沒有刪：")
                           + "；".join(f"{p} {mid}" for p, mid, _ in jobs))
@@ -500,7 +525,8 @@ def run_delete(env: dict, now: datetime, target: str, dry_run: bool = False, pla
 
 
 def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, state: Path = STATE,
-                    check=check_public, saver=None, publisher=None, deleter=delete_media) -> tuple[int, dict]:
+                    check=check_public, saver=None, publisher=None, deleter=delete_media,
+                    prefix: str | None = None) -> tuple[int, dict]:
     """mode=test_delete（只有 Threads；Andy 要求「先真發一則測試再刪」時才用）：
     真發一則測試輪播 → 確認拿到貼文 id → 立刻刪（60 秒內）→ 記 state/tests.json。IG 不做這個，只用驗證模式。"""
     import time
@@ -512,10 +538,10 @@ def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path
         res["summary"] = "佇列裡沒有可用來測試的圖"
         return 1, res
     res["item"] = it["name"]
-    tok = tokens(env)
+    tok = tokens(env, prefix)
     if dry_run or not tok["threads"]:
         res["summary"] = ("測試發文空跑：會用 " + it["name"] + " 的圖發一則 Threads 測試輪播再刪" if dry_run else
-                          "等待 Andy 設定 HEALING_THREADS_ACCESS_TOKEN，測試發文沒有跑")
+                          f"等待 Andy 設定 {_pfx(prefix)}THREADS_ACCESS_TOKEN，測試發文沒有跑")
         return 0, res
     text = "（系統測試貼文，會在 60 秒內自動刪除）"
     rec = {"at": now.isoformat(timespec="seconds"), "item": it["name"]}
@@ -524,7 +550,7 @@ def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path
         urls = [public_url(it, f) for f in it["images"]]
         for u in urls:
             check(u, "image/png")
-        token, uid = _live_token("threads", env, tok, res["notes"], saver)
+        token, uid = _live_token("threads", env, tok, res["notes"], saver, prefix)
         t0 = time.monotonic()
         r = publisher(uid, token, text, urls)
         rec.update(id=str(r.get("id")), link=r.get("link", ""), published=True)
@@ -553,16 +579,20 @@ def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path
 # ---------- 主流程 ----------
 def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, state: Path = STATE,
         quota_path: Path = QUOTA, publishers: dict | None = None, check=check_public, saver=None,
-        verifiers: dict | None = None) -> tuple[int, dict]:
-    """回傳（結束碼, 結果）。結果的 summary 給工作流摘要用。
+        verifiers: dict | None = None, prefix: str | None = None, per_day_max: int | None = None) -> tuple[int, dict]:
+    """回傳（結束碼, 結果）。prefix＝權杖密碼前綴（預設頻道④）；per_day_max＝channels.json 的每日上限（取較小者）。結果的 summary 給工作流摘要用。
     某平台權杖第一次出現（state/verify.json 沒有 verified 紀錄）→ 先跑驗證模式（只建容器不發布），通過才正式發。"""
     pub = {"ig": publish_ig, "threads": SP.publish_threads, **(publishers or {})}
     ver = {**VERIFIERS, **(verifiers or {})}
     res = {"at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else "live", "item": None,
            "posted": {}, "errors": {}, "notes": [], "summary": ""}
+    prefix = _pfx(prefix)
     q = load_quota(quota_path)
+    if per_day_max is not None:
+        q["per_day"] = min(q["per_day"], int(per_day_max))
+    no_tok = "" if any(tokens(env, prefix).values()) else "；" + wait_token_msg(prefix)
     if not q["live"]:
-        res["summary"] = "開關關閉（post_quota.json live=false），這次不發"
+        res["summary"] = "開關關閉（post_quota.json live=false），這次不發" + no_tok
         return 0, res
     posted_p = state / "posted.json"
     posted = load_json(posted_p, {})
@@ -575,7 +605,7 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
         return 1, res
     res["notes"] += skips
     if it is None:
-        res["summary"] = "佇列已空（沒有 approved 且時間到、還沒發的貼文）"
+        res["summary"] = "佇列已空（沒有 approved 且時間到、還沒發的貼文）" + no_tok
         return 0, res
     todo = pending_platforms(it, posted)
     partial = it["name"] in posted          # 已發一半的那則一定補完，不算今天新的一則
@@ -583,12 +613,12 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
         res["summary"] = f"今天已發 {started_today(posted, now)} 則（per_day={q['per_day']}），下一則留到明天：{it['name']}"
         return 0, res
     res["item"] = it["name"]
-    tok = tokens(env)
+    tok = tokens(env, prefix)
     th_urls = [public_url(it, f) for f in it["images"]]
     ig_urls = [public_url(it, f) for f in ig_files(it)]
     missing = [p for p in todo if not tok[p]]
     if dry_run or not any(tok[p] for p in todo):
-        why = "--dry-run" if dry_run else "缺頻道④權杖（HEALING_*_ACCESS_TOKEN）"
+        why = "--dry-run" if dry_run else f"缺權杖（{prefix}*_ACCESS_TOKEN）"
         res["mode"] = "dry-run" if dry_run else "空跑（缺權杖）"
         SP.log(f"空跑（{why}）：下一則 {it['name']}，要發 {todo}")
         for p in todo:
@@ -602,13 +632,13 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
                 SP.log(f"    {u}")
             SP.log(f"[{p}] 文字（{len(text)} 字）：\n{text}")
         res["summary"] = (f"空跑（--dry-run）：下一則 {it['name']}" if dry_run else
-                          f"等待 Andy 設定權杖（HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN）；下一則 {it['name']}")
+                          f"{wait_token_msg(prefix)}；下一則 {it['name']}")
         return 0, res
 
     # 真的發：先確認圖片網址 Meta 抓得到
     fail = False
     for p in missing:
-        res["notes"].append(f"{p} 沒有權杖（HEALING_{p.upper()}_ACCESS_TOKEN），這個平台先不發；設好後下一輪會補")
+        res["notes"].append(f"{p} 沒有權杖（{prefix}{p.upper()}_ACCESS_TOKEN），這個平台先不發；設好後下一輪會補")
     entry = posted.setdefault(it["name"], {})
     for p in [x for x in todo if tok[x]]:
         try:
@@ -617,8 +647,8 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
                 check(u, "image/jpeg" if p == "ig" else "image/png")
             token = tok[p]
             if p == "threads":
-                token = threads_token_check(token, env, res["notes"], saver)
-            uid = SP.resolve_user_id(p, (env.get(f"HEALING_{p.upper()}_USER_ID") or "").strip(), token)
+                token = threads_token_check(token, env, res["notes"], saver, prefix)
+            uid = SP.resolve_user_id(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token)
             if not uid:
                 raise RuntimeError("查不到帳號編號（權杖無效或權限不足）")
             if not is_verified(state, p):
@@ -674,8 +704,32 @@ def _write_last(state: Path, res: dict, dry_run: bool) -> None:
                                          encoding="utf-8")
 
 
+def load_channels(path: Path = CHANNELS_FILE) -> dict:
+    """docs/marketing/channels/channels.json → {代碼: 設定}；路徑轉成絕對路徑。"""
+    d = load_json(path, None)
+    if not isinstance(d, dict) or not isinstance(d.get("channels"), dict):
+        raise QueueError(f"讀不到頻道設定 {path}")
+    out = {}
+    for code, c in d["channels"].items():
+        c = dict(c, code=code)
+        _pfx(c.get("prefix"))
+        for k in ("queue", "state", "quota"):
+            c[k] = ROOT / c[k]
+        c["per_day"] = int(c.get("per_day", 1))
+        out[code] = c
+    return out
+
+
+def channel(code: str, path: Path = CHANNELS_FILE) -> dict:
+    chs = load_channels(path)
+    if code not in chs:
+        raise SystemExit(f"沒有這個頻道：{code}（channels.json 有 {'、'.join(chs)}）")
+    return chs[code]
+
+
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="頻道④談晴說礙自動發文")
+    ap = argparse.ArgumentParser(description="頻道自動發文（預設頻道④談晴說礙；--channel 換頻道）")
+    ap.add_argument("--channel", default="healing", help="channels.json 的頻道代碼（healing／tech／shrimp／caffaine）")
     ap.add_argument("--dry-run", action="store_true", help="只印出會發什麼，不呼叫任何 Meta 端點、不寫 state")
     ap.add_argument("--prepare", action="store_true", help="把佇列裡缺的 n.jpg 從 n.png 轉出來（IG 只收 JPEG）")
     ap.add_argument("--mode", default="post", choices=["post", "verify", "delete", "test_delete"],
@@ -683,24 +737,33 @@ def main(argv=None) -> int:
     ap.add_argument("--target", default="", help="mode=delete：佇列資料夾名或貼文 id")
     ap.add_argument("--platform", default="all", choices=["all", "ig", "threads"], help="mode=delete 只刪哪個平台")
     a = ap.parse_args(argv)
+    try:
+        ch = channel(a.channel)
+    except QueueError:
+        if a.channel != "healing":
+            raise
+        ch = {"code": "healing", "name": "④ " + LABEL, "prefix": PREFIX, "queue": QUEUE, "state": STATE,
+              "quota": QUOTA, "per_day": None}            # channels.json 壞了，頻道④照舊用原本的路徑
+    q, st, px = ch["queue"], ch["state"], ch["prefix"]
     if a.prepare:
-        made = prepare()
+        made = prepare(q) if q.is_dir() else []
         print("新產生 JPEG：" + ("、".join(str(p.relative_to(ROOT)) for p in made) or "無"))
         return 0
     env, now = dict(os.environ), datetime.now(TAIPEI)
     if a.mode == "verify":
-        rc, res = run_verify(env, now, a.dry_run)
+        rc, res = run_verify(env, now, a.dry_run, queue=q, state=st, prefix=px)
     elif a.mode == "delete":
         plats = PLATFORMS if a.platform == "all" else (a.platform,)
-        rc, res = run_delete(env, now, a.target, a.dry_run, plats)
+        rc, res = run_delete(env, now, a.target, a.dry_run, plats, state=st, prefix=px)
     elif a.mode == "test_delete":
-        rc, res = run_test_delete(env, now, a.dry_run)
+        rc, res = run_test_delete(env, now, a.dry_run, queue=q, state=st, prefix=px)
     else:
-        rc, res = run(env, now, a.dry_run)
+        rc, res = run(env, now, a.dry_run, queue=q, state=st, quota_path=ch["quota"], prefix=px,
+                      per_day_max=ch.get("per_day"))
     summ = os.environ.get("GITHUB_STEP_SUMMARY")
     if summ:
         with open(summ, "a", encoding="utf-8") as f:
-            f.write(f"### 談晴說礙自動發文（{res['mode']}）\n\n{SP.redact(res['summary'])}\n")
+            f.write(f"### {ch.get('name', ch['code'])} 自動發文（{res['mode']}）\n\n{SP.redact(res['summary'])}\n")
             for p, v in res["posted"].items():
                 f.write(f"\n- {p}：{v['link'] or v['id']}")
             for n in res["notes"]:
@@ -708,7 +771,7 @@ def main(argv=None) -> int:
             f.write("\n")
     for n in res["notes"]:
         print("::warning::" + SP.redact(n))
-    SP.log("結果：" + res["summary"])
+    SP.log(f"結果（{ch['code']}）：" + res["summary"])
     return rc
 
 

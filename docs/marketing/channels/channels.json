@@ -1,0 +1,69 @@
+{
+ "_說明": "多頻道自動發文設定（2026-11-09）。Andy 原話：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」。程式：scripts/channel_post.py（共用 scripts/healing_post.py 的發文邏輯）。說明：docs/marketing/channels/auto_post_all.md。slot／backup 是台北時間；cron 是同一時間換成 UTC（GitHub 排程只吃 UTC），兩者要一致（tests/test_channel_post.py 會檢查）。per_day 是上限，實際取它和該頻道 post_quota.json 的 per_day 較小者。",
+ "channels": {
+  "healing": {
+   "name": "④ 談晴說礙",
+   "account": "talk_01010909",
+   "prefix": "HEALING_",
+   "queue": "docs/marketing/channels/healing/queue",
+   "state": "docs/marketing/channels/healing/state",
+   "quota": "docs/marketing/channels/healing/post_quota.json",
+   "dm_config": "docs/marketing/channels/healing/dm_config.json",
+   "workflow": "healing_post.yml",
+   "comments_workflow": "healing_comments.yml",
+   "slot": "20:27",
+   "backup": "21:57",
+   "cron": ["27 12 * * *", "57 13 * * *"],
+   "per_day": 1,
+   "why_slot": "晚餐後放鬆滑手機的時段；療癒向內容在晚上互動最好（沿用 11-08 已上線的時段，不動）"
+  },
+  "tech": {
+   "name": "② 科技透明圈",
+   "account": "Tech_01010909",
+   "prefix": "TECH_",
+   "queue": "docs/marketing/channels/tech/queue",
+   "state": "docs/marketing/channels/tech/state",
+   "quota": "docs/marketing/channels/tech/post_quota.json",
+   "dm_config": "docs/marketing/channels/tech/dm_config.json",
+   "workflow": "channel_post.yml",
+   "comments_workflow": "channel_comments.yml",
+   "slot": "12:17",
+   "backup": "13:47",
+   "cron": ["17 4 * * *", "47 5 * * *"],
+   "per_day": 1,
+   "why_slot": "上班族午休滑手機的高峰（12:00～13:00），科技／產業新聞類在午休最常被點開；避開整點"
+  },
+  "shrimp": {
+   "name": "水下蝦米（幣圈）",
+   "account": "Shrimp_01010909",
+   "prefix": "SHRIMP_",
+   "queue": "docs/marketing/channels/shrimp/queue",
+   "state": "docs/marketing/channels/shrimp/state",
+   "quota": "docs/marketing/channels/shrimp/post_quota.json",
+   "dm_config": "docs/marketing/channels/shrimp/dm_config.json",
+   "workflow": "channel_post.yml",
+   "comments_workflow": "channel_comments.yml",
+   "slot": "08:43",
+   "backup": "10:13",
+   "cron": ["43 0 * * *", "13 2 * * *"],
+   "per_day": 1,
+   "why_slot": "美股與幣圈夜盤在台北清晨收斂，通勤時段（08:00～09:00）最多人看隔夜行情；避開整點"
+  },
+  "caffaine": {
+   "name": "③ AI 介紹頻道",
+   "account": "caffaine.ai",
+   "prefix": "CAFFAINE_",
+   "queue": "docs/marketing/channels/caffaine/queue",
+   "state": "docs/marketing/channels/caffaine/state",
+   "quota": "docs/marketing/channels/caffaine/post_quota.json",
+   "dm_config": "docs/marketing/channels/caffaine/dm_config.json",
+   "workflow": "channel_post.yml",
+   "comments_workflow": "channel_comments.yml",
+   "slot": "19:13",
+   "backup": "20:43",
+   "cron": ["13 11 * * *", "43 12 * * *"],
+   "per_day": 1,
+   "why_slot": "下班通勤到晚餐（18:30～20:00）是工具／教學類收藏最多的時段；跟談晴說礙 20:27 錯開一小時以上"
+  }
+ }
+}

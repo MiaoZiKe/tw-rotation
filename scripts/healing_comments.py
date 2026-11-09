@@ -21,6 +21,12 @@
 隱私：state 只存 comment_id 的 SHA-256 前 16 碼、時間、結果；不存留言全文、使用者名稱、使用者編號。
 權杖：只從環境變數讀（HEALING_IG_ACCESS_TOKEN_AUTO 優先，其次 HEALING_IG_ACCESS_TOKEN），輸出一律過 redact。
 沒有權杖：空跑、結束碼 0，摘要寫「等待權杖」。
+
+2026-11-09 多頻道（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」）：
+  python scripts/healing_comments.py --channel tech [--dry-run]
+  頻道清單 docs/marketing/channels/channels.json（prefix、state、dm_config）；只讀 <前綴>IG_ACCESS_TOKEN(_AUTO)。
+  新三個頻道的 dm_config.json 預設 enabled=false（Andy 還沒定私訊內容）；enabled=true 但 message 空白 → 不私訊、紅燈提醒。
+  不給 --channel 就是頻道④，行為不變。工作流：頻道④ healing_comments.yml；其他頻道 channel_comments.yml。
 """
 from __future__ import annotations
 
@@ -84,8 +90,34 @@ def parse_ts(s) -> datetime | None:
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
-def get_token(env: dict) -> str:
-    return (env.get("HEALING_IG_ACCESS_TOKEN_AUTO") or "").strip() or (env.get("HEALING_IG_ACCESS_TOKEN") or "").strip()
+PREFIX = "HEALING_"
+CHANNELS_FILE = ROOT / "docs" / "marketing" / "channels" / "channels.json"
+
+
+def _pfx(prefix: str | None) -> str:
+    import re
+    prefix = PREFIX if prefix is None else prefix
+    if not re.fullmatch(r"[A-Z]+_", prefix or ""):      # 空前綴＝頻道①的權杖名稱，絕不准
+        raise ValueError(f"權杖前綴要是大寫英文加底線（例如 TECH_），目前是 {prefix!r}")
+    return prefix
+
+
+def get_token(env: dict, prefix: str | None = None) -> str:
+    """只讀這個頻道自己前綴的 IG 權杖（預設頻道④）；_AUTO（續期寫回）優先。"""
+    p = _pfx(prefix)
+    return (env.get(p + "IG_ACCESS_TOKEN_AUTO") or "").strip() or (env.get(p + "IG_ACCESS_TOKEN") or "").strip()
+
+
+def channel_paths(code: str, path: Path = CHANNELS_FILE) -> dict:
+    """channels.json 的頻道 → {name, prefix, cfg, state, posted}（絕對路徑）。"""
+    d = load_json(path, {}).get("channels") or {}
+    if code not in d:
+        raise SystemExit(f"沒有這個頻道：{code}（channels.json 有 {'、'.join(d)}）")
+    c = d[code]
+    st = ROOT / c["state"]
+    return {"code": code, "name": c.get("name", code), "prefix": _pfx(c["prefix"]),
+            "cfg": ROOT / c.get("dm_config", str(Path(c["state"]).parent / "dm_config.json")),
+            "state": st / "comments_dm.json", "posted": st / "posted.json"}
 
 
 def is_self_harm(text: str, cfg: dict) -> bool:
@@ -168,7 +200,9 @@ def private_reply(uid: str, token: str, comment_id: str, text: str) -> dict:
 
 # ---------- 主流程 ----------
 def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = None,
-        cfg_path: Path = CONFIG, state_path: Path = STATE, posted_path: Path = POSTED) -> tuple[int, dict]:
+        cfg_path: Path = CONFIG, state_path: Path = STATE, posted_path: Path = POSTED,
+        prefix: str | None = None) -> tuple[int, dict]:
+    prefix = _pfx(prefix)
     env = dict(os.environ if env is None else env)
     now = now or datetime.now(timezone.utc)
     cfg = load_cfg(cfg_path)
@@ -178,16 +212,21 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
     def bump(k):
         res["counts"][k] = res["counts"].get(k, 0) + 1
 
-    token = get_token(env)
+    if not cfg.get("enabled"):          # 先看開關：關著就什麼都不做（不讀權杖、不連 Meta）
+        res["mode"] = "disabled"
+        res["summary"] = "dm_config.json 的 enabled=false，本輪不讀留言"
+        return 0, res
+    if not str(cfg.get("message") or "").strip():
+        res["errors"].append("dm_config.json 的 message 是空的：私訊內容還沒定，不私訊")
+        res["summary"] = "enabled=true 但 message 空白，本輪不讀留言（請先填私訊內容）"
+        return 1, res
+    token = get_token(env, prefix)
     if not token:
         res["mode"] = "wait_token"
-        res["summary"] = "等待權杖（HEALING_IG_ACCESS_TOKEN），本輪空跑"
+        res["summary"] = f"等待權杖（{prefix}IG_ACCESS_TOKEN），本輪空跑"
         return 0, res
     SP._SECRETS.append(token)
     print("::add-mask::" + token, flush=True)
-    if not cfg.get("enabled"):
-        res["summary"] = "dm_config.json 的 enabled=false，本輪不讀留言"
-        return 0, res
 
     try:
         acct = me(token)
@@ -195,7 +234,7 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
         res["errors"].append(f"查自己帳號失敗：{SP.redact(e)[:200]}")
         res["summary"] = "權杖無效或權限不足（查不到自己帳號）"
         return 1, res
-    uid = (env.get("HEALING_IG_USER_ID") or "").strip() or acct["id"]
+    uid = (env.get(prefix + "IG_USER_ID") or "").strip() or acct["id"]
     if not uid:
         res["summary"] = "查不到 IG 帳號編號"
         return 1, res
@@ -317,8 +356,8 @@ LABEL = {
 }
 
 
-def summary_md(res: dict) -> str:
-    lines = ["## 談晴說礙：IG 留言自動私訊", "", f"- 時間（台北）：{res['at']}", f"- 模式：{res['mode']}",
+def summary_md(res: dict, name: str = "談晴說礙") -> str:
+    lines = [f"## {name}：IG 留言自動私訊", "", f"- 時間（台北）：{res['at']}", f"- 模式：{res['mode']}",
              f"- 摘要：{res['summary']}"]
     if res["counts"]:
         lines += ["", "| 結果 | 則數 |", "|---|---|"]
@@ -335,16 +374,23 @@ def summary_md(res: dict) -> str:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--channel", default="", help="channels.json 的頻道代碼；不給＝頻道④談晴說礙")
     a = ap.parse_args(argv)
-    code, res = run(dry_run=a.dry_run)
-    md = summary_md(res)
+    if a.channel and a.channel != "healing":
+        c = channel_paths(a.channel)
+        code, res = run(dry_run=a.dry_run, cfg_path=c["cfg"], state_path=c["state"], posted_path=c["posted"],
+                        prefix=c["prefix"])
+        md = summary_md(res, c["name"])
+    else:
+        code, res = run(dry_run=a.dry_run)
+        md = summary_md(res)
     print(SP.redact(md))
     sp = os.environ.get("GITHUB_STEP_SUMMARY")
     if sp:
         with open(sp, "a", encoding="utf-8") as f:
             f.write(SP.redact(md))
     if res["alerts"]:
-        print(f"::warning::談晴說礙 IG 留言出現自傷訊號 {res['alerts']} 則，請 CEO 依 legal.md 2-7 處理")
+        print(f"::warning::{a.channel or 'healing'} IG 留言出現自傷訊號 {res['alerts']} 則，請 CEO 依 legal.md 2-7 處理")
     return code
 
 

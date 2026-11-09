@@ -1,0 +1,97 @@
+name: channel_comments
+# 多頻道 IG：讀主留言 → 檢查有沒有追蹤 → 自動私訊（同 healing_comments.yml，程式 scripts/healing_comments.py --channel）。
+# 2026-11-09 Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」。說明：docs/marketing/channels/auto_post_all.md 第 6 節。
+# - 只跑 dm_config.json enabled=true 的頻道；新三個頻道預設 false（Andy 還沒定私訊內容），所以現在每輪都是「沒有要跑的頻道」。
+# - 每個頻道一個 job，只帶自己前綴的 IG Secrets；紀錄 <頻道>/state/comments_dm.json 只存留言編號雜湊、時間、結果。
+on:
+  schedule:
+    - cron: "11,41 * * * *"   # 每 30 分鐘（分鐘錯開整點與 healing_comments 的 7／22／37／52）
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "哪個頻道（all＝dm_config 開著的全部）"
+        type: choice
+        options: [all, tech, shrimp, caffaine]
+        default: all
+      dry_run:
+        description: "空跑（true＝只讀留言、印出會做什麼，不私訊、不寫紀錄；false＝真的私訊）"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+      count: ${{ steps.p.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 哪幾個頻道開了留言私訊
+        id: p
+        env:
+          IN_CH: ${{ inputs.channel }}
+        run: python3 scripts/channel_post.py --plan --comments --channel "${IN_CH:-all}"
+  run:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    concurrency:
+      group: channel-comments-${{ matrix.channel }}
+      cancel-in-progress: false
+    env:
+      CH: ${{ matrix.channel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests
+      - name: 判斷空跑
+        id: mode
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+      - name: 讀留言、查追蹤、私訊（失敗會紅燈）
+        env:
+          TECH_IG_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN || '' }}
+          TECH_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN_AUTO || '' }}
+          TECH_IG_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_IG_USER_ID || '' }}
+          SHRIMP_IG_ACCESS_TOKEN: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN || '' }}
+          SHRIMP_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN_AUTO || '' }}
+          SHRIMP_IG_USER_ID: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_USER_ID || '' }}
+          CAFFAINE_IG_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN || '' }}
+          CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO || '' }}
+          CAFFAINE_IG_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_USER_ID || '' }}
+        run: python scripts/healing_comments.py --channel "$CH" ${{ steps.mode.outputs.dry }}
+      - name: 私訊紀錄寫回 main（只有雜湊、時間、結果，沒有權杖）
+        if: always() && steps.mode.outputs.dry == ''
+        run: |
+          F="docs/marketing/channels/$CH/state/comments_dm.json"
+          [ -f "$F" ] || { echo "沒有紀錄檔"; exit 0; }
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          MSG="$CH：留言私訊紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          cp "$F" "$RUNNER_TEMP/comments_dm.json"
+          git add -- "$F"
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "$MSG"
+          for i in 1 2 3 4; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            sleep $((2 ** i))
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p "$(dirname "$F")" && cp "$RUNNER_TEMP/comments_dm.json" "$F"
+            git add -- "$F"
+            git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
+            git commit -q -m "$MSG"
+          done
+          echo "::error::推不上 main"; exit 1

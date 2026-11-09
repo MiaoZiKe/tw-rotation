@@ -1,6 +1,6 @@
 name: meta_token_refresh
 # 2026-11-01 Andy：「好像可以幫忙免費自動發文 不用 60 天後 重新申請權杖一次」
-# Meta（Threads／IG；頻道①與頻道④談晴說礙）長效權杖每週自動續期一次（官方：滿 24 小時、未過期即可再延 60 天）。
+# Meta（Threads／IG；頻道①、②TC、④談晴說礙、TECH／SHRIMP／CAFFAINE）長效權杖每週自動續期一次（官方：滿 24 小時、未過期即可再延 60 天）。
 # 設計與風險：docs/security/20261101_meta_token_refresh.md
 # - 權杖只在環境變數；腳本對每個值印 ::add-mask::，log 只有狀態與天數。
 # - Meta 回傳新字串時，用 META_SECRETS_PAT（只限本 repo、只有 Secrets 讀寫）寫回 *_ACCESS_TOKEN_AUTO；
@@ -47,6 +47,21 @@ jobs:
           TC_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO }}
           TC_IG_ACCESS_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN }}
           TC_IG_ACCESS_TOKEN_AUTO: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO }}
+          # 2026-11-09 多頻道（docs/marketing/channels/accounts.md）：TECH_／SHRIMP_／CAFFAINE_ 一起續期，寫回 *_AUTO；沒設＝missing、不告警
+          TECH_THREADS_ACCESS_TOKEN: ${{ secrets.TECH_THREADS_ACCESS_TOKEN }}
+          TECH_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.TECH_THREADS_ACCESS_TOKEN_AUTO }}
+          TECH_IG_ACCESS_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN }}
+          TECH_IG_ACCESS_TOKEN_AUTO: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO }}
+          SHRIMP_THREADS_ACCESS_TOKEN: ${{ secrets.SHRIMP_THREADS_ACCESS_TOKEN }}
+          SHRIMP_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.SHRIMP_THREADS_ACCESS_TOKEN_AUTO }}
+          SHRIMP_IG_ACCESS_TOKEN: ${{ secrets.SHRIMP_IG_ACCESS_TOKEN }}
+          SHRIMP_IG_ACCESS_TOKEN_AUTO: ${{ secrets.SHRIMP_IG_ACCESS_TOKEN_AUTO }}
+          CAFFAINE_THREADS_ACCESS_TOKEN: ${{ secrets.CAFFAINE_THREADS_ACCESS_TOKEN }}
+          CAFFAINE_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.CAFFAINE_THREADS_ACCESS_TOKEN_AUTO }}
+          CAFFAINE_IG_ACCESS_TOKEN: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN }}
+          CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO }}
+          # 共用：Threads 續期失敗（多半是 1 小時短效）時自動換 60 天長效（只對 HEALING／TECH／SHRIMP／CAFFAINE 這幾組）
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
           META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
         run: |
           DRY=""

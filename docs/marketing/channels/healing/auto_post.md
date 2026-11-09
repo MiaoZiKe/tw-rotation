@@ -108,3 +108,4 @@ IG 輪播流程同 `scripts/ig_post.py` 的 `publish()`（子項 → CAROUSEL �
 
 - 2026-11-08：建立（social-ops-lead）。首篇 `20261108_intro` 入佇列，等權杖設好後下一個 20:27 時段發。
 - 2026-11-08：USER_ID 改選填（/me 自動查）；Threads 短效自動換長效（THREADS_APP_SECRET）；加驗證模式、刪文、Threads 測試發文再刪（Andy：「我希望可以自動化全部 包含測試發文 還有自動刪文」）。
+- 2026-11-09：程式改成多頻道共用（`--channel`、權杖前綴參數；頻道④不給參數行為不變，`healing_post.yml` 沒動）。另外三個頻道見 `docs/marketing/channels/auto_post_all.md`。`meta_token_refresh` 的 HEALING Threads 續期失敗時，有 `THREADS_APP_SECRET` 會自動試換長效。

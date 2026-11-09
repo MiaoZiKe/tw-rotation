@@ -51,14 +51,21 @@ PLATFORMS = {
 }
 # 2026-11-08 頻道④「談晴說礙」（Andy：「開通自動發文，這部分幫我想辦法自動化」）：同一套續期，權杖分開。
 # 沒設 HEALING_* 的時候狀態是 missing（不算失敗、不告警）。
-PLATFORMS["healing_threads"] = dict(PLATFORMS["threads"], env="HEALING_THREADS_ACCESS_TOKEN")
-PLATFORMS["healing_ig"] = dict(PLATFORMS["ig"], env="HEALING_IG_ACCESS_TOKEN")
+# （healing_threads／healing_ig 改在下面多頻道迴圈一起定義）
 # 2026-11-08 頻道②「科技透明圈」（Andy：「開通自動發文，這部分幫我想辦法自動化」）：另一組 TC_* 權杖，
 # 由 scripts/tc_token_intake.py 收件寫回 TC_*_ACCESS_TOKEN_AUTO。規則與頻道一相同（AUTO 優先、告警照舊）；
 # 還沒收件（沒有任何 TC 權杖）→ 安靜略過，不紅燈、不告警。
 PLATFORMS["tc_threads"] = dict(PLATFORMS["threads"], env="TC_THREADS_ACCESS_TOKEN", optional=True, intake="threads")
 PLATFORMS["tc_ig"] = dict(PLATFORMS["ig"], env="TC_IG_ACCESS_TOKEN", optional=True, intake="ig")
 TC_INTAKE_PATH = STATE_PATH.parent / "tc_token.json"
+# 2026-11-09 多頻道（Andy：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」）：
+# 名稱照 docs/marketing/channels/accounts.md（TECH_／SHRIMP_／CAFFAINE_）。沒設＝missing（不紅燈、不告警）。
+# exchange=True：Threads 續期失敗（多半是 Andy 貼了 1 小時短效）而且有共用的 THREADS_APP_SECRET → 自動換成 60 天長效再寫回 *_AUTO。
+for _ch in ("HEALING", "TECH", "SHRIMP", "CAFFAINE"):
+    _k = _ch.lower()
+    PLATFORMS[f"{_k}_threads"] = dict(PLATFORMS["threads"], env=f"{_ch}_THREADS_ACCESS_TOKEN", exchange=True)
+    PLATFORMS[f"{_k}_ig"] = dict(PLATFORMS["ig"], env=f"{_ch}_IG_ACCESS_TOKEN")
+THREADS_EXCHANGE = "https://graph.threads.net/access_token"
 
 _SECRETS: list[str] = []
 
@@ -114,6 +121,20 @@ def refresh(platform: str, token: str) -> tuple[str, int | None]:
     new = str(d.get("access_token") or "")
     if not new:
         raise RuntimeError("回應裡沒有 access_token")
+    mask(new)
+    try:
+        exp = int(d.get("expires_in")) if d.get("expires_in") is not None else None
+    except (TypeError, ValueError):
+        exp = None
+    return new, exp
+
+
+def exchange(platform: str, token: str, secret: str) -> tuple[str, int | None]:
+    """Threads 短效（1 小時）→ 長效（60 天）：th_exchange_token，要 app secret（共用 THREADS_APP_SECRET）。"""
+    d = http_get(THREADS_EXCHANGE, {"grant_type": "th_exchange_token", "client_secret": secret, "access_token": token})
+    new = str(d.get("access_token") or "")
+    if not new:
+        raise RuntimeError("換長效回應裡沒有 access_token")
     mask(new)
     try:
         exp = int(d.get("expires_in")) if d.get("expires_in") is not None else None
@@ -185,6 +206,8 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
     repo = env.get("GITHUB_REPOSITORY", "MiaoZiKe/tw-rotation")
     pat = (env.get("META_SECRETS_PAT") or "").strip()
     mask(pat)
+    app_secret = (env.get("THREADS_APP_SECRET") or "").strip()
+    mask(app_secret)
     prev = load_state(state_path)
     intake = (load_state(intake_path or state_path.parent / TC_INTAKE_PATH.name).get("platforms")) or {}
     st = {"updated_at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else "refresh",
@@ -231,7 +254,14 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             continue
 
         try:
-            new, exp = refresh(name, token)
+            try:
+                new, exp = refresh(name, token)
+            except Exception as e:  # noqa: BLE001
+                if not (p.get("exchange") and app_secret):
+                    raise
+                log(f"[{name}] 續期失敗（{redact(e)}），可能是 1 小時短效 → 用 THREADS_APP_SECRET 換長效")
+                new, exp = exchange(name, token, app_secret)
+                ps["exchanged"] = True
         except Exception as e:  # noqa: BLE001
             ps.update(status="refresh-failed", error=redact(e)[:200])
             log(f"[{name}] 續期失敗：{redact(e)}")

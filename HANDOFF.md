@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 多頻道自動發文：tech／shrimp／caffaine 建好（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
+- 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、shrimp 08:43／10:13、caffaine 19:13／20:43（台北）。
+- 開關：tech、caffaine live=true（佇列空、權杖未設 → 空跑）；shrimp live=false（還在用 Buffer，切換前要先停 Buffer 排程，等 Andy 決定）。
+- 留言私訊 scripts/healing_comments.py --channel＋channel_comments.yml；新三頻道 dm_config enabled=false（Andy 未定私訊內容）。續期 meta_token_refresh 加 TECH／SHRIMP／CAFFAINE，Threads 續期失敗有 THREADS_APP_SECRET 就換長效。
+- ⚠ 待決：② 科技透明圈另有 tc_post.yml（TC_* 權杖、social/tc/queue/），跟 tech（TECH_*）是同一個帳號，之後只能選一條放貼文。說明 docs/marketing/channels/auto_post_all.md 第 8 節。
+- 這批驗了：pytest 全套＋新增 tests/test_channel_post.py；雲端 channel_post.yml 各頻道 dry_run 一次、healing_post.yml dry_run 一次。
 ## 2026-11-09 會員通知：站主給的體驗／方案升級，登入時跳通知（Andy：「同意部署會員後端：發放體驗時通知會員」）
 - 後端（workers/account-api 檔尾「會員通知區塊」）：新表 member_notices；端點 /v1/notices/mine（本人未讀＋最近 20 則）、/v1/notices/seen（本人標已讀）。刪帳號一起刪、保留 180 天。
 - 會寫通知的動作（只有「給他更多」）：grants/issue 發放／重發體驗；grants/user 帶 extend_days 延長體驗；perm/put 方案升級（免費→Plus／Pro、Plus→Pro、免費→自訂方案）、同方案延長到期或改不限期、同方案個人功能開通／次數變多；邀請獎勵（朋友用了邀請碼 → 邀請人的 Plus 天數、邀滿 5 人升 Pro）。降級、取消、縮短、重設不寫。

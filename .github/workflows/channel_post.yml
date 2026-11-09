@@ -1,0 +1,173 @@
+name: channel_post
+# 多頻道自動發文（IG 輪播＋Threads 輪播）：② 科技透明圈（tech）、水下蝦米（shrimp）、③ AI 介紹頻道（caffaine）。
+# 2026-11-09 Andy：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」。
+# 說明：docs/marketing/channels/auto_post_all.md；頻道清單：docs/marketing/channels/channels.json。
+# - 頻道④（healing）不在這支：照舊由 healing_post.yml 排程（同一份程式 scripts/healing_post.py）。
+# - 每個頻道一個 job（matrix），只帶自己前綴的 Secrets；沒設 → 空跑、成功結束，摘要寫「等待 Andy 設定權杖：<前綴>…」。
+# - 權杖第一次出現：先自動跑驗證模式（只建容器不發布），state/verify.json 記 verified 後才正式發。
+# - 開關：各頻道 post_quota.json（shrimp 目前 live=false：還在用 Buffer，切換前要先停 Buffer 的排程）。
+# - 下面的排程（UTC）要跟 channels.json 的 cron 一致（tests/test_channel_post.py 會檢查）。
+on:
+  schedule:
+    - cron: "43 0 * * *"    # shrimp 台北 08:43（主時段）
+    - cron: "13 2 * * *"    # shrimp 台北 10:13（保底補跑）
+    - cron: "17 4 * * *"    # tech 台北 12:17（主時段）
+    - cron: "47 5 * * *"    # tech 台北 13:47（保底補跑）
+    - cron: "13 11 * * *"   # caffaine 台北 19:13（主時段）
+    - cron: "43 12 * * *"   # caffaine 台北 20:43（保底補跑）
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "哪個頻道（all＝tech、shrimp、caffaine 全部；healing 請用 healing_post）"
+        type: choice
+        options: [all, tech, shrimp, caffaine]
+        default: all
+      mode:
+        description: "post＝正式發；verify＝驗證模式（只建輪播容器不發布）；delete＝刪 target；test_delete＝Threads 真發一則測試、60 秒內自動刪"
+        type: choice
+        options: [post, verify, delete, test_delete]
+        default: post
+      dry_run:
+        description: "空跑（true＝只印出會做什麼，不呼叫 Meta、不寫紀錄；false＝真的做）"
+        type: boolean
+        default: true
+      target:
+        description: "mode=delete：佇列資料夾名或貼文 id"
+        type: string
+        default: ""
+      platform:
+        description: "mode=delete：all／ig／threads"
+        type: choice
+        options: [all, ig, threads]
+        default: all
+      confirm:
+        description: "mode=delete 或 test_delete 且不是空跑時必填：我確定刪除"
+        type: string
+        default: ""
+permissions:
+  contents: write   # 把各頻道 state/posted.json、last_run.json、補轉的 JPEG 推回 main（不含權杖）
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+      count: ${{ steps.p.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: 這一輪跑哪幾個頻道
+        id: p
+        env:
+          SCHED: ${{ github.event.schedule }}
+          IN_CH: ${{ inputs.channel }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python3 scripts/channel_post.py --plan --schedule "$SCHED"
+          else
+            python3 scripts/channel_post.py --plan --channel "${IN_CH:-all}"
+          fi
+  post:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 1   # 一個一個跑：各頻道推回 main 的檔不同，但排隊比較不會互相擋推送
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    concurrency:
+      group: channel-post-${{ matrix.channel }}
+      cancel-in-progress: false
+    env:
+      CH: ${{ matrix.channel }}
+      CH_DIR: docs/marketing/channels/${{ matrix.channel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests pillow
+      - name: 推回 main 的共用函式
+        run: |
+          cat > "$RUNNER_TEMP/push.sh" <<'EOF'
+          # 用法：bash push.sh "<commit 訊息>" <路徑>...   被拒就對齊遠端最新 main、只把這幾個路徑放回去重 commit（不 force push）
+          set -u
+          MSG="$1"; shift
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          # 只處理這一輪自己改到的檔（例如 state/posted.json、該則 meta.json、補轉的 jpg）；
+          # 不整個資料夾蓋回去，免得把別支工作流寫的 state/comments_dm.json 等檔還原成舊的。
+          mapfile -t FILES < <(git -c core.quotepath=false status --porcelain --untracked-files=all -- "$@" | sed -E 's/^.{3}//; s/^"(.*)"$/\1/')
+          [ ${#FILES[@]} -eq 0 ] && { echo "沒有變動"; exit 0; }
+          printf '要推的檔：%s\n' "${FILES[@]}"
+          set -- "${FILES[@]}"
+          git add -- "$@"
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "$MSG"
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            rm -rf "$RUNNER_TEMP/keep"; mkdir -p "$RUNNER_TEMP/keep"
+            for p in "$@"; do [ -e "$p" ] && cp -r --parents "$p" "$RUNNER_TEMP/keep/"; done
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp -r "$RUNNER_TEMP/keep/." .
+            git add -- "$@"
+            git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
+            git commit -q -m "$MSG"
+            sleep $((2 ** i))
+          done
+          echo "::error::推不上 main"; exit 1
+          EOF
+      - name: 判斷空跑
+        id: mode
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          MODE="${{ inputs.mode }}"; [ -z "$MODE" ] && MODE=post      # 排程觸發沒有 inputs → post
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          if [ -z "$DRY" ] && { [ "$MODE" = "delete" ] || [ "$MODE" = "test_delete" ]; } && [ "${{ inputs.confirm }}" != "我確定刪除" ]; then
+            echo "::error::mode=$MODE 要在 confirm 填「我確定刪除」，什麼都沒做"; exit 2
+          fi
+      - name: IG 用的 JPEG（缺的從 PNG 轉，先推上 main 讓 Meta 抓得到）
+        if: steps.mode.outputs.dry == '' && steps.mode.outputs.mode != 'delete'
+        run: |
+          python scripts/channel_post.py --channel "$CH" --prepare
+          bash "$RUNNER_TEMP/push.sh" "$CH：佇列補轉 IG 用 JPEG $(date -u '+%Y-%m-%d')" "$CH_DIR/queue"
+      - name: 發文（失敗會紅燈）
+        env:
+          # tech：只有 matrix.channel == 'tech' 的 job 才拿得到 TECH_*，其他頻道的 job 這幾格是空字串
+          TECH_IG_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN || '' }}
+          TECH_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN_AUTO || '' }}
+          TECH_IG_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_IG_USER_ID || '' }}
+          TECH_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_ACCESS_TOKEN || '' }}
+          TECH_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || '' }}
+          TECH_THREADS_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_USER_ID || '' }}
+          # shrimp：只有 matrix.channel == 'shrimp' 的 job 才拿得到 SHRIMP_*，其他頻道的 job 這幾格是空字串
+          SHRIMP_IG_ACCESS_TOKEN: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN || '' }}
+          SHRIMP_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN_AUTO || '' }}
+          SHRIMP_IG_USER_ID: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_USER_ID || '' }}
+          SHRIMP_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_THREADS_ACCESS_TOKEN || '' }}
+          SHRIMP_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_THREADS_ACCESS_TOKEN_AUTO || '' }}
+          SHRIMP_THREADS_USER_ID: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_THREADS_USER_ID || '' }}
+          # caffaine：只有 matrix.channel == 'caffaine' 的 job 才拿得到 CAFFAINE_*，其他頻道的 job 這幾格是空字串
+          CAFFAINE_IG_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN || '' }}
+          CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO || '' }}
+          CAFFAINE_IG_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_USER_ID || '' }}
+          CAFFAINE_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_ACCESS_TOKEN || '' }}
+          CAFFAINE_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_ACCESS_TOKEN_AUTO || '' }}
+          CAFFAINE_THREADS_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_USER_ID || '' }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
+          IN_TARGET: ${{ inputs.target }}
+          IN_PLATFORM: ${{ inputs.platform }}
+        run: |
+          P="${IN_PLATFORM:-all}"
+          python scripts/channel_post.py --channel "$CH" ${{ steps.mode.outputs.dry }} --mode "${{ steps.mode.outputs.mode }}" --target "$IN_TARGET" --platform "$P"
+      - name: 發文紀錄寫回 main（只有貼文網址與狀態，沒有權杖）
+        if: always() && steps.mode.outputs.dry == ''
+        run: |
+          bash "$RUNNER_TEMP/push.sh" "$CH：發文紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')" "$CH_DIR/state" "$CH_DIR/queue"
