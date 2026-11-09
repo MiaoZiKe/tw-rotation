@@ -1,6 +1,120 @@
 {
- "updated": "2026-11-06",
+ "updated": "2026-11-09",
  "topics": [
+  {
+   "id": "n_nsf_fund",
+   "cat": "news",
+   "title": "國安基金是什麼？台股重挫後為何被點名",
+   "why": "11/6 台股盤中最多跌 3,737 點、收盤跌 1,873 點（4.51%）收 39,701.64 點，財政部表示極端狀況下不排除召開國安基金臨時委員會；是否進場媒體報導不一、尚未確認（鉅亨網、經濟日報 11/6）",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "n_apple_memory_cost",
+   "cat": "news",
+   "title": "蘋果財報好卻股價下挫：記憶體成本吃掉毛利",
+   "why": "蘋果 11/2 公布 7～9 月營收 1,145 億美元（年增 12%），但預估 12 月季毛利率 45%～46%、低於預期，執行長稱記憶體價格前所未有，盤後一度跌 3%～4%（Fortune 11/2、財報狗 11/3）",
+   "site_links": [
+    "#themes",
+    "#industry"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "n_us_nfp_oct",
+   "cat": "news",
+   "title": "美國 10 月非農大超預期：好消息為何讓市場更緊張",
+   "why": "美國 10 月非農新增 16.5 萬人（預期約 5.9 萬人）、失業率 4.1%、時薪年增 3.1%；就業太強使利率走向成為焦點（自由時報、鉅亨網 11/6）",
+   "site_links": [
+    "#overview"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "k_nor_flash",
+   "cat": "know",
+   "title": "NOR Flash 是什麼？開機程式碼為何存在這種記憶體",
+   "why": "本站有「NOR Flash 利基記憶體」族群頁，但站內還沒有知識題講它跟 NAND 差在哪、為何車用與 IoT 都要用；配圖借 ssd 3D（NAND 對照）",
+   "site_links": [
+    "#industry/group/nor_niche_memory",
+    "#industry/semiconductor/dg/memory_module"
+   ],
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "k_display_driver_ic",
+   "cat": "know",
+   "title": "顯示驅動 IC 是什麼？一片面板怎麼被逐格點亮",
+   "why": "本站有「顯示驅動 IC」族群頁，面板鏈已寫過，但驅動 IC 本身（源極／閘極驅動、TDDI）還沒有知識題；可借面板 3D 十三層圖講它接在哪一層",
+   "site_links": [
+    "#industry/group/display_driver_ic",
+    "#industry/group/panel"
+   ],
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "k_image_sensor",
+   "cat": "know",
+   "title": "CMOS 影像感測器是什麼？一顆鏡頭後面的晶片怎麼收光",
+   "why": "本站有「光感測與元件」「光學鏡頭」族群頁，手機與車用相機都靠它，站內尚無拆解題；配圖借 apple_chain、ev_auto 2.5D 圖（站內無專屬 3D）",
+   "site_links": [
+    "#industry/group/optical_sensing",
+    "#industry/group/optical_lens"
+   ],
+   "score": 3,
+   "format_hint": "文章＋2.5D 圖",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "i_precision_parts",
+   "cat": "intro",
+   "title": "精密機構件鏈：材料、加工到終端產品怎麼分工",
+   "why": "本站有「精密機構件」族群頁但沒有產業鏈題；筆電、手機、伺服器機殼都靠它，需要一張供應鏈圖講環節",
+   "site_links": [
+    "#industry/group/precision_parts"
+   ],
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "i_env_recycle",
+   "cat": "intro",
+   "title": "資源環保鏈：廢棄物、回收再生到再利用怎麼接",
+   "why": "本站有「資源環保工業」族群頁；站內只有石化、儲能等鏈，環保回收這條還沒有，且與電池回收、半導體廢液處理相連",
+   "site_links": [
+    "#industry/group/env_recycle"
+   ],
+   "score": 2,
+   "format_hint": "貼文",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "i_wire_cable",
+   "cat": "intro",
+   "title": "電線電纜鏈：銅材、線纜廠到電網與資料中心怎麼供貨",
+   "why": "本站有「電器電纜」族群頁；重電、800V 高壓直流題都提到電纜，但電纜本身的原料到終端還沒有一張鏈圖",
+   "site_links": [
+    "#industry/group/wire_cable",
+    "#industry/group/heavy_electric"
+   ],
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-11-09"
+  },
   {
    "id": "n_oil_truce_hope",
    "cat": "news",
