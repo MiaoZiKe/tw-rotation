@@ -1,5 +1,5 @@
 {
- "at": "2026-11-10T00:42:25+08:00",
+ "at": "2026-11-10T00:59:58+08:00",
  "mode": "verify",
  "item": "20261108_intro",
  "posted": {},
@@ -7,5 +7,5 @@
   "ig": "查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
  },
  "notes": [],
- "summary": "驗證模式：threads 通過（容器 17922799347246114 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
+ "summary": "驗證模式：threads 通過（容器 17922803070246114 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
 }
