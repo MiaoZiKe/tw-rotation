@@ -327,6 +327,7 @@ def _lake(table: str, codes: list[str]) -> pd.DataFrame:
     return pd.concat(fr, ignore_index=True)
 
 
+@pytest.mark.realdata
 @pytest.mark.skipif(not (DATA / "price_daily").exists() or not (DATA / "dividend_results").exists(),
                     reason="沒有資料湖")
 def test_真實資料_6669本益比落在15到25_6949與5314沒有斷崖():

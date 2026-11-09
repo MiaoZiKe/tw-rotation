@@ -133,7 +133,11 @@ jobs:
         # 10-28 起因此紅燈、整條資料管線停擺 12 小時；那類測試由 social 自己的 workflow／本機關卡負責。
         # tests/test_daily_test_scope.py 會檢查這份清單沒有放進需要 Playwright 的檔。
         id: pytest
-        run: python -m pytest tests/ -q --ignore-glob='tests/test_social*'
+        # ★ 2026-11-09 改白名單：只跑「會 import pipeline」的測試（scripts/daily_test_list.py 動態產生，空清單會失敗），
+        #   且排除 @pytest.mark.realdata（依賴資料湖真實內容的斷言，改由 daily_audit 晚間稽核提醒，不擋抓資料）。
+        run: |
+          FILES=$(python scripts/daily_test_list.py)
+          python -m pytest $FILES -q -m "not realdata"
 
       - name: 指標庫測試失敗警示
         if: ${{ failure() && steps.pytest.conclusion == 'failure' }}
@@ -141,7 +145,7 @@ jobs:
           {
             echo "## 指標庫測試失敗，資料管線已停"
             echo "測試沒過就不抓資料（避免壞計算污染資料湖）。到上一步看哪幾個測試紅，修好再重跑 daily.yml。"
-            echo "只跑管線測試：python -m pytest tests/ -q --ignore-glob='tests/test_social*'"
+            echo "只跑管線測試：python -m pytest \$(python scripts/daily_test_list.py) -q -m 'not realdata'"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 抓取與計算

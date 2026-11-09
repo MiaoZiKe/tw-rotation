@@ -62,6 +62,7 @@ def _price_depth() -> dict[str, int]:
     return {"ge250": int((n >= 250).sum()), "total": int(len(n))}
 
 
+@pytest.mark.realdata
 def test_價量深度沒有倒退():
     """壞掉的時候使用者會看到什麼：個股頁的 MA120、季節性、多週期判讀整段消失，
     頁面退成「歷史價量還在回補」。2026-09-19 有 1,933 個頁面長這樣。"""
@@ -84,6 +85,7 @@ def _table_codes(table: str, col: str, need: int) -> int:
     return int((n >= need).sum())
 
 
+@pytest.mark.realdata
 def test_月營收深度沒有倒退():
     """壞掉的時候：個股頁與候選名單的「營收 YoY」「連增月」整欄變成「—」。"""
     got = _table_codes("revenue_monthly", "ym", 13)
@@ -98,6 +100,7 @@ def test_月營收深度沒有倒退():
 # 今天抓到的第 17、41 項都是「功能在、但資料或口徑讓它永遠沒有輸出」。
 # 這一段用**資料本身**去確認那些功能有東西可吃 —— 不依賴前端跑起來。
 
+@pytest.mark.realdata
 def test_每個法定產業別族群都有成分股():
     """第 17 項。壞掉的時候：點「半導體業」「金融保險」進去看到「0 檔 · 沒有符合的股票」。
     2026-09-19 因為 hash 沒解碼，35 個裡有 34 個長這樣。
@@ -113,6 +116,7 @@ def test_每個法定產業別族群都有成分股():
     assert not empty, f"這些法定產業別一檔成分股都沒有：{empty[:6]}"
 
 
+@pytest.mark.realdata
 def test_低於族群中位篩得出東西():
     """第 41 項。壞掉的時候：勾「只看低於族群中位」→ 0 筆，畫面寫「沒有符合條件的股票」，
     看起來像今天剛好沒有便宜股，其實是那個勾選框從來沒作用過。
@@ -135,6 +139,7 @@ def test_低於族群中位篩得出東西():
     )
 
 
+@pytest.mark.realdata
 def test_每檔股票都有個股頁():
     """第 31／61／63 項。壞掉的時候：搜尋得到、點進去卻是「個股頁還沒產生」。"""
     idx = config.SITE / "data" / "stocks.json"
@@ -263,6 +268,7 @@ ALLOWED_OUTLIERS = {
 }
 
 
+@pytest.mark.realdata
 def test_族群沒有未登記的產業別離群值():
     """壞掉的時候使用者會看到什麼：點一個族群進去，裡面混著一家完全不同產業的公司
     —— 而且 M1 的族群量能會把那家公司的資金算進來，讓「錢往哪個族群跑」這個主結論失真。
@@ -353,6 +359,7 @@ def test_前端真的改吃color_idx():
 
 
 # ---------------------------------------------------------------- 畫面上不准出現 "nan"
+@pytest.mark.realdata
 def test_送到前端的名稱不會是nan():
     """壞掉的時候使用者會看到什麼：資金去向桑基圖的代表股那一欄整排寫著「nan」。
 

@@ -60,6 +60,7 @@ def _codes_of(path, key):
     ("fname", "key"),
     [("groups.yaml", "groups"), ("themes.yaml", "themes")],
 )
+@pytest.mark.realdata
 def test_族群成分都還在交易(fname, key):
     alive = _alive_codes()
     path = config.GROUPS_DIR / fname
