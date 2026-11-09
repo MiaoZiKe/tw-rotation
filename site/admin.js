@@ -261,6 +261,25 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .hrlk .days .dc.lksel .dd{color:var(--ink);font-weight:700}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
 #v-admin .trfun .funw{max-height:288px;overflow:auto}
+/* 手機與電腦統計卡（2026-11-09）：堆疊橫條沿用 .bars .bt.stk（D 款）；來源直條是 C 款（類別少：寬 50%、上限 48px、上緣 3px 圓角）*/
+#v-admin .trus{position:relative}#v-admin .trus .grtog{position:absolute;right:14px;top:12px}
+#v-admin .usk{display:flex;gap:16px;flex-wrap:wrap;align-items:baseline;margin:6px 0 8px}
+#v-admin .usk>div{display:flex;flex-direction:column;gap:2px}#v-admin .usk b{font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}#v-admin .usk span{font-size:13px;color:var(--ink-2)}
+#v-admin .usk i.sw,#v-admin .uslg i.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--c)}
+#v-admin .ussplit{display:flex;height:14px;border-radius:3px;overflow:hidden;background:var(--panel-3);margin-bottom:6px}#v-admin .ussplit i{display:block;height:100%;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
+#v-admin .uslg{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin:2px 0 8px}
+#v-admin .usgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:10px}
+#v-admin .usgrid h4{margin:0 0 6px;font-size:14px}
+#v-admin .usgrid .bars{grid-template-columns:minmax(0,7.5em) minmax(0,1fr) 5em;grid-auto-rows:38px}#v-admin .usgrid .bars .bl{font-size:13px}#v-admin .usgrid .bars .bn{line-height:1.15;text-align:right}#v-admin .usgrid .bars .bn small{display:block;font-size:11px}
+#v-admin .usx{grid-column:1/-1;margin:2px 0 6px;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-2);font-size:13px}
+#v-admin .usx ul{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px 16px}#v-admin .usx li{font-variant-numeric:tabular-nums}
+#v-admin .usv{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:18px;border-bottom:1px solid var(--line-2)}
+#v-admin .usv .col{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px}
+#v-admin .usv .col b{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+#v-admin .usv .bar{width:50%;max-width:48px;display:flex;flex-direction:column-reverse;border-radius:3px 3px 0 0;overflow:hidden}#v-admin .usv .bar i{display:block;background:linear-gradient(0deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
+#v-admin .usvl{display:flex;gap:6px;margin-top:4px}#v-admin .usvl span{flex:1 1 0;min-width:0;text-align:center;font-size:12px;line-height:1.25;word-break:break-all}
+#v-admin .ustbl{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;margin-top:6px}#v-admin .ustbl td{padding:4px 6px;border-bottom:1px solid var(--line)}#v-admin .ustbl td+td{text-align:right}
+@media (max-width:820px){#v-admin .usgrid{grid-template-columns:minmax(0,1fr)}#v-admin .usgrid .bars{grid-template-columns:minmax(0,6.5em) minmax(0,1fr) 4.6em}#v-admin .trus .grtog{position:static;margin:0 0 6px}}
 #v-admin .trfun{position:relative}#v-admin .trfun .grtog{position:absolute;right:14px;top:12px}#v-admin .funt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 #v-admin .funt th,#v-admin .funt td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}
 #v-admin .funt thead th{position:sticky;top:0;background:var(--card);color:var(--muted);font-weight:600;z-index:1}
@@ -1203,9 +1222,10 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     S.firstDay = Object.keys(perDay).filter((d) => perDay[d] > 0).sort()[0] || ''; S.pvAll = sum(Object.values(pvT));
     data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
-    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="admgrid trone">${funnelHtml()}</div><div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="admgrid trone">${funnelHtml()}</div><div class="admgrid trone">${usageHtml()}</div><div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     wireFunnel(v);
+    wireUsage(v);
     thinTicks(v);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
@@ -1244,6 +1264,83 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const c = v.querySelector('#trFunnel'); if (!c) return;
     const bar = c.querySelector('#trFunBy');
     if (bar) bar.onclick = (e) => { const b = e.target.closest('button[data-by]'); if (!b) return; S.funBy = b.dataset.by; c.outerHTML = funnelHtml(); wireFunnel(v); };
+  }
+  /* ===== 手機與電腦（2026-11-09，Andy：「多一個統計：手機 & 電腦點進去功能」；資料定義見 account.js「手機／電腦使用統計」與 docs/account_analytics.md）=====
+     讀 e2 的 us.<種類>.<m|d>；期間跟著上方的期間選單（即時＝今天、近 7 天、近 30 天…），不另做一組期間鈕。
+     「開啟次數」＝頁面被打開幾次；「不重複訪客」＝同一個瀏覽器同一天同一頁只算 1 次（跨日加總是人日）。 */
+  const US_DEV = { d: ['電腦', 'var(--cat-1)'], m: ['手機', 'var(--cat-3)'] };
+  const US_ROUTE = { overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計', delivery: '交付進度', stock: '個股', legal: '法律頁', watch: '自選', other: '其他', etf: 'ETF', explore: '選股策略', earnings: '財經日曆', events: '今日事件', support: '客服', pricing: '訂閱方案', notices: '公告', articles: '精選文章' };
+  const US_FE = { k_period: 'K 線週期', stock_tab: '個股分頁', ai_tab: 'AI 分頁', open_3d: '3D 剖析圖', zoom: '放大圖表', how: '「怎麼看」說明', theme_toggle: '切換深淺色', events_drawer: '今日事件', mtf: '多週期', indicators: 'K 線指標', draw: '畫線工具', m_seg: '手機分段切換', search: '搜尋', watch_add: '加入自選', watch_remove: '移除自選', watch_tab_new: '新增自選分頁', watch_panel: '開自選面板' };
+  const US_REF = { direct: ['直接進站（無來源）', '直接'], threads: ['Threads', 'Threads'], instagram: ['Instagram', 'IG'], facebook: ['Facebook', 'FB'], youtube: ['YouTube', 'YT'], x: ['X（Twitter）', 'X'], line: ['LINE', 'LINE'], ptt: ['PTT', 'PTT'], google: ['Google 搜尋', 'Google'], search: ['其他搜尋引擎', '搜尋'], other: ['其他網站', '其他'], card: ['分享圖卡', '圖卡'], igs: ['IG 限動', 'IG限動'] };
+  const usName = (k, short) => (US_REF[k] ? US_REF[k][short ? 1 : 0] : k);
+  function usAgg(e2) {
+    const A = { site: { pv: { d: 0, m: 0 }, uv: { d: 0, m: 0 } }, route: { pv: {}, uv: {} }, fe: {}, feBy: {}, ref: {}, utm: {} };
+    const put = (o, k, dv, n) => { (o[k] = o[k] || { d: 0, m: 0 })[dv] += n; };
+    e2.forEach((r) => {
+      const m = /^us\.(pv|uv|ses|uvs|ref|utm|fe)\.(m|d)$/.exec(r.comp || ''); if (!m) return;
+      const [, kind, dv] = m, n = r.n || 0;
+      if (kind === 'ses') A.site.pv[dv] += n; else if (kind === 'uvs') A.site.uv[dv] += n;
+      else if (kind === 'pv' || kind === 'uv') put(A.route[kind], r.page, dv, n);
+      else if (kind === 'ref') put(A.ref, r.detail || 'other', dv, n);
+      else if (kind === 'utm') put(A.utm, r.detail || '（空）', dv, n);
+      else if (kind === 'fe') { put(A.fe, r.detail, dv, n); put(A.feBy[r.page] = A.feBy[r.page] || {}, r.detail, dv, n); }
+    });
+    return A;
+  }
+  const usTot = (o) => (o ? o.d + o.m : 0);
+  function usStack(list, nameFn, opt) {
+    /* list＝[[key,{d,m}]…]；回傳 D 款堆疊橫條（每列＝一項，兩段＝電腦／手機）*/
+    if (!list.length) return '<div class="empty">尚無紀錄</div>';
+    const mx = Math.max(1, ...list.map(([, o]) => usTot(o))), all = sum(list.map(([, o]) => usTot(o))) || 1;
+    return `<div class="bars stkbars" data-chart="bars">` + list.map(([k, o], r) => {
+      const t = usTot(o), nm = nameFn(k);
+      const tip = tp(`<b>${esc(nm)}</b><br>電腦 ${nf(o.d)}・手機 ${nf(o.m)}<br>共 ${nf(t)}・占 ${(t / all * 100).toFixed(1)}%`);
+      const segs = ['d', 'm'].filter((x) => o[x] > 0).map((x) => `<i style="width:${(o[x] / Math.max(t, 1) * 100).toFixed(2)}%;--c:${US_DEV[x][1]}"></i>`).join('');
+      const lab = opt && opt.click ? `<button type="button" class="bl" data-usr="${esc(k)}" data-row="${r}"${tip}>${esc(nm)}</button>` : `<span class="bl" data-row="${r}"${tip}>${esc(nm)}</span>`;
+      return lab + `<span class="bt stk" data-row="${r}"${tip}><span style="width:${(t / mx * 100).toFixed(1)}%">${segs}</span></span><span class="bn" data-row="${r}"${tip}>${nf(t)}<small style="color:var(--ink-2)">手機 ${Math.round(o.m / Math.max(t, 1) * 100)}%</small></span>`;
+    }).join('') + '</div>';
+  }
+  function usCols(list) {
+    if (!list.length) return '<div class="empty">尚無紀錄</div>';
+    const mx = Math.max(1, ...list.map(([, o]) => usTot(o)));
+    const cols = list.map(([k, o]) => {
+      const t = usTot(o), tip = tp(`<b>${esc(usName(k))}</b><br>電腦 ${nf(o.d)}・手機 ${nf(o.m)}`);
+      return `<div class="col"${tip}><b>${nf(t)}</b><div class="bar" style="height:${Math.max(3, t / mx * 100).toFixed(1)}%">${['d', 'm'].filter((x) => o[x] > 0).map((x) => `<i style="height:${(o[x] / t * 100).toFixed(2)}%;--c:${US_DEV[x][1]}"></i>`).join('')}</div></div>`;
+    }).join('');
+    return `<div data-chart="bars"><div class="usv">${cols}</div><div class="usvl">${list.map(([k]) => `<span>${esc(usName(k, true))}</span>`).join('')}</div></div>`;
+  }
+  function usageHtml() {
+    const e2 = Array.isArray((S.st || {}).e2) ? S.st.e2 : [], A = usAgg(e2), met = S.usMet === 'uv' ? 'uv' : 'pv';
+    const site = A.site[met], st = usTot(site), has = e2.some((r) => /^us\./.test(r.comp || ''));
+    const byTot = (o, n) => Object.entries(o).sort((a, b) => usTot(b[1]) - usTot(a[1])).slice(0, n);
+    const routes = byTot(A.route[met], 12), fes = byTot(A.fe, 10);
+    let refs = byTot(A.ref, 7);
+    const refRest = Object.entries(A.ref).sort((a, b) => usTot(b[1]) - usTot(a[1])).slice(7);
+    if (refRest.length) refs = refs.concat([['other', refRest.reduce((x, [, o]) => ({ d: x.d + o.d, m: x.m + o.m }), { d: 0, m: 0 })]]);
+    const utms = byTot(A.utm, 6);
+    const tip = '電腦／手機的判斷：畫面寬度 640 以下、或手機版面（html.m4）、或瀏覽器是手機，算「手機」；其餘算「電腦」（平板算電腦）。開啟次數＝頁面被打開幾次；不重複訪客＝同一個瀏覽器同一天同一頁只算 1 次，期間跨多天是加總（人日），單日才是真正的不重複瀏覽器。來源：網址帶 utm_source 或 ?u= 時用它，沒有就看瀏覽器帶的上一頁（Threads、Instagram…），都沒有算「直接進站」。只記次數，不記是誰、不存 IP、不存上一頁網址；開請勿追蹤（DNT）的人不計。新統計從上線當天起累計，之前沒有紀錄。';
+    const mName = met === 'uv' ? '不重複訪客' : '開站次數';
+    const xr = S.usOpen && A.route[met][S.usOpen] !== undefined ? S.usOpen : '';
+    const xFe = xr ? byTot(A.feBy[xr] || {}, 8) : [];
+    const kpi = has ? `<div class="usk"><div><b>${nf(st)}</b><span>${mName}（電腦＋手機）</span></div>${['d', 'm'].map((x) => `<div><b>${nf(site[x])}</b><span><i class="sw" style="--c:${US_DEV[x][1]}"></i>${US_DEV[x][0]}・${st ? Math.round(site[x] / st * 100) : 0}%</span></div>`).join('')}</div>
+      <div class="ussplit" data-chart="bars">${['d', 'm'].filter((x) => site[x] > 0).map((x) => `<i style="width:${(site[x] / st * 100).toFixed(2)}%;--c:${US_DEV[x][1]}"${tp(`<b>${US_DEV[x][0]}</b><br>${nf(site[x])}・${(site[x] / st * 100).toFixed(1)}%`)}></i>`).join('')}</div>` : '';
+    return `<div class="card trus" id="trUsage"><div class="seg tiny grtog" id="trUsMet" role="tablist" aria-label="統計方式">${[['pv', '開啟次數'], ['uv', '不重複訪客']].map(([k, n]) => `<button type="button" role="tab" data-met="${k}" class="${met === k ? 'on' : ''}" aria-selected="${met === k}">${n}</button>`).join('')}</div>
+      <h3>手機和電腦：誰在用、點了什麼、從哪來？<span class="qtip" tabindex="0" role="note" aria-label="說明" title="${esc(tip)}">?</span></h3>
+      ${has ? `${kpi}<div class="uslg"><span><i class="sw" style="--c:${US_DEV.d[1]}"></i>電腦</span><span><i class="sw" style="--c:${US_DEV.m[1]}"></i>手機</span></div>
+      <div class="usgrid"><div><h4>哪些頁被打開（${met === 'uv' ? '不重複訪客' : '開啟次數'}）</h4>${usStack(routes, (k) => US_ROUTE[k] || k, { click: true })}</div>
+        <div><h4>點了哪些功能（次數）</h4>${usStack(fes, (k) => US_FE[k] || k)}</div>
+        <div><h4>從哪裡來（開站次數）</h4>${usCols(refs)}${utms.length ? `<table class="ustbl" aria-label="網址來源參數">${utms.map(([k, o]) => `<tr><td>${esc(k)}</td><td>${nf(usTot(o))}（手機 ${o.m}）</td></tr>`).join('')}</table>` : ''}</div>
+        ${xr ? `<div class="usx" id="trUsX"><b>${esc(US_ROUTE[xr] || xr)}</b>：電腦 ${nf(A.route[met][xr].d)}・手機 ${nf(A.route[met][xr].m)}　${xFe.length ? '這一頁被點最多的功能' : '這一頁還沒有功能點擊紀錄'}${xFe.length ? `<ul>${xFe.map(([k, o]) => `<li>${esc(US_FE[k] || k)} ${nf(usTot(o))}（手機 ${o.m}）</li>`).join('')}</ul>` : ''}</div>` : ''}</div>`
+      : '<div class="empty">尚無紀錄：這張統計從上線當天起累計，有人打開網站後就會出現</div>'}</div>`;
+  }
+  /* 切「開啟次數／不重複訪客」、點某一頁就地展開該頁的功能點擊：只重畫這張卡，不重抓資料、不換頁 */
+  function wireUsage(v) {
+    const c = v.querySelector('#trUsage'); if (!c) return;
+    const redraw = () => { c.outerHTML = usageHtml(); wireUsage(v); bindHover(v.querySelector('#admBody')); };
+    c.onclick = (e) => {
+      const b = e.target.closest('button[data-met]'); if (b) { S.usMet = b.dataset.met; redraw(); return; }
+      const r = e.target.closest('button[data-usr]'); if (r) { S.usOpen = S.usOpen === r.dataset.usr ? '' : r.dataset.usr; redraw(); }
+    };
   }
   function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];

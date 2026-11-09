@@ -84,7 +84,7 @@
     return VIEWS.includes(head) ? head : 'other';
   }
   function bump(k) { S.q[k] = Math.min(50, (S.q[k] || 0) + 1); if (S.items) counted(); }
-  function track(e) { if (S.on && !noTrack() && EVENTS.includes(e)) bump('ev:' + e); }
+  function track(e) { if (S.on && !noTrack() && EVENTS.includes(e)) { bump('ev:' + e); usageFe(e); } }
   window.TwTrack = track;
   /* ---- 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項]
      · 頁面＝目前這一頁（viewOf，跟頁面瀏覽同一份白名單）；管理頁本身不記。
@@ -171,12 +171,84 @@
     if (j && j._s === 200 && uid) ls.set(K_SRC_SENT, uid);
   }
   window.TwSrc = { get: srcGet, parse: srcFromUrl };
+  /* ---- 手機／電腦使用統計（2026-11-09，Andy：「多一個統計：手機 & 電腦點進去功能」；docs/account_analytics.md「手機與電腦」）
+     目的：重新經營社群後，要知道訪客用手機還是電腦、點進哪些功能、從哪裡來。全部走既有的細項事件（ev2），Worker 不用改、不用重新部署：
+       us.pv.<m|d>   頁面＝路由，細項空    這一頁被打開幾次（手機／電腦）
+       us.uv.<m|d>   頁面＝路由，細項空    這一頁今天被幾個瀏覽器打開過（同一個瀏覽器同一天同一頁只算 1 次）
+       us.ses.<m|d>  頁面 other            開站次數（一個分頁第一次載入算 1 次）
+       us.uvs.<m|d>  頁面 other            今天的不重複訪客（同一個瀏覽器同一天只算 1 次）
+       us.ref.<m|d>  頁面 other，細項＝來源  這次開站從哪來：網址的 utm_source／?u= 優先，沒有才看 document.referrer 的分類
+       us.utm.<m|d>  頁面 other，細項＝來源/活動  只有網址帶來源參數才記，例如 threads/intraday_20261109
+       us.fe.<m|d>   頁面＝當下那頁，細項＝事件名  功能點擊（k_period、stock_tab、open_3d…，沿用 EVENTS 白名單；漏斗事件不重複記）
+     隱私：只記次數；「今天看過哪些頁」只存在這台瀏覽器 localStorage（tw.us，只留當天、不含任何識別碼）；referrer 只轉成固定分類（不存網址、不存網域）；
+     不存 IP；DNT／GPC 開著完全不記（t2 已擋）。「不重複訪客」跨日加總＝人日（同一個人隔天再來算 2），單日才是真正的不重複瀏覽器；清除瀏覽器資料會再算一次。 */
+  const K_US = 'tw.us';
+  /* 手機＝畫面寬 ≤ 640、或 html.m4（手機版面）、或 UA 是手機（平板與桌機瀏覽器縮窄到 640 也算手機，跟版面一致）*/
+  function devOf() {
+    const ua = /Android.+Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent || '');
+    return (document.documentElement.classList.contains('m4') || window.innerWidth <= 640 || ua) ? 'm' : 'd';
+  }
+  const tpeDay = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  /* 當天已算過的「頁×裝置」，換日自動清掉；回傳 true＝今天第一次 */
+  function usFirst(key) {
+    let o; try { o = JSON.parse(ls.get(K_US) || 'null'); } catch (e) { o = null; }
+    const d = tpeDay();
+    if (!o || o.d !== d || typeof o.k !== 'object') o = { d, k: {} };
+    if (o.k[key]) return false;
+    o.k[key] = 1; ls.set(K_US, JSON.stringify(o));
+    return true;
+  }
+  const US_SELF = /(^|\.)(liguligu-puipui\.com|miaozike\.github\.io|localhost|127\.0\.0\.1)$/;
+  /* document.referrer → 固定分類；只看網域、不存網址。沒有 referrer（直接輸入、書籤、App 內開啟常見）＝ direct */
+  function refCat(ref) {
+    let h = ''; try { h = new URL(ref === undefined ? document.referrer : ref).hostname.toLowerCase(); } catch (e) { return 'direct'; }
+    if (!h || US_SELF.test(h) || h === location.hostname) return 'direct';
+    if (/(^|\.)threads\.(com|net)$/.test(h)) return 'threads';
+    if (/(^|\.)instagram\.com$/.test(h)) return 'instagram';
+    if (/(^|\.)(facebook\.com|fb\.com|fb\.me|messenger\.com)$/.test(h)) return 'facebook';
+    if (/(^|\.)(youtube\.com|youtu\.be)$/.test(h)) return 'youtube';
+    if (/(^|\.)(t\.co|twitter\.com|x\.com)$/.test(h)) return 'x';
+    if (/(^|\.)(line\.me|line\.naver\.jp)$/.test(h)) return 'line';
+    if (/(^|\.)ptt\.cc$/.test(h)) return 'ptt';
+    if (/(^|\.)google\.[a-z.]+$/.test(h)) return 'google';
+    if (/(^|\.)(bing\.com|yahoo\.com|duckduckgo\.com|search\.yahoo\.com\.tw|tw\.search\.yahoo\.com)$/.test(h)) return 'search';
+    return 'other';
+  }
+  /* 網址帶來源（utm_source、?u=、?src=card）時，用它當來源（貼文連結比 referrer 準；IG 等 App 內開啟常沒有 referrer）；統一成 threads／instagram… */
+  function usSrcName(cur) {
+    if (!cur || !cur.s) return '';
+    const s = String(cur.s).toLowerCase(), p = SRC_ALIAS[s] || s;
+    return srcClean(SRC_PLAT[p] || s).toLowerCase();
+  }
+  function usageFe(e) {
+    if (!S.on || noTrack()) return;
+    if (['session', 'session_login', 'login', 'logout', 'land', 'signup', 'trial_start', 'paid', 'pricing_view', 'checkout_click'].includes(e)) return;   // 這些走漏斗與開站，不當「功能點擊」
+    t2('us.fe.' + devOf(), e);
+  }
+  function usagePv(v) {
+    if (!S.on || noTrack() || !v) return;
+    const dv = devOf();
+    t2('us.pv.' + dv, '', v);
+    if (usFirst(v + '.' + dv)) t2('us.uv.' + dv, '', v);
+  }
+  function usageSession(cur) {
+    if (!S.on || noTrack() || ss.get('tw.us.s')) return;
+    ss.set('tw.us.s', '1');
+    const dv = devOf(), src = usSrcName(cur) || refCat();
+    t2('us.ses.' + dv, '', 'other');
+    if (usFirst('site.' + dv)) t2('us.uvs.' + dv, '', 'other');
+    t2('us.ref.' + dv, src, 'other');
+    /* 細項只有 24 字：活動名去掉結尾日期（_yyyymmdd），同一個時段的貼文才合得起來（threads/intraday），不用管哪一天發的 */
+    if (cur && cur.s) t2('us.utm.' + dv, usSrcName(cur) + '/' + String(cur.c || cur.m || '').replace(/_\d{8}$/, ''), 'other');
+  }
+  window.TwUsage = { dev: devOf, refCat, srcName: usSrcName };
   function pv() {
     const v = viewOf(location.hash); if (!v) return;
     const key = v === 'stock' ? location.hash.split('/').slice(0, 2).join('/') : v;   // 換一檔股票算一次、同一頁內部切換不重算
     if (key === S.lastPv) return;
     S.lastPv = key;
     if (S.on && !noTrack()) bump('pv:' + v);
+    usagePv(v);
     if (v === 'pricing') funnel('pricing_view');             // 漏斗：看價格
     if (v === 'stock' && stockCode()) t2('view', stockCode(), 'stock');     // 個股被觀看：細項＝代號
   }
@@ -944,7 +1016,9 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
        同一組代碼會把新頁面剛登記的在線紀錄刪掉（驗收實測抓到），換一組就不會互相踩到。*/
     S.sid = rnd(12);
     paintBar();
-    landTrack(srcInit());
+    const usCur = srcInit();
+    landTrack(usCur);
+    usageSession(usCur);
     pv();
     /* 整頁跳轉登入回來：拿 sessionStorage 的 n 去換權杖 */
     const hn = takeHashN();

@@ -7,6 +7,10 @@
 - ⚠️ Threads 0 則刪除：THREADS_ACCESS_TOKEN／_AUTO 都回 403 code=10（沒有 threads_delete），THREADS_DELETE_TOKEN 未設 → 等 Andy 產生刪文權杖存成 THREADS_DELETE_TOKEN，之後跑 social_delete.yml：mode=delete、platform=threads、ids_file=social/delete/ids_20261109_restart.txt、keep_from_tw=2026-11-09、sleep=5-10、max=90、confirm=我確定刪除；246 則要分 3 天（每 24 小時 100 則）。
 - ⚠️ IG 0 則刪除：Instagram 登入版 API 試刪回 HTTP 400 code=100 Unsupported delete request（run 42661508555；Meta 2025-12 的刪除端點只開給 Facebook 登入版）→ 手動清單 social-snaps `archive/pre_restart_1109/ig_manual.md`。封存也沒有 API。
 
+## 2026-11-09 管理者統計：手機／電腦、點進去功能、來源（Andy：「多一個統計：手機 & 電腦點進去功能」）
+- 只用前端＋既有的細項事件（ev2），Worker 不用改、不用部署：site/account.js 新增 us.pv／uv／ses／uvs／ref／utm／fe（.m＝手機、.d＝電腦）；管理頁 #admin/traffic 在漏斗卡下方多一張「手機和電腦」卡（site/admin.js usageHtml），期間跟著上方期間選單（即時＝今天、近 7／30 天…）。定義與限制見 docs/account_analytics.md「手機與電腦、來源」。
+- 隱私權政策 legal.js 補「裝置與來源統計」一段（沒動 effective_date，不會讓大家重新同意）。管理者專用：不設功能鍵、不發公告。
+- 驗收：`python scripts/_uitest.py --sections 使用統計1109 --workers 1`（scripts/uitest_sections/20261109_使用統計.py）＋桌機守門1008。新統計從上線當天起累計；不重複訪客跨日是人日。
 ## 2026-11-09 多頻道自動發文：tech／caffaine 建好（水下蝦米不接）（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
 - 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、caffaine 19:13／20:43（台北）。
 - 開關：tech、caffaine live=true（佇列空）。水下蝦米：Andy 11-09「Shrimp_01010909 不用」→ 不接，繼續用 Buffer（清單、工作流、續期都沒有它）。
