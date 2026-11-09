@@ -1,0 +1,39 @@
+{
+ "channel": "caffaine",
+ "account": "caffaine.ai",
+ "at": "2026-11-10T02:50:11+08:00",
+ "platforms": {
+  "ig": {
+   "status": "partial",
+   "missing": {
+    "reach": "permission",
+    "views": "permission",
+    "profile_views": "permission",
+    "accounts_engaged": "permission"
+   },
+   "need_permission": "instagram_manage_insights",
+   "posts_total": 0,
+   "posts_with_data": 0,
+   "account_values": {
+    "followers": 0
+   },
+   "last_success": "2026-11-10T02:50:11+08:00"
+  },
+  "threads": {
+   "status": "ok",
+   "missing": {},
+   "need_permission": "",
+   "posts_total": 0,
+   "posts_with_data": 0,
+   "account_values": {
+    "followers": 0,
+    "views": 0,
+    "likes": 0,
+    "replies": 0,
+    "reposts": 0,
+    "quotes": 0
+   },
+   "last_success": "2026-11-10T02:50:11+08:00"
+  }
+ }
+}
