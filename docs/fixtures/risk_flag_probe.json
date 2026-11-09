@@ -1,20 +1,20 @@
 {
   "probe": "risk_flag",
-  "at": "2026-11-09T13:11:44+08:00",
+  "at": "2026-11-09T13:14:10+08:00",
   "results": [
     {
       "id": "twse_notice",
       "url": "https://openapi.twse.com.tw/v1/announcement/notice",
       "note": "集中市場當日公布注意股票",
       "method": "GET",
-      "probed_at": "2026-11-09T13:11:36+08:00",
+      "probed_at": "2026-11-09T13:14:00+08:00",
       "req": null,
       "req_headers": {
         "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
         "Accept": "application/json, */*"
       },
       "status": 200,
-      "elapsed_ms": 1699,
+      "elapsed_ms": 933,
       "content_type": "application/json",
       "bytes": 132,
       "resp_headers": {
@@ -52,14 +52,14 @@
       "url": "https://openapi.twse.com.tw/v1/announcement/punish",
       "note": "集中市場公布處置股票",
       "method": "GET",
-      "probed_at": "2026-11-09T13:11:38+08:00",
+      "probed_at": "2026-11-09T13:14:01+08:00",
       "req": null,
       "req_headers": {
         "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
         "Accept": "application/json, */*"
       },
       "status": 200,
-      "elapsed_ms": 759,
+      "elapsed_ms": 435,
       "content_type": "application/json",
       "bytes": 9405,
       "resp_headers": {
@@ -125,14 +125,14 @@
       "url": "https://openapi.twse.com.tw/v1/swagger.json",
       "note": "證交所目錄：找注意／處置／變更交易，順便留回應 schema",
       "method": "GET",
-      "probed_at": "2026-11-09T13:11:38+08:00",
+      "probed_at": "2026-11-09T13:14:02+08:00",
       "req": null,
       "req_headers": {
         "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
         "Accept": "application/json, */*"
       },
       "status": 200,
-      "elapsed_ms": 1164,
+      "elapsed_ms": 740,
       "content_type": "application/json",
       "bytes": 309984,
       "resp_headers": {
@@ -345,14 +345,14 @@
       "url": "https://www.tpex.org.tw/openapi/swagger.json",
       "note": "櫃買目錄：有沒有上櫃注意／處置端點",
       "method": "GET",
-      "probed_at": "2026-11-09T13:11:40+08:00",
+      "probed_at": "2026-11-09T13:14:03+08:00",
       "req": null,
       "req_headers": {
         "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
         "Accept": "application/json, */*"
       },
       "status": 200,
-      "elapsed_ms": 2179,
+      "elapsed_ms": 4607,
       "content_type": "application/json",
       "bytes": 476923,
       "resp_headers": {
@@ -361,7 +361,7 @@
         "access-control-allow-methods": "GET, POST, OPTIONS",
         "access-control-allow-headers": "*, Content-Type, api_key, Authorization",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a57a516c4ca94656-DFW"
+        "cf-ray": "a57a54e9c8174450-LAX"
       },
       "kind": "dict",
       "keys": [
@@ -775,22 +775,22 @@
     {
       "id": "tpex_warning",
       "url": "https://www.tpex.org.tw/openapi/v1/tpex_trading_warning_information",
-      "note": "推測：上櫃注意股（命名規則推測，未實測）",
+      "note": "上櫃公布注意股票資訊（11-09 第一輪實測 200）",
       "method": "GET",
-      "probed_at": "2026-11-09T13:11:42+08:00",
+      "probed_at": "2026-11-09T13:14:07+08:00",
       "req": null,
       "req_headers": {
         "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
         "Accept": "application/json, */*"
       },
       "status": 200,
-      "elapsed_ms": 1087,
+      "elapsed_ms": 208,
       "content_type": "application/json",
       "bytes": 9017,
       "resp_headers": {
         "server": "cloudflare",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a57a5179eff72dbb-MCI"
+        "cf-ray": "a57a550649beb786-LAX"
       },
       "kind": "list",
       "n": 29,
@@ -832,22 +832,22 @@
     {
       "id": "tpex_disposal",
       "url": "https://www.tpex.org.tw/openapi/v1/tpex_disposal_information",
-      "note": "推測：上櫃處置股（命名規則推測，未實測）",
+      "note": "上櫃處置有價證券資訊（11-09 第一輪實測 200）",
       "method": "GET",
-      "probed_at": "2026-11-09T13:11:43+08:00",
+      "probed_at": "2026-11-09T13:14:07+08:00",
       "req": null,
       "req_headers": {
         "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
         "Accept": "application/json, */*"
       },
       "status": 200,
-      "elapsed_ms": 1130,
+      "elapsed_ms": 252,
       "content_type": "application/json",
       "bytes": 8530,
       "resp_headers": {
         "server": "cloudflare",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a57a51825ff3e5f2-DFW"
+        "cf-ray": "a57a5507eda10ab6-LAX"
       },
       "kind": "list",
       "n": 8,
@@ -883,6 +883,214 @@
           "DispositionPeriod": "1151103~1151109",
           "DispositionReasons": "連續3個營業日",
           "DisposalCondition": "* 公布日期：115/11/02* 證券代號：8291* 證券名稱：尚茂電子材料股份有限公司* 處置原因：連續3個營業日達本中心「公布注意交易資訊」標準。* 處置起訖期間：自115年11月3日起5個營業日(115年11月3日至115年11月9日)，如遇：(1)有價證券最後交易日在處置期間，僅處置至其最後交易日；(2)休市、有價證券停止買賣、全日暫停交易，則順延執行。* 處置措施：(1)以人工管制之撮合終端機執行撮合作業(約每10分鐘撮合一次)；(2)依本中心業務規則第12條規定，證券商應就投資人每日已委託買賣該有價證券，向該投資人收取全部之買進價金或賣出證券。但違約專戶委託買賣該有價證券時，不在此限。"
+        }
+      ]
+    },
+    {
+      "id": "twse_TWT85U",
+      "url": "https://openapi.twse.com.tw/v1/exchangeReport/TWT85U",
+      "note": "集中市場證券變更交易",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:14:08+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 588,
+      "content_type": "application/json",
+      "bytes": 681,
+      "resp_headers": {
+        "server": "HiNetCDN",
+        "vary": "Accept-Encoding",
+        "x-cache": "HIT"
+      },
+      "kind": "list",
+      "n": 10,
+      "fields": [
+        "Code",
+        "Name",
+        "PeriodicCallAuctionTrading"
+      ],
+      "sample": [
+        {
+          "Code": "1213",
+          "Name": "大飲",
+          "PeriodicCallAuctionTrading": "  "
+        },
+        {
+          "Code": "1538",
+          "Name": "正峰",
+          "PeriodicCallAuctionTrading": "  "
+        },
+        {
+          "Code": "2314",
+          "Name": "台揚",
+          "PeriodicCallAuctionTrading": "**"
+        }
+      ]
+    },
+    {
+      "id": "twse_notetrans",
+      "url": "https://openapi.twse.com.tw/v1/announcement/notetrans",
+      "note": "集中市場公布注意累計次數可能達處置標準資訊",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:14:08+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 842,
+      "content_type": "application/json",
+      "bytes": 969,
+      "resp_headers": {
+        "server": "HiNetCDN",
+        "vary": "Accept-Encoding",
+        "x-cache": "EXPIRED, EXPIRED, HIT"
+      },
+      "kind": "list",
+      "n": 7,
+      "fields": [
+        "Code",
+        "Name",
+        "RecentlyMetAttentionSecuritiesCriteria"
+      ],
+      "sample": [
+        {
+          "Code": "088008",
+          "Name": "誠美材國票65購01",
+          "RecentlyMetAttentionSecuritiesCriteria": "115年11月5日至115年11月6日連續二次"
+        },
+        {
+          "Code": "2455",
+          "Name": "全新",
+          "RecentlyMetAttentionSecuritiesCriteria": "115年11月5日至115年11月6日連續二次115年10月27日至115年11月6日等九個營業日已有五次"
+        },
+        {
+          "Code": "3189",
+          "Name": "景碩",
+          "RecentlyMetAttentionSecuritiesCriteria": "115年11月5日至115年11月6日連續二次"
+        }
+      ]
+    },
+    {
+      "id": "tpex_cmode",
+      "url": "https://www.tpex.org.tw/openapi/v1/tpex_cmode",
+      "note": "上櫃股票變更交易、分盤交易、管理股票與停止交易資訊",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:14:09+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 1063,
+      "content_type": "application/json",
+      "bytes": 5039,
+      "resp_headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a57a55120a7bd88e-LAX"
+      },
+      "kind": "list",
+      "n": 23,
+      "fields": [
+        " FinancialAnnouncements",
+        "AlteredTrading",
+        "CompanyName",
+        "Date",
+        "ManagedStock",
+        "MatchingFrequency",
+        "PeriodicTrading",
+        "SecuritiesCompanyCode",
+        "SuspensionOfTrading"
+      ],
+      "sample": [
+        {
+          "Date": "1151106",
+          "SecuritiesCompanyCode": "2067",
+          "CompanyName": "嘉鋼",
+          "AlteredTrading": "Ｙ",
+          "PeriodicTrading": "",
+          "ManagedStock": "",
+          "MatchingFrequency": "",
+          "SuspensionOfTrading": "",
+          " FinancialAnnouncements": "Ｙ"
+        },
+        {
+          "Date": "1151106",
+          "SecuritiesCompanyCode": "3064",
+          "CompanyName": "泰偉",
+          "AlteredTrading": "Ｙ",
+          "PeriodicTrading": "",
+          "ManagedStock": "",
+          "MatchingFrequency": "",
+          "SuspensionOfTrading": "",
+          " FinancialAnnouncements": "Ｙ"
+        },
+        {
+          "Date": "1151106",
+          "SecuritiesCompanyCode": "3259",
+          "CompanyName": "鑫創",
+          "AlteredTrading": "Ｙ",
+          "PeriodicTrading": "",
+          "ManagedStock": "",
+          "MatchingFrequency": "",
+          "SuspensionOfTrading": "",
+          " FinancialAnnouncements": "Ｙ"
+        }
+      ]
+    },
+    {
+      "id": "tpex_warning_note",
+      "url": "https://www.tpex.org.tw/openapi/v1/tpex_trading_warning_note",
+      "note": "上櫃公布注意累計次數異常資訊",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:14:10+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 204,
+      "content_type": "application/json",
+      "bytes": 909,
+      "resp_headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a57a5518cf4107f8-LAX"
+      },
+      "kind": "list",
+      "n": 6,
+      "fields": [
+        "AccumulationSituation",
+        "CompanyName",
+        "Date",
+        "SecuritiesCompanyCode"
+      ],
+      "sample": [
+        {
+          "Date": "20261106",
+          "SecuritiesCompanyCode": "24552",
+          "CompanyName": "全新二",
+          "AccumulationSituation": "115年11月05日至115年11月06日連續二次"
+        },
+        {
+          "Date": "20261106",
+          "SecuritiesCompanyCode": "3455",
+          "CompanyName": "由田",
+          "AccumulationSituation": "115年11月05日至115年11月06日連續二次"
+        },
+        {
+          "Date": "20261106",
+          "SecuritiesCompanyCode": "4542",
+          "CompanyName": "科嶠",
+          "AccumulationSituation": "115年11月05日至115年11月06日連續二次"
         }
       ]
     }
