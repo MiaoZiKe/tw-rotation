@@ -4,7 +4,7 @@
 # Andy 11-09：「確認一下恐慌指數上限 若只有 100 就調整 100 就好，不要上面有那麼多空白」（美股 3 月：上格 Y 軸 94～106 一片空白、下格 VIX 被擠扁）。
 # 真的操作：
 #   1. 台股、美股各切一次、期間 1月／3月／全部各按一次：上格每條線在視窗內都有資料；上格 Y 軸上限 ≤ 視窗內資料最大值＋3% 呼吸＋0.1，下限同理
-#   2. 下格（恐慌指數）Y 軸上限 ≤ 視窗內最大值＋4% 呼吸＋0.1（不再多留一整格、不硬撐恐慌色帶）
+#   2. 下格（恐慌指數）改成 Andy 11-09 第二次的規則：「下方恐慌 統一不要改變 有紅色區域即使沒有達到 也需要顯示」→ 三段色帶永遠都畫、切期間 Y 軸 min/max 完全一樣
 #   3. 美股上格資料被清空（模擬指數缺）→ 不畫空的上格：只剩 1 個 grid、整張圖高度讓給 VIX，圖例也沒有「上格：期間起點＝100」
 
 def t_fear_1109(b, base, code):
@@ -28,8 +28,9 @@ def t_fear_1109(b, base, code):
         const tops = o.series.filter(s => /^top-/.test(s.id || '')), bot = o.series.find(s => /^bot-/.test(s.id || ''));
         const tr = tops.map(rng).filter(Boolean), br = bot ? rng(bot) : null;
         return { grids: o.grid.length, ys: o.yAxis.map(y => [y.min, y.max]), tops: tops.length, topsWithData: tr.length,
-          topLo: tr.length ? Math.min(...tr.map(x => x[0])) : null, topHi: tr.length ? Math.max(...tr.map(x => x[1])) : null, bot: br,
+          topLo: tr.length ? Math.min(...tr.map(x => x[0])) : null, topHi: tr.length ? Math.max(...tr.map(x => x[1])) : null, bot: br, bands: bot && bot.markArea ? bot.markArea.data.length : 0,
           h: Math.round(el.getBoundingClientRect().height), leg: document.getElementById('fzLeg').innerText }; }"""
+    ybs: dict = {}
     for mkt, label in (("tw", "台股"), ("us", "美股")):
         pg.locator("#fzMkt button", has_text=label).click(); pg.wait_for_timeout(700)
         for per in ("1月", "3月", "全部"):
@@ -40,8 +41,9 @@ def t_fear_1109(b, base, code):
                 ok(f"{T} {label}／{per}：上格 Y 軸貼齊資料（上限 ≤ 最高值＋3%＋0.1、下限 ≥ 最低值－3%－0.1）",
                    f["ys"][0][1] <= f["topHi"] * 1.03 + 0.1 + (f["topHi"] - f["topLo"]) * 0.03 and f["ys"][0][0] >= f["topLo"] * 0.97 - 0.1 - (f["topHi"] - f["topLo"]) * 0.03 - 0.1, f)
             if f["bot"]:
-                yb = f["ys"][-1]; span = f["bot"][1] - f["bot"][0]
-                ok(f"{T} {label}／{per}：下格恐慌指數 Y 軸上限貼齊（≤ 最高值＋4% 呼吸＋0.1）", yb[1] <= f["bot"][1] + max(0.5, span * 0.04) + 0.1 and yb[1] >= f["bot"][1], f)
+                ok(f"{T} {label}／{per}：下格三段色帶永遠都畫（平靜／警戒／恐慌，即使這段期間沒到過恐慌）", f["bands"] == 3, f)
+                ybs.setdefault(label, []).append(f["ys"][-1])
+        ok(f"{T} {label}：切 1月／3月／全部，下格 Y 軸 min/max 完全一樣（固定、不跳動）", len(ybs.get(label, [])) == 3 and all(y == ybs[label][0] for y in ybs[label]), ybs.get(label))
     # 3. 上格沒資料 → 不畫空的上格
     pg.locator("#fzMkt button", has_text="台股").click(); pg.wait_for_timeout(500)
     pg.evaluate("() => { FearCard._s.data.idx.us = {}; }")
