@@ -58,6 +58,11 @@ TABLES: dict[str, list[str]] = {
     "paper/swing_holdings": ["date", "plan", "code"],
     #   paper/swing_watch：每天收盤後的名單（前 30，不分帳戶）。觀察用；真正會進場的是名單內出現 S1/S2 訊號的那幾檔。
     "paper/swing_watch":    ["date", "rank"],
+    # 2026-11-09（P-1107-02 風險警示牌，sources/risk.py）：交易所公布的注意股／處置股，上市＋上櫃。
+    #   date＝回應裡的公布日（不是執行當天）；端點只給最新一期，歷史只能每天存（只增不改）。
+    #   risk_notice：reason＝交易所寫的注意原因原文；risk_punish：start/end＝處置起訖、match＝撮合方式原文摘句、prepay＝原文有沒有預收款券。
+    "risk_notice":        ["date", "code", "market"],
+    "risk_punish":        ["date", "code", "market"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
@@ -172,6 +177,9 @@ TWSE_ENDPOINTS = {
     # 重大訊息（公司自己公告的，不是媒體寫的）。2026-09-14 的 probe fixture 兩支都回 200。
     "material_news_twse": "/opendata/t187ap04_L",
     "material_news_tpex": "/opendata/t187ap04_O",
+    # 風險警示牌（P-1107-02，2026-11-09 Actions 實測 200，fixture docs/fixtures/risk_flag_probe.json）
+    "risk_notice":     "/announcement/notice",     # 當日公布注意股票（盤中是一筆空殼，盤後才有名單）
+    "risk_punish":     "/announcement/punish",     # 公布處置股票
 }
 
 # 證交所「基本市況報導」即時報價。2026-09-14 加入白名單（DECISIONS #108）——
@@ -210,6 +218,9 @@ TPEX_ENDPOINTS = {
     "price_daily":  "/tpex_mainboard_daily_close_quotes",
     "company_info": "/mopsfin_t187ap03_O",
     "exright_notice": "/tpex_exright_prepost",     # 上櫃除權息預告（名稱依 swagger 推定，對雲端 IP 可能 403，可失敗）
+    # 風險警示牌（2026-11-09 Actions 實測 200）
+    "risk_notice":  "/tpex_trading_warning_information",   # 上櫃公布注意股票資訊
+    "risk_punish":  "/tpex_disposal_information",          # 上櫃處置有價證券資訊
 }
 
 # 上櫃／興櫃公司基本資料（只拿「網址」一欄給 Logo 用）。兩個候選依序試，第一個拿到就停：

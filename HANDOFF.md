@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 風險警示牌：注意股／處置股（P-1107-02，Andy 點頭「02 05 03 04 06」）
+- 做了：個股頁琥珀色警示條（處置中／即將處置／注意股＋近 10 個交易日被列注意 N 次）、自選清單角標、族群頁「本族群 N 檔處置中／注意」。上市＋上櫃（四支官方 OpenAPI 都實測 200）。
+- 資料湖 risk_notice／risk_punish（sources/risk.py、compute/risk.py → site/data/risk_flags.json），daily 15:30 與傍晚輪抓。湖從 11-09 起才有，「近 10 個交易日」要到 11-20 左右才滿 10 天（畫面會寫「本站自 M/D 起記錄」）。
+- 功能鍵 risk.flag：四方案全開、不計次；公告 f-20261109-risk-flag。
+- 下一步：① 寄信 risk.flag.mail（要動 account-api Worker，需 Andy 同意）；② 「變更交易／分盤」標籤（TWT85U、tpex_cmode 已實測，fixture 有欄位）；③ 手機族群頁計數在可橫捲的分頁列最右邊，族群多時要往右滑才看得到。
+- 這批驗了：pytest 全部（1968 過；9 個紅全是社群／頻道測試讀不到圖檔，因本機 worktree 磁碟不足用 sparse 沒取出圖片，與本批無關）、新增 tests/test_risk_flags.py 13 項、_uitest `風險警示牌1109`（0）、`桌機守門1008`（0）、`_preview.py`（只剩 sparse 缺圖檔的 404）。`功能公告1019` 在 main 上原本就紅 3 項（下拉只列前 20 則、10-19 那批與 46 則數不到），本批多加一則後 ② 也紅（前 20 則全都有連結，測試挑不到可展開的那則）——同一根因，待修測試。
+
 ## 2026-11-09 盤後主貼文改版＋改 19:30～20:30 發、IG 停自動圖文（social-ops-lead；Andy：「同意，四項改動全部照改」）
 - 依據 docs/marketing/traffic_plan_1109.md 第二節第 2～5、7 條、diagnosis_1109.md。細節 docs/marketing/social_unit/auto_post.md 第〇之〇節。
 - 盤後 Threads：拿掉「🌙 盤後3分鐘」標頭、第一句反差問句（c_x1～c_x6）、主文 ≤150＋結尾二選一、數據移到串文第一則；lint `rule: auto_1109`。

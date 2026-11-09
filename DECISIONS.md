@@ -7317,3 +7317,20 @@ Andy 原話：「個股可以看到 大戶 散戶 當前買賣狀況，即時的
 7. 手機（html.m4）切子分頁只換 class 不新增節點，MutationObserver 看不到 → 另加 1.5 秒低頻輪詢（只在頁面可見時、5 個目標的選擇器查詢）。手機樣式在 m4/20261109-sharecard.css（只 ≤640）。
 ### 驗收
 `_uitest`「分享圖卡1109」：功能鍵與四方案值、體驗清單、公告；註冊會員真的按、視窗、切尺寸、下載（讀 PNG 檔頭量尺寸）、圖上網址文字、重疊檢查、用完 5 張被鎖、訪客 3 張被鎖、站主 99 不鎖、體驗「繼續」扣額度後圖卡開出；深色主題；手機 390（不橫向捲動、字 ≥ 11、按鈕 ≥ 40、navigator.share 帶 PNG、不支援就下載）；?src=card 記成來源。
+## #3xx 風險警示牌：注意股／處置股（P-1107-02，2026-11-09；合併時若撞號請改號）
+Andy 11-09 點頭「02 05 03 04 06」（docs/feature_proposals/weekly_2026-W45.md P-1107-02）。
+1. **來源（全是官方 OpenAPI，2026-11-09 在 Actions 實測 200，fixture `docs/fixtures/risk_flag_probe.json`）**：上市 `openapi.twse.com.tw/v1/announcement/notice`、`/announcement/punish`；
+   上櫃 `www.tpex.org.tw/openapi/v1/tpex_trading_warning_information`、`/tpex_disposal_information`。**上櫃也有，畫面標「上市＋上櫃」**。
+   ⚠ 上市注意盤中回一筆空殼（Code=""、Date=""）——「當日公布」盤後才有名單，解析時丟掉、記「本輪略過」不記失敗。
+   同一輪 swagger 還命中四支（下一批「變更交易」用、已實測 200）：`/exchangeReport/TWT85U`（集中市場證券變更交易：Code, Name, PeriodicCallAuctionTrading）、
+   `/announcement/notetrans`（注意累計次數可能達處置標準）、櫃買 `/tpex_cmode`（變更交易、分盤、管理股票、停止交易）、`/tpex_trading_warning_note`。
+2. **資料湖**：`risk_notice`、`risk_punish`，鍵 (date, code, market)，date＝回應裡的公布日；端點只給最新一期，歷史靠每天存（只增不改）。
+   run_daily：15:30（price）輪先抓（處置盤中就公告）、傍晚 full 輪再抓（注意股盤後才有）；週末 news 輪不抓。
+3. **不推算**：處置期間、撮合方式（原文摘句「約每二分鐘撮合一次」）、預收款券（原文有「收取全部之買進價金」才標）全照公告；
+   「近 10 個交易日被列注意 N 次」＝湖裡在最近 10 個交易日出現在注意公告的天數，湖從 11-09 才開始存，所以 since 晚於視窗起點時畫面寫「本站自 M/D 起記錄」。不判斷會不會達處置標準。
+4. **前端**（site/riskflag.js＋riskflag.css＋m4/20261109-riskflag.css）：個股頁名稱區下方琥珀色警示條（處置中／即將處置／注意股）、自選清單角標（#watch、右側自選面板、手機首頁觀察清單）、
+   族群頁分頁列右邊「本族群 N 檔處置中・M 檔即將處置・K 檔注意」。用 MutationObserver 在 industry.js／watchpage.js 畫完後補上，不改那幾支大檔。
+   「處置中／即將處置」用讀者當下的台北日期比 start／end（JSON 隔週末不會把已結束的當處置中）。顏色只用 `--amber`；文字只轉述，不寫「避開／危險」。交易所專區只寫名稱，不連、不爬。
+5. **功能鍵 `risk.flag`**（cat global、def true、沒有 limBy、不進 METERED、veil []）；plan_presets 四方案 true、不設次數（風險揭露不鎖）。不在 GRANT_BAN。
+   被管理者關掉時三樣都不畫（不蓋需開通卡：卡最小兩百多 px，蓋在 42px 警示條上會撐開 K 線卡）。
+6. **寄信提醒 `risk.flag.mail` 沒做**：要在 account-api Worker 加事件鍵並重新部署，需 Andy 同意。

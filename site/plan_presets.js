@@ -58,6 +58,9 @@
    · ★ 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況…這功能記得也要顯在權限內 但暫不開放」）：新鍵 stock.bigsmall（個股大戶／散戶買賣推估）
      四個方案都寫 false＝暫不開放、不設次數；stock.bigsmall.live（今日即時）比照 live.tick 四個方案 false（只有站主／管理員，範本管不到）。
      Andy 要開時在 #admin/perm 把方案撥開；體驗次數不預設。
+   · ★ 2026-11-09（Andy 點頭 P-1107-02「02 05 03 04 06」）：新鍵 risk.flag（風險警示牌：個股頁注意／處置警示條、自選角標、族群頁計數）
+     四個方案都寫 true、不設每日次數＝全部免費（提案建議層級：風險揭露不鎖，鎖起來會有「為了收費把風險藏起來」的觀感）。
+     不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單；體驗次數不預設（本來就不限次）。寄信提醒 risk.flag.mail 下一批才做（要動 Worker）。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -83,6 +86,7 @@ window.TW_PLAN_PRESETS = {
     "ov.fear": true,
     "share.card": true,
     "share.card.plus": false,
+    "risk.flag": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -230,6 +234,7 @@ window.TW_PLAN_PRESETS = {
     "ov.fear": true,
     "share.card": true,
     "share.card.plus": false,
+    "risk.flag": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -391,6 +396,7 @@ window.TW_PLAN_PRESETS = {
     "ov.fear": true,
     "share.card": true,
     "share.card.plus": true,
+    "risk.flag": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -524,6 +530,7 @@ window.TW_PLAN_PRESETS = {
     "ov.fear": true,
     "share.card": true,
     "share.card.plus": true,
+    "risk.flag": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,

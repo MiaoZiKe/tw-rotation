@@ -1,0 +1,8 @@
+/* 風險警示牌（site/riskflag.js，2026-11-09）手機規則：全部包在 ≤640，不動桌機 */
+@media (max-width:640px){
+  .riskbar{margin:6px 0 8px;padding:6px 8px;font-size:12.5px}
+  .riskbar .rk-t{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .riskbar .rk-t.open{display:block;-webkit-line-clamp:unset}
+  .riskbar .rk-sub{display:none}
+  #dgPick .rkgrp{font-size:12px;padding:2px 8px}
+}

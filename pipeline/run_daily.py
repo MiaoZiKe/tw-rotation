@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import exright_notice, inst_official, etf_pcf, tpex_margin, finmind, macro, mis, mktfut, mops, news, optivx, taifex, tape, tdcc, tpex, twse
+from .sources import exright_notice, inst_official, risk, etf_pcf, tpex_margin, finmind, macro, mis, mktfut, mops, news, optivx, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -1089,6 +1089,10 @@ def main() -> int:
         # 重大訊息盤中就會公告（減資、解散、訴訟、重大處分…），15:30 那輪就要抓 ——
         # 它是 M4 事件面否決進場的依據，等到 18:30 才看到就太慢了。走 openapi，不吃 FinMind 額度。
         save("material_news", step("mops.material_news", mops.material_news))
+        # 風險警示牌（P-1107-02）：處置股公告盤中就有（隔天起處置），15:30 這輪先抓；
+        # 注意股是「當日公布」，盤中只回一筆空殼（sources/risk.py 會丟掉、記成本輪略過），傍晚那輪才有名單。
+        save("risk_punish", step("risk.punish", risk.punish))
+        save("risk_notice", step("risk.notice", risk.notice))
     elif news_only:
         # 週末：價量不會變，但新聞、國際盤（美股週五夜盤、歐股）、總經會變。
         # 只抓這三樣，不動 FinMind 額度、不去打那些週末本來就不更新的端點
@@ -1127,6 +1131,11 @@ def main() -> int:
         # 交易所預告表比 FinMind 早知道下個月的除息；每天跟著跑（只打兩支端點、不耗 FinMind 額度）。
         # 只補資料湖還沒有的 (code, period, kind, ex_date)，FinMind 之後同一期進來有發放日，不會被預告蓋掉。
         save("etf_dividend_events", only_new_keys("etf_dividend_events", _etf_notice_step()))
+
+        # 風險警示牌（P-1107-02，2026-11-09）：交易所公布的注意股／處置股（上市＋上櫃各一支，openapi，不耗額度）。
+        # 端點只給最新一期，歷史靠每天存；同一天重跑由 (date, code, market) 去重。
+        save("risk_notice", step("risk.notice", risk.notice))
+        save("risk_punish", step("risk.punish", risk.punish))
 
         # ---------------------------------------------- 集保（每週）
         save("shareholding_weekly", step("tdcc.shareholding", tdcc.shareholding_weekly))

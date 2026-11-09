@@ -77,6 +77,9 @@ def rd(tmp_path, monkeypatch):
     #   容器被出口代理擋掉時每支要重試退避好幾輪，完整 pytest 卡在這裡十幾分鐘。
     monkeypatch.setattr(run_daily.mops, "material_news", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily.mops, "insider_holdings", lambda *a, **k: empty)
+    # 2026-11-09 風險警示牌兩支（openapi 注意／處置）：同理換掉，不真的連外
+    monkeypatch.setattr(run_daily.risk, "notice", lambda *a, **k: empty)
+    monkeypatch.setattr(run_daily.risk, "punish", lambda *a, **k: empty)
 
     run_daily.RESULT.clear()
     run_daily.RESULT.update({"steps": {}, "errors": [], "empty": []})

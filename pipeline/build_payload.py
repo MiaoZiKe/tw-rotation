@@ -21,6 +21,7 @@ from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
 from .compute import ivx as ivx_c
+from .compute import risk as risk_c
 from .compute import lab as lab_compute
 from .compute import analysis, digest, earnings, etf, etf_holdings, flow, flowcheck, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
@@ -521,6 +522,14 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("恐慌指數產出失敗（只影響總覽恐慌指數卡）：%s", exc)
         _write("fear", {"tw": None, "us": None, "note": str(exc)})
+    # 風險警示牌（P-1107-02，2026-11-09）：交易所公布的注意股／處置股（上市＋上櫃）。個股頁警示條、自選角標、族群頁計數共用這一份。
+    try:
+        _px_days = sorted(set(price.loc[price["market"] == "TWSE", "date"].astype(str))) if "market" in price.columns else sorted(set(price["date"].astype(str)))
+        _write("risk_flags", risk_c.build_json(store.read("risk_notice"), store.read("risk_punish"), _px_days[-40:],
+                                               loader.membership()))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("風險警示牌產出失敗（只影響注意／處置標示）：%s", exc)
+        _write("risk_flags", {"date": None, "stocks": {}, "groups": {}, "window": [], "note": str(exc)})
 
     lap("M4 季節性")
 

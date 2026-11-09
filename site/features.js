@@ -315,6 +315,15 @@
        訪客不再吃 events 的「每日 N 次」（quota.js limited() 對訪客略過 events，改由這個累計上限管）。只擋畫面、非伺服器端。 */
     pickF('events.total', 'global', '今日事件開啟次數（訪客累計）', '次', 999, [0, 3, 5, 10, 20, 999], 5, 999,
       '訪客最多能打開今日事件幾次（累計、不歸零；一次＝打開抽屜一次）。滿了抽屜內容換成「免費註冊」提示。註冊會員與付費方案不受這個上限影響'),
+    /* ★ 2026-11-09（P-1107-02 風險警示牌，Andy 點頭「02 05 03 04 06」）：交易所公布的注意股／處置股（上市＋上櫃，site/riskflag.js）。
+       個股頁 K 線卡名稱下方一條琥珀色警示條（#riskBar）、自選清單角標、族群頁「本族群 N 檔處置中／注意」計數。
+       四個方案都開、不設次數（提案建議層級：風險揭露不鎖）；沒有 limBy＝不計次、不進 METERED。
+       route 寫個股／自選／族群頁三種路由；被管理者在 #admin/perm 關掉時：警示條、角標、族群計數三樣都不畫（veil 不掛：
+       需開通卡最小也要兩百多 px 高，蓋在一條 42px 的警示條上會把 K 線卡撐開；風險揭露關掉就是不顯示，不做半遮）。
+       體驗額度不預設（不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單）。寄信提醒 risk.flag.mail 下一批（要動 Worker，需 Andy 同意）。*/
+    { id: 'risk.flag', name: '風險警示牌（注意股／處置股）', cat: 'global', def: true, kind: 'bool',
+      desc: '個股頁注意／處置警示條、自選清單角標、族群頁「N 檔處置中／注意」計數（交易所公告，上市＋上櫃）',
+      qnote: '風險警示牌需開通', route: /^#(stock\/|watch|industry\/group\/)/, veil: [], mark: [], block: [] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       /* 2026-10-10：手機帳號選單的「版面風格」三格（acctm4.js，只在 html.m4 畫）也照這個開關上鎖；那幾個節點桌機不存在，桌機不受影響 */
       veil: [], mark: ['#acctMenu .m4styrow > .t'], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button', '#acctMenu [data-m="sty"]'] },
