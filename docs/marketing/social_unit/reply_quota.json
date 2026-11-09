@@ -1,0 +1,26 @@
+{
+  "_note": "2026-11-09 自動回覆開關（Andy：「CEO 要像人一樣做回覆」）。說明：docs/marketing/social_unit/auto_reply.md。A 層＝回自己貼文底下的留言（預設開）；B 層＝到別人熱門財經串底下回覆（預設關，CEO 確認權限與風險後才開，要開只改 enabled）。",
+  "_updated": "2026-11-09",
+  "a_own": {
+    "enabled": true,
+    "threads": true,
+    "ig": true,
+    "per_day": 30,
+    "lookback_posts": 10,
+    "max_age_hours": 72,
+    "min_delay_min": 6,
+    "max_delay_min": 75
+  },
+  "b_others": {
+    "enabled": false,
+    "threads": true,
+    "per_day_min": 8,
+    "per_day_max": 15,
+    "min_gap_min": 25,
+    "max_post_age_hours": 12,
+    "per_keyword": 10,
+    "keywords": ["台股", "外資", "台積電", "ETF", "高股息", "財報", "輝達", "AI伺服器", "美股", "降息", "股市", "0050"]
+  },
+  "window": {"start": "09:00", "end": "23:00"},
+  "blacklist": []
+}

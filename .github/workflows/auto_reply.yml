@@ -1,0 +1,74 @@
+name: 自動回覆（A 層自家留言／B 層別人熱門串）
+# 2026-11-09 Andy：「CEO 要像人一樣做回覆」。說明：docs/marketing/social_unit/auto_reply.md
+# 台北 09:00～23:00 每 20 分鐘一輪：collect → draft（有 ANTHROPIC_API_KEY 才在這裡寫；沒有就留給 CEO session）→ send。
+# 開關：docs/marketing/social_unit/reply_quota.json（A 層開、B 層關）。每則送出前都再跑一次 scripts/reply_lint.py。
+# 手動觸發預設 dry_run＝true：只讀留言、只記錄「會回什麼」，不送。狀態寫在 social-snaps 分支 state/reply/。
+on:
+  schedule:
+    - cron: "4,24,44 1-14 * * *"     # UTC 01～14 ＝ 台北 09～22 點（最後一輪 22:44；程式再擋 23:00 以後）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只記錄不送（true＝安全試跑）"
+        type: boolean
+        default: true
+  push:                              # 開發分支只做「只讀＋只記錄」試跑，驗 A 層讀留言權限；正式送出只在 main 的排程
+    branches: [claude/auto-reply-1109]
+    paths: [.github/workflows/auto_reply.yml, scripts/auto_reply.py, scripts/reply_lint.py]
+permissions:
+  contents: write
+concurrency:
+  group: auto-reply
+  cancel-in-progress: false
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝寫稿套件（只有設了 ANTHROPIC_API_KEY 才裝）
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          pip install -q pandas pyarrow
+          if [ "$HAS_KEY" = "true" ]; then pip install -q anthropic; fi
+      - name: 讀回 social-snaps 的回覆狀態
+        run: |
+          mkdir -p state/reply
+          if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
+            git fetch --depth=1 origin social-snaps
+            git show FETCH_HEAD:state/reply/queue.json > state/reply/queue.json 2>/dev/null || rm -f state/reply/queue.json
+          fi
+      - name: 收留言 → 寫稿 → 送出
+        id: run
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REPLY_STATE_DIR: state/reply
+        run: |
+          args="--dry-run"                # 預設只記錄；只有 main 的排程、或手動觸發且明確選 dry_run=false 才真的送
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then args=""; fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then args=""; fi
+          python scripts/auto_reply.py targets
+          python scripts/auto_reply.py run $args
+      - name: 日報摘要
+        if: always()
+        run: cat state/reply/reports/*.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - name: 寫回 social-snaps（state/reply/）
+        if: always() && hashFiles('state/reply/queue.json') != ''
+        run: |
+          for i in 1 2 3; do
+            WORK="$(mktemp -d)"
+            git fetch --depth=1 origin social-snaps && git archive FETCH_HEAD | tar -x -C "$WORK"
+            mkdir -p "$WORK/state/reply"
+            cp -r state/reply/. "$WORK/state/reply/"
+            (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
+              && git config user.name tw-rotation-bot && git config user.email actions@github.com \
+              && git add -A && git commit -q -m "自動回覆狀態 $(TZ=Asia/Taipei date '+%F %H:%M')" \
+              && git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" social-snaps) && break
+            sleep 5
+          done
