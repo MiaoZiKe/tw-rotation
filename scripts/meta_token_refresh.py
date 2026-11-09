@@ -59,9 +59,9 @@ PLATFORMS["tc_threads"] = dict(PLATFORMS["threads"], env="TC_THREADS_ACCESS_TOKE
 PLATFORMS["tc_ig"] = dict(PLATFORMS["ig"], env="TC_IG_ACCESS_TOKEN", optional=True, intake="ig")
 TC_INTAKE_PATH = STATE_PATH.parent / "tc_token.json"
 # 2026-11-09 多頻道（Andy：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」）：
-# 名稱照 docs/marketing/channels/accounts.md（TECH_／SHRIMP_／CAFFAINE_）。沒設＝missing（不紅燈、不告警）。
+# 名稱照 docs/marketing/channels/accounts.md（TECH_／CAFFAINE_）。沒設＝missing（不紅燈、不告警）。
 # exchange=True：Threads 續期失敗（多半是 Andy 貼了 1 小時短效）而且有共用的 THREADS_APP_SECRET → 自動換成 60 天長效再寫回 *_AUTO。
-for _ch in ("HEALING", "TECH", "SHRIMP", "CAFFAINE"):
+for _ch in ("HEALING", "TECH", "CAFFAINE"):   # 水下蝦米不接（Andy 11-09：「Shrimp_01010909 不用」，繼續用 Buffer）
     _k = _ch.lower()
     PLATFORMS[f"{_k}_threads"] = dict(PLATFORMS["threads"], env=f"{_ch}_THREADS_ACCESS_TOKEN", exchange=True)
     PLATFORMS[f"{_k}_ig"] = dict(PLATFORMS["ig"], env=f"{_ch}_IG_ACCESS_TOKEN")

@@ -1,5 +1,5 @@
 """多頻道自動發文（scripts/channel_post.py＋healing_post.py 的 prefix）：設定讀取、權杖前綴隔離、各頻道不重發、
-shrimp live=false 略過、缺權杖空跑、排程與 channels.json 一致、留言私訊多頻道、續期多頻道與短效換長效。"""
+live=false 略過、缺權杖空跑、排程與 channels.json 一致、留言私訊多頻道、續期多頻道與短效換長效。"""
 import json
 import re
 from datetime import datetime, timedelta, timezone
@@ -16,13 +16,14 @@ from scripts import meta_token_refresh as mtr
 ROOT = Path(__file__).resolve().parents[1]
 TPE = timezone(timedelta(hours=8))
 NOW = datetime(2026, 11, 12, 12, 20, tzinfo=TPE)
-CODES = {"healing": "HEALING_", "tech": "TECH_", "shrimp": "SHRIMP_", "caffaine": "CAFFAINE_"}
+CODES = {"healing": "HEALING_", "tech": "TECH_", "caffaine": "CAFFAINE_"}
 ALL_ENV = {}
 for _c, _p in CODES.items():
     ALL_ENV[f"{_p}IG_ACCESS_TOKEN"] = f"IGTOK_{_c}_xxxxxxxxxxxx"
     ALL_ENV[f"{_p}THREADS_ACCESS_TOKEN"] = f"THTOK_{_c}_xxxxxxxxxxxx"
     ALL_ENV[f"{_p}IG_USER_ID"] = f"77{len(_c)}1"
     ALL_ENV[f"{_p}THREADS_USER_ID"] = f"77{len(_c)}2"
+ALL_ENV.update(SHRIMP_IG_ACCESS_TOKEN="SHRIMP_IG_zzzzzz", SHRIMP_THREADS_ACCESS_TOKEN="SHRIMP_TH_zzzzzz")
 ALL_ENV.update(IG_ACCESS_TOKEN="CH1_IG_TOKEN_zzzzzz", THREADS_ACCESS_TOKEN="CH1_TH_TOKEN_zzzzzz",
                TC_IG_ACCESS_TOKEN="TC_IG_zzzzzz", TC_THREADS_ACCESS_TOKEN="TC_TH_zzzzzz")
 
@@ -35,7 +36,7 @@ def _clean(monkeypatch):
 
 
 # ---------- 設定 ----------
-def test_channels_json四個頻道與資料夾開關():
+def test_channels_json三個頻道與資料夾開關_水下蝦米不接():
     chs = hp.load_channels()
     assert {k: v["prefix"] for k, v in chs.items()} == CODES
     for code, c in chs.items():
@@ -44,7 +45,7 @@ def test_channels_json四個頻道與資料夾開關():
         assert c["queue"] == ROOT / f"docs/marketing/channels/{code}/queue"
     q = {k: json.loads(v["quota"].read_text(encoding="utf-8")) for k, v in chs.items()}
     assert q["tech"]["live"] is True and q["caffaine"]["live"] is True
-    assert q["shrimp"]["live"] is False, "水下蝦米還在用 Buffer，切換前不准開"
+    assert not (ROOT / "docs/marketing/channels/shrimp").exists(), "Andy 11-09：「Shrimp_01010909 不用」"
     assert all(x["per_day"] == 1 for x in q.values())
     # 頻道④首篇仍在佇列
     assert (chs["healing"]["queue"] / "20261108_intro" / "1.png").exists()
@@ -69,15 +70,15 @@ def test_時段_cron與工作流一致且避開整點():
         mine[c["workflow"]] |= set(c["cron"])
         slots.append(c["slot"])
     assert mine == wf
-    assert len(set(slots)) == 4
+    assert len(set(slots)) == 3
 
 
 def test_plan排程只挑那個頻道_手動all不含healing():
     assert cp.plan("17 4 * * *") == [{"channel": "tech", "prefix": "TECH_"}]
-    assert cp.plan("43 0 * * *") == [{"channel": "shrimp", "prefix": "SHRIMP_"}]
+    assert cp.plan("43 0 * * *") == []
     assert cp.plan("13 11 * * *") == [{"channel": "caffaine", "prefix": "CAFFAINE_"}]
     assert cp.plan("27 12 * * *") == []                       # healing 的時段歸 healing_post.yml
-    assert [x["channel"] for x in cp.plan("", "all")] == ["tech", "shrimp", "caffaine"]
+    assert [x["channel"] for x in cp.plan("", "all")] == ["tech", "caffaine"]
     assert cp.plan("", "healing") == []
 
 
@@ -104,11 +105,11 @@ def test_工作流每個頻道只帶自己的Secrets():
     for f, n in (("channel_post.yml", 6), ("channel_comments.yml", 3)):
         txt = (ROOT / ".github/workflows" / f).read_text(encoding="utf-8")
         lines = re.findall(r"^\s+([A-Z_]+): \$\{\{ matrix\.channel == '(\w+)' && secrets\.([A-Z_]+) \|\| '' \}\}", txt, re.M)
-        assert len(lines) == 3 * n, f
+        assert len(lines) == 2 * n, f
         for env_name, ch, sec in lines:
             assert env_name == sec and sec.startswith(CODES[ch]), (f, env_name, ch)
         assert "HEALING_" not in txt.split("jobs:")[1]
-        for ch1 in ("secrets.IG_ACCESS_TOKEN", "secrets.THREADS_ACCESS_TOKEN", "secrets.TC_"):
+        for ch1 in ("secrets.IG_ACCESS_TOKEN", "secrets.THREADS_ACCESS_TOKEN", "secrets.TC_", "SHRIMP_", "shrimp"):
             assert ch1 not in txt, (f, ch1)
 
 
@@ -181,12 +182,12 @@ def test_per_day取channels_json與開關檔較小者(chans):
     assert "佇列已空" in res["summary"]
 
 
-def test_shrimp_live_false略過不連Meta(chans, monkeypatch):
-    mk_item(chans["root"] / "shrimp" / "queue", "20261112_a")
+def test_live_false略過不連Meta(chans, monkeypatch):
+    mk_item(chans["root"] / "caffaine" / "queue", "20261112_a")
     monkeypatch.setattr(hp.SP, "http", lambda *a, **k: (_ for _ in ()).throw(AssertionError("不准連 Meta")))
-    rc, res = chans["go"]("shrimp", live=False)
+    rc, res = chans["go"]("caffaine", live=False)
     assert rc == 0 and "live=false" in res["summary"] and not chans["calls"]
-    assert not (chans["root"] / "shrimp/state/posted.json").exists()
+    assert not (chans["root"] / "caffaine/state/posted.json").exists()
 
 
 def test_缺權杖空跑_摘要寫前綴(chans, monkeypatch):
@@ -240,7 +241,7 @@ def test_channel_post入口真的切換頻道路徑(monkeypatch):
 # ---------- 留言私訊 ----------
 def test_新頻道私訊預設關閉_關著不讀權杖不連Meta(monkeypatch):
     monkeypatch.setattr(hc.SP, "http", lambda *a, **k: (_ for _ in ()).throw(AssertionError("不准連 Meta")))
-    for code in ("tech", "shrimp", "caffaine"):
+    for code in ("tech", "caffaine"):
         c = hc.channel_paths(code)
         assert json.loads(c["cfg"].read_text(encoding="utf-8"))["enabled"] is False
         rc, res = hc.run(env=ALL_ENV, cfg_path=c["cfg"], state_path=c["state"], posted_path=c["posted"],
@@ -259,8 +260,9 @@ def test_私訊開了但文字空白就不送(tmp_path, monkeypatch):
 
 
 # ---------- 續期 ----------
-def test_續期包含三個新頻道_沒設是missing不告警(monkeypatch, tmp_path):
-    for k in ("tech", "shrimp", "caffaine"):
+def test_續期包含新頻道_沒設是missing不告警_沒有shrimp(monkeypatch, tmp_path):
+    assert not any(k.startswith("shrimp") for k in mtr.PLATFORMS)
+    for k in ("tech", "caffaine"):
         assert mtr.PLATFORMS[f"{k}_threads"]["env"] == f"{k.upper()}_THREADS_ACCESS_TOKEN"
         assert mtr.PLATFORMS[f"{k}_ig"]["env"] == f"{k.upper()}_IG_ACCESS_TOKEN"
     monkeypatch.setattr(mtr, "http_get", lambda url, params: {"access_token": params["access_token"], "expires_in": 5184000})
@@ -268,7 +270,7 @@ def test_續期包含三個新頻道_沒設是missing不告警(monkeypatch, tmp_
                      datetime(2026, 11, 15, 2, 23, tzinfo=timezone.utc), False, state_path=tmp_path / "m.json",
                      saver=lambda *a: True, pat_checker=lambda p, r: {"ok": True})
     assert rc == 0 and not st["alert"]
-    for k in ("tech_threads", "tech_ig", "shrimp_threads", "shrimp_ig", "caffaine_threads", "caffaine_ig"):
+    for k in ("tech_threads", "tech_ig", "caffaine_threads", "caffaine_ig"):
         assert st["platforms"][k]["status"] == "missing"
 
 

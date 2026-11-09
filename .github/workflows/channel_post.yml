@@ -1,16 +1,14 @@
 name: channel_post
-# 多頻道自動發文（IG 輪播＋Threads 輪播）：② 科技透明圈（tech）、水下蝦米（shrimp）、③ AI 介紹頻道（caffaine）。
+# 多頻道自動發文（IG 輪播＋Threads 輪播）：② 科技透明圈（tech）、③ AI 介紹頻道（caffaine）（水下蝦米不接，繼續用 Buffer）。
 # 2026-11-09 Andy：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」。
 # 說明：docs/marketing/channels/auto_post_all.md；頻道清單：docs/marketing/channels/channels.json。
 # - 頻道④（healing）不在這支：照舊由 healing_post.yml 排程（同一份程式 scripts/healing_post.py）。
 # - 每個頻道一個 job（matrix），只帶自己前綴的 Secrets；沒設 → 空跑、成功結束，摘要寫「等待 Andy 設定權杖：<前綴>…」。
 # - 權杖第一次出現：先自動跑驗證模式（只建容器不發布），state/verify.json 記 verified 後才正式發。
-# - 開關：各頻道 post_quota.json（shrimp 目前 live=false：還在用 Buffer，切換前要先停 Buffer 的排程）。
+# - 開關：各頻道 post_quota.json。
 # - 下面的排程（UTC）要跟 channels.json 的 cron 一致（tests/test_channel_post.py 會檢查）。
 on:
   schedule:
-    - cron: "43 0 * * *"    # shrimp 台北 08:43（主時段）
-    - cron: "13 2 * * *"    # shrimp 台北 10:13（保底補跑）
     - cron: "17 4 * * *"    # tech 台北 12:17（主時段）
     - cron: "47 5 * * *"    # tech 台北 13:47（保底補跑）
     - cron: "13 11 * * *"   # caffaine 台北 19:13（主時段）
@@ -18,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: "哪個頻道（all＝tech、shrimp、caffaine 全部；healing 請用 healing_post）"
+        description: "哪個頻道（all＝tech、caffaine 全部；healing 請用 healing_post）"
         type: choice
-        options: [all, tech, shrimp, caffaine]
+        options: [all, tech, caffaine]
         default: all
       mode:
         description: "post＝正式發；verify＝驗證模式（只建輪播容器不發布）；delete＝刪 target；test_delete＝Threads 真發一則測試、60 秒內自動刪"
@@ -146,13 +144,6 @@ jobs:
           TECH_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_ACCESS_TOKEN || '' }}
           TECH_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || '' }}
           TECH_THREADS_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_USER_ID || '' }}
-          # shrimp：只有 matrix.channel == 'shrimp' 的 job 才拿得到 SHRIMP_*，其他頻道的 job 這幾格是空字串
-          SHRIMP_IG_ACCESS_TOKEN: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN || '' }}
-          SHRIMP_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN_AUTO || '' }}
-          SHRIMP_IG_USER_ID: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_USER_ID || '' }}
-          SHRIMP_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_THREADS_ACCESS_TOKEN || '' }}
-          SHRIMP_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_THREADS_ACCESS_TOKEN_AUTO || '' }}
-          SHRIMP_THREADS_USER_ID: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_THREADS_USER_ID || '' }}
           # caffaine：只有 matrix.channel == 'caffaine' 的 job 才拿得到 CAFFAINE_*，其他頻道的 job 這幾格是空字串
           CAFFAINE_IG_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN || '' }}
           CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO || '' }}

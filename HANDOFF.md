@@ -1,9 +1,9 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 2026-11-09 多頻道自動發文：tech／shrimp／caffaine 建好（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
-- 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、shrimp 08:43／10:13、caffaine 19:13／20:43（台北）。
-- 開關：tech、caffaine live=true（佇列空、權杖未設 → 空跑）；shrimp live=false（還在用 Buffer，切換前要先停 Buffer 排程，等 Andy 決定）。
-- 留言私訊 scripts/healing_comments.py --channel＋channel_comments.yml；新三頻道 dm_config enabled=false（Andy 未定私訊內容）。續期 meta_token_refresh 加 TECH／SHRIMP／CAFFAINE，Threads 續期失敗有 THREADS_APP_SECRET 就換長效。
+## 2026-11-09 多頻道自動發文：tech／caffaine 建好（水下蝦米不接）（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
+- 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、caffaine 19:13／20:43（台北）。
+- 開關：tech、caffaine live=true（佇列空）。水下蝦米：Andy 11-09「Shrimp_01010909 不用」→ 不接，繼續用 Buffer（清單、工作流、續期都沒有它）。
+- 留言私訊 scripts/healing_comments.py --channel＋channel_comments.yml；新三頻道 dm_config enabled=false（Andy 未定私訊內容）。續期 meta_token_refresh 加 TECH／CAFFAINE，Threads 續期失敗有 THREADS_APP_SECRET 就換長效。
 - ⚠ 待決：② 科技透明圈另有 tc_post.yml（TC_* 權杖、social/tc/queue/），跟 tech（TECH_*）是同一個帳號，之後只能選一條放貼文。說明 docs/marketing/channels/auto_post_all.md 第 8 節。
 - 這批驗了：pytest 全套＋新增 tests/test_channel_post.py；雲端 channel_post.yml 各頻道 dry_run 一次、healing_post.yml dry_run 一次。
 ## 2026-11-09 會員通知：站主給的體驗／方案升級，登入時跳通知（Andy：「同意部署會員後端：發放體驗時通知會員」）

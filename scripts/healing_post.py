@@ -735,7 +735,7 @@ def channel(code: str, path: Path = CHANNELS_FILE) -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="頻道自動發文（預設頻道④談晴說礙；--channel 換頻道）")
-    ap.add_argument("--channel", default="healing", help="channels.json 的頻道代碼（healing／tech／shrimp／caffaine）")
+    ap.add_argument("--channel", default="healing", help="channels.json 的頻道代碼（healing／tech／caffaine）")
     ap.add_argument("--dry-run", action="store_true", help="只印出會發什麼，不呼叫任何 Meta 端點、不寫 state")
     ap.add_argument("--prepare", action="store_true", help="把佇列裡缺的 n.jpg 從 n.png 轉出來（IG 只收 JPEG）")
     ap.add_argument("--mode", default="post", choices=["post", "verify", "delete", "test_delete"],

@@ -1,5 +1,0 @@
-{
- "live": false,
- "per_day": 1,
- "note": "2026-11-09：水下蝦米目前用 Buffer（api.buffer.com）在發文，兩邊同時開會重複貼文，所以先關。要切到本管線：先到 Buffer 停掉（暫停）水下蝦米的排程，再把 live 改成 true。等 Andy 決定。說明：docs/marketing/channels/auto_post_all.md 第 5 節"
-}

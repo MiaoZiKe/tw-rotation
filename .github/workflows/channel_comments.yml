@@ -11,7 +11,7 @@ on:
       channel:
         description: "哪個頻道（all＝dm_config 開著的全部）"
         type: choice
-        options: [all, tech, shrimp, caffaine]
+        options: [all, tech, caffaine]
         default: all
       dry_run:
         description: "空跑（true＝只讀留言、印出會做什麼，不私訊、不寫紀錄；false＝真的私訊）"
@@ -66,9 +66,6 @@ jobs:
           TECH_IG_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN || '' }}
           TECH_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN_AUTO || '' }}
           TECH_IG_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_IG_USER_ID || '' }}
-          SHRIMP_IG_ACCESS_TOKEN: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN || '' }}
-          SHRIMP_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_ACCESS_TOKEN_AUTO || '' }}
-          SHRIMP_IG_USER_ID: ${{ matrix.channel == 'shrimp' && secrets.SHRIMP_IG_USER_ID || '' }}
           CAFFAINE_IG_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN || '' }}
           CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO || '' }}
           CAFFAINE_IG_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_USER_ID || '' }}
