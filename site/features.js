@@ -325,6 +325,18 @@
     { id: 'risk.flag', name: '風險警示牌（注意股／處置股）', cat: 'global', def: true, kind: 'bool',
       desc: '個股頁注意／處置警示條、自選清單角標、族群頁「N 檔處置中／注意」計數（交易所公告，上市＋上櫃）',
       qnote: '風險警示牌需開通', route: /^#(stock\/|watch|industry\/group\/)/, veil: [], mark: [], block: [] },
+    /* ★ 2026-11-09（P-1107-04 族群同業估值位階，Andy 點頭「02 05 03 04 06」；site/peerval.js，資料 data/peer_val.json）：
+       group.peerval＝族群頁（#industry/group/<gid>）族群總覽下面的位階表 #pvCard（本益比／淨值比／殖利率／營收 YoY／自身歷史，每格分位條、可排序）；
+       stock.peerval＝個股頁總覽三欄卡片下面的小卡 #pvStock（「在○○族群同業中：本益比位於第 N 百分位」）。
+       提案建議層級：註冊會員全開（它是「結論」，結論免費）；Plus 的匯出 CSV／自訂欄位是下一批。照 11-02 規則四個方案都寫值：
+       訪客每日 3 次（limBy guest；族群表＝每個族群算一次、個股卡＝每一檔算一次，同一天重看不重算）、註冊會員／Plus／Pro 不限。
+       用完：表／卡反灰＋一行字（qnote），不跳大卡。體驗額度不預設（不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單）。*/
+    { id: 'group.peerval', name: '族群同業估值位階表', cat: 'industry', def: true, kind: 'bool', limBy: { guest: 3 },
+      desc: '族群頁的同業估值位階表：本益比、淨值比、殖利率、營收 YoY、自身歷史本益比，每格分位條、可排序（每個族群算一次）',
+      qnote: '族群估值位階表今日 {n} 次已用完・免費註冊即可不限次數', route: /^#industry\/group\//, veil: [['#pvCard']], mark: [], block: [] },
+    { id: 'stock.peerval', name: '個股頁：同業估值位階小卡', cat: 'stocktab', def: true, kind: 'bool', limBy: { guest: 3 },
+      desc: '個股頁總覽「在○○族群同業中：本益比位於第 N 百分位」小卡（每一檔算一次）',
+      qnote: '同業估值位階今日 {n} 次已用完・免費註冊即可不限次數', route: /^#stock\//, veil: [['#pvStock']], mark: [], block: [] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       /* 2026-10-10：手機帳號選單的「版面風格」三格（acctm4.js，只在 html.m4 畫）也照這個開關上鎖；那幾個節點桌機不存在，桌機不受影響 */
       veil: [], mark: ['#acctMenu .m4styrow > .t'], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button', '#acctMenu [data-m="sty"]'] },

@@ -1,0 +1,15 @@
+/* 族群同業估值位階（site/peerval.js，2026-11-09）手機規則：全部包在 ≤640，不動桌機 */
+@media (max-width:640px){
+  .pvcard{padding:10px 12px 8px}
+  .pvscroll{max-height:none;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+  .pvtbl{font-size:12.5px}
+  .pvtbl .pvnm{position:sticky;left:0;z-index:1;background:var(--panel-3);min-width:96px}
+  .pvtbl thead th:first-child{left:0;z-index:3}
+  .pvcard .pvlegend{display:none}
+  .pvbar{width:48px}
+  .pvv{min-width:36px;margin-right:4px}
+  .pvstock{padding:10px 12px}
+  .pvstock .pvsline{font-size:13.5px}
+  .pvstock .pvminis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pvstock .pvgo{margin-left:0}
+}

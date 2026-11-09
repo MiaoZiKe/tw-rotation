@@ -65,6 +65,9 @@
      portfolio.exposure 四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限（同 mkt.credit 口徑，單位＝一次造訪）。
      portfolio.size：訪客 5、註冊會員 10、Plus 30、Pro 50 檔；portfolio.import：訪客／註冊會員 false、Plus／Pro true（提案：用「省時間」分層，不用資料量分）。
      持股只存在使用者自己的瀏覽器，沒有雲端同步鍵。不在 GRANT_BAN，exposure 會出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
+   · ★ 2026-11-09（Andy 點頭 P-1107-04「02 05 03 04 06」）：新鍵 group.peerval（族群頁同業估值位階表）、stock.peerval（個股頁同業估值位階小卡）
+     四個方案都開；每日次數 訪客 3、註冊會員／Plus／Pro 不設＝不限（提案建議層級：註冊會員全開，「結論免費」；Plus 匯出 CSV 下一批）。
+     features.js 的 limBy 也寫了訪客 3，按「套用建議方案」之前就照這個跑。不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -94,6 +97,8 @@ window.TW_PLAN_PRESETS = {
     "portfolio.exposure": true,
     "portfolio.size": 5,
     "portfolio.import": false,
+    "group.peerval": true,
+    "stock.peerval": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -201,6 +206,8 @@ window.TW_PLAN_PRESETS = {
     "ov.fear": 3,
     "share.card": 3,
     "portfolio.exposure": 3,
+    "group.peerval": 3,
+    "stock.peerval": 3,
     "mkt.fut": 3,
     "ov.advdec.tiles": 3,
     "mkt.inst.day": 3,
@@ -246,6 +253,8 @@ window.TW_PLAN_PRESETS = {
     "portfolio.exposure": true,
     "portfolio.size": 10,
     "portfolio.import": false,
+    "group.peerval": true,
+    "stock.peerval": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -412,6 +421,8 @@ window.TW_PLAN_PRESETS = {
     "portfolio.exposure": true,
     "portfolio.size": 30,
     "portfolio.import": true,
+    "group.peerval": true,
+    "stock.peerval": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -550,6 +561,8 @@ window.TW_PLAN_PRESETS = {
     "portfolio.exposure": true,
     "portfolio.size": 50,
     "portfolio.import": true,
+    "group.peerval": true,
+    "stock.peerval": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,

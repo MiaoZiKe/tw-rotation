@@ -5577,6 +5577,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="flowcheck.css"><link rel="stylesheet" href="flowcheck3.css"><link rel="stylesheet" href="flowcheck4.css"><!-- 2026-10-30 流向驗證頁 #flowcheck（手機規則在 m4/20261030-flowcheck.css） -->
 <link rel="stylesheet" href="fearcard.css"><!-- 2026-11-06 總覽恐慌指數卡（site/fearcard.js） -->
 <link rel="stylesheet" href="riskflag.css"><!-- 2026-11-09 風險警示牌：注意股／處置股（site/riskflag.js；手機規則在 m4/20261109-riskflag.css） -->
+<link rel="stylesheet" href="peerval.css"><!-- 2026-11-09 族群同業估值位階（site/peerval.js；手機規則在 m4/20261109-peerval.css） -->
 <link rel="stylesheet" href="mobile4.css">
 <!-- m4:css 開始（scripts/m4_css_links.py 依 site/m4/*.css 檔名排序產生，不要手改；合併撞到這段就重跑那支） -->
 <link rel="stylesheet" href="m4/20261016-01-card-frame.css">
@@ -5630,6 +5631,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261104-channels.css">
 <link rel="stylesheet" href="m4/20261106-fearcard.css">
 <link rel="stylesheet" href="m4/20261109-channel-scores.css">
+<link rel="stylesheet" href="m4/20261109-peerval.css">
 <link rel="stylesheet" href="m4/20261109-portfolio.css">
 <link rel="stylesheet" href="m4/20261109-riskflag.css">
 <link rel="stylesheet" href="m4/20261109-sharecard.css">
@@ -6263,6 +6265,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <link rel="stylesheet" href="advdec.css"><script src="advdec.js"></script><!-- 2026-11-06 漲跌家數卡的族群字卡檢視（要早於 app.js：renderUpDown 會呼叫 AdvDec） -->
 <script src="fearcard.js"></script><!-- 2026-11-06 總覽摘要卡「恐慌指數」（台指選擇權隱含波動率・本站自算＋美股 VIX）；app.js 的 renderOvSummary 會叫它，所以放在前面 -->
 <script src="riskflag.js"></script><!-- 2026-11-09 風險警示牌（P-1107-02）：個股頁注意／處置警示條、自選角標、族群頁計數；資料 data/risk_flags.json -->
+<script src="peerval.js"></script><!-- 2026-11-09 族群同業估值位階（P-1107-04）：族群頁位階表 #pvCard、個股頁小卡 #pvStock；資料 data/peer_val.json -->
 <script src="app.js"></script>
 <script src="theme4.js"></script>
 <!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->

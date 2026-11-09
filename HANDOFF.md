@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 族群同業估值位階（P-1107-04，Andy 點頭「02 05 03 04 06」）
+- 做了：族群頁（#industry/group/<gid>）族群卡最下面一張「同業估值位階」表（本益比／淨值比／殖利率／營收 YoY／自身歷史本益比，每格分位條、點欄名排序、族群中位數列）；個股頁總覽三欄卡下面小卡「在○○族群同業中：本益比位於第 N 百分位」＋三格，多族群可切換。
+- 資料：compute/peerval.py → site/data/peer_val.json（不新增來源；讀 fundamental 列＋explore.json）。口徑 docs/peer_valuation.md（同業百分位＝比它低的占比，跟基本面卡同公式；<5 檔不算；虧損、失真本益比不排名）。
+- 功能鍵 group.peerval／stock.peerval：訪客每日 3、註冊會員以上不限；公告 f-20261109-peer-val。
+- 下一步：Plus 匯出 CSV／自訂欄位（提案的付費層）；金融族群本益比欄跟基本面卡（淨值比口徑）分位不同，若 Andy 覺得混淆可改成依 valuation_metric 換主欄。
+- 這批驗了：pytest 全部（2012 過、1 xfail；新增 tests/test_peerval.py 8 項）、_uitest `族群估值位階1109`（0，連跑 3 次）、`桌機守門1008`（0；基準只多一個 #pvStock，見 commit 訊息）、`族群頁`、`個股`、`新-產業與個股`、`新功能次數1102`、`體驗全選`、`體驗上限`、`風險警示牌1109`（皆 0）、`_preview.py`（只剩本機舊 site/data 缺 data/bigsmall/_index.json 的 404）。`會員權限開關` 2 紅、`功能公告1019` 5 紅都是 main 上既有（f-20261101-member-trial 標題 44 字、下拉只列前 20 則等），本批新公告標題 22 字已不在名單內。
+
 ## 2026-11-09 風險警示牌：注意股／處置股（P-1107-02，Andy 點頭「02 05 03 04 06」）
 - 做了：個股頁琥珀色警示條（處置中／即將處置／注意股＋近 10 個交易日被列注意 N 次）、自選清單角標、族群頁「本族群 N 檔處置中／注意」。上市＋上櫃（四支官方 OpenAPI 都實測 200）。
 - 資料湖 risk_notice／risk_punish（sources/risk.py、compute/risk.py → site/data/risk_flags.json），daily 15:30 與傍晚輪抓。湖從 11-09 起才有，「近 10 個交易日」要到 11-20 左右才滿 10 天（畫面會寫「本站自 M/D 起記錄」）。

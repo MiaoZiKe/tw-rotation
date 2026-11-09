@@ -22,6 +22,7 @@ from .compute import mktfut as mktfut_c
 from .compute import futures_page
 from .compute import ivx as ivx_c
 from .compute import risk as risk_c
+from .compute import peerval as peerval_c
 from .compute import lab as lab_compute
 from .compute import analysis, digest, earnings, etf, etf_holdings, flow, flowcheck, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
@@ -629,6 +630,18 @@ def build() -> None:
                                     shareholding=sh_all, deep=deep,
                                     price_adj=price_adj, shares=shares, actions=actions)
     _write("candidates", shortlist(cand_rows))
+    # 族群同業估值位階（P-1107-04，2026-11-09）：族群頁位階表＋個股頁小卡共用。只讀已算好的 fundamental 列與
+    # candidates() 剛寫出的 explore.json（殖利率、自己的歷史本益比位置），不多抓任何資料。口徑見 compute/peerval.py。
+    try:
+        _exp = json.loads((config.SITE_DATA / "explore.json").read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        _exp = None
+    try:
+        _write("peer_val", peerval_c.build_json(fund_rows, _exp, loader.membership(include_overlay=True),
+                                                company=company, ind_names=loader.ind_names(), asof=latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("族群同業估值位階產出失敗（只影響族群頁位階表與個股頁小卡）：%s", exc)
+        _write("peer_val", {"v": 1, "asof": latest, "groups": {}, "stocks": {}, "note": str(exc)})
     gdetail = group_detail(price, company, inst, latest, cand_rows, names, markets)
     _write("groups_detail", gdetail)
     odetail = overlay_detail(price, inst, latest, cand_rows, names, markets)   # 疊加族群（矽光子／CPO）成員，不進 groups_detail
