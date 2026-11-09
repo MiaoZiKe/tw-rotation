@@ -47,8 +47,12 @@ def green_facts(today=TODAY, expected=TODAY):
         "lake": {"price_daily": expected, "inst_daily": expected, "margin_total": expected},
         "snaps_posted": {f"close-{today}": {"threads": {"id": "1", "link": "https://threads.com/p/1"},
                                             "story": []}},
-        "quota": {"live": {"close": {"threads": True}}, "healing": {"live": True}, "tc": {"enabled": True}},
-        "healing_posted": {f"healing-{today}": {"link": "https://threads.com/p/2"}},
+        "quota": {"live": {"close": {"threads": True}}, "tc": {"enabled": True}},
+        "healing_quota": {"live": True, "per_day": 1},
+        "healing_queue": [{"slug": "20261108_intro", "status": "approved", "platforms": ["ig", "threads"],
+                           "publish_at": None}],
+        "healing_posted": {"20261108_intro": {"ig": {"link": "https://ig.example/1"},
+                                              "threads": {"link": "https://threads.example/1"}}},
         "tc_queue": [],
         "tc_posted": {},
         "meta": {"updated_at": f"{today}T03:00:00+00:00",
@@ -137,9 +141,43 @@ def test_before_deadline_is_pending_not_red():
 
 def test_disabled_is_not_failure():
     f = green_facts()
-    f["quota"] = {"live": {"close": {"threads": True}}, "tc": {"enabled": True}}  # 沒有 healing
+    f["healing_quota"] = {"live": False}  # 整個停發
     items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T19:00:00")))
     assert items["healing"]["status"] == "disabled"
+
+
+def test_healing_approved_due_but_not_posted_is_red():
+    # 20:27 的時段已到、核准稿沒發（只有 ig 有紀錄，threads 缺）→ 21:40 紅燈
+    f = green_facts()
+    f["healing_queue"].append({"slug": "20261109_second", "status": "approved", "platforms": ["ig", "threads"],
+                               "publish_at": None})
+    f["healing_posted"]["20261109_second"] = {"ig": {"link": "https://ig.example/2"}}
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
+    assert items["healing"]["status"] == "fail"
+    assert "20261109_second" in items["healing"]["gates"]["publish"]["why"]
+    assert items["healing"]["remedy"]["inputs"] == {"mode": "post", "dry_run": "false"}
+
+
+def test_healing_future_publish_at_is_not_due():
+    f = green_facts()
+    f["healing_queue"] = [{"slug": "20261110_x", "status": "approved", "platforms": ["ig"],
+                           "publish_at": "2026-11-10T20:27+08:00"}]
+    f["healing_posted"] = {}
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
+    assert items["healing"]["status"] == "ok"
+
+
+def test_tc_draft_is_not_red_but_approved_due_is():
+    f = green_facts()
+    f["tc_queue"] = [{"slug": "20261110_quanta", "status": "draft", "scheduled_at": "2026-11-10T20:30+08:00",
+                      "file": "x"}]
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
+    assert items["tc"]["status"] == "ok"
+    f["tc_queue"] = [{"slug": "20261108_x", "status": "approved", "scheduled_at": "2026-11-08T20:30+08:00",
+                      "file": "x"}]
+    f["tc_posted"] = None  # 紀錄檔不存在＝查不到
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
+    assert items["tc"]["status"] == "fail"
 
 
 def test_remedy_only_once_per_day():

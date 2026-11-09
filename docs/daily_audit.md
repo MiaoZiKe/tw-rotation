@@ -35,12 +35,12 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 | 盤後消息 | 交易日 | 21:40 | daily.yml 今天 15:00 後有成功 | `postmarket.json` 的日期＝今天 | 網站兩站包含最新 commit |
 | 每日資料更新 | 每天（看應有日） | 交易日 18:40 | daily.yml 應有日 15:00 後有成功 | 價量／法人／融資券最新日＝應有日；`last_run.json` 沒有錯誤；`source_health` 沒有來源連續失敗 2 天以上 | 網站兩站包含最新 commit |
 | 頻道①盤後主貼文 | 交易日（quota 的 close 開著才檢查） | 18:20 | social-live 今天 15:00 後有成功 | social-snaps `state/posted.json` 有 `close-<今天>` | 有發布網址（threads.link 或 story.link） |
-| 頻道②科技透明圈 | 每天（排定時間到了才要發） | 排定時間＋30 分鐘 | tc_post.yml 今天有成功 | approved 且已到時間的稿，`post.md` 狀態是 posted | `state/tc/posted.json` 有該稿紀錄 |
-| 頻道④談晴說礙 | 每天（quota 的 healing.live＝true 才檢查） | 21:40 | healing_post.yml 今天有成功 | healing 發布紀錄有今天 | 有發布紀錄 |
+| 頻道②科技透明圈 | 每天（只看 approved 且排定時間已過 30 分鐘的稿；draft 不算） | 排定時間＋30 分鐘 | tc_post.yml 今天有成功 | approved 且已到時間的稿，`post.md` 狀態是 posted | main 的 `state/tc/posted.json` 有該稿紀錄（tc_post.yml 直接 commit 到 main） |
+| 頻道④談晴說礙 | 每天（只看 `docs/marketing/channels/healing/post_quota.json` 的 `live` 是 true；false＝整個停發，未啟用） | 21:40 | healing_post.yml 今天有成功 | 佇列 `queue/*/meta.json` 是 approved 且 publish_at（null＝當天 20:27 時段）已到 | `healing/state/posted.json` 每個平台都有該資料夾紀錄且未被刪 |
 | Meta 權杖 | 每天 | 無（即時） | `meta_token.json` 兩天內有更新 | 各平台 ok 且剩餘 7 天以上 | 不適用 |
 | 網站部署 | 每天 | 無（即時） | pages.yml 兩天內有成功 | 資料日同上 | GitHub Pages＋Cloudflare 都包含最新 commit，主站不比備援舊 |
 
-**目前的開關狀態**（以 `docs/marketing/social_unit/post_quota.json` 為準）：頻道①盤後主貼文開著；頻道④談晴說礙尚未設定 `healing.live`，會顯示「未啟用」；頻道②科技透明圈 `tc.enabled` 是 true。
+**目前的開關狀態**：頻道①盤後主貼文看 `docs/marketing/social_unit/post_quota.json` 的 `live.close`；頻道②看同一檔的 `tc.enabled`；頻道④看 `docs/marketing/channels/healing/post_quota.json` 的 `live`（頻道④自己的開關，跟頻道①無關）。
 
 ## 排程（UTC 寫在 cron，台北時間是 +8）
 
@@ -66,7 +66,8 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 | 頻道①盤後主貼文 | `social-live.yml` kind=close、dry_run=false（**只有 post_quota 的 close 開著才會走到這裡**，被降量關掉的時段不補發） |
 | 網站部署 | `pages.yml`（`--ref main`） |
 | Meta 權杖 | `meta_token_refresh.yml` |
-| 頻道②、頻道④ | **沒有自動補救**。頻道②的 tc_post 只發 approved 稿，沒有可以安全重派的入口；頻道④尚未開。這兩項失敗時 CEO 要人工處理，不准只寫「沒發」。 |
+| 頻道④談晴說礙 | `healing_post.yml` mode=post、dry_run=false（已發的平台由 posted.json 擋重發） |
+| 頻道② | **沒有自動補救**。tc_post 只發 approved 稿，沒有可以安全重派的入口；失敗時 CEO 要人工處理，不准只寫「沒發」。 |
 
 ## 紅燈的樣子
 
@@ -86,8 +87,8 @@ python -m pytest tests/test_daily_audit.py -q                  # 測試（全部
 ## 已知限制（照實寫）
 
 1. 「內容對不對」只看**日期、筆數、空值、來源連續失敗**。不判斷數字本身對不對（數字對不對是 `_uitest`、官方比對 `crosscheck` 的事）。
-2. 頻道②的「執行」與「內容」用的是同一份證據（`post.md` 狀態）；`state/tc/posted.json` 放在 social-snaps 分支，**如果那個檔不存在，關卡三會顯示「發布紀錄查不到」而紅燈**，這是刻意的，不准把查不到當成綠。
-3. 頻道④還沒有開，`healing_posted` 的比對方式是「紀錄裡有今天的日期字串」。開通時要對照實際格式再確認。
+2. 頻道②的「執行」與「內容」用的是同一份證據（`post.md` 狀態）；發布紀錄是 main 的 `state/tc/posted.json`。**如果那個檔不存在，已到時間的 approved 稿會紅燈**，這是刻意的，不准把查不到當成綠。draft 稿不會紅。
+3. 頻道④的發布紀錄格式以 `scripts/healing_post.py` 為準（`posted[資料夾][平台]`）；目前 posted.json 是空的，所以今晚 20:27 的首篇（20261108_intro）若沒發，21:40 會紅燈並自動補救一次。
 4. 盤後消息的截止時間 21:40 是本稽核的規定，不是該檔案的實際產出時間；若實測發現產出時間更晚，改這裡的常數並記下樣本數。
 5. 補救是派出 workflow，**派出不等於做完**；下一輪稽核才是證據。
 6. 網站兩站的比對用的是 GitHub Deployments 與 pages.yml 的 Cloudflare 步驟結果；Cloudflare 那一步有 `continue-on-error`，所以「步驟 success」才算數，不能只看整個 run。

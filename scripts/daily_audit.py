@@ -47,8 +47,12 @@ METATOKEN_FILE = ROOT / "data" / "_state" / "meta_token.json"
 LAST_RUN_FILE = ROOT / "data" / "_state" / "last_run.json"
 SOURCE_HEALTH_FILE = ROOT / "data" / "_state" / "source_health.json"
 QUOTA_FILE = ROOT / "docs" / "marketing" / "social_unit" / "post_quota.json"
-HEALING_POSTED_FILE = ROOT / "docs" / "marketing" / "channels" / "healing" / "state" / "posted.json"
+HEALING_DIR = ROOT / "docs" / "marketing" / "channels" / "healing"
+HEALING_QUOTA_FILE = HEALING_DIR / "post_quota.json"      # 頻道④自己的開關（不是頻道①的 post_quota）
+HEALING_QUEUE_DIR = HEALING_DIR / "queue"
+HEALING_POSTED_FILE = HEALING_DIR / "state" / "posted.json"  # 格式：{資料夾: {平台: {...}}}，deleted 代表已刪
 TC_QUEUE_DIR = ROOT / "social" / "tc" / "queue"
+TC_POSTED_FILE = ROOT / "state" / "tc" / "posted.json"    # tc_post.yml 直接 commit 到 main 的 state/tc/
 ISSUE_TITLE = "⚠️ 每日稽核：有項目沒完成"
 
 PRICE_CLOSE = time(15, 30)       # 台股收盤後，價量才會有當天
@@ -155,7 +159,10 @@ def collect_facts(now: datetime, holidays: set[str], gh) -> dict:
     f["meta"] = _read_json(METATOKEN_FILE)
     f["quota"] = _read_json(QUOTA_FILE)
     f["healing_posted"] = _read_json(HEALING_POSTED_FILE)
+    f["healing_quota"] = _read_json(HEALING_QUOTA_FILE)
+    f["healing_queue"] = _read_healing_queue()
     f["tc_queue"] = _read_tc_queue()
+    f["tc_posted"] = _read_json(TC_POSTED_FILE)  # 找不到＝None＝查不到，不是空紀錄
 
     # 資料湖最新日（pipeline 只在 CI／本機有 pandas 時讀；讀不到就是 None＝查不到）
     f["lake"] = {}
@@ -168,7 +175,6 @@ def collect_facts(now: datetime, holidays: set[str], gh) -> dict:
 
     # 社群發布紀錄（在 social-snaps 分支）
     f["snaps_posted"] = _gh_json_or_none(gh, "state/posted.json")
-    f["tc_posted"] = _gh_json_or_none(gh, "state/tc/posted.json")
 
     # 網站部署：GitHub Pages ＋ Cloudflare 主站
     f["site"] = collect_site(gh)
@@ -180,6 +186,15 @@ def _read_json(p: Path):
         return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+
+
+def _read_healing_queue() -> list[dict]:
+    out = []
+    for p in sorted(HEALING_QUEUE_DIR.glob("*/meta.json")) if HEALING_QUEUE_DIR.exists() else []:
+        m = _read_json(p) or {}
+        out.append({"slug": p.parent.name, "status": m.get("status", ""),
+                    "platforms": list(m.get("platforms") or []), "publish_at": m.get("publish_at")})
+    return out
 
 
 def _read_tc_queue() -> list[dict]:
@@ -402,15 +417,50 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
         remedy={"action": "dispatch", "workflow": "social-live.yml",
                 "inputs": {"kind": "close", "dry_run": "false", "force": "false"}})
 
-    # 頻道④談晴說礙：quota 的 healing.live 為真才算；沒設就是未啟用
-    heal_on = bool((quota.get("healing") or {}).get("live"))
+    # 頻道④談晴說礙：healing 自己的開關（live 必須是 true，否則整個停發＝未啟用）。
+    # 今天該發的 ＝ 佇列裡 status: approved，且 publish_at（null＝當天 20:27 的時段）已到。
+    # 發布紀錄 ＝ healing/state/posted.json 的 {資料夾: {平台: {...}}}，每個平台都要有紀錄且沒被刪。
+    heal_on = (f.get("healing_quota") or {}).get("live") is True
     hp = f.get("healing_posted")
-    today_heal = [] if not isinstance(hp, dict) else [k for k, v in hp.items() if f["today"] in json.dumps({k: v}, ensure_ascii=False)]
-    finish("healing", "頻道④談晴說礙（每天 1 則）", True, at_tpe(today, time(21, 40)), {
-        "run": run_gate(f["runs"].get("healing_post.yml") or [], today_start, "healing_post"),
-        "content": gate(bool(today_heal), "healing 發布紀錄有今天" if today_heal else "healing 發布紀錄沒有今天"),
-        "publish": gate(bool(today_heal), "有發布紀錄即視為已發布"),
-    }, disabled=None if heal_on else "未啟用（post_quota.json 沒有 healing.live＝true，不是失敗）")
+    heal_due = []
+    for q in f.get("healing_queue") or []:
+        if q["status"] != "approved":
+            continue
+        due_at = _parse_ts(q.get("publish_at")) or at_tpe(today, time(20, 27))
+        if now >= due_at:
+            heal_due.append(q)
+
+    def _posted_ok(slug: str, plat: str) -> bool:
+        rec = ((hp or {}).get(slug) or {}).get(plat) if isinstance(hp, dict) else None
+        return bool(rec) and not rec.get("deleted")
+
+    if not heal_due:
+        heal_gates = {"run": gate(True, "沒有已到時間的核准稿，不需要發"), "content": gate(True, "無"),
+                      "publish": gate(True, "無")}
+    elif hp is None:
+        heal_gates = {"run": run_gate(f["runs"].get("healing_post.yml") or [], today_start, "healing_post"),
+                      "content": gate(None, "查不到 healing/state/posted.json"),
+                      "publish": gate(None, "查不到發布紀錄")}
+    else:
+        unposted = [f"{q['slug']}（缺 {'、'.join(p for p in q['platforms'] if not _posted_ok(q['slug'], p))}）"
+                    for q in heal_due if any(not _posted_ok(q["slug"], p) for p in q["platforms"])]
+        links = []
+        for q in heal_due:
+            for p in q["platforms"]:
+                rec = ((hp or {}).get(q["slug"]) or {}).get(p) or {}
+                if rec.get("link"):
+                    links.append(rec["link"])
+        heal_gates = {
+            "run": run_gate(f["runs"].get("healing_post.yml") or [], today_start, "healing_post"),
+            "content": gate(all(q["platforms"] for q in heal_due),
+                            "已到時間的核准稿：" + "、".join(q["slug"] for q in heal_due), [str(HEALING_QUEUE_DIR.name)]),
+            "publish": gate(not unposted, "未發布：" + "、".join(unposted) if unposted else "各平台都有發布紀錄",
+                            links[:3]),
+        }
+    finish("healing", "頻道④談晴說礙（核准稿到時間就要發）", True, at_tpe(today, time(21, 40)), heal_gates,
+           disabled=None if heal_on else "未啟用（healing/post_quota.json 的 live 不是 true，整個停發，不是失敗）",
+           remedy={"action": "dispatch", "workflow": "healing_post.yml",
+                   "inputs": {"mode": "post", "dry_run": "false"}})
 
     # 頻道②科技透明圈：approved 且排定時間已過 30 分鐘，就必須是 posted
     tc_on = bool((quota.get("tc") or {}).get("enabled"))
@@ -424,7 +474,7 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
             due_tc.append(p["slug"] + "（scheduled_at 格式錯）")
             continue
         (due_tc if now >= sched + TC_GRACE else pending_tc).append(p["slug"])
-    tc_posted_ids = f.get("tc_posted") or {}
+    tc_posted_ids = f.get("tc_posted") if f.get("tc_posted") is not None else {}
     tc_content_bad = due_tc
     if not due_tc and not pending_tc:
         tc_gates = {"run": gate(True, "沒有核准待發的稿，不需要發"), "content": gate(True, "無"),
