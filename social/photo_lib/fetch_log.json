@@ -1,9 +1,7 @@
 {
- "at": "2026-11-09T02:41:15+00:00",
- "ok": 107,
- "miss": [
-  "nvidia_people"
- ],
+ "at": "2026-11-09T02:45:11+00:00",
+ "ok": 108,
+ "miss": [],
  "items": [
   {
    "slug": "tsmc",
@@ -742,9 +740,9 @@
   },
   {
    "slug": "nvidia_people",
-   "ok": false,
-   "total": 0,
-   "added": 0,
+   "ok": true,
+   "total": 13,
+   "added": 13,
    "reviewed": 0
   },
   {
