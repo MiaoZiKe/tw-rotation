@@ -71,9 +71,46 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 0,
+  "rows_added": 2,
   "signal_rows_added": 0,
-  "data_last": "2026-11-06",
+  "data_last": "2026-11-09",
+  "watch_top": [
+   {
+    "rank": 1,
+    "code": "6179",
+    "name": "亞通",
+    "group": "ind_其他",
+    "score": 97.3
+   },
+   {
+    "rank": 2,
+    "code": "3498",
+    "name": "陽程",
+    "group": "pkg_equipment",
+    "score": 94.1
+   },
+   {
+    "rank": 3,
+    "code": "3147",
+    "name": "大綜",
+    "group": "ind_資訊服務業",
+    "score": 87.9
+   },
+   {
+    "rank": 4,
+    "code": "2221",
+    "name": "大甲",
+    "group": "ind_其他",
+    "score": 87.9
+   },
+   {
+    "rank": 5,
+    "code": "6245",
+    "name": "立端",
+    "group": "switch_wireless",
+    "score": 87.3
+   }
+  ],
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -85,5 +122,5 @@
    "tomorrow_candidates": []
   }
  },
- "generated": "2026-11-09T09:33Z"
+ "generated": "2026-11-09T10:21Z"
 }
