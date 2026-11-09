@@ -12,6 +12,11 @@
     "news":   {"threads": false, "ig": false},
     "manual": {"threads": true,  "ig": true}
   },
+  "ig": {
+    "_note": "Andy 11-09：同意，四項改動全部照改。IG 停自動純圖文，改每週 2 支 15～30 秒短影片（scripts/ig_reels_weekly.py，每週二、四 20:00 台北，工作流程 ig_reels_weekly.yml）。reels_weekly＝總開關；reels_need_review＝true 時只產 draft 佇列檔、不自動發（第一支正式發布前 CEO 先看樣片，看完改 false 才會自動發）。",
+    "reels_weekly": true,
+    "reels_need_review": true
+  },
   "tc": {
     "note": "2026-11-08 頻道②「科技透明圈」（Andy：「開通自動發文，這部分幫我想辦法自動化」）。scripts/tc_post.py 只發 social/tc/queue/ 裡 Andy 核准（status: approved）的稿；沒有 approved 稿就什麼都不做。權杖只用 TC_*，跟頻道一完全分開。說明：docs/marketing/channels/tc/autopost.md",
     "enabled": true,

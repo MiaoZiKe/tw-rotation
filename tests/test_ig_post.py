@@ -99,3 +99,14 @@ def test_repo_queue_valid():
         errs = ip.validate(meta, cap)
         if meta["status"] == "approved":
             assert errs == [], (f.name, errs)
+
+
+def test_reel_video_field(tmp_path):
+    (tmp_path / "a.mp4").write_bytes(b"x")
+    d = "---\nstatus: approved\npublish_at: 2026-10-26T11:00+08:00\ntitle: t\nvideo: a.mp4\n---\n說明 #哩股哩股\n"
+    meta, cap = ip.parse(d)
+    assert ip.validate(meta, cap, root=tmp_path) == []
+    meta["video"] = "nope.mp4"
+    assert any("找不到影片檔" in e for e in ip.validate(meta, cap, root=tmp_path))
+    meta["video"] = "a.mov"
+    assert any("不是 mp4" in e for e in ip.validate(meta, cap, root=tmp_path))

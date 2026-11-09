@@ -1,0 +1,96 @@
+name: IG 每週短影片
+
+# 2026-11-09 Andy 同意：IG 停自動純圖文，改每週 2 支 15～30 秒短影片（Reels）。
+# 每週二、四 20:00（台北）＝ UTC 12:00：選題 → 逐幀算圖 → 重疊／停格檢查 → 寫佇列檔 → 發到 IG。
+# 開關：docs/marketing/social_unit/post_quota.json 的 ig.reels_weekly（false＝略過）；
+#       ig.reels_need_review＝true 時只產 draft 佇列檔與影片（不發），第一支正式發布前由 CEO 看樣片，看完改 false。
+# 重疊或停格沒過＝不出片、流程失敗（GitHub 會通知）；影片與報告另存成 artifact 供檢視。
+on:
+  schedule:
+    - cron: "0 12 * * 2,4"
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "指定題庫 id（reels_bank.json），留空＝自動選題"
+        type: string
+        default: ""
+
+concurrency:
+  group: social-post-ig        # 與 ig_post.yml 同一把鎖，避免兩邊同時寫 queue
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            scripts
+            docs/marketing/social_unit
+            social
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝字型與套件
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk ffmpeg
+          pip install -q pillow numpy
+
+      - name: 產影片（含重疊與停格檢查）
+        id: gen
+        env:
+          IN_TOPIC: ${{ inputs.topic }}
+        run: |
+          mkdir -p social/ig/reels
+          args=""
+          if [ -n "$IN_TOPIC" ]; then args="--topic $IN_TOPIC"; fi
+          python scripts/ig_reels_weekly.py --out social/ig/reels $args | tee /tmp/gen.log
+          if grep -q "降量模式：略過" /tmp/gen.log; then echo "skipped=1" >> "$GITHUB_OUTPUT"; fi
+          f=$(ls -t social/ig/queue/*_reel-*.md 2>/dev/null | head -1)
+          echo "queue_file=$(basename "$f")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gen.outputs.skipped != '1'
+        with:
+          name: reel
+          path: |
+            social/ig/reels/*.mp4
+            social/ig/reels/overlap_report.md
+
+      - name: 影片與佇列檔推回 main（IG 要從公開網址抓影片）
+        if: steps.gen.outputs.skipped != '1'
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add social/ig/reels social/ig/queue
+          git diff --staged --quiet && { echo "沒有變動"; exit 0; }
+          git commit -m "IG 短影片 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && break
+            sleep $((i*2))
+          done
+
+      - name: 發到 IG（draft 會自動略過；approved 才發）
+        if: steps.gen.outputs.skipped != '1' && steps.gen.outputs.queue_file != ''
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+        run: |
+          sleep 30     # 等 raw.githubusercontent.com 拿得到剛推的影片
+          python scripts/ig_post.py --file "${{ steps.gen.outputs.queue_file }}" --now
+
+      - name: 回寫發文結果
+        if: always() && steps.gen.outputs.skipped != '1'
+        run: |
+          git add social/ig/queue
+          git diff --staged --quiet && exit 0
+          git commit -m "IG 短影片發文結果 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && break
+            sleep $((i*2))
+          done

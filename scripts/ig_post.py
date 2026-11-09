@@ -96,7 +96,14 @@ def validate(meta: dict, caption: str, root: Path | None = None, check_files: bo
         except ValueError:
             errs.append(f"publish_at 格式錯誤（要像 2026-10-26T20:30+08:00）：{meta['publish_at']!r}")
     imgs = images_of(meta)
-    if not imgs:
+    vid = meta.get("video", "").strip()
+    if vid:                                   # 2026-11-09 短影片（Reels）：video 欄＝mp4 路徑，不需要 images
+        if not vid.lower().endswith(".mp4"):
+            errs.append(f"{vid} 不是 mp4")
+        elif check_files and not (root / vid).is_file():
+            errs.append(f"找不到影片檔 {vid}")
+        imgs = []
+    elif not imgs:
         errs.append("IG 一定要有圖：請在 images 填圖片路徑（輪播用逗號分隔）")
     if len(imgs) > 10:
         errs.append(f"輪播最多 10 張，目前 {len(imgs)} 張")
@@ -168,6 +175,25 @@ def wait_ready(cid: str, token: str, tries: int = 12) -> None:
     raise PostError(f"容器 60 秒內沒處理完：{cid}")
 
 
+def publish_reel(video: str, caption: str, token: str) -> dict:
+    """Reels：REELS 容器（影片處理較久，最多等 5 分鐘）→ media_publish。影片要先 push 到 main（raw 網址）。"""
+    uid = _call("GET", "/me", token, {"fields": "user_id,username"}).get("user_id")
+    if not uid:
+        raise PostError("查不到 IG user_id（權杖權限或帳號類型有問題）")
+    url = public_url(video)
+    check_public(url)
+    c = _call("POST", f"/{uid}/media", token,
+              {"media_type": "REELS", "video_url": url, "caption": caption, "share_to_feed": "true"})["id"]
+    wait_ready(c, token, tries=60)
+    mid = _call("POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
+    link = ""
+    try:
+        link = _call("GET", f"/{mid}", token, {"fields": "permalink"}).get("permalink", "")
+    except PostError:
+        pass
+    return {"id": mid, "permalink": link}
+
+
 def publish(imgs: list[str], caption: str, token: str) -> dict:
     uid = _call("GET", "/me", token, {"fields": "user_id,username"}).get("user_id")
     if not uid:
@@ -234,7 +260,10 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
     if not TL.PROMOTE_SITE and TL.has_url(caption, not post_quota.is_auto_news(path.name)):
         caption = TL.strip_urls(caption, not post_quota.is_auto_news(path.name))
         print("::notice::IG 文案有網址／導流字，已自動移除（11-03 起不放網站網址）")
-    r = publish(images_of(meta), caption, token)
+    if meta.get("video"):
+        r = publish_reel(meta["video"].strip(), caption, token)
+    else:
+        r = publish(images_of(meta), caption, token)
     rewrite_meta(path, {
         "status": "posted",
         "posted_at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M+08:00"),
@@ -313,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
                     bad += 1
                     print(f"✗ {f.name}：{'；'.join(errs)}")
                 else:
-                    print(f"✓ {f.name}（{meta['status']}，{len(images_of(meta))} 張圖）")
+                    print(f"✓ {f.name}（{meta['status']}，" + (f"短影片 {meta['video']}" if meta.get('video') else f"{len(images_of(meta))} 張圖") + "）")
                 continue
             if errs:
                 if meta.get("status") == "approved":

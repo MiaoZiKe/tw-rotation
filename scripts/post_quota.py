@@ -44,6 +44,7 @@ DEFAULT = {
 }
 
 _AUTO_NEWS = re.compile(r"_news-[a-z0-9]+-\d+(\.md)?$")
+_REEL = re.compile(r"_reel-[a-z0-9_-]+(\.md)?$")      # ig_reels_weekly.py 產的 IG 短影片佇列檔（2026-11-09）
 
 
 def path() -> Path:
@@ -91,8 +92,26 @@ def group_allowed(group: str, platform: str, q: dict | None = None) -> bool:
     return _flag(q if q is not None else load(), "queue", group, platform)
 
 
+def is_reel(filename: str) -> bool:
+    return bool(_REEL.search(Path(str(filename)).name))
+
+
+def reels_enabled(q: dict | None = None) -> bool:
+    """IG 每週短影片（Andy 11-09 同意）：ig.reels_weekly；沒寫＝開（Andy 已同意放量），明寫 false 才關。"""
+    v = ((q if q is not None else load()).get("ig") or {}).get("reels_weekly")
+    return v is not False
+
+
+def reels_need_review(q: dict | None = None) -> bool:
+    """第一支正式發布前 CEO 先看樣片：ig.reels_need_review＝true 時佇列檔只寫 draft，不自動發。沒寫＝需要審。"""
+    v = ((q if q is not None else load()).get("ig") or {}).get("reels_need_review")
+    return v is not False
+
+
 def queue_allowed(platform: str, filename: str, q: dict | None = None) -> bool:
     """佇列發文（threads_post.py／ig_post.py）：platform＝threads／ig。"""
+    if platform == "ig" and is_reel(filename):      # 短影片有自己的開關，不吃 queue.manual.ig
+        return reels_enabled(q)
     return group_allowed("news" if is_auto_news(filename) else "manual", platform, q)
 
 
