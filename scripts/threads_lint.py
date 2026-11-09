@@ -435,6 +435,10 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
             last = (body.rstrip().split("\n\n") or [""])[-1].strip()
             if last == hook or not last.endswith(("？", "?")) or "還是" not in last:
                 err.append(f"盤後主文結尾要一題好回答的二選一（含「還是」、以？收尾）：{last[:30]}")
+            # 2026-11-09 CEO：話題標籤不准含個股名（「#台積電外資賣超」→ 市場／法人層級，例如 #外資連賣）
+            for t in list(dict.fromkeys(tags + ([(p.get("tag") or "").lstrip("#")] if p.get("tag") else []))):
+                for nm in stock_in(t)[:3]:
+                    err.append(f"盤後標籤「#{t}」含個股名「{nm}」（只能用市場、族群或法人層級）")
     else:
         if p.get("hook_type") not in HOOK_TYPES:
             err.append(f"開頭類型 {p.get('hook_type')!r} 不是 對話／冷知識／反差")

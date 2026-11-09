@@ -127,3 +127,51 @@ def test_ig_auto_image_posts_all_off_threads_close_on():
         assert post_quota.live_allowed(kind, "ig_story", q) is False, kind
     assert post_quota.queue_allowed("ig", "2026-11-09_news-close-1.md", q) is False
     assert post_quota.live_allowed("close", "threads", q) is True
+
+
+# ---- 2026-11-09 CEO 追加：① 標籤不准含個股名 ② 備用文案（v2 失敗時發的）也要新格式 ----
+def test_close_tag_has_no_stock_name():
+    for day in ("20261103", "20261104"):
+        th = fx(day)
+        d = V.build("close", th["text"], th["reply"], th["images"], today="2026-11-05")
+        assert not L.stock_in(d["tag"]) and d["tag"] not in L.GENERIC_TAGS, d["tag"]
+    d = V.build("close", TEXT_1106, "", [], today="2026-11-06")
+    assert d["tag"] == "外資連賣" and d["main_post"].endswith("#外資連賣")
+    bad = dict(d, main_post=d["main_post"].replace("#外資連賣", "#台積電外資賣超"), tag="台積電外資賣超")
+    assert any("含個股名「台積電」" in e for e in L.lint(bad)[0])
+
+
+def test_snap_fallback_caption_is_new_format():
+    import social_snap as S
+    for day in ("20261103", "20261104"):
+        th = fx(day)
+        main, reply = S.close_v1(th["text"], th["reply"])
+        body, tags = L.split_tag(main)
+        hook = body.split("\n\n")[0]
+        last = body.split("\n\n")[-1]
+        assert "盤後3分鐘" not in main and "盤面分析" not in main
+        assert L.clen(body) <= 150 and hook.endswith("？") and last.endswith("？") and "還是" in last
+        assert len(tags) == 1 and not L.stock_in(tags[0]) and not L.stock_in(hook)
+        assert "http" not in main + reply and L.tlen(reply) <= 500 and reply.endswith(L.DEFAULT_LEGAL)
+        assert "盤後3分鐘" not in reply and "・" in reply
+        # 過得了 auto_1109 的 lint（當成 v2 貼文檢查）
+        p = dict(kind="close", profile="auto", rule="auto_1109", hook_type="問句", emotion="專業", main_post=main,
+                 thread_posts=[], reply_post=L.DEFAULT_LEGAL, image_count=1, tag=tags[0])
+        assert not L.lint(p)[0], L.lint(p)
+    m, r = S.close_v1("", "")
+    assert "還是" in m and r == L.DEFAULT_LEGAL                      # 沒資料也發得出一篇
+
+
+def test_v2_rewrites_from_v1_raw():
+    import social_snap as S
+    import tempfile
+    th = fx("20261104")
+    main, reply = S.close_v1(th["text"], th["reply"])
+    m = {"kind": "close", "taken_at": "2026-11-04T19:35:00+08:00", "data_date": "2026-11-04",
+         "threads": {"text": main, "reply": reply, "images": th["images"], "v1_raw": {"text": th["text"], "reply": th["reply"]}}}
+    with tempfile.TemporaryDirectory() as td:
+        mp = Path(td) / "manifest.json"
+        mp.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+        out = V.convert_manifest(mp, None, None)
+    v2 = out["threads"]["v2"]
+    assert v2["rule"] == "auto_1109" and v2["checklist_passed"] and "盤面分析" in out["threads"]["thread_posts"][0]

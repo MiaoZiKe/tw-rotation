@@ -302,6 +302,22 @@ def _clean_tag(t: str) -> str:
     return re.sub(r"[\s.&#，。！？、：；()（）「」]", "", t)[:50]
 
 
+def close_market_tag(f: dict) -> str:
+    """盤後主貼文的事件型標籤，只用市場／法人層級（2026-11-09 CEO：「#台積電外資賣超」這種含個股名的不准用）。
+    台股大漲／大跌（≥500 點）→ 外資連 3 日以上同方向（外資連賣／外資連買）→ 外資當日買賣超 → 三大法人合計 → 台股盤後。
+    「台股」「外資」「三大法人」單字是 GENERIC_TAGS（泛用）或太空泛，所以帶事件。"""
+    pts = _num(f.get("idx_pts")) if f.get("idx_pts") else None
+    if pts and pts >= 500 and f.get("idx_dir"):
+        return "台股大跌" if f["idx_dir"] == "跌" else "台股大漲"
+    if f.get("fx_act") and _ge(f.get("fx_streak"), 3):
+        return "外資連賣" if f["fx_act"] == "賣超" else "外資連買"
+    if f.get("fx_act"):
+        return f"外資{f['fx_act']}"
+    if f.get("tot_act"):
+        return f"三大法人{f['tot_act']}"
+    return "台股盤後"
+
+
 def pick_tag(kind: str, text: str, f: dict) -> str:
     """依當天新聞／財報／Fed 自動選 1 個事件型標籤；沒有就用最熱個股事件；永遠回得出一個不在黑名單的標籤。"""
     t = text or ""
@@ -339,6 +355,8 @@ def pick_tag(kind: str, text: str, f: dict) -> str:
         return _clean_tag(f["subj"])
     if kind == "premarket":
         return "台積電ADR"
+    if kind == "close":      # 2026-11-09 CEO：盤後標籤不准含個股名 → 市場／法人層級（_snap 備用文案用同一支 close_market_tag）
+        return close_market_tag(f)
     stock = f.get("fx_top") or next((nm for nm in KNOWN_CO if nm in t), "") or "台積電"
     if kind == "close" and f.get("fx_top"):
         return _clean_tag(f"{stock}外資{f.get('fx_act', '賣超')}")
@@ -893,7 +911,8 @@ def convert_manifest(mp: Path, state_in: str | None, state_out: str | None) -> d
     kind = m.get("kind", "intraday")
     today = (m.get("taken_at") or datetime.now(TPE).isoformat())[:10]
     state = load_state(state_in) if state_in else {"history": []}
-    d = build(kind, th.get("text", ""), th.get("reply", ""), th.get("images", []), state=state, today=today)
+    src = th.get("v1_raw") or th      # 2026-11-09：盤後備用文案已是新格式，改寫吃原始完整文案（social_snap 存在 v1_raw）
+    d = build(kind, src.get("text", ""), src.get("reply", ""), th.get("images", []), state=state, today=today)
     m["threads_v1"] = dict(th)
     if _TL.scrub_post(d):                                  # 11-03：萬一主文／串文帶到網址（新聞原文等）→ 送出前拿掉
         d["checklist_passed"] = not lint(d)[0]

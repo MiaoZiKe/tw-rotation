@@ -19,6 +19,8 @@
 | 稽核 | 18:20 截止、18:40 查 | **20:35 截止、20:42 查**；18:40 那輪看到沒發只算「進行中」，不紅、不補發、不寄信 |
 | IG | 限動／主題文章自動圖文 | **全關**（`post_quota.json` 的 `_note`）；改每週短影片＋輪播，走人工核准佇列（`queue.manual.ig`） |
 
+**標籤**（CEO 11-09 追加）：恰 1 個、只用市場／法人層級，不含個股名（台股大跌／大漲 → 外資連賣／連買 → 外資賣超／買超 → 三大法人賣超 → 台股盤後；`threads_v2.close_market_tag`）。**備用文案**（threads_v2 改寫失敗時發的那份，`social_snap.close_v1`）也是同一個新格式；完整舊版文案存在 manifest `threads.v1_raw` 只給 v2 當改寫來源。
+
 紅線不變：不預測、不點名推薦個股（主文只講指數、法人總量、期貨）、不給時機、不放網址。檢查：`threads_lint.py` 的 `rule: auto_1109`（主文 ≤150、結尾二選一、串文最多 1 則且單則 ≤500）。測試 `tests/test_threads_close_1109.py`。
 
 ## 〇、★★ 2026-11-02 降量模式（蓋掉下面「四個時段」與主題文章的發文範圍）
@@ -191,6 +193,7 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
+- 2026-11-09（CEO 追加）：**盤後標籤不准含個股名**（「#台積電外資賣超」→「#外資連賣」這類市場／法人層級；lint `auto_1109` 擋標籤含個股簡稱）；**盤後備用文案改新格式**（`social_snap.close_v1`：無「盤後3分鐘」標頭、問句開頭、主文 ≤150、結尾二選一、數據＋新聞放回覆 ≤500；舊版完整文案存 `threads.v1_raw` 給 v2 改寫）。測試 `tests/test_threads_close_1109.py` 後三支。
 - 2026-11-09：**盤後主貼文改版＋改 19:30～20:30 發、IG 停自動圖文**（Andy：「同意，四項改動全部照改」；見上面第〇之〇節）。`threads_v2.py`：盤後拿掉「🌙 盤後3分鐘」欄目標頭、新增 6 個反差問句模板並優先挑、主文 ≤150（鉤子＋重點數字＋二選一結尾）、數據移到串文第一則；`threads_lint.py` 加 `rule: auto_1109`；`social_gate.py` 加 `CLOSE_EARLIEST_AT=19:30`、保底改 20:00；`social_snap.py` 盤後未到 19:30 不發（19:15 後就地等）；`social-live.yml` 加 19:41／20:11 備援排程；`daily_audit.py`／`daily_audit.yml` 截止 20:35、20:42 加查一輪；`post_quota.json` 寫 `_note`（IG 自動全關，原本值就是 false）。測試 `tests/test_threads_close_1109.py`，並改 `test_social_threads_v2.py`／`test_threads_auto_1104.py`／`test_social_quota_1102.py`／`test_daily_audit.py`／`test_social_close_fallback.py`。
 - 2026-11-09：**法人補充貼文（close-inst）納入降量開關**（事故：11-06 降量模式下 20:27 多發一則 close-inst-2026-11-06 https://www.threads.com/@liguligu0818/post/DfZmspGoHQB ）。根因：補充貼文的 manifest kind 仍是 close，`social_publish.py` 查的是 live.close.threads（true）就放行；而且 11-06 主貼文只拿掉 retail-ratio，法人三張早已在主貼文裡，補充貼文等於重發。修正：`post_quota.live_kind()` 把 close＋supplement 對應到 `live.close_inst`（開關檔沒寫＝內建關），`social_publish.py`／`social_close_state.py`／`social_snap.py`（alert 與文案不再寫「稍後補」）都照它；`social_close_state` 只有被拿掉的是法人卡才進補充輪。post_quota.json 未改。測試 `tests/test_social_quota_1102.py`。
 - 2026-11-05：**專業問句開頭再修（CEO 法遵退件）**：11-04 試產「外資賣超 1,499 億的盤面裡，買超第一名是旺矽，資金為什麼選它？」開頭點名單一個股，接近個股推介（`diagnosis_1102/channel_playbook.md` 4-1 第 2 條、`docs/legal/20261101_subscription_signals.md`：不點名個股、不給時機）。拿掉所有以個股為開頭焦點的模板（買超／賣超第一名、台積電 ADR、新聞標題），「外資賣超以台積電最多…」改成「外資賣超集中度偏高、單一最大檔就占當日賣超 33%…」；「能撐多久」這類時機問法改成描述性（「和外資方向相反的買盤過去通常出現在什麼盤勢？」）。開頭只講指數、族群、法人總量、期貨、家數層級。`threads_lint.py` 自動模式加兩條：開頭含個股簡稱（資料湖 `company_info` 個股＋groups 註解＋保底名單，先遮掉「大盤」「數字」等撞字詞）即失敗、開頭含時機用語（撐多久、進場、買點…）即失敗。主題文章的主體若是公司名，lint 擋下後自動改用不點名的保底模板（照發）。
