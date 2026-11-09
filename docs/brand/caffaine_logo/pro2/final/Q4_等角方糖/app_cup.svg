@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000"><defs><linearGradient id="k238cvxbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFE5D8"/><stop offset="1" stop-color="#E2D3C0"/></linearGradient>
+ <linearGradient id="k238cvxsh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset=".25" stop-color="#fff" stop-opacity=".10"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+ <clipPath id="k238cvxk"><path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z"/></clipPath></defs>
+ <rect class="bgx" width="800" height="1000" fill="url(#k238cvxbg)"/>
+ <ellipse cx="400" cy="930" rx="230" ry="26" fill="#000" opacity=".10"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="#FFFBF5"/>
+ <rect x="150" y="620" width="500" height="140" fill="#E3C9A6" clip-path="url(#k238cvxk)"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="url(#k238cvxsh)"/>
+ <path d="M222 128 Q226 96 262 96 H538 Q574 96 578 128 Z" fill="#2B1D16"/>
+ <rect x="184" y="126" width="432" height="38" rx="19" fill="#2B1D16"/>
+ <g data-el="mark" transform="translate(285 222) scale(1.15)"><defs><linearGradient id="k24wevvc" x1="0" y1="118" x2="0" y2="190" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2B1D16"/><stop offset="1" stop-color="#2B1D16"/></linearGradient>
+  <radialGradient id="k24wevvs" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#9A5A30"/><stop offset="1" stop-color="#5A321D"/></radialGradient></defs>
+  <path d="M162 132 C190 130 192 168 156 168" fill="none" stroke="#2B1D16" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M26 122 C26 170 60 192 100 192 C140 192 174 170 174 122 Z" fill="#2B1D16"/>
+  <ellipse cx="100" cy="122" rx="74" ry="15" fill="url(#k24wevvs)"/>
+  <g>
+  <path d="M100 16 L146.8 43 L100 70 L53.2 43 Z" fill="#FFFBF4" stroke="#2B1D16" stroke-opacity=".28" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M53.2 43 L100 70 L100 124 L53.2 97 Z" fill="#F1E2CC" stroke="#2B1D16" stroke-opacity=".28" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M100 70 L146.8 43 L146.8 97 L100 124 Z" fill="#DCC3A2" stroke="#2B1D16" stroke-opacity=".28" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M56.2 43 L100 19 L143.8 43" fill="none" stroke="#FFFFFF" stroke-width="2.2" opacity=".9" stroke-linecap="round"/>
+  <g transform="matrix(0.866 0.5 0 1 53.2 43)"><path d="M12 44 L27 9 L42 44 M17.5 32 H36.5" fill="none" stroke="#B85A22" stroke-width="6.8" stroke-linejoin="miter" stroke-linecap="butt"/></g>
+  <g transform="matrix(0.866 -0.5 0 1 100 70)"><path d="M27 9 V44 M18 9 H36 M18 44 H36" fill="none" stroke="#B85A22" stroke-width="6.8" stroke-linecap="butt"/></g></g>
+  <path d="M26 122 A74 15 0 0 0 174 122 L174 124 A74 15 0 0 1 26 124 Z" fill="#5A321D"/>
+    <path d="M28 124 A72 14 0 0 0 172 124 A72 7 0 0 0 28 124 Z" fill="url(#k24wevvs)"/>
+  <path d="M40 122 Q52 117 64 120 M140 120 Q150 116 162 121" fill="none" stroke="#D98E57" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></g>
+ <g data-el="word"><text x="271.9" y="560.0" font-family="Inter Display" font-weight="600" font-size="60.0"  fill="#2B1D16">Caff</text><text x="391.2" y="562.4" font-family="Inter Display" font-weight="800" font-size="60.0" fill="#6E3A1E" style="font-feature-settings:'cv08' 1">AI</text><text x="390.5" y="561.9" font-family="Inter Display" font-weight="800" font-size="60.0" fill="#6E3A1E" style="font-feature-settings:'cv08' 1">AI</text><text x="389.9" y="561.4" font-family="Inter Display" font-weight="800" font-size="60.0" fill="#6E3A1E" style="font-feature-settings:'cv08' 1">AI</text><text x="389.2" y="561.0" font-family="Inter Display" font-weight="800" font-size="60.0" fill="#6E3A1E" style="font-feature-settings:'cv08' 1">AI</text><text x="388.6" y="560.5" font-family="Inter Display" font-weight="800" font-size="60.0" fill="#6E3A1E" style="font-feature-settings:'cv08' 1">AI</text><text x="387.9" y="560.0" font-family="Inter Display" font-weight="800" font-size="60.0"  fill="#C2652B" style="font-feature-settings:'cv08' 1">AI</text><text x="460.6" y="560.0" font-family="Inter Display" font-weight="600" font-size="60.0"  fill="#2B1D16">ne</text></g>
+ <g data-el="tag"><text x="400" y="680" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">一杯咖啡的時間</text><text x="400" y="722" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">看懂一個 <tspan font-family="Inter" font-weight="800" fill="#C2652B">AI</tspan> 新知</text></g></svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><rect width="200" height="200" fill="#F6EEE3"/><defs><linearGradient id="k27nx3rs" x1="0" y1="74" x2="0" y2="118" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E8A066"/><stop offset="1" stop-color="#C2652B"/></linearGradient><clipPath id="k27nx3rk"><rect x="40" y="60" width="120" height="58"/></clipPath>
+  <mask id="k27nx3rm"><rect x="0" y="0" width="200" height="200" fill="#fff"/><path d="M88 96 H112 L109.5 118 H90.5 Z" fill="#000"/><path d="M112 101 Q120 101 120 107.5 Q120 114 111 114" fill="none" stroke="#000" stroke-width="3.6"/><rect x="56" y="104" width="88" height="2.4" fill="#000"/><rect x="56" y="110" width="88" height="3.4" fill="#000"/></mask></defs>
+  <path d="M44 188 V92 A56 56 0 0 1 156 92 V188 Z" fill="#2B1D16"/><path d="M51 188 V92 A49 49 0 0 1 149 92 V188 Z" fill="none" stroke="#C2652B" stroke-width="2" opacity=".9"/>
+  <g clip-path="url(#k27nx3rk)"><circle cx="100" cy="118" r="40" fill="url(#k27nx3rs)" mask="url(#k27nx3rm)"/></g>
+  <path d="M56 118.5 H144" stroke="#C2652B" stroke-width="2"/>
+  <text x="100" y="66" text-anchor="middle" font-family="JetBrains Mono" font-weight="700" font-size="9" letter-spacing="1.5" fill="#F6EEE3" opacity=".75">EST·2026</text>
+  <text x="100" y="168" font-family="Bitstream Charter" font-weight="700" font-size="48" fill="#F6EEE3" font-style="italic" text-anchor="middle">AI</text></svg>

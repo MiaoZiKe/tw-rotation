@@ -1,0 +1,130 @@
+[
+ {
+  "id": "Q1",
+  "dir": "Q1_杯漬",
+  "name": "杯漬筆記",
+  "en": "Coffee Ring",
+  "ratio": [
+   75,
+   25
+  ],
+  "meaning": "杯子放下又拿起，桌上留下兩圈沒畫完的咖啡漬——今天留下的，是一則 AI 筆記。",
+  "ai": "漬痕中央是一個大大的襯線 AI（Charter Bold，深可可），文字標的 AI 底下襯一塊淡淡的焦糖漬。",
+  "color": "焦糖漬分兩層：外緣較深、內側淡淡的水洗；濺點也是焦糖；AI 用深可可。",
+  "type": "Inter Display Medium ＋ AI 用 Bitstream Charter Bold。",
+  "tech": "精準的襯線字和隨機但可控的程式化漬痕邊緣（每一圈都是演算出來的不規則曲線）。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "Q2",
+  "dir": "Q2_一筆拉花",
+  "name": "一筆拉花",
+  "en": "Latte Line",
+  "ratio": [
+   70,
+   30
+  ],
+  "meaning": "咖啡師一筆拉出 A，最後「拉穿」的那一刀就是 I——新知像拉花，一杯一杯手作端給你。",
+  "ai": "A 是一筆連續的奶泡線加一道奶泡弧橫槓，I 是加粗、上下帶短橫的拉穿線；文字標 AI 下方加一道奶泡波浪線。",
+  "color": "咖啡面用焦糖由中心往外加深的放射漸層；奶泡奶白；杯耳深可可。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）焦糖。",
+  "tech": "一筆連續的向量路徑（像繪圖機器手臂畫出的線）、精準的放射漸層。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "Q3",
+  "dir": "Q3_字母即杯",
+  "name": "字母即杯",
+  "en": "Letterform Brew",
+  "ratio": [
+   55,
+   45
+  ],
+  "meaning": "名字本身就是一杯咖啡：ff 是兩縷往上冒的熱氣、e 是俯看的杯口、AI 是從杯裡升起的那口香氣。",
+  "ai": "圖形是一只杯子裡升起的 AI，字腳藏在杯裡、字頂化成蒸氣；文字標的 AI 用焦糖→薰衣草漸層 ExtraBold，ff 與 e 是手刻字形。",
+  "color": "深可可字與杯、AI 焦糖→薰衣草漸層，e 的上半杯口填焦糖（咖啡面）。",
+  "type": "Inter Display SemiBold ＋ 手刻 ff（蒸氣）與 e（杯口），AI 為 Inter Display ExtraBold（cv08）。",
+  "tech": "字體工程式的手刻字形、漸層。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "Q4",
+  "dir": "Q4_等角方糖",
+  "name": "等角方糖",
+  "en": "Iso Sugar Cube",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "AI 新知是一顆方糖：左面 A、右面 I，正落進咖啡杯裡——一杯咖啡的時間，就化開了。",
+  "ai": "2.5D 等角方塊的兩個側面各刻一個字母，合起來是 AI；文字標的 AI 有同角度的立體厚度。",
+  "color": "方糖奶白三階明暗＋頂邊高光；字母焦糖；杯子深可可、液面焦糖到深焙。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08）加等角立體厚度。",
+  "tech": "等角投影（30°）、精準的三面明暗、立體字。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "Q5",
+  "dir": "Q5_玻璃倒影",
+  "name": "玻璃倒影",
+  "en": "Glass Reflection",
+  "ratio": [
+   55,
+   45
+  ],
+  "meaning": "一只透明玻璃杯，咖啡液面映出 AI 的倒影——把 AI 講得像玻璃一樣透明、一眼看穿。",
+  "ai": "液面上方是正立的 AI（焦糖→薰衣草漸層），液面下是它淡淡的倒影；文字標的 AI 用上亮下深的玻璃光澤分色。",
+  "color": "玻璃磨砂白＋柔和焦糖與薰衣草光暈（模糊色塊），咖啡焦糖到深焙。",
+  "type": "Inter Display Medium ＋ AI 用 Inter Display ExtraBold（cv08）光澤分色。",
+  "tech": "玻璃擬態：磨砂透明、背景光暈、鏡面倒影。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "Q6",
+  "dir": "Q6_蒸氣游標",
+  "name": "蒸氣游標",
+  "en": "Steam to Cursor",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "馬克杯升起一縷熱氣，飄到一半停下來，變成一根閃爍的游標——咖啡在等你，AI 也在等你輸入。",
+  "ai": "杯身留白一個 A，熱氣變成的游標就是 I；文字標也是「A＋焦糖游標」，動起來時游標會閃。",
+  "color": "深可可杯身、焦糖熱氣與游標（游標帶一道內光）。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold 的 A＋手繪游標 I。",
+  "tech": "動態識別：蒸氣→拉直→游標閃爍（見 storyboard.png 三格分鏡）。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "Q7",
+  "dir": "Q7_復古未來徽章",
+  "name": "復古未來徽章",
+  "en": "Retro-Future Arch",
+  "ratio": [
+   60,
+   40
+  ],
+  "meaning": "老咖啡館的單拱招牌裡升起一顆掃描線夕陽，夕陽中切出一只杯子——復古的溫度，配上未來的 AI。",
+  "ai": "拱門下方是大大的襯線斜體 AI；文字標全大寫，AI 換焦糖色 Charter 粗斜體。",
+  "color": "深可可單拱（深底改奶油）、雙線框焦糖；夕陽焦糖光→焦糖，切出掃描線與杯形缺口；40px 只留拱門、夕陽、放大的 AI。",
+  "type": "Inter Display Bold 全大寫字距 8% ＋ AI 用 Bitstream Charter Bold Italic；小字 JetBrains Mono。",
+  "tech": "合成波（synthwave）夕陽掃描線、等寬小字 EST.2026；拱門不是圓形徽章。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "Q8",
+  "dir": "Q8_摺紙切面杯",
+  "name": "摺紙切面杯",
+  "en": "Faceted Cup",
+  "ratio": [
+   55,
+   45
+  ],
+  "meaning": "一只用紙摺出來的外帶杯，每個切面都是一段整理過的資訊，正面最亮的那一面，露出 AI。",
+  "ai": "杯身正面最亮的切面上是深可可 AI；文字標的 AI 用斜切分色（亮面／暗面），像摺紙的一道摺痕。",
+  "color": "焦糖到深焙的五階切面、正面奶油紙色兩階；蒸氣是一條摺紙緞帶。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08）斜切雙色。",
+  "tech": "低多邊形切面（low-poly）、精準的光影計算、摺紙幾何。",
+  "cupTheme": "light"
+ }
+]
