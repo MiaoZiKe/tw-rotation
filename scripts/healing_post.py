@@ -369,9 +369,11 @@ def is_verified(state: Path, p: str) -> bool:
     return bool((load_json(state / "verify.json", {}).get(p) or {}).get("verified"))
 
 
-def mark_verified(state: Path, p: str, now: datetime, cid: str) -> None:
+def mark_verified(state: Path, p: str, now: datetime, cid: str, via: str = "") -> None:
     v = load_json(state / "verify.json", {})
     v[p] = {"verified": True, "at": now.astimezone(TAIPEI).isoformat(timespec="seconds"), "container": str(cid)}
+    if via:                                    # 只記路名（IG_PATHS），不記帳號編號
+        v[p]["via"] = via
     state.mkdir(parents=True, exist_ok=True)
     (state / "verify.json").write_text(SP.redact(json.dumps(v, ensure_ascii=False, indent=1)) + "\n", encoding="utf-8")
 
@@ -401,12 +403,13 @@ def token_hint(p: str, t: str) -> str:
 # ---------- IG：Facebook 登入版權杖（EAA 開頭）走 graph.facebook.com（2026-11-10）----------
 # Andy 重產兩次，三個頻道的 IG 密鑰仍是 EAA 開頭 → 不再叫他重產，程式兩種都吃：
 #   IGAA（Instagram 登入）→ graph.instagram.com；EAA（Facebook 登入）→ graph.facebook.com，
-#   IG 商業帳號編號用 /me/accounts?fields=instagram_business_account 找（*_IG_USER_ID 有填就優先用）。
+#   IG 商業帳號編號用多路徑探查找（fb_ig_candidates：debug_token 授權範圍、系統用戶指派的 IG、粉絲專頁、廣告帳號…），
+#   *_IG_USER_ID 有填就優先用。
 #   /{ig-user-id}/media、media_publish、輪播 children、容器 status_code 在兩個網域用法相同。
 FB_HOST = "https://graph.facebook.com/v24.0"
 FB_PERMS = ("instagram_basic", "instagram_content_publish", "pages_show_list", "pages_read_engagement",
             "instagram_manage_comments", "instagram_manage_messages")
-FB_PERMS_POST = ("instagram_basic", "instagram_content_publish", "pages_show_list")   # 發文一定要的
+FB_PERMS_POST = ("instagram_basic", "instagram_content_publish")   # 發文一定要的（系統用戶直接指派 IG 不需要粉絲專頁權限）
 FB_PERM_USE = {"instagram_basic": "讀 IG 帳號", "instagram_content_publish": "發 IG 貼文",
                "pages_show_list": "列出粉絲專頁（找 IG 帳號用）", "pages_read_engagement": "讀粉絲專頁內容",
                "instagram_manage_comments": "讀／回 IG 留言", "instagram_manage_messages": "IG 私訊"}
@@ -478,32 +481,204 @@ def pick_ig(pages: list[dict], account: str = "") -> tuple[str, str]:
     return "", f"權杖看得到多個 IG（{names}），沒有一個是本頻道的 {account or '（未設定帳號名）'}，不猜；請填 *_IG_USER_ID"
 
 
+# ---------- EAA 權杖找 IG 帳號編號：多路徑探查（2026-11-10）----------
+# Andy 的權杖是「系統用戶存取權杖」（Facebook 登入商業版設定「Instagram API（統一登入）」產生），
+# 權限只有 ads_management、ads_read、instagram_basic、instagram_manage_messages、instagram_manage_comments、
+# instagram_content_publish；資產只指派了 IG 帳號與廣告帳號、沒有粉絲專頁 → /me/accounts 一定是 0 個。
+# 所以不能只靠粉絲專頁找，改成依序試下面幾條路（每條失敗都只記錄、不中斷），以 username 對 channels.json 的帳號名：
+#   granular   debug_token 的 granular_scopes：instagram_basic／instagram_content_publish 授權到的 IG 編號（target_ids）
+#   assigned   /{系統用戶 id}/assigned_instagram_accounts：直接指派給系統用戶的 IG 帳號
+#   pages      /me/accounts：粉絲專頁連結的 IG 商業帳號（一般使用者權杖）
+#   asg_pages  /{me}/assigned_pages：指派給系統用戶的粉絲專頁
+#   biz        /me/businesses → owned_instagram_accounts／instagram_accounts（要 business_management，多半失敗）
+#   ads        /me/adaccounts → /{act}/instagram_accounts、connected_instagram_accounts（ads_read）
+# 順序就是優先序；驗證模式會逐一建容器，通過的那條路名記進 state/verify.json（只記路名、不記編號），正式發文優先用它。
+IG_PATHS = ("granular", "assigned", "pages", "asg_pages", "biz", "ads")
+IG_PATH_NAME = {"granular": "權杖授權範圍（debug_token）", "assigned": "系統用戶指派的 IG（assigned_instagram_accounts）",
+                "pages": "粉絲專頁連結的 IG（/me/accounts）", "asg_pages": "系統用戶指派的粉絲專頁（assigned_pages）",
+                "biz": "企業管理平台的 IG（/me/businesses）", "ads": "廣告帳號連結的 IG（/me/adaccounts）"}
+
+
+def _tail(uid: str) -> str:
+    return "…" + str(uid)[-4:] if uid else "（無）"
+
+
+def _list(url: str, params: dict, pages: int = 5) -> list[dict]:
+    out: list[dict] = []
+    for _ in range(pages):
+        d = SP.http("GET", url, params=params)
+        out += [x for x in (d.get("data") or []) if isinstance(x, dict)]
+        nxt = (d.get("paging") or {}).get("next")
+        if not nxt:
+            break
+        url, params = nxt, None
+    return out
+
+
+def fb_ig_candidates(token: str, probe: list[str] | None = None) -> list[dict]:
+    """EAA 權杖所有找得到的 IG 帳號：[{id, username, via}]（via＝IG_PATHS 之一，依優先序排、同編號去重）。
+    probe 傳 list 進來會逐條寫「路徑：結果」（只有 username 與編號末 4 碼）。"""
+    probe = probe if probe is not None else []
+    found: list[dict] = []
+
+    def add(via, iid, uname=""):
+        iid = str(iid or "").strip()
+        if not iid:
+            return
+        _mask_uid(iid)
+        for x in found:
+            if x["id"] == iid:
+                x["username"] = x["username"] or str(uname or "")
+                return
+        found.append({"id": iid, "username": str(uname or ""), "via": via})
+
+    def note(via, n_before, extra=""):
+        got = found[n_before:]
+        names = "、".join(f"@{x['username'] or '?'}（{_tail(x['id'])}）" for x in got)
+        probe.append(f"{IG_PATH_NAME[via]}：找到 {len(got)} 個" + (f"：{names}" if names else "") + extra)
+
+    def fail(via, e):
+        probe.append(f"{IG_PATH_NAME[via]}：失敗 {SP.redact(e)[:160]}")
+
+    ig_f = "id,username"
+    page_f = "name,instagram_business_account{id,username}"
+    me_id = ""
+    try:
+        me_id = str(SP.http("GET", f"{FB_HOST}/me", params={"fields": "id,name", "access_token": token}).get("id") or "")
+        if me_id:
+            _mask_uid(me_id)
+        probe.append(f"/me：權杖身分編號 {_tail(me_id)}")
+    except Exception as e:  # noqa: BLE001
+        probe.append(f"/me：失敗 {SP.redact(e)[:160]}")
+    # 1. granular_scopes
+    n = len(found)
+    try:
+        dd = SP.http("GET", f"{FB_HOST}/debug_token", params={"input_token": token, "access_token": token}).get("data") or {}
+        for g in dd.get("granular_scopes") or []:
+            if g.get("scope") in ("instagram_basic", "instagram_content_publish"):
+                for t in g.get("target_ids") or []:
+                    add("granular", t)
+        note("granular", n)
+    except Exception as e:  # noqa: BLE001
+        fail("granular", e)
+    # 2. 系統用戶直接指派的 IG
+    n = len(found)
+    if me_id:
+        try:
+            for x in _list(f"{FB_HOST}/{me_id}/assigned_instagram_accounts", {"fields": ig_f, "access_token": token}):
+                add("assigned", x.get("id"), x.get("username"))
+            note("assigned", n)
+        except Exception as e:  # noqa: BLE001
+            fail("assigned", e)
+    # 3. 粉絲專頁
+    n = len(found)
+    try:
+        pgs = _list(f"{FB_HOST}/me/accounts", {"fields": page_f, "limit": 100, "access_token": token})
+        for pg in pgs:
+            iba = pg.get("instagram_business_account") or {}
+            add("pages", iba.get("id"), iba.get("username"))
+        note("pages", n, f"（粉絲專頁 {len(pgs)} 個）")
+    except Exception as e:  # noqa: BLE001
+        fail("pages", e)
+    # 4. 系統用戶指派的粉絲專頁
+    n = len(found)
+    if me_id:
+        try:
+            for pg in _list(f"{FB_HOST}/{me_id}/assigned_pages", {"fields": page_f, "access_token": token}):
+                iba = pg.get("instagram_business_account") or {}
+                add("asg_pages", iba.get("id"), iba.get("username"))
+            note("asg_pages", n)
+        except Exception as e:  # noqa: BLE001
+            fail("asg_pages", e)
+    # 5. 企業管理平台
+    n = len(found)
+    try:
+        for b in _list(f"{FB_HOST}/me/businesses", {"fields": "id,name", "access_token": token}):
+            for edge in ("owned_instagram_accounts", "instagram_accounts"):
+                try:
+                    for x in _list(f"{FB_HOST}/{b.get('id')}/{edge}", {"fields": ig_f, "access_token": token}):
+                        add("biz", x.get("id"), x.get("username"))
+                except Exception as e:  # noqa: BLE001
+                    probe.append(f"企業管理平台 {edge}：失敗 {SP.redact(e)[:120]}")
+        note("biz", n)
+    except Exception as e:  # noqa: BLE001
+        fail("biz", e)
+    # 6. 廣告帳號（ads_read）
+    n = len(found)
+    try:
+        acts = _list(f"{FB_HOST}/me/adaccounts", {"fields": "name,account_id", "access_token": token})
+        for a in acts:
+            act = str(a.get("id") or "")
+            if not act:
+                continue
+            for edge in ("instagram_accounts", "connected_instagram_accounts"):
+                try:
+                    for x in _list(f"{FB_HOST}/{act}/{edge}", {"fields": ig_f, "access_token": token}):
+                        add("ads", x.get("id"), x.get("username"))
+                except Exception as e:  # noqa: BLE001
+                    probe.append(f"廣告帳號 {edge}：失敗 {SP.redact(e)[:120]}")
+        note("ads", n, f"（廣告帳號 {len(acts)} 個）")
+    except Exception as e:  # noqa: BLE001
+        fail("ads", e)
+    # 沒有 username 的（例如 granular 只給編號）→ 逐一查 /{id}?fields=username
+    for x in found:
+        if not x["username"]:
+            try:
+                x["username"] = str(SP.http("GET", f"{FB_HOST}/{x['id']}",
+                                            params={"fields": "username", "access_token": token}).get("username") or "")
+            except Exception as e:  # noqa: BLE001
+                probe.append(f"查 {_tail(x['id'])} 的 username 失敗：{SP.redact(e)[:120]}")
+    return found
+
+
+def ig_choices(cands: list[dict], account: str = "", prefer_via: str = "") -> tuple[list[str], str]:
+    """候選 → 本頻道可用的編號（依序嘗試）＋說明。username 對得上的全部列（prefer_via 那條路排第一）；
+    都對不上但只有一個 username → 用它並警告；多個對不上 → 不猜，回 []。"""
+    if not cands:
+        return [], "所有路徑都找不到 IG 帳號編號"
+    hit = [x for x in cands if account and x["username"].lower() == account.lower()]
+    if not hit:
+        names = sorted({x["username"] for x in cands if x["username"]})
+        if len(names) <= 1:
+            hit = list(cands)
+            why = f"只找到 IG @{names[0] if names else '?'}"
+            if account:
+                why += f"；⚠️ 跟本頻道帳號 {account} 不同，請確認權杖是不是產錯帳號"
+        else:
+            return [], (f"權杖看得到多個 IG（{'、'.join('@' + n for n in names)}），沒有一個是本頻道的 "
+                        f"{account or '（未設定帳號名）'}，不猜；請填 *_IG_USER_ID")
+    else:
+        why = f"對到 IG @{hit[0]['username']}"
+    if prefer_via:
+        hit.sort(key=lambda x: 0 if x["via"] == prefer_via else 1)
+    why += "；來源：" + "、".join(f"{IG_PATH_NAME[x['via']]}（{_tail(x['id'])}）" for x in hit)
+    return [x["id"] for x in hit], why
+
+
+def ig_via_of(cands: list[dict], uid: str) -> str:
+    return next((x["via"] for x in cands if x["id"] == uid), "")
+
+
 def _mask_uid(uid: str) -> None:
     print("::add-mask::" + uid, flush=True)
     if len(uid) >= 6 and uid not in SP._SECRETS:
         SP._SECRETS.append(uid)
 
 
-def resolve_uid(p: str, env_id: str, token: str, prefix: str | None = None) -> str:
-    """IG＋EAA 權杖：USER_ID 有填就用，沒填用 /me/accounts 找；其餘照舊走 social_publish.resolve_user_id。"""
+def resolve_uid(p: str, env_id: str, token: str, prefix: str | None = None, prefer_via: str = "") -> str:
+    """IG＋EAA 權杖：USER_ID 有填就用，沒填用多路徑探查（fb_ig_candidates）找；其餘照舊走 social_publish.resolve_user_id。"""
     if not (p == "ig" and is_fb_token(token)):
         return SP.resolve_user_id(p, env_id, token)
     if env_id:
         return env_id
-    try:
-        uid, why = pick_ig(fb_pages(token), channel_account(prefix))
-    except Exception as e:  # noqa: BLE001
-        SP.log(f"[ig] 用 Facebook 權杖查粉絲專頁失敗：{SP.redact(e)}")
-        return ""
+    ids, why = ig_choices(fb_ig_candidates(token), channel_account(prefix), prefer_via)
     SP.log(f"[ig] Facebook 登入版權杖：{why}")
-    if uid:
-        _mask_uid(uid)
-    return uid
+    return ids[0] if ids else ""
 
 
-def fb_diag(token: str, account: str = "") -> dict:
+def fb_diag(token: str, account: str = "", prefer_via: str = "") -> dict:
     """EAA 權杖診斷（不印任何權杖字元）：已授權權限、缺的權限、粉絲專頁與連結的 IG、權杖類型與到期。
-    回傳 {"lines": [...], "missing": [...], "problems": [...]}。"""
+    回傳 {"lines", "missing", "problems", "cands"（全部候選）, "ids"（本頻道依序可試的編號）}。"""
     lines, problems = [], []
     granted, declined = [], []
     try:
@@ -537,31 +712,24 @@ def fb_diag(token: str, account: str = "") -> dict:
         lines.append(f"權杖類型：{typ}，{ex}" + ("" if dd.get("is_valid", True) else "（Meta 回報無效）"))
     except Exception as e:  # noqa: BLE001
         lines.append(f"讀不到權杖到期資訊（debug_token）：{SP.redact(e)[:160]}")
-    try:
-        pages = fb_pages(token)
-        linked = [x for x in pages if x["ig_id"]]
-        lines.append(f"粉絲專頁 {len(pages)} 個；連了 IG 的 {len(linked)} 個" + (
-            "：" + "、".join(f"「{x['name']}」→ @{x['ig_username']}" for x in linked) if linked else ""))
-        unlinked = [x["name"] for x in pages if not x["ig_id"]]
-        if unlinked:
-            lines.append("沒連 IG 的粉絲專頁：" + "、".join(f"「{n}」" for n in unlinked))
-        uid, why = pick_ig(pages, account)
-        lines.append("本頻道使用：" + why)
-        if not pages:
-            problems.append("權杖看不到任何粉絲專頁（授權時沒勾選粉絲專頁，或缺 pages_show_list）")
-        elif not uid:
-            problems.append(why)
-    except Exception as e:  # noqa: BLE001
-        problems.append(f"讀不到粉絲專頁（/me/accounts）：{SP.redact(e)[:200]}")
-    return {"lines": lines, "missing": missing, "problems": problems}
+    probe: list[str] = []
+    cands = fb_ig_candidates(token, probe)
+    lines += ["探查 " + x for x in probe]
+    ids, why = ig_choices(cands, account, prefer_via)
+    lines.append("本頻道使用：" + why)
+    if not ids:
+        problems.append(why)
+    return {"lines": lines, "missing": missing, "problems": problems, "cands": cands, "ids": ids}
 
 
-def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver, prefix: str | None = None) -> tuple[str, str]:
+def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver, prefix: str | None = None,
+                state: Path | None = None) -> tuple[str, str]:
     prefix = _pfx(prefix)
     token = tok[p]
     if p == "threads":
         token = threads_token_check(token, env, notes, saver, prefix)
-    uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix)
+    via = (load_json(state / "verify.json", {}).get(p) or {}).get("via", "") if state else ""
+    uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix, via)
     if not uid:
         raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
     return token, uid
@@ -617,16 +785,40 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
             urls = [public_url(it, f) for f in (ig_files(it) if p == "ig" else it["images"])]
             for u in urls:
                 check(u, "image/jpeg" if p == "ig" else "image/png")
+            dg = None
             if p == "ig" and is_fb_token(tok[p]):
-                dg = fb_diag(tok[p], channel_account(prefix))
-                res["ig_diag"] = dg
+                prev = (load_json(state / "verify.json", {}).get(p) or {}).get("via", "")
+                dg = fb_diag(tok[p], channel_account(prefix), prev)
+                res["ig_diag"] = {k: dg[k] for k in ("lines", "missing", "problems")}   # 不帶完整編號（last_run.json 進 public repo）
                 for ln in dg["lines"]:
                     SP.log("[ig 診斷] " + ln)
                 res["notes"].append("IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：" + "；".join(dg["lines"]))
                 for pb in dg["problems"]:
                     res["notes"].append("IG 問題：" + pb)
-            token, uid = _live_token(p, env, tok, res["notes"], saver, prefix)
-            cid = ver[p](uid, token, urls, it["caption"] if p == "ig" else _threads_text(it["caption"]))
+            body = it["caption"] if p == "ig" else _threads_text(it["caption"])
+            env_id = (env.get(f"{_pfx(prefix)}{p.upper()}_USER_ID") or "").strip()
+            if dg is not None and not env_id:
+                # EAA 沒填 USER_ID：每個候選編號都試建容器（不發布），第一個 FINISHED 的就是答案
+                if not dg["ids"]:
+                    raise RuntimeError("查不到帳號編號：" + (dg["problems"][-1] if dg["problems"] else "所有路徑都找不到"))
+                errs = []
+                cid = via = ""
+                for uid in dg["ids"]:
+                    v = ig_via_of(dg["cands"], uid)
+                    try:
+                        cid = ver[p](uid, tok[p], urls, body)
+                        via = v
+                        break
+                    except Exception as e:  # noqa: BLE001
+                        errs.append(f"{IG_PATH_NAME.get(v, v)}（{_tail(uid)}）建容器失敗：{SP.redact(e)[:200]}")
+                res["notes"] += errs
+                if not via:
+                    raise RuntimeError("；".join(errs))
+                mark_verified(state, p, now, cid, via)
+                ok.append(f"{p} 通過（帳號編號來源：{IG_PATH_NAME[via]}；容器 {cid} FINISHED，未發布）")
+                continue
+            token, uid = _live_token(p, env, tok, res["notes"], saver, prefix, state)
+            cid = ver[p](uid, token, urls, body)
             mark_verified(state, p, now, cid)
             ok.append(f"{p} 通過（容器 {cid} FINISHED，未發布）")
         except Exception as e:  # noqa: BLE001
@@ -842,7 +1034,8 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             token = tok[p]
             if p == "threads":
                 token = threads_token_check(token, env, res["notes"], saver, prefix)
-            uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix)
+            via = (load_json(state / "verify.json", {}).get(p) or {}).get("via", "")
+            uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix, via)
             if not uid:
                 raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
             if not is_verified(state, p):
@@ -851,7 +1044,7 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
                     cid = ver[p](uid, token, urls, it["caption"] if p == "ig" else _threads_text(it["caption"]))
                 except Exception as e:  # noqa: BLE001
                     raise RuntimeError(f"驗證模式失敗（沒有發文）：{SP.redact(e)}") from None
-                mark_verified(state, p, now, cid)
+                mark_verified(state, p, now, cid, via)
                 res["notes"].append(f"{p} 驗證模式通過（容器 {cid} 已 FINISHED，未發布），接著正式發文")
             if p == "threads":      # publish_threads(uid, token, text, urls)：超過 500 字自己會截斷
                 r = pub[p](uid, token, _threads_text(it["caption"]), urls)

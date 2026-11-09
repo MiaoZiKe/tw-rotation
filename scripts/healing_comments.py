@@ -147,7 +147,13 @@ def me(token: str, prefix: str | None = None) -> dict:
         uid, why = HP.pick_ig(pages, HP.channel_account(prefix))
         SP.log(f"[ig] Facebook 登入版權杖：{why}")
         if not uid:
-            raise RuntimeError(why)
+            # 系統用戶權杖只指派了 IG 帳號、沒有粉絲專頁（/me/accounts 0 個）→ 改用多路徑探查找編號（沒有專頁權杖，私訊用原權杖）
+            ids, why2 = HP.ig_choices(HP.fb_ig_candidates(token), HP.channel_account(prefix))
+            SP.log(f"[ig] 多路徑探查：{why2}")
+            if not ids:
+                raise RuntimeError(why + "；" + why2)
+            _PAGE[token] = {"page_id": "", "page_token": ""}
+            return {"id": ids[0], "username": HP.channel_account(prefix)}
         pg = next(x for x in pages if x["ig_id"] == uid)
         _PAGE[token] = {"page_id": pg.get("page_id", ""), "page_token": pg.get("page_token", "")}
         return {"id": uid, "username": pg["ig_username"]}

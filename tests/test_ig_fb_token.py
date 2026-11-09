@@ -108,7 +108,7 @@ def test_診斷_沒連IG與短效(monkeypatch):
     monkeypatch.setattr(hp.SP, "http", fake_http(calls, pages={"data": [{"name": "只有專頁"}]}, expires=exp))
     dg = hp.fb_diag(EAA, "caffaine.ai")
     pb = "\n".join(dg["problems"])
-    assert "沒有一個連結 IG" in pb and "短效" in pb
+    assert "所有路徑都找不到" in pb and "短效" in pb
 
 
 def test_刪文走facebook(monkeypatch):
