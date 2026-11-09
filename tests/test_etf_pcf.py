@@ -85,7 +85,7 @@ def test_bad_payload_is_empty_and_logs_first_200_chars(caplog, monkeypatch):
 
 
 def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
-    monkeypatch.setattr(etf_pcf, "capital", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(etf_pcf, "capital", lambda date=None: (_ for _ in ()).throw(RuntimeError("boom")))
     ok = pd.DataFrame([{"date": "2026-10-06", "etf": "00935", "code": "2330", "name": "台積電", "weight": 23.6, "shares": 1.0,
                         "issuer": "野村", "src": "u"}])
     # 2026-10-08 根因：第三、四輪新接的投信（大華銀 uob、永豐 sinopac、玉山 esun、安聯 allianz）沒有加進這張 mock 清單，
@@ -101,7 +101,7 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
                "uob", "sinopac", "esun", "allianz", "usitc"):
         monkeypatch.setattr(etf_pcf, fn, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "kgi", lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
-    monkeypatch.setattr(etf_pcf, "nomura", lambda codes: ok)
+    monkeypatch.setattr(etf_pcf, "nomura", lambda codes, date=None: ok)
     out = etf_pcf.fetch_all({"00935": "野村臺灣新科技50"})
     assert list(out["etf"]) == ["00935"]
 
@@ -246,3 +246,51 @@ def test_tsit_stock_card_only():
     assert [(x["code"], x["name"], x["weight"], x["shares"], x["date"]) for x in r] == [("2330", "台積電", 39.1444, 1143000.0, "2026-10-08")]
     assert etf_pcf.parse_tsit("00947", TSIT_PAGE) == []         # 頁首代號不符就不收
     assert etf_pcf.parse_tsit("X", None) == []
+
+
+# ───────── 2026-11-09 補抓指定日：fetch_all(date=...) ─────────
+def test_next_bd_跳過週末():
+    assert etf_pcf.next_bd("2026-11-06") == "2026-11-09"     # 週五 → 週一
+    assert etf_pcf.next_bd("2026-11-05") == "2026-11-06"
+    assert etf_pcf._qd(None, "/") is None
+    assert etf_pcf._qd("2026-11-06", "/", True) == "2026/11/09"
+    assert etf_pcf._qd("2026-11-06", "-") == "2026-11-06"
+
+
+def test_各家帶日期的請求參數(monkeypatch):
+    calls = []
+
+    def fake_req(method, url, *, json_body=None, params=None, expect="json", retries=2):
+        calls.append((method, url, json_body, params))
+        return None
+
+    monkeypatch.setattr(etf_pcf, "_req", fake_req)
+    monkeypatch.setattr(etf_pcf.time, "sleep", lambda s: None)
+    # 群益：先要清單，造一份
+    def cap_req(method, url, **kw):
+        calls.append((method, url, kw.get("json_body"), kw.get("params")))
+        if url == etf_pcf.CAPITAL_LIST:
+            return {"data": {"funds": [{"stockNo": "00919", "fundNo": "399"}]}}
+        return None
+    monkeypatch.setattr(etf_pcf, "_req", cap_req)
+    etf_pcf.capital("2026-11-06")
+    assert [c[2] for c in calls if c[1] == etf_pcf.CAPITAL_PCF] == [{"fundId": "399", "date": "2026/11/09"}]   # 查詢日＝下一營業日
+    calls.clear()
+    etf_pcf.nomura(["00935"], "2026-11-06")
+    assert calls[0][2] == {"FundID": "00935", "SearchDate": "2026-11-06"}                                    # 野村：基準日本身
+    calls.clear()
+    etf_pcf.nomura(["00935"])
+    assert calls[0][2]["SearchDate"] is None                                                                  # 沒給日期＝維持原行為
+
+
+def test_fetch_all_只留基準日等於目標日的列(monkeypatch):
+    def row(d, c):
+        return {"date": d, "etf": "0050", "code": c, "name": "x", "weight": 1.0, "shares": 1.0, "issuer": "群益", "src": "s"}
+
+    monkeypatch.setattr(etf_pcf, "capital", lambda date=None: etf_pcf._frame([row("2026-11-06", "2330"), row("2026-11-05", "2317")]))
+    for n in ("fuhhwa", "uni", "kgi", "cathay", "ctbc", "nomura", "yuanta", "fsitc", "ab", "hn", "fubon", "uob", "sinopac", "allianz", "esun", "usitc", "tsit"):
+        monkeypatch.setattr(etf_pcf, n, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
+    out = etf_pcf.fetch_all({"0050": "元大台灣50"}, "2026-11-06")
+    assert list(out["code"]) == ["2330"] and set(out["date"]) == {"2026-11-06"}      # 日期用回應裡的，不是執行當天
+    out2 = etf_pcf.fetch_all({"0050": "元大台灣50"})
+    assert len(out2) == 2                                                             # 預設行為不過濾

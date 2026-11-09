@@ -80,6 +80,23 @@ def _iso(s: Any) -> str | None:
     return None
 
 
+def next_bd(iso: str) -> str:
+    """下一個週一～五（不看國定假日）。各投信的「查詢日」是 PCF 適用日，回應的基準日（淨值日）是前一個營業日，
+    要拿到基準日＝T 的那份，查詢日要給 T 的下一個營業日（2026-11-09 在 Actions 實測：群益、凱基、統一、第一金、華南永昌、
+    台新、大華銀帶 11-06 回的基準日都是 11-05）。"""
+    d = dt.date.fromisoformat(iso) + dt.timedelta(days=1)
+    while d.weekday() >= 5:
+        d += dt.timedelta(days=1)
+    return d.isoformat()
+
+
+def _qd(date: str | None, sep: str, nxt: bool = False) -> str | None:
+    """把 ISO 目標日轉成查詢日字串（sep＝"/" 或 "-"）；date 為 None 就回 None（＝維持原本「查最新」的行為）。"""
+    if not date:
+        return None
+    return (next_bd(date) if nxt else date).replace("-", sep)
+
+
 def _req(method: str, url: str, *, json_body: Any = None, params: dict | None = None,
          expect: str = "json", retries: int = 2) -> Any | None:
     """投信 API 共用的請求：POST 也要支援（util.http.get 只有 GET），失敗回 None 並記前 200 字。"""
@@ -167,7 +184,7 @@ def parse_capital(etf: str, payload: dict) -> list[dict]:
     return out
 
 
-def capital() -> pd.DataFrame:
+def capital(date: str | None = None) -> pd.DataFrame:
     lst = _req("POST", CAPITAL_LIST, json_body=None)
     funds = (((lst or {}).get("data") or {}).get("funds")) or []
     if not funds:
@@ -178,7 +195,7 @@ def capital() -> pd.DataFrame:
         code, fid = str(f.get("stockNo") or "").strip(), str(f.get("fundNo") or "").strip()
         if not code or not fid or _skip_code(code):
             continue
-        p = _req("POST", CAPITAL_PCF, json_body={"fundId": fid, "date": None})
+        p = _req("POST", CAPITAL_PCF, json_body={"fundId": fid, "date": _qd(date, "/", True)})
         got = parse_capital(code, p) if p else []
         if p and not got and ((p.get("data") or {}).get("stocks") is None) and ((p.get("data") or {}).get("bonds") is None):
             log.info("群益 %s 沒有股票清單（前 200 字）：%s", code, _snip(p))
@@ -212,12 +229,12 @@ def parse_nomura(etf: str, payload: dict) -> list[dict]:
     return out
 
 
-def nomura(codes: list[str]) -> pd.DataFrame:
+def nomura(codes: list[str], date: str | None = None) -> pd.DataFrame:
     rows: list[dict] = []
     for c in codes:
         if _skip_code(c):
             continue
-        p = _req("POST", NOMURA_PCF, json_body={"FundID": c, "SearchDate": None})
+        p = _req("POST", NOMURA_PCF, json_body={"FundID": c, "SearchDate": _qd(date, "-")})
         got = parse_nomura(c, p) if p else []
         if p and not got:
             log.info("野村 %s 沒有股票表（前 200 字）：%s", c, _snip(p))
@@ -306,13 +323,13 @@ def uni_fund_codes(page_html: str) -> dict[str, str]:
     return out
 
 
-def uni(today: dt.date | None = None) -> pd.DataFrame:
+def uni(today: dt.date | None = None, date: str | None = None) -> pd.DataFrame:
     page = _req("GET", UNI_PAGE, expect="text")
     codes = uni_fund_codes(page or "")
     if not codes:
         log.warning("統一 PCF 頁找不到基金代碼（前 200 字）：%s", _snip(page))
         return pd.DataFrame(columns=COLS)
-    today = today or dt.date.today()
+    today = dt.date.fromisoformat(next_bd(date)) if date else (today or dt.date.today())
     roc = f"{today.year - 1911}/{today.month:02d}/{today.day:02d}"
     rows: list[dict] = []
     for etf, fc in codes.items():
@@ -386,7 +403,7 @@ def parse_kgi(etf: str, frag: str) -> list[dict]:
     return out
 
 
-def kgi(names: dict[str, str]) -> pd.DataFrame:
+def kgi(names: dict[str, str], date: str | None = None) -> pd.DataFrame:
     page = _req("GET", KGI_PAGE, expect="text")
     ids = kgi_fund_ids(page or "", {c: n for c, n in names.items() if "凱基" in str(n)})
     if not ids:
@@ -397,7 +414,7 @@ def kgi(names: dict[str, str]) -> pd.DataFrame:
         if _skip_code(etf):
             continue
         try:
-            r = http.session().post(KGI_PCF, data={"fundID": fid, "queryDate": ""}, timeout=TIMEOUT)
+            r = http.session().post(KGI_PCF, data={"fundID": fid, "queryDate": _qd(date, "/", True) or ""}, timeout=TIMEOUT)
             frag = r.text if r.status_code == 200 else ""
         except Exception as exc:  # noqa: BLE001
             log.warning("凱基 %s 失敗：%s", etf, exc)
@@ -451,7 +468,7 @@ def cathay_funds() -> dict[str, str]:
     return out
 
 
-def cathay(today: dt.date | None = None) -> pd.DataFrame:
+def cathay(today: dt.date | None = None, date: str | None = None) -> pd.DataFrame:
     funds = cathay_funds()
     if not funds:
         log.warning("國泰 ETF 清單抓不到")
@@ -460,7 +477,7 @@ def cathay(today: dt.date | None = None) -> pd.DataFrame:
     for etf, fc in funds.items():
         if _skip_code(etf):
             continue
-        a = _req("GET", CATHAY_ASSETS, params={"FundCode": fc}, retries=1)
+        a = _req("GET", CATHAY_ASSETS, params={"FundCode": fc, **({"SearchDate": _qd(date, "/")} if date else {})}, retries=1)
         day = _iso(((a or {}).get("result") or {}).get("preDate"))
         if not day:
             log.info("國泰 %s 沒有淨值日（前 200 字）：%s", etf, _snip(a))
@@ -496,7 +513,7 @@ def parse_ctbc(etf: str, payload: dict) -> list[dict]:
     return out
 
 
-def ctbc() -> pd.DataFrame:
+def ctbc(date: str | None = None) -> pd.DataFrame:
     """照官網前端的流程：home/AuthToken 拿 token → etf/ETFList 拿 {ETF_ID, FID} → 逐檔 etf/ETFHoldingWeight。"""
     def call(path: str, body: dict, token: str = CTBC_SITE):
         return _req("POST", CTBC_API + path, params={"token": token}, json_body={"token": token, **body}, retries=1)
@@ -511,7 +528,7 @@ def ctbc() -> pd.DataFrame:
     tok = ((((call("home/AuthToken", {}) or {}).get("Data")) or {}).get("token")) or CTBC_SITE
     rows: list[dict] = []
     for etf, fid in funds:
-        start = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        start = f"{date}T00:00:00.000Z" if date else dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
         p = call("etf/ETFHoldingWeight", {"FID": fid, "StartDate": start}, tok)
         got = parse_ctbc(etf, p)
         if not got:
@@ -745,10 +762,10 @@ def parse_fsitc(etf: str, payload: Any) -> list[dict]:
     return out
 
 
-def fsitc() -> pd.DataFrame:
+def fsitc(date: str | None = None) -> pd.DataFrame:
     rows: list[dict] = []
     for etf, fid in FSITC_IDS.items():
-        p = _req("POST", FSITC_HD, json_body={"pStrFundID": fid, "pStrDate": ""})
+        p = _req("POST", FSITC_HD, json_body={"pStrFundID": fid, "pStrDate": _qd(date, "-", True) or ""})
         got = parse_fsitc(etf, p) if p else []
         if p and not got:
             log.warning("第一金 %s（ID=%s）解析不到股票（前 200 字）：%s", etf, fid, _snip(p))
@@ -859,7 +876,7 @@ def parse_hn(etf: str, payload: Any) -> list[dict]:
     return out
 
 
-def hn(codes: list[str]) -> pd.DataFrame:
+def hn(codes: list[str], date: str | None = None) -> pd.DataFrame:
     rows: list[dict] = []
     try:
         s = http.session()
@@ -872,7 +889,7 @@ def hn(codes: list[str]) -> pd.DataFrame:
             return _frame([])
         hdr = {"Authorization": f"Bearer {token}"}
         for c in codes:
-            r = s.post(HN_API + "ETF/BuyBack", json={"ETFID": c, "DataDate": ""}, headers=hdr, timeout=TIMEOUT)
+            r = s.post(HN_API + "ETF/BuyBack", json={"ETFID": c, "DataDate": _qd(date, "-", True) or ""}, headers=hdr, timeout=TIMEOUT)
             try:
                 p = r.json()
             except ValueError:
@@ -990,7 +1007,7 @@ def parse_tsit(etf: str, page: str) -> list[dict]:
     return out
 
 
-def tsit(codes: list[str]) -> pd.DataFrame:
+def tsit(codes: list[str], date: str | None = None) -> pd.DataFrame:
     rows: list[dict] = []
     for c in codes:
         if re.search(r"[LR]$", c):
@@ -1000,7 +1017,7 @@ def tsit(codes: list[str]) -> pd.DataFrame:
         page = None
         for wait in (1, 5):
             time.sleep(wait)
-            page = _req("GET", TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": ""}, expect="text")
+            page = _req("GET", TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": _qd(date, "-", True) or ""}, expect="text")
             if not (isinstance(page, str) and "<title>Error</title>" in page):
                 break
         got = parse_tsit(c, page) if page else []
@@ -1095,7 +1112,7 @@ def parse_uob(payload: Any) -> list[dict]:
     return out if etf else []
 
 
-def uob() -> pd.DataFrame:
+def uob(date: str | None = None) -> pd.DataFrame:
     lst = _uob_get("WebSiteStockListRequest", {})
     ids = uob_fund_ids(lst) if lst is not None else []
     if lst is not None and not ids:
@@ -1104,7 +1121,7 @@ def uob() -> pd.DataFrame:
     rows: list[dict] = []
     for fid in ids:
         time.sleep(0.5)                      # 節流：一家一輪十來檔，慢一點沒差
-        p = _uob_get("WebSitePcfRequest", {"fundID": fid, "pcfDate": ""})
+        p = _uob_get("WebSitePcfRequest", {"fundID": fid, "pcfDate": _qd(date, "/", True) or ""})
         got = parse_uob(p) if p is not None else []
         if p is not None and not got:
             log.info("大華銀 fundID=%s 沒有股票／債券成分（前 200 字）：%s", fid, _snip(p))
@@ -1326,7 +1343,7 @@ def parse_usitc(etf: str, page: str) -> list[dict]:
     return out
 
 
-def usitc() -> pd.DataFrame:
+def usitc(date: str | None = None) -> pd.DataFrame:
     first = _req("GET", USITC_PCF, expect="text")
     codes = usitc_codes(first or "")
     if not codes:
@@ -1340,7 +1357,7 @@ def usitc() -> pd.DataFrame:
         try:
             time.sleep(0.5)
             # sDate 用台北今天：這只是「查詢哪一天的公告」，回應裡的「資料日期」才是持股基準日（存的是那個）
-            today = (dt.datetime.utcnow() + dt.timedelta(hours=8)).date().isoformat()
+            today = date or (dt.datetime.utcnow() + dt.timedelta(hours=8)).date().isoformat()
             r = http.session().post(USITC_PCF, data={"FundNo": c, "sDate": today}, timeout=TIMEOUT)
             page = r.text if r.status_code == 200 else None
             if page is None:
@@ -1383,25 +1400,33 @@ def issuer_of(name: str) -> str | None:
     return None
 
 
-def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
+def fetch_all(etf_names: dict[str, str], date: str | None = None) -> pd.DataFrame:
     """抓所有已接上的投信。etf_names＝{代號: 簡稱}（company_info 裡 industry=ETF 的那些），
-    元大／野村沒有「列出自家 ETF」的公開 API，用簡稱判斷發行商後逐檔打。"""
+    元大／野村沒有「列出自家 ETF」的公開 API，用簡稱判斷發行商後逐檔打。
+
+    date＝要補抓的持股基準日（ISO，例 "2026-11-06"）；None＝抓最新（每日管線的行為，完全不變）。
+    有日期參數的投信（群益、野村、復華、統一、凱基、國泰、中信、第一金、華南永昌、台新、大華銀、聯邦）帶日期查；
+    沒有（元大、富邦、永豐、玉山、安聯、聯博）照常查最新。最後一律只留回應基準日＝date 的列
+    （基準日以回應內容為準，不是查詢日），對不上的家記 log 後丟掉。"""
     by = {}
     for c, n in etf_names.items():
         by.setdefault(issuer_of(n), []).append(c)
     jobs: list[tuple[str, Callable[[], pd.DataFrame]]] = [
-        ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", lambda: kgi(etf_names)), ("國泰", cathay), ("中國信託", ctbc),
-        ("野村", lambda: nomura(sorted(by.get("野村", [])))),
+        ("群益", lambda: capital(date)),
+        ("復華", lambda: fuhhwa(dt.date.fromisoformat(date)) if date else fuhhwa()),
+        ("統一", lambda: uni(date=date)), ("凱基", lambda: kgi(etf_names, date)),
+        ("國泰", lambda: cathay(date=date)), ("中國信託", lambda: ctbc(date)),
+        ("野村", lambda: nomura(sorted(by.get("野村", [])), date)),
         ("元大", lambda: yuanta(sorted(by.get("元大", [])))),
-        ("第一金", fsitc), ("聯博", lambda: ab(sorted(by.get("聯博", [])))),
-        ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
+        ("第一金", lambda: fsitc(date)), ("聯博", lambda: ab(sorted(by.get("聯博", [])))),
+        ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])), date)),
         ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
-        ("大華銀", uob),
+        ("大華銀", lambda: uob(date)),
         ("永豐", sinopac),
         ("安聯", allianz),
         ("玉山", lambda: esun(etf_names)),
-        ("聯邦", usitc),
-        ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
+        ("聯邦", lambda: usitc(date)),
+        ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])), date)),
     ]
     frames = []
     for name, fn in jobs:
@@ -1410,6 +1435,12 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         except Exception as exc:  # noqa: BLE001 —— 一家掛掉不影響其他家
             log.exception("ETF PCF %s 失敗：%s", name, exc)
             df = pd.DataFrame(columns=COLS)
+        if date and len(df):
+            got_days = sorted(set(df["date"].astype(str)))
+            keep = df[df["date"].astype(str) == date]
+            if len(keep) < len(df):
+                log.info("ETF PCF %s：回應基準日 %s，目標 %s，丟掉 %d 列", name, got_days, date, len(df) - len(keep))
+            df = keep
         log.info("ETF PCF %s：%d 檔、%d 列", name, df["etf"].nunique() if len(df) else 0, len(df))
         frames.append(df)
     out = pd.concat([f for f in frames if len(f)], ignore_index=True) if any(len(f) for f in frames) else pd.DataFrame(columns=COLS)
@@ -1425,10 +1456,12 @@ if __name__ == "__main__":  # 在 Actions 上手動自我測試：python -m pipe
     ci = store.read("company_info")
     m = ci["industry"].isin(["ETF", "上櫃ETF"]) if len(ci) else None
     names = dict(zip(ci.loc[m, "code"], ci.loc[m, "name"])) if len(ci) else {}
-    only = sys.argv[1:]
+    args = [a for a in sys.argv[1:] if not a.startswith("--date=")]
+    target = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--date=")), None)
+    only = args
     if only:
         names = {c: n for c, n in names.items() if issuer_of(n) in only or c in only}
-    df = fetch_all(names)
+    df = fetch_all(names, target)
     print("合計", len(df), "列，", df["etf"].nunique() if len(df) else 0, "檔")
     for etf, g in df.groupby("etf"):
         print(f"  {etf} {g['issuer'].iloc[0]} {g['date'].iloc[0]} {len(g)} 檔 權重合計 {g['weight'].sum():.1f} 前三：",
