@@ -53,6 +53,8 @@
    · ★ 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：新鍵 ov.fear（總覽恐慌指數卡「點開的完整圖」；卡片本身的盤後值人人看得到、不計次）：
      四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限（跟 mkt.credit 同口徑，單位＝一次造訪裡打開過完整圖）。
      不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
+   · ★ 2026-11-09（Andy：「02 05 03 04 06」五項全做）：新鍵 share.card（一鍵分享圖卡）：四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限；
+     新鍵 share.card.plus（圖卡去角標、選方形／限動尺寸）：訪客、註冊會員關，Plus、Pro 開。不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
    · ★ 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況…這功能記得也要顯在權限內 但暫不開放」）：新鍵 stock.bigsmall（個股大戶／散戶買賣推估）
      四個方案都寫 false＝暫不開放、不設次數；stock.bigsmall.live（今日即時）比照 live.tick 四個方案 false（只有站主／管理員，範本管不到）。
      Andy 要開時在 #admin/perm 把方案撥開；體驗次數不預設。
@@ -79,6 +81,8 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "share.card": true,
+    "share.card.plus": false,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -184,6 +188,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown.filter": 3,
     "mkt.credit": 3,
     "ov.fear": 3,
+    "share.card": 3,
     "mkt.fut": 3,
     "ov.advdec.tiles": 3,
     "mkt.inst.day": 3,
@@ -223,6 +228,8 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "share.card": true,
+    "share.card.plus": false,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -336,6 +343,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.ma": 5,
     "mkt.credit": 5,
     "ov.fear": 5,
+    "share.card": 5,
     "mkt.fut": 5,
     "ov.advdec.tiles": 5,
     "mkt.inst.day": 5,
@@ -381,6 +389,8 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "share.card": true,
+    "share.card.plus": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -473,6 +483,7 @@ window.TW_PLAN_PRESETS = {
     "stock.page": 50,
     "mkt.credit": 50,
     "ov.fear": 50,
+    "share.card": 50,
     "mkt.fut": 50,
     "ov.advdec.tiles": 50,
     "mkt.inst.day": 50
@@ -511,6 +522,8 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "share.card": true,
+    "share.card.plus": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,

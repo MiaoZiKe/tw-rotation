@@ -8,6 +8,11 @@
 - 這批只驗了：pytest tests/ -k "social or threads or daily_audit or quota or close or gate or snap or caption or fast or publish or ig or news"（新增 0 失敗；21 個既有失敗是 sparse 工作樹缺 site/、social/、data/ 檔，改前改後同一批）。
 - CEO 追加（同日）：盤後標籤改市場／法人層級、不含個股名（threads_v2.close_market_tag，lint 擋）；social_snap 備用文案 close_v1 也改新格式（舊版完整文案存 manifest threads.v1_raw 給 v2 改寫）。
 
+## 2026-11-09 一鍵分享圖卡（P-1107-05，site/sharecard.js）
+- 總覽強弱輪動／昨日資金分流樹／恐慌指數走勢、資金流向輪盤、產業地圖族群漲跌幅，標題列有「分享圖卡」鈕；視窗選尺寸、下載 PNG（手機走 navigator.share）；圖卡網址 `?src=card#路由`，account.js 記成第一次來源 card（不必動 Worker）。
+- 功能鍵 share.card（訪客 3／註冊會員 5／Plus 50／Pro 不限）、share.card.plus（去角標、選方形／限動；Plus 以上）。公告 f-20261109-share-card。細節 DECISIONS 該日條目。
+- 這批只驗了：`_uitest --sections 分享圖卡1109,漏斗事件1026,體驗額度1027,體驗全選,體驗上限,新功能次數1102,桌機守門1008`（全 0 問題）、`_preview.py`（只剩 data/bigsmall/_index.json 404，是本機舊 site/data 缺大小戶資料，與本批無關）、`會員權限開關`（2 個紅燈是既有：stock.bigsmall／chan.page／flow.play 等不在例外清單，本批新增的 share.card.plus 已補進例外）。沒跑 pytest（只動 site/、scripts/_uitest 與 uitest_sections、DECISIONS／HANDOFF）。
+
 ## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
 - Andy 原話：「可以，做成績表」。資料 site/channels/scores.json（陣列：date／channel／title／platforms／score／comment／template／rule_added／links／cover），首筆為 11-09 頻道①「黃仁勳承認婚外情，輝達啟動調查」90 分範本，links 空白待今晚 20:30 發出後補。
 - **成績表由 CEO 依 Andy 在頻道①聊天室給分更新 scores.json**，頁面不能輸入、不發功能公告、無 features.js 閘門（管理者專用，沿用 channels.js 的 isAdm）。80 分以上標「範本」、60 分以下標「待改」（要在 rule_added 寫新規則，否則顯示「尚未寫規則」）。

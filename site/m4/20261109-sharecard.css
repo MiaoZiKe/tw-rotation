@@ -1,0 +1,8 @@
+/* 一鍵分享圖卡（site/sharecard.js）手機（≤640）：按鈕只留圖示＋短字、視窗貼底成抽屜、按鈕高度 ≥ 40。只限 ≤640，桌機不動。 */
+@media (max-width:640px){
+  .scBtn{min-height:32px;padding:0 10px;font-size:12px}
+  .scDlg{align-items:flex-end;padding:0}
+  .scBox{width:100%;border-radius:16px 16px 0 0;max-height:92vh;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .scCv{max-height:42vh}
+  .scAct .btn{flex:1 1 auto;min-height:44px;font-size:14px}
+}

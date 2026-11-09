@@ -60793,7 +60793,7 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表、今日關注／▶ 播放／族群篩選例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp', 'mkt.cand', 'flow.play', 'season.groups', 'ind.rel', 'etf.ret.period'].includes(i.dataset.f)))"),
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表、今日關注／▶ 播放／族群篩選例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp', 'mkt.cand', 'flow.play', 'season.groups', 'ind.rel', 'etf.ret.period', 'share.card.plus'].includes(i.dataset.f)))"),
            ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].filter(i => i.disabled || !i.checked).map(i => i.dataset.f + (i.disabled ? '(停用)' : ''))"))   # 2026-10-12：關聯圖、ETF 報酬比較期間也是註冊會員預設關（DECISIONS #358）
 
         def save(pg=None):
@@ -61034,7 +61034,7 @@ def t_member_perm(b, base, code):
         gp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
         perm_ready(gp)
         gp.wait_for_timeout(800)
-        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().filter(k => k !== 'heat.link').length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
+        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().filter(k => k !== 'heat.link' && k !== 'share.card.plus').length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
            gp.evaluate("() => [TwPerm.state(), TwPerm.locked()]"))
         cg.close()
         ct.close(); ca.close()

@@ -123,6 +123,9 @@
     const o = {};
     const s = srcClean(q.get('utm_source')), m = srcClean(q.get('utm_medium')), c = srcClean(q.get('utm_campaign')), x = srcClean(q.get('utm_content'));
     if (s) { o.s = s; if (m) o.m = m; if (c) o.c = c; if (x) o.x = x; return o; }
+    /* 2026-11-09 一鍵分享圖卡（P-1107-05）：圖卡網址 https://liguligu-puipui.com/?src=card#路由 → 第一次來源記成 card（medium＝share），
+       land 事件的細項就是「card」，管理區漏斗看得到「分享圖卡帶來幾個新訪客、註冊率多少」。只認 card 這個固定值，不收任意 ?src= */
+    if (String(q.get('src') || '').toLowerCase() === 'card') return { s: 'card', m: 'share' };
     const u = String(q.get('u') || '').toLowerCase().split('-');      // 短參數：平台-時段-日期
     const p0 = srcClean(u[0]), p = SRC_ALIAS[p0] || p0;
     if (!p) return null;

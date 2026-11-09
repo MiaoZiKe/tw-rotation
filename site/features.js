@@ -92,6 +92,16 @@
        一次造訪裡打開過＝一次（quota.js visit 單位）；用完 → 完整圖反灰＋一行字（qnote），卡片照常。 */
     { id: 'ov.fear', name: '總覽：恐慌指數完整圖', cat: 'overview', def: true, kind: 'bool', desc: '恐慌指數卡點開後的完整走勢圖（台指選擇權隱含波動率・本站自算＋美股 VIX）', limBy: { guest: 3, free: 5 },
       qnote: '恐慌指數完整圖今日 {n} 次已用完・Plus 以上可增加', route: /^(#overview([/?]|$)|#?$)/, veil: [['#ovFearFull']], mark: [], block: [] },
+    /* ★★ 2026-11-09 P-1107-05 一鍵分享圖卡（site/sharecard.js；Andy 11-09：「02 05 03 04 06」五項全做）。照 11-02 規則：新功能一律先有功能鍵、四個方案都寫值。
+       share.card＝每產生一張圖卡算一次（按標題列「分享圖卡」鈕；在視窗裡切尺寸、下載、分享不重算）：訪客 3、註冊會員 5、Plus 50、Pro 不限。
+       用完：標題列的鈕反灰＋旁邊一行字（qspent／qbtn），不跳視窗；體驗額度不預設（不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」）。
+       share.card.plus＝Plus 以上：圖卡去掉右上角標、可選方形 1080×1080／限動直式 1080×1920（訪客、註冊會員只有直式 1080×1350、橫式 1200×630）。
+       為什麼這樣切：提案「訪客可用、圖卡加網址浮水印（分享就是目的）；Plus 去浮水印、選尺寸」。頁尾那行網址任何方案都留著——它是這個功能的目的。 */
+    { id: 'share.card', name: '分享圖卡（大盤與族群圖）', cat: 'global', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '圖卡', qspent: true,
+      qbtn: '今日 {n} 張圖卡已用完・Plus 以上可增加', qblock: ['.scBtn'], qnoteAfter: '.scBtn',
+      desc: '總覽強弱輪動／資金分流樹／恐慌指數、資金流向輪盤、產業地圖族群漲跌幅的「分享圖卡」鈕：產生自帶網址的 PNG 圖卡（每產生一張算一次；切尺寸、下載不重算）', veil: [], mark: [], block: [] },
+    { id: 'share.card.plus', name: '分享圖卡：去角標、選尺寸（Plus 以上）', cat: 'global', def: true, defBy: { guest: false, free: false }, kind: 'bool',
+      desc: '圖卡去掉右上角標，並可選 IG 方形 1080×1080、限動直式 1080×1920（關掉：只有直式 1080×1350、橫式 1200×630，右上角帶網址角標）', veil: [], mark: [], block: [] },
     // ---- 精選文章（site/articles.js，2026-10-16 接上全站開關與每日次數）
     /* ★ 預設全部開、不設 defBy／limBy、不進 METERED（全站共用額度）＝上線這一刻任何人看得到的文章一篇都不變；
        Andy 要收費或限篇數時，在 #admin/perm 對訪客／註冊會員／Plus／Pro 範本關掉或填「每日 N 次」。
