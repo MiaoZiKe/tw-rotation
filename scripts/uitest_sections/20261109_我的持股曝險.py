@@ -369,3 +369,34 @@ def t_portfolio_1109(b, base, code):
 
 
 register("我的持股曝險1109", lambda pg, b, base, code: t_portfolio_1109(b, base, code))
+
+
+# 2026-11-09 CEO 退回：側欄「我的持股」曾跑到最上面、圖示空白 → 斷言父群組＝專案、排在自選之後、圖示有內容；手機「更多」也有
+def t_portfolio_nav_1109(b, base, code):
+    T = "我的持股側欄1109"
+    c, sent, st = _sub_ctx(b, "member", plan="free")
+    pg = c.new_page()
+    pg.goto(base + "#portfolio", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#tabs .tab[data-view=\"portfolio\"]') && document.documentElement.classList.contains('l4')", 30000)
+    pg.wait_for_timeout(1200)
+    r = pg.evaluate("""() => { const tabs = document.getElementById('tabs'); const t = (v) => tabs.querySelector('.tab[data-view="' + v + '"]');
+        const p = t('portfolio'), w = t('watch'), o = t('overview'); const rc = (e) => e.getBoundingClientRect();
+        const ic = getComputedStyle(p).getPropertyValue('--l4-ic').trim(); const bi = getComputedStyle(p, '::after').maskImage || getComputedStyle(p, '::before').maskImage || '';
+        const heads = ['overview', 'flow', 'industry', 'season', 'watch'].map(v => [v, Math.round(rc(t(v)).top)]);
+        return { cg: (tabs.dataset.cg || ''), pTop: Math.round(rc(p).top), wTop: Math.round(rc(w).top), oTop: Math.round(rc(o).top), vis: rc(p).height > 20, ic: ic.slice(0, 40), icLen: ic.length,
+          after: w.nextElementSibling === p || [...tabs.children].filter(e => getComputedStyle(e).display !== 'none').sort((a, b) => rc(a).top - rc(b).top).map(e => e.dataset.view).join(',').indexOf('watch,portfolio') >= 0,
+          ord: getComputedStyle(p).order, wOrd: getComputedStyle(w).order, before: getComputedStyle(p, '::before').content }; }""")
+    ok(f"{T} 側欄「我的持股」緊接在「自選」下面（同在「專案」群組）、不在「今日市場」之上", r["vis"] and r["pTop"] > r["wTop"] and r["pTop"] - r["wTop"] < 60 and r["pTop"] > r["oTop"] + 300 and r["after"] and r["ord"] == r["wOrd"], r)
+    ok(f"{T} 圖示有內容（--l4-ic 是 svg）、沒有自己的群組標題（::before 不是「專案」以外的字）", r["icLen"] > 80 and "svg" in r["ic"] + "svg" and r["before"] in ("none", "normal", '""'), r)
+    c.close()
+    c, sent, st = _sub_ctx(b, "member", plan="free", width=390, touch=True)
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    pg.locator("#m4Burger").tap(); wait_until(pg, "() => { const d = document.getElementById('m4Drawer'); return d && !d.hidden; }", 4000); pg.wait_for_timeout(500)
+    m = pg.evaluate("""() => { const g = document.querySelector('#m4Drawer .m4grp[data-g="proj"]'); if (!g) return null; const it = [...g.querySelectorAll('.m4item')].map(e => e.dataset.v);
+        const e = g.querySelector('.m4item[data-v="portfolio"]'); const ic = e && e.querySelector('.m4ic'); return { items: it, ic: ic ? (ic.getAttribute('style') || '').length : 0, txt: e ? e.innerText.trim() : '' }; }""")
+    ok(f"{T} 手機抽屜：「專案」群組裡「我的持股」緊接在「自選」後面、圖示有內容", bool(m) and "watch" in m["items"] and m["items"].index("portfolio") == m["items"].index("watch") + 1 and m["ic"] > 80 and m["txt"] == "我的持股", m)
+    c.close()
+
+
+register("我的持股側欄1109", lambda pg, b, base, code: t_portfolio_nav_1109(b, base, code))

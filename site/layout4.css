@@ -146,6 +146,8 @@
   :root.l4 .tab[data-view="season"]{order:6}
   :root.l4 .tab[data-view="etf"]{order:5;--l4-ic:var(--l4-ic-etf)}
   :root.l4 .tab[data-view="watch"]{order:7}
+  /* 2026-11-09 我的持股：專案組、自選正下方（同 order 7、DOM 較後 → 緊接自選）；圖示＝切一塊的圓餅 */
+  :root.l4 .tab[data-view="portfolio"]{order:7;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9h-9z'/%3E%3Cpath d='M15 3.6A9 9 0 0 1 20.4 9H15z'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="delivery"]{order:8}
   :root.l4 .tabs>:not(.tab){order:9}
   :root.l4 .tab[data-view="overview"],:root.l4 .tab[data-view="flow"],:root.l4 .tab[data-view="industry"],
@@ -411,6 +413,7 @@
   :root.l4m .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
   :root.l4m .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
   :root.l4m .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
+  :root.l4m .tab[data-view="portfolio"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9h-9z'/%3E%3Cpath d='M15 3.6A9 9 0 0 1 20.4 9H15z'/%3E%3C/svg%3E")}
   :root.l4m .tab:hover{background:none;color:var(--ink)}
   :root.l4m .tab.on{color:var(--t4-accent-solid,var(--cyan));box-shadow:none;
     background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
@@ -534,7 +537,7 @@
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>:is(.tab[data-view="season"],.tab[data-view="lab"]),
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab[data-view="channels"],.tab.l4perm),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="portfolio"],.tab[data-view="delivery"],.tab[data-view="channels"],.tab.l4perm),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"],

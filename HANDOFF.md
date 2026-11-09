@@ -22,6 +22,7 @@
 - 輸入持股（代號＋股數或金額／從自選帶入／Plus 以上匯入 CSV）→ 各族群曝險甜甜圈＋每個族群的 5／20 日資金占比、變化、輪動；**持股只存這台裝置的 localStorage，不上傳、不存成本價**。
 - 功能鍵 portfolio.exposure（每日 3／5／50／不限）、portfolio.size（5／10／30／50 檔）、portfolio.import（Plus 以上）；公告已加；沒有雲端同步（等隱私權政策＋Andy 同意）。
 - 檔案：site/portfolio.js、m4/20261109-portfolio.css、features.js、plan_presets.js、viewreset.js、app.js／layout4.js／mobile3.js／mobile4.js／quota.js（路由）、index.html、notices/features.json、scripts/uitest_sections/20261109_我的持股曝險.py；順手修 20261019_feature_notices.py 的 ②。
+- 11-09 CEO 退回修正：側欄「我的持股」原本漏寫 layout4.css 的 order／群組清單／圖示，跑到「今日市場」之上且圖示空白；已補（order 7 緊接自選、列入 proj 群組規則、--l4-ic 圓餅圖示、l4m 圖示），新段「我的持股側欄1109」驗父群組＝專案、排自選之後、圖示有內容、手機抽屜同樣。
 - 這批驗了：`_uitest --sections 我的持股曝險1109`（新，0 問題）、功能公告1019（維持原本 3 個舊問題）、桌機守門1008、會員權限開關、管理權限1007、次數覆蓋掃描1007、重新整理回預設1003、風格規範、導覽普查1009、平台導覽1007、會員與自選五分頁、手機按鈕普查、積木清單、體驗額度1009、圓餅風格1006、網頁版號、全站共用額度1007；_preview.py（見回報）。
 
 ## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
