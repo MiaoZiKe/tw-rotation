@@ -258,11 +258,19 @@
       ],
     }, { notMerge: true });
   }
+  // 先讀 _index.json（只抓一次、記在記憶體）：代號不在名單裡就不發 <代號>.json 請求（避免 404）；索引抓不到也安靜略過
+  let _idx = null;
+  function loadIndex() {
+    if (!_idx) _idx = fetch('data/bigsmall/_index.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).then(j => (j && Array.isArray(j.codes) ? new Set(j.codes.map(String)) : null)).catch(() => null);
+    return _idx;
+  }
   async function loadDaily() {
     const code = S.code;
     try {
+      const idx = await loadIndex();
+      const has = !!(idx && idx.has(String(code)));
       const [d, t] = await Promise.all([
-        fetch('data/bigsmall/' + encodeURIComponent(code) + '.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null),
+        has ? fetch('data/bigsmall/' + encodeURIComponent(code) + '.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null) : null,
         fetch('data/bigsmall/_thr.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null)]);
       if (code !== S.code) return;
       S.daily = d && Array.isArray(d.days) ? d : { days: [] };
