@@ -270,7 +270,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .uslg{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin:2px 0 8px}
 #v-admin .usgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:10px}
 #v-admin .usgrid h4{margin:0 0 6px;font-size:14px}
-#v-admin .usgrid .bars{grid-template-columns:minmax(0,7.5em) minmax(0,1fr) 5em;grid-auto-rows:38px}#v-admin .usgrid .bars .bl{font-size:13px}#v-admin .usgrid .bars .bn{line-height:1.15;text-align:right}#v-admin .usgrid .bars .bn small{display:block;font-size:11px}
+#v-admin .usgrid .bars{grid-template-columns:minmax(0,7.5em) minmax(0,1fr) 3.2em}#v-admin .usgrid .bars .bl{font-size:13px}#v-admin .usgrid .bars .bn{text-align:right}
 #v-admin .usx{grid-column:1/-1;margin:2px 0 6px;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-2);font-size:13px}
 #v-admin .usx ul{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px 16px}#v-admin .usx li{font-variant-numeric:tabular-nums}
 #v-admin .usv{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:18px;border-bottom:1px solid var(--line-2)}
@@ -279,7 +279,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .usv .bar{width:50%;max-width:48px;display:flex;flex-direction:column-reverse;border-radius:3px 3px 0 0;overflow:hidden}#v-admin .usv .bar i{display:block;background:linear-gradient(0deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
 #v-admin .usvl{display:flex;gap:6px;margin-top:4px}#v-admin .usvl span{flex:1 1 0;min-width:0;text-align:center;font-size:12px;line-height:1.25;word-break:break-all}
 #v-admin .ustbl{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;margin-top:6px}#v-admin .ustbl td{padding:4px 6px;border-bottom:1px solid var(--line)}#v-admin .ustbl td+td{text-align:right}
-@media (max-width:820px){#v-admin .usgrid{grid-template-columns:minmax(0,1fr)}#v-admin .usgrid .bars{grid-template-columns:minmax(0,6.5em) minmax(0,1fr) 4.6em}#v-admin .trus .grtog{position:static;margin:0 0 6px}}
+@media (max-width:820px){#v-admin .usgrid{grid-template-columns:minmax(0,1fr)}#v-admin .usgrid .bars{grid-template-columns:minmax(0,6.5em) minmax(0,1fr) 3.2em}#v-admin .trus .grtog{position:static;margin:0 0 6px}}
 #v-admin .trfun{position:relative}#v-admin .trfun .grtog{position:absolute;right:14px;top:12px}#v-admin .funt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 #v-admin .funt th,#v-admin .funt td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}
 #v-admin .funt thead th{position:sticky;top:0;background:var(--card);color:var(--muted);font-weight:600;z-index:1}
@@ -1297,7 +1297,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const tip = tp(`<b>${esc(nm)}</b><br>電腦 ${nf(o.d)}・手機 ${nf(o.m)}<br>共 ${nf(t)}・占 ${(t / all * 100).toFixed(1)}%`);
       const segs = ['d', 'm'].filter((x) => o[x] > 0).map((x) => `<i style="width:${(o[x] / Math.max(t, 1) * 100).toFixed(2)}%;--c:${US_DEV[x][1]}"></i>`).join('');
       const lab = opt && opt.click ? `<button type="button" class="bl" data-usr="${esc(k)}" data-row="${r}"${tip}>${esc(nm)}</button>` : `<span class="bl" data-row="${r}"${tip}>${esc(nm)}</span>`;
-      return lab + `<span class="bt stk" data-row="${r}"${tip}><span style="width:${(t / mx * 100).toFixed(1)}%">${segs}</span></span><span class="bn" data-row="${r}"${tip}>${nf(t)}<small style="color:var(--ink-2)">手機 ${Math.round(o.m / Math.max(t, 1) * 100)}%</small></span>`;
+      return lab + `<span class="bt stk" data-row="${r}"${tip}><span style="width:${(t / mx * 100).toFixed(1)}%">${segs}</span></span><span class="bn" data-row="${r}"${tip}>${nf(t)}</span>`;
     }).join('') + '</div>';
   }
   function usCols(list) {
