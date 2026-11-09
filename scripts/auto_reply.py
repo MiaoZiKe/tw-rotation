@@ -8,10 +8,10 @@
   B 層（預設關）：到「別人的熱門財經串」底下留有觀點的回覆。要 threads_keyword_search 通過審查才搜得到別人的貼文（threads_search.py）。
 
 流程（GitHub Actions：.github/workflows/auto_reply.yml，台北 09:00～23:00 每 20 分鐘一輪）：
-  collect → 讀留言／搜候選串 → 進佇列 state/reply/queue.json（只存留言前 120 字與「帳號雜湊」，7 天後清掉內文）
+  collect → 讀留言／搜候選串 → 進佇列 state/reply/queue.json（reply-state 分支，一般 commit、不 force push）（只存留言前 120 字與「帳號雜湊」，7 天後清掉內文）
   draft   → 誰來寫：有 ANTHROPIC_API_KEY 就在 Actions 直接寫；沒有就留在佇列給 CEO session（排程叫醒）用 apply 寫回
   apply   → CEO session 把寫好的稿（JSON：{key: 回覆文字}）套進佇列：每則都先過 reply_lint，過了才排「隨機送出時間」
-  send    → 到點的稿再跑一次 reply_lint＋配額＋時段檢查才送；--dry-run 只記錄
+  send    → 到點的稿再跑一次 reply_lint＋配額＋時段檢查＋「API 即時查是否已回過」才送；--dry-run 只記錄
   report  → 當天彙整成 state/reply/reports/<日期>.md，給 CEO 回報 Andy
 開關：docs/marketing/social_unit/reply_quota.json（a_own／b_others；B 層 enabled=false 時 collect 不搜、send 不送 B 層稿）。
 權杖只從環境變數讀（THREADS_ACCESS_TOKEN／IG_ACCESS_TOKEN／ANTHROPIC_API_KEY），不印、不寫檔。
@@ -414,7 +414,24 @@ def post_reply(it, env, tcall=threads_call, icall=ig_call) -> str:
     return icall("POST", f"/{it['target_id']}/replies", env["IG_ACCESS_TOKEN"], {"message": it["draft"]})["id"]
 
 
-def send(st, q, env, now, dry_run=True, poster=post_reply, max_per_run=3) -> dict:
+def already_replied(it, env, tcall=threads_call, icall=ig_call) -> bool:
+    """送出前即時查 API：我們是不是已經在這則留言（或這篇貼文）底下回過了。佇列檔可能被蓋掉或落後，以 API 為準。
+    Threads：GET /{目標}/replies 看有沒有我們帳號的回覆；IG：GET /{留言}/replies 同理。只看第一頁（100 則），
+    B 層熱門串若回覆超過 100 則可能漏看 —— 所以佇列另有「同一個目標 id 已送過就不送」那道。查不到（API 錯）就丟例外，呼叫端不送。"""
+    if it["platform"] == "threads":
+        tok = env["THREADS_ACCESS_TOKEN"]
+        me = tcall("GET", "/me", tok, {"fields": "id,username"}).get("username")
+        rows = tcall("GET", f"/{it['target_id']}/replies", tok, {"fields": "id,username", "limit": "100"}).get("data") or []
+    else:
+        tok = env["IG_ACCESS_TOKEN"]
+        me = icall("GET", "/me", tok, {"fields": "user_id,username"}).get("username")
+        rows = icall("GET", f"/{it['target_id']}/replies", tok, {"fields": "id,username"}).get("data") or []
+    if not me:
+        raise RuntimeError("查不到自己的帳號名稱")
+    return any(r.get("username") == me for r in rows)
+
+
+def send(st, q, env, now, dry_run=True, poster=post_reply, max_per_run=3, checker=already_replied) -> dict:
     res = {"sent": 0, "dry": 0, "held": [], "failed": 0}
     if not in_window(q, now):
         res["held"].append("不在 09:00～23:00")
@@ -442,6 +459,17 @@ def send(st, q, env, now, dry_run=True, poster=post_reply, max_per_run=3) -> dic
         errs = RL.check(it["draft"], others, q.get("blacklist"))       # 送出前再檢查一次（黑名單可能剛改過）
         if errs:
             it.update(status="skipped", reason="送出前安全閘不過：" + "；".join(errs))
+            continue
+        if any(x is not it and x.get("target_id") == it["target_id"] and x.get("status") == "sent" for x in st["items"].values()):
+            it.update(status="skipped", reason="同一個目標已回過（佇列）")
+            continue
+        try:
+            dup = checker(it, env)                                       # 送出前即時查 API（dry-run 也查，只讀）
+        except Exception as e:  # noqa: BLE001
+            res["held"].append(f"{it['key']} 查不到是否已回過，先不送：{str(e)[:120]}")
+            continue
+        if dup:
+            it.update(status="skipped", reason="API 查到我們已經回過這則")
             continue
         if dry_run:
             res["dry"] += 1

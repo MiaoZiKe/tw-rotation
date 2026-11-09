@@ -1,8 +1,10 @@
 """Threads 熱門財經串採集器（2026-11-09；只讀，不發文、不回覆）。
 
 為什麼：研調員只能用 WebSearch，看不到 Threads 貼文本身；容器連不上 graph.threads.net，但 GitHub Actions 連得上。
-做法：對每個關鍵字呼叫 keyword_search（search_type=TOP），每個取前 N 則（預設 50），存成
-  <out>/<日期>.json（原始列＋統計）、<日期>.csv、<日期>_stats.md。工作流程把它們寫到 social-snaps 分支 research/threads_hot/。
+做法：對每個關鍵字呼叫 keyword_search（search_type=TOP），每個取前 N 則（預設 50），只輸出統計：
+  <out>/<日期>_stats.json、<日期>_stats.md。工作流程把它們寫到 social-snaps 分支 research/threads_hot/。
+★ 2026-11-09 CEO 拍板：原始資料（全文、帳號名、permalink）只留在這支程式執行期間的記憶體，跑完就丟，不寫檔、不 commit。
+  帳號只記次數不記名字（threads_search.stats）。
 
 用法：
   python scripts/threads_hot_collect.py --out research/threads_hot            （讀 THREADS_ACCESS_TOKEN）
@@ -13,7 +15,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import os
 import sys
@@ -24,10 +25,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import threads_search as S  # noqa: E402
 
-CSV_COLS = ("keyword", "id", "username", "timestamp", "hour_taipei", "media_type", "chars", "opener", "like_count",
-            "reply_count", "has_replies", "is_quote_post", "permalink", "text")
-
-
 def collect(token: str, keywords, limit: int, search_type: str = "TOP", call=None) -> tuple[list[dict], dict, list[str]]:
     rows, errs, used = [], [], {}
     for kw in keywords:
@@ -36,28 +33,18 @@ def collect(token: str, keywords, limit: int, search_type: str = "TOP", call=Non
             rows += got
             used[kw] = "完整欄位" if fields == S.FIELDS_FULL else "基本欄位（Meta 不收讚數欄位）"
         except S.SearchError as e:
-            errs.append(f"{kw}：{e}")
+            errs.append(f"{kw}：{str(e)[:160]}")
     return rows, used, errs
 
 
-def enrich(r: dict) -> dict:
-    t = r.get("text") or ""
-    return {**r, "chars": S.clen(t), "opener": S.opener_type(t), "hour_taipei": S.hour_tpe(r.get("timestamp", ""))}
-
-
-def write(out: Path, day: str, rows: list[dict], st: dict, perm: str, meta: dict) -> list[Path]:
+def write(out: Path, day: str, st: dict, perm: str, meta: dict) -> list[Path]:
+    """只寫統計（不含任何貼文全文、帳號名、permalink）。"""
     out.mkdir(parents=True, exist_ok=True)
-    rows = [enrich(r) for r in rows]
-    j, c, m = out / f"{day}.json", out / f"{day}.csv", out / f"{day}_stats.md"
-    j.write_text(json.dumps({"date": day, "permission": perm, "meta": meta, "stats": st, "rows": rows},
+    j, m = out / f"{day}_stats.json", out / f"{day}_stats.md"
+    j.write_text(json.dumps({"date": day, "permission": perm, "meta": meta, "stats": st},
                             ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    with c.open("w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=CSV_COLS, extrasaction="ignore")
-        w.writeheader()
-        for r in rows:
-            w.writerow({k: (str(r.get(k)).replace("\n", " ⏎ ") if r.get(k) is not None else "") for k in CSV_COLS})
     m.write_text(S.stats_md(st, day, perm), encoding="utf-8")
-    return [j, c, m]
+    return [j, m]
 
 
 def main(argv=None) -> int:
@@ -84,8 +71,9 @@ def main(argv=None) -> int:
     st = S.stats(rows)
     day = datetime.now(S.TAIPEI).strftime("%Y-%m-%d")
     meta = {"search_type": a.search_type, "limit": a.limit, "keywords": kws, "fields": used, "errors": errs,
-            "collected_at": datetime.now(S.TAIPEI).isoformat(timespec="seconds"), "me": me}
-    for p in write(Path(a.out), day, rows, st, perm, meta):
+            "collected_at": datetime.now(S.TAIPEI).isoformat(timespec="seconds")}
+    del rows                                   # 原始資料用完就丟
+    for p in write(Path(a.out), day, st, perm, meta):
         print(f"寫出 {p}")
     print(S.stats_md(st, day, perm))
     for e in errs:

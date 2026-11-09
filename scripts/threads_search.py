@@ -114,7 +114,9 @@ def hour_tpe(ts: str) -> int | None:
 
 
 def stats(rows: list[dict]) -> dict:
-    """字數分布、第一句句型、發文時段（台北）、有圖比例、最常出現的帳號。去重以貼文 id。"""
+    """字數分布、第一句句型、發文時段（台北）、有圖比例、帳號集中度。去重以貼文 id。
+    ★ 2026-11-09 CEO 拍板：只留統計。帳號只記「次數」不記名字（account_post_counts＝前 15 名各出現幾則，名字丟掉）；
+    不存全文、帳號名、permalink。"""
     seen, uniq = set(), []
     for r in rows:
         if r.get("id") and r["id"] not in seen:
@@ -141,7 +143,8 @@ def stats(rows: list[dict]) -> dict:
         "media": dict(media),
         "with_media_ratio": round(with_img / n, 3) if n else None,
         "has_url_ratio": round(sum(1 for r in uniq if _URL.search(r.get("text") or "")) / n, 3) if n else None,
-        "top_accounts": Counter(r.get("username") for r in uniq if r.get("username")).most_common(15),
+        "unique_accounts": len({r.get("username") for r in uniq if r.get("username")}),
+        "account_post_counts": [c for _, c in Counter(r.get("username") for r in uniq if r.get("username")).most_common(15)],
         "like_count_available": bool(likes),
         "like_median": sorted(likes)[len(likes) // 2] if likes else None,
     }
@@ -159,6 +162,6 @@ def stats_md(st: dict, day: str, perm: str) -> str:
           f"發文時段（台北，小時：則數）：{st['hour_taipei']}",
           f"有圖／影片比例：{st['with_media_ratio']}；帶網址比例：{st['has_url_ratio']}；媒體類型 {st['media']}",
           f"讚數：{'中位 ' + str(st['like_median']) if st['like_count_available'] else '別人的貼文 API 不給讚數／回覆數'}",
-          "最常出現的帳號：" + "、".join(f"{u}（{c}）" for u, c in st["top_accounts"]),
+          f"帳號：不重複 {st['unique_accounts']} 個；出現最多的前 15 個帳號各有幾則（不記名）：{st['account_post_counts']}",
           f"各關鍵字筆數：{st['per_keyword']}", ""]
     return "\n".join(L) + "\n"

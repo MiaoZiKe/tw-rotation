@@ -1,6 +1,6 @@
 name: Threads 熱門財經串採集（只讀）
 # 2026-11-09 研調用：容器連不上 graph.threads.net，Actions 連得上。只呼叫 keyword_search（GET），不發文、不回覆。
-# 產出寫到 social-snaps 分支 research/threads_hot/<日期>.json／.csv／_stats.md。說明：docs/marketing/social_unit/auto_reply.md 第七節。
+# 產出只有統計：social-snaps 分支 research/threads_hot/<日期>_stats.json／_stats.md（2026-11-09 CEO：不存全文、帳號名、permalink）。說明：docs/marketing/social_unit/auto_reply.md 第七節。
 # push 觸發只限開發分支、只限這兩支檔案改動時（workflow_dispatch 要檔案先在 main 才叫得到，開發期用 push 跑一次）。
 on:
   workflow_dispatch:
@@ -53,7 +53,7 @@ jobs:
         run: |
           f=$(ls out/research/threads_hot/*_stats.md 2>/dev/null | head -1); [ -n "$f" ] && cat "$f" >> "$GITHUB_STEP_SUMMARY" || echo "沒有產出" >> "$GITHUB_STEP_SUMMARY"
       - name: 寫回 social-snaps（research/threads_hot/）
-        if: always() && hashFiles('out/research/threads_hot/*.json') != ''
+        if: always() && hashFiles('out/research/threads_hot/*_stats.json') != ''
         run: |
           for i in 1 2 3; do
             WORK="$(mktemp -d)"
@@ -61,7 +61,7 @@ jobs:
               git fetch --depth=1 origin social-snaps && git archive FETCH_HEAD | tar -x -C "$WORK"
             fi
             mkdir -p "$WORK/research/threads_hot"
-            cp out/research/threads_hot/* "$WORK/research/threads_hot/"
+            cp out/research/threads_hot/*_stats.* "$WORK/research/threads_hot/"
             (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
               && git config user.name tw-rotation-bot && git config user.email actions@github.com \
               && git add -A && git commit -q -m "Threads 熱門財經串採集 $(TZ=Asia/Taipei date '+%F %H:%M')" \

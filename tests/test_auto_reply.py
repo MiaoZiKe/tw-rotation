@@ -139,10 +139,10 @@ def test_send_dry_run_and_real_with_fake_poster():
     st = _pending()
     AR.apply_drafts(st, q(), {"k1": GOOD}, NOW, random.Random(1))
     later = NOW + timedelta(hours=2)
-    r = AR.send(st, q(), {}, later, dry_run=True)
+    r = AR.send(st, q(), {}, later, dry_run=True, checker=lambda it, env: False)
     assert r["dry"] == 1 and st["items"]["k1"]["status"] == "drafted"
     AR.SLEEP = lambda s: None
-    r = AR.send(st, q(), {}, later, dry_run=False, poster=lambda it, env: "RID")
+    r = AR.send(st, q(), {}, later, dry_run=False, poster=lambda it, env: "RID", checker=lambda it, env: False)
     assert r["sent"] == 1 and st["items"]["k1"]["reply_id"] == "RID"
     assert "今天送出的回覆" in AR.report(st, q(), later) and GOOD in AR.report(st, q(), later)
 
@@ -161,8 +161,45 @@ def test_send_relints_before_posting():
     AR.apply_drafts(st, q(), {"k1": GOOD}, NOW, random.Random(1))
     qq = q()
     qq["blacklist"] = ["權值股"]
-    r = AR.send(st, qq, {}, NOW + timedelta(hours=2), dry_run=False, poster=lambda it, env: 1 / 0)
+    r = AR.send(st, qq, {}, NOW + timedelta(hours=2), dry_run=False, poster=lambda it, env: 1 / 0, checker=lambda it, env: False)
     assert r["sent"] == 0 and st["items"]["k1"]["status"] == "skipped"
+
+
+def test_send_skips_when_api_says_already_replied():
+    st = _pending()
+    AR.apply_drafts(st, q(), {"k1": GOOD}, NOW, random.Random(1))
+    r = AR.send(st, q(), {}, NOW + timedelta(hours=2), dry_run=False, poster=lambda it, env: 1 / 0, checker=lambda it, env: True)
+    assert r["sent"] == 0 and st["items"]["k1"]["status"] == "skipped" and "API" in st["items"]["k1"]["reason"]
+
+
+def test_send_holds_when_api_check_fails():
+    st = _pending()
+    AR.apply_drafts(st, q(), {"k1": GOOD}, NOW, random.Random(1))
+
+    def boom(it, env):
+        raise RuntimeError("HTTP 500")
+    r = AR.send(st, q(), {}, NOW + timedelta(hours=2), dry_run=False, poster=lambda it, env: 1 / 0, checker=boom)
+    assert r["sent"] == 0 and st["items"]["k1"]["status"] == "drafted" and "先不送" in r["held"][0]
+
+
+def test_send_skips_same_target_already_sent_in_queue():
+    st = _pending()
+    AR.apply_drafts(st, q(), {"k1": GOOD}, NOW, random.Random(1))
+    st["items"]["old"] = {"key": "old", "layer": "A", "platform": "threads", "target_id": "R1", "status": "sent",
+                          "draft": GOOD2, "created_at": AR.iso(NOW), "sent_at": AR.iso(NOW)}
+    r = AR.send(st, q(), {}, NOW + timedelta(hours=2), dry_run=False, poster=lambda it, env: 1 / 0, checker=lambda it, env: False)
+    assert r["sent"] == 0 and st["items"]["k1"]["status"] == "skipped"
+
+
+def test_already_replied_checks_api():
+    def th(m, path, tok, params=None):
+        if path == "/me":
+            return {"id": "U1", "username": "liguligu0818"}
+        return {"data": [{"id": "x", "username": "someone"}, {"id": "y", "username": "liguligu0818"}]}
+    it = {"platform": "threads", "target_id": "R1"}
+    assert AR.already_replied(it, {"THREADS_ACCESS_TOKEN": "t"}, tcall=th) is True
+    th2 = lambda m, path, tok, params=None: {"username": "liguligu0818"} if path == "/me" else {"data": [{"username": "a"}]}  # noqa: E731
+    assert AR.already_replied({"platform": "ig", "target_id": "C1"}, {"IG_ACCESS_TOKEN": "t"}, icall=th2) is False
 
 
 def test_prune_drops_text_after_7_days():
@@ -211,10 +248,13 @@ def test_stats_and_write(tmp_path):
     st = S.stats(rows)
     assert st["posts"] == 2 and st["opener"] == {"問句": 1, "數字開頭": 1}
     assert st["hour_taipei"] == {"9": 1, "20": 1} and st["with_media_ratio"] == 0.5
-    assert st["top_accounts"][0] == ("a", 2)
-    fs = HC.write(tmp_path, "2026-11-09", rows, st, "approved", {})
+    assert st["unique_accounts"] == 1 and st["account_post_counts"] == [2]
+    fs = HC.write(tmp_path, "2026-11-09", st, "approved", {})
+    blob = "".join(f.read_text(encoding="utf-8") for f in fs)
     d = json.loads(fs[0].read_text(encoding="utf-8"))
-    assert d["rows"][0]["opener"] == "問句" and "台股" in fs[1].read_text(encoding="utf-8-sig")
+    assert "rows" not in d and sorted(f.name for f in tmp_path.iterdir()) == ["2026-11-09_stats.json", "2026-11-09_stats.md"]
+    for raw in ("台股又崩了", "高股息 ETF 比一比", '"a"', "permalink"):        # 不存全文、帳號名、permalink
+        assert raw not in blob
 
 
 def test_permission_state():
