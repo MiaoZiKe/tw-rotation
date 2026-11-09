@@ -1,0 +1,70 @@
+name: Threads 熱門財經串採集（只讀）
+# 2026-11-09 研調用：容器連不上 graph.threads.net，Actions 連得上。只呼叫 keyword_search（GET），不發文、不回覆。
+# 產出寫到 social-snaps 分支 research/threads_hot/<日期>.json／.csv／_stats.md。說明：docs/marketing/social_unit/auto_reply.md 第七節。
+# push 觸發只限開發分支、只限這兩支檔案改動時（workflow_dispatch 要檔案先在 main 才叫得到，開發期用 push 跑一次）。
+on:
+  workflow_dispatch:
+    inputs:
+      keywords:
+        description: "關鍵字（逗號分隔；留空＝預設 12 個）"
+        type: string
+        default: ""
+      limit:
+        description: "每個關鍵字取幾則（1～100）"
+        type: string
+        default: "50"
+      search_type:
+        description: "TOP＝熱門；RECENT＝最新"
+        type: choice
+        options: [TOP, RECENT]
+        default: TOP
+  push:
+    branches: [claude/auto-reply-1109]
+    paths:
+      - .github/workflows/threads_hot_collect.yml
+      - scripts/threads_hot_collect.py
+      - scripts/threads_search.py
+permissions:
+  contents: write
+concurrency:
+  group: threads-hot-collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 採集（只讀）
+        id: run
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
+          IN_KW: ${{ inputs.keywords }}
+          IN_LIMIT: ${{ inputs.limit }}
+          IN_TYPE: ${{ inputs.search_type }}
+        run: |
+          args="--out out/research/threads_hot --limit ${IN_LIMIT:-50} --search-type ${IN_TYPE:-TOP}"
+          if [ -n "$IN_KW" ]; then python scripts/threads_hot_collect.py $args --keywords "$IN_KW"; else python scripts/threads_hot_collect.py $args; fi
+      - name: 摘要
+        if: always()
+        run: |
+          f=$(ls out/research/threads_hot/*_stats.md 2>/dev/null | head -1); [ -n "$f" ] && cat "$f" >> "$GITHUB_STEP_SUMMARY" || echo "沒有產出" >> "$GITHUB_STEP_SUMMARY"
+      - name: 寫回 social-snaps（research/threads_hot/）
+        if: always() && hashFiles('out/research/threads_hot/*.json') != ''
+        run: |
+          for i in 1 2 3; do
+            WORK="$(mktemp -d)"
+            if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
+              git fetch --depth=1 origin social-snaps && git archive FETCH_HEAD | tar -x -C "$WORK"
+            fi
+            mkdir -p "$WORK/research/threads_hot"
+            cp out/research/threads_hot/* "$WORK/research/threads_hot/"
+            (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
+              && git config user.name tw-rotation-bot && git config user.email actions@github.com \
+              && git add -A && git commit -q -m "Threads 熱門財經串採集 $(TZ=Asia/Taipei date '+%F %H:%M')" \
+              && git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" social-snaps) && break
+            sleep 5
+          done
