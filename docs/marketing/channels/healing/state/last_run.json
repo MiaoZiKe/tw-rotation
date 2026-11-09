@@ -1,11 +1,15 @@
 {
- "at": "2026-11-10T00:59:58+08:00",
+ "at": "2026-11-10T01:12:26+08:00",
  "mode": "verify",
  "item": "20261108_intro",
  "posted": {},
  "errors": {
-  "ig": "查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
+  "ig": "查不到帳號編號（權杖無效或權限不足：Facebook 登入版權杖（EAA 開頭，走 graph.facebook.com）：Meta 不接受或查不到連結的 IG 商業帳號；看驗證模式摘要列出的缺少權限／粉絲專頁是否連了 IG）"
  },
- "notes": [],
- "summary": "驗證模式：threads 通過（容器 17922803070246114 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），要在 Meta 後台「Instagram API（以 Instagram 登入）」產生）"
+ "notes": [
+  "IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：已授權權限：ads_management、ads_read、instagram_basic、instagram_content_publish、instagram_manage_comments、instagram_manage_messages、public_profile；缺少權限：pages_show_list（列出粉絲專頁（找 IG 帳號用））、pages_read_engagement（讀粉絲專頁內容）；讀不到權杖到期資訊（debug_token）：HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；粉絲專頁 0 個；連了 IG 的 0 個；本頻道使用：權杖看得到 0 個粉絲專頁，但沒有一個連結 IG 專業帳號",
+  "IG 問題：缺發文必要權限：pages_show_list",
+  "IG 問題：權杖看不到任何粉絲專頁（授權時沒勾選粉絲專頁，或缺 pages_show_list）"
+ ],
+ "summary": "驗證模式：threads 通過（容器 17922805275246114 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：Facebook 登入版權杖（EAA 開頭，走 graph.facebook.com）：Meta 不接受或查不到連結的 IG 商業帳號；看驗證模式摘要列出的缺少權限／粉絲專頁是否連了 IG）"
 }
