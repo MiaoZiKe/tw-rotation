@@ -3,13 +3,13 @@
     "tape.collect": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.0,
+      "seconds": 0.1,
       "skipped": "沒有待補的交易日"
     },
     "inst_official": {
       "ok": true,
-      "rows": 918,
-      "date": "2026-11-06",
+      "rows": 908,
+      "date": "2026-11-09",
       "diag": [
         {
           "url": "https://openapi.twse.com.tw/v1/swagger.json",
@@ -35,7 +35,7 @@
         {
           "url": "https://openapi.twse.com.tw/v1/fund/T86",
           "http": 200,
-          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
+          "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod"
         },
         {
           "url": "https://openapi.twse.com.tw/v1/fund/TWT38U",
@@ -138,13 +138,13 @@
         {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
           "http": 200,
-          "head": "[ {\"Date\":\"1151106\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1931000\",\" Foreign Investors inc"
+          "head": "[ {\"Date\":\"1151109\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"314000\",\" Foreign Investors incl"
         },
         {
           "market": "上櫃",
-          "rows": 918,
+          "rows": 908,
           "parts": [
-            918
+            908
           ]
         }
       ]
@@ -157,56 +157,102 @@
       "rows": 6
     },
     "fut_inst": {
-      "stored": 9
+      "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
       "rows": 63
     },
     "fut_oi": {
-      "stored": 0
+      "stored": 3
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 18
+      "rows": 21
     },
     "finmind.institutional_bulk": {
       "ok": true,
-      "rows": 918,
-      "seconds": 0.1
+      "rows": 908,
+      "seconds": 0.2
     },
     "inst_daily": {
-      "stored": 0
+      "stored": 283
     },
     "institutional_codes": {
-      "requested": 2,
-      "returned": 0
+      "requested": 459,
+      "returned": 283
     },
     "finmind.institutional": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.5
+      "ok": true,
+      "rows": 283,
+      "seconds": 109.3
     },
     "inst_flags": {
-      "rebuild": false,
+      "rebuild": true,
       "post": true
     },
     "build_payload": {
       "ok": true,
-      "skipped": "沒有新增今天的法人"
+      "deferred": true
     }
   },
   "errors": [],
-  "empty": [
-    "finmind.institutional"
-  ],
+  "empty": [],
   "gaps": [],
   "rebuilt": [],
   "phase": "inst",
-  "started_at": "2026-11-09T07:18:23.009794+00:00",
-  "finished_at": "2026-11-09T07:18:39.981832+00:00",
-  "duration_seconds": 17.0,
-  "trade_date": "2026-11-06",
+  "freshness": {
+    "trade_date": "2026-11-06",
+    "tables": {
+      "inst_daily": {
+        "label": "個股三大法人",
+        "latest": "2026-11-09",
+        "rows": 2063,
+        "median": 2054.5,
+        "status": "ok",
+        "reason": null
+      },
+      "inst_market_daily": {
+        "label": "全市場三大法人金額",
+        "latest": "2026-11-06",
+        "rows": 1,
+        "median": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "margin_total": {
+        "label": "整體融資融券",
+        "latest": "2026-11-06",
+        "rows": 1,
+        "median": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "fut_inst": {
+        "label": "期貨三大法人",
+        "latest": "2026-11-09",
+        "rows": 9,
+        "median": 9.0,
+        "status": "ok",
+        "reason": null
+      },
+      "fut_oi": {
+        "label": "期貨全市場未平倉",
+        "latest": "2026-11-09",
+        "rows": 3,
+        "median": 3.0,
+        "status": "ok",
+        "reason": null
+      }
+    },
+    "warn": [],
+    "warn_labels": []
+  },
+  "warn": [],
+  "started_at": "2026-11-09T08:18:46.522396+00:00",
+  "finished_at": "2026-11-09T08:20:50.763745+00:00",
+  "duration_seconds": 124.2,
+  "trade_date": "2026-11-09",
   "complete": true,
-  "finmind_budget_left": 501
+  "finmind_budget_left": 44
 }

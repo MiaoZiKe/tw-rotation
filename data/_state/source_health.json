@@ -10,12 +10,10 @@
     "TPEX": {
       "lake_date": "2026-11-06",
       "lake_rows": 991,
-      "official_date": "2026-11-06",
-      "official_rows": 991,
-      "rows_ok": true,
-      "sample_checked": 5,
-      "sample_mismatch": [],
-      "verdict": "ok"
+      "note": "湖裡最新 2026-11-06，官方已到 2026-11-09",
+      "official_date": "2026-11-09",
+      "official_rows": 999,
+      "verdict": "lake_behind"
     },
     "TWSE": {
       "lake_date": "2026-11-06",
@@ -27,8 +25,8 @@
       "sample_mismatch": [],
       "verdict": "ok"
     },
-    "at": "2026-11-09T15:18:42+08:00",
-    "verdict": "ok"
+    "at": "2026-11-09T16:20:54+08:00",
+    "verdict": "lake_behind"
   },
   "etf.exright_notice": {
     "consecutive_fail": 0,
