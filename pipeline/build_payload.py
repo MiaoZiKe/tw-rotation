@@ -17,7 +17,7 @@ import pandas as pd
 
 from . import config, delivery_log, indicators
 from .util import source_health
-from .compute import explore, inst_market, inst_today
+from .compute import inst_asof, explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
 from .compute import ivx as ivx_c
@@ -342,6 +342,9 @@ def build() -> None:
     # 其中一邊有最新一天。之前就因為只有櫃買到了 09-11，整個上市股票被算漏
     # （個股頁 404、族群統計只剩上櫃）。改用「上市資料到齊的最後一天」，並把各日表裁到同一天。
     latest = last_complete_date(price)
+    # 法人連買賣與當日法人的資料日只看法人表自己到齊了沒（2026-11-09：價量上市落後，不該連法人一起切回舊日）
+    _ia = inst_asof.as_of(inst, price)
+    inst_st = inst_asof.cut(inst, _ia["date"])
     price = price[price["date"].astype(str) <= latest]
     inst, margin, market, valuation = (t[t["date"].astype(str) <= latest] if not t.empty and "date" in t else t
                                        for t in (inst, margin, market, valuation))
@@ -432,11 +435,11 @@ def build() -> None:
     # min_days=2 是給前端篩的空間 —— 他要能自己選「連續幾天以上」。
     streaks = {}
     for who in ("trust", "foreign", "total"):
-        df_s = flow.trust_streak(inst, min_days=2, who=who)
+        df_s = inst_asof.streaks(inst_st, who, "buy", _ia["date"])
         streaks[who] = [] if df_s.empty else _clean(df_s.head(60).to_dict("records"))
         # 2026-09-24：連續賣超另存一份（`<法人>_sell`），總覽的四象限要買賣兩半。
         # 鍵名刻意不跟買超混在同一個清單：舊前端只讀 `trust`／`foreign`／`total`，看不到賣超也不會讀錯。
-        df_x = flow.trust_streak(inst, min_days=2, who=who, side="sell")
+        df_x = inst_asof.streaks(inst_st, who, "sell", _ia["date"])
         streaks[who + "_sell"] = [] if df_x.empty else _clean(df_x.head(60).to_dict("records"))
     _write("trust_streak", streaks.get("trust", []))      # 舊鍵留著，換版時不會開天窗
     _write("inst_streak", streaks)
@@ -452,8 +455,9 @@ def build() -> None:
         log.warning("市場明細／期貨資料層產生失敗（不影響其他 JSON）：%s", exc)
     # ★ 2026-10-20 當日三大法人買賣超（Andy：「也需要在盤後提供當天即時的法人買賣超狀況」）。口徑見 compute/inst_today.py
     try:
-        _it = inst_today.payload(inst, price, names)
+        _it = inst_today.payload(inst_st, price, names)
         _it["latest"] = latest      # 價量最新交易日；前端用它判斷「法人表是不是還沒出齊」
+        _it["asof_reason"] = _ia["reason"]   # 停在這一天的原因（到齊時為空）；卡片與管理者都看得到為什麼
         _write("inst_today", _it)
         # 三大法人買賣超日報（Andy 2026-10-20）：全市場每日金額序列（官方值為主，缺的日子上市估算補），口徑見 compute/inst_market.py
         # 首次公布版（證交所 15:00＝新聞口徑）優先，晚間修訂版放 rev（2026-10-25，見 compute/inst_market.py）
