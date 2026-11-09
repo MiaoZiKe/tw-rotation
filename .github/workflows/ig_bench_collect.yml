@@ -1,0 +1,57 @@
+name: ig_bench_collect
+# IG 對標帳號採集（Meta 官方 business_discovery，只讀、不發文）。
+# 結果寫到 social-snaps 分支 research/ig_bench/<台北日期>.json（＋同名 .md 摘要）。
+# 權杖：IG_BENCH_FB_TOKEN（Facebook 登入權杖，Andy 在 GitHub Secrets 設定）；
+#       IG_ACCESS_TOKEN 只拿來探測 Instagram Login 那一套能不能叫 business_discovery。
+on:
+  workflow_dispatch:
+  # 工作流檔還沒進 main 前，workflow_dispatch 叫不到；推到這條分支時也跑一次（只讀）
+  push:
+    branches: [claude/ig-bench-1109]
+    paths:
+      - scripts/ig_bench_collect.py
+      - .github/workflows/ig_bench_collect.yml
+concurrency:
+  group: ig-bench-collect
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+      - name: 採集對標帳號
+        id: run
+        continue-on-error: true
+        env:
+          IG_BENCH_FB_TOKEN: ${{ secrets.IG_BENCH_FB_TOKEN }}
+          IG_BENCH_IG_USER_ID: ${{ secrets.IG_BENCH_IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+          OUT_DIR: out/research/ig_bench
+        run: python3 scripts/ig_bench_collect.py
+      - name: 寫回 social-snaps（一般 commit，不 force）
+        run: |
+          ls out/research/ig_bench/*.json >/dev/null 2>&1 || { echo "沒有產出"; exit 1; }
+          git config --global user.name tw-rotation-bot
+          git config --global user.email actions@github.com
+          for i in 1 2 3 4 5; do
+            rm -rf snaps
+            git clone -q --depth=1 --branch social-snaps --single-branch \
+              "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" snaps
+            mkdir -p snaps/research/ig_bench
+            cp out/research/ig_bench/* snaps/research/ig_bench/
+            (cd snaps && git add research/ig_bench && \
+              { git diff --cached --quiet && echo "沒有變更"; } || \
+              (git commit -q -m "IG 對標採集 $(TZ=Asia/Taipei date +%F)" && git push -q origin social-snaps)) && break
+            sleep $((i*5))
+          done
+      - name: 沒抓到資料時讓這輪標紅
+        if: steps.run.outcome == 'failure'
+        run: |
+          echo "::error::沒抓到對標資料（多半是還沒設定 IG_BENCH_FB_TOKEN），詳見摘要與 social-snaps 的 research/ig_bench/"
+          exit 1
