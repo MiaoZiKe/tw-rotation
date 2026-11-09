@@ -28,6 +28,7 @@ PLACE = re.compile(r"headquarter|\bhq\b|building|campus|office|fab\b|fab\d|facto
                    r"gigafactory|refinery|works|ship|vessel|site|facility|總部|本社|大樓|廠|園區", re.I)
 QUOTA = {"公司分類": 6, "總部/廠房": 3, "產品": 2, "相關場景": 1}
 CAT_MAX = 8
+PEOPLE = False   # 2026-11-09 人物／場合圖池（target.allow_people）：放寬人像字與直式限制，仍只收 CC 授權
 STOP = {"the", "and", "of", "in", "at", "for", "with", "taiwan", "data", "center", "close", "up"}
 
 
@@ -66,8 +67,8 @@ def candidates(pages: list[dict], kind: str, name_en: str, q: str, seen: set[str
         if title in seen: continue
         if ii.get("mime") != "image/jpeg" or not lic_ok(lic): continue
         if (ii.get("width") or 0) < 1200 or (ii.get("height") or 0) < 600: continue
-        if (ii.get("width") or 1) / (ii.get("height") or 1) < 0.9: continue      # 直式圖裁成橫幅會失真，跳過
-        if BAD_WORD.search(title): continue
+        if (ii.get("width") or 1) / (ii.get("height") or 1) < (0.6 if PEOPLE else 0.9): continue      # 直式圖裁成橫幅會失真，跳過
+        if BAD_WORD.search(title) and not (PEOPLE and not re.search(r"logo|icon|map|chart|diagram|svg|flag|seal", title, re.I)): continue
         text = f"{title} {desc}".lower().replace("-", "")
         if kind == "公司分類":
             pass                                   # Commons 分類本身就是「這家公司」（例：Category:Googleplex），不再要求檔名含公司名
@@ -103,6 +104,35 @@ def load_pool(d: Path, slug: str) -> dict:
         return json.loads((d / "pool.json").read_text(encoding="utf-8"))
     except Exception:
         return dict(slug=slug, photos=[], rejected=[])
+
+
+def fetch_titles(sess, d: Path, slug: str, name_en: str, titles: list[str]) -> dict:
+    """2026-11-09：指定 Commons 檔名直接抓（人物／場合圖，搜尋抓不準時用）。仍檢查授權，reviewed=false。"""
+    pool = load_pool(d, slug)
+    have = {x.get("file_title") for x in pool["photos"]}
+    used_n = {int(m.group(1)) for x in pool["photos"] if (m := re.match(r"photo_(\d+)\.jpg", x.get("file", "")))}
+    added = 0
+    for i in range(0, len(titles), 20):
+        r = sess.get(API, params=dict(action="query", format="json", titles="|".join(titles[i:i + 20]), prop="imageinfo",
+                                      iiprop="url|size|mime|extmetadata", iiurlwidth=1920), timeout=60)
+        r.raise_for_status()
+        for pg in ((r.json().get("query") or {}).get("pages") or {}).values():
+            ii = (pg.get("imageinfo") or [{}])[0]; md = ii.get("extmetadata") or {}
+            title = pg.get("title", ""); lic = strip_html((md.get("LicenseShortName") or {}).get("value", ""))
+            if not ii.get("url") or title in have: continue
+            if ii.get("mime") != "image/jpeg" or not lic_ok(lic):
+                print(slug, title, "授權／格式不符，略過", lic, ii.get("mime")); continue
+            n = 1
+            while n in used_n: n += 1
+            c = dict(title=title, ii=ii, md=md, lic=lic, desc=strip_html((md.get("ImageDescription") or {}).get("value", "")))
+            try:
+                m = save(sess, d, n, c, "人物／場合", "指定檔名", slug, name_en); m["origin"] = "指定檔名"
+            except Exception as ex:
+                print(slug, title, "下載失敗", ex); continue
+            pool["photos"].append(m); used_n.add(n); have.add(title); added += 1
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "pool.json").write_text(json.dumps(pool, ensure_ascii=False, indent=1), encoding="utf-8")
+    return dict(slug=slug, ok=bool(pool["photos"]), total=len(pool["photos"]), added=added, reviewed=0)
 
 
 def fill(sess, d: Path, slug: str, name_en: str, plan: list[tuple[str, list[str], int]], gseen: set[str], key: str = "") -> dict:
@@ -176,7 +206,10 @@ def main(argv=None) -> int:
         for t in targets:
             if only and t["slug"] not in only: continue
             # 2026-10-30 Andy：「相這種跟公司有關的 優先附上公司圖片」→ 先從該公司的 Commons 分類抓（總部、招牌、廠區、代表產品），最多 4 張
-            plan = [("公司分類", ["cat:" + c for c in t.get("commons_categories", [])], QUOTA["公司分類"]),
+            global PEOPLE; PEOPLE = bool(t.get("allow_people"))
+            if t.get("files"):
+                res = fetch_titles(sess, LIB / t["slug"], t["slug"], t["name_en"], t["files"]); print(res); log.append(res); continue
+            plan = [("公司分類", ["cat:" + c for c in t.get("commons_categories", [])], t.get("quota", QUOTA["公司分類"])),
                     ("總部/廠房", t["queries"] + [t["name_en"]], QUOTA["總部/廠房"]),
                     ("產品", t.get("product_queries", []), QUOTA["產品"]),
                     ("相關場景", t.get("related_queries", []), QUOTA["相關場景"])]

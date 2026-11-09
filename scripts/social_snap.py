@@ -60,6 +60,7 @@ from urllib.request import urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import social_native as NAT  # noqa: E402  原生繪製的卡片（2026-10-26）
 import social_gate as gate  # noqa: E402  資料日／交易日把關（2026-10-26）
+import post_quota  # noqa: E402  2026-11-09：法人補充貼文（close-inst）受 post_quota.json live.close_inst 控管
 
 DATE_LABEL = ""
 PARTIAL: list = []    # 盤後保底：這一輪拿掉的過期卡（2026-10-29）
@@ -2003,7 +2004,8 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         if r.get("foreign") or r.get("trust"):      # 2026-10-26 Andy：ETF 買超排名
             L += ["ETF 買超："] + [f"・{lab} {_join(r[k], n)}" + ("；" if k == "foreign" and r.get("trust") else "") for k, lab in (("foreign", "外資"), ("trust", "投信")) if r.get(k)]
         if PARTIAL and any(n in PARTIAL for n in gate.INST_CARDS):      # 保底（2026-10-29）：法人卡晚到 → 標明稍後補
-            L += ["三大法人：", "・法人個股明細晚到，稍後補"]
+            # 2026-11-09：降量模式（live.close_inst 關）不會有補充貼文 → 不寫「稍後補」這種做不到的承諾
+            L += ["三大法人：", "・法人個股明細晚到，稍後補" if post_quota.any_on("close_inst") else "・法人個股明細晚到，這篇先不列"]
         # 2026-10-27 Andy：融資融券移到隔天盤前，盤後不再列
         L.append(HASHTAGS[kind])
         if links != "none":
@@ -2200,7 +2202,11 @@ def main() -> int:
                 names_ = [n for n in names_ if n not in fb_drop]
                 args.only = ",".join(names_)
                 go_, data_date, why_ = True, now_.date().isoformat(), ""
-                (out / "alert.txt").write_text(f"盤後主貼文走保底：{fb_why}；法人個股明細到了會自動補發一則（close-inst-{data_date}）。\n", "utf-8")
+                _inst_drop = any(n in gate.INST_CARDS for n in fb_drop)
+                _supp_on = post_quota.any_on("close_inst")      # 2026-11-09：降量模式下補充貼文不發，alert 不能寫「會自動補發」
+                (out / "alert.txt").write_text(f"盤後主貼文走保底：{fb_why}；" + (
+                    (f"法人個股明細到了會自動補發一則（close-inst-{data_date}）。" if _supp_on else "降量模式：法人補充貼文不補發（post_quota.json live.close_inst 關）。")
+                    if _inst_drop else "拿掉的不是法人卡，不需要補充貼文。") + "\n", "utf-8")
             else:
                 log(f"close 保底也不成立：{fb_why}")
         if not go_:

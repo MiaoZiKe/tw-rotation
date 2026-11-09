@@ -116,6 +116,28 @@
    "review_note": "2026-10-30 第五輪（公司照片優先）通過：聯發科新竹總部（篤行一路 1 號），招牌立牌為場景一部分，日間｜art-director 複審 10-30 確認通過",
    "origin": "公司分類",
    "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "產品",
+   "slug": "mediatek",
+   "name_en": "MediaTek",
+   "query": "cat:MediaTek",
+   "file_title": "File:芎林鄉幸福巴士 芎林-高鐵線 2026-11-02 (far).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:%E8%8A%8E%E6%9E%97%E9%84%89%E5%B9%B8%E7%A6%8F%E5%B7%B4%E5%A3%AB_%E8%8A%8E%E6%9E%97-%E9%AB%98%E9%90%B5%E7%B7%9A_2026-11-02_(far).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/44/%E8%8A%8E%E6%9E%97%E9%84%89%E5%B9%B8%E7%A6%8F%E5%B7%B4%E5%A3%AB_%E8%8A%8E%E6%9E%97-%E9%AB%98%E9%90%B5%E7%B7%9A_2026-11-02_%28far%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "T Gordon Cheng",
+   "credit": "Own work",
+   "description": "​​​​芎林鄉幸福巴士 芎林-高鐵線 (業者：美樂家客運)使用Toyota Coaster XZB50L-ZEMSYR (KQA-2285，原巨業KKB-7582)，停放於高鐵新竹站，拍攝於高鐵七路",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-08T22:53:37+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": "",
+   "origin": "公司分類"
   }
  ],
  "rejected": [

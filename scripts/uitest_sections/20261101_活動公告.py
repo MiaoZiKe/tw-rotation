@@ -180,7 +180,7 @@ def t_promo_test_1101(b, base, code):
       A.call = async (path) => { window.__calls.push(path); return { _s: 404 }; };
       window.TwTrial = m.trial; try { if (m.off) localStorage.setItem(TwPromoWelcome.offKey(m.email), '1'); } catch (e) {} 
       window.dispatchEvent(new CustomEvent('tw:trial')); }"""
-    to_preview = "() => history.replaceState(null, '', '/preview/t/index.html#overview')"
+    to_preview = "() => history.replaceState(null, '', '/preview/t/index.html?promo=test#overview')"
     keys = "() => Object.keys(localStorage).filter(k => k.indexOf('promoWelcome') >= 0 && localStorage.getItem(k) === '1')"
     gone = int(time.time() * 1000) - 1000
     for W in (1440, 390):

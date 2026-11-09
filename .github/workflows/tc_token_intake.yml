@@ -1,0 +1,57 @@
+name: 頻道② 科技透明圈 權杖收件
+# 2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。說明：docs/marketing/channels/tc/autopost.md
+# Andy 在 Secrets 貼 TC_THREADS_SHORT_TOKEN（1 小時短效）、META_APP_SECRET（一次性）、TC_IG_ACCESS_TOKEN（60 天）後按一次：
+#   Threads 短效換長效 → /me 查兩個平台的 id 與 username → 驗證能用、確認不是頻道一帳號 → 用 META_SECRETS_PAT 寫回
+#   TC_THREADS_ACCESS_TOKEN_AUTO、TC_THREADS_USER_ID、TC_IG_ACCESS_TOKEN_AUTO、TC_IG_USER_ID → 狀態寫 data/_state/tc_token.json。
+# log 只印 username 與成功／失敗；權杖與密鑰一律 ::add-mask::，寫回時值走 stdin。
+on:
+  workflow_dispatch:
+    inputs:
+      expect_threads_username:
+        description: "選填：新 Threads 帳號名稱（不含 @），填了就核對，對不上不寫回"
+        type: string
+        default: ""
+      expect_ig_username:
+        description: "選填：新 IG 帳號名稱（不含 @），填了就核對，對不上不寫回"
+        type: string
+        default: ""
+permissions:
+  contents: write   # 推 data/_state/tc_token.json（沒有權杖）
+concurrency:
+  group: tc-token-intake
+  cancel-in-progress: false
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests
+      - name: 收件（換長效、查帳號、寫回 Secrets）
+        env:
+          TC_THREADS_SHORT_TOKEN: ${{ secrets.TC_THREADS_SHORT_TOKEN }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+          TC_IG_ACCESS_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN }}
+          META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          EXPECT_THREADS_USERNAME: ${{ inputs.expect_threads_username }}
+          EXPECT_IG_USERNAME: ${{ inputs.expect_ig_username }}
+        run: python scripts/tc_token_intake.py
+      - name: 狀態寫回 main（只有日期、天數、username）
+        if: always()
+        run: |
+          [ -f data/_state/tc_token.json ] || { echo "沒有狀態檔"; exit 0; }
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add data/_state/tc_token.json
+          if git diff --staged --quiet; then echo "狀態沒變"; exit 0; fi
+          git commit -q -m "頻道② 權杖收件狀態 $(TZ=Asia/Taipei date '+%Y-%m-%d')"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && { echo "推送成功"; exit 0; }
+            sleep $((i*3))
+          done
+          echo "::warning::狀態檔推不上 main（不影響 Secrets 寫回）"

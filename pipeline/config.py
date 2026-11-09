@@ -504,3 +504,5 @@ TC_LOGO_MIN_PX = 48                    # 原圖長邊 < 這個 ＝ 不收（Andy
 TC_LOGO_BUDGET_SEC = 600               # 這一步最多花 10 分鐘（含代號補強約 60 個 Wikimedia 查詢，序列有間隔），時間到收手、下一輪接續
 TC_LOGO_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=256"
 LOGO_WIKIDATA_API = "https://www.wikidata.org/w/api.php"
+
+# 2026-11-07 pages 快取驗證：此行為純註解，用來確認「改 pipeline 一定重算 JSON」（對應 pages.yml 的 pipe 雜湊）。

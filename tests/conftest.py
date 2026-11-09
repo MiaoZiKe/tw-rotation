@@ -56,10 +56,10 @@ def _發文名額全開(monkeypatch, tmp_path_factory):
     降量本身的測試（test_post_quota_1102）自己設 POST_QUOTA_FILE 指回真檔或關閉版。"""
     import json
 
-    p = tmp_path_factory.getbasetemp() / "post_quota_all_on.json"
+    p = tmp_path_factory.getbasetemp() / "post_quota_all_on_v2.json"      # v2：2026-11-09 加 close_inst
     if not p.exists():
         on = {"threads": True, "ig_story": True}
-        p.write_text(json.dumps({"live": {k: dict(on) for k in ("premarket", "intraday", "close", "credit")},
+        p.write_text(json.dumps({"live": {k: dict(on) for k in ("premarket", "intraday", "close", "credit", "close_inst")},
                                  "queue": {"news": {"threads": True, "ig": True}, "manual": {"threads": True, "ig": True}}}),
                      encoding="utf-8")
     monkeypatch.setenv("POST_QUOTA_FILE", str(p))

@@ -92,19 +92,60 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
-      # key 只看「會改變 JSON 內容的東西」：資料湖、pipeline 程式、套件版本。
-      # site/** 刻意不算進去 —— 前端改動不影響 JSON，那正是要吃快取的情況。
-      # 版號前綴 payload-v1：以後若 JSON 格式改版，把它加一號就能讓舊快取全部失效。
-      - name: 前端 JSON 快取（資料湖與 pipeline 都沒變就不用重算）
+      # 2026-11-07 快取改兩層（效率規劃師實測 W45：近 22 輪成功部署只有 4 輪命中，平均 37 分鐘）。
+      # 根因：key 裡的 data/** 是對的（build_payload 真的會讀 parquet、_state/*.json、logos），但資料湖
+      #   每小時都有 bot 的 commit（歷史回補、每日簽到、社群），key 幾乎每輪都換；而且 checkout 的是
+      #   「執行當下的 main 最新」不是被推的那個 commit，排隊期間進來的 bot commit 也算進去。
+      #   結果純前端的推送（site/** 才改 JS/CSS，JSON 一個位元組都不會變）也被判成「資料變了」重算 24 分鐘。
+      # 第一層（完全命中）：pipeline 程式 ＋ 套件版本 ＋ 資料湖內容都一樣 → 直接沿用，跟以前一樣。
+      # 第二層（同日沿用）：只有「push／刪預覽」這類程式碼事件、pipeline 與套件雜湊沒變（＝這次推送不可能改變
+      #   JSON 的算法）、而且上一份 JSON 是台北「今天」算的 → 沿用。資料更新的重算不靠這裡：
+      #   daily.yml 每輪自己 build_payload 並部署；手動／workflow_dispatch／force_rebuild 一律要完全命中才沿用。
+      #   所以線上 JSON 不會比「上一次部署」更舊，只是純前端推送不再為了追資料湖的 bot commit 重算。
+      # pipeline 雜湊含 groups/*.yaml（pipeline/groups/），改了族群 YAML 一定換 key → 一定重算（CLAUDE.md 那條規矩）。
+      # 版號前綴 payload-v2：以後若 JSON 格式改版，把它加一號就能讓舊快取全部失效。
+      - name: 算快取 key
+        id: pkey
+        run: |
+          echo "pipe=${{ hashFiles('pipeline/**', '!pipeline/**/*.md', 'requirements.txt') }}" >> "$GITHUB_OUTPUT"
+          echo "data=${{ hashFiles('data/**') }}" >> "$GITHUB_OUTPUT"
+          echo "today=$(TZ=Asia/Taipei date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: 前端 JSON 快取（還原）
         id: payload-cache
         if: ${{ github.event.inputs.force_rebuild != 'true' }}
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: site/data
-          key: payload-v1-${{ hashFiles('data/**', 'pipeline/**', 'requirements.txt') }}
+          path: |
+            site/data
+            .payload_meta
+          key: payload-v2-${{ steps.pkey.outputs.pipe }}-${{ steps.pkey.outputs.data }}
+          restore-keys: |
+            payload-v2-${{ steps.pkey.outputs.pipe }}-
+
+      - name: 決定要不要重算 JSON
+        id: decide
+        env:
+          FORCE: ${{ github.event.inputs.force_rebuild }}
+          HIT: ${{ steps.payload-cache.outputs.cache-hit }}
+          MATCHED: ${{ steps.payload-cache.outputs.cache-matched-key }}
+          EVENT: ${{ github.event_name }}
+          TODAY: ${{ steps.pkey.outputs.today }}
+        run: |
+          REBUILD=true; WHY="沒有可用的快取"
+          if [ "$FORCE" = "true" ]; then WHY="手動要求強制重算"
+          elif [ "$HIT" = "true" ]; then REBUILD=false; WHY="完全命中（pipeline／套件／資料湖都沒變）"
+          elif [ -n "$MATCHED" ] && { [ "$EVENT" = "push" ] || [ "$EVENT" = "delete" ]; }; then
+            BUILT=$(head -n1 .payload_meta 2>/dev/null || true)
+            if [ "$BUILT" = "$TODAY" ]; then REBUILD=false; WHY="同日沿用（程式碼推送、pipeline 沒變，JSON 是台北 $BUILT 算的）"
+            else WHY="有同版 pipeline 的快取但不是今天算的（${BUILT:-無日期}），重算"; fi
+          elif [ -n "$MATCHED" ]; then WHY="有同版 pipeline 的快取，但事件是 $EVENT（資料更新類），要完全命中才沿用，重算"
+          fi
+          echo "rebuild=$REBUILD" >> "$GITHUB_OUTPUT"
+          echo "JSON 快取判定：rebuild=$REBUILD／$WHY" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: 從資料湖產出前端 JSON
-        if: ${{ steps.payload-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.decide.outputs.rebuild == 'true' }}
         run: python -m pipeline.build_payload
 
       # ★ 2026-11-01 流向驗證「找下一波」（compute/next_wave.py）：build_payload 本身就吃約 11.6GB，
@@ -112,7 +153,7 @@ jobs:
       #   （自己峰值約 9.3GB、約 4 分鐘）。失敗只警告、不擋部署。快取命中且 JSON 已在快取裡就不重算。
       - name: 找下一波（獨立步驟，失敗不擋部署）
         id: nextwave
-        if: ${{ steps.payload-cache.outputs.cache-hit != 'true' || hashFiles('site/data/flowcheck/next_wave.json') == '' }}
+        if: ${{ steps.decide.outputs.rebuild == 'true' || hashFiles('site/data/flowcheck/next_wave.json') == '' }}
         continue-on-error: true
         run: |
           mkdir -p site/data/flowcheck
@@ -127,8 +168,23 @@ jobs:
             tail -n 15 nw_err.log | tee -a "$GITHUB_STEP_SUMMARY"
           fi
 
+      # 重算完才存（原本 actions/cache 在 job 結尾自動存，現在拆開：沿用的不重存）。
+      # .payload_meta 第一行 = 台北算出這份 JSON 的日期，給「同日沿用」判斷。
+      - name: 前端 JSON 快取（儲存）
+        if: ${{ steps.decide.outputs.rebuild == 'true' }}
+        run: echo "${{ steps.pkey.outputs.today }}" > .payload_meta
+      - name: 前端 JSON 快取（上傳）
+        if: ${{ steps.decide.outputs.rebuild == 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            site/data
+            .payload_meta
+          key: payload-v2-${{ steps.pkey.outputs.pipe }}-${{ steps.pkey.outputs.data }}
+
       - name: 快取命中，沿用上一次的 JSON
-        if: ${{ steps.payload-cache.outputs.cache-hit == 'true' }}
+        if: ${{ steps.decide.outputs.rebuild != 'true' }}
         run: |
           echo "資料湖與 pipeline 都沒變，直接用上一次算好的 JSON"
           echo "個股頁 $(ls site/data/stock 2>/dev/null | wc -l) 檔／總共 $(du -sh site/data | cut -f1)"

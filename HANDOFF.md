@@ -8,6 +8,31 @@
 - 驗收段落 `scripts/uitest_sections/20261107_每日簽到.py`（每日簽到）；既有的 精選文章分頁1016／文章分頁隱藏1027／文章全部分頁隱藏1106／精選文章共通功能1016／_uitest 手機摘要卡 因多一個分頁或手機多一張卡已同步改期望值。
 - 容器內本來就紅、與本批無關（main 同樣）：摘要卡即時 1 項、精選文章共通功能 導覽 5 項、精選文章收合 2 項、手機一屏 6 項。
 
+## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
+- Andy 原話：「可以，做成績表」。資料 site/channels/scores.json（陣列：date／channel／title／platforms／score／comment／template／rule_added／links／cover），首筆為 11-09 頻道①「黃仁勳承認婚外情，輝達啟動調查」90 分範本，links 空白待今晚 20:30 發出後補。
+- **成績表由 CEO 依 Andy 在頻道①聊天室給分更新 scores.json**，頁面不能輸入、不發功能公告、無 features.js 閘門（管理者專用，沿用 channels.js 的 isAdm）。80 分以上標「範本」、60 分以下標「待改」（要在 rule_added 寫新規則，否則顯示「尚未寫規則」）。
+- 改動：site/channels/channels.js、scores.json、plan.json（tabs 加 scores）、layout4.js（側欄子項）、app.js（l4sub 認得 ch4／scores）、m4/20261109-channel-scores.css。
+- 這批只驗了：`_uitest --sections 貼文成績表,頻道規劃`（0 問題；頻道規劃段計數改成 8 個子分頁）。桌機守門1008／_preview 因本機沒有 site/data 可建（磁碟 99%），只能用舊快照＋空殼 JSON，守門段無法跑，已在回報註明。
+
+## 2026-11-09 頻道①：每日熱點文流程定案（沒回應就自審發布）
+- 規則見 docs/marketing/social_unit/threads_rules.md 最上面 11-09 節；排程 13:40／18:37／20:02（交易日）已在頻道①聊天室建立。11-05 熱點文草稿作廢。
+
+## 2026-11-08 頻道④「談晴說礙」自動發文＋留言私訊管線上線（空跑中，等 Andy 放權杖）
+- Andy 原話：「開通自動發文，這部分幫我想辦法自動化」「包含測試發文 還有自動刪文 ，以及讀留言自動傳訊息功能，傳之前還會檢查是否有追蹤」。
+- 發文：scripts/healing_post.py＋.github/workflows/healing_post.yml（台北 20:27、21:57 補跑；驗證模式→正式發；delete／test_delete）；佇列 docs/marketing/channels/healing/queue/，首篇 20261108_intro 已排；開關 docs/marketing/channels/healing/post_quota.json。commit 053a88456、2dfd87281。
+- 留言私訊：scripts/healing_comments.py＋healing_comments.yml（每 15 分鐘，只私訊追蹤者，自傷字走關懷訊息）；設定 dm_config.json。commit 19b840905。
+- 只讀 HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN（＋選填 THREADS_APP_SECRET 自動換長效）；權杖續期併入 meta_token_refresh。
+- 待辦：Andy 放權杖→第一輪驗證→首篇；實測「是否追蹤」查詢能否用、IG 能否用 API 刪文、開發模式下一般網友收不收得到私訊。這批只跑了相關 pytest（73＋110 passed）；全套 pytest 有 115 失敗是 main 既有問題（抽查三檔在乾淨 main 一樣失敗）。
+
+## 2026-11-08 頻道②「科技透明圈」自動發文管線（social-ops-lead；Andy：「開通自動發文，這部分幫我想辦法自動化」＋「我希望可以自動化全部，包含測試發文、還有自動刪文，以及讀主留言我自動傳訊息功能」）
+- 說明：`docs/marketing/channels/tc/autopost.md`。權杖全用 TC_*，跟頻道一完全隔離（發文前比對帳號 id，等於頻道一就整篇不發）。
+- 已推 main：權杖收件 `tc_token_intake.yml`、每週續期加 TC 組、發文 `tc_post.yml`（每 15 分鐘，只發 approved；手動預設 dry_run）、自動測試 `tc_selftest.yml`（收件成功後自動跑）、Threads 自動刪文（delete_at）、IG 到期開 issue、Threads 留言關鍵字公開回覆（文案過法遵前只記錄）。
+- 廣達稿在 `social/tc/queue/20261105_quanta/`，status: draft。核准前要處理：Threads 主文 515 字（上限 500）、封面照未經 art-director、照片原始網址、法遵要求重算口徑。
+- 第二批：IG 留言關鍵字 → 私訊 → 回「好了」查追蹤 → 送整理（兩段式，Meta 規定追蹤要對方先傳訊息才查得到）。輪詢版 `scripts/tc_ig_dm.py`（預設、跑在 tc_post.yml）＋即時版 Worker `workers/tc-dm`（`deploy-tc-dm.yml`，App Review 審過才切 mode）。送審包 `docs/marketing/channels/tc/app_review/`。私訊與 Threads 回覆文案 `social/tc/dm_config.json`，`legal_reviewed: false` → 只記錄不送，**待 legal-compliance 審**。
+- 2026-11-09 法遵審過 dm_config.json（改完可用）：「完整整理」→「重點整理」、面試題型改「網友分享的面試方向」、隱私權政策補一句、新增 follow_gate（預設 true，false＝不查追蹤直接送重點）、legal_reviewed=true。廣達 threads.txt 主文刪 4 個表情符號到 494 字。
+- 待處理：TC_* 權杖還沒收件（等 Andy，必做清單在 autopost.md 四之三）；Worker 尚未部署（CEO 安排，要 TC_IG_APP_SECRET）。
+- 這批 pytest 跑全套（sparse worktree，缺檔的測試補拉後重跑全綠）；沒動 site/**，沒跑 _preview／_uitest。
+
 ## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）
 - 改：`site/admin.js`（compName／SUB_NAME、memTable 重寫、方案選單與確認、欄位拖曳、固定欄寬與橫捲）、`scripts/uitest_sections/20261107_會員清單表.py`、`docs/account_analytics.md`。
 - 後端另案：`feat/member-plan-worker`（`/v1/admin/grants/issue`，已推遠端分支、**未推 main、未部署**）；部署前要 Andy 同意。前端先探測，舊後端自動停用體驗選項。
@@ -181,6 +206,7 @@
 - 容器 11-02 重開：/tmp/claude-0/locks/run_gate.sh、precheck.sh、csscheck.py 已重建（備份在 CEO scratchpad）；python3 需 `python3 -m pip install -r requirements.txt playwright`。
 
 ## ★ 最高警戒
+- **2026-11-09 close-inst 不再繞過降量開關**：11-06 20:27 多發的法人補充貼文 https://www.threads.com/@liguligu0818/post/DfZmspGoHQB 是因為它借用 live.close 的開關；現在查 `live.close_inst`（沒寫＝關，被停的不補發），且只有拿掉法人卡才補充。已發那則未刪（等 Andy 決定）。細節 auto_post.md 修改紀錄 11-09。這批只驗 `pytest tests/test_social_*.py tests/test_threads_post.py tests/test_ig_post.py`（社群相關 270 綠；10 紅皆為 sparse worktree 缺 site/、資料檔，與本改動無關）。
 - **2026-11-03 誤報**：posted.json 沒有盤前／盤中／close-inst 是降量模式照規定不發，不是故障（查核方法見 auto_post.md 修改紀錄 11-03）。監工判「沒發」前先讀 `docs/marketing/social_unit/post_quota.json`；目前只有盤後主貼文 Threads 是應發。
 - **2026-11-02 社群自動發文降量模式（Andy：「同意降量」）**：自動只發交易日盤後主貼文 Threads 1 則（第 2 則留給 Andy 手寫）；盤前、盤中、所有 IG 限動、主題文章／新聞文、IG 晚間補發與 22:10 監工全停。唯一開關 `docs/marketing/social_unit/post_quota.json`（Andy 說了才准改）；被停的時段**不准補發**，監工只剩盤後 18:20。細節 `docs/marketing/social_unit/auto_post.md` 第〇節。分支 `social/quota-1102`（CEO 審過推 main；推 main 前今晚 20:00／20:50 兩篇已 approved 的 IG 主題文章仍會發）。這批只驗：`pytest -k "social or threads or ig_post or news or premarket or postmarket or gh_cron"`＋`tests/test_social_quota_1102.py`＋`node --test workers/gh-cron/test/schedule.test.mjs`。
 

@@ -1,0 +1,5 @@
+{
+ "live": true,
+ "per_day": 1,
+ "note": "2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。頻道④談晴說礙專用開關，跟頻道①的 docs/marketing/social_unit/post_quota.json 無關。live=false＝整個停發（以成功結束、不連 Meta）；per_day＝台北每天最多發幾則（新帳號前幾週維持 1）。"
+}

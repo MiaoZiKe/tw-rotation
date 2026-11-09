@@ -1,0 +1,38 @@
+{
+  "note": "頻道②「科技透明圈」留言關鍵字自動回覆設定（2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」）。Worker workers/tc-dm（IG 私訊）與 scripts/tc_threads_replies.py（Threads 公開回覆）都讀這個檔；改這裡、推 main 即生效（Worker 5 分鐘內會讀到新版）。",
+  "legal_reviewed": true,
+  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。",
+  "keywords": [
+    "透明"
+  ],
+  "ig_dm": {
+    "enabled": true,
+    "mode": "poll",
+    "mode_note": "poll＝tc_post.yml 每 15 分鐘輪詢（不需 webhook／App Review）；webhook＝workers/tc-dm 即時（要 App Live＋Advanced Access）。同時只開一種。",
+    "follow_gate": true,
+    "follow_gate_note": "true＝兩段式：先私訊請追蹤，對方回「好了」才查追蹤、有追蹤才送重點（Andy 指示）。false＝法遵給的替代做法：不查追蹤，留言後直接送重點，追蹤只當鼓勵（用 prompt_no_gate＋重點內容）。",
+    "prompt": "謝謝留言！追蹤 @{handle} 後回覆「好了」，我把重點整理傳給你",
+    "followed_keywords": [
+      "好了",
+      "好囉",
+      "好喔",
+      "已追蹤",
+      "追蹤了"
+    ],
+    "not_following": "還沒看到你追蹤喔，追蹤 @{handle} 後再回一次「好了」",
+    "already_sent": "這篇的重點整理已經傳給你囉，往上滑就看得到",
+    "contents": {
+      "default": "科技透明圈的待遇重點整理都放在這裡：https://liguligu-puipui.com/\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考。",
+      "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考，隨單位而異。\n更多整理：https://liguligu-puipui.com/"
+    },
+    "per_user_per_day": 1,
+    "max_per_minute": 10,
+    "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}"
+  },
+  "threads_reply": {
+    "enabled": true,
+    "text": "謝謝留言！重點整理放在這：https://liguligu-puipui.com/（網友公開分享整理，非公司公告，僅供參考）",
+    "lookback_posts": 5,
+    "max_per_run": 10
+  }
+}

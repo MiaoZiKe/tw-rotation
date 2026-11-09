@@ -81,6 +81,17 @@ def test_table_registered_and_payload_shape(tmp_path):
     assert j["days"][0][1] == pytest.approx(20 - 13.3, abs=0.1) and j["thr"] == 4_000_000
     t = json.loads((tmp_path / "bigsmall" / "_thr.json").read_text(encoding="utf-8"))
     assert t["thr"]["9999"] == 4_000_000
+    ix = json.loads((tmp_path / "bigsmall" / "_index.json").read_text(encoding="utf-8"))
+    assert ix["codes"] == ["9999"] and ix["updated"] == "2026-11-09"
+
+
+def test_index_empty_when_no_lake(tmp_path):
+    # 湖裡沒表／沒資料：_index.json 也要寫（codes 空），前端才不會去抓不存在的個股檔而 404
+    px = pd.DataFrame({"date": ["2026-11-06"], "code": ["9999"], "turnover": [1e8], "transactions": [100.0]})
+    for lake in (None, pd.DataFrame(columns=bs.COLUMNS)):
+        bs.export(tmp_path, px, lake)
+        ix = json.loads((tmp_path / "bigsmall" / "_index.json").read_text(encoding="utf-8"))
+        assert ix["codes"] == []
 
 
 def test_collector_skips_when_lake_has_today(monkeypatch):

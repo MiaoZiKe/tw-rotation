@@ -20,7 +20,9 @@
 .svgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
 .svpar { position: relative; min-height: 44px; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-body); text-align: left; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r-sm); cursor: pointer; }
 .svpar:hover { border-color: var(--cyan); }
-.svpar.on { border-color: var(--cyan); background: var(--panel-3); }
+.svpar.on { border-color: var(--cyan); background: var(--cyan); color: var(--ontop); font-weight: 700; }   /* 11-09 已選＝實心主色底，一眼看得出（--ontop 與 --cyan 兩主題對比皆 ≥ 4.5:1） */
+.svpar.on .svpt::before { content: ''; display: inline-block; width: 5px; height: 10px; margin: 0 8px 2px 2px; border: solid currentColor; border-width: 0 3px 3px 0; transform: rotate(45deg); }   /* 用邊框畫粗勾，不靠字型有沒有 ✓ */
+.svpar.on .svbd { background: var(--ontop); color: var(--cyan); }
 .svpar.act { box-shadow: var(--glow); }
 .svbd { position: absolute; right: 6px; top: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--cyan); color: var(--ontop); font: 700 12px/18px var(--mono); text-align: center; }
 .svsub { margin-top: var(--sp-3); padding: var(--sp-3); background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
@@ -29,7 +31,8 @@
 .svsubh small { margin-left: var(--sp-2); font-size: var(--fs-min); color: var(--ink-3); }
 .svchips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .svchip { min-height: 36px; padding: 0 var(--sp-3); font-size: var(--fs-sm); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r-pill); cursor: pointer; }
-.svchip.on { background: var(--cyan); color: var(--ontop); border-color: var(--cyan); font-weight: 600; }
+.svchip.on { background: var(--cyan); color: var(--ontop); border-color: var(--cyan); font-weight: 700; }
+.svchip.on::before { content: ''; display: inline-block; width: 5px; height: 10px; margin: 0 8px 2px 2px; border: solid currentColor; border-width: 0 3px 3px 0; transform: rotate(45deg); width: 4px; height: 8px; border-width: 0 2.5px 2.5px 0; }
 .svchips.big .svchip { min-height: 40px; }
 .svdrop { margin-top: var(--sp-2); }
 .svlbl { display: block; margin: var(--sp-4) 0 var(--sp-1); font-size: var(--fs-sm); color: var(--ink-2); }
@@ -49,7 +52,6 @@
 .svokp { font-size: var(--fs-body); color: var(--ink-2); margin: 0 0 var(--sp-4); }
 .svokp b { font-family: var(--mono); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .svbar i { transition: none; } }
-.svpar.on .svpt::before { content: "✓ "; color: var(--cyan); font-weight: 700; }
 .svprv { padding: 0 var(--sp-4) var(--sp-2); text-align: right; font-size: var(--fs-min); background: var(--panel); }
 .svprv a { color: var(--ink-3); text-decoration: underline; }
 .svtest { margin-left: var(--sp-2); padding: 1px 6px; font-size: var(--fs-min); color: var(--amber); border: 1px solid var(--amber); border-radius: var(--r-pill); }

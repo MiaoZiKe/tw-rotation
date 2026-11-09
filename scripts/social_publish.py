@@ -304,7 +304,7 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
     fail = False
     log(f"時段 {key}（{m.get('taken_at')}）")
     # 2026-11-02 降量模式（Andy：「同意降量」）：關掉的平台在這裡就擋下，後面一律不送任何請求（含串文、回覆、查帳號）
-    kind = m.get("kind", "intraday")
+    kind = post_quota.live_kind(m)      # 2026-11-09：法人補充貼文（close-inst）查 live.close_inst，不吃 close 的開關
     q = post_quota.load()
     q_th, q_st = post_quota.live_allowed(kind, "threads", q), post_quota.live_allowed(kind, "ig_story", q)
     if th.get("text") and not q_th:

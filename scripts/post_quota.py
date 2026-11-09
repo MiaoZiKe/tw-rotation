@@ -5,7 +5,10 @@
 social-live.yml、social_news.yml）在動手前都問這裡。關掉的：印「降量模式：略過」並以成功結束
 （不是失敗、不寄失敗信、不觸發補發）。要放量只改那個 JSON。
 
-  live.<kind>.<threads|ig_story>   社群即時貼文（social-live.yml → social_publish.py）；kind＝premarket／intraday／close／credit
+  live.<kind>.<threads|ig_story>   社群即時貼文（social-live.yml → social_publish.py）；kind＝premarket／intraday／close／credit／close_inst
+                                   close_inst＝盤後法人補充貼文（鍵 close-inst-<日期>，2026-10-29 保底後補發的那一則）。
+                                   ★ 2026-11-09：它是「另一則貼文」，不吃 close 的開關（11-06 就是吃了 close=true 多發一則）；
+                                     開關檔沒寫 → 用 DEFAULT（關）。要開只能 Andy 說了，在 JSON 的 live 底下加 close_inst。
   queue.news.<threads|ig>          social_news.py 自動產生的主題文章（佇列檔名 <日期>_news-<段>-<n>.md）
   queue.manual.<threads|ig>        其他佇列檔（手寫、手動加發；仍須人工把 status 改成 approved 才會發）
 
@@ -32,6 +35,7 @@ DEFAULT = {
         "intraday": {"threads": False, "ig_story": False},
         "close": {"threads": True, "ig_story": False},
         "credit": {"threads": False, "ig_story": False},
+        "close_inst": {"threads": False, "ig_story": False},      # 2026-11-09：法人補充貼文另計一則，降量模式不發
     },
     "queue": {
         "news": {"threads": False, "ig": False},
@@ -64,6 +68,12 @@ def _flag(q: dict, section: str, group: str, platform: str) -> bool:
     if v is None:      # 沒寫到的 kind／平台 → 看內建規格；內建也沒有 → 關（降量模式寧可少發）
         v = ((DEFAULT.get(section) or {}).get(group) or {}).get(platform, False)
     return v is True
+
+
+def live_kind(m: dict) -> str:
+    """manifest → 名額開關用的 kind。盤後法人補充貼文（kind=close＋supplement）是另一則貼文 → close_inst。"""
+    kind = (m or {}).get("kind") or "intraday"
+    return "close_inst" if kind == "close" and (m or {}).get("supplement") else kind
 
 
 def live_allowed(kind: str, platform: str, q: dict | None = None) -> bool:

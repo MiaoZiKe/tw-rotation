@@ -1083,7 +1083,9 @@ body.miaon #skHead>.disc-line{display:none}
   #skTools>.sktags{min-width:46px}
   .sktags>.sktmore{min-height:34px}
 }
-@media (max-width:760px){
+/* 2026-11-07 週健康檢查：實測 761～769 寬時工具列內容比卡片寬 8px（「?」那顆伸出卡片、整頁多出橫捲），
+   原本只到 760。門檻抬到 780：內容放得下時 overflow:auto 不會出捲軸、畫面完全不變，只是放不下時改成可滑。 */
+@media (max-width:780px){
   #skTools{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   #skTools::-webkit-scrollbar{display:none}
 }
@@ -5627,6 +5629,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261104-channels.css">
 <link rel="stylesheet" href="m4/20261106-fearcard.css">
 <link rel="stylesheet" href="m4/20261107-artvault-tabs.css">
+<link rel="stylesheet" href="m4/20261109-channel-scores.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">

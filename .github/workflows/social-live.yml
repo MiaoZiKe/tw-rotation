@@ -128,7 +128,7 @@ jobs:
             ST="$(python3 scripts/social_close_state.py "$RUNNER_TEMP/posted.json" "$(date '+%F')")"
             echo "盤後發布狀態：$ST"
             if [ "$ST" = "skip" ]; then
-              echo "今天的盤後法人已經發過（close-$(date '+%F')）→ 跳過"
+              echo "今天的盤後已經發過（close-$(date '+%F')），或法人補充貼文被降量開關停掉（post_quota.json live.close_inst，2026-11-09）→ 跳過"
               echo "skip=1" >> "$GITHUB_OUTPUT"
             elif [ "$ST" = "supplement" ]; then
               echo "主貼文走過保底（法人卡晚到）→ 這輪做法人補充貼文"
@@ -309,7 +309,11 @@ jobs:
           git add site/articles/premarket.json
           git commit -q -m "盤前消息 $(date '+%F')"
           for i in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              # 2026-11-09：機器人推的 commit 不會觸發 pages.yml → 主站（Cloudflare）看不到盤前消息，要明確叫它部署
+              GH_TOKEN="${{ github.token }}" gh workflow run pages.yml --repo "${{ github.repository }}" --ref main || echo "::warning::叫 pages.yml 失敗"
+              exit 0
+            fi
             sleep $((i * 5))
           done
           echo "::warning::盤前消息推回 main 失敗（不影響已發的貼文）"

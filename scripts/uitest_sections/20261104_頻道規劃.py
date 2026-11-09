@@ -16,14 +16,14 @@ def t_channels_1104(b, base, code):
         pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"{w}:{e}"))
         try:
             pg.goto(base + "#channels", wait_until="domcontentloaded")
-            wait_until(pg, "() => document.querySelectorAll('#v-channels .chn-tabs a').length >= 7", 20000)
+            wait_until(pg, "() => document.querySelectorAll('#v-channels .chn-tabs a').length >= 8", 20000)
             ag = pg.get_by_role("button", name="同意並繼續")
             if ag.count():
                 try: ag.first.click(timeout=1500)
                 except Exception: pass
-            ok(f"【{T}】{w} 管理者開 #channels：七個子分頁都在", pg.evaluate("() => document.querySelectorAll('#v-channels .chn-tabs a').length") == 7)
+            ok(f"【{T}】{w} 管理者開 #channels：八個子分頁都在", pg.evaluate("() => document.querySelectorAll('#v-channels .chn-tabs a').length") == 8)
             if not mob:
-                ok(f"【{T}】{w} 側欄看得到「頻道規劃」母項與七個子項", pg.evaluate("() => { const t = document.querySelector('.tab[data-view=channels]'); const s = [...document.querySelectorAll('.l4subtab[data-parent=channels]')]; return !!t && t.offsetParent !== null && s.length === 7 && s.every(e => e.offsetParent !== null); }"))
+                ok(f"【{T}】{w} 側欄看得到「頻道規劃」母項與八個子項", pg.evaluate("() => { const t = document.querySelector('.tab[data-view=channels]'); const s = [...document.querySelectorAll('.l4subtab[data-parent=channels]')]; return !!t && t.offsetParent !== null && s.length === 8 && s.every(e => e.offsetParent !== null); }"))
             seen = set()
             for sid, nm, blk in SUBS:
                 pg.click(f"#v-channels .chn-tabs a[data-sub={sid}]")

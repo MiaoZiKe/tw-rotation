@@ -9,5 +9,5 @@
   .fz-hd h3{margin-right:auto}
   .fz-hd .fz-per{order:4}   /* 分段鈕的尺寸（高 40、內距）吃 mobile4.css 的全站統一樣式，這裡不另外覆蓋 */
   .fz-hd .fz-leg{order:5;flex-basis:100%;margin-left:0;gap:2px 12px}
-  .fz-cv{height:290px}
+  .fz-cv{height:410px}
 }

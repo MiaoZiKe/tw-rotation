@@ -32,5 +32,11 @@
 .fz-lg i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--c)}
 .fz-hd .seg button:disabled{opacity:.4;cursor:not-allowed}
 .fz-full{min-width:0}
-.fz-cv{height:336px;min-width:0;margin-top:6px}
+.fz-cv{height:500px;min-width:0;margin-top:6px}
 .fz-lg.fz-base{color:var(--ink-3)}
+/* 圖例＝篩選鈕（2026-11-09）：關掉的線變淡＋刪除線、色塊變灰，一眼看出哪些被關了 */
+button.fz-lg{background:none;border:0;padding:4px 2px;font:inherit;color:var(--ink-2);cursor:pointer;min-height:28px;border-radius:4px}
+button.fz-lg:hover{color:var(--ink)}
+button.fz-lg:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+button.fz-lg.off{opacity:.5;text-decoration:line-through}
+button.fz-lg.off i{background:var(--ink-3)}

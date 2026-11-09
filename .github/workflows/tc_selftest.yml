@@ -1,0 +1,64 @@
+name: 頻道② 科技透明圈 自動測試
+# 2026-11-08 Andy：「我希望可以自動化全部，包含測試發文……」。收件成功後自動跑一次；也可以手動按。
+# Threads：先確認有刪除權限才發一則測試文 → 讀回確認 → 立刻刪除 → 回查已刪。
+# IG：只建 media container（上傳圖、等 FINISHED），不呼叫 media_publish（IG 登入版 API 不能刪貼文，所以不真的發）。
+# 結果寫 data/_state/tc_selftest.json；失敗開 issue。
+on:
+  workflow_run:
+    workflows: ["頻道② 科技透明圈 權杖收件"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: tc-post        # 跟發文同一把鎖，不會同時打 Meta
+  cancel-in-progress: false
+jobs:
+  selftest:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 測試
+        id: t
+        continue-on-error: true
+        env:
+          TC_THREADS_TOKEN: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO || secrets.TC_THREADS_ACCESS_TOKEN }}
+          TC_IG_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO || secrets.TC_IG_ACCESS_TOKEN }}
+          TC_THREADS_USER_ID: ${{ secrets.TC_THREADS_USER_ID }}
+          TC_IG_USER_ID: ${{ secrets.TC_IG_USER_ID }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: python scripts/tc_selftest.py
+      - name: 結果寫回 main
+        if: always()
+        run: |
+          [ -f data/_state/tc_selftest.json ] || exit 0
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add data/_state/tc_selftest.json
+          git diff --staged --quiet && exit 0
+          git commit -q -m "頻道② 自動測試結果 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && exit 0
+            sleep $((i*3))
+          done
+          echo "::warning::測試結果推不上 main"
+      - name: 失敗 → 開 issue
+        if: always() && steps.t.outputs.failed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASONS: ${{ steps.t.outputs.reasons }}
+        run: |
+          gh issue create -R "${{ github.repository }}" --title "⚠️ 頻道② 科技透明圈：自動測試失敗" --body "失敗項目：${REASONS}
+
+          這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          多半是權杖少勾了權限：docs/marketing/channels/tc/autopost.md「Andy 必做清單」第 2、3 步，重新產生權杖後再跑一次權杖收件。" || echo "::warning::開 issue 失敗"
+          exit 1

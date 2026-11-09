@@ -253,6 +253,27 @@
    "reviewed": false,
    "reviewer": "",
    "review_note": ""
+  },
+  {
+   "file": "photo_12.jpg",
+   "kind": "相關場景",
+   "slug": "fareastone",
+   "name_en": "Far EasTone",
+   "query": "cell tower",
+   "file_title": "File:Cellular tower-3.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Cellular_tower-3.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Cellular_tower-3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Wikideas1",
+   "credit": "Own work",
+   "description": "Cellular tower in Wisconsin",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-08T22:56:46+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

@@ -2732,5 +2732,95 @@
    "https://www.emctw.com/",
    "https://www.emctw.com/en/"
   ]
+ },
+ {
+  "slug": "nvidia_people",
+  "name_en": "Jensen Huang",
+  "zh": [
+   "黃仁勳"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Jensen Huang",
+   "Jensen Huang keynote",
+   "Jensen Huang Computex"
+  ],
+  "product_queries": [],
+  "related_queries": [],
+  "commons_categories": [
+   "Jensen Huang",
+   "Jensen Huang at Computex",
+   "Jensen Huang at GTC",
+   "Jensen Huang in 2024",
+   "Jensen Huang in 2025"
+  ],
+  "credit_name": "黃仁勳",
+  "official_sites": [],
+  "allow_people": true,
+  "quota": 10,
+  "files": [
+   "File:Jensen Huang (cropped) (2024).jpg",
+   "File:Jensen Huang 20231109 (cropped2).jpg",
+   "File:Jensen Huang 20231109.jpg",
+   "File:Jensen Huang Nvidia Keynote CES 2025.jpg",
+   "File:Jensen huang stanford 2026-04-30 003.jpg",
+   "File:Jensen huang stanford 2026-04-30 031.jpg",
+   "File:Jensen Huang at Computex Taipei 20160531c.jpg",
+   "File:Jensen Huang at Computex Taipei 20160531a.jpg",
+   "File:Jensen Huang - RTX Blackwell - Nvidia Keynote - CES 2025 Las Vegas (3).jpg",
+   "File:Nvidia CEO Jensen Huang gestikuliert.jpg",
+   "File:Nvidia CEO Jensen Huang is recognized by President Donald Trump during remarks at the White House AI Summit at Andrew W. Mellon Auditorium in Washington (54677035268).jpg",
+   "File:P20260513DT-0328 President Donald J. Trump participates in an arrival ceremony at Beijing International Airport.jpg",
+   "File:JensenHuangSC18.jpg"
+  ]
+ },
+ {
+  "slug": "us_capitol",
+  "name_en": "United States Capitol",
+  "zh": [
+   "美國國會"
+  ],
+  "category": "半導體",
+  "queries": [
+   "United States Capitol",
+   "Capitol Hill hearing room"
+  ],
+  "product_queries": [],
+  "related_queries": [],
+  "commons_categories": [
+   "United States Capitol",
+   "United States Capitol exterior",
+   "United States Senate hearings",
+   "Hearing rooms of the United States Congress"
+  ],
+  "credit_name": "美國國會",
+  "official_sites": [],
+  "allow_people": true,
+  "quota": 10
+ },
+ {
+  "slug": "computex",
+  "name_en": "Computex",
+  "zh": [
+   "台北電腦展"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Computex Taipei",
+   "Computex keynote"
+  ],
+  "product_queries": [],
+  "related_queries": [],
+  "commons_categories": [
+   "Computex",
+   "Computex Taipei",
+   "Computex 2024",
+   "Computex 2025",
+   "Taipei Nangang Exhibition Center"
+  ],
+  "credit_name": "台北電腦展",
+  "official_sites": [],
+  "allow_people": true,
+  "quota": 10
  }
 ]

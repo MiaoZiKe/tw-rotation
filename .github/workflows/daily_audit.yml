@@ -1,0 +1,133 @@
+name: 每日三關稽核
+
+# Andy 2026-11-09：「CEO 需要安排人員確認每日該做的事情是否有做，以及該更新的數據是否有完成，
+# 至少 3 個關卡：是否執行、內容是否要確認、是否發布上去」「目的是避免沒有發文、以及沒更新數據」。
+# 說明：docs/daily_audit.md。結果寫進 data/_state/daily_audit.json 並推回 main。
+
+on:
+  schedule:
+    # 台北時間（UTC＝台北減 8 小時）；分鐘避開 :00／:30（GitHub 高負載時段會延遲或丟排程）。
+    - cron: "45 0 * * 1-5"    # 台北 週一～五 08:45：盤前消息截止 08:40 已過
+    - cron: "33 4 * * 1-5"    # 台北 週一～五 12:33：盤中檢查（價量應為上一交易日）
+    - cron: "40 10 * * 1-5"   # 台北 週一～五 18:40：盤後主貼文截止 18:20、法人截止 18:40
+    - cron: "40 13 * * *"     # 台北 每天 21:40：盤後消息截止 21:40、週末的新聞與部署也要查
+  workflow_dispatch:
+    inputs:
+      remediate:
+        description: "失敗項要不要自動補救（每項每天一次）"
+        type: boolean
+        default: true
+
+# 跟 daily.yml／backfill.yml 共用同一個寫入排隊群組，避免推回 main 時互相踩到
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write     # 自動補救要派 workflow
+  issues: write      # 紅燈開／更新 issue，全綠自動關
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝相依套件（讀資料湖需要）
+        run: pip install -r requirements.txt
+
+      - name: 跑三關稽核
+        id: audit
+        # 失敗不直接中斷：要先寫結果、開 issue、推回 main，最後才標紅
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.remediate }}" = "false" ]; then
+            ARGS=""   # 只檢查不補救
+          else
+            ARGS="--remediate"
+          fi
+          # 不用 | tee：管線會吃掉稽核的結束碼，紅燈就標不出來
+          set +e
+          python scripts/daily_audit.py $ARGS > /tmp/audit.txt 2>&1
+          RC=$?
+          cat /tmp/audit.txt
+          {
+            echo "## 每日三關稽核"
+            echo '```'
+            cat /tmp/audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $RC
+
+      - name: 紅燈開／更新 issue，全綠關掉
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY' > /tmp/issue_body.md || true
+          import json, pathlib
+          p = pathlib.Path("data/_state/daily_audit.json")
+          if not p.exists():
+              print("稽核檔不存在，本輪沒有產出結果。")
+          else:
+              d = json.loads(p.read_text(encoding="utf-8"))
+              print(f"檢查時間：{d['checked_at']}（價量應有日 {d['expected_price_date']}）\n")
+              for it in d["items"]:
+                  if it["status"] == "fail":
+                      why = "；".join(f"{k}：{g['why']}" for k, g in it.get("gates", {}).items() if not g["ok"])
+                      note = it.get("remedy_note", "")
+                      print(f"- ❌ {it['name']}：{why}" + (f"（{note}）" if note else ""))
+              for e in d.get("errors", []):
+                  print(f"- ⚠️ 查詢錯誤：{e}")
+          PY
+          OPEN=$(gh issue list -R "$REPO" --state open --search "in:title 每日稽核：有項目沒完成" --json number -q '.[0].number')
+          # 讀不到稽核結果也當作有問題（不准把「查不到」當成全綠）
+          FAILS=$(python -c "import json;print(json.load(open('data/_state/daily_audit.json'))['summary']['fail'])" 2>/dev/null || echo "err")
+          if [ "$FAILS" = "0" ]; then
+            [ -n "$OPEN" ] && gh issue close "$OPEN" -R "$REPO" -c "全綠：$(date -u '+%Y-%m-%d %H:%M') UTC 稽核全部通過，自動關閉。" || true
+          else
+            BODY="$(cat /tmp/issue_body.md)
+
+          這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          說明與補救規則：docs/daily_audit.md"
+            if [ -n "$OPEN" ]; then
+              gh issue comment "$OPEN" -R "$REPO" --body "$BODY" || echo "::warning::留言失敗"
+            else
+              gh issue create -R "$REPO" --title "⚠️ 每日稽核：有項目沒完成" --body "$BODY" || echo "::warning::開 issue 失敗"
+            fi
+          fi
+
+      - name: 寫回稽核結果到 main
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/_state/daily_audit.json
+          if git diff --cached --quiet; then
+            echo "稽核結果沒有變動，不 commit"
+          else
+            git commit -m "每日稽核結果 $(TZ=Asia/Taipei date '+%m-%d %H:%M')（自動）"
+            for i in 1 2 3 4 5; do
+              git pull --rebase --autostash origin main && git push origin HEAD:main && break
+              echo "push 被拒絕，第 $i 次重試"; sleep 5
+            done
+          fi
+
+      - name: 標紅（有關卡沒過）
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::error::每日三關稽核有項目沒完成，看 data/_state/daily_audit.json 與 issue"
+          exit 1

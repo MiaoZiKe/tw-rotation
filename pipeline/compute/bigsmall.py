@@ -242,6 +242,7 @@ def export(site_data, price_daily, lake_rows) -> dict:
     (out / "_thr.json").write_text(json.dumps({"floor": BIG_FLOOR, "mult": AVG_MULT, "thr": thr}, ensure_ascii=False), encoding="utf-8")
     n = 0
     first = last = None
+    written = []
     if lake_rows is not None and not lake_rows.empty:
         df = lake_rows.copy()
         df["date"] = df["date"].astype(str).str[:10]
@@ -253,4 +254,8 @@ def export(site_data, price_daily, lake_rows) -> dict:
             pl["thr"] = thr.get(code, BIG_FLOOR)
             (out / f"{code}.json").write_text(json.dumps(pl, ensure_ascii=False), encoding="utf-8")
             n += 1
+            written.append(code)
+    # _index.json：列出「真的有檔」的代號。前端先讀它再決定要不要抓 <代號>.json，
+    # 湖裡沒表或該股沒資料時就不發請求，避免正式站個股頁出現 404（console 錯誤）。
+    (out / "_index.json").write_text(json.dumps({"updated": last, "codes": sorted(written)}, ensure_ascii=False), encoding="utf-8")
     return {"codes": n, "first": first, "last": last, "thr": len(thr)}

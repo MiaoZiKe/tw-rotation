@@ -1,0 +1,69 @@
+name: healing_comments
+# 頻道④「談晴說礙」IG：讀主留言 → 檢查有沒有追蹤 → 自動私訊（Private Replies）。
+# 2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」。說明：docs/marketing/channels/healing/comment_dm.md
+# - 輪詢（不用 webhook、免架伺服器）：每 15 分鐘一輪，分鐘錯開整點。
+# - 設定 docs/marketing/channels/healing/dm_config.json（enabled／only_followers／unknown_follow／max_per_run／文案）。
+# - 沒有權杖 → 空跑、以成功結束，摘要寫「等待權杖」。
+# - 紀錄 state/comments_dm.json 只存留言編號雜湊、時間、結果（不存留言全文與使用者名稱），寫回 main。
+# - 自傷關鍵字 → 改送關懷資源訊息，摘要與 ::warning:: 提醒 CEO 依 legal.md 2-7 人工處理。
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "空跑（true＝只讀留言、印出會做什麼，不私訊、不寫紀錄；false＝真的私訊）"
+        type: boolean
+        default: true
+permissions:
+  contents: write   # 把 state/comments_dm.json 推回 main（不含權杖）
+concurrency:
+  group: healing_comments
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests
+      - name: 判斷空跑
+        id: mode
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+      - name: 讀留言、查追蹤、私訊（失敗會紅燈）
+        env:
+          HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
+          HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+        run: python scripts/healing_comments.py ${{ steps.mode.outputs.dry }}
+      - name: 私訊紀錄寫回 main（只有雜湊、時間、結果，沒有權杖）
+        if: always() && steps.mode.outputs.dry == ''
+        env:
+          F: docs/marketing/channels/healing/state/comments_dm.json
+        run: |
+          [ -f "$F" ] || { echo "沒有紀錄檔（等待權杖或本輪沒動）"; exit 0; }
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          MSG="談晴說礙：留言私訊紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          cp "$F" "$RUNNER_TEMP/comments_dm.json"
+          git add -- "$F"
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "$MSG"
+          for i in 1 2 3 4; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            sleep $((2 ** i))
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p "$(dirname "$F")" && cp "$RUNNER_TEMP/comments_dm.json" "$F"
+            git add -- "$F"
+            git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
+            git commit -q -m "$MSG"
+          done
+          echo "::error::推不上 main"; exit 1

@@ -14,7 +14,7 @@ name: 部署 Worker（即時報價代理）
 on:
   push:
     branches: [main]
-    paths: ['workers/**', '!workers/gh-cron/**']
+    paths: ['workers/**', '!workers/gh-cron/**', '!workers/tc-dm/**']   # tc-dm 有自己的 deploy-tc-dm.yml
   workflow_dispatch:
 
 permissions:

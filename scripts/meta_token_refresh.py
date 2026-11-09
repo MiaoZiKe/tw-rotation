@@ -49,6 +49,16 @@ PLATFORMS = {
         "me_fields": "user_id",
     },
 }
+# 2026-11-08 頻道④「談晴說礙」（Andy：「開通自動發文，這部分幫我想辦法自動化」）：同一套續期，權杖分開。
+# 沒設 HEALING_* 的時候狀態是 missing（不算失敗、不告警）。
+PLATFORMS["healing_threads"] = dict(PLATFORMS["threads"], env="HEALING_THREADS_ACCESS_TOKEN")
+PLATFORMS["healing_ig"] = dict(PLATFORMS["ig"], env="HEALING_IG_ACCESS_TOKEN")
+# 2026-11-08 頻道②「科技透明圈」（Andy：「開通自動發文，這部分幫我想辦法自動化」）：另一組 TC_* 權杖，
+# 由 scripts/tc_token_intake.py 收件寫回 TC_*_ACCESS_TOKEN_AUTO。規則與頻道一相同（AUTO 優先、告警照舊）；
+# 還沒收件（沒有任何 TC 權杖）→ 安靜略過，不紅燈、不告警。
+PLATFORMS["tc_threads"] = dict(PLATFORMS["threads"], env="TC_THREADS_ACCESS_TOKEN", optional=True, intake="threads")
+PLATFORMS["tc_ig"] = dict(PLATFORMS["ig"], env="TC_IG_ACCESS_TOKEN", optional=True, intake="ig")
+TC_INTAKE_PATH = STATE_PATH.parent / "tc_token.json"
 
 _SECRETS: list[str] = []
 
@@ -171,11 +181,12 @@ def load_state(path: Path) -> dict:
 
 
 def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, saver=save_secret,
-        pat_checker=pat_status) -> tuple[int, dict]:
+        pat_checker=pat_status, intake_path: Path | None = None) -> tuple[int, dict]:
     repo = env.get("GITHUB_REPOSITORY", "MiaoZiKe/tw-rotation")
     pat = (env.get("META_SECRETS_PAT") or "").strip()
     mask(pat)
     prev = load_state(state_path)
+    intake = (load_state(intake_path or state_path.parent / TC_INTAKE_PATH.name).get("platforms")) or {}
     st = {"updated_at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else "refresh",
           "platforms": {}, "alert": False, "alert_reasons": []}
     failed = False
@@ -186,12 +197,18 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
         mask(auto)
         mask(orig)
         token, source = (auto, "auto") if auto else (orig, "original")
-        old = (prev.get("platforms") or {}).get(name) or {}
+        old = dict((prev.get("platforms") or {}).get(name) or {})
+        ik = intake.get(p.get("intake") or "") or {}
+        if ik.get("intake_at") and (not old.get("last_ok_at") or str(ik["intake_at"]) > str(old.get("last_ok_at"))):
+            # 收件剛換過長效權杖 → 當作一次成功續期（24 小時內不再續、到期日用收件時算的）
+            exp_on = _parse(ik.get("expires_on"))
+            old.update(ok=True, last_ok_at=ik["intake_at"], source_after="auto",
+                       expires_at=exp_on.isoformat(timespec="seconds") if exp_on else old.get("expires_at"))
         ps = {"source": source, "ok": False, "last_ok_at": old.get("last_ok_at"),
               "expires_at": old.get("expires_at")}
         if not token:
             ps.update(status="missing", error="沒有設定權杖 Secret")
-            log(f"[{name}] 沒有權杖，略過")
+            log(f"[{name}] 沒有權杖，略過" + ("（頻道② 還沒收件，不告警）" if p.get("optional") else ""))
             st["platforms"][name] = ps
             continue
 
@@ -200,6 +217,16 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             ps.update(ok=ok, status="dry-run-ok" if ok else "dry-run-fail")
             log(f"[{name}] dry-run：權杖（{source}）{'可以用' if ok else '驗證失敗'}；沒有續期、沒有寫回")
             failed |= not ok
+            st["platforms"][name] = ps
+            continue
+
+        # 2026-11-08：Meta 規定權杖要滿 24 小時才能再續；排程常晚跑好幾小時，
+        # 若剛剛手動續過，排程那次會被 Meta 拒絕而誤亮紅燈。24 小時內續過且成功 → 跳過。
+        last = _parse(old.get("last_ok_at"))
+        if old.get("ok") and last is not None and now - last < timedelta(hours=24):
+            ps.update(ok=True, status="recent-skip", source=old.get("source_after") or source)
+            log(f"[{name}] 24 小時內已續期成功，這次跳過（Meta 規定滿 24 小時才能再續）")
+            ps["days_left"] = days_left(ps.get("expires_at"), now)
             st["platforms"][name] = ps
             continue
 

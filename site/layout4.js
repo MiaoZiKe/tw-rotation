@@ -115,6 +115,7 @@
       { k: 'chn-ch4', h: '#channels/ch4', t: '④ 心靈雞湯', s: '雞湯', ic: 'flame' },
       { k: 'chn-funnel', h: '#channels/funnel', t: 'LINE＋Email', s: '漏斗', ic: 'split' },
       { k: 'chn-review', h: '#channels/review', t: '檢討指標', s: '檢討', ic: 'target' },
+      { k: 'chn-scores', h: '#channels/scores', t: '貼文成績表', s: '成績', ic: 'bars' },
     ],
     explore: [
       { k: 'xp-fund', h: '#explore/fund', t: '基本面', s: '基本', ic: 'bars' },

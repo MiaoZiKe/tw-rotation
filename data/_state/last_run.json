@@ -3,15 +3,19 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.9
+      "seconds": 2.5
+    },
+    "official_refresh": {
+      "status": "no_provisional",
+      "official_date": "2026-11-06"
     },
     "price_daily": {
       "stored": 0
     },
     "twse.market": {
       "ok": true,
-      "rows": 4,
-      "seconds": 0.2
+      "rows": 5,
+      "seconds": 0.1
     },
     "market_daily": {
       "stored": 0
@@ -19,7 +23,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1010,
-      "seconds": 9.1
+      "seconds": 15.9
     },
     "tape.collect": {
       "ok": true,
@@ -29,60 +33,62 @@
     },
     "mis.index_minute": {
       "ok": true,
-      "rows": 840,
-      "seconds": 1.5
+      "rows": 8,
+      "seconds": 2.1
     },
     "index_intraday": {
-      "stored": 0
+      "stored": 8
     },
     "taifex.futures_minute": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.0,
+      "seconds": 0.1,
       "skipped": "窗內候選日都處理過或今天的檔還沒出"
     },
     "news.collect": {
       "ok": true,
-      "rows": 117,
-      "seconds": 3.0
+      "rows": 125,
+      "seconds": 2.7
     },
     "news": {
-      "stored": 32
+      "stored": 28
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 0,
-      "seconds": 0.0,
-      "skipped": "117 則新聞中沒有帶目標價的券商引述"
+      "rows": 3,
+      "seconds": 0.0
+    },
+    "broker_views": {
+      "stored": 1
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 381,
-      "seconds": 1.0
+      "rows": 4,
+      "seconds": 0.7
     },
     "material_news": {
-      "stored": 0
+      "stored": 4
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4516,
-      "seconds": 1.9
+      "rows": 4514,
+      "seconds": 2.2
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15615,
-      "seconds": 3.9
+      "rows": 15621,
+      "seconds": 3.3
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 1.3
+      "seconds": 1.1
     },
     "macro_calendar": {
       "stored": 0
@@ -92,26 +98,27 @@
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 9
+      "rows": 6
     },
     "fut_inst": {
       "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 81
+      "rows": 54
     },
     "fut_oi": {
       "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 27
+      "rows": 18
     },
     "optivx.daily": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.0
+      "seconds": 0.5,
+      "error": "FinMind 回 3100 列但算不出隱含波動率（欄位或契約月份可能改了）"
     },
     "margin_total_otc": {
       "stored": 0
@@ -140,18 +147,12 @@
   "phase": "news",
   "index_minute_days": {
     "FUT": [
-      "2026-11-06"
-    ],
-    "OTC": [
-      "2026-11-06"
-    ],
-    "TSE": [
-      "2026-11-06"
+      "2026-11-09"
     ]
   },
-  "started_at": "2026-11-06T21:17:19.819469+00:00",
-  "finished_at": "2026-11-06T21:30:48.477755+00:00",
-  "duration_seconds": 808.7,
+  "started_at": "2026-11-09T00:53:04.336079+00:00",
+  "finished_at": "2026-11-09T01:12:50.986196+00:00",
+  "duration_seconds": 1186.7,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -160,10 +161,10 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-06",
-        "rows": 1476,
-        "median": 2051.5,
-        "status": "warn",
-        "reason": "thin"
+        "rows": 2063,
+        "median": 2054.5,
+        "status": "ok",
+        "reason": null
       },
       "inst_market_daily": {
         "label": "全市場三大法人金額",
@@ -198,17 +199,11 @@
         "reason": null
       }
     },
-    "warn": [
-      "inst_daily"
-    ],
-    "warn_labels": [
-      "個股三大法人"
-    ]
+    "warn": [],
+    "warn_labels": []
   },
-  "warn": [
-    "inst_daily"
-  ],
-  "finmind_budget_left": 445,
+  "warn": [],
+  "finmind_budget_left": 444,
   "tables": [
     {
       "table": "price_daily",
@@ -222,7 +217,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2697987,
+      "rows": 2699742,
       "latest": "2026-11-06"
     },
     {
@@ -267,7 +262,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5500152,
+      "rows": 5500785,
       "latest": "2026-11-06"
     },
     {
@@ -342,23 +337,23 @@
     },
     {
       "table": "news",
-      "rows": 10265,
-      "latest": "2026-11-07"
+      "rows": 10455,
+      "latest": "2026-11-09"
     },
     {
       "table": "broker_views",
-      "rows": 256,
-      "latest": "2026-11-06"
+      "rows": 263,
+      "latest": "2026-11-09"
     },
     {
       "table": "intl_daily",
-      "rows": 42714,
-      "latest": "2026-11-06"
+      "rows": 42717,
+      "latest": "2026-11-09"
     },
     {
       "table": "macro",
-      "rows": 15615,
-      "latest": "2026-11-06"
+      "rows": 15621,
+      "latest": "2026-11-08"
     },
     {
       "table": "macro_calendar",
@@ -382,7 +377,7 @@
     },
     {
       "table": "etf_dividend_events",
-      "rows": 4427,
+      "rows": 4428,
       "latest": "—"
     },
     {
@@ -412,13 +407,13 @@
     },
     {
       "table": "index_intraday",
-      "rows": 288443,
+      "rows": 289288,
       "latest": "—"
     },
     {
       "table": "material_news",
-      "rows": 3546,
-      "latest": "2026-11-05"
+      "rows": 3956,
+      "latest": "2026-11-08"
     },
     {
       "table": "company_website",
@@ -427,13 +422,13 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 738367,
+      "rows": 739338,
       "latest": "2026-11-06"
     },
     {
       "table": "sbl_daily",
-      "rows": 809912,
-      "latest": "2026-11-05"
+      "rows": 811779,
+      "latest": "2026-11-06"
     },
     {
       "table": "insider_holding",
@@ -448,7 +443,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 46,
+    "days_since_review": 49,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
