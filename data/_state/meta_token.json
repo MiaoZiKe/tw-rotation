@@ -1,26 +1,108 @@
 {
-  "updated_at": "2026-11-08T03:07:59+00:00",
+  "updated_at": "2026-11-09T18:33:17+00:00",
   "mode": "refresh",
   "platforms": {
     "threads": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-08T03:07:59+00:00",
-      "expires_at": "2027-01-07T03:07:59+00:00",
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": "2027-01-08T11:05:36+00:00",
+      "status": "refreshed",
+      "saved": "written",
+      "source_after": "auto",
+      "days_left": 59.7
+    },
+    "ig": {
+      "source": "auto",
+      "ok": true,
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": "2027-01-08T18:33:17+00:00",
       "status": "refreshed",
       "saved": "written",
       "source_after": "auto",
       "days_left": 60.0
     },
-    "ig": {
+    "tc_threads": {
+      "source": "original",
+      "ok": false,
+      "last_ok_at": null,
+      "expires_at": null,
+      "status": "missing",
+      "error": "沒有設定權杖 Secret"
+    },
+    "tc_ig": {
+      "source": "original",
+      "ok": false,
+      "last_ok_at": null,
+      "expires_at": null,
+      "status": "missing",
+      "error": "沒有設定權杖 Secret"
+    },
+    "healing_threads": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-08T03:07:59+00:00",
-      "expires_at": "2027-01-07T03:07:59+00:00",
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": "2027-01-08T16:24:11+00:00",
       "status": "refreshed",
       "saved": "written",
       "source_after": "auto",
-      "days_left": 60.0
+      "days_left": 59.9
+    },
+    "healing_ig": {
+      "source": "original",
+      "ok": true,
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": null,
+      "fb": true,
+      "via": "assigned_instagram_accounts（@talk_01010909）",
+      "token_type": null,
+      "days_left": null,
+      "status": "fb-no-secret",
+      "note": "無法自動延長，需要 META_APP_ID／META_APP_SECRET（沒有 META_APP_ID／META_APP_SECRET）；每天驗證一次，到期前 10 天告警"
+    },
+    "tech_threads": {
+      "source": "auto",
+      "ok": true,
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": "2027-01-08T16:25:02+00:00",
+      "status": "refreshed",
+      "saved": "written",
+      "source_after": "auto",
+      "days_left": 59.9
+    },
+    "tech_ig": {
+      "source": "original",
+      "ok": true,
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": null,
+      "fb": true,
+      "via": "assigned_instagram_accounts（@tech_01010909）",
+      "token_type": null,
+      "days_left": null,
+      "status": "fb-no-secret",
+      "note": "無法自動延長，需要 META_APP_ID／META_APP_SECRET（沒有 META_APP_ID／META_APP_SECRET）；每天驗證一次，到期前 10 天告警"
+    },
+    "caffaine_threads": {
+      "source": "auto",
+      "ok": true,
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": "2027-01-08T16:57:53+00:00",
+      "status": "refreshed",
+      "saved": "written",
+      "source_after": "auto",
+      "days_left": 59.9
+    },
+    "caffaine_ig": {
+      "source": "original",
+      "ok": true,
+      "last_ok_at": "2026-11-09T18:33:17+00:00",
+      "expires_at": null,
+      "fb": true,
+      "via": "assigned_instagram_accounts（@caffaine.ai）",
+      "token_type": null,
+      "days_left": null,
+      "status": "fb-no-secret",
+      "note": "無法自動延長，需要 META_APP_ID／META_APP_SECRET（沒有 META_APP_ID／META_APP_SECRET）；每天驗證一次，到期前 10 天告警"
     }
   },
   "alert": false,
