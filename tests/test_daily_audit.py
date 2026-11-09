@@ -100,7 +100,7 @@ def test_executed_but_not_published_is_red():
     # 社群有發文紀錄但沒有發布網址 → 關卡三不過
     f = green_facts()
     f["snaps_posted"] = {f"close-{TODAY}": {"threads": {"id": "1"}, "story": []}}
-    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T19:00:00")))
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T20:42:00")))      # 11-09 起截止 20:35
     assert items["close_post"]["gates"]["content"]["ok"] is True
     assert items["close_post"]["gates"]["publish"]["ok"] is False
     assert items["close_post"]["status"] == "fail"
@@ -262,3 +262,14 @@ def test_load_holidays_parses_days_block(tmp_path):
     p.write_text('# "2026-01-01" 只是註解\ndays:\n  "2026-10-10": {n: 國慶日}\n  "2026-02-16": {n: 春節}\n',
                  encoding="utf-8")
     assert da.load_holidays(p) == {"2026-10-10", "2026-02-16"}
+
+
+def test_close_post_1840_not_red_before_2035():
+    # 2026-11-09 Andy 同意：盤後主貼文改 19:30～20:30 發。18:40、20:30 那輪還沒發 → 進行中（不紅、不補發、不寄信）；20:42 還沒發才紅
+    f = green_facts()
+    f["snaps_posted"] = {}
+    for t in ("2026-11-09T18:40:00", "2026-11-09T19:45:00", "2026-11-09T20:30:00"):
+        it = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at(t)))["close_post"]
+        assert it["status"] == "pending" and it["remedy"] is None, (t, it["status"])
+    it = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T20:42:00")))["close_post"]
+    assert it["status"] == "fail" and it["remedy"]["workflow"] == "social-live.yml"

@@ -22,9 +22,10 @@ def T(s):
     return datetime.fromisoformat(s).replace(tzinfo=g.TPE)
 
 
-def test_保底_19點前照舊等_19點後拿掉過期卡其他照發():
-    assert g.close_fallback(D, CD, H, D, True, T("2026-10-29T18:50"))[0] is False
-    ok, why, drop = g.close_fallback(D, CD, H, D, True, T("2026-10-29T19:05"))
+def test_保底_20點前照舊等_20點後拿掉過期卡其他照發():
+    # 2026-11-09 盤後改 19:30～20:30 發（Andy 同意 traffic_plan_1109）：保底時間 19:00 → 20:00
+    assert g.close_fallback(D, CD, H, D, True, T("2026-10-29T19:50"))[0] is False
+    ok, why, drop = g.close_fallback(D, CD, H, D, True, T("2026-10-29T20:05"))
     assert ok and set(drop) == {"inst-today", "streak-foreign", "streak-trust"} and "fut-oi" in why
     # 保底時間可設定
     assert g.close_fallback(D, CD, H, D, True, T("2026-10-29T18:40"), "18:30")[0] is True
@@ -32,10 +33,10 @@ def test_保底_19點前照舊等_19點後拿掉過期卡其他照發():
 
 def test_保底_全部都不是今天或休市日或臨時休市就不走():
     old = {k: "2026-10-28" for k in CLOSE}
-    assert g.close_fallback(D, old, H, D, True, T("2026-10-29T19:30"))[0] is False
-    assert g.close_fallback("2026-10-25", {k: "2026-10-25" for k in CLOSE}, {**H, "2026-10-25": "測試休市"}, None, False, T("2026-10-25T19:30"))[0] is False
+    assert g.close_fallback(D, old, H, D, True, T("2026-10-29T20:30"))[0] is False
+    assert g.close_fallback("2026-10-25", {k: "2026-10-25" for k in CLOSE}, {**H, "2026-10-25": "測試休市"}, None, False, T("2026-10-25T20:30"))[0] is False
     # 即時成交日停在前一天＝臨時休市
-    assert g.close_fallback(D, CD, H, "2026-10-28", True, T("2026-10-29T19:30"))[0] is False
+    assert g.close_fallback(D, CD, H, "2026-10-28", True, T("2026-10-29T20:30"))[0] is False
 
 
 def test_保底文案_不引用舊法人_標明稍後補(monkeypatch):

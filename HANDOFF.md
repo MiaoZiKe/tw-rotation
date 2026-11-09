@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 盤後主貼文改版＋改 19:30～20:30 發、IG 停自動圖文（social-ops-lead；Andy：「同意，四項改動全部照改」）
+- 依據 docs/marketing/traffic_plan_1109.md 第二節第 2～5、7 條、diagnosis_1109.md。細節 docs/marketing/social_unit/auto_post.md 第〇之〇節。
+- 盤後 Threads：拿掉「🌙 盤後3分鐘」標頭、第一句反差問句（c_x1～c_x6）、主文 ≤150＋結尾二選一、數據移到串文第一則；lint `rule: auto_1109`。
+- 時段：social_snap 盤後 19:30 前不發（19:15 後就地等）；保底 20:00；social-live 加 19:41／20:11 備援排程；稽核截止 20:35、20:42 加一輪（18:40 只會是進行中）。
+- 監工排程「社群發文監工：盤後 18:20」（trig_012QATcSrzp7eveCgtsu3BQT）已改名並改到台北 20:40；它的提示詞只能從它自己那個聊天室改（內容仍可用，沒有寫死 18:20 判斷）。⚠ 待辦：CLAUDE.md 11-02 條「監工只剩盤後 18:20」文字要由 CEO 改成 20:40。社群 v1 文案（social_snap 的 build_text，只在 v2 改寫失敗時用）仍有「盤後3分鐘」標頭，沒動（一堆測試綁著它）。
+- 這批只驗了：pytest tests/ -k "social or threads or daily_audit or quota or close or gate or snap or caption or fast or publish or ig or news"（新增 0 失敗；21 個既有失敗是 sparse 工作樹缺 site/、social/、data/ 檔，改前改後同一批）。
+
 ## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
 - Andy 原話：「可以，做成績表」。資料 site/channels/scores.json（陣列：date／channel／title／platforms／score／comment／template／rule_added／links／cover），首筆為 11-09 頻道①「黃仁勳承認婚外情，輝達啟動調查」90 分範本，links 空白待今晚 20:30 發出後補。
 - **成績表由 CEO 依 Andy 在頻道①聊天室給分更新 scores.json**，頁面不能輸入、不發功能公告、無 features.js 閘門（管理者專用，沿用 channels.js 的 isAdm）。80 分以上標「範本」、60 分以下標「待改」（要在 rule_added 寫新規則，否則顯示「尚未寫規則」）。

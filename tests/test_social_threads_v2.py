@@ -63,7 +63,7 @@ def test_template_library_size_and_mix():
     # 11-04 Andy「盤後也改成專業語氣」：模板全部是專業問句（角度：數據／對比／趨勢），≥20 個，語氣「專業」
     assert len(V.HOOKS) >= 20
     for t in V.HOOKS:
-        assert t[2] in ("數據", "對比", "趨勢") and t[3] in L.AUTO_EMOTIONS, t[0]
+        assert t[2] in ("數據", "對比", "趨勢", "反差") and t[3] in L.AUTO_EMOTIONS, t[0]      # 反差：2026-11-09 盤後第一句
         assert t[4].endswith("？") and not L.casual_words(t[4], hook=True), t[0]
     for k in ("close", "intraday", "premarket", "credit", "article", "any"):
         assert len({h[2] for h in V.HOOKS if h[1] == k}) >= 2, k          # 每個時段至少兩種角度，輪替才有得換
@@ -74,7 +74,7 @@ def test_template_library_size_and_mix():
 
 
 # ---------------- 主貼文改寫 ----------------
-@pytest.mark.parametrize("kind", ["intraday", "close", "premarket"])
+@pytest.mark.parametrize("kind", ["intraday", "premarket"])      # 盤後 11-09 起改版（主文 ≤150＋串文第一則），見 test_threads_close_1109.py
 def test_build_main_post_condensed_into_one(kind):
     """11-02 Andy「都濃縮到第一頁」：主文＝鉤子＋重點數據 ≤500（Threads 上限），串文 0 則，留言只放網址；放不下的寫「完整盤勢見網站」。"""
     m = man(kind)
@@ -234,9 +234,11 @@ def test_long_content_trimmed_to_six_posts_and_points_to_site():
     th = man("close")["threads"]
     news = "📰 新聞焦點：\n" + "\n".join(f"・第{i}則新聞的短標題：這是一段很長很長的描述，用來把串文撐爆，看看會不會被精簡到網站連結那則去{i}" for i in range(10))
     d = V.build("close", th["text"], th["reply"] + "\n" + news, th["images"], today="2026-11-02")
-    assert d["thread_posts"] == [] and L.tlen(d["main_post"]) <= 500 and d["checklist_passed"], L.lint(d)
+    # 11-09 起盤後：主文 ≤150、數據放串文第一則（≤500）
+    assert len(d["thread_posts"]) == 1 and L.tlen(d["thread_posts"][0]) <= 500 and L.clen(L.split_tag(d["main_post"])[0]) <= 150
+    assert d["checklist_passed"], L.lint(d)
     assert d["reply_post"] == L.DEFAULT_LEGAL and "網站" not in d["reply_post"]      # 11-03 起不寫「完整盤勢見網站」
-    joined = d["main_post"]
+    joined = d["thread_posts"][0]
     for must in ("外資 -1,124.7億", "買超 大立光", "加權指數跌 1,156 點"):     # 主要數據（盤勢、法人）一定留著
         assert must in joined
 

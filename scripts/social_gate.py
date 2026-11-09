@@ -117,9 +117,27 @@ def close_gate(today: str, card_dates: dict[str, str], holidays: dict[str, str],
 
 
 # 2026-10-29 事故：上市個股法人（FinMind）到 18:25 還沒出，盤後主貼文整段沒發 → 鐵則「沒有條件不符就不發」。
-# 過了保底時間（預設台北 19:00，環境變數 CLOSE_FALLBACK_AT 可改）還有卡不是今天：拿掉過期的那幾張、當天的照發；
+# 過了保底時間（預設台北 20:00；2026-11-09 前是 19:00，環境變數 CLOSE_FALLBACK_AT 可改）還有卡不是今天：拿掉過期的那幾張、當天的照發；
 # 法人那幾張晚到再由 social_snap.py --supplement 另發一則補充（posted.json 另一個鍵 close-inst-<日期>）。
-CLOSE_FALLBACK_AT = "19:00"
+CLOSE_FALLBACK_AT = "20:00"      # 2026-11-09：盤後改 19:30～20:30 發 → 保底從 19:00 延到 20:00（19:30～20:00 先等資料齊）
+
+# ★ 2026-11-09 Andy：「同意，四項改動全部照改」（docs/marketing/traffic_plan_1109.md 第二節第 4 條）：
+#   盤後主貼文改在 19:30～20:30（台北）發 —— 資料齊了也要等到 19:30 之後才發（social_snap.py 用這個閘門）。
+#   19:15 之後到的那輪就地等到 19:30；更早到的那輪「刻意不發」（結束碼 10，正常結束、不寄信），
+#   交給 19:16／19:46／20:16 的每日管線接力與 social-live.yml 19:41／20:11 的備援排程。環境變數 CLOSE_EARLIEST_AT 可改。
+CLOSE_EARLIEST_AT = "19:30"
+CLOSE_WAIT_MAX_S = 900
+
+
+def close_wait(now: datetime, earliest: str = "") -> int:
+    """距離盤後最早發文時間還有幾秒（≤0＝已經可以發）。now 要帶時區。"""
+    hm = (earliest or CLOSE_EARLIEST_AT).strip()
+    now = now.astimezone(TPE)
+    try:
+        t = datetime.strptime(hm, "%H:%M").time()
+    except ValueError:
+        t = datetime.strptime(CLOSE_EARLIEST_AT, "%H:%M").time()
+    return int((datetime.combine(now.date(), t, TPE) - now).total_seconds())
 INST_CARDS = ("inst-today", "streak-foreign", "streak-trust")
 
 

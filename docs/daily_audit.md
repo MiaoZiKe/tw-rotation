@@ -34,7 +34,7 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 | 盤前消息 | 交易日 | 08:40 | social-live 今天有成功執行 | `site/articles/premarket.json` 的 `days[0].date` ＝今天、有則數、沒有空標題／空網址 | 網站兩站包含最新 commit |
 | 盤後消息 | 交易日 | 21:40 | daily.yml 今天 15:00 後有成功 | `postmarket.json` 的日期＝今天 | 網站兩站包含最新 commit |
 | 每日資料更新 | 每天（看應有日） | 交易日 18:40 | daily.yml 應有日 15:00 後有成功 | 價量／法人／融資券最新日＝應有日；`last_run.json` 沒有錯誤；`source_health` 沒有來源連續失敗 2 天以上 | 網站兩站包含最新 commit |
-| 頻道①盤後主貼文 | 交易日（quota 的 close 開著才檢查） | 18:20 | social-live 今天 15:00 後有成功 | social-snaps `state/posted.json` 有 `close-<今天>` | 有發布網址（threads.link 或 story.link） |
+| 頻道①盤後主貼文 | 交易日（quota 的 close 開著才檢查） | 20:35（2026-11-09 起改 19:30～20:30 發；以前 18:20） | social-live 今天 15:00 後有成功 | social-snaps `state/posted.json` 有 `close-<今天>` | 有發布網址（threads.link 或 story.link） |
 | 頻道②科技透明圈 | 每天（只看 approved 且排定時間已過 30 分鐘的稿；draft 不算） | 排定時間＋30 分鐘 | tc_post.yml 今天有成功 | approved 且已到時間的稿，`post.md` 狀態是 posted | main 的 `state/tc/posted.json` 有該稿紀錄（tc_post.yml 直接 commit 到 main） |
 | 頻道④談晴說礙 | 每天（只看 `docs/marketing/channels/healing/post_quota.json` 的 `live` 是 true；false＝整個停發，未啟用） | 21:40 | healing_post.yml 今天有成功 | 佇列 `queue/*/meta.json` 是 approved 且 publish_at（null＝當天 20:27 時段）已到 | `healing/state/posted.json` 每個平台都有該資料夾紀錄且未被刪 |
 | Meta 權杖 | 每天 | 無（即時） | `meta_token.json` 兩天內有更新 | 各平台 ok 且剩餘 7 天以上 | 不適用 |

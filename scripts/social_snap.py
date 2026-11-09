@@ -2136,7 +2136,7 @@ def main() -> int:
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
     ap.add_argument("--supplement", action="store_true", help="盤後法人補充貼文：主貼文已用保底發出（拿掉法人卡），法人資料到了再補發法人那幾張（鍵 close-inst-<日期>）")
-    ap.add_argument("--fallback-at", default=os.environ.get("CLOSE_FALLBACK_AT", ""), help="盤後保底時間（台北 HH:MM，預設 19:00）：過了還有卡不是今天 → 拿掉那幾張、其他照發")
+    ap.add_argument("--fallback-at", default=os.environ.get("CLOSE_FALLBACK_AT", ""), help="盤後保底時間（台北 HH:MM，預設 20:00）：過了還有卡不是今天 → 拿掉那幾張、其他照發")
     ap.add_argument("--fresh-news", action="store_true", help="新聞焦點除了資料湖 news，再當場抓一次鉅亨／科技新報／聯合（只併進記憶體，不寫湖；失敗就只用湖）")
     args = ap.parse_args()
     KIND = args.kind
@@ -2230,6 +2230,15 @@ def main() -> int:
                 return 10
             if key_ in done_:
                 log(f"⚠ {key_} 的發布紀錄時間 {done_[key_].get('at')} 不在正式時段（測試誤記）→ 不算，照發")
+        if args.kind == "close" and not args.force and not args.now:
+            # ★ 2026-11-09 Andy 同意（traffic_plan_1109.md 第二節第 4 條）：盤後主貼文 19:30～20:30 發，資料齊了也等到 19:30
+            wait_c = gate.close_wait(now_tpe(), os.environ.get("CLOSE_EARLIEST_AT", ""))
+            if 0 < wait_c <= gate.CLOSE_WAIT_MAX_S:
+                log(f"盤後：資料已齊，等 {wait_c} 秒到 {os.environ.get('CLOSE_EARLIEST_AT') or gate.CLOSE_EARLIEST_AT} 再發")
+                time.sleep(wait_c)
+            elif wait_c > 0:
+                log(f"盤後：還沒到最早發文時間 {os.environ.get('CLOSE_EARLIEST_AT') or gate.CLOSE_EARLIEST_AT}（11-09 起 19:30～20:30 發）→ 這輪不發，交給 19:30 之後的接力")
+                return 10
         if args.kind == "intraday" and not args.force and not args.now:      # 盤中固定中午 12:00：早到就等到 12:00，資料以那一刻的即時為準
             wait_s = (datetime.combine(now_tpe().date(), datetime.strptime("12:00", "%H:%M").time(), TPE) - now_tpe()).total_seconds()
             if 0 < wait_s <= 600:

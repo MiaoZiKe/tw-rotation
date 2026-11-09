@@ -54,6 +54,11 @@ HOT_CASUAL = ("啦", "笑死", "超扯", "傻眼", "爆氣", "欸", "喔～", "X
 AUTO_HOOK_TYPES = ("問句",)
 AUTO_EMOTIONS = ("專業", "中性")
 AUTO_HOOK_MIN, AUTO_HOOK_MAX = 15, 80
+# ★ 2026-11-09 Andy：「同意，四項改動全部照改」（docs/marketing/traffic_plan_1109.md 第二節第 2～5 條）——盤後自動主貼文（rule: auto_1109）：
+#   主文（標籤不算）≤150 字＝反差問句開頭＋第二段重點數字＋結尾一題二選一（含「還是」、以？收尾）；
+#   其餘數據放串文第一則回覆（恰好 0～1 則、單則 ≤500，Threads 上限），不套一般串文的 150 字上限；不放網址、不點名個股開頭照舊。
+AUTO_CLOSE_MAIN_MAX = 150
+AUTO_CLOSE_MAX_THREADS = 1
 # 主文（鉤子＋條列）都不准出現的口語／吐槽用字（11-04 實發「朋友問…我只能默默拍拍他…」那種）
 AUTO_CASUAL = HOT_CASUAL + ("默默", "拍拍", "節哀", "先笑為敬", "八點檔", "嚇一跳", "打臉", "提款機", "平行宇宙", "存款餘額",
                             "加薪", "滷蛋", "我只能", "吐槽")
@@ -376,6 +381,11 @@ def is_auto(p: dict) -> bool:
     return p.get("profile") == "auto" or str(p.get("rule") or "").startswith("auto")
 
 
+def is_close_1109(p: dict) -> bool:
+    """2026-11-09 盤後自動主貼文新版（threads_v2.build(kind="close") 產出 rule="auto_1109"）。"""
+    return str(p.get("rule") or "") == "auto_1109"
+
+
 def casual_words(text: str, hook: bool = False) -> list[str]:
     """口語／吐槽用字（自動貼文用）；hook=True 再加「開頭不准對話／閒聊／感嘆」那組。"""
     words = AUTO_CASUAL + (AUTO_HOOK_CASUAL if hook else ())
@@ -419,6 +429,12 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
             err.append(f"自動貼文開頭口語／吐槽用字「{w}」（要專業中性）")
         for w in casual_words(rest):
             err.append(f"自動貼文主文口語／吐槽用字「{w}」（要專業中性）")
+        if is_close_1109(p):   # 11-09 盤後新版：主文 ≤150、結尾二選一
+            if clen(body) > AUTO_CLOSE_MAIN_MAX:
+                err.append(f"盤後主文 {clen(body)} 字（11-09 起 ≤{AUTO_CLOSE_MAIN_MAX}，標籤不算；其餘數據放串文第一則）")
+            last = (body.rstrip().split("\n\n") or [""])[-1].strip()
+            if last == hook or not last.endswith(("？", "?")) or "還是" not in last:
+                err.append(f"盤後主文結尾要一題好回答的二選一（含「還是」、以？收尾）：{last[:30]}")
     else:
         if p.get("hook_type") not in HOOK_TYPES:
             err.append(f"開頭類型 {p.get('hook_type')!r} 不是 對話／冷知識／反差")
@@ -447,9 +463,12 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
         for w in BANNED:
             if w in t:
                 err.append(f"{where}有禁用字詞「{w}」")
+    c1109 = is_close_1109(p)
     for i, t in enumerate(p.get("thread_posts") or [], 1):
         c = clen(t)
-        if c > HARD_MAX:
+        if c1109 and tlen(t) > MAIN_LIMIT:      # 11-09 盤後：數據放串文第一則，單則照 Threads 上限 500
+            err.append(f"串文{i} {tlen(t)} 字，超過 Threads 上限 {MAIN_LIMIT}")
+        elif not c1109 and c > HARD_MAX:
             err.append(f"串文{i} {c} 字，超過 {HARD_MAX}")
         elif c < THREAD_MIN:
             err.append(f"串文{i} 只有 {c} 字（最少 {THREAD_MIN}）")
@@ -457,8 +476,9 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
             err.append(f"串文{i} 又掛了標籤 {TAG_RE.findall(t)}")
         if URL_RE.search(t):
             err.append(f"串文{i} 有網址（網址只放留言）")
-    if len(p.get("thread_posts") or []) > MAX_THREADS:
-        err.append(f"串文 {len(p['thread_posts'])} 則（最多 {MAX_THREADS} 則）")
+    max_th = AUTO_CLOSE_MAX_THREADS if c1109 else MAX_THREADS
+    if len(p.get("thread_posts") or []) > max_th:
+        err.append(f"串文 {len(p['thread_posts'])} 則（最多 {max_th} 則）")
     rp = p.get("reply_post") or ""
     if PROMOTE_SITE:
         if len(re.findall(r"https?://", rp)) != 1:

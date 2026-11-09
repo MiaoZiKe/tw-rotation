@@ -214,7 +214,8 @@ def _crons(name):
 
 
 def test_排程_停掉的拿掉_資料管線沒動():
-    assert _crons("social-live.yml") == []      # 盤中 12:01、盤前 08:20／08:50／09:40
+    # 盤中 12:01、盤前 08:20／08:50／09:40 拿掉；2026-11-09 加回的只有盤後主貼文 19:41／20:11 備援（traffic_plan_1109 第二節第 4 條）
+    assert _crons("social-live.yml") == ["41 11 * * 1-5", "11 12 * * 1-5"]
     assert _crons("social_news.yml") == []
     assert _crons("ig_news_watch.yml") == []
     assert _crons("threads_post.yml") == ["*/15 * * * *"]      # 只留給手寫貼文
