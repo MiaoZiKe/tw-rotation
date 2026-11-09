@@ -85,7 +85,10 @@ def t_sharecard_1109(b, base, code):
     wait_until(pg, "() => !!document.querySelector('.scDlg .scCv')", 8000)
     r = rep(pg)
     ok(f"{T} 視窗出現、圖卡預覽 canvas 畫好、次數 +1", pg.evaluate("() => !!document.querySelector('.scDlg .scCv')") and used(pg) == 1, used(pg))
-    ok(f"{T} 恐慌指數圖是寬扁的 → 預設橫式 1200×630", r["size"] == "land" and (r["W"], r["H"]) == (1200, 630), r)
+    ok(f"{T} ★ 預設直式 1080×1350；恐慌指數圖是依內容區「重新渲染」（不是放大像素圖）、不含拉Bar（slider＝0）", r["size"] == "portrait" and (r["W"], r["H"]) == (1080, 1350) and r["mode"] == "rerender" and r["slider"] == 0, r)
+    ok(f"{T} ★ 圖填滿標題與頁尾之間的內容區：圖面積 ÷ 內容區 ≥ 75%（實際 {r['fill']}）、圖上下離標題／頁尾線 ≤ 40px", r["fill"] >= 0.75
+       and (lambda a, f: f["y"] - a["y"] <= 40 and (a["y"] + a["h"]) - (f["y"] + f["h"]) <= 40)(r["area"], [x for x in r["boxes"] if x["name"] == "figure"][0]), (r["fill"], r["area"]))
+    ok(f"{T} ★ 軸字在圖卡上 ≥ 22px 視覺大小（重新渲染倍率 {r['k']}×、最小軸字 {r['axisPx']}px）", r["axisPx"] >= 22, (r["k"], r["axisPx"]))
     ok(f"{T} 圖卡標題寫「恐慌指數走勢・台股」、日期列有「資料日期 yyyy-mm-dd・僅供研究參考」",
        r["title"] == "恐慌指數走勢・台股" and bool(re.match(r"^資料日期 \d{4}-\d{2}-\d{2}・僅供研究參考$", r["date"])), (r["title"], r["date"]))
     ok(f"{T} ★ 圖上網址文字＝{_SC_URL}#overview（含 src=card、該頁路由）", r["url"] == _SC_URL + "#overview" and any(x["name"] == "footerUrl" for x in r["boxes"]), r["url"])
@@ -93,11 +96,13 @@ def t_sharecard_1109(b, base, code):
     ok(f"{T} 註冊會員圖卡帶右上角標；方形、限動直式鈕是反灰的（Plus 以上）",
        pg.evaluate("() => [...document.querySelectorAll('.scSz button')].map(b => b.dataset.sz + ':' + b.disabled).join()") == "portrait:false,land:false,square:true,story:true")
     ok(f"{T} 圖卡裡沒有比比（沒有圖片元素、圖例以外只有文字與圖）", not pg.evaluate("() => !!document.querySelector('.scDlg img')"))
-    # 切到直式：真的重畫、尺寸變、不再扣次數
+    # 切到橫式：真的重畫、尺寸變、不再扣次數（橫式內容區矮，倍率會自動降低，不要求 22px）
+    pg.locator('.scSz button[data-sz="land"]').click()
+    wait_until(pg, "() => TwShareCard.last && TwShareCard.last.size === 'land'", 6000)
+    r2 = rep(pg)
+    ok(f"{T} 切到橫式：1200×630、版型不重疊、次數仍是 1（切尺寸不重算）、橫式也沒有拉Bar", (r2["W"], r2["H"]) == (1200, 630) and layout_ok(r2) and used(pg) == 1 and r2["slider"] == 0, (r2["W"], r2["H"], used(pg)))
     pg.locator('.scSz button[data-sz="portrait"]').click()
     wait_until(pg, "() => TwShareCard.last && TwShareCard.last.size === 'portrait'", 6000)
-    r2 = rep(pg)
-    ok(f"{T} 切到直式：1080×1350、版型照樣不重疊、次數仍是 1（切尺寸不重算）", (r2["W"], r2["H"]) == (1080, 1350) and layout_ok(r2) and used(pg) == 1, (r2["W"], r2["H"], used(pg)))
     # 下載
     with pg.expect_download(timeout=8000) as di:
         pg.locator('.scGo').click()
@@ -127,7 +132,7 @@ def t_sharecard_1109(b, base, code):
             pg.locator(f'.scBtn[data-sct="{sct}"]').first.click()
             wait_until(pg, "() => !!document.querySelector('.scDlg .scCv')", 8000)
             rr_ = rep(pg)
-            ok(f"{T} {nm}：產生圖卡、網址帶該頁路由（{hsh}）、0 重疊、圖有畫進去（figN ≥ 1）", rr_["url"].startswith(_SC_URL + hsh) and layout_ok(rr_) and rr_["figN"] >= 1, (rr_["url"], rr_["overlaps"], rr_["figN"]))
+            ok(f"{T} {nm}：產生圖卡、網址帶該頁路由（{hsh}）、0 重疊、圖有畫進去（figN ≥ 1）", rr_["url"].startswith(_SC_URL + hsh) and layout_ok(rr_) and rr_["figN"] >= 1 and rr_["fill"] >= 0.75, (rr_["url"], rr_["overlaps"], rr_["figN"], rr_["fill"]))
             pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
     go(pg, "#overview")
     pg.wait_for_timeout(800)
@@ -140,7 +145,7 @@ def t_sharecard_1109(b, base, code):
             pg.locator(f'.scBtn[data-sct="{sct}"]').first.click()
             wait_until(pg, "() => !!document.querySelector('.scDlg .scCv')", 8000)
             rr_ = rep(pg)
-            ok(f"{T} {nm}：產生圖卡、0 重疊、圖有畫進去", layout_ok(rr_) and rr_["figN"] >= 1, (rr_["overlaps"], rr_["figN"]))
+            ok(f"{T} {nm}：產生圖卡、0 重疊、圖有畫進去、圖占內容區 ≥ 75%（{rr_['fill']}）", layout_ok(rr_) and rr_["figN"] >= 1 and rr_["fill"] >= 0.75, (rr_["overlaps"], rr_["figN"], rr_["fill"]))
             pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
     ok(f"{T} 全部操作完用掉的次數＝按過的次數（恐慌1＋輪盤1＋族群1＋輪動1＋分流樹1＝5）", used(pg) == 5, used(pg))
     # 5 次用完 → 第 6 次被鎖：按鈕反灰、旁邊一行字、點了沒視窗

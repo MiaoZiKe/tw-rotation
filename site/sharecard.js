@@ -140,6 +140,57 @@
   const cardUrl = () => ORIGIN + '?src=card' + routeOf();
   const rr = (g, x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
 
+  /* ECharts 圖以目標尺寸重新渲染：離屏容器寬高＝內容區 ÷ k，pixelRatio＝2k，所以字級在圖卡上約放大 k 倍（k≈2.2：12px 字→26px），
+     而且版面（格線、軸、圖例）是依圖卡內容區重新排的，不是把小圖拉大。
+     輸出排除互動零件：dataZoom 拉Bar、toolbox、提示框一律不畫（拉Bar 拿掉後把它佔的下緣空間還給最底下那格圖）。
+     這個元素裡不是剛好一個 ECharts 實例（例如分流樹是自繪 canvas）→ 回傳 null，由 grab 等比縮放。 */
+  async function rerender(el, bg, cw, ch, land) {
+    if (!el || !window.echarts) return null;
+    const doms = qa('[_echarts_instance_]', el).concat(el.hasAttribute('_echarts_instance_') ? [el] : []);
+    if (doms.length !== 1) return null;
+    const inst = window.echarts.getInstanceByDom(doms[0]);
+    if (!inst) return null;
+    const r0 = el.getBoundingClientRect(), r1 = doms[0].getBoundingClientRect();
+    if (r1.width < r0.width * 0.85 || r1.height < r0.height * 0.85) return null;   // 容器裡還有別的東西（圖例、表格），不當單一圖處理
+    const k = Math.max(1, Math.min(2.2, ch / (land ? 200 : 300)));
+    const w = Math.round(cw / k), h = Math.round(ch / k);
+    const host = document.createElement('div');
+    host.style.cssText = `position:fixed;left:-99999px;top:0;width:${w}px;height:${h}px;pointer-events:none;`;
+    document.body.appendChild(host);
+    let c2 = null;
+    try {
+      /* JSON 化會丟掉函式（formatter、custom renderItem），所以改用淺拷貝保留函式，只動要改的欄位 */
+      const src = inst.getOption();
+      /* custom／graphic（輪盤的圓、象限底色）是照「原容器大小」算好像素位置的，換尺寸重畫會被切掉 → 這種圖不重新渲染，改等比縮放（向量解析度 2 倍拍下來再放大，不糊） */
+      if ((src.series || []).some((x) => x && x.type === 'custom') || (Array.isArray(src.graphic) && src.graphic.length)) return null;
+      const o = Object.assign({}, src);
+      let freed = 0;
+      if (Array.isArray(o.dataZoom)) {
+        o.dataZoom.filter((z) => z && z.type === 'slider').forEach((z) => { freed = Math.max(freed, (+z.height || 30) + (+z.bottom || 0)); });
+        o.dataZoom = o.dataZoom.filter((z) => !(z && z.type === 'slider'));
+      }
+      /* 格線是「top＋固定 height（px）」排的圖（恐慌指數兩格）：容器換了高度，格線不會跟著長 → 依新容器高度把每格的 top／height 等比放大，
+         下緣留給 x 軸字（拉Bar 佔的空間還給它，但至少 34px 才放得下日期字）。bottom 型（百分比）的圖本來就會跟容器伸縮，不動。 */
+      if (Array.isArray(o.grid) && o.grid.length && o.grid.every((gd) => gd && gd.height != null && isFinite(+gd.height) && isFinite(+gd.top) && (gd.bottom == null || gd.bottom === 'auto'))) {
+        const G = Math.max(...o.grid.map((gd) => +gd.top + +gd.height));
+        const below0 = Math.max(0, r1.height - G);
+        const nb = freed ? 36 : Math.max(Math.min(below0, 60), 30);
+        const fv = Math.max(0.3, (h - nb) / G);
+        o.grid = o.grid.map((gd) => Object.assign({}, gd, { top: +gd.top * fv, height: +gd.height * fv }));
+      }
+      delete o.toolbox; o.tooltip = { show: false }; o.animation = false; o.backgroundColor = bg;
+      if (Array.isArray(o.series)) o.series = o.series.map((x) => Object.assign({}, x, { animation: false }));
+      c2 = window.echarts.init(host, null, { renderer: 'canvas', width: w, height: h });
+      c2.setOption(o, true);
+      const url = c2.getDataURL({ type: 'png', pixelRatio: 2 * k, backgroundColor: bg });
+      const im = await loadImg(url);
+      if (!im) return null;
+      const cv = document.createElement('canvas'); cv.width = Math.round(cw * 2); cv.height = Math.round(ch * 2);
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      return { cv, k, slider: (o.dataZoom || []).filter((z) => z && z.type === 'slider').length, axisPx: +(k * Math.min(...[].concat(o.xAxis || [], o.yAxis || []).filter((a) => a && a.show !== false && !(a.axisLabel && a.axisLabel.show === false)).map((a) => +((a.axisLabel || {}).fontSize) || 12))).toFixed(1) };
+    } catch (e) { return null; } finally { try { if (c2) c2.dispose(); } catch (e) { /* 略 */ } host.remove(); }
+  }
+
   async function compose(t, sizeKey) {
     const sz = SIZES[sizeKey] || SIZES.portrait;
     const W = sz.w, H = sz.h, land = W > H * 1.5;
@@ -151,7 +202,7 @@
     const ink3 = cssv('--ink-3', dark ? '#8493b8' : '#5F5A51');
     const line = cssv('--line-2', dark ? '#2a3860' : '#D6D2C8');
 
-    const fig = await grab(figEl(t), panel);
+    const figNode = figEl(t);
 
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const g = cv.getContext('2d');
@@ -226,22 +277,43 @@
     const lineY = fy - m * 0.35;
     g.strokeStyle = line; g.lineWidth = 2; g.beginPath(); g.moveTo(m, lineY); g.lineTo(W - m, lineY); g.stroke();
 
-    // 圖：放進標題列與頁尾線之間，等比縮放置中，外面一圈面板
-    const topY = headBot + (land ? 14 : 24), botY = lineY - (land ? 14 : 24);
-    const aw = W - 2 * m, ah = botY - topY, pad = land ? 10 : 16;
-    const sc = Math.min((aw - 2 * pad) / fig.w, (ah - 2 * pad) / fig.h, 2.2);
-    const fw = fig.w * sc, fh2 = fig.h * sc;
-    const pb = add('figure', m + (aw - fw) / 2 - pad, topY + (ah - fh2) / 2 - pad, fw + 2 * pad, fh2 + 2 * pad);
-    g.fillStyle = panel; g.strokeStyle = line; g.lineWidth = 2;
-    rr(g, pb.x, pb.y, pb.w, pb.h, 16); g.fill(); g.stroke();
-    g.imageSmoothingQuality = 'high';
-    g.drawImage(fig.cv, pb.x + pad, pb.y + pad, fw, fh2);
+    // 圖：填滿標題列與頁尾線之間的整個內容區（上下留白 ≤ 24px）。
+    // ECharts 圖：在離屏容器「以目標尺寸重新渲染」（不是把像素圖放大），字級保持清楚；其他 canvas／svg 圖才等比縮放。
+    const topY = headBot + (land ? 10 : 20), botY = lineY - (land ? 10 : 20);
+    const aw = W - 2 * m, ah = botY - topY, pad = land ? 8 : 12;
+    const area = aw * ah;
+    let pb, figN = 0, mode = 'scale', kk = 1, sc = 1, drawn = 0, extra = { slider: 0, axisPx: 0 };
+    const rer = await rerender(figNode, panel, (aw - 2 * pad), (ah - 2 * pad), land);
+    if (rer) {
+      pb = add('figure', m, topY, aw, ah);
+      g.fillStyle = panel; g.strokeStyle = line; g.lineWidth = 2; rr(g, pb.x, pb.y, pb.w, pb.h, 16); g.fill(); g.stroke();
+      g.drawImage(rer.cv, pb.x + pad, pb.y + pad, aw - 2 * pad, ah - 2 * pad);
+      figN = 1; mode = 'rerender'; kk = rer.k; extra = { slider: rer.slider, axisPx: rer.axisPx }; drawn = (aw - 2 * pad) * (ah - 2 * pad);
+    } else {
+      const fig = await grab(figNode, panel);
+      sc = Math.min((aw - 2 * pad) / fig.w, (ah - 2 * pad) / fig.h, 2.2);
+      const fw = fig.w * sc, fh2 = fig.h * sc;
+      // 圖比內容區矮（寬扁、或接近方形的圖等比縮放後會留空）：面板貼著圖，標題區連同面板一起在「上邊緣與頁尾線之間」置中，
+      // 這樣標題到圖之間不會開一大片空白（空白分給最上緣與圖下方，各一半）
+      const ph = fh2 + 2 * pad, left = Math.max(0, ah - ph), dy = left > 40 ? Math.round(left / 2) : 0;
+      if (dy) {
+        const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = Math.ceil(topY); tmp.getContext('2d').drawImage(cv, 0, 0);
+        g.fillStyle = bg; g.fillRect(0, 0, W, Math.ceil(topY)); g.drawImage(tmp, 0, dy);
+        boxes.forEach((bx) => { if (bx.name !== 'footerName' && bx.name !== 'footerUrl') bx.y += dy; });
+      }
+      pb = add('figure', m, topY + dy, aw, ph);
+      g.fillStyle = panel; g.strokeStyle = line; g.lineWidth = 2; rr(g, pb.x, pb.y, pb.w, pb.h, 16); g.fill(); g.stroke();
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(fig.cv, pb.x + (aw - fw) / 2, pb.y + pad, fw, fh2);
+      figN = fig.n; drawn = fw * fh2;
+    }
+    const fill = +(drawn / area).toFixed(3);
 
     // 重疊與出界檢查（圖卡的版型契約；驗收也讀這份）
     const overlaps = [];
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (hit(boxes[i], boxes[j])) overlaps.push(boxes[i].name + '×' + boxes[j].name);
     const outside = boxes.filter((b) => b.x < 0 || b.y < 0 || b.x + b.w > W + 0.5 || b.y + b.h > H + 0.5).map((b) => b.name);
-    return { cv, rep: { size: sizeKey, W, H, boxes, overlaps, outside, url, title, date: dateText, badge: !isPlus, figN: fig.n, theme: dark ? 'dark' : 'light', plus: isPlus, figScale: +sc.toFixed(2) } };
+    return { cv, rep: { size: sizeKey, W, H, boxes, overlaps, outside, url, title, date: dateText, badge: !isPlus, figN, theme: dark ? 'dark' : 'light', plus: isPlus, figScale: +sc.toFixed(2), mode, k: kk, fill, slider: extra.slider, axisPx: extra.axisPx, area: { x: m, y: topY, w: aw, h: ah } } };
   }
 
   /* ---------------------------------------------------------------- 輸出 */
@@ -321,7 +393,9 @@
     const first = q('.scX', d); if (first) first.focus();
     // 寬扁的圖（恐慌指數走勢）直式會縮成一條，預設改橫式；其他預設直式。使用者在視窗裡自己切的尺寸照舊
     const fe = figEl(t), r0 = fe ? fe.getBoundingClientRect() : null;
-    S.size = r0 && r0.width / Math.max(1, r0.height) > 1.5 ? 'land' : 'portrait';
+    // ECharts 圖會依內容區重新渲染，直式一律填得滿；只有寬扁的非 ECharts 圖（等比縮放會留白）才預設橫式
+    const hasEc = !!(fe && (fe.hasAttribute('_echarts_instance_') || fe.querySelector('[_echarts_instance_]')));
+    S.size = !hasEc && r0 && r0.width / Math.max(1, r0.height) > 1.5 ? 'land' : 'portrait';
     render(S.size);
   }
 

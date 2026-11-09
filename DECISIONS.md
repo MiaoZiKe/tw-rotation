@@ -7334,3 +7334,9 @@ Andy 11-09 點頭「02 05 03 04 06」（docs/feature_proposals/weekly_2026-W45.m
 5. **功能鍵 `risk.flag`**（cat global、def true、沒有 limBy、不進 METERED、veil []）；plan_presets 四方案 true、不設次數（風險揭露不鎖）。不在 GRANT_BAN。
    被管理者關掉時三樣都不畫（不蓋需開通卡：卡最小兩百多 px，蓋在 42px 警示條上會撐開 K 線卡）。
 6. **寄信提醒 `risk.flag.mail` 沒做**：要在 account-api Worker 加事件鍵並重新部署，需 Andy 同意。
+
+
+### 一鍵分享圖卡 修正（CEO 退件 2 點，2026-11-09）
+- 圖卡內的 ECharts 圖改成「以內容區實際尺寸離屏重新渲染」（容器＝內容區 ÷ k、pixelRatio＝2k，k≈2.2，軸字約 26px），不再把小圖的像素放大；固定 px 的格線（top＋height）依新高度等比放大；輸出時排除拉Bar（dataZoom slider）、toolbox、提示框，拉Bar 佔的下緣還給 x 軸字。
+- custom／graphic 圖（輪盤）與自繪 canvas（分流樹）照原容器大小算位置，重畫會被切掉 → 這兩類改等比縮放（2 倍解析度拍下），面板貼著圖、標題連面板在上緣與頁尾線間置中，標題到圖之間不開空白。預設一律直式。
+- 驗收新增：圖占內容區面積 ≥ 75%（rep.fill）、上下離標題／頁尾 ≤ 40px、軸字 ≥ 22px（rep.axisPx）、slider＝0。
