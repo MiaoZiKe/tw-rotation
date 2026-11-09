@@ -291,8 +291,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+      # 2026-11-09：GitHub Pages 同步檔案（syncing_files）兩度 10 分鐘逾時，後面的 Cloudflare 主站部署跟著被跳過，
+      # 主站停在舊資料。改成：GitHub Pages 失敗不擋主站（continue-on-error），等候拉長到 20 分鐘；
+      # 兩邊都跑完後最後一步再依 GitHub Pages 結果決定這一輪紅不紅（deploy_wait 仍看得到失敗）。
       - id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+        with:
+          timeout: 1200000
 
       # 2026-10-06 雙部署（DECISIONS #339，說明見 docs/hosting_cost_plan.md）：
       # 同一份產出（site/）也部署到 Cloudflare Pages（https://tw-rotation.pages.dev/）。
@@ -301,6 +307,7 @@ jobs:
       # 只部署 main（preview 分支的預覽機制仍走 GitHub Pages）；
       # 不用 wrangler-action，直接 npx wrangler，才能分辨「缺金鑰／缺權限／部署失敗」。
       - name: 雙部署到 Cloudflare Pages（主站）
+        if: ${{ !cancelled() }}
         id: cfpages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -360,6 +367,7 @@ jobs:
       # 預覽（每份約 340 檔、目前 50 多份）放進主站會爆 2 萬檔，所以另開 Pages 專案 tw-rotation-preview，
       # 主站的 _worker.js 把 /preview/* 轉過去。放不下全部時留最新的（cf_preview_pack.py），其餘只在備援網域。
       - name: 雙部署到 Cloudflare Pages（預覽）
+        if: ${{ !cancelled() }}
         id: cfpreview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -407,3 +415,9 @@ jobs:
           echo "::notice title=CF_PREVIEW_INCLUDED::$(tr '\n' ' ' < cf_prev_included.txt)"
           if [ "$fail" = 1 ]; then sum "### 正式網域 /preview/ 轉送不通（見 log）"; echo "::error::liguligu-puipui.com/preview/ 有頁面不是 200"; exit 1; fi
           sum "### Cloudflare Pages（預覽）：成功，liguligu-puipui.com/preview/<名稱>/ 可開"
+
+      - name: GitHub Pages（備援站）部署失敗就讓這一輪標紅
+        if: ${{ !cancelled() && steps.deployment.outcome == 'failure' }}
+        run: |
+          echo "::error::GitHub Pages 部署失敗（主站 Cloudflare 照常部署，請看上一步結果）"
+          exit 1
