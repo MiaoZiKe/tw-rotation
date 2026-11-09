@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-11-09T10:26:58+08:00",
+  "checked_at": "2026-11-09T10:29:18+08:00",
   "today": "2026-11-09",
   "expected_price_date": "2026-11-06",
   "is_trading_day": true,
   "summary": {
-    "fail": 3,
-    "pending": 2,
+    "fail": 0,
+    "pending": 5,
     "ok": 2,
     "skip": 0,
     "disabled": 1
@@ -14,7 +14,7 @@
     {
       "id": "premarket",
       "name": "盤前消息（交易日 08:40 前）",
-      "status": "fail",
+      "status": "pending",
       "gates": {
         "run": {
           "ok": true,
@@ -23,31 +23,26 @@
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42544972647",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42539678483",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42509185755"
-          ]
+          ],
+          "busy": false
         },
         "content": {
           "ok": true,
           "why": "盤前消息日期 2026-11-09、5 則",
           "evidence": [
             "2026-11-09"
-          ]
+          ],
+          "busy": false
         },
         "publish": {
           "ok": false,
           "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": []
+          "evidence": [],
+          "busy": true
         }
       },
       "deadline": "2026-11-09T08:40:00+08:00",
-      "remedy": {
-        "action": "dispatch",
-        "workflow": "social-live.yml",
-        "inputs": {
-          "kind": "premarket",
-          "dry_run": "false",
-          "force": "false"
-        }
-      }
+      "remedy": null
     },
     {
       "id": "postmarket",
@@ -57,19 +52,22 @@
         "run": {
           "ok": false,
           "why": "daily.yml 窗口內沒有成功的執行（找到 0 次）",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         },
         "content": {
           "ok": false,
           "why": "盤後消息日期 2026-11-06、5 則",
           "evidence": [
             "2026-11-06"
-          ]
+          ],
+          "busy": false
         },
         "publish": {
           "ok": false,
           "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": []
+          "evidence": [],
+          "busy": true
         }
       },
       "deadline": "2026-11-09T21:40:00+08:00",
@@ -78,7 +76,7 @@
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券）",
-      "status": "fail",
+      "status": "pending",
       "gates": {
         "run": {
           "ok": true,
@@ -87,7 +85,8 @@
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42542104517",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42507136676",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42464794308"
-          ]
+          ],
+          "busy": false
         },
         "content": {
           "ok": true,
@@ -95,22 +94,18 @@
           "evidence": [
             "last_run.json",
             "source_health.json"
-          ]
+          ],
+          "busy": false
         },
         "publish": {
           "ok": false,
           "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": []
+          "evidence": [],
+          "busy": true
         }
       },
       "deadline": null,
-      "remedy": {
-        "action": "dispatch",
-        "workflow": "daily.yml",
-        "inputs": {
-          "phase": "full"
-        }
-      }
+      "remedy": null
     },
     {
       "id": "close_post",
@@ -120,17 +115,20 @@
         "run": {
           "ok": false,
           "why": "social-live 窗口內沒有成功的執行（找到 0 次）",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         },
         "content": {
           "ok": false,
           "why": "posted.json 沒有 close-2026-11-09",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         },
         "publish": {
           "ok": false,
           "why": "沒有發布網址（查不到或沒發出）",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         }
       },
       "deadline": "2026-11-09T18:20:00+08:00",
@@ -151,17 +149,20 @@
         "run": {
           "ok": true,
           "why": "沒有核准待發的稿，不需要發",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         },
         "content": {
           "ok": true,
           "why": "無",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         },
         "publish": {
           "ok": true,
           "why": "無",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         }
       },
       "deadline": null,
@@ -177,19 +178,22 @@
           "why": "權杖檔更新於 2026-11-08T03:07:59+00:00",
           "evidence": [
             "meta_token.json"
-          ]
+          ],
+          "busy": false
         },
         "content": {
           "ok": true,
           "why": "權杖正常",
           "evidence": [
             "meta_token.json"
-          ]
+          ],
+          "busy": false
         },
         "publish": {
           "ok": true,
           "why": "不適用（權杖不發布）",
-          "evidence": []
+          "evidence": [],
+          "busy": false
         }
       },
       "deadline": null,
@@ -198,7 +202,7 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "fail",
+      "status": "pending",
       "gates": {
         "run": {
           "ok": true,
@@ -207,7 +211,8 @@
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42341121943",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42340416096",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42335215063"
-          ]
+          ],
+          "busy": false
         },
         "content": {
           "ok": true,
@@ -215,20 +220,18 @@
           "evidence": [
             "last_run.json",
             "source_health.json"
-          ]
+          ],
+          "busy": false
         },
         "publish": {
           "ok": false,
           "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": []
+          "evidence": [],
+          "busy": true
         }
       },
       "deadline": null,
-      "remedy": {
-        "action": "dispatch",
-        "workflow": "pages.yml",
-        "inputs": {}
-      }
+      "remedy": null
     }
   ],
   "errors": [],
