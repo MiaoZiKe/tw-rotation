@@ -3,6 +3,9 @@
 ## 2026-11-09 深夜 頻道①重新開始：暫停自動發文＋刪舊文（social-ops-lead；Andy：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」「我們規劃好在出發」）
 - `post_quota.json` live.close.threads=false：頻道①所有自動發文暫停（新計畫核可前）。監工／daily_audit 看到關閉＝未啟用，**不准補發**。
 - 刪文流程：`social_delete.yml` mode=archive（備份到 social-snaps archive/pre_restart_1109/）→ mode=delete（keep_from_tw=2026-11-09、sleep=5-10、ids_file＝備份產生的 threads_delete_ids.txt）。Threads 每 24 小時上限 100 則，超過要隔天再跑一次。IG 見回報（API 能否刪以試刪結果為準，不能就手動清單）。
+- 進度（11-10 01:20 台北）：✅ 備份 social-snaps `archive/pre_restart_1109/`（commit 6adfd194b0，圖檔 449 個）；盤點 Threads 主文 68、串文／回覆 189、IG 34；待刪 Threads 246、IG 29；保留 11-09 的 Threads 11、IG 5（含限動）。
+- ⚠️ Threads 0 則刪除：THREADS_ACCESS_TOKEN／_AUTO 都回 403 code=10（沒有 threads_delete），THREADS_DELETE_TOKEN 未設 → 等 Andy 產生刪文權杖存成 THREADS_DELETE_TOKEN，之後跑 social_delete.yml：mode=delete、platform=threads、ids_file=social/delete/ids_20261109_restart.txt、keep_from_tw=2026-11-09、sleep=5-10、max=90、confirm=我確定刪除；246 則要分 3 天（每 24 小時 100 則）。
+- ⚠️ IG 0 則刪除：Instagram 登入版 API 試刪回 HTTP 400 code=100 Unsupported delete request（run 42661508555；Meta 2025-12 的刪除端點只開給 Facebook 登入版）→ 手動清單 social-snaps `archive/pre_restart_1109/ig_manual.md`。封存也沒有 API。
 
 ## 2026-11-09 多頻道自動發文：tech／caffaine 建好（水下蝦米不接）（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
 - 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、caffaine 19:13／20:43（台北）。
