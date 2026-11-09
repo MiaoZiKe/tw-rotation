@@ -1,7 +1,7 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 ## 2026-11-10 三頻道 IG 權杖自動更新：不再誤報（social-ops-lead；Andy：「這邊都需要具備自動更新權杖功能」）
-- scripts/meta_token_refresh.py：EAA 權杖（healing／tech／caffaine 的 IG）改走 graph.facebook.com 驗證（fb_probe：assigned_instagram_accounts → accounts → debug_token），debug_token 讀到期；系統用戶永不到期就不續；會到期且有對得上的 app secret 才 fb_exchange_token 寫回 *_IG_ACCESS_TOKEN_AUTO。新增 --check 每日檢查（meta_token_refresh.yml 每天 01:47 UTC＝台北 09:47），失敗立即開 issue。頻道①ig／threads 的續期行為沒動。
+- scripts/meta_token_refresh.py：EAA 權杖（healing／tech／caffaine 的 IG）改走 graph.facebook.com 驗證（fb_probe：assigned_instagram_accounts → accounts → debug_token），debug_token 讀到期（權杖自己打 debug_token 會被拒 #100 → 用 /app 查應用程式編號、再用 app 權杖讀；需要對得上的 app secret）；系統用戶永不到期就不續；會到期且有對得上的 app secret 才 fb_exchange_token 寫回 *_IG_ACCESS_TOKEN_AUTO。新增 --check 每日檢查（meta_token_refresh.yml 每天 01:47 UTC＝台北 09:47），失敗立即開 issue。頻道①ig／threads 的續期行為沒動。
 - 這批驗了：pytest 全套（本機缺 yfinance 的 4 個 test_sources_v3 錯誤與本批無關）；雲端 meta_token_refresh.yml 非 dry-run 一次（run id 見回報）。
 
 ## 2026-11-09 深夜 頻道①重新開始：暫停自動發文＋刪舊文（social-ops-lead；Andy：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」「我們規劃好在出發」）

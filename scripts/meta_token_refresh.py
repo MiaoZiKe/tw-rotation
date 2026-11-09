@@ -169,10 +169,25 @@ def fb_probe(token: str) -> tuple[bool, str]:
     return False, ""
 
 
-def fb_app_creds(token: str, info: dict | None, env_id: str, env_secret: str, threads_secret: str) -> tuple[str, str, str]:
-    """找得到能換長效的 (app_id, secret, 來源說明)；找不到回 ("", "", 原因)。
-    每一組都先用 debug_token（app 權杖＝app_id|secret）驗證確實屬於簽發這把權杖的應用程式，對不上就不用。"""
+def fb_app_id(token: str) -> str:
+    """權杖所屬應用程式編號：GET /app（任何有效權杖都能查自己是哪個應用程式簽發的）；查不到回空字串。"""
+    try:
+        aid = str(http_get(f"{FB_HOST}/app", {"fields": "id", "access_token": token}).get("id") or "")
+    except Exception as e:  # noqa: BLE001
+        log(f"[fb] 查權杖所屬應用程式失敗：{redact(e)}")
+        return ""
+    mask(aid)
+    return aid
+
+
+def fb_app_creds(token: str, info: dict | None, env_id: str, env_secret: str, threads_secret: str
+                 ) -> tuple[str, str, str, dict | None]:
+    """找得到能換長效的 (app_id, secret, 來源說明, 用 app 權杖讀到的 debug_token 資料)；找不到 → ("", "", 原因, None)。
+    每一組都先用 debug_token（app 權杖＝app_id|secret）驗證確實屬於簽發這把權杖的應用程式，對不上就不用。
+    權杖自己打 debug_token 會被拒（11-10 實測：要 app 權杖或 app 管理員的使用者權杖），所以 app 編號改用 /app 查。"""
     tok_app = str((info or {}).get("app_id") or "")
+    if not tok_app and (env_secret or threads_secret):
+        tok_app = fb_app_id(token)
     tried = []
     for aid, sec, label in ((env_id, env_secret, "META_APP_ID＋META_APP_SECRET"),
                             (tok_app if not env_id else "", env_secret, "權杖所屬應用程式＋META_APP_SECRET"),
@@ -181,9 +196,11 @@ def fb_app_creds(token: str, info: dict | None, env_id: str, env_secret: str, th
             continue
         d = fb_debug(token, f"{aid}|{sec}")
         if d and (not tok_app or str(d.get("app_id") or "") == tok_app):
-            return aid, sec, label
+            return aid, sec, label, d
         tried.append(f"{label} 對不上（不是同一個應用程式，不使用）")
-    return "", "", "；".join(tried) or "沒有 META_APP_ID／META_APP_SECRET"
+    if not (env_secret or threads_secret):
+        tried.append("沒有 META_APP_SECRET（也沒有 THREADS_APP_SECRET）")
+    return "", "", "；".join(tried), None
 
 
 def fb_exchange(token: str, app_id: str, secret: str) -> tuple[str, int | None]:
@@ -335,6 +352,9 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             log(f"[{name}] Facebook 版權杖驗證失敗")
             return True
         info = fb_debug(token) or {}
+        aid, sec, how, info2 = fb_app_creds(token, info, fb_app_id, fb_secret, app_secret)
+        if info2:
+            info = info2
         ps["token_type"] = info.get("type")
         try:
             exp_at = int(info["expires_at"]) if "expires_at" in info else None
@@ -357,16 +377,17 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             ps["expires_at"] = datetime.fromtimestamp(exp_at, timezone.utc).isoformat(timespec="seconds")
         dl = days_left(ps.get("expires_at"), now)
         ps["days_left"] = dl
-        aid, sec, how = fb_app_creds(token, info, fb_app_id, fb_secret, app_secret)
         if dry_run or not aid:
             if not dry_run:
                 ps["last_ok_at"] = now.isoformat(timespec="seconds")
             ps.update(status="dry-run-ok" if dry_run else "fb-no-secret")
             if not aid:
-                ps["note"] = f"無法自動延長，需要 META_APP_ID／META_APP_SECRET（{how}）；每天驗證一次，到期前 {ALERT_DAYS} 天告警"
+                ps["note"] = (f"無法自動延長，也讀不到到期日：需要 META_APP_SECRET（{how}）；每天驗證一次，失效立即告警"
+                              if dl is None else
+                              f"無法自動延長，需要 META_APP_SECRET（{how}）；每天驗證一次，到期前 {ALERT_DAYS} 天告警")
                 if dl is not None and dl <= ALERT_DAYS:
                     st["alert"] = True
-                    st["alert_reasons"].append(f"{name} 權杖剩 {dl} 天到期，且沒有 META_APP_ID／META_APP_SECRET 可自動延長")
+                    st["alert_reasons"].append(f"{name} 權杖剩 {dl} 天到期，且沒有 META_APP_SECRET 可自動延長")
             log(f"[{name}] 可以用（{via}）；到期 {ps.get('expires_at') or '未知'}；" + (ps.get("note") or "dry-run 不續期"))
             return False
         if check and dl is not None and dl > FB_RENEW_DAYS:

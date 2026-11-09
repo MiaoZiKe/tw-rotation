@@ -144,7 +144,7 @@ DAY = 86400
 
 
 def fb_http(kind="SYSTEM_USER", exp_days=None, app_id="123", good_secrets=("sec_aaaaaaaa",), ig_ok=True,
-            new_tok="EAAnewLONGtoken_qqqqqqqqqqqq"):
+            new_tok="EAAnewLONGtoken_qqqqqqqqqqqq", self_debug_denied=False):
     calls = []
     now = int(datetime.now(timezone.utc).timestamp())
 
@@ -153,6 +153,8 @@ def fb_http(kind="SYSTEM_USER", exp_days=None, app_id="123", good_secrets=("sec_
         assert "graph.instagram.com" not in url and "graph.threads.net" not in url
         if url.endswith("/me"):
             return {}                                   # 系統用戶：回空陣列 → {}
+        if url.endswith("/app"):
+            return {"id": app_id}
         if url.endswith("/me/assigned_instagram_accounts"):
             if not ig_ok:
                 raise RuntimeError("HTTP 400 Invalid OAuth access token")
@@ -167,6 +169,8 @@ def fb_http(kind="SYSTEM_USER", exp_days=None, app_id="123", good_secrets=("sec_
                 aid, sec = at.split("|", 1)
                 if aid != app_id or sec not in good_secrets:
                     raise RuntimeError("HTTP 400 Invalid OAuth access token signature")
+            elif self_debug_denied:                     # 11-10 實測：權杖自己打 debug_token 被拒
+                raise RuntimeError("HTTP 400 (#100) You must provide an app access token")
             if not ig_ok:
                 return {"data": {"is_valid": False}}
             return {"data": {"is_valid": True, "type": kind, "app_id": app_id,
@@ -213,10 +217,10 @@ def test_EAA權杖失效_紅燈且立即告警(tmp_path, monkeypatch):
 def test_EAA使用者權杖_沒有appsecret_寫明需要並到期前告警(tmp_path, monkeypatch):
     rc, st, saved, _ = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA}, kind="USER", exp_days=40)
     ps = st["platforms"]["tech_ig"]
-    assert rc == 0 and ps["status"] == "fb-no-secret" and "META_APP_ID" in ps["note"] and not st["alert"]
+    assert rc == 0 and ps["status"] == "fb-no-secret" and "META_APP_SECRET" in ps["note"] and not st["alert"]
     assert 39 < ps["days_left"] <= 40
     rc, st, _, _ = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA}, kind="USER", exp_days=5)
-    assert rc == 0 and st["alert"] and "META_APP_ID" in st["alert_reasons"][0]
+    assert rc == 0 and st["alert"] and "META_APP_SECRET" in st["alert_reasons"][0]
 
 
 def test_EAA使用者權杖_有META_APP_ID與SECRET_換長效寫回AUTO(tmp_path, monkeypatch):
@@ -265,3 +269,17 @@ def test_發文端IG與Threads都優先用AUTO():
     t = hp2.tokens(env, "CAFFAINE_")
     assert t == {"ig": "EAAauto_ig_rrrrrrrrrrrr", "threads": "THQauto_uuuuuuuuuu"}
     assert hp2.tokens({"CAFFAINE_IG_ACCESS_TOKEN": EAA}, "CAFFAINE_")["ig"] == EAA
+
+
+def test_權杖自己讀不到debug_token_用app查編號再用THREADS_APP_SECRET驗證(tmp_path, monkeypatch):
+    """11-10 實測：EAA 權杖自己打 debug_token 回 #100 → 用 /app 查應用程式編號，再用 app 權杖讀到期日。"""
+    env = {"TECH_IG_ACCESS_TOKEN": EAA, "THREADS_APP_SECRET": "same_app_secret_zz", "META_SECRETS_PAT": "p_x"}
+    rc, st, saved, hg = fb_run(monkeypatch, tmp_path, env, self_debug_denied=True, good_secrets=("same_app_secret_zz",))
+    ps = st["platforms"]["tech_ig"]
+    assert rc == 0 and ps["status"] == "fb-never-expires" and ps["token_type"] == "SYSTEM_USER" and not saved
+    assert any(u.endswith("/app") for u, _ in hg.calls)
+    # 不同應用程式的 secret：讀不到到期日 → 寫明需要 META_APP_SECRET，仍綠燈
+    rc, st, _, _ = fb_run(monkeypatch, tmp_path, dict(env, THREADS_APP_SECRET="other_x"), self_debug_denied=True)
+    ps = st["platforms"]["tech_ig"]
+    assert rc == 0 and ps["status"] == "fb-no-secret" and ps["days_left"] is None
+    assert "讀不到到期日" in ps["note"] and "THREADS_APP_SECRET 對不上" in ps["note"]
