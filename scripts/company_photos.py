@@ -28,6 +28,7 @@ PLACE = re.compile(r"headquarter|\bhq\b|building|campus|office|fab\b|fab\d|facto
                    r"gigafactory|refinery|works|ship|vessel|site|facility|總部|本社|大樓|廠|園區", re.I)
 QUOTA = {"公司分類": 6, "總部/廠房": 3, "產品": 2, "相關場景": 1}
 CAT_MAX = 8
+PEOPLE = False   # 2026-11-09 人物／場合圖池（target.allow_people）：放寬人像字與直式限制，仍只收 CC 授權
 STOP = {"the", "and", "of", "in", "at", "for", "with", "taiwan", "data", "center", "close", "up"}
 
 
@@ -66,8 +67,8 @@ def candidates(pages: list[dict], kind: str, name_en: str, q: str, seen: set[str
         if title in seen: continue
         if ii.get("mime") != "image/jpeg" or not lic_ok(lic): continue
         if (ii.get("width") or 0) < 1200 or (ii.get("height") or 0) < 600: continue
-        if (ii.get("width") or 1) / (ii.get("height") or 1) < 0.9: continue      # 直式圖裁成橫幅會失真，跳過
-        if BAD_WORD.search(title): continue
+        if (ii.get("width") or 1) / (ii.get("height") or 1) < (0.6 if PEOPLE else 0.9): continue      # 直式圖裁成橫幅會失真，跳過
+        if BAD_WORD.search(title) and not (PEOPLE and not re.search(r"logo|icon|map|chart|diagram|svg|flag|seal", title, re.I)): continue
         text = f"{title} {desc}".lower().replace("-", "")
         if kind == "公司分類":
             pass                                   # Commons 分類本身就是「這家公司」（例：Category:Googleplex），不再要求檔名含公司名
@@ -176,7 +177,8 @@ def main(argv=None) -> int:
         for t in targets:
             if only and t["slug"] not in only: continue
             # 2026-10-30 Andy：「相這種跟公司有關的 優先附上公司圖片」→ 先從該公司的 Commons 分類抓（總部、招牌、廠區、代表產品），最多 4 張
-            plan = [("公司分類", ["cat:" + c for c in t.get("commons_categories", [])], QUOTA["公司分類"]),
+            global PEOPLE; PEOPLE = bool(t.get("allow_people"))
+            plan = [("公司分類", ["cat:" + c for c in t.get("commons_categories", [])], t.get("quota", QUOTA["公司分類"])),
                     ("總部/廠房", t["queries"] + [t["name_en"]], QUOTA["總部/廠房"]),
                     ("產品", t.get("product_queries", []), QUOTA["產品"]),
                     ("相關場景", t.get("related_queries", []), QUOTA["相關場景"])]

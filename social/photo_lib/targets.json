@@ -2732,5 +2732,80 @@
    "https://www.emctw.com/",
    "https://www.emctw.com/en/"
   ]
+ },
+ {
+  "slug": "nvidia_people",
+  "name_en": "Jensen Huang",
+  "zh": [
+   "黃仁勳"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Jensen Huang",
+   "Jensen Huang keynote",
+   "Jensen Huang Computex"
+  ],
+  "product_queries": [],
+  "related_queries": [],
+  "commons_categories": [
+   "Jensen Huang",
+   "Jensen Huang at Computex",
+   "Jensen Huang at GTC",
+   "Jensen Huang in 2024",
+   "Jensen Huang in 2025"
+  ],
+  "credit_name": "黃仁勳",
+  "official_sites": [],
+  "allow_people": true,
+  "quota": 10
+ },
+ {
+  "slug": "us_capitol",
+  "name_en": "United States Capitol",
+  "zh": [
+   "美國國會"
+  ],
+  "category": "半導體",
+  "queries": [
+   "United States Capitol",
+   "Capitol Hill hearing room"
+  ],
+  "product_queries": [],
+  "related_queries": [],
+  "commons_categories": [
+   "United States Capitol",
+   "United States Capitol exterior",
+   "United States Senate hearings",
+   "Hearing rooms of the United States Congress"
+  ],
+  "credit_name": "美國國會",
+  "official_sites": [],
+  "allow_people": true,
+  "quota": 10
+ },
+ {
+  "slug": "computex",
+  "name_en": "Computex",
+  "zh": [
+   "台北電腦展"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Computex Taipei",
+   "Computex keynote"
+  ],
+  "product_queries": [],
+  "related_queries": [],
+  "commons_categories": [
+   "Computex",
+   "Computex Taipei",
+   "Computex 2024",
+   "Computex 2025",
+   "Taipei Nangang Exhibition Center"
+  ],
+  "credit_name": "台北電腦展",
+  "official_sites": [],
+  "allow_people": true,
+  "quota": 10
  }
 ]
