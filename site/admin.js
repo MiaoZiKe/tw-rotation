@@ -803,6 +803,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .plbtn span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-admin .plbtn:hover{border-color:var(--cyan);color:var(--cyan)}
 #v-admin .plbtn:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:1px}
+#v-admin .plbtn em.trialtag{font-style:normal;flex:none;font-size:11px;line-height:1;padding:2px 5px;border-radius:5px;background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--cyan);border:1px solid color-mix(in srgb,var(--cyan) 40%,transparent)}
+#v-admin .mgr{margin:12px 0 0}
+#v-admin .mgr h4 small{margin-left:8px;font-weight:400;color:var(--ink-3)}
+#v-admin .grl{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px;font-size:13px}
+#v-admin .grl li{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:6px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-2)}
+#v-admin .grl li b{font-weight:600}
+#v-admin .grl .gtag{font-size:11px;padding:1px 6px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-3)}
+#v-admin .grl .gtag.on{color:var(--cyan);border-color:var(--cyan)}
 #v-admin .plbtn i{font-style:normal;font-size:10px;color:var(--ink-3);flex:none}
 .plmenu{position:fixed;z-index:9000;min-width:200px;max-width:min(320px,calc(100vw - 16px));padding:6px;border-radius:10px;background:var(--panel,#fff);color:var(--ink);border:1px solid var(--line-2);box-shadow:0 8px 28px rgba(0,0,0,.28);font-size:13px}
 .plmenu h5{margin:2px 6px 4px;font-size:12px;font-weight:600;color:var(--ink-3)}
@@ -1888,7 +1896,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   window.addEventListener('beforeunload', (e) => { if (/^#admin\/(perm|members)\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
-  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年', bad_dq: '每日額度要是 0～9999 的整數（空白＝不限）', bad_meta: '方案介紹文字太長或格式不對', bad_pres: '方案卡欄位格式不對（字數超過上限或選項不存在）', bad_price_year: '年繳總價要是 0～9999999 的整數' };
+  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年', bad_dq: '每日額度要是 0～9999 的整數（空白＝不限）', bad_meta: '方案介紹文字太長或格式不對', bad_pres: '方案卡欄位格式不對（字數超過上限或選項不存在）', bad_price_year: '年繳總價要是 0～9999999 的整數', no_user: '這位會員還沒登入過，沒有帳號可以掛體驗', no_def: '這份體驗活動已經不存在', def_off: '這份體驗活動目前是關著的，先到「體驗額度」頁打開', ended: '這個活動已經結束，不能再發', bad_id: '體驗活動代號格式不對' };
   const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
   const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
@@ -2263,8 +2271,38 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (!j || j._s !== 200 || !j.stats || typeof j.stats !== 'object') return;
     Object.values(j.stats).forEach((x) => { if (x && x.email) PS.inv.set(String(x.email).toLowerCase(), x); });
   }
+  /* 2026-11-09 體驗期限要看「實際發出去的體驗」（Andy：「明明給我體驗卻沒有同步資訊，請確認以及顯示體驗期限」）：
+     以前這欄只用「加入時間＋活動天數」推算，管理者手動發放後伺服器雖然寫進 grants，名單卻從來沒讀 grants → 到期日永遠是舊值。
+     資料來源優先順序：① 伺服器 /v1/admin/members 每人帶的 grants[]（Worker 新欄位，部署前沒有）
+       ② 這個瀏覽器剛查過／剛發放過的 /v1/admin/grants/user 結果（PS.gu，展開那列或發放後會查）
+       ③ localStorage 記住的「我發過的體驗」（Worker 還沒更新時，重新整理後仍看得到；有 ① ② 時以它們為準）
+       ④ 照註冊時間＋活動天數的基本算法。 */
+  const ISS_KEY = 'tw.adm.issued';
+  const issLoad = () => { try { return JSON.parse(localStorage.getItem(ISS_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const issSave = (o) => { try { localStorage.setItem(ISS_KEY, JSON.stringify(o)); } catch (e) { /* 私密視窗寫不進去就算了 */ } };
+  function grantsOf(email, m) {
+    const em = String(email).toLowerCase();
+    if (m && Array.isArray(m.grants)) return { list: m.grants, src: 'srv' };
+    if (PS.gu && PS.gu[em] && Array.isArray(PS.gu[em].grants)) return { list: PS.gu[em].grants, src: 'qry' };
+    const o = issLoad()[em];
+    if (o && o.end) return { list: [o], src: 'loc' };
+    return null;
+  }
+  /* 這份體驗是不是管理者手動發的：自動發的 welcome 起點＝註冊當下；手動發放的起點＝按下去那一刻（跟註冊差超過 10 分鐘）。 */
+  const grantManual = (g, r) => g.manual === true || (g.kind === 'welcome' && r.created && Math.abs((g.start || 0) - r.created) > 10 * 60000);
   function welOf(r, m) {
-    const out = { welEnd: 0, welKind: '' };
+    const out = { welEnd: 0, welKind: '', welName: '', trial: false };
+    const gs = grantsOf(r.email, m);
+    if (gs && gs.list.length) {
+      const now = (PS.list && PS.list.now) || Date.now();
+      const best = gs.list.slice().sort((a, b) => (b.end || 0) - (a.end || 0))[0];
+      if (best && best.end) {
+        out.welEnd = best.end; out.welName = best.name || best.gid || '';
+        out.welKind = grantManual(best, r) ? 'man' : best.kind === 'promo' ? 'promo' : 'auto';
+        out.trial = gs.list.some((g) => g.end > now && (g.start || 0) <= now);
+        return out;
+      }
+    }
     if (typeof m.welcomeEnd === 'number' && m.welcomeEnd > 0) { out.welEnd = m.welcomeEnd; out.welKind = 'ext'; return out; }
     if (!r.created || !Array.isArray(PS.gd)) return out;
     const hit = PS.gd.filter((d) => d.kind === 'welcome' && d.on && d.days > 0 && (!d.t0 || (r.created >= d.t0 && r.created < d.t1)))
@@ -2273,12 +2311,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     return out;
   }
   /* 快到期（≤3 天）琥珀、已過期灰字；日期後面小字標「基本」或「延長」 */
+  const WEL_KIND = { man: ['手動', '管理者手動發放的體驗'], auto: ['自動', '註冊時自動發的體驗'], promo: ['活動', '上市體驗週這類活動期間的體驗'], ext: ['延長', '含問卷／邀請延長'], base: ['基本', '照註冊時間＋活動天數的基本算法'] };
   function welCell(r) {
     if (!r.welEnd) return '<span class="mdim" title="這位會員沒有適用的新會員體驗（沒有開著的活動，或註冊時間不在活動期間內）">—</span>';
     const now = (PS.list && PS.list.now) || Date.now(), left = r.welEnd - now;
     const cls = left <= 0 ? 'wel exp' : left <= 3 * 86400000 ? 'wel soon' : 'wel';
-    const tip = (left <= 0 ? '體驗已過期' : `體驗還有約 ${Math.ceil(left / 86400000)} 天`) + `・截止 ${dstr(r.welEnd)}・` + (r.welKind === 'ext' ? '含問卷／邀請延長' : '照註冊時間＋活動天數的基本算法');
-    return `<span class="${cls}" title="${esc(tip)}">${dday(r.welEnd)}<small>${r.welKind === 'ext' ? '延長' : '基本'}</small></span>`;
+    const [kt, kd] = WEL_KIND[r.welKind] || WEL_KIND.base;
+    const tip = (left <= 0 ? '體驗已過期' : `體驗還有約 ${Math.ceil(left / 86400000)} 天`) + `・截止 ${dstr(r.welEnd)}・` + (r.welName ? `「${r.welName}」・` : '') + kd;
+    return `<span class="${cls}" data-wel="${esc(r.welKind)}" title="${esc(tip)}">${dday(r.welEnd)}<small>${kt}</small></span>`;
   }
   const ST_NAME = { ok: '有效', soon: '即將到期', exp: '過期', new: '未登入過' };
   /* 顯示用的狀態（perm-v4）：有效裡面再分出「7 天內到期」—— 名單的狀態欄與上方甜甜圈用同一個函式，兩邊數字一定對得上。
@@ -3025,7 +3065,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
   /* 2026-11-07 欄寬（px，依內容量過：13px 字、左右內距各 8）與欄位順序（可拖，存 localStorage；「會員」固定第一欄不能拖）。
      表格 table-layout:fixed ＋ min-width＝欄寬加總：整頁不橫捲，放不下時只有 .memscroll（表格自己）橫向捲。 */
-  const COLW = { email: 270, plan: 124, created: 100, expires: 100, wel: 124, inv: 92, invd: 124, seen: 112, online: 128, visits: 124, views: 92, feat: 380, stock: 240, st: 92 };
+  const COLW = { email: 270, plan: 150, created: 100, expires: 100, wel: 124, inv: 92, invd: 104, seen: 112, online: 128, visits: 124, views: 92, feat: 380, stock: 240, st: 92 };
   const ORD_KEY = 'tw.adm.memCols';
   const colsOrdered = () => {
     let sv = null; try { sv = JSON.parse(localStorage.getItem(ORD_KEY) || 'null'); } catch (e) { sv = null; }
@@ -3070,7 +3110,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const cols = colsOrdered();
     const cell = {
       email: (r, open) => `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="不計入統計（站主自己標記的測試帳）">測試</span>' : ''}</span></td>`,
-      plan: (r) => { const nm = r.tier === 'paid' ? r.planName : '註冊會員'; return `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}><button type="button" class="plbtn" data-plan-btn="${esc(r.email)}" aria-haspopup="menu" aria-label="${esc(r.email)} 的方案：${esc(nm)}，點一下可更改" title="點一下更改會員等級"><span>${esc(nm)}</span><i aria-hidden="true">▾</i></button></td>`; },
+      plan: (r) => { const nm = r.tier === 'paid' ? r.planName : '註冊會員'; return `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}><button type="button" class="plbtn" data-plan-btn="${esc(r.email)}" aria-haspopup="menu" aria-label="${esc(r.email)} 的方案：${esc(nm)}${r.trial ? '（體驗中）' : ''}，點一下可更改" title="點一下更改會員等級"><span>${esc(nm)}</span>${r.trial ? '<em class="trialtag" title="目前有一份體驗額度在期間內">體驗中</em>' : ''}<i aria-hidden="true">▾</i></button></td>`; },
       created: (r) => `<td class="c-cr">${dday(r.created)}</td>`,
       expires: (r) => `<td class="c-exp">${dday(r.expires)}</td>`,
       wel: (r) => `<td class="c-wel">${welCell(r)}</td>`,
@@ -3294,7 +3334,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const tune = PS.mode === 'member' ? '' : `<div class="pmbar"><button type="button" class="pri" data-tune="${esc(r.email)}">逐人微調…</button></div>`;
     const body = detailBody(r);
     const tst = `<div class="pmbar"><button type="button" data-test="${esc(r.email)}">${r.test ? '恢復計入統計' : '不列入統計'}</button><small class="muted">${r.test ? '目前標為測試帳，上方統計已排除' : '標成測試帳：上方人數、活躍、狀態圖都不算他'}</small></div>`;
-    return body.replace(/<\/div>$/, tune + tst + '</div>');
+    return body.replace(/<\/div>$/, tune + tst + grantsHtml(r) + '</div>');
   }
   function detailBody(r) {
     const d = PS.det[r.email];
@@ -3558,16 +3598,49 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (!D) { if (window.confirm(`把 ${r.email} 改成「${toNm}」？`)) run(keep ? 'keep' : 0); return; }
     D(html, (d) => { d.querySelector('#plGo').onclick = async () => { const dv = d.querySelector('#plDays'); const v = dv ? dv.value : 0; d.hidden = true; await run(v); }; });
   }
-  function askGrant(r, gid) {
+  /* 查某位會員實際拿到的體驗（伺服器 grants/user；舊後端也有這支）。結果放 PS.gu[email]，名單與展開明細都讀它 */
+  async function loadGrants(email, force) {
+    const em = email.toLowerCase();
+    PS.gu = PS.gu || {};
+    if (PS.gu[em] && !force && !PS.gu[em].err) return PS.gu[em];
+    const j = await PS.A.call('/v1/admin/grants/user', { email: em }).catch(() => null);
+    PS.gu[em] = j && j._s === 200 && Array.isArray(j.grants) ? { grants: j.grants, hits: j.hits || [], now: j.now || Date.now() } : { err: j && j._s === 403 ? '沒有管理者權限' : '讀不到體驗紀錄（' + errText(j) + '）' };
+    return PS.gu[em];
+  }
+  /* 每份體驗已用幾次：grant_hits 一列＝用掉一個單位 */
+  const grantUsed = (u, gid) => (u && Array.isArray(u.hits) ? u.hits.filter((h) => h.gid === gid).length : null);
+  function grantsHtml(r) {
+    const u = PS.gu && PS.gu[r.email.toLowerCase()];
+    const head = '<div class="mgr"><h4>體驗紀錄<small>他拿過的每一份體驗</small></h4>';
+    if (!u) return head + '<p class="muted">讀取中…</p></div>';
+    if (u.err) return head + `<p class="muted">${esc(u.err)}</p></div>`;
+    if (!u.grants.length) return head + '<p class="muted">還沒有拿過任何體驗。要發的話，點上面「方案」欄 → 體驗方案。</p></div>';
+    const now = (PS.list && PS.list.now) || Date.now();
+    return head + '<ul class="grl">' + u.grants.map((g) => {
+      const act = g.start <= now && g.end > now && g.active !== false, used = grantUsed(u, g.gid);
+      const how = grantManual(g, r) ? '手動發放' : g.kind === 'promo' ? '活動期間自動發' : '註冊自動發';
+      return `<li data-gid="${esc(g.gid)}"><b>${esc(g.name || g.gid)}</b><span class="gtag${act ? ' on' : ''}">${act ? '體驗中' : g.end <= now ? '已結束' : '尚未開始'}</span><span>${dday(g.start)} ～ ${dday(g.end)}</span><span>${how}</span><span>已用 ${used == null ? '—' : used} 次</span></li>`;
+    }).join('') + '</ul></div>';
+  }
+  async function askGrant(r, gid) {
     const D = window.TwSub && window.TwSub.dialog, def = (PS.gd || []).find((d) => d.id === gid); if (!def) return;
     const span = def.kind === 'welcome' ? `從今天起 ${def.days} 天` : `到 ${dday(def.t1)} 為止`;
+    /* 發放前先查他現在有沒有這一份：有 → 說清楚「重發＝刷新起訖、清掉已用次數、已發人數不會 +1」，免得以為沒發成功 */
+    const pre = await loadGrants(r.email, true), had = pre && pre.grants ? pre.grants.find((g) => g.gid === gid) : null;
+    const hadTxt = had ? `<p class="muted">他已經有這一份（${esc(dday(had.start))} ～ ${esc(dday(had.end))}）。重發會把起訖改成新的、已用次數歸零；「體驗額度」頁的已發人數不會增加（同一人只算一次）。</p>` : '';
     const run = async () => {
       const j = await PS.A.call('/v1/admin/grants/issue', { email: r.email, gid });
-      if (!j || j._s !== 200) { setStat(j && j._s === 404 ? '發放體驗需要更新後端（尚未部署）' : `${r.email} 發放體驗失敗：${errText(j)}`, 'bad'); return; }
-      await refreshList(); undoToast(`已發放體驗「${def.name}」給 ${r.email}（${span}）`);
+      if (!j || j._s !== 200) { setStat(j && j._s === 404 && !j.error ? '發放體驗需要更新後端（尚未部署）' : `${r.email} 發放體驗失敗：${errText(j)}`, 'bad'); return; }
+      /* 不只相信「ok」：再向伺服器查一次，確認這份體驗真的掛在他身上，並以伺服器的起訖為準 */
+      const chk = await loadGrants(r.email, true), g = chk && chk.grants ? chk.grants.find((x) => x.gid === gid) : null;
+      if (!g) { setStat(`${r.email}：伺服器回報已發放，但查不到這份體驗，請重新整理後再確認`, 'bad'); return; }
+      const iss = issLoad(); iss[r.email.toLowerCase()] = { gid, name: g.name || def.name, kind: g.kind || def.kind, start: g.start, end: g.end, manual: true, at: Date.now() }; issSave(iss);
+      await refreshList();
+      PS.exp.add(r.email); loadGrants(r.email).then(() => paintList());
+      undoToast(`已發放體驗「${def.name}」給 ${r.email}，到期 ${dday(g.end)}（手動發放）`);
     };
     if (!D) { if (window.confirm(`發放體驗「${def.name}」給 ${r.email}？`)) run(); return; }
-    D(`<h3>發放體驗「${esc(def.name)}」？</h3><p><b>${esc(r.email)}</b><br>期限：${esc(span)}。方案等級不變，只是多一份體驗額度；確定後立即生效。</p>
+    D(`<h3>發放體驗「${esc(def.name)}」？</h3><p><b>${esc(r.email)}</b><br>期限：${esc(span)}。方案等級不變，只是多一份體驗額度；確定後立即生效。</p>${hadTxt}
       <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="plGo">確定發放</button></div>`, (d) => { d.querySelector('#plGo').onclick = async () => { d.hidden = true; await run(); }; });
   }
   /* 欄位拖曳換位置（桌機滑鼠；手機不開放）：按住表頭移動 6px 以上才算拖，落點用青色直線標出，放開後存 localStorage */
@@ -3625,7 +3698,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         if (!(PS.rec && PS.rec.email === em) && !guard()) return;
         PS.email = em; if (!(PS.rec && PS.rec.email === em)) loadMember(em);
       }
-      if (PS.exp.has(em)) PS.exp.delete(em); else { PS.exp.add(em); loadDetail(em); }
+      if (PS.exp.has(em)) PS.exp.delete(em); else { PS.exp.add(em); loadDetail(em); loadGrants(em).then(() => paintList()); }
       paintList();
     };
   }

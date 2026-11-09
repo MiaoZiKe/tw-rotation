@@ -111,7 +111,7 @@
     v.innerHTML = `<div class="card agr" id="agrList"><div class="hd"><h3>體驗活動</h3><span class="sp"></span><button type="button" class="pri" id="agrNew">＋ 新增活動</button></div>
       <p class="muted">開關撥開就生效（會員重新整理後看到）；關掉時已發出去的也一起暫停。上市體驗週：活動期間登入的會員自動拿到；新會員體驗：第一次用 Google 登入的人自動拿到。
       畫面上一律叫「體驗額度」，免綁卡、到期不扣款、自動回原等級；次數由伺服器計。</p>
-      <div class="tw"><table><thead><tr><th>開關</th><th>名稱</th><th>種類</th><th>期間（臺北）</th><th>功能與次數</th><th>已發</th><th>已用</th><th></th></tr></thead><tbody>
+      <div class="tw"><table><thead><tr><th>開關</th><th>名稱</th><th>種類</th><th>期間（臺北）</th><th>功能與次數</th><th title="拿到這份體驗的會員人數。同一個人重發只算一次，所以對已經有這份體驗的人再發，數字不會增加">已發</th><th title="這份體驗被會員實際用掉的次數合計">已用</th><th></th></tr></thead><tbody>
       ${defs.map((d) => `<tr data-id="${esc(d.id)}"><td><label class="sw" title="${d.on ? '開著' : '關著'}"><input type="checkbox" data-on="${esc(d.id)}"${d.on ? ' checked' : ''} aria-label="${esc(d.name)} 開關"></label></td>
         <td><b>${esc(d.name)}</b><br><small class="muted">${esc(d.id)}${live(d) ? '・<span style="color:var(--fall,#2fbf71)">進行中</span>' : d.on ? '・未在期間內' : ''}</small></td>
         <td><span class="kd ${d.kind}">${d.kind === 'promo' ? '上市體驗週' : '新會員體驗'}</span></td>
