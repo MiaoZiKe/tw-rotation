@@ -1,0 +1,1002 @@
+[
+ {
+  "dir": "h01_落款長印",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 141,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 145,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h01_落款長印",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 141,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 145,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h01_落款長印",
+  "file": "mock_ig_profile.png",
+  "minGap": 60,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 60,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 77,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h01_落款長印",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 40.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 40.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 225.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 120.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h02_橢圓細像素",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 72,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 76,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h02_橢圓細像素",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 72,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 76,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h02_橢圓細像素",
+  "file": "mock_ig_profile.png",
+  "minGap": 56,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 56,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h02_橢圓細像素",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 58,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 58,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 243.3,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 115.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h03_手刻可可",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 89.8,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 93.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h03_手刻可可",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 89.8,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 93.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h03_手刻可可",
+  "file": "mock_ig_profile.png",
+  "minGap": 56,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 56,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h03_手刻可可",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 47.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 47.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 232.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 115.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h04_抹茶雙框",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 87,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 91,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h04_抹茶雙框",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 87,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 91,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h04_抹茶雙框",
+  "file": "mock_ig_profile.png",
+  "minGap": 60,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 60,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h04_抹茶雙框",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 45.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 45.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 230.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 118.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h05_歪印雙色",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 89,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 93,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h05_歪印雙色",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 89,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 93,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h05_歪印雙色",
+  "file": "mock_ig_profile.png",
+  "minGap": 56,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 56,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h05_歪印雙色",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 47.1,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 47.1,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 232.4,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 115.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h06_墨黑粗框",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 84,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 88,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h06_墨黑粗框",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 84,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 88,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h06_墨黑粗框",
+  "file": "mock_ig_profile.png",
+  "minGap": 53,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 53,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 72,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h06_墨黑粗框",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 43,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 43,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 228.3,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 109.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h07_八位元衝框",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 99,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 103,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h07_八位元衝框",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 99,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 103,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h07_八位元衝框",
+  "file": "mock_ig_profile.png",
+  "minGap": 53,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 53,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 72,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h07_八位元衝框",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 50.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 50.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 235.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 109.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h08_外帶杯暈印",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 87,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 91,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h08_外帶杯暈印",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 87,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 91,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h08_外帶杯暈印",
+  "file": "mock_ig_profile.png",
+  "minGap": 60,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 60,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 77,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h08_外帶杯暈印",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 45.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 45.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 230.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 120.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h09_郵票點陣",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 90,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 94,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h09_郵票點陣",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 90,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 94,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h09_郵票點陣",
+  "file": "mock_ig_profile.png",
+  "minGap": 60,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 60,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h09_郵票點陣",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 48,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 48,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 233.3,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 118.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h10_對章",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 81,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 85,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h10_對章",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 81,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 85,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h10_對章",
+  "file": "mock_ig_profile.png",
+  "minGap": 56,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 56,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "h10_對章",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 60.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 60.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 245.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 115.3,
+    "overlap": false
+   }
+  ]
+ }
+]

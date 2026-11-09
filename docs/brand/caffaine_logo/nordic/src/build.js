@@ -1,16 +1,18 @@
 // 產出：每個方向的 SVG／PNG、大頭貼、橫式、三個應用情境、重疊量測報告、總覽
 const { chromium } = require('/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
-const FINAL = !!process.env.FINAL;
+const FINAL = !!process.env.FINAL, HANKO = !!process.env.HANKO;
 const { DARK_BG } = require('./marks');
-const { dirs } = FINAL ? require('./final_marks') : require('./marks');
-const OUT = FINAL ? path.resolve(__dirname, '..', 'final') : path.resolve(__dirname, '..');
+const { dirs } = FINAL ? require('./final_marks') : HANKO ? require('./hanko_marks') : require('./marks');
+const OUT = FINAL ? path.resolve(__dirname, '..', 'final') : HANKO ? path.resolve(__dirname, '..', 'hanko') : path.resolve(__dirname, '..');
+const AIPX = ['.###..###', '#...#..#.', '#####..#.', '#...#..#.', '#...#.###'];
 const TAG = '一杯咖啡的時間，看懂一個 AI 新知';
 const CJK = "'WenQuanYi Zen Hei'";
 const report = [];
 
 // ---------- 瀏覽器端的排版工具（注入到頁面） ----------
 const LIB = `
+const AIPX=${JSON.stringify(['.####..######', '##..##...##..', '##..##...##..', '######...##..', '##..##...##..', '##..##...##..', '##..##.######'])};
 const NS='http://www.w3.org/2000/svg';
 function el(p,tag,attrs,txt){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;p.appendChild(e);return e;}
 function capH(font,w,size,ch){const c=document.createElement('canvas').getContext('2d');c.font=w+' '+size+'px "'+font+'"';return c.measureText(ch||'I').actualBoundingBoxAscent;}
@@ -20,7 +22,13 @@ function word(svg,cfg,col,size,x,base){
   const f=cfg.font, st=(w,fill)=>({x:0,y:base,'font-family':f,'font-weight':w,'font-size':size,fill});
   let cx=x; const t1=el(g,'text',{...st(cfg.w,col.ink),x:cx},'Caff'); cx+=t1.getComputedTextLength();
   const ch=capH(f,cfg.aiW,size,'I');
-  const aiFill = cfg.ai==='pill'?col.paperText||'#FBF4EA': cfg.ai==='text'?col.text: cfg.ai==='underline'?col.accent: col.accent;
+  if(cfg.ai==='pixelAI'||cfg.ai==='inlineSeal'){
+    const px=(rows,cs,x0,y0)=>{let d='';rows.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='#')d+='M'+(x0+x*cs)+' '+(y0+y*cs)+'h'+cs+'v'+cs+'h-'+cs+'z';}));return d;};
+    if(cfg.ai==='pixelAI'){const cs=ch/7;cx+=size*0.06;el(g,'path',{d:px(AIPX,cs,cx,base-ch),fill:col.aiText||col[cfg.aiColor]||col.accent});cx+=13*cs+size*0.07;}
+    else{const cs=ch*0.11,pw=13*cs+cs*4,ph=7*cs+cs*4,y0=base-ch/2-ph/2;cx+=size*0.06;el(g,'rect',{x:cx+cs*0.35,y:y0+cs*0.35,width:pw-cs*0.7,height:ph-cs*0.7,rx:cs*0.15,fill:'none',stroke:col.accent,'stroke-width':cs*0.7});el(g,'path',{d:px(AIPX,cs,cx+cs*2,y0+cs*2),fill:col.accent});cx+=pw+size*0.06;}
+    const t3=el(g,'text',{...st(cfg.w,col.ink),x:cx},'ne'); cx+=t3.getComputedTextLength(); return {g,w:cx-x};
+  }
+  const aiFill = cfg.ai==='pill'?col.paperText||'#FBF4EA': cfg.ai==='text'?col.text: cfg.ai==='rakkan'?col.accent: cfg.ai==='underline'?col.accent: col.accent;
   const padX=size*0.16, gapI=cfg.iBars?size*0.07:size*0.02;
   if(cfg.ai==='pill'){cx+=size*0.05+padX;}
   const pillStart=cx-padX;
@@ -36,6 +44,7 @@ function word(svg,cfg,col,size,x,base){
   if(cfg.ai==='underline'){el(g,'rect',{x:xA,y:base+size*0.11,width:cx-xA,height:size*0.075,rx:size*0.03,fill:col.accent});}
   cx+= cfg.iBars? size*0.0 : size*0.02;
   const t3=el(g,'text',{...st(cfg.w,col.ink),x:cx},'ne'); cx+=t3.getComputedTextLength();
+  if(cfg.ai==='rakkan'){const cs=size*0.05,w=7*cs,h=13*cs,x0=cx+size*0.10,y0=base-ch-size*0.04;el(g,'rect',{x:x0,y:y0,width:w,height:h,rx:cs*0.3,fill:col.accent});let d='';const A=['.###.','#...#','#####','#...#','#...#','.....','.###.','..#..','..#..','..#..','.###.'];A.forEach((r,yy)=>[...r].forEach((c,xx)=>{if(c==='#')d+='M'+(x0+(xx+1)*cs)+' '+(y0+(yy+1)*cs)+'h'+cs+'v'+cs+'h-'+cs+'z';}));el(g,'path',{d,fill:col.paperText||'#FBF4EA'});cx=x0+w;}
   return {g,w:cx-x};
 }
 function mark(svg,inner,x,y,s,role){const g=el(svg,'g',{transform:'translate('+x+' '+y+') scale('+(s/200)+')'});if(role)g.setAttribute('data-role',role);g.innerHTML=inner;return g;}
@@ -68,16 +77,16 @@ async function shot(page, html, file, w, h, transparent) {
       await shot(page, svg, path.join(dir, `mark_${v}.png`), 1024, 1024);
     }
     // 2. 圓形大頭貼 110／40
-    for (const s of [110, 40]) {
-      const k = s === 40 ? (d.markSmall ? .8 : .84) : (d.markSmall ? .78 : .76);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${s}" height="${s}"><clipPath id="c"><circle cx="100" cy="100" r="100"/></clipPath><g clip-path="url(#c)"><rect width="200" height="200" fill="${L.bg}"/><g transform="translate(${100 - 100 * k} ${100 - 100 * k}) scale(${k})">${(d.markSmall || d.mark)(L)}</g></g></svg>`;
-      fs.writeFileSync(path.join(dir, `avatar_${s}.svg`), svg);
-      await shot(page, svg, path.join(dir, `avatar_${s}.png`), s, s, true);
+    for (const [s, av, sfx] of (HANKO ? [[110, L, ''], [40, L, ''], [110, D, '_dark'], [40, D, '_dark']] : [[110, L, ''], [40, L, '']])) {
+      const k = HANKO ? (s === 40 ? .78 : .74) : s === 40 ? (d.markSmall ? .8 : .84) : (d.markSmall ? .78 : .76);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${s}" height="${s}"><clipPath id="c"><circle cx="100" cy="100" r="100"/></clipPath><g clip-path="url(#c)"><rect width="200" height="200" fill="${av.bg}"/><g transform="translate(${100 - 100 * k} ${100 - 100 * k}) scale(${k})">${(d.markSmall || d.mark)(av)}</g></g></svg>`;
+      fs.writeFileSync(path.join(dir, `avatar_${s}${sfx}.svg`), svg);
+      await shot(page, svg, path.join(dir, `avatar_${s}${sfx}.png`), s, s, true);
     }
     // 3. 橫式完整版（深淺各一）＋ 4. 三個應用情境：在瀏覽器裡排版、量測、序列化
     await page.setViewportSize({ width: 2400, height: 1600 });
     await page.setContent(`<html><body style="margin:0"><script>${LIB}</script></body></html>`);
-    const res = await page.evaluate(({ d, L, D, mk, mkD, mkS, mkSD, TAG, CJK, DARK_BG }) => {
+    const res = await page.evaluate(({ d, L, D, mk, mkD, mkS, mkSD, TAG, CJK, DARK_BG, HK }) => {
       const out = {};
       const newSvg = (w, h) => { document.body.innerHTML = ''; const s = el(document.body, 'svg', { xmlns: NS, viewBox: `0 0 ${w} ${h}`, width: w, height: h }); return s; };
       // 橫式
@@ -114,9 +123,9 @@ async function shot(page, html, file, w, h, transparent) {
         [[40, '追蹤', c.accent, '#fff'], [380, '傳送訊息', '#EFEFEF', '#111'], [720, '電子郵件', '#EFEFEF', '#111']].forEach(([x, t, bgc, fc]) => {
           el(s, 'rect', { x, y: 730, width: 320, height: 72, rx: 16, fill: bgc });
           el(s, 'text', { x: x + 160, y: 777, 'text-anchor': 'middle', 'font-family': CJK, 'font-size': 30, fill: fc }, t); });
-        for (let i = 0; i < 3; i++) { const x = i * 361, y = 846, w = 358, h = 448; const tc = [c.bg, c.accent, '#2E2621'][i];
+        for (let i = 0; i < 3; i++) { const x = i * 361, y = 846, w = 358, h = 448; const tc = (HK ? [c.bg, '#E6D6BF', '#2E2621'] : [c.bg, c.accent, '#2E2621'])[i];
           el(s, 'rect', { x, y, width: w, height: h, fill: tc });
-          const fg = i === 0 ? c.ink : '#FFF8EE';
+          const fg = (i === 0 || (HK && i === 1)) ? c.ink : '#FFF8EE';
           const mg = el(s, 'g', { transform: `translate(${x + 22} ${y + 22}) scale(${56 / 200})` }); mg.innerHTML = i === 0 ? (mkS||mk) : (mkSD||mkD);
           ['3 個 AI 指令', '會議紀錄', '自己寫完'].forEach((t, k) => el(s, 'text', { x: x + 26, y: y + 210 + k * 58, 'font-family': CJK, 'font-size': 44, fill: fg }, [['3 個 AI 指令', '會議紀錄', '自己寫完'], ['Excel 公式', '交給 AI', '一句話生成'], ['本週 AI', '新知 5 則', '一次看懂']][i][k])); }
         out.ig = { svg: s.outerHTML, w: W, h: H, m: measure(s, 0) };
@@ -157,8 +166,9 @@ async function shot(page, html, file, w, h, transparent) {
         out.cover = { svg: s.outerHTML, w: W, h: H, m: measure(s, 4) };
       }
       return out;
-    }, { d: { word: d.word }, L, D, mk: d.mark(L), mkD: d.mark(D), mkS: d.markSmall ? d.markSmall(L) : null, mkSD: d.markSmall ? d.markSmall(D) : null, TAG, CJK, DARK_BG });
+    }, { d: { word: d.word }, L, D, mk: d.mark(L), mkD: d.mark(D), mkS: d.markSmall ? d.markSmall(L) : null, mkSD: d.markSmall ? d.markSmall(D) : null, TAG, CJK, DARK_BG, HK: HANKO });
     const files = { h_light: 'horizontal_light', h_dark: 'horizontal_dark', ig: 'mock_ig_profile', cup: 'mock_takeaway_cup', cover: 'mock_post_cover' };
+    if (HANKO) delete files.cover;
     for (const k in files) {
       const r = res[k]; fs.writeFileSync(path.join(dir, files[k] + '.svg'), r.svg);
       await shot(page, r.svg, path.join(dir, files[k] + '.png'), r.w, r.h);
