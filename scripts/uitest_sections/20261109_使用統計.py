@@ -91,7 +91,19 @@ def t_usage_1109(b, base, code):
         def tot(o, comp, page=None):
             return sum(n for (c, p, _d), n in o.items() if c == comp and (page is None or p == page))
 
-        base0 = stats()      # 管理者自己開 #pricing 也算一次電腦訪客，先記下基準，之後只看「增加了多少」
+        # 管理者自己開 #pricing 也算一次電腦訪客（開站＋pricing 頁），統計事件是登入後才非同步送到伺服器。
+        # 先主動 flush，再等伺服器的數字連續 3 次（間隔 0.4 秒）都不變才記基準；
+        # 否則管理者分頁的事件會晚到、被誤算進訪客的增量（2026-11-09 穩定紅 2 項的原因）。
+        ad.evaluate("() => TwAccount.flush()")
+        base0, same = stats(), 0
+        for _ in range(40):
+            ad.wait_for_timeout(400)
+            cur = stats()
+            same = same + 1 if cur == base0 else 0
+            base0 = cur
+            if same >= 3:
+                break
+        ok(f"{T}：管理者分頁的統計已送完、伺服器數字穩定（基準）", same >= 3 and tot(base0, "us.ses.d") >= 1, (same, tot(base0, "us.ses.d")))
 
         # ① 電腦訪客
         cd = new_ctx(); pd_ = cd.new_page(); pd_.on("pageerror", lambda e: errs.append("desk: " + str(e)))
