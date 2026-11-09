@@ -3,10 +3,10 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.3
+      "seconds": 1.7
     },
     "price_daily": {
-      "stored": 1336
+      "stored": 0
     },
     "twse.valuation": {
       "ok": true,
@@ -19,7 +19,7 @@
     "twse.index": {
       "ok": true,
       "rows": 267,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "index_daily": {
       "stored": 0
@@ -27,34 +27,29 @@
     "twse.market": {
       "ok": true,
       "rows": 5,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "market_daily": {
-      "stored": 1
+      "stored": 0
     },
     "tpex.price_daily": {
       "ok": true,
       "rows": 1013,
-      "seconds": 12.4
+      "seconds": 8.8
     },
     "mis.date_check": {
       "mis_date": "2026-11-09",
       "openapi_date": "2026-11-06",
       "lake_latest": "2026-11-09",
-      "twse_rows_on_mis_date": 0,
+      "twse_rows_on_mis_date": 1336,
       "min_needed": 800,
       "session_closed": true,
-      "will_fill": true
+      "will_fill": false
     },
     "mis.price_snapshot": {
-      "ok": true,
-      "rows": 1336,
-      "seconds": 14.7
-    },
-    "mis.market_snapshot": {
-      "ok": true,
-      "rows": 1,
-      "seconds": 0.2
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.8
     },
     "intraday.since": {
       "since": "2026-11-09T13:00:00+08:00",
@@ -63,20 +58,17 @@
       "period": "8d",
       "lake_last": "2026-11-09T13:00:00+08:00",
       "got_codes": 2052,
-      "rows": 320
+      "rows": 0
     },
     "yahoo.intraday_60m": {
-      "ok": true,
-      "rows": 320,
-      "seconds": 182.4
-    },
-    "intraday_60m": {
-      "stored": 320
+      "ok": false,
+      "rows": 0,
+      "seconds": 150.9
     },
     "yahoo.index_intraday": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.0
+      "seconds": 0.7
     },
     "tape.collect": {
       "ok": true,
@@ -87,10 +79,10 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 2.2
+      "seconds": 3.0
     },
     "index_intraday": {
-      "stored": 1081
+      "stored": 1350
     },
     "taifex.futures_minute": {
       "ok": true,
@@ -101,15 +93,15 @@
     "twse.margin": {
       "ok": true,
       "rows": 1306,
-      "seconds": 1.3
+      "seconds": 1.6
     },
     "margin_daily": {
-      "stored": 246
+      "stored": 0
     },
     "twse.company_info": {
       "ok": true,
       "rows": 1099,
-      "seconds": 0.6
+      "seconds": 0.5
     },
     "company_info": {
       "stored": 0
@@ -117,7 +109,7 @@
     "finmind.stock_info": {
       "ok": true,
       "rows": 3174,
-      "seconds": 0.8,
+      "seconds": 0.7,
       "added": 2075
     },
     "twse.revenue": {
@@ -131,10 +123,10 @@
     "twse.financial": {
       "ok": true,
       "rows": 231,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "financial_q": {
-      "stored": 1
+      "stored": 0
     },
     "twse.dividend": {
       "ok": true,
@@ -142,20 +134,17 @@
       "seconds": 0.3
     },
     "dividend": {
-      "stored": 3
+      "stored": 0
     },
     "twse.dividend_events": {
       "ok": true,
       "rows": 967,
       "seconds": 0.0
     },
-    "dividend_events": {
-      "stored": 2
-    },
     "etf.exright_notice": {
       "ok": true,
       "rows": 9,
-      "seconds": 1.0
+      "seconds": 2.7
     },
     "risk.notice": {
       "ok": true,
@@ -168,7 +157,7 @@
     "risk.punish": {
       "ok": true,
       "rows": 12,
-      "seconds": 0.4
+      "seconds": 0.7
     },
     "risk_punish": {
       "stored": 0
@@ -176,61 +165,56 @@
     "tdcc.shareholding": {
       "ok": true,
       "rows": 69955,
-      "seconds": 3.2
+      "seconds": 4.0
     },
     "shareholding_weekly": {
-      "stored": 69955
+      "stored": 0
     },
     "etf_pcf.holdings": {
       "ok": true,
       "rows": 29673,
-      "seconds": 452.2
+      "seconds": 506.2
     },
     "etf_holdings": {
-      "stored": 29673
+      "stored": 0
     },
     "sitca.etf_top10": {
       "ok": true,
       "rows": 0,
-      "seconds": 1.8,
+      "seconds": 1.5,
       "skipped": "公會最新月份 202609 已在資料湖"
     },
     "next_wave.forward_log": {
       "ok": true,
       "rows": 10,
-      "seconds": 1.1
+      "seconds": 1.0
     },
     "next_wave_forward": {
-      "stored": 10
+      "stored": 0
     },
     "news.collect": {
       "ok": true,
-      "rows": 120,
-      "seconds": 4.0
+      "rows": 119,
+      "seconds": 2.7
     },
     "news": {
-      "stored": 38
+      "stored": 40
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 1,
-      "seconds": 0.0
-    },
-    "broker_views": {
-      "stored": 1
+      "rows": 0,
+      "seconds": 0.0,
+      "skipped": "119 則新聞中沒有帶目標價的券商引述"
     },
     "mops.material_news": {
-      "ok": true,
-      "rows": 4,
-      "seconds": 1.4
-    },
-    "material_news": {
-      "stored": 0
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.8
     },
     "mops.insider_holdings": {
       "ok": true,
       "rows": 1979,
-      "seconds": 15.4
+      "seconds": 114.7
     },
     "insider_holding": {
       "stored": 0
@@ -238,15 +222,15 @@
     "macro.intl": {
       "ok": true,
       "rows": 4509,
-      "seconds": 2.0
+      "seconds": 1.6
     },
     "intl_daily": {
-      "stored": 3
+      "stored": 0
     },
     "macro.fred": {
       "ok": true,
       "rows": 15621,
-      "seconds": 2.6
+      "seconds": 2.9
     },
     "macro": {
       "stored": 0
@@ -254,7 +238,7 @@
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 0.9
+      "seconds": 1.0
     },
     "macro_calendar": {
       "stored": 0
@@ -262,7 +246,7 @@
     "finmind.index_ohlc": {
       "ok": true,
       "rows": 52,
-      "seconds": 0.6
+      "seconds": 2.6
     },
     "index_ohlc": {
       "stored": 0
@@ -275,7 +259,7 @@
     "finmind.market_institutional": {
       "ok": true,
       "rows": 26,
-      "seconds": 0.3
+      "seconds": 0.6
     },
     "inst_market_daily": {
       "stored": 0
@@ -335,32 +319,32 @@
     "finmind.tse_minute": {
       "ok": true,
       "rows": 1350,
-      "seconds": 3.3
+      "seconds": 3.4
     },
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 908,
-      "seconds": 8.1
+      "seconds": 7.8
     },
     "inst_daily": {
-      "stored": 0
+      "stored": 1596
     },
     "institutional_codes": {
-      "requested": 2,
-      "returned": 2
+      "requested": 193,
+      "returned": 189
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 9,
-      "seconds": 0.6
+      "rows": 1631,
+      "seconds": 125.6
     },
     "balance_q": {
-      "stored": 5
+      "stored": 0
     },
     "finmind.financial_refresh": {
       "ok": true,
       "rows": 186,
-      "seconds": 21.9
+      "seconds": 24.4
     },
     "build_payload": {
       "ok": true
@@ -368,13 +352,15 @@
   },
   "errors": [],
   "empty": [
+    "mis.price_snapshot",
+    "yahoo.intraday_60m",
     "yahoo.index_intraday",
+    "mops.material_news",
     "optivx.daily"
   ],
   "gaps": [],
   "rebuilt": [],
   "phase": "full",
-  "provisional_date": "2026-11-09",
   "index_minute_days": {
     "FUT": [
       "2026-11-09"
@@ -386,9 +372,9 @@
       "2026-11-09"
     ]
   },
-  "started_at": "2026-11-09T10:42:45.712598+00:00",
-  "finished_at": "2026-11-09T11:10:21.183756+00:00",
-  "duration_seconds": 1655.5,
+  "started_at": "2026-11-09T11:50:24.033157+00:00",
+  "finished_at": "2026-11-09T12:20:50.775870+00:00",
+  "duration_seconds": 1826.7,
   "trade_date": "2026-11-06",
   "complete": true,
   "freshness": {
@@ -398,7 +384,7 @@
         "label": "個股三大法人",
         "latest": "2026-11-09",
         "rows": 1364,
-        "median": 2054.5,
+        "median": 2229.5,
         "status": "warn",
         "reason": "thin"
       },
@@ -448,7 +434,7 @@
     "inst_daily",
     "margin_total"
   ],
-  "finmind_budget_left": 307,
+  "finmind_budget_left": 116,
   "tables": [
     {
       "table": "price_daily",
@@ -507,7 +493,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5502149,
+      "rows": 5503745,
       "latest": "2026-11-09"
     },
     {
@@ -522,7 +508,7 @@
     },
     {
       "table": "paper/ledger",
-      "rows": 61,
+      "rows": 66,
       "latest": "2026-11-09"
     },
     {
@@ -532,8 +518,8 @@
     },
     {
       "table": "paper/e2sat_holdings",
-      "rows": 98,
-      "latest": "2026-11-06"
+      "rows": 110,
+      "latest": "2026-11-09"
     },
     {
       "table": "paper/swing_signals",
@@ -592,7 +578,7 @@
     },
     {
       "table": "news",
-      "rows": 10591,
+      "rows": 10631,
       "latest": "2026-11-09"
     },
     {
@@ -637,7 +623,7 @@
     },
     {
       "table": "etf_holdings",
-      "rows": 579171,
+      "rows": 579992,
       "latest": "2026-11-09"
     },
     {
@@ -662,7 +648,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 291247,
+      "rows": 292597,
       "latest": "—"
     },
     {
