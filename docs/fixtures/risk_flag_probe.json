@@ -1,0 +1,890 @@
+{
+  "probe": "risk_flag",
+  "at": "2026-11-09T13:11:44+08:00",
+  "results": [
+    {
+      "id": "twse_notice",
+      "url": "https://openapi.twse.com.tw/v1/announcement/notice",
+      "note": "集中市場當日公布注意股票",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:11:36+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 1699,
+      "content_type": "application/json",
+      "bytes": 132,
+      "resp_headers": {
+        "server": "HiNetCDN",
+        "vary": "Accept-Encoding",
+        "x-cache": "HIT"
+      },
+      "kind": "list",
+      "n": 1,
+      "fields": [
+        "ClosingPrice",
+        "Code",
+        "Date",
+        "Name",
+        "Number",
+        "NumberOfAnnouncement",
+        "PE",
+        "TradingInfoForAttention"
+      ],
+      "sample": [
+        {
+          "Number": "0",
+          "Code": "",
+          "Name": "",
+          "NumberOfAnnouncement": "0",
+          "TradingInfoForAttention": "",
+          "Date": "",
+          "ClosingPrice": "0",
+          "PE": "0"
+        }
+      ]
+    },
+    {
+      "id": "twse_punish",
+      "url": "https://openapi.twse.com.tw/v1/announcement/punish",
+      "note": "集中市場公布處置股票",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:11:38+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 759,
+      "content_type": "application/json",
+      "bytes": 9405,
+      "resp_headers": {
+        "server": "HiNetCDN",
+        "vary": "Accept-Encoding",
+        "x-cache": "HIT"
+      },
+      "kind": "list",
+      "n": 7,
+      "fields": [
+        "Code",
+        "Date",
+        "Detail",
+        "DispositionMeasures",
+        "DispositionPeriod",
+        "LinkInformation",
+        "Name",
+        "Number",
+        "NumberOfAnnouncement",
+        "ReasonsOfDisposition"
+      ],
+      "sample": [
+        {
+          "Number": "1",
+          "Date": "1151106",
+          "Code": "064019",
+          "Name": "聯鈞統一74購03",
+          "NumberOfAnnouncement": "1",
+          "ReasonsOfDisposition": "連續三次",
+          "DispositionPeriod": "115/11/09～115/11/13",
+          "DispositionMeasures": "第一次處置",
+          "Detail": "１處置原因：該有價證券之交易，連續三個營業日達本公司「公布注意交易資訊」標準。\n２處置期間：自民國一百十五年十一月九日起至一百十五年十一月十三日﹝五個營業日，如遇：ａ有價證券最後交易日在處置期間，僅處置至最後交易日，ｂ有價證券停止買賣、全日暫停交易則順延執行，ｃ開休市日變動則調整處置迄日〕。\n３處置措施：\nａ以人工管制之撮合終端機執行撮合作業（約每二分鐘撮合一次）。\nｂ投資人每日委託買賣該有價證券數量單筆達十交易單位或多筆累積達三十交易單位以上時，應就其當日已委託之買賣，向該投資人收取全部之買進價金或賣出證券。\n",
+          "LinkInformation": "\n提供處置有價證券連結資訊\n1.處置原因：提供公布日期近一個月之「公布注意交易資訊」數據標準\n2.公開資訊觀測站：提供財務業務與重大訊息之精華版資訊\n"
+        },
+        {
+          "Number": "2",
+          "Date": "1151104",
+          "Code": "088008",
+          "Name": "誠美材國票65購01",
+          "NumberOfAnnouncement": "1",
+          "ReasonsOfDisposition": "連續三次",
+          "DispositionPeriod": "115/11/05～115/11/11",
+          "DispositionMeasures": "第一次處置",
+          "Detail": "１處置原因：該有價證券之交易，連續三個營業日達本公司「公布注意交易資訊」標準。\n２處置期間：自民國一百十五年十一月五日起至一百十五年十一月十一日﹝五個營業日，如遇：ａ有價證券最後交易日在處置期間，僅處置至最後交易日，ｂ有價證券停止買賣、全日暫停交易則順延執行，ｃ開休市日變動則調整處置迄日〕。\n３處置措施：\nａ以人工管制之撮合終端機執行撮合作業（約每二分鐘撮合一次）。\nｂ投資人每日委託買賣該有價證券數量單筆達十交易單位或多筆累積達三十交易單位以上時，應就其當日已委託之買賣，向該投資人收取全部之買進價金或賣出證券。\n",
+          "LinkInformation": "\n提供處置有價證券連結資訊\n1.處置原因：提供公布日期近一個月之「公布注意交易資訊」數據標準\n2.公開資訊觀測站：提供財務業務與重大訊息之精華版資訊\n"
+        },
+        {
+          "Number": "3",
+          "Date": "1151106",
+          "Code": "2360",
+          "Name": "致茂",
+          "NumberOfAnnouncement": "1",
+          "ReasonsOfDisposition": "連續三次",
+          "DispositionPeriod": "115/11/09～115/11/13",
+          "DispositionMeasures": "第一次處置",
+          "Detail": "１處置原因：該有價證券之交易，連續三個營業日達本公司「公布注意交易資訊」標準。\n２處置期間：自民國一百十五年十一月九日起至一百十五年十一月十三日﹝五個營業日，如遇：ａ有價證券最後交易日在處置期間，僅處置至最後交易日，ｂ有價證券停止買賣、全日暫停交易則順延執行，ｃ開休市日變動則調整處置迄日〕。\n３處置措施：\nａ以人工管制之撮合終端機執行撮合作業（約每二分鐘撮合一次）。\nｂ投資人每日委託買賣該有價證券數量單筆達十交易單位或多筆累積達三十交易單位以上時，應就其當日已委託之買賣，向該投資人收取全部之買進價金或賣出證券。\nｃ信用交易部分，應收足融資自備款或融券保證金。有關信用交易了結部分，則依相關規定辦理。\n",
+          "LinkInformation": "\n提供處置有價證券連結資訊\n1.處置原因：提供公布日期近一個月之「公布注意交易資訊」數據標準\n2.公開資訊觀測站：提供財務業務與重大訊息之精華版資訊\n"
+        }
+      ]
+    },
+    {
+      "id": "twse_swagger",
+      "url": "https://openapi.twse.com.tw/v1/swagger.json",
+      "note": "證交所目錄：找注意／處置／變更交易，順便留回應 schema",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:11:38+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 1164,
+      "content_type": "application/json",
+      "bytes": 309984,
+      "resp_headers": {
+        "server": "HiNetCDN",
+        "vary": "Accept-Encoding",
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "Content-Type, api_key, Authorization",
+        "x-cache": "HIT"
+      },
+      "kind": "dict",
+      "keys": [
+        "basePath",
+        "host",
+        "info",
+        "paths",
+        "schemes",
+        "swagger",
+        "tags"
+      ],
+      "definitions": {},
+      "matched_paths": {
+        "/exchangeReport/TWT85U": {
+          "summary": "集中市場證券變更交易",
+          "description": "集中市場證券變更交易",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Code": {
+                    "type": "string",
+                    "description": "證券代號"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "description": "證券名稱"
+                  },
+                  "PeriodicCallAuctionTrading": {
+                    "type": "string",
+                    "description": "分盤集合競價"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/announcement/punish": {
+          "summary": "集中市場公布處置股票",
+          "description": "集中市場公布處置股票",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Number": {
+                    "type": "string",
+                    "description": "編號"
+                  },
+                  "Date": {
+                    "type": "string",
+                    "description": "公布日期"
+                  },
+                  "Code": {
+                    "type": "string",
+                    "description": "證券代號"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "description": "證券名稱"
+                  },
+                  "NumberOfAnnouncement": {
+                    "type": "string",
+                    "description": "累計"
+                  },
+                  "ReasonsOfDisposition": {
+                    "type": "string",
+                    "description": "處置條件"
+                  },
+                  "DispositionPeriod": {
+                    "type": "string",
+                    "description": "處置起迄時間"
+                  },
+                  "DispositionMeasures": {
+                    "type": "string",
+                    "description": "處置措施"
+                  },
+                  "Detail": {
+                    "type": "string",
+                    "description": "處置內容"
+                  },
+                  "LinkInformation": {
+                    "type": "string",
+                    "description": "備註"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/announcement/notetrans": {
+          "summary": "集中市場公布注意累計次數可能達處置標準資訊",
+          "description": "集中市場公布注意累計次數可能達處置標準資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Code": {
+                    "type": "string",
+                    "description": "證券代號"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "description": "證券名稱"
+                  },
+                  "RecentlyMetAttentionSecuritiesCriteria": {
+                    "type": "string",
+                    "description": "近期達本公司「公布注意交易資訊」標準之情形"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/announcement/notice": {
+          "summary": "集中市場當日公布注意股票",
+          "description": "集中市場當日公布注意股票",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Number": {
+                    "type": "string",
+                    "description": "編號"
+                  },
+                  "Code": {
+                    "type": "string",
+                    "description": "證券代號"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "description": "證券名稱"
+                  },
+                  "NumberOfAnnouncement": {
+                    "type": "string",
+                    "description": "累計次數"
+                  },
+                  "TradingInfoForAttention": {
+                    "type": "string",
+                    "description": "注意交易資訊"
+                  },
+                  "Date": {
+                    "type": "string",
+                    "description": "日期"
+                  },
+                  "ClosingPrice": {
+                    "type": "string",
+                    "description": "收盤價"
+                  },
+                  "PE": {
+                    "type": "string",
+                    "description": "本益比"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/opendata/t187ap27_L": {
+          "summary": "上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司",
+          "description": "上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "出表日期": {
+                    "type": "string",
+                    "description": "出表日期"
+                  },
+                  "公司代號": {
+                    "type": "string",
+                    "description": "公司代號"
+                  },
+                  "公司名稱": {
+                    "type": "string",
+                    "description": "公司名稱"
+                  },
+                  "變更交易開始日": {
+                    "type": "string",
+                    "description": "變更交易開始日"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "all_paths_n": 143
+    },
+    {
+      "id": "tpex_swagger",
+      "url": "https://www.tpex.org.tw/openapi/swagger.json",
+      "note": "櫃買目錄：有沒有上櫃注意／處置端點",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:11:40+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 2179,
+      "content_type": "application/json",
+      "bytes": 476923,
+      "resp_headers": {
+        "server": "cloudflare",
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "*, Content-Type, api_key, Authorization",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a57a516c4ca94656-DFW"
+      },
+      "kind": "dict",
+      "keys": [
+        "components",
+        "info",
+        "openapi",
+        "paths",
+        "servers"
+      ],
+      "definitions": {
+        "tpex_cmode": {
+          "type": "object",
+          "properties": {
+            "Date": {
+              "type": "string",
+              "description": "資料日期"
+            },
+            "SecuritiesCompanyCode": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "CompanyName": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "AlteredTrading": {
+              "type": "string",
+              "description": "變更交易"
+            },
+            "PeriodicTrading": {
+              "type": "string",
+              "description": "分盤交易"
+            },
+            "ManagedStock": {
+              "type": "string",
+              "description": "管理股票"
+            },
+            "MatchingFrequency": {
+              "type": "string",
+              "description": "分盤或管理股票撮合循環時間"
+            },
+            "SuspensionOfTrading": {
+              "type": "string",
+              "description": "停止交易"
+            },
+            " FinancialAnnouncements": {
+              "type": "string",
+              "description": "財務重點專區"
+            }
+          }
+        },
+        "tpex_trading_warning_information": {
+          "type": "object",
+          "properties": {
+            "Date": {
+              "type": "string",
+              "description": "公告日期"
+            },
+            "SecuritiesCompanyCode": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "CompanyName": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "TradingInformation": {
+              "type": "string",
+              "description": "注意交易資訊"
+            },
+            "ClosePrice": {
+              "type": "string",
+              "description": "收盤價"
+            },
+            "PriceEarningRatio": {
+              "type": "string",
+              "description": "本益比"
+            }
+          }
+        },
+        "tpex_disposal_information": {
+          "type": "object",
+          "properties": {
+            "Date": {
+              "type": "string",
+              "description": "公布日期"
+            },
+            "SecuritiesCompanyCode": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "CompanyName": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "DispositionPeriod": {
+              "type": "string",
+              "description": "處置起訖時間"
+            },
+            "DispositionReasons": {
+              "type": "string",
+              "description": "處置原因"
+            },
+            "DisposalCondition": {
+              "type": "string",
+              "description": "處置內容"
+            }
+          }
+        },
+        "tpex_trading_warning_note": {
+          "type": "object",
+          "properties": {
+            "Date": {
+              "type": "string",
+              "description": "資料日期"
+            },
+            "SecuritiesCompanyCode": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "CompanyName": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "AccumulationSituation": {
+              "type": "string",
+              "description": "近期達本公司「公布注意交易資訊」標準之情形"
+            }
+          }
+        },
+        "tpex_margin_trading_adjust": {
+          "type": "object",
+          "properties": {
+            "Date": {
+              "type": "string",
+              "description": "資料日期"
+            },
+            "SecuritiesCompanyCode": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "CompanyName": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "ReductionDate": {
+              "type": "string",
+              "description": "降成日"
+            },
+            "TradeResumptionDate": {
+              "type": "string",
+              "description": "恢復日"
+            },
+            "ReasonExcessiveStockPriceVolatilityFiveConsecutiveDays": {
+              "type": "string",
+              "description": "原因股價波動過度劇烈連續五日"
+            },
+            "ReasonExcessiveStockPriceVolatilitySixDaysOutOfTen": {
+              "type": "string",
+              "description": "原因股價波動過度劇烈十日內有六日"
+            },
+            "ReasonAbnormalTradeVolumeConsecutiveDays": {
+              "type": "string",
+              "description": "原因成交量過度異常連續五日"
+            },
+            "ReasonAbnormalTradeVolumeSixDaysOutOfTen": {
+              "type": "string",
+              "description": "原因成交量過度異常十日內有六日"
+            },
+            "ReasonShareholdingOverconcentration": {
+              "type": "string",
+              "description": "原因股權過度集中"
+            },
+            "ReasonSecondDispositionByMarketSurveillanceDepartment": {
+              "type": "string",
+              "description": "原因監視第二次處置"
+            },
+            "ReasonUponResolutionByTheSurveillanceOperationsOversightCommittee": {
+              "type": "string",
+              "description": "原因監視業務督導會報決議"
+            }
+          }
+        },
+        "tpex_esb_disposal_information": {
+          "type": "object",
+          "properties": {
+            "公布日期": {
+              "type": "string",
+              "description": "公布日期"
+            },
+            "證券代號": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "證券名稱": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "處置起訖時間": {
+              "type": "string",
+              "description": "處置起訖時間"
+            },
+            "處置原因": {
+              "type": "string",
+              "description": "處置原因"
+            },
+            "處置內容": {
+              "type": "string",
+              "description": "處置內容"
+            }
+          }
+        },
+        "tpex_esb_warning_information": {
+          "type": "object",
+          "properties": {
+            "公告日期": {
+              "type": "string",
+              "description": "公告日期"
+            },
+            "證券代號": {
+              "type": "string",
+              "description": "證券代號"
+            },
+            "證券名稱": {
+              "type": "string",
+              "description": "證券名稱"
+            },
+            "注意交易資訊": {
+              "type": "string",
+              "description": "注意交易資訊"
+            },
+            "收盤價": {
+              "type": "string",
+              "description": "收盤價"
+            }
+          }
+        },
+        "mopsfin_t187ap27_O": {
+          "type": "object",
+          "properties": {
+            "Date": {
+              "type": "string",
+              "description": "出表日期"
+            },
+            "SecuritiesCompanyCode": {
+              "type": "string",
+              "description": "公司代號"
+            },
+            "CompanyName": {
+              "type": "string",
+              "description": "公司名稱"
+            },
+            "變更交易開始日": {
+              "type": "string",
+              "description": "變更交易開始日"
+            }
+          }
+        }
+      },
+      "matched_paths": {
+        "/tpex_cmode": {
+          "summary": "上櫃股票變更交易、分盤交易、管理股票與停止交易資訊",
+          "description": "上櫃股票變更交易、分盤交易、管理股票與停止交易資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_cmode"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_cmode"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/tpex_trading_warning_information": {
+          "summary": "上櫃公布注意股票資訊",
+          "description": "上櫃公布注意股票資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_trading_warning_information"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_trading_warning_information"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/tpex_disposal_information": {
+          "summary": "上櫃處置有價證券資訊",
+          "description": "上櫃處置有價證券資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_disposal_information"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_disposal_information"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/tpex_trading_warning_note": {
+          "summary": "上櫃公布注意累計次數異常資訊",
+          "description": "上櫃公布注意累計次數異常資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_trading_warning_note"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_trading_warning_note"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/tpex_esb_disposal_information": {
+          "summary": "興櫃處置有價證券資訊",
+          "description": "興櫃處置有價證券資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_esb_disposal_information"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_esb_disposal_information"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/tpex_esb_warning_information": {
+          "summary": "興櫃公布注意有價證券資訊",
+          "description": "興櫃公布注意有價證券資訊",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_esb_warning_information"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/tpex_esb_warning_information"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/mopsfin_t187ap27_O": {
+          "summary": "上櫃公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司",
+          "description": "上櫃公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/mopsfin_t187ap27_O"
+                  }
+                },
+                "text/csv": {
+                  "schema": {
+                    "$ref": "#/components/schemas/mopsfin_t187ap27_O"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "all_paths_n": 225
+    },
+    {
+      "id": "tpex_warning",
+      "url": "https://www.tpex.org.tw/openapi/v1/tpex_trading_warning_information",
+      "note": "推測：上櫃注意股（命名規則推測，未實測）",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:11:42+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 1087,
+      "content_type": "application/json",
+      "bytes": 9017,
+      "resp_headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a57a5179eff72dbb-MCI"
+      },
+      "kind": "list",
+      "n": 29,
+      "fields": [
+        "ClosePrice",
+        "CompanyName",
+        "Date",
+        "PriceEarningRatio",
+        "SecuritiesCompanyCode",
+        "TradingInformation"
+      ],
+      "sample": [
+        {
+          "Date": "1151106",
+          "SecuritiesCompanyCode": "1569",
+          "CompanyName": "濱川",
+          "TradingInformation": "最近六個營業日(自當日之前一個營業日起)之當日沖銷成交量占總成交量比率達76.94%，當日之前一個營業日當日沖銷成交量占總成交量達62.66%（第十三款)",
+          "ClosePrice": "78.60",
+          "PriceEarningRatio": "N/A"
+        },
+        {
+          "Date": "1151106",
+          "SecuritiesCompanyCode": "2221",
+          "CompanyName": "大甲",
+          "TradingInformation": "最近六個營業日(含當日)之累積週轉率為140.66%，當日週轉率達25.41%(第十款)",
+          "ClosePrice": "143.50",
+          "PriceEarningRatio": "47.36"
+        },
+        {
+          "Date": "1151106",
+          "SecuritiesCompanyCode": "24552",
+          "CompanyName": "全新二",
+          "TradingInformation": "最近六個營業日(含當日)累積之最後成交價跌幅達38.5%(第一款)",
+          "ClosePrice": "200.00",
+          "PriceEarningRatio": "N/A"
+        }
+      ]
+    },
+    {
+      "id": "tpex_disposal",
+      "url": "https://www.tpex.org.tw/openapi/v1/tpex_disposal_information",
+      "note": "推測：上櫃處置股（命名規則推測，未實測）",
+      "method": "GET",
+      "probed_at": "2026-11-09T13:11:43+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 200,
+      "elapsed_ms": 1130,
+      "content_type": "application/json",
+      "bytes": 8530,
+      "resp_headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a57a51825ff3e5f2-DFW"
+      },
+      "kind": "list",
+      "n": 8,
+      "fields": [
+        "CompanyName",
+        "Date",
+        "DisposalCondition",
+        "DispositionPeriod",
+        "DispositionReasons",
+        "SecuritiesCompanyCode"
+      ],
+      "sample": [
+        {
+          "Date": "1151104",
+          "SecuritiesCompanyCode": "8099",
+          "CompanyName": "大世科",
+          "DispositionPeriod": "1151105~1151111",
+          "DispositionReasons": "連續3個營業日",
+          "DisposalCondition": "* 公布日期：115/11/04* 證券代號：8099* 證券名稱：大同世界科技股份有限公司* 處置原因：連續3個營業日達本中心「公布注意交易資訊」標準，且最近30個營業日內曾發布處置。* 處置起訖期間：自115年11月5日起5個營業日(115年11月5日至115年11月11日)，如遇：(1)有價證券最後交易日在處置期間，僅處置至其最後交易日；(2)休市、有價證券停止買賣、全日暫停交易，則順延執行。* 處置措施：(1)以人工管制之撮合終端機執行撮合作業(約每2分鐘撮合一次)；(2)證券商應就投資人每日已委託買賣該有價證券，向該投資人收取全部之買進價金或賣出證券；(3)信用交易部分，則收足融資自備款或融券保證金。但信用交易了結及違約專戶委託買賣該有價證券時，不在此限。"
+        },
+        {
+          "Date": "1151104",
+          "SecuritiesCompanyCode": "8272",
+          "CompanyName": "全景軟體",
+          "DispositionPeriod": "1151105~1151111",
+          "DispositionReasons": "連續3個營業日",
+          "DisposalCondition": "* 公布日期：115/11/04* 證券代號：8272* 證券名稱：全景軟體股份有限公司* 處置原因：連續3個營業日達本中心「公布注意交易資訊」標準。* 處置起訖期間：自115年11月5日起5個營業日(115年11月5日至115年11月11日)，如遇：(1)有價證券最後交易日在處置期間，僅處置至其最後交易日；(2)休市、有價證券停止買賣、全日暫停交易，則順延執行。* 處置措施：(1)以人工管制之撮合終端機執行撮合作業(約每2分鐘撮合一次)；(2)證券商應就投資人每日已委託買賣該有價證券之數量單筆達10交易單位或多筆累積達30交易單位以上時，向該投資人收取全部之買進價金或賣出證券。但違約專戶委託買賣該有價證券時，不在此限。"
+        },
+        {
+          "Date": "1151102",
+          "SecuritiesCompanyCode": "8291",
+          "CompanyName": "尚茂",
+          "DispositionPeriod": "1151103~1151109",
+          "DispositionReasons": "連續3個營業日",
+          "DisposalCondition": "* 公布日期：115/11/02* 證券代號：8291* 證券名稱：尚茂電子材料股份有限公司* 處置原因：連續3個營業日達本中心「公布注意交易資訊」標準。* 處置起訖期間：自115年11月3日起5個營業日(115年11月3日至115年11月9日)，如遇：(1)有價證券最後交易日在處置期間，僅處置至其最後交易日；(2)休市、有價證券停止買賣、全日暫停交易，則順延執行。* 處置措施：(1)以人工管制之撮合終端機執行撮合作業(約每10分鐘撮合一次)；(2)依本中心業務規則第12條規定，證券商應就投資人每日已委託買賣該有價證券，向該投資人收取全部之買進價金或賣出證券。但違約專戶委託買賣該有價證券時，不在此限。"
+        }
+      ]
+    }
+  ]
+}
