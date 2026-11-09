@@ -23,11 +23,12 @@
   if (!T()) return;
   const { esc, css, call, view, toast, ls } = T();
   const K_READ = 'tw.notice.read', K_BAN = 'tw.notice.banner';
-  const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動', pay: '帳務通知', digest: '自選日報', alert: '自設提醒' };   // digest／alert＝site/digest.js 在本機組出來的個人通知（2026-10-27）   // pay＝只有本人看得到的付款／升級／退款通知（2026-10-12）
+  const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動', pay: '帳務通知', digest: '自選日報', alert: '自設提醒', gift: '會員權益' };   // gift＝站主發給這個人的體驗／方案升級（mnotice.js，2026-11-09）   // digest／alert＝site/digest.js 在本機組出來的個人通知（2026-10-27）   // pay＝只有本人看得到的付款／升級／退款通知（2026-10-12）
   const AUD = [['all', '全部'], ['guest', '訪客'], ['member', '註冊會員（含付費）'], ['paid', '付費會員']];
   const S = { list: [], loaded: false, open: false, expand: null, at: 0 };
   const F = { list: [], loaded: false, fly: null };                    // 靜態「功能更新」（features.json）
-  const isStatic = (id) => /^[fd]-\d{8}-[a-z0-9-]+$/.test(String(id || ''));   // d-＝自選日報／提醒（digest.js 本機產生），已讀一樣只記本機
+  const isStatic = (id) => /^[fd]-\d{8}-[a-z0-9-]+$/.test(String(id || '')) || isMember(id);   // d-＝自選日報／提醒（digest.js 本機產生），已讀一樣只記本機
+  const isMember = (id) => /^m-[A-Za-z0-9_-]{4,24}$/.test(String(id || ''));   // m-＝會員通知（mnotice.js），已讀送 /v1/notices/seen
   const A = () => window.TwAccount;
   const logged = () => { const a = A(); return !!(a && a.on() && a.user()); };
   const localRead = () => { try { const a = JSON.parse(ls.get(K_READ) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch (e) { return new Set(); } };
@@ -46,6 +47,7 @@
     const ids = new Set(S.list.map((n) => n.id));
     /* 自選日報／自設提醒（site/digest.js）：依「我的自選與條件」在瀏覽器裡組出來的個人通知，不經 Worker */
     let mine = []; try { mine = window.TwDigest && window.TwDigest.notes ? window.TwDigest.notes() : []; } catch (e) { mine = []; }
+    try { if (window.TwMemberNotes) mine = window.TwMemberNotes.notes().concat(mine); } catch (e) { /* 略 */ }
     return S.list.concat(F.list.filter((n) => audOk(n) && !ids.has(n.id))).concat(mine.filter((n) => !ids.has(n.id)))
       .map((n, i) => [n, i]).sort((a, b) => (b[0].pinned ? 1 : 0) - (a[0].pinned ? 1 : 0) || (b[0].start || 0) - (a[0].start || 0) || a[1] - b[1]).map((x) => x[0]);
   }
@@ -179,6 +181,7 @@
     const set = localRead(); ids.forEach((id) => set.add(id)); saveLocal(set);
     S.list.forEach((n) => { if (ids.includes(n.id)) n.read = logged() ? true : n.read; });
     paintBell(); paintBanner();
+    const mn = ids.filter(isMember); if (mn.length && window.TwMemberNotes) window.TwMemberNotes.seen(mn);
     const srv = ids.filter((id) => !isStatic(id));                  // 靜態功能更新只記在本機，不送 Worker
     if (logged() && srv.length) await call('/v1/notices/read', { ids: srv });
   }
@@ -382,7 +385,8 @@
     if ((location.hash || '') === '#admin/notices') { const v = view('v-subadm'); if (v) renderNoticesAdmin(v); }
   });
   window.addEventListener('tw:account-config', () => { paintBell(); fetchList(); });
-  window.addEventListener('tw:digest', () => repaint());   // digest.js 組好新通知了
+  window.addEventListener('tw:digest', () => repaint());
+  window.addEventListener('tw:mnotice', () => repaint());   // mnotice.js 抓到／標了會員通知   // digest.js 組好新通知了
   window.addEventListener('tw:perm', () => { if (F.list.some((n) => n.aud === 'paid')) repaint(); });   // 方案變了 → aud:paid 的那幾則要不要出現
   setInterval(() => { if (!document.hidden) fetchList(); }, 10 * 60 * 1000);
   window.TwNotices = { refresh: () => fetchList(true), open: () => toggleDrop(true), unread: () => unread().length, list: () => L(), renderNoticesAdmin };

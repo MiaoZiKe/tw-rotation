@@ -3430,3 +3430,164 @@ Hub.prototype.cleanup = function () {
   this.q('DELETE FROM pdwell WHERE uid NOT IN (SELECT uid FROM users)');
 };
 /* ============================================================================ 「今天誰來過」區塊結束 */
+
+/* ============================================================================ 會員通知區塊（2026-11-09）
+   Andy 11-09：「你發放的那一刻，會員伺服器幫他記一則『你獲得了○○體驗，到期 ○/○』。需要新增 只要我有更動 給他多的福祿都要跳出」
+   部署同意：「同意部署會員後端：發放體驗時通知會員」。
+   member_notices（每人一張小表：id、uid、kind、title、body、created、seen）。只有「給他更多」才寫：
+     · grants/issue 手動發放／重發體驗（kind=grant）
+     · grants/user 帶 extend_days 延長體驗（kind=grant_extend）
+     · perm/put 方案升級（free→Plus／Pro、Plus→Pro…，kind=plan_up）、同等級延長到期日或改成不到期（kind=plan_extend）、
+       同方案下個人功能開通／次數變多（kind=feat_more）
+     · 邀請獎勵：朋友用了你的邀請碼 → 你拿到的 Plus 天數／邀滿 5 人升級 Pro（kind=invite）—— 不是管理者按的，但同樣是「給他多的」
+   降級、取消、扣回、重設（reset）一律不寫。
+   端點：/v1/notices/mine（本人：未讀全部＋最近 20 則）、/v1/notices/seen（本人標已讀；ids 或 all）。刪帳號一起刪；保留 180 天。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動；寫通知失敗一律吞掉，不影響原本的發放／改方案。
+   ============================================================================ */
+const MN_KEEP_DAYS = 180, MN_MAX_PER_USER = 200, MN_RECENT = 20, MN_UNREAD_MAX = 50;
+const MN_ID_RE = /^[A-Za-z0-9_-]{4,24}$/;
+const mnMd = (ms) => { const d = new Date(ms - 1 + 8 * 3600 * 1000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); };   // 台北日期；到期時刻不含，所以減 1 毫秒
+const mnRank = (plan) => (plan === 'pro' ? 3 : plan === 'plus' ? 2 : plan && plan !== 'free' && plan !== 'guest' ? 1 : 0);   // 自訂方案視為「比免費多」
+const mnFeatScore = (v) => (v === true ? 1e9 : Number.isInteger(v) ? v : -1);   // true＝開（不限）；整數＝每日次數；false／沒有＝關
+Hub.prototype.mnInit = function () {
+  if (this._mnOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS member_notices (id TEXT PRIMARY KEY, uid TEXT, kind TEXT, title TEXT, body TEXT, created INTEGER, seen INTEGER DEFAULT 0)');
+  this.q('CREATE INDEX IF NOT EXISTS member_notices_uid ON member_notices (uid, created)');
+  this._mnOk = true;
+};
+Hub.prototype.mnAdd = function (uid, kind, title, body) {
+  try {
+    if (!uid) return null;
+    this.mnInit();
+    const id = rand(9);
+    this.q('INSERT INTO member_notices (id, uid, kind, title, body, created, seen) VALUES (?, ?, ?, ?, ?, ?, 0)', id, uid, kind, String(title).slice(0, 80), String(body || '').slice(0, 300), this.now());
+    /* 每人最多留 MN_MAX_PER_USER 則（最舊的先丟），防某個流程寫爆 */
+    this.q('DELETE FROM member_notices WHERE uid = ? AND id NOT IN (SELECT id FROM member_notices WHERE uid = ? ORDER BY created DESC LIMIT ?)', uid, uid, MN_MAX_PER_USER);
+    return id;
+  } catch (e) { return null; }
+};
+Hub.prototype.mnUidOf = function (email) {
+  const u = email ? this.q('SELECT uid FROM users WHERE lower(email) = ?', String(email).toLowerCase())[0] : null;
+  return u ? u.uid : null;
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/notices/mine': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.mnInit();
+    const uid = v.user.uid;
+    const unread = this.q('SELECT * FROM member_notices WHERE uid = ? AND seen = 0 ORDER BY created DESC LIMIT ?', uid, MN_UNREAD_MAX);
+    const recent = this.q('SELECT * FROM member_notices WHERE uid = ? ORDER BY created DESC LIMIT ?', uid, MN_RECENT);
+    const seenIds = new Set(), all = [];
+    for (const r of [...unread, ...recent]) { if (seenIds.has(r.id)) continue; seenIds.add(r.id); all.push(r); }
+    all.sort((a, c) => c.created - a.created);
+    return this.json(req, { now: this.now(), unread: unread.length,
+      notices: all.map((r) => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, created: r.created, seen: !!r.seen })) });
+  },
+  '/v1/notices/seen': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.mnInit();
+    const uid = v.user.uid, now = this.now();
+    if (b.all === true) this.q('UPDATE member_notices SET seen = ? WHERE uid = ? AND seen = 0', now, uid);
+    else {
+      const ids = Array.isArray(b.ids) ? b.ids.filter((x) => typeof x === 'string' && MN_ID_RE.test(x)).slice(0, 100) : [];
+      for (const id of ids) this.q('UPDATE member_notices SET seen = ? WHERE id = ? AND uid = ? AND seen = 0', now, id, uid);   // 只動自己的
+    }
+    return this.json(req, { ok: true, unread: this.q('SELECT COUNT(*) AS c FROM member_notices WHERE uid = ? AND seen = 0', uid)[0].c });
+  },
+});
+/* ① 手動發放／重發體驗 */
+const mnOrigIssue = Hub.prototype.subRoutes['/v1/admin/grants/issue'];
+Hub.prototype.subRoutes['/v1/admin/grants/issue'] = async function (req, b) {
+  const res = await mnOrigIssue.call(this, req, b);
+  if (res.status !== 200 || (b && b.probe === true)) return res;
+  try {
+    const j = await res.clone().json();
+    const uid = j.ok ? this.mnUidOf(j.email) : null;
+    if (uid) {
+      if (j.renewed) this.mnAdd(uid, 'grant', `你的「${j.name}」已重新起算`, `站主重新發給你「${j.name}」，次數已重置，到期 ${mnMd(j.end)}。`);
+      else this.mnAdd(uid, 'grant', `你獲得了「${j.name}」`, `站主發給你「${j.name}」，到期 ${mnMd(j.end)}。`);
+    }
+  } catch (e) { /* 寫不到通知不影響發放 */ }
+  return res;
+};
+/* ② 延長體驗天數（grants/user 帶 extend_days）*/
+const mnOrigGrantUser = Hub.prototype.subRoutes['/v1/admin/grants/user'];
+Hub.prototype.subRoutes['/v1/admin/grants/user'] = async function (req, b) {
+  const res = await mnOrigGrantUser.call(this, req, b);
+  if (res.status !== 200 || !b || b.extend_days === undefined) return res;
+  try {
+    const j = await res.clone().json();
+    const uid = j.known ? this.mnUidOf(j.email) : null;
+    const gid = b.gid == null ? null : String(b.gid);
+    const now = this.now();
+    const hit = (j.grants || []).filter((g) => (!gid || g.gid === gid) && g.end > now);
+    if (uid && hit.length) {
+      const names = hit.map((g) => `「${g.name}」`).join('、');
+      const last = Math.max(...hit.map((g) => g.end));
+      this.mnAdd(uid, 'grant_extend', hit.length === 1 ? `你的${names}延長到 ${mnMd(last)}` : `你的體驗延長了 ${b.extend_days} 天`,
+        `站主替你把${names}延長 ${b.extend_days} 天` + (hit.length === 1 ? `，到期 ${mnMd(last)}。` : `，最晚到期 ${mnMd(last)}。`));
+    }
+  } catch (e) { /* 略 */ }
+  return res;
+};
+/* ③ 改方案／延長到期／個人功能變多（perm/put）：先記改之前的生效狀態，改完再比 */
+const mnOrigPermPut = Hub.prototype.adminPermPut;
+Hub.prototype.adminPermPut = async function (req, b) {
+  const email = this.cleanEmail(b && b.email);
+  let before = null;
+  try { if (email && !(b && b.reset === true)) before = this.effective(email); } catch (e) { before = null; }
+  const res = await mnOrigPermPut.call(this, req, b);
+  if (res.status !== 200 || !before) return res;
+  try {
+    const uid = this.mnUidOf(email);
+    const after = this.effective(email);
+    if (!uid || !after || after.expired) return res;
+    const p0 = before.expired ? 'free' : before.plan, p1 = after.plan;
+    const name = after.planName || (this.plan(p1) || {}).name || p1;
+    const until = after.expires ? `，到期 ${mnMd(after.expires)}` : '，不限期';
+    if (mnRank(p1) > mnRank(p0)) {
+      this.mnAdd(uid, 'plan_up', `你的方案已升級為 ${name}`, `站主把你的方案升級為 ${name}${until}。`);
+    } else if (p1 === p0 && p1 !== 'free') {
+      const e0 = before.expired ? 0 : before.expires || 0, e1 = after.expires || 0;
+      if (e0 && !e1) this.mnAdd(uid, 'plan_extend', `你的 ${name} 改為不限期`, `站主把你的 ${name} 方案改成不會到期。`);
+      else if (e0 && e1 > e0) this.mnAdd(uid, 'plan_extend', `你的 ${name} 延長到 ${mnMd(e1)}`, `站主把你的 ${name} 方案延長到 ${mnMd(e1)}。`);
+    }
+    if (p1 === p0) {
+      const f0 = before.feats || {}, f1 = after.feats || {};
+      const more = Object.keys(f1).filter((k) => mnFeatScore(f1[k]) > mnFeatScore(f0[k]));
+      if (more.length) this.mnAdd(uid, 'feat_more', '站主替你多開了功能', `站主替你開通或加多了 ${more.length} 項功能的使用次數，重新整理就能用。`);
+    }
+  } catch (e) { /* 寫不到通知不影響改方案 */ }
+  return res;
+};
+/* ④ 邀請獎勵（朋友用了邀請碼 → 邀請人拿到 Plus 天數；邀滿 5 人升級 Pro）*/
+const mnOrigReward = Hub.prototype.promoRewardInviter;
+Hub.prototype.promoRewardInviter = function (inviterUid, inviteeUid) {
+  const out = mnOrigReward.call(this, inviterUid, inviteeUid);
+  try {
+    if (out && out.plus) this.mnAdd(inviterUid, 'invite', out.plus.pending ? `邀請獎勵：${out.plus.days} 天 Plus 已存入` : `邀請獎勵：Plus 延長到 ${mnMd(out.plus.end)}`,
+      out.plus.pending ? `你邀請的朋友加入了，${out.plus.days} 天 Plus 先存成待用天數，目前的方案到期後接著用。` : `你邀請的朋友加入了，你獲得 ${out.plus.days} 天 Plus，到期 ${mnMd(out.plus.end)}。`);
+    if (out && out.pro) this.mnAdd(inviterUid, 'invite', out.pro.pending ? `邀請獎勵：${out.pro.days} 天 Pro 已存入` : `你已升級為 Pro，到期 ${mnMd(out.pro.end)}`,
+      out.pro.pending ? `你已成功邀請 5 位朋友，${out.pro.days} 天 Pro 先存成待用天數。` : `你已成功邀請 5 位朋友，升級為 Pro ${out.pro.days} 天，到期 ${mnMd(out.pro.end)}。`);
+  } catch (e) { /* 略 */ }
+  return out;
+};
+const mnOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await mnOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.mnInit(); this.q('DELETE FROM member_notices WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+const mnOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  mnOrigCleanup.call(this);
+  try {
+    this.mnInit();
+    this.q('DELETE FROM member_notices WHERE created < ?', this.now() - MN_KEEP_DAYS * 86400 * 1000);
+    this.q('DELETE FROM member_notices WHERE uid NOT IN (SELECT uid FROM users)');
+  } catch (e) { /* 略 */ }
+};
+/* ============================================================================ 會員通知區塊結束 */

@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 會員通知：站主給的體驗／方案升級，登入時跳通知（Andy：「同意部署會員後端：發放體驗時通知會員」）
+- 後端（workers/account-api 檔尾「會員通知區塊」）：新表 member_notices；端點 /v1/notices/mine（本人未讀＋最近 20 則）、/v1/notices/seen（本人標已讀）。刪帳號一起刪、保留 180 天。
+- 會寫通知的動作（只有「給他更多」）：grants/issue 發放／重發體驗；grants/user 帶 extend_days 延長體驗；perm/put 方案升級（免費→Plus／Pro、Plus→Pro、免費→自訂方案）、同方案延長到期或改不限期、同方案個人功能開通／次數變多；邀請獎勵（朋友用了邀請碼 → 邀請人的 Plus 天數、邀滿 5 人升 Pro）。降級、取消、縮短、重設不寫。
+- 前端 site/mnotice.js：有未讀跳小視窗（多則列表、「知道了」＝標已讀；歡迎框／問卷開著就讓位不疊）＋併進鈴鐺（類型「會員權益」，notices.js 認 m- 開頭 id）；舊後端 404 安靜略過。不設功能鍵（不計次、全會員都該看到，同帳務通知）。公告 f-20261109-member-notices。
+- 沒做：管理區「解除停權」、改方案範本（plans/put，影響所有人）、活動體驗改起訖（defs/put）不發個人通知。
+- 這批驗了：Worker 全部 node --test（新增 tests/member_notices.test.mjs 8 項）、_uitest `會員通知1109`、`通知點擊跳轉1027`、`功能公告1019`、`桌機守門1008`、_preview.py；pytest 跳過（只動 site/、workers/、scripts/uitest_sections，tests/ 沒有 import 它們）。
 ## 2026-11-09 族群同業估值位階（P-1107-04，Andy 點頭「02 05 03 04 06」）
 - 做了：族群頁（#industry/group/<gid>）族群卡最下面一張「同業估值位階」表（本益比／淨值比／殖利率／營收 YoY／自身歷史本益比，每格分位條、點欄名排序、族群中位數列）；個股頁總覽三欄卡下面小卡「在○○族群同業中：本益比位於第 N 百分位」＋三格，多族群可切換。
 - 資料：compute/peerval.py → site/data/peer_val.json（不新增來源；讀 fundamental 列＋explore.json）。口徑 docs/peer_valuation.md（同業百分位＝比它低的占比，跟基本面卡同公式；<5 檔不算；虧損、失真本益比不排名）。
