@@ -81,10 +81,12 @@ def test_已到齊_沒新列就不部署(env, monkeypatch):
 def test_workflow_cron_與_phase_分派():
     wf = yaml.safe_load(open(".github/workflows/daily.yml", encoding="utf-8"))
     crons = [c["cron"] for c in wf[True]["schedule"]]
-    assert "15,45 8 * * 1-5" in crons and "15 9 * * 1-5" in crons
+    # 2026-11-09：原生 inst cron 拿掉（gh-cron Worker 已涵蓋同時段，兩邊各派會擠掉排隊中的 price／full）
+    assert "15,45 8 * * 1-5" not in crons and "15 9 * * 1-5" not in crons
+    assert wf["jobs"]["collect"]["needs"] == "guard" and "guard" in wf["jobs"]
     assert "inst" in wf[True]["workflow_dispatch"]["inputs"]["phase"]["options"]
     text = open(".github/workflows/daily.yml", encoding="utf-8").read()
-    assert "PHASE=inst" in text
+    assert "INST_DEFER_BUILD=1" in text   # 2026-11-09：inst 只由 workflow_dispatch 帶入（原生 cron 已拿掉）
     assert "cancel-in-progress: false" in text and "cancel-in-progress: true" not in text
     assert wf["jobs"]["deploy"]["if"] == "needs.collect.outputs.inst_new != 'false' && needs.collect.outputs.rebuild != 'false'"      # 2026-10-29：沒新增今天法人也不部署
 

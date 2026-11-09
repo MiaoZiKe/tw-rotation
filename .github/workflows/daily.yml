@@ -42,8 +42,8 @@ on:
     # 成本：沒資料的輪次約 1 分鐘（跳過 pytest），有資料的輪次約 8～12 分鐘；
     # 每天最壞 3 輪 ≈ 15～25 分鐘（一般 1 輪有料 ≈ 10 分鐘 ＋ 另兩輪各 1 分鐘）。
     # 判斷 phase 看 github.event.schedule（寫死的 cron 字串），不看時鐘 —— 排程延遲時不會誤判成 price／full。
-    - cron: "15,45 8 * * 1-5"
-    - cron: "15 9 * * 1-5"
+    # ★ 2026-11-09：這兩條原生 inst cron 已拿掉。gh-cron Worker（workers/gh-cron）在同時段每 10 分鐘就派一次 inst，
+    #   兩邊各派會讓 concurrency 群組（只留 1 個 pending）把排隊中的 price／full 擠掉，當天價量就一直沒抓。
   workflow_dispatch:
     inputs:
       skip_finmind:
@@ -70,7 +70,38 @@ permissions:
   actions: write      # inst 輪資料一進湖就派 social-live（盤後貼文），不等整站重算（2026-10-27）
 
 jobs:
+  # 2026-11-09：inst 輪開跑前先看有沒有排隊中的非 inst run（price／full…），有就讓出（本輪直接成功結束、不寫資料）。
+  # 只有 workflow_dispatch 的 inst 輪會查；其他 phase 一律放行。主要的防線在 gh-cron Worker（派 inst 前先查）。
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.chk.outputs.skip }}
+    steps:
+      - id: chk
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ inputs.phase }}
+        run: |
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          if [ "$PHASE" != "inst" ]; then
+            echo "phase=${PHASE:-自動}：不需讓出" ; exit 0
+          fi
+          n=0
+          for st in queued pending waiting; do
+            c=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?status=$st&per_page=30" \
+                --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.display_title | contains(\"(inst)\") | not)] | length" 2>/dev/null || echo 0)
+            n=$((n + c))
+          done
+          if [ "$n" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "### 本輪 inst 讓出" >> "$GITHUB_STEP_SUMMARY"
+            echo "daily.yml 有 $n 個排隊中的非 inst run（price／full 等），本輪 inst 不寫資料，讓它先跑。" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   collect:
+    needs: guard
+    if: needs.guard.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
@@ -97,7 +128,7 @@ jobs:
         # 測試沒過就不要讓壞掉的計算污染資料湖
         # phase=inst 例外：它只 append 法人、一天最多跑三輪，每輪多 7 分鐘不划算；
         # 同一份程式碼在 15:30／18:30 那輪都已經跑過測試。
-        if: ${{ !(github.event_name == 'schedule' && (github.event.schedule == '15,45 8 * * 1-5' || github.event.schedule == '15 9 * * 1-5')) && inputs.phase != 'inst' }}
+        if: ${{ inputs.phase != 'inst' }}
         # 2026-10-30：只跑跟資料管線有關的測試。社群貼文（tests/test_social*，其中封面測試要 Playwright，daily 沒裝）
         # 10-28 起因此紅燈、整條資料管線停擺 12 小時；那類測試由 social 自己的 workflow／本機關卡負責。
         # tests/test_daily_test_scope.py 會檢查這份清單沒有放進需要 Playwright 的檔。
@@ -127,9 +158,7 @@ jobs:
           if [ -z "$PHASE" ] || [ "$PHASE" = "auto" ]; then
             D=$(date -u +%u)          # 1=週一 … 6=週六 7=週日
             H=$((10#$(date -u +%H)))  # 去掉前導零，不然 08 會被當成八進位
-            if [ "${{ github.event.schedule }}" = "15,45 8 * * 1-5" ] || [ "${{ github.event.schedule }}" = "15 9 * * 1-5" ]; then
-              PHASE=inst       # 搶當天三大法人（見上面 cron 的說明）
-            elif [ "$D" -ge 6 ]; then
+            if [ "$D" -ge 6 ]; then
               PHASE=news       # 週末只更新新聞與國際盤
             elif [ "$H" -ge 20 ]; then
               # UTC 20:00 之後 ＝ 台北清晨 04:00 以後、當天還沒開盤：只有新聞與國際盤會變。
@@ -149,6 +178,10 @@ jobs:
           fi
           echo "本輪 phase=$PHASE（現在是 UTC $(date -u '+%H:%M')）"
           echo "phase=$PHASE" >> "$GITHUB_OUTPUT"
+          # 2026-11-09：price／full 開跑就記一筆，事後可查「這輪真的跑了」（排隊被擠掉的 run 不會有這行）
+          if [ "$PHASE" = "price" ] || [ "$PHASE" = "full" ]; then
+            echo "### 本輪 phase=$PHASE 已開跑（UTC $(date -u '+%H:%M')）" >> "$GITHUB_STEP_SUMMARY"
+          fi
           # 2026-10-27 Andy：「馬上拆開，盤後貼文資料到就發」→ inst 輪先不整站重算：抓完就 commit、派盤後貼文，下面另一步再重算
           if [ "$PHASE" = "inst" ]; then export INST_DEFER_BUILD=1; fi
           python -m pipeline.run_daily --phase "$PHASE" \

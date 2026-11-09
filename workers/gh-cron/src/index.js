@@ -40,6 +40,34 @@ export async function dispatch(env, job, fetchImpl = fetch) {
   }
 }
 
+// 2026-11-09：daily.yml 的 concurrency 群組（tw-rotation-data-write）只留 1 個 pending，新排進來的會把原本 pending 的 price／full 擠掉。
+// 所以派 inst 之前先查 daily.yml 有沒有排隊中或執行中的 run；有就這次不派（10 分鐘後下一個 inst 再看）。
+// 查詢失敗一律放行（照常派），不讓 GitHub API 的小狀況變成整天不抓法人。超過 STALE_MS 的 run 視為卡死，不算。
+export const GUARD_STATUSES = ['queued', 'pending', 'waiting', 'in_progress'];
+export const STALE_MS = 2 * 3600 * 1000;
+export async function busyDailyRuns(env, now, fetchImpl = fetch) {
+  const repo = env.GH_REPO || 'MiaoZiKe/tw-rotation';
+  const found = [];
+  for (const st of GUARD_STATUSES) {
+    const res = await fetchImpl(`https://api.github.com/repos/${repo}/actions/workflows/daily.yml/runs?status=${st}&per_page=30`, {
+      headers: {
+        Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'tw-gh-cron-worker',
+      },
+    });
+    if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    for (const r of (j && j.workflow_runs) || []) {
+      const t = Date.parse(r.created_at || '');
+      if (Number.isFinite(t) && now - t > STALE_MS) continue;
+      found.push({ id: r.id, status: st, title: r.display_title || r.name || '' });
+    }
+  }
+  return found;
+}
+
 export async function runScheduled(scheduledTime, env, fetchImpl = fetch, log = console) {
   const jobs = dueJobs(scheduledTime, { enabled: { premarket: env.ENABLE_PREMARKET === '1' } });
   if (!jobs.length) return [];
@@ -50,6 +78,15 @@ export async function runScheduled(scheduledTime, env, fetchImpl = fetch, log = 
   const done = [];
   for (const job of jobs) {
     try {
+      if (job.workflow === 'daily.yml' && job.inputs && job.inputs.phase === 'inst') {
+        let busy = [];
+        try { busy = await busyDailyRuns(env, scheduledTime, fetchImpl); }
+        catch (e) { log.error('查 daily.yml 排隊狀態失敗，照常派 inst：' + String(e && e.message ? e.message : e)); }
+        if (busy.length) {
+          log.log('略過 ' + job.label + '：daily.yml 有 ' + busy.map((b) => `${b.status}#${b.id}${b.title}`).join(', ') + '，讓路給排隊中的 price／full，下一輪再派');
+          continue;
+        }
+      }
       await dispatch(env, job, fetchImpl);
       log.log('已派工 ' + job.label);
       done.push(job.label);

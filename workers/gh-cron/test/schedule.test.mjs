@@ -105,3 +105,63 @@ test('2026-11-02 降量模式：資料管線（daily.yml）派工一條都沒少
   // 盤前 08:20 留著（只為了更新網站盤前消息；發文被 post_quota.json 擋下）
   assert.deepEqual(names(tpe('2026-11-02 08:20'), { enabled: { premarket: true } }), ['social-live.yml:{"kind":"premarket","dry_run":"false"}']);
 });
+
+// 2026-11-09：派 inst 前先查 daily.yml 有沒有排隊／執行中的 run，避免 concurrency 只留 1 個 pending 時把 price／full 擠掉
+function mkFetch(byStatus, calls) {
+  return async (url, init) => {
+    calls.push({ url, init });
+    if (init && init.method === 'POST') return { status: 204, text: async () => '' };
+    const st = new URL(url).searchParams.get('status');
+    return { status: 200, json: async () => ({ workflow_runs: byStatus[st] || [] }), text: async () => '' };
+  };
+}
+const NOW = tpe('2026-11-09 16:16');
+const run = (id, title, minsAgo = 5) => ({ id, display_title: title, created_at: new Date(NOW - minsAgo * 60000).toISOString() });
+const guardEnv = { GH_DISPATCH_TOKEN: 'T', GH_REPO: 'MiaoZiKe/tw-rotation', GH_REF: 'main' };
+const posts = (calls) => calls.filter((c) => c.init && c.init.method === 'POST');
+
+test('inst 派工前：沒有任何排隊／執行中的 run → 照常派', async () => {
+  const calls = [];
+  const done = await runScheduled(NOW, guardEnv, mkFetch({}, calls), { log() {}, error() {} });
+  assert.equal(done.length, 1);
+  assert.equal(posts(calls).length, 1);
+  assert.equal(calls.filter((c) => !c.init.method || c.init.method === 'GET').length, 4);   // queued／pending／waiting／in_progress 各查一次
+});
+
+test('inst 派工前：有排隊中的 price／full → 這次 inst 不派', async () => {
+  for (const st of ['queued', 'pending']) {
+    const calls = [];
+    const done = await runScheduled(NOW, guardEnv, mkFetch({ [st]: [run(1, '每日盤後管線 (price)')] }, calls), { log() {}, error() {} });
+    assert.deepEqual(done, [], st);
+    assert.equal(posts(calls).length, 0, st);
+  }
+});
+
+test('inst 派工前：有執行中的 run 也讓路；超過 2 小時的卡死 run 不算', async () => {
+  let calls = [];
+  assert.deepEqual(await runScheduled(NOW, guardEnv, mkFetch({ in_progress: [run(2, '每日盤後管線 (full)')] }, calls), { log() {}, error() {} }), []);
+  calls = [];
+  const done = await runScheduled(NOW, guardEnv, mkFetch({ in_progress: [run(3, '每日盤後管線 (full)', 180)] }, calls), { log() {}, error() {} });
+  assert.equal(done.length, 1);
+});
+
+test('inst 派工前：查 GitHub 失敗 → 放行照派（不讓 API 小狀況變成整天不抓法人）', async () => {
+  const calls = [];
+  const errs = [];
+  const f = async (url, init) => {
+    calls.push({ url, init });
+    if (init && init.method === 'POST') return { status: 204, text: async () => '' };
+    return { status: 500, json: async () => ({}), text: async () => '' };
+  };
+  const done = await runScheduled(NOW, guardEnv, f, { log() {}, error: (m) => errs.push(m) });
+  assert.equal(done.length, 1);
+  assert.equal(errs.length, 1);
+});
+
+test('price／full／news 派工不受 guard 影響（不查、直接派）', async () => {
+  const calls = [];
+  const f = mkFetch({ queued: [run(9, '每日盤後管線 (inst)')], in_progress: [run(10, '每日盤後管線 (inst)')] }, calls);
+  const done = await runScheduled(tpe('2026-11-09 15:38'), guardEnv, f, { log() {}, error() {} });
+  assert.equal(done.length, 1);
+  assert.equal(calls.length, 1);
+});
