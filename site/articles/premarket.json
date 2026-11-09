@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-06",
+ "updated": "2026-11-09",
  "days": [
+  {
+   "date": "2026-11-09",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "民主黨橫掃國會後 微軟出售Xbox可能性擴大",
+     "url": "https://news.cnyes.com/news/id/6648374",
+     "source": "鉅亨",
+     "time": "2026-11-07T08:40:05+08:00",
+     "desc": "民主黨掌國會後，資料中心政策風險升溫，可能促使微軟出售 Xbox；美國逾40個城鎮及郡表決資料中心措施，至少10個通過限制或禁令；56%選民將候選人對AI與資料…"
+    },
+    {
+     "cat": "科技",
+     "title": "傳跨足先進記憶體生產？焦佑鈞：台積電與三大記憶體原廠均有合作不會加入競爭",
+     "url": "https://finance.technews.tw/2026/11/07/tsmc-collaborates-with-all-three-major-memory-manufacturers-and-will-not-join-the-competition/",
+     "source": "科技新報",
+     "time": "2026-11-07T20:00:12+08:00",
+     "desc": "針對近期市場傳出半導體龍頭台積電為因應輝達需求，擬跨足先進記憶體與 3D DRAM 領域，引發半導體供應鏈高度"
+    },
+    {
+     "cat": "新聞",
+     "title": "營收速報 - 2026年11月7日台股中小型公司10月營收一覽（新增573家）",
+     "url": "https://news.cnyes.com/news/id/6651856",
+     "source": "鉅亨",
+     "time": "2026-11-07T07:55:11+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "事件",
+     "title": "川普出招淡化共和黨期中選舉慘敗！宣布2028年美國將辦全球最大航空展",
+     "url": "https://news.cnyes.com/news/id/6651926",
+     "source": "鉅亨",
+     "time": "2026-11-07T19:10:03+08:00",
+     "desc": "川普赴佛州出席UP Summit，宣傳2028年在甘迺迪太空中心辦全球最大航空展CapeWeek；活動由NASA、佛州政府與Space Florida推動，盼吸…"
+    },
+    {
+     "cat": "總經",
+     "title": "中國醫藥出口成長，UPS、DHL與FedEx搶攻醫療物流溫控和跨境通關成競爭關鍵",
+     "url": "https://news.cnyes.com/news/id/6652282",
+     "source": "鉅亨",
+     "time": "2026-11-08T12:00:14+08:00",
+     "desc": ""
+    }
+   ]
+  },
   {
    "date": "2026-11-06",
    "items": [
