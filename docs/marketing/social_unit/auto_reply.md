@@ -111,3 +111,4 @@ IG 那把（A 層 IG 回留言要 `instagram_business_manage_comments`）：若�
 | 時間（台北） | 工作流 | 結果 |
 |---|---|---|
 | 2026-11-09 12:55 | threads_hot_collect（分支 push） | 權杖有效（/me 成功）；12 個關鍵字全部 `HTTP 403 code 10 Application does not have permission for this action` → 缺 threads_keyword_search；0 則。https://github.com/MiaoZiKe/tw-rotation/actions/runs/42564290998 |
+| 2026-11-09 13:01 | auto_reply（分支 push，強制只記錄） | Threads 讀自己貼文回覆、IG 讀貼文與留言都**沒有權限錯誤**（讀的權限夠）；72 小時內別人的留言 0 則，所以 0 則待寫、0 則送出（跟診斷「回覆只有自己那則出處」一致）。「回覆的寫入權限」要等第一則真的送出才驗得到。https://github.com/MiaoZiKe/tw-rotation/actions/runs/42564793153 |
