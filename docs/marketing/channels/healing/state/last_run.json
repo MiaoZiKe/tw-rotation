@@ -1,5 +1,5 @@
 {
- "at": "2026-11-10T01:51:59+08:00",
+ "at": "2026-11-10T01:57:13+08:00",
  "mode": "verify",
  "item": "20261108_intro",
  "posted": {},
@@ -7,8 +7,8 @@
   "ig": "查不到帳號編號：所有路徑都找不到 IG 帳號編號"
  },
  "notes": [
-  "IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：已授權權限：ads_management、ads_read、instagram_basic、instagram_content_publish、instagram_manage_comments、instagram_manage_messages、public_profile；缺少權限：pages_show_list（列出粉絲專頁（找 IG 帳號用））、pages_read_engagement（讀粉絲專頁內容）；讀不到權杖到期資訊（debug_token）：HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 /me：失敗 'list' object has no attribute 'get'；探查 權杖授權範圍（debug_token）：失敗 HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 粉絲專頁連結的 IG（/me/accounts）：找到 0 個（粉絲專頁 0 個）；探查 企業管理平台的 IG（/me/businesses）：失敗 HTTP 400 {\"message\": \"(#100) Missing Permission\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrace_id\": \"A2kXtgVOuj_30pHYXRranmM\"}；探查 廣告帳號連結的 IG（/me/adaccounts）：找到 0 個（廣告帳號 0 個）；本頻道使用：所有路徑都找不到 IG 帳號編號",
+  "IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：已授權權限：ads_management、ads_read、instagram_basic、instagram_content_publish、instagram_manage_comments、instagram_manage_messages、public_profile；缺少權限：pages_show_list（列出粉絲專頁（找 IG 帳號用））、pages_read_engagement（讀粉絲專頁內容）；讀不到權杖到期資訊（debug_token）：HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 /me：回傳 list，權杖身分編號 （無），欄位 []；探查 權杖授權範圍（debug_token）：失敗 HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 粉絲專頁連結的 IG（/me/accounts）：找到 0 個（粉絲專頁 0 個）；探查 企業管理平台的 IG（/me/businesses）：失敗 HTTP 400 {\"message\": \"(#100) Missing Permission\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrace_id\": \"A28rWOk2HU4myCH4WUyiJjs\"}；探查 廣告帳號連結的 IG（/me/adaccounts）：找到 0 個（廣告帳號 0 個）；本頻道使用：所有路徑都找不到 IG 帳號編號",
   "IG 問題：所有路徑都找不到 IG 帳號編號"
  ],
- "summary": "驗證模式：threads 通過（容器 17922813069246114 FINISHED，未發布）；ig 失敗：查不到帳號編號：所有路徑都找不到 IG 帳號編號"
+ "summary": "驗證模式：threads 通過（容器 17922814086246114 FINISHED，未發布）；ig 失敗：查不到帳號編號：所有路徑都找不到 IG 帳號編號"
 }
