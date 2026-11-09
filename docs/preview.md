@@ -87,3 +87,12 @@ preview/* 有 push
 - 跨分頁同步（`storage` 事件）在預覽版不會觸發同分頁的更新（鍵名帶前綴）；重新整理即可。
 - 登入／即時：account-api、quote-proxy（Worker）與 taifex-deno 都只看 **Origin**（`https://miaozike.github.io`），
   不看路徑，所以預覽網址下**登入與即時報價都能用**。登入回呼也是比 origin，會回到預覽頁。
+
+## 預覽版的「使用者問卷」與「新會員體驗歡迎框」（2026-11-09 改規則）
+
+11-02 為了讓 Andy 能測，預覽版（網址含 `/preview/`）首頁一律強制跳出這兩個框；11-09 Andy 反映「這是什麼情況」（想看別的功能卻被擋）。現在：
+
+- 預覽版只有網址帶 `?survey=test`（問卷）或 `?promo=test`（歡迎框）才強制顯示，例如 `https://liguligu-puipui.com/preview/<名稱>/?survey=test`。
+- 正式站規則不變：帶參數且是站主帳號才強制顯示。
+- 同一次載入最多開一個框：問卷優先；問卷開著時歡迎框等著，問卷關掉（事件 `tw:survey-closed`）後才判斷。
+- 程式在 `site/survey.js`、`site/promo_welcome.js` 的 testMode()；驗收段落 `scripts/uitest_sections/20261109_問卷預覽.py`。

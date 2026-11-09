@@ -45,7 +45,7 @@
   }
   const onHome = () => { const h = location.hash || ''; return h === '' || h === '#' || h === '#/' || /^#overview(\/|\?|$)/.test(h); };
   /* 同意橫幅／導覽正在跑時先讓路，等它們結束（事件或定時重算）再出現 */
-  const busy = () => !!(document.getElementById('twTour') || document.querySelector('.lgmask:not([hidden])'));
+  const busy = () => !!(document.documentElement.classList.contains('svopen') || document.getElementById('twTour') || document.querySelector('.lgmask:not([hidden])'));
 
   /* 後端為準（POST /v1/ann/state → {seen, trial:{active,until,end}}；契約 docs/api/20261101_member_promo.md），localStorage 只是快取。
      後端還沒部署（404）、沒網路、回不是 200 → 退回 localStorage＋window.TwTrial／grants。 */
@@ -67,11 +67,13 @@
     return u > Date.now() ? u : 0;
   }
   /* 測試模式（Andy 11-02「幫我改成直接可以測試預覽」；不改正式規則）：
-     ① 預覽版（網址含 /preview/）：不論登入、體驗到期、關過與否，打開首頁就跳出；
+     ① 預覽版（網址含 /preview/）：只有網址帶 ?promo=test 才強制跳出（11-09 Andy：以前每個預覽都硬跳，擋住要看的功能）；
+        跳出時不論登入、體驗到期、關過與否；
+     ③ 與使用者問卷（survey.js）同一次載入最多開一個：問卷開著（html.svopen）就等，問卷關掉（tw:survey-closed）後才判斷；
      ② 正式站：網址帶 ?promo=test 且是站主帳號（TwAccount.user().admin）才強制顯示；一般使用者帶參數無效。
      測試模式關閉不寫 localStorage、不打 /v1/ann/dismiss，重新整理就再出現。 */
   function testMode() {
-    if (/\/preview\//.test(location.pathname || '')) return true;
+    if (/\/preview\//.test(location.pathname || '')) return /[?&#]promo=test(&|$)|[?&]promo=test(&|$)/.test((location.search || '') + '&' + ((location.hash || '').split('?')[1] || ''));
     try {
       const a = window.TwAccount, u = a && a.on && a.on() && a.user && a.user();
       return !!(u && u.admin && /[?&]promo=test(&|$)/.test(location.search || ''));
@@ -269,6 +271,7 @@
   window.addEventListener('tw:account', () => { P.srv = null; });
   ['tw:account', 'tw:grants', 'tw:trial', 'hashchange'].forEach((ev) => window.addEventListener(ev, () => schedule(ev === 'hashchange' ? 200 : 600)));
   window.addEventListener('tw:tour', () => schedule(800));
+  window.addEventListener('tw:survey-closed', () => schedule(600));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => schedule(1200)); else schedule(1200);
   window.TwPromoWelcome = { check, force, close, isOpen: () => !!P.el, offKey, email };
 })();

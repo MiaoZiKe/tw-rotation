@@ -18,14 +18,16 @@
   let doneFlag = false, failAt = -1e9, memSnooze = 0, trial = null, checking = false, shown = false, ov = null, lastFocus = null;
   const A = () => window.TwAccount || null;
   const isHome = () => { const h = (location.hash || '').replace(/^#\/?/, ''); return h === '' || h === 'overview'; };
-  /* 測試模式（2026-11-02 Andy：他已註冊、不符合條件沒辦法測）：
-     ① 預覽版（網址有 /preview/）首頁一律直接跳出，不論登入與資格；② 正式站網址加 ?survey=test，只有站主帳號（user.admin）強制顯示。
+  /* 測試模式（2026-11-02 Andy：他已註冊、不符合條件沒辦法測；11-09 改規則）：
+     ① 預覽版（網址有 /preview/）只有網址帶 ?survey=test 才強制跳出（11-09 Andy「這是什麼情況」：以前每個預覽都硬跳，擋住要看的功能）；
+     ② 正式站網址加 ?survey=test，只有站主帳號（user.admin）強制顯示。
+     ③ 同一次載入問卷與「新會員體驗歡迎框」最多開一個：問卷優先；歡迎框已在畫面上就等它關掉（check 每 1.5 秒重判）。
      兩種都不打後端（送出走假成功、顯示「示範」）、不寫「稍後再說」的 24 小時記錄。 */
   let demoForce = false;   // TwSurvey.open({demo:true})：展示頁（#promo-demo）叫出來的示範，假資料、送出走假成功
   const testMode = () => {
     if (demoForce) return 'demo';
-    if (/\/preview\//.test(location.pathname)) return 'preview';
     const q = (location.search || '') + '&' + ((location.hash || '').split('?')[1] || '');
+    if (/\/preview\//.test(location.pathname)) return /(^|[?&])survey=test(&|$)/.test(q) ? 'preview' : '';
     const a = A(); const u = a && a.user && a.user();
     return /(^|[?&])survey=test(&|$)/.test(q) && u && u.admin === true ? 'admin' : '';
   };
@@ -190,7 +192,7 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
   function later() { snooze(); close(); }
-  function close() { demoForce = false; if (ov) { ov.remove(); ov = null; } shown = false; document.documentElement.classList.remove('svopen'); if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* 略 */ } } }
+  function close() { demoForce = false; if (ov) { ov.remove(); ov = null; } shown = false; document.documentElement.classList.remove('svopen'); setTimeout(() => { try { window.dispatchEvent(new Event('tw:survey-closed')); } catch (e) { /* 略 */ } }, 0); if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* 略 */ } } }
 
   async function send() {
     if (st.busy) return;
@@ -214,6 +216,7 @@
   }
   async function check() {
     if (shown || checking || !isHome()) return;
+    if (document.getElementById('pwOv') && !demoForce) { setTimeout(check, 1500); return; }   // 歡迎框正開著：等它關掉，不疊
     if (testMode()) { if (!doneFlag) open(); return; }   // 測試模式：不看登入、資格、稍後再說
     const a = A(); if (doneFlag || !a || !a.on() || !a.user() || snoozed()) return;
     if (trial && !trial.survey_eligible) return;
