@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000"><defs><linearGradient id="k96vi6cbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFE5D8"/><stop offset="1" stop-color="#E2D3C0"/></linearGradient>
+ <linearGradient id="k96vi6csh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".10"/><stop offset=".25" stop-color="#fff" stop-opacity=".10"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+ <clipPath id="k96vi6ck"><path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z"/></clipPath></defs>
+ <rect class="bgx" width="800" height="1000" fill="url(#k96vi6cbg)"/>
+ <ellipse cx="400" cy="930" rx="230" ry="26" fill="#000" opacity=".10"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="#FFFBF5"/>
+ <rect x="150" y="620" width="500" height="140" fill="#E3C9A6" clip-path="url(#k96vi6ck)"/>
+ <path d="M200 160 H600 L552 890 Q550 905 535 905 H265 Q250 905 248 890 Z" fill="url(#k96vi6csh)"/>
+ <path d="M222 128 Q226 96 262 96 H538 Q574 96 578 128 Z" fill="#2B1D16"/>
+ <rect x="184" y="126" width="432" height="38" rx="19" fill="#2B1D16"/>
+ <g data-el="mark" transform="translate(285 222) scale(1.15)"><defs><linearGradient id="k97ddg2s" x1="0" y1="74" x2="0" y2="118" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E8A066"/><stop offset="1" stop-color="#C2652B"/></linearGradient><clipPath id="k97ddg2k"><rect x="40" y="60" width="120" height="58"/></clipPath></defs>
+  <path d="M44 188 V92 A56 56 0 0 1 156 92 V188 Z" fill="#2B1D16"/><path d="M51 188 V92 A49 49 0 0 1 149 92 V188 Z" fill="none" stroke="#C2652B" stroke-width="2" opacity=".9"/>
+  <g clip-path="url(#k97ddg2k)"><circle cx="100" cy="118" r="40" fill="url(#k97ddg2s)"/></g>
+  <rect x="58" y="102" width="84" height="2.2" fill="#2B1D16"/><rect x="58" y="108" width="84" height="3" fill="#2B1D16"/><rect x="58" y="114" width="84" height="4" fill="#2B1D16"/>
+  <path d="M86 94 H114 L111 118 H89 Z" fill="#2B1D16"/><path d="M114 100 Q123 100 123 107 Q123 114 113 114" fill="none" stroke="#2B1D16" stroke-width="4"/>
+  <path d="M56 118.5 H144" stroke="#C2652B" stroke-width="2"/>
+  <text x="100" y="66" text-anchor="middle" font-family="JetBrains Mono" font-weight="700" font-size="9" letter-spacing="1.5" fill="#F6EEE3" opacity=".75">EST·2026</text>
+  <text x="100" y="166" font-family="Bitstream Charter" font-weight="700" font-size="44" fill="#F6EEE3" font-style="italic" text-anchor="middle">AI</text>
+  <text x="100" y="181" text-anchor="middle" font-family="JetBrains Mono" font-weight="700" font-size="7.5" letter-spacing="1.2" fill="#F6EEE3" opacity=".6">COFFEE × AI</text></g>
+ <g data-el="word"><text x="233.9" y="560.0" font-family="Inter Display" font-weight="700" font-size="60.0" letter-spacing="4.8"  fill="#2B1D16">CAFF</text><text x="406.5" y="560.0" font-family="Bitstream Charter" font-weight="700" font-size="63.0"  font-style="italic" fill="#C2652B">AI</text><text x="481.3" y="560.0" font-family="Inter Display" font-weight="700" font-size="60.0" letter-spacing="4.8"  fill="#2B1D16">NE</text></g>
+ <g data-el="tag"><text x="400" y="680" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">一杯咖啡的時間</text><text x="400" y="722" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" fill="#2B1D16" fill-opacity=".9">看懂一個 <tspan font-family="Inter" font-weight="800" fill="#C2652B">AI</tspan> 新知</text></g></svg>
