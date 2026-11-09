@@ -493,8 +493,8 @@ def pick_ig(pages: list[dict], account: str = "") -> tuple[str, str]:
 #   biz        /me/businesses → owned_instagram_accounts／instagram_accounts（要 business_management，多半失敗）
 #   ads        /me/adaccounts → /{act}/instagram_accounts、connected_instagram_accounts（ads_read）
 # 順序就是優先序；驗證模式會逐一建容器，通過的那條路名記進 state/verify.json（只記路名、不記編號），正式發文優先用它。
-IG_PATHS = ("granular", "assigned", "pages", "asg_pages", "biz", "ads")
-IG_PATH_NAME = {"granular": "權杖授權範圍（debug_token）", "assigned": "系統用戶指派的 IG（assigned_instagram_accounts）",
+IG_PATHS = ("granular", "assigned", "me_edge", "pages", "asg_pages", "biz", "ads")
+IG_PATH_NAME = {"me_edge": "/me 底下的 IG 欄位或邊", "granular": "權杖授權範圍（debug_token）", "assigned": "系統用戶指派的 IG（assigned_instagram_accounts）",
                 "pages": "粉絲專頁連結的 IG（/me/accounts）", "asg_pages": "系統用戶指派的粉絲專頁（assigned_pages）",
                 "biz": "企業管理平台的 IG（/me/businesses）", "ads": "廣告帳號連結的 IG（/me/adaccounts）"}
 
@@ -556,6 +556,37 @@ def fb_ig_candidates(token: str, probe: list[str] | None = None) -> list[dict]:
         probe.append(f"/me：回傳 {shape}，權杖身分編號 {_tail(me_id)}，欄位 {sorted((d or {}).keys())}")
     except Exception as e:  # noqa: BLE001
         probe.append(f"/me：失敗 {SP.redact(e)[:160]}")
+    # 0. /me 直接掛的邊（系統用戶 /me 實測回空陣列，拿不到自己的編號 → 用 me 別名直接打邊）；只記形狀與 username
+    def _walk(o, out):
+        if isinstance(o, dict):
+            iid = o.get("id") or o.get("user_id")
+            if o.get("username") and iid:
+                out.append((str(iid), str(o["username"])))
+            for v in o.values():
+                _walk(v, out)
+        elif isinstance(o, list):
+            for v in o:
+                _walk(v, out)
+    n = len(found)
+    for path, prm in (("me", {}), ("me", {"fields": "id"}), ("me", {"fields": "user_id,username"}),
+                      ("me", {"fields": "instagram_business_account{id,username}"}),
+                      ("me/assigned_instagram_accounts", {"fields": ig_f}), ("me/instagram_accounts", {"fields": ig_f}),
+                      ("me/assigned_pages", {"fields": page_f}), ("me/assigned_ad_accounts", {"fields": "name"})):
+        try:
+            d = SP.http("GET", f"{FB_HOST}/{path}", params={**prm, "access_token": token})
+            got: list = []
+            _walk(d, got)
+            for iid, un in got:
+                add("me_edge", iid, un)
+            if not me_id and path == "me" and isinstance(d, dict) and d.get("id"):
+                me_id = str(d["id"])
+                _mask_uid(me_id)
+            keys = sorted(d.keys()) if isinstance(d, dict) else f"list[{len(d)}]"
+            probe.append(f"/{path}?{','.join(prm.values()) or '（無欄位）'}：回傳 {keys}；含 IG {len(got)} 個")
+        except Exception as e:  # noqa: BLE001
+            probe.append(f"/{path}?{','.join(prm.values()) or '（無欄位）'}：失敗 {SP.redact(e)[:140]}")
+    if len(found) > n:
+        note("me_edge", n)
     # 1. granular_scopes
     n = len(found)
     try:
