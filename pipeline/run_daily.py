@@ -1236,8 +1236,12 @@ def main() -> int:
         #   逐檔名單 ＝ 成交值前 N 檔 ∪ 網站用到的全部個股，頁面用到的一檔都不缺。
         save("inst_daily", step("finmind.institutional_bulk", inst_bulk.fill_inst_bulk))
         codes = inst_bulk.with_site_codes(universe(args.universe))
+        # 2026-11-09：trade_date 是 openapi 的日期（T-1，當天 11-06），逐檔法人抓到它為止，當天（mis 暫定價量那天）的上市法人
+        # 整輪沒人抓 —— 只有 inst 輪（用湖裡價量最新日）顧到名單內約 456 檔。目標日改成三者最新：openapi 日、暫定價量日、湖裡價量最新日。
+        inst_day = max([d for d in (trade_date, RESULT.get("provisional_date"),
+                                    str(store.latest_date("price_daily") or "")[:10]) if d])
         save("inst_daily", step("finmind.institutional",
-                                fetch_institutional, codes, trade_date))
+                                fetch_institutional, codes, inst_day))
         # 財報一季才變一次，每天用剩餘額度補一小批就夠（財報季會自然滾完）
         save("financial_q", step("finmind.financial_refresh",
                                  refresh_financials, codes[:60]))

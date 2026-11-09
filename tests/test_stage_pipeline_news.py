@@ -19,7 +19,7 @@ def _clean():
     yield
 
 
-def _run(monkeypatch, phase, tmp_path):
+def _run(monkeypatch, phase, tmp_path, inst_days=None, lake_latest="2026-09-14"):
     """把所有來源換成記名字的假函式，跑一次 main()，回傳被呼叫過的來源名單。"""
     called: list[str] = []
 
@@ -50,13 +50,17 @@ def _run(monkeypatch, phase, tmp_path):
             monkeypatch.setattr(target, a, rec(f"{mod}.{a}"), raising=False)
     # latest_date 回的是字串不是 DataFrame，不能用同一個假函式
     monkeypatch.setattr(run_daily.mis, "latest_date", rec("mis.latest_date", "2026-09-14"))
-    monkeypatch.setattr(run_daily.store, "latest_date", lambda t: "2026-09-14")
+    monkeypatch.setattr(run_daily.store, "latest_date", lambda t: lake_latest)
     monkeypatch.setattr(run_daily, "universe_pairs", lambda: [("2330", "TWSE")])
     monkeypatch.setattr(run_daily, "universe", lambda n: ["2330"])
 
     monkeypatch.setattr(run_daily.twse, "price_daily", rec("twse.price_daily", px))
     monkeypatch.setattr(run_daily, "save", lambda *a, **k: 0)
-    monkeypatch.setattr(run_daily, "fetch_institutional", rec("finmind.institutional"))
+    if inst_days is None:
+        monkeypatch.setattr(run_daily, "fetch_institutional", rec("finmind.institutional"))
+    else:
+        monkeypatch.setattr(run_daily, "fetch_institutional",
+                            lambda codes, d, lb=10: (inst_days.append(d), pd.DataFrame())[1])
     # 2026-10-20：整天全市場法人補抓與新鮮度檢查會讀真實資料湖／打 FinMind，階段測試不測它們（見 test_data_fresh_1020.py）
     monkeypatch.setattr(run_daily.inst_bulk, "fill_inst_bulk", lambda *a, **k: pd.DataFrame())
     monkeypatch.setattr(run_daily.inst_bulk, "site_codes", lambda: [])
@@ -167,3 +171,12 @@ def test_期交所逐筆只在傍晚與週末那幾輪抓(monkeypatch, tmp_path)
     for ph in ("full", "news"):
         called, _ = _run(monkeypatch, ph, tmp_path)
         assert "taifex.futures_minute" in called, f"phase={ph} 應該要抓期交所逐筆"
+
+
+
+def test_full輪逐檔法人的目標日取最新價量日_不是openapi的T減1(monkeypatch, tmp_path):
+    """2026-11-09：full 輪 trade_date 是 openapi 的 11-06，逐檔法人只抓到 11-06，
+    當天（mis 暫定價量日 11-09）的上市法人整輪沒人抓。湖裡價量已到 11-09 時，目標日要是 11-09。"""
+    days: list[str] = []
+    _run(monkeypatch, "full", tmp_path, inst_days=days, lake_latest="2026-09-15")
+    assert days == ["2026-09-15"]
