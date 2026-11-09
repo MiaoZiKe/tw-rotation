@@ -292,7 +292,7 @@ def _writeback(new: str, env: dict, notes: list[str], saver, why: str, prefix: s
 
 # ---------- IG 輪播（流程同 ig_post.publish，改走 social_publish.http 以便遮蔽與輪詢）----------
 def publish_ig(uid: str, token: str, urls: list[str], caption: str) -> dict:
-    host = SP.IG_HOST
+    host = ig_host(token)      # EAA（Facebook 登入）→ graph.facebook.com；IGAA（Instagram 登入）→ graph.instagram.com
 
     def go():
         if len(urls) == 1:
@@ -321,7 +321,7 @@ def publish_ig(uid: str, token: str, urls: list[str], caption: str) -> dict:
 
 # ---------- 驗證模式（只建容器、等 FINISHED，不呼叫 publish）----------
 def verify_ig(uid: str, token: str, urls: list[str], caption: str) -> str:
-    host = SP.IG_HOST
+    host = ig_host(token)
 
     def go():
         if len(urls) == 1:
@@ -384,8 +384,8 @@ def token_hint(p: str, t: str) -> str:
         return "權杖字串含空白、換行或引號（貼上時多了字，請重貼）"
     if p == "ig":
         if t.startswith("EAA"):
-            return ("這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），"
-                    "要在 Meta 後台「Instagram API（以 Instagram 登入）」產生")
+            return ("Facebook 登入版權杖（EAA 開頭，走 graph.facebook.com）：Meta 不接受或查不到連結的 IG 商業帳號；"
+                    "看驗證模式摘要列出的缺少權限／粉絲專頁是否連了 IG")
         if t.startswith("TH"):
             return "看起來是 Threads 權杖，放到 IG 那格了"
         if t.startswith("IG"):
@@ -398,12 +398,170 @@ def token_hint(p: str, t: str) -> str:
     return "Meta 不接受這把權杖（已失效、被撤銷或複製不完整；改過密碼也會讓舊權杖失效）"
 
 
+# ---------- IG：Facebook 登入版權杖（EAA 開頭）走 graph.facebook.com（2026-11-10）----------
+# Andy 重產兩次，三個頻道的 IG 密鑰仍是 EAA 開頭 → 不再叫他重產，程式兩種都吃：
+#   IGAA（Instagram 登入）→ graph.instagram.com；EAA（Facebook 登入）→ graph.facebook.com，
+#   IG 商業帳號編號用 /me/accounts?fields=instagram_business_account 找（*_IG_USER_ID 有填就優先用）。
+#   /{ig-user-id}/media、media_publish、輪播 children、容器 status_code 在兩個網域用法相同。
+FB_HOST = "https://graph.facebook.com/v24.0"
+FB_PERMS = ("instagram_basic", "instagram_content_publish", "pages_show_list", "pages_read_engagement",
+            "instagram_manage_comments", "instagram_manage_messages")
+FB_PERMS_POST = ("instagram_basic", "instagram_content_publish", "pages_show_list")   # 發文一定要的
+FB_PERM_USE = {"instagram_basic": "讀 IG 帳號", "instagram_content_publish": "發 IG 貼文",
+               "pages_show_list": "列出粉絲專頁（找 IG 帳號用）", "pages_read_engagement": "讀粉絲專頁內容",
+               "instagram_manage_comments": "讀／回 IG 留言", "instagram_manage_messages": "IG 私訊"}
+
+
+def is_fb_token(token: str) -> bool:
+    return (token or "").startswith("EAA")
+
+
+def ig_host(token: str) -> str:
+    return FB_HOST if is_fb_token(token) else SP.IG_HOST
+
+
+def channel_account(prefix: str | None = None, path: Path = CHANNELS_FILE) -> str:
+    """權杖前綴 → channels.json 的 IG 帳號名（例如 TECH_ → Tech_01010909）；找不到回 ''。"""
+    px = _pfx(prefix)
+    try:
+        for c in load_channels(path).values():
+            if c.get("prefix") == px:
+                return str(c.get("account") or "")
+    except Exception:  # noqa: BLE001
+        pass
+    return "talk_01010909" if px == PREFIX else ""
+
+
+def fb_pages(token: str, with_token: bool = False) -> list[dict]:
+    """/me/accounts：權杖看得到的粉絲專頁 [{name, ig_id, ig_username}]。
+    with_token=True 才多回 page_id、page_token（私訊要用專頁權杖；拿到就 ::add-mask::，絕不輸出）。"""
+    out: list[dict] = []
+    f = "name,instagram_business_account{id,username}" + (",id,access_token" if with_token else "")
+    url, params = f"{FB_HOST}/me/accounts", {"fields": f, "limit": 100, "access_token": token}
+    for _ in range(5):
+        d = SP.http("GET", url, params=params)
+        for pg in d.get("data") or []:
+            iba = pg.get("instagram_business_account") or {}
+            x = {"name": str(pg.get("name") or ""), "ig_id": str(iba.get("id") or ""),
+                 "ig_username": str(iba.get("username") or "")}
+            if with_token:
+                pt = str(pg.get("access_token") or "")
+                if pt:
+                    print("::add-mask::" + pt, flush=True)
+                    SP._SECRETS.append(pt)
+                x.update(page_id=str(pg.get("id") or ""), page_token=pt)
+            out.append(x)
+        nxt = (d.get("paging") or {}).get("next")
+        if not nxt:
+            break
+        url, params = nxt, None
+    return out
+
+
+def pick_ig(pages: list[dict], account: str = "") -> tuple[str, str]:
+    """從粉絲專頁挑這個頻道的 IG：帳號名對得上的優先；只有一個連了 IG 就用它；多個又對不上 → 不猜，回 ''。
+    回傳（ig_id, 說明）。"""
+    linked = [x for x in pages if x["ig_id"]]
+    if not linked:
+        return "", f"權杖看得到 {len(pages)} 個粉絲專頁，但沒有一個連結 IG 專業帳號"
+    if account:
+        for x in linked:
+            if x["ig_username"].lower() == account.lower():
+                return x["ig_id"], f"對到 IG @{x['ig_username']}（粉絲專頁「{x['name']}」）"
+    if len(linked) == 1:
+        x = linked[0]
+        why = f"只有一個 IG：@{x['ig_username']}（粉絲專頁「{x['name']}」）"
+        if account:
+            why += f"；⚠️ 跟本頻道帳號 {account} 不同，請確認權杖是不是產錯帳號"
+        return x["ig_id"], why
+    names = "、".join("@" + x["ig_username"] for x in linked)
+    return "", f"權杖看得到多個 IG（{names}），沒有一個是本頻道的 {account or '（未設定帳號名）'}，不猜；請填 *_IG_USER_ID"
+
+
+def _mask_uid(uid: str) -> None:
+    print("::add-mask::" + uid, flush=True)
+    if len(uid) >= 6 and uid not in SP._SECRETS:
+        SP._SECRETS.append(uid)
+
+
+def resolve_uid(p: str, env_id: str, token: str, prefix: str | None = None) -> str:
+    """IG＋EAA 權杖：USER_ID 有填就用，沒填用 /me/accounts 找；其餘照舊走 social_publish.resolve_user_id。"""
+    if not (p == "ig" and is_fb_token(token)):
+        return SP.resolve_user_id(p, env_id, token)
+    if env_id:
+        return env_id
+    try:
+        uid, why = pick_ig(fb_pages(token), channel_account(prefix))
+    except Exception as e:  # noqa: BLE001
+        SP.log(f"[ig] 用 Facebook 權杖查粉絲專頁失敗：{SP.redact(e)}")
+        return ""
+    SP.log(f"[ig] Facebook 登入版權杖：{why}")
+    if uid:
+        _mask_uid(uid)
+    return uid
+
+
+def fb_diag(token: str, account: str = "") -> dict:
+    """EAA 權杖診斷（不印任何權杖字元）：已授權權限、缺的權限、粉絲專頁與連結的 IG、權杖類型與到期。
+    回傳 {"lines": [...], "missing": [...], "problems": [...]}。"""
+    lines, problems = [], []
+    granted, declined = [], []
+    try:
+        d = SP.http("GET", f"{FB_HOST}/me/permissions", params={"access_token": token})
+        for x in d.get("data") or []:
+            (granted if x.get("status") == "granted" else declined).append(str(x.get("permission")))
+        lines.append("已授權權限：" + ("、".join(sorted(granted)) or "（無）"))
+        if declined:
+            lines.append("被拒或撤銷的權限：" + "、".join(sorted(declined)))
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"讀不到權限清單（/me/permissions）：{SP.redact(e)[:200]}")
+    missing = [x for x in FB_PERMS if granted and x not in granted]
+    if missing:
+        must = [x for x in missing if x in FB_PERMS_POST]
+        lines.append("缺少權限：" + "、".join(f"{x}（{FB_PERM_USE[x]}）" for x in missing))
+        if must:
+            problems.append("缺發文必要權限：" + "、".join(must))
+    try:
+        dbg = SP.http("GET", f"{FB_HOST}/debug_token", params={"input_token": token, "access_token": token})
+        dd = dbg.get("data") or {}
+        typ = {"USER": "使用者權杖", "PAGE": "粉絲專頁權杖"}.get(str(dd.get("type") or ""), str(dd.get("type") or "未知"))
+        exp = int(dd.get("expires_at") or 0)
+        if exp == 0:
+            ex = "不會過期"
+        else:
+            left = exp - int(datetime.now(timezone.utc).timestamp())
+            ex = (f"約 {left // 3600} 小時後到期" if left < 2 * 86400 else f"約 {left // 86400} 天後到期") if left > 0 \
+                else "已過期"
+            if 0 < left < 2 * 86400:
+                problems.append("權杖是短效（2 天內到期，多半是 1～2 小時）：要換成長效，否則很快就不能發")
+        lines.append(f"權杖類型：{typ}，{ex}" + ("" if dd.get("is_valid", True) else "（Meta 回報無效）"))
+    except Exception as e:  # noqa: BLE001
+        lines.append(f"讀不到權杖到期資訊（debug_token）：{SP.redact(e)[:160]}")
+    try:
+        pages = fb_pages(token)
+        linked = [x for x in pages if x["ig_id"]]
+        lines.append(f"粉絲專頁 {len(pages)} 個；連了 IG 的 {len(linked)} 個" + (
+            "：" + "、".join(f"「{x['name']}」→ @{x['ig_username']}" for x in linked) if linked else ""))
+        unlinked = [x["name"] for x in pages if not x["ig_id"]]
+        if unlinked:
+            lines.append("沒連 IG 的粉絲專頁：" + "、".join(f"「{n}」" for n in unlinked))
+        uid, why = pick_ig(pages, account)
+        lines.append("本頻道使用：" + why)
+        if not pages:
+            problems.append("權杖看不到任何粉絲專頁（授權時沒勾選粉絲專頁，或缺 pages_show_list）")
+        elif not uid:
+            problems.append(why)
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"讀不到粉絲專頁（/me/accounts）：{SP.redact(e)[:200]}")
+    return {"lines": lines, "missing": missing, "problems": problems}
+
+
 def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver, prefix: str | None = None) -> tuple[str, str]:
     prefix = _pfx(prefix)
     token = tok[p]
     if p == "threads":
         token = threads_token_check(token, env, notes, saver, prefix)
-    uid = SP.resolve_user_id(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token)
+    uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix)
     if not uid:
         raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
     return token, uid
@@ -459,6 +617,14 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
             urls = [public_url(it, f) for f in (ig_files(it) if p == "ig" else it["images"])]
             for u in urls:
                 check(u, "image/jpeg" if p == "ig" else "image/png")
+            if p == "ig" and is_fb_token(tok[p]):
+                dg = fb_diag(tok[p], channel_account(prefix))
+                res["ig_diag"] = dg
+                for ln in dg["lines"]:
+                    SP.log("[ig 診斷] " + ln)
+                res["notes"].append("IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：" + "；".join(dg["lines"]))
+                for pb in dg["problems"]:
+                    res["notes"].append("IG 問題：" + pb)
             token, uid = _live_token(p, env, tok, res["notes"], saver, prefix)
             cid = ver[p](uid, token, urls, it["caption"] if p == "ig" else _threads_text(it["caption"]))
             mark_verified(state, p, now, cid)
@@ -474,7 +640,7 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
 # ---------- 刪文 ----------
 def delete_media(p: str, mid: str, token: str) -> dict:
     """Threads：DELETE /v1.0/{id}（要 threads_delete 權限）。IG：試 DELETE /v24.0/{id}（Instagram 登入版不一定支援）。"""
-    url = f"{SP.THREADS_HOST}/v1.0/{mid}" if p == "threads" else f"{SP.IG_HOST}/{mid}"
+    url = f"{SP.THREADS_HOST}/v1.0/{mid}" if p == "threads" else f"{ig_host(token)}/{mid}"
     d = SP.http("DELETE", url, params={"access_token": token})
     if isinstance(d, dict) and d.get("success") is False:
         raise RuntimeError("API 回 success=false")
@@ -676,7 +842,7 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             token = tok[p]
             if p == "threads":
                 token = threads_token_check(token, env, res["notes"], saver, prefix)
-            uid = SP.resolve_user_id(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token)
+            uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix)
             if not uid:
                 raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
             if not is_verified(state, p):

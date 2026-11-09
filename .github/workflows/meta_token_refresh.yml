@@ -57,6 +57,9 @@ jobs:
           CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO }}
           # 共用：Threads 續期失敗（多半是 1 小時短效）時自動換 60 天長效（只對 HEALING／TECH／CAFFAINE 這幾組）
           THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          # 2026-11-10：IG 是 Facebook 登入版（EAA）時續期要 app id＋secret（沒設就跳過續期，只讀到期日）
+          META_APP_ID: ${{ secrets.META_APP_ID }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
           META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
         run: |
           DRY=""

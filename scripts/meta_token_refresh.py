@@ -64,8 +64,12 @@ TC_INTAKE_PATH = STATE_PATH.parent / "tc_token.json"
 for _ch in ("HEALING", "TECH", "CAFFAINE"):   # 水下蝦米不接（Andy 11-09：「Shrimp_01010909 不用」，繼續用 Buffer）
     _k = _ch.lower()
     PLATFORMS[f"{_k}_threads"] = dict(PLATFORMS["threads"], env=f"{_ch}_THREADS_ACCESS_TOKEN", exchange=True)
-    PLATFORMS[f"{_k}_ig"] = dict(PLATFORMS["ig"], env=f"{_ch}_IG_ACCESS_TOKEN")
+    PLATFORMS[f"{_k}_ig"] = dict(PLATFORMS["ig"], env=f"{_ch}_IG_ACCESS_TOKEN", fb_ok=True)
 THREADS_EXCHANGE = "https://graph.threads.net/access_token"
+# 2026-11-10：三個頻道的 IG 密鑰是 Facebook 登入版（EAA 開頭），不是 Instagram 登入版（IGAA）。
+# fb_ok 的平台遇到 EAA：/me 改打 graph.facebook.com；續期改用 fb_exchange_token（要 META_APP_ID＋META_APP_SECRET，
+# 沒有就跳過續期，用 debug_token 讀到期日，到期前 10 天內告警）。頻道①的 ig／threads 不受影響。
+FB_HOST = "https://graph.facebook.com/v24.0"
 
 _SECRETS: list[str] = []
 
@@ -105,8 +109,43 @@ def http_get(url: str, params: dict) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def is_fb(platform: str, token: str) -> bool:
+    return bool(PLATFORMS[platform].get("fb_ok")) and (token or "").startswith("EAA")
+
+
+def fb_expiry(token: str) -> int | None:
+    """debug_token 讀到期時間（epoch 秒；0＝不會過期）；讀不到回 None。"""
+    try:
+        d = http_get(f"{FB_HOST}/debug_token", {"input_token": token, "access_token": token}).get("data") or {}
+        return int(d.get("expires_at") or 0)
+    except Exception as e:  # noqa: BLE001
+        log(f"[fb] debug_token 讀不到到期日：{redact(e)}")
+        return None
+
+
+def fb_exchange(token: str, app_id: str, secret: str) -> tuple[str, int | None]:
+    """Facebook 登入版權杖 → 長效（約 60 天）：fb_exchange_token，要 app id＋app secret。"""
+    d = http_get(f"{FB_HOST}/oauth/access_token", {"grant_type": "fb_exchange_token", "client_id": app_id,
+                                                   "client_secret": secret, "fb_exchange_token": token})
+    new = str(d.get("access_token") or "")
+    if not new:
+        raise RuntimeError("換長效回應裡沒有 access_token")
+    mask(new)
+    try:
+        exp = int(d.get("expires_in")) if d.get("expires_in") is not None else None
+    except (TypeError, ValueError):
+        exp = None
+    return new, exp
+
+
 def check_me(platform: str, token: str) -> bool:
     p = PLATFORMS[platform]
+    if is_fb(platform, token):
+        try:
+            return bool(http_get(f"{FB_HOST}/me", {"fields": "id", "access_token": token}).get("id"))
+        except Exception as e:  # noqa: BLE001
+            log(f"[{platform}] /me（Facebook）驗證失敗：{redact(e)}")
+            return False
     try:
         d = http_get(p["me"], {"fields": p["me_fields"], "access_token": token})
     except Exception as e:  # noqa: BLE001
@@ -208,6 +247,10 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
     mask(pat)
     app_secret = (env.get("THREADS_APP_SECRET") or "").strip()
     mask(app_secret)
+    fb_app_id = (env.get("META_APP_ID") or "").strip()
+    fb_secret = (env.get("META_APP_SECRET") or "").strip()
+    mask(fb_app_id)
+    mask(fb_secret)
     prev = load_state(state_path)
     intake = (load_state(intake_path or state_path.parent / TC_INTAKE_PATH.name).get("platforms")) or {}
     st = {"updated_at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else "refresh",
@@ -253,9 +296,30 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             st["platforms"][name] = ps
             continue
 
+        fb = is_fb(name, token)
+        if fb and not (fb_app_id and fb_secret):
+            # 沒有 app id／secret 不能換長效：只驗證權杖還能用，讀到期日，不算失敗（到期前 10 天照樣告警）
+            ok = check_me(name, token)
+            exp_at = fb_expiry(token) if ok else None
+            ps.update(ok=ok, status="fb-no-secret" if ok else "fb-invalid", fb=True,
+                      note="Facebook 登入版權杖（EAA）：沒有 META_APP_ID＋META_APP_SECRET，跳過續期")
+            if exp_at == 0:
+                ps["expires_at"], ps["never_expires"] = None, True
+            elif exp_at:
+                ps["expires_at"] = datetime.fromtimestamp(exp_at, timezone.utc).isoformat(timespec="seconds")
+            log(f"[{name}] Facebook 登入版權杖（EAA）{'可以用' if ok else '驗證失敗'}；沒有 app secret，跳過續期")
+            failed |= not ok
+            dl = None if ps.get("never_expires") else days_left(ps.get("expires_at"), now)
+            ps["days_left"] = dl
+            if not ok or (dl is not None and dl <= ALERT_DAYS):
+                st["alert"] = True
+                st["alert_reasons"].append(f"{name} Facebook 登入版權杖" + ("無效" if not ok else f"剩 {dl} 天到期")
+                                           + "，且沒有 app secret 可自動續期")
+            st["platforms"][name] = ps
+            continue
         try:
             try:
-                new, exp = refresh(name, token)
+                new, exp = fb_exchange(token, fb_app_id, fb_secret) if fb else refresh(name, token)
             except Exception as e:  # noqa: BLE001
                 if not (p.get("exchange") and app_secret):
                     raise

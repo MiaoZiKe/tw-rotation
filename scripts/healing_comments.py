@@ -46,7 +46,9 @@ CH = ROOT / "docs" / "marketing" / "channels" / "healing"
 CONFIG = CH / "dm_config.json"
 STATE = CH / "state" / "comments_dm.json"
 POSTED = CH / "state" / "posted.json"
-IG = SP.IG_HOST            # https://graph.instagram.com/v24.0
+IG = SP.IG_HOST            # https://graph.instagram.com/v24.0（Instagram 登入版 IGAA 權杖）
+FB = "https://graph.facebook.com/v24.0"   # Facebook 登入版 EAA 權杖（2026-11-10 起兩種都吃）
+_PAGE: dict = {}           # EAA：使用者權杖 → {page_id, page_token}（私訊、查追蹤要用專頁權杖；只在記憶體）
 TAIPEI = timezone(timedelta(hours=8))
 REPLY_WINDOW = timedelta(days=7)
 MAX_SEND_TRIES = 3         # 私訊送出失敗最多重試幾輪（每則留言 Meta 只准私回 1 次）
@@ -133,7 +135,22 @@ def iso_week(d: datetime) -> str:
 
 
 # ---------- Meta API ----------
-def me(token: str) -> dict:
+def _ig(token: str) -> str:
+    return FB if (token or "").startswith("EAA") else IG
+
+
+def me(token: str, prefix: str | None = None) -> dict:
+    """IGAA：/me。EAA（Facebook 登入）：/me/accounts 找本頻道的 IG 商業帳號，並記下該粉絲專頁的專頁權杖。"""
+    if (token or "").startswith("EAA"):
+        import healing_post as HP
+        pages = HP.fb_pages(token, with_token=True)
+        uid, why = HP.pick_ig(pages, HP.channel_account(prefix))
+        SP.log(f"[ig] Facebook 登入版權杖：{why}")
+        if not uid:
+            raise RuntimeError(why)
+        pg = next(x for x in pages if x["ig_id"] == uid)
+        _PAGE[token] = {"page_id": pg.get("page_id", ""), "page_token": pg.get("page_token", "")}
+        return {"id": uid, "username": pg["ig_username"]}
     d = SP.http("GET", f"{IG}/me", params={"fields": "user_id,username", "access_token": token})
     return {"id": str(d.get("user_id") or d.get("id") or ""), "username": str(d.get("username") or "")}
 
@@ -147,7 +164,7 @@ def recent_media(uid: str, token: str, since: datetime, posted: dict) -> list[st
             if at is None or at >= since:
                 ids.append(str(ig["id"]))
     try:                                                   # 帳號上全部貼文（含手動發的）
-        url, params = f"{IG}/{uid}/media", {"fields": "id,timestamp", "limit": 25, "access_token": token}
+        url, params = f"{_ig(token)}/{uid}/media", {"fields": "id,timestamp", "limit": 25, "access_token": token}
         for _ in range(4):
             d = SP.http("GET", url, params=params)
             old = False
@@ -168,7 +185,7 @@ def recent_media(uid: str, token: str, since: datetime, posted: dict) -> list[st
 
 def comments(media_id: str, token: str) -> list[dict]:
     out: list[dict] = []
-    url = f"{IG}/{media_id}/comments"
+    url = f"{_ig(token)}/{media_id}/comments"
     params = {"fields": "id,text,timestamp,username,from{id,username}", "limit": 50, "access_token": token}
     for _ in range(10):
         d = SP.http("GET", url, params=params)
@@ -185,7 +202,8 @@ def follows(igsid: str, token: str) -> bool | None:
     if not igsid:
         return None
     try:
-        d = SP.http("GET", f"{IG}/{igsid}", params={"fields": "is_user_follow_business", "access_token": token})
+        tk = (_PAGE.get(token) or {}).get("page_token") or token      # EAA：要用專頁權杖
+        d = SP.http("GET", f"{_ig(token)}/{igsid}", params={"fields": "is_user_follow_business", "access_token": tk})
     except Exception as e:  # noqa: BLE001
         SP.log(f"[ig] 查追蹤失敗（記為無法確認）：{SP.redact(e)[:200]}")
         return None
@@ -194,6 +212,13 @@ def follows(igsid: str, token: str) -> bool | None:
 
 
 def private_reply(uid: str, token: str, comment_id: str, text: str) -> dict:
+    """IGAA：/{ig-user-id}/messages。EAA：Instagram 私訊（Facebook 登入）走 /{page-id}/messages＋專頁權杖。"""
+    pg = _PAGE.get(token) or {}
+    if (token or "").startswith("EAA"):
+        if not (pg.get("page_id") and pg.get("page_token")):
+            raise RuntimeError("Facebook 登入版權杖拿不到粉絲專頁權杖，無法私訊（要 pages_show_list、instagram_manage_messages）")
+        return SP.http("POST", f"{FB}/{pg['page_id']}/messages", params={"access_token": pg["page_token"]},
+                       json={"recipient": {"comment_id": comment_id}, "message": {"text": text}})
     return SP.http("POST", f"{IG}/{uid}/messages", params={"access_token": token},
                    json={"recipient": {"comment_id": comment_id}, "message": {"text": text}})
 
@@ -229,7 +254,7 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
     print("::add-mask::" + token, flush=True)
 
     try:
-        acct = me(token)
+        acct = me(token, prefix)
     except Exception as e:  # noqa: BLE001
         res["errors"].append(f"查自己帳號失敗：{SP.redact(e)[:200]}")
         res["summary"] = "權杖無效或權限不足（查不到自己帳號）"

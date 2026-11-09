@@ -69,6 +69,7 @@ Secrets 頁：<https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions>
 - **沒設權杖** → 空跑、綠燈，摘要寫「等待 Andy 設定權杖：`<前綴>IG_ACCESS_TOKEN`、`<前綴>THREADS_ACCESS_TOKEN`」。只設一個平台 → 只發那個平台，另一個設好後補。
 - **權杖第一次出現** → 先自動跑驗證模式（只建輪播容器、等 FINISHED、不發布），`state/verify.json` 記 verified 後才正式發。
 - **Threads 短效（1 小時）**：發文前先試續期，失敗而且有 `THREADS_APP_SECRET` → 自動換 60 天長效，用 `META_SECRETS_PAT` 寫回 `<前綴>THREADS_ACCESS_TOKEN_AUTO`。
+- **IG 權杖兩種都吃（2026-11-10）**：IGAA 開頭（Instagram 登入版）走 `graph.instagram.com`；EAA 開頭（Facebook 登入版）走 `graph.facebook.com`，IG 商業帳號編號用 `/me/accounts` 找（照 channels.json 的 `account` 對帳號名；看得到多個又對不上就不猜，要填 `<前綴>IG_USER_ID`）。verify 模式對 EAA 會在摘要列出：已授權權限、缺少的權限、粉絲專頁幾個、哪個連了哪個 IG、權杖類型與到期。EAA 需要的權限：`instagram_basic`、`instagram_content_publish`、`pages_show_list`（發文必要），`pages_read_engagement`、`instagram_manage_comments`、`instagram_manage_messages`（留言私訊）。留言私訊在 EAA 下改用粉絲專頁權杖走 `/{page-id}/messages`。續期：EAA 要 `META_APP_ID`＋`META_APP_SECRET` 才能用 `fb_exchange_token` 換長效，沒有就跳過續期、只讀到期日（到期前 10 天內告警）。
 - **每週續期**：`meta_token_refresh.yml`（每週日台北 10:23）一起續 `HEALING／TECH／CAFFAINE` 的 IG 與 Threads，寫回 `*_AUTO`；沒設的狀態是 missing，不紅燈、不告警。這四組的 Threads 續期失敗時也會用共用 `THREADS_APP_SECRET` 試換長效。
 
 ## 5. 水下蝦米（不接）
@@ -122,3 +123,4 @@ Andy 11-09：「Shrimp_01010909 不用」。水下蝦米繼續由 Buffer（api.b
 
 - 2026-11-09：建立（social-ops-lead）。新增 tech、shrimp、caffaine 三個頻道；頻道④沿用 `healing_post.yml` 不動。
 - 2026-11-09：Andy：「Shrimp_01010909 不用 其他都幫我確認」→ 拿掉 shrimp（channels.json、工作流、續期、資料夾）；只缺一個平台時摘要列出缺的權杖；新頻道佇列空時驗證模式借頻道④的圖（只建容器不發布）。
+- 2026-11-10：Andy 重產兩次，三個頻道 IG 密鑰仍是 EAA（Facebook 登入版），verify 全部「Cannot parse access token」→ 程式改成 EAA 走 graph.facebook.com（發文、驗證、刪文、留言私訊、續期都對應），verify 加權限／粉絲專頁診斷；不再叫 Andy 重產（social-ops-lead）。
