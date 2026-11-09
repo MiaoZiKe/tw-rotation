@@ -316,3 +316,13 @@ def test_新頻道佇列空_驗證模式借頻道4的圖_不發布(tmp_path, mon
     v = json.loads((tmp_path / "t/state/verify.json").read_text())
     assert v["ig"]["verified"] and "threads" not in v
     assert not (tmp_path / "h" / "state").exists()          # 頻道④的 state 沒被寫
+
+
+def test_token_hint只講類別不洩漏字元():
+    t = "EAAxxSECRETxxxxxxxx"
+    h = hp.token_hint("ig", t)
+    assert "Facebook 登入版" in h and "SECRET" not in h and "EAAx" not in h
+    assert "Instagram 登入版" in hp.token_hint("ig", "IGAAzzzzzzzz")
+    assert "空白" in hp.token_hint("ig", "IGAA zzz")
+    assert "Threads 權杖" in hp.token_hint("ig", "THAAzzz")
+    assert "IG 權杖" in hp.token_hint("threads", "IGAAzzz")

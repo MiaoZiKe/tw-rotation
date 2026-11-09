@@ -376,6 +376,28 @@ def mark_verified(state: Path, p: str, now: datetime, cid: str) -> None:
     (state / "verify.json").write_text(SP.redact(json.dumps(v, ensure_ascii=False, indent=1)) + "\n", encoding="utf-8")
 
 
+def token_hint(p: str, t: str) -> str:
+    """權杖查不到帳號時，只說「哪一類」問題（不印任何權杖字元）。Meta 權杖開頭是固定的類型標記。"""
+    if not t:
+        return "沒有權杖"
+    if t != t.strip() or any(c in t for c in " \t\r\n\"'"):
+        return "權杖字串含空白、換行或引號（貼上時多了字，請重貼）"
+    if p == "ig":
+        if t.startswith("EAA"):
+            return ("這是 Facebook 登入版權杖（EAA 開頭）；本程式用 Instagram 登入版（IGAA 開頭），"
+                    "要在 Meta 後台「Instagram API（以 Instagram 登入）」產生")
+        if t.startswith("TH"):
+            return "看起來是 Threads 權杖，放到 IG 那格了"
+        if t.startswith("IG"):
+            return "格式是 Instagram 登入版，但 Meta 不接受（已失效、被撤銷或複製不完整）"
+        return "開頭不是 IGAA，不像 Instagram 登入版權杖（可能貼錯格或複製不完整）"
+    if t.startswith("IG"):
+        return "看起來是 IG 權杖，放到 Threads 那格了"
+    if t.startswith("EAA"):
+        return "這是 Facebook 權杖（EAA 開頭），不是 Threads 權杖（TH 開頭）"
+    return "Meta 不接受這把權杖（已失效、被撤銷或複製不完整；改過密碼也會讓舊權杖失效）"
+
+
 def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver, prefix: str | None = None) -> tuple[str, str]:
     prefix = _pfx(prefix)
     token = tok[p]
@@ -383,7 +405,7 @@ def _live_token(p: str, env: dict, tok: dict, notes: list[str], saver, prefix: s
         token = threads_token_check(token, env, notes, saver, prefix)
     uid = SP.resolve_user_id(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token)
     if not uid:
-        raise RuntimeError("查不到帳號編號（權杖無效或權限不足）")
+        raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
     return token, uid
 
 
@@ -656,7 +678,7 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
                 token = threads_token_check(token, env, res["notes"], saver, prefix)
             uid = SP.resolve_user_id(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token)
             if not uid:
-                raise RuntimeError("查不到帳號編號（權杖無效或權限不足）")
+                raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
             if not is_verified(state, p):
                 SP.log(f"[{p}] 這把權杖還沒驗證過 → 先跑驗證模式（只建輪播容器、等 FINISHED，不發布）")
                 try:
