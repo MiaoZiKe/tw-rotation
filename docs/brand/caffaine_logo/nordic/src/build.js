@@ -1,10 +1,10 @@
 // 產出：每個方向的 SVG／PNG、大頭貼、橫式、三個應用情境、重疊量測報告、總覽
 const { chromium } = require('/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
-const FINAL = !!process.env.FINAL, HANKO = !!process.env.HANKO;
+const FINAL = !!process.env.FINAL, HFINAL = !!process.env.HFINAL, HANKO = !!process.env.HANKO || HFINAL;
 const { DARK_BG } = require('./marks');
-const { dirs } = FINAL ? require('./final_marks') : HANKO ? require('./hanko_marks') : require('./marks');
-const OUT = FINAL ? path.resolve(__dirname, '..', 'final') : HANKO ? path.resolve(__dirname, '..', 'hanko') : path.resolve(__dirname, '..');
+const { dirs } = FINAL ? require('./final_marks') : HFINAL ? require('./hanko_final_marks') : HANKO ? require('./hanko_marks') : require('./marks');
+const OUT = FINAL ? path.resolve(__dirname, '..', 'final') : HFINAL ? path.resolve(__dirname, '..', 'hanko', 'final') : HANKO ? path.resolve(__dirname, '..', 'hanko') : path.resolve(__dirname, '..');
 const AIPX = ['.###..###', '#...#..#.', '#####..#.', '#...#..#.', '#...#.###'];
 const TAG = '一杯咖啡的時間，看懂一個 AI 新知';
 const CJK = "'WenQuanYi Zen Hei'";
@@ -24,8 +24,8 @@ function word(svg,cfg,col,size,x,base){
   const ch=capH(f,cfg.aiW,size,'I');
   if(cfg.ai==='pixelAI'||cfg.ai==='inlineSeal'){
     const px=(rows,cs,x0,y0)=>{let d='';rows.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='#')d+='M'+(x0+x*cs)+' '+(y0+y*cs)+'h'+cs+'v'+cs+'h-'+cs+'z';}));return d;};
-    if(cfg.ai==='pixelAI'){const cs=ch/7;cx+=size*0.06;el(g,'path',{d:px(AIPX,cs,cx,base-ch),fill:col.aiText||col[cfg.aiColor]||col.accent});cx+=13*cs+size*0.07;}
-    else{const cs=ch*0.11,pw=13*cs+cs*4,ph=7*cs+cs*4,y0=base-ch/2-ph/2;cx+=size*0.06;el(g,'rect',{x:cx+cs*0.35,y:y0+cs*0.35,width:pw-cs*0.7,height:ph-cs*0.7,rx:cs*0.15,fill:'none',stroke:col.accent,'stroke-width':cs*0.7});el(g,'path',{d:px(AIPX,cs,cx+cs*2,y0+cs*2),fill:col.accent});cx+=pw+size*0.06;}
+    if(cfg.ai==='pixelAI'){const P=cfg.aipx||AIPX;const cs=ch/7;cx+=size*0.06;el(g,'path',{d:px(P,cs,cx,base-ch),fill:col.aiText||col[cfg.aiColor]||col.accent});cx+=P[0].length*cs+size*0.07;}
+    else{const P=cfg.aipx||AIPX;const cs=ch*0.11,pw=P[0].length*cs+cs*4,ph=7*cs+cs*4,y0=base-ch/2-ph/2;cx+=size*0.06;el(g,'rect',{x:cx+cs*0.35,y:y0+cs*0.35,width:pw-cs*0.7,height:ph-cs*0.7,rx:cs*0.15,fill:'none',stroke:col.accent,'stroke-width':cs*0.7});el(g,'path',{d:px(P,cs,cx+cs*2,y0+cs*2),fill:col.accent});cx+=pw+size*0.06;}
     const t3=el(g,'text',{...st(cfg.w,col.ink),x:cx},'ne'); cx+=t3.getComputedTextLength(); return {g,w:cx-x};
   }
   const aiFill = cfg.ai==='pill'?col.paperText||'#FBF4EA': cfg.ai==='text'?col.text: cfg.ai==='rakkan'?col.accent: cfg.ai==='underline'?col.accent: col.accent;
@@ -126,7 +126,7 @@ async function shot(page, html, file, w, h, transparent) {
         for (let i = 0; i < 3; i++) { const x = i * 361, y = 846, w = 358, h = 448; const tc = (HK ? [c.bg, '#E6D6BF', '#2E2621'] : [c.bg, c.accent, '#2E2621'])[i];
           el(s, 'rect', { x, y, width: w, height: h, fill: tc });
           const fg = (i === 0 || (HK && i === 1)) ? c.ink : '#FFF8EE';
-          const mg = el(s, 'g', { transform: `translate(${x + 22} ${y + 22}) scale(${56 / 200})` }); mg.innerHTML = i === 0 ? (mkS||mk) : (mkSD||mkD);
+          const mg = el(s, 'g', { transform: `translate(${x + 22} ${y + 22}) scale(${56 / 200})` }); mg.innerHTML = (i === 0 || (HK && i === 1)) ? (mkS||mk) : (mkSD||mkD);
           ['3 個 AI 指令', '會議紀錄', '自己寫完'].forEach((t, k) => el(s, 'text', { x: x + 26, y: y + 210 + k * 58, 'font-family': CJK, 'font-size': 44, fill: fg }, [['3 個 AI 指令', '會議紀錄', '自己寫完'], ['Excel 公式', '交給 AI', '一句話生成'], ['本週 AI', '新知 5 則', '一次看懂']][i][k])); }
         out.ig = { svg: s.outerHTML, w: W, h: H, m: measure(s, 0) };
       }

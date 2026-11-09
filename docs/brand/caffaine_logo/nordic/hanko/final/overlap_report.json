@@ -1,0 +1,302 @@
+[
+ {
+  "dir": "f07_八位元衝框_主款",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 99,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 103,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f07_八位元衝框_主款",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 99,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 103,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f07_八位元衝框_主款",
+  "file": "mock_ig_profile.png",
+  "minGap": 53,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 53,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 72,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f07_八位元衝框_主款",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 50.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 50.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 235.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 109.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f05_歪印雙色_備案",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 89,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 93,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f05_歪印雙色_備案",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 89,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 93,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f05_歪印雙色_備案",
+  "file": "mock_ig_profile.png",
+  "minGap": 56,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 56,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f05_歪印雙色_備案",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 47.1,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 47.1,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 232.4,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 115.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f01_落款長印_第三",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 129,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 133,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f01_落款長印_第三",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 129,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 133,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f01_落款長印_第三",
+  "file": "mock_ig_profile.png",
+  "minGap": 60,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 60,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 77,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "f01_落款長印_第三",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 40.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 40.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 225.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 120.3,
+    "overlap": false
+   }
+  ]
+ }
+]
