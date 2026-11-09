@@ -23,7 +23,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1010,
-      "seconds": 6.2
+      "seconds": 15.9
     },
     "tape.collect": {
       "ok": true,
@@ -33,61 +33,62 @@
     },
     "mis.index_minute": {
       "ok": true,
-      "rows": 840,
-      "seconds": 1.7
+      "rows": 8,
+      "seconds": 2.1
     },
     "index_intraday": {
-      "stored": 837
+      "stored": 8
     },
     "taifex.futures_minute": {
       "ok": true,
-      "rows": 837,
-      "seconds": 3.6
+      "rows": 0,
+      "seconds": 0.1,
+      "skipped": "窗內候選日都處理過或今天的檔還沒出"
     },
     "news.collect": {
       "ok": true,
-      "rows": 124,
+      "rows": 125,
       "seconds": 2.7
     },
     "news": {
-      "stored": 36
+      "stored": 28
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 6,
+      "rows": 3,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 1
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 5,
-      "seconds": 0.4
+      "rows": 4,
+      "seconds": 0.7
     },
     "material_news": {
-      "stored": 0
+      "stored": 4
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4516,
-      "seconds": 2.3
+      "rows": 4514,
+      "seconds": 2.2
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 2
     },
     "macro.fred": {
       "ok": true,
       "rows": 15621,
-      "seconds": 3.0
+      "seconds": 3.3
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 0.7
+      "seconds": 1.1
     },
     "macro_calendar": {
       "stored": 0
@@ -97,27 +98,27 @@
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 7
+      "rows": 6
     },
     "fut_inst": {
       "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 63
+      "rows": 54
     },
     "fut_oi": {
       "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 21
+      "rows": 18
     },
     "optivx.daily": {
-      "ok": true,
+      "ok": false,
       "rows": 0,
-      "seconds": 0.2,
-      "skipped": "FinMind 尚無 2026-11-07～2026-11-08 的臺指選擇權資料（休市或當天還沒出）"
+      "seconds": 0.5,
+      "error": "FinMind 回 3100 列但算不出隱含波動率（欄位或契約月份可能改了）"
     },
     "margin_total_otc": {
       "stored": 0
@@ -138,30 +139,20 @@
     }
   },
   "errors": [],
-  "empty": [],
+  "empty": [
+    "optivx.daily"
+  ],
   "gaps": [],
   "rebuilt": [],
   "phase": "news",
   "index_minute_days": {
     "FUT": [
-      "2026-11-06"
-    ],
-    "OTC": [
-      "2026-11-06"
-    ],
-    "TSE": [
-      "2026-11-06"
+      "2026-11-09"
     ]
   },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-11-06",
-      "2026-11-07"
-    ]
-  },
-  "started_at": "2026-11-08T17:56:38.600147+00:00",
-  "finished_at": "2026-11-08T18:11:02.127344+00:00",
-  "duration_seconds": 863.5,
+  "started_at": "2026-11-09T00:53:04.336079+00:00",
+  "finished_at": "2026-11-09T01:12:50.986196+00:00",
+  "duration_seconds": 1186.7,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -346,18 +337,18 @@
     },
     {
       "table": "news",
-      "rows": 10427,
+      "rows": 10455,
       "latest": "2026-11-09"
     },
     {
       "table": "broker_views",
-      "rows": 262,
-      "latest": "2026-11-07"
+      "rows": 263,
+      "latest": "2026-11-09"
     },
     {
       "table": "intl_daily",
-      "rows": 42715,
-      "latest": "2026-11-08"
+      "rows": 42717,
+      "latest": "2026-11-09"
     },
     {
       "table": "macro",
@@ -416,13 +407,13 @@
     },
     {
       "table": "index_intraday",
-      "rows": 289280,
+      "rows": 289288,
       "latest": "—"
     },
     {
       "table": "material_news",
-      "rows": 3952,
-      "latest": "2026-11-07"
+      "rows": 3956,
+      "latest": "2026-11-08"
     },
     {
       "table": "company_website",
@@ -452,7 +443,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 48,
+    "days_since_review": 49,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
