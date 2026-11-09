@@ -1,5 +1,9 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 深夜 頻道①重新開始：暫停自動發文＋刪舊文（social-ops-lead；Andy：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」「我們規劃好在出發」）
+- `post_quota.json` live.close.threads=false：頻道①所有自動發文暫停（新計畫核可前）。監工／daily_audit 看到關閉＝未啟用，**不准補發**。
+- 刪文流程：`social_delete.yml` mode=archive（備份到 social-snaps archive/pre_restart_1109/）→ mode=delete（keep_from_tw=2026-11-09、sleep=5-10、ids_file＝備份產生的 threads_delete_ids.txt）。Threads 每 24 小時上限 100 則，超過要隔天再跑一次。IG 見回報（API 能否刪以試刪結果為準，不能就手動清單）。
+
 ## 2026-11-09 多頻道自動發文：tech／caffaine 建好（水下蝦米不接）（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
 - 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、caffaine 19:13／20:43（台北）。
 - 開關：tech、caffaine live=true（佇列空）。水下蝦米：Andy 11-09「Shrimp_01010909 不用」→ 不接，繼續用 Buffer（清單、工作流、續期都沒有它）。

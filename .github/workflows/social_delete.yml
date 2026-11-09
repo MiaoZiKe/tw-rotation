@@ -3,14 +3,15 @@ name: 社群刪文（手動）
 # 只能手動觸發。預設 mode=list：只列出 Threads／IG 全部貼文（不刪），清單當 artifact 上傳。
 # mode=delete：只刪 Threads（IG 官方 API 不支援刪），而且 confirm 必須填「我確定刪除」一字不差。
 # 說明與 Andy 要做的設定：docs/marketing/diagnosis_1102/delete_capability.md
-# 權杖：THREADS_DELETE_TOKEN（含 threads_delete 權限的新權杖，Andy 另外加）優先，沒有才退回發文用的那把。
+# 權杖：THREADS_DELETE_TOKEN → THREADS_ACCESS_TOKEN_AUTO → THREADS_ACCESS_TOKEN 逐把查刪除權限，用第一把有的（2026-11-09）。
+# mode=archive：完整備份（全文、圖片網址、圖檔）一般 commit 到 social-snaps 的 archive/<archive_name>/，不刪任何東西。
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list＝只列清單（不刪）；delete＝真的刪 Threads"
+        description: "list＝只列清單（不刪）；archive＝完整備份到 social-snaps（不刪）；delete＝真的刪"
         type: choice
-        options: [list, delete]
+        options: [list, archive, delete]
         default: list
       confirm:
         description: "mode=delete 時必填：我確定刪除"
@@ -28,6 +29,23 @@ on:
         description: "本次最多刪幾則（官方 24 小時上限 100）"
         type: string
         default: "90"
+      platform:
+        description: "mode=delete：threads 或 ig（ig＝試刪，第一則權限錯誤就停）"
+        type: choice
+        options: [threads, ig]
+        default: threads
+      keep_from_tw:
+        description: "台北日期 YYYY-MM-DD：這天（含）之後發的全部保留（2026-11-09 重新開始用）"
+        type: string
+        default: ""
+      archive_name:
+        description: "mode=archive：存到 social-snaps 的 archive/<這個名字>/"
+        type: string
+        default: "pre_restart_1109"
+      sleep:
+        description: "每刪一則間隔秒數，或 5-10（隨機）"
+        type: string
+        default: "5-10"
       with_views:
         description: "列清單時抓觀看數（較慢）"
         type: boolean
@@ -38,7 +56,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write      # 2026-11-09：mode=archive 要把備份 commit 到 social-snaps（一般 commit，不 force）
 
 jobs:
   run:
@@ -65,11 +83,48 @@ jobs:
           if [ "$WITH_VIEWS" != "true" ]; then extra="--no-views"; fi
           python scripts/social_delete.py --out out/social_delete/list.json $extra
 
-      - name: 真的刪 Threads
+      - name: 完整備份到 social-snaps（不刪）
+        if: inputs.mode == 'archive'
+        env:
+          THREADS_DELETE_TOKEN: ${{ secrets.THREADS_DELETE_TOKEN }}
+          THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+          IN_KEEP: ${{ inputs.keep_from_tw }}
+          IN_NAME: ${{ inputs.archive_name }}
+        run: |
+          set -e
+          case "$IN_NAME" in ''|*[!A-Za-z0-9_-]*) echo "::error::archive_name 只能英數、底線、減號"; exit 2;; esac
+          mkdir -p out/social_delete
+          case "$IN_KEEP" in ''|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) echo "::error::keep_from_tw 要 YYYY-MM-DD"; exit 2;; esac
+          K=""; if [ -n "$IN_KEEP" ]; then K="--keep-from-tw $IN_KEEP"; fi
+          python scripts/social_delete.py --archive-dir "out/social_delete/archive" $K --download-media
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4 5; do
+            rm -rf "$RUNNER_TEMP/snaps"
+            git fetch --depth=1 origin social-snaps
+            git worktree add -f "$RUNNER_TEMP/snaps" FETCH_HEAD
+            mkdir -p "$RUNNER_TEMP/snaps/archive/$IN_NAME"
+            cp -r out/social_delete/archive/. "$RUNNER_TEMP/snaps/archive/$IN_NAME/"
+            cd "$RUNNER_TEMP/snaps"
+            git add "archive/$IN_NAME"
+            git commit -q -m "社群備份：重新開始前完整備份 archive/$IN_NAME（刪文前，全文＋圖片網址＋圖檔）" || { echo "沒有變更"; exit 0; }
+            if git push origin HEAD:social-snaps; then echo "備份 commit：$(git rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+            cd "$GITHUB_WORKSPACE"; git worktree remove -f "$RUNNER_TEMP/snaps"; sleep $((i * 5))
+          done
+          echo "::error::備份推不上 social-snaps"; exit 1
+
+      - name: 真的刪
         if: inputs.mode == 'delete'
         env:
           THREADS_DELETE_TOKEN: ${{ secrets.THREADS_DELETE_TOKEN }}
-          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+          IN_PLATFORM: ${{ inputs.platform }}
+          IN_KEEP: ${{ inputs.keep_from_tw }}
+          IN_SLEEP: ${{ inputs.sleep }}
           IN_CONFIRM: ${{ inputs.confirm }}
           IN_IDS: ${{ inputs.ids }}
           IN_IDS_FILE: ${{ inputs.ids_file }}
@@ -89,7 +144,11 @@ jobs:
           if [ ! -s out/social_delete/ids.txt ]; then
             echo "::error::沒有要刪的 id（ids 或 ids_file 擇一填）"; exit 2
           fi
-          python scripts/social_delete.py --execute --ids-file out/social_delete/ids.txt \
+          case "$IN_SLEEP" in ''|*[!0-9.-]*) echo "::error::sleep 要填數字或 5-10"; exit 2;; esac
+          case "$IN_KEEP" in ''|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) echo "::error::keep_from_tw 要 YYYY-MM-DD"; exit 2;; esac
+          K=""; if [ -n "$IN_KEEP" ]; then K="--keep-from-tw $IN_KEEP"; fi
+          P="--platform threads"; if [ "$IN_PLATFORM" = "ig" ]; then P="--platform ig --ig-try-delete"; fi
+          python scripts/social_delete.py --execute $P --ids-file out/social_delete/ids.txt $K --sleep "$IN_SLEEP" \
             --confirm "$IN_CONFIRM" --max "$IN_MAX" --result out/social_delete/result.json
 
       - name: 上傳清單／結果

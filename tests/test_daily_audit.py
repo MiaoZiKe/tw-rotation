@@ -294,6 +294,27 @@ def test_disabled_is_not_failure():
     assert items["healing"]["status"] == "disabled"
 
 
+def test_1109_close_paused_is_disabled_no_remedy():
+    """2026-11-09 Andy：「重新開始…我們規劃好在出發」→ post_quota close 關：盤後主貼文沒發＝未啟用，不紅燈、不派補發。"""
+    f = green_facts()
+    f["quota"] = {"live": {"close": {"threads": False, "ig_story": False}}, "tc": {"enabled": True}}
+    f["snaps_posted"] = {}  # 沒發
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
+    assert items["close_post"]["status"] == "disabled"
+    sent = []
+    da.run_remedies([items["close_post"]], {}, "2026-11-09", lambda w, i: (sent.append(w), (True, "ok"))[1])
+    assert sent == []
+
+
+def test_real_quota_file_close_paused_1109():
+    q = json.loads((ROOT / "docs" / "marketing" / "social_unit" / "post_quota.json").read_text(encoding="utf-8"))
+    f = green_facts()
+    f["quota"] = q
+    f["snaps_posted"] = {}
+    items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
+    assert items["close_post"]["status"] == "disabled"
+
+
 def test_healing_approved_due_but_not_posted_is_red():
     # 20:27 的時段已到、核准稿沒發（只有 ig 有紀錄，threads 缺）→ 21:40 紅燈
     f = green_facts()

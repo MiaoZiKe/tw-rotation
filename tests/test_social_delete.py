@@ -201,3 +201,79 @@ def test_resolve_permalinks_maps_threads_urls():
          "https://www.threads.com/@x/post/NOPE"], rows)
     assert ids[:3] == ["222", "111", "333"]
     assert ids[3].endswith("/post/NOPE") and len(notes) == 3
+
+
+# ---------- 2026-11-09 重新開始：備份＋保留今天＋權杖逐把試＋IG 試刪 ----------
+
+class FakeHttp1109(FakeHttp):
+    """多把權杖：只有 GOOD 有刪除權限。"""
+    def __init__(self, good="GOOD", ig_delete_ok=False):
+        super().__init__()
+        self.good, self.ig_delete_ok = good, ig_delete_ok
+
+    def __call__(self, method, url, params):
+        self.calls.append((method, url))
+        path = url.split(".net/v1.0", 1)[-1].split("v24.0", 1)[-1]
+        if path == "/me/threads_publishing_limit" and params["access_token"] != self.good:
+            return 403, {"error": {"code": 10, "message": "Application does not have permission for this action"}}
+        if path == "/me":
+            return 200, {"id": "1", "username": "liguligu0818"}
+        if path == "/me/threads":
+            return 200, {"data": TH_POSTS + [{"id": "999", "media_type": "IMAGE", "text": "11-09 盤後",
+                                               "timestamp": "2026-11-09T11:05:00+0000", "permalink": "https://t/999",
+                                               "media_url": "https://cdn/x.jpg"}]}
+        if path == "/me/replies":
+            return 200, {"data": TH_REPLIES + [{"id": "998", "text": "11-09 串文", "timestamp": "2026-11-09T11:06:00+0000",
+                                                 "root_post": {"id": "999"}}]}
+        if path.endswith("/comments"):
+            return 200, {"data": []}
+        if method == "DELETE" and "graph.instagram.com" in url and not self.ig_delete_ok:
+            return 400, {"error": {"code": 100, "message": "Unsupported delete request"}}
+        if method == "DELETE":
+            return 200, {"success": True}
+        params = dict(params, access_token=TOKEN)
+        return super().__call__(method, url, params)
+
+
+def test_archive_keeps_today_and_orders_replies_first(tmp_path):
+    f = FakeHttp1109()
+    env = {"THREADS_ACCESS_TOKEN": "BAD", "THREADS_DELETE_TOKEN": "", "IG_ACCESS_TOKEN": "IGT"}
+    d = tmp_path / "arc"
+    assert sd.main(["--archive-dir", str(d), "--keep-from-tw", "2026-11-09", "--keep-file", ""], transport=f, env=env) == 0
+    assert f.deletes == []
+    rep = json.loads((d / "archive.json").read_text(encoding="utf-8"))
+    keep = {r["id"] for r in rep["threads"] if r["keep"]}
+    assert keep == {"999", "998"}      # 11-09（台北）主文與它的串文保留；廣達那則 11-02 的保留已被 11-09 指令取代（keep-file 空）
+    assert rep["threads"][[r["id"] for r in rep["threads"]].index("999")]["media_urls"] == ["https://cdn/x.jpg"]
+    ids = [l.split()[0] for l in (d / "threads_delete_ids.txt").read_text(encoding="utf-8").splitlines() if l and not l.startswith("#")]
+    assert set(ids) == {"111", "17877487434633706", "222", "333", "444"}
+    assert ids.index("333") < ids.index("17877487434633706") and ids.index("444") < ids.index("111")      # 串文先刪
+    assert (d / "archive.md").exists() and (d / "ig_manual.md").exists()
+    assert "BAD" not in (d / "archive.json").read_text(encoding="utf-8")
+
+
+def test_execute_tries_each_token_and_keeps_today(tmp_path, monkeypatch):
+    f = FakeHttp1109(good="AUTO")
+    ids = tmp_path / "ids.txt"
+    ids.write_text("333\n999\n998\n111\n", encoding="utf-8")
+    slept = []
+    monkeypatch.setattr(sd.time, "sleep", lambda s: slept.append(s))
+    env = {"THREADS_ACCESS_TOKEN": "BAD", "THREADS_ACCESS_TOKEN_AUTO": "AUTO"}
+    rc = sd.main(["--execute", "--ids-file", str(ids), "--confirm", sd.CONFIRM, "--keep-file", "",
+                  "--keep-from-tw", "2026-11-09", "--sleep", "5-10", "--result", str(tmp_path / "r.json")],
+                 transport=f, env=env)
+    assert rc == 0
+    assert sorted(u.rsplit("/", 1)[1] for u in f.deletes) == ["111", "333"]
+    assert all(5 <= s <= 10 for s in slept) and len(slept) == 2
+
+
+def test_ig_try_delete_stops_on_first_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(sd.time, "sleep", lambda s: None)
+    f = FakeHttp1109()
+    ids = tmp_path / "ig.txt"
+    ids.write_text("1800\n18099107264560696\n", encoding="utf-8")
+    rc = sd.main(["--execute", "--platform", "ig", "--ig-try-delete", "--ids-file", str(ids), "--confirm", sd.CONFIRM,
+                  "--keep-file", "", "--keep-from-tw", "2026-11-09", "--result", str(tmp_path / "r.json")],
+                 transport=f, env={"IG_ACCESS_TOKEN": "IGT"})
+    assert rc == 1
+    assert len(f.deletes) == 1      # 第一則失敗就停，不再試第二則

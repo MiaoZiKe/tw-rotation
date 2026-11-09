@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -281,7 +282,7 @@ def execute_threads(c: Client, ids: list[str], known: dict[str, dict], keep: set
                 print(f"::error::權限／權杖／頻率錯誤，立即停止：{e}")
                 break
         save()
-        time.sleep(sleep)
+        _sleep(sleep)
     save()
     return results
 
@@ -319,6 +320,266 @@ def ig_manual_md(rows: list[dict]) -> str:
     return "\n".join(out) + "\n"
 
 
+# ---------- 2026-11-09 重新開始：先備份全文＋圖片網址，再刪 ----------
+# Andy 11-09：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」→ 刪之前把每則全文、圖片網址存檔（刪了救不回來）。
+
+TH_TOKEN_ENVS = ("THREADS_DELETE_TOKEN", "THREADS_ACCESS_TOKEN_AUTO", "THREADS_ACCESS_TOKEN")
+TH_FULL = "id,media_type,media_product_type,text,timestamp,permalink,shortcode,is_quote_post,media_url,thumbnail_url,alt_text,username"
+TH_FULL_REPLY = TH_FULL + ",root_post,replied_to,is_reply"
+TH_CHILD = "id,media_type,media_url,thumbnail_url,alt_text"
+IG_FULL = "id,caption,media_type,media_product_type,timestamp,permalink,shortcode,media_url,thumbnail_url,username"
+IG_CHILD = "id,media_type,media_url,thumbnail_url"
+
+
+def th_token_candidates(env) -> list[tuple[str, str]]:
+    out, seen = [], set()
+    for k in TH_TOKEN_ENVS:
+        v = (env.get(k) or "").strip()
+        if v and v not in seen:
+            seen.add(v)
+            out.append((k, v))
+    return out
+
+
+def pick_delete_token(cands, transport) -> tuple[str | None, str | None, dict, list[str]]:
+    """逐把權杖查刪除額度，回第一把有 threads_delete 的 (環境變數名, 權杖, 額度, 每把結果)。只印變數名，不印值。"""
+    notes = []
+    for name, tok in cands:
+        q = delete_quota(Client(TH_API, tok, transport))
+        notes.append(f"{name}：{'有刪除權限' if q['ok'] else '沒有刪除權限（' + str(q['error']) + '）'}")
+        if q["ok"]:
+            return name, tok, q, notes
+    return None, None, {}, notes
+
+
+def _safe_pages(c: Client, path: str, fields: str, fallback: str, notes: list[str]) -> list[dict]:
+    try:
+        return c.pages(path, fields=fields)
+    except ApiError as e:
+        notes.append(f"{path} 用完整欄位讀取失敗，改用基本欄位：{e}")
+        return c.pages(path, fields=fallback)
+
+
+def _children(c: Client, mid: str, fields: str, notes: list[str]) -> list[dict]:
+    try:
+        return c.req("GET", f"/{mid}/children", fields=fields).get("data") or []
+    except ApiError as e:
+        notes.append(f"{mid} 的輪播子圖讀不到：{e}")
+        return []
+
+
+def _media_urls(p: dict) -> list[str]:
+    urls = [p.get("media_url"), p.get("thumbnail_url")]
+    for ch in p.get("children") or []:
+        urls += [ch.get("media_url"), ch.get("thumbnail_url")]
+    return [u for u in urls if u]
+
+
+def archive_threads(c: Client, notes: list[str]) -> list[dict]:
+    rows = []
+    for p in _safe_pages(c, "/me/threads", TH_FULL, TH_FIELDS, notes):
+        p = dict(p, kind="主文")
+        rows.append(p)
+    try:
+        for p in _safe_pages(c, "/me/replies", TH_FULL_REPLY, TH_REPLY_FIELDS, notes):
+            rows.append(dict(p, kind="串文／回覆"))
+    except ApiError as e:
+        notes.append(f"讀不到自己的回覆（權杖多半缺 threads_read_replies）：{e}")
+    seen, out = set(), []
+    for r in rows:
+        r["id"] = str(r["id"])
+        if r["id"] in seen:
+            continue
+        seen.add(r["id"])
+        if r.get("media_type") == "CAROUSEL_ALBUM":
+            r["children"] = _children(c, r["id"], TH_CHILD, notes)
+        r["root"] = str((r.get("root_post") or {}).get("id") or "") or None
+        r["time_tw"] = tw_time(r.get("timestamp"))
+        r["text40"] = head40(r.get("text"))
+        r["media_urls"] = _media_urls(r)
+        out.append(r)
+    return out
+
+
+def archive_ig(c: Client, notes: list[str]) -> list[dict]:
+    rows = []
+    for p in _safe_pages(c, "/me/media", IG_FULL, IG_FIELDS, notes):
+        p = dict(p, id=str(p["id"]), kind=p.get("media_product_type") or "FEED")
+        if p.get("media_type") == "CAROUSEL_ALBUM":
+            p["children"] = _children(c, p["id"], IG_CHILD, notes)
+        try:
+            p["comments"] = c.pages(f"/{p['id']}/comments", limit_pages=5,
+                                    fields="id,text,timestamp,username,replies{id,text,timestamp,username}")
+        except ApiError as e:
+            p["comments"] = None
+            notes.append(f"IG {p['id']} 留言讀不到：{e}")
+        p["time_tw"] = tw_time(p.get("timestamp"))
+        p["text40"] = head40(p.get("caption"))
+        p["media_urls"] = _media_urls(p)
+        rows.append(p)
+    try:
+        for p in c.pages("/me/stories", fields=IG_FULL):
+            rows.append(dict(p, id=str(p["id"]), kind="STORY（限動，24 小時內）", time_tw=tw_time(p.get("timestamp")),
+                             text40="", media_urls=_media_urls(p)))
+    except ApiError as e:
+        notes.append(f"讀不到限動：{e}")
+    return rows
+
+
+def mark_keep(rows: list[dict], keep_from_tw: str | None, keep_ids: set[str]) -> None:
+    """keep_from_tw＝'2026-11-09'：台北時間這天（含）之後發的全部保留；串文跟著它的主文走。"""
+    by = {r["id"]: r for r in rows}
+    for r in rows:
+        k = r["id"] in keep_ids or bool(keep_from_tw and r.get("time_tw", "")[:10] >= keep_from_tw)
+        root = by.get(r.get("root") or "")
+        if root is not None and (root["id"] in keep_ids or (keep_from_tw and root.get("time_tw", "")[:10] >= keep_from_tw)):
+            k = True
+        r["keep"] = k
+
+
+def download_media(rows: list[dict], media_dir: Path, plat: str, cap_mb: int = 400) -> int:
+    """把圖片／影片存下來（Meta CDN 網址幾天就失效）。超過總量上限或單檔 > 60MB 就只留網址。"""
+    media_dir.mkdir(parents=True, exist_ok=True)
+    total, n = 0, 0
+    for r in rows:
+        r["media_files"] = []
+        for i, u in enumerate(r.get("media_urls") or []):
+            if total > cap_mb * 1024 * 1024:
+                r.setdefault("media_note", "總量上限已到，只留網址")
+                break
+            ext = ".mp4" if ".mp4" in u.split("?")[0] else ".jpg"
+            fn = f"{plat}_{r.get('time_tw', '')[:10]}_{r['id']}_{i}{ext}"
+            try:
+                with urllib.request.urlopen(u, timeout=60) as resp:
+                    data = resp.read(60 * 1024 * 1024 + 1)
+                if len(data) > 60 * 1024 * 1024:
+                    continue
+                (media_dir / fn).write_bytes(data)
+                total += len(data)
+                n += 1
+                r["media_files"].append(f"media/{fn}")
+            except Exception as e:  # noqa: BLE001
+                r.setdefault("media_errors", []).append(f"{i}：{type(e).__name__}")
+    return n
+
+
+def archive_md(report: dict) -> str:
+    out = [f"# 重新開始前的社群備份（{report['generated_at_tw']} 台北）", "",
+           "Andy 11-09：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」。刪之前的完整備份；全文與圖片網址在 archive.json，圖檔在 media/。",
+           f"保留規則：台北時間 {report['keep_from_tw']}（含）之後發的全部保留（含它們的串文）。", "",
+           f"- Threads 主文 {report['count']['threads_main']}、串文／回覆 {report['count']['threads_reply']}、IG {report['count']['ig']}",
+           f"- 待刪：Threads {report['count']['threads_delete']}、IG {report['count']['ig_delete']}；保留：Threads {report['count']['threads_keep']}、IG {report['count']['ig_keep']}", ""]
+    for plat, key in (("Threads", "threads"), ("IG", "ig")):
+        out += [f"## {plat}", "", "| 處理 | 時間（台北） | 類型 | id | 前 40 字 | 圖 | 連結 |", "|---|---|---|---|---|---|---|"]
+        for r in sorted(report[key], key=lambda x: x.get("time_tw", "")):
+            t = (r.get("text40") or "").replace("|", "／")
+            out.append(f"| {'保留' if r['keep'] else '刪'} | {r.get('time_tw', '')} | {r.get('kind', '')} | {r['id']} | {t} | "
+                       f"{len(r.get('media_urls') or [])} | {r.get('permalink', '')} |")
+        out.append("")
+    if report["notes"]:
+        out += ["## 讀取時的注意事項", ""] + [f"- {n}" for n in report["notes"]]
+    return "\n".join(out) + "\n"
+
+
+def run_archive(a, env, transport) -> int:
+    d = Path(a.archive_dir)
+    d.mkdir(parents=True, exist_ok=True)
+    notes: list[str] = []
+    th_rows, ig_rows = [], []
+    cands = th_token_candidates(env)
+    if cands:
+        th_rows = archive_threads(Client(TH_API, dict(cands).get("THREADS_ACCESS_TOKEN") or cands[0][1], transport), notes)
+        for name, tok in cands:
+            try:
+                me = Client(TH_API, tok, transport).req("GET", "/me", fields="id,username")
+                notes.append(f"Threads 權杖 {name} 的帳號：@{me.get('username')}")
+            except ApiError as e:
+                notes.append(f"Threads 權杖 {name} 查不到帳號：{e}")
+        _, _, _, perm = pick_delete_token(cands, transport)
+        notes += perm
+    else:
+        notes.append("沒有 Threads 權杖，略過 Threads")
+    ig_tok = (env.get("IG_ACCESS_TOKEN") or "").strip()
+    if ig_tok:
+        try:
+            ig_rows = archive_ig(Client(IG_API, ig_tok, transport), notes)
+        except ApiError as e:
+            notes.append(f"IG 清單讀取失敗：{e}")
+    keep = load_keep(Path(a.keep_file) if a.keep_file else None, a.keep_id)
+    mark_keep(th_rows, a.keep_from_tw, keep["threads"])
+    mark_keep(ig_rows, a.keep_from_tw, keep["ig"])
+    if a.download_media:
+        n = download_media(th_rows, d / "media", "th") + download_media(ig_rows, d / "media", "ig")
+        notes.append(f"圖檔／影片已下載 {n} 個到 media/")
+    report = {"generated_at_tw": datetime.now(TAIPEI).strftime("%Y-%m-%d %H:%M"), "keep_from_tw": a.keep_from_tw,
+              "threads": th_rows, "ig": ig_rows, "notes": notes,
+              "count": {"threads_main": sum(r["kind"] == "主文" for r in th_rows),
+                        "threads_reply": sum(r["kind"] != "主文" for r in th_rows), "ig": len(ig_rows),
+                        "threads_delete": sum(not r["keep"] for r in th_rows), "threads_keep": sum(r["keep"] for r in th_rows),
+                        "ig_delete": sum(not r["keep"] for r in ig_rows), "ig_keep": sum(r["keep"] for r in ig_rows)}}
+    (d / "archive.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    (d / "archive.md").write_text(archive_md(report), encoding="utf-8")
+    # 刪除順序：串文先、主文後（主文先刪，底下的串文可能變成查不到）
+    dels = sorted([r for r in th_rows if not r["keep"]], key=lambda r: (r["kind"] == "主文", r.get("time_tw", "")))
+    (d / "threads_delete_ids.txt").write_text(
+        "# 2026-11-09 重新開始：要刪的 Threads（串文先、主文後）\n" +
+        "".join(f"{r['id']}  # {r['kind']} {r.get('time_tw', '')} {r.get('text40', '')}\n" for r in dels), encoding="utf-8")
+    (d / "ig_delete_ids.txt").write_text(
+        "# 2026-11-09 重新開始：要刪的 IG\n" +
+        "".join(f"{r['id']}  # {r['kind']} {r.get('time_tw', '')} {r.get('permalink', '')}\n" for r in ig_rows if not r["keep"]),
+        encoding="utf-8")
+    (d / "ig_manual.md").write_text(ig_manual_md([dict(r, views=None) for r in ig_rows]), encoding="utf-8")
+    c = report["count"]
+    print(f"[備份完成，沒有刪任何東西] Threads 主文 {c['threads_main']}、串文／回覆 {c['threads_reply']}、IG {c['ig']}；"
+          f"待刪 Threads {c['threads_delete']}、IG {c['ig_delete']}")
+    for n in notes:
+        print("注意：", n)
+    return 0
+
+
+def execute_ig(c: Client, ids: list[str], known: dict[str, dict], *, max_n: int, result_path: Path | None,
+               sleep=1.0) -> list[dict]:
+    """IG 試刪（Meta 2025-12 新增刪除端點，官方寫 Facebook 登入版；Instagram 登入版沒寫，所以先試，第一則就權限錯誤就整批停）。"""
+    results: list[dict] = []
+    if result_path:
+        result_path.parent.mkdir(parents=True, exist_ok=True)
+    done = 0
+    for mid in ids:
+        row = known.get(mid)
+        if row is None:
+            results.append({"id": mid, "result": "跳過（不在這個帳號的貼文清單裡）"}); continue
+        if row.get("keep"):
+            results.append({"id": mid, "result": "保留（今天的，不刪）"}); continue
+        if done >= max_n:
+            results.append({"id": mid, "result": f"未處理（本次上限 {max_n} 則）"}); continue
+        try:
+            b = c.req("DELETE", f"/{mid}")
+            ok = bool(b.get("success", True))
+            results.append({"id": mid, "result": "成功" if ok else "失敗（API 回 success=false）"})
+            done += ok
+        except ApiError as e:
+            results.append({"id": mid, "result": f"失敗：{e}"})
+            if e.fatal or e.status in (400, 403) or done == 0:
+                results.append({"id": "-", "result": "IG 權杖不能刪（或被擋），整批停止，改用手動刪除清單"})
+                break
+        if result_path:
+            result_path.write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
+        _sleep(sleep)
+    if result_path:
+        result_path.parent.mkdir(parents=True, exist_ok=True)
+        result_path.write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
+    return results
+
+
+def _sleep(spec) -> None:
+    """sleep＝數字（秒）或 'a-b'（每則隨機 a～b 秒，Andy 11-09：每刪一則間隔 5～10 秒避免限流）。"""
+    if isinstance(spec, str) and "-" in spec:
+        lo, hi = (float(x) for x in spec.split("-", 1))
+        time.sleep(random.uniform(lo, hi))
+    else:
+        time.sleep(float(spec))
+
+
 # ---------- 主程式 ----------
 
 def main(argv=None, transport=urllib_transport, env=None, sleep=1.0) -> int:
@@ -336,7 +597,16 @@ def main(argv=None, transport=urllib_transport, env=None, sleep=1.0) -> int:
     ap.add_argument("--max", type=int, default=90, help="本次最多刪幾則（官方 24 小時上限 100）")
     ap.add_argument("--allow-unlisted", action="store_true", help="允許刪清單裡查不到的 id（預設跳過）")
     ap.add_argument("--result", default="out/social_delete/result.json")
+    ap.add_argument("--archive-dir", help="備份模式：把全部貼文全文、圖片網址（與圖檔）存到這個資料夾，不刪任何東西")
+    ap.add_argument("--keep-from-tw", help="台北日期 YYYY-MM-DD：這天（含）之後發的全部保留")
+    ap.add_argument("--download-media", action="store_true", help="備份模式：連圖檔／影片一起下載")
+    ap.add_argument("--sleep", default=None, help="每刪一則間隔秒數，或 '5-10'（隨機）")
+    ap.add_argument("--ig-try-delete", action="store_true", help="IG 試刪（第一則權限錯誤就停）")
     a = ap.parse_args(argv)
+    if a.sleep is not None:
+        sleep = a.sleep
+    if a.archive_dir:
+        return run_archive(a, env, transport)
 
     keep = load_keep(Path(a.keep_file) if a.keep_file else None, a.keep_id)
     out = Path(a.out)
@@ -346,28 +616,50 @@ def main(argv=None, transport=urllib_transport, env=None, sleep=1.0) -> int:
 
     # ---- 真刪：先擋 ----
     if a.execute:
-        if a.platform == "ig":
+        if a.platform == "ig" and not a.ig_try_delete:
             print("IG（Instagram 登入版 API）官方不支援刪除貼文，請用手動刪除清單在 App 內刪。", file=sys.stderr)
             return 2
+        if a.platform == "ig":
+            if a.confirm != CONFIRM or not a.ids_file or not Path(a.ids_file).exists() or not ig_tok:
+                print("IG 試刪缺確認字串／ids 檔／IG 權杖。一則都沒刪。", file=sys.stderr)
+                return 2
+            ids = read_ids(Path(a.ids_file))
+            c = Client(IG_API, ig_tok, transport)
+            rows, _ = list_ig(c, keep["ig"], with_views=False)
+            if a.keep_from_tw:
+                mark_keep(rows, a.keep_from_tw, keep["ig"])
+            res = execute_ig(c, ids, {r["id"]: r for r in rows}, max_n=a.max, result_path=Path(a.result), sleep=sleep)
+            ok = sum(1 for r in res if r["result"] == "成功")
+            bad = sum(1 for r in res if r["result"].startswith("失敗"))
+            print(f"IG 完成：成功 {ok}、失敗 {bad}；結果檔 {a.result}")
+            for r in res:
+                print(f"  {r['id']}：{r['result']}")
+            return 0 if bad == 0 else 1
         if a.confirm != CONFIRM:
             print(f"沒有確認字串：要加 --confirm {CONFIRM}（一字不差）。一則都沒刪。", file=sys.stderr)
             return 2
         if not a.ids_file or not Path(a.ids_file).exists():
             print("缺 --ids-file 或檔案不存在。一則都沒刪。", file=sys.stderr)
             return 2
-        if not th_tok:
+        cands = th_token_candidates(env)
+        if not cands:
             print("沒有 Threads 權杖（環境變數 THREADS_DELETE_TOKEN 或 THREADS_ACCESS_TOKEN）。一則都沒刪。", file=sys.stderr)
             return 2
         ids = read_ids(Path(a.ids_file))
-        c = Client(TH_API, th_tok, transport)
-        q = delete_quota(c)
-        if not q["ok"]:
-            print(f"::error::查不到刪除額度，多半是權杖沒有 threads_delete 權限，停止（一則都沒刪）：{q['error']}")
+        name, tok, q, perm = pick_delete_token(cands, transport)
+        for n in perm:
+            print(f"權杖檢查：{n}")
+        if not tok:
+            print(f"::error::查不到刪除額度，所有權杖都沒有 threads_delete 權限，停止（一則都沒刪）：{perm}")
             return 3
+        print(f"用 {name} 來刪")
+        c = Client(TH_API, tok, transport)
         remain = (q["total"] or DAILY_LIMIT) - (q["used"] or 0)
         cap = max(0, min(a.max, remain))
         print(f"刪除額度：24 小時內已用 {q['used']}／{q['total']}，本次最多刪 {cap} 則；ids 檔共 {len(ids)} 則")
         rows, _ = list_threads(c, keep["threads"], with_views=False, with_replies=not a.no_replies)
+        if a.keep_from_tw:
+            mark_keep(rows, a.keep_from_tw, keep["threads"])
         known = {r["id"]: r for r in rows}
         ids, rn = resolve_permalinks(ids, rows)
         for n in rn:
