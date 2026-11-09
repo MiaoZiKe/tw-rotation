@@ -24777,7 +24777,7 @@ def t_fit_screen_1003(pg, base, code):
     ROUTES = [("overview", "總覽"), ("flow/rotation", "資金流向・輪動"), ("flow/sankey", "資金流向・資金分流樹"), ("flow/inst", "資金流向・法人集中度"),
               ("heatmap/industry", "熱力圖・產業"), ("heatmap/theme", "熱力圖・題材"), ("industry", "產業地圖"), ("market", "市場明細"),
               ("season", "週期統計"), ("watch", "自選")]
-    STOCK_TABS = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news"]
+    STOCK_TABS = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news", "evstudy"]   # 2026-11-09 P-1107-06 歷史統計
 
     def land(h, w, hash_):
         pg.set_viewport_size({"width": w, "height": h})
@@ -64870,7 +64870,7 @@ def t_stock_ov_1002(b, base, code):
     3189（Andy 截圖那一檔）全部驗；2330、2454 抽驗②③（金額大、張數上萬），再自動挑一檔近 20 日有買有賣的股票驗賣超斜紋。"""
     T = "[個股總覽1002]"
     errs: list[str] = []
-    want_tabs = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news"]
+    want_tabs = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news", "evstudy"]   # 2026-11-09 P-1107-06 最後多「歷史統計」
     want_mtabs = ["k", "basic", "tag", "rev", "profit", "fin", "div", "inst", "margin", "big", "ai", "news", "full"]
     for W in (1440, 800, 390):
         ctx = b.new_context(viewport={"width": W, "height": 1000})
