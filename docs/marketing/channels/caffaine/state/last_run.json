@@ -1,16 +1,15 @@
 {
- "at": "2026-11-10T01:15:38+08:00",
+ "at": "2026-11-10T01:54:02+08:00",
  "mode": "verify",
  "item": "20261108_intro",
  "posted": {},
  "errors": {
-  "ig": "查不到帳號編號（權杖無效或權限不足：Facebook 登入版權杖（EAA 開頭，走 graph.facebook.com）：Meta 不接受或查不到連結的 IG 商業帳號；看驗證模式摘要列出的缺少權限／粉絲專頁是否連了 IG）"
+  "ig": "查不到帳號編號：所有路徑都找不到 IG 帳號編號"
  },
  "notes": [
   "本頻道佇列是空的，借 healing/20261108_intro 的圖驗證（只建容器、不發布）",
-  "IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：已授權權限：ads_management、ads_read、instagram_basic、instagram_content_publish、instagram_manage_comments、instagram_manage_messages、public_profile；缺少權限：pages_show_list（列出粉絲專頁（找 IG 帳號用））、pages_read_engagement（讀粉絲專頁內容）；讀不到權杖到期資訊（debug_token）：HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；粉絲專頁 0 個；連了 IG 的 0 個；本頻道使用：權杖看得到 0 個粉絲專頁，但沒有一個連結 IG 專業帳號",
-  "IG 問題：缺發文必要權限：pages_show_list",
-  "IG 問題：權杖看不到任何粉絲專頁（授權時沒勾選粉絲專頁，或缺 pages_show_list）"
+  "IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：已授權權限：ads_management、ads_read、instagram_basic、instagram_content_publish、instagram_manage_comments、instagram_manage_messages、public_profile；缺少權限：pages_show_list（列出粉絲專頁（找 IG 帳號用））、pages_read_engagement（讀粉絲專頁內容）；讀不到權杖到期資訊（debug_token）：HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 /me：失敗 'list' object has no attribute 'get'；探查 權杖授權範圍（debug_token）：失敗 HTTP 400 {\"message\": \"(#100) You must provide an app access token, or a user access token that is an owner or developer of the app\", \"type\": \"OAuthException\", \"；探查 粉絲專頁連結的 IG（/me/accounts）：找到 0 個（粉絲專頁 0 個）；探查 企業管理平台的 IG（/me/businesses）：失敗 HTTP 400 {\"message\": \"(#100) Missing Permission\", \"type\": \"OAuthException\", \"code\": 100, \"fbtrace_id\": \"A471PTfsSmRvJ3sOsKTY3iI\"}；探查 廣告帳號連結的 IG（/me/adaccounts）：找到 0 個（廣告帳號 0 個）；本頻道使用：所有路徑都找不到 IG 帳號編號",
+  "IG 問題：所有路徑都找不到 IG 帳號編號"
  ],
- "summary": "驗證模式：threads 通過（容器 17991234365881222 FINISHED，未發布）；ig 失敗：查不到帳號編號（權杖無效或權限不足：Facebook 登入版權杖（EAA 開頭，走 graph.facebook.com）：Meta 不接受或查不到連結的 IG 商業帳號；看驗證模式摘要列出的缺少權限／粉絲專頁是否連了 IG）"
+ "summary": "驗證模式：threads 通過（容器 17991242750881222 FINISHED，未發布）；ig 失敗：查不到帳號編號：所有路徑都找不到 IG 帳號編號"
 }
