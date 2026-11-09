@@ -1,0 +1,236 @@
+{
+  "checked_at": "2026-11-09T10:26:58+08:00",
+  "today": "2026-11-09",
+  "expected_price_date": "2026-11-06",
+  "is_trading_day": true,
+  "summary": {
+    "fail": 3,
+    "pending": 2,
+    "ok": 2,
+    "skip": 0,
+    "disabled": 1
+  },
+  "items": [
+    {
+      "id": "premarket",
+      "name": "盤前消息（交易日 08:40 前）",
+      "status": "fail",
+      "gates": {
+        "run": {
+          "ok": true,
+          "why": "social-live 今天有成功執行 3 次",
+          "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42544972647",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42539678483",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42509185755"
+          ]
+        },
+        "content": {
+          "ok": true,
+          "why": "盤前消息日期 2026-11-09、5 則",
+          "evidence": [
+            "2026-11-09"
+          ]
+        },
+        "publish": {
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": []
+        }
+      },
+      "deadline": "2026-11-09T08:40:00+08:00",
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "social-live.yml",
+        "inputs": {
+          "kind": "premarket",
+          "dry_run": "false",
+          "force": "false"
+        }
+      }
+    },
+    {
+      "id": "postmarket",
+      "name": "盤後消息（交易日 21:40 前）",
+      "status": "pending",
+      "gates": {
+        "run": {
+          "ok": false,
+          "why": "daily.yml 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": []
+        },
+        "content": {
+          "ok": false,
+          "why": "盤後消息日期 2026-11-06、5 則",
+          "evidence": [
+            "2026-11-06"
+          ]
+        },
+        "publish": {
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": []
+        }
+      },
+      "deadline": "2026-11-09T21:40:00+08:00",
+      "remedy": null
+    },
+    {
+      "id": "data",
+      "name": "每日資料更新（價量／法人／融資券）",
+      "status": "fail",
+      "gates": {
+        "run": {
+          "ok": true,
+          "why": "daily.yml 今天有成功執行 18 次",
+          "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42542104517",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42507136676",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42464794308"
+          ]
+        },
+        "content": {
+          "ok": true,
+          "why": "價量 2026-11-06／法人 2026-11-06／融資券 2026-11-06（應有 2026-11-06）；last_run 錯誤 0 筆；連續失敗來源 無",
+          "evidence": [
+            "last_run.json",
+            "source_health.json"
+          ]
+        },
+        "publish": {
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": []
+        }
+      },
+      "deadline": null,
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "daily.yml",
+        "inputs": {
+          "phase": "full"
+        }
+      }
+    },
+    {
+      "id": "close_post",
+      "name": "頻道①盤後主貼文（交易日 18:20 前）",
+      "status": "pending",
+      "gates": {
+        "run": {
+          "ok": false,
+          "why": "social-live 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": []
+        },
+        "content": {
+          "ok": false,
+          "why": "posted.json 沒有 close-2026-11-09",
+          "evidence": []
+        },
+        "publish": {
+          "ok": false,
+          "why": "沒有發布網址（查不到或沒發出）",
+          "evidence": []
+        }
+      },
+      "deadline": "2026-11-09T18:20:00+08:00",
+      "remedy": null
+    },
+    {
+      "id": "healing",
+      "name": "頻道④談晴說礙（每天 1 則）",
+      "status": "disabled",
+      "gates": {},
+      "why": "未啟用（post_quota.json 沒有 healing.live＝true，不是失敗）"
+    },
+    {
+      "id": "tc",
+      "name": "頻道②科技透明圈（排定時間到了就要發）",
+      "status": "ok",
+      "gates": {
+        "run": {
+          "ok": true,
+          "why": "沒有核准待發的稿，不需要發",
+          "evidence": []
+        },
+        "content": {
+          "ok": true,
+          "why": "無",
+          "evidence": []
+        },
+        "publish": {
+          "ok": true,
+          "why": "無",
+          "evidence": []
+        }
+      },
+      "deadline": null,
+      "remedy": null
+    },
+    {
+      "id": "meta",
+      "name": "Meta 權杖（剩餘天數）",
+      "status": "ok",
+      "gates": {
+        "run": {
+          "ok": true,
+          "why": "權杖檔更新於 2026-11-08T03:07:59+00:00",
+          "evidence": [
+            "meta_token.json"
+          ]
+        },
+        "content": {
+          "ok": true,
+          "why": "權杖正常",
+          "evidence": [
+            "meta_token.json"
+          ]
+        },
+        "publish": {
+          "ok": true,
+          "why": "不適用（權杖不發布）",
+          "evidence": []
+        }
+      },
+      "deadline": null,
+      "remedy": null
+    },
+    {
+      "id": "website",
+      "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
+      "status": "fail",
+      "gates": {
+        "run": {
+          "ok": true,
+          "why": "pages.yml 今天有成功執行 4 次",
+          "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42341121943",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42340416096",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42335215063"
+          ]
+        },
+        "content": {
+          "ok": true,
+          "why": "價量 2026-11-06／法人 2026-11-06／融資券 2026-11-06（應有 2026-11-06）；last_run 錯誤 0 筆；連續失敗來源 無",
+          "evidence": [
+            "last_run.json",
+            "source_health.json"
+          ]
+        },
+        "publish": {
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": []
+        }
+      },
+      "deadline": null,
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "pages.yml",
+        "inputs": {}
+      }
+    }
+  ],
+  "errors": [],
+  "remedies": {}
+}
