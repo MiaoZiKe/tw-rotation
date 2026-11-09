@@ -6318,7 +6318,7 @@
      新增：成分股。分頁鍵沿用個股的（dividend／holders…），features.js 的權限開關照樣吃得到。*/
   const isEtf = (code) => /^00/.test(String(code || ''));
   const ETF_TABS = [['overview', '總覽'], ['holdings', '成分股'], ['dividend', '配息'], ['inst', '法人'], ['margin', '資券'],
-    ['holders', '受益人分布'], ['news', '公告 / 新聞']];
+    ['holders', '受益人分布'], ['news', '公告 / 新聞'], ['evstudy', '歷史統計']];
   const tabsFor = (code) => (isEtf(code) ? ETF_TABS : STOCK_TABS);
   /* ★ 2026-10-07（Andy：「ETF 點擊成分股並沒有出現對應股票，成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）
      根因：這個分頁 10-05 上線時就只有標題＋一行字 —— 資料湖沒有任何 ETF 成分股資料（當時誤判為查不到合規來源；10-07 晚改由各投信每日 PCF 進湖，DECISIONS #341，
@@ -6569,11 +6569,15 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
   }
   window.StockHold = { render: tabHoldings };   // 手機個股頁（mobile3.js SK_TABS 的「成分股」）共用同一支
   const STOCK_TABS = [['overview', '總覽'], ['basics', '基本資料'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'],
-    ['inst', '法人'], ['margin', '資券'], ['holders', '大戶／散戶'], ['news', '公告 / 新聞']];
+    ['inst', '法人'], ['margin', '資券'], ['holders', '大戶／散戶'], ['news', '公告 / 新聞'],
+    /* 2026-11-09 P-1107-06「歷史統計」：除息／財報公布前後的歷史走勢（site/eventstudy.js；功能鍵 stock.eventstudy；法遵 R1～R15）。
+       獨立一個分頁、放最後：跟「除權息」分頁（有未來除息日）分開，兩者之間不放連結（R8）。*/
+    ['evstudy', '歷史統計']];
   function renderTab(pg, tab) {
     const el = $('#stockTab');
     const T = { overview: tabOverview, holdings: tabHoldings, tags: tabTags, revenue: tabRevenue, profit: tabProfit, dividend: tabDividend,
-      inst: tabInst, margin: tabMargin, holders: tabHolders, basics: tabBasics, news: tabNews };
+      inst: tabInst, margin: tabMargin, holders: tabHolders, basics: tabBasics, news: tabNews,
+      evstudy: (p, e) => (window.TwEventStudy ? window.TwEventStudy.mount(p, e) : (e.innerHTML = '')) };
     if (T[tab] && !tabsFor(pg.meta && pg.meta.code).some(t => t[0] === tab)) { tab = 'overview'; state.tab = tab; $$('#stockTabs button').forEach(x => x.classList.toggle('on', x.dataset.t === tab)); }
     if (!T[tab]) { tab = tab === 'chips' ? 'inst' : 'overview'; state.tab = tab; $$('#stockTabs button').forEach(x => x.classList.toggle('on', x.dataset.t === tab)); }
     delete el.dataset.chip;

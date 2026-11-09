@@ -1197,6 +1197,8 @@
     { t: 'margin', n: '資券' },
     { t: 'big', n: (pg) => skEtf(pg) ? '受益人分布' : '大戶／散戶' },
     { t: 'news', n: '公告／新聞' },
+    /* 2026-11-09 P-1107-06：除息／財報公布前後的歷史走勢（site/eventstudy.js；跟桌機 evstudy 同一張卡）*/
+    { t: 'evt', n: '歷史統計', has: () => !!window.TwEventStudy },
   ];
   const skName = (x, pg) => typeof x.n === 'function' ? x.n(pg) : x.n;
   const SK_WIN = 63;                      // 一季 ≈ 63 個交易日（截圖是 7/02～9/24；跟桌機籌碼預設、docs/stock_page_audit_0927.md 同一個數）
@@ -1434,7 +1436,7 @@
        手機 v2 的 CSS 在個股頁一律無視 .mp-off（mobile4.css 第 32 節），這裡順手拿掉，免得回到桌機寬度時還帶著。*/
     ['skChartCard', 'stockTab'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('mp-off'); });
     const stb = document.getElementById('stockTab'); if (stb) delete stb.dataset.mov;   // 總覽／獲利河流圖段畫的時候再掛回去
-    const fn = { ov: skOv, hold: (p, b) => window.StockHold.render(p, b), tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, profit: skProfitAll, basic: skBasic, div: skDiv, news: skNews }[t];
+    const fn = { ov: skOv, hold: (p, b) => window.StockHold.render(p, b), tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, profit: skProfitAll, basic: skBasic, div: skDiv, news: skNews, evt: (p, b) => window.TwEventStudy.mount(p, b) }[t];
     try { fn(pg, body); } catch (e) { console.warn('[m3 個股]', e); body.innerHTML = '<div class="mbempty">這一頁載入失敗</div>'; }
   }
 

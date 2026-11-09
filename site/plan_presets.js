@@ -68,6 +68,9 @@
    · ★ 2026-11-09（Andy 點頭 P-1107-04「02 05 03 04 06」）：新鍵 group.peerval（族群頁同業估值位階表）、stock.peerval（個股頁同業估值位階小卡）
      四個方案都開；每日次數 訪客 3、註冊會員／Plus／Pro 不設＝不限（提案建議層級：註冊會員全開，「結論免費」；Plus 匯出 CSV 下一批）。
      features.js 的 limBy 也寫了訪客 3，按「套用建議方案」之前就照這個跑。不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
+   · ★ 2026-11-09（Andy 點頭 P-1107-06「02 05 03 04 06」）：新鍵 stock.eventstudy（個股「歷史統計」分頁：除息／財報公布前後的歷史走勢）
+     訪客關；註冊會員、Plus、Pro **同權限**：開＋每日 5 檔（法遵 docs/feature_proposals/p1107_06_legal_review.md R14／五之一：律師回覆第 14、15 題前不做 Plus 收費解鎖，
+     所以 Plus／Pro 不多給次數、不多給內容）。不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單；體驗次數不預設。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -99,6 +102,7 @@ window.TW_PLAN_PRESETS = {
     "portfolio.import": false,
     "group.peerval": true,
     "stock.peerval": true,
+    "stock.eventstudy": false,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -255,6 +259,7 @@ window.TW_PLAN_PRESETS = {
     "portfolio.import": false,
     "group.peerval": true,
     "stock.peerval": true,
+    "stock.eventstudy": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -337,6 +342,7 @@ window.TW_PLAN_PRESETS = {
     "etf.ret.period": false
    },
    "lims": {
+    "stock.eventstudy": 5,
     "news.open": 5,
     "flow.sankey.drill": 5,
     "flow.inst.filter": 5,
@@ -423,6 +429,7 @@ window.TW_PLAN_PRESETS = {
     "portfolio.import": true,
     "group.peerval": true,
     "stock.peerval": true,
+    "stock.eventstudy": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -504,6 +511,7 @@ window.TW_PLAN_PRESETS = {
     "heat.link": true
    },
    "lims": {
+    "stock.eventstudy": 5,
     "flow.sankey.drill": 100,
     "flow.inst.filter": 100,
     "explore.filter": 30,
@@ -563,6 +571,7 @@ window.TW_PLAN_PRESETS = {
     "portfolio.import": true,
     "group.peerval": true,
     "stock.peerval": true,
+    "stock.eventstudy": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -643,7 +652,9 @@ window.TW_PLAN_PRESETS = {
     "etf.inc.comp": true,
     "heat.link": true
    },
-   "lims": {},
+   "lims": {
+    "stock.eventstudy": 5
+   },
    "meta": {
     "badge": "功能最齊",
     "tagline": "不限次數，自選清單每天幫你整理好",

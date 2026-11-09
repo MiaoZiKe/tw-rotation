@@ -768,6 +768,17 @@ def build() -> None:
         log.info("大戶散戶買賣（推估）：%s", _bs.export(config.SITE_DATA, price, store.read("bigsmall_daily")))
     except Exception as exc:  # noqa: BLE001
         log.warning("大戶散戶買賣（推估）產出失敗：%s", exc)
+    # 2026-11-09 P-1107-06 個股「除息／財報公布前後的歷史走勢」：site/data/eventstudy/<代號>.json＋_index.json
+    # （只讀湖：還原價 price_adj、加權指數、除權息結果、重大訊息「董事會通過財報」；法遵 docs/feature_proposals/p1107_06_legal_review.md）
+    try:
+        from .compute import eventstudy as _es
+        from .compute import earnings as _earn
+        _mn = store.read("material_news")
+        _rep = _earn.mops_events(_mn, set(_mn["code"].astype(str))) if _mn is not None and not _mn.empty else []
+        log.info("事件前後歷史走勢：%s", _es.export(config.SITE_DATA, price_adj, store.read("index_ohlc"), div_results,
+                                                  _rep, store.read("financial_q"), latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("事件前後歷史走勢產出失敗：%s", exc)
     try:
         _write("industry_map", industry_map(today, gdetail, fund_rows, gval, latest, odetail))
     except Exception as exc:  # noqa: BLE001

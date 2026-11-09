@@ -1,0 +1,14 @@
+/* 個股「歷史統計」卡（site/eventstudy.js，2026-11-09 P-1107-06）手機規則：全部包在 ≤640，不動桌機。
+   eventstudy.js 的樣式是執行時才插進 <head>（排在這支後面），所以這裡一律多一層 html 提高權重。 */
+@media (max-width:640px){
+  html #esCard .eshd{gap:6px}
+  html #esCard .eshd h3{width:100%}
+  html #esCard .eshd .sp{display:none}
+  html #esCard#esCard .eshd .seg > button{min-height:32px;padding:0 7px!important;font-size:12.5px!important;min-width:0!important}
+  html #esCard .esduo{grid-template-columns:1fr;gap:var(--sp-2);margin-top:var(--sp-2)}
+  html #esCard .eschart{height:240px;min-height:240px}
+  html #esCard .eskpi{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  html #esCard .eskpi > div{padding:4px 8px;flex-direction:column;align-items:flex-start;gap:0}
+  html #esCard .eskpi b{font-size:14px}
+  html #esCard .estbl{max-height:160px}
+}

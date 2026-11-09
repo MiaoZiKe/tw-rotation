@@ -56858,7 +56858,8 @@ def t_mobile_broker(b, base, code):
     # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版，個股資訊幫我依據網頁版型式呈現……下方是總覽 基本資訊等等」）：
     #   改前 K線→基本資料→指標→營收→獲利→財務→除權息→法人→資券→大戶／散戶→AI 分析→新聞→完整版
     #   → 改後＝桌機 STOCK_TABS：總覽→基本資料→指標→營收→獲利→除權息→法人→資券→大戶／散戶→公告／新聞（K 線永遠在上面、財務併進獲利、AI 分析併進總覽、完整版拿掉）
-    need = ["總覽", "基本資料", "指標", "營收", "獲利", "除權息", "法人", "資券", "大戶／散戶", "公告／新聞"]
+    # ★ 2026-11-09 P-1107-06（Andy：「02 05 03 04 06」）：最後多一個「歷史統計」（除息／財報公布前後的歷史走勢，site/eventstudy.js），桌機同一個位置
+    need = ["總覽", "基本資料", "指標", "營收", "獲利", "除權息", "法人", "資券", "大戶／散戶", "公告／新聞", "歷史統計"]
     ok(f"{T}分頁列＝桌機那一份（{'／'.join(need)}）、順序一樣、沒有完整版", s0["tabs"] == need, s0["tabs"])
     ok(f"{T}分頁列沒有舊的「籌碼」「大戶」兩頁", not any(t in ("籌碼", "大戶") for t in s0["tabs"]), s0["tabs"])
     ok(f"{T}沒有合規來源的分頁（相關 ETF、權證、董監持股）不放空殼", not any(x in s0["tabs"] for x in ("相關 ETF", "相關ETF", "權證", "董監持股")), s0["tabs"])
@@ -60793,7 +60794,7 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表、今日關注／▶ 播放／族群篩選例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp', 'mkt.cand', 'flow.play', 'season.groups', 'ind.rel', 'etf.ret.period', 'share.card.plus', 'portfolio.import'].includes(i.dataset.f)))"),
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表、今日關注／▶ 播放／族群篩選例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp', 'mkt.cand', 'flow.play', 'season.groups', 'ind.rel', 'etf.ret.period', 'share.card.plus', 'portfolio.import', 'stock.eventstudy'].includes(i.dataset.f)))"),
            ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].filter(i => i.disabled || !i.checked).map(i => i.dataset.f + (i.disabled ? '(停用)' : ''))"))   # 2026-10-12：關聯圖、ETF 報酬比較期間也是註冊會員預設關（DECISIONS #358）
 
         def save(pg=None):
@@ -61034,7 +61035,8 @@ def t_member_perm(b, base, code):
         gp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
         perm_ready(gp)
         gp.wait_for_timeout(800)
-        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().filter(k => k !== 'heat.link' && k !== 'share.card.plus').length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
+        # ★ 2026-11-09 P-1107-06：個股「歷史統計」（stock.eventstudy）法遵 R14 第一版訪客關（defBy guest:false）—— 它的分頁鈕掛 🔒 是預期，其他一律不准有鎖頭
+        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有（歷史統計分頁除外：訪客預設關）", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().filter(k => k !== 'heat.link' && k !== 'share.card.plus' && k !== 'stock.eventstudy').length === 0 && ![...document.querySelectorAll('[data-plk],[data-plkb]')].some(e => !e.matches('#stockTabs button[data-t=\"evstudy\"], #mbTabs button[data-t=\"evt\"]'))"),
            gp.evaluate("() => [TwPerm.state(), TwPerm.locked()]"))
         cg.close()
         ct.close(); ca.close()
