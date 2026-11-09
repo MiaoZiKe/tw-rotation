@@ -1,0 +1,80 @@
+== 群益 00919 buyback date
+  slash (2026/11/06)                     列數   40  基準日 ['2026-11-05']
+  dash (2026-11-06)                      列數   40  基準日 ['2026-11-05']
+  compact (20261106)                     列數   40  基準日 ['2026-11-09']
+ETF PCF POST https://www.capitalfund.com.tw/CFWeb/api/etf/buyback 失敗：HTTP 500：<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">  <html xmlns="http://www.w3.org/1999/xhtml">  <head>  <meta http-equiv="Content-Type" cont
+  roc (115/11/06)                        列數    0  基準日 []
+== 野村 00935 SearchDate
+ETF PCF POST https://www.nomurafunds.com.tw/API/ETFAPI/api/Fund/GetFundAssets 失敗：HTTP 400：{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"$.SearchDate":["The JSON value could not be converted to System.N
+  slash (2026/11/06)                     列數    0  基準日 []
+  dash (2026-11-06)                      列數   50  基準日 ['2026-11-06']
+ETF PCF POST https://www.nomurafunds.com.tw/API/ETFAPI/api/Fund/GetFundAssets 失敗：HTTP 400：{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"$.SearchDate":["The JSON value could not be converted to System.N
+  compact (20261106)                     列數    0  基準日 []
+ETF PCF POST https://www.nomurafunds.com.tw/API/ETFAPI/api/Fund/GetFundAssets 失敗：HTTP 400：{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"$.SearchDate":["The JSON value could not be converted to System.N
+  roc (115/11/06)                        列數    0  基準日 []
+== 復華 00991A qDate
+  slash (2026/11/06)                     列數   50  基準日 ['2026-11-06']
+ETF PCF GET https://www.fhtrust.com.tw/api/assets 失敗：不是 JSON：<!DOCTYPE html>  <html lang="zh-tw">    <head>  		<meta charset="UTF-8">  	<meta http-equiv="X-UA-Compatible" content="IE=edge">  	<meta name="format-detection" content="telephone=no">  	<meta name="v
+  dash (2026-11-06)                      列數    0  基準日 []
+  compact (20261106)                     列數   50  基準日 ['2026-11-06']
+ETF PCF GET https://www.fhtrust.com.tw/api/assets 失敗：不是 JSON：<!DOCTYPE html>  <html lang="zh-tw">    <head>  		<meta charset="UTF-8">  	<meta http-equiv="X-UA-Compatible" content="IE=edge">  	<meta name="format-detection" content="telephone=no">  	<meta name="v
+  roc (115/11/06)                        列數    0  基準日 []
+== 統一 00981A date
+  slash (2026/11/06)                     列數    0  基準日 []
+ETF PCF POST https://www.ezmoney.com.tw/ETF/Transaction/GetPCF 失敗：不是 JSON：    <!DOCTYPE html>  <html>  <head>      <meta charset="utf-8">      <meta http-equiv="X-UA-Compatible" content="IE=edge">      <meta name="viewport" content="width=device-width, initial-scale=1">    
+  dash (2026-11-06)                      列數    0  基準日 []
+ETF PCF POST https://www.ezmoney.com.tw/ETF/Transaction/GetPCF 失敗：不是 JSON：    <!DOCTYPE html>  <html>  <head>      <meta charset="utf-8">      <meta http-equiv="X-UA-Compatible" content="IE=edge">      <meta name="viewport" content="width=device-width, initial-scale=1">    
+  compact (20261106)                     列數    0  基準日 []
+  roc (115/11/06)                        列數   50  基準日 ['2026-11-05']
+== 凱基 00938 queryDate
+  slash (2026/11/06)                     列數   30  基準日 ['2026-11-05']
+  dash (2026-11-06)                      列數   30  基準日 ['2026-11-05']
+  compact (20261106)                     列數   30  基準日 ['2026-11-09']
+  roc (115/11/06)                        列數    0  基準日 []
+== 國泰 00878 SearchDate
+  slash (2026/11/06)                     列數   29  基準日 ['2026/11/06']
+  dash (2026-11-06)                      列數   29  基準日 ['2026-11-06']
+ETF PCF GET https://cwapi.cathaysite.com.tw/api/ETF/GetETFDetailStockList 失敗：HTTP 400：{"result":{"FundCode":[],"SearchDate":["The value '20261106' is not valid for SearchDate."]},"returnCode":"400","success":false,"returnMessage":"One or more validation errors occurred"}
+  compact (20261106)                     列數    0  基準日 []
+  roc (115/11/06)                        列數    0  基準日 []
+  國泰 GetETFAssets 帶 SearchDate → preDate 2026/11/06
+  中信 00406A StartDate=2026-11-06T00:00:00.000Z 列數   66  基準日 ['2026-11-06']
+  中信 00406A StartDate=2026-11-06T16:00:00.000Z 列數   66  基準日 ['2026-11-06']
+  中信 00406A StartDate=2026-11-06         列數   66  基準日 ['2026-11-06']
+== 第一金 00728 pStrDate
+  slash (2026/11/06)                     列數   34  基準日 ['2026-11-05']
+  dash (2026-11-06)                      列數   34  基準日 ['2026-11-05']
+  compact (20261106)                     列數   34  基準日 ['2026-11-05']
+ETF PCF POST https://www.fsitc.com.tw/WebAPI.aspx/Get_hd 失敗：HTTP 500：{"Message":"處理此要求時發生錯誤。","StackTrace":"","ExceptionType":""}
+  roc (115/11/06)                        列數    0  基準日 []
+== 華南永昌 009808 DataDate
+  slash (2026/11/06)                     列數   50  基準日 ['2026-11-05']
+  dash (2026-11-06)                      列數   50  基準日 ['2026-11-05']
+  compact (20261106)                     列數    0  基準日 []
+  roc (115/11/06)                        列數    0  基準日 []
+== 台新 00936 DataDate
+  slash (2026/11/06)                     列數   30  基準日 ['2026-11-05']
+  dash (2026-11-06)                      列數   30  基準日 ['2026-11-05']
+  compact (20261106)                     列數    0  基準日 []
+  roc (115/11/06)                        列數    0  基準日 []
+== 大華銀 pcfDate
+  slash (2026/11/06)                     列數   30  基準日 ['2026-11-05']
+  dash (2026-11-06)                      列數   30  基準日 ['2026-11-05']
+  compact (20261106)                     列數   30  基準日 ['2026-11-05']
+ETF PCF 大華銀 WebSitePcfRequest {'fundID': '88329556', 'pcfDate': '115/11/06'} 失敗：HTTP 400：{"fundID":null,"etf002":null,"ec020":null,"twName":null,"announce":"\/Date(-62135596800000-0000)\/","publish":"\/Date(-62135596800000-0000)\/","datadate":"\/Date(-62135596800000-0000)\/","basketValue"
+  roc (115/11/06)                        列數    0  基準日 []
+== 聯邦 009804 sDate
+  slash (2026/11/06)                     列數   50  基準日 ['2026-11-06']
+  dash (2026-11-06)                      列數   50  基準日 ['2026-11-06']
+  compact (20261106)                     列數   50  基準日 ['2026-11-06']
+  roc (115/11/06)                        列數    0  基準日 []
+  永豐 00410A date=2026-11-06              列數   24  基準日 ['2026-11-09']
+  永豐 00410A queryDate=2026-11-06         列數   24  基準日 ['2026-11-09']
+  永豐 00410A pcfDate=2026-11-06           列數   24  基準日 ['2026-11-09']
+  永豐 00410A dataDate=2026-11-06          列數   24  基準日 ['2026-11-09']
+  富邦 00900 date=2026/11/06               列數   30  基準日 ['2026-11-09']
+  富邦 00900 qDate=2026/11/06              列數   30  基準日 ['2026-11-09']
+  富邦 00900 dataDate=2026/11/06           列數   30  基準日 ['2026-11-09']
+  富邦 00900 pcfDate=2026/11/06            列數   30  基準日 ['2026-11-09']
+  聯博 00404A date                         列數   50  基準日 ['2026-11-06']
+  聯博 00404A asOfDate                     列數   50  基準日 ['2026-11-09']
