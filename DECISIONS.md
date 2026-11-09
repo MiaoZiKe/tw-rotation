@@ -7371,7 +7371,8 @@ Andy 11-09 點頭「02 05 03 04 06」。口徑全文 `docs/peer_valuation.md`。
 ## #3xx 個股「歷史統計」：除息／財報公布前後的歷史走勢（P-1107-06，2026-11-09；合併時若撞號請改號）
 - Andy 11-09：「02 05 03 04 06」（五項全做）。**法遵審查 docs/feature_proposals/p1107_06_legal_review.md 第四節 R1～R15 是硬性條件、第五節文案照抄**。
 - 放哪：個股頁新分頁「歷史統計」（桌機 evstudy、手機 evt，排最後），跟「除權息」分頁（有未來除息日）分開、互不連結（R8）。不排行、不篩選、不推播、不進分享圖卡與社群（R9、R10；pytest 掃 site/*.js 與 scripts/social*.py）。
-- 資料（只讀湖、不新增來源）：pipeline/compute/eventstudy.py → site/data/eventstudy/<代號>.json＋_index.json（約 2,200 檔、9 MB；Cloudflare 主站檔數 13,188 → 約 15,400，上限 20,000）。
+- 資料（只讀湖、不新增來源）：pipeline/compute/eventstudy.py → 寫進每一檔自己的個股 JSON（site/data/stock/<代號>.json 的 evstudy 鍵，約 2,200 檔各加 2～6 KB）。
+  ⚠ 第一版另開 site/data/eventstudy/ 約 2,200 支檔，推上 main 後連兩輪 GitHub Pages deploy-pages 卡 syncing_files 10 分鐘逾時（前一輪已 7 分鐘），整站沒部署；改併進個股 JSON，部署檔數不增加。**新功能不要再用「每檔一支新檔」的做法**。
   · 價格＝price_adj（總報酬還原：已還原除權息、含息）；基準＝加權指數 TSE（**不含息**，報酬指數湖裡只有 2026-09 起）。超額＝個股 − 加權指數。畫面口徑行與「?」都寫明。
   · 第 0 天＝事件日（非交易日順延）；報酬＝第 −X 天收盤 → 第 +Y 天收盤；視窗 ±5、±20 交易日。視窗沒走完／兩端沒收盤 → 不納入（不輸出未來日期）。
   · 除息＝dividend_results 中 kind 含「息」那幾筆的日期。財報＝重大訊息「董事會通過財報」（earnings.mops_events 的 report）公告日；

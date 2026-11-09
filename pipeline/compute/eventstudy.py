@@ -15,7 +15,7 @@ Andy 2026-11-09：「02 05 03 04 06」（五項全做）。法遵審查 docs/fea
   · 視窗沒走完（第 +Y 天還沒到）、或兩端那天個股沒有收盤（停牌、尚未上市）→ 不納入（不是「排除」，是還不能算）。
   · 樣本 N < 5（MIN_N）：不給中位數與上漲比例，只列每一次的原始數字（R5）。
   · 不輸出任何未來日期（R8）：事件日一律 ≤ 資料日，而且視窗已走完。
-  · 只產單檔 JSON，不產跨股彙總、不排序（R9）；期貨／選擇權／權證／槓桿反向期貨型 ETF 不納入（R13）。
+  · 寫進每一檔自己的個股 JSON（"evstudy" 鍵），不產跨股彙總、不排序（R9）；期貨／選擇權／權證／槓桿反向期貨型 ETF 不納入（R13）。
 """
 from __future__ import annotations
 
@@ -156,11 +156,18 @@ def stock_payload(code: str, asof: str, cal: list[str], px: dict[str, float], id
 
 def export(site_data, price_adj: pd.DataFrame, index_ohlc: pd.DataFrame, div_results: pd.DataFrame | None,
            report_events: list[dict], financial_q: pd.DataFrame | None, asof: str) -> dict:
-    """寫 site/data/eventstudy/<代號>.json（有事件的才寫）＋ _index.json（有檔的代號清單，前端先讀它，避免 404）。"""
-    out = site_data / "eventstudy"
-    out.mkdir(parents=True, exist_ok=True)
-    for f in out.glob("*.json"):
-        f.unlink()
+    """把每一檔的統計寫進它自己的個股 JSON（site/data/stock/<代號>.json 的 "evstudy" 鍵）；沒有個股 JSON 的代號略過。
+
+    ★ 2026-11-09 改：第一版另寫 site/data/eventstudy/<代號>.json（約 2,200 檔），推上 main 後連兩次 GitHub Pages 部署卡在
+    syncing_files 10 分鐘逾時（前一輪已經要 7 分鐘）。改成併進既有的個股 JSON：檔數 0 增加，法遵 R9「個股 JSON 只含自己」照樣成立。
+    必須在個股頁 JSON 寫完之後呼叫（build_payload 的 candidates() 之後）。
+    """
+    stock_dir = site_data / "stock"
+    old = site_data / "eventstudy"          # 第一版的分檔目錄：留著會讓部署檔數多 2,200
+    if old.is_dir():
+        for f in old.glob("*.json"):
+            f.unlink()
+        old.rmdir()
     ix = index_ohlc[index_ohlc["symbol"].astype(str) == "TSE"][["date", "close"]].dropna()
     ix = ix[(ix["close"] > 0) & (ix["date"].astype(str) <= asof)]
     idx = dict(zip(ix["date"].astype(str).str[:10], ix["close"].astype(float)))
@@ -182,10 +189,14 @@ def export(site_data, price_adj: pd.DataFrame, index_ohlc: pd.DataFrame, div_res
         # 財報季只算「有價格那段期間之後」的季（上市前的財報季談不上前後走勢）
         first = min(px) if px else asof
         fq = [q for q in finq.get(code, []) if f"{q[:4]}-{int(q[-1]) * 3:02d}-28" >= first]
+        sp = stock_dir / f"{code}.json"
+        if not sp.exists():
+            continue
         pl = stock_payload(code, asof, cal, px, idx, divs.get(code, []), earns.get(code, {}), fq)
         if pl is None:
             continue
-        (out / f"{code}.json").write_text(json.dumps(pl, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        page = json.loads(sp.read_text(encoding="utf-8"))
+        page["evstudy"] = pl
+        sp.write_text(json.dumps(page, ensure_ascii=False), encoding="utf-8")
         written.append(code)
-    (out / "_index.json").write_text(json.dumps({"updated": asof, "codes": written}, ensure_ascii=False), encoding="utf-8")
     return {"codes": len(written), "asof": asof, "earn_codes": len(earns)}

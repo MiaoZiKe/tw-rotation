@@ -7,7 +7,7 @@
 - 下一步：Plus 匯出 CSV／自訂欄位（提案的付費層）；金融族群本益比欄跟基本面卡（淨值比口徑）分位不同，若 Andy 覺得混淆可改成依 valuation_metric 換主欄。
 - 這批驗了：pytest 全部（2012 過、1 xfail；新增 tests/test_peerval.py 8 項）、_uitest `族群估值位階1109`（0，連跑 3 次）、`桌機守門1008`（0；基準只多一個 #pvStock，見 commit 訊息）、`族群頁`、`個股`、`新-產業與個股`、`新功能次數1102`、`體驗全選`、`體驗上限`、`風險警示牌1109`（皆 0）、`_preview.py`（只剩本機舊 site/data 缺 data/bigsmall/_index.json 的 404）。`會員權限開關` 2 紅、`功能公告1019` 5 紅都是 main 上既有（f-20261101-member-trial 標題 44 字、下拉只列前 20 則等），本批新公告標題 22 字已不在名單內。
 ## 2026-11-09 個股「歷史統計」：除息／財報公布前後的歷史走勢（P-1107-06，Andy 點頭「02 05 03 04 06」）
-- 做了：個股頁新分頁「歷史統計」（site/eventstudy.js；資料 pipeline/compute/eventstudy.py → site/data/eventstudy/）。法遵 R1～R15 逐條照做（docs/feature_proposals/p1107_06_legal_review.md），細節 DECISIONS 該節。
+- 做了：個股頁新分頁「歷史統計」（site/eventstudy.js；資料 pipeline/compute/eventstudy.py → 個股 JSON 的 evstudy 鍵；第一版分檔 2,200 支害 Pages 部署連兩輪逾時，已改併入）。法遵 R1～R15 逐條照做（docs/feature_proposals/p1107_06_legal_review.md），細節 DECISIONS 該節。
 - 功能鍵 stock.eventstudy：訪客關、註冊會員／Plus／Pro 同權限每日 5 檔；**律師回覆第 14、15 題前不准開 Plus 收費解鎖**。公告 f-20261109-event-study。
 - 已知限制：財報實際公告日只有重大訊息湖（2026-09-19 起），財報分頁目前每檔 ≤1 次（一律樣本太少），每季自然多一次；基準加權指數不含息（畫面已寫明）。
 - 下一步：等律師回覆第 14～17 題；季節性頁「勝率」字眼另案（法遵第七節）。

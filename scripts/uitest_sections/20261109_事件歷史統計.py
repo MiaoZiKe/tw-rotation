@@ -3,7 +3,7 @@
 # ⚠ 全域名稱一律用 _ES1109_ 開頭（所有段落 exec 進同一個命名空間）。
 # P-1107-06（Andy 2026-11-09 點頭「02 05 03 04 06」）：個股頁「歷史統計」分頁 —— 除息／財報公布前後的歷史走勢（site/eventstudy.js）。
 # 法遵 docs/feature_proposals/p1107_06_legal_review.md 第四節 R1～R15 逐條對到下面的斷言（每條 ok() 的名稱前面標 R 幾）。
-# 資料用假的（data/eventstudy/ 換成下面這幾份）：2330 除息 8 次（樣本夠）、財報 3 次（樣本不足）＋排除 10 季；0056 是 ETF（沒有財報）。
+# 資料用假的（個股 JSON 的 evstudy 鍵換成下面這幾份）：2330 除息 8 次（樣本夠）、財報 3 次（樣本不足）＋排除 10 季；0056 是 ETF（沒有財報）。
 # 真的操作：
 #   1. 1440 站主：點「歷史統計」→ 卡片出現；六格數字、點數＝樣本數、免責在數字正下方且字級 ≥ 正文 0.85 倍；「?」打開方法說明
 #   2. 切「財報公布」→ 標題換、樣本 3 次 → 不出中位數與上漲次數、出現「樣本太少，不代表趨勢」、顯示排除 10 次
@@ -61,7 +61,6 @@ _ES1109_DIV = _es1109_ev(["2019-06-24", "2020-06-18", "2021-06-17", "2022-06-16"
                          [0.012, -0.021, 0.034, -0.008, 0.019, 0.044, -0.031, 0.006], [0.05, -0.04, 0.02, -0.03, 0.07, 0.01, -0.06, 0.03])
 _ES1109_EARN = _es1109_ev(["2026-05-12", "2026-08-12", "2026-10-20"], [0.021, -0.013, 0.008], [0.03, -0.02, 0.01], earn=True)
 _ES1109_FILES = {
-    "_index.json": {"updated": _ES1109_ASOF, "codes": ["2330", "0056", "2303", "2454", "2317", "1301", "2412"]},
     "2330.json": _es1109_payload("2330", _ES1109_DIV, _ES1109_EARN, excl=10),
     "0056.json": _es1109_payload("0056", _ES1109_DIV[:6], [], etf=True),
 }
@@ -70,12 +69,15 @@ for _c in ("2303", "2454", "2317", "1301", "2412"):
 
 
 def _es1109_route(c):
+    """個股 JSON（data/stock/<代號>.json）照原檔回，但 evstudy 鍵換成上面的假資料（資料就放在個股 JSON 裡，不另外發請求）。"""
     def h(route):
         name = route.request.url.split("?")[0].rsplit("/", 1)[-1]
-        if name in _ES1109_FILES:
-            return route.fulfill(status=200, content_type="application/json", body=_es1109_json.dumps(_ES1109_FILES[name], ensure_ascii=False))
-        return route.fulfill(status=404, body="")
-    c.route("**/data/eventstudy/*", h)
+        r = route.fetch()
+        if r.status != 200 or name not in _ES1109_FILES:
+            return route.fulfill(response=r)
+        j = r.json(); j["evstudy"] = _ES1109_FILES[name]
+        return route.fulfill(response=r, body=_es1109_json.dumps(j, ensure_ascii=False), content_type="application/json")
+    c.route("**/data/stock/*.json*", h)
 
 
 _ES1109_STATE = """() => { const c = document.getElementById('esCard'); if (!c) return null; const r = c.getBoundingClientRect();

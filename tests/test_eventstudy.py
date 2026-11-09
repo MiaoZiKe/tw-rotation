@@ -83,24 +83,29 @@ def test_代號過濾_期貨選擇權權證不納入():
     assert es.dividend_dates(dr) == {"2330": ["2024-01-09"]}
 
 
-def test_export_單檔JSON與索引_不含禁用字(tmp_path):
+def test_export_寫進自己的個股JSON_不多產檔_不含禁用字(tmp_path):
     price = pd.DataFrame([{"code": "2330", "date": d, "close": v} for d, v in PX.items()]
                          + [{"code": "1101", "date": d, "close": v} for d, v in PX.items()])
     idx = pd.DataFrame([{"symbol": "TSE", "date": d, "close": v} for d, v in IX.items()]
                        + [{"symbol": "OTC", "date": d, "close": 1.0} for d in CAL])
-    dr = pd.DataFrame({"date": ["2024-01-09", "2024-01-23"], "code": ["2330", "2330"], "kind": ["息", "除息"]})
+    dr = pd.DataFrame({"date": ["2024-01-09", "2024-01-23", "2024-01-09"], "code": ["2330", "2330", "2317"], "kind": ["息", "除息", "息"]})
+    sd = tmp_path / "stock"; sd.mkdir()
+    for c in ("2330", "1101"):
+        (sd / f"{c}.json").write_text(json.dumps({"meta": {"code": c}}), encoding="utf-8")
+    (tmp_path / "eventstudy").mkdir(); (tmp_path / "eventstudy" / "_index.json").write_text("{}", encoding="utf-8")   # 第一版的舊目錄要被清掉
     res = es.export(tmp_path, price, idx, dr, [], None, "2024-01-31")
-    files = sorted(p.name for p in (tmp_path / "eventstudy").glob("*.json"))
-    assert files == ["2330.json", "_index.json"] and res["codes"] == 1      # 沒有事件的 1101 不寫檔
-    assert json.loads((tmp_path / "eventstudy" / "_index.json").read_text(encoding="utf-8"))["codes"] == ["2330"]
-    j = json.loads((tmp_path / "eventstudy" / "2330.json").read_text(encoding="utf-8"))
-    assert j["code"] == "2330" and len(j["div"]["events"]) == 2 and j["div"]["sum"]["5"]["ex"]["few"]
+    assert res["codes"] == 1 and not (tmp_path / "eventstudy").exists()
+    assert sorted(p.name for p in sd.glob("*.json")) == ["1101.json", "2330.json"]        # 2317 沒有個股 JSON → 不新增檔案
+    assert "evstudy" not in json.loads((sd / "1101.json").read_text(encoding="utf-8"))     # 沒有事件的不加鍵
+    page = json.loads((sd / "2330.json").read_text(encoding="utf-8"))
+    j = page["evstudy"]
+    assert page["meta"]["code"] == "2330" and j["code"] == "2330"                           # 原本的內容還在、只含自己（R9）
+    assert len(j["div"]["events"]) == 2 and j["div"]["sum"]["5"]["ex"]["few"]
     assert all(e["d"] <= j["asof"] for e in j["div"]["events"])
     txt = json.dumps(j, ensure_ascii=False)
     for w in ("勝率", "搶息", "穩賺", "必漲", "卡位", "上車", "下車", "埋伏", "買點", "賣點", "進場", "出場", "布局"):
         assert w not in txt, w
     assert "含息" in j["basis"]["stock"] and "不含息" in j["basis"]["bench"]
-
 
 ROOT = Path(__file__).resolve().parent.parent
 _ALLOWED = {"eventstudy.js", "industry.js", "mobile3.js", "features.js", "plan_presets.js", "index.html"}

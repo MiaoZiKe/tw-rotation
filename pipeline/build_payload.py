@@ -768,7 +768,7 @@ def build() -> None:
         log.info("大戶散戶買賣（推估）：%s", _bs.export(config.SITE_DATA, price, store.read("bigsmall_daily")))
     except Exception as exc:  # noqa: BLE001
         log.warning("大戶散戶買賣（推估）產出失敗：%s", exc)
-    # 2026-11-09 P-1107-06 個股「除息／財報公布前後的歷史走勢」：site/data/eventstudy/<代號>.json＋_index.json
+    # 2026-11-09 P-1107-06 個股「除息／財報公布前後的歷史走勢」：寫進 site/data/stock/<代號>.json 的 evstudy 鍵（要在 candidates() 寫完個股頁之後）
     # （只讀湖：還原價 price_adj、加權指數、除權息結果、重大訊息「董事會通過財報」；法遵 docs/feature_proposals/p1107_06_legal_review.md）
     try:
         from .compute import eventstudy as _es

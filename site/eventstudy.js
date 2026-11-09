@@ -10,7 +10,7 @@
      · 財報只用實際公告日，缺的季計入「排除 k 次」（R7）；卡內外不出現下一次事件日期、倒數、行事曆連結（R8）
      · 免責放卡內、數字正下方，字級＝正文（R11）；方法說明進「?」（R12）
      · 不出現「勝率」與禁用字（R2）—— _uitest 段「事件歷史統計1109」掃卡片 innerText
-   資料：data/eventstudy/_index.json（有檔的代號）→ data/eventstudy/<代號>.json（pipeline/compute/eventstudy.py）。
+   資料：個股 JSON（data/stock/<代號>.json）的 evstudy 鍵（pipeline/compute/eventstudy.py 寫進去；不另外發請求）。
    功能鍵 stock.eventstudy（features.js）：訪客關、註冊會員／Plus／Pro 同權限（每日 5 檔）；Plus 收費解鎖在律師回覆前不開（R14）。
    沒權限時只畫空殼（鎖頭由 perm.js 蓋在 #stockTab／#mbBody 上），不抓資料。
    ============================================================================ */
@@ -98,20 +98,14 @@
       return;
     }
     S.wait = null;
-    draw();
-    if (!S.data) load(code);
+    if (!S.data) load(code); else draw();
   }
 
-  let _idx = null;
-  const loadIndex = () => (_idx || (_idx = fetch('data/eventstudy/_index.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null))
-    .then(j => (j && Array.isArray(j.codes) ? new Set(j.codes.map(String)) : null)).catch(() => null)));
-  async function load(code) {
-    try {
-      const idx = await loadIndex();
-      const d = idx && idx.has(code) ? await fetch('data/eventstudy/' + encodeURIComponent(code) + '.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null) : null;
-      if (code !== S.code) return;
-      S.data = d || { none: true };
-    } catch (e) { S.data = { none: true }; }
+  /* 資料就在個股 JSON 裡（data/stock/<代號>.json 的 evstudy 鍵，pipeline/compute/eventstudy.py 寫進去）：不另外發請求。
+     2026-11-09 第一版是另外一個資料夾 2,200 支檔，GitHub Pages 部署因檔數卡住，改併進個股 JSON。 */
+  function load(code) {
+    const d = S.pg && S.pg.evstudy;
+    S.data = d && d.code === code ? d : { none: true };
     draw();
   }
 
