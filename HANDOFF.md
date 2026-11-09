@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+
+## 2026-11-09 修 #stock/3189/holders 大戶／散戶卡片文字交疊（frontend-ui，維修）
+- 根因：三格持股折線 boundaryGap:false，首點貼在 y 軸線上，置中的數值標籤（「70.20%」）有一半伸進左邊刻度字（「90%」）區域；末點同理。只動 site/industry.js tabHolders：頭尾兩點標籤往圖內推 24px，資料與口徑不動。
+- 這批驗了：獨立 echarts 重現圖（同 grid／標籤設定，1440／800／390）舊 3 組交疊→修後 0；`_preview`／`_uitest` 本機因 build_payload 記憶體不足被殺（OOM），**未跑**，待 CI／有記憶體的 session 補跑 `_preview.py` 與 `--only 個股`、`桌機守門1008`。
+
 ## 2026-11-10 三頻道 IG 權杖自動更新：不再誤報（social-ops-lead；Andy：「這邊都需要具備自動更新權杖功能」）
 - scripts/meta_token_refresh.py：EAA 權杖（healing／tech／caffaine 的 IG）改走 graph.facebook.com 驗證（fb_probe：assigned_instagram_accounts → accounts → debug_token），debug_token 讀到期（權杖自己打 debug_token 會被拒 #100 → 用 /app 查應用程式編號、再用 app 權杖讀；需要對得上的 app secret）；系統用戶永不到期就不續；會到期且有對得上的 app secret 才 fb_exchange_token 寫回 *_IG_ACCESS_TOKEN_AUTO。新增 --check 每日檢查（meta_token_refresh.yml 每天 01:47 UTC＝台北 09:47），失敗立即開 issue。頻道①ig／threads 的續期行為沒動。
 - 這批驗了：pytest 全套（本機缺 yfinance 的 4 個 test_sources_v3 錯誤與本批無關）；雲端 meta_token_refresh.yml 非 dry-run 一次（run id 見回報）。

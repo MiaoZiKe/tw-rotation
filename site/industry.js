@@ -8714,7 +8714,16 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
           yAxis: LINES.map((L, i) => ({ ...A.axisStyle, type: 'value', gridIndex: i, scale: true, splitNumber: 2,
             axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 12, formatter: (v) => +v.toFixed(2) + '%' } })),   // 設計 v4 2B：11 → 12
           series: LINES.map((L, i) => ({ name: L.full, type: 'line', xAxisIndex: i, yAxisIndex: i,
-            data: dates.map(d => { const r = hmap.get(d); return r ? r[L.k] : null; }), showSymbol: true, symbolSize: 8, connectNulls: true,
+            /* 2026-11-09 修（_preview 在 #stock/3189/holders 1440／800 各抓 4 組交疊，例「90%」刻度壓在「70.20%」標籤上）：
+               boundaryGap:false 讓第一個點正好貼在 y 軸線上，置中的數值標籤有一半（~22px）伸進左邊刻度字的區域；
+               最後一個點同理伸出右邊。只把頭尾兩個點的標籤往圖內推 24px，其餘標籤與資料口徑都不動。*/
+            data: (() => { const v = dates.map(d => { const r = hmap.get(d); return r ? r[L.k] : null; });
+              const ix = v.map((x, j) => x == null ? -1 : j).filter(j => j >= 0);
+              if (ix.length < 2) return v;
+              const fi = ix[0], la = ix[ix.length - 1];
+              v[fi] = { value: v[fi], label: { offset: [24, 0] } };
+              v[la] = { value: v[la], label: { offset: [-24, 0] } };
+              return v; })(), showSymbol: true, symbolSize: 8, connectNulls: true,
             lineStyle: { color: A.CH[L.c], width: 3 }, itemStyle: { color: A.CH[L.c] },
             label: { show: showLbl, position: 'top', distance: 5, color: A.CH.ink2, fontSize: 12, fontFamily: A.NUM_FONT,
               formatter: (q) => q.value == null ? '' : A.fmt.n(q.value, 2) + '%' } })),
