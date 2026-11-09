@@ -544,10 +544,16 @@ def fb_ig_candidates(token: str, probe: list[str] | None = None) -> list[dict]:
     page_f = "name,instagram_business_account{id,username}"
     me_id = ""
     try:
-        me_id = str(SP.http("GET", f"{FB_HOST}/me", params={"fields": "id,name", "access_token": token}).get("id") or "")
+        d = SP.http("GET", f"{FB_HOST}/me", params={"fields": "id,name", "access_token": token})
+        shape = type(d).__name__
+        if isinstance(d, list):                # 實測 11-10：系統用戶權杖的 /me 回的是陣列
+            d = next((x for x in d if isinstance(x, dict)), {})
+        if isinstance(d, dict) and isinstance(d.get("data"), list):
+            d = next((x for x in d["data"] if isinstance(x, dict)), {})
+        me_id = str((d or {}).get("id") or "")
         if me_id:
             _mask_uid(me_id)
-        probe.append(f"/me：權杖身分編號 {_tail(me_id)}")
+        probe.append(f"/me：回傳 {shape}，權杖身分編號 {_tail(me_id)}，欄位 {sorted((d or {}).keys())}")
     except Exception as e:  # noqa: BLE001
         probe.append(f"/me：失敗 {SP.redact(e)[:160]}")
     # 1. granular_scopes
@@ -607,6 +613,13 @@ def fb_ig_candidates(token: str, probe: list[str] | None = None) -> list[dict]:
     n = len(found)
     try:
         acts = _list(f"{FB_HOST}/me/adaccounts", {"fields": "name,account_id", "access_token": token})
+        if me_id:
+            try:
+                more = _list(f"{FB_HOST}/{me_id}/assigned_ad_accounts", {"fields": "name,account_id", "access_token": token})
+                probe.append(f"系統用戶 assigned_ad_accounts：{len(more)} 個")
+                acts += [a for a in more if a.get("id") not in {b.get("id") for b in acts}]
+            except Exception as e:  # noqa: BLE001
+                probe.append(f"系統用戶 assigned_ad_accounts：失敗 {SP.redact(e)[:120]}")
         for a in acts:
             act = str(a.get("id") or "")
             if not act:

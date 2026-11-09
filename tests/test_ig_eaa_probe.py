@@ -29,7 +29,7 @@ def sys_user_http(calls, bad_container=()):
         prm = dict(kw.get("params") or {})
         calls.append((method, url, prm, dict(kw.get("data") or {})))
         if url == f"{F}/me":
-            return {"id": "1220000000005555", "name": "Aito Post 系統用戶"}
+            return [{"id": "1220000000005555", "name": "Aito Post 系統用戶"}]   # 實測：系統用戶 /me 回陣列
         if url == f"{F}/me/accounts":
             return {"data": []}
         if url == f"{F}/me/permissions":
