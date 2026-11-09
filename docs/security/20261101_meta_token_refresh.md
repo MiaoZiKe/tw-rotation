@@ -114,4 +114,7 @@ C 是現況，但只要 Meta 有一次回新字串，就會在不知不覺中走
 - 第一次自動續期：**2026-11-01（日）台北 10:23**，之後每週日同一時間。
 - 結果看 <https://github.com/MiaoZiKe/tw-rotation/actions/workflows/meta_token_refresh.yml>：綠＝成功；摘要表格列出每個平台剩幾天。
 - 手動「安全試跑」：同一頁按 **Run workflow**，`dry_run` 保持打勾 → 只驗證權杖能用，不續期、不寫回。
+- **2026-11-10 起每天台北 09:47 再跑一次「每日檢查」（--check）**（Andy：「這邊都需要具備自動更新權杖功能」）：每把權杖實際呼叫一次，失敗立即開 issue。
+  healing／tech／caffaine 的 IG 是 Facebook 版（EAA）系統用戶權杖：改走 graph.facebook.com 驗證（/me/assigned_instagram_accounts → /me/accounts → debug_token 授權範圍，找得到 IG 帳號才算通過；系統用戶 /me 回空陣列，之前因此誤報）。
+  debug_token 讀類型與到期日：系統用戶權杖 expires_at=0＝永不到期，不需續期；會到期的使用者權杖，有對得上的 app secret（META_APP_ID＋META_APP_SECRET，或權杖所屬應用程式＋THREADS_APP_SECRET——先用 app 權杖驗證是同一個應用程式，對不上不用）就 fb_exchange_token 換長效寫回 *_IG_ACCESS_TOKEN_AUTO；沒有就摘要寫「無法自動延長，需要 META_APP_ID／META_APP_SECRET」，到期前 10 天告警。
 - 現有的「12/17 Meta 權杖到期提醒」排程沒動；CEO 之後依續期結果改成「確認續期成功」。

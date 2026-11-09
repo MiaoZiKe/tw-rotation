@@ -1,5 +1,9 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-10 三頻道 IG 權杖自動更新：不再誤報（social-ops-lead；Andy：「這邊都需要具備自動更新權杖功能」）
+- scripts/meta_token_refresh.py：EAA 權杖（healing／tech／caffaine 的 IG）改走 graph.facebook.com 驗證（fb_probe：assigned_instagram_accounts → accounts → debug_token），debug_token 讀到期；系統用戶永不到期就不續；會到期且有對得上的 app secret 才 fb_exchange_token 寫回 *_IG_ACCESS_TOKEN_AUTO。新增 --check 每日檢查（meta_token_refresh.yml 每天 01:47 UTC＝台北 09:47），失敗立即開 issue。頻道①ig／threads 的續期行為沒動。
+- 這批驗了：pytest 全套（本機缺 yfinance 的 4 個 test_sources_v3 錯誤與本批無關）；雲端 meta_token_refresh.yml 非 dry-run 一次（run id 見回報）。
+
 ## 2026-11-09 深夜 頻道①重新開始：暫停自動發文＋刪舊文（social-ops-lead；Andy：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」「我們規劃好在出發」）
 - `post_quota.json` live.close.threads=false：頻道①所有自動發文暫停（新計畫核可前）。監工／daily_audit 看到關閉＝未啟用，**不准補發**。
 - 刪文流程：`social_delete.yml` mode=archive（備份到 social-snaps archive/pre_restart_1109/）→ mode=delete（keep_from_tw=2026-11-09、sleep=5-10、ids_file＝備份產生的 threads_delete_ids.txt）。Threads 每 24 小時上限 100 則，超過要隔天再跑一次。IG 見回報（API 能否刪以試刪結果為準，不能就手動清單）。

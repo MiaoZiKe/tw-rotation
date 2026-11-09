@@ -162,3 +162,22 @@ def test_24小時內續過就跳過不打Meta(monkeypatch, tmp_path):
     rc2, st2 = mtr.run(dict(ENV), NOW, False, state_path=tmp_path / "meta_token.json", saver=lambda *a: True,
                        pat_checker=lambda p, r: {"present": True, "ok": True})
     assert rc2 == 1 and st2["platforms"]["threads"]["status"] == "refresh-failed"
+
+
+def test_每日檢查_非EAA只驗證不續期_失敗立即告警(monkeypatch, tmp_path):
+    """2026-11-10：每天用權杖實際呼叫一次；成功不續期、不動到期日，失敗立即告警（開 issue）。"""
+    exp = (NOW + timedelta(days=50)).isoformat()
+    prev = {"platforms": {"threads": {"ok": True, "expires_at": exp, "last_ok_at": "2026-10-30T00:00:00+00:00"}}}
+    (tmp_path / "meta_token.json").write_text(json.dumps(prev))
+    fh = fake_http()
+    monkeypatch.setattr(mtr, "http_get", fh)
+    rc, st = mtr.run(dict(ENV), NOW, False, state_path=tmp_path / "meta_token.json", saver=lambda *a: True,
+                     pat_checker=lambda p, r: {"present": True, "ok": True}, check=True)
+    assert rc == 0 and st["mode"] == "check" and not st["alert"]
+    assert st["platforms"]["threads"]["status"] == "check-ok" and st["platforms"]["threads"]["days_left"] == 50.0
+    assert st["platforms"]["threads"]["last_ok_at"] == "2026-10-30T00:00:00+00:00"
+    assert not any("refresh_access_token" in u for u, _ in fh.calls)
+    monkeypatch.setattr(mtr, "http_get", fake_http(me_ok=False))
+    rc, st = mtr.run(dict(ENV), NOW, False, state_path=tmp_path / "meta_token.json", saver=lambda *a: True,
+                     pat_checker=lambda p, r: {"present": True, "ok": True}, check=True)
+    assert rc == 1 and st["alert"] and any("每日檢查失敗" in r for r in st["alert_reasons"])

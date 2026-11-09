@@ -138,37 +138,130 @@ def test_留言私訊_EAA用專頁權杖(monkeypatch):
     assert calls[-1][1] == f"{hc.FB}/med1/comments"
 
 
-def test_續期_EAA沒有appsecret跳過不紅燈(tmp_path, monkeypatch):
-    seen = []
+# ---------- 續期（scripts/meta_token_refresh.py）對 EAA 權杖：2026-11-10 改版 ----------
+# 實測：系統用戶權杖 graph.facebook.com/me 回空陣列（http_get 當成 {}），之前因此誤報「驗證失敗」、整個工作流變紅。
+DAY = 86400
+
+
+def fb_http(kind="SYSTEM_USER", exp_days=None, app_id="123", good_secrets=("sec_aaaaaaaa",), ig_ok=True,
+            new_tok="EAAnewLONGtoken_qqqqqqqqqqqq"):
+    calls = []
+    now = int(datetime.now(timezone.utc).timestamp())
 
     def hg(url, params):
-        seen.append(url)
-        if url.endswith("/debug_token"):
-            return {"data": {"expires_at": 0}}
+        calls.append((url, dict(params)))
+        assert "graph.instagram.com" not in url and "graph.threads.net" not in url
         if url.endswith("/me"):
-            return {"id": "u1"}
+            return {}                                   # 系統用戶：回空陣列 → {}
+        if url.endswith("/me/assigned_instagram_accounts"):
+            if not ig_ok:
+                raise RuntimeError("HTTP 400 Invalid OAuth access token")
+            return {"data": [{"id": "17841400000000002", "username": "tech_01010909"}]}
+        if url.endswith("/me/accounts"):
+            if not ig_ok:
+                raise RuntimeError("HTTP 400 Invalid OAuth access token")
+            return {"data": []}
+        if url.endswith("/debug_token"):
+            at = params["access_token"]
+            if "|" in at:                               # app 權杖：驗 secret 屬不屬於這個應用程式
+                aid, sec = at.split("|", 1)
+                if aid != app_id or sec not in good_secrets:
+                    raise RuntimeError("HTTP 400 Invalid OAuth access token signature")
+            if not ig_ok:
+                return {"data": {"is_valid": False}}
+            return {"data": {"is_valid": True, "type": kind, "app_id": app_id,
+                             "expires_at": 0 if exp_days is None else now + int(exp_days * DAY)}}
+        if url.endswith("/oauth/access_token"):
+            assert params["grant_type"] == "fb_exchange_token" and params["client_id"] == app_id
+            return {"access_token": new_tok, "expires_in": 60 * DAY}
         raise AssertionError("不該呼叫 " + url)
+    hg.calls = calls
+    return hg
+
+
+def fb_run(monkeypatch, tmp_path, env, dry=False, check=False, **kw):
+    hg = fb_http(**kw)
     monkeypatch.setattr(mtr, "http_get", hg)
-    rc, st = mtr.run({"TECH_IG_ACCESS_TOKEN": EAA}, datetime.now(timezone.utc), False,
-                     state_path=tmp_path / "m.json", pat_checker=lambda p, r: {"ok": True})
+    saved = []
+    rc, st = mtr.run(dict(env), datetime.now(timezone.utc), dry, state_path=tmp_path / "m.json",
+                     saver=lambda n, v, r, p: saved.append((n, v)) or True,
+                     pat_checker=lambda p, r: {"ok": True}, check=check)
+    return rc, st, saved, hg
+
+
+def test_續期_EAA系統用戶_me回空陣列也算通過_永不到期不續(tmp_path, monkeypatch):
+    rc, st, saved, hg = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA})
     ps = st["platforms"]["tech_ig"]
-    assert ps["status"] == "fb-no-secret" and ps["ok"] and rc == 0
-    assert all("graph.instagram.com" not in u for u in seen)
+    assert rc == 0 and ps["ok"] and ps["status"] == "fb-never-expires" and ps["never_expires"]
+    assert not st["alert"] and not saved
+    assert not any(u.endswith("/oauth/access_token") for u, _ in hg.calls)
+    assert "assigned_instagram_accounts" in ps["via"]
     assert EAA not in (tmp_path / "m.json").read_text()
 
 
-def test_續期_EAA有appsecret換長效並寫回(tmp_path, monkeypatch):
-    def hg(url, params):
-        if url.endswith("/oauth/access_token"):
-            assert params["grant_type"] == "fb_exchange_token"
-            return {"access_token": "EAAnewLONGtoken_qqqqqqqqqqqq", "expires_in": 5184000}
-        if url.endswith("/me"):
-            return {"id": "u1"}
-        raise AssertionError(url)
-    monkeypatch.setattr(mtr, "http_get", hg)
-    saved = []
-    rc, st = mtr.run({"TECH_IG_ACCESS_TOKEN": EAA, "META_APP_ID": "123", "META_APP_SECRET": "sec_aaaaaaaa",
-                      "META_SECRETS_PAT": "pat_bbbbbbbbbb"}, datetime.now(timezone.utc), False,
-                     state_path=tmp_path / "m.json", saver=lambda n, v, r, p: saved.append(n) or True,
-                     pat_checker=lambda p, r: {"ok": True})
-    assert st["platforms"]["tech_ig"]["status"] == "refreshed" and "TECH_IG_ACCESS_TOKEN_AUTO" in saved
+def test_dry_run_EAA不再誤報(tmp_path, monkeypatch):
+    rc, st, saved, _ = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA}, dry=True)
+    assert rc == 0 and st["platforms"]["tech_ig"]["status"] == "dry-run-ok" and not saved
+    assert not (tmp_path / "m.json").exists()
+
+
+def test_EAA權杖失效_紅燈且立即告警(tmp_path, monkeypatch):
+    rc, st, _, _ = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA}, ig_ok=False, check=True)
+    assert rc == 1 and st["platforms"]["tech_ig"]["status"] == "fb-invalid" and st["alert"]
+
+
+def test_EAA使用者權杖_沒有appsecret_寫明需要並到期前告警(tmp_path, monkeypatch):
+    rc, st, saved, _ = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA}, kind="USER", exp_days=40)
+    ps = st["platforms"]["tech_ig"]
+    assert rc == 0 and ps["status"] == "fb-no-secret" and "META_APP_ID" in ps["note"] and not st["alert"]
+    assert 39 < ps["days_left"] <= 40
+    rc, st, _, _ = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA}, kind="USER", exp_days=5)
+    assert rc == 0 and st["alert"] and "META_APP_ID" in st["alert_reasons"][0]
+
+
+def test_EAA使用者權杖_有META_APP_ID與SECRET_換長效寫回AUTO(tmp_path, monkeypatch):
+    env = {"TECH_IG_ACCESS_TOKEN": EAA, "META_APP_ID": "123", "META_APP_SECRET": "sec_aaaaaaaa",
+           "META_SECRETS_PAT": "pat_bbbbbbbbbb"}
+    rc, st, saved, _ = fb_run(monkeypatch, tmp_path, env, kind="USER", exp_days=40)
+    ps = st["platforms"]["tech_ig"]
+    assert rc == 0 and ps["status"] == "refreshed" and ps["saved"] == "written"
+    assert saved == [("TECH_IG_ACCESS_TOKEN_AUTO", "EAAnewLONGtoken_qqqqqqqqqqqq")]
+    assert 59 < ps["days_left"] <= 60
+
+
+def test_THREADS_APP_SECRET不同應用程式就不用(tmp_path, monkeypatch):
+    env = {"TECH_IG_ACCESS_TOKEN": EAA, "THREADS_APP_SECRET": "threads_other_app_secret", "META_SECRETS_PAT": "pat_bbbbbbbbbb"}
+    rc, st, saved, hg = fb_run(monkeypatch, tmp_path, env, kind="USER", exp_days=40)
+    ps = st["platforms"]["tech_ig"]
+    assert rc == 0 and ps["status"] == "fb-no-secret" and "THREADS_APP_SECRET 對不上" in ps["note"] and not saved
+    assert not any(u.endswith("/oauth/access_token") for u, _ in hg.calls)
+
+
+def test_THREADS_APP_SECRET屬於同一個應用程式就拿來換長效(tmp_path, monkeypatch):
+    env = {"TECH_IG_ACCESS_TOKEN": EAA, "THREADS_APP_SECRET": "same_app_secret_zz", "META_SECRETS_PAT": "pat_bbbbbbbbbb"}
+    rc, st, saved, _ = fb_run(monkeypatch, tmp_path, env, kind="USER", exp_days=40, good_secrets=("same_app_secret_zz",))
+    assert rc == 0 and st["platforms"]["tech_ig"]["status"] == "refreshed" and saved
+
+
+def test_每日檢查_EAA還很久才到期不換_快到期才換(tmp_path, monkeypatch):
+    env = {"TECH_IG_ACCESS_TOKEN": EAA, "META_APP_ID": "123", "META_APP_SECRET": "sec_aaaaaaaa", "META_SECRETS_PAT": "p_x"}
+    rc, st, saved, _ = fb_run(monkeypatch, tmp_path, env, check=True, kind="USER", exp_days=45)
+    assert rc == 0 and st["platforms"]["tech_ig"]["status"] == "fb-ok" and not saved
+    rc, st, saved, _ = fb_run(monkeypatch, tmp_path, env, check=True, kind="USER", exp_days=20)
+    assert rc == 0 and st["platforms"]["tech_ig"]["status"] == "refreshed" and saved
+
+
+def test_EAA優先用AUTO(tmp_path, monkeypatch):
+    auto = "EAAautoTOKEN_ppppppppppppppppp"
+    rc, st, _, hg = fb_run(monkeypatch, tmp_path, {"TECH_IG_ACCESS_TOKEN": EAA, "TECH_IG_ACCESS_TOKEN_AUTO": auto})
+    assert st["platforms"]["tech_ig"]["source"] == "auto"
+    assert {p["access_token"] for u, p in hg.calls if "|" not in p["access_token"]} == {auto}
+
+
+def test_發文端IG與Threads都優先用AUTO():
+    import scripts.healing_post as hp2
+    env = {"CAFFAINE_IG_ACCESS_TOKEN": EAA, "CAFFAINE_IG_ACCESS_TOKEN_AUTO": "EAAauto_ig_rrrrrrrrrrrr",
+           "CAFFAINE_THREADS_ACCESS_TOKEN": "THQorig_tttttttttt", "CAFFAINE_THREADS_ACCESS_TOKEN_AUTO": "THQauto_uuuuuuuuuu"}
+    t = hp2.tokens(env, "CAFFAINE_")
+    assert t == {"ig": "EAAauto_ig_rrrrrrrrrrrr", "threads": "THQauto_uuuuuuuuuu"}
+    assert hp2.tokens({"CAFFAINE_IG_ACCESS_TOKEN": EAA}, "CAFFAINE_")["ig"] == EAA

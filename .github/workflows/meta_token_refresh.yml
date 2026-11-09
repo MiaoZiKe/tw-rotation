@@ -9,6 +9,9 @@ name: meta_token_refresh
 on:
   schedule:
     - cron: "23 2 * * 0"   # 每週日 02:23 UTC＝台北 10:23（避開盤前／盤中／盤後發文時段）
+    # 2026-11-10 Andy：「這邊都需要具備自動更新權杖功能」→ 每天檢查一次（--check）：每把權杖實際呼叫一次，
+    # 失敗立即開 issue；Facebook 版（EAA）權杖快到期且有 app secret 就換長效。週日那輪照舊真的續期。
+    - cron: "47 1 * * *"   # 每天 01:47 UTC＝台北 09:47
   workflow_dispatch:
     inputs:
       dry_run:
@@ -64,6 +67,7 @@ jobs:
         run: |
           DRY=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "47 1 * * *" ]; then DRY="--check"; fi
           python scripts/meta_token_refresh.py $DRY
       - name: 狀態寫回 main（只有日期與天數，沒有權杖）
         if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)

@@ -11,6 +11,8 @@ Andy 原話：「幫我看看 Buffer 這個網站 好像可以幫忙免費自動
   4. 狀態寫 data/_state/meta_token.json（只有日期、天數、成功與否，絕不含權杖），網站資料狀態燈會讀。
   5. 任何一個平台續期失敗 → exit 1（run 紅燈）；到期前 10 天內仍沒成功（或到期日未知）→ alert，工作流開 issue 提醒。
 
+--check（2026-11-10，每天排程）：每把權杖實際呼叫一次，失敗立即告警；不續期 Threads／IG 登入版，
+  Facebook 版（EAA，三個頻道的 IG）系統用戶權杖永不到期就只驗證，會到期的剩 30 天內且有對得上的 app secret 才換長效。
 --dry-run：只用 /me 驗證權杖還能用，不呼叫 refresh、不寫回、不寫狀態檔（手動觸發預設就是這個）。
 
 權杖只從環境變數讀；任何輸出先過 redact，並對 GitHub 印 ::add-mask::。
@@ -113,14 +115,75 @@ def is_fb(platform: str, token: str) -> bool:
     return bool(PLATFORMS[platform].get("fb_ok")) and (token or "").startswith("EAA")
 
 
+def fb_debug(token: str, app_token: str | None = None) -> dict | None:
+    """debug_token：{is_valid, type, app_id, expires_at(0＝不會過期), data_access_expires_at}；讀不到回 None。
+    app_token 給「app_id|secret」時同時驗證那把 secret 屬於這個應用程式（不屬於會被 Meta 拒絕）。"""
+    try:
+        return http_get(f"{FB_HOST}/debug_token", {"input_token": token, "access_token": app_token or token}).get("data") or {}
+    except Exception as e:  # noqa: BLE001
+        log(f"[fb] debug_token 失敗：{redact(e)}")
+        return None
+
+
 def fb_expiry(token: str) -> int | None:
     """debug_token 讀到期時間（epoch 秒；0＝不會過期）；讀不到回 None。"""
-    try:
-        d = http_get(f"{FB_HOST}/debug_token", {"input_token": token, "access_token": token}).get("data") or {}
-        return int(d.get("expires_at") or 0)
-    except Exception as e:  # noqa: BLE001
-        log(f"[fb] debug_token 讀不到到期日：{redact(e)}")
+    d = fb_debug(token)
+    if d is None:
         return None
+    try:
+        return int(d.get("expires_at") or 0)
+    except (TypeError, ValueError):
+        return None
+
+
+def fb_probe(token: str) -> tuple[bool, str]:
+    """EAA 權杖（系統用戶／Facebook 登入版）能不能用：要真的找得到 IG 帳號才算通過。
+    系統用戶的 graph.facebook.com/me 實測回空陣列（11-10），所以不看 /me，改看
+    /me/assigned_instagram_accounts → /me/accounts 的 instagram_business_account → debug_token 授權範圍。
+    回 (能用, 從哪條路找到)；log 只留路徑名與 IG 帳號名稱，不印編號。"""
+    errs = []
+    try:
+        d = http_get(f"{FB_HOST}/me/assigned_instagram_accounts", {"fields": "id,username", "access_token": token})
+        got = [x for x in (d.get("data") or []) if isinstance(x, dict) and x.get("id")]
+        if got:
+            return True, "assigned_instagram_accounts（@" + "、@".join(str(x.get("username") or "?") for x in got) + "）"
+    except Exception as e:  # noqa: BLE001
+        errs.append(f"assigned_instagram_accounts：{redact(e)[:120]}")
+    try:
+        d = http_get(f"{FB_HOST}/me/accounts", {"fields": "instagram_business_account{id,username}", "access_token": token})
+        got = [(x.get("instagram_business_account") or {}) for x in (d.get("data") or []) if isinstance(x, dict)]
+        got = [g for g in got if g.get("id")]
+        if got:
+            return True, "粉絲專頁 instagram_business_account（@" + "、@".join(str(g.get("username") or "?") for g in got) + "）"
+    except Exception as e:  # noqa: BLE001
+        errs.append(f"accounts：{redact(e)[:120]}")
+    dd = fb_debug(token)
+    if dd and dd.get("is_valid"):
+        for g in dd.get("granular_scopes") or []:
+            if g.get("scope") == "instagram_content_publish" and g.get("target_ids"):
+                return True, "debug_token 授權範圍（instagram_content_publish）"
+        errs.append("debug_token：權杖有效但找不到任何 IG 帳號")
+    elif dd is not None:
+        errs.append("debug_token：is_valid=false")
+    log("[fb] 驗證失敗：" + "；".join(errs))
+    return False, ""
+
+
+def fb_app_creds(token: str, info: dict | None, env_id: str, env_secret: str, threads_secret: str) -> tuple[str, str, str]:
+    """找得到能換長效的 (app_id, secret, 來源說明)；找不到回 ("", "", 原因)。
+    每一組都先用 debug_token（app 權杖＝app_id|secret）驗證確實屬於簽發這把權杖的應用程式，對不上就不用。"""
+    tok_app = str((info or {}).get("app_id") or "")
+    tried = []
+    for aid, sec, label in ((env_id, env_secret, "META_APP_ID＋META_APP_SECRET"),
+                            (tok_app if not env_id else "", env_secret, "權杖所屬應用程式＋META_APP_SECRET"),
+                            (tok_app, threads_secret, "權杖所屬應用程式＋THREADS_APP_SECRET")):
+        if not (aid and sec):
+            continue
+        d = fb_debug(token, f"{aid}|{sec}")
+        if d and (not tok_app or str(d.get("app_id") or "") == tok_app):
+            return aid, sec, label
+        tried.append(f"{label} 對不上（不是同一個應用程式，不使用）")
+    return "", "", "；".join(tried) or "沒有 META_APP_ID／META_APP_SECRET"
 
 
 def fb_exchange(token: str, app_id: str, secret: str) -> tuple[str, int | None]:
@@ -141,11 +204,9 @@ def fb_exchange(token: str, app_id: str, secret: str) -> tuple[str, int | None]:
 def check_me(platform: str, token: str) -> bool:
     p = PLATFORMS[platform]
     if is_fb(platform, token):
-        try:
-            return bool(http_get(f"{FB_HOST}/me", {"fields": "id", "access_token": token}).get("id"))
-        except Exception as e:  # noqa: BLE001
-            log(f"[{platform}] /me（Facebook）驗證失敗：{redact(e)}")
-            return False
+        ok, via = fb_probe(token)
+        log(f"[{platform}] Facebook 版權杖（EAA）" + (f"可以用：{via}" if ok else "驗證失敗（找不到 IG 帳號）"))
+        return ok
     try:
         d = http_get(p["me"], {"fields": p["me_fields"], "access_token": token})
     except Exception as e:  # noqa: BLE001
@@ -240,8 +301,11 @@ def load_state(path: Path) -> dict:
         return {}
 
 
+FB_RENEW_DAYS = 30    # 每日檢查：Facebook 版使用者權杖剩 30 天內才換長效（每週續期那輪一律換）
+
+
 def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, saver=save_secret,
-        pat_checker=pat_status, intake_path: Path | None = None) -> tuple[int, dict]:
+        pat_checker=pat_status, intake_path: Path | None = None, check: bool = False) -> tuple[int, dict]:
     repo = env.get("GITHUB_REPOSITORY", "MiaoZiKe/tw-rotation")
     pat = (env.get("META_SECRETS_PAT") or "").strip()
     mask(pat)
@@ -253,9 +317,86 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
     mask(fb_secret)
     prev = load_state(state_path)
     intake = (load_state(intake_path or state_path.parent / TC_INTAKE_PATH.name).get("platforms")) or {}
-    st = {"updated_at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else "refresh",
+    st = {"updated_at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else ("check" if check else "refresh"),
           "platforms": {}, "alert": False, "alert_reasons": []}
     failed = False
+    mode = st["mode"]
+
+    def handle_fb(name: str, p: dict, token: str, ps: dict) -> bool:
+        """EAA 權杖（三個頻道的 IG）：驗證（找得到 IG 帳號）→ debug_token 讀類型與到期日 →
+        系統用戶永不到期就不用續；會到期而且有對得上的 app secret → fb_exchange_token 換長效寫回 *_AUTO；
+        都沒有 → 每天驗證一次、到期前 10 天告警，摘要寫明需要 META_APP_ID／META_APP_SECRET。回傳是否失敗。"""
+        ok, via = fb_probe(token)
+        ps.update(fb=True, via=via)
+        if not ok:
+            ps.update(status="fb-invalid", error="Facebook 版權杖驗證失敗：找不到 IG 帳號（可能過期或被撤銷）")
+            st["alert"] = True
+            st["alert_reasons"].append(f"{name} 權杖驗證失敗（找不到 IG 帳號），發文會失敗，請重新產生權杖")
+            log(f"[{name}] Facebook 版權杖驗證失敗")
+            return True
+        info = fb_debug(token) or {}
+        ps["token_type"] = info.get("type")
+        try:
+            exp_at = int(info["expires_at"]) if "expires_at" in info else None
+        except (TypeError, ValueError):
+            exp_at = None
+        try:
+            dae = int(info.get("data_access_expires_at") or 0)
+        except (TypeError, ValueError):
+            dae = 0
+        if dae:
+            ps["data_access_expires_at"] = datetime.fromtimestamp(dae, timezone.utc).isoformat(timespec="seconds")
+        ps["ok"] = True
+        if exp_at == 0:
+            ps.update(status="dry-run-ok" if dry_run else "fb-never-expires", never_expires=True, expires_at=None,
+                      days_left=None, last_ok_at=now.isoformat(timespec="seconds") if not dry_run else ps.get("last_ok_at"),
+                      note=f"{info.get('type') or 'Facebook'} 權杖永不到期，不需要續期（每天驗證一次，失效立即告警）")
+            log(f"[{name}] 可以用（{via}）；權杖類型 {info.get('type') or '?'}，永不到期，不用續期")
+            return False
+        if exp_at:
+            ps["expires_at"] = datetime.fromtimestamp(exp_at, timezone.utc).isoformat(timespec="seconds")
+        dl = days_left(ps.get("expires_at"), now)
+        ps["days_left"] = dl
+        aid, sec, how = fb_app_creds(token, info, fb_app_id, fb_secret, app_secret)
+        if dry_run or not aid:
+            if not dry_run:
+                ps["last_ok_at"] = now.isoformat(timespec="seconds")
+            ps.update(status="dry-run-ok" if dry_run else "fb-no-secret")
+            if not aid:
+                ps["note"] = f"無法自動延長，需要 META_APP_ID／META_APP_SECRET（{how}）；每天驗證一次，到期前 {ALERT_DAYS} 天告警"
+                if dl is not None and dl <= ALERT_DAYS:
+                    st["alert"] = True
+                    st["alert_reasons"].append(f"{name} 權杖剩 {dl} 天到期，且沒有 META_APP_ID／META_APP_SECRET 可自動延長")
+            log(f"[{name}] 可以用（{via}）；到期 {ps.get('expires_at') or '未知'}；" + (ps.get("note") or "dry-run 不續期"))
+            return False
+        if check and dl is not None and dl > FB_RENEW_DAYS:
+            ps.update(status="fb-ok", last_ok_at=now.isoformat(timespec="seconds"), note=f"可自動延長（{how}），剩 {FB_RENEW_DAYS} 天內才換")
+            log(f"[{name}] 可以用（{via}）；剩 {dl} 天，還不用換")
+            return False
+        try:
+            new, exp = fb_exchange(token, aid, sec)
+        except Exception as e:  # noqa: BLE001
+            ps.update(ok=False, status="refresh-failed", error=redact(e)[:200])
+            log(f"[{name}] 換長效失敗：{redact(e)}")
+            if dl is None or dl <= ALERT_DAYS:
+                st["alert"] = True
+                st["alert_reasons"].append(f"{name} 權杖換長效失敗，" + ("到期日未知" if dl is None else f"剩 {dl} 天到期"))
+            return True
+        new_exp = (now + timedelta(seconds=exp)).isoformat(timespec="seconds") if exp else None
+        if new != token and not fb_probe(new)[0]:
+            ps.update(ok=False, status="new-token-invalid", saved="not_saved", error="新權杖驗證失敗，沒有寫回")
+            return True
+        if new != token and not pat:
+            ps.update(ok=False, status="needs-writeback", saved="not_saved", error="換到新權杖，但沒有 META_SECRETS_PAT 可寫回")
+            return True
+        if new != token and not saver(p["env"] + "_AUTO", new, repo, pat):
+            ps.update(ok=False, status="writeback-failed", saved="not_saved", error="寫回 Secret 失敗")
+            return True
+        ps.update(status="refreshed", saved="unchanged" if new == token else "written", source_after="auto" if new != token else ps["source"],
+                  last_ok_at=now.isoformat(timespec="seconds"), expires_at=new_exp or ps.get("expires_at"), note=f"已自動延長（{how}）")
+        ps["days_left"] = days_left(ps.get("expires_at"), now)
+        log(f"[{name}] 換長效成功（{how}）" + ("，新權杖已寫回 " + p["env"] + "_AUTO" if new != token else "，字串不變"))
+        return False
 
     for name, p in PLATFORMS.items():
         auto = (env.get(p["env"] + "_AUTO") or "").strip()
@@ -278,8 +419,22 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             st["platforms"][name] = ps
             continue
 
-        if dry_run:
+        if is_fb(name, token):
+            failed |= handle_fb(name, p, token, ps)
+            st["platforms"][name] = ps
+            continue
+
+        if dry_run or check:
             ok = check_me(name, token)
+            if check:
+                ps.update(ok=ok, status="check-ok" if ok else "check-fail", days_left=days_left(ps.get("expires_at"), now))
+                log(f"[{name}] 每日檢查：權杖（{source}）{'可以用' if ok else '驗證失敗'}")
+                if not ok:
+                    failed = True
+                    st["alert"] = True
+                    st["alert_reasons"].append(f"{name} 權杖每日檢查失敗（發文會失敗），請處理")
+                st["platforms"][name] = ps
+                continue
             ps.update(ok=ok, status="dry-run-ok" if ok else "dry-run-fail")
             log(f"[{name}] dry-run：權杖（{source}）{'可以用' if ok else '驗證失敗'}；沒有續期、沒有寫回")
             failed |= not ok
@@ -296,30 +451,9 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
             st["platforms"][name] = ps
             continue
 
-        fb = is_fb(name, token)
-        if fb and not (fb_app_id and fb_secret):
-            # 沒有 app id／secret 不能換長效：只驗證權杖還能用，讀到期日，不算失敗（到期前 10 天照樣告警）
-            ok = check_me(name, token)
-            exp_at = fb_expiry(token) if ok else None
-            ps.update(ok=ok, status="fb-no-secret" if ok else "fb-invalid", fb=True,
-                      note="Facebook 登入版權杖（EAA）：沒有 META_APP_ID＋META_APP_SECRET，跳過續期")
-            if exp_at == 0:
-                ps["expires_at"], ps["never_expires"] = None, True
-            elif exp_at:
-                ps["expires_at"] = datetime.fromtimestamp(exp_at, timezone.utc).isoformat(timespec="seconds")
-            log(f"[{name}] Facebook 登入版權杖（EAA）{'可以用' if ok else '驗證失敗'}；沒有 app secret，跳過續期")
-            failed |= not ok
-            dl = None if ps.get("never_expires") else days_left(ps.get("expires_at"), now)
-            ps["days_left"] = dl
-            if not ok or (dl is not None and dl <= ALERT_DAYS):
-                st["alert"] = True
-                st["alert_reasons"].append(f"{name} Facebook 登入版權杖" + ("無效" if not ok else f"剩 {dl} 天到期")
-                                           + "，且沒有 app secret 可自動續期")
-            st["platforms"][name] = ps
-            continue
         try:
             try:
-                new, exp = fb_exchange(token, fb_app_id, fb_secret) if fb else refresh(name, token)
+                new, exp = refresh(name, token)
             except Exception as e:  # noqa: BLE001
                 if not (p.get("exchange") and app_secret):
                     raise
@@ -384,8 +518,10 @@ def run(env: dict, now: datetime, dry_run: bool, state_path: Path = STATE_PATH, 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Meta 長效權杖自動續期")
     ap.add_argument("--dry-run", action="store_true", help="只驗證權杖能用，不續期、不寫回、不寫狀態檔")
+    ap.add_argument("--check", action="store_true",
+                    help="每日檢查：每把權杖實際呼叫一次（失敗立即告警）；Facebook 版權杖快到期且有 app secret 才換長效；其餘不續期")
     a = ap.parse_args(argv)
-    rc, st = run(dict(os.environ), datetime.now(timezone.utc), a.dry_run)
+    rc, st = run(dict(os.environ), datetime.now(timezone.utc), a.dry_run, check=a.check and not a.dry_run)
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
         with open(out, "a", encoding="utf-8") as f:
@@ -394,9 +530,10 @@ def main(argv=None) -> int:
     summ = os.environ.get("GITHUB_STEP_SUMMARY")
     if summ:
         with open(summ, "a", encoding="utf-8") as f:
-            f.write(f"### Meta 權杖續期（{st['mode']}）：{st['status']}\n\n| 平台 | 狀態 | 剩幾天 | 來源 |\n|---|---|---|---|\n")
+            f.write(f"### Meta 權杖續期（{st['mode']}）：{st['status']}\n\n| 平台 | 狀態 | 到期日 | 剩幾天 | 來源 | 備註 |\n|---|---|---|---|---|---|\n")
             for k, v in st["platforms"].items():
-                f.write(f"| {k} | {v.get('status')} | {v.get('days_left', '')} | {v.get('source')} |\n")
+                exp = "永不到期" if v.get("never_expires") else (str(v.get("expires_at") or "未知")[:10])
+                f.write(f"| {k} | {v.get('status')} | {exp} | {v.get('days_left', '')} | {v.get('source')} | {v.get('note', '')} |\n")
             for r in st["alert_reasons"]:
                 f.write(f"\n- ⚠️ {r}")
             f.write("\n")
