@@ -139,7 +139,7 @@ DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 TITLE_FMT = "{公司}透明說"            # 封面第一行大標（公司名＋透明說）
 HINT = os.environ.get("TC_HINT") or "大人才知道的那些事"   # 封面第二行（隱晦、不直白；7～10 字單行；法遵：不得出現內部／爆料／內幕／獨家／祕密）
 COVER_HINT = "右滑看透明圈"
-SECTION_TITLE = "工程師待遇"     # 欄位標題；文章若是特定單位，寫成「廣達 BU9 透明圈」這種
+SECTION_TITLE = "待遇透明圈"     # 欄位標題（2026-11-06 Andy 定案）；文章若是特定單位才加括號（單位用藍色小一級），例如「待遇透明圈（BU9）」，一般篇不加
 HQ_LABEL = "總部：〔待填〕"   # 地圖上的標示，填成「總部：桃園龜山」之類
 TT_PX, HT_PX = 108, 60
 # 提示：白底細藍框圓角小標籤＋右側三個由淡到深的箭頭（›››，自繪 SVG，非文字箭頭）
@@ -156,10 +156,12 @@ SWIPE_CSS = f"""
 .cv .sw{{position:absolute;right:{SW_R}px;bottom:{SW_B}px;height:{SW_H}px;display:flex;align-items:center;gap:14px;padding:0 24px 0 28px;border-radius:{SW_H//2}px;background:#fff;border:3px solid {BLUE};color:{BLUE};font-size:32px;font-weight:700;white-space:nowrap}}
 .cv .sw svg{{display:block}}
 """
-S["A1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
-    f'<div class="pic" data-b style="background-image:url({photo_uri("tsmc/photo_18.jpg")});background-position:50% 55%"></div>'
-    f'<div class="low"><div class="nm">{TITLE_FMT.format(公司=NAME)}</div><div class="tg">{HINT}</div></div>{SWIPE}</div>')
-
+# ---- A1 封面＝2026-11-06 Andy 定案版（開口正圓＋橘膠囊「透明說」在缺口中間＋右側旁白引號與茶杯＋右下「右滑看透明圈」）----
+# 產圖程式 title_d.py（＋title_styles.py）直接重用；規格見 README「公司待遇文封面標題（2026-11-06 Andy 定案）」。
+# 照片框改 1032×690（與 render_quanta.py 定案版相同，不沿用上面 PIC_H=862）；公司名用 NAME、副標「茶水間常聊的那些」。
+# 因為要另開 Playwright 出圖，A1 在下面轉圖迴圈之前先單獨輸出（A1_cover.png），重疊檢查用 title_d 的「墨跡外框＋像素距離」版，結果併入 overlap_report.json。
+A1_PIC_H = 690
+S_A1 = True
 # 待遇表：上半台灣地圖＋總部位置（world-atlas countries-50m，ISC／Natural Earth 公有領域），下半「工程師待遇」6 欄；每欄只有欄名＋重點值，不放備註與頁底免責（Andy 11-06）
 rows = [("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕"), ("出差頻率", "〔待填〕")]
@@ -317,6 +319,13 @@ JS = """() => {
 }"""
 
 report = {}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+for _k, _v in (("TC_VAR", "D6"), ("TC_SW", "46"), ("TC_PW", "176"), ("TC_PH", "66"), ("TC_PF", "48"), ("TC_LG", "18"), ("TC_COMPANY", NAME), ("TC_OUTNAME", "A1_cover")): os.environ[_k] = os.environ.get(_k) or _v
+import title_d
+_g = dict(globals(), PIC_H=A1_PIC_H, OUT=OUT, TD_PHOTO=lambda: photo_uri("tsmc/photo_18.jpg"), TD_POS="50% 55%")
+title_d.main(_g)
+_ar = json.load(open(OUT / "overlap_A1_cover.json"))
+report["A1_cover"] = {"bad": _ar["重疊"], "oob": _ar["出界"] + _ar["壓到Quanta"] * 0, "ovf": False, "small": [], "n": len(_ar["boxes"])}
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
     for name, html in S.items():

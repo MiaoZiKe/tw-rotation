@@ -23,14 +23,20 @@ REASON = {
 }
 SUB = "茶水間常聊的那些"
 TITLE = "廣達透明說"
-SANS = os.environ.get("TITLE_SANS", "/tmp/claude-0/-home-user-tw-rotation/1662701f-8abb-57a6-b66d-4e0b4e90dd73/scratchpad/font/NotoSansTC.ttf")
-SERIF = Path(os.environ.get("TITLE_SERIF_DIR", "/tmp/claude-0/-home-user-tw-rotation/1662701f-8abb-57a6-b66d-4e0b4e90dd73/scratchpad/sf/package"))
+SANS = os.environ.get("TITLE_SANS", "")   # Noto Sans TC 可變字型 .ttf；沒設就用 TW_FONT_DIR 的 fontsource css
+SERIF = Path(os.environ.get("TITLE_SERIF_DIR", "/nonexistent"))   # Noto Serif TC 可變字型套件（只有舊版試作用到，定稿版不需要）
 
 
 def font_css():
-    css = f"@font-face{{font-family:'TCS';font-weight:100 900;src:url('file://{SANS}')}}"
-    t = (SERIF / "wght.css").read_text(encoding="utf8").replace("url(./files/", f"url(file://{SERIF}/files/")
-    return css + t
+    """有可變字型就定義 TCS（100～900）；沒有就退回 TW_FONT_DIR 的 fontsource css（Noto Sans TC 400／700／900），讓樣本腳本在別的環境也能跑。"""
+    if SANS and Path(SANS).is_file():
+        css = f"@font-face{{font-family:'TCS';font-weight:100 900;src:url('file://{SANS}')}}"
+    else:
+        FD = os.environ.get("TW_FONT_DIR", "")
+        css = "".join(f'@import url("file://{FD}/{w}.css");' for w in (400, 700, 900)) if FD else ""
+    if (SERIF / "wght.css").exists():
+        css += (SERIF / "wght.css").read_text(encoding="utf8").replace("url(./files/", f"url(file://{SERIF}/files/")
+    return css
 
 
 def build(n, g):

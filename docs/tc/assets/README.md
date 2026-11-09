@@ -201,4 +201,4 @@ Andy 原話（本輪摘要）：「廣達透明說 特效有夠爛 跟PPT一樣 
 ### 第 2 頁欄位標題（2026-11-06 Andy）
 - 欄位標題預設「待遇透明圈」；只有特定單位的文章才加括號，用環境變數 `TC_UNIT`（例如 `TC_UNIT=BU9` → 「待遇透明圈（BU9）」，括號比主標小一級、藍色）；沒值就不加。這篇廣達文章是 BU9，其他篇一律不加。
 - 地圖加料（同一輪）：海面極淡經緯網格、竹科／中科／南科三個灰點加小字（台北離總部太近不標）、右下「桃園市區界」小框把龜山區藍色填滿並標「龜山區」；圖層資料 `make_towns.mjs`（npm `taiwan-atlas@2021.9.20` 的 `towns-10t.json`，MIT；原始來源內政部國土測繪中心「鄉(鎮、市、區)界線」，政府資料開放授權條款第 1 版）。文案的地圖出處要同步寫「直轄市、縣市界線」與「鄉(鎮、市、區)界線」兩個圖層。
-- 參考實作已複製到 `scripts/title_d.py`、`scripts/title_styles.py`（字型路徑用環境變數 `TITLE_SANS`／`TITLE_SERIF_DIR`，預設指到作者容器，換環境要改）。**注意：`scripts/render_samples.py` 的 A1 範例封面（台積電照片、舊兩行標題）尚未同步成這個定稿版，下一批處理**；公司待遇文實際出圖請用 `tc/post-quanta` 分支的 `render_quanta.py`。
+- 參考實作在 `scripts/title_d.py`、`scripts/title_styles.py`（字型：有 `TITLE_SANS` 指到 Noto Sans TC 可變字型就用，沒有就退回 `TW_FONT_DIR` 的 fontsource css）。**`scripts/render_samples.py` 的 A1 範例封面（台積電照片）已換成定稿版**：公司名用常數 `NAME`、照片框 1032×690、重疊檢查改用 title_d 的墨跡外框＋像素距離，A2 範例的欄位標題改為「待遇透明圈」（無單位括號）。範例圖在 `samples/A1_cover.png`、`samples/A2_fields_textonly.png`。

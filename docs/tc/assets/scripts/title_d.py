@@ -31,7 +31,7 @@ def is_cjk(s): return all(ord(c) > 0x2E80 for c in s)
 
 
 def measure(pg, text):
-    return pg.evaluate("""async t=>{await document.fonts.load("900 100px TCS");const c=document.createElement('canvas').getContext('2d');c.font="900 100px TCS";return c.measureText(t).width/100}""", text)
+    return pg.evaluate("""async t=>{await document.fonts.load("900 100px TCS");await document.fonts.load("900 100px 'Noto Sans TC'");const c=document.createElement('canvas').getContext('2d');c.font="900 100px TCS, 'Noto Sans TC'";return c.measureText(t).width/100}""", text)
 
 
 def sdist(x, y, cx, cy, PW, PH):                 # 點到 stadium 外緣距離
@@ -158,8 +158,8 @@ def build(g, company, layout, widths, var, dxy=(0, 0), cup_x=None, OVERLAY=False
         (a0, b0), (a1, b1) = Lc(*LOGO_PTS[0]), Lc(*LOGO_PTS[1]); dcx, dcy = Lc(*LOGO_DOT)
         body += (f'<svg style="position:absolute;left:0;top:0" width="1080" height="1350"><path d="M {a0:.2f} {b0:.2f} A {25*kk:.2f} {25*kk:.2f} 0 1 1 {a1:.2f} {b1:.2f}" fill="none" stroke="#E5004C" stroke-opacity=".5" stroke-width="{9*kk:.2f}" stroke-linecap="round"/>'
                  f'<circle cx="{dcx:.2f}" cy="{dcy:.2f}" r="{6.6*kk:.2f}" fill="#00A0FF" fill-opacity=".5"/></svg>')
-    photo = g["photo_uri_abs"](Path(g["__file__"]).resolve().parent / "cover_photo.jpg")
-    pic = f'<div class="pic" data-k="photo" style="box-shadow:none;background-image:url({photo});background-position:50% 50%"></div>'
+    photo = g["TD_PHOTO"]() if g.get("TD_PHOTO") else g["photo_uri_abs"](Path(g["__file__"]).resolve().parent / "cover_photo.jpg")
+    pic = f'<div class="pic" data-k="photo" style="box-shadow:none;height:{g["PIC_H"]}px;background-image:url({photo});background-position:{g.get("TD_POS", "50% 50%")}"></div>'
     sw_ = g["SWIPE"].replace('<div class="sw">', '<div class="sw" data-k="swipe">')
     hd = f'<div class="hd"></div><div class="strip"><i></i></div><div class="lg">{g["OPEN_RING"]}</div>'
     info = dict(font=f, lines=lines, dy=dy, center=(ccx, ccy), R=R, gap_top=sdist(ac * math.cos(t_top), ac * math.sin(t_top), pxr, pyr, PW, PH) - CAP_R,
