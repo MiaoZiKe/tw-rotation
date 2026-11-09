@@ -98,9 +98,9 @@ def _pfx(prefix: str | None) -> str:
     return prefix
 
 
-def wait_token_msg(prefix: str | None = None) -> str:
+def wait_token_msg(prefix: str | None = None, missing=PLATFORMS) -> str:
     prefix = _pfx(prefix)
-    return f"等待 Andy 設定權杖：{prefix}IG_ACCESS_TOKEN、{prefix}THREADS_ACCESS_TOKEN"
+    return "等待 Andy 設定權杖：" + "、".join(f"{prefix}{p.upper()}_ACCESS_TOKEN" for p in missing)
 
 
 def mask(s: str) -> None:
@@ -414,6 +414,11 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
     res = {"at": now.isoformat(timespec="seconds"), "mode": "verify" + ("（dry-run）" if dry_run else ""),
            "item": None, "posted": {}, "errors": {}, "notes": [], "summary": ""}
     it = sample_item(queue, load_json(state / "posted.json", {}), now)
+    if it is None and queue != QUEUE:
+        # 新頻道佇列還空著：借頻道④佇列的圖驗證權杖（只建容器、不發布，容器 24 小時後自動失效）
+        it = sample_item(QUEUE, {}, now)
+        if it:
+            res["notes"].append(f"本頻道佇列是空的，借 healing/{it['name']} 的圖驗證（只建容器、不發布）")
     if it is None:
         res["summary"] = "佇列裡沒有可用來驗證的圖"
         return 1, res
@@ -590,7 +595,8 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
     q = load_quota(quota_path)
     if per_day_max is not None:
         q["per_day"] = min(q["per_day"], int(per_day_max))
-    no_tok = "" if any(tokens(env, prefix).values()) else "；" + wait_token_msg(prefix)
+    _miss = [p for p, t in tokens(env, prefix).items() if not t]
+    no_tok = "；" + wait_token_msg(prefix, _miss) if _miss else ""
     if not q["live"]:
         res["summary"] = "開關關閉（post_quota.json live=false），這次不發" + no_tok
         return 0, res

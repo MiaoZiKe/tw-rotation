@@ -290,3 +290,27 @@ def test_續期失敗有APP_SECRET就換長效寫回TECH_AUTO(monkeypatch, tmp_p
     assert st["platforms"]["tech_threads"]["ok"] and st["platforms"]["tech_threads"]["exchanged"]
     disk = (tmp_path / "m.json").read_text()
     assert "LONG_NEW_TECH" not in disk and "APPSEC" not in disk and "SHORT_TECH" not in disk
+
+
+def test_只缺一個平台_摘要只列缺的那個(chans):
+    env = {k: v for k, v in ALL_ENV.items() if k != "TECH_THREADS_ACCESS_TOKEN"}
+    rc, res = chans["go"]("tech", env=env)
+    assert "佇列已空" in res["summary"] and res["summary"].endswith("等待 Andy 設定權杖：TECH_THREADS_ACCESS_TOKEN")
+
+
+def test_新頻道佇列空_驗證模式借頻道4的圖_不發布(tmp_path, monkeypatch):
+    q4 = tmp_path / "h" / "queue"
+    mk_item(q4, "20261108_intro")
+    monkeypatch.setattr(hp, "QUEUE", q4)
+    monkeypatch.setattr(hp, "ROOT", tmp_path)
+    monkeypatch.setattr(hp.SP, "resolve_user_id", lambda p, uid, tok: "123")
+    seen = []
+    env = {"TECH_IG_ACCESS_TOKEN": "IGTOK_tech_xxxxxxxxxxxx"}
+    (tmp_path / "t" / "queue").mkdir(parents=True)
+    rc, res = hp.run_verify(env, NOW, queue=tmp_path / "t" / "queue", state=tmp_path / "t" / "state",
+                            check=lambda u, w: None, verifiers={"ig": lambda uid, tok, urls, cap: seen.append(tok) or "c1"},
+                            prefix="TECH_")
+    assert rc == 0 and seen == ["IGTOK_tech_xxxxxxxxxxxx"] and res["item"] == "20261108_intro"
+    v = json.loads((tmp_path / "t/state/verify.json").read_text())
+    assert v["ig"]["verified"] and "threads" not in v
+    assert not (tmp_path / "h" / "state").exists()          # 頻道④的 state 沒被寫
