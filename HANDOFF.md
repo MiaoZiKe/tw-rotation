@@ -1,5 +1,8 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 頻道①：每日熱點文流程定案（沒回應就自審發布）
+- 規則見 docs/marketing/social_unit/threads_rules.md 最上面 11-09 節；排程 13:40／18:37／20:02（交易日）已在頻道①聊天室建立。11-05 熱點文草稿作廢。
+
 ## 2026-11-08 頻道④「談晴說礙」自動發文＋留言私訊管線上線（空跑中，等 Andy 放權杖）
 - Andy 原話：「開通自動發文，這部分幫我想辦法自動化」「包含測試發文 還有自動刪文 ，以及讀留言自動傳訊息功能，傳之前還會檢查是否有追蹤」。
 - 發文：scripts/healing_post.py＋.github/workflows/healing_post.yml（台北 20:27、21:57 補跑；驗證模式→正式發；delete／test_delete）；佇列 docs/marketing/channels/healing/queue/，首篇 20261108_intro 已排；開關 docs/marketing/channels/healing/post_quota.json。commit 053a88456、2dfd87281。
