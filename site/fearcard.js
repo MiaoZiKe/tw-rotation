@@ -245,18 +245,18 @@
     topSer.forEach((s) => s.data.forEach((p) => { if (p[0] >= a && p[0] <= b) { lo = Math.min(lo, p[1]); hi = Math.max(hi, p[1]); } }));
     if (!isFinite(lo)) { lo = 95; hi = 105; }
     lo = Math.min(lo, 100); hi = Math.max(hi, 100);
-    const pad = Math.max(1, (hi - lo) * 0.06), sp = hi - lo + 2 * pad, stepT = sp <= 12 ? 2 : sp <= 30 ? 5 : sp <= 70 ? 10 : 20;
-    const yTop = { step: stepT, min: Math.floor((lo - pad) / stepT) * stepT, max: Math.ceil((hi + pad) / stepT) * stepT };
-    let yBot = { min: 0, max: 40, step: 10 }, bands = [];
+    /* Andy 11-09：「若只有 100 就調整 100 就好，不要上面有那麼多空白」→ 軸的上下限直接貼資料（只留 3% 呼吸），
+       不再「進位到刻度的倍數」（原本會多留最多一整格，3 條線都在 100 附近時上面就空一大片）；刻度交給 ECharts 在範圍內挑整數。 */
+    const padT = Math.max(0.3, (hi - lo) * 0.03);
+    const yTop = { min: Math.floor((lo - padT) * 10) / 10, max: Math.ceil((hi + padT) * 10) / 10 };
+    let yBot = { min: 0, max: 40 }, bands = [];
     if (m.bot) {
       let l2 = Infinity, h2 = -Infinity;
       m.bot.t.forEach((t, i) => { if (t >= a && t <= b) { l2 = Math.min(l2, m.bot.v[i]); h2 = Math.max(h2, m.bot.v[i]); } });
       if (!isFinite(l2)) { l2 = 10; h2 = 40; }
-      const step = h2 - l2 > 22 ? 10 : 5;
-      yBot = { step, min: Math.max(0, Math.floor((l2 - 1) / step) * step), max: Math.ceil((h2 + 1) / step) * step };
-      if (yBot.max - yBot.min < 2 * step) yBot.max = yBot.min + 2 * step;
-      // 色帶的最上一段（恐慌）要看得到：值已進到警戒、軸頂卻沒超過恐慌門檻時，再往上留一格
-      if (m.bot.q && h2 >= m.bot.q[0] && yBot.max <= m.bot.q[1]) yBot.max = (Math.floor(m.bot.q[1] / step) + 1) * step + step;
+      // 同上：貼齊視窗內的最高／最低（留 4% 呼吸），不再多留一格或硬撐出「恐慌」色帶；資料沒進到的色帶就不畫
+      const padB = Math.max(0.5, (h2 - l2) * 0.04);
+      yBot = { min: Math.max(0, Math.floor((l2 - padB) * 10) / 10), max: Math.ceil((h2 + padB) * 10) / 10 };
       if (m.bot.q) {
         const [q1, q2] = m.bot.q, cl = (v) => Math.min(yBot.max, Math.max(yBot.min, v));
         [['calm', yBot.min, q1], ['alert', q1, q2], ['panic', q2, yBot.max]].forEach(([k, u, w]) => { u = cl(u); w = cl(w); if (w - u > 0.01) bands.push({ k, lo: u, hi: w }); });
@@ -327,9 +327,12 @@
     const ch = S.chart, m = S.m; if (!ch || !m) return;
     S.win = [a, b];
     const r = build(m, a, b);
+    const yA = [], xA = [];
+    if (S.hasTop) yA.push({ min: r.yTop.min, max: r.yTop.max });
+    if (S.hasBot) yA.push({ min: r.yBot.min, max: r.yBot.max });
+    yA.forEach(() => xA.push({ axisLabel: { customValues: xTicks(a, b, S.nTick) } }));
     ch.setOption({
-      yAxis: [{ min: r.yTop.min, max: r.yTop.max, interval: r.yTop.step }, { min: r.yBot.min, max: r.yBot.max, interval: r.yBot.step }],
-      xAxis: [{ axisLabel: { customValues: xTicks(a, b, S.nTick) } }, { axisLabel: { customValues: xTicks(a, b, S.nTick) } }],
+      yAxis: yA, xAxis: xA,
       series: [...r.topSer.map((s) => ({ id: 'top-' + s.x.k, data: s.data })), ...(m.bot ? [{ id: 'bot-' + m.bot.k, markArea: bandMark(r.bands) }] : [])],
     });
     // 視窗剛好等於某顆期間鈕 → 亮那顆；拖成別的範圍 → 全部不亮
@@ -356,32 +359,39 @@
     const r = build(m, w0[0], w0[1]);
     S.win = w0;
     const grid = mob ? { l: 34, r: 36, top: 6, h1: 122, gap: 14, h2: 78 } : { l: 40, r: 42, top: 8, h1: 150, gap: 16, h2: 96 };
+    /* 只有一格有資料（例如美股對照指數缺）→ 不畫空的另一格，整張圖的高度讓給有資料的那格（Andy 11-09） */
+    S.hasTop = m.tops.length > 0; S.hasBot = !!m.bot;
+    const both = S.hasTop && S.hasBot, hAll = grid.h1 + grid.gap + grid.h2;
+    const gTop = { left: grid.l, right: grid.r, top: grid.top, height: both ? grid.h1 : hAll };
+    const gBot = { left: grid.l, right: grid.r, top: both ? grid.top + grid.h1 + grid.gap : grid.top, height: both ? grid.h2 : hAll };
+    const grids = [S.hasTop ? gTop : null, S.hasBot ? gBot : null].filter(Boolean);
+    const botIdx = both ? 1 : 0, nG = grids.length, gIdx = nG === 2 ? [0, 1] : [0];
     const ink3 = CH.ink3 || '#8a94a6', grid2 = CH.grid || 'rgba(128,128,128,.12)';
     const yBase = { type: 'value', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: grid2 } }, axisLabel: { color: ink3, fontFamily: a.NUM_FONT, fontSize: 12 } };
     S.nTick = mob ? 4 : 7;
     const spanDays = (w0[1] - w0[0]) / DAY;
     const xLab = (v) => { const s = ymd(v); return (S.win[1] - S.win[0]) / DAY > 400 ? s.slice(0, 4) + '/' + s.slice(5, 7) : s.slice(5, 7) + '/' + s.slice(8, 10); };
     const xBase = (i) => ({ type: 'time', gridIndex: i, min: S.xmin, max: S.xmax, boundaryGap: false, splitLine: { show: false }, axisTick: { show: false }, axisLine: { lineStyle: { color: CH.line || '#2a3860' } },
-      axisLabel: i === 1 ? { color: ink3, fontFamily: a.NUM_FONT, fontSize: 12, hideOverlap: true, margin: 8, formatter: xLab, customValues: xTicks(w0[0], w0[1], S.nTick) } : { show: false }, axisPointer: { show: true, lineStyle: { color: ink3, width: 1, type: 'solid', opacity: 0.55 }, label: { show: false } } });
+      axisLabel: i === nG - 1 ? { color: ink3, fontFamily: a.NUM_FONT, fontSize: 12, hideOverlap: true, margin: 8, formatter: xLab, customValues: xTicks(w0[0], w0[1], S.nTick) } : { show: false }, axisPointer: { show: true, lineStyle: { color: ink3, width: 1, type: 'solid', opacity: 0.55 }, label: { show: false } } });
     const ser = [];
     r.topSer.forEach((s, i) => ser.push({ id: 'top-' + s.x.k, name: s.x.name, type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: s.data, showSymbol: false, symbol: 'circle', symbolSize: 6, lineStyle: { width: s.x.w, color: s.x.c }, itemStyle: { color: s.x.c }, emphasis: { disabled: true }, z: 3 - i / 10,
       markLine: i === 0 ? { silent: true, symbol: 'none', animation: false, label: { show: false }, lineStyle: { type: 'dashed', width: 1, color: ink3, opacity: 0.6 }, data: [{ yAxis: 100 }] } : undefined }));
-    if (m.bot) ser.push({ id: 'bot-' + m.bot.k, name: m.bot.name, type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: m.bot.t.map((t, i) => [t, m.bot.v[i]]), showSymbol: false, lineStyle: { width: 2.2, color: m.bot.c }, itemStyle: { color: m.bot.c }, emphasis: { disabled: true },
+    if (m.bot) ser.push({ id: 'bot-' + m.bot.k, name: m.bot.name, type: 'line', xAxisIndex: botIdx, yAxisIndex: botIdx, data: m.bot.t.map((t, i) => [t, m.bot.v[i]]), showSymbol: false, lineStyle: { width: 2.2, color: m.bot.c }, itemStyle: { color: m.bot.c }, emphasis: { disabled: true },
       areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: rgba(m.bot.c, 0.22) }, { offset: 1, color: rgba(m.bot.c, 0) }] } },
       markArea: bandMark(r.bands), z: 3 });
     S.chart = a.chart(el, {
       animation: false, timeGrid: false, m4dz: false,
-      axisPointer: { link: [{ xAxisIndex: [0, 1] }] },
-      grid: [{ left: grid.l, right: grid.r, top: grid.top, height: grid.h1 }, { left: grid.l, right: grid.r, top: grid.top + grid.h1 + grid.gap, height: grid.h2 }],
+      axisPointer: { link: [{ xAxisIndex: gIdx }] },
+      grid: grids,
       tooltip: Object.assign({}, a.tip || {}, { trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: ink3, opacity: 0.55 } }, confine: true, formatter: (ps) => { const p = Array.isArray(ps) ? ps[0] : ps; const t = p && (p.axisValue != null ? p.axisValue : p.value && p.value[0]); return t == null ? '' : tipHtml(m, +t); } }),
-      xAxis: [xBase(0), xBase(1)],
-      yAxis: [Object.assign({ gridIndex: 0, min: r.yTop.min, max: r.yTop.max, interval: r.yTop.step }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { formatter: (v) => String(Math.round(v)) }) }),
-        Object.assign({ gridIndex: 1, min: r.yBot.min, max: r.yBot.max, splitNumber: 2, interval: r.yBot.step }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { formatter: (v) => String(Math.round(v)) }) })],
+      xAxis: grids.map((_, i) => xBase(i)),
+      yAxis: [S.hasTop ? Object.assign({ gridIndex: 0, min: r.yTop.min, max: r.yTop.max, splitNumber: 3 }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { hideOverlap: true, showMinLabel: false, showMaxLabel: false, formatter: (v) => String(Math.round(v)) }) }) : null,
+        S.hasBot ? Object.assign({ gridIndex: botIdx, min: r.yBot.min, max: r.yBot.max, splitNumber: both ? 2 : 4 }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { hideOverlap: true, formatter: (v) => String(Math.round(v)) }) }) : null].filter(Boolean),
       dataZoom: [
-        { type: 'slider', xAxisIndex: [0, 1], filterMode: 'none', startValue: w0[0], endValue: w0[1], left: grid.l, right: grid.r, bottom: 4, height: mob ? 22 : 12, showDetail: false, brushSelect: false,
+        { type: 'slider', xAxisIndex: gIdx, filterMode: 'none', startValue: w0[0], endValue: w0[1], left: grid.l, right: grid.r, bottom: 4, height: mob ? 22 : 12, showDetail: false, brushSelect: false,
           borderColor: 'transparent', backgroundColor: rgba(ink3, 0.12), fillerColor: rgba(CH.cyan || '#3ee0ff', 0.28), handleSize: mob ? 30 : 16, handleStyle: { color: CH.cyan || '#3ee0ff', borderColor: 'transparent' },
           dataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } }, selectedDataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } }, moveHandleSize: 0 },
-        { type: 'inside', xAxisIndex: [0, 1], filterMode: 'none', startValue: w0[0], endValue: w0[1], zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: true },
+        { type: 'inside', xAxisIndex: gIdx, filterMode: 'none', startValue: w0[0], endValue: w0[1], zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: true },
       ],
       series: ser,
     }, { notMerge: true });
