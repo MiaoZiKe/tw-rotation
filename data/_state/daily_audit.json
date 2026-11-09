@@ -1,14 +1,14 @@
 {
-  "checked_at": "2026-11-09T10:29:18+08:00",
+  "checked_at": "2026-11-09T10:32:55+08:00",
   "today": "2026-11-09",
   "expected_price_date": "2026-11-06",
   "is_trading_day": true,
   "summary": {
     "fail": 0,
     "pending": 5,
-    "ok": 2,
+    "ok": 3,
     "skip": 0,
-    "disabled": 1
+    "disabled": 0
   },
   "items": [
     {
@@ -136,10 +136,30 @@
     },
     {
       "id": "healing",
-      "name": "頻道④談晴說礙（每天 1 則）",
-      "status": "disabled",
-      "gates": {},
-      "why": "未啟用（post_quota.json 沒有 healing.live＝true，不是失敗）"
+      "name": "頻道④談晴說礙（核准稿到時間就要發）",
+      "status": "ok",
+      "gates": {
+        "run": {
+          "ok": true,
+          "why": "沒有已到時間的核准稿，不需要發",
+          "evidence": [],
+          "busy": false
+        },
+        "content": {
+          "ok": true,
+          "why": "無",
+          "evidence": [],
+          "busy": false
+        },
+        "publish": {
+          "ok": true,
+          "why": "無",
+          "evidence": [],
+          "busy": false
+        }
+      },
+      "deadline": "2026-11-09T21:40:00+08:00",
+      "remedy": null
     },
     {
       "id": "tc",
