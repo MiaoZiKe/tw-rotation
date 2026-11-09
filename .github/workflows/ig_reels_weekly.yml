@@ -58,6 +58,7 @@ jobs:
           IN_TOPIC: ${{ inputs.topic }}
           IN_KIND: ${{ inputs.kind }}
         run: |
+          set -o pipefail   # 11-09 CEO：沒有這行，tee 會吃掉「重疊不出片」的結束碼，有 200 筆重疊照樣綠燈
           mkdir -p social/ig/reels
           args=""
           if [ -n "$IN_TOPIC" ]; then args="--topic $IN_TOPIC"; fi

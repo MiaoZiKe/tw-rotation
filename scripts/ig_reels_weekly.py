@@ -303,7 +303,10 @@ def scene_number(c, sp, t, n):
     size = fit_size([full], 120, 250, 920)
     if prog > 0:
         c.text("大數字", (80, ytop), fmt(n["value"] * prog, dec) + n["suffix"], size, color)
-    ybig = ytop + int(size * 1.3)
+    # 11-09 CEO：雲端換 Noto 字型後字身變高，大數字壓到白話卡 200 幀。改用「完整數字的實際字框」往下排，不靠字級估算。
+    _f, _sw = font(size)
+    _bb = c.d.textbbox((80, ytop), full, font=_f, stroke_width=_sw)
+    ybig = max(ytop + int(size * 1.3), _bb[3] + 8)
     p = stagger(t, 2.2, 0, 0)
     bar = n.get("bar")
     ph = 230 if bar else 330
