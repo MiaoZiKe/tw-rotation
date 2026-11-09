@@ -128,7 +128,7 @@ jobs:
             ST="$(python3 scripts/social_close_state.py "$RUNNER_TEMP/posted.json" "$(date '+%F')")"
             echo "盤後發布狀態：$ST"
             if [ "$ST" = "skip" ]; then
-              echo "今天的盤後法人已經發過（close-$(date '+%F')）→ 跳過"
+              echo "今天的盤後已經發過（close-$(date '+%F')），或法人補充貼文被降量開關停掉（post_quota.json live.close_inst，2026-11-09）→ 跳過"
               echo "skip=1" >> "$GITHUB_OUTPUT"
             elif [ "$ST" = "supplement" ]; then
               echo "主貼文走過保底（法人卡晚到）→ 這輪做法人補充貼文"

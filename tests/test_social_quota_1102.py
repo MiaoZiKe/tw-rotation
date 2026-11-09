@@ -116,16 +116,43 @@ def test_盤後主貼文_Threads_照發_限動不發(tmp_path, monkeypatch, caps
     assert "live.close.ig_story=false" in capsys.readouterr().out
 
 
-def test_盤後保底補充貼文照發(tmp_path, monkeypatch):
-    """10-29 規則：保留的那一則仍然一定要發出 —— 法人晚到的補充貼文（close-inst-<日期>）是保底的一部分，照發。"""
+def test_盤後法人補充貼文_降量模式不發(tmp_path, monkeypatch, capsys):
+    """2026-11-09 事故：11-06 降量模式下多發一則 close-inst-2026-11-06（20:27）。
+    補充貼文是另一則貼文，查 live.close_inst（真開關檔沒寫＝關），不吃 close 的開關；一個請求都不送、不寫發布紀錄。"""
     f = Fake(); monkeypatch.setattr(sp, "http", f)
     p = tmp_path / "manifest.json"
-    p.write_text(json.dumps({"kind": "close", "supplement": True, "taken_at": "2026-11-02T19:20:00+08:00",
-                             "data_date": "2026-11-02", "threads": {"text": "法人補充", "images": ["a.png"]}, "story": ["s.png"]}),
+    p.write_text(json.dumps({"kind": "close", "supplement": True, "taken_at": "2026-11-06T20:26:46+08:00",
+                             "data_date": "2026-11-06", "threads": {"text": "法人補充", "images": ["a.png"]}, "story": ["s.png"]}),
                  encoding="utf-8")
     assert sp.run(p, "https://x.test/b", env=ENV) == 0
-    assert "close-inst-2026-11-02" in json.loads((tmp_path / "posted.json").read_text(encoding="utf-8"))
-    assert not [c for c in f.calls if "graph.instagram.com" in c[1]]
+    assert f.calls == []
+    assert not (tmp_path / "posted.json").exists()
+    assert "live.close_inst.threads=false" in capsys.readouterr().out
+
+
+def test_close_inst_開關():
+    assert post_quota.live_kind({"kind": "close", "supplement": True}) == "close_inst"
+    assert post_quota.live_kind({"kind": "close"}) == "close"
+    assert post_quota.live_kind({}) == "intraday"
+    q = json.loads(REAL.read_text(encoding="utf-8"))
+    assert not post_quota.any_on("close_inst", q) and post_quota.any_on("close", q)
+    assert post_quota.any_on("close_inst", {"live": {"close_inst": {"threads": True}}, "queue": {}})      # Andy 說要放量才加這一格
+
+
+def test_盤後發布狀態_降量模式不進補充輪(capsys):
+    """11-06 的實際紀錄：主貼文 partial=retail-ratio → 不該補充；就算拿掉的是法人卡，降量模式也不補發。"""
+    import social_close_state as cs
+    D = "2026-11-06"
+    real = post_quota.load()
+    retail_only = {f"close-{D}": {"threads": {"id": "1"}, "partial": ["retail-ratio"]}}
+    assert cs.state(retail_only, D, q=real) == "skip"
+    on = {"live": {"close_inst": {"threads": True}}, "queue": {}}
+    assert cs.state(retail_only, D, q=on) == "skip"      # 法人三張已在主貼文裡，補充＝重發
+    inst = {f"close-{D}": {"threads": {"id": "1"}, "partial": ["inst-today", "streak-foreign"]}}
+    assert cs.state(inst, D, q=real) == "skip"
+    assert "live.close_inst 關" in capsys.readouterr().err
+    assert cs.state(inst, D, q=on) == "supplement"
+    assert cs.state({}, D, q=real) == ""
 
 
 def _q(tmp_path, name, body, images=""):
