@@ -1,35 +1,16 @@
 {
-  "_note": "2026-11-09 Andy：「同意，四項改動全部照改」（docs/marketing/traffic_plan_1109.md 第二節第 7 條、diagnosis_1109.md：IG 圖文每篇觸及 0～2 人）→ 頻道① IG 停掉所有自動純圖文：盤前／盤中／盤後／融資融券的 IG 限動、主題文章 IG 一律 false；Threads 盤後主貼文 1 則照舊開。IG 之後改每週 2 支 15～30 秒短影片＋1～2 篇輪播，走人工核准的佇列（queue.manual.ig＝要 Andy 把 status 改成 approved 才會發，不是自動）。頻道②（tc）、頻道④（healing）是別的帳號，不在這次範圍。",
   "note": "2026-11-02 Andy：「同意降量」。依據 docs/marketing/diagnosis_1102/strategy_diagnosis.md 6-2「先停什麼（第 1 天）」：自動發文從每天十幾則降到每天自動最多 2 則；第 2 則名額先保留給 Andy 手寫，不自動填。手寫內容另計。",
-  "updated": "2026-11-09",
+  "updated": "2026-11-02",
   "how_to": "要放量只改這個檔：把對應的 false 改成 true、推上 main 即可（所有發文程式在真的呼叫 Meta API 前都會讀這個檔）。false＝記錄「降量模式：略過」並以成功結束，不寄失敗信、不觸發補發。說明：docs/marketing/social_unit/auto_post.md 最上面「2026-11-02 降量模式」一節。",
   "live": {
-    "premarket": {
-      "threads": false,
-      "ig_story": false
-    },
-    "intraday": {
-      "threads": false,
-      "ig_story": false
-    },
-    "close": {
-      "threads": true,
-      "ig_story": false
-    },
-    "credit": {
-      "threads": false,
-      "ig_story": false
-    }
+    "premarket": {"threads": false, "ig_story": false},
+    "intraday":  {"threads": false, "ig_story": false},
+    "close":     {"threads": true,  "ig_story": false},
+    "credit":    {"threads": false, "ig_story": false}
   },
   "queue": {
-    "news": {
-      "threads": false,
-      "ig": false
-    },
-    "manual": {
-      "threads": true,
-      "ig": true
-    }
+    "news":   {"threads": false, "ig": false},
+    "manual": {"threads": true,  "ig": true}
   },
   "ig": {
     "_note": "Andy 11-09：同意，四項改動全部照改。IG 停自動純圖文，改每週 2 支 15～30 秒短影片（scripts/ig_reels_weekly.py，每週二、四 20:00 台北，工作流程 ig_reels_weekly.yml）。reels_weekly＝總開關；reels_need_review＝true 時只產 draft 佇列檔、不自動發（第一支正式發布前 CEO 先看樣片，看完改 false 才會自動發）。",

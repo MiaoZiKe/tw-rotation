@@ -405,9 +405,7 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
         for s in entry.get("story") or []:
             links.append(s.get("link", ""))
     links = [x for x in links if x]
-    # 2026-11-09 Andy 同意（traffic_plan_1109.md 第二節第 4 條）：盤後主貼文改 19:30～20:30 發 → 截止從 18:20 改 20:35
-    #   （18:40 那輪稽核看到還沒發只會是 pending，不紅、不觸發補發、不寄信）
-    finish("close_post", "頻道①盤後主貼文（交易日 19:30～20:30，20:35 截止）", trading_today, at_tpe(today, time(20, 35)), {
+    finish("close_post", "頻道①盤後主貼文（交易日 18:20 前）", trading_today, at_tpe(today, time(18, 20)), {
         "run": run_gate(f["runs"].get("social-live.yml") or [], at_tpe(today, time(15, 0)), "social-live"),
         "content": gate(entry is not None, f"posted.json 有 {key}" if entry else f"posted.json 沒有 {key}"),
         "publish": gate(bool(links), "有發布網址" if links else "沒有發布網址（查不到或沒發出）", links[:3]),

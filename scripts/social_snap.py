@@ -2013,116 +2013,6 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         return L
 
 
-# ★ 2026-11-09 Andy 同意（traffic_plan_1109.md 第二節第 2～5 條）＋CEO：「備用文案是失敗保底，一旦觸發還是舊格式，等於白改」
-#   盤後發出去的備用文案（threads_v2 改寫失敗時就發這份）也改成新格式：
-#   拿掉「🌙 盤後3分鐘」標頭；第一句＝問句（有反差數字就用反差）；主文 ≤150 字（標籤不算）；結尾二選一；
-#   標籤 1 個、市場／法人層級（不含個股名）；完整數據段落＋新聞放回覆（≤500）。
-#   build_text() 照舊產「完整舊版」當 threads_v2 的改寫來源（存在 manifest threads.v1_raw），不直接發。
-CLOSE_V1_MAIN_MAX = 150
-CLOSE_V1_REPLY_MAX = 500
-CLOSE_V1_LEGAL = "以上為公開資料整理，非投資建議"
-
-
-def _v1_num(v):
-    try:
-        return float(str(v).replace(",", "").replace("−", "-").replace("+", "").rstrip("%"))
-    except (TypeError, ValueError):
-        return None
-
-
-def _v1_round(v: str) -> str:
-    x = _v1_num(v)
-    if x is None:
-        return v
-    return f"{round(abs(x)):,}" if abs(x) >= 100 else f"{abs(x):,.1f}".rstrip("0").rstrip(".")
-
-
-def _tlen(s: str) -> int:      # Threads 500 字算法：emoji 以 UTF-8 位元組計
-    return sum(len(c.encode("utf-8")) if (ord(c) >= 0x1F000 or 0x2190 <= ord(c) <= 0x2BFF or ord(c) in (0xFE0F, 0x200D, 0x20E3)) else 1 for c in s)
-
-
-def close_v1(text: str, reply: str = "") -> tuple[str, str]:
-    """盤後完整舊版文案（build_text＋新聞）→（新格式主文, 回覆）。只用標準函式庫與正規式，不依賴 threads_v2（它壞了才會用到這份）。"""
-    allt = (text or "") + "\n" + (reply or "")
-
-    def g(pat):
-        m = re.search(pat, allt)
-        return m.groups() if m else None
-    fx = g(r"外資(買超|賣超) ([\d,.]+) ?億(?:，已連 (\d+) 日)?")
-    tr = g(r"投信(買超|賣超) ([\d,.]+) ?億(?:，已連 (\d+) 日)?")
-    ix = g(r"加權指數(漲|跌) ([\d,]+(?:\.\d+)?) 點（([+\-−]?[\d.]+%)）")
-    tot = g(r"合計 ?([+\-−]?[\d,.]+) ?億")
-    fut = g(r"外資 ([+\-−]?[\d,]{3,}) 口")
-    fx_act, fx_amt = (fx[0], _v1_round(fx[1])) if fx else ("", "")
-    fx_streak = int(fx[2]) if fx and fx[2] else 0
-    tr_act, tr_amt = (tr[0], _v1_round(tr[1])) if tr else ("", "")
-    tr_streak = int(tr[2]) if tr and tr[2] else 0
-    pct = (_v1_num(ix[2]) if ix else None)
-    # 第一句：有反差就用反差（照 threads_v2 c_x1～c_x6 的順序），沒有就用保底問句
-    hook = ""
-    if fx_act == "賣超" and (_v1_num(fx[1]) or 0) >= 100 and ix and ix[0] == "跌" and pct is not None and abs(pct) < 1:
-        hook = f"外資賣超 {fx_amt} 億，指數卻只跌 {abs(pct):.2f}%，錢去哪了？"
-    elif fx_act == "賣超" and (_v1_num(fx[1]) or 0) >= 100 and ix and ix[0] == "漲":
-        hook = f"外資賣超 {fx_amt} 億，加權指數反而漲 {ix[1]} 點，買盤從哪裡來？"
-    elif fx_act == "買超" and (_v1_num(fx[1]) or 0) >= 50 and ix and ix[0] == "跌":
-        hook = f"外資買超 {fx_amt} 億，加權指數卻跌 {ix[1]} 點，賣壓從哪裡來？"
-    elif fx_act == "賣超" and tr_act == "買超" and fx_streak >= 3 and tr_streak >= 3:
-        hook = f"外資連 {fx_streak} 日賣超，投信卻連 {tr_streak} 日買超，誰在接手？"
-    elif fx_act and tr_act and fx_act != tr_act:
-        hook = f"外資{fx_act} {fx_amt} 億、投信反手{tr_act} {tr_amt} 億，同一天方向相反，錢去哪了？"
-    elif ix:
-        hook = f"加權指數{ix[0]} {ix[1]} 點，今天盤後最值得留意的是哪一個數字？"
-    else:
-        hook = "今天盤後的法人與期貨數字，哪一個變化最值得留意？"
-    keys = []
-    if ix:
-        keys.append(f"・加權指數{ix[0]} {ix[1]} 點（{ix[2]}）")
-    if tot:
-        t_ = tot[0].replace("−", "-")
-        keys.append(f"・三大法人合計{'賣超' if t_.startswith('-') else '買超'} {_v1_round(t_)} 億"
-                    + (f"（外資{fx_act} {fx_amt} 億）" if fx_act else ""))
-    elif fx_act:
-        keys.append(f"・外資{fx_act} {fx_amt} 億" + (f"、投信{tr_act} {tr_amt} 億" if tr_act else ""))
-    if fut:
-        v_ = fut[0].replace("−", "-")
-        keys.append(f"・外資台指期淨{'空單' if v_.startswith('-') else '多單'} {v_.lstrip('+-')} 口")
-    if fx_act == "賣超" and (tr_act == "買超" or (ix and ix[0] == "漲") or (pct is not None and abs(pct) < 1)):
-        end = "你覺得是換手還是出貨？"
-    elif fx_act == "買超" and ix and ix[0] == "跌":
-        end = "你覺得是外資先布局，還是只是短線進出？"
-    elif fx_act and tr_act and fx_act != tr_act:
-        end = "外資和投信，你比較常參考哪一邊？還是兩邊都看？"
-    else:
-        end = "盤後數字你先看法人買賣超，還是先看指數漲跌？"
-    pts = _v1_num(ix[1]) if ix else None
-    if pts and pts >= 500:
-        tag = "台股大跌" if ix[0] == "跌" else "台股大漲"
-    elif fx_act and fx_streak >= 3:
-        tag = "外資連賣" if fx_act == "賣超" else "外資連買"
-    elif fx_act:
-        tag = f"外資{fx_act}"
-    else:
-        tag = "台股盤後"
-    while True:
-        body = hook + "\n\n" + ("\n".join(keys) + "\n\n" if keys else "") + end
-        if len(body.replace("\n", "")) <= CLOSE_V1_MAIN_MAX or not keys:
-            break
-        keys.pop()
-    main = f"{body}\n#{tag}"
-    # 回覆：完整數據段落（拿掉「盤後3分鐘」標頭、hashtag 行、網址行）＋新聞，最後一行免責；超過 500 從尾巴拿
-    lines = []
-    for raw in allt.splitlines():
-        l_ = raw.rstrip()
-        if not l_.strip() or l_.strip().startswith("#") or re.search(r"https?://|盤後3分鐘", l_) or l_.lstrip().startswith("👉"):
-            continue
-        lines.append(l_)
-    while lines and _tlen("\n".join(lines + [CLOSE_V1_LEGAL])) > CLOSE_V1_REPLY_MAX:
-        lines.pop()
-    while lines and not lines[-1].lstrip().startswith("・"):      # 不留只有段名沒有內容的尾巴
-        lines.pop()
-    return main, "\n".join(lines + [CLOSE_V1_LEGAL])
-
-
 # 文案太長時依序拿掉的段落（盤面分析與網址永遠保留；被拿掉的數字圖上都有）
 DROP_ORDER = {"close": ["📦 ETF 買超：", "📉 融券：", "📈 融資：", "🛡️ 融資維持率：", "⚖️ 散戶多空比：", "📊 台指期法人淨未平倉：", "🏢 投信：", "🌏 外資："],
               "intraday": ["🔥 熱力圖：", "🌳 資金分流樹："]}
@@ -2246,7 +2136,7 @@ def main() -> int:
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
     ap.add_argument("--supplement", action="store_true", help="盤後法人補充貼文：主貼文已用保底發出（拿掉法人卡），法人資料到了再補發法人那幾張（鍵 close-inst-<日期>）")
-    ap.add_argument("--fallback-at", default=os.environ.get("CLOSE_FALLBACK_AT", ""), help="盤後保底時間（台北 HH:MM，預設 20:00）：過了還有卡不是今天 → 拿掉那幾張、其他照發")
+    ap.add_argument("--fallback-at", default=os.environ.get("CLOSE_FALLBACK_AT", ""), help="盤後保底時間（台北 HH:MM，預設 19:00）：過了還有卡不是今天 → 拿掉那幾張、其他照發")
     ap.add_argument("--fresh-news", action="store_true", help="新聞焦點除了資料湖 news，再當場抓一次鉅亨／科技新報／聯合（只併進記憶體，不寫湖；失敗就只用湖）")
     args = ap.parse_args()
     KIND = args.kind
@@ -2340,15 +2230,6 @@ def main() -> int:
                 return 10
             if key_ in done_:
                 log(f"⚠ {key_} 的發布紀錄時間 {done_[key_].get('at')} 不在正式時段（測試誤記）→ 不算，照發")
-        if args.kind == "close" and not args.force and not args.now:
-            # ★ 2026-11-09 Andy 同意（traffic_plan_1109.md 第二節第 4 條）：盤後主貼文 19:30～20:30 發，資料齊了也等到 19:30
-            wait_c = gate.close_wait(now_tpe(), os.environ.get("CLOSE_EARLIEST_AT", ""))
-            if 0 < wait_c <= gate.CLOSE_WAIT_MAX_S:
-                log(f"盤後：資料已齊，等 {wait_c} 秒到 {os.environ.get('CLOSE_EARLIEST_AT') or gate.CLOSE_EARLIEST_AT} 再發")
-                time.sleep(wait_c)
-            elif wait_c > 0:
-                log(f"盤後：還沒到最早發文時間 {os.environ.get('CLOSE_EARLIEST_AT') or gate.CLOSE_EARLIEST_AT}（11-09 起 19:30～20:30 發）→ 這輪不發，交給 19:30 之後的接力")
-                return 10
         if args.kind == "intraday" and not args.force and not args.now:      # 盤中固定中午 12:00：早到就等到 12:00，資料以那一刻的即時為準
             wait_s = (datetime.combine(now_tpe().date(), datetime.strptime("12:00", "%H:%M").time(), TPE) - now_tpe()).total_seconds()
             if 0 < wait_s <= 600:
@@ -2548,18 +2429,11 @@ def main() -> int:
                 log("  ⚠ 新聞焦點失敗（不擋發文）：", str(exc)[:120])
                 with open(out / "alert.txt", "a", encoding="utf-8") as fa_:
                     fa_.write(f"{args.kind} 貼文的新聞焦點失敗（{str(exc)[:100]}），這篇照發、少了新聞那段。\n")
-        th_ = {"text": text_, "images": threads_imgs, **({"reply": reply_} if reply_ else {})}
-        if args.kind == "close":      # 2026-11-09：備用文案（v2 改寫失敗時發這份）也是新格式；完整舊版留給 v2 當來源
-            try:
-                m_, r_ = close_v1(text_, reply_)
-                th_ = {"text": m_, "images": threads_imgs, "reply": r_, "v1_raw": {"text": text_, "reply": reply_}}
-            except Exception as exc:  # noqa: BLE001
-                log("  ⚠ 盤後備用文案改新格式失敗（照舊版發）：", str(exc)[:120])
         manifest = {
             "kind": args.kind,
             "taken_at": now_tpe().isoformat(timespec="seconds"),
             "data_date": data_date,
-            "threads": th_,
+            "threads": {"text": text_, "images": threads_imgs, **({"reply": reply_} if reply_ else {})},
             "story": stories,
             **({"partial": list(PARTIAL)} if PARTIAL else {}),
             **({"supplement": True} if SUPPLEMENT else {}),

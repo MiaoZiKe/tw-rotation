@@ -46,7 +46,6 @@ import threads_lint as _TL  # noqa: E402  11-03 不放網址（PROMOTE_SITE／st
 
 TPE = timezone(timedelta(hours=8))
 COOLDOWN_DAYS = 14
-CONTRAST_COOLDOWN_DAYS = 3      # 2026-11-09 盤後反差模板：同一模板 3 天內不重複（數字天天不同，模板可以常用）
 KIND_NAME = {"intraday": "盤中", "close": "盤後", "premarket": "盤前", "credit": "融資融券", "article": "這則新聞"}
 # 喊單字在串文（新聞原句）出現時的自動改寫：保留事實、拿掉叫人買的語氣
 REWRITE = {"買進": "買入", "加碼": "增持", "推薦": "點名", "目標價": "預估價", "飆股": "強勢股", "抄底": "低接",
@@ -82,21 +81,6 @@ def _ge(v, n):
 #     主題文章的 {subj} 若是公司名，lint 會擋下、自動改用保底模板（不點名）。
 HOOKS = [
     # ---- 盤後 ----
-    # ★ 2026-11-09 Andy：「同意，四項改動全部照改」（docs/marketing/traffic_plan_1109.md 第二節第 2～5 條）
-    #   盤後第一句＝用當天「最反差」的那個數字寫成一句吊胃口問句（例：「外資賣超 912 億，指數卻只跌 0.3%，錢去哪了？」）。
-    #   角度標「反差」：choose_hook() 對盤後先挑這組（依下面的順序＝反差程度），3 天內用過的同一模板才往後排。
-    ("c_x1", "close", "反差", "專業", "外資賣超 {fx_amt_r} 億，指數卻只跌 {idx_pct_abs}，錢去哪了？",
-     lambda f: f.get("fx_act") == "賣超" and _ge(f.get("fx_amt"), 100) and f.get("idx_dir") == "跌" and (_num(f.get("idx_pct_abs")) or 9) < 1),
-    ("c_x2", "close", "反差", "專業", "外資賣超 {fx_amt_r} 億，加權指數反而漲 {idx_pts} 點，買盤從哪裡來？",
-     lambda f: f.get("fx_act") == "賣超" and _ge(f.get("fx_amt"), 100) and f.get("idx_dir") == "漲"),
-    ("c_x3", "close", "反差", "專業", "外資買超 {fx_amt_r} 億，加權指數卻跌 {idx_pts} 點，賣壓從哪裡來？",
-     lambda f: f.get("fx_act") == "買超" and _ge(f.get("fx_amt"), 50) and f.get("idx_dir") == "跌"),
-    ("c_x4", "close", "反差", "專業", "外資連 {fx_streak} 日賣超、累計 {fx_cum_r} 億，投信卻連 {trust_streak} 日買超，誰在接手？",
-     lambda f: f.get("fx_act") == "賣超" and f.get("trust_act") == "買超" and _ge(f.get("fx_streak"), 3) and _ge(f.get("trust_streak"), 3) and f.get("fx_cum_r")),
-    ("c_x5", "close", "反差", "專業", "外資{fx_act} {fx_amt_r} 億、投信反手{trust_act} {trust_amt_r} 億，同一天方向相反，錢去哪了？",
-     lambda f: f.get("fx_act") and f.get("trust_act") and f.get("fx_act") != f.get("trust_act")),
-    ("c_x6", "close", "反差", "專業", "加權指數漲 {idx_pts} 點，下跌家數卻有 {dec} 家、比上漲多，漲的到底是哪幾檔？",
-     lambda f: f.get("idx_dir") == "漲" and _num(f.get("adv")) is not None and _num(f.get("adv")) < _num(f.get("dec"))),
     ("c_t1", "close", "趨勢", "專業", "外資連 {fx_streak} 日{fx_act}、累計 {fx_cum_r} 億，這一波和前幾次有什麼不同？", lambda f: _ge(f.get("fx_streak"), 3) and f.get("fx_cum_r")),
     ("c_t2", "close", "趨勢", "專業", "投信連 {trust_streak} 日{trust_act}、累計 {trust_cum_r} 億，和外資方向相反的買盤過去通常出現在什麼盤勢？", lambda f: _ge(f.get("trust_streak"), 3) and f.get("fx_act") and f.get("fx_act") != f.get("trust_act")),
     ("c_t3", "close", "趨勢", "專業", "外資今天{fx_act} {fx_amt_r} 億、已連 {fx_streak} 日，這股力道是在加速還是放緩？", lambda f: _ge(f.get("fx_streak"), 2)),
@@ -302,22 +286,6 @@ def _clean_tag(t: str) -> str:
     return re.sub(r"[\s.&#，。！？、：；()（）「」]", "", t)[:50]
 
 
-def close_market_tag(f: dict) -> str:
-    """盤後主貼文的事件型標籤，只用市場／法人層級（2026-11-09 CEO：「#台積電外資賣超」這種含個股名的不准用）。
-    台股大漲／大跌（≥500 點）→ 外資連 3 日以上同方向（外資連賣／外資連買）→ 外資當日買賣超 → 三大法人合計 → 台股盤後。
-    「台股」「外資」「三大法人」單字是 GENERIC_TAGS（泛用）或太空泛，所以帶事件。"""
-    pts = _num(f.get("idx_pts")) if f.get("idx_pts") else None
-    if pts and pts >= 500 and f.get("idx_dir"):
-        return "台股大跌" if f["idx_dir"] == "跌" else "台股大漲"
-    if f.get("fx_act") and _ge(f.get("fx_streak"), 3):
-        return "外資連賣" if f["fx_act"] == "賣超" else "外資連買"
-    if f.get("fx_act"):
-        return f"外資{f['fx_act']}"
-    if f.get("tot_act"):
-        return f"三大法人{f['tot_act']}"
-    return "台股盤後"
-
-
 def pick_tag(kind: str, text: str, f: dict) -> str:
     """依當天新聞／財報／Fed 自動選 1 個事件型標籤；沒有就用最熱個股事件；永遠回得出一個不在黑名單的標籤。"""
     t = text or ""
@@ -355,8 +323,6 @@ def pick_tag(kind: str, text: str, f: dict) -> str:
         return _clean_tag(f["subj"])
     if kind == "premarket":
         return "台積電ADR"
-    if kind == "close":      # 2026-11-09 CEO：盤後標籤不准含個股名 → 市場／法人層級（_snap 備用文案用同一支 close_market_tag）
-        return close_market_tag(f)
     stock = f.get("fx_top") or next((nm for nm in KNOWN_CO if nm in t), "") or "台積電"
     if kind == "close" and f.get("fx_top"):
         return _clean_tag(f"{stock}外資{f.get('fx_act', '賣超')}")
@@ -580,17 +546,6 @@ def choose_hook(kind: str, f: dict, state: dict, today: str, tag: str, check) ->
     levels = [("全部規則", lambda h: h[2] != last_type and h[0] not in recent),
               ("放寬14天", lambda h: h[2] != last_type),
               ("放寬類型", lambda h: True)]
-    if kind == "close":      # 2026-11-09 Andy 同意：盤後第一句用當天最反差的數字（traffic_plan_1109.md 第二節第 2 條）
-        lim3 = (date.fromisoformat(today) - timedelta(days=CONTRAST_COOLDOWN_DAYS)).isoformat()
-        recent3 = {h["template"] for h in hist if h.get("date", "") > lim3}
-        xs = [(h, t) for h, t in candidates(kind, f) if h[2] == "反差"]          # 不洗牌：HOOKS 裡的順序就是反差程度
-        last_tpl = hist[-1]["template"] if hist else None
-        # 3 天內沒用過的反差模板 → 不是昨天那個的反差模板；都不行就回到一般輪替（不連兩天同一句型）
-        for pool in ([x for x in xs if x[0][0] not in recent3], [x for x in xs if x[0][0] != last_tpl]):
-            for h, txt in pool:
-                if check(h, txt):
-                    return h, txt, "反差優先"
-        cands = [x for x in cands if x[0][2] != "反差"]
     for name, cond in levels:
         for h, txt in cands:
             if cond(h) and check(h, txt):
@@ -767,64 +722,11 @@ def reply_text(url: str, kind: str, legal: str = "", cut: list[str] | None = Non
     return ((legal + "\n") if legal else "") + more + "👉 " + lead + "\n" + url
 
 
-# ---------------------------------------------------------------- 盤後主貼文 11-09 版
-# ★ 2026-11-09 Andy：「同意，四項改動全部照改」（docs/marketing/traffic_plan_1109.md 第二節第 2～5 條、diagnosis_1109.md）
-#   主文（≤150 字，標籤不算）＝第一句反差問句 → 第二段 1～2 行重點數字 → 結尾一題好回答的二選一；
-#   拿掉「🌙 盤後3分鐘」欄目標頭；其餘數據段落（盤面分析、期貨、三大法人、外資、投信、ETF、新聞）放串文第一則回覆（同一篇接續，≤500）。
-#   紅線不變：不預測、不點名推薦個股（主文只講指數、法人總量、期貨）、不給時機、不放網址。
-CLOSE_MAIN_MAX = _TL.AUTO_CLOSE_MAIN_MAX      # 150
-CLOSE_ENDINGS = [
-    # (條件, 二選一問句)；只問讀者的看法，不替讀者下結論、不預測
-    (lambda f: f.get("fx_act") == "賣超" and (f.get("trust_act") == "買超" or f.get("idx_dir") == "漲" or (_num(f.get("idx_pct_abs")) or 9) < 1),
-     "你覺得是換手還是出貨？"),
-    (lambda f: f.get("fx_act") == "買超" and f.get("idx_dir") == "跌", "你覺得是外資先布局，還是只是短線進出？"),
-    (lambda f: f.get("fx_act") and f.get("trust_act") and f.get("fx_act") != f.get("trust_act"), "外資和投信，你比較常參考哪一邊？"),
-    (lambda f: f.get("fut_oi"), "看盤後籌碼，你先看現貨買賣超還是期貨未平倉？"),
-    (lambda f: True, "盤後數字你先看法人買賣超，還是先看指數漲跌？"),
-]
-
-
-def close_key_lines(f: dict) -> list[str]:
-    """第二段的重點數字（照重要性排；放不下 150 字從尾巴拿掉）。只講指數、法人總量、期貨，不點名個股。"""
-    out = []
-    if f.get("idx_dir") and f.get("idx_pts"):
-        out.append(f"・加權指數{f['idx_dir']} {f['idx_pts']} 點" + (f"（{f['idx_pct']}）" if f.get("idx_pct") else ""))
-    if f.get("tot_act") and f.get("tot_amt_r"):
-        parts = [f"{nm}{f[a]} {f[r]} 億" for nm, a, r in (("外資", "fx_act", "fx_amt_r"), ("投信", "trust_act", "trust_amt_r")) if f.get(a) and f.get(r)]
-        out.append(f"・三大法人合計{f['tot_act']} {f['tot_amt_r']} 億" + (f"（{'、'.join(parts)}）" if parts else ""))
-    elif f.get("fx_act") and f.get("fx_amt_r"):
-        out.append(f"・外資{f['fx_act']} {f['fx_amt_r']} 億" + (f"、投信{f['trust_act']} {f['trust_amt_r']} 億" if f.get("trust_act") and f.get("trust_amt_r") else ""))
-    if f.get("fut_side") and f.get("fut_oi"):
-        out.append(f"・外資台指期淨{f['fut_side']} {f['fut_oi']} 口")
-    return out
-
-
-def close_ending(f: dict) -> str:
-    for cond, q in CLOSE_ENDINGS:
-        try:
-            if cond(f):
-                return q
-        except Exception:  # noqa: BLE001
-            continue
-    return CLOSE_ENDINGS[-1][1]
-
-
-def close_main_body(hook_txt: str, f: dict) -> str:
-    """主文鉤子之後的部分（第二段數字＋二選一結尾），整則主文（不含標籤）壓在 150 字內：放不下從第二段尾巴拿。"""
-    end = close_ending(f)
-    lines = close_key_lines(f)
-    while True:
-        body = ("\n".join(lines) + "\n\n" if lines else "") + end
-        if clen(f"{hook_txt}\n\n{body}") <= CLOSE_MAIN_MAX or not lines:
-            return body
-        lines.pop()
-
-
 def assemble(kind: str, hook, hook_txt: str, tag: str, threads: list[str], reply: str, images: list[str], level: str = "",
              body: str = "") -> dict:
     main = f"{hook_txt}\n\n{body}\n#{tag}" if body else f"{hook_txt}\n#{tag}"
     # 11-04 Andy「盤後也改成專業語氣」：開頭一律問句、語氣專業；切入角度（數據／對比／趨勢）另存 angle，輪替用它
-    d = dict(kind=kind, profile="auto", rule="auto_1109" if kind == "close" else "auto_1104", hook_type="問句", angle=hook[2], emotion=hook[3], main_post=main, main_post_length=clen(split_tag(main)[0]),
+    d = dict(kind=kind, profile="auto", rule="auto_1104", hook_type="問句", angle=hook[2], emotion=hook[3], main_post=main, main_post_length=clen(split_tag(main)[0]),
              thread_posts=threads, reply_post=reply, image_count=len(images),
              image_ideas=[idea_of(x) for x in images], tag=tag, template=hook[0], level=level)
     d["checklist_passed"] = not lint(d)[0]
@@ -850,23 +752,6 @@ def build(kind: str, text: str, reply: str = "", images: list[str] | None = None
     # 11-02 Andy「都濃縮到第一頁」：重點數據全部進主文（≤500），串文 0 則；標題「｜」後面的小問句不放（主文只有鉤子能問問題）
     ttl_main = re.split(r"[｜|]", ttl or "", maxsplit=1)[0].strip()
     threads: list[str] = []
-    if kind == "close":
-        # 11-09 Andy 同意：拿掉「🌙 盤後3分鐘｜盤面分析」欄目標頭；數據段落全部移到串文第一則（≤500），主文只留鉤子＋重點＋二選一
-        (data,), cut = fit(secs, "", item_max, budget=MAIN_BUDGET)
-        threads = [data] if clen(data) >= THREAD_MIN else []
-        rp = reply_text(url, kind, legal, cut)
-        imgs = pick_images(kind, list(images or []))
-
-        def check_c(h, txt):      # 只拿「鉤子本身」的問題淘汰鉤子；數據段落的內容問題換鉤子也修不好
-            b0 = close_main_body(txt, f)
-            ce = set(content_issues([x for x in [b0] + threads if x]))
-            d0 = assemble(kind, h, txt, tag, threads, rp, imgs, body=b0)
-            return not [e for e in lint(d0)[0] if e not in ce and not e.startswith("自動貼文主文口語") and "串文" not in e]
-
-        hook, txt, level = choose_hook(kind, f, state, today, tag, check_c)
-        d = assemble(kind, hook, txt, tag, threads, rp, imgs, level, body=close_main_body(txt, f))
-        d["images"] = imgs
-        return d
     budget0 = MAIN_BUDGET - 92 - tlen(tag) - 3          # 鉤子最長約 80 字＋換行
     (body,), cut = fit(secs, ttl_main, item_max, budget=budget0)
     rp = reply_text(url, kind, legal, cut)
@@ -911,8 +796,7 @@ def convert_manifest(mp: Path, state_in: str | None, state_out: str | None) -> d
     kind = m.get("kind", "intraday")
     today = (m.get("taken_at") or datetime.now(TPE).isoformat())[:10]
     state = load_state(state_in) if state_in else {"history": []}
-    src = th.get("v1_raw") or th      # 2026-11-09：盤後備用文案已是新格式，改寫吃原始完整文案（social_snap 存在 v1_raw）
-    d = build(kind, src.get("text", ""), src.get("reply", ""), th.get("images", []), state=state, today=today)
+    d = build(kind, th.get("text", ""), th.get("reply", ""), th.get("images", []), state=state, today=today)
     m["threads_v1"] = dict(th)
     if _TL.scrub_post(d):                                  # 11-03：萬一主文／串文帶到網址（新聞原文等）→ 送出前拿掉
         d["checklist_passed"] = not lint(d)[0]

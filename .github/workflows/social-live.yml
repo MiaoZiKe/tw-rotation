@@ -33,15 +33,7 @@ name: 社群即時貼文（Threads／IG 限動）
 #   盤中 12:01、盤前 08:20／08:50／09:40 的 GitHub 排程拿掉（盤中、盤前已不發 Threads／IG 限動）。
 #   盤前仍由 gh-cron Worker 08:20 派一輪：只為了把「盤前消息」寫回網站（site/articles/premarket.json），發布那步被降量開關擋下。
 #   盤後主貼文（kind=close）照舊由每日管線接力，Threads 照發、IG 限動不發。要放量：改 post_quota.json；盤中／盤前的備援排程要一起加回來（git log 找這一筆）。
-# ★★ 2026-11-09 Andy：「同意，四項改動全部照改」（docs/marketing/traffic_plan_1109.md 第二節第 4 條）：
-#   盤後主貼文改在台北 19:30～20:30 發。資料齊了也等到 19:30（scripts/social_snap.py ＋ social_gate.close_wait：
-#   19:15 之後到的那輪就地等到 19:30，更早的那輪結束碼 10＝刻意不發、正常結束、不寄信）。
-#   19:30 之後由每日管線 19:16／19:46／20:16 的 inst 輪（gh-cron Worker 準時派）跑完接力；下面兩個 GitHub 排程是備援
-#   （台北 19:41、20:11）。保底時間從 19:00 延到 20:00（social_gate.CLOSE_FALLBACK_AT）。稽核截止 20:35（scripts/daily_audit.py）。
 on:
-  schedule:
-    - cron: "41 11 * * 1-5"   # 台北 週一～五 19:41：盤後主貼文備援（防每日管線接力沒觸發）
-    - cron: "11 12 * * 1-5"   # 台北 週一～五 20:11：盤後主貼文第二道備援
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
@@ -91,8 +83,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        # 2026-11-09：GitHub 排程（19:41／20:11）一律是盤後（盤中、盤前的排程 11-02 降量時已拿掉）
-        kind: ${{ fromJSON((github.event_name == 'workflow_run' || github.event_name == 'schedule') && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["premarket"]')) }}
+        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || (github.event.schedule == '1 4 * * 1-5' && '["intraday"]' || '["premarket"]'))) }}
     env:
       TZ: Asia/Taipei
     steps:

@@ -58,7 +58,7 @@ def test_real_1103_1104_professional_and_complete():
         assert hook.endswith("？") and not L.casual_words(d["main_post"], hook=False) and not L.casual_words(hook, hook=True)
         assert any(c.isdigit() for c in hook)                  # 用當天數據帶入
         assert L.tlen(d["main_post"]) <= 500 and "http" not in d["main_post"] and d["reply_post"] == L.DEFAULT_LEGAL
-        assert "比比" not in d["main_post"] and "盤面分析" in d["thread_posts"][0]    # 11-09 起條列移到串文第一則
+        assert "比比" not in d["main_post"] and "盤面分析" in rest                   # 條列照舊
 
 
 def test_andy_examples_are_candidates_on_1104():
@@ -82,8 +82,7 @@ def test_14_day_no_repeat_on_real_data():
             assert d["template"] not in used[-13:]
         V.record(st, d, "close", day)
         used.append(d["template"])
-    # 11-09 起盤後先挑「反差」模板（同模板 3 天內不重複）→ 不再要求 14 天 10 種；但不准連兩天同一個模板
-    assert len(set(used)) >= 3 and all(a != b for a, b in zip(used, used[1:])), used
+    assert len(set(used)) >= 10
 
 
 # ---- 2026-11-05 CEO 法遵退件：開頭不點名個股、不問時機 ----

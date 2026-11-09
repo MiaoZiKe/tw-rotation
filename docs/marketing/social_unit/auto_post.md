@@ -5,24 +5,6 @@
 > 圖的版型（亮色 HUD、色票、安全邊距）另見 `post_design_system.md`；這份管「發什麼、什麼順序、文案怎麼寫、連結放哪」。
 > 改格式要同時改程式與 `tests/test_social_caption.py`，並在這份記一行 Andy 原話。
 
-## 〇之〇、★★ 2026-11-09 盤後主貼文改版＋改時段、IG 停自動圖文（蓋掉下面第〇節表格的時間與第三之一節的主文長度）
-
-> Andy 11-09：「**同意，四項改動全部照改**」。依據 `docs/marketing/traffic_plan_1109.md` 第二節第 2～5、7 條與 `docs/marketing/diagnosis_1109.md`。
-
-| 項目 | 以前 | 現在 |
-|---|---|---|
-| 開頭 | 「🌙 盤後3分鐘」欄目標頭＋鉤子 | 拿掉欄目標頭；第一句＝用當天**最反差**的數字寫的吊胃口問句（例：「外資賣超 912 億，指數卻只跌 0.3%，錢去哪了？」，模板 `c_x1`～`c_x6`，3 天內不重複同一模板、不連兩天同一個） |
-| 主文 | 鉤子＋全部數據 ≤500 | **≤150 字**（標籤不算）：反差問句 → 第二段 1～3 行重點數字（指數、三大法人合計、期貨淨未平倉）→ 結尾一題二選一（例：「你覺得是換手還是出貨？」） |
-| 其餘數據 | 主文 | **串文第一則回覆**（同一篇接續，≤500）；再下一則照舊只放「以上為公開資料整理，非投資建議」 |
-| 圖 | 1 張 | 照舊 1 張 |
-| 時段 | 資料齊就發（約 17:00～18:30） | **19:30～20:30**：資料齊了也等到 19:30（`social_gate.close_wait`；19:15 後到的那輪就地等，更早的結束碼 10＝刻意不發）。19:30 後由每日管線 19:16／19:46／20:16 接力，social-live 19:41／20:11 GitHub 排程備援；保底時間 19:00 → **20:00** |
-| 稽核 | 18:20 截止、18:40 查 | **20:35 截止、20:42 查**；18:40 那輪看到沒發只算「進行中」，不紅、不補發、不寄信 |
-| IG | 限動／主題文章自動圖文 | **全關**（`post_quota.json` 的 `_note`）；改每週短影片＋輪播，走人工核准佇列（`queue.manual.ig`） |
-
-**標籤**（CEO 11-09 追加）：恰 1 個、只用市場／法人層級，不含個股名（台股大跌／大漲 → 外資連賣／連買 → 外資賣超／買超 → 三大法人賣超 → 台股盤後；`threads_v2.close_market_tag`）。**備用文案**（threads_v2 改寫失敗時發的那份，`social_snap.close_v1`）也是同一個新格式；完整舊版文案存在 manifest `threads.v1_raw` 只給 v2 當改寫來源。
-
-紅線不變：不預測、不點名推薦個股（主文只講指數、法人總量、期貨）、不給時機、不放網址。檢查：`threads_lint.py` 的 `rule: auto_1109`（主文 ≤150、結尾二選一、串文最多 1 則且單則 ≤500）。測試 `tests/test_threads_close_1109.py`。
-
 ## 〇、★★ 2026-11-02 降量模式（蓋掉下面「四個時段」與主題文章的發文範圍）
 
 > Andy 11-02：「**同意降量**」。依據 `docs/marketing/diagnosis_1102/strategy_diagnosis.md` 6-2「先停什麼（第 1 天）」：自動文一天十幾則（Threads 4～9＋IG 限動 7～21＋IG 主題文章 3），單則觀看崩到幾十；改成**每天自動最多 2 則**，手寫內容另計。
@@ -41,7 +23,7 @@
 
 | 欄位 | 現在 | 管什麼 |
 |---|---|---|
-| `live.close.threads` | `true` | 盤後主貼文 Threads（保留的那一則；11-09 起 19:30～20:30 發、稽核 20:35 截止，保底 20:00） |
+| `live.close.threads` | `true` | 盤後主貼文 Threads（保留的那一則，監工 18:20、重試、保底照舊） |
 | `live.close.ig_story` | `false` | 盤後 IG 限動 |
 | `live.premarket.*`、`live.intraday.*`、`live.credit.*` | `false` | 盤前、盤中、舊融資那篇的 Threads 與限動 |
 | `queue.news.threads`、`queue.news.ig` | `false` | social_news 自動產生的主題文章（佇列檔名 `<日期>_news-<段>-<n>.md`） |
@@ -51,7 +33,7 @@
 - 盤前仍由 gh-cron Worker 08:20 派一輪：只為了更新網站「精選文章 → 盤前消息」（`site/articles/premarket.json`），發文那步被擋；產圖失敗只記警告不標紅。
 - 排程拿掉的（省 Actions、避免監工誤判）：social-live 的 12:01／08:20／08:50／09:40 cron；social_news 的 11 條 cron；threads_post 10 條、ig_post 20 條主題文章時段 cron（`*/15` 留著給手寫）；ig_news_watch 22:10；Worker 的 12:00 盤中、週末 10:15／10:45／19:00／19:40、交易日 20:58／21:08、IG 晚間 9 條、22:12 監工。**資料管線 daily.yml 一條都沒動。**
 - **要放量（只有 Andy 說了才改）**：① 把 `post_quota.json` 對應的 `false` 改 `true` 推 main —— 盤後限動、主貼文類立刻生效；② 盤中／盤前備援、主題文章、IG 晚間這些要準時跑的，再把上面拿掉的排程加回來（`git log -- workers/gh-cron/src/schedule.js .github/workflows/social_news.yml` 找 11-02 這一筆還原）。
-- 監工：只剩盤後（11-09 起截止 20:35、20:42 稽核；CLAUDE.md 11-02 條原寫 18:20）。被停掉的時段**不准補發**。
+- 監工：只剩盤後 18:20（CLAUDE.md 11-02 條）。被停掉的時段**不准補發**。
 
 ## 〇之一、★★ 2026-11-03 起自動發文一律不放網站網址（蓋掉下面所有「網址」「👉 連結」「完整盤勢見網站」的寫法）
 
@@ -193,8 +175,6 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
-- 2026-11-09（CEO 追加）：**盤後標籤不准含個股名**（「#台積電外資賣超」→「#外資連賣」這類市場／法人層級；lint `auto_1109` 擋標籤含個股簡稱）；**盤後備用文案改新格式**（`social_snap.close_v1`：無「盤後3分鐘」標頭、問句開頭、主文 ≤150、結尾二選一、數據＋新聞放回覆 ≤500；舊版完整文案存 `threads.v1_raw` 給 v2 改寫）。測試 `tests/test_threads_close_1109.py` 後三支。
-- 2026-11-09：**盤後主貼文改版＋改 19:30～20:30 發、IG 停自動圖文**（Andy：「同意，四項改動全部照改」；見上面第〇之〇節）。`threads_v2.py`：盤後拿掉「🌙 盤後3分鐘」欄目標頭、新增 6 個反差問句模板並優先挑、主文 ≤150（鉤子＋重點數字＋二選一結尾）、數據移到串文第一則；`threads_lint.py` 加 `rule: auto_1109`；`social_gate.py` 加 `CLOSE_EARLIEST_AT=19:30`、保底改 20:00；`social_snap.py` 盤後未到 19:30 不發（19:15 後就地等）；`social-live.yml` 加 19:41／20:11 備援排程；`daily_audit.py`／`daily_audit.yml` 截止 20:35、20:42 加查一輪；`post_quota.json` 寫 `_note`（IG 自動全關，原本值就是 false）。測試 `tests/test_threads_close_1109.py`，並改 `test_social_threads_v2.py`／`test_threads_auto_1104.py`／`test_social_quota_1102.py`／`test_daily_audit.py`／`test_social_close_fallback.py`。
 - 2026-11-09：**法人補充貼文（close-inst）納入降量開關**（事故：11-06 降量模式下 20:27 多發一則 close-inst-2026-11-06 https://www.threads.com/@liguligu0818/post/DfZmspGoHQB ）。根因：補充貼文的 manifest kind 仍是 close，`social_publish.py` 查的是 live.close.threads（true）就放行；而且 11-06 主貼文只拿掉 retail-ratio，法人三張早已在主貼文裡，補充貼文等於重發。修正：`post_quota.live_kind()` 把 close＋supplement 對應到 `live.close_inst`（開關檔沒寫＝內建關），`social_publish.py`／`social_close_state.py`／`social_snap.py`（alert 與文案不再寫「稍後補」）都照它；`social_close_state` 只有被拿掉的是法人卡才進補充輪。post_quota.json 未改。測試 `tests/test_social_quota_1102.py`。
 - 2026-11-05：**專業問句開頭再修（CEO 法遵退件）**：11-04 試產「外資賣超 1,499 億的盤面裡，買超第一名是旺矽，資金為什麼選它？」開頭點名單一個股，接近個股推介（`diagnosis_1102/channel_playbook.md` 4-1 第 2 條、`docs/legal/20261101_subscription_signals.md`：不點名個股、不給時機）。拿掉所有以個股為開頭焦點的模板（買超／賣超第一名、台積電 ADR、新聞標題），「外資賣超以台積電最多…」改成「外資賣超集中度偏高、單一最大檔就占當日賣超 33%…」；「能撐多久」這類時機問法改成描述性（「和外資方向相反的買盤過去通常出現在什麼盤勢？」）。開頭只講指數、族群、法人總量、期貨、家數層級。`threads_lint.py` 自動模式加兩條：開頭含個股簡稱（資料湖 `company_info` 個股＋groups 註解＋保底名單，先遮掉「大盤」「數字」等撞字詞）即失敗、開頭含時機用語（撐多久、進場、買點…）即失敗。主題文章的主體若是公司名，lint 擋下後自動改用不點名的保底模板（照發）。
 - 2026-11-04：**盤後自動主貼文改成專業語氣**（Andy：「要，盤後也改成專業語氣」；11-05 盤後起生效；事故：11-04 盤後實發開頭「朋友問：『外資今天在幹嘛？』我說賣超1,499.0億，他問那台積電呢，我只能默默拍拍他…」）。`threads_v2.py` 的 64 個口語／吐槽鉤子全部換成 43 個專業「吊胃口問句」（用當天數據帶入：外資連賣天數與累計、漲跌停家數對比、投信連買、站上月線比例、台指期淨空單、三大法人合計…），依數據情境挑、切入角度數據／對比／趨勢不連續、同模板 14 天不重複；條列照舊、帶口語字的新聞行不放進主文；主文 ≤500 照舊、不放網址、不放比比。`threads_lint.py` 加自動貼文模式（`profile: auto`）：開頭須為 15–80 字問句、擋「默默」「拍拍」「啦」「朋友」等口語吐槽字。盤前／盤中／融資融券模板一併改好，重開時直接適用。測試 `tests/test_threads_auto_1104.py`。`post_quota.json` 沒動。
