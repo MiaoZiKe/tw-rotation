@@ -506,22 +506,8 @@
   /* 2026-10-07 15:45 Andy：「旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」→ 管理區子項可拖曳排序（只有管理者看得到這一區，所以也只有管理者能拖）；
      沒有刪除。順序存本機 tw.l4.admOrd；滑鼠移動超過 6px 才算拖曳，放開後吞掉那一次 click。*/
   const ADM_ORD = 'tw.l4.admOrd';
-  function admOrd() { try { const a = JSON.parse(localStorage.getItem(ADM_ORD) || 'null'); if (Array.isArray(a)) return ADM_SUBS.slice().sort((x, y) => { const i = a.indexOf(x[0]), j = a.indexOf(y[0]); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); }); } catch (e) { /* 私密視窗 */ } return ADM_SUBS; }
-  let AdmD = null, admEat = false;
-  document.addEventListener('pointerdown', (e) => { if (e.button !== 0 || e.pointerType === 'touch') return; const s = e.target.closest && e.target.closest('.l4subtab[data-parent="admin"]'); if (!s || !isAdmin()) return; AdmD = { s, x: e.clientX, y: e.clientY, on: false }; });
-  document.addEventListener('pointermove', (e) => {
-    if (!AdmD) return;
-    if (!AdmD.on) { if (Math.hypot(e.clientX - AdmD.x, e.clientY - AdmD.y) < 6) return; AdmD.on = true; AdmD.s.classList.add('td-src'); document.documentElement.classList.add('td-dragging'); }
-    e.preventDefault();
-    const sibs = $$('.l4subtab[data-parent="admin"]'), over = sibs.find((x) => { const r = x.getBoundingClientRect(); return x !== AdmD.s && e.clientY >= r.top && e.clientY <= r.bottom; });
-    if (!over) return;
-    if (sibs.indexOf(over) > sibs.indexOf(AdmD.s)) over.after(AdmD.s); else over.before(AdmD.s);
-  });
-  const admEnd = () => { if (!AdmD) return; if (AdmD.on) { AdmD.s.classList.remove('td-src'); document.documentElement.classList.remove('td-dragging');
-      try { localStorage.setItem(ADM_ORD, JSON.stringify($$('.l4subtab[data-parent="admin"]').map((x) => x.dataset.adm))); } catch (e) { /* 私密視窗 */ }
-      admEat = true; setTimeout(() => { admEat = false; }, 0); } AdmD = null; };
-  document.addEventListener('pointerup', admEnd); document.addEventListener('pointercancel', admEnd);
-  window.addEventListener('click', (e) => { if (admEat) { admEat = false; e.stopPropagation(); e.preventDefault(); } }, true);   // 2026-10-07：誰擁有管理權限（admin.js renderAdmins）
+  function admOrd() { try { const a = (window.TwNavOrder && window.TwNavOrder.adm()) || JSON.parse(localStorage.getItem(ADM_ORD) || 'null'); if (Array.isArray(a)) return ADM_SUBS.slice().sort((x, y) => { const i = a.indexOf(x[0]), j = a.indexOf(y[0]); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); }); } catch (e) { /* 私密視窗 */ } return ADM_SUBS; }
+  /* 管理區子項拖曳排序改由 navdrag.js 統一處理（2026-11-10，順序存伺服器）；這裡只負責讀順序。 */
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
   function syncPerm() {
     const tabs = $('#tabs');
@@ -802,6 +788,6 @@
   /* ★ 2026-10-08 手機 v2（mobile4.js）：手機的側欄抽屜要「分組與子項完全照桌機」—— 直接讀這裡的同一份清單，不另抄一份。
      只是把既有常數掛出去，桌機行為一行都沒變。 */
   const SUBS_M = Object.fromEntries(Object.entries(SUBS).filter(([k]) => !DESK_ONLY.includes(k)));
-  window.TwL4Nav = { PAGES, SUBS: SUBS_M, SUBS_DESK: SUBS, GROUPS, admSubs: () => admOrd(), isAdmin, subIcon };
+  window.TwL4Nav = { PAGES, SUBS: SUBS_M, SUBS_DESK: SUBS, GROUPS, admSubs: () => admOrd(), isAdmin, subIcon, admDefault: () => ADM_SUBS.map((x) => x[0]) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

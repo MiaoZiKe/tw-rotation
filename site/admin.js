@@ -2061,6 +2061,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     bindHover(v);
     v.querySelector('#pmSaveGo').onclick = saveDraft;
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
+    colsFromServer();   // 2026-11-10 會員表欄位順序從伺服器取（不等名單；回來時若不同再重畫）
     await loadFeatures();
     if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">讀不到功能清單</p></div>'; return; }
     const [pl, li, mm, gd, iv] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {}), A.call('/v1/admin/grants/defs/list', {}), A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
@@ -3150,6 +3151,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (li && li._s === 200) PS.list = li;
     if (mm && mm._s === 200 && Array.isArray(mm.members)) PS.mem = mm;
     paintTabs(); if (PS.mode === 'plan' && !PS.cfg) paintTarget(); paintList();
+    colsFromServer();
     const sb = PS.v && PS.v.querySelector('#ptSubList small'); if (sb) sb.textContent = listRows().length;
   }
 
@@ -3173,7 +3175,22 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     return out;
   };
   const colsIsDefault = () => colsOrdered().map((c) => c[0]).join() === COLS.map((c) => c[0]).join();
-  const colsSave = (keys) => { try { if (keys) localStorage.setItem(ORD_KEY, JSON.stringify(keys)); else localStorage.removeItem(ORD_KEY); } catch (e) { /* 私密視窗：這次有效 */ } };
+  /* 2026-11-10 Andy：「這邊改動就固定不變」→ 欄位順序存會員 Worker（/v1/admin/ui，鍵 memcols，只有管理者讀寫），換電腦／換瀏覽器也在。
+     localStorage 只當「第一眼」快取；伺服器有值就以伺服器為準。「欄位還原」存的是空陣列（不是刪鍵），這樣別的瀏覽器的舊快取不會被補送回去。
+     舊 Worker（沒有這個端點、回 404）或預覽示範資料：安靜退回只存 localStorage。 */
+  const colsSave = (keys) => {
+    try { if (keys) localStorage.setItem(ORD_KEY, JSON.stringify(keys)); else localStorage.removeItem(ORD_KEY); } catch (e) { /* 私密視窗：這次有效 */ }
+    const A = PS.A; if (A && !A.__demo) { try { Promise.resolve(A.call('/v1/admin/ui/put', { k: 'memcols', v: keys || [] })).catch(() => {}); } catch (e) { /* 離線 */ } }
+  };
+  async function colsFromServer() {
+    const A = PS.A; if (PS.uiLoaded || !A || A.__demo) return; PS.uiLoaded = true;
+    let j = null; try { j = await A.call('/v1/admin/ui', {}); } catch (e) { return; }
+    if (!(j && j._s === 200 && j.ui && typeof j.ui === 'object')) return;
+    const sv = j.ui.memcols;
+    if (Array.isArray(sv)) { try { if (sv.length) localStorage.setItem(ORD_KEY, JSON.stringify(sv)); else localStorage.removeItem(ORD_KEY); } catch (e) { /* 私密視窗 */ } paintList(); return; }
+    let loc = null; try { loc = JSON.parse(localStorage.getItem(ORD_KEY) || 'null'); } catch (e) { loc = null; }
+    if (Array.isArray(loc) && loc.length) { try { await A.call('/v1/admin/ui/put', { k: 'memcols', v: loc }); } catch (e) { /* 下次再補 */ } }   // 舊 Worker 時期排的：補送上去
+  }
   /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
   function listRows() { const a = listRows0(); return PS.hideTest ? a.filter((r) => !r.test) : a; }
   const statRows = () => listRows0().filter((r) => !r.test);   // 統計區一律排除測試帳（不管有沒有勾「隱藏測試帳」）

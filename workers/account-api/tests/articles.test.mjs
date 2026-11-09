@@ -349,3 +349,39 @@ test('科技透明圈刪除清單：管理者讀寫；訪客與一般會員 403�
   assert.deepEqual((await pj(hub, '/v1/tc/hidden', { t: andy })).j.hidden, r.j.hidden, '讀得回來');
   assert.deepEqual((await pj(hub, '/v1/tc/hidden/put', { t: andy, hidden: [] })).j.hidden, [], '復原到空');
 });
+
+/* 左側導覽排序（2026-11-10）：公開讀、管理者寫、壞輸入擋、null＝還原預設 */
+test('導覽排序：預設 null；管理者可寫；訪客讀得到；非管理者與壞輸入被擋；null 還原', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  const od = { g: ['money', 'today'], v: { today: ['articles', 'overview'] }, s: { market: ['mkt-inst', 'mkt-updown'] }, adm: ['perm', 'admins'] };
+  assert.equal((await pj(hub, '/v1/nav/order', {})).j.order, null, '預設 null');
+  assert.equal((await pj(hub, '/v1/nav/order/put', { order: od })).s, 403, '沒登入不能寫');
+  assert.equal((await pj(hub, '/v1/nav/order/put', { t: bob, order: od })).s, 403, '一般會員不能寫');
+  assert.equal((await pj(hub, '/v1/nav/order', {})).j.order, null, '被擋就不會寫入');
+  assert.equal((await pj(hub, '/v1/nav/order/put', { t: andy, order: 'x' })).s, 400);
+  assert.equal((await pj(hub, '/v1/nav/order/put', { t: andy, order: { g: ['<b>'] } })).s, 400);
+  assert.equal((await pj(hub, '/v1/nav/order/put', { t: andy, order: { v: { 'A!': ['x1'] } } })).s, 400);
+  assert.equal((await pj(hub, '/v1/nav/order/put', { t: andy, order: { g: Array(41).fill('today') } })).s, 400);
+  const r = await pj(hub, '/v1/nav/order/put', { t: andy, order: { ...od, g: ['money', 'today', 'money'] } });
+  assert.equal(r.s, 200); assert.deepEqual(r.j.order, od, '重複收成一個');
+  assert.deepEqual((await pj(hub, '/v1/nav/order', {})).j.order, od, '訪客讀得到');
+  const z = await pj(hub, '/v1/nav/order/put', { t: andy, order: null });
+  assert.equal(z.s, 200); assert.equal((await pj(hub, '/v1/nav/order', {})).j.order, null, '還原預設');
+});
+
+/* 管理區個人化設定（2026-11-10）：只有管理者能讀寫 */
+test('管理區設定：只有管理者能讀寫；壞鍵與過大被擋；null 刪鍵', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  assert.equal((await pj(hub, '/v1/admin/ui', {})).s, 403, '訪客不能讀');
+  assert.equal((await pj(hub, '/v1/admin/ui', { t: bob })).s, 403, '一般會員不能讀');
+  assert.equal((await pj(hub, '/v1/admin/ui/put', { t: bob, k: 'memcols', v: ['plan'] })).s, 403, '一般會員不能寫');
+  assert.deepEqual((await pj(hub, '/v1/admin/ui', { t: andy })).j.ui, {});
+  assert.equal((await pj(hub, '/v1/admin/ui/put', { t: andy, k: 'Bad Key', v: 1 })).s, 400);
+  assert.equal((await pj(hub, '/v1/admin/ui/put', { t: andy, k: 'memcols', v: 'x'.repeat(4001) })).s, 400);
+  const r = await pj(hub, '/v1/admin/ui/put', { t: andy, k: 'memcols', v: ['plan', 'created'] });
+  assert.equal(r.s, 200); assert.deepEqual(r.j.ui, { memcols: ['plan', 'created'] });
+  assert.deepEqual((await pj(hub, '/v1/admin/ui', { t: andy })).j.ui.memcols, ['plan', 'created']);
+  assert.deepEqual((await pj(hub, '/v1/admin/ui/put', { t: andy, k: 'memcols', v: null })).j.ui, {}, 'null 刪鍵');
+});

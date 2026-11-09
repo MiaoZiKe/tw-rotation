@@ -60,6 +60,60 @@ export function installArticles(Hub, EXPORT_TABLES) {
       return this.json(req, { ok: true, hidden: navHidden(this) });
     },
   });
+  /* 左側導覽「排序」（2026-11-10）：Andy「這邊改動就固定不變」「側邊也是具備拖曳功能，都只有我可以更改」。
+     做法同上面隱藏分頁：kv 鍵 nav_order（JSON 物件），公開讀、管理者寫，對所有人生效。
+     形狀：{g:[組代號…], v:{組代號:[大項路由…]}, s:{大項路由:[子項鍵…]}, adm:[管理區子項鍵…]}
+     · 只收小寫英數與 - _ :（2～30 字）；每個陣列最多 40 項、總項數最多 200；不在 Worker 抄白名單（前端加分頁不必重新部署）。
+     · 公開讀：/v1/nav/order → {order}（從來沒存過或還原預設＝null）
+     · 管理者寫：/v1/nav/order/put {t, order:{…}|null} → {order}；null＝還原預設（刪掉這個鍵）；非管理者 403 */
+  const NO_KV = 'nav_order', NO_ARR = 40, NO_TOT = 200;
+  const noOk = (a) => Array.isArray(a) && a.length <= NO_ARR && a.every((x) => typeof x === 'string' && NAV_RE.test(x));
+  const noClean = (o) => {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    const out = {}; let tot = 0;
+    const arr = (a) => { if (!noOk(a)) return null; const u = [...new Set(a)]; tot += u.length; return u; };
+    const map = (m) => { if (m == null) return {}; if (typeof m !== 'object' || Array.isArray(m)) return null; const r = {}; for (const k of Object.keys(m)) { if (!NAV_RE.test(k)) return null; const u = arr(m[k]); if (!u) return null; r[k] = u; } return r; };
+    out.g = o.g == null ? [] : arr(o.g); out.v = map(o.v); out.s = map(o.s); out.adm = o.adm == null ? [] : arr(o.adm);
+    if (!out.g || !out.v || !out.s || !out.adm || tot > NO_TOT) return null;
+    return out;
+  };
+  const navOrder = (hub) => { const raw = hub.kv(NO_KV); if (raw == null) return null; try { return noClean(JSON.parse(raw)); } catch (e) { return null; } };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/nav/order': async function (req) { return this.json(req, { order: navOrder(this) }); },
+    '/v1/nav/order/put': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      if (b.order === null) { this.q('DELETE FROM kv WHERE k = ?', NO_KV); return this.json(req, { ok: true, order: null }); }
+      const c = noClean(b.order);
+      if (!c) return this.json(req, { error: 'bad_input' }, 400);
+      this.setKv(NO_KV, JSON.stringify(c));
+      return this.json(req, { ok: true, order: navOrder(this) });
+    },
+  });
+  /* 管理區個人化設定（2026-11-10）：會員表的欄位順序等「站主調整後要固定」的設定，原本只在 localStorage，換電腦就不見。
+     kv 鍵 admin_ui（JSON 物件 {鍵: 值}），只有管理者能讀寫：
+     · /v1/admin/ui {t} → {ui:{…}}
+     · /v1/admin/ui/put {t, k, v} → {ui}；v＝null 刪掉該鍵。鍵 2～30 字小寫英數 . _ -，最多 20 個鍵，每個值 JSON ≤ 4000 字。 */
+  const UI_KV = 'admin_ui', UI_KEY = /^[a-z0-9][a-z0-9._-]{1,29}$/, UI_MAX = 20, UI_LEN = 4000;
+  const adminUi = (hub) => { try { const o = JSON.parse(hub.kv(UI_KV) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/admin/ui': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      return this.json(req, { ui: adminUi(this) });
+    },
+    '/v1/admin/ui/put': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      if (typeof b.k !== 'string' || !UI_KEY.test(b.k)) return this.json(req, { error: 'bad_input' }, 400);
+      const cur = adminUi(this);
+      if (b.v === null || b.v === undefined) delete cur[b.k];
+      else {
+        if (JSON.stringify(b.v).length > UI_LEN) return this.json(req, { error: 'bad_input' }, 400);
+        if (!(b.k in cur) && Object.keys(cur).length >= UI_MAX) return this.json(req, { error: 'bad_input' }, 400);
+        cur[b.k] = b.v;
+      }
+      this.setKv(UI_KV, JSON.stringify(cur));
+      return this.json(req, { ok: true, ui: adminUi(this) });
+    },
+  });
   /* 科技透明圈「人工刪除清單」（2026-10-28）：Andy「有些數據資訊太少，所以你需要新增刪除功能給我，我會在人工審閱」。
      沿用上面隱藏分頁的做法：存在伺服器 kv（鍵 tc_hidden，JSON 陣列），所有裝置看到一樣；整份取代式寫入。
      · 管理者讀：/v1/tc/hidden {} → {hidden:[…]}（#tc 只有管理者看得到，所以讀也要管理者，不公開被刪的樣本代號）

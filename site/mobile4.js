@@ -622,7 +622,8 @@
   }
 
   const SUB_LOCK = { 'etf-cx': 'etf.inc.comp' };   // 子頁格 → 功能鍵（features.js）；沒列的格不掛鎖
-  window.addEventListener('tw:navhide', () => { if (isM() && drawer && !drawer.hidden) render(); });   // 2026-10-29 點眼睛後抽屜馬上重畫
+  window.addEventListener('tw:navhide', () => { if (isM() && drawer && !drawer.hidden) render(); });
+  window.addEventListener('tw:navorder', () => { if (isM() && drawer && !drawer.hidden) render(); });   // 2026-11-10 站主排好的側欄順序   // 2026-10-29 點眼睛後抽屜馬上重畫
   ['tw:perm', 'tw:grants', 'tw:account', 'tw:quse'].forEach((ev) => window.addEventListener(ev, () => { if (isM()) paintTitle(); }));
   function paintTitle() {
     const N = nav(); if (!title || !N) return;
