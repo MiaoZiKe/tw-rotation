@@ -145,6 +145,91 @@
       + '<section class="chx-sec"><h3>Andy 每週要花的時間</h3>' + hoursHtml() + '</section></div>';
   }
 
+  /* ---------------- 貼文成績表（#channels/scores，2026-11-09）----------------
+     這張表回答：「Andy 給過分的貼文，這週平均幾分、比上週進步還是退步、哪些可以當範本、哪些要找原因寫規則？」
+     怎麼用：看上方三張卡知道週趨勢；表裡 80 分以上標「範本」（以後照這種寫），60 分以下標「待改」（要找原因並在「新規則」寫下來）。
+     資料在 site/channels/scores.json（陣列），由 CEO 依 Andy 在聊天室給的分數更新，頁面不能輸入。 */
+  let SCORES = null, scLoading = null, scFailed = false, scCh = '全部';
+  function loadScores() {
+    if (SCORES || scFailed) return Promise.resolve(SCORES);
+    if (scLoading) return scLoading;
+    scLoading = fetch('channels/scores.json', { cache: 'no-cache' })
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((j) => { SCORES = Array.isArray(j) ? j : []; return SCORES; })
+      .catch(() => { scFailed = true; return null; })
+      .finally(() => { scLoading = null; });
+    return scLoading;
+  }
+  /* 今天（台北）：本機驗收可用 TW_SC_TODAY 固定日期，正式站一律用真實時間 */
+  function todayTpe() {
+    const h = location.hostname;
+    if ((h === '127.0.0.1' || h === 'localhost') && window.TW_SC_TODAY) return String(window.TW_SC_TODAY);
+    return new Date(Date.now() + (new Date().getTimezoneOffset() + 480) * 60000).toISOString().slice(0, 10);
+  }
+  /* 週一為一週起點；用 UTC 運算避免時區位移 */
+  function weekStart(ymd) {
+    const d = new Date(ymd + 'T00:00:00Z'); if (isNaN(d)) return '';
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  }
+  const avg = (a) => (a.length ? a.reduce((s, x) => s + (+x.score || 0), 0) / a.length : null);
+  const f1 = (v) => (v == null ? '—' : String(Math.round(v * 10) / 10));
+  const chOf = (c) => String(c || '').trim();
+  function scoreCards(list) {
+    const ws = weekStart(todayTpe());
+    const dl = new Date(ws + 'T00:00:00Z'); dl.setUTCDate(dl.getUTCDate() - 7);
+    const lw = dl.toISOString().slice(0, 10);
+    const cur = list.filter((x) => weekStart(x.date) === ws), prev = list.filter((x) => weekStart(x.date) === lw);
+    const a = avg(cur), b = avg(prev), nT = list.filter((x) => x.template).length;
+    let sub = prev.length + ' 篇', dcls = '';
+    if (a != null && b != null) { const d = Math.round((a - b) * 10) / 10; sub = '本週比上週 ' + (d > 0 ? '▲ +' : d < 0 ? '▼ ' : '＝ ') + d; dcls = d > 0 ? 'up' : d < 0 ? 'dn' : ''; }
+    return '<div class="chs-cards">'
+      + '<div class="chs-card" data-k="wk"><span class="l">本週平均</span><b>' + f1(a) + '</b><em>' + cur.length + ' 篇</em></div>'
+      + '<div class="chs-card" data-k="lw"><span class="l">上週平均</span><b>' + f1(b) + '</b><em class="' + dcls + '">' + sub + '</em></div>'
+      + '<div class="chs-card" data-k="tp"><span class="l">範本數</span><b>' + nT + '</b><em>共評 ' + list.length + ' 篇</em></div></div>';
+  }
+  function scoreRows(list) {
+    const rows = list.slice().sort((x, y) => String(y.date).localeCompare(String(x.date)));
+    if (!rows.length) return '<div class="chx-none">這個頻道還沒有評分</div>';
+    const lk = (u, t) => (/^https?:\/\//.test(u || '') ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + t + '</a>' : '');
+    const body = rows.map((x) => {
+      const s = +x.score || 0, tag = s >= 80 ? '<i class="chs-tag ok">範本</i>' : s < 60 ? '<i class="chs-tag bad">待改</i>' : '';
+      const pf = x.platforms || {}, ln = x.links || {};
+      const links = [pf.threads ? (lk(ln.threads, 'Threads') || '<span class="chs-dim">Threads 待補</span>') : '', pf.ig ? (lk(ln.ig, 'IG') || '<span class="chs-dim">IG 待補</span>') : ''].filter(Boolean).join(' ');
+      const rule = x.rule_added ? '<div class="chs-rule">新規則：' + esc(x.rule_added) + '</div>' : (s < 60 ? '<div class="chs-rule todo">尚未寫規則</div>' : '');
+      return '<tr class="chs-r" data-ch="' + esc(chOf(x.channel)) + '">'
+        + '<td class="chn-c0" data-l="日期">' + esc(x.date) + '</td>'
+        + '<td data-l="頻道">' + esc(chOf(x.channel)) + '</td>'
+        + '<td class="chs-ti" data-l="標題" title="' + esc(x.title) + '">' + (x.cover ? '<img class="chs-cv" src="' + esc(x.cover) + '" alt="" loading="lazy">' : '') + esc(x.title) + '</td>'
+        + '<td class="chs-sc" data-l="分數"><b>' + s + '</b><u class="chs-bar ' + (s >= 80 ? 'ok' : s < 60 ? 'bad' : '') + '"><s style="width:' + Math.max(0, Math.min(100, s)) + '%"></s></u>' + tag + '</td>'
+        + '<td class="chs-cm" data-l="評語">' + esc(x.comment || '') + rule + '</td>'
+        + '<td class="chs-lk" data-l="連結">' + (links || '<span class="chs-dim">—</span>') + '</td></tr>';
+    }).join('');
+    return '<div class="chn-tw"><table class="chn-t chs-t"><thead><tr><th>日期</th><th>頻道</th><th>標題</th><th>分數</th><th>評語</th><th>連結</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+  function scoresHTML() {
+    const list = SCORES || [];
+    const chs = ['全部'].concat(Array.from(new Set(list.map((x) => chOf(x.channel)))).sort());
+    if (chs.indexOf(scCh) < 0) scCh = '全部';
+    const shown = scCh === '全部' ? list : list.filter((x) => chOf(x.channel) === scCh);
+    const key = 'scores.0', open = opened[key];
+    const seg = '<div class="seg chs-seg" role="group" aria-label="依頻道篩選">' + chs.map((c) => '<button type="button" data-ch="' + esc(c) + '" class="' + (c === scCh ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>';
+    return '<div id="chsBody">' + scoreCards(list)
+      + '<section class="chn-blk wide chs-blk' + (open ? ' open' : '') + '" data-k="' + key + '"><div class="chn-h" role="button" tabindex="0" aria-expanded="' + (open ? 'true' : 'false') + '"><h3>每篇成績</h3>'
+      + '<span class="chn-how"><button type="button" class="chn-q" aria-label="每篇成績說明" aria-expanded="false">?</button><span class="chn-pop" role="tooltip" hidden>Andy 每篇給分加一句評語。80 分以上標「範本」，以後照這種方式發；60 分以下標「待改」，要找出原因並在「新規則」寫下來。週平均以週一為起點。</span></span>'
+      + '<span class="chs-n">' + shown.length + ' 篇</span><i class="chn-car" aria-hidden="true"></i></div>'
+      + '<div class="chn-b">' + seg + '<div id="chsTable">' + scoreRows(shown) + '</div></div></section></div>';
+  }
+  function bindScores(root) {
+    $$('.chs-seg button', root).forEach((btn) => btn.addEventListener('click', () => {
+      scCh = btn.dataset.ch;
+      $$('.chs-seg button', root).forEach((x) => x.classList.toggle('on', x === btn));
+      const list = SCORES || [], shown = scCh === '全部' ? list : list.filter((x) => chOf(x.channel) === scCh);
+      $('#chsTable', root).innerHTML = scoreRows(shown);
+      const n = $('.chs-n', root); if (n) n.textContent = shown.length + ' 篇';
+    }));
+  }
+
   function subOf(rest) {
     const id = (rest && rest[0]) || 'overview';
     return PLAN.tabs.some((t) => t.id === id) ? id : 'overview';
@@ -197,6 +282,15 @@
     const pg = PLAN.pages[sub] || { blocks: [] };
     const tabs = '<div class="nbsw chn-tabs" role="tablist" aria-label="頻道規劃">' + PLAN.tabs.map((t) =>
       '<a href="#channels/' + esc(t.id) + '" role="tab" data-sub="' + esc(t.id) + '" class="' + (t.id === sub ? 'on' : '') + '" aria-selected="' + (t.id === sub ? 'true' : 'false') + '">' + esc(t.t) + '</a>').join('') + '</div>';
+    if (sub === 'scores') {
+      scCh = '全部';   // 離開再進來回預設（Andy 規矩 C7）
+      await loadScores();
+      if (!inCh() || subOf((location.hash || '').split('/').slice(1)) !== 'scores') return;   // 載入期間使用者已切走，不要蓋掉別頁
+      root.innerHTML = tabs + '<div class="chn-tag"><span>Andy 每篇給分加一句評語；80 分以上列範本、60 分以下要找原因寫規則。</span></div>'
+        + (SCORES ? '<div class="chn-grid" data-sub="scores">' + scoresHTML() + '</div>' : '<div class="empty">成績表資料載入失敗，請重新整理</div>');
+      bind(); if (SCORES) bindScores(root);
+      return;
+    }
     const tag = '<div class="chn-tag"><span>' + esc(pg.tag || '') + '</span><small>更新 ' + esc(PLAN.updated || '') + '</small></div>';
     root.innerHTML = tabs + (pg.tag ? tag : '<div class="chn-tag"><small>更新 ' + esc(PLAN.updated || '') + '</small></div>')
       + (sub === 'overview' && PLAN.cards ? overviewTop() : '')

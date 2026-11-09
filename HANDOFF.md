@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
+- Andy 原話：「可以，做成績表」。資料 site/channels/scores.json（陣列：date／channel／title／platforms／score／comment／template／rule_added／links／cover），首筆為 11-09 頻道①「黃仁勳承認婚外情，輝達啟動調查」90 分範本，links 空白待今晚 20:30 發出後補。
+- **成績表由 CEO 依 Andy 在頻道①聊天室給分更新 scores.json**，頁面不能輸入、不發功能公告、無 features.js 閘門（管理者專用，沿用 channels.js 的 isAdm）。80 分以上標「範本」、60 分以下標「待改」（要在 rule_added 寫新規則，否則顯示「尚未寫規則」）。
+- 改動：site/channels/channels.js、scores.json、plan.json（tabs 加 scores）、layout4.js（側欄子項）、app.js（l4sub 認得 ch4／scores）、m4/20261109-channel-scores.css。
+- 這批只驗了：`_uitest --sections 貼文成績表,頻道規劃`（0 問題；頻道規劃段計數改成 8 個子分頁）。桌機守門1008／_preview 因本機沒有 site/data 可建（磁碟 99%），只能用舊快照＋空殼 JSON，守門段無法跑，已在回報註明。
+
 ## 2026-11-09 頻道①：每日熱點文流程定案（沒回應就自審發布）
 - 規則見 docs/marketing/social_unit/threads_rules.md 最上面 11-09 節；排程 13:40／18:37／20:02（交易日）已在頻道①聊天室建立。11-05 熱點文草稿作廢。
 

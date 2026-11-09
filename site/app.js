@@ -3324,7 +3324,7 @@
       l4sub = 'mkt-' + (MKT.some(m => m[0] === rest[0]) ? rest[0] : 'updown');
     } else if (head === 'channels' && document.documentElement.classList.contains('l4')) {
       /* 2026-11-04 頻道規劃：側欄六個子項（總覽／①②③／LINE＋Email／檢討指標）；不帶或打錯＝總覽，不 replace 網址 */
-      l4sub = 'chn-' + (['ch1', 'ch2', 'ch3', 'funnel', 'review'].includes(rest[0]) ? rest[0] : 'overview');
+      l4sub = 'chn-' + (['ch1', 'ch2', 'ch3', 'ch4', 'funnel', 'review', 'scores'].includes(rest[0]) ? rest[0] : 'overview');
     } else if (head === 'explore' && document.documentElement.classList.contains('l4')) {
       /* 選股策略：#explore/<面向>（fund／tech／chip／news）；不帶＝基本面；#explore/<策略 id>（完整名單頁）亮那個策略所屬的面向。 */
       const xc = window.TwExplore && window.TwExplore.catOf ? window.TwExplore.catOf(rest[0]) : (['fund', 'tech', 'chip', 'news'].includes(rest[0]) ? rest[0] : 'fund');
