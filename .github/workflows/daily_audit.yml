@@ -23,8 +23,12 @@ on:
         default: true
 
 # 跟 daily.yml／backfill.yml 共用同一個寫入排隊群組，避免推回 main 時互相踩到
+# 2026-11-09 事故：稽核曾跟 daily.yml 共用 tw-rotation-data-write 群組，排隊時把排隊中的
+# daily.yml phase=price 取代掉（cancelled）。稽核要有自己的群組，不准跟 daily.yml 共用。
+# 寫回 daily_audit.json 的推送衝突，由下面的 rebase 重試處理（不靠群組排隊）。
+# 補救派 daily.yml 是另一個 run，會進 daily.yml 自己的排隊，不會跟稽核這個群組互相擠。
 concurrency:
-  group: tw-rotation-data-write
+  group: daily-audit
   cancel-in-progress: false
 
 permissions:
