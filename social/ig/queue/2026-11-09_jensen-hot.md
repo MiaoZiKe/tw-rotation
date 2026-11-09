@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-11-09T20:30+08:00
 title: 黃仁勳坦承對妻子不忠，輝達董事會啟動獨立調查（頻道①熱點深度文 8 張輪播；法遵版 legal_review.md 改句；封面 CES 資料照）
 images: social/ig/images/manual/2026-11-09-jensen-hot/01.jpg, social/ig/images/manual/2026-11-09-jensen-hot/02.jpg, social/ig/images/manual/2026-11-09-jensen-hot/03.jpg, social/ig/images/manual/2026-11-09-jensen-hot/04.jpg, social/ig/images/manual/2026-11-09-jensen-hot/05.jpg, social/ig/images/manual/2026-11-09-jensen-hot/06.jpg, social/ig/images/manual/2026-11-09-jensen-hot/07.jpg, social/ig/images/manual/2026-11-09-jensen-hot/08.jpg
@@ -16,6 +16,8 @@ format: threads_v2
 lint_profile: hot_deep_1109（熱點深度文放寬，依 post_layout_b_pro.md 第十節；法遵歸屬句以 legal_review.md 為準，不可刪）
 quota: 第 2 則手動名額（post_quota.json queue.manual，不改檔）
 approved_by: Andy 2026-11-09「可以發，封面換 CES 那張」「這篇你在安排晚上發布」
+posted_at: 2026-11-09T20:30+08:00
+urls: https://www.instagram.com/p/DfhVjiglvtm/
 ---
 黃仁勳坦承對妻子不忠，輝達董事會啟動獨立調查
 
