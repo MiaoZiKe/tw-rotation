@@ -1,4 +1,18 @@
 {
- "items": {},
+ "items": {
+  "db6c0722fc95a36f": {
+   "key": "db6c0722fc95a36f",
+   "created_at": "2026-11-09T22:03:58+08:00",
+   "layer": "A",
+   "platform": "threads",
+   "target_id": "18145765843712068",
+   "post_id": "18208976707374891",
+   "author": "9886c29ce59d8f92",
+   "context": "「對，AI 總不可能被一根老二戳破吧？哎呀好難聽啊，這要剪掉……」\n\n浩哥幽默喔 XDDD",
+   "comment": "@meta.ai 這是從哪一集出現的",
+   "status": "pending",
+   "reason": ""
+  }
+ },
  "last_permission_b": "off"
 }
