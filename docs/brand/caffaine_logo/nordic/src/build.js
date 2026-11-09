@@ -1,8 +1,10 @@
 // 產出：每個方向的 SVG／PNG、大頭貼、橫式、三個應用情境、重疊量測報告、總覽
 const { chromium } = require('/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
-const { dirs, DARK_BG } = require('./marks');
-const OUT = path.resolve(__dirname, '..');
+const FINAL = !!process.env.FINAL;
+const { DARK_BG } = require('./marks');
+const { dirs } = FINAL ? require('./final_marks') : require('./marks');
+const OUT = FINAL ? path.resolve(__dirname, '..', 'final') : path.resolve(__dirname, '..');
 const TAG = '一杯咖啡的時間，看懂一個 AI 新知';
 const CJK = "'WenQuanYi Zen Hei'";
 const report = [];
@@ -67,15 +69,15 @@ async function shot(page, html, file, w, h, transparent) {
     }
     // 2. 圓形大頭貼 110／40
     for (const s of [110, 40]) {
-      const k = s === 40 ? .84 : .76;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${s}" height="${s}"><clipPath id="c"><circle cx="100" cy="100" r="100"/></clipPath><g clip-path="url(#c)"><rect width="200" height="200" fill="${L.bg}"/><g transform="translate(${100 - 100 * k} ${100 - 100 * k}) scale(${k})">${d.mark(L)}</g></g></svg>`;
+      const k = s === 40 ? (d.markSmall ? .8 : .84) : (d.markSmall ? .78 : .76);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${s}" height="${s}"><clipPath id="c"><circle cx="100" cy="100" r="100"/></clipPath><g clip-path="url(#c)"><rect width="200" height="200" fill="${L.bg}"/><g transform="translate(${100 - 100 * k} ${100 - 100 * k}) scale(${k})">${(d.markSmall || d.mark)(L)}</g></g></svg>`;
       fs.writeFileSync(path.join(dir, `avatar_${s}.svg`), svg);
       await shot(page, svg, path.join(dir, `avatar_${s}.png`), s, s, true);
     }
     // 3. 橫式完整版（深淺各一）＋ 4. 三個應用情境：在瀏覽器裡排版、量測、序列化
     await page.setViewportSize({ width: 2400, height: 1600 });
     await page.setContent(`<html><body style="margin:0"><script>${LIB}</script></body></html>`);
-    const res = await page.evaluate(({ d, L, D, mk, mkD, TAG, CJK, DARK_BG }) => {
+    const res = await page.evaluate(({ d, L, D, mk, mkD, mkS, mkSD, TAG, CJK, DARK_BG }) => {
       const out = {};
       const newSvg = (w, h) => { document.body.innerHTML = ''; const s = el(document.body, 'svg', { xmlns: NS, viewBox: `0 0 ${w} ${h}`, width: w, height: h }); return s; };
       // 橫式
@@ -115,7 +117,7 @@ async function shot(page, html, file, w, h, transparent) {
         for (let i = 0; i < 3; i++) { const x = i * 361, y = 846, w = 358, h = 448; const tc = [c.bg, c.accent, '#2E2621'][i];
           el(s, 'rect', { x, y, width: w, height: h, fill: tc });
           const fg = i === 0 ? c.ink : '#FFF8EE';
-          const mg = el(s, 'g', { transform: `translate(${x + 22} ${y + 22}) scale(${56 / 200})` }); mg.innerHTML = i === 0 ? mk : mkD;
+          const mg = el(s, 'g', { transform: `translate(${x + 22} ${y + 22}) scale(${56 / 200})` }); mg.innerHTML = i === 0 ? (mkS||mk) : (mkSD||mkD);
           ['3 個 AI 指令', '會議紀錄', '自己寫完'].forEach((t, k) => el(s, 'text', { x: x + 26, y: y + 210 + k * 58, 'font-family': CJK, 'font-size': 44, fill: fg }, [['3 個 AI 指令', '會議紀錄', '自己寫完'], ['Excel 公式', '交給 AI', '一句話生成'], ['本週 AI', '新知 5 則', '一次看懂']][i][k])); }
         out.ig = { svg: s.outerHTML, w: W, h: H, m: measure(s, 0) };
       }
@@ -155,7 +157,7 @@ async function shot(page, html, file, w, h, transparent) {
         out.cover = { svg: s.outerHTML, w: W, h: H, m: measure(s, 4) };
       }
       return out;
-    }, { d: { word: d.word }, L, D, mk: d.mark(L), mkD: d.mark(D), TAG, CJK, DARK_BG });
+    }, { d: { word: d.word }, L, D, mk: d.mark(L), mkD: d.mark(D), mkS: d.markSmall ? d.markSmall(L) : null, mkSD: d.markSmall ? d.markSmall(D) : null, TAG, CJK, DARK_BG });
     const files = { h_light: 'horizontal_light', h_dark: 'horizontal_dark', ig: 'mock_ig_profile', cup: 'mock_takeaway_cup', cover: 'mock_post_cover' };
     for (const k in files) {
       const r = res[k]; fs.writeFileSync(path.join(dir, files[k] + '.svg'), r.svg);
@@ -165,7 +167,7 @@ async function shot(page, html, file, w, h, transparent) {
     }
     console.log(d.id, 'ok');
   }
-  fs.writeFileSync(path.join(OUT, 'overlap_report.json'), JSON.stringify(report, null, 1));
+  fs.mkdirSync(OUT,{recursive:true});fs.writeFileSync(path.join(OUT, 'overlap_report.json'), JSON.stringify(report, null, 1));
   const bad = report.filter(r => r.minGap < 24 || r.overlaps || r.outOfCanvas.length);
   console.log('量測張數', report.length, '不合格', bad.length); bad.forEach(b => console.log(JSON.stringify(b)));
   report.forEach(r => console.log(r.dir, r.file, '最小間距', r.minGap));

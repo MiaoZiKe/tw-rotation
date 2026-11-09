@@ -1,0 +1,142 @@
+[
+ {
+  "dir": "",
+  "file": "horizontal_light.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 118.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 122.5,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "",
+  "file": "horizontal_dark.png",
+  "minGap": 30,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 118.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 122.5,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 30,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "",
+  "file": "mock_ig_profile.png",
+  "minGap": 56,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 56,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 199,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 75,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "",
+  "file": "mock_takeaway_cup.png",
+  "minGap": 55.5,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 55.5,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 240.8,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 115.3,
+    "overlap": false
+   }
+  ]
+ },
+ {
+  "dir": "",
+  "file": "mock_post_cover.png",
+  "minGap": 43.6,
+  "overlaps": 0,
+  "below24": [],
+  "outOfCanvas": [],
+  "pairs": [
+   {
+    "pair": "mark–word",
+    "gap": 43.6,
+    "overlap": false
+   },
+   {
+    "pair": "mark–headline",
+    "gap": 271.3,
+    "overlap": false
+   },
+   {
+    "pair": "mark–tag",
+    "gap": 1045.3,
+    "overlap": false
+   },
+   {
+    "pair": "word–headline",
+    "gap": 291,
+    "overlap": false
+   },
+   {
+    "pair": "word–tag",
+    "gap": 1065,
+    "overlap": false
+   },
+   {
+    "pair": "headline–tag",
+    "gap": 244,
+    "overlap": false
+   }
+  ]
+ }
+]

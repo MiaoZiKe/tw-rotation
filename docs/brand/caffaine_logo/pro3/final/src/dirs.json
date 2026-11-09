@@ -1,0 +1,130 @@
+[
+ {
+  "id": "S1",
+  "dir": "S1",
+  "name": "書頁杯",
+  "en": "Book Cup",
+  "ratio": [
+   55,
+   45
+  ],
+  "meaning": "一本書翻開，兩頁彎成一只杯子，左頁是 A、右頁是 I，熱氣頂端亮著一個節點——一杯咖啡的時間，讀懂一頁新知。",
+  "ai": "左右兩頁各印一個焦糖色字母，合起來是 AI；文字標的 AI 用襯線粗體並劃上一道螢光筆重點。",
+  "color": "奶油紙頁（右頁略深）、深可可輪廓與杯耳、焦糖字與蒸氣。",
+  "type": "Inter Display Medium ＋ AI 用 Bitstream Charter Bold，下半襯焦糖螢光筆色塊。",
+  "tech": "書頁的精準對稱曲線、熱氣頂端的焦糖節點（像資料節點／通知點）、螢光筆劃重點的閱讀介面語彙。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "S2",
+  "dir": "S2_時鐘杯",
+  "name": "一杯的時間",
+  "en": "Cup O'Clock",
+  "ratio": [
+   55,
+   45
+  ],
+  "meaning": "馬克杯上的時鐘停在「一杯咖啡的時間」：時針分針合成 A、秒針是橫槓，1 點鐘的羅馬數字正好是 I。",
+  "ai": "時針＋分針＋秒針拼成 A，羅馬數字 I 在 1 點鐘的位置；文字標的 AI 焦糖 ExtraBold 襯線 I，旁邊不加裝飾，讓杯上的鐘說話。",
+  "color": "深可可杯身、奶油色指針與 I、焦糖秒針與軸心。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）。",
+  "tech": "錶盤的精準刻度與指針幾何，像智慧手錶的錶面。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "S3",
+  "dir": "S3_燈泡杯",
+  "name": "燈泡杯",
+  "en": "Bright Cup",
+  "ratio": [
+   45,
+   55
+  ],
+  "meaning": "外帶杯就是燈座、杯套是螺紋，上面那顆燈泡的燈絲寫著 AI——喝一口，腦袋就亮了。",
+  "ai": "燈絲直接彎成 AI（焦糖發光），燈泡內有柔和光暈；文字標的 AI 帶同款光暈色塊。",
+  "color": "深可可杯身、焦糖螺紋；燈泡奶白透光、焦糖光→焦糖燈絲。",
+  "type": "Inter Display Medium ＋ AI 用 Inter Display ExtraBold（cv08）焦糖，背後一團柔光。",
+  "tech": "燈絲的單線幾何、放射光暈（純漸層，不用模糊濾鏡）。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "S4",
+  "dir": "S4_手搖磨豆",
+  "name": "手搖磨豆",
+  "en": "Hand Grinder",
+  "ratio": [
+   70,
+   30
+  ],
+  "meaning": "手搖磨豆機轉一圈，把一大堆 AI 資訊磨成剛好一杯的粉——磨豆機正面刻著 AI。",
+  "ai": "木盒正面是大大的奶油色 AI；文字標的 AI 上方有一道虛線旋轉弧，像搖桿轉過的軌跡。",
+  "color": "焦糖木紋漸層木盒、深可可金屬斗與搖桿、焦糖虛線軌跡。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08）。",
+  "tech": "虛線運動軌跡（像動畫路徑）、精準的機構幾何。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "S5",
+  "dir": "S5_咖啡豆讀秒",
+  "name": "咖啡豆讀秒",
+  "en": "Bean Countdown",
+  "ratio": [
+   50,
+   50
+  ],
+  "meaning": "一顆顆咖啡豆排成點陣看板，亮起來的豆子拼出 AI，下面倒數 05:00——一杯咖啡的時間，正在讀秒。",
+  "ai": "亮豆拼出 AI（尖頂 A、襯線 I），暗豆是未亮的點陣；文字標的 AI 也用咖啡豆點陣。",
+  "color": "亮豆由焦糖（上）到深焙（下）、暗豆淡淡一層；倒數字深可可等寬字。",
+  "type": "Inter Display SemiBold ＋ AI 為咖啡豆點陣（5×7）；讀秒用 JetBrains Mono。",
+  "tech": "點陣看板、等寬讀秒字，像車站的翻牌看板。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "S6",
+  "dir": "S6_濾紙A",
+  "name": "濾紙 A",
+  "en": "Filter A",
+  "ratio": [
+   65,
+   35
+  ],
+  "meaning": "一張手沖濾紙，紙形就是 A、摺線是橫槓、封邊是細細的鋸齒——濾掉雜訊，只留下一杯乾淨的 AI 新知。",
+  "ai": "濾紙＝A（有鋸齒封邊與摺線），右邊一個焦糖襯線 I；文字標 AI 底下是一道濾紙鋸齒線。",
+  "color": "奶白濾紙、摺起的下半是淡奶茶色、深可可輪廓、焦糖 I。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08）。",
+  "tech": "「過濾」的資訊隱喻、精準的鋸齒封邊。",
+  "cupTheme": "light"
+ },
+ {
+  "id": "S7",
+  "dir": "S7_咖啡滴引號",
+  "name": "咖啡滴引號",
+  "en": "Quoted Drop",
+  "ratio": [
+   45,
+   55
+  ],
+  "meaning": "引號是四滴咖啡，中間引用的是「AI」——每天替你引用一則 AI 新知，像一口剛滴好的咖啡。",
+  "ai": "整個圖形就是被引號框起來的大字 AI；文字標的 AI 前後也加上兩組咖啡滴引號。",
+  "color": "咖啡滴焦糖→深焙光澤漸層加小高光；AI 深可可（深底改奶油）。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08 襯線 I）；引號為手繪咖啡滴。",
+  "tech": "排版符號（引號）當圖形，像編輯器裡的引用格式。",
+  "cupTheme": "dark"
+ },
+ {
+  "id": "S8",
+  "dir": "S8_濾掛咖啡",
+  "name": "濾掛咖啡",
+  "en": "Drip Bag",
+  "ratio": [
+   70,
+   30
+  ],
+  "meaning": "上班族的濾掛咖啡：撕開、掛上杯緣、三分鐘——濾掛包上印的是 AI，泡好的是一則新知。",
+  "ai": "掛在杯緣的濾掛包正面印著焦糖色大字 AI；文字標的 AI 外框一個圓角標籤框（只描邊，不填色）。",
+  "color": "奶白濾掛包＋撕線虛線，深可可杯身，焦糖 AI。",
+  "type": "Inter Display SemiBold ＋ AI 用 Inter Display ExtraBold（cv08），焦糖描邊標籤框。",
+  "tech": "撕線虛線、精準的掛耳摺紙幾何。",
+  "cupTheme": "light"
+ }
+]
