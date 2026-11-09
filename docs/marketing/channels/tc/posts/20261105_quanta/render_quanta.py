@@ -208,18 +208,16 @@ S["1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></
     f'<div class="low">{TITLE_HTML}<div class="tg">{HINT}</div>{EXTRA}</div>{SWIPE}</div>')
 
 # ---- 待遇表：上半台灣地圖＋總部位置，下半「工程師待遇」6 欄（欄名＋重點值，不放備註） ----
-rows = [
-    ("碩畢月薪", "約 58～69K・中位約 61K"),
-    ("年終・分紅", "整包約 18～22 個月"),
-    ("升等路徑", "依單位而異"),
-    ("加班時數", "網友多回報經常加班"),
-    ("繁忙程度", "網友普遍回報工時長、壓力大"),
-    ("出差頻率", "時間不定，依客戶與專案"),
+rows = [   # 2026-11-08 Andy 重寫文案：「第二頁只需要寫不包含括號內容即可」→ 只留 4 列、不放括號內容、不列總部
+    ("碩畢", "約 52～64K"),
+    ("整包", "約 18～22 個月"),
+    ("加班", "操"),
+    ("出差", "時間不定，依客戶與專案"),
 ]
 trs = "".join(f'<div class="rw" style="display:flex;align-items:center;flex:1;border-top:2px solid {LINE}">'
-              f'<div class="n" style="width:66px;font-size:32px;color:{BLUE}">{i+1:02d}</div>'
-              f'<div style="width:220px;font-size:38px;font-weight:800;white-space:nowrap">{a}</div>'
-              f'<div style="flex:1;min-width:0;font-size:36px;font-weight:700;white-space:nowrap">{b}</div></div>' for i, (a, b) in enumerate(rows))
+              f'<div class="n" style="width:84px;font-size:40px;color:{BLUE}">{i+1:02d}</div>'
+              f'<div style="width:200px;font-size:50px;font-weight:800;white-space:nowrap">{a}</div>'
+              f'<div style="flex:1;min-width:0;font-size:48px;font-weight:700;white-space:nowrap">{b}</div></div>' for i, (a, b) in enumerate(rows))
 MAP_W, MAP_H = 980, 496           # 地圖 svg 尺寸（卡片 984x500 扣 2px 邊框；body 左右各 48）
 IS_H = 448                        # 台灣（含澎湖）高度，寬依比例
 IS_W = IS_H * TW["w"] / TW["h"]
