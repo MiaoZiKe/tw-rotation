@@ -37,6 +37,17 @@ def session() -> requests.Session:
     return _session
 
 
+def reset_session() -> None:
+    """丟掉目前的 Session，下次 session() 會建新連線。對端 reset 連線時用，避開壞掉的 keep-alive。"""
+    global _session
+    if _session is not None:
+        try:
+            _session.close()
+        except Exception:  # noqa: BLE001 —— 關不掉也無妨，丟掉就是了
+            pass
+    _session = None
+
+
 def _body_snippet(r) -> str:
     """回應內容的前 200 字（給 log 用）。
 

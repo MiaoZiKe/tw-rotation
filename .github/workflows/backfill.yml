@@ -165,6 +165,15 @@ jobs:
                   today_tp = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
                   if not (isinstance(fr, dict) and fr.get("done") and fr.get("date") == today_tp):
                       done = False
+                  # 2026-11-09：旗標還要對得上「價量最新日」。凌晨（價量還停在上個交易日）做完的旗標，
+                  # 在新交易日價量進湖後不能再擋住當天的續補（那天上市個股法人只剩 456 檔就是這樣）。
+                  try:
+                      _lr = json.loads(pathlib.Path("data/_state/last_run.json").read_text())
+                      _px = max((t.get("latest") or "" for t in _lr.get("tables", []) if t.get("table") == "price_daily"), default="")
+                      if _px and str(fr.get("latest") or "")[:10] < _px[:10]:
+                          done = False
+                  except Exception:
+                      pass
               skip = done
           plan_done = skip and key == "plan:default"
           # 公司 Logo（2026-09-26）：計畫補齊之後也要讓 Logo 繼續補／到期重抓。

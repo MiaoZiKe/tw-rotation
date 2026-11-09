@@ -20,6 +20,13 @@ from pipeline.sources import mis
 FIX = Path(__file__).resolve().parents[1] / "docs" / "fixtures" / "mis_getstockinfo_20260914.json"
 
 
+@pytest.fixture(autouse=True)
+def _不真的睡(monkeypatch):
+    """連線失敗重試的間隔在測試裡歸零，不然每個「抓不到」的測試要睡 50 秒。"""
+    monkeypatch.setattr(mis, "QUOTE_WAITS", (0, 0, 0))
+    monkeypatch.setattr(mis.time, "sleep", lambda s: None)
+
+
 @pytest.fixture
 def payload():
     return json.loads(FIX.read_text(encoding="utf-8"))
@@ -209,3 +216,41 @@ def test_大盤快照日期壞掉就回空(monkeypatch):
     fx["infoArray"][0]["d"] = ""
     monkeypatch.setattr(mis.http, "get", lambda *a, **k: fx)
     assert mis.market_snapshot().empty
+
+
+# ------------------------------------------------------------------ 2026-11-09：對端 reset 連線
+def test_連線被reset先失敗後成功_會重試並換新連線(monkeypatch):
+    """11-09 事故：mis 報價端點 Connection reset，http.get 內建重試 5 秒內全死、整輪不補上市價量。
+    現在外層再等一會兒、丟掉舊 Session 重試，第三輪通了就要拿得到資料。"""
+    calls = {"n": 0, "reset": 0}
+
+    def fake_get(url, params=None, **k):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            return None
+        return {"rtcode": "0000", "msgArray": [{"c": "2330", "d": "20261109"}]}
+
+    monkeypatch.setattr(mis.http, "get", fake_get)
+    monkeypatch.setattr(mis.http, "reset_session", lambda: calls.__setitem__("reset", calls["reset"] + 1))
+    assert mis.latest_date() == "2026-11-09"
+    assert calls["n"] == 3 and calls["reset"] == 2
+
+
+def test_報價端點全死_退用加權分時檔的日期(monkeypatch):
+    """getStockInfo.jsp 一直 reset，但同主機的 mis_ohlc_TSE.txt 是通的：日期從它的 infoArray 拿。"""
+    def fake_get(url, params=None, **k):
+        if url == mis.config.MIS_QUOTE:
+            return None
+        return {"infoArray": [{"d": "20261109", "z": "41661.70", "y": "39701.64", "v": "837929", "m": "1"}]}
+
+    monkeypatch.setattr(mis.http, "get", fake_get)
+    monkeypatch.setattr(mis.http, "reset_session", lambda: None)
+    assert mis.latest_date() == "2026-11-09"
+
+
+def test_重試次數有上限不會無限等(monkeypatch):
+    n = {"c": 0}
+    monkeypatch.setattr(mis.http, "get", lambda *a, **k: n.__setitem__("c", n["c"] + 1))
+    monkeypatch.setattr(mis.http, "reset_session", lambda: None)
+    assert mis.quotes([("2330", "TWSE")]) == []
+    assert n["c"] == mis.QUOTE_ROUNDS

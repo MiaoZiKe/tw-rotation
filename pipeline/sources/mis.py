@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 
 import pandas as pd
 
@@ -59,6 +60,13 @@ BATCH = 100
 
 # 指數不是股票，不進 price_daily
 INDEX_CODES = {"t00", "t001", "o00"}
+
+# 一批「連線層失敗」（Connection reset by peer、逾時）時，外層再重試幾輪、每輪等多久（秒）。
+# 2026-11-09 事故：15:59 那輪 price 的 mis 探測一檔，http.get 內建 3 次重試全擠在 5 秒內、
+# 全被對端 reset，於是 latest_date() 回 None → 「mis 拿不到交易日，本輪不補」→ 上市價量整輪沒補；
+# 同一批 mis 的靜態分時檔（mis_ohlc_*.txt）幾秒後卻正常。對端 reset 是暫時性的，要拉開間隔、換新連線再試。
+QUOTE_ROUNDS = 4
+QUOTE_WAITS = (6, 15, 30)
 
 
 def _ex_ch(code: str, market: str | None) -> str:
@@ -79,6 +87,25 @@ def _price_of(row: dict) -> float | None:
     return to_float(row.get("y"))
 
 
+def _get_quote(ex: str):
+    """送一批 getStockInfo.jsp。連線層失敗（http.get 回 None）就等一會兒、丟掉舊連線重打，最多 QUOTE_ROUNDS 輪。
+
+    http.get 的內建重試只隔 1～2 秒，對端還在 reset 時等於白試；這裡拉長間隔並重建 Session（避開壞掉的 keep-alive 連線）。
+    非 0000 的 rtcode 不在這裡重試（那是上游給的明確答覆，由呼叫端記 log）。
+    """
+    data = None
+    for rnd in range(QUOTE_ROUNDS):
+        data = http.get(config.MIS_QUOTE, params={"json": "1", "delay": "0", "ex_ch": ex})
+        if isinstance(data, dict):
+            return data
+        if rnd < QUOTE_ROUNDS - 1:
+            wait = QUOTE_WAITS[min(rnd, len(QUOTE_WAITS) - 1)]
+            log.warning("mis 報價連線失敗（第 %d/%d 輪），%ds 後換新連線重試", rnd + 1, QUOTE_ROUNDS, wait)
+            time.sleep(wait)
+            http.reset_session()
+    return data
+
+
 def quotes(pairs: list[tuple[str, str | None]]) -> list[dict]:
     """抓一批報價。`pairs` 是 (代號, 市場別) 的清單，市場別可以是 None。
 
@@ -88,7 +115,7 @@ def quotes(pairs: list[tuple[str, str | None]]) -> list[dict]:
     for i in range(0, len(pairs), BATCH):
         chunk = pairs[i:i + BATCH]
         ex = "|".join(_ex_ch(c, m) for c, m in chunk)
-        data = http.get(config.MIS_QUOTE, params={"json": "1", "delay": "0", "ex_ch": ex})
+        data = _get_quote(ex)
         if not isinstance(data, dict):
             log.warning("mis 第 %d 批沒有回應（%d 檔）", i // BATCH + 1, len(chunk))
             continue
@@ -209,12 +236,21 @@ def market_snapshot() -> pd.DataFrame:
 
 
 def latest_date(sample: tuple[str, str | None] = ("2330", "TWSE")) -> str | None:
-    """只問一檔，拿 mis 現在手上是哪一個交易日。用來決定要不要補。"""
+    """只問一檔，拿 mis 現在手上是哪一個交易日。用來決定要不要補。
+
+    getStockInfo.jsp 連不上時（2026-11-09 被 reset）退而讀加權分時靜態檔的 infoArray.d：
+    同一台主機、同一份資料日，而且那個檔當天一直是通的。兩邊都拿不到才回 None。
+    """
     raw = quotes([sample])
-    if not raw:
-        return None
-    d = str(raw[0].get("d") or "").strip()
-    return f"{d[:4]}-{d[4:6]}-{d[6:]}" if len(d) == 8 and d.isdigit() else None
+    if raw:
+        d = str(raw[0].get("d") or "").strip()
+        if len(d) == 8 and d.isdigit():
+            return f"{d[:4]}-{d[4:6]}-{d[6:]}"
+    ms = market_snapshot()
+    if not ms.empty:
+        log.warning("mis 報價端點拿不到交易日，改用加權分時檔的日期 %s", ms["date"].iloc[0])
+        return str(ms["date"].iloc[0])
+    return None
 
 
 # ------------------------------------------------------------------ 大盤三張圖的 1 分 K（2026-09-26）

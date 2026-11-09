@@ -270,6 +270,25 @@ def _shift_days(iso: str, days: int) -> str:
     return (d - pd.Timedelta(days=days)).isoformat()
 
 
+FINMIND_RESERVE = 120      # 補法人時替後面步驟（財報續補等）留的額度
+
+
+def market_gap_codes(trade_date: str, skip: set) -> list[str]:
+    """trade_date 那天有成交的上市普通股裡，不在 skip（名單或湖裡已有法人）的代號，成交值大的排前面。
+    只收上市：上櫃的法人由櫃買 openapi 整天一次給齊，不需要逐檔。讀不到價量就回空，不影響原本名單。"""
+    try:
+        px = store.read("price_daily", years=[int(str(trade_date)[:4])])
+        if px.empty:
+            return []
+        px = px[(px["date"].astype(str) == str(trade_date)) & (px["market"] == "TWSE")]
+        px = px[px["code"].astype(str).map(is_tradable_security)]
+        px = px.assign(code=px["code"].astype(str)).sort_values("turnover", ascending=False, na_position="last")
+        return [c for c in px["code"] if c not in skip]
+    except Exception as exc:  # noqa: BLE001 —— 補洞是加分項，壞了不能拖垮原本的逐檔補抓
+        log.warning("找上市法人缺口失敗（只補名單內的）：%s", exc)
+        return []
+
+
 def fetch_institutional(codes: list[str], trade_date: str, lookback: int = 10) -> pd.DataFrame:
     """逐檔補三大法人。額度不夠時就抓到哪算到哪，剩下的明天再補。"""
     if not codes:
@@ -286,7 +305,14 @@ def fetch_institutional(codes: list[str], trade_date: str, lookback: int = 10) -
         log.warning("FinMind 額度已用盡，本輪不補法人資料")
         return pd.DataFrame()
 
-    todo = todo[:budget]
+    # 2026-11-09：名單（成交值前 N 檔＋網站用到的）補完後，額度還有剩就繼續補「那天有成交、法人還沒進湖」的其他上市股。
+    # 上市個股的法人只有 FinMind 逐檔一個來源（openapi 的 T86 回 HTML、整天全市場要 sponsor 等級），
+    # 以前名單外的要等隔天的歷史回補續補，11-09 因此只有 456 檔（近 10 日 1,145 檔）。
+    # 留一段額度給後面的財報續補等步驟（FINMIND_RESERVE），成交值大的排前面。
+    base = todo[:budget]
+    extra_room = max(0, budget - len(base) - FINMIND_RESERVE)
+    extra = market_gap_codes(trade_date, set(codes) | have)[:extra_room] if extra_room else []
+    todo = base + extra
     log.info("補三大法人：%d 檔（額度剩 %d）", len(todo), budget)
 
     frames = []

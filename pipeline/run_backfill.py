@@ -887,6 +887,22 @@ def _mark_quota_stopped(prog: dict, steps: list[str], save: bool = True) -> None
         _save_progress(prog)
 
 
+def inst_fresh_is_current(flag, today: date, price_latest) -> bool:
+    """法人每日續補的「今天做完了」旗標還算不算數。
+
+    ★ 2026-11-09 事故：旗標只看台北日期。11-09 凌晨 01:11（台北）的回補輪，價量最新日還是 11-06，
+      名單只有 98 檔、做完就寫 {done, date=11-09, latest=11-06}；結果 11-09 當天 15:30 價量進了湖，
+      旗標仍是「11-09 做完了」→ 回補整天跳過續補，上市個股 11-09 的法人只剩每日管線顧的 456 檔
+      （近 10 日 1,145 檔）。所以旗標除了日期，還要記得「當時補到哪個價量日」：
+      湖裡的價量日比旗標的 latest 新，就代表有新的交易日要補，旗標作廢。
+    """
+    if not (isinstance(flag, dict) and flag.get("done") and flag.get("date") == today.isoformat()):
+        return False
+    if price_latest is None:
+        return True
+    return str(flag.get("latest") or "")[:10] >= str(price_latest)[:10]
+
+
 def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None = None) -> bool:
     """三大法人（＋當沖、借券）的每日續補：每日管線只顧前 500 檔，其餘股票在這裡補（2026-09-27）。
 
@@ -900,8 +916,12 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     """
     today = today or datetime.now(TAIPEI).date()
     flag = (prog.get("complete") or {}).get("inst_fresh")
+    price = None
     if isinstance(flag, dict) and flag.get("done") and flag.get("date") == today.isoformat():
-        return True
+        # 旗標看起來是今天做完的，才花時間讀價量確認它對得上最新交易日（讀到的下面續補直接沿用）
+        price = store.read("price_daily")
+        if inst_fresh_is_current(flag, today, str(price["date"].astype(str).max()) if not price.empty else None):
+            return True
     if http.finmind_budget_left() <= 1:
         # 一開始額度就用完：記下來讓 backfill.yml 的接力 job 等下一個額度視窗再派一輪（2026-10-05）
         _mark_quota_stopped(_progress(), ["inst_fresh"])
@@ -914,7 +934,8 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
             store.append("inst_daily", bulk)
     except Exception as exc:  # noqa: BLE001
         log.warning("整天全市場法人補抓失敗（改走逐檔）：%s", exc)
-    price = store.read("price_daily")
+    if price is None:
+        price = store.read("price_daily")
     # 網站用到的個股排最前面：同樣落後天數時（排序是穩定的）先補它們，頁面才不缺
     _site = set(inst_bulk.site_codes())
     universe = sorted(market_codes(), key=lambda c: c not in _site)
