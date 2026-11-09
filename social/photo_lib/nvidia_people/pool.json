@@ -18,9 +18,9 @@
    "width": 1920,
    "height": 1272,
    "fetched_at": "2026-11-09T02:45:09+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
+   "reviewed": true,
+   "reviewer": "art-director(視覺總監)",
+   "review_note": "2026-11-09 通過：內文用，神情中性；CC0；2018 舊照須標資料照",
    "origin": "指定檔名"
   },
   {
@@ -63,8 +63,8 @@
    "height": 1440,
    "fetched_at": "2026-11-09T02:45:10+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
+   "reviewer": "art-director(視覺總監)",
+   "review_note": "2026-11-09 退回：人物極小臉被字遮、過暗雜訊、晶片規格數字易被誤讀為與事件有關",
    "origin": "指定檔名"
   },
   {
@@ -238,9 +238,9 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-11-09T02:45:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
+   "reviewed": true,
+   "reviewer": "art-director(視覺總監)",
+   "review_note": "2026-11-09 通過：封面用，中性說明手勢；CC BY 2.0 須署名 Maurizio Pesce；封面宜標資料照",
    "origin": "指定檔名"
   },
   {
@@ -261,8 +261,8 @@
    "height": 1279,
    "fetched_at": "2026-11-09T02:45:11+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
+   "reviewer": "art-director(視覺總監)",
+   "review_note": "2026-11-09 退回：微笑揮手＋觀眾可辨識，配醜聞題易讀成嘲諷；若用於政策頁須只裁黃仁勳單人且不配醜聞圖說",
    "origin": "指定檔名"
   },
   {
