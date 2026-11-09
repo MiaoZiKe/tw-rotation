@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1149 460" width="1149" height="460"><rect width="1149" height="460" fill="#231A15"></rect><g transform="translate(80 80) scale(1.5)" data-role="mark">
+    <polygon points="50,64 100,64 58,122" fill="#DE9068"></polygon>
+    <polygon points="58,122 100,64 71,180 66,180" fill="#C9704A"></polygon>
+    <polygon points="150,64 100,64 142,122" fill="#C9704A"></polygon>
+    <polygon points="142,122 100,64 129,180 134,180" fill="#9C4B2C"></polygon>
+    <polygon points="100,64 71,180 129,180" fill="#F6D9C4"></polygon>
+    <path d="M81 141 H119" fill="none" stroke="#9C4B2C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path>
+    <polygon points="42,64 52,44 148,44 158,64" fill="#F3E8D8"></polygon>
+    <polygon points="64,44 74,32 126,32 136,44" fill="#F3E8D8" opacity=".8"></polygon>
+</g><g data-role="word" transform="translate(0 234.5)"><text x="452" y="0" font-family="Inter Display" font-weight="600" font-size="124" fill="#F3E8D8">Caff</text><text x="689.953125" y="0" font-family="Inter Display" font-weight="800" font-size="124" fill="#D9774F">A</text><text x="790.1331250000001" y="0" font-family="Inter Display" font-weight="800" font-size="124" fill="#D9774F">I</text><rect x="785.7640551757812" y="-91" width="42.160000000000004" height="14.26" rx="3.565" fill="#D9774F"></rect><rect x="785.7640551757812" y="-14.26" width="42.160000000000004" height="14.26" rx="3.565" fill="#D9774F"></rect><text x="835.955" y="0" font-family="Inter Display" font-weight="600" font-size="124" fill="#F3E8D8">ne</text></g><g data-role="tag" transform="translate(4 333.5)"><text x="452" y="0" font-family="'WenQuanYi Zen Hei'" font-size="40" fill="#F3E8D8" opacity="0.78" text-anchor="start">一杯咖啡的時間，看懂一個 AI 新知</text></g></svg>
