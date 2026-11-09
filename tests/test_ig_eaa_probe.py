@@ -32,6 +32,8 @@ def sys_user_http(calls, bad_container=()):
             return [{"id": "1220000000005555", "name": "Aito Post 系統用戶"}]   # 實測：系統用戶 /me 回陣列
         if url == f"{F}/me/accounts":
             return {"data": []}
+        if url == f"{F}/me/assigned_instagram_accounts" and kw.get("me_edge_on"):
+            return {"data": []}
         if url == f"{F}/me/permissions":
             return {"data": [{"permission": x, "status": "granted"} for x in
                              ("ads_management", "ads_read", "instagram_basic", "instagram_manage_messages",
@@ -146,3 +148,24 @@ def test_留言_沒有粉絲專頁改用探查(monkeypatch):
     monkeypatch.setattr(hp.SP, "http", sys_user_http(calls))
     monkeypatch.setattr(hc.SP, "http", sys_user_http(calls))
     assert hc.me(EAA, "CAFFAINE_")["id"] == IG_CAF
+
+
+def test_實測路徑_me別名打assigned_instagram_accounts(monkeypatch):
+    """11-10 實測：系統用戶 /me 回空陣列（拿不到自己的編號），/me/assigned_instagram_accounts 直接回本頻道 IG。"""
+    def http(method, url, **kw):
+        prm = dict(kw.get("params") or {})
+        if url == f"{F}/me":
+            return []
+        if url == f"{F}/me/assigned_instagram_accounts":
+            return {"data": [{"id": IG_CAF, "username": "caffaine.ai"}], "paging": {}}
+        if url == f"{F}/me/assigned_pages":
+            return {"data": []}
+        if url == f"{F}/me/accounts":
+            return {"data": []}
+        raise RuntimeError("HTTP 400 {\"message\": \"(#100) Missing Permission\"}")
+    monkeypatch.setattr(hp.SP, "http", http)
+    probe = []
+    c = hp.fb_ig_candidates(EAA, probe)
+    assert [(x["id"], x["via"]) for x in c] == [(IG_CAF, "me_edge")]
+    assert hp.ig_choices(c, "caffaine.ai")[0] == [IG_CAF]
+    assert hp.resolve_uid("ig", "", EAA, "CAFFAINE_", "me_edge") == IG_CAF

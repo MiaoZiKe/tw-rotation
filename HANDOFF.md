@@ -6024,3 +6024,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - Threads：talk_01010909／Tech_01010909／caffaine.ai 三個都通過（已換 60 天長效，每週自動續期）。
 - IG：三把都是 Facebook 登入版（EAA）。程式已改成兩種權杖都能用（commit 24a378d11），但權杖缺 `pages_show_list`、`pages_read_engagement`，看不到粉絲專頁 → 查不到 IG 帳號編號。待 Andy 用 Graph API Explorer 選自己的應用程式 liguligu-social、加勾兩個權限、勾選三個粉絲專頁、延長成長效後重貼三個 `*_IG_ACCESS_TOKEN`，再跑 verify。
 - 留言私訊、刪文在 EAA 路徑尚未實測。
+
+### 2026-11-10 02:10（台北）IG 三頻道驗證通過（不用 Andy 改設定）
+- 權杖是系統用戶存取權杖（只指派 IG 帳號＋廣告帳號、沒有粉絲專頁）：`/me/accounts` 0 個、`/me` 回空陣列、`debug_token` 要 app 權杖、`/me/businesses` 缺權限、廣告帳號 API 是開發層級被擋。
+- **能用的路：`GET graph.facebook.com/v24.0/me/assigned_instagram_accounts?fields=id,username`**（用 me 別名，不需系統用戶編號），三把各回 1 個 IG，username 對上 channels.json。
+- `scripts/healing_post.py` 的 `fb_ig_candidates`（多路徑探查）＋`ig_choices`（username 對應）＋驗證模式逐一建容器，通過的路名記 `state/verify.json` 的 `via`（只記路名，不記編號）；`*_IG_USER_ID` 有填仍優先。上一段「待 Andy 加權限重貼權杖」撤銷。
+- 實測：healing run 42670394709、channel_post run 42670385893，三個 IG＋三個 Threads 容器都 FINISHED、未發布。commit ab08e3de1、2d6eb0ec9、7d1d74989＋本筆測試。
+- 尚未實測：IG 正式發文（下次排程會走同一條路）、EAA 留言私訊（沒有粉絲專頁權杖，私訊大概會失敗，留言用 /{media}/comments 應可）。
