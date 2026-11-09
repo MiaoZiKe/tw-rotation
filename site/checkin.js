@@ -290,39 +290,65 @@
 @media (max-width:820px){.evbtn#ciBtn{display:none}}
 .ciov{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px}
 .ciov[hidden]{display:none}
-.cidlg{width:min(720px,100%);max-height:min(640px,90vh);overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 60px -20px rgba(0,0,0,.6);padding:14px 16px 12px;box-sizing:border-box;font-size:14px}
+.cidlg{width:min(900px,100%);max-height:min(900px,94vh);overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 60px -20px rgba(0,0,0,.6);padding:14px 16px 12px;box-sizing:border-box;font-size:14px}
 .ci-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .ci-h h2{margin:0;font-size:17px}
 .ci-q{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-size:12px;cursor:pointer;padding:0}
 .ci-x{margin-left:auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:16px}
 .ci-help{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 8px;font-size:13px;line-height:1.6;color:var(--ink-2)}
 .ci-help ul{margin:4px 0 0;padding-left:18px}
-.ci-body{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"cal top" "cal rest";grid-template-rows:auto 1fr;gap:10px 16px;align-items:start}
-.ci-calw{grid-area:cal}.ci-top{grid-area:top}.ci-rest{grid-area:rest}
+.ci-body{display:flex;flex-direction:column;gap:12px}
+/* 11-09 Andy：簽到表改大日曆＋上方進度條（參考籌碼K線的「累積登入 N 天領獎」排版概念：進度條橫跨整寬、節點標獎勵；圖與文案都是自己做的） */
+.ci-prog{border:1px solid var(--line);border-radius:12px;background:var(--panel-2);padding:12px 16px 10px}
+.ci-ptxt{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin-bottom:10px}
+.ci-ptxt b.n{font-size:26px;line-height:1}
+.ci-ptxt .sh{font-size:14px;color:var(--ink-2)}
+.ci-ptxt .sh .sm{display:none}
+.ci-pt{position:relative;margin:0 46px;padding-bottom:88px}
+.ci-ptb{position:relative;height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.ci-ptb i{position:absolute;left:0;top:0;bottom:0;border-radius:7px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent,var(--cyan)) 70%,transparent),var(--accent,var(--cyan)))}
+.ci-pn{position:absolute;top:-4px;width:92px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.3}
+.ci-pn .ci-pi{width:22px;height:22px;border-radius:50%;background:var(--panel);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin-bottom:4px}
+.ci-pn .ci-pi svg{width:12px;height:12px;display:block}
+.ci-pn b{font-size:15px;color:var(--ink-2)}
+.ci-pn small{font-size:12px;color:var(--ink-3)}
+.ci-pn em{font-style:normal;font-size:12px;color:var(--ink-3)}
+.ci-pn.on .ci-pi{background:var(--accent,var(--cyan));border-color:var(--accent,var(--cyan));color:var(--ontop,#04121a)}
+.ci-pn.on b{color:var(--ink)}.ci-pn.on small{color:var(--ink-2)}
+.ci-pn .ci-btn.sm{margin-top:2px;min-width:64px;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,var(--cyan)) 30%,transparent)}
+.ci-pn.cl em{color:var(--accent,var(--cyan));font-weight:700}
+.ci-prog .ci-next{margin:0}
+.ci-body .ci-sum{justify-content:center;margin:0}
+.ci-body .ci-sum .ci-btn{height:52px;width:min(100%,380px);font-size:18px;border-radius:12px}
+.ci-body .ci-sum:empty{display:none}
 .ci-mnav{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;font-weight:700}
 .ci-mnav button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:16px}
 .ci-mnav button:disabled{opacity:.35;cursor:default}
-.ci-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.ci-wk{text-align:center;font-size:12px;color:var(--ink-3);padding:2px 0}
-.ci-c{position:relative;height:40px;border-radius:8px;border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--ink-3);background:transparent;padding:0;font-family:inherit}
+.ci-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.ci-wk{text-align:center;font-size:13px;color:var(--ink-3);padding:2px 0}
+.ci-wk:first-child,.ci-wk:nth-child(7){color:var(--ink-3);opacity:.7}
+.ci-c{position:relative;height:72px;border-radius:10px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;color:var(--ink-3);background:transparent;padding:0;font-family:inherit}
 .ci-c.out{visibility:hidden}
 .ci-c.fu{opacity:.4}
 .ci-c.bl{color:var(--ink-2)}
-.ci-c.sg{background:color-mix(in srgb,var(--accent,var(--cyan)) 22%,var(--panel));color:var(--ink);border-color:color-mix(in srgb,var(--accent,var(--cyan)) 40%,transparent)}
-.ci-c.mk{border:1.5px dashed var(--accent,var(--cyan))}
-.ci-c.mk b.tg{position:absolute;right:2px;top:1px;font-size:11px;line-height:12px;padding:0 3px;border-radius:3px;background:var(--accent,var(--cyan));color:var(--ontop,#04121a);font-weight:700}
-.ci-c.td{border:2px solid var(--accent,var(--cyan));color:var(--ink)}
+.ci-c>span:first-child{position:absolute;left:8px;top:5px;font-size:14px;line-height:1}
+.ci-c.sg{background:color-mix(in srgb,var(--accent,var(--cyan)) 20%,var(--panel));color:var(--ink);border-color:color-mix(in srgb,var(--accent,var(--cyan)) 55%,transparent)}
+.ci-c.mk{border:2px dashed var(--accent,var(--cyan))}
+.ci-c.mk svg.ck{background:transparent;color:var(--accent,var(--cyan));border:2px dashed var(--accent,var(--cyan))}
+.ci-c.mk b.tg{position:absolute;right:4px;top:4px;font-size:11px;line-height:12px;padding:0 3px;border-radius:3px;background:var(--accent,var(--cyan));color:var(--ontop,#04121a);font-weight:700}
+.ci-c.td{border:3px solid var(--accent,var(--cyan));color:var(--ink);font-weight:700}
+.ci-c.td:not(.sg):after{content:'今天';position:absolute;bottom:6px;font-size:12px;color:var(--accent,var(--cyan));font-weight:700}
 .ci-c.td.go{cursor:pointer;animation:cipulse 1.8s ease-in-out infinite}
 @keyframes cipulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent,var(--cyan)) 55%,transparent)}50%{box-shadow:0 0 0 5px transparent}}
 .ci-c.fu{cursor:not-allowed}
 .ci-next{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:2px 0 6px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--accent,var(--cyan)) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--accent,var(--cyan)) 35%,transparent);font-size:13px;line-height:1.5}
 .ci-next a{color:var(--cyan);white-space:nowrap}
 .ci-c.mkok{cursor:pointer;border:1.5px dashed var(--amber,#e0a21b);color:var(--ink)}
-.ci-c svg.ck{position:absolute;right:2px;bottom:2px;width:13px;height:13px;color:var(--accent,var(--cyan))}
+.ci-c svg.ck{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:32px;height:32px;padding:6px;box-sizing:border-box;border-radius:50%;background:var(--accent,var(--cyan));color:var(--ontop,#04121a)}   /* 已簽＝實心圓章＋粗勾 */
 .ci-c small{font-size:11px;line-height:12px;color:var(--accent,var(--cyan))}
-.ci-c .nb{position:absolute;right:2px;top:1px;font-size:11px;line-height:13px;min-width:13px;text-align:center;border-radius:7px;background:var(--amber,#e0a21b);color:#1a1200;font-weight:700;padding:0 2px}
+.ci-c .nb{position:absolute;right:4px;top:4px;font-size:11px;line-height:13px;min-width:13px;text-align:center;border-radius:7px;background:var(--amber,#e0a21b);color:#1a1200;font-weight:700;padding:0 2px}
 .ci-c.cg-we:not(.sg):not(.td){background:color-mix(in srgb,var(--ink) 10%,var(--panel))}
-.ci-c .cg-hl{font-size:11px;line-height:11px;position:absolute;bottom:1px;left:1px;right:1px;text-align:center}
+.ci-c .cg-hl{font-size:11px;line-height:11px;position:absolute;bottom:3px;left:1px;right:1px;text-align:center}
 .ci-sum{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:8px}
 .ci-sum b.n{font-size:20px}
 .ci-btn{height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--accent,var(--cyan));background:var(--accent,var(--cyan));color:var(--ontop,#04121a);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
@@ -413,12 +439,21 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
   .ciov{align-items:flex-end;padding:0}
   .cidlg{width:100%;max-height:92vh;border-radius:14px 14px 0 0;padding:6px 12px 10px}
   .cidlg:before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 6px}
-  .ci-body{grid-template-columns:1fr;grid-template-areas:"top" "cal" "rest";gap:6px}
-  .ci-c{height:36px}
+  .ci-body{gap:6px}
+  .ci-prog{padding:6px 8px 4px}
+  .ci-ptxt{margin-bottom:6px;flex-wrap:nowrap}.ci-ptxt b.n{font-size:20px}.ci-ptxt .sh{font-size:12px}.ci-ptxt .sh .lg{display:none}.ci-ptxt .sh .sm{display:inline}
+  .ci-pt{margin:0 30px;padding-bottom:92px}
+  .ci-pn{width:64px;font-size:11px}.ci-pn b{font-size:13px}.ci-pn small,.ci-pn em{font-size:11px}
+  .ci-prog .ci-next{display:none}
+  .ci-body .ci-sum .ci-btn{height:44px;font-size:16px}
+  .ci-grid{gap:3px}
+  .ci-c{height:44px;font-size:13px;border-radius:8px}
+  .ci-c>span:first-child{left:4px;top:2px;font-size:11px}
+  .ci-c svg.ck{width:22px;height:22px;padding:4px;top:58%}
+  .ci-c.td:not(.sg):after{display:none}
   .ci-c .cg-hl{display:none}
   .ci-sum{margin-bottom:2px}.ci-sum b.n{font-size:17px}
   .ci-btn{height:44px}
-  .ci-pg{margin:2px 4px}
   .ci-nl-d>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:13px}
   .ci-foot{margin-top:6px;padding-top:4px}
   .ci-bibi{right:8px;bottom:78px}
@@ -428,7 +463,6 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
   .ci-q{border-radius:50%;font-size:15px}
   .ci-btn.sm{min-height:44px;height:44px}
   .ci-foot a,.ci-foot button.lk{min-height:44px;display:inline-flex;align-items:center;padding:0 4px}
-  .ci-c{height:44px}
   .ci-opt,.ci-adm input,.ci-adm select{min-height:44px}
   .ci-next a{min-height:44px;display:inline-flex;align-items:center}
   .ci-vseg button,.ci-vl>summary,.ci-vh .ci-btn{min-height:44px}
@@ -441,6 +475,7 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
   /* ------------------------------------------------------------------ 面板 */
   const V = { open: false, ym: '', pane: 'main', mkMode: false, help: false, adm: false, claim: null, msg: '', mkPick: '', nlOpen: false };
   const ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M9 15l2 2 4-4"/></svg>';
+  const NODE_ICO = ['<path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/>', '<path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/>', '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>', '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'].map((d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`);
   const CK = '<svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.4l3.1 3.1L13 4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   let ov = null;
 
@@ -495,15 +530,21 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
     const canS = perm('ci.sign');
     const pct = Math.min(100, Math.round(100 * tot / ns[ns.length - 1]));
     const u = user();
-    const pg = `<div class="ci-pg" aria-label="累積進度"><span class="fill" style="width:calc((100% - 16px)*${pct / 100})"></span>${ns.map((n, i) => `<span class="nd${tot >= n ? ' on' : ''}"><i></i>${n} 天</span>`).join('')}</div>`;
-    const rows = ns.map((n, i) => {
+    const lockW = () => !perm('ci.wish') || wishesIn(tm) >= Math.max(1, permVal('ci.wish', 1));
+    const pn = ns.map((n, i) => {
       const cl = cur && claimed(ym, i), reach = tot >= n;
       let act;
-      if (!cur) act = cl ? '<span class="st">已兌換</span>' : '<span class="st">未兌換</span>';
-      else if (cl) act = '<span class="st">已兌換</span>';
-      else if (!reach) act = `<span class="st">還差 ${n - tot} 天</span>`;
-      else if (i === 3 && (!perm('ci.wish') || wishesIn(tm) >= Math.max(1, permVal('ci.wish', 1)))) act = '<button type="button" class="ci-btn sm lock" data-lockwish="1" disabled title="此功能需開通">🔒 需開通</button>';
+      if (!cur) act = `<em>${claimed(ym, i) ? '已兌換' : '未兌換'}</em>`;
+      else if (cl) act = '<em>已兌換</em>';
+      else if (!reach) act = `<em>還差 ${n - tot} 天</em>`;
+      else if (i === 3 && lockW()) act = '<button type="button" class="ci-btn sm lock" data-lockwish="1" disabled title="此功能需開通">🔒 需開通</button>';
       else act = `<button type="button" class="ci-btn sm" data-claim="${i}">兌換</button>`;
+      return `<div class="ci-pn${reach ? ' on' : ''}${cl ? ' cl' : ''}" data-pn="${i}" style="left:${(100 * n / ns[ns.length - 1]).toFixed(2)}%"><span class="ci-pi">${NODE_ICO[i]}</span><b>${n} 天</b><small>${esc(NODE_NAMES[i])}</small>${act}</div>`;
+    }).join('');
+    const pg = `<div class="ci-pt" id="ciPg" role="img" aria-label="本月累積 ${tot} 天，節點 ${ns.join('、')} 天"><div class="ci-ptb"><i style="width:${pct}%"></i></div>${pn}</div>`;
+    const rows = ns.map((n, i) => {
+      const cl = cur && claimed(ym, i), reach = tot >= n;
+      const act = !cur ? (cl ? '<span class="st">已兌換</span>' : '<span class="st">未兌換</span>') : cl ? '<span class="st">已兌換</span>' : !reach ? `<span class="st">還差 ${n - tot} 天</span>` : '<span class="st">可兌換（用上方進度條的按鈕）</span>';
       const desc = i === 3 ? '許願券（1～5 個願望）＋月度徽章' : i === 2 ? '產業深度包・2 篇' : '教學包・2 篇';
       return `<li data-node="${i}"><span class="t"><b>${n} 天</b> ${esc(NODE_NAMES[i])}<small>${esc(desc)}</small></span>${act}</li>`;
     }).join('');
@@ -518,7 +559,8 @@ html.twwm #artPost[data-cat="vault"]::after{z-index:0}
     const help = V.help ? `<div class="ci-help" id="ciHelp"><b>怎麼用</b><ul><li>每天按一次「簽到今天」，月曆會留下勾；沒簽的日子保持空白。每月 1 日累積歸零，已拿到的文章永久保留。</li><li>累積滿 ${ns.join('／')} 天各可兌換一次：前兩個是教學包、第三個是產業深度包、最後是許願券。兌換後到精選文章的「比比寶箱」分頁閱讀。</li><li>漏簽可以跟比比互動換補簽（見下方補簽列），每月最多 ${cfg().makeup_max} 次，只能補最近 ${cfg().makeup_days} 天。</li><li>寶箱文章只能靠簽到解鎖，付費方案不能直接打開。</li><li>日期以台北時間為準，只能簽今天，不能先簽以後的日子（調電腦時間沒有用）。</li><li>預覽版：資料只存在這個瀏覽器（登出後仍留在這台裝置，用同一個帳號登入會接著顯示）；許願會真的送給站主，Plus 3 天只是畫面模擬。</li></ul></div>` : '';
     return `<div class="ci-h"><h2 id="ciTtl">每日簽到</h2><button type="button" class="ci-q" id="ciQ" aria-label="每日簽到怎麼用" aria-expanded="${V.help}">?</button><button type="button" class="ci-x" id="ciX" aria-label="關閉">✕</button></div>${help}
 <div class="ci-body">
- <div class="ci-top"><div class="ci-sum"><span>${cur ? '本月' : ym.replace('-', ' 年 ') + ' 月'}累積 <b class="n" id="ciTot">${tot}</b> 天</span>${sg}</div>${nxt}${pg}${mkNote}</div>
+ <div class="ci-prog"><div class="ci-ptxt"><span>${cur ? '本月' : ym.replace('-', ' 年 ') + ' 月'}累積 <b class="n" id="ciTot">${tot}</b> 天</span><span class="sh">${cur && loggedIn() ? `<span class="lg">${esc(ns_.txt)}</span><span class="sm">${esc(ns_.short)}</span>` : ''}</span></div>${pg}${nxt}</div>
+ <div class="ci-sum">${sg}</div>${mkNote}
  <div class="ci-calw"><div class="ci-mnav"><button type="button" id="ciPrev" aria-label="上個月">‹</button><span id="ciMon">${ym.slice(0, 4)} 年 ${+ym.slice(5, 7)} 月</span><button type="button" id="ciNext" aria-label="下個月"${cur ? ' disabled' : ''}>›</button></div>${calHTML()}</div>
  <div class="ci-rest"><details class="ci-nl-d"${V.nlOpen || WIDE() ? ' open' : ''} id="ciNlD"><summary>節點與獎勵</summary><ul class="ci-nl" id="ciNodes">${rows}</ul></details>${mk}</div>
 </div>
@@ -795,6 +837,16 @@ ${ws.length ? ws.map((w, wi) => `<div class="ci-list" data-batch="${esc(w.id)}" 
     /* C8：視窗在桌機／手機之間來回（跨過 820）時，總覽的簽到卡要跟著出現或消失，不用重新整理 */
     try { const mq = window.matchMedia('(max-width:820px)'); const fn = () => { if (/^(#overview)?$/.test(location.hash || '')) window.dispatchEvent(new HashChangeEvent('hashchange')); }; if (mq.addEventListener) mq.addEventListener('change', fn); } catch (e) { /* 略 */ }
     ready().then(tabCount);
+    /* 11-09 Andy「我需要直接看簽到表」：網址 #checkin 一進來就打開簽到月曆（桌機、手機都一樣；手機頂欄沒有簽到鈕，這是直達入口）。
+       打開後把網址換回 #overview，讓路由、返回鍵、重新整理都正常；已經在頁面上時改 hash 也會打開。 */
+    const direct = () => {
+      if (!/^#\/?checkin\/?$/.test(location.hash || '')) return false;
+      try { history.replaceState(null, '', location.pathname + location.search + '#overview'); } catch (e) { /* 略 */ }
+      try { window.dispatchEvent(new HashChangeEvent('hashchange')); } catch (e) { /* 略 */ }
+      open(); return true;
+    };
+    window.addEventListener('hashchange', () => { if (/^#\/?checkin\/?$/.test(location.hash || '')) direct(); });
+    if (document.readyState === 'complete') direct(); else window.addEventListener('load', () => setTimeout(direct, 300));
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
