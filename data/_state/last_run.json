@@ -3,7 +3,7 @@
     "tape.collect": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "skipped": "沒有待補的交易日"
     },
     "inst_official": {
@@ -35,7 +35,7 @@
         {
           "url": "https://openapi.twse.com.tw/v1/fund/T86",
           "http": 200,
-          "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod"
+          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
         },
         {
           "url": "https://openapi.twse.com.tw/v1/fund/TWT38U",
@@ -164,7 +164,7 @@
       "rows": 63
     },
     "fut_oi": {
-      "stored": 3
+      "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
@@ -173,19 +173,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 908,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "inst_daily": {
-      "stored": 283
+      "stored": 173
     },
     "institutional_codes": {
-      "requested": 459,
-      "returned": 283
+      "requested": 176,
+      "returned": 173
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 283,
-      "seconds": 109.3
+      "rows": 173,
+      "seconds": 67.9
     },
     "inst_flags": {
       "rebuild": true,
@@ -249,10 +249,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-09T08:18:46.522396+00:00",
-  "finished_at": "2026-11-09T08:20:50.763745+00:00",
-  "duration_seconds": 124.2,
+  "started_at": "2026-11-09T09:31:04.585587+00:00",
+  "finished_at": "2026-11-09T09:33:05.538103+00:00",
+  "duration_seconds": 121.0,
   "trade_date": "2026-11-09",
   "complete": true,
-  "finmind_budget_left": 44
+  "finmind_budget_left": 327
 }
