@@ -1,7 +1,9 @@
 {
- "at": "2026-11-08T23:01:57+00:00",
- "ok": 105,
- "miss": [],
+ "at": "2026-11-09T02:41:15+00:00",
+ "ok": 107,
+ "miss": [
+  "nvidia_people"
+ ],
  "items": [
   {
    "slug": "tsmc",
@@ -736,6 +738,27 @@
    "ok": true,
    "total": 21,
    "added": 0,
+   "reviewed": 0
+  },
+  {
+   "slug": "nvidia_people",
+   "ok": false,
+   "total": 0,
+   "added": 0,
+   "reviewed": 0
+  },
+  {
+   "slug": "us_capitol",
+   "ok": true,
+   "total": 10,
+   "added": 10,
+   "reviewed": 0
+  },
+  {
+   "slug": "computex",
+   "ok": true,
+   "total": 3,
+   "added": 3,
    "reviewed": 0
   }
  ],
