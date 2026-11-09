@@ -106,6 +106,35 @@ def load_pool(d: Path, slug: str) -> dict:
         return dict(slug=slug, photos=[], rejected=[])
 
 
+def fetch_titles(sess, d: Path, slug: str, name_en: str, titles: list[str]) -> dict:
+    """2026-11-09：指定 Commons 檔名直接抓（人物／場合圖，搜尋抓不準時用）。仍檢查授權，reviewed=false。"""
+    pool = load_pool(d, slug)
+    have = {x.get("file_title") for x in pool["photos"]}
+    used_n = {int(m.group(1)) for x in pool["photos"] if (m := re.match(r"photo_(\d+)\.jpg", x.get("file", "")))}
+    added = 0
+    for i in range(0, len(titles), 20):
+        r = sess.get(API, params=dict(action="query", format="json", titles="|".join(titles[i:i + 20]), prop="imageinfo",
+                                      iiprop="url|size|mime|extmetadata", iiurlwidth=1920), timeout=60)
+        r.raise_for_status()
+        for pg in ((r.json().get("query") or {}).get("pages") or {}).values():
+            ii = (pg.get("imageinfo") or [{}])[0]; md = ii.get("extmetadata") or {}
+            title = pg.get("title", ""); lic = strip_html((md.get("LicenseShortName") or {}).get("value", ""))
+            if not ii.get("url") or title in have: continue
+            if ii.get("mime") != "image/jpeg" or not lic_ok(lic):
+                print(slug, title, "授權／格式不符，略過", lic, ii.get("mime")); continue
+            n = 1
+            while n in used_n: n += 1
+            c = dict(title=title, ii=ii, md=md, lic=lic, desc=strip_html((md.get("ImageDescription") or {}).get("value", "")))
+            try:
+                m = save(sess, d, n, c, "人物／場合", "指定檔名", slug, name_en); m["origin"] = "指定檔名"
+            except Exception as ex:
+                print(slug, title, "下載失敗", ex); continue
+            pool["photos"].append(m); used_n.add(n); have.add(title); added += 1
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "pool.json").write_text(json.dumps(pool, ensure_ascii=False, indent=1), encoding="utf-8")
+    return dict(slug=slug, ok=bool(pool["photos"]), total=len(pool["photos"]), added=added, reviewed=0)
+
+
 def fill(sess, d: Path, slug: str, name_en: str, plan: list[tuple[str, list[str], int]], gseen: set[str], key: str = "") -> dict:
     """plan＝[(kind, 查詢字, 上限)]；補到上限為止，已在池裡／退件過／別家用過的檔名跳過。"""
     pool = load_pool(d, slug)
@@ -178,6 +207,8 @@ def main(argv=None) -> int:
             if only and t["slug"] not in only: continue
             # 2026-10-30 Andy：「相這種跟公司有關的 優先附上公司圖片」→ 先從該公司的 Commons 分類抓（總部、招牌、廠區、代表產品），最多 4 張
             global PEOPLE; PEOPLE = bool(t.get("allow_people"))
+            if t.get("files"):
+                res = fetch_titles(sess, LIB / t["slug"], t["slug"], t["name_en"], t["files"]); print(res); log.append(res); continue
             plan = [("公司分類", ["cat:" + c for c in t.get("commons_categories", [])], t.get("quota", QUOTA["公司分類"])),
                     ("總部/廠房", t["queries"] + [t["name_en"]], QUOTA["總部/廠房"]),
                     ("產品", t.get("product_queries", []), QUOTA["產品"]),
