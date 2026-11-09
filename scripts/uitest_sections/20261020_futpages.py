@@ -46,7 +46,7 @@ def t_futpages_1020(b, base, code):
     T = "期貨籌碼兩頁1020"
     import json as _j
     fut, ret = _fp_fake()
-    FN = "() => { const e = document.getElementById('fpChart-futoi'); return !!e && !!window.echarts && !!echarts.getInstanceByDom(e) && document.querySelectorAll('#fpTw-futoi tbody tr').length > 5; }"
+    FN = "() => { const e = document.getElementById('fpBars'); return !!e && !!window.echarts && !!echarts.getInstanceByDom(e) && document.querySelectorAll('#fpTbl tbody tr').length > 3; }"
     FNR = "() => { const e = document.getElementById('fpChart-retail'); return !!e && !!echarts.getInstanceByDom(e) && document.querySelectorAll('#fpTw-retail tbody tr').length > 5; }"
     for (w, h) in ((1440, 900), (390, 844)):
         errs: list[str] = []
@@ -72,31 +72,25 @@ def t_futpages_1020(b, base, code):
         prod = pg.locator(".fp-prod button")
         ok(f"{tag}：頂列分段開關兩顆、預設台指期", prod.count() == 2 and "台指期三大法人未平倉" in prod.nth(0).inner_text() and "台指散戶多空比" in prod.nth(1).inner_text() and "on" in (prod.nth(0).get_attribute("class") or ""))
         bar, per = bb(".fp-bar"), bb(".fp-per")
-        ok(f"{tag}：期間鈕在頂列、在圖的上方", per["y"] < bb("#fpChart-futoi")["y"] and per["y"] + per["height"] <= bar["y"] + bar["height"] + 2, [per, bar])
+        ok(f"{tag}：期間鈕在頂列、在圖的上方", per["y"] < bb("#fpBars")["y"] and per["y"] + per["height"] <= bar["y"] + bar["height"] + 2, [per, bar])
         if w > 640:
             ok(f"{tag}：期間鈕靠右（右緣貼近內容區右緣）", abs((per["x"] + per["width"]) - (bar["x"] + bar["width"])) < 6, [per["x"] + per["width"], bar["x"] + bar["width"]])
         ok(f"{tag}：整頁只有一組期間鈕、預設「6月」", pg.locator(".fp-per").count() == 1 and pg.locator(".fp-per button.on").inner_text() == "6月")
         ok(f"{tag}：說明改成頂列「?」、頁面上沒有說明卡", pg.locator("#fpHowBtn").count() == 1 and pg.locator(".fp-how, .fp-auto, .fp-note").count() == 0)
-        # ---- 版面位置 ----
-        num, ch, tb = bb("#fpLatest"), bb("#fpChart-futoi"), bb(".fp-tblcard")
-        cc = bb(".fp-main")
-        if w > 900:
-            ok(f"{tag}：數字卡下方一行結論（最多兩行）、完整解讀進「?」", pg.locator("#fpConcl").inner_text().strip() != "" and pg.evaluate("() => document.getElementById('fpConcl').getBoundingClientRect().height") <= 50 and pg.locator("#fpAutoUl-futoi li").count() >= 2)
-            ok(f"{tag}：圖與明細表左右並排、等高（6:4）", abs(cc["y"] - tb["y"]) < 3 and cc["x"] < tb["x"] and abs(cc["height"] - tb["height"]) < 4 and 1.2 < cc["width"] / tb["width"] < 2.0, [cc, tb])
-            ok(f"{tag}：上方一列在圖的上面、沒有右側欄", num["y"] + num["height"] <= cc["y"] + 1 and (tb["x"] + tb["width"]) <= 1440 and not pg.locator(".fp-side").count(), [num, cc])
-            ok(f"{tag}：桌機 1440×900 第一屏看完期間鈕、數字卡、主圖與明細表", tb["y"] + tb["height"] <= 900 and cc["y"] + cc["height"] <= 900 and bb(".fp-per")["y"] < 200, [cc, tb])
-            ok(f"{tag}：畫面上沒有日期範圍與「資料回溯至」字樣", "資料回溯" not in pg.locator("#mktBody").inner_text() and not __import__("re").search(r"\d{4}-\d\d-\d\d～", pg.locator("#mktBody").inner_text()))
-        # ---- 期間鈕真的按 ----
+        # ---- 期間鈕真的按（台指期頁版面已改成法人頁同款，細項驗收在「期貨當日買賣超1109」） ----
+        npts2 = lambda: pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpBars')).getOption().series[0].data.length")
+        nrows2 = lambda: pg.evaluate("() => { const b = document.getElementById('fpTblAll'); if (b && b.textContent.indexOf('看全部') >= 0) b.click(); return document.querySelectorAll('#fpTbl tbody tr').length; }")
         seen = {}
         for lab in ["1月", "3月", "6月", "1年", "3年", "5年", "全部"]:
             btn = pg.locator(".fp-per button", has_text=lab)
             ok(f"{tag}：台指期期間鈕「{lab}」可按", not btn.first.is_disabled())
-            btn.first.click(); pg.wait_for_timeout(250)
-            seen[lab] = npts("futoi")
-            ok(f"{tag}：按「{lab}」後圖、表同步（{seen[lab]} 筆）", npts("futoi") == nrows("futoi"), [npts("futoi"), nrows("futoi")])
+            btn.first.click(); pg.wait_for_timeout(300)
+            seen[lab] = npts2()
+            ok(f"{tag}：按「{lab}」後圖、表同步（{seen[lab]} 筆）", seen[lab] == nrows2(), [seen[lab], nrows2()])
         v = list(seen.values())
         ok(f"{tag}：期間越長筆數越多，全部＝{len(fut['dates'])}", v == sorted(v) and len(set(v)) == 7 and v[-1] == len(fut["dates"]), seen)
-        pg.locator(".fp-per button", has_text="3月").first.click(); pg.wait_for_timeout(250)
+        ok(f"{tag}：台指期自動解讀有內容（在「?」裡）、四張卡", pg.locator("#fpAutoUl-futoi li").count() >= 2 and pg.locator("#fpTiles .itile").count() == 4)
+        rd = lambda K, k: pg.evaluate("([K, k]) => { const idx = Array.from(document.querySelectorAll('#' + K + ' thead th')).findIndex(t => t.dataset.k === k); return Array.from(document.querySelectorAll('#' + K + ' tbody tr')).map(tr => parseFloat(tr.children[idx].textContent.replace(/[,%+]/g, '').replace('−', '-'))); }", [K, k])
         # ---- 台指期連動 ----
         def hover_check(K, who):
             pg.locator(f"#fpChart-{K}").scroll_into_view_if_needed(); pg.wait_for_timeout(250)
@@ -106,28 +100,9 @@ def t_futpages_1020(b, base, code):
             st = pg.evaluate("(K) => ({hov: TwFut.state.hov, hl: document.querySelectorAll('#fpTw-' + K + ' tr.hl').length, hlD: (document.querySelector('#fpTw-' + K + ' tr.hl')||{dataset:{}}).dataset.d, mk: JSON.stringify(echarts.getInstanceByDom(document.getElementById('fpChart-' + K)).getOption().series[0].markLine||{}), head: document.querySelector(K === 'futoi' ? '#fpLatT' : '#fpTop .lab').textContent})", K)
             ok(f"{tag}：{who}滑過圖→表格恰一列亮、同一天（{st['hov']}）", bool(st["hov"]) and st["hl"] == 1 and st["hlD"] == st["hov"], st)
             ok(f"{tag}：{who}滑過圖→圖上標示線＋數字卡換成 {st['hov']}", st["hov"] in st["mk"] and st["hov"] in st["head"], [st["mk"][:80], st["head"]])
-        hover_check("futoi", "台指期")
-        box = pg.locator("#fpChart-futoi").bounding_box()
-        pg.mouse.click(box["x"] + box["width"] * .6, box["y"] + box["height"] * .55); pg.wait_for_timeout(300)
-        lk = pg.evaluate("() => ({lock: TwFut.state.lock, sel: document.querySelectorAll('#fpTw-futoi tr.sel').length})")
-        ok(f"{tag}：點圖鎖定一天，表格一列 .sel", bool(lk["lock"]) and lk["sel"] == 1, lk)
-        if w > 640:
-            pg.mouse.click(box["x"] + box["width"] * .6, box["y"] + box["height"] * .55); pg.wait_for_timeout(300)
-            ok(f"{tag}：再點同一天取消鎖定", pg.evaluate("() => TwFut.state.lock") is None)
-        row = pg.locator("#fpTw-futoi tbody tr").nth(4); d5 = row.get_attribute("data-d")
-        row.click(); pg.wait_for_timeout(300)
-        mk = pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fpChart-futoi')).getOption().series[0].markLine||{})")
-        ok(f"{tag}：點表格列→圖鎖 {d5}、數字卡換日期", d5 in mk and d5 in pg.locator("#fpLatT").inner_text(), mk[:100])
-        pg.locator('#fpTw-futoi th[data-k="fn"]').click(); pg.wait_for_timeout(200)
-        rd = lambda K, k: pg.evaluate("([K, k]) => { const idx = Array.from(document.querySelectorAll('#fpTw-' + K + ' thead th')).findIndex(t => t.dataset.k === k); return Array.from(document.querySelectorAll('#fpTw-' + K + ' tbody tr')).map(tr => parseFloat(tr.children[idx].textContent.replace(/[,%+]/g, '').replace('−', '-'))); }", [K, k])
-        a1 = rd("futoi", "fn")
-        ok(f"{tag}：台指期點欄名→由大到小", a1 == sorted(a1, reverse=True) and len(a1) > 5, a1[:4])
-        sc = pg.evaluate("() => { const e = document.getElementById('fpTw-futoi'); e.scrollTop = 60; e.scrollLeft = 40; return {st: e.scrollTop, ch: e.clientHeight, sl: e.scrollLeft, wide: e.scrollWidth > e.clientWidth}; }")
-        ok(f"{tag}：台指期表格內部可捲、高度固定", sc["st"] > 0 and sc["ch"] <= 420 and (sc["sl"] > 0 or not sc["wide"]), sc)
-        ok(f"{tag}：台指期自動解讀有內容、數字卡三格", pg.locator("#fpAutoUl-futoi li").count() >= 2 and pg.locator("#fpBig3 .v").count() == 3)
-        cl = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpChart-futoi')).getOption().series.map(x => [x.lineStyle.color, x.lineStyle.width])")
-        ok(f"{tag}：台指期三條線＝外資藍／投信橘／自營紫、線寬 2", [x[0].upper() for x in cl] == ["#2563EB", "#F97316", "#A855F7"] and all(x[1] == 2 for x in cl), cl)
-        ok(f"{tag}：台指期表格 3 欄淨部位＋合計、不橫向捲", pg.evaluate("() => { const e = document.getElementById('fpTw-futoi'); return Array.from(e.querySelectorAll('thead th')).length === 5 && (innerWidth < 900 || e.scrollWidth <= e.clientWidth + 2); }"))
+        pg.locator('#fpTbl th[data-k="fv"]').click(); pg.wait_for_timeout(200)
+        a1 = rd("fpTbl", "fv")
+        ok(f"{tag}：台指期點欄名→由大到小", a1 == sorted(a1, reverse=True) and len(a1) > 3, a1[:4])
         # ---- 「?」彈窗（台指期） ----
         pg.locator("#fpHowBtn").click(); pg.wait_for_timeout(300)
         pop = pg.evaluate("() => { const p = document.getElementById('howPop'); return p && !p.hidden ? p.innerText : ''; }")
@@ -135,13 +110,13 @@ def t_futpages_1020(b, base, code):
         pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
         ok(f"{tag}：Esc 關掉說明彈窗", pg.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
         # ---- 切到微台：同一位置、內容全換 ----
-        before_top = bb(".fp-main")["y"]
-        before_chart_x = bb(".fp-main")["x"]
+        before_top = bb(".irtri")["y"]
+        before_chart_x = bb(".irtri")["x"]
         pg.locator('.fp-prod button[data-k="retail"]').click()
         okr = wait_until(pg, FNR, 8000)
         ok(f"{tag}：切到「台指散戶多空比」→畫出微台圖與表", okr)
         if okr:
-            ok(f"{tag}：切換後台指期的圖、表、數字卡已拿掉（同一位置不堆疊）", pg.locator("#fpChart-futoi, #fpTw-futoi, #fpLatest").count() == 0 and pg.locator(".fp-prod button.on").inner_text() == "台指散戶多空比")
+            ok(f"{tag}：切換後台指期的圖、表、數字卡已拿掉（同一位置不堆疊）", pg.locator("#fpBars, #fpTbl, #fpTiles").count() == 0 and pg.locator(".fp-prod button.on").inner_text() == "台指散戶多空比")
             ok(f"{tag}：圖在同一個位置（頂端／左緣不變）", (w <= 640 or abs(bb(".fp-main")["y"] - before_top) < 140) and abs(bb(".fp-main")["x"] - before_chart_x) < 3, [bb(".fp-main"), before_top])
             cols = pg.evaluate("() => Array.from(document.querySelectorAll('#fpTw-retail thead th')).map(t => t.textContent)")
             ok(f"{tag}：明細表欄位換成散戶多單／空單／多空比", "散戶多空比" in cols and "外資 淨部位" not in cols, cols)
@@ -159,7 +134,7 @@ def t_futpages_1020(b, base, code):
                 ok(f"{tag}：微台圖與表也左右並排、等高", abs(cc["y"] - tb["y"]) < 3 and cc["x"] < tb["x"] and abs(cc["height"] - tb["height"]) < 4, [cc, tb])
             hover_check("retail", "微台")
             pg.locator('#fpTw-retail th[data-k="p"]').click(); pg.wait_for_timeout(200)
-            a2 = rd("retail", "p")
+            a2 = rd("fpTw-retail", "p")
             ok(f"{tag}：微台點欄名→由大到小", a2 == sorted(a2, reverse=True) and len(a2) > 5, a2[:4])
             pg.locator("#fpHowBtn").click(); pg.wait_for_timeout(300)
             pop2 = pg.evaluate("() => { const p = document.getElementById('howPop'); return p && !p.hidden ? p.innerText : ''; }")
@@ -175,9 +150,9 @@ def t_futpages_1020(b, base, code):
             pg.evaluate("window.scrollTo(0,0)"); pg.wait_for_timeout(200)
             sw = pg.evaluate("() => document.scrollingElement.scrollWidth - window.innerWidth")
             ok(f"{tag}：手機沒有橫向捲軸", sw <= 1, sw)
-            sg_, big, chb = bb(".fp-prod"), bb("#fpLatest"), bb("#fpChart-futoi")
+            sg_, big, chb = bb(".fp-prod"), bb("#fpTiles"), bb("#fpBars")
             ok(f"{tag}：第一屏看得到分段開關、數字卡與主圖上緣", sg_["y"] + sg_["height"] < 844 and big["y"] + big["height"] < 844 and chb["y"] < 760, [sg_, big, chb["y"]])
-            order = pg.evaluate("() => ['#fpLatest','#fpChart-futoi','#fpTw-futoi'].map(s => document.querySelector(s).getBoundingClientRect().top + scrollY)")
+            order = pg.evaluate("() => ['#fpTiles','#fpBars','#fpTbl'].map(s => document.querySelector(s).getBoundingClientRect().top + scrollY)")
             ok(f"{tag}：手機上下排順序 數字卡→圖→明細表", order == sorted(order), order)
             sizes = pg.evaluate("() => { const bad = []; document.querySelectorAll('.fp-pane *, .fp-bar *').forEach(e => { if (e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).display !== 'none') { const f = parseFloat(getComputedStyle(e).fontSize); if (f < 11) bad.push(e.className + ':' + f); } }); return bad.slice(0, 5); }")
             ok(f"{tag}：手機字級不小於 11px", not sizes, sizes)
@@ -210,7 +185,7 @@ def t_futpages_1020(b, base, code):
         pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
         pg.goto(base + "#market/fut", wait_until="domcontentloaded")
         got = wait_until(pg, "() => /資料準備中/.test((document.getElementById('mktBody')||{}).textContent||'')", 25000)
-        extra = True if miss == "both" else wait_until(pg, "() => !!document.getElementById('fpChart-futoi') && !!echarts.getInstanceByDom(document.getElementById('fpChart-futoi'))", 10000)
+        extra = True if miss == "both" else wait_until(pg, "() => !!document.getElementById('fpBars') && !!echarts.getInstanceByDom(document.getElementById('fpBars'))", 10000)
         if miss == "retail" and extra:
             pg.locator('.fp-prod button[data-k="retail"]').click(); pg.wait_for_timeout(300)
             got = "資料準備中" in pg.locator("#fpPaneBox").inner_text()
@@ -259,16 +234,12 @@ def t_futpages_r3(b, base, code):
         pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
         pg.goto(base + "#market/fut", wait_until="domcontentloaded")
         tag = f"{T}（{w}）"
-        if not wait_until(pg, "() => !!document.getElementById('fpChart-futoi') && !!echarts.getInstanceByDom(document.getElementById('fpChart-futoi'))", 25000):
+        if not wait_until(pg, "() => !!document.getElementById('fpBars') && !!echarts.getInstanceByDom(document.getElementById('fpBars'))", 25000):
             ok(f"{tag}：畫出台指期", False); c.close(); continue
         agree = pg.get_by_role("button", name="同意並繼續")
         if agree.count() and agree.first.is_visible():
             agree.first.click(); pg.wait_for_timeout(300)
-        # ---- ① 最新一日卡一列 ----
-        g = pg.evaluate("""() => { const r = document.getElementById('fpLatest').getBoundingClientRect(); const vs = [...document.querySelectorAll('#fpBig3 .v')].map(e => Math.round(e.getBoundingClientRect().top));
-          return { h: Math.round(r.height), w: Math.round(r.width), ys: vs, concl: document.getElementById('fpConcl').getBoundingClientRect().height }; }""")
-        if w > 900:
-            ok(f"★ {tag}：最新一日卡壓成一列（高度 {g['h']}px ≤ 120、三個數字同一列、結論一行）", g["h"] <= 120 and len(set(g["ys"])) == 1 and g["concl"] <= 24, g)
+        # ---- ① 最新一日卡：台指期頁已改法人頁同款四張卡（「期貨當日買賣超1109」驗） ----
         # ---- ② 切到散戶：大台｜小台｜微台 ----
         pg.locator('.fp-prod button[data-k="retail"]').click()
         okr = wait_until(pg, "() => !!document.getElementById('fpChart-retail') && !!echarts.getInstanceByDom(document.getElementById('fpChart-retail'))", 8000)

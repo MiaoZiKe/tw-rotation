@@ -77,7 +77,9 @@
           const o = raw[k] || {}, p = 'fts'[q] === 'f' ? 'f' : k === 'trust' ? 't' : 'd';
           r[p + 'l'] = at(o.long, j); r[p + 's'] = at(o.short, j);
           r[p + 'n'] = o.net && o.net[j] != null ? Number(o.net[j]) : (r[p + 'l'] != null && r[p + 's'] != null ? r[p + 'l'] - r[p + 's'] : null);
+          r[p + 'v'] = o.day_net && o.day_net[j] != null ? Number(o.day_net[j]) : null;   // 當日買賣超（交易口數淨額）
         });
+        r.sumv = (r.fv == null && r.tv == null && r.dv == null) ? null : (r.fv || 0) + (r.tv || 0) + (r.dv || 0);
         r.sum = (r.fn == null && r.tn == null && r.dn == null) ? null : (r.fn || 0) + (r.tn || 0) + (r.dn || 0);
       } else {
         r.tot = at(raw.total_oi, j); r.l = at(raw.retail_long, j); r.s = at(raw.retail_short, j);
@@ -86,6 +88,11 @@
       }
       rows.push(r);
     }
+    /* 沒有交易口數淨額欄位時（舊 JSON）：當日＝今日淨未平倉－前一交易日淨未平倉；第一天留空 */
+    if (kind === 'futoi') rows.forEach((r, i) => {
+      ['f', 't', 'd'].forEach((p) => { if (r[p + 'v'] == null) r[p + 'v'] = i && r[p + 'n'] != null && rows[i - 1][p + 'n'] != null ? r[p + 'n'] - rows[i - 1][p + 'n'] : null; });
+      r.sumv = (r.fv == null && r.tv == null && r.dv == null) ? null : (r.fv || 0) + (r.tv || 0) + (r.dv || 0);
+    });
     return rows;
   }
 
@@ -205,6 +212,8 @@
   /* ---------------- 說明文字 ---------------- */
   const HOW = {
     futoi: (src) => `<p>「未平倉」是期貨還沒結清的部位口數。外資、投信、自營商每天收盤後都要向期交所申報手上台指期（大台）的多方與空方未平倉，<b>淨部位＝多方未平倉－空方未平倉</b>：正數代表法人整體押漲（偏多），負數代表整體押跌或避險（偏空）。</p>
+      <p><b>兩種數字別混在一起：</b>上方四張卡的大字是「當日買賣超」＝法人<b>這一天</b>台指期的交易口數淨額（期交所「交易口數淨額」＝當天買進口數－賣出口數；紅＝買超、綠＝賣超），小字是「期間累積」（所選期間每天加總、起點 0）與「淨未平倉」（到這一天為止手上還沒結清的多空差＝累計部位）。當日買超是在加碼，不等於累計部位就轉多。若某天資料缺交易口數，當日改用「未平倉增減」（今日淨未平倉－前一交易日淨未平倉），口徑以畫面下方的資料來源為準。</p>
+      <p>三張圖表：左＝每日買賣超（三法人堆疊直條）加加權指數線；中＝期間累積買賣超，可切換成「淨未平倉」看累計部位；右＝每日明細（預設當日買賣超，按「看累計部位」多出累計欄）。滑過一天，圖與表同一天一起亮，點一下鎖定、再點取消。</p>
       <p>怎麼用：①看<b>方向</b>——外資資金最大，淨空連續擴大代表避險或看空的力道在增加；②看<b>變化</b>——淨部位在加碼還是減碼，比單日正負更有意義；③<b>要跟現貨一起看</b>：外資常用台指期替現貨持股避險，淨空不等於看跌，要對照加權指數與外資現貨買賣超；④投信、自營商口數小，主要看方向有沒有轉折。</p>
       <p>這是統計，不是買賣建議。資料來源：臺灣期貨交易所每日公布的「三大法人－區分各期貨契約」（臺股期貨），經本站整理${src ? '（' + esc(src) + '）' : ''}，收盤後更新。</p>`,
     retail: (src) => `<p>散戶多空比是用期交所公布的數字<b>推算</b>出來的：期交所只公布「全市場未平倉」和「三大法人未平倉」，把全市場扣掉三大法人，剩下的就視為散戶（含法人以外的所有交易人）。</p>
@@ -244,6 +253,7 @@
     if (!P.prods[P.prod]) P.prod = P.prods.MTX ? 'MTX' : (Object.keys(P.prods)[0] || 'MTX');
     const retR = P.prods[P.prod] ? P.prods[P.prod].rows : null;
     P.secs = {};
+    P.src = fr && fr.foreign && Array.isArray(fr.foreign.day_net) && fr.foreign.day_net.length ? 'vol' : 'oi';
     if (futR) P.secs.futoi = { K: 'futoi', rows: futR, raw: fr, sort: { k: 'date', d: -1 } };
     if (retR) P.secs.retail = { K: 'retail', rows: retR, raw: P.prods[P.prod].raw, sort: { k: 'date', d: -1 } };
     P.hov = null; P.lock = null; P.per = '6m';
@@ -266,13 +276,14 @@
   const axisNow = () => { const S = P.secs[P.kind]; return S ? view(S).map((r) => r.date) : []; };
 
   const COLS = {
-    futoi: [['date', '日期'], ['fn', '外資淨'], ['tn', '投信淨'], ['dn', '自營淨'], ['sum', '合計']],
+    futoi: [['date', '日期'], ['fv', '外資當日'], ['fn', '外資累計'], ['tv', '投信當日'], ['tn', '投信累計'], ['dv', '自營當日'], ['dn', '自營累計'], ['sumv', '合計當日'], ['sum', '合計累計']],
     retail: [['date', '日期'], ['tx', '加權指數'], ['l', '散戶多單'], ['s', '散戶空單'], ['n', '散戶淨部位'], ['p', '散戶多空比']],
   };
-  const isNet = (k) => k === 'fn' || k === 'tn' || k === 'dn' || k === 'n';
+  const isNet = (k) => k === 'fn' || k === 'tn' || k === 'dn' || k === 'n' || k === 'fv' || k === 'tv' || k === 'dv';
   const emptyCard = (K) => `<section class="fp-block" data-snap="${SECS[K].snap}"><div class="card fp-card"><div class="empty">資料準備中</div></div></section>`;
 
   function paneHtml(K, S) {
+    if (K === 'futoi') return futHtml();
     const num = K === 'futoi'
       ? '<div class="card fp-card fp-latest" id="fpLatest"><div class="fp-lrow"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div></div><div class="fp-concl" id="fpConcl"></div></div>'
       : '<div class="card fp-card fp-top" id="fpTop"></div>';
@@ -280,8 +291,8 @@
     const bs = PROD_NAME[P.prod] ? `${PROD_NAME[P.prod]}（${P.prod}）` : esc(S.raw.product || '');
     const pseg = `<div class="fp-prodseg"><div class="seg tiny" id="fpProdSeg" role="group" aria-label="契約：大台、小台、微台">${Object.keys(PROD_NAME).map((k) => `<button type="button" data-p="${k}" class="${k === P.prod ? 'on' : ''}"${P.prods[k] ? '' : ` disabled aria-disabled="true" title="${PROD_NAME[k]}資料準備中"`}>${PROD_NAME[k]}</button>`).join('')}</div><span class="muted">台指期的三種契約，一口大小不同</span></div>`;
     const chart = K === 'futoi'
-      ? `<div class="card fp-card fp-main"><div class="fp-hd"><h3>淨未平倉</h3></div>
-          <div id="fpChart-futoi" class="chart fp-chart"></div></div>`
+      ? `<div class="card fp-card fp-main"><div class="fp-hd"><h3>累計淨未平倉（上）與當日買賣超（下）</h3></div>
+          <div id="fpChart-futoi" class="chart fp-chart fp-chart-tall"></div></div>`
       : `<div class="card fp-card fp-main"><div class="fp-hd"><h3>散戶多空比</h3><span class="fp-hint" id="fpSub" style="margin:0" title="散戶多單／空單＝全市場未平倉－三大法人同方向未平倉；多空比＝（多單－空單）÷全市場未平倉×100%">${bs}・虛線＝結算日</span></div>
           <div id="fpChart-retail" class="chart fp-chart"></div></div>`;
     return `<section class="fp-block fp-pane" data-snap="${SECS[K].snap}">${K === 'retail' ? pseg : ''}<div class="fp-topgrid">${num}</div><div class="fp-split">${chart}${tbl}</div></section>`;
@@ -290,7 +301,7 @@
   function build(body) {
     const prod = `<div class="seg fp-prod" role="group" aria-label="商品">${HOWKEYS.map((k) => `<button type="button" data-k="${k}" class="${k === P.kind ? 'on' : ''}">${SECS[k].title}</button>`).join('')}</div>`;
     const per = `<div class="seg tiny fp-per" role="group" aria-label="期間">${P.pers.map((p) => `<button type="button" data-per="${p.id}">${p.lab}</button>`).join('')}</div>`;
-    body.innerHTML = `<div class="fp-bar">${prod}<button class="howbtn pop" id="fpHowBtn" data-how="fut-how" data-ttl="" type="button" aria-label="怎麼看">?</button><div class="fp-right"><span class="fp-stale" id="fpStale" hidden title="資料日比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>${per}</div></div>`
+    body.innerHTML = `<div class="fp-bar mktstreakbar">${prod}<button class="howbtn pop" id="fpHowBtn" data-how="fut-how" data-ttl="" type="button" aria-label="怎麼看">?</button><div class="fp-right"><span class="fp-stale" id="fpStale" hidden title="資料日比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>${per}</div></div>`
       + '<div class="howtxt" id="how-fut-how" hidden><div class="howbody"></div></div><div id="fpPaneBox"></div>';
     wireBar(body);
     showKind(body);
@@ -308,8 +319,119 @@
     { const st = $('#fpStale', body), dd = S && (S.raw.asof || S.rows[S.rows.length - 1].date); if (st) st.hidden = !(dd && P.dataDate && dd < P.dataDate); }
     if (!S) { box.innerHTML = emptyCard(K); return; }
     box.innerHTML = paneHtml(K, S);
-    wirePane(box, S);
+    if (K === 'futoi') futWire(box, S); else wirePane(box, S);
     paintAll();
+  }
+
+  /* ================= 台指期三大法人：版面照「三大法人買賣超日報」（#market/inst，Andy 2026-11-09 17:35）=================
+     共用 index.html 裡那一套 class：mktstreakbar／itiles／itile／irtri／irc／irtbl，圖的樣式與提示框規矩也照 app.js 的 irCharts
+     （三法人當日直條堆疊＋加權指數雙 Y 軸、中圖起點 0 的累積線、右表、滑過連動、點一下鎖定、單一提示框）。
+     「當日買賣超」＝期交所「交易口數淨額」（多方交易口數－空方交易口數）；舊 JSON 沒這欄時用未平倉增減（今日累計－前一交易日累計）。
+     期貨特有的「累計淨未平倉」保留：每張卡一行小字、中圖可切「累積買賣超｜淨未平倉」、右表可展開累計部位欄。 */
+  const FW = [['f', '外資', 'fv', 'fn'], ['t', '投信', 'tv', 'tn'], ['d', '自營商', 'dv', 'dn'], ['s', '三大法人合計', 'sumv', 'sum']];
+  const FPERS = { '1m': 21, '3m': 63, '6m': 126, '1y': 252, '3y': 756, '5y': 1260, all: Infinity };
+  const FUT = { c1: null, c2: null, mid: 'cum', cum: false, all: false, sk: 'date', sd: -1 };
+  const md = (d) => (d ? d.slice(5).replace('-', '/') : '—');
+  const perLabOf = () => { const p = P.pers.find((q) => q.id === P.per); return p ? p.lab : ''; };
+  const dayLabel = () => (P.src === 'vol' ? '交易口數淨額' : '未平倉增減');
+
+  function futHtml() {
+    return `<section class="fp-block fp-pane" data-snap="fut-oi" id="fpFut">
+      <div class="card irc irtop"><div class="itiles" id="fpTiles"></div></div>
+      <div class="irtri">
+        <div class="card irc"><h3>每日買賣超・加權指數 <small>口</small></h3><div id="fpBars" class="chart" style="min-height:320px"></div></div>
+        <div class="card irc"><div class="fp-hd" style="margin-bottom:4px"><h3 id="fpMidT">累積買賣超 <small>口・起點 0</small></h3><div class="seg tiny" id="fpMidSeg" role="group" aria-label="中圖看什麼"><button type="button" data-m="cum" class="on">累積買賣超</button><button type="button" data-m="oi">淨未平倉</button></div></div><div id="fpLines" class="chart" style="min-height:250px"></div></div>
+        <div class="card irc"><div class="fp-hd" style="margin-bottom:4px"><h3>每日明細 <small>口・當日買賣超</small></h3><button type="button" class="btn small" id="fpCumBtn" aria-pressed="false">看累計部位</button></div><div class="tw irtbl" id="fpTbl"></div></div>
+      </div></section>`;
+  }
+  function futTiles(S) {
+    const v = view(S), rows = S.rows, hist = rows.slice(-252), last = v[v.length - 1], pl = perLabOf();
+    $('#fpTiles').innerHTML = FW.map(([k, nm, dk, nk]) => {
+      const cum = v.reduce((a, r) => a + (r[dk] || 0), 0), xs = hist.map((r) => r[dk]).filter((x) => x != null);
+      const p = xs.length && last[dk] != null ? Math.round(xs.filter((x) => x <= last[dk]).length / xs.length * 100) : 0;
+      return `<div class="itile" data-k="${k}" title="細條＝最新一日在近 1 年（${xs.length} 個交易日）每日買賣超裡的百分位，越高越偏買超"><span class="il">${nm}</span><b class="iv num ${cls(last[dk])}">${sg(last[dk])} 口</b>
+        <span class="icu">${pl}累積 <b class="num ${cls(cum)}">${sg(cum)}</b> 口</span>
+        <span class="icu fp-oi">淨未平倉 <b class="num ${cls(last[nk])}">${sg(last[nk])}</b> 口</span>
+        <span class="ipct"><span class="trk"><i style="width:${p}%"></i></span><em>${p}%</em></span></div>`;
+    }).join('');
+  }
+  function futCharts(S) {
+    const rows = view(S), dates = rows.map((r) => r.date), hasTw = rows.some((r) => r.tx != null);
+    const CH = A().CH, tip = A().tip, axisStyle = A().axisStyle, chip = window.TwChipColors || {};
+    const colr = { f: chip.foreign || PAL.f, t: chip.trust || PAL.t, d: chip.dealer || PAL.d };
+    const idxCol = isDark() ? (chip.idxDark || '#E2E8F0') : (chip.idxLight || '#0F172A');
+    const axX = { type: 'category', data: dates, boundaryGap: true, axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontSize: 12, formatter: md, hideOverlap: true }, axisTick: { show: false } };
+    [FUT.c1, FUT.c2].forEach((x) => { try { if (x && !x.isDisposed() && !x.getDom().isConnected) x.dispose(); } catch (e) { /* 已收掉 */ } });
+    const lkSer = { id: 'lk', type: 'line', data: [], silent: true, markLine: { data: [] } };
+    const W3 = FW.slice(0, 3);
+    const bars = W3.map(([k, nm, dk]) => ({ name: nm, type: 'bar', stack: 'n', barMaxWidth: 18, solid: true, itemStyle: { color: colr[k], opacity: 1 }, data: rows.map((r) => r[dk]) }));
+    FUT.c1 = A().chart(document.getElementById('fpBars'), {
+      grid: { left: 8, right: 8, top: 34, bottom: 28, containLabel: true },
+      legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, itemWidth: 12, itemHeight: 8, data: W3.map((x) => x[1]).concat(hasTw ? ['加權指數'] : []) },
+      tooltip: Object.assign({}, tip, { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => { const r = rows[ps[0].dataIndex]; if (!r) return '';
+        return `<b>${r.date}</b>（當日買賣超）<br>` + W3.map(([k, nm, dk]) => `${nm}　<b style="color:${r[dk] > 0 ? CH.up : r[dk] < 0 ? CH.down : CH.ink2}">${sg(r[dk])}</b> 口`).join('<br>')
+          + `<br>合計　<b style="color:${r.sumv > 0 ? CH.up : CH.down}">${sg(r.sumv)}</b> 口` + (r.tx != null ? `<br>加權指數　${Math.round(r.tx).toLocaleString('zh-TW')}` : ''); } }),
+      xAxis: axX,
+      yAxis: [Object.assign({}, axisStyle, { type: 'value', axisLabel: { color: CH.ink3, fontSize: 12 } }),
+        { type: 'value', scale: true, show: hasTw, splitLine: { show: false }, axisLine: { show: false }, axisLabel: { color: CH.ink3, fontSize: 12 } }],
+      series: [...bars, ...(hasTw ? [{ name: '加權指數', type: 'line', yAxisIndex: 1, showSymbol: false, symbol: 'none', smooth: false, z: 5, lineStyle: { width: chip.lineW || 2, color: idxCol }, itemStyle: { color: idxCol }, data: rows.map((r) => r.tx) }] : []), lkSer],
+    }, { notMerge: true });
+    const acc = { f: 0, t: 0, d: 0 }, cums = { f: [], t: [], d: [] };
+    rows.forEach((r) => W3.forEach(([k, , dk]) => { acc[k] += r[dk] || 0; cums[k].push(acc[k]); }));
+    const oi = FUT.mid === 'oi', lv = { f: rows.map((r) => r.fn), t: rows.map((r) => r.tn), d: rows.map((r) => r.dn) }, ser = oi ? lv : cums;
+    FUT.c2 = A().chart(document.getElementById('fpLines'), {
+      grid: { left: 8, right: 8, top: 34, bottom: 28, containLabel: true },
+      legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, itemWidth: 14, itemHeight: 8 },
+      tooltip: Object.assign({}, tip, { trigger: 'axis', axisPointer: { type: 'line' }, formatter: (ps) => { const i = ps[0].dataIndex; return `<b>${dates[i]}</b>（${oi ? '淨未平倉' : '累積'}）<br>` + W3.map(([k, nm]) => `${nm}　<b style="color:${ser[k][i] > 0 ? CH.up : CH.down}">${sg(ser[k][i])}</b> 口`).join('<br>'); } }),
+      xAxis: axX, yAxis: Object.assign({}, axisStyle, { type: 'value', scale: oi, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (x) => (Math.abs(x) >= 1e4 ? (x / 1e4).toFixed(1) + '萬' : x) } }),
+      series: [...W3.map(([k, nm]) => ({ name: nm, type: 'line', showSymbol: false, symbol: 'none', lineStyle: { width: chip.lineW || 2, color: colr[k] }, itemStyle: { color: colr[k] }, data: ser[k] })), lkSer],
+    }, { notMerge: true });
+    $('#fpMidT').innerHTML = oi ? '淨未平倉 <small>口・累計部位</small>' : '累積買賣超 <small>口・起點 0</small>';
+    if (!FUT.c1 || !FUT.c2) return;
+    FUT.one = window.TwOneTip ? window.TwOneTip([FUT.c1, FUT.c2]) : null;
+    try { echarts.connect([FUT.c1, FUT.c2]); } catch (e) { /* 舊版沒有 connect */ }
+    const dateAt = (ch, ev) => { const p = [ev.offsetX, ev.offsetY]; if (!ch.containPixel('grid', p)) return null; const i = Math.round(ch.convertFromPixel({ xAxisIndex: 0 }, p[0])); return dates[Math.max(0, Math.min(dates.length - 1, i))]; };
+    [FUT.c1, FUT.c2].forEach((ch) => {
+      ch.on('updateAxisPointer', (e) => { const a = e.axesInfo && e.axesInfo[0]; if (!a) return; const v = typeof a.value === 'number' ? dates[a.value] : a.value; if (v && v !== P.hov) { P.hov = v; futApply(false); } });
+      ch.getZr().on('globalout', () => { if (P.hov) { P.hov = null; futApply(false); } });
+      ch.getZr().on('click', (ev) => { const d = dateAt(ch, ev); P.lock = !d || P.lock === d ? null : d; futApply(true); });
+    });
+  }
+  function futTable(S) {
+    const tb = $('#fpTbl'); if (!tb) return;
+    const base = [['date', '日期', 'l'], ['fv', '外資'], ['tv', '投信'], ['dv', '自營商'], ['sumv', '合計']];
+    const cums = [['fn', '外資累計'], ['tn', '投信累計'], ['dn', '自營累計'], ['sum', '合計累計']];
+    const cols = FUT.cum ? base.concat(cums) : base, rows = view(S).slice(), { sk, sd } = FUT;
+    rows.sort((a, b) => (sk === 'date' ? (a.date < b.date ? -1 : 1) : ((a[sk] == null ? -Infinity : a[sk]) - (b[sk] == null ? -Infinity : b[sk]))) * sd);
+    const m4 = isM(), shown = m4 && !FUT.all ? rows.slice(0, 6) : rows;
+    tb.innerHTML = `<table><thead><tr>${cols.map(([k, l, c]) => `<th class="${c || ''}${k === sk ? ' sorted' : ''}" data-k="${k}" role="button" tabindex="0">${l}${k === sk ? (sd > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${shown.map((r) =>
+      `<tr data-d="${r.date}" title="${r.date}　加權指數 ${r.tx == null ? '—' : Math.round(r.tx).toLocaleString('zh-TW')}　累計淨未平倉 外資 ${sg(r.fn)}／投信 ${sg(r.tn)}／自營商 ${sg(r.dn)}"><td class="l">${rows.length <= 260 ? md(r.date).replace('/', '-') : r.date}</td>`
+      + cols.slice(1).map(([k]) => `<td class="num ${cls(r[k])}">${sg(r[k])}</td>`).join('') + '</tr>').join('')}</tbody></table>`
+      + (m4 && rows.length > 6 ? `<div class="srmore"><button type="button" class="btn small" id="fpTblAll">${FUT.all ? '收起，只看前 6 筆' : `看全部（${rows.length} 筆）`}</button></div>` : '');
+    $$('th[data-k]', tb).forEach((h) => { const go = () => { const k = h.dataset.k; if (FUT.sk === k) FUT.sd *= -1; else { FUT.sk = k; FUT.sd = -1; } futTable(S); futApply(false); }; h.onclick = go; h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
+    $$('tr[data-d]', tb).forEach((r) => {
+      r.onmouseenter = () => { P.hov = r.dataset.d; futApply(false); if (FUT.one) FUT.one.reset(); const i = view(S).findIndex((x) => x.date === r.dataset.d); try { if (FUT.c1 && i >= 0) FUT.c1.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: i }); } catch (e) { /* 圖還沒畫好 */ } };
+      r.onmouseleave = () => { P.hov = null; futApply(false); };
+      r.onclick = () => { P.lock = P.lock === r.dataset.d ? null : r.dataset.d; futApply(false); };
+    });
+    const all = $('#fpTblAll', tb); if (all) all.onclick = () => { FUT.all = !FUT.all; futTable(S); futApply(false); };
+    futApply(false);
+  }
+  /* 圖與表同一天連動：hov＝滑過、lock＝點一下鎖定（沿用 P.hov／P.lock，換期間回預設） */
+  function futApply(scroll) {
+    const tb = $('#fpTbl'); if (!tb) return;
+    $$('tr[data-d]', tb).forEach((r) => { r.classList.toggle('hl', r.dataset.d === P.hov); r.classList.toggle('lk', r.dataset.d === P.lock); r.classList.toggle('dim', !!P.lock && r.dataset.d !== P.lock); });
+    const root = $('#fpFut'); if (root) { root.dataset.hov = P.hov || ''; root.dataset.sel = P.lock || ''; }
+    const CHc = A().CH;
+    [FUT.c1, FUT.c2].forEach((ch) => { if (!ch || ch.isDisposed()) return;
+      ch.setOption({ series: [{ id: 'lk', markLine: { silent: true, symbol: 'none', animation: false, label: { show: false }, lineStyle: { color: CHc.ink2, type: 'dashed', width: 1 }, data: P.lock ? [{ xAxis: P.lock }] : [] } }] }); });
+    if (scroll && P.lock) { const r = tb.querySelector(`tr[data-d="${P.lock}"]`); if (r) tb.scrollTop = Math.max(0, r.offsetTop - tb.clientHeight / 2); }
+  }
+  function futDraw(S) { futTiles(S); futCharts(S); futTable(S); }
+  function futWire(box, S) {
+    $$('#fpMidSeg button', box).forEach((b) => { b.onclick = () => { if (b.dataset.m === FUT.mid) return; FUT.mid = b.dataset.m; $$('#fpMidSeg button', box).forEach((x) => x.classList.toggle('on', x === b)); futCharts(S); futApply(false); }; });
+    const cb = $('#fpCumBtn', box);
+    cb.onclick = () => { FUT.cum = !FUT.cum; cb.setAttribute('aria-pressed', FUT.cum ? 'true' : 'false'); cb.textContent = FUT.cum ? '收起累計部位' : '看累計部位'; futTable(S); };
   }
 
   /* ---- 圖 ---- */
@@ -323,14 +445,6 @@
       tooltip: { trigger: 'axis', axisPointer: { type: 'line' }, confine: true },
       xAxis: { type: 'category', data: axis, boundaryGap: K === 'retail', axisLabel: { color: c.ink3, hideOverlap: true, formatter: (s) => (long ? s.slice(2) : s.slice(5)) } },
     };
-    if (K === 'futoi') {
-      const mk = (id, nm, key, color) => ({ id, name: nm, type: 'line', showSymbol: false, smooth: false, connectNulls: false, lineStyle: { width: 2, color }, itemStyle: { color }, data: val(key) });
-      return Object.assign(base, {
-        yAxis: { type: 'value', scale: true, axisLabel: { color: c.ink3, formatter: (x) => (Math.abs(x) >= 1e4 ? (x / 1e4).toFixed(1) + '萬' : x) }, splitLine: { lineStyle: { color: c.line, opacity: .5 } } },
-        series: [mk('f', '外資', 'fn', PAL.f), mk('t', '投信', 'tn', PAL.t), mk('d', '自營商', 'dn', PAL.d)],
-        tooltip: Object.assign(base.tooltip, { valueFormatter: (x) => sg(x) + ' 口' }),
-      });
-    }
     const ps = val('p');
     return Object.assign(base, {
       yAxis: [
@@ -384,8 +498,8 @@
       if (ck === 'date') return `<td>${r.date}</td>`;
       if (ck === 'tx') return `<td>${x == null ? '—' : x.toLocaleString('zh-TW', { maximumFractionDigits: 2 })}</td>`;
       if (ck === 'p') return `<td class="${cls(x)}">${x == null ? '—' : sgd(x, 2) + '%'}</td>`;
-      if (ck === 'sum') return `<td class="${cls(x)}">${sg(x)}</td>`;
-      if (isNet(ck)) { const p = ck[0], tip = r[p + 'l'] != null ? ` title="多方 ${nf(r[p + 'l'])}／空方 ${nf(r[p + 's'])} 口"` : ''; return `<td class="${cls(x)}"${tip}>${sg(x)}</td>`; }
+      if (ck === 'sum' || ck === 'sumv') return `<td class="${cls(x)}">${sg(x)}</td>`;
+      if (isNet(ck)) { const p = ck[0], tip = r[p + 'l'] != null && ck[1] === 'n' ? ` title="多方 ${nf(r[p + 'l'])}／空方 ${nf(r[p + 's'])} 口"` : ''; return `<td class="${cls(x)}"${tip}>${sg(x)}</td>`; }
       return `<td>${nf(x)}</td>`;
     };
     return `<table><thead><tr>${th}</tr></thead><tbody>${v.map((r) => `<tr data-d="${r.date}">${cols.map(([ck]) => td(r, ck)).join('')}</tr>`).join('')}</tbody></table>`;
@@ -402,12 +516,7 @@
   const focusDate = () => P.lock || P.hov;
   function focusRow(S) { const f = focusDate(), v = view(S); return (f && v.find((r) => r.date === f)) || null; }
   function paintNumbers() {
-    const f = focusDate(), S1 = P.kind === 'futoi' ? P.secs.futoi : null, S2 = P.kind === 'retail' ? P.secs.retail : null;
-    if (S1) {
-      const v = view(S1), r = focusRow(S1) || v[v.length - 1], isLast = !f;
-      $('#fpLatT').innerHTML = isLast ? '最新一日淨未平倉' : `${P.lock ? '鎖定日' : '滑過日'}淨未平倉 <span class="muted" style="font-weight:400">${r.date}</span>`;
-      $('#fpBig3').innerHTML = [['外資', 'f'], ['投信', 't'], ['自營商', 'd']].map(([nm, p]) => `<div><span class="l">${nm}</span><span class="v ${cls(r[p + 'n'])}">${sg(r[p + 'n'])}</span><div class="s">多 ${nf(r[p + 'l'])}／空 ${nf(r[p + 's'])}</div></div>`).join('');
-    }
+    const f = focusDate(), S2 = P.kind === 'retail' ? P.secs.retail : null;
     if (S2) {
       const v = view(S2), fr = focusRow(S2), r = fr || v[v.length - 1];
       const miss = f && !fr;                         // 焦點日在微台上市之前：寫明沒資料，數字維持最新一日
@@ -437,8 +546,9 @@
   function apply(fromClick) {
     paintNumbers();
     act().forEach((S) => {
+      if (S.K === 'futoi') { futApply(fromClick); return; }
       const el = $('#fpChart-' + S.K), ch = el && window.echarts ? window.echarts.getInstanceByDom(el) : null;
-      if (ch) ch.setOption({ series: [{ id: S.K === 'futoi' ? 'f' : 'bar', markLine: marks(S.K) }] });
+      if (ch) ch.setOption({ series: [{ id: 'bar', markLine: marks(S.K) }] });
       const rows = S.rowEls || {};
       if (S.hlRow) S.hlRow.classList.remove('hl');
       if (S.selRow) S.selRow.classList.remove('sel');
@@ -455,7 +565,7 @@
     P.axis = axisNow();
     { const r = $('.fp-per'); if (r && P.axis.length) r.title = '目前顯示 ' + P.axis[0] + '～' + P.axis[P.axis.length - 1]; }
     paintHints(); paintNumbers(); paintAuto();
-    act().forEach((S) => { drawChart(S); drawTable(S); });
+    act().forEach((S) => { if (S.K === 'futoi') futDraw(S); else { drawChart(S); drawTable(S); } });
     apply(false);
   }
 

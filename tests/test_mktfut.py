@@ -93,6 +93,8 @@ def test_fut_oi_json_and_settle():
     r = c.fut_oi_json(fi)
     assert r["dates"] == ["2026-10-16", "2026-10-19"] and r["foreign"]["net"] == [-20000.0, 10000.0] and r["order"] == "asc"
     assert c.fut_oi_json(pd.DataFrame())["dates"] == []
+    # 當日買賣超＝交易口數淨額（long_deal_volume－short_deal_volume；測試資料各為 1 → 0），欄位要存在且長度與日期一致
+    assert r["foreign"]["day_net"] == [0.0, 0.0] and len(r["trust"]["day_net"]) == 2
     # 結算日＝每月第三個星期三（2026-10-21）；沒開盤順延
     ds = ["2026-10-20", "2026-10-22", "2026-10-23"]
     assert c.settle_dates(ds) == ["2026-10-22"]

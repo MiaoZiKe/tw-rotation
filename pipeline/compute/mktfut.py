@@ -203,7 +203,7 @@ def fut_oi_json(fi: pd.DataFrame, idx=None, source="") -> dict:
     """site/data/fut_oi.json：台指期（TX）三大法人多／空／淨未平倉口數，日期舊到新（order=asc）。"""
     out = {"asof": None, "source": source, "order": "asc", "dates": [], "taiex": []}
     for w in WHO:
-        out[w] = {"long": [], "short": [], "net": []}
+        out[w] = {"long": [], "short": [], "net": [], "day_net": []}
     if fi is None or fi.empty:
         return out
     d = fi[fi["futures_id"] == "TX"]
@@ -217,6 +217,10 @@ def fut_oi_json(fi: pd.DataFrame, idx=None, source="") -> dict:
         out[w]["long"] = [_f(lo[x]) for x in dates]
         out[w]["short"] = [_f(sh[x]) for x in dates]
         out[w]["net"] = [_f(lo[x] - sh[x]) for x in dates]
+        # 當日買賣超＝期交所「交易口數淨額」（多方交易口數－空方交易口數）；2026-11-09 Andy：要看當日而非累計
+        if "long_vol" in piv[w].columns:
+            lv, sv = piv[w]["long_vol"], piv[w]["short_vol"]
+            out[w]["day_net"] = [_f(lv[x] - sv[x]) for x in dates]
     out["asof"] = dates[-1] if dates else None
     return out
 
