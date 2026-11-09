@@ -321,3 +321,11 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+      # 2026-11-09 事故：這裡只部署 GitHub Pages（備援站），主站 liguligu-puipui.com（Cloudflare）只在 pages.yml 部署；
+      # 資料 commit 是機器人推的、不會觸發 pages.yml，於是 11-07～11-09 主站整整兩天停在舊資料（盤前消息還在 11-06）。
+      # 每次這裡部署完就叫 pages.yml 跑一輪，讓兩個站同步。pages 群組排隊、不取消。
+      - name: 主站（Cloudflare）同步：叫 pages.yml 重新部署
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "${{ github.repository }}" --ref main || echo "::warning::叫 pages.yml 失敗，主站可能停在舊版"

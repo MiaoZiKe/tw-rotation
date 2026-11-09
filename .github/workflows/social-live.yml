@@ -309,7 +309,11 @@ jobs:
           git add site/articles/premarket.json
           git commit -q -m "盤前消息 $(date '+%F')"
           for i in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              # 2026-11-09：機器人推的 commit 不會觸發 pages.yml → 主站（Cloudflare）看不到盤前消息，要明確叫它部署
+              GH_TOKEN="${{ github.token }}" gh workflow run pages.yml --repo "${{ github.repository }}" --ref main || echo "::warning::叫 pages.yml 失敗"
+              exit 0
+            fi
             sleep $((i * 5))
           done
           echo "::warning::盤前消息推回 main 失敗（不影響已發的貼文）"
