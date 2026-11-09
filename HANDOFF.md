@@ -6015,3 +6015,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 手機按鈕普查：剖析圖大圖浮層的章節摺疊列（cloneNode 不帶事件，已轉給原圖）；自訂組合下拉只剩一組時改註記不算沒反應。
 - _uitest 進場 networkidle 逾時：本機 site/data 沒有 fear.json（舊資料）→ 404 一直算進行中；_NoCache 缺檔時回備援內容。fearcard.js 沒動。
 - 這批只驗了：漲跌家數字卡1106、手機紅燈1106、總覽、桌機守門1008、手機按鈕普查（ETF現金流／產業鏈-半導體兩段）、_preview（與 main 基準同樣 4 筆 404＋財報日曆，是本機舊資料）。
+
+### 2026-11-10 01:15（台北）社群三頻道權杖驗證
+- Threads：talk_01010909／Tech_01010909／caffaine.ai 三個都通過（已換 60 天長效，每週自動續期）。
+- IG：三把都是 Facebook 登入版（EAA）。程式已改成兩種權杖都能用（commit 24a378d11），但權杖缺 `pages_show_list`、`pages_read_engagement`，看不到粉絲專頁 → 查不到 IG 帳號編號。待 Andy 用 Graph API Explorer 選自己的應用程式 liguligu-social、加勾兩個權限、勾選三個粉絲專頁、延長成長效後重貼三個 `*_IG_ACCESS_TOKEN`，再跑 verify。
+- 留言私訊、刪文在 EAA 路徑尚未實測。
