@@ -13,6 +13,9 @@ on:
       source:
         description: "來源：commons（Wikimedia Commons）／official（公司官方新聞室／媒體資源／官網，Andy 10-30 拍板，license=official-press）"
         default: "commons"
+      probe:
+        description: "除錯：Commons 查詢探針（以 | 分隔多個查詢字，空白＝不跑抓圖）"
+        default: ""
   schedule:
     - cron: "17 19 * * 0"   # 每週一 03:17 台北
 permissions:
@@ -33,7 +36,15 @@ jobs:
       - name: 官方來源要真瀏覽器
         if: github.event.inputs.source == 'official'
         run: pip install -q playwright pymupdf && python -m playwright install --with-deps chromium
+      - name: Commons 查詢探針
+        if: github.event.inputs.probe != ''
+        env:
+          PROBE: ${{ github.event.inputs.probe }}
+        run: |
+          IFS='|' read -ra QS <<< "$PROBE"
+          python scripts/commons_probe.py "${QS[@]}"
       - name: 抓圖
+        if: github.event.inputs.probe == ''
         env:
           ONLY: ${{ github.event.inputs.only }}
           CATEGORY: ${{ github.event.inputs.category }}
