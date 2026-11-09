@@ -132,6 +132,27 @@ PROBES: dict[str, list[dict]] = {
         {"id": "tpex_margin", "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
          "note": "推測：上櫃融資融券餘額"},
     ],
+    # ---- 風險警示牌（P-1107-02，2026-11-09 Andy 點頭）：注意股／處置股
+    #      上市：swagger 目錄（docs/fixtures/material_news_probe.json）有 /announcement/notice 與
+    #      /announcement/punish，但欄位、更新時間、有沒有歷史都沒實測過 —— 這一輪就是去拿真實回傳。
+    #      上櫃：櫃買 swagger 用「注意」「處置」找路徑；下面幾支是依櫃買命名規則推測的候選（未實測）。
+    #      ⚠ 不碰 www.twse.com.tw 的專區頁面（使用條款禁爬）。
+    "risk_flag": [
+        {"id": "twse_notice", "url": "https://openapi.twse.com.tw/v1/announcement/notice",
+         "note": "集中市場當日公布注意股票"},
+        {"id": "twse_punish", "url": "https://openapi.twse.com.tw/v1/announcement/punish",
+         "note": "集中市場公布處置股票"},
+        {"id": "twse_swagger", "url": "https://openapi.twse.com.tw/v1/swagger.json",
+         "swagger_keys": ["注意", "處置", "警示", "變更交易", "分盤"],
+         "note": "證交所目錄：找注意／處置／變更交易，順便留回應 schema"},
+        {"id": "tpex_swagger", "url": "https://www.tpex.org.tw/openapi/swagger.json",
+         "swagger_keys": ["注意", "處置", "警示", "變更交易", "分盤"],
+         "note": "櫃買目錄：有沒有上櫃注意／處置端點"},
+        {"id": "tpex_warning", "url": "https://www.tpex.org.tw/openapi/v1/tpex_trading_warning_information",
+         "note": "推測：上櫃注意股（命名規則推測，未實測）"},
+        {"id": "tpex_disposal", "url": "https://www.tpex.org.tw/openapi/v1/tpex_disposal_information",
+         "note": "推測：上櫃處置股（命名規則推測，未實測）"},
+    ],
     "taifex_night": [
         {"id": "taifex_quotelist_day", "method": "POST",
          "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
@@ -588,9 +609,16 @@ def one(p: dict, prev: dict | None = None) -> dict:
                 hits = {}
                 for path, spec in (j.get("paths") or {}).items():
                     blob = json.dumps(spec, ensure_ascii=False)
-                    if any(k in blob for k in ("重大訊息", "重大", "公告", "訊息", "News", "Announcement")):
+                    keys = p.get("swagger_keys") or ("重大訊息", "重大", "公告", "訊息", "News", "Announcement")
+                    if any(k in blob for k in keys):
                         get = (spec or {}).get("get") or {}
                         hits[path] = {"summary": get.get("summary"), "description": (get.get("description") or "")[:200]}
+                        if p.get("swagger_keys"):
+                            # 指定關鍵字的探測：把回應 schema 也留下（欄位名在這裡）
+                            hits[path]["responses"] = shrink(get.get("responses"))
+                rec["definitions"] = (shrink({k: v for k, v in (j.get("definitions") or j.get("components", {}).get("schemas") or {}).items()
+                                              if any(t in json.dumps(v, ensure_ascii=False) for t in (p.get("swagger_keys") or []))})
+                                      if p.get("swagger_keys") else None)
                 rec["matched_paths"] = hits
                 rec["all_paths_n"] = len(j.get("paths") or {})
             else:
