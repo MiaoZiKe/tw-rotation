@@ -1062,6 +1062,14 @@ Hub.prototype.v3Members = function () {
   this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail ORDER BY n DESC", from30)
     .forEach((r) => { const a = (stock[r.uid] = stock[r.uid] || []); if (a.length < 3) a.push([r.detail, r.n]); });
   const perm = {}; this.q('SELECT email, plan, expires FROM perm').forEach((r) => { perm[r.email] = r; });
+  /* 2026-11-09 每位會員實際拿到的體驗（含手動發放）：管理區名單的「體驗到期」「體驗中」讀這裡，
+     不再靠註冊時間＋活動天數推算（Andy：給了體驗名單卻沒變）。只列出現存範本的體驗；舊前端不認得 grants 欄位就忽略。 */
+  const gr = {};
+  try {
+    this.grantInit();
+    this.q('SELECT g.uid AS uid, g.gid AS gid, g.start AS start, g.end_ AS end_, d.name AS name, d.kind AS kind FROM grants g JOIN grant_defs d ON d.id = g.gid ORDER BY g.end_ DESC')
+      .forEach((r) => { (gr[r.uid] = gr[r.uid] || []).push({ gid: r.gid, name: r.name, kind: r.kind, start: r.start, end: r.end_ }); });
+  } catch (e) { /* 體驗表壞了不影響名單本身 */ }
   const row = (email, u) => {
     const p = perm[email], exp = p && p.expires ? p.expires : 0, expired = !!(exp && exp < now);
     const plan = p && plans[p.plan] ? p.plan : 'free';
@@ -1069,7 +1077,7 @@ Hub.prototype.v3Members = function () {
     return { email, name: u ? u.name : '', plan, planName: plans[plan] || plan, tier: plan === 'free' ? 'free' : 'paid', paid: plan !== 'free' && !expired,
       expires: exp, expired, set: !!p, created: u ? u.created || 0 : 0, seen: u ? u.seen || 0 : 0,
       st: expired ? 'exp' : (u ? 'ok' : 'new'), onlineMs: uid ? tot[uid] || 0 : 0, online30: vv.ms || 0, visits30: vv.n || 0, days30: vv.d || 0,
-      views30: uid ? pv[uid] || 0 : 0, topFeat: uid ? feat[uid] || [] : [], topStock: uid ? stock[uid] || [] : [] };
+      views30: uid ? pv[uid] || 0 : 0, topFeat: uid ? feat[uid] || [] : [], topStock: uid ? stock[uid] || [] : [], grants: uid ? gr[uid] || [] : [] };
   };
   const out = [], seen = new Set();
   for (const u of users) { const e = String(u.email || '').toLowerCase(); if (!e || seen.has(e)) continue; seen.add(e); out.push(row(e, u)); }
@@ -2711,10 +2719,11 @@ Object.assign(Hub.prototype.subRoutes, {
     const now = this.now();
     const start = now, end = d.kind === 'welcome' ? now + d.days * 86400 * 1000 : d.t1;
     if (!(end > now)) return this.json(req, { error: 'ended' }, 400);
+    const renewed = this.q('SELECT 1 FROM grants WHERE uid = ? AND gid = ?', u.uid, gid).length > 0;     // 已有同一份＝刷新（已發人數不會增加）
     this.q('INSERT INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT(uid, gid) DO UPDATE SET start = excluded.start, end_ = excluded.end_',
       u.uid, gid, start, end, now);
     this.q('DELETE FROM grant_hits WHERE uid = ? AND gid = ?', u.uid, gid);
-    return this.json(req, { ok: true, email, gid, name: d.name, start, end });
+    return this.json(req, { ok: true, email, gid, name: d.name, start, end, renewed });
   },
 });
 /* /v1/perm/me 多回 grants：{ 功能鍵: 剩餘次數 }（所有有效體驗合併）。前端與 data-gw 都讀這一份 */
