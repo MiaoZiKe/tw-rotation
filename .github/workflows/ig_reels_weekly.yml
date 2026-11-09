@@ -14,6 +14,11 @@ on:
         description: "指定題庫 id（reels_bank.json），留空＝自動選題"
         type: string
         default: ""
+      kind:
+        description: "auto＝週四做『本週台股 3 個數字』、其他天用題庫；weekly／bank 強制"
+        type: choice
+        options: [auto, bank, weekly]
+        default: auto
 
 concurrency:
   group: social-post-ig        # 與 ig_post.yml 同一把鎖，避免兩邊同時寫 queue
@@ -34,22 +39,28 @@ jobs:
             scripts
             docs/marketing/social_unit
             social
+            pipeline/groups
+            data/market_daily
+            data/inst_market_first
+            data/price_daily/year=2026
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: 安裝字型與套件
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk ffmpeg
-          pip install -q pillow numpy
+          pip install -q pillow numpy pandas pyarrow pyyaml
 
       - name: 產影片（含重疊與停格檢查）
         id: gen
         env:
           IN_TOPIC: ${{ inputs.topic }}
+          IN_KIND: ${{ inputs.kind }}
         run: |
           mkdir -p social/ig/reels
           args=""
           if [ -n "$IN_TOPIC" ]; then args="--topic $IN_TOPIC"; fi
+          if [ -n "$IN_KIND" ]; then args="$args --kind $IN_KIND"; fi
           python scripts/ig_reels_weekly.py --out social/ig/reels $args | tee /tmp/gen.log
           if grep -q "降量模式：略過" /tmp/gen.log; then echo "skipped=1" >> "$GITHUB_OUTPUT"; fi
           f=$(ls -t social/ig/queue/*_reel-*.md 2>/dev/null | head -1)

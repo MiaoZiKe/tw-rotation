@@ -70,7 +70,7 @@ FONT_CANDIDATES = [  # (路徑, ttc 索引, 本身是否粗體)
 BANNED = ["進場", "出場", "目標價", "推薦", "看好", "看多", "看空", "會漲", "會跌", "必漲", "必跌",
           "穩賺", "保證", "明牌", "布局", "佈局", "加碼", "停損點", "http", "www.", ".com", "代號"]
 ADVICE = re.compile(r"(建議|可以|應該|該|請|快|先|趁|逢低|逢高)(買進|賣出|買|賣)")
-STOCK_CODE = re.compile(r"(?<![\d.])[1-9]\d{3}(?![\d%年元.])")
+STOCK_CODE = re.compile(r"(?<![\d.,])[1-9]\d{3}(?![\d%年元.,點億月日號萬])")
 
 
 # ---------- 字型與文字 ----------
@@ -201,8 +201,54 @@ def stagger(t, start, step, i):
     return ease((t - start - i * step) / 0.5)
 
 
+def _tok(ch):
+    return ch.isascii() and (ch.isalnum() or ch in ".,%+-×")
+
+
+def wrap_px(s, size, maxw):
+    """依像素寬換行；不把「12.19%」「39,702」這類數字從中間拆開，優先在空白與標點後斷行。"""
+    f, sw = font(size)
+    out, cur = [], ""
+    for ch in s:
+        if cur and f.getlength(cur + ch) + 2 * sw > maxw:
+            k = len(cur)
+            if _tok(ch):                      # 新字會接在數字／英文後面 → 往回找可斷處
+                k = next((i for i in range(len(cur) - 1, 0, -1) if not (_tok(cur[i - 1]) and _tok(cur[i]))), len(cur))
+            out.append(cur[:k].rstrip())
+            cur = cur[k:].lstrip()
+        cur += ch
+    if cur:
+        out.append(cur)
+    return out
+
+
+def fit_block(s, maxw, maxh, hi, lo, lh=1.3):
+    """找最大字級，使換行後的文字塊放得進 maxw×maxh。"""
+    for size in range(hi, lo - 1, -4):
+        lines = wrap_px(s, size, maxw)
+        if len(lines) * size * lh <= maxh:
+            return size, lines
+    return lo, wrap_px(s, lo, maxw)
+
+
+def textcard(c, name, rect, s, hi, lo, fg, bg, alpha=1.0, lh=1.3, align="l"):
+    """圓角色塊＋置中文字，算同一個元素；字級自動放到最大。"""
+    x0, y0, x1, y1 = rect
+    size, lines = fit_block(s, x1 - x0 - 80, y1 - y0 - 50, hi, lo, lh)
+    bgc = lerp(c.base, bg, alpha)
+    fgc = lerp(bgc, fg, alpha)
+    c.d.rounded_rectangle(rect, radius=40, fill=bgc)
+    f, sw = font(size)
+    total = len(lines) * size * lh
+    y = (y0 + y1) / 2 - total / 2 + size * lh / 2
+    for ln in lines:
+        x = x0 + 44 if align == "l" else (x0 + x1) // 2
+        c.d.text((x, y), ln, font=f, fill=fgc, anchor="lm" if align == "l" else "mm", stroke_width=sw, stroke_fill=fgc)
+        y += size * lh
+    c.elems.append((name, tuple(rect)))
+
+
 def draw_lines(c, name, lines, x, y, size, fill, t, start, step=0.22, anchor="la", lh=1.3, first=0):
-    """逐行滑入；回傳下一個可用 y。未進場的行仍保留版面位置（不算元素）。"""
     for i, ln in enumerate(lines):
         p = stagger(t, start, step, i + first)
         if p > 0:
@@ -220,69 +266,99 @@ def fit_size(lines, lo, hi, maxw=900):
 
 
 def scene_hook(c, sp, t):
-    c.pill("類別", (540, 600), sp["tag"], 40, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0), anchor="c")
-    size = fit_size(sp["hook"], 84, 132)
-    y = draw_lines(c, "鉤子", sp["hook"], 540, 740, size, PAPER, t, 0.15, 0.25, anchor="ma", lh=1.28)
-    sub = stagger(t, 1.2, 0, 0)
+    c.pill("類別", (540, 560), sp["tag"], 44, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0), anchor="c")
+    size = fit_size(sp["hook"], 90, 180, 980)
+    y = draw_lines(c, "鉤子", sp["hook"], 540, 700, size, PAPER, t, 0.15, 0.25, anchor="ma", lh=1.28)
+    sub = stagger(t, 0.8, 0, 0)
     if sub > 0:
-        c.text("副標", (540, y + 50 + int((1 - sub) * 30)), sp["sub"], 48, BRIGHT, anchor="ma", alpha=sub)
+        c.text("副標", (540, y + 60 + int((1 - sub) * 30)), sp["sub"], 58, (255, 214, 186), anchor="ma", alpha=sub)
 
 
-def scene_point(c, sp, t, idx, total, head, detail):
-    c.pill("步驟", (80, 640), f"{idx} / {total}", 38, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0))
-    r = stagger(t, 0.1, 0, 0)
-    if r > 0:
-        c.rect("銅線", (80, 760, 80 + int(150 * r), 770), COPPER)
-    hl = wrap(head, 12)
-    size = fit_size(hl, 76, 92)
-    y = draw_lines(c, "重點", hl, 80, 810, size, INK, t, 0.3, 0.25, lh=1.3)
-    dl = wrap(detail, 12)
-    draw_lines(c, "說明", dl, 80, y + 40, 50, GRAY, t, 1.2, 0.25, lh=1.45)
+def scene_point(c, sp, t, idx, total, head, detail, plain):
+    c.pill("步驟", (80, 340), f"{idx} / {total}", 40, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0))
+    p1, p2, p3 = stagger(t, 0.1, 0, 0), stagger(t, 0.7, 0, 0), stagger(t, 1.4, 0, 0)
+    if p1 > 0:
+        textcard(c, "重點", (80, 430, 1000, 770), head, 104, 64, INK, SOFT, p1)
+    bottom = 1010 if plain else 1370
+    if p2 > 0:
+        textcard(c, "說明", (80, 810, 1000, bottom), detail, 76, 48, PAPER, INK, p2, lh=1.4)
+    if plain and p3 > 0:
+        textcard(c, "白話", (80, 1050, 1000, 1370), plain, 68, 44, PAPER, COPPER, p3, lh=1.35)
 
 
-def scene_number(c, sp, t):
-    n = sp["number"]
+def fmt(v, dec):
+    return f"{v:,.{dec}f}"
+
+
+def scene_number(c, sp, t, n):
     color = {"up": UP, "green": DOWN, "ink": INK}[n["color"]]
-    c.pill("類別", (80, 560), "關鍵數字", 38, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0))
-    y = draw_lines(c, "標籤", wrap(n["label"], 12), 80, 700, 60, INK, t, 0.1, 0.2, lh=1.35)
-    dec = len(str(n["value"]).split(".")[1]) if "." in str(n["value"]) else 0
+    c.pill("類別", (80, 340), n.get("pill", "關鍵數字"), 40, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0))
+    lsz = next((z for z in range(68, 43, -2) if len(wrap_px(n["label"], z, 920)) == 1), 44)
+    ll = wrap_px(n["label"], lsz, 920)
+    draw_lines(c, "標籤", ll, 80, 420, lsz, INK, t, 0.1, 0.2, lh=1.35)
+    ytop = 420 + int(len(ll) * lsz * 1.35) + 10
+    dec = n.get("dec", len(str(n["value"]).split(".")[1]) if "." in str(n["value"]) else 0)
     prog = ease((t - 0.5) / 1.8)
-    val = n["value"] * prog
-    s = f"{val:.{dec}f}{n['suffix']}"
-    full = f"{n['value']:.{dec}f}{n['suffix']}"
-    size = fit_size([full], 120, 300, 900)
+    full = fmt(n["value"], dec) + n["suffix"]
+    size = fit_size([full], 120, 250, 920)
     if prog > 0:
-        c.text("大數字", (80, y + 50), s, size, color, alpha=1.0)
-    f, sw = font(size)
-    y2 = y + 50 + int(size * 1.35)
-    draw_lines(c, "算式", wrap(n["detail"], 12), 80, y2 + 20, 48, GRAY, t, 2.6, 0.25, lh=1.45)
+        c.text("大數字", (80, ytop), fmt(n["value"] * prog, dec) + n["suffix"], size, color)
+    ybig = ytop + int(size * 1.3)
+    p = stagger(t, 2.2, 0, 0)
+    bar = n.get("bar")
+    ph = 230 if bar else 330
+    if n.get("plain") and p > 0:
+        textcard(c, "白話", (80, ybig + 20, 1000, ybig + 20 + ph), n["plain"], 72, 44, PAPER, COPPER, p, lh=1.3)
+    yb = ybig + 20 + ph + 36
+    if bar:
+        tot = sum(v for _, v, _ in bar)
+        pb = ease((t - 2.6) / 1.2)
+        x = 80
+        for i, (lab, v, col) in enumerate(bar):
+            wseg = int(920 * v / tot)
+            seg = (x, yb, x + wseg - (14 if i < len(bar) - 1 else 0), yb + 72)
+            if pb > 0:
+                r = (seg[0], seg[1], seg[0] + max(2, int((seg[2] - seg[0]) * pb)), seg[3])
+                c.d.rectangle(r, fill={"up": UP, "green": DOWN, "ink": INK, "copper": COPPER}[col])
+                c.elems.append((f"長條{i + 1}", r))
+                c.text(f"長條標{i + 1}", (seg[0] + (seg[2] - seg[0]) // 2, yb + 84), lab, 32, GRAY, anchor="ma", alpha=pb)
+            x += wseg
+        yd = yb + 84 + 56
+    else:
+        yd = yb
+    if n.get("detail") and stagger(t, 3.0, 0, 0) > 0:
+        draw_lines(c, "算式", wrap_px(n["detail"], 38, 920), 80, yd, 38, GRAY, t, 3.0, 0.2, lh=1.7)
 
 
 def scene_question(c, sp, t):
     q = sp["question"]
-    c.pill("類別", (540, 490), "二選一", 38, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0), anchor="c")
-    ql = [x for part in q["q"] for x in wrap(part, 12)]
-    size = fit_size(ql, 72, 92)
-    y = draw_lines(c, "問題", ql, 540, 610, size, PAPER, t, 0.1, 0.25, anchor="ma", lh=1.3)
+    c.pill("類別", (540, 440), "二選一", 40, PAPER, COPPER, alpha=stagger(t, 0.0, 0, 0), anchor="c")
+    ql = [x for part in q["q"] for x in wrap(part, 11)]
+    size = fit_size(ql, 72, 100)
+    y = draw_lines(c, "問題", ql, 540, 560, size, PAPER, t, 0.1, 0.25, anchor="ma", lh=1.3)
     for i, (lab, key) in enumerate((("A", "a"), ("B", "b"))):
         p = stagger(t, 1.0, 0.35, i)
         if p > 0:
             top = y + 50 + i * 210 + int((1 - p) * 40)
-            c.card(f"選項{lab}", (80, top, 1000, top + 170), lab, q[key], 56, PAPER, INK, alpha=p)
+            c.card(f"選項{lab}", (80, top, 1000, top + 170), lab, q[key], 60, PAPER, INK, alpha=p)
     p = stagger(t, 2.2, 0, 0)
     if p > 0:
-        c.text("邀請", (540, y + 50 + 2 * 210 + 10), "留言告訴我 A 或 B", 44, BRIGHT, anchor="ma", alpha=p)
+        c.text("邀請", (540, y + 50 + 2 * 210 + 10), "留言告訴我 A 或 B", 46, BRIGHT, anchor="ma", alpha=p)
 
 
 def build_scenes(sp):
     scenes = [("hook", 3.6, None)]
-    pts = sp["points"]
-    if sp.get("number"):
-        pts = pts[:2]
-    for i, (h, d) in enumerate(pts):
-        scenes.append(("point", 4.4, (i + 1, len(pts), h, d)))
-    if sp.get("number"):
-        scenes.append(("number", 5.2, None))
+    if sp.get("numbers"):                       # 週報：三個數字
+        for n in sp["numbers"]:
+            scenes.append(("number", 5.2, n))
+    else:
+        pts = sp["points"]
+        if sp.get("number"):
+            pts = pts[:2]
+        for i, pt in enumerate(pts):
+            scenes.append(("point", 4.4, (i + 1, len(pts), pt[0], pt[1], pt[2] if len(pt) > 2 else "")))
+        if sp.get("number"):
+            scenes.append(("number", 5.6, sp["number"]))
     scenes.append(("question", 4.6, None))
     return scenes
 
@@ -303,7 +379,7 @@ def render_frame(sp, scenes, f_idx, total_dur):
     elif kind == "point":
         scene_point(c, sp, t, *arg)
     elif kind == "number":
-        scene_number(c, sp, t)
+        scene_number(c, sp, t, arg)
     else:
         scene_question(c, sp, t)
     return c, kind
@@ -338,10 +414,10 @@ def check_frame(elems):
 # ---------- 選題與合規 ----------
 def lint_topic(sp) -> list[str]:
     errs = []
-    texts = list(sp["hook"]) + [sp["sub"], sp["caption"]] + [x for p in sp["points"] for x in p]
+    texts = list(sp["hook"]) + [sp["sub"], sp["caption"]] + [x for p in sp.get("points", []) for x in p]
     texts += list(sp["question"]["q"]) + [sp["question"]["a"], sp["question"]["b"]]
-    if sp.get("number"):
-        texts += [sp["number"]["label"], sp["number"]["detail"]]
+    for n in ([sp["number"]] if sp.get("number") else []) + list(sp.get("numbers", [])):
+        texts += [n["label"], n.get("detail", ""), n.get("plain", "")]
     for s in texts:
         for w in BANNED:
             if w in s:
@@ -350,7 +426,7 @@ def lint_topic(sp) -> list[str]:
             errs.append(f"疑似買賣建議：{s}")
         if STOCK_CODE.search(s):
             errs.append(f"疑似個股代號：{s}")
-    for ln in list(sp["hook"]) + list(sp["question"]["q"]) + [p[0] for p in sp["points"]]:
+    for ln in list(sp["hook"]) + list(sp["question"]["q"]) + [p[0] for p in sp.get("points", [])]:
         for seg in wrap(ln, 12):
             if units(seg) > 12:
                 errs.append(f"單行超過 12 字：{seg}")
@@ -360,6 +436,71 @@ def lint_topic(sp) -> list[str]:
     if not 3 <= len(sp["tags"]) <= 5:
         errs.append("hashtag 要 3～5 個")
     return errs
+
+
+def weekly_numbers(data_dir: Path | None = None):
+    """週報三個數字（只陳述事實）：加權指數週漲跌點數、外資本週買賣超、本週成交值最大族群。
+    讀資料湖：market_daily（加權指數、成交值）、inst_market_first（三大法人買賣超）、price_daily＋groups.yaml（族群成交值）。
+    資料不足回 None（呼叫端改用題庫，不整段不做）。"""
+    import glob
+
+    import pandas as pd
+    import yaml
+    dd = Path(data_dir) if data_dir else ROOT / "data"
+
+    def rd(name, cols=None, last=1):
+        fs = sorted(glob.glob(str(dd / name / "**" / "*.parquet"), recursive=True))[-last:]
+        if not fs:
+            raise ValueError(f"沒有 {name}")
+        return pd.concat([pd.read_parquet(f, columns=cols) for f in fs])
+    try:
+        m = rd("market_daily", last=2).drop_duplicates("date", keep="last").sort_values("date")
+        m["d"] = pd.to_datetime(m["date"])
+        last = m["d"].iloc[-1]
+        wk = m[(m["d"].dt.isocalendar().week == last.isocalendar().week) & (m["d"].dt.year == last.year)]
+        prev = m[m["d"] < wk["d"].iloc[0]]
+        if len(wk) < 2 or prev.empty:
+            return None
+        dates = [d.strftime("%Y-%m-%d") for d in wk["d"]]
+        span = f"{wk['d'].iloc[0].month}/{wk['d'].iloc[0].day}～{last.month}/{last.day}"
+        close, pclose = float(wk["taiex"].iloc[-1]), float(prev["taiex"].iloc[-1])
+        pts = close - pclose
+        inst = rd("inst_market_first").drop_duplicates("date", keep="last")
+        inst = inst[inst["date"].isin(dates)]
+        if len(inst) < len(dates) - 1:
+            return None
+        fnet = float((inst["foreign_buy"] - inst["foreign_sell"]).sum()) / 1e8
+        px = rd("price_daily", ["date", "code", "turnover"])
+        px = px[px["date"].isin(dates)]
+        by_code = px.groupby("code")["turnover"].sum()
+        groups = yaml.safe_load((ROOT / "pipeline" / "groups" / "groups.yaml").read_text(encoding="utf-8"))["groups"]
+        best = max(((g["name"], float(by_code.reindex([str(c) for c in g.get("codes", [])]).sum())) for g in groups.values()),
+                   key=lambda x: x[1])
+        mkt = float(wk["turnover"].sum())
+    except (ValueError, KeyError, OSError, IndexError) as e:
+        print(f"::warning::週報資料讀取失敗：{e!r}", flush=True)
+        return None
+    up = pts >= 0
+    num = [
+        {"pill": "數字 1／3", "label": f"加權指數本週{'上漲' if up else '下跌'}", "value": round(abs(pts)), "suffix": " 點",
+         "color": "up" if up else "green",
+         "plain": f"收盤 {close:,.0f} 點，{pts / pclose * 100:+.2f}%",
+         "detail": f"統計 {span}，對比上週最後一個交易日收盤 {pclose:,.0f} 點"},
+        {"pill": "數字 2／3", "label": f"外資本週{'買超' if fnet >= 0 else '賣超'}", "value": round(abs(fnet)), "suffix": " 億元",
+         "color": "up" if fnet >= 0 else "green",
+         "plain": f"外資本週合計{'買超' if fnet >= 0 else '賣超'}約 {abs(fnet):,.0f} 億元（上市市場）",
+         "detail": f"統計 {span}，資料來源：三大法人買賣金額統計"},
+        {"pill": "數字 3／3", "label": f"本週成交值最大族群：{best[0]}", "value": round(best[1] / 1e8), "suffix": " 億元",
+         "color": "ink",
+         "plain": f"約占全市場本週成交值的 {best[1] / mkt * 100:.0f}%",
+         "detail": f"統計 {span}，族群成分股成交值加總（成分股可能與其他族群重疊）"},
+    ]
+    cap = (f"本週台股 3 個數字：加權指數{'上漲' if up else '下跌'} {abs(pts):,.0f} 點、外資{'買超' if fnet >= 0 else '賣超'} "
+           f"{abs(fnet):,.0f} 億元、成交值最大族群是{best[0]}。")
+    return {"id": "weekly3", "tag": "本週數字", "hook": ["本週台股", "3 個數字"], "sub": "週漲跌・外資・成交值",
+            "numbers": num, "keywords": [],
+            "question": {"q": ["這 3 個數字", "你最在意哪個？"], "a": "外資買賣超", "b": "族群成交值"},
+            "caption": cap, "tags": ["#台股", "#本週回顧", "#哩股哩股"], "points": []}
 
 
 def load_bank():
@@ -473,6 +614,9 @@ def main(argv=None):
     ap.add_argument("--topic", default="")
     ap.add_argument("--sample", action="store_true", help="只產影片與報告，不寫佇列、不改 state")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--kind", choices=["auto", "bank", "weekly"], default="auto",
+                    help="auto＝週四做『本週台股 3 個數字』，其他天用題庫；weekly 讀不到資料會改用題庫")
+    ap.add_argument("--data", default="", help="資料湖資料夾（預設 repo 的 data/）")
     ap.add_argument("--approved", choices=["auto", "yes", "no"], default="auto",
                     help="auto＝看 post_quota.json 的 ig.reels_need_review；yes／no 強制")
     a = ap.parse_args(argv)
@@ -487,7 +631,15 @@ def main(argv=None):
     if not a.sample and not post_quota.reels_enabled(q):
         print(f"{post_quota.SKIP_MSG}（post_quota.json ig.reels_weekly=false）")
         return 0
-    sp, why = pick_topic(bank, load_state(), a.topic or None)
+    sp, why = None, ""
+    kind = a.kind if a.kind != "auto" else ("weekly" if (datetime.now(TAIPEI).weekday() == 3 and not a.topic) else "bank")
+    if kind == "weekly":
+        sp = weekly_numbers(a.data or None)
+        why = "週報：本週 3 個數字（資料湖）"
+        if sp is None:
+            print("::warning::週報資料不足，改用題庫", flush=True)
+    if sp is None:
+        sp, why = pick_topic(bank, load_state(), a.topic or None)
     print(f"選題：{sp['id']}（{why}）")
     errs = lint_topic(sp)
     if errs:
