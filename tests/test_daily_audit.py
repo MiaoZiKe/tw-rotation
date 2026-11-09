@@ -15,7 +15,8 @@ sys.modules["daily_audit"] = da
 _spec.loader.exec_module(da)
 
 TPE = timezone(timedelta(hours=8))
-TODAY = "2026-11-09"  # 週一，交易日
+TODAY = "2026-11-09"
+NOW = at("2026-11-09T10:26:00") if False else None  # 下面補上  # 週一，交易日
 HOL: set[str] = set()
 
 
@@ -56,6 +57,9 @@ def green_facts(today=TODAY, expected=TODAY):
 
 
 SITE_OK = da.gate(True, "兩站都包含最新資料")
+
+
+NOW = at("2026-11-09T10:26:00")
 
 
 def by_id(items):
@@ -179,14 +183,29 @@ def test_site_gate_detects_stale_cloudflare():
             return "ahead"  # cf 比 gh 新 → 不算落後
         return "behind"
 
-    assert da.site_gate(site, cmp)["ok"] is True
+    assert da.site_gate(site, cmp, NOW)["ok"] is True
     site_lag = dict(site, cf="ddd4444")
-    assert da.site_gate(site_lag, lambda b, h: "behind")["ok"] is False
+    assert da.site_gate(site_lag, lambda b, h: "behind", NOW)["ok"] is False
+
+
+def test_deploy_in_progress_is_pending_even_after_deadline():
+    # 08:45 盤前截止 08:40 已過，但部署中（一小時內）→ 還沒到，不是紅燈
+    f = green_facts()
+    f["premarket"]["days"][0]["date"] = TODAY
+    site = da.gate(False, "pages.yml 正在部署中（還沒跑完）", busy=True)
+    items = by_id(da.evaluate(f, HOL, {"site": site}, at("2026-11-09T10:26:00")))
+    assert items["premarket"]["status"] == "pending"
+    assert items["premarket"]["gates"]["content"]["ok"] is True
 
 
 def test_site_gate_pending_and_unknown():
-    assert da.site_gate({"required": "a", "pending": True}, lambda b, h: "ahead")["ok"] is False
-    unknown = da.site_gate({"required": None, "pending": False}, lambda b, h: "ahead")
+    busy = da.site_gate({"required": "a", "pending": True, "pending_since": "2026-11-09T10:20:00+08:00"},
+                        lambda b, h: "ahead", NOW)
+    assert busy["ok"] is False and busy["busy"] is True
+    stuck = da.site_gate({"required": "a", "pending": True, "pending_since": "2026-11-09T08:00:00+08:00"},
+                         lambda b, h: "ahead", NOW)
+    assert stuck["ok"] is False and stuck["busy"] is False and "卡住" in stuck["why"]
+    unknown = da.site_gate({"required": None, "pending": False}, lambda b, h: "ahead", NOW)
     assert unknown["ok"] is False and unknown["why"].startswith("查不到")
 
 

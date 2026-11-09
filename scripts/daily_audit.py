@@ -91,9 +91,10 @@ def at_tpe(d: date, hhmm: time) -> datetime:
 
 
 # ---------------------------------------------------------------- 小工具
-def gate(ok: bool | None, why: str, evidence: list[str] | None = None) -> dict:
-    """ok=None 代表「查不到」，當作不過（不准把查不到當成綠燈）。"""
-    return {"ok": bool(ok), "why": why, "evidence": evidence or []}
+def gate(ok: bool | None, why: str, evidence: list[str] | None = None, busy: bool = False) -> dict:
+    """ok=None 代表「查不到」，當作不過（不准把查不到當成綠燈）。
+    busy=True 代表「正在進行中」（例如 pages.yml 部署中），這種不過是還沒到，不是壞掉。"""
+    return {"ok": bool(ok), "why": why, "evidence": evidence or [], "busy": busy}
 
 
 def runs_since(runs: list[dict], since: datetime) -> list[dict]:
@@ -230,8 +231,10 @@ def collect_site(gh) -> dict:
         out["errors"].append(f"查 GitHub Pages 部署失敗：{e}")
     try:
         runs = gh(f"repos/{REPO}/actions/workflows/pages.yml/runs?branch=main&per_page=8").get("workflow_runs", [])
-        if any(r.get("status") in ("queued", "in_progress") for r in runs):
+        live = [r for r in runs if r.get("status") in ("queued", "in_progress")]
+        if live:
             out["pending"] = True
+            out["pending_since"] = min(r["created_at"] for r in live)
         for r in runs:
             if r.get("conclusion") != "success":
                 continue
@@ -247,11 +250,15 @@ def collect_site(gh) -> dict:
     return out
 
 
-def site_gate(site: dict, compare_fn) -> dict:
-    """關卡三（網站）：兩個站都要包含必須的 commit；主站不可比備援站舊。compare_fn(base, head) → status。"""
+def site_gate(site: dict, compare_fn, now: datetime) -> dict:
+    """關卡三（網站）：兩個站都要包含必須的 commit；主站不可比備援站舊。compare_fn(base, head) → status。
+    部署中：一小時內是還沒到（busy）；超過一小時還沒跑完，才當失敗（卡住）。"""
     req = site.get("required")
     if site.get("pending"):
-        return gate(False, "pages.yml 正在部署中（還沒跑完）")
+        started = _parse_ts(site.get("pending_since"))
+        if started and now - started > timedelta(hours=1):
+            return gate(False, "pages.yml 已經在部署中超過一小時，疑似卡住")
+        return gate(False, "pages.yml 正在部署中（還沒跑完）", busy=True)
     if not req:
         return gate(None, "查不到 main 上最新資料 commit")
     res = {}
@@ -274,6 +281,13 @@ def site_gate(site: dict, compare_fn) -> dict:
 
 
 # ---------------------------------------------------------------- 三關（純函式，可測）
+def _parse_ts(stamp):
+    try:
+        return datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def _within(stamp: str | None, now: datetime, span: timedelta) -> bool:
     try:
         t = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
@@ -307,9 +321,10 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
             return
         all_ok = all(g["ok"] for g in gates.values())
         past = deadline is None or due(now, deadline)
+        busy = any(g.get("busy") for g in gates.values())
         if all_ok:
             status = "ok"
-        elif not past:
+        elif not past or busy:
             status = "pending"
         else:
             status = "fail"
@@ -530,7 +545,7 @@ def main(argv=None) -> int:
     holidays = load_holidays()
     gh = make_gh()
     facts = collect_facts(now, holidays, gh)
-    site_res = {"site": site_gate(facts["site"], compare_fn_factory(gh))}
+    site_res = {"site": site_gate(facts["site"], compare_fn_factory(gh), now)}
     items = evaluate(facts, holidays, site_res, now)
 
     state = load_state()
