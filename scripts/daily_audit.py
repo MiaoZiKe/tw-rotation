@@ -32,6 +32,7 @@ import json
 import re
 import subprocess
 import sys
+import urllib.request
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
@@ -56,10 +57,19 @@ TC_POSTED_FILE = ROOT / "state" / "tc" / "posted.json"    # tc_post.yml 直接 c
 ISSUE_TITLE = "⚠️ 每日稽核：有項目沒完成"
 
 PRICE_CLOSE = time(15, 30)       # 台股收盤後，價量才會有當天
-DATA_DEADLINE = time(18, 40)     # 法人／融資券最晚 18:30 那輪落地
+PRICE_DEADLINE = time(16, 15)    # 價量截止（Andy 11-09：16:15 前價量要進湖）
+INST_DEADLINE = time(17, 15)     # 三大法人截止（inst 輪 16:15～17:15 搶當天法人）
+DATA_DEADLINE = time(18, 40)     # 融資券／來源健康／畫面資料日的截止（18:30 那輪落地後留 10 分鐘）
 TC_GRACE = timedelta(minutes=30)  # 排定時間過 30 分鐘還沒發，才算沒發
 SOURCE_FAIL_RED = 2              # 來源連續失敗 2 天以上才算壞（1 天可能是 GitHub 排程延遲）
 META_DAYS_RED = 7                # Meta 權杖剩 7 天以下就要續期
+REMEDY_MAX_PER_DAY = 3           # 每項每天最多自動派幾次（含被佇列取代後的重派）
+REMEDY_LOST_MIN = 10             # 派出後超過這分鐘還找不到對應的 run，視為派丟了
+# 兩個站的線上資料檔（畫面實際讀的那一份；關卡三「畫面資料日期」用）
+SITE_FILES = {"liguligu": "https://liguligu-puipui.com/data/",
+              "gh_pages": "https://miaozike.github.io/tw-rotation/data/"}
+GATE_NAMES = {"run": "執行", "content": "內容", "publish": "發布", "price": "價量", "inst": "三大法人",
+              "margin": "融資券", "health": "來源與錯誤", "screen": "畫面資料日"}
 
 
 # ---------------------------------------------------------------- 日曆
@@ -95,10 +105,12 @@ def at_tpe(d: date, hhmm: time) -> datetime:
 
 
 # ---------------------------------------------------------------- 小工具
-def gate(ok: bool | None, why: str, evidence: list[str] | None = None, busy: bool = False) -> dict:
+def gate(ok: bool | None, why: str, evidence: list[str] | None = None, busy: bool = False,
+         hard: bool = False) -> dict:
     """ok=None 代表「查不到」，當作不過（不准把查不到當成綠燈）。
-    busy=True 代表「正在進行中」（例如 pages.yml 部署中），這種不過是還沒到，不是壞掉。"""
-    return {"ok": bool(ok), "why": why, "evidence": evidence or [], "busy": busy}
+    busy=True 代表「正在進行中」（例如 pages.yml 部署中），這種不過是還沒到，不是壞掉。
+    hard=True 代表「不等截止，不過就紅」（price／full 輪已經失敗且之後沒有成功的一輪）。"""
+    return {"ok": bool(ok), "why": why, "evidence": evidence or [], "busy": busy, "hard": hard}
 
 
 def runs_since(runs: list[dict], since: datetime) -> list[dict]:
@@ -126,13 +138,111 @@ def run_gate(runs: list[dict], since: datetime, label: str) -> dict:
     return gate(False, f"{label} 窗口內沒有成功的執行（找到 {len(hits)} 次）", bad)
 
 
+def is_round(r: dict, holidays: set[str]) -> bool:
+    """這一則 daily.yml 執行是不是「價量／全量」輪（price／full）。
+    · run-name 帶 phase 字樣（手動派的）：看標題。
+    · 排程沒有 phase 字樣：看「跑指標庫測試」那一步有沒有被跳過。法人輪（inst）的 cron 會把它跳過
+      （daily.yml 的 if 條件就是這樣寫的），跳過＝法人輪，不算價量輪。
+    · 排程的新聞輪在週末也會跑，不算價量輪：排程只看交易日。"""
+    title = str(r.get("display_title") or r.get("name") or "")
+    if "(inst)" in title or "(news)" in title:
+        return False
+    if "(price)" in title or "(full)" in title:
+        return True
+    steps = r.get("_steps")
+    if steps is not None and any(s.get("name") == "跑指標庫測試" and s.get("conclusion") == "skipped"
+                                 for s in steps):
+        return False
+    if r.get("event", "schedule") == "schedule":
+        created = _parse_ts(r.get("created_at"))
+        if created is None or not is_trading_day(created.astimezone(TPE).date(), holidays):
+            return False
+    return True
+
+
+def round_gate(runs, since: datetime, label: str, holidays: set[str]) -> dict:
+    """關卡一（每日資料專用）：窗口內的 price／full 輪。
+    · 有執行中的 → 還沒跑完（busy，不紅）。
+    · 最近一次失敗之後沒有成功的一輪 → 紅（hard，不等截止）；附失敗網址與失敗步驟名稱。
+    · 成功在最近一次失敗之後 → 綠（失敗後重跑成功就算數）。
+    · 都沒有 → 不過；截止前是還沒到，截止後才是沒跑。"""
+    if runs is None:
+        return gate(None, f"查不到 {label} 執行紀錄")
+    hits = [r for r in runs_since(runs, since) if is_round(r, holidays)]
+
+    def ts(r: dict) -> datetime:
+        return _parse_ts(r.get("created_at")) or since
+
+    running = [r for r in hits if r.get("status") in ("queued", "in_progress")]
+    if running:
+        return gate(False, f"{label} price／full 輪正在執行中（還沒跑完）",
+                    [r.get("html_url", "") for r in running[:2]], busy=True)
+    succ = [r for r in hits if r.get("conclusion") == "success"]
+    fails = [r for r in hits if r.get("conclusion") in ("failure", "timed_out")]
+    last_fail = max(fails, key=ts) if fails else None
+    last_succ = max(succ, key=ts) if succ else None
+    if last_succ and (last_fail is None or ts(last_succ) > ts(last_fail)):
+        return gate(True, f"{label} 今天有成功的 price／full 輪 {len(succ)} 次", [last_succ.get("html_url", "")])
+    if last_fail:
+        bad_steps = [s.get("name", "") for s in (last_fail.get("_steps") or []) if s.get("conclusion") == "failure"]
+        return gate(False, f"{label} price／full 輪失敗（失敗步驟：{'、'.join(bad_steps) or '未知，看網址'}），"
+                           f"之後沒有成功的一輪",
+                    [last_fail.get("html_url", "")], hard=True)
+    return gate(False, f"{label} 今天還沒有成功的 price／full 輪")
+
+
+def screen_gate(screen: dict | None, exp_s: str) -> dict:
+    """關卡三補充（畫面）：兩個站各自的「總覽」（meta.json 的 data_date／inst_date）與
+    「三大法人頁」（inst_market.json 的 latest）都要等於應有日。讀不到就是不過，不准當綠。
+    兩站各自的日期都寫進說明，Andy 一眼看得出是哪一站落後。"""
+    if not screen:
+        return gate(None, "查不到兩站線上資料檔")
+    parts, ok = [], True
+    for key, label in (("liguligu", "主站"), ("gh_pages", "備援")):
+        s = screen.get(key) or {}
+        if s.get("error") or s.get("data_date") is None:
+            ok = False
+            parts.append(f"{label}讀不到（{s.get('error') or '沒有 data_date'}）")
+            continue
+        dd, idt, im = s.get("data_date"), s.get("inst_date"), s.get("inst_market_latest")
+        ok = ok and dd == exp_s and idt == exp_s and im == exp_s
+        parts.append(f"{label}：總覽 {dd}／法人 {idt}／三大法人頁 {im}")
+    return gate(ok, "；".join(parts) + f"（應有 {exp_s}）")
+
+
 def bad_text(s: str) -> bool:
     return (not s) or s.strip().lower() in {"nan", "none", "null"}
 
 
 # ---------------------------------------------------------------- 事實蒐集（唯一有 I/O 的地方）
-def collect_facts(now: datetime, holidays: set[str], gh) -> dict:
+def http_json(url: str, timeout: int = 20):
+    """線上資料檔（加時間戳防快取）。失敗丟例外，由呼叫端記成「讀不到」，不准當綠。"""
+    sep = "&" if "?" in url else "?"
+    req = urllib.request.Request(f"{url}{sep}t={int(datetime.now(TPE).timestamp())}",
+                                 headers={"Cache-Control": "no-cache"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - 固定網址
+        return json.loads(r.read().decode("utf-8"))
+
+
+def collect_screen(http) -> dict:
+    """畫面實際讀的資料日：總覽讀 meta.json（data_date、inst_date），三大法人頁讀 inst_market.json（latest）。"""
+    out: dict = {}
+    for key, base in SITE_FILES.items():
+        s: dict = {"data_date": None, "inst_date": None, "inst_market_latest": None, "error": None}
+        try:
+            meta = http(base + "meta.json") or {}
+            s["data_date"] = meta.get("data_date")
+            s["inst_date"] = meta.get("inst_date")
+            s["inst_market_latest"] = (http(base + "inst_market.json") or {}).get("latest")
+        except Exception as e:  # noqa: BLE001 - 讀不到就記下來，關卡判不過
+            s["error"] = str(e)[:200]
+        out[key] = s
+    return out
+
+
+def collect_facts(now: datetime, holidays: set[str], gh, http=None) -> dict:
     """gh(path) → 解析後的 JSON；gh_raw(path) → 純文字。失敗由呼叫端決定要不要紅。"""
+    http = http or http_json
     today = now.astimezone(TPE).date()
     expected = expected_price_date(now, holidays)
     f: dict = {
@@ -150,6 +260,20 @@ def collect_facts(now: datetime, holidays: set[str], gh) -> dict:
         except Exception as e:  # noqa: BLE001 - 查不到就記下來，由關卡判 None
             f["runs"][wf] = None
             f.setdefault("errors", []).append(f"查 {wf} 失敗：{e}")
+
+    # 今天 15:00 後的 daily.yml 每一則，要看步驟（區分 price／full 與法人輪；失敗要附失敗步驟名稱）。
+    # 只抓窗口內的，省 API。
+    since_round = at_tpe(expected, time(15, 0))
+    for r in f["runs"].get("daily.yml") or []:
+        created = _parse_ts(r.get("created_at"))
+        if created is None or created < since_round:
+            continue
+        try:
+            jobs = gh(f"repos/{REPO}/actions/runs/{r['id']}/jobs").get("jobs", [])
+            r["_steps"] = [s for j in jobs for s in j.get("steps", [])]
+        except Exception as e:  # noqa: BLE001 - 查不到步驟就記下來，失敗名稱會寫「未知」
+            r["_steps"] = None
+            f.setdefault("errors", []).append(f"查 daily.yml run {r.get('id')} 的步驟失敗：{e}")
 
     # 本機（CI 裡是 checkout 出來的 main）
     f["premarket"] = _read_json(ROOT / "site" / "articles" / "premarket.json")
@@ -178,6 +302,8 @@ def collect_facts(now: datetime, holidays: set[str], gh) -> dict:
 
     # 網站部署：GitHub Pages ＋ Cloudflare 主站
     f["site"] = collect_site(gh)
+    # 畫面資料日（關卡三）：兩個站各自讀到的日期，直接從線上資料檔看
+    f["screen"] = collect_screen(http)
     return f
 
 
@@ -334,15 +460,29 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
         if disabled:
             items.append({"id": id_, "name": name, "status": "disabled", "gates": {}, "why": disabled})
             return
-        all_ok = all(g["ok"] for g in gates.values())
-        past = deadline is None or due(now, deadline)
-        busy = any(g.get("busy") for g in gates.values())
-        if all_ok:
-            status = "ok"
-        elif not past or busy:
+        # 每個 gate 用自己的截止（沒帶就用 item 的）。hard＝不等截止，不過就紅。
+        # busy＝進行中（例如部署中）＝還沒到；但同時有 hard 失敗，仍然紅。
+        over, busy_any, hard_bad, pend = [], False, False, False
+        for k, g in gates.items():
+            if g["ok"]:
+                continue
+            if g.get("busy"):
+                busy_any = True
+                continue
+            dl = g.get("deadline") or deadline
+            if g.get("hard"):
+                hard_bad = True
+                over.append(k)
+            elif dl is None or due(now, dl):
+                over.append(k)
+            else:
+                pend = True
+        if hard_bad or (over and not busy_any):
+            status = "fail"
+        elif over or pend or busy_any:
             status = "pending"
         else:
-            status = "fail"
+            status = "ok"
         items.append({"id": id_, "name": name, "status": status, "gates": gates,
                       "deadline": deadline.isoformat() if deadline else None,
                       "remedy": remedy if status == "fail" else None})
@@ -374,22 +514,38 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
         "publish": site_result["site"],
     }, remedy={"action": "dispatch", "workflow": "daily.yml", "inputs": {"phase": "full"}})
 
-    # 每日資料更新：應有的價量日、法人、融資券，不退回、沒有來源連續壞
+    # 每日資料更新：分段截止（Andy 11-09：16:15 要有價量、17:15 要有法人，畫面也要跟上）。
+    # 價量 16:15、法人 17:15、融資券／來源健康／畫面資料日 18:40；截止前不過＝還沒到，不紅。
+    # price／full 輪失敗是例外：不等截止，之後沒有成功的一輪就紅（11-09 那天 15:38 起連續失敗，
+    # Andy 16:53 才自己發現）。截止錨在「應有日」而不是今天，所以週末查週五的資料也是同一套規則。
     lake = f.get("lake") or {}
     last = f.get("last_run") or {}
     sh = f.get("source_health") or {}
     bad_src = sorted(k for k, v in sh.items() if isinstance(v, dict) and (v.get("consecutive_fail") or 0) >= SOURCE_FAIL_RED)
     exp_s = expected.isoformat()
-    data_due = at_tpe(expected, DATA_DEADLINE) if expected == today else None
-    data_content = gate(
-        lake.get("price_daily") == exp_s and (lake.get("inst_daily") or "") >= exp_s and
-        (lake.get("margin_total") or "") >= exp_s and not (last.get("errors") or []) and not bad_src,
-        f"價量 {lake.get('price_daily')}／法人 {lake.get('inst_daily')}／融資券 {lake.get('margin_total')}"
-        f"（應有 {exp_s}）；last_run 錯誤 {len(last.get('errors') or [])} 筆；連續失敗來源 {bad_src or '無'}",
-        [str(LAST_RUN_FILE.name), str(SOURCE_HEALTH_FILE.name)])
-    finish("data", "每日資料更新（價量／法人／融資券）", True, data_due, {
-        "run": run_gate(f["runs"].get("daily.yml") or [], at_tpe(expected, time(15, 0)), "daily.yml"),
-        "content": data_content,
+
+    def by(g: dict, hh: time) -> dict:
+        g["deadline"] = at_tpe(expected, hh)
+        return g
+
+    price_g = by(gate(lake.get("price_daily") == exp_s, f"價量 {lake.get('price_daily')}（應有 {exp_s}）"),
+                 PRICE_DEADLINE)
+    inst_g = by(gate((lake.get("inst_daily") or "") >= exp_s, f"三大法人 {lake.get('inst_daily')}（應有 {exp_s}）"),
+                INST_DEADLINE)
+    margin_g = by(gate((lake.get("margin_total") or "") >= exp_s,
+                       f"融資券 {lake.get('margin_total')}（應有 {exp_s}）"), DATA_DEADLINE)
+    health_g = by(gate(not (last.get("errors") or []) and not bad_src,
+                       f"last_run 錯誤 {len(last.get('errors') or [])} 筆；連續失敗來源 {bad_src or '無'}",
+                       [LAST_RUN_FILE.name, SOURCE_HEALTH_FILE.name]), DATA_DEADLINE)
+    screen_g = by(screen_gate(f.get("screen"), exp_s), DATA_DEADLINE)
+    run_g = by(round_gate(f["runs"].get("daily.yml"), at_tpe(expected, time(15, 0)), "daily.yml", holidays),
+               PRICE_DEADLINE)
+    # 網站那一項的「內容」沿用同一套（價量／法人／融資券／來源健康）
+    data_content = gate(all(g["ok"] for g in (price_g, inst_g, margin_g, health_g)),
+                        "價量／法人／融資券／來源健康（同每日資料關卡）")
+    finish("data", "每日資料更新（價量／法人／融資券）", True, at_tpe(expected, DATA_DEADLINE), {
+        "run": run_g, "price": price_g, "inst": inst_g, "margin": margin_g,
+        "health": health_g, "screen": screen_g,
         "publish": site_result["site"],
     }, remedy={"action": "dispatch", "workflow": "daily.yml", "inputs": {"phase": "full"}})
 
@@ -527,24 +683,72 @@ def summarize(items: list[dict]) -> dict:
 
 # ---------------------------------------------------------------- 補救（每項每天一次）
 def remedy_allowed(state: dict, item_id: str, today: str) -> bool:
+    """今天這一項還能不能再派（每項每天最多 REMEDY_MAX_PER_DAY 次；跨日自動歸零）。"""
     r = (state.get("remedies") or {}).get(item_id)
-    return not (r and r.get("date") == today)
+    if not r or r.get("date") != today:
+        return True
+    return int(r.get("count", 0)) < REMEDY_MAX_PER_DAY
 
 
-def run_remedies(items, state, today, dispatch) -> None:
-    """dispatch(workflow, inputs) → (ok, msg)。只派出，不假裝已修好；下一輪稽核會再驗。"""
+def _track_attempt(att: dict, runs, now: datetime) -> str:
+    """看上一次派出的 run 現在到哪了，順便把 run id／狀態記進 attempt。
+    回傳：unknown（查不到，不准重派）／running（還在跑）／waiting（還沒出現，等下一輪）／
+    done（已跑完，依結論判斷）／lost（超過時限還找不到，當作派丟了）。
+    dispatch 的 CLI 不回 run id，所以用「建立時間 ≥ 派出時間 − 60 秒」來對。"""
+    if runs is None or runs.get(att.get("workflow")) is None:
+        return "unknown"
+    t0 = _parse_ts(att.get("at"))
+    if t0 is None:
+        return "unknown"
+    cands = sorted(runs_since(runs[att["workflow"]], t0 - timedelta(seconds=60)),
+                   key=lambda r: r.get("created_at", ""))
+    if not cands:
+        return "waiting" if now - t0 < timedelta(minutes=REMEDY_LOST_MIN) else "lost"
+    r = cands[0]
+    att.update(run_id=r.get("id"), run_status=r.get("status"), run_conclusion=r.get("conclusion"))
+    return "running" if r.get("status") in ("queued", "in_progress") else "done"
+
+
+def run_remedies(items, state, today, dispatch, runs=None, now: datetime | None = None) -> None:
+    """dispatch(workflow, inputs) → (ok, msg)。只派出，不假裝已修好；下一輪稽核會再驗。
+    同一時間只准一個補救在跑：上一次派出的 run 還在執行，就不重派。被佇列取代（cancelled）、
+    失敗、或派丟了，就重派；但每項每天最多 REMEDY_MAX_PER_DAY 次，超過就等人工。
+    每次派出與追蹤結果都記在 state["remedies"][項目]["attempts"]，寫進 data/_state/daily_audit.json。"""
+    now = now or datetime.now(TPE)
     state.setdefault("remedies", {})
     for it in items:
         if it["status"] != "fail" or not it.get("remedy"):
             continue
+        rec = state["remedies"].get(it["id"])
+        if not rec or rec.get("date") != today:
+            rec = {"date": today, "count": 0, "attempts": []}
+            state["remedies"][it["id"]] = rec
+        atts = rec["attempts"]
+        last = atts[-1] if atts else None
+        if last and last.get("ok"):
+            st = _track_attempt(last, runs, now)
+            if st == "running":
+                it["remedy_note"] = f"補救執行中（派出於 {last.get('at')}，run {last.get('run_id')}），不重派"
+                continue
+            if st == "waiting":
+                it["remedy_note"] = "上次派出的 run 還沒出現，等下一輪再看"
+                continue
+            if st == "unknown":
+                it["remedy_note"] = "查不到上次補救的執行狀態，不重派（避免重複派）"
+                continue
+            # done／lost：沒有在跑 → 往下走上限判斷（被取代、失敗、派丟都在這裡重派）
         if not remedy_allowed(state, it["id"], today):
-            it["remedy_note"] = "今天已補救過一次，不再自動補（等人工看）"
+            it["remedy_note"] = f"今天已自動補救 {REMEDY_MAX_PER_DAY} 次，不再自動派（等人工看）"
             continue
         rm = it["remedy"]
         ok, msg = dispatch(rm["workflow"], rm.get("inputs") or {})
-        state["remedies"][it["id"]] = {"date": today, "workflow": rm["workflow"],
-                                       "inputs": rm.get("inputs") or {}, "ok": ok, "msg": msg[:300]}
-        it["remedy_note"] = ("已派出 " + rm["workflow"]) if ok else ("派出失敗：" + msg[:200])
+        rec["count"] = int(rec.get("count", 0)) + 1
+        atts.append({"at": now.isoformat(timespec="seconds"), "workflow": rm["workflow"],
+                     "inputs": rm.get("inputs") or {}, "ok": bool(ok), "msg": msg[:300],
+                     "run_id": None, "run_status": None, "run_conclusion": None})
+        del atts[:-5]
+        it["remedy_note"] = (f"已派出 {rm['workflow']}（今天第 {rec['count']} 次）") if ok \
+            else ("派出失敗：" + msg[:200])
 
 
 def dispatch_fn(workflow: str, inputs: dict) -> tuple[bool, str]:
@@ -601,7 +805,7 @@ def main(argv=None) -> int:
     state = load_state()
     today = facts["today"]
     if a.remediate:
-        run_remedies(items, state, today, dispatch_fn)
+        run_remedies(items, state, today, dispatch_fn, runs=facts["runs"], now=now)
     # 補救紀錄只留今天與昨天，避免檔案無限長
     state["remedies"] = {k: v for k, v in (state.get("remedies") or {}).items()
                          if v.get("date") in {today, (date.fromisoformat(today) - timedelta(days=1)).isoformat()}}
@@ -629,10 +833,9 @@ def render_text(rep: dict) -> str:
     lines = [f"每日稽核 {rep['checked_at']}（價量應有日 {rep['expected_price_date']}）", ""]
     for it in rep["items"]:
         lines.append(f"{mark.get(it['status'], '?')} {it['name']}：{it['status']}")
-        for k in ("run", "content", "publish"):
-            g = (it.get("gates") or {}).get(k)
-            if g:
-                lines.append(f"    {k}: {'過' if g['ok'] else '不過'}｜{g['why']}")
+        for k, g in (it.get("gates") or {}).items():
+            tag = "過" if g["ok"] else ("進行中" if g.get("busy") else "不過")
+            lines.append(f"    {GATE_NAMES.get(k, k)}: {tag}｜{g['why']}")
         if it.get("why"):
             lines.append(f"    {it['why']}")
         if it.get("remedy_note"):

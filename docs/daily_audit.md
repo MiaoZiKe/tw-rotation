@@ -33,7 +33,7 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 |---|---|---|---|---|---|
 | 盤前消息 | 交易日 | 08:40 | social-live 今天有成功執行 | `site/articles/premarket.json` 的 `days[0].date` ＝今天、有則數、沒有空標題／空網址 | 網站兩站包含最新 commit |
 | 盤後消息 | 交易日 | 21:40 | daily.yml 今天 15:00 後有成功 | `postmarket.json` 的日期＝今天 | 網站兩站包含最新 commit |
-| 每日資料更新 | 每天（看應有日） | 交易日 18:40 | daily.yml 應有日 15:00 後有成功 | 價量／法人／融資券最新日＝應有日；`last_run.json` 沒有錯誤；`source_health` 沒有來源連續失敗 2 天以上 | 網站兩站包含最新 commit |
+| 每日資料更新 | 每天（看應有日） | **分段**：價量 16:15、法人 17:15、融資券／來源健康／畫面 18:40（截止錨在應有日） | daily.yml 的 price／full 輪：最近一次失敗之後沒有成功的一輪 → **立刻紅**（不等截止，附失敗網址與失敗步驟名）；還在跑＝還沒到 | 價量最新日＝應有日（16:15 前）；三大法人＝應有日（17:15 前）；融資券＝應有日；`last_run.json` 沒有錯誤；`source_health` 沒有來源連續失敗 2 天以上 | **畫面資料日**：兩站線上檔 `data/meta.json` 的 `data_date`、`inst_date`，與 `data/inst_market.json` 的 `latest`，都要＝應有日（18:40 前還沒到，之後落後就紅）；再加網站兩站包含最新 commit |
 | 頻道①盤後主貼文 | 交易日（quota 的 close 開著才檢查） | 18:20 | social-live 今天 15:00 後有成功 | social-snaps `state/posted.json` 有 `close-<今天>` | 有發布網址（threads.link 或 story.link） |
 | 頻道②科技透明圈 | 每天（只看 approved 且排定時間已過 30 分鐘的稿；draft 不算） | 排定時間＋30 分鐘 | tc_post.yml 今天有成功 | approved 且已到時間的稿，`post.md` 狀態是 posted | main 的 `state/tc/posted.json` 有該稿紀錄（tc_post.yml 直接 commit 到 main） |
 | 頻道④談晴說礙 | 每天（只看 `docs/marketing/channels/healing/post_quota.json` 的 `live` 是 true；false＝整個停發，未啟用） | 21:40 | healing_post.yml 今天有成功 | 佇列 `queue/*/meta.json` 是 approved 且 publish_at（null＝當天 20:27 時段）已到 | `healing/state/posted.json` 每個平台都有該資料夾紀錄且未被刪 |
@@ -48,6 +48,8 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 |---|---|---|
 | 08:45 | `45 0 * * 1-5` | 週一到五 |
 | 12:33 | `33 4 * * 1-5` | 週一到五 |
+| 16:17 | `17 8 * * 1-5` | 週一到五（價量截止 16:15 之後 2 分鐘） |
+| 17:17 | `17 9 * * 1-5` | 週一到五（法人截止 17:15 之後 2 分鐘） |
 | 18:40 | `40 10 * * 1-5` | 週一到五 |
 | 21:40 | `40 13 * * *` | 每天 |
 
@@ -55,7 +57,10 @@ Andy 2026-11-09 原話：「CEO 需要安排人員確認每日該做的事情是
 
 ## 自動補救（保底，不准只回報）
 
-- 每一項**每天最多自動補救一次**，記在 `data/_state/daily_audit.json` 的 `remedies`。
+- 每一項**每天最多自動派 3 次**（`REMEDY_MAX_PER_DAY`），含被佇列取代後的重派；跨日歸零。每次派出的時間、輸入、run id 與結論都記在 `data/_state/daily_audit.json` 的 `remedies[項目].attempts`。
+- **同一時間只准一個補救在跑**：上一次派出的 run 還在 queued／in_progress，就不重派（稽核會寫「補救執行中」）。
+- 上一次派出的 run 結論是 `cancelled`（被佇列取代）、`failure`，或派出後 10 分鐘還找不到對應的 run（派丟了），就重派；還沒到上限就照派。
+- 查不到上一次補救的執行狀態（GitHub API 失敗）→ **不重派**，避免重複派；下一輪再看。
 - 補救只是「派出 workflow」，不假裝修好。下一輪稽核會再驗證。
 - 補救對應：
 
@@ -92,3 +97,6 @@ python -m pytest tests/test_daily_audit.py -q                  # 測試（全部
 4. 盤後消息的截止時間 21:40 是本稽核的規定，不是該檔案的實際產出時間；若實測發現產出時間更晚，改這裡的常數並記下樣本數。
 5. 補救是派出 workflow，**派出不等於做完**；下一輪稽核才是證據。
 6. 網站兩站的比對用的是 GitHub Deployments 與 pages.yml 的 Cloudflare 步驟結果；Cloudflare 那一步有 `continue-on-error`，所以「步驟 success」才算數，不能只看整個 run。
+7. 分段截止（價量 16:15、法人 17:15、融資券／畫面 18:40）是 Andy 2026-11-09 指定的第一版，**沒有實測樣本**。收窄或放寬要附樣本數（日期、實際完成時間）。
+8. 畫面資料日直接抓線上檔（加時間戳防快取）。本機容器打不開那兩個網址，本機跑會顯示「讀不到」，這是預期，不是故障；正式結果以 GitHub Actions 為準。
+9. price／full 輪的分辨：run-name 帶 `(price)`／`(full)` 的看標題；排程的沒有字樣，看「跑指標庫測試」步驟是不是被跳過（法人輪會跳過）。daily.yml 若改了這個步驟的名稱或條件，`is_round()` 要一起改。
