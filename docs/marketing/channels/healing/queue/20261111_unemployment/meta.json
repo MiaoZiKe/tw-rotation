@@ -4,7 +4,7 @@
   "ig",
   "threads"
  ],
- "status": "draft",
+ "status": "approved",
  "publish_at": "2026-11-11T20:27+08:00",
  "note": "Andy 11-10：「做好就給我看一篇貼文及文案我確認」→ 先 draft，Andy 確認後改 approved。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；重疊與對比 overlap_report.json；審查 ai_review.md（自審）。"
 }
