@@ -1573,7 +1573,7 @@
       if (!box) {
         box = document.createElement('div'); box.className = 'logobox'; box.id = 'logoBox'; box.hidden = true;
         box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', '哩股哩股 LOGO');
-        box.innerHTML = '<img src="brand/logo-1024.webp?v=1011c" alt="哩股哩股 LOGO"><button type="button" aria-label="關閉">✕</button>';
+        box.innerHTML = '<img src="brand/' + (document.documentElement.getAttribute('data-theme') === 'light' ? 'logo-1024.webp' : 'logo-1024-d.webp') + '?v=1110" alt="哩股哩股 LOGO"><button type="button" aria-label="關閉">✕</button>';
         box.addEventListener('click', close);
         document.body.appendChild(box);
       }

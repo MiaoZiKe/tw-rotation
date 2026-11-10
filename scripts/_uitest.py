@@ -29007,7 +29007,7 @@ def t_mobile_m4(b, base, code):
         return { logo: vis(brand.querySelector('.logo')), txt, tools: tools.map(e => e.id || e.className), small: tools.filter(e => e.id !== 'acctOnline' && e.getBoundingClientRect().height < 40).map(e => e.id),
                  sw: document.documentElement.scrollWidth, bw: bar.scrollWidth, bcw: bar.clientWidth, ovl, ev: evHidden,
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
-    ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
+    ok(f"【{T}】頂欄只有頭像＋站名「哩股哩股」、沒有頁名文字（2026-11-10 Andy 加站名）", tb["logo"] and "".join(tb["txt"]) in ("", "哩股哩股"), tb["txt"])
     # 2026-10-09 08:4x 改（Andy 圖一：「將紅框改成這功能（明暗切換）」）：🔍 右邊那顆＝☀／🌙 直接切明暗；外觀調色盤 #t4Btn 在手機藏起來（風格改在帳號選單）
     want_tools = ["m4Search", "themeBtn", "twPageTourBtn"]
     ok(f"【{T}】頂欄右邊依序有搜尋、明暗、平台導覽、（在線）、登入，沒有調色盤（{'／'.join(tb['tools'])}）",
@@ -29023,7 +29023,7 @@ def t_mobile_m4(b, base, code):
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
     ok(f"【{T}】頁面上只有一顆明暗鈕（頂欄 ☀／🌙）", tb["nth"] == 1, tb["nth"])
-    ok(f"【{T}】頁名搬到內容區最上面（{tb['head']}）", tb["head"].strip() == "總覽", tb["head"])
+    ok(f"【{T}】頁名搬到內容區最上面（{tb['head']}）", tb["head"].strip().startswith("總覽") and "台股資金流向" in tb["head"], tb["head"])   # 2026-11-10：頁名後接副標與一句白話說明
     # 頂欄明暗鈕：點一下主題真的切換、圖示 ☀／🌙 跟著換、不打開外觀面板；再點一下切回來
     th0 = m.evaluate("() => ({ th: document.documentElement.dataset.theme || '', ic: document.getElementById('themeBtn').textContent.trim() })")
     m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(500)
