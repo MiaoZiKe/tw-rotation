@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-09",
+ "updated": "2026-11-10",
  "days": [
+  {
+   "date": "2026-11-10",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "台積電 10 月營收 5,868.9 億元年增 59.71%，前十個月年增 43.29% 創高",
+     "url": "https://finance.technews.tw/2026/11/10/nvidias-legal-counsel-reportedly-intervened-in-the-us-investigation-into-megaspeeds-alleged-smuggling-of-ai-chips/",
+     "source": "科技新報",
+     "time": "2026-11-10T14:40:19+08:00",
+     "desc": "晶圓代工龍頭台積電公布 10 月份合併營收，金額達新台幣 5,868.9 億元，較 9 月份增加 14.66%"
+    },
+    {
+     "cat": "總經",
+     "title": "同欣電(6271) 毛利率目標上調到 30 至 35 %！第 3 季 33.7 % 已在區間上緣",
+     "url": "https://news.cnyes.com/news/id/6655502",
+     "source": "鉅亨",
+     "time": "2026-11-10T14:00:42+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "科技",
+     "title": "避險基金大亨艾克曼：黃仁勳「為世界做了很多好事」 盼事件造成的傷害降到最低",
+     "url": "https://news.cnyes.com/news/id/6655272",
+     "source": "鉅亨",
+     "time": "2026-11-10T14:30:12+08:00",
+     "desc": "黃仁勳傳婚外情，輝達董事會已成立獨立委員會並聘外部律師調查相關報導；輝達稱暫無國安或商業機密受損跡象，黃仁勳留任配合；中國外交部則駁斥「中國女間諜」說法；事件遇…"
+    },
+    {
+     "cat": "新聞",
+     "title": "同欣電(6271) 想接 Lumentum 生意！大客戶若跟這家光通訊廠合併，機會大得多",
+     "url": "https://news.cnyes.com/news/id/6655503",
+     "source": "鉅亨",
+     "time": "2026-11-10T14:00:43+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "事件",
+     "title": "法超市冰箱遭駭 初步調查指向伊朗軍方涉案",
+     "url": "https://infosecu.technews.tw/2026/11/10/france-blames-iran-for-supermarket-fridge-hacks/",
+     "source": "科技新報",
+     "time": "2026-11-10T14:40:57+08:00",
+     "desc": "法國超市冷藏設備遭駭事件出現調查進展，法國政府指控，伊朗革命衛隊旗下駭客單位策動網攻，將召見伊朗大使並提議歐盟"
+    }
+   ]
+  },
   {
    "date": "2026-11-09",
    "items": [
