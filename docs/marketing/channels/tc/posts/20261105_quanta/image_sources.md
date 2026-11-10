@@ -18,8 +18,6 @@
 - 為什麼不用 world-atlas：海岸線與縣市線要同一份資料才對得齊；world-atlas 沒有縣市界。
 - 總部點位：桃園龜山，北緯 25.03、東經 121.36（同一投影算出）。
 
-## 2026-11-10 封面照片更換（法遵：原總部照出自新頭殼新聞圖、查不到圖說，一律當成媒體著作，不可用）
-- 現用：`social/photo_lib/quanta/photo_8.jpg`（origin/main 圖池）＝廣達研究院 COSCUP 2012 攤位招牌牆，1920×1277；來源頁 https://commons.wikimedia.org/wiki/File:Quanta_Research_title_at_COSCUP_20120819.jpg（Flickr https://www.flickr.com/photos/coscup/7861158786）；作者 COSCUP；授權 CC BY-SA 2.0（https://creativecommons.org/licenses/by-sa/2.0）。
-- 裁切：取原圖 (130,0)–(1895,1180)，縮成 1032×690（`cover_photo.jpg`）；「Quanta」「廣達研究院」「Research」字樣完整；原圖右下角的 "by Aminzai" 字樣因裁切不在畫面內。
-- 署名（文案已加，ig.txt／threads.txt）：「圖：COSCUP／CC BY-SA 2.0（經裁切）。原圖：〔Commons 頁面〕（Flickr：〔原頁〕）。本封面合成圖同樣依 CC BY-SA 2.0 釋出。」
-- 備註：圖池 pool.json 記錄此張 2026-10-30 曾被 art-director 以「LOGO 牆為主角」退件；本次由法遵／Andy 指定使用，art-director 是否同意請另行確認。
+## 2026-11-10 封面照片出處更正（取代上面「Andy 從 Google 圖片搜尋找到」的說法）
+- 封面照（藍色立體字「Quanta」＋階梯）：**Andy 本人拍攝（2026-11-10 確認）**，版權無疑慮，不需外部署名；文案已拿掉原本的「圖：廣達官方」署名行。手機原圖取得後會用原圖重出封面。
+- 法遵曾因「疑似新頭殼新聞圖、查不到圖說」建議改用圖池 photo_8（COSCUP／CC BY-SA 2.0，廣達研究院招牌牆）；因 Andy 說明照片是自己拍的，**不採用**，備案成品存為 `1_cover_photo8.png`（若要用須在文案署名「圖：COSCUP／CC BY-SA 2.0（經裁切）」並註明合成圖同樣依 CC BY-SA 2.0 釋出）。
