@@ -1,6 +1,118 @@
 {
- "updated": "2026-11-09",
+ "updated": "2026-11-10",
  "topics": [
+  {
+   "id": "n_foreign_outflow_oct",
+   "cat": "news",
+   "title": "10月外資狂賣近兆元，獲利預估為何還在上修",
+   "why": "央行 11/5 表示外資 10 月自台股淨匯出約 9,000 億元、創紀錄；IIF 同日指獲利預估仍上修但資金續減碼，台股 10 月跌 5.7%（優分析 2026-11-05；IIF 美元金額僅單一來源，成稿前須再核）",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-10",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_star50_support",
+   "cat": "news",
+   "title": "陸股科創50單日跌3.8%：官方托底為何沒擋住",
+   "why": "11/3 科創50 收盤跌 3.81%、上證指數收 3608.10 點；同日中國央行啟動第三次證券基金保險公司互換便利，並把股票回購增持再貸款利率由 1.25% 降到 1%（新浪財經、科技新報 2026-11-03）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#overview",
+    "#themes"
+   ]
+  },
+  {
+   "id": "n_memory_passive_rotation",
+   "cat": "news",
+   "title": "記憶體、被動、板材輪流漲：法人與社群吵什麼",
+   "why": "10 月下旬記憶體、被動元件、銅箔基板、PCB 四族群資金快速輪動；法人看舊世代記憶體供給被 HBM4 擠壓、預估第四季報價續漲，社群則多認為是景氣循環股的輪漲（中時旺得富 2026-10-31；單一來源，成稿須補第二來源，且報價為預估非實際）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#flow",
+    "#industry",
+    "#themes"
+   ]
+  },
+  {
+   "id": "k_soic",
+   "cat": "know",
+   "title": "SoIC 是什麼？晶片直接疊在晶片上怎麼接",
+   "why": "站內尚無 SoIC 知識題；與 k_hybrid_bond 互補（講整體堆疊架構），配圖借 CoWoS-L 3D 剖面（semiconductor）對照",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_mcu",
+   "cat": "know",
+   "title": "MCU 微控制器是什麼？一顆小晶片怎麼管一台車",
+   "why": "站內尚無 MCU 知識題；車用與工控都用，與 k_ev_arch 互補；配圖借 foundry 3D（IC 設計到代工）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "k_ddr5_rdimm",
+   "cat": "know",
+   "title": "DDR5 記憶體模組是什麼？一條 RDIMM 上有哪些晶片",
+   "why": "站內有記憶體模組族群頁，但尚無 DDR5 模組結構題（k_dram_nand 講 DRAM 與 NAND 差別）；配圖借 hbm／ssd 3D 對照",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/semiconductor/dg/memory_module"
+   ]
+  },
+  {
+   "id": "i_analog_power",
+   "cat": "intro",
+   "title": "類比與功率 IC 鏈：電源管理、驅動到車用怎麼分",
+   "why": "站內有類比與功率 IC 族群頁，尚無鏈上環節題；講環節分工，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/analog_power_ic"
+   ]
+  },
+  {
+   "id": "i_crystal_chain",
+   "cat": "intro",
+   "title": "石英頻率元件鏈：晶體、振盪器到終端怎麼供貨",
+   "why": "站內有石英頻率控制族群頁，尚無鏈上環節題；講環節分工，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/crystal"
+   ]
+  },
+  {
+   "id": "i_pkg_equipment",
+   "cat": "intro",
+   "title": "封裝製程機台鏈：貼合、研磨到量測怎麼分",
+   "why": "站內有封裝製程機台與量測自動化族群頁，尚無鏈上環節題；講環節分工，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/pkg_equipment"
+   ]
+  },
   {
    "id": "n_nsf_fund",
    "cat": "news",
