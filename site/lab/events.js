@@ -9,7 +9,7 @@
   'use strict';
   const L = window.TwLab; if (!L) return;
   let U = null, E = null;
-  const COL = ['#2563EB', '#F97316', '#A855F7', '#14B8A6', '#ff4d6d', '#ffb454', '#3ee0ff', '#8b7bff', '#c3ff5b'];
+  const COL = ['#2563EB', '#F97316', '#A855F7', '#14B8A6', '#ff4d6d', '#ffb454', '#8fb2f2', '#b39af0', '#b5c65a'];
   const NS = [5, 10, 20];
   const CONF = { 高: '官方公布的固定日期', 中: '依公開日程整理，尚未逐筆對官網', 低: '規則推算（遇假日或調整未核對）', 資料: '由資料湖統計得出' };
 

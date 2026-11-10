@@ -196,11 +196,11 @@
     const W = sz.w, H = sz.h, land = W > H * 1.5;
     const isPlus = plus();
     const dark = (document.documentElement.getAttribute('data-theme') || 'dark') !== 'light';
-    const bg = cssv('--bg', dark ? '#070b16' : '#F4F3EF');
-    const panel = cssv('--panel', dark ? '#0f172b' : '#ffffff');
-    const ink = cssv('--ink', dark ? '#e8eeff' : '#1F1D19');
-    const ink3 = cssv('--ink-3', dark ? '#8493b8' : '#5F5A51');
-    const line = cssv('--line-2', dark ? '#2a3860' : '#D6D2C8');
+    const bg = cssv('--bg', dark ? '#0e1830' : '#F2EFE8');
+    const panel = cssv('--panel', dark ? '#142142' : '#ffffff');
+    const ink = cssv('--ink', dark ? '#fbfaf6' : '#14213D');
+    const ink3 = cssv('--ink-3', dark ? '#9ba8c4' : '#576175');
+    const line = cssv('--line-2', dark ? '#3b4f7f' : '#D6D2C8');
 
     const figNode = figEl(t);
 

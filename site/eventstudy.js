@@ -170,7 +170,7 @@
       tooltip: { ...Ap.tip, trigger: 'item', formatter: (p) => { const r = R[p.dataIndex]; if (!r) return '';
         return `<b>${esc(r.d)}${r.q ? '（' + esc(r.q) + '）' : ''}</b><br>${lab} ${pct(r.v)}<br>個股 ${pct(r.raw)}・加權指數 ${pct(r.raw - r.ex)}`; } },
       grid: { left: 48, right: 62, top: 16, bottom: 32 },
-      xAxis: { type: 'category', data: R.map(r => r.d), boundaryGap: true, axisTick: { show: false }, axisLine: { lineStyle: { color: CH.line || '#2a3860' } },
+      xAxis: { type: 'category', data: R.map(r => r.d), boundaryGap: true, axisTick: { show: false }, axisLine: { lineStyle: { color: CH.line || '#3b4f7f' } },
         axisLabel: { color: CH.ink3, fontFamily: Ap.NUM_FONT, hideOverlap: true, formatter: (v) => v.slice(0, 7).replace('-', '/') } },
       yAxis: { ...Ap.axisStyle, type: 'value', scale: false, axisLabel: { color: CH.ink3, fontFamily: Ap.NUM_FONT, formatter: (v) => v + '%' } },
       series: [{ name: lab, type: 'scatter', symbolSize: 10, data: R.map(r => ({ value: +(r.v * 100).toFixed(3), itemStyle: { color: r.v > 0 ? CH.up : r.v < 0 ? CH.down : CH.ink3 } })),

@@ -51,7 +51,7 @@ html.twnocopy body{-webkit-user-select:none;user-select:none;-webkit-touch-callo
 html.twnocopy input,html.twnocopy textarea,html.twnocopy select,html.twnocopy [contenteditable]:not([contenteditable="false"]),html.twnocopy [contenteditable]:not([contenteditable="false"]) *,
 html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .twprot-toast{position:fixed;left:16px;bottom:24px;z-index:2147483001;max-width:calc(100vw - 32px);box-sizing:border-box;display:flex;align-items:center;gap:8px;
-  padding:9px 14px;border-radius:10px;border:1px solid var(--line-2,#2a3860);background:var(--panel-3,#141e36);color:var(--ink,#e8eeff);font-size:13px;line-height:1.4;
+  padding:9px 14px;border-radius:10px;border:1px solid var(--line-2,#3b4f7f);background:var(--panel-3,#182749);color:var(--ink,#fbfaf6);font-size:13px;line-height:1.4;
   box-shadow:0 8px 24px rgba(0,0,0,.3);pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s}
 .twprot-toast.on{opacity:1;transform:none}
 .twprot-toast svg{flex:none;color:var(--amber,#f5b041)}

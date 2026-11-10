@@ -129,7 +129,7 @@
   const pad2 = (n) => (n < 10 ? '0' : '') + n;
   const ltime = (B, i) => (B.tf === '60' ? B.ts[i] + 8 * 3600 : E.dayToStr(B.day[i]));
   const cssv = (n, f) => { const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || f; };
-  function pal() { return { rise: cssv('--rise', '#ff4d6d'), fall: cssv('--fall', '#2ee59d'), ink: cssv('--ink-2', '#9aa7c0'), grid: cssv('--line', '#223'), cyan: cssv('--cyan', '#4cc9f0'), amber: cssv('--amber', '#ffb703'), bg: cssv('--panel', '#10182b') }; }
+  function pal() { return { rise: cssv('--rise', '#ff4d6d'), fall: cssv('--fall', '#2ee59d'), ink: cssv('--ink-2', '#9aa7c0'), grid: cssv('--line', '#223'), cyan: cssv('--cyan', '#6ec0e6'), amber: cssv('--amber', '#ffb703'), bg: cssv('--panel', '#10182b') }; }
 
   /* ---------------------------------------------------------------- 骨架 */
   function qpop(html) {
@@ -318,7 +318,7 @@
     const it = S.ind[i], d = it && LabK.BY[it.id]; if (!it) return '';
     return '<div class="lab-isi"><b>' + esc(d.name) + '</b><div class="seg" role="tablist"><button type="button" data-ist="in" class="' + (S.istab !== 'st' ? 'on' : '') + '">輸入</button><button type="button" data-ist="st" class="' + (S.istab === 'st' ? 'on' : '') + '">樣式</button></div></div>' +
       (S.istab === 'st'
-        ? '<div class="lab-isr"><label class="lab-fld"><span>顏色</span><input type="color" class="lab-col" data-ii="' + i + '" data-f="color" value="' + (it.color || '#3ee0ff') + '"></label><label class="lab-fld"><span>粗細</span><select class="lab-in" data-ii="' + i + '" data-f="w">' + [1, 2, 3].map((w) => '<option value="' + w + '"' + ((+it.w || 1) === w ? ' selected' : '') + '>' + w + '</option>').join('') + '</select></label><button type="button" class="lab-clear" data-iclr="' + i + '">預設顏色</button></div>'
+        ? '<div class="lab-isr"><label class="lab-fld"><span>顏色</span><input type="color" class="lab-col" data-ii="' + i + '" data-f="color" value="' + (it.color || '#8fb2f2') + '"></label><label class="lab-fld"><span>粗細</span><select class="lab-in" data-ii="' + i + '" data-f="w">' + [1, 2, 3].map((w) => '<option value="' + w + '"' + ((+it.w || 1) === w ? ' selected' : '') + '>' + w + '</option>').join('') + '</select></label><button type="button" class="lab-clear" data-iclr="' + i + '">預設顏色</button></div>'
         : '<div class="lab-isr">' + (d.p.length ? d.p.map(([k, lab, def, mn, mx]) => '<label class="lab-fld"><span>' + lab + '</span><input class="lab-in cb-n" type="number" min="' + mn + '" max="' + mx + '" step="any" data-ii="' + i + '" data-f="' + k + '" value="' + (it[k] != null ? it[k] : def) + '"></label>').join('') : '<span class="lab-pdesc">這個指標沒有可調的參數</span>') + '<button type="button" class="lab-clear" data-idef="' + i + '">預設值</button></div>') +
       '<button type="button" class="lab-clear lab-iok" data-iclose>完成</button>';
   }

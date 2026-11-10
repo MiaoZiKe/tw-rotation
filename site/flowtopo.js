@@ -356,16 +356,16 @@
      （族群色盤淺色版有好幾個偏紅／偏綠）。一條鏈一個色相，底下的族群、成分股、粒子都同色，
      「錢從哪條河分出去」一眼看得出來。依鏈的 id 固定配色，即時換位時顏色不會跟著換。*/
   const CHAIN_HUE = {
-    dark: { semiconductor: '#3ee0ff', ai_server: '#a594ff', electronics: '#ffb454', industry: '#9aa6c4' },
+    dark: { semiconductor: '#8fb2f2', ai_server: '#a594ff', electronics: '#ffb454', industry: '#9aa6c4' },
     light: { semiconductor: '#0a86b8', ai_server: '#6a58d6', electronics: '#b7741a', industry: '#6b778f' },
   };
   const CHAIN_MORE = { dark: ['#6aa7ff', '#d7a6ff', '#e6c86a', '#7fd4ff'], light: ['#2f6fd6', '#9152c9', '#94761c', '#1f7fa8'] };
   /* ★ 2026-09-26（第二版，Andy「參考圖顏色更鮮豔」＋黃金標準 docs/prototypes/flow_perfect_topology.html）：
-     經典光纖改用飽和版產業鏈色。半導體 #22d3ee、AI 伺服器 #c084fc 取自參考稿；其餘三條鏈挑同亮度、彼此好分辨的飽和色
+     經典光纖改用飽和版產業鏈色。半導體 #4dc2b5、AI 伺服器 #c084fc 取自參考稿；其餘三條鏈挑同亮度、彼此好分辨的飽和色
      （琥珀、石板、靛藍）。仍然**不用紅、不用綠** —— 參考稿把部分族群塗成紅／綠，但沒有一致規則
      （▼22% 是青、▼3% 是綠），站上規矩「紅綠只給漲跌字」照守。淺色主題用同色相的深一階（白底上讀得到）。*/
   const CHAIN_HUE_EL = {
-    dark: { semiconductor: '#22d3ee', ai_server: '#c084fc', electronics: '#fbbf24', industry: '#94a3b8', traditional: '#818cf8' },
+    dark: { semiconductor: '#4dc2b5', ai_server: '#c084fc', electronics: '#fbbf24', industry: '#94a3b8', traditional: '#818cf8' },
     light: { semiconductor: '#0891b2', ai_server: '#9333ea', electronics: '#d97706', industry: '#64748b', traditional: '#4f46e5' },
   };
   const ROOT_HUE_EL = { dark: '#38bdf8', light: '#0284c7' };

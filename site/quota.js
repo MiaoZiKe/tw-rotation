@@ -425,7 +425,7 @@
   background:color-mix(in srgb,var(--panel,#111a2b) 55%,transparent);border-radius:inherit}
 .qlkov:not(.qcov) b{font-size:18px;color:var(--ink)}
 .qlkov:not(.qcov) span{font-size:13.5px;color:var(--ink-2);max-width:420px;line-height:1.6}
-.twqr{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;margin-left:8px;vertical-align:middle;text-decoration:none;--qc:var(--cyan,#22d3ee)}
+.twqr{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;margin-left:8px;vertical-align:middle;text-decoration:none;--qc:var(--cyan,#4dc2b5)}
 .twqr[hidden]{display:none}
 .twqr svg{position:absolute;inset:0;width:100%;height:100%}
 .twqr circle{fill:none;stroke-width:2.5}

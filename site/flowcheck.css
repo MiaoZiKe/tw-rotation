@@ -19,7 +19,7 @@
 .fc-vc,.fc-rr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .fc-fl{color:var(--ink-3);font-size:12px;white-space:nowrap}
 .fc-chip{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:2px 12px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--ink);font-size:13px;cursor:pointer}
-.fc-chip:hover{border-color:var(--cyan)}.fc-chip.on{border-color:var(--cyan);background:rgba(62,224,255,.12);font-weight:700}
+.fc-chip:hover{border-color:var(--cyan)}.fc-chip.on{border-color:var(--cyan);background:rgba(143,178,242,.12);font-weight:700}
 .fc-chip.div,.fc-chip.warn{border-color:var(--amber,#ffb454)}
 .fc-chip b{font-family:var(--mono);font-weight:600}.fc-chip i{display:inline-block;height:4px;border-radius:2px;min-width:3px}
 .fc-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--gap-card,12px);align-items:stretch}
@@ -44,11 +44,11 @@
 .fc-mn span{color:var(--ink-3);font-size:11px;font-family:var(--mono)}.fc-mn em{margin-left:auto;font-style:normal;font-family:var(--mono);font-weight:600}
 .fc-tw{max-height:240px;overflow:auto}
 .fc-tw table{width:100%;border-collapse:collapse;font-size:13px}
-.fc-tw th{position:sticky;top:0;background:var(--panel,#0f172b);color:var(--ink-3);font-weight:400;font-size:12px;text-align:right;padding:4px 8px;white-space:nowrap;z-index:1}
+.fc-tw th{position:sticky;top:0;background:var(--panel,#142142);color:var(--ink-3);font-weight:400;font-size:12px;text-align:right;padding:4px 8px;white-space:nowrap;z-index:1}
 .fc-tw th:first-child,.fc-tw td:first-child{text-align:left}
 .fc-tw td{padding:4px 8px;border-top:1px solid var(--line);white-space:nowrap}
 .fc-tw td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
-.fc-tw tr.on td{background:rgba(62,224,255,.08)}.fc-gray td{color:var(--ink-3)}
+.fc-tw tr.on td{background:rgba(143,178,242,.08)}.fc-gray td{color:var(--ink-3)}
 .fc-lk{background:none;border:0;color:var(--ink);cursor:pointer;padding:0;font-size:13px;text-align:left}.fc-lk:hover{color:var(--cyan);text-decoration:underline}
 .fc-cb{display:inline-block;height:8px;border-radius:2px}
 .fc-exp{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(255,180,84,.16);color:var(--amber,#ffb454);font-size:12px;font-weight:600}
@@ -106,11 +106,11 @@
 
 /* 2026-10-31 審核專家退件：背離榜、三者同向、族群下拉、更多證據分頁、固定高度 */
 .fc-gs{min-width:150px;max-width:200px;height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:9px;background:var(--panel-3);color:var(--ink);font-size:13px}
-.fc-chip.same{border-color:var(--cyan);background:rgba(62,224,255,.10)}
+.fc-chip.same{border-color:var(--cyan);background:rgba(143,178,242,.10)}
 .fc-same{margin-left:8px;flex:1 1 auto}
 .fc-divpop{flex:1 1 100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding-top:8px;border-top:1px solid var(--line);margin-top:8px;}
 .fc-dr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center;width:100%;min-height:36px;padding:2px 4px;background:transparent;border:0;border-top:1px solid var(--line);color:var(--ink);cursor:pointer;text-align:left;font-size:13px}
-.fc-dr:hover{background:rgba(62,224,255,.08)}.fc-dr em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3);grid-column:1}.fc-dr i{grid-column:2;grid-row:1/3;height:6px;border-radius:3px}
+.fc-dr:hover{background:rgba(143,178,242,.08)}.fc-dr em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3);grid-column:1}.fc-dr i{grid-column:2;grid-row:1/3;height:6px;border-radius:3px}
 .fc-vs{display:none}
 .fc-pane[hidden]{display:none}
 .fc-det{margin-top:8px}.fc-det summary{cursor:pointer;color:var(--ink-2);font-size:13px;min-height:28px}

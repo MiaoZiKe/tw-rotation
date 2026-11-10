@@ -28,7 +28,7 @@
   if (!document.getElementById('fpGlobalCss')) {
     const g = document.createElement('style'); g.id = 'fpGlobalCss';
     /* 配色 token（Andy 10-20）：三大法人／期貨籌碼／信用交易同一套；JS 用 tok() 讀成實色給 ECharts */
-    g.textContent = ':root{--c-foreign:#2563EB;--c-trust:#F97316;--c-dealer:#A855F7;--c-retail:#14B8A6;--c-tx:#0F172A;--c-mgn-ratio:#E11D48;--c-mgn-bal:#0EA5E9;--c-short:#F59E0B}:root:not([data-theme="light"]){--c-tx:#E2E8F0}'
+    g.textContent = ':root{--c-foreign:#3F6BC4;--c-trust:#BF8416;--c-dealer:#8D6BD0;--c-retail:#2A9D8F;--c-tx:#0F172A;--c-mgn-ratio:#E11D48;--c-mgn-bal:#0EA5E9;--c-short:#F59E0B}:root:not([data-theme="light"]){--c-tx:#E2E8F0}'
       + '#v-market .card.mkt-notitle .mkthead>h3{display:none!important}:root.l4 #v-market .card.mkt-notitle>.mkthead{display:none}';
     document.head.appendChild(g);
   }
@@ -37,7 +37,7 @@
   /* 配色（Andy 10-20，三大法人那組同一套）：外資藍、投信橘、自營紫、散戶青綠；加權指數線淺色深藍黑／深色淺灰白，線寬 2。
      紅綠只留給數字（買超賣超、漲跌）與個股長條，這裡的線與柱不用。 */
   const tok = (n, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d; } catch (e) { return d; } };
-  const PAL = { get f() { return tok('--c-foreign', '#2563EB'); }, get t() { return tok('--c-trust', '#F97316'); }, get d() { return tok('--c-dealer', '#A855F7'); }, get r() { return tok('--c-retail', '#14B8A6'); } };
+  const PAL = { get f() { return tok('--c-foreign', '#3F6BC4'); }, get t() { return tok('--c-trust', '#BF8416'); }, get d() { return tok('--c-dealer', '#8D6BD0'); }, get r() { return tok('--c-retail', '#2A9D8F'); } };
   /* Andy 10-20「直條實色不漸層」：app.js 的 BAR.apply 會把所有長條的 #hex／rgb 色換成同色漸層（10-07 全站規矩），
      但它只認 #hex／rgb()／rgba()，認不得的色字串原樣保留 → 把 token 色轉成等價的 hsl() 字串，這張圖的柱子就維持實色（不動全站規矩）。 */
   const solidHsl = (hex) => {
@@ -50,7 +50,7 @@
   };
   const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
   const txColor = () => tok('--c-tx', isDark() ? '#E2E8F0' : '#0F172A');
-  const col = () => { const c = (A() && A().CH) || {}; return { up: c.up || '#ff4d6d', down: c.down || '#2ee59d', ink2: c.ink2 || '#a9b6d6', ink3: c.ink3 || '#6f7ea3', ink: c.ink || '#e8eeff', cyan: c.cyan || '#3ee0ff', amber: c.amber || '#ffb454', violet: c.violet || '#8b7bff', line: c.line || '#1e2a48' }; };
+  const col = () => { const c = (A() && A().CH) || {}; return { up: c.up || '#ff4d6d', down: c.down || '#2ee59d', ink2: c.ink2 || '#c8d0e2', ink3: c.ink3 || '#9ba8c4', ink: c.ink || '#fbfaf6', cyan: c.cyan || '#8fb2f2', amber: c.amber || '#ffb454', violet: c.violet || '#b39af0', line: c.line || '#26385f' }; };
 
   /* 期間：futoi 以月為單位；retail 的「2 週」以天算。m＝月數、d＝天數、0＝全部 */
   const PERIODS = {

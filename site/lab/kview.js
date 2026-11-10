@@ -142,7 +142,7 @@
       if (this.type !== 'line') { this.restoreColors(); return; }
       const ph = 'rgba(0,0,0,0)';      // 線圖：K 棒本身透明（進出場箭頭與繪圖工具還掛在這條序列上），另畫一條收盤線
       c.applyOptions({ upColor: ph, downColor: ph, borderUpColor: ph, borderDownColor: ph, wickUpColor: ph, wickDownColor: ph });
-      this.line = this.chart.addSeries(LW.LineSeries, { color: getComputedStyle(document.documentElement).getPropertyValue('--cyan').trim() || '#3ee0ff', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+      this.line = this.chart.addSeries(LW.LineSeries, { color: getComputedStyle(document.documentElement).getPropertyValue('--cyan').trim() || '#8fb2f2', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
       const d = this.kc.data || []; this.line.setData(d.map((x) => ({ time: x.time, value: x.close })));
     }
     restoreColors() {

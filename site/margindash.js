@@ -298,17 +298,17 @@
     const el = document.createElement('style'); el.id = 'mdStyle';
     el.textContent = `.md-card{margin-top:12px}.md-bar{gap:8px}.md-ttl{margin:0;font-size:16px;font-weight:600}
 .md-last{font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--line,rgba(142,160,196,.35));color:var(--ink-2,#9aa7c0);white-space:nowrap}
-.md-last.stale{border-color:#F59E0B;color:#F59E0B}.md-ok{font-size:12.5px;color:var(--cat-1,#4cc9f0)}.md-sub{font-size:12.5px;margin:-4px 0 8px}.md-sub a{color:var(--cat-1,#4cc9f0)}
+.md-last.stale{border-color:#F59E0B;color:#F59E0B}.md-ok{font-size:12.5px;color:var(--cat-1,#6ec0e6)}.md-sub{font-size:12.5px;margin:-4px 0 8px}.md-sub a{color:var(--cat-1,#6ec0e6)}
 .md-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 8px}
 .md-tile .mf-l{display:flex;gap:6px;align-items:baseline}.md-d{margin-left:auto;font-size:12px;color:var(--ink-3,#8ea0c4)}
 .md-ch{display:flex;gap:8px;flex-wrap:wrap}.md-ch .up{color:var(--rise)}.md-ch .down{color:var(--fall)}
 .md-split{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,4fr);gap:12px;align-items:stretch}.md-cbox{min-width:0}
 .md-chart{width:100%;height:240px}.md-tblbox{min-width:0;display:flex;flex-direction:column}.md-scroll{max-height:240px;overflow:auto}
 .md-tgl{display:none}
-#mdTbl td,#mdTbl th{text-align:center;white-space:nowrap}#mdTbl td.l,#mdTbl th.l{text-align:left}#mdTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 14%,transparent)}
+#mdTbl td,#mdTbl th{text-align:center;white-space:nowrap}#mdTbl td.l,#mdTbl th.l{text-align:left}#mdTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#8fb2f2) 14%,transparent)}
 .md-nt{font-style:normal;font-size:11px;padding:0 4px;border-radius:4px;border:1px solid var(--line,rgba(142,160,196,.35));color:var(--ink-3,#8ea0c4)}
 .md-op{display:flex;gap:4px;justify-content:center}.md-op .btn{height:24px;padding:0 8px;font-size:12px}.md-del.cf{border-color:var(--rise);color:var(--rise)}
-.md-form{border:1px solid var(--cat-1,#4cc9f0);border-radius:8px;padding:12px;margin:0 0 8px}
+.md-form{border:1px solid var(--cat-1,#6ec0e6);border-radius:8px;padding:12px;margin:0 0 8px}
 .md-fg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 12px}.md-f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-2,#9aa7c0);min-width:0}
 .md-f input{height:32px;padding:0 8px;border-radius:6px;border:1px solid var(--line,rgba(142,160,196,.35));background:transparent;color:inherit;font:inherit;font-size:14px;min-width:0}
 .md-f.bad input{border-color:var(--rise)}.md-fnote{grid-column:span 2}
