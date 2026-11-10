@@ -5,12 +5,28 @@
    "date": "2026-11-10",
    "items": [
     {
+     "cat": "新聞",
+     "title": "營收速報 - 台汽電(8926)10月營收52.84億元年增率高達585.99％",
+     "url": "https://news.cnyes.com/news/id/6655848",
+     "source": "鉅亨",
+     "time": "2026-11-10T16:21:33+08:00",
+     "desc": ""
+    },
+    {
      "cat": "科技",
-     "title": "台積電 10 月營收 5,868.9 億元年增 59.71%，前十個月年增 43.29% 創高",
-     "url": "https://finance.technews.tw/2026/11/10/nvidias-legal-counsel-reportedly-intervened-in-the-us-investigation-into-megaspeeds-alleged-smuggling-of-ai-chips/",
-     "source": "科技新報",
-     "time": "2026-11-10T14:40:19+08:00",
-     "desc": "晶圓代工龍頭台積電公布 10 月份合併營收，金額達新台幣 5,868.9 億元，較 9 月份增加 14.66%"
+     "title": "馬斯克Terafab野心曝！2032年目標月產100萬片晶圓、記憶體晶片產能直追三星",
+     "url": "https://news.cnyes.com/news/id/6655265",
+     "source": "鉅亨",
+     "time": "2026-11-10T15:22:17+08:00",
+     "desc": "Terafab傳2032年月產100萬片晶圓，其中70萬片做記憶體、30萬片做邏輯晶片，記憶體產能接近三星DRAM月產65萬至70萬片；Terafab已赴日本洽…"
+    },
+    {
+     "cat": "科技",
+     "title": "《價值型投資 最新產業研究報告》聯發科 (2454-TW) 首款雲端晶片出貨，資料中心與智慧裝置接力",
+     "url": "https://news.cnyes.com/news/id/6655478",
+     "source": "鉅亨",
+     "time": "2026-11-10T13:45:08+08:00",
+     "desc": "聯發科第3季營收1680.58億元、年增18.3%，EPS 17.50元，毛利率46.3%，前3季EPS 47.94元；智慧裝置平台與非手機業務擴大，含輝達合作…"
     },
     {
      "cat": "總經",
@@ -21,28 +37,12 @@
      "desc": ""
     },
     {
-     "cat": "科技",
-     "title": "避險基金大亨艾克曼：黃仁勳「為世界做了很多好事」 盼事件造成的傷害降到最低",
-     "url": "https://news.cnyes.com/news/id/6655272",
-     "source": "鉅亨",
-     "time": "2026-11-10T14:30:12+08:00",
-     "desc": "黃仁勳傳婚外情，輝達董事會已成立獨立委員會並聘外部律師調查相關報導；輝達稱暫無國安或商業機密受損跡象，黃仁勳留任配合；中國外交部則駁斥「中國女間諜」說法；事件遇…"
-    },
-    {
-     "cat": "新聞",
-     "title": "同欣電(6271) 想接 Lumentum 生意！大客戶若跟這家光通訊廠合併，機會大得多",
-     "url": "https://news.cnyes.com/news/id/6655503",
-     "source": "鉅亨",
-     "time": "2026-11-10T14:00:43+08:00",
-     "desc": ""
-    },
-    {
      "cat": "事件",
-     "title": "法超市冰箱遭駭 初步調查指向伊朗軍方涉案",
-     "url": "https://infosecu.technews.tw/2026/11/10/france-blames-iran-for-supermarket-fridge-hacks/",
+     "title": "黃仁勳婚外情捲情報案，川普政商關係與晶片政策遭檢視",
+     "url": "https://infosecu.technews.tw/2026/11/10/jensen-huang-affair-intelligence-probe-trump-political-business-ties-chip-policy-scrutiny/",
      "source": "科技新報",
-     "time": "2026-11-10T14:40:57+08:00",
-     "desc": "法國超市冷藏設備遭駭事件出現調查進展，法國政府指控，伊朗革命衛隊旗下駭客單位策動網攻，將召見伊朗大使並提議歐盟"
+     "time": "2026-11-10T16:00:41+08:00",
+     "desc": "輝達（Nvidia）表示，公司董事會著手調查執行長黃仁勳（Jensen Huang）是否成為外國情報行動的目標"
     }
    ]
   },
