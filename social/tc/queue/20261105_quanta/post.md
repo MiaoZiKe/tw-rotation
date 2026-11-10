@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: draft
+status: approved
 scheduled_at: 2026-11-13T20:30+08:00
 platforms: ig, threads
 images: 1_cover.jpg, 2_fields.jpg

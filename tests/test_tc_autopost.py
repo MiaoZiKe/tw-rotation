@@ -303,7 +303,7 @@ def test_格式檢查擋PNG與沒圖():
 def test_廣達稿在佇列且是draft():
     d = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue" / "20261105_quanta"
     p = tc.load(d)
-    assert p["meta"]["status"] == "draft"
+    assert p["meta"]["status"] in ("draft", "approved")  # 2026-11-10 Andy：「廣達核准」
     assert p["images"] == ["1_cover.jpg", "2_fields.jpg"] and all((d / x).is_file() for x in p["images"])
     assert p["main"] and p["reply"] and p["caption"]
 
