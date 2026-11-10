@@ -586,7 +586,7 @@ def test_廣達Threads主文在500字內():
     assert tc.validate(p) == []
     # 2026-11-09 起改用 Andy 親寫文案（docs/marketing/channels/tc/andy_style.md）：主文不放聲明，出處一行放第 1 則留言
     assert "52～64K" in p["main"] and "非公司公告" not in p["main"]
-    assert "國土測繪中心" in p["reply"] and "廣達官方" in p["reply"]
+    assert "國土測繪中心" in p["reply"] and "廣達官方" not in p["reply"]  # 封面是 Andy 本人拍攝（2026-11-10）
 
 
 # ---------------- 2026-11-10 頻道④交接：TECH_* 的 IG 是 EAA 系統用戶權杖（graph.facebook.com） ----------------
