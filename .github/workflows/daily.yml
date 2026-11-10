@@ -59,9 +59,10 @@ on:
 # 每日管線與歷史回補都會 commit 資料回 repo。
 # 同時跑的話，後完成的那個 push 一定會被拒絕（這就是歷史回補一直 Fail 的原因）。
 # 共用同一個 concurrency group 讓它們排隊，而不是互相踩。
-concurrency:
-  group: tw-rotation-data-write
-  cancel-in-progress: false
+# ★ 2026-11-10：群組從「整個 workflow」移到 collect job（寫資料湖的那個 job）。
+#   事故：11-10 15:38 price 輪 collect 8:22 就結束，但 deploy job 在 pages 群組排了 43 分鐘，
+#   整個 run 佔著 tw-rotation-data-write 到 09:06，16:16 起的 inst 輪全被略過，法人 17:39 才進湖。
+#   deploy 只是把 artifact 發佈出去、不寫資料湖，不該佔寫入群組。cancel-in-progress 仍是 false。
 
 permissions:
   contents: write
@@ -104,6 +105,9 @@ jobs:
     if: needs.guard.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    concurrency:
+      group: tw-rotation-data-write
+      cancel-in-progress: false
     outputs:
       # phase=inst 沒新資料時為 false → deploy 整個跳過（其他 phase 這個值是空的，照常部署）
       inst_new: ${{ steps.fetch.outputs.inst_new }}

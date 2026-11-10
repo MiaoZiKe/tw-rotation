@@ -1,6 +1,8 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+- 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
+
 ## 2026-11-10 17:25 台北 查「inst_daily／index_daily 還停 11/9」與「投信 11/9 +267.5 vs +313.12」（data-scraper，維修，沒改程式）
 - 問題2 根因＝排隊，不是壞掉：price 輪（15:38 台北派）連抓帶整站重算部署跑 1h27m，佔住 concurrency 群組 tw-rotation-data-write 到 17:06；期間 gh-cron 的 inst 每 10 分鐘派工都被「busyDailyRuns 守門」略過（設計如此，避免擠掉排隊中的 price／full）；被 GitHub 延遲 43 分鐘才建立的 07:37 排程 run 排在後面，17:06 才開跑、依時間掉進 phase=full，full 內含 inst。17:39 台北 full 抓完 commit：inst_daily 11/10 已進湖 1316 檔（freshness 標 thin，後續 inst 輪補齊）。
 - index_daily 是 openapi（T-1）來源，11/10 的官方指數要等 openapi 換日（晚間／隔日）才有，停 11/9 正常；11/10 大盤收盤走 index_ohlc（FinMind，已到 11/10）。

@@ -65,7 +65,25 @@ export async function busyDailyRuns(env, now, fetchImpl = fetch) {
       found.push({ id: r.id, status: st, title: r.display_title || r.name || '' });
     }
   }
-  return found;
+  // 2026-11-10：只有 collect（寫資料湖、佔 concurrency 群組）還沒做完的 run 才算忙；
+  // collect 已結束、只剩 deploy 在 pages 群組排隊的 run 不佔寫入群組，不該擋 inst（11-10 事故：擋了 43 分鐘）。
+  const busy = [];
+  for (const f of found) {
+    const res = await fetchImpl(`https://api.github.com/repos/${repo}/actions/runs/${f.id}/jobs?per_page=30`, {
+      headers: {
+        Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'tw-gh-cron-worker',
+      },
+    });
+    if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+    const jj = await res.json();
+    const collect = ((jj && jj.jobs) || []).find((x) => x.name === 'collect');
+    if (collect && collect.status === 'completed') continue;
+    busy.push(f);
+  }
+  return busy;
 }
 
 export async function runScheduled(scheduledTime, env, fetchImpl = fetch, log = console) {

@@ -107,10 +107,15 @@ test('2026-11-02 降量模式：資料管線（daily.yml）派工一條都沒少
 });
 
 // 2026-11-09：派 inst 前先查 daily.yml 有沒有排隊／執行中的 run，避免 concurrency 只留 1 個 pending 時把 price／full 擠掉
-function mkFetch(byStatus, calls) {
+function mkFetch(byStatus, calls, collectDone = []) {
   return async (url, init) => {
     calls.push({ url, init });
     if (init && init.method === 'POST') return { status: 204, text: async () => '' };
+    const m = /\/actions\/runs\/(\d+)\/jobs/.exec(url);
+    if (m) {
+      const done = collectDone.includes(Number(m[1]));
+      return { status: 200, json: async () => ({ jobs: [{ name: 'guard', status: 'completed' }, { name: 'collect', status: done ? 'completed' : 'in_progress' }] }), text: async () => '' };
+    }
     const st = new URL(url).searchParams.get('status');
     return { status: 200, json: async () => ({ workflow_runs: byStatus[st] || [] }), text: async () => '' };
   };
@@ -164,4 +169,14 @@ test('price／full／news 派工不受 guard 影響（不查、直接派）', as
   const done = await runScheduled(tpe('2026-11-09 15:38'), guardEnv, f, { log() {}, error() {} });
   assert.equal(done.length, 1);
   assert.equal(calls.length, 1);
+});
+
+test('2026-11-10：run 的 collect 已完成、只剩 deploy 在排隊 → 不算忙，inst 照派', async () => {
+  const calls = [];
+  const done = await runScheduled(NOW, guardEnv, mkFetch({ in_progress: [run(21, '每日盤後管線 (price)')] }, calls, [21]), { log() {}, error() {} });
+  assert.equal(done.length, 1);
+  assert.equal(posts(calls).length, 1);
+  // collect 還沒完成的同一種 run 仍然讓路
+  const calls2 = [];
+  assert.deepEqual(await runScheduled(NOW, guardEnv, mkFetch({ in_progress: [run(22, '每日盤後管線 (price)')] }, calls2, []), { log() {}, error() {} }), []);
 });
