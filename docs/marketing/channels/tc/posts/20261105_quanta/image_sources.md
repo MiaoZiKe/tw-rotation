@@ -17,3 +17,9 @@
 - taiwan-atlas 的 MIT 授權只管它的程式與轉檔，圖片本身不必印 MIT 聲明；留在本檔備查即可（信心：中）。
 - 為什麼不用 world-atlas：海岸線與縣市線要同一份資料才對得齊；world-atlas 沒有縣市界。
 - 總部點位：桃園龜山，北緯 25.03、東經 121.36（同一投影算出）。
+
+## 2026-11-10 封面照片更換（法遵：原總部照出自新頭殼新聞圖、查不到圖說，一律當成媒體著作，不可用）
+- 現用：`social/photo_lib/quanta/photo_8.jpg`（origin/main 圖池）＝廣達研究院 COSCUP 2012 攤位招牌牆，1920×1277；來源頁 https://commons.wikimedia.org/wiki/File:Quanta_Research_title_at_COSCUP_20120819.jpg（Flickr https://www.flickr.com/photos/coscup/7861158786）；作者 COSCUP；授權 CC BY-SA 2.0（https://creativecommons.org/licenses/by-sa/2.0）。
+- 裁切：取原圖 (130,0)–(1895,1180)，縮成 1032×690（`cover_photo.jpg`）；「Quanta」「廣達研究院」「Research」字樣完整；原圖右下角的 "by Aminzai" 字樣因裁切不在畫面內。
+- 署名（文案已加，ig.txt／threads.txt）：「圖：COSCUP／CC BY-SA 2.0（經裁切）。原圖：〔Commons 頁面〕（Flickr：〔原頁〕）。本封面合成圖同樣依 CC BY-SA 2.0 釋出。」
+- 備註：圖池 pool.json 記錄此張 2026-10-30 曾被 art-director 以「LOGO 牆為主角」退件；本次由法遵／Andy 指定使用，art-director 是否同意請另行確認。
