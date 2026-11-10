@@ -1,110 +1,29 @@
 [
  {
-  "html": "html/posts/20261112_salary/1.html",
-  "png": "../../queue/20261112_salary/1.png",
+  "html": "html/posts/20261111_unemployment/1.html",
+  "png": "../../queue/20261111_unemployment/1.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261112_salary/1",
-  "post": "20261112_salary",
+  "key": "20261111_unemployment/1",
+  "post": "20261111_unemployment",
   "safe": null
  },
  {
-  "html": "html/posts/20261112_salary/2.html",
-  "png": "../../queue/20261112_salary/2.png",
+  "html": "html/posts/20261111_unemployment/2.html",
+  "png": "../../queue/20261111_unemployment/2.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261112_salary/2",
-  "post": "20261112_salary",
+  "key": "20261111_unemployment/2",
+  "post": "20261111_unemployment",
   "safe": null
  },
  {
-  "html": "html/posts/20261112_salary/3.html",
-  "png": "../../queue/20261112_salary/3.png",
+  "html": "html/posts/20261111_unemployment/3.html",
+  "png": "../../queue/20261111_unemployment/3.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261112_salary/3",
-  "post": "20261112_salary",
-  "safe": null
- },
- {
-  "html": "html/posts/20261113_cpi/1.html",
-  "png": "../../queue/20261113_cpi/1.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261113_cpi/1",
-  "post": "20261113_cpi",
-  "safe": null
- },
- {
-  "html": "html/posts/20261113_cpi/2.html",
-  "png": "../../queue/20261113_cpi/2.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261113_cpi/2",
-  "post": "20261113_cpi",
-  "safe": null
- },
- {
-  "html": "html/posts/20261113_cpi/3.html",
-  "png": "../../queue/20261113_cpi/3.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261113_cpi/3",
-  "post": "20261113_cpi",
-  "safe": null
- },
- {
-  "html": "html/posts/20261114_resume/1.html",
-  "png": "../../queue/20261114_resume/1.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261114_resume/1",
-  "post": "20261114_resume",
-  "safe": null
- },
- {
-  "html": "html/posts/20261114_resume/2.html",
-  "png": "../../queue/20261114_resume/2.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261114_resume/2",
-  "post": "20261114_resume",
-  "safe": null
- },
- {
-  "html": "html/posts/20261114_resume/3.html",
-  "png": "../../queue/20261114_resume/3.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261114_resume/3",
-  "post": "20261114_resume",
-  "safe": null
- },
- {
-  "html": "html/posts/20261115_ai/1.html",
-  "png": "../../queue/20261115_ai/1.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261115_ai/1",
-  "post": "20261115_ai",
-  "safe": null
- },
- {
-  "html": "html/posts/20261115_ai/2.html",
-  "png": "../../queue/20261115_ai/2.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261115_ai/2",
-  "post": "20261115_ai",
-  "safe": null
- },
- {
-  "html": "html/posts/20261115_ai/3.html",
-  "png": "../../queue/20261115_ai/3.png",
-  "W": 1080,
-  "H": 1350,
-  "key": "20261115_ai/3",
-  "post": "20261115_ai",
+  "key": "20261111_unemployment/3",
+  "post": "20261111_unemployment",
   "safe": null
  }
 ]
