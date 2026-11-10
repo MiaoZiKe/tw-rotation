@@ -62,7 +62,7 @@ def rect_to_stadium(hw, hh, rcy, cx, cy, PW, PH):
 
 
 def fit(company, layout, widths, ob, Rr):
-    lines = [company] if layout == "one" else ([company[:len(company)//2], company[len(company)//2:]] if len(company) == 4 else [company])
+    lines = [company] if layout == "one" else (company.split("|") if "|" in company else ([company[:len(company)//2], company[len(company)//2:]] if len(company) == 4 else [company]))
     cjk = is_cjk(company)
     hwf = lambda f: max(widths[l] for l in lines) * f / 2
     hhf = lambda f: (len(lines) * f if cjk else len(lines) * 0.74 * f + (len(lines) - 1) * 0.3 * f) / 2
@@ -74,6 +74,15 @@ def fit(company, layout, widths, ob, Rr):
     return lines, 40, 0
 
 
+MIC = ('<svg data-k="cup" width="{w}" height="{h}" viewBox="0 0 64 64" style="position:absolute;left:{l:.1f}px;top:{t:.1f}px">'
+       '<g fill="none" stroke-linecap="round" stroke-linejoin="round">'
+       '<rect x="24" y="8" width="16" height="28" rx="8" stroke="{b}" stroke-width="5"/>'
+       '<path d="M15 30 C15 46 49 46 49 30" stroke="{b}" stroke-width="5"/><path d="M32 45 V55" stroke="{b}" stroke-width="5"/><path d="M22 57 H42" stroke="{b}" stroke-width="5"/>'
+       '<path d="M53 20 C57 25 57 31 53 36" stroke="{o}" stroke-width="4.5"/><path d="M59 15 C65 23 65 33 59 41" stroke="{o}" stroke-width="4.5"/></g></svg>')
+BUBBLE = ('<svg data-k="cup" width="{w}" height="{h}" viewBox="0 0 64 64" style="position:absolute;left:{l:.1f}px;top:{t:.1f}px">'
+          '<g fill="none" stroke-linecap="round" stroke-linejoin="round">'
+          '<path d="M14 10 H50 C55 10 58 13 58 18 V36 C58 41 55 44 50 44 H34 L22 55 V44 H14 C9 44 6 41 6 36 V18 C6 13 9 10 14 10 Z" stroke="{b}" stroke-width="5"/>'
+          '</g><circle cx="20" cy="27" r="3.6" fill="{o}"/><circle cx="32" cy="27" r="3.6" fill="{o}"/><circle cx="44" cy="27" r="3.6" fill="{o}"/></svg>')
 CUP = ('<svg data-k="cup" width="{w}" height="{h}" viewBox="0 0 64 64" style="position:absolute;left:{l:.1f}px;top:{t:.1f}px">'
        '<g fill="none" stroke-linecap="round" stroke-linejoin="round">'
        '<path d="M12 28 H44 V36 C44 46 37 53 28 53 C19 53 12 46 12 36 Z" stroke="{b}" stroke-width="5"/>'
@@ -117,7 +126,7 @@ def build(g, company, layout, widths, var, dxy=(0, 0), cup_x=None, OVERLAY=False
 """
     shuo = ""
     if V["kind"] == "pill":
-        shuo = f'<div class="ect" data-k="shuo">透明說</div>'
+        shuo = f'<div class="ect" data-k="shuo">{g.get("TD_PILL", "透明說")}</div>'
     elif V["kind"] == "disc":   # 品字形：透（上）、明 說（下）
         cxp, cyp = pl + PW / 2, pt_ + PH / 2
         pos = [("透", cxp, cyp - 21), ("明", cxp - 21, cyp + 20), ("說", cxp + 21, cyp + 20)]
@@ -125,7 +134,23 @@ def build(g, company, layout, widths, var, dxy=(0, 0), cup_x=None, OVERLAY=False
     else:                       # 圓點旁：「透明說」放在圓點右側、缺口外側
         shuo = f'<div style="position:absolute;left:{pl+PW+16:.1f}px;top:{pt_+PH/2-26:.1f}px;line-height:52px;font-weight:900;font-size:{PF}px;color:{INK};white-space:nowrap" data-k="shuo">透明說</div>'
     circ_right = ccx + R
-    if var == "D6":   # 一行旁白：藍細直線＋橘色小「」＋文字＋茶杯，整組靠右，茶杯右緣離畫布右邊 48px
+    if var == "D6" and g.get("TD_SUB_LINES"):   # 主題文：旁白可以多行、圖示可換（cup／mic）；字級由程式找「放得進右側」的最大值（上限 58）
+        lines_s = g["TD_SUB_LINES"]; LG = 18; nL = len(lines_s)
+        em = [len(l) for l in lines_s]; em[0] += 0.7; em[-1] += 0.7                     # 前後小引號各約 0.7em
+        text_l = circ_right + 2 * LG
+        SUBF = min(58, int((1034 - text_l - 20) / (max(em) + 0.84)))                    # 0.84em＝圖示可見寬（1.1×0.76）
+        LH = round(SUBF * 1.3); blk = nL * LH; top0 = ccy - blk / 2
+        pill_bot = oy + pt_ + PH; pill_right = ox + pl + PW
+        if text_l - LG < pill_right + 10 and top0 < pill_bot + 12: top0 = pill_bot + 12     # 多行旁白會頂到右上的膠囊時，整塊往下讓開
+        htm = "".join(f"<div>{'<span class=q>「</span>' if i == 0 else ''}{l}{'<span class=q>」</span>' if i == nL - 1 else ''}</div>" for i, l in enumerate(lines_s))
+        sub = f'<div class="s4" data-k="sub"><i></i>{htm}</div>'
+        css += (f".s4{{position:absolute;left:{text_l:.1f}px;top:{top0:.1f}px;line-height:{LH}px;font-size:{SUBF}px;font-weight:700;letter-spacing:0;color:{INK};white-space:nowrap}}"
+                f".s4 i{{position:absolute;left:-{LG}px;top:6px;width:5px;height:{blk-12:.1f}px;border-radius:3px;background:{BLUE}}}.s4 .q{{color:{ORG};font-weight:900;font-size:0.7em}}")
+        cup_h = round(SUBF * 1.1)
+        cup_l = text_l + em[-1] * SUBF + 20 - 0.172 * cup_h
+        cup = ({"mic": MIC, "bubble": BUBBLE}.get(g.get("TD_ICON"), CUP)).format(w=cup_h, h=cup_h, l=cup_l, t=top0 + (nL - 0.5) * LH - 0.5 * cup_h + 2, b=BLUE, o=ORG)
+        sub_font = SUBF
+    elif var == "D6":   # 一行旁白：藍細直線＋橘色小「」＋文字＋茶杯，整組靠右，茶杯右緣離畫布右邊 48px
         LG = int(os.environ.get('TC_LG', 24)); SUBF = int((1040 - (circ_right + LG + LG) - 20) / 10.157)   # 10.157f＝字 8f＋引號 2×0.7f＋茶杯可見寬 0.757f
         LH = 80
         sub_l = circ_right + 2 * LG
@@ -158,8 +183,8 @@ def build(g, company, layout, widths, var, dxy=(0, 0), cup_x=None, OVERLAY=False
         (a0, b0), (a1, b1) = Lc(*LOGO_PTS[0]), Lc(*LOGO_PTS[1]); dcx, dcy = Lc(*LOGO_DOT)
         body += (f'<svg style="position:absolute;left:0;top:0" width="1080" height="1350"><path d="M {a0:.2f} {b0:.2f} A {25*kk:.2f} {25*kk:.2f} 0 1 1 {a1:.2f} {b1:.2f}" fill="none" stroke="#E5004C" stroke-opacity=".5" stroke-width="{9*kk:.2f}" stroke-linecap="round"/>'
                  f'<circle cx="{dcx:.2f}" cy="{dcy:.2f}" r="{6.6*kk:.2f}" fill="#00A0FF" fill-opacity=".5"/></svg>')
-    photo = g["TD_PHOTO"]() if g.get("TD_PHOTO") else g["photo_uri_abs"](Path(g["__file__"]).resolve().parent / "cover_photo.jpg")
-    pic = f'<div class="pic" data-k="photo" style="box-shadow:none;height:{g["PIC_H"]}px;background-image:url({photo});background-position:{g.get("TD_POS", "50% 50%")}"></div>'
+    photo = None if g.get("TD_PIC_HTML") else g["TD_PHOTO"]() if g.get("TD_PHOTO") else g["photo_uri_abs"](Path(g["__file__"]).resolve().parent / "cover_photo.jpg")
+    pic = g["TD_PIC_HTML"] if g.get("TD_PIC_HTML") else f'<div class="pic" data-k="photo" style="box-shadow:none;height:{g["PIC_H"]}px;background-image:url({photo});background-position:{g.get("TD_POS", "50% 50%")}"></div>'
     sw_ = g["SWIPE"].replace('<div class="sw">', '<div class="sw" data-k="swipe">')
     hd = f'<div class="hd"></div><div class="strip"><i></i></div><div class="lg">{g["OPEN_RING"]}</div>'
     info = dict(font=f, lines=lines, dy=dy, center=(ccx, ccy), R=R, gap_top=sdist(ac * math.cos(t_top), ac * math.sin(t_top), pxr, pyr, PW, PH) - CAP_R,
@@ -189,7 +214,7 @@ def main(g):
             f.unlink(); return info
         mf = OUT / f"_m_{name}.html"; mf.write_text("<meta charset='utf-8'><style>" + T.font_css() + "</style><span style='font-family:TCS;font-weight:900'>測ASML</span>", encoding="utf8")
         pg.goto(f"file://{mf}", wait_until="networkidle"); mf.unlink()
-        lines_ = [company] if layout == "one" else [company[:2], company[2:]]
+        lines_ = [company] if layout == "one" else (company.split("|") if "|" in company else [company[:2], company[2:]])
         widths = {l: (len(l) if is_cjk(l) else measure(pg, l)) for l in set(lines_ + [company])}
         info = render((0, 0))
         keys = pg.evaluate("[...document.querySelectorAll('[data-k]')].map(e=>e.dataset.k)")
