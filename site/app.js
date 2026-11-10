@@ -19,15 +19,15 @@
   const MONO_FF = '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace';
   /* 圖表色票。深色是預設值；切到明亮主題時 refreshPalette() 會就地改寫這個物件
      （所有圖表都是在 render 當下才讀它，改完重畫就會換色）。 */
-  const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', lime: '#c3ff5b',
-    ink: '#e8eeff', ink2: '#a9b6d6', ink3: '#6f7ea3', line: '#1e2a48', grid: 'rgba(255,255,255,.05)', panel: '#0a1020',
+  const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#8fb2f2', violet: '#b39af0', amber: '#ffb454', lime: '#b5c65a',
+    ink: '#fbfaf6', ink2: '#c8d0e2', ink3: '#9ba8c4', line: '#26385f', grid: 'rgba(255,255,255,.05)', panel: '#142142',
     /* 熱力圖 v2 的色階（refreshPalette 會從 --hm-* 重讀；這裡只是讀到之前的保底值，跟深色主題的 token 同值）*/
-    card: '#0f172b',
+    card: '#142142',
     hm: ['#078353', '#066542', '#0D4A35', '#495265', '#6B1927', '#A01831', '#D31239'], hmNa: '#2A3350',
     hmV: ['#1F4E8C', '#7EA6D8', '#F0B4AC', '#E0776B', '#B3261E'], hmT: ['#26363B', '#1B5C66', '#13828D', '#27AEB3', '#6FD6CF'], hmInkDark: '#1A1F2B' };
   /* ★ 市場明細「籌碼配色」（2026-10-20 Andy：「圖表顏色需要再鮮豔豐富點」；三大法人／期貨籌碼／信用交易三頁共用，寫進 docs/style_guide.md 十九）。
      身分色只用在「誰」的圖例、直條與線；紅漲綠跌（CH.up／CH.down）只用在數字與個股長條 —— 兩套語意不混。 */
-  const CHIP = { foreign: '#2563EB', trust: '#F97316', dealer: '#A855F7', retail: '#14B8A6', idxLight: '#0F172A', idxDark: '#E2E8F0', lineW: 2 };
+  const CHIP = { foreign: '#3F6BC4', trust: '#BF8416', dealer: '#8D6BD0', retail: '#2A9D8F', idxLight: '#14213D', idxDark: '#FBFAF6', lineW: 2 };
   window.TwChipColors = CHIP;
   /* 分類色盤。深色主題那組是螢光色，畫在近白色的面板上（供應鏈環節的小標籤、
      族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
@@ -57,24 +57,20 @@
         ③ 索引相鄰的兩色 ΔE ≥34（卡片在格線裡是相鄰的，那裡最容易看錯）。
         量測腳本的作法：CIEDE2000 ＋ 依 L.init() 重現 gidx／color_idx 的配色順序。*/
   const PALETTE_DARK = [
-    /* 0–13　★ 鎖定區：2026-09-12 起沿用的 14 色。loader.py 的 color_idx 靠它記住既有板塊的顏色，
-       動一個值就等於把全站既有板塊的顏色洗牌一次（DECISIONS #48）。只准往後 append。*/
-    '#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871',
-    '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a',
-    /* 14–33　2026-09-21 新增的 20 色（見下方說明）。*/
-    '#56acc2', '#e4bcca', '#70ac99', '#e5beab', '#75b138', '#acb1d9', '#a6a366',
-    '#c8a8d9', '#ccc98a', '#ded4ff', '#be9e16', '#cddbf5', '#e48c2f', '#ace3ec',
-    '#d59078', '#bed04b', '#ffc9fc', '#c29967', '#da83c9', '#efd7b4'
+    /* 0–7：⑤C 主色盤（2026-11-10，Andy 選 LOGO ⑤C）。藍、金、青綠、紫、天藍、橄欖、粉紫、灰藍，彼此明度錯開；刻意不含紅與銅紅（紅漲綠跌、強調色都不是資料色）。8–33：依序取離前面所有色最遠者、彩度壓低（主線亮、雜項退後）。對 #142142 對比 ≥4.9，與漲跌色 ΔE ≥18。依據 docs/brand/theme_5c.md 第四節。舊 34 色（含鎖定區 14 色）整組替換：索引沒變，只是同一個板塊換成新色。 */
+    '#7fa2e8', '#e2b04a', '#4dc2b5', '#b39af0', '#6ec0e6', '#b5c65a', '#d98cb8',
+    '#a3adba', '#e5d980', '#c086d0', '#849f4c', '#eeb1fe', '#d1e5a4', '#0099e0',
+    '#ba8f44', '#afddfe', '#aba264', '#f1d3f8', '#839773', '#f4bdcd', '#3dbbc9',
+    '#d0abca', '#78eefc', '#f2a46e', '#589ba3', '#fac6b8', '#8290b6', '#eddbb3',
+    '#9c89ae', '#b5c098', '#c3d1fa', '#a58d6b', '#b9b1d9', '#d1b090'
   ];
   const PALETTE_LIGHT = [
-    /* 0–13　★ 鎖定區：2026-09-12 起沿用的 14 色。loader.py 的 color_idx 靠它記住既有板塊的顏色，
-       動一個值就等於把全站既有板塊的顏色洗牌一次（DECISIONS #48）。只准往後 append。*/
-    '#0b7fa6', '#5f4ddb', '#b06a00', '#4a8a15', '#c2185b', '#0369a1', '#8a6d00',
-    '#0f766e', '#c2410c', '#6d28d9', '#047857', '#b91c1c', '#1d4ed8', '#a16207',
-    /* 14–33　2026-09-21 新增的 20 色（見下方說明）。*/
-    '#285662', '#a75577', '#36564c', '#9c6140', '#305a00', '#515e94', '#53522e',
-    '#77528e', '#737243', '#9d48f7', '#604e00', '#547abb', '#794200', '#5c8085',
-    '#7a402c', '#667700', '#bf46c2', '#634c2e', '#842c77', '#927548'
+    /* 同上，淺色版：對 #FBFAF6 對比 ≥4.3。 */
+    '#2b4c8c', '#9e6d0c', '#1b7f79', '#7a4fb0', '#2a78ac', '#6e7d18', '#a5527f',
+    '#6a7686', '#76610c', '#8a67b3', '#5c6228', '#a15899', '#80783d', '#534b95',
+    '#715522', '#5c6dbb', '#6f6944', '#685eaa', '#605431', '#3168b3', '#856f4e',
+    '#674e84', '#387b89', '#7b4c5a', '#105d6b', '#9c6971', '#336380', '#7d4068',
+    '#5e6d91', '#89617a', '#53577b', '#82598d', '#756d92', '#654c6b'
   ];
   const PALETTE = PALETTE_DARK.slice();
 
@@ -145,14 +141,14 @@
   };
   /* 三張 treemap（產業板塊 #indTree、總覽熱力圖、題材熱力圖）共用的「殼」。
      ★ ECharts 的 treemap 是用 itemStyle.borderColor 當整片底色的（方塊間的縫就是它），
-       以前三處都寫死 '#0b1224'，所以淺色主題切過去整張圖還是黑底 —— Andy 圖13 講的就是這個。
+       以前三處都寫死 '#0a1326'，所以淺色主題切過去整張圖還是黑底 —— Andy 圖13 講的就是這個。
      標籤色也一起收在這裡：淺色主題底下方塊是淡色，白字會消失，要改用深色字。*/
   const treeSkin = () => {
     const lt = theme() === 'light';
     return {
       border: CH.panel,
       label: { color: lt ? CH.ink : '#fff', textShadowColor: lt ? 'rgba(255,255,255,.75)' : '#000', textShadowBlur: lt ? 3 : 4 },
-      upper: { color: lt ? CH.ink2 : '#a9b6d6', backgroundColor: lt ? 'rgba(40,35,25,.06)' : 'rgba(0,0,0,.25)' },   // 淺色暖化（v2 第 3 批）
+      upper: { color: lt ? CH.ink2 : '#c8d0e2', backgroundColor: lt ? 'rgba(40,35,25,.06)' : 'rgba(0,0,0,.25)' },   // 淺色暖化（v2 第 3 批）
     };
   };
 
@@ -1038,7 +1034,7 @@
       if (nc) { if (typeof nc === 'function') nc.__grad = true; s.itemStyle = { ...(s.itemStyle || {}), color: nc }; }
     },
   };
-  const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 13 }, padding: [8, 10], confine: true };  // 設計 v4 §4：提示框 13、內距 8×10
+  const tip = { backgroundColor: '#182749', borderColor: '#3b4f7f', textStyle: { color: '#fbfaf6', fontSize: 13 }, padding: [8, 10], confine: true };  // 設計 v4 §4：提示框 13、內距 8×10
 
   /* ---------------- 甜甜圈共用風格（Andy 2026-10-06：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」，DECISIONS #331）----------------
      範本＝產業地圖「成交值占比」。全站不論 ECharts 或手畫 SVG 的圓餅／甜甜圈，視覺與互動參數都從這一份取，
@@ -1159,11 +1155,11 @@
     const s = getComputedStyle(document.documentElement);
     const v = (n, d) => (s.getPropertyValue(n) || '').trim() || d;
     CH.up = v('--rise', '#ff4d6d'); CH.down = v('--fall', '#2ee59d');
-    CH.cyan = v('--cyan', '#3ee0ff'); CH.violet = v('--violet', '#8b7bff');
-    CH.amber = v('--amber', '#ffb454'); CH.lime = v('--lime', '#c3ff5b');
-    CH.ink = v('--ink', '#e8eeff'); CH.ink2 = v('--ink-2', '#a9b6d6'); CH.ink3 = v('--ink-3', '#6f7ea3');
-    CH.line = v('--line', '#1e2a48'); CH.grid = v('--grid', 'rgba(255,255,255,.05)');
-    CH.panel = v('--chartbg', '#0a1020');
+    CH.cyan = v('--cyan', '#8fb2f2'); CH.violet = v('--violet', '#b39af0');
+    CH.amber = v('--amber', '#ffb454'); CH.lime = v('--lime', '#b5c65a');
+    CH.ink = v('--ink', '#fbfaf6'); CH.ink2 = v('--ink-2', '#c8d0e2'); CH.ink3 = v('--ink-3', '#9ba8c4');
+    CH.line = v('--line', '#26385f'); CH.grid = v('--grid', 'rgba(255,255,255,.05)');
+    CH.panel = v('--chartbg', '#142142');
     // 分類色盤就地換一組（不能換新陣列，L.scolor 之類的地方拿的是同一個參照）
     const src = theme() === 'light' ? PALETTE_LIGHT : PALETTE_DARK;
     PALETTE.length = 0; src.forEach(c => PALETTE.push(c));
@@ -1172,7 +1168,7 @@
     axisStyle.axisLabel.color = CH.ink3;
     axisStyle.splitLine.lineStyle.color = CH.grid;
     axisStyle.splitLine.lineStyle.type = v('--t4-grid-type', 'solid');   // 設計 v4：科技 HUD 的格線是虛線（theme4.css 的 --t4-grid-type）
-    CH.card = v('--panel', '#0f172b');
+    CH.card = v('--panel', '#142142');
     CH.hm = ['--hm-n3', '--hm-n2', '--hm-n1', '--hm-0', '--hm-p1', '--hm-p2', '--hm-p3'].map((n, i) => v(n, CH.hm[i]));
     CH.hmNa = v('--hm-na', CH.hmNa);
     CH.hmV = ['--hm-v1', '--hm-v2', '--hm-v3', '--hm-v4', '--hm-v5'].map((n, i) => v(n, CH.hmV[i]));
@@ -1181,7 +1177,7 @@
     /* ★ 2026-09-24 設計系統 v2 §2.2：提示框改成半透明＋毛玻璃、圓角 10、柔和陰影。
        透明度是算過的（淺色 86%／深色 88%），參考站的 70% 疊在最深的方塊上次要字只剩 3.71:1。*/
     tip.backgroundColor = v('--tip-bg', 'rgba(20,30,54,.88)');
-    tip.borderColor = v('--tip-line', '#2a3860');
+    tip.borderColor = v('--tip-line', '#3b4f7f');
     tip.borderWidth = theme() === 'light' ? 0 : 1;
     tip.extraCssText = `border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:${v('--tip-sh', '0 8px 24px -8px rgba(0,0,0,.55)')};`;
     tip.textStyle.color = CH.ink;
@@ -1194,8 +1190,8 @@
        沒有 TWTA（index.html 那段被拿掉）才退回舊行為：永久存 tw.theme。 */
     if (!window.TWTA) { try { localStorage.setItem(THEME_KEY, theme()); } catch (e) { /* 私密視窗，忽略 */ } }
     const meta = document.querySelector('meta[name="theme-color"]');
-    // 淺色＝--bg（設計系統 v2 第 3 批：#f2f5fb → 暖紙底 #F4F3EF；手機瀏覽器的網址列顏色跟頁底一致）
-    if (meta) meta.setAttribute('content', theme() === 'light' ? '#F4F3EF' : '#070b16');
+    // 淺色＝--bg（設計系統 v2 第 3 批：#f2efe8 → 暖紙底 #F2EFE8；手機瀏覽器的網址列顏色跟頁底一致）
+    if (meta) meta.setAttribute('content', theme() === 'light' ? '#F2EFE8' : '#0e1830');
     const btn = document.getElementById('themeBtn');
     if (btn) { btn.textContent = theme() === 'light' ? '🌙' : '☀'; btn.title = theme() === 'light' ? '切換成深色' : '切換成明亮'; }
     refreshPalette();
@@ -5121,7 +5117,7 @@
         if (x.nodeValue !== y.nodeValue) {
           x.nodeValue = y.nodeValue;
           const p = a.closest ? a.closest('.osn-v b') : null;
-          if (flash && p && p.animate) { try { p.animate([{ background: 'rgba(62,224,255,.35)' }, { background: 'transparent' }], { duration: 1100, easing: 'ease-out' }); } catch (e) { /* 舊瀏覽器 */ } }
+          if (flash && p && p.animate) { try { p.animate([{ background: 'rgba(143,178,242,.35)' }, { background: 'transparent' }], { duration: 1100, easing: 'ease-out' }); } catch (e) { /* 舊瀏覽器 */ } }
         }
         continue;
       }
@@ -6255,7 +6251,7 @@
   /* 輪動階段的四個顏色。
      ★ `color` 是 **getter**，不是寫死的色碼（Andy 2026-09-16：
        「一開始製作是黑色底，很多數據都是白色線條及文字，檢查所有切換回白色 UI 後需要更改的顏色」）。
-     以前這裡寫死深色主題的螢光色（#3ee0ff / #ffb454 / #2ee59d），切到淺色主題之後
+     以前這裡寫死深色主題的螢光色（#8fb2f2 / #ffb454 / #2ee59d），切到淺色主題之後
      這些字直接印在近白色的面板上 —— 實測對比度只有 1.41～1.57，等於看不見。
      改成讀 `CH`（切主題時 refreshPalette() 會就地改寫它），讀的當下才取值，
      所有既有的 `STAGE[k].color` 不用改就跟著主題走。*/
@@ -14305,7 +14301,7 @@
   }
   /* ★ 2026-09-28 設計 v4 第二批 2A：族群 × 法人的圖例搬到繪圖區外 —— 篩選列（產業鏈／族群兩顆下拉）右端。
      篩選列每次重畫都是 innerHTML 重建，所以圖例每次跟著補回去；點一顆＝ECharts 圖例的 legendToggleSelect（同一個動作）。*/
-  const INST_SER = [['外資', 'foreign', '#3ee0ff'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#8b7bff']];
+  const INST_SER = [['外資', 'foreign', '#8fb2f2'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#b39af0']];
   const instLegSel = {};
   function instLegend(c) {
     const row = document.querySelector('#flowInstCard .ddrow[data-for="instGroups"]');

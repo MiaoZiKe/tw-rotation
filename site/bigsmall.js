@@ -85,7 +85,7 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } } };
   const can = () => { try { return !!(root.TwPerm && root.TwPerm.can(KEY)); } catch (e) { return false; } };
   const liveOK = () => { try { return !!(root.TwLive && root.TwLive.allowed() && root.Live && root.Live.proxy()); } catch (e) { return false; } };
-  const COL = () => { const C = root.TwChipColors || {}; return { big: C.foreign || '#2563EB', small: C.retail || '#14B8A6' }; };
+  const COL = () => { const C = root.TwChipColors || {}; return { big: C.foreign || '#3F6BC4', small: C.retail || '#2A9D8F' }; };
   const tpe = () => new Date(Date.now() + 8 * 3600000);
   const today = () => tpe().toISOString().slice(0, 10);
   const inSession = () => { if (root.TW_BS_FORCE_OPEN) return true; const d = tpe(), w = d.getUTCDay(), m = d.getUTCHours() * 60 + d.getUTCMinutes(); return w >= 1 && w <= 5 && m >= 8 * 60 + 59 && m <= 13 * 60 + 36; };
@@ -246,7 +246,7 @@
           + `<br><span style="color:${C.small}">●</span> 小單淨 ${lots(r[2])} 張（${amt(r[4])}）<br>涵蓋率 ${r[5] == null ? '—' : Math.round(r[5] * 100) + '%'}` : '<br>這天沒有收集'); } },
       axisPointer: { link: [{ xAxisIndex: 'all' }] },
       grid: [{ left: 56, right: 16, top: 12, height: '46%' }, { left: 56, right: 16, top: '62%', bottom: 28 }],
-      xAxis: [0, 1].map(i => ({ type: 'category', data: dates, gridIndex: i, boundaryGap: true, axisLine: { lineStyle: { color: CH.line || '#2a3860' } },
+      xAxis: [0, 1].map(i => ({ type: 'category', data: dates, gridIndex: i, boundaryGap: true, axisLine: { lineStyle: { color: CH.line || '#3b4f7f' } },
         axisLabel: { show: i === 1, color: CH.ink3, fontFamily: Ap.NUM_FONT, formatter: (v) => v.slice(5), hideOverlap: true }, axisTick: { show: false } })),
       yAxis: [{ ...Ap.axisStyle, type: 'value', gridIndex: 0, scale: true, splitNumber: 3, min: +(lo - pad).toPrecision(4), max: +(hi + pad).toPrecision(4), axisLabel: { color: CH.ink3, fontFamily: Ap.NUM_FONT } },
         { ...Ap.axisStyle, type: 'value', gridIndex: 1, splitNumber: 2, axisLabel: { color: CH.ink3, fontFamily: Ap.NUM_FONT, formatter: (v) => Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + '萬' : v } }],

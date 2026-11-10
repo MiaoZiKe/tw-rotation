@@ -10,7 +10,7 @@
 <meta property="og:title" content="哩股哩股">
 <meta property="og:site_name" content="哩股哩股">
 <meta property="og:image" content="brand/logo-512.png?v=1011c">
-<meta name="theme-color" content="#070b16">
+<meta name="theme-color" content="#0e1830">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
      本機開發時維持 dev。前端讀這裡，畫在右上角與頂端橫幅，讓「換版了沒」用看的就知道。 -->
@@ -113,20 +113,20 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      搬下去之後執行順序不變（仍在 chart.js／app.js 之前），只是頁框先畫出來。 -->
 <style>
 :root{
-  --bg:#070b16; --bg-2:#0b1224; --panel:#0f172b; --panel-2:#141e36; --panel-3:#1a2542;
-  --line:#1e2a48; --line-2:#2a3860;
-  --ink:#e8eeff; --ink-2:#a9b6d6;
-  /* ★ 2026-09-23 UI 精修 #2：--ink-3 從 #6f7ea3 調亮到 #8493b8。
+  --bg:#0e1830; --bg-2:#0a1326; --panel:#142142; --panel-2:#182749; --panel-3:#1d2d54;
+  --line:#26385f; --line-2:#3b4f7f;
+  --ink:#fbfaf6; --ink-2:#c8d0e2;
+  /* ★ 2026-09-23 UI 精修 #2：--ink-3 從 #9ba8c4 調亮到 #9ba8c4。
      為什麼：這是全站量最大的一階文字（單頁約 960 個 .cat 之類的元素都吃它），
      舊值對 --panel 只有 4.41、對 --panel-2 只有 4.09，兩個都不到 WCAG AA 的 4.5 ——
      也就是「說明文字、時間戳、次要指標幾乎全站都差一點看不清楚」。
      新值色相一模一樣（222.7° → 222.7°），只提明度，所以配色的調性零改變。
      實測：panel 5.81 / panel-2 5.40 / panel-3 4.94 / bg 6.41。
-     退版就把這一行換回 #6f7ea3。 */
-  --ink-3:#8493b8;
-  --cyan:#3ee0ff; --violet:#8b7bff; --amber:#ffb454; --lime:#c3ff5b;
+     退版就把這一行換回 #9ba8c4。 */
+  --ink-3:#9ba8c4;
+  --cyan:#8fb2f2; --violet:#b39af0; --amber:#ffb454; --lime:#b5c65a;
   --rise:#ff4d6d; --fall:#2ee59d; --flat:#8ea0c4;
-  --glow:0 0 0 1px rgba(62,224,255,.25), 0 0 24px -6px rgba(62,224,255,.45);
+  --glow:0 0 0 1px rgba(143,178,242,.25), 0 0 24px -6px rgba(143,178,242,.45);
   --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -20px rgba(0,0,0,.9);
   --r:12px;
   /* ================ 2026-09-24 設計系統 v2（docs/design_system_v2.md §2.1）================
@@ -164,7 +164,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --hm-t1:#26363B; --hm-t2:#1B5C66; --hm-t3:#13828D; --hm-t4:#27AEB3; --hm-t5:#6FD6CF;
   --hm-ink-dark:#1A1F2B;
   /* 圖表提示框（§2.2）：半透明＋毛玻璃。88% 是算過的 —— --ink-3 疊在最深的方塊上最差仍有 4.84:1 */
-  --tip-bg:rgba(20,30,54,.97); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
+  --tip-bg:rgba(20,30,54,.97); --tip-line:#3b4f7f; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
   --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace; /* 跟 app.js 的 MONO_FF 同一串（畫布上的等寬字），改一邊要改另一邊 */
   /* ================ 2026-09-23 UI 精修：動效、焦點、列 hover 三組 token ================
      為什麼要先有 token 再談動效：整份樣式表原本 `:active` 規則 **0 條**、
@@ -178,19 +178,19 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --dur-slow:240ms;   /* 面板滑入（上限，不准再往上） */
   --ease:cubic-bezier(.2,0,0,1);        /* 標準：進場快、收尾慢 */
   --ease-out:cubic-bezier(0,0,.2,1);
-  --focus:#3ee0ff;    /* 鍵盤焦點環。對 --panel 11.30，遠高於非文字元素要求的 3.0 */
+  --focus:#8fb2f2;    /* 鍵盤焦點環。對 --panel 11.30，遠高於非文字元素要求的 3.0 */
   --row-hover:#17213c;/* 表格列 hover 底色。對 --panel 實測 1.12 —— 看得出來，但不會蓋掉文字 */
-  /* 主題會換掉的幾個「寫死過」的值。以前直接寫 #061018 / #0a1020 / rgba(7,11,22,.78)，
+  /* 主題會換掉的幾個「寫死過」的值。以前直接寫 #061018 / #142142 / rgba(7,11,22,.78)，
      改主題就改不動 —— 全部收成變數，明亮主題只要覆蓋這裡。 */
   --ontop:#061018;            /* 疊在 cyan 按鈕上的字色 */
-  --chartbg:#0a1020;          /* K 線圖、產業地圖那種需要實心底的容器 */
+  --chartbg:#142142;          /* K 線圖、產業地圖那種需要實心底的容器 */
   --topbar:rgba(7,11,22,.78); /* 頂部列（半透明 + 毛玻璃） */
   --topbar-m:rgba(7,11,22,.96);
   --grid:rgba(255,255,255,.05);
   --drop:rgba(0,0,0,.5);      /* 浮層陰影 */
-  --body-1:rgba(139,123,255,.16); --body-2:rgba(62,224,255,.12);
-  --illus:#0a1020;          /* 產業鏈示意圖（SVG 插畫，兩種主題都維持深色底） */
-  --dg-1:#132038; --dg-2:#070b16;
+  --body-1:rgba(179,154,240,.16); --body-2:rgba(143,178,242,.12);
+  --illus:#142142;          /* 產業鏈示意圖（SVG 插畫，兩種主題都維持深色底） */
+  --dg-1:#132038; --dg-2:#0e1830;
   /* ---------------- 剖析圖（2D／2.5D）的材質色與強調色 ----------------
      art-director 2026-09-21 裁定的名單（AGENTS §15：這一組由它擁有，
      **JS 不准再寫死 #xxxxxx**）。先做「同值搬家」—— 值跟搬家之前一模一樣，
@@ -208,7 +208,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
     --dg-met-t:#c9cfd5; --dg-met-t-2:#a8afb6;            /* 端電極 上面 */
     --dg-met-r:#aab1b8; --dg-met-r-2:#858c94;            /* 端電極 右面 */
     --dg-met-l:#a6adb4; --dg-met-l-2:#7f868d;            /* 端電極 左面 */
-    --dg-ag-cool:#3ee0ff; --dg-ag-cool-2:#ff4d6d;        /* AI 伺服器：冷卻水 進→出 */
+    --dg-ag-cool:#8fb2f2; --dg-ag-cool-2:#ff4d6d;        /* AI 伺服器：冷卻水 進→出 */
     --dg-ag-pcb:#173a2a; --dg-ag-pcb-2:#10291d;          /* AI 伺服器：板子 */
     --dg-ag-ccl:#12331f; --dg-ag-ccl-2:#0c2416;          /* AI 伺服器：銅箔基板 */
   --dg-cer:#d3cbb7; --dg-cer-2:#bbb39f;           /* 陶瓷本體（暖米白霧面） */
@@ -218,9 +218,9 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --dg-sn:#e2e7ec; --dg-ni:#a9b1b9;                /* 端子：錫、鎳 */
   --dg-cu:#b0743a; --dg-resin:#6f6858;
   /* 2026-10-07 題材圖線束／鋼桶／流程副字（美術把關）：深色值 */
-  --dg-cable:#6f6858; --dg-cable-edge:#0e1526; --dg-tie:#4a5568; --dg-accent-muted:#7d8aa3; --dg-text-2:#a9b1c2;             /* 端子：銅基底、導電樹脂（軟端子） */
+  --dg-cable:#6f6858; --dg-cable-edge:#0e1a33; --dg-tie:#4a5568; --dg-accent-muted:#7d8aa3; --dg-text-2:#a9b1c2;             /* 端子：銅基底、導電樹脂（軟端子） */
   --dg-pcb:#1a4230;                                /* 板材 */
-  --dg-ink:#e8eeff; --dg-ink-2:#a9b6d6; --dg-ink-3:#8ea0c4;   /* 圖上的文字三階 */
+  --dg-ink:#fbfaf6; --dg-ink-2:#c8d0e2; --dg-ink-3:#8ea0c4;   /* 圖上的文字三階 */
   --dg-warn:#ff8fab; --dg-err:#ff4d6d;             /* 警語、裂紋 */
   --dg-chg-a:.12;             /* 電荷疊色的透明度（.26 會把陶瓷的色相整個推掉，見 B2） */
   /* ---------------- 剖析圖的字級標準（art-director 2026-09-21 訂）----------------
@@ -252,19 +252,19 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   /* ---------------- 剖析圖的「畫面調性」四個 token（art-director 2026-09-21 深夜新增）----------------
      為什麼要有這四個：配色切換（下面的 [data-dgpal]）要換掉的就是這四樣東西，
      而它們以前分別寫死在三個地方 —— 底色寫在 `.dgwrap{background:var(--illus)}`、
-     強調色寫在 `diagrams.js` 的 `.dg{--dg-accent:#3ee0ff}`、底框色寫在 `.dgm .frame`。
+     強調色寫在 `diagrams.js` 的 `.dg{--dg-accent:#8fb2f2}`、底框色寫在 `.dgm .frame`。
      寫死的東西換不掉，那正是 DECISIONS #198 講的那個病。*/
   --dg-bg:var(--illus);                 /* 剖析圖畫布的底（配色會換掉它） */
   /* 等角零件的陰影底色與線色。以前這六個值寫死在 diagrams.js 的 STYLE 裡（#0c1428 那一組），
      全部偏藍 —— 配色換成暖色之後，零件的暗面還是冷的，整張圖就會「一半暖一半冷」。*/
   --dg-sh0:#0a1024; --dg-sh1:#0c1428; --dg-sh2:#080e1c; --dg-sh3:#050a14;
-  --dg-part-mix:#2a3860;                /* 零件描邊往哪個底色混 */
-  --dg-line-mix:#1e2a48;                /* 引線往哪個底色混 */
+  --dg-part-mix:#3b4f7f;                /* 零件描邊往哪個底色混 */
+  --dg-line-mix:#26385f;                /* 引線往哪個底色混 */
   --dg-iso-c:#4a6ea8;                   /* 等角零件沒有環節色時的預設色 */
   --dg-grd:rgba(120,150,210,.14);       /* 地板格線 */
   --dg-axis:rgba(120,150,210,.3);       /* 座標軸虛線 */
-  --dg-step-f:#0f172b;                  /* 流程列方塊的底 */
-  --dg-accent-2d:#3ee0ff;               /* 「不屬於任何零件」的強調色（流程箭頭、良率曲線、電荷） */
+  --dg-step-f:#142142;                  /* 流程列方塊的底 */
+  --dg-accent-2d:#8fb2f2;               /* 「不屬於任何零件」的強調色（流程箭頭、良率曲線、電荷） */
   --dg-frame-f:rgba(18,26,46,.5);       /* 說明框的底 */
   --dg-frame-s:rgba(120,150,210,.2);    /* 說明框的線 */
   /* ================ 風格系統的共用元件 token（art-director 2026-09-22，Andy 拍板兩種模式：科技／閱讀）================
@@ -292,21 +292,21 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      訊號＝藍（電）、電力＝橘（功率）、液冷＝青綠（水）。跟台股紅漲綠跌刻意錯開：
      青綠 175° vs 跌的綠 #2ee59d 156°；橘 28° vs 漲的紅 #ff4d6d 349°。
      對比要求：當卡片文字 ≥ 4.5、當圖形 ≥ 3（_uitest 批次22 逐個量）。*/
-  --dg-sig:#3ee0ff;  --dg-pwr:#ff9d4d;  --dg-cool:#35d9c9;
+  --dg-sig:#8fb2f2;  --dg-pwr:#ff9d4d;  --dg-cool:#35d9c9;
   /* 環節色降飽和：diagrams.js 的 STYLE 用 --cc（＝ --c 往 --dg-seg-mix 混 (100%－k)）當畫面上的環節色。
      深色＋科技 ＝ 原色（k 100%）；其餘三種組合的 k／mix 在下面的 [data-dgpal] 區塊。*/
   --dg-seg-k:100%; --dg-seg-mix:#000000;
   /* 題材圖（.dg3）的帶、站點、晶片、彩帶：以前寫死在 diagrams.js 的 STYLE 裡，值逐字搬過來 */
   --dg-band-f:rgba(30,42,72,.5);  --dg-band-s:rgba(120,150,210,.18);
-  --dg-b0-f:rgba(62,224,255,.10); --dg-b0-s:rgba(62,224,255,.28); --dg-b0-ink:#9fe6ff;
-  --dg-b1-f:rgba(139,123,255,.10); --dg-b1-s:rgba(139,123,255,.3); --dg-b1-ink:#c3baff;
+  --dg-b0-f:rgba(143,178,242,.10); --dg-b0-s:rgba(143,178,242,.28); --dg-b0-ink:#9fe6ff;
+  --dg-b1-f:rgba(179,154,240,.10); --dg-b1-s:rgba(179,154,240,.3); --dg-b1-ink:#c3baff;
   --dg-b2-f:rgba(255,180,84,.10); --dg-b2-s:rgba(255,180,84,.28); --dg-b2-ink:#ffd79a;
   --dg-slot-f:rgba(18,26,46,.55); --dg-slot-f2:rgba(18,26,46,.7); --dg-slot-s:rgba(120,150,210,.12);
   --dg-drop:rgba(0,0,0,.34);
   /* 題材等角小圖的光影（#316）：左上方主光 → 頂面前緣一道邊光（hl）、圓柱側面一道反光（spec）、
      落地那條邊一道接觸暗線（ao）。科技＝深底上的淡白邊光；閱讀＝紙底上較亮的白邊、較淡的暖灰暗線。*/
   --dg-hl:rgba(255,255,255,.30); --dg-spec:rgba(255,255,255,.14); --dg-ao-ln:rgba(0,0,0,.45);
-  --dg-rib-bg:rgba(120,150,210,.13); --dg-rib-flow:rgba(62,224,255,.5);
+  --dg-rib-bg:rgba(120,150,210,.13); --dg-rib-flow:rgba(143,178,242,.5);
   --dg-chip-f:rgba(15,23,43,.9); --dg-chip-ink:#d6e2ff;
   --dg-num-mix:#0b1226;
   /* ================ 各張剖析圖的材質色（2026-09-21 深夜：從九個檔的 scoped <style> 收進來）================
@@ -330,7 +330,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --dg-steel:#9aa6b4; --dg-steel-2:#6b7683;  /* 不鏽鋼：快接頭、管件、軸、滾珠 */
   --dg-tim:#b6a3b2;                          /* 導熱介面材料 TIM */
   --dg-die:#39476a;                          /* 矽裸晶 */
-  --dg-void:#0d1424;                         /* 切面上的空隙／腔體背景 */
+  --dg-void:#0b1428;                         /* 切面上的空隙／腔體背景 */
   --dg-frame:#1a2540;                        /* 框與盒的底 */
   --dg-cu-lit:#c88a4e; --dg-cu-dim:#9c6432;  /* 銅的亮面／暗面（等角上蓋的漸層兩端） */
   --dg-cu-cut:#8a5525;                       /* 銅在剖面上的斜線（表示這裡是實心的） */
@@ -344,7 +344,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --dg-yarn:#cfc8a4;          /* 玻纖紗束（⚠ 原名 --dg-glass，撞名改的） */
   --dg-sack:#c9b98f; --dg-metal-hi:#dde4ec;   /* 太空包編織袋；雲台亮面金屬（2026-10-07 第三批） */
   --dg-au:#e3b75a;            /* 表面處理最外層的金 */
-  --dg-edge:#0e1526;          /* 剖面描邊與鑽孔孔洞（比 --illus 更暗，孔才像孔） */
+  --dg-edge:#0e1a33;          /* 剖面描邊與鑽孔孔洞（比 --illus 更暗，孔才像孔） */
   /* ABF 載板 .dgabf */
   --dg-core:#3f4a30; --dg-core-2:#2f3824;   /* core：玻纖布補強樹脂（偏暗墨綠） */
   --dg-weave:#7d8c5c;                       /* core 的玻纖織紋（整張圖只有 core 有） */
@@ -430,17 +430,17 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      Andy：「我希望跟他們一樣規格」—— 參考截圖量到的是「暖白紙底、卡片比頁底亮一階、無陰影、暖灰字」這個**結構**；
      色值不是抄對方的（對方 #EFEEEA／#24231F），是 Andy 自己在剖析圖閱讀模式拍板過的那組（--dg-bg／--dg-ink，2026-09-22）。
      改前 → 改後（括號＝對 --panel 白／對 --bg 的實測對比）：
-       --bg      #f2f5fb → #F4F3EF（卡片對頁底 1.10:1，參考站 1.11）
+       --bg      #f2efe8 → #F2EFE8（卡片對頁底 1.10:1，參考站 1.11）
        --bg-2    #e9edf7 → #EFEDE8（事件抽屜底；--fall／--flat 對它 4.65／4.52，跟舊值同級）
        --panel-2 #f7f9fd → #FAF9F6　--panel-3 #eef2fa → #F2F1EC
        --line    #dde4f1 → #E9E6DF（1.25）　--line-2 #c2cde1 → #D6D2C8（1.51）
-       --ink     #0f1830 → #1F1D19（16.83／15.15）
+       --ink     #0f1830 → #14213D（16.83／15.15）
        --ink-2   #3f4e6d → #3E3A33（11.30／10.18）
-       --ink-3   #5b6884 → #5F5A51（6.85／6.16；對 --panel-3 6.05、對 --bg-2 5.85）
+       --ink-3   #5b6884 → #576175（6.85／6.16；對 --panel-3 6.05、對 --bg-2 5.85）
      主色 --cyan 與紅漲綠跌**一個都沒動**（對新 --bg：cyan 5.43、rise 5.27、fall 4.90、flat 4.76、lime 5.02）。*/
-  --bg:#F4F3EF; --bg-2:#EFEDE8; --panel:#ffffff; --panel-2:#FAF9F6; --panel-3:#F2F1EC;
+  --bg:#F2EFE8; --bg-2:#EFEDE8; --panel:#ffffff; --panel-2:#FAF9F6; --panel-3:#F2F1EC;
   --line:#E9E6DF; --line-2:#D6D2C8;
-  --ink:#1F1D19; --ink-2:#3E3A33;
+  --ink:#14213D; --ink-2:#3E3A33;
   /* ★ 2026-09-23 UI 精修 #2／#3：淺色主題七個色一起往下壓明度。
      為什麼：淺色主題底色是白與近白，舊值有七個對背景不到 4.5（最差的 --fall 只有 3.17），
      所以「切成明亮主題之後一堆字看不清楚」不是錯覺，是量得出來的。
@@ -458,7 +458,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      ⚠ app.js 的 PALETTE_LIGHT[0/2/3] 仍然是 #0b7fa6 / #b06a00 / #4a8a15 ——
         那是「分類色盤」的鎖定區（DECISIONS #48：動一個值就把全站板塊顏色洗牌），
         跟這裡的語意色是兩套東西，**刻意不同步**。 */
-  --ink-3:#5F5A51;   /* v2 第 3 批：#5b6884（冷藍灰）→ 暖灰，見本段最上面的對比表 */
+  --ink-3:#576175;   /* v2 第 3 批：#5b6884（冷藍灰）→ 暖灰，見本段最上面的對比表 */
   --cyan:#0a6b8a; --violet:#5f4ddb; --amber:#8f5600; --lime:#3f7512;
   --rise:#c81234; --fall:#07794f; --flat:#5f6c85;
   --glow:0 0 0 1px rgba(11,127,166,.22), 0 4px 16px -8px rgba(11,127,166,.4);
@@ -501,13 +501,13 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
    ★ tech ＝ **:root 的預設值，一個都不覆寫** —— 科技模式必須跟改動之前的畫面同一張。
    ★ 語意色的規矩改成：**色相不准動，明度可以依底色重算**。
      以前那條「任何配色下都不覆寫」是在四個配色全部深底時寫的；
-     #ff4d6d 印在 #f4f3ef 上只有 3.0:1、#ff8fab 只有 2.0:1，「這是警告」在亮底上根本讀不出來。
+     #ff4d6d 印在 #f2efe8 上只有 3.0:1、#ff8fab 只有 2.0:1，「這是警告」在亮底上根本讀不出來。
      驗收改成量對比（_uitest 批次22）：語意色對底 ≥ 3、當文字用時 ≥ 4.5，而且色相跟科技的同一個 token 差 < 15°。
    ★ 紅漲綠跌不撞：閱讀的主色是霧青 #1d6f79（色相 186°），跌的綠是 #077a51（157°）、漲的紅 #cf1f3a（350°）。 */
 :root[data-dgpal="read"]{
   /* ---- 底與三階文字 ---- */
-  --dg-bg:#f4f3ef;                      /* 暖白紙底（Andy 給的 #F4F3EF）；淺色主題的面板是 #fff，畫布比面板暖一階才看得出是一張圖 */
-  --dg-ink:#1f1d19; --dg-ink-2:#3e3a33; --dg-ink-3:#5f5a51;   /* 對 #f4f3ef：15.6／10.0／6.5:1 */
+  --dg-bg:#f2efe8;                      /* 暖白紙底（Andy 給的 #F2EFE8）；淺色主題的面板是 #fff，畫布比面板暖一階才看得出是一張圖 */
+  --dg-ink:#14213d; --dg-ink-2:#3e3a33; --dg-ink-3:#576175;   /* 對 #f2efe8：15.6／10.0／6.5:1 */
   --dg-mute:#726c64;                    /* 附註級圖形與「灰色剪影」的標籤（4.7:1；先進封裝那張拿它當標籤色） */
   --dg-psu-off:var(--dg-mute);          /* 伺服器電源「不在這條鏈上」的設施側：科技用 52% 透明的 mute，紙底上會淡到 1.7:1，這裡給實色 */
   --dg-accent-2d:#1d6f79;               /* 一張圖唯一的主色：霧青。對底 5.3:1 */
@@ -521,7 +521,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --dg-card-sh:drop-shadow(0 1px 2px rgba(40,35,25,.16));   /* 柔和的環境光遮蔽感 */
   --dg-card-blur:blur(10px);            /* HTML 卡片的磨砂玻璃：霧面白 */
   --dg-card-box-sh:0 1px 3px rgba(40,35,25,.14);
-  --dg-no-ink:#1f1d19;                  /* 編號數字：閱讀模式的圓點是粉彩底＋色環，數字用深灰（白字印在壓深過的粉彩上只有 4.05:1） */
+  --dg-no-ink:#14213d;                  /* 編號數字：閱讀模式的圓點是粉彩底＋色環，數字用深灰（白字印在壓深過的粉彩上只有 4.05:1） */
   --dg-lead:#6b665d; --dg-lead-w:.9; --dg-lead-sel-w:1.5;   /* 深灰細引線 */
   --dg-flow-dot:#1d6f79; --dg-flow-w:1.6;
   --dg-hero-sh:drop-shadow(0 6px 10px rgba(40,35,25,.18));
@@ -585,7 +585,7 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
   --dg-drop:rgba(40,35,25,.18);
   --dg-hl:rgba(255,255,255,.72); --dg-spec:rgba(255,255,255,.36); --dg-ao-ln:rgba(58,50,40,.30);
   --dg-rib-bg:rgba(58,53,45,.12); --dg-rib-flow:rgba(29,111,121,.55);
-  --dg-chip-f:rgba(255,255,255,.85); --dg-chip-ink:#1f1d19;
+  --dg-chip-f:rgba(255,255,255,.85); --dg-chip-ink:#14213d;
   --dg-num-mix:#ffffff;
 }
 :root[data-dgpal="read"] .dg.rs{--dg-fs-ttl:19px;--dg-fs-hd:15px;--dg-fs-lbl:14px;--dg-fs-min:13px}
@@ -835,13 +835,13 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
 /* 熱力圖分頁：還沒選題材時，題材細節那一塊只放一句怎麼用（2026-09-24 題材併進熱力圖）*/
 .themehint{padding:12px 4px;font-size:13px;line-height:1.6;border:1px dashed var(--line-2);border-radius:var(--r);text-align:center}
 /* 數字真的變了才閃一下 —— 沒有這個提示，盤中盯著看根本分不出有沒有在動 */
-@keyframes liveflash{0%{background:rgba(62,224,255,.35)}100%{background:transparent}}
+@keyframes liveflash{0%{background:rgba(143,178,242,.35)}100%{background:transparent}}
 .liveflash{animation:liveflash 1.1s ease-out;border-radius:4px}
 @media (max-width:820px){
   .livebox .livestate{display:none}
 }
 /* ★ 2026-09-23 UI 精修 #3：事件顆數徽章的字色從寫死的 #fff 改成 var(--ontop)。
-   實測白字印在深色主題的 --violet(#8b7bff) 上只有 **3.29:1**，讀不出來；
+   實測白字印在深色主題的 --violet(#b39af0) 上只有 **3.29:1**，讀不出來；
    --ontop 在深色是 #061018 → 5.82，在淺色是 #ffffff 印在 #5f4ddb 上 → 5.88，
    一個 token 同時把兩個主題都修好。字級 11 → 12px（本專案的下限）。*/
 .evbtn .n{background:var(--violet);color:var(--ontop);font-size:12px;padding:1px var(--sp-2);border-radius:9px;margin-left:var(--sp-1);font-family:var(--mono)}
@@ -952,8 +952,8 @@ body.miaon #skHead>.disc-line{display:none}
 .pill{display:inline-flex;align-items:center;gap:var(--sp-2);padding:3px var(--sp-2);border-radius:999px;font-size:12.5px;
   background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
 @media (max-width:640px){.pill{gap:6px;padding:3px 10px}}
-.pill.cyan{background:rgba(62,224,255,.12);border-color:rgba(62,224,255,.4);color:var(--cyan)}
-.pill.violet{background:rgba(139,123,255,.14);border-color:rgba(139,123,255,.45);color:#c3baff}
+.pill.cyan{background:rgba(143,178,242,.12);border-color:rgba(143,178,242,.4);color:var(--cyan)}
+.pill.violet{background:rgba(179,154,240,.14);border-color:rgba(179,154,240,.45);color:#c3baff}
 .pill.up{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.4);color:var(--rise)}
 .pill.down{background:rgba(46,229,157,.12);border-color:rgba(46,229,157,.4);color:var(--fall)}
 .pill.amber{background:rgba(255,180,84,.12);border-color:rgba(255,180,84,.45);color:var(--amber)}
@@ -1131,7 +1131,7 @@ body.miaon #skHead>.disc-line{display:none}
 @media (max-width:640px){.zoomov .zh{margin-bottom:10px}}
 /* ★ 2026-09-24（審查 R4）：罩底固定深色（不隨主題變），標題字色也要固定淺色 ——
    以前吃 var(--ink)，淺色主題下變成深字壓深底，「題材資金熱力」幾乎隱形。*/
-.zoomov .zh b{font-size:17px;color:#E8EEFF}
+.zoomov .zh b{font-size:17px;color:#FBFAF6}
 .zoomov .zh .chainchips{margin:0;flex:1}
 /* 2026-09-26：資金熱力圖放大視窗的產業鏈下拉（#heatZoomDD）也放在 .zh 裡 ——
    上一條 `.zoomov .zh b` 是給標題 #zoomTitle 的 17px 固定淺色字，會連下拉按鈕上的「全部」一起放大成 17px。
@@ -1446,7 +1446,7 @@ body.miaon #skHead>.disc-line{display:none}
 @media (prefers-reduced-motion:reduce){ .rbar .pb{transition:none} }
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
-.zwrap.zoomed>.zpane{outline:1px solid rgba(62,224,255,.25);border-radius:10px;cursor:grab}
+.zwrap.zoomed>.zpane{outline:1px solid rgba(143,178,242,.25);border-radius:10px;cursor:grab}
 .zwrap.zoomed.grabbing>.zpane{cursor:grabbing}
 /* 放大後靠拖曳移動，游標拖過去時不要選到圖上的文字 */
 .zwrap.zoomed>.zpane{user-select:none;-webkit-user-select:none;touch-action:none}
@@ -1458,7 +1458,7 @@ body.miaon #skHead>.disc-line{display:none}
 .zwrap>.zbadge{position:absolute;right:8px;top:8px;z-index:5;pointer-events:none;
   background:rgba(10,16,32,.82);border:1px solid var(--line-2);color:var(--ink-3);
   font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;opacity:.65;transition:.15s}
-.zwrap:hover>.zbadge{opacity:1;color:var(--cyan);border-color:rgba(62,224,255,.4)}
+.zwrap:hover>.zbadge{opacity:1;color:var(--cyan);border-color:rgba(143,178,242,.4)}
 /* 法人連續買超：右上角正好是「買最久又買最多」那一顆泡泡（2026-09-20 Andy 截圖的玉山金），
    「滾輪放大」徽章壓在上面會把它的名字整個蓋掉。這張圖右下角是空的，徽章挪過去。*/
 /* 本益比河流圖右側印著區間名稱（警示／昂貴…），徽章放右上會蓋住「警示」→ 移到左上、y 軸刻度右邊 */
@@ -1473,7 +1473,7 @@ body.miaon #skHead>.disc-line{display:none}
 /* 放大後才出現的「還原」鈕（審查 R4：角標寫「雙擊還原」，但雙擊第一下會被圖當成點方塊而跳頁，
    所以給一顆真的按鈕）。放右上角：三張熱力圖的徽章在左下、法人連買的徽章在右下，不會疊在一起。*/
 .zwrap>.zreset{position:absolute;right:8px;top:8px;z-index:6;height:26px;padding:0 var(--sp-3);border-radius:999px;
-  border:1px solid rgba(62,224,255,.45);background:rgba(10,16,32,.9);color:#E8EEFF;font-size:12px;cursor:pointer}
+  border:1px solid rgba(143,178,242,.45);background:rgba(10,16,32,.9);color:#FBFAF6;font-size:12px;cursor:pointer}
 @media (max-width:640px){.zwrap>.zreset{padding:0 11px}}
 .zwrap>.zreset:hover{border-color:var(--cyan);color:var(--cyan)}
 .zwrap>.zreset[hidden]{display:none}
@@ -1817,7 +1817,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 /* 資金流向頁：期間切換、「怎麼看」說明、估值篩選 */
 .mkthead .mktright{margin-left:auto;justify-content:flex-end}
 @media (max-width:800px){.mkthead{flex-direction:column;align-items:flex-start}.mkthead .mktright{margin-left:0;justify-content:flex-start;max-width:100%}}
-.periodbar{background:linear-gradient(180deg,rgba(62,224,255,.07),transparent)}
+.periodbar{background:linear-gradient(180deg,rgba(143,178,242,.07),transparent)}
 .periodbar .pnote{color:var(--ink-3);font-size:13px;margin-top:4px;font-family:var(--mono)}
 .howbtn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:var(--sp-1) var(--sp-3);font-size:12.5px;cursor:pointer;white-space:nowrap}
@@ -1856,9 +1856,9 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
   color:var(--ink-2);border-radius:7px;cursor:pointer;padding:0}
 .dtool svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .dtool:hover{background:var(--panel-2);color:var(--ink)}
-.dtool.on{background:rgba(62,224,255,.14);border-color:var(--cyan);color:var(--cyan)}
+.dtool.on{background:rgba(143,178,242,.14);border-color:var(--cyan);color:var(--cyan)}
 .dcol{width:20px;height:20px;border-radius:5px;border:2px solid transparent;cursor:pointer;margin:0 auto;padding:0}
-.dcol.on{border-color:#e8eeff}
+.dcol.on{border-color:#fbfaf6}
 .dsep{height:1px;background:var(--line-2);margin:3px 2px}
 .chartwrap #chartHost{flex:1;min-width:0}
 /* 分時走勢（2026-09-28）：分時不是 K 線 → 畫線工具列收起（手繪線存在 K 棒座標上）、「還原」小標收起（分時是原始成交價）。
@@ -1891,7 +1891,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 @media (max-width:760px){.chartwrap{flex-direction:column}.drawbar{flex-direction:row;flex-wrap:wrap;align-self:stretch}.dsep{height:auto;width:1px;margin:2px 3px}}
 /* 今日候選的族群篩選：Excel 欄位篩選那種勾選下拉 */
 .cgwrap{position:relative}
-.cgwrap .btn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(62,224,255,.1)}
+.cgwrap .btn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(143,178,242,.1)}
 .cgpop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:280px;max-width:calc(100vw - 32px);
   background:var(--panel);border:1px solid var(--line-2);border-radius:11px;padding:var(--sp-2);box-shadow:0 18px 46px var(--drop)}
 @media (max-width:640px){.cgpop{padding:10px}}
@@ -1918,7 +1918,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .facets button b{font-weight:700}
 .facets button em{font-style:normal;font-size:11px;color:var(--ink-3);letter-spacing:.02em}
 .facets button:hover{border-color:var(--cyan)}
-.facets button.on{border-color:var(--cyan);background:rgba(62,224,255,.12);color:var(--ink)}
+.facets button.on{border-color:var(--cyan);background:rgba(143,178,242,.12);color:var(--ink)}
 .facets button.on em{color:var(--cyan)}
 .hint{margin:0 0 var(--sp-2);color:var(--ink-3);font-size:12.5px;line-height:1.5}
 @media (max-width:640px){.hint{margin:0 0 10px}}
@@ -2050,7 +2050,7 @@ a.lk.sm{font-size:12px;font-weight:500}
 .chainsw button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:var(--sp-1)}
 @media (max-width:640px){.chainsw button em{margin-left:6px}}
 .chainsw button:hover{border-color:var(--cyan);color:var(--ink)}
-.chainsw button.on{background:rgba(62,224,255,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
+.chainsw button.on{background:rgba(143,178,242,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
 .chainsw button.on em{color:var(--cyan)}
 .chainsw button[data-dg]::before{content:'◧';margin-right:var(--sp-1);font-size:11px;opacity:.75}
 @media (max-width:640px){.chainsw button[data-dg]::before{margin-right:5px}}
@@ -2173,7 +2173,7 @@ a.lk.sm{font-size:12px;font-weight:500}
 @media (max-width:820px){ .gpgrid{grid-template-columns:minmax(0,1fr)} .gpgrid .chart{min-height:320px} }
 .qtag{font-size:11.5px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:var(--sp-1)}
 @media (max-width:640px){.qtag{margin-left:6px}}
-.qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(62,224,255,.14);color:var(--cyan)}
+.qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(143,178,242,.14);color:var(--cyan)}
 .qtag.weakening{background:rgba(255,180,84,.14);color:var(--amber)} .qtag.lagging{background:rgba(46,229,157,.14);color:var(--fall)}
 .tile .lks{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);margin-top:8px;font-size:12.5px}
 @media (max-width:640px){.tile .lks{gap:4px 10px}}
@@ -2185,7 +2185,7 @@ a.lk.sm{font-size:12px;font-weight:500}
 @media (max-width:640px){.sibs{gap:6px;padding:6px 0 4px}}
 .sibs a.lk{flex:none;padding:var(--sp-1) var(--sp-2);border-radius:9px;background:var(--panel-3);border:1px solid var(--line);font-size:13px}
 @media (max-width:640px){.sibs a.lk{padding:5px 10px}}
-.sibs a.lk.cur{border-color:var(--cyan);background:rgba(62,224,255,.12);color:var(--cyan)}
+.sibs a.lk.cur{border-color:var(--cyan);background:rgba(143,178,242,.12);color:var(--cyan)}
 .sibs a.lk .chg{font-family:var(--mono);font-size:12px;margin-left:4px}
 .segchips{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-2)}
 @media (max-width:640px){.segchips{gap:6px;margin-top:10px}}
@@ -2242,7 +2242,7 @@ tr.ghead td{background:var(--panel-3);color:var(--ink-2);font-size:12.5px;font-w
 /* ★ 2026-09-23 UI 精修 #9：表格。四件事一起做，都是「資料很多時不要糊掉」。
    ① 列高固定：`td` 給定 line-height，每列高度不再因為內容長短上下抽動。
    ② 列 hover 換成 --row-hover（深 #17213c／淺 #eef2fa，兩個主題都實測 1.12:1）——
-      舊值是寫死的 rgba(62,224,255,.06)，在淺色主題上是一層幾乎看不見的青霧。
+      舊值是寫死的 rgba(143,178,242,.06)，在淺色主題上是一層幾乎看不見的青霧。
       1.12 是刻意的：看得出「游標在這一列」，但不會把整列的文字壓掉。
    ③ 每 5 列一條較明顯的分隔（--line-2）：給眼睛一個定位點。
       選細分隔線而不是斑馬紋，是因為**本站每一列都可以點**（點進個股頁），
@@ -2425,7 +2425,7 @@ tbody tr:last-child td{border-bottom:0}
 .kfit svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .mtf-cell .kfit{width:24px;height:24px}
 .mtf-cell .kfit svg{width:13px;height:13px}
-.verdict{border-left:3px solid var(--cyan);padding:12px 16px;background:rgba(62,224,255,.05);border-radius:0 10px 10px 0}
+.verdict{border-left:3px solid var(--cyan);padding:12px 16px;background:rgba(143,178,242,.05);border-radius:0 10px 10px 0}
 .verdict h3{margin-bottom:var(--sp-1)}
 @media (max-width:640px){.verdict h3{margin-bottom:6px}}
 .verdict ul{margin:var(--sp-1) 0 0;padding-left:var(--sp-4);color:var(--ink-2)}
@@ -2462,7 +2462,7 @@ tbody tr:last-child td{border-bottom:0}
 .chainmap svg{display:block}
 .chainmap .seg-title{fill:var(--ink-3);font-size:12px;letter-spacing:.06em}
 .chainmap .co rect{rx:8;fill:var(--panel-3);stroke:var(--line-2);cursor:pointer;transition:.15s}
-.chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--cyan);filter:drop-shadow(0 0 8px rgba(62,224,255,.6))}
+.chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--cyan);filter:drop-shadow(0 0 8px rgba(143,178,242,.6))}
 .chainmap .co text{font-size:12.5px;fill:var(--ink);pointer-events:none}
 .chainmap .co .sub{font-size:11px;fill:var(--ink-3);font-family:var(--mono)}
 .chainmap .co.foreign rect{fill:var(--panel);stroke-dasharray:3 3}
@@ -2521,7 +2521,7 @@ tbody tr:last-child td{border-bottom:0}
 .chainmap .iso text{font-size:9.5px;fill:#d9a441;text-anchor:middle;pointer-events:none}
 .chainmap .co.dim{opacity:.28}
 .chainmap .co rect{stroke:var(--line-2)}
-.chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--c,var(--cyan));filter:drop-shadow(0 0 8px var(--c,rgba(62,224,255,.6)))}
+.chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--c,var(--cyan));filter:drop-shadow(0 0 8px var(--c,rgba(143,178,242,.6)))}
 /* ★ 2026-10-03（Andy：「供應鏈關聯圖族群需要框線框起來比較簡潔」）：每個環節一個細框。
    邊框吃 v4 的卡片邊色（--t4-card-edge，沒掛 v4 時退回 --line-2），淡底＝環節色 5%；
    選取／滑過那個環節時框改成環節色（跟標題色塊同一個語意）。框不吃滑鼠，點擊照舊落在標題與卡片上。*/
@@ -2615,11 +2615,11 @@ tbody tr:last-child td{border-bottom:0}
        gpu 紫＝GPU／CoWoS 晶粒            ind 靛藍＝NVSwitch               cool 霓虹綠＝CDU／manifold 外殼
        cold 冷水（青綠迴路） hot 熱水管（發光紅）  cu 紅銅（冷板、銅箔） trace 金色走線
        air 風扇模組（暗藍／亮橙） blade 扇葉  airline 吹出來的氣流線（淡藍白） */
-  --dg-fl-sig:var(--dg-sig,#58C4FF); --dg-fl-sig-2:#2F7FE0; --dg-fl-opt:var(--dg-opt,#22E5C8); --dg-fl-pwr:var(--dg-pwr,#FF8A3D);
+  --dg-fl-sig:var(--dg-sig,#6EC0E6); --dg-fl-sig-2:#2F7FE0; --dg-fl-opt:var(--dg-opt,#22E5C8); --dg-fl-pwr:var(--dg-pwr,#FF8A3D);
   --dg-fl-gpu:#9B6DFF; --dg-fl-ind:#7C86FF; --dg-fl-cool:var(--dg-cool,#2FD9C4);
   /* v9（參考圖 docs/diagram_refs/3d_rack_*）：液冷迴路青綠發光；風扇框藍、扇葉藍色霓虹；玻璃邊緣高光；托盤底下 AO */
   --dg-fl-cold:#2FD9C4; --dg-fl-hot:#FF4D5E; --dg-fl-cu:#E8A97E; --dg-fl-cu-2:#B8694A; --dg-fl-trace:#FFD37A;
-  --dg-fl-air:#58C4FF; --dg-fl-blade:#7FD4FF; --dg-fl-airline:#BFE9FF;   /* air＝風扇模組（框／卡片），blade＝扇葉，airline＝吹出來的氣流線 */
+  --dg-fl-air:#6EC0E6; --dg-fl-blade:#7FD4FF; --dg-fl-airline:#BFE9FF;   /* air＝風扇模組（框／卡片），blade＝扇葉，airline＝吹出來的氣流線 */
   --dg-glass-edge:#9FE0FF; --dg-glass-edge-a:.55;
   /* 有了真陰影之後，這片軟接觸陰影退成「補一點點」就好，不然底下會糊成一塊黑 */
   --dg-ao:#000000; --dg-ao-a:.3;
@@ -3791,7 +3791,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .dg3dctl .pill{cursor:pointer;font-size:12.5px;line-height:1.35;
   background:color-mix(in srgb,var(--panel-3) 78%,transparent)}
 .dg3dctl .pill:hover{color:var(--ink);border-color:var(--cyan)}
-.dg3dctl .pill.cyan{background:rgba(62,224,255,.16)}   /* 「拖曳：平移」時亮青色，上面那條半透明底不能把它蓋掉 */
+.dg3dctl .pill.cyan{background:rgba(143,178,242,.16)}   /* 「拖曳：平移」時亮青色，上面那條半透明底不能把它蓋掉 */
 .dg3dctl .pill:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 /* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
@@ -4051,7 +4051,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    `outline:0`／`none` 有 5 處 —— 只用鍵盤的人完全不知道游標在哪一顆上面。
    `:focus-visible`（不是 `:focus`）表示「滑鼠點一下不會冒出焦點框，用鍵盤才會」。
    `outline-offset:2px` 是為了不被元素自己的邊框吃掉。
-   焦點環用 --focus：深色 #3ee0ff 對 panel 11.30、淺色 #0a5f7d 對白底 7.13，
+   焦點環用 --focus：深色 #8fb2f2 對 panel 11.30、淺色 #0a5f7d 對白底 7.13，
    都遠高於非文字元素要求的 3.0。*/
 :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
   outline:2px solid var(--focus);outline-offset:2px;
@@ -5572,6 +5572,7 @@ h3 .howbtn.pop{font-family:inherit}
 </style>
 <!-- 設計 v4 的骨架＋三套主題變數（docs/design_v4/01_設計系統.md）。放在內嵌樣式之後才蓋得過（<head> 那段 script 一定會掛 data-theme4）。 -->
 <link rel="stylesheet" href="theme4.css">
+<link rel="stylesheet" href="theme5c.css">
 <!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
 <link rel="stylesheet" href="layout4.css">
 <link rel="stylesheet" href="flowcheck.css"><link rel="stylesheet" href="flowcheck3.css"><link rel="stylesheet" href="flowcheck4.css"><!-- 2026-10-30 流向驗證頁 #flowcheck（手機規則在 m4/20261030-flowcheck.css） -->

@@ -1895,7 +1895,7 @@
   /* ---- 營收：月走勢｜年度走勢（照截圖：當月＋去年同期並排柱，MoM、YoY 兩條線，左軸百萬、右軸 %）----
      revenue.monthly 每列＝[年月, 營收(元), YoY%, MoM%, 累計, 累計 YoY%, 去年同月營收（finance-quant 補的第 7 欄，有就直接用）]；revenue.yearly＝[{year, months, revenue, by_month}] */
   /* 2026-10-09 手機與桌機同步：比率線一律不用紅／綠（本站紅＝漲、綠＝跌，紅色的 YoY 線會被讀成「在漲」）。
-     顏色照桌機同類圖：營收 YoY＝琥珀（industry.js 月營收圖 #ffb454）、淨利率＝紫（獲利圖 #8b7bff）、殖利率＝青（股利圖 CH.cyan）。*/
+     顏色照桌機同類圖：營收 YoY＝琥珀（industry.js 月營收圖 #ffb454）、淨利率＝紫（獲利圖 #b39af0）、殖利率＝青（股利圖 CH.cyan）。*/
   function skRev(pg, body) {
     const rv = pg.revenue || {}, mo = rv.monthly || [];
     if (!mo.length) { body.innerHTML = empty('尚無月營收資料'); return; }

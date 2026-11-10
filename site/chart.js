@@ -5,12 +5,12 @@
   'use strict';
   const LWC = global.LightweightCharts;
   const C = {
-    up: '#ff4d6d', down: '#2ee59d', grid: 'rgba(255,255,255,.05)', text: '#a9b6d6', bg: '#0a1020',
+    up: '#ff4d6d', down: '#2ee59d', grid: 'rgba(255,255,255,.05)', text: '#c8d0e2', bg: '#142142',
     /* 第六條均線在深色主題是白的。淺色主題底色就是 #ffffff，白線畫上去等於沒畫
        （Andy 2026-09-16「切換回白色 UI 後需要更改的顏色」），所以 refreshTheme() 會換掉它。*/
-    ma: ['#ffd166', '#3ee0ff', '#8b7bff', '#ff8fab', '#c3ff5b', '#ffffff'],
-    boll: 'rgba(139,123,255,.75)', k: '#ffd166', d: '#3ee0ff', j: '#ff8fab',
-    dif: '#3ee0ff', dea: '#ffd166', rsi: '#c3ff5b', vol: 'rgba(120,140,190,.55)',
+    ma: ['#ffd166', '#8fb2f2', '#b39af0', '#ff8fab', '#b5c65a', '#ffffff'],
+    boll: 'rgba(179,154,240,.75)', k: '#ffd166', d: '#8fb2f2', j: '#ff8fab',
+    dif: '#8fb2f2', dea: '#ffd166', rsi: '#b5c65a', vol: 'rgba(120,140,190,.55)',
     demand: 'rgba(46,229,157,.16)', supply: 'rgba(255,77,109,.16)',
     demandLine: 'rgba(46,229,157,.6)', supplyLine: 'rgba(255,77,109,.6)',
   };
@@ -337,7 +337,7 @@
      文字框、橡皮擦、屬性列、選取／拖曳、測量、成交量分佈都住在那裡，這裡只留轉接。
      DRAW_TOOLS／DRAW_COLORS 保留成別名，舊的呼叫端（KUtil.DRAW_*）不用改。 */
   const DRAW_TOOLS = (global.DrawTools && global.DrawTools.TOOLS) || [];
-  const DRAW_COLORS = (global.DrawTools && global.DrawTools.COLORS) || ['#3ee0ff'];
+  const DRAW_COLORS = (global.DrawTools && global.DrawTools.COLORS) || ['#8fb2f2'];
 
   /* 背離連線。把兩個轉折點用虛線連起來並標字，主圖與 MACD 面板各掛一個。
      值是用 index 存的（不是時間），因為 MACD 面板的 series 與主圖共用同一組 index。 */
@@ -382,7 +382,7 @@
             tyRaw = onLg(box(alt)) ? lg.y + lg.h + 14 : alt;
           }
           self.lastLabels = (self.lastLabels || []).concat([{ label: it.label, ...box(tyRaw) }]);
-          ctx.fillStyle = hexa('#0a1020', 82);
+          ctx.fillStyle = hexa('#142142', 82);
           ctx.fillRect(tx - w / 2 - 4, tyRaw - 11, w + 8, 14);
           ctx.fillStyle = col; ctx.textAlign = 'center';
           ctx.fillText(it.label, tx, tyRaw);
@@ -446,12 +446,12 @@
     const s = getComputedStyle(document.documentElement);
     const v = (n, d) => (s.getPropertyValue(n) || '').trim() || d;
     C.up = v('--rise', '#ff4d6d'); C.down = v('--fall', '#2ee59d');
-    C.bg = v('--chartbg', '#0a1020'); C.text = v('--ink-2', '#a9b6d6');
+    C.bg = v('--chartbg', '#142142'); C.text = v('--ink-2', '#c8d0e2');
     C.grid = v('--grid', 'rgba(255,255,255,.05)');
-    C.line = v('--line-2', '#2a3860'); C.panel3 = v('--panel-3', '#1a2542');
+    C.line = v('--line-2', '#3b4f7f'); C.panel3 = v('--panel-3', '#1d2d54');
     /* ★ 指標色在淺色主題整組換掉（Andy 2026-09-16
          「一開始製作是黑色底，很多數據都是白色線條及文字…檢查所有切換回白色 UI 後需要更改的顏色」）。
-       深色主題那組是螢光色（#ffd166 黃、#3ee0ff 青、#c3ff5b 螢光綠），
+       深色主題那組是螢光色（#ffd166 黃、#8fb2f2 青、#b5c65a 螢光綠），
        它們同時用在**線**和**圖例文字**上。切到淺色之後：
          - 線畫在 #ffffff 的圖表底上 → 幾乎看不見
          - 圖例文字印在近白色的工具列上 → 實測對比度只有 1.44～1.58（近乎隱形）
@@ -465,10 +465,10 @@
       C.boll = 'rgba(91,33,182,.7)';
       C.vol = 'rgba(71,85,105,.45)';
     } else {
-      C.ma = ['#ffd166', '#3ee0ff', '#8b7bff', '#ff8fab', '#c3ff5b', '#ffffff'];
-      C.k = '#ffd166'; C.d = '#3ee0ff'; C.j = '#ff8fab';
-      C.dif = '#3ee0ff'; C.dea = '#ffd166'; C.rsi = '#c3ff5b';
-      C.boll = 'rgba(139,123,255,.75)';
+      C.ma = ['#ffd166', '#8fb2f2', '#b39af0', '#ff8fab', '#b5c65a', '#ffffff'];
+      C.k = '#ffd166'; C.d = '#8fb2f2'; C.j = '#ff8fab';
+      C.dif = '#8fb2f2'; C.dea = '#ffd166'; C.rsi = '#b5c65a';
+      C.boll = 'rgba(179,154,240,.75)';
       C.vol = 'rgba(120,140,190,.55)';
     }
     return C;
@@ -480,7 +480,7 @@
       /* panes.enableResize：面板之間可以用滑鼠拖大拖小（Andy 2026-09-15
          「下方MACD KD 成交量等範圍上下可以拉大」）。分隔線本來用 grid 的顏色，幾乎看不見，
          使用者不會知道那裡可以拉 —— 改成明顯一點，hover 再亮起來。 */
-      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace', fontSize: 12, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
+      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace', fontSize: 12, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(143,178,242,.55)', enableResize: true } },
       grid: { vertLines: { color: C.grid, visible: false }, horzLines: { color: C.grid } },   // 設計 v4 §4.1：軸字 11→12、垂直格線關掉
       crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: C.panel3 }, horzLine: { labelBackgroundColor: C.panel3 } },
       rightPriceScale: { borderColor: C.line, scaleMargins: { top: 0.08, bottom: 0.08 } },
@@ -864,7 +864,7 @@
       this.smcLines.set(o ? o.lines : [], o ? o.note : '');
       if (!this._smcTip && !this.opts.mini) {
         const tip = document.createElement('div'); tip.className = 'smc-tip'; tip.hidden = true;
-        tip.style.cssText = 'position:absolute;z-index:6;pointer-events:none;padding:4px 8px;border-radius:6px;font-size:12px;background:var(--panel-2,#121a30);border:1px solid var(--line-2,#2a3860);color:var(--ink,#e6ecff);white-space:nowrap';
+        tip.style.cssText = 'position:absolute;z-index:6;pointer-events:none;padding:4px 8px;border-radius:6px;font-size:12px;background:var(--panel-2,#121a30);border:1px solid var(--line-2,#3b4f7f);color:var(--ink,#e6ecff);white-space:nowrap';
         this.el.appendChild(tip); this._smcTip = tip;
         this.chart.subscribeCrosshairMove((p) => {
           const z = this._smc && p && p.point && p.time != null ? this.smcHit(p.point.x, p.point.y) : null;
@@ -1026,7 +1026,7 @@
            疊上去會把它蓋掉 —— 實測截圖就是被蓋住看不見。*/
         el.style.cssText = 'position:absolute;left:12px;bottom:34px;z-index:4;pointer-events:none;'
           + 'font:600 11.5px/1.5 "Noto Sans TC",sans-serif;padding:3px 9px;border-radius:999px;'
-          + 'background:rgba(10,16,32,.78);color:#a9b6d6;border:1px solid rgba(62,224,255,.35)';
+          + 'background:rgba(10,16,32,.78);color:#c8d0e2;border:1px solid rgba(143,178,242,.35)';
         this.el.appendChild(el);
       }
       /* 顏色跟著主題走。不要用 hexa(C.bg) 去算 —— `--chartbg` 在淺色主題有可能是
@@ -1392,8 +1392,8 @@
       const conv = (t) => toTime(t);
       (marks.bos || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'belowBar', color: '#ffd166', shape: 'arrowUp', text: 'BOS' }); });
       (marks.choch || []).forEach(x => { const tt = conv(x[0]); if (has.has(String(tt))) m.push({ time: tt, position: x[1] > 0 ? 'belowBar' : 'aboveBar', color: x[1] > 0 ? '#ff4d6d' : '#2ee59d', shape: x[1] > 0 ? 'arrowUp' : 'arrowDown', text: 'CHoCH' }); });
-      (marks.sweep_low || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'belowBar', color: '#3ee0ff', shape: 'circle', text: '掃蕩' }); });
-      (marks.sweep_high || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'aboveBar', color: '#3ee0ff', shape: 'circle', text: '掃蕩' }); });
+      (marks.sweep_low || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'belowBar', color: '#8fb2f2', shape: 'circle', text: '掃蕩' }); });
+      (marks.sweep_high || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'aboveBar', color: '#8fb2f2', shape: 'circle', text: '掃蕩' }); });
       m.sort((a, b) => (a.time > b.time ? 1 : a.time < b.time ? -1 : 0));
       // 只留每種訊號最近 5 個，太多會把圖蓋滿
       const keep = []; const cnt = {}; for (let i = m.length - 1; i >= 0; i--) { const k = m[i].text; cnt[k] = (cnt[k] || 0) + 1; if (cnt[k] <= 5) keep.unshift(m[i]); }

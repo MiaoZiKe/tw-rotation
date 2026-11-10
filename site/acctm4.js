@@ -229,7 +229,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   /* ---------------- 選單內容 ---------------- */
   const ver = () => { const b = document.getElementById('buildver'); const t = b && b.textContent.trim(); if (t) return t; const m = document.querySelector('meta[name="tw:build"]'); return 'v ' + (((m && m.content) || 'dev').split('|')[0] || 'dev'); };
   /* 版面風格：清單讀 theme4.js 的 T4.THEMES（只有 id），名稱照外觀面板的寫法 */
-  const STY = { hud: ['科技 HUD', 'linear-gradient(135deg,#050A13,#37E2FF)'], pro: ['專業有力', 'linear-gradient(135deg,#0A0C10,#2E5BDB)'] };
+  const STY = { hud: ['科技 HUD', 'linear-gradient(135deg,#0E1830,#8FB2F2)'], pro: ['專業有力', 'linear-gradient(135deg,#0E1830,#D0643F)'] };
   const styIds = () => ((window.T4 && window.T4.THEMES) || Object.keys(STY)).filter((k) => STY[k]);
   const styCur = () => (window.T4 && window.T4.get ? window.T4.get() : (document.documentElement.getAttribute('data-theme4') || 'hud'));
   const styName = (k) => (STY[k] || [k])[0];

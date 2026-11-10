@@ -88,7 +88,7 @@
        站名（.lbl）15px、說明（.stn .sub）13px、代號膠囊 12px（＝--dg-fs-min，不動）、
        圖標題 16px、上中下游色帶 13px、流程格名稱 14px／副字 12px。
      ⚠ 說明字從 12 改 13，wrapSub 的估寬（SUB_FW／SUB_HW）與列距 SUB_LH 要跟著改 —— 三個數字是同一組。*/
-  const TH_STYLE = `<style>.dg3 .capbtn{fill:var(--dg-accent-2d,#3ee0ff);cursor:pointer;text-decoration:underline} .dg3 .info{fill:var(--dg-ink-3,#8aa);font-size:14px;cursor:pointer}
+  const TH_STYLE = `<style>.dg3 .capbtn{fill:var(--dg-accent-2d,#8fb2f2);cursor:pointer;text-decoration:underline} .dg3 .info{fill:var(--dg-ink-3,#8aa);font-size:14px;cursor:pointer}
     .dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
     .dg.dg3 .stn .sub{font-size:13px} .dg.dg3 .band text{font-size:13px}
     .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px;fill:var(--dg-text-2)}

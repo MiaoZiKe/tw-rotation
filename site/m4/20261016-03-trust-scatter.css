@@ -9,6 +9,6 @@
   :root.m4 #trustWrap .trustM4Bar .tmi{min-width:0;min-height:35px;font-size:12.5px;line-height:1.4;color:var(--ink-2)}
   :root.m4 #trustWrap .trustM4Bar .tmi b{color:var(--ink)}
   :root.m4 #trustWrap #trustReset{flex:none;min-height:36px;min-width:56px;font-size:13px;opacity:.5}
-  :root.m4 #trustWrap[data-zoomed="1"] #trustReset{opacity:1;border-color:var(--cyan,#3ee0ff);color:var(--ink)}
+  :root.m4 #trustWrap[data-zoomed="1"] #trustReset{opacity:1;border-color:var(--cyan,#8fb2f2);color:var(--ink)}
   :root.m4 #trust{min-height:420px!important;touch-action:none}
 }

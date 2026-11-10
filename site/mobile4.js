@@ -1574,7 +1574,7 @@
   const arr = (x) => (Array.isArray(x) ? x : x == null ? [] : [x]);
   const HANDLE = 'path://M-16,0 M16,36 M-4,6 Q-4,2 0,2 Q4,2 4,6 L4,30 Q4,34 0,34 Q-4,34 -4,30 Z';
   function sliderStyle() {
-    const acc = css('--t4-accent-solid', css('--cyan', '#37e2ff')), ink3 = css('--ink-3', '#8aa0b4'), line = css('--line-2', 'rgba(140,160,180,.35)');
+    const acc = css('--t4-accent-solid', css('--cyan', '#8fb2f2')), ink3 = css('--ink-3', '#8aa0b4'), line = css('--line-2', 'rgba(140,160,180,.35)');
     const light = root.getAttribute('data-theme') === 'light';
     const hexA = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return c; const n = parseInt(m[1], 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
     return {

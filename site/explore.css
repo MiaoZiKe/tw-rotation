@@ -23,7 +23,7 @@
 #v-explore .sl-ici{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--panel-3);color:var(--xp-acc)}
 #v-explore .sl-ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #v-explore .sl-c-fund{color:var(--cyan)} #v-explore .sl-c-val{color:var(--amber,#ffb454)} #v-explore .sl-c-grow{color:var(--rise,#ff5b6e)}
-#v-explore .sl-c-tech{color:var(--violet,#8b7bff)} #v-explore .sl-c-chip{color:#5bc0ff} #v-explore .sl-c-divd{color:#ffd25b} #v-explore .sl-c-mom{color:#ff8ad8}
+#v-explore .sl-c-tech{color:var(--violet,#b39af0)} #v-explore .sl-c-chip{color:#5bc0ff} #v-explore .sl-c-divd{color:#ffd25b} #v-explore .sl-c-mom{color:#ff8ad8}
 #v-explore .sl-tt{flex:1;min-width:0}
 #v-explore .sl-en{margin:0;font-size:16px;line-height:1.25}
 #v-explore .sl-zh{font-size:12px;color:var(--ink-3);line-height:1.35}

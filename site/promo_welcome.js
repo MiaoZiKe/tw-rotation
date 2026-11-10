@@ -110,7 +110,7 @@
     const ov = document.createElement('div');
     ov.id = 'pwOv'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'pwTitle');
     if (still) ov.classList.add('pw-still');
-    const rib = ['#8E7CFF', '#37B6E8', '#F5C451', '#C9B8FF', '#5FD0C0', '#F2A65A'].map((c) => `<i style="background:${c}"></i>`).join('');
+    const rib = ['#8FB2F2', '#37B6E8', '#F5C451', '#C9B8FF', '#5FD0C0', '#F2A65A'].map((c) => `<i style="background:${c}"></i>`).join('');
     ov.innerHTML = `<div class="pw-card" data-em="">
       <div class="pw-rib" aria-hidden="true">${rib}</div>
       <button type="button" class="pw-x" aria-label="關閉並不再顯示">×</button>
@@ -174,7 +174,7 @@
   // ------------------------------------------------------------------ 煙火（canvas 粒子，播完釋放）
   const DUR = 2000;
   function palette() {
-    let a = '#8E7CFF'; try { a = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || a; } catch (e) { /* 略 */ }
+    let a = '#8FB2F2'; try { a = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || a; } catch (e) { /* 略 */ }
     return [a, '#37B6E8', '#F5C451', '#C9B8FF', '#5FD0C0', '#FFFFFF'];   // 主色＋青＋金＋淡紫＋薄荷＋白；刻意不放紅／綠（紅漲綠跌）
   }
   function fireworks() {

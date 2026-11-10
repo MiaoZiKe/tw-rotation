@@ -676,15 +676,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .pmcats.pmcards .pmcat.card .pmcathd h3>small{grid-column:2;grid-row:2;white-space:nowrap}
 #v-admin .pmallim{display:inline-flex;align-items:center;flex:none;margin-right:10px}
 #v-admin .pmtools{flex-wrap:wrap}
-#v-admin .pmdq{order:9;flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--cyan,#4cc9f0) 45%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--cyan,#4cc9f0) 8%,var(--panel-2));min-width:0}
+#v-admin .pmdq{order:9;flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--cyan,#6ec0e6) 45%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--cyan,#6ec0e6) 8%,var(--panel-2));min-width:0}
 #v-admin .pmdq[hidden]{display:none}
-#v-admin .pmdq .pmdqt{font-size:15px;color:var(--ink)}#v-admin .pmdq .pmdqt span{color:var(--cyan,#4cc9f0)}
+#v-admin .pmdq .pmdqt{font-size:15px;color:var(--ink)}#v-admin .pmdq .pmdqt span{color:var(--cyan,#6ec0e6)}
 #v-admin .pmdq .pmdqs{font-size:13px;color:var(--ink-2)}
 #v-admin .pmdq .pmdqe{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 #v-admin .pmdq input{width:5.5em;height:28px;box-sizing:border-box}
 #v-admin .pmdq .pmdqn{flex:1 1 100%;font-size:12px;color:var(--ink-3);line-height:1.5}
 /* 2026-10-09 小卡：更嚴的單項上限／另外計次的動作／不開放（Andy：「我明明訪客開 1000 次」）*/
-#v-admin .pmdq .pmqx{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px;color:var(--ink-2);padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--cyan,#4cc9f0) 35%,var(--line));min-width:0}
+#v-admin .pmdq .pmqx{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px;color:var(--ink-2);padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--cyan,#6ec0e6) 35%,var(--line));min-width:0}
 #v-admin .pmdq .pmqx-h{flex:1 1 100%;font-weight:600;color:var(--ink)}
 #v-admin .pmdq .pmqx-lim .pmqx-h{color:var(--amber,#f5b942)}
 #v-admin .pmdq .pmqx-c{display:inline-flex;align-items:center;gap:4px;min-height:26px;padding:0 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-size:12.5px;max-width:100%;min-width:0}
@@ -692,7 +692,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .pmdq .pmqx-c.off{padding:0 2px 0 0;gap:0}
 #v-admin .pmdq .pmqx-c.off button{appearance:none;border:0;background:none;color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer;padding:0 8px;height:26px;display:inline-flex;align-items:center;gap:4px}
 #v-admin .pmdq .pmqx-c.off button[data-qgo]:hover{text-decoration:underline}
-#v-admin .pmdq .pmqx-c.off .pmqx-open{border-left:1px solid var(--line-2);color:var(--cyan,#4cc9f0);font-weight:600}
+#v-admin .pmdq .pmqx-c.off .pmqx-open{border-left:1px solid var(--line-2);color:var(--cyan,#6ec0e6);font-weight:600}
 #v-admin .pmdq .pmqx-go{height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 14%,transparent);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 /* 2026-10-10：「單一功能」「不開放」標在分類卡那一列名稱右邊（從小卡搬下來，Andy：「納入下方對應選項內，並標註這屬單一功能」）*/
 #v-admin #pmCats .pmrow .pmtx small.pmtg{display:flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
@@ -700,8 +700,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .pmone{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;color:var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber,#f5b942) 45%,transparent)}
 #v-admin .pmoffx{flex:none;display:inline-flex;align-items:center;height:20px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid color-mix(in srgb,#ff6b7a 55%,transparent);background:color-mix(in srgb,#ff6b7a 12%,transparent);overflow:hidden}
 #v-admin .pmoffx .pmoffl{padding:0 7px;color:#ff6b7a}
-#v-admin .pmoffx .pmqx-open{appearance:none;height:100%;border:0;border-left:1px solid color-mix(in srgb,#ff6b7a 45%,transparent);background:none;color:var(--cyan,#4cc9f0);font:inherit;font-size:11px;font-weight:700;padding:0 8px;cursor:pointer}
-#v-admin .pmoffx .pmqx-open:hover{background:color-mix(in srgb,var(--cyan,#4cc9f0) 14%,transparent)}
+#v-admin .pmoffx .pmqx-open{appearance:none;height:100%;border:0;border-left:1px solid color-mix(in srgb,#ff6b7a 45%,transparent);background:none;color:var(--cyan,#6ec0e6);font:inherit;font-size:11px;font-weight:700;padding:0 8px;cursor:pointer}
+#v-admin .pmoffx .pmqx-open:hover{background:color-mix(in srgb,var(--cyan,#6ec0e6) 14%,transparent)}
 #v-admin .pmdq .pmqx-note{font-size:12.5px;color:var(--ink-2)}
 #v-admin .pmdq .pmqx-note b{font-weight:700;padding:0 6px;border-radius:999px;font-size:11.5px}
 #v-admin .pmdq .pmqx-note .pmoffx{color:#ff6b7a;height:auto}
@@ -762,7 +762,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .wel.soon{color:var(--amber,#e0a030);font-weight:600}
 #v-admin .wel.exp{color:var(--ink-3)}
 #v-admin table.memtbl th.c-inv,#v-admin table.memtbl td.c-inv,#v-admin table.memtbl th.c-invd,#v-admin table.memtbl td.c-invd{width:1%;white-space:nowrap!important}
-#v-admin{--tst:#7c3aed;--paidbar:#e8b54a}
+#v-admin{--tst:#6a4aa8;--paidbar:#e8b54a}
 #v-admin .tbadge{margin-left:6px;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff;background:var(--tst);white-space:nowrap;flex:none}
 #v-admin .memtbl tr.tst td:not(.c-who){opacity:.55}
 #v-admin .memtbl tr.tst td.c-who>.who1>*:not(.tbadge){opacity:.55}

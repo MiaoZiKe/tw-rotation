@@ -16,20 +16,20 @@
 #pwOv .pw-bibi{flex:0 0 76px;width:76px;height:76px;object-fit:contain}
 #pwOv .pw-title{margin:0;font-size:20px;line-height:1.3;font-weight:800}
 #pwOv .pw-sub{margin:4px 0 0;font-size:14px;line-height:1.5;color:var(--ink-2,#666)}
-#pwOv .pw-sub b{color:var(--accent,#5643d1)}
+#pwOv .pw-sub b{color:var(--accent,#2b4c8c)}
 #pwOv .pw-list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
 #pwOv .pw-list li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--panel-3,#f3f0fa);font-size:14px;line-height:1.55}
 #pwOv .pw-n{flex:0 0 24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
-  background:var(--accent,#5643d1);color:var(--on-accent,#fff)}
+  background:var(--accent,#2b4c8c);color:var(--on-accent,#fff)}
 #pwOv .pw-list b{font-weight:700}
 #pwOv .pw-list small{display:block;margin-top:2px;font-size:12px;color:var(--ink-2,#666)}
 #pwOv .pw-note{margin:10px 0 0;font-size:12px;color:var(--ink-2,#666)}
 #pwOv .pw-btns{display:flex;gap:10px;margin-top:14px}
 #pwOv .pw-btns button{flex:1 1 0;min-height:44px;padding:0 12px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:1px solid var(--line-2,rgba(120,110,200,.4));
   background:var(--panel-2,#fbfaff);color:var(--ink,#1c1a2e)}
-#pwOv .pw-btns .pw-pri{background:var(--accent,#5643d1);color:var(--on-accent,#fff);border-color:transparent}
+#pwOv .pw-btns .pw-pri{background:var(--accent,#2b4c8c);color:var(--on-accent,#fff);border-color:transparent}
 #pwOv .pw-off{display:block;margin:10px auto 0;min-height:36px;padding:0 12px;border:0;background:transparent;color:var(--ink-2,#666);font-size:13px;text-decoration:underline;cursor:pointer}
-#pwOv button:focus-visible{outline:2px solid var(--accent,#5643d1);outline-offset:2px}
+#pwOv button:focus-visible{outline:2px solid var(--accent,#2b4c8c);outline-offset:2px}
 /* 減少動態：不放煙火、不彈入；改成卡片上緣一條靜態彩帶 */
 #pwOv .pw-rib{display:none}
 #pwOv.pw-still .pw-card{animation:none;transform:none;opacity:1}
@@ -41,6 +41,6 @@
 #v-promodemo .pd{max-width:640px;margin:24px auto}
 #v-promodemo .pd-btns{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 #v-promodemo .pd .pd-b{height:auto;min-height:60px;padding:0 20px;border-radius:14px;border:1px solid var(--line-2,rgba(120,110,200,.4));background:var(--panel-2,#fbfaff);color:var(--ink,#1c1a2e);font-size:18px;font-weight:700;cursor:pointer}
-#v-promodemo .pd-b:first-child{background:var(--accent,#5643d1);color:var(--on-accent,#fff);border-color:transparent}
+#v-promodemo .pd-b:first-child{background:var(--accent,#2b4c8c);color:var(--on-accent,#fff);border-color:transparent}
 #v-promodemo .pd-msg{min-height:1.4em;margin:12px 0 0;font-size:14px;color:var(--ink-2,#666)}
 @media (max-width:640px){#v-promodemo .pd{margin:12px 0}#v-promodemo .pd .pd-b{height:auto;min-height:64px}}

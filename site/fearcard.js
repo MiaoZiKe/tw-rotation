@@ -102,7 +102,7 @@
     const el = document.getElementById('ovFearGauge'); const a = A(); const d = S.data;
     if (!el || !a || !a.chart || !d) return;
     const tw = d.tw;
-    const ink = cssv('--ink', '#e8eeff'), line = cssv('--line', '#1e2a48');
+    const ink = cssv('--ink', '#fbfaf6'), line = cssv('--line', '#26385f');
     if (!tw) { el.innerHTML = '<div class="fz-na muted">台指自算值回補中</div>'; return; }
     const { lo, hi } = gaugeRange(tw);
     const f = (v) => Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
@@ -243,7 +243,7 @@
     }
     return { tops: tops0.filter((x) => !x.off), bot: bot0 && !bot0.off ? bot0 : null, all: [...tops0, ...(bot0 ? [bot0] : [])], tops0, bot0 };
   }
-  const CHc = (k) => ((A() && A().CH) || {})[k] || { up: '#ff4d6d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', ink: '#e8eeff' }[k];
+  const CHc = (k) => ((A() && A().CH) || {})[k] || { up: '#ff4d6d', cyan: '#8fb2f2', violet: '#b39af0', amber: '#ffb454', ink: '#fbfaf6' }[k];
   /* 在序列 x 裡找「時間 ≤ t 的最後一筆」；差超過 6 天（長假、沒資料）就當沒有 */
   function at(x, t) {
     let lo = 0, hi = x.t.length - 1, r = -1;
@@ -325,7 +325,7 @@
   }
   /* 把轉折變成 ECharts 的疊加層：垂直虛線（上下兩格各一條，貫穿同一天）、轉折點小圓點＋數值、兩點之間的漲跌幅標籤（放在下格上方那條空白帶，不壓線） */
   function overlay(m, r, a, b) {
-    const C = stateColors(), ink = cssv('--ink', '#e8eeff'), rise = cssv('--rise', '#ff4d6d'), fall = cssv('--fall', '#2ee59d');
+    const C = stateColors(), ink = cssv('--ink', '#fbfaf6'), rise = cssv('--rise', '#ff4d6d'), fall = cssv('--fall', '#2ee59d');
     const W = Math.max(0, (S.cw || 0) - S.grid.l - S.grid.r);
     const o = pivots(m, a, b, W);
     S.pv = o.pv;
@@ -474,7 +474,7 @@
     S.nTick = mob ? 4 : 7;
     const spanDays = (w0[1] - w0[0]) / DAY;
     const xLab = (v) => { const s = ymd(v); return (S.win[1] - S.win[0]) / DAY > 400 ? s.slice(0, 4) + '/' + s.slice(5, 7) : s.slice(5, 7) + '/' + s.slice(8, 10); };
-    const xBase = (i) => ({ type: 'time', gridIndex: i, min: S.xmin, max: S.xmax, boundaryGap: false, splitLine: { show: false }, axisTick: { show: false }, axisLine: { lineStyle: { color: CH.line || '#2a3860' } },
+    const xBase = (i) => ({ type: 'time', gridIndex: i, min: S.xmin, max: S.xmax, boundaryGap: false, splitLine: { show: false }, axisTick: { show: false }, axisLine: { lineStyle: { color: CH.line || '#3b4f7f' } },
       axisLabel: i === nG - 1 ? { color: ink3, fontFamily: a.NUM_FONT, fontSize: 12, hideOverlap: true, margin: 8, formatter: xLab, customValues: xTicks(w0[0], w0[1], S.nTick) } : { show: false }, axisPointer: { show: true, lineStyle: { color: ink3, width: 1, type: 'solid', opacity: 0.55 }, label: { show: false } } });
     const ser = [];
     const ov = overlay(m, r, w0[0], w0[1]);
@@ -493,7 +493,7 @@
         S.hasBot ? Object.assign({ gridIndex: botIdx, min: r.yBot.min, max: r.yBot.max, splitNumber: both ? 3 : 5 }, yBase, { axisLabel: Object.assign({}, yBase.axisLabel, { hideOverlap: true, formatter: (v) => String(Math.round(v)) }) }) : null].filter(Boolean),
       dataZoom: [
         { type: 'slider', xAxisIndex: gIdx, filterMode: 'none', startValue: w0[0], endValue: w0[1], left: grid.l, right: grid.r, bottom: 4, height: mob ? 22 : 12, showDetail: false, brushSelect: false,
-          borderColor: 'transparent', backgroundColor: rgba(ink3, 0.12), fillerColor: rgba(CH.cyan || '#3ee0ff', 0.28), handleSize: mob ? 30 : 16, handleStyle: { color: CH.cyan || '#3ee0ff', borderColor: 'transparent' },
+          borderColor: 'transparent', backgroundColor: rgba(ink3, 0.12), fillerColor: rgba(CH.cyan || '#8fb2f2', 0.28), handleSize: mob ? 30 : 16, handleStyle: { color: CH.cyan || '#8fb2f2', borderColor: 'transparent' },
           dataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } }, selectedDataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } }, moveHandleSize: 0 },
         /* 游標縮放（Andy 11-09「可以用游標縮放」）：桌機＝滾輪以游標位置為中心縮放、按住拖曳平移；手機＝兩指縮放（pinch），單指不攔截
           （zoomOnMouseWheel／moveOnMouseMove 關掉，單指上下滑才能繼續捲頁，左右平移交給下方細拉Bar）。縮放後視窗最短 7 天。 */

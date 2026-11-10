@@ -54,8 +54,8 @@
     { k: 'erase', label: '橡皮擦', pts: 0 },
   ].map(t => Object.assign(t, { icon: I[t.k] }));
   const KINDS = { trend: '趨勢線', ray: '射線', arrow: '箭頭', hline: '水平線', rect: '方框', text: '文字', measure: '測量', vp: '成交量分佈' };
-  // 最後一個原本是 #e8eeff（近白），淺色主題畫在白底上等於沒畫；改成中性灰兩邊都看得見
-  const COLORS = ['#3ee0ff', '#ffd166', '#ff4d6d', '#2ee59d', '#8b7bff', '#8ea0c4'];
+  // 最後一個原本是 #fbfaf6（近白），淺色主題畫在白底上等於沒畫；改成中性灰兩邊都看得見
+  const COLORS = ['#8fb2f2', '#ffd166', '#ff4d6d', '#2ee59d', '#b39af0', '#8ea0c4'];
   const WIDTHS = [1, 1.5, 2.5, 4, 6];
   const FONT_SIZES = [12, 14, 18, 24];
   const VP_ROWS = [12, 24, 36, 48, 60];
@@ -81,7 +81,7 @@
   const UP = () => ((global.KUtil && global.KUtil.colors && global.KUtil.colors.up) || '#ff4d6d');
   const DN = () => ((global.KUtil && global.KUtil.colors && global.KUtil.colors.down) || '#2ee59d');
   function rgba(hex, a) {
-    const h = String(hex || '#3ee0ff').replace('#', '');
+    const h = String(hex || '#8fb2f2').replace('#', '');
     const f = h.length === 3 ? h.split('').map(c => c + c).join('') : h.slice(0, 6);
     const n = parseInt(f, 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
@@ -118,8 +118,8 @@
   /* 橡皮擦游標：自己畫的 24×24 SVG，熱點在左下角的擦頭。用 !important 是因為圖表庫會在自己的 canvas 上寫 cursor。*/
   const ERASER_CUR = "url(\"data:image/svg+xml;utf8," + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">'
-    + '<path d="M3.5,16.5 L13,7 L19.5,13.5 L12.5,20.5 H7.5 Z" fill="#ff8fa3" stroke="#0a1020" stroke-width="1.6" stroke-linejoin="round"/>'
-    + '<path d="M8.2,11.3 L14.7,17.8" stroke="#0a1020" stroke-width="1.6"/>'
+    + '<path d="M3.5,16.5 L13,7 L19.5,13.5 L12.5,20.5 H7.5 Z" fill="#ff8fa3" stroke="#142142" stroke-width="1.6" stroke-linejoin="round"/>'
+    + '<path d="M8.2,11.3 L14.7,17.8" stroke="#142142" stroke-width="1.6"/>'
     + '<path d="M13,7 L19.5,13.5" stroke="#fff" stroke-width="1" opacity=".6"/></svg>') + "\") 4 20, crosshair";
   function injectCss() {
     if (document.getElementById('dtCss')) return;
@@ -141,7 +141,7 @@
 .dt-props .dt-c.on{border-color:var(--ink)}
 .dt-props .dt-w{width:24px;display:grid;place-items:center}
 .dt-props .dt-w i{display:block;width:16px;background:currentColor;border-radius:2px}
-.dt-props .dt-w.on,.dt-props .dt-seg button.on,.dt-props .dt-tg.on{background:rgba(62,224,255,.14);border-color:var(--cyan);color:var(--cyan)}
+.dt-props .dt-w.on,.dt-props .dt-seg button.on,.dt-props .dt-tg.on{background:rgba(143,178,242,.14);border-color:var(--cyan);color:var(--cyan)}
 .dt-props .dt-seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden}
 .dt-props .dt-seg button{border-radius:0;padding:0 8px;white-space:nowrap}
 .dt-props .dt-tg,.dt-props .dt-act{padding:0 8px;border-color:var(--line-2);white-space:nowrap}
@@ -544,8 +544,8 @@
       ctx.setLineDash([]);
       if (!v || !g.box) { this.rendered[s.id] = { bars: 0 }; return; }
       const b = g.box, alpha = s.alpha != null ? s.alpha : STYLE.vpAlpha;
-      ctx.fillStyle = 'rgba(62,224,255,.06)'; ctx.fillRect(b.x, b.y, b.w, b.h);
-      ctx.strokeStyle = 'rgba(62,224,255,.28)'; ctx.lineWidth = 1; ctx.strokeRect(b.x + .5, b.y + .5, b.w, b.h);
+      ctx.fillStyle = 'rgba(143,178,242,.06)'; ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeStyle = 'rgba(143,178,242,.28)'; ctx.lineWidth = 1; ctx.strokeRect(b.x + .5, b.y + .5, b.w, b.h);
       const maxV = Math.max(...v.rows.map(r => r.v)) || 1;
       const maxW = Math.max(24, (xr - xl) * 0.7);
       const va = s.va !== false && (s.va != null ? s.va : STYLE.vpVa);
@@ -588,7 +588,7 @@
       if (s === this.draft && (s.kind === 'rect' || s.kind === 'measure')) hs = [hs[0], hs[2]];
       for (const h of hs) {
         ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = (global.KUtil && global.KUtil.colors && global.KUtil.colors.bg) || '#0a1020'; ctx.fill();
+        ctx.fillStyle = (global.KUtil && global.KUtil.colors && global.KUtil.colors.bg) || '#142142'; ctx.fill();
         ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke();
       }
       ctx.restore();

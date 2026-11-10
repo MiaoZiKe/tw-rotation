@@ -1100,25 +1100,25 @@
           —— 掛了的話卡片與零件會同時變成主角，「主角剛好一個」那條驗收就會紅。
 
      ---- 色碼對照（AG_COLORS）：左邊是改造前寫死的值，右邊是現在吃的 token ----
-       #0f172b 機櫃／盒體內部     → var(--dg-void)      切面上的空隙／腔體背景（淺色是 #e8e5dd）
-       #141e36 托盤／光模組盒體   → var(--dg-frame)     框與盒的底
+       #142142 機櫃／盒體內部     → var(--dg-void)      切面上的空隙／腔體背景（淺色是 #e8e5dd）
+       #182749 托盤／光模組盒體   → var(--dg-frame)     框與盒的底
        #182a3f ToR 盒體           → var(--dg-frame)
        #1a1530 電源櫃／VRM 盒體   → var(--dg-frame)     ＋ 電力橘的線條做區別（不再用紫底）
        #0e2a33 CDU 盒體           → var(--dg-frame)
        #2b1f3f PSU 單體           → var(--dg-alu)（鋁殼，fx.glass 的 fill）
-       #1e2a48 / #2a3860 細框線   → .thin / .hair（var(--dg-ink-3) 加透明度）
+       #26385f / #3b4f7f 細框線   → .thin / .hair（var(--dg-ink-3) 加透明度）
        #163a2a GPU 模組載板       → var(--dg-abf)       ABF 增層膜（模組載板就是 ABF 載板）
-       #1a2542 模組中介層         → var(--dg-si-2)      矽中介層
-       #3a2a5c + #8b7bff HBM      → var(--dg-si)        矽；改用「堆疊分層線」當識別特徵
-       #1f2f5c + #3ee0ff 邏輯晶粒 → var(--dg-die)       矽裸晶
-       rgba(62,224,255,.28/.35)   → var(--dg-sig)       訊號藍（語意色，兩種模式都有對比表）
-       #3ee0ff 冷卻水進／指示燈   → var(--dg-cold)（水）／var(--dg-sig)（訊號）
+       #1d2d54 模組中介層         → var(--dg-si-2)      矽中介層
+       #3a2a5c + #b39af0 HBM      → var(--dg-si)        矽；改用「堆疊分層線」當識別特徵
+       #1f2f5c + #8fb2f2 邏輯晶粒 → var(--dg-die)       矽裸晶
+       rgba(143,178,242,.28/.35)   → var(--dg-sig)       訊號藍（語意色，兩種模式都有對比表）
+       #8fb2f2 冷卻水進／指示燈   → var(--dg-cold)（水）／var(--dg-sig)（訊號）
        #ff4d6d 冷卻水回           → var(--dg-hot)       出水（熱）★ 語意色
        #ffb454 供電              → var(--dg-pwr)       電力橘 ★ 語意色
        #2ee59d 狀態燈            → var(--dg-cool)      刻意不用 #2ee59d：那是台股「跌」的綠
        rgba(255,180,84,.5) 走線   → .trace（var(--dg-cu-lit)，銅走線就該是銅色）
        rgba(120,200,150,.16) 織紋 → .weave（var(--dg-weave)，玻纖織紋）
-       #e8eeff 文字              → STYLE 的 .lbl／.sub（var(--dg-ink)／var(--dg-ink-3)）
+       #fbfaf6 文字              → STYLE 的 .lbl／.sub（var(--dg-ink)／var(--dg-ink-3)）
        #0a1d12 / #0b2418 底面     → 取消（改用 fx.glass 的等角側面，厚度由材質自己表現）
        rgba(20,30,54,.55) 襯底    → 取消（GPU 那一層本來就是一塊等角玻璃板）
        agCool／agPcb／agCcl 三條漸層維持吃 `--dg-ag-*`（它們本來就是 token，淺色模式另有一組值）。*/
@@ -2228,7 +2228,7 @@
       title: (c.querySelector('.bd b') || {}).textContent || '',
       lines: $$('.bd i', c).map(x => x.textContent),
       codes: (c.dataset.codes || '').split(/[,\s]+/).filter(Boolean),
-      color: c.style.getPropertyValue('--dg-card-c') || c.style.getPropertyValue('--c') || c.dataset.dgcolor || '#3ee0ff',
+      color: c.style.getPropertyValue('--dg-card-c') || c.style.getPropertyValue('--c') || c.dataset.dgcolor || '#8fb2f2',
     })).sort((a, b) => a.no.localeCompare(b.no));
   }
   /* 控制列（整張／放大、圖說）在哪：預設就在圖的正上方（host.previousElementSibling）；
@@ -2675,7 +2675,7 @@
       const b = d.querySelector('b');
       const chips = $$('.chips3d a', d).map(a => (a.getAttribute('href') || '').replace('#stock/', '')).filter(Boolean);
       return { no: d.dataset.dgno, part: d.dataset.dgpart, seg: d.dataset.seg || '', title: b && b.firstChild ? b.firstChild.textContent : '',
-        lines: [(d.querySelector('i') || {}).textContent || ''].filter(Boolean), codes: chips, color: d.dataset.dgcolor || '#3ee0ff' };
+        lines: [(d.querySelector('i') || {}).textContent || ''].filter(Boolean), codes: chips, color: d.dataset.dgcolor || '#8fb2f2' };
     }).filter(x => x.no).sort((a, b) => a.no.localeCompare(b.no));
   }
   /* 2026-10-08（Andy：「編號在手機版本，不要直接標在物件上，需要拉一條虛線，將編號放旁邊」）：

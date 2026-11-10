@@ -10,7 +10,7 @@
   const L = window.TwLab; if (!L) return;
   let U = null, E = null;
   const SPEEDS = [1, 2, 5, 10, 20];
-  const MAS = [[5, '#ffb703'], [20, '#4cc9f0'], [60, '#b388ff']];
+  const MAS = [[5, '#ffb703'], [20, '#6ec0e6'], [60, '#b388ff']];
 
   function fresh() {
     return { sym: '2330', tf: 'D', B: null, run: false, i: -1, start: -1, playing: false, speed: 2, timer: null, blind: false, pick: false, tab: 'pos',

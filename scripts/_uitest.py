@@ -34473,7 +34473,7 @@ def t_batch13(pg, base):
     ok("★ 而且 2D 圖真的吃得到模式（深色主題下 data-dgpal ＝ tech，圖上顏色照著它畫）",
        a0["theme"] == "dark" and (a0["pal"] or "tech") == "tech", f"theme={a0['theme']} pal={a0['pal']}")
     ok("預設是「科技」，而且科技配色**不覆寫任何 token**（＝跟這批改動之前一模一樣）",
-       a0["pal"] in ("", "tech") and a0["accent"] == "#3ee0ff", f"pal={a0['pal']} accent={a0['accent']}")
+       a0["pal"] in ("", "tech") and a0["accent"] == "#8fb2f2", f"pal={a0['pal']} accent={a0['accent']}")
 
     # ---------------- 2~4. 切兩次主題，逐個量顏色真的變了、語意色守得住
     #   ★ C1：換模式的唯一入口是全站主題鈕，深→淺→深剛好把兩種模式各走一次。
@@ -42410,8 +42410,8 @@ def t_style22(pg, base):
         return
     ok("★ 深色主題、沒存偏好 → 預設科技（畫布是深底：亮度量出來 < 0.2）",
        d["pal"] == "tech" and d["bgLum"] < 0.2 and "科技" in d["btn"], f"pal={d['pal']} lum={d['bgLum']} btn={d['btn']}")
-    ok("科技＝現況：強調色仍是 #3ee0ff、字級下限仍是 12px（預設一個 token 都不覆寫）",
-       d["sem"]["--dg-accent-2d"]["v"] == "#3ee0ff" and d["fsMin"] == "12px", f"{d['sem']['--dg-accent-2d']['v']} / {d['fsMin']}")
+    ok("科技＝現況：強調色仍是 #8fb2f2、字級下限仍是 12px（預設一個 token 都不覆寫）",
+       d["sem"]["--dg-accent-2d"]["v"] == "#8fb2f2" and d["fsMin"] == "12px", f"{d['sem']['--dg-accent-2d']['v']} / {d['fsMin']}")
     l = land(MLCC, "light")
     ok("★ 淺色主題、沒存偏好 → 預設閱讀（畫布是暖白紙底：亮度量出來 > 0.8）",
        l["pal"] == "read" and l["bgLum"] > 0.8 and "閱讀" in l["btn"], f"pal={l['pal']} lum={l['bgLum']} btn={l['btn']}")

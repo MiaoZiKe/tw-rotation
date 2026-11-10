@@ -369,7 +369,7 @@
   function indBarOpt(A, key, unit) {
     const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med);   // 升冪＋橫條由下往上畫＝最高在最上（D 款排行橫條）
     const rng = rows.map((x, i) => [x[key].min, x[key].max, i, x[key].med]), mxAll = Math.max(1, ...rows.map((x) => x[key].max)), xmax = Math.ceil(mxAll * 1.12 / 10) * 10;   // 上限＝所有最高值 ×1.12 進位，細線與尾端數字都在圖區內
-    const grad = { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: 'rgba(62,224,255,.5)' }, { offset: 1, color: '#3ee0ff' }] };
+    const grad = { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: 'rgba(143,178,242,.5)' }, { offset: 1, color: '#8fb2f2' }] };
     return { grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: (p) => { const x = rows[p[0].dataIndex]; return esc(x.name) + '<br>中位數 <b>' + x[key].med + '</b> ' + unit + '<br>區間 ' + x[key].min + '–' + x[key].max + '<br>樣本 ' + x[key].n + ' 筆'; } },
       xAxis: { type: 'value', min: 0, max: xmax, axisLabel: { color: INK3(), fontSize: 12 }, splitLine: { lineStyle: { opacity: .15 } } },

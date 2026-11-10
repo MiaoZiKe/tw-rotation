@@ -20,7 +20,7 @@
 #v-tc .tc-rkt{display:flex;flex-direction:column;font-size:13.5px;min-width:0}
 #v-tc .tc-rkt small{color:var(--ink-3);font-size:12px}
 #v-tc .tc-rkb{position:relative;height:12px;border-radius:3px;background:var(--panel-3)}
-#v-tc .tc-rkb .tc-rkbar{position:absolute;left:0;top:0;bottom:0;border-radius:0 3px 3px 0;background:linear-gradient(90deg,rgba(62,224,255,.55),#3ee0ff);display:block}
+#v-tc .tc-rkb .tc-rkbar{position:absolute;left:0;top:0;bottom:0;border-radius:0 3px 3px 0;background:linear-gradient(90deg,rgba(143,178,242,.55),#8fb2f2);display:block}
 #v-tc .tc-rkb .tc-rkrg{position:absolute;top:5px;height:2px;background:#ffb454;display:block}
 #v-tc .tc-rkv{text-align:right;display:flex;flex-direction:column;line-height:1.2}
 #v-tc .tc-rkv b{color:var(--cyan);font-size:14px}

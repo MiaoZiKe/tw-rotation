@@ -686,21 +686,21 @@
 #v-subadm .artadm .jline+.jline,#v-subadm .artadm .jop+.jop{border-top:1px dashed var(--line)}
 #v-subadm .artadm .jop{display:flex;align-items:center;justify-content:center;min-height:34px}
 #v-subadm .artadm .jline>.kd{flex:none;width:46px;text-align:center;font-style:normal;font-weight:700;font-size:11px;border-radius:999px;color:#fff;line-height:18px}
-#v-subadm .artadm .kd.article{background:#2563eb}#v-subadm .artadm .kd.video{background:#db2777}#v-subadm .artadm .kd.topics{background:#7c3aed}
+#v-subadm .artadm .kd.article{background:#2563eb}#v-subadm .artadm .kd.video{background:#db2777}#v-subadm .artadm .kd.topics{background:#6a4aa8}
 #v-subadm .artadm .jlk{color:var(--cyan)!important;font-size:12.5px;font-weight:600}
 #v-subadm .artadm .jnone{font-size:12px}
 #v-subadm .artadm .cus{font-style:normal;font-size:11px;margin-left:4px;padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);vertical-align:middle}
-#v-subadm .artadm .tgb{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff;background:#7c3aed;vertical-align:middle}
+#v-subadm .artadm .tgb{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff;background:#6a4aa8;vertical-align:middle}
 #v-subadm .artadm #artTpBody tr[data-nosel]{cursor:default}
 #v-subadm .artadm .tpact[hidden]{display:none}   /* .tpact 是 display:flex，會蓋掉 hidden 屬性 */
 #v-subadm .artadm #artJobFlt .nbsw{margin:0}
 /* 新增主題面板（「＋ 新增主題」鈕打開） */
-#v-subadm .artadm .tgbtn{border:1px solid #7c3aed;color:var(--ink);background:color-mix(in srgb,#7c3aed 14%,var(--panel));font-weight:600}
-#v-subadm .artadm .tgbtn.on{background:color-mix(in srgb,#7c3aed 30%,var(--panel))}
-#v-subadm .artadm .tpgen{border-color:color-mix(in srgb,#7c3aed 55%,var(--line))}
+#v-subadm .artadm .tgbtn{border:1px solid #6a4aa8;color:var(--ink);background:color-mix(in srgb,#6a4aa8 14%,var(--panel));font-weight:600}
+#v-subadm .artadm .tgbtn.on{background:color-mix(in srgb,#6a4aa8 30%,var(--panel))}
+#v-subadm .artadm .tpgen{border-color:color-mix(in srgb,#6a4aa8 55%,var(--line))}
 #v-subadm .artadm .tpgen .tgcats{display:inline-flex;gap:12px;flex-wrap:wrap}
 #v-subadm .artadm .tpgen .tgc{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;min-height:32px}
-#v-subadm .artadm .tpgen .tgc input{flex:none;min-width:0;width:16px;height:16px;margin:0;padding:0;accent-color:#7c3aed;cursor:pointer}
+#v-subadm .artadm .tpgen .tgc input{flex:none;min-width:0;width:16px;height:16px;margin:0;padding:0;accent-color:#6a4aa8;cursor:pointer}
 #v-subadm .artadm .tpgen .tgn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 #v-subadm .artadm .tpgen select{height:32px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 8px}
 #v-subadm .artadm .tpgen .tglk{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
@@ -1593,7 +1593,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   /* 2.5D：上色與點擊跟題材頁同一套規則（app.js wireThemeDiagram）—— 能對到供應鏈環節就用環節色、同一張圖顏色不重複；
      點環節＝亮起它、其他變淡（再點一次取消）；點代號＝進個股頁。 */
   function wireScene25(root) {
-    const A = window.App || {}, L = A.L, PAL = A.PALETTE || ['#22d3ee', '#a78bfa', '#f59e0b', '#34d399', '#f472b6', '#60a5fa'];
+    const A = window.App || {}, L = A.L, PAL = A.PALETTE || ['#4dc2b5', '#a78bfa', '#f59e0b', '#34d399', '#f472b6', '#60a5fa'];
     const used = new Set(), color = {}; let i = 0;
     const pick = (seg) => {
       const sc = seg && L && L.segColor ? L.segColor(seg) : '';
@@ -1742,10 +1742,10 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const A = window.App || {};
     const CH = A.CH || {};
     const C = { hl: cssv('--amber', CH.amber || '#ffb454'),
-      ink: cssv('--ink', CH.ink || '#e8eeff'), ink2: cssv('--ink-2', CH.ink2 || '#a9b6d6'), ink3: cssv('--ink-3', CH.ink3 || '#6f7ea3'), line: cssv('--line', CH.line || '#1e2a48'), grid: cssv('--grid', CH.grid || 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#0f172b') };
+      ink: cssv('--ink', CH.ink || '#fbfaf6'), ink2: cssv('--ink-2', CH.ink2 || '#c8d0e2'), ink3: cssv('--ink-3', CH.ink3 || '#9ba8c4'), line: cssv('--line', CH.line || '#26385f'), grid: cssv('--grid', CH.grid || 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#142142') };
     const NF = A.NUM_FONT || 'monospace';
     const MF = A.MONO || NF;
-    const CAT = [1, 2, 3, 4].map((k) => cssv('--cat-' + k, [CH.cyan, CH.violet, CH.amber, CH.lime][k - 1] || '#3ee0ff'));
+    const CAT = [1, 2, 3, 4].map((k) => cssv('--cat-' + k, [CH.cyan, CH.violet, CH.amber, CH.lime][k - 1] || '#8fb2f2'));
     const P = CAT;                                            // 長條系列：cat-1 起輪
     const PL = [CAT[2], CAT[1], CAT[3], CAT[0]];              // 跟長條同圖的折線：琥珀起輪（藍橘一組，色盲也分得出）
     const rgbaOf = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (!m) return c; const h = m[1]; return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4), 16)},${a})`; };

@@ -81,7 +81,7 @@
   };
   Object.assign(D, { '智原': 'faraday-tech.com', '新唐': 'nuvoton.com' });
   // 產業色：與圖表分類色同系，字標底色用
-  const IC = { foundry: '#3ee0ff', memory: '#8b7bff', osat: '#ffb454', material: '#2ec4b6', equipment: '#ff7a45', icdesign: '#4d8dff', odm: '#c3ff5b', panel: '#e56bd0', foreign: '#9aa7b8', other: '#7c8aa0' };
+  const IC = { foundry: '#8fb2f2', memory: '#b39af0', osat: '#ffb454', material: '#2ec4b6', equipment: '#ff7a45', icdesign: '#4d8dff', odm: '#b5c65a', panel: '#e56bd0', foreign: '#9aa7b8', other: '#7c8aa0' };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   /* 2026-10-27 Andy：「之前建立搜尋功能、個股資訊時做過查找 LOGO 功能」→ 優先用站內個股 Logo（DECISIONS #264、#267）。
      來源順序：① 公司在 tc/json 有數字代號（4～6 碼）且 data/logos.json 有該代號 → 站內 data/logos/<代號>.png（管線抓的官網圖，與個股頁同一份）；

@@ -2714,7 +2714,7 @@
       g.add(put(box(w * 0.5, h * 0.14, d * 0.12, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })), 0, h * 0.08, d * 0.42));     // 控制盒
       g.add(put(box(w * 0.34, h * 0.06, d * 0.03, K.mat(0, { led: true })), 0, h * 0.1, d * 0.49));                                                               // 面板
       // v3：冷水管螢光藍、熱水管發光紅 —— 裡面的直立管 ＋ 外面的進出管，各併成一個 mesh
-      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
+      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#6EC0E6'), glow: true, metal: 0.2, rough: 0.4 });
       const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
       [[0.42, 1, cold, -0.3], [-0.42, -1, hot, 0.3]].forEach(([fy, sx, m, iz]) => {
         const a = new T.CylinderGeometry(w * 0.07, w * 0.07, h * 0.8, 8); a.translate(-w * 0.34, 0, iz * d);
@@ -2894,7 +2894,7 @@
       g.add(rbox(w, h, d, h * 0.2, K.mat(-0.12, { metal: 0.82, rough: 0.38 })));
       g.add(aoPad(K, w, d, -h / 2 - 1.0));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
-      const optHex = K.css('--dg-fl-opt', '#22E5C8'), sigHex = K.css('--dg-fl-sig', '#58C4FF');
+      const optHex = K.css('--dg-fl-opt', '#22E5C8'), sigHex = K.css('--dg-fl-sig', '#6EC0E6');
       const ledO = K.mat(0, { color: optHex, glow: 1.1, rough: 0.5, metal: 0.1 });
       const ledS = K.mat(0, { color: sigHex, glow: 0.9, rough: 0.5, metal: 0.1 });
       const ports = [], lo = [], ls = [];
@@ -3056,7 +3056,7 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       g.add(rbox(w, h, d, w * 0.22, K.mat(0, { color: K.css('--dg-m-cool', '#2FB8A6'), cool: true })));
-      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
+      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#6EC0E6'), glow: true, metal: 0.2, rough: 0.4 });
       const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
       const pr = w * 0.13;
       [[-1, cold], [1, hot]].forEach(([s, m]) => g.add(put(cyl(pr, h * 0.9, m, 10), 0, h * 0.03, s * d * 0.2)));
@@ -3427,7 +3427,7 @@
        是兩種完全不同的設備與供應商 —— 這兩個形狀就是分辨「板廠」與「載板廠」的那個特徵。*/
     function pthRow(K, w, h, d, n, z) {
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
-      const vd = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.95, metal: 0.02 });
+      const vd = K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.95, metal: 0.02 });
       const g = new T.Group();
       const r = Math.min(w, d) * 0.009;
       const at = [];
@@ -3676,7 +3676,7 @@
       // 絕緣套：包住側面的那層塑膠，比鋁殼暗一階
       g.add(cyl(r * 1.03, h * 0.86, K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.72, metal: 0.1 }), 18));
       // 防爆紋：頂面的十字刻痕
-      const sc = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      const sc = K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.92, metal: 0.04 });
       g.add(put(mboxes([[r * 1.5, h * 0.04, r * 0.14, 0, 0, 0], [r * 0.14, h * 0.04, r * 1.5, 0, 0, 0]], sc), 0, h * 0.5, 0));
       // 負極條：側面一道垂直白條 ＋ 底部橡膠塞
       g.add(put(box(r * 0.5, h * 0.8, r * 0.06, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 })), 0, 0, r * 1.02));
@@ -3844,7 +3844,7 @@
       /* 鎖固孔：**穿過厚度方向（y）** —— 銅排是用螺栓鎖上去的，不是焊的。
          這一條是電源件跟訊號件最直接的差別（訊號端子沒有人拿扳手鎖）。*/
       const r = Math.min(h, d) * 0.3;
-      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.92, metal: 0.04 });
       const at = [];
       [-1, 1].forEach(s => { for (let i = 0; i < 2; i++) at.push([s * w * (0.28 + i * 0.14), 0, 0]); });
       g.add(instOf(new T.CylinderGeometry(r, r, h * 1.3, 10), hl, at));
@@ -3899,7 +3899,7 @@
       // 補強肋：折角處的三角肋，鈑金件才有
       g.add(put(box(w * 0.4, h * 0.4, t * 0.8, st), -w * 0.22, -h * 0.22, 0));
       const r = Math.min(w, d) * 0.06;
-      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.92, metal: 0.04 });
       g.add(instOf(new T.CylinderGeometry(r, r, t * 2.2, 6, 1, true), hl,
         [[w * 0.1, -h / 2 + t / 2, -d * 0.24], [w * 0.1, -h / 2 + t / 2, d * 0.24],
           [w * 0.32, -h / 2 + t / 2, 0]]));
@@ -3924,7 +3924,7 @@
         holes.push([(-7.5 + i) * w * 0.055 + (j % 2 ? w * 0.027 : 0), (-3 + j) * h * 0.12, 0, Math.PI / 2, 0, 0]);
       }
       g.add(instOf(new T.CylinderGeometry(r, r, t * 1.08, 6, 1, true),
-        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 }), holes));
+        K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.95, metal: 0.02 }), holes));
       [-1, 1].forEach(s => g.add(put(box(w * 0.05, h * 0.34, t * 1.6, st2), s * w * 0.45, 0, t * 0.6)));  // 把手
       return g;
     }
@@ -5182,7 +5182,7 @@
       const v = p.via || 'pth';
       const cu = twoSided(K, K.mat(0.1, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.28 }));
       const stub = twoSided(K, K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), metal: 0.4, rough: 0.45 }));
-      const gone = twoSided(K, K.mat(0, { color: K.css('--dg-void', '#0d1424'), metal: 0.05, rough: 0.94 }));
+      const gone = twoSided(K, K.mat(0, { color: K.css('--dg-void', '#0b1428'), metal: 0.05, rough: 0.94 }));
       const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.2;
       const r = w * 0.016;
       /* 2026-09-26：一個零件兩個孔改成**靠在一起的一對**（差動對換層用的就是成對的孔），擺在零件中心兩側 ±w×5%。
@@ -5198,7 +5198,7 @@
            · 雷射盲孔用電鍍銅**由底往上填滿**（頂面留一點點凹陷），底下踩在 L2 的承接墊上；
            · 埋孔在壓合前就鍍好，孔內用樹脂塞滿，兩端再鍍一層銅蓋起來（塞孔＋鍍平）。*/
       const cuP = K.mat(0.2, { color: K.css('--dg-cu', '#b0743a'), metal: 0.6, rough: 0.38 });   // 焊環／填孔銅：正對鏡頭的平面，金屬度壓低一點才不會反成一片黑
-      const voidM = K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 });
+      const voidM = K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.95, metal: 0.02 });
       const lands = [], gaps = [], extra = [];
       const land = (n, rr, k) => xs.forEach(x => [-1, 1].forEach(sg =>
         lands.push([rr * (k || 1.2), PCB_CU * 1.08, fz * 1.8, x + sg * (rr + rr * (k || 1.2) / 2), pcbCuY(n), fz * 0.9])));
@@ -5445,7 +5445,7 @@
       const tap = [];
       for (let i = 0; i < 4; i++) [-1, 1].forEach(s => tap.push([s * w * 0.32, (-1.5 + i) * h * 0.22, d * 0.62]));
       g.add(instOf(new T.BoxGeometry(w * 0.3, h * 0.05, d * 0.3), cu, tap));
-      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.92, metal: 0.04 });
       g.add(instOf(new T.CylinderGeometry(w * 0.05, w * 0.05, d * 1.3, 8, 1, true), hl,
         tap.map(a => [a[0], a[1], a[2], Math.PI / 2, 0, 0])));
       return g;
@@ -5790,7 +5790,7 @@
       const dk = [];
       [-1, 1].forEach(sx => [-1, 1].forEach(sy => { const c = new T.CylinderGeometry(w * 0.035, w * 0.035, d, 8, 1, true); c.rotateX(Math.PI / 2); c.translate(sx * w * 0.42, sy * h * 0.42, 0); dk.push(c); }));
       { const ch = new T.BoxGeometry(r * 0.44, r * 0.035, d * 0.05); ch.translate(r * 0.6, 0, 0); ch.rotateZ(-Math.PI / 4 - Math.PI / 2); ch.translate(0, 0, -d * 0.28); dk.push(ch); }
-      g.add(new T.Mesh(mergeGeos(dk), K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 })));
+      g.add(new T.Mesh(mergeGeos(dk), K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.92, metal: 0.04 })));
       return g;
     }
 
@@ -5915,7 +5915,7 @@
       /* ★ 2026-09-26 第二批（B 組，§3D-細節 F5）：接頭補上**卡榫**與**四個端子孔**（一眼數得出四線）。*/
       g.add(mboxes([[w * 0.5, h, d * 0.3, w * 0.24, 0, 0], [w * 0.3, h * 0.18, d * 0.12, w * 0.24, h * 0.56, d * 0.06]], hs));   // 外殼＋卡榫
       g.add(mboxes([0, 1, 2, 3].map(i => [w * 0.07, h * 0.14, d * 0.04, w * 0.24, (i - 1.5) * h * 0.2, d * 0.15]),
-        K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 })));
+        K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.92, metal: 0.04 })));
       const cols = ['--dg-el', '--dg-edge', '--dg-fl-sig', '--dg-fl-pwr'];
       cols.forEach((cv, i) => {
         const m = K.mat(0, { color: K.css(cv, '#4e5866'), rough: 0.8, metal: 0.08 });
@@ -6639,7 +6639,7 @@
       const [w, h, d] = p.box;
       const nx = 11, nz = 7;
       const cw = w * 0.92 / nx, cd = d * 0.92 / nz;
-      [K.css('--dg-fl-hot', '#FF4D5E'), K.css('--dg-m-cool', '#2FB8A6'), K.css('--dg-fl-sig', '#58C4FF')]
+      [K.css('--dg-fl-hot', '#FF4D5E'), K.css('--dg-m-cool', '#2FB8A6'), K.css('--dg-fl-sig', '#6EC0E6')]
         .forEach((c, s) => {
           const at = [];
           for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
@@ -6651,7 +6651,7 @@
       const bm = [];
       for (let i = 0; i <= nx; i++) bm.push([Math.max(0.03, w * 0.008), h, d * 0.92, (-nx / 2 + i) * cw, 0, 0]);
       for (let j = 0; j <= nz; j++) bm.push([w * 0.92, h, Math.max(0.03, d * 0.012), 0, 0, (-nz / 2 + j) * cd]);
-      g.add(mboxes(bm, K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.9, metal: 0.02 })));
+      g.add(mboxes(bm, K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.9, metal: 0.02 })));
       return g;
     }
 
@@ -7458,7 +7458,7 @@
       g.add(mboxes(halfSlab(w, h * 0.42, d, -h * 0.24), K.mat(-0.08, { rough: 0.42 })));
       g.add(halfFace(K, w, h * 0.42, d, -h * 0.24, -0.08));
       g.add(mboxes(halfSlab(w * 0.995, h * 0.1, d * 0.995, 0),
-        K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), rough: 0.44, metal: 0.1 })));
+        K.mat(0, { color: K.css('--dg-fl-sig', '#6EC0E6'), rough: 0.44, metal: 0.1 })));
       /* 2026-09-26：接面露出晶片側壁的地方蓋一圈玻璃鈍化（glass passivated junction）——
          晶片邊緣先蝕刻成斜的台面（mesa）、再填玻璃，雪崩才不會在側壁表面先發生。
          畫在左右兩端與背面（前面是剖面）。*/
@@ -7595,7 +7595,7 @@
         at.push([x, h * 0.26, z]); at.push([x, -h * 0.26, z]);
       }
       g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.4, h * 0.44, d * 0.76 / nz * 0.4),
-        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 }), at));
+        K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.95, metal: 0.02 }), at));
       return g;
     }
 
@@ -7672,7 +7672,7 @@
         [Ro, yg + gw], [Ro, h / 2 - h * 0.12], [Ro * 0.93, h / 2], [0, h / 2]];
       g.add(halfLathe(prof, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.88, metal: 0.03 }), { seg: 24 }));
       g.add(instOf(new T.CylinderGeometry(R * 0.13, R * 0.13, h * 1.1, 10),
-        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.9, metal: 0.05 }),
+        K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.9, metal: 0.05 }),
         [[-R * 0.4, 0, -R * 0.3], [R * 0.4, 0, -R * 0.3]]));
       return g;
     }
@@ -7878,7 +7878,7 @@
       const [w, h, d] = p.box;
       const cw = Math.max(0.04, w * 0.035), cd = Math.max(0.04, d * 0.035);
       g.add(mboxes([[cw, h, d * 0.3, 0, 0, -d * 0.34], [w * 0.22, h, cd, w * 0.1, 0, -d * 0.2]],
-        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 })));
+        K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.95, metal: 0.02 })));
       /* ★ 雷射是**切穿電阻膜**的，所以溝底露出來的是底下的陶瓷基板 ——
          溝畫成一條全黑的線就少了「它切到哪裡為止」這件事。*/
       g.add(mboxes([[cw * 1.6, h * 0.18, d * 0.3, 0, -h * 0.42, -d * 0.34],
@@ -8065,7 +8065,7 @@
         [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
         [w, h, t, 0, 0, -d / 2 + t / 2]], st));
       // 側壁通風孔：800G 模組的熱要從籠子帶走，所以鈑金上一定打了孔
-      const vd = K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 });
+      const vd = K.mat(0, { color: K.css('--dg-void', '#0b1428'), rough: 0.95, metal: 0.02 });
       const hr = Math.min(h, d) * 0.055, hs = [];
       for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
         const z = (-1.5 + i) * d * 0.19, y = (-1 + j) * h * 0.26;
@@ -8173,7 +8173,7 @@
     function hsFly(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const jk = K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), rough: 0.7, metal: 0.08 });
+      const jk = K.mat(0, { color: K.css('--dg-fl-sig', '#6EC0E6'), rough: 0.7, metal: 0.08 });
       const sh = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.34 });
       const cd = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 });
       const hz = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.62, metal: 0.1 });
@@ -8817,7 +8817,7 @@
         vias.push([vx, top, vz]);
       }
       g.add(instOf(new T.CylinderGeometry(0.22, 0.22, 0.05, 8), K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 }), vias));
-      g.add(instOf(new T.CylinderGeometry(0.1, 0.1, 0.06, 6), K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.95, metal: 0.02 }), vias.map(v => [v[0], v[1] + 0.01, v[2]])));
+      g.add(instOf(new T.CylinderGeometry(0.1, 0.1, 0.06, 6), K.mat(0, { color: K.css('--dg-edge', '#0e1a33'), rough: 0.95, metal: 0.02 }), vias.map(v => [v[0], v[1] + 0.01, v[2]])));
       // 絲印框：每一顆零件的位置（主控、DRAM、兩顆 NAND、PMIC）＋ 板尾的容量標示區
       if (p.silk) g.add(silk(K, w, d, top + 0.01, p.silk));
       // 螺絲缺口周圍的接地銅環（露銅、沒有綠漆）
@@ -10885,7 +10885,7 @@
       const mixK = emOn ? 0.4 : 0.55;
       for (let n = 0; n < pulses.length; n++) {
         const pg = pulses[n], items = pg.items, cnt = items.length;
-        _pc.set(palColOpt(pg.token) || new THREE.Color('#58C4FF'));
+        _pc.set(palColOpt(pg.token) || new THREE.Color('#6EC0E6'));
         for (let i = 0; i < cnt; i++) {
           const it = items[i], p = it.p;
           let u = (pulseAt / pg.period) - i / cnt + pg.phase;

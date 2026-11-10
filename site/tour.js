@@ -547,7 +547,7 @@
     if ($('#twTourCss')) return;
     const s = document.createElement('style'); s.id = 'twTourCss';
     s.textContent = `
-#twTour{position:fixed;inset:0;z-index:2400;--twt-ease:cubic-bezier(.2,.8,.2,1);--twt-dur:280ms;--twt-ring:var(--accent,var(--cyan,#37e2ff));--twt-dim:rgba(3,7,16,.6)}
+#twTour{position:fixed;inset:0;z-index:2400;--twt-ease:cubic-bezier(.2,.8,.2,1);--twt-dur:280ms;--twt-ring:var(--accent,var(--cyan,#8fb2f2));--twt-dim:rgba(3,7,16,.6)}
 :root[data-theme="light"] #twTour{--twt-dim:rgba(15,23,42,.46)}
 #twTour .twt-block{position:absolute;inset:0;background:transparent;cursor:default}
 #twTour .twt-hole{position:fixed;left:0;top:0;width:0;height:0;border-radius:12px;pointer-events:none;contain:strict;will-change:transform;

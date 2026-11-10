@@ -28,7 +28,7 @@
      這張表只當「payload 裡沒有的虛擬鍵」與 L 還沒 init 完的 fallback ——
      以前它是第二份對照表，新增的 software / financial 沒補進來就直接印英文 id 上畫面。*/
   const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', siph_cpo: '矽光子／CPO', _other: '其他族群', industry: '法定產業別' };
-  const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
+  const SEG_COLORS = ['#8fb2f2', '#b39af0', '#ffb454', '#b5c65a', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
   // 分時走勢（週期「分時」）的圖：跟 kchart 不會同時存在（見 setupChart 的 applyTick）
   let tchart = null, tickTimer = null, tickT0 = 0;
@@ -4063,7 +4063,7 @@
         const words = noteWrap(msg);
         const shown = words.slice(0, NOTE_MAX);
         if (words.length > NOTE_MAX) shown[NOTE_MAX - 1] = shown[NOTE_MAX - 1].slice(0, -1) + '…';
-        /* ★ 2026-09-23：這裡的 fill 本來寫死 #6f7ea3（深色主題的舊 --ink-3），
+        /* ★ 2026-09-23：這裡的 fill 本來寫死 #9ba8c4（深色主題的舊 --ink-3），
            切到明亮主題不會換色，而且吃不到這次把 --ink-3 提亮的修正。
            SVG 的 fill 讀得到 CSS 變數，所以直接指到 token 就好。*/
         // 說明全文改由 wireSegTip 的說明框顯示（原生 <title> 寬度管不到，會窄到逐字斷行）
@@ -4942,7 +4942,7 @@
   ];
   const STYLE_DEF = {
     boll: { c: '#b39dff' }, vol: { c: '#ff4d6d', c2: '#2ee59d', o: 55 },
-    kd: { c: '#3ee0ff', c2: '#ffd166' }, macd: { c: '#3ee0ff', c2: '#ffd166' }, rsi: { c: '#c3ff5b' },
+    kd: { c: '#8fb2f2', c2: '#ffd166' }, macd: { c: '#8fb2f2', c2: '#ffd166' }, rsi: { c: '#b5c65a' },
   };
   // 內建週期＋使用者自訂的（nD = N 日合成、nW = N 週合成；分 K 只能用抓得到的那幾檔）
   /* 5秒 / 1分 / 5分 是「當天即時」的，資料不在 payload 裡，而是 livek.js 現場合成的
@@ -5503,7 +5503,7 @@
       { k: 'base', label: '整體', base: true, sum: () => `線寬 ${cfg.lineWidth || 1}px · K 棒 ${cfg.bar || 11}px` },
       { k: 'ma', label: '均線 MA', color: '#ffd166', on: () => !!(cfg.ma && cfg.ma.length), toggle: () => flip('ma'),
         sum: () => prmOf('ma').join(',') },
-      { k: 'boll', label: 'BOLL 通道', color: '#8b7bff', on: () => !!cfg.boll, toggle: () => flip('boll'),
+      { k: 'boll', label: 'BOLL 通道', color: '#b39af0', on: () => !!cfg.boll, toggle: () => flip('boll'),
         sum: () => { const p = prmOf('boll'); return `${p.n},${p.k}`; },
         params: [{ p: 'n', lab: '天數', min: 2, max: 240 }, { p: 'k', lab: '倍數', min: 0.5, max: 5, step: 0.1 }], io: P('boll'), st: 'boll' },
       { k: 'vol', label: '成交量', color: '#8ea0c4', on: () => !!cfg.vol, toggle: () => { cfg.vol = !cfg.vol; },
@@ -5513,13 +5513,13 @@
       { k: 'kd', label: 'KD', color: '#ffd166', on: () => !!cfg.kd, toggle: () => flip('kd'),
         sum: () => { const p = prmOf('kd'); return `${p.n},${p.m1},${p.m2}`; },
         params: [{ p: 'n', lab: '天數', min: 2, max: 120 }, { p: 'm1', lab: 'K 平滑', min: 1, max: 30 }, { p: 'm2', lab: 'D 平滑', min: 1, max: 30 }], io: P('kd'), st: 'kd' },
-      { k: 'macd', label: 'MACD', color: '#3ee0ff', on: () => !!cfg.macd, toggle: () => flip('macd'),
+      { k: 'macd', label: 'MACD', color: '#8fb2f2', on: () => !!cfg.macd, toggle: () => flip('macd'),
         sum: () => { const p = prmOf('macd'); return `${p.f},${p.s},${p.g}`; },
         params: [{ p: 'f', lab: '快線', min: 2, max: 120 }, { p: 's', lab: '慢線', min: 3, max: 240 }, { p: 'g', lab: '訊號', min: 2, max: 120 }], io: P('macd'), st: 'macd' },
       /* 「MACD 背離」與「停損／目標」兩列 2026-09-26 晚拿掉（Andy：「MACD & 停損／目標背離先拿掉」）。
          MACD 本身留著（預設關）；背離在主圖由 mainCfg() 強制 macdDiv:false，停損目標的價位線整段不畫了。
          右側分析卡上那行「停損・目標」文字是分析卡的事，不在這裡。*/
-      { k: 'rsi', label: 'RSI', color: '#c3ff5b', on: () => !!cfg.rsi, toggle: () => flip('rsi'),
+      { k: 'rsi', label: 'RSI', color: '#b5c65a', on: () => !!cfg.rsi, toggle: () => flip('rsi'),
         sum: () => String(prmOf('rsi').n), params: [{ p: 'n', lab: '天數', min: 2, max: 120 }], io: P('rsi'), st: 'rsi' },
       /* 本益比河流：把下方那張河流圖的五條倍數線疊在 K 棒上（需要近四季 EPS，只有日／週／月線畫得出來）。*/
       { k: 'peRiver', label: '本益比河流', color: '#b39dff', on: () => !!cfg.peRiver, toggle: () => { cfg.peRiver = !cfg.peRiver; },
@@ -7409,9 +7409,9 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
           legend: { show: false }, grid: { left: 60, right: 50, top: 10, bottom: 30 },
           xAxis: { ...A.axisStyle, type: 'category', data: t.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2).replace('-', '/'), hideOverlap: true } },
           yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } }, pctAx],
-          series: [{ name: '當月營收', type: 'bar', label: { show: false }, data: t.map(r => r[1]), itemStyle: { color: 'rgba(62,224,255,.75)', borderRadius: [3, 3, 0, 0] } },
+          series: [{ name: '當月營收', type: 'bar', label: { show: false }, data: t.map(r => r[1]), itemStyle: { color: 'rgba(143,178,242,.75)', borderRadius: [3, 3, 0, 0] } },
             { name: '去年同期', type: 'bar', label: { show: false }, data: t.map(lyOf), itemStyle: { color: 'rgba(160,170,190,.45)', borderRadius: [3, 3, 0, 0] } },
-            { name: 'MoM', type: 'line', yAxisIndex: 1, data: t.map(r => r[3]), smooth: .3, showSymbol: t.length <= 24, symbolSize: 4, lineStyle: { color: '#8b7bff', width: 1.6 }, itemStyle: { color: '#8b7bff' } },
+            { name: 'MoM', type: 'line', yAxisIndex: 1, data: t.map(r => r[3]), smooth: .3, showSymbol: t.length <= 24, symbolSize: 4, lineStyle: { color: '#b39af0', width: 1.6 }, itemStyle: { color: '#b39af0' } },
             { name: 'YoY', type: 'line', yAxisIndex: 1, data: t.map(r => r[2]), smooth: .3, showSymbol: t.length <= 24, symbolSize: 4, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
       } else {
         const ys = yrsAll.slice(-10);
@@ -7427,7 +7427,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
           legend: { show: false }, grid: { left: 60, right: 50, top: 10, bottom: 30 },
           xAxis: { ...A.axisStyle, type: 'category', data: rows.map(r => r.lab), axisLabel: { color: A.CH.ink3, hideOverlap: true, formatter: v => v.slice(0, 4) } },
           yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } }, pctAx],
-          series: [{ name: '年營收', type: 'bar', label: { show: false }, data: rows.map(r => ({ value: r.rev, itemStyle: { color: r.part ? 'rgba(62,224,255,.35)' : 'rgba(62,224,255,.75)', borderRadius: [3, 3, 0, 0] } })) },
+          series: [{ name: '年營收', type: 'bar', label: { show: false }, data: rows.map(r => ({ value: r.rev, itemStyle: { color: r.part ? 'rgba(143,178,242,.35)' : 'rgba(143,178,242,.75)', borderRadius: [3, 3, 0, 0] } })) },
             { name: '年增率', type: 'line', yAxisIndex: 1, data: rows.map(r => r.yoy), symbolSize: 6, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
       }
       const rvw = $('#revView', el);
@@ -7467,13 +7467,13 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
     { name: '觀望', c: '#ffc53d' }, { name: '高估', c: '#ff7a45' }, { name: '警示', c: '#ff2e63' },
   ];
   /* ★ 2026-09-28（Andy：「本益比河流圖 顏色」）：配色分深／淺兩組，並把色帶預設透明度 30% → 45%。
-     舊的一組（#1c7a5a #2ee59d #c3ff5b #ffd166 #ff8fab #ff4d6d）在淺色主題的白底上，
+     舊的一組（#1c7a5a #2ee59d #b5c65a #ffd166 #ff8fab #ff4d6d）在淺色主題的白底上，
      合理／觀望兩帶疊 30% 後跟底色的對比只有 1.06～1.12:1（等於看不見），高估（粉）與警示（紅）相鄰色差 ΔE 只有 9～11。
      新的兩組是「青綠→綠→黃綠→琥珀→橘→紅」的發散色階，相鄰帶同時差色相與明度；
      算過（CIELAB ΔE、疊在卡片底色上）：預設 45% 時相鄰帶 ΔE 深色 19～27、淺色 18～27，每一帶對底色 ≥1.35:1。
      _uitest「本益比河流配色與Y軸0928」在瀏覽器裡用實際畫出來的顏色再驗一次（門檻 ΔE ≥ 15、對比 ≥ 1.25）。*/
   const PE_Z_LIGHT = ['#0b7a75', '#2fa84f', '#a0c020', '#f0b000', '#ef6a20', '#c8102e'];
-  const PE_Z_OLD = ['#1c7a5a', '#2ee59d', '#c3ff5b', '#ffd166', '#ff8fab', '#ff4d6d'];
+  const PE_Z_OLD = ['#1c7a5a', '#2ee59d', '#b5c65a', '#ffd166', '#ff8fab', '#ff4d6d'];
   const peDefaultZ = () => (document.documentElement.getAttribute('data-theme') === 'light' ? PE_Z_LIGHT : PE_ZONES.map(x => x.c));
 
   /* 河流圖的樣式也要能自己調（Andy 2026-09-15：「需要新增本益比河流圖的顏色 線條粗細 透明度 等設定」）。
@@ -8101,9 +8101,9 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       yAxis: { ...A.axisStyle, scale: true },
       series: [
         { name: '區間', type: 'line', data: lo, lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false, z: 2 },
-        { name: '高低', type: 'line', data: hi.map((h, i) => (h != null && lo[i] != null ? h - lo[i] : null)), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false, z: 2 },
-        { name: '本益比', type: 'line', data: line, connectNulls: false, lineStyle: { color: '#8b7bff', width: 2 },
-          itemStyle: { color: (p) => (neg[p.dataIndex] != null ? (A.CH.down || '#2fbf71') : '#8b7bff') }, symbolSize: 6, z: 3,
+        { name: '高低', type: 'line', data: hi.map((h, i) => (h != null && lo[i] != null ? h - lo[i] : null)), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(179,154,240,.2)' }, showSymbol: false, z: 2 },
+        { name: '本益比', type: 'line', data: line, connectNulls: false, lineStyle: { color: '#b39af0', width: 2 },
+          itemStyle: { color: (p) => (neg[p.dataIndex] != null ? (A.CH.down || '#2fbf71') : '#b39af0') }, symbolSize: 6, z: 3,
           markLine: nNeg ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { color: A.CH.ink3, type: 'dashed', width: 1 }, data: [{ yAxis: 0 }] } : undefined },
         { name: '超出範圍', type: 'scatter', data: m.over.map(o => (o ? m.cap : null)), symbol: 'triangle', symbolSize: 10, itemStyle: { color: A.CH.amber }, z: 4 },
         { name: '低於下限', type: 'scatter', data: neg.map(v => (v != null && v < -m.cap ? -m.cap : null)), symbol: 'triangle', symbolRotate: 180, symbolSize: 10, itemStyle: { color: A.CH.down || '#2fbf71' }, z: 4 },
@@ -8195,7 +8195,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       const tb = $('#profitTbl', el); if (tb) tb.innerHTML = isY ? tblY() : tblQ();
       const pc = A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : p.seriesName === 'EPS' ? A.fmt.n(p.value, 2) + ' 元' : A.fmt.n(p.value, 1) + '%'}`).join('<br>') }, legend: { show: false, type: 'scroll' }, grid: { left: 50, right: 50, top: 10, bottom: 30 },
         xAxis: { ...A.axisStyle, type: 'category', data: X, axisLabel: { color: A.CH.ink3, hideOverlap: true } }, yAxis: [{ ...A.axisStyle }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
-        series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: E.map(v => ({ value: v, itemStyle: { color: v >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: M('gm', 2), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#ffd166' }, itemStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: M('om', 3), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#3ee0ff' }, itemStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: M('nm', 4), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#8b7bff' }, itemStyle: { color: '#8b7bff' } }] }, { notMerge: true });
+        series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: E.map(v => ({ value: v, itemStyle: { color: v >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: M('gm', 2), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#ffd166' }, itemStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: M('om', 3), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#8fb2f2' }, itemStyle: { color: '#8fb2f2' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: M('nm', 4), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#b39af0' }, itemStyle: { color: '#b39af0' } }] }, { notMerge: true });
       /* 設計 v4 2B：圖例搬到標題列最右端（季／年後面，放不下自己換行）；原本寫在左軸頂上的「EPS」字樣（佔繪圖區上方一行）併進圖例：EPS（元，左軸） */
       const pm = $('#profitMode', el);
       /* ★ 2026-10-02（DECISIONS #295）：放不下退回 ECharts 圖例時，以前會把左軸頂上的「EPS」還原 ——

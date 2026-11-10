@@ -105,7 +105,7 @@
     const cnt = {}; (rk.rows || []).forEach(r => (r.g || []).forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
     const names = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
     let ms;
-    const sync = () => { ms.sync({ rows: names.map(n => ({ name: n, on: grpSel.has(n), color: css('--cat-1', '#4cc9f0'), val: cnt[n] + ' 檔' })),
+    const sync = () => { ms.sync({ rows: names.map(n => ({ name: n, on: grpSel.has(n), color: css('--cat-1', '#6ec0e6'), val: cnt[n] + ' 檔' })),
       count: `共 ${names.length} 個族群 · 已選 ${grpSel.size} 個（不選＝全市場）`, label: grpSel.size ? `已選 ${grpSel.size} 個` : '全市場', n: grpSel.size }); paintRank(body, rk); };
     ms = H.msDD(dd, { menu: { rf: 'market', kind: 'mfgroup' },
       onToggle: (c) => { if (c.checked) grpSel.add(c.dataset.n); else grpSel.delete(c.dataset.n); sync(); },
@@ -239,7 +239,7 @@
 .mf-cseg{display:none}
 @media (max-width:640px){.mf-cseg{display:block;margin:0 0 6px}.mf-split[data-chart="ratio"] .mf-cbox[data-c="bal"],.mf-split[data-chart="bal"] .mf-cbox[data-c="ratio"]{display:none}}
 @media (max-width:900px){.mf-top{grid-template-columns:1fr}.mf-split{display:flex;flex-direction:column}.mf-tblbox{contain:none;display:block}.mf-split .mf-tblbox .mf-scroll{max-height:320px!important}.mf-ch{height:220px}}
-#mfTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 14%,transparent)}#mfTbl tr.lk td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 26%,transparent)}#mfTbl td,#mfTbl th{text-align:center!important}#mfTbl td.l,#mfTbl th.l{text-align:left!important}
+#mfTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#8fb2f2) 14%,transparent)}#mfTbl tr.lk td{background:color-mix(in srgb,var(--cyan,#8fb2f2) 26%,transparent)}#mfTbl td,#mfTbl th{text-align:center!important}#mfTbl td.l,#mfTbl th.l{text-align:left!important}
 .mf-ranks{margin-top:14px}.mf-rkhead{display:flex;align-items:center;gap:10px;margin:0 0 6px;flex-wrap:wrap}.mf-gsel{margin:0 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.mf-noetf{display:inline-flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;white-space:nowrap}.mf-noetf input{width:16px;height:16px;margin:0}.mf-rkgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}@media (max-width:760px){.mf-rkgrid{grid-template-columns:minmax(0,1fr)}}.mf-rank{min-width:0;display:flex;flex-direction:column;gap:4px}
 .mf-rank>b{padding-left:6px}.mf-rk{display:grid;grid-template-columns:18px minmax(0,1fr) auto;column-gap:8px;row-gap:3px;align-items:start;padding:4px 6px;border-radius:6px;text-decoration:none;color:inherit}.mf-rk:hover{background:rgba(142,160,196,.12)}.mf-n{width:16px;color:var(--ink-3,#8ea0c4)}.mf-nm{min-width:0;overflow-wrap:anywhere;line-height:1.35}.mf-nm b{font-weight:600;font-variant-numeric:tabular-nums}.mf-val{white-space:nowrap;font-size:13px}
 .mf-sb{grid-column:2 / 4;min-width:0;display:flex}.mf-sb .trk{flex:1;height:12px;border-radius:3px;background:color-mix(in srgb,var(--ink-3,#8ea0c4) 16%,transparent);overflow:hidden}.mf-sb i{display:block;height:12px;border-radius:3px}

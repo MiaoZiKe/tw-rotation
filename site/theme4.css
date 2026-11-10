@@ -256,13 +256,13 @@
   --bg:#F7F5FB; --bg-2:#F1EEF8; --panel:#FFFFFF; --panel-2:#FBFAFE; --panel-3:#F3F0FA;
   --line:#E9E4F3; --line-2:#D6CFE6;
   --ink:#231F36; --ink-2:#433D5C; --ink-3:#655E80;
-  --cyan:#5643D1; --violet:#7A3FC8; --amber:#8F5600; --lime:#3F7512;
+  --cyan:#2B4C8C; --violet:#7A3FC8; --amber:#8F5600; --lime:#3F7512;
   --rise:#C8143A; --fall:#0B7A50; --flat:#5F6480;
-  --accent:#5643D1; --on-accent:#FFFFFF;
+  --accent:#2B4C8C; --on-accent:#FFFFFF;
   --ontop:#FFFFFF; --chartbg:#FFFFFF;
   --grid:rgba(60,40,120,.07); --drop:rgba(60,40,120,.16);
-  --glow:0 0 0 1px rgba(86,67,209,.22), 0 4px 16px -8px rgba(86,67,209,.4);
-  --focus:#5643D1; --row-hover:#F5F2FC;
+  --glow:0 0 0 1px rgba(43,76,140,.22), 0 4px 16px -8px rgba(43,76,140,.4);
+  --focus:#2B4C8C; --row-hover:#F5F2FC;
   --tip-bg:rgba(255,255,255,.97); --tip-line:transparent; --tip-sh:0 10px 28px -10px rgba(60,40,120,.28);
   --body-1:transparent; --body-2:transparent; --card-sh:none;
   --t4-r-card:18px; --t4-r-inner:12px; --t4-r-ctl:999px;
@@ -274,8 +274,8 @@
   --t4-card-bg:#FFFFFF; --t4-card-edge:#ECE7F5;
   --t4-card-sh:0 1px 2px rgba(60,40,120,.05), 0 8px 24px -16px rgba(60,40,120,.22);
   --t4-card-sheen:linear-gradient(180deg,rgba(124,108,242,.05),rgba(124,108,242,0) 64px);
-  --t4-accent:linear-gradient(135deg,#6A55E6 0%,#4A63D8 100%); --t4-accent-solid:#5643D1;
-  --t4-accent-glow:0 6px 16px -8px rgba(86,67,209,.55);
+  --t4-accent:linear-gradient(135deg,#6A55E6 0%,#4A63D8 100%); --t4-accent-solid:#2B4C8C;
+  --t4-accent-glow:0 6px 16px -8px rgba(43,76,140,.55);
   --t4-ctl:#F6F3FC; --t4-ctl-edge:#E0D9EE; --t4-th-bg:#F6F3FC;
   --t4-topbar:rgba(255,255,255,.78); --t4-h-w:700;
 }
@@ -284,13 +284,13 @@
   --bg:#17142B; --bg-2:#1B1832; --panel:#211D3A; --panel-2:#262243; --panel-3:#2D294D;
   --line:#352F5A; --line-2:#4A4378;
   --ink:#F4F1FF; --ink-2:#CDC7EC; --ink-3:#A39CC9;
-  --cyan:#A99BFF; --violet:#D2A8FF; --amber:#FFC266; --lime:#C6F36B;
+  --cyan:#8FB2F2; --violet:#D2A8FF; --amber:#FFC266; --lime:#C6F36B;
   --rise:#FF6F86; --fall:#3DDC98; --flat:#A6A2C4;
-  --accent:#8E7CFF; --on-accent:#140F2C;
+  --accent:#8FB2F2; --on-accent:#140F2C;
   --ontop:#140F2C; --chartbg:#211D3A;
   --grid:rgba(255,255,255,.06); --drop:rgba(8,5,24,.55);
   --glow:0 0 0 1px rgba(169,155,255,.3), 0 0 22px -6px rgba(169,155,255,.5);
-  --focus:#A99BFF; --row-hover:#2A2647;
+  --focus:#8FB2F2; --row-hover:#2A2647;
   --tip-bg:rgba(38,34,67,.96); --tip-line:#4A4378; --tip-sh:0 12px 32px -10px rgba(8,5,24,.7);
   --body-1:transparent; --body-2:transparent; --card-sh:none;
   --t4-r-card:18px; --t4-r-inner:12px; --t4-r-ctl:999px;
@@ -302,7 +302,7 @@
   --t4-card-bg:#211D3A; --t4-card-edge:#352F5A;
   --t4-card-sh:0 10px 28px -18px rgba(8,5,24,.8);
   --t4-card-sheen:linear-gradient(180deg,rgba(169,155,255,.07),rgba(169,155,255,0) 64px);
-  --t4-accent:linear-gradient(135deg,#B3A6FF 0%,#8FB4FF 100%); --t4-accent-solid:#A99BFF;
+  --t4-accent:linear-gradient(135deg,#B3A6FF 0%,#8FB4FF 100%); --t4-accent-solid:#8FB2F2;
   --t4-accent-glow:0 6px 18px -8px rgba(169,155,255,.6);
   --t4-ctl:#2A2647; --t4-ctl-edge:#443D6E; --t4-th-bg:#2A2647;
   --t4-topbar:rgba(23,20,43,.8); --t4-h-w:700;
@@ -313,32 +313,32 @@
   --bg:#050A13; --bg-2:#08101D; --panel:#0B1626; --panel-2:#0F1C2F; --panel-3:#13233A;
   --line:#16304A; --line-2:#22486A;
   --ink:#E4F6FF; --ink-2:#A6C8DC; --ink-3:#86A9BF;
-  --cyan:#37E2FF; --violet:#9C8CFF; --amber:#FFBE5C; --lime:#B8F55A;
+  --cyan:#8FB2F2; --violet:#9C8CFF; --amber:#FFBE5C; --lime:#B8F55A;
   --rise:#FF5470; --fall:#2EE59D; --flat:#8FA9BC;
-  --accent:#37E2FF; --on-accent:#03121B;
+  --accent:#8FB2F2; --on-accent:#03121B;
   --ontop:#03121B; --chartbg:#0B1626;
-  --grid:rgba(55,226,255,.07); --drop:rgba(0,4,10,.6);
-  --glow:0 0 0 1px rgba(55,226,255,.35), 0 0 22px -4px rgba(55,226,255,.55);
-  --focus:#37E2FF; --row-hover:rgba(55,226,255,.07);
+  --grid:rgba(143,178,242,.07); --drop:rgba(0,4,10,.6);
+  --glow:0 0 0 1px rgba(143,178,242,.35), 0 0 22px -4px rgba(143,178,242,.55);
+  --focus:#8FB2F2; --row-hover:rgba(143,178,242,.07);
   /* 2026-10-06（既有紅字清理，_uitest 熱力圖v2）：提示框 .92 → .97。HUD 是預設主題，.92 讓熱力圖方塊的字從提示框後面透出來 ——
      2026-09-24 Andy 截圖嫌過（88% 透明看不清），當時定案 ≥ 97%（index.html 基底 --tip-bg 就是 .97）；v4 原型 669eac0c 新增這組時沒跟上。 */
-  --tip-bg:rgba(9,20,34,.97); --tip-line:rgba(55,226,255,.35); --tip-sh:0 0 0 1px rgba(55,226,255,.12), 0 12px 32px -10px rgba(0,0,0,.8);
+  --tip-bg:rgba(9,20,34,.97); --tip-line:rgba(143,178,242,.35); --tip-sh:0 0 0 1px rgba(143,178,242,.12), 0 12px 32px -10px rgba(0,0,0,.8);
   --body-1:transparent; --body-2:transparent; --card-sh:none;
   --t4-r-card:10px; --t4-r-inner:8px; --t4-r-ctl:6px;
   --t4-page:
-    linear-gradient(rgba(55,226,255,.035) 1px, transparent 1px) 0 0/32px 32px,
-    linear-gradient(90deg, rgba(55,226,255,.035) 1px, transparent 1px) 0 0/32px 32px,
-    radial-gradient(1000px 600px at 12% -12%, rgba(55,226,255,.14) 0, rgba(55,226,255,0) 60%),
+    linear-gradient(rgba(143,178,242,.035) 1px, transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg, rgba(143,178,242,.035) 1px, transparent 1px) 0 0/32px 32px,
+    radial-gradient(1000px 600px at 12% -12%, rgba(143,178,242,.14) 0, rgba(143,178,242,0) 60%),
     radial-gradient(900px 600px at 100% 0%, rgba(120,110,255,.12) 0, rgba(120,110,255,0) 58%),
     #050A13;
-  --t4-card-bg:rgba(11,22,38,.55); --t4-card-edge:rgba(55,226,255,.18);
+  --t4-card-bg:rgba(11,22,38,.55); --t4-card-edge:rgba(143,178,242,.18);
   --t4-card-tint:rgba(11,22,38,.62); --t4-card-blur:blur(14px) saturate(140%);
   --t4-card-sh:inset 0 1px 0 rgba(160,240,255,.08), 0 16px 40px -22px rgba(0,0,0,.9);
-  --t4-card-sheen:linear-gradient(135deg,rgba(55,226,255,.06),rgba(55,226,255,0) 40%);
-  --t4-bracket:rgba(55,226,255,.7);
-  --t4-accent:linear-gradient(135deg,#37E2FF 0%,#5AA8FF 100%); --t4-accent-solid:#37E2FF;
-  --t4-accent-glow:0 0 0 1px rgba(55,226,255,.4), 0 0 18px -4px rgba(55,226,255,.6);
-  --t4-ctl:rgba(55,226,255,.06); --t4-ctl-edge:rgba(55,226,255,.22); --t4-th-bg:#0F1C2F;
+  --t4-card-sheen:linear-gradient(135deg,rgba(143,178,242,.06),rgba(143,178,242,0) 40%);
+  --t4-bracket:rgba(143,178,242,.7);
+  --t4-accent:linear-gradient(135deg,#8FB2F2 0%,#5AA8FF 100%); --t4-accent-solid:#8FB2F2;
+  --t4-accent-glow:0 0 0 1px rgba(143,178,242,.4), 0 0 18px -4px rgba(143,178,242,.6);
+  --t4-ctl:rgba(143,178,242,.06); --t4-ctl-edge:rgba(143,178,242,.22); --t4-th-bg:#0F1C2F;
   --t4-topbar:rgba(5,10,19,.72); --t4-h-w:600; --t4-h-ls:.04em; --t4-grid-type:dashed;
 }
 /* @tokens hud light */
