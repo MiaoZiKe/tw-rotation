@@ -1,7 +1,7 @@
 {
  "channel": "caffaine",
  "account": "caffaine.ai",
- "at": "2026-11-10T02:50:11+08:00",
+ "at": "2026-11-11T05:25:26+08:00",
  "platforms": {
   "ig": {
    "status": "partial",
@@ -17,7 +17,7 @@
    "account_values": {
     "followers": 0
    },
-   "last_success": "2026-11-10T02:50:11+08:00"
+   "last_success": "2026-11-11T05:25:26+08:00"
   },
   "threads": {
    "status": "ok",
@@ -33,7 +33,7 @@
     "reposts": 0,
     "quotes": 0
    },
-   "last_success": "2026-11-10T02:50:11+08:00"
+   "last_success": "2026-11-11T05:25:26+08:00"
   }
  }
 }
