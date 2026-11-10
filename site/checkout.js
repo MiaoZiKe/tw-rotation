@@ -148,6 +148,8 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   /* ---------------------------------------------------------------- ① 結帳面板 */
   const nameOf = (p) => (p && (p.planName || p.name)) || '';
   async function open(opt) {
+    /* 冷啟動總開關（site/coldstart_config.js）：結帳面板不從任何地方進入；程式與綠界串接都留著，開關關掉就恢復 */
+    if (window.TwCold && window.TwCold.on()) { ss.del(PEND); location.hash = '#pricing'; return; }
     const p = opt || {};
     const plan = String(p.plan || '');
     let per = p.per === 'year' ? 'year' : 'month';
@@ -459,6 +461,8 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   /* ---------------------------------------------------------------- ④ 帳號選單一列 */
   function menuItem(kind) {
     if (!me()) return '';
+    /* 冷啟動：沒有訂單的人不放「我的訂單／付款紀錄」（根本沒在賣）；已經有訂單的舊會員照舊看得到 */
+    if (window.TwCold && window.TwCold.on() && !(S.my && Array.isArray(S.my.orders) && S.my.orders.length)) { if (!S.my && !S.fly) refresh(); return ''; }
     if (!S.my && !S.fly) refresh();
     const dot = S.my && S.my.renew ? '<i class="dot" aria-label="即將到期"></i>' : '';
     return kind === 'm4'

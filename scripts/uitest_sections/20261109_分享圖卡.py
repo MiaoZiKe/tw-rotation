@@ -17,6 +17,14 @@ def _sc_png_size(path):
     return _sc_struct.unpack(">II", h[16:24])
 
 
+def _sc_free5(b):
+    """註冊會員、範本明寫 share.card 5 次（預設已在 2026-11-10 改 10）：下面「用到上限被鎖」那幾段的數字（5 張）照舊，驗的是機制"""
+    c, _sent, _st = _sub_ctx(b, "member", plan="free", feats={}, lims={"share.card": 5})
+    c.add_init_script("try { localStorage.setItem('tw.theme', 'light'); if (!localStorage.getItem('p12.init')) { localStorage.setItem('p12.init', '1'); localStorage.setItem('tw.live.on', '0'); localStorage.setItem('tw.dg3d', '0'); } } catch (e) {}")
+    c.route(re.compile(r"^https?://(?!127\.0\.0\.1|localhost|sub\.example\.test|fonts\.).*"), lambda r: r.fulfill(status=200, body="news", headers={"content-type": "text/html"}))
+    return c
+
+
 def t_sharecard_1109(b, base, code):
     T = "分享圖卡1109"
     errs: list = []
@@ -64,9 +72,9 @@ def t_sharecard_1109(b, base, code):
           feats: ['guest', 'free', 'plus', 'pro'].map(t => keys.map(k => tier(t).feats[k])),
           inEditor: keys.map(k => ed.includes(k)) }; }""")
     ok(f"{T} 兩個功能鍵都登記了（share.card 有 limBy／qspent／qbtn）", all(d["reg"]) and d["kind"] == ["bool", "global", True, True, True], d)
-    ok(f"{T} 註冊會員範本沒寫時：每日 5 次、可用、Plus 功能關著", d["free"] == [5, True, False], d["free"])
-    ok(f"{T} plan_presets.js：share.card 訪客 3／註冊會員 5／Plus 50／Pro 不限，四個方案都開；share.card.plus 只有 Plus、Pro 開",
-       d["lims"] == [3, 5, 50, None] and d["feats"] == [[True, False], [True, False], [True, True], [True, True]], (d["lims"], d["feats"]))
+    ok(f"{T} 註冊會員範本沒寫時：每日 10 次（2026-11-10 試營運期額度，原 5）、可用、Plus 功能關著", d["free"] == [10, True, False], d["free"])
+    ok(f"{T} plan_presets.js：share.card 訪客 5／註冊會員 10（11-10 冷啟動，原 3／5）／Plus 50／Pro 不限，四個方案都開；share.card.plus 只有 Plus、Pro 開",
+       d["lims"] == [5, 10, 50, None] and d["feats"] == [[True, False], [True, False], [True, True], [True, True]], (d["lims"], d["feats"]))
     ok(f"{T} 「編輯：新會員體驗」清單列得到兩個鍵（不在法遵禁止清單）", all(d["inEditor"]), d["inEditor"])
     notes = _sc_json.load(open(str(SITE / "notices" / "features.json"), encoding="utf-8"))
     nt = [n for n in notes if n.get("id") == "f-20261109-share-card"]
@@ -74,7 +82,7 @@ def t_sharecard_1109(b, base, code):
     c.close()
 
     # ------------------------------------------------------------ 1. 註冊會員（桌機）：真的按、真的產生、真的下載
-    c = _p12_ctx(b, plan="free")
+    c = _sc_free5(b)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg, "#overview"); agree(pg)
     to_fear(pg)
@@ -161,7 +169,7 @@ def t_sharecard_1109(b, base, code):
     c.close()
 
     # ------------------------------------------------------------ 2. 訪客：3 張，第 4 張被鎖
-    c = _p12_ctx(b, plan="guest", seed={"share.card": 3})
+    c = _p12_ctx(b, plan="guest", seed={"share.card": 5})
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     go(pg, "#overview"); agree(pg)
     to_fear(pg)
@@ -169,7 +177,7 @@ def t_sharecard_1109(b, base, code):
     g = pg.evaluate("""() => { const b = document.querySelector('.scBtn[data-sct="ov-fear"]'); const n = [...document.querySelectorAll('span.qnote[data-f="share.card"]')].find(x => x.getClientRects().length > 0);
         return { op: +getComputedStyle(b).opacity, note: n ? n.textContent : '' }; }""")
     pg.locator('.scBtn[data-sct="ov-fear"]').first.click(force=True); pg.wait_for_timeout(500)
-    ok(f"{T} ★ 訪客用滿 3 張後第 4 張被鎖（今日 3 張圖卡已用完）、按了不開視窗", "今日 3 張圖卡已用完" in g["note"] and not pg.evaluate("() => !!document.querySelector('.scDlg')"), g)
+    ok(f"{T} ★ 訪客用滿 5 張後第 6 張被鎖（今日 5 張圖卡已用完；11-10 起訪客 5 張）、按了不開視窗", "今日 5 張圖卡已用完" in g["note"] and not pg.evaluate("() => !!document.querySelector('.scDlg')"), g)
     c.close()
 
     # ------------------------------------------------------------ 3. 站主：種 99 次也不鎖
@@ -211,7 +219,7 @@ def t_sharecard_1109(b, base, code):
         if path == "/v1/me":
             out = {"user": {"email": "new@example.com", "name": "新會員", "admin": False, "owner": False}}
         elif path == "/v1/perm/me":
-            out = {"who": "member", "plan": "free", "planName": "註冊會員", "feats": {}, "lims": {}, "dq": None}
+            out = {"who": "member", "plan": "free", "planName": "註冊會員", "feats": {}, "lims": {"share.card": 5}, "dq": None}   # 2026-11-10：預設已改 10；這段驗的是「用到上限被鎖、體驗接手」的機制，用範本明寫 5 次（跟原本數字同）
         elif path == "/v1/grants/public":
             out = {"now": now, "promo": [], "welcome": []}
         elif path == "/v1/grants/me":

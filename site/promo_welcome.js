@@ -111,6 +111,7 @@
     ov.id = 'pwOv'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'pwTitle');
     if (still) ov.classList.add('pw-still');
     const rib = ['#8E7CFF', '#37B6E8', '#F5C451', '#C9B8FF', '#5FD0C0', '#F2A65A'].map((c) => `<i style="background:${c}"></i>`).join('');
+    const cold = !!(window.TwCold && window.TwCold.on());   // 冷啟動總開關：歡迎窗不出現 Plus／Pro 字樣（site/coldstart_config.js）
     ov.innerHTML = `<div class="pw-card" data-em="">
       <div class="pw-rib" aria-hidden="true">${rib}</div>
       <button type="button" class="pw-x" aria-label="關閉並不再顯示">×</button>
@@ -119,8 +120,8 @@
         <p class="pw-sub">你的新會員體驗到 <b>${esc(md(end - 1))}</b> 截止（臺北時間），還有 <b>${left}</b> 天。</p></div></div>
       <ul class="pw-list">
         <li><span class="pw-n">1</span><span><b>新會員註冊即享 14 天體驗</b><small>免綁卡、到期不扣款，結束後回到註冊會員額度。</small></span></li>
-        <li><span class="pw-n">2</span><span><b>體驗到期前填問卷，送 7 天 Plus</b><small>你的想法會直接影響我們接下來先做什麼。</small></span></li>
-        <li><span class="pw-n">3</span><span><b>邀請好友，你和好友各得 14 天 Plus</b><small>好友用你的邀請碼註冊即可。累計成功邀請 5 位好友，升級 Pro 7 天；Pro 可許一個客製化功能的願望。</small></span></li>
+        <li><span class="pw-n">2</span><span><b>體驗到期前填問卷，送 7 天${cold ? '進階額度' : ' Plus'}</b><small>你的想法會直接影響我們接下來先做什麼。</small></span></li>
+        <li><span class="pw-n">3</span><span><b>邀請好友，你和好友各得 14 天${cold ? '進階額度' : ' Plus'}</b><small>好友用你的邀請碼註冊即可。${cold ? '累計成功邀請 5 位好友，再加碼 7 天進階額度。' : '累計成功邀請 5 位好友，升級 Pro 7 天；Pro 可許一個客製化功能的願望。'}</small></span></li>
       </ul>
       <div class="pw-btns"><button type="button" class="pw-pri" data-go="trial">看我的體驗</button><button type="button" data-go="invite">邀請好友</button></div>
       <button type="button" class="pw-off">不再顯示</button>

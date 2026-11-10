@@ -1,6 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-10 冷啟動總開關＋試營運期額度（frontend-ui；Andy：「全部 O」核可 restart_1109/00_plan.md 決定表第 2、3、4 項）
+- **只在 `preview/coldstart`，還沒進 main。** 開關在 `site/coldstart_config.js`（`enabled: true`＝冷啟動，開賣改 false）；github.io 備援網址不論開關一律冷啟動。
+- 價格頁不顯示金額、結帳入口全關（綠界與結帳程式一行沒刪）；「升級 Plus／Pro」「Plus 以上可增加」訪客改「免費註冊」、會員改「預約通知」或「明天 00:00 重置」；歡迎窗不出現 Plus／Pro。
+- 額度（plan_presets.js、features.js 的 limBy 同步）：訪客個股頁 5、法人與營收獲利分頁開、搜尋 10、圖卡 5、3D 1；註冊會員依 01_freemium.md 4-1 加倍，卡片標「試營運期額度」。體驗額度沒動。
+- ⚠ 線上額度是後端範本：**要到 #admin/perm 按「套用建議方案」才會生效**（會覆寫範本；先確認）。
+- 驗收：新段落 `冷啟動1110`；`_uitest.py` 的本機伺服器預設把開關回成 false（既有幾百段測的是付費 UI），TW_COLD=1 才用原檔；舊段落裡受額度數字影響的斷言（1011／1012／分享圖卡／訪客額度顯示／套用建議方案）已隨新額度更新。
+
 ## 2026-11-09 修 #stock/3189/holders 大戶／散戶卡片文字交疊（frontend-ui，維修）
 - 根因：三格持股折線 boundaryGap:false，首點貼在 y 軸線上，置中的數值標籤（「70.20%」）有一半伸進左邊刻度字（「90%」）區域；末點同理。只動 site/industry.js tabHolders：頭尾兩點標籤往圖內推 24px，資料與口徑不動。
 - 這批驗了：獨立 echarts 重現圖（同 grid／標籤設定，1440／800／390）舊 3 組交疊→修後 0；`_preview`／`_uitest` 本機因 build_payload 記憶體不足被殺（OOM），**未跑**，待 CI／有記憶體的 session 補跑 `_preview.py` 與 `--only 個股`、`桌機守門1008`。

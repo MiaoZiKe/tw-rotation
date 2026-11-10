@@ -6223,6 +6223,8 @@ return {load:load,ready:ready,srcs:srcs};})();
      開關在 legal_config.js（條款空格填完＋enabled:true 才啟用橫幅）。必須在 app.js 之前：
      route() 第一次跑的時候就要問得到 window.TwLegal。 -->
 <script src="legal_config.js"></script>
+<!-- ★ 2026-11-10 冷啟動總開關（Andy 11-10 核可）：價格／結帳／升級字樣一鍵切換，開賣只改 coldstart_config.js 的 enabled；備援網址 github.io 永遠冷啟動。 -->
+<script src="coldstart_config.js"></script>
 <script src="legal.js"></script>
 <!-- ★ 2026-09-27 會員登入／自選五分頁／使用統計（DECISIONS #270）。account_config.js 的 api 是空的（repo 裡永遠是空的，部署時依 Secret 覆寫）就只剩本機自選清單，
      不連任何外部服務。必須在 app.js 之前：route() 第一次跑就要問得到 window.TwAccount（#admin）；mobile3.js 要用 window.TwWatch。 -->
