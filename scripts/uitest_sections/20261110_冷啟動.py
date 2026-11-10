@@ -97,6 +97,7 @@ def t_coldstart_1110(b, base, code):
                  up: /升級\\s*(Plus|Pro)/.test(v.innerText), cmpPrice: /NT\\$|\\d\\s*\\/\\s*月/.test(v.innerText) }; }""")
     ok(f"{T} B1 ★ 訪客：#pricing 整頁找不到「NT$」、沒有月繳年繳切換、沒有劃線價、沒有價格數字", v["n"] >= 1 and "NT$" not in v["txt"] and not v["per"] and not v["strike"] and v["prices"] == 0 and not v["cmpPrice"], (v["n"], v["per"], v["prices"]))
     ok(f"{T} B2 訪客：付費卡價格處寫「即將開放」、按鈕寫「免費註冊」、整頁沒有「升級 Plus／Pro」", all(x == "即將開放" for x in v["ask"]) and all(x == "免費註冊" for x in v["btn"]) and not v["up"], (v["ask"], v["btn"]))
+    ok(f"{T} B1b ★ 訪客：整頁找不到「399」「799」（方案名稱不含數字，改進階／完整）、頁首說明改試營運期", not re.search(r"399|799", v["txt"]) and "進階" in v["txt"] and "試營運期，進階功能開放免費體驗" in v["txt"], v["txt"][:300])
     shot(pg, "pricing_guest_1440.png")
     pg.locator('#prCards .prcard[data-tier=paid] .prgo').first.click()
     pg.wait_for_timeout(600)
@@ -246,6 +247,16 @@ def t_coldstart_1110(b, base, code):
     pg = page(c, "#pricing")
     wait_until(pg, "() => !!document.querySelector('#prCards .prcard[data-tier=paid]')", 15000)
     pg.wait_for_timeout(600)
+    CLIP = """() => [...document.querySelectorAll('#v-pricing .prprice.ask')].map(e => { const r = e.getBoundingClientRect(), p = e.closest('.prcard').getBoundingClientRect();
+        return e.scrollWidth <= e.clientWidth + 1 && r.left >= p.left - 1 && r.right <= p.right + 1 && r.left >= 0 && r.right <= innerWidth; })"""
+    for w in (360, 390, 1440):
+        c2, _s2, _t2 = cold_ctx(None, True, width=w, plan="guest", touch=w < 600)
+        p2 = page(c2, "#pricing")
+        wait_until(p2, "() => document.querySelectorAll('#prCards .prprice.ask').length >= 2", 30000)
+        p2.wait_for_timeout(900)
+        cl = p2.evaluate(CLIP)
+        ok(f"{T} E0 寬 {w}：「即將開放」大字沒被切（都在卡片內、螢幕內）", cl and all(cl), cl)
+        c2.close()
     ow = pg.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
     ok(f"{T} E1 手機 390：價格頁不橫向捲動、整頁沒有「NT$」", ow <= 1 and "NT$" not in pg.evaluate("() => document.getElementById('v-pricing').innerText"), ow)
     shot(pg, "pricing_guest_390.png")

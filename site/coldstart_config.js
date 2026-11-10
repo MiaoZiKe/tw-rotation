@@ -106,7 +106,9 @@ window.TW_COLDSTART = {
   document.documentElement.classList.add('cold');
   /* 手機側欄的「Plus 限定」是 CSS 偽元素內容（perm.js），文字掃描碰不到 → 用同樣高的選擇器蓋掉 */
   const st = document.createElement('style'); st.id = 'coldCss';
-  st.textContent = ':root.cold.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.plknote::before{content:"之後開放"}';
+  st.textContent = ':root.cold.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.plknote::before{content:"之後開放"}'
+    /* 「即將開放」大字：窄螢幕（360／390）不可被切（11-10 CEO 退件），縮字級、允許換行、不裁切 */
+    + '#v-pricing .prprice.ask{font-size:clamp(20px,6vw,28px)!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%;box-sizing:border-box;padding:0 4px;text-align:center;justify-content:center;word-break:keep-all}';
   document.head.appendChild(st);
 
   const start = () => {

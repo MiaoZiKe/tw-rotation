@@ -208,7 +208,14 @@
     { id: 'pro', name: 'Pro', builtin: false, feats: { 'watch.tabs': 50, 'watch.size': 200 }, lims: {}, price: 0, period: 'month', dq: null, demo: true }];
   const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
   /* 免費卡的名稱：管理者設過方案卡（有定位句或清單）就用範本名稱（例 Free），沒設維持「註冊會員」（後端預設名「免費會員（預設）」不適合上卡）*/
-  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? (p.tagline || (p.highlights || []).length ? p.name : '註冊會員') : p.name);
+  /* 冷啟動：付費方案名稱不含數字（後端可能叫「399 即時」，等於把價格露出來）→ 依價格由低到高改叫進階／完整／旗艦 */
+  const COLD_NAMES = ['進階', '完整', '旗艦'];
+  function coldName(p) {
+    const paid = tidy(S.plans || FALLBACK).filter((q) => tierOf(q) === 'paid' && q.public !== false).sort((x, y) => monthEq(x) - monthEq(y));
+    const i = paid.findIndex((q) => q.id === p.id);
+    return COLD_NAMES[i < 0 ? 0 : Math.min(i, COLD_NAMES.length - 1)];
+  }
+  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? (p.tagline || (p.highlights || []).length ? p.name : '註冊會員') : cold() ? coldName(p) : p.name);
   /* 排序＋去重：訪客、註冊會員固定在前；付費依後端順序；同一個 id 只留第一個 */
   function tidy(list) {
     const seen = new Set(), out = [];
@@ -544,7 +551,7 @@
         <button type="button" role="tab" data-per="month" class="${S.per === 'month' ? 'on' : ''}" aria-selected="${S.per === 'month'}">月繳</button>
         <button type="button" role="tab" data-per="year" class="${S.per === 'year' ? 'on' : ''}" aria-selected="${S.per === 'year'}">年繳${saveTxt ? `<span class="save" id="prSave">${esc(saveTxt)}</span>` : ''}</button></div></div>` : ''}
       <div class="prhero"><h1>依你的研究深度選方案</h1>
-        <p>${fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
+        <p>${cold() ? '目前為試營運期，進階功能開放免費體驗。' : fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
       ${S.layout === 'merged' ? compare(plans, look, hot, needF, { me, needIds }) : `<div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>`}
       ${cold() ? `<p class="prapply"><b>目前為試營運期，所有功能免費體驗。</b>付費方案開放時會另行公告；想第一時間收到通知，請登入後按方案卡上的「預約通知」（不會扣款）。${S.src === 'fallback' ? '　（暫時讀不到方案資料）' : ''}</p>` : `<p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>`}
