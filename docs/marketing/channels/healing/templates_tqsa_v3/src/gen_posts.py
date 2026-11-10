@@ -10,50 +10,186 @@ _src = open(B + "/gen_short.py", encoding="utf-8").read().split("\nmf = []")[0]
 exec(compile(_src, "gen_short.py", "exec"))
 QUEUE = os.path.abspath(os.path.join(B, "..", "..", "queue"))
 SVGTXT = "font-family:'Noto Sans CJK TC',sans-serif;letter-spacing:.02em"
-
-# ───────── 插圖 ─────────
-def sc_age_bars(vals, labs, vlabs, H=760):
-    """分年齡長條（畫成遠方樓房）：最高那棟上方壓著雲（礙），最低那棟旁一顆小太陽（晴）。vals 單位 %。"""
-    base, k = H - 110, 46.0
-    o = glow(730, 160, 150)
-    o += C(730, 160, 34, LP) + halo_rings(730, 160, 34) + rays(730, 160, 52, 92, 0, 360, 16, at("none", 1.6, "var(--w-lamp)", op=.5))
-    o += cloud(350, 150, 250, 92, 31, "var(--w-face3)") + wisp(250, 40, 130, .35) + wisp(500, 200, 110, .3)
-    xs = [40, 220, 400, 580]; w = 130
-    for i, (v, lab, vl) in enumerate(zip(vals, labs, vlabs)):
-        h = v * k; x = xs[i]
-        o += R(x, base - h, w, h, 3, at("var(--w-face3)", SW))
-        for r in range(int((h - 26) // 30)):
-            for c in range(3):
-                if (r * 2 + c + i) % 3 == 0: continue
-                o += '<rect x="%.1f" y="%.1f" width="16" height="14" rx="2" fill="var(--w-line)" opacity=".28"/>' % (x + 22 + c * 36, base - h + 22 + r * 30)
-        o += '<text x="%.1f" y="%.1f" text-anchor="middle" style="%s;font-size:40px;font-weight:700;color:var(--w-text)" fill="currentColor">%s</text>' % (x + w / 2, base - h - 20, SVGTXT, html.escape(vl))
-        o += '<text x="%.1f" y="%.1f" text-anchor="middle" style="%s;font-size:30px;color:var(--w-sub)" fill="currentColor">%s</text>' % (x + w / 2, base + 50, SVGTXT, html.escape(lab))
-    o += Ln(10, base, 878, base, at("none", SW)) + hatch(24, base + 2, 840, 14, 11, at("none", 1.1, op=.25))
-    return o
-
-def sc_board(H=560):
-    """求職佈告欄：牆上一塊軟木板釘著幾張單子，其中一張被圈起來；下方桌上一台筆電、一杯熱飲。"""
-    o = glow(640, 250, 160)
-    bx, by, bw, bh = 150, 30, 588, 300
-    o += R(bx, by, bw, bh, 8, DK) + R(bx + 12, by + 12, bw - 24, bh - 24, 4, at("var(--w-face)", 1.6, op=.6))
-    notes = [(190, 70, 120, 100, -4), (330, 60, 110, 130, 3), (460, 80, 130, 96, -2), (610, 64, 96, 120, 5), (230, 196, 140, 100, 2), (410, 200, 120, 96, -3), (560, 206, 130, 92, 4)]
-    for j, (x, y, w, h, a) in enumerate(notes):
-        g = R(x, y, w, h, 2, F3) + ''.join(Ln(x + 14, y + 26 + q * 18, x + w - 14 - (q % 2) * 22, y + 26 + q * 18, at("none", 1.3, op=.45)) for q in range(int((h - 30) // 18)))
-        g += C(x + w / 2, y + 6, 6, at("var(--w-lamp)", 0, op=.85))
-        if j == 3: g += E(x + w / 2, y + h / 2 + 6, w / 2 + 10, h / 2 + 4, at("none", 2.6, "var(--w-lamp)"))
-        o += '<g transform="rotate(%d %.1f %.1f)">%s</g>' % (a, x + w / 2, y + h / 2, g)
-    dy = 470
-    o += Ln(30, dy, 858, dy, at("none", SW)) + R(30, dy, 828, 18, 0, F1) + hatch(60, dy + 20, 770, 30, 12, at("none", 1.1, op=.24))
-    o += P('M250 %d L280 %d H460 L490 %d Z' % (dy, dy - 10, dy), F1) + R(286, dy - 128, 168, 118, 6, F3) + R(298, dy - 116, 144, 94, 3, DK)
-    o += Ln(318, dy - 92, 400, dy - 92, at("none", 1.4, op=.5)) + Ln(318, dy - 72, 380, dy - 72, at("none", 1.4, op=.5)) + Ln(318, dy - 52, 410, dy - 52, at("none", 1.4, op=.5))
-    o += R(600, dy - 76, 64, 76, 8, F3) + P('M664 %d q 30 4 26 26 q -4 18 -26 18' % (dy - 60), at("none", 3)) + steam(612, dy - 92, 50, .55) + steam(640, dy - 96, 44, .5)
-    return o
-
-SC = {"bars": None, "board": (sc_board, 560), "dusk": (lambda: sc_dusk_tall(100), 580)}
-def scene_x(svg, H, top):
+def scene_x(svg, H, top, VH=None):
+    VH = VH or H
     I._uid[0] = 0
     defs = '<radialGradient id="gl"><stop offset="0" stop-color="var(--w-lamp)" stop-opacity="1"/><stop offset="1" stop-color="var(--w-lamp)" stop-opacity="0"/></radialGradient>'
-    return ('<div data-o="illus" class="illus" style="top:%dpx;width:888px;height:%dpx"><svg width="888" height="%d" viewBox="0 0 888 %d" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"><defs>%s</defs><g id="ink">%s</g></svg></div>' % (top, H, H, H, defs, svg))
+    return ('<div data-o="illus" class="illus" style="top:%dpx;width:888px;height:%dpx"><svg width="888" height="%d" viewBox="0 0 888 %d" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"><defs>%s</defs><g id="ink">%s</g></svg></div>' % (top, H, H, VH, defs, svg))
+
+
+# ───────── 插圖（2026-11-10 Andy：依每篇內容量身畫、有數據就畫圖表、素材不跨篇重複；用過的登記在 ../../素材登記.md）─────────
+def T(x, y, t, fs=30, w=400, col="var(--w-sub)", anchor="middle"):
+    return '<text x="%.1f" y="%.1f" text-anchor="%s" style="%s;font-size:%dpx;font-weight:%d;color:%s" fill="currentColor">%s</text>' % (x, y, anchor, SVGTXT, fs, w, col, html.escape(t))
+HL = at("var(--w-lamp)", 2.2, "var(--w-lamp)", op=.9)          # 重點長條（晴光橘）
+
+def sc_hbars(items, vmax, H, ticks=None, tickfmt="%g", hi=(), ref=None, reflab="", lw=230, bh=None):
+    """橫條圖（等比例，0 起算）：items=[(標籤, 數值, 數值文字)]；hi＝要用晴光橘的列；ref＝直向虛線參考值。"""
+    n = len(items); x0 = lw; x1 = 740; top = 70 if ref is not None else 20; bot = H - (70 if ticks else 20)
+    rowh = (bot - top) / n; bh = bh or min(76, rowh * .52)
+    sx = lambda v: x0 + (x1 - x0) * v / vmax
+    o = ""
+    if ticks:
+        for t in ticks:
+            o += Ln(sx(t), top - 10, sx(t), bot, at("none", 1.2, op=.25, dash="3 7")) + T(sx(t), bot + 46, tickfmt % t, 30)
+    for i, (lab, v, vt) in enumerate(items):
+        cy = top + rowh * (i + .5)
+        o += T(x0 - 22, cy + 11, lab, 32, 400, "var(--w-text)", "end")
+        o += R(x0, cy - bh / 2, sx(v) - x0, bh, 6, HL if i in hi else F3)
+        o += T(sx(v) + 16, cy + 13, vt, 38, 700, "var(--w-text)", "start")
+    o += Ln(x0, top - 16, x0, bot, at("none", SW))
+    if ref is not None:
+        o += Ln(sx(ref), top - 8, sx(ref), bot, at("none", 2.6, "var(--w-lamp)", dash="12 10")) + T(sx(ref), top - 24, reflab, 30, 700, "var(--w-text)")
+    return o
+
+def sc_vbars(items, vmax, H, ref=None, reflab="", hi=()):
+    """直條圖（等比例）：items=[(標籤, 數值, 數值文字, 只知上限?)]；只知上限的畫成虛線框（例：官方只說「低於 3%」）。"""
+    base = H - 70; k = (base - 80) / vmax; n = len(items); w = 132; gap = (760 - n * w) / (n - 1)
+    o = Ln(40, base, 860, base, at("none", SW))
+    for i, (lab, v, vt, cap) in enumerate(items):
+        x = 80 + i * (w + gap); h = v * k
+        st = at("none", 2.2, dash="8 7") if cap else (HL if i in hi else F3)
+        o += R(x, base - h, w, h, 4, st) + T(x + w / 2, (base - h / 2 + 14) if cap else (base - h - 18), vt, 38, 700, "var(--w-text)") + T(x + w / 2, base + 46, lab, 30)
+    if ref is not None:
+        ry = base - ref * k
+        o += Ln(40, ry, 860, ry, at("none", 2.4, "var(--w-lamp)", dash="12 10"))
+        o += Ln(560, 40, 620, 40, at("none", 2.4, "var(--w-lamp)", dash="12 10")) + T(636, 51, reflab, 30, 700, "var(--w-text)", "start")   # 圖例放右上，不壓長條標籤
+    return o
+
+def sc_door(H=560):
+    """11/11 第 3 頁：門半開、地上一道光，門把掛著一張空白識別證（第一份工作的第一天）。"""
+    fl = H - 60
+    o = Ln(30, fl, 858, fl, at("none", SW)) + hatch(44, fl + 2, 800, 18, 11, at("none", 1.1, op=.25))
+    o += R(250, 40, 330, fl - 40, 4, F1)                                            # 門框
+    o += poly([(266, 56), (564, 56), (564, fl), (266, fl)], at("var(--w-lamp)", 0, op=.16))   # 門後的光
+    o += poly([(564, 56), (448, 96), (448, fl - 30), (564, fl)], F3)                 # 半開的門板
+    o += Ln(458, 140, 548, 110, at("none", 1.3, op=.4)) + Ln(458, 300, 548, 290, at("none", 1.3, op=.4))
+    o += C(470, (fl + 56) / 2, 9, DK)
+    o += poly([(266, fl), (448, fl), (700, fl + 50 - 6), (110, fl + 50 - 6)], at("var(--w-lamp)", 0, op=.22))   # 地上的光
+    by = (fl + 56) / 2
+    o += P('M470 %.1f L440 %.1f L500 %.1f Z' % (by, by + 70, by + 70), at("none", 2))  # 掛繩
+    o += R(420, by + 70, 100, 130, 10, F1) + R(436, by + 86, 68, 50, 6, at("none", 1.6, op=.6)) + Ln(436, by + 156, 504, by + 156, at("none", 1.4, op=.5)) + Ln(436, by + 176, 484, by + 176, at("none", 1.4, op=.5))
+    o += R(640, fl - 50, 110, 50, 6, F3) + R(650, fl - 66, 90, 18, 4, F1)            # 門邊一雙新鞋盒
+    return o
+
+def sc_coins(H=760):
+    """11/12 封面：10 疊硬幣由低到高；橘色虛線＝平均。右邊 3 疊把平均拉上去，左邊 7 疊在線下（示意 69.74%，高度非金額比例）。"""
+    base, ch = H - 100, 24
+    stacks = [3, 4, 4, 5, 5, 6, 6, 9, 12, 16]; avg = sum(stacks) / len(stacks)
+    o = ""
+    for i, n in enumerate(stacks):
+        x = 52 + i * 80; w = 62
+        for k in range(n):
+            y = base - (k + 1) * ch
+            o += R(x, y, w, ch - 3, 10, F3 if k % 2 else F1) + Ln(x + 12, y + (ch - 3) / 2, x + w - 12, y + (ch - 3) / 2, at("none", 1.2, op=.35))
+    ay = base - avg * ch
+    o += Ln(36, ay, 852, ay, at("none", 3, "var(--w-lamp)", dash="14 10")) + T(52, ay - 18, "平均 47,884 元", 34, 700, "var(--w-text)", "start")
+    o += Ln(30, base, 858, base, at("none", SW)) + hatch(44, base + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    o += T(52 + 3 * 80 + 31, base + 52, "7 成在平均線以下", 30)
+    return o
+
+def sc_payslip(H=560):
+    """11/12 第 3 頁：一張薪資單。上兩列（本薪、固定津貼）框進「經常性薪資」，下兩列（加班費、獎金）在框外、虛線。"""
+    x, y, w = 200, 30, 488
+    o = R(x, y, w, H - 70, 8, F1) + R(x, y, w, 56, 8, F3) + Ln(x + 24, y + 28, x + 200, y + 28, at("none", 1.6, op=.5))
+    rows = [("本薪", False), ("固定津貼", False), ("加班費", True), ("獎金", True)]
+    for i, (lab, dash) in enumerate(rows):
+        ry = y + 100 + i * 96
+        if dash: o += R(x + 28, ry, w - 56, 64, 6, at("none", 1.8, dash="7 7", op=.7)) + T(x + 52, ry + 43, lab, 30, 400, "var(--w-sub)", "start")
+        else: o += R(x + 28, ry, w - 56, 64, 6, F3) + T(x + 52, ry + 43, lab, 32, 400, "var(--w-text)", "start")
+        o += Ln(x + w - 170, ry + 32, x + w - 52, ry + 32, at("none", 1.6, op=.45))
+    o += R(x + 12, y + 86, w - 24, 2 * 96 + 0, 10, at("none", 3, "var(--w-lamp)"))
+    o += T(x + w + 20, y + 86 + 96 + 12, "經常性", 32, 700, "var(--w-text)", "start") + T(x + w + 20, y + 86 + 96 + 52, "薪資", 32, 700, "var(--w-text)", "start")
+    return o
+
+def sc_bento(H=760):
+    """11/13 封面：俯視便當（飯、主菜、三格配菜）＋一張吊牌「外食 +3.01%」。"""
+    x, y, w, h = 150, 120, 520, 400
+    o = R(x - 16, y - 16, w + 32, h + 32, 30, F3) + R(x, y, w, h, 20, F1)
+    o += R(x + 24, y + 24, 270, h - 48, 14, F3)                                      # 飯
+    for i in range(18): o += E(x + 60 + (i % 6) * 40, y + 70 + (i // 6) * 110 + (i % 2) * 18, 9, 5, at("none", 1.3, op=.45))
+    o += R(x + 318, y + 24, 178, 170, 14, F3) + E(x + 407, y + 109, 62, 44, at("var(--w-face)", 2.2)) + P('M%d %d q 30 -18 60 0' % (x + 377, y + 105), at("none", 1.6, op=.6))   # 主菜
+    for j in range(2): o += R(x + 318 + j * 92, y + 214, 86, 162, 12, F3) + C(x + 361 + j * 92, y + 295, 22, at("none", 1.8, op=.6))
+    o += Ln(x + 560, y + 40, x + 700, y - 20, at("none", 2)) + C(x + 560, y + 40, 6, DK)
+    o += P('M%d %d l 30 -26 h 190 v 104 h -190 Z' % (x + 600, y - 4), F1) + C(x + 640, y - 4 - 0, 7, DK)
+    o += T(x + 735, y + 10, "外食", 32, 400, "var(--w-text)") + T(x + 735, y + 56, "+3.01%", 36, 700, "var(--w-text)")
+    for k in range(3): o += steam(x + 120 + k * 60, y - 24, 60, .55)
+    o += Ln(30, y + h + 90, 858, y + h + 90, at("none", SW)) + hatch(44, y + h + 92, 800, 14, 11, at("none", 1.1, op=.25))
+    o += Ln(x + 40, y + h + 60, x + 360, y + h + 40, at("none", 4)) + Ln(x + 40, y + h + 76, x + 360, y + h + 56, at("none", 4))   # 筷子
+    return o
+
+def sc_months(H=520):
+    """11/13 第 3 頁：2026 年 1～12 月小方格，5～10 月（CPI 年增率連續 6 個月高於 2%）塗晴光橘；11、12 月尚未公布畫虛線。"""
+    o = ""; cw, chh, gx, gy = 120, 120, 24, 40; x0 = (888 - (6 * cw + 5 * gx)) / 2; y0 = 30
+    for m in range(12):
+        r, c = divmod(m, 6); x = x0 + c * (cw + gx); y = y0 + r * (chh + gy + 30)
+        if 4 <= m <= 9: st = HL
+        elif m >= 10: st = at("none", 2, dash="7 7", op=.6)
+        else: st = F3
+        o += R(x, y, cw, chh, 12, st) + Ln(x + 26, y - 8, x + 26, y + 14, at("none", 3)) + Ln(x + cw - 26, y - 8, x + cw - 26, y + 14, at("none", 3))
+        o += T(x + cw / 2, y + chh / 2 + 14, "%d 月" % (m + 1), 34, 700, "var(--w-text)")
+    yb = y0 + 2 * (chh + gy + 30) - 10
+    o += R(x0, yb, 34, 34, 6, HL) + T(x0 + 50, yb + 28, "CPI 年增率高於 2%", 30, 400, "var(--w-sub)", "start")
+    o += R(x0 + 430, yb, 34, 34, 6, at("none", 2, dash="7 7", op=.6)) + T(x0 + 480, yb + 28, "尚未公布", 30, 400, "var(--w-sub)", "start")
+    return o
+
+def envelope(x, y, w, h, st):
+    return R(x, y, w, h, 3, st) + P('M%.1f %.1f L%.1f %.1f L%.1f %.1f' % (x + 3, y + 3, x + w / 2, y + h * .58, x + w - 3, y + 3), at("none", 1.6, op=.6))
+
+def sc_envelopes(H=760):
+    """11/14 封面：100 封履歷信封排 10×10；48 封是晴光色虛線（想投沒投出去），示意 48.3%。"""
+    x0, y0, cw, chh, ew, eh = 74, 70, 76, 54, 58, 38; o = ""
+    for i in range(100):
+        r, c = divmod(i, 10); x = x0 + c * cw; y = y0 + r * chh
+        o += envelope(x, y, ew, eh, at("var(--w-face)", 2, "var(--w-lamp)", dash="5 5") if i < 48 else F3)
+    yb = y0 + 10 * chh + 24
+    o += Ln(30, yb, 858, yb, at("none", SW)) + hatch(44, yb + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    o += envelope(300, yb + 46, 46, 30, at("var(--w-face)", 2, "var(--w-lamp)", dash="5 5")) + T(362, yb + 72, "48.3% 曾不敢投", 30, 400, "var(--w-sub)", "start")
+    return o
+
+def sc_plane(H=520):
+    """11/14 第 3 頁：左邊一支手機滑著一格格社群動態；右邊一架紙飛機（履歷）沿虛線飛出去。"""
+    o = R(80, 40, 230, 430, 30, DK) + R(96, 70, 198, 370, 12, F1)
+    for i in range(4):
+        y = 86 + i * 88
+        o += R(110, y, 170, 74, 8, F3) + C(134, y + 22, 12, at("none", 1.6, op=.6)) + Ln(156, y + 22, 262, y + 22, at("none", 1.4, op=.45)) + Ln(124, y + 52, 250, y + 52, at("none", 1.4, op=.35))
+    o += P('M330 330 C 430 300 470 180 560 200 S 700 150 760 90', at("none", 2.4, "var(--w-lamp)", dash="10 10"))
+    px, py = 760, 90
+    o += poly([(px - 110, py + 40), (px + 40, py - 30), (px - 40, py + 70)], F1) + poly([(px - 40, py + 70), (px + 40, py - 30), (px - 30, py + 110)], F3) + Ln(px - 40, py + 70, px - 30, py + 110, at("none", 2))
+    o += Ln(30, H - 30, 858, H - 30, at("none", SW)) + hatch(44, H - 28, 800, 14, 11, at("none", 1.1, op=.25))
+    return o
+
+def sc_timeline(H=760):
+    """11/15 封面：時間軸 現在→3 年；2.56 年處插一面晴光色小旗；下面一疊日曆。"""
+    ay = 420; x0, x1 = 90, 810; yr = (x1 - x0) / 3
+    o = Ln(x0, ay, x1 + 30, ay, at("none", SW)) + P('M%d %d l -14 -10 M%d %d l -14 10' % (x1 + 30, ay, x1 + 30, ay), at("none", SW))
+    for i, lab in enumerate(["現在", "1 年", "2 年", "3 年"]):
+        x = x0 + i * yr; o += Ln(x, ay - 14, x, ay + 14, at("none", SW)) + T(x, ay + 58, lab, 30)
+    for j in range(1, 36):
+        if j % 12: o += Ln(x0 + j * yr / 12, ay - 6, x0 + j * yr / 12, ay + 6, at("none", 1.2, op=.4))
+    sx = x0 + 2.56 * yr
+    o += Ln(x0, ay - 6, sx, ay - 6, at("none", 6, "var(--w-lamp)", op=.75)) + Ln(sx, ay, sx, ay - 190, at("none", 3))
+    o += P('M%.1f %d h 120 l -26 34 l 26 34 h -120 Z' % (sx, ay - 190), HL) + T(sx, ay - 222, "2.56 年", 44, 700, "var(--w-text)")
+    cy0 = ay + 110
+    for i in range(3):
+        x = 330 + i * 12; y = cy0 + i * 10
+        o += R(x, y, 200, 118, 8, F3 if i < 2 else F1) + R(x, y, 200, 30, 8, DK)
+    for r in range(3):
+        for c in range(6): o += C(384 + c * 26, cy0 + 78 + r * 24, 3.4, at("var(--w-line)", 0, op=.55))
+    o += Ln(30, cy0 + 152, 858, cy0 + 152, at("none", SW)) + hatch(44, cy0 + 154, 800, 14, 11, at("none", 1.1, op=.25))
+    return o
+
+def sc_rings(items, H=520):
+    """11/15 第 3 頁：三個等比例圓環（受訪者勾選比例）。"""
+    import math as _m
+    o = ""; r = 110
+    for i, (lab, v, vt) in enumerate(items):
+        cx = 150 + i * 294; cy = 200
+        o += C(cx, cy, r, at("none", 26, "var(--w-face)"))
+        a = 2 * _m.pi * v / 100; ex, ey = cx + r * _m.sin(a), cy - r * _m.cos(a)
+        o += P('M%.1f %.1f A%d %d 0 %d 1 %.1f %.1f' % (cx, cy - r, r, r, 1 if v > 50 else 0, ex, ey), at("none", 26, "var(--w-lamp)", extra='stroke-linecap="butt"'))
+        o += C(cx, cy, r + 13, at("none", 1.4, op=.5)) + C(cx, cy, r - 13, at("none", 1.4, op=.5))
+        o += T(cx, cy + 14, vt, 40, 700, "var(--w-text)") + T(cx, cy + r + 76, lab, 32, 400, "var(--w-text)")
+    return o
 
 def head(theme="晝版"):
     p = PAL[theme]; W, H = 1080, 1350
@@ -67,8 +203,8 @@ def page(post, n):
     pg = post["pages"][n - 1]; o = head()
     o.append('<div data-o="pager" class="abs" style="right:96px;top:1250px;height:44px;display:flex;align-items:center;gap:14px">%s</div>' % pager("S", n, 3))
     o.append(src_line(post["src"]))
-    svg, H = pg["scene"]()
-    o.append(scene_x(svg, H, 180))
+    sc = pg["scene"](); svg, H = sc[0], sc[1]
+    o.append(scene_x(svg, H, 180, sc[2] if len(sc) > 2 else None))
     y = 180 + H + 52
     M = 'class="m" style="top:%dpx;font-size:%dpx;line-height:%dpx"'
     if n == 1:
@@ -79,17 +215,53 @@ def page(post, n):
         o.append('<div class="abs" style="left:96px;top:%dpx;width:888px;display:flex;flex-direction:column;align-items:flex-start;gap:32px"><div data-o="body1" style="%s">%s</div>%s</div>' % (y + 88 + 40, BODY, lines(pg["body"]), q))
     return "".join(o) + "</body></html>"
 
-# ───────── 各篇內容 ─────────
+# ───────── 各篇內容（頁序：封面＝發生什麼 → 第 2 頁＝資料從哪來＋統計圖表 → 第 3 頁＝解讀與晴＋提問）─────────
 POSTS = {
  "20261111_unemployment": {
   "src": "資料：主計總處2026/9人力資源調查（10/23）",
   "pages": [
    {"title": ["失業率26年同月最低", "15-24歲仍逾11%"],
-    "scene": lambda: (sc_age_bars([11.59, 5.69, 3.40, 2.75], ["15–24歲", "25–29歲", "30–34歲", "35–64歲"], ["11.59%", "5.69%", "3.40%", "<3%"]), 760)},
-   {"title": "分年齡看", "body": ["整體失業率 3.36%，", "15–24 歲 11.59%，", "25–29 歲 5.69%，", "35–64 歲都低於 3%。"],
-    "scene": lambda: (sc_board(), 560)},
-   {"title": "數字背後", "body": ["官方說明：多數是初次找工作，", "還在適應職場；", "15–24 歲這組也含在學學生。"], "ask": "第一份工作，找了多久？",
-    "scene": lambda: (sc_dusk_tall(100), 580)},
+    "scene": lambda: (sc_hbars([("整體", 3.36, "3.36%"), ("15–24 歲", 11.59, "11.59%")], 13, 760, ticks=[0, 3, 6, 9, 12], tickfmt="%g%%", hi=(1,), lw=200, bh=120), 760)},
+   {"title": "資料從哪來", "body": ["主計總處人力資源調查，", "2026 年 9 月，10/23 公布；", "統計從 15 歲算起，", "15–24 歲含 15–19 歲與在學生。"],
+    "scene": lambda: (sc_vbars([("15–24歲", 11.59, "11.59%", False), ("25–29歲", 5.69, "5.69%", False), ("30–34歲", 3.40, "3.40%", False), ("35–64歲", 3.0, "<3%", True)], 12, 520, ref=3.36, reflab="整體 3.36%", hi=(0,)), 520)},
+   {"title": "數字背後", "body": ["官方說明：多數是初次找工作，", "還在適應職場；", "整體失業率是 26 年同月最低。"], "ask": "第一份工作，找了多久？",
+    "scene": lambda: (sc_door(), 560)},
+  ]},
+ "20261112_salary": {
+  "src": "資料：主計總處2025、2026上半年薪資統計",
+  "pages": [
+   {"title": ["近7成員工，", "領不到平均月薪"], "scene": lambda: (sc_coins(), 760)},
+   {"title": "資料從哪來", "body": ["主計總處薪資統計，2026/2 公布；", "2025 年經常性薪資，", "平均 47,884 元、中位數 38,406 元。"],
+    "scene": lambda: (sc_hbars([("平均", 47884, "47,884 元"), ("中位數", 38406, "38,406 元")], 60000, 480, ticks=[0, 20000, 40000], tickfmt="%d", hi=(0,), lw=170, bh=96), 480)},
+   {"title": "數字背後", "body": ["2026 上半年升到 70.03%；", "統計含部分工時與移工，", "也不含加班費和獎金。"], "ask": "平均數，離日常有多遠？",
+    "scene": lambda: (sc_payslip(), 560)},
+  ]},
+ "20261113_cpi": {
+  "src": "資料：主計總處2026/10 CPI（11/5公布）",
+  "pages": [
+   {"title": ["外食年漲3%，", "物價連6月破2%"], "scene": lambda: (sc_bento(), 760)},
+   {"title": "資料從哪來", "body": ["主計總處消費者物價指數，", "2026 年 10 月，11/5 公布；", "10 月 CPI 年增 2.33%。"],
+    "scene": lambda: (sc_hbars([("外食費", 3.01, "3.01%"), ("CPI 整體", 2.33, "2.33%"), ("房租", 1.70, "1.70%")], 3.6, 520, ticks=[0, 1, 2, 3], tickfmt="%d%%", hi=(0,), ref=2.0, reflab="2%"), 520)},
+   {"title": "數字背後", "body": ["5 到 10 月，每月都高於 2%；", "房租漲得比整體慢，", "壓力在天天要吃的外食。"], "ask": "一個便當，現在多少錢？",
+    "scene": lambda: (sc_months(), 520)},
+  ]},
+ "20261114_resume": {
+  "src": "資料：104《滑世代焦慮》民調2026/6・1,114份",
+  "pages": [
+   {"title": ["48%求職青年，", "因「不夠好」不敢投履歷"], "scene": lambda: (sc_envelopes(), 760)},
+   {"title": "資料從哪來", "body": ["104 人力銀行網路民調，", "18–30 歲求職會員 1,114 份，", "2026 年 4 月填答。"],
+    "scene": lambda: (sc_hbars([("自評高壓", 54.4, "54.4%"), ("不敢投履歷", 48.3, "48.3%"), ("比較而自卑", 38.5, "38.5%")], 100, 480, ticks=[0, 25, 50, 75, 100], tickfmt="%d%%", hi=(1,)), 480)},
+   {"title": "數字背後", "body": ["每天滑社群越久，越容易這樣想；", "樣本是求職會員，非全體青年。"], "ask": "安心專線 1925（24 小時、免付費）",
+    "scene": lambda: (sc_plane(), 520)},
+  ]},
+ "20261115_ai": {
+  "src": "資料：北市勞動局×1111調查2026/8・1,213份",
+  "pages": [
+   {"title": ["受訪上班族自估：", "2.56年內工作被AI改變"], "scene": lambda: (sc_timeline(), 760)},
+   {"title": "資料從哪來", "body": ["北市勞動局×1111 求職會員調查，", "1,213 份；擔憂平均 6.29 分。", "最易被取代的工作："],
+    "scene": lambda: (sc_hbars([("普通翻譯", 53.3, "53.3%"), ("行政文書", 42.5, "42.5%"), ("美編設計", 39.1, "39.1%"), ("行銷文案", 32.4, "32.4%"), ("基礎程式", 28.3, "28.3%")], 70, 520, ticks=[0, 20, 40, 60], tickfmt="%d%%", hi=(0,)), 520)},
+   {"title": "數字背後", "body": ["受訪者認為最難取代的能力，", "多半落在「人」身上；", "這是自估，不是預測。"], "ask": "工作裡，哪一塊最難取代？",
+    "scene": lambda: (sc_rings([("人際溝通", 55.6, "55.6%"), ("情緒判斷", 44.3, "44.3%"), ("現場應變", 41.4, "41.4%")]), 520)},
   ]},
 }
 
