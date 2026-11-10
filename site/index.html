@@ -9,7 +9,7 @@
 <title>哩股哩股</title>
 <meta property="og:title" content="哩股哩股">
 <meta property="og:site_name" content="哩股哩股">
-<meta property="og:image" content="brand/logo-512.png?v=1011c">
+<meta property="og:image" content="brand/logo-512.png?v=1110">
 <meta name="theme-color" content="#070b16">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
@@ -98,8 +98,8 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
 <!-- ★ 2026-10-07（Andy：「以後我的logo 叫 哩股哩股」）：圖示整組換成 site/brand/ 的天竺鼠頭像。
      小尺寸只用頭像不用整張 logo —— 下方「哩股哩股」大字縮到 32px 會糊成一團。舊的 icons/ 留著沒刪（退路）。 -->
-<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png?v=1009">
-<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=1009b">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png?v=1110">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=1110">
 <link rel="icon" type="image/png" sizes="192x192" href="brand/icon-192.png?v=1009">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
@@ -640,6 +640,9 @@ small{font-size:12.5px}
 .brand .logo img{object-fit:contain}
 /* 2026-10-09（Andy：「圖片置中」）：<picture> 是行內元素，img 坐在文字基線上，整張圖比站名＋版號那兩行偏下；改成區塊、跟右邊文字上下置中 */
 .brand .logo picture{display:block;width:100%;height:100%}
+/* 2026-11-10 LOGO 換 ⑤C「Li」字標：淺色主題用淺底版、深色主題用深底版（兩張圖都在頁裡，CSS 依主題擇一顯示） */
+:root[data-theme="light"] picture.mkd{display:none!important}
+:root:not([data-theme="light"]) picture.mkl{display:none!important}
 .brand{align-items:center}
 .brand .logo{align-self:center}
 @media (min-width:641px){.brand .logo{width:40px;height:40px}}
@@ -5636,6 +5639,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261109-portfolio.css">
 <link rel="stylesheet" href="m4/20261109-riskflag.css">
 <link rel="stylesheet" href="m4/20261109-sharecard.css">
+<link rel="stylesheet" href="m4/20261110-restart.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -5643,7 +5647,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture><source srcset="brand/mark-64.webp?v=1011c 1x, brand/mark-128.webp?v=1011c 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png?v=1011c" srcset="brand/mark-64.png?v=1011c 1x, brand/mark-128.png?v=1011c 2x" width="32" height="32" alt="哩股哩股"></picture></div><div><b class="brandtxt" aria-label="哩股哩股"><span>哩</span><span class="y">股</span><span>哩</span><span class="y">股</span></b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture class="mkl"><source srcset="brand/mark-64.webp?v=1110 1x, brand/mark-128.webp?v=1110 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png?v=1110" srcset="brand/mark-64.png?v=1110 1x, brand/mark-128.png?v=1110 2x" width="32" height="32" alt="哩股哩股"></picture><picture class="mkd"><source srcset="brand/mark-d-64.webp?v=1110 1x, brand/mark-d-128.webp?v=1110 2x" type="image/webp"><img src="brand/mark-d-64.png?v=1110" srcset="brand/mark-d-64.png?v=1110 1x, brand/mark-d-128.png?v=1110 2x" width="32" height="32" alt=""></picture></div><div><b class="brandtxt" aria-label="哩股哩股"><span>哩</span><span class="y">股</span><span>哩</span><span class="y">股</span></b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，

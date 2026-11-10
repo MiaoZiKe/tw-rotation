@@ -200,6 +200,7 @@
     place(b);
     const n = unread().length;
     const dot = b.querySelector('.dot');
+    b.classList.toggle('guest', !logged());   // 2026-11-10：未登入訪客手機不顯示紅色數字（樣式在 m4/20261110-restart.css）
     dot.hidden = n === 0; dot.textContent = n > 99 ? '99+' : String(n);
     b.setAttribute('aria-label', n ? `通知：${n} 則未讀` : '通知');
     b.title = b.getAttribute('aria-label');

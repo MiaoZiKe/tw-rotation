@@ -1,0 +1,42 @@
+/* 2026-11-10 手機導流四項修正（Andy 11-10：「全部 O」；依據 docs/marketing/restart_1109/03_mobile_audit.md 第 1、2、3、6 項）。
+   ① 同意橫幅改單行細條：文字縮短、「同意」主鈕、「不同意」改次要文字連結。只改外觀；同意紀錄、版本、不同意後的行為在 legal.js 一個字沒動，
+      DOM 文字也沒動（縮短靠 CSS：原句字級 0、用 ::before 補短句；鈕字同理），讀屏仍讀完整條文。
+   ② 頂欄 LOGO 右邊加站名「哩股哩股」＋副標「台股資金流向」（放不下的窄螢幕自動收掉副標、再收掉站名）。
+   ③ 總覽頁首：頁名右邊接副標「台股資金流向」、下面一句白話說明（mobile4.js 的 paintTitle 只在手機寫入 .m4lead）。
+   ④ 未登入訪客的鈴鐺不顯示紅色未讀數（notices.js 只多掛一個 .guest class，視覺全在這裡）。
+   全部在 ≤640；顏色只引用既有變數（全站色彩另一條線在改，不寫死色碼）。桌機一個字都不動。 */
+@media (max-width:640px){
+  /* ---- ① 同意橫幅 ---- */
+  :root .lgban:not(.inl){display:flex;flex-direction:row;align-items:center;gap:6px;padding:3px 10px calc(3px + env(safe-area-inset-bottom));min-height:46px;border-radius:12px 12px 0 0}
+  :root .lgban:not(.inl) p{flex:1 1 auto;min-width:0;font-size:0;line-height:1.35}
+  :root .lgban:not(.inl) p::before{content:"非投資建議，請閱讀";font-size:12px}
+  :root .lgban:not(.inl) p a{font-size:12px;white-space:nowrap;padding:12px 2px;margin:-12px 0;color:var(--cyan);text-decoration:underline}
+  :root .lgban:not(.inl) p a:not(:last-of-type)::after{content:"・";color:var(--ink-2);text-decoration:none;display:inline-block;margin-left:2px}
+  :root .lgban:not(.inl) .lgbtns{flex:none;flex-direction:row;align-items:center;gap:2px;flex-wrap:nowrap}
+  :root .lgban:not(.inl) .lgb2{order:1;width:auto;min-width:44px;height:40px;padding:0 6px;border:0;background:none;color:var(--ink-2);font-size:12px;font-weight:400;text-decoration:underline}
+  :root .lgban:not(.inl) .lgb1{order:2;width:auto;min-width:64px;height:38px;padding:0 14px;font-size:0}
+  :root .lgban:not(.inl) .lgb1::after{content:"同意";font-size:14px;font-weight:700}
+
+  /* ---- ② 頂欄站名 ----
+     頂欄 LOGO 右邊到工具列只剩約 70px（390 寬）：放得下站名（15px 粗體 4 字＝60px），放不下副標 → 副標「台股資金流向」放在總覽頁首（③）。
+     窄螢幕站名字級跟著縮；有「剩 N 次」計數、或寬度 <370 時整塊收掉，免得把右邊的登入鈕擠出畫面。 */
+  :root.m4 .topbar .brand{gap:6px;margin-right:0}
+  :root.m4 .topbar .brand>div:not(.logo){display:block;flex:0 1 auto;min-width:0}
+  :root.m4 .topbar .brand>div:not(.logo) small{display:none}
+  :root.m4 .topbar .brand b.brandtxt{display:block;font-size:clamp(12px,calc((100vw - 324px)/4),15px)!important;font-weight:800;letter-spacing:0;line-height:1.15;
+    -webkit-text-stroke:0;text-shadow:none;color:var(--ink);white-space:nowrap}
+  :root.m4 .topbar .brand b.brandtxt .y{color:var(--cyan)}
+  :root.m4 .m4tools{gap:2px}
+  :root.m4 .topbar:has(.m4tools>.twqp:not([hidden])) .brand>div:not(.logo){display:none}
+}
+@media (max-width:369px){
+  :root.m4 .topbar .brand>div:not(.logo){display:none}
+}
+
+/* ---- ③ 總覽第一屏一句話 ---- */
+@media (max-width:640px){
+  :root.m4 .m4pghead .m4sub{display:inline;margin-left:8px;padding:0;font-size:12px;font-weight:400;color:var(--ink-3)}
+  :root.m4 .m4pghead .m4lead{display:block;padding:0;margin:4px 0 0;font-size:13px;font-weight:400;line-height:1.5;color:var(--ink-2)}
+  /* ---- ④ 訪客不顯示未讀數 ---- */
+  :root.m4 .ntbell.guest .dot{display:none}
+}

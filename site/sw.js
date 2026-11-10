@@ -48,7 +48,7 @@ const PRECACHE = [
   './manifest.webmanifest',
   './brand/icon-192.png',
   './brand/icon-512.png',
-  './brand/icon-maskable-512.png', './brand/mark-64.png', './brand/mark-64.webp',
+  './brand/icon-maskable-512.png', './brand/mark-64.png', './brand/mark-64.webp', './brand/mark-d-64.png', './brand/mark-d-64.webp',
 ];
 
 self.addEventListener('install', (event) => {

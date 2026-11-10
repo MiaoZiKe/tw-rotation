@@ -173,8 +173,8 @@
       drawer.setAttribute('aria-label', '網站導覽');
       // 品牌：跟頂欄同一顆頭像（site/brand/）＋站名（讀 .brand b 的字，改名時不必改這裡）
       const nm = esc(brandName());
-      drawer.innerHTML = '<div class="m4head"><span class="m4brand"><picture><source srcset="brand/mark-64.webp?v=1011c 1x, brand/mark-128.webp?v=1011c 2x" type="image/webp">'
-        + `<img src="brand/mark-64.png?v=1011c" srcset="brand/mark-64.png?v=1011c 1x, brand/mark-128.png?v=1011c 2x" width="32" height="32" alt="${nm}"></picture><b class="brandtxt" aria-label="${nm}">${[...brandName()].map((ch, i) => `<span${i % 2 ? ' class="y"' : ''}>${esc(ch)}</span>`).join('')}</b></span>`
+      drawer.innerHTML = '<div class="m4head"><span class="m4brand"><picture class="mkl"><source srcset="brand/mark-64.webp?v=1110 1x, brand/mark-128.webp?v=1110 2x" type="image/webp">'
+        + `<img src="brand/mark-64.png?v=1110" srcset="brand/mark-64.png?v=1110 1x, brand/mark-128.png?v=1110 2x" width="32" height="32" alt="${nm}"></picture><picture class="mkd"><source srcset="brand/mark-d-64.webp?v=1110 1x, brand/mark-d-128.webp?v=1110 2x" type="image/webp"><img src="brand/mark-d-64.png?v=1110" srcset="brand/mark-d-64.png?v=1110 1x, brand/mark-d-128.png?v=1110 2x" width="32" height="32" alt=""></picture><b class="brandtxt" aria-label="${nm}">${[...brandName()].map((ch, i) => `<span${i % 2 ? ' class="y"' : ''}>${esc(ch)}</span>`).join('')}</b></span>`
         + '<button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
       $('.m4x', drawer).onclick = close;
       drawer.addEventListener('click', (e) => {
@@ -657,7 +657,8 @@
       if (onB && nv) nv.scrollLeft = Math.max(0, onB.offsetLeft - (nv.clientWidth - onB.offsetWidth) / 2);
       return;
     }
-    title.innerHTML = esc(name || brandName());
+    // 2026-11-10（Andy：「全部 O」）總覽頁首一句白話說明：這站在做什麼（只在手機寫入；樣式在 site/m4/20261110-restart.css）
+    title.innerHTML = esc(name || brandName()) + (pg === 'overview' ? '<small class="m4sub">台股資金流向</small><small class="m4lead">每天把法人、資金、族群輪動畫成圖，三分鐘看懂今天錢往哪去</small>' : '');
   }
 
   /* 2026-10-09（Andy：「所有大功能需要用線條分開」，延伸 10-08「原本每個功能底下的大方格需要取消，直接用線條區分」）：
