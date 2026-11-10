@@ -416,8 +416,18 @@ jobs:
           if [ "$fail" = 1 ]; then sum "### 正式網域 /preview/ 轉送不通（見 log）"; echo "::error::liguligu-puipui.com/preview/ 有頁面不是 200"; exit 1; fi
           sum "### Cloudflare Pages（預覽）：成功，liguligu-puipui.com/preview/<名稱>/ 可開"
 
-      - name: GitHub Pages（備援站）部署失敗就讓這一輪標紅
+      # 2026-11-10：syncing_files 逾時是 GitHub 那邊偶發（前後幾輪都正常），主站部署完再重送一次同一份產物，
+      # 多數情況第二次就過；兩次都失敗才標紅。
+      - id: deployment_retry
+        name: GitHub Pages（備援站）第一次逾時就再送一次
         if: ${{ !cancelled() && steps.deployment.outcome == 'failure' }}
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+        with:
+          timeout: 1200000
+
+      - name: GitHub Pages（備援站）部署失敗就讓這一輪標紅
+        if: ${{ !cancelled() && steps.deployment.outcome == 'failure' && steps.deployment_retry.outcome != 'success' }}
         run: |
           echo "::error::GitHub Pages 部署失敗（主站 Cloudflare 照常部署，請看上一步結果）"
           exit 1
