@@ -1,0 +1,29 @@
+[
+ {
+  "html": "html/posts/20261111_unemployment/1.html",
+  "png": "../../queue/20261111_unemployment/1.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261111_unemployment/1",
+  "post": "20261111_unemployment",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261111_unemployment/2.html",
+  "png": "../../queue/20261111_unemployment/2.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261111_unemployment/2",
+  "post": "20261111_unemployment",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261111_unemployment/3.html",
+  "png": "../../queue/20261111_unemployment/3.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261111_unemployment/3",
+  "post": "20261111_unemployment",
+  "safe": null
+ }
+]
