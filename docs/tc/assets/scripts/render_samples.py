@@ -28,7 +28,7 @@ body{{width:{W}px;height:{H}px;font-family:'Noto Sans TC','WenQuanYi Zen Hei',sa
 .n{{font-family:Inter,'Noto Sans TC',sans-serif;font-weight:800;font-variant-numeric:tabular-nums}}
 .strip{{position:absolute;left:0;top:0;width:{W}px;height:14px;background:{BLUE}}}
 .strip i{{position:absolute;right:0;top:0;width:170px;height:14px;background:{ORG}}}
-.top{{height:128px;flex:none;padding:14px 48px 0;display:flex;align-items:center;gap:20px;background:#fff;border-bottom:2px solid {LINE}}}
+.top{{height:128px;flex:none;padding:14px 48px 0 24px;display:flex;align-items:center;gap:20px;background:#fff;border-bottom:2px solid {LINE}}}
 .top .b{{font-size:38px;font-weight:900;letter-spacing:.02em}}
 .top .t{{font-size:32px;font-weight:400;color:{GREY}}}
 .top .p{{margin-left:auto;font-size:30px;font-weight:700;color:{BLUE};background:{TINT};padding:6px 20px;border-radius:14px}}
@@ -47,8 +47,8 @@ body{{width:{W}px;height:{H}px;font-family:'Noto Sans TC','WenQuanYi Zen Hei',sa
 """
 
 
-def top(label, pg):   # 統一決策：A/B/C 全系列頁首只放純文字「科技透明圈」，不放開口圈（A1 帶公司 LOGO，法遵 ② 不與開口圈組合；三系列一致才像同一頻道）
-    return f'<div class="strip"><i></i></div><div class="top"><div class="b">科技透明圈</div><div class="t">{label}</div><div class="p">{pg}</div></div>'
+def top(label, pg):   # 2026-11-10 Andy：「記得要有 LOGO」→ 每一頁頂列左側都放頻道橫式 LOGO（開口環圖示＋「科技透明圈」字樣，高 48、左 24，與封面頂列一致）；公司 LOGO 仍不上圖
+    return f'<div class="strip"><i></i></div><div class="top"><div class="b" style="display:flex;align-items:center">{OPEN_RING}</div><div class="t">{label}</div><div class="p">{pg}</div></div>'
 
 
 def ft(left, right="示意・範例"):
