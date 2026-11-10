@@ -215,7 +215,26 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
     return up.find((p) => p.id === 'pro') || up.find((p) => p.dq == null) || up[0] || PRO;
   }
   /* 額度卡的選項（data-gw 回的 used／limit／reset／plan）*/
-  function quotaOpts(q) {
+  /* ★ 2026-11-10 冷啟動總開關（site/coldstart_config.js）：額度卡／需開通卡不出現 Plus／Pro、不叫人升級。
+     訪客 → 「免費註冊」；已登入 → 「預約通知」＋「明天 00:00 重置」。關掉開關就是原本的升級卡。 */
+  function coldify(o) {
+    const C = window.TwCold; if (!C || !C.on() || !o || o.inline) return o;
+    const m = C.isMember();
+    if (o.kind !== 'quota' && o.kind !== 'lock') return o;
+    if (/Plus|Pro|方案/.test(JSON.stringify(o.items || []) + (o.lh || '') + (o.btn || '') + (o.sub || ''))) {
+      o.items = []; o.lh = '';
+      if (o.kind === 'quota') {
+        const head = Number.isFinite(o.limit) ? `今日已用完 ${o.used}/${o.limit} 次，` : '';
+        o.sub = head + (m ? '明天（台北時間 0 點）自動重置，試營運期額度之後會再調整。' : '免費註冊可以多用幾次，明天（台北時間 0 點）也會自動重置。');
+      } else {
+        o.sub = `${String(o.sub || '').split('・')[0]}・${m ? '這項之後開放' : '登入即可使用'}`;
+      }
+      o.btn = m ? '預約通知' : '免費註冊'; o.href = m ? '#pricing' : '#pricing/plan/free';
+    }
+    return o;
+  }
+  function quotaOpts(q) { return coldify(quotaOpts0(q)); }
+  function quotaOpts0(q) {
     const plan = q.plan || 'free';
     /* data-gw 擋的是「某個功能自己的每日次數」（範本 lims）→ 標題寫那個功能，清單寫哪些方案次數更多 */
     const Ft = window.TwFeatures, ff = q.feat && Ft ? Ft.byId(q.feat) : null;
@@ -252,7 +271,8 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
     return F.list.filter((f) => f.kind === 'bool' && !f.adminOnly && f.cat !== 'grp' && (a.feats || {})[f.id] === false && (b.feats || {})[f.id] !== false).slice(0, 2).map((f) => f.name);
   }
   /* 需開通卡的選項（perm.js 的鎖頭）：哪些方案有這個功能、按鈕寫最便宜能解鎖的那個 */
-  function lockOpts(f, who) {
+  function lockOpts(f, who) { return coldify(lockOpts0(f, who)); }
+  function lockOpts0(f, who) {
     /* 2026-10-10：功能清單有寫 note（例 ETF 報酬比較、複利試算表；跟 perm.js 鈕的「備註模式」同一個欄位）→ veil 蓋的內容改 inline 備註（一行字，不是大卡） */
     if (f && f.note && (f.veil || []).length) return { kind: 'lock', inline: true, note: f.note, title: '', gk: f.cat === 'grp' ? '' : f.id };
     const P = window.TwPricing;

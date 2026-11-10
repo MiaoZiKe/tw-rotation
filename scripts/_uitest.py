@@ -191,6 +191,20 @@ class _NoCache(SimpleHTTPRequestHandler):
     #   （正式站與 pages.yml 一定會產 fear.json，失敗時也寫 {tw:null,us:null}）。
     #   所以只針對這一個檔：缺檔時回 build_payload 失敗備援同款內容，讓請求正常收尾；有檔就照原檔。
     def do_GET(self):
+        # ★ 2026-11-10 冷啟動總開關（site/coldstart_config.js，預設 enabled:true）：既有幾百段驗收測的是「付費／升級 UI」
+        #   （訂閱頁價格、結帳面板、「升級 Plus」「Plus 以上可增加」字樣…），所以驗收伺服器預設把開關回成 false＝原樣；
+        #   TW_COLD=1 時回原檔（開著）。「冷啟動1110」那一段自己用 page.route 兩種狀態都驗，並另外檢查檔案裡寫的預設真的是 true。
+        if self.path.split("?", 1)[0] == "/coldstart_config.js" and os.environ.get("TW_COLD") != "1":
+            try:
+                raw = open(os.path.join(self.directory, "coldstart_config.js"), "rb").read().replace(b"enabled: true,", b"enabled: false,", 1)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/javascript; charset=utf-8")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+                return
+            except OSError:
+                pass
         if self.path.split("?", 1)[0] == "/data/fear.json" and not os.path.exists(os.path.join(self.directory, "data", "fear.json")):
             body = b'{"tw": null, "us": null, "note": "uitest: local data has no fear.json"}'
             self.send_response(200)
@@ -58687,14 +58701,14 @@ def t_guest_quota_ui_1007(b, base, code):
     ok(f"{T}：訪客頁籤看得到「全站每日額度 3 次」卡＋共用說明＋訪客計數說明",
        bool(txt) and "全站每日額度 3 次" in txt and "每日共 3 次（所有計次功能共用）" in txt and "記在這台瀏覽器" in txt, txt)
     badge = "(id) => { const e = document.querySelector(`#pmCats .pmrow[data-f='${id}'] .pmlimb`); return e ? e.textContent.trim() : null; }"
-    ok(f"{T}：計次功能（個股頁 stock.page）徽章寫「共用 3」", pg.evaluate(badge, "stock.page") == "共用 3", pg.evaluate(badge, "stock.page"))
+    ok(f"{T}：計次功能（熱力圖明細 heat.detail；個股頁 stock.page 在 11-10 起訪客單設 5 次，不再共用）徽章寫「共用 3」", pg.evaluate(badge, "heat.detail") == "共用 3", pg.evaluate(badge, "heat.detail"))
     ok(f"{T}：不計次功能（總覽 ov.summary）徽章寫「不計次」", pg.evaluate(badge, "ov.summary") == "不計次", pg.evaluate(badge, "ov.summary"))
     if shd:
         pg.screenshot(path=str(pathlib.Path(shd) / "guest_tab.png"))
     pg.fill("#pmDqIn", "5"); pg.click("#pmDqSave")
     ok(f"{T}：改成 5 存檔 → 送 plans/put（guest, dq 5）、卡片變 5 次、徽章變「共用 5」",
        bool(wait_until(pg, "() => /全站每日額度 5 次/.test((document.getElementById('pmDqCard') || {}).innerText || '')", 5000))
-       and any(x[0] == "/v1/admin/plans/put" and x[1].get("id") == "guest" and x[1].get("dq") == 5 for x in sent) and pg.evaluate(badge, "stock.page") == "共用 5",
+       and any(x[0] == "/v1/admin/plans/put" and x[1].get("id") == "guest" and x[1].get("dq") == 5 for x in sent) and pg.evaluate(badge, "heat.detail") == "共用 5",
        [x[1] for x in sent if x[0] == "/v1/admin/plans/put"])
     pg.reload(wait_until="domcontentloaded")
     wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
@@ -58779,7 +58793,7 @@ def t_plan_preset_1007(b, base, code):
     g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
     # ★ 2026-10-12（DECISIONS #358）：註冊會員全站共用額度 dq 40 → 不設（逐項上限控制，Andy 要的 10 次不會先被共用額度吃掉）
     ok(f"{T}：寫入內容（權限矩陣 1008）：訪客 dq 15＋分流樹下鑽 3＋熱力圖跳頁關＋名稱「訪客」；註冊會員 dq 不設、自選 1×10；Plus 改名、299、dq 300、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
-       g.get("dq") == 15 and (g.get("lims") or {}).get("flow.sankey.drill") == 3 and (g.get("feats") or {}).get("heat.link") is False and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
+       g.get("dq") == 15 and (g.get("lims") or {}).get("flow.sankey.drill") == 3 and (g.get("feats") or {}).get("heat.link") is False and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is True and (g.get("lims") or {}).get("ind.3d") == 1
        and f.get("dq") is None and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
        and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 300 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
        and (pl.get("pres") or {}).get("badge") == "最受歡迎" and (pl.get("pres") or {}).get("tagline") and pl.get("price_year") == 2990 and "meta" not in pl and len((pl.get("pres") or {}).get("highlights") or []) >= 3
@@ -68299,7 +68313,7 @@ def t_free_open_1011(b, base, code):
     st = pg.evaluate("() => { const ks = ['flow.play','season.groups','mkt.cand','stock.k_min','stock.mtf','stock.ind','stock.draw','etf.inc.params','etf.cmp','etf.inc.comp','heat.link'];"
                      " return Object.fromEntries(ks.map(k => [k, [TwPerm.can(k), TwPerm.lim(k)]])); }")
     exp = {"flow.play": False, "mkt.cand": False, "heat.link": False, "etf.inc.params": False, "season.groups": 10,
-           "stock.k_min": 3, "stock.mtf": 3, "stock.ind": 3, "stock.draw": 3, "etf.cmp": 3, "etf.inc.comp": 3}
+           "stock.k_min": 5, "stock.mtf": 5, "stock.ind": 5, "stock.draw": 5, "etf.cmp": 3, "etf.inc.comp": 3}   # 2026-11-10 冷啟動：K 線工具 3→5
     ok(f"{T} 範本沒寫（10-12 版）：4 項改回關、族群篩選 10 次、其他 6 項開＋每日 3 次",
        all((not st[k][0]) if v is False else (st[k][0] and st[k][1] == v) for k, v in exp.items()), st)
 
@@ -68346,7 +68360,7 @@ def t_free_open_1011(b, base, code):
     shot(pg, "season_4th_1440.png", "#seasonLineCtl")
 
     # ---------------------------------------------------------------- ④ 個股 K 線工具：同一檔同一天只算一次；第 4 檔反灰
-    codes = [code] + [x for x in ("2317", "2454", "2303", "2308", "2330") if x != code][:3]
+    codes = [code] + [x for x in ("2317", "2454", "2303", "2308", "2330", "2412", "2881") if x != code][:5]   # 2026-11-10：上限 3→5，要多看 2 檔才反灰
     for i, cd in enumerate(codes):
         pg.evaluate(f"() => {{ location.hash = '#stock/{cd}'; }}")
         wait_until(pg, f"() => !!document.querySelector('#indBtn') && !!document.querySelector('#mtfBtn') && location.hash === '#stock/{cd}' && document.querySelectorAll('#drawBar .dtool[data-t]').length > 3", 20000)
@@ -68355,7 +68369,7 @@ def t_free_open_1011(b, base, code):
         pg.click('#tfSeg button[data-tf="1d"]')
         wait_until(pg, "() => { const b = document.querySelector('#drawBar .dtool[data-t=\"hline\"]'); return !!b && b.getClientRects().length > 0; }", 8000)
         pg.wait_for_timeout(500)
-        if i < 3:
+        if i < 5:
             pg.click("#indBtn"); pg.wait_for_timeout(300)
             ind = pg.evaluate("() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'")
             pg.keyboard.press("Escape"); pg.mouse.click(5, 600); pg.wait_for_timeout(200)
@@ -68374,17 +68388,17 @@ def t_free_open_1011(b, base, code):
                 return { ind: document.getElementById('indBtn').hasAttribute('data-qnote'), mtf: document.getElementById('mtfBtn').hasAttribute('data-qnote'),
                          draw: !!document.querySelector('#drawBar .dtool[data-t="hline"][data-qnote]'), ns }; }""")
             nm = {x[0]: x for x in z["ns"]}
-            ok(f"{T} 第 4 檔：指標設定／四週期／畫線三顆反灰＋工具列一行小字（≥12px、看得到）",
-               z["ind"] and z["mtf"] and z["draw"] and nm.get("stock.ind", [0, ""])[1] == "指標設定今日 3 次已用完" and nm.get("stock.mtf", [0, ""])[1] == "四週期今日 3 次已用完"
-               and nm.get("stock.draw", [0, ""])[1] == "畫線今日 3 次已用完" and all(x[2] >= 12 and x[3] for x in z["ns"]), z)
+            ok(f"{T} 第 6 檔：指標設定／四週期／畫線三顆反灰＋工具列一行小字（≥12px、看得到）",
+               z["ind"] and z["mtf"] and z["draw"] and nm.get("stock.ind", [0, ""])[1] == "指標設定今日 5 次已用完" and nm.get("stock.mtf", [0, ""])[1] == "四週期今日 5 次已用完"
+               and nm.get("stock.draw", [0, ""])[1] == "畫線今日 5 次已用完" and all(x[2] >= 12 and x[3] for x in z["ns"]), z)
             shot(pg, "stock_4th_1440.png", "#skTools")
             pg.click("#indBtn", force=True); pg.wait_for_timeout(300)
             pg.click("#mtfBtn", force=True); pg.wait_for_timeout(500)
             pg.click('#drawBar .dtool[data-t="hline"]', force=True); pg.wait_for_timeout(300)
             r = pg.evaluate("() => ({ ind: document.getElementById('indBtn').getAttribute('aria-expanded') === 'true', mtf: !!document.getElementById('mtfGrid'), dr: !!document.querySelector('#drawBar .dtool[data-t=\"hline\"].on') })")
-            ok(f"{T} 第 4 檔點三顆：都沒打開、沒有彈出層", not r["ind"] and not r["mtf"] and not r["dr"] and not pg.evaluate(OP_POP), r)
+            ok(f"{T} 第 6 檔點三顆：都沒打開、沒有彈出層", not r["ind"] and not r["mtf"] and not r["dr"] and not pg.evaluate(OP_POP), r)
             ow = pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
-            ok(f"{T} 第 4 檔工具列多了小字也沒有橫向捲軸", ow)
+            ok(f"{T} 第 6 檔工具列多了小字也沒有橫向捲軸", ow)
     pg.evaluate(f"() => {{ location.hash = '#stock/{codes[0]}'; }}")
     wait_until(pg, f"() => location.hash === '#stock/{codes[0]}' && !!document.querySelector('#indBtn')", 15000); pg.wait_for_timeout(1500)
     back = pg.evaluate("() => document.getElementById('indBtn').hasAttribute('data-qnote')")
@@ -68465,7 +68479,7 @@ def t_free_open_1011(b, base, code):
     wait_until(pg, "() => { const d = document.getElementById('m4Quota'); return !!d && !d.hidden; }", 4000)
     pg.evaluate("() => document.querySelectorAll('#m4Quota .qgh[aria-expanded=\"false\"]').forEach(b => b.click())"); pg.wait_for_timeout(300)
     rows = pg.evaluate("() => Object.fromEntries([...document.querySelectorAll('#m4Quota .qi[data-id]')].map(e => [e.dataset.id, e.innerText.replace(/\\s+/g, ' ')]))")
-    want = {"season.groups": "篩選・已用 10／10", "stock.ind": "已用 3／3", "etf.cmp": "改選・已用 3／3", "etf.inc.comp": "打開・已用 3／3",
+    want = {"season.groups": "篩選・已用 10／10", "stock.ind": "已用 5／5", "etf.cmp": "改選・已用 3／3", "etf.inc.comp": "打開・已用 3／3",
             "flow.play": "會員", "mkt.cand": "會員", "heat.link": "會員", "etf.inc.params": "會員"}
     ok(f"{T} 額度上限面板：計次項目（族群篩選 10、指標設定、ETF 兩項）與 10-12 改回關的 4 項（寫「… 會員」）都列出來",
        all(k in rows and v in rows[k] for k, v in want.items()), {k: rows.get(k) for k in want})
@@ -68600,9 +68614,10 @@ def t_free_perm_1012(b, base, code):
     lim = pg.evaluate("""() => Object.fromEntries(['news.open','earn.click','etf.cal.click','flow.rank.click','flow.filter','flow.sankey.drill','flow.inst.filter','heat.detail',
         'ind.groups','ind.diagram','ind.3d','mkt.updown','mkt.updown.filter','mkt.streak','mkt.ma','explore.page','explore.filter','etf.list','etf.list.tab','etf.cashflow',
         'season.month','season.groups','season.pick','search'].map(k => [k, TwPerm.lim(k)]))""")
-    exp = {"news.open": 5, "earn.click": 5, "etf.cal.click": 5, "flow.rank.click": 5, "flow.filter": 5, "flow.sankey.drill": 5, "flow.inst.filter": 5, "heat.detail": 5,
-           "ind.groups": 3, "ind.diagram": 3, "ind.3d": 3, "mkt.updown": 5, "mkt.updown.filter": 5, "mkt.streak": 5, "mkt.ma": 5, "explore.page": 5, "explore.filter": 5,
-           "etf.list": 3, "etf.list.tab": 3, "etf.cashflow": 3, "season.month": 10, "season.groups": 10, "season.pick": 10, "search": 10}
+    # 2026-11-10 冷啟動「試營運期額度」（Andy 核可 01_freemium.md 4-1）：註冊會員 flow.rank.click／flow.filter／flow.sankey.drill 5→10、ind.groups／ind.diagram／ind.3d 3→5、search 10→20
+    exp = {"news.open": 5, "earn.click": 5, "etf.cal.click": 5, "flow.rank.click": 10, "flow.filter": 10, "flow.sankey.drill": 10, "flow.inst.filter": 5, "heat.detail": 5,
+           "ind.groups": 5, "ind.diagram": 5, "ind.3d": 5, "mkt.updown": 5, "mkt.updown.filter": 5, "mkt.streak": 5, "mkt.ma": 5, "explore.page": 5, "explore.filter": 5,
+           "etf.list": 3, "etf.list.tab": 3, "etf.cashflow": 3, "season.month": 10, "season.groups": 10, "season.pick": 10, "search": 20}
     ok(f"{T} 範本沒寫：16 點的每日次數都照 Andy 10-12（5／3／10 次）", lim == exp, {k: (lim.get(k), v) for k, v in exp.items() if lim.get(k) != v})
     offs = pg.evaluate("() => ['flow.play','heat.link','ind.rel','mkt.cand','etf.ret.period','etf.inc.params'].filter(k => TwPerm.can(k))")
     ok(f"{T} 範本沒寫：反灰／不開放的 6 項（時間列、熱力圖跳頁、關聯圖、今日關注、報酬比較期間、試算參數）都關", not offs, offs)

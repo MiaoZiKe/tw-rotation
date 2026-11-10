@@ -27,6 +27,9 @@
   const A = () => window.TwAccount || null;
   const F = () => window.TwFeatures || null;
   const P = () => window.TwPerm || null;
+  /* ★ 2026-11-10 冷啟動總開關（site/coldstart_config.js）：開著時不顯示價格、不開結帳、升級鈕改「免費註冊／預約通知」。程式都還在，開關關掉就是原樣 */
+  const cold = () => !!(window.TwCold && window.TwCold.on());
+  const member = () => !!(window.TwCold && window.TwCold.isMember());
   /* 呼叫 Worker：會員功能沒設定（api 空）→ null，呼叫端自己退回備用畫面 */
   async function call(path, body) { const a = A(); if (!a || !a.on()) return null; return a.call(path, body || {}); }
   function view(id) {
@@ -205,7 +208,14 @@
     { id: 'pro', name: 'Pro', builtin: false, feats: { 'watch.tabs': 50, 'watch.size': 200 }, lims: {}, price: 0, period: 'month', dq: null, demo: true }];
   const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
   /* 免費卡的名稱：管理者設過方案卡（有定位句或清單）就用範本名稱（例 Free），沒設維持「註冊會員」（後端預設名「免費會員（預設）」不適合上卡）*/
-  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? (p.tagline || (p.highlights || []).length ? p.name : '註冊會員') : p.name);
+  /* 冷啟動：付費方案名稱不含數字（後端可能叫「399 即時」，等於把價格露出來）→ 依價格由低到高改叫進階／完整／旗艦 */
+  const COLD_NAMES = ['進階', '完整', '旗艦'];
+  function coldName(p) {
+    const paid = tidy(S.plans || FALLBACK).filter((q) => tierOf(q) === 'paid' && q.public !== false).sort((x, y) => monthEq(x) - monthEq(y));
+    const i = paid.findIndex((q) => q.id === p.id);
+    return COLD_NAMES[i < 0 ? 0 : Math.min(i, COLD_NAMES.length - 1)];
+  }
+  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? (p.tagline || (p.highlights || []).length ? p.name : '註冊會員') : cold() ? coldName(p) : p.name);
   /* 排序＋去重：訪客、註冊會員固定在前；付費依後端順序；同一個 id 只留第一個 */
   function tidy(list) {
     const seen = new Set(), out = [];
@@ -513,7 +523,7 @@
     const plans = [free, ...paid].filter(Boolean);
     /* 月／年切換：至少一個付費範本兩種價格都有才出現；預設年繳（範本圖選中的是年繳），只記在這一頁 */
     const both = paid.filter((p) => { const x = prices(p); return x.month && x.year; });
-    const hasPer = both.length > 0;
+    const hasPer = both.length > 0 && !cold();   // 冷啟動：不出現月繳／年繳切換（沒有價格可切）
     if (!hasPer) S.per = ''; else if (!S.per) S.per = 'year';
     const save = Math.max(0, ...both.map(saveOf));
     const saveTxt = save > 0 ? (new Set(both.map(saveOf)).size > 1 ? `最多省 ${save}%` : `省 ${save}%`) : '';
@@ -541,13 +551,13 @@
         <button type="button" role="tab" data-per="month" class="${S.per === 'month' ? 'on' : ''}" aria-selected="${S.per === 'month'}">月繳</button>
         <button type="button" role="tab" data-per="year" class="${S.per === 'year' ? 'on' : ''}" aria-selected="${S.per === 'year'}">年繳${saveTxt ? `<span class="save" id="prSave">${esc(saveTxt)}</span>` : ''}</button></div></div>` : ''}
       <div class="prhero"><h1>依你的研究深度選方案</h1>
-        <p>${fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
+        <p>${cold() ? '目前為試營運期，進階功能開放免費體驗。' : fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
       ${S.layout === 'merged' ? compare(plans, look, hot, needF, { me, needIds }) : `<div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>`}
-      <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
+      ${cold() ? `<p class="prapply"><b>目前為試營運期，所有功能免費體驗。</b>付費方案開放時會另行公告；想第一時間收到通知，請登入後按方案卡上的「預約通知」（不會扣款）。${S.src === 'fallback' ? '　（暫時讀不到方案資料）' : ''}</p>` : `<p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>`}
       ${S.layout === 'merged' ? '' : compare(plans, look, hot, needF)}
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
-        方案內容與價格以專人開通時的確認為準；申請送出不會扣款。詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
+        ${cold() ? '付費方案尚未開賣，目前不收任何費用。' : '方案內容與價格以專人開通時的確認為準；申請送出不會扣款。'}詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
     S.look = look;
     v.querySelectorAll('#prLayout button[data-lay]').forEach((b) => { b.onclick = () => { if (S.layout === b.dataset.lay) return; S.layout = b.dataset.lay; paint(); }; });
     v.querySelectorAll('#prPeriod button[data-per]').forEach((b) => { b.onclick = () => { if (S.per === b.dataset.per) return; S.per = b.dataset.per; paint(); }; });
@@ -556,6 +566,8 @@
   }
   const whoOf = (p) => p.tagline || (tierOf(p) === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數');
   function priceHtml(p) {
+    /* 冷啟動：付費卡不寫任何金額，只寫「即將開放」；免費卡照舊「免費」。 */
+    if (cold() && tierOf(p) === 'paid') return `<div class="prorig">&nbsp;</div><div class="prprice ask">即將開放</div><div class="prnote">試營運期間所有功能免費體驗</div>`;
     const pr = priceAt(p, S.per);
     const html = pr.free ? '<div class="prprice free">免費</div>'
       : pr.amount == null ? '<div class="prprice ask">價格待定</div>'
@@ -583,13 +595,15 @@
     if (tierOf(p) === 'free' && me.tier === 'guest') return `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>`;
     const mine = me.tier === 'free' ? 0 : me.tier === 'guest' ? -1 : (() => { const x = tidy(S.plans || FALLBACK).find((q) => q.id === me.id); return x ? rankOf(x) : -1; })();
     if (rankOf(p) <= mine) return `<button type="button" class="prgo" disabled>已包含</button>`;
+    /* 冷啟動：付費卡的行動鈕＝訪客「免費註冊」、會員「預約通知」（不開結帳、不算待審核） */
+    if (cold()) return `<button type="button" class="prgo" data-go="${esc(p.id)}">${me.tier === 'guest' ? '免費註冊' : '預約通知'}</button>`;
     /* 2026-10-16 Andy：「已經有訂單狀態的情況，不能再訂閱其他項目，除非他是訂閱升級的版本，且訂閱後待審核都會反灰」
        「級別排序 pro(年) > pro(月) > plus(年) > plus(月)」→ 有待審核（已送出匯款資料）的單：同級與更低的按鈕都變「待審核」反灰（伺服器也擋，見 pay.js payChangeCheck） */
     const pend = pendTier();
     if (pend && TIER_RANK[p.id]) { const per = priceAt(p, S.per).period; if (tierNum(p.id, per) <= pend.n) return `<button type="button" class="prgo prwait" disabled title="${esc(pend.name)}待審核中，審核完成前只能申請更高級別">待審核</button>`; }
     return `<button type="button" class="prgo" data-go="${esc(p.id)}">升級 ${esc(showName(p))}</button>`;
   }
-  const tagOf = (lk, need) => (need ? `<span class="prtag need">${S.need && F() && F().byId(S.need) ? '可解鎖' : '建議升級'}</span>` : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '');
+  const tagOf = (lk, need) => (need ? `<span class="prtag need">${S.need && F() && F().byId(S.need) ? '可解鎖' : cold() ? '之後開放' : '建議升級'}</span>` : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '');
   function card(p, lk, hot, me, need) {
     const t = tierOf(p), isMine = me.id === p.id;
     const who = whoOf(p);
@@ -610,6 +624,7 @@
   /* 2026-10-09（Andy：「退款政策及取消訂閱幫我新增」）：付費卡的升級鈕下面一行「付款前請先閱讀…」。
      免費卡放同高的隱形佔位，三張卡的按鈕才會在同一條線上。*/
   function preRead(t) {
+    if (cold()) return `<p class="prpre" aria-hidden="true" style="visibility:hidden">&nbsp;</p>`;
     const paid = t !== 'free' && t !== 'guest';
     return `<p class="prpre"${paid ? '' : ' aria-hidden="true" style="visibility:hidden"'}>付款前請先閱讀${paid ? '<a href="#refund" title="退款與取消訂閱政策">《退款與取消訂閱政策》</a><a href="#terms" title="使用條款">《使用條款》</a>' : '《退款與取消訂閱政策》《使用條款》'}</p>`;
   }
@@ -658,6 +673,16 @@
     return `<section class="prcmp" id="prCmp"><h2>方案功能比較</h2><p>只列出方案之間有差異的功能</p>
       <div class="prcmpw" style="--nc:${plans.length}"><table id="prTable"><thead><tr><th>功能</th>${plans.map((p) => `<th class="pc-${esc(look.get(p.id).color)}${hc(p)}">${esc(showName(p))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
   }
+  /* 冷啟動期的「預約通知」（2026-11-10）：沿用後端 /v1/subscribe/request（sub_requests 表，不需新後端），
+     note 開頭寫 [預約開放通知]，管理區「訂閱申請」看得到、也分得出這不是真的訂閱。沒登入 → 先走 Google 登入。不扣款、不開結帳。 */
+  async function reserve(p, a, u) {
+    if (!a || !a.on()) { toast('會員功能尚未開放，想收到通知請從右下角「客服」留言'); return; }
+    if (!u) { toast('登入後就能預約開放通知'); a.login(); return; }
+    const j = await call('/v1/subscribe/request', { plan: p.id, period: 'month', contact: u.email || '', note: '[預約開放通知] 冷啟動期預約，非訂閱申請、不扣款', user_note: '', consent: 'reserve_only' });
+    if (j && j._s === 200 && j.ok) toast(`已記下，付費方案開放時會通知 ${u.email || '你'}（不會扣款）`);
+    else if (j && j._s === 429) toast('今天已經預約過了，開放時一定會通知你');
+    else toast('預約失敗，請稍後再試，或從右下角「客服」留言');
+  }
   /* 訂閱鈕：免費卡＝登入；付費卡＝訂閱申請（要先登入：沒登入直接跳 Google 登入，登入回來再按一次）*/
   function go(p) {
     if (!p) return;
@@ -665,7 +690,8 @@
     const a = A();
     const u = a && a.on() ? a.user() : null;
     if (tierOf(p) === 'free') { if (a && a.on()) a.login(); else toast('會員登入功能尚未開放'); return; }
-    try { if (window.TwFunnel) window.TwFunnel('checkout_click'); } catch (e) { /* 漏斗統計失敗不影響訂閱 */ }   // 2026-10-26 W2：點付費方案的訂閱／預約鈕
+    try { if (window.TwFunnel) window.TwFunnel('checkout_click'); } catch (e) { /* 漏斗統計失敗不影響訂閱 */ }
+    if (cold()) { reserve(p, a, u); return; }   // 冷啟動：不開結帳、不開訂閱申請視窗，只登記「預約開放通知」   // 2026-10-26 W2：點付費方案的訂閱／預約鈕
     if (!a || !a.on()) {
       dialog(`<h3>訂閱申請</h3><p>線上申請暫時無法使用（會員功能尚未開放）。請從右下角「客服」寄信給我們，註明想要的方案「${esc(showName(p))}」。</p><div class="row2"><button type="button" class="pri" data-close>知道了</button></div>`);
       return;

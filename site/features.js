@@ -83,7 +83,7 @@
        返回族群、切回分布、清除篩選、點個股字卡進個股頁不算。直方圖模式點長條不計（它本來就受 heat.link 管）。
        訪客 3、註冊會員 5（limBy，plan_presets.js 同步）；用完：這三種鈕反灰、點了沒反應，「分布｜族群字卡」旁一行小字。
        體驗額度不替 Andy 預設：不在 GRANT_BAN，自動出現在「編輯：新會員體驗」清單。 */
-    { id: 'ov.advdec.tiles', name: '總覽漲跌家數：族群字卡', cat: 'overview', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
+    { id: 'ov.advdec.tiles', name: '總覽漲跌家數：族群字卡', cat: 'overview', def: true, kind: 'bool', limBy: { guest: 3, free: 10 }, qper: 'each', qunit: '點擊', qspent: true,
       qbtn: '今日 {n} 次已用完・Plus 以上可增加', route: /^(#overview([/?]|$)|#?$)/,
       qblock: ['#udView button[data-v="tiles"]:not(.on)', '#adtGrid .adt-g', '#adtBins button'], qcount: ['#udView button[data-v="tiles"]:not(.on)', '#adtGrid .adt-g', '#adtBins button'],
       qnoteAfter: '#udView', desc: '總覽漲跌家數卡切成「族群字卡」：全部族群的字卡矩陣（-10%～+10% 深綠到深紅）、點族群看個股字卡、依級距篩選；切進去、點族群、點級距各算一次',
@@ -91,14 +91,14 @@
     /* ★ 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：摘要卡列最右邊的「恐慌指數」卡（site/fearcard.js）。
        卡片（主數字、走勢線、狀態）人人看得到；計次的是「點開的完整圖」#ovFearFull —— 只有打開時它才在畫面上，所以 veil 只蓋它：
        一次造訪裡打開過＝一次（quota.js visit 單位）；用完 → 完整圖反灰＋一行字（qnote），卡片照常。 */
-    { id: 'ov.fear', name: '總覽：恐慌指數完整圖', cat: 'overview', def: true, kind: 'bool', desc: '恐慌指數卡點開後的完整走勢圖（台指選擇權隱含波動率・本站自算＋美股 VIX）', limBy: { guest: 3, free: 5 },
+    { id: 'ov.fear', name: '總覽：恐慌指數完整圖', cat: 'overview', def: true, kind: 'bool', desc: '恐慌指數卡點開後的完整走勢圖（台指選擇權隱含波動率・本站自算＋美股 VIX）', limBy: { guest: 3, free: 10 },
       qnote: '恐慌指數完整圖今日 {n} 次已用完・Plus 以上可增加', route: /^(#overview([/?]|$)|#?$)/, veil: [['#ovFearFull']], mark: [], block: [] },
     /* ★★ 2026-11-09 P-1107-05 一鍵分享圖卡（site/sharecard.js；Andy 11-09：「02 05 03 04 06」五項全做）。照 11-02 規則：新功能一律先有功能鍵、四個方案都寫值。
        share.card＝每產生一張圖卡算一次（按標題列「分享圖卡」鈕；在視窗裡切尺寸、下載、分享不重算）：訪客 3、註冊會員 5、Plus 50、Pro 不限。
        用完：標題列的鈕反灰＋旁邊一行字（qspent／qbtn），不跳視窗；體驗額度不預設（不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」）。
        share.card.plus＝Plus 以上：圖卡去掉右上角標、可選方形 1080×1080／限動直式 1080×1920（訪客、註冊會員只有直式 1080×1350、橫式 1200×630）。
        為什麼這樣切：提案「訪客可用、圖卡加網址浮水印（分享就是目的）；Plus 去浮水印、選尺寸」。頁尾那行網址任何方案都留著——它是這個功能的目的。 */
-    { id: 'share.card', name: '分享圖卡（大盤與族群圖）', cat: 'global', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '圖卡', qspent: true,
+    { id: 'share.card', name: '分享圖卡（大盤與族群圖）', cat: 'global', def: true, kind: 'bool', limBy: { guest: 5, free: 10 }, qper: 'each', qunit: '圖卡', qspent: true,
       qbtn: '今日 {n} 張圖卡已用完・Plus 以上可增加', qblock: ['.scBtn'], qnoteAfter: '.scBtn',
       desc: '總覽強弱輪動／資金分流樹／恐慌指數、資金流向輪盤、產業地圖族群漲跌幅的「分享圖卡」鈕：產生自帶網址的 PNG 圖卡（每產生一張算一次；切尺寸、下載不重算）', veil: [], mark: [], block: [] },
     { id: 'share.card.plus', name: '分享圖卡：去角標、選尺寸（Plus 以上）', cat: 'global', def: true, defBy: { guest: false, free: false }, kind: 'bool',
@@ -140,10 +140,10 @@
        flow.rank.click：資金輪動右邊「族群資金排行」點長條（原地展開成分股）每點一次算一次（app.js 排行 click 呼叫 TwQuota.use；再點同一根收起不算）。
        flow.filter：資金輪動／資金分流樹上方的產業鏈、族群下拉 —— 下拉打開一次之內改選＝一次（qsess＝開下拉那顆鈕；比照週期統計族群篩選 #354），
        計數在 quota.js 捕獲點擊（qcount），不改 app.js。用完一律反灰＋旁邊小字、點了沒反應（qspent），不跳視窗。*/
-    { id: 'flow.rank.click', name: '資金輪動：族群資金排行點長條', cat: 'flow', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
+    { id: 'flow.rank.click', name: '資金輪動：族群資金排行點長條', cat: 'flow', def: true, kind: 'bool', limBy: { guest: 3, free: 10 }, qper: 'each', qunit: '點擊', qspent: true,
       qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#rankFlow'], qnoteAfter: '#rankFlow', route: /^#flow(\/rotation)?([/?]|$)/,
       desc: '右邊族群資金排行點長條展開成分股（每點一次算一次；再點同一根收起不算）', veil: [], mark: [], block: [] },
-    { id: 'flow.filter', name: '資金流向：上方產業鏈／族群篩選', cat: 'flow', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '篩選', qspent: true,
+    { id: 'flow.filter', name: '資金流向：上方產業鏈／族群篩選', cat: 'flow', def: true, kind: 'bool', limBy: { guest: 5, free: 10 }, qper: 'each', qunit: '篩選', qspent: true,
       qbtn: '今日 {n} 次已用完・Plus 以上可增加', qfree: '.rotdd.open',
       /* 資金分流樹的「族群」下拉選一個＝在樹上展開那個族群（下鑽），已經由 flow.sankey.drill 計次 —— 這裡只算分流樹的「產業鏈」，不重複扣 */
       qblock: ['#flowRotFilter .ddbtn', '#flowRotFilter .rot-top10', '#flowRotFilter .rot-clear', '#flowSankeyCard .rotfilter[data-for="sankey"] .rotdd[data-dd="chain"] .ddbtn'],
@@ -159,17 +159,17 @@
        用完（qspent）：今天還沒看過的分頁反灰、點了沒反應，旁邊一行小字；看過的照樣點得進去（qkey＝這顆分頁的單位，算過的不反灰）。
        萬一停在一張沒看過的圖（例如新開一條鏈預設的第一張）→ 圖蓋 inline 一行字（qnote），不蓋大卡、不跳視窗。*/
     Object.assign(box('ind.groups', 'industry', '族群總覽（長條＋圓餅）', ['#gpSec'], '單一產業鏈裡各族群的漲跌與成交值占比'), {
-      limBy: { free: 3 }, qspent: true, qunit: '分頁', qbtn: '今日 {n} 個產業分頁已用完・Plus 以上可增加',
+      limBy: { free: 5 }, qspent: true, qunit: '分頁', qbtn: '今日 {n} 個產業分頁已用完・Plus 以上可增加',
       qblock: ['#chainSwitch button[data-c]'], qkey: (el) => (el.dataset.c && el.dataset.c !== '_all' && !el.classList.contains('on') ? 'c.' + el.dataset.c : null), qnoteAfter: '#chainSwitch' }),
     Object.assign(box('ind.diagram', 'industry', '產業鏈剖析圖（2D）', ['#dgSec'], '產品／製程剖析圖、點零件看供應商'), {
-      limBy: { free: 3 }, qspent: true, qunit: '子分頁', qbtn: '今日 {n} 個子分頁已用完・Plus 以上可增加', qnote: '今日 {n} 個子分頁已用完・Plus 以上可增加',
+      limBy: { free: 5 }, qspent: true, qunit: '子分頁', qbtn: '今日 {n} 個子分頁已用完・Plus 以上可增加', qnote: '今日 {n} 個子分頁已用完・Plus 以上可增加',
       qblock: ['#dgPick a[data-dgid]'], qnoteAfter: '#dgPick',
       qkey: (el) => { const m = /^#industry\/([^/?]+)/.exec(location.hash || ''); return m && el.dataset.dgid && !el.classList.contains('sel') ? 'd.' + decodeURIComponent(m[1]) + '.' + el.dataset.dgid : null; } }),
     /* 2026-10-10（Andy：「3D 剖析開放 3 次」＋「功能反灰旁邊備註就好」）：
        · veil 加條件 #prod3d:not([hidden])＝**真的在看 3D** 才算一次（以前 .dg3dbox 在 2D 也有外框，看 2D 也被扣 3D 次數）
        · qbtn：每日次數用完時不蓋額度卡 —— 3D 鈕反灰、2D｜3D 旁邊一行小字；停在 3D 的話退回 2D（qoff）。實作在 site/quota.js。
          （不用 qnote：qnote 是同日 ETF 試算用的「蓋區塊、卡片改一行字」模式，兩種行為不同。）*/
-    { id: 'ind.3d', name: '3D 剖析圖', cat: 'industry', def: true, kind: 'bool', limBy: { free: 3 }, desc: '剖析圖的 3D 模式（2D 不受影響；每日次數用完：3D 鈕反灰、旁邊註明）',
+    { id: 'ind.3d', name: '3D 剖析圖', cat: 'industry', def: true, kind: 'bool', limBy: { guest: 1, free: 5 }, desc: '剖析圖的 3D 模式（2D 不受影響；每日次數用完：3D 鈕反灰、旁邊註明）',
       qbtn: '今日次數已用完・Plus 以上可增加', qbtnAt: '.dgmode', qoff: '#dg3d button[data-dm="2d"]',
       veil: [['.dg3dbox', '#prod3d:not([hidden])']], mark: [], block: ['button[data-dm="3d"]'] },
     /* ★ 2026-10-12 Andy 第 7 點：「供應鏈關聯圖 功能反灰色」→ 註冊會員關（defBy free:false），note＝整塊反灰＋一行小字（qcard inline 備註），不蓋大卡、不跳視窗 */
@@ -205,11 +205,11 @@
        Plus 50、Pro 不限。用完：內容反灰＋一行字（qnote），有體驗額度時多一顆「繼續看」。擁有者／管理員不受限。
        route 限定各自的頁：#mktBody 在市場明細每一頁共用，不限 route 會蓋到別的分頁。
        三大法人當天報告只蓋 #instToday（報告本體），不蓋上面的「當天／連買賣」切換列 —— 蓋住的話用完之後連切去別頁的路都沒了。 */
-    { id: 'mkt.credit', name: '市場明細：信用交易', cat: 'market', def: true, kind: 'bool', desc: '融資融券餘額、融資維持率與加權指數', limBy: { guest: 3, free: 5 },
+    { id: 'mkt.credit', name: '市場明細：信用交易', cat: 'market', def: true, kind: 'bool', desc: '融資融券餘額、融資維持率與加權指數', limBy: { guest: 3, free: 10 },
       qnote: '信用交易今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/credit/, veil: [['#mktBody']], mark: [], block: [] },
-    { id: 'mkt.fut', name: '市場明細：期貨籌碼', cat: 'market', def: true, kind: 'bool', desc: '台指期三大法人未平倉、微台指散戶多空比', limBy: { guest: 3, free: 5 },
+    { id: 'mkt.fut', name: '市場明細：期貨籌碼', cat: 'market', def: true, kind: 'bool', desc: '台指期三大法人未平倉、微台指散戶多空比', limBy: { guest: 3, free: 10 },
       qnote: '期貨籌碼今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/fut/, veil: [['#mktBody']], mark: [], block: [] },
-    { id: 'mkt.inst.day', name: '市場明細：三大法人當天報告', cat: 'market', def: true, kind: 'bool', desc: '全市場外資／投信／自營當天淨買賣超與買賣超前 10（「連買賣」另有 mkt.streak）', limBy: { guest: 3, free: 5 },
+    { id: 'mkt.inst.day', name: '市場明細：三大法人當天報告', cat: 'market', def: true, kind: 'bool', desc: '全市場外資／投信／自營當天淨買賣超與買賣超前 10（「連買賣」另有 mkt.streak）', limBy: { guest: 3, free: 10 },
       qnote: '三大法人當天報告今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/inst/, veil: [['#instToday']], mark: [], block: [] },
     /* 2026-11-04（Andy：頻道規劃母分頁）：#channels 只給站主／管理員（site/channels/channels.js 的閘門，非管理者導回總覽）。
        依 11-02 規則登記功能鍵：adminOnly（訂閱頁權益表不列）、def false、四個方案範本都寫 false；不設次數、不蓋鎖頭（整頁根本不給一般人）。管理者功能不發 features.json 公告。 */
@@ -240,19 +240,19 @@
     ktf('stock.tick', '分時走勢', ['tick'], '分時走勢（管理者盤中即時；其他人看最近交易日的盤後分時）'),
     Object.assign(ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K（即時來源，2026-10-08 起僅站主與管理員看得到）'), { adminOnly: true,
       /* 2026-10-11（DECISIONS #354）：範本跟著開＋每日 3 次（同一檔同一天只算一次）；這排鈕目前只有站主／管理員畫得出來，一般註冊會員畫面上看不到 */
-      limBy: { free: 3 }, qbtn: '分 K 今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qoff: '#tfSeg button[data-tf="1d"]' }),
+      limBy: { free: 5 }, qbtn: '分 K 今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qoff: '#tfSeg button[data-tf="1d"]' }),
     ktf('stock.k_hour', '1H／4H K 線', ['60m', '240m'], '60 分與 240 分 K'),
     /* ★ 2026-10-11（DECISIONS #354）個股 K 線工具三項：註冊會員開＋每日 3 次（limBy）。單位＝個股代號（quota.js unitKey 'stock'）：
        同一檔同一天重複打開不重算，比照 stock.page。計數走 quota.js 的捕獲點擊（qblock／block）＋畫面上真的開著（四週期的格子）；
        用完：鈕反灰＋工具列中段一行小字（qnoteAfter），點了不動作、不跳卡；停在四週期就退回單一週期（qoff）。
        畫線的計次鈕是 qblock（桌機左側工具列常駐、點了某個畫線工具才算；選取／橡皮擦不算），鎖頭仍用 block（#drawTgl＋整塊 veil）。*/
-    { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖', limBy: { free: 3 },
+    { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖', limBy: { free: 5 },
       qbtn: '四週期今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qoff: '#mtfBtn',
       veil: [['#chartWrap', '#mtfGrid']], mark: [], block: ['#mtfBtn'] },
-    { id: 'stock.ind', name: '指標設定', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上的指標開關、參數、顏色（關掉時沿用預設指標）', limBy: { free: 3 },
+    { id: 'stock.ind', name: '指標設定', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上的指標開關、參數、顏色（關掉時沿用預設指標）', limBy: { free: 5 },
       qbtn: '指標設定今日 {n} 次已用完', qnoteAfter: '#skTools > .sp',
       veil: [], mark: [], block: ['#indBtn'] },
-    { id: 'stock.draw', name: '畫線工具', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上畫趨勢線、水平線', limBy: { free: 3 },
+    { id: 'stock.draw', name: '畫線工具', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上畫趨勢線、水平線', limBy: { free: 5 },
       qbtn: '畫線今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qveil: [],
       qblock: ['#drawTgl', '#drawBar .dtool[data-t]:not([data-t="cursor"]):not([data-t="erase"])'],
       veil: [['#drawBar']], mark: [], block: ['#drawTgl'] },
@@ -427,7 +427,7 @@
   LIST.push(
     /* 第 3 點「右手邊長條圖…限制點擊5次」：資金分流樹右欄排名（點一列＝下鑽那個族群）與圖上點族群，每日 5 個族群 */
     quiet(act('flow.sankey.drill', 'flow', '分流樹下鑽個股', 'drill', '資金分流樹點族群展開成個股（右欄變族群內個股排行）；每日次數用完只能看全部族群那一層（資金流向排名）。同一族群同一天重點不重算'),
-      { limBy: { free: 5 }, qblock: ['#sankeyRank .skr-r[data-gid]', '#flowSankeyCard .rotfilter[data-for="sankey"] .ddopt [data-g]'], qnoteAfter: '#sankeyRank .skr-tab, #sankeyPanel > .hh', route: /^#flow\/sankey/,
+      { limBy: { free: 10 }, qblock: ['#sankeyRank .skr-r[data-gid]', '#flowSankeyCard .rotfilter[data-for="sankey"] .ddopt [data-g]'], qnoteAfter: '#sankeyRank .skr-tab, #sankeyPanel > .hh', route: /^#flow\/sankey/,
         qkey: (el) => { const g = el.dataset.g || el.dataset.gid; return g ? 'drill.' + g : null; } }),
     /* 第 4 點「族群 × 法人 篩選 限制點擊5次」 */
     quiet(act('flow.inst.filter', 'flow', '族群×法人族群篩選', 'filter', '族群×法人左上「族群」下拉每選一個族群算一次（同一族群同一天不重算；選「全部族群」不算）'),
@@ -447,7 +447,7 @@
       qkey: (el) => (el.classList.contains('on') ? null : el.dataset.m ? 'obj.m.' + el.dataset.m : 'obj.p.' + el.dataset.v) }),
     /* 第 16 點「搜尋功能限制10次」：左上搜尋框每「從搜尋結果進一檔個股」算一次（app.js 搜尋的 go() 呼叫 TwQuota.use）；
        用完：搜尋框反灰、打不了字（readOnly），旁邊一行小字；其他地方點個股照常。 */
-    { id: 'search', name: '搜尋股票', cat: 'global', def: true, kind: 'bool', limBy: { guest: 5, free: 10 }, qper: 'each', qunit: '搜尋', qspent: true,
+    { id: 'search', name: '搜尋股票', cat: 'global', def: true, kind: 'bool', limBy: { guest: 10, free: 20 }, qper: 'each', qunit: '搜尋', qspent: true,
       qbtn: '今日搜尋 {n} 次已用完・Plus 以上可增加', qblock: ['#q'],
       desc: '左上搜尋框（輸入代號／簡稱）從結果進個股頁，每進一檔算一次', veil: [], mark: [], block: [] },
     /* 2026-10-10 Andy：「新增 "事件" 觀看次數 10 次 點擊新聞連結」→ 今日事件面板（側欄「事件」打開的右側抽屜；手機總覽的今日事件卡）
@@ -507,7 +507,7 @@
      語意沿用 sub-v1：留空＝不限、0＝不能看、N＝每日 N 次（計數與遮罩在 site/quota.js）。
      原本 quota.stock「個股頁每日檔數」需要一個「整個個股頁」的功能來掛上限 → 新增 stock.page（route 限定 #stock/ 才算）。
      quota.ai → stock.ai 的上限、quota.theme → heat.detail 的上限，不另設功能。 */
-  LIST.push({ id: 'stock.page', name: '個股頁（整頁）', cat: 'stocktab', def: true, kind: 'bool', route: /^#stock\//,
+  LIST.push({ id: 'stock.page', name: '個股頁（整頁）', cat: 'stocktab', def: true, kind: 'bool', route: /^#stock\//, limBy: { guest: 5, free: 20 },   // 2026-11-10 冷啟動：訪客 5 檔、註冊會員（試營運期額度）20 檔
     desc: '整個個股頁（關掉＝個股頁蓋鎖頭；設瀏覽次數＝一天能看幾檔，同一檔重複看不重算）', veil: [['#v-industry']], mark: [], block: [] });
 
   /* ★ 2026-10-07「全站共用每日額度」（quota.all，docs/quota_plan.md、docs/plan_tiers_1007.md）：哪些功能算「研究頁」、會吃共用額度。
