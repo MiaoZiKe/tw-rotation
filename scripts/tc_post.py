@@ -5,7 +5,7 @@ Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。說
 
 ★ 跟頻道一（股市帳號）完全隔離：
   · 佇列：social/tc/queue/<日期>_<代號>/（頻道一是 social/threads/queue、social/ig/queue，互不讀）
-  · 權杖：只讀 TC_THREADS_TOKEN／TC_IG_TOKEN（工作流從 TC_*_ACCESS_TOKEN_AUTO 帶進來），絕不讀頻道一的權杖
+  · 權杖：只讀 TC_THREADS_TOKEN／TC_IG_TOKEN（2026-11-10 起工作流從 TECH_*_ACCESS_TOKEN_AUTO／TECH_* 帶進來，頻道④交接），絕不讀頻道一的權杖
   · 發文前先打 /me：帳號 id 等於頻道一的 THREADS_USER_ID／IG_USER_ID → 整篇不發（防止發到股市帳號）
   · 紀錄：state/tc/posted.json（頻道一是 social-snaps 的 state/posted.json）
   · 開關：docs/marketing/social_unit/post_quota.json 的 "tc" 區塊
@@ -229,7 +229,47 @@ def _delete(platform: str, path: str, token: str) -> dict:
         raise PostError(f"連線失敗 {path}：{e.reason}") from None
 
 
+# ---------- IG：Facebook 登入版系統用戶權杖（EAA 開頭）走 graph.facebook.com（2026-11-10 頻道④交接 TECH_*）----------
+# 頻道②帳號 @tech_01010909 的 IG 權杖是 EAA 系統用戶權杖（Instagram Graph API，graph.facebook.com），
+# 不是 Instagram 登入版（graph.instagram.com）。/{ig-user-id}/media、media_publish、輪播 children、status_code、
+# /{media}/comments 兩邊用法相同；帳號編號用頻道④的 healing_post.resolve_uid（/me/assigned_instagram_accounts 等多路徑）。
+FB_HOST = "https://graph.facebook.com/v24.0"
+TECH_PREFIX = "TECH_"
+
+
+def is_fb_token(token: str) -> bool:
+    return (token or "").startswith("EAA")
+
+
+def _fb_call(method: str, path: str, token: str, params: dict | None = None) -> dict:
+    import urllib.error
+    import urllib.request
+    q = dict(params or {})
+    q["access_token"] = token
+    data = urllib.parse.urlencode(q).encode()
+    url = path if path.startswith("http") else f"{FB_HOST}{path}"
+    req = urllib.request.Request(f"{url}?{data.decode()}") if method == "GET" else \
+        urllib.request.Request(url, data=data, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode() or "{}")
+    except urllib.error.HTTPError as e:
+        raise PostError(redact(f"HTTP {e.code} {path.split('?')[0]}：{e.read().decode('utf-8', 'replace')[:300]}")) from None
+    except urllib.error.URLError as e:
+        raise PostError(f"連線失敗 {path.split('?')[0]}：{e.reason}") from None
+
+
+def resolve_eaa_uid(token: str) -> str:
+    """EAA 權杖找 IG 帳號編號：重用頻道④的多路徑探查（不重寫）。"""
+    import healing_post as HP  # noqa: PLC0415  延後載入：只有 EAA 才需要（它要 requests）
+    return HP.resolve_uid("ig", "", token, prefix=TECH_PREFIX) or ""
+
+
 def api(platform: str, method: str, path: str, token: str, params: dict | None = None) -> dict:
+    if platform == "ig" and is_fb_token(token):
+        if method == "DELETE":
+            raise PostError("IG 貼文不能用 API 刪除（Instagram Graph API 沒有刪貼文端點）")
+        return _fb_call(method, path, token, params)
     if method == "DELETE":
         return _delete(platform, path, token)
     try:
@@ -253,14 +293,22 @@ def whoami(platform: str, token: str) -> tuple[str, str]:
     return str(d.get("user_id") or d.get("id") or ""), str(d.get("username") or "")
 
 
+def whoami_eaa(token: str, expect_id: str) -> tuple[str, str]:
+    uid = expect_id or resolve_eaa_uid(token)
+    if not uid:
+        return "", ""
+    d = api("ig", "GET", f"/{uid}", token, {"fields": "id,username"})
+    return str(d.get("id") or uid), str(d.get("username") or "")
+
+
 def preflight(platform: str, token: str, expect_id: str, ch1_id: str) -> tuple[str, str]:
-    uid, uname = whoami(platform, token)
+    uid, uname = whoami_eaa(token, expect_id) if platform == "ig" and is_fb_token(token) else whoami(platform, token)
     if not uid:
         raise PostError(f"{platform} 權杖查不到帳號 id")
     if ch1_id and uid == ch1_id:
         raise PostError(f"{platform} 權杖是頻道一（股市帳號 @{uname}）的，整篇不發")
     if expect_id and uid != expect_id:
-        raise PostError(f"{platform} 帳號 id 跟 TC_{platform.upper()}_USER_ID 不一樣（@{uname}），整篇不發")
+        raise PostError(f"{platform} 帳號 id 跟設定的 USER_ID 不一樣（@{uname}），整篇不發")
     return uid, uname
 
 

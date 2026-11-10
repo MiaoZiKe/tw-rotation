@@ -4,6 +4,8 @@ name: 頻道② 科技透明圈 發文
 # - 權杖只用 TC_*（跟頻道一股市帳號完全分開）；頻道一只傳「帳號 id」進來比對，防止發到股市帳號，不傳頻道一權杖。
 # - 沒有 TC 權杖 → 安靜跳過（成功結束、不寄失敗信）；approved 超過 30 分鐘沒發 → 開 issue。
 # - 手動觸發預設 dry_run＝true：只驗證格式、圖檔與帳號，不發、不寫檔。
+# ★ 2026-11-10 頻道④交接（Andy：「Tech_01010909 丟給他們單位處理」）：頻道② 帳號就是 @tech_01010909，
+#   權杖改吃頻道④已驗證的 TECH_*（*_AUTO 優先）；TC_* 收件流程保留但不需要。channel_post.yml 的 tech 已停用，避免重複發文。
 on:
   schedule:
     - cron: "7,22,37,52 * * * *"
@@ -34,16 +36,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: pip install -q requests   # EAA 權杖找 IG 帳號編號重用 healing_post（要 requests）
       - name: 先檢查格式（不連外）
         run: python scripts/tc_post.py --check
       - name: 發文（或 dry-run）
         id: post
         continue-on-error: true
         env:
-          TC_THREADS_TOKEN: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO || secrets.TC_THREADS_ACCESS_TOKEN }}
-          TC_IG_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO || secrets.TC_IG_ACCESS_TOKEN }}
-          TC_THREADS_USER_ID: ${{ secrets.TC_THREADS_USER_ID }}
-          TC_IG_USER_ID: ${{ secrets.TC_IG_USER_ID }}
+          TC_THREADS_TOKEN: ${{ secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN }}
+          TC_IG_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN }}
+          TC_THREADS_USER_ID: ${{ secrets.TECH_THREADS_USER_ID }}
+          TC_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IN_POST: ${{ inputs.post }}
@@ -56,8 +59,8 @@ jobs:
         id: replies
         continue-on-error: true
         env:
-          TC_THREADS_TOKEN: ${{ secrets.TC_THREADS_ACCESS_TOKEN_AUTO || secrets.TC_THREADS_ACCESS_TOKEN }}
-          TC_THREADS_USER_ID: ${{ secrets.TC_THREADS_USER_ID }}
+          TC_THREADS_TOKEN: ${{ secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN }}
+          TC_THREADS_USER_ID: ${{ secrets.TECH_THREADS_USER_ID }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
         run: |
           args=""
@@ -67,8 +70,8 @@ jobs:
         id: igdm
         continue-on-error: true
         env:
-          TC_IG_TOKEN: ${{ secrets.TC_IG_ACCESS_TOKEN_AUTO || secrets.TC_IG_ACCESS_TOKEN }}
-          TC_IG_USER_ID: ${{ secrets.TC_IG_USER_ID }}
+          TC_IG_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN }}
+          TC_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
         run: |
           args=""

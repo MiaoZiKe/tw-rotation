@@ -4,6 +4,9 @@ name: 部署 Worker（頻道② IG 私訊 tc-dm）
 # - 沒有 Cloudflare 金鑰或 TC 權杖 → 跳過並在摘要寫待辦，不紅燈。
 # - 手動觸發勾 subscribe：用 App 權杖向 Meta 註冊 webhook（callback＝這支 Worker、欄位 comments,messages），
 #   verify token 每次隨機產生、只寫進 Worker Secret，不經過任何人手。要 Advanced Access 審過之後才有意義。
+# ★ 2026-11-10：頻道② 改用 TECH_* 權杖，IG 是 EAA 系統用戶權杖（graph.facebook.com）。這支 Worker 走 graph.instagram.com（Instagram 登入版），
+#   跟 EAA 不相容；EAA 的 IG 私訊要 Messenger Platform（粉絲專頁＋專頁權杖），目前帳號沒有粉絲專頁。所以這支先不部署、保留備用，
+#   缺 TC_IG_* 會照舊安靜跳過。要用時：改成 Instagram 登入版權杖，或補粉絲專頁後改寫成 /{page-id}/messages。
 on:
   push:
     branches: [main]

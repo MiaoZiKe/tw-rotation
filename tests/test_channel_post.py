@@ -74,11 +74,13 @@ def test_時段_cron與工作流一致且避開整點():
 
 
 def test_plan排程只挑那個頻道_手動all不含healing():
-    assert cp.plan("17 4 * * *") == [{"channel": "tech", "prefix": "TECH_"}]
+    # 2026-11-10 頻道④交接：tech（頻道②）改用 tc_post.yml，channel_post.yml 不再排它，避免重複發文
+    assert cp.plan("17 4 * * *") == []
+    assert cp.plan("", "tech") == [] and cp.plan_comments("tech") == []
     assert cp.plan("43 0 * * *") == []
     assert cp.plan("13 11 * * *") == [{"channel": "caffaine", "prefix": "CAFFAINE_"}]
     assert cp.plan("27 12 * * *") == []                       # healing 的時段歸 healing_post.yml
-    assert [x["channel"] for x in cp.plan("", "all")] == ["tech", "caffaine"]
+    assert [x["channel"] for x in cp.plan("", "all")] == ["caffaine"]
     assert cp.plan("", "healing") == []
 
 

@@ -587,3 +587,55 @@ def test_廣達Threads主文在500字內():
     # 2026-11-09 起改用 Andy 親寫文案（docs/marketing/channels/tc/andy_style.md）：主文不放聲明，出處一行放第 1 則留言
     assert "52～64K" in p["main"] and "非公司公告" not in p["main"]
     assert "國土測繪中心" in p["reply"] and "廣達官方" in p["reply"]
+
+
+# ---------------- 2026-11-10 頻道④交接：TECH_* 的 IG 是 EAA 系統用戶權杖（graph.facebook.com） ----------------
+
+EAA = "EAA_SYSTEM_USER_TOKEN_gggggggggggggggg"
+
+
+def test_EAA權杖IG走Facebook網域_帳號編號重用頻道4探查(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(tc, "_fb_call", lambda m, p, t, q=None: calls.append((m, p, t, dict(q or {}))) or (
+        {"id": "17840", "username": "tech_01010909"} if p == "/17840" else
+        {"status_code": "FINISHED"} if (q or {}).get("fields") == "status_code" else
+        {"permalink": "https://www.instagram.com/p/x/", "media_type": "CAROUSEL_ALBUM"} if m == "GET" else {"id": f"c{len(calls)}"}))
+    monkeypatch.setattr(tc, "resolve_eaa_uid", lambda tok: "17840")
+    monkeypatch.setattr(tc, "check_public", lambda u: None)
+    uid, uname = tc.preflight("ig", EAA, "", "888")
+    assert (uid, uname) == ("17840", "tech_01010909")
+    r = tc.post_ig(uid, ["https://raw/a.jpg", "https://raw/b.jpg"], "cap", EAA)
+    assert r["media_type"] == "CAROUSEL_ALBUM"
+    assert all(c[2] == EAA for c in calls) and any(c[1] == "/17840/media_publish" for c in calls)
+    with pytest.raises(tc.PostError, match="不能用 API 刪除"):
+        tc.api("ig", "DELETE", "/1", EAA)
+
+
+def test_EAA沒有粉絲專頁時IG私訊安靜跳過_發文不受影響(monkeypatch, tmp_path):
+    import healing_post as HP
+    monkeypatch.setattr(tc, "_fb_call", lambda m, p, t, q=None: {"id": "17840", "username": "tech_01010909"})
+    monkeypatch.setattr(tc, "resolve_eaa_uid", lambda tok: "17840")
+    monkeypatch.setattr(HP, "fb_pages", lambda tok, with_token=False: [])
+    rc, res = dm.run({"TC_IG_TOKEN": EAA}, NOW, False, config_path=_cfg(tmp_path), state_path=tmp_path / "s.json",
+                     posted_path=tmp_path / "p.json")
+    assert rc == 0 and "Messenger Platform" in res["unsupported"]
+
+
+def test_EAA有粉絲專頁就用專頁權杖與page端點(monkeypatch):
+    import healing_post as HP
+    monkeypatch.setattr(HP, "fb_pages", lambda tok, with_token=False: [
+        {"ig_id": "17840", "page_id": "999", "page_token": "EAA_PAGE_TOKEN_hhhhhhhhhhhh", "name": "x", "ig_username": "tech_01010909"}])
+    ctx, why = dm.messaging_ctx("17840", EAA)
+    assert ctx == {"send": "/999/messages", "conv": "/999/conversations", "tok": "EAA_PAGE_TOKEN_hhhhhhhhhhhh"}
+
+
+def test_工作流吃TECH權杖_channel_post不再排tech():
+    root = Path(__file__).resolve().parent.parent
+    for f in ("tc_post.yml", "tc_selftest.yml"):
+        y = (root / ".github/workflows" / f).read_text(encoding="utf-8")
+        assert "secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN" in y
+        assert "secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN" in y
+        assert "secrets.TC_IG_ACCESS" not in y and "secrets.TC_THREADS_ACCESS" not in y
+    ch = json.loads((root / "docs/marketing/channels/channels.json").read_text(encoding="utf-8"))
+    assert ch["channels"]["tech"]["handed_over"] == "tc_post.yml"
+    assert "頻道② 改用 tc_post.yml，2026-11-10 頻道④交接" in (root / ".github/workflows/channel_post.yml").read_text(encoding="utf-8")

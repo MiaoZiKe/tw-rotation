@@ -35,6 +35,8 @@ def plan(schedule: str = "", want: str = "all", path: Path = HP.CHANNELS_FILE) -
     for code, c in HP.load_channels(path).items():
         if c.get("workflow") != WORKFLOW:
             continue
+        if c.get("handed_over"):   # 頻道② 改用 tc_post.yml，2026-11-10 頻道④交接：不排、不手動跑，避免重複發文
+            continue
         if schedule:
             if schedule.strip() not in [x.strip() for x in c.get("cron") or []]:
                 continue
@@ -49,6 +51,8 @@ def plan_comments(want: str = "all", path: Path = HP.CHANNELS_FILE) -> list[dict
     out = []
     for code, c in HP.load_channels(path).items():
         if c.get("comments_workflow") != "channel_comments.yml" or want not in ("all", code):
+            continue
+        if c.get("handed_over"):   # 頻道② 留言／私訊改由 tc_post.yml 處理（2026-11-10 頻道④交接）
             continue
         cfg = HP.load_json(HP.ROOT / c.get("dm_config", ""), {}) if c.get("dm_config") else {}
         if cfg.get("enabled") is True:

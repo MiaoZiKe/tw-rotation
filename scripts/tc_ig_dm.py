@@ -21,6 +21,12 @@ follow_gate（2026-11-09 法遵審後加的開關，預設 true）：
   "webhook"（workers/tc-dm）：Meta 即時推送；要 App Live＋Advanced Access（App Review），送審資料在
         docs/marketing/channels/tc/app_review/。審過後把 mode 改成 "webhook"，本程式就自動停手。
 
+★ EAA 系統用戶權杖（2026-11-10 頻道④交接 TECH_*，帳號 @tech_01010909）：
+  讀留言走 graph.facebook.com 的 /{media}/comments（權杖有 instagram_manage_comments）。
+  但私訊（Private Reply、回覆私訊、查追蹤）在 Facebook 這條路上是 Messenger Platform：要「IG 連結的粉絲專頁」與
+  「專頁權杖」，端點是 /{page-id}/messages、/{page-id}/conversations?platform=instagram。
+  權杖看得到連結本帳號的粉絲專頁 → 用專頁權杖照樣跑兩段式；看不到 → **做不到**，只記錄「需要粉絲專頁」，安靜跳過（不紅燈）。
+
 去重與隱私：state/tc/ig_dm.json 只存 sha256 雜湊（留言 id、使用者 id）、時間與結果，不存留言內容、帳號名稱、私訊內容。
 上限：每則留言 1 次（Meta 也只准 1 次）；每人每天 per_user_per_day 次私訊；每輪 max_per_minute 則（輪詢一輪當一分鐘算）。
 法遵閘：legal_reviewed 不是 true → 只記錄「會送什麼」，不送。
@@ -78,8 +84,30 @@ def content_of(d: dict, post: str) -> str:
     return c.get(post) or c.get("default", "")
 
 
+CTX: dict = {}
+
+
+def messaging_ctx(uid: str, tok: str) -> tuple[dict | None, str]:
+    """私訊要用哪個端點與權杖。IG 登入版（IGAA）：/{uid}/messages、/me/conversations、同一把權杖。
+    EAA：要找到連結本 IG 帳號的粉絲專頁與專頁權杖（重用 healing_post.fb_pages），找不到回 (None, 原因)。"""
+    if not T.is_fb_token(tok):
+        return {"send": f"/{uid}/messages", "conv": "/me/conversations", "tok": tok}, ""
+    try:
+        import healing_post as HP  # noqa: PLC0415
+        pages = [x for x in HP.fb_pages(tok, with_token=True) if x.get("ig_id") == uid and x.get("page_token")]
+    except Exception as e:  # noqa: BLE001
+        return None, f"查不到粉絲專頁（{T.redact(e)[:120]}）"
+    if not pages:
+        return None, ("EAA 系統用戶權杖看不到連結本 IG 帳號的粉絲專頁：IG 私訊（Private Reply、查追蹤）在 Facebook 這條路上"
+                      "要用 Messenger Platform（粉絲專頁＋專頁權杖），目前做不到")
+    pg = pages[0]
+    T.mask(pg["page_token"])
+    return {"send": f"/{pg['page_id']}/messages", "conv": f"/{pg['page_id']}/conversations", "tok": pg["page_token"]}, ""
+
+
 def send(uid: str, tok: str, recipient: dict, text: str) -> None:
-    T.api("ig", "POST", f"/{uid}/messages", tok,
+    c = CTX or {"send": f"/{uid}/messages", "tok": tok}
+    T.api("ig", "POST", c["send"], c["tok"],
           {"recipient": json.dumps(recipient), "message": json.dumps({"text": text}, ensure_ascii=False)})
 
 
@@ -106,6 +134,13 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
     except T.PostError as e:
         T.log(f"✗ IG 私訊：{e}")
         return 1, res
+    ctx, why = messaging_ctx(uid, tok)
+    if ctx is None:
+        T.log(f"IG 私訊：{why} → 安靜跳過（讀留言、發文不受影響）")
+        res["unsupported"] = why
+        return 0, res
+    CTX.clear()
+    CTX.update(ctx)
     fill = lambda s: (s or "").replace("{handle}", handle)  # noqa: E731
     st = T.load_json(state_path, {})
     comments, users, pending, msgs = (dict(st.get(k) or {}) for k in ("comments", "users", "pending", "msgs"))
@@ -169,7 +204,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
 
     # ---- 第 2 段：對方回「好了」→ 查追蹤 → 送內容 ----
     try:
-        convs = T.api("ig", "GET", "/me/conversations", tok,
+        convs = T.api("ig", "GET", CTX["conv"], CTX["tok"],
                       {"platform": "instagram", "fields": "id,updated_time", "limit": "20"}).get("data") or []
     except T.PostError as e:
         T.log(f"✗ 讀不到私訊（多半是沒有 instagram_business_manage_messages）：{e}")
@@ -179,7 +214,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
         if u and now - u > timedelta(hours=24):           # 24 小時回覆窗外的不處理
             continue
         try:
-            ms = (T.api("ig", "GET", f"/{cv['id']}", tok, {"fields": "messages.limit(5){id,from,message,created_time}"})
+            ms = (T.api("ig", "GET", f"/{cv['id']}", CTX["tok"], {"fields": "messages.limit(5){id,from,message,created_time}"})
                   .get("messages") or {}).get("data") or []
         except T.PostError as e:
             T.log(f"✗ 讀不到對話：{e}")
@@ -201,7 +236,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                 if p.get("sent"):
                     send(uid, tok, {"id": who}, fill(d.get("already_sent")))
                     break
-                prof = T.api("ig", "GET", f"/{who}", tok, {"fields": "is_user_follow_business"})
+                prof = T.api("ig", "GET", f"/{who}", CTX["tok"], {"fields": "is_user_follow_business"})
                 if prof.get("is_user_follow_business") is True:
                     send(uid, tok, {"id": who}, content_of(d, p.get("post")))
                     p["sent"] = True

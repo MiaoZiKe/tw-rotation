@@ -109,11 +109,16 @@ def ig_checks(tok: str, ch1: str, expect: str) -> list[dict]:
         T._wait_ig(cid, tok)
         return "容器 FINISHED，沒有呼叫 media_publish（外面看不到）"
     step("上傳圖並建容器（不發布）", container)
-    step("instagram_business_manage_messages（/me/conversations）",
-         lambda: T.api("ig", "GET", "/me/conversations", tok, {"platform": "instagram", "fields": "id", "limit": "1"}) and None)
+    import tc_ig_dm as DM  # noqa: PLC0415
+    ctx, why = DM.messaging_ctx(uid["id"], tok)
+    if ctx is None:   # EAA 系統用戶權杖、沒有粉絲專頁：已知做不到，記下來但不算測試失敗
+        out.append({"check": "IG 私訊（Messenger Platform）", "ok": False, "limitation": True, "error": why})
+    else:
+        step("IG 私訊權限（conversations）",
+             lambda: T.api("ig", "GET", ctx["conv"], ctx["tok"], {"platform": "instagram", "fields": "id", "limit": "1"}) and None)
 
     def comments():
-        rows = T.api("ig", "GET", "/me/media", tok, {"fields": "id", "limit": "1"}).get("data") or []
+        rows = T.api("ig", "GET", f"/{uid['id']}/media", tok, {"fields": "id", "limit": "1"}).get("data") or []
         if not rows:
             return "帳號還沒有貼文，留言權限等第一篇發出後再測"
         T.api("ig", "GET", f"/{rows[0]['id']}/comments", tok, {"fields": "id", "limit": "1"})
@@ -136,9 +141,9 @@ def run(env: dict, now: datetime, state_path: Path = STATE_PATH) -> tuple[int, d
             continue
         checks = fn(tok[plat], (env.get("THREADS_USER_ID" if plat == "threads" else "IG_USER_ID") or "").strip(),
                     (env.get(f"TC_{plat.upper()}_USER_ID") or "").strip())
-        st["platforms"][plat] = {"ok": all(c["ok"] for c in checks), "checks": checks}
+        st["platforms"][plat] = {"ok": all(c["ok"] or c.get("limitation") for c in checks), "checks": checks}
         for c in checks:
-            T.log(f"[{plat}] {'✓' if c['ok'] else '✗'} {c['check']}" + (f"：{c.get('error') or c.get('note')}" if (c.get('error') or c.get('note')) else ""))
+            T.log(f"[{plat}] {'✓' if c['ok'] else ('－（已知做不到，不算失敗）' if c.get('limitation') else '✗')} {c['check']}" + (f"：{c.get('error') or c.get('note')}" if (c.get('error') or c.get('note')) else ""))
     st["ok"] = all(v["ok"] for v in st["platforms"].values())
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(T.redact(json.dumps(st, ensure_ascii=False, indent=2)) + "\n", encoding="utf-8")
@@ -149,7 +154,8 @@ def main() -> int:
     rc, st = run(dict(os.environ), datetime.now(timezone.utc))
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
-        bad = [f"{p}：{c['check']}（{c.get('error', '')}）" for p, v in st["platforms"].items() for c in v["checks"] if not c["ok"]]
+        bad = [f"{p}：{c['check']}（{c.get('error', '')}）" for p, v in st["platforms"].items() for c in v["checks"]
+               if not c["ok"] and not c.get("limitation")]
         with open(out, "a", encoding="utf-8") as f:
             f.write(f"failed={'1' if rc else '0'}\n")
             f.write("reasons=" + T.redact("；".join(bad)).replace("\n", " ") + "\n")

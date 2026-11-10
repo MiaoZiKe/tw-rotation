@@ -86,6 +86,10 @@
 - 只讀 HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN（＋選填 THREADS_APP_SECRET 自動換長效）；權杖續期併入 meta_token_refresh。
 - 待辦：Andy 放權杖→第一輪驗證→首篇；實測「是否追蹤」查詢能否用、IG 能否用 API 刪文、開發模式下一般網友收不收得到私訊。這批只跑了相關 pytest（73＋110 passed）；全套 pytest 有 115 失敗是 main 既有問題（抽查三檔在乾淨 main 一樣失敗）。
 
+## 2026-11-10 頻道②接手 @tech_01010909（頻道④交接；Andy：「Tech_01010909 丟給他們單位處理」）
+- 只留 tc_post.yml 一條：權杖改吃 TECH_*（*_AUTO 優先），IG 的 EAA 系統用戶權杖走 graph.facebook.com（帳號編號重用 healing_post.resolve_uid）；channels.json tech 標 handed_over，channel_post／channel_comments 不再排 tech；channel_insights 的 tech 照跑。
+- 做不到：EAA 下 IG 私訊（要粉絲專頁＋Messenger Platform，帳號目前 0 個粉絲專頁）、IG 刪文（API 本來就沒有）、IG 完整成效（缺 instagram_manage_insights）。細節 docs/marketing/channels/tc/autopost.md 第〇節。
+
 ## 2026-11-08 頻道②「科技透明圈」自動發文管線（social-ops-lead；Andy：「開通自動發文，這部分幫我想辦法自動化」＋「我希望可以自動化全部，包含測試發文、還有自動刪文，以及讀主留言我自動傳訊息功能」）
 - 說明：`docs/marketing/channels/tc/autopost.md`。權杖全用 TC_*，跟頻道一完全隔離（發文前比對帳號 id，等於頻道一就整篇不發）。
 - 已推 main：權杖收件 `tc_token_intake.yml`、每週續期加 TC 組、發文 `tc_post.yml`（每 15 分鐘，只發 approved；手動預設 dry_run）、自動測試 `tc_selftest.yml`（收件成功後自動跑）、Threads 自動刪文（delete_at）、IG 到期開 issue、Threads 留言關鍵字公開回覆（文案過法遵前只記錄）。

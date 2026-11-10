@@ -9,6 +9,7 @@ name: channel_post
 # - 下面的排程（UTC）要跟 channels.json 的 cron 一致（tests/test_channel_post.py 會檢查）。
 on:
   schedule:
+    # ★ tech：頻道② 改用 tc_post.yml，2026-11-10 頻道④交接。channels.json 標 handed_over，plan 會跳過 tech（這兩條排程醒來也是 0 個頻道）。
     - cron: "17 4 * * *"    # tech 台北 12:17（主時段）
     - cron: "47 5 * * *"    # tech 台北 13:47（保底補跑）
     - cron: "13 11 * * *"   # caffaine 台北 19:13（主時段）

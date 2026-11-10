@@ -37,7 +37,9 @@
     "47 5 * * *"
    ],
    "per_day": 1,
-   "why_slot": "上班族午休滑手機的高峰（12:00～13:00），科技／產業新聞類在午休最常被點開；避開整點"
+   "why_slot": "上班族午休滑手機的高峰（12:00～13:00），科技／產業新聞類在午休最常被點開；避開整點",
+   "handed_over": "tc_post.yml",
+   "handed_over_note": "頻道② 改用 tc_post.yml，2026-11-10 頻道④交接（Andy：「Tech_01010909 丟給他們單位處理」）。channel_post.yml／channel_comments.yml 的 plan 跳過本頻道，避免重複發文；channel_insights 照跑。"
   },
   "caffaine": {
    "name": "③ AI 介紹頻道",

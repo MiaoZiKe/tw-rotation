@@ -3,6 +3,30 @@
 > Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。
 > 範本：`docs/marketing/channels/ai_intro/ops.md` 第 1～2 節（多頻道隔離設計）。本頁是實作後的操作說明。
 
+## 〇、2026-11-10 頻道④交接：改吃 TECH_* 權杖（先讀這節）
+
+Andy 11-10：「Tech_01010909 丟給他們單位處理」。頻道②的帳號就是 IG／Threads 的 @tech_01010909，頻道④已經用 TECH_* 權杖驗證通過（run 42670385893）。CEO 決定只留一條管線：
+
+- **保留 tc 管線**（tc_post.yml：佇列核准制、監工、自動測試、刪文、留言回覆）。權杖來源改成 `secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN`、`secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN`；帳號編號讀 `TECH_*_USER_ID`，沒填就用頻道④的 `healing_post.resolve_uid` 探查（`/me/assigned_instagram_accounts` 等）。
+- **TC_* 收件流程保留但不需要**，Andy 不用再貼 TC_* 權杖；下面「四之三」第 4～6 步作廢。
+- **channel_post.yml 不再排 tech**：`channels.json` 的 tech 標 `handed_over: tc_post.yml`，`channel_post.py --plan` 與留言私訊 plan 都跳過 tech。頻道③（caffaine）、頻道④（healing）不受影響。
+- **成效**：`channel_insights.yml` 的 tech 照跑（寫 `docs/marketing/channels/tech/state/insights/`），週會直接讀它。
+- **續期**：`meta_token_refresh` 已經續 TECH_*（Threads 每週；IG 延長需要 `META_APP_SECRET`）。
+
+### IG 是 EAA 系統用戶權杖（graph.facebook.com）：能做／做不到
+
+| 功能 | 狀態 | 原因 |
+|---|---|---|
+| IG 發輪播、建容器、回查 media_type | ✅ 可以 | `/{ig-user-id}/media`、`media_publish` 在 graph.facebook.com 用法相同；頻道④已驗證 |
+| IG 讀自己貼文的留言 | ✅ 可以 | 權杖有 `instagram_manage_comments` |
+| **IG 私訊（Private Reply、回覆私訊、查追蹤 is_user_follow_business）** | ❌ **目前做不到** | Facebook 這條路的 IG 私訊是 Messenger Platform：要「連結此 IG 帳號的粉絲專頁」＋專頁權杖，端點 `/{page-id}/messages`。頻道④診斷：權杖看得到 0 個粉絲專頁、缺 `pages_show_list`／`pages_read_engagement`。程式已寫好：一旦權杖看得到連結的粉絲專頁，會自動改用專頁權杖跑兩段式；現在安靜跳過、不紅燈 |
+| IG 自動刪文 | ❌ 做不到（兩種權杖都一樣） | Instagram API 沒有刪貼文端點；到期照舊開 issue 請人工刪 |
+| IG 完整成效 | ⚠️ 部分 | 缺 `instagram_manage_insights` |
+| IG 私訊 Worker（workers/tc-dm） | ⏸ 先不部署 | Worker 走 graph.instagram.com（Instagram 登入版），跟 EAA 不相容 |
+| Threads 發文、留言公開回覆、自動刪文、自我測試 | ✅ 可以 | Threads 權杖不受影響（刪文需 `threads_delete`；自我測試會先查刪除額度，沒權限就不發測試文） |
+
+要讓 IG 私訊能做，有兩條路（都要本人在 Meta 後台操作）：① 建一個 Facebook 粉絲專頁並連結 @tech_01010909，系統用戶加指派粉絲專頁與 `pages_show_list`、`pages_read_engagement`、`pages_messaging`／`instagram_manage_messages`；② 改用 Instagram 登入版權杖（IGAA 開頭），走 graph.instagram.com（Worker 版即可用）。一般網友收得到仍要 Advanced Access（見 app_review/）。
+
 ## 一、跟頻道一（股市帳號）怎麼隔離
 
 | 項目 | 頻道一 | 頻道②（本頁） |
@@ -108,3 +132,4 @@ social/tc/queue/20261105_quanta/
 - 2026-11-08 同批：自動測試發文、Threads 自動刪文／IG 到期開 issue、Threads 留言關鍵字公開回覆。
 - 2026-11-08 同批：IG 留言關鍵字私訊（輪詢版 tc_ig_dm.py＋Worker workers/tc-dm）、App Review 送審包、Andy 必做清單。
 - 2026-11-09 法遵審後修改：文案改「重點整理」、面試方向不寫題目原文、加 follow_gate 開關、legal_reviewed=true；廣達 threads.txt 主文刪 4 個表情符號到 494 字。
+- 2026-11-10 頻道④交接：改吃 TECH_*、IG 支援 EAA（graph.facebook.com）、channel_post 停排 tech；EAA 下 IG 私訊做不到（缺粉絲專頁）。

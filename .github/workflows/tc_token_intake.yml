@@ -1,4 +1,6 @@
 name: 頻道② 科技透明圈 權杖收件
+# ★ 2026-11-10 起不需要：頻道②帳號 @tech_01010909 由頻道④交接，發文改吃已驗證的 TECH_* 權杖（tc_post.yml）。
+#   這支保留備用，Andy 不用再貼 TC_* 權杖。
 # 2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。說明：docs/marketing/channels/tc/autopost.md
 # Andy 在 Secrets 貼 TC_THREADS_SHORT_TOKEN（1 小時短效）、META_APP_SECRET（一次性）、TC_IG_ACCESS_TOKEN（60 天）後按一次：
 #   Threads 短效換長效 → /me 查兩個平台的 id 與 username → 驗證能用、確認不是頻道一帳號 → 用 META_SECRETS_PAT 寫回
