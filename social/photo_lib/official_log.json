@@ -1,5 +1,5 @@
 {
- "at": "2026-11-06T07:44:38+00:00",
+ "at": "2026-11-10T09:20:11+00:00",
  "items": [
   {
    "slug": "tsmc",
@@ -1573,16 +1573,17 @@
   {
    "slug": "quanta",
    "source": "official",
-   "added": 1,
+   "added": 0,
    "pages": [
     {
      "url": "https://www.quantatw.com/",
      "title": "廣達電腦",
      "imgs": 17,
-     "saved": 1,
+     "saved": 0,
      "skipped": {
       "檔名像標誌/人像/活動": 3,
-      "太小": 13
+      "太小": 13,
+      "看過": 1
      }
     },
     {
