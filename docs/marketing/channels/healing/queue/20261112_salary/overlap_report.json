@@ -1,0 +1,71 @@
+{
+ "20261112_salary/1": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 126,
+   "T": 360,
+   "R": 954,
+   "B": 901,
+   "box": [
+    96,
+    180,
+    984,
+    940
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261112_salary/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 146,
+   "T": 250,
+   "R": 914,
+   "B": 645,
+   "box": [
+    96,
+    180,
+    984,
+    660
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261112_salary/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 296,
+   "T": 210,
+   "R": 902,
+   "B": 700,
+   "box": [
+    96,
+    180,
+    984,
+    740
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ }
+}

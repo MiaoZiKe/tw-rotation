@@ -30,12 +30,14 @@ def sc_hbars(items, vmax, H, ticks=None, tickfmt="%g", hi=(), ref=None, reflab="
     o = ""
     if ticks:
         for t in ticks:
-            o += Ln(sx(t), top - 10, sx(t), bot, at("none", 1.2, op=.25, dash="3 7")) + T(sx(t), bot + 46, tickfmt % t, 30)
+            o += Ln(sx(t), top - 10, sx(t), bot, at("none", 1.2, op=.25, dash="3 7")) + T(sx(t), bot + 46, tickfmt(t) if callable(tickfmt) else tickfmt % t, 30)
     for i, (lab, v, vt) in enumerate(items):
         cy = top + rowh * (i + .5)
         o += T(x0 - 22, cy + 11, lab, 32, 400, "var(--w-text)", "end")
         o += R(x0, cy - bh / 2, sx(v) - x0, bh, 6, HL if i in hi else F3)
-        o += T(sx(v) + 16, cy + 13, vt, 38, 700, "var(--w-text)", "start")
+        lx = sx(v) + 16
+        if ref is not None and sx(v) < sx(ref) + 8 and lx + 24 * len(vt) > sx(ref) - 8: lx = sx(ref) + 16   # 標籤會被參考線穿過 → 移到線右邊
+        o += T(lx, cy + 13, vt, 38, 700, "var(--w-text)", "start")
     o += Ln(x0, top - 16, x0, bot, at("none", SW))
     if ref is not None:
         o += Ln(sx(ref), top - 8, sx(ref), bot, at("none", 2.6, "var(--w-lamp)", dash="12 10")) + T(sx(ref), top - 24, reflab, 30, 700, "var(--w-text)")
@@ -73,7 +75,7 @@ def sc_door(H=560):
 
 def sc_coins(H=760):
     """11/12 封面：10 疊硬幣由低到高；橘色虛線＝平均。右邊 3 疊把平均拉上去，左邊 7 疊在線下（示意 69.74%，高度非金額比例）。"""
-    base, ch = H - 100, 24
+    base, ch = H - 100, 30
     stacks = [3, 4, 4, 5, 5, 6, 6, 9, 12, 16]; avg = sum(stacks) / len(stacks)
     o = ""
     for i, n in enumerate(stacks):
@@ -103,7 +105,7 @@ def sc_payslip(H=560):
 
 def sc_bento(H=760):
     """11/13 封面：俯視便當（飯、主菜、三格配菜）＋一張吊牌「外食 +3.01%」。"""
-    x, y, w, h = 150, 120, 520, 400
+    x, y, w, h = 56, 120, 520, 400
     o = R(x - 16, y - 16, w + 32, h + 32, 30, F3) + R(x, y, w, h, 20, F1)
     o += R(x + 24, y + 24, 270, h - 48, 14, F3)                                      # 飯
     for i in range(18): o += E(x + 60 + (i % 6) * 40, y + 70 + (i // 6) * 110 + (i % 2) * 18, 9, 5, at("none", 1.3, op=.45))
@@ -118,18 +120,17 @@ def sc_bento(H=760):
     return o
 
 def sc_months(H=520):
-    """11/13 第 3 頁：2026 年 1～12 月小方格，5～10 月（CPI 年增率連續 6 個月高於 2%）塗晴光橘；11、12 月尚未公布畫虛線。"""
-    o = ""; cw, chh, gx, gy = 120, 120, 24, 40; x0 = (888 - (6 * cw + 5 * gx)) / 2; y0 = 30
-    for m in range(12):
-        r, c = divmod(m, 6); x = x0 + c * (cw + gx); y = y0 + r * (chh + gy + 30)
-        if 4 <= m <= 9: st = HL
-        elif m >= 10: st = at("none", 2, dash="7 7", op=.6)
-        else: st = F3
-        o += R(x, y, cw, chh, 12, st) + Ln(x + 26, y - 8, x + 26, y + 14, at("none", 3)) + Ln(x + cw - 26, y - 8, x + cw - 26, y + 14, at("none", 3))
-        o += T(x + cw / 2, y + chh / 2 + 14, "%d 月" % (m + 1), 34, 700, "var(--w-text)")
-    yb = y0 + 2 * (chh + gy + 30) - 10
-    o += R(x0, yb, 34, 34, 6, HL) + T(x0 + 50, yb + 28, "CPI 年增率高於 2%", 30, 400, "var(--w-sub)", "start")
-    o += R(x0 + 430, yb, 34, 34, 6, at("none", 2, dash="7 7", op=.6)) + T(x0 + 480, yb + 28, "尚未公布", 30, 400, "var(--w-sub)", "start")
+    """11/13 第 3 頁：2026 年 3～12 月月曆格。5～10 月 CPI 年增率高於 2%（晴光橘）；3、4 月 2% 以下（1.2%、1.74%，已查證）；11、12 月尚未公布（虛線）。1、2 月沒查到逐月數字，不畫。"""
+    o = ""; cw, chh, gx = 132, 120, 30; x0 = (888 - (5 * cw + 4 * gx)) / 2; y0 = 30
+    for i, m in enumerate(range(3, 13)):
+        r, c = divmod(i, 5); x = x0 + c * (cw + gx); y = y0 + r * (chh + 70)
+        st = HL if 5 <= m <= 10 else (at("none", 2, dash="7 7", op=.6) if m >= 11 else F3)
+        o += R(x, y, cw, chh, 12, st) + Ln(x + 28, y - 8, x + 28, y + 14, at("none", 3)) + Ln(x + cw - 28, y - 8, x + cw - 28, y + 14, at("none", 3))
+        o += T(x + cw / 2, y + chh / 2 + 14, "%d 月" % m, 34, 700, "var(--w-text)")
+    yb = y0 + 2 * (chh + 70) - 20
+    for j, (st, lab) in enumerate(((HL, "高於 2%"), (F3, "2% 以下"), (at("none", 2, dash="7 7", op=.6), "尚未公布"))):
+        lx = x0 + j * 270
+        o += R(lx, yb, 34, 34, 6, st) + T(lx + 50, yb + 28, lab, 30, 400, "var(--w-sub)", "start")
     return o
 
 def envelope(x, y, w, h, st):
@@ -160,7 +161,7 @@ def sc_plane(H=520):
 
 def sc_timeline(H=760):
     """11/15 封面：時間軸 現在→3 年；2.56 年處插一面晴光色小旗；下面一疊日曆。"""
-    ay = 420; x0, x1 = 90, 810; yr = (x1 - x0) / 3
+    ay = 470; x0, x1 = 90, 810; yr = (x1 - x0) / 3
     o = Ln(x0, ay, x1 + 30, ay, at("none", SW)) + P('M%d %d l -14 -10 M%d %d l -14 10' % (x1 + 30, ay, x1 + 30, ay), at("none", SW))
     for i, lab in enumerate(["現在", "1 年", "2 年", "3 年"]):
         x = x0 + i * yr; o += Ln(x, ay - 14, x, ay + 14, at("none", SW)) + T(x, ay + 58, lab, 30)
@@ -169,7 +170,7 @@ def sc_timeline(H=760):
     sx = x0 + 2.56 * yr
     o += Ln(x0, ay - 6, sx, ay - 6, at("none", 6, "var(--w-lamp)", op=.75)) + Ln(sx, ay, sx, ay - 190, at("none", 3))
     o += P('M%.1f %d h 120 l -26 34 l 26 34 h -120 Z' % (sx, ay - 190), HL) + T(sx, ay - 222, "2.56 年", 44, 700, "var(--w-text)")
-    cy0 = ay + 110
+    cy0 = ay + 100
     for i in range(3):
         x = 330 + i * 12; y = cy0 + i * 10
         o += R(x, y, 200, 118, 8, F3 if i < 2 else F1) + R(x, y, 200, 30, 8, DK)
@@ -232,8 +233,8 @@ POSTS = {
   "pages": [
    {"title": ["近7成員工，", "領不到平均月薪"], "scene": lambda: (sc_coins(), 760)},
    {"title": "資料從哪來", "body": ["主計總處薪資統計，2026/2 公布；", "2025 年經常性薪資，", "平均 47,884 元、中位數 38,406 元。"],
-    "scene": lambda: (sc_hbars([("平均", 47884, "47,884 元"), ("中位數", 38406, "38,406 元")], 60000, 480, ticks=[0, 20000, 40000], tickfmt="%d", hi=(0,), lw=170, bh=96), 480)},
-   {"title": "數字背後", "body": ["2026 上半年升到 70.03%；", "統計含部分工時與移工，", "也不含加班費和獎金。"], "ask": "平均數，離日常有多遠？",
+    "scene": lambda: (sc_hbars([("平均", 47884, "47,884 元"), ("中位數", 38406, "38,406 元")], 60000, 480, ticks=[0, 20000, 40000, 60000], tickfmt=lambda t: "0" if not t else "%d 萬" % (t // 10000), hi=(0,), lw=170, bh=96), 480)},
+   {"title": "數字背後", "body": ["2026 上半年升到 70.03%；", "統計含部分工時與移工，", "經常性薪資不含加班與獎金。"], "ask": "平均數離日常多遠？",
     "scene": lambda: (sc_payslip(), 560)},
   ]},
  "20261113_cpi": {
@@ -242,7 +243,7 @@ POSTS = {
    {"title": ["外食年漲3%，", "物價連6月破2%"], "scene": lambda: (sc_bento(), 760)},
    {"title": "資料從哪來", "body": ["主計總處消費者物價指數，", "2026 年 10 月，11/5 公布；", "10 月 CPI 年增 2.33%。"],
     "scene": lambda: (sc_hbars([("外食費", 3.01, "3.01%"), ("CPI 整體", 2.33, "2.33%"), ("房租", 1.70, "1.70%")], 3.6, 520, ticks=[0, 1, 2, 3], tickfmt="%d%%", hi=(0,), ref=2.0, reflab="2%"), 520)},
-   {"title": "數字背後", "body": ["5 到 10 月，每月都高於 2%；", "房租漲得比整體慢，", "壓力在天天要吃的外食。"], "ask": "一個便當，現在多少錢？",
+   {"title": "數字背後", "body": ["5 到 10 月，CPI 每月都高於 2%；", "房租漲得比整體慢，", "壓力在天天要吃的外食。"], "ask": "一個便當，現在多少錢？",
     "scene": lambda: (sc_months(), 520)},
   ]},
  "20261114_resume": {
@@ -258,7 +259,7 @@ POSTS = {
   "src": "資料：北市勞動局×1111調查2026/8・1,213份",
   "pages": [
    {"title": ["受訪上班族自估：", "2.56年內工作被AI改變"], "scene": lambda: (sc_timeline(), 760)},
-   {"title": "資料從哪來", "body": ["北市勞動局×1111 求職會員調查，", "1,213 份；擔憂平均 6.29 分。", "最易被取代的工作："],
+   {"title": "資料從哪來", "body": ["北市勞動局×1111 求職會員調查，", "2026 年 6–7 月填答，1,213 份；", "圖為受訪者認為最易被取代的工作。"],
     "scene": lambda: (sc_hbars([("普通翻譯", 53.3, "53.3%"), ("行政文書", 42.5, "42.5%"), ("美編設計", 39.1, "39.1%"), ("行銷文案", 32.4, "32.4%"), ("基礎程式", 28.3, "28.3%")], 70, 520, ticks=[0, 20, 40, 60], tickfmt="%d%%", hi=(0,)), 520)},
    {"title": "數字背後", "body": ["受訪者認為最難取代的能力，", "多半落在「人」身上；", "這是自估，不是預測。"], "ask": "工作裡，哪一塊最難取代？",
     "scene": lambda: (sc_rings([("人際溝通", 55.6, "55.6%"), ("情緒判斷", 44.3, "44.3%"), ("現場應變", 41.4, "41.4%")]), 520)},

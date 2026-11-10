@@ -1,0 +1,71 @@
+{
+ "20261114_resume/1": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 126,
+   "T": 250,
+   "R": 954,
+   "B": 895,
+   "box": [
+    96,
+    180,
+    984,
+    940
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261114_resume/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 141,
+   "T": 231,
+   "R": 876,
+   "B": 645,
+   "box": [
+    96,
+    180,
+    984,
+    660
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261114_resume/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 126,
+   "T": 220,
+   "R": 954,
+   "B": 686,
+   "box": [
+    96,
+    180,
+    984,
+    700
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ }
+}
