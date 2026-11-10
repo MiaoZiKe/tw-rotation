@@ -1,3 +1,5 @@
 date,fetched_at,platform,status,followers,views,reach,profile_views,accounts_engaged,likes,replies,reposts,quotes,missing,need_permission
 2026-11-10,2026-11-10T02:47:15+08:00,ig,partial,0,,,,,,,,,reach=permission;views=permission;profile_views=permission;accounts_engaged=permission,instagram_manage_insights
 2026-11-10,2026-11-10T02:47:15+08:00,threads,ok,0,0,,,,0,0,0,0,,
+2026-11-11,2026-11-11T05:22:11+08:00,ig,partial,0,,,,,,,,,reach=permission;views=permission;profile_views=permission;accounts_engaged=permission;saved=permission;shares=permission;total_interactions=permission,instagram_manage_insights
+2026-11-11,2026-11-11T05:22:11+08:00,threads,token_invalid,,,,,,,,,,followers=token_invalid;views=token_invalid;likes=token_invalid;replies=token_invalid;reposts=token_invalid;quotes=token_invalid;shares=token_invalid,
