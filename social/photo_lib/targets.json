@@ -138,7 +138,12 @@
    "Quanta Computer headquarters",
    "Quanta Computer building",
    "Quanta Computer Guishan Taoyuan",
-   "廣達電腦 龜山 總部"
+   "廣達電腦 龜山 總部",
+   "Hwaya Technology Park",
+   "華亞科技園區",
+   "華亞科技園區 廣達電腦",
+   "Quanta Computer Linkou",
+   "Quanta Computer research and development headquarters"
   ],
   "product_queries": [
    "server rack",
@@ -149,7 +154,9 @@
    "data center servers"
   ],
   "commons_categories": [
-   "Quanta Computer"
+   "Quanta Computer",
+   "Hwaya Technology Park",
+   "Quanta Computer buildings"
   ],
   "official_sites": [
    "https://www.quantatw.com/",
