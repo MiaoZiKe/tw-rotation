@@ -1,0 +1,60 @@
+{
+  "updated_at": "2026-11-10 16:49",
+  "platforms": {
+    "threads": {
+      "ok": false,
+      "checks": [
+        {
+          "check": "Threads 帳號（/me）",
+          "ok": true,
+          "note": "@tech_01010909"
+        },
+        {
+          "check": "threads_read_replies（/me/replies）",
+          "ok": true
+        },
+        {
+          "check": "threads_delete（刪除額度）",
+          "ok": false,
+          "error": "HTTP 403 /me/threads_publishing_limit：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AahMYJB1XujpzSllBJy5-cs\"}}"
+        },
+        {
+          "check": "測試發文",
+          "ok": false,
+          "error": "沒有刪除權限，為了不留測試文在帳號上，這次不發"
+        }
+      ]
+    },
+    "ig": {
+      "ok": true,
+      "checks": [
+        {
+          "check": "IG 帳號（/me）",
+          "ok": true,
+          "note": "@tech_01010909"
+        },
+        {
+          "check": "instagram_business_content_publish（發文額度）",
+          "ok": true
+        },
+        {
+          "check": "上傳圖並建容器（不發布）",
+          "ok": true,
+          "note": "容器 FINISHED，沒有呼叫 media_publish（外面看不到）"
+        },
+        {
+          "check": "IG 私訊（Messenger Platform）",
+          "ok": false,
+          "limitation": true,
+          "error": "EAA 系統用戶權杖看不到連結本 IG 帳號的粉絲專頁：IG 私訊（Private Reply、查追蹤）在 Facebook 這條路上要用 Messenger Platform（粉絲專頁＋專頁權杖），目前做不到"
+        },
+        {
+          "check": "instagram_business_manage_comments（讀留言）",
+          "ok": true,
+          "note": "帳號還沒有貼文，留言權限等第一篇發出後再測"
+        }
+      ]
+    }
+  },
+  "ok": false
+}
