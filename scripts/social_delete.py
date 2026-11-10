@@ -649,6 +649,12 @@ def main(argv=None, transport=urllib_transport, env=None, sleep=1.0) -> int:
         name, tok, q, perm = pick_delete_token(cands, transport)
         for n in perm:
             print(f"權杖檢查：{n}")
+        if not tok and a.max <= 1:
+            # 2026-11-11：額度查詢（threads_publishing_limit 的 delete 欄位）回 code=10 不一定代表不能刪；
+            # 只刪 1 則時改用第一把權杖實際送一次 DELETE 測試，結果寫進 result.json。
+            name, tok = cands[0]
+            q = {"ok": False, "used": None, "total": None, "error": "額度查詢失敗"}
+            print(f"額度查詢失敗，改用 {name} 實際刪 1 則測試權限")
         if not tok:
             print(f"::error::查不到刪除額度，所有權杖都沒有 threads_delete 權限，停止（一則都沒刪）：{perm}")
             return 3
