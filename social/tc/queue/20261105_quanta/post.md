@@ -25,3 +25,5 @@ source_branch: tc/post-quanta 7b2841539（docs/marketing/channels/tc/posts/20261
 5. ~~待確認 BU9~~ **已定案（2026-11-09 Andy）**：第 2 頁只放括號外內容、標題「待遇透明圈」不加括號。原註：新版第 2 張圖的表頭寫「待遇透明圈（BU9）」。crosscheck.md 與法遵審查都寫過「文案一律改『伺服器事業群』、不用內部代號（BU9）」，圖上這個代號要不要拿掉，請 CEO／法遵決定。
 
 6. **2026-11-09 文案改用 Andy 親寫版**（Andy：「從現在開始的幾篇文章我會親自做」），ig.txt、threads.txt 照原文；出處一行放 Threads 第 1 則留言與 IG 文末。發文方式筆記：docs/marketing/channels/tc/andy_style.md。第 2 頁圖改 4 列（碩畢、整包、加班、出差），設計總監重出中。
+
+7. 2026-11-10 Andy 親寫文案加上「(BU9)」：法遵先前建議不用內部單位代號（lessons 第 7 條），已提醒 Andy；Andy 親寫稿由 Andy 決定，照他的版本。
