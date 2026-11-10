@@ -33,7 +33,7 @@
     flowcheck: '#flowcheck', industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/cal', season: '#season', watch: '#watch', portfolio: '#portfolio', delivery: '#delivery', channels: '#channels' };
 
   function nav() { return window.TwL4Nav || null; }
-  function brandName() { const b = $('.topbar .brand b'); return (b && b.textContent.trim()) || '哩股哩股'; }
+  function brandName() { const b = $('.topbar .brand b'); return (b && b.textContent.trim()) || 'LIGULIGU'; }
   function curPage() {
     const h = (location.hash || '#overview').slice(1).split(/[\/?]/)[0] || 'overview';
     return { themes: 'heatmap', tasks: 'delivery', article: 'articles' }[h] || h;   // 2026-10-14：單篇文章 #article/<id> 算在「精選文章」這一頁
@@ -173,8 +173,8 @@
       drawer.setAttribute('aria-label', '網站導覽');
       // 品牌：跟頂欄同一顆頭像（site/brand/）＋站名（讀 .brand b 的字，改名時不必改這裡）
       const nm = esc(brandName());
-      drawer.innerHTML = '<div class="m4head"><span class="m4brand"><picture class="mkl"><source srcset="brand/mark-64.webp?v=1110 1x, brand/mark-128.webp?v=1110 2x" type="image/webp">'
-        + `<img src="brand/mark-64.png?v=1110" srcset="brand/mark-64.png?v=1110 1x, brand/mark-128.png?v=1110 2x" width="32" height="32" alt="${nm}"></picture><picture class="mkd"><source srcset="brand/mark-d-64.webp?v=1110 1x, brand/mark-d-128.webp?v=1110 2x" type="image/webp"><img src="brand/mark-d-64.png?v=1110" srcset="brand/mark-d-64.png?v=1110 1x, brand/mark-d-128.png?v=1110 2x" width="32" height="32" alt=""></picture><b class="brandtxt" aria-label="${nm}">${[...brandName()].map((ch, i) => `<span${i % 2 ? ' class="y"' : ''}>${esc(ch)}</span>`).join('')}</b></span>`
+      drawer.innerHTML = '<div class="m4head"><span class="m4brand"><picture class="mkl"><source srcset="brand/mark-64.webp?v=1110c 1x, brand/mark-128.webp?v=1110c 2x" type="image/webp">'
+        + `<img src="brand/mark-64.png?v=1110c" srcset="brand/mark-64.png?v=1110c 1x, brand/mark-128.png?v=1110c 2x" width="32" height="32" alt="${nm}"></picture><picture class="mkd"><source srcset="brand/mark-d-64.webp?v=1110c 1x, brand/mark-d-128.webp?v=1110c 2x" type="image/webp"><img src="brand/mark-d-64.png?v=1110c" srcset="brand/mark-d-64.png?v=1110c 1x, brand/mark-d-128.png?v=1110c 2x" width="32" height="32" alt=""></picture><b class="brandtxt" aria-label="${nm}">${(() => { const t = [...brandName()], h = Math.ceil(t.length / 2); return `<span>${esc(t.slice(0, h).join(''))}</span><span class="y">${esc(t.slice(h).join(''))}</span>`; })()}</b></span>`
         + '<button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
       $('.m4x', drawer).onclick = close;
       drawer.addEventListener('click', (e) => {
@@ -658,7 +658,7 @@
       return;
     }
     // 2026-11-10（Andy：「全部 O」）總覽頁首一句白話說明：這站在做什麼（只在手機寫入；樣式在 site/m4/20261110-restart.css）
-    title.innerHTML = esc(name || brandName()) + (pg === 'overview' ? '<small class="m4sub">台股資金流向</small><small class="m4lead">每天把法人、資金、族群輪動畫成圖，三分鐘看懂今天錢往哪去</small>' : '');
+    title.innerHTML = esc(name || brandName()) + (pg === 'overview' ? '<small class="m4tagline">台股資金流向</small><small class="m4lead">每天把法人、資金、族群輪動畫成圖，三分鐘看懂今天錢往哪去</small>' : '');
   }
 
   /* 2026-10-09（Andy：「所有大功能需要用線條分開」，延伸 10-08「原本每個功能底下的大方格需要取消，直接用線條區分」）：

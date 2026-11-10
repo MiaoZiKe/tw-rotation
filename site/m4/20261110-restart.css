@@ -16,6 +16,7 @@
   :root .lgban:not(.inl) .lgb2{order:1;width:auto;min-width:44px;height:40px;padding:0 6px;border:0;background:none;color:var(--ink-2);font-size:12px;font-weight:400;text-decoration:underline}
   :root .lgban:not(.inl) .lgb1{order:2;width:auto;min-width:64px;height:38px;padding:0 14px;font-size:0}
   :root .lgban:not(.inl) .lgb1::after{content:"同意";font-size:14px;font-weight:700}
+  :root .lgban:not(.inl) .lgb1{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}   /* Andy 的主要按鈕＝整塊銅紅（深淺主題同用 --accent） */
 
   /* ---- ② 頂欄站名 ----
      頂欄 LOGO 右邊到工具列只剩約 70px（390 寬）：放得下站名（15px 粗體 4 字＝60px），放不下副標 → 副標「台股資金流向」放在總覽頁首（③）。
@@ -23,9 +24,9 @@
   :root.m4 .topbar .brand{gap:6px;margin-right:0}
   :root.m4 .topbar .brand>div:not(.logo){display:block;flex:0 1 auto;min-width:0}
   :root.m4 .topbar .brand>div:not(.logo) small{display:none}
-  :root.m4 .topbar .brand b.brandtxt{display:block;font-size:clamp(12px,calc((100vw - 324px)/4),15px)!important;font-weight:800;letter-spacing:0;line-height:1.15;
+  :root.m4 .topbar .brand b.brandtxt{display:block;font-size:clamp(11px,calc((100vw - 324px)/5.8),14px)!important;font-weight:800;letter-spacing:.02em;line-height:1.15;
     -webkit-text-stroke:0;text-shadow:none;color:var(--ink);white-space:nowrap}
-  :root.m4 .topbar .brand b.brandtxt .y{color:var(--cyan)}
+  :root.m4 .topbar .brand b.brandtxt .y{color:var(--accent)}
   :root.m4 .m4tools{gap:2px}
   :root.m4 .topbar:has(.m4tools>.twqp:not([hidden])) .brand>div:not(.logo){display:none}
 }
@@ -35,7 +36,7 @@
 
 /* ---- ③ 總覽第一屏一句話 ---- */
 @media (max-width:640px){
-  :root.m4 .m4pghead .m4sub{display:inline;margin-left:8px;padding:0;font-size:12px;font-weight:400;color:var(--ink-3)}
+  :root.m4 .m4pghead .m4tagline{display:inline;margin-left:8px;padding:0;font-size:12px;font-weight:400;color:var(--ink-3)}
   :root.m4 .m4pghead .m4lead{display:block;padding:0;margin:4px 0 0;font-size:13px;font-weight:400;line-height:1.5;color:var(--ink-2)}
   /* ---- ④ 訪客不顯示未讀數 ---- */
   :root.m4 .ntbell.guest .dot{display:none}

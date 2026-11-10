@@ -14118,16 +14118,16 @@ def t_brand(b, base):
     pg.wait_for_function("() => { const i = document.querySelector('.brand .logo img'); return i && i.complete; }", timeout=30000)
     pg.wait_for_timeout(600)
     info = lambda: pg.evaluate("""() => { const br = document.querySelector('.topbar > .brand') || document.querySelector('.brand');
-        const im = br.querySelector('.logo img'); const r = im.getBoundingClientRect(); const bb = br.querySelector('b');
+        const im = [...br.querySelectorAll('.logo img')].find(x => x.getBoundingClientRect().width > 0) || br.querySelector('.logo img'); const r = im.getBoundingClientRect(); const bb = br.querySelector('b');
         return { txt: bb ? bb.textContent.trim() : '', bVis: !!bb && bb.getBoundingClientRect().width > 0,
                  nw: im.naturalWidth, w: r.width, h: r.height, title: document.title,
                  rad: getComputedStyle(im.parentElement.closest('.logo')).borderRadius }; }""")
     a = info()
-    ok("品牌：側欄品牌字是「哩股哩股」", a["txt"] == BRAND_NAME, a)
+    ok("品牌：側欄品牌字是「LIGULIGU」（11-10 Andy：名稱改大寫英文）", a["txt"] == "LIGULIGU", a)
     ok("品牌：頭像圖真的載入（naturalWidth>0）且畫面上有尺寸", a["nw"] > 0 and a["w"] >= 24 and a["h"] >= 24, a)
     # 改前：容器裁圓角。改後（10-09 Andy：「LOGO 不要被裁切到 請調整適當大小」）：整張 LOGO（圖自帶圓角）不裁切、桌機 40px
     ok("品牌：LOGO 整張不裁切（容器不再裁圓角）、桌機 40px", a["rad"] in ("", "0px") and a["w"] >= 39, a)
-    ok("品牌：document.title 含「哩股哩股」", BRAND_NAME in a["title"], a)
+    ok("品牌：document.title 含「LIGULIGU」", "LIGULIGU" in a["title"], a)
     hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
     ok("品牌：總覽可見文字沒有舊站名", not hits, hits)
     # 切淺色主題：頭像仍載入、外框還在（淺色底靠 1px 外框收邊）
@@ -14143,7 +14143,7 @@ def t_brand(b, base):
     pg.reload(wait_until="domcontentloaded")
     pg.wait_for_timeout(1500)
     mini = pg.evaluate("""() => { const br = document.querySelector('.topbar > .brand'); const bb = br && br.querySelector('b');
-        const im = br && br.querySelector('.logo img');
+        const im = br && ([...br.querySelectorAll('.logo img')].find(x => x.getBoundingClientRect().width > 0) || br.querySelector('.logo img'));
         return { mini: document.documentElement.classList.contains('l4-mini'),
                  bW: bb ? bb.getBoundingClientRect().width : 0, imW: im ? im.getBoundingClientRect().width : 0 }; }""")
     ok("品牌：側欄收合時只顯示頭像（字藏起來、圖還在）", mini["mini"] and mini["bW"] == 0 and mini["imW"] > 0, mini)
@@ -14166,8 +14166,8 @@ def t_brand(b, base):
     ok("品牌：點站名照舊回到總覽", pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
     st = pg.evaluate("() => { const b = document.querySelector('.topbar > .brand b.brandtxt'); if (!b) return null; const y = b.querySelector('.y');"
                      " return { stroke: getComputedStyle(b).webkitTextStrokeWidth, w: getComputedStyle(b).fontWeight, y: y ? getComputedStyle(y).color : '' }; }")
-    ok("品牌：站名跟 LOGO 同字樣（特粗、深色描邊、「股」黃色）（10-09「LOGO 文字風格也要一樣」）",
-       bool(st) and st["stroke"] not in ("", "0px") and int(st["w"]) >= 800 and st["y"] == "rgb(255, 210, 31)", st)
+    ok("品牌：站名特粗、無舊黃字描邊、第二段用銅紅（11-10 ⑤C 色系）",
+       bool(st) and st["stroke"] in ("", "0px") and int(st["w"]) >= 800 and st["y"] in ("rgb(168, 72, 42)", "rgb(208, 100, 63)"), st)
     for h in ("#terms", "#privacy", "#disclaimer", "#pricing"):
         pg.evaluate(f"() => {{ location.hash = '{h}'; }}")
         pg.wait_for_timeout(1200)
@@ -14177,7 +14177,7 @@ def t_brand(b, base):
     if copy:
         ok("品牌：頁尾 © 寫的是「哩股哩股」", BRAND_NAME in copy, copy)
     man = pg.evaluate("() => fetch('manifest.webmanifest').then(r => r.json()).then(m => ({ n: m.name, s: m.short_name }))")
-    ok("品牌：manifest 的 name／short_name 是「哩股哩股」", man["n"] == BRAND_NAME and man["s"] == BRAND_NAME, man)
+    ok("品牌：manifest 的 name／short_name 是「LIGULIGU」", man["n"] == "LIGULIGU" and man["s"] == "LIGULIGU", man)
     # 客服浮動鈕（Andy 2026-10-07：「客服圖示改成跟logo一樣可愛的天竺鼠」）：頭像載入、字還在、真的點得開面板
     pg.evaluate("() => { location.hash = '#overview'; }")
     pg.wait_for_selector("#supFab .supmark", timeout=15000)

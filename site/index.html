@@ -6,10 +6,10 @@
      maximum-scale=1 同時擋掉 iOS 輸入框聚焦時的自動放大；電腦瀏覽器不吃 viewport meta，桌機 Ctrl+縮放照舊（也不該擋）。
      iOS Safari 不理 user-scalable=no，另由下面「手機縮放鎖」那段擋 gesturestart＋touch-action。 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>哩股哩股</title>
-<meta property="og:title" content="哩股哩股">
-<meta property="og:site_name" content="哩股哩股">
-<meta property="og:image" content="brand/logo-512.png?v=1110">
+<title>LIGULIGU｜台股資金流向</title>
+<meta property="og:title" content="LIGULIGU｜台股資金流向">
+<meta property="og:site_name" content="LIGULIGU">
+<meta property="og:image" content="brand/logo-512.png?v=1110c">
 <meta name="theme-color" content="#0e1830">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
@@ -18,7 +18,7 @@
 <!-- commit 短碼另外放：版號改成「日期＋第幾版」之後，短碼移到徽章的連結與 tooltip -->
 <meta name="tw:commit" content="">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="哩股哩股">
+<meta name="apple-mobile-web-app-title" content="LIGULIGU">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- ★ 2026-10-03（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #307）：
@@ -98,8 +98,8 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
 <!-- ★ 2026-10-07（Andy：「以後我的logo 叫 哩股哩股」）：圖示整組換成 site/brand/ 的天竺鼠頭像。
      小尺寸只用頭像不用整張 logo —— 下方「哩股哩股」大字縮到 32px 會糊成一團。舊的 icons/ 留著沒刪（退路）。 -->
-<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png?v=1110">
-<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=1110">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png?v=1110c">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=1110c">
 <link rel="icon" type="image/png" sizes="192x192" href="brand/icon-192.png?v=1009">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
@@ -660,9 +660,10 @@ input,textarea,select,[contenteditable]:not([contenteditable="false"]){caret-col
 .brand b{font-size:16px;letter-spacing:.02em}
 /* ★ 2026-10-09（Andy：「LOGO 文字風格也要一樣」）：站名照 LOGO 上的字 —— 特粗圓胖字、深色粗描邊，「哩」白、「股」黃交錯。
    不載網路字型（公司網路擋 CDN），用系統的 Noto Sans TC／微軟正黑體 900＋paint-order 描邊做出同一個味道；深淺主題同一組（描邊自帶對比）。 */
-.brandtxt{font-size:19px!important;font-weight:900;letter-spacing:.03em;line-height:1.15;font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
-  -webkit-text-stroke:3px #2b1a12;paint-order:stroke fill;color:#fff;text-shadow:0 1.5px 0 #2b1a12}
-.brandtxt .y{color:#ffd21f}
+.brandtxt{font-size:19px!important;font-weight:900;letter-spacing:.06em;line-height:1.15;font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  -webkit-text-stroke:0;text-shadow:none;color:var(--ink)}
+/* 2026-11-10 站名改大寫英文「LIGULIGU」（Andy：「記得名稱改成大寫英文」），拿掉舊黃字描邊，墨色＋銅紅(--accent)兩段，照 ⑤C 色系（淺 #14213D／深 #FBFAF6） */
+.brandtxt .y{color:var(--accent)}
 .brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
 /* ★ 2026-09-23 UI 精修 #4：分頁列的包裝層。它唯一的工作是當左右箭頭的定位基準 ——
    `.tabs` 自己是捲動容器，絕對定位的東西掛在它裡面會跟著內容一起捲走。 */
@@ -5648,7 +5649,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture class="mkl"><source srcset="brand/mark-64.webp?v=1110 1x, brand/mark-128.webp?v=1110 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png?v=1110" srcset="brand/mark-64.png?v=1110 1x, brand/mark-128.png?v=1110 2x" width="32" height="32" alt="哩股哩股"></picture><picture class="mkd"><source srcset="brand/mark-d-64.webp?v=1110 1x, brand/mark-d-128.webp?v=1110 2x" type="image/webp"><img src="brand/mark-d-64.png?v=1110" srcset="brand/mark-d-64.png?v=1110 1x, brand/mark-d-128.png?v=1110 2x" width="32" height="32" alt=""></picture></div><div><b class="brandtxt" aria-label="哩股哩股"><span>哩</span><span class="y">股</span><span>哩</span><span class="y">股</span></b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture class="mkl"><source srcset="brand/mark-64.webp?v=1110c 1x, brand/mark-128.webp?v=1110c 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png?v=1110c" srcset="brand/mark-64.png?v=1110c 1x, brand/mark-128.png?v=1110c 2x" width="32" height="32" alt="LIGULIGU"></picture><picture class="mkd"><source srcset="brand/mark-d-64.webp?v=1110c 1x, brand/mark-d-128.webp?v=1110c 2x" type="image/webp"><img src="brand/mark-d-64.png?v=1110c" srcset="brand/mark-d-64.png?v=1110c 1x, brand/mark-d-128.png?v=1110c 2x" width="32" height="32" alt=""></picture></div><div><b class="brandtxt" aria-label="LIGULIGU"><span>LIGU</span><span class="y">LIGU</span></b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，

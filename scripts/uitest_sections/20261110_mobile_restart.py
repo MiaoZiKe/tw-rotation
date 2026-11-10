@@ -9,7 +9,7 @@ def t_mobile_restart_1110(b, base):
         return
     HEAD = """() => { const r = s => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const x = e.getBoundingClientRect(); return { l: Math.round(x.left), r: Math.round(x.right), t: Math.round(x.top), b: Math.round(x.bottom) }; };
       return { txt: r('.topbar .brand b.brandtxt'), tools: r('#m4Tools'), login: r('.m4login') || r('#acctBtn'), sw: document.documentElement.scrollWidth,
-        ban: r('#lgBanner'), lead: (document.querySelector('.m4lead') || {}).textContent || '', sub: (document.querySelector('.m4sub') || {}).textContent || '' }; }"""
+        ban: r('#lgBanner'), lead: (document.querySelector('.m4lead') || {}).textContent || '', sub: (document.querySelector('.m4tagline') || {}).textContent || '' }; }"""
     for w in (375, 390):
         c = raw(b, viewport={"width": w, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
         c.add_init_script("try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}")
@@ -66,7 +66,7 @@ def t_mobile_restart_1110(b, base):
     d = pg.evaluate("""() => ({ lead: !!document.querySelector('.m4lead'), m4: document.documentElement.classList.contains('m4'),
       txtStroke: (() => { const e = document.querySelector('.topbar .brand b.brandtxt, .brand b.brandtxt'); return e ? getComputedStyle(e).webkitTextStrokeWidth : null; })(),
       logoVis: (() => { const v = s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; }; return [v('.brand picture.mkl'), v('.brand picture.mkd')]; })() })""")
-    ok(f"【{T}】桌機 1440：沒有 .m4lead、不是 m4、站名描邊照舊 3px、淺深其中一張 LOGO 顯示", (not d["lead"]) and (not d["m4"]) and d["txtStroke"] == "3px" and sum(d["logoVis"]) == 1, d)
+    ok(f"【{T}】桌機 1440：沒有 .m4lead、不是 m4、站名無描邊（11-10 改 LIGULIGU 墨色）、淺深其中一張 LOGO 顯示", (not d["lead"]) and (not d["m4"]) and d["txtStroke"] == "0px" and sum(d["logoVis"]) == 1, d)
     c.close()
 
 register("手機導流1110", lambda pg, b, base, code: t_mobile_restart_1110(b, base), after="桌機守門1008")

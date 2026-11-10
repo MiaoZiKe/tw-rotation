@@ -1,6 +1,7 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+- 2026-11-11 上線：冷啟動（隱藏價格、試營運額度）＋手機四項＋新 ⑤C LOGO＋站名 LIGULIGU（Andy 11-10「可以，冷啟動和 LOGO 都推上線」「記得名稱改成大寫英文」）。驗：桌機守門1008、冷啟動1110（390 寬「即將開放」判定偶發空陣列，截圖確認未切，放行）、手機導流1110、手機按鈕普查（修副標類名衝突 m4sub→m4tagline；產業地圖 4 處切分段逾時為負載偶發、本批未動 industry）、手機總覽指數觀察清單、淺色／明亮主題、設定面板、會員與自選五分頁（☆ 偶發，單跑 0）、使用統計1109、_preview 全綠；品牌哩股哩股 supFab 逾時 main 同樣有，放行。上線後 Andy 需在 #admin/perm 按「套用建議方案」（先要截圖再給步驟）。
 - 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
 
 ## 2026-11-10 17:25 台北 查「inst_daily／index_daily 還停 11/9」與「投信 11/9 +267.5 vs +313.12」（data-scraper，維修，沒改程式）

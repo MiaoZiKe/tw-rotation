@@ -247,7 +247,7 @@ def t_coldstart_1110(b, base, code):
     pg = page(c, "#pricing")
     wait_until(pg, "() => !!document.querySelector('#prCards .prcard[data-tier=paid]')", 15000)
     pg.wait_for_timeout(600)
-    CLIP = """() => [...document.querySelectorAll('#v-pricing .prprice.ask')].map(e => { const r = e.getBoundingClientRect(), p = e.closest('.prcard').getBoundingClientRect();
+    CLIP = """() => [...document.querySelectorAll('#prCards .prprice.ask')].map(e => { const r = e.getBoundingClientRect(), p = e.closest('.prcard').getBoundingClientRect();
         return e.scrollWidth <= e.clientWidth + 1 && r.left >= p.left - 1 && r.right <= p.right + 1 && r.left >= 0 && r.right <= innerWidth; })"""
     for w in (360, 390, 1440):
         c2, _s2, _t2 = cold_ctx(None, True, width=w, plan="guest", touch=w < 600)
@@ -255,6 +255,9 @@ def t_coldstart_1110(b, base, code):
         wait_until(p2, "() => document.querySelectorAll('#prCards .prprice.ask').length >= 2", 30000)
         p2.wait_for_timeout(900)
         cl = p2.evaluate(CLIP)
+        for _ in range(10):   # 手機會再重畫一次方案卡；量到空的就等一下再量
+            if cl: break
+            p2.wait_for_timeout(500); cl = p2.evaluate(CLIP)
         ok(f"{T} E0 寬 {w}：「即將開放」大字沒被切（都在卡片內、螢幕內）", cl and all(cl), cl)
         c2.close()
     ow = pg.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")

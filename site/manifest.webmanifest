@@ -1,8 +1,8 @@
 {
   "_註解_": "★ 2026-10-07 Andy 定案站名「哩股哩股」，圖示換成 site/brand/ 的天竺鼠頭像（小尺寸只用頭像，下方大字縮小會糊）。舊的 icons/ 留著當退路。⚠ 商店上架後 App 名稱還能改，但 Bundle ID／package name 不能改。（JSON 沒有註解語法，所以用一個瀏覽器會忽略的欄位來放這段話。）",
   "id": "./",
-  "name": "哩股哩股",
-  "short_name": "哩股哩股",
+  "name": "LIGULIGU",
+  "short_name": "LIGULIGU",
   "description": "每天盤後回答四個問題：錢往哪個族群跑、那個族群貴不貴、什麼時候進場、有沒有理由不進場。資料僅供研究參考，不構成投資建議。",
   "lang": "zh-Hant-TW",
   "dir": "ltr",
