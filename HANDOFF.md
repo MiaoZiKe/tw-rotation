@@ -1,6 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-10 17:25 台北 查「inst_daily／index_daily 還停 11/9」與「投信 11/9 +267.5 vs +313.12」（data-scraper，維修，沒改程式）
+- 問題2 根因＝排隊，不是壞掉：price 輪（15:38 台北派）連抓帶整站重算部署跑 1h27m，佔住 concurrency 群組 tw-rotation-data-write 到 17:06；期間 gh-cron 的 inst 每 10 分鐘派工都被「busyDailyRuns 守門」略過（設計如此，避免擠掉排隊中的 price／full）；被 GitHub 延遲 43 分鐘才建立的 07:37 排程 run 排在後面，17:06 才開跑、依時間掉進 phase=full，full 內含 inst。17:39 台北 full 抓完 commit：inst_daily 11/10 已進湖 1316 檔（freshness 標 thin，後續 inst 輪補齊）。
+- index_daily 是 openapi（T-1）來源，11/10 的官方指數要等 openapi 換日（晚間／隔日）才有，停 11/9 正常；11/10 大盤收盤走 index_ohlc（FinMind，已到 11/10）。
+- 問題1 不是 bug：DECISIONS #363（Andy 10-25）網站主數字刻意用證交所 15:00「首次公布版」（inst_market_first，先到的贏，與新聞同口徑），晚間修訂版只放 inst_market.json 的 rev 欄。inst_market_daily 本身是 keep=last，11/9 湖裡確實是 313.12（first 表 267.5）。沒有改回，等 Andy 決定是否要改主數字或畫面同時顯示修訂值。
+
 ## 2026-11-09 修 #stock/3189/holders 大戶／散戶卡片文字交疊（frontend-ui，維修）
 - 根因：三格持股折線 boundaryGap:false，首點貼在 y 軸線上，置中的數值標籤（「70.20%」）有一半伸進左邊刻度字（「90%」）區域；末點同理。只動 site/industry.js tabHolders：頭尾兩點標籤往圖內推 24px，資料與口徑不動。
 - 這批驗了：獨立 echarts 重現圖（同 grid／標籤設定，1440／800／390）舊 3 組交疊→修後 0；`_preview`／`_uitest` 本機因 build_payload 記憶體不足被殺（OOM），**未跑**，待 CI／有記憶體的 session 補跑 `_preview.py` 與 `--only 個股`、`桌機守門1008`。
