@@ -12,6 +12,32 @@
    "comment": "@meta.ai 這是從哪一集出現的",
    "status": "skipped",
    "reason": "ceo-session 判斷不適合回"
+  },
+  "f43f14dc71c7fb67": {
+   "key": "f43f14dc71c7fb67",
+   "created_at": "2026-11-11T15:38:47+08:00",
+   "layer": "A",
+   "platform": "threads",
+   "target_id": "18146763085591936",
+   "post_id": "18131991920511606",
+   "author": "a5de0f53c9c54cce",
+   "context": "海巡！\n粉絲數一直卡住\n互追不退！",
+   "comment": "已追",
+   "status": "pending",
+   "reason": ""
+  },
+  "f97a54846e376f5f": {
+   "key": "f97a54846e376f5f",
+   "created_at": "2026-11-11T15:38:47+08:00",
+   "layer": "A",
+   "platform": "threads",
+   "target_id": "17966425992226983",
+   "post_id": "18131991920511606",
+   "author": "c9deeae58a3477b7",
+   "context": "海巡！\n粉絲數一直卡住\n互追不退！",
+   "comment": "追了 一起加油",
+   "status": "pending",
+   "reason": ""
   }
  },
  "last_permission_b": "off"
