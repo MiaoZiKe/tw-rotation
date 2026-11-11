@@ -78,7 +78,7 @@
   {
    "id": "k_nvlink_backplane",
    "cat": "know",
-   "title": "NVLink 銅背板是什麼？72 顆 GPU 怎麼連成一台",
+   "title": "NVLink 銅背板是什麼？72 顆 GPU 怎麼相連",
    "why": "文章＋3D 圖：用 three3d.js 的 ai_server 場景（#industry/ai_server，零件 ag_backplane 銅纜卡匣、ag_nvswitch）。讀者常問機櫃內為何走銅不走光、scale-up 跟 scale-out 差在哪。",
    "score": 4,
    "format_hint": "文章＋3D 圖",
