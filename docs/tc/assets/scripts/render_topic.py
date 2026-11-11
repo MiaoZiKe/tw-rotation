@@ -205,6 +205,43 @@ def v2_end(l, p):
     return boxpage(l, p, "最後一件事", inner, None, pad="28px 44px")
 
 
+# ---------------- t01v3 封面：非主管平均＋中位數並排長條、400 萬虛線、公司 LOGO（沒檔先用灰框佔位） ----------------
+def _logo_img(slug, x, y, w, h):
+    """social/photo_lib/<slug>/logo.png 存在就原色原比例置入 w×h 框（meet），否則畫同尺寸灰色佔位框。"""
+    import base64
+    root = Path(os.environ.get("TC_PHOTO_ROOT") or G.get("PHOTO_ROOT") or "/nonexistent")
+    f = root / slug / "logo.png"
+    if f.is_file():
+        uri = "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode()
+        return f"<image href='{uri}' x='{x}' y='{y}' width='{w}' height='{h}' preserveAspectRatio='xMidYMid meet'/>"
+    return f"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='8' fill='#CBD5E3'/>"
+
+
+def ill_salary_v3():
+    base, sc = 548, 0.74
+    data = [("聯發科", "mediatek", 446.5, 355.2, 70), ("祥碩", "asmedia", 428.1, 337.4, 320), ("台積電", "tsmc", 407.2, 316.2, 570)]
+    g_ = ""
+    for n, slug, a, m, x in data:
+        ha, hm = a * sc, m * sc; ya, ym = base - ha, base - hm
+        cx = x + 90
+        nm_w = 40 * len(n); tot = 110 + 12 + nm_w; x0 = cx - tot / 2
+        g_ += (f"<rect x='{x}' y='{ya:.1f}' width='100' height='{ha:.1f}' rx='16' fill='{BLUE}'/><rect x='{x+108}' y='{ym:.1f}' width='72' height='{hm:.1f}' rx='14' fill='#9DBFF7'/>"
+               f"<text x='{x+50}' y='{ya-14:.1f}' text-anchor='middle' {FONT} font-size='46' font-weight='900' fill='{INK}'>{a}</text>"
+               f"<text x='{x+144}' y='{ym+46:.1f}' text-anchor='middle' {FONT} font-size='30' font-weight='900' fill='{INK}'>{m}</text>"
+               + _logo_img(slug, f"{x0:.0f}", base + 28, 110, 44)
+               + f"<text x='{x0+122:.0f}' y='{base+62}' {FONT} font-size='40' font-weight='900' fill='{INK}'>{n}</text>")
+    y400 = base - 400 * sc
+    return f"""<svg width="1032" height="690" viewBox="0 0 1032 690" xmlns="http://www.w3.org/2000/svg"><rect width="1032" height="690" fill="{TINT}"/>
+<circle cx="930" cy="80" r="170" fill="#fff" fill-opacity=".55"/><circle cx="60" cy="650" r="130" fill="#fff" fill-opacity=".5"/>
+<rect x="70" y="44" width="30" height="30" rx="8" fill="{BLUE}"/><text x="110" y="70" {FONT} font-size="30" font-weight="800" fill="{INK}">非主管平均</text>
+<rect x="290" y="44" width="30" height="30" rx="8" fill="#9DBFF7"/><text x="330" y="70" {FONT} font-size="30" font-weight="800" fill="{INK}">中位數</text>
+<line x1="50" y1="{base}" x2="780" y2="{base}" stroke="#B9CDEA" stroke-width="5" stroke-linecap="round"/>
+{g_}<line x1="50" y1="{y400:.1f}" x2="800" y2="{y400:.1f}" stroke="{ORG}" stroke-width="6" stroke-dasharray="4 14" stroke-linecap="round"/>
+<text x="808" y="{y400+34:.1f}" {FONT} font-size="96" font-weight="900" fill="{ORG}">400</text><text x="814" y="{y400+90:.1f}" {FONT} font-size="44" font-weight="900" fill="{INK}">萬</text>
+</svg>"""
+
+
+ARTICLES["t01v3"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary_v3, label="待遇透明圈", pages=[])
 ARTICLES["t01v2"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary, label="待遇透明圈",
                          pages=[v2_avg_med, v2_formula, v2_link, v2_ask, v2_src, v2_end])
 

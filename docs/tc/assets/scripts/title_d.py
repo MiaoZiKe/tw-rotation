@@ -30,8 +30,8 @@ LOGO_T = (LM["t_top"], LM["t_r"]); LOGO_PTS = LM["pts"]; LOGO_DOT = LM["dot"]
 def is_cjk(s): return all(ord(c) > 0x2E80 for c in s)
 
 
-def measure(pg, text):
-    return pg.evaluate("""async t=>{await document.fonts.load("900 100px TCS");await document.fonts.load("900 100px 'Noto Sans TC'");const c=document.createElement('canvas').getContext('2d');c.font="900 100px TCS, 'Noto Sans TC'";return c.measureText(t).width/100}""", text)
+def measure(pg, text, w=900):
+    return pg.evaluate("""async a=>{const [t,w]=a;await document.fonts.load(w+" 100px TCS");await document.fonts.load(w+" 100px 'Noto Sans TC'");const c=document.createElement('canvas').getContext('2d');c.font=w+" 100px TCS, 'Noto Sans TC'";return c.measureText(t).width/100}""", [text, w])
 
 
 def sdist(x, y, cx, cy, PW, PH):                 # 點到 stadium 外緣距離
@@ -136,9 +136,11 @@ def build(g, company, layout, widths, var, dxy=(0, 0), cup_x=None, OVERLAY=False
     circ_right = ccx + R
     if var == "D6" and g.get("TD_SUB_LINES"):   # 主題文：旁白可以多行、圖示可換（cup／mic）；字級由程式找「放得進右側」的最大值（上限 58）
         lines_s = g["TD_SUB_LINES"]; LG = 18; nL = len(lines_s)
-        em = [len(l) for l in lines_s]; em[0] += 0.7; em[-1] += 0.7                     # 前後小引號各約 0.7em
+        sw_ = g.get("TD_SUBW") or {}
+        em = [sw_.get(l, len(l)) for l in lines_s]; em[0] += 0.7; em[-1] += 0.7         # 實測字寬（沒有就當全形）；前後小引號各約 0.7em
         text_l = circ_right + 2 * LG
         SUBF = min(58, int((1034 - text_l - 20) / (max(em) + 0.84)))                    # 0.84em＝圖示可見寬（1.1×0.76）
+        text_l = max(text_l, 1034 - max(max(em) * SUBF, em[-1] * SUBF + 20 + 0.84 * SUBF))   # 整組（文字＋圖示）靠右，圖示右緣離畫布右邊約 46px（Andy：旁白太靠左）
         LH = round(SUBF * 1.3); blk = nL * LH; top0 = ccy - blk / 2
         pill_bot = oy + pt_ + PH; pill_right = ox + pl + PW
         if text_l - LG < pill_right + 10 and top0 < pill_bot + 12: top0 = pill_bot + 12     # 多行旁白會頂到右上的膠囊時，整塊往下讓開
@@ -216,6 +218,7 @@ def main(g):
         pg.goto(f"file://{mf}", wait_until="networkidle"); mf.unlink()
         lines_ = [company] if layout == "one" else (company.split("|") if "|" in company else [company[:2], company[2:]])
         widths = {l: (len(l) if is_cjk(l) else measure(pg, l)) for l in set(lines_ + [company])}
+        if g.get("TD_SUB_LINES"): g["TD_SUBW"] = {l: measure(pg, l, 700) for l in g["TD_SUB_LINES"]}
         info = render((0, 0))
         keys = pg.evaluate("[...document.querySelectorAll('[data-k]')].map(e=>e.dataset.k)")
         bx = T.ink_boxes(pg, keys)
