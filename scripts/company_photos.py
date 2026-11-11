@@ -8,8 +8,7 @@
   總部/廠房 ≤2（queries，需含公司名＋建築字）、產品 ≤2（product_queries）、相關場景 ≤1（related_queries）。
 類別通用圖池：social/photo_lib/_category/<類別>/（categories.json 的查詢字，每類 ≤8 張），找不到公司圖時用。
 新抓的 reviewed 一律 false，須 art-director 審過改 true 才可用。已有的照片不覆蓋，只補到上限。
-用法：python scripts/company_photos.py [--only slug1,slug2] [--no-category] [--only-category] [--source commons|official|logo]
-2026-11-11 加 `--source logo`：依 targets.json 的 commons_logo（Commons 指定檔名）抓公司 LOGO → <slug>/logo.png（scripts/company_logos.py）。
+用法：python scripts/company_photos.py [--only slug1,slug2] [--no-category] [--only-category]
 2026-10-30 Andy 拍板「改成接用 並標明出處 是可以的」→ 加 `--source official`：抓公司官方新聞室／媒體資源／官網照片
 （scripts/company_photos_official.py，license=official-press、署名「圖：<公司名>官方」，仍須 art-director 逐張審）。"""
 from __future__ import annotations
@@ -43,12 +42,9 @@ def strip_html(s: str) -> str:
 
 
 def search(sess, q: str, limit: int = 25) -> list[dict]:
-    ft = " filetype:bitmap"
-    if q.startswith("any:"):                       # 2026-11-11 探針查 LOGO 用：不限點陣圖（含 SVG），只查 Commons
-        q, ft = q[4:], ""
     if q.startswith("cat:"):                       # targets.json 的 commons_categories：Commons 分類裡的檔案
         q = f'incategory:"{q[4:]}"'
-    r = sess.get(API, params=dict(action="query", format="json", generator="search", gsrsearch=f"{q}{ft}",
+    r = sess.get(API, params=dict(action="query", format="json", generator="search", gsrsearch=f"{q} filetype:bitmap",
                                   gsrnamespace=6, gsrlimit=limit, prop="imageinfo", iiprop="url|size|mime|extmetadata",
                                   iiurlwidth=1920), timeout=60)
     r.raise_for_status()
@@ -186,12 +182,6 @@ def main(argv=None) -> int:
     sess = requests.Session(); sess.headers["User-Agent"] = UA
     gseen: set[str] = set()
     log = []
-    if "--source" in argv and argv[argv.index("--source") + 1:] and argv[argv.index("--source") + 1] == "logo":
-        # 2026-11-11：公司 LOGO（科技透明圈年薪排名圖），只依 targets.json 的 commons_logo 指定檔名抓，見 company_logos.py
-        from company_logos import run_logos
-        out = run_logos(sess, LIB, targets, only)
-        print(f"LOGO：抓到 {sum(1 for x in out if x['status'] in ('ok', 'kept'))} 家，沒抓到 {sum(1 for x in out if x['status'] not in ('ok', 'kept'))} 家")
-        return 0
     if "--source" in argv and argv[argv.index("--source") + 1:] and argv[argv.index("--source") + 1] == "official":
         from company_photos_official import fetch_official
         sess.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
@@ -215,7 +205,6 @@ def main(argv=None) -> int:
     if "--only-category" not in argv:
         for t in targets:
             if only and t["slug"] not in only: continue
-            if t.get("logo_only"): continue          # 2026-11-11 只為 LOGO 加進來的公司，不跑照片搜尋
             # 2026-10-30 Andy：「相這種跟公司有關的 優先附上公司圖片」→ 先從該公司的 Commons 分類抓（總部、招牌、廠區、代表產品），最多 4 張
             global PEOPLE; PEOPLE = bool(t.get("allow_people"))
             if t.get("files"):

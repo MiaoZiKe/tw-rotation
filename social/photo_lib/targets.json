@@ -48,10 +48,7 @@
    "https://www.tsmc.com/english/dedicatedFoundry/manufacturing/gigafab",
    "https://pr.tsmc.com/english/latest-news",
    "https://www.tsmc.com/english"
-  ],
-  "stock_code": "2330",
-  "market": "上市",
-  "commons_logo": "File:TSMC wordmark.svg"
+  ]
  },
  {
   "slug": "foxconn",
@@ -103,10 +100,7 @@
   "commons_categories": [
    "MediaTek",
    "MediaTek buildings"
-  ],
-  "stock_code": "2454",
-  "market": "上市",
-  "commons_logo": "File:MediaTek logo.svg"
+  ]
  },
  {
   "slug": "delta",
@@ -896,10 +890,7 @@
   "related_queries": [
    "network switch",
    "fiber optic cable"
-  ],
-  "stock_code": "2379",
-  "market": "上市",
-  "commons_logo": "File:Realtek logotype.svg"
+  ]
  },
  {
   "slug": "sinopac",
@@ -960,10 +951,7 @@
   "related_queries": [
    "smartphone",
    "laptop computer"
-  ],
-  "stock_code": "3034",
-  "market": "上市",
-  "commons_logo": ""
+  ]
  },
  {
   "slug": "unimicron",
@@ -2841,163 +2829,5 @@
   "official_sites": [],
   "allow_people": true,
   "quota": 10
- },
- {
-  "slug": "asmedia",
-  "name_en": "ASMedia Technology",
-  "zh": [
-   "祥碩"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "5269",
-  "market": "上市",
-  "commons_logo": "File:ASMedia logo.png"
- },
- {
-  "slug": "airoha",
-  "name_en": "Airoha Technology",
-  "zh": [
-   "達發"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "6526",
-  "market": "上市",
-  "commons_logo": ""
- },
- {
-  "slug": "hon_precision",
-  "name_en": "Hon. Precision",
-  "zh": [
-   "鴻勁",
-   "鴻勁精密"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "7769",
-  "market": "上市",
-  "commons_logo": ""
- },
- {
-  "slug": "guc",
-  "name_en": "Global Unichip",
-  "zh": [
-   "創意",
-   "創意電子"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "3443",
-  "market": "上市",
-  "commons_logo": ""
- },
- {
-  "slug": "raydium",
-  "name_en": "Raydium Semiconductor",
-  "zh": [
-   "瑞鼎"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "3592",
-  "market": "上市",
-  "commons_logo": ""
- },
- {
-  "slug": "fitipower",
-  "name_en": "Fitipower Integrated Technology",
-  "zh": [
-   "天鈺"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "4961",
-  "market": "上市",
-  "commons_logo": ""
- },
- {
-  "slug": "aspeed",
-  "name_en": "ASPEED Technology",
-  "zh": [
-   "信驊"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "5274",
-  "market": "上櫃",
-  "commons_logo": ""
- },
- {
-  "slug": "igs",
-  "name_en": "International Games System",
-  "zh": [
-   "鈊象"
-  ],
-  "category": "遊戲",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "3293",
-  "market": "上櫃",
-  "commons_logo": "File:International Games System logo 2024.png"
- },
- {
-  "slug": "ememory",
-  "name_en": "eMemory Technology",
-  "zh": [
-   "力旺"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "3529",
-  "market": "上櫃",
-  "commons_logo": ""
- },
- {
-  "slug": "pixart",
-  "name_en": "PixArt Imaging",
-  "zh": [
-   "原相"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "3227",
-  "market": "上櫃",
-  "commons_logo": ""
- },
- {
-  "slug": "phison",
-  "name_en": "Phison Electronics",
-  "zh": [
-   "群聯"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "8299",
-  "market": "上櫃",
-  "commons_logo": "File:Phison logo.svg"
- },
- {
-  "slug": "genesys_logic",
-  "name_en": "Genesys Logic",
-  "zh": [
-   "創惟"
-  ],
-  "category": "半導體",
-  "queries": [],
-  "logo_only": true,
-  "stock_code": "6104",
-  "market": "上櫃",
-  "commons_logo": ""
  }
 ]
