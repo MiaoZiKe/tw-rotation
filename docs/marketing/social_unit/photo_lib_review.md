@@ -8,6 +8,12 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 - 抓圖：`.github/workflows/company_photos.yml`（手動觸發＋每週一 03:17 台北）跑 `scripts/company_photos.py`，名單在 `social/photo_lib/targets.json`，中文主體名→slug 對照在 `social/photo_lib/aliases.json`（只做「完全相同名稱」比對，避免「南亞」吃到「南亞科」）。
 - 每家存 `social/photo_lib/<slug>/photo.jpg`（原色、只縮放到寬 ≤1920）＋`meta.json`（license、author、source_url、file_title、reviewed:false）。
 - 已審核（reviewed:true）的圖排程重抓時不會被覆蓋。
+- **LOGO 是另一條獨立流程（2026-11-11，科技透明圈年薪排名圖用）**：上面「禁止任何 LOGO 圖」只管照片池，LOGO 不進 `photos`。
+  `company_photos.yml` 手動觸發選 `source=logo` → `scripts/company_logos.py`，只依 `targets.json` 每家的 `commons_logo`（Commons 指定檔名，不搜尋、不猜）抓，
+  授權白名單＝公有領域（含 PD-textlogo）／CC0／CC BY／CC BY-SA（NC、ND、fair use 一律跳過並記原因）。
+  存 `<slug>/logo.png`（SVG 轉高 512px 透明背景 PNG；點陣圖只等比縮，不放大），授權、作者、原始頁面網址記在 `pool.json` 的 `logo`，
+  每家結果在 `social/photo_lib/logo_log.json`。**使用時原色、原比例，不准改色、變形、加效果。**
+  查檔名用探針：`probe` 填 `any:<公司英文名> logo`（`any:` 不限點陣圖，SVG 也列出）。只為 LOGO 加進來的公司標 `logo_only: true`，照片流程會跳過。
 
 ## 一之二、v2 圖池（Andy 10-28 原話：「為何有部分沒有圖片，若是沒有圖片可以改用相關產品圖片，並且圖片可以多樣，相關的也可以」）
 

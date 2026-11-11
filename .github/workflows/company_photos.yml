@@ -11,10 +11,10 @@ on:
         description: "類別通用圖池：all（公司＋類別）／none（只抓公司）／only（只抓類別）"
         default: "all"
       source:
-        description: "來源：commons（Wikimedia Commons）／official（公司官方新聞室／媒體資源／官網，Andy 10-30 拍板，license=official-press）"
+        description: "來源：commons（Wikimedia Commons）／official（公司官方新聞室／媒體資源／官網，Andy 10-30 拍板，license=official-press）／logo（依 targets.json 的 commons_logo 從 Commons 抓公司 LOGO → <slug>/logo.png）"
         default: "commons"
       probe:
-        description: "除錯：Commons 查詢探針（以 | 分隔多個查詢字，空白＝不跑抓圖）"
+        description: "除錯：Commons 查詢探針（以 | 分隔多個查詢字，空白＝不跑抓圖；查字前加 any: 不限點陣圖，可查 SVG LOGO）"
         default: ""
   schedule:
     - cron: "17 19 * * 0"   # 每週一 03:17 台北
@@ -33,6 +33,9 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q requests pillow
+      - name: LOGO 模式要轉 SVG
+        if: github.event.inputs.source == 'logo'
+        run: pip install -q cairosvg
       - name: 官方來源要真瀏覽器
         if: github.event.inputs.source == 'official'
         run: pip install -q playwright pymupdf && python -m playwright install --with-deps chromium
@@ -52,6 +55,7 @@ jobs:
         run: |
           args=""
           [ "$SOURCE" = "official" ] && args="$args --source official"
+          [ "$SOURCE" = "logo" ] && args="$args --source logo"
           [ -n "$ONLY" ] && args="$args --only $ONLY"
           [ "$CATEGORY" = "none" ] && args="$args --no-category"
           [ "$CATEGORY" = "only" ] && args="$args --only-category"
