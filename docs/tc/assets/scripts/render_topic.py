@@ -141,6 +141,74 @@ ARTICLES = {
 }
 
 
+# ---------------- t01v2：年薪 400 萬的真相（7 頁，一頁一個重點、大字數字當主角） ----------------
+def boxpage(label, pg, title, inner, foot_lines=None, pad="28px 36px"):
+    ft_ = foot2(foot_lines) if foot_lines else G["ft"]("", "科技透明圈")
+    return (f"{G['top'](label, pg)}<div class='body' style='padding-top:28px'>"
+            f"<div style='font-size:64px;font-weight:900;line-height:84px;margin-top:8px;flex:none'>{title}</div>"
+            f"<div class='box' style='margin-top:14px;margin-bottom:24px;flex:1;display:flex;flex-direction:column;justify-content:center;padding:{pad};min-height:0'>{inner}</div></div>{ft_}")
+
+
+def pill(t, size=64):
+    return f"<div style='align-self:flex-start;display:inline-block;white-space:nowrap;background:{ORG};color:{INK};font-size:{size}px;font-weight:900;padding:6px 34px;border-radius:60px;line-height:1.3'>{t}</div>"
+
+
+def v2_avg_med(l, p):
+    sc = 1.2
+    rows = ""
+    for n, a, m in (("聯發科", 446.5, 355.2), ("祥碩", 428.1, 337.4), ("台積電", 407.2, 316.2)):
+        rows += (f"<div style='margin-top:30px'><div style='font-size:46px;font-weight:900;line-height:56px'>{n}</div>"
+                 f"<div style='display:flex;align-items:center;margin-top:6px'><div style='width:130px;font-size:30px;font-weight:700;color:{GREY}'>平均</div>"
+                 f"<div style='height:40px;width:{m*sc:.0f}px;background:{BLUE};border-radius:20px 0 0 20px'></div><div style='height:40px;width:{(a-m)*sc:.0f}px;background:{ORG};border-radius:0 20px 20px 0'></div>"
+                 f"<div style='margin-left:16px;font-size:42px;font-weight:900'>{a}</div></div>"
+                 f"<div style='display:flex;align-items:center;margin-top:8px'><div style='width:130px;font-size:30px;font-weight:700;color:{GREY}'>中位數</div>"
+                 f"<div style='height:40px;width:{m*sc:.0f}px;background:#9DBFF7;border-radius:20px'></div><div style='margin-left:16px;font-size:42px;font-weight:900'>{m}</div></div></div>")
+    return boxpage(l, p, "非主管平均 vs 中位數", pill("三家都差約 91 萬") + rows, ["證交所 2025 年度非主管全時員工薪資（2026-06-30 公布）", "單位：萬元；差＝平均−中位數，自行計算"])
+
+
+def v2_formula(l, p):
+    chip = lambda t, bg, fg: f"<div style='background:{bg};color:{fg};font-size:52px;font-weight:900;padding:8px 26px;border-radius:24px;white-space:nowrap'>{t}</div>"
+    op = lambda t: f"<div style='font-size:50px;font-weight:900;color:{GREY};white-space:nowrap'>{t}</div>"
+    formula = f"<div style='display:flex;align-items:center;gap:14px;flex-wrap:nowrap'><div style='font-size:52px;font-weight:900;white-space:nowrap'>年薪</div>{op('＝')}{chip('底薪', BLUE, '#fff')}{op('＋')}{chip('年終', '#9DBFF7', INK)}{op('＋')}{chip('分紅', ORG, INK)}</div>"
+    bar = (f"<div style='display:flex;height:120px;margin-top:60px;border-radius:26px;overflow:hidden'><div style='flex:2.2;background:{BLUE}'></div><div style='flex:1.8;background:#9DBFF7'></div><div style='flex:5;background:{ORG}'></div></div>"
+           f"<div style='display:flex;margin-top:10px;font-size:32px;font-weight:800'><div style='flex:2.2'>月薪</div><div style='flex:1.8'>年終</div><div style='flex:5'>分紅（員工酬勞）</div></div>"
+           f"<div style='margin-top:16px;font-size:28px;color:{GREY};font-weight:700'>示意圖，比例不代表任何公司的實際數字</div>")
+    sub = f"<div style='margin-top:40px;font-size:48px;font-weight:800;line-height:64px'>分紅依公司法 235-1，<br>跟獲利連動</div>"
+    return boxpage(l, p, "月薪只是底", formula + bar + sub, ["依據：公司法第 235 條之 1（員工酬勞）"])
+
+
+def v2_link(l, p):
+    H = lambda v: v * 0.2
+    col = lambda x, v, lab, c: (f"<div style='display:flex;flex-direction:column;align-items:center;justify-content:flex-end;width:250px'><div style='font-size:42px;font-weight:900;margin-bottom:10px;white-space:nowrap'>約 {v:,} 億</div>"
+                              f"<div style='width:200px;height:{H(v):.0f}px;background:{c};border-radius:24px 24px 0 0'></div><div style='font-size:44px;font-weight:800;margin-top:12px'>{lab}</div></div>")
+    chart = (f"<div style='display:flex;align-items:flex-end;justify-content:center;gap:20px;height:560px'>{col(0, 1406, '2024', '#9DBFF7')}"
+             f"<div style='align-self:center'>{pill('+46%', 54)}</div>{col(0, 2061, '2025', BLUE)}</div>")
+    return boxpage(l, p, "分紅跟獲利連動", chart, ["台積電董事會 2026-02-10 核准；依據：公司法第 235 條之 1", "員工業績獎金與酬勞合計，與平均年薪口徑不同、不能相除"])
+
+
+def v2_ask(l, p):
+    def card(n, t, sub):
+        return (f"<div style='display:flex;align-items:center;gap:26px;flex:1'><div style='flex:none;width:96px;height:96px;border-radius:48px;background:{BLUE};color:#fff;font-size:60px;font-weight:900;display:flex;align-items:center;justify-content:center'>{n}</div>"
+                f"<div><div style='font-size:56px;font-weight:900;line-height:76px'>{t}</div><div style='font-size:34px;font-weight:700;color:{GREY};line-height:48px;margin-top:6px'>{sub}</div></div></div>")
+    inner = card(1, "保障幾個月", "合約有寫才算數") + f"<div style='border-top:2px solid {LINE}'></div>" + card(2, "浮動占多少", "占整包幾成") + f"<div style='border-top:2px solid {LINE}'></div>" + card(3, "過去幾年實發多少", "看實發，不看承諾")
+    return boxpage(l, p, "看 offer 先問這三件事", inner, None, pad="20px 40px")
+
+
+def v2_src(l, p):
+    return table2(l, p, "出處", [("證交所", "2025 年度非主管全時員工薪資統計<br>2026-06-30 公布"), ("台積電", "董事會 2026-02-10 核准<br>員工業績獎金與酬勞"), ("公司法", "第 235 條之 1（員工酬勞）")], ["資料皆為公開統計；平均與中位數為證交所公布值", "含主管的全體員工榜是另一組，不能互比"], lab_w=200, lab_f=50, val_f=38)
+
+
+def v2_end(l, p):
+    plane = f"<svg width='150' height='150' viewBox='0 0 64 64' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M6 30 L58 8 L44 56 L30 38 Z' stroke='{BLUE}' stroke-width='4'/><path d='M30 38 L58 8' stroke='{BLUE}' stroke-width='4'/><path d='M30 38 L28 52 L36 44' stroke='{ORG}' stroke-width='4'/></svg>"
+    inner = (f"<div style='display:flex;align-items:center;gap:30px'>{plane}<div style='font-size:78px;font-weight:900;line-height:100px;color:{BLUE}'>傳給正在<br>比 offer 的同事</div></div>"
+             f"<div style='margin-top:70px;border-top:2px solid {LINE};padding-top:44px;font-size:54px;font-weight:800;line-height:74px'>數字好看，<br>要看多少是你拿得到的</div>")
+    return boxpage(l, p, "最後一件事", inner, None, pad="28px 44px")
+
+
+ARTICLES["t01v2"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary, label="待遇透明圈",
+                         pages=[v2_avg_med, v2_formula, v2_link, v2_ask, v2_src, v2_end])
+
+
 def run(code):
     a = ARTICLES[code]; od = OUT_ROOT / code; od.mkdir(parents=True, exist_ok=True)
     # 封面：重用 title_d
