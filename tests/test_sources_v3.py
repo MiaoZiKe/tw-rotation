@@ -1248,3 +1248,30 @@ def test_每日工作流有把FRED金鑰傳進抓取那一步():
     steps = [s for s in wf["jobs"]["collect"]["steps"] if "pipeline.run_daily" in (s.get("run") or "")]
     assert steps, "找不到跑 run_daily 的那一步"
     assert steps[0].get("env", {}).get("FRED_API_KEY") == "${{ secrets.FRED_API_KEY }}"
+
+
+# ------------------------------------------------------------------ 非主管薪資（2026-11-11，假回應，不連網）
+
+def test_nonmgr_salary_parse_and_skip_other_tables():
+    from pipeline.sources import nonmgr_salary as ns
+    rows = [{
+        "出表日期": "1150630", "年度": "114", "公司代號": "2454", "公司名稱": "聯發科",
+        "非擔任主管職務之全時員工人數": "20,000",
+        "非擔任主管職務之全時員工薪資總額(仟元)": "80,000,000",
+        "非擔任主管職務之全時員工薪資平均數(仟元/人)": "4,000",
+        "非擔任主管之全時員工薪資中位數(仟元/人)": "3,500",
+        "非擔任主管職務之全時員工薪資平均數變動百分比": "5.0",
+    }]
+    df = ns.parse(rows, "上市", "x")
+    r = df.iloc[0]
+    assert (r.year, r.code, r.avg_k, r.median_k, r.headcount, r.total_k) == (2025, "2454", 4000.0, 3500.0, 20000, 80000000.0)
+    # 不是目標表（沒有非主管欄位）要回空，不能拋例外
+    assert ns.parse([{"公司代號": "1101", "溫室氣體排放量": "5"}], "上市", "x").empty
+    assert ns.parse([], "上市", "x").empty
+
+
+def test_nonmgr_salary_scan_fails_soft(monkeypatch):
+    from pipeline.sources import nonmgr_salary as ns
+    monkeypatch.setattr(http, "get", lambda *a, **k: None)
+    assert ns.nonmgr_salary_twse().empty
+    assert ns.nonmgr_salary_tpex().empty

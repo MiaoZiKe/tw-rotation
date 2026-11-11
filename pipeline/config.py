@@ -69,6 +69,9 @@ TABLES: dict[str, list[str]] = {
     "dividend":           ["code", "year"],   # 股利
     "shareholding_weekly": ["date", "code", "level"],   # 集保股權分散
     "company_info":       ["code"],           # 公司基本資料 + 產業別
+    # 2026-11-11（科技透明圈年薪榜）：上市櫃「非擔任主管職務全時員工薪資」年度表，一年公布一次（6/30）。
+    #   來源 sources/nonmgr_salary.py（證交所 OpenAPI 與櫃買 OpenAPI 的 ESG 人力發展彙總資料）。單位：仟元/人。
+    "nonmgr_salary":      ["year", "market", "code"],
     "news":               ["news_id"],        # 新聞（含分類）
     "broker_views":       ["news_id", "code"], # 新聞裡引述的券商目標價
     "intl_daily":         ["date", "symbol"], # 國際指數 / 匯率 / 債息

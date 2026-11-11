@@ -1,0 +1,37 @@
+name: 非主管薪資（手動，一年一次）
+
+# 抓上市、上櫃「非擔任主管職務之全時員工薪資」進資料湖 nonmgr_salary，並輸出 docs/marketing/channels/tc/data/nonmgr_salary_2025.csv。
+# 只打 openapi.twse.com.tw 與 www.tpex.org.tw/openapi，不碰 www.twse.com.tw/rwd。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 抓取並輸出 csv
+        run: python scripts/nonmgr_salary.py
+      - name: commit
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add data/nonmgr_salary docs/marketing/channels/tc/data docs/fixtures
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -m "非主管薪資：抓取 $(date -u '+%Y-%m-%d %H:%M')"
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin HEAD:"${{ github.ref_name }}"
