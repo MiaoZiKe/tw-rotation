@@ -641,6 +641,9 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
     # 網站那一項的「內容」沿用同一套（價量／法人／融資券／來源健康）
     data_content = gate(all(g["ok"] for g in (price_g, inst_g, margin_g, health_g)),
                         "價量／法人／融資券／來源健康（同每日資料關卡）")
+    # 截止時間與 data 項目一致（DATA_DEADLINE）。2026-11-11 假紅：website 項目沒有截止，融資券還沒到就直接紅，
+    # 但 data 項目同一批關卡是 pending。兩項必須同步：截止前不過＝還沒到，不紅。
+    data_content["deadline"] = at_tpe(expected, DATA_DEADLINE)
     # ETF 四關（各自 21:40 截止；未到截止＝還沒到，不紅）。成分股與除權息預告是 full 輪的產出，
     # 所以補救也是派 daily.yml phase=full（同一個補救，不另開）。
     etf_hold_g = by(etf_holdings_gate(lake.get("etf_holdings"), f.get("source_health"), exp_s), ETF_DEADLINE)

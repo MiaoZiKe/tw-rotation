@@ -134,3 +134,14 @@ def test_meta_check_fail_is_red_and_says_live_check_failed():
     # 剩 59 天但即時驗證失敗＝真紅（發文會失敗），不是判定邏輯錯；原因要寫清楚
     g = _meta_content({"healing_threads": {"ok": False, "status": "check-fail", "days_left": 59.3}})
     assert g["ok"] is False and "即時驗證失敗" in g["why"]
+
+
+def test_website_content_pending_in_sync_with_data_before_deadline():
+    # 2026-11-11 假紅：融資券還沒到（截止 18:40 前）時，data 是 pending，website 不准直接紅
+    f = tda.green_facts()
+    f["lake"]["margin_total"] = "2000-01-01"  # 遠早於應有日：融資券還沒到
+    items = {it["id"]: it for it in da.evaluate(f, tda.HOL, {"site": tda.SITE_OK}, tda.at(tda.TODAY + "T18:20:00"))}
+    assert items["data"]["status"] == "pending", items["data"]["gates"]["margin"]
+    assert items["website"]["status"] == "pending"
+    items = {it["id"]: it for it in da.evaluate(f, tda.HOL, {"site": tda.SITE_OK}, tda.at(tda.TODAY + "T18:50:00"))}
+    assert items["data"]["status"] == "fail" and items["website"]["status"] == "fail"

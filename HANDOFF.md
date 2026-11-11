@@ -6083,3 +6083,4 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 仍然是真紅：healing_threads 即時驗證失敗（check-fail，記下的到期日還剩 59 天）→ 需要人確認權杖，不是判定錯。
 - 這批驗過：`pytest tests/test_daily_audit.py tests/test_audit_false_red_1111.py tests/test_ivx.py tests/test_step_skipped_1106.py tests/test_source_health.py`（全綠）；`-k "audit or ivx or skipped or source_health or daily"` 210 綠。未跑 `_uitest`（沒動前端）。
 - 下次看到 daily_audit 紅：先看 `data/_state/daily_audit.json` 的 gates 的 why，主站 403 且 CF 判定通過者不算紅。
+- 追加（同日）：website 的 content 關卡截止改為與 data 相同（DATA_DEADLINE），融資券未到時兩項同步 pending，不再直接紅；測試 test_website_content_pending_in_sync_with_data_before_deadline。
