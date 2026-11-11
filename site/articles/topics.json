@@ -1,6 +1,119 @@
 {
- "updated": "2026-11-10",
+ "updated": "2026-11-11",
  "topics": [
+  {
+   "id": "n_tw_1960_rebound",
+   "cat": "news",
+   "title": "台股一天漲 1,960 點：護盤與限空令各做了什麼",
+   "why": "11/9 加權指數收 41,661.70 點、漲 1,960.06 點（+4.94%），史上第二大收盤漲點，盤中最高 42,349 點後尾盤回落近 700 點；同日國安基金與金管會限空措施齊發。讀者會問：這是真反彈還是被壓出來的？（公視、人民報 2026-11-09）",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-11",
+   "site_links": [
+    "#overview",
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "n_sox_rebound_6p9",
+   "cat": "news",
+   "title": "費半一天彈 6.9%，補回上週跌幅了嗎",
+   "why": "11/9 費半漲 6.9%、道瓊漲 1,104 點，前一週費半跌逾 12%；報導歸因油價大跌與地緣風險降溫。和已上架的「費半 8 天跌 15.7%」同一事件，這題只算這一天補回多少、不重講下跌原因。（優分析 2026-11-09、自由時報 2026-11-10）",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_short_limit_rule",
+   "cat": "news",
+   "title": "限空令是什麼？跟禁空令差在哪",
+   "why": "金管會 11/9 起推五項穩市措施，報導指盤中借券賣出委託上限由前 30 日均量 30% 降到 3%；讀者分不清借券、融券、限空、禁空。寫稿前須以金管會公告核對措施細節（目前僅一個摘要來源，信心中）。（公視 2026-11-09）",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "i_ic_distribution",
+   "cat": "intro",
+   "title": "IC 通路鏈：原廠、代理商到系統廠怎麼供貨",
+   "why": "站內已有 IC 通路族群頁，但從沒講過晶片從原廠到組裝廠中間那一段；讀者常問「代理商到底在賺什麼、為何庫存起伏比原廠大」。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/group/ic_distribution"
+   ]
+  },
+  {
+   "id": "i_leadframe_chem",
+   "cat": "intro",
+   "title": "導線架與封裝材料鏈：銅帶、蝕刻到封裝廠",
+   "why": "封測鏈、OSAT 鏈都講過封裝廠，但上游的導線架、封裝化學品還沒獨立介紹；成熟製程封裝與車用晶片都靠這一段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/group/leadframe_chem",
+    "#industry/group/osat"
+   ]
+  },
+  {
+   "id": "i_optical_sensing",
+   "cat": "intro",
+   "title": "光學感測鏈：感測晶片、模組到終端裝置",
+   "why": "手機、車用 ADAS 與機器人都要「看得到」，站內有光學感測族群頁卻沒講過環節分工；跟已上架的影像感測器、光學鏡頭題互補，不重複。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/group/optical_sensing"
+   ]
+  },
+  {
+   "id": "k_nvlink_backplane",
+   "cat": "know",
+   "title": "NVLink 銅背板是什麼？72 顆 GPU 怎麼連成一台",
+   "why": "文章＋3D 圖：用 three3d.js 的 ai_server 場景（#industry/ai_server，零件 ag_backplane 銅纜卡匣、ag_nvswitch）。讀者常問機櫃內為何走銅不走光、scale-up 跟 scale-out 差在哪。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_silicon_photonics",
+   "cat": "know",
+   "title": "矽光子是什麼？光怎麼在一片矽晶片上走",
+   "why": "文章＋2.5D 圖：用 themes3d.js 的 silicon_photonics 剖析圖（#heatmap/theme/silicon_photonics）。已上架的 CPO 一文講封裝位置，這題講波導、調變器、光偵測器本身怎麼做在矽上，角度不同。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-11",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/group/silicon_photonics"
+   ]
+  },
+  {
+   "id": "k_hvlp_copper",
+   "cat": "know",
+   "title": "HVLP 銅箔是什麼？高速板為何要磨平銅面",
+   "why": "文章＋2.5D 圖：用 themes3d.js 的 pcb_ccl 剖析圖（#heatmap/theme/pcb_ccl）銅箔那層。訊號越快越走銅面表層（集膚效應），讀者看到「低粗糙度銅箔」常不知道差在哪；k_pcb_ccl 講整片板，這題只講銅箔。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-11",
+   "site_links": [
+    "#heatmap/theme/pcb_ccl",
+    "#industry/group/copper_foil"
+   ]
+  },
   {
    "id": "n_foreign_outflow_oct",
    "cat": "news",
