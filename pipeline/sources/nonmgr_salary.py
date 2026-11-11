@@ -29,6 +29,9 @@ log = logging.getLogger(__name__)
 
 # 已知候選（ESG 彙總系列 t187ap46_*；實際哪一支是人力發展由欄位判定，不靠編號）
 TWSE_CANDIDATES = [f"/opendata/t187ap46_L_{i}" for i in range(1, 11)]
+# 上櫃：先走證交所 OpenAPI 同主機的 _O 系列（config 的上櫃公司資料也是這樣取的，櫃買官網對雲端 IP 回 HTML 擋掉），
+# 實測 2026-11-11 www.tpex.org.tw/openapi 對 Actions 回 HTML，所以只當最後備案。
+TPEX_VIA_TWSE = [f"/opendata/t187ap46_O_{i}" for i in range(1, 11)]
 TPEX_CANDIDATES = [f"/mopsfin_t187ap46_O_{i}" for i in range(1, 11)]
 SWAGGER_KEYWORDS = ("人力發展", "非擔任主管")
 
@@ -115,7 +118,10 @@ def parse(rows: list[dict], market: str, source: str) -> pd.DataFrame:
 
 
 def _scan(base: str, candidates: list[str], market: str) -> pd.DataFrame:
-    paths = list(dict.fromkeys(swagger_paths(base) + candidates))
+    return _scan_paths(base, list(dict.fromkeys(swagger_paths(base) + candidates)), market)
+
+
+def _scan_paths(base: str, paths: list[str], market: str) -> pd.DataFrame:
     frames = []
     for p in paths:
         url = base + p
@@ -145,6 +151,9 @@ def nonmgr_salary_twse() -> pd.DataFrame:
 
 def nonmgr_salary_tpex() -> pd.DataFrame:
     try:
+        df = _scan_paths(config.TWSE_OPENAPI, TPEX_VIA_TWSE, "上櫃")
+        if not df.empty:
+            return df
         return _scan(config.TPEX_OPENAPI, TPEX_CANDIDATES, "上櫃")
     except Exception as exc:  # noqa: BLE001
         log.error("上櫃非主管薪資抓取失敗：%s", exc)

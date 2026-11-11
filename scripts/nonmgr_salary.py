@@ -31,6 +31,7 @@ def main() -> int:
     if d.empty:
         print(f"沒有 {YEAR} 年度資料，現有年度：{sorted(df['year'].unique())}")
         return 0
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     d["平均"] = (d["avg_k"] / 10).round(1)      # 仟元 -> 萬元
     d["中位數"] = (d["median_k"] / 10).round(1)
     out = d.rename(columns={"market": "市場", "code": "代號", "name": "公司", "headcount": "人數",
