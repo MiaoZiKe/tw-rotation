@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T08:27:56+00:00",
+  "updated_at": "2026-11-10T08:52:22+00:00",
   "mode": "check",
   "platforms": {
     "threads": {
@@ -8,7 +8,7 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T11:05:36+00:00",
       "status": "check-ok",
-      "days_left": 58.1
+      "days_left": 59.1
     },
     "ig": {
       "source": "auto",
@@ -16,7 +16,7 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T18:33:17+00:00",
       "status": "check-ok",
-      "days_left": 58.4
+      "days_left": 59.4
     },
     "tc_threads": {
       "source": "original",
@@ -36,16 +36,16 @@
     },
     "healing_threads": {
       "source": "auto",
-      "ok": true,
+      "ok": false,
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T16:24:11+00:00",
-      "status": "check-ok",
-      "days_left": 58.3
+      "status": "check-fail",
+      "days_left": 59.3
     },
     "healing_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-11T08:27:56+00:00",
+      "last_ok_at": "2026-11-10T08:52:22+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@talk_01010909）",
@@ -60,12 +60,12 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T16:25:02+00:00",
       "status": "check-ok",
-      "days_left": 58.3
+      "days_left": 59.3
     },
     "tech_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-11T08:27:56+00:00",
+      "last_ok_at": "2026-11-10T08:52:22+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@tech_01010909）",
@@ -80,12 +80,12 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T16:57:53+00:00",
       "status": "check-ok",
-      "days_left": 58.4
+      "days_left": 59.3
     },
     "caffaine_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-11T08:27:56+00:00",
+      "last_ok_at": "2026-11-10T08:52:22+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@caffaine.ai）",
@@ -95,12 +95,14 @@
       "note": "無法自動延長，也讀不到到期日：需要 META_APP_SECRET（權杖所屬應用程式＋THREADS_APP_SECRET 對不上（不是同一個應用程式，不使用））；每天驗證一次，失效立即告警"
     }
   },
-  "alert": false,
-  "alert_reasons": [],
+  "alert": true,
+  "alert_reasons": [
+    "healing_threads 權杖每日檢查失敗（發文會失敗），請處理"
+  ],
   "pat": {
     "present": true,
     "ok": true,
     "days_left": null
   },
-  "status": "ok"
+  "status": "bad"
 }
