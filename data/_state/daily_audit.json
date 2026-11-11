@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-11T18:23:54+08:00",
+  "checked_at": "2026-11-11T20:04:41+08:00",
   "today": "2026-11-11",
   "expected_price_date": "2026-11-11",
   "is_trading_day": true,
@@ -18,11 +18,11 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "social-live 今天有成功執行 10 次",
+          "why": "social-live 今天有成功執行 12 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42998946135",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42998623605",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42994553631"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43015303477",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43014632789",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42998946135"
           ],
           "busy": false,
           "hard": false
@@ -54,11 +54,11 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "daily.yml 今天有成功執行 3 次",
+          "why": "daily.yml 今天有成功執行 4 次",
           "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43005349715",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42990292861",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42981489604",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42977775802"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42981489604"
           ],
           "busy": false,
           "hard": false
@@ -90,9 +90,9 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "daily.yml 今天有成功的 price／full 輪 2 次",
+          "why": "daily.yml 今天有成功的 price／full 輪 3 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42981489604"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43005349715"
           ],
           "busy": false,
           "hard": false,
@@ -304,11 +304,11 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 38 次",
+          "why": "pages.yml 今天有成功執行 39 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42989228937",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42981129219",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42977778659"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43008834521",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43002946543",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42998931321"
           ],
           "busy": false,
           "hard": false
@@ -318,7 +318,8 @@
           "why": "價量／法人／融資券／來源健康（同每日資料關卡）",
           "evidence": [],
           "busy": false,
-          "hard": false
+          "hard": false,
+          "deadline": "2026-11-11 18:40:00+08:00"
         },
         "publish": {
           "ok": false,
