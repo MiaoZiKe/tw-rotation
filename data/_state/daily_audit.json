@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-11-11T04:39:11+08:00",
+  "checked_at": "2026-11-11T15:11:45+08:00",
   "today": "2026-11-11",
   "expected_price_date": "2026-11-10",
   "is_trading_day": true,
   "summary": {
-    "fail": 2,
-    "pending": 2,
+    "fail": 3,
+    "pending": 1,
     "ok": 3,
     "skip": 0,
     "disabled": 1
@@ -14,32 +14,34 @@
     {
       "id": "premarket",
       "name": "盤前消息（交易日 08:40 前）",
-      "status": "pending",
+      "status": "ok",
       "gates": {
         "run": {
           "ok": true,
-          "why": "social-live 今天有成功執行 1 次",
+          "why": "social-live 今天有成功執行 6 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42863134528"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42975122774",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42972611076",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42942402683"
           ],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": false,
-          "why": "盤前消息日期 2026-11-10、5 則",
+          "ok": true,
+          "why": "盤前消息日期 2026-11-11、5 則",
           "evidence": [
-            "2026-11-10"
+            "2026-11-11"
           ],
           "busy": false,
           "hard": false
         },
         "publish": {
           "ok": true,
-          "why": "GitHub Pages（備援） 部署到 d7bb05e，已包含最新資料；Cloudflare 主站 部署到 d7bb05e，已包含最新資料",
+          "why": "GitHub Pages（備援） 部署到 4fdfff9，已包含最新資料；Cloudflare 主站 部署到 4fdfff9，已包含最新資料",
           "evidence": [
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf",
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf"
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d",
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d"
           ],
           "busy": false,
           "hard": false
@@ -71,10 +73,10 @@
         },
         "publish": {
           "ok": true,
-          "why": "GitHub Pages（備援） 部署到 d7bb05e，已包含最新資料；Cloudflare 主站 部署到 d7bb05e，已包含最新資料",
+          "why": "GitHub Pages（備援） 部署到 4fdfff9，已包含最新資料；Cloudflare 主站 部署到 4fdfff9，已包含最新資料",
           "evidence": [
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf",
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf"
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d",
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d"
           ],
           "busy": false,
           "hard": false
@@ -89,13 +91,13 @@
       "status": "fail",
       "gates": {
         "run": {
-          "ok": false,
-          "why": "daily.yml price／full 輪失敗（失敗步驟：Run actions/deploy-pages@v4），之後沒有成功的一輪",
+          "ok": true,
+          "why": "daily.yml 今天有成功的 price／full 輪 7 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42873213066"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42937229442"
           ],
           "busy": false,
-          "hard": true,
+          "hard": false,
           "deadline": "2026-11-10 16:15:00+08:00"
         },
         "price": {
@@ -123,8 +125,8 @@
           "deadline": "2026-11-10 18:40:00+08:00"
         },
         "health": {
-          "ok": true,
-          "why": "last_run 錯誤 0 筆；連續失敗來源 無",
+          "ok": false,
+          "why": "last_run 錯誤 0 筆；連續失敗來源 ['optivx.daily']",
           "evidence": [
             "last_run.json",
             "source_health.json"
@@ -179,10 +181,10 @@
         },
         "publish": {
           "ok": true,
-          "why": "GitHub Pages（備援） 部署到 d7bb05e，已包含最新資料；Cloudflare 主站 部署到 d7bb05e，已包含最新資料",
+          "why": "GitHub Pages（備援） 部署到 4fdfff9，已包含最新資料；Cloudflare 主站 部署到 4fdfff9，已包含最新資料",
           "evidence": [
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf",
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf"
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d",
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d"
           ],
           "busy": false,
           "hard": false
@@ -196,7 +198,7 @@
           "phase": "full"
         }
       },
-      "remedy_note": "已派出 daily.yml（今天第 2 次）"
+      "remedy_note": "已派出 daily.yml（今天第 3 次）"
     },
     {
       "id": "close_post",
@@ -309,21 +311,21 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "ok",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 35 次",
+          "why": "pages.yml 今天有成功執行 37 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42885487227",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42863114253",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42855228613"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42970502876",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42970482891",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42942392740"
           ],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": true,
+          "ok": false,
           "why": "價量／法人／融資券／來源健康（同每日資料關卡）",
           "evidence": [],
           "busy": false,
@@ -331,24 +333,29 @@
         },
         "publish": {
           "ok": true,
-          "why": "GitHub Pages（備援） 部署到 d7bb05e，已包含最新資料；Cloudflare 主站 部署到 d7bb05e，已包含最新資料",
+          "why": "GitHub Pages（備援） 部署到 4fdfff9，已包含最新資料；Cloudflare 主站 部署到 4fdfff9，已包含最新資料",
           "evidence": [
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf",
-            "d7bb05e602e28c2fde4598aab6fe6fa6820751bf"
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d",
+            "4fdfff97c8f14e614bf4432155e25bc6ecd1fd6d"
           ],
           "busy": false,
           "hard": false
         }
       },
       "deadline": null,
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "pages.yml",
+        "inputs": {}
+      },
+      "remedy_note": "已派出 pages.yml（今天第 2 次）"
     }
   ],
   "errors": [],
   "remedies": {
     "website": {
       "date": "2026-11-11",
-      "count": 1,
+      "count": 2,
       "attempts": [
         {
           "at": "2026-11-11T00:30:01+08:00",
@@ -356,6 +363,16 @@
           "inputs": {},
           "ok": true,
           "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42855228613",
+          "run_id": 42855228613,
+          "run_status": "completed",
+          "run_conclusion": "success"
+        },
+        {
+          "at": "2026-11-11T15:11:45+08:00",
+          "workflow": "pages.yml",
+          "inputs": {},
+          "ok": true,
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42977778659",
           "run_id": null,
           "run_status": null,
           "run_conclusion": null
@@ -400,7 +417,7 @@
     },
     "data": {
       "date": "2026-11-11",
-      "count": 2,
+      "count": 3,
       "attempts": [
         {
           "at": "2026-11-11T02:14:18+08:00",
@@ -422,6 +439,18 @@
           },
           "ok": true,
           "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42897460213",
+          "run_id": 42897460213,
+          "run_status": "completed",
+          "run_conclusion": "success"
+        },
+        {
+          "at": "2026-11-11T15:11:45+08:00",
+          "workflow": "daily.yml",
+          "inputs": {
+            "phase": "full"
+          },
+          "ok": true,
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42977775802",
           "run_id": null,
           "run_status": null,
           "run_conclusion": null
