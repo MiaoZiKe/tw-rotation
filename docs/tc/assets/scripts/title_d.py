@@ -137,16 +137,24 @@ def build(g, company, layout, widths, var, dxy=(0, 0), cup_x=None, OVERLAY=False
     if var == "D6" and g.get("TD_SUB_LINES"):   # 主題文：旁白可以多行、圖示可換（cup／mic）；字級由程式找「放得進右側」的最大值（上限 58）
         lines_s = g["TD_SUB_LINES"]; LG = 18; nL = len(lines_s)
         sw_ = g.get("TD_SUBW") or {}
-        em = [sw_.get(l, len(l)) for l in lines_s]; em[0] += 0.7; em[-1] += 0.7         # 實測字寬（沒有就當全形）；前後小引號各約 0.7em
+        em = [sw_.get(l, len(l)) + (0.25 if g.get('TD_EMPH') else 0) for l in lines_s]
+        if not g.get('TD_NOQUOTE'): em[0] += 0.7; em[-1] += 0.7         # 實測字寬（沒有就當全形）；前後小引號各約 0.7em
         text_l = circ_right + 2 * LG
-        SUBF = min(58, int((1034 - text_l - 20) / (max(em) + 0.84)))                    # 0.84em＝圖示可見寬（1.1×0.76）
+        SUBF = min(g.get('TD_SUBCAP', 58), int((1034 - text_l - 20) / (max(em) + 0.84)))                    # 0.84em＝圖示可見寬（1.1×0.76）
         text_l = max(text_l, 1034 - max(max(em) * SUBF, em[-1] * SUBF + 20 + 0.84 * SUBF))   # 整組（文字＋圖示）靠右，圖示右緣離畫布右邊約 46px（Andy：旁白太靠左）
-        LH = round(SUBF * 1.3); blk = nL * LH; top0 = ccy - blk / 2
+        LH = round(SUBF * 1.3); blk = nL * LH
+        _ex, _eh = (g['TD_EXTRA_FN'](text_l, SUBF) if g.get('TD_EXTRA_FN') else ('', 0)); _tot = blk + (22 + _eh if _eh else 0); top0 = ccy - _tot / 2
         pill_bot = oy + pt_ + PH; pill_right = ox + pl + PW
         if text_l - LG < pill_right + 10 and top0 < pill_bot + 12: top0 = pill_bot + 12     # 多行旁白會頂到右上的膠囊時，整塊往下讓開
-        htm = "".join(f"<div>{'<span class=q>「</span>' if i == 0 else ''}{l}{'<span class=q>」</span>' if i == nL - 1 else ''}</div>" for i, l in enumerate(lines_s))
-        sub = f'<div class="s4" data-k="sub"><i></i>{htm}</div>'
-        css += (f".s4{{position:absolute;left:{text_l:.1f}px;top:{top0:.1f}px;line-height:{LH}px;font-size:{SUBF}px;font-weight:700;letter-spacing:0;color:{INK};white-space:nowrap}}"
+        _emph = g.get("TD_EMPH") or []
+        def _em_(l):
+            for e in _emph:
+                if e in l: return l.replace(e, f"<b style='color:{BLUE};font-weight:900'>{e}</b>")
+            return l
+        _q0, _q1 = ("", "") if g.get("TD_NOQUOTE") else ("<span class=q>「</span>", "<span class=q>」</span>")
+        htm = "".join(f"<div>{_q0 if i == 0 else ''}{_em_(l)}{_q1 if i == nL - 1 else ''}</div>" for i, l in enumerate(lines_s))
+        sub = f'<div class="s4" data-k="sub"><i></i>{htm}</div>' + (f'<div data-k="extra" style="position:absolute;left:{text_l:.1f}px;top:{top0 + blk + 22:.1f}px">{_ex}</div>' if _ex else '')
+        css += (f".s4{{position:absolute;left:{text_l:.1f}px;top:{top0:.1f}px;line-height:{LH}px;font-size:{SUBF}px;font-weight:{800 if g.get('TD_EMPH') else 700};letter-spacing:0;color:{INK};white-space:nowrap}}"
                 f".s4 i{{position:absolute;left:-{LG}px;top:6px;width:5px;height:{blk-12:.1f}px;border-radius:3px;background:{BLUE}}}.s4 .q{{color:{ORG};font-weight:900;font-size:0.7em}}")
         cup_h = round(SUBF * 1.1)
         cup_l = text_l + em[-1] * SUBF + 20 - 0.172 * cup_h
@@ -241,7 +249,7 @@ def main(g):
             pg.evaluate("""k=>{let s=document.getElementById('iso');if(!s){s=document.createElement('style');s.id='iso';document.head.appendChild(s)}
               s.textContent=%r+'[data-k="'+k+'"],[data-k="'+k+'"] *{visibility:visible !important}'}""" % T.ISO, k)
             return Image.open(io.BytesIO(pg.screenshot())).convert("RGB").split()[1].point(lambda v: 255 if v > 12 else 0)
-        M = {k: mask(k) for k in ("ring", "pill", "shuo", "sub", "cup", "co")}
+        M = {k: mask(k) for k in ("ring", "pill", "shuo", "sub", "cup", "co") + (("extra",) if "extra" in keys else ())}
         pg.evaluate("document.getElementById('iso').remove()")
         def pdist(a, c):
             ba, bc = M[a].getbbox(), M[c].getbbox()
@@ -251,15 +259,15 @@ def main(g):
             for N in range(1, 41):
                 if ImageChops.multiply(A_.filter(ImageFilter.MaxFilter(2 * N + 1)), C_).getbbox(): return N - 1
             return 40
-        pd = {f"{a}-{c}": pdist(a, c) for a, c in (("ring", "pill"), ("ring", "shuo"), ("ring", "sub"), ("ring", "cup"), ("pill", "co"), ("shuo", "co"), ("shuo", "sub"), ("cup", "sub"), ("pill", "sub"))}
+        pd = {f"{a}-{c}": pdist(a, c) for a, c in (("ring", "pill"), ("ring", "shuo"), ("ring", "sub"), ("ring", "cup"), ("pill", "co"), ("shuo", "co"), ("shuo", "sub"), ("cup", "sub"), ("pill", "sub")) + ((("ring", "extra"), ("pill", "extra"), ("extra", "sub"), ("cup", "extra"), ("extra", "co")) if "extra" in keys else ())}
         ph = boxes["photo"]; sign = (ph[0] + 430, ph[1] + 310, ph[0] + 925, ph[1] + 480)
         bad = [(k, v) for k, v in pd.items() if v <= 0 and k not in ("ring-pill",)]
         if pd["ring-pill"] <= 0 and var != "D0": bad.append(("ring-pill", 0))
         sign_hit = [k for k in keys if k != "photo" and boxes[k] and min(boxes[k][2], sign[2]) - max(boxes[k][0], sign[0]) > 0 and min(boxes[k][3], sign[3]) - max(boxes[k][1], sign[1]) > 0]
         oob = [k for k in keys if boxes[k] and (boxes[k][0] < 0 or boxes[k][1] < 0 or boxes[k][2] > 1080 or boxes[k][3] > 1350)]
         swp = boxes["swipe"]
-        for k in ("ring", "pill", "shuo", "sub", "cup"):
-            if boxes[k] and min(boxes[k][2], swp[2]) - max(boxes[k][0], swp[0]) > 0 and min(boxes[k][3], swp[3]) - max(boxes[k][1], swp[1]) > 0: bad.append((k, "swipe"))
+        for k in ("ring", "pill", "shuo", "sub", "cup", "extra"):
+            if boxes.get(k) and min(boxes[k][2], swp[2]) - max(boxes[k][0], swp[0]) > 0 and min(boxes[k][3], swp[3]) - max(boxes[k][1], swp[1]) > 0: bad.append((k, "swipe"))
         right = max(boxes[k][2] for k in ("sub", "shuo", "ring") if boxes[k])
         # 像素實測：環線粗＝環在 9 點鐘列（圓心高度）的水平厚度；膠囊高＝橘膠囊墨跡高
         row = int(info["center"][1]); xs = [x for x in range(1080) if M["ring"].getpixel((x, row))]
