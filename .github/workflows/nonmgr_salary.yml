@@ -8,8 +8,10 @@ on:
 permissions:
   contents: write
 
+# 用自己的群組：共用 tw-rotation-data-write 時，排隊中的手動 run 會被後來的排程 run 擠掉（實測被 cancelled）。
+# 寫入衝突靠下面 commit 步驟的 pull --rebase 處理；這裡只寫新表目錄與 docs，不會與每日管線撞檔。
 concurrency:
-  group: tw-rotation-data-write
+  group: nonmgr-salary
   cancel-in-progress: false
 
 jobs:
