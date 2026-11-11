@@ -241,6 +241,7 @@ def ill_salary_v3():
 </svg>"""
 
 
+ARTICLES["t01v4"] = dict(company="台積電", pill="透明說", sub=["第一大企業，", "平均年薪卻不是第一？"], icon="cup", photo=os.environ.get("TC_COVER_PHOTO", ""), label="待遇透明圈", pages=[])
 ARTICLES["t01v3"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary_v3, label="待遇透明圈", pages=[])
 ARTICLES["t01v2"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary, label="待遇透明圈",
                          pages=[v2_avg_med, v2_formula, v2_link, v2_ask, v2_src, v2_end])
@@ -249,7 +250,15 @@ ARTICLES["t01v2"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400
 def run(code):
     a = ARTICLES[code]; od = OUT_ROOT / code; od.mkdir(parents=True, exist_ok=True)
     # 封面：重用 title_d
-    g = dict(G, OUT=od, PIC_H=690, TD_PIC_HTML=pic_html(a["ill"]()), TD_PILL=a["pill"], TD_SUB_LINES=a["sub"], TD_ICON=a["icon"], sync_playwright=sync_playwright)
+    g = dict(G, OUT=od, PIC_H=690, TD_PILL=a["pill"], TD_SUB_LINES=a["sub"], TD_ICON=a["icon"], sync_playwright=sync_playwright)
+    if a.get("photo"):   # 用實景照片當照片框（已確認授權；署名寫在文案）
+        import base64
+        from PIL import Image as _I
+        _im = _I.open(a["photo"]).convert("RGB"); _w, _h = _im.size; _cw = round(_h * 1032 / 690); _x = (_w - _cw) // 2
+        _im = _im.crop((_x, 0, _x + _cw, _h)).resize((1032, 690), _I.LANCZOS); _b = io.BytesIO(); _im.save(_b, "JPEG", quality=92)
+        _uri = "data:image/jpeg;base64," + base64.b64encode(_b.getvalue()).decode(); g["TD_PHOTO"] = lambda: _uri
+    else:
+        g["TD_PIC_HTML"] = pic_html(a["ill"]())
     os.environ["TC_COMPANY"] = a["company"]; os.environ["TC_OUTNAME"] = "1"; os.environ["TC_LAYOUT"] = a.get("layout", "one")
     title_d.main(g)
     rep = {}
