@@ -1199,10 +1199,12 @@ def main() -> int:
     # Yahoo 的櫃買代號壞掉、台指期沒有代號，改走 FinMind；三支加起來只吃 3 次額度。
     if not news_only and not args.skip_finmind:
         since = (pd.Timestamp.now("UTC") - pd.Timedelta(days=40)).strftime("%Y-%m-%d")
-        save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since))
-        save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since))
+        save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since, wait=False))
+        save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since, wait=False))
+        # 2026-11-11：三支一律 wait=False。額度被前面幾輪吃光時 wait=True 會睡到下個整點視窗（11-11 index_ohlc 睡 2436 秒，full 拖到 90 分）；
+        #   這三支都是 40 天增量，這輪略過、下一輪補，不值得佔著寫入群組等。
         # 全市場三大法人買賣金額官方值（2026-10-20）：一次請求拉 40 天、1 次額度；store.append 依 date 去重
-        _imk = step("finmind.market_institutional", finmind.market_institutional, since)
+        _imk = step("finmind.market_institutional", finmind.market_institutional, since, wait=False)
         save("inst_market_daily", _imk)
         # 首次公布版（2026-10-25）：同一天 FinMind 會先給證交所 15:00 公布值（＝新聞數字），晚間再換成含盤後成交的修訂版。
         # inst_market_daily 是後到覆蓋，所以另存一份「先到的贏」，網站主數字用它（口徑見 compute/inst_market.py）。

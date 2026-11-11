@@ -5,6 +5,11 @@
 - 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
 
 
+## 2026-11-11 排程：full 不再佔群組 90 分鐘、稽核補救讓路、原生保底不頂掉 gh-cron（efficiency-planner，維修）
+- 根因：15:12 的 full 是 daily_audit 的補救（07:10 UTC 的稽核失敗項 data → 派 daily.yml phase=full，今天第 3 次），不是 gh-cron；full 跑 90 分鐘因 `finmind.index_ohlc` 睡了 2436 秒（wait=True 等 FinMind 額度視窗，額度被 14:16／14:46 inst 輪吃光）。15:38 price 被 15:42 原生 schedule 的 price 擠掉（同 phase 重複）。
+- 改：①run_daily 三支 FinMind 日 K（index_ohlc／futures_ohlc／market_institutional）改 wait=False；②daily_audit 補救派 daily.yml 時，有排隊／執行中的 run 或交易日 15:00～17:30 都不派；③daily.yml guard 對原生 schedule：3 小時內已有同 phase 的 dispatch run（未失敗未取消）就讓出，gh-cron 沒派或失敗時原生照跑當保底。
+- 驗：pytest daily_audit／gh_cron／heal／inst_phase／finmind 相關全綠。明天看：15:38 price 的 collect 是否準時、是否出現「原生排程讓出」摘要、full 的 `finmind.index_ohlc` seconds 是否 < 60。
+
 ## 2026-11-11 三大法人四格加「晚間修訂」小字（frontend-ui；Andy：「加修訂值」）
 - #market/inst 四格主數字（首次公布版，DECISIONS #363）下方，該格 rev 存在且四捨五入到 0.1 億後與主數字不同才多一行「晚間修訂 ±xx.x 億」（site/app.js irRevTag；樣式 site/m4/20261111-修訂值.css）。compute 不用改：inst_market.json 的 rev 本來就是 {f,t,dl,tot} 逐類別。每日明細表不加（只動四格）。
 - 驗收：scripts/uitest_sections/20261111_法人修訂值.py（page.route 換最後一列 rev：A 部分類別有／B 全無／C 差 0.02／D 變號；1440＋390）；公告 f-20261111-inst-rev。這批只驗：法人修訂值1111、桌機守門1008（0）；當日法人1020、三大法人r3 各有 2／1 個既有失敗（期間「全部」筆數、點圖鎖定日、三塊寬度），改前後相同，與本批無關（本機 site/data 是舊快照）。

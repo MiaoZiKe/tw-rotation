@@ -612,3 +612,29 @@ def test_etf_gate_none_when_lake_missing_becomes_red_after_deadline():
     it = data_item(f, at("2026-11-09T21:45:00"))
     assert it["gates"]["etf_hold"]["ok"] is False and "查不到" in it["gates"]["etf_hold"]["why"]
     assert it["status"] == "fail"
+
+
+# ---- 2026-11-11：稽核補救派 daily.yml 要讓路（11-11 15:12 派的 full 跑 90 分鐘，壓住 15:38 的 price）
+def test_daily_remedy_deferred_in_price_window():
+    from datetime import datetime, timedelta, timezone
+    import scripts.daily_audit as da
+    tpe = timezone(timedelta(hours=8))
+    rm = {"workflow": "daily.yml", "inputs": {"phase": "full"}}
+    assert da.daily_remedy_deferred(rm, {"daily.yml": []}, datetime(2026, 11, 11, 15, 12, tzinfo=tpe), set())
+    assert da.daily_remedy_deferred(rm, {"daily.yml": []}, datetime(2026, 11, 11, 17, 29, tzinfo=tpe), set())
+    assert da.daily_remedy_deferred(rm, {"daily.yml": []}, datetime(2026, 11, 11, 18, 40, tzinfo=tpe), set()) is None
+    assert da.daily_remedy_deferred(rm, {"daily.yml": []}, datetime(2026, 11, 11, 14, 40, tzinfo=tpe), set()) is None
+    # 休市日 / 週末不讓
+    assert da.daily_remedy_deferred(rm, {"daily.yml": []}, datetime(2026, 11, 14, 15, 12, tzinfo=tpe), set()) is None
+    # 非 daily.yml 不管
+    assert da.daily_remedy_deferred({"workflow": "pages.yml"}, {}, datetime(2026, 11, 11, 15, 12, tzinfo=tpe), set()) is None
+
+
+def test_daily_remedy_deferred_when_run_active():
+    from datetime import datetime, timedelta, timezone
+    import scripts.daily_audit as da
+    tpe = timezone(timedelta(hours=8))
+    rm = {"workflow": "daily.yml", "inputs": {"phase": "full"}}
+    now = datetime(2026, 11, 11, 19, 0, tzinfo=tpe)
+    assert da.daily_remedy_deferred(rm, {"daily.yml": [{"status": "in_progress"}]}, now, set())
+    assert da.daily_remedy_deferred(rm, {"daily.yml": [{"status": "completed"}]}, now, set()) is None

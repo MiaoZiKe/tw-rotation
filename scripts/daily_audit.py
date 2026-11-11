@@ -794,7 +794,26 @@ def _track_attempt(att: dict, runs, now: datetime) -> str:
     return "running" if r.get("status") in ("queued", "in_progress") else "done"
 
 
-def run_remedies(items, state, today, dispatch, runs=None, now: datetime | None = None) -> None:
+DAILY_DEFER_START = time(15, 0)   # 交易日 15:00～17:30 不從稽核派 daily.yml：這段是 price／inst 輪的時段，full 一跑最久 90 分鐘會把 price 壓住
+DAILY_DEFER_END = time(17, 30)
+
+
+def daily_remedy_deferred(rm: dict, runs, now: datetime, holidays: set[str] | None = None) -> str | None:
+    """2026-11-11：稽核補救派 daily.yml 時讓路。回傳理由（要讓）或 None。
+    ① daily.yml 已有排隊／執行中的 run → 不疊（pending 只留一個，新來的會把別人頂掉）。
+    ② 交易日 15:00～17:30 → 不派（11-11 15:12 派的 full 跑了 90 分鐘，壓住 15:38 的 price）。17:30 之後的稽核檢查點（18:40）再補。"""
+    if rm.get("workflow") != "daily.yml":
+        return None
+    live = [r for r in ((runs or {}).get("daily.yml") or []) if r.get("status") in ("queued", "in_progress", "pending", "waiting")]
+    if live:
+        return f"daily.yml 已有 {len(live)} 個排隊／執行中的 run，不疊上去"
+    t = now.astimezone(TPE)
+    if is_trading_day(t.date(), holidays if holidays is not None else set()) and DAILY_DEFER_START <= t.time() < DAILY_DEFER_END:
+        return "交易日 15:00～17:30 是 price／inst 輪的時段，full 補救延到 17:30 之後"
+    return None
+
+
+def run_remedies(items, state, today, dispatch, runs=None, now: datetime | None = None, holidays: set[str] | None = None) -> None:
     """dispatch(workflow, inputs) → (ok, msg)。只派出，不假裝已修好；下一輪稽核會再驗。
     同一時間只准一個補救在跑：上一次派出的 run 還在執行，就不重派。被佇列取代（cancelled）、
     失敗、或派丟了，就重派；但每項每天最多 REMEDY_MAX_PER_DAY 次，超過就等人工。
@@ -826,6 +845,10 @@ def run_remedies(items, state, today, dispatch, runs=None, now: datetime | None 
             it["remedy_note"] = f"今天已自動補救 {REMEDY_MAX_PER_DAY} 次，不再自動派（等人工看）"
             continue
         rm = it["remedy"]
+        why = daily_remedy_deferred(rm, runs, now, holidays)
+        if why:
+            it["remedy_note"] = "本輪不派：" + why
+            continue
         ok, msg = dispatch(rm["workflow"], rm.get("inputs") or {})
         rec["count"] = int(rec.get("count", 0)) + 1
         atts.append({"at": now.isoformat(timespec="seconds"), "workflow": rm["workflow"],
@@ -890,7 +913,7 @@ def main(argv=None) -> int:
     state = load_state()
     today = facts["today"]
     if a.remediate:
-        run_remedies(items, state, today, dispatch_fn, runs=facts["runs"], now=now)
+        run_remedies(items, state, today, dispatch_fn, runs=facts["runs"], now=now, holidays=holidays)
     # 補救紀錄只留今天與昨天，避免檔案無限長
     state["remedies"] = {k: v for k, v in (state.get("remedies") or {}).items()
                          if v.get("date") in {today, (date.fromisoformat(today) - timedelta(days=1)).isoformat()}}

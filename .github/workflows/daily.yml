@@ -83,8 +83,28 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PHASE: ${{ inputs.phase }}
+          EVENT: ${{ github.event_name }}
         run: |
           echo "skip=false" >> "$GITHUB_OUTPUT"
+          # 2026-11-11：原生 schedule（price／full 保底）如果 gh-cron 已經派了同一個 phase、而且沒失敗／沒被取消，就不要再進 collect 群組
+          # （11-11 事故：15:38 gh-cron 派的 price 排在 pending，15:42 原生 schedule 的 price 進來，把它擠成 cancelled）。
+          # gh-cron 沒派、派了但失敗或被取消 → 原生這輪照跑，仍是保底。
+          if [ "$EVENT" = "schedule" ]; then
+            D=$(date -u +%u); H=$((10#$(date -u +%H))); WANT=""
+            if [ "$D" -le 5 ]; then
+              if [ "$H" -ge 7 ] && [ "$H" -le 8 ]; then WANT="(price)"; elif [ "$H" -ge 9 ] && [ "$H" -lt 20 ]; then WANT="(full)"; fi
+            fi
+            if [ -n "$WANT" ]; then
+              c=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?event=workflow_dispatch&per_page=30" \
+                  --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.display_title | contains(\"$WANT\")) | select(.conclusion != \"cancelled\" and .conclusion != \"failure\" and .conclusion != \"timed_out\") | select((.created_at | fromdateiso8601) > (now - 10800))] | length" 2>/dev/null || echo 0)
+              if [ "${c:-0}" -gt 0 ]; then
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                echo "### 原生排程讓出" >> "$GITHUB_STEP_SUMMARY"
+                echo "3 小時內已有 $c 個 gh-cron／手動派的 $WANT run（未失敗未取消），原生保底這輪不進寫入群組。" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+            exit 0
+          fi
           if [ "$PHASE" != "inst" ]; then
             echo "phase=${PHASE:-自動}：不需讓出" ; exit 0
           fi
