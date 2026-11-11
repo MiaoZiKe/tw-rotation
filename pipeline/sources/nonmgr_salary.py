@@ -28,11 +28,12 @@ from ..util.roc import clean_code, to_float, to_int
 log = logging.getLogger(__name__)
 
 # 已知候選（ESG 彙總系列 t187ap46_*；實際哪一支是人力發展由欄位判定，不靠編號）
-TWSE_CANDIDATES = [f"/opendata/t187ap46_L_{i}" for i in range(1, 11)]
+TWSE_CANDIDATES = [f"/opendata/t187ap46_L_{i}" for i in range(1, 20)]
 # 上櫃：先走證交所 OpenAPI 同主機的 _O 系列（config 的上櫃公司資料也是這樣取的，櫃買官網對雲端 IP 回 HTML 擋掉），
 # 實測 2026-11-11 www.tpex.org.tw/openapi 對 Actions 回 HTML，所以只當最後備案。
-TPEX_VIA_TWSE = [f"/opendata/t187ap46_O_{i}" for i in range(1, 11)]
-TPEX_CANDIDATES = [f"/mopsfin_t187ap46_O_{i}" for i in range(1, 11)]
+TPEX_VIA_TWSE = [f"/opendata/t187ap46_O_{i}" for i in range(1, 20)]
+TPEX_CANDIDATES = ([f"/t187ap46_O_{i}" for i in range(1, 20)]
+                   + [f"/mopsfin_t187ap46_O_{i}" for i in range(1, 20)])
 SWAGGER_KEYWORDS = ("人力發展", "非擔任主管")
 
 COLUMNS = ["year", "market", "code", "name", "avg_k", "median_k", "headcount",
@@ -77,7 +78,12 @@ def _to_year(v) -> int | None:
 
 def swagger_paths(base: str) -> list[str]:
     """從 swagger 找摘要／說明含關鍵字的路徑。失敗回空 list（不影響已知候選）。"""
-    sw = http.get(base.rsplit("/v1", 1)[0] + "/v1/swagger.json" if "/v1" in base else base + "/swagger.json")
+    root = base.rsplit("/v1", 1)[0]
+    sw = None
+    for u in (root + "/v1/swagger.json", root + "/swagger.json", root + "/v1/swagger"):
+        sw = http.get(u)
+        if isinstance(sw, dict) and isinstance(sw.get("paths"), dict):
+            break
     if not isinstance(sw, dict) or not isinstance(sw.get("paths"), dict):
         log.warning("swagger 取不到或格式非預期：%s", base)
         return []

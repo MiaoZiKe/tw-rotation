@@ -18,7 +18,17 @@ OUT = ROOT / "docs/marketing/channels/tc/data/nonmgr_salary_2025.csv"
 YEAR = 2025
 
 
+def diag_tpex() -> None:
+    """診斷：櫃買 OpenAPI 對 Actions 是整個擋掉，還是只有 ESG 路徑猜錯。"""
+    from pipeline import config
+    from pipeline.util import http
+    for ep in ("/tpex_mainboard_daily_close_quotes", "/mopsfin_t187ap03_O"):
+        d = http.get(config.TPEX_OPENAPI + ep)
+        print("TPEX 診斷", ep, "->", type(d).__name__, len(d) if isinstance(d, list) else "")
+
+
 def main() -> int:
+    diag_tpex()
     df = pd.concat([ns.nonmgr_salary_twse(), ns.nonmgr_salary_tpex()], ignore_index=True)
     probe = {"rows": int(len(df)), "by_market_year": df.groupby(["market", "year"]).size().reset_index(name="n").to_dict("records") if len(df) else []}
     (ROOT / "docs/fixtures/nonmgr_salary_probe.json").write_text(json.dumps(probe, ensure_ascii=False, indent=1), encoding="utf-8")
