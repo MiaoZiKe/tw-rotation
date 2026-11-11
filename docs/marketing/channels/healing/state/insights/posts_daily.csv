@@ -1,3 +1,7 @@
 date,fetched_at,platform,folder,post_id,posted_at,views,reach,likes,comments,replies,reposts,quotes,shares,saved,total_interactions,missing
 2026-11-11,2026-11-11T05:22:11+08:00,ig,20261108_intro,18078135347726039,2026-11-10T06:38:38+08:00,,,0,0,,,,,,,reach;saved;shares;total_interactions;views
 2026-11-11,2026-11-11T05:22:11+08:00,threads,20261108_intro,18098432636395883,2026-11-10T06:38:38+08:00,,,,,,,,,,,likes;quotes;replies;reposts;shares;views
+2026-11-12,2026-11-12T06:01:35+08:00,ig,20261108_intro,18078135347726039,2026-11-10T06:38:38+08:00,,,0,0,,,,,,,reach;saved;shares;total_interactions;views
+2026-11-12,2026-11-12T06:01:35+08:00,ig,20261111_unemployment,18130053106897661,2026-11-11T21:03:32+08:00,,,0,0,,,,,,,reach;saved;shares;total_interactions;views
+2026-11-12,2026-11-12T06:01:35+08:00,threads,20261108_intro,18098432636395883,2026-11-10T06:38:38+08:00,8,,0,,0,0,0,0,,,
+2026-11-12,2026-11-12T06:01:35+08:00,threads,20261111_unemployment,18102059693392182,2026-11-11T21:03:32+08:00,0,,0,,0,0,0,0,,,
