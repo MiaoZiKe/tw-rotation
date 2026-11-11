@@ -1,10 +1,15 @@
 {
- "rows": 977,
+ "rows": 1820,
  "by_market_year": [
   {
    "market": "上市",
    "year": 2025,
    "n": 977
+  },
+  {
+   "market": "上櫃",
+   "year": 2025,
+   "n": 843
   }
  ]
 }
