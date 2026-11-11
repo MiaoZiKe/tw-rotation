@@ -42,7 +42,12 @@ def daily_update(today: date | None = None, fetch=None, last: str | None = None)
     if last:
         start = max(start, date.fromisoformat(last) + timedelta(days=1))
     if start > today:
-        return pd.DataFrame()
+        # 湖裡已有到今天的資料（last ≥ today）＝窗內已處理過、不用再打 API。這是常態，不是失敗：
+        # 不宣告 skipped 的話 run_daily.step() 會記成 ok:false，連續兩天就進 health 紅燈
+        # （2026-11-11 optivx.daily 假紅：11-10 18:30 那輪 runner 的 UTC 日期＝11-10，湖已有 11-10）。
+        out = pd.DataFrame()
+        out.attrs["skipped"] = f"湖裡已到 {last}（今天 {today}），窗內已處理過，不用再抓"
+        return out
     # 來源規矩：失敗回空、不拋例外（拋了會被 run_daily 記成錯誤、整輪變紅）；原因掛在 attrs["error"]
     try:
         rows = (fetch or _fetch)(start.isoformat(), today.isoformat())

@@ -6077,3 +6077,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 已改：`docs/marketing/channels/healing/plan_202611_內容規劃.md` E 節的成效資料來源。
 - 這批驗過：`pytest tests/test_channel_insights.py`（17 綠）；全套 pytest 其餘失敗為環境問題（缺 yfinance）與 `test_exrights` 真實資料斷言，與本批無關。
 - 下次有人回報成效怪象：先看 `state/insights/last_run.json` 的 status 與 missing。
+
+## 2026-11-11 每日稽核假紅修復（data-steward）
+- 修了：optivx.daily 湖已到今天時改宣告 skipped（不再記成失敗）；主站 403 改依 Cloudflare 部署紀錄判定（不偽裝 UA、不繞過）；ETF 成分股以湖的基準日為準、source_health 只看連續失敗；ETF 除權息預告容忍 source_health 日期鍵慢一個交易日；權杖 missing（未設定）不算紅、check-fail 紅且寫明是即時驗證失敗。
+- 仍然是真紅：healing_threads 即時驗證失敗（check-fail，記下的到期日還剩 59 天）→ 需要人確認權杖，不是判定錯。
+- 這批驗過：`pytest tests/test_daily_audit.py tests/test_audit_false_red_1111.py tests/test_ivx.py tests/test_step_skipped_1106.py tests/test_source_health.py`（全綠）；`-k "audit or ivx or skipped or source_health or daily"` 210 綠。未跑 `_uitest`（沒動前端）。
+- 下次看到 daily_audit 紅：先看 `data/_state/daily_audit.json` 的 gates 的 why，主站 403 且 CF 判定通過者不算紅。

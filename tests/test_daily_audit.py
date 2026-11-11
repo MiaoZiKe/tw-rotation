@@ -542,13 +542,18 @@ def test_etf_stale_is_pending_before_deadline_and_red_after_2140():
     assert it["remedy"] == {"action": "dispatch", "workflow": "daily.yml", "inputs": {"phase": "full"}}
 
 
-def test_etf_holdings_lake_current_but_health_stale_is_not_green():
-    # 湖裡有 11-09 但來源紀錄停在 11-05：不准只看湖就綠
+def test_etf_holdings_lake_is_authority_health_only_counts_consecutive_fails():
+    # 2026-11-11 假紅：湖已有 11-10，稽核讀到的 source_health 最後成功日是 11-09（那筆紀錄晚一輪才寫入）。
+    # 口徑改成：湖內基準日 ≥ 應有日就過；source_health 只看連續失敗（紅線 SOURCE_FAIL_RED 天）。
     f = green_facts()
     f["lake"]["etf_holdings"] = "2026-11-09"
     f["source_health"]["etf_pcf.holdings"]["last_ok_date"] = "2026-11-05"
     g = data_item(f, at("2026-11-09T21:45:00"))["gates"]["etf_hold"]
-    assert g["ok"] is False and "2026-11-05" in g["why"]
+    assert g["ok"] is True
+    # 真的連續失敗才紅
+    f["source_health"]["etf_pcf.holdings"]["consecutive_fail"] = da.SOURCE_FAIL_RED
+    g = data_item(f, at("2026-11-09T21:45:00"))["gates"]["etf_hold"]
+    assert g["ok"] is False
 
 
 def test_etf_holdings_t_plus_0_basis_rule():

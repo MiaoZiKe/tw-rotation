@@ -199,16 +199,24 @@ def round_gate(runs, since: datetime, label: str, holidays: set[str]) -> dict:
     return gate(False, f"{label} 今天還沒有成功的 price／full 輪")
 
 
-def screen_gate(screen: dict | None, exp_s: str) -> dict:
+def screen_gate(screen: dict | None, exp_s: str, cf_ok: bool = False) -> dict:
     """關卡三補充（畫面）：兩個站各自的「總覽」（meta.json 的 data_date／inst_date）與
     「三大法人頁」（inst_market.json 的 latest）都要等於應有日。讀不到就是不過，不准當綠。
-    兩站各自的日期都寫進說明，Andy 一眼看得出是哪一站落後。"""
+    兩站各自的日期都寫進說明，Andy 一眼看得出是哪一站落後。
+
+    主站 403（2026-11-11 實測：GitHub runner 讀 liguligu-puipui.com 回 403，原因無法從這裡確認）：
+    不偽裝瀏覽器 User-Agent、不繞過。改由 Cloudflare 部署紀錄判定（site_gate 的 cf_ok：CF 部署的 commit
+    已包含最新資料）；備援站的日期仍然必須正確，主站 403 只代表「這一站讀不到」，不代表內容錯。
+    主站若是其他錯誤（逾時、5xx、內容錯）仍然紅。"""
     if not screen:
         return gate(None, "查不到兩站線上資料檔")
     parts, ok = [], True
     for key, label in (("liguligu", "主站"), ("gh_pages", "備援")):
         s = screen.get(key) or {}
         if s.get("error") or s.get("data_date") is None:
+            if key == "liguligu" and s.get("http_status") == 403 and cf_ok:
+                parts.append("主站 403（執行環境讀不到，改依 Cloudflare 部署紀錄：已含最新資料）")
+                continue
             ok = False
             parts.append(f"{label}讀不到（{s.get('error') or '沒有 data_date'}）")
             continue
@@ -224,23 +232,26 @@ def etf_holdings_gate(lake_date: str | None, health: dict | None, exp_s: str) ->
     if lake_date is None or health is None:
         return gate(None, "查不到 ETF 成分股（資料湖或 source_health）")
     h = health.get(ETF_HOLD_SRC) or {}
-    last_ok = h.get("last_ok_date")
-    ok = lake_date >= exp_s and last_ok is not None and last_ok >= exp_s
-    return gate(ok, f"ETF 成分股湖內最新 {lake_date}、來源最後成功 {last_ok or '無'}、"
-                    f"連續失敗 {int(h.get('consecutive_fail') or 0)} 天（應有 {exp_s}）",
+    cf = int(h.get("consecutive_fail") or 0)
+    ok = lake_date >= exp_s and cf < SOURCE_FAIL_RED
+    return gate(ok, f"ETF 成分股湖內最新 {lake_date}（應有 {exp_s}）、來源連續失敗 {cf} 天"
+                    f"（紅線 {SOURCE_FAIL_RED} 天）、來源最後成功紀錄 {h.get('last_ok_date') or '無'}",
                 [SOURCE_HEALTH_FILE.name])
 
 
-def etf_notice_gate(health: dict | None, exp_s: str) -> dict:
-    """ETF 除權息預告：不看湖（湖裡的日期是除息日，不是抓到的日期），只看 source_health 的最後成功日。
-    端點回應但當天沒有 ETF 列是正常的，那種情況 raw_ok 仍為 true，last_ok_date 照樣會前進。"""
+def etf_notice_gate(health: dict | None, exp_s: str, prev_s: str | None = None) -> dict:
+    """ETF 除權息預告：不看湖（湖裡的日期是除息日，不是抓到的日期），只看 source_health。
+    source_health 的日期鍵是 run 的 trade_date（openapi T-1），比應有日慢一個交易日，所以「最後成功日」容忍到前一交易日
+    （prev_s）；連續失敗達 SOURCE_FAIL_RED 天才紅。端點回應但當天沒有 ETF 列是正常的，raw_ok 仍為 true。"""
     if health is None:
         return gate(None, "查不到 source_health")
     h = health.get(ETF_NOTICE_SRC) or {}
     last_ok = h.get("last_ok_date")
-    ok = last_ok is not None and last_ok >= exp_s
-    return gate(ok, f"ETF 除權息預告來源最後成功 {last_ok or '無'}、連續失敗 {int(h.get('consecutive_fail') or 0)} 天"
-                    f"（應有 {exp_s}）", [SOURCE_HEALTH_FILE.name])
+    cf = int(h.get("consecutive_fail") or 0)
+    need = prev_s or exp_s
+    ok = last_ok is not None and last_ok >= need and cf < SOURCE_FAIL_RED
+    return gate(ok, f"ETF 除權息預告來源最後成功 {last_ok or '無'}、連續失敗 {cf} 天"
+                    f"（應有 {exp_s}，最後成功容忍到 {need}）", [SOURCE_HEALTH_FILE.name])
 
 
 def _month_index(ym: str) -> int:
@@ -260,7 +271,7 @@ def etf_monthly_gate(lake_month_end: str | None, exp_s: str) -> dict:
     return gate(ok, f"ETF 月資料最新 {lake_month_end[:7]}，落後 {max(lag, 0)} 個月（容許 {ETF_MONTH_TOLERANCE}）")
 
 
-def etf_screen_gate(screen: dict | None, exp_s: str) -> dict:
+def etf_screen_gate(screen: dict | None, exp_s: str, cf_ok: bool = False) -> dict:
     """ETF 畫面日：兩個站各自的 etf.json（價量日）與 etf_holdings.json（成分股基準日）都要 ＝ 應有日。
     讀不到就是不過（不准當綠），兩站各自的日期都寫進說明。"""
     if not screen:
@@ -269,6 +280,9 @@ def etf_screen_gate(screen: dict | None, exp_s: str) -> dict:
     for key, label in (("liguligu", "主站"), ("gh_pages", "備援")):
         s = screen.get(key) or {}
         if s.get("etf_error") or s.get("etf_asof") is None or s.get("etf_hold_asof") is None:
+            if key == "liguligu" and s.get("etf_http_status") == 403 and cf_ok:
+                parts.append("主站 403（執行環境讀不到 ETF 檔，改依 Cloudflare 部署紀錄）")
+                continue
             ok = False
             parts.append(f"{label}讀不到 ETF 檔（{s.get('etf_error') or '沒有 asof'}）")
             continue
@@ -299,7 +313,8 @@ def collect_screen(http) -> dict:
     out: dict = {}
     for key, base in SITE_FILES.items():
         s: dict = {"data_date": None, "inst_date": None, "inst_market_latest": None, "error": None,
-                   "etf_asof": None, "etf_hold_asof": None, "etf_error": None}
+                   "etf_asof": None, "etf_hold_asof": None, "etf_error": None,
+                   "http_status": None, "etf_http_status": None}
         try:
             meta = http(base + "meta.json") or {}
             s["data_date"] = meta.get("data_date")
@@ -307,11 +322,13 @@ def collect_screen(http) -> dict:
             s["inst_market_latest"] = (http(base + "inst_market.json") or {}).get("latest")
         except Exception as e:  # noqa: BLE001 - 讀不到就記下來，關卡判不過
             s["error"] = str(e)[:200]
+            s["http_status"] = getattr(e, "code", None)
         try:
             s["etf_asof"] = (http(base + "etf.json") or {}).get("asof")
             s["etf_hold_asof"] = (http(base + "etf_holdings.json") or {}).get("asof")
         except Exception as e:  # noqa: BLE001
             s["etf_error"] = str(e)[:200]
+            s["etf_http_status"] = getattr(e, "code", None)
         out[key] = s
     return out
 
@@ -495,7 +512,9 @@ def site_gate(site: dict, compare_fn, now: datetime) -> dict:
         st = compare_fn(site["cf"], site["gh_pages"])
         if st == "ahead":
             ok, why = False, why + "；主站比備援站舊"
-    return gate(ok, why, [site.get("gh_pages") or "", site.get("cf") or ""])
+    g = gate(ok, why, [site.get("gh_pages") or "", site.get("cf") or ""])
+    g["cf_ok"] = bool(res.get("cf", (False, ""))[0])   # 畫面關卡判主站 403 時用（只看 Cloudflare 那一站）
+    return g
 
 
 # ---------------------------------------------------------------- 三關（純函式，可測）
@@ -614,7 +633,9 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
     health_g = by(gate(not (last.get("errors") or []) and not bad_src,
                        f"last_run 錯誤 {len(last.get('errors') or [])} 筆；連續失敗來源 {bad_src or '無'}",
                        [LAST_RUN_FILE.name, SOURCE_HEALTH_FILE.name]), DATA_DEADLINE)
-    screen_g = by(screen_gate(f.get("screen"), exp_s), DATA_DEADLINE)
+    site_g = site_result.get("site") or {}
+    cf_ok = bool(site_g.get("cf_ok"))
+    screen_g = by(screen_gate(f.get("screen"), exp_s, cf_ok), DATA_DEADLINE)
     run_g = by(round_gate(f["runs"].get("daily.yml"), at_tpe(expected, time(15, 0)), "daily.yml", holidays),
                PRICE_DEADLINE)
     # 網站那一項的「內容」沿用同一套（價量／法人／融資券／來源健康）
@@ -623,9 +644,10 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
     # ETF 四關（各自 21:40 截止；未到截止＝還沒到，不紅）。成分股與除權息預告是 full 輪的產出，
     # 所以補救也是派 daily.yml phase=full（同一個補救，不另開）。
     etf_hold_g = by(etf_holdings_gate(lake.get("etf_holdings"), f.get("source_health"), exp_s), ETF_DEADLINE)
-    etf_notice_g = by(etf_notice_gate(f.get("source_health"), exp_s), ETF_DEADLINE)
+    etf_notice_g = by(etf_notice_gate(f.get("source_health"), exp_s, prev_trading_day(expected, holidays).isoformat()),
+                      ETF_DEADLINE)
     etf_month_g = by(etf_monthly_gate(lake.get("etf_holdings_monthly"), exp_s), ETF_DEADLINE)
-    etf_screen_g = by(etf_screen_gate(f.get("screen"), exp_s), ETF_DEADLINE)
+    etf_screen_g = by(etf_screen_gate(f.get("screen"), exp_s, cf_ok), ETF_DEADLINE)
     finish("data", "每日資料更新（價量／法人／融資券／ETF）", True, at_tpe(expected, DATA_DEADLINE), {
         "run": run_g, "price": price_g, "inst": inst_g, "margin": margin_g,
         "health": health_g, "screen": screen_g,
@@ -736,16 +758,26 @@ def evaluate(f: dict, holidays: set[str], site_result: dict, now: datetime) -> l
     # Meta 權杖：剩 7 天以下或驗證失敗就要續期
     m = f.get("meta") or {}
     plats = m.get("platforms") or {}
-    worst = []
+    worst, unset = [], []
     for name, p in plats.items():
-        dl = p.get("days_left")
-        if not p.get("ok") or dl is None or dl < META_DAYS_RED:
-            worst.append(f"{name} 剩 {dl} 天／ok={p.get('ok')}")
+        st, dl, okk = p.get("status"), p.get("days_left"), p.get("ok")
+        if st == "missing":
+            # 沒設 Secret＝未啟用（例如頻道② 還沒收件），不是壞掉，不算紅（三態：未設定／還沒到／壞了 分開記）
+            unset.append(name)
+            continue
+        if not okk:
+            # 即時驗證失敗：meta_token_refresh 的 check 打了 Meta API 而被拒（status=check-fail）。
+            # 剩餘天數是「上次記下的到期日」，不能拿來證明權杖還能用，所以即使剩 59 天也紅。
+            worst.append(f"{name} 即時驗證失敗（{st or '未知'}，記下的到期日還剩 {dl} 天）")
+        elif dl is not None and dl < META_DAYS_RED:
+            worst.append(f"{name} 剩 {dl} 天")
+        # okk 且 dl 為 None＝fb-no-secret（讀不到到期日，但每天驗證一次有通過），合法，不算紅
+    why_ok = "權杖正常" + (f"（未設定、不算紅：{'、'.join(unset)}）" if unset else "")
     finish("meta", "Meta 權杖（剩餘天數）", True, None, {
         # 權杖檔的 updated_at 最近兩天內有寫過，代表續期流程有在跑（meta_token_refresh 不是每天跑）
         "run": gate(_within(m.get("updated_at"), now, timedelta(days=2)),
                     f"權杖檔更新於 {m.get('updated_at')}", [str(METATOKEN_FILE.name)]),
-        "content": gate(bool(plats) and not worst, "權杖正常" if not worst else "；".join(worst),
+        "content": gate(bool(plats) and not worst, why_ok if not worst else "；".join(worst),
                         [str(METATOKEN_FILE.name)]),
         "publish": gate(True, "不適用（權杖不發布）"),
     }, remedy={"action": "dispatch", "workflow": "meta_token_refresh.yml", "inputs": {}})
