@@ -96,6 +96,7 @@ def table_page(label, pg, title, rows, foot, lab_w=210, lab_f=50, val_f=44, tag=
 
 
 def foot2(lines):
+    if not lines: return "<div style='height:22px;flex:none'></div>"
     return (f"<div style='margin:auto 48px 34px;border-top:2px solid {LINE};padding-top:10px;font-size:26px;color:{GREY};line-height:36px;flex:none'>" + "<br>".join(lines) + "</div>")
 
 
@@ -241,7 +242,76 @@ def ill_salary_v3():
 </svg>"""
 
 
-ARTICLES["t01v4"] = dict(company="台積電", pill="透明說", sub=["第一大企業，", "平均年薪卻不是第一？"], icon="cup", photo=os.environ.get("TC_COVER_PHOTO", ""), label="待遇透明圈", pages=[])
+# ---------------- t01v4 內頁：上市／上櫃前 15 名（LOGO＋平均＋中位數並排長條）＋為什麼台積電不是第一 ----------------
+import base64 as _b64
+
+
+def _logo_tag(code, name, has):
+    d = Path(os.environ.get("TC_LOGO_DIR", "/nonexistent")) / f"{code}.png"
+    if has and d.is_file():
+        from PIL import Image as _I
+        im = _I.open(d).convert("RGBA"); _bg = _I.new("RGBA", im.size, "#fff"); _bg.alpha_composite(im)
+        from PIL import ImageChops as _C
+        bb = _C.difference(_bg.convert("RGB"), _I.new("RGB", im.size, "#fff")).convert("L").point(lambda v: 255 if v > 25 else 0).getbbox() or im.getchannel("A").getbbox()   # 去掉透明或白色留邊，只留真正的圖形
+        if bb: im = im.crop(bb)
+        w0, h0 = im.size; k = min(1.5, 60 / w0, 44 / h0, max(44 / h0, 1)) if w0 >= h0 else min(1.5, 44 / h0)   # 原色原比例；不放大超過 1.5 倍
+        k = min(k, 1.5, 60 / w0, 46 / h0)
+        _o = io.BytesIO(); im.save(_o, "PNG")
+        return f"<img src='data:image/png;base64,{_b64.b64encode(_o.getvalue()).decode()}' width='{round(w0*k)}' height='{round(h0*k)}' style='display:block'>"
+    return f"<div style='width:52px;height:44px;border-radius:8px;background:#9AA7BC;color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;white-space:nowrap'>{name[:2]}</div>"   # 沒有 LOGO：同尺寸灰底字標
+
+
+IND_FINE = {"2454": "IC設計（手機晶片）", "5269": "IC設計（高速傳輸）", "2330": "晶圓代工", "2379": "IC設計（網通）", "6526": "IC設計（藍牙・網通）", "7769": "半導體設備（測試分選機）", "3034": "面板IC設計", "3443": "ASIC設計服務", "3592": "面板IC設計", "4961": "面板IC設計", "6669": "伺服器系統廠", "2317": "電子代工・組裝", "2207": "汽車代理", "2548": "建設", "3014": "IC設計（電腦控制晶片）", "5274": "IC設計（伺服器管理晶片）", "3293": "遊戲開發", "3529": "矽智財（IP）", "3227": "IC設計（光學感測）", "6186": "建設", "8299": "IC設計（記憶體控制晶片）", "6996": "面板IC設計（車用）", "6104": "IC設計（USB晶片）", "6561": "資料中心", "6643": "矽智財（IP）", "3131": "半導體設備（濕製程）", "6411": "IC設計（靜電保護）", "3260": "記憶體模組", "3526": "連接器", "6435": "IC設計（功率元件）"}
+
+
+def _ind_html(code, fallback):
+    t = IND_FINE.get(code, fallback)
+    if '（' in t:
+        a, b = t.split('（', 1)
+        return f"<div style='line-height:28px'>{a}<div style='font-size:21px;font-weight:700;line-height:24px'>（{b}</div></div>"
+    return t
+
+
+def v4_rank(key, title, foot_lines, hi_code="2330"):
+    data = json.load(open(os.environ.get("TC_RANK_JSON", "/tmp/claude-0/-home-user-tw-rotation/1662701f-8abb-57a6-b66d-4e0b4e90dd73/scratchpad/tc_plan/rank_top15.json")))[key]
+    mx = max(r["avg"] for r in data); W = 204
+    rows = ""
+    for r in data:
+        hi = r["code"] == hi_code
+        bg = f"background:{TINT};" if hi else ""
+        bar = (f"<div style='width:{W}px;flex:none'><div style='height:16px;width:{r['avg']/mx*W:.0f}px;background:{BLUE};border-radius:8px'></div>"
+               f"<div style='height:10px;width:{r['median']/mx*W:.0f}px;background:#9DBFF7;border-radius:5px;margin-top:5px'></div></div>")
+        rows += (f"<div style='display:flex;align-items:center;flex:1;border-top:2px solid {LINE};{bg}padding:0 12px;position:relative'>"
+                 + (f"<div style='position:absolute;left:0;top:6px;bottom:6px;width:6px;border-radius:3px;background:{BLUE}'></div>" if hi else "")
+                 + f"<div class='n' style='width:50px;font-size:26px;color:{BLUE}'>{r['rank']}</div><div style='width:78px;flex:none;display:flex;justify-content:flex-start;padding-right:10px;box-sizing:border-box'>{_logo_tag(r['code'], r['name'], r['logo'])}</div>"
+                 f"<div style='width:126px;font-size:{28 if len(r['name']) <= 3 else 25}px;font-weight:900;white-space:nowrap'>{r['name']}</div>"
+                 f"<div style='width:216px;font-size:20px;font-weight:700;color:#6B7A92;white-space:nowrap'>{_ind_html(r['code'], r['industry'])}</div>{bar}"
+                 f"<div style='margin-left:10px;width:134px;font-size:30px;font-weight:900;text-align:right;white-space:nowrap' class='n'>{r['avg']}<span style='font-size:20px'>萬</span></div>"
+                 f"<div style='margin-left:6px;width:112px;font-size:24px;font-weight:700;color:#7C8AA3;text-align:right;white-space:nowrap' class='n'>{r['median']}<span style='font-size:16px'>萬</span></div></div>")
+    head = (f"<div style='display:flex;align-items:center;padding:0 12px;height:44px;font-size:22px;font-weight:700;color:#8793A8;white-space:nowrap'><div style='width:50px;white-space:nowrap'>名次</div><div style='width:78px'></div><div style='width:126px'>公司</div><div style='width:216px'>細分類</div>"
+            f"<div style='width:226px;display:flex;align-items:center;gap:8px;font-size:18px;white-space:nowrap'><span style='display:inline-block;width:16px;height:12px;background:{BLUE};border-radius:3px'></span>平均<span style='display:inline-block;width:16px;height:9px;background:#9DBFF7;border-radius:3px;margin-left:8px'></span>中位數</div><div style='width:144px;text-align:right'>平均</div><div style='width:118px;text-align:right'>中位數</div></div>")
+    return (f"{G['top']('待遇透明圈', '__PG__')}<div class='body' style='padding-top:20px'>"
+            f"<div style='font-size:56px;font-weight:900;line-height:74px;margin-top:4px;flex:none'>{title}</div>"
+            f"<div class='box' style='margin-top:10px;margin-bottom:16px;flex:1;display:flex;flex-direction:column;min-height:0;padding:0 12px'>{head}{rows}</div></div>{foot2(foot_lines)}")
+
+
+def v4_why(l, p):
+    def card(big, unit, line1, line2, src=None):
+        return (f"<div style='display:flex;align-items:center;gap:26px;flex:1;border-bottom:2px solid {LINE}' class='cd' ><div style='flex:none;width:330px'><div style='font-size:84px;font-weight:900;color:{BLUE};line-height:96px;white-space:nowrap' class='n'>{big}</div>"
+                f"<div style='font-size:28px;font-weight:800;color:{GREY}'>{unit}</div></div><div style='flex:1;min-width:0'><div style='font-size:32px;font-weight:800;line-height:46px'>{line1}</div>"
+                f"<div style='font-size:32px;font-weight:800;line-height:46px'>{line2}</div>" + (f"<div style='font-size:26px;font-weight:700;color:{GREY};line-height:36px;margin-top:4px'>{src}</div>" if src else "") + "</div></div>")
+    inner = (card("8.4萬", "台積電全球人數", "台積電約 8.4 萬人，技術人員約三成", "聯發科約 1.9 萬人，研發技術約 89%", None)
+             + card("316.2萬", "台積電中位數", "平均 407.2萬、中位數 316.2萬", "多數公司都是平均高於中位數")
+             + card("前 10", "名全是半導體", "第 11 名起才出現伺服器系統廠、", "電子代工、汽車、建設"))
+    end = f"<div style='background:{TINT};border-radius:20px;padding:22px 30px;font-size:36px;font-weight:800;line-height:52px;margin-bottom:6px'>之後會陸續整理各家公司的待遇行情，<br>一家一家攤開來看</div>"
+    return (f"{G['top'](l, p)}<div class='body' style='padding-top:20px'><div style='font-size:56px;font-weight:900;line-height:74px;margin-top:4px;flex:none'>為什麼台積電不是第一？</div>"
+            f"<div class='box' style='margin-top:10px;margin-bottom:16px;flex:1;display:flex;flex-direction:column;min-height:0;padding:0 28px'>{inner}</div>{end}</div><div style='height:22px;flex:none'></div>")
+
+
+ARTICLES["t01v4"] = dict(company="台積電", pill="透明說", sub=["第一大企業，", "平均年薪卻不是第一？"], icon="cup", photo=os.environ.get("TC_COVER_PHOTO", ""), label="待遇透明圈", pages=[
+    lambda l, p: v4_rank("上市", "上市・非主管平均年薪前 15", []).replace("__PG__", p),
+    lambda l, p: v4_rank("上櫃", "上櫃・非主管平均年薪前 15", [], hi_code="").replace("__PG__", p),
+    v4_why])
 ARTICLES["t01v3"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary_v3, label="待遇透明圈", pages=[])
 ARTICLES["t01v2"] = dict(company="年薪榜", pill="透明說", sub=["年薪 400 萬的真相，", "差在分紅"], icon="cup", ill=ill_salary, label="待遇透明圈",
                          pages=[v2_avg_med, v2_formula, v2_link, v2_ask, v2_src, v2_end])
