@@ -296,16 +296,29 @@ def v4_rank(key, title, foot_lines, hi_code="2330"):
 
 
 def v4_why(l, p):
-    def card(big, unit, line1, line2, src=None):
-        return (f"<div style='display:flex;align-items:center;gap:26px;flex:1;border-bottom:2px solid {LINE}' class='cd' ><div style='flex:none;width:330px'><div style='font-size:84px;font-weight:900;color:{BLUE};line-height:96px;white-space:nowrap' class='n'>{big}</div>"
-                f"<div style='font-size:28px;font-weight:800;color:{GREY}'>{unit}</div></div><div style='flex:1;min-width:0'><div style='font-size:32px;font-weight:800;line-height:46px'>{line1}</div>"
-                f"<div style='font-size:32px;font-weight:800;line-height:46px'>{line2}</div>" + (f"<div style='font-size:26px;font-weight:700;color:{GREY};line-height:36px;margin-top:4px'>{src}</div>" if src else "") + "</div></div>")
-    inner = (card("8.4萬", "台積電全球人數", "台積電約 8.4 萬人，技術人員約三成", "聯發科約 1.9 萬人，研發技術約 89%", None)
-             + card("316.2萬", "台積電中位數", "平均 407.2萬、中位數 316.2萬", "多數公司都是平均高於中位數")
-             + card("前 10", "名全是半導體", "第 11 名起才出現伺服器系統廠、", "電子代工、汽車、建設"))
-    end = f"<div style='background:{TINT};border-radius:20px;padding:22px 30px;font-size:36px;font-weight:800;line-height:52px;margin-bottom:6px'>之後會陸續整理各家公司的待遇行情，<br>一家一家攤開來看</div>"
-    return (f"{G['top'](l, p)}<div class='body' style='padding-top:20px'><div style='font-size:56px;font-weight:900;line-height:74px;margin-top:4px;flex:none'>為什麼台積電不是第一？</div>"
-            f"<div class='box' style='margin-top:10px;margin-bottom:16px;flex:1;display:flex;flex-direction:column;min-height:0;padding:0 28px'>{inner}</div>{end}</div><div style='height:22px;flex:none'></div>")
+    def para(tag, head, lines, extra=""):
+        ls = "".join(f"<div style='font-size:30px;font-weight:600;line-height:60px;color:{INK}'>・{t}</div>" for t in lines)
+        return (f"<div style='padding:0;flex:1;display:flex;flex-direction:column;justify-content:center'><div style='display:flex;align-items:center;gap:14px'><div style='background:{BLUE};color:#fff;font-size:26px;font-weight:900;padding:3px 18px;border-radius:22px;line-height:38px'>{tag}</div>"
+                f"<div style='font-size:36px;font-weight:900;line-height:56px'>{head}</div></div><div style='margin-top:14px'>{ls}</div>{extra}</div>")
+    # 示意圖：一條橫軸，中位數 316.2 與平均 407.2 兩點，中間標「被少數高薪拉高」
+    x0, x1, lo, hi = 190, 880, 316.2, 407.2
+    sc = lambda v: x0 + (v - 250) / (450 - 250) * (x1 - x0)
+    xm, xa = sc(lo), sc(hi)
+    F = "font-family='TCS,Noto Sans TC,sans-serif'"
+    dia = (f"<svg width='940' height='250' viewBox='0 0 940 250' xmlns='http://www.w3.org/2000/svg' style='display:block;margin:14px 0 0'>"
+           f"<rect x='0' y='88' width='150' height='62' rx='31' fill='{BLUE}'/><text x='75' y='130' text-anchor='middle' {F} font-size='34' font-weight='900' fill='#fff'>台積電</text>"
+           f"<line x1='{x0}' y1='119' x2='{x1}' y2='119' stroke='#B9CDEA' stroke-width='8' stroke-linecap='round'/>"
+           f"<line x1='{xm:.0f}' y1='119' x2='{xa:.0f}' y2='119' stroke='{ORG}' stroke-width='14' stroke-linecap='round'/>"
+           f"<circle cx='{xm:.0f}' cy='119' r='23' fill='#9DBFF7'/><circle cx='{xa:.0f}' cy='119' r='23' fill='{BLUE}'/>"
+           f"<text x='{xm:.0f}' y='56' text-anchor='middle' {F} font-size='32' font-weight='800' fill='{INK}'>中位數 316.2萬</text>"
+           f"<text x='{xa:.0f}' y='56' text-anchor='middle' {F} font-size='32' font-weight='800' fill='{INK}'>平均 407.2萬</text>"
+           f"<text x='{(xm+xa)/2:.0f}' y='206' text-anchor='middle' {F} font-size='34' font-weight='900' fill='#B85400'>被少數高薪拉高</text></svg>")
+    inner = (para("原因一", "員工組成不一樣", ["台積電 8.4 萬人，有很多晶圓廠的技術人員。", "聯發科 1.9 萬人，近九成是研發工程師。", "人越多、職種越廣，平均就越難衝到最高。"])
+             + f"<div style='border-top:2px solid {LINE};margin:0;flex:none'></div>"
+             + para("原因二", "平均會被上面的人拉高", ["資深、高職級的少數人領得多，把平均往上帶（二八法則）。", "中位數是排在正中間那個人，比較接近一般員工。", "上市、上櫃前 15 名共 30 家，29 家平均高於中位數。"], dia))
+    end = f"<div style='background:{TINT};border-radius:20px;padding:20px 30px;font-size:30px;font-weight:800;line-height:44px;margin-bottom:6px'>看待遇先看中位數。<br>之後會一家一家整理各公司的待遇行情。</div>"
+    return (f"{G['top'](l, p)}<div class='body' style='padding-top:20px'><div style='font-size:52px;font-weight:900;line-height:70px;margin-top:4px;flex:none'>台積電這麼大，為什麼不是第一？</div>"
+            f"<div class='box' style='margin-top:10px;margin-bottom:14px;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;padding:14px 30px'>{inner}</div>{end}</div><div style='height:22px;flex:none'></div>")
 
 
 ARTICLES["t01v4"] = dict(company="台積電", pill="透明說", sub=["第一大企業，", "平均年薪卻不是第一？"], icon="cup", photo=os.environ.get("TC_COVER_PHOTO", ""), label="待遇透明圈", pages=[
