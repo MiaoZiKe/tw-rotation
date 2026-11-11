@@ -10194,6 +10194,15 @@
     const n = IR_PERS.find(x => x[0] === per)[2];
     return { per, rows: n === Infinity ? rows : rows.slice(-n), all: rows, ok: (k) => !!eff(k), first: rows.length ? rows[0].d : '' };
   }
+  /* ★ 2026-11-11（Andy「加修訂值」）：主數字照舊＝證交所 15:00 首次公布版（DECISIONS #363，與新聞同口徑，不准改）；
+     晚間證交所會改一版（盤後交易補進去），inst_market.json 的 rev 欄＝{f,t,dl,tot} 晚間修訂值。
+     只在「該格修訂值存在、且四捨五入到 0.1 億後和主數字不同」時多一行小字，沒有或相同就完全不出現（不留空行）。 */
+  function irRevTag(row, k) {
+    const rv = row && row.rev && row.rev[k];
+    if (rv == null || isNaN(rv) || row[k] == null) return '';
+    if (irYi(rv) === irYi(row[k])) return '';
+    return `<span class="irev" data-k="${k}" data-v="${rv}">晚間修訂 <b class="num ${irCls(rv)}">${irYi(rv)}</b> 億</span>`;
+  }
   function renderInstReport(title, body, P, M) {
     const wrapAttrs = 'id="instToday" data-snap="inst-today"';
     const R = irRows(M);
@@ -10210,7 +10219,7 @@
     const cum0 = (key) => rows.reduce((s, r) => s + (r[key] || 0), 0), perLab0 = IR_PERS.find(x => x[0] === R.per)[1], nEst0 = rows.filter(r => r.est).length;
     const tiles = IR_WHO.concat([['tot', '三大法人合計', 'cyan']]).map(([k, l]) => {
       const p = pct(k);
-      return `<div class="itile" data-k="${k}" title="細條＝今天在近 1 年（${hist.length} 個交易日）每日淨買賣超裡的百分位，越高越偏買超${nEst0 ? `；含估算 ${nEst0} 天（官方值回補中）` : ''}"><span class="il">${l}</span><b class="iv num ${irCls(last[k])}">${irYi(last[k])} 億</b>
+      return `<div class="itile" data-k="${k}" title="細條＝今天在近 1 年（${hist.length} 個交易日）每日淨買賣超裡的百分位，越高越偏買超${nEst0 ? `；含估算 ${nEst0} 天（官方值回補中）` : ''}"><span class="il">${l}</span><b class="iv num ${irCls(last[k])}">${irYi(last[k])} 億</b>${irRevTag(last, k)}
         <span class="icu">${perLab0}累積 <b class="num ${irCls(cum0(k))}">${irYi(cum0(k))}</b> 億</span><span class="ipct"><span class="trk"><i style="width:${p}%"></i></span><em>${p}%</em></span></div>`;
     }).join('');
     const cum = (key) => rows.reduce((s, r) => s + (r[key] || 0), 0);
@@ -10664,7 +10673,7 @@
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
     inst: howHTML('三大法人今天買賣了多少、這段期間誰在加碼、買賣集中在哪幾檔。', [
       '期間鈕一次換掉圖、累積數字、明細表與個股元件',
-      '四格＝今天與期間累積的淨買賣超（億元），細條＝近 1 年百分位',
+      '四格＝今天與期間累積的淨買賣超（億元），細條＝近 1 年百分位；大字是證交所下午三點首次公布值（與新聞同），晚上證交所若改過數字，大字下方會多一行小字「晚間修訂」',
       '直條＝每天買賣超，線＝加權指數；累積線看誰長期在買賣',
       '三大法人＝外資、投信、自營商；外資看大錢、投信看建倉',
       '滑過圖或明細同一天亮；三者同向買超最順，外資賣投信買＝分歧',

@@ -4,6 +4,11 @@
 - 2026-11-11 上線：冷啟動（隱藏價格、試營運額度）＋手機四項＋新 ⑤C LOGO＋站名 LIGULIGU（Andy 11-10「可以，冷啟動和 LOGO 都推上線」「記得名稱改成大寫英文」）。驗：桌機守門1008、冷啟動1110（390 寬「即將開放」判定偶發空陣列，截圖確認未切，放行）、手機導流1110、手機按鈕普查（修副標類名衝突 m4sub→m4tagline；產業地圖 4 處切分段逾時為負載偶發、本批未動 industry）、手機總覽指數觀察清單、淺色／明亮主題、設定面板、會員與自選五分頁（☆ 偶發，單跑 0）、使用統計1109、_preview 全綠；品牌哩股哩股 supFab 逾時 main 同樣有，放行。上線後 Andy 需在 #admin/perm 按「套用建議方案」（先要截圖再給步驟）。
 - 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
 
+
+## 2026-11-11 三大法人四格加「晚間修訂」小字（frontend-ui；Andy：「加修訂值」）
+- #market/inst 四格主數字（首次公布版，DECISIONS #363）下方，該格 rev 存在且四捨五入到 0.1 億後與主數字不同才多一行「晚間修訂 ±xx.x 億」（site/app.js irRevTag；樣式 site/m4/20261111-修訂值.css）。compute 不用改：inst_market.json 的 rev 本來就是 {f,t,dl,tot} 逐類別。每日明細表不加（只動四格）。
+- 驗收：scripts/uitest_sections/20261111_法人修訂值.py（page.route 換最後一列 rev：A 部分類別有／B 全無／C 差 0.02／D 變號；1440＋390）；公告 f-20261111-inst-rev。這批只驗：法人修訂值1111、桌機守門1008（0）；當日法人1020、三大法人r3 各有 2／1 個既有失敗（期間「全部」筆數、點圖鎖定日、三塊寬度），改前後相同，與本批無關（本機 site/data 是舊快照）。
+
 ## 2026-11-10 17:25 台北 查「inst_daily／index_daily 還停 11/9」與「投信 11/9 +267.5 vs +313.12」（data-scraper，維修，沒改程式）
 - 問題2 根因＝排隊，不是壞掉：price 輪（15:38 台北派）連抓帶整站重算部署跑 1h27m，佔住 concurrency 群組 tw-rotation-data-write 到 17:06；期間 gh-cron 的 inst 每 10 分鐘派工都被「busyDailyRuns 守門」略過（設計如此，避免擠掉排隊中的 price／full）；被 GitHub 延遲 43 分鐘才建立的 07:37 排程 run 排在後面，17:06 才開跑、依時間掉進 phase=full，full 內含 inst。17:39 台北 full 抓完 commit：inst_daily 11/10 已進湖 1316 檔（freshness 標 thin，後續 inst 輪補齊）。
 - index_daily 是 openapi（T-1）來源，11/10 的官方指數要等 openapi 換日（晚間／隔日）才有，停 11/9 正常；11/10 大盤收盤走 index_ohlc（FinMind，已到 11/10）。
