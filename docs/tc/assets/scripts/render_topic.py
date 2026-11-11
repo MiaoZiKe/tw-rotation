@@ -254,11 +254,11 @@ def _logo_tag(code, name, has):
         from PIL import ImageChops as _C
         bb = _C.difference(_bg.convert("RGB"), _I.new("RGB", im.size, "#fff")).convert("L").point(lambda v: 255 if v > 25 else 0).getbbox() or im.getchannel("A").getbbox()   # 去掉透明或白色留邊，只留真正的圖形
         if bb: im = im.crop(bb)
-        w0, h0 = im.size; k = min(1.5, 60 / w0, 44 / h0, max(44 / h0, 1)) if w0 >= h0 else min(1.5, 44 / h0)   # 原色原比例；不放大超過 1.5 倍
-        k = min(k, 1.5, 60 / w0, 46 / h0)
+        w0, h0 = im.size; k = min(1.5, 40 / h0)   # 原色原比例；不放大超過 1.5 倍
+        k = min(k, 1.5, 56 / w0, 40 / h0)
         _o = io.BytesIO(); im.save(_o, "PNG")
         return f"<img src='data:image/png;base64,{_b64.b64encode(_o.getvalue()).decode()}' width='{round(w0*k)}' height='{round(h0*k)}' style='display:block'>"
-    return f"<div style='width:52px;height:44px;border-radius:8px;background:#9AA7BC;color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;white-space:nowrap'>{name[:2]}</div>"   # 沒有 LOGO：同尺寸灰底字標
+    return f"<div style='width:46px;height:40px;border-radius:8px;background:#9AA7BC;color:#fff;font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;white-space:nowrap'>{name[:2]}</div>"   # 沒有 LOGO：同尺寸灰底字標
 
 
 IND_FINE = {"2454": "IC設計（手機晶片）", "5269": "IC設計（高速傳輸）", "2330": "晶圓代工", "2379": "IC設計（網通）", "6526": "IC設計（藍牙・網通）", "7769": "半導體設備（測試分選機）", "3034": "面板IC設計", "3443": "ASIC設計服務", "3592": "面板IC設計", "4961": "面板IC設計", "6669": "伺服器系統廠", "2317": "電子代工・組裝", "2207": "汽車代理", "2548": "建設", "3014": "IC設計（電腦控制晶片）", "5274": "IC設計（伺服器管理晶片）", "3293": "遊戲開發", "3529": "矽智財（IP）", "3227": "IC設計（光學感測）", "6186": "建設", "8299": "IC設計（記憶體控制晶片）", "6996": "面板IC設計（車用）", "6104": "IC設計（USB晶片）", "6561": "資料中心", "6643": "矽智財（IP）", "3131": "半導體設備（濕製程）", "6411": "IC設計（靜電保護）", "3260": "記憶體模組", "3526": "連接器", "6435": "IC設計（功率元件）"}
@@ -313,15 +313,15 @@ def v4_why(l, p):
            f"<text x='{xm:.0f}' y='56' text-anchor='middle' {F} font-size='32' font-weight='800' fill='{INK}'>中位數 316.2萬</text>"
            f"<text x='{xa:.0f}' y='56' text-anchor='middle' {F} font-size='32' font-weight='800' fill='{INK}'>平均 407.2萬</text>"
            f"<text x='{(xm+xa)/2:.0f}' y='206' text-anchor='middle' {F} font-size='34' font-weight='900' fill='#B85400'>被少數高薪拉高</text></svg>")
-    inner = (para("原因一", "員工組成不一樣", ["台積電 8.4 萬人，有很多晶圓廠的技術人員。", "聯發科 1.9 萬人，近九成是研發工程師。", "人越多、職種越廣，平均就越難衝到最高。"])
+    inner = (para("原因一", "員工組成不一樣", ["台積電全集團 8.4 萬人，有很多晶圓廠的技術人員。", "聯發科 1.9 萬人，近九成是研發及技術人員。", "人多、職種廣，是平均沒那麼高的原因之一。"])
              + f"<div style='border-top:2px solid {LINE};margin:0;flex:none'></div>"
-             + para("原因二", "平均會被上面的人拉高", ["資深、高職級的少數人領得多，把平均往上帶（二八法則）。", "中位數是排在正中間那個人，比較接近一般員工。", "上市、上櫃前 15 名共 30 家，29 家平均高於中位數。"], dia))
+             + para("原因二", "平均會被上面的人拉高", ["非主管裡，資深、職級高的少數人領得多，會把平均往上帶。", "中位數是排在正中間那個人，比較接近一般員工。", "上市、上櫃前 15 名共 30 家，29 家平均高於中位數。"], dia))
     end = f"<div style='background:{TINT};border-radius:20px;padding:20px 30px;font-size:30px;font-weight:800;line-height:44px;margin-bottom:6px'>看待遇先看中位數。<br>之後會一家一家整理各公司的待遇行情。</div>"
     return (f"{G['top'](l, p)}<div class='body' style='padding-top:20px'><div style='font-size:52px;font-weight:900;line-height:70px;margin-top:4px;flex:none'>台積電這麼大，為什麼不是第一？</div>"
             f"<div class='box' style='margin-top:10px;margin-bottom:14px;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;padding:14px 30px'>{inner}</div>{end}</div><div style='height:22px;flex:none'></div>")
 
 
-ARTICLES["t01v4"] = dict(company="台積電", pill="透明說", sub=["第一大企業，", "平均年薪卻不是第一？"], icon="cup", photo=os.environ.get("TC_COVER_PHOTO", ""), label="待遇透明圈", pages=[
+ARTICLES["t01v4"] = dict(company="台積電", pill="透明說", sub=["市值第一大企業，", "平均年薪卻不是第一？"], icon="cup", photo=os.environ.get("TC_COVER_PHOTO", ""), label="待遇透明圈", pages=[
     lambda l, p: v4_rank("上市", "上市・非主管平均年薪前 15", []).replace("__PG__", p),
     lambda l, p: v4_rank("上櫃", "上櫃・非主管平均年薪前 15", [], hi_code="").replace("__PG__", p),
     v4_why])
