@@ -155,8 +155,10 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
       L.tag.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`; L.on = true;
       const th = dist < 15 ? 38 : dist < 34 ? 24 : 18;
       if (c.speech) {
-        if (L.txt !== c.speech.text) { L.bub.textContent = c.speech.text; L.txt = c.speech.text; L.bub.className = 'bub ' + (c.speech.kind || ''); }
-        L.bub.style.transform = `translate(${x}px,${y - th - 10}px) translate(-50%,-100%)`; L.bon = true;
+        if (L.txt !== c.speech.text) { L.bub.textContent = c.speech.text; L.txt = c.speech.text; L.bub.className = 'bub ' + (c.speech.kind || ''); L.bw = L.bub.offsetWidth; L.bh = L.bub.offsetHeight; }
+        // 泡泡不超出畫面左右，也不蓋到最上面的工具列
+        const bx = Math.max(L.bw / 2 + 6, Math.min(w - L.bw / 2 - 6, x)), by = Math.max(L.bh + (w < 640 ? 100 : 60), y - th - 10);
+        L.bub.style.transform = `translate(${bx}px,${by}px) translate(-50%,-100%)`; L.bon = true;
       } else if (L.bon) { L.bub.style.transform = 'translate(-999px,-999px)'; L.bon = false; L.txt = ''; }
       if (c.emoteSym && !c.speech) {
         if (L.sym !== c.emoteSym.sym) { L.emo.textContent = c.emoteSym.sym; L.sym = c.emoteSym.sym; L.emo.className = 'emo' + (c.emoteSym.sym === '怒' ? ' hot' : ''); }
