@@ -27,7 +27,7 @@ export function softMat(o, sh) {
       .replace('#include <project_vertex>', 'vec4 wPos = modelMatrix * vec4(transformed,1.0); float gd = uGround - wPos.y; if (gd > 0.0) wPos.y = uGround - gd*0.06;\n vec4 mvPosition = viewMatrix * wPos; gl_Position = projectionMatrix * mvPosition;');
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt;\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
-      .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*uTint, uTintAmt);')
+      .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, uTint, uTintAmt);')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         float fr = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4);
         #ifdef USE_FACE
@@ -37,7 +37,7 @@ export function softMat(o, sh) {
           float fm = step(0.0,fuv.x)*step(fuv.x,1.0)*step(0.0,fuv.y)*step(fuv.y,1.0)*step(-0.15, fd.z);
           fc *= fm;
           vec3 fcol = pow(fc.rgb / max(fc.a, 1e-3), vec3(2.2));
-          diffuseColor.rgb = mix(diffuseColor.rgb, fcol, fc.a * (1.0 - 0.75*step(0.5,uFaceGlow)));
+          diffuseColor.rgb = mix(diffuseColor.rgb, fcol * (1.0 - 0.7*step(0.5,uFaceGlow)), fc.a);
           float dark = fc.a * (1.0 - dot(fcol, vec3(0.333)));
           roughnessFactor = mix(roughnessFactor, 0.14, clamp(dark*uFaceGloss + fc.a*step(0.5,uFaceGlow)*0.8, 0.0, 1.0));
           totalEmissiveRadiance += fcol * fc.a * uFaceGlow;
@@ -73,11 +73,11 @@ export const CHARS = [
   {
     id: 'mochi', name: '糰糰', sub: '麻糬糰子', why: '一顆會彈的糰子：頭就是身體，最大的臉、最誇張的擠壓伸展',
     R: 0.36, walk: 1.5, run: 3.5, jumpV: 5.7, stride: [0.42, 0.9], lat: 0.15, footFwd: 0.2, footSize: [0.082, 0.062, 0.1], handR: 0.062,
-    hand: [0.5, 0.27, 0.06], front: 0.4, cheek: [0.26, 0.3, 0.36], waddle: 0.085, bob: 0.03, wob: 1.25, mouth: [0, 0.24, 0.42], top: 0.72,
+    stick: [0.475, 0.37, 0.445, 0.335], hand: [0.45, 0.2, 0.17], front: 0.4, cheek: [0.26, 0.3, 0.36], waddle: 0.085, bob: 0.03, wob: 1.25, mouth: [0, 0.24, 0.42], top: 0.72,
     faceUp: 0.14, face: { ex: 92, ey: 262, rx: 36, ry: 47, my: 322, mw: 17, line: 7, wmouth: true, eye: '#3a2622', eye2: '#6e4638', blush: '255,132,140' },
     build(c) {
       const col = 0xffe9d6, acc = 0xffbfa6;
-      const m = softMat({ color: 0xffc9ad, top: 0xfff1e2, y0: -0.36, y1: 0.25, sss: 0xff8f6e, sssAmt: 0.34, face: c.face, headC: [0, 0.0, 0], span: [2.2, 2.2] }, c.sh);
+      const m = softMat({ color: 0xffc9ad, top: 0xfff1e2, y0: -0.36, y1: 0.25, sss: 0xff8f6e, sssAmt: 0.27, face: c.face, headC: [0, 0.0, 0], span: [2.2, 2.2] }, c.sh);
       const body = new THREE.Mesh(blobGeo(v => { const y = v.y, b = 1 + 0.15 * sstep(0.4, -0.7, y); v.set(v.x * 0.455 * b, y * (y > 0 ? 0.385 : 0.345), v.z * 0.425 * b); }), m);
       body.position.y = 0.335; c.main = body; c.deform.add(body);
       const em = softMat({ color: acc, top: col, y0: -0.4, y1: 0.9, sss: 0xff8f6e }, c.sh);
@@ -95,20 +95,20 @@ export const CHARS = [
   {
     id: 'bean', name: '豆芽', sub: '豆子小人', why: '豆子身體＋真的會踩步的小腳：走路、跑步、急停最有戲',
     R: 0.3, walk: 1.6, run: 3.9, jumpV: 5.9, stride: [0.5, 1.15], lat: 0.105, footFwd: 0.02, footSize: [0.075, 0.058, 0.105], handR: 0.058,
-    hand: [0.335, 0.36, 0.04], front: 0.3, cheek: [0.2, 0.52, 0.27], waddle: 0.05, bob: 0.035, wob: 0.8, mouth: [0, 0.47, 0.3], top: 0.95, legs: true,
-    face: { ex: 70, ey: 268, rx: 26, ry: 34, my: 312, mw: 14, eye: '#2f2a26', eye2: '#5a4a3c', blush: '255,140,150' },
+    hand: [0.35, 0.33, 0.04], front: 0.31, cheek: [0.21, 0.5, 0.28], waddle: 0.05, bob: 0.035, wob: 0.8, mouth: [0, 0.44, 0.31], top: 0.9, legs: true, tintK: 0.5,
+    faceUp: 0.1, face: { ex: 88, ey: 262, rx: 35, ry: 45, my: 320, mw: 16, line: 7, eye: '#2f2a26', eye2: '#5a4a3c', blush: '255,140,150' },
     build(c) {
-      const m = softMat({ color: 0xbfe6c4, top: 0xe6f8e2, y0: -0.4, y1: 0.35, sss: 0x6fcf9a, sssAmt: 0.3, rim: 0xf6fff0, face: c.face, headC: [0, 0.12, 0], span: [2.1, 2.1] }, c.sh);
-      const body = new THREE.Mesh(blobGeo(v => { const y = v.y, rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.7) / rh, w = 1 + 0.1 * y - 0.05 * Math.exp(-Math.pow((y + 0.1) / 0.3, 2)); v.set(v.x * k * 0.315 * w, Math.sign(y) * Math.pow(Math.abs(y), 0.92) * 0.415, v.z * k * 0.29 * w); }), m);
-      body.position.y = 0.415 + 0.085; c.main = body; c.deform.add(body);
+      const m = softMat({ color: 0xbfe6c4, top: 0xe6f8e2, y0: -0.4, y1: 0.35, sss: 0x6fcf9a, sssAmt: 0.3, rim: 0xf6fff0, face: c.face, headC: [0, 0.07, 0], span: [2.1, 2.1] }, c.sh);
+      const body = new THREE.Mesh(blobGeo(v => { const y = v.y, rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.7) / rh, w = 1 + 0.1 * y - 0.05 * Math.exp(-Math.pow((y + 0.1) / 0.3, 2)); v.set(v.x * k * 0.335 * w, Math.sign(y) * Math.pow(Math.abs(y), 0.92) * 0.375, v.z * k * 0.305 * w); }), m);
+      body.position.y = 0.375 + 0.085; c.main = body; c.deform.add(body);
       const lm = softMat({ color: 0x6fca82, top: 0xa6e6a0, y0: -1, y1: 1, sss: 0x9be070, sssAmt: 0.4 }, c.sh);
-      const piv = new THREE.Group(); piv.position.set(0, 0.5 + 0.4, 0); c.deform.add(piv);
+      const piv = new THREE.Group(); piv.position.set(0, 0.46 + 0.36, 0); piv.scale.setScalar(1.3); c.deform.add(piv);
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.02, 0.15, 14), lm); stem.position.y = 0.06; piv.add(stem);
       for (const [s, sc] of [[1, 1], [-1, 0.72]]) { const l = new THREE.Mesh(ball(), lm); l.scale.set(0.105 * sc, 0.022, 0.06 * sc); l.position.set(s * 0.085 * sc, 0.135 + 0.02 * sc, 0); l.rotation.z = s * 0.5; piv.add(l); }
       c.apps.push({ piv, side: 0, k: 110, c: 6.5, g: 0.03, gy: 0, rest: [0, 0], droop: 0, bend: 0.5 });
       c.limbMat = softMat({ color: 0xfff3da, top: 0xfffaf0, y0: 0, y1: 1.2, sss: 0xffb070 }, c.sh);
       c.legMat = softMat({ color: 0xa9dcb2, top: 0xbfe6c4, y0: -1, y1: 1, sss: 0x6fcf9a }, c.sh);
-      c.hip = [0.1, 0.17, 0]; c.shoulder = [0.27, 0.42, 0.02];
+      c.hip = [0.1, 0.17, 0]; c.shoulder = [0.28, 0.4, 0.02];
     },
   },
   {
@@ -118,7 +118,7 @@ export const CHARS = [
     face: { kind: 'screen', ex: 78, ey: 262, rx: 27, ry: 34, my: 312, mw: 15, glow: '#9ff4ff', blush: '255,140,190', blushAmt: 0.9, visor: { w: 392, h: 236, y: 152, r: 108, c0: '#1d2444', c1: '#303a6b' } },
     build(c) {
       const white = { color: 0xe6e6fb, top: 0xfdfcff, sss: 0xa9b6ff, sssAmt: 0.22, rim: 0xffffff, rough: 0.42 };
-      const m = softMat({ ...white, y0: -0.3, y1: 0.25, face: c.face, headC: [0, -0.02, 0], span: [2.35, 2.35], glow: 1.15 }, c.sh);
+      const m = softMat({ ...white, y0: -0.3, y1: 0.25, face: c.face, headC: [0, -0.02, 0], span: [2.35, 2.35], glow: 0.8 }, c.sh);
       const head = new THREE.Mesh(blobGeo(v => { const rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.86) / rh; v.set(v.x * k * 0.385, v.y * 0.315, v.z * k * 0.355); }), m);
       head.position.y = 0.58; c.main = head; c.deform.add(head);
       const bm = softMat({ ...white, y0: -0.2, y1: 0.2 }, c.sh);
@@ -126,7 +126,7 @@ export const CHARS = [
       torso.position.y = 0.2; c.deform.add(torso); c.extra.push(torso);
       const am = softMat({ color: 0x9db2ff, top: 0xc3d0ff, y0: -1, y1: 1, sss: 0x8a7bff, sssAmt: 0.3, rough: 0.45 }, c.sh);
       for (const s of [-1, 1]) { const e = new THREE.Mesh(ball(), am); e.scale.set(0.05, 0.105, 0.105); e.position.set(s * 0.375, 0.58, 0); c.deform.add(e); c.extra.push(e); }
-      const belt = new THREE.Mesh(ball(), am); belt.scale.set(0.07, 0.07, 0.03); belt.position.set(0, 0.22, 0.19); c.deform.add(belt);
+      const belt = new THREE.Mesh(ball(), am); belt.scale.set(0.05, 0.05, 0.025); belt.position.set(0, 0.23, 0.185); c.deform.add(belt);
       const piv = new THREE.Group(); piv.position.set(0, 0.58 + 0.3, 0); c.deform.add(piv);
       const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, 0.15, 12), bm); st.position.y = 0.07; piv.add(st);
       const tipM = softMat({ color: 0xffb3c8, top: 0xffd6e0, y0: -1, y1: 1, sss: 0xff6f9a, sssAmt: 0.6, rough: 0.35 }, c.sh);
@@ -264,7 +264,7 @@ export class Character {
     this.wob.x = clamp(this.wob.x + this.wobV.x * h, -0.5, 0.5); this.wob.z = clamp(this.wob.z + this.wobV.z * h, -0.5, 0.5);
     // 擠壓伸展彈簧（體積守恆在 syncGroups 做）
     let tgt = this.sqT;
-    if (this.jumpPrep > 0) tgt = -0.3; else if (!this.grounded && this.mode !== 'held') tgt = clamp(Math.abs(v.y) * 0.032, 0, 0.28); else if (this.mode === 'held') tgt = 0.1;
+    if (this.jumpPrep > 0) { tgt = -0.34; this.sqV -= 22 * h; } else if (!this.grounded && this.mode !== 'held') tgt = clamp(Math.abs(v.y) * 0.032, 0, 0.28); else if (this.mode === 'held') tgt = 0.1;
     this.sqV += (-190 * (this.sq - tgt) - 13.5 * this.sqV) * h; this.sq = clamp(this.sq + this.sqV * h, -0.55, 0.6);
     this.dentV += (-320 * this.dent - 11 * this.dentV) * h; this.dent += this.dentV * h;
     // 附屬物彈簧
@@ -306,7 +306,7 @@ export class Character {
     const dy = angDiff(ty, this.yaw), r = clamp(dy * 13, -15, 15); this.yawRate = lerp(this.yawRate, r, 1 - Math.exp(-h * 20)); this.yaw += this.yawRate * h;
     // 跳：先下蹲（預備動作）再起跳
     if (this.grounded) this.airT = 0; else this.airT += h;
-    if (this.jumpBuf > 0 && this.jumpPrep <= 0 && (this.grounded || this.airT < 0.1) && !lock && !this.hop) { this.jumpPrep = 0.105; this.jumpBuf = 0; this.idleT = 0; }
+    if (this.jumpBuf > 0 && this.jumpPrep <= 0 && (this.grounded || this.airT < 0.1) && !lock && !this.hop) { this.jumpPrep = 0.12; this.jumpBuf = 0; this.idleT = 0; }
     if (this.jumpPrep > 0) {
       this.jumpPrep -= h;
       if (this.jumpPrep <= 0) {
@@ -343,7 +343,7 @@ export class Character {
       if (out > 2.3) { v.y = out; this.grounded = false; this.sqV -= imp * 0.35; this.jumpBuf = 0; this.world.bounceTramp(imp); if (out > 7.5 && !this.emo) this.emote('whee', 0.9); return; }
     }
     this.hop = null;
-    this.sqV -= Math.min(imp, 13) * (s && s.soft ? 0.52 : 0.44);
+    this.sq = Math.min(this.sq, 0.03); this.sqV = -Math.min(imp, 13) * (s && s.soft ? 0.85 : 0.72);
     if (imp > 2.2) { this.fx.sfx('land', imp / 8); this.fx.burst('dust', _a.set(p.x, p.y + 0.05, p.z), imp > 5 ? 7 : 4, { speed: 0.5 + imp * 0.12, up: 0.25, life: 0.45, size: 0.2, grow: 2.2, drag: 3 }); }
     this.feet.forEach(f => { this.footHome(f, f.p); f.planted = true; f.sw = 1; f.yaw = this.yaw; });
     if (hop && s === hop.use.solid && hop.use.type === 'sit') { v.x = v.z = 0; p.x = hop.use.seat.x; p.z = hop.use.seat.z; this.yawTo = hop.use.yaw; this.mode = 'sit'; this.modeT = 0; }
@@ -429,13 +429,13 @@ export class Character {
           case 'happy': yOff = Math.abs(Math.sin(t * 7)) * 0.07; this.sqT = -0.05 + 0.1 * Math.abs(Math.sin(t * 7)); both(hx * 1.2, hy + 0.26, hz); appWig = 0.3; break;
           case 'laugh': this.sqT = Math.sin(t * 22) * 0.05 - 0.03; pitchT = -0.16; both(hx * 0.62, hy - 0.03, c.front * 0.92); yOff = Math.abs(Math.sin(t * 11)) * 0.03; appWig = 0.2; break;
           case 'surprised': this.sqT = 0.12; pitchT = -0.1; both(hx * 1.4, hy + 0.2, hz); appDroop = -0.5; break;
-          case 'angry': this.sqT = 0.03; pitchT = 0.14; tint = [1, 0.62, 0.58]; tintA = 0.75; both(hx * 1.12 + Math.sin(t * 30) * 0.012, hy - 0.08, hz - 0.03); appDroop = -0.3; rollT = Math.sin(t * 26) * 0.03; break;
-          case 'sad': this.sqT = -0.13; pitchT = 0.26; both(hx * 0.7, hy - 0.13, c.front * 0.75); appDroop = 1; rollT = Math.sin(t * 1.3) * 0.04; tint = [0.82, 0.88, 1.0]; tintA = 0.5; break;
+          case 'angry': this.sqT = 0.03; pitchT = 0.14; tint = [1, 0.45, 0.42]; tintA = 0.45; both(hx * 1.12 + Math.sin(t * 30) * 0.012, hy - 0.08, hz - 0.03); appDroop = -0.3; rollT = Math.sin(t * 26) * 0.03; break;
+          case 'sad': this.sqT = -0.11; pitchT = 0.17; both(hx * 0.7, hy - 0.13, c.front * 0.75); appDroop = 1; rollT = Math.sin(t * 1.3) * 0.04; tint = [0.72, 0.8, 1.0]; tintA = 0.3; break;
           case 'sleepy': this.sqT = -0.07 + Math.sin(t * 1.4) * 0.03; rollT = Math.sin(t * 0.9) * 0.12; pitchT = 0.1 + Math.sin(t * 0.7) * 0.06; setH(0, -hx * 0.95, hy - 0.08, hz); setH(1, c.cheek[0] * 0.9, c.cheek[1] + 0.06 + Math.sin(t * 5) * 0.015, c.cheek[2] + 0.05); appDroop = 0.6; break;
-          case 'shy': this.sqT = -0.05; yawAdd = Math.sin(t * 3.2) * 0.22; pitchT = 0.12; tint = [1, 0.8, 0.82]; tintA = 0.6; both(c.cheek[0], c.cheek[1] - 0.03, c.cheek[2] + 0.04); appDroop = 0.35; break;
+          case 'shy': this.sqT = -0.05; yawAdd = Math.sin(t * 3.2) * 0.22; pitchT = 0.12; tint = [1, 0.6, 0.68]; tintA = 0.3; both(c.cheek[0], c.cheek[1] - 0.03, c.cheek[2] + 0.04); appDroop = 0.35; break;
           case 'smug': this.sqT = 0.05; pitchT = -0.2; both(hx * 0.98, hy - 0.06, hz + 0.06); rollT = 0.05; break;
         }
-        else if (emo === 'angry') { tint = [1, 0.62, 0.58]; tintA = 0.75; } else if (emo === 'sad') appDroop = 1;
+        else if (emo === 'angry') { tint = [1, 0.45, 0.42]; tintA = 0.45; } else if (emo === 'sad') appDroop = 1;
       } else if (moving && expr === 'neutral') expr = runF > 0.5 ? 'whee' : 'look';
       // 腳步循環（相位由走過的距離推進 → 腳不滑）
       if (moving && !this.skid) {
@@ -463,7 +463,7 @@ export class Character {
           }
           case 'spin': yawAdd = sstep(0, 1, u) * Math.PI * 2; this.sqT = 0.08; both(hx * 1.3, hy + 0.1, 0); expr = 'happy'; break;
           case 'shake': yawAdd = Math.sin(u * Math.PI * 6) * 0.45 * (1 - u); expr = 'effort'; break;
-          case 'stomp': { expr = 'angry'; tint = [1, 0.62, 0.58]; tintA = 0.8; const st = Math.sin(a.t * 20); yOff += Math.abs(st) * 0.035; this.sqT = -0.06 * Math.max(0, st); both(hx * 1.15, hy - 0.1 + Math.abs(st) * 0.03, hz - 0.03); a.stomp = st; if ((a.f | 0) !== Math.floor(a.t * 6.4)) { a.f = Math.floor(a.t * 6.4); fx.sfx('step', 3); fx.spawn('dust', this.headTop(new V3()).add(_a.set((Math.random() - .5) * 0.4, -0.05, 0)), { v: new V3((Math.random() - .5) * 0.4, 0.9, 0), life: 0.6, size: 0.16, grow: 2.5 }); } break; }
+          case 'stomp': { expr = 'angry'; tint = [1, 0.45, 0.42]; tintA = 0.5; const st = Math.sin(a.t * 20); yOff += Math.abs(st) * 0.035; this.sqT = -0.06 * Math.max(0, st); both(hx * 1.15, hy - 0.1 + Math.abs(st) * 0.03, hz - 0.03); a.stomp = st; if ((a.f | 0) !== Math.floor(a.t * 6.4)) { a.f = Math.floor(a.t * 6.4); fx.sfx('step', 3); fx.spawn('dust', this.headTop(new V3()).add(_a.set((Math.random() - .5) * 0.4, -0.05, 0)), { v: new V3((Math.random() - .5) * 0.4, 0.9, 0), life: 0.6, size: 0.16, grow: 2.5 }); } break; }
           case 'yawn': { const b = sstep(0.1, 0.35, u) * (1 - sstep(0.7, 0.95, u)); if (b > 0.3) expr = 'yawn'; else expr = 'sleepy'; pitchT = -0.14 * b; this.sqT = 0.1 * b; setH(1, c.cheek[0] * 0.35, c.mouth[1] + 0.0, c.front + 0.07); HP[1].lerp(_a.set(hx, hy, hz), 1 - b); setH(0, -hx * (1 + 0.3 * b), hy + 0.22 * b, hz - 0.05); break; }
           case 'talk': expr = emo || 'happy'; setH(1, hx * 1.1, hy + 0.12 + Math.sin(t * 9) * 0.03, hz + 0.1); yOff += Math.abs(Math.sin(t * 8)) * 0.012; break;
           case 'eat': {
@@ -521,7 +521,7 @@ export class Character {
     // ── 身體傾斜平滑
     const tk = 1 - Math.exp(-dt * 11); this.pitch += (pitchT - this.pitch) * tk; this.roll += (rollT - this.roll) * tk; this.yOff += (yOff - this.yOff) * (1 - Math.exp(-dt * 30));
     this.yawAdd = yawAdd;
-    const sh = this.sh; if (tint) sh.uTint.value.setRGB(...tint); sh.uTintAmt.value += ((tint ? tintA : 0) - sh.uTintAmt.value) * (1 - Math.exp(-dt * 6));
+    const sh = this.sh; if (tint) sh.uTint.value.setRGB(...tint); sh.uTintAmt.value += ((tint ? tintA * (c.tintK ?? 1) : 0) - sh.uTintAmt.value) * (1 - Math.exp(-dt * 6));
     sh.uGround.value = this.mode === 'held' ? -50 : (this.grounded || this.mode === 'tumble' || this.mode === 'recover' ? p.y : this.world.groundAt(p.x, p.z, p.y + 0.1).h);
     // 附屬物的靜止角度（難過會垂下來、開心會擺）
     for (const a of this.apps) {
@@ -603,7 +603,8 @@ export class Character {
     const R = this.R, c = this.cfg;
     this.hands.forEach((h, i) => {
       // 目標：身體座標（含傾斜、翻滾與擠壓的一部分）→ 世界
-      const tp = HP[i]; _a.set(tp.x * (1 + (1 / Math.sqrt(1 + this.sq) - 1) * 0.8), (tp.y) * (1 + this.sq * 0.8) - R, tp.z); this.tumble.localToWorld(_a);
+      const tp = HP[i]; if (c.stick) { const k = c.stick, dx = tp.x / k[0], dy = (tp.y - k[3]) / k[1], dz = tp.z / k[2], L = Math.hypot(dx, dy, dz) || 1; tp.set(tp.x / L, k[3] + (tp.y - k[3]) / L, tp.z / L); }
+      _a.set(tp.x * (1 + (1 / Math.sqrt(1 + this.sq) - 1) * 0.8), (tp.y) * (1 + this.sq * 0.8) - R, tp.z); this.tumble.localToWorld(_a);
       const n = Math.max(1, Math.ceil(dt / 0.012)), hh = dt / n;
       for (let j = 0; j < n; j++) { h.v.x += ((_a.x - h.p.x) * k - h.v.x * d) * hh; h.v.y += ((_a.y - h.p.y) * k - h.v.y * d) * hh; h.v.z += ((_a.z - h.p.z) * k - h.v.z * d) * hh; h.p.addScaledVector(h.v, hh); }
       // 手不要離身體太遠（被丟的時候）
@@ -613,8 +614,8 @@ export class Character {
     // 豆芽的手臂與腿：連接身體與手腳的小圓柱
     if (this.limbs.length) {
       const put = (m, ax, ay, az, to, r) => { this.deform.localToWorld(_a.set(ax, ay, az)); _b.copy(to).sub(_a); const L = _b.length(); m.position.copy(_a); m.quaternion.setFromUnitVectors(_UP, _b.divideScalar(L || 1)); m.scale.set(r, L, r); };
-      this.feet.forEach((f, i) => put(this.limbs[i], f.s * c.hip[0], c.hip[1], c.hip[2], _c.copy(f.p).setY(f.p.y + c.footSize[1] * 0.9), 0.034));
-      this.hands.forEach((h, i) => put(this.limbs[2 + i], h.s * c.shoulder[0], c.shoulder[1], c.shoulder[2], h.p, 0.03));
+      this.feet.forEach((f, i) => put(this.limbs[i], f.s * this.hip[0], this.hip[1], this.hip[2], _c.copy(f.p).setY(f.p.y + c.footSize[1] * 0.9), 0.034));
+      this.hands.forEach((h, i) => put(this.limbs[2 + i], h.s * this.shoulder[0], this.shoulder[1], this.shoulder[2], h.p, 0.03));
     }
   }
 }

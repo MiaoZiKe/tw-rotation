@@ -13,13 +13,13 @@ if (qs.has('shot')) document.body.classList.add('shot');
 // ── 繪圖器、場景、燈光
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: qs.has('shot') || qs.has('test') });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = qs.get('tm') === 'none' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = +(qs.get('ex') || 1.0);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = qs.get('tm') === 'aces' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping; renderer.toneMappingExposure = +(qs.get('ex') || 1.0);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 view.appendChild(renderer.domElement);
 const scene = new THREE.Scene(), BG = 0xf6e6d4; scene.background = new THREE.Color(BG); scene.fog = new THREE.Fog(BG, 9, 26);
 const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 80);
-scene.add(new THREE.HemisphereLight(0xfff6ec, 0xf0cdb0, +(qs.get('hl') || 1.15)));
-const key = new THREE.DirectionalLight(0xfff1e0, +(qs.get('kl') || 2.6)); key.position.set(3.2, 7, 5.2); key.target.position.set(-0.3, 0, -0.4); key.castShadow = true;
+scene.add(new THREE.HemisphereLight(0xfff6ec, 0xf0cdb0, +(qs.get('hl') || 1.3)));
+const key = new THREE.DirectionalLight(0xfff1e0, +(qs.get('kl') || 2.0)); key.position.set(3.2, 7, 5.2); key.target.position.set(-0.3, 0, -0.4); key.castShadow = true;
 const sm = touch ? 1024 : 2048; key.shadow.mapSize.set(sm, sm); Object.assign(key.shadow.camera, { left: -6.5, right: 6.5, top: 6, bottom: -6, near: 1, far: 22 }); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.03; key.shadow.radius = 5;
 scene.add(key, key.target);
 const rim = new THREE.DirectionalLight(0xffdcb8, 0.9); rim.position.set(-1.5, 3.5, -6); scene.add(rim);
@@ -46,6 +46,7 @@ function setChar(i) {
 const cam = { mode: 'follow', yaw: 0.42, pitch: 0.36, dist: 6.4, tgt: new V3(0, 0.5, 0.6), cur: { yaw: 0.42, pitch: 0.36, dist: 6.4 }, zoom: 1 };
 function camGoal() {
   const portrait = camera.aspect < 0.8;
+  if (cam.over) return cam.over;
   if (cam.mode === 'god') return { pitch: 0.98, dist: (portrait ? 21 : 12.5) * cam.zoom, x: 0, y: 0.2, z: portrait ? 0.3 : 0.2 };
   return { pitch: cam.pitch, dist: (portrait ? 7.6 : 6.4) * cam.zoom, x: char.pos.x, y: char.pos.y * 0.6 + 0.48, z: char.pos.z };
 }
@@ -189,7 +190,7 @@ updateCam(0, true);
 
 // ── 主迴圈
 const env = { look: null, cam: camera.position, idleScale: +(qs.get('idle') || 1), food: null };
-let T = 0; const bubble = $('#bubble');
+let T = 0, skipRender = false; const bubble = $('#bubble');
 function frame(dt) {
   dt = Math.min(dt, 0.05); T += dt; readInput();
   const n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
@@ -217,7 +218,7 @@ function frame(dt) {
   // 對話泡泡
   if (char.speech) { char.headTop(tmp); tmp.y += 0.22; tmp.project(camera); const w = view.clientWidth, hh = view.clientHeight, bx = clamp((tmp.x * 0.5 + 0.5) * w, 60, w - 60), by = Math.max(70, (-tmp.y * 0.5 + 0.5) * hh); bubble.hidden = false; if (bubble.textContent !== char.speech.text) bubble.textContent = char.speech.text; bubble.style.transform = `translate(${bx}px,${by}px) translate(-50%,-100%)`; }
   else if (!bubble.hidden) bubble.hidden = true;
-  renderer.render(scene, camera);
+  if (!skipRender) renderer.render(scene, camera);
 }
 function vPlaneLook() { const d = camera.getWorldDirection(tmp).negate(); plane.setFromNormalAndCoplanarPoint(d, char.center.clone().addScaledVector(d, 1.2)); }
 let last = performance.now(), manual = qs.has('manual');
@@ -228,8 +229,10 @@ requestAnimationFrame(loop);
 window.PLAY = {
   get char() { return char; }, world, cam, fx, ctl, keys, CHARS, setChar, feed, throwBall, env, camera, renderer,
   set manual(v) { manual = v; }, get manual() { return manual; },
-  tick(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) frame(dt); },
+  // 只有最後一幀真的畫（軟體繪圖很慢，測試時省時間）
+  tick(dt = 1 / 60, n = 1, all = false) { for (let i = 0; i < n; i++) { skipRender = !all && i < n - 1; frame(dt); } skipRender = false; },
   setCam(o) { Object.assign(cam, o); if (o.snap) updateCam(0, true); },
   snapCam() { updateCam(0, true); },
+  screen(v) { const q = new V3(v.x, v.y, v.z).project(camera), r = view.getBoundingClientRect(); return [r.left + (q.x * 0.5 + 0.5) * r.width, r.top + (-q.y * 0.5 + 0.5) * r.height]; },
   state() { const c = char; return { mode: c.mode, x: c.pos.x, y: c.pos.y, z: c.pos.z, vx: c.vel.x, vy: c.vel.y, vz: c.vel.z, grounded: c.grounded, sq: c.sq, yaw: c.yaw, expr: c.face.name, act: c.act ? c.act.name : null, emo: c.emo ? c.emo.name : null, speech: c.speech ? c.speech.text : null, feet: c.feet.map(f => [f.p.x, f.p.y, f.p.z, f.planted]), slip: c.stat.slip, tab, charIdx }; },
 };

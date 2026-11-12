@@ -134,7 +134,7 @@ export const BUILD = {
     const o = sofa({ ...f, color: '#d8cfc0' }, 1.05, 1); const m = ctx.member(f.owner);
     o.part.box('#f7b0c6', 0.5, 0.05, 0.5, 0.1, 0.5, 0.05, 0.02, 0.2); o.part.sph(PAL.white, 0.16, -0.2, 0.62, -0.1, 1.2, 0.7, 0.8);
     const tp = textPlane([m ? m.nick : '後備', '留職停薪'], 0.6, 0.24, { pw: 256, bg: '#fffaf2', border: '#c9bca6', borderW: 8, px: 44, subScale: 0.55, radius: 22 });
-    tp.position.set(0, 1.12, -0.36); tp.rotation.y = Math.PI; o.extras = [tp]; o.seats[0].key = 'reserve';
+    tp.position.set(0, 1.06, -0.2); o.extras = [tp]; o.seats[0].key = 'reserve';
     return o;
   },
   beanbag(f) {
@@ -272,7 +272,8 @@ export const BUILD = {
     P.box(f.color, 1.9, 0.62, 0.1, 0, 0.95, 0, 0.05);
     const tp = textPlane(f.text, 1.74, 0.46, { pw: 512, bg: '#fffaf2', fg: '#5a4638', px: 84, radius: 40 });
     tp.position.set(0, 1.26, 0.056);
-    return { part: P, extras: [tp], foot: [{ x: 0, z: 0, w: 1.9, d: 0.26 }], deptsign: f.dept };
+    const tb = new THREE.Mesh(tp.geometry, tp.material); tb.position.set(0, 1.26, -0.056); tb.rotation.y = Math.PI;   // 背面也有字（從北邊看過來也讀得到）
+    return { part: P, extras: [tp, tb], foot: [{ x: 0, z: 0, w: 1.9, d: 0.26 }], deptsign: f.dept };
   },
   roomsign(f) {
     const P = new Part(), w = 0.5 + f.text.length * 0.3, y = f.stand ? 0.95 : (f.high ? 1.86 : 1.86);

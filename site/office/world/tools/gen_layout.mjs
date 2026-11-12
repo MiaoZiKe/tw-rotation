@@ -107,34 +107,37 @@ rooms.push({ id: 'reserve', name: '後備區', kind: 'zone', x: 12.3, z: 24.6, w
 rooms.push({ id: 'lobby', name: '入口大廳', kind: 'zone', x: 17.7, z: 24.6, w: 5.8, d: 5.05, floor: '#f6e7c9' });
 rooms.push({ id: 'lounge', name: '休息區', kind: 'zone', x: 24, z: 24.6, w: 15.65, d: 5.05, floor: '#dcefdc' });
 
-F('pingpong', 3.4, 27.2, 0);
-F('arcade', 6.9, 29.25, 2); F('arcade', 8.0, 29.25, 2, { color: '#8ecfe6' });
-F('beanbag', 9.9, 26.2, 0, { color: '#f7b0c6' }); F('beanbag', 11.0, 27.5, 0, { color: '#ffd27a' }); F('beanbag', 9.6, 28.0, 0, { color: '#a4c2f7' });
-F('plant_big', 0.85, 29.2); F('lamp', 11.3, 29.3);
-F('roomsign', 5.4, 29.72, 0, { text: '遊樂區', color: '#b79cf0', stand: true });
+F('rug', 3.4, 27.3, 0, { w: 5.4, d: 3.6, color: '#cdbcf0' });
+F('pingpong', 3.4, 27.3, 0);
+F('arcade', 7.6, 25.25, 0); F('arcade', 8.75, 25.25, 0, { color: '#8ecfe6' });
+F('beanbag', 7.4, 28.3, 0, { color: '#f7b0c6' }); F('beanbag', 8.9, 28.9, 0, { color: '#ffd27a' }); F('beanbag', 10.3, 28.0, 0, { color: '#a4c2f7' });
+F('plant_big', 0.85, 25.3); F('lamp', 11.3, 25.3); F('plant', 11.2, 29.3);
+F('roomsign', 10.4, 25.0, 0, { text: '遊樂區', color: '#b79cf0', stand: true });
 
-F('reserve_seat', 13.3, 27.6, 2, { owner: 'bibi-planner' });
-F('reserve_seat', 14.75, 27.6, 2, { owner: 'bibi-review' });
-F('reserve_seat', 16.2, 27.6, 2, { owner: 'bibi-efficiency' });
-F('roomsign', 14.75, 29.72, 0, { text: '後備區', color: '#c9bca6', stand: true });
+F('reserve_seat', 13.3, 26.6, 0, { owner: 'bibi-planner' });
+F('reserve_seat', 14.75, 26.6, 0, { owner: 'bibi-review' });
+F('reserve_seat', 16.2, 26.6, 0, { owner: 'bibi-efficiency' });
+F('roomsign', 14.75, 25.0, 0, { text: '後備區', color: '#c9bca6', stand: true });
+F('plant', 12.8, 29.2); F('side_table', 14.75, 28.6, 0);
 
 F('doormat', 20.5, 28.9, 0);
 F('door', 20.5, 30, 0);
 F('plant_big', 18.6, 29.2); F('plant_big', 22.4, 29.2);
 F('kiosk', 22.7, 27.2, 3);
 
-F('rug', 27.4, 27.4, 0, { w: 5.4, d: 3.6, color: '#bfe3c6' });
-F('sofa', 27.4, 29.3, 2, { color: '#f7b0c6' });
-F('sofa', 24.75, 27.3, 1, { color: '#ffd27a' });
-F('armchair', 30.2, 27.3, 3, { color: '#a4c2f7' });
-F('coffee_table', 27.4, 27.3, 0);
-F('rug', 35.6, 27.4, 0, { w: 5.4, d: 3.6, color: '#ffe0b0' });
-F('sofa', 35.6, 29.3, 2, { color: '#97dfcc' });
-F('armchair', 33.1, 27.3, 1, { color: '#f4a59d' });
-F('armchair', 38.2, 27.3, 3, { color: '#cbb2f2' });
-F('coffee_table', 35.6, 27.3, 0);
-F('plant_big', 31.6, 29.2); F('lamp', 39.3, 29.3); F('plant', 39.3, 25.2);
-F('roomsign', 31.6, 29.72, 0, { text: '休息區', color: '#86cfa0', stand: true, hideIfLow: true });
+F('rug', 27.6, 27.5, 0, { w: 5.6, d: 3.6, color: '#bfe3c6' });
+F('sofa', 27.6, 25.75, 0, { color: '#f7b0c6' });
+F('armchair', 24.9, 27.6, 1, { color: '#ffd27a' });
+F('armchair', 30.3, 27.6, 3, { color: '#a4c2f7' });
+F('coffee_table', 27.6, 27.7, 0);
+F('rug', 35.4, 27.5, 0, { w: 5.6, d: 3.6, color: '#ffe0b0' });
+F('sofa', 35.4, 25.75, 0, { color: '#97dfcc' });
+F('armchair', 32.7, 27.6, 1, { color: '#f4a59d' });
+F('armchair', 38.1, 27.6, 3, { color: '#cbb2f2' });
+F('coffee_table', 35.4, 27.7, 0);
+F('beanbag', 29.2, 29.1, 0, { color: '#ffc48f' }); F('beanbag', 33.8, 29.1, 0, { color: '#aedb9a' });
+F('plant_big', 39.2, 29.2); F('lamp', 39.3, 25.3); F('plant', 24.6, 29.3); F('bookshelf', 31.5, 25.1, 0, { spot: 'shelf2' });
+F('roomsign', 24.9, 25.0, 0, { text: '休息區', color: '#86cfa0', stand: true });
 
 // 走道上的點綴
 F('plant', 8.4, 9.5); F('plant', 17.6, 9.5); F('plant', 29.6, 9.5); F('bench', 21, 23.95, 0);

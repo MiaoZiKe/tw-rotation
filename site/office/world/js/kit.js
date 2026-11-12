@@ -46,8 +46,8 @@ export const G = {
     return cached(`c${r}|${h}|${bev}|${seg}|${rTop}`, () => {
       bev = Math.min(bev, h / 2 - 0.001, Math.min(r, rTop) - 0.001);
       const pts = [new THREE.Vector2(0.0001, 0)];
-      for (let i = 0; i <= 3; i++) { const a = -Math.PI / 2 + i / 3 * Math.PI / 2; pts.push(new THREE.Vector2(r - bev + Math.cos(a) * bev, bev + Math.sin(a) * bev)); }
-      for (let i = 0; i <= 3; i++) { const a = i / 3 * Math.PI / 2; pts.push(new THREE.Vector2(rTop - bev + Math.cos(a) * bev, h - bev + Math.sin(a) * bev)); }
+      for (let i = 0; i <= 2; i++) { const a = -Math.PI / 2 + i / 2 * Math.PI / 2; pts.push(new THREE.Vector2(r - bev + Math.cos(a) * bev, bev + Math.sin(a) * bev)); }
+      for (let i = 0; i <= 2; i++) { const a = i / 2 * Math.PI / 2; pts.push(new THREE.Vector2(rTop - bev + Math.cos(a) * bev, h - bev + Math.sin(a) * bev)); }
       pts.push(new THREE.Vector2(0.0001, h));
       return new THREE.LatheGeometry(pts, seg);
     });
@@ -71,7 +71,7 @@ export class Part {
   box(color, w, h, d, x, y0, z, r = 0.06, ry = 0, rx = 0, rz = 0) { return this.add(G.box(w, h, d, r), color, x, y0 + h / 2, z, ry, rx, rz); }
   slab(color, w, d, h, x, y0, z, r = 0.2, ry = 0, bev = 0.02) { return this.add(G.slab(w, d, h, r, bev), color, x, y0, z, ry); }
   cyl(color, r, h, x, y0, z, bev = 0.03, rTop = r, seg = 0) { if (!seg) seg = r < 0.07 ? 8 : r < 0.3 ? 12 : 18; return this.add(G.cyl(r, h, bev, seg, rTop), color, x, y0, z); }
-  sph(color, r, x, y, z, sx = 1, sy = 1, sz = 1) { return this.add(r < 0.06 ? G.sph(r, 8, 6) : r < 0.25 ? G.sph(r, 12, 8) : G.sph(r, 16, 12), color, x, y, z, 0, 0, 0, sx, sy, sz); }
+  sph(color, r, x, y, z, sx = 1, sy = 1, sz = 1) { return this.add(r < 0.1 ? G.sph(r, 8, 6) : r < 0.3 ? G.sph(r, 10, 7) : G.sph(r, 14, 10), color, x, y, z, 0, 0, 0, sx, sy, sz); }
   geometry() { const g = mergeGeometries(this.list, false); this.list.forEach(x => x.dispose()); this.list = []; return g; }
   mesh(mat = MAT.solid) { const m = new THREE.Mesh(this.geometry(), mat); m.castShadow = true; m.receiveShadow = true; return m; }
 }

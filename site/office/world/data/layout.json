@@ -1581,281 +1581,335 @@
    "rot": 0
   },
   {
-   "id": "pingpong_136",
-   "type": "pingpong",
+   "id": "rug_136",
+   "type": "rug",
    "x": 3.4,
-   "z": 27.2,
-   "rot": 0
+   "z": 27.3,
+   "rot": 0,
+   "w": 5.4,
+   "d": 3.6,
+   "color": "#cdbcf0"
   },
   {
-   "id": "arcade_137",
-   "type": "arcade",
-   "x": 6.9,
-   "z": 29.25,
-   "rot": 2
+   "id": "pingpong_137",
+   "type": "pingpong",
+   "x": 3.4,
+   "z": 27.3,
+   "rot": 0
   },
   {
    "id": "arcade_138",
    "type": "arcade",
-   "x": 8,
-   "z": 29.25,
-   "rot": 2,
-   "color": "#8ecfe6"
+   "x": 7.6,
+   "z": 25.25,
+   "rot": 0
   },
   {
-   "id": "beanbag_139",
-   "type": "beanbag",
-   "x": 9.9,
-   "z": 26.2,
+   "id": "arcade_139",
+   "type": "arcade",
+   "x": 8.75,
+   "z": 25.25,
    "rot": 0,
-   "color": "#f7b0c6"
+   "color": "#8ecfe6"
   },
   {
    "id": "beanbag_140",
    "type": "beanbag",
-   "x": 11,
-   "z": 27.5,
+   "x": 7.4,
+   "z": 28.3,
    "rot": 0,
-   "color": "#ffd27a"
+   "color": "#f7b0c6"
   },
   {
    "id": "beanbag_141",
    "type": "beanbag",
-   "x": 9.6,
+   "x": 8.9,
+   "z": 28.9,
+   "rot": 0,
+   "color": "#ffd27a"
+  },
+  {
+   "id": "beanbag_142",
+   "type": "beanbag",
+   "x": 10.3,
    "z": 28,
    "rot": 0,
    "color": "#a4c2f7"
   },
   {
-   "id": "plant_big_142",
+   "id": "plant_big_143",
    "type": "plant_big",
    "x": 0.85,
-   "z": 29.2,
+   "z": 25.3,
    "rot": 0
   },
   {
-   "id": "lamp_143",
+   "id": "lamp_144",
    "type": "lamp",
    "x": 11.3,
+   "z": 25.3,
+   "rot": 0
+  },
+  {
+   "id": "plant_145",
+   "type": "plant",
+   "x": 11.2,
    "z": 29.3,
    "rot": 0
   },
   {
-   "id": "roomsign_144",
+   "id": "roomsign_146",
    "type": "roomsign",
-   "x": 5.4,
-   "z": 29.72,
+   "x": 10.4,
+   "z": 25,
    "rot": 0,
    "text": "遊樂區",
    "color": "#b79cf0",
    "stand": true
   },
   {
-   "id": "reserve_seat_145",
+   "id": "reserve_seat_147",
    "type": "reserve_seat",
    "x": 13.3,
-   "z": 27.6,
-   "rot": 2,
+   "z": 26.6,
+   "rot": 0,
    "owner": "bibi-planner"
   },
   {
-   "id": "reserve_seat_146",
+   "id": "reserve_seat_148",
    "type": "reserve_seat",
    "x": 14.75,
-   "z": 27.6,
-   "rot": 2,
+   "z": 26.6,
+   "rot": 0,
    "owner": "bibi-review"
   },
   {
-   "id": "reserve_seat_147",
+   "id": "reserve_seat_149",
    "type": "reserve_seat",
    "x": 16.2,
-   "z": 27.6,
-   "rot": 2,
+   "z": 26.6,
+   "rot": 0,
    "owner": "bibi-efficiency"
   },
   {
-   "id": "roomsign_148",
+   "id": "roomsign_150",
    "type": "roomsign",
    "x": 14.75,
-   "z": 29.72,
+   "z": 25,
    "rot": 0,
    "text": "後備區",
    "color": "#c9bca6",
    "stand": true
   },
   {
-   "id": "doormat_149",
+   "id": "plant_151",
+   "type": "plant",
+   "x": 12.8,
+   "z": 29.2,
+   "rot": 0
+  },
+  {
+   "id": "side_table_152",
+   "type": "side_table",
+   "x": 14.75,
+   "z": 28.6,
+   "rot": 0
+  },
+  {
+   "id": "doormat_153",
    "type": "doormat",
    "x": 20.5,
    "z": 28.9,
    "rot": 0
   },
   {
-   "id": "door_150",
+   "id": "door_154",
    "type": "door",
    "x": 20.5,
    "z": 30,
    "rot": 0
   },
   {
-   "id": "plant_big_151",
+   "id": "plant_big_155",
    "type": "plant_big",
    "x": 18.6,
    "z": 29.2,
    "rot": 0
   },
   {
-   "id": "plant_big_152",
+   "id": "plant_big_156",
    "type": "plant_big",
    "x": 22.4,
    "z": 29.2,
    "rot": 0
   },
   {
-   "id": "kiosk_153",
+   "id": "kiosk_157",
    "type": "kiosk",
    "x": 22.7,
    "z": 27.2,
    "rot": 3
   },
   {
-   "id": "rug_154",
+   "id": "rug_158",
    "type": "rug",
-   "x": 27.4,
-   "z": 27.4,
+   "x": 27.6,
+   "z": 27.5,
    "rot": 0,
-   "w": 5.4,
+   "w": 5.6,
    "d": 3.6,
    "color": "#bfe3c6"
   },
   {
-   "id": "sofa_155",
+   "id": "sofa_159",
    "type": "sofa",
-   "x": 27.4,
-   "z": 29.3,
-   "rot": 2,
+   "x": 27.6,
+   "z": 25.75,
+   "rot": 0,
    "color": "#f7b0c6"
   },
   {
-   "id": "sofa_156",
-   "type": "sofa",
-   "x": 24.75,
-   "z": 27.3,
+   "id": "armchair_160",
+   "type": "armchair",
+   "x": 24.9,
+   "z": 27.6,
    "rot": 1,
    "color": "#ffd27a"
   },
   {
-   "id": "armchair_157",
+   "id": "armchair_161",
    "type": "armchair",
-   "x": 30.2,
-   "z": 27.3,
+   "x": 30.3,
+   "z": 27.6,
    "rot": 3,
    "color": "#a4c2f7"
   },
   {
-   "id": "coffee_table_158",
+   "id": "coffee_table_162",
    "type": "coffee_table",
-   "x": 27.4,
-   "z": 27.3,
+   "x": 27.6,
+   "z": 27.7,
    "rot": 0
   },
   {
-   "id": "rug_159",
+   "id": "rug_163",
    "type": "rug",
-   "x": 35.6,
-   "z": 27.4,
+   "x": 35.4,
+   "z": 27.5,
    "rot": 0,
-   "w": 5.4,
+   "w": 5.6,
    "d": 3.6,
    "color": "#ffe0b0"
   },
   {
-   "id": "sofa_160",
+   "id": "sofa_164",
    "type": "sofa",
-   "x": 35.6,
-   "z": 29.3,
-   "rot": 2,
+   "x": 35.4,
+   "z": 25.75,
+   "rot": 0,
    "color": "#97dfcc"
   },
   {
-   "id": "armchair_161",
+   "id": "armchair_165",
    "type": "armchair",
-   "x": 33.1,
-   "z": 27.3,
+   "x": 32.7,
+   "z": 27.6,
    "rot": 1,
    "color": "#f4a59d"
   },
   {
-   "id": "armchair_162",
+   "id": "armchair_166",
    "type": "armchair",
-   "x": 38.2,
-   "z": 27.3,
+   "x": 38.1,
+   "z": 27.6,
    "rot": 3,
    "color": "#cbb2f2"
   },
   {
-   "id": "coffee_table_163",
+   "id": "coffee_table_167",
    "type": "coffee_table",
-   "x": 35.6,
-   "z": 27.3,
+   "x": 35.4,
+   "z": 27.7,
    "rot": 0
   },
   {
-   "id": "plant_big_164",
+   "id": "beanbag_168",
+   "type": "beanbag",
+   "x": 29.2,
+   "z": 29.1,
+   "rot": 0,
+   "color": "#ffc48f"
+  },
+  {
+   "id": "beanbag_169",
+   "type": "beanbag",
+   "x": 33.8,
+   "z": 29.1,
+   "rot": 0,
+   "color": "#aedb9a"
+  },
+  {
+   "id": "plant_big_170",
    "type": "plant_big",
-   "x": 31.6,
+   "x": 39.2,
    "z": 29.2,
    "rot": 0
   },
   {
-   "id": "lamp_165",
+   "id": "lamp_171",
    "type": "lamp",
    "x": 39.3,
+   "z": 25.3,
+   "rot": 0
+  },
+  {
+   "id": "plant_172",
+   "type": "plant",
+   "x": 24.6,
    "z": 29.3,
    "rot": 0
   },
   {
-   "id": "plant_166",
-   "type": "plant",
-   "x": 39.3,
-   "z": 25.2,
-   "rot": 0
+   "id": "bookshelf_173",
+   "type": "bookshelf",
+   "x": 31.5,
+   "z": 25.1,
+   "rot": 0,
+   "spot": "shelf2"
   },
   {
-   "id": "roomsign_167",
+   "id": "roomsign_174",
    "type": "roomsign",
-   "x": 31.6,
-   "z": 29.72,
+   "x": 24.9,
+   "z": 25,
    "rot": 0,
    "text": "休息區",
    "color": "#86cfa0",
-   "stand": true,
-   "hideIfLow": true
+   "stand": true
   },
   {
-   "id": "plant_168",
+   "id": "plant_175",
    "type": "plant",
    "x": 8.4,
    "z": 9.5,
    "rot": 0
   },
   {
-   "id": "plant_169",
+   "id": "plant_176",
    "type": "plant",
    "x": 17.6,
    "z": 9.5,
    "rot": 0
   },
   {
-   "id": "plant_170",
+   "id": "plant_177",
    "type": "plant",
    "x": 29.6,
    "z": 9.5,
    "rot": 0
   },
   {
-   "id": "bench_171",
+   "id": "bench_178",
    "type": "bench",
    "x": 21,
    "z": 23.95,

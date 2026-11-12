@@ -62,14 +62,29 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   // 跟隨視角：鏡頭在角色身後，看向角色前方一點的地方（角色在畫面下半，前面的辦公室看得到）
   const AHEAD = 2.2, ahead = { x: 0, z: 0 };
   const charTarget = (c, out) => out.set(c.object3D.position.x + ahead.x, 0.9, c.object3D.position.z + ahead.z);
+  // 高的家具（佈告欄、名牌、書架…）會擋住鏡頭：先試正後方，被擋就往兩側找一個看得到角色的角度
+  const TALL = { board: 1, deptsign: 1, bookshelf: 1, fridge: 1, whiteboard: 1, cabinet: 1, arcade: 1, plant_big: 1, snack: 1, door: 1, roomsign: 1 };
+  function blocked(ax, az, bx, bz) {
+    for (const inst of W.furn.values()) {
+      if (!TALL[inst.f.type] || !inst.spec.foot.length) continue; const f = inst.f, r = Math.max(inst.spec.foot[0].w || 0.6, 0.6) / 2 + 0.25;
+      const dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz; let t = L ? ((f.x - ax) * dx + (f.z - az) * dz) / L : 0; t = Math.max(0, Math.min(1, t));
+      if (Math.hypot(ax + dx * t - f.x, az + dz * t - f.z) < r) return true;
+    }
+    return false;
+  }
   function followPose(c) {
-    const h = c.heading, back = portrait() ? 5.2 : 4.2, up = portrait() ? 3.4 : 2.5, cp = c.object3D.position;
-    ahead.x = Math.sin(h) * AHEAD; ahead.z = Math.cos(h) * AHEAD;
-    const t = charTarget(c, new THREE.Vector3());
-    const p = new THREE.Vector3(cp.x - Math.sin(h) * back, up, cp.z - Math.cos(h) * back);
-    p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 4, p.z));
-    const d = Math.hypot(p.x - cp.x, p.z - cp.z); if (d < back - 0.3) p.y += (back - d) * 0.35;
-    return { t, p, fov: 46 };
+    const h0 = c.heading, back = portrait() ? 5.2 : 4.2, up = portrait() ? 3.4 : 2.5, cp = c.object3D.position;
+    let best = null;
+    for (const da of [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI]) {
+      const h = h0 + da, p = new THREE.Vector3(cp.x - Math.sin(h) * back, up, cp.z - Math.cos(h) * back);
+      p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 4, p.z));
+      const d = Math.hypot(p.x - cp.x, p.z - cp.z); if (d < back - 0.3) p.y += (back - d) * 0.35;
+      const cand = { p, h, d }; if (!best) best = cand;
+      if (d > back * 0.6 && !blocked(p.x, p.z, cp.x, cp.z)) { best = cand; break; }
+    }
+    const fx = cp.x - best.p.x, fz = cp.z - best.p.z, fl = Math.hypot(fx, fz) || 1;
+    ahead.x = fx / fl * AHEAD; ahead.z = fz / fl * AHEAD;
+    return { t: charTarget(c, new THREE.Vector3()), p: best.p, fov: 46 };
   }
   function godPose(target, dist) {
     const t = (target || CENTER).clone(), d = dist || (portrait() ? 96 : 52), pol = 0.62;
@@ -87,7 +102,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   function jumpTo(roomId) {
     const r = layout.rooms.find(q => q.id === roomId); if (!r) return;
     view.mode = 'god'; view.char = null; modeControls(false); ui.setViewUI('god'); W.ring.visible = false;
-    tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.4 : 1.0) + 6));
+    tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
   function updateCamera(dt) {
     const tw = view.tween;
@@ -99,7 +114,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
       if (k >= 1) view.tween = null; return;
     }
     if (view.char) {
-      const c = view.char, hx = Math.sin(c.heading) * AHEAD, hz = Math.cos(c.heading) * AHEAD, kk = Math.min(1, dt * 1.6); ahead.x += (hx - ahead.x) * kk; ahead.z += (hz - ahead.z) * kk; charTarget(c, v3); v3b.subVectors(v3, controls.target).multiplyScalar(Math.min(1, dt * 7)); controls.target.add(v3b); camera.position.add(v3b);
+      const c = view.char; { const cp = c.object3D.position, fx = cp.x - camera.position.x, fz = cp.z - camera.position.z, fl = Math.hypot(fx, fz) || 1, kk = Math.min(1, dt * 2); ahead.x += (fx / fl * AHEAD - ahead.x) * kk; ahead.z += (fz / fl * AHEAD - ahead.z) * kk; } charTarget(c, v3); v3b.subVectors(v3, controls.target).multiplyScalar(Math.min(1, dt * 7)); controls.target.add(v3b); camera.position.add(v3b);
       // 角色走路時，鏡頭慢慢繞回他身後（使用者剛拖過就先不動）
       if (c.state === 'walk' && performance.now() / 1000 - view.lastUser > 2.5) {
         const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, a = Math.atan2(ox, oz), want = c.heading + Math.PI;
@@ -133,7 +148,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     const w = cv.clientWidth, h = cv.clientHeight;
     for (const c of W.chars.values()) {
       const L = c._lab, p = c.object3D.position; let on = c.object3D.visible;
-      if (on) { pv.set(p.x, p.y + c.height + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2) on = false; }
+      if (on) { pv.set(p.x, p.y + c.height + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2 || (view.mode !== 'god' && dist > 17 && !c.speech)) on = false; }
       if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = L.emo.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = L.eon = false; } c._sx = -999; continue; }
       const x = Math.round((pv.x + 1) / 2 * w), y = Math.round((1 - pv.y) / 2 * h); c._sx = x; c._sy = y; c._sd = dist;
       const cls = 'tag' + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
@@ -229,11 +244,11 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true;
   function frame(now) {
     requestAnimationFrame(frame);
-    const real = Math.min(0.1, (now - last) / 1000); last = now;
+    const wall = Math.min(0.3, (now - last) / 1000), real = Math.min(0.1, wall); last = now;
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
     for (let i = 0; i < n; i++) { W.time += h; W.tickTimers(); director.tick(); for (const c of W.chars.values()) c.update(h, W.time); }
     W.updateBlobs(); W.updateScreens(real);
-    updateCamera(real); controls.update();
+    updateCamera(wall); controls.update();
     renderer.render(scene, camera);
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
     updateLabels(); ui.tickCard();
@@ -246,5 +261,5 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     if (first) { first = false; $('loading').hidden = true; W.ready = true; }
   }
   W.shadowDirty(); requestAnimationFrame(frame);
-  window.__world = W; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
+  window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });

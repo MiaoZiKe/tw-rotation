@@ -28,7 +28,8 @@ export function createWorld(canvas, layout, org, quality) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality !== 'low', powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = quality === 'low' ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
-  const scene = new THREE.Scene(); scene.background = new THREE.Color('#d9f0fb'); scene.fog = new THREE.Fog('#d9f0fb', 90, 200);
+  const scene = new THREE.Scene(); scene.fog = new THREE.Fog('#e3f4fc', 110, 260);
+  scene.background = canvasTex(8, 256, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#a9ddf8'); g.addColorStop(0.55, '#d7f0fc'); g.addColorStop(1, '#f1fbff'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
   const camera = new THREE.PerspectiveCamera(38, 1, 0.3, 320);
   const hemi = new THREE.HemisphereLight('#fffaf3', '#f3d5b4', 1.5); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff3e0', 1.55); sun.position.set(20 - 10, 36, 15 + 9); sun.target.position.set(20, 0, 15); scene.add(sun, sun.target);
@@ -59,7 +60,11 @@ export function createWorld(canvas, layout, org, quality) {
       if (i % 3 === 0) P.add(G.sph(0.5 + r() * 0.35, 10, 8), [PAL.leaf, PAL.leafLight][i % 2], x, 0.25, z, 0, 0, 0, 1.2, 0.8, 1);
       else P.add(G.sph(0.13, 8, 6), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x, 0.08, z);
     }
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283 + r() * 0.3, d = 88 + r() * 16, hr = 14 + r() * 12; P.add(G.sph(hr, 14, 8), ['#b7e3a4', '#a8dba0', '#c4ecb4'][i % 3], Lw / 2 + Math.cos(a) * d, -hr * 0.45, Ld / 2 + Math.sin(a) * d, 0, 0, 0, 1.5, 0.75, 1); }
     const m = P.mesh(); m.castShadow = false; scene.add(m);
+    const C = new Part();
+    for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283 + r(), d = 70 + r() * 30, x = Lw / 2 + Math.cos(a) * d, z = Ld / 2 + Math.sin(a) * d, y = 26 + r() * 10, k = 3 + r() * 2; for (let j = 0; j < 4; j++) C.add(G.sph(k * (0.7 + r() * 0.5), 10, 7), '#ffffff', x + (j - 1.5) * k * 0.95, y + (j % 2) * k * 0.3, z + r() * 2, 0, 0, 0, 1, 0.62, 1); }
+    const cm = new THREE.Mesh(C.geometry(), new THREE.MeshBasicMaterial({ color: '#ffffff', fog: false })); scene.add(cm); W.clouds = cm;
   }
 
   // ── 木地板底 ──
@@ -129,7 +134,7 @@ export function createWorld(canvas, layout, org, quality) {
     scene.add(new THREE.Mesh(gg, new THREE.MeshBasicMaterial({ color: '#cfefff', transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false })));
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sg.setAttribute('uv', new THREE.Float32BufferAttribute(suv, 2));
     const stex = canvasTex(64, 128, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,244,200,0.9)'); g.addColorStop(1, 'rgba(255,244,200,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); c.clearRect(w / 2 - 2, 0, 4, h); });
-    const sunPatch = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: stex, transparent: true, opacity: 0.13, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); sunPatch.renderOrder = 2; scene.add(sunPatch);
+    const sunPatch = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: stex, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); sunPatch.renderOrder = 2; scene.add(sunPatch);
   }
 
   // ── 家具 ──
@@ -174,9 +179,9 @@ export function createWorld(canvas, layout, org, quality) {
         const c = cv.getContext('2d'); c.fillStyle = '#ffffff'; c.fillRect(0, 0, 1024, 420);
         const font = (px, b) => `${b ? 800 : 600} ${px}px "Noto Sans TC","PingFang TC","Microsoft JhengHei","WenQuanYi Zen Hei",sans-serif`;
         if (!api.title && !api.lines.length) { c.fillStyle = '#d9cfc4'; c.font = font(54, 1); c.textAlign = 'center'; c.fillText('白板', 512, 225); tex.needsUpdate = true; return; }
-        c.textAlign = 'left'; c.fillStyle = '#e8743b'; c.font = font(50, 1); c.fillText(api.title, 44, 74); c.fillStyle = '#f6c9a8'; c.fillRect(44, 92, 936, 6);
+        c.textAlign = 'left'; c.fillStyle = '#e8743b'; c.font = font(62, 1); c.fillText(api.title, 40, 76); c.fillStyle = '#f6c9a8'; c.fillRect(40, 98, 944, 7);
         const cols = ['#3f6fb5', '#3d9a63', '#c2527a', '#8a5bc4', '#b5762a'];
-        api.lines.forEach((t, i) => { c.fillStyle = cols[i % 5]; c.font = font(44, 0); c.fillText(`${i + 1}. ${t}`, 56, 160 + i * 62); });
+        api.lines.forEach((t, i) => { c.fillStyle = cols[i % 5]; c.font = font(52, 1); c.fillText(`${i + 1}. ${t}`, 48, 168 + i * 62); });
         tex.needsUpdate = true;
       },
       set(title) { api.title = title; api.lines = []; api.draw(); }, add(t) { api.lines.push(t); api.draw(); }, clear() { api.title = ''; api.lines = []; api.draw(); }

@@ -7,7 +7,7 @@ const B = { open: 1, arc: 0, lidT: 0, lidA: 0, lidB: 0, eyeS: 1, hl: 1, brow: 0,
 const E = (o) => ({ ...B, ...o });
 export const EXPR = {
   neutral: E({}),
-  happy: E({ open: 0, arc: 1, mCurve: 1, mOpen: 0.45, mW: 1.15, blush: 0.9, lidB: 0 }),
+  happy: E({ open: 0, arc: 1, mCurve: 1, mOpen: 0.72, mW: 1.2, blush: 0.9, lidB: 0 }),
   laugh: E({ open: 0, arc: 1, mCurve: 1, mOpen: 1, mW: 1.5, blush: 1, eyeS: 1.05 }),
   surprised: E({ eyeS: 1.22, hl: 1.25, brow: 1, browY: 16, mCurve: 0, mOpen: 0.75, mW: 0.62, mRound: 1, blush: 0.35 }),
   angry: E({ lidT: 0.34, lidA: 1, brow: 1, browA: 1, browY: -6, mCurve: -0.9, mOpen: 0.28, mW: 1.0, blush: 0.9, eyeS: 0.96 }),
@@ -72,7 +72,7 @@ export class Face {
       const rw = s.rx * 1.25 * (1 + c.cheek * 0.25), rh = s.rx * 0.72 * (1 + c.cheek * 0.3);
       g.save(); g.translate(bx, by); g.scale(1, rh / rw);
       const gr = g.createRadialGradient(0, 0, 0, 0, 0, rw);
-      const a = Math.min(0.85, 0.5 * bl);
+      const a = Math.min(0.9, 0.62 * bl);
       gr.addColorStop(0, `rgba(${s.blush},${a})`); gr.addColorStop(0.6, `rgba(${s.blush},${a * 0.55})`); gr.addColorStop(1, `rgba(${s.blush},0)`);
       g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rw, 0, 7); g.fill(); g.restore();
       if (c.hatch > 0.05) {
@@ -153,7 +153,7 @@ export class Face {
       if (glow) { g.fillStyle = glow; g.globalAlpha = 0.9; g.fill(); }
       else {
         g.fillStyle = s.mouthIn; g.fill(); g.save(); g.clip();
-        g.fillStyle = s.tongue; g.beginPath(); g.ellipse(0, bY + w * 0.25, w * 0.75, Math.max(3, H * 0.55), 0, 0, 7); g.fill(); g.restore();
+        g.fillStyle = s.tongue; g.beginPath(); g.ellipse(0, bY + H * 0.3, w * 0.62, H * 0.62, 0, 0, 7); g.fill(); g.restore();
         g.lineWidth = s.line * 0.8; g.stroke();
       }
     } else {
