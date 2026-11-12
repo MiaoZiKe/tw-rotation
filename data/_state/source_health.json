@@ -3,32 +3,36 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "crosscheck": {
     "TPEX": {
-      "lake_date": "2026-11-11",
-      "lake_rows": 989,
-      "official_date": "2026-11-11",
-      "official_rows": 989,
+      "lake_date": "2026-11-12",
+      "lake_rows": 1013,
+      "official_date": "2026-11-12",
+      "official_rows": 986,
       "rows_ok": true,
       "sample_checked": 5,
-      "sample_mismatch": [],
-      "verdict": "ok"
+      "sample_mismatch": [
+        {
+          "code": "9962",
+          "lake": 9.74,
+          "official": 9.81
+        }
+      ],
+      "verdict": "mismatch"
     },
     "TWSE": {
-      "lake_date": "2026-11-11",
-      "lake_rows": 1330,
+      "lake_date": "2026-11-12",
+      "lake_rows": 1336,
+      "note": "湖裡 2026-11-12 比官方 2026-11-11 新，通常是盤中暫定值，官方尚未公布",
       "official_date": "2026-11-11",
       "official_rows": 1330,
-      "rows_ok": true,
-      "sample_checked": 5,
-      "sample_mismatch": [],
-      "verdict": "ok"
+      "verdict": "lake_ahead"
     },
-    "at": "2026-11-12T15:18:51+08:00",
-    "verdict": "ok"
+    "at": "2026-11-12T16:03:26+08:00",
+    "verdict": "mismatch"
   },
   "etf.exright_notice": {
     "consecutive_fail": 0,
@@ -62,15 +66,15 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "finmind.index_ohlc": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "finmind.institutional": {
     "consecutive_fail": 0,
@@ -90,8 +94,8 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "finmind.otc_60m": {
     "consecutive_fail": 0,
@@ -139,43 +143,43 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": "2026-11-07",
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "mis.market_snapshot": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T08:36:06.075937+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "mis.price_snapshot": {
-    "consecutive_fail": 1,
-    "last_error": "回空（0 筆）",
+    "consecutive_fail": 0,
+    "last_error": null,
     "last_fail_date": "2026-11-10",
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "mktfut.fut_inst": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "mktfut.fut_oi": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "mktfut.margin_total": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "mops.insider_holdings": {
     "consecutive_fail": 0,
@@ -188,22 +192,22 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": "2026-11-06",
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "news.broker_views": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": "2026-11-05",
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "news.collect": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "next_wave.forward_log": {
     "consecutive_fail": 0,
@@ -213,25 +217,25 @@
     "last_seen": "2026-11-11T14:21:41.947380+00:00"
   },
   "optivx.daily": {
-    "consecutive_fail": 1,
-    "last_error": "FinMind 回 3196 列但算不出隱含波動率（欄位或契約月份可能改了）",
+    "consecutive_fail": 0,
+    "last_error": null,
     "last_fail_date": "2026-11-12",
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "risk.notice": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "risk.punish": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "sitca.etf_top10": {
     "consecutive_fail": 0,
@@ -251,8 +255,8 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": "2026-11-05",
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "tdcc.shareholding": {
     "consecutive_fail": 0,
@@ -265,15 +269,15 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": "2026-11-05",
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "tpex.price_daily": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "twse.company_info": {
     "consecutive_fail": 0,
@@ -307,8 +311,8 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "twse.margin": {
     "consecutive_fail": 0,
@@ -321,15 +325,15 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "twse.price_daily": {
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-12",
-    "last_seen": "2026-11-12T02:39:34.966359+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "twse.revenue": {
     "consecutive_fail": 0,
@@ -342,21 +346,21 @@
     "consecutive_fail": 0,
     "last_error": null,
     "last_fail_date": null,
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "yahoo.index_intraday": {
-    "consecutive_fail": 1,
-    "last_error": "回空（0 筆）",
+    "consecutive_fail": 0,
+    "last_error": null,
     "last_fail_date": "2026-11-10",
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   },
   "yahoo.intraday_60m": {
-    "consecutive_fail": 1,
-    "last_error": "回空（0 筆）",
+    "consecutive_fail": 0,
+    "last_error": null,
     "last_fail_date": "2026-11-10",
-    "last_ok_date": "2026-11-10",
-    "last_seen": "2026-11-11T14:21:41.947380+00:00"
+    "last_ok_date": "2026-11-11",
+    "last_seen": "2026-11-12T08:03:18.669894+00:00"
   }
 }

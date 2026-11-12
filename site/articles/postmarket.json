@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-11",
+ "updated": "2026-11-12",
  "days": [
+  {
+   "date": "2026-11-12",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "黃仁勳醜聞引發管制疑慮，中國 AI 業者搶租海外輝達晶片算力",
+     "url": "https://technews.tw/2026/11/12/jensen-huang-scandal-raises-regulatory-concerns-chinese-ai-firms-rush-to-lease-overseas-nvidia-computing-power/",
+     "source": "科技新報",
+     "time": "2026-11-12T15:40:50+08:00",
+     "desc": "知情人士表示，中國 AI 企業正試圖租用中國境外資料中心、採用輝達晶片的算力資源，因為它們擔心輝達執行長黃仁勳"
+    },
+    {
+     "cat": "科技",
+     "title": "32 款手機續航大亂鬥！iPhone 18 Pro Max 奪冠、蘋果五款上榜",
+     "url": "https://technews.tw/2026/11/12/32-smartphone-battery-life/",
+     "source": "科技新報",
+     "time": "2026-11-12T14:42:35+08:00",
+     "desc": "智慧手機電池容量持續增加，但電池越大，續航表現就一定越好嗎？外媒近日針對 32 款智慧手機進行電池續航測試，結"
+    },
+    {
+     "cat": "新聞",
+     "title": "集保股東會數位服務輸出海外 eMeeting經驗獲韓國借鏡",
+     "url": "https://news.cnyes.com/news/id/6660449",
+     "source": "鉅亨",
+     "time": "2026-11-12T15:19:06+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "總經",
+     "title": "亞洲最弱勢貨幣｜印尼盾貶至歷史新低美元走強、副總統請辭加重匯市壓力",
+     "url": "https://news.cnyes.com/news/id/6660373",
+     "source": "鉅亨",
+     "time": "2026-11-12T14:30:11+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "新聞",
+     "title": "IET財報／國防訂單助攻 第3季獲利季增逾兩倍",
+     "url": "https://money.udn.com/money/story/11074/9874520",
+     "source": "聯合新聞網",
+     "time": "2026-11-12T15:10:00+08:00",
+     "desc": "三五族化合物半導體磊晶大廠IET-KY（4971）（以下簡稱英特磊）公布第3季財報，營收為3.19億元，季增24.6%，年增26.8%；稅後純益0.59億元，季…"
+    }
+   ]
+  },
   {
    "date": "2026-11-11",
    "items": [
