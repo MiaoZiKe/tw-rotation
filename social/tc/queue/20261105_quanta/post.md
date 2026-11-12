@@ -1,7 +1,7 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2026-11-13T20:30+08:00
+scheduled_at: 2026-11-12T22:15+08:00
 platforms: ig, threads
 images: 1_cover.jpg, 2_fields.jpg
 title: 廣達碩畢待遇（代號肉鬆）
@@ -11,6 +11,7 @@ source_branch: tc/post-quanta 7b2841539（docs/marketing/channels/tc/posts/20261
 
 - 狀態：**draft（草稿，等 Andy 核准）**。只有 Andy 說「核准」後把上面 `status: draft` 改成 `status: approved`，程式才會發。
 - 排定時間：`scheduled_at` 先填 2026-11-10 20:30（台北）；Andy 要別的時間就改這一行。核准時若時間已過，下一輪（15 分鐘內）就發。
+- 2026-11-12 更正：原排 11/13 20:30，但 11/13 是週五；週表是週四發 Andy 手寫待遇，改成 11/12（四）22:15 立即發。
 - 平台：IG 發 2 張輪播（ig.txt 當說明文字）；Threads 主文帶同 2 張圖（threads.txt【主文】），發出後再發【第 1 則留言】。
 - 圖：`1_cover.jpg`、`2_fields.jpg` 由 tc/post-quanta 分支的 `1_cover.png`、`2_fields.png` 轉成 JPEG（IG 只收 JPEG，quality 92，1080×1350）。
 - 文案：ig.txt、threads.txt 原樣取自 tc/post-quanta 分支最新版（commit 7b2841539）。
