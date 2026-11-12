@@ -70,13 +70,13 @@ function frame(dt) {
   if (state.pending && (loco.settled || !A.loco)) { char.beginBlend(0.35); state.action = state.pending; state.pending = null; state.t = 0; A = ACTIONS[state.action]; syncUI(); }
   const cmd = { speed: 0 };
   if (A.loco && !state.pending) { cmd.speed = A.loco; const w = state.route || ROUTE; let p = w[state.wp % w.length];
-    if (Math.hypot(p[0] - loco.x, p[1] - loco.z) < 0.4) { if (state.routeOnce && state.wp >= w.length - 1) cmd.speed = 0; else { state.wp++; p = w[state.wp % w.length]; } }
+    if (Math.hypot(p[0] - loco.x, p[1] - loco.z) < (state.routeOnce && state.wp >= w.length - 1 ? 0.4 : 0.62)) { if (state.routeOnce && state.wp >= w.length - 1) cmd.speed = 0; else { state.wp++; p = w[state.wp % w.length]; } }
     cmd.yaw = Math.atan2(p[0] - loco.x, p[1] - loco.z); cmd.turnRate = A.loco > 1 ? 3.2 : 2.4;
     if (state.routeOnce && state.wp >= w.length - 1) { const d = Math.hypot(p[0] - loco.x, p[1] - loco.z); cmd.speed = d < 0.12 ? 0 : Math.min(A.loco, Math.max(0.25, d * 1.6)); } }
   const lp = loco.update(sdt, cmd);
   let r;
   if (A.loco) r = { pose: lp, face: A.face };
-  else { r = A.fn(state.t, dims, state.opts); if (A.stand) { r.pose.ikL = lp.ikL; r.pose.ikR = lp.ikR; } }
+  else { r = A.fn(state.t, dims, state.opts); if (A.stand) { r.pose.ikL = lp.ikL; r.pose.ikR = lp.ikR; r.pose.root = { ...(r.pose.root || {}) }; r.pose.root.y = (r.pose.root.y || 0) + lp.root.y; } }
   char.root.position.set(loco.x, 0, loco.z); char.root.rotation.y = loco.yaw;
   char.apply(r.pose, sdt);
   // 表情：動作自帶表情，可被按鈕蓋過；自動眨眼
@@ -126,6 +126,11 @@ function probe() { const J = char.J, o = { t: state.t, x: loco.x, z: loco.z, yaw
   for (const n of ['L', 'R']) { const b = char.bones['foot' + n], ft = loco.feet[n];
     const pt = (dz) => { const p = b.localToWorld(new THREE.Vector3(0, -J['foot' + n].y, dz)); return [p.x, p.y, p.z]; };
     o.feet[n] = { swing: ft.swing, pitch: ft.pitch, ball: pt(loco.ballZ), heel: pt(loco.heelZ), reach: char.cur['reach' + n] }; }
+  const W = (n) => bonePos(n, new THREE.Vector3()), deg = 180 / Math.PI, ang = (a, b, c) => a.clone().sub(b).angleTo(c.clone().sub(b)) * deg;
+  const fw = loco.fwd(), sag = (a, b) => Math.atan2(b.clone().sub(a).dot(fw), -(b.y - a.y)) * deg;   // 從 a 垂下到 b 的線，往前擺幾度
+  for (const n of ['L', 'R']) { o['knee' + n] = ang(W('thigh' + n), W('shin' + n), W('foot' + n)); o['arm' + n] = sag(W('upperArm' + n), W('foreArm' + n)); o['hand' + n] = sag(W('upperArm' + n), W('hand' + n)); o['elbow' + n] = ang(W('upperArm' + n), W('foreArm' + n), W('hand' + n));
+    const b = char.bones['foot' + n]; o.feet[n].soleMinY = Math.min(...[loco.heelZ, 0, loco.ballZ, loco.toeZ].map((dz) => b.localToWorld(new THREE.Vector3(0, -J['foot' + n].y, dz)).y)); }
+  { const h = W('hips'), nk = W('neck'); o.lean = Math.atan2(nk.clone().sub(h).dot(fw), nk.y - h.y) * deg; o.w = loco.w; }
   for (const k in char.cur.q) o.quats[k] = char.cur.q[k].toArray();
   return o; }
 window.stage = { async set(o = {}) {

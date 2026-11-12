@@ -35,7 +35,24 @@ const srv=http.createServer((q,s)=>{let p=path.join(root,decodeURIComponent(q.ur
   const ch=[];for(let i=1;i<all.length;i++){let m=0;for(const k in all[i].quats)m=Math.max(m,ang(all[i].quats[k],all[i-1].quats[k]));ch.push(m);}
   const srt=[...ch].sort((x,y)=>x-y);R.poseChangeDegPerFrame={median:+srt[srt.length>>1].toFixed(2),p99:+srt[Math.floor(srt.length*0.99)].toFixed(2),max:+srt[srt.length-1].toFixed(2)};
   const sp=[];for(let i=1;i<all.length;i++)sp.push(Math.hypot(all[i].x-all[i-1].x,all[i].z-all[i-1].z)/dt);R.speed={min:+Math.min(...sp).toFixed(3),max:+Math.max(...sp).toFixed(3)};
-  R.strideLen=+(R.v*Tc).toFixed(3); report[name]=R; await pg.context().close();
+  R.strideLen=+(R.v*Tc).toFixed(3);
+  // 第三輪加的量測：膝角（伸直＝180 度）、軀幹前傾、手臂擺幅、騰空佔比、鞋底離地、步幅／腿長
+  const geo=await pg.evaluate(()=>({leg:window.stage.loco.legLen,hipH:window.stage.loco.hipH,duty:window.stage.loco.g.duty,pelvisRest:window.stage.char.J.hips.y}));
+  const f1=x=>+x.toFixed(1), mm=a=>({min:f1(Math.min(...a)),max:f1(Math.max(...a))}), mean=a=>f1(a.reduce((x,y)=>x+y,0)/a.length);
+  const K={strike:[],loadingMin:[],midstance:[],toeOff:[],swingMin:[]};
+  for(const n of ['L','R']){ let prev=null,st=[];
+   const flush=()=>{ if(st.length<8)return; const N=st.length; K.strike.push(st[0]); K.loadingMin.push(Math.min(...st.slice(0,Math.round(N*0.35)))); K.midstance.push(...st.slice(Math.round(N*0.4),Math.round(N*0.6))); K.toeOff.push(st[N-1]); };
+   let sw=[]; for(const f of all){ const ft=f.feet[n],kn=f['knee'+n]; if(ft.swing){ if(prev===false){flush();st=[];} sw.push(kn);} else { if(prev===true&&sw.length){K.swingMin.push(Math.min(...sw));sw=[];} if(prev!==null) st.push(kn);} prev=ft.swing; if(prev===null)prev=ft.swing; } }
+  R.kneeDeg={heelStrike:mean(K.strike),loadingMin:mean(K.loadingMin),midstanceMean:mean(K.midstance),midstanceMin:f1(Math.min(...K.midstance)),toeOff:mean(K.toeOff),swingPeakFlexion:mean(K.swingMin),stanceMin:f1(Math.min(...all.flatMap(f=>['L','R'].filter(n=>!f.feet[n].swing).map(n=>f['knee'+n]))))};
+  R.kneeCurve16L=Array.from({length:16},(_,i)=>Math.round(all[i*sub].kneeL));
+  R.trunkLeanDeg={mean:mean(all.map(f=>f.lean)),...mm(all.map(f=>f.lean))};
+  R.upperArmSwingDeg=mm(all.map(f=>f.armL)); R.handSwingDeg=mm(all.map(f=>f.handL)); R.elbowDeg=mm(all.map(f=>f.elbowL));
+  R.flightRatio=+(all.filter(f=>f.feet.L.swing&&f.feet.R.swing).length/all.length).toFixed(3);
+  R.soleMinY={swing:+Math.min(...all.flatMap(f=>['L','R'].filter(n=>f.feet[n].swing).map(n=>f.feet[n].soleMinY))).toFixed(4),stance:+Math.min(...all.flatMap(f=>['L','R'].filter(n=>!f.feet[n].swing).map(n=>f.feet[n].soleMinY))).toFixed(4)};
+  R.pelvisY.rest=+geo.pelvisRest.toFixed(4); R.pelvisY.range=+(R.pelvisY.max-R.pelvisY.min).toFixed(4);
+  const pv=[];for(let i=1;i<all.length;i++)pv.push((all[i].pelvisY-all[i-1].pelvisY)/dt);let pa=0;for(let i=1;i<pv.length;i++)pa=Math.max(pa,Math.abs(pv[i]-pv[i-1])/dt);R.pelvisY.maxAccel=+pa.toFixed(1);
+  R.strideOverLeg={legLen:+geo.leg.toFixed(3),hipHeight:+geo.hipH.toFixed(3),strideOverLegLen:+(R.strideLen/geo.leg).toFixed(2),strideOverHipHeight:+(R.strideLen/geo.hipH).toFixed(2),stepOverHipHeight:+(R.strideLen/2/geo.hipH).toFixed(2)};
+  report[name]=R; await pg.context().close();
   for(const f of fs.readdirSync(out)) if(f.startsWith('_'+name+'_')) fs.unlinkSync(path.join(out,f));
  }
  async function video(name,opts,secs,acts){
@@ -48,7 +65,8 @@ const srv=http.createServer((q,s)=>{let p=path.join(root,decodeURIComponent(q.ur
   cp.execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(fps),'-i',path.join(dir,'%04d.png'),'-vf','fps=15,scale=480:-1',path.join(out,name+'.gif')]);
   // 整段（含起步、轉彎、停步）的著地腳位移
   let mx=0;for(const n of ['L','R']){let ref=null,kind=null;for(const f of slips){const ft=f.feet[n];if(ft.swing){ref=null;kind=null;continue;}const k=ft.pitch>=0?'ball':'heel',p=ft[k];if(kind!==k){ref=p;kind=k;}mx=Math.max(mx,Math.hypot(p[0]-ref[0],p[2]-ref[2]));}}
-  report[name]={frames:secs*fps,maxContactSlipWholeClip:+mx.toFixed(5),endSpeed:slips[slips.length-1].v,endAction:slips[slips.length-1].action};
+  const rad=slips.filter(f=>Math.abs(f.w)>0.3).map(f=>f.v/Math.abs(f.w));
+  report[name]={frames:secs*fps,maxContactSlipWholeClip:+mx.toFixed(5),minTurnRadius:rad.length?+Math.min(...rad).toFixed(2):null,maxYawRate:+Math.max(...slips.map(f=>Math.abs(f.w))).toFixed(2),soleMinY:+Math.min(...slips.flatMap(f=>['L','R'].map(n=>f.feet[n].soleMinY))).toFixed(4),endSpeed:slips[slips.length-1].v,endAction:slips[slips.length-1].action};
   const pick=[0.08,0.2,0.32,0.44,0.56,0.68,0.8,0.95].map(f=>path.join(dir,String(Math.floor(f*secs*fps)).padStart(4,'0')+'.png'));
   cp.execFileSync('python3',[path.join(__dirname,'sheet.py'),path.join(out,name+'_frames.png'),'4','0.7',...pick]);
   fs.rmSync(dir,{recursive:true}); await pg.context().close();

@@ -15,9 +15,9 @@ export const ACTIONS = {
   idle: { label: '待機', stand: true, fn(t, m, o) { const b = S(t * 1.7), p = { root: { y: -0.004 * (1 + b) }, spine: [0.01 * b, 0, 0], chest: [-0.03 * b, 0, 0], head: [0.03 * S(t * 0.8), 0.1 * S(t * 0.5), 0.02 * S(t * 0.37)], shoulderL: [0, 0, 0.03 * b], shoulderR: [0, 0, -0.03 * b] };
     for (const s of [1, -1]) { arm(p, s, [0.25 + 0.012 * b, -0.96, 0.03], REST_ARM[1], null, 1.1); leg(p, s); p['fingers' + (s > 0 ? 'L' : 'R')] = o && o.fingers != null ? o.fingers : 0.3; } return { pose: p }; } },
 
-  walk: { label: '走路', loco: 0.65 },
+  walk: { label: '走路', loco: 0.8 },
 
-  run: { label: '跑步', loco: 1.6, face: { expr: 'neutral', mouth: 0.3 } },
+  run: { label: '跑步', loco: 2.0, face: { expr: 'neutral', mouth: 0.3 } },
 
   sit: { label: '坐下打字', prop: 'desk', fn(t, m) { const p = { root: { y: -m.sitDrop, z: -0.02 }, hips: [-0.04, 0, 0], spine: [0.07, 0, 0], chest: [0.07, 0, 0], neck: [0.05, 0, 0], head: [0.1 + 0.015 * S(t * 2.3), 0.05 * S(t * 0.6), 0] };
     for (const s of [1, -1]) { const n = s > 0 ? 'L' : 'R'; p['leg' + n] = { dir: [s * 0.2, -0.1, 1] }; p['shin' + n] = { dir: [s * 0.1, -1, 0.1] }; p['foot' + n + '_'] = { world: [0, 0, 0] };
