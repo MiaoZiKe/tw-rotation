@@ -1,0 +1,38 @@
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color:#5b4a5e;background:#fff6ea}
+#app{display:flex;height:100dvh;width:100vw}
+#stage{position:relative;flex:1;min-width:0;min-height:0;background:
+  radial-gradient(60% 46% at 50% 86%,#ffe7c4 0,#ffe7c400 100%),
+  radial-gradient(40% 30% at 82% 16%,#ffe3ee 0,#ffe3ee00 100%),
+  radial-gradient(44% 34% at 14% 22%,#dff3ff 0,#dff3ff00 100%),
+  linear-gradient(#fff9f0,#ffeeda)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#title{position:absolute;left:18px;top:14px;display:flex;flex-direction:column;gap:2px;pointer-events:none}
+#title b{font-size:20px;letter-spacing:.5px;color:#6a557a}
+#title span{font-size:12.5px;color:#a08fa8}
+#card{position:absolute;right:16px;top:14px;background:#ffffffd9;border-radius:16px;padding:9px 14px;box-shadow:0 6px 18px #d9b99a40;text-align:right;pointer-events:none}
+#cName{font-weight:700;font-size:16px;color:#6a557a}
+#cMeta{font-size:12px;color:#a08fa8;margin-top:1px}
+#hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:12px;color:#b9a7ad;pointer-events:none}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:#a08fa8;background:#fff6ea;transition:opacity .4s}
+#loading.off{opacity:0;pointer-events:none}
+#panel{width:332px;flex:none;background:#fffdf9;border-left:1px solid #f3e4d2;padding:16px 16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+#panel h3{margin:0 0 7px;font-size:13px;font-weight:700;color:#a08fa8;letter-spacing:1px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chips button{appearance:none;border:1.5px solid #f1e0cf;background:#fff;color:#6a557a;font:inherit;font-size:14px;padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
+.chips button:hover{border-color:#ffc4b0}
+.chips button:active{transform:scale(.95)}
+.chips button.on{background:#ff9f8e;border-color:#ff9f8e;color:#fff;box-shadow:0 4px 10px #ff9f8e55}
+.chips button small{opacity:.75;font-size:11.5px;margin-left:3px}
+@media (max-width:760px){
+  #app{flex-direction:column}
+  #panel{width:100%;border-left:0;border-top:1px solid #f3e4d2;padding:9px 0 calc(10px + env(safe-area-inset-bottom));gap:7px;overflow:visible}
+  #panel section{display:flex;align-items:center;gap:8px;padding-left:12px}
+  #panel h3{margin:0;flex:none;width:30px;font-size:12px;letter-spacing:0}
+  .chips{flex-wrap:nowrap;overflow-x:auto;padding:2px 12px 2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{display:none}
+  .chips button{font-size:13.5px;padding:7px 11px;flex:none}
+  #title b{font-size:17px}#title{left:12px;top:10px}
+  #card{right:10px;top:10px;padding:7px 11px}
+  #hint{font-size:11px;bottom:6px}
+}

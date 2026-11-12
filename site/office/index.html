@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI Office｜角色樣張</title>
+<link rel="stylesheet" href="office.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="title"><b>AI Office</b><span>角色樣張・階段 0</span></div>
+    <div id="card"><div id="cName"></div><div id="cMeta"></div></div>
+    <div id="hint">拖曳旋轉・滾輪或雙指縮放</div>
+    <div id="loading">角色準備中…</div>
+  </div>
+  <div id="panel">
+    <section><h3>角色</h3><div class="chips" id="chars"></div></section>
+    <section><h3>動作</h3><div class="chips" id="acts"></div></section>
+    <section><h3>表情</h3><div class="chips" id="exprs"></div></section>
+    <section><h3>視角</h3><div class="chips" id="views"></div></section>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
