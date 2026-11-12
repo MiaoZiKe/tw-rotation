@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-13T02:35:59+08:00",
+  "checked_at": "2026-11-13T05:08:02+08:00",
   "today": "2026-11-13",
   "expected_price_date": "2026-11-12",
   "is_trading_day": true,
@@ -293,11 +293,11 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 36 次",
+          "why": "pages.yml 今天有成功執行 41 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43280544363",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43273059500",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43271852546"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43303256144",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43301292435",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43286435207"
           ],
           "busy": false,
           "hard": false
