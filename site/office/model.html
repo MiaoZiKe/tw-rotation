@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>角色模型實驗</title>
+<style>
+:root{--bg:#fbefe2;--card:#fffaf3;--ink:#3b2f2a;--sub:#8a776b;--line:#ecd9c6;--on:#f58a34}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 348px;grid-template-rows:minmax(0,1fr);height:100%}
+#view{position:relative;min-height:0;min-width:0;touch-action:none}
+#view canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+#hint{position:absolute;left:16px;bottom:12px;font-size:12px;color:var(--sub);pointer-events:none}
+#panel{background:var(--card);border-left:1px solid var(--line);padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+h1{font-size:18px;margin:0;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+#info{font-size:12px;color:var(--sub);font-weight:400}
+.grp h2{font-size:13px;color:var(--sub);margin:0 0 8px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:8px 12px;font-size:14px;line-height:1;cursor:pointer;font-family:inherit;min-height:34px}
+.chip:hover{border-color:var(--on)}
+.chip.on{background:var(--on);border-color:var(--on);color:#fff;font-weight:600}
+body.shot #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}body.shot #panel,body.shot #hint{display:none}
+@media (max-width:760px){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:52vh minmax(0,1fr)}
+  #panel{border-left:0;border-top:1px solid var(--line);padding:12px;gap:8px}
+  .chip{padding:8px 10px;font-size:13px}
+  .grp h2{margin-bottom:4px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="app">
+  <div id="view"><div id="hint">拖曳旋轉・滾輪或雙指縮放</div></div>
+  <div id="panel">
+    <h1>角色模型實驗 <span id="info">載入中…</span></h1>
+    <div class="grp"><h2>動作</h2><div class="chips" id="acts"></div></div>
+    <div class="grp"><h2>表情</h2><div class="chips" id="exprs"></div></div>
+    <div class="grp"><h2>上色</h2><div class="chips" id="modes"></div></div>
+    <div class="grp"><h2>面數</h2><div class="chips" id="lods"></div></div>
+    <div class="grp"><h2>顯示</h2><div class="chips" id="opts"></div></div>
+  </div>
+</div>
+<script>if(new URLSearchParams(location.search).has('shot'))document.body.classList.add('shot')</script>
+<script type="module" src="model/main.js"></script>
+</body>
+</html>
