@@ -108,11 +108,16 @@ jobs:
           if [ "$PHASE" != "inst" ]; then
             echo "phase=${PHASE:-自動}：不需讓出" ; exit 0
           fi
+          # 2026-11-12：只算「collect 還沒跑完」的 run。price 輪資料寫完後 deploy 在 pages 群組排隊時，整個 run 仍是 waiting，
+          # 舊判法把它算成排隊中，16:16 的 inst 因此被讓掉（collect 早在 16:08 就結束、寫入群組已空）。
           n=0
           for st in queued pending waiting; do
-            c=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?status=$st&per_page=30" \
-                --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.display_title | contains(\"(inst)\") | not)] | length" 2>/dev/null || echo 0)
-            n=$((n + c))
+            ids=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?status=$st&per_page=30" \
+                --jq ".workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.display_title | contains(\"(inst)\") | not) | .id" 2>/dev/null || true)
+            for id in $ids; do
+              cs=$(gh api "repos/${{ github.repository }}/actions/runs/$id/jobs" --jq '[.jobs[] | select(.name=="collect") | .status] | first // "none"' 2>/dev/null || echo none)
+              if [ "$cs" != "completed" ]; then n=$((n + 1)); fi
+            done
           done
           if [ "$n" -gt 0 ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
