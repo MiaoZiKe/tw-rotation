@@ -13,7 +13,6 @@ END={'hips':'spine','spine':'chest','chest':'neck','neck':'head','head':'head_en
 out=os.environ.get('AIO_WORK') or os.path.join(PIPE,'_work'); src=np.load(f'{out}/mesh_src.npz')
 J,info=estimate(src['V'])
 for k,v in cfg.get('joint_override',{}).items(): J[k]=np.array(v,float)
-NBODY=len(BONES); FINGERS,FW=detect_fingers(src['V'],src['F']) if cfg.get('fingers',True) else ([],{}); SRC_TREE=cKDTree(src['V'])
 H=info['H']; cx=info['cx']; neck_y=info['neck_y']; crotch=info['crotch']
 
 def detect_fingers(V,F):
@@ -44,7 +43,8 @@ def detect_fingers(V,F):
         for rank,k in enumerate([th]+order):
             di=D[k]; ell=min(0.5*min(di[tips[j]] for j in range(len(tips)) if j!=k),0.55*dw[tips[k]])
             u_=di/ell; reg=u_<1
-            base=P[(u_>0.8)&(u_<1.0)].mean(0); mid=P[(u_>0.4)&(u_<0.6)].mean(0); tip=P[tips[k]]
+            wc=lambda c0:(lambda w_:(P*w_[:,None]).sum(0)/w_.sum())(np.exp(-((u_-c0)/0.12)**2)*np.isfinite(u_))
+            base=wc(0.9); mid=wc(0.5); tip=P[tips[k]]
             g=np.clip((1-u_)/0.3,0,1); g=g*g*(3-2*g)
             if rank==0:
                 nm=[f'thumb{n}']; ax=handdir.copy()
@@ -216,12 +216,11 @@ def labels(V,F,N,R,A):
         hc=np.array([ex,neck_y+0.45*(H-neck_y),J['head'][2]]); rd=V-hc; rd/=np.linalg.norm(rd,axis=1,keepdims=True)
         dev=1-(N*rd).sum(1)
         deep=ndi.binary_erosion(hair,iterations=cfg.get('hair_deep',3))[iy,ix]&vis
-        okv=(R==1)&(N[:,2]>-0.1)&(dev<cfg.get('hairline_dev',0.33))&~deep
+        okv=(R==1)&vis&(N[:,2]>0.15)&(dev<cfg.get('hairline_dev',0.25))&~deep&(V[:,1]<ey+cfg.get('forehead_max',0.2))
         fr=np.where((R==1)&(np.abs(V[:,0]-ex)<0.03)&(np.abs(V[:,1]-(ey+0.01))<0.03)&(N[:,2]>0.6))[0]
         Bk=(A>0).astype(float).tocsr(); sub=Bk[okv][:,okv]; nc,cl=cg.connected_components(sub,directed=False)
         full=-np.ones(n,int); full[okv]=cl; seeds=np.unique(full[fr]); seeds=seeds[seeds>=0]
         reach=np.isin(full,seeds)&okv
-        for _ in range(2): reach=reach|((Bk@reach.astype(float))>=3)&(R==1)   # 補回鼻側、眼窩等法線偏的小洞
         up=(R==1)&(V[:,1]>ey+cfg.get('hairline_from',0.035))
         lab[up&reach]=1; lab[up&~reach]=0
         info['hairline_reach']=int((up&reach).sum())
@@ -331,6 +330,8 @@ def write_glb(path,V,F,N,ji,jw,PA,PB,uv,col):
     with open(path,'wb') as f:
         f.write(struct.pack('<4sII',b'glTF',2,12+8+len(jb)+8+len(bb))); f.write(struct.pack('<II',len(jb),0x4E4F534A)); f.write(jb)
         f.write(struct.pack('<II',len(bb),0x004E4942)); f.write(bb)
+NBODY=len(BONES); FINGERS,FW=detect_fingers(src['V'],src['F']) if cfg.get('fingers',True) else ([],{}); SRC_TREE=cKDTree(src['V'])
+print('fingers',[(f['side'],f['kind']) for f in FINGERS],info.get('ntipsL'),info.get('ntipsR'))
 meta=None
 for lod in ('hi','lo'):
     d=np.load(f'{out}/mesh_{lod}.npz'); V,F=d['V'],d['F']; N=vnormals(V,F); R=regions(V)
