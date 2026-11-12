@@ -1,6 +1,113 @@
 {
- "updated": "2026-11-11",
+ "updated": "2026-11-12",
  "topics": [
+  {
+   "id": "n_btc_below75k_etf_outflow",
+   "cat": "news",
+   "title": "比特幣跌破7.5萬美元：ETF週流出12.8億為何",
+   "why": "比特幣 11/6 一度跌約 6% 至 75,600 美元，美國現貨比特幣 ETF 當週淨流出約 12.8 億美元，為 6 月下旬以來最大單週流出（The Block 11/7、FXStreet 11/9）；讀者會問股市重挫時比特幣算不算避險。下跌原因多為分析師詮釋，寫稿要標明。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-12"
+  },
+  {
+   "id": "n_us_china_tariff_truce_jan27",
+   "cat": "news",
+   "title": "美中關稅休戰延到明年1月，只延兩個月為何",
+   "why": "中國自 11/10 起對美國商品加徵的 24% 關稅再暫停兩個月、保留 10%，期限延至 2027-01-10；美方同日把芬太尼相關關稅由 20% 降到 10%（Reuters 11/9 等）。切入點放在「為何只延兩個月、稀土與大豆承諾尚未履行」，不寫成公告。",
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-11-12"
+  },
+  {
+   "id": "n_otc_falls_more_than_taiex",
+   "cat": "news",
+   "title": "櫃買比大盤跌更兇：中小型股為何先被賣",
+   "why": "11/6 加權指數跌 4.51% 收 39,701.64，同日櫃買指數跌 5.43% 收 304.02（三立新聞、口袋學堂 11/6）；11/9 加權反彈 1,960 點。讀者會問小型股跌更多是流動性、融資還是法人賣壓，可用本站資金流向與信用交易頁佐證。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-12",
+   "site_links": [
+    "#flow",
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "k_3d_nand",
+   "cat": "know",
+   "title": "3D NAND 是什麼？儲存晶片為何要疊到三百層",
+   "why": "SSD 裡的 NAND 已從平面改成垂直堆疊，各家比的是層數；讀者會問「層數越多差在哪」。用站內 3D 場景 ssd（切開 NAND 見疊層晶粒）說明，和已上架的 SSD、DRAM 與 NAND 兩題分開講「堆疊」本身。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "k_backside_power",
+   "cat": "know",
+   "title": "背面供電是什麼？電源線為何搬到晶圓背面",
+   "why": "台積電 A16 與英特爾 18A 都把供電網路移到晶圓背面，讀者會問「為什麼要翻到背面、好處在哪」。用站內 3D 場景 foundry（一顆電晶體與製程迴圈）當底圖，和 GAA 電晶體題分開講供電。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_lpo_module",
+   "cat": "know",
+   "title": "LPO 光模組是什麼？拿掉 DSP 為何能省電",
+   "why": "800G／1.6T 光模組出現「線性驅動（LPO）」路線，介於可插拔與 CPO 之間；讀者會問它跟 CPO 差在哪。用站內 3D 場景 switch_wireless（交換器板卡＋800G 光模組＋CPO）三者並排說明。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/optical_module",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "i_ddi_chain",
+   "cat": "intro",
+   "title": "顯示驅動 IC 鏈：晶片、覆晶薄膜到面板模組",
+   "why": "顯示驅動 IC 從設計、代工、金凸塊與覆晶薄膜封裝，到面板廠貼合成模組，環節分得很細；站內有顯示驅動 IC 與面板兩個族群頁可直接串成供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/display_driver_ic",
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "i_niche_memory",
+   "cat": "intro",
+   "title": "利基型記憶體鏈：NOR、SLC NAND 到終端裝置",
+   "why": "利基型記憶體容量小、用在車用、工控、網通與穿戴，跟 HBM／大容量 DRAM 是不同一條路；站內有 NOR Flash 利基記憶體族群頁，可畫出設計、代工、封測到模組的分段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/nor_niche_memory",
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "i_jp_tw_passive",
+   "cat": "intro",
+   "title": "台日被動元件鏈：高階規格與標準品怎麼分工",
+   "why": "被動元件的高容值、車規等高階規格與一般標準品，台日廠商的產品組合不同；站內有日本被動元件與 MLCC 兩個族群頁可對照，只講分工不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/jp_passive",
+    "#industry/group/mlcc"
+   ]
+  },
   {
    "id": "n_tw_1960_rebound",
    "cat": "news",
