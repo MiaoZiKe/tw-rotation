@@ -38,25 +38,29 @@ def detect_fingers(V,F):
         wr=J[f'hand{n}']; dirs=np.array([(P[i]-wr)/np.linalg.norm(P[i]-wr) for i in tips]); mean=dirs.mean(0); mean/=np.linalg.norm(mean)
         th=int(np.argmin(dirs@mean)); order=sorted([k for k in range(len(tips)) if k!=th],key=lambda k:np.linalg.norm(P[tips[k]]-P[tips[th]]))
         c=P.mean(0); u,sv,vt=np.linalg.svd(P-c,full_matrices=False); pn=vt[2]*np.sign(vt[2][2])*cfg.get('palm_sign',1)
-        D=cg.dijkstra(G,indices=tips)
+        D=cg.dijkstra(G,indices=tips); own=D.argmin(0)
         handdir=np.mean([P[tips[k]] for k in order],axis=0)-wr; handdir/=np.linalg.norm(handdir)
+        deg=np.asarray((G>0).sum(1)).ravel(); Gb=(G>0).astype(float)
+        sm=lambda x:(lambda y:[y:=0.5*y+0.5*(Gb@y)/np.maximum(deg,1) for _ in range(3)][-1])(x)
+        # 手指很短（Q 版），所以每根手指連同它在手掌上的那一條一起折：依「離哪個指尖最近」把手掌前半分成幾條
         for rank,k in enumerate([th]+order):
-            di=D[k]; ell=min(0.5*min(di[tips[j]] for j in range(len(tips)) if j!=k),0.55*dw[tips[k]])
-            u_=di/ell; reg=u_<1
-            wc=lambda c0:(lambda w_:(P*w_[:,None]).sum(0)/w_.sum())(np.exp(-((u_-c0)/0.12)**2)*np.isfinite(u_))
-            base=wc(0.9); mid=wc(0.5); tip=P[tips[k]]
-            g=np.clip((1-u_)/0.3,0,1); g=g*g*(3-2*g)
+            f0=0.42 if rank==0 else 0.5; dT=dw[tips[k]]
+            sN=np.clip((dw-f0*dT)/(dT*(1-f0)),0,1.2); reg=(own==k)&(dw>f0*dT)
+            if reg.sum()<4: continue
+            wc=lambda lo_,hi_:P[reg&(sN>=lo_)&(sN<=hi_)].mean(0) if (reg&(sN>=lo_)&(sN<=hi_)).any() else P[reg].mean(0)
+            base=wc(0,0.15); mid=wc(0.42,0.62); tip=P[tips[k]]
+            g=np.clip(sN/0.22,0,1); g=g*g*(3-2*g)*reg
             if rank==0:
                 nm=[f'thumb{n}']; ax=handdir.copy()
                 if np.cross(ax,tip-base)@pn<0: ax=-ax
                 J[nm[0]]=base; J[nm[0]+'_end']=tip; PARENT[nm[0]]=f'hand{n}'; END[nm[0]]=nm[0]+'_end'
-                wv=np.zeros(len(V)); wv[idx]=g; Wf[nm[0]]=wv
+                wv=np.zeros(len(V)); wv[idx]=sm(g); Wf[nm[0]]=wv
             else:
                 nm=[f'f{rank}{n}a',f'f{rank}{n}b']; ax=np.cross(tip-base,pn); ax/=np.linalg.norm(ax)
                 if np.cross(ax,tip-base)@pn<0: ax=-ax
                 J[nm[0]]=base; J[nm[1]]=mid; J[nm[1]+'_end']=tip; PARENT[nm[0]]=f'hand{n}'; PARENT[nm[1]]=nm[0]; END[nm[0]]=nm[1]; END[nm[1]]=nm[1]+'_end'
-                bs=np.clip((0.62-u_)/0.24,0,1); bs=bs*bs*(3-2*bs)
-                wa=np.zeros(len(V)); wb=np.zeros(len(V)); wa[idx]=g*(1-bs); wb[idx]=g*bs; Wf[nm[0]]=wa; Wf[nm[1]]=wb
+                bs=np.clip((sN-0.42)/0.22,0,1); bs=bs*bs*(3-2*bs)
+                wa=np.zeros(len(V)); wb=np.zeros(len(V)); wa[idx]=sm(g*(1-bs)); wb[idx]=sm(g*bs); Wf[nm[0]]=wa; Wf[nm[1]]=wb
             out.append({'side':n,'kind':'thumb' if rank==0 else ('index' if rank==1 else 'rest'),'bones':nm,'axis':[round(float(x),4) for x in ax]})
             BONES.extend(nm)
         info[f'palm{n}']=[round(float(x),3) for x in pn]; info[f'ntips{n}']=len(tips)
@@ -122,6 +126,9 @@ def skin_weights(V,F,R,lab):
             for b,wv in FW.items():
                 if not (b.endswith(sd) or b.endswith(sd+'a') or b.endswith(sd+'b')): continue
                 f=wv[nn]; W[:,BONES.index(b)]=wh*f; tot+=f
+            sc=np.maximum(tot,1.0)
+            for b,wv in FW.items():
+                if b.endswith(sd) or b.endswith(sd+'a') or b.endswith(sd+'b'): W[:,BONES.index(b)]/=sc
             W[:,hi_]=wh*np.clip(1-tot,0,1)
     # 取前四大
     idx=np.argsort(-W,axis=1)[:,:4]; w=np.take_along_axis(W,idx,1); w/=w.sum(1,keepdims=True)
@@ -215,13 +222,14 @@ def labels(V,F,N,R,A):
         ey=(fc['eyeL'][1]+fc['eyeR'][1])/2; ex=(fc['eyeL'][0]+fc['eyeR'][0])/2
         hc=np.array([ex,neck_y+0.45*(H-neck_y),J['head'][2]]); rd=V-hc; rd/=np.linalg.norm(rd,axis=1,keepdims=True)
         dev=1-(N*rd).sum(1)
-        deep=ndi.binary_erosion(hair,iterations=cfg.get('hair_deep',3))[iy,ix]&vis
-        okv=(R==1)&vis&(N[:,2]>0.15)&(dev<cfg.get('hairline_dev',0.25))&~deep&(V[:,1]<ey+cfg.get('forehead_max',0.2))
+        deep=ndi.binary_erosion(hair,iterations=cfg.get('hair_deep',2))[iy,ix]&vis
+        fw_=cfg.get('forehead_halfwidth',abs(fc['eyeL'][0]-fc['eyeR'][0])/2+2.1*fc.get('r',0.05))
+        okv=(R==1)&vis&(N[:,2]>0.15)&(dev<cfg.get('hairline_dev',0.17))&~deep&(V[:,1]<ey+cfg.get('forehead_max',0.2))&(np.abs(V[:,0]-ex)<fw_)
         fr=np.where((R==1)&(np.abs(V[:,0]-ex)<0.03)&(np.abs(V[:,1]-(ey+0.01))<0.03)&(N[:,2]>0.6))[0]
         Bk=(A>0).astype(float).tocsr(); sub=Bk[okv][:,okv]; nc,cl=cg.connected_components(sub,directed=False)
         full=-np.ones(n,int); full[okv]=cl; seeds=np.unique(full[fr]); seeds=seeds[seeds>=0]
         reach=np.isin(full,seeds)&okv
-        up=(R==1)&(V[:,1]>ey+cfg.get('hairline_from',0.035))
+        up=(R==1)&(V[:,1]>ey+cfg.get('hairline_from',0.035))&(np.abs(V[:,0]-ex)<fw_+0.04)
         lab[up&reach]=1; lab[up&~reach]=0
         info['hairline_reach']=int((up&reach).sum())
     # 手：手腕平面之外是皮膚

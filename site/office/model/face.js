@@ -3,11 +3,12 @@
 // meta.face = { eyeL:[x,y], eyeR:[x,y], r: 眼睛半寬, mouth:[x,y], brow: 眉毛高出眼睛中心多少 }
 import * as THREE from '../vendor/three.module.min.js';
 
-export const EXPRESSIONS = { neutral: '微笑', happy: '開口笑', surprised: '驚訝', angry: '生氣', sad: '難過', smug: '得意', focus: '專注', dizzy: '暈眩' };
-const BASE = { top: 0.9, bot: -1, tilt: 0, arcB: 0, iris: 1, lookX: 0, lookY: 0, browY: 0, browTilt: 0, browArc: 0.5, browAsym: 0, mCurve: 0.55, mOpen: 0, mW: 1, mAsym: 0, blush: 0.55, cross: 0, puff: 0 };
+export const EXPRESSIONS = { neutral: '微笑', happy: '開口笑', talk: '講話', surprised: '驚訝', angry: '生氣', sad: '難過', smug: '得意', focus: '專注', dizzy: '暈眩' };
+const BASE = { top: 0.84, bot: -1, tilt: 0, arcB: 0, iris: 1, lookX: 0, lookY: 0, browY: 0, browTilt: 0, browArc: 0.5, browAsym: 0, mCurve: 0.55, mOpen: 0, mW: 1, mAsym: 0, blush: 0.55, cross: 0, puff: 0, arcUp: 0 };
 const EXPR = {
   neutral: {},
-  happy: { top: 0.62, bot: -0.55, arcB: 0.5, browY: 0.45, browArc: 0.8, mCurve: 1, mOpen: 0.75, mW: 1.25, blush: 0.8 },
+  talk: { mOpen: 0.55, mCurve: 0.45, mW: 0.9, browY: 0.2 },
+  happy: { top: -1, arcUp: 1, browY: 0.45, browArc: 0.8, mCurve: 1, mOpen: 0.75, mW: 1.25, blush: 0.8 },
   surprised: { top: 1.05, iris: 0.8, browY: 1, browArc: 0.9, mCurve: 0, mOpen: 0.7, mW: 0.55, blush: 0.4 },
   angry: { top: 0.6, tilt: 0.42, bot: -0.9, browY: -0.55, browTilt: 0.5, browArc: 0.15, mCurve: -0.55, mW: 0.75, blush: 0.75, puff: 1 },
   sad: { top: 0.66, tilt: -0.3, bot: -0.92, lookY: -0.25, browY: 0.25, browTilt: -0.55, browArc: 0.3, mCurve: -0.6, mW: 0.7, blush: 0.35 },
@@ -25,17 +26,17 @@ void main(){
   if(e.y>top||e.y<bot) discard;
   float er=sqrt(el); vec3 n=normalize(vP); vec3 g=normalize(vec3(uLook,1.0));
   float t=acos(clamp(dot(n,g),-1.0,1.0))/uIris; vec2 ic=(n.xy-g.xy)/sin(uIris);
-  vec3 scl=vec3(0.985,0.975,0.965)*mix(1.0,0.80,smoothstep(0.45,1.0,er));
+  vec3 scl=vec3(0.99,0.98,0.975)*mix(vec3(1.0),vec3(0.93,0.90,0.90),smoothstep(0.55,1.0,er));
   vec3 col=mix(uIrisIn,uIrisOut,smoothstep(0.25,1.0,t));
-  col+=vec3(0.30,0.17,0.06)*smoothstep(0.15,-0.95,ic.y)*smoothstep(1.0,0.45,t);      // 虹膜下緣的透光亮弧
+  col+=vec3(0.26,0.14,0.05)*smoothstep(0.1,-0.95,ic.y)*smoothstep(1.0,0.5,t);      // 虹膜下緣的透光亮弧
   col=mix(col,vec3(0.05,0.025,0.02),smoothstep(uPupil+0.07,uPupil-0.03,t));             // 瞳孔
   col*=1.0-0.6*smoothstep(0.76,1.0,t);                                                  // 虹膜外圈變深
   col=mix(col,scl,smoothstep(0.97,1.05,t));
   col*=1.0-0.42*smoothstep(0.8,0.0,top-e.y);                                            // 上眼皮投在眼球上的陰影
-  float lash=max(smoothstep(0.15,0.03,top-e.y),smoothstep(0.82,0.97,er)*smoothstep(-0.05,0.45,e.y));
+  float lash=max(smoothstep(0.26,0.09,top-e.y),smoothstep(0.84,0.96,er)*smoothstep(0.05,0.5,e.y));
   col=mix(col,uLash,lash*0.92);                                                         // 上眼線（深棕、柔邊，不是黑框）
   float low=max(smoothstep(0.86,1.0,er)*smoothstep(0.15,-0.4,e.y),smoothstep(0.12,0.0,e.y-bot)*step(-0.99,uBot));
-  col=mix(col,uSkinSh,low*0.6);
+  col=mix(col,uSkinSh,low*0.3);
   vec3 h1=normalize(g+vec3(-0.21,0.25,0.0)), h2=normalize(g+vec3(0.20,-0.24,0.0));
   float s1=smoothstep(cos(0.125),cos(0.085),dot(n,h1)), s2=smoothstep(cos(0.06),cos(0.035),dot(n,h2));
   col=mix(col,vec3(1.0),max(s1*(1.0-lash),s2*0.75));                                     // 高光
@@ -58,14 +59,14 @@ export class FaceRig {
     this.eyes = [[f.eyeL, 1], [f.eyeR, -1]].map(([e, side]) => {
       let z = -1e9; for (let i = 0; i < pos.count; i++) { const dx = pos.getX(i) - e[0], dy = pos.getY(i) - e[1]; if (dx * dx + dy * dy < f.r * f.r * 0.5 && pos.getZ(i) > z) z = pos.getZ(i); }
       const mat = new THREE.ShaderMaterial({ vertexShader: EYE_VS, fragmentShader: EYE_FS, uniforms: {
-        uRx: { value: f.r * 0.94 }, uRy: { value: f.r * 1.1 }, uTop: { value: 0.9 }, uBot: { value: -1 }, uTilt: { value: 0 }, uArcB: { value: 0 }, uIris: { value: 0.5 }, uPupil: { value: 0.4 }, uSide: { value: side }, uLook: { value: new THREE.Vector2() },
-        uIrisIn: { value: new THREE.Color(0.66, 0.36, 0.17) }, uIrisOut: { value: new THREE.Color(0.24, 0.115, 0.07) }, uLash: { value: new THREE.Color(0.2, 0.12, 0.11) }, uSkinSh: { value: new THREE.Color(0.86, 0.6, 0.5) } } });
+        uRx: { value: f.r * 1.02 }, uRy: { value: f.r * 1.08 }, uTop: { value: 0.9 }, uBot: { value: -1 }, uTilt: { value: 0 }, uArcB: { value: 0 }, uIris: { value: 0.5 }, uPupil: { value: 0.47 }, uSide: { value: side }, uLook: { value: new THREE.Vector2() },
+        uIrisIn: { value: new THREE.Color(0.50, 0.27, 0.13) }, uIrisOut: { value: new THREE.Color(0.17, 0.08, 0.05) }, uLash: { value: new THREE.Color(0.2, 0.12, 0.11) }, uSkinSh: { value: new THREE.Color(0.86, 0.6, 0.5) } } });
       const m = new THREE.Mesh(new THREE.SphereGeometry(Re, 48, 32), mat); m.rotation.x = Math.PI / 2; // 極點朝前後，避免極點落在上方
       const holder = new THREE.Group(); holder.position.set(e[0] - headJoint.x, e[1] - headJoint.y, z + prot - Re - headJoint.z);
       // 球體自己不轉（裁切用球的本地座標）；把幾何轉回來
       m.rotation.x = 0; holder.add(m); headBone.add(holder); return { holder, mat, side };
     });
-    this.irisBase = Math.asin(Math.min(0.95, f.r * 0.8 / Re));
+    this.irisBase = Math.asin(Math.min(0.95, f.r * 0.74 / Re));
     this.applyEyes(0);
   }
   detach() { for (const e of this.eyes) e.holder.parent && e.holder.parent.remove(e.holder); this.eyes = []; }
@@ -85,25 +86,28 @@ export class FaceRig {
   }
   draw() {
     const p = this.p, closed = (p.top + (p.bot - 0.05 - p.top) * this.blink) - p.bot < 0.12;
-    const key = ['browY', 'browTilt', 'browArc', 'browAsym', 'mCurve', 'mOpen', 'mW', 'mAsym', 'blush', 'cross', 'puff', 'top', 'tilt'].map((k) => p[k].toFixed(2)).join('|') + closed;
+    const key = ['browY', 'browTilt', 'browArc', 'browAsym', 'mCurve', 'mOpen', 'mW', 'mAsym', 'blush', 'cross', 'puff', 'top', 'tilt', 'arcUp'].map((k) => p[k].toFixed(2)).join('|') + closed;
     if (key === this.key) return false; this.key = key;
     const c = this.ctx, S = this.canvas.width, u = S / this.rect.w, f = this.f, R = f.r * u;
     c.clearRect(0, 0, S, S); c.lineCap = 'round'; c.lineJoin = 'round';
     const eyes = [[f.eyeL, 1], [f.eyeR, -1]];
     for (const [e, s] of eyes) {
       // 腮紅（柔和）
-      { const [x, y] = this.px([e[0] + s * f.r * 0.62, e[1] - f.r * 1.55]); const rr = R * (1.05 + 0.25 * p.puff);
-        const g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(255,128,120,${0.42 * p.blush})`); g.addColorStop(0.6, `rgba(255,128,120,${0.2 * p.blush})`); g.addColorStop(1, 'rgba(255,128,120,0)');
+      { const [x, y] = this.px([e[0] + s * f.r * 0.62, e[1] - f.r * 1.55]); const rr = R * (1.3 + 0.25 * p.puff);
+        const g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(255,105,105,${0.95 * p.blush})`); g.addColorStop(0.6, `rgba(255,105,105,${0.45 * p.blush})`); g.addColorStop(1, 'rgba(255,128,120,0)');
         c.fillStyle = g; c.beginPath(); c.ellipse(x, y, rr, rr * 0.72, 0, 0, 7); c.fill(); }
       // 眼窩的柔和陰影（讓眼睛像嵌在臉裡）
-      { const [x, y] = this.px(e); const g = c.createRadialGradient(x, y - R * 0.15, R * 0.7, x, y - R * 0.15, R * 1.55); g.addColorStop(0, 'rgba(205,125,105,0.34)'); g.addColorStop(1, 'rgba(205,125,105,0)');
+      { const [x, y] = this.px(e); const g = c.createRadialGradient(x, y - R * 0.15, R * 0.7, x, y - R * 0.15, R * 1.55); g.addColorStop(0, 'rgba(205,125,105,0.22)'); g.addColorStop(1, 'rgba(205,125,105,0)');
         c.fillStyle = g; c.beginPath(); c.ellipse(x, y - R * 0.15, R * 1.5, R * 1.6, 0, 0, 7); c.fill(); }
       const [x, y] = this.px(e);
       if (p.cross > 0.5) { c.save(); c.translate(x, y); c.strokeStyle = '#4a3232'; c.lineWidth = R * 0.2; c.shadowColor = '#4a3232'; c.shadowBlur = R * 0.06;
         c.beginPath(); c.moveTo(-R * 0.55, -R * 0.55); c.lineTo(R * 0.55, R * 0.55); c.moveTo(R * 0.55, -R * 0.55); c.lineTo(-R * 0.55, R * 0.55); c.stroke(); c.restore(); }
       else if (closed) { // 閉眼：上下眼皮合起來的弧線，加一點睫毛厚度
         c.save(); c.translate(x, y + R * 0.42); c.strokeStyle = '#3a2424'; c.lineWidth = R * 0.17; c.shadowColor = '#3a2424'; c.shadowBlur = R * 0.08;
-        c.beginPath(); c.moveTo(-R * 0.85, -R * 0.12); c.quadraticCurveTo(0, R * 0.34, R * 0.85, -R * 0.12); c.stroke(); c.restore(); }
+        const up = p.arcUp > 0.5; c.beginPath();
+        if (up) { c.translate(0, -R * 0.5); c.moveTo(-R * 0.88, R * 0.3); c.quadraticCurveTo(0, -R * 0.62, R * 0.88, R * 0.3); }
+        else { c.moveTo(-R * 0.85, -R * 0.12); c.quadraticCurveTo(0, R * 0.34, R * 0.85, -R * 0.12); }
+        c.stroke(); c.restore(); }
       // 眉毛：有厚度、內粗外細、柔邊
       { const by = f.brow + f.r * (0.22 * p.browY + (s > 0 ? 0.3 : -0.1) * p.browAsym); const [bx, byy] = this.px([e[0], e[1] + by]);
         c.save(); c.translate(bx, byy); c.rotate(s * p.browTilt * 0.55); c.scale(s, 1); // 之後 +x 是外側

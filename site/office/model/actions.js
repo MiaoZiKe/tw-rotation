@@ -12,12 +12,12 @@ const leg = (p, s, a = 0, k = 0, splay = 0.13, pitch = 0) => { const n = s > 0 ?
 const REST_ARM = [[0.25, -0.96, 0.03], [0.2, -0.95, 0.2]];
 
 export const ACTIONS = {
-  idle: { label: '待機', stand: true, fn(t) { const b = S(t * 1.7), p = { root: { y: -0.004 * (1 + b) }, spine: [0.01 * b, 0, 0], chest: [-0.03 * b, 0, 0], head: [0.03 * S(t * 0.8), 0.1 * S(t * 0.5), 0.02 * S(t * 0.37)], shoulderL: [0, 0, 0.03 * b], shoulderR: [0, 0, -0.03 * b] };
-    for (const s of [1, -1]) { arm(p, s, [0.25 + 0.012 * b, -0.96, 0.03], REST_ARM[1]); leg(p, s); p['fingers' + (s > 0 ? 'L' : 'R')] = 0.3; } return { pose: p }; } },
+  idle: { label: '待機', stand: true, fn(t, m, o) { const b = S(t * 1.7), p = { root: { y: -0.004 * (1 + b) }, spine: [0.01 * b, 0, 0], chest: [-0.03 * b, 0, 0], head: [0.03 * S(t * 0.8), 0.1 * S(t * 0.5), 0.02 * S(t * 0.37)], shoulderL: [0, 0, 0.03 * b], shoulderR: [0, 0, -0.03 * b] };
+    for (const s of [1, -1]) { arm(p, s, [0.25 + 0.012 * b, -0.96, 0.03], REST_ARM[1], null, 1.1); leg(p, s); p['fingers' + (s > 0 ? 'L' : 'R')] = o && o.fingers != null ? o.fingers : 0.3; } return { pose: p }; } },
 
   walk: { label: '走路', loco: 0.65 },
 
-  run: { label: '跑步', loco: 1.9, face: { expr: 'neutral', mouth: 0.3 } },
+  run: { label: '跑步', loco: 1.6, face: { expr: 'neutral', mouth: 0.3 } },
 
   sit: { label: '坐下打字', prop: 'desk', fn(t, m) { const p = { root: { y: -m.sitDrop, z: -0.02 }, hips: [-0.04, 0, 0], spine: [0.07, 0, 0], chest: [0.07, 0, 0], neck: [0.05, 0, 0], head: [0.1 + 0.015 * S(t * 2.3), 0.05 * S(t * 0.6), 0] };
     for (const s of [1, -1]) { const n = s > 0 ? 'L' : 'R'; p['leg' + n] = { dir: [s * 0.2, -0.1, 1] }; p['shin' + n] = { dir: [s * 0.1, -1, 0.1] }; p['foot' + n + '_'] = { world: [0, 0, 0] };
@@ -42,7 +42,7 @@ export const ACTIONS = {
 
   raise: { stand: true, label: '舉手', fn(t) { const b = S(t * 5), up = 0.5 + 0.5 * S(t * 2.5), p = { root: { y: 0.01 * up, x: 0.02 }, spine: [-0.02, 0, -0.07], chest: [-0.03, 0, -0.08], neck: [0, 0, -0.06], head: [-0.08, -0.06, -0.14], shoulderR: [0, 0, -0.5], shoulderL: [0, 0, -0.08] };
     arm(p, -1, [0.52, 0.85, 0.12], [0.1 + 0.08 * b, 1, 0.06], [0.02 + 0.3 * b, 1, 0.1]);
-    arm(p, 1, REST_ARM[0], REST_ARM[1]); p.fingersR = 0; p.fingersL = 0.3; leg(p, 1); leg(p, -1); return { pose: p, face: { expr: 'neutral', mouth: 0.45 } }; } },
+    arm(p, 1, REST_ARM[0], REST_ARM[1], null, 1.1); p.fingersR = 0; p.fingersL = 0.3; leg(p, 1); leg(p, -1); return { pose: p, face: { expr: 'neutral', mouth: 0.45 } }; } },
 
   clap: { stand: true, label: '鼓掌', fn(t) { const c = 0.5 + 0.5 * S(t * 15), p = { root: { y: -0.004 + 0.006 * c }, spine: [0.02, 0, 0], chest: [0.02, 0, 0.03 * S(t * 3)], head: [0.02, 0, 0.06 * S(t * 3)] };
     for (const s of [1, -1]) arm(p, s, [0.1 + 0.1 * c, -0.6, 0.8], [-0.78 + 0.4 * c, 0.4, 0.5], [-0.62 + 0.45 * c, 0.65, 0.45], 1.2);
@@ -53,7 +53,7 @@ export const ACTIONS = {
     return { pose: p, face: { expr: 'happy' } }; } },
 
   look: { stand: true, label: '轉頭看人', fn(t, m, o) { const a = (o && o.lookYaw != null ? o.lookYaw : 0.62 * S(t * 1.3)), p = { root: { y: -0.004 }, spine: [0, 0.08 * a, 0], chest: [0, 0.14 * a, 0], neck: [0, 0.32 * a, 0], head: [0.02, 0.46 * a, 0] };
-    for (const s of [1, -1]) { arm(p, s, REST_ARM[0], REST_ARM[1]); p['fingers' + (s > 0 ? 'L' : 'R')] = 0.3; leg(p, s); } return { pose: p, face: { expr: 'neutral', look: [a * 0.9, 0] } }; } },
+    for (const s of [1, -1]) { arm(p, s, REST_ARM[0], REST_ARM[1], null, 1.1); p['fingers' + (s > 0 ? 'L' : 'R')] = 0.3; leg(p, s); } return { pose: p, face: { expr: 'neutral', look: [a * 0.9, 0] } }; } },
 
   hit: { label: '被打彈飛', loop: 3.2, fx: 'hit', fn(t, m) { t = t % 3.2; const p = {}; let face = { expr: 'surprised' };
     const lie = -1.22, fly = clamp((t - 0.1) / 0.85), up = ss((t - 1.9) / 0.8);

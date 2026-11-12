@@ -1,6 +1,6 @@
 // 用法：node shots.js <shots.json> <outdir>   shots.json = [{name,w,h,dpr,opts}]
 const {chromium}=require('playwright');const http=require('http'),fs=require('fs'),path=require('path');
-const root='/home/user/tw-rotation/site/office';const shots=JSON.parse(fs.readFileSync(process.argv[2]));const out=process.argv[3];
+const root=require('path').resolve(__dirname,'../../site/office');const shots=JSON.parse(fs.readFileSync(process.argv[2]));const out=process.argv[3];
 const T={'.html':'text/html','.js':'text/javascript','.json':'application/json','.png':'image/png','.css':'text/css'};
 const srv=http.createServer((q,s)=>{let p=path.join(root,decodeURIComponent(q.url.split('?')[0]));fs.readFile(p,(e,d)=>{if(e){s.writeHead(404);s.end();return}s.writeHead(200,{'Content-Type':T[path.extname(p)]||'application/octet-stream'});s.end(d)})}).listen(0,async()=>{
  const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});

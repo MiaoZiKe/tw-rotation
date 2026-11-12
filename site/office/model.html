@@ -22,10 +22,15 @@ h1{font-size:18px;margin:0;display:flex;align-items:baseline;justify-content:spa
 .chip.on{background:var(--on);border-color:var(--on);color:#fff;font-weight:600}
 body.shot #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}body.shot #panel,body.shot #hint{display:none}
 @media (max-width:760px){
-  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:52vh minmax(0,1fr)}
-  #panel{border-left:0;border-top:1px solid var(--line);padding:12px;gap:8px}
-  .chip{padding:8px 10px;font-size:13px}
-  .grp h2{margin-bottom:4px}
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  #panel{border-left:0;border-top:1px solid var(--line);padding:8px 12px 12px;gap:4px;overflow:visible}
+  h1{font-size:15px}
+  .grp{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:4px}
+  .grp h2{margin:0;font-size:12px}
+  .chips{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{padding:8px 10px;font-size:13px;flex:0 0 auto;min-height:32px}
+  #hint{display:none}
 }
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>

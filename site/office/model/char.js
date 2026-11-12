@@ -42,7 +42,7 @@ float gHair=0.0;`)
   vec2 fuv=(vRestXY-uFaceRect.xy)/uFaceRect.zw; fuv.y=1.0-fuv.y;
   if(fuv.x>0.0&&fuv.x<1.0&&fuv.y>0.0&&fuv.y<1.0){ vec4 d=texture2D(uFace,fuv); float fm=uFaceOn*smoothstep(0.25,0.6,vPB.z); base=base*(1.0-d.a*fm)+d.rgb*fm; }
   // 凹處陰影（烘在頂點裡）：暗部偏暖，衣服皺摺與髮束才有層次
-  float ao=mix(1.0,vPB.w,uAO); base*=mix(vec3(0.55,0.42,0.48),vec3(1.0),ao);
+  float ao=mix(1.0,vPB.w,uAO*(1.0-0.45*vPA.y)); base*=mix(vec3(0.55,0.42,0.48),vec3(1.0),ao);
   diffuseColor.rgb*=base;
 }`)
       .replace('#include <opaque_fragment>', `
@@ -111,12 +111,15 @@ export class Char {
   updateFace(dt, target, camera) { if (camera) this.uniforms.uUpView.value.set(0, 1, 0).transformDirection(camera.matrixWorldInverse); if (this.face.update(dt, target)) this.faceTex.needsUpdate = true; }
 
   // 把姿勢描述轉成每根骨頭的本地四元數與髖位移
-  solve(pose) {
+  solve(pose, w = 1) {
     const out = { q: {}, pos: new THREE.Vector3() };
     const eul = (a) => (a ? new THREE.Quaternion().setFromEuler(_e.set(a[0] || 0, a[1] || 0, a[2] || 0, 'YXZ')) : new THREE.Quaternion());
     const r = pose.root || {};
     out.pos.set(r.x || 0, r.y || 0, r.z || 0);
     out.q.hips = eul([r.rx || 0, r.ry || 0, r.rz || 0]).multiply(eul(pose.hips));
+    // 過渡中而且腿是鎖地的：髖先內插好再解腿，腳才不會在過渡時滑動
+    out.pre = {};
+    if (w < 1 && this.from && this.from.q.hips && (pose.ikL || pose.ikR)) { out.q.hips = this.from.q.hips.clone().slerp(out.q.hips, w); out.pos = this.from.pos.clone().lerp(out.pos, w); out.pre.hips = out.pre.pos = true; }
     for (const b of ['spine', 'chest', 'neck', 'head', 'shoulderL', 'shoulderR']) out.q[b] = eul(pose[b]);
     for (const [u, f, h, ku, kf, kh, sd] of LIMBS) {
       const ik = u.startsWith('thigh') && pose['ik' + sd];
@@ -134,7 +137,7 @@ export class Char {
         qu = new THREE.Quaternion().setFromUnitVectors(this.restDir[u], knee.clone().normalize());
         const sd2 = tv.clone().sub(knee).normalize().applyQuaternion(_q.copy(qu).invert());
         qf.setFromUnitVectors(this.restDir[f], sd2);
-        qh.copy(_q.copy(qH).multiply(qu).multiply(qf).invert()).multiply(ik.q || new THREE.Quaternion());
+        qh.copy(_q.copy(qH).multiply(qu).multiply(qf).invert()).multiply(ik.q || new THREE.Quaternion()); out.pre[u] = out.pre[f] = out.pre[h] = true;
       } else {
         const du = pose[ku] ? _v.set(...pose[ku].dir).normalize() : this.restDir[u];
         qu = new THREE.Quaternion().setFromUnitVectors(this.restDir[u], du);
@@ -171,12 +174,12 @@ export class Char {
     this.blend = this.cur.q ? 0 : 1; this.blendDur = dur;
   }
   apply(pose, dt = 0) {
-    const s = this.solve(pose);
-    if (this.blend < 1 && this.from) {
-      this.blend = Math.min(1, this.blend + dt / this.blendDur);
-      const w = this.blend * this.blend * (3 - 2 * this.blend);
-      for (const k in s.q) if (this.from.q[k]) s.q[k] = this.from.q[k].clone().slerp(s.q[k], w);
-      s.pos = this.from.pos.clone().lerp(s.pos, w);
+    let w = 1;
+    if (this.blend < 1 && this.from) { this.blend = Math.min(1, this.blend + dt / this.blendDur); w = this.blend * this.blend * (3 - 2 * this.blend); }
+    const s = this.solve(pose, w);
+    if (w < 1) {
+      for (const k in s.q) if (this.from.q[k] && !s.pre[k]) s.q[k] = this.from.q[k].clone().slerp(s.q[k], w);
+      if (!s.pre.pos) s.pos = this.from.pos.clone().lerp(s.pos, w);
     }
     this.cur = s;
     for (const k in s.q) if (this.bones[k]) this.bones[k].quaternion.copy(s.q[k]);

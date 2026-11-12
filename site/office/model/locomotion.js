@@ -20,8 +20,8 @@ export class Loco {
   fwd(yaw = this.yaw) { return new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)); }
   left(yaw = this.yaw) { return new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)); }
   gait() { const v = this.v, run = ss((v - 1.05) / 0.45);
-    const stride = lerp(0.36 + 0.5 * v, 0.5 + 0.38 * v, run);                 // 一個完整週期（左右各一步）前進的距離
-    return { run, duty: lerp(0.62, 0.36, run), stride, T: clamp(stride / Math.max(v, 1e-3), 0.5, 1.0), k: clamp(v / 0.5) }; }
+    const stride = lerp(0.26 + 0.4 * v, 0.5 + 0.38 * v, run);                 // 一個完整週期（左右各一步）前進的距離
+    return { run, duty: lerp(0.62, 0.32, run), stride, T: clamp(stride / Math.max(v, 1e-3), 0.45, 0.95), k: clamp(v / 0.5) }; }
   // 腳掌貼地時的腳踝位置；pitch>0 腳跟離地（繞腳掌球轉）、pitch<0 腳尖翹起（繞腳跟轉）
   ankleAt(pos, yaw, pitch, out) {
     const pz = pitch >= 0 ? this.ballZ : this.heelZ, f = this.fwd(yaw);
@@ -56,7 +56,7 @@ export class Loco {
         ft.cur.copy(land); ft.yaw = ft.fromYaw + wrap(this.yaw - ft.fromYaw) * ss(s);
         const tgt = this.ankleAt(land, this.yaw, heel, new THREE.Vector3());
         const e = ss(s), lift = (0.05 + 0.05 * g.k + 0.13 * g.run) * Math.sin(Math.PI * Math.pow(s, 0.85));
-        ft.ankle.lerpVectors(ft.from, tgt, e); ft.ankle.y += lift + 0.04 * g.run * (s < 0.25 ? Math.sin(Math.PI * s / 0.25) ** 2 : s > 0.75 ? Math.sin(Math.PI * (1 - s) / 0.25) ** 2 : 0);
+        ft.ankle.lerpVectors(ft.from, tgt, e); ft.ankle.y += lift + 0.1 * g.run * (s < 0.25 ? Math.sin(Math.PI * s / 0.25) ** 2 : s > 0.75 ? Math.sin(Math.PI * (1 - s) / 0.25) ** 2 : 0);
         ft.pitch = lerp(ft.fromPitch, heel, ss(s * 1.15)) + (0.25 * g.k + 0.5 * g.run) * Math.sin(Math.PI * s) * (1 - s);
       } else {
         if (ft.swing) ft.pos.copy(ft.cur);                                      // 著地：記下著地點，之後整個支撐期都不動
@@ -74,18 +74,22 @@ export class Loco {
     }
     // 骨盆：走路時雙腳著地瞬間最低、單腳支撐中段最高；跑步相反（支撐中段最低、騰空最高）
     const ph = this.phase * TAU, k = g.k, r = g.run, mv = this.moving ? 1 : 0;
-    const yWalk = -0.012 - 0.03 * k - 0.016 * k * Math.cos(2 * ph);
-    const yRun = -0.085 - 0.04 * Math.cos(2 * (ph - g.duty * Math.PI));
+    const yWalk = -0.004 - 0.014 * k - 0.012 * k * Math.cos(2 * ph);
+    const yRun = -0.045 - 0.05 * Math.cos(2 * (ph - g.duty * Math.PI));
     const swayPh = ph - 0.6 * Math.PI + Math.PI / 2;
     pose.root = { y: lerp(yWalk, yRun, r) * mv, x: 0.024 * k * (1 - 0.6 * r) * Math.sin(swayPh) * mv,
       rx: (0.035 * k + 0.16 * r + clamp(this.acc * 0.05, -0.08, 0.1)) * mv, ry: -(0.11 * k + 0.08 * r) * Math.cos(ph) * mv, rz: (0.045 * k + 0.02 * r) * Math.sin(swayPh) * mv };
+    // 腿搆不到著地點時（加速、急轉彎）把骨盆壓低，腳就不會被拖離著地點
+    for (const n of ['L', 'R']) { const ft = this.feet[n]; if (ft.swing) continue;
+      const hx = this.x + l.x * ft.side * this.hipX + l.x * pose.root.x, hz = this.z + l.z * ft.side * this.hipX + l.z * pose.root.x, hor = Math.hypot(ft.ankle.x - hx, ft.ankle.z - hz), L = this.legLen * 0.972;
+      if (hor < L) { const ymax = ft.ankle.y + Math.sqrt(L * L - hor * hor) - this.hipH; if (pose.root.y > ymax) pose.root.y = ymax; } }
     const yawC = (0.11 * k + 0.08 * r) * Math.cos(ph) * mv;
     pose.spine = [0.02 * k + 0.05 * r, 0.5 * yawC, -0.6 * pose.root.rz]; pose.chest = [0.02 * k + 0.05 * r, 1.0 * yawC, -0.3 * pose.root.rz];
     pose.neck = [-0.03 * k - 0.1 * r, -0.25 * yawC, 0]; pose.head = [-0.03 * k - 0.1 * r, -0.25 * yawC, -0.1 * pose.root.rz];
     // 手臂：與對側腿反向擺動，手肘微彎（跑步彎到接近直角）
     for (const [n, s] of [['L', 1], ['R', -1]]) {
-      const th = -s * (0.5 * k + 0.35 * r) * Math.cos(ph - 0.25) * mv - 0.1 * r, el = (0.28 + 0.12 * k + 0.95 * r) + 0.18 * k * Math.max(0, Math.sin(th * 2));
-      pose['arm' + n] = { dir: [s * (0.24 - 0.04 * r), -Math.cos(th), Math.sin(th)] }; pose['fore' + n] = { dir: [s * (0.16 - 0.14 * r), -Math.cos(th + el), Math.sin(th + el)] };
+      const th = -s * (0.36 * k + 0.5 * r) * Math.cos(ph - 0.25) * mv - 0.1 * r, el = (0.16 + 0.06 * k + 1.15 * r) + 0.22 * k * Math.max(0, Math.sin(th * 2));
+      pose['arm' + n] = { dir: [s * (0.24 - 0.04 * r), -Math.cos(th), Math.sin(th)] }; pose['fore' + n] = { dir: [s * (0.16 - 0.14 * r), -Math.cos(th + el), Math.sin(th + el)], twist: s * lerp(1.1, 0.9, r) };
       pose['fingers' + n] = 0.25 + 0.55 * r;
     }
     this.g = g; return pose;
