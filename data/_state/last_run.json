@@ -176,16 +176,16 @@
       "seconds": 0.4
     },
     "inst_daily": {
-      "stored": 137
+      "stored": 378
     },
     "institutional_codes": {
       "requested": 382,
-      "returned": 137
+      "returned": 378
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 137,
-      "seconds": 49.2
+      "rows": 378,
+      "seconds": 108.2
     },
     "inst_flags": {
       "rebuild": true,
@@ -207,10 +207,10 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-12",
-        "rows": 1489,
+        "rows": 1867,
         "median": 2233.5,
-        "status": "pending",
-        "reason": "thin"
+        "status": "ok",
+        "reason": null
       },
       "inst_market_daily": {
         "label": "全市場三大法人金額",
@@ -249,10 +249,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-12T09:18:07.373892+00:00",
-  "finished_at": "2026-11-12T09:19:25.263405+00:00",
-  "duration_seconds": 77.9,
+  "started_at": "2026-11-12T09:58:14.598784+00:00",
+  "finished_at": "2026-11-12T10:00:15.909031+00:00",
+  "duration_seconds": 121.3,
   "trade_date": "2026-11-12",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 120
 }
