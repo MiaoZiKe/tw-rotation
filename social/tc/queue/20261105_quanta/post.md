@@ -1,11 +1,23 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-12T22:15+08:00
 platforms: ig, threads
 images: 1_cover.jpg, 2_fields.jpg
 title: 廣達碩畢待遇（代號肉鬆）
 source_branch: tc/post-quanta 7b2841539（docs/marketing/channels/tc/posts/20261105_quanta/）
+urls_ig: https://www.instagram.com/p/DfpP6kZF1eC/
+ids_ig: 17927276208439588
+verified_ig: CAROUSEL_ALBUM
+urls_threads: https://www.threads.com/@tech_01010909/post/DfpP9DvFlIi
+ids_threads: 18501425941106182
+ids_threads_reply: 18203743936344851
+verified_threads: CAROUSEL_ALBUM
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DfpP_EyloMy
+done: ig, threads
+urls: https://www.instagram.com/p/DfpP6kZF1eC/ https://www.threads.com/@tech_01010909/post/DfpP9DvFlIi https://www.threads.com/@tech_01010909/post/DfpP_EyloMy
+posted_at: 2026-11-12T22:15+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：廣達碩畢待遇
 
