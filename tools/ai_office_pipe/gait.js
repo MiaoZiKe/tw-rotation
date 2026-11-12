@@ -71,6 +71,25 @@ const srv=http.createServer((q,s)=>{let p=path.join(root,decodeURIComponent(q.ur
   cp.execFileSync('python3',[path.join(__dirname,'sheet.py'),path.join(out,name+'_frames.png'),'4','0.7',...pick]);
   fs.rmSync(dir,{recursive:true}); await pg.context().close();
  }
+ // 起步、停步、轉彎的近拍分格（鏡頭跟著角色）：每 0.1 秒一格
+ async function trans(name,opts,pre,acts,n,cam,stepT=0.1){
+  const pg=await open(300,400); await pg.evaluate(o=>window.stage.set(o),opts); const fr=[],all=[];
+  if(pre) await pg.evaluate(([dt,k])=>window.stage.step(dt,k),[1/120,Math.round(pre*120)]);
+  for(let i=0;i<n;i++){ for(const [at,k] of acts) if(at===i) await pg.evaluate(k=>window.stage.act(k),k);
+   const pr=await pg.evaluate(([dt,k,c])=>window.stage.step(dt,k,c),[1/120,Math.round(stepT*120),cam]); all.push(...pr);
+   const f=path.join(out,`_${name}_${String(i).padStart(2,'0')}.png`); await pg.screenshot({path:f}); fr.push(f); }
+  cp.execFileSync('python3',[path.join(__dirname,'sheet.py'),path.join(out,name+'.png'),'8','1',...fr]); for(const f of fr) fs.unlinkSync(f);
+  let mx=0;for(const nn of ['L','R']){let ref=null,kind=null;for(const f of all){const ft=f.feet[nn];if(ft.swing){ref=null;kind=null;continue;}const k=ft.pitch>=0?'ball':'heel',p=ft[k];if(kind!==k){ref=p;kind=k;}mx=Math.max(mx,Math.hypot(p[0]-ref[0],p[2]-ref[2]));}}
+  const ch=[];for(let i=1;i<all.length;i++)ch.push(Math.abs(all[i].pelvisY-all[i-1].pelvisY)*120);
+  report[name]={maxContactSlip:+mx.toFixed(5),maxPelvisSpeed:+Math.max(...ch).toFixed(3),maxYawRate:+Math.max(...all.map(f=>Math.abs(f.w))).toFixed(2),endSpeed:+all[all.length-1].v.toFixed(3),settled:!all[all.length-1].moving};
+  await pg.context().close(); }
+ if(what==='trans'||what==='all'){
+  const side={dist:5.2,target:[0,0.85,0],az:Math.PI/2,el:0.05};
+  await trans('start_side',{action:'idle',t:0,route:[[0,400]]},0,[[0,'walk']],16,side);
+  await trans('stop_side',{action:'walk',t:4,route:[[0,400]]},0,[[0,'idle']],16,side);
+  await trans('turn_top',{action:'walk',t:0,route:[[0,2.2],[2.6,2.2],[2.6,0]],routeOnce:true},1.6,[],16,{dist:6,target:[0,0.5,0],az:0.3,el:1.05},0.15);
+  await trans('run_start_stop',{action:'idle',t:0,route:[[0,400]]},0,[[0,'run'],[8,'idle']],16,side,0.12);
+ }
  if(what==='walk'||what==='all') await cycle('walk','walk',[['side',Math.PI/2],['front',0]]);
  if(what==='run'||what==='all') await cycle('run','run',[['side',Math.PI/2]]);
  if(what==='video'||what==='all'){

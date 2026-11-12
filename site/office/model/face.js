@@ -58,6 +58,7 @@ export class FaceRig {
     const f = this.f, pos = geom.attributes.position, Re = f.r * 1.6, prot = f.protrude != null ? f.protrude : 0.017;
     this.eyes = [[f.eyeL, 1], [f.eyeR, -1]].map(([e, side]) => {
       let z = -1e9; for (let i = 0; i < pos.count; i++) { const dx = pos.getX(i) - e[0], dy = pos.getY(i) - e[1]; if (dx * dx + dy * dy < f.r * f.r * 0.5 && pos.getZ(i) > z) z = pos.getZ(i); }
+      this.surfZ = Math.max(this.surfZ == null ? -1e9 : this.surfZ, z);   // 臉表面的前後位置（眉毛透過瀏海顯示時用來排除後腦勺）
       const mat = new THREE.ShaderMaterial({ vertexShader: EYE_VS, fragmentShader: EYE_FS, uniforms: {
         uRx: { value: f.r * 1.02 }, uRy: { value: f.r * 1.08 }, uTop: { value: 0.9 }, uBot: { value: -1 }, uTilt: { value: 0 }, uArcB: { value: 0 }, uIris: { value: 0.5 }, uPupil: { value: 0.47 }, uSide: { value: side }, uLook: { value: new THREE.Vector2() },
         uIrisIn: { value: new THREE.Color(0.50, 0.27, 0.13) }, uIrisOut: { value: new THREE.Color(0.17, 0.08, 0.05) }, uLash: { value: new THREE.Color(0.2, 0.12, 0.11) }, uSkinSh: { value: new THREE.Color(0.86, 0.6, 0.5) } } });

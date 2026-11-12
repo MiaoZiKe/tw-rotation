@@ -20,12 +20,13 @@ function makeMaterial(char) {
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
 attribute vec4 _parta; attribute vec4 _partb;
-varying vec4 vPA; varying vec4 vPB; varying vec2 vPUv; varying vec2 vRestXY;`)
+varying vec4 vPA; varying vec4 vPB; varying vec2 vPUv; varying vec2 vRestXY; varying float vRestZ;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
-vPA=_parta; vPB=_partb; vPUv=uv; vRestXY=position.xy;`);
+vPA=_parta; vPB=_partb; vPUv=uv; vRestXY=position.xy; vRestZ=position.z;`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-varying vec4 vPA; varying vec4 vPB; varying vec2 vPUv; varying vec2 vRestXY;
+varying vec4 vPA; varying vec4 vPB; varying vec2 vPUv; varying vec2 vRestXY; varying float vRestZ;
+uniform vec4 uBrow; uniform vec3 uBrowHair;
 uniform vec3 uPal[5]; uniform sampler2D uRef; uniform sampler2D uFace; uniform vec4 uFaceRect; uniform vec3 uHairHi; uniform vec3 uUpView;
 uniform float uProj; uniform float uFlat; uniform float uFaceOn; uniform vec3 uRim; uniform float uRimPow; uniform float uAO;
 float gHair=0.0;`)
@@ -40,7 +41,10 @@ float gHair=0.0;`)
   vec3 ref=texture2D(uRef,vPUv).rgb;
   base=mix(base,ref,uProj*smoothstep(0.35,0.75,vPB.y));
   vec2 fuv=(vRestXY-uFaceRect.xy)/uFaceRect.zw; fuv.y=1.0-fuv.y;
-  if(fuv.x>0.0&&fuv.x<1.0&&fuv.y>0.0&&fuv.y<1.0){ vec4 d=texture2D(uFace,fuv); float fm=uFaceOn*smoothstep(0.25,0.6,vPB.z); base=base*(1.0-d.a*fm)+d.rgb*fm; }
+  if(fuv.x>0.0&&fuv.x<1.0&&fuv.y>0.0&&fuv.y<1.0){ vec4 d=texture2D(uFace,fuv); float fm=uFaceOn*smoothstep(0.25,0.6,vPB.z); base=base*(1.0-d.a*fm)+d.rgb*fm;
+    // 眉毛透過瀏海顯示（卡通常見畫法）：瀏海蓋到眉毛的地方，用比頭髮亮的顏色把眉毛畫在頭髮上，兩邊眉毛都看得到
+    float bw=uFaceOn*uBrow.w*gHair*step(uBrow.z,vRestZ)*smoothstep(uBrow.x-0.008,uBrow.x+0.004,vRestXY.y)*smoothstep(uBrow.y+0.008,uBrow.y-0.004,vRestXY.y)*smoothstep(0.45,0.8,d.a);
+    base=mix(base,uBrowHair,bw*0.92); }
   // 凹處陰影（烘在頂點裡）：暗部偏暖，衣服皺摺與髮束才有層次
   float ao=mix(1.0,vPB.w,uAO*(1.0-0.45*vPA.y)); base*=mix(vec3(0.55,0.42,0.48),vec3(1.0),ao);
   diffuseColor.rgb*=base;
@@ -68,6 +72,7 @@ export class Char {
       uRef: { value: null }, uFace: { value: null }, uFaceRect: { value: new THREE.Vector4(0, 0, 1, 1) },
       uProj: { value: 0 }, uFlat: { value: 0 }, uFaceOn: { value: 1 }, uAO: { value: 1 },
       uHairHi: { value: new THREE.Color('#aab4e6') }, uUpView: { value: new THREE.Vector3(0, 1, 0) },
+      uBrow: { value: new THREE.Vector4(0, 0, 0, 0) }, uBrowHair: { value: new THREE.Color('#8d90b4') },
       uRim: { value: new THREE.Color(0.5, 0.4, 0.34) }, uRimPow: { value: 2.6 },
     };
     this.from = null; this.blend = 1; this.blendDur = 0.35;
@@ -103,6 +108,7 @@ export class Char {
       ref.colorSpace = THREE.SRGBColorSpace; ref.flipY = false; this.uniforms.uRef.value = ref;
     }
     this.face.attach(this.bones.head, this.J.head, this.mesh.geometry);
+    { const f = this.face.f, by = f.eyeL[1] + f.brow; this.uniforms.uBrow.value.set(by - 0.032, by + 0.05, this.face.surfZ - 0.2, 1); }
     this.count = { verts: this.mesh.geometry.attributes.position.count, tris: this.mesh.geometry.index.count / 3, bones: Object.keys(this.bones).length };
     return this;
   }

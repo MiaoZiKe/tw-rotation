@@ -74,9 +74,10 @@ function frame(dt) {
     cmd.yaw = Math.atan2(p[0] - loco.x, p[1] - loco.z); cmd.turnRate = A.loco > 1 ? 3.2 : 2.4;
     if (state.routeOnce && state.wp >= w.length - 1) { const d = Math.hypot(p[0] - loco.x, p[1] - loco.z); cmd.speed = d < 0.12 ? 0 : Math.min(A.loco, Math.max(0.25, d * 1.6)); } }
   const lp = loco.update(sdt, cmd);
+  // 站姿動作：腿由步態模組決定站多高 —— 往上不超過腿長（腳不離地），往下照動作本身
   let r;
   if (A.loco) r = { pose: lp, face: A.face };
-  else { r = A.fn(state.t, dims, state.opts); if (A.stand) { r.pose.ikL = lp.ikL; r.pose.ikR = lp.ikR; r.pose.root = { ...(r.pose.root || {}) }; r.pose.root.y = (r.pose.root.y || 0) + lp.root.y; } }
+  else { r = A.fn(state.t, dims, state.opts); if (A.stand) { r.pose.ikL = lp.ikL; r.pose.ikR = lp.ikR; r.pose.root = { ...(r.pose.root || {}) }; r.pose.root.y = lp.root.y + 0.004 + Math.min(0, r.pose.root.y || 0); } }
   char.root.position.set(loco.x, 0, loco.z); char.root.rotation.y = loco.yaw;
   char.apply(r.pose, sdt);
   // 表情：動作自帶表情，可被按鈕蓋過；自動眨眼
