@@ -13,7 +13,8 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Noto Sans TC","PingF
 #card{position:absolute;right:16px;top:14px;background:#ffffffd9;border-radius:16px;padding:9px 14px;box-shadow:0 6px 18px #d9b99a40;text-align:right;pointer-events:none}
 #cName{font-weight:700;font-size:16px;color:#6a557a}
 #cMeta{font-size:12px;color:#a08fa8;margin-top:1px}
-#hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:12px;color:#b9a7ad;pointer-events:none}
+#hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:12px;color:#b9a7ad;pointer-events:none;transition:opacity .5s}
+#hint.off{opacity:0}
 #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:#a08fa8;background:#fff6ea;transition:opacity .4s}
 #loading.off{opacity:0;pointer-events:none}
 #panel{width:332px;flex:none;background:#fffdf9;border-left:1px solid #f3e4d2;padding:16px 16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
