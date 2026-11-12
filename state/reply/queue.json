@@ -23,12 +23,14 @@
    "author": "a5de0f53c9c54cce",
    "context": "海巡！\n粉絲數一直卡住\n互追不退！",
    "comment": "已追",
-   "status": "drafted",
+   "status": "sent",
    "reason": "",
    "draft": "收到，謝謝你！我們每天盤後會整理資金流向跟法人買賣，有想看的族群或題材，歡迎直接留言告訴我們。",
    "drafter": "ceo-session",
    "lint_errors": [],
-   "due_at": "2026-11-11T16:58:00+08:00"
+   "due_at": "2026-11-11T16:58:00+08:00",
+   "sent_at": "2026-11-12T16:09:21+08:00",
+   "reply_id": "18122184871760643"
   },
   "f97a54846e376f5f": {
    "key": "f97a54846e376f5f",
@@ -40,12 +42,14 @@
    "author": "c9deeae58a3477b7",
    "context": "海巡！\n粉絲數一直卡住\n互追不退！",
    "comment": "追了 一起加油",
-   "status": "drafted",
+   "status": "sent",
    "reason": "",
    "draft": "謝謝支持，一起加油！這個帳號每天挑一則時事，配一張數據圖講清楚，有看不懂的地方隨時留言問。",
    "drafter": "ceo-session",
    "lint_errors": [],
-   "due_at": "2026-11-11T16:27:00+08:00"
+   "due_at": "2026-11-11T16:27:00+08:00",
+   "sent_at": "2026-11-12T16:09:21+08:00",
+   "reply_id": "18140258746651481"
   }
  },
  "last_permission_b": "off"
