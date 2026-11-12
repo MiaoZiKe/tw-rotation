@@ -54,7 +54,7 @@ export const BUILD = {
     }
     return {
       part: P, extras, foot: [{ x: 0, z: 0, w: 1.5, d: 0.74 }, { x: 0, z: 0.78, r: 0.28 }],
-      seats: [{ key: f.owner ? 'seat:' + f.owner : 'spare', x: 0, z: 0.78, y: 0.42, face: Math.PI, app: [[0, 1.5], [0.85, 1.05], [-0.85, 1.05], [0.9, 1.6], [-0.9, 1.6]] }],
+      seats: [{ key: f.owner ? 'seat:' + f.owner : 'spare', x: 0, z: 0.78, y: 0.42, face: Math.PI, app: [[0.85, 1.0], [-0.85, 1.0], [0, 1.5], [0.9, 1.6], [-0.9, 1.6]] }],
       screen: { x: 0, y: 0.98, z: -0.158, w: 0.5, h: 0.29 }
     };
   },

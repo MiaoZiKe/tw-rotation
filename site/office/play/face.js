@@ -30,15 +30,23 @@ export const EXPR = {
 const KEYS = Object.keys(B);
 
 export class Face {
-  constructor(style) {
+  constructor(style, size = 512) {
+    this.size = size;
     this.st = Object.assign({ kind: 'soft', ex: 78, ey: 276, rx: 27, ry: 35, my: 322, mw: 17, eye: '#3b2723', eye2: '#6a4438', mouthIn: '#8a3344', tongue: '#ff8fa0', blush: '255,128,140', line: 6, wmouth: false, glow: null, visor: null }, style);
-    const c = this.cv = document.createElement('canvas'); c.width = c.height = 512;
+    const c = this.cv = document.createElement('canvas'); c.width = c.height = size;
     this.g = c.getContext('2d');
     const t = this.tex = new THREE.CanvasTexture(c);
     t.premultiplyAlpha = true; t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;
     this.cur = { ...EXPR.neutral }; this.target = EXPR.neutral;
     this.blinkT = 2; this.blink = 0; this.blinkV = 0; this.gx = 0; this.gy = 0; this.talk = 0; this.time = 0; this.extraOpen = 0;
     this.draw();
+  }
+  // 沒變就不重畫（辦公室一次有幾十隻，逐幀重畫＋上傳貼圖太貴）
+  changed() {
+    const c = this.cur; if (this.dirty || c.dizzy > 0.05 || c.tear > 0.04 || c.sparkle > 0.05) { this.dirty = false; this._sig = ''; return true; }
+    let s = Math.round(this.blink * 16) + '|' + Math.round(this.gx * 24) + '|' + Math.round(this.gy * 24) + '|' + Math.round(this.talk * 24);
+    for (const k of KEYS) s += '|' + Math.round(c[k] * 40);
+    if (s === this._sig) return false; this._sig = s; return true;
   }
   set(name) { this.target = EXPR[name] || EXPR.neutral; this.name = name; }
   update(dt, speed = 12) {
@@ -50,13 +58,14 @@ export class Face {
     if (this.blinkT <= 0) { this.blinkV = 1; this.blinkT = Math.random() < 0.2 ? 0.28 : 1.8 + Math.random() * 3.6; }
     if (this.blinkV > 0) { this.blink += dt / 0.055; if (this.blink >= 1) { this.blink = 1; this.blinkV = -1; } }
     else if (this.blinkV < 0) { this.blink -= dt / 0.09; if (this.blink <= 0) { this.blink = 0; this.blinkV = 0; } }
-    this.draw();
+    if (this.changed()) this.draw();
   }
   draw() {
     const g = this.g, s = this.st, c = this.cur, T = this.time;
-    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 512, 512);
+    const K = this.size / 512; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, this.size, this.size); g.setTransform(K, 0, 0, K, 0, 0);
     const cx = 256 + this.gx * 9, gy = this.gy * 7;
     const glow = s.glow;
+    if (s.belly) { g.fillStyle = s.bellyCol || '#fff6e6'; g.beginPath(); g.ellipse(256, 440, 104, 140, 0, 0, 7); g.fill(); }
     if (s.visor) {
       const v = s.visor; g.save();
       const gr = g.createLinearGradient(0, v.y, 0, v.y + v.h); gr.addColorStop(0, v.c0); gr.addColorStop(1, v.c1);
@@ -104,7 +113,8 @@ export class Face {
         if (glow) g.fillStyle = glow;
         else { const gr = g.createLinearGradient(0, -oy, 0, oy); gr.addColorStop(0, s.eye); gr.addColorStop(0.55, s.eye); gr.addColorStop(1, s.eye2); g.fillStyle = gr; }
         g.fill();
-        if (!glow) {
+        if (s.kind === 'lcd') { }
+        else if (!glow) {
           const ha = Math.min(1, (open - 0.1) / 0.5);
           g.shadowBlur = 0; g.globalAlpha = ha; g.fillStyle = '#fff';
           const hs = c.hl, hx = -rx * 0.3 - this.gx * 2.5, hy = -oy * 0.36 - this.gy * 2;
@@ -139,6 +149,14 @@ export class Face {
         g.restore();
       }
     }
+    if (s.glasses) {
+      g.save(); g.strokeStyle = s.glasses; g.lineWidth = 6; const R = s.ry * 1.22, ey = s.ey + gy * 0.4;
+      for (const sd of [-1, 1]) { g.fillStyle = 'rgba(255,255,255,.16)'; g.beginPath(); g.arc(cx + sd * s.ex, ey, R, 0, 7); g.fill(); g.stroke(); }
+      g.beginPath(); g.moveTo(cx - s.ex + R, ey - 4); g.quadraticCurveTo(cx, ey - 14, cx + s.ex - R, ey - 4); g.stroke(); g.restore();
+    }
+    if (s.nose) { g.fillStyle = s.eye; g.beginPath(); g.ellipse(cx - this.gx * 1.5, s.my - 17 + gy * 0.8, 10, 7, 0, 0, 7); g.fill(); }
+    if (s.whisk) { g.fillStyle = s.eye; g.globalAlpha = 0.55; for (const sd of [-1, 1]) for (const [x, y] of [[30, -4], [42, 6], [30, 14]]) { g.beginPath(); g.arc(cx + sd * x, s.my + y + gy * 0.8, 2.6, 0, 7); g.fill(); } g.globalAlpha = 1; }
+    if (s.noMouth) { this.tex.needsUpdate = true; return; }
     // 嘴
     const mo = Math.max(0, c.mOpen + this.talk);
     const mx = cx + this.gx * -1.5 + c.smirk * 7, my = s.my + gy * 0.8;

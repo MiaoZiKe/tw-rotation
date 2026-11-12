@@ -2,7 +2,10 @@
 import * as THREE from 'three';
 import { World, BOUNDS, G } from './world.js';
 import { FX } from './fx.js';
-import { Character, CHARS, blobGeo, softMat } from './character.js';
+import { Character } from './character.js';
+import { blobGeo, softMat } from './soft.js';
+import { SPECIES, SPECIES_IDS, ACCESSORIES, canWear } from './species.js';
+import { renderThumb } from './lite.js';
 
 const $ = (s) => document.querySelector(s), V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const view = $('#view'), qs = new URLSearchParams(location.search);
@@ -31,15 +34,18 @@ const fx = new FX(scene), world = new World(scene, fx, touch);
 const ring = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: fx.T.ring, transparent: true, depthWrite: false, opacity: 0 })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 4; scene.add(ring); let ringT = 9;
 
 // ── 角色
-let char = null, charIdx = -1;
-function setChar(i) {
-  i = clamp(i, 0, CHARS.length - 1); if (i === charIdx) return;
-  const old = char; let pos = null, yaw = 0; if (old) { pos = old.pos.clone(); yaw = old.yaw; old.dispose(); for (const o of world.dyn) { o.held = false; o.caught = false; } }
-  char = new Character(CHARS[i], scene, world, fx); charIdx = i;
-  if (pos) { char.pos.copy(pos); char.pos.y += 0.6; char.yaw = yaw; char.grounded = false; char.feet.forEach(f => f.p.copy(char.pos)); char.hands.forEach(h => h.p.copy(char.pos).setY(char.pos.y + 0.3)); fx.burst('spark', pos.clone().setY(pos.y + 0.4), 8, { speed: 1.4, up: 0.8, life: 0.5, size: 0.14 }); fx.sfx('boing'); }
-  document.querySelectorAll('#segChar button').forEach((b, k) => b.classList.toggle('on', k === i));
-  const n = $('#charNote'); n.textContent = `${CHARS[i].name}｜${CHARS[i].why}`; n.style.opacity = 1; clearTimeout(setChar.t); setChar.t = setTimeout(() => n.style.opacity = 0, 5200);
-  try { localStorage.setItem('play.char', i); } catch (e) { }
+let char = null, charIdx = -1; const pick = { pal: 0, acc: [] };
+function setChar(i, force) {
+  i = ((i % SPECIES_IDS.length) + SPECIES_IDS.length) % SPECIES_IDS.length; if (i === charIdx && !force) return;
+  if (i !== charIdx) { pick.pal = 0; }
+  const cfg = SPECIES[SPECIES_IDS[i]], old = char; let pos = null, yaw = 0; if (old) { pos = old.pos.clone(); yaw = old.yaw; old.dispose(); for (const o of world.dyn) { o.held = false; o.caught = false; } }
+  char = new Character({ species: cfg.id, pal: pick.pal, acc: pick.acc, accColor: pick.pal + i }, scene, world, fx); charIdx = i;
+  if (pos) { char.pos.copy(pos); char.pos.y += force ? 0.25 : 0.6; char.yaw = yaw; char.grounded = false; char.feet.forEach(f => f.p.copy(char.pos)); char.hands.forEach(h => h.p.copy(char.pos).setY(char.pos.y + 0.3)); fx.burst('spark', pos.clone().setY(pos.y + 0.4), 8, { speed: 1.4, up: 0.8, life: 0.5, size: 0.14 }); fx.sfx('boing'); }
+  $('#btnDex').textContent = `圖鑑｜${cfg.name}`;
+  const n = $('#charNote'); n.textContent = `${cfg.name}（${cfg.sub}）｜${cfg.why}`; n.style.opacity = 1; clearTimeout(setChar.t); setChar.t = setTimeout(() => n.style.opacity = 0, 5200);
+  const sg = [...document.querySelectorAll('.chip')].find(x => x.dataset.sig); if (sg) sg.textContent = cfg.sigZh;
+  try { localStorage.setItem('play.sp', cfg.id); } catch (e) { }
+  renderDexSide();
 }
 
 // ── 鏡頭
@@ -111,7 +117,7 @@ addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
   if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
   if (k === ' ' && !e.repeat) { ctl.jump = true; firstUse(); }
-  if (k === '1' || k === '2' || k === '3') setChar(+k - 1);
+  if (k === '[') setChar(charIdx - 1); if (k === ']') setChar(charIdx + 1); if (k === 'escape') $('#dex').hidden = true;
   keys.add(k);
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase())); addEventListener('blur', () => keys.clear());
@@ -161,6 +167,7 @@ function throwBall(force) {
   const b = world.ball; if (b.held) return false; char.wake();
   const d = camera.getWorldDirection(new V3()), s = camera.position.clone().addScaledVector(d, 1.6).add(new V3(0, -0.2, 0));
   const tgt = char.center.clone(); tgt.y += 0.08; const T = 0.72;
+  s.x = clamp(s.x, BOUNDS.x0 + 0.3, BOUNDS.x1 - 0.3); s.z = clamp(s.z, BOUNDS.z0 + 0.3, BOUNDS.z1 - 0.3); s.y = Math.min(s.y, 2.4);
   b.p.copy(s); b.v.set((tgt.x - s.x) / T, (tgt.y - s.y) / T + 0.5 * G * T, (tgt.z - s.z) / T); b.caught = false;
   const ok = force != null ? force : Math.random() < 0.7; if (char.mode === 'normal') char.startCatch(b, ok); fx.sfx('whee'); return true;
 }
@@ -168,24 +175,49 @@ function throwBall(force) {
 // ── 介面
 const TABS = {
   emo: [['開心', 'happy'], ['大笑', 'laugh'], ['驚訝', 'surprised'], ['生氣', 'angry'], ['難過', 'sad'], ['想睡', 'sleepy'], ['害羞', 'shy'], ['得意', 'smug']].map(([n, e]) => [n, () => { char.wake(); char.act = null; char.goal = null; char.emote(e, 3.6); }]),
-  act: [['揮手', () => char.doAct('wave')], ['鞠躬', () => char.doAct('bow')], ['跳舞', () => char.doAct('dance')], ['轉圈', () => char.doAct('spin')], ['說話', () => char.doAct('talk', ['今天也要加油！', '陪我玩嘛～', '肚子餓了…', '你好呀！'][Math.floor(Math.random() * 4)])], ['打哈欠', () => char.doAct('yawn')], ['坐下', () => { char.wake(); char.sit(); }], ['睡覺', () => char.sleep()]],
+  act: [['招牌動作', () => char.doAct('sig'), 'sig'], ['揮手', () => char.doAct('wave')], ['鞠躬', () => char.doAct('bow')], ['跳舞', () => char.doAct('dance')], ['轉圈', () => char.doAct('spin')], ['說話', () => char.doAct('talk', ['今天也要加油！', '陪我玩嘛～', '肚子餓了…', '你好呀！'][Math.floor(Math.random() * 4)])], ['打哈欠', () => char.doAct('yawn')], ['坐下', () => { char.wake(); char.sit(); }], ['睡覺', () => char.sleep()]],
   play: [['餵食', feed], ['丟球給它', () => throwBall()], ['坐沙發', () => char.useThing(world.sofaUse)], ['坐圓凳', () => char.useThing(world.uses[1])], ['跳彈跳床', () => char.useThing(world.uses[2])], ['回小窩睡', () => char.useThing(world.bedUse)], ['過來這邊', () => { const d = camera.getWorldDirection(new V3()); char.setGoal(cam.tgt.x - d.x * 1.6, cam.tgt.z - d.z * 1.6 + 0.4, true); }]],
 };
 let tab = 'emo';
 function hitChip(name) { const b = [...document.querySelectorAll('.chip')].find(x => x.textContent === name); if (b) { b.classList.add('hit'); setTimeout(() => b.classList.remove('hit'), 160); } }
 function renderChips() {
   const box = $('#chips'); box.innerHTML = '';
-  for (const [n, fn] of TABS[tab]) { const b = document.createElement('button'); b.className = 'chip'; b.textContent = n; b.addEventListener('click', () => { firstUse(); fx.sfx('ui'); fn(); }); box.appendChild(b); }
+  for (const [n, fn, sig] of TABS[tab]) { const b = document.createElement('button'); b.className = 'chip'; b.textContent = sig && char ? char.cfg.sigZh : n; if (sig) b.dataset.sig = 1; b.addEventListener('click', () => { firstUse(); fx.sfx('ui'); fn(); }); box.appendChild(b); }
   document.querySelectorAll('#segTab button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
 }
 document.querySelectorAll('#segTab button').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; renderChips(); }));
-CHARS.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c.name; b.title = c.sub; b.addEventListener('click', () => { firstUse(); setChar(i); }); $('#segChar').appendChild(b); });
+// ── 圖鑑：全部物種一覽，點一隻放進房間；右側可換配色與配件
+const thumbs = {};
+function thumbOf(id, pal = 0) { const k = id + ':' + pal; return thumbs[k] || (thumbs[k] = renderThumb(renderer, { species: id, pal }, { size: 240, shadowTex: fx.T.shadow, cy: 0.5, dist: 3.5, yaw: 0.3 })); }
+function renderDex() {
+  const grid = $('#dexGrid'); grid.innerHTML = '';
+  SPECIES_IDS.forEach((id, i) => {
+    const c = SPECIES[id], b = document.createElement('button'); b.className = 'card' + (i === charIdx ? ' on' : ''); b.dataset.id = id;
+    b.innerHTML = `<img alt="${c.name}" width="100" height="100"><b>${c.name}</b><span>${c.sub}</span><i>${c.moveZh}・${c.sigZh}</i>`;
+    b.addEventListener('click', () => { firstUse(); setChar(i); $('#dex').hidden = true; }); grid.appendChild(b);
+  });
+  // 縮圖一張一張慢慢畫，不要卡住畫面
+  let k = 0; const imgs = [...grid.querySelectorAll('img')]; const next = () => { if (k >= imgs.length || $('#dex').hidden) return; imgs[k].src = thumbOf(SPECIES_IDS[k]); k++; (manual ? next : () => setTimeout(next, 0))(); }; next();
+  $('#dexCount').textContent = `共 ${SPECIES_IDS.length} 種`;
+}
+function renderDexSide() {
+  const box = $('#dexPal'); if (!box || !char) return; box.innerHTML = '';
+  char.cfg.pals.forEach((p, i) => { const b = document.createElement('button'); b.className = 'chip' + (i === pick.pal ? ' sel' : ''); b.innerHTML = `<em style="background:#${(p.body ?? p.acc).toString(16).padStart(6, '0')}"></em>${p.n}`; b.addEventListener('click', () => { pick.pal = i; setChar(charIdx, true); }); box.appendChild(b); });
+  const ab = $('#dexAcc'); ab.innerHTML = '';
+  for (const [k, zh] of ACCESSORIES) { const ok = canWear(char.cfg, k), b = document.createElement('button'); b.className = 'chip' + (pick.acc.includes(k) && ok ? ' sel' : ''); b.textContent = zh; b.disabled = !ok; if (!ok) b.title = '這個物種戴不了'; b.addEventListener('click', () => { pick.acc = pick.acc.includes(k) ? pick.acc.filter(x => x !== k) : [...pick.acc, k]; setChar(charIdx, true); }); ab.appendChild(b); }
+  document.querySelectorAll('#dexGrid .card').forEach((b, i) => b.classList.toggle('on', i === charIdx));
+  $('#dexNow').textContent = `${char.cfg.name}｜${char.cfg.sub}`;
+}
+$('#btnDex').addEventListener('click', () => { firstUse(); const d = $('#dex'); d.hidden = !d.hidden; if (!d.hidden) { renderDex(); renderDexSide(); } });
+$('#dexClose').addEventListener('click', () => { $('#dex').hidden = true; });
+$('#btnPrev').addEventListener('click', () => { firstUse(); setChar(charIdx - 1); }); $('#btnNext').addEventListener('click', () => { firstUse(); setChar(charIdx + 1); });
 document.querySelectorAll('#segCam button').forEach(b => b.addEventListener('click', () => { cam.mode = b.dataset.cam; document.querySelectorAll('#segCam button').forEach(x => x.classList.toggle('on', x === b)); }));
 $('#btnSnd').addEventListener('click', (e) => { fx.muted = !fx.muted; e.currentTarget.textContent = fx.muted ? '音效關' : '音效開'; e.currentTarget.setAttribute('aria-pressed', String(!fx.muted)); if (!fx.muted) fx.sfx('ui'); });
 $('#btnHelp').addEventListener('click', () => { $('#help').hidden = !$('#help').hidden; }); $('#helpClose').addEventListener('click', () => { $('#help').hidden = true; });
 renderChips();
-let saved = 0; try { saved = +(localStorage.getItem('play.char') || 0); } catch (e) { }
-setChar(qs.has('c') ? +qs.get('c') : saved);
+let saved = 0; try { saved = Math.max(0, SPECIES_IDS.indexOf(localStorage.getItem('play.sp'))); } catch (e) { }
+if (qs.has('acc')) pick.acc = qs.get('acc').split(',');
+setChar(qs.has('c') ? (isNaN(+qs.get('c')) ? Math.max(0, SPECIES_IDS.indexOf(qs.get('c'))) : +qs.get('c')) : saved);
 updateCam(0, true);
 
 // ── 主迴圈
@@ -227,10 +259,11 @@ requestAnimationFrame(loop);
 
 // 給自動測試用的接口
 window.PLAY = {
-  get char() { return char; }, world, cam, fx, ctl, keys, CHARS, setChar, feed, throwBall, env, camera, renderer,
+  get char() { return char; }, world, cam, fx, ctl, keys, SPECIES, SPECIES_IDS, pick, setChar, thumb: (spec, o) => renderThumb(renderer, spec, { shadowTex: fx.T.shadow, ...o }), feed, throwBall, env, camera, renderer,
   set manual(v) { manual = v; }, get manual() { return manual; },
   // 只有最後一幀真的畫（軟體繪圖很慢，測試時省時間）
   tick(dt = 1 / 60, n = 1, all = false) { for (let i = 0; i < n; i++) { skipRender = !all && i < n - 1; frame(dt); } skipRender = false; },
+  sim(n = 1, dt = 1 / 60) { skipRender = true; for (let i = 0; i < n; i++) frame(dt); skipRender = false; },
   setCam(o) { Object.assign(cam, o); if (o.snap) updateCam(0, true); },
   snapCam() { updateCam(0, true); },
   screen(v) { const q = new V3(v.x, v.y, v.z).project(camera), r = view.getBoundingClientRect(); return [r.left + (q.x * 0.5 + 0.5) * r.width, r.top + (-q.y * 0.5 + 0.5) * r.height]; },

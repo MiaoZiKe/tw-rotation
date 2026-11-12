@@ -111,7 +111,7 @@ F('rug', 3.4, 27.3, 0, { w: 5.4, d: 3.6, color: '#cdbcf0' });
 F('pingpong', 3.4, 27.3, 0);
 F('arcade', 7.6, 25.25, 0); F('arcade', 8.75, 25.25, 0, { color: '#8ecfe6' });
 F('beanbag', 7.4, 28.3, 0, { color: '#f7b0c6' }); F('beanbag', 8.9, 28.9, 0, { color: '#ffd27a' }); F('beanbag', 10.3, 28.0, 0, { color: '#a4c2f7' });
-F('plant_big', 0.85, 25.3); F('lamp', 11.3, 25.3); F('plant', 11.2, 29.3);
+F('plant_big', 0.85, 25.3); F('lamp', 11.3, 25.3); F('plant', 0.8, 29.3);
 F('roomsign', 10.4, 25.0, 0, { text: '遊樂區', color: '#b79cf0', stand: true });
 
 F('reserve_seat', 13.3, 26.6, 0, { owner: 'bibi-planner' });
@@ -120,6 +120,7 @@ F('reserve_seat', 16.2, 26.6, 0, { owner: 'bibi-efficiency' });
 F('roomsign', 14.75, 25.0, 0, { text: '後備區', color: '#c9bca6', stand: true });
 F('plant', 12.8, 29.2); F('side_table', 14.75, 28.6, 0);
 
+F('rug', 20.5, 26.6, 0, { w: 3.4, d: 3.4, color: '#f9d9a6', round: true });
 F('doormat', 20.5, 28.9, 0);
 F('door', 20.5, 30, 0);
 F('plant_big', 18.6, 29.2); F('plant_big', 22.4, 29.2);
@@ -140,6 +141,7 @@ F('plant_big', 39.2, 29.2); F('lamp', 39.3, 25.3); F('plant', 24.6, 29.3); F('bo
 F('roomsign', 24.9, 25.0, 0, { text: '休息區', color: '#86cfa0', stand: true });
 
 // 走道上的點綴
+F('rug', 20, 10.05, 0, { w: 37, d: 1.25, color: '#f6cfa8' });
 F('plant', 8.4, 9.5); F('plant', 17.6, 9.5); F('plant', 29.6, 9.5); F('bench', 21, 23.95, 0);
 
 const layout = {

@@ -1653,7 +1653,7 @@
   {
    "id": "plant_145",
    "type": "plant",
-   "x": 11.2,
+   "x": 0.8,
    "z": 29.3,
    "rot": 0
   },
@@ -1716,42 +1716,53 @@
    "rot": 0
   },
   {
-   "id": "doormat_153",
+   "id": "rug_153",
+   "type": "rug",
+   "x": 20.5,
+   "z": 26.6,
+   "rot": 0,
+   "w": 3.4,
+   "d": 3.4,
+   "color": "#f9d9a6",
+   "round": true
+  },
+  {
+   "id": "doormat_154",
    "type": "doormat",
    "x": 20.5,
    "z": 28.9,
    "rot": 0
   },
   {
-   "id": "door_154",
+   "id": "door_155",
    "type": "door",
    "x": 20.5,
    "z": 30,
    "rot": 0
   },
   {
-   "id": "plant_big_155",
+   "id": "plant_big_156",
    "type": "plant_big",
    "x": 18.6,
    "z": 29.2,
    "rot": 0
   },
   {
-   "id": "plant_big_156",
+   "id": "plant_big_157",
    "type": "plant_big",
    "x": 22.4,
    "z": 29.2,
    "rot": 0
   },
   {
-   "id": "kiosk_157",
+   "id": "kiosk_158",
    "type": "kiosk",
    "x": 22.7,
    "z": 27.2,
    "rot": 3
   },
   {
-   "id": "rug_158",
+   "id": "rug_159",
    "type": "rug",
    "x": 27.6,
    "z": 27.5,
@@ -1761,7 +1772,7 @@
    "color": "#bfe3c6"
   },
   {
-   "id": "sofa_159",
+   "id": "sofa_160",
    "type": "sofa",
    "x": 27.6,
    "z": 25.75,
@@ -1769,7 +1780,7 @@
    "color": "#f7b0c6"
   },
   {
-   "id": "armchair_160",
+   "id": "armchair_161",
    "type": "armchair",
    "x": 24.9,
    "z": 27.6,
@@ -1777,7 +1788,7 @@
    "color": "#ffd27a"
   },
   {
-   "id": "armchair_161",
+   "id": "armchair_162",
    "type": "armchair",
    "x": 30.3,
    "z": 27.6,
@@ -1785,14 +1796,14 @@
    "color": "#a4c2f7"
   },
   {
-   "id": "coffee_table_162",
+   "id": "coffee_table_163",
    "type": "coffee_table",
    "x": 27.6,
    "z": 27.7,
    "rot": 0
   },
   {
-   "id": "rug_163",
+   "id": "rug_164",
    "type": "rug",
    "x": 35.4,
    "z": 27.5,
@@ -1802,7 +1813,7 @@
    "color": "#ffe0b0"
   },
   {
-   "id": "sofa_164",
+   "id": "sofa_165",
    "type": "sofa",
    "x": 35.4,
    "z": 25.75,
@@ -1810,7 +1821,7 @@
    "color": "#97dfcc"
   },
   {
-   "id": "armchair_165",
+   "id": "armchair_166",
    "type": "armchair",
    "x": 32.7,
    "z": 27.6,
@@ -1818,7 +1829,7 @@
    "color": "#f4a59d"
   },
   {
-   "id": "armchair_166",
+   "id": "armchair_167",
    "type": "armchair",
    "x": 38.1,
    "z": 27.6,
@@ -1826,14 +1837,14 @@
    "color": "#cbb2f2"
   },
   {
-   "id": "coffee_table_167",
+   "id": "coffee_table_168",
    "type": "coffee_table",
    "x": 35.4,
    "z": 27.7,
    "rot": 0
   },
   {
-   "id": "beanbag_168",
+   "id": "beanbag_169",
    "type": "beanbag",
    "x": 29.2,
    "z": 29.1,
@@ -1841,7 +1852,7 @@
    "color": "#ffc48f"
   },
   {
-   "id": "beanbag_169",
+   "id": "beanbag_170",
    "type": "beanbag",
    "x": 33.8,
    "z": 29.1,
@@ -1849,28 +1860,28 @@
    "color": "#aedb9a"
   },
   {
-   "id": "plant_big_170",
+   "id": "plant_big_171",
    "type": "plant_big",
    "x": 39.2,
    "z": 29.2,
    "rot": 0
   },
   {
-   "id": "lamp_171",
+   "id": "lamp_172",
    "type": "lamp",
    "x": 39.3,
    "z": 25.3,
    "rot": 0
   },
   {
-   "id": "plant_172",
+   "id": "plant_173",
    "type": "plant",
    "x": 24.6,
    "z": 29.3,
    "rot": 0
   },
   {
-   "id": "bookshelf_173",
+   "id": "bookshelf_174",
    "type": "bookshelf",
    "x": 31.5,
    "z": 25.1,
@@ -1878,7 +1889,7 @@
    "spot": "shelf2"
   },
   {
-   "id": "roomsign_174",
+   "id": "roomsign_175",
    "type": "roomsign",
    "x": 24.9,
    "z": 25,
@@ -1888,28 +1899,38 @@
    "stand": true
   },
   {
-   "id": "plant_175",
+   "id": "rug_176",
+   "type": "rug",
+   "x": 20,
+   "z": 10.05,
+   "rot": 0,
+   "w": 37,
+   "d": 1.25,
+   "color": "#f6cfa8"
+  },
+  {
+   "id": "plant_177",
    "type": "plant",
    "x": 8.4,
    "z": 9.5,
    "rot": 0
   },
   {
-   "id": "plant_176",
+   "id": "plant_178",
    "type": "plant",
    "x": 17.6,
    "z": 9.5,
    "rot": 0
   },
   {
-   "id": "plant_177",
+   "id": "plant_179",
    "type": "plant",
    "x": 29.6,
    "z": 9.5,
    "rot": 0
   },
   {
-   "id": "bench_178",
+   "id": "bench_180",
    "type": "bench",
    "x": 21,
    "z": 23.95,

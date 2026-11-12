@@ -13,7 +13,7 @@
 <div id="bubble" hidden></div>
 
 <header id="top">
-  <div class="seg" id="segChar" role="tablist" aria-label="角色"></div>
+  <div class="seg" id="segChar"><button id="btnPrev" aria-label="上一種">‹</button><button id="btnDex" class="on">圖鑑</button><button id="btnNext" aria-label="下一種">›</button></div>
   <div class="grow"></div>
   <div class="seg" id="segCam" role="tablist" aria-label="視角">
     <button data-cam="follow" class="on">跟隨</button><button data-cam="god">俯視</button>
@@ -35,9 +35,22 @@
     <tr><th>玩球</th><td>走過去踢，或直接拖曳球丟出去</td></tr>
     <tr><th>家具</th><td>點沙發、圓凳會去坐；點小窩會去睡；點彈跳床會去跳</td></tr>
     <tr><th>轉視角</th><td>在空白處拖曳；滾輪或雙指縮放</td></tr>
+    <tr><th>換角色</th><td>左上「圖鑑」選物種、配色與配件；‹ › 或鍵盤 [ ] 換上一種、下一種</td></tr>
     <tr><th>放著不管</th><td>會東張西望、打哈欠、坐下、睡著</td></tr>
   </table>
   <button class="btn" id="helpClose">知道了</button>
+</div>
+
+<div id="dex" hidden>
+  <div class="dexHead"><h2>物種圖鑑 <small id="dexCount"></small></h2><button class="btn" id="dexClose">關閉</button></div>
+  <div class="dexBody">
+    <div id="dexGrid"></div>
+    <div class="dexSide">
+      <b id="dexNow"></b>
+      <label>配色</label><div class="chips wrap" id="dexPal"></div>
+      <label>配件</label><div class="chips wrap" id="dexAcc"></div>
+    </div>
+  </div>
 </div>
 
 <div id="panel">

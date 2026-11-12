@@ -5,7 +5,7 @@ export const AGENT_R = 0.27;
 export function createNav(layout) {
   const cs = layout.cell || 0.25, W = layout.size.w, D = layout.size.d;
   const ox = -1, oz = -1, nx = Math.ceil((W + 2) / cs), nz = Math.ceil((D + 6.5) / cs);
-  let block = new Uint8Array(nx * nz), solid = new Uint8Array(nx * nz);
+  let block = new Uint8Array(nx * nz), solid = new Uint8Array(nx * nz), reach = new Uint8Array(nx * nz);
   const idx = (i, j) => j * nx + i;
   const ci = x => Math.floor((x - ox) / cs), cj = z => Math.floor((z - oz) / cs);
   const cx = i => ox + (i + 0.5) * cs, cz = j => oz + (j + 0.5) * cs;
@@ -41,17 +41,22 @@ export function createNav(layout) {
       if (f.r != null) { fillCirc(solid, f.x, f.z, f.r); fillCirc(block, f.x, f.z, f.r + R); }
       else { fillRect(solid, f.x - f.w / 2, f.z - f.d / 2, f.x + f.w / 2, f.z + f.d / 2); fillRect(block, f.x - f.w / 2 - R, f.z - f.d / 2 - R, f.x + f.w / 2 + R, f.z + f.d / 2 + R); }
     }
+    // 從大門口往外擴散，標出「真的走得到」的格子；被家具圍死的小空隙不算
+    reach.fill(0); const seed = idx(ci(W / 2 + 0.5), cj(D - 1.1)), stack = [seed];
+    if (!block[seed]) { reach[seed] = 1; while (stack.length) { const k = stack.pop(), i = k % nx, j = (k - i) / nx; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ni = i + di, nj = j + dj; if (!inb(ni, nj)) continue; const nk = idx(ni, nj); if (block[nk] || reach[nk]) continue; reach[nk] = 1; stack.push(nk); } } }
+    else reach.set(block.map(v => v ? 0 : 1));
   }
   const isFree = (x, z) => { const i = ci(x), j = cj(z); return inb(i, j) && !block[idx(i, j)]; };
+  const isReach = (x, z) => { const i = ci(x), j = cj(z); return inb(i, j) && !!reach[idx(i, j)]; };
   const isSolid = (x, z) => { const i = ci(x), j = cj(z); return !inb(i, j) || !!solid[idx(i, j)]; };
 
   function nearestFree(x, z, maxR = 12) {
-    const i0 = ci(x), j0 = cj(z); if (inb(i0, j0) && !block[idx(i0, j0)]) return { x, z };
+    const i0 = ci(x), j0 = cj(z); if (inb(i0, j0) && reach[idx(i0, j0)]) return { x, z };
     let best = null, bd = 1e9;
     for (let r = 1; r <= maxR; r++) {
       for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
         if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;
-        const i = i0 + di, j = j0 + dj; if (!inb(i, j) || block[idx(i, j)]) continue;
+        const i = i0 + di, j = j0 + dj; if (!inb(i, j) || !reach[idx(i, j)]) continue;
         const d = (cx(i) - x) ** 2 + (cz(j) - z) ** 2; if (d < bd) { bd = d; best = { x: cx(i), z: cz(j) }; }
       }
       if (best) return best;
@@ -90,7 +95,7 @@ export function createNav(layout) {
     if (!found) return null;
     const cells = []; for (let k = eK; k !== -1; k = from[k]) cells.push(k); cells.reverse();
     const pts = cells.map(k => ({ x: cx(k % nx), z: cz((k - k % nx) / nx) }));
-    pts[0] = { x: s.x, z: s.z }; if (isFree(b.x, b.z)) pts[pts.length - 1] = { x: b.x, z: b.z };
+    pts[0] = { x: s.x, z: s.z }; if (isReach(b.x, b.z)) pts[pts.length - 1] = { x: b.x, z: b.z };
     // 拉直：能直線走到的中間點都省掉
     const out = [pts[0]]; let a0 = 0;
     while (a0 < pts.length - 1) {
@@ -104,7 +109,7 @@ export function createNav(layout) {
   // 驗證用：沿路每 5 公分取樣，回報有幾個點落在障礙物本體裡
   function pathHits(p) { let hits = 0; for (let i = 1; i < p.length; i++) { const d = Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z), n = Math.max(1, Math.ceil(d / 0.05)); for (let k = 0; k <= n; k++) { const t = k / n; if (isSolid(p[i - 1].x + (p[i].x - p[i - 1].x) * t, p[i - 1].z + (p[i].z - p[i - 1].z) * t)) hits++; } } return hits; }
 
-  return { rebuild, isFree, isSolid, nearestFree, findPath, los, pathLength, pathHits, cs, nx, nz, ox, oz, get block() { return block; } };
+  return { rebuild, isFree, isReach, isSolid, nearestFree, findPath, los, pathLength, pathHits, cs, nx, nz, ox, oz, get block() { return block; } };
 }
 
 // 家具佔地：區域座標 → 世界座標（rot 是 90 度的倍數）

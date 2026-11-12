@@ -60,6 +60,12 @@ export function createWorld(canvas, layout, org, quality) {
       if (i % 3 === 0) P.add(G.sph(0.5 + r() * 0.35, 10, 8), [PAL.leaf, PAL.leafLight][i % 2], x, 0.25, z, 0, 0, 0, 1.2, 0.8, 1);
       else P.add(G.sph(0.13, 8, 6), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x, 0.08, z);
     }
+    // 大門外：踏石、路燈、信箱、長椅
+    for (let i = 0; i < 6; i++) P.add(G.cyl(0.5, 0.05, 0.02, 16), '#fbf0da', 20.5 + (i % 2 ? 0.35 : -0.35), 0.0, Ld + 1.5 + i * 1.25);
+    for (const x of [18.4, 22.6]) { P.add(G.cyl(0.07, 2.3, 0.02, 10), '#b9a48f', x, 0, Ld + 2.4); P.add(G.cyl(0.2, 0.06, 0.02, 12), '#b9a48f', x, 0, Ld + 2.4); P.add(G.sph(0.3, 12, 9), '#fff0b8', x, 2.5, Ld + 2.4); P.add(G.cyl(0.2, 0.08, 0.03, 12), '#b9a48f', x, 2.72, Ld + 2.4); }
+    P.add(G.cyl(0.05, 0.9, 0.01, 8), PAL.woodDark, 23.4, 0, Ld + 1.0); P.add(G.box(0.5, 0.36, 0.34, 0.12), '#f28b82', 23.4, 1.05, Ld + 1.0); P.add(G.box(0.3, 0.05, 0.02, 0.01), '#fffaf2', 23.4, 1.08, Ld + 1.18);
+    P.add(G.slab(1.8, 0.5, 0.08, 0.16), PAL.wood, 17.0, 0.4, Ld + 1.0); P.add(G.box(0.1, 0.4, 0.4, 0.04), PAL.cream, 16.3, 0.2, Ld + 1.0); P.add(G.box(0.1, 0.4, 0.4, 0.04), PAL.cream, 17.7, 0.2, Ld + 1.0); P.add(G.box(1.8, 0.4, 0.08, 0.035), PAL.wood, 17.0, 0.75, Ld + 0.78);
+    for (let i = 0; i < 26; i++) { const x = 1 + r() * (Lw - 2), z = Ld + 0.9 + r() * 0.9; if (Math.abs(x - 20.5) < 3.4) continue; P.add(G.sph(0.38 + r() * 0.2, 8, 6), [PAL.leaf, PAL.leafLight, PAL.leafDark][i % 3], x, 0.15, z, 0, 0, 0, 1.3, 0.8, 1); P.add(G.sph(0.09, 6, 5), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x + 0.15, 0.48, z + 0.1); P.add(G.sph(0.08, 6, 5), ['#fff0a8', '#ffb3c1'][i % 2], x - 0.2, 0.42, z + 0.18); }
     for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283 + r() * 0.3, d = 88 + r() * 16, hr = 14 + r() * 12; P.add(G.sph(hr, 14, 8), ['#b7e3a4', '#a8dba0', '#c4ecb4'][i % 3], Lw / 2 + Math.cos(a) * d, -hr * 0.45, Ld / 2 + Math.sin(a) * d, 0, 0, 0, 1.5, 0.75, 1); }
     const m = P.mesh(); m.castShadow = false; scene.add(m);
     const C = new Part();
@@ -200,12 +206,12 @@ export function createWorld(canvas, layout, org, quality) {
       const f = inst.f, rot = f.rot * Math.PI / 2;
       (inst.spec.seats || []).forEach((s, i) => {
         const p = localToWorld(f, s.x, s.z); let ap = null;
-        for (const a of s.app) { const q = localToWorld(f, a[0], a[1]); if (nav.isFree(q.x, q.z)) { ap = q; break; } }
+        for (const a of s.app) { const q = localToWorld(f, a[0], a[1]); if (nav.isReach(q.x, q.z)) { ap = q; break; } }
         if (!ap) ap = nav.nearestFree(p.x, p.z, 16) || p;
         spots.push({ uid: f.id + '#s' + i, name: s.key, x: ap.x, z: ap.z, face: s.face + rot, seat: { x: p.x, y: s.y, z: p.z, face: s.face + rot }, fid: f.id, idx: i });
       });
       (inst.spec.spots || []).forEach((s, i) => {
-        let p = localToWorld(f, s.x, s.z); if (!nav.isFree(p.x, p.z)) p = nav.nearestFree(p.x, p.z, 10) || p;
+        let p = localToWorld(f, s.x, s.z); if (!nav.isReach(p.x, p.z)) p = nav.nearestFree(p.x, p.z, 10) || p;
         spots.push({ uid: f.id + '#p' + i, name: s.name, x: p.x, z: p.z, face: s.face + rot, fid: f.id });
       });
     }

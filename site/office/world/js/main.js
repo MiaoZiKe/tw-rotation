@@ -18,7 +18,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality), { renderer, scene, camera } = W;
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
-  let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2);
+  let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
   function resize() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
 
@@ -87,7 +87,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     return { t: charTarget(c, new THREE.Vector3()), p: best.p, fov: 46 };
   }
   function godPose(target, dist) {
-    const t = (target || CENTER).clone(), d = dist || (portrait() ? 96 : 52), pol = 0.62;
+    const t = (target || CENTER).clone(), d = dist || (portrait() ? 84 : 52), pol = 0.62;
     return { t, p: new THREE.Vector3(t.x, t.y + d * Math.cos(pol), t.z + d * Math.sin(pol)), fov: 38 };
   }
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
@@ -241,7 +241,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
 
   // ── 主迴圈 ──
   setView(qs.get('view') === 'god' ? 'god' : 'ceo', ceo, true);
-  let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true;
+  let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true, shift = 0;
   function frame(now) {
     requestAnimationFrame(frame);
     const wall = Math.min(0.3, (now - last) / 1000), real = Math.min(0.1, wall); last = now;
@@ -249,6 +249,11 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     for (let i = 0; i < n; i++) { W.time += h; W.tickTimers(); director.tick(); for (const c of W.chars.values()) c.update(h, W.time); }
     W.updateBlobs(); W.updateScreens(real);
     updateCamera(wall); controls.update();
+    { // 手機開著底部面板時，把畫面往上推，角色不會被面板蓋住
+      const want = portrait() && (!$('card').hidden || !$('board').hidden || (!$('log').hidden && !$('log').classList.contains('mini'))) ? 0.2 : 0;
+      if (Math.abs(want - shift) > 0.002) { shift += (want - shift) * Math.min(1, wall * 6); const w = cv.clientWidth, h = cv.clientHeight; camera.setViewOffset(w, h, 0, shift * h, w, h); }
+      else if (shift !== want) { shift = want; if (!want) camera.clearViewOffset(); }
+    }
     renderer.render(scene, camera);
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
     updateLabels(); ui.tickCard();
@@ -261,5 +266,6 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     if (first) { first = false; $('loading').hidden = true; W.ready = true; }
   }
   W.shadowDirty(); requestAnimationFrame(frame);
+  W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(false); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
   window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });

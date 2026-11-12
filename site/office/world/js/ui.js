@@ -86,7 +86,7 @@ export function createUI(W, demo, api) {
   U.showBoard = owner => {
     $('card').hidden = true; const d = W.org.departments.find(q => q.id === owner), name = owner === 'ceo' ? 'CEO 佈告欄' : d.name + '佈告欄', notes = demo.boards[owner] || [];
     $('board').innerHTML = `<button class="x" aria-label="關閉">×</button><h3><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${owner === 'ceo' ? '#ffb057' : d.color}"></span>${esc(name)}</h3>
-      ${notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p>目前沒有公告</p>'}`;
+      <div class="scroll">${notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p>目前沒有公告</p>'}</div>`;
     $('board').hidden = false;
   };
   $('board').onclick = e => { if (e.target.closest('.x')) $('board').hidden = true; };

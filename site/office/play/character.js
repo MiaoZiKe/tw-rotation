@@ -2,165 +2,41 @@
 import * as THREE from 'three';
 import { Face } from './face.js';
 import { G, BOUNDS } from './world.js';
+import { ball, foot } from './soft.js';
+import { SPECIES, resolveSpec, addAccessories } from './species.js';
 
-const V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
-const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+import { clamp, lerp, sstep } from './soft.js';
+const V3 = THREE.Vector3;
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const _a = new V3(), _b = new V3(), _c = new V3(), _d = new V3(), _q = new THREE.Quaternion(), _UP = new V3(0, 1, 0);
-
-// ── 軟質材質：上下漸層、邊緣光、假的次表面散射、戳下去的凹陷、接地壓扁、臉部貼圖
-export function softMat(o, sh) {
-  const m = new THREE.MeshStandardMaterial({ color: o.color, roughness: o.rough ?? 0.62, metalness: 0 });
-  const U = {
-    uTop: { value: new THREE.Color(o.top ?? o.color) }, uY: { value: new THREE.Vector2(o.y0 ?? -0.3, o.y1 ?? 0.3) },
-    uSss: { value: new THREE.Color(o.sss ?? 0xff8a70) }, uSssAmt: { value: o.sssAmt ?? 0.3 }, uRim: { value: new THREE.Color(o.rim ?? 0xfff6ea) }, uRimAmt: { value: o.rimAmt ?? 0.32 },
-    uTint: sh.uTint, uTintAmt: sh.uTintAmt, uGround: sh.uGround, uDent: { value: new THREE.Vector4(0, 1, 0, 0) }, uDentR: { value: 0.17 },
-  };
-  if (o.face) Object.assign(U, { uFace: { value: o.face.tex }, uHeadC: { value: new V3(...o.headC) }, uFaceSpan: { value: new THREE.Vector2(...o.span) }, uFaceOff: { value: new THREE.Vector2() }, uFaceGlow: { value: o.glow ?? 0 }, uFaceGloss: { value: o.gloss ?? 0.7 } });
-  m.userData.U = U; if (o.face) m.defines = { USE_FACE: '' };
-  m.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, U);
-    s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec4 uDent; uniform float uDentR; uniform float uGround;')
-      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n vec3 dP = position - uDent.xyz; float dW = exp(-dot(dP,dP)/(uDentR*uDentR)); objectNormal = normalize(objectNormal - uDent.w*dW*2.0*dP/(uDentR*uDentR));')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n vObjP = position; transformed -= normal * uDent.w * dW;')
-      .replace('#include <project_vertex>', 'vec4 wPos = modelMatrix * vec4(transformed,1.0); float gd = uGround - wPos.y; if (gd > 0.0) wPos.y = uGround - gd*0.06;\n vec4 mvPosition = viewMatrix * wPos; gl_Position = projectionMatrix * mvPosition;');
-    s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt;\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
-      .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, uTint, uTintAmt);')
-      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        float fr = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4);
-        #ifdef USE_FACE
-          vec3 fd = normalize(vObjP - uHeadC);
-          vec2 fuv = vec2(atan(fd.x, fd.z) - uFaceOff.x, asin(clamp(fd.y,-1.0,1.0)) - uFaceOff.y) / uFaceSpan + 0.5;
-          vec4 fc = texture2D(uFace, fuv);
-          float fm = step(0.0,fuv.x)*step(fuv.x,1.0)*step(0.0,fuv.y)*step(fuv.y,1.0)*step(-0.15, fd.z);
-          fc *= fm;
-          vec3 fcol = pow(fc.rgb / max(fc.a, 1e-3), vec3(2.2));
-          diffuseColor.rgb = mix(diffuseColor.rgb, fcol * (1.0 - 0.7*step(0.5,uFaceGlow)), fc.a);
-          float dark = fc.a * (1.0 - dot(fcol, vec3(0.333)));
-          roughnessFactor = mix(roughnessFactor, 0.14, clamp(dark*uFaceGloss + fc.a*step(0.5,uFaceGlow)*0.8, 0.0, 1.0));
-          totalEmissiveRadiance += fcol * fc.a * uFaceGlow;
-          fr *= 1.0 - fc.a*0.85;
-          float faceA = fc.a;
-        #else
-          float faceA = 0.0;
-        #endif
-        totalEmissiveRadiance += (diffuseColor.rgb * uSss * uSssAmt * (0.3 + 0.7*fr) + uRim * uRimAmt * fr) * (1.0 - faceA);`);
-  };
-  m.customProgramCacheKey = () => (o.face ? 'softface' : 'soft');
-  return m;
-}
-
-// 用單位球變形成任意圓潤造型；法線用數值微分算，沒有接縫
-export function blobGeo(fn, ws = 80, hs = 60) {
-  const g = new THREE.SphereGeometry(1, ws, hs), p = g.attributes.position, n = g.attributes.normal;
-  const d = new V3(), t1 = new V3(), t2 = new V3(), p0 = new V3(), p1 = new V3(), p2 = new V3(), e = 2e-3;
-  for (let i = 0; i < p.count; i++) {
-    d.fromBufferAttribute(p, i).normalize();
-    t1.crossVectors(Math.abs(d.y) > 0.9 ? _a.set(1, 0, 0) : _a.set(0, 1, 0), d).normalize(); t2.crossVectors(d, t1);
-    fn(p0.copy(d)); fn(p1.copy(d).addScaledVector(t1, e).normalize()); fn(p2.copy(d).addScaledVector(t2, e).normalize());
-    p1.sub(p0); p2.sub(p0); t1.crossVectors(p1, p2).normalize(); if (t1.dot(d) < 0) t1.negate();
-    p.setXYZ(i, p0.x, p0.y, p0.z); n.setXYZ(i, t1.x, t1.y, t1.z);
-  }
-  return g;
-}
-const ball = (() => { let g; return () => g || (g = new THREE.SphereGeometry(1, 40, 28)); })();
-const foot = (() => { let g; return () => g || (g = blobGeo(v => { v.y = v.y * (v.y < 0 ? 0.55 : 1) + 0.55; v.z += 0.12 * (1 - Math.abs(v.y - 0.5)); }, 36, 24)); })();
-
-// ══ 三個原創候選 ══
-export const CHARS = [
-  {
-    id: 'mochi', name: '糰糰', sub: '麻糬糰子', why: '一顆會彈的糰子：頭就是身體，最大的臉、最誇張的擠壓伸展',
-    R: 0.36, walk: 1.5, run: 3.5, jumpV: 5.7, stride: [0.42, 0.9], lat: 0.15, footFwd: 0.2, footSize: [0.082, 0.062, 0.1], handR: 0.062,
-    stick: [0.475, 0.37, 0.445, 0.335], hand: [0.45, 0.2, 0.17], front: 0.4, cheek: [0.26, 0.3, 0.36], waddle: 0.085, bob: 0.03, wob: 1.25, mouth: [0, 0.24, 0.42], top: 0.72,
-    faceUp: 0.14, face: { ex: 92, ey: 262, rx: 36, ry: 47, my: 322, mw: 17, line: 7, wmouth: true, eye: '#3a2622', eye2: '#6e4638', blush: '255,132,140' },
-    build(c) {
-      const col = 0xffe9d6, acc = 0xffbfa6;
-      const m = softMat({ color: 0xffc9ad, top: 0xfff1e2, y0: -0.36, y1: 0.25, sss: 0xff8f6e, sssAmt: 0.27, face: c.face, headC: [0, 0.0, 0], span: [2.2, 2.2] }, c.sh);
-      const body = new THREE.Mesh(blobGeo(v => { const y = v.y, b = 1 + 0.15 * sstep(0.4, -0.7, y); v.set(v.x * 0.455 * b, y * (y > 0 ? 0.385 : 0.345), v.z * 0.425 * b); }), m);
-      body.position.y = 0.335; c.main = body; c.deform.add(body);
-      const em = softMat({ color: acc, top: col, y0: -0.4, y1: 0.9, sss: 0xff8f6e }, c.sh);
-      for (const s of [-1, 1]) {
-        const piv = new THREE.Group(); piv.position.set(s * 0.25, 0.335 + 0.285, -0.02); c.deform.add(piv);
-        const e = new THREE.Mesh(ball(), em); e.scale.set(0.105, 0.1, 0.07); e.position.y = 0.065; piv.add(e);
-        c.apps.push({ piv, side: s, k: 150, c: 9, g: 0.016, gy: 0.012, rest: [0, s * -0.22], droop: 0.75 });
-      }
-      const tp = new THREE.Group(); tp.position.set(0.06, 0.2, -0.4); c.deform.add(tp);
-      const tl = new THREE.Mesh(ball(), em); tl.scale.setScalar(0.075); tl.position.z = -0.04; tp.add(tl);
-      c.apps.push({ piv: tp, side: 0, k: 220, c: 10, g: 0.03, gy: 0, rest: [0, 0], droop: 0, wag: true });
-      c.limbMat = softMat({ color: acc, top: 0xffd2bd, y0: 0, y1: 1.2, sss: 0xff8f6e }, c.sh);
-    },
-  },
-  {
-    id: 'bean', name: '豆芽', sub: '豆子小人', why: '豆子身體＋真的會踩步的小腳：走路、跑步、急停最有戲',
-    R: 0.3, walk: 1.6, run: 3.9, jumpV: 5.9, stride: [0.5, 1.15], lat: 0.105, footFwd: 0.02, footSize: [0.075, 0.058, 0.105], handR: 0.058,
-    hand: [0.35, 0.33, 0.04], front: 0.31, cheek: [0.21, 0.5, 0.28], waddle: 0.05, bob: 0.035, wob: 0.8, mouth: [0, 0.44, 0.31], top: 0.9, legs: true, tintK: 0.5,
-    faceUp: 0.1, face: { ex: 88, ey: 262, rx: 35, ry: 45, my: 320, mw: 16, line: 7, eye: '#2f2a26', eye2: '#5a4a3c', blush: '255,140,150' },
-    build(c) {
-      const m = softMat({ color: 0xbfe6c4, top: 0xe6f8e2, y0: -0.4, y1: 0.35, sss: 0x6fcf9a, sssAmt: 0.3, rim: 0xf6fff0, face: c.face, headC: [0, 0.07, 0], span: [2.1, 2.1] }, c.sh);
-      const body = new THREE.Mesh(blobGeo(v => { const y = v.y, rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.7) / rh, w = 1 + 0.1 * y - 0.05 * Math.exp(-Math.pow((y + 0.1) / 0.3, 2)); v.set(v.x * k * 0.335 * w, Math.sign(y) * Math.pow(Math.abs(y), 0.92) * 0.375, v.z * k * 0.305 * w); }), m);
-      body.position.y = 0.375 + 0.085; c.main = body; c.deform.add(body);
-      const lm = softMat({ color: 0x6fca82, top: 0xa6e6a0, y0: -1, y1: 1, sss: 0x9be070, sssAmt: 0.4 }, c.sh);
-      const piv = new THREE.Group(); piv.position.set(0, 0.46 + 0.36, 0); piv.scale.setScalar(1.3); c.deform.add(piv);
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.02, 0.15, 14), lm); stem.position.y = 0.06; piv.add(stem);
-      for (const [s, sc] of [[1, 1], [-1, 0.72]]) { const l = new THREE.Mesh(ball(), lm); l.scale.set(0.105 * sc, 0.022, 0.06 * sc); l.position.set(s * 0.085 * sc, 0.135 + 0.02 * sc, 0); l.rotation.z = s * 0.5; piv.add(l); }
-      c.apps.push({ piv, side: 0, k: 110, c: 6.5, g: 0.03, gy: 0, rest: [0, 0], droop: 0, bend: 0.5 });
-      c.limbMat = softMat({ color: 0xfff3da, top: 0xfffaf0, y0: 0, y1: 1.2, sss: 0xffb070 }, c.sh);
-      c.legMat = softMat({ color: 0xa9dcb2, top: 0xbfe6c4, y0: -1, y1: 1, sss: 0x6fcf9a }, c.sh);
-      c.hip = [0.1, 0.17, 0]; c.shoulder = [0.28, 0.4, 0.02];
-    },
-  },
-  {
-    id: 'robo', name: '啵啵', sub: '圓頭小機器人', why: '發光的臉＋彈簧天線：表情最清楚，辦公室助理的感覺',
-    R: 0.33, walk: 1.5, run: 3.6, jumpV: 5.8, stride: [0.46, 1.0], lat: 0.115, footFwd: 0.03, footSize: [0.085, 0.06, 0.11], handR: 0.066,
-    hand: [0.31, 0.25, 0.05], front: 0.34, cheek: [0.24, 0.5, 0.33], waddle: 0.06, bob: 0.03, wob: 0.6, mouth: [0, 0.44, 0.36], top: 0.95,
-    face: { kind: 'screen', ex: 78, ey: 262, rx: 27, ry: 34, my: 312, mw: 15, glow: '#9ff4ff', blush: '255,140,190', blushAmt: 0.9, visor: { w: 392, h: 236, y: 152, r: 108, c0: '#1d2444', c1: '#303a6b' } },
-    build(c) {
-      const white = { color: 0xe6e6fb, top: 0xfdfcff, sss: 0xa9b6ff, sssAmt: 0.22, rim: 0xffffff, rough: 0.42 };
-      const m = softMat({ ...white, y0: -0.3, y1: 0.25, face: c.face, headC: [0, -0.02, 0], span: [2.35, 2.35], glow: 0.8 }, c.sh);
-      const head = new THREE.Mesh(blobGeo(v => { const rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.86) / rh; v.set(v.x * k * 0.385, v.y * 0.315, v.z * k * 0.355); }), m);
-      head.position.y = 0.58; c.main = head; c.deform.add(head);
-      const bm = softMat({ ...white, y0: -0.2, y1: 0.2 }, c.sh);
-      const torso = new THREE.Mesh(blobGeo(v => { const b = 1 + 0.12 * sstep(0.3, -0.8, v.y); v.set(v.x * 0.215 * b, v.y * 0.19, v.z * 0.195 * b); }, 48, 36), bm);
-      torso.position.y = 0.2; c.deform.add(torso); c.extra.push(torso);
-      const am = softMat({ color: 0x9db2ff, top: 0xc3d0ff, y0: -1, y1: 1, sss: 0x8a7bff, sssAmt: 0.3, rough: 0.45 }, c.sh);
-      for (const s of [-1, 1]) { const e = new THREE.Mesh(ball(), am); e.scale.set(0.05, 0.105, 0.105); e.position.set(s * 0.375, 0.58, 0); c.deform.add(e); c.extra.push(e); }
-      const belt = new THREE.Mesh(ball(), am); belt.scale.set(0.05, 0.05, 0.025); belt.position.set(0, 0.23, 0.185); c.deform.add(belt);
-      const piv = new THREE.Group(); piv.position.set(0, 0.58 + 0.3, 0); c.deform.add(piv);
-      const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, 0.15, 12), bm); st.position.y = 0.07; piv.add(st);
-      const tipM = softMat({ color: 0xffb3c8, top: 0xffd6e0, y0: -1, y1: 1, sss: 0xff6f9a, sssAmt: 0.6, rough: 0.35 }, c.sh);
-      const tip = new THREE.Mesh(ball(), tipM); tip.scale.setScalar(0.052); tip.position.y = 0.17; piv.add(tip); c.tipMat = tipM;
-      c.apps.push({ piv, side: 0, k: 95, c: 5, g: 0.035, gy: 0, rest: [0, 0], droop: 0, bend: 0.7 });
-      c.limbMat = am;
-    },
-  },
-];
 
 const ACT = {
   wave: { dur: 2.0, lock: true, cam: true }, bow: { dur: 1.7, lock: true, cam: true }, dance: { dur: 4.4, lock: true, cam: true }, spin: { dur: 0.9, lock: true },
   eat: { dur: 2.9, lock: true, cam: true }, catch: { dur: 2.6, lock: true }, yawn: { dur: 2.2, lock: false }, talk: { dur: 1.8, lock: false, cam: true },
-  shake: { dur: 0.6, lock: true }, stomp: { dur: 1.6, lock: true },
+  shake: { dur: 0.6, lock: true }, stomp: { dur: 1.6, lock: true }, sig: { dur: 2, lock: true, cam: true },
 };
 const EMO_DUR = 3.2;
 
 export class Character {
-  constructor(cfg, scene, world, fx) {
-    this.cfg = cfg; this.scene = scene; this.world = world; this.fx = fx; this.R = cfg.R;
+  // spec：物種代號或 { species, pal, hue, acc, accColor }；opts.space＝腳、手這些世界座標零件要掛在哪個群組（預設 scene）
+  constructor(spec, scene, world, fx, opts = {}) {
+    const rs = resolveSpec(spec), cfg = rs.cfg; this.spec = rs.spec; this.pal = rs.pal; this.palIndex = rs.palIndex; this.accList = rs.acc;
+    this.cfg = cfg; this.scene = scene = opts.space || scene; this.world = world; this.fx = fx; this.R = cfg.R;
     this.sh = { uTint: { value: new THREE.Color(1, 1, 1) }, uTintAmt: { value: 0 }, uGround: { value: 0 } };
-    this.face = new Face(cfg.face);
+    this.face = new Face(cfg.face, opts.faceSize || 512);
     this.root = new THREE.Group(); this.tilt = new THREE.Group(); this.tumble = new THREE.Group(); this.deform = new THREE.Group();
     this.root.add(this.tilt); this.tilt.add(this.tumble); this.tumble.add(this.deform);
     this.tumble.position.y = cfg.R; this.deform.position.y = -cfg.R; this.deform.matrixAutoUpdate = false;
     this.apps = []; this.extra = []; this.parts = [];
-    cfg.build(this);
+    cfg.build(this, rs.pal);
+    if (rs.acc.length) addAccessories(this, rs.acc, rs.accColor);
     scene.add(this.root);
     this.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.userData.char = this; } });
     this.pickList = []; this.root.traverse(o => { if (o.isMesh) this.pickList.push(o); });
     // 腳、手（放在世界座標，腳會「種」在地上）
     const fs = cfg.footSize;
-    this.feet = [-1, 1].map(s => { const m = new THREE.Mesh(foot(), this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
-    this.hands = [-1, 1].map(s => { const m = new THREE.Mesh(ball(), this.limbMat); m.scale.setScalar(cfg.handR); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3() }; });
+    this.feet = (fs ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(foot(), this.footMat || this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
+    this.hands = (cfg.handR ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(ball(), this.limbMat); if (cfg.handScale) m.scale.set(...cfg.handScale); else m.scale.setScalar(cfg.handR); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3() }; });
     this.limbs = [];
     if (cfg.legs) {
       const lg = new THREE.CylinderGeometry(1, 1, 1, 14); lg.translate(0, 0.5, 0);
@@ -184,6 +60,7 @@ export class Character {
     const S = this.scene; S.remove(this.root, this.shadow, ...this.feet.map(f => f.m), ...this.hands.map(h => h.m), ...this.limbs);
     this.face.tex.dispose();
   }
+  every(k, sec) { this._ev ??= {}; const n = Math.floor(this.t / sec); if (this._ev[k] !== n) { this._ev[k] = n; return true; } return false; }
   get center() { return _d.set(this.pos.x, this.pos.y + this.R, this.pos.z); }
   headTop(out) { return out.set(this.pos.x, this.pos.y + this.cfg.top * (1 + this.sq) + this.yOff, this.pos.z); }
   mouthWorld(out) { return this.deform.localToWorld(out.set(...this.cfg.mouth)); }
@@ -200,7 +77,7 @@ export class Character {
   doAct(name, data) {
     if (this.mode === 'sleep' || this.mode === 'sit') this.wake();
     if (this.mode !== 'normal') return false; if (this.act && ACT[this.act.name].lock && name !== 'catch') return false;
-    this.goal = null; this.act = { name, t: 0, dur: ACT[name].dur, data, f: 0 }; this.idleT = 0;
+    this.goal = null; this.act = { name, t: 0, dur: name === 'sig' ? this.cfg.sig.dur : ACT[name].dur, data, f: 0 }; if (name !== 'yawn') this.idleT = 0;
     if (name === 'wave') this.say('嗨～'); if (name === 'talk') this.say(data || '今天也要加油！', 1.9); if (name === 'yawn') this.fx.sfx('yawn');
     return true;
   }
@@ -246,7 +123,7 @@ export class Character {
     if (ctl.jump) { this.jumpBuf = 0.16; ctl.jump = false; }
     if (this.jumpBuf > 0) this.jumpBuf -= h;
     const inp = Math.hypot(ctl.mx, ctl.mz) > 0.05;
-    if (this.mode === 'normal') this.stepNormal(h, ctl);
+    if (this.mode === 'normal') { if (this.ext) this.stepExt(h); else this.stepNormal(h, ctl); }
     else if (this.mode === 'held') {
       _a.copy(this.holdT).sub(this.center); v.x += (_a.x * 150 - v.x * 17) * h; v.y += (_a.y * 150 - v.y * 17) * h; v.z += (_a.z * 150 - v.z * 17) * h;
       p.addScaledVector(v, h); p.y = Math.max(p.y, W.groundAt(p.x, p.z, p.y + 0.3).h);
@@ -274,6 +151,12 @@ export class Character {
       a.vx += (-a.k * (a.x - a.tx) - a.c * a.vx - az * a.g * a.k) * h; a.vz += (-a.k * (a.z - a.tz) - a.c * a.vz + ax * a.g * a.k - a.side * A.y * a.gy * a.k) * h;
       a.x = clamp(a.x + a.vx * h, -1.3, 1.3); a.z = clamp(a.z + a.vz * h, -1.3, 1.3);
     }
+  }
+  // 外部驅動（辦公室場景自己決定路徑與速度）：只照給定的速度移動、轉向，其餘彈簧與姿態照常
+  stepExt(h) {
+    const e = this.ext, p = this.pos, v = this.vel; v.x += (e.vx - v.x) * Math.min(1, h * 14); v.z += (e.vz - v.z) * Math.min(1, h * 14); v.y = 0;
+    p.x += v.x * h; p.z += v.z * h; p.y = e.y || 0; this.grounded = true; this.skid = false;
+    const dy = angDiff(e.yaw, this.yaw), r = clamp(dy * 13, -15, 15); this.yawRate = lerp(this.yawRate, r, 1 - Math.exp(-h * 20)); this.yaw += this.yawRate * h;
   }
   stepNormal(h, ctl) {
     const p = this.pos, v = this.vel, W = this.world, c = this.cfg;
@@ -379,7 +262,8 @@ export class Character {
     if (this.speech && (this.speech.t -= dt) <= 0) this.speech = null;
     const camYaw = Math.atan2(env.cam.x - p.x, env.cam.z - p.z);
     this.faceYaw = null; this.sqT = 0;
-    let expr = 'neutral', pitchT = 0, rollT = 0, yOff = 0, yawAdd = 0, tint = null, tintA = 0, appDroop = 0, appWig = 0;
+    let expr = 'neutral', pitchT = 0, rollT = 0, yOff = 0, yawAdd = 0, tint = null, tintA = 0, appDroop = 0, appWig = 0, spinZ = 0, side = 0;
+    this.rollAdd = 0; if (c.idle) c.idle(this, dt, t);
     const HP = [new V3(), new V3()]; let hk = 230, hc = 20;   // 手的目標（相對腳底的區域座標）
     const hx = c.hand[0], hy = c.hand[1], hz = c.hand[2];
     const setH = (i, x, y, z) => HP[i].set(x, y, z);
@@ -437,12 +321,34 @@ export class Character {
         }
         else if (emo === 'angry') { tint = [1, 0.45, 0.42]; tintA = 0.45; } else if (emo === 'sad') appDroop = 1;
       } else if (moving && expr === 'neutral') expr = runF > 0.5 ? 'whee' : 'look';
+      // 辦公室的持續動作（打字、閱讀、聽、想…）
+      const xp = this.extPose;
+      if (xp && idle) switch (xp) {
+        case 'type': pitchT += 0.1; setH(0, -hx * 0.5, hy + Math.max(0, Math.sin(t * 17)) * 0.04, c.front + 0.08); setH(1, hx * 0.5, hy + Math.max(0, Math.sin(t * 17 + 2)) * 0.04, c.front + 0.08); if (!emo) expr = 'look'; break;
+        case 'read': pitchT += 0.2; rollT += Math.sin(t * 1.3) * 0.03; both(hx * 0.6, hy + 0.02, c.front + 0.05); break;
+        case 'note': pitchT += 0.16 + Math.sin(t * 9) * 0.02; setH(1, hx * 0.3, hy, c.front + 0.1 + Math.sin(t * 9) * 0.02); break;
+        case 'listen': pitchT += Math.sin(t * 1.1) * 0.04; rollT += Math.sin(t * 0.7) * 0.05; break;
+        case 'think': rollT += 0.14 + Math.sin(t * 1.2) * 0.03; setH(1, c.cheek[0] * 0.6, c.cheek[1] - 0.08, c.cheek[2] + 0.06); if (!emo) expr = 'look'; break;
+        case 'nod': pitchT += 0.1 + Math.sin(t * 9) * 0.16; break;
+        case 'raise': setH(1, hx * 1.1, hy + 0.38, hz); this.sqT += 0.06; break;
+        case 'clap': { const k = Math.abs(Math.sin(t * 11)); both(hx * (0.25 + 0.4 * k), hy + 0.12, c.front + 0.08); if (!emo) expr = 'happy'; break; }
+        case 'cheer': yOff += Math.abs(Math.sin(t * 8)) * 0.1; both(hx * 1.2, hy + 0.3, hz); expr = 'laugh'; break;
+        case 'drink': setH(1, c.cheek[0] * 0.3, c.mouth[1], c.front + 0.08); pitchT -= 0.12; expr = 'bliss'; break;
+      }
       // 腳步循環（相位由走過的距離推進 → 腳不滑）
       if (moving && !this.skid) {
         const stride = lerp(c.stride[0], c.stride[1], runF); this.phase = (this.phase + sp * dt / stride) % 1;
         const amp = Math.min(1, sp / c.walk);
-        yOff += (c.bob + runF * 0.035) * amp * (0.5 - 0.5 * Math.cos(this.phase * 4 * Math.PI)) - c.bob * 0.4 * amp;
-        rollT += Math.sin(this.phase * 2 * Math.PI) * c.waddle * amp * (1 - runF * 0.4);
+        if (c.move === 'hop') {          // 沒有腳的用跳的：每半個步幅跳一下，落地擠壓、離地伸展
+          const u = (this.phase * 2) % 1; yOff += c.hopH * (1 + runF * 0.5) * 4 * u * (1 - u) * amp; this.sqT += (0.1 * Math.sin(u * Math.PI) - 0.13 * Math.pow(Math.abs(Math.cos(u * Math.PI)), 6)) * amp; pitchT += 0.08 * amp;
+          if (u < this.hopU) { this.fx.sfx('step', 1.2 + runF); this.sqV -= 1.5 * amp; this.fx.spawn('dust', _a.set(p.x, p.y + 0.04, p.z).clone(), { v: new V3(0, 0.25, 0), life: 0.35, size: 0.14, grow: 2.5, drag: 3 }); } this.hopU = u;
+        } else if (c.move === 'slide') { // 貼地蠕動：一伸一縮
+          this.sqT += Math.sin(this.phase * 4 * Math.PI) * 0.1 * amp; pitchT += Math.sin(this.phase * 4 * Math.PI + 1) * 0.07 * amp; yawAdd += Math.sin(this.phase * 2 * Math.PI) * 0.1 * amp;
+        } else if (c.move === 'float') { pitchT += 0.13 * amp + runF * 0.1; rollT += Math.sin(t * 3) * 0.04; }
+        else {
+          yOff += (c.bob + runF * 0.035) * amp * (0.5 - 0.5 * Math.cos(this.phase * 4 * Math.PI)) - c.bob * 0.4 * amp;
+          rollT += Math.sin(this.phase * 2 * Math.PI) * c.waddle * amp * (1 - runF * 0.4);
+        }
         const sw = Math.sin(this.phase * 2 * Math.PI) * (0.1 + runF * 0.12) * amp;
         if (!(this.pushing > 0)) { setH(0, -hx * (1 + runF * 0.12), hy + runF * 0.03, hz + sw - runF * 0.1); setH(1, hx * (1 + runF * 0.12), hy + runF * 0.03, hz - sw - runF * 0.1); }
       }
@@ -461,6 +367,10 @@ export class Character {
             const bi = Math.floor(a.t * 2.3); if (bi !== a.f) { a.f = bi; fx.sfx('note', bi); fx.spawn('note', this.headTop(new V3()).add(_a.set((Math.random() - .5) * 0.6, 0.05, 0.1)), { v: new V3((Math.random() - .5) * 0.5, 0.7, 0), life: 1.1, size: 0.17, sway: 0.8, drag: 0.6 }); }
             break;
           }
+          case 'sig': {
+            const P = {}; c.sig.fn(this, u, a, P); if (P.expr) expr = P.expr; if (P.sq != null) this.sqT = P.sq; if (P.pitch != null) pitchT = P.pitch; if (P.yOff) yOff += P.yOff; if (P.yaw) yawAdd = P.yaw;
+            if (P.hands) both(hx * P.hands[0], hy + P.hands[1], hz); if (P.handK) hk = P.handK; if (P.tint) { tint = P.tint; tintA = P.tintA; } if (P.wig) appWig = P.wig; spinZ = P.spinZ || 0; side = P.side || 0; break;
+          }
           case 'spin': yawAdd = sstep(0, 1, u) * Math.PI * 2; this.sqT = 0.08; both(hx * 1.3, hy + 0.1, 0); expr = 'happy'; break;
           case 'shake': yawAdd = Math.sin(u * Math.PI * 6) * 0.45 * (1 - u); expr = 'effort'; break;
           case 'stomp': { expr = 'angry'; tint = [1, 0.45, 0.42]; tintA = 0.5; const st = Math.sin(a.t * 20); yOff += Math.abs(st) * 0.035; this.sqT = -0.06 * Math.max(0, st); both(hx * 1.15, hy - 0.1 + Math.abs(st) * 0.03, hz - 0.03); a.stomp = st; if ((a.f | 0) !== Math.floor(a.t * 6.4)) { a.f = Math.floor(a.t * 6.4); fx.sfx('step', 3); fx.spawn('dust', this.headTop(new V3()).add(_a.set((Math.random() - .5) * 0.4, -0.05, 0)), { v: new V3((Math.random() - .5) * 0.4, 0.9, 0), life: 0.6, size: 0.16, grow: 2.5 }); } break; }
@@ -478,7 +388,7 @@ export class Character {
             const chest = _c.set(p.x + Math.sin(this.yaw) * (c.front + o.r * 0.6), p.y + hy + 0.1, p.z + Math.cos(this.yaw) * (c.front + o.r * 0.6));
             if (!a.got) {
               both(hx * 0.75, hy + (a.miss ? 0.34 : 0.14), c.front + 0.06);
-              if (!a.miss && o.p.distanceTo(chest) < o.r + 0.3 && a.t > 0.2) { a.got = a.t; o.held = true; o.caught = true; o.v.set(0, 0, 0); this.sqV -= 2.5; this.wobV.x -= Math.sin(this.yaw) * 1.5; this.wobV.z -= Math.cos(this.yaw) * 1.5; fx.sfx('kick'); fx.burst('spark', chest, 4, { speed: 0.8, up: 0.5, life: 0.4, size: 0.12 }); this.say('接到了！', 1.1); }
+              if (!a.miss && (o.p.distanceTo(chest) < o.r + 0.3 || o.p.distanceTo(_a.set(p.x, p.y + this.R, p.z)) < this.R + o.r + 0.24) && a.t > 0.2) { a.got = a.t; o.held = true; o.caught = true; o.v.set(0, 0, 0); this.sqV -= 2.5; this.wobV.x -= Math.sin(this.yaw) * 1.5; this.wobV.z -= Math.cos(this.yaw) * 1.5; fx.sfx('kick'); fx.burst('spark', chest, 4, { speed: 0.8, up: 0.5, life: 0.4, size: 0.12 }); this.say('接到了！', 1.1); }
               if (a.t > 1.7 && !a.got) a.t = a.dur;
             } else {
               const g = a.t - a.got; both(o.r * 0.9 + 0.03, hy + 0.12, c.front + o.r * 0.5); o.p.lerp(chest, 0.5); yOff += Math.abs(Math.sin(g * 9)) * 0.05;
@@ -519,6 +429,10 @@ export class Character {
     if (this.mode === 'normal' && this.grounded && !moving && !this.act && this.jumpPrep <= 0 && env.look && Math.abs(gyaw) > 0.85 && this.faceYaw == null && !this.petting) { this.turnT = (this.turnT || 0) + dt; if (this.turnT > 0.5) this.faceYaw = this.yaw + gyaw * 0.8; } else this.turnT = 0;
     if (this.faceYaw != null && this.mode !== 'normal') { const d = angDiff(this.faceYaw, this.yaw); this.yaw += d * (1 - Math.exp(-dt * 8)); }
     // ── 身體傾斜平滑
+    // 飄浮的物種：平常浮在半空，坐下、睡覺、被丟的時候落到地上
+    if (c.floatH) { const down = this.mode === 'sit' || this.mode === 'sleep' || this.mode === 'tumble' || this.mode === 'recover' || this.mode === 'dizzy' || this.mode === 'held'; this.floatCur = (this.floatCur ?? c.floatH) + ((down ? 0.02 : c.floatH + Math.sin(t * 2.1) * 0.035) - (this.floatCur ?? c.floatH)) * (1 - Math.exp(-dt * 5)); yOff += this.floatCur; }
+    rollT += this.rollAdd; this.spinZ = spinZ; this.sideOff = side;
+    if (this.mode !== 'tumble' && this.mode !== 'held') this.sqT += Math.sin(t * 2.1) * 0.014;   // 呼吸
     const tk = 1 - Math.exp(-dt * 11); this.pitch += (pitchT - this.pitch) * tk; this.roll += (rollT - this.roll) * tk; this.yOff += (yOff - this.yOff) * (1 - Math.exp(-dt * 30));
     this.yawAdd = yawAdd;
     const sh = this.sh; if (tint) sh.uTint.value.setRGB(...tint); sh.uTintAmt.value += ((tint ? tintA * (c.tintK ?? 1) : 0) - sh.uTintAmt.value) * (1 - Math.exp(-dt * 6));
@@ -534,7 +448,7 @@ export class Character {
     this.face.gx = this.gx; this.face.gy = -this.gy;
     const sp2 = this.speech; this.face.talk = sp2 && sp2.talk > 0 ? (sp2.talk -= dt, 0.12 + 0.45 * Math.abs(Math.sin(t * 15)) * (0.6 + 0.4 * Math.sin(t * 6.3))) : 0;
     this.face.update(dt, expr === 'dizzy' || expr === 'surprised' ? 22 : 12);
-    const U = this.main.material.userData.U; U.uFaceOff.value.set(this.gx * 0.2, this.gy * 0.1 + (c.faceUp || 0)); U.uDent.value.w = this.dent;
+    const U = this.main.material.userData.U; U.uFaceOff.value.set(this.gx * 0.2 * (c.faceShift ?? 1), this.gy * 0.1 * (c.faceShift ?? 1) + (c.faceUp || 0)); U.uDent.value.w = this.dent;
     this.syncGroups(); this.root.updateMatrixWorld(true);
     this.updateFeet(dt, moving, sp, runF);
     this.updateHands(dt, HP, hk, hc);
@@ -544,8 +458,9 @@ export class Character {
   }
   syncGroups() {
     const sy = 1 + this.sq, sx = 1 / Math.sqrt(sy);
-    this.root.position.set(this.pos.x, this.pos.y + (this.yOff || 0), this.pos.z); this.root.rotation.y = this.yaw + (this.yawAdd || 0);
-    this.tilt.rotation.set(this.pitch, 0, this.roll);
+    const so = this.sideOff || 0, ry = this.yaw + (this.yawAdd || 0);
+    this.root.position.set(this.pos.x + Math.cos(ry) * so * 0, this.pos.y + (this.yOff || 0), this.pos.z); this.root.rotation.y = ry;
+    this.tilt.rotation.set(this.pitch, 0, this.roll); this.tumble.rotation.z = this.mode === 'normal' ? (this.spinZ || 0) : this.tumble.rotation.z;
     // 果凍晃動：頂端相對底部的慣性延遲 → 剪切
     const cy = Math.cos(this.root.rotation.y), sn = Math.sin(this.root.rotation.y), kx = (this.wob.x * cy - this.wob.z * sn) * 1.6, kz = (this.wob.x * sn + this.wob.z * cy) * 1.6;
     const R = this.R; this.deform.matrix.set(sx, kx, 0, 0, 0, sy, 0, -R, 0, kz, sx, 0, 0, 0, 0, 1);
@@ -609,7 +524,7 @@ export class Character {
       for (let j = 0; j < n; j++) { h.v.x += ((_a.x - h.p.x) * k - h.v.x * d) * hh; h.v.y += ((_a.y - h.p.y) * k - h.v.y * d) * hh; h.v.z += ((_a.z - h.p.z) * k - h.v.z * d) * hh; h.p.addScaledVector(h.v, hh); }
       // 手不要離身體太遠（被丟的時候）
       const cx = this.pos.x, cyy = this.pos.y + R, cz = this.pos.z, dd = Math.hypot(h.p.x - cx, h.p.y - cyy, h.p.z - cz), mx = R * 2.1; if (dd > mx) { h.p.set(cx + (h.p.x - cx) * mx / dd, cyy + (h.p.y - cyy) * mx / dd, cz + (h.p.z - cz) * mx / dd); }
-      h.m.position.copy(h.p);
+      h.m.position.copy(h.p); h.m.quaternion.copy(this.tumble.getWorldQuaternion(_q));
     });
     // 豆芽的手臂與腿：連接身體與手腳的小圓柱
     if (this.limbs.length) {

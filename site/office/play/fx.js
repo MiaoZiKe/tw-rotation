@@ -79,7 +79,7 @@ export class FX {
   spawn(type, p, o = {}) {
     let s = this.pool.pop();
     if (!s) { s = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false })); this.scene.add(s); }
-    s.material.map = T[type]; s.material.opacity = 1; s.material.rotation = o.rot || 0; s.material.depthTest = o.depthTest !== false;
+    s.material.map = T[type]; s.material.opacity = 1; s.material.color.set(o.color ?? 0xffffff); s.material.rotation = o.rot || 0; s.material.depthTest = o.depthTest !== false;
     s.visible = true; s.position.copy(p); s.renderOrder = 20;
     const d = s.userData;
     d.v = o.v ? o.v.clone() : new THREE.Vector3(); d.life = d.max = o.life || 1; d.size = o.size || 0.2; d.grow = o.grow || 0;
