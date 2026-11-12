@@ -1,6 +1,6 @@
 {
  "disclaimer": "研究用，不是買賣建議，不會下單。",
- "rows_added": 5,
+ "rows_added": 0,
  "data_last": "2026-11-12",
  "signals": {
   "disclaimer": "研究用，不是買賣建議，不會下單。",
@@ -31,31 +31,31 @@
    "目標權重": "80% E2 + 20% 衛星"
   },
   "BENCH_last": {
-   "date": "2026-11-12",
+   "date": "2026-11-12 00:00:00",
    "nav": 9299717.750189174,
    "plan_cum": -0.07002822498108263,
    "action": ""
   },
   "E2_last": {
-   "date": "2026-11-12",
+   "date": "2026-11-12 00:00:00",
    "nav": 7773564.891627135,
    "plan_cum": -0.2226435108372865,
    "action": ""
   },
   "F2_last": {
-   "date": "2026-11-12",
+   "date": "2026-11-12 00:00:00",
    "nav": 8952985.72589604,
    "plan_cum": -0.10470142741039601,
    "action": ""
   },
   "SAT_last": {
-   "date": "2026-11-12",
+   "date": "2026-11-12 00:00:00",
    "nav": 9144237.695335064,
    "plan_cum": -0.08557623046649354,
    "action": ""
   },
   "E2SAT_last": {
-   "date": "2026-11-12",
+   "date": "2026-11-12 00:00:00",
    "nav": 8047815.5696727885,
    "plan_cum": -0.19521844303272118,
    "action": ""
@@ -66,81 +66,9 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 2,
+  "rows_added": 0,
   "signal_rows_added": 0,
   "data_last": "2026-11-12",
-  "watch_top": [
-   {
-    "rank": 1,
-    "code": "2465",
-    "name": "麗臺",
-    "group": "ai_pc",
-    "score": 103.6
-   },
-   {
-    "rank": 2,
-    "code": "2466",
-    "name": "冠西電",
-    "group": "ind_光電業",
-    "score": 99.8
-   },
-   {
-    "rank": 3,
-    "code": "3029",
-    "name": "零壹",
-    "group": "ind_資訊服務業",
-    "score": 97.1
-   },
-   {
-    "rank": 4,
-    "code": "6108",
-    "name": "競國",
-    "group": "ind_電子零組件業",
-    "score": 96.1
-   },
-   {
-    "rank": 5,
-    "code": "6617",
-    "name": "共信-KY",
-    "group": "ind_生技醫療業",
-    "score": 95.6
-   },
-   {
-    "rank": 6,
-    "code": "3693",
-    "name": "營邦",
-    "group": "chassis_rail",
-    "score": 92.0
-   },
-   {
-    "rank": 7,
-    "code": "3147",
-    "name": "大綜",
-    "group": "ind_資訊服務業",
-    "score": 92.0
-   },
-   {
-    "rank": 8,
-    "code": "6234",
-    "name": "高僑",
-    "group": "ind_光電業",
-    "score": 91.6
-   },
-   {
-    "rank": 9,
-    "code": "3701",
-    "name": "大眾控",
-    "group": "ind_電腦及週邊設備業",
-    "score": 90.9
-   },
-   {
-    "rank": 10,
-    "code": "6214",
-    "name": "精誠",
-    "group": "cloud_msp",
-    "score": 90.8
-   }
-  ],
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -152,5 +80,5 @@
    "tomorrow_candidates": []
   }
  },
- "generated": "2026-11-12T08:03Z"
+ "generated": "2026-11-12T08:50Z"
 }
