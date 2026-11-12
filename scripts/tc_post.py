@@ -134,8 +134,43 @@ def sched(p: dict) -> datetime:
     return d if d.tzinfo else d.replace(tzinfo=TAIPEI)
 
 
+WEEKDAYS = "一二三四五六日"   # datetime.weekday()：0＝星期一
+
+
+def weekday_check(p: dict) -> tuple[str, str]:
+    """檔頭 weekday: 跟 scheduled_at（台北）算出的星期幾比對。回 (錯誤, 警告)，沒事就是空字串。
+
+    2026-11-12 事故：週表規定週四 20:30 發，CEO 把 11/13 誤當週四（其實是週五），當晚沒發。
+    Andy：「避免再度發生」→ 排程的人要自己寫「這天是星期幾」，程式用日期反算，對不上就擋。
+    缺欄位只警告不擋（舊稿相容）。
+    """
+    want = str(p["meta"].get("weekday", "")).strip()
+    try:
+        d = sched(p).astimezone(TAIPEI)
+    except (KeyError, ValueError):
+        return "", ""   # scheduled_at 本身錯，validate 另外會報
+    real = WEEKDAYS[d.weekday()]
+    if not want:
+        return "", (f"{p['id']}：檔頭沒有 weekday:（scheduled_at {d:%Y-%m-%d} 是星期{real}），"
+                    f"請補一行「weekday: {real}」；目前只警告不擋")
+    w = want.removeprefix("星期").removeprefix("週").removeprefix("周")
+    if w == "天":
+        w = "日"
+    if w not in WEEKDAYS or len(w) != 1:
+        return f"weekday: {want!r} 看不懂（要寫一、二、三、四、五、六、日其中一個字）", ""
+    if w != real:
+        return (f"星期對不上，擋下不發：檔頭寫 weekday: {want}，但 scheduled_at {d:%Y-%m-%d %H:%M}（台北）"
+                f"是星期{real}。請確認要發的是哪一天，改 scheduled_at 或 weekday 其中一個"), ""
+    return "", ""
+
+
 def validate(p: dict, check_files: bool = True) -> list[str]:
     m, errs = p["meta"], []
+    werr, wwarn = weekday_check(p)
+    if werr:
+        errs.append(werr)
+    if wwarn:
+        log("⚠ " + wwarn)
     if m.get("status") not in STATUSES:
         errs.append(f"status 必須是 {sorted(STATUSES)} 之一，目前是 {m.get('status')!r}")
     try:

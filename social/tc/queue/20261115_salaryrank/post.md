@@ -2,6 +2,7 @@
 channel: tc
 status: approved
 scheduled_at: 2026-11-14T11:00+08:00
+weekday: 六
 platforms: ig, threads
 images: 1_cover.jpg, 2_listed.jpg, 3_otc.jpg, 4_why.jpg
 title: 上市櫃非主管年薪榜（台積電為什麼不是第一）

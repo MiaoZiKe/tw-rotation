@@ -303,7 +303,7 @@ def test_格式檢查擋PNG與沒圖():
 def test_廣達稿在佇列且是draft():
     d = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue" / "20261105_quanta"
     p = tc.load(d)
-    assert p["meta"]["status"] in ("draft", "approved")  # 2026-11-10 Andy：「廣達核准」
+    assert p["meta"]["status"] in ("draft", "approved", "posted")  # 2026-11-10 Andy：「廣達核准」；11-12 發出後是 posted
     assert p["images"] == ["1_cover.jpg", "2_fields.jpg"] and all((d / x).is_file() for x in p["images"])
     assert p["main"] and p["reply"] and p["caption"]
 
@@ -639,3 +639,58 @@ def test_工作流吃TECH權杖_channel_post不再排tech():
     ch = json.loads((root / "docs/marketing/channels/channels.json").read_text(encoding="utf-8"))
     assert ch["channels"]["tech"]["handed_over"] == "tc_post.yml"
     assert "頻道② 改用 tc_post.yml，2026-11-10 頻道④交接" in (root / ".github/workflows/channel_post.yml").read_text(encoding="utf-8")
+
+
+# ---------------- 星期幾防呆（2026-11-12 事故：把 11/13 週五誤當週四，週四當晚沒發；Andy：「避免再度發生」） ----------------
+
+def test_星期對得上照常發(monkeypatch, tmp_path, capsys):
+    q = tmp_path / "q"
+    mkpost(q, when="2026-11-12T20:30+08:00", extra="weekday: 四\n")
+    p = tc.load(q / "20261110_a")
+    assert tc.weekday_check(p) == ("", "") and tc.validate(p) == []
+    rc, res, api = go(monkeypatch, tmp_path, now=datetime(2026, 11, 12, 20, 31, tzinfo=TPE))
+    assert rc == 0 and res["posted"] == ["20261110_a"]
+    assert "weekday" not in capsys.readouterr().out          # 對得上不印警告
+
+
+def test_星期對不上擋下不發(monkeypatch, tmp_path, capsys):
+    q = tmp_path / "q"
+    a = mkpost(q, when="2026-11-13T20:30+08:00", extra="weekday: 四\n")   # 11/13 是星期五
+    errs = tc.validate(tc.load(a))
+    assert any("星期對不上" in e and "星期五" in e for e in errs)
+    rc, res, api = go(monkeypatch, tmp_path, now=datetime(2026, 11, 13, 21, 0, tzinfo=TPE))
+    assert rc == 1 and res["posted"] == [] and not api.calls            # 一個 Meta API 都沒打
+    assert any("星期對不上" in e for e in res["errors"])
+    assert "status: approved" in (a / "post.md").read_text()          # 不改稿、不發
+    assert tc.main(["--check", "--queue", str(q)]) == 1               # --check 也擋
+    assert "星期對不上" in capsys.readouterr().out
+
+
+def test_缺weekday只警告不擋(monkeypatch, tmp_path, capsys):
+    q = tmp_path / "q"
+    mkpost(q, when="2026-11-12T20:30+08:00")
+    p = tc.load(q / "20261110_a")
+    err, warn = tc.weekday_check(p)
+    assert err == "" and "weekday: 四" in warn
+    assert tc.main(["--check", "--queue", str(q)]) == 0
+    assert "沒有 weekday" in capsys.readouterr().out
+    rc, res, api = go(monkeypatch, tmp_path, now=datetime(2026, 11, 12, 20, 31, tzinfo=TPE))
+    assert rc == 0 and res["posted"] == ["20261110_a"]
+
+
+def test_weekday寫法容錯():
+    p = {"id": "x", "meta": {"scheduled_at": "2026-11-14T11:00+08:00", "weekday": "週六"}}
+    assert tc.weekday_check(p) == ("", "")
+    p["meta"]["weekday"] = "星期六"
+    assert tc.weekday_check(p) == ("", "")
+    p["meta"]["weekday"] = "Sat"
+    assert "看不懂" in tc.weekday_check(p)[0]
+
+
+def test_佇列稿件都有weekday且對得上():
+    q = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue"
+    for d in sorted(q.glob("*/")):
+        if (d / "post.md").is_file():
+            p = tc.load(d)
+            if p["meta"].get("status") in ("approved", "draft"):
+                assert tc.weekday_check(p) == ("", ""), d.name

@@ -58,7 +58,7 @@ Andy 11-10：「Tech_01010909 丟給他們單位處理」。頻道②的帳號�
 
 ```
 social/tc/queue/20261105_quanta/
-  post.md       檔頭：status、scheduled_at、platforms、images（同資料夾的 JPEG）
+  post.md       檔頭：status、scheduled_at、weekday（中文星期，例如「四」；2026-11-12 起必填，程式用 scheduled_at 反算台北星期，對不上就擋下不發，缺欄位只警告）、platforms、images（同資料夾的 JPEG）
   ig.txt        IG 說明文字（整段原樣）
   threads.txt   【主文】……【第 1 則留言】……
   1_cover.jpg、2_fields.jpg

@@ -2,6 +2,7 @@
 channel: tc
 status: posted
 scheduled_at: 2026-11-12T22:15+08:00
+weekday: 四
 platforms: ig, threads
 images: 1_cover.jpg, 2_fields.jpg
 title: 廣達碩畢待遇（代號肉鬆）
