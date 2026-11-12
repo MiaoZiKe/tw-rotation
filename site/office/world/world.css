@@ -10,7 +10,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #bar{position:absolute;z-index:10;left:12px;right:12px;top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;pointer-events:none}
 #bar>*{pointer-events:auto}
 .ttl{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:999px;padding:6px 8px 6px 16px;box-shadow:var(--sh);height:40px}
-.ttl b{font-size:16px;letter-spacing:.5px}
+.ttl b{font-size:16px;letter-spacing:.5px}.ttl a{color:inherit;text-decoration:none}
 .q{width:26px;height:26px;border-radius:50%;border:0;background:var(--on2);color:var(--on);font-weight:800;font-size:14px;line-height:26px;padding:0}
 .q:hover{background:var(--on);color:#fff}
 .seg{display:flex;background:var(--card);border-radius:999px;padding:4px;box-shadow:var(--sh);height:40px}
@@ -79,8 +79,6 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .bub{position:absolute;left:0;top:0;transform:translate(-999px,-999px);max-width:230px;width:max-content;background:#fff;border:2px solid #f0d9c0;border-radius:16px;padding:6px 12px;font-size:13px;line-height:1.5;box-shadow:0 4px 12px rgba(120,80,40,.2);z-index:5}
 .bub:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-7px;border:7px solid transparent;border-top-color:#fff;border-bottom:0}
 .bub.question{border-color:#9dbdf0}.bub.object{border-color:#f0958c;background:#fff4f2}.bub.agree{border-color:#8fd3a6}.bub.risk{border-color:#f2cf73}.bub.summary,.bub.open{border-color:#f7b27a}
-.emo{position:absolute;left:0;top:0;transform:translate(-999px,-999px);min-width:24px;height:24px;border-radius:12px;background:#fff;border:2px solid #f7b27a;color:#e8743b;font-weight:800;font-size:13px;line-height:20px;text-align:center;padding:0 4px;box-shadow:0 2px 6px rgba(120,80,40,.2)}
-.emo.hot{background:#ff6b5e;border-color:#ff6b5e;color:#fff}
 
 /* 整修 */
 #editBar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:25;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:calc(100vw - 24px)}
@@ -104,3 +102,19 @@ button{font-family:inherit;color:inherit;cursor:pointer}
   #editBar{bottom:8px;width:calc(100vw - 16px)}
   #toast{top:100px}
 }
+
+/* 進度卡：頭像、互動鈕、改造型 */
+.ava2{width:56px;height:56px;border-radius:50%;flex:none;background:#fff3e4;object-fit:cover;box-shadow:inset 0 0 0 1px var(--line)}
+.hd .nm2{font-size:12px;color:var(--sub);margin-left:6px}
+.acts.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 10px}
+.acts.g3 .btn{padding:0 6px;font-size:13px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
+.form label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:4px}
+.form input{font:inherit;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:#fff;min-width:0;width:100%}
+.form input:focus{outline:2px solid var(--on);outline-offset:-1px}
+.lab{font-size:12px;color:var(--sub);margin:8px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;font-size:13px;min-height:28px}
+.chip.on{background:var(--on);border-color:var(--on);color:#fff}
+.tag.me{background:var(--on);color:#fff}.tag.me span{color:#fff5ea}.tag.me.lead b:after{color:#fff}
+.tag.pet{background:rgba(255,240,246,.94)}

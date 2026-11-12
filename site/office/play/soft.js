@@ -48,8 +48,11 @@ export function softMat(o, sh) {
 }
 
 // 用單位球變形成任意圓潤造型；法線用數值微分算，沒有接縫
+// 細緻度：辦公室一次幾十隻，建立角色前把 DETAIL.k 調低（0.5＝面數約四分之一）
+export const DETAIL = { k: 1 };
+const dseg = (n, min) => Math.max(min, Math.round(n * DETAIL.k / 2) * 2);
 export function blobGeo(fn, ws = 80, hs = 60) {
-  const g = new THREE.SphereGeometry(1, ws, hs), p = g.attributes.position, n = g.attributes.normal;
+  const g = new THREE.SphereGeometry(1, dseg(ws, 20), dseg(hs, 14)), p = g.attributes.position, n = g.attributes.normal;
   const d = new V3(), t1 = new V3(), t2 = new V3(), p0 = new V3(), p1 = new V3(), p2 = new V3(), e = 2e-3;
   for (let i = 0; i < p.count; i++) {
     d.fromBufferAttribute(p, i).normalize();
@@ -60,6 +63,6 @@ export function blobGeo(fn, ws = 80, hs = 60) {
   }
   return g;
 }
-export const ball = (() => { let g; return () => g || (g = new THREE.SphereGeometry(1, 40, 28)); })();
+export const ball = (() => { let g; return () => g || (g = new THREE.SphereGeometry(1, dseg(40, 14), dseg(28, 10))); })();
 export const foot = (() => { let g; return () => g || (g = blobGeo(v => { v.y = v.y * (v.y < 0 ? 0.55 : 1) + 0.55; v.z += 0.12 * (1 - Math.abs(v.y - 0.5)); }, 36, 24)); })();
 

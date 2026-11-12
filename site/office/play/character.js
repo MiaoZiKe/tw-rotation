@@ -54,7 +54,7 @@ export class Character {
     this.stat = { slip: 0, slipN: 0, maxPen: 0 };
     this.feet.forEach(f => { this.footHome(f, f.p); f.yaw = this.yaw; });
     this.hands.forEach(h => { h.p.set(this.pos.x + h.s * cfg.hand[0], cfg.hand[1], this.pos.z); });
-    this.t = 0; this.syncGroups(); this.root.updateMatrixWorld(true);
+    this.t = 0; this.phase0 = Math.random() * 6.28; this.syncGroups(); this.root.updateMatrixWorld(true);
   }
   dispose() {
     const S = this.scene; S.remove(this.root, this.shadow, ...this.feet.map(f => f.m), ...this.hands.map(h => h.m), ...this.limbs);
@@ -96,10 +96,10 @@ export class Character {
     else if (this.pokeN <= 5) { this.emote('laugh', 1.5); if (this.pokeN === 3) this.say('好癢！', 1.2); }
     else { this.emote('angry', 2.8); if (this.pokeN === 6 || this.pokeN % 4 === 0) { this.say('不要戳啦！', 1.6); if (this.mode === 'normal' && !this.busy()) this.doAct('stomp'); } }
   }
-  petStart(hit) { this.wake(); this.petting = true; this.heartT = 0; this.goal = null; this.petHit = hit ? this.main.worldToLocal(hit.clone()) : new V3(0, 0.3, 0.1); }
+  petStart(hit, keep) { if (!keep) this.wake(); this.petting = true; this.heartT = 0; this.goal = null; this.petHit = hit ? this.main.worldToLocal(hit.clone()) : new V3(0, 0.3, 0.1); }
   petEnd() { if (!this.petting) return; this.petting = false; this.emote('happy', 1.6); }
   grab() { this.wake(); this.mode = 'held'; this.modeT = 0; this.goal = null; this.act = null; this.petting = false; this.grounded = false; this.hop = null; this.holdT.copy(this.center); this.fx.sfx('squeak'); this.feet.forEach(f => f.planted = false); }
-  dragTo(p) { this.holdT.set(clamp(p.x, BOUNDS.x0 + 0.3, BOUNDS.x1 - 0.3), clamp(p.y, this.R + 0.05, 2.9), clamp(p.z, BOUNDS.z0 + 0.3, BOUNDS.z1 - 0.3)); }
+  dragTo(p) { const B = this.bounds || BOUNDS; this.holdT.set(clamp(p.x, B.x0 + 0.3, B.x1 - 0.3), clamp(p.y, this.R + 0.05, 2.9), clamp(p.z, B.z0 + 0.3, B.z1 - 0.3)); }
   release() {
     if (this.mode !== 'held') return; const sp = this.vel.length(); if (sp > 10) this.vel.multiplyScalar(10 / sp);
     if (sp > 2.4) { this.mode = 'tumble'; this.modeT = 0; this.rest = 0; this.w.set(this.vel.z, 0, -this.vel.x).multiplyScalar(1.3 / this.R).add(_a.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(4)); this.fx.sfx('whee'); }
@@ -154,8 +154,10 @@ export class Character {
   }
   // 外部驅動（辦公室場景自己決定路徑與速度）：只照給定的速度移動、轉向，其餘彈簧與姿態照常
   stepExt(h) {
-    const e = this.ext, p = this.pos, v = this.vel; v.x += (e.vx - v.x) * Math.min(1, h * 14); v.z += (e.vz - v.z) * Math.min(1, h * 14); v.y = 0;
-    p.x += v.x * h; p.z += v.z * h; p.y = e.y || 0; this.grounded = true; this.skid = false;
+    const e = this.ext, p = this.pos, v = this.vel; v.x += (e.vx - v.x) * Math.min(1, h * 14); v.z += (e.vz - v.z) * Math.min(1, h * 14);
+    p.x += v.x * h; p.z += v.z * h; this.skid = false;
+    if (this.extFall) { v.y -= G * h; p.y += v.y * h; this.grounded = false; if (p.y <= (e.y || 0)) { const imp = -v.y; p.y = e.y || 0; v.y = 0; this.extFall = false; this.onLand(imp, null); } }   // 被拎起來放開後掉回地面
+    else { v.y = 0; p.y = e.y || 0; this.grounded = true; }
     const dy = angDiff(e.yaw, this.yaw), r = clamp(dy * 13, -15, 15); this.yawRate = lerp(this.yawRate, r, 1 - Math.exp(-h * 20)); this.yaw += this.yawRate * h;
   }
   stepNormal(h, ctl) {
@@ -271,6 +273,43 @@ export class Character {
     const breath = Math.sin(t * 2.1) * 0.012;
     both(hx, hy + breath * 0.6, hz);
     const emo = this.emo ? this.emo.name : null;
+    const petFx = () => {
+        expr = 'bliss'; this.sqT = -0.1 + Math.sin(t * 5) * 0.025; rollT += Math.sin(t * 4) * 0.05; both(hx * 1.02, hy + 0.05, hz + 0.05); appDroop = 0.5; appWig = 0.25;
+        const U = this.main.material.userData.U; U.uDent.value.set(this.petHit.x, this.petHit.y, this.petHit.z, 0); this.dent = lerp(this.dent, 0.05, 0.2); this.dentV = 0;
+        if ((this.heartT -= dt) <= 0) { this.heartT = 0.3; fx.spawn('heart', this.headTop(new V3()).add(_a.set((Math.random() - .5) * 0.5, -0.05, 0.15)), { v: new V3((Math.random() - .5) * 0.3, 0.75, 0), life: 1.2, size: 0.15 + Math.random() * 0.07, sway: 0.5, drag: 0.5 }); if (Math.random() < 0.45) fx.sfx('heart'); }
+      };
+    // 辦公室的動作姿勢（坐著或站定時套用）：有手的用手，沒手的用身體傾斜、彈跳、附屬物擺動來表現
+    this.poseT = (this.poseT || 0) + dt; this.autoTalk = false;
+    const pose = (xp) => {
+      const pt = this.poseT, nh = !this.hands.length, F = c.front, mY = c.mouth[1], ck = c.cheek;
+      switch (xp) {
+        case 'type': { pitchT += 0.1; const k = t * 17 + this.phase0; setH(0, -hx * 0.5, hy + Math.max(0, Math.sin(k)) * 0.05, F + 0.12); setH(1, hx * 0.5, hy + Math.max(0, Math.sin(k + 2)) * 0.05, F + 0.12); if (nh) { pitchT += Math.max(0, Math.sin(t * 9 + this.phase0)) * 0.08; rollT += Math.sin(t * 4.5 + this.phase0) * 0.05; appWig = 0.25; } if (!emo) expr = 'look'; break; }
+        case 'read': { pitchT += 0.2 + (nh ? 0.04 * Math.sin(t * 1.1) : 0); rollT += Math.sin(t * 1.3 + this.phase0) * 0.03; both(hx * 0.55, hy + 0.06, F + 0.1); if ((t * 0.35 + this.phase0) % 1 > 0.9) setH(1, hx * 0.15, hy + 0.15, F + 0.13); if (!emo) expr = 'look'; break; }
+        case 'note': pitchT += 0.17; setH(0, -hx * 0.5, hy + 0.03, F + 0.1); setH(1, hx * 0.25 + Math.sin(t * 13) * 0.035, hy + 0.07 + Math.sin(t * 21) * 0.012, F + 0.13); if (nh) rollT += Math.sin(t * 6) * 0.035; if (!emo) expr = 'look'; break;
+        case 'listen': pitchT += Math.sin(t * 1.1 + this.phase0) * 0.04; rollT += Math.sin(t * 0.7 + this.phase0) * 0.05; break;
+        case 'think': rollT += 0.14 + Math.sin(t * 1.2) * 0.03; pitchT -= 0.06; setH(1, ck[0] * 0.6, ck[1] - 0.08, ck[2] + 0.06); if (!emo) expr = 'look'; break;
+        case 'nod': pitchT += 0.1 + Math.sin(t * 9) * 0.16; if (!emo) expr = 'happy'; break;
+        case 'no': yawAdd += Math.sin(t * 10) * 0.38; pitchT += 0.05; if (!emo) expr = 'effort'; break;
+        case 'raise': setH(1, hx * 1.05, hy + 0.42 + Math.sin(t * 8) * 0.02, hz); this.sqT += 0.09; if (nh) { yOff += Math.abs(Math.sin(t * 6)) * 0.06; appDroop = -0.6; } break;
+        case 'clap': { const k = Math.abs(Math.sin(t * 11 + this.phase0)); both(hx * (0.22 + 0.42 * k), hy + 0.14, F + 0.1); if (nh) { yOff += k * 0.05; this.sqT += 0.06 * k - 0.03; appWig = 0.5; } if (!emo) expr = 'happy'; break; }
+        case 'cheer': yOff += Math.abs(Math.sin(t * 8)) * 0.1; both(hx * 1.2, hy + 0.32, hz); expr = 'laugh'; appWig = 0.5; break;
+        case 'drink': { const u = (pt % 3.2) / 3.2, k = sstep(0.1, 0.3, u) * (1 - sstep(0.62, 0.8, u)); setH(1, lerp(hx * 0.6, ck[0] * 0.25, k), lerp(hy + 0.04, mY + 0.02, k), F + 0.1); pitchT -= 0.16 * k; if (nh) rollT += 0.1 * k; if (k > 0.5) expr = 'bliss'; break; }
+        case 'phone': { setH(1, ck[0] * 1.05, ck[1] + 0.02, ck[2] - 0.05); setH(0, -hx * 0.9, hy + 0.05 + Math.sin(t * 5) * 0.05, F * 0.6 + Math.sin(t * 3.1) * 0.05); rollT += 0.12; pitchT += Math.sin(t * 2.3) * 0.05; const tk = Math.sin(t * 0.9 + this.phase0) > -0.2; if (!emo) expr = tk ? 'happy' : 'look'; this.autoTalk = tk; break; }
+        case 'talkg': { setH(0, -hx * 1.05, hy + 0.1 + Math.sin(t * 7) * 0.07, F * 0.7); setH(1, hx * 1.05, hy + 0.1 + Math.sin(t * 7 + 2.2) * 0.07, F * 0.7); pitchT += Math.sin(t * 5) * 0.05; yOff += Math.abs(Math.sin(t * 6)) * 0.015; if (nh) { rollT += Math.sin(t * 5) * 0.09; appWig = 0.3; } break; }
+        case 'stretch': { const u = clamp(pt / 2.6, 0, 1), k = sstep(0, 0.3, u) * (1 - sstep(0.75, 1, u)); both(hx * (1 + 0.25 * k), hy + 0.5 * k, hz - 0.05 * k); this.sqT += 0.2 * k; pitchT -= 0.22 * k; expr = k > 0.4 ? 'yawn' : 'sleepy'; appDroop = -0.5 * k; break; }
+        case 'doze': { const u = (pt % 4.2) / 4.2, k = u < 0.8 ? sstep(0, 0.8, u) : 1 - sstep(0.8, 0.86, u); pitchT += 0.34 * k; rollT += 0.08 * k; this.sqT -= 0.05 * k; expr = u > 0.82 && u < 0.95 ? 'surprised' : 'sleepy'; appDroop = k; break; }
+        case 'slam': { const u = (pt * 2.4) % 1, up = sstep(0, 0.45, u) * (1 - sstep(0.5, 0.62, u)); both(hx * 0.8, hy + 0.02 + 0.3 * up, F + 0.08); pitchT += 0.12 - 0.2 * up; this.sqT += 0.1 * up - 0.06; expr = 'angry'; tint = [1, 0.45, 0.42]; tintA = 0.5; if (nh) yOff += up * 0.1; rollT += Math.sin(t * 26) * 0.03; break; }
+        case 'point': setH(1, hx * 0.75, hy + 0.3, F + 0.28); pitchT -= 0.08; this.sqT += 0.04; if (nh) { pitchT -= 0.1; rollT += 0.1; } break;
+        case 'carry': both(hx * 0.5, hy + 0.08, F + 0.1); break;
+        case 'present': both(hx * 0.5, hy + 0.16, F + 0.24); pitchT += 0.1; if (!emo) expr = 'happy'; break;
+        case 'eat': { const u = (pt % 1.9) / 1.9, k = sstep(0.05, 0.3, u) * (1 - sstep(0.5, 0.7, u)); setH(1, lerp(hx * 0.6, ck[0] * 0.2, k), lerp(hy + 0.05, mY, k), F + 0.08); expr = k > 0.6 ? 'eatOpen' : (u > 0.5 ? 'chew' : 'happy'); if (u > 0.5) this.sqT -= 0.05 * Math.max(0, Math.sin(pt * 15)); break; }
+        case 'magnify': setH(1, ck[0] * 0.5, ck[1] + 0.02, F + 0.2); setH(0, -hx * 0.5, hy + 0.04, F + 0.1); pitchT += 0.24 + Math.sin(t * 1.6) * 0.05; rollT += Math.sin(t * 0.8) * 0.06; if (!emo) expr = 'look'; break;
+        case 'paddle': { const u = (pt * 1.25) % 1, k = sstep(0.3, 0.5, u) * (1 - sstep(0.5, 0.8, u)); setH(1, hx * (1.2 - 0.9 * k), hy + 0.12 + 0.1 * k, F * 0.3 + 0.4 * k); yawAdd += -0.5 + 0.9 * k; yOff += k * 0.05; this.sqT += 0.06 * k; if (!emo) expr = k > 0.5 ? 'effort' : 'look'; break; }
+        case 'pour': setH(1, hx * 0.6, hy + 0.22, F + 0.22); pitchT += 0.1; break;
+        case 'reach': setH(1, hx * 0.5, hy + 0.5, F + 0.2); setH(0, -hx * 0.5, hy + 0.42, F + 0.2); this.sqT += 0.14; pitchT -= 0.1; if (nh) yOff += 0.08 + Math.sin(t * 5) * 0.03; break;
+        case 'sulk': pitchT += 0.2; this.sqT -= 0.08; both(hx * 0.7, hy - 0.1, F * 0.75); appDroop = 1; break;
+      }
+    };
     // ── 模式
     if (this.mode === 'recover') {
       const u = clamp(this.modeT / 0.55, 0, 1), e = u * u * (3 - 2 * u); this.tumble.quaternion.copy(this.tq).slerp(_q.identity(), e); yOff = Math.sin(u * Math.PI) * 0.12; expr = 'dizzy';
@@ -285,6 +324,8 @@ export class Character {
     else if (this.mode === 'sit') {
       this.sqT = -0.1; expr = emo || 'neutral'; both(hx * 0.7, hy - 0.08, c.front * 0.7);
       if (this.yawTo != null) this.faceYaw = this.yawTo;
+      if (this.extPose) pose(this.extPose);
+      if (this.petting) petFx();
     } else if (this.mode === 'sleep') {
       this.sqT = -0.2 + Math.sin(t * 1.5) * 0.035; expr = 'sleep'; rollT = 0.13; pitchT = 0.08; both(hx * 0.85, hy - 0.14, c.front * 0.5); appDroop = 1;
       if (this.yawTo != null) this.faceYaw = this.yawTo;
@@ -321,20 +362,7 @@ export class Character {
         }
         else if (emo === 'angry') { tint = [1, 0.45, 0.42]; tintA = 0.45; } else if (emo === 'sad') appDroop = 1;
       } else if (moving && expr === 'neutral') expr = runF > 0.5 ? 'whee' : 'look';
-      // 辦公室的持續動作（打字、閱讀、聽、想…）
-      const xp = this.extPose;
-      if (xp && idle) switch (xp) {
-        case 'type': pitchT += 0.1; setH(0, -hx * 0.5, hy + Math.max(0, Math.sin(t * 17)) * 0.04, c.front + 0.08); setH(1, hx * 0.5, hy + Math.max(0, Math.sin(t * 17 + 2)) * 0.04, c.front + 0.08); if (!emo) expr = 'look'; break;
-        case 'read': pitchT += 0.2; rollT += Math.sin(t * 1.3) * 0.03; both(hx * 0.6, hy + 0.02, c.front + 0.05); break;
-        case 'note': pitchT += 0.16 + Math.sin(t * 9) * 0.02; setH(1, hx * 0.3, hy, c.front + 0.1 + Math.sin(t * 9) * 0.02); break;
-        case 'listen': pitchT += Math.sin(t * 1.1) * 0.04; rollT += Math.sin(t * 0.7) * 0.05; break;
-        case 'think': rollT += 0.14 + Math.sin(t * 1.2) * 0.03; setH(1, c.cheek[0] * 0.6, c.cheek[1] - 0.08, c.cheek[2] + 0.06); if (!emo) expr = 'look'; break;
-        case 'nod': pitchT += 0.1 + Math.sin(t * 9) * 0.16; break;
-        case 'raise': setH(1, hx * 1.1, hy + 0.38, hz); this.sqT += 0.06; break;
-        case 'clap': { const k = Math.abs(Math.sin(t * 11)); both(hx * (0.25 + 0.4 * k), hy + 0.12, c.front + 0.08); if (!emo) expr = 'happy'; break; }
-        case 'cheer': yOff += Math.abs(Math.sin(t * 8)) * 0.1; both(hx * 1.2, hy + 0.3, hz); expr = 'laugh'; break;
-        case 'drink': setH(1, c.cheek[0] * 0.3, c.mouth[1], c.front + 0.08); pitchT -= 0.12; expr = 'bliss'; break;
-      }
+      if (this.extPose && idle) pose(this.extPose);
       // 腳步循環（相位由走過的距離推進 → 腳不滑）
       if (moving && !this.skid) {
         const stride = lerp(c.stride[0], c.stride[1], runF); this.phase = (this.phase + sp * dt / stride) % 1;
@@ -352,6 +380,7 @@ export class Character {
         const sw = Math.sin(this.phase * 2 * Math.PI) * (0.1 + runF * 0.12) * amp;
         if (!(this.pushing > 0)) { setH(0, -hx * (1 + runF * 0.12), hy + runF * 0.03, hz + sw - runF * 0.1); setH(1, hx * (1 + runF * 0.12), hy + runF * 0.03, hz - sw - runF * 0.1); }
       }
+      if (moving && (this.extPose === 'carry' || this.extPose === 'present')) both(hx * 0.5, hy + 0.08, c.front + 0.1);
       // 動作
       const a = this.act;
       if (a) {
@@ -399,12 +428,7 @@ export class Character {
         }
         if (a.t >= a.dur) { if (a.name === 'catch' && a.data.held) { a.data.held = false; a.data.caught = false; } this.act = null; }
       }
-      // 摸頭
-      if (this.petting) {
-        expr = 'bliss'; this.sqT = -0.1 + Math.sin(t * 5) * 0.025; rollT += Math.sin(t * 4) * 0.05; both(hx * 1.02, hy + 0.05, hz + 0.05); appDroop = 0.5; appWig = 0.25;
-        const U = this.main.material.userData.U; U.uDent.value.set(this.petHit.x, this.petHit.y, this.petHit.z, 0); this.dent = lerp(this.dent, 0.05, 0.2); this.dentV = 0;
-        if ((this.heartT -= dt) <= 0) { this.heartT = 0.3; fx.spawn('heart', this.headTop(new V3()).add(_a.set((Math.random() - .5) * 0.5, -0.05, 0.15)), { v: new V3((Math.random() - .5) * 0.3, 0.75, 0), life: 1.2, size: 0.15 + Math.random() * 0.07, sway: 0.5, drag: 0.5 }); if (Math.random() < 0.45) fx.sfx('heart'); }
-      }
+      if (this.petting) petFx();
       // 發呆：東張西望 → 打哈欠 → 坐下 → 睡著
       if (idle && !emo && !this.petting && !this.goal) {
         this.idleT += dt * (env.idleScale || 1); const it = this.idleT;
@@ -446,7 +470,7 @@ export class Character {
     }
     this.face.set(expr);
     this.face.gx = this.gx; this.face.gy = -this.gy;
-    const sp2 = this.speech; this.face.talk = sp2 && sp2.talk > 0 ? (sp2.talk -= dt, 0.12 + 0.45 * Math.abs(Math.sin(t * 15)) * (0.6 + 0.4 * Math.sin(t * 6.3))) : 0;
+    const sp2 = this.speech; this.face.talk = (sp2 && sp2.talk > 0) || this.autoTalk ? (sp2 && (sp2.talk -= dt), 0.12 + 0.45 * Math.abs(Math.sin(t * 15)) * (0.6 + 0.4 * Math.sin(t * 6.3))) : 0;
     this.face.update(dt, expr === 'dizzy' || expr === 'surprised' ? 22 : 12);
     const U = this.main.material.userData.U; U.uFaceOff.value.set(this.gx * 0.2 * (c.faceShift ?? 1), this.gy * 0.1 * (c.faceShift ?? 1) + (c.faceUp || 0)); U.uDent.value.w = this.dent;
     this.syncGroups(); this.root.updateMatrixWorld(true);
@@ -478,7 +502,7 @@ export class Character {
         const kick = this.mode === 'held' && this.modeT > 0.5 ? Math.sin(this.t * 17 + i * Math.PI) * 0.09 : 0;
         const tuck = this.mode === 'normal' ? clamp(v.y * 0.012, -0.05, 0.06) : 0;
         this.tumble.localToWorld(_a.set(f.s * c.lat * 1.1, -this.R + 0.02 - tuck + (this.mode === 'held' ? -0.05 : 0), c.footFwd + kick + (this.mode === 'normal' ? i * 0.05 - 0.02 : 0)));
-        const k = 420, d = 26; f.v.x += ((_a.x - f.p.x) * k - f.v.x * d) * dt; f.v.y += ((_a.y - f.p.y) * k - f.v.y * d) * dt; f.v.z += ((_a.z - f.p.z) * k - f.v.z * d) * dt; f.p.addScaledVector(f.v, dt);
+        const k = 420, d = 26, nn = Math.max(1, Math.ceil(dt / 0.012)), hh = dt / nn; for (let j = 0; j < nn; j++) { f.v.x += ((_a.x - f.p.x) * k - f.v.x * d) * hh; f.v.y += ((_a.y - f.p.y) * k - f.v.y * d) * hh; f.v.z += ((_a.z - f.p.z) * k - f.v.z * d) * hh; f.p.addScaledVector(f.v, hh); }
         if (this.mode !== 'held') f.p.y = Math.max(f.p.y, this.sh.uGround.value);
         f.planted = false; f.yaw = this.yaw; pitch = this.mode === 'normal' ? clamp(-v.y * 0.06, -0.5, 0.6) : 0;
         f.m.quaternion.copy(this.tumble.getWorldQuaternion(_q)); f.m.rotateX(pitch);

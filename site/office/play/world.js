@@ -1,5 +1,6 @@
 // 小房間（辦公室一角）＋可互動物件＋簡單剛體物理（球、箱子、彈跳床）
 import * as THREE from 'three';
+import { DETAIL } from './soft.js';
 
 export const G = 16;                       // 重力（公尺／秒²；角色約 0.75 公尺高，取大一點比較有精神）
 export const BOUNDS = { x0: -4, x1: 4, z0: -3, z1: 3.2 };
@@ -7,7 +8,7 @@ const STEP = 0.14;                         // 能直接走上去的高度
 
 // 圓角方塊：把頂點集中到邊角帶，再往內縮的方塊外推成圓角（沒有稜線）
 export function rbox(w, h, d, r, k = 5) {
-  const N = k * 2 + 4, g = new THREE.BoxGeometry(w, h, d, N, N, N);
+  k = Math.max(2, Math.round(k * DETAIL.k)); const N = k * 2 + 4, g = new THREE.BoxGeometry(w, h, d, N, N, N);
   const p = g.attributes.position, n = g.attributes.normal, half = [w / 2, h / 2, d / 2], v = [0, 0, 0], inn = [0, 0, 0];
   const a = k / N;
   for (let i = 0; i < p.count; i++) {
@@ -23,6 +24,7 @@ export function rbox(w, h, d, r, k = 5) {
   return g;
 }
 export function lathe(pts, seg = 56, smooth = 48) {
+  seg = Math.max(18, Math.round(seg * DETAIL.k)); smooth = Math.max(14, Math.round(smooth * DETAIL.k));
   const c = new THREE.CatmullRomCurve3(pts.map(q => new THREE.Vector3(q[0], q[1], 0)), false, 'catmullrom', 0.35);
   const ps = c.getPoints(smooth).map(q => new THREE.Vector2(Math.max(0, q.x), q.y));
   ps[0].x = 0; ps[ps.length - 1].x = pts[pts.length - 1][0] === 0 ? 0 : ps[ps.length - 1].x;

@@ -4,16 +4,18 @@ import { OrbitControls } from '../../vendor/OrbitControls.js';
 import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createUI } from './ui.js';
+import { FX } from '../../play/fx.js';
+import { SPECIES, canWear } from '../../play/species.js';
 
 const $ = id => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
 const J = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); });
 
-// 正式角色做好後：world.html?char=../../play/xxx.js，或直接把下面的預設路徑換掉
-async function loadCharacterModule() { const p = qs.get('char') || './character.js'; const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
+// 角色模組：預設用正式角色（play/office_character.js）；world.html?char=./character.js 可換回膠囊佔位角色（只供除錯）
+async function loadCharacterModule() { const p = qs.get('char') || '../../play/office_character.js'; const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
 
 (async function boot() {
-  const [layout, org, demo, meet, charMod] = await Promise.all([J('world/data/layout.json'), J('world/data/org.json'), J('world/data/demo.json'), J('world/data/meeting_demo.json'), loadCharacterModule()]);
+  const [layout, org, demo, meet, roster, charMod] = await Promise.all([J('world/data/layout.json'), J('world/data/org.json'), J('world/data/demo.json'), J('world/data/meeting_demo.json'), J('world/data/roster.json'), loadCharacterModule()]);
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality), { renderer, scene, camera } = W;
@@ -23,7 +25,23 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   addEventListener('resize', resize); resize();
 
   // ── 角色 ──
+  // 手機自動降級：幾何面數、臉部貼圖、遠近分級的距離都調低
+  if (charMod.configure) charMod.configure(quality === 'low' ? { detail: 0.4, faceSize: 128, lodNear: 9, lodFar: 22, fxDist: 16 } : { detail: 0.55, faceSize: 256, lodNear: 14, lodFar: 30, fxDist: 26 });
+  const fx = new FX(scene); W.fx = fx;
+  // 使用者在網頁上改的名字、暱稱、物種、配色、配件（只存在這台裝置）
+  const RKEY = 'aiOffice.roster.v1'; let edits = {}; try { edits = JSON.parse(localStorage.getItem(RKEY) || '{}') || {}; } catch (e) { edits = {}; }
+  W.roster = { base: roster, edits, save() { try { localStorage.setItem(RKEY, JSON.stringify(edits)); return true; } catch (e) { return false; } } };
+  // 組出一位成員的完整規格：編制（原職稱不可改）＋固定外觀＋使用者的修改；戴不了識別證的物種改用同色圍巾或蝴蝶結
+  function makeSpec(b) {
+    const look = b.pet ? b : (b.isCeo ? roster.ceo : roster.members[b.id]) || {}, ed = edits[b.id] || {}, sp = { ...b, ...look, ...ed, id: b.id, zh: b.zh, nick0: b.nick0 ?? b.nick };
+    const cfg = SPECIES[sp.species]; let acc = [...(sp.acc || [])];
+    if (cfg && acc.includes('badge') && !canWear(cfg, 'badge')) { const alt = ['scarf', 'bow', 'hat'].find(a => canWear(cfg, a) && !acc.includes(a)); if (alt) acc.push(alt); }
+    if (cfg && acc.includes('tie') && !canWear(cfg, 'tie') && !acc.includes('hat') && canWear(cfg, 'hat')) acc.push('hat');
+    sp.acc = acc; return sp;
+  }
+  W.makeSpec = makeSpec;
   const env = {
+    camera, fx, followed: null, bounds: { x0: 0.6, x1: layout.size.w - 0.6, z0: 0.6, z1: layout.size.d + 3 },
     isFree: (x, z) => W.nav.isFree(x, z),
     separation(c, dx, dz) {
       let px = 0, pz = 0, slow = 1; const p = c.object3D.position;
@@ -36,16 +54,38 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
       return { x: px, z: pz, slow };
     }
   };
-  const specs = [{ ...org.ceo, isCeo: true }]; for (const d of org.departments) for (const m of d.members) specs.push({ ...m, dept: d.id, color: d.color });
+  const bases = [{ ...org.ceo, isCeo: true }]; for (const d of org.departments) for (const m of d.members) bases.push({ ...m, dept: d.id, color: d.color });
+  const baseOf = new Map(bases.map(b => [b.id, b]));
   const labels = $('labels');
-  for (const s of specs) {
-    const c = charMod.createCharacter(s, env); W.chars.set(s.id, c); scene.add(c.object3D);
-    const seat = W.spots.find(q => q.name === 'seat:' + s.id);
-    if (seat) { seat.taken = s.id; c.spot = seat; c.sitAt(seat.seat); c.atDesk = true; c.setAction('type'); } else c.standAt(20, 26, 0);
-    const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span>`; tag.firstChild.textContent = s.nick; tag.lastChild.textContent = s.isCeo ? s.zh : `${s.id}・${s.zh}`;
-    const bub = document.createElement('div'); bub.className = 'bub'; const emo = document.createElement('div'); emo.className = 'emo';
-    labels.append(tag, bub, emo); c._lab = { tag, bub, emo, cls: '', txt: '', sym: '', on: false, bon: false, eon: false };
+  function setTag(c) { const s = c.spec, L = c._lab; L.tag.firstChild.textContent = s.nick; L.tag.lastChild.textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; }
+  function addLabel(c) {
+    const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span>`;
+    const bub = document.createElement('div'); bub.className = 'bub';
+    labels.append(tag, bub); c._lab = { tag, bub, cls: '', txt: '', on: false, bon: false }; setTag(c);
   }
+  for (const b of bases) {
+    const s = makeSpec(b), c = charMod.createCharacter(s, env); W.chars.set(s.id, c); scene.add(c.object3D); c.onDrop = q => director.dropped(q);
+    const seat = W.spots.find(q => q.name === 'seat:' + s.id);
+    if (seat) { seat.taken = s.id; c.spot = seat; c.sitAt(seat.seat, { instant: true }); c.atDesk = true; c.setAction('type'); c.workAt = 1 + Math.random() * 9; } else c.standAt(20, 26, 0);
+    addLabel(c);
+  }
+  // 寵物：迷你版的物種，在主人附近自由走動
+  W.pets = [];
+  for (const p of roster.pets || []) {
+    const s = makeSpec({ ...p, nick: p.name, pet: true }), c = charMod.createCharacter(s, env); c.onDrop = q => director.dropped(q); c.busyUntil = 0; scene.add(c.object3D);
+    const o = W.chars.get(p.owner), op = o ? o.object3D.position : { x: 20, z: 26 }, f = W.nav.nearestFree(op.x + 1.1, op.z + 0.9, 12) || { x: 20, z: 26 }; c.standAt(f.x, f.z, Math.random() * 6);
+    addLabel(c); W.pets.push(c);
+  }
+  let everyone = [...W.chars.values(), ...W.pets];
+  // 改了物種、配色、配件之後，原地換一個新的身體
+  W.rebuildChar = id => {
+    const old = W.chars.get(id); if (!old) return null; if (director.meeting && director.meeting.people.includes(old)) return null;
+    const p = old.object3D.position.clone(), st = old.state, keep = { spot: old.spot, atDesk: old.atDesk, away: old.away, _lab: old._lab, workAt: old.workAt, task: old.task };
+    old.script = (old.script || 0) + 1; old.job = (old.job || 0) + 1; old.stop(false); const vis = old.object3D.visible; old.dispose();
+    const c = charMod.createCharacter(makeSpec(baseOf.get(id)), env); Object.assign(c, keep); c.onDrop = q => director.dropped(q); W.chars.set(id, c); scene.add(c.object3D); c.setVisible(vis);
+    if (keep.spot && keep.spot.seat && st === 'sit') { c.sitAt(keep.spot.seat, { instant: true }); c.setAction(keep.atDesk ? 'type' : 'idle'); } else { const f = W.nav.isReach(p.x, p.z) ? p : (W.nav.nearestFree(p.x, p.z, 24) || p); c.standAt(f.x, f.z, old.heading); c.busy = false; if (!c.away) director.sendHome(c); }
+    setTag(c); if (view.char === old) { view.char = c; env.followed = c; } everyone = [...W.chars.values(), ...W.pets]; return c;
+  };
   const ceo = W.chars.get('ceo');
 
   // ── 鏡頭 ──
@@ -73,9 +113,10 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     return false;
   }
   function followPose(c) {
-    const h0 = c.heading, back = portrait() ? 5.2 : 4.2, up = portrait() ? 3.4 : 2.5, cp = c.object3D.position;
+    const sitV = c.state === 'sit', k = (c.scale || 1) > 1 ? 1.12 : 1, h0 = c.spot && c.spot.seat && sitV ? c.spot.seat.face : c.heading, back = (portrait() ? 5.6 : 4.4) * (sitV ? 1.25 : 1) * k, up = ((portrait() ? 3.4 : 2.5) + (sitV ? 1.3 : 0)) * k, cp = c.object3D.position;
     let best = null;
-    for (const da of [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI]) {
+    const seatedC = c.state === 'sit';
+    for (const da of (seatedC ? [0.72, -0.72, 1.25, -1.25, 0.3, 1.9, -1.9, Math.PI] : [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI])) {
       const h = h0 + da, p = new THREE.Vector3(cp.x - Math.sin(h) * back, up, cp.z - Math.cos(h) * back);
       p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 4, p.z));
       const d = Math.hypot(p.x - cp.x, p.z - cp.z); if (d < back - 0.3) p.y += (back - d) * 0.35;
@@ -93,15 +134,15 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
   function setView(mode, c, instant) {
     if (mode === 'ceo') c = ceo; if (mode === 'char' && !c) c = view.char || ceo;
-    view.mode = mode; view.char = mode === 'god' ? null : c; modeControls(mode !== 'god');
+    view.mode = mode; view.char = mode === 'god' ? null : c; env.followed = view.char; modeControls(mode !== 'god');
     const pose = mode === 'god' ? godPose() : followPose(c);
     if (instant) { camera.position.copy(pose.p); controls.target.copy(pose.t); camera.fov = pose.fov; camera.updateProjectionMatrix(); view.tween = null; } else tweenTo(pose);
-    ui.setViewUI(mode, c); W.ring.visible = mode === 'char';
+    ui.setViewUI(mode, c); W.ring.visible = mode !== 'god'; W.ring.scale.setScalar(Math.max(0.6, (c && c.scale) || 1));
     if (mode !== 'char') ui.hideCard();
   }
   function jumpTo(roomId) {
     const r = layout.rooms.find(q => q.id === roomId); if (!r) return;
-    view.mode = 'god'; view.char = null; modeControls(false); ui.setViewUI('god'); W.ring.visible = false;
+    view.mode = 'god'; view.char = null; env.followed = null; modeControls(false); ui.setViewUI('god'); W.ring.visible = false;
     tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
   function updateCamera(dt) {
@@ -116,19 +157,19 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     if (view.char) {
       const c = view.char; { const cp = c.object3D.position, fx = cp.x - camera.position.x, fz = cp.z - camera.position.z, fl = Math.hypot(fx, fz) || 1, kk = Math.min(1, dt * 2); ahead.x += (fx / fl * AHEAD - ahead.x) * kk; ahead.z += (fz / fl * AHEAD - ahead.z) * kk; } charTarget(c, v3); v3b.subVectors(v3, controls.target).multiplyScalar(Math.min(1, dt * 7)); controls.target.add(v3b); camera.position.add(v3b);
       // 角色走路時，鏡頭慢慢繞回他身後（使用者剛拖過就先不動）
-      if (c.state === 'walk' && performance.now() / 1000 - view.lastUser > 2.5) {
+      if (c.state === 'walk' && !grab && performance.now() / 1000 - view.lastUser > 2.5) {
         const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, a = Math.atan2(ox, oz), want = c.heading + Math.PI;
         let d = Math.atan2(Math.sin(want - a), Math.cos(want - a)); d = Math.max(-dt * 0.9, Math.min(dt * 0.9, d));
         const cs = Math.cos(d), sn = Math.sin(d); camera.position.x = controls.target.x + ox * cs + oz * sn; camera.position.z = controls.target.z - ox * sn + oz * cs;
       }
-      if (W.ring.visible) W.ring.position.set(c.object3D.position.x, 0.08, c.object3D.position.z);
+      if (W.ring.visible) { W.ring.position.set(c.object3D.position.x, 0.08, c.object3D.position.z); W.ring.material.opacity = c.state === 'sit' ? 0.45 : 0.9; }
     }
   }
 
   // ── 導演與介面 ──
   let director;
   const ui = createUI(W, demo, {
-    setView: (m, c) => setView(m, c), jumpTo, cardClosed() { },
+    setView: (m, c) => setView(m, c), jumpTo, cardClosed() { }, director: () => director, rebuild: id => W.rebuildChar(id), setTag: c => setTag(c),
     ambient: () => director.ambient, setSpeed: s => { W.speed = s; },
     toggleEdit: () => toggleEdit(),
     runDemo(k) {
@@ -136,34 +177,38 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
       if (k === 'meeting') { if (director.running) { ui.toast('會議示範正在進行中'); return; } director.play(meet.events); return; }
       if (k === 'clockout') { director.clockOut(6); ui.toast('下班：幾位同事從大門離開'); return; }
       if (k === 'clockin') { director.clockIn(6); ui.toast('上班：同事從大門進來'); return; }
-      const c = director.routine(null, k); ui.toast(c ? '已派一位同事去' + { coffee: '倒咖啡', lookup: '查資料', rest: '休息', play: '遊樂區', snack: '吃點心' }[k] : '目前沒有空閒的同事');
+      if (k === 'report') { const c = director.pickIdle(); if (!c) { ui.toast('目前沒有空閒的同事'); return; } director.play([{ type: 'task.done', who: c.spec.id, report_to: 'ceo', summary: '這批做完了，請過目。', reply: '收到，辛苦了。' }]); ui.toast(c.spec.nick + '拿著文件去找 CEO'); return; }
+      const c = director.routine(null, k); ui.toast(c ? '已派一位同事去' + { coffee: '倒咖啡', lookup: '查資料', rest: '休息', play: '遊樂區', snack: '吃點心', chat: '找人聊天' }[k] : '目前沒有空閒的同事');
     }
   });
-  director = createDirector(W, ui); W.director = director; W.ui = ui; W.meet = meet;
+  director = createDirector(W, ui); W.director = director; W.ui = ui; W.meet = meet; director.pets = W.pets;
   if (qs.get('ambient') === '0') director.ambient = false;
 
   // ── 名牌、泡泡 ──
-  const pv = new THREE.Vector3();
+  const pv = new THREE.Vector3(), bubs = [];
   function updateLabels() {
-    const w = cv.clientWidth, h = cv.clientHeight;
-    for (const c of W.chars.values()) {
+    const w = cv.clientWidth, h = cv.clientHeight; bubs.length = 0;
+    for (const c of everyone) {
       const L = c._lab, p = c.object3D.position; let on = c.object3D.visible;
-      if (on) { pv.set(p.x, p.y + c.height + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2 || (view.mode !== 'god' && dist > 17 && !c.speech)) on = false; }
-      if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = L.emo.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = L.eon = false; } c._sx = -999; continue; }
+      if (on) { pv.set(p.x, c.height + (c.lift || 0) + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2 || (view.mode !== 'god' && dist > 17 && !c.speech) || (c.spec.pet && dist > 40)) on = false; }
+      if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = false; L.txt = ''; } c._sx = -999; continue; }
       const x = Math.round((pv.x + 1) / 2 * w), y = Math.round((1 - pv.y) / 2 * h); c._sx = x; c._sy = y; c._sd = dist;
-      const cls = 'tag' + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
+      const cls = 'tag' + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
       L.tag.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`; L.on = true;
       const th = dist < 15 ? 38 : dist < 34 ? 24 : 18;
       if (c.speech) {
         if (L.txt !== c.speech.text) { L.bub.textContent = c.speech.text; L.txt = c.speech.text; L.bub.className = 'bub ' + (c.speech.kind || ''); L.bw = L.bub.offsetWidth; L.bh = L.bub.offsetHeight; }
         // 泡泡不超出畫面左右，也不蓋到最上面的工具列
-        const bx = Math.max(L.bw / 2 + 6, Math.min(w - L.bw / 2 - 6, x)), by = Math.max(L.bh + (w < 640 ? 100 : 60), y - th - 10);
-        L.bub.style.transform = `translate(${bx}px,${by}px) translate(-50%,-100%)`; L.bon = true;
+        bubs.push({ L, x: Math.max(L.bw / 2 + 6, Math.min(w - L.bw / 2 - 6, x)), y: Math.max(L.bh + (w < 640 ? 100 : 60), y - th - 10), w: L.bw, h: L.bh });
       } else if (L.bon) { L.bub.style.transform = 'translate(-999px,-999px)'; L.bon = false; L.txt = ''; }
-      if (c.emoteSym && !c.speech) {
-        if (L.sym !== c.emoteSym.sym) { L.emo.textContent = c.emoteSym.sym; L.sym = c.emoteSym.sym; L.emo.className = 'emo' + (c.emoteSym.sym === '怒' ? ' hot' : ''); }
-        L.emo.style.transform = `translate(${x}px,${y - th - 4}px) translate(-50%,-100%)`; L.eon = true;
-      } else if (L.eon) { L.emo.style.transform = 'translate(-999px,-999px)'; L.eon = false; }
+    }
+    // 泡泡互相不重疊：由下往上排，撞到就往上讓
+    bubs.sort((a, b) => b.y - a.y);
+    for (let i = 0; i < bubs.length; i++) {
+      const a = bubs[i];
+      for (let k = 0; k < 4; k++) { let hit = false; for (let j = 0; j < i; j++) { const b = bubs[j]; if (Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 4 && a.y > b.y - b.h - 4 && a.y - a.h < b.y + 4) { a.y = b.y - b.h - 8; hit = true; } } if (!hit) break; }
+      const top = a.h + (w < 640 ? 100 : 60); if (a.y < top) { a.y = top; for (let j = 0; j < i; j++) { const b = bubs[j]; if (Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 4 && a.y > b.y - b.h - 4 && a.y - a.h < b.y + 4) a.x = a.x < b.x ? Math.max(a.w / 2 + 6, b.x - (a.w + b.w) / 2 - 8) : Math.min(w - a.w / 2 - 6, b.x + (a.w + b.w) / 2 + 8); } }
+      a.L.bub.style.transform = `translate(${Math.round(a.x)}px,${Math.round(a.y)}px) translate(-50%,-100%)`; a.L.bon = true; a.L.rect = a;
     }
   }
 
@@ -172,18 +217,31 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
   const setRay = e => { const r = cv.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); return r; };
   function pickChar(e) {
     const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top; let best = null, bd = 1e9;
-    for (const c of W.chars.values()) { if (c._sx < 0) continue; const pxPerM = cv.clientHeight / (2 * Math.tan(camera.fov * Math.PI / 360) * c._sd), rad = Math.max(20, pxPerM * 0.45); const d = Math.hypot(mx - c._sx, my - (c._sy + pxPerM * 0.45)); if (d < rad && d < bd) { bd = d; best = c; } }
+    for (const c of everyone) { if (c._sx < 0) continue; const k = c.scale || 1, pxPerM = cv.clientHeight / (2 * Math.tan(camera.fov * Math.PI / 360) * c._sd), rad = Math.max(18, pxPerM * 0.45 * k); const d = Math.hypot(mx - c._sx, my - (c._sy + pxPerM * 0.45 * k)); if (d < rad && d < bd) { bd = d; best = c; } }
     return best;
   }
-  let down = null;
-  cv.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; if (edit.on) editDown(e); }, true);
-  cv.addEventListener('pointermove', e => { if (edit.drag) editMove(e); });
+  // 拎起來：按住角色拖曳；放開後掉下來（甩得快會滾出去），再自己走回座位
+  let down = null, grab = null; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
+  cv.addEventListener('pointerdown', e => {
+    down = { x: e.clientX, y: e.clientY, t: performance.now(), c: null };
+    if (edit.on) { editDown(e); return; }
+    const c = pickChar(e); if (c && c.grab && !c.away) { down.c = c; controls.enabled = false; }
+  }, true);
+  cv.addEventListener('pointermove', e => {
+    if (edit.drag) { editMove(e); return; }
+    if (down && down.c && !grab && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 9) { grab = down.c; director.grabbed(grab); grab.grab(); ui.closePops(); }
+    if (grab) { setRay(e); if (ray.ray.intersectPlane(hold, hp)) grab.dragTo(hp.x, 1.05, hp.z); }
+  });
+  const endGrab = () => { if (grab) { grab.release(); grab = null; } controls.enabled = true; };
+  addEventListener('pointercancel', () => { endGrab(); down = null; });
   addEventListener('pointerup', e => {
     if (edit.drag) { editUp(e); down = null; return; }
+    if (grab) { endGrab(); down = null; return; }
+    if (down && down.c) controls.enabled = true;
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
     if (moved > 7 || dt > 600) return; ui.closePops();
     if (edit.on) { editTap(e); return; }
-    const c = pickChar(e); if (c) { setView('char', c); ui.showCard(c); return; }
+    const c = pickChar(e); if (c) { if (c.spec.pet) { ui.showPet(c); return; } setView('char', c); ui.showCard(c); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { ui.showBoard(hit.object.userData.board); return; }
   });
   cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -248,7 +306,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './character.
     requestAnimationFrame(frame);
     const wall = Math.min(0.3, (now - last) / 1000), real = Math.min(0.1, wall); last = now;
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
-    for (let i = 0; i < n; i++) { W.time += h; W.tickTimers(); director.tick(); for (const c of W.chars.values()) c.update(h, W.time); }
+    for (let i = 0; i < n; i++) { W.time += h; W.tickTimers(); director.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); }
     W.updateBlobs(); W.updateScreens(real);
     updateCamera(wall); controls.update();
     { // 手機開著底部面板時，把畫面往上推，角色不會被面板蓋住

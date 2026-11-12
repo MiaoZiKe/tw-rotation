@@ -93,7 +93,7 @@ export const BUILD = {
       if (i % 2) P.cyl(PASTEL[(i + 4) % 10], 0.045, 0.09, sx * 1.25 + cz * 0.3, 0.695, cz * 1.25 - sx * 0.3, 0.02);
       foot.push({ x: sx * R, z: cz * R, r: 0.28 });
       const ap = (da, rr) => [Math.sin(a + da) * rr, Math.cos(a + da) * rr];
-      seats.push({ key: 'meet', x: sx * R, z: cz * R, y: 0.42, face: a + Math.PI, app: [ap(0, 3.05), ap(0.2, 3.0), ap(-0.2, 3.0), ap(0.39, 2.5), ap(-0.39, 2.5)] });
+      seats.push({ key: 'meet', x: sx * R, z: cz * R, y: 0.42, face: a + Math.PI, app: [ap(0.39, 2.5), ap(-0.39, 2.5), ap(0.2, 3.0), ap(-0.2, 3.0), ap(0, 3.05)] });   // 先從椅子兩側上座（不穿過椅背）
     }
     return { part: P, foot, seats };
   },

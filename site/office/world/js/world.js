@@ -146,18 +146,30 @@ export function createWorld(canvas, layout, org, quality) {
   // ── 家具 ──
   const nav = W.nav = createNav(layout);
   const furnRoot = new THREE.Group(); scene.add(furnRoot);
-  // 螢幕：全部共用一個實例網格，畫面是一張會動的小畫布
-  const scrCv = document.createElement('canvas'); scrCv.width = 64; scrCv.height = 40; const scrCtx = scrCv.getContext('2d');
-  const scrTex = new THREE.CanvasTexture(scrCv); scrTex.colorSpace = THREE.SRGBColorSpace; scrTex.magFilter = THREE.NearestFilter;
-  const screens = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: scrTex }), 64); screens.frustumCulled = false; scene.add(screens);
-  let scrRow = 0, scrT = 0;
+  // 螢幕：全部共用一個實例網格；畫面是一張 4×2 格的會動畫布，每台螢幕依主人的工作挑一格
+  // （0 程式碼、1 K 線、2 試算表、3 設計稿、4 聊天室、5 剪輯時間軸、6 折線圖、7 文件）
+  const CW = 64, CH = 40, scrCv = document.createElement('canvas'); scrCv.width = CW * 4; scrCv.height = CH * 2; const scrCtx = scrCv.getContext('2d');
+  const scrTex = new THREE.CanvasTexture(scrCv); scrTex.colorSpace = THREE.SRGBColorSpace; scrTex.magFilter = THREE.NearestFilter; scrTex.generateMipmaps = false; scrTex.minFilter = THREE.LinearFilter;
+  const scrMat = new THREE.MeshBasicMaterial({ map: scrTex });
+  scrMat.onBeforeCompile = sh => { sh.vertexShader = 'attribute vec2 aOff;\n' + sh.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\n\tvMapUv = vMapUv * vec2( 0.25, 0.5 ) + aOff;'); };
+  const scrGeo = new THREE.PlaneGeometry(1, 1), scrOff = new THREE.InstancedBufferAttribute(new Float32Array(64 * 2), 2); scrGeo.setAttribute('aOff', scrOff);
+  const screens = new THREE.InstancedMesh(scrGeo, scrMat, 64); screens.frustumCulled = false; scene.add(screens);
+  const SCR_DEPT = { ceo: [6], data: [2, 0], quant: [1, 6, 1], industry: [6, 7, 2, 6], frontend: [0, 0, 3, 0], design: [3, 3, 3, 7, 3], social: [4, 4, 7, 4, 6, 4], video: [5, 3, 5, 5, 3, 3, 0], biz: [6, 2, 7], legal: [7, 0], ops: [2, 0, 6], audit: [7, 7, 2, 2] };
+  let scrN = 0, scrT = 0; const COL4 = ['#8fb6f0', '#f3a6bd', '#8fd3a6', '#f6c177'];
+  const cell = (k, bg) => { const c = scrCtx, x = (k % 4) * CW, y = Math.floor(k / 4) * CH; c.setTransform(1, 0, 0, 1, x, y); c.fillStyle = bg; c.fillRect(0, 0, CW, CH); return c; };
   function tickScreens(dt) {
-    scrT += dt; if (scrT < 0.22) return; scrT = 0;
-    const c = scrCtx; c.drawImage(scrCv, 0, -4); c.fillStyle = '#f7fbff'; c.fillRect(0, 36, 64, 4);
-    const ind = [3, 7, 7, 11, 3, 7][scrRow % 6], len = 10 + (scrRow * 37 % 34); c.fillStyle = ['#8fb6f0', '#f3a6bd', '#8fd3a6', '#f6c177'][scrRow % 4]; c.fillRect(ind, 37, Math.min(len, 58 - ind), 2); scrRow++;
-    scrTex.needsUpdate = true;
+    scrT += dt; if (scrT < 0.2) return; scrT = 0; const n = scrN++; let c;
+    c = cell(0, '#f7fbff'); for (let r = 0; r < 9; r++) { const q = n + r, ind = [3, 7, 7, 11, 3, 7][q % 6]; c.fillStyle = COL4[q % 4]; c.fillRect(ind, 2 + r * 4, Math.min(10 + (q * 37 % 34), 58 - ind), 2); } if (n % 2) { c.fillStyle = '#5a6b8c'; c.fillRect(50, 34, 2, 3); }
+    c = cell(1, '#fffaf2'); for (let i = 0; i < 12; i++) { const q = n + i, v = 20 + Math.sin(q * 0.7) * 8 + Math.sin(q * 0.23) * 6, up = Math.sin(q * 1.9) > -0.1, h = 3 + (q * 7 % 6); c.fillStyle = up ? '#f28b82' : '#6cc08b'; c.fillRect(3 + i * 5, 36 - v - h, 1, h + 6); c.fillRect(2 + i * 5, 36 - v - h + 2, 3, h); }
+    c = cell(2, '#ffffff'); c.fillStyle = '#e3ecf7'; for (let i = 1; i < 6; i++) c.fillRect(0, i * 7 - 1, CW, 1); for (let i = 1; i < 5; i++) c.fillRect(i * 13, 0, 1, CH); c.fillStyle = '#cfe6d6'; c.fillRect(0, 0, CW, 6); c.fillStyle = '#8fd3a6'; for (let r = 1; r < 6; r++) for (let q = 0; q < 5; q++) if ((r * 5 + q + (n >> 2)) % 3) c.fillRect(q * 13 + 3, r * 7 + 2, 4 + (r * q + n) % 6, 2); c.strokeStyle = '#3f7fd0'; c.lineWidth = 1.5; c.strokeRect((n >> 1) % 5 * 13 + 1, ((n >> 3) % 5 + 1) * 7, 12, 6);
+    c = cell(3, '#fff6fa'); c.fillStyle = '#f7b0c6'; c.beginPath(); c.arc(18, 17, 9, 0, 7); c.fill(); c.fillStyle = '#a4c2f7'; c.beginPath(); c.roundRect(32, 8, 22, 14, 4); c.fill(); c.fillStyle = '#ffe08a'; c.beginPath(); c.roundRect(30, 26, 14, 9, 3); c.fill(); { const t = n % 24, sx = t < 12 ? 7 + t * 0.6 : 30 - (t - 12) * 0.2, sy = t < 12 ? 6 : 6 + (t - 12) * 0.2; c.strokeStyle = '#e8743b'; c.lineWidth = 1.2; c.strokeRect(t < 12 ? 7 : 30, t < 12 ? 6 : 6, t < 12 ? 22 : 26, t < 12 ? 22 : 18); c.fillStyle = '#e8743b'; c.fillRect(sx + 20, sy + 20, 3, 3); }
+    c = cell(4, '#f6fbf4'); for (let i = 0; i < 4; i++) { const q = (n >> 2) + i, L = q % 2 === 0; c.fillStyle = L ? '#ffffff' : '#bfe6c9'; const w = 16 + (q * 11 % 22); c.beginPath(); c.roundRect(L ? 4 : CW - 4 - w, 3 + i * 9, w, 6, 3); c.fill(); } if (n % 4 < 2) { c.fillStyle = '#9ab'; for (let i = 0; i < 3; i++) c.fillRect(8 + i * 4, 36, 2, 2); }
+    c = cell(5, '#3d4258'); c.fillStyle = ['#f7b0c6', '#a4c2f7', '#ffd27a'][(n >> 3) % 3]; c.beginPath(); c.roundRect(14, 3, 36, 18, 3); c.fill(); c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(29, 8); c.lineTo(37, 12); c.lineTo(29, 16); c.fill(); for (let r = 0; r < 3; r++) for (let q = 0; q < 4; q++) { c.fillStyle = COL4[(r + q) % 4]; c.fillRect(3 + q * 15 + r * 3, 25 + r * 5, 11 - r * 2, 3); } c.fillStyle = '#ffffff'; c.fillRect(3 + (n * 2) % 58, 23, 1, 16);
+    c = cell(6, '#ffffff'); c.fillStyle = '#eef2f8'; for (let i = 1; i < 4; i++) c.fillRect(4, i * 9, 56, 1); c.strokeStyle = '#6aa3e8'; c.lineWidth = 2; c.lineJoin = 'round'; c.beginPath(); { const m = 4 + (n % 14); for (let i = 0; i <= m; i++) { const yy = 30 - i * 1.2 - Math.sin(i * 0.9) * 5 - Math.sin(i * 0.37) * 4; i ? c.lineTo(4 + i * 3.2, yy) : c.moveTo(4, yy); } c.stroke(); } c.fillStyle = '#f6c177'; for (let i = 0; i < 6; i++) c.fillRect(6 + i * 9, 36 - (i * 5 + n) % 6, 5, 2 + (i * 5 + n) % 6);
+    c = cell(7, '#fffdf6'); c.fillStyle = '#e8743b'; c.fillRect(6, 4, 26, 3); for (let r = 0; r < 7; r++) { c.fillStyle = r === (n >> 2) % 7 ? '#ffe08a' : '#c9d2e0'; c.fillRect(6, 11 + r * 4, r === 6 ? 20 + (n % 4) * 6 : 40 + (r * 17) % 14, 2); }
+    scrCtx.setTransform(1, 0, 0, 1, 0, 0); scrTex.needsUpdate = true;
   }
-  scrCtx.fillStyle = '#f7fbff'; scrCtx.fillRect(0, 0, 64, 40); for (let i = 0; i < 10; i++) { scrT = 1; tickScreens(0); }
+  for (let i = 0; i < 3; i++) { scrT = 1; tickScreens(0); }
 
   function place(inst) {
     const f = inst.f; inst.obj.position.set(f.x, 0, f.z); inst.obj.rotation.y = f.rot * Math.PI / 2; inst.obj.updateMatrixWorld(true);
@@ -173,7 +185,7 @@ export function createWorld(canvas, layout, org, quality) {
     place(inst); furnRoot.add(obj); W.furn.set(f.id, inst);
     if (spec.board) { mesh.userData.board = spec.board; W.boardsMesh.push(mesh); }
     if (!spec.fixed) W.pickFurn.push(mesh);
-    if (spec.whiteboard) W.whiteboard = makeWhiteboard(inst);
+    if (spec.whiteboard) { W.whiteboard = makeWhiteboard(inst); W.whiteboardAt = { x: f.x, z: f.z }; }
     return inst;
   }
   function makeWhiteboard(inst) {
@@ -221,9 +233,9 @@ export function createWorld(canvas, layout, org, quality) {
     let k = 0; const m4 = new THREE.Matrix4(), l = new THREE.Matrix4(); W.screenOwner = [];
     for (const inst of W.furn.values()) {
       const s = inst.spec.screen; if (!s) continue; inst.obj.updateMatrixWorld(true);
-      l.makeScale(s.w, s.h, 1).setPosition(s.x, s.y, s.z); m4.multiplyMatrices(inst.obj.matrixWorld, l); screens.setMatrixAt(k, m4); W.screenOwner[k] = inst.f.owner; k++;
+      l.makeScale(s.w, s.h, 1).setPosition(s.x, s.y, s.z); m4.multiplyMatrices(inst.obj.matrixWorld, l); screens.setMatrixAt(k, m4); W.screenOwner[k] = inst.f.owner; { const mem = members.get(inst.f.owner) || {}, list = SCR_DEPT[mem.dept] || [0], kind = list[k % list.length]; scrOff.setXY(k, (kind % 4) * 0.25, 1 - (Math.floor(kind / 4) + 1) * 0.5); } k++;
     }
-    screens.count = k; screens.instanceMatrix.needsUpdate = true; W.shadowDirty();
+    screens.count = k; screens.instanceMatrix.needsUpdate = true; scrOff.needsUpdate = true; W.shadowDirty();
   }
   W.respot = respot; respot();
   const _on = new THREE.Color('#ffffff'), _off = new THREE.Color('#55607a');
@@ -248,8 +260,8 @@ export function createWorld(canvas, layout, org, quality) {
   const bm = new THREE.Matrix4();
   W.updateBlobs = () => {
     let i = 0;
-    for (const c of W.chars.values()) {
-      const p = c.object3D.position, vis = c.object3D.visible && c.state !== 'sit', s = vis ? 0.85 - Math.min(0.3, p.y * 1.5) : 0.0001;
+    for (const c of [...W.chars.values(), ...(W.pets || [])]) {
+      const p = c.object3D.position, vis = c.object3D.visible && c.state !== 'sit', s = vis ? (0.85 - Math.min(0.3, (c.lift || 0) * 0.5)) * (c.scale || 1) : 0.0001;
       bm.makeScale(s, 1, s).setPosition(p.x, 0.07, p.z); blobs.setMatrixAt(i++, bm);
     }
     blobs.count = i; blobs.instanceMatrix.needsUpdate = true;

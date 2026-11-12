@@ -1,0 +1,537 @@
+{
+ "note": "每位成員固定的物種、配色、配件。同部門用同一個部門色的識別證（戴不了識別證的物種改用同色圍巾或蝴蝶結），主管多一條領帶；CEO 戴小皇冠、體型放大。使用者在網頁上改的名字、暱稱、物種、配色、配件存在瀏覽器（localStorage 的 aiOffice.roster.v1），不會改這個檔。",
+ "ceo": {
+  "species": "mochi",
+  "pal": 0,
+  "hue": 0,
+  "acc": [
+   "crown",
+   "tie",
+   "badge"
+  ],
+  "accColor": "#ffb057",
+  "scale": 1.18,
+  "why": "CEO：戴小皇冠、打領帶、體型最大的麻糬"
+ },
+ "members": {
+  "data-steward": {
+   "species": "bird",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#8ecfe6",
+   "why": "貓頭鷹管資料：戴眼鏡的圓鳥"
+  },
+  "data-scraper": {
+   "species": "octo",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge"
+   ],
+   "accColor": "#8ecfe6",
+   "why": "到處抓資料：很多手的章魚"
+  },
+  "finance-quant": {
+   "species": "calc",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat",
+    "tie"
+   ],
+   "accColor": "#f6c177",
+   "why": "金融口徑：計算機"
+  },
+  "smc-technical": {
+   "species": "flame",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#f6c177",
+   "why": "K 線就是蠟燭圖：小燭火"
+  },
+  "strategy-backtest": {
+   "species": "ghost",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "scarf"
+   ],
+   "accColor": "#f6c177",
+   "why": "回到過去重跑：小幽靈"
+  },
+  "industry-analyst": {
+   "species": "bean",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#aedb9a",
+   "why": "跑產業鏈：有手有腳的豆子"
+  },
+  "semi-chain-analyst": {
+   "species": "robo",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge"
+   ],
+   "accColor": "#aedb9a",
+   "why": "半導體：小機器人"
+  },
+  "pcb-substrate-analyst": {
+   "species": "cactus",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#aedb9a",
+   "why": "載板：一板一眼的盆栽"
+  },
+  "ai-server-analyst": {
+   "species": "cloud",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#aedb9a",
+   "why": "液冷散熱：會下雨的雲"
+  },
+  "frontend-ui": {
+   "species": "note",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#a4c2f7",
+   "why": "排版面：便利貼"
+  },
+  "mobile-ui": {
+   "species": "robo",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow"
+   ],
+   "accColor": "#a4c2f7",
+   "why": "小螢幕：臉是螢幕的機器人"
+  },
+  "canvas-motion-engineer": {
+   "species": "star",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge"
+   ],
+   "accColor": "#a4c2f7",
+   "why": "粒子動效：小星星"
+  },
+  "visual-explainer": {
+   "species": "bulb",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "scarf"
+   ],
+   "accColor": "#a4c2f7",
+   "why": "圖解教學：一點就亮的燈泡"
+  },
+  "product-design-lead": {
+   "species": "pencil",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#f7b0c6",
+   "why": "設計總監：鉛筆"
+  },
+  "visual-designer": {
+   "species": "pudding",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow"
+   ],
+   "accColor": "#f7b0c6",
+   "why": "配色：甜甜的布丁"
+  },
+  "tech-illustrator": {
+   "species": "bean",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#f7b0c6",
+   "why": "機構繪圖：細心的豆子"
+  },
+  "art-director": {
+   "species": "bird",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "bow"
+   ],
+   "accColor": "#f7b0c6",
+   "why": "鷹眼審圖：戴眼鏡的圓鳥"
+  },
+  "mechanical-engineer": {
+   "species": "robo",
+   "pal": 2,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#f7b0c6",
+   "why": "結構審查：機器人"
+  },
+  "social-ops-lead": {
+   "species": "mug",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#ffc48f",
+   "why": "準點發文：靠咖啡的杯子"
+  },
+  "tc-channel-lead": {
+   "species": "ghost",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#ffc48f",
+   "why": "科技透明圈：透明的幽靈"
+  },
+  "healing-editor": {
+   "species": "cloud",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow"
+   ],
+   "accColor": "#ffc48f",
+   "why": "談晴說礙：軟綿綿的雲"
+  },
+  "finance-content-editor": {
+   "species": "bird",
+   "pal": 2,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "scarf"
+   ],
+   "accColor": "#ffc48f",
+   "why": "快訊：啾一聲就發出去"
+  },
+  "content-planner": {
+   "species": "bulb",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#ffc48f",
+   "why": "點子：燈泡"
+  },
+  "market-researcher": {
+   "species": "seal",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#ffc48f",
+   "why": "聲納研調：小海豹"
+  },
+  "animation-director": {
+   "species": "flame",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow",
+    "tie"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "分鏡龍：小火苗"
+  },
+  "storyboard-artist": {
+   "species": "note",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "一格一格的分鏡：便利貼"
+  },
+  "motion-designer": {
+   "species": "pudding",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "去背果凍感：布丁"
+  },
+  "video-editor": {
+   "species": "octo",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "八爪剪輯：章魚"
+  },
+  "bibi-animator": {
+   "species": "mochi",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "跳跳：會彈的麻糬"
+  },
+  "bibi-illustrator": {
+   "species": "pencil",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "毛筆插圖：鉛筆"
+  },
+  "bibi-interaction": {
+   "species": "robo",
+   "pal": 3,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "scarf"
+   ],
+   "accColor": "#cbb2f2",
+   "why": "嗶嗶：小機器人"
+  },
+  "marketing-strategist": {
+   "species": "star",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#f7df83",
+   "why": "行銷亮點：小星星"
+  },
+  "payments-billing": {
+   "species": "calc",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow"
+   ],
+   "accColor": "#f7df83",
+   "why": "收銀：計算機"
+  },
+  "mobile-release": {
+   "species": "bird",
+   "pal": 3,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#f7df83",
+   "why": "送審信鴿：圓鳥"
+  },
+  "legal-compliance": {
+   "species": "folder",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "tie"
+   ],
+   "accColor": "#b4c4d8",
+   "why": "條文：資料夾"
+  },
+  "security-privacy": {
+   "species": "cactus",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#b4c4d8",
+   "why": "資安：帶刺的盆栽"
+  },
+  "delivery-planner": {
+   "species": "folder",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow",
+    "tie"
+   ],
+   "accColor": "#97dfcc",
+   "why": "排程：資料夾"
+  },
+  "deployer": {
+   "species": "flame",
+   "pal": 2,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "hat"
+   ],
+   "accColor": "#97dfcc",
+   "why": "火箭上線：小火苗"
+  },
+  "efficiency-planner": {
+   "species": "seal",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "bow"
+   ],
+   "accColor": "#97dfcc",
+   "why": "抄捷徑：滑得很快的海豹"
+  },
+  "inspector": {
+   "species": "cloud",
+   "pal": 2,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses",
+    "hat",
+    "tie"
+   ],
+   "accColor": "#f4a59d",
+   "why": "明鏡高懸：在上面看的雲"
+  },
+  "reviewer": {
+   "species": "stamp",
+   "pal": 0,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#f4a59d",
+   "why": "守門驗收：蓋章的印章"
+  },
+  "resource-auditor": {
+   "species": "calc",
+   "pal": 2,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#f4a59d",
+   "why": "算盤：計算機"
+  },
+  "hr-officer": {
+   "species": "mochi",
+   "pal": 1,
+   "hue": 0.0,
+   "acc": [
+    "badge",
+    "glasses"
+   ],
+   "accColor": "#f4a59d",
+   "why": "人資阿薪：親切的麻糬"
+  }
+ },
+ "pets": [
+  {
+   "id": "pet-maji",
+   "name": "麻吉",
+   "species": "mochi",
+   "pal": 2,
+   "acc": [
+    "bow"
+   ],
+   "accColor": "#ff9db6",
+   "scale": 0.5,
+   "owner": "ceo",
+   "zh": "CEO 的寵物"
+  },
+  {
+   "id": "pet-yuyu",
+   "name": "小雨",
+   "species": "cloud",
+   "pal": 0,
+   "acc": [],
+   "scale": 0.46,
+   "owner": "healing-editor",
+   "zh": "晴晴的寵物"
+  },
+  {
+   "id": "pet-bobo",
+   "name": "波波",
+   "species": "seal",
+   "pal": 3,
+   "acc": [
+    "bow"
+   ],
+   "accColor": "#7fb0ff",
+   "scale": 0.52,
+   "owner": "hr-officer",
+   "zh": "阿薪的寵物"
+  }
+ ]
+}

@@ -3,25 +3,53 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>AI Office｜角色樣張</title>
-<link rel="stylesheet" href="office.css">
+<title>AI 辦公室</title>
+<style>
+:root{--card:#fffaf3;--ink:#4a3a32;--sub:#927d70;--line:#efdcc8;--on:#f58a34;--on2:#fff0e0;--sh:0 6px 20px rgba(120,80,40,.16)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:linear-gradient(#cfeaf9,#fbefe2 46%,#fbefe2);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","WenQuanYi Zen Hei",system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 28px;display:flex;flex-direction:column;gap:16px;min-height:100dvh;justify-content:center}
+header{display:flex;align-items:center;gap:8px}
+h1{font-size:24px;margin:0;letter-spacing:1px}
+.q{width:28px;height:28px;border-radius:50%;border:0;background:var(--card);color:var(--on);font-weight:800;font-size:15px;box-shadow:var(--sh);cursor:pointer;font-family:inherit}
+#help{background:var(--card);border-radius:18px;box-shadow:var(--sh);padding:12px 16px;font-size:14px;line-height:1.8}
+#help ul{margin:0;padding-left:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+a.door{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;background:var(--card);border-radius:24px;box-shadow:var(--sh);padding:16px;border:2px solid transparent;transition:transform .15s,border-color .15s}
+a.door:hover,a.door:focus-visible{border-color:var(--on);transform:translateY(-3px);outline:0}
+.row{display:flex;gap:4px;justify-content:center;background:#fff3e4;border-radius:18px;height:128px;align-items:flex-end;overflow:hidden}
+.row img{width:25%;max-width:128px;aspect-ratio:1;object-fit:contain}
+.door b{font-size:19px}.door span{font-size:14px;color:var(--sub);line-height:1.6}
+.go{align-self:flex-start;background:var(--on);color:#fff;border-radius:999px;padding:6px 16px;font-size:14px;font-weight:700}
+@media (max-width:640px){.grid{grid-template-columns:1fr}main{justify-content:flex-start}.row{height:96px}}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 </head>
 <body>
-<div id="app">
-  <div id="stage">
-    <canvas id="cv"></canvas>
-    <div id="title"><b>AI Office</b><span>角色樣張・階段 0・第二版</span></div>
-    <div id="card"><div id="cName"></div><div id="cMeta"></div></div>
-    <div id="hint">拖曳旋轉・滾輪或雙指縮放</div>
-    <div id="loading">角色準備中…</div>
+<main>
+  <header><h1>AI 辦公室</h1><button class="q" id="helpBtn" aria-label="說明" aria-expanded="false">?</button></header>
+  <div id="help" hidden><ul>
+    <li>辦公室：CEO 與 43 位成員各有自己的角色，會打電腦、查資料、做筆記、開會爭論、拿文件交件；可以摸頭、敲頭、餵點心、拎起來，還有三隻寵物。</li>
+    <li>圖鑑與小房間：19 種原創角色，可換配色與配件，在小房間裡走、跳、丟球、睡覺。</li>
+    <li>目前辦公室裡的任務與會議內容是示範資料。</li>
+  </ul></div>
+  <div class="grid">
+    <a class="door" href="world.html"><div class="row" id="rowA"></div><b>進辦公室</b><span>看大家上班、開會、交件，點角色看進度與互動</span><i class="go" style="font-style:normal">進入</i></a>
+    <a class="door" href="play.html"><div class="row" id="rowB"></div><b>角色圖鑑與互動小房間</b><span>19 種原創角色，挑一隻進房間玩</span><i class="go" style="font-style:normal">進入</i></a>
   </div>
-  <div id="panel">
-    <section><h3>角色</h3><div class="chips" id="chars"></div></section>
-    <section><h3>動作</h3><div class="chips" id="acts"></div></section>
-    <section><h3>表情</h3><div class="chips" id="exprs"></div></section>
-    <section><h3>視角</h3><div class="chips" id="views"></div></section>
-  </div>
-</div>
-<script type="module" src="js/main.js"></script>
+</main>
+<script type="module">
+const hb = document.getElementById('helpBtn'), hp = document.getElementById('help');
+hb.onclick = () => { hp.hidden = !hp.hidden; hb.setAttribute('aria-expanded', String(!hp.hidden)); };
+// 入口的小圖：當場把幾隻角色畫成縮圖（畫不出來就留空，不影響進入）
+try {
+  const THREE = await import('three'), { renderThumb } = await import('./play/lite.js'), { DETAIL } = await import('./play/soft.js'); DETAIL.k = 0.6;
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.setSize(160, 160, false); r.outputColorSpace = THREE.SRGBColorSpace;
+  const put = (id, list) => { const el = document.getElementById(id); for (const sp of list) { const im = new Image(); im.alt = ''; im.src = renderThumb(r, sp, { size: 160, frames: 14, dist: 2.9, cy: 0.46 }); el.appendChild(im); } };
+  put('rowA', [{ species: 'mochi', acc: ['crown', 'tie'], accColor: '#ffb057' }, { species: 'pencil', pal: 0, acc: ['glasses'] }, { species: 'robo', pal: 1, acc: ['badge'], accColor: '#a4c2f7' }, { species: 'stamp', acc: ['glasses'] }]);
+  put('rowB', [{ species: 'pudding' }, { species: 'octo' }, { species: 'cactus' }, { species: 'folder', pal: 1 }]);
+  r.dispose();
+} catch (e) { }
+</script>
 </body>
 </html>

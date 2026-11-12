@@ -56,6 +56,8 @@ export const SPECIES = {
       for (const [s, sc] of [[1, 1], [-1, 0.72]]) { const l = put(c, ball(), lm, s * 0.085 * sc, 0.135 + 0.02 * sc, 0, 0.105 * sc, 0.022, 0.06 * sc, g); l.rotation.z = s * 0.5; }
       c.limbMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: 0xffb070 }); c.legMat = M(c, { color: p.leg, top: p.body, y0: -1, y1: 1, sss: p.sss });
       c.hip = [0.1, 0.17, 0]; c.shoulder = [0.28, 0.4, 0.02];
+      put(c, ball(), M(c, { color: p.top, top: 0xffffff, y0: -1, y1: 2, sss: p.sss, sssAmt: 0.2 }), 0, 0.235, 0.268, 0.13, 0.1, 0.03);
+      for (const y of [0.275, 0.215]) put(c, ball(), lm, 0, y, 0.298 + (y - 0.215) * 0.1, 0.02, 0.02, 0.012);
     },
     idle(c, dt, t) { c.sprout.scale.setScalar(c.sprout.scale.x + ((c.sproutBig ? 2.1 : 1.3) - c.sprout.scale.x) * Math.min(1, dt * 8)); c.sproutBig = false; },
     sig: { dur: 2.0, fn(c, u, a, P) { c.sproutBig = u > 0.2 && u < 0.85; P.sq = u < 0.2 ? -0.2 * u / 0.2 : 0.1 * (1 - u); P.expr = u < 0.2 ? 'effort' : 'happy'; P.hands = [1.25, 0.25]; if (u > 0.2 && !a.f) { a.f = 1; c.fx.sfx('boing'); c.fx.burst('spark', c.headTop(new V3()).add(_v.set(0, 0.2, 0)), 6, { speed: 0.9, up: 0.6, life: 0.5, size: 0.12 }); } } },
@@ -125,22 +127,22 @@ export const SPECIES = {
   },
   // ───────── 6 刺刺：盆栽仙人掌（一高一低兩隻手臂、頭頂偏一邊的小花，連盆一起跳）
   cactus: {
-    name: '刺刺', sub: '盆栽仙人掌', moveZh: '連盆跳', sigZh: '開花', why: '最高的直立剪影，一高一低的手臂很好認',
-    R: 0.3, move: 'hop', hopH: 0.09, footSize: null, handR: 0, top: 1.0, wob: 0.75, mouth: [0, 0.56, 0.22], front: 0.24, tintK: 0.45, faceUp: 0.06, walk: 1.3, run: 3.1,
+    name: '刺刺', sub: '圓球仙人掌盆栽', moveZh: '連盆跳', sigZh: '開花', why: '圓球身體＋一大一小兩顆側芽＋頭頂小花，整盆一起跳',
+    R: 0.3, move: 'hop', hopH: 0.09, footSize: null, handR: 0, top: 0.9, wob: 0.75, mouth: [0, 0.5, 0.27], front: 0.28, tintK: 0.45, faceUp: 0.06, walk: 1.3, run: 3.1,
     face: { ...FACE, ex: 62, ey: 262, rx: 26, ry: 34, my: 308, mw: 13, line: 6, eye: '#27352b', eye2: '#47604c', blush: '255,140,150' },
     pals: [{ n: '陶盆', body: 0x86cf96, top: 0xbdecb4, pot: 0xee9f7c, pot2: 0xf9c4a4, fl: 0xff9fb5, sss: 0x50c070 }, { n: '白盆', body: 0x7fd0b8, top: 0xbff0dc, pot: 0xf2ece4, pot2: 0xffffff, fl: 0xffd27a, sss: 0x40c0a0 }, { n: '粉盆', body: 0xa8d880, top: 0xd8f2b0, pot: 0xffb7c5, pot2: 0xffdbe2, fl: 0xffffff, sss: 0x80c040 }, { n: '藍盆', body: 0x8fc8a8, top: 0xc8ecd0, pot: 0x9db8f0, pot2: 0xc6d6ff, fl: 0xffb38a, sss: 0x50b080 }],
-    anc: { hat: [-0.07, 0.9, 0.02, 0.75], bow: [-0.12, 0.88, 0.1], neck: [0.34, 0.24, 0.23], glasses: 1 },
+    anc: { hat: [-0.09, 0.8, 0.02, 0.8], bow: [-0.15, 0.76, 0.12], neck: [0.31, 0.27, 0.26], glasses: 1 },
     build(c, p) {
       put(c, lathe([[0, 0], [0.17, 0], [0.19, 0.02], [0.235, 0.2], [0.255, 0.235], [0.255, 0.275], [0.2, 0.28], [0, 0.27]], 48), M(c, { color: p.pot, top: p.pot2, y0: 0, y1: 0.3, sss: p.pot, sssAmt: 0.2, rough: 0.8 }));
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3 };
-      c.main = put(c, blobGeo(v => { const y = v.y, rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.72) / rh, th = Math.atan2(v.z, v.x), rib = 1 + 0.035 * Math.cos(th * 9) * (1 - Math.abs(y)); v.set(v.x * k * 0.205 * rib, y * 0.36, v.z * k * 0.195 * rib); }), M(c, { ...o, y0: -0.3, y1: 0.36, face: c.face, headC: [0, 0.05, 0], span: [3.0, 3.0] }), 0, 0.6, 0);
+      c.main = put(c, blobGeo(v => { const y = v.y, th = Math.atan2(v.z, v.x), rib = 1 + 0.04 * Math.cos(th * 10) * (1 - y * y); v.set(v.x * 0.27 * rib, y * (y > 0 ? 0.29 : 0.25), v.z * 0.26 * rib); }), M(c, { ...o, y0: -0.25, y1: 0.29, face: c.face, headC: [0, 0.02, 0], span: [2.4, 2.4] }), 0, 0.53, 0);
       const am = M(c, { ...o, y0: -1, y1: 1.2 });
-      for (const [s, y, sc] of [[-1, 0.5, 1], [1, 0.64, 0.8]]) { const g = piv(c, s * 0.17, y, 0, { side: s, k: 190, c: 9, g: 0.012, gy: 0.006, rest: [0, 0], droop: 0.35 }); put(c, ball(), am, s * 0.09 * sc, 0, 0, 0.1 * sc, 0.068 * sc, 0.068 * sc, g); put(c, ball(), am, s * 0.15 * sc, 0.1 * sc, 0, 0.066 * sc, 0.13 * sc, 0.066 * sc, g); }
-      const f = piv(c, 0.08, 0.94, 0, { k: 160, c: 7, g: 0.02 }); c.flower = f; const fm = M(c, { color: p.fl, top: 0xffffff, y0: -1, y1: 2, sss: p.fl, sssAmt: 0.4 });
-      for (let i = 0; i < 5; i++) { const a = i * 1.2566; put(c, ball(), fm, Math.cos(a) * 0.045, 0.02, Math.sin(a) * 0.045, 0.04, 0.022, 0.04, f); }
-      put(c, ball(), M(c, { color: 0xffd86a, sss: 0xffa020 }), 0, 0.03, 0, 0.03, 0.025, 0.03, f);
+      for (const [s, y, sc] of [[-1, 0.5, 1], [1, 0.68, 0.72]]) { const g = piv(c, s * 0.22, y, 0, { side: s, k: 190, c: 9, g: 0.012, gy: 0.006, rest: [0, 0], droop: 0.35 }); put(c, ball(), am, s * 0.07 * sc, 0.02, 0, 0.115 * sc, 0.105 * sc, 0.105 * sc, g); put(c, ball(), M(c, { color: p.fl, top: 0xffffff, sss: p.fl, sssAmt: 0.4 }), s * 0.1 * sc, 0.12 * sc, 0.02, 0.03 * sc, 0.022 * sc, 0.03 * sc, g); }
+      const f = piv(c, 0.07, 0.83, 0, { k: 160, c: 7, g: 0.02 }); c.flower = f; const fm = M(c, { color: p.fl, top: 0xffffff, y0: -1, y1: 2, sss: p.fl, sssAmt: 0.4 });
+      for (let i = 0; i < 5; i++) { const a = i * 1.2566; put(c, ball(), fm, Math.cos(a) * 0.05, 0.02, Math.sin(a) * 0.05, 0.046, 0.024, 0.046, f); }
+      put(c, ball(), M(c, { color: 0xffd86a, sss: 0xffa020 }), 0, 0.032, 0, 0.032, 0.026, 0.032, f);
       const sm = M(c, { color: 0xfffdf2, sss: 0xffffff, sssAmt: 0.5 });
-      for (let i = 0; i < 16; i++) { const a = i * 2.39996 + 0.6, y = -0.75 + (i / 15) * 1.5, r = Math.sqrt(Math.max(0, 1 - y * y * 0.8)); if (Math.cos(a - Math.PI / 2) > 0.45 && Math.abs(y) < 0.5) continue; put(c, ball(), sm, Math.cos(a) * 0.205 * Math.pow(r, 0.72), 0.6 + y * 0.34, Math.sin(a) * 0.195 * Math.pow(r, 0.72), 0.017); }
+      for (let i = 0; i < 14; i++) { const a = i * 2.39996 + 0.6, y = -0.7 + (i / 13) * 1.4, r = Math.sqrt(Math.max(0, 1 - y * y)); if (Math.cos(a - Math.PI / 2) > 0.4 && Math.abs(y) < 0.55) continue; put(c, ball(), sm, Math.cos(a) * 0.272 * r, 0.53 + y * (y > 0 ? 0.29 : 0.25), Math.sin(a) * 0.262 * r, 0.018); }
     },
     idle(c, dt, t) { if (calm(c) && every(c, 'shv', 4.5, dt)) c.shv = 0.45; if (c.shv > 0) { c.shv -= dt; c.wobV.x += Math.sin(t * 60) * 9 * dt; } const s = c.flower.scale.x + ((c.bloom ? 2.4 : 1) - c.flower.scale.x) * Math.min(1, dt * 9); c.flower.scale.setScalar(s); c.bloom = false; },
     sig: { dur: 2.2, fn(c, u, a, P) { c.bloom = u > 0.25 && u < 0.9; P.sq = u < 0.25 ? -0.18 * (u / 0.25) : 0.08 * (1 - u); P.expr = u < 0.25 ? 'effort' : 'happy'; if (u > 0.25 && !a.f) { a.f = 1; c.fx.sfx('heart'); c.fx.burst('spark', c.headTop(new V3()), 7, { speed: 0.8, up: 0.5, life: 0.6, size: 0.11 }); } } },
@@ -167,13 +169,13 @@ export const SPECIES = {
   // ───────── 8 飄飄：小幽靈（圓頂＋波浪裙擺，飄在半空）
   ghost: {
     name: '飄飄', sub: '小幽靈', moveZh: '飄浮', sigZh: '嚇你一跳', why: '波浪裙擺的剪影，飄的時候裙擺會甩',
-    R: 0.31, move: 'float', floatH: 0.17, footSize: null, handR: 0.052, hand: [0.31, 0.3, 0.12], stick: [0.33, 0.4, 0.31, 0.32], top: 0.74, wob: 1.6, mouth: [0, 0.3, 0.31], front: 0.31, cheek: [0.2, 0.36, 0.28], faceUp: 0.1, walk: 1.5, run: 3.5,
+    R: 0.31, move: 'float', floatH: 0.17, footSize: null, handR: 0.062, hand: [0.33, 0.3, 0.12], stick: [0.33, 0.4, 0.31, 0.32], top: 0.74, wob: 1.6, mouth: [0, 0.3, 0.31], front: 0.31, cheek: [0.2, 0.36, 0.28], faceUp: 0.1, walk: 1.5, run: 3.5,
     face: { ...FACE, ex: 78, ey: 260, rx: 31, ry: 42, my: 316, mw: 14, eye: '#353058', eye2: '#5c5490', blush: '255,150,190' },
     pals: [{ n: '牛奶白', body: 0xd2cdfc, top: 0xffffff, sss: 0xb0a0ff }, { n: '薄荷', body: 0xbdeadb, top: 0xfbfffd, sss: 0x70d8b0 }, { n: '蜜桃', body: 0xffcabd, top: 0xfff6f0, sss: 0xff9080 }, { n: '夜藍', body: 0x8f9ae6, top: 0xd9defc, sss: 0x6070ff }],
     anc: { hat: [0, 0.7, 0.02, 0.95], bow: [0.17, 0.68, 0.1], neck: [0.2, 0.345, 0.325], glasses: 1 },
     build(c, p) {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3, rim: 0xffffff, rimAmt: 0.42 };
-      c.main = put(c, blobGeo(v => { const y = v.y, th = Math.atan2(v.z, v.x), hem = sstep(-0.1, -0.72, y), r = 0.3 * (1 + 0.16 * hem) * (1 + 0.2 * Math.sin(th * 5 + 0.6) * hem * hem), yy = Math.max(y, -0.74), rh = Math.hypot(v.x, v.z) || 1e-6, kk = y < -0.74 ? Math.sqrt(1 - 0.74 * 0.74) / rh * (rh / Math.sqrt(1 - 0.74 * 0.74)) : 1; v.set(v.x * r * kk, yy * (yy > 0 ? 0.4 : 0.37), v.z * r * 0.95 * kk); }, 96, 64), M(c, { ...o, y0: -0.28, y1: 0.2, face: c.face, headC: [0, 0.04, 0], span: [2.15, 2.15] }), 0, 0.33, 0);
+      c.main = put(c, blobGeo(v => { const y = v.y, th = Math.atan2(v.z, v.x), hem = sstep(-0.05, -0.7, y), wv = Math.sin(th * 6 + 0.5), r = 0.3 * (1 + 0.24 * hem) * (1 + 0.16 * wv * hem * hem), yy = Math.max(y, -0.74 + 0.16 * (0.5 + 0.5 * wv)), rh = Math.hypot(v.x, v.z) || 1e-6, kk = y < -0.74 ? Math.sqrt(1 - 0.74 * 0.74) / rh * (rh / Math.sqrt(1 - 0.74 * 0.74)) : 1; v.set(v.x * r * kk, yy * (yy > 0 ? 0.4 : 0.37), v.z * r * 0.95 * kk); }, 96, 64), M(c, { ...o, y0: -0.28, y1: 0.2, face: c.face, headC: [0, 0.04, 0], span: [2.15, 2.15] }), 0, 0.33, 0);
       const t = piv(c, 0.05, 0.12, -0.27, { k: 70, c: 4, g: 0.05, wag: true }); put(c, ball(), M(c, { ...o, y0: -1, y1: 1 }), 0, -0.02, -0.05, 0.07, 0.06, 0.09, t);
       const tf = piv(c, 0.04, 0.72, -0.02, { k: 90, c: 4.5, g: 0.04, rest: [0, -0.5] }); put(c, blobGeo(v => { const u = (v.y + 1) / 2; v.set(v.x * 0.045 * (1 - 0.6 * u) + 0.05 * u * u, v.y * 0.07 + 0.05, v.z * 0.04 * (1 - 0.6 * u)); }, 24, 20), M(c, { ...o, y0: -0.1, y1: 0.1 }), 0, 0, 0, 1, 1, 1, tf);
       c.limbMat = M(c, { ...o, y0: -1, y1: 0.5 });
@@ -222,12 +224,13 @@ export const SPECIES = {
   // ───────── 11 閃閃：小星星（鼓鼓的五角星，站在兩個下尖角上，會側翻）
   star: {
     name: '閃閃', sub: '小星星', moveZh: '蹦蹦跳', sigZh: '側翻', why: '唯一有五個尖角（都磨圓）的剪影，側翻很搶眼',
-    R: 0.3, move: 'hop', hopH: 0.13, lat: 0.13, footFwd: 0.02, footSize: [0.075, 0.05, 0.095], handR: 0, top: 0.76, wob: 0.9, mouth: [0, 0.34, 0.17], front: 0.18, tintK: 0.5, faceUp: 0.0, faceShift: 0.5, walk: 1.5, run: 3.6,
+    R: 0.3, move: 'hop', hopH: 0.13, lat: 0.13, footFwd: 0.02, footSize: [0.075, 0.05, 0.095], handR: 0, top: 0.76, wob: 0.9, mouth: [0, 0.34, 0.23], front: 0.24, tintK: 0.5, faceUp: 0.0, faceShift: 0.3, walk: 1.5, run: 3.6,
     face: { ...FACE, ex: 72, ey: 254, rx: 34, ry: 44, my: 312, mw: 15, line: 7, eye: '#4a3418', eye2: '#7a5a30', blush: '255,130,110' },
     pals: [{ n: '星星黃', body: 0xffd04a, top: 0xfff2a0, shoe: 0xff9f6a, sss: 0xffa020 }, { n: '櫻粉', body: 0xff9fbe, top: 0xffe0ea, shoe: 0xffffff, sss: 0xff6090 }, { n: '薄荷', body: 0x8fe0c0, top: 0xd8fbe8, shoe: 0xffffff, sss: 0x40d0a0 }, { n: '天藍', body: 0x8fc2ff, top: 0xd8ecff, shoe: 0xffe08a, sss: 0x5090ff }],
-    anc: { hat: [0, 0.72, 0, 0.55], bow: [0.13, 0.52, 0.14], chest: [0, 0.18, 0.165], glasses: 1 },
+    anc: { hat: [0, 0.71, 0, 0.55], bow: [0.13, 0.55, 0.17], chest: [0, 0.17, 0.215], glasses: 1 },
     build(c, p) {
-      c.main = put(c, blobGeo(v => { const ph = Math.atan2(v.x, v.y), k = Math.cos(5 * ph), rr = 0.285 * (1 + 0.3 * k + 0.05 * k * k); v.set(v.x * rr, v.y * rr, v.z * (0.175 - 0.03 * k)); }, 120, 60), M(c, { color: p.body, top: p.top, y0: -0.3, y1: 0.36, sss: p.sss, sssAmt: 0.45, rim: 0xffffff, rimAmt: 0.4, face: c.face, headC: [0, -0.02, -0.1], span: [2.0, 2.0] }), 0, 0.385, 0);
+      c.main = put(c, blobGeo(v => { const ph = Math.atan2(v.x, v.y), k = Math.cos(5 * ph), rho = Math.hypot(v.x, v.y), rr = 0.3 * (1 + 0.24 * k * rho + 0.04 * k * k); v.set(v.x * rr, v.y * rr, v.z * (0.235 - 0.05 * k * rho)); }, 120, 60), M(c, { color: p.body, top: p.top, y0: -0.3, y1: 0.36, sss: p.sss, sssAmt: 0.45, rim: 0xffffff, rimAmt: 0.4, face: c.face, headC: [0, -0.02, -0.05], span: [1.95, 1.95] }), 0, 0.385, 0);
+      const ck = M(c, { color: p.top, top: 0xffffff, sss: p.sss, sssAmt: 0.5 }); for (const q of [-1, 1]) put(c, ball(), ck, q * 0.2, 0.52, 0.1, 0.03, 0.03, 0.02);
       c.limbMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
     },
     idle(c, dt, t) { if (c.mode !== 'sleep' && every(c, 'tw', 0.9, dt)) { const a = Math.floor(Math.random() * 5) * 1.2566, cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), lx = Math.sin(a) * 0.36; c.fx.spawn('spark', new V3(c.pos.x + lx * cy, c.pos.y + c.yOff + 0.385 + Math.cos(a) * 0.36, c.pos.z - lx * sy), { life: 0.5, size: 0.11, spin: 3 }); } },
@@ -270,15 +273,16 @@ export const SPECIES = {
   // ───────── 14 滾滾：小海豹（橫躺的長條身體、前鰭、尾鰭，一伸一縮往前蠕動）
   seal: {
     name: '滾滾', sub: '小海豹', moveZh: '一伸一縮', sigZh: '翻肚肚', why: '唯一橫躺的長條剪影；會翻肚子拍手',
-    R: 0.29, move: 'slide', footSize: null, handR: 0.05, handScale: [0.105, 0.028, 0.075], hand: [0.3, 0.09, 0.14], top: 0.52, wob: 1.1, mouth: [0, 0.2, 0.5], front: 0.47, cheek: [0.18, 0.24, 0.42], faceUp: 0.2, walk: 1.2, run: 3.0, stride: [0.5, 0.9],
+    R: 0.29, move: 'slide', footSize: null, handR: 0.05, handScale: [0.12, 0.032, 0.085], hand: [0.34, 0.08, 0.16], top: 0.56, wob: 1.1, mouth: [0, 0.27, 0.5], front: 0.47, cheek: [0.18, 0.3, 0.42], faceUp: 0.2, walk: 1.2, run: 3.0, stride: [0.5, 0.9],
     face: { ...FACE, ex: 80, ey: 246, rx: 30, ry: 38, my: 316, mw: 15, line: 6, wmouth: true, nose: 1, whisk: 1, eye: '#2a2e3a', eye2: '#4a5268', blush: '255,150,160' },
     pals: [{ n: '雪白', body: 0xd7e2ee, top: 0xffffff, fin: 0xb9c8da, sss: 0xa9c0e0 }, { n: '灰藍', body: 0x9fb2c8, top: 0xd6e0ec, fin: 0x8094ae, sss: 0x7090c0 }, { n: '奶茶', body: 0xe6cdb0, top: 0xfff4e4, fin: 0xcfae8a, sss: 0xd09060 }, { n: '櫻粉', body: 0xffc4d0, top: 0xfff0f3, fin: 0xf5a4b6, sss: 0xff80a0 }],
-    anc: { hat: [0, 0.5, 0.2, 0.8], bow: [0.14, 0.48, 0.24], glasses: 1 },
+    anc: { hat: [0, 0.56, 0.2, 0.8], bow: [0.14, 0.54, 0.24], glasses: 1 },
     build(c, p) {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.26 };
-      c.main = put(c, blobGeo(v => { const z = v.z, k = 1 + 0.17 * z, tl = 1 - 0.5 * sstep(-0.25, -1, z); v.set(v.x * 0.3 * k * tl, v.y * 0.255 * k * tl - 0.02 * (1 - tl) + 0.03 * sstep(0.2, 1, z), v.z * 0.47); }, 80, 60), M(c, { ...o, y0: -0.22, y1: 0.1, face: c.face, headC: [0, 0.02, 0.17], span: [2.0, 2.0] }), 0, 0.26, 0);
+      c.main = put(c, blobGeo(v => { const z = v.z, k = 1 + 0.17 * z, tl = 1 - 0.5 * sstep(-0.25, -1, z); v.set(v.x * 0.3 * k * tl, v.y * 0.255 * k * tl - 0.03 * (1 - tl) + 0.085 * sstep(0.0, 1, z), v.z * 0.47); }, 80, 60), M(c, { ...o, y0: -0.22, y1: 0.1, face: c.face, headC: [0, 0.02, 0.17], span: [2.0, 2.0] }), 0, 0.26, 0);
       const fm = M(c, { color: p.fin, top: p.body, y0: -1, y1: 1, sss: p.sss }); c.limbMat = fm;
-      const t = piv(c, 0, 0.2, -0.4, { k: 130, c: 6, g: 0.03, wag: true }); for (const s of [-1, 1]) { const f = put(c, ball(), fm, s * 0.085, 0.13, -0.07, 0.085, 0.13, 0.03, t); f.rotation.set(-0.5, 0, -s * 0.5); }
+      const t = piv(c, 0, 0.24, -0.4, { k: 130, c: 6, g: 0.03, wag: true }); for (const s of [-1, 1]) { const f = put(c, ball(), fm, s * 0.11, 0.2, -0.06, 0.1, 0.17, 0.034, t); f.rotation.set(-0.35, 0, -s * 0.62); }
+      const sp = M(c, { color: p.fin, top: p.fin, y0: -1, y1: 1, sss: p.sss, sssAmt: 0.1 }); for (const [x, y, z, r] of [[0.1, 0.475, -0.06, 0.05], [-0.07, 0.462, -0.2, 0.038], [-0.12, 0.49, 0.06, 0.03], [0.05, 0.43, -0.28, 0.026]]) put(c, ball(), sp, x, y, z, r, r * 0.35, r);
     },
     idle(c, dt, t) { },
     sig: { dur: 2.4, fn(c, u, a, P) { const e = sstep(0.05, 0.4, u) - sstep(0.75, 1, u); P.spinZ = e * Math.PI; P.yOff = 0.24 * e; P.expr = 'happy'; const f = Math.sin(a.t * 16); P.hands = [0.5 + 0.35 * Math.max(0, f) * e, 0.2 * e]; if (e > 0.9 && c.every('sg', 0.39)) { c.fx.sfx('kick'); } } },
@@ -299,11 +303,83 @@ export const SPECIES = {
     idle(c, dt, t) { const e = c.emo && c.emo.name, tg = c.flash ? 1.7 : c.mode === 'sleep' ? 0.12 : e === 'sad' || e === 'sleepy' ? 0.22 : e === 'happy' || e === 'laugh' ? 0.95 : 0.55; c.glowU.value += (tg + Math.sin(t * 3) * 0.03 - c.glowU.value) * Math.min(1, dt * (c.flash ? 30 : 5)); c.flash = false; },
     sig: { dur: 2.0, fn(c, u, a, P) { if (u < 0.4) { P.expr = 'sleepy'; P.pitch = 0.1; P.hands = [0.5, 0.3]; } else { c.flash = u < 0.75; P.expr = 'surprised'; P.sq = 0.14 * (1 - sstep(0.4, 1, u)); P.yOff = 0.1 * Math.sin(sstep(0.4, 0.7, u) * Math.PI); P.hands = [1.3, 0.3]; if (!a.f) { a.f = 1; c.say('有了！', 1.3); c.fx.sfx('heart'); c.sqV += 5; c.fx.burst('spark', c.headTop(new V3()), 9, { speed: 1.3, up: 0.6, life: 0.5, size: 0.13 }); } } } },
   },
+  // ───────── 16 貼貼：便利貼（方方一張、右上角翹起來、身上有兩行字）
+  note: {
+    name: '貼貼', sub: '便利貼', moveZh: '啪嗒啪嗒走', sigZh: '貼上去', why: '薄薄一張方形紙，右上角翹起來；走路會像紙一樣飄',
+    R: 0.3, stride: [0.4, 0.9], lat: 0.13, footFwd: 0.02, footSize: [0.08, 0.055, 0.105], handR: 0.055, hand: [0.34, 0.3, 0.03], front: 0.1, cheek: [0.19, 0.5, 0.1], waddle: 0.12, wob: 1.5, mouth: [0, 0.42, 0.09], top: 0.72, tintK: 0.5, faceShift: 0.25,
+    face: { ...FACE, ex: 78, ey: 250, rx: 30, ry: 39, my: 306, mw: 15, eye: '#4a3a1a', eye2: '#7a6030', blush: '255,140,120' },
+    pals: [{ n: '檸檬黃', body: 0xffe37a, top: 0xfff6c0, ink: 0xe0b84a, shoe: 0xffffff, sss: 0xffb830 }, { n: '櫻花粉', body: 0xffb3c8, top: 0xffe2ea, ink: 0xe88aa6, shoe: 0xffffff, sss: 0xff6f9a }, { n: '天空藍', body: 0xa9d2ff, top: 0xe0f0ff, ink: 0x7aaae6, shoe: 0xfff0b0, sss: 0x6090ff }, { n: '薄荷綠', body: 0xa8e6c4, top: 0xdcf8ea, ink: 0x74c49a, shoe: 0xffffff, sss: 0x40c090 }],
+    anc: { hat: [-0.13, 0.69, 0, 0.75], bow: [-0.2, 0.7, 0.07], chest: [0.02, 0.1, 0.066], glasses: 1 },
+    build(c, p) {
+      const g = rbox(0.56, 0.56, 0.11, 0.045, 6), P = g.attributes.position;
+      for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), k = sstep(0.3, 0.56, x + y); if (k > 0) { P.setZ(i, P.getZ(i) + k * k * 0.2); P.setY(i, y - k * k * 0.08); P.setX(i, x - k * k * 0.05); } }
+      c.main = put(c, g, M(c, { color: p.body, top: p.top, y0: -0.28, y1: 0.3, sss: p.sss, sssAmt: 0.26, face: c.face, headC: [0, 0.07, -0.36], span: [1.2, 1.2] }), 0, 0.4, 0);
+      const im = M(c, { color: p.ink, sss: p.ink, sssAmt: 0.2 }); put(c, rbox(0.3, 0.026, 0.02, 0.01, 2), im, -0.06, 0.25, 0.058); put(c, rbox(0.2, 0.026, 0.02, 0.01, 2), im, -0.11, 0.2, 0.058);
+      put(c, rbox(0.56, 0.07, 0.03, 0.012, 2), M(c, { color: p.ink, top: p.body, y0: -0.05, y1: 0.05, sss: p.sss, sssAmt: 0.2 }), 0, 0.64, -0.052);
+      c.limbMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
+    },
+    idle(c, dt, t) { if (calm(c) && every(c, 'flap', 3.4, dt)) { c.wobV.x += rnd(-3, 3); c.wobV.z += rnd(1.5, 3); } },
+    sig: { dur: 1.8, fn(c, u, a, P) { if (u < 0.35) { P.sq = 0.22 * sstep(0, 0.35, u); P.yOff = 0.3 * sstep(0, 0.35, u); P.expr = 'whee'; P.hands = [1.3, 0.3]; } else { const k = 1 - sstep(0.35, 0.5, u); P.yOff = 0.3 * k; P.sq = -0.3 * (1 - k) * (1 - sstep(0.6, 1, u)); P.expr = 'happy'; P.hands = [1.2, 0.1]; if (!a.f && u > 0.5) { a.f = 1; c.say('貼好了！', 1.2); c.fx.sfx('land', 1); c.fx.burst('spark', c.headTop(new V3()), 6, { speed: 1, up: 0.5, life: 0.5, size: 0.12 }); } } } },
+  },
+  // ───────── 17 夾夾：資料夾（橫的牛皮紙夾、左上有標籤耳、裡面的文件探出頭）
+  folder: {
+    name: '夾夾', sub: '資料夾', moveZh: '抱著文件走', sigZh: '翻文件', why: '比高還寬的橫長方形＋標籤耳，文件從上面探出來會晃',
+    R: 0.32, stride: [0.42, 0.9], lat: 0.15, footFwd: 0.02, footSize: [0.085, 0.055, 0.11], handR: 0.056, hand: [0.38, 0.27, 0.04], front: 0.13, cheek: [0.2, 0.42, 0.12], waddle: 0.09, wob: 0.6, mouth: [0, 0.33, 0.1], top: 0.72, tintK: 0.5, faceShift: 0.25,
+    face: { ...FACE, ex: 84, ey: 252, rx: 30, ry: 39, my: 306, mw: 15, eye: '#4a3418', eye2: '#7a5a30', blush: '255,140,120' },
+    pals: [{ n: '牛皮紙', body: 0xf2c98a, top: 0xffe8be, paper: 0xfffdf6, paper2: 0xa9d2ff, shoe: 0xffffff, sss: 0xe09040 }, { n: '海軍藍', body: 0x9db8f0, top: 0xd4e2ff, paper: 0xfffdf6, paper2: 0xffe37a, shoe: 0xffffff, sss: 0x6080e0 }, { n: '草綠', body: 0xa6dc9c, top: 0xdaf4d0, paper: 0xfffdf6, paper2: 0xffb3c8, shoe: 0xffffff, sss: 0x50b060 }, { n: '莓果', body: 0xf5a6b8, top: 0xffdbe4, paper: 0xfffdf6, paper2: 0xa8e6c4, shoe: 0xffffff, sss: 0xff6080 }],
+    anc: { hat: [0.14, 0.66, 0, 0.75], bow: [0.24, 0.6, 0.08], chest: [0, 0.07, 0.078], glasses: 1 },
+    build(c, p) {
+      const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.24 };
+      c.main = put(c, rbox(0.66, 0.46, 0.14, 0.06, 6), M(c, { ...o, y0: -0.23, y1: 0.25, face: c.face, headC: [0, 0.05, -0.36], span: [1.25, 1.25] }), 0, 0.33, 0);
+      put(c, rbox(0.24, 0.13, 0.13, 0.045, 3), M(c, { ...o, y0: -0.1, y1: 0.1 }), -0.19, 0.575, -0.005);
+      const g = piv(c, 0.06, 0.54, -0.02, { k: 120, c: 6, g: 0.03 }); c.papers = g;
+      put(c, rbox(0.5, 0.16, 0.035, 0.016, 2), M(c, { color: p.paper, sss: 0xffd0a0, sssAmt: 0.2 }), 0, 0.04, 0, 1, 1, 1, g).rotation.z = 0.05;
+      put(c, rbox(0.42, 0.16, 0.03, 0.014, 2), M(c, { color: p.paper2, top: 0xffffff, y0: -0.1, y1: 0.3, sss: p.paper2, sssAmt: 0.2 }), 0.06, 0.075, -0.035, 1, 1, 1, g).rotation.z = -0.08;
+      put(c, rbox(0.2, 0.07, 0.02, 0.012, 2), M(c, { color: 0xfffdf6, sss: 0xffd0a0, sssAmt: 0.2 }), 0.17, 0.2, 0.066);
+      c.limbMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
+    },
+    idle(c, dt, t) { const s = c.papers.scale.y + ((c.flip ? 1.9 : 1) - c.papers.scale.y) * Math.min(1, dt * 10); c.papers.scale.y = s; c.flip = false; },
+    sig: { dur: 2.0, fn(c, u, a, P) { c.flip = u > 0.2 && u < 0.85 && Math.sin(a.t * 14) > -0.3; P.expr = u < 0.85 ? 'look' : 'happy'; P.sq = u < 0.2 ? -0.12 * u / 0.2 : 0.05; P.hands = [1.1, 0.25]; P.wig = 0.4; if (c.every('sg', 0.3)) c.fx.sfx('ui'); if (u > 0.85 && !a.f) { a.f = 1; c.say('找到了！', 1.3); } } },
+  },
+  // ───────── 18 筆筆：鉛筆（最高最瘦、頭頂是削尖的筆尖、腳邊是橡皮擦）
+  pencil: {
+    name: '筆筆', sub: '鉛筆', moveZh: '直挺挺地走', sigZh: '畫一圈', why: '最高最瘦的直條，筆尖像一頂尖帽子（尖端磨圓）',
+    R: 0.26, stride: [0.38, 0.85], lat: 0.09, footFwd: 0.02, footSize: [0.07, 0.05, 0.095], handR: 0.05, hand: [0.27, 0.33, 0.04], front: 0.21, cheek: [0.15, 0.5, 0.19], waddle: 0.07, wob: 0.55, mouth: [0, 0.42, 0.21], top: 1.0, tintK: 0.5, faceUp: 0.04,
+    face: { ...FACE, ex: 60, ey: 258, rx: 25, ry: 33, my: 304, mw: 12, line: 6, eye: '#3a2a16', eye2: '#6a4a28', blush: '255,130,110' },
+    pals: [{ n: '經典黃', body: 0xffd35a, top: 0xffeea0, wood: 0xf6ddb4, tip: 0x6b6470, er: 0xff9fb5, sss: 0xffa820 }, { n: '珊瑚紅', body: 0xff9a8a, top: 0xffd0c4, wood: 0xf6ddb4, tip: 0x6b6470, er: 0xfff0b0, sss: 0xff6050 }, { n: '天藍', body: 0x8fc2ff, top: 0xd0e6ff, wood: 0xf6ddb4, tip: 0x5a6078, er: 0xffb3c8, sss: 0x5090ff }, { n: '抹茶', body: 0xa8d890, top: 0xdcf2c8, wood: 0xf6ddb4, tip: 0x6b6470, er: 0xffc9a0, sss: 0x60b040 }],
+    anc: { bow: [0.13, 0.7, 0.1], chest: [0, 0.2, 0.205], neck: [0.3, 0.215, 0.215], glasses: 1 },
+    build(c, p) {
+      c.main = put(c, lathe([[0, 0.13], [0.17, 0.13], [0.205, 0.16], [0.21, 0.4], [0.205, 0.64], [0.17, 0.675], [0, 0.68]], 56, 48), M(c, { color: p.body, top: p.top, y0: 0.13, y1: 0.7, sss: p.sss, sssAmt: 0.28, face: c.face, headC: [0, 0.44, 0], span: [2.9, 2.9] }));
+      put(c, lathe([[0, 0.64], [0.18, 0.645], [0.19, 0.67], [0.13, 0.79], [0.07, 0.885], [0, 0.89]], 48, 40), M(c, { color: p.wood, top: 0xfff6e4, y0: 0.64, y1: 0.9, sss: 0xe0a060, sssAmt: 0.3 }));
+      const tp = piv(c, 0, 0.87, 0, { k: 200, c: 9, g: 0.012 }); put(c, lathe([[0, 0], [0.068, 0.0], [0.05, 0.06], [0.022, 0.1], [0, 0.11]], 32, 24), M(c, { color: p.tip, top: 0x9a94a0, y0: 0, y1: 0.12, sss: 0x404050, sssAmt: 0.2, rough: 0.35 }), 0, 0, 0, 1, 1, 1, tp);
+      put(c, lathe([[0, 0.085], [0.2, 0.085], [0.214, 0.1], [0.2, 0.115], [0.214, 0.13], [0.2, 0.15], [0, 0.15]], 48, 40), M(c, { color: 0xd4d2e2, top: 0xffffff, y0: 0.08, y1: 0.16, sss: 0x9090c0, sssAmt: 0.2, rough: 0.3 }));
+      put(c, lathe([[0, 0.01], [0.15, 0.012], [0.195, 0.04], [0.195, 0.09], [0, 0.095]], 48, 32), M(c, { color: p.er, top: 0xffffff, y0: 0, y1: 0.2, sss: p.er, sssAmt: 0.35 }));
+      c.limbMat = M(c, { color: p.er, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
+    },
+    idle(c, dt, t) { },
+    sig: { dur: 1.7, fn(c, u, a, P) { const e = sstep(0.1, 0.85, u); P.yaw = e * Math.PI * 2; P.sq = u < 0.1 ? -0.14 * u / 0.1 : 0.07 * (1 - u); P.yOff = Math.sin(e * Math.PI) * 0.1; P.expr = u > 0.85 ? 'happy' : 'effort'; P.hands = [1.3, 0.2]; if (c.every('sg', 0.06) && u < 0.85) { const an = c.yaw + e * Math.PI * 2; c.fx.spawn('spark', new V3(c.pos.x + Math.sin(an) * 0.45, c.pos.y + 0.05, c.pos.z + Math.cos(an) * 0.45), { life: 0.7, size: 0.1 }); } if (u > 0.85 && !a.f) { a.f = 1; c.say('畫好了！', 1.2); c.fx.sfx('heart'); } } },
+  },
+  // ───────── 19 印印：印章（圓圓的握把頭、細脖子、寬寬的章座，走路就是一下一下蓋章）
+  stamp: {
+    name: '印印', sub: '印章', moveZh: '一下一下蓋', sigZh: '核可', why: '上圓下寬的葫蘆剪影；每跳一步都像蓋一次章',
+    R: 0.3, move: 'hop', hopH: 0.11, footSize: null, handR: 0.055, hand: [0.34, 0.36, 0.08], stick: [0.36, 0.42, 0.34, 0.4], top: 0.86, wob: 0.7, mouth: [0, 0.5, 0.25], front: 0.27, cheek: [0.18, 0.58, 0.22], tintK: 0.45, faceUp: 0.06, walk: 1.35, run: 3.1, stride: [0.4, 0.75],
+    face: { ...FACE, ex: 76, ey: 262, rx: 30, ry: 39, my: 314, mw: 14, eye: '#3a2618', eye2: '#6a4630', blush: '255,130,120' },
+    pals: [{ n: '原木', body: 0xf0c48e, top: 0xffe6c0, base: 0xd89a62, ink: 0xf2605a, sss: 0xe08840 }, { n: '櫻桃木', body: 0xf5a99a, top: 0xffd8cc, base: 0xd87a6a, ink: 0x6a8fe8, sss: 0xff6050 }, { n: '薄荷', body: 0xb4e4d0, top: 0xe4f8ee, base: 0x7cc4a8, ink: 0xf2605a, sss: 0x40c0a0 }, { n: '藍莓', body: 0xb6c6f6, top: 0xe2e8ff, base: 0x8a9ee0, ink: 0xffb040, sss: 0x6070ff }],
+    anc: { hat: [0, 0.82, 0, 0.9], bow: [0.17, 0.8, 0.08], neck: [0.345, 0.15, 0.15], chest: [0, 0.07, 0.29], glasses: 1 },
+    build(c, p) {
+      c.main = put(c, blobGeo(v => { v.set(v.x * 0.265, v.y * (v.y > 0 ? 0.255 : 0.235), v.z * 0.255); }), M(c, { color: p.body, top: p.top, y0: -0.24, y1: 0.26, sss: p.sss, sssAmt: 0.3, face: c.face, headC: [0, 0.03, 0], span: [2.2, 2.2] }), 0, 0.6, 0);
+      put(c, lathe([[0, 0.04], [0.27, 0.04], [0.3, 0.07], [0.3, 0.18], [0.26, 0.225], [0.15, 0.26], [0.115, 0.32], [0.125, 0.4], [0, 0.4]], 56, 64), M(c, { color: p.base, top: p.body, y0: 0.04, y1: 0.4, sss: p.sss, sssAmt: 0.25 }));
+      put(c, lathe([[0, 0], [0.26, 0], [0.292, 0.02], [0.292, 0.05], [0, 0.055]], 56, 24), M(c, { color: p.ink, top: 0xffffff, y0: -0.1, y1: 0.4, sss: p.ink, sssAmt: 0.4, rough: 0.4 }));
+      c.limbMat = M(c, { color: p.base, top: p.body, y0: -1, y1: 1.2, sss: p.sss });
+    },
+    idle(c, dt, t) { },
+    sig: { dur: 1.9, fn(c, u, a, P) { if (u < 0.4) { const k = sstep(0, 0.4, u); P.yOff = 0.42 * Math.sin(k * Math.PI * 0.5); P.sq = 0.16 * k; P.expr = 'effort'; P.hands = [1.2, 0.35]; } else { const k = sstep(0.4, 0.5, u); P.yOff = 0.42 * (1 - k); P.sq = -0.38 * k * (1 - sstep(0.62, 1, u)); P.expr = u > 0.55 ? 'smug' : 'effort'; P.hands = [1.25, 0.05]; if (k >= 1 && !a.f) { a.f = 1; c.say('核可！', 1.3); c.fx.sfx('land', 1.4); c.fx.burst('dust', new V3(c.pos.x, c.pos.y + 0.05, c.pos.z), 8, { speed: 1.2, up: 0.3, life: 0.5, size: 0.2, grow: 2.2, drag: 3 }); c.fx.burst('star', c.headTop(new V3()), 4, { speed: 1.2, up: 1.4, g: 5, life: 0.7, size: 0.15, spin: 5 }); } } } },
+  },
 };
 export const SPECIES_IDS = Object.keys(SPECIES);
 for (const id of SPECIES_IDS) SPECIES[id] = { id, ...DEF, ...SPECIES[id] };
 
-export const ACCESSORIES = [['glasses', '眼鏡'], ['hat', '帽子'], ['bow', '蝴蝶結'], ['tie', '領帶'], ['scarf', '圍巾'], ['badge', '識別證']];
+export const ACCESSORIES = [['glasses', '眼鏡'], ['hat', '帽子'], ['bow', '蝴蝶結'], ['tie', '領帶'], ['scarf', '圍巾'], ['badge', '識別證'], ['crown', '小皇冠']];
 const ACC_COL = [0xff8f9f, 0x7fb0ff, 0xffc85a, 0x7fd6b0, 0xb49af0, 0xff9f6a];
 
 // 個體規格 → 完整設定。spec：{ species, pal(配色編號或名稱), hue(-0.08~0.08 色相微調), acc:['glasses','tie'…], accColor(編號) }
@@ -313,9 +389,9 @@ export function resolveSpec(spec) {
   let pi = typeof spec.pal === 'string' ? cfg.pals.findIndex(p => p.n === spec.pal) : (spec.pal | 0); if (pi < 0) pi = 0;
   const pal = { ...cfg.pals[pi % cfg.pals.length] };
   if (spec.hue) { const c = new THREE.Color(), h = {}; for (const k in pal) if (typeof pal[k] === 'number') { c.setHex(pal[k]); c.getHSL(h); c.setHSL((h.h + spec.hue + 1) % 1, h.s, h.l); pal[k] = c.getHex(); } }
-  return { cfg, pal, palIndex: pi % cfg.pals.length, acc: (spec.acc || []).filter(a => canWear(cfg, a)), accColor: ACC_COL[(spec.accColor | 0) % ACC_COL.length], spec };
+  return { cfg, pal, palIndex: pi % cfg.pals.length, acc: (spec.acc || []).filter(a => canWear(cfg, a)), accColor: typeof spec.accColor === 'string' ? new THREE.Color(spec.accColor).getHex() : ACC_COL[(spec.accColor | 0) % ACC_COL.length], spec };
 }
-export function canWear(cfg, a) { const n = cfg.anc; return a === 'glasses' ? !!n.glasses : a === 'hat' ? !!n.hat : a === 'bow' ? !!n.bow : a === 'tie' || a === 'badge' ? !!n.chest : a === 'scarf' ? !!n.neck : false; }
+export function canWear(cfg, a) { const n = cfg.anc; return a === 'glasses' ? !!n.glasses : a === 'hat' || a === 'crown' ? !!n.hat : a === 'bow' ? !!n.bow : a === 'tie' || a === 'badge' ? !!n.chest : a === 'scarf' ? !!n.neck : false; }
 
 // 配件：位置由各物種的 anc 決定，掛在會跟著身體擠壓的那一層
 export function addAccessories(c, list, col) {
@@ -323,6 +399,7 @@ export function addAccessories(c, list, col) {
   for (const a of list) {
     if (a === 'glasses') { c.face.st.glasses = '#' + new THREE.Color(col).multiplyScalar(0.55).getHexString(); c.face.dirty = true; }
     else if (a === 'hat') { const [x, y, z, s] = n.hat, g = piv(c, x, y, z, { k: 260, c: 14, g: 0.008 }); g.scale.setScalar(s); put(c, blobGeo(v => v.set(v.x * 0.15, Math.max(v.y, -0.25) * 0.105, v.z * 0.15), 40, 28), m, 0, 0.02, 0, 1, 1, 1, g); put(c, ball(), m, 0, 0.005, 0.13, 0.11, 0.014, 0.085, g); put(c, ball(), wm, 0, 0.125, 0, 0.026, 0.02, 0.026, g); g.rotation.x = -0.12; c.apps[c.apps.length - 1].rest = [-0.12, 0.1]; }
+    else if (a === 'crown') { if (list.includes('hat')) continue; const [x, y, z, s] = n.hat, g = piv(c, x, y, z, { k: 260, c: 14, g: 0.008 }); g.scale.setScalar(s * 0.9); const gm = M(c, { color: 0xffd04a, top: 0xfff2a0, y0: -1, y1: 4, sss: 0xffa020, sssAmt: 0.4, rough: 0.35 }); put(c, new THREE.TorusGeometry(0.1, 0.03, 14, 40), gm, 0, 0.03, 0, 1, 1, 1.25, g).rotation.x = Math.PI / 2; for (let i = 0; i < 5; i++) { const an = i * 1.2566 + Math.PI / 2; put(c, ball(), gm, Math.cos(an) * 0.1, 0.085, Math.sin(an) * 0.1, 0.034, 0.06, 0.034, g); put(c, ball(), i % 2 ? wm : M(c, { color: 0xff7f9c, sss: 0xff4070 }), Math.cos(an) * 0.1, 0.15, Math.sin(an) * 0.1, 0.02, 0.02, 0.02, g); } g.rotation.x = -0.1; c.apps[c.apps.length - 1].rest = [-0.1, 0.08]; }
     else if (a === 'bow') { const [x, y, z] = n.bow, g = piv(c, x, y, z, { k: 240, c: 12, g: 0.01, rest: [0, -0.3] }); for (const s of [-1, 1]) put(c, ball(), m, s * 0.05, 0, 0, 0.055, 0.042, 0.026, g).rotation.z = s * 0.3; put(c, ball(), m, 0, 0, 0.012, 0.026, 0.028, 0.026, g); }
     else if (a === 'tie') { const [x, y, z] = n.chest, g = piv(c, x, y + 0.07, z, { k: 120, c: 6, g: 0.03 }); put(c, ball(), m, 0, 0, 0.012, 0.03, 0.026, 0.02, g); put(c, blobGeo(v => { const w = 0.6 + 0.4 * (1 - Math.abs(v.y + 0.3)); v.set(v.x * 0.04 * w, v.y * 0.075, v.z * 0.014); }, 24, 16), m, 0, -0.085, 0.016, 1, 1, 1, g); }
     else if (a === 'badge') { const [x, y, z] = n.chest, g = piv(c, x + 0.1, y + 0.04, z - 0.01, { k: 140, c: 7, g: 0.02 }); put(c, rbox(0.085, 0.105, 0.014, 0.006, 2), wm, 0, -0.03, 0.012, 1, 1, 1, g); put(c, rbox(0.085, 0.03, 0.016, 0.006, 2), m, 0, 0.005, 0.013, 1, 1, 1, g); put(c, ball(), M(c, { color: 0x6a5a55, sss: 0x6a5a55, sssAmt: 0.1 }), 0, -0.04, 0.021, 0.017, 0.017, 0.004, g); }
