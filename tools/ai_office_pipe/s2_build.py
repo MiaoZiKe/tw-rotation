@@ -1,18 +1,66 @@
 # 步驟2：綁骨架＋蒙皮權重＋分區上色＋正面投影座標 → 輸出 glb
 # 用法：python3 -I s2_build.py <config.json>
 import sys,json,struct,os,numpy as np,scipy.sparse as sp,scipy.sparse.linalg as spl,scipy.sparse.csgraph as cg
-cfg=json.load(open(sys.argv[1])); sys.path.insert(0,cfg['pipe_dir'])
+cfg=json.load(open(sys.argv[1])); PIPE=os.path.dirname(os.path.abspath(__file__)); REPO=os.path.abspath(os.path.join(PIPE,'..','..'))
+sys.path.insert(0,PIPE)
+from scipy.spatial import cKDTree
 from landmarks import estimate
 from PIL import Image
 PARTS=['hair','skin','top','pants','shoes']
 BONES=['hips','spine','chest','neck','head','shoulderL','upperArmL','foreArmL','handL','shoulderR','upperArmR','foreArmR','handR','thighL','shinL','footL','thighR','shinR','footR']
 PARENT={'hips':None,'spine':'hips','chest':'spine','neck':'chest','head':'neck','shoulderL':'chest','upperArmL':'shoulderL','foreArmL':'upperArmL','handL':'foreArmL','shoulderR':'chest','upperArmR':'shoulderR','foreArmR':'upperArmR','handR':'foreArmR','thighL':'hips','shinL':'thighL','footL':'shinL','thighR':'hips','shinR':'thighR','footR':'shinR'}
 END={'hips':'spine','spine':'chest','chest':'neck','neck':'head','head':'head_end','shoulderL':'upperArmL','upperArmL':'foreArmL','foreArmL':'handL','handL':'handL_end','shoulderR':'upperArmR','upperArmR':'foreArmR','foreArmR':'handR','handR':'handR_end','thighL':'shinL','shinL':'footL','footL':'footL_end','thighR':'shinR','shinR':'footR','footR':'footR_end'}
-out=cfg['out_dir']; src=np.load(f'{out}/mesh_src.npz')
+out=os.environ.get('AIO_WORK') or os.path.join(PIPE,'_work'); src=np.load(f'{out}/mesh_src.npz')
 J,info=estimate(src['V'])
 for k,v in cfg.get('joint_override',{}).items(): J[k]=np.array(v,float)
+NBODY=len(BONES); FINGERS,FW=detect_fingers(src['V'],src['F']) if cfg.get('fingers',True) else ([],{}); SRC_TREE=cKDTree(src['V'])
 H=info['H']; cx=info['cx']; neck_y=info['neck_y']; crotch=info['crotch']
 
+def detect_fingers(V,F):
+    """在高面數模型上找指尖（離手腕測地距離的區域極大值），每根手指切成兩節（拇指一節），回傳骨頭與每個頂點的手指權重"""
+    out=[]; Wf={}
+    for s_,n in ((1,'L'),(-1,'R')):
+        a=info[f'armaxis{n}']; rel=V-J[f'hand{n}']; t=rel@a; rad=np.linalg.norm(rel-np.outer(t,a),axis=1)
+        hm=(t>-0.005)&(t<0.17*H/1.96)&(rad<0.12*H/1.96)&((V[:,0]-info['armpit'][s_][1])*s_>0)
+        idx=np.where(hm)[0]; loc=-np.ones(len(V),int); loc[idx]=np.arange(len(idx))
+        fm=hm[F].all(1); Fs=loc[F[fm]]; P=V[idx]; m=len(idx)
+        E=np.concatenate([Fs[:,[0,1]],Fs[:,[1,2]],Fs[:,[2,0]]]); w=np.linalg.norm(P[E[:,0]]-P[E[:,1]],axis=1)
+        G=sp.coo_matrix((w,(E[:,0],E[:,1])),shape=(m,m)).tocsr(); G=G.maximum(G.T)
+        srcs=np.where(t[idx]<0.006)[0]; dw=cg.dijkstra(G,indices=srcs,min_only=True); dw[~np.isfinite(dw)]=0
+        nb=G.copy(); nb.data[:]=1; nmax=np.zeros(m)
+        for i in range(m): 
+            js=G.indices[G.indptr[i]:G.indptr[i+1]]; nmax[i]=dw[js].max() if len(js) else 0
+        cand=[i for i in np.argsort(-dw) if dw[i]>=nmax[i] and dw[i]>0.4*dw.max()]
+        tips=[]
+        for i in cand:
+            if all(np.linalg.norm(P[i]-P[j])>0.016*H/1.96 for j in tips): tips.append(i)
+        tips=tips[:5]
+        if len(tips)<3: continue
+        wr=J[f'hand{n}']; dirs=np.array([(P[i]-wr)/np.linalg.norm(P[i]-wr) for i in tips]); mean=dirs.mean(0); mean/=np.linalg.norm(mean)
+        th=int(np.argmin(dirs@mean)); order=sorted([k for k in range(len(tips)) if k!=th],key=lambda k:np.linalg.norm(P[tips[k]]-P[tips[th]]))
+        c=P.mean(0); u,sv,vt=np.linalg.svd(P-c,full_matrices=False); pn=vt[2]*np.sign(vt[2][2])*cfg.get('palm_sign',1)
+        D=cg.dijkstra(G,indices=tips)
+        handdir=np.mean([P[tips[k]] for k in order],axis=0)-wr; handdir/=np.linalg.norm(handdir)
+        for rank,k in enumerate([th]+order):
+            di=D[k]; ell=min(0.5*min(di[tips[j]] for j in range(len(tips)) if j!=k),0.55*dw[tips[k]])
+            u_=di/ell; reg=u_<1
+            base=P[(u_>0.8)&(u_<1.0)].mean(0); mid=P[(u_>0.4)&(u_<0.6)].mean(0); tip=P[tips[k]]
+            g=np.clip((1-u_)/0.3,0,1); g=g*g*(3-2*g)
+            if rank==0:
+                nm=[f'thumb{n}']; ax=handdir.copy()
+                if np.cross(ax,tip-base)@pn<0: ax=-ax
+                J[nm[0]]=base; J[nm[0]+'_end']=tip; PARENT[nm[0]]=f'hand{n}'; END[nm[0]]=nm[0]+'_end'
+                wv=np.zeros(len(V)); wv[idx]=g; Wf[nm[0]]=wv
+            else:
+                nm=[f'f{rank}{n}a',f'f{rank}{n}b']; ax=np.cross(tip-base,pn); ax/=np.linalg.norm(ax)
+                if np.cross(ax,tip-base)@pn<0: ax=-ax
+                J[nm[0]]=base; J[nm[1]]=mid; J[nm[1]+'_end']=tip; PARENT[nm[0]]=f'hand{n}'; PARENT[nm[1]]=nm[0]; END[nm[0]]=nm[1]; END[nm[1]]=nm[1]+'_end'
+                bs=np.clip((0.62-u_)/0.24,0,1); bs=bs*bs*(3-2*bs)
+                wa=np.zeros(len(V)); wb=np.zeros(len(V)); wa[idx]=g*(1-bs); wb[idx]=g*bs; Wf[nm[0]]=wa; Wf[nm[1]]=wb
+            out.append({'side':n,'kind':'thumb' if rank==0 else ('index' if rank==1 else 'rest'),'bones':nm,'axis':[round(float(x),4) for x in ax]})
+            BONES.extend(nm)
+        info[f'palm{n}']=[round(float(x),3) for x in pn]; info[f'ntips{n}']=len(tips)
+    return out,Wf
 def vnormals(V,F):
     fn=np.cross(V[F[:,1]]-V[F[:,0]],V[F[:,2]]-V[F[:,0]]); N=np.zeros_like(V)
     for i in range(3): np.add.at(N,F[:,i],fn)
@@ -44,7 +92,7 @@ def regions(V):
     return R
 CAND={0:['hips','spine','chest','neck','shoulderL','shoulderR','thighL','thighR'],1:['head'],
       2:['upperArmL','foreArmL','handL'],3:['upperArmR','foreArmR','handR'],4:['thighL','shinL','footL'],5:['thighR','shinR','footR']}
-def skin_weights(V,F,R):
+def skin_weights(V,F,R,lab):
     n=len(V); L,A=cotlap(V,F)
     D=np.full((n,len(BONES)),1e9)
     for r,names in CAND.items():
@@ -57,12 +105,24 @@ def skin_weights(V,F,R):
     for j in range(len(BONES)):
         if near[:,j].any(): W[:,j]=lu.solve(Hd*near[:,j]/near.sum(1))
     W=np.clip(W,0,None)
+    # 上衣下襬不要被大腿帶著走太多（抬腿時下襬會被扯開）
+    hemm=(R==0)&(lab==2)
+    for b in ('thighL','thighR'): W[hemm,BONES.index(b)]*=cfg.get('hem_thigh',0.35)
     # 關節處再平滑幾輪，讓彎折處不會出現硬摺
     Dg=np.asarray(A.sum(1)).ravel()
     for _ in range(cfg.get('weight_smooth',6)): W=0.5*W+0.5*(A@W)/Dg[:,None]
     # 頭部剛性：臉與頭髮不能被頸部帶著變形
     hi=BONES.index('head'); zn=J['head'][2]; t=np.clip((V[:,1]-(neck_y+0.01-cfg.get('chin_slope',0.3)*np.clip(V[:,2]-zn-0.05,0,None)))/0.05,0,1)[:,None]
     Wh=np.zeros_like(W); Wh[:,hi]=1; W=W*(1-t)+Wh*t*W.sum(1,keepdims=True)
+    # 手指：把手掌的權重依手指權重分出去（由高面數模型最近點轉移）
+    if FW:
+        _,nn=SRC_TREE.query(V)
+        for sd in ('L','R'):
+            hi_=BONES.index(f'hand{sd}'); wh=W[:,hi_].copy(); tot=np.zeros(n)
+            for b,wv in FW.items():
+                if not (b.endswith(sd) or b.endswith(sd+'a') or b.endswith(sd+'b')): continue
+                f=wv[nn]; W[:,BONES.index(b)]=wh*f; tot+=f
+            W[:,hi_]=wh*np.clip(1-tot,0,1)
     # 取前四大
     idx=np.argsort(-W,axis=1)[:,:4]; w=np.take_along_axis(W,idx,1); w/=w.sum(1,keepdims=True)
     q=np.floor(w*255+0.5).astype(int); q[:,0]+=255-q.sum(1)
@@ -86,7 +146,7 @@ def zbuffer(V,F,res=0.004):
     pi=np.clip(np.round(P).astype(int),0,[w-1,h-1])
     return V[:,2]>=Z[pi[:,1],pi[:,0]]-0.015
 def load_image():
-    im=Image.open(cfg['image']).convert('RGB'); a=np.asarray(im).astype(float); h,w=a.shape[:2]
+    im=Image.open(cfg['image'] if os.path.isabs(cfg['image']) else os.path.join(REPO,cfg['image'])).convert('RGB'); a=np.asarray(im).astype(float); h,w=a.shape[:2]
     white=(a.min(2)>cfg.get('bg_thresh',236))
     import scipy.ndimage as ndi
     lab,_=ndi.label(white); border=np.unique(np.concatenate([lab[0],lab[-1],lab[:,0],lab[:,-1]])); bg=np.isin(lab,border[border>0])
@@ -148,6 +208,23 @@ def labels(V,F,N,R,A):
     m=trusted&(R==1); lab[m]=np.where(hair[iy[m],ix[m]],0,1)
     lab[(R==1)&(V[:,1]>neck_y+0.6*(H-neck_y))&(N[:,2]<0.5)]=0
     lab[(R==1)&(N[:,2]<-0.2)&(V[:,1]>neck_y+0.25*(H-neck_y))]=0
+    # 髮際線（眼睛以上）：臉皮是平滑的、法線大致朝外（徑向）；瀏海邊緣是一圈階梯。
+    # 從兩眼之間的種子沿平滑表面擴張，被階梯擋住的範圍就是額頭皮膚，其餘是頭髮。圖只用來擋「一定是頭髮」的深處。
+    fc=cfg.get('face',{})
+    if 'eyeL' in fc:
+        ey=(fc['eyeL'][1]+fc['eyeR'][1])/2; ex=(fc['eyeL'][0]+fc['eyeR'][0])/2
+        hc=np.array([ex,neck_y+0.45*(H-neck_y),J['head'][2]]); rd=V-hc; rd/=np.linalg.norm(rd,axis=1,keepdims=True)
+        dev=1-(N*rd).sum(1)
+        deep=ndi.binary_erosion(hair,iterations=cfg.get('hair_deep',3))[iy,ix]&vis
+        okv=(R==1)&(N[:,2]>-0.1)&(dev<cfg.get('hairline_dev',0.33))&~deep
+        fr=np.where((R==1)&(np.abs(V[:,0]-ex)<0.03)&(np.abs(V[:,1]-(ey+0.01))<0.03)&(N[:,2]>0.6))[0]
+        Bk=(A>0).astype(float).tocsr(); sub=Bk[okv][:,okv]; nc,cl=cg.connected_components(sub,directed=False)
+        full=-np.ones(n,int); full[okv]=cl; seeds=np.unique(full[fr]); seeds=seeds[seeds>=0]
+        reach=np.isin(full,seeds)&okv
+        for _ in range(2): reach=reach|((Bk@reach.astype(float))>=3)&(R==1)   # 補回鼻側、眼窩等法線偏的小洞
+        up=(R==1)&(V[:,1]>ey+cfg.get('hairline_from',0.035))
+        lab[up&reach]=1; lab[up&~reach]=0
+        info['hairline_reach']=int((up&reach).sum())
     # 手：手腕平面之外是皮膚
     for s,nm,code in ((1,'L',2),(-1,'R',3)):
         ax_=info[f'armaxis{nm}']; t=(V-J[f'hand{nm}'])@ax_; m=R==code
@@ -206,6 +283,16 @@ def labels(V,F,N,R,A):
     faceW=((lab==1)&(R==1)&vis&(N[:,2]>0.4)).astype(float)
     projW=(vis&infg).astype(float)*np.clip((N[:,2]-0.15)/0.35,0,1)
     return lab,uv,faceW,projW,pal,im
+def cavity(V,N,A):
+    """凹處較暗、凸處較亮的簡易遮蔽：鄰居相對法線的高度，兩個尺度平均"""
+    B=(A>0).astype(float).tocsr(); deg=np.asarray(B.sum(1)).ravel()
+    c=((B@V)/deg[:,None]-V); c1=(c*N).sum(1)/np.maximum(np.sqrt(np.asarray(B.multiply(B).sum(1)).ravel())*0+np.linalg.norm(c,axis=1)+1e-4,1e-4)
+    Vs=V.copy()
+    for _ in range(6): Vs=(B@Vs)/deg[:,None]
+    c2=((Vs-V)*N).sum(1)/(0.02*H/1.96)
+    ao=1-np.clip(0.35*np.clip(c1,0,1)+0.55*np.clip(c2,0,1),0,0.75)
+    for _ in range(2): ao=0.5*ao+0.5*(B@ao)/deg
+    return ao
 def smooth(A,X,it=2,lam=0.5):
     Dg=np.asarray(A.sum(1)).ravel(); 
     for _ in range(it): X=(1-lam)*X+lam*(A@X)/Dg[:,None]
@@ -247,13 +334,13 @@ def write_glb(path,V,F,N,ji,jw,PA,PB,uv,col):
 meta=None
 for lod in ('hi','lo'):
     d=np.load(f'{out}/mesh_{lod}.npz'); V,F=d['V'],d['F']; N=vnormals(V,F); R=regions(V)
-    ji,jw,Wfull=skin_weights(V,F,R)
     L,A=cotlap(V,F)
     lab,uv,faceW,projW,pal,im=labels(V,F,N,R,A)
+    ji,jw,Wfull=skin_weights(V,F,R,lab); ao=cavity(V,N,A)
     B=(A>0).astype(float)
     ind=np.stack([(lab==k).astype(float) for k in range(5)],1)
     X=smooth(B,np.concatenate([ind,projW[:,None],faceW[:,None]],1),it=cfg.get('part_smooth',2))
-    PA=np.round(X[:,:4]*255).astype(np.uint8); PB=np.round(np.stack([X[:,4],X[:,5],X[:,6],np.zeros(len(V))],1)*255).astype(np.uint8)
+    PA=np.round(X[:,:4]*255).astype(np.uint8); PB=np.round(np.stack([X[:,4],X[:,5],X[:,6],ao],1)*255).astype(np.uint8)
     col=np.concatenate([pal[lab],np.full((len(V),1),255)],1).round().astype(np.uint8)
     write_glb(f"{out}/{cfg['name']}_{lod}.glb",V,F,N,ji,jw,PA,PB,uv,col)
     np.savez(f'{out}/dbg_{lod}.npz',lab=lab,R=R,W=Wfull,uv=uv)
@@ -262,6 +349,6 @@ for lod in ('hi','lo'):
         meta={'name':cfg['name'],'height':H,'bones':BONES,'joints':{k:[round(float(x),4) for x in v] for k,v in J.items()},
               'palette':{p:[int(round(c)) for c in pal[i]] for i,p in enumerate(PARTS)},
               'proj':im,'hem_top':info.get('hem_top'),
-              'neck_y':neck_y,'crotch':crotch,'cx':cx}
+              'neck_y':neck_y,'crotch':crotch,'cx':cx,'fingers':FINGERS,'palm':{'L':info.get('palmL'),'R':info.get('palmR')}}
 json.dump(meta,open(f"{out}/{cfg['name']}.meta.json",'w'),ensure_ascii=False,indent=1)
 print(json.dumps(meta['palette']))

@@ -1,8 +1,6 @@
 {
  "name": "boy",
- "pipe_dir": "/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/glb_pipe",
- "out_dir": "/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/glb_out",
- "image": "/root/.claude/projects/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/tool-results/mcp-Canva-blob-1794503887196-sp075h.png",
+ "image": "site/office/models/boy_ref.png",
  "palette": {
   "hair": [
    45,
