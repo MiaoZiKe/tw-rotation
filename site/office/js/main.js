@@ -3,7 +3,9 @@ import { THREE, canvasTex, setDetail } from './core.js';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 
 const qs = new URLSearchParams(location.search);
-if (qs.get('lod')) setDetail(qs.get('lod') === '1' ? 0.5 : 0.34); // 簡化等級：?lod=1（一半格數）、?lod=2（三分之一）
+// 簡化等級：?lod=1（一半格數）、?lod=2（三分之一）；手機預設用 0.7
+const coarse = matchMedia('(pointer:coarse)').matches;
+if (qs.get('lod')) setDetail(qs.get('lod') === '1' ? 0.5 : 0.34); else if (coarse) setDetail(0.7);
 const { buildChar, SPECS, CHAR_IDS } = await import('./character.js');
 const { Animator, ACTION_LIST } = await import('./anim.js');
 
@@ -20,7 +22,7 @@ controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan
 // 柔光：半球光打底（暗面不死黑）＋暖色主光（帶柔和陰影）＋冷色輪廓光
 scene.add(new THREE.HemisphereLight(0xfffaf4, 0xffdccb, 1.42));
 const key = new THREE.DirectionalLight(0xfff3e4, 2.1); key.position.set(-2.4, 4.6, 4.2); key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.012;
+key.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.012;
 Object.assign(key.shadow.camera, { left: -4.2, right: 4.2, top: 3.6, bottom: -2.2, near: 0.5, far: 16 }); key.shadow.camera.updateProjectionMatrix(); scene.add(key);
 const back = new THREE.DirectionalLight(0xdcebff, 0.7); back.position.set(3.2, 2.6, -3.6); scene.add(back);
 
@@ -49,7 +51,7 @@ function layout() {
   const put = (id, x, z, ry = 0, act = action) => { const ch = chars[id]; ch.root.visible = true; ch.root.position.set(x, 0, z); ch.root.rotation.y = ry; anims[id].play(act); };
   const wide = ['type', 'argue'].includes(action), far = action === 'hit';
   if (char === 'all') {
-    if (narrow()) { const sx = wide || far ? 1.25 : 0.84, sz = wide ? 1.7 : 1.5; BIPEDS.forEach((id, i) => put(id, ((i % 2) - 0.5) * sx - (far ? 0.4 : 0), (Math.floor(i / 2) - 1) * sz - 0.3)); put('pet', 0, 2.05); w = sx + 1.15 + (far ? 0.9 : 0); h = 5.6; cy = 0.75; }
+    if (narrow()) { const sx = wide || far ? 1.3 : 0.95, sz = 2.05; BIPEDS.forEach((id, i) => put(id, ((i % 2) - 0.5) * sx - (far ? 0.4 : 0), (Math.floor(i / 2) - 1) * sz - 0.5)); put('pet', 0, 2.55); w = sx + 1.0 + (far ? 0.9 : 0); h = 5.0; cy = 0.55; }
     else { const sp = wide ? 1.3 : far ? 1.5 : 0.76; BIPEDS.forEach((id, i) => put(id, (i - 2.5) * sp - 0.28, 0)); put('pet', 2.5 * sp + 0.42, 0.12); w = sp * 5 + 1.6 + (far ? 1 : 0); h = 2.0; cy = 0.66; }
   } else if (char === 'meeting') {
     put('kai', -0.95, 0.3, Math.PI / 2, 'argue'); put('mo', 0.95, 0.3, -Math.PI / 2, 'argue'); chars.mo.phase = 2.6; chars.mo.noTable = true;
@@ -72,7 +74,7 @@ function frame(view = state.view) {
   state.view = view; let [w, h] = state.box, cy = state.center; const single = state.char !== 'all' && state.char !== 'meeting';
   if (view === 'face' && single) { const pet = state.char === 'pet', S = chars[state.char].S || 1; w = pet ? 0.5 : 0.78; h = pet ? 0.45 : 0.8; cy = pet ? 0.2 : (state.action === 'type' ? 1.0 : 1.2) * S; }
   const asp = camera.aspect, tf = Math.tan(camera.fov * Math.PI / 360);
-  const dist = Math.max(h / 2 / tf, w / 2 / (tf * asp)) * 1.05 + 0.4, yaw = YAW[view] ?? 0, pitch = view === 'face' ? 0.06 : state.char === 'meeting' ? 0.34 : state.char === 'all' && narrow() ? 0.42 : 0.14;
+  const dist = Math.max(h / 2 / tf, w / 2 / (tf * asp)) * 1.05 + 0.4, yaw = YAW[view] ?? 0, pitch = view === 'face' ? 0.06 : state.char === 'meeting' ? 0.34 : state.char === 'all' && narrow() ? 0.68 : 0.14;
   controls.target.set(0, cy, 0);
   camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, cy + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
   controls.update();

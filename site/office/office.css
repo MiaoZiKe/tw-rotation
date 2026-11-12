@@ -34,6 +34,8 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Noto Sans TC","PingF
   .chips::-webkit-scrollbar{display:none}
   .chips button{font-size:13.5px;padding:7px 11px;flex:none}
   #title b{font-size:17px}#title{left:12px;top:10px}
-  #card{right:10px;top:10px;padding:7px 11px}
+  #card{right:10px;top:10px;padding:7px 11px;max-width:52%}
+  #cMeta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #title{max-width:44%}
   #hint{font-size:11px;bottom:6px}
 }
