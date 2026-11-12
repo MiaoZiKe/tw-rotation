@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>小房間・角色互動實驗</title>
+<link rel="stylesheet" href="play/play.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="view"></div>
+<div id="vig"></div>
+<div id="bubble" hidden></div>
+
+<header id="top">
+  <div class="seg" id="segChar" role="tablist" aria-label="角色"></div>
+  <div class="grow"></div>
+  <div class="seg" id="segCam" role="tablist" aria-label="視角">
+    <button data-cam="follow" class="on">跟隨</button><button data-cam="god">俯視</button>
+  </div>
+  <button class="btn" id="btnSnd" aria-pressed="true">音效開</button>
+  <button class="btn round" id="btnHelp" aria-label="操作說明">?</button>
+</header>
+<div id="charNote"></div>
+
+<div id="help" hidden>
+  <h2>怎麼玩</h2>
+  <table>
+    <tr><th>走路</th><td>點地面，或按方向鍵／WASD（手機用左下搖桿）</td></tr>
+    <tr><th>跑步</th><td>按住 Shift，或點遠一點的地方、搖桿推到底</td></tr>
+    <tr><th>跳</th><td>空白鍵（手機按右下「跳」）</td></tr>
+    <tr><th>戳一下</th><td>點角色；連點會笑，戳太多會生氣</td></tr>
+    <tr><th>摸頭</th><td>按住角色不放</td></tr>
+    <tr><th>拎起來丟</th><td>按住角色拖曳，放開就丟出去</td></tr>
+    <tr><th>玩球</th><td>走過去踢，或直接拖曳球丟出去</td></tr>
+    <tr><th>家具</th><td>點沙發、圓凳會去坐；點小窩會去睡；點彈跳床會去跳</td></tr>
+    <tr><th>轉視角</th><td>在空白處拖曳；滾輪或雙指縮放</td></tr>
+    <tr><th>放著不管</th><td>會東張西望、打哈欠、坐下、睡著</td></tr>
+  </table>
+  <button class="btn" id="helpClose">知道了</button>
+</div>
+
+<div id="panel">
+  <div class="seg" id="segTab">
+    <button data-tab="emo" class="on">表情</button><button data-tab="act">動作</button><button data-tab="play">玩耍</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<div id="stick" aria-hidden="true"><div id="knob"></div></div>
+<button id="btnJump">跳</button>
+<div id="hint">點地面走路・拖曳角色可以拎起來丟・按住不放是摸頭</div>
+
+<script type="module" src="play/main.js"></script>
+</body>
+</html>

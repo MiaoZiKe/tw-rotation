@@ -1,0 +1,43 @@
+{
+  "protocol": "ai-office.events/0.1",
+  "note": "示範用的假事件。格式照 docs/ai_office/plan.md 的規劃：hooks 送出「派了誰、開始、結束、回報摘要、Token 用量」，會議與發言另成一類。階段 2 接上後端時，伺服器推送的就是同一種事件，場景端的 director.play(events) 不用改。時間一律台北時間。",
+  "org": "andy", "project": "tw-rotation",
+  "types": {
+    "meeting.start": "by 召集人、topic 議題、attendees 被點名的人、room 會議室、source 原始派工全文",
+    "meeting.say": "who 發言者、kind：open 開場｜assign 交代｜ack 確認｜question 提問｜add 補充｜object 反對｜agree 附和｜risk 提醒風險｜summary 總結；to 對誰說（可省略）",
+    "meeting.note": "白板上新增一條重點",
+    "meeting.end": "summary 結論、post_to 貼到哪個佈告欄",
+    "task.assigned": "task 任務代號、who、title、est_min 預估分鐘",
+    "task.started": "tool：edit 寫程式｜search 查資料｜read 讀文件｜wait 等待",
+    "task.done": "summary 回報摘要、tokens 用量、evidence 完成證據、report_to 向誰報告、reply 對方回應",
+    "agent.clock": "action：in 上班｜out 下班",
+    "agent.activity": "activity：coffee 倒咖啡｜lookup 查資料｜rest 休息｜snack 吃東西｜play 遊樂｜board 看佈告欄"
+  },
+  "events": [
+    { "id": "e01", "ts": "2026-11-13T10:00:00+08:00", "type": "meeting.start", "meeting": "m-1113-01", "by": "ceo", "room": "meeting",
+      "topic": "手機首頁第一屏太慢",
+      "attendees": ["frontend-ui", "mobile-ui", "data-steward", "reviewer", "deployer", "product-design-lead"],
+      "source": "CEO 派工原文：手機首頁第一屏目前要 4 秒，目標 2 秒內。frontend-ui 處理載入順序，mobile-ui 確認手機準則，data-steward 評估資料檔拆分，reviewer 驗收，deployer 部署。" },
+    { "id": "e02", "ts": "2026-11-13T10:00:40+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "ceo", "kind": "open", "text": "手機首頁第一屏要 4 秒，今天壓到 2 秒內。" },
+    { "id": "e03", "ts": "2026-11-13T10:00:55+08:00", "type": "meeting.note", "meeting": "m-1113-01", "text": "目標：手機第一屏 2 秒內" },
+    { "id": "e04", "ts": "2026-11-13T10:01:05+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "ceo", "kind": "assign", "to": "frontend-ui", "text": "阿版，你打算怎麼做？" },
+    { "id": "e05", "ts": "2026-11-13T10:01:20+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "frontend-ui", "kind": "ack", "text": "下面三張圖改成捲到才載入，估 40 分鐘。" },
+    { "id": "e06", "ts": "2026-11-13T10:01:40+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "mobile-ui", "kind": "question", "to": "frontend-ui", "text": "主圖會不會跟著晚出現？第一屏一定要看到主圖。" },
+    { "id": "e07", "ts": "2026-11-13T10:01:58+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "frontend-ui", "kind": "add", "text": "主圖照常先載，延後的只有下面那三張。" },
+    { "id": "e08", "ts": "2026-11-13T10:02:10+08:00", "type": "meeting.note", "meeting": "m-1113-01", "text": "主圖先載，其餘三張延後" },
+    { "id": "e09", "ts": "2026-11-13T10:02:20+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "data-steward", "kind": "add", "text": "資料檔可以拆成摘要和明細，摘要只有 30 KB。" },
+    { "id": "e10", "ts": "2026-11-13T10:02:40+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "reviewer", "kind": "object", "text": "我反對一起上！拆檔會動到資料格式，預覽版看不出來。" },
+    { "id": "e11", "ts": "2026-11-13T10:03:00+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "deployer", "kind": "agree", "text": "同意分兩批，前端先推，資料那批另外跑關卡。" },
+    { "id": "e12", "ts": "2026-11-13T10:03:15+08:00", "type": "meeting.note", "meeting": "m-1113-01", "text": "分兩批上線：前端先、資料後" },
+    { "id": "e13", "ts": "2026-11-13T10:03:25+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "product-design-lead", "kind": "risk", "text": "提醒：延後載入要留骨架，不然版面會跳。" },
+    { "id": "e14", "ts": "2026-11-13T10:03:45+08:00", "type": "meeting.say", "meeting": "m-1113-01", "who": "ceo", "kind": "summary", "text": "好，阿版和小屏做前端，阿梟拆檔，守門驗收，上線部署。散會！" },
+    { "id": "e15", "ts": "2026-11-13T10:03:55+08:00", "type": "meeting.note", "meeting": "m-1113-01", "text": "守門驗收、上線部署" },
+    { "id": "e16", "ts": "2026-11-13T10:04:00+08:00", "type": "meeting.end", "meeting": "m-1113-01", "post_to": "ceo",
+      "summary": "手機第一屏 2 秒內：主圖先載、其餘延後；資料拆摘要與明細；分兩批上線。" },
+    { "id": "e17", "ts": "2026-11-13T10:04:30+08:00", "type": "task.started", "task": "t-1113-07", "who": "frontend-ui", "tool": "edit", "title": "首頁三張圖延後載入" },
+    { "id": "e18", "ts": "2026-11-13T10:04:30+08:00", "type": "task.started", "task": "t-1113-08", "who": "data-steward", "tool": "search", "title": "資料檔拆摘要與明細" },
+    { "id": "e19", "ts": "2026-11-13T10:04:30+08:00", "type": "task.started", "task": "t-1113-09", "who": "reviewer", "tool": "read", "title": "驗收清單準備" },
+    { "id": "e20", "ts": "2026-11-13T10:41:00+08:00", "type": "task.done", "task": "t-1113-07", "who": "frontend-ui", "report_to": "ceo",
+      "summary": "前端那批做完了，第一屏 1.8 秒，預覽網址附上。", "reply": "收到，交給守門驗收。", "tokens": 48200, "evidence": "preview/home-lazy" }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "note": "編制來源：docs/ai_office/org.md（2026-11-12 第一版）。職稱代號鎖定；暱稱、種族之後可在網頁上改。",
+  "ceo": { "id": "ceo", "title": "CEO", "zh": "總經理（主 Claude）", "race": "人類", "nick": "CEO", "dept": "ceo" },
+  "departments": [
+    { "id": "data", "name": "資料部", "color": "#8ecfe6", "members": [
+      { "id": "data-steward", "zh": "資料治理", "race": "貓頭鷹", "nick": "阿梟", "lead": true },
+      { "id": "data-scraper", "zh": "資料抓取", "race": "蜘蛛精", "nick": "織網" } ] },
+    { "id": "quant", "name": "量化研究部", "color": "#f6c177", "members": [
+      { "id": "finance-quant", "zh": "金融口徑", "race": "矮人", "nick": "秤老", "lead": true },
+      { "id": "smc-technical", "zh": "技術分析", "race": "精靈", "nick": "K線" },
+      { "id": "strategy-backtest", "zh": "策略回測", "race": "時間旅人", "nick": "回朔" } ] },
+    { "id": "industry", "name": "產業研究部", "color": "#aedb9a", "members": [
+      { "id": "industry-analyst", "zh": "產業分析", "race": "人類", "nick": "鏈哥", "lead": true },
+      { "id": "semi-chain-analyst", "zh": "半導體", "race": "機器人", "nick": "矽仔" },
+      { "id": "pcb-substrate-analyst", "zh": "載板", "race": "地精", "nick": "板叔" },
+      { "id": "ai-server-analyst", "zh": "AI 伺服器", "race": "雪怪", "nick": "液冷" } ] },
+    { "id": "frontend", "name": "前端工程部", "color": "#a4c2f7", "members": [
+      { "id": "frontend-ui", "zh": "前端", "race": "人類", "nick": "阿版", "lead": true },
+      { "id": "mobile-ui", "zh": "手機介面", "race": "妖精", "nick": "小屏" },
+      { "id": "canvas-motion-engineer", "zh": "動效工程", "race": "光精靈", "nick": "粒粒" },
+      { "id": "visual-explainer", "zh": "圖解教學", "race": "狐狸", "nick": "解說狐" } ] },
+    { "id": "design", "name": "設計與繪圖部", "color": "#f7b0c6", "members": [
+      { "id": "product-design-lead", "zh": "設計總監", "race": "高等精靈", "nick": "格線", "lead": true },
+      { "id": "visual-designer", "zh": "美編", "race": "蝴蝶仙子", "nick": "色票" },
+      { "id": "tech-illustrator", "zh": "機構繪圖", "race": "矮人", "nick": "剖面" },
+      { "id": "art-director", "zh": "視覺審查", "race": "孔雀", "nick": "鷹眼" },
+      { "id": "mechanical-engineer", "zh": "結構審查", "race": "機械人偶", "nick": "螺絲" } ] },
+    { "id": "social", "name": "社群媒體部", "color": "#ffc48f", "members": [
+      { "id": "social-ops-lead", "zh": "發文營運", "race": "獸人", "nick": "準點", "lead": true },
+      { "id": "tc-channel-lead", "zh": "科技透明圈", "race": "外星人", "nick": "透明" },
+      { "id": "healing-editor", "zh": "談晴說礙", "race": "幽靈", "nick": "晴晴" },
+      { "id": "finance-content-editor", "zh": "財經編輯", "race": "人類", "nick": "快訊" },
+      { "id": "content-planner", "zh": "企劃", "race": "狸貓", "nick": "點子" },
+      { "id": "market-researcher", "zh": "市場研調", "race": "蝙蝠", "nick": "聲納" } ] },
+    { "id": "video", "name": "影音製作部", "color": "#cbb2f2", "members": [
+      { "id": "animation-director", "zh": "動畫導演", "race": "龍族", "nick": "分鏡龍", "lead": true },
+      { "id": "storyboard-artist", "zh": "分鏡", "race": "松鼠", "nick": "格子" },
+      { "id": "motion-designer", "zh": "動態設計", "race": "史萊姆", "nick": "去背" },
+      { "id": "video-editor", "zh": "剪輯", "race": "章魚", "nick": "八爪" },
+      { "id": "bibi-animator", "zh": "比比動畫", "race": "兔子", "nick": "跳跳" },
+      { "id": "bibi-illustrator", "zh": "比比插圖", "race": "倉鼠", "nick": "毛筆" },
+      { "id": "bibi-interaction", "zh": "比比互動", "race": "小機器人", "nick": "嗶嗶" } ] },
+    { "id": "biz", "name": "商務與上架部", "color": "#f7df83", "members": [
+      { "id": "marketing-strategist", "zh": "行銷策略", "race": "人類", "nick": "定價", "lead": true },
+      { "id": "payments-billing", "zh": "金流", "race": "哥布林", "nick": "收銀" },
+      { "id": "mobile-release", "zh": "App 上架", "race": "信鴿", "nick": "送審" } ] },
+    { "id": "legal", "name": "法遵與資安部", "color": "#b4c4d8", "members": [
+      { "id": "legal-compliance", "zh": "法遵", "race": "石像鬼", "nick": "條文", "lead": true },
+      { "id": "security-privacy", "zh": "資安", "race": "忍者", "nick": "鎖匠" } ] },
+    { "id": "ops", "name": "營運與部署部", "color": "#97dfcc", "members": [
+      { "id": "delivery-planner", "zh": "交付排程", "race": "人類", "nick": "排排", "lead": true },
+      { "id": "deployer", "zh": "部署", "race": "火箭機器人", "nick": "上線" },
+      { "id": "efficiency-planner", "zh": "效率規劃", "race": "獵豹", "nick": "捷徑" } ] },
+    { "id": "audit", "name": "監察與稽核室", "color": "#f4a59d", "members": [
+      { "id": "inspector", "zh": "監察委員", "race": "天使", "nick": "明鏡", "lead": true },
+      { "id": "reviewer", "zh": "審核", "race": "老龍", "nick": "守門" },
+      { "id": "resource-auditor", "zh": "資源稽核", "race": "矮人", "nick": "算盤" },
+      { "id": "hr-officer", "zh": "人資專員", "race": "柴犬", "nick": "阿薪" } ] }
+  ],
+  "reserve": [
+    { "id": "bibi-planner", "race": "天竺鼠", "nick": "比企" },
+    { "id": "bibi-review", "race": "刺蝟", "nick": "刺刺" },
+    { "id": "bibi-efficiency", "race": "螞蟻", "nick": "省省" }
+  ]
+}

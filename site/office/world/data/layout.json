@@ -1,0 +1,1885 @@
+{
+ "version": 1,
+ "note": "單位公尺；x 向右、z 向下（南）。rot 為 90 度的倍數（0 正面朝南、1 朝東、2 朝北、3 朝西）。整修只改這份資料。",
+ "size": {
+  "w": 40,
+  "d": 30
+ },
+ "cell": 0.25,
+ "rooms": [
+  {
+   "id": "ceo",
+   "name": "CEO 辦公室",
+   "kind": "room",
+   "x": 0,
+   "z": 0,
+   "w": 8,
+   "d": 9,
+   "floor": "#f3dfc2"
+  },
+  {
+   "id": "meeting",
+   "name": "會議室",
+   "kind": "room",
+   "x": 8,
+   "z": 0,
+   "w": 10,
+   "d": 9,
+   "floor": "#d9ecdc"
+  },
+  {
+   "id": "library",
+   "name": "資料櫃區",
+   "kind": "room",
+   "x": 18,
+   "z": 0,
+   "w": 6,
+   "d": 9,
+   "floor": "#eadfcd"
+  },
+  {
+   "id": "pantry",
+   "name": "茶水間",
+   "kind": "room",
+   "x": 24,
+   "z": 0,
+   "w": 6,
+   "d": 9,
+   "floor": "#fde6c4"
+  },
+  {
+   "id": "food",
+   "name": "食物區",
+   "kind": "room",
+   "x": 30,
+   "z": 0,
+   "w": 10,
+   "d": 9,
+   "floor": "#fbe0d4"
+  },
+  {
+   "id": "video",
+   "name": "影音製作部",
+   "kind": "dept",
+   "dept": "video",
+   "x": 0.35,
+   "z": 11.15,
+   "w": 8.5,
+   "d": 5.75,
+   "floor": "#cbb2f2"
+  },
+  {
+   "id": "social",
+   "name": "社群媒體部",
+   "kind": "dept",
+   "dept": "social",
+   "x": 9.549999999999999,
+   "z": 11.15,
+   "w": 7.3,
+   "d": 5.75,
+   "floor": "#ffc48f"
+  },
+  {
+   "id": "design",
+   "name": "設計與繪圖部",
+   "kind": "dept",
+   "dept": "design",
+   "x": 17.55,
+   "z": 11.15,
+   "w": 7.3,
+   "d": 5.75,
+   "floor": "#f7b0c6"
+  },
+  {
+   "id": "frontend",
+   "name": "前端工程部",
+   "kind": "dept",
+   "dept": "frontend",
+   "x": 25.55,
+   "z": 11.15,
+   "w": 6.700000000000002,
+   "d": 5.75,
+   "floor": "#a4c2f7"
+  },
+  {
+   "id": "industry",
+   "name": "產業研究部",
+   "kind": "dept",
+   "dept": "industry",
+   "x": 32.95,
+   "z": 11.15,
+   "w": 6.699999999999998,
+   "d": 5.75,
+   "floor": "#aedb9a"
+  },
+  {
+   "id": "quant",
+   "name": "量化研究部",
+   "kind": "dept",
+   "dept": "quant",
+   "x": 0.35,
+   "z": 17.75,
+   "w": 6.3,
+   "d": 5.75,
+   "floor": "#f6c177"
+  },
+  {
+   "id": "biz",
+   "name": "商務與上架部",
+   "kind": "dept",
+   "dept": "biz",
+   "x": 7.35,
+   "z": 17.75,
+   "w": 6.3,
+   "d": 5.75,
+   "floor": "#f7df83"
+  },
+  {
+   "id": "ops",
+   "name": "營運與部署部",
+   "kind": "dept",
+   "dept": "ops",
+   "x": 14.35,
+   "z": 17.75,
+   "w": 6.3,
+   "d": 5.75,
+   "floor": "#97dfcc"
+  },
+  {
+   "id": "audit",
+   "name": "監察與稽核室",
+   "kind": "dept",
+   "dept": "audit",
+   "x": 21.35,
+   "z": 17.75,
+   "w": 6.699999999999998,
+   "d": 5.75,
+   "floor": "#f4a59d"
+  },
+  {
+   "id": "data",
+   "name": "資料部",
+   "kind": "dept",
+   "dept": "data",
+   "x": 28.75,
+   "z": 17.75,
+   "w": 5.100000000000004,
+   "d": 5.75,
+   "floor": "#8ecfe6"
+  },
+  {
+   "id": "legal",
+   "name": "法遵與資安部",
+   "kind": "dept",
+   "dept": "legal",
+   "x": 34.550000000000004,
+   "z": 17.75,
+   "w": 5.099999999999997,
+   "d": 5.75,
+   "floor": "#b4c4d8"
+  },
+  {
+   "id": "play",
+   "name": "遊樂區",
+   "kind": "zone",
+   "x": 0.35,
+   "z": 24.6,
+   "w": 11.5,
+   "d": 5.05,
+   "floor": "#e3d8f6"
+  },
+  {
+   "id": "reserve",
+   "name": "後備區",
+   "kind": "zone",
+   "x": 12.3,
+   "z": 24.6,
+   "w": 4.9,
+   "d": 5.05,
+   "floor": "#e8e2d6"
+  },
+  {
+   "id": "lobby",
+   "name": "入口大廳",
+   "kind": "zone",
+   "x": 17.7,
+   "z": 24.6,
+   "w": 5.8,
+   "d": 5.05,
+   "floor": "#f6e7c9"
+  },
+  {
+   "id": "lounge",
+   "name": "休息區",
+   "kind": "zone",
+   "x": 24,
+   "z": 24.6,
+   "w": 15.65,
+   "d": 5.05,
+   "floor": "#dcefdc"
+  }
+ ],
+ "walls": [
+  {
+   "x1": 0,
+   "z1": 0,
+   "x2": 40,
+   "z2": 0,
+   "h": 2.5
+  },
+  {
+   "x1": 0,
+   "z1": 0,
+   "x2": 0,
+   "z2": 30,
+   "h": 2.5
+  },
+  {
+   "x1": 40,
+   "z1": 0,
+   "x2": 40,
+   "z2": 30,
+   "h": 2.5
+  },
+  {
+   "x1": 0,
+   "z1": 30,
+   "x2": 19.4,
+   "z2": 30,
+   "h": 0.9
+  },
+  {
+   "x1": 21.6,
+   "z1": 30,
+   "x2": 40,
+   "z2": 30,
+   "h": 0.9
+  },
+  {
+   "x1": 8,
+   "z1": 0,
+   "x2": 8,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 18,
+   "z1": 0,
+   "x2": 18,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 24,
+   "z1": 0,
+   "x2": 24,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 30,
+   "z1": 0,
+   "x2": 30,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 0,
+   "z1": 9,
+   "x2": 4.9,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 6.5,
+   "z1": 9,
+   "x2": 8,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 8,
+   "z1": 9,
+   "x2": 12,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 14,
+   "z1": 9,
+   "x2": 18,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 18,
+   "z1": 9,
+   "x2": 18.8,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 23.2,
+   "z1": 9,
+   "x2": 24,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 24,
+   "z1": 9,
+   "x2": 26.2,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 27.8,
+   "z1": 9,
+   "x2": 30,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 30,
+   "z1": 9,
+   "x2": 32.6,
+   "z2": 9,
+   "h": 1.1
+  },
+  {
+   "x1": 37.4,
+   "z1": 9,
+   "x2": 40,
+   "z2": 9,
+   "h": 1.1
+  }
+ ],
+ "windows": [
+  {
+   "side": "n",
+   "at": 2.2,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 5.8,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 10.5,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 15.5,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 21,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 27,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 32.5,
+   "w": 2.2
+  },
+  {
+   "side": "n",
+   "at": 37.5,
+   "w": 2.2
+  },
+  {
+   "side": "w",
+   "at": 4.5,
+   "w": 2.4
+  },
+  {
+   "side": "e",
+   "at": 4.5,
+   "w": 2.4
+  },
+  {
+   "side": "w",
+   "at": 14,
+   "w": 2.4
+  },
+  {
+   "side": "e",
+   "at": 14,
+   "w": 2.4
+  },
+  {
+   "side": "w",
+   "at": 20.5,
+   "w": 2.4
+  },
+  {
+   "side": "e",
+   "at": 20.5,
+   "w": 2.4
+  },
+  {
+   "side": "w",
+   "at": 27,
+   "w": 2.4
+  },
+  {
+   "side": "e",
+   "at": 27,
+   "w": 2.4
+  }
+ ],
+ "furniture": [
+  {
+   "id": "rug_1",
+   "type": "rug",
+   "x": 4,
+   "z": 5.3,
+   "rot": 0,
+   "w": 5.2,
+   "d": 3.6,
+   "color": "#f7c8a0",
+   "round": true
+  },
+  {
+   "id": "ceo_desk_2",
+   "type": "ceo_desk",
+   "x": 4,
+   "z": 5.5,
+   "rot": 2,
+   "owner": "ceo"
+  },
+  {
+   "id": "bookshelf_3",
+   "type": "bookshelf",
+   "x": 1.5,
+   "z": 0.55,
+   "rot": 0
+  },
+  {
+   "id": "bookshelf_4",
+   "type": "bookshelf",
+   "x": 6.4,
+   "z": 0.55,
+   "rot": 0,
+   "nospot": true
+  },
+  {
+   "id": "sofa_5",
+   "type": "sofa",
+   "x": 0.75,
+   "z": 2.6,
+   "rot": 1,
+   "color": "#f2b8a2",
+   "noseat": true
+  },
+  {
+   "id": "plant_big_6",
+   "type": "plant_big",
+   "x": 7.3,
+   "z": 8.2,
+   "rot": 0
+  },
+  {
+   "id": "lamp_7",
+   "type": "lamp",
+   "x": 0.7,
+   "z": 0.75,
+   "rot": 0
+  },
+  {
+   "id": "plant_8",
+   "type": "plant",
+   "x": 7.35,
+   "z": 2.2,
+   "rot": 0
+  },
+  {
+   "id": "plant_9",
+   "type": "plant",
+   "x": 0.7,
+   "z": 8.3,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_10",
+   "type": "roomsign",
+   "x": 4,
+   "z": 0.22,
+   "rot": 0,
+   "text": "CEO 辦公室",
+   "color": "#ffb86b"
+  },
+  {
+   "id": "board_11",
+   "type": "board",
+   "x": 2.4,
+   "z": 9.42,
+   "rot": 0,
+   "owner": "ceo",
+   "label": "CEO 佈告欄"
+  },
+  {
+   "id": "rug_12",
+   "type": "rug",
+   "x": 13,
+   "z": 4.9,
+   "rot": 0,
+   "w": 6.6,
+   "d": 6.6,
+   "color": "#bfe0c9",
+   "round": true
+  },
+  {
+   "id": "meeting_table_13",
+   "type": "meeting_table",
+   "x": 13,
+   "z": 4.9,
+   "rot": 0
+  },
+  {
+   "id": "whiteboard_14",
+   "type": "whiteboard",
+   "x": 13,
+   "z": 0.42,
+   "rot": 0
+  },
+  {
+   "id": "plant_big_15",
+   "type": "plant_big",
+   "x": 8.8,
+   "z": 0.9,
+   "rot": 0
+  },
+  {
+   "id": "plant_big_16",
+   "type": "plant_big",
+   "x": 17.2,
+   "z": 0.9,
+   "rot": 0
+  },
+  {
+   "id": "plant_17",
+   "type": "plant",
+   "x": 8.75,
+   "z": 8.3,
+   "rot": 0
+  },
+  {
+   "id": "lamp_18",
+   "type": "lamp",
+   "x": 17.3,
+   "z": 8.3,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_19",
+   "type": "roomsign",
+   "x": 10.2,
+   "z": 0.22,
+   "rot": 0,
+   "text": "會議室",
+   "color": "#8fd3a6"
+  },
+  {
+   "id": "bookshelf_20",
+   "type": "bookshelf",
+   "x": 19.4,
+   "z": 0.55,
+   "rot": 0,
+   "spot": "library"
+  },
+  {
+   "id": "bookshelf_21",
+   "type": "bookshelf",
+   "x": 21.4,
+   "z": 0.55,
+   "rot": 0,
+   "spot": "library"
+  },
+  {
+   "id": "bookshelf_22",
+   "type": "bookshelf",
+   "x": 18.55,
+   "z": 3.4,
+   "rot": 1,
+   "spot": "library"
+  },
+  {
+   "id": "bookshelf_23",
+   "type": "bookshelf",
+   "x": 18.55,
+   "z": 5.6,
+   "rot": 1,
+   "spot": "library"
+  },
+  {
+   "id": "cabinet_24",
+   "type": "cabinet",
+   "x": 23.45,
+   "z": 2.2,
+   "rot": 3,
+   "spot": "library"
+  },
+  {
+   "id": "cabinet_25",
+   "type": "cabinet",
+   "x": 23.45,
+   "z": 3.4,
+   "rot": 3,
+   "spot": "library"
+  },
+  {
+   "id": "cabinet_26",
+   "type": "cabinet",
+   "x": 23.45,
+   "z": 4.6,
+   "rot": 3,
+   "spot": "library"
+  },
+  {
+   "id": "cabinet_27",
+   "type": "cabinet",
+   "x": 23.45,
+   "z": 5.8,
+   "rot": 3,
+   "spot": "library"
+  },
+  {
+   "id": "rug_28",
+   "type": "rug",
+   "x": 21,
+   "z": 5,
+   "rot": 0,
+   "w": 2.6,
+   "d": 2.6,
+   "color": "#e6c9a0",
+   "round": true
+  },
+  {
+   "id": "side_table_29",
+   "type": "side_table",
+   "x": 21,
+   "z": 5,
+   "rot": 0
+  },
+  {
+   "id": "plant_30",
+   "type": "plant",
+   "x": 23.35,
+   "z": 7.6,
+   "rot": 0
+  },
+  {
+   "id": "plant_31",
+   "type": "plant",
+   "x": 23.2,
+   "z": 0.7,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_32",
+   "type": "roomsign",
+   "x": 20.4,
+   "z": 0.22,
+   "rot": 0,
+   "text": "資料櫃區",
+   "color": "#d9b282",
+   "high": true
+  },
+  {
+   "id": "counter_33",
+   "type": "counter",
+   "x": 26.6,
+   "z": 0.6,
+   "rot": 0,
+   "variant": "coffee"
+  },
+  {
+   "id": "water_34",
+   "type": "water",
+   "x": 29.2,
+   "z": 0.62,
+   "rot": 0
+  },
+  {
+   "id": "side_table_35",
+   "type": "side_table",
+   "x": 27,
+   "z": 5.2,
+   "rot": 0,
+   "tall": true
+  },
+  {
+   "id": "rug_36",
+   "type": "rug",
+   "x": 27,
+   "z": 5.2,
+   "rot": 0,
+   "w": 3,
+   "d": 3,
+   "color": "#ffd9a8",
+   "round": true
+  },
+  {
+   "id": "plant_big_37",
+   "type": "plant_big",
+   "x": 24.8,
+   "z": 8.2,
+   "rot": 0
+  },
+  {
+   "id": "plant_38",
+   "type": "plant",
+   "x": 29.3,
+   "z": 8.3,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_39",
+   "type": "roomsign",
+   "x": 27,
+   "z": 0.22,
+   "rot": 0,
+   "text": "茶水間",
+   "color": "#f3b76b",
+   "high": true
+  },
+  {
+   "id": "fridge_40",
+   "type": "fridge",
+   "x": 31,
+   "z": 0.68,
+   "rot": 0
+  },
+  {
+   "id": "snack_41",
+   "type": "snack",
+   "x": 32.9,
+   "z": 0.55,
+   "rot": 0
+  },
+  {
+   "id": "counter_42",
+   "type": "counter",
+   "x": 36.2,
+   "z": 0.6,
+   "rot": 0,
+   "variant": "microwave"
+  },
+  {
+   "id": "dining_43",
+   "type": "dining",
+   "x": 33.2,
+   "z": 5.2,
+   "rot": 0
+  },
+  {
+   "id": "dining_44",
+   "type": "dining",
+   "x": 37,
+   "z": 5.2,
+   "rot": 0
+  },
+  {
+   "id": "plant_big_45",
+   "type": "plant_big",
+   "x": 39.2,
+   "z": 0.9,
+   "rot": 0
+  },
+  {
+   "id": "plant_46",
+   "type": "plant",
+   "x": 30.7,
+   "z": 8.3,
+   "rot": 0
+  },
+  {
+   "id": "plant_47",
+   "type": "plant",
+   "x": 39.3,
+   "z": 8.3,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_48",
+   "type": "roomsign",
+   "x": 34.6,
+   "z": 0.22,
+   "rot": 0,
+   "text": "食物區",
+   "color": "#f29d86",
+   "high": true
+  },
+  {
+   "id": "workstation_49",
+   "type": "workstation",
+   "x": 1.9,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "animation-director",
+   "dept": "video"
+  },
+  {
+   "id": "workstation_50",
+   "type": "workstation",
+   "x": 3.7,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "storyboard-artist",
+   "dept": "video"
+  },
+  {
+   "id": "workstation_51",
+   "type": "workstation",
+   "x": 5.5,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "motion-designer",
+   "dept": "video"
+  },
+  {
+   "id": "workstation_52",
+   "type": "workstation",
+   "x": 7.3,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "video-editor",
+   "dept": "video"
+  },
+  {
+   "id": "workstation_53",
+   "type": "workstation",
+   "x": 1.9,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "bibi-animator",
+   "dept": "video"
+  },
+  {
+   "id": "workstation_54",
+   "type": "workstation",
+   "x": 3.7,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "bibi-illustrator",
+   "dept": "video"
+  },
+  {
+   "id": "workstation_55",
+   "type": "workstation",
+   "x": 5.5,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "bibi-interaction",
+   "dept": "video"
+  },
+  {
+   "id": "deptsign_56",
+   "type": "deptsign",
+   "x": 3.45,
+   "z": 11.5,
+   "rot": 0,
+   "text": "影音製作部",
+   "color": "#cbb2f2",
+   "dept": "video"
+  },
+  {
+   "id": "board_57",
+   "type": "board",
+   "x": 5.65,
+   "z": 11.5,
+   "rot": 0,
+   "owner": "video",
+   "label": "影音製作部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_58",
+   "type": "plant",
+   "x": 0.85,
+   "z": 11.75,
+   "rot": 0
+  },
+  {
+   "id": "plant_59",
+   "type": "plant",
+   "x": 8.35,
+   "z": 16.3,
+   "rot": 0
+  },
+  {
+   "id": "workstation_60",
+   "type": "workstation",
+   "x": 11.4,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "social-ops-lead",
+   "dept": "social"
+  },
+  {
+   "id": "workstation_61",
+   "type": "workstation",
+   "x": 13.2,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "tc-channel-lead",
+   "dept": "social"
+  },
+  {
+   "id": "workstation_62",
+   "type": "workstation",
+   "x": 15,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "healing-editor",
+   "dept": "social"
+  },
+  {
+   "id": "workstation_63",
+   "type": "workstation",
+   "x": 11.4,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "finance-content-editor",
+   "dept": "social"
+  },
+  {
+   "id": "workstation_64",
+   "type": "workstation",
+   "x": 13.2,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "content-planner",
+   "dept": "social"
+  },
+  {
+   "id": "workstation_65",
+   "type": "workstation",
+   "x": 15,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "market-researcher",
+   "dept": "social"
+  },
+  {
+   "id": "deptsign_66",
+   "type": "deptsign",
+   "x": 12.05,
+   "z": 11.5,
+   "rot": 0,
+   "text": "社群媒體部",
+   "color": "#ffc48f",
+   "dept": "social"
+  },
+  {
+   "id": "board_67",
+   "type": "board",
+   "x": 14.25,
+   "z": 11.5,
+   "rot": 0,
+   "owner": "social",
+   "label": "社群媒體部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_68",
+   "type": "plant",
+   "x": 10.05,
+   "z": 11.75,
+   "rot": 0
+  },
+  {
+   "id": "plant_69",
+   "type": "plant",
+   "x": 16.35,
+   "z": 16.3,
+   "rot": 0
+  },
+  {
+   "id": "workstation_70",
+   "type": "workstation",
+   "x": 19.4,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "product-design-lead",
+   "dept": "design"
+  },
+  {
+   "id": "workstation_71",
+   "type": "workstation",
+   "x": 21.2,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "visual-designer",
+   "dept": "design"
+  },
+  {
+   "id": "workstation_72",
+   "type": "workstation",
+   "x": 23,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "tech-illustrator",
+   "dept": "design"
+  },
+  {
+   "id": "workstation_73",
+   "type": "workstation",
+   "x": 19.4,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "art-director",
+   "dept": "design"
+  },
+  {
+   "id": "workstation_74",
+   "type": "workstation",
+   "x": 21.2,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "mechanical-engineer",
+   "dept": "design"
+  },
+  {
+   "id": "deptsign_75",
+   "type": "deptsign",
+   "x": 20.05,
+   "z": 11.5,
+   "rot": 0,
+   "text": "設計與繪圖部",
+   "color": "#f7b0c6",
+   "dept": "design"
+  },
+  {
+   "id": "board_76",
+   "type": "board",
+   "x": 22.25,
+   "z": 11.5,
+   "rot": 0,
+   "owner": "design",
+   "label": "設計與繪圖部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_77",
+   "type": "plant",
+   "x": 18.05,
+   "z": 11.75,
+   "rot": 0
+  },
+  {
+   "id": "plant_78",
+   "type": "plant",
+   "x": 24.35,
+   "z": 16.3,
+   "rot": 0
+  },
+  {
+   "id": "workstation_79",
+   "type": "workstation",
+   "x": 28,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "frontend-ui",
+   "dept": "frontend"
+  },
+  {
+   "id": "workstation_80",
+   "type": "workstation",
+   "x": 29.8,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "mobile-ui",
+   "dept": "frontend"
+  },
+  {
+   "id": "workstation_81",
+   "type": "workstation",
+   "x": 28,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "canvas-motion-engineer",
+   "dept": "frontend"
+  },
+  {
+   "id": "workstation_82",
+   "type": "workstation",
+   "x": 29.8,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "visual-explainer",
+   "dept": "frontend"
+  },
+  {
+   "id": "deptsign_83",
+   "type": "deptsign",
+   "x": 27.75,
+   "z": 11.5,
+   "rot": 0,
+   "text": "前端工程部",
+   "color": "#a4c2f7",
+   "dept": "frontend"
+  },
+  {
+   "id": "board_84",
+   "type": "board",
+   "x": 29.95,
+   "z": 11.5,
+   "rot": 0,
+   "owner": "frontend",
+   "label": "前端工程部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_85",
+   "type": "plant",
+   "x": 26.05,
+   "z": 11.75,
+   "rot": 0
+  },
+  {
+   "id": "plant_86",
+   "type": "plant",
+   "x": 31.75,
+   "z": 16.3,
+   "rot": 0
+  },
+  {
+   "id": "workstation_87",
+   "type": "workstation",
+   "x": 35.4,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "industry-analyst",
+   "dept": "industry"
+  },
+  {
+   "id": "workstation_88",
+   "type": "workstation",
+   "x": 37.2,
+   "z": 14.07,
+   "rot": 2,
+   "owner": "semi-chain-analyst",
+   "dept": "industry"
+  },
+  {
+   "id": "workstation_89",
+   "type": "workstation",
+   "x": 35.4,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "pcb-substrate-analyst",
+   "dept": "industry"
+  },
+  {
+   "id": "workstation_90",
+   "type": "workstation",
+   "x": 37.2,
+   "z": 14.83,
+   "rot": 0,
+   "owner": "ai-server-analyst",
+   "dept": "industry"
+  },
+  {
+   "id": "deptsign_91",
+   "type": "deptsign",
+   "x": 35.15,
+   "z": 11.5,
+   "rot": 0,
+   "text": "產業研究部",
+   "color": "#aedb9a",
+   "dept": "industry"
+  },
+  {
+   "id": "board_92",
+   "type": "board",
+   "x": 37.35,
+   "z": 11.5,
+   "rot": 0,
+   "owner": "industry",
+   "label": "產業研究部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_93",
+   "type": "plant",
+   "x": 33.45,
+   "z": 11.75,
+   "rot": 0
+  },
+  {
+   "id": "plant_94",
+   "type": "plant",
+   "x": 39.15,
+   "z": 16.3,
+   "rot": 0
+  },
+  {
+   "id": "workstation_95",
+   "type": "workstation",
+   "x": 2.6,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "finance-quant",
+   "dept": "quant"
+  },
+  {
+   "id": "workstation_96",
+   "type": "workstation",
+   "x": 4.4,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "smc-technical",
+   "dept": "quant"
+  },
+  {
+   "id": "workstation_97",
+   "type": "workstation",
+   "x": 2.6,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "strategy-backtest",
+   "dept": "quant"
+  },
+  {
+   "id": "deptsign_98",
+   "type": "deptsign",
+   "x": 2.35,
+   "z": 18.1,
+   "rot": 0,
+   "text": "量化研究部",
+   "color": "#f6c177",
+   "dept": "quant"
+  },
+  {
+   "id": "board_99",
+   "type": "board",
+   "x": 4.55,
+   "z": 18.1,
+   "rot": 0,
+   "owner": "quant",
+   "label": "量化研究部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_100",
+   "type": "plant",
+   "x": 0.85,
+   "z": 18.35,
+   "rot": 0
+  },
+  {
+   "id": "plant_101",
+   "type": "plant",
+   "x": 6.15,
+   "z": 22.9,
+   "rot": 0
+  },
+  {
+   "id": "workstation_102",
+   "type": "workstation",
+   "x": 9.6,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "marketing-strategist",
+   "dept": "biz"
+  },
+  {
+   "id": "workstation_103",
+   "type": "workstation",
+   "x": 11.4,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "payments-billing",
+   "dept": "biz"
+  },
+  {
+   "id": "workstation_104",
+   "type": "workstation",
+   "x": 9.6,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "mobile-release",
+   "dept": "biz"
+  },
+  {
+   "id": "deptsign_105",
+   "type": "deptsign",
+   "x": 9.35,
+   "z": 18.1,
+   "rot": 0,
+   "text": "商務與上架部",
+   "color": "#f7df83",
+   "dept": "biz"
+  },
+  {
+   "id": "board_106",
+   "type": "board",
+   "x": 11.55,
+   "z": 18.1,
+   "rot": 0,
+   "owner": "biz",
+   "label": "商務與上架部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_107",
+   "type": "plant",
+   "x": 7.85,
+   "z": 18.35,
+   "rot": 0
+  },
+  {
+   "id": "plant_108",
+   "type": "plant",
+   "x": 13.15,
+   "z": 22.9,
+   "rot": 0
+  },
+  {
+   "id": "workstation_109",
+   "type": "workstation",
+   "x": 16.6,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "delivery-planner",
+   "dept": "ops"
+  },
+  {
+   "id": "workstation_110",
+   "type": "workstation",
+   "x": 18.4,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "deployer",
+   "dept": "ops"
+  },
+  {
+   "id": "workstation_111",
+   "type": "workstation",
+   "x": 16.6,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "efficiency-planner",
+   "dept": "ops"
+  },
+  {
+   "id": "deptsign_112",
+   "type": "deptsign",
+   "x": 16.35,
+   "z": 18.1,
+   "rot": 0,
+   "text": "營運與部署部",
+   "color": "#97dfcc",
+   "dept": "ops"
+  },
+  {
+   "id": "board_113",
+   "type": "board",
+   "x": 18.55,
+   "z": 18.1,
+   "rot": 0,
+   "owner": "ops",
+   "label": "營運與部署部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_114",
+   "type": "plant",
+   "x": 14.85,
+   "z": 18.35,
+   "rot": 0
+  },
+  {
+   "id": "plant_115",
+   "type": "plant",
+   "x": 20.15,
+   "z": 22.9,
+   "rot": 0
+  },
+  {
+   "id": "workstation_116",
+   "type": "workstation",
+   "x": 23.8,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "inspector",
+   "dept": "audit"
+  },
+  {
+   "id": "workstation_117",
+   "type": "workstation",
+   "x": 25.6,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "reviewer",
+   "dept": "audit"
+  },
+  {
+   "id": "workstation_118",
+   "type": "workstation",
+   "x": 23.8,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "resource-auditor",
+   "dept": "audit"
+  },
+  {
+   "id": "workstation_119",
+   "type": "workstation",
+   "x": 25.6,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "hr-officer",
+   "dept": "audit"
+  },
+  {
+   "id": "deptsign_120",
+   "type": "deptsign",
+   "x": 23.55,
+   "z": 18.1,
+   "rot": 0,
+   "text": "監察與稽核室",
+   "color": "#f4a59d",
+   "dept": "audit"
+  },
+  {
+   "id": "board_121",
+   "type": "board",
+   "x": 25.75,
+   "z": 18.1,
+   "rot": 0,
+   "owner": "audit",
+   "label": "監察與稽核室佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_122",
+   "type": "plant",
+   "x": 21.85,
+   "z": 18.35,
+   "rot": 0
+  },
+  {
+   "id": "plant_123",
+   "type": "plant",
+   "x": 27.55,
+   "z": 22.9,
+   "rot": 0
+  },
+  {
+   "id": "workstation_124",
+   "type": "workstation",
+   "x": 31.3,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "data-steward",
+   "dept": "data"
+  },
+  {
+   "id": "workstation_125",
+   "type": "workstation",
+   "x": 31.3,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "data-scraper",
+   "dept": "data"
+  },
+  {
+   "id": "deptsign_126",
+   "type": "deptsign",
+   "x": 30.15,
+   "z": 18.1,
+   "rot": 0,
+   "text": "資料部",
+   "color": "#8ecfe6",
+   "dept": "data"
+  },
+  {
+   "id": "board_127",
+   "type": "board",
+   "x": 32.35,
+   "z": 18.1,
+   "rot": 0,
+   "owner": "data",
+   "label": "資料部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_128",
+   "type": "plant",
+   "x": 29.25,
+   "z": 18.35,
+   "rot": 0
+  },
+  {
+   "id": "plant_129",
+   "type": "plant",
+   "x": 33.35,
+   "z": 22.9,
+   "rot": 0
+  },
+  {
+   "id": "workstation_130",
+   "type": "workstation",
+   "x": 37.1,
+   "z": 20.67,
+   "rot": 2,
+   "owner": "legal-compliance",
+   "dept": "legal"
+  },
+  {
+   "id": "workstation_131",
+   "type": "workstation",
+   "x": 37.1,
+   "z": 21.43,
+   "rot": 0,
+   "owner": "security-privacy",
+   "dept": "legal"
+  },
+  {
+   "id": "deptsign_132",
+   "type": "deptsign",
+   "x": 35.95,
+   "z": 18.1,
+   "rot": 0,
+   "text": "法遵與資安部",
+   "color": "#b4c4d8",
+   "dept": "legal"
+  },
+  {
+   "id": "board_133",
+   "type": "board",
+   "x": 38.15,
+   "z": 18.1,
+   "rot": 0,
+   "owner": "legal",
+   "label": "法遵與資安部佈告欄",
+   "small": true
+  },
+  {
+   "id": "plant_134",
+   "type": "plant",
+   "x": 35.05,
+   "z": 18.35,
+   "rot": 0
+  },
+  {
+   "id": "plant_135",
+   "type": "plant",
+   "x": 39.15,
+   "z": 22.9,
+   "rot": 0
+  },
+  {
+   "id": "pingpong_136",
+   "type": "pingpong",
+   "x": 3.4,
+   "z": 27.2,
+   "rot": 0
+  },
+  {
+   "id": "arcade_137",
+   "type": "arcade",
+   "x": 6.9,
+   "z": 29.25,
+   "rot": 2
+  },
+  {
+   "id": "arcade_138",
+   "type": "arcade",
+   "x": 8,
+   "z": 29.25,
+   "rot": 2,
+   "color": "#8ecfe6"
+  },
+  {
+   "id": "beanbag_139",
+   "type": "beanbag",
+   "x": 9.9,
+   "z": 26.2,
+   "rot": 0,
+   "color": "#f7b0c6"
+  },
+  {
+   "id": "beanbag_140",
+   "type": "beanbag",
+   "x": 11,
+   "z": 27.5,
+   "rot": 0,
+   "color": "#ffd27a"
+  },
+  {
+   "id": "beanbag_141",
+   "type": "beanbag",
+   "x": 9.6,
+   "z": 28,
+   "rot": 0,
+   "color": "#a4c2f7"
+  },
+  {
+   "id": "plant_big_142",
+   "type": "plant_big",
+   "x": 0.85,
+   "z": 29.2,
+   "rot": 0
+  },
+  {
+   "id": "lamp_143",
+   "type": "lamp",
+   "x": 11.3,
+   "z": 29.3,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_144",
+   "type": "roomsign",
+   "x": 5.4,
+   "z": 29.72,
+   "rot": 0,
+   "text": "遊樂區",
+   "color": "#b79cf0",
+   "stand": true
+  },
+  {
+   "id": "reserve_seat_145",
+   "type": "reserve_seat",
+   "x": 13.3,
+   "z": 27.6,
+   "rot": 2,
+   "owner": "bibi-planner"
+  },
+  {
+   "id": "reserve_seat_146",
+   "type": "reserve_seat",
+   "x": 14.75,
+   "z": 27.6,
+   "rot": 2,
+   "owner": "bibi-review"
+  },
+  {
+   "id": "reserve_seat_147",
+   "type": "reserve_seat",
+   "x": 16.2,
+   "z": 27.6,
+   "rot": 2,
+   "owner": "bibi-efficiency"
+  },
+  {
+   "id": "roomsign_148",
+   "type": "roomsign",
+   "x": 14.75,
+   "z": 29.72,
+   "rot": 0,
+   "text": "後備區",
+   "color": "#c9bca6",
+   "stand": true
+  },
+  {
+   "id": "doormat_149",
+   "type": "doormat",
+   "x": 20.5,
+   "z": 28.9,
+   "rot": 0
+  },
+  {
+   "id": "door_150",
+   "type": "door",
+   "x": 20.5,
+   "z": 30,
+   "rot": 0
+  },
+  {
+   "id": "plant_big_151",
+   "type": "plant_big",
+   "x": 18.6,
+   "z": 29.2,
+   "rot": 0
+  },
+  {
+   "id": "plant_big_152",
+   "type": "plant_big",
+   "x": 22.4,
+   "z": 29.2,
+   "rot": 0
+  },
+  {
+   "id": "kiosk_153",
+   "type": "kiosk",
+   "x": 22.7,
+   "z": 27.2,
+   "rot": 3
+  },
+  {
+   "id": "rug_154",
+   "type": "rug",
+   "x": 27.4,
+   "z": 27.4,
+   "rot": 0,
+   "w": 5.4,
+   "d": 3.6,
+   "color": "#bfe3c6"
+  },
+  {
+   "id": "sofa_155",
+   "type": "sofa",
+   "x": 27.4,
+   "z": 29.3,
+   "rot": 2,
+   "color": "#f7b0c6"
+  },
+  {
+   "id": "sofa_156",
+   "type": "sofa",
+   "x": 24.75,
+   "z": 27.3,
+   "rot": 1,
+   "color": "#ffd27a"
+  },
+  {
+   "id": "armchair_157",
+   "type": "armchair",
+   "x": 30.2,
+   "z": 27.3,
+   "rot": 3,
+   "color": "#a4c2f7"
+  },
+  {
+   "id": "coffee_table_158",
+   "type": "coffee_table",
+   "x": 27.4,
+   "z": 27.3,
+   "rot": 0
+  },
+  {
+   "id": "rug_159",
+   "type": "rug",
+   "x": 35.6,
+   "z": 27.4,
+   "rot": 0,
+   "w": 5.4,
+   "d": 3.6,
+   "color": "#ffe0b0"
+  },
+  {
+   "id": "sofa_160",
+   "type": "sofa",
+   "x": 35.6,
+   "z": 29.3,
+   "rot": 2,
+   "color": "#97dfcc"
+  },
+  {
+   "id": "armchair_161",
+   "type": "armchair",
+   "x": 33.1,
+   "z": 27.3,
+   "rot": 1,
+   "color": "#f4a59d"
+  },
+  {
+   "id": "armchair_162",
+   "type": "armchair",
+   "x": 38.2,
+   "z": 27.3,
+   "rot": 3,
+   "color": "#cbb2f2"
+  },
+  {
+   "id": "coffee_table_163",
+   "type": "coffee_table",
+   "x": 35.6,
+   "z": 27.3,
+   "rot": 0
+  },
+  {
+   "id": "plant_big_164",
+   "type": "plant_big",
+   "x": 31.6,
+   "z": 29.2,
+   "rot": 0
+  },
+  {
+   "id": "lamp_165",
+   "type": "lamp",
+   "x": 39.3,
+   "z": 29.3,
+   "rot": 0
+  },
+  {
+   "id": "plant_166",
+   "type": "plant",
+   "x": 39.3,
+   "z": 25.2,
+   "rot": 0
+  },
+  {
+   "id": "roomsign_167",
+   "type": "roomsign",
+   "x": 31.6,
+   "z": 29.72,
+   "rot": 0,
+   "text": "休息區",
+   "color": "#86cfa0",
+   "stand": true,
+   "hideIfLow": true
+  },
+  {
+   "id": "plant_168",
+   "type": "plant",
+   "x": 8.4,
+   "z": 9.5,
+   "rot": 0
+  },
+  {
+   "id": "plant_169",
+   "type": "plant",
+   "x": 17.6,
+   "z": 9.5,
+   "rot": 0
+  },
+  {
+   "id": "plant_170",
+   "type": "plant",
+   "x": 29.6,
+   "z": 9.5,
+   "rot": 0
+  },
+  {
+   "id": "bench_171",
+   "type": "bench",
+   "x": 21,
+   "z": 23.95,
+   "rot": 0
+  }
+ ],
+ "spots": [
+  {
+   "name": "door_in",
+   "x": 20.5,
+   "z": 28.9,
+   "face": 2
+  },
+  {
+   "name": "door_out",
+   "x": 20.5,
+   "z": 31.2,
+   "face": 0
+  },
+  {
+   "name": "outside",
+   "x": 20.5,
+   "z": 34.2,
+   "face": 0
+  }
+ ]
+}

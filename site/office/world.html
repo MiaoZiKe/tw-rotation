@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>AI 辦公室</title>
+<link rel="stylesheet" href="world/world.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <div id="labels"></div>
+
+  <header id="bar">
+    <div class="ttl"><b>AI 辦公室</b><button class="q" id="helpBtn" aria-label="操作說明">?</button></div>
+    <div class="seg" id="viewSeg" role="group" aria-label="視角">
+      <button data-v="ceo" class="on">CEO 視角</button><button data-v="god">俯瞰</button><button data-v="char" id="viewChar" hidden></button>
+    </div>
+    <button class="btn" id="areaBtn">區域<i></i></button>
+    <button class="btn" id="demoBtn">示範<i></i></button>
+    <div class="seg" id="speedSeg" role="group" aria-label="播放速度"><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
+    <button class="btn" id="editBtn">整修</button>
+  </header>
+
+  <div class="pop" id="areaPop" hidden></div>
+  <div class="pop" id="demoPop" hidden></div>
+  <div class="pop" id="helpPop" hidden></div>
+
+  <aside class="panel" id="card" hidden></aside>
+  <aside class="panel" id="board" hidden></aside>
+  <aside class="panel" id="log" hidden></aside>
+
+  <div id="editBar" hidden></div>
+  <div id="toast" hidden></div>
+  <div id="loading">辦公室準備中…</div>
+</div>
+<script type="module" src="world/js/main.js"></script>
+</body>
+</html>
