@@ -96,7 +96,10 @@ def sanitize(p):
             tr = p.get("tool_response")
             if isinstance(tr, dict):
                 ev["spawned_agent_id"] = tr.get("agentId")
-                ev["spawn_status"] = tr.get("status")
+                ev["spawn_status"] = tr.get("status")  # completed＝前景跑完；async_launched＝背景執行（此時還沒有 Token 數）
+                for k in ("totalTokens", "totalDurationMs", "totalToolUseCount", "resolvedModel"):
+                    if tr.get(k) is not None:
+                        ev[k] = tr[k]
     if ev["event"] == "UserPromptSubmit":
         pr = p.get("prompt") or ""
         ev["prompt_chars"] = len(pr)
@@ -106,7 +109,14 @@ def sanitize(p):
     if ev["event"] == "SubagentStop":
         ev["usage"] = usage_total(p.get("agent_transcript_path") or "")
     if ev["event"] in ("Stop", "SessionEnd"):
-        ev["usage_main"] = usage_total(p.get("transcript_path") or "")
+        tp = p.get("transcript_path") or ""
+        ev["usage_main"] = usage_total(tp)
+        # 子 Agent 的紀錄檔在「<主紀錄檔去掉 .jsonl>/subagents/agent-<代號>.jsonl」；
+        # SubagentStop 當下最後一則還沒寫進檔案（實測會少算），所以在回合結束時再整批重算一次
+        sub = os.path.join(tp[:-6], "subagents") if tp.endswith(".jsonl") else ""
+        if sub and os.path.isdir(sub):
+            ev["usage_subagents"] = {f[6:-6]: usage_total(os.path.join(sub, f))
+                                     for f in sorted(os.listdir(sub)) if f.startswith("agent-") and f.endswith(".jsonl")}
     if isinstance(p.get("background_tasks"), list):
         ev["background_running"] = sum(1 for t in p["background_tasks"] if t.get("status") == "running")
     return ev
