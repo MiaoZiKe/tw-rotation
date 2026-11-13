@@ -116,7 +116,9 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     const sitV = c.state === 'sit', k = (c.scale || 1) > 1 ? 1.12 : 1, h0 = c.spot && c.spot.seat && sitV ? c.spot.seat.face : c.heading, back = (portrait() ? 5.6 : 4.4) * (sitV ? 1.25 : 1) * k, up = ((portrait() ? 3.4 : 2.5) + (sitV ? 1.3 : 0)) * k, cp = c.object3D.position;
     let best = null;
     const seatedC = c.state === 'sit';
-    for (const da of (seatedC ? [0.72, -0.72, 1.25, -1.25, 0.3, 1.9, -1.9, Math.PI] : [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI])) {
+    // 坐著的人從斜後方看（不被椅背擋住）；兩側挑「看出去是辦公室而不是牆」的那一側
+    const toC = (da) => { const h = h0 + da; return Math.sin(h) * (CENTER.x - cp.x) + Math.cos(h) * (CENTER.z - cp.z); }, sg = toC(0.72) >= toC(-0.72) ? 1 : -1;
+    for (const da of (seatedC ? [0.72 * sg, -0.72 * sg, 1.25 * sg, -1.25 * sg, 0.3, 1.9, -1.9, Math.PI] : [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI])) {
       const h = h0 + da, p = new THREE.Vector3(cp.x - Math.sin(h) * back, up, cp.z - Math.cos(h) * back);
       p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 4, p.z));
       const d = Math.hypot(p.x - cp.x, p.z - cp.z); if (d < back - 0.3) p.y += (back - d) * 0.35;

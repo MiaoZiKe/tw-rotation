@@ -162,7 +162,7 @@ export function createCharacter(spec, env = {}) {
         ch.animate(Math.min(accDt, 0.1), aenv); accDt = 0; props(t); tickShared(t);
       } else { root.updateMatrix(); space.matrix.copy(root.matrix).invert(); if (s !== 1) space.matrix.scale(_v.set(s, s, s)); root.updateMatrixWorld(true); }
       if (icon && icon.visible) {
-        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0);   // 高過名牌 }
+        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }   // 圖示放在名牌上方
       }
     },
     setAction(name, opts = {}) { if (!ACTS[name]) name = 'idle'; if (ONE_SHOT[name]) { c._until = c._t + (opts.duration || ONE_SHOT[name]); if (opts.then) c._base = opts.then; apply(name); } else { c._base = name; if (opts.duration) { c._until = c._t + opts.duration; c._base = opts.then || 'idle'; apply(name); } else if (!c._until) apply(name); } },
@@ -196,16 +196,16 @@ export function createCharacter(spec, env = {}) {
       icon.material.map = iconTex(name); icon.material.needsUpdate = true; icon.visible = true; iconT = 0; iconDur = sec;
     },
     // ── 互動
-    pet(sec = 2.2) { loud = sec + 1; ch.petStart(null, true); c.emote('heart', sec); react = { until: c._t + sec, done() { ch.petEnd(); } }; },
+    pet(sec = 2.2) { loud = sec + 1; hold(sec + 0.6); ch.petStart(null, true); c.emote('heart', sec); react = { until: c._t + sec, done() { ch.petEnd(); } }; },
     bonk() {
-      loud = 3; ch.petting = false; ch.sqV -= 11; ch.wobV.x += 3 * (Math.random() - 0.5); ch.wobV.z += 2.5; fx.sfx('bonk');
+      loud = 3; hold(3.2); ch.petting = false; ch.sqV -= 11; ch.wobV.x += 3 * (Math.random() - 0.5); ch.wobV.z += 2.5; fx.sfx('bonk');
       fx.burst('star', ch.headTop(new V3()).add(_v.set(0, 0.05, 0)), 6, { speed: 1.5, up: 1.6, g: 5, life: 0.8, size: 0.17, spin: 5 });
       ch.emote('ouch', 0.9); c.emote('sweat', 2.4); c.say(['嗚…', '好痛…', '我會改進的…'][Math.floor(Math.random() * 3)], 2);
       const base = c._base, until = c._until; c._until = 0; apply('sulk'); react = { until: c._t + 2.6, done() { c._until = until; apply(base); } };
       setTimeout(() => { if (react) ch.emote('sad', 1.9); }, 800);
     },
     feed() {
-      loud = 4; const base = c._base; c._until = 0; apply('eat'); c.emote('note', 1.2);
+      loud = 4; hold(5); const base = c._base; c._until = 0; apply('eat'); c.emote('note', 1.2);
       react = { until: c._t + 3.2, done() { apply(base); ch.emote('happy', 1.6); c.emote('heart', 1.6); c.say(['好吃！', '謝謝～', '還要！'][Math.floor(Math.random() * 3)], 1.6); fx.sfx('heart'); fx.burst('heart', ch.headTop(new V3()), 4, { speed: 0.35, up: 0.7, life: 1.1, size: 0.17, sway: 0.4 }); } };
     },
     grab() { c.stop(false); c._hop = null; c._seat = null; c._held = true; c._until = 0; react = null; loud = 9; apply('idle'); ch.ext.y = 0; ch.petting = false; ch.grab(); },
@@ -214,6 +214,8 @@ export function createCharacter(spec, env = {}) {
     setVisible(v) { root.visible = v; },
     dispose() { space.traverse(m => { if (m.isMesh && m.material && m.material.userData && m.material.userData.U) m.material.dispose(); }); ch.main.geometry.dispose(); ch.dispose(); if (icon) icon.material.dispose(); root.removeFromParent(); },
   };
+  // 互動反應期間，場景排的「下一件桌上工作」往後延，反應才不會被蓋掉
+  function hold(sec) { c.workAt = Math.max(c.workAt || 0, c._t + sec); }
   function place(x, z) { ch.pos.x = x / s; ch.pos.z = z / s; ch.vel.set(0, 0, 0); ch.grounded = true; ch.feet.forEach(f => { ch.footHome(f, f.p); f.planted = true; f.v.set(0, 0, 0); }); ch.hands.forEach(h => { h.p.set(ch.pos.x, ch.pos.y + 0.3, ch.pos.z); h.v.set(0, 0, 0); }); root.position.set(x, 0, z); }
   // 個子矮的坐在辦公椅上會被桌子擋住臉：椅子上多一塊加高坐墊，讓嘴巴高過桌面
   let cushion = null;

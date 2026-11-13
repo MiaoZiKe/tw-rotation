@@ -77,3 +77,23 @@ world.html?char=../../play/office_character.js
 ## 四、新增一個物種
 
 在 `species.js` 的 `SPECIES` 加一筆：尺寸（`R` 碰撞半徑、`top` 頭頂高）、`move`（`walk／hop／float／slide`）、`face`（眼睛與嘴在 512 貼圖上的位置大小）、`pals`（至少 1 組配色）、`anc`（配件位置）、`build(c, p)`（把網格加進 `c.deform`，臉要畫在 `c.main` 上）、`idle(c, dt, t)`、`sig: { dur, fn(c, u, a, P) }`。骨架、表情、互動都自動沿用。
+
+
+## 五、辦公室整合（2026-11-13）
+
+正式角色已是辦公室的預設（`site/office/world.html`，不用再加網址參數；`?char=./character.js` 可換回膠囊佔位角色，只供除錯）。
+
+| 項目 | 位置與做法 |
+|---|---|
+| 每人固定造型 | `site/office/world/data/roster.json`：CEO 與 43 位成員各自的物種、配色、配件與理由；同部門用部門色的識別證（戴不了的物種改同色圍巾或蝴蝶結），主管多一條領帶；CEO 是戴小皇冠、打領帶、放大 1.18 倍的糰糰。另有 3 隻寵物（迷你版物種）。 |
+| 使用者修改 | 進度卡「改造型」可改名字、暱稱、物種、配色、配件（原職稱鎖定，名牌同時顯示暱稱與原職稱）；存在瀏覽器 `localStorage` 的 `aiOffice.roster.v1`，不改資料檔。 |
+| 物種 | 19 種：原 15 種＋貼貼（便利貼）、夾夾（資料夾）、筆筆（鉛筆）、印印（印章）。新配件 `crown`（小皇冠）；`accColor` 可直接給色碼。 |
+| 動作 | `setAction(name)`：持續型 `idle type read tablet doc note listen think phone drink eat magnify carry present doze sulk sleep paddle`；一次型 `talk nod shake raise cheer clap angry wave stretch slam point pour reach`。姿勢寫在 `play/character.js` 的 `pose()`，坐著與站定都套用；沒有手的物種用身體傾斜、彈跳、附屬物擺動表現。 |
+| 道具 | 書、平板、筆記本＋筆、手機、杯子、文件、甜甜圈、放大鏡、球拍；有手的拿在手上，沒手的飄在身邊。筆記本字跡、平板畫面是共用的動態貼圖。 |
+| 情緒圖示 | `emote(name)`：`exclaim question anger sweat bulb star heart note dots zzz check`，畫布畫的圖示（不是文字），顯示在名牌上方。 |
+| 坐下與起身 | 從椅子旁邊跳上、跳下（拋物線＋擠壓），不再瞬間移動；個子矮的會多一塊加高坐墊，臉不會被桌面擋住。 |
+| 互動 | `pet() bonk() feed() grab() dragTo() release()`；被放下後由場景的 `director.dropped` 讓他自己走回座位。 |
+| 效能 | `configure({ detail, faceSize, lodNear, lodFar, fxDist })`：桌機幾何細緻度 0.55、手機 0.4；中距離藏很小的零件、遠距離藏手腳配件道具並降低姿態更新頻率；遠處不放粒子。 |
+| 螢幕 | `world/js/world.js`：8 種會動的畫面（程式碼、K 線、試算表、設計稿、聊天室、剪輯時間軸、折線圖、文件），依部門與個人分配。 |
+
+**還沒做的（如實）**：真手機沒量過；角色仍是每隻多個網格（沒有合併成單一網格）；會議與任務內容仍是示範資料。
