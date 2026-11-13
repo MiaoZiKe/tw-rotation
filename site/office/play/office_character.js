@@ -148,6 +148,7 @@ export function createCharacter(spec, env = {}) {
       else if (c._hop) { ch.ext.vx = ch.ext.vz = 0; }
       else if (c._path) step(dt); else { ch.ext.vx = ch.ext.vz = 0; }
       if (!c._held) ch.ext.yaw = c.heading;
+      if (cushion) cushion.visible = !!c._seat && c._boost > 0 && !c._hop && lod < 2 && root.visible;
       const n = Math.max(1, Math.ceil(dt / (1 / 90))), h = dt / n; for (let i = 0; i < n; i++) ch.step(h, ctl);
       if (c._hop && !c._held) hopStep(dt);
       if (c._held && ch.mode === 'normal' && ch.grounded && !ch.extFall) dropped();
@@ -180,9 +181,10 @@ export function createCharacter(spec, env = {}) {
     // 坐到座位：人就在旁邊的話會跳上去，否則直接放上去（開場、整修後）
     sitAt(seat, opts = {}) {
       c.stop(false); if (c._held) return; const d = Math.hypot(seat.x - ch.pos.x * s, seat.z - ch.pos.z * s); c._seat = seat;
-      if (opts.instant || d > 2.4 || d < 0.05) { c._hop = null; place(seat.x, seat.z); ch.pos.y = Math.max(0, seat.y - 0.04) / s; ch.ext.y = ch.pos.y; c.heading = ch.yaw = seat.face; seated(); return; }
+      const sy = seatY(seat);
+      if (opts.instant || d > 2.4 || d < 0.05) { c._hop = null; place(seat.x, seat.z); ch.pos.y = sy / s; ch.ext.y = ch.pos.y; c.heading = ch.yaw = seat.face; seated(); return; }
       if (ch.mode !== 'normal') ch.mode = 'normal'; c.heading = Math.atan2(seat.x - ch.pos.x * s, seat.z - ch.pos.z * s);
-      hopTo(seat.x, Math.max(0, seat.y - 0.04), seat.z, { done() { c.heading = seat.face; seated(); } });
+      hopTo(seat.x, sy, seat.z, { done() { c.heading = seat.face; seated(); } });
     },
     standAt(x, z, face) { c.stop(false); if (c._held) return; c._seat = null; c._hop = null; ch.mode = 'normal'; place(x, z); ch.ext.y = 0; ch.pos.y = 0; if (face != null) { c.heading = face; ch.yaw = face; } },
     faceTo(x, z) { const dx = x - ch.pos.x * s, dz = z - ch.pos.z * s; if (dx * dx + dz * dz > 1e-4) { c.heading = Math.atan2(dx, dz); if (ch.mode === 'sit') ch.yawTo = c.heading; } },
@@ -213,6 +215,13 @@ export function createCharacter(spec, env = {}) {
     dispose() { space.traverse(m => { if (m.isMesh && m.material && m.material.userData && m.material.userData.U) m.material.dispose(); }); ch.main.geometry.dispose(); ch.dispose(); if (icon) icon.material.dispose(); root.removeFromParent(); },
   };
   function place(x, z) { ch.pos.x = x / s; ch.pos.z = z / s; ch.vel.set(0, 0, 0); ch.grounded = true; ch.feet.forEach(f => { ch.footHome(f, f.p); f.planted = true; f.v.set(0, 0, 0); }); ch.hands.forEach(h => { h.p.set(ch.pos.x, ch.pos.y + 0.3, ch.pos.z); h.v.set(0, 0, 0); }); root.position.set(x, 0, z); }
+  // 個子矮的坐在辦公椅上會被桌子擋住臉：椅子上多一塊加高坐墊，讓嘴巴高過桌面
+  let cushion = null;
+  function seatY(seat) {
+    const base = Math.max(0, seat.y - 0.04), chair = seat.y > 0.405 && seat.y < 0.435; let boost = chair ? clamp(0.93 - (ch.cfg.mouth[1] * s + base), 0, 0.27) : 0; if (boost < 0.03) boost = 0;
+    if (boost) { if (!cushion) { cushion = new THREE.Mesh(KG.cyl(0.21, 1, 0.03, 16), new THREE.MeshStandardMaterial({ color: new THREE.Color(spec.color || '#ffd9b0').lerp(new THREE.Color('#ffffff'), 0.35), roughness: 0.9 })); cushion.userData.prop = 'cushion'; space.add(cushion); } cushion.position.set(seat.x / s, (base - 0.01) / s, seat.z / s); cushion.scale.set(1 / s, (boost + 0.02) / s, 1 / s); }
+    c._boost = boost; return base + boost;
+  }
   function seated() { ch.vel.set(0, 0, 0); ch.grounded = true; ch.yaw = ch.yawTo = c.heading; ch.mode = c.action === 'sleep' ? 'sleep' : 'sit'; ch.modeT = 0; ch.idleSit = false; ch.sqV -= 2.5; }
   function dropped() { c._held = false; c._seat = null; ch.ext.y = 0; c.heading = ch.yaw; if (c.onDrop) c.onDrop(c); }
   // 跳上、跳下椅子：拋物線＋起跳下蹲、落地擠壓；從椅背那一側過來就跳高一點

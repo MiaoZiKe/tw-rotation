@@ -306,7 +306,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     requestAnimationFrame(frame);
     const wall = Math.min(0.3, (now - last) / 1000), real = Math.min(0.1, wall); last = now;
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
-    for (let i = 0; i < n; i++) { W.time += h; W.tickTimers(); director.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); }
+    for (let i = 0; i < n; i++) { W.time += h; try { W.tickTimers(); director.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
     W.updateBlobs(); W.updateScreens(real);
     updateCamera(wall); controls.update();
     { // 手機開著底部面板時，把畫面往上推，角色不會被面板蓋住

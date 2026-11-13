@@ -160,7 +160,7 @@ export function createDirector(W, ui) {
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 9), new THREE.MeshStandardMaterial({ color: '#ffb86b', roughness: 0.5 })); ball.visible = false; W.scene.add(ball);
   const pong = { on: false, t: 0, a: null, b: null };
   function tickPong(dt) {
-    if (!pong.on) return; pong.t += dt; const pa = pos(pong.a), pb = pos(pong.b), u = (pong.t * 1.25) % 2, k = u < 1 ? u : 2 - u, e = 0.12 + 0.76 * k;
+    if (!pong.on || !ball.visible || !pong.a || !pong.b) return; pong.t += dt; const pa = pos(pong.a), pb = pos(pong.b), u = (pong.t * 1.25) % 2, k = u < 1 ? u : 2 - u, e = 0.12 + 0.76 * k;
     ball.position.set(pa.x + (pb.x - pa.x) * e, 0.78 + 0.3 * Math.abs(Math.sin(k * Math.PI * 1.0)) + 0.02, pa.z + (pb.z - pa.z) * e);
   }
 
@@ -198,7 +198,7 @@ export function createDirector(W, ui) {
             pong.a = c; pong.b = mate; pong.t = 0; ball.visible = true; await sleep(R(6, 8)); ball.visible = false;
             const win = Math.random() < 0.5 ? c : mate, lose = win === c ? mate : c; win.setAction('cheer', { duration: 1.6, then: 'idle' }); win.emote('star', 1.6); lose.setAction('sulk', { duration: 1.6, then: 'idle' }); lose.emote('sweat', 1.6); lose.setExpression('sad', 1.6); await sleep(1.8);
           }
-          pong.on = false; ball.visible = false; c.setAction('idle');
+          pong.on = false; ball.visible = false; pong.a = pong.b = null; c.setAction('idle');
           if (mate.script === tok) { mate.setAction('idle'); goHome(mate).then(() => { if (mate.script === tok) mate.busy = false; }); }
           return;
         }
