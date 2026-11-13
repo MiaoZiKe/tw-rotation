@@ -7,10 +7,10 @@ const V3 = THREE.Vector3;
 // ── 靜態：沿 +y 長的錐形體（耳朵、尾巴、觸手），根在 y=0（埋進身體），尖端在 y=1，單位半徑 1（再用 scale 放大）
 //   q＝尖端半徑比例，p＝張開的曲線（越大越快收細），cap＝尖端圓頭佔的長度比例，bulge＝中段鼓起（0~0.4）
 const cache = new Map();
-export function taperGeo({ q = 0.4, p = 2.2, cap = 0.25, bulge = 0, curl = 0 } = {}) {
-  const k = `${q}|${p}|${cap}|${bulge}|${curl}|${DETAIL.k}`; if (cache.has(k)) return cache.get(k);
-  const pts = [new THREE.Vector2(0, 0)], N = Math.max(8, Math.round(14 * DETAIL.k)), tc = 1 - cap;
-  const body = (t) => (q + (1 - q) * Math.pow(1 - t, p)) * (1 + bulge * Math.sin(Math.PI * Math.min(1, t / tc)));
+export function taperGeo({ q = 0.4, p = 2.2, cap = 0.25, bulge = 0, curl = 0, flare = 1, fl = 0.22 } = {}) {
+  const k = `${q}|${p}|${cap}|${bulge}|${curl}|${flare}|${fl}|${DETAIL.k}`; if (cache.has(k)) return cache.get(k);
+  const pts = [new THREE.Vector2(0, 0)], N = Math.max(8, Math.round((flare > 1 ? 20 : 14) * DETAIL.k)), tc = 1 - cap;
+  const body = (t) => (q + (1 - q) * Math.pow(1 - t, p)) * (1 + bulge * Math.sin(Math.PI * Math.min(1, t / tc))) * (1 + (flare - 1) * Math.pow(Math.max(0, 1 - t / fl), 2));   // flare＝根部喇叭口（內凹過渡弧）
   for (let i = 0; i <= N; i++) { const t = i / N * tc; pts.push(new THREE.Vector2(body(t), t)); }
   const rc = body(tc), M = Math.max(5, Math.round(8 * DETAIL.k));
   for (let i = 1; i <= M; i++) { const a = i / M * Math.PI / 2; pts.push(new THREE.Vector2(rc * Math.cos(a), tc + cap * Math.sin(a))); }
@@ -56,13 +56,14 @@ export class LimbSkin {
     }
   }
   // 舊直管
-  set(l, A, B, rf, rt, Lf, p, ts) {
+  set(l, A, B, rf, rt, Lf, p, ts, rip = 0) {
     const d = this._d.subVectors(B, A), L = d.length() || 1e-4; d.multiplyScalar(1 / L);
     const u = this._u, w = this._w; u.set(Math.abs(d.y) > 0.9 ? 1 : 0, Math.abs(d.y) > 0.9 ? 0 : 1, 0); w.crossVectors(d, u).normalize(); u.crossVectors(w, d).normalize();
     const Rg = this.Rg, c = this._c, t0 = Math.min(0.98, Math.max(0, ts - 0.5 * Lf / L));
     for (let r = 0; r < Rg; r++) {
       const t = t0 + (1 - t0) * r / (Rg - 1), sd = (t - ts) * L; let rad, slope = 0;
       if (sd <= 0) { rad = Math.max(rt * 1.15, rf * (1 + 1.6 * sd / Lf)); slope = rad > rt * 1.15 ? 1.6 * rf / Lf : 0; } else if (sd >= Lf) rad = rt; else { const q = 1 - sd / Lf; rad = rt + (rf - rt) * Math.pow(q, p); slope = -(rf - rt) * p * Math.pow(q, p - 1) / Lf; }
+      if (rip && t > ts) { const q = (t - ts) / (1 - ts), ph = q * 18.85; slope += -rad * rip * Math.sin(ph) * 18.85 / ((1 - ts) * L) * 0.5; rad *= 1 + rip * (Math.cos(ph) - 1) * 0.5; }   // 波紋管：3 節皺褶
       c.copy(A).addScaledVector(d, L * t);
       this._ring(l, r, c, u, w, rad, rad, (ca, sa, N, o) => { const nx = u.x * ca + w.x * sa - d.x * slope, ny = u.y * ca + w.y * sa - d.y * slope, nz = u.z * ca + w.z * sa - d.z * slope, il = 1 / Math.hypot(nx, ny, nz); N[o] = nx * il; N[o + 1] = ny * il; N[o + 2] = nz * il; });
     }
@@ -118,4 +119,35 @@ export class LimbSkin {
     }
   }
   commit() { this.geo.attributes.position.needsUpdate = true; this.geo.attributes.normal.needsUpdate = true; }
+}
+
+// ── 彎曲的錐管：沿任意曲線 path(t)→[x,y,z]（t 0~1，根在 t=0、埋進身體）掃出圓管，半徑 rad(t)
+//   flare＝根部喇叭口倍數（內凹過渡弧，fl＝佔全長比例），cap＝末端半球圓頭佔全長比例（尖端一定是圓的，不會平切）
+//   用途：八寶捲尾觸手、啃啃彎尾、啾啾尾羽；單位＝公尺，直接 put(...,1) 使用
+const tcache = new Map();
+export function tubeGeo({ key, path, rad, flare = 1, fl = 0.2, cap = 0.16, N = 26, S = 16 }) {
+  const kk = `${key}|${DETAIL.k}`; if (key && tcache.has(kk)) return tcache.get(kk);
+  N = Math.max(12, Math.round(N * Math.max(0.6, DETAIL.k))); S = Math.max(8, Math.round(S * Math.max(0.6, DETAIL.k)));
+  const tc = 1 - cap, cs = [], rs = [], arc = [];
+  const R = (t) => { const base = rad(Math.min(t, tc)), fa = 1 + (flare - 1) * Math.pow(Math.max(0, 1 - t / fl), 2); if (t <= tc) return base * fa; const s = (t - tc) / cap; return base * Math.sqrt(Math.max(0, 1 - s * s)); };
+  for (let i = 0; i <= N; i++) { const t = i / N; cs.push(path(t)); rs.push(R(t)); arc.push(i ? arc[i - 1] + Math.hypot(cs[i][0] - cs[i - 1][0], cs[i][1] - cs[i - 1][1], cs[i][2] - cs[i - 1][2]) : 0); }
+  const pos = new Float32Array((N + 1) * (S + 1) * 3), nor = new Float32Array(pos.length), idx = [];
+  let u = new V3(0, 0, 1), w = new V3(), T = new V3();
+  for (let i = 0; i <= N; i++) {
+    const a = cs[Math.max(0, i - 1)], b = cs[Math.min(N, i + 1)]; T.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
+    if (Math.abs(u.dot(T)) > 0.97) u.set(T.y > 0.9 ? 1 : 0, T.y > 0.9 ? 0 : 1, 0);
+    u.addScaledVector(T, -u.dot(T)).normalize(); w.crossVectors(T, u);
+    const i0 = Math.max(0, i - 1), i1 = Math.min(N, i + 1), dr = (rs[i1] - rs[i0]) / Math.max(1e-6, arc[i1] - arc[i0]);
+    for (let s = 0; s <= S; s++) {
+      const th = s / S * Math.PI * 2, ca = Math.cos(th), sa = Math.sin(th), o = (i * (S + 1) + s) * 3;
+      const dx = u.x * ca + w.x * sa, dy = u.y * ca + w.y * sa, dz = u.z * ca + w.z * sa;
+      pos[o] = cs[i][0] + dx * rs[i]; pos[o + 1] = cs[i][1] + dy * rs[i]; pos[o + 2] = cs[i][2] + dz * rs[i];
+      const nx = dx - T.x * dr, ny = dy - T.y * dr, nz = dz - T.z * dr, il = 1 / Math.hypot(nx, ny, nz); nor[o] = nx * il; nor[o + 1] = ny * il; nor[o + 2] = nz * il;
+    }
+  }
+  for (let i = 0; i < N; i++) for (let s = 0; s < S; s++) { const a = i * (S + 1) + s, b = a + 1, c = a + S + 1, d = c + 1; idx.push(a, b, c, b, d, c); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setIndex(idx);
+  // 繞法方向若反了就翻面
+  const p0 = new V3(pos[0], pos[1], pos[2]); void p0;
+  if (key) tcache.set(kk, g); return g;
 }

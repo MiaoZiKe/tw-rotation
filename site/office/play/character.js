@@ -2,8 +2,9 @@
 import * as THREE from 'three';
 import { Face } from './face.js';
 import { G, BOUNDS } from './world.js';
-import { ball, foot, softMat } from './soft.js';
+import { ball, foot, softMat, blobGeo } from './soft.js';
 import { LimbSkin } from './limb.js';
+const webFoot = (() => { let g; return () => g || (g = blobGeo(v => { const an = Math.atan2(v.x, v.z), w = [-0.9, 0, 0.9].reduce((a, c) => a + Math.exp(-Math.pow((an - c) / 0.42, 2)), 0), r = 1 + 0.55 * w * Math.max(0, v.z + 0.2); v.set(v.x * r * 0.95, Math.max(v.y, -0.2) * 0.5 + 0.35, v.z * r + 0.25); }, 40, 28)); })();   // 三趾腳掌
 import { SPECIES, resolveSpec, addAccessories, faceStyleFor, applyTraits } from './species.js';
 
 import { clamp, lerp, sstep } from './soft.js';
@@ -40,8 +41,8 @@ export class Character {
     const rootify = (m) => { if (this.hard || !m || !m.userData.o || m.userData.o.root || !this.bodyO || cfg.noSkin) return m; return m.userData.rootVer ??= softMat({ ...m.userData.o, root: this.bodyO, rootSpan: cfg.rootSpan ?? 0.34 }, this.sh); };
     this.limbMat = rootify(this.limbMat); this.footMat = rootify(this.footMat);
     const fs = cfg.footSize;
-    this.feet = (fs ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(foot(), this.footMat || this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
-    this.hands = (cfg.handR ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(ball(), this.limbMat); if (cfg.handScale) m.scale.set(...cfg.handScale); else m.scale.setScalar(cfg.handR); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3() }; });
+    this.feet = (fs ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(cfg.footGeo === 'web' ? webFoot() : foot(), this.footMat || this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
+    this.hands = (cfg.handR ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(cfg.handGeo ? cfg.handGeo() : ball(), cfg.handMat ? cfg.handMat(this) : this.limbMat); if (cfg.handScale) m.scale.set(...cfg.handScale); else m.scale.setScalar(cfg.handR); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3() }; });
     this.limbs = [];
     if (cfg.legs) {
       const lg = new THREE.CylinderGeometry(1, 1, 1, 14); lg.translate(0, 0.5, 0);
@@ -114,7 +115,7 @@ export class Character {
         this.setLocal(_c, _c); this.setLocal(_d, _d); this.setLocal(_e, _e); S.setArm(i, _c, _e, _d, sl.rf, sl.rt, sl.collar, sl.Lf, ts);
       } else if (sl.kind === 'leg') {
         const F = _e.copy(fp); this.setLocal(_c, _c); this.setLocal(F, F); S.setLeg(i, _c, F, sl.f.yaw, sl.fs[0], sl.fs[1] * 0.8, sl.fs[2], sl.rf, sl.collar, sl.Lf, ts);
-      } else { this.setLocal(_c, _c); this.setLocal(_d, _d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts); }
+      } else { this.setLocal(_c, _c); this.setLocal(_d, _d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts, sl.h ? (this.cfg.armRip || 0) : 0); }
     });
     S.commit();
   }

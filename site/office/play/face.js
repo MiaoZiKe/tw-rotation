@@ -44,6 +44,7 @@ export class Face {
   }
   // 沒變就不重畫（辦公室一次有幾十隻，逐幀重畫＋上傳貼圖太貴）
   changed() {
+    if (this.scan >= 0) { this._sig = ''; return true; }
     const c = this.cur; if (this.dirty || c.dizzy > 0.05 || c.tear > 0.04 || c.sparkle > 0.05) { this.dirty = false; this._sig = ''; return true; }
     let s = Math.round(this.blink * 16) + '|' + Math.round(this.gx * 24) + '|' + Math.round(this.gy * 24) + '|' + Math.round(this.talk * 24);
     for (const k of KEYS) s += '|' + Math.round(c[k] * 40);
@@ -66,12 +67,13 @@ export class Face {
     const K = this.size / 512; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, this.size, this.size); g.setTransform(K, 0, 0, K, 0, 0);
     const cx = 256 + this.gx * 9, gy = this.gy * 7;
     const glow = s.glow;
-    if (s.belly) { g.fillStyle = s.bellyCol || '#fff6e6'; g.beginPath(); g.ellipse(256, 440, 104, 140, 0, 0, 7); g.fill(); }
+    if (s.belly) { g.fillStyle = s.bellyCol || '#fff6e6'; g.beginPath(); if (s.heart) { g.moveTo(256, 308); g.bezierCurveTo(256, 262, 156, 262, 156, 332); g.bezierCurveTo(156, 404, 236, 452, 256, 510); g.bezierCurveTo(276, 452, 356, 404, 356, 332); g.bezierCurveTo(356, 262, 256, 262, 256, 308); } else g.ellipse(256, 440, 104, 140, 0, 0, 7); g.fill(); }
     if (s.visor) {
       const v = s.visor; g.save();
       const gr = g.createLinearGradient(0, v.y, 0, v.y + v.h); gr.addColorStop(0, v.c0); gr.addColorStop(1, v.c1);
       g.fillStyle = gr; g.beginPath(); g.roundRect(256 - v.w / 2, v.y, v.w, v.h, v.r); g.fill();
       g.globalAlpha = 0.1; g.fillStyle = '#fff'; g.beginPath(); g.ellipse(256 - v.w * 0.2, v.y + v.h * 0.2, v.w * 0.24, v.h * 0.1, -0.25, 0, 7); g.fill();
+      if (this.scan >= 0) { g.beginPath(); g.roundRect(256 - v.w / 2, v.y, v.w, v.h, v.r); g.clip(); const sx = 256 - v.w / 2 + this.scan * v.w, sg = g.createLinearGradient(sx - 46, 0, sx + 4, 0); sg.addColorStop(0, 'rgba(255,214,107,0)'); sg.addColorStop(1, 'rgba(255,214,107,0.55)'); g.fillStyle = sg; g.fillRect(sx - 46, v.y, 50, v.h); g.fillStyle = 'rgba(255,238,170,0.95)'; g.fillRect(sx, v.y, 5, v.h); }
       g.restore();
     }
     const open = Math.max(0, c.open * (1 - this.blink));

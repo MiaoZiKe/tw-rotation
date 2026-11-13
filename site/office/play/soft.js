@@ -101,6 +101,10 @@ export function blobGeo(fn, ws = 80, hs = 60) {
   }
   return g;
 }
+// ── 身體網格的「高斯鼓包」：list＝[[dx,dy,dz,高,寬],...]，方向為單位球上的方向；回傳該方向要往外多推的距離。
+//   在 blobGeo 的 fn 裡先呼叫（v 還是單位方向），再把 v 乘上形狀後 += 原方向 * 回傳值。
+//   耳根、肩丘、大腿根、鼻吻從身體同一張曲面鼓出來，肢體接在鼓包頂端，交界輪廓是內凹過渡（沒有接縫）。
+export function bumpS(v, list) { let s = 0; for (const b of list) { const dx = v.x - b[0], dy = v.y - b[1], dz = v.z - b[2]; s += b[3] * Math.exp(-(dx * dx + dy * dy + dz * dz) / (b[4] * b[4])); } return s; }
 export const ball = (() => { let g; return () => g || (g = new THREE.SphereGeometry(1, dseg(40, 14), dseg(28, 10))); })();
 export const foot = (() => { let g; return () => g || (g = blobGeo(v => { v.y = v.y * (v.y < 0 ? 0.55 : 1) + 0.55; v.z += 0.12 * (1 - Math.abs(v.y - 0.5)); }, 36, 24)); })();
 
