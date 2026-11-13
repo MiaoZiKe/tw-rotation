@@ -225,16 +225,17 @@ export const SPECIES = {
   octo: {
     pat: ['spots','stripes'],
     name: '八寶', sub: '小章魚', moveZh: '貼地滑行', sigZh: '噴墨', why: '頭大腳多，觸手各自晃動，停下來還在動',
-    R: 0.34, move: 'slide', footSize: null, handR: 0, top: 0.82, wob: 1.25, mouth: [0, 0.38, 0.37], front: 0.37, faceUp: 0.12, walk: 1.4, run: 3.4,
+    R: 0.34, rootSpan: 0.1, move: 'slide', footSize: null, handR: 0, top: 0.82, wob: 1.25, mouth: [0, 0.38, 0.37], front: 0.37, faceUp: 0.12, walk: 1.4, run: 3.4,
     face: { ...FACE, ex: 84, ey: 268, rx: 32, ry: 42, my: 322, mw: 12, mouthO: 1, eye: '#33264e', eye2: '#5c4690' },
     pals: [{ n: '葡萄', body: 0xc3a2f0, top: 0xeadcff, tip: 0xf0e4ff, sss: 0xa070ff }, { n: '蜜桃', body: 0xffab9c, top: 0xffe0d6, tip: 0xffece4, sss: 0xff7060 }, { n: '海藍', body: 0x8fc6f5, top: 0xd6ecff, tip: 0xe6f4ff, sss: 0x5090ff }, { n: '檸檬', body: 0xffdc78, top: 0xfff4c4, tip: 0xfff8dc, sss: 0xffb020 }],
     anc: { hat: [0, 0.79, 0.02, 1.05], bow: [0.2, 0.76, 0.12], glasses: 1 },
     build(c, p) {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3 };
       c.main = put(c, blobGeo(v => { const y = v.y, b = 1 + 0.09 * sstep(-0.6, 0.5, y); v.set(v.x * 0.345 * b, y * (y > 0 ? 0.37 : 0.31), v.z * 0.33 * b); }), M(c, { ...o, y0: -0.3, y1: 0.3, face: c.face, headC: [0, -0.03, 0], span: [2.2, 2.2] }), 0, 0.45, 0);
-      const tm = MR(c, { ...o, color: p.body, top: p.body, y0: -1.5, y1: 1.5 }), tp = M(c, { color: p.tip, top: p.tip, sss: p.sss, sssAmt: 0.2 });
+      const tm = M(c, { ...o, color: p.body, top: p.body, y0: -1.5, y1: 1.5 }), tp = M(c, { color: p.tip, top: p.tip, sss: p.sss, sssAmt: 0.2 });
       for (let i = 0; i < 7; i++) { const a = (i + 0.5) / 7 * Math.PI * 2 + Math.PI / 2, cx = Math.cos(a), sz = Math.sin(a); const g = piv(c, cx * 0.2, 0.2, sz * 0.2, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 }); const dv = new V3(cx * 0.25, -0.17, sz * 0.25), dl = dv.length(); { const dn = dv.clone().normalize(), hx = new V3(0, 1, 0).cross(dn); if (hx.lengthSq() < 1e-4) hx.set(1, 0, 0); hx.normalize(); const zz = hx.clone().cross(dn), up = zz.y >= 0 ? 1 : -1, len = dl * 1.12, rz = 0.09;
-          const m = put(c, taperGeo({ q: 0.78, p: 1.3, cap: 0.3, curl: up * 0.075 / rz }), tm, 0, 0, 0, 0.1, len * 0.95, rz * 1.1, g); m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hx, dn, zz)); } }
+          const rr = 0.088, ln = dl * 0.66, m = put(c, taperGeo({ q: 0.6, p: 1.6, cap: 0.12, curl: up * 0.06 / rr }), tm, -dn.x * 0.07, -dn.y * 0.07, -dn.z * 0.07, rr, ln + 0.07, rr, g); m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hx, dn, zz));
+          const tip = dn.clone().multiplyScalar(ln * 0.97 - 0.0).addScaledVector(zz, up * 0.06 * 1.2); put(c, ball(), tp, tip.x, tip.y, tip.z, 0.062, 0.058, 0.062, g); } }
       const sp = M(c, { color: p.top, top: p.top, sss: p.sss, sssAmt: 0.2 }); for (const [x, y, z, r] of [[-0.2, 0.72, 0.1, 0.06], [-0.27, 0.62, 0.02, 0.035], [0.22, 0.7, -0.08, 0.045]]) put(c, ball(), sp, x, y, z, r, r * 0.5, r);
     },
     idle(c, dt, t) { const sp = Math.hypot(c.vel.x, c.vel.z); for (const a of c.apps) if (a.wig != null) { a.vx += Math.sin(t * 2.3 + a.wig) * 2.5 * dt; a.vz += Math.cos(t * 1.9 + a.wig * 1.7) * 2.5 * dt; if (sp > 0.2) { a.vz += Math.sin(t * 9 - a.wig * 1.1) * (6 + sp * 5) * dt * 3; a.vx += Math.cos(t * 9 - a.wig * 1.1) * 3 * dt * 3; } } },
