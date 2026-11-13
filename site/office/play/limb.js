@@ -77,7 +77,7 @@ export class LimbSkin {
     const cen = this.cen, rad = this.rad, tan = this.tan, q = this._q, arc = [];
     let prev = null;
     for (let k = 0; k < NB; k++) {
-      const t = t0 + (1 - t0) * k / (NB - 1); bz(t, q); cen[k * 3] = q.x; cen[k * 3 + 1] = q.y; cen[k * 3 + 2] = q.z;
+      const t = Math.min(1, t0 + (1 - t0) * k / (NB - 1)); bz(t, q); cen[k * 3] = q.x; cen[k * 3 + 1] = q.y; cen[k * 3 + 2] = q.z;
       const m = 1 - t; tan[k * 3] = 2 * m * (ctrl.x - A.x) + 2 * t * (E.x - ctrl.x); tan[k * 3 + 1] = 2 * m * (ctrl.y - A.y) + 2 * t * (E.y - ctrl.y); tan[k * 3 + 2] = 2 * m * (ctrl.z - A.z) + 2 * t * (E.z - ctrl.z);
       const il = 1 / (Math.hypot(tan[k * 3], tan[k * 3 + 1], tan[k * 3 + 2]) || 1); tan[k * 3] *= il; tan[k * 3 + 1] *= il; tan[k * 3 + 2] *= il;
       const sd = (t - ts) * L; let r = rt + (rf - rt) * Math.pow(1 - t, 1.5);
@@ -107,7 +107,7 @@ export class LimbSkin {
     d.subVectors(ank, A); const L = d.length() || 1e-4; d.multiplyScalar(1 / L);
     const t0 = Math.min(0.9, Math.max(0, ts - 0.5 * Lf / L)), ezk = fz / fx;
     for (let k = 0; k < NL; k++) {
-      const t = t0 + (1 - t0) * k / (NL - 1), sd = (t - ts) * L; let r = rt + (rf - rt) * Math.pow(1 - t, 1.8);
+      const t = Math.min(1, t0 + (1 - t0) * k / (NL - 1)), sd = (t - ts) * L; let r = rt + (rf - rt) * Math.pow(1 - t, 1.8);
       const col = sd <= 0 ? collar * Math.max(0, 1 + 1.6 * sd / Lf) : sd < Lf ? rt + (collar - rt) * Math.pow(1 - sd / Lf, 2.2) : 0; r = Math.max(r, col, rt);
       const ez = 1 + (ezk - 1) * sst(0.55, 1, t) * 0.85, fwd = (ezk - 1) * sst(0.55, 1, t) * 0.0;
       c.copy(A).addScaledVector(d, L * t); const slope = -(rf - rt) * 1.8 * Math.pow(1 - t, 0.8) / L * 0.6;
