@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-11-14T02:02:46+08:00",
+  "checked_at": "2026-11-14T04:41:29+08:00",
   "today": "2026-11-14",
   "expected_price_date": "2026-11-13",
   "is_trading_day": false,
   "summary": {
     "fail": 0,
-    "pending": 2,
-    "ok": 3,
+    "pending": 0,
+    "ok": 5,
     "skip": 3,
     "disabled": 0
   },
@@ -28,7 +28,7 @@
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券／ETF）",
-      "status": "pending",
+      "status": "ok",
       "gates": {
         "run": {
           "ok": true,
@@ -76,8 +76,8 @@
           "deadline": "2026-11-13 18:40:00+08:00"
         },
         "screen": {
-          "ok": false,
-          "why": "主站讀不到（HTTP Error 403: Forbidden）；備援：總覽 2026-11-13／法人 2026-11-13／三大法人頁 2026-11-13（應有 2026-11-13）",
+          "ok": true,
+          "why": "主站 403（執行環境讀不到，改依 Cloudflare 部署紀錄：已含最新資料）；備援：總覽 2026-11-13／法人 2026-11-13／三大法人頁 2026-11-13（應有 2026-11-13）",
           "evidence": [],
           "busy": false,
           "hard": false,
@@ -112,19 +112,23 @@
           "deadline": "2026-11-13 21:40:00+08:00"
         },
         "etf_screen": {
-          "ok": false,
-          "why": "主站讀不到 ETF 檔（HTTP Error 403: Forbidden）；備援：ETF 頁 2026-11-13／成分股 2026-11-13（應有 2026-11-13）",
+          "ok": true,
+          "why": "主站 403（執行環境讀不到 ETF 檔，改依 Cloudflare 部署紀錄）；備援：ETF 頁 2026-11-13／成分股 2026-11-13（應有 2026-11-13）",
           "evidence": [],
           "busy": false,
           "hard": false,
           "deadline": "2026-11-13 21:40:00+08:00"
         },
         "publish": {
-          "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
+          "ok": true,
+          "why": "GitHub Pages（備援） 部署到 eb440c4，已包含最新資料；Cloudflare 主站 部署到 eb440c4，已包含最新資料",
+          "evidence": [
+            "eb440c4ac06cc660fe88d73c585ddd53210221fd",
+            "eb440c4ac06cc660fe88d73c585ddd53210221fd"
+          ],
+          "busy": false,
+          "hard": false,
+          "cf_ok": true
         }
       },
       "deadline": "2026-11-13T18:40:00+08:00",
@@ -237,15 +241,15 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "pending",
+      "status": "ok",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 48 次",
+          "why": "pages.yml 今天有成功執行 50 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43477197302",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43469138166",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43443309866"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43496977196",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43483170860",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43477215963"
           ],
           "busy": false,
           "hard": false
@@ -259,11 +263,15 @@
           "deadline": "2026-11-13 18:40:00+08:00"
         },
         "publish": {
-          "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
+          "ok": true,
+          "why": "GitHub Pages（備援） 部署到 eb440c4，已包含最新資料；Cloudflare 主站 部署到 eb440c4，已包含最新資料",
+          "evidence": [
+            "eb440c4ac06cc660fe88d73c585ddd53210221fd",
+            "eb440c4ac06cc660fe88d73c585ddd53210221fd"
+          ],
+          "busy": false,
+          "hard": false,
+          "cf_ok": true
         }
       },
       "deadline": null,
