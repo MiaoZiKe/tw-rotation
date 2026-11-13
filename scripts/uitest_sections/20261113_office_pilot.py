@@ -24,6 +24,10 @@ def _open(b, base, w=1280, h=760, touch=False, qs="?ambient=0&q=low"):
     pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text else None)
     pg.goto(_root(base) + "/office/world.html" + qs, wait_until="domcontentloaded")
     got = wait_until(pg, "() => window.__world && window.__world.ready", 90000)
+    # 軟體繪圖下每幀的模擬時間很短（實測模擬時間只有牆鐘的 1/8），播放速度調成 8 倍讓模擬時間約等於牆鐘；
+    # 物理子步仍固定 ≤ 0.034 秒，所以行為與 1 倍速一致，只是不用空等。
+    if got:
+        pg.evaluate("() => { __world.speed = 8; }")
     pg.wait_for_timeout(800)
     return c, pg, got
 
@@ -223,6 +227,7 @@ def t_desktop(b, base):
 
         # ───────── 跳躍 ─────────
         pg.wait_for_timeout(500)
+        pg.evaluate("() => { const ch = __world.chars.get('ceo').inner, o = ch.onLand.bind(ch); window.__land = null; ch.onLand = (imp, sf) => { o(imp, sf); window.__land = { imp, sqV: ch.sqV }; }; }")
         pg.evaluate("() => { window.__ys = []; const f = () => { const c = __world.chars.get('ceo'); __ys.push([c.inner.pos.y, c.inner.sq, __world.time]); if (__ys.length < 600) requestAnimationFrame(f); }; f(); }")
         pg.keyboard.press("Space")
         pg.wait_for_timeout(300)
@@ -234,19 +239,19 @@ def t_desktop(b, base):
         ok("Space：高度先升（最高 ≥ 0.3 公尺）", ymax >= 0.3, ymax)
         ok("Space：之後回到地面（最後 ≈ 0）", ys[-1][0] < 0.02, ys[-1])
         ok("起跳前先上升、最高點之後下降（有重力）", ys[ipeak - 1][0] < ymax and ys[min(len(ys) - 1, ipeak + 3)][0] < ymax)
-        sqmin = min(v[1] for v in ys[ipeak:])
-        ok("落地有壓縮回彈（squash 小於 -0.1 後回升）", sqmin < -0.1 and ys[-1][1] > sqmin + 0.05, (sqmin, ys[-1][1]))
+        land = pg.evaluate("() => __land")
+        ok("落地有壓縮（落地衝擊 ≥ 3、壓縮初速 ≤ -2）並回彈到原樣（最後 squash ≈ 0）", bool(land) and land["imp"] >= 3 and land["sqV"] <= -2 and abs(ys[-1][1]) < 0.1, (land, ys[-1]))
         _jump_strip(pg)
 
         # ───────── 碰撞：不穿牆、不穿家具、不出辦公室 ─────────
-        pg.evaluate("() => { __world.speed = 4; window.__hit = { solid: 0, out: 0, n: 0, minx: 99, minz: 99, maxx: -99, maxz: -99 }; const f = () => { const W = __world, c = W.chars.get('ceo'), p = c.object3D.position; const h = __hit; h.n++; if (W.nav.isSolid(p.x, p.z)) h.solid++; if (p.x < 0.3 || p.x > W.layout.size.w - 0.3 || p.z < 0.3 || p.z > W.layout.size.d - 0.3) h.out++; h.minx = Math.min(h.minx, p.x); h.minz = Math.min(h.minz, p.z); h.maxx = Math.max(h.maxx, p.x); h.maxz = Math.max(h.maxz, p.z); requestAnimationFrame(f); }; f(); }")
+        pg.evaluate("() => { __world.speed = 8; window.__hit = { solid: 0, out: 0, n: 0, minx: 99, minz: 99, maxx: -99, maxz: -99 }; const f = () => { const W = __world, c = W.chars.get('ceo'), p = c.object3D.position; const h = __hit; h.n++; if (W.nav.isSolid(p.x, p.z)) h.solid++; if (p.x < 0.3 || p.x > W.layout.size.w - 0.3 || p.z < 0.3 || p.z > W.layout.size.d - 0.3) h.out++; h.minx = Math.min(h.minx, p.x); h.minz = Math.min(h.minz, p.z); h.maxx = Math.max(h.maxx, p.x); h.maxz = Math.max(h.maxz, p.z); requestAnimationFrame(f); }; f(); }")
         for key, ms in (("ArrowUp", 5000), ("ArrowLeft", 5000), ("ArrowDown", 6000), ("ArrowRight", 6000), ("ArrowUp", 4000), ("ArrowLeft", 4000)):
             pg.keyboard.down(key); pg.wait_for_timeout(60); pg.keyboard.up(key); pg.wait_for_timeout(80)    # 連按兩次 → 跑著撞牆，最容易穿牆
             pg.keyboard.down(key); pg.wait_for_timeout(ms); pg.keyboard.up(key)
         h = pg.evaluate("() => __hit")
         ok("朝四面牆一直跑：全程沒有任何一格站進牆或家具本體", h["solid"] == 0, h)
         ok("朝四面牆一直跑：沒有走出辦公室範圍", h["out"] == 0 and h["minx"] > 0.3 and h["minz"] > 0.3 and h["maxx"] < 39.7 and h["maxz"] < 29.7, h)
-        pg.evaluate("() => { __world.speed = 1; }")
+        pg.evaluate("() => { __world.speed = 8; }")
         ok("全程跑過多個方向後角色仍在辦公室內且可操控", pg.evaluate("() => __world.pilot.engaged"))
 
         # ───────── 與旁邊的同事溝通 ─────────
@@ -264,14 +269,14 @@ def t_desktop(b, base):
         ok("按 E：兩人面對面（我朝向對方）", pg.evaluate("""(id) => { const W = __world, a = W.chars.get('ceo'), o = W.chars.get(id), pa = a.object3D.position, po = o.object3D.position;
           const want = Math.atan2(po.x - pa.x, po.z - pa.z); return Math.abs(((a.heading - want + Math.PI) % (2 * Math.PI)) - Math.PI) < 0.5; }""", oid))
         ok("按 E：對方的資訊卡打開（顯示對方名字）", pg.evaluate("(id) => { const W = __world, o = W.chars.get(id); return !document.getElementById('card').hidden && document.querySelector('#card .hd b').textContent.includes(o.spec.nick); }", oid))
-        ok("按 E：對方停下原本動作並回話（對方也出現泡泡）", wait_until(pg, "(id) => { const o = __world.chars.get(id); return o.speech && o.speech.text.length > 0; }".replace("(id)", "()").replace("get(id)", f"get('{oid}')"), 9000))
+        ok("按 E：對方停下原本動作並回話（對方也出現泡泡）", wait_until(pg, f"() => {{ const o = __world.chars.get('{oid}'); return o.speech && o.speech.text.length > 0; }}", 15000))
         pg.wait_for_timeout(300)
         _shot(pg, "溝通對話.png")
-        bub = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.style.transform.indexOf('-999') < 0).length")
+        bub = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).length")
         ok("對話泡泡顯示在畫面上（≥ 1 個）", bub >= 1, bub)
         ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR])
         ok("版面：資訊卡、提示卡、鏡頭提示、工具列不重疊（溝通中）", not ov, ov)
-        bubs = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.style.transform.indexOf('-999') < 0).map(b => { const r = b.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
+        bubs = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).map(b => { const r = b.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
         okb = all(not _overlap(a, c2) for i, a in enumerate(bubs) for c2 in bubs[i + 1:])
         ok("兩個對話泡泡彼此不重疊", okb, bubs)
         pc = [_rect(pg, s) for s in (".pt-tips", "#card")]
@@ -297,9 +302,9 @@ def t_desktop(b, base):
         ok("Esc：選取解除（sel 為空）", pg.evaluate("() => __world.pilot.sel === null"))
         ok("Esc：光環、提示卡消失", pg.evaluate("() => !__world.pilot.halo.visible && document.querySelector('.pt-tips').hidden && !document.querySelector('#labels .tag.sel')"))
         ok("Esc：角色恢復自動行為（開始自己走回座位）", wait_until(pg, "() => __world.chars.get('ceo').state === 'walk' || (__world.chars.get('ceo').state === 'sit')", 8000))
-        pg.evaluate("() => { __world.speed = 4; }")
+        pg.evaluate("() => { __world.speed = 8; }")
         ok("Esc：走回座位並坐下、恢復工作", wait_until(pg, "() => { const c = __world.chars.get('ceo'); return c.state === 'sit' && c.atDesk && !c.busy; }", 60000))
-        pg.evaluate("() => { __world.speed = 1; }")
+        pg.evaluate("() => { __world.speed = 8; }")
         mx = pg.evaluate("() => __mx")
         ok("Esc 之後沒有瞬移（單幀位移 < 1.5 公尺）", mx < 1.5, mx)
 
@@ -347,7 +352,7 @@ def _jump_strip(pg):
     from PIL import Image
     import io
     pg.wait_for_timeout(400)
-    pg.evaluate("() => { __world.speed = 0.25; }")
+    pg.evaluate("() => { __world.speed = 2; }")
     pg.keyboard.press("Space")
     ims = []
     for i in range(6):
@@ -355,7 +360,7 @@ def _jump_strip(pg):
         x, y = _scr(pg, "ceo", 70)
         x = max(150, min(1130, x)); y = max(150, min(610, y))
         ims.append(Image.open(io.BytesIO(pg.screenshot(clip={"x": x - 150, "y": y - 150, "width": 300, "height": 300}))))
-    pg.evaluate("() => { __world.speed = 1; }")
+    pg.evaluate("() => { __world.speed = 8; }")
     W = Image.new("RGB", (300 * 3, 600), "white")
     for i, im in enumerate(ims):
         W.paste(im, ((i % 3) * 300, (i // 3) * 300))
