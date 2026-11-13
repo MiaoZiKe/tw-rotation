@@ -79,7 +79,7 @@ export const SPECIES = {
   // ───────── 3 啵啵：圓頭小機器人（發光的臉、彈簧天線、浮空的手）
   robo: {
     name: '啵啵', sub: '映像管小機器人', moveZh: '滾輪滑行', sigZh: '掃描', why: '橫向圓角的映像管頭、側邊問號天線、波紋管脖子與手臂；螢幕眼睛是暖色橫槓，不是白球機器人', memo: '橫長圓角頭＋側邊問號天線',
-    R: 0.33, move: 'slide', footSize: null, walk: 1.4, run: 3.3, lat: 0.115, handR: 0.062, hand: [0.37, 0.27, 0.05], shoulder: [0.2, 0.34, 0.03], armRip: 0.2, wrist: 0.7, armFlare: 1.5, armLf: 0.7,
+    R: 0.33, move: 'slide', footSize: null, walk: 1.4, run: 3.3, lat: 0.115, handR: 0.062, hand: [0.37, 0.27, 0.05], shoulder: [0.14, 0.33, 0.03], armRip: 0.2, wrist: 0.7, armFlare: 1.0, armLf: 0.7,
     handGeo: () => { const g = new THREE.TorusGeometry(1, 0.36, 10, 24, 4.75); g.rotateZ(-0.82); return g; },
     front: 0.34, cheek: [0.24, 0.45, 0.3], wob: 0.6, mouth: [0, 0.68, 0.3], top: 1.0,
     face: { kind: 'screen', ex: 92, ey: 262, rx: 30, ry: 21, my: 318, mw: 14, line: 6, glow: '#ffd66b', blush: '255,143,107', blushAmt: 0.8, visor: { w: 440, h: 252, y: 146, r: 96, c0: '#3a4466', c1: '#4c5890' } },
@@ -309,7 +309,7 @@ export const SPECIES = {
     build(c, p) {
       // 板子：上緣比下緣薄 15%、整體往後仰 6 度、圓角
       const bg = rbox(0.52, 0.64, 0.24, 0.075, 6), P = bg.attributes.position; for (let i = 0; i < P.count; i++) { const k = 1 - 0.15 * (P.getY(i) + 0.32) / 0.64; P.setZ(i, P.getZ(i) * k); } bg.rotateX(-0.105);
-      c.main = put(c, bg, M(c, { color: p.body, top: p.top, y0: -0.32, y1: 0.32, sss: p.sss, sssAmt: 0.2, face: c.face, headC: [0, 0.145, -0.35], span: [1.16, 1.16] }), 0, 0.43, 0);
+      c.main = put(c, bg, M(c, { color: p.body, top: p.top, y0: -0.32, y1: 0.32, sss: p.sss, sssAmt: 0.2, face: c.face, headC: [0, 0.145, -0.35], faceZ: 0.01, span: [1.16, 1.16] }), 0, 0.43, 0);
       const fr = M(c, { color: p.pad, top: p.pad, y0: -1, y1: 1, rough: 0.6 });
       mrg(c, fr, [[rbox(0.55, 0.06, 0.27, 0.028, 3), 0, 0.14, -0.012], [rbox(0.26, 0.022, 0.07, 0.01, 2), 0, 0.752, -0.045]]).userData.tiny = true;   // 底座止滑邊＋頂端太陽能板條（同色合併）
       c.keys = []; const kg = rbox(0.105, 0.075, 0.05, 0.022, 3);
@@ -347,7 +347,7 @@ export const SPECIES = {
     pat: ['spots','belly'],
     name: '滾滾', sub: '小海豹', moveZh: '一伸一縮', sigZh: '翻肚肚', why: '唯一橫躺的長條剪影；會翻肚子拍手',
     R: 0.29, move: 'slide', footSize: null, handR: 0.05, handScale: [0.12, 0.032, 0.085], hand: [0.34, 0.08, 0.16], top: 0.56, wob: 1.1, mouth: [0, 0.27, 0.5], front: 0.47, cheek: [0.18, 0.3, 0.42], faceUp: 0.2, walk: 1.2, run: 3.0, stride: [0.5, 0.9],
-    face: { ...FACE, ex: 80, ey: 246, rx: 30, ry: 38, my: 316, mw: 15, line: 6, wmouth: true, nose: 1, whisk: 1, eye: '#2a2e3a', eye2: '#4a5268', blush: '255,150,160' },
+    face: { ...FACE, ex: 80, ey: 246, rx: 30, ry: 38, my: 316, mw: 15, line: 6, wmouth: true, whisk: 1, eye: '#2a2e3a', eye2: '#4a5268', blush: '255,150,160' },
     pals: [{ n: '雪白', body: 0xd7e2ee, top: 0xffffff, fin: 0xb9c8da, sss: 0xa9c0e0 }, { n: '灰藍', body: 0x9fb2c8, top: 0xd6e0ec, fin: 0x8094ae, sss: 0x7090c0 }, { n: '奶茶', body: 0xe6cdb0, top: 0xfff4e4, fin: 0xcfae8a, sss: 0xd09060 }, { n: '櫻粉', body: 0xffc4d0, top: 0xfff0f3, fin: 0xf5a4b6, sss: 0xff80a0 }],
     anc: { hat: [0, 0.56, 0.2, 0.8], bow: [0.14, 0.54, 0.24], glasses: 1 },
     build(c, p) {
@@ -379,14 +379,14 @@ export const SPECIES = {
   // ───────── 16 貼貼：便利貼（方方一張、右上角翹起來、身上有兩行字）
   note: {
     name: '貼貼', sub: '便利貼', moveZh: '啪嗒啪嗒走', sigZh: '貼上去', why: '薄薄一張方形紙，右上角翹起來；走路會像紙一樣飄',
-    R: 0.3, stride: [0.4, 0.9], lat: 0.13, footFwd: 0.02, footSize: [0.08, 0.055, 0.105], handR: 0.055, hand: [0.34, 0.3, 0.03], front: 0.1, cheek: [0.19, 0.5, 0.1], waddle: 0.12, wob: 1.5, mouth: [0, 0.42, 0.09], top: 0.72, tintK: 0.5, faceShift: 0.25,
+    R: 0.3, stride: [0.4, 0.9], lat: 0.13, footFwd: 0.02, footSize: [0.08, 0.055, 0.105], handR: 0.055, hand: [0.34, 0.3, 0.03], armFlare: 0.85, legFlare: 0.6, legWrist: 0.45, front: 0.1, cheek: [0.19, 0.5, 0.1], waddle: 0.12, wob: 1.5, mouth: [0, 0.42, 0.09], top: 0.72, tintK: 0.5, faceShift: 0.25,
     face: { ...FACE, ex: 78, ey: 250, rx: 30, ry: 39, my: 306, mw: 15, eye: '#4a3a1a', eye2: '#7a6030', blush: '255,140,120' },
     pals: [{ n: '檸檬黃', body: 0xffe37a, top: 0xfff6c0, ink: 0xe0b84a, shoe: 0xffffff, sss: 0xffb830 }, { n: '櫻花粉', body: 0xffb3c8, top: 0xffe2ea, ink: 0xe88aa6, shoe: 0xffffff, sss: 0xff6f9a }, { n: '天空藍', body: 0xa9d2ff, top: 0xe0f0ff, ink: 0x7aaae6, shoe: 0xfff0b0, sss: 0x6090ff }, { n: '薄荷綠', body: 0xa8e6c4, top: 0xdcf8ea, ink: 0x74c49a, shoe: 0xffffff, sss: 0x40c090 }],
     anc: { hat: [-0.13, 0.69, 0, 0.75], bow: [-0.2, 0.7, 0.07], chest: [0.02, 0.1, 0.066], glasses: 1 },
     build(c, p) {
       const g = rbox(0.56, 0.56, 0.11, 0.045, 6), P = g.attributes.position;
       for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), k = sstep(0.3, 0.56, x + y); if (k > 0) { P.setZ(i, P.getZ(i) + k * k * 0.2); P.setY(i, y - k * k * 0.08); P.setX(i, x - k * k * 0.05); } }
-      c.main = put(c, g, M(c, { color: p.body, top: p.top, y0: -0.28, y1: 0.3, sss: p.sss, sssAmt: 0.26, face: c.face, headC: [0, 0.07, -0.36], span: [1.2, 1.2] }), 0, 0.4, 0);
+      c.main = put(c, g, M(c, { color: p.body, top: p.top, y0: -0.28, y1: 0.3, sss: p.sss, sssAmt: 0.26, face: c.face, headC: [0, 0.07, -0.36], faceZ: 0.01, span: [1.2, 1.2] }), 0, 0.4, 0);
       const im = M(c, { color: p.ink, sss: p.ink, sssAmt: 0.2 }); put(c, rbox(0.3, 0.026, 0.02, 0.01, 2), im, -0.06, 0.25, 0.058); put(c, rbox(0.2, 0.026, 0.02, 0.01, 2), im, -0.11, 0.2, 0.058);
       put(c, rbox(0.56, 0.07, 0.03, 0.012, 2), M(c, { color: p.ink, top: p.body, y0: -0.05, y1: 0.05, sss: p.sss, sssAmt: 0.2 }), 0, 0.64, -0.052);
       c.limbMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
@@ -397,13 +397,13 @@ export const SPECIES = {
   // ───────── 17 夾夾：資料夾（橫的牛皮紙夾、左上有標籤耳、裡面的文件探出頭）
   folder: {
     name: '夾夾', sub: '資料夾', moveZh: '抱著文件走', sigZh: '翻文件', why: '比高還寬的橫長方形＋標籤耳，文件從上面探出來會晃',
-    R: 0.32, stride: [0.42, 0.9], lat: 0.15, footFwd: 0.02, footSize: [0.085, 0.055, 0.11], handR: 0.056, hand: [0.38, 0.27, 0.04], front: 0.13, cheek: [0.2, 0.42, 0.12], waddle: 0.09, wob: 0.6, mouth: [0, 0.33, 0.1], top: 0.72, tintK: 0.5, faceShift: 0.25,
+    R: 0.32, stride: [0.42, 0.9], lat: 0.15, footFwd: 0.02, footSize: [0.085, 0.055, 0.11], handR: 0.056, hand: [0.38, 0.27, 0.04], armFlare: 0.9, legFlare: 0.65, legWrist: 0.45, front: 0.13, cheek: [0.2, 0.42, 0.12], waddle: 0.09, wob: 0.6, mouth: [0, 0.33, 0.1], top: 0.72, tintK: 0.5, faceShift: 0.25,
     face: { ...FACE, ex: 84, ey: 252, rx: 30, ry: 39, my: 306, mw: 15, eye: '#4a3418', eye2: '#7a5a30', blush: '255,140,120' },
     pals: [{ n: '牛皮紙', body: 0xf2c98a, top: 0xffe8be, paper: 0xfffdf6, paper2: 0xa9d2ff, shoe: 0xffffff, sss: 0xe09040 }, { n: '海軍藍', body: 0x9db8f0, top: 0xd4e2ff, paper: 0xfffdf6, paper2: 0xffe37a, shoe: 0xffffff, sss: 0x6080e0 }, { n: '草綠', body: 0xa6dc9c, top: 0xdaf4d0, paper: 0xfffdf6, paper2: 0xffb3c8, shoe: 0xffffff, sss: 0x50b060 }, { n: '莓果', body: 0xf5a6b8, top: 0xffdbe4, paper: 0xfffdf6, paper2: 0xa8e6c4, shoe: 0xffffff, sss: 0xff6080 }],
     anc: { hat: [0.14, 0.66, 0, 0.75], bow: [0.24, 0.6, 0.08], chest: [0, 0.07, 0.078], glasses: 1 },
     build(c, p) {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.24 };
-      c.main = put(c, rbox(0.66, 0.46, 0.14, 0.06, 6), M(c, { ...o, y0: -0.23, y1: 0.25, face: c.face, headC: [0, 0.05, -0.36], span: [1.25, 1.25] }), 0, 0.33, 0);
+      c.main = put(c, rbox(0.66, 0.46, 0.14, 0.06, 6), M(c, { ...o, y0: -0.23, y1: 0.25, face: c.face, headC: [0, 0.05, -0.36], faceZ: 0.01, span: [1.25, 1.25] }), 0, 0.33, 0);
       put(c, rbox(0.24, 0.13, 0.13, 0.045, 3), M(c, { ...o, y0: -0.1, y1: 0.1 }), -0.19, 0.575, -0.005);
       const g = piv(c, 0.06, 0.54, -0.02, { k: 120, c: 6, g: 0.03 }); c.papers = g;
       put(c, rbox(0.5, 0.16, 0.035, 0.016, 2), M(c, { color: p.paper, sss: 0xffd0a0, sssAmt: 0.2 }), 0, 0.04, 0, 1, 1, 1, g).rotation.z = 0.05;
@@ -452,7 +452,8 @@ export const SPECIES = {
   // ───────── 20 彎彎：檯燈（圓盤底座＋彎成 C 形的長脖子＋大圓燈罩，點頭時燈罩會晃）
   lamp: {
     name: '彎彎', sub: '彎脖子檯燈', moveZh: '蹦著走', sigZh: '打亮', why: '全場唯一有彎曲長脖子的剪影：細脖子撐著大燈罩，點頭時整顆頭會晃', memo: '長彎脖子＋大圓燈罩',
-    R: 0.3, move: 'hop', hopH: 0.1, footSize: null, handR: 0.05, hand: [0.3, 0.3, 0.1], top: 0.78, wob: 1.0, mouth: [0, 0.55, 0.3], front: 0.3, cheek: [0.22, 0.6, 0.3], tintK: 0.4, faceUp: 0.2, walk: 1.3, run: 3.0, faceShift: 0.6,
+    R: 0.3, move: 'hop', hopH: 0.1, footSize: null, handR: 0, hand: [0.3, 0.3, 0.1], top: 0.78,   // handR 0＝沒有手：燈罩下沒有肩膀可接，原本的手臂是懸空的漏斗（稽核問題 5）
+    wob: 1.0, mouth: [0, 0.55, 0.3], front: 0.3, cheek: [0.22, 0.6, 0.3], tintK: 0.4, faceUp: 0.2, walk: 1.3, run: 3.0, faceShift: 0.6,
     face: { ...FACE, ex: 80, ey: 258, rx: 30, ry: 39, my: 316, mw: 14, eye: '#4a3a1a', eye2: '#7a6030', blush: '255,140,110' },
     pals: [{ n: '檸檬燈', body: 0xffd96a, top: 0xfff0b0, arm: 0xdcd6ea, glow: 0xfff2a8, sss: 0xffb020 }, { n: '天空藍', body: 0x9ccaff, top: 0xe2f0ff, arm: 0xdcd6ea, glow: 0xe8f6ff, sss: 0x5a9aff }, { n: '櫻桃粉', body: 0xffa9bd, top: 0xffe2ea, arm: 0xe8d6dc, glow: 0xfff0e8, sss: 0xff6a90 }, { n: '薄荷', body: 0x9fe0c4, top: 0xe0fbee, arm: 0xd2e2dc, glow: 0xf0fff6, sss: 0x40c898 }],
     anc: { hat: [-0.01, 0.78, 0.07, 0.8], bow: [0.2, 0.55, 0.2], glasses: 1 },
@@ -506,18 +507,18 @@ export const SPECIES = {
     },
     sig: { dur: 2.2, fn(c, u, a, P) { const e = sstep(0, 0.25, u) * (1 - sstep(0.75, 1, u)); P.sq = -0.34 * e; P.pitch = 0.5 * e; P.expr = e > 0.5 ? 'shy' : 'neutral'; P.tint = [0.9, 0.85, 1]; P.tintA = 0.2 * e; if (e > 0.9 && !a.f) { a.f = 1; c.say('（躲起來）', 1.2); c.fx.sfx('skid'); } } },
   },
-  // ───────── 22 啃啃：小恐龍（粗尾巴會甩、背上一排圓背板、鼻頭微凸）
+  // ───────── 22 啃啃：小恐龍（粗尾巴會甩、背上一排圓背板；不要鼻子：鼻吻鼓包與鼻孔點已拿掉）
   dino: {
     name: '啃啃', sub: '小恐龍', moveZh: '大步走', sigZh: '嗷！', why: '前傾的梨形身體、往側後方甩出的粗尾巴、頭頂高過頭的大背板；甩尾巴時整隻跟著晃', memo: '側甩上翹的粗尾巴＋三片大中小背板',
     pat: ['spots', 'stripes', 'belly'], R: 0.33, stride: [0.46, 0.95], lat: 0.14, footFwd: 0.04, footSize: [0.1, 0.07, 0.13], hip: [0.13, 0.1, 0.02], shoulder: [0.2, 0.47, 0.17], handR: 0.046, hand: [0.27, 0.36, 0.2], front: 0.33, cheek: [0.22, 0.4, 0.33], waddle: 0.08, bob: 0.03, wob: 0.9, mouth: [0, 0.38, 0.34], top: 0.9, faceUp: 0.06, tintK: 0.5,
-    face: { ...FACE, ex: 84, ey: 266, rx: 36, ry: 47, my: 330, mw: 15, nostril: 1, eye: '#3a2420', eye2: '#6a4036', blush: '255,150,130' },
+    face: { ...FACE, ex: 84, ey: 266, rx: 36, ry: 47, my: 330, mw: 15, eye: '#3a2420', eye2: '#6a4036', blush: '255,150,130' },
     pals: [{ n: '珊瑚龍', body: 0xf08a6c, top: 0xffc9b0, plate: 0xffd35a, tail: 0xe87a5e, sss: 0xff7a50 }, { n: '薄荷龍', body: 0x6cc98a, top: 0xc8f0d4, plate: 0xffb86b, tail: 0x5ab878, sss: 0x30b060 }, { n: '天藍龍', body: 0x7fb0ff, top: 0xd2e6ff, plate: 0xff9fb5, tail: 0x6aa0f4, sss: 0x4a80ff }, { n: '芋紫龍', body: 0xb59af0, top: 0xe6dcff, plate: 0xffd27a, tail: 0xa388e6, sss: 0x8a6bff }],
     anc: { hat: [0, 0.86, 0.04, 0.85], bow: [0.18, 0.8, 0.13], chest: [0, 0.26, 0.31], neck: [0.46, 0.25, 0.24], glasses: 1 },
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.4, y1: 0.45, sss: p.sss, sssAmt: 0.22, rim: 0xffffff, rimAmt: 0.22, face: c.face, headC: [0, 0.03, 0.02], span: [2.1, 2.1] });
-      // 身體＝前傾梨形；鼻吻、肩丘、大腿根、尾根、背板底座都是同一張曲面上的高斯鼓包
+      // 身體＝前傾梨形；肩丘、大腿根、尾根、背板底座都是同一張曲面上的高斯鼓包（鼻吻那個鼓包已拿掉，不要鼻子）
       const S2 = 0.7071, PD = [[0, 0.85, -0.53], [0, 0.45, -0.89], [0, 0.02, -1]];
-      const DB = [[0, 0.1, 1, 0.045, 0.5], [0.8, 0.05, 0.55, 0.035, 0.42], [-0.8, 0.05, 0.55, 0.035, 0.42], [0, -0.38, -0.92, 0.075, 0.55], [0.55, -0.85, 0.05, 0.05, 0.45], [-0.55, -0.85, 0.05, 0.05, 0.45], ...PD.map(d => [d[0], d[1], d[2], 0.022, 0.32])];
+      const DB = [[0.8, 0.05, 0.55, 0.035, 0.42], [-0.8, 0.05, 0.55, 0.035, 0.42], [0, -0.38, -0.92, 0.075, 0.55], [0.55, -0.85, 0.05, 0.05, 0.45], [-0.55, -0.85, 0.05, 0.05, 0.45], ...PD.map(d => [d[0], d[1], d[2], 0.022, 0.32])];
       const dsh = (v) => { const bs = bumpS(v, DB), dx = v.x, dy = v.y, dz = v.z, w = 1 + 0.38 * sstep(0.5, -0.7, dy); v.set(dx * 0.27 * w, dy * (dy > 0 ? 0.44 : 0.385), dz * 0.25 * w + 0.11 * sstep(-0.1, 1, dy)); v.x += dx * bs; v.y += dy * bs; v.z += dz * bs; };
       c.main = put(c, blobGeo(dsh, 96, 72), m, 0, 0.46, 0);
       // 背板：大中小三片，底座埋進身體；最大那片從頭頂後方冒出

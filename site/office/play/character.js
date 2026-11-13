@@ -87,7 +87,7 @@ export class Character {
       const hp = this.hip || cfg.hip || [cfg.lat * 0.55, my * 0.5 + cfg.footSize[1] * 0.5, cfg.footFwd * 0.5], fs = cfg.footSize, fr = fs[0];
       const sl = { f, a: new V3(f.s * hp[0], hp[1], hp[2]), kind: old ? 'old' : 'leg', fs };
       if (sl.kind === 'leg') { sl.rf = fr * 1.0; sl.collar = fr * 1.0; sl.Lf = fr * 1.0; f.m.scale.multiplyScalar(0.55); }
-      else { sl.rt = fr * (thin ? 0.42 : 0.6); sl.rf = fr * (cfg.legFlare ?? (hard ? 1.25 : thin ? 1.0 : 1.4)); sl.Lf = fr * (hard ? 0.5 : 0.9); sl.p = 2.2; }
+      else { sl.rt = fr * (cfg.legWrist ?? (thin ? 0.42 : 0.6)); sl.rf = fr * (cfg.legFlare ?? (hard ? 1.25 : thin ? 1.0 : 1.4)); sl.Lf = fr * (hard ? 0.5 : 0.9); sl.p = 2.2; }
       this.slots.push(sl);
     });
     this.main.geometry.computeBoundingBox(); const bb = this.main.geometry.boundingBox; this.bodyHalf = new V3((bb.max.x - bb.min.x) / 2, (bb.max.y - bb.min.y) / 2, (bb.max.z - bb.min.z) / 2).multiplyScalar(0.92);
@@ -610,8 +610,12 @@ export class Character {
       _a.set(tp.x * (1 + (1 / Math.sqrt(1 + this.sq) - 1) * 0.8), (tp.y) * (1 + this.sq * 0.8) - R, tp.z); this.tumble.localToWorld(_a); this.toLocal(_a);
       const n = Math.max(1, Math.ceil(dt / 0.012)), hh = dt / n;
       for (let j = 0; j < n; j++) { h.v.x += ((_a.x - h.p.x) * k - h.v.x * d) * hh; h.v.y += ((_a.y - h.p.y) * k - h.v.y * d) * hh; h.v.z += ((_a.z - h.p.z) * k - h.v.z * d) * hh; h.p.addScaledVector(h.v, hh); }
+      // 落後量上限：手被彈簧拉著追目標，身體跑快、急轉時會被甩在後面（硬質物種還會整條袖子拉長脫離）。
+      // 手離「它該在的位置」最多 0.35 倍身體半徑；被拎起、翻滾時手本來就要垂下來晃，放寬到 0.9 倍。
+      { const held = this.mode === 'held' || this.mode === 'tumble' || this.mode === 'recover' || this.mode === 'dizzy', lm = R * (held ? 0.9 : 0.35), ox = h.p.x - _a.x, oy = h.p.y - _a.y, oz = h.p.z - _a.z, od = Math.hypot(ox, oy, oz);
+        if (od > lm) { const q = lm / od; h.p.set(_a.x + ox * q, _a.y + oy * q, _a.z + oz * q); h.v.multiplyScalar(0.6); } }
       // 手不要離身體太遠（被丟的時候）
-      const cx = this.pos.x, cyy = this.pos.y + R, cz = this.pos.z, dd = Math.hypot(h.p.x - cx, h.p.y - cyy, h.p.z - cz), mx = R * 2.1; if (dd > mx) { h.p.set(cx + (h.p.x - cx) * mx / dd, cyy + (h.p.y - cyy) * mx / dd, cz + (h.p.z - cz) * mx / dd); }
+      const cx = this.pos.x, cyy = this.pos.y + R, cz = this.pos.z, dd = Math.hypot(h.p.x - cx, h.p.y - cyy, h.p.z - cz), mx = R * 2.0; if (dd > mx) { h.p.set(cx + (h.p.x - cx) * mx / dd, cyy + (h.p.y - cyy) * mx / dd, cz + (h.p.z - cz) * mx / dd); }
       this.setLocal(h.m.position, h.p); h.m.quaternion.copy(this.tumble.getWorldQuaternion(_q));
     });
     // 豆芽的手臂與腿：連接身體與手腳的小圓柱

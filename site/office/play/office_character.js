@@ -155,7 +155,7 @@ export function createCharacter(spec, env = {}) {
       else if (c._drive) { const d = c._drive; ch.ext.vx = d.vx / s; ch.ext.vz = d.vz / s; if (d.fx || d.fz) c.heading = Math.atan2(d.fx, d.fz); else if (d.vx || d.vz) c.heading = Math.atan2(d.vx, d.vz); }
       else { ch.ext.vx = ch.ext.vz = 0; }
       if (!c._held) ch.ext.yaw = c.heading;
-      if (cushion) cushion.visible = !!c._seat && c._boost > 0 && !c._hop && lod < 2 && root.visible;
+      { const sv = !!c._seat && !c._hop && lod < 2 && root.visible; if (cushion) cushion.visible = sv && c._boost > 0; if (riser) riser.visible = sv && c._lift > 0.01; }
       const n = Math.max(1, Math.ceil(dt / (1 / 90))), h = dt / n; for (let i = 0; i < n; i++) ch.step(h, ctl);
       if (c._hop && !c._held) hopStep(dt);
       if (c._held && ch.mode === 'normal' && ch.grounded && !ch.extFall) dropped();
@@ -190,10 +190,10 @@ export function createCharacter(spec, env = {}) {
     // 坐到座位：人就在旁邊的話會跳上去，否則直接放上去（開場、整修後）
     sitAt(seat, opts = {}) {
       c.stop(false); if (c._held) return; const d = Math.hypot(seat.x - ch.pos.x * s, seat.z - ch.pos.z * s); c._seat = seat;
-      const sy = seatY(seat);
-      if (opts.instant || d > 2.4 || d < 0.05) { c._hop = null; place(seat.x, seat.z); ch.pos.y = sy / s; ch.ext.y = ch.pos.y; c.heading = ch.yaw = seat.face; seated(); return; }
+      const sy = seatY(seat), SP = seatPos(seat);
+      if (opts.instant || d > 2.4 || d < 0.05) { c._hop = null; place(SP.x, SP.z); ch.pos.y = sy / s; ch.ext.y = ch.pos.y; c.heading = ch.yaw = seat.face; seated(); return; }
       if (ch.mode !== 'normal') ch.mode = 'normal'; c.heading = Math.atan2(seat.x - ch.pos.x * s, seat.z - ch.pos.z * s);
-      hopTo(seat.x, sy, seat.z, { done() { c.heading = seat.face; seated(); } });
+      hopTo(SP.x, sy, SP.z, { done() { c.heading = seat.face; seated(); } });
     },
     standAt(x, z, face) { c.stop(false); if (c._held) return; c._seat = null; c._hop = null; ch.mode = 'normal'; place(x, z); ch.ext.y = 0; ch.pos.y = 0; if (face != null) { c.heading = face; ch.yaw = face; } },
     faceTo(x, z) { const dx = x - ch.pos.x * s, dz = z - ch.pos.z * s; if (dx * dx + dz * dz > 1e-4) { c.heading = Math.atan2(dx, dz); if (ch.mode === 'sit') ch.yawTo = c.heading; } },
@@ -241,12 +241,41 @@ export function createCharacter(spec, env = {}) {
   // 互動反應期間，場景排的「下一件桌上工作」往後延，反應才不會被蓋掉
   function hold(sec) { c.workAt = Math.max(c.workAt || 0, c._t + sec); }
   function place(x, z) { ch.pos.x = x / s; ch.pos.z = z / s; ch.vel.set(0, 0, 0); ch.grounded = true; ch.feet.forEach(f => { ch.footHome(f, f.p); f.planted = true; f.v.set(0, 0, 0); }); ch.hands.forEach(h => { h.p.set(ch.pos.x, ch.pos.y + 0.3, ch.pos.z); h.v.set(0, 0, 0); }); root.position.set(x, 0, z); }
-  // 個子矮的坐在辦公椅上會被桌子擋住臉：椅子上多一塊加高坐墊，讓嘴巴高過桌面
-  let cushion = null;
+  // 個子矮的坐在辦公椅上會被桌子擋住臉，要把嘴巴墊到桌面以上（墊高量最多 0.27 公尺）。
+  // 2026-11-14 稽核問題 7：墊高全用一根同色圓柱，矮的物種就像坐在柱子上。改成：
+  //   軟坐墊最多 0.12 公尺（又寬又扁的墊子）；不夠的部分改「升高椅子座面」——椅子本來就有升降桿，
+  //   畫一根升降桿加一塊座面墊在原本的椅面上。身體高度（坐上去的總高度）不變，嘴巴還是高過桌面。
+  const CUSHION_MAX = 0.12; let cushion = null, riser = null, poleM = null, padM = null, _cushH = -1;
+  const seatMat = () => new THREE.MeshStandardMaterial({ color: new THREE.Color(spec.color || '#ffd9b0').lerp(new THREE.Color('#ffffff'), 0.35), roughness: 0.9 });
   function seatY(seat) {
     const base = Math.max(0, seat.y - 0.04), chair = seat.y > 0.405 && seat.y < 0.435; let boost = chair ? clamp(0.93 - (ch.cfg.mouth[1] * s + base), 0, 0.27) : 0; if (boost < 0.03) boost = 0;
-    if (boost) { if (!cushion) { cushion = new THREE.Mesh(KG.cyl(0.21, 1, 0.03, 16), new THREE.MeshStandardMaterial({ color: new THREE.Color(spec.color || '#ffd9b0').lerp(new THREE.Color('#ffffff'), 0.35), roughness: 0.9 })); cushion.userData.prop = 'cushion'; space.add(cushion); } cushion.position.set(seat.x / s, (base - 0.01) / s, seat.z / s); cushion.scale.set(1 / s, (boost + 0.02) / s, 1 / s); }
-    c._boost = boost; return base + boost;
+    const soft = Math.min(boost, CUSHION_MAX), lift = boost - soft, P = seatPos(seat);
+    if (boost) {
+      if (!cushion) { cushion = new THREE.Mesh(KG.cyl(0.23, soft, 0.03, 20), seatMat()); cushion.userData.prop = 'cushion'; space.add(cushion); _cushH = soft; }
+      if (Math.abs(_cushH - soft) > 1e-3) { cushion.geometry = KG.cyl(0.23, Math.max(soft, 0.02), Math.min(0.03, soft * 0.45), 20); _cushH = soft; }   // 厚度變了（換到別張椅子）：重做幾何
+      cushion.position.set((seat.x + (P.x - seat.x) * 0.6) / s, (base + lift) / s, (seat.z + (P.z - seat.z) * 0.6) / s); cushion.scale.setScalar(1 / s);
+    }
+    if (lift > 0.01) {
+      if (!riser) {
+        riser = new THREE.Group(); poleM = new THREE.Mesh(KG.cyl(0.04, 1, 0.01, 12), new THREE.MeshStandardMaterial({ color: '#7d8490', roughness: 0.5, metalness: 0.2 })); padM = new THREE.Mesh(KG.cyl(0.27, 0.06, 0.02, 24), seatMat());
+        riser.add(poleM, padM); riser.userData.prop = 'cushion'; space.add(riser);
+      }
+      poleM.scale.set(1, lift, 1); padM.position.y = lift - 0.06; riser.position.set(seat.x / s, base / s, seat.z / s); riser.scale.setScalar(1 / s);
+    }
+    c._boost = boost; c._lift = lift; return base + boost;
+  }
+  // 坐下的位置：身體（含尾巴、觸手）超出椅背前緣的，往前坐一點（最多 0.1 公尺），不要穿過椅背。
+  // 椅背前緣在座面中心後方約 0.215 公尺（大椅 0.25）。身體往後的範圍用目前姿態的外框量一次、記起來。
+  let _backExt = null;
+  function seatPos(seat) {
+    if (_backExt == null) {   // 在角色自己的座標系（+z＝面向）量所有頂點往後的最遠距離，與目前站在哪、朝哪都無關
+      ch.root.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(ch.root.matrixWorld).invert(), m4 = new THREE.Matrix4(), v = new V3(); let mn = 0;
+      ch.deform.traverse(o => { if (!o.isMesh || !o.geometry.attributes.position) return; const P = o.geometry.attributes.position, st = Math.max(1, Math.floor(P.count / 2000)); m4.multiplyMatrices(inv, o.matrixWorld); for (let i = 0; i < P.count; i += st) { v.fromBufferAttribute(P, i).applyMatrix4(m4); if (v.z < mn) mn = v.z; } });
+      _backExt = -mn * s;
+    }
+    const fwd = clamp(_backExt - (spec.isCeo ? 0.25 : 0.2), 0, 0.1);
+    c._backExt = _backExt; c._seatFwd = fwd;
+    return { x: seat.x + Math.sin(seat.face) * fwd, z: seat.z + Math.cos(seat.face) * fwd };
   }
   function seated() { ch.vel.set(0, 0, 0); ch.grounded = true; ch.yaw = ch.yawTo = c.heading; ch.mode = c.action === 'sleep' ? 'sleep' : 'sit'; ch.modeT = 0; ch.idleSit = false; ch.sqV -= 2.5; }
   function dropped() { c._held = false; c._seat = null; ch.ext.y = 0; c.heading = ch.yaw; if (c.onDrop) c.onDrop(c); }

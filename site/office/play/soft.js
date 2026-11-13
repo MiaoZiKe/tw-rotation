@@ -13,7 +13,7 @@ export function softMat(o, sh) {
   };
   if (o.root) Object.assign(U, { uBodyC: sh.uBodyC, uBodyK: sh.uBodyK, uBodyYS: sh.uBodyYS, uRootCol: { value: new THREE.Color(o.root.color) }, uRootTop: { value: new THREE.Color(o.root.top ?? o.root.color) }, uRootY: { value: new THREE.Vector2(o.root.y0 ?? -0.3, o.root.y1 ?? 0.3) }, uRootSpan: { value: o.rootSpan ?? 0.3 } });
   m.userData.o = o;
-  if (o.face) Object.assign(U, { uFace: { value: o.face.tex }, uHeadC: { value: new V3(...o.headC) }, uFaceSpan: { value: new THREE.Vector2(...o.span) }, uFaceOff: { value: new THREE.Vector2() }, uFaceGlow: { value: o.glow ?? 0 }, uFaceGloss: { value: o.gloss ?? 0.7 } });
+  if (o.face) Object.assign(U, { uFace: { value: o.face.tex }, uHeadC: { value: new V3(...o.headC) }, uFaceSpan: { value: new THREE.Vector2(...o.span) }, uFaceOff: { value: new THREE.Vector2() }, uFaceGlow: { value: o.glow ?? 0 }, uFaceGloss: { value: o.gloss ?? 0.7 }, uFaceZ: { value: o.faceZ ?? -1e3 } });
   m.userData.U = U; if (o.face || o.root) { m.defines = {}; if (o.face) m.defines.USE_FACE = ''; if (o.root) m.defines.USE_ROOT = ''; }
   m.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, U);
@@ -23,7 +23,7 @@ export function softMat(o, sh) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n vObjP = position; transformed -= normal * uDent.w * dW;')
       .replace('#include <project_vertex>', 'vec4 wPos = modelMatrix * vec4(transformed,1.0); float gd = uGround - wPos.y; if (gd > 0.0) wPos.y = uGround - gd*0.06;\n vec4 mvPosition = viewMatrix * wPos; gl_Position = projectionMatrix * mvPosition;\n#ifdef USE_ROOT\n vWP = wPos.xyz;\n#endif');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt; uniform vec4 uPat; uniform vec3 uPatCol; uniform vec3 uPatC; uniform float uPatR;\n#ifdef USE_ROOT\nvarying vec3 vWP; uniform vec3 uBodyC; uniform vec3 uBodyK; uniform float uBodyYS; uniform vec3 uRootCol; uniform vec3 uRootTop; uniform vec2 uRootY; uniform float uRootSpan;\n#endif\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt; uniform vec4 uPat; uniform vec3 uPatCol; uniform vec3 uPatC; uniform float uPatR;\n#ifdef USE_ROOT\nvarying vec3 vWP; uniform vec3 uBodyC; uniform vec3 uBodyK; uniform float uBodyYS; uniform vec3 uRootCol; uniform vec3 uRootTop; uniform vec2 uRootY; uniform float uRootSpan;\n#endif\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss; uniform float uFaceZ;\n#endif')
       .replace('#include <color_fragment>', `#include <color_fragment>
         diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, uTint, uTintAmt);
         #ifdef USE_ROOT
@@ -67,7 +67,7 @@ export function softMat(o, sh) {
           vec3 fd = normalize(vObjP - uHeadC);
           vec2 fuv = vec2(atan(fd.x, fd.z) - uFaceOff.x, asin(clamp(fd.y,-1.0,1.0)) - uFaceOff.y) / uFaceSpan + 0.5;
           vec4 fc = texture2D(uFace, fuv);
-          float fm = step(0.0,fuv.x)*step(fuv.x,1.0)*step(0.0,fuv.y)*step(fuv.y,1.0)*step(-0.15, fd.z);
+          float fm = step(0.0,fuv.x)*step(fuv.x,1.0)*step(0.0,fuv.y)*step(fuv.y,1.0)*step(-0.15, fd.z)*step(uFaceZ, vObjP.z);   // faceZ：薄片身體的投影中心放在身後，要再限制「只畫在身體前半」
           fc *= fm;
           vec3 fcol = pow(fc.rgb / max(fc.a, 1e-3), vec3(2.2));
           diffuseColor.rgb = mix(diffuseColor.rgb, fcol * (1.0 - 0.7*step(0.5,uFaceGlow)), fc.a);
