@@ -29,7 +29,7 @@ const ACTS = {
   raise: { pose: 'raise' }, clap: { pose: 'clap' }, cheer: { pose: 'cheer' }, drink: { pose: 'drink', R: 'cup' }, phone: { pose: 'phone', R: 'phone' },
   talk: { pose: 'talkg' }, stretch: { pose: 'stretch' }, doze: { pose: 'doze' }, slam: { pose: 'slam' }, point: { pose: 'point' },
   carry: { pose: 'carry', A: 'doc' }, present: { pose: 'present', A: 'doc' }, eat: { pose: 'eat', R: 'donut' }, magnify: { pose: 'magnify', R: 'magnifier', L: 'doc' },
-  paddle: { pose: 'paddle', R: 'paddle' }, pour: { pose: 'pour', R: 'cup' }, reach: { pose: 'reach' }, sulk: { pose: 'sulk' }, angry: { pose: 'slam' }, wave: { pose: 'raise' }, sleep: {},
+  box: { pose: 'carry', A: 'box' }, paddle: { pose: 'paddle', R: 'paddle' }, pour: { pose: 'pour', R: 'cup' }, reach: { pose: 'reach' }, sulk: { pose: 'sulk' }, angry: { pose: 'slam' }, wave: { pose: 'raise' }, sleep: {},
 };
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h; };
 
@@ -63,12 +63,16 @@ function iconTex(name) {
     dots() { halo(() => { g.beginPath(); g.roundRect(-r * 0.74, -r * 0.34, r * 1.48, r * 0.68, r * 0.34); }, '#ffffff', '#f0d9c0', r * 0.1); g.fillStyle = '#b09a8c'; for (const x of [-0.38, 0, 0.38]) { g.beginPath(); g.arc(x * r, 0, r * 0.11, 0, 7); g.fill(); } },
     zzz() { g.font = `900 ${r * 1.3}px "Arial Rounded MT Bold","Nunito",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = r * 0.26; g.strokeStyle = '#fff'; g.strokeText('Z', 0, 0); g.fillStyle = '#8fa8ff'; g.fillText('Z', 0, 0); },
     steam() { const gr = g.createRadialGradient(0, 0, 0, 0, 0, r * 0.9); gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(0.6, 'rgba(255,236,230,.6)'); gr.addColorStop(1, 'rgba(255,220,210,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); },
+    // 額度用完：空電池（紅色一格）、等核准：盾牌加鎖、出了狀況：小烏雲（不羞辱：沒有閃電、沒有黑煙）
+    battery() { const body = () => { g.beginPath(); g.roundRect(-r * 0.66, -r * 0.34, r * 1.2, r * 0.68, r * 0.16); }; halo(() => { g.beginPath(); g.roundRect(r * 0.54, -r * 0.14, r * 0.16, r * 0.28, r * 0.05); }, '#b9a99a', '#fff', r * 0.14); halo(body, '#fff6ea'); g.lineWidth = r * 0.08; g.strokeStyle = '#8a766a'; body(); g.stroke(); g.fillStyle = '#ff6a4d'; g.beginPath(); g.roundRect(-r * 0.54, -r * 0.2, r * 0.2, r * 0.4, r * 0.05); g.fill(); },
+    shield() { const sh = () => { g.beginPath(); g.moveTo(0, -r * 0.74); g.bezierCurveTo(r * 0.3, -r * 0.55, r * 0.55, -r * 0.5, r * 0.62, -r * 0.5); g.bezierCurveTo(r * 0.62, r * 0.2, r * 0.32, r * 0.55, 0, r * 0.78); g.bezierCurveTo(-r * 0.32, r * 0.55, -r * 0.62, r * 0.2, -r * 0.62, -r * 0.5); g.bezierCurveTo(-r * 0.55, -r * 0.5, -r * 0.3, -r * 0.55, 0, -r * 0.74); g.closePath(); }; halo(sh, '#ffb300'); g.fillStyle = '#fff'; g.beginPath(); g.roundRect(-r * 0.2, -r * 0.08, r * 0.4, r * 0.32, r * 0.06); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = r * 0.1; g.beginPath(); g.arc(0, -r * 0.1, r * 0.14, Math.PI, 0); g.stroke(); },
+    cloud() { halo(() => { g.beginPath(); g.arc(-r * 0.28, r * 0.06, r * 0.26, 0, 7); g.arc(r * 0.02, -r * 0.14, r * 0.34, 0, 7); g.arc(r * 0.34, r * 0.08, r * 0.26, 0, 7); g.roundRect(-r * 0.54, r * 0.06, r * 1.12, r * 0.28, r * 0.14); }, '#a9b7cf'); g.fillStyle = '#7cc8ff'; for (const x of [-0.3, 0.05, 0.38]) { g.beginPath(); g.ellipse(x * r, r * 0.62, r * 0.05, r * 0.1, 0, 0, 7); g.fill(); } },
     check() { g.save(); g.shadowColor = 'rgba(40,120,60,.4)'; g.shadowBlur = r * 0.12; const q = () => { g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(-r * 0.12, r * 0.4); g.lineTo(r * 0.56, -r * 0.42); g.stroke(); }; g.lineWidth = r * 0.42; g.strokeStyle = '#fff'; q(); g.restore(); g.lineWidth = r * 0.22; g.strokeStyle = '#4cc27a'; q(); },
   };
   (P[name] || P.exclaim)();
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return (ICON[name] = t);
 }
-export const ICON_NAMES = ['exclaim', 'question', 'anger', 'sweat', 'bulb', 'star', 'heart', 'note', 'dots', 'zzz', 'check'];
+export const ICON_NAMES = ['exclaim', 'question', 'anger', 'sweat', 'bulb', 'star', 'heart', 'note', 'dots', 'zzz', 'check', 'battery', 'shield', 'cloud'];
 
 // ── 道具（每種一份合併幾何，全部角色共用；造型已經是「拿在手上」的角度：+z 朝前、+y 朝上）
 const PROP = {}; let inkMat = null, inkCtx = null, inkTex = null, inkT = 0, inkN = 0, tabMat = null, tabCtx = null, tabTex = null, tabN = 0, sharedT = -1;
@@ -94,6 +98,7 @@ function propMesh(type) {
     const plane = (w, h, a, l, z, mat) => { const g = new THREE.PlaneGeometry(w, h); g.rotateZ(Math.PI); const [y, zz] = T(a, l, z); extra = { geo: g, mat, rx: -a - Math.PI / 2, y, z: zz }; };
     switch (type) {
       case 'book': { const a = 0.75; tb('#7fa8e8', 0.3, 0.02, 0.2, a, 0, 0, 0, 0.008); for (const q of [-1, 1]) { tb('#fffdf6', 0.135, 0.02, 0.18, a, 0.014, 0, q * 0.072, 0.008, q * -0.14); for (let i = 0; i < 4; i++) tb(i === 2 ? '#e6b9c8' : '#b9c6dc', 0.1 - (i % 2) * 0.02, 0.004, 0.012, a, 0.027 + 0.004, 0.055 - i * 0.034, q * 0.07, 0.001, q * -0.14); } break; }
+      case 'box': P.box('#d8a56a', 0.3, 0.2, 0.24, 0, -0.1, 0.02, 0.02); P.box('#f2dfb5', 0.07, 0.012, 0.24, 0, 0.1, 0.02, 0.004); P.box('#c99256', 0.3, 0.012, 0.09, 0, 0.098, -0.095, 0.004, 0, -0.5); P.box('#c99256', 0.3, 0.012, 0.09, 0, 0.098, 0.135, 0.004, 0, 0.5); P.sph('#93d18b', 0.07, 0.07, 0.17, 0.02); P.cyl('#fffaf2', 0.035, 0.07, -0.08, 0.1, 0.02, 0.01); break;   // 收拾桌面的紙箱
       case 'tablet': tb('#6b7285', 0.24, 0.016, 0.17, 0.8, 0, 0, 0, 0.007); plane(0.21, 0.14, 0.8, 0.0095, 0, 'tab'); break;
       case 'notebook': { const a = 0.6; tb('#ffd27a', 0.2, 0.018, 0.16, a, 0, 0, 0, 0.007); tb('#fffdf6', 0.185, 0.012, 0.15, a, 0.012, 0, 0.004, 0.005); for (let i = 0; i < 5; i++) { const [y, z] = T(a, 0.016, (i - 2) * 0.028); P.add(KG.torus(0.012, 0.004, 8), '#9aa0aa', -0.096, y, z, Math.PI / 2, 0, 0); } plane(0.16, 0.125, a, 0.0195, 0, 'ink'); break; }
       case 'pen': P.cyl('#5b8def', 0.011, 0.11, 0, -0.02, 0, 0.004); P.cyl('#f6c177', 0.011, 0.02, 0, -0.04, 0, 0.004, 0.004); P.sph('#ff9f9f', 0.013, 0, 0.095, 0); break;

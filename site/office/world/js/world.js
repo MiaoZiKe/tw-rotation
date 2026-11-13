@@ -211,7 +211,7 @@ export function createWorld(canvas, layout, org, quality) {
 
   // 座位與具名目標點；家具動過就重算
   function respot() {
-    const feet = []; for (const inst of W.furn.values()) feet.push(...footToWorld(inst.f, inst.spec.foot || []));
+    const feet = []; for (const inst of W.furn.values()) feet.push(...footToWorld(inst.f, inst.spec.foot || [])); feet.push(...(W.extraFeet || []));   // extraFeet：戶外物件（無業遊民區）的佔地
     nav.rebuild(feet);
     const old = new Map(W.spots.map(s => [s.uid, s.taken])); const spots = []; let n = 0;
     for (const inst of W.furn.values()) {
@@ -241,7 +241,7 @@ export function createWorld(canvas, layout, org, quality) {
   const _on = new THREE.Color('#ffffff'), _off = new THREE.Color('#55607a');
   W.updateScreens = dt => {
     tickScreens(dt);
-    for (let i = 0; i < screens.count; i++) { const c = W.chars.get(W.screenOwner[i]); screens.setColorAt(i, c && c.state === 'sit' && c.atDesk ? _on : _off); }
+    for (let i = 0; i < screens.count; i++) { const c = W.chars.get(W.screenOwner[i]); screens.setColorAt(i, c && c.state === 'sit' && c.atDesk && !c.sleeping ? _on : _off); }   // 睡覺（額度用完）時螢幕逐台熄滅
     if (screens.instanceColor) screens.instanceColor.needsUpdate = true;
   };
 

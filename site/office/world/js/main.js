@@ -7,6 +7,13 @@ import { createPilot } from './pilot.js';
 import { createCamHint } from './camhint.js';
 import { createDaytime } from './daytime.js';
 import { createUI } from './ui.js';
+import { createState } from './state.js';
+import { createPower } from './power.js';
+import { createJobs } from './jobs.js';
+import { createHR } from './hr.js';
+import { createSim } from './sim.js';
+import { buildOutside } from './outside.js';
+import { createEmpty } from './empty.js';
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
 
@@ -22,6 +29,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality), { renderer, scene, camera } = W;
+  buildOutside(W);   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
   function resize() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
@@ -44,7 +52,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   }
   W.makeSpec = makeSpec;
   const env = {
-    camera, fx, followed: null, bounds: { x0: 0.6, x1: layout.size.w - 0.6, z0: 0.6, z1: layout.size.d + 3 },
+    camera, fx, followed: null, bounds: { x0: 0.6, x1: layout.size.w - 0.6, z0: 0.6, z1: layout.size.d + 9 },   // z1 多留到大門外的無業遊民區
     isFree: (x, z) => W.nav.isFree(x, z),
     separation(c, dx, dz) {
       let px = 0, pz = 0, slow = 1; const p = c.object3D.position;
@@ -60,11 +68,11 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   const bases = [{ ...org.ceo, isCeo: true }]; for (const d of org.departments) for (const m of d.members) bases.push({ ...m, dept: d.id, color: d.color });
   const baseOf = new Map(bases.map(b => [b.id, b]));
   const labels = $('labels');
-  function setTag(c) { const s = c.spec, L = c._lab; L.tag.firstChild.textContent = s.nick; L.tag.lastChild.textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; }
+  function setTag(c) { const s = c.spec, L = c._lab, k = L.tag.children; k[0].textContent = s.nick; k[1].textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; }
   function addLabel(c) {
-    const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span>`;
+    const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span><u class="stx"></u>`;
     const bub = document.createElement('div'); bub.className = 'bub';
-    labels.append(tag, bub); c._lab = { tag, bub, cls: '', txt: '', on: false, bon: false }; setTag(c);
+    labels.append(tag, bub); c._lab = { tag, bub, cls: '', txt: '', on: false, bon: false, st: '', stEl: tag.children[2] }; setTag(c);
   }
   for (const b of bases) {
     const s = makeSpec(b), c = charMod.createCharacter(s, env); W.chars.set(s.id, c); scene.add(c.object3D); c.onDrop = q => director.dropped(q);
@@ -88,7 +96,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     old.script = (old.script || 0) + 1; old.job = (old.job || 0) + 1; old.stop(false); const vis = old.object3D.visible; old.dispose();
     const c = charMod.createCharacter(makeSpec(baseOf.get(id)), env); Object.assign(c, keep); c.onDrop = q => director.dropped(q); W.chars.set(id, c); scene.add(c.object3D); c.setVisible(vis);
     if (keep.spot && keep.spot.seat && st === 'sit') { c.sitAt(keep.spot.seat, { instant: true }); c.setAction(keep.atDesk ? 'type' : 'idle'); } else { const f = W.nav.isReach(p.x, p.z) ? p : (W.nav.nearestFree(p.x, p.z, 24) || p); c.standAt(f.x, f.z, old.heading); c.busy = false; if (!c.away) director.sendHome(c); }
-    setTag(c); if (view.char === old) { view.char = c; env.followed = c; } everyone = [...W.chars.values(), ...W.pets]; return c;
+    setTag(c); if (view.char === old) { view.char = c; env.followed = c; } everyone = [...W.chars.values(), ...W.pets, ...(W.extras || [])]; return c;
   };
   const ceo = W.chars.get('ceo');
 
@@ -158,7 +166,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   }
   // 手機直式：上方有工具列，注視點往後牆移一點，後牆的佈告欄才會落在工具列下面、點得到
   function jumpTo(roomId) {
-    const r = layout.rooms.find(q => q.id === roomId); if (!r) return;
+    const r = layout.rooms.find(q => q.id === roomId) || (roomId === 'jobless' ? { x: W.outside.zone.x0, z: W.outside.zone.z0, w: W.outside.zone.x1 - W.outside.zone.x0, d: W.outside.zone.z1 - W.outside.zone.z0 } : null); if (!r) return;
     view.mode = 'god'; view.char = null; env.followed = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false;
     tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, portrait() ? r.z + r.d * 0.3 : r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
@@ -214,7 +222,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
       if (k === 'meeting') { if (director.running) { ui.toast('會議示範正在進行中'); return; } director.play(meet.events); return; }
       if (k === 'clockout') { director.clockOut(6); ui.toast('下班：幾位同事從大門離開'); return; }
       if (k === 'clockin') { director.clockIn(6); ui.toast('上班：同事從大門進來'); return; }
-      if (k === 'report') { const c = director.pickIdle(); if (!c) { ui.toast('目前沒有空閒的同事'); return; } director.play([{ type: 'task.done', who: c.spec.id, report_to: 'ceo', summary: '這批做完了，請過目。', reply: '收到，辛苦了。' }]); ui.toast(c.spec.nick + '拿著文件去找 CEO'); return; }
+      if (k === 'report') { const c = director.pickIdle(); if (!c) { ui.toast('目前沒有空閒的同事'); return; } sim.start(c.spec.id); setTimeout(() => sim.stop(c.spec.id, true), 3500); ui.toast(c.spec.nick + '領了任務，做完會拿文件去找 CEO'); return; }   // 走狀態層：派工事件 → 領任務 → 交件事件
       const c = director.routine(null, k); ui.toast(c ? '已派一位同事去' + { coffee: '倒咖啡', lookup: '查資料', rest: '休息', play: '遊樂區', snack: '吃點心', chat: '找人聊天' }[k] : '目前沒有空閒的同事');
     }
   });
@@ -223,6 +231,17 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   // 鍵盤／觸控操控（點選角色後）：輸入、碰撞、溝通演出都在 pilot.js，這裡只掛鉤
   const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot; const camHint = createCamHint(view);
   const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
+
+  // ── 辦公室狀態層與各控制器：所有演出只讀 state，示範（sim）與之後的真資料都從 state.emit 進來 ──
+  W.extras = [];
+  W.addExtra = b => { const s = makeSpec(b), c = charMod.createCharacter(s, env); c.onDrop = q => director.dropped(q); c.busy = true; scene.add(c.object3D); addLabel(c); W.extras.push(c); everyone = [...W.chars.values(), ...W.pets, ...W.extras]; return c; };   // 場景裡的臨時角色（空狀態的迎賓員），不在編制內
+  const state = createState(); W.state = state;
+  W.statusOf = c => (c.jobless ? (W.hr ? W.hr.statusOf(c) : '') : (W.jobs ? W.jobs.statusOf(c) : ''));   // 名牌上的狀態字
+  W.empty = createEmpty(W, { ui, state });   // 要比 jobs 早註冊：空辦公室裡派工事件先讓同事「報到」，再由派工演出接手
+  const power = createPower(W, { state, ui, director, daytime }); W.power = power;
+  const jobs = createJobs(W, { state, ui, director }); W.jobs = jobs;
+  const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
+  const sim = createSim(W, { state, demo, ui }); W.sim = sim;
 
   // ── 名牌、泡泡 ──
   const pv = new THREE.Vector3(), bubs = [];
@@ -233,7 +252,8 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
       if (on) { pv.set(p.x, c.height + (c.lift || 0) + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2 || (view.mode !== 'god' && dist > 17 && !c.speech) || (c.spec.pet && dist > 40)) on = false; }
       if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = false; L.txt = ''; } c._sx = -999; continue; }
       const x = Math.round((pv.x + 1) / 2 * w), y = Math.round((1 - pv.y) / 2 * h); c._sx = x; c._sy = y; c._sd = dist;
-      const cls = 'tag' + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c ? ' sel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
+      const st = W.statusOf(c); if (st !== L.st) { L.stEl.textContent = st; L.st = st; }
+      const cls = 'tag' + (st ? ' hasst' : '') + (c.jobless ? ' jobless' : '') + (c.sleeping ? ' zz' : '') + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c ? ' sel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
       L.tag.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`; L.on = true;
       const th = dist < 15 ? 38 : dist < 34 ? 24 : 18;
       if (c.speech) {
@@ -282,7 +302,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
     if (moved > 5 || dt > 250) return; ui.closePops();   // 位移超過約 5 像素或按住超過約 250 毫秒＝拖曳，不是點一下：不取消選取、不關資訊卡
     if (edit.on) { editTap(e); return; }
-    const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); pilot.select(c); return; }
+    const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
     // 點空白處：取消選取；但 0.3 秒內再點一下（雙點地面）是「鏡頭移過去」，不取消
     const now = performance.now(), gp = new THREE.Vector3();
@@ -360,7 +380,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     requestAnimationFrame(frame);
     const wall = Math.max(0.004, Math.min(0.3, (now - last) / 1000)), real = Math.min(0.1, wall); last = now;   // max(0.004,…)：第一幀的 rAF 時間戳可能比 last 早，負 dt 會讓臉部表情彈簧發散、之後一連串畫臉例外；也不能是 0（慣性要除以 dt，0/0 會讓身體變成 NaN 而消失）
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
-    for (let i = 0; i < n; i++) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
+    for (let i = 0; i < n; i++) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
     W.updateBlobs(); W.updateScreens(real);
     updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
     // 使用者拖曳平移（注視點被他移動）→ 暫停跟隨
@@ -373,7 +393,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     }
     renderer.render(scene, camera);
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
-    updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard();
+    updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.empty.frame();
     acc += real; frames++;
     if (acc >= 1) {
       W.stats.fps = Math.round(frames / acc); acc = 0; frames = 0;

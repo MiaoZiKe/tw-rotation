@@ -4,7 +4,7 @@ export const AGENT_R = 0.27;
 
 export function createNav(layout) {
   const cs = layout.cell || 0.25, W = layout.size.w, D = layout.size.d;
-  const ox = -1, oz = -1, nx = Math.ceil((W + 2) / cs), nz = Math.ceil((D + 6.5) / cs);
+  const ox = -1, oz = -1, nx = Math.ceil((W + 2) / cs), nz = Math.ceil((D + 11) / cs);   // 多留到 D+11：大門外的小路與無業遊民區
   let block = new Uint8Array(nx * nz), solid = new Uint8Array(nx * nz), reach = new Uint8Array(nx * nz);
   const idx = (i, j) => j * nx + i;
   const ci = x => Math.floor((x - ox) / cs), cj = z => Math.floor((z - oz) / cs);
@@ -29,8 +29,8 @@ export function createNav(layout) {
     // 建築物外面不能走（大門外的小路除外）
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
       const x = cx(i), z = cz(j);
-      const inside = x > 0 && x < W && z > 0 && z < D, path = x > 19.2 && x < 21.8 && z >= D && z < D + 5;
-      if (!inside && !path) { block[idx(i, j)] = 1; solid[idx(i, j)] = 1; }
+      const inside = x > 0 && x < W && z > 0 && z < D, path = x > 19.2 && x < 21.8 && z >= D && z < D + 5, yard = (layout.walkAreas || []).some(a => x > a.x0 && x < a.x1 && z > a.z0 && z < a.z1);   // walkAreas：戶外可走的區域（無業遊民區與通往那裡的路）
+      if (!inside && !path && !yard) { block[idx(i, j)] = 1; solid[idx(i, j)] = 1; }
     }
     const T = 0.125, R = AGENT_R + 0.05;
     for (const w of layout.walls) {

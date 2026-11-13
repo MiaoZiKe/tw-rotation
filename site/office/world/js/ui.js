@@ -24,6 +24,8 @@ export function createUI(W, demo, api) {
     <li>點角色：看進度卡，可以摸頭、敲頭、餵點心、叫他去休息或回座位，也能改名字、暱稱、物種與配色（原職稱不能改）。</li>
     <li>按住角色拖曳：把他拎起來放到別處，放開後他會自己走回座位。寵物也可以摸、餵、拎。</li>
     <li>點佈告欄：看 CEO 或該部門的公告。</li>
+    <li>頂列「電力」：Claude 額度還剩多少（台北時間）。額度用完，全體會自動睡覺，恢復後依序醒來。</li>
+    <li>資訊卡的「開除」：同事會搬到公司外面的無業遊民區，點他可以看資訊並「重新聘用」；CEO 不能被開除。</li>
     <li>「示範」：重播一場會議、交件、上下班與日常行為（示範資料）。</li>
     <li>「整修」：拖曳家具、旋轉、換地板顏色。改動都只記在這台裝置上。</li>
   </ul>`;
@@ -32,8 +34,12 @@ export function createUI(W, demo, api) {
   // 區域清單
   const rooms = W.layout.rooms, order = ['ceo', 'meeting', 'library', 'pantry', 'food', 'lounge', 'play', 'reserve', 'lobby'];
   const dot = c => `<span class="dot" style="background:${c}"></span>`;
-  $('areaPop').innerHTML = `<h4>公共區域</h4><div class="grid c3">${order.map(id => { const r = rooms.find(q => q.id === id); return `<button class="it" data-room="${id}">${dot(r.floor)}${esc(r.name)}</button>`; }).join('')}</div>
-    <h4 style="margin-top:12px">部門</h4><div class="grid">${W.org.departments.map(d => `<button class="it" data-room="${d.id}">${dot(d.color)}${esc(d.name)}<small>${d.members.length} 人</small></button>`).join('')}</div>`;
+  const renderAreas = () => {
+    const act = d => d.members.filter(m => !(W.hr && W.hr.isFired(m.id))).length, nJ = W.hr ? W.hr.fired.size : 0;
+    $('areaPop').innerHTML = `<h4>公共區域</h4><div class="grid c3">${order.map(id => { const r = rooms.find(q => q.id === id); return `<button class="it" data-room="${id}">${dot(r.floor)}${esc(r.name)}</button>`; }).join('')}<button class="it" data-room="jobless">${dot('#e6d8bd')}無業遊民區${nJ ? `<small>${nJ}</small>` : ''}</button></div>
+    <h4 style="margin-top:12px">部門</h4><div class="grid">${W.org.departments.map(d => `<button class="it" data-room="${d.id}">${dot(d.color)}${esc(d.name)}<small>${act(d)} 人</small></button>`).join('')}</div>`;
+  };
+  renderAreas(); U.renderAreas = renderAreas;
   $('areaBtn').onclick = () => togglePop('areaPop');
   $('areaPop').onclick = e => { const b = e.target.closest('[data-room]'); if (b) { closePops(); api.jumpTo(b.dataset.room); } };
 
@@ -57,7 +63,7 @@ export function createUI(W, demo, api) {
 
   // ── 角色進度卡（示範資料：依職稱代號固定產生，每次打開都一樣） ──
   const pad = n => String(n).padStart(2, '0');
-  function progress(spec) {
+  function baseProgress(spec) {
     const r = rng('p' + spec.id), pool = (demo.tasks[spec.dept] || demo.tasks.ceo).slice(), base = new Date('2026-11-13T10:30:00+08:00').getTime();
     const stamp = minsAgo => { const d = new Date(base - minsAgo * 60000 + 8 * 3600000); return `${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
     const nDone = 3 + Math.floor(r() * 6), nDoing = 1 + Math.floor(r() * 2), nTodo = Math.floor(r() * 3), list = [];
@@ -67,9 +73,10 @@ export function createUI(W, demo, api) {
     const eta = 15 + Math.floor(r() * 50);
     return { nDone, nDoing, nTodo, list, eta: stamp(-eta), etaMin: eta, opt: demo.optimize[Math.floor(r() * demo.optimize.length)], lastDone: list.find(x => x.s === 3).t, lastDoing: list[0].t, nextTodo: nTodo ? list.find(x => x.s === 1).t : '' };
   }
-  U.progress = progress;      // 操控模式的「按 E 溝通」要用對方現有的進度資料當對話內容
+  const progress = spec => (W.hr ? W.hr.adjust(spec, baseProgress(spec)) : baseProgress(spec));
+  U.baseProgress = baseProgress; U.progress = progress;      // 操控模式的「按 E 溝通」要用對方現有的進度資料當對話內容
   const DOING = { type: '打電腦', note: '做筆記', think: '想事情', phone: '講電話', drink: '喝咖啡', tablet: '看平板', doc: '讀文件', read: '翻書查資料', magnify: '拿放大鏡細看', stretch: '伸懶腰', doze: '打瞌睡', sleep: '睡著了', listen: '聽人說話', talk: '發言中', eat: '吃點心', paddle: '打桌球', carry: '拿著文件', present: '交件中', slam: '拍桌', sulk: '有點委屈', clap: '鼓掌', cheer: '歡呼' };
-  const STATE = c => { const d = DOING[c.action]; if (c.piloted) return '被你操控中'; return c.away ? '已下班' : c.state === 'held' ? '被拎起來了' : c.state === 'walk' ? '走路中' + (d && c.action !== 'type' ? `（${d}）` : '') : (c.atDesk ? `坐在位子上${d || '工作'}${c.task ? '：' + c.task : ''}` : (d || (c.state === 'sit' ? '坐著' : '離開座位'))); };
+  const STATE = c => { const d = DOING[c.action]; if (c.jobless) return W.hr.statusOf(c) + (c.state === 'sit' ? '（坐著休息）' : ''); if (c.piloted) return '被你操控中'; if (c.sleeping) return '睡覺中（電力用完了）'; { const st = W.jobs && W.jobs.statusOf(c); if (st) { if (c.state === 'sit') return '坐在位子上・' + st; if (c.state === 'walk') return '走路中（' + st + '）'; } } return c.away ? '已下班' : c.state === 'held' ? '被拎起來了' : c.state === 'walk' ? '走路中' + (d && c.action !== 'type' ? `（${d}）` : '') : (c.atDesk ? `坐在位子上${d || '工作'}${c.task ? '：' + c.task : ''}` : (d || (c.state === 'sit' ? '坐著' : '離開座位'))); };
   // 頭像：用同一個繪圖器把角色畫成小圖（同一種長相只畫一次）
   const thumbs = new Map();
   function thumb(sp) { const k = [sp.species, sp.pal, sp.hue, (sp.acc || []).join('+'), sp.accColor].join('|'); if (!thumbs.has(k)) { let u = ''; try { u = renderThumb(W.renderer, { species: sp.species, pal: sp.pal, hue: sp.hue, acc: sp.acc, accColor: sp.accColor }, { size: 128, frames: 12 }); } catch (e) { u = ''; } thumbs.set(k, u); } return thumbs.get(k); }
@@ -91,6 +98,7 @@ export function createUI(W, demo, api) {
     el.innerHTML = rows.length ? rows.map(({ x, i }) => `<div class="rowx${cardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-r="${i}" aria-expanded="${cardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${cardOpen === i ? taskDetail(x, spec, p) : ''}</div>`).join('') : `<div class="empty">這個狀態目前沒有任務</div>`;
   }
   U.showCard = c => {
+    if (c.jobless) return showJobless(c);
     cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, p = progress(s), m = W.members.get(s.id) || s; cardP = p; cardF = 0; cardOpen = -1;
     $('card').innerHTML = `<button class="x" aria-label="關閉">×</button>
       <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b>${s.name && s.name !== s.nick ? `<span class="nm2">${esc(s.name)}</span>` : ''}${s.lead ? '<span class="tag2">主管</span>' : ''}
@@ -98,11 +106,25 @@ export function createUI(W, demo, api) {
       <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
       <div class="acts g3"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button></div>
       <div class="kpi" id="cardKpi">${[[1, 'k1', '未完成', p.nTodo, p.nextTodo ? '排 ' + p.nextTodo : '—'], [2, 'k2', '進行中', p.nDoing, '起 ' + p.lastDoing], [3, 'k3', '已完成', p.nDone, '末 ' + p.lastDone]].map(([k, c, n, v, em]) => `<button class="${c}" data-k="${k}" aria-pressed="false" title="點一下只看「${n}」的任務，再點一次回到全部"><span>${n}</span><b>${v}</b><em>${em}</em></button>`).join('')}</div>
-      <dl class="meta"><dt>預估完成</dt><dd>${p.eta}（約 ${p.etaMin} 分鐘後）</dd><dt>能否優化</dt><dd>${esc(p.opt)}</dd></dl>
+      <dl class="meta">${p.nDoing ? `<dt>預估完成</dt><dd>${p.eta}（約 ${p.etaMin} 分鐘後）</dd><dt>能否優化</dt><dd>${esc(p.opt)}</dd>` : '<dt>預估完成</dt><dd>目前沒有進行中的任務</dd>'}</dl>
       <div class="list" id="cardList"></div>
-      <div class="acts"><button class="btn" data-a="ceo">回 CEO 視角</button><button class="btn" data-a="god">俯瞰</button></div>`;
+      <div class="acts"><button class="btn" data-a="ceo">回 CEO 視角</button><button class="btn" data-a="god">俯瞰</button>${s.isCeo ? '' : '<button class="btn dng" data-i="fire">開除</button>'}</div>`;
     $('card').hidden = false; renderList();
   };
+  // 待業中的資訊卡：開除日期、原因、任務轉給誰、在職期間完成的任務；可以重新聘用
+  function showJobless(c) {
+    cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, r = W.hr.recordOf(s.id) || { at: Date.now(), reason: '', to: 'ceo' }, p = baseProgress(W.members.get(s.id) || s), done = p.list.filter(x => x.s === 3), m = W.members.get(s.id) || s;
+    $('card').innerHTML = `<button class="x" aria-label="關閉">×</button>
+      <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b><span class="tag2 gray">待業中</span><p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p></div></div>
+      <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
+      <dl class="meta"><dt>開除日期</dt><dd>${esc(U.fmtDate(r.at))}</dd><dt>原因</dt><dd>${r.reason ? esc(r.reason) : '未填寫'}</dd><dt>任務交給</dt><dd>${esc(W.hr.nameOf(r.to))}（${r.moved ? r.moved.length : 0} 項）</dd></dl>
+      <div class="bsec">在職期間完成的任務（${done.length}）</div>
+      <div class="list" id="cardList">${done.length ? done.map(x => `<div class="row"><i class="s3"></i><span>${esc(x.title)}</span><time>完成 ${esc(x.t)}</time></div>`).join('') : '<div class="empty">沒有紀錄</div>'}</div>
+      <div class="acts"><button class="btn on" data-hr="hire">重新聘用</button><button class="btn" data-a="god">俯瞰</button></div>`;
+    $('card').hidden = false;
+  }
+  U.fmtDate = ms => { const p = {}; for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(ms))) p[x.type] = x.value; return `${p.year}-${p.month}-${p.day}`; };
+  U.refreshCard = () => { if (cardChar && !$('card').hidden && !draft && !cardChar.spec.pet) { const f = cardF; U.showCard(cardChar); if (!cardChar.jobless) { cardF = f; renderList(); } } };
   // 寵物的小卡
   U.showPet = c => {
     cardChar = c; draft = null; $('board').hidden = true; const s = c.spec;
@@ -137,11 +159,13 @@ export function createUI(W, demo, api) {
     { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }   // 滑鼠點過就放掉焦點，之後按 Space 才是「跳躍」而不是再點一次這顆按鈕（鍵盤操作不受影響）
     if (e.target.closest('.x')) { $('card').hidden = true; draft = null; api.cardClosed(); return; }
     const c = cardChar, D = api.director(); let b;
+    if ((b = e.target.closest('[data-hr="hire"]'))) { W.hr.rehire(c.spec.id); U.hideCard(); return; }
     if ((b = e.target.closest('[data-k]'))) { const k = +b.dataset.k; cardF = cardF === k ? 0 : k; cardOpen = -1; renderList(); if (e.detail) b.blur(); return; }
     if ((b = e.target.closest('[data-r]'))) { const i = +b.dataset.r; cardOpen = cardOpen === i ? -1 : i; renderList(); const nb = $('cardList').querySelector(`[data-r="${i}"]`); if (nb && !e.detail) nb.focus(); return; }
     if ((b = e.target.closest('[data-a]'))) { $('card').hidden = true; api.setView(b.dataset.a); return; }
     if ((b = e.target.closest('[data-i]'))) {
       const k = b.dataset.i, inMeet = D.meeting && D.meeting.people.includes(c);
+      if (k === 'fire') { W.hr.ask([c.spec.id]); return; }
       if (c.state === 'held' || c.away) return;
       if (k === 'pet') { c.pet(2.4); U.toast(`摸摸${c.spec.nick}，他很開心`); }
       else if (k === 'bonk') { c.bonk(); U.toast(`敲了${c.spec.nick}一下，他有點委屈`); }
@@ -162,21 +186,21 @@ export function createUI(W, demo, api) {
   // 佈告欄面板：公告（便利貼）＋該部門的人數、主管、成員事項彙總（進行中／未完成／已完成，可點篩選，點一列看細節）
   let boardOwner = null, boardF = 2, boardOpen = -1, boardTasks = [];
   function boardData(owner) {
-    const d = W.org.departments.find(q => q.id === owner), people = owner === 'ceo' ? [{ ...W.org.ceo, dept: 'ceo', isCeo: true }] : d.members.map(m => ({ ...m, dept: d.id }));
-    const all = owner === 'ceo' ? 1 + W.org.departments.reduce((n, q) => n + q.members.length, 0) : d.members.length, lead = owner === 'ceo' ? 'CEO' : ((d.members.find(m => m.lead) || {}).nick || '—');
+    const d = W.org.departments.find(q => q.id === owner), live = m => !(W.hr && W.hr.isFired(m.id)), people = owner === 'ceo' ? [{ ...W.org.ceo, dept: 'ceo', isCeo: true }] : d.members.filter(live).map(m => ({ ...m, dept: d.id }));
+    const all = owner === 'ceo' ? 1 + W.org.departments.reduce((n, q) => n + q.members.filter(live).length, 0) : people.length, lead = owner === 'ceo' ? 'CEO' : ((d.members.find(m => m.lead) || {}).nick || '—');
     const tasks = []; people.forEach(sp => { const p = progress(sp); p.list.forEach(x => tasks.push({ ...x, who: sp.nick, whoId: sp.id, zh: sp.zh, p })); });
     tasks.sort((a, b) => (a.t < b.t ? 1 : -1));
     return { name: owner === 'ceo' ? 'CEO' : d.name, color: owner === 'ceo' ? '#ffb057' : d.color, all, lead, tasks, notes: demo.boards[owner] || [] };
   }
   function renderBoard() {
-    const B = boardData(boardOwner); boardTasks = B.tasks; const cnt = k => B.tasks.filter(x => x.s === k).length;
+    const B = boardData(boardOwner), owner0 = boardOwner, all0 = B.all; boardTasks = B.tasks; const cnt = k => B.tasks.filter(x => x.s === k).length;
     const rows = B.tasks.map((x, i) => ({ x, i })).filter(r => !boardF || r.x.s === boardF);
     $('board').innerHTML = `<button class="x" aria-label="關閉">×</button><h3><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${B.color}"></span>${esc(B.name)}佈告欄</h3>
       <p class="bmeta">${boardOwner === 'ceo' ? '全公司' : '部門'}人數 ${B.all} 人・主管：${esc(B.lead)}</p>
       <div class="scroll" id="boardScroll"><div class="bsec">便利貼公告</div>${B.notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p class="empty">目前沒有公告</p>'}
       <div class="bsec">事項彙總（${boardOwner === 'ceo' ? 'CEO' : esc(B.name) + '成員'}）</div>
       <div class="kpi" id="boardKpi">${[[1, 'k1', '未完成'], [2, 'k2', '進行中'], [3, 'k3', '已完成']].map(([k, c, n]) => `<button class="${c}${boardF === k ? ' on' : ''}" data-bk="${k}" aria-pressed="${boardF === k}" title="只看「${n}」的事項，再點一次看全部"><span>${n}</span><b>${cnt(k)}</b></button>`).join('')}</div>
-      <div class="list bl" id="boardList">${rows.length ? rows.map(({ x, i }) => `<div class="rowx${boardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-br="${i}" aria-expanded="${boardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.who)}：${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${boardOpen === i ? `<dl class="det"><dt>狀態</dt><dd>${SN[x.s]}</dd><dt>${TL[x.s]}時間</dt><dd>${esc(x.t)}</dd><dt>負責人</dt><dd>${esc(x.who)}（${esc(x.whoId)}・${esc(x.zh)}）</dd>${x.s === 2 ? `<dt>預估完成</dt><dd>${esc(x.p.eta)}（約 ${x.p.etaMin} 分鐘後）</dd>` : ''}</dl>` : ''}</div>`).join('') : '<div class="empty">這個狀態目前沒有事項</div>'}</div></div>`;
+      <div class="list bl" id="boardList">${rows.length ? rows.map(({ x, i }) => `<div class="rowx${boardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-br="${i}" aria-expanded="${boardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.who)}：${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${boardOpen === i ? `<dl class="det"><dt>狀態</dt><dd>${SN[x.s]}</dd><dt>${TL[x.s]}時間</dt><dd>${esc(x.t)}</dd><dt>負責人</dt><dd>${esc(x.who)}（${esc(x.whoId)}・${esc(x.zh)}）</dd>${x.s === 2 ? `<dt>預估完成</dt><dd>${esc(x.p.eta)}（約 ${x.p.etaMin} 分鐘後）</dd>` : ''}</dl>` : ''}</div>`).join('') : '<div class="empty">這個狀態目前沒有事項</div>'}</div></div>${owner0 === 'ceo' ? '' : `<div class="acts"><button class="btn dng" data-hr="firedept"${all0 ? '' : ' disabled'}>開除整個部門</button></div>`}`;
   }
   U.showBoard = owner => {
     $('card').hidden = true; boardOwner = owner; boardF = 2; boardOpen = -1; renderBoard(); $('board').hidden = false;
@@ -184,11 +208,13 @@ export function createUI(W, demo, api) {
   $('board').onclick = e => {
     let b; { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }
     if (e.target.closest('.x')) { $('board').hidden = true; return; }
+    if ((b = e.target.closest('[data-hr="firedept"]'))) { W.hr.askDept(boardOwner); return; }
     if ((b = e.target.closest('[data-bk]'))) { const k = +b.dataset.bk; boardF = boardF === k ? 0 : k; boardOpen = -1; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; if (e.detail) document.activeElement.blur(); return; }
     if ((b = e.target.closest('[data-br]'))) { const i = +b.dataset.br; boardOpen = boardOpen === i ? -1 : i; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; return; }
   };
   $('board').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-br]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('board').hidden) { e.preventDefault(); $('board').hidden = true; } });
+  U.afterHr = () => { U.refreshCard(); if (!$('board').hidden && boardOwner) { const sc = $('boardScroll') ? $('boardScroll').scrollTop : 0; renderBoard(); if ($('boardScroll')) $('boardScroll').scrollTop = sc; } renderAreas(); };
   U.postBoard = (owner, note) => { (demo.boards[owner] = demo.boards[owner] || []).unshift({ ...note, isNew: true }); U.toast('會議結論已貼上 CEO 佈告欄'); };
   U.fmtTs = ts => { const m = /(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(ts || ''); return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : ''; };
 

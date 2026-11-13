@@ -70,6 +70,7 @@ export function createDaytime(W, X) {
   W.glowRebuild = () => {
     if (glow) { scene.remove(glow); glow.geometry.dispose(); glow = null; }
     const pts = []; for (const inst of W.furn.values()) { const f = inst.f; if (f.type === 'lamp') pts.push(f.x, 1.35, f.z); else if (f.type === 'workstation' || f.type === 'ceo_desk') pts.push(f.x, 1.0, f.z); }
+    for (const q of W.extraGlow || []) pts.push(q[0], q[1], q[2]);   // 戶外的路燈、營火（無業遊民區）
     if (!pts.length) return;
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
     const tex = glowTex(64, c => { const r = c.createRadialGradient(32, 32, 1, 32, 32, 31); r.addColorStop(0, 'rgba(255,236,180,.95)'); r.addColorStop(0.35, 'rgba(255,214,140,.38)'); r.addColorStop(1, 'rgba(255,200,120,0)'); c.fillStyle = r; c.fillRect(0, 0, 64, 64); });
@@ -82,11 +83,15 @@ export function createDaytime(W, X) {
   function bodyDir(h, riseH, out) {                                // 太陽（或月亮）在天空的方向：東邊升起、南邊偏高、西邊落下
     const a = ((h - riseH + 24) % 24) / 12 * Math.PI; return out.set(Math.cos(a) * 0.9, Math.sin(a), 0.38).normalize();
   }
+  // 額度用完（睡覺）的燈光調暗：W.dim（1＝正常，0.35＝睡覺）乘在天色的光強度上，但不低於下限（夜晚疊加時仍要看得清楚）。
+  // 單獨抽出來，是因為調暗是每幀漸變，不能每次都重畫整個天空。
+  const dimmed = (v, k, floor) => (k >= 1 ? v : Math.min(v, Math.max(v * k, floor)));
+  D.applyDim = () => { if (!D.cur) return; const k = W.dim == null ? 1 : W.dim; hemi.intensity = dimmed(D.cur[7], k, 0.5); sun.intensity = dimmed(D.cur[9], k, 0.2); };
   function apply(t) {
     const f = frame(t); D.cur = f;
     if (g2) { const gr = g2.createLinearGradient(0, 0, 0, cv.height); gr.addColorStop(0, '#' + f[1].getHexString()); gr.addColorStop(0.55, '#' + f[2].getHexString()); gr.addColorStop(1, '#' + f[3].getHexString()); g2.fillStyle = gr; g2.fillRect(0, 0, cv.width, cv.height); W.skyTex.needsUpdate = true; }
-    scene.fog.color.copy(f[4]); hemi.color.copy(f[5]); hemi.groundColor.copy(f[6]); hemi.intensity = f[7];
-    sun.color.copy(f[8]); sun.intensity = f[9];
+    scene.fog.color.copy(f[4]); hemi.color.copy(f[5]); hemi.groundColor.copy(f[6]);
+    sun.color.copy(f[8]); D.applyDim();
     if (W.clouds) W.clouds.material.color.copy(f[10]);
     if (W.glassMat) { W.glassMat.color.copy(f[11]); W.glassMat.opacity = f[12]; }
     if (W.patchMat) { W.patchMat.color.copy(f[13]); W.patchMat.opacity = f[14]; }
@@ -118,11 +123,13 @@ export function createDaytime(W, X) {
     const bar = $('bar').getBoundingClientRect(), hint = document.querySelector('.cm-hint'), hr = hint && hint.offsetParent ? hint.getBoundingClientRect() : null;
     const narrow = innerWidth < 1180 || matchMedia('(pointer:coarse)').matches;
     // 寬螢幕：左上、工具列下方；窄螢幕與手機：鏡頭小提示下方（兩者都在工具列下方，不重疊）
-    const top = narrow && hr ? hr.bottom + 6 : bar.bottom + 8;
+    const below = hr && hr.top >= bar.bottom - 2;     // 鏡頭提示在頂列下方（窄螢幕，或頂列項目太多被擠下來）
+    const top = (narrow || below) && hr ? hr.bottom + 6 : bar.bottom + 8;
     chip.style.top = Math.round(top) + 'px'; chip.style.left = '12px';
     pop.style.top = Math.round(top + 36) + 'px'; pop.style.left = '12px';
   }
   addEventListener('resize', place);
+  document.addEventListener('cmhint', place);
 
   D.set = m => { if (!(m in MODES)) return; D.mode = m; try { localStorage.setItem(KEY, m); } catch (e) { /* 只在這次有效 */ } D.update(true); renderChip(); };
   let lastAt = -1e9, lastTxt = '';

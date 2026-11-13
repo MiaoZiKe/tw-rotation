@@ -65,7 +65,7 @@ export function createPilot(W, X) {
 
   // ───────── 選取／結束 ─────────
   function select(c) {
-    if (!c || c.spec.pet || c.away) return;
+    if (!c || c.spec.pet || c.away || c.jobless) return;   // 待業中的人在公司外面，不接管
     if (P.sel === c) { renderTips(); return; }
     if (P.sel) release();
     P.sel = c; halo.visible = true; P.engaged = false; renderTips(); syncPad();
@@ -108,7 +108,7 @@ export function createPilot(W, X) {
   // ───────── 輸入：鍵盤 ─────────
   const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
   addEventListener('keydown', e => {
-    if (!P.sel || typing() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!P.sel || typing() || e.ctrlKey || e.metaKey || e.altKey || document.body.classList.contains('dlg-open')) return;   // 確認框開著時，鍵盤不操控角色
     if (!$('board').hidden) return;                                  // 佈告欄面板開著：方向鍵等不移動角色（Esc 由面板自己關），關掉面板才恢復
     const k = e.code;
     if ((k === 'Space' || k === 'Enter') && document.activeElement && document.activeElement.closest && document.activeElement.closest('#card,#board') && document.activeElement.matches('button,[role=button]')) return;   // 鍵盤操作面板上的按鈕時，Space 不當成跳躍

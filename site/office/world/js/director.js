@@ -33,10 +33,11 @@ export function createDirector(W, ui) {
     return true;
   }
   async function goHome(c, o) {
-    const s = W.spots.find(q => q.name === 'seat:' + c.spec.id); if (!s) return false;
+    if (c.jobless) return false;           // 待業中的人不回辦公室（重新聘用才會）
+    const s = c.homeSpot || W.spots.find(q => q.name === 'seat:' + c.spec.id); if (!s) return false;
     const ok = await goTo(c, s, o); if (ok) { c.atDesk = true; if (!o || !o.keep) c.setAction('type'); c.workAt = W.time + R(4, 9); } return ok;
   }
-  D.goTo = goTo; D.goHome = goHome;
+  D.goTo = goTo; D.goHome = goHome; D.release = release; D.claim = claim;
 
   // ───────── 坐在位子上的工作細節 ─────────
   // 每個人依部門有不同的習慣：誰常講電話、誰常看文件、誰常想事情
@@ -71,7 +72,7 @@ export function createDirector(W, ui) {
   const LISTEN = ['note', 'listen', 'tablet', 'note', 'think', 'note', 'listen'];
   const settle = c => { if (D.meeting && c.state === 'sit' && !D.meeting.up.has(c)) c.setAction(c.meetBase || 'listen'); };
   async function meetingStart(ev) {
-    const ceo = C(ev.by), att = ev.attendees.map(C).filter(Boolean), all = [ceo, ...att];
+    const ceo = C(ev.by), att = ev.attendees.map(C).filter(c => c && !c.jobless), all = [ceo, ...att];
     D.meeting = { id: ev.meeting, topic: ev.topic, source: ev.source, people: all, lines: [], notes: [], up: new Set() }; D.stage = '召集';
     all.forEach(c => { c.busy = true; c.script = (c.script || 0) + 1; });
     ui.meetingOpen(D.meeting); W.whiteboard && W.whiteboard.set(ev.topic);
@@ -94,7 +95,7 @@ export function createDirector(W, ui) {
   }
   async function sitBack(c) { const m = D.meeting; if (!m || !m.up.has(c) || !c.spot || !c.spot.seat) return; m.up.delete(c); if (c.state === 'held') return; c.sitAt(c.spot.seat); await sleep(0.75); c.setAction(c.meetBase || 'listen'); }
   async function meetingSay(ev) {
-    const m = D.meeting, c = C(ev.who); if (!m || !c) return;
+    const m = D.meeting, c = C(ev.who); if (!m || !c || !m.people.includes(c)) return;
     const dur = Math.max(2.3, Math.min(4.6, 1.5 + ev.text.length * 0.085));
     const others = m.people.filter(o => o !== c), to = ev.to && C(ev.to);
     const lookAt = () => { const sp = pos(c); others.forEach(o => { if (o.state !== 'walk') o.faceTo(sp.x, sp.z); }); if (to) { const t = pos(to); c.faceTo(t.x, t.z); } else faceSeat(c); };
@@ -135,16 +136,23 @@ export function createDirector(W, ui) {
     const jobs = m.people.map((c, i) => (async () => { await sleep(i * 0.25); c.setAction('idle'); const ok = await goHome(c, { speed: 2.3 }); c.busy = false; return ok; })());
     await Promise.all(jobs); D.stage = '回座位工作'; ui.meetingClosed(m); D.meeting = null;
   }
+  // 額度用完時開會到一半就散會：不演結論，會議紀錄寫明原因；與會的人由呼叫端送回座位
+  D.cancelMeeting = reason => {
+    const m = D.meeting; if (!m) return false; D.abort = true; D.meeting = null; D.stage = '';
+    m.lines.push({ who: '會議', kind: '提前散會', k: 'end', text: reason || '提前散會', ts: '' }); ui.meetingLine(m);
+    m.people.forEach(c => { c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = false; });
+    pong.on = false; ball.visible = false; return m.people;
+  };
   const TOOL = { edit: ['type', 'exclaim'], search: ['read', 'question'], read: ['doc', 'dots'], wait: ['think', 'dots'] };
   async function taskStarted(ev) {
-    const c = C(ev.who); if (!c) return; const [act, sym] = TOOL[ev.tool] || TOOL.edit;
+    const c = C(ev.who); if (!c || c.jobless) return; const [act, sym] = TOOL[ev.tool] || TOOL.edit;
     c.emote(sym, 1.6); c.task = ev.title;
     if (ev.tool === 'search') routine(c, 'lookup'); else { c.setAction(act); c.workAt = W.time + 14; }
     await sleep(0.4);
   }
   // 交件：拿著文件走到主管或 CEO 桌前
   async function taskDone(ev) {
-    const c = C(ev.who), boss = C(ev.report_to || 'ceo'); if (!c || !boss) return; D.stage = '向 CEO 報告';
+    const c = C(ev.who), boss = C(ev.report_to || 'ceo'); if (!c || !boss || c.jobless) return; D.stage = '向 CEO 報告';
     c.busy = true; c.script = (c.script || 0) + 1; c.emote('exclaim', 1.2); c.setExpression('happy', 1.5); c.setAction('cheer', { duration: 1 }); await sleep(1.1);
     c.setAction('carry');
     const ok = await goTo(c, W.spot(boss.spec.isCeo ? 'ceo_front' : 'seat:' + boss.spec.id, pos(c), c.spec.id) || W.spot('ceo_front', pos(c), c.spec.id), { speed: 2.4 });
@@ -227,6 +235,7 @@ export function createDirector(W, ui) {
   };
   async function routine(c, name) {
     if (!c || c.away || c.state === 'held') return; const tok = c.script = (c.script || 0) + 1; c.busy = true; c.keep = null;
+    if (c.jobless) { c.busy = true; return; }
     try { await ROUTINES[name](c); } catch (e) { console.error(e); }
     if (c.script !== tok) return;            // 中途被叫去開會或報告，就不要再自己走回座位
     const keep = c.keep; c.keep = null; if (!keep) c.setAction('idle');
@@ -234,14 +243,14 @@ export function createDirector(W, ui) {
     if (c.script === tok) c.busy = false;
   }
   D.routine = (id, name) => { const c = id ? C(id) : pickIdle(); if (c) return routine(c, name); };
-  function pickIdle(not) { const pool = [...W.chars.values()].filter(c => c !== not && !c.busy && !c.away && !c.spec.isCeo && c.state === 'sit' && c.atDesk); return pool.length ? rnd(pool) : null; }
+  function pickIdle(not) { const pool = [...W.chars.values()].filter(c => c !== not && !c.busy && !c.away && !c.jobless && !c.sleeping && !c.spec.isCeo && c.state === 'sit' && c.atDesk); return pool.length ? rnd(pool) : null; }
   D.pickIdle = pickIdle;
   let nextAmb = 3, nextWork = 0, lastT = 0;
   const MENU = ['coffee', 'coffee', 'lookup', 'lookup', 'rest', 'snack', 'water', 'board', 'play', 'play', 'chat', 'chat'];
   D.tick = () => {
-    const dt = Math.min(0.1, W.time - lastT); lastT = W.time; tickPong(dt); tickPets(dt);
+    const dt = Math.min(0.1, W.time - lastT); lastT = W.time; tickPong(dt); if (!D.hold) tickPets(dt); if (D.hold) return;
     // 坐在位子上的人，每隔幾秒換一件事做（開會、被叫走的不算）
-    if (W.time >= nextWork) { nextWork = W.time + 0.4; for (const c of W.chars.values()) if (c.atDesk && !c.busy && c.state === 'sit' && W.time >= (c.workAt || 0)) deskWork(c); }
+    if (W.time >= nextWork) { nextWork = W.time + 0.4; for (const c of W.chars.values()) if (c.atDesk && !c.busy && !c.jobless && !c.sleeping && c.state === 'sit' && W.time >= (c.workAt || 0)) deskWork(c); }
     if (!D.ambient || W.time < nextAmb) return; nextAmb = W.time + 1.9 + Math.random() * 2.4;
     const out = [...W.chars.values()].filter(c => c.busy && !(D.meeting && D.meeting.people.includes(c))).length; if (out >= 9) return;
     const c = pickIdle(); if (c) routine(c, rnd(MENU));
@@ -251,7 +260,7 @@ export function createDirector(W, ui) {
   function tickPets() {
     for (const p of D.pets) {
       if (p.state === 'held' || p.busyUntil > W.time || p.state === 'walk') continue;
-      const o = C(p.spec.owner), me = pos(p), op = o && o.object3D.visible ? pos(o) : me, d = Math.hypot(op.x - me.x, op.z - me.z);
+      const o0 = C(p.spec.owner), o = o0 && !o0.jobless ? o0 : C('ceo'), me = pos(p), op = o && o.object3D.visible ? pos(o) : me, d = Math.hypot(op.x - me.x, op.z - me.z);
       const near = (r0, r1) => { for (let i = 0; i < 8; i++) { const a = Math.random() * 6.283, r = R(r0, r1), x = op.x + Math.cos(a) * r, z = op.z + Math.sin(a) * r; if (W.nav.isReach(x, z)) return { x, z }; } return null; };
       if (d > 3.4) { const t = near(0.9, 1.6); const path = t && W.nav.findPath(me, t); if (path) { p.setAction('idle'); p.emote(d > 9 ? 'exclaim' : 'heart', 1); p.walkTo(path, { speed: d > 7 ? 3.4 : 2.4 }); } p.busyUntil = W.time + 0.6; continue; }
       const k = Math.random();
@@ -287,7 +296,8 @@ export function createDirector(W, ui) {
     'agent.clock': ev => (ev.action === 'out' ? clockOut(C(ev.who)) : clockIn(C(ev.who))), 'agent.activity': ev => { routine(C(ev.who), ev.activity); } };
   D.play = async events => {
     if (D.running) return false; D.running = true;
-    try { for (const ev of events) { const h = H[ev.type]; if (h) await h(ev); if (ev.type === 'meeting.end') await sleep(1.2); } }
+    D.abort = false;
+    try { for (const ev of events) { if (D.abort) break; const h = H[ev.type]; if (h) await h(ev); if (ev.type === 'meeting.end') await sleep(1.2); } }
     catch (e) { console.error(e); }
     D.running = false; D.stage = ''; return true;
   };

@@ -18,10 +18,13 @@ export function createCamHint(view) {
     open = b.dataset.c === 'q'; try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (x) { /* 沒有儲存空間就只在這次有效 */ } render(); place();
   });
   function place() {
-    const bar = $('bar'), r = bar.getBoundingClientRect(), narrow = innerWidth < 1180 || coarse();
+    // 頂列右邊是鏡頭提示：頂列的項目變多（電力、等你核准…）快碰到它時，改放到頂列下方，兩者不重疊
+    const bar = $('bar'), r = bar.getBoundingClientRect(); let last = 0; for (const k of bar.children) if (k.offsetParent) last = Math.max(last, k.getBoundingClientRect().right);
+    el.style.display = ''; const hw = el.offsetWidth || 360, crowd = last > innerWidth - 12 - hw - 12, narrow = innerWidth < 1180 || coarse() || crowd;
     if (narrow) { el.style.top = Math.round(r.bottom + 8) + 'px'; el.style.right = 'auto'; el.style.left = '12px'; } else { el.style.top = '12px'; el.style.right = '12px'; el.style.left = 'auto'; }
+    document.dispatchEvent(new Event('cmhint'));   // 通知時間小字（daytime.js）：提示的位置變了，它要跟著讓開
   }
   addEventListener('resize', place); place();
-  let was = null;
+  let was = null, sig = ''; setInterval(() => { const g = [...$('bar').children].map(k => k.offsetWidth).join(','); if (g !== sig) { sig = g; place(); } }, 400);   // 頂列項目變多變少時重新擺放
   return { tick() { const d = !!(view.detached && view.char); if (d !== was) { was = d; const b = el.querySelector('.cm-back'); if (b) b.hidden = !d; place(); } } };
 }
