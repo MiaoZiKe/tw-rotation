@@ -26,7 +26,7 @@ const qs = new URLSearchParams(location.search);
 const J = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); });
 
 // 角色模組：預設用正式角色（play/office_character.js）；world.html?char=./character.js 可換回膠囊佔位角色（只供除錯）
-async function loadCharacterModule() { const p = qs.get('char') || '../../play/office_character.js'; const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
+async function loadCharacterModule() { const p = qs.get('char') || './newchar.js'; /* 2026-11-14：新角色相容層（糰糰、垂垂、布布走新模型，其餘轉給 play/office_character.js） */ const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
 
 (async function boot() {
   const [layout, org, demo, meet, roster, charMod, rw] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule(), qs.get('rewards') === '0' ? null : loadRewards()]);   // 績效資料缺檔／壞檔／?rewards=0：整個獎勵層關閉，辦公室維持原樣

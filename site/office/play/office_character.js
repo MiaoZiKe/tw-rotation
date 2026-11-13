@@ -352,3 +352,6 @@ export function createCharacter(spec, env = {}) {
   }
   return c;
 }
+
+// 新角色相容層（world/js/newchar.js）共用的道具與頭上圖示
+export { propMesh, tickShared, iconTex };

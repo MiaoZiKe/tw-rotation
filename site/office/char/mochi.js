@@ -21,20 +21,23 @@ const BASE = new URL('./models/', import.meta.url).href;
 const cache = new Map();
 export const SHAPES = ['squash', 'stretch', 'land', 'plump', 'breath', 'cheek.L', 'cheek.R'];
 
-/** 載入（並快取）一個 LOD：回傳 { scene, meta, lod, loadMs }。 */
-export function loadMochi({ lod = 0 } = {}) {
-  const key = 'mochi' + lod; if (cache.has(key)) return cache.get(key);
+/** 載入（並快取）一個物種的一個 LOD：回傳 { scene, meta, lod, species, loadMs }。species 預設糰糰；其他物種是 tools/ai_office_char 以參數檔產出的 <species>_lod{0,1,2}.glb ＋ <species>.json。 */
+export function loadMochi({ lod = 0, species = 'mochi' } = {}) {
+  const key = species + lod; if (cache.has(key)) return cache.get(key);
   const t0 = performance.now();
-  const p = Promise.all([new GLTFLoader().loadAsync(BASE + `mochi_lod${lod}.glb`), fetch(BASE + 'mochi.json').then(r => r.json())]).then(([g, meta]) => {
-    g.scene.updateMatrixWorld(true); return { scene: g.scene, meta, lod, loadMs: performance.now() - t0 };
+  const p = Promise.all([new GLTFLoader().loadAsync(BASE + `${species}_lod${lod}.glb`), metaOf(species)]).then(([g, meta]) => {
+    g.scene.updateMatrixWorld(true); return { scene: g.scene, meta, lod, species, loadMs: performance.now() - t0 };
   });
   cache.set(key, p); return p;
 }
+const metas = new Map();
+function metaOf(species) { if (!metas.has(species)) metas.set(species, fetch(BASE + species + '.json').then(r => r.json())); return metas.get(species); }
+export const loadChar = loadMochi;
 
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3();
 export class MochiChar {
   constructor(asset, o = {}) {
-    this.meta = asset.meta; this.lod = asset.lod; this.root = new THREE.Group(); this.root.name = 'mochi';
+    this.meta = asset.meta; this.lod = asset.lod; this.species = asset.species || 'mochi'; this.root = new THREE.Group(); this.root.name = this.species;
     this.model = cloneSkinned(asset.scene); this.root.add(this.model); this.model.updateMatrixWorld(true);
     // GLTFLoader 會把節點名稱裡的「.」拿掉（foot.L → footL），這裡用 mochi.json 還原成原名
     const san = {}; for (const k of Object.keys(this.meta.bones)) san[k.replace(/[\[\]\.:\/]/g, '')] = k;
@@ -47,7 +50,7 @@ export class MochiChar {
       this.rest[nm] = { q: b.quaternion.clone(), p: b.position.clone(), pw, pwi: pw.clone().invert() };
     }
     this.cfg = { preset: o.preset || 'fur', color: o.color ?? 0xffc9ad, top: o.top ?? 0xfff1e2, far: !!o.far };
-    this.mat = makeMaterial(this.cfg.preset, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far });
+    this.cfg.zone = o.zone ?? null; this.mat = this.mkBodyMat();
     if (this.body) { this.body.material = this.mat; this.body.castShadow = true; this.body.frustumCulled = false; setAOStrength(this.body.geometry, PRESETS[this.cfg.preset].ao); }
     this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
     if (this.decal) { this.decal.frustumCulled = false; }
@@ -57,7 +60,7 @@ export class MochiChar {
       // 臉的零件掛在 head 骨頭下；holder 抵銷骨頭的靜止矩陣，之後零件座標就是「靜止姿勢的模型座標」
       this.holder = new THREE.Group(); this.holder.matrixAutoUpdate = false; M.multiplyMatrices(inv, this.bones.head.matrixWorld); this.holder.matrix.copy(M.invert()); this.holder.matrixWorldNeedsUpdate = true;
       this.bones.head.add(this.holder);
-      this.face = new FaceRig(this.meta, this.holder, this.decal, this.lidMat, { faceW: o.faceW || 640, lod: this.lod });
+      this.face = new FaceRig(this.meta, this.holder, this.decal, this.lidMat, { faceW: o.faceW || 640, lod: this.lod }); this.face.eyeScale = this.meta.face?.eyeK ?? 1;
       this.holder.traverse(n => { if (n.isMesh) n.castShadow = false; });
     }
     this.t = 0; this.breathe = o.breathe !== false; this.wm = {};
@@ -70,7 +73,7 @@ export class MochiChar {
     // 眼皮殼沒有頂點色：顏色＝本體色×（眼睛處的局部顏色×AO），頂色同乘；上下漸層用「模型座標的高度」逐像素算（與身體同一條公式），
     // 法線＝眼睛處的身體表面法線，再依到眼睛中心的世界位移加上身體曲率（n ≈ n0 + (d − n0(n0·d))·K），所以閉眼時眼皮的明暗與周圍皮膚一路連續，沒有一塊淡色橢圓。
     base.r *= sk[0] * LID_GAIN; base.g *= sk[1] * LID_GAIN; base.b *= sk[2] * LID_GAIN; top.r *= sk[0] * LID_GAIN; top.g *= sk[1] * LID_GAIN; top.b *= sk[2] * LID_GAIN;
-    const mat = makeMaterial(this.cfg.preset, { color: base, top, over: { noiseA: 0 }, far: this.cfg.far });
+    const mat = makeMaterial(this.cfg.preset, { color: base, top, over: { noiseA: 0 }, far: this.cfg.far, ...this.gradOpt() });
     const U = { value: new THREE.Vector3(0, 0, 1) }, UE = { value: new THREE.Vector3() }, UI = { value: new THREE.Matrix4() }, orig = mat.onBeforeCompile;
     mat.userData.surfN = U.value; mat.userData.eyeW = UE.value; mat.userData.invRoot = UI.value;
     mat.onBeforeCompile = (s) => { orig(s); s.uniforms.uSurfN = U; s.uniforms.uEyeW = UE; s.uniforms.uInvRoot = UI;
@@ -81,9 +84,41 @@ export class MochiChar {
     const key = mat.customProgramCacheKey; mat.customProgramCacheKey = () => key.call(mat) + '-lid2';
     return mat;
   }
+  gradOpt() { const g = this.meta.gradY; return g ? { y0: g[0], y1: g[1] } : {}; }
+  /** 本體材質：上下漸層範圍取自物種 json；有「區域色」（布布的焦糖）時，用本體 UV 的 U 當遮罩把那一區換成區域色 */
+  mkBodyMat() {
+    const m = makeMaterial(this.cfg.preset, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far, ...this.gradOpt() });
+    if (this.meta.zone && this.cfg.zone != null) {
+      const uZ = { value: new THREE.Color(this.cfg.zone) }, orig = m.onBeforeCompile; this.zoneU = uZ; m.userData.zoneU = uZ;
+      m.onBeforeCompile = (s) => { orig(s); s.uniforms.uZoneCol = uZ;
+        s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying float vZone;').replace('vRestP = position;', 'vRestP = position; vZone = uv.x;');
+        s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vZone; uniform vec3 uZoneCol;')
+          .replace('#include <emissivemap_fragment>', '{ float zk = smoothstep(0.0, 1.0, vZone); vec3 zc = uZoneCol * vColor.rgb; diffuseColor.rgb = mix(diffuseColor.rgb, zc, zk); }\n#include <emissivemap_fragment>'); };
+      const key = m.customProgramCacheKey; m.customProgramCacheKey = () => key.call(m) + '-zone';
+    }
+    return m;
+  }
+  /** 掛在某根骨頭下、已抵銷骨頭靜止矩陣的群組（零件座標＝靜止姿勢的模型座標）。只能在靜止姿勢時第一次呼叫。 */
+  holderFor(name) {
+    this._hold ||= {}; if (this._hold[name]) return this._hold[name]; const b = this.bones[name]; if (!b) return null;
+    const inv = this.model.matrixWorld.clone().invert(), M = new THREE.Matrix4().multiplyMatrices(inv, b.matrixWorld), h = new THREE.Group(); h.matrixAutoUpdate = false; h.matrix.copy(M.invert()); b.add(h); this._hold[name] = h; return h;
+  }
+  /** 配件／道具：跟著形態鍵造成的身體尺寸改變一起位移（與眼睛同一公式） */
+  follow(obj, base) { (this.followers ||= []).push({ obj, base: base.clone() }); return obj; }
+  /** 遠景網格（LOD2）：與本體共用骨架與材質，遠距離時只畫它（臉與零件整組不畫） */
+  attachFar(asset) {
+    let src = null; asset.scene.traverse(n => { if (n.isSkinnedMesh && !src) src = n; }); if (!src || !this.body) return;
+    const m = new THREE.SkinnedMesh(src.geometry, this.mat); m.bind(this.body.skeleton, this.body.bindMatrix); m.frustumCulled = false; m.visible = false; m.name = 'far';
+    this.body.parent.add(m); this.farMesh = m; setAOStrength(src.geometry, PRESETS[this.cfg.preset].ao);
+  }
+  setFar(on) {
+    if (!this.farMesh || this.far === !!on) return; this.far = !!on; this.farMesh.visible = this.far; this.body.visible = !this.far; if (this.decal) this.decal.visible = !this.far;
+    if (this.holder) this.holder.visible = !this.far; for (const h of Object.values(this._hold || {})) if (h !== this.holder) h.visible = !this.far;
+    for (const k in this.wm) this.morph(k, this.wm[k]);
+  }
   setPreset(id, extra = {}) {
     const old = this.mat, oldLid = this.lidMat; this.cfg.preset = id; Object.assign(this.cfg, extra);
-    this.mat = makeMaterial(id, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far });
+    this.mat = this.mkBodyMat(); if (this.farMesh) this.farMesh.material = this.mat;
     this.body.material = this.mat; setAOStrength(this.body.geometry, PRESETS[id].ao); this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
     old.dispose(); oldLid.L.dispose(); oldLid.R.dispose();
   }
@@ -96,7 +131,7 @@ export class MochiChar {
   move(name, dx = 0, dy = 0, dz = 0) {
     const b = this.bones[name], r = this.rest[name]; if (!b) return; _v.set(dx, dy, dz).applyQuaternion(r.pwi); b.position.copy(r.p).add(_v);
   }
-  morph(name, w) { this.wm[name] = w; for (const m of [this.body, this.decal]) { if (!m || !m.morphTargetDictionary) continue; const i = m.morphTargetDictionary[name]; if (i !== undefined) m.morphTargetInfluences[i] = w; } }
+  morph(name, w) { this.wm[name] = w; for (const m of [this.body, this.decal, this.farMesh]) { if (!m || !m.morphTargetDictionary) continue; const i = m.morphTargetDictionary[name]; if (i !== undefined) m.morphTargetInfluences[i] = w; } }
   resetPose() { for (const [nm, b] of Object.entries(this.bones)) { b.quaternion.copy(this.rest[nm].q); b.position.copy(this.rest[nm].p); } for (const s of SHAPES) this.morph(s, 0); }
   /** 骨頭在模型座標的目前位置 */
   boneWorld(name, out = new THREE.Vector3()) { this.model.updateMatrixWorld(); const b = this.bones[name]; return b.getWorldPosition(out).applyMatrix4(this.root.matrixWorld.clone().invert()); }
@@ -109,7 +144,8 @@ export class MochiChar {
       const sz = 1 + g('squash') * 0.10 + g('stretch') * -0.065 + g('land') * 0.17 + g('plump') * 0.07;
       const sy = 1 + g('squash') * -0.20 + g('stretch') * 0.15 + g('land') * -0.30 + g('plump') * -0.025;
       this.root.updateWorldMatrix(true, false); (this._ri ||= new THREE.Matrix4()).copy(this.root.matrixWorld).invert(); this.face.rootInv = this._ri;
-      this.face.setMorphScale(sx, sy, sz); this.face.update(dt, 12, frozen);
+      this.face.setMorphScale(sx, sy, sz); if (!this.far) this.face.update(dt, 12, frozen);
+      if (this.followers) { const cy = this.meta.bodyCy; for (const f of this.followers) f.obj.position.set(f.base.x * sx, f.base.y * sy, -cy + (f.base.z + cy) * sz); }
     }
     this.model.updateMatrixWorld(true);
   }

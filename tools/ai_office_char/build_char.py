@@ -23,8 +23,9 @@ def sstep(a, b, x):
     t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 
 # ───────────────────────── 網格
-def marching(sdf, h=0.008):
-    xs = np.arange(-0.68, 0.68, h); ys = np.arange(-0.55, 0.58, h); zs = np.arange(-0.04, 0.88, h)
+def marching(sdf, P0=None):
+    g = getattr(P0, 'GRID', None) or dict(x=(-0.68, 0.68), y=(-0.55, 0.58), z=(-0.04, 0.88), h=0.008); h = g['h']
+    xs = np.arange(g['x'][0], g['x'][1], h); ys = np.arange(g['y'][0], g['y'][1], h); zs = np.arange(g['z'][0], g['z'][1], h)
     G = np.stack(np.meshgrid(xs, ys, zs, indexing='ij'), -1).reshape(-1, 3)
     v = sdf(G).reshape(len(xs), len(ys), len(zs))
     vv, ff, _, _ = measure.marching_cubes(v, 1e-5, spacing=(h, h, h)); vv += np.array([xs[0], ys[0], zs[0]])
@@ -33,13 +34,22 @@ def marching(sdf, h=0.008):
 def clear():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
-def quad_mesh(vv, ff, h, quads, seed=3):
+def quad_mesh(vv, ff, h, quads, seed=3, P0=None):
     me = bpy.data.meshes.new('src'); me.from_pydata(vv.tolist(), [], ff.tolist()); me.update()
     bm = bmesh.new(); bm.from_mesh(me); bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=h * 0.1); bm.to_mesh(me); bm.free()
     ob = bpy.data.objects.new('Body', me); bpy.context.scene.collection.objects.link(ob)
     bpy.context.view_layer.objects.active = ob; ob.select_set(True)
-    ob.data.remesh_voxel_size = 0.007; bpy.ops.object.voxel_remesh()
-    r = bpy.ops.object.quadriflow_remesh(mode='FACES', target_faces=quads, use_mesh_symmetry=True, smooth_normals=True, seed=seed)
+    # QuadriFlow 對體素網格很挑（偶爾回「needs to be manifold」）：失敗就換體素大小重做，最多試幾輪
+    v0 = getattr(P0, 'VOXEL', 0.007); tries = [(v0 * f, sm) for f in (1.0, 1.43, 0.79, 1.21, 1.79, 0.93, 1.07, 0.7) for sm in (0, 3)]; r = None
+    for vs, sm in tries:
+        ob.data.remesh_voxel_size = vs; bpy.ops.object.voxel_remesh()
+        if sm:
+            bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.smooth_vert(bm, verts=bm.verts, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+            for _ in range(sm - 1): bmesh.ops.smooth_vert(bm, verts=bm.verts, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+            bm.to_mesh(ob.data); bm.free()
+        try: r = bpy.ops.object.quadriflow_remesh(mode='FACES', target_faces=quads, use_mesh_symmetry=getattr(P0, 'SYMMETRY', True), smooth_normals=True, seed=seed)
+        except RuntimeError: r = None
+        if r == {'FINISHED'}: print('quadriflow ok at voxel', round(vs, 4), 'smooth', sm); break
     assert r == {'FINISHED'}, 'quadriflow failed'
     return ob
 
@@ -48,7 +58,7 @@ def refine(ob, P0):
     bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table(); edges = set()
     for f in bm.faces:
         c = np.array(f.calc_center_median())
-        for a, b, r in P0.REFINE:
+        for a, b, r in getattr(P0, 'REFINE', []):
             d, _ = seg_dist(c[None], a, b)
             if d[0] < r: edges.update(f.edges); break
     bmesh.ops.subdivide_edges(bm, edges=list(edges), cuts=1, use_grid_fill=True, use_single_edge=False)
@@ -121,7 +131,8 @@ def shape_deltas(P, N, fsum, P0):
     low = sstep(0.55, 0.0, z)
     d = sc(1.17, 1.17, 0.70); d[:, 0] *= (0.5 + 0.5 * low); d[:, 1] *= (0.5 + 0.5 * low); D['land'] = d
     D['plump'] = sc(1.07, 1.07, 0.975)
-    torso = (1 - fsum) * sstep(0.08, 0.2, z) * sstep(0.62, 0.45, z)
+    bz = getattr(P0, 'BREATH_Z', (0.08, 0.2, 0.62, 0.45))
+    torso = (1 - fsum) * sstep(bz[0], bz[1], z) * sstep(bz[2], bz[3], z)
     D['breath'] = N * (0.0125 * torso)[:, None]
     for s, nm in ((1, 'L'), (-1, 'R')):
         ck = P0.CHEEK_KEY; cc = np.array([s * ck[0], ck[1], ck[2]]); g = np.exp(-np.sum((P - cc) ** 2, 1) / 0.095 ** 2)
@@ -136,6 +147,7 @@ def add_shapes(ob, D):
 
 # ───────────────────────── 局部顏色（頂點色 RGB 乘數，≤1）
 def local_tint(P, N, P0):
+    if getattr(P0, 'TINT_PATCHES', None) is not None: return patch_tint(P, N, P0)
     T = P0.TINT; n = len(P); col = np.tile(np.array(T['body']), (n, 1))
     front = sstep(0.05, 0.5, -N[:, 1])
     # 肚子較淺：身體前下方一塊柔邊橢圓
@@ -155,6 +167,17 @@ def local_tint(P, N, P0):
             c = (t * 0.7 + h * 0.3)
             m = np.exp(-np.sum((P - c) ** 2, 1) / rad ** 2)
             col = col + (np.array(T['palm']) - col) * (k * m)[:, None]
+    return np.clip(col, 0, 1)
+
+def patch_tint(P, N, P0):
+    """通用局部顏色：每個補丁＝橢球範圍內的顏色乘數（c 中心、r 半徑、color、k 強度、mirror、face＝只作用在朝前的面）。"""
+    col = np.ones((len(P), 3))
+    for t in P0.TINT_PATCHES:
+        for s_ in ((1, -1) if t.get('mirror') else (1,)):
+            c = np.array([t['c'][0] * s_, t['c'][1], t['c'][2]]); r = np.array(t['r'])
+            m = np.exp(-np.sum(((P - c) / r) ** 4, 1)) * t.get('k', 1.0)
+            if t.get('face'): m = m * sstep(0.05, 0.5, -N[:, 1])
+            col = col + (np.array(t['color']) - col) * m[:, None]
     return np.clip(col, 0, 1)
 
 def set_custom_normals(ob, N):
@@ -227,9 +250,10 @@ def anchors(sdf, P0):
         if sdf(np.array([[0, P0.BODY['c'][1], mid]]))[0] > 0: hi = mid
         else: lo = mid
     A['hat'] = dict(p=[0, P0.BODY['c'][1], lo], n=[0, 0, 1])
-    put('chest', 0, 0.16); put('bow', 0.17, 0.52)
+    for nm, (ax, az) in getattr(P0, 'ANCHOR_PTS', dict(chest=(0, 0.16), bow=(0.17, 0.52))).items(): put(nm, ax, az)
     # 腳底接觸（左右腳中心）：Z=0 平面的接地足印
-    A['foot.L'] = dict(p=[P0.PARTS[2]['c'][0], P0.PARTS[2]['c'][1], 0.0], n=[0, 0, 1]); A['foot.R'] = dict(p=[-P0.PARTS[2]['c'][0], P0.PARTS[2]['c'][1], 0.0], n=[0, 0, 1])
+    fh = P0.BONES['foot.L'][2]
+    A['foot.L'] = dict(p=[fh[0], fh[1], 0.0], n=[0, 0, 1]); A['foot.R'] = dict(p=[-fh[0], fh[1], 0.0], n=[0, 0, 1])
     return A
 
 def to_gltf(v): return [float(v[0]), float(v[2]), float(-v[1])]
@@ -237,7 +261,7 @@ def to_gltf(v): return [float(v[0]), float(v[2]), float(-v[1])]
 # ───────────────────────── 主流程
 def build_lod(P0, lod, quads, cache, out_dir):
     clear(); vv, ff, h, sdf = cache
-    ob = quad_mesh(vv, ff, h, quads)
+    ob = quad_mesh(vv, ff, h, quads, P0=P0)
     if lod in P0.REFINE_LODS: refine(ob, P0)
     P = verts(ob); n, E = adjacency(ob)
     # 重拓撲後先把四邊形邊長整平（切線平滑）再貼回距離場：輪廓是解析曲面，格點分佈均勻，頂點法線才不會抖
@@ -254,6 +278,10 @@ def build_lod(P0, lod, quads, cache, out_dir):
     ca = ob.data.color_attributes.new(name='AO', type='FLOAT_COLOR', domain='POINT')
     tint = local_tint(P, N, P0)            # RGB＝局部顏色乘數；A＝AO（執行期 setAOStrength 依材質調強度，再合成成 RGB）
     col = np.concatenate([tint, ao[:, None]], 1); ca.data.foreach_set('color', col.reshape(-1))
+    if hasattr(P0, 'zone_mask'):
+        zm = np.clip(P0.zone_mask(P, N), 0, 1); uvl = ob.data.uv_layers.new(name='UV0')
+        for poly in ob.data.polygons:
+            for li in poly.loop_indices: uvl.data[li].uv = (float(zm[ob.data.loops[li].vertex_index]), 0.5)
     arm = make_armature(P0); bind(ob, arm)
     D = shape_deltas(P, N, fsum, P0); add_shapes(ob, D)
     if lod >= 2: join_eye_dots(ob, sdf, P0, names, arm)
@@ -295,7 +323,7 @@ def join_eye_dots(ob, sdf, P0, names, arm):
         bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.0)
         z = n / np.linalg.norm(n); x = np.cross([0, 0, 1.0], z); x /= np.linalg.norm(x); y = np.cross(z, x)
         for v in bm.verts:
-            c = np.array(v.co); v.co = tuple(p + x * c[0] * 0.034 + y * c[1] * 0.043 + z * (c[2] * 0.016 - 0.004))
+            c = np.array(v.co); v.co = tuple(p + x * c[0] * 0.034 * F.get('eyeK', 1) + y * c[1] * 0.043 * F.get('eyeK', 1) + z * (c[2] * 0.016 - 0.004))
         me = bpy.data.meshes.new('dot' + nm); bm.to_mesh(me); bm.free(); o = bpy.data.objects.new('Dot' + nm, me); bpy.context.scene.collection.objects.link(o)
         pieces.append(o)
     for o in pieces:
@@ -321,9 +349,15 @@ def skin_weights_pointwise(P, P0):
     names, M, f = skin_weights(P, P0, n, E)
     return names, M, f
 
+def meta_only(P0, out):
+    """只重算錨點並併進既有的 <name>.json（不動 GLB）：新增配件掛點時用。"""
+    sdf = S.make_sdf(P0); A = anchors(sdf, P0); path = os.path.join(out, f'{P0.NAME}.json'); meta = json.load(open(path))
+    meta['anchors'] = {k: dict(p=to_gltf(v['p']), n=to_gltf(v['n'])) for k, v in A.items()}; json.dump(meta, open(path, 'w'), ensure_ascii=False, indent=1); print('anchors updated', len(A))
+
 def main():
     mod, out, lods = parse(); P0 = importlib.import_module(mod); os.makedirs(out, exist_ok=True)
-    t0 = time.time(); sdf = S.make_sdf(P0); vv, ff, h = marching(sdf); print('marching', len(vv), round(time.time() - t0, 1), 's')
+    if '--meta' in sys.argv: return meta_only(P0, out)
+    t0 = time.time(); sdf = S.make_sdf(P0); vv, ff, h = marching(sdf, P0); print('marching', len(vv), round(time.time() - t0, 1), 's')
     cache = (vv, ff, h, sdf); infos = []
     for lod in lods: infos.append(build_lod(P0, lod, P0.LODS[lod], cache, out))
     A = anchors(sdf, P0)
@@ -331,7 +365,8 @@ def main():
                 anchors={k: dict(p=to_gltf(v['p']), n=to_gltf(v['n'])) for k, v in A.items()},
                 face=dict(P0.FACE), shapes=['squash', 'stretch', 'land', 'plump', 'breath', 'cheek.L', 'cheek.R'],
                 decal=dict(x=P0.FACE['decal_x'], z0=P0.FACE['decal_z0'], z1=P0.FACE['decal_z1']),
-                bodyCy=P0.BODY['c'][1])
+                bodyCy=P0.BODY['c'][1], gradY=list(getattr(P0, 'GRAD_Y', (-0.025, 0.585))), zone=getattr(P0, 'ZONE', None),
+                noNose=True)
     json.dump(meta, open(os.path.join(out, f'{P0.NAME}.json'), 'w'), ensure_ascii=False, indent=1)
     print('done', round(time.time() - t0, 1), 's')
 
