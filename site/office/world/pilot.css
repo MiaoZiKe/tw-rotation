@@ -67,3 +67,11 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
 .bsec{font-size:12px;font-weight:700;color:var(--sub);margin:8px 2px 0}
 #board .kpi{margin:6px 0 4px}
 #board .scroll{max-height:calc(100dvh - 190px)}
+
+/* ───── 鏡頭操作小提示（右上角；窄螢幕與手機放在工具列下方） ───── */
+.cm-hint{position:absolute;z-index:9;top:12px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(255,250,243,.9);border-radius:999px;padding:4px 6px 4px 14px;box-shadow:var(--sh);font-size:12px;color:var(--sub);max-width:calc(100vw - 24px)}
+.cm-hint span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-hint button{border:0;border-radius:999px;height:28px;min-width:28px;padding:0 10px;font-size:12px;font-weight:700;background:var(--on2);color:var(--on);white-space:nowrap}
+.cm-hint .cm-back{background:var(--on);color:#fff}
+.cm-hint .cm-q{margin-left:-8px}
+@media (pointer:coarse),(max-width:640px){.cm-hint{font-size:12px;padding:2px 4px 2px 12px}.cm-hint button{height:44px;min-width:44px}}

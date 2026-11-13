@@ -4,6 +4,7 @@ import { OrbitControls } from '../../vendor/OrbitControls.js';
 import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createPilot } from './pilot.js';
+import { createCamHint } from './camhint.js';
 import { createUI } from './ui.js';
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
@@ -94,13 +95,23 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   const controls = new OrbitControls(camera, cv); controls.enableDamping = true; controls.dampingFactor = 0.14; controls.screenSpacePanning = false; controls.maxPolarAngle = 1.32; controls.zoomSpeed = 1.1;
   const view = { mode: 'ceo', char: ceo, tween: null, lastUser: -10 }; W.view = view; W.controls = controls;
   controls.addEventListener('start', () => { view.lastUser = performance.now() / 1000; if (view.tween) view.tween = null; });
-  const CENTER = new THREE.Vector3(layout.size.w / 2, 0, layout.size.d / 2 + 0.6), v3 = new THREE.Vector3(), v3b = new THREE.Vector3();
+  const CENTER = new THREE.Vector3(layout.size.w / 2, 0, layout.size.d / 2 + 0.6), v3 = new THREE.Vector3(), v3b = new THREE.Vector3(), v3c = new THREE.Vector3();
   const portrait = () => cv.clientWidth < cv.clientHeight;
-  function modeControls(follow) {
-    controls.enablePan = !follow; controls.minDistance = follow ? 2.5 : 7; controls.maxDistance = follow ? 18 : 130;
-    controls.mouseButtons = follow ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE } : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
-    controls.touches = follow ? { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN } : { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  // 任何視角（CEO 視角、俯瞰、跟隨角色）滑鼠操作都一樣：左鍵拖曳旋轉、右鍵或 Shift＋左鍵拖曳平移、滾輪縮放；
+  // 觸控單指旋轉、雙指平移＋縮放。距離範圍固定：近不穿牆（≥3 公尺）、遠不離開辦公室太多。
+  function modeControls() {
+    controls.enablePan = true; controls.enableRotate = true; controls.enableZoom = true; controls.minDistance = 3; controls.maxDistance = 110;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
   }
+  const LIM = { x0: -6, x1: layout.size.w + 6, z0: -6, z1: layout.size.d + 10 };    // 注視點可以平移到的範圍（辦公室外圍多留一圈）
+  function clampCam() {
+    const t = controls.target, cx = Math.max(LIM.x0, Math.min(LIM.x1, t.x)), cz = Math.max(LIM.z0, Math.min(LIM.z1, t.z)), cy = Math.max(0, Math.min(3, t.y));
+    camera.position.x += cx - t.x; camera.position.z += cz - t.z; camera.position.y += cy - t.y; t.set(cx, cy, cz);
+    if (camera.position.y < 0.8) camera.position.y = 0.8;                            // 不穿到地板下
+  }
+  let userActive = 0;      // 使用者正在拖曳（放開後再算 0.6 秒，讓阻尼的餘動也算在內）
+  controls.addEventListener('start', () => { userActive = 1e9; }); controls.addEventListener('end', () => { userActive = performance.now() + 600; });
   // 跟隨視角：鏡頭在角色身後，看向角色前方一點的地方（角色在畫面下半，前面的辦公室看得到）
   const AHEAD = 2.2, ahead = { x: 0, z: 0 };
   const charTarget = (c, out) => out.set(c.object3D.position.x + ahead.x, 0.9, c.object3D.position.z + ahead.z);
@@ -138,7 +149,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
   function setView(mode, c, instant) {
     if (mode === 'ceo') c = ceo; if (mode === 'char' && !c) c = view.char || ceo;
-    view.mode = mode; view.char = mode === 'god' ? null : c; env.followed = view.char; modeControls(mode !== 'god');
+    view.mode = mode; view.char = mode === 'god' ? null : c; env.followed = view.char; modeControls(); view.detached = false; view.pull = 0; view.last = null;
     const pose = mode === 'god' ? godPose() : followPose(c);
     if (instant) { camera.position.copy(pose.p); controls.target.copy(pose.t); camera.fov = pose.fov; camera.updateProjectionMatrix(); view.tween = null; } else tweenTo(pose);
     ui.setViewUI(mode, c); W.ring.visible = mode !== 'god'; W.ring.scale.setScalar(Math.max(0.6, (c && c.scale) || 1));
@@ -146,28 +157,48 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   }
   function jumpTo(roomId) {
     const r = layout.rooms.find(q => q.id === roomId); if (!r) return;
-    view.mode = 'god'; view.char = null; env.followed = null; modeControls(false); ui.setViewUI('god'); W.ring.visible = false;
+    view.mode = 'god'; view.char = null; env.followed = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false;
     tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
+  // 跟隨的做法：不是每幀把注視點「拉」到角色身上，而是角色走多少、鏡頭就跟著平移多少（保留使用者拖出來的方位、距離、平移量）。
+  // 使用者手動平移之後暫停跟隨（view.detached），直到角色「再次移動」超過 0.25 公尺才自動接回（平順拉回）；或按「回到角色」鈕。
+  // 只旋轉、縮放不會暫停跟隨。移到定位之後鏡頭的控制權就完全給滑鼠，不會被拉回固定位置。
+  view.detached = false; view.pull = 0; view.last = null; view.dpos = null;
+  view.recenter = () => { view.detached = false; view.pull = 1; if (view.tween) view.tween = null; };
   function updateCamera(dt) {
     const tw = view.tween;
     if (tw) {
       tw.t += dt / tw.sec; const k = Math.min(1, tw.t), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-      if (view.char) { charTarget(view.char, tw.pose.t); tw.pose.p.copy(tw.pose.t).add(tw.off); }
+      if (view.char && !view.detached) { charTarget(view.char, tw.pose.t); tw.pose.p.copy(tw.pose.t).add(tw.off); }
       camera.position.lerpVectors(tw.p0, tw.pose.p, e); controls.target.lerpVectors(tw.t0, tw.pose.t, e);
       if (tw.pose.fov && tw.pose.fov !== tw.f0) { camera.fov = tw.f0 + (tw.pose.fov - tw.f0) * e; camera.updateProjectionMatrix(); }
-      if (k >= 1) view.tween = null; return;
+      if (k >= 1) { view.tween = null; view.last = null; } return;
     }
     if (view.char) {
-      const c = view.char; { const cp = c.object3D.position, fx = cp.x - camera.position.x, fz = cp.z - camera.position.z, fl = Math.hypot(fx, fz) || 1, kk = Math.min(1, dt * 2); ahead.x += (fx / fl * AHEAD - ahead.x) * kk; ahead.z += (fz / fl * AHEAD - ahead.z) * kk; } charTarget(c, v3); v3b.subVectors(v3, controls.target).multiplyScalar(Math.min(1, dt * 7)); controls.target.add(v3b); camera.position.add(v3b);
-      // 角色走路時，鏡頭慢慢繞回他身後（使用者剛拖過就先不動）
-      if (c.state === 'walk' && !grab && performance.now() / 1000 - view.lastUser > 2.5) {
-        const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, a = Math.atan2(ox, oz), want = c.heading + Math.PI;
-        let d = Math.atan2(Math.sin(want - a), Math.cos(want - a)); d = Math.max(-dt * 0.9, Math.min(dt * 0.9, d));
-        const cs = Math.cos(d), sn = Math.sin(d); camera.position.x = controls.target.x + ox * cs + oz * sn; camera.position.z = controls.target.z - ox * sn + oz * cs;
+      const c = view.char, cp = c.object3D.position;
+      if (!view.last) view.last = { x: cp.x, z: cp.z };
+      const mx = cp.x - view.last.x, mz = cp.z - view.last.z; view.last.x = cp.x; view.last.z = cp.z;
+      if (view.detached && view.dpos && Math.hypot(cp.x - view.dpos.x, cp.z - view.dpos.z) > 0.25) { view.detached = false; view.pull = 0.9; }
+      if (!view.detached) {
+        if (view.pull > 0) {                    // 剛接回：平順拉向角色
+          view.pull -= dt; const fx = cp.x - camera.position.x, fz = cp.z - camera.position.z, fl = Math.hypot(fx, fz) || 1, kk = Math.min(1, dt * 2); ahead.x += (fx / fl * AHEAD - ahead.x) * kk; ahead.z += (fz / fl * AHEAD - ahead.z) * kk;
+          charTarget(c, v3); v3b.subVectors(v3, controls.target).multiplyScalar(Math.min(1, dt * 6)); controls.target.add(v3b); camera.position.add(v3b);
+        } else { controls.target.x += mx; controls.target.z += mz; camera.position.x += mx; camera.position.z += mz; }
+        // 角色走路時，鏡頭慢慢繞回他身後（使用者剛拖過就先不動）
+        if (c.state === 'walk' && !grab && performance.now() / 1000 - view.lastUser > 2.5) {
+          const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, a = Math.atan2(ox, oz), want = c.heading + Math.PI;
+          let d = Math.atan2(Math.sin(want - a), Math.cos(want - a)); d = Math.max(-dt * 0.9, Math.min(dt * 0.9, d));
+          const cs = Math.cos(d), sn = Math.sin(d); camera.position.x = controls.target.x + ox * cs + oz * sn; camera.position.z = controls.target.z - ox * sn + oz * cs;
+        }
       }
-      if (W.ring.visible) { W.ring.position.set(c.object3D.position.x, 0.08, c.object3D.position.z); W.ring.material.opacity = c.state === 'sit' ? 0.45 : 0.9; }
+      if (W.ring.visible) { W.ring.position.set(cp.x, 0.08, cp.z); W.ring.material.opacity = c.state === 'sit' ? 0.45 : 0.9; }
     }
+  }
+  // 雙擊（雙點）地面：鏡頭平順移過去（保留目前的方位與距離），並暫停跟隨
+  function moveCamTo(x, z) {
+    const t = new THREE.Vector3(Math.max(LIM.x0, Math.min(LIM.x1, x)), controls.target.y, Math.max(LIM.z0, Math.min(LIM.z1, z)));
+    view.detached = !!view.char; if (view.char) view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z };
+    tweenTo({ t, p: t.clone().add(camera.position.clone().sub(controls.target)), fov: camera.fov }, 0.8);
   }
 
   // ── 導演與介面 ──
@@ -188,7 +219,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   director = createDirector(W, ui); W.director = director; W.ui = ui; W.meet = meet; director.pets = W.pets;
   if (qs.get('ambient') === '0') director.ambient = false;
   // 鍵盤／觸控操控（點選角色後）：輸入、碰撞、溝通演出都在 pilot.js，這裡只掛鉤
-  const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot;
+  const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot; const camHint = createCamHint(view);
 
   // ── 名牌、泡泡 ──
   const pv = new THREE.Vector3(), bubs = [];
@@ -227,6 +258,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     return best;
   }
   // 拎起來：按住角色拖曳；放開後掉下來（甩得快會滾出去），再自己走回座位
+  const lastTap = { t: 0, x: 0, y: 0 }; let deselT = 0;
   let down = null, grab = null; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
   cv.addEventListener('pointerdown', e => {
     down = { x: e.clientX, y: e.clientY, t: performance.now(), c: null };
@@ -247,13 +279,16 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
     if (moved > 7 || dt > 600) return; ui.closePops();
     if (edit.on) { editTap(e); return; }
-    const c = pickChar(e); if (c) { if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); pilot.select(c); return; }
-    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
-    pilot.deselect();
+    const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); pilot.select(c); return; }
+    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
+    // 點空白處：取消選取；但 0.3 秒內再點一下（雙點地面）是「鏡頭移過去」，不取消
+    const now = performance.now(), gp = new THREE.Vector3();
+    if (now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30 && ray.ray.intersectPlane(ground, gp)) { clearTimeout(deselT); lastTap.t = 0; moveCamTo(gp.x, gp.z); return; }
+    lastTap.t = now; lastTap.x = e.clientX; lastTap.y = e.clientY; clearTimeout(deselT); deselT = setTimeout(() => pilot.deselect(), 330);
   });
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // 佈告欄：滑鼠停上去游標變手指、板子微微提亮（用一塊半透明的外框蓋在板子上，不動共用材質）
-  const bh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.28, depthWrite: false })); bh.visible = false; bh.renderOrder = 7; scene.add(bh);
+  const bh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.28, depthWrite: false })); bh.visible = false; bh.renderOrder = 7; scene.add(bh); W.boardHover = bh;
   let hoverBoard = null, hoverT = 0; const bbox = new THREE.Box3(), bsz = new THREE.Vector3(), bct = new THREE.Vector3();
   cv.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch' || grab || edit.on || (e.buttons & 7)) return; const t = performance.now(); if (t - hoverT < 60) return; hoverT = t;
@@ -320,11 +355,14 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true, shift = 0;
   function frame(now) {
     requestAnimationFrame(frame);
-    const wall = Math.max(0, Math.min(0.3, (now - last) / 1000))   // 第一幀的 rAF 時間戳可能比 last 早 → 負的 dt 會讓臉部表情彈簧發散、之後一連串畫臉例外, real = Math.min(0.1, wall); last = now;
+    const wall = Math.max(0.004, Math.min(0.3, (now - last) / 1000)), real = Math.min(0.1, wall); last = now;   // max(0.004,…)：第一幀的 rAF 時間戳可能比 last 早，負 dt 會讓臉部表情彈簧發散、之後一連串畫臉例外；也不能是 0（慣性要除以 dt，0/0 會讓身體變成 NaN 而消失）
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
     for (let i = 0; i < n; i++) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
     W.updateBlobs(); W.updateScreens(real);
-    updateCamera(wall); controls.update();
+    updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
+    // 使用者拖曳平移（注視點被他移動）→ 暫停跟隨
+    if (view.char && !view.detached && !view.tween && performance.now() < userActive && controls.target.distanceToSquared(tg0) > 1e-4) { view.detached = true; view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z }; }
+    clampCam();
     { // 手機開著底部面板時，把畫面往上推，角色不會被面板蓋住
       const want = portrait() && (!$('card').hidden || !$('board').hidden || (!$('log').hidden && !$('log').classList.contains('mini'))) ? 0.2 : 0;
       if (Math.abs(want - shift) > 0.002) { shift += (want - shift) * Math.min(1, wall * 6); const w = cv.clientWidth, h = cv.clientHeight; camera.setViewOffset(w, h, 0, shift * h, w, h); }
@@ -332,7 +370,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     }
     renderer.render(scene, camera);
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
-    updateLabels(); pilot.frame(real, W.time); ui.tickCard();
+    updateLabels(); pilot.frame(real, W.time); camHint.tick(); ui.tickCard();
     acc += real; frames++;
     if (acc >= 1) {
       W.stats.fps = Math.round(frames / acc); acc = 0; frames = 0;
@@ -342,6 +380,6 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (first) { first = false; $('loading').hidden = true; W.ready = true; }
   }
   W.shadowDirty(); requestAnimationFrame(frame);
-  W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(false); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
+  W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
   window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });
