@@ -227,6 +227,8 @@ export function createPilot(W, X) {
     if (c._path) { release({ noHome: true, silent: true }); return; }  // 有人叫他走路（理論上不會發生），不跟導演搶
     if (c.action !== 'idle' && !c._until && !P.talking) c.setAction('idle');   // 排程殘留的動作（剛放下的杯子等）不留在手上
     const ch = c.inner, cfg = ch.cfg, s = c.scale || 1, p = c.object3D.position;
+    ch.idleT = 0;                                                    // 站著不動超過約 22 秒角色會自己坐下發呆（待機行為）；操控中不要，否則會卡在 sit 模式動不了
+    if (ch.mode === 'sit' || ch.mode === 'sleep') ch.wake();
     // 跳躍：起跳前下蹲一下 → 給垂直初速（物理在角色的外部驅動模式，有重力、落地擠壓）
     if (prep > 0) { prep -= h; if (prep <= 0) { ch.jumpPrep = 0; ch.extFall = true; ch.vel.y = cfg.move === 'float' ? JUMP_V_FLOAT : JUMP_V; ch.pos.y = 0.001; ch.sqV += 6; ch.airT = 0.2; ch.feet.forEach(f => { f.planted = false; }); } }
     else if (jumpReq && !ch.extFall && ch.mode === 'normal') { ch.jumpPrep = PREP; prep = PREP; ch.sqV -= 3; }

@@ -53,6 +53,18 @@ def _cam(pg):
       return { az: Math.atan2(c.position.x - t.x, c.position.z - t.z), dist: c.position.distanceTo(t), tx: t.x, tz: t.z, tween: !!W.view.tween }; }""")
 
 
+def _settle(pg, tries=30):
+    """等阻尼的餘動停下來（軟體繪圖幀率很低，OrbitControls 的阻尼是「每幀」衰減，要很多秒才停；真實 60 幀約 0.3 秒就停）"""
+    last = _cam(pg)
+    for _ in range(tries):
+        pg.wait_for_timeout(700)
+        cur = _cam(pg)
+        if abs(cur["az"] - last["az"]) < 0.002 and abs(cur["dist"] - last["dist"]) < 0.01 and _m.hypot(cur["tx"] - last["tx"], cur["tz"] - last["tz"]) < 0.005:
+            return cur
+        last = cur
+    return last
+
+
 def _tween_done(pg, t=8000):
     return wait_until(pg, "() => !__world.view.tween", t)
 
@@ -271,8 +283,6 @@ def t_desktop(b, base):
         ok("同一方向 300 毫秒內連按兩次：進入跑步（pilot.run）", run_now)
         ok("跑步速度明顯高於走路（逐幀最高速 ≥ 1.8 倍）", sp_run >= 1.8 * sp_walk_peak, (sp_run, sp_walk_peak, rec_dbg))
         pg.wait_for_timeout(250)
-        if _os.environ.get("PILOT_QUICK"):
-            return
         ok("放開方向鍵後回到走路（run 解除）", not pg.evaluate("() => __world.pilot.run"))
         reset("l")
         sp2, _ = _sim_speed(pg, "ceo", "ArrowLeft", 1.2)
@@ -285,6 +295,14 @@ def t_desktop(b, base):
         reset("f")
         reset("f")
         _frames(pg, "跑步連拍.png", "ArrowUp", 6, 330, run=True)
+
+        # ───────── 站著不動很久（角色的待機行為會想坐下），之後仍要能操控 ─────────
+        reset("f")
+        t_idle = _pos(pg, "ceo")[3]
+        wait_until(pg, f"() => __world.time - {t_idle} >= 30", 120000)
+        ok("操控中站著不動 30 模擬秒：不會自己坐下發呆（仍是 normal 模式）", pg.evaluate("() => __world.chars.get('ceo').inner.mode") == "normal", pg.evaluate("() => __world.chars.get('ceo').inner.mode"))
+        sp_after, d_after = _sim_speed(pg, "ceo", "ArrowUp", 0.6)
+        ok("站很久之後按方向鍵仍會移動", _m.hypot(*d_after) > 0.5, d_after)
 
         # ───────── 跳躍 ─────────
         pg.wait_for_timeout(500)
@@ -518,8 +536,7 @@ def t_camera(b, base):
             pg.mouse.move(640 + i * 45, 380)
             pg.wait_for_timeout(40)
         pg.mouse.up()
-        pg.wait_for_timeout(500)
-        c1 = _cam(pg)
+        c1 = _settle(pg)
         da = abs((c1["az"] - c0["az"] + _m.pi) % (2 * _m.pi) - _m.pi)
         ok("CEO 視角下左鍵拖曳：方位角真的改變（> 0.2 弧度）", da > 0.2, da)
         pg.wait_for_timeout(2500)
@@ -545,8 +562,7 @@ def t_camera(b, base):
             pg.mouse.move(640 + i * 25, 380 + i * 12)
             pg.wait_for_timeout(40)
         pg.mouse.up(button="right")
-        pg.wait_for_timeout(500)
-        c5 = _cam(pg)
+        c5 = _settle(pg)
         ok("右鍵拖曳：注視點改變（平移 > 0.5 公尺）", _m.hypot(c5["tx"] - c4["tx"], c5["tz"] - c4["tz"]) > 0.5, (c4, c5))
         ok("手動平移之後暫停跟隨，並出現「回到角色」鈕", pg.evaluate("() => __world.view.detached && !document.querySelector('.cm-back').hidden"))
         pg.wait_for_timeout(2200)
