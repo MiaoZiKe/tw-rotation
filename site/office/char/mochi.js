@@ -46,7 +46,7 @@ export class MochiChar {
       const pw = new THREE.Quaternion(); if (b.parent) { M.multiplyMatrices(inv, b.parent.matrixWorld); pw.setFromRotationMatrix(M); }
       this.rest[nm] = { q: b.quaternion.clone(), p: b.position.clone(), pw, pwi: pw.clone().invert() };
     }
-    this.cfg = { preset: o.preset || 'fur', color: o.color ?? 0xfbdcc6, top: o.top ?? 0xfffaf2, far: !!o.far };
+    this.cfg = { preset: o.preset || 'fur', color: o.color ?? 0xffc9ad, top: o.top ?? 0xfff1e2, far: !!o.far };
     this.mat = makeMaterial(this.cfg.preset, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far });
     if (this.body) { this.body.material = this.mat; this.body.castShadow = true; this.body.frustumCulled = false; setAOStrength(this.body.geometry, PRESETS[this.cfg.preset].ao); }
     this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
@@ -66,16 +66,19 @@ export class MochiChar {
    *  法線也換成「眼睛所在處的身體表面法線」（uSurfN，每幀由 FaceRig 更新），所以閉眼時看起來是同一片皮膚而不是一顆凸起的圓片。 */
   makeLidMat(sd = 'L') {
     const P = PRESETS[this.cfg.preset], A = this.meta.anchors['eye.' + sd], sk = this.body ? skinColorAt(this.body.geometry, A.p, P.ao) : [1, 1, 1];
-    const base = new THREE.Color(this.cfg.color), top = new THREE.Color(this.cfg.top), mx = Math.max(base.r, base.g, base.b, 1e-3);
-    const t = THREE.MathUtils.smoothstep(A.p[1], 0.08, 0.74) * P.topAmt * 0.55;      // 與身體材質的上下漸層同一條公式
-    const col = base.clone().lerp(new THREE.Color(top.r * base.r / mx, top.g * base.g / mx, top.b * base.b / mx), t); const LID_GAIN = 1.035; // 實測校正：眼皮殼與身體同公式算色後，畫面上仍暗約 4%（法線混合、無絨毛雜訊的差），補回來才與周圍皮膚無色差
-    col.r *= sk[0] * LID_GAIN; col.g *= sk[1] * LID_GAIN; col.b *= sk[2] * LID_GAIN;
-    const mat = makeMaterial(this.cfg.preset, { color: col, over: { topAmt: 0, noiseA: 0 }, far: this.cfg.far });
-    const U = { value: new THREE.Vector3(0, 0, 1) }, orig = mat.onBeforeCompile; mat.userData.surfN = U.value;
-    mat.onBeforeCompile = (s) => { orig(s); s.uniforms.uSurfN = U;
-      s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uSurfN;')
-        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n normal = normalize(mix(normal, normalize((viewMatrix * vec4(uSurfN, 0.0)).xyz), 0.9));'); };
-    const key = mat.customProgramCacheKey; mat.customProgramCacheKey = () => key.call(mat) + '-lid';
+    const base = new THREE.Color(this.cfg.color), top = new THREE.Color(this.cfg.top); const LID_GAIN = 1.0;
+    // 眼皮殼沒有頂點色：顏色＝本體色×（眼睛處的局部顏色×AO），頂色同乘；上下漸層用「模型座標的高度」逐像素算（與身體同一條公式），
+    // 法線＝眼睛處的身體表面法線，再依到眼睛中心的世界位移加上身體曲率（n ≈ n0 + (d − n0(n0·d))·K），所以閉眼時眼皮的明暗與周圍皮膚一路連續，沒有一塊淡色橢圓。
+    base.r *= sk[0] * LID_GAIN; base.g *= sk[1] * LID_GAIN; base.b *= sk[2] * LID_GAIN; top.r *= sk[0] * LID_GAIN; top.g *= sk[1] * LID_GAIN; top.b *= sk[2] * LID_GAIN;
+    const mat = makeMaterial(this.cfg.preset, { color: base, top, over: { noiseA: 0 }, far: this.cfg.far });
+    const U = { value: new THREE.Vector3(0, 0, 1) }, UE = { value: new THREE.Vector3() }, UI = { value: new THREE.Matrix4() }, orig = mat.onBeforeCompile;
+    mat.userData.surfN = U.value; mat.userData.eyeW = UE.value; mat.userData.invRoot = UI.value;
+    mat.onBeforeCompile = (s) => { orig(s); s.uniforms.uSurfN = U; s.uniforms.uEyeW = UE; s.uniforms.uInvRoot = UI;
+      s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLidW; uniform mat4 uInvRoot;')
+        .replace('vRestP = position;', 'vLidW = (modelMatrix * vec4(position, 1.0)).xyz; vRestP = (uInvRoot * vec4(vLidW, 1.0)).xyz;');
+      s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uSurfN, uEyeW; varying vec3 vLidW;')
+        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n { vec3 dW = vLidW - uEyeW; vec3 nW = normalize(uSurfN + (dW - uSurfN * dot(dW, uSurfN)) * 2.4); normal = normalize(mix(normal, normalize((viewMatrix * vec4(nW, 0.0)).xyz), 0.95)); }'); };
+    const key = mat.customProgramCacheKey; mat.customProgramCacheKey = () => key.call(mat) + '-lid2';
     return mat;
   }
   setPreset(id, extra = {}) {
@@ -106,6 +109,7 @@ export class MochiChar {
       const sx = 1 + g('squash') * 0.10 + g('stretch') * -0.065 + g('land') * 0.17 + g('plump') * 0.07;
       const sz = 1 + g('squash') * 0.10 + g('stretch') * -0.065 + g('land') * 0.17 + g('plump') * 0.07;
       const sy = 1 + g('squash') * -0.20 + g('stretch') * 0.15 + g('land') * -0.30 + g('plump') * -0.025;
+      this.root.updateWorldMatrix(true, false); (this._ri ||= new THREE.Matrix4()).copy(this.root.matrixWorld).invert(); this.face.rootInv = this._ri;
       this.face.setMorphScale(sx, sy, sz); this.face.update(dt, 12, frozen);
     }
     this.model.updateMatrixWorld(true);

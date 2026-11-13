@@ -146,11 +146,11 @@ def local_tint(P, N, P0):
         if p['n'] != 'ear': continue
         for s_ in (1, -1):
             c = np.array([p['c'][0] * s_, p['c'][1], p['c'][2]])
-            m = np.exp(-(((P[:, 0] - c[0]) / 0.052) ** 2 + ((P[:, 2] - c[2] + 0.005) / 0.068) ** 2)) * sstep(0.0, 0.45, -N[:, 1]) * (P[:, 2] > 0.6)
+            m = np.exp(-(((P[:, 0] - c[0]) / 0.085) ** 4 + ((P[:, 2] - c[2] - 0.01) / 0.085) ** 4)) * sstep(-0.1, 0.4, -N[:, 1]) * sstep(0.56, 0.62, P[:, 2])
             col = col + (np.array(T['pink']) - col) * (0.92 * m)[:, None]
     # 手掌、腳掌略粉（取骨架末端附近；手是外側末端、腳是底面與前端）
     for s_ in (1, -1):
-        for bn, rad, k in (('hand', 0.058, 0.85), ('foot', 0.062, 0.75)):
+        for bn, rad, k in (('hand', 0.075, 0.9), ('foot', 0.07, 0.8)):
             t = np.array(P0.BONES[f'{bn}.{"L" if s_ > 0 else "R"}'][2]); h = np.array(P0.BONES[f'{bn}.{"L" if s_ > 0 else "R"}'][1])
             c = (t * 0.7 + h * 0.3)
             m = np.exp(-np.sum((P - c) ** 2, 1) / rad ** 2)

@@ -8,7 +8,8 @@
 import * as THREE from 'three';
 
 export const PRESETS = {
-  fur:     { zh: '軟綿絨毛', rough: 0.88, ao: 0.4, sheen: 0.75, sheenRough: 0.55, sheenColor: 0xfff0e2, env: 0.30, spec: 0.35, noiseA: 0.022, noiseF: 170, topAmt: 1.0, rough2: 0.08 },
+  // 舊版（play/soft.js softMat）的實際數值：身體 0xffc9ad、頂 0xfff1e2、y 範圍 -0.36..0.25（身體中心座標）、假次表面 0xff8f6e×0.27、邊緣光 0xfff6ea×0.32、roughness 0.62。gradAbs：頂色直接混（不保留色度）；sss／rim：舊版的 emissive 公式
+  fur:     { zh: '軟綿絨毛', rough: 0.62, ao: 0.2, env: 0.0, spec: 1.0, noiseA: 0.0, noiseF: 170, topAmt: 1.0, rough2: 0.0, gradAbs: true, y0: -0.025, y1: 0.585, sss: 0xff8f6e, sssAmt: 0.34, rim: 0xfff6ea, rimAmt: 0.32 },
   matte:   { zh: '柔霧塑膠', rough: 0.55, ao: 0.55, coat: 0.15, coatRough: 0.5, env: 0.38, spec: 0.5, noiseA: 0.0, noiseF: 1, topAmt: 0.8, rough2: 0.0 },
   jelly:   { zh: '半透明果凍', rough: 0.34, ao: 0.4, env: 0.45, spec: 0.55, alpha: 0.92, noiseA: 0.0, noiseF: 1, topAmt: 1.0, fresnel: 0.10, rough2: 0.0, sheen: 0.2, sheenRough: 0.5, sheenColor: 0xffffff },
   ceramic: { zh: '陶瓷', rough: 0.28, ao: 0.4, coat: 0.6, coatRough: 0.12, env: 0.45, spec: 0.6, noiseA: 0.0, noiseF: 1, topAmt: 0.6, rough2: 0.0 },
@@ -36,10 +37,12 @@ export function makeMaterial(id, o = {}) {
     if (P.coat) { m.clearcoat = P.coat; m.clearcoatRoughness = P.coatRough ?? 0.4; }
   }
   if (P.alpha && P.alpha < 1) { m.transparent = true; m.opacity = P.alpha; }
+  const GRAD_ABS = !!P.gradAbs;
   const U = {
-    uTop: { value: new THREE.Color(o.top ?? o.color ?? 0xfff1e2) }, uY: { value: new THREE.Vector2(o.y0 ?? 0.08, o.y1 ?? 0.74) },
+    uTop: { value: new THREE.Color(o.top ?? o.color ?? 0xfff1e2) }, uY: { value: new THREE.Vector2(o.y0 ?? P.y0 ?? 0.08, o.y1 ?? P.y1 ?? 0.74) },
     uTopAmt: { value: P.topAmt ?? 1 }, uNoiseA: { value: P.noiseA ?? 0 }, uNoiseF: { value: P.noiseF ?? 100 }, uRough2: { value: P.rough2 ?? 0 },
     uFresnel: { value: P.fresnel ?? 0 }, uWrap: { value: P.wrap ?? 0 },
+    uSss: { value: new THREE.Color(P.sss ?? 0) }, uSssAmt: { value: P.sssAmt ?? 0 }, uRim: { value: new THREE.Color(P.rim ?? 0) }, uRimAmt: { value: P.rimAmt ?? 0 },
   };
   m.userData.U = U; m.userData.preset = id; m.userData.P = P;
   m.onBeforeCompile = (s) => {
@@ -48,10 +51,17 @@ export function makeMaterial(id, o = {}) {
     s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRestP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n vRestP = position;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vRestP; uniform vec3 uTop; uniform vec2 uY; uniform float uTopAmt, uNoiseA, uNoiseF, uRough2, uFresnel, uWrap;\n${NOISE_GLSL}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>
+      .replace('#include <common>', `#include <common>\nvarying vec3 vRestP; uniform vec3 uTop; uniform vec2 uY; uniform float uTopAmt, uNoiseA, uNoiseF, uRough2, uFresnel, uWrap; uniform vec3 uSss, uRim; uniform float uSssAmt, uRimAmt;\n${NOISE_GLSL}`)
+      .replace('#include <color_fragment>', GRAD_ABS ? `
+        { float g = smoothstep(uY.x, uY.y, vRestP.y) * uTopAmt; vec3 base = mix(diffuse, uTop, min(g, 1.0));
+          #ifdef USE_COLOR
+            base *= vColor.rgb;
+          #endif
+          float n = vn(vRestP * uNoiseF) * 0.6 + vn(vRestP * uNoiseF * 2.3) * 0.4; diffuseColor.rgb = base * (1.0 + (n - 0.5) * uNoiseA * 2.0); }` : `#include <color_fragment>
         { float g = smoothstep(uY.x, uY.y, vRestP.y) * uTopAmt; diffuseColor.rgb = mix(diffuseColor.rgb, uTop * (diffuseColor.rgb / max(max(diffuseColor.r, diffuseColor.g), max(diffuseColor.b, 1e-3))), min(g * 0.7, 0.9));
           float n = vn(vRestP * uNoiseF) * 0.6 + vn(vRestP * uNoiseF * 2.3) * 0.4; diffuseColor.rgb *= 1.0 + (n - 0.5) * uNoiseA * 2.0; }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        if (uSssAmt + uRimAmt > 0.0) { float frs = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4); totalEmissiveRadiance += diffuseColor.rgb * uSss * uSssAmt * (0.3 + 0.7 * frs) + uRim * uRimAmt * frs; }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         { float n2 = vn(vRestP * uNoiseF * 0.7 + 3.1); roughnessFactor = clamp(roughnessFactor + (n2 - 0.5) * uRough2 * 2.0, 0.0, 1.0); }`)
       .replace('#include <opaque_fragment>', `
@@ -59,7 +69,7 @@ export function makeMaterial(id, o = {}) {
           outgoingLight += diffuseColor.rgb * fr * (uFresnel + uWrap * 0.35); }
         #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey = () => 'mat-' + id + (o.far ? 'F' : '') + (o.vertexAO ? 'A' : '');
+  m.customProgramCacheKey = () => 'mat-' + id + (o.far ? 'F' : '') + (o.vertexAO ? 'A' : '') + (GRAD_ABS ? 'G' : '');
   return m;
 }
 
