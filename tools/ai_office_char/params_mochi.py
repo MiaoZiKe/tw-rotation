@@ -5,14 +5,17 @@ NAME = 'mochi'
 
 # 橢球部件：c 中心、r 半徑、rot 繞 Y 軸傾角（度，正值＝上端往 +X 倒）、k 與「已合併的部分」平滑聯集的圓角半徑（越大過渡越肥）。
 # mirror=True 代表同時生成 X 鏡射的另一半。
-BODY = dict(c=(0, 0.012, 0.378), r=(0.425, 0.40, 0.355), pear=0.15)   # pear：下半身加寬比例（梨形）
+BODY = dict(c=(0, 0.01, 0.372), r=(0.385, 0.36, 0.340), pear=0.07)   # pear：下半身加寬比例（梨形，要小：下盤略寬但圓順）
 PARTS = [
-    dict(n='ear',  c=(0.238, 0.01, 0.685), r=(0.118, 0.112, 0.158), rot=26, k=0.065, mirror=True),
-    dict(n='arm',  c=(0.400, -0.06, 0.245), r=(0.090, 0.088, 0.105), rot=-24, k=0.09, mirror=True, axis='arm'),
-    dict(n='leg',  c=(0.172, -0.095, 0.078), r=(0.112, 0.158, 0.09), rot=0, k=0.07, mirror=True),
-    dict(n='tail', c=(0.0, 0.395, 0.215), r=(0.074, 0.082, 0.074), rot=0, k=0.05, mirror=False),
+    # 耳：圓而小，長在頭頂兩側（微向外傾）
+    dict(n='ear',  c=(0.205, 0.015, 0.672), r=(0.088, 0.078, 0.105), rot=22, k=0.05, mirror=True),
+    # 手：身體兩側清楚凸出的短小手（長軸沿 X，向外下方；露出約身高的 15%），末端圓潤
+    dict(n='arm',  c=(0.412, -0.075, 0.258), r=(0.092, 0.066, 0.064), rot=-30, k=0.055, mirror=True, axis='arm'),
+    # 腳：身體前下方露出一小塊腳掌
+    dict(n='leg',  c=(0.145, -0.205, 0.043), r=(0.078, 0.080, 0.043), rot=0, k=0.05, mirror=True),
+    dict(n='tail', c=(0.0, 0.345, 0.185), r=(0.066, 0.070, 0.066), rot=0, k=0.045, mirror=False),
 ]
-FLOOR_K = 0.03          # 腳底壓平的圓角
+FLOOR_K = 0.02          # 腳底壓平的圓角
 
 # 骨架：名稱 -> (parent, head, tail)。左右 L=+X。tail 只決定骨頭朝向與蒙皮距離。
 def _lr(n, par, h, t):
@@ -25,30 +28,39 @@ BONES = {
     'pelvis': ('root',  (0, 0, 0.17),     (0, 0, 0.30)),
     'spine':  ('pelvis',(0, 0, 0.30),     (0, 0, 0.46)),
     'head':   ('spine', (0, 0, 0.46),     (0, 0, 0.74)),
-    'tail':   ('pelvis',(0, 0.33, 0.22),  (0, 0.41, 0.21)),
-    'tail.tip':('tail', (0, 0.41, 0.21),  (0, 0.47, 0.20)),
+    'tail':   ('pelvis',(0, 0.30, 0.19),  (0, 0.38, 0.185)),
+    'tail.tip':('tail', (0, 0.38, 0.185), (0, 0.44, 0.18)),
 }
-BONES.update(_lr('ear', 'head',   (0.235, 0.0, 0.57), (0.28, 0.0, 0.67)))
-BONES.update(_lr('ear.tip', 'ear.@', (0.28, 0.0, 0.67), (0.32, 0.0, 0.80)))
-BONES.update(_lr('arm', 'head',  (0.34, -0.05, 0.27), (0.45, -0.07, 0.215)))
-BONES.update(_lr('hand', 'arm.@', (0.45, -0.07, 0.215), (0.52, -0.08, 0.185)))
-BONES.update(_lr('leg', 'pelvis', (0.172, -0.04, 0.15), (0.172, -0.085, 0.05)))
-BONES.update(_lr('foot', 'leg.@', (0.172, -0.085, 0.05), (0.172, -0.19, 0.02)))
+BONES.update(_lr('ear', 'head',   (0.205, 0.0, 0.58), (0.245, 0.0, 0.68)))
+BONES.update(_lr('ear.tip', 'ear.@', (0.245, 0.0, 0.68), (0.285, 0.0, 0.76)))
+BONES.update(_lr('arm', 'head',  (0.35, -0.065, 0.27), (0.455, -0.075, 0.222)))
+BONES.update(_lr('hand', 'arm.@', (0.455, -0.075, 0.222), (0.52, -0.08, 0.19)))
+BONES.update(_lr('leg', 'pelvis', (0.145, -0.13, 0.13), (0.145, -0.20, 0.05)))
+BONES.update(_lr('foot', 'leg.@', (0.145, -0.20, 0.05), (0.145, -0.285, 0.03)))
 # 蒙皮鏈：影響範圍（公尺）。near 內全權，far 外為 0
 LIMBS = {
-    'ear.L': dict(bones=('ear.L', 'ear.tip.L'), near=0.07, far=0.17),
-    'ear.R': dict(bones=('ear.R', 'ear.tip.R'), near=0.07, far=0.17),
-    'arm.L': dict(bones=('arm.L', 'hand.L'), near=0.07, far=0.15),
-    'arm.R': dict(bones=('arm.R', 'hand.R'), near=0.07, far=0.15),
-    'leg.L': dict(bones=('leg.L', 'foot.L'), near=0.085, far=0.17),
-    'leg.R': dict(bones=('leg.R', 'foot.R'), near=0.085, far=0.17),
-    'tail':  dict(bones=('tail', 'tail.tip'), near=0.06, far=0.14),
+    'ear.L': dict(bones=('ear.L', 'ear.tip.L'), near=0.06, far=0.15, rootn=0.04, rootf=0.12),
+    'ear.R': dict(bones=('ear.R', 'ear.tip.R'), near=0.06, far=0.15, rootn=0.04, rootf=0.12),
+    'arm.L': dict(bones=('arm.L', 'hand.L'), near=0.06, far=0.11, rootn=0.025, rootf=0.085),
+    'arm.R': dict(bones=('arm.R', 'hand.R'), near=0.06, far=0.11, rootn=0.025, rootf=0.085),
+    'leg.L': dict(bones=('leg.L', 'foot.L'), near=0.065, far=0.13, rootn=0.05, rootf=0.14),
+    'leg.R': dict(bones=('leg.R', 'foot.R'), near=0.065, far=0.13, rootn=0.05, rootf=0.14),
+    'tail':  dict(bones=('tail', 'tail.tip'), near=0.05, far=0.12),
 }
 TORSO = ('pelvis', 'spine', 'head')      # 軀幹由低到高：用 Z 漸層分配
 TORSO_Z = (0.085, 0.15)                   # 骨盆→脊椎→頭的過渡中心（糰糰的頭就是身體，臉要整片跟著頭動，所以頭的範圍從很低就開始）
 TORSO_W = 0.07                            # 過渡半寬
 
 # 臉：左右眼、鼻、嘴、腮紅位置（X 為正值那一側；Z 高度）。表面點由 SDF 求出。
-FACE = dict(eye_x=0.172, eye_z=0.298, nose_z=0.262, mouth_z=0.222, cheek_x=0.265, cheek_z=0.235, brow_z=0.405,
-            decal_x=0.35, decal_z0=0.095, decal_z1=0.505, decal_cz=0.30, decal_rz=0.215)
-LODS = {0: 2500, 1: 900, 2: 300}          # 目標四邊形數（三角面約 2 倍）
+FACE = dict(eye_x=0.150, eye_z=0.282, nose_z=0.228, mouth_z=0.188, cheek_x=0.235, cheek_z=0.212, brow_z=0.395,
+            decal_x=0.345, decal_z0=0.075, decal_z1=0.515, decal_cz=0.295, decal_rz=0.225)
+CHEEK_KEY = (0.235, -0.28, 0.225)          # 形態鍵 cheek.L/R 的中心（X 取正側）
+LODS = {0: 2700, 1: 950, 2: 420}          # 目標四邊形數（三角面約 2 倍）；LOD0 本體 7000＋臉貼片約 900 ＜ 9000
+# 局部顏色（頂點色 RGB 乘數，≤1）：耳內淡粉、肚子較淺、手掌腳掌略粉
+TINT = dict(body=(0.965, 0.95, 0.935), belly=(1.0, 1.0, 1.0), pink=(1.0, 0.80, 0.80), palm=(1.0, 0.83, 0.82))
+# 局部加密：四肢末端與耳尖的小弧面需要比身體更密的網格，輪廓才不會看出折角（段：起點、終點、半徑；每級是否啟用見 REFINE_LODS）
+REFINE = [((0.40, -0.07, 0.255), (0.535, -0.085, 0.19), 0.085), ((-0.40, -0.07, 0.255), (-0.535, -0.085, 0.19), 0.085),
+          ((0.145, -0.20, 0.04), (0.145, -0.29, 0.03), 0.07), ((-0.145, -0.20, 0.04), (-0.145, -0.29, 0.03), 0.07),
+          ((0.22, 0.0, 0.70), (0.25, 0.0, 0.76), 0.085), ((-0.22, 0.0, 0.70), (-0.25, 0.0, 0.76), 0.085),
+          ((0.0, 0.36, 0.185), (0.0, 0.41, 0.18), 0.065)]
+REFINE_LODS = (0, 1)

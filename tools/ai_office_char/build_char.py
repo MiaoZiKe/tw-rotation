@@ -43,6 +43,18 @@ def quad_mesh(vv, ff, h, quads, seed=3):
     assert r == {'FINISHED'}, 'quadriflow failed'
     return ob
 
+def refine(ob, P0):
+    """把四肢末端、耳尖附近的面再切一刀（之後整體會貼回距離場，所以新點直接落在解析曲面上）"""
+    bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table(); edges = set()
+    for f in bm.faces:
+        c = np.array(f.calc_center_median())
+        for a, b, r in P0.REFINE:
+            d, _ = seg_dist(c[None], a, b)
+            if d[0] < r: edges.update(f.edges); break
+    bmesh.ops.subdivide_edges(bm, edges=list(edges), cuts=1, use_grid_fill=True, use_single_edge=False)
+    bm.to_mesh(ob.data); bm.free(); ob.data.update()
+    return ob
+
 def verts(ob): return np.array([tuple(v.co) for v in ob.data.vertices])
 def set_verts(ob, P):
     ob.data.vertices.foreach_set('co', P.reshape(-1)); ob.data.update()
@@ -112,7 +124,7 @@ def shape_deltas(P, N, fsum, P0):
     torso = (1 - fsum) * sstep(0.08, 0.2, z) * sstep(0.62, 0.45, z)
     D['breath'] = N * (0.0125 * torso)[:, None]
     for s, nm in ((1, 'L'), (-1, 'R')):
-        cc = np.array([s * 0.255, -0.30, 0.245]); g = np.exp(-np.sum((P - cc) ** 2, 1) / 0.095 ** 2)
+        ck = P0.CHEEK_KEY; cc = np.array([s * ck[0], ck[1], ck[2]]); g = np.exp(-np.sum((P - cc) ** 2, 1) / 0.095 ** 2)
         D[f'cheek.{nm}'] = N * (0.024 * g)[:, None]
     return D
 
@@ -121,6 +133,35 @@ def add_shapes(ob, D):
     for k, d in D.items():
         sk = ob.shape_key_add(name=k, from_mix=False); P = np.array([tuple(v.co) for v in ob.data.vertices])
         sk.data.foreach_set('co', (P + d).reshape(-1)); sk.value = 0.0
+
+# ───────────────────────── 局部顏色（頂點色 RGB 乘數，≤1）
+def local_tint(P, N, P0):
+    T = P0.TINT; n = len(P); col = np.tile(np.array(T['body']), (n, 1))
+    front = sstep(0.05, 0.5, -N[:, 1])
+    # 肚子較淺：身體前下方一塊柔邊橢圓
+    bm = np.exp(-((P[:, 0] / 0.17) ** 2 + ((P[:, 2] - 0.135) / 0.105) ** 2)) * front
+    col = col + (np.array(T['belly']) - col) * bm[:, None]
+    # 耳內淡粉
+    for p in P0.PARTS:
+        if p['n'] != 'ear': continue
+        for s_ in (1, -1):
+            c = np.array([p['c'][0] * s_, p['c'][1], p['c'][2]])
+            m = np.exp(-(((P[:, 0] - c[0]) / 0.052) ** 2 + ((P[:, 2] - c[2] + 0.005) / 0.068) ** 2)) * sstep(0.0, 0.45, -N[:, 1]) * (P[:, 2] > 0.6)
+            col = col + (np.array(T['pink']) - col) * (0.92 * m)[:, None]
+    # 手掌、腳掌略粉（取骨架末端附近；手是外側末端、腳是底面與前端）
+    for s_ in (1, -1):
+        for bn, rad, k in (('hand', 0.058, 0.85), ('foot', 0.062, 0.75)):
+            t = np.array(P0.BONES[f'{bn}.{"L" if s_ > 0 else "R"}'][2]); h = np.array(P0.BONES[f'{bn}.{"L" if s_ > 0 else "R"}'][1])
+            c = (t * 0.7 + h * 0.3)
+            m = np.exp(-np.sum((P - c) ** 2, 1) / rad ** 2)
+            col = col + (np.array(T['palm']) - col) * (k * m)[:, None]
+    return np.clip(col, 0, 1)
+
+def set_custom_normals(ob, N):
+    try:
+        ob.data.normals_split_custom_set_from_vertices([tuple(v) for v in N])
+    except Exception as e:
+        print('custom normals failed:', e)
 
 # ───────────────────────── 骨架
 def make_armature(P0):
@@ -197,24 +238,32 @@ def to_gltf(v): return [float(v[0]), float(v[2]), float(-v[1])]
 def build_lod(P0, lod, quads, cache, out_dir):
     clear(); vv, ff, h, sdf = cache
     ob = quad_mesh(vv, ff, h, quads)
+    if lod in P0.REFINE_LODS: refine(ob, P0)
     P = verts(ob); n, E = adjacency(ob)
+    # 重拓撲後先把四邊形邊長整平（切線平滑）再貼回距離場：輪廓是解析曲面，格點分佈均勻，頂點法線才不會抖
+    for _ in range(4):
+        P = lap_smooth(P, n, E, 2, 0.5); P = S.project(sdf, P, 6)
     P = S.project(sdf, P, 8); set_verts(ob, P)
     bpy.ops.object.shade_smooth()
     N = S.grad(sdf, P); N /= np.linalg.norm(N, axis=1)[:, None]
+    set_custom_normals(ob, N)
     names, M, fsum = skin_weights(P, P0, n, E)
     apply_weights(ob, names, M)
     # AO 頂點色
     ao = S.ao(sdf, P, N)
     ca = ob.data.color_attributes.new(name='AO', type='FLOAT_COLOR', domain='POINT')
-    col = np.stack([ao, ao, ao, np.ones_like(ao)], 1); ca.data.foreach_set('color', col.reshape(-1))
+    tint = local_tint(P, N, P0)            # RGB＝局部顏色乘數；A＝AO（執行期 setAOStrength 依材質調強度，再合成成 RGB）
+    col = np.concatenate([tint, ao[:, None]], 1); ca.data.foreach_set('color', col.reshape(-1))
     arm = make_armature(P0); bind(ob, arm)
     D = shape_deltas(P, N, fsum, P0); add_shapes(ob, D)
+    if lod >= 2: join_eye_dots(ob, sdf, P0, names, arm)
     objs = [ob]
     mat = bpy.data.materials.new('fur'); mat.use_nodes = True; ob.data.materials.append(mat)
     decal = None
     if lod <= 1:
         decal = make_decal(ob, P0, sdf)
         Pd = verts(decal); nd, Ed = adjacency(decal); Nd = S.grad(sdf, Pd); Nd /= np.linalg.norm(Nd, axis=1)[:, None]
+        set_custom_normals(decal, Nd)
         # 臉貼片的權重與形態鍵：用與身體相同的函式
         _, Md, fd = skin_weights(Pd, P0, nd, Ed) if False else (None, None, None)
         names2, Md, fd = skin_weights_pointwise(Pd, P0)
@@ -237,6 +286,33 @@ def build_lod(P0, lod, quads, cache, out_dir):
     info = dict(lod=lod, verts=len(ob.data.vertices), quads=len(ob.data.polygons), tris=tris, bytes=os.path.getsize(path),
                 decal_tris=(sum(len(p.vertices) - 2 for p in decal.data.polygons) if decal else 0))
     print('LOD', info); return info
+
+def join_eye_dots(ob, sdf, P0, names, arm):
+    """最遠一級（LOD2）沒有臉貼片與眼球：在本體上併入兩個深色小橢球當眼睛（同權重＝跟頭、同形態鍵、頂點色全暗），零額外繪製呼叫"""
+    F = P0.FACE; pieces = []
+    for s_, nm in ((1, 'L'), (-1, 'R')):
+        p, n = surface_point(sdf, s_ * F['eye_x'], F['eye_z'] - 0.004)
+        bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.0)
+        z = n / np.linalg.norm(n); x = np.cross([0, 0, 1.0], z); x /= np.linalg.norm(x); y = np.cross(z, x)
+        for v in bm.verts:
+            c = np.array(v.co); v.co = tuple(p + x * c[0] * 0.034 + y * c[1] * 0.043 + z * (c[2] * 0.016 - 0.004))
+        me = bpy.data.meshes.new('dot' + nm); bm.to_mesh(me); bm.free(); o = bpy.data.objects.new('Dot' + nm, me); bpy.context.scene.collection.objects.link(o)
+        pieces.append(o)
+    for o in pieces:
+        P = verts(o); N = np.array([tuple(v.normal) for v in o.data.vertices])
+        n_ = len(P); idx = {k: i for i, k in enumerate(names)}
+        for nm in names: o.vertex_groups.new(name=nm)
+        for i in range(n_): o.vertex_groups[idx['head']].add([i], 1.0, 'REPLACE')
+        ca = o.data.color_attributes.new(name='AO', type='FLOAT_COLOR', domain='POINT')
+        ca.data.foreach_set('color', np.tile([0.09, 0.07, 0.07, 1.0], (n_, 1)).reshape(-1))
+        o.shape_key_add(name='Basis'); D = shape_deltas(P, N, np.zeros(n_), P0)
+        for k, d in D.items():
+            sk = o.shape_key_add(name=k, from_mix=False); sk.data.foreach_set('co', (P + d).reshape(-1))
+        for p_ in o.data.polygons: p_.use_smooth = True
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in pieces: o.select_set(True)
+    ob.select_set(True); bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.join()
 
 def skin_weights_pointwise(P, P0):
     """臉貼片沒有自己的鄰接，用最近身體頂點太麻煩：直接用同一組公式（不做網格平滑，貼片全在軀幹，差異可忽略）"""

@@ -12,17 +12,17 @@ function blobTex(core = 0.0, soft = 1.0) {
 export class Stage {
   constructor(renderer) {
     this.renderer = renderer; this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(BG);
-    renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
     this.env = makeEnvironment(renderer); this.scene.environment = this.env; this.scene.environmentIntensity = 1.0;
     const S = this.scene;
-    this.hemi = new THREE.HemisphereLight(0xfff6ec, 0xf0cdb0, 1.55); S.add(this.hemi);
+    this.hemi = new THREE.HemisphereLight(0xfffaf4, 0xf4d6c0, 1.75); S.add(this.hemi);
     this.key = new THREE.DirectionalLight(0xfff1e0, 1.7); this.key.position.set(1.7, 5.2, 2.6); this.key.castShadow = true; this.key.shadow.mapSize.set(1024, 1024);
-    Object.assign(this.key.shadow.camera, { left: -1.4, right: 1.4, top: 1.4, bottom: -1.4, near: 1, far: 12 }); this.key.shadow.bias = -0.0002; this.key.shadow.normalBias = 0.003; this.key.shadow.radius = 6;
+    Object.assign(this.key.shadow.camera, { left: -1.4, right: 1.4, top: 1.4, bottom: -1.4, near: 1, far: 12 }); this.key.shadow.bias = -0.0002; this.key.shadow.normalBias = 0.003; this.key.shadow.radius = 14; this.key.shadow.blurSamples = 20;
     S.add(this.key, this.key.target);
     this.rim = new THREE.DirectionalLight(0xffdcb8, 0.75); this.rim.position.set(-2.2, 2.6, -3.4); S.add(this.rim);
     this.fill = new THREE.DirectionalLight(0xdfe9ff, 0.35); this.fill.position.set(-3, 1.8, 2.5); S.add(this.fill);
     // 地面：只接影子的透明層＋淡淡的棚底漸層
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ color: 0x3a2218, opacity: 0.11 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor); this.floor = floor;
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ color: 0x7a3f2c, opacity: 0.07 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor); this.floor = floor;
     const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d'); const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
     gr.addColorStop(0, 'rgba(255,250,242,0.85)'); gr.addColorStop(0.55, 'rgba(255,248,238,0.35)'); gr.addColorStop(1, 'rgba(255,246,234,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
     const disc = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = -0.002; S.add(disc); this.disc = disc;

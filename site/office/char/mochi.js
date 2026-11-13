@@ -13,7 +13,7 @@
 // 骨頭名稱：root pelvis spine head tail tail.tip ear.L ear.R ear.tip.L ear.tip.R arm.L arm.R hand.L hand.R leg.L leg.R foot.L foot.R
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/GLTFLoader.js';
-import { makeMaterial, setAOStrength, aoAt, PRESETS } from '../play/materials.js';
+import { makeMaterial, setAOStrength, skinColorAt, PRESETS } from '../play/materials.js';
 import { cloneSkinned } from './skin.js';
 import { FaceRig } from './facerig.js';
 
@@ -46,10 +46,10 @@ export class MochiChar {
       const pw = new THREE.Quaternion(); if (b.parent) { M.multiplyMatrices(inv, b.parent.matrixWorld); pw.setFromRotationMatrix(M); }
       this.rest[nm] = { q: b.quaternion.clone(), p: b.position.clone(), pw, pwi: pw.clone().invert() };
     }
-    this.cfg = { preset: o.preset || 'fur', color: o.color ?? 0xffdcc4, top: o.top ?? 0xfff4e8, far: !!o.far };
+    this.cfg = { preset: o.preset || 'fur', color: o.color ?? 0xfbdcc6, top: o.top ?? 0xfffaf2, far: !!o.far };
     this.mat = makeMaterial(this.cfg.preset, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far });
     if (this.body) { this.body.material = this.mat; this.body.castShadow = true; this.body.frustumCulled = false; setAOStrength(this.body.geometry, PRESETS[this.cfg.preset].ao); }
-    this.lidMat = this.makeLidMat();
+    this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
     if (this.decal) { this.decal.frustumCulled = false; }
     this.morphTargets = {};
     this.face = null;
@@ -57,23 +57,32 @@ export class MochiChar {
       // 臉的零件掛在 head 骨頭下；holder 抵銷骨頭的靜止矩陣，之後零件座標就是「靜止姿勢的模型座標」
       this.holder = new THREE.Group(); this.holder.matrixAutoUpdate = false; M.multiplyMatrices(inv, this.bones.head.matrixWorld); this.holder.matrix.copy(M.invert()); this.holder.matrixWorldNeedsUpdate = true;
       this.bones.head.add(this.holder);
-      this.face = new FaceRig(this.meta, this.holder, this.decal, this.lidMat, { faceW: o.faceW || 640 });
+      this.face = new FaceRig(this.meta, this.holder, this.decal, this.lidMat, { faceW: o.faceW || 640, lod: this.lod });
       this.holder.traverse(n => { if (n.isMesh) n.castShadow = false; });
     }
     this.t = 0; this.breathe = o.breathe !== false; this.wm = {};
   }
-  /** 眼皮殼沒有頂點色：取眼睛位置附近的 AO 與上下漸層，把顏色調到跟身體一致 */
-  makeLidMat() {
-    const P = PRESETS[this.cfg.preset], ao = this.body ? aoAt(this.body.geometry, this.meta.anchors['eye.L'].p) : 1, k = 1 - (1 - ao) * P.ao;
-    const base = new THREE.Color(this.cfg.color).lerp(new THREE.Color(this.cfg.top), 0.1 * P.topAmt).multiplyScalar(k * 0.95);
-    return makeMaterial(this.cfg.preset, { color: base, over: { topAmt: 0, noiseA: 0 }, far: this.cfg.far });
+  /** 眼皮殼沒有頂點色：取眼睛位置附近的局部顏色×AO 與上下漸層，把顏色算到跟身體那一處一模一樣；
+   *  法線也換成「眼睛所在處的身體表面法線」（uSurfN，每幀由 FaceRig 更新），所以閉眼時看起來是同一片皮膚而不是一顆凸起的圓片。 */
+  makeLidMat(sd = 'L') {
+    const P = PRESETS[this.cfg.preset], A = this.meta.anchors['eye.' + sd], sk = this.body ? skinColorAt(this.body.geometry, A.p, P.ao) : [1, 1, 1];
+    const base = new THREE.Color(this.cfg.color), top = new THREE.Color(this.cfg.top), mx = Math.max(base.r, base.g, base.b, 1e-3);
+    const t = THREE.MathUtils.smoothstep(A.p[1], 0.08, 0.74) * P.topAmt * 0.55;      // 與身體材質的上下漸層同一條公式
+    const col = base.clone().lerp(new THREE.Color(top.r * base.r / mx, top.g * base.g / mx, top.b * base.b / mx), t); col.r *= sk[0]; col.g *= sk[1]; col.b *= sk[2];
+    const mat = makeMaterial(this.cfg.preset, { color: col, over: { topAmt: 0, noiseA: 0 }, far: this.cfg.far });
+    const U = { value: new THREE.Vector3(0, 0, 1) }, orig = mat.onBeforeCompile; mat.userData.surfN = U.value;
+    mat.onBeforeCompile = (s) => { orig(s); s.uniforms.uSurfN = U;
+      s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uSurfN;')
+        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n normal = normalize(mix(normal, normalize((viewMatrix * vec4(uSurfN, 0.0)).xyz), 0.9));'); };
+    const key = mat.customProgramCacheKey; mat.customProgramCacheKey = () => key.call(mat) + '-lid';
+    return mat;
   }
   setPreset(id, extra = {}) {
     const old = this.mat, oldLid = this.lidMat; this.cfg.preset = id; Object.assign(this.cfg, extra);
     this.mat = makeMaterial(id, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far });
-    this.body.material = this.mat; setAOStrength(this.body.geometry, PRESETS[id].ao); this.lidMat = this.makeLidMat();
-    if (this.face) for (const e of this.face.eyes) e.lid.material = this.lidMat;
-    old.dispose(); oldLid.dispose();
+    this.body.material = this.mat; setAOStrength(this.body.geometry, PRESETS[id].ao); this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
+    if (this.face) for (const e of this.face.eyes) e.lid.material = this.lidMat[e.side > 0 ? 'L' : 'R'];
+    old.dispose(); oldLid.L.dispose(); oldLid.R.dispose();
   }
   setColor(color, top) { this.cfg.color = color; if (top != null) this.cfg.top = top; this.setPreset(this.cfg.preset); }
   // ── 驅動介面
@@ -101,7 +110,7 @@ export class MochiChar {
     this.model.updateMatrixWorld(true);
   }
   dispose() {
-    this.mat.dispose(); this.lidMat.dispose(); if (this.face) { this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh && !n.geometry.userData.shared) n.geometry.dispose(); }); this.decal.material.dispose(); }
+    this.mat.dispose(); this.lidMat.L.dispose(); this.lidMat.R.dispose(); if (this.face) { this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh && !n.geometry.userData.shared) n.geometry.dispose(); }); this.decal.material.dispose(); }
     this.root.removeFromParent();
   }
 }

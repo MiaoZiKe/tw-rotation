@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 
 export const PRESETS = {
-  fur:     { zh: '軟綿絨毛', rough: 0.88, ao: 0.7, sheen: 0.75, sheenRough: 0.55, sheenColor: 0xfff0e2, env: 0.30, spec: 0.35, noiseA: 0.045, noiseF: 170, topAmt: 1.0, rough2: 0.08 },
+  fur:     { zh: '軟綿絨毛', rough: 0.88, ao: 0.4, sheen: 0.75, sheenRough: 0.55, sheenColor: 0xfff0e2, env: 0.30, spec: 0.35, noiseA: 0.022, noiseF: 170, topAmt: 1.0, rough2: 0.08 },
   matte:   { zh: '柔霧塑膠', rough: 0.55, ao: 0.55, coat: 0.15, coatRough: 0.5, env: 0.38, spec: 0.5, noiseA: 0.0, noiseF: 1, topAmt: 0.8, rough2: 0.0 },
   jelly:   { zh: '半透明果凍', rough: 0.34, ao: 0.4, env: 0.45, spec: 0.55, alpha: 0.92, noiseA: 0.0, noiseF: 1, topAmt: 1.0, fresnel: 0.10, rough2: 0.0, sheen: 0.2, sheenRough: 0.5, sheenColor: 0xffffff },
   ceramic: { zh: '陶瓷', rough: 0.28, ao: 0.4, coat: 0.6, coatRough: 0.12, env: 0.45, spec: 0.6, noiseA: 0.0, noiseF: 1, topAmt: 0.6, rough2: 0.0 },
@@ -50,7 +50,7 @@ export function makeMaterial(id, o = {}) {
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying vec3 vRestP; uniform vec3 uTop; uniform vec2 uY; uniform float uTopAmt, uNoiseA, uNoiseF, uRough2, uFresnel, uWrap;\n${NOISE_GLSL}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        { float g = smoothstep(uY.x, uY.y, vRestP.y) * uTopAmt; diffuseColor.rgb = mix(diffuseColor.rgb, uTop * (diffuseColor.rgb / max(max(diffuseColor.r, diffuseColor.g), max(diffuseColor.b, 1e-3))), g * 0.55);
+        { float g = smoothstep(uY.x, uY.y, vRestP.y) * uTopAmt; diffuseColor.rgb = mix(diffuseColor.rgb, uTop * (diffuseColor.rgb / max(max(diffuseColor.r, diffuseColor.g), max(diffuseColor.b, 1e-3))), min(g * 0.7, 0.9));
           float n = vn(vRestP * uNoiseF) * 0.6 + vn(vRestP * uNoiseF * 2.3) * 0.4; diffuseColor.rgb *= 1.0 + (n - 0.5) * uNoiseA * 2.0; }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         { float n2 = vn(vRestP * uNoiseF * 0.7 + 3.1); roughnessFactor = clamp(roughnessFactor + (n2 - 0.5) * uRough2 * 2.0, 0.0, 1.0); }`)
@@ -63,20 +63,28 @@ export function makeMaterial(id, o = {}) {
   return m;
 }
 
-/** 頂點色 AO 強度：1＝完整遮蔽，0＝沒有。原始 AO 存在 userData.aoRaw，可反覆調。 */
+/** 頂點色：Blender 匯出的 COLOR_0 是 RGBA——RGB＝局部顏色乘數（耳內淡粉、肚子較淺、手腳掌略粉），A＝AO。
+ *  這裡把它們合成成 RGB（= 乘數 × (1 − (1−AO)·強度)）；AO 強度 1＝完整遮蔽、0＝沒有，可反覆調（原始資料存在 userData）。
+ *  舊版只有灰階 AO 的檔案（itemSize 3）照舊相容。 */
 export function setAOStrength(geo, s) {
-  const a = geo.attributes.color || geo.attributes.color_0; if (!a) return;
-  // Blender 匯出的頂點色是正規化的 Uint16：一律用 getX／setXYZ 讀寫（它們會自動換算 0..1）
-  if (!geo.userData.aoRaw) { const r = new Float32Array(a.count); for (let i = 0; i < a.count; i++) r[i] = a.getX(i); geo.userData.aoRaw = r; }
-  const raw = geo.userData.aoRaw;
-  for (let i = 0; i < a.count; i++) { const v = 1 - (1 - raw[i]) * s; a.setXYZ(i, v, v, v); }
+  let a = geo.attributes.color || geo.attributes.color_0; if (!a) return;
+  if (!geo.userData.aoRaw) {
+    const n = a.count, ao = new Float32Array(n), tint = new Float32Array(n * 3), rgba = a.itemSize === 4;
+    for (let i = 0; i < n; i++) { ao[i] = rgba ? a.getW(i) : a.getX(i); tint[i * 3] = rgba ? a.getX(i) : 1; tint[i * 3 + 1] = rgba ? a.getY(i) : 1; tint[i * 3 + 2] = rgba ? a.getZ(i) : 1; }
+    geo.userData.aoRaw = ao; geo.userData.tintRaw = tint;
+    if (rgba || a.normalized) { a = new THREE.BufferAttribute(new Float32Array(n * 3), 3); geo.setAttribute('color', a); if (geo.attributes.color_0) geo.deleteAttribute('color_0'); }
+  }
+  const raw = geo.userData.aoRaw, t = geo.userData.tintRaw;
+  for (let i = 0; i < a.count; i++) { const v = 1 - (1 - raw[i]) * s; a.setXYZ(i, t[i * 3] * v, t[i * 3 + 1] * v, t[i * 3 + 2] * v); }
   a.needsUpdate = true;
 }
-/** 取得最靠近某個點的頂點的原始 AO（0..1）——眼皮殼沒有頂點色，用它對色 */
-export function aoAt(geo, p) {
-  const pos = geo.attributes.position, raw = geo.userData.aoRaw; if (!raw) return 1; let best = 1e9, bi = 0;
-  for (let i = 0; i < pos.count; i++) { const d = (pos.getX(i) - p[0]) ** 2 + (pos.getY(i) - p[1]) ** 2 + (pos.getZ(i) - p[2]) ** 2; if (d < best) { best = d; bi = i; } }
-  return raw[bi];
+/** 取得某個點附近的「本體顏色乘數」（局部顏色 × AO）：把眼皮、臉上的零件調到跟身體同色用。取最近的幾個頂點加權平均 */
+export function skinColorAt(geo, p, s) {
+  const pos = geo.attributes.position, raw = geo.userData.aoRaw, t = geo.userData.tintRaw; if (!raw) return [1, 1, 1];
+  const best = [];
+  for (let i = 0; i < pos.count; i++) { const d = (pos.getX(i) - p[0]) ** 2 + (pos.getY(i) - p[1]) ** 2 + (pos.getZ(i) - p[2]) ** 2; if (best.length < 6 || d < best[best.length - 1][0]) { best.push([d, i]); best.sort((u, v) => u[0] - v[0]); if (best.length > 6) best.pop(); } }
+  let r = 0, g = 0, b = 0, w = 0; for (const [d, i] of best) { const k = 1 / (d + 2e-4), v = 1 - (1 - raw[i]) * s; r += k * t[i * 3] * v; g += k * t[i * 3 + 1] * v; b += k * t[i * 3 + 2] * v; w += k; }
+  return [r / w, g / w, b / w];
 }
 
 /** 程序化環境貼圖（沒有 HDR 檔、不連網）：暖白天空＋暖米地面＋一塊柔光箱。只供高光反射用。 */

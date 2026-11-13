@@ -17,7 +17,7 @@ export const EXPR_LIST = [['neutral', '正常睜眼'], ['happy', '開心閉眼']
 const KEYS = Object.keys(FACE_EXPR.neutral);
 
 // 眼球與眼皮的尺寸（公尺）：a 半寬、b 半高、c 沿法線的凸出厚度；center 埋在表面下 d
-const EYE = { a: 0.079, b: 0.087, c: 0.052, d: 0.025 };
+const EYE = { a: 0.074, b: 0.082, c: 0.049, d: 0.022 };
 
 function basisQuat(n) {
   const z = new V3(...n).normalize(), x = new V3(0, 1, 0).cross(z).normalize(), y = z.clone().cross(x);
@@ -26,12 +26,16 @@ function basisQuat(n) {
 function ellPoint(x, y, k = 1) { const a = EYE.a * k, b = EYE.b * k, c = EYE.c * k; const t = 1 - (x / a) ** 2 - (y / b) ** 2; return Math.max(0, t) > 0 ? c * Math.sqrt(t) : 0; }
 
 function irisTexture() {
-  const s = 128, cv = document.createElement('canvas'); cv.width = cv.height = s; const g = cv.getContext('2d');
-  g.fillStyle = '#150b09'; g.fillRect(0, 0, s, s);
-  const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-  gr.addColorStop(0, '#0d0706'); gr.addColorStop(0.27, '#150c0a'); gr.addColorStop(0.36, '#4a2c22'); gr.addColorStop(0.62, '#3a2119'); gr.addColorStop(0.88, '#1e110e'); gr.addColorStop(1, '#150b09');
-  g.fillStyle = gr; g.beginPath(); g.arc(s / 2, s / 2, s / 2, 0, 7); g.fill();
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  // 深色亮眼：極深的外緣、一圈略淺的暖棕虹膜（下半部更亮，像被光穿過）、中央瞳孔
+  const s = 256, cv = document.createElement('canvas'); cv.width = cv.height = s; const g = cv.getContext('2d'), c = s / 2;
+  g.fillStyle = '#120908'; g.fillRect(0, 0, s, s);
+  let gr = g.createRadialGradient(c, c, 0, c, c, c);
+  gr.addColorStop(0, '#070404'); gr.addColorStop(0.23, '#0b0605'); gr.addColorStop(0.30, '#3c2118'); gr.addColorStop(0.50, '#5a3427'); gr.addColorStop(0.70, '#3a2018'); gr.addColorStop(0.86, '#1b0f0c'); gr.addColorStop(1, '#120908');
+  g.fillStyle = gr; g.beginPath(); g.arc(c, c, c, 0, 7); g.fill();
+  // 下半虹膜較亮的月牙
+  g.save(); g.beginPath(); g.arc(c, c, c * 0.66, 0, 7); g.clip();
+  gr = g.createRadialGradient(c, c * 1.55, c * 0.05, c, c * 1.5, c * 0.75); gr.addColorStop(0, 'rgba(132,80,60,0.55)'); gr.addColorStop(1, 'rgba(132,80,60,0)'); g.fillStyle = gr; g.fillRect(0, 0, s, s); g.restore();
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 let IRIS = null; const SHARED = {};   // 所有角色共用的不變幾何（眼球帽、眼皮殼、笑眼弧）：每隻只剩高光網格與臉貼片是自己的
 const shared = (k, mk) => SHARED[k] || (SHARED[k] = (() => { const g = mk(); g.userData.shared = true; return g; })());
@@ -42,7 +46,8 @@ export class FaceRig {
     this.meta = meta; this.holder = holder; this.cur = { ...FACE_EXPR.neutral }; this.target = FACE_EXPR.neutral; this.name = 'neutral'; this.time = 0;
     this.blinkT = 1.2; this.blink = 0; this.blinkV = 0; this.gaze = { yaw: 0, pitch: 0, ty: 0, tp: 0 }; this.sac = { x: 0, y: 0, t: 1 }; this.talk = 0; this.dirty = true; this.autoBlink = true; this.eyeScale = 1;
     this.morphScale = new V3(1, 1, 1);
-    this.eyes = [-1, 1].map(s => this.buildEye(s, lidMat));
+    this.eyeSeg = opts.lod >= 1 ? [28, 10] : [56, 18]; this.hlSeg = opts.lod >= 1 ? 14 : 28;
+    this.eyes = [-1, 1].map(s => this.buildEye(s, lidMat[s > 0 ? 'L' : 'R']));
     this.decal = decal; this.initDecal(opts.faceW || 640);
     this.update(0.001);
   }
@@ -51,12 +56,12 @@ export class FaceRig {
     const grp = new THREE.Group(); grp.position.copy(p).addScaledVector(n, -EYE.d); grp.quaternion.copy(q); grp.userData.base = grp.position.clone(); this.holder.add(grp);
     const ball = new THREE.Group(); grp.add(ball);
     // 眼球：只做會露出來的前半球帽（75°），一顆網格＋一張極座標貼圖（瞳孔、虹膜、外圍深色），跟著眼球轉＝瞳孔在動
-    const geo = shared('cap', () => { const g = new THREE.SphereGeometry(1, 22, 9, 0, Math.PI * 2, 0, 75 * D2R).rotateX(Math.PI / 2); const pos = g.attributes.position, uv = g.attributes.uv, tm = 64 * D2R; for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), th = Math.acos(Math.max(-1, Math.min(1, z))), ph = Math.atan2(y, x), r = 0.5 * Math.min(1, th / tm); uv.setXY(i, 0.5 + r * Math.cos(ph), 0.5 + r * Math.sin(ph)); } return g; });
+    const [CS, CR] = this.eyeSeg, geo = shared('cap' + CS, () => { const g = new THREE.SphereGeometry(1, CS, CR, 0, Math.PI * 2, 0, 75 * D2R).rotateX(Math.PI / 2); const pos = g.attributes.position, uv = g.attributes.uv, tm = 64 * D2R; for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), th = Math.acos(Math.max(-1, Math.min(1, z))), ph = Math.atan2(y, x), r = 0.5 * Math.min(1, th / tm); uv.setXY(i, 0.5 + r * Math.cos(ph), 0.5 + r * Math.sin(ph)); } return g; });
     IRIS ||= irisTexture();
     const eyeMat = (SHARED.eyeMat ||= new THREE.MeshStandardMaterial({ map: IRIS, roughness: 0.16, metalness: 0, envMapIntensity: 0.7 }));
     const sph = new THREE.Mesh(geo, eyeMat); sph.scale.set(EYE.a, EYE.b, EYE.c); ball.add(sph);
     // 高光：兩個小圓合併成一個網格，固定在眼窩上（不隨眼球轉），頂點貼在橢球表面（強度改變時重算）
-    const hlGeo = new THREE.BufferGeometry(), NSEG = 18, hlDefs = [[-0.022, 0.027, 0.0125, 1.12], [0.024, -0.024, 0.0058, 1.0]];
+    const hlGeo = new THREE.BufferGeometry(), NSEG = this.hlSeg, hlDefs = [[-0.021, 0.026, 0.0205, 1.10], [0.025, -0.025, 0.0092, 1.0]];
     hlGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hlDefs.length * (NSEG + 1) * 3), 3));
     { const idx = []; hlDefs.forEach((_, k) => { const o = k * (NSEG + 1); for (let i = 0; i < NSEG; i++) idx.push(o, o + 1 + i, o + 1 + ((i + 1) % NSEG)); }); hlGeo.setIndex(idx); }
     const hl = new THREE.Mesh(hlGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
@@ -64,13 +69,17 @@ export class FaceRig {
     const setHl = (k) => { const P = hlGeo.attributes.position; hlDefs.forEach(([cx, cy, r, sy], d) => { const o = d * (NSEG + 1); const put = (n, x, y) => P.setXYZ(o + n, x, y, ellPoint(x, y, 1.0) + 0.0025); put(0, cx, cy); for (let i = 0; i < NSEG; i++) { const a = i / NSEG * Math.PI * 2; put(1 + i, cx + Math.cos(a) * r * k, cy + Math.sin(a) * r * k * sy); } }); P.needsUpdate = true; };
     setHl(1); hl.userData.setHl = setHl;
     // 眼皮殼：半球殼（極點方向決定蓋住多少）。外層群組負責橢球縮放，內層負責旋轉。
-    const lidS = new THREE.Group(); lidS.scale.set(EYE.a * 1.07, EYE.b * 1.07, EYE.c * 1.11); grp.add(lidS);
-    const lid = new THREE.Mesh(shared('lid', () => new THREE.SphereGeometry(1, 30, 14, 0, Math.PI * 2, 0, Math.PI / 2)), lidMat); lidS.add(lid);
+    const lidS = new THREE.Group(); lidS.scale.set(EYE.a * 1.07, EYE.b * 1.07, EYE.c * 1.12); grp.add(lidS);
+    const lid = new THREE.Mesh(shared('lid', () => new THREE.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2)), lidMat); lidS.add(lid);
     // 笑眼 ∩、睡眼 ∪ 的弧線（畫在眼皮殼上）
     const arc = (sgn) => { const key = 'arc' + sgn; const pts = []; const w = 0.052, h = 0.026 * sgn; for (let i = 0; i <= 18; i++) { const u = i / 18 * 2 - 1, x = u * w, y = h * (1 - u * u) - 0.004 * sgn; pts.push(new V3(x, y, ellPoint(x, y, 1.115) + 0.0015)); }
       const m = new THREE.Mesh(shared(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 22, 0.0046, 6)), (SHARED.arcMat ||= new THREE.MeshBasicMaterial({ color: 0x3a2622 }))); m.visible = false; grp.add(m); return m; };
     const arcUp = arc(1), arcDn = arc(-1);
-    return { side, grp, ball, lid, hl, arcUp, arcDn, q, n, hlK: 1 };
+    // 眼皮邊緣的睫毛線（半閉、生氣、疑惑時看得到眼皮的邊）＋全閉時的睫毛弧（比 ∪ 眼更淺、兩端微上揚，像眨眼的睫毛線）
+    const rim = new THREE.Mesh(shared('rim', () => new THREE.TorusGeometry(1, 0.034, 6, 56).rotateX(Math.PI / 2)), (SHARED.arcMat ||= new THREE.MeshBasicMaterial({ color: 0x3a2622 }))); rim.visible = false; lid.add(rim);
+    const lash = (() => { const pts = []; const w = 0.056; for (let i = 0; i <= 20; i++) { const u = i / 20 * 2 - 1, x = u * w, y = -0.011 * (1 - u * u) + 0.004 * u * u; pts.push(new V3(x, y, ellPoint(x, y, 1.115) + 0.0016)); }
+      const m = new THREE.Mesh(shared('lash', () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0042, 6)), SHARED.arcMat); m.visible = false; grp.add(m); return m; })();
+    return { side, grp, ball, lid, hl, arcUp, arcDn, rim, lash, q, n, hlK: 1 };
   }
   // ── 臉貼片（Canvas 貼圖）
   initDecal(W) {
@@ -86,7 +95,7 @@ export class FaceRig {
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
     // 腮紅
     for (const sd of ['L', 'R']) {
-      const a = A['cheek.' + sd].p, [x, y] = this.px(a[0], a[1]); const rw = 0.056 * K * (1 + c.cheek * 0.2), rh = 0.036 * K * (1 + c.cheek * 0.25);
+      const a = A['cheek.' + sd].p, [x, y] = this.px(a[0], a[1]); const rw = 0.064 * K * (1 + c.cheek * 0.2), rh = 0.040 * K * (1 + c.cheek * 0.25);
       const al = Math.min(0.85, 0.6 * c.blush); if (al < 0.02) continue;
       g.save(); g.translate(x, y); g.scale(1, rh / rw); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rw);
       gr.addColorStop(0, `rgba(255,128,140,${al})`); gr.addColorStop(0.55, `rgba(255,128,140,${al * 0.55})`); gr.addColorStop(1, 'rgba(255,128,140,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rw, 0, 7); g.fill(); g.restore();
@@ -101,8 +110,8 @@ export class FaceRig {
       g.beginPath(); g.moveTo(-0.026 * K, 0); g.quadraticCurveTo(0, -0.004 * K, 0.026 * K, 0); g.stroke(); g.restore();
     }
     // 鼻
-    { const a = A.nose.p, [x, y] = this.px(a[0], a[1]); g.fillStyle = col; g.beginPath(); g.ellipse(x, y, 0.012 * K, 0.0085 * K, 0, 0, 7); g.fill();
-      g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(x - 0.003 * K, y - 0.0025 * K, 0.0028 * K, 0.0016 * K, 0, 0, 7); g.fill(); }
+    { const a = A.nose.p, [x, y] = this.px(a[0], a[1]); g.fillStyle = col; g.beginPath(); g.ellipse(x, y, 0.0165 * K, 0.0115 * K, 0, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(x - 0.004 * K, y - 0.003 * K, 0.0038 * K, 0.0022 * K, 0, 0, 7); g.fill(); }
     // 眼淚
     if (c.tear > 0.04) for (const sd of ['L', 'R']) {
       const a = A['eye.' + sd].p, s = sd === 'L' ? 1 : -1, [x, y] = this.px(a[0] + s * 0.03, a[1] - 0.112 - Math.sin(this.time * 3 + s) * 0.002), k = (0.0085 + c.tear * 0.003) * K;
@@ -110,12 +119,12 @@ export class FaceRig {
       g.fillStyle = '#9fd8ff'; g.fill(); g.globalAlpha *= 0.8; g.fillStyle = '#fff'; g.beginPath(); g.arc(-k * 0.28, k * 0.1, k * 0.24, 0, 7); g.fill(); g.restore();
     }
     // 嘴
-    { const a = A.mouth.p, [mx0, my] = this.px(a[0], a[1]); const mo = Math.max(0, c.mOpen + this.talk), w = 0.037 * K * c.mW * (1 - 0.35 * Math.min(1, c.mRound) * Math.min(1, mo * 2)), mx = mx0 + c.smirk * 0.007 * K;
-      g.save(); g.translate(mx, my); g.rotate(-c.smirk * 0.2); g.strokeStyle = col; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 0.0066 * K;
+    { const a = A.mouth.p, [mx0, my] = this.px(a[0], a[1]); const mo = Math.max(0, c.mOpen + this.talk), w = 0.046 * K * c.mW * (1 - 0.35 * Math.min(1, c.mRound) * Math.min(1, mo * 2)), mx = mx0 + c.smirk * 0.007 * K;
+      g.save(); g.translate(mx, my); g.rotate(-c.smirk * 0.2); g.strokeStyle = col; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 0.0082 * K;
       if (mo > 0.06) {
-        const Hh = mo * 0.0285 * K * 1.1, cc = (c.mCurve + 1) / 2, r = Math.min(1, c.mRound), tY = -Hh * ((1 - cc) * (1 - r) + 0.5 * r), bY = Hh * (cc * (1 - r) + 0.5 * r);
+        const Hh = mo * 0.036 * K * 1.1, cc = (c.mCurve + 1) / 2, r = Math.min(1, c.mRound), tY = -Hh * ((1 - cc) * (1 - r) + 0.5 * r), bY = Hh * (cc * (1 - r) + 0.5 * r);
         g.beginPath(); g.moveTo(-w, 0); g.bezierCurveTo(-w, tY * 1.33, w, tY * 1.33, w, 0); g.bezierCurveTo(w, bY * 1.33, -w, bY * 1.33, -w, 0); g.closePath();
-        g.fillStyle = '#8a3344'; g.fill(); if (r < 0.5) { g.save(); g.clip(); g.fillStyle = '#ff8fa0'; g.beginPath(); g.ellipse(0, bY + Hh * 0.3, w * 0.62, Hh * 0.62, 0, 0, 7); g.fill(); g.restore(); } g.lineWidth = 0.0055 * K; g.stroke();
+        g.fillStyle = '#8a3344'; g.fill(); if (r < 0.5) { g.save(); g.clip(); g.fillStyle = '#ff8fa0'; g.beginPath(); g.ellipse(0, bY + Hh * 0.3, w * 0.62, Hh * 0.62, 0, 0, 7); g.fill(); g.restore(); } g.lineWidth = 0.007 * K; g.stroke();
       } else {
         const dd = c.mCurve * w * 0.75; g.beginPath();
         if (c.mCurve > 0 && c.smirk < 0.3) { const k = Math.min(1, c.mCurve * 1.6); g.moveTo(-w, -dd * 0.2); g.quadraticCurveTo(-w * 0.5, dd * (0.55 + 0.5 * k), 0, -dd * 0.1 * k); g.quadraticCurveTo(w * 0.5, dd * (0.55 + 0.5 * k), w, -dd * 0.2); }
@@ -157,7 +166,8 @@ export class FaceRig {
       const beta = (8 + 134 * Math.pow(open, 0.85)) * D2R, roll = c.lidA * 0.5 * (s > 0 ? -1 : 1) * (c.lidT > 0.02 ? 1 : 0) * Math.min(1, c.lidT * 5);
       const pole = new V3(0, Math.sin(beta), Math.cos(beta)).applyAxisAngle(new V3(0, 0, 1), roll);
       e.lid.quaternion.setFromUnitVectors(new V3(0, 1, 0), pole);
-      e.lid.visible = open < 0.97;
+      e.lid.visible = open < 0.97; e.rim.visible = open > 0.06 && open < 0.95;
+      if (e.lid.material.userData.surfN) e.lid.material.userData.surfN.copy(e.n).transformDirection(this.holder.matrixWorld);
       // 視線：眼球轉（瞳孔在動）。眼睛朝向角色的左為 +yaw（繞局部 Y 轉）
       e.ball.rotation.set(-gp, gy * (1), 0, 'YXZ');
       const es = clamp(this.eyeScale * c.eyeS * (c.asym ? (s > 0 ? 1.0 : 0.88) : 1), 0.5, 1.4);
@@ -167,6 +177,7 @@ export class FaceRig {
       // 笑眼／睡眼弧
       const closed = clamp(1 - open / 0.35, 0, 1), up = clamp(c.arc, 0, 1) * closed, dn = clamp(-c.arc, 0, 1) * closed;
       e.arcUp.visible = up > 0.05; e.arcUp.scale.setScalar(0.6 + 0.4 * up); e.arcDn.visible = dn > 0.05; e.arcDn.scale.setScalar(0.6 + 0.4 * dn);
+      e.lash.visible = open < 0.12 && !e.arcUp.visible && !e.arcDn.visible;
       // 形態鍵造成的身體變形：位置跟著走（只位移，不縮放）
       const b = e.grp.userData.base, ms2 = ms; e.grp.position.set(b.x * ms2.x, b.y * ms2.y, cz + (b.z - cz) * ms2.z);
     }
