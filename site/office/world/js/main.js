@@ -15,7 +15,7 @@ const J = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.statu
 async function loadCharacterModule() { const p = qs.get('char') || '../../play/office_character.js'; const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
 
 (async function boot() {
-  const [layout, org, demo, meet, roster, charMod] = await Promise.all([J('world/data/layout.json'), J('world/data/org.json'), J('world/data/demo.json'), J('world/data/meeting_demo.json'), J('world/data/roster.json'), loadCharacterModule()]);
+  const [layout, org, demo, meet, roster, charMod] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule()]);
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality), { renderer, scene, camera } = W;

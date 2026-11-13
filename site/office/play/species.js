@@ -238,7 +238,7 @@ export const SPECIES = {
       const bk = M(c, { color: p.beak, top: 0xffd890, y0: -0.05, y1: 0.05, sss: 0xff7020, sssAmt: 0.35, rough: 0.4 });
       c.beak = put(c, blobGeo(v => { const t = (v.z + 1) / 2; v.set(v.x * 0.085 * (1 - 0.55 * t * t), v.y * 0.04 * (1 - 0.3 * t), v.z * 0.065); }, 32, 24), bk, 0, 0.395, 0.325);
       // 冠羽：往後甩的大中小三片
-      const cm = softMat({ color: cr, top: cr, sss: cr, sssAmt: 0.3, rough: 0.5, y0: -1, y1: 1 }, c.sh), tm = MR(c, { ...o, y0: -1, y1: 1 });
+      const cm = softMat({ color: cr, top: cr, sss: cr, sssAmt: 0.3, rough: 0.5, y0: -1, y1: 1 }, c.sh), tm = MR(c, { ...o, top: p.body, y0: -1, y1: 1 });
       const tm2 = softMat({ ...o, color: p.body, top: p.body, y0: -1, y1: 1, rough: 0.55 }, c.sh), g = piv(c, 0, 0.84, -0.04, { k: 120, c: 6, g: 0.03 });
       [[0, 0.27, 0.065, -0.6, 0], [0.065, 0.2, 0.056, -1.0, 0.6], [-0.065, 0.15, 0.05, -0.9, -0.6]].forEach(([x, L, r0, rx, rz]) => { const f = put(c, taperGeo({ q: 0.4, p: 1.1, cap: 0.4, flare: 1.4, fl: 0.2 }), cm, x, -0.02, -0.01, r0, L, r0 * 0.4, g); f.rotation.set(rx, 0, rz); });
       // 尾羽：三片扇形上翹，從屁股兩側都看得到
