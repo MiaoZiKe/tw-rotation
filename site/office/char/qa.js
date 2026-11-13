@@ -151,5 +151,84 @@ export function makeQA(CH) {
     out.afterRise = c.state; out.riseT = tUp; out.afterY = c.body.y; out.afterDist = Math.hypot(c.body.x - box.cx, c.body.z - box.cz); return out;
   }
   // 走過去位置真的變、跳躍回到地面、摸頭表情等（給 uitest 用的小工具）
-  return { prepare, run, until, jumpApex, footLock, strideTest, lowest, interruptFrom, storm, sitContact, restDiff, finite };
+
+  // ══ 第四階段 ══
+  /** 多組隨機初速度的拋擲：每一幀檢查有限值、速度上限、彈跳次數、穿地（蒙皮後最低點）、穿方塊（水平嵌入深度），並量到停下回 Idle 的時間。
+   *  每 17 次插入一個 NaN／Infinity 速度，驗證消毒（release 把非有限值當 0）。 */
+  function throwStorm(n = 40, seed = 11, fps = 60) {
+    const R = mulberry(seed), c = prepare(), dt = 1 / fps, out = { n, nonFinite: 0, maxSpeed: 0, maxBounces: 0, maxSettle: 0, minBelow: 1e9, maxPen: 0, notIdle: 0, conflicts: 0, tumbles: 0, nanCases: 0, endStates: {} };
+    for (let k = 0; k < n; k++) {
+      c.reset((R() - 0.5) * 3.4, (R() - 0.5) * 3.4, R() * 6.28); c.bus.conflicts.length = 0; run(c, fps, 0.2);
+      const sp = R() < 0.25 ? R() * 3 : 3 + R() * 14, a = R() * 6.2832; let vx = Math.cos(a) * sp, vz = Math.sin(a) * sp, vy = -3 + R() * 12;
+      if (k % 17 === 16) { vx = NaN; vy = Infinity; out.nanCases++; }
+      let bounces = 0; c.onEvent = (e) => { if (e.type === 'bounce') bounces++; };
+      c.throwAt(vx, vy, vz); if (c.state === 'tumble') out.tumbles++;
+      let settled = -1, below = 1e9;
+      for (let i = 0; i < 16 * fps; i++) {
+        c.update(dt); const b = c.body;
+        if (!finite(c)) { out.nonFinite++; break; }
+        out.maxSpeed = Math.max(out.maxSpeed, Math.hypot(b.vx, b.vy, b.vz));
+        const lo = c.lowestBody(false) - b.supportY; if (lo < below) { below = lo; if (lo < (out.worst?.lo ?? 1e9)) out.worst = { k, lo: +lo.toFixed(4), state: c.state, t: +(i * dt).toFixed(3), vy: +b.vy.toFixed(2), y: +b.y.toFixed(3), sup: b.supportY, dyx: +(c.dyx || 0).toFixed(3), pass: c.debug.lastPen }; }
+        for (const bx of c.world.boxes) { if (b.y > bx.y1 - c.shape.stepH - 0.01) continue; const dx = Math.max(Math.abs(b.x - bx.cx) - bx.hx, 0), dz = Math.max(Math.abs(b.z - bx.cz) - bx.hz, 0); out.maxPen = Math.max(out.maxPen, c.shape.R - Math.hypot(dx, dz)); }
+        if (c.state === 'idle' && c.stateT > 0.3) { settled = i * dt; break; }
+      }
+      c.onEvent = null; out.maxBounces = Math.max(out.maxBounces, bounces); out.minBelow = Math.min(out.minBelow, below); out.conflicts += c.bus.conflicts.length;
+      if (settled < 0) out.notIdle++; else out.maxSettle = Math.max(out.maxSettle, settled); out.endStates[c.state] = (out.endStates[c.state] || 0) + 1;
+    }
+    return out;
+  }
+  /** 抓起懸吊：抓點（身體上離 pivot 最近的頂點，蒙皮＋形態鍵後的世界位置）相對「目標位置」的漂移（擺盪中不得離開抓點）。 */
+  function heldDrift(fps = 60, yaw = 0.6) {
+    const c = prepare({ x: -0.3, z: 0.3, yaw: yaw }), ch = c.ch, bm = ch.body, g = bm.geometry, p = g.attributes.position, M = g.morphAttributes.position, w = bm.morphTargetInfluences, T = new V();
+    let bi = 0, bd = 1e9; ch.resetPose(); for (let i = 0; i < p.count; i++) { const d = (p.getX(i) - 0.1) ** 2 + (p.getY(i) - 0.42) ** 2 + (p.getZ(i) - 0.22) ** 2; if (d < bd) { bd = d; bi = i; } }
+    const piv = { x: p.getX(bi), y: p.getY(bi), z: p.getZ(bi) };   // 抓點＝身體表面上的一個真實頂點（實際使用時抓點也是射線打到的表面點）
+    const world = () => { ch.model.updateMatrixWorld(true); bm.skeleton.update(); T.set(p.getX(bi), p.getY(bi), p.getZ(bi)); bm.applyBoneTransform(bi, T); return T.applyMatrix4(bm.matrixWorld).clone(); };   // 不含形態鍵：拉長形態鍵會把頂點沿身體推開幾公分，再被擺盪轉動，那是卡通變形，不是抓點漂移
+    const path = (t) => ({ x: -0.3 + 0.8 * Math.sin(t * 3.0), y: Math.min(1, t / 0.4) * 1.0, z: 0.3 + 0.25 * Math.sin(t * 2.0) });
+    c.grab(-0.3, 0, 0.3, piv); let maxSwing = 0, d0 = null, dmin = [1e9, 1e9, 1e9], dmax = [-1e9, -1e9, -1e9], n = 0;
+    run(c, fps, 2.4, (t) => { const q = path(t); c.grab(q.x, q.y, q.z, piv); }, (t) => {
+      maxSwing = Math.max(maxSwing, Math.abs(c.hang.z), Math.abs(c.hang.x)); if (t < 0.6) return;
+      const q = path(t), cy = Math.cos(c.body.yaw), sy = Math.sin(c.body.yaw), rp = c.ch.root.position, o = { x: rp.x + piv.x * cy + piv.z * sy, y: rp.y + piv.y, z: rp.z - piv.x * sy + piv.z * cy }, wp = world();
+      const d = [wp.x - o.x, wp.y - o.y, wp.z - o.z]; for (let k = 0; k < 3; k++) { dmin[k] = Math.min(dmin[k], d[k]); dmax[k] = Math.max(dmax[k], d[k]); } n++;
+    });
+    const r = c.release(0, 0, 0); run(c, fps, 6, null);
+    return { maxSwing, spread: Math.max(dmax[0] - dmin[0], dmax[1] - dmin[1], dmax[2] - dmin[2]), axes: [dmax[0] - dmin[0], dmax[1] - dmin[1], dmax[2] - dmin[2]].map(v => +v.toFixed(3)), n, released: r, endState: c.state, finite: finite(c) };
+  }
+  /** 睡覺：躺下程度、呼吸週期（相對待機）、Zzz 數量、叫醒起身。 */
+  function sleepInfo(fps = 60) {
+    const c = prepare({ x: 0, z: 0.5 }), dt = 1 / fps, fx = CH.field?.fx, breathPeriod = (secs) => { const xs = []; run(c, fps, secs, null, () => { xs.push(c.ch.wm.breath || 0); }); const m = xs.reduce((a, b) => a + b, 0) / xs.length, cr = []; for (let i = 1; i < xs.length; i++) if (xs[i - 1] < m && xs[i] >= m) cr.push(i * dt); return cr.length >= 2 ? (cr[cr.length - 1] - cr[0]) / (cr.length - 1) : 0; };
+    c.life = true; const idleP = breathPeriod(14);
+    c.sleep(); run(c, fps, 2.0); const sq = c.ch.wm.squash || 0, plump = c.ch.wm.plump || 0, face = c.expr;
+    const sleepP = breathPeriod(16); let zmax = 0; for (let i = 0; i < 4 * fps; i++) { c.update(dt); fx?.update(dt, c); zmax = Math.max(zmax, fx ? fx.active : 0); }
+    c.wake(); const st1 = c.state; let ti = until(c, fps, 3, () => c.state === 'idle'); run(c, fps, 4, null, () => { fx?.update(dt, c); }); const zAfter = fx ? fx.active : 0; c.life = false; run(c, fps, 3.5); const rd = restDiff(c);
+    return { idleP, sleepP, ratio: sleepP / (idleP || 1), squash: sq, plump, face, zmax, zAfter, wakeState: st1, idleAfter: c.state, expr: c.expr, ...rd };
+  }
+  /** 情緒動作五段：依序經過 pre → main → settle → out，結束後骨頭與形態鍵回到靜止。 */
+  async function emoSegs(name, fps = 60) {
+    const { CLIPS } = await import('./actions.js'), c = prepare({ x: 0, z: 0.5 }), dt = 1 / fps; c.life = false; const defined = CLIPS[name].segs.map(s => s.n), seen = []; let t0 = -1, tStart = -1;
+    c.trigger(name); const t00 = c.time; let guardN = 0;
+    while (guardN++ < 10 * fps) { c.update(dt); if (c.overlay) { if (tStart < 0) tStart = c.time - t00; const sg = c.overlay.player.seg; if (seen[seen.length - 1] !== sg) seen.push(sg); } else if (tStart >= 0) break; }
+    const tEnd = c.time - t00; run(c, fps, 3.2); const rd = restDiff(c);
+    return { name, defined, seen, delay: tStart, dur: tEnd - tStart, state: c.state, overlay: !!c.overlay, expr: c.expr, finite: finite(c), ...rd };
+  }
+  /** 動作切換：連續切換多種動作，位置只能被物理推動（每幀位移 ≤ 速度×dt），不能被「重設」。 */
+  function switchSeq(fps = 60) {
+    const c = prepare({ x: -0.6, z: 0.8, yaw: 0.3 }); let last = c.ch.root.position.clone(), maxJump = 0, maxV = 0, worst = null, pv = 0; const dt = 1 / fps;
+    const go = (secs, fn) => run(c, fps, secs, fn, () => {
+      const p = c.ch.root.position, d = p.distanceTo(last); last = p.clone();
+      const v0 = Math.hypot(c.body.vx, c.body.vy, c.body.vz), v = Math.max(v0, pv); pv = v0; maxV = Math.max(maxV, v0);   // 落地那一幀速度已歸零，但位移是用落地前的速度走的
+      if (c.state !== 'held' && d - v * dt * 1.5 - 0.004 > maxJump) { maxJump = d - v * dt * 1.5 - 0.004; worst = { state: c.state, sub: c.sit?.sub, t: +c.time.toFixed(2), d: +d.toFixed(3), v: +v.toFixed(2) }; }   // 被抓著時身體本來就由指標拉走，不算「意外位移」
+    });
+    go(0.3); go(1.0, () => c.setMove(0, -1, 1, false)); c.trigger('happy'); go(0.5); c.setMove(0, 0, 0); c.jump(); go(0.2); c.trigger('hit'); go(1.5);
+    c.sleep(); go(1.2); c.walkTo(0.2, 0.6, false); go(0.5); c.interrupt(); go(2); c.sitOn('stool'); go(1.5); c.interrupt(); go(0.5); c.interrupt(); go(2.5);
+    c.grab(c.body.x, 0.9, c.body.z); go(0.5); c.release(0, 0, 0); go(2); c.trigger('sad'); go(0.4); c.walkTo(-0.4, 0.2, true); go(1.5); c.interrupt(); go(3);
+    return { maxJumpOver: maxJump, worst, maxV, state: c.state, finite: finite(c), conflicts: c.bus.conflicts.length, rejects: c.rejects.length };
+  }
+  /** GPU 資源：幾何、貼圖、著色器程式、場景物件數（需要先 render 一次才會上傳） */
+  function resources() { CH.renderer.render(CH.scene, CH.camera); const i = CH.renderer.info; let meshes = 0, lights = 0; CH.scene.traverse(o => { if (o.isMesh || o.isSkinnedMesh || o.isSprite || o.isLine) meshes++; if (o.isLight) lights++; }); return { geo: i.memory.geometries, tex: i.memory.textures, programs: (i.programs || []).length, meshes, lights }; }
+  /** 連續重建角色（輪流切換 LOD），每輪回報資源；結束回報控制器狀態是否乾淨 */
+  async function reloadCycle(n = 9) {
+    const rows = [], oldRoots = []; for (let k = 0; k < n; k++) { oldRoots.push(CH.S.ch.root); CH.S.lod = k % 3; await CH.buildNew(); const r = resources(); rows.push({ k, lod: k % 3, ...r }); }
+    const c = cc(); return { rows, detached: oldRoots.slice(0, -1).every(r => r.parent === null), ctlOk: c && c.ch === CH.S.ch, state: c?.state, overlay: !!c?.overlay, pend: !!c?.pend, held: !!c?.held && c.state === 'held', intent: c?.intent.mag };
+  }
+  return { prepare, run, until, jumpApex, footLock, strideTest, lowest, interruptFrom, storm, sitContact, restDiff, finite, throwStorm, heldDrift, sleepInfo, emoSegs, switchSeq, resources, reloadCycle };
 }

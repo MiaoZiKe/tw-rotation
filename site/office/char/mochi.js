@@ -115,6 +115,7 @@ export class MochiChar {
     this.model.updateMatrixWorld(true);
   }
   dispose() {
+    this.model.traverse(n => { if (n.isSkinnedMesh && n.skeleton) n.skeleton.dispose(); });   // 骨頭貼圖（每隻角色自己的，不釋放會一直累積）
     this.mat.dispose(); this.lidMat.L.dispose(); this.lidMat.R.dispose(); if (this.face) { this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh && !n.geometry.userData.shared) n.geometry.dispose(); }); this.decal.material.dispose(); }
     this.root.removeFromParent();
   }

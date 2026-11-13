@@ -397,7 +397,9 @@ export class CharController {
     // 摸頭
     this.petLayer(dt);
     // 翻滾旋轉（視覺）
-    if (this.state === 'tumble') { bus.add('root.rx', this.pitchA || 0, 'tumble'); bus.add('root.rz', this.rollA || 0, 'tumble'); }
+    if (this.state === 'tumble') {   // 繞身體中心（不是腳底）翻滾：旋轉後把中心補回原位，翻滾才不會整個陷進地面
+      const px = this.pitchA || 0, rz = this.rollA || 0, R = _hq.setFromEuler(_he.set(px, 0, rz, 'XYZ')), o = _hv.set(0, 0.3, 0).applyQuaternion(R);
+      bus.add('root.rx', px, 'tumble'); bus.add('root.rz', rz, 'tumble'); bus.add('root.dx', -o.x, 'tumble'); bus.add('root.dy', 0.3 - o.y, 'tumble'); bus.add('root.dz', -o.z, 'tumble'); }
     // 橫向膨脹限制：不穿牆、不穿家具（規則 10）
     this.limitSquash();
     for (const m of MORPHS) { const i = IDX['morph.' + m]; a[i] = clamp(a[i], 0, 1); }
@@ -516,11 +518,11 @@ export class CharController {
     const big = this.state === 'tumble' || Math.abs(p[IDX['root.rx']]) + Math.abs(p[IDX['root.rz']]) + Math.abs(p[IDX['head.rx']]) + Math.abs(p[IDX['spine.rx']]) + Math.abs(p[IDX['pelvis.rx']]) > 0.15, sup = this.body.supportY;
     const snap = this.state === 'sit' && ['settle', 'seated', 'risePrep'].includes(this.sit?.sub);
     let dyx = 0, pen = 0;
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < 4; pass++) {
       const low = this.lowestBody(big && !snap); const e = sup + (snap ? 0.003 : 0) - low;   // 坐著留 3 mm 縫隙，避免座面與圓肚皮共平面的 z-fighting（仍遠小於 1 cm）
  if (pass === 0) pen = e;
       if (snap ? Math.abs(e) < 0.0005 : e < 0.0008) break;
-      dyx = clamp(dyx + e, snap ? -0.08 : 0, 0.5); this.applyPose(p, dyx); root.updateMatrixWorld(true); this.feet.apply(alpha);
+      dyx = clamp(dyx + e, snap ? -0.08 : 0, 0.8); this.applyPose(p, dyx); root.updateMatrixWorld(true); this.feet.apply(alpha);
       if (pass === 0 && !snap) { dbg.proj++; }
     }
     if (dyx > 0 && !snap) dbg.projMax = Math.max(dbg.projMax, dyx); this.dyx = dyx;
