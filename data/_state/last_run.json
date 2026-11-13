@@ -173,19 +173,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 892,
-      "seconds": 0.1
+      "seconds": 0.2
     },
     "inst_daily": {
-      "stored": 192
+      "stored": 168
     },
     "institutional_codes": {
-      "requested": 376,
-      "returned": 192
+      "requested": 184,
+      "returned": 168
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 192,
-      "seconds": 52.8
+      "rows": 168,
+      "seconds": 85.7
     },
     "inst_flags": {
       "rebuild": true,
@@ -207,7 +207,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-13",
-        "rows": 2048,
+        "rows": 2216,
         "median": 2233.5,
         "status": "ok",
         "reason": null
@@ -255,10 +255,10 @@
   "warn": [
     "margin_total"
   ],
-  "started_at": "2026-11-13T11:48:15.117805+00:00",
-  "finished_at": "2026-11-13T11:49:24.639267+00:00",
-  "duration_seconds": 69.5,
+  "started_at": "2026-11-13T12:18:12.457466+00:00",
+  "finished_at": "2026-11-13T12:20:15.178824+00:00",
+  "duration_seconds": 122.7,
   "trade_date": "2026-11-13",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 319
 }
