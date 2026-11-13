@@ -234,6 +234,8 @@ export function createPilot(W, X) {
     else if (jumpReq && !ch.extFall && ch.mode === 'normal') { ch.jumpPrep = PREP; prep = PREP; ch.sqV -= 3; }
     jumpReq = false;
     if (P.talking) { c.drive(0, 0); P.speedNow = 0; return; }
+    // 萬一站的格子本身是被擋住的（例如剛從椅子起身、被別的事推了一下）：先自己走回最近的空地，不然會困在家具裡或穿牆
+    if (!free(p.x, p.z)) { const q = W.nav.nearestFree(p.x, p.z, 8), dx = q ? q.x - p.x : 0, dz = q ? q.z - p.z : 0, l = Math.hypot(dx, dz); if (q && l > 0.03) { c.drive(dx / l * 1.3, dz / l * 1.3, dx / l, dz / l); P.speedNow = 1.3; return; } }
     const inp = P.input(); let vx = 0, vz = 0;
     if (inp) {
       P.run = runLatched || (inp.joyOnly && inp.mag >= 0.9);

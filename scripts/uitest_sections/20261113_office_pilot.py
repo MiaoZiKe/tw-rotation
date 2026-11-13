@@ -305,12 +305,12 @@ def t_desktop(b, base):
         ok("站很久之後按方向鍵仍會移動", _m.hypot(*d_after) > 0.5, d_after)
 
         # ───────── 跳躍 ─────────
-        pg.wait_for_timeout(500)
+        reset("f")
+        pg.evaluate("() => { __world.speed = 1; }")      # 一次跳躍只有約 0.6 模擬秒，8 倍速時整段都落在同一幀裡，逐幀取樣看不到高度
         pg.evaluate("() => { const ch = __world.chars.get('ceo').inner, o = ch.onLand.bind(ch); window.__land = null; ch.onLand = (imp, sf) => { o(imp, sf); window.__land = { imp, sqV: ch.sqV }; }; }")
         pg.evaluate("() => { window.__ys = []; const f = () => { const c = __world.chars.get('ceo'); __ys.push([c.inner.pos.y, c.inner.sq, __world.time]); if (__ys.length < 600) requestAnimationFrame(f); }; f(); }")
         pg.keyboard.press("Space")
         pg.wait_for_timeout(300)
-        _shot(pg, "_jump_mid.png")
         wait_until(pg, "() => __land || __ys.length >= 599", 90000)
         pg.wait_for_timeout(1500)
         pg.evaluate("() => { __world.speed = 8; }")
@@ -352,12 +352,12 @@ def t_desktop(b, base):
           const want = Math.atan2(po.x - pa.x, po.z - pa.z); return Math.abs(((a.heading - want + Math.PI) % (2 * Math.PI)) - Math.PI) < 0.5; }""", oid))
         ok("按 E：對方的資訊卡打開（顯示對方名字）", pg.evaluate("(id) => { const W = __world, o = W.chars.get(id); return !document.getElementById('card').hidden && document.querySelector('#card .hd b').textContent.includes(o.spec.nick); }", oid))
         ok("按 E：對方停下原本動作並回話（對方也出現泡泡）", wait_until(pg, f"() => {{ const o = __world.chars.get('{oid}'); return o.speech && o.speech.text.length > 0; }}", 15000))
-        _shot(pg, "溝通對話.png")
         bub = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).length")
-        ok("對方回話的當下，兩個人的對話泡泡同時顯示在畫面上（= 2 個）", bub == 2, bub)
-        ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR])
-        ok("版面：資訊卡、提示卡、鏡頭提示、工具列不重疊（溝通中）", not ov, ov)
         bubs = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).map(b => { const r = b.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
+        ovb = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR])
+        _shot(pg, "溝通對話.png")
+        ok("對方回話的當下，兩個人的對話泡泡同時顯示在畫面上（= 2 個）", bub == 2, bub)
+        ok("版面：資訊卡、提示卡、鏡頭提示、工具列不重疊（溝通中）", not ovb, ovb)
         okb = all(not _overlap(a, c2) for i, a in enumerate(bubs) for c2 in bubs[i + 1:])
         ok("兩個對話泡泡彼此不重疊", okb, bubs)
         pc = [_rect(pg, s) for s in (".pt-tips", "#card")]

@@ -1,0 +1,5 @@
+{
+  "name": "ai-office-bridge",
+  "version": "0.0.1",
+  "description": "AI Office 接入元件雛形：掛鉤把工作階段／子 Agent 事件（去識別後）送到 AI Office 收件端；可選擇開啟網站對話橋接。獨立第三方，與 Anthropic 無隸屬關係。"
+}
