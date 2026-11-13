@@ -18,6 +18,8 @@ function chair(P, x, z, ang, color, big = false) {
   P.cyl(color, 0.27 * s, 0.11, x, 0.31, z, 0.045);
   P.box(shade(color, -0.08), 0.52 * s, big ? 0.62 : 0.44, 0.11, x + sx * 0.27 * s, 0.4, z + cz * 0.27 * s, 0.05, ang);
 }
+// 花盆顏色隨部門設備等級：L1 灰、L2 原色、L3 現況、L4 部門色、L5 金
+function potColor(lv, st, ctx, dflt) { if (lv === 3) return dflt; if (lv === 1) return PAL.grey; if (lv === 2) return PAL.pot; if (lv === 5) return '#ffcf6b'; return (st && st.dept && ctx.deptColor(st.dept)) || PAL.gold; }
 function leaves(P, r, x, y, z, n, spread, size) {
   const cols = [PAL.leaf, PAL.leafDark, PAL.leafLight];
   for (let i = 0; i < n; i++) {
@@ -26,12 +28,24 @@ function leaves(P, r, x, y, z, n, spread, size) {
   }
 }
 
+// ── 績效獎勵：部門設備等級 L1～L5（rewards_design.md 第三節）。只換顏色，並把小零件併進同一個網格，不增加繪製次數。
+// L3 ＝ 原本的樣子（沒有等級資料或沒有這個部門時一律等同 L3）。ctx.style(f) 由 rewards.js 提供，回傳 { lv, dept, flag } 或 null。
+export const LVL_GOLD = '#e8c56a', LVL_SILVER = '#dfe6ef';
+const lvOf = (ctx, f) => { const st = ctx && ctx.style ? ctx.style(f) : null; return { st, lv: st ? Math.max(1, Math.min(5, st.lv | 0)) : 3 }; };
+const DESK_TOP = ['#dfe3e8', '#f3e2c8', PAL.wood, '#b98255', '#8a5a3c'];
+const PLATE = ['#d8cbbd', '#e9c79c', PAL.white, '#cfd8e6', '#ffcf6b'];
+
 export const BUILD = {
   workstation(f, ctx) {
-    const P = new Part(), r = rng(f.id + (f.owner || '')), col = ctx.deptColor(f.dept) || PAL.sky, soft = shade(col, 0.45);
-    P.slab(PAL.wood, 1.5, 0.74, 0.07, 0, 0.6, 0, 0.14);
-    P.box(PAL.white, 0.08, 0.6, 0.6, -0.66, 0, 0, 0.035); P.box(PAL.white, 0.08, 0.6, 0.6, 0.66, 0, 0, 0.035);
+    const { lv } = lvOf(ctx, f), P = new Part(), r = rng(f.id + (f.owner || '')), col = ctx.deptColor(f.dept) || PAL.sky;
+    const soft = [PAL.grey, shade(col, 0.7), shade(col, 0.45), shade(col, 0.2), col][lv - 1], sideC = [PAL.grey, PAL.white, PAL.white, shade(col, 0.3), LVL_GOLD][lv - 1];
+    P.slab(DESK_TOP[lv - 1], 1.5, 0.74, 0.07, 0, 0.6, 0, 0.14);
+    P.box(sideC, 0.08, 0.6, 0.6, -0.66, 0, 0, 0.035); P.box(sideC, 0.08, 0.6, 0.6, 0.66, 0, 0, 0.035);
     P.box(soft, 1.26, 0.3, 0.05, 0, 0.26, -0.3, 0.02);
+    if (lv >= 4) {                                               // 進階以上：桌面前緣的部門色（旗艦為金屬）側條＋桌下抽屜櫃（併進同一個網格）
+      P.box(lv === 5 ? LVL_GOLD : col, 1.44, 0.05, 0.03, 0, 0.6, 0.36, 0.01);
+      P.box(lv === 5 ? '#6d4a33' : '#a07149', 0.34, 0.5, 0.5, 0.43, 0.05, -0.04, 0.03);
+    }
     // 螢幕
     P.cyl(PAL.grey, 0.11, 0.025, 0, 0.67, -0.2, 0.01); P.cyl(PAL.grey, 0.03, 0.14, 0, 0.68, -0.2, 0.01);
     P.box(PAL.white, 0.6, 0.4, 0.06, 0, 0.78, -0.2, 0.028);
@@ -44,11 +58,11 @@ export const BUILD = {
     else if (deco === 1) { for (let i = 0; i < 3; i++) P.box(PASTEL[Math.floor(r() * 10)], 0.24 - i * 0.02, 0.04, 0.17, -0.54, 0.67 + i * 0.04, -0.15, 0.012, r() * 0.5 - 0.25); }
     else if (deco === 2) { P.cyl(PAL.yellow, 0.06, 0.02, -0.56, 0.67, -0.2, 0.008); P.cyl(PAL.grey, 0.012, 0.22, -0.56, 0.68, -0.2, 0.004); P.sph(PAL.gold, 0.07, -0.56, 0.93, -0.17, 1, 0.75, 1); }
     else { P.box(PASTEL[Math.floor(r() * 10)], 0.2, 0.16, 0.02, -0.56, 0.67, -0.2, 0.008, 0.3, -0.25); P.sph(PASTEL[Math.floor(r() * 10)], 0.05, -0.36, 0.72, -0.22); }
-    chair(P, 0, 0.78, 0, col);
+    chair(P, 0, 0.78, 0, lv === 1 ? '#c9ced6' : col);
     const extras = [];
     if (f.owner) {
       const m = ctx.member(f.owner);
-      P.box(PAL.white, 0.46, 0.035, 0.1, 0.42, 0.67, -0.02, 0.012);
+      P.box(PLATE[lv - 1], 0.46, 0.035, 0.1, 0.42, 0.67, -0.02, 0.012);
       const tp = textPlane([m ? m.nick : f.owner, m ? m.zh : ''], 0.44, 0.17, { pw: 256, bg: '#fffaf2', border: col, borderW: 8, px: 44, subScale: 0.5, radius: 22 });
       tp.position.set(0.42, 0.775, -0.01); tp.rotation.x = -0.5; extras.push(tp);
     }
@@ -59,8 +73,9 @@ export const BUILD = {
     };
   },
   ceo_desk(f, ctx) {
-    const P = new Part();
-    P.slab(PAL.woodMid, 2.5, 1.05, 0.08, 0, 0.62, 0, 0.2);
+    const { lv } = lvOf(ctx, f), P = new Part();
+    P.slab(['#d5d8dc', '#f0dcc0', PAL.woodMid, '#a97b52', '#7a4f33'][lv - 1], 2.5, 1.05, 0.08, 0, 0.62, 0, 0.2);
+    if (lv >= 4) P.box(lv === 5 ? LVL_GOLD : '#ffb86b', 2.44, 0.05, 0.03, 0, 0.62, 0.52, 0.01);
     P.box(PAL.woodDark, 0.5, 0.62, 0.8, -0.9, 0, 0, 0.06); P.box(PAL.woodDark, 0.5, 0.62, 0.8, 0.9, 0, 0, 0.06);
     P.box(shade(PAL.woodMid, 0.2), 1.9, 0.42, 0.06, 0, 0.16, -0.42, 0.025);
     P.cyl(PAL.grey, 0.13, 0.025, 0, 0.7, -0.22, 0.01); P.cyl(PAL.grey, 0.035, 0.16, 0, 0.71, -0.22, 0.01);
@@ -232,15 +247,15 @@ export const BUILD = {
     P.sph(PAL.pink, 0.05, -0.12, 0.98, 0.37, 1, 1, 0.3); P.sph(PAL.yellow, 0.04, 0.12, 1.06, 0.36, 1, 1, 0.3);
     return { part: P, foot: [{ x: 0, z: 0.05, w: 0.82, d: 0.85 }], spots: [{ name: 'play', x: 0, z: 1.05, face: Math.PI }] };
   },
-  plant(f) {
-    const P = new Part(), r = rng(f.id), alt = r() < 0.5;
-    P.cyl(alt ? PAL.potAlt : PAL.pot, 0.19, 0.3, 0, 0, 0, 0.05, 0.25); P.cyl('#a9825f', 0.2, 0.03, 0, 0.27, 0, 0.01);
+  plant(f, ctx) {
+    const { st, lv } = lvOf(ctx, f), P = new Part(), r = rng(f.id), alt = r() < 0.5;
+    P.cyl(potColor(lv, st, ctx, alt ? PAL.potAlt : PAL.pot), 0.19, 0.3, 0, 0, 0, 0.05, 0.25); P.cyl('#a9825f', 0.2, 0.03, 0, 0.27, 0, 0.01);
     leaves(P, r, 0, 0.5, 0, 6, 0.16, 0.2);
     return { part: P, foot: [{ x: 0, z: 0, r: 0.24 }] };
   },
-  plant_big(f) {
-    const P = new Part(), r = rng(f.id);
-    P.cyl(PAL.potAlt, 0.26, 0.42, 0, 0, 0, 0.07, 0.33); P.cyl('#a9825f', 0.27, 0.03, 0, 0.39, 0, 0.01); P.cyl(PAL.woodDark, 0.05, 0.6, 0, 0.4, 0, 0.01);
+  plant_big(f, ctx) {
+    const { st, lv } = lvOf(ctx, f), P = new Part(), r = rng(f.id);
+    P.cyl(potColor(lv, st, ctx, PAL.potAlt), 0.26, 0.42, 0, 0, 0, 0.07, 0.33); P.cyl('#a9825f', 0.27, 0.03, 0, 0.39, 0, 0.01); P.cyl(PAL.woodDark, 0.05, 0.6, 0, 0.4, 0, 0.01);
     leaves(P, r, 0, 1.1, 0, 8, 0.27, 0.34); P.sph(PAL.leafLight, 0.3, 0, 1.6, 0);
     return { part: P, foot: [{ x: 0, z: 0, r: 0.32 }] };
   },
@@ -265,11 +280,13 @@ export const BUILD = {
     tp.position.set(0, 1.82, 0.05);
     return { part: P, extras: [tp], foot: [{ x: 0, z: 0, w, d: 0.3 }], spots: [{ name: 'board:' + f.owner, x: 0, z: 0.95, face: Math.PI }], board: f.owner };
   },
-  deptsign(f) {
-    const P = new Part();
-    P.cyl(PAL.cream, 0.045, 1.0, -0.72, 0, 0, 0.01); P.cyl(PAL.cream, 0.045, 1.0, 0.72, 0, 0, 0.01);
-    P.box(PAL.cream, 0.14, 0.05, 0.4, -0.72, 0, 0, 0.02); P.box(PAL.cream, 0.14, 0.05, 0.4, 0.72, 0, 0, 0.02);
-    P.box(f.color, 1.9, 0.62, 0.1, 0, 0.95, 0, 0.05);
+  deptsign(f, ctx) {
+    const { st, lv } = lvOf(ctx, f), P = new Part(), post = lv === 5 ? '#ffcf6b' : PAL.cream;
+    P.cyl(post, 0.045, 1.0, -0.72, 0, 0, 0.01); P.cyl(post, 0.045, 1.0, 0.72, 0, 0, 0.01);
+    P.box(post, 0.14, 0.05, 0.4, -0.72, 0, 0, 0.02); P.box(post, 0.14, 0.05, 0.4, 0.72, 0, 0, 0.02);
+    P.box(lv === 1 ? '#cfd3d8' : f.color, 1.9, 0.62, 0.1, 0, 0.95, 0, 0.05);
+    if (lv >= 4) { const tr = lv === 5 ? LVL_GOLD : LVL_SILVER; P.box(tr, 1.96, 0.045, 0.13, 0, 0.93, 0, 0.015); P.box(tr, 1.96, 0.045, 0.13, 0, 1.55, 0, 0.015); if (lv === 5) { P.sph('#ffcf6b', 0.07, -0.93, 1.62, 0.02); P.sph('#ffcf6b', 0.07, 0.93, 1.62, 0.02); } }
+    if (st && st.flag) { const h = st.flag.big ? 1.95 : 1.7; P.cyl('#b08a5a', 0.022, h, -1.12, 0, 0, 0.008, 0.022, 8); P.sph('#f2a93b', 0.05, -1.12, h + 0.04, 0); }   // 琥珀小旗的旗桿（旗面在 rewards.js 的共用圖集網格，一次繪製）
     const tp = textPlane(f.text, 1.74, 0.46, { pw: 512, bg: '#fffaf2', fg: '#5a4638', px: 84, radius: 40 });
     tp.position.set(0, 1.26, 0.056);
     const tb = new THREE.Mesh(tp.geometry, tp.material); tb.position.set(0, 1.26, -0.056); tb.rotation.y = Math.PI;   // 背面也有字（從北邊看過來也讀得到）
@@ -307,8 +324,8 @@ export const BUILD = {
     P.box(PAL.pink, 0.4, 0.07, 0.36, -0.4, 0.44, 0, 0.03); P.box(PAL.mint, 0.4, 0.07, 0.36, 0.4, 0.44, 0, 0.03);
     return { part: P, foot: [{ x: 0, z: 0, w: 1.7, d: 0.46 }] };
   },
-  rug(f) {
-    const P = new Part(), c = f.color || PAL.peach;
+  rug(f, ctx) {
+    const { st, lv } = lvOf(ctx, f), P = new Part(), c0 = f.color || PAL.peach, c = st ? ['#d9dde3', shade(c0, 0.45), c0, shade(c0, -0.14), '#f0cf86'][lv - 1] : c0;
     if (f.round && Math.abs(f.w - f.d) < 0.01) { P.cyl(c, f.w / 2, 0.03, 0, 0.01, 0, 0.012, f.w / 2, 44); P.cyl(shade(c, 0.4), f.w / 2 - 0.28, 0.012, 0, 0.034, 0, 0.005, f.w / 2 - 0.28, 44); }
     else { const rr = f.round ? Math.min(f.w, f.d) / 2 - 0.01 : 0.5; P.slab(c, f.w, f.d, 0.03, 0, 0.01, 0, rr, 0, 0.012); P.slab(shade(c, 0.4), f.w - 0.56, f.d - 0.56, 0.012, 0, 0.034, 0, Math.max(0.1, rr - 0.28), 0, 0.005); }
     return { part: P, foot: [], flat: true, w: f.w, d: f.d };

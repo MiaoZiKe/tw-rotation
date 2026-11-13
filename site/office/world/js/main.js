@@ -9,6 +9,8 @@ import { createPOV } from './pov.js';
 import { createCamHint } from './camhint.js';
 import { createDaytime } from './daytime.js';
 import { createUI } from './ui.js';
+import { loadRewards, makeStyleOf, createRewards } from './rewards.js';
+import { createLedger } from './ledger.js';
 import { createState } from './state.js';
 import { createPower } from './power.js';
 import { createJobs } from './jobs.js';
@@ -27,10 +29,10 @@ const J = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.statu
 async function loadCharacterModule() { const p = qs.get('char') || '../../play/office_character.js'; const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
 
 (async function boot() {
-  const [layout, org, demo, meet, roster, charMod] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule()]);
+  const [layout, org, demo, meet, roster, charMod, rw] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule(), qs.get('rewards') === '0' ? null : loadRewards()]);   // 績效資料缺檔／壞檔／?rewards=0：整個獎勵層關閉，辦公室維持原樣
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
-  const cv = $('cv'), W = createWorld(cv, layout, org, quality), { renderer, scene, camera } = W;
+  const cv = $('cv'), W = createWorld(cv, layout, org, quality, { styleOf: makeStyleOf(rw, layout) }), { renderer, scene, camera } = W;
   buildOutside(W);   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
@@ -70,11 +72,11 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   const bases = [{ ...org.ceo, isCeo: true }]; for (const d of org.departments) for (const m of d.members) bases.push({ ...m, dept: d.id, color: d.color });
   const baseOf = new Map(bases.map(b => [b.id, b]));
   const labels = $('labels');
-  function setTag(c) { const s = c.spec, L = c._lab, k = L.tag.children; k[0].textContent = s.nick; k[1].textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; }
+  function setTag(c) { const s = c.spec, L = c._lab, k = L.tag.children; k[0].textContent = s.nick; k[1].textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; L.mk = ''; W.rewards && W.rewards.tagChip && W.rewards.tagChip(c); }
   function addLabel(c) {
-    const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span><u class="stx"></u>`;
+    const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span><u class="stx"></u><i class="gr"></i>`;
     const bub = document.createElement('div'); bub.className = 'bub';
-    labels.append(tag, bub); c._lab = { tag, bub, cls: '', txt: '', on: false, bon: false, st: '', stEl: tag.children[2] }; setTag(c);
+    labels.append(tag, bub); c._lab = { tag, bub, cls: '', txt: '', on: false, bon: false, st: '', stEl: tag.children[2], gr: tag.children[3], grv: undefined, mk: '', tw: 60, th: 20 }; setTag(c);
   }
   for (const b of bases) {
     const s = makeSpec(b), c = charMod.createCharacter(s, env); W.chars.set(s.id, c); scene.add(c.object3D); c.onDrop = q => director.dropped(q);
@@ -191,6 +193,12 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     view.mode = 'god'; view.char = null; env.followed = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false;
     tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, portrait() ? r.z + r.d * 0.3 : r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
+  // 績效總表點一列 → 鏡頭飛到那個人或部門（比照點角色／點區域的既有做法）
+  function flyTo(u) {
+    if (u.kind === 'dept') { jumpTo(u.id); return; }
+    const c = u.kind === 'ceo' ? ceo : W.chars.get(u.id); if (!c) return;
+    setView(u.kind === 'ceo' ? 'ceo' : 'char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect();
+  }
   // 跟隨的做法：不是每幀把注視點「拉」到角色身上，而是角色走多少、鏡頭就跟著平移多少（保留使用者拖出來的方位、距離、平移量）。
   // 使用者手動平移之後暫停跟隨（view.detached），直到角色「再次移動」超過 0.25 公尺才自動接回（平順拉回）；或按「回到角色」鈕。
   // 只旋轉、縮放不會暫停跟隨。移到定位之後鏡頭的控制權就完全給滑鼠，不會被拉回固定位置。
@@ -266,11 +274,29 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   const jobs = createJobs(W, { state, ui, director }); W.jobs = jobs;
   const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
   const sim = createSim(W, { state, demo, ui }); W.sim = sim;
+  const rewards = createRewards(W, rw, { ui, cv, camera }); if (rewards.on) createLedger(W, rewards, { ui, fly: flyTo }); else { const b = $('rwBtn'); if (b) b.hidden = true; }
 
   // ── 名牌、泡泡 ──
   const pv = new THREE.Vector3(), bubs = [];
+  // 名牌避讓（稽核 A11）：同一個畫面裡名牌互相重疊時，依優先序（被選取／跟隨的 → CEO → 同事（近的先）→ 寵物最後）
+  // 把後面的往上錯開；錯開 3 次仍擠不下就淡出較遠的那張。寵物一律排在最後，所以不會壓到主人的名牌。
+  function avoidTags(list) {
+    list.sort((a, b) => a.pri - b.pri);
+    const placed = [];
+    for (const t of list) {
+      const hw = t.w / 2 + 2, h = t.h + 1; let dy = 0, ok = false;
+      for (let k = 0; k < 4; k++) {
+        const x0 = t.x - hw, x1 = t.x + hw, y1 = t.y - dy, y0 = y1 - h; let hit = null;
+        for (const r of placed) if (x0 < r.x1 && x1 > r.x0 && y0 < r.y1 && y1 > r.y0) { hit = r; break; }
+        if (!hit) { ok = true; placed.push({ x0, x1, y0, y1 }); break; }
+        dy = t.y - hit.y0 + 2;                       // 剛好放到擋住它的那張的上面
+        if (dy > 64) break;
+      }
+      t.dy = ok ? dy : 0; t.fade = !ok;
+    }
+  }
   function updateLabels() {
-    const w = cv.clientWidth, h = cv.clientHeight; bubs.length = 0;
+    const w = cv.clientWidth, h = cv.clientHeight; bubs.length = 0; const tags = [];
     for (const c of everyone) {
       const L = c._lab, p = c.object3D.position; let on = c.object3D.visible && !(W.pov && W.pov.hides(c));
       if (on) { pv.set(p.x, c.height + (c.lift || 0) + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2 || (view.mode !== 'god' && dist > 17 && !c.speech) || (c.spec.pet && dist > 40)) on = false; }
@@ -282,8 +308,17 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
       if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = false; L.txt = ''; } else if (L.bon) { L.bub.style.transform = 'translate(-999px,-999px)'; L.bon = false; L.txt = ''; } c._sx = -999; continue; }
       const x = Math.round((pv.x + 1) / 2 * w), y = Math.round((1 - pv.y) / 2 * h); c._sx = x; c._sy = y; c._sd = dist;
       const st = W.statusOf(c); if (st !== L.st) { L.stEl.textContent = st; L.st = st; }
-      const cls = 'tag' + (st ? ' hasst' : '') + (c.jobless ? ' jobless' : '') + (c.sleeping ? ' zz' : '') + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c ? ' sel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
-      L.tag.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`; L.on = true;
+      const cls = 'tag' + (st ? ' hasst' : '') + (L.grv ? ' hasgr' : '') + (c.jobless ? ' jobless' : '') + (c.sleeping ? ' zz' : '') + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c ? ' sel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far');
+      const mk = cls + '|' + st + '|' + c.spec.nick; if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; L.fd = false; }
+      if (mk !== L.mk) { L.mk = mk; L.tw = L.tag.offsetWidth; L.th = L.tag.offsetHeight; }     // 尺寸只在樣式或文字變了才量（避免每幀強制排版）
+      L.on = true; const pri = (view.char === c || pilot.sel === c ? 0 : c.spec.pet ? 3 : c.spec.isCeo ? 1 : 2) * 1e4 + Math.min(9999, dist);
+      tags.push({ c, L, x, y, w: L.tw, h: L.th, pri, dist, dy: 0, fade: false });
+    }
+    if (!W.noAvoid) avoidTags(tags); else tags.forEach(t => { t.fade = false; });   // W.noAvoid 只給驗收截「避讓前」對照用
+    for (const t of tags) {
+      const { c, L, x } = t, y = t.y - t.dy, dist = t.dist;
+      if (t.fade !== !!L.fd) { L.tag.classList.toggle('fade', t.fade); L.fd = t.fade; }
+      L.tag.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`;
       const th = dist < 15 ? 38 : dist < 34 ? 24 : 18;
       if (c.speech) {
         if (L.txt !== c.speech.text) { L.bub.textContent = c.speech.text; L.txt = c.speech.text; L.bub.className = 'bub ' + (c.speech.kind || ''); L.bw = L.bub.offsetWidth; L.bh = L.bub.offsetHeight; }
@@ -333,6 +368,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (edit.on) { editTap(e); return; }
     const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
+    if (W.rewards && W.rewards.on && W.rewards.pick(ray)) { clearTimeout(deselT); lastTap.t = 0; return; }   // 點部門招牌、琥珀旗、字章、入口大廳的看板 → 績效總表
     if (W.pov && W.pov.on()) return;      // 角色視角中點空白處不取消選取、不移動鏡頭（要退出請按 Esc、V 或「角色視角」鈕）
     // 點空白處：取消選取；但 0.3 秒內再點一下（雙點地面）是「鏡頭移過去」，不取消
     const now = performance.now(), gp = new THREE.Vector3();
@@ -398,7 +434,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     const ov = W.overrides; ov.f = ov.f || {};
     for (const inst of W.furn.values()) { const f = inst.f, h = inst.home; if (f.x !== h.x || f.z !== h.z || f.rot !== h.rot) ov.f[f.id] = [f.x, f.z, f.rot]; else delete ov.f[f.id]; }
     if (!saveOverrides(ov)) ui.toast('這台裝置無法儲存，重新整理後會還原');
-    W.respot(); W.glowRebuild && W.glowRebuild();
+    W.respot(); W.glowRebuild && W.glowRebuild(); W.rewards && W.rewards.rebuildMarks && W.rewards.rebuildMarks();   // 招牌被搬動：字章與旗跟著重新放
     for (const c of W.chars.values()) { if (!c.spot) continue; const s = W.spots.find(q => q.uid === c.spot.uid); if (!s) { c.spot = null; continue; } c.spot = s; if (c.state === 'sit' && s.seat) c.sitAt(s.seat); }
   }
   function editDown(e) {

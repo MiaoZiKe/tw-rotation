@@ -125,6 +125,7 @@ export function createUI(W, demo, api) {
     $('card').innerHTML = `<button class="x" aria-label="關閉">×</button>
       <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b>${s.name && s.name !== s.nick ? `<span class="nm2">${esc(s.name)}</span>` : ''}${s.lead ? '<span class="tag2">主管</span>' : ''}
         <p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p><p>${esc(spName(s))}</p></div></div>
+      ${W.rewards && W.rewards.on ? W.rewards.cardBlock(s) : ''}
       <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
       <div class="acts g3 g4"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button><button class="btn povb" data-i="pov" aria-pressed="false" title="從他的眼睛看出去（鍵盤 V）">角色視角</button></div>
       <div class="kpi" id="cardKpi">${[[1, 'k1', '未完成', p.nTodo, p.nextTodo ? '排 ' + p.nextTodo : '—'], [2, 'k2', '進行中', p.nDoing, '起 ' + p.lastDoing], [3, 'k3', '已完成', p.nDone, '末 ' + p.lastDone]].map(([k, c, n, v, em]) => `<button class="${c}" data-k="${k}" aria-pressed="false" title="點一下只看「${n}」的任務，再點一次回到全部"><span>${n}</span><b>${v}</b><em>${em}</em></button>`).join('')}</div>
@@ -180,6 +181,7 @@ export function createUI(W, demo, api) {
   $('card').onclick = e => {
     { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }   // 滑鼠點過就放掉焦點，之後按 Space 才是「跳躍」而不是再點一次這顆按鈕（鍵盤操作不受影響）
     if (e.target.closest('.x')) { $('card').hidden = true; draft = null; api.cardClosed(); return; }
+    { const q = e.target.closest('[data-rwq]'); if (q) { const h = $('card').querySelector('.rwh'); if (h) { h.hidden = !h.hidden; q.setAttribute('aria-expanded', !h.hidden); } return; } }
     const c = cardChar, D = api.director(); let b;
     if ((b = e.target.closest('[data-hr="hire"]'))) { W.hr.rehire(c.spec.id); U.hideCard(); return; }
     if ((b = e.target.closest('[data-k]'))) { const k = +b.dataset.k; cardF = cardF === k ? 0 : k; cardOpen = -1; renderList(); if (e.detail) b.blur(); return; }
@@ -210,7 +212,7 @@ export function createUI(W, demo, api) {
   let boardOwner = null, boardF = 2, boardOpen = -1, boardTasks = [];
   function boardData(owner) {
     const d = W.org.departments.find(q => q.id === owner), live = m => !(W.hr && W.hr.isFired(m.id)), people = owner === 'ceo' ? [{ ...W.org.ceo, dept: 'ceo', isCeo: true }] : d.members.filter(live).map(m => ({ ...m, dept: d.id }));
-    const all = owner === 'ceo' ? 1 + W.org.departments.reduce((n, q) => n + q.members.filter(live).length, 0) : people.length, lead = owner === 'ceo' ? 'CEO' : ((d.members.find(m => m.lead) || {}).nick || '—');
+    const all = owner === 'ceo' ? 1 + W.org.departments.reduce((n, q) => n + q.members.filter(live).length, 0) : people.length, leadM = owner === 'ceo' ? null : d.members.find(m => m.lead), lead = owner === 'ceo' ? 'CEO' : (leadM && live(leadM) ? leadM.nick : '無（待指派）');   // 主管被開除（或整個部門被開除）就不能還掛著他的名字
     const tasks = []; people.forEach(sp => { const p = progress(sp); p.list.forEach(x => tasks.push({ ...x, who: sp.nick, whoId: sp.id, zh: sp.zh, p })); });
     tasks.sort((a, b) => (a.t < b.t ? 1 : -1));
     return { name: owner === 'ceo' ? 'CEO' : d.name, color: owner === 'ceo' ? '#ffb057' : d.color, all, lead, tasks, notes: demo.boards[owner] || [] };
@@ -237,7 +239,7 @@ export function createUI(W, demo, api) {
   };
   $('board').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-br]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('board').hidden) { e.preventDefault(); $('board').hidden = true; } });
-  U.afterHr = () => { U.refreshCard(); if (!$('board').hidden && boardOwner) { const sc = $('boardScroll') ? $('boardScroll').scrollTop : 0; renderBoard(); if ($('boardScroll')) $('boardScroll').scrollTop = sc; } renderAreas(); };
+  U.afterHr = () => { U.refreshCard(); if (W.rewards && W.rewards.ledger && W.rewards.ledger.refresh) W.rewards.ledger.refresh(); if (!$('board').hidden && boardOwner) { const sc = $('boardScroll') ? $('boardScroll').scrollTop : 0; renderBoard(); if ($('boardScroll')) $('boardScroll').scrollTop = sc; } renderAreas(); };
   U.postBoard = (owner, note) => { (demo.boards[owner] = demo.boards[owner] || []).unshift({ ...note, isNew: true }); U.toast('會議結論已貼上 CEO 佈告欄'); };
   U.fmtTs = ts => { const m = /(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(ts || ''); return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : ''; };
 

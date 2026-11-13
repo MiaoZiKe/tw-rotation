@@ -15,14 +15,15 @@ function canvasTex(w, h, draw, repeat) {
   return t;
 }
 
-export function createWorld(canvas, layout, org, quality) {
+export function createWorld(canvas, layout, org, quality, opts = {}) {
   const W = { layout, org, quality, time: 0, speed: 1, timers: [], furn: new Map(), chars: new Map(), spots: [], boardsMesh: [], pickFurn: [] };
   const members = new Map(); members.set('ceo', org.ceo);
   for (const d of org.departments) for (const m of d.members) members.set(m.id, { ...m, dept: d.id, deptName: d.name, color: d.color });
   for (const m of org.reserve) members.set(m.id, { ...m, zh: '後備', dept: 'reserve' });
   W.members = members;
   const deptColor = id => (org.departments.find(d => d.id === id) || {}).color;
-  const ctx = { deptColor, member: id => members.get(id) };
+  const styleOf = opts.styleOf || null;   // 績效獎勵：依部門設備等級給家具／地板換色（rewards.js 提供；沒有就維持原樣）
+  const ctx = { deptColor, member: id => members.get(id), style: styleOf };
 
   // ── 繪圖器、場景、光 ──
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality !== 'low', powerPreference: 'high-performance' });
@@ -94,7 +95,12 @@ export function createWorld(canvas, layout, org, quality) {
     const old = W.rooms.get(room.id); if (old && old.mesh) { old.mesh.geometry.dispose(); old.mesh.removeFromParent(); }
     const col = (ov.floor && ov.floor[room.id]) || room.floor, P = new Part(), inset = room.kind === 'room' ? 0.22 : 0;
     const w = room.w - inset * 2, d = room.d - inset * 2;
-    if (room.kind === 'dept') { P.slab(shade(col, 0.12), w, d, 0.03, 0, 0, 0, 0.7, 0, 0.012); P.slab(shade(col, 0.52), w - 0.5, d - 0.5, 0.014, 0, 0.024, 0, 0.5, 0, 0.006); }
+    if (room.kind === 'dept') {
+      const st = styleOf ? styleOf({ type: 'floor', room }) : null, lv = st ? Math.max(1, Math.min(5, st.lv | 0)) : 3;   // 地毯＝部門地板的內層色塊，顏色與邊條隨設備等級（L3 ＝ 原樣）
+      P.slab(shade(col, [0.45, 0.25, 0.12, 0.05, 0.05][lv - 1]), w, d, 0.03, 0, 0, 0, 0.7, 0, 0.012);
+      if (lv >= 4) P.slab(lv === 5 ? '#ffd98a' : shade(col, -0.2), w - 0.3, d - 0.3, 0.014, 0, 0.0225, 0, 0.6, 0, 0.006);
+      P.slab(shade(col, [0.7, 0.6, 0.52, 0.38, 0.3][lv - 1]), w - 0.5, d - 0.5, 0.014, 0, 0.024, 0, 0.5, 0, 0.006);
+    }
     else { P.slab(col, w, d, 0.03, 0, 0, 0, 0.5, 0, 0.012); P.slab(shade(col, 0.35), w - 0.7, d - 0.7, 0.014, 0, 0.024, 0, 0.35, 0, 0.006); }
     const m = P.mesh(); m.castShadow = false; m.position.set(room.x + room.w / 2, 0.001, room.z + room.d / 2); m.userData.room = room.id; scene.add(m);
     W.rooms.set(room.id, { room, mesh: m, color: col });
@@ -208,6 +214,12 @@ export function createWorld(canvas, layout, org, quality) {
   }
   layout.furniture.forEach(addFurniture);
   W.addFurniture = addFurniture; W.place = place;
+  // 等級資料變動時：只換這件家具的合併網格（顏色與併進去的小零件），不增減任何繪製呼叫
+  W.restyle = inst => {
+    const b = BUILD[inst.f.type]; if (!b) return; const spec = b(inst.f, ctx);
+    (spec.extras || []).forEach(e => { e.geometry.dispose(); if (e.material.map) e.material.map.dispose(); e.material.dispose(); });
+    inst.mesh.geometry.dispose(); inst.mesh.geometry = spec.part.geometry(); W.shadowDirty();
+  };
 
   // 座位與具名目標點；家具動過就重算
   function respot() {
