@@ -168,8 +168,7 @@ export class Face {
       g.save(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 4; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * s.ex, ey, R * 0.7, Math.PI * 1.15, Math.PI * 1.45); g.stroke(); } g.restore();
       g.beginPath(); g.moveTo(cx - s.ex + R, ey - 4); g.quadraticCurveTo(cx, ey - 14, cx + s.ex - R, ey - 4); g.stroke(); g.restore();
     }
-    if (s.nose) { g.fillStyle = s.eye; g.beginPath(); g.ellipse(cx - this.gx * 1.5, s.my - 17 + gy * 0.8, 10, 7, 0, 0, 7); g.fill(); }
-    if (s.nostril) { g.fillStyle = s.eye; g.globalAlpha = 0.6; for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(cx + sd * 11 - this.gx * 1.5, s.my - 30 + gy * 0.8, 4.2, 5.6, 0, 0, 7); g.fill(); } g.globalAlpha = 1; }
+    // 擁有者硬性規則：不畫鼻子（鼻點、鼻孔點一律不畫）
     if (s.whisk) { g.fillStyle = s.eye; g.globalAlpha = 0.55; for (const sd of [-1, 1]) for (const [x, y] of [[30, -4], [42, 6], [30, 14]]) { g.beginPath(); g.arc(cx + sd * x, s.my + y + gy * 0.8, 2.6, 0, 7); g.fill(); } g.globalAlpha = 1; }
     if (s.noMouth) { this.tex.needsUpdate = true; return; }
     // 嘴
