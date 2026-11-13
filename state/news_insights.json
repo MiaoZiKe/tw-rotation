@@ -1,0 +1,256 @@
+{
+ "updated": "2026-11-14T05:25:56+08:00",
+ "window_days": 14,
+ "posts": [
+  {
+   "file": "2026-11-02_news-intra-1.md",
+   "platform": "threads",
+   "date": "2026-11-02",
+   "slot": "intra",
+   "link": "https://www.threads.com/@liguligu0818/post/DfOavvJjtwG",
+   "topic_category": "財報",
+   "content_type": "財報知識",
+   "layout": "D-知識卡(實景)",
+   "style": "常備文庫",
+   "has_ai_image": "false",
+   "hook_type": "冷知識",
+   "emotion": "好笑",
+   "explore": "false",
+   "views": 13,
+   "reach": null,
+   "likes": 0,
+   "replies": 1,
+   "shares": 0,
+   "saved": null,
+   "interactions": 1,
+   "clicks": null,
+   "measured": true
+  },
+  {
+   "file": "2026-11-02_news-pre-1.md",
+   "platform": "threads",
+   "date": "2026-11-02",
+   "slot": "pre",
+   "link": "https://www.threads.com/@liguligu0818/post/DfOBUMYlJsQ",
+   "topic_category": "美股",
+   "content_type": "公司動態",
+   "layout": "D-實景(類別)",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "hook_type": "反差",
+   "emotion": "吐槽",
+   "explore": "false",
+   "views": 21,
+   "reach": null,
+   "likes": 0,
+   "replies": 6,
+   "shares": 0,
+   "saved": null,
+   "interactions": 6,
+   "clicks": null,
+   "measured": true
+  }
+ ],
+ "agg": {
+  "topic_category": {
+   "財報": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "美股": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  },
+  "content_type": {
+   "財報知識": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "公司動態": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  },
+  "layout": {
+   "D-知識卡(實景)": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "D-實景(類別)": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  },
+  "style": {
+   "常備文庫": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "口袋長文": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  },
+  "has_ai_image": {
+   "false": {
+    "n": 2,
+    "views": 34,
+    "interactions": 7,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2059,
+    "avg_views": 17.0
+   }
+  },
+  "slot": {
+   "intra": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "pre": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  },
+  "hook_type": {
+   "冷知識": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "反差": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  },
+  "emotion": {
+   "好笑": {
+    "n": 1,
+    "views": 13,
+    "interactions": 1,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.0769,
+    "avg_views": 13.0
+   },
+   "吐槽": {
+    "n": 1,
+    "views": 21,
+    "interactions": 6,
+    "shares": 0,
+    "saved": 0,
+    "clicks": 0,
+    "clicks_n": 0,
+    "eng_rate": 0.2857,
+    "avg_views": 21.0
+   }
+  }
+ },
+ "weights": {
+  "explore": 0.2,
+  "topic_category": {
+   "財報": 1.0,
+   "美股": 1.0
+  },
+  "content_type": {
+   "財報知識": 1.0,
+   "公司動態": 1.0
+  },
+  "style": {
+   "常備文庫": 1.0,
+   "口袋長文": 1.0
+  },
+  "layout": {
+   "D-知識卡(實景)": 1.0,
+   "D-實景(類別)": 1.0
+  }
+ }
+}

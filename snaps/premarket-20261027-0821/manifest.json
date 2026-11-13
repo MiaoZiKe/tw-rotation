@@ -1,0 +1,38 @@
+{
+  "kind": "premarket",
+  "taken_at": "2026-10-27T08:21:49+08:00",
+  "data_date": "2026-10-27",
+  "slot_key": "premarket-2026-10-27",
+  "threads": {
+    "text": "🌅 盤前3分鐘 10/27\n🧭 昨日盤面（美股 10/26）：\n・美股四大指數全數收紅，費半 +1.65% 表現最強、道瓊 +0.59% 最弱\n・費半 +1.65%，開高走高；距 60 日高點 −17.1%\n・那斯達克 +0.91%，開高走高；距 60 日高點 −5.1%\n・標普 +0.77%，開高走高\n・台積電 ADR +1.09%，平盤開出後走高；距 60 日高點 −12.9%；量縮（0.2 倍均量）\n・台指期夜盤 45,654，較日盤 −618 點（−1.34%）\n💳 融資融券（10/22）：\n・上市融資維持率（估算）176.99%，單日下降 5.85 個百分點\n・融資：\n　增加 誠美材、榮科、東台、廣宇、華新科\n　減少 台玻、盟立、景碩、友達、台虹\n・融券：\n　增加 群創、友達、台虹、旺宏、南亞科\n　減少 誠美材、佳龍、晶心科、今國光、彩晶\n#台股 #盤前 #美股 #台指期 #台積電\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-pm-20261027",
+    "images": [
+      "threads_us-close.png",
+      "threads_tx.png",
+      "threads_credit-ratio.png",
+      "threads_credit-rank.png",
+      "threads_credit-short.png"
+    ]
+  },
+  "story": [
+    "story_us-close.png",
+    "story_tx.png",
+    "story_credit-ratio.png",
+    "story_credit-rank.png",
+    "story_credit-short.png"
+  ],
+  "premarket_news": {
+    "version": 1,
+    "target_date": "2026-10-27",
+    "window": {
+      "start": "2026-10-27T04:00:00+08:00",
+      "end": "2026-10-27T08:45:00+08:00"
+    },
+    "categories": [
+      "新聞",
+      "事件",
+      "科技",
+      "總經"
+    ],
+    "items": []
+  }
+}
