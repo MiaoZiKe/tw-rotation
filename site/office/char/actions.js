@@ -82,11 +82,11 @@ export const CLIPS = {
   ],
   sleepIn: [
     { n: 'start', d: 0.1, to: { 'morph.squash': 0.08 } },
-    { n: 'pre', d: 0.5, e: 'io', to: { 'morph.squash': 0.25, 'head.rx': 0.12, 'root.rx': 0.04, 'ear.L.rx': -0.15, 'ear.R.rx': -0.15 } },
-    { n: 'main', d: 0.9, e: 'io', to: { 'morph.squash': 0.32, 'morph.plump': 0.35, 'head.rx': 0.4, 'root.rx': 0.1, 'ear.L.rx': -0.45, 'ear.R.rx': -0.45, 'tail.rx': -0.1, 'arm.L.rz': 0.1, 'arm.R.rz': -0.1 } },
+    { n: 'pre', d: 0.5, e: 'io', to: { 'morph.squash': 0.3, 'head.rx': 0.2, 'root.rx': 0.06, 'ear.L.rx': -0.15, 'ear.R.rx': -0.15 } },
+    { n: 'main', d: 0.9, e: 'io', to: { 'morph.squash': 0.46, 'morph.plump': 0.42, 'head.rx': 0.5, 'root.rx': 0.14, 'ear.L.rx': -0.45, 'ear.R.rx': -0.45, 'tail.rx': -0.1, 'arm.L.rz': 0.1, 'arm.R.rz': -0.1 } },
   ],
   wake: { expr: 'neutral', segs: [
-    { n: 'start', d: 0.0, to: { 'morph.squash': 0.32, 'morph.plump': 0.35, 'head.rx': 0.4, 'root.rx': 0.1, 'ear.L.rx': -0.45, 'ear.R.rx': -0.45 } },
+    { n: 'start', d: 0.0, to: { 'morph.squash': 0.46, 'morph.plump': 0.42, 'head.rx': 0.5, 'root.rx': 0.14, 'ear.L.rx': -0.45, 'ear.R.rx': -0.45 } },
     { n: 'pre', d: 0.35, e: 'io', to: { 'morph.stretch': 0.55, 'head.rx': -0.18, 'arm.L.rz': 0.8, 'arm.R.rz': -0.8, 'ear.L.rx': 0.2, 'ear.R.rx': 0.2 } },
     { n: 'main', d: 0.35, e: 'io', to: { 'morph.stretch': 0.3, 'head.rx': -0.05, 'arm.L.rz': 0.4, 'arm.R.rz': -0.4 } },
     { n: 'out', d: 0.3, e: 'io', to: {} },
@@ -147,7 +147,7 @@ export const POSES = {
     expr: 'smile',
   },
   sleep: {
-    pose: { 'morph.squash': 0.32, 'morph.plump': 0.35, 'head.rx': 0.4, 'root.rx': 0.1, 'ear.L.rx': -0.45, 'ear.R.rx': -0.45, 'tail.rx': -0.1, 'arm.L.rz': 0.1, 'arm.R.rz': -0.1 },
+    pose: { 'morph.squash': 0.46, 'morph.plump': 0.42, 'head.rx': 0.5, 'root.rx': 0.14, 'ear.L.rx': -0.45, 'ear.R.rx': -0.45, 'tail.rx': -0.1, 'arm.L.rz': 0.1, 'arm.R.rz': -0.1 },
     expr: 'sleep',
   },
   held: {
