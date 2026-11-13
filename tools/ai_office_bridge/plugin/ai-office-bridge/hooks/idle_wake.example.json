@@ -1,0 +1,8 @@
+{
+  "_說明": "選配（實驗性）：閒置時也能被網站訊息叫醒。把下面這筆併進 hooks.json 的 Stop 陣列即可。asyncRewake 是 Claude Code 內建欄位：掛鉤在背景執行，以 exit 2 結束時會把模型叫醒並把標準錯誤的文字交給它。2.1.323 實測可用（無頭串流模式與互動式終端機），雲端網頁版未測。timeout 是最長等待秒數，到時就不再等，下一次 Stop 才會重新開始等。",
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/wait_inbox.py\"", "asyncRewake": true, "timeout": 600 } ] }
+    ]
+  }
+}

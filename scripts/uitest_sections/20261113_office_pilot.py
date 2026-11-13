@@ -366,9 +366,11 @@ def t_desktop(b, base):
         ok("演出結束後對方回到原本行為（坐回座位工作、不忙）", wait_until(pg, "() => { const o = __world.chars.get('data-steward'); return !o.busy && o.state === 'sit' && o.atDesk; }", 20000))
         ok("演出結束後我可繼續操控（沒被鎖住）", pg.evaluate("() => !__world.pilot.talking && __world.pilot.engaged"))
         # F 揮手
+        pg.evaluate("() => { __world.speed = 2; }")     # 揮手只有 1.4 模擬秒，放慢才抓得到
         pg.keyboard.press("KeyF")
         ok("按 F：我揮手（action = wave）", wait_until(pg, "() => __world.chars.get('ceo').action === 'wave'", 3000))
-        ok("按 F：旁邊的同事也回揮", wait_until(pg, "() => __world.chars.get('data-steward').action === 'wave'", 6000))
+        ok("按 F：旁邊的同事也回揮", wait_until(pg, "() => __world.chars.get('data-steward').action === 'wave'", 12000))
+        pg.evaluate("() => { __world.speed = 8; }")
         # 離開後提示消失
         pg.evaluate("() => { const W = __world; W.chars.get('ceo').standAt(20, 21.5, 0); }")
         ok("走遠後「按 E 溝通」消失", wait_until(pg, "() => document.querySelector('.pt-hint').hidden", 5000))
@@ -379,7 +381,7 @@ def t_desktop(b, base):
         # 見下方佈告欄段落
 
         # ───────── Esc：解除選取，角色自己走回座位（不瞬移） ─────────
-        pg.evaluate("() => { window.__jumps = 0; window.__last = null; window.__mx = 0; const f = () => { const p = __world.chars.get('ceo').object3D.position; if (__last) { const d = Math.hypot(p.x - __last[0], p.z - __last[1]); __mx = Math.max(__mx, d); } __last = [p.x, p.z]; requestAnimationFrame(f); }; f(); }")
+        pg.evaluate("() => { window.__jumps = 0; window.__last = null; window.__mx = 0; const f = () => { const p = __world.chars.get('ceo').object3D.position, t = __world.time; if (__last && t - __last[2] > 1e-6) { const d = Math.hypot(p.x - __last[0], p.z - __last[1]); __mx = Math.max(__mx, d / (t - __last[2])); } __last = [p.x, p.z, t]; requestAnimationFrame(f); }; f(); }")
         pg.keyboard.press("Escape")
         ok("Esc：選取解除（sel 為空）", pg.evaluate("() => __world.pilot.sel === null"))
         ok("Esc：光環、提示卡消失", pg.evaluate("() => !__world.pilot.halo.visible && document.querySelector('.pt-tips').hidden && !document.querySelector('#labels .tag.sel')"))
@@ -388,7 +390,7 @@ def t_desktop(b, base):
         ok("Esc：走回座位並坐下、恢復工作", wait_until(pg, "() => { const c = __world.chars.get('ceo'); return c.state === 'sit' && c.atDesk && !c.busy; }", 60000))
         pg.evaluate("() => { __world.speed = 8; }")
         mx = pg.evaluate("() => __mx")
-        ok("Esc 之後沒有瞬移（單幀位移 < 1.5 公尺）", mx < 1.5, mx)
+        ok("Esc 之後沒有瞬移（逐幀速度最高 < 5 公尺／秒；走路約 2.2、瞬移會是幾十以上）", mx < 5, mx)
 
         # ───────── 點空白處取消選取 ─────────
         x, y = _scr(pg, "ceo")
@@ -499,6 +501,9 @@ def t_board(b, base):
         _shot(pg, "佈告欄面板.png")
         ov = _no_overlap(pg, ["#board", ".pt-tips", ".cm-hint", *_BAR, "#card"])
         ok("版面：佈告欄面板、提示卡、鏡頭提示、工具列兩兩不重疊", not ov, ov)
+        oa_b = _open_area(pg, "b") or _open_area(pg, "f")
+        pg.evaluate("(a) => { __world.chars.get('ceo').standAt(a[0], a[1], 0); }", oa_b)    # 站到空曠處，之後「能不能動」才不會被家具擋住而誤判
+        pg.wait_for_timeout(700)
         p0 = _pos(pg, "ceo")
         pg.keyboard.down("ArrowUp"); pg.wait_for_timeout(900); pg.keyboard.up("ArrowUp")
         p1 = _pos(pg, "ceo")
@@ -506,8 +511,11 @@ def t_board(b, base):
         pg.keyboard.press("Escape")
         ok("Esc：關閉佈告欄面板", pg.evaluate("() => document.getElementById('board').hidden"))
         ok("Esc 只關面板，操控仍在（再按 Esc 才結束）", pg.evaluate("() => !!__world.pilot.sel"))
-        pg.keyboard.down("ArrowDown"); pg.wait_for_timeout(900); pg.keyboard.up("ArrowDown")
+        pg.keyboard.down("ArrowDown")
+        wait_until(pg, "() => __world.pilot.speedNow > 0.2", 15000)
+        pg.wait_for_timeout(1500)
         p2 = _pos(pg, "ceo")
+        pg.keyboard.up("ArrowDown")
         ok("關掉面板後方向鍵恢復可操控", _m.hypot(p2[0] - p1[0], p2[1] - p1[1]) > 0.2, (p1, p2))
         pg.mouse.click(pt[0], pt[1])
         ok("再點佈告欄可重新打開；× 鈕可關閉", pg.evaluate("() => !document.getElementById('board').hidden"))
