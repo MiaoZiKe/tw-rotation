@@ -19,6 +19,8 @@
   button, select { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:999px; padding:5px 11px; cursor:pointer; min-height:32px; }
   button:hover { border-color:var(--acc); } button.on { background:var(--on); color:var(--onfg); border-color:var(--on); }
   select { border-radius:10px; background:var(--panel); }
+  #dev { position:fixed; left:12px; top:46px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-size:12px; z-index:3; pointer-events:none; } #dev b { font-size:12px; color:var(--mut); } #dev pre { margin:4px 0 0; font:12px/1.55 ui-monospace,Menlo,Consolas,monospace; white-space:pre; }
+  #playHint { font-size:12px; color:var(--mut); margin-top:6px; } button:disabled { opacity:.4; cursor:default; }
   #stat { position:fixed; right:14px; top:12px; font-size:12px; color:var(--mut); text-align:right; pointer-events:none; }
   #tag { position:fixed; top:46px; left:0; right:0; display:flex; pointer-events:none; font-size:13px; color:var(--mut); opacity:0; } #tag span { flex:1; text-align:center; } #tag.on { opacity:1; }
   @media (max-width:640px){ #panel{ max-height:52vh; } header small{display:none} #stat{ top:62px; font-size:12px; } }
@@ -27,12 +29,14 @@
 <body>
 <div id="view"></div>
 <header><h1>糰糰 v2</h1><small>Blender 一體成形網格・骨架＋形態鍵驅動</small></header>
+<div id="dev" hidden><b>開發面板</b><pre id="devTxt"></pre></div>
 <div id="tag"><span>新（GLB 骨架）</span><span>舊（球體拼接）</span></div>
 <div id="stat"></div>
 <div id="panel">
   <div class="grp"><b>視角</b><div class="row" id="gView"></div></div>
   <div class="grp"><b>表情</b><div class="row" id="gExpr"></div></div>
   <div class="grp"><b>動作示範</b><div class="row" id="gAct"></div></div>
+  <div class="grp" id="grpPlay"><b>走動小場地（第三階段）</b><div class="row" id="gPlay"></div><div id="playHint" hidden>點地面走過去・雙擊跑・WASD／方向鍵移動・Shift 跑・Space 跳・點凳子坐下・按住頭頂摸頭</div></div>
   <div class="grp"><b>顯示</b><div class="row" id="gShow"></div></div>
   <div class="grp"><b>材質預設／細緻度</b><div class="row"><select id="selMat" aria-label="材質預設"></select><select id="selLod" aria-label="細緻度"><option value="0">LOD0（近）</option><option value="1">LOD1（中）</option><option value="2">LOD2（遠）</option></select></div></div>
 </div>

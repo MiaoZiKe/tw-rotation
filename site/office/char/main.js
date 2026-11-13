@@ -7,6 +7,8 @@ import { EXPR_LIST } from './facerig.js';
 import { PRESETS, PRESET_IDS } from '../play/materials.js';
 import { Character } from '../play/character.js';
 import { stubWorld, stubFx } from '../play/lite.js';
+import { Field } from './field.js';
+import { makeQA } from './qa.js';
 
 const $ = (s) => document.querySelector(s), qs = new URLSearchParams(location.search), V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const view = $('#view');
@@ -16,7 +18,7 @@ const stage = new Stage(renderer), scene = stage.scene;
 const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 40);
 const ctl = new OrbitControls(camera, renderer.domElement); ctl.enableDamping = true; ctl.dampingFactor = 0.12; ctl.minDistance = 0.8; ctl.maxDistance = 9; ctl.maxPolarAngle = Math.PI * 0.52; ctl.target.set(0, 0.36, 0);
 
-const S = { ch: null, contact: null, old: null, lod: +(qs.get('lod') || 0), preset: qs.get('mat') || 'fur', cmp: false, sil: false, wire: false, paused: false, track: false, act: null, tween: null, mouse: { x: 0, y: 0, on: false }, time: 0 };
+const S = { ch: null, contact: null, old: null, lod: +(qs.get('lod') || 0), preset: qs.get('mat') || 'fur', cmp: false, play: false, focus: new V3(0, 0.36, 0), sil: false, wire: false, paused: false, track: false, act: null, tween: null, mouse: { x: 0, y: 0, on: false }, time: 0 };
 let asset = null;
 
 // ── 角色
@@ -27,6 +29,7 @@ async function buildNew() {
   S.contact = stage.addContact(S.ch); applyWire();
   if (prev && prev.face && S.ch.face) S.ch.face.set(prev.face.name);
   if (S.lod === 2) S.contact.base = 1;
+  if (S.field) { await S.field.attach(S.ch); S.field.ctl.look = null; }
   layout();
 }
 // 舊版（球體拼接）放在自己的場景，燈光與鏡頭跟新版完全一致，左右各畫半個畫面（畫面對比最公平，也不互相干擾）
@@ -42,13 +45,13 @@ function buildOld() {
   const disc = stage.scene.children.find(o => o.geometry && o.geometry.type === 'PlaneGeometry' && o.material.type === 'MeshBasicMaterial' && o.position.y < 0); if (disc) oldScene.add(disc.clone());
   S.old = c; return c;
 }
-function layout() { $('#tag').classList.toggle('on', S.cmp); if (S.ch) S.ch.root.position.x = 0; }
+function layout() { $('#tag').classList.toggle('on', S.cmp); if (S.ch && !S.play) S.ch.root.position.x = 0; }
 
 // ── 視角
 const VIEWS = { front: ['正面', 0], side: ['側面', Math.PI / 2], back: ['背面', Math.PI], q45: ['45 度', Math.PI / 4] };
 function setView(name, instant) {
-  const az = VIEWS[name][1], d = camDist(), el = 0.12;
-  const to = new V3(Math.sin(az) * d * Math.cos(el), 0.36 + Math.sin(el) * d, Math.cos(az) * d * Math.cos(el)), tg = new V3(0, 0.36, 0);
+  const az = VIEWS[name][1], d = camDist(), el = S.play ? 0.42 : 0.12, tg = S.focus.clone();
+  const to = new V3(tg.x + Math.sin(az) * d * Math.cos(el), 0.36 + Math.sin(el) * d, tg.z + Math.cos(az) * d * Math.cos(el));
   ctl.minPolarAngle = 0;
   if (instant) { camera.position.copy(to); ctl.target.copy(tg); ctl.update(); } else S.tween = { t: 0, a: camera.position.clone(), b: to };
   document.querySelectorAll('#gView button').forEach(b => b.classList.toggle('on', b.dataset.v === name)); S.view = name;
@@ -118,7 +121,7 @@ const sl = $('#selLod'); sl.value = String(S.lod); sl.onchange = async () => { S
   b.onclick = () => set($('#panel').style.display === 'none'); hd.appendChild(b); if (matchMedia('(max-width:640px)').matches) set(false); }
 addEventListener('pointermove', (e) => { const r = renderer.domElement.getBoundingClientRect(); S.mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1; S.mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1; S.mouse.on = true; });
 // 鏡頭距離依畫面寬高比調整（直式手機要拉遠才裝得下），並把角色往上推，讓出下方控制面板的位置
-function camDist() { const a = (view.clientWidth || 1) / (view.clientHeight || 1); return Math.max(S.cmp ? 4.3 : 3.4, (S.cmp ? 1.5 : 0.78) / (Math.tan(14 * Math.PI / 180) * a)); }
+function camDist() { const a = (view.clientWidth || 1) / (view.clientHeight || 1); return Math.max(S.play ? 5.4 : S.cmp ? 4.3 : 3.4, (S.cmp ? 1.5 : 0.78) / (Math.tan(14 * Math.PI / 180) * a)); }
 function applyOffset() {
   const w = view.clientWidth, h = view.clientHeight, pn = $('#panel'), ph = pn.style.display === 'none' ? 0 : Math.min(pn.getBoundingClientRect().height, h * 0.55);
   if (S.cmp) { camera.clearViewOffset(); return; }
@@ -126,6 +129,91 @@ function applyOffset() {
 }
 function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); applyOffset(); if (S.view) setView(S.view, true); }
 addEventListener('resize', resize);
+
+
+// ── 走動小場地（第三階段）：點地面走過去、雙擊跑、WASD／方向鍵移動、Shift 跑、Space 跳、點凳子坐下、按住頭頂摸頭
+S.keys = new Set(); S.keyMag = 0; S.runMode = false; S.dragMode = false; S.drag = null; S.click = null; S.devOn = false; S.grabbed = false;
+async function enablePlay(on) {
+  if (on === S.play) return;
+  S.play = on; $('#btnPlay').classList.toggle('on', on); $('#btnPlay').setAttribute('aria-pressed', String(on)); $('#playHint').hidden = !on;
+  if (on) {
+    if (S.cmp) { S.cmp = false; $('#btnCmp').classList.remove('on'); layout(); applyOffset(); }
+    endAct(); if (!S.field) { S.field = new Field(scene, stage); }
+    S.field.setVisible(true); await S.field.attach(S.ch, { x: 0, z: 0.5, yaw: 0 });
+    const k = stage.key; k.shadow.camera.left = -3.4; k.shadow.camera.right = 3.4; k.shadow.camera.top = 3.4; k.shadow.camera.bottom = -3.4; k.shadow.camera.far = 14; k.shadow.camera.updateProjectionMatrix(); k.shadow.mapSize.set(2048, 2048); k.shadow.map?.dispose(); k.shadow.map = null; k.shadow.radius = 10;
+    S.focus.set(0, 0.36, 0.5); setView(S.view || 'front', true);
+  } else {
+    if (S.field) S.field.setVisible(false);
+    const k = stage.key; k.position.set(1.7, 5.2, 2.6); k.target.position.set(0, 0, 0); k.shadow.camera.left = -1.4; k.shadow.camera.right = 1.4; k.shadow.camera.top = 1.4; k.shadow.camera.bottom = -1.4; k.shadow.mapSize.set(1024, 1024); k.shadow.map?.dispose(); k.shadow.map = null; k.shadow.radius = 14;
+    S.focus.set(0, 0.36, 0); S.ch.resetPose(); S.ch.root.position.set(0, 0, 0); S.ch.root.rotation.y = 0; setView(S.view || 'front', true); S.ch.face?.set('neutral');
+  }
+  for (const b of document.querySelectorAll('#gPlay button[data-p]')) b.disabled = !on && b.dataset.p !== 'play' && b.dataset.p !== 'dev';
+}
+function camForward() { const f = new V3(); camera.getWorldDirection(f); f.y = 0; return f.lengthSq() < 1e-6 ? new V3(0, 0, -1) : f.normalize(); }
+function trackPlay(dt, cc) {
+  // 鍵盤：相機相對方向
+  const k = S.keys, up = (k.has('w') || k.has('arrowup')) - (k.has('s') || k.has('arrowdown')), rt = (k.has('d') || k.has('arrowright')) - (k.has('a') || k.has('arrowleft'));
+  const f = camForward(), r = new V3(-f.z, 0, f.x);
+  if (up || rt) { const x = f.x * up + r.x * rt, z = f.z * up + r.z * rt; cc.setMove(x, z, 1, k.has('shift') || S.runMode); S.keyMag = 1; }
+  else if (S.keyMag) { cc.setMove(0, 0, 0); S.keyMag = 0; }
+  else if (S.drag && S.drag.on) { const d = S.drag, dx = d.x - d.x0, dy = d.y - d.y0, len = Math.hypot(dx, dy); if (len > 14) cc.setMove(f.x * -dy + r.x * dx, f.z * -dy + r.z * dx, clamp(len / 70, 0.3, 1), len > 120 || S.runMode); else cc.setMove(0, 0, 0); }
+  if (S.mouse.on && S.track) { const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(S.mouse.x, S.mouse.y), camera); const h = new V3(); if (rc.ray.intersectPlane(new THREE.Plane(new V3(0, 1, 0), -0.5), h)) cc.lookAt(h); } else cc.lookAt(null);
+}
+function followCam(dt, cc) {
+  if (S.noFollow) return;
+  const b = cc.body, tg = new V3(b.x, 0.36, b.z), d = tg.clone().sub(ctl.target); d.y = 0; d.multiplyScalar(1 - Math.exp(-dt * 4)); ctl.target.add(d); camera.position.add(d); S.focus.set(ctl.target.x, 0.36, ctl.target.z);
+  const kk = stage.key; kk.position.set(ctl.target.x + 1.7, 5.2, ctl.target.z + 2.6); kk.target.position.set(ctl.target.x, 0, ctl.target.z); kk.target.updateMatrixWorld();
+}
+const gp = $('#gPlay');
+const pbtn = (label, id, p, fn, opt = {}) => { const b = document.createElement('button'); b.textContent = label; b.id = id; b.dataset.p = p; b.onclick = fn; if (opt.hold) { const dn = (e) => { e.preventDefault(); opt.hold(true); }, up = () => opt.hold(false); b.addEventListener('pointerdown', dn); addEventListener('pointerup', up); b.addEventListener('pointercancel', up); } gp.appendChild(b); return b; };
+const cc = () => S.field?.ctl;
+pbtn('場地模式', 'btnPlay', 'play', () => enablePlay(!S.play)); $('#btnPlay').setAttribute('aria-pressed', 'false');
+pbtn('跳', 'btnJump', 'jump', () => cc()?.jump());
+pbtn('坐下／起身', 'btnSit', 'sit', () => { const c = cc(); if (!c) return; if (c.state === 'sit') c.standUp(); else c.sitOn('stool'); });
+pbtn('摸頭（按住）', 'btnPet', 'pet', () => {}, { hold: (on) => { const c = cc(); if (!c || !S.play) return; if (on) c.petStart(); else c.petEnd(); } });
+pbtn('睡覺／起床', 'btnSleep', 'sleep', () => { const c = cc(); if (!c) return; if (c.state === 'sleep') c.wake(); else c.sleep(); });
+pbtn('抓起／放下', 'btnGrab', 'grab', () => { const c = cc(); if (!c) return; if (c.state === 'held') c.release(0, 0, 0); else c.grab(c.body.x, 1.0, c.body.z); });
+pbtn('丟出去', 'btnThrow', 'throw', () => { const c = cc(); if (!c) return; const f = camForward(); c.throwAt(f.x * 4.2, 4.6, f.z * 4.2); });
+for (const [k, zh] of [['hit', '受擊'], ['happy', '開心'], ['angry', '生氣'], ['sad', '難過']]) pbtn(zh, 'btn_' + k, k, () => cc()?.trigger(k));
+pbtn('停下回待機', 'btnStop', 'stop', () => { const c = cc(); if (!c) return; c.stop(); c.interrupt(); });
+pbtn('跑（切換）', 'btnRun', 'run', () => { S.runMode = !S.runMode; $('#btnRun').classList.toggle('on', S.runMode); });
+pbtn('拖曳跑（切換）', 'btnDrag', 'drag', () => { S.dragMode = !S.dragMode; $('#btnDrag').classList.toggle('on', S.dragMode); });
+pbtn('開發面板', 'btnDev', 'dev', () => { S.devOn = !S.devOn; $('#dev').hidden = !S.devOn; $('#btnDev').classList.toggle('on', S.devOn); });
+for (const b of gp.querySelectorAll('button[data-p]')) if (b.dataset.p !== 'play' && b.dataset.p !== 'dev') b.disabled = true;
+// 指標：點地面走過去（雙擊跑）、點凳子坐下、按住頭頂摸頭、拖曳跑
+view.addEventListener('pointerdown', (e) => {
+  if (!S.play || !cc() || e.button !== 0) return;
+  const r = renderer.domElement.getBoundingClientRect(), rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  const hit = S.field.pick(rc);
+  if (hit.kind === 'head') { if (cc().petStart()) { S.petPtr = e.pointerId; e.stopPropagation(); ctl.enabled = false; } return; }
+  if (S.dragMode && hit.kind !== 'stool') { S.drag = { on: true, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, id: e.pointerId }; e.stopPropagation(); ctl.enabled = false; return; }
+  S.click = { x: e.clientX, y: e.clientY, t: performance.now(), kind: hit.kind, point: hit.point, id: e.pointerId };
+}, true);
+addEventListener('pointermove', (e) => { if (S.drag && S.drag.on) { S.drag.x = e.clientX; S.drag.y = e.clientY; } });
+addEventListener('pointerup', (e) => {
+  if (S.petPtr != null) { S.petPtr = null; cc()?.petEnd(); ctl.enabled = true; }
+  if (S.drag && S.drag.on) { S.drag.on = false; cc()?.setMove(0, 0, 0); S.drag = null; ctl.enabled = true; }
+  const c = S.click; S.click = null; if (!c || !S.play || !cc()) return;
+  if (Math.hypot(e.clientX - c.x, e.clientY - c.y) > 6 || performance.now() - c.t > 450) return;
+  const now = performance.now(), dbl = S.lastClick && now - S.lastClick.t < 380 && Math.hypot(e.clientX - S.lastClick.x, e.clientY - S.lastClick.y) < 24; S.lastClick = { t: now, x: e.clientX, y: e.clientY };
+  if (c.kind === 'stool') { if (cc().state === 'sit') cc().standUp(); else cc().sitOn('stool'); }
+  else if (c.kind === 'crate') { cc().walkTo(c.point.x + (cc().body.x < c.point.x ? -0.62 : 0.62), c.point.z, false); }
+  else if (c.kind === 'ground') { const H = 2.3 - 0.4; cc().walkTo(clamp(c.point.x, -H, H), clamp(c.point.z, -H, H), dbl || S.runMode); }
+});
+addEventListener('keydown', (e) => {
+  if (!S.play || !cc() || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); if (!e.repeat) cc().jump(); }
+  else if (k === 'e' && !e.repeat) { const c = cc(); if (c.state === 'sit') c.standUp(); else c.sitOn('stool'); }
+  else if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'].includes(k)) { if (k.startsWith('arrow')) e.preventDefault(); S.keys.add(k); }
+});
+addEventListener('keyup', (e) => S.keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => S.keys.clear());
+// 開發用小面板（預設收起）
+setInterval(() => {
+  if (!S.devOn || !cc()) return; const i = cc().info(), f = (v, n = 2) => (+v).toFixed(n);
+  $('#devTxt').textContent = `狀態　${i.state}${i.sub ? '／' + i.sub : ''}　（姿勢 ${i.key}）\n速度　${f(i.speed)} m/s　垂直 ${f(i.vy)}\n著地　${i.grounded ? '是' : '否'}　高度 ${f(i.y, 3)} m\n步頻　${f(i.cad)} Hz　步幅 ${f(i.stride, 3)} m\n位置　(${f(i.x)}, ${f(i.z)})　朝向 ${f(i.yaw)}\n表情　${i.expr}　小動作 ${i.micro || '—'}\n衝突 ${i.conflicts}　被拒轉場 ${i.rejects}　丟棄步 ${i.dropped}`;
+}, 150);
 
 // ── 主迴圈（頁面切走就停，切回來再開）
 let last = performance.now(), raf = 0, frames = 0, acc = 0, fpsT = 0;
@@ -137,13 +225,19 @@ function frame(now) {
   const sdt = S.paused ? 0 : dt; S.time += sdt;
   if (S.ch) {
     const c = S.ch;
+    if (S.play && S.field?.ctl) {
+      const cc = S.field.ctl; trackPlay(dt, cc); if (!S.paused) cc.update(dt); else c.update(dt, true);
+      followCam(dt, cc);
+    } else {
     if (!S.paused) {
       if (S.act) { S.act.t += dt; if (S.act.t >= S.act.dur) endAct(); }
       if (!S.act) { c.resetPose(); } else { c.resetPose(); }
       idle(c, S.time); trackGaze(c);
       if (S.act) S.act.fn(c, S.act.t);
     }
-    c.update(dt, S.paused); stage.updateContact();
+    c.update(dt, S.paused);
+    }
+    stage.updateContact();
   }
   if (S.old && S.cmp && sdt > 0) { S.old.step(sdt, { mx: 0, mz: 0, run: false, jump: false }); S.old.animate(sdt, { look: null, cam: camera.position }); S.old.lookT = 1e9; }
   if (S.cmp && S.old) {
@@ -158,8 +252,10 @@ function frame(now) {
 document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } });
 
 resize(); await buildNew(); setView(qs.get('view') || 'front', true);
+if (qs.has('play')) await enablePlay(true);
 if (S.cmp) layout();
 raf = requestAnimationFrame(frame);
 // 測試與截圖用的對外介面
-window.CH = { pose(name, t) { const c = S.ch; c.resetPose(); idle(c, 0.5); if (name) ACTS[name].fn(c, t); c.update(0); stage.updateContact(); }, S, stage, scene, camera, renderer, ctl, setView, playAct, endAct, buildNew, buildOld, layout, applyWire, applySil, get ch() { return S.ch; }, frame, mood: (k) => S.ch.face.set(k), setCmp(on) { S.cmp = on; if (on) buildOld(); layout(); applyOffset(); setView(S.view || 'front', true); }, setSil(on) { S.sil = on; applySil(); }, setWire(on) { S.wire = on; applyWire(); } };
+window.CH = { enablePlay, get field() { return S.field; }, get cc() { return S.field?.ctl; }, THREE, pose(name, t) { const c = S.ch; c.resetPose(); idle(c, 0.5); if (name) ACTS[name].fn(c, t); c.update(0); stage.updateContact(); }, S, stage, scene, camera, renderer, ctl, setView, playAct, endAct, buildNew, buildOld, layout, applyWire, applySil, get ch() { return S.ch; }, frame, mood: (k) => S.ch.face.set(k), setCmp(on) { S.cmp = on; if (on) buildOld(); layout(); applyOffset(); setView(S.view || 'front', true); }, setSil(on) { S.sil = on; applySil(); }, setWire(on) { S.wire = on; applyWire(); } };
+window.CH.qa = makeQA(window.CH);
 document.title = 'ok'; document.documentElement.dataset.ready = '1';
