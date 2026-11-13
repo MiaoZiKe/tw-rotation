@@ -162,7 +162,7 @@ export function createCharacter(spec, env = {}) {
         ch.animate(Math.min(accDt, 0.1), aenv); accDt = 0; props(t); tickShared(t);
       } else { root.updateMatrix(); space.matrix.copy(root.matrix).invert(); if (s !== 1) space.matrix.scale(_v.set(s, s, s)); root.updateMatrixWorld(true); }
       if (icon && icon.visible) {
-        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.position.set(0, c.height + c.lift + 0.12 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }
+        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0);   // 高過名牌 }
       }
     },
     setAction(name, opts = {}) { if (!ACTS[name]) name = 'idle'; if (ONE_SHOT[name]) { c._until = c._t + (opts.duration || ONE_SHOT[name]); if (opts.then) c._base = opts.then; apply(name); } else { c._base = name; if (opts.duration) { c._until = c._t + opts.duration; c._base = opts.then || 'idle'; apply(name); } else if (!c._until) apply(name); } },
