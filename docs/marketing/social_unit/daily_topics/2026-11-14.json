@@ -1,0 +1,555 @@
+{
+  "target_date": "2026-11-14",
+  "data_date": "2026-11-13",
+  "warning": "",
+  "n": 8,
+  "track_a": {
+    "name": "A 總經",
+    "schedule": [
+      {
+        "date_et": "2026-11-18",
+        "tw_time": "11/19 03:00",
+        "kind": "minutes",
+        "title": "FOMC 會議紀要（10/28 會議）",
+        "ref": "",
+        "org": "聯準會（Federal Reserve）",
+        "via": "yaml",
+        "phase": "未來",
+        "confidence": "待查證"
+      }
+    ],
+    "news": [
+      {
+        "title": "歷峰(Richemont)珠寶營收增14%漲價仍難完全抵銷金價與匯率壓力",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661770",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "酷澎火箭跨境擴增藍牙商品，電子簽章大幅簡化申報流程",
+        "source": "technews",
+        "url": "https://ccc.technews.tw/2026/11/13/coupang-rocket-overseas-expands-its-selection-by-more-than-200-bluetooth-items/",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "川崎重工股價重挫8%！國防、航空訂單增加 為何獲利卻不如預期？",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661747",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "日股本周大漲6.46% 創五個月最佳表現 輝達風波未擋AI股反彈",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661748",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "億萬富豪廖凱原堅定支持黃仁勳，宣布停止加碼輝達",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/11/13/billionaire-koguan-vows-not-to-buy-nvidia-stock-as-huang-quits/",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "索馬魯肽眼疾風險衝上熱搜 專家提六大禁用族群",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661596",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "三井住友上修獲利至1.9兆日圓拉高AI資料中心融資標準",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661730",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "歐司朗光學半導體營收增9%AI光互連邁向商用",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661732",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      }
+    ]
+  },
+  "track_b": {
+    "name": "B 科技",
+    "news": [
+      {
+        "title": "川普點名庫克接棒黃仁勳！分析師打臉「機率幾乎為零」 蘋果前執行長為何不該掌舵輝達？",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661604",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "跑起來，別用走的！皮衣黃仁勳再也不上台演講的 AI 時代就這樣跑步來臨",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/11/13/the-ai-%e2%80%8b%e2%80%8bera-is-rapidly-approaching-with-jensen-huang-no-longer-giving-speeches-on-stage/",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "黃仁勳傳奇造就身價 8 億研發人才，財務長臨危接棒留才成關鍵課題",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/11/13/jensen-huangs-legendary-success-has-created-a-net-worth-of-800-million-for-nvidias-rd-talent/",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "Outlook還在搶修中！微軟服務何時恢復未定 盤前股價跌逾2%",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661824",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "蘇姿丰持股約0.26% 沒有「超級投票權」 誰掌握AMD換帥決定權？",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6660718",
+        "date": "2026-11-13",
+        "groups": [
+          "IC 設計"
+        ],
+        "companies": [
+          {
+            "code": "NASDAQ:AMD",
+            "name": "AMD"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "IC 設計公司做什麼、和晶圓代工怎麼合作",
+          "完成一顆 IC 要哪些程序（設計→製造→封測）",
+          "半導體製程流程怎麼走（設計→製造→封裝→測試）",
+          "半導體上下游合作關係：誰供貨給誰",
+          "這個環節目前邁向哪個階段"
+        ]
+      },
+      {
+        "title": "黃仁勳走了AI教主換誰當？陸行之點名「四巨頭」有望接棒",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661801",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "輝達財務長克瑞斯臨危受命暫代執行長，曾質疑黃仁勳投資策略",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/11/13/nvidia-cfo-colette-kress-appointed-acting-ceo-crisis-questioned-jensen-huang-investment-strategy/",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "市值蒸發逾1兆美元後誰在買輝達？散戶單日近40萬筆買單力挺 限縮跌勢",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6661598",
+        "date": "2026-11-13",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      }
+    ],
+    "lectures": [
+      {
+        "date": "2026-11-16",
+        "code": "1102",
+        "name": "亞泥",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "1905",
+        "name": "華紙",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "1907",
+        "name": "永豐餘",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "2303",
+        "name": "聯電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "2459",
+        "name": "敦吉",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "2897",
+        "name": "王道銀行",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "3003",
+        "name": "健和興",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "3014",
+        "name": "聯陽",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "3045",
+        "name": "台灣大",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "5234",
+        "name": "達興材料",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "6446",
+        "name": "藥華藥",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "6754",
+        "name": "匯僑設計",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "7786",
+        "name": "東方風能",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-16",
+        "code": "9933",
+        "name": "中鼎",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "1560",
+        "name": "中砂",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "1590",
+        "name": "亞德客-KY",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "1730",
+        "name": "花仙子",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "2338",
+        "name": "光罩",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "3231",
+        "name": "緯創",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "3702",
+        "name": "大聯大",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "6909",
+        "name": "創控",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-17",
+        "code": "8473",
+        "name": "山林水",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-18",
+        "code": "2303",
+        "name": "聯電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-18",
+        "code": "2308",
+        "name": "台達電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-18",
+        "code": "4439",
+        "name": "冠星-KY",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-18",
+        "code": "6782",
+        "name": "視陽",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-18",
+        "code": "8011",
+        "name": "台通",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-19",
+        "code": "1525",
+        "name": "江申",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-19",
+        "code": "1717",
+        "name": "長興",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-19",
+        "code": "2328",
+        "name": "廣宇",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-19",
+        "code": "2436",
+        "name": "偉詮電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-19",
+        "code": "2476",
+        "name": "鉅祥",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-19",
+        "code": "3406",
+        "name": "玉晶光",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-20",
+        "code": "1590",
+        "name": "亞德客-KY",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-20",
+        "code": "1773",
+        "name": "勝一",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-20",
+        "code": "2616",
+        "name": "山隆",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-20",
+        "code": "6209",
+        "name": "今國光",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      }
+    ]
+  }
+}
