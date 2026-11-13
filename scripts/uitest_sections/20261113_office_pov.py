@@ -119,6 +119,9 @@ def t_pov_desktop(b, base):
         ok("角色視角：辦公室頁載入完成", got)
         if not got:
             return
+        pg.click("#helpBtn"); pg.wait_for_timeout(300)
+        ok("角色視角：說明收在「?」裡（寫了「角色視角」「面向你」「更多」）", pg.evaluate("() => { const t = document.getElementById('helpPop').textContent; return !document.getElementById('helpPop').hidden && /角色視角/.test(t) && /面向你/.test(t) && /更多/.test(t); }"))
+        pg.click("#helpBtn")
         # ── 入口 ──
         ok("角色視角：沒選任何角色時，視角切換列沒有「角色視角」格", pg.evaluate("() => document.getElementById('viewPov').hidden"))
         pg.evaluate("() => __world.setView('god', null, true)"); pg.wait_for_timeout(500)
@@ -182,6 +185,8 @@ def t_pov_desktop(b, base):
         ok("角色視角：前進時鏡頭跟著移動 %.2f 公尺（角色 %.2f 公尺，要 ≥ 75%%；貼牆時鏡頭會被往回推一點，不穿牆）；鏡頭方位與面向夾角 %.0f 度" % (cmv, mv, _pv_deg(p1["camyaw"], p1["cyaw"])), cmv >= mv * 0.75 and _pv_deg(p1["camyaw"], p1["cyaw"]) <= 12, (p0, p1))
         ch = _pv_ch(pg, "ceo"); cm = _pv_cam(pg)
         ok("角色視角：走動後鏡頭仍在眼睛附近（%.2f 公尺）、朝向與面向夾角 %.0f 度" % (_m.dist((cm["x"], cm["y"], cm["z"]), (ch["ex"], ch["ey"], ch["ez"])), _pv_deg(cm["yaw"], ch["yaw"])), _m.dist((cm["x"], cm["y"], cm["z"]), (ch["ex"], ch["ey"], ch["ez"])) <= 0.4 and _pv_deg(cm["yaw"], ch["yaw"]) <= 25, (cm, ch))
+        cmw = _pv_cam(pg); B = pg.evaluate("() => __world.layout.size")
+        ok("角色視角：貼著牆走時鏡頭不穿牆（鏡頭 x=%.2f z=%.2f 都在辦公室內側 0.3 公尺以上）" % (cmw["x"], cmw["z"]), 0.3 - 1e-6 <= cmw["x"] <= B["w"] - 0.3 + 1e-6 and 0.3 - 1e-6 <= cmw["z"] <= B["d"] + 9 + 1e-6, (cmw, B))
         # 轉身：← 轉身，視角跟著
         a0 = _pv_ch(pg, "ceo")["yaw"]; k0 = _pv_cam(pg)["yaw"]
         pg.keyboard.down("ArrowLeft"); pg.wait_for_timeout(700); pg.keyboard.up("ArrowLeft"); pg.wait_for_timeout(500)
@@ -349,6 +354,20 @@ def t_face(b, base):
         mvdir = _m.atan2(p1["x"] - p0["x"], p1["z"] - p0["z"]); mv = _m.hypot(p1["x"] - p0["x"], p1["z"] - p0["z"])
         ok("面向鏡頭：操控中朝向跟著移動方向（移動 %.2f 公尺，方向與朝向夾角 %.0f 度 ≤ 30）" % (mv, _pv_deg(mvdir, _pv_ch(pg, "data-scraper")["yaw"])), mv > 0.3 and _pv_deg(mvdir, _pv_ch(pg, "data-scraper")["yaw"]) <= 30)
         pg.evaluate("() => __world.pilot.release({ noHome: true, silent: true })")
+        # ── 不同體型：矮小、高大、漂浮的人也都自然地轉過來 ──
+        ex = _pv_pick_extremes(pg)
+        for i, (tag, cid) in enumerate([("矮小", ex["small"]), ("高大", ex["big"]), ("漂浮", ex["floaty"])]):
+            if not cid:
+                continue
+            pg.evaluate("() => { __world.pilot.deselect(); __world.setView('god', null, true); }"); pg.wait_for_timeout(500)
+            pg.evaluate("""([id, x]) => { const W = __world, c = W.chars.get(id), q = W.nav.nearestFree(x, 27, 8), cp = W.camera.position; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(q.x, q.z, Math.atan2(cp.x - q.x, cp.z - q.z) + Math.PI); }""", [cid, 14 + i * 6])
+            pg.wait_for_timeout(1200)
+            _pv_sel(pg, cid); pg.wait_for_timeout(3200)
+            e = _pv_deg(_pv_ch(pg, cid)["yaw"], _pv_toward(pg, cid))
+            ok("面向鏡頭（體型）：%s（%s）點選後轉過來面向鏡頭，夾角 %.1f 度（< 20）" % (tag, cid, e), e < 20)
+            if tag == "漂浮":
+                _pv_shot(pg, "_face_float.png")
+        pg.evaluate("() => __world.pilot.deselect()"); pg.wait_for_timeout(500)
         # ── 坐著：CEO ──
         pg.evaluate("() => { const W = __world; W.setView('god', null, true); }"); pg.wait_for_timeout(800)
         s0 = _pv_ch(pg, "ceo")
@@ -410,6 +429,12 @@ def t_pov_mobile(b, base):
         # ── 角色視角 ──
         pg.evaluate("() => { __world.speed = 3; }")
         _pv_sel(pg, "ceo"); pg.wait_for_timeout(1800)
+        pg.evaluate("() => { __world.view.detached = true; __world.view.dpos = null; }"); pg.wait_for_timeout(900)
+        r = _pv_rect(pg, ".cm-hint .cm-back")
+        ok("手機：手動平移後，「回到角色」鈕在收起的工具列下直接看得到（%s），其他鏡頭鈕仍收著" % (r,), bool(r) and not pg.evaluate("() => !!document.querySelector('.cm-hint .cm-seg').offsetParent"), r)
+        if r:
+            pg.click(".cm-hint .cm-back"); pg.wait_for_timeout(500)
+        ok("手機：點「回到角色」後恢復跟隨、鈕消失", pg.evaluate("() => !__world.view.detached") and not _pv_rect(pg, ".cm-hint .cm-back"))
         ok("手機（角色視角）：資訊卡有「角色視角」鈕、操控列有「視角」鈕", pg.evaluate("() => !!document.querySelector('#card [data-i=pov]') && !!document.querySelector('.pt-pov')"))
         ok("手機（角色視角）：視角切換列第一排放不下，不顯示「角色視角」格（入口在資訊卡與操控列）", pg.evaluate("() => !document.getElementById('viewPov').offsetParent"))
         sels = [".pt-joy", ".pt-jump", ".pt-talk", ".pt-wave", ".pt-pov", ".pt-tips", "#card", "#bar .ttl", "#viewSeg", "#moreBtn", "#pwBtn"]
@@ -443,11 +468,48 @@ def t_pov_mobile(b, base):
         c.close()
 
 
+def t_pov_copy(b, base):
+    """預覽部署會略過名為 data、preview 的資料夾：照那個規則複製 site 再起伺服器，跑角色視角與面向的核心流程，並檢查主控台錯誤與禁用字"""
+    import functools, http.server, shutil, socketserver, tempfile, threading
+    src = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "..", "..", "site"))
+    dst = _os.path.join(tempfile.mkdtemp(prefix="office_pov_preview_"), "site")
+    shutil.copytree(src, dst, ignore=shutil.ignore_patterns("data", "preview"))
+
+    class Q(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+    srv = socketserver.ThreadingTCPServer(("127.0.0.1", 0), functools.partial(Q, directory=dst))
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        ok("預覽部署重建（視角）：複製後沒有 data／preview 資料夾、視角與面向用到的檔案都在", not _os.path.exists(_os.path.join(dst, "data")) and not _os.path.exists(_os.path.join(dst, "preview")) and all(_os.path.exists(_os.path.join(dst, "office", "world", "js", f)) for f in ["pov.js", "attention.js", "pilot.js", "main.js"]))
+        c, pg, got = _pv_open(b, "http://127.0.0.1:%d/index.html" % srv.server_address[1], speed=3)
+        try:
+            ok("預覽部署重建（視角）：office/world.html 載入完成", got)
+            if not got:
+                return
+            _pv_sel(pg, "ceo"); pg.wait_for_timeout(1500)
+            att = pg.evaluate("() => __world.attn.current() && __world.attn.current().spec.id")
+            ok("預覽部署重建（視角）：點選後面向鏡頭啟動（%s）" % att, att == "ceo")
+            pg.keyboard.press("v")
+            ok("預覽部署重建（視角）：按 V 進入角色視角", wait_until(pg, "() => __world.pov.st === 'on'", 10000, 100))
+            txt = pg.evaluate("() => document.body.innerText")
+            ok("預覽部署重建（視角）：畫面文字不含價格／NT$／付費／升級／訂閱／方案／Plus／Pro／免費／右鍵", not _PV_FORBID.search(txt), _PV_FORBID.findall(txt))
+            pg.keyboard.press("Escape")
+            ok("預覽部署重建（視角）：Esc 回原視角", wait_until(pg, "() => __world.pov.st === 'off'", 10000, 100))
+            ok("預覽部署重建（視角）：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+        finally:
+            c.close()
+    finally:
+        srv.shutdown()
+        shutil.rmtree(_os.path.dirname(dst), ignore_errors=True)
+
+
 def t_pov_all(b, base):
     t_pov_desktop(b, base)
     t_pov_exit(b, base)
     t_face(b, base)
     t_pov_mobile(b, base)
+    t_pov_copy(b, base)
 
 
 register("辦公室視角與面向", lambda pg, b, base, code: t_pov_all(b, base))

@@ -466,6 +466,10 @@ def t_hr(b, base):
         pg.reload(wait_until="domcontentloaded")
         ok("重新整理：頁面重新載入", wait_until(pg, "() => window.__world && window.__world.ready", 90000))
         pg.evaluate("() => { __world.speed = 8; }")
+        # 名牌文字只在「他在畫面內」時才會更新（畫面外的人不排版，省工），所以先把鏡頭移到遊民區再讀；
+        # 上一輪的間歇性失敗就是在載入完成的第一幀、鏡頭還看不到遊民區時就去讀名牌
+        pg.evaluate("() => __world.jumpTo('jobless')")
+        wait_until(pg, "() => __world.chars.get('%s')._lab.tag.textContent.includes('待業中')" % X, 20000, 200)
         pos = pg.evaluate("(i) => { const c = __world.chars.get(i), p = c.object3D.position; return [c.jobless, __world.outside.inZone(p.x, p.z), p.z, c._lab.tag.textContent, __world.hr.fired.size]; }", X)
         ok("重新整理後：織網仍在無業遊民區（%s）、名牌仍是待業中" % pos[:3], pos[0] and pos[1] and pos[2] > 30 and "待業中" in pos[3], pos)
         ok("重新整理後：任務轉交的數字還在（接手者 %s）" % r1, prog(RCV) == r1, prog(RCV))
@@ -658,7 +662,8 @@ def t_perf(b, base):
         pg.evaluate("() => __world.sim.exhaust(8100)")
         wait_until(pg, "() => __world.power.phase === 'asleep'", 200000, 500)
         pg.evaluate("() => __world.setView('god', null, true)")      # 先離開近距離（近處的睡覺同事會持續冒 z 小圖示，那是暫時的粒子，不是常駐繪製）
-        pg.wait_for_timeout(6000)      # 已冒出的 z 圖示約 2.6 秒內消失，等它們消失再量穩定值
+        t0 = pg.evaluate("() => __world.time")
+        wait_until(pg, "() => __world.time - %f > 6" % t0, 200000, 300)      # 已冒出的 z 圖示約 2.6 秒（模擬時間）內消失；軟體繪圖幀率很低、每幀模擬時間被上限壓住，所以要用模擬時間等，不能用牆鐘
         g2 = _calls(pg, "god")
         ok("繪製次數：額度用完（牌子掛出）時俯瞰 %d，比平時再多 %d（門牌兩面）" % (g2, g2 - g), g2 - g <= 4, g2)
         print("    繪製次數量測：俯瞰 前%d 後%d｜CEO 視角 前%d 後%d｜用完掛牌時俯瞰 %d" % (BASE_CALLS["god"], g, BASE_CALLS["ceo"], e, g2))

@@ -101,7 +101,9 @@ def t_camera2(b, base):
     # 手機
     c, pg, got = _o(b, base, w=390, h=844, touch=True)
     try:
-        ok("鏡頭（手機）：旋轉鈕與拖曳切換都在、至少 44px、不超出畫面", pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).every(b => b.offsetHeight >= 28)") and pg.evaluate("() => { const r = document.querySelector('.cm-hint').getBoundingClientRect(); return r.left >= 0 && r.right <= 390; }"))
+        ok("鏡頭（手機）：頂端工具列預設收起，鏡頭提示（拖曳切換、旋轉鈕）收在「更多」裡", pg.evaluate("() => !document.querySelector('.cm-hint').offsetParent && document.getElementById('moreBtn').getAttribute('aria-expanded') === 'false'"))
+        pg.click("#moreBtn"); pg.wait_for_timeout(600)
+        ok("鏡頭（手機）：點「更多」後旋轉鈕與拖曳切換都出現（%d 顆按鈕）、至少 44px、不超出畫面" % pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).length"), pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).length >= 4") and pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).every(b => b.offsetHeight >= 28)") and pg.evaluate("() => { const r = document.querySelector('.cm-hint').getBoundingClientRect(); return r.left >= 0 && r.right <= 390; }"))
         ok("鏡頭（手機）：提示是「單指拖曳移動・雙指縮放旋轉・雙點地面前往」、沒有橫向捲軸", pg.evaluate("() => document.querySelector('.cm-hint').textContent.includes('單指拖曳移動・雙指縮放旋轉・雙點地面前往') && document.documentElement.scrollWidth <= innerWidth"))
         r1 = pg.evaluate("() => [...document.querySelectorAll('#bar > *')].filter(e => e.offsetParent).map(e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
         h = pg.evaluate("() => { const r = document.querySelector('.cm-hint').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }")

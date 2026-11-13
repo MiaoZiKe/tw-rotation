@@ -53,7 +53,7 @@ export function createPOV(W, X) {
     const c = P.c; if (c) c.hideFromCam(false);
     if (instant) { finish(true); return; }
     if (P.st === 'out') return;
-    P.st = 'out'; P.t = 1; X.ui.setPovUI(false, c);
+    P.st = 'out'; X.ui.setPovUI(false, c);        // P.t 維持目前進度（在切入途中離開，就從那一格倒回去，不會跳一下）
   };
   P.toggle = c => { if (P.on() && P.st !== 'out') P.exit(); else P.enter(c); };
   function restorePose() {

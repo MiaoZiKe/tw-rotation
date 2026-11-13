@@ -65,6 +65,11 @@ def _settle(pg, tries=30):
     return last
 
 
+def _free_pt(pg):
+    """畫面上離所有角色最遠、又不在面板上的一點：拖曳要從空地開始，從角色身上開始會變成「拎起來」而不是轉鏡頭（有選取時角色常在畫面中央附近，固定座標會偶爾壓到）"""
+    return pg.evaluate("""() => { const W = __world; let best = [700, 300], bd = -1; for (const x of [420, 520, 620, 720, 820, 920]) for (const y of [200, 280, 360, 440, 520, 600]) { let d = 1e9; for (const c of [...W.chars.values(), ...(W.pets || [])]) if (c._sx > -900) d = Math.min(d, Math.hypot(c._sx - x, c._sy + 20 - y)); if (d > bd) { bd = d; best = [x, y]; } } return best; }""")
+
+
 def _mode(pg, m):
     """切換「拖曳：移動｜旋轉」（真的點畫面上的鈕）。新規則（擁有者 11-13）：左鍵拖曳預設是平移，切到旋轉才是旋轉"""
     pg.click(".cm-seg [data-c='%s']" % ("ro" if m == "rotate" else "mv"))
@@ -653,7 +658,8 @@ def t_camera(b, base):
         ok("角色再次移動：自動接回跟隨", wait_until(pg, "() => !__world.view.detached", 4000))
         az0 = _cam(pg)["az"]
         _mode(pg, "rotate")
-        pg.mouse.move(640, 380); pg.mouse.down(); pg.mouse.move(800, 380, steps=8); pg.mouse.up()
+        fx, fy = _free_pt(pg)
+        pg.mouse.move(fx, fy); pg.mouse.down(); pg.mouse.move(fx + 160, fy, steps=8); pg.mouse.up()
         pg.wait_for_timeout(400)
         _mode(pg, "move")
         ok("操控中切到「旋轉」後左鍵拖曳仍可旋轉", abs((_cam(pg)["az"] - az0 + _m.pi) % (2 * _m.pi) - _m.pi) > 0.1)
@@ -701,7 +707,7 @@ def t_mobile(b, base):
         pg.touchscreen.tap(x, y)
         ok("手機：點角色選取", wait_until(pg, "() => __world.pilot.sel", 6000))
         pg.wait_for_timeout(900)
-        ok("手機：出現虛擬搖桿與跳／溝通／揮手鈕", pg.evaluate("() => !document.querySelector('.pt-pad').hidden && !!document.querySelector('.pt-joy') && document.querySelectorAll('.pt-b').length === 3 && getComputedStyle(document.querySelector('.pt-joy')).display !== 'none'"))
+        ok("手機：出現虛擬搖桿與跳／溝通／揮手／視角鈕", pg.evaluate("() => !document.querySelector('.pt-pad').hidden && !!document.querySelector('.pt-joy') && document.querySelectorAll('.pt-b').length === 4 && getComputedStyle(document.querySelector('.pt-joy')).display !== 'none'"))
         sizes = pg.evaluate("() => [...document.querySelectorAll('.pt-b, .pt-th button')].map(b => { const r = b.getBoundingClientRect(); return [b.textContent.trim(), Math.round(r.width), Math.round(r.height)]; })")
         ok("手機：所有按鈕至少 44px", all(w >= 44 and h >= 44 for _, w, h in sizes), sizes)
         ok("手機：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))

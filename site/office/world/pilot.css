@@ -23,7 +23,7 @@
 .pt-list .pt-first{font-weight:700;color:var(--on);margin-bottom:2px}
 .pt-tips.min .pt-list{display:none}
 /* 桌機展開提示卡時，會議紀錄（右上）的高度讓出來，兩張卡不重疊 */
-body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
+body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 268px)}
 
 /* 手機虛擬搖桿與按鈕（桌機不顯示；固定在左下與右下，會讓出底部面板的高度 --lift） */
 :root{--lift:0px}

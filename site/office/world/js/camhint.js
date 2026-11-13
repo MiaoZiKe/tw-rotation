@@ -37,5 +37,5 @@ export function createCamHint(view, cam) {
   let was = null, sig = ''; setInterval(() => { const g = [...$('bar').children].map(k => k.offsetWidth).join(','); if (g !== sig) { sig = g; place(); } }, 400);   // 頂列項目變多變少時重新擺放
   let wasPov = false;
   return { tick() { const pv = document.body.classList.contains('pov-on'); if (pv !== wasPov) { wasPov = pv; render(); place(); }
-    const d = !!(view.detached && view.char); if (d !== was) { was = d; const b = el.querySelector('.cm-back'); if (b) b.hidden = !d; place(); } } };
+    const d = !!(view.detached && view.char); if (d !== was) { was = d; const b = el.querySelector('.cm-back'); if (b) b.hidden = !d; el.classList.toggle('has-back', d); place(); } } };
 }

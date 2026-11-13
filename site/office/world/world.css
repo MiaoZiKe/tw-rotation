@@ -130,6 +130,8 @@ button{font-family:inherit;color:inherit;cursor:pointer}
   #areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn{order:10}
   body:not(.m-more) :is(#areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn){display:none}
   body:not(.m-more) :is(.cm-hint,.dt-chip){display:none!important}
+  body:not(.m-more) .cm-hint.has-back{display:flex!important}                       /* 手動平移後「回到角色」鈕要在手機上直接點得到：收起時只露出這一顆 */
+  body:not(.m-more) .cm-hint.has-back > :not(.cm-back){display:none}
   #viewSeg button{padding:0 8px;min-width:0}
   #viewPov{display:none}                         /* 手機的「角色視角」入口在資訊卡與操控列（第一排放不下） */
 }
