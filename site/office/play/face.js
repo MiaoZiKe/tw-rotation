@@ -99,7 +99,7 @@ export class Face {
     const col = glow || s.eye;
     for (const sd of [-1, 1]) {
       const ex = cx + sd * s.ex, ey = s.ey + gy;
-      const rx = s.rx * c.eyeS, ry = s.ry * c.eyeS;
+      const rx = Math.abs(s.rx * c.eyeS), ry = Math.abs(s.ry * c.eyeS);
       g.save(); g.translate(ex, ey);
       if (glow) { g.shadowColor = glow; g.shadowBlur = 16; }
       if (c.dizzy > 0.5) {
@@ -108,7 +108,7 @@ export class Face {
         g.stroke(); g.restore(); continue;
       }
       if (open > 0.1) {
-        const oy = ry * Math.min(1, open);
+        const oy = Math.max(0.01, ry * Math.min(1, open));
         g.save();
         // 眼皮：用裁切區做上、下眼皮
         const top = -ry - 4 + c.lidT * 2 * ry, sl = c.lidA * ry * 0.42 * -sd, bot = ry + 4 - c.lidB * ry * 1.1;

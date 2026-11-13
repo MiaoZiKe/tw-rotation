@@ -265,11 +265,14 @@ def t_desktop(b, base):
         run_now = pg.evaluate("() => __world.pilot.run")
         _release(pg, "ArrowRight")
         pg.evaluate("() => { __world.speed = 8; }")
+        rec_dbg = pg.evaluate("""() => { const c = __world.chars.get('ceo'), P = __world.pilot; return { rec: __rec.slice(-3), speedNow: P.speedNow, run: P.run, state: c.state, drive: !!c._drive && [c._drive.vx, c._drive.vz], hop: !!c._hop, path: !!c._path, engaging: !!P.engaging, talking: P.talking, vel: c.inner.vel.length(), mode: c.inner.mode, held: c._held }; }""")
         run_frames = [v for v, r in _rec_speeds(pg) if r]
         sp_run = max(run_frames) if run_frames else 0
         ok("同一方向 300 毫秒內連按兩次：進入跑步（pilot.run）", run_now)
-        ok("跑步速度明顯高於走路（逐幀最高速 ≥ 1.8 倍）", sp_run >= 1.8 * sp_walk_peak, (sp_run, sp_walk_peak))
+        ok("跑步速度明顯高於走路（逐幀最高速 ≥ 1.8 倍）", sp_run >= 1.8 * sp_walk_peak, (sp_run, sp_walk_peak, rec_dbg))
         pg.wait_for_timeout(250)
+        if _os.environ.get("PILOT_QUICK"):
+            return
         ok("放開方向鍵後回到走路（run 解除）", not pg.evaluate("() => __world.pilot.run"))
         reset("l")
         sp2, _ = _sim_speed(pg, "ceo", "ArrowLeft", 1.2)
