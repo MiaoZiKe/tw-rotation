@@ -66,7 +66,7 @@
 .lg-head{position:sticky;top:0;z-index:3;background:var(--card);height:32px;border-bottom:1px solid var(--line)}
 .lg-head .h{text-align:center;min-width:0}.lg-head .h.l{text-align:left}
 .lg-head button{border:0;background:none;font-size:12px;font-weight:600;color:var(--sub);height:30px;padding:0 2px;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;max-width:100%}
-.lg-head button:hover{color:var(--ink)}.lg-head .ar{font-style:normal;font-size:9px;color:var(--on);width:8px}
+.lg-head button:hover{color:var(--ink)}.lg-head .ar{font-style:normal;font-size:11px;color:var(--on);width:10px}
 .lg-row{height:32px;font-size:14px;border-bottom:1px solid var(--line);cursor:pointer}
 .lg-row:hover{background:var(--on2)}
 .lg-row.sub{background:#fffdf9;height:30px;font-size:13px}

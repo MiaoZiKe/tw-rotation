@@ -353,7 +353,7 @@ def t_ledger(b, base):
     pg.wait_for_timeout(1800)
     sx, sy = pg.evaluate(_PROJ, [pos[0] - 0.3, 1.2, pos[1]])
     pg.mouse.click(sx, sy)
-    ok("績效總表：點部門招牌 → 打開總表並展開該部門、那一列有高亮", wait_until(pg, "() => !document.getElementById('ledger').hidden && document.querySelectorAll('#ledger [data-u^=\"agent:\"]').length === 6", 3000), None)
+    ok("績效總表：點部門招牌 → 打開總表並展開該部門、那一列有高亮", wait_until(pg, "() => !document.getElementById('ledger').hidden && ['content-planner', 'tc-channel-lead', 'healing-editor', 'market-researcher', 'finance-content-editor', 'social-ops-lead'].every(id => document.querySelector('[data-u=\"agent:' + id + '\"]'))", 3000), None)
     pg.keyboard.press("Escape")
 
     # ── 主管被開除（佈告欄）──
