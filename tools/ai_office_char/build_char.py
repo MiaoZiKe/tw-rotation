@@ -267,6 +267,7 @@ def build_lod(P0, lod, quads, cache, out_dir):
     # 重拓撲後先把四邊形邊長整平（切線平滑）再貼回距離場：輪廓是解析曲面，格點分佈均勻，頂點法線才不會抖
     for _ in range(4):
         P = lap_smooth(P, n, E, 2, 0.5); P = S.project(sdf, P, 6)
+    for _ in range(getattr(P0, 'FINAL_SMOOTH', 0)): P = lap_smooth(P, n, E, 2, 0.5); P = S.project(sdf, P, 6)
     P = S.project(sdf, P, 8); set_verts(ob, P)
     bpy.ops.object.shade_smooth()
     N = S.grad(sdf, P); N /= np.linalg.norm(N, axis=1)[:, None]

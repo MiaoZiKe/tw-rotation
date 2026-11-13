@@ -5,7 +5,7 @@ import { Stage, BG } from './stage.js';
 import { loadMochi, MochiChar } from './mochi.js';
 import { CharController, loadProfile } from './controller.js';
 import { PhysWorld } from './physics.js';
-import { NEW_KINDS, colorsFor, mergeProfile, PROFILE_OVERRIDE } from './kinds.js';
+import { NEW_KINDS, colorsFor, mergeProfile, PROFILE_OVERRIDE, applyBounce } from './kinds.js';
 import { addAccs, addCherry } from './accs.js';
 import { Character } from '../play/character.js';
 import { stubWorld, stubFx } from '../play/lite.js';
@@ -41,7 +41,7 @@ async function build() {
   const base = await loadProfile('./profiles/mochi.json'); ctl = new CharController(ch, world, mergeProfile(base, PROFILE_OVERRIDE[sp]), { life: false, seed: 7 }); SV.ctl = ctl; SV.ch = ch; ctl.update(0.1);
 }
 function pose(name) {
-  const secs = (t) => { for (let i = 0; i < t * 60; i++) { if (OLD) { old.step(1 / 60, SV.inp || { mx: 0, mz: 0, run: false, jump: false }); old.animate(1 / 60, { look: null, cam: camera.position }); } else ctl.update(1 / 60); } };
+  const secs = (t) => { for (let i = 0; i < t * 60; i++) { if (OLD) { old.step(1 / 60, SV.inp || { mx: 0, mz: 0, run: false, jump: false }); old.animate(1 / 60, { look: null, cam: camera.position }); } else { ctl.update(1 / 60); } } if (!OLD) applyBounce(ch, ctl, PROFILE_OVERRIDE[sp]?.bounce); };
   if (OLD) {
     if (name === 'sit') { addChair(0.42, 0, -0.9); old.pos.set(0, 0.38, -0.9); old.mode = 'sit'; old.modeT = 0; secs(2.5); }
     if (name === 'walk' || name === 'run') { SV.inp = { mx: 0, mz: 1, run: name === 'run', jump: false }; secs(1.2); }
@@ -54,5 +54,5 @@ function pose(name) {
   if (name === 'sleep') { ctl.reset(0, 0, 0); ctl.sleep(); secs(2); }
   render();
 }
-function advance(sec) { if (OLD) { for (let i = 0; i < sec * 60; i++) { old.step(1 / 60, SV.inp || { mx: 0, mz: 0, run: false, jump: false }); old.animate(1 / 60, { look: null, cam: camera.position }); } } else for (let i = 0; i < sec * 60; i++) ctl.update(1 / 60); render(); }
+function advance(sec) { if (OLD) { for (let i = 0; i < sec * 60; i++) { old.step(1 / 60, SV.inp || { mx: 0, mz: 0, run: false, jump: false }); old.animate(1 / 60, { look: null, cam: camera.position }); } } else { for (let i = 0; i < sec * 60; i++) ctl.update(1 / 60); applyBounce(ch, ctl, PROFILE_OVERRIDE[sp]?.bounce); } render(); }
 await build(); SV.ready = true; cam();

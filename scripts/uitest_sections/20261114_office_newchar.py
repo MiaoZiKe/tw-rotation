@@ -47,7 +47,7 @@ _FACE = """([id, mode]) => { const W = __world, c = W.chars.get(id), P = W.pilot
 
 _ACC = """(id) => { const W = __world, c = W.chars.get(id) || W.pets.find(p => p.spec.id === id), ch = c.inner.ch, V = W.THREE.Vector3; c.update(1 / 60, W.time + 1); ch.model.updateMatrixWorld(true); ch.body.skeleton.update();
  const P = ch.body.geometry.attributes.position, M = ch.body.geometry.morphAttributes.position, w = ch.body.morphTargetInfluences, pts = []; const v = new V();
- for (let i = 0; i < P.count; i += 2) { v.set(P.getX(i), P.getY(i), P.getZ(i)); ch.body.applyBoneTransform(i, v); pts.push(v.clone().applyMatrix4(ch.body.matrixWorld)); }
+ for (let i = 0; i < P.count; i += 1) { v.set(P.getX(i), P.getY(i), P.getZ(i)); ch.body.applyBoneTransform(i, v); pts.push(v.clone().applyMatrix4(ch.body.matrixWorld)); }
  const out = []; ch.holderFor('head').traverse(o => { if (o.userData.acc && o.userData.acc !== 'cherry') { const q = new V(); o.getWorldPosition(q); let best = 1e9; for (const p of pts) best = Math.min(best, p.distanceTo(q)); out.push({ acc: o.userData.acc, d: best }); } });
  const names = []; ch.model.traverse(o => names.push(o.name)); ch.holderFor('head').traverse(o => names.push(o.name));
  return { acc: out, anchors: Object.keys(ch.meta.anchors), noNoseName: !names.some(n => /nose/i.test(n)), faceNose: !!(ch.face && ch.face.cur && ch.face.cur.nose) }; }"""

@@ -19,7 +19,7 @@ export function colorsFor(look) {
 // 各物種的個性檔覆寫（疊在 profiles/mochi.json 上）：只列有差異的鍵
 export const PROFILE_OVERRIDE = {
   bunny: { waddle: 0.05, jump: { height: 0.78 }, move: { walk: 0.62, run: 1.4 }, secondary_gain: 1.35, bounce: { dy: 0.04, sq: 0.3, sway: 0.0 } },
-  pudding: { waddle: 0.16, land: { peakK: 0.1, zeta: 0.28 }, move: { walk: 0.52, run: 1.2 }, bounce: { dy: 0.03, sq: 0.7, sway: 0.16 } },
+  pudding: { waddle: 0.12, land: { peakK: 0.1, zeta: 0.28 }, move: { walk: 0.52, run: 1.2 }, bounce: { dy: 0.03, sq: 0.7, sway: 0.16 } },
 };
 export function mergeProfile(base, ov) {
   const out = JSON.parse(JSON.stringify(base)); if (!ov) return out;
@@ -31,4 +31,17 @@ export function officeProfile(base, k = 1.5) {
   const P = JSON.parse(JSON.stringify(base)); const M = P.move; M.walk *= k; M.run *= k * 1.6; M.accel *= k; M.decel *= k;
   for (const g of [P.gait.walk, P.gait.run]) { g.vmax *= (g === P.gait.run ? k * 1.6 : k); g.stride = g.stride.map(x => x * Math.min(k, 1.25)); g.lift *= Math.min(k, 1.2); }
   P.gait.walk.vmax *= 1; return P;
+}
+
+// 走路／跑步的 Q 彈：每步身體上下彈（dy 公尺）、落地擠壓／騰空拉長（sq）、左右搖晃（sway 弧度）。疊在控制器輸出之上（腳著地期的世界位置不受影響）。
+import { CHANNELS } from './actions.js';
+const _IX = Object.fromEntries(CHANNELS.map((n, i) => [n, i]));
+export function applyBounce(ch, ctl, B) {
+  if (!B || (ctl.state !== 'walk' && ctl.state !== 'run')) return; const p = ctl._p; if (!p) return;
+  const u = ctl.feet.phase, w = (u * 2) % 1, bob = Math.sin(Math.PI * w), amp = ctl.gaitAmp, run = ctl.state === 'run' ? 1.4 : 1;
+  ch.move('root', p[_IX['root.dx']], p[_IX['root.dy']] + B.dy * bob * amp * run, p[_IX['root.dz']]);
+  if (B.sway) ch.rot('spine', p[_IX['spine.rx']], p[_IX['spine.ry']], p[_IX['spine.rz']] + B.sway * Math.sin(2 * Math.PI * u) * amp);   // 搖晃轉的是脊椎（腿在骨盆下面，不會被帶著滑）
+  const land = Math.pow(1 - bob, 3) * amp, air = Math.pow(bob, 2) * amp;
+  ch.morph('squash', Math.max(p[_IX['morph.squash']], B.sq * land)); ch.morph('stretch', Math.max(p[_IX['morph.stretch']], B.sq * 0.45 * air));
+  ch.model.updateMatrixWorld(true);
 }

@@ -12,7 +12,7 @@ import { loadMochi, MochiChar } from '../../char/mochi.js';
 import { CharController, loadProfile } from '../../char/controller.js';
 import { PhysWorld } from '../../char/physics.js';
 import { CHANNELS } from '../../char/actions.js';
-import { NEW_KINDS, isNew, colorsFor, mergeProfile, officeProfile, PROFILE_OVERRIDE } from '../../char/kinds.js';
+import { NEW_KINDS, isNew, colorsFor, mergeProfile, officeProfile, PROFILE_OVERRIDE, applyBounce } from '../../char/kinds.js';
 import { addAccs, addCherry } from '../../char/accs.js';
 import { G as KG } from './kit.js';
 export * from '../../play/office_character.js';
@@ -231,7 +231,7 @@ function makeNew(spec, look, env) {
   // 動作姿勢疊加：在控制器輸出的骨頭旋轉上加增量（站著或坐著、沒在走路時才套；走路／空中／被抓時由控制器完全負責）
   const POSE_OK = new Set(['idle', 'sit', 'land']);
   function applyPose(t) {
-    const st = ctl.state; inner.poseT = (t - poseT0); const p = ctl._p; if (!p) return;
+    const st = ctl.state; inner.poseT = (t - poseT0); const p = ctl._p; if (!p) return; applyBounce(ch, ctl, PROFILE_OVERRIDE[look.species]?.bounce);
     let name = ACTS[c.action]?.pose; if (c.action === 'sleep' && st !== 'sleep') name = 'doze';
     const calm = POSE_OK.has(st) && !(st === 'sit' && ctl.sit && ctl.sit.sub !== 'seated') && !ctl.overlay && !ctl.pet.on, ex = {};
     if (name && calm && POSES[name]) Object.assign(ex, POSES[name](t - poseT0));
