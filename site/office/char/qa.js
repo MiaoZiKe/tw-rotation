@@ -7,7 +7,7 @@ function mulberry(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = 
 
 export function makeQA(CH) {
   const cc = () => CH.cc;
-  const finite = (c) => { const b = c.body; if (![b.x, b.y, b.z, b.vx, b.vy, b.vz, b.yaw].every(Number.isFinite)) return false; for (const v of c.pose) if (!Number.isFinite(v)) return false; return true; };
+  const finite = (c) => { const b = c.body; if (![b.x, b.y, b.z, b.vx, b.vy, b.vz, b.yaw].every(Number.isFinite)) return false; for (const v of c.pose) if (!Number.isFinite(v)) return false; for (const bn of c.ch.body.skeleton.bones) { const e = bn.matrixWorld.elements; for (let i = 0; i < 16; i++) if (!Number.isFinite(e[i])) return false; } return true; };   // 含骨頭世界矩陣（NaN 會讓蒙皮頂點消失，最低點量測會被漏掉）
   function prepare(o = {}) {
     CH.S.paused = true; CH.S.noFollow = true; const c = cc(); c.life = false; c.ch.face.autoBlink = false; c.reset(o.x ?? 0, o.z ?? 0, o.yaw ?? 0);
     c.bus.conflicts.length = 0; c.rejects.length = 0; c.feet.stats = { maxRatio: 1, minRatio: 1, clamped: 0, slide: 0 }; c.debug.proj = 0; c.debug.projMax = 0; return c;
@@ -28,10 +28,11 @@ export function makeQA(CH) {
   }
   // 2 腳鎖地＋腿長：沿圓弧走／跑，量腳踝骨頭的世界位置
   function footLock(kind, fps, curve) {
-    const c = prepare({ x: curve ? 0 : -1.9, z: curve ? 1.2 : 0, yaw: Math.PI / 2 }), L0 = c.feet.L0, run_ = kind === 'run';
+    const spd = kind === 'run' ? 1.3 : 0.6, w = curve ? (kind === 'run' ? 1.5 : 0.85) : 0;   // 弧線半徑 v/w，圓心 (0, 0.3)，不碰箱子與凳子
+    const c = prepare({ x: curve ? 0 : -1.9, z: curve ? 0.3 + spd / w : 0, yaw: Math.PI / 2 }), L0 = c.feet.L0, run_ = kind === 'run';
     const ank = [new V(), new V()], hip = new V(), foot = [c.ch.bones['foot.L'], c.ch.bones['foot.R']], leg = [c.ch.bones['leg.L'], c.ch.bones['leg.R']];
     const st = [{ prev: 'x', start: null, max: 0 }, { prev: 'x', start: null, max: 0 }], worst = []; let ratioMax = 0, ratioMin = 9, intervals = 0, solePen = 0, soleAir = 0;
-    const th0 = Math.PI / 2, w = curve ? (run_ ? 1.0 : 0.65) : 0;
+    const th0 = Math.PI / 2;
     run(c, fps, curve ? 8 : (run_ ? 3.3 : 5.8), (t) => { const th = th0 + w * t; c.setMove(Math.sin(th), Math.cos(th), 1, run_); }, (t, i) => {
       if (t < 0.5) return;
       c.ch.model.updateMatrixWorld(true);
@@ -61,9 +62,9 @@ export function makeQA(CH) {
   }
   // 4 全程最低點（全部頂點）
   function lowest(name, fps = 60) {
-    const c = prepare({ x: 0, z: 0.6, yaw: 0 }); let mn = 1e9, mnAt = '', maxJump = 0, last = null, frames = 0;
+    const c = prepare({ x: 0, z: 0.6, yaw: 0 }); let mn = 1e9, mnAt = '', maxJump = 0, last = null, frames = 0, badFrames = 0;
     const names = c.ch.body.skeleton.bones.map(x => x.name), sk = c.ch.body.geometry.attributes.skinIndex, sw = c.ch.body.geometry.attributes.skinWeight; let mnBone = '';
-    const chk = (t, i) => { frames++; { const who = {}, v = c.lowestBody(true, who) - c.body.supportY; if (v < mn) { mn = v; let bi = 0, bw = 0; for (let k = 0; k < 4; k++) { const w = sw.getComponent(who.i, k); if (w > bw) { bw = w; bi = sk.getComponent(who.i, k); } } mnBone = names[bi]; mnAt = c.state + '/' + (c.sit?.sub || '') + '@' + t.toFixed(2); } } const p = c.ch.root.position; if (last) maxJump = Math.max(maxJump, p.distanceTo(last)); last = p.clone(); };
+    const chk = (t, i) => { frames++; if (!finite(c)) badFrames++; { const who = {}, v = c.lowestBody(true, who) - c.body.supportY; if (v < mn) { mn = v; let bi = 0, bw = 0; for (let k = 0; k < 4; k++) { const w = sw.getComponent(who.i, k); if (w > bw) { bw = w; bi = sk.getComponent(who.i, k); } } mnBone = names[bi]; mnAt = c.state + '/' + (c.sit?.sub || '') + '@' + t.toFixed(2); } } const p = c.ch.root.position; if (last) maxJump = Math.max(maxJump, p.distanceTo(last)); last = p.clone(); };
     const S = {
       idle: () => run(c, fps, 1.5, null, chk),
       walk: () => { run(c, fps, 2.5, () => c.setMove(0, 1, 1, false), chk); c.setMove(0, 0, 0); run(c, fps, 1.2, null, chk); },
@@ -76,7 +77,7 @@ export function makeQA(CH) {
       overlays: () => { for (const k of ['hit', 'happy', 'angry', 'sad']) { c.trigger(k); run(c, fps, 2.4, null, chk); } },
       throw: () => { c.throwAt(2.5, 5.0, 1.5); run(c, fps, 5, null, chk); },
     };
-    S[name](); return { name, min: mn, at: mnAt, bone: mnBone, maxJump, frames, proj: c.debug.proj, projMax: c.debug.projMax, finite: finite(c), conflicts: c.bus.conflicts.length };
+    S[name](); return { name, badFrames, min: mn, at: mnAt, bone: mnBone, maxJump, frames, proj: c.debug.proj, projMax: c.debug.projMax, finite: finite(c), conflicts: c.bus.conflicts.length };
   }
   // 5 打斷後回到 Idle：骨頭與形態鍵回到靜止值、位置沒被重設
   function restDiff(c) {
@@ -90,14 +91,15 @@ export function makeQA(CH) {
     return { worstQ, worstP, worstM, worstName };
   }
   function interruptFrom(name, fps = 60) {
+    const untilU = (...a) => { const r = until(...a); last = c.ch.root.position.clone(); return r; };
     const c = prepare({ x: -0.5, z: 0.4, yaw: 0.4 }); let maxStep = 0, last = c.ch.root.position.clone(); const track = () => { const p = c.ch.root.position; maxStep = Math.max(maxStep, p.distanceTo(last)); last = p.clone(); };
     const go = (secs, fn) => run(c, fps, secs, fn, () => { track(); });
     const enter = {
       idle: () => go(0.3), walk: () => go(0.8, () => c.setMove(0.3, 1, 1, false)), run: () => go(1.0, () => c.setMove(0.3, 1, 1, true)),
-      jumpPrep: () => { c.jump(); until(c, fps, 1, () => c.state === 'jumpPrep'); go(0.05); },
-      air: () => { c.jump(); until(c, fps, 2, () => c.state === 'air'); go(0.2); }, land: () => { c.jump(); until(c, fps, 2, () => c.state === 'land'); go(0.05); },
-      sit: () => { c.sitOn('stool'); until(c, fps, 14, () => c.sit && c.sit.sub === 'seated'); go(0.5); }, sleep: () => { c.sleep(); go(1.2); },
-      held: () => { c.grab(0, 1.0, 0.4); go(0.8); }, tumble: () => { c.throwAt(2.5, 5, 1.5); go(0.5); }, recover: () => { c.throwAt(0.5, 3.4, 0); until(c, fps, 6, () => c.state === 'recover'); go(0.1); },
+      jumpPrep: () => { c.jump(); untilU(c, fps, 1, () => c.state === 'jumpPrep'); go(0.05); },
+      air: () => { c.jump(); untilU(c, fps, 2, () => c.state === 'air'); go(0.2); }, land: () => { c.jump(); untilU(c, fps, 2, () => c.state === 'land'); go(0.05); },
+      sit: () => { c.sitOn('stool'); untilU(c, fps, 14, () => c.sit && c.sit.sub === 'seated'); go(0.5); }, sleep: () => { c.sleep(); go(1.2); },
+      held: () => { c.grab(0, 1.0, 0.4); go(0.8); }, tumble: () => { c.throwAt(2.5, 5, 1.5); go(0.5); }, recover: () => { c.throwAt(0.5, 3.4, 0); untilU(c, fps, 6, () => c.state === 'recover'); go(0.1); },
       hit: () => { c.trigger('hit'); go(0.15); }, happy: () => { c.trigger('happy'); go(0.4); }, angry: () => { c.trigger('angry'); go(0.4); }, sad: () => { c.trigger('sad'); go(0.6); },
       pet: () => { c.petStart(); go(0.7); },
     };

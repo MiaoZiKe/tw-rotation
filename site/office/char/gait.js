@@ -23,9 +23,10 @@ export class Feet {
     const r = ch.rest['foot.L']; this.L0 = r.p.length(); this.restAnkle = { x: ch.meta.bones['foot.L'].head[0], y: ch.meta.bones['foot.L'].head[1], z: ch.meta.bones['foot.L'].head[2] };
     const hp = ch.meta.bones['leg.L'].head; this.hip = { x: hp[0], y: hp[1], z: hp[2] };   // 髖位置取自模型
     cfg.footSpacing = this.hip.x * (cfg.footSpacingK ?? 0.86); cfg.centerZ = this.hip.z + (cfg.centerOff ?? 0.02);   // 步態落腳中心由模型量出，換模型不用改
+    this.reachH = Math.sqrt(Math.max(1e-6, (0.97 * (cfg.maxStretch || 1.15) * this.L0) ** 2 - (this.hip.y + 0.015 - ch.meta.bones['foot.L'].head[1]) ** 2));   // 站立落腳點離髖的水平可及半徑
     this.sole = this.measureSole(); this.sub = this.buildSub(); this._T = new THREE.Vector3(); this._M = new THREE.Matrix4(); this._Q = new THREE.Quaternion(); this._S = new THREE.Vector3();
     // invB0＝靜止姿勢下 root 骨相對角色群組的矩陣之反矩陣
-    ch.resetPose(); ch.model.updateMatrixWorld(true); this.invB0 = ch.bones.root.matrixWorld.clone().premultiply(ch.root.matrixWorld.clone().invert()).invert(); this.restFootQ = {}; for (const f of this.feet) { const rr = ch.rest['foot.' + f.side]; this.restFootQ[f.side] = rr.pw.clone().multiply(rr.q); }
+    ch.resetPose(); ch.model.updateMatrixWorld(true); this.invB0 = ch.bones.root.matrixWorld.clone().premultiply(ch.root.matrixWorld.clone().invert()).invert(); this.axis = { L: ch.rest['foot.L'].p.clone().normalize(), R: ch.rest['foot.R'].p.clone().normalize() }; this.restFootQ = {}; for (const f of this.feet) { const rr = ch.rest['foot.' + f.side]; this.restFootQ[f.side] = rr.pw.clone().multiply(rr.q); }
   }
   /** 每側腿＋腳掌的網格頂點索引（靜止姿勢 y<0.2、由該側腿骨或腳骨主導）：腳 IK 之後用它們算實際最低點，避免腿皮膚穿進地面 */
   buildSub() {
@@ -54,10 +55,11 @@ export class Feet {
       T.set(p.getX(i), p.getY(i), p.getZ(i)); b.applyBoneTransform(i, T);
       if (T.y - a.y < -0.012) pts.push([T.x - a.x, T.y - a.y, T.z - a.z]);
     }
+    this.restClear = Math.max(0, a.y + Math.min(...pts.map(q => q[1])));   // 靜止姿勢腳底離地的距離（取自模型）：站姿腳底離地＝此值，所以 Idle 與靜止姿勢完全一致
     return pts;
   }
   /** 腳掌俯仰 pitch（正＝腳尖向下）時，踝要比地面高多少，才能讓腳底最低點貼在地面上方 clear 公尺 */
-  ankleH(pitch, clear = 0.005) {
+  ankleH(pitch, clear = this.restClear) {
     const c = Math.cos(pitch), s = Math.sin(pitch); let mn = 1e9;
     for (const q of this.sole) mn = Math.min(mn, q[1] * c - q[2] * s);
     return clear - mn;
@@ -86,7 +88,8 @@ export class Feet {
     const going = active && sp > (this.cad > 0 ? 0.03 : 0.07) && b.grounded;
     if (!going) { this.cad = 0; this.standStep(dt, b); return; }
     this.cad = sp / stride; this.phase = frac(this.phase + this.cad * dt);
-    const duty = P.duty, ex = stride * duty / 2, vx = v > 1e-4 ? b.vx / v : 0, vz = v > 1e-4 ? b.vz / v : 0;
+    const duty = P.duty, ex = stride * duty / 2 * (1 - Math.min(0.55, Math.abs(b.wy) * 0.45)),   // 轉彎時落腳點少往前伸
+       vx = v > 1e-4 ? b.vx / v : 0, vz = v > 1e-4 ? b.vz / v : 0;
     for (const f of this.feet) {
       const pf = frac(this.phase + (f.s > 0 ? 0 : 0.5));
       if (f.mode === 'plant' && pf >= duty) { f.mode = 'swing'; f.sw = { fx: f.x, fz: f.z, fy: f.gy, fyaw: f.yaw, s: 0, timed: false, lift: P.lift }; }
@@ -96,7 +99,10 @@ export class Feet {
         const s = clamp((pf - duty) / (1 - duty), 0, 1), rem = Math.max(0.01, (1 - s) * (1 - duty) / this.cad);
         const yaw = b.yaw + b.wy * rem, px = b.x + b.vx * rem, pz = b.z + b.vz * rem;
         const c = Math.cos(yaw), si = Math.sin(yaw), lx = f.s * C.footSpacing, lz = C.centerZ;
-        t.tx = px + lx * c + lz * si + vx * ex; t.tz = pz - lx * si + lz * c + vz * ex; t.tyaw = yaw; t.ty = this.groundAt(b, t.tx, t.tz); t.s = s;
+        t.tx = px + lx * c + lz * si + vx * ex + (f.hoX || 0); t.tz = pz - lx * si + lz * c + vz * ex + (f.hoZ || 0); t.tyaw = yaw;   // hoX/hoZ＝視覺上的髖相對名義髖的偏移（前傾、側傾、左右晃），落腳中心跟著實際髖走
+        { // 落腳點不可超出「預測髖位置」的腿長可及範圍（急轉彎時，外側預測會偏遠 → 否則腳被迫滑動）
+          const hx = px + this.hip.x * f.s * c + this.hip.z * si + (f.hoX || 0), hz = pz - this.hip.x * f.s * si + this.hip.z * c + (f.hoZ || 0), dx = t.tx - hx, dz = t.tz - hz, dl = Math.hypot(dx, dz);
+          if (dl > this.reachH) { t.tx = hx + dx * this.reachH / dl; t.tz = hz + dz * this.reachH / dl; } } t.ty = this.groundAt(b, t.tx, t.tz); t.s = s;
         const e = sm(s); f.x = lerp(t.fx, t.tx, e); f.z = lerp(t.fz, t.tz, e); f.gy = lerp(t.fy, t.ty, e); f.yaw = t.fyaw + angDiff(t.fyaw, yaw) * e;
       }
     }
@@ -152,16 +158,19 @@ export class Feet {
       if (f.mode === 'free' && !f.blend && f.fl) {   // 空中／坐著／被抓：腳跟著「視覺上的」身體（含 root 骨的位移與翻滾），不只是物理位置
         const L = f.fl, P0 = f.flp, M = this._M.multiplyMatrices(this.ch.bones.root.matrixWorld, this.invB0);
         _a.set(lerp(P0.x, L.x, alpha), lerp(P0.y, L.y, alpha), lerp(P0.z, L.z, alpha)).applyMatrix4(M); gx = _a.x; gy = _a.y; gz = _a.z; pitch = lerp(P0.pitch, L.pitch, alpha);
-        qb = M.decompose(_b, this._Q, this._S) || this._Q;
+        M.decompose(_b, this._Q, this._S); qb = this._Q;
       }
       this.ikFoot(f, gx, gy, gz, pitch, yaw, qb);
       // 實際網格檢查：腿＋腳掌任一頂點低於腳下的支撐面，就把踝抬高那麼多再解一次（只抬、不下壓；腳不離開鎖定的水平位置）
-      const gnd = f.mode === 'free' ? this.world.supportAt(gx, gz, 0.03, gy, 0.02).h : f.gy; let extra = 0; f.pen = 0;
+      const gnd = f.mode === 'free' ? this.world.supportAt(gx, gz, 0.03, gy, 0.05).h : f.gy; let extra = 0; f.pen = 0;
       for (let it = 0; it < 4; it++) {
         const ly = this.lowestLeg(f.side); if (ly >= gnd - 0.0003) break;
         extra += (gnd - ly) * 1.05; f.pen = extra; this.ikFoot(f, gx, gy + extra, gz, pitch, yaw, qb);
       }
       if (extra > 0) this.stats.penMax = Math.max(this.stats.penMax || 0, extra);
+      // 實際髖（骨頭世界位置）相對名義髖（角色根的位置與朝向＋模型髖座標）的水平偏移，低通後回饋給下一步的落腳規劃
+      { const leg = this.ch.bones['leg.' + f.side], rp = this.ch.root.position, ry = this.ch.root.rotation.y, cs = Math.cos(ry), sn = Math.sin(ry); _a.setFromMatrixPosition(leg.matrixWorld);
+        const nx = rp.x + this.hip.x * f.s * cs + this.hip.z * sn, nz = rp.z - this.hip.x * f.s * sn + this.hip.z * cs; f.hoX = lerp(f.hoX || 0, _a.x - nx, 0.3); f.hoZ = lerp(f.hoZ || 0, _a.z - nz, 0.3); }
     }
   }
   ikFoot(f, gx, gy, gz, pitch, yaw, qb = null) {
@@ -173,11 +182,11 @@ export class Feet {
     if (dist > maxLen) { dv.multiplyScalar(maxLen / dist); dist = maxLen; f.clamped = true; this.stats.clamped++; if (f.mode === 'plant') this.stats.slide = Math.max(this.stats.slide, (f.ratio * this.L0 - maxLen)); } else f.clamped = false;
     this.stats.maxRatio = Math.max(this.stats.maxRatio, dist / this.L0); this.stats.minRatio = Math.min(this.stats.minRatio, dist / this.L0);
     leg.parent.getWorldQuaternion(_q1);
-    _a.copy(Y).applyQuaternion(R.q).applyQuaternion(_q1);                   // 靜止的腿軸（套上父骨目前姿態）
+    _a.copy(this.axis[f.side]).applyQuaternion(R.q).applyQuaternion(_q1);                   // 靜止的腿軸（套上父骨目前姿態）
     _q2.setFromUnitVectors(_a, dv.clone().normalize());                    // 世界座標的補轉
     _q3.copy(_q2).multiply(_q1).multiply(R.q);                              // 腿骨的新世界旋轉
     leg.quaternion.copy(_q1.invert().multiply(_q3)); leg.updateWorldMatrix(false, false);
-    foot.position.set(0, dist, 0);
+    foot.position.copy(this.axis[f.side]).multiplyScalar(dist);
     // 腳掌：世界朝向 = 偏航 · 俯仰 · 靜止的腳掌朝向（保持水平）
     (qb ? _q4.copy(qb) : _q4.setFromAxisAngle(Y, yaw)).multiply(_q2.setFromAxisAngle(X, pitch)).multiply(this.restFootQ[f.side]);
     leg.getWorldQuaternion(_q1); foot.quaternion.copy(_q1.invert().multiply(_q4)); foot.updateWorldMatrix(false, false);

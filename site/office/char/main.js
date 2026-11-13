@@ -240,7 +240,8 @@ function frame(now) {
     stage.updateContact();
   }
   if (S.old && S.cmp && sdt > 0) { S.old.step(sdt, { mx: 0, mz: 0, run: false, jump: false }); S.old.animate(sdt, { look: null, cam: camera.position }); S.old.lookT = 1e9; }
-  if (S.cmp && S.old) {
+  if (S.skipRender) { /* 自動驗收用：不繪圖，只跑模擬與互動（軟體繪圖一幀要 1 秒） */ }
+  else if (S.cmp && S.old) {
     const W = renderer.domElement.width, H = renderer.domElement.height, hw = Math.floor(W / 2);
     renderer.setScissorTest(true); camera.aspect = hw / H; camera.updateProjectionMatrix();
     renderer.setViewport(0, 0, hw, H); renderer.setScissor(0, 0, hw, H); renderer.render(scene, camera);

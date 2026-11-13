@@ -493,7 +493,7 @@ export class CharController {
     // 接地投影（視覺安全網，量的是蒙皮後的實際頂點）：
     //  · 一般：身體取樣點任一低於支撐面 → 整個身體抬起（只抬不壓；腳由腳 IK 負責）。
     //  · 坐著：閉環貼合——把身體取樣最低點（臀部）精準放到座面上（上下都修），接觸點來自網格而不是寫死的高度。
-    const big = this.state === 'tumble' || Math.abs(p[IDX['root.rx']]) + Math.abs(p[IDX['root.rz']]) > 0.45, sup = this.body.supportY;
+    const big = this.state === 'tumble' || Math.abs(p[IDX['root.rx']]) + Math.abs(p[IDX['root.rz']]) + Math.abs(p[IDX['head.rx']]) + Math.abs(p[IDX['spine.rx']]) + Math.abs(p[IDX['pelvis.rx']]) > 0.15, sup = this.body.supportY;
     const snap = this.state === 'sit' && ['settle', 'seated', 'risePrep'].includes(this.sit?.sub);
     let dyx = 0, pen = 0;
     for (let pass = 0; pass < 3; pass++) {
