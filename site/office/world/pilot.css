@@ -85,3 +85,18 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
 .dt-it{border:1px solid var(--line);background:#fff;border-radius:12px;height:36px;padding:0 12px;font-size:14px;text-align:left}
 .dt-it.on{background:var(--on);border-color:var(--on);color:#fff;font-weight:700}
 @media (pointer:coarse),(max-width:640px){.dt-b{height:36px;font-size:12px}.dt-it{height:44px}}
+
+/* ───── 鏡頭操作：拖曳功能（移動／旋轉）與旋轉鈕 ───── */
+.cm-hint{flex-wrap:wrap;border-radius:18px}
+.cm-ctl{display:flex;align-items:center;gap:6px}
+.cm-lab{font-size:12px;color:var(--sub);white-space:nowrap}
+.cm-seg{display:flex;background:#fff;border-radius:999px;padding:2px}
+.cm-seg button{border:0;background:transparent;border-radius:999px;height:28px;min-width:44px;padding:0 10px;font-size:12px;font-weight:700;color:var(--sub);white-space:nowrap}
+.cm-seg button.on{background:var(--on);color:#fff}
+.cm-hint .cm-rot{font-size:17px;padding:0 8px;min-width:32px;touch-action:none}
+.cm-hint .cm-q{margin-left:0}
+@media (pointer:coarse),(max-width:640px){.cm-seg button{height:44px}.cm-hint .cm-rot{min-width:44px}}
+/* 拖曳靈敏度（放在「?」說明裡） */
+.sens{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px}
+.sens button{border:1px solid var(--line);background:#fff;border-radius:999px;height:32px;min-width:44px;padding:0 12px;font-size:13px;font-weight:600}
+.sens button.on{background:var(--on);border-color:var(--on);color:#fff}

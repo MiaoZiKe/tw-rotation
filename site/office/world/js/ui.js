@@ -20,7 +20,7 @@ export function createUI(W, demo, api) {
 
   // 說明（收進「?」）
   $('helpPop').innerHTML = `<ul>
-    <li>拖曳移動畫面；滾輪或雙指縮放；右鍵拖曳或雙指轉動可旋轉。</li>
+    <li>拖曳（觸控單指）移動畫面；滾輪或雙指縮放；旋轉用右上角的「↺ ↻」，或把「拖曳」切到「旋轉」；雙指也能旋轉。</li>
     <li>點角色：看進度卡，可以摸頭、敲頭、餵點心、叫他去休息或回座位，也能改名字、暱稱、物種與配色（原職稱不能改）。</li>
     <li>按住角色拖曳：把他拎起來放到別處，放開後他會自己走回座位。寵物也可以摸、餵、拎。</li>
     <li>點佈告欄：看 CEO 或該部門的公告。</li>
@@ -29,6 +29,12 @@ export function createUI(W, demo, api) {
     <li>「示範」：重播一場會議、交件、上下班與日常行為（示範資料）。</li>
     <li>「整修」：拖曳家具、旋轉、換地板顏色。改動都只記在這台裝置上。</li>
   </ul>`;
+  { // 拖曳靈敏度：慢／中／快（同時乘在移動與旋轉上），記在這台裝置
+    const el = document.createElement('div'); el.className = 'sens'; el.innerHTML = '<span>拖曳靈敏度</span>' + [[0.6, '慢'], [1, '中'], [1.5, '快']].map(([v, n]) => `<button data-sens="${v}" aria-pressed="false">${n}</button>`).join(''); $('helpPop').append(el);
+    const sync = () => el.querySelectorAll('button').forEach(b => { const on = +b.dataset.sens === W.cam.sens; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    el.onclick = e => { const b = e.target.closest('[data-sens]'); if (b) { W.cam.setSens(+b.dataset.sens); sync(); } };
+    U.syncSens = sync; setTimeout(sync, 0);
+  }
   $('helpBtn').onclick = () => togglePop('helpPop');
 
   // 區域清單
@@ -55,7 +61,7 @@ export function createUI(W, demo, api) {
   // 視角與速度
   $('viewSeg').onclick = e => { const b = e.target.closest('button'); if (b) api.setView(b.dataset.v); };
   U.setViewUI = (mode, c) => {
-    const vc = $('viewChar'); if (mode === 'char' && c) { vc.hidden = false; vc.textContent = '跟隨'; vc.title = '跟隨 ' + c.spec.nick;   // 不用暱稱：選到 CEO 時會和左邊的「CEO 視角」字面重複 } else if (mode !== 'char') vc.hidden = true;
+    const vc = $('viewChar'); if (mode === 'char' && c) { vc.hidden = false; vc.textContent = '跟隨'; vc.title = '跟隨 ' + c.spec.nick; /* 不用暱稱：選到 CEO 時會和左邊的「CEO 視角」字面重複 */ } else if (mode !== 'char') vc.hidden = true;
     $('viewSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
   };
   $('speedSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; api.setSpeed(+b.dataset.s); $('speedSeg').querySelectorAll('button').forEach(q => q.classList.toggle('on', q === b)); };
