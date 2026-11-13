@@ -76,12 +76,16 @@ def t_camera2(b, base):
         pg.click("#helpPop .sens [data-sens='0.6']")
         ok("靈敏度改成「慢」：記在 localStorage", pg.evaluate("() => localStorage.getItem('aiOffice.cam.sens') === '0.6' && __world.cam.sens === 0.6"))
         pg.click("#helpBtn")
-        pg.evaluate("() => __world.godAt(20, 15, 40)"); wait_until(pg, "() => !__world.view.tween", 12000); pg.wait_for_timeout(500)
-        a = _st(pg); pg.mouse.move(640, 420); pg.mouse.down(); pg.mouse.move(740, 420, steps=8); pg.wait_for_timeout(80); pg.mouse.up(); pg.wait_for_timeout(1200); b2 = _st(pg)
-        slow = _m.hypot(b2["tx"] - a["tx"], b2["tz"] - a["tz"])
-        pg.evaluate("() => __world.cam.setSens(1.5)"); a = _st(pg); pg.mouse.move(640, 420); pg.mouse.down(); pg.mouse.move(740, 420, steps=8); pg.wait_for_timeout(80); pg.mouse.up(); pg.wait_for_timeout(1200); b2 = _st(pg)
-        fast = _m.hypot(b2["tx"] - a["tx"], b2["tz"] - a["tz"])
-        ok("靈敏度：快（%.2f 公尺）比慢（%.2f 公尺）移動得多" % (fast, slow), fast > slow * 1.8, (slow, fast))
+        # 靈敏度比例：同一個畫面位置、同樣拖曳 100 像素，慢／中／快的注視點位移比例要接近 0.6：1：1.5（修正前：遠景慢 1.5 公尺、快 23.6 公尺，比例差很多）
+        disp = {}
+        for name, dist in [("遠景", 40), ("近景", 14)]:
+            for sens in (0.6, 1, 1.5):
+                pg.evaluate("([d, s]) => { __world.cam.setSens(s); __world.godAt(20, 15, d); }", [dist, sens]); wait_until(pg, "() => !__world.view.tween", 12000); pg.wait_for_timeout(700)
+                a = _st(pg); pg.mouse.move(640, 420); pg.mouse.down(); pg.mouse.move(740, 420, steps=10); pg.wait_for_timeout(60); pg.mouse.up(); pg.wait_for_timeout(1500); b2 = _st(pg)
+                disp[(name, sens)] = _m.hypot(b2["tx"] - a["tx"], b2["tz"] - a["tz"])
+            d1 = disp[(name, 1)]
+            r6, r15 = disp[(name, 0.6)] / d1, disp[(name, 1.5)] / d1
+            ok("靈敏度比例（%s）：慢 %.2f 公尺、中 %.2f 公尺、快 %.2f 公尺 → 慢÷中 %.2f（目標 0.6、容許 0.5–0.7）、快÷中 %.2f（目標 1.5、容許 1.3–1.7）" % (name, disp[(name, 0.6)], d1, disp[(name, 1.5)], r6, r15), 0.5 <= r6 <= 0.7 and 1.3 <= r15 <= 1.7, disp)
         pg.evaluate("() => __world.cam.setSens(1)")
         # 重新整理後模式與靈敏度仍在
         pg.evaluate("() => __world.cam.setMode('rotate')"); pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => window.__world && window.__world.ready", 90000)
@@ -90,7 +94,7 @@ def t_camera2(b, base):
         # 視角鈕
         pg.evaluate("() => { const W = __world; W.setView('char', W.chars.get('ceo'), true); }"); pg.wait_for_timeout(500)
         t = pg.evaluate("() => [...document.querySelectorAll('#viewSeg button')].filter(b => !b.hidden).map(b => b.textContent)")
-        ok("視角鈕：選到 CEO 時第三格寫「跟隨」，不再與「CEO 視角」重複（%s）" % t, t == ["CEO 視角", "俯瞰", "跟隨"], t)
+        ok("視角鈕：選到 CEO 時第三格寫「跟隨」，不再與「CEO 視角」重複；有選取時多一格「角色視角」（%s）" % t, t == ["CEO 視角", "俯瞰", "跟隨", "角色視角"], t)
         ok("鏡頭：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
     finally:
         c.close()

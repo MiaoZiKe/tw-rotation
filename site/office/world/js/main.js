@@ -4,6 +4,8 @@ import { OrbitControls } from '../../vendor/OrbitControls.js';
 import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createPilot } from './pilot.js';
+import { createAttention } from './attention.js';
+import { createPOV } from './pov.js';
 import { createCamHint } from './camhint.js';
 import { createDaytime } from './daytime.js';
 import { createUI } from './ui.js';
@@ -174,6 +176,8 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   }
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
   function setView(mode, c, instant) {
+    if (mode === 'pov') { if (W.pov) W.pov.toggle(); return; }       // 視角切換列的「角色視角」格
+    if (W.pov && W.pov.on()) W.pov.exit(true);                    // 切去別的視角：先立刻回到原鏡頭，再照原本的流程飛過去
     if (mode === 'ceo') c = ceo; if (mode === 'char' && !c) c = view.char || ceo;
     view.mode = mode; view.char = mode === 'god' ? null : c; env.followed = view.char; modeControls(); view.detached = false; view.pull = 0; view.last = null;
     const pose = mode === 'god' ? godPose() : followPose(c);
@@ -247,6 +251,9 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   if (qs.get('ambient') === '0') director.ambient = false;
   // 鍵盤／觸控操控（點選角色後）：輸入、碰撞、溝通演出都在 pilot.js，這裡只掛鉤
   const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot; const camHint = createCamHint(view, cam);
+  // 角色視角（鏡頭綁在選取角色的眼睛上）與「點選後面向鏡頭」；兩者都只讀 pilot 的選取狀態，不動操控邏輯
+  const pov = createPOV(W, { camera, controls, cv, view, cam, ui, charTarget: (c, o) => charTarget(c, o), restoreControls: modeControls, everyone: () => everyone, isGrabbing: () => !!grab, downChar: () => !!(down && down.c) }); W.pov = pov;
+  const attn = createAttention(W, { camera, pilot, director: () => director }); W.attn = attn;
   const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
 
   // ── 辦公室狀態層與各控制器：所有演出只讀 state，示範（sim）與之後的真資料都從 state.emit 進來 ──
@@ -265,9 +272,14 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   function updateLabels() {
     const w = cv.clientWidth, h = cv.clientHeight; bubs.length = 0;
     for (const c of everyone) {
-      const L = c._lab, p = c.object3D.position; let on = c.object3D.visible;
+      const L = c._lab, p = c.object3D.position; let on = c.object3D.visible && !(W.pov && W.pov.hides(c));
       if (on) { pv.set(p.x, c.height + (c.lift || 0) + 0.12, p.z); var dist = pv.distanceTo(camera.position); pv.project(camera); if (pv.z > 1 || Math.abs(pv.x) > 1.08 || Math.abs(pv.y) > 1.2 || (view.mode !== 'god' && dist > 17 && !c.speech) || (c.spec.pet && dist > 40)) on = false; }
-      if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = false; L.txt = ''; } c._sx = -999; continue; }
+      if (!on && W.pov && W.pov.hides(c) && c.speech) {      // 角色視角：自己的名牌不顯示，但自己說的話要看得到——泡泡改放在畫面上方中間，像字幕
+        L.tag.style.transform = 'translate(-999px,-999px)'; L.on = false;
+        if (L.txt !== c.speech.text) { L.bub.textContent = c.speech.text; L.txt = c.speech.text; L.bub.className = 'bub ' + (c.speech.kind || ''); L.bw = L.bub.offsetWidth; L.bh = L.bub.offsetHeight; }
+        bubs.push({ L, x: w / 2, y: L.bh + (w < 640 ? 112 : 72), w: L.bw, h: L.bh }); c._sx = -999; continue;
+      }
+      if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = false; L.txt = ''; } else if (L.bon) { L.bub.style.transform = 'translate(-999px,-999px)'; L.bon = false; L.txt = ''; } c._sx = -999; continue; }
       const x = Math.round((pv.x + 1) / 2 * w), y = Math.round((1 - pv.y) / 2 * h); c._sx = x; c._sy = y; c._sd = dist;
       const st = W.statusOf(c); if (st !== L.st) { L.stEl.textContent = st; L.st = st; }
       const cls = 'tag' + (st ? ' hasst' : '') + (c.jobless ? ' jobless' : '') + (c.sleeping ? ' zz' : '') + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c ? ' sel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far'); if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; }
@@ -321,13 +333,14 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (edit.on) { editTap(e); return; }
     const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
+    if (W.pov && W.pov.on()) return;      // 角色視角中點空白處不取消選取、不移動鏡頭（要退出請按 Esc、V 或「角色視角」鈕）
     // 點空白處：取消選取；但 0.3 秒內再點一下（雙點地面）是「鏡頭移過去」，不取消
     const now = performance.now(), gp = new THREE.Vector3();
     if (now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30 && ray.ray.intersectPlane(ground, gp)) { clearTimeout(deselT); lastTap.t = 0; moveCamTo(gp.x, gp.z); return; }
     lastTap.t = now; lastTap.x = e.clientX; lastTap.y = e.clientY; clearTimeout(deselT); deselT = setTimeout(() => pilot.deselect(), 330);
   });
   // ── 左鍵（觸控單指）抓著地面拖：一比一 ──
-  const pan = { on: false, id: -1, g0: new THREE.Vector3(), g1: new THREE.Vector3(), t: 0, touches: new Set() };
+  const pan = { on: false, id: -1, g0: new THREE.Vector3(), g1: new THREE.Vector3(), v: new THREE.Vector3(), t: 0, touches: new Set() };
   const groundHit = (e, out) => { setRay(e); return !!ray.ray.intersectPlane(ground, out); };
   function movePan(dx, dz) {
     camera.position.x += dx; camera.position.z += dz; controls.target.x += dx; controls.target.z += dz;
@@ -335,19 +348,24 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   }
   cv.addEventListener('pointerdown', e => {
     if (e.pointerType === 'touch') pan.touches.add(e.pointerId);
-    if (cam.mode !== 'move' || e.button !== 0 || edit.on || (down && down.c) || (e.pointerType === 'touch' && pan.touches.size > 1)) { if (pan.touches.size > 1) pan.on = false; return; }
+    if (cam.mode !== 'move' || e.button !== 0 || edit.on || (W.pov && W.pov.on()) || (down && down.c) || (e.pointerType === 'touch' && pan.touches.size > 1)) { if (pan.touches.size > 1) pan.on = false; return; }
     if (!groundHit(e, pan.g0)) return;
-    pan.on = true; pan.id = e.pointerId; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9;
+    pan.px = e.clientX; pan.py = e.clientY; pan.on = true; pan.id = e.pointerId; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9;
   });
   cv.addEventListener('pointermove', e => {
     if (!pan.on || e.pointerId !== pan.id || grab) return;
-    if (!groundHit(e, pan.g1)) return;
+    // 靈敏度的做法（修正：以前每步重新抓點，用到還沒更新的鏡頭矩陣，非 1 倍時遠景慢 1.5 公尺、快 23.6 公尺，遠超 0.6:1.5 的倍率）：
+    // 每次移動都用「同一個、剛更新過的鏡頭」算前一個游標與目前游標各對到地面哪裡，位移 = 倍率 ×（兩點之差）。
+    // 倍率 1 時鏡頭平移後，目前游標下的點正好是前一個游標的點，等於一比一抓著地面；0.6／1.5 則等比例縮放。
+    camera.updateMatrixWorld();
+    const pe = { clientX: pan.px, clientY: pan.py };
+    if (!groundHit(pe, pan.g0) || !groundHit(e, pan.g1)) { pan.px = e.clientX; pan.py = e.clientY; return; }
+    pan.px = e.clientX; pan.py = e.clientY;
     const k = cam.sens, now = performance.now(), dtm = Math.max(8, now - pan.t); pan.t = now;
     const dx = (pan.g0.x - pan.g1.x) * k, dz = (pan.g0.z - pan.g1.z) * k, L = Math.hypot(dx, dz); if (L > 40) return;   // 射線快貼近地平線時位移會暴增，丟掉
-    movePan(dx, dz); cam.coast.set(dx / dtm * 1000, 0, dz / dtm * 1000);
-    if (k !== 1) { groundHit(e, pan.g0); }   // 非 1 倍時，每次以目前游標下的點重新抓，手感才是「相對」而不是越拖越飄
+    movePan(dx, dz); pan.v.set(dx / dtm * 1000, 0, dz / dtm * 1000);     // 放開時才變成餘動；拖曳中不能邊拖邊套餘動（會重複位移，每次移動都是相對上一次，誤差會累積）
   });
-  const panEnd = e => { if (e.pointerType === 'touch') pan.touches.delete(e.pointerId); if (pan.on && e.pointerId === pan.id) { pan.on = false; userActive = performance.now() + 600; if (cam.coast.length() < 1.5 || performance.now() - pan.t > 90) cam.coast.set(0, 0, 0); } };
+  const panEnd = e => { if (e.pointerType === 'touch') pan.touches.delete(e.pointerId); if (pan.on && e.pointerId === pan.id) { pan.on = false; userActive = performance.now() + 600; if (pan.v.length() >= 1.5 && performance.now() - pan.t <= 90) cam.coast.copy(pan.v); else cam.coast.set(0, 0, 0); pan.v.set(0, 0, 0); } };
   addEventListener('pointerup', panEnd); addEventListener('pointercancel', panEnd);
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // 佈告欄：滑鼠停上去游標變手指、板子微微提亮（用一塊半透明的外框蓋在板子上，不動共用材質）
@@ -427,10 +445,14 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
       let a = cam.spin * 1.05 * wall * cam.sens; if (cam.step) { const q = cam.step * (1 - Math.exp(-wall * 12)); cam.step -= q; a += q; if (Math.abs(cam.step) < 0.002) { a += cam.step; cam.step = 0; } }
       view.tween = null; const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, cs = Math.cos(a), sn = Math.sin(a); camera.position.x = controls.target.x + ox * cs + oz * sn; camera.position.z = controls.target.z - ox * sn + oz * cs;
     }
-    updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
-    // 使用者拖曳平移（注視點被他移動）→ 暫停跟隨
-    if (view.char && !view.detached && !view.tween && performance.now() < userActive && controls.target.distanceToSquared(tg0) > 1e-4) { view.detached = true; view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z }; }
-    clampCam();
+    attn.frame();
+    if (pov.driving()) pov.cam(wall);          // 角色視角：鏡頭綁在眼睛上，不走 OrbitControls
+    else {
+      updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
+      // 使用者拖曳平移（注視點被他移動）→ 暫停跟隨
+      if (view.char && !view.detached && !view.tween && performance.now() < userActive && controls.target.distanceToSquared(tg0) > 1e-4) { view.detached = true; view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z }; }
+      clampCam();
+    }
     { // 手機開著底部面板時，把畫面往上推，角色不會被面板蓋住
       const want = portrait() && (!$('card').hidden || !$('board').hidden || (!$('log').hidden && !$('log').classList.contains('mini'))) ? 0.2 : 0;
       if (Math.abs(want - shift) > 0.002) { shift += (want - shift) * Math.min(1, wall * 6); const w = cv.clientWidth, h = cv.clientHeight; camera.setViewOffset(w, h, 0, shift * h, w, h); }

@@ -278,9 +278,12 @@ def t_jobs(b, base):
         # 等久了：再提醒一次、CEO 開始冒汗（測試把 3 分鐘、10 分鐘縮成 1 秒、2.5 秒）
         pg.evaluate("() => { __world.state.cfg.remindMs = [1000, 2500]; }")
         _track(pg, "ttl", "document.title"); _track(pg, "ceoemo", "(__world.chars.get('ceo').emoteSym || {}).sym")
+        pg.evaluate("() => { const c = __world.chars.get('ceo'); c.__em = new Set(); if (!c.__emHook) { c.__emHook = 1; const o = c.emote; c.emote = (s, t) => { c.__em.add(s); return o.call(c, s, t); }; } }")
         _sim(pg, "permission", "web")
         ok("等核准：等久了再提醒一次（分頁標題閃成「(!) CEO 還在等你核准」）", wait_until(pg, "() => [...__trk.ttl].some(x => x.startsWith('(!)'))", 20000, 200), _seen(pg, "ttl"))
-        ok("等核准：等更久 CEO 開始冒汗", wait_until(pg, "() => __trk.ceoemo.has('sweat')", 20000, 200), _seen(pg, "ceoemo"))
+        # 冒汗圖示只持續 2.6 秒模擬時間（8 倍速＝約 0.3 秒真實時間），軟體繪圖下 requestAnimationFrame 輪詢會漏看（上一輪的間歇性失敗就是這個）；
+        # 改成「攔截 emote 呼叫」：只要程式真的叫 CEO 冒汗過一次就算
+        ok("等核准：等更久 CEO 開始冒汗", wait_until(pg, "() => __world.chars.get('ceo').__em && __world.chars.get('ceo').__em.has('sweat')", 20000, 100), pg.evaluate("() => [...(__world.chars.get('ceo').__em || [])]"))
         _sim(pg, "clear")
         pg.evaluate("() => { __world.state.cfg.remindMs = [180000, 600000]; }")
         # 等回答
@@ -654,7 +657,8 @@ def t_perf(b, base):
         ok("繪製次數：CEO 視角 %d（前 %d，增加 %d）" % (e, BASE_CALLS["ceo"], e - BASE_CALLS["ceo"]), e <= BASE_CALLS["ceo"] + 8, e)
         pg.evaluate("() => __world.sim.exhaust(8100)")
         wait_until(pg, "() => __world.power.phase === 'asleep'", 200000, 500)
-        pg.wait_for_timeout(6000)      # 趴下時頭上的 z 圖示會飄 3 秒，等它們消失再量穩定值
+        pg.evaluate("() => __world.setView('god', null, true)")      # 先離開近距離（近處的睡覺同事會持續冒 z 小圖示，那是暫時的粒子，不是常駐繪製）
+        pg.wait_for_timeout(6000)      # 已冒出的 z 圖示約 2.6 秒內消失，等它們消失再量穩定值
         g2 = _calls(pg, "god")
         ok("繪製次數：額度用完（牌子掛出）時俯瞰 %d，比平時再多 %d（門牌兩面）" % (g2, g2 - g), g2 - g <= 4, g2)
         print("    繪製次數量測：俯瞰 前%d 後%d｜CEO 視角 前%d 後%d｜用完掛牌時俯瞰 %d" % (BASE_CALLS["god"], g, BASE_CALLS["ceo"], e, g2))

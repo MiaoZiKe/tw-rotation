@@ -151,7 +151,7 @@ export function createCharacter(spec, env = {}) {
       if (react && t > react.until) { const r = react; react = null; r.done && r.done(); }
       if (c._held) { ch.ext.vx = ch.ext.vz = 0; }
       else if (c._hop) { ch.ext.vx = ch.ext.vz = 0; }
-      else if (c._path) step(dt);
+      else if (c._path) { if (c._pause) { ch.ext.vx = ch.ext.vz = 0; } else step(dt); }   // 被點選時暫停走路（轉過來面向鏡頭），取消後從原地接著走原路
       else if (c._drive) { const d = c._drive; ch.ext.vx = d.vx / s; ch.ext.vz = d.vz / s; if (d.fx || d.fz) c.heading = Math.atan2(d.fx, d.fz); else if (d.vx || d.vz) c.heading = Math.atan2(d.vx, d.vz); }
       else { ch.ext.vx = ch.ext.vz = 0; }
       if (!c._held) ch.ext.yaw = c.heading;
@@ -221,6 +221,21 @@ export function createCharacter(spec, env = {}) {
     dragTo(x, y, z) { ch.dragTo(_v.set(x / s, y / s, z / s)); loud = 6; },
     release() { if (!c._held) return; ch.release(); if (ch.mode === 'normal') { ch.extFall = true; ch.vel.x = ch.vel.z = 0; } },
     setVisible(v) { root.visible = v; },
+    // ── 鏡頭互動（world/js/attention.js、pov.js 使用）──
+    // 視線：給世界座標就看向那裡（頭與眼睛轉過去），null 恢復自己亂看
+    lookAt(v) { aenv.look = v ? (aenv.lookV || (aenv.lookV = new V3())).copy(v) : null; },
+    pause(on) { c._pause = !!on; if (on && c._path) { ch.ext.vx = ch.ext.vz = 0; } },
+    // 坐著時轉椅子：只轉身體朝向（位置不動）；給 null 轉回座位原本的朝向
+    swivel(yaw) { if (ch.mode !== 'sit' || !c._seat) return false; ch.yawTo = yaw == null ? c._seat.face : yaw; return true; },
+    // 被注意到：精神一振（身體微彈）＋開心的眼神，不打斷手上的動作
+    perk(sec = 1.1) { ch.sqV += 3.2; if (!c.sleeping) ch.emote('happy', sec); },
+    // 眼睛的世界座標（角色視角用）：嘴巴高度往上約三成頭高，再往前到臉的表面；身高、坐姿、漂浮、蹲下都會算進去
+    eye(out) {
+      const cf = ch.cfg, y = (ch.pos.y + ch.yOff + cf.mouth[1] + (cf.top - cf.mouth[1]) * 0.35) * s, f = cf.front * 0.7 * s;
+      return out.set(root.position.x + Math.sin(ch.yaw) * f, y, root.position.z + Math.cos(ch.yaw) * f);
+    },
+    // 角色視角時，自己的身體從主鏡頭看不到（放到第 1 層，主鏡頭只畫第 0 層）；每次都重掃，因為手上的道具、頭上的圖示會中途加進來
+    hideFromCam(on) { const L = on ? 1 : 0; root.traverse(o => { if (o.layers.mask !== (1 << L)) o.layers.set(L); }); c._hidCam = !!on; },
     dispose() { space.traverse(m => { if (m.isMesh && m.material && m.material.userData && m.material.userData.U) m.material.dispose(); }); ch.main.geometry.dispose(); ch.dispose(); if (icon) icon.material.dispose(); root.removeFromParent(); },
   };
   // 互動反應期間，場景排的「下一件桌上工作」往後延，反應才不會被蓋掉

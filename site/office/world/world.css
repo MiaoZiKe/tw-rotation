@@ -118,3 +118,18 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .chip.on{background:var(--on);border-color:var(--on);color:#fff}
 .tag.me{background:var(--on);color:#fff}.tag.me span{color:#fff5ea}.tag.me.lead b:after{color:#fff}
 .tag.pet{background:rgba(255,240,246,.94)}
+
+/* ───── 手機頂端工具列：只留重點（擁有者 11-13：四排太擠、蓋住畫面上方約四分之一）─────
+   第一排：標題、視角、「更多」；第二排：電力膠囊（與「等你核准」等提醒）。區域、示範、速度、模擬、整修、拖曳功能、時間收進「更多」，預設收起。
+   只在 ≤ 640 生效，桌機不受影響。 */
+.btn.more{display:none}
+@media (max-width:640px){
+  .btn.more{display:flex;order:2}
+  .btn.more.on{background:var(--on);color:#fff}.btn.more.on i{border-top-color:#fff}
+  #bar .ttl{order:0}#viewSeg{order:1}#pwBtn{order:3}#flBadge,#bar .lk{order:4}
+  #areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn{order:10}
+  body:not(.m-more) :is(#areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn){display:none}
+  body:not(.m-more) :is(.cm-hint,.dt-chip){display:none!important}
+  #viewSeg button{padding:0 8px;min-width:0}
+  #viewPov{display:none}                         /* 手機的「角色視角」入口在資訊卡與操控列（第一排放不下） */
+}

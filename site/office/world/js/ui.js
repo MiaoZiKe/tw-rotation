@@ -36,6 +36,12 @@ export function createUI(W, demo, api) {
     U.syncSens = sync; setTimeout(sync, 0);
   }
   $('helpBtn').onclick = () => togglePop('helpPop');
+  { // 手機的「更多」抽屜：區域、示範、速度、模擬、整修、拖曳功能、時間收在裡面，預設收起，使用者展開過才記住
+    const mb = $('moreBtn'), KEY = 'aiOffice.m.more'; let more = false; try { more = localStorage.getItem(KEY) === '1'; } catch (e) { more = false; }
+    const apply = () => { document.body.classList.toggle('m-more', more); mb.classList.toggle('on', more); mb.setAttribute('aria-expanded', more); };
+    mb.onclick = () => { more = !more; try { localStorage.setItem(KEY, more ? '1' : '0'); } catch (e) { /* 只在這次有效 */ } apply(); closePops(); };
+    apply();
+  }
 
   // 區域清單
   const rooms = W.layout.rooms, order = ['ceo', 'meeting', 'library', 'pantry', 'food', 'lounge', 'play', 'reserve', 'lobby'];
@@ -61,8 +67,15 @@ export function createUI(W, demo, api) {
   // 視角與速度
   $('viewSeg').onclick = e => { const b = e.target.closest('button'); if (b) api.setView(b.dataset.v); };
   U.setViewUI = (mode, c) => {
+    const vp = $('viewPov'); vp.hidden = !(mode === 'char' && c && !c.jobless && !c.spec.pet);      // 有選取角色時才多一格「角色視角」
     const vc = $('viewChar'); if (mode === 'char' && c) { vc.hidden = false; vc.textContent = '跟隨'; vc.title = '跟隨 ' + c.spec.nick; /* 不用暱稱：選到 CEO 時會和左邊的「CEO 視角」字面重複 */ } else if (mode !== 'char') vc.hidden = true;
     $('viewSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
+  };
+  // 角色視角開／關：各個入口鈕一起同步（資訊卡、視角切換列、手機操控列），切換列的亮點移到「角色視角」
+  U.setPovUI = (on, c) => {
+    $('viewSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', on ? b.dataset.v === 'pov' : b.dataset.v === (W.view && W.view.mode)));
+    document.querySelectorAll('#viewPov,[data-i=pov],.pt-pov').forEach(b => { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    document.body.classList.toggle('pov-on', on);
   };
   $('speedSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; api.setSpeed(+b.dataset.s); $('speedSeg').querySelectorAll('button').forEach(q => q.classList.toggle('on', q === b)); };
   $('editBtn').onclick = () => api.toggleEdit();
@@ -110,7 +123,7 @@ export function createUI(W, demo, api) {
       <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b>${s.name && s.name !== s.nick ? `<span class="nm2">${esc(s.name)}</span>` : ''}${s.lead ? '<span class="tag2">主管</span>' : ''}
         <p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p><p>${esc(spName(s))}</p></div></div>
       <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
-      <div class="acts g3"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button></div>
+      <div class="acts g3 g4"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button><button class="btn povb" data-i="pov" aria-pressed="false" title="從他的眼睛看出去（鍵盤 V）">角色視角</button></div>
       <div class="kpi" id="cardKpi">${[[1, 'k1', '未完成', p.nTodo, p.nextTodo ? '排 ' + p.nextTodo : '—'], [2, 'k2', '進行中', p.nDoing, '起 ' + p.lastDoing], [3, 'k3', '已完成', p.nDone, '末 ' + p.lastDone]].map(([k, c, n, v, em]) => `<button class="${c}" data-k="${k}" aria-pressed="false" title="點一下只看「${n}」的任務，再點一次回到全部"><span>${n}</span><b>${v}</b><em>${em}</em></button>`).join('')}</div>
       <dl class="meta">${p.nDoing ? `<dt>預估完成</dt><dd>${p.eta}（約 ${p.etaMin} 分鐘後）</dd><dt>能否優化</dt><dd>${esc(p.opt)}</dd>` : '<dt>預估完成</dt><dd>目前沒有進行中的任務</dd>'}</dl>
       <div class="list" id="cardList"></div>
@@ -172,6 +185,7 @@ export function createUI(W, demo, api) {
     if ((b = e.target.closest('[data-i]'))) {
       const k = b.dataset.i, inMeet = D.meeting && D.meeting.people.includes(c);
       if (k === 'fire') { W.hr.ask([c.spec.id]); return; }
+      if (k === 'pov') { if (W.pov) W.pov.toggle(c); return; }
       if (c.state === 'held' || c.away) return;
       if (k === 'pet') { c.pet(2.4); U.toast(`摸摸${c.spec.nick}，他很開心`); }
       else if (k === 'bonk') { c.bonk(); U.toast(`敲了${c.spec.nick}一下，他有點委屈`); }

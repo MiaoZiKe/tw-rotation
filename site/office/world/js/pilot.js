@@ -42,7 +42,7 @@ export function createPilot(W, X) {
   const hint = document.createElement('div'); hint.className = 'pt-hint'; hint.hidden = true; labels.append(hint);
   const pad = document.createElement('div'); pad.className = 'pt-pad'; pad.hidden = true;
   pad.innerHTML = `<div class="pt-joy" aria-label="虛擬搖桿"><div class="pt-knob"></div></div>
-    <div class="pt-btns"><button class="pt-b pt-jump" data-b="jump" aria-label="跳躍">跳</button><button class="pt-b pt-talk" data-b="talk" aria-label="與旁邊的同事溝通">溝通</button><button class="pt-b pt-wave" data-b="wave" aria-label="揮手打招呼">揮手</button></div>`;
+    <div class="pt-btns"><button class="pt-b pt-jump" data-b="jump" aria-label="跳躍">跳</button><button class="pt-b pt-talk" data-b="talk" aria-label="與旁邊的同事溝通">溝通</button><button class="pt-b pt-wave" data-b="wave" aria-label="揮手打招呼">揮手</button><button class="pt-b pt-pov" data-b="pov" aria-label="角色視角（從他的眼睛看出去）" aria-pressed="false">視角</button></div>`;
   root.append(tips, pad);
   const knob = pad.querySelector('.pt-knob'), joyEl = pad.querySelector('.pt-joy'), talkBtn = pad.querySelector('.pt-talk');
 
@@ -51,8 +51,8 @@ export function createPilot(W, X) {
     if (tipsOpen == null) { const v = lsGet(); tipsOpen = v == null ? !isMobile() : v === '1'; }
     const mob = isMobile(), nm = esc(c.spec.nick);
     const rows = mob
-      ? [['左下搖桿', '移動（推到底＝跑步）'], ['跳', '跳躍'], ['溝通', '與旁邊的同事溝通'], ['揮手', '揮手打招呼'], ['結束', '結束操控']]
-      : [['方向鍵／WASD', '移動'], ['連按兩次方向', '跑步'], ['Space', '跳躍'], ['E', '與旁邊的同事溝通'], ['F', '揮手打招呼'], ['Esc', '結束操控']];
+      ? [['左下搖桿', '移動（推到底＝跑步）'], ['跳', '跳躍'], ['溝通', '與旁邊的同事溝通'], ['揮手', '揮手打招呼'], ['視角', '角色視角（再按回來）'], ['結束', '結束操控']]
+      : [['方向鍵／WASD', '移動'], ['連按兩次方向', '跑步'], ['Space', '跳躍'], ['E', '與旁邊的同事溝通'], ['F', '揮手打招呼'], ['V', '角色視角（再按回來）'], ['Esc', '結束操控／回原視角']];
     tips.className = 'pt-tips' + (tipsOpen ? '' : ' min');
     tips.innerHTML = `<div class="pt-th"><b>${P.engaged ? '操控中' : '已選取'}：${nm}</b><button class="pt-min" data-t="min" aria-label="${tipsOpen ? '收起操作說明' : '展開操作說明'}" aria-expanded="${tipsOpen}">${tipsOpen ? '收起' : '說明'}</button><button class="pt-end" data-t="end" aria-label="結束操控">結束</button></div>
       <ul class="pt-list">${P.engaged ? '' : `<li class="pt-first">${mob ? '拖動左下搖桿' : '按方向鍵'}開始操控</li>`}${rows.map(([k, v]) => `<li><kbd>${esc(k)}</kbd><span>${esc(v)}</span></li>`).join('')}</ul>`;
@@ -112,7 +112,7 @@ export function createPilot(W, X) {
     if (!$('board').hidden) return;                                  // 佈告欄面板開著：方向鍵等不移動角色（Esc 由面板自己關），關掉面板才恢復
     const k = e.code;
     if ((k === 'Space' || k === 'Enter') && document.activeElement && document.activeElement.closest && document.activeElement.closest('#card,#board') && document.activeElement.matches('button,[role=button]')) return;   // 鍵盤操作面板上的按鈕時，Space 不當成跳躍
-    if (k === 'Escape') { e.preventDefault(); release(); return; }
+    if (k === 'Escape') { e.preventDefault(); if (W.pov && W.pov.on() && W.pov.st !== 'out') { W.pov.exit(); return; } release(); return; }    // 角色視角中，Esc 只回到原視角（選取還在）；再按一次才結束選取
     const d = DIRS[k];
     if (d) {
       e.preventDefault();
@@ -127,6 +127,7 @@ export function createPilot(W, X) {
     if (k === 'Space') { e.preventDefault(); if (!e.repeat) { engage(); jumpReq = true; } return; }
     if (k === 'KeyE') { e.preventDefault(); if (!e.repeat) doTalk(); return; }
     if (k === 'KeyF') { e.preventDefault(); if (!e.repeat) doWave(); return; }
+    if (k === 'KeyV') { e.preventDefault(); if (!e.repeat && W.pov) W.pov.toggle(P.sel); return; }
   }, true);
   addEventListener('keyup', e => {
     if (!P.sel) return;
@@ -150,7 +151,7 @@ export function createPilot(W, X) {
   joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd);
   pad.querySelector('.pt-btns').addEventListener('pointerdown', e => {
     const b = e.target.closest('[data-b]'); if (!b) return; e.preventDefault();
-    if (b.dataset.b === 'jump') { engage(); jumpReq = true; } else if (b.dataset.b === 'talk') doTalk(); else doWave();
+    if (b.dataset.b === 'jump') { engage(); jumpReq = true; } else if (b.dataset.b === 'talk') doTalk(); else if (b.dataset.b === 'pov') { if (W.pov) W.pov.toggle(P.sel); } else doWave();
   });
 
   // ───────── 靠近的同事（互動對象） ─────────
@@ -213,6 +214,7 @@ export function createPilot(W, X) {
     let m = Math.hypot(ix, iy); if (m) { ix /= m; iy /= m; m = 1; }
     const jm = Math.hypot(joy.x, joy.y); if (jm > 0.15) { ix += joy.x; iy += joy.y; m = Math.max(m, jm); }
     const L = Math.hypot(ix, iy); if (L < 0.1) return null;
+    if (W.pov && W.pov.active()) return { pov: true, turn: Math.max(-1, Math.min(1, ix)), fwd: Math.abs(iy) < 0.15 ? 0 : Math.sign(iy), mag: Math.min(1, Math.max(m, Math.abs(iy))), joyOnly: !held.size };   // 角色視角：↑↓＝往前往後（相對身體前方）、←→＝轉身，不是以鏡頭為準
     camera.getWorldDirection(fwd); let fx = fwd.x, fz = fwd.z; const fl = Math.hypot(fx, fz); if (fl < 1e-3) { fx = 0; fz = -1; } else { fx /= fl; fz /= fl; }
     const rx = -fz, rz = fx;                                         // 鏡頭的右手邊
     const dx = fx * iy + rx * ix, dz = fz * iy + rz * ix, dl = Math.hypot(dx, dz) || 1;
@@ -237,11 +239,14 @@ export function createPilot(W, X) {
     // 萬一站的格子本身是被擋住的（例如剛從椅子起身、被別的事推了一下）：先自己走回最近的空地，不然會困在家具裡或穿牆
     if (!free(p.x, p.z)) { const q = W.nav.nearestFree(p.x, p.z, 8), dx = q ? q.x - p.x : 0, dz = q ? q.z - p.z : 0, l = Math.hypot(dx, dz); if (q && l > 0.03) { c.drive(dx / l * 1.3, dz / l * 1.3, dx / l, dz / l); P.speedNow = 1.3; return; } }
     const inp = P.input(); let vx = 0, vz = 0;
+    if (inp && inp.pov) {          // 角色視角的操控：先轉身，再沿著身體前方（或後方）走
+      c.heading -= inp.turn * 2.4 * h; const fx = Math.sin(c.heading), fz = Math.cos(c.heading); inp.fx = fx; inp.fz = fz; inp.dx = fx * inp.fwd; inp.dz = fz * inp.fwd; inp.back = inp.fwd < 0;
+    }
     if (inp) {
       P.run = runLatched || (inp.joyOnly && inp.mag >= 0.9);
       const walkV = (cfg.walk || 1.5) * s, runV = (cfg.run || 3.5) * 0.95 * s;
       const sp = P.run ? runV : walkV * (inp.joyOnly ? Math.max(0.3, Math.min(1, inp.mag / 0.85)) : 1);
-      vx = inp.dx * sp; vz = inp.dz * sp;
+      vx = inp.dx * sp * (inp.back ? 0.5 : 1); vz = inp.dz * sp * (inp.back ? 0.5 : 1);
       // 碰撞：先看往前一小段是不是牆或家具（依軸向分開判斷，貼著牆會順著滑）
       // （萬一現在站的格子本身就被擋住，例如剛從椅子起身，只限制在辦公室範圍內，讓他能走出來）
       const tau = TAU, qx = p.x + vx * tau, qz = p.z + vz * tau, ok = free(p.x, p.z) ? free : inBox;
@@ -253,7 +258,7 @@ export function createPilot(W, X) {
         if (d < pad2 + Math.hypot(vx, vz) * tau && d > 1e-3) { const nx = ex / d, nz = ez / d, toward = -(vx * nx + vz * nz); if (toward > 0) { vx += nx * toward; vz += nz * toward; } }
       }
       if (vx === 0 && vz === 0) { ch.vel.x *= 0.5; ch.vel.z *= 0.5; }
-      c.drive(vx, vz, inp.dx, inp.dz);
+      c.drive(vx, vz, inp.pov ? inp.fx : inp.dx, inp.pov ? inp.fz : inp.dz);
     } else { P.run = false; c.drive(0, 0); }
     P.speedNow = Math.hypot(vx, vz);
   };
@@ -265,14 +270,17 @@ export function createPilot(W, X) {
     const p = c.object3D.position, k = c.scale || 1, pulse = 0.5 + 0.5 * Math.sin(t * 4.2);
     halo.position.set(p.x, 0.1, p.z); halo.scale.setScalar(Math.max(0.6, k));
     ringA.scale.setScalar(1 + 0.07 * pulse); ringA.material.opacity = 0.7 + 0.3 * pulse; ringB.scale.setScalar(1 - 0.05 * pulse); disc.material.opacity = 0.2 + 0.1 * pulse;
-    halo.visible = !c.away && c.object3D.visible;
+    halo.visible = !c.away && c.object3D.visible && !(W.pov && W.pov.hides(c));     // 角色視角時自己的光環不顯示
     if (W.ring.visible) W.ring.visible = false;                      // 舊的細環讓位，不要兩圈疊在一起
     // 「按 E 溝通」：頭上提示（貼在對方名牌上方，演出中或對方正在說話就先收起，避免跟泡泡重疊）
     const o = P.engaged && !P.engaging && !P.talking ? candidates(c, P.near ? NEAR_TALK : NEAR_HINT) : null;
     P.near = o; talkBtn.classList.toggle('ready', !!o);
-    if (o && o._sx > -900 && !o.speech) {
+    const inPov = !!(W.pov && W.pov.on());
+    if (o && (o._sx > -900 || inPov) && !o.speech) {
       hint.hidden = false; if (hintO !== o) { hintO = o; hint.textContent = isMobile() ? '點「溝通」鈕' : '按 E 溝通'; }
-      hint.style.transform = `translate(${Math.round(o._sx)}px,${Math.round(o._sy - (o._sd < 15 ? 38 : 24) - 10)}px) translate(-50%,-100%)`;
+      let hx = o._sx > -900 ? o._sx : innerWidth / 2, hy = o._sx > -900 ? o._sy - (o._sd < 15 ? 38 : 24) - 10 : 150;
+      if (inPov) { hx = Math.max(90, Math.min(innerWidth - 90, hx)); hy = Math.max(150, Math.min(innerHeight - 210, hy)); }    // 角色視角時同事離得很近，頭常在畫面外：提示固定在畫面上方看得到的位置
+      hint.style.transform = `translate(${Math.round(hx)}px,${Math.round(hy)}px) translate(-50%,-100%)`;
     } else hint.hidden = true;
     // 手機：搖桿與按鈕要在底部面板的上方，不被卡片蓋住
     if (!pad.hidden) { let lift = 0; for (const el of [card, board, log]) if (!el.hidden && !el.classList.contains('mini')) lift = Math.max(lift, el.offsetHeight + 8); document.documentElement.style.setProperty('--lift', lift + 'px'); }
