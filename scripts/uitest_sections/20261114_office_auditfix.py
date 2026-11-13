@@ -103,7 +103,9 @@ def t_auditfix(b, base):
         over = [r for r in sr if r["soft"] > 0.12 + 1e-6]
         ok("A7 軟坐墊最厚 %.3f 公尺 ≤ 0.12（修正前最厚 0.27）" % max(r["soft"] for r in sr), not over, over[:2])
         lifted = [r for r in sr if r["boost"] > 0.12 + 1e-6]
-        ok("A7 墊高超過 0.12 的 %d 位，多出來的部分改升椅子座面（升高量 = 墊高 − 0.12）" % len(lifted), lifted and all(abs(r["lift"] - (r["boost"] - 0.12)) < 2e-3 for r in lifted), lifted[:2])
+        ok("A7 墊高超過 0.12 的 %d 位改升椅子座面（一個座面盤＋一根桿，不再疊軟坐墊）" % len(lifted), lifted and all(abs(r["lift"] - r["boost"]) < 2e-3 and r["soft"] < 1e-3 for r in lifted), lifted[:2])
+        pads = pg.evaluate("""() => { const W = window.__world; const o = []; for (const [id, c] of W.chars) { if (!(c._lift > 0)) continue; let discs = 0, poles = 0; c.object3D.traverse(m => { if (m.userData && m.userData.prop === 'cushion') { if (m.isGroup) { poles += m.children.length - 1; discs += 1; } else discs += 1; } }); o.push({ id, discs, poles }); } return o; }""")
+        ok("A7 升高椅子的每位只有一個座面盤加一根桿（共 %d 位）" % len(pads), pads and all(p_["discs"] == 1 and p_["poles"] == 1 for p_ in pads), pads[:2])
         low = [r for r in sr if r["mouthY"] < 0.9 and r["boost"] > 0]
         ok("A7 坐上去的總高度沒變：被墊高的 %d 位嘴巴高度都 ≥ 0.9 公尺（高過桌面 0.74）" % len([r for r in sr if r["boost"] > 0]), not low, low[:2])
         tail = [r for r in sr if r["backExt"] > 0.3]

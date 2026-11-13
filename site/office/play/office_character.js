@@ -155,7 +155,7 @@ export function createCharacter(spec, env = {}) {
       else if (c._drive) { const d = c._drive; ch.ext.vx = d.vx / s; ch.ext.vz = d.vz / s; if (d.fx || d.fz) c.heading = Math.atan2(d.fx, d.fz); else if (d.vx || d.vz) c.heading = Math.atan2(d.vx, d.vz); }
       else { ch.ext.vx = ch.ext.vz = 0; }
       if (!c._held) ch.ext.yaw = c.heading;
-      { const sv = !!c._seat && !c._hop && lod < 2 && root.visible; if (cushion) cushion.visible = sv && c._boost > 0; if (riser) riser.visible = sv && c._lift > 0.01; }
+      { const sv = !!c._seat && !c._hop && lod < 2 && root.visible; if (cushion) cushion.visible = sv && c._boost > 0 && !(c._lift > 0); if (riser) riser.visible = sv && c._lift > 0; }
       const n = Math.max(1, Math.ceil(dt / (1 / 90))), h = dt / n; for (let i = 0; i < n; i++) ch.step(h, ctl);
       if (c._hop && !c._held) hopStep(dt);
       if (c._held && ch.mode === 'normal' && ch.grounded && !ch.extFall) dropped();
@@ -243,26 +243,41 @@ export function createCharacter(spec, env = {}) {
   function place(x, z) { ch.pos.x = x / s; ch.pos.z = z / s; ch.vel.set(0, 0, 0); ch.grounded = true; ch.feet.forEach(f => { ch.footHome(f, f.p); f.planted = true; f.v.set(0, 0, 0); }); ch.hands.forEach(h => { h.p.set(ch.pos.x, ch.pos.y + 0.3, ch.pos.z); h.v.set(0, 0, 0); }); root.position.set(x, 0, z); }
   // 個子矮的坐在辦公椅上會被桌子擋住臉，要把嘴巴墊到桌面以上（墊高量最多 0.27 公尺）。
   // 2026-11-14 稽核問題 7：墊高全用一根同色圓柱，矮的物種就像坐在柱子上。改成：
-  //   軟坐墊最多 0.12 公尺（又寬又扁的墊子）；不夠的部分改「升高椅子座面」——椅子本來就有升降桿，
-  //   畫一根升降桿加一塊座面墊在原本的椅面上。身體高度（坐上去的總高度）不變，嘴巴還是高過桌面。
-  const CUSHION_MAX = 0.12; let cushion = null, riser = null, poleM = null, padM = null, _cushH = -1;
+  //   墊高 ≤ 0.12 公尺：一塊又寬又扁的軟坐墊（上限 0.12，一個圓盤）。
+  //   墊高 > 0.12 公尺：改「升高椅子座面」——複製一份跟原椅子座面同色、同尺寸（略大一點蓋住接縫）的座面盤放在新高度，
+  //   下面接一根跟原椅子氣壓桿同色的細桿；只有一個盤、一根桿，不疊多層，看起來就是一張比較高的椅子。
+  //   座面與氣壓桿的顏色從場景裡椅子的頂點色取（取不到就用預設），坐上去的總高度不變，嘴巴仍高過桌面。
+  const CUSHION_MAX = 0.12; let cushion = null, riser = null, poleM = null, padM = null, _cushH = -1, _chairCol = null;
   const seatMat = () => new THREE.MeshStandardMaterial({ color: new THREE.Color(spec.color || '#ffd9b0').lerp(new THREE.Color('#ffffff'), 0.35), roughness: 0.9 });
+  // 取原椅子座面與氣壓桿的頂點色：在座位中心附近的合併網格裡找座面側邊（半徑 0.2~0.3、高 0.33~0.40）與氣壓桿（半徑 <0.05）的頂點
+  function sampleChair(seat) {
+    const out = { seat: null, pole: null }, sc = root.parent; if (!sc) return out; const v = new V3(), col = new THREE.Color();
+    sc.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.color || (out.seat && out.pole)) return; const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
+      const P = g.attributes.position, C = g.attributes.color; o.updateWorldMatrix(true, false); const bb = g.boundingBox.clone().applyMatrix4(o.matrixWorld); if (seat.x < bb.min.x - 0.3 || seat.x > bb.max.x + 0.3 || seat.z < bb.min.z - 0.3 || seat.z > bb.max.z + 0.3) return;
+      for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); const dx = v.x - seat.x, dz = v.z - seat.z, d = Math.hypot(dx, dz);
+        if (!out.seat && d > 0.2 && d < 0.3 && v.y > 0.33 && v.y < 0.4) out.seat = new THREE.Color().fromBufferAttribute(C, i);
+        else if (!out.pole && d < 0.05 && v.y > 0.06 && v.y < 0.345) out.pole = new THREE.Color().fromBufferAttribute(C, i); if (out.seat && out.pole) break; } });
+    return out;
+  }
   function seatY(seat) {
     const base = Math.max(0, seat.y - 0.04), chair = seat.y > 0.405 && seat.y < 0.435; let boost = chair ? clamp(0.93 - (ch.cfg.mouth[1] * s + base), 0, 0.27) : 0; if (boost < 0.03) boost = 0;
-    const soft = Math.min(boost, CUSHION_MAX), lift = boost - soft, P = seatPos(seat);
-    if (boost) {
-      if (!cushion) { cushion = new THREE.Mesh(KG.cyl(0.23, soft, 0.03, 20), seatMat()); cushion.userData.prop = 'cushion'; space.add(cushion); _cushH = soft; }
-      if (Math.abs(_cushH - soft) > 1e-3) { cushion.geometry = KG.cyl(0.23, Math.max(soft, 0.02), Math.min(0.03, soft * 0.45), 20); _cushH = soft; }   // 厚度變了（換到別張椅子）：重做幾何
-      cushion.position.set((seat.x + (P.x - seat.x) * 0.6) / s, (base + lift) / s, (seat.z + (P.z - seat.z) * 0.6) / s); cushion.scale.setScalar(1 / s);
+    const high = boost > CUSHION_MAX, P = seatPos(seat);
+    if (boost && !high) {   // 薄墊：一塊軟坐墊
+      if (!cushion) { cushion = new THREE.Mesh(KG.cyl(0.23, boost, 0.03, 20), seatMat()); cushion.userData.prop = 'cushion'; space.add(cushion); _cushH = boost; }
+      if (Math.abs(_cushH - boost) > 1e-3) { cushion.geometry = KG.cyl(0.23, Math.max(boost, 0.02), Math.min(0.03, boost * 0.45), 20); _cushH = boost; }
+      cushion.position.set((seat.x + (P.x - seat.x) * 0.6) / s, base / s, (seat.z + (P.z - seat.z) * 0.6) / s); cushion.scale.setScalar(1 / s);
     }
-    if (lift > 0.01) {
+    if (high) {   // 升高椅子：一個座面盤＋一根氣壓桿
       if (!riser) {
-        riser = new THREE.Group(); poleM = new THREE.Mesh(KG.cyl(0.04, 1, 0.01, 12), new THREE.MeshStandardMaterial({ color: '#7d8490', roughness: 0.5, metalness: 0.2 })); padM = new THREE.Mesh(KG.cyl(0.27, 0.06, 0.02, 24), seatMat());
+        _chairCol ||= sampleChair(seat); c._chairCol = { seat: _chairCol.seat && _chairCol.seat.getHexString(), pole: _chairCol.pole && _chairCol.pole.getHexString() }; const R0 = spec.isCeo ? 0.27 * 1.15 + 0.012 : 0.27 + 0.012;
+        riser = new THREE.Group(); poleM = new THREE.Mesh(KG.cyl(0.045, 1, 0.01, 10), new THREE.MeshStandardMaterial({ color: _chairCol.pole || new THREE.Color('#7d8490'), roughness: 0.82 }));
+        padM = new THREE.Mesh(KG.cyl(R0, 0.11, 0.045, 24), new THREE.MeshStandardMaterial({ color: _chairCol.seat || seatMat().color, roughness: 0.82 }));
         riser.add(poleM, padM); riser.userData.prop = 'cushion'; space.add(riser);
       }
-      poleM.scale.set(1, lift, 1); padM.position.y = lift - 0.06; riser.position.set(seat.x / s, base / s, seat.z / s); riser.scale.setScalar(1 / s);
+      const top = base + boost, bot = top - 0.11, pl = Math.max(0.001, bot + 0.01 - (seat.y - 0.01));
+      padM.position.y = boost - 0.11; poleM.position.y = seat.y - 0.01 - base; poleM.scale.set(1, pl, 1); riser.position.set(seat.x / s, base / s, seat.z / s); riser.scale.setScalar(1 / s);
     }
-    c._boost = boost; c._lift = lift; return base + boost;
+    c._boost = boost; c._lift = high ? boost : 0; return base + boost;
   }
   // 坐下的位置：身體（含尾巴、觸手）超出椅背前緣的，往前坐一點（最多 0.1 公尺），不要穿過椅背。
   // 椅背前緣在座面中心後方約 0.215 公尺（大椅 0.25）。身體往後的範圍用目前姿態的外框量一次、記起來。
