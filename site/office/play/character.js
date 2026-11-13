@@ -9,7 +9,7 @@ import { SPECIES, resolveSpec, addAccessories, faceStyleFor, applyTraits } from 
 import { clamp, lerp, sstep } from './soft.js';
 const V3 = THREE.Vector3;
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
-const _a = new V3(), _b = new V3(), _c = new V3(), _d = new V3(), _q = new THREE.Quaternion(), _UP = new V3(0, 1, 0);
+const _a = new V3(), _b = new V3(), _c = new V3(), _d = new V3(), _e = new V3(), _f = new V3(), _q = new THREE.Quaternion(), _UP = new V3(0, 1, 0);
 
 const HARD = new Set(['robo', 'mug', 'calc', 'note', 'folder', 'pencil', 'stamp', 'lamp', 'bulb']);   // 硬質物種：手腳用關節座與短袖口，不做有機融合
 const ACT = {
@@ -73,20 +73,26 @@ export class Character {
     const bo = this.bodyO, lo = lm.userData.o; if (!lo || (!hard && !bo)) return;
     const tc = new THREE.Color(lo.color).lerp(new THREE.Color(lo.top ?? lo.color), hard ? 0 : 0.12);
     const mat = softMat({ ...lo, color: tc, top: tc, y0: -1, y1: 1, ...(hard ? {} : { root: bo, rootSpan: cfg.rootSpan ?? 0.34 }) }, this.sh);
-    this.slots = []; const my = this.main.position.y, thin = !!cfg.legs;
+    this.slots = []; const my = this.main.position.y, thin = !!cfg.legs, old = hard || thin;
     this.hands.forEach((h, i) => {
-      const sh = this.shoulder || cfg.shoulder || [cfg.hand[0] * 0.5, my + (cfg.hand[1] - my) * 0.5, cfg.hand[2] * 0.5], hs = cfg.handScale, hr = hs ? Math.max(...hs) * 0.5 : cfg.handR, rt = hs ? Math.min(...hs) : hr * (cfg.wrist ?? (hard ? 0.62 : 0.5));
-      this.slots.push({ h, a: new V3(h.s * sh[0], sh[1], sh[2]), rt, rf: hr * (cfg.armFlare ?? (hard ? 1.45 : thin ? 1.2 : 2.0)), Lf: hr * (cfg.armLf ?? (hard ? 0.55 : 1.5)), p: 2.0 });
+      const sh = this.shoulder || cfg.shoulder || [cfg.hand[0] * 0.5, my + (cfg.hand[1] - my) * 0.5, cfg.hand[2] * 0.5], hs = cfg.handScale, hr = hs ? Math.max(...hs) * 0.5 : cfg.handR;
+      const sl = { h, a: new V3(h.s * sh[0], sh[1], sh[2]), kind: old || hs ? 'old' : 'arm', hr };
+      if (sl.kind === 'arm') { sl.rt = hr * 0.95; sl.rf = hr * 1.5; sl.collar = hr * 2.0; sl.Lf = hr * 1.6; h.m.scale.multiplyScalar(0.3); }
+      else { sl.rt = hs ? Math.min(...hs) : hr * (cfg.wrist ?? (hard ? 0.62 : 0.5)); sl.rf = hr * (cfg.armFlare ?? (hard ? 1.45 : thin ? 1.2 : 2.0)); sl.Lf = hr * (cfg.armLf ?? (hard ? 0.55 : 1.5)); sl.p = 2.0; }
+      this.slots.push(sl);
     });
     this.feet.forEach((f, i) => {
-      const hp = this.hip || cfg.hip || [cfg.lat * 0.55, my * 0.5 + cfg.footSize[1] * 0.5, cfg.footFwd * 0.5], fr = cfg.footSize[0], rt = fr * (thin ? 0.42 : 0.6);
-      this.slots.push({ f, a: new V3(f.s * hp[0], hp[1], hp[2]), rt, rf: fr * (cfg.legFlare ?? (hard ? 1.25 : thin ? 1.0 : 1.4)), Lf: fr * (hard ? 0.5 : 0.9), p: 2.2 });
+      const hp = this.hip || cfg.hip || [cfg.lat * 0.55, my * 0.5 + cfg.footSize[1] * 0.5, cfg.footFwd * 0.5], fs = cfg.footSize, fr = fs[0];
+      const sl = { f, a: new V3(f.s * hp[0], hp[1], hp[2]), kind: old ? 'old' : 'leg', fs };
+      if (sl.kind === 'leg') { sl.rf = fr * 1.0; sl.collar = fr * 1.0; sl.Lf = fr * 1.0; f.m.scale.multiplyScalar(0.55); }
+      else { sl.rt = fr * (thin ? 0.42 : 0.6); sl.rf = fr * (cfg.legFlare ?? (hard ? 1.25 : thin ? 1.0 : 1.4)); sl.Lf = fr * (hard ? 0.5 : 0.9); sl.p = 2.2; }
+      this.slots.push(sl);
     });
     this.main.geometry.computeBoundingBox(); const bb = this.main.geometry.boundingBox; this.bodyHalf = new V3((bb.max.x - bb.min.x) / 2, (bb.max.y - bb.min.y) / 2, (bb.max.z - bb.min.z) / 2).multiplyScalar(0.92);
     this.skin = new LimbSkin(this.slots.length, mat); this.scene.add(this.skin.mesh); this.pickList.push(this.skin.mesh); this.skin.mesh.userData.char = this;
   }
   // 世界座標 → 手腳掛載群組的座標（辦公室的群組有縮放，CEO 與寵物不是 1 倍）
-  setLocal(out, p) { out.copy(p); if (!this.scene.isScene) out.applyMatrix4(this._sInv); return out; }
+  setLocal(out, p) { return out.copy(p); }   // 辦公室群組縮放：原本手腳的座標約定就是這樣，維持不動（第一輪誤判為錯誤，已還原）
   updateSkin() {
     const S = this.skin; if (!S) return;
     const sh = this.sh, e = this.main.matrixWorld.elements, sx = Math.hypot(e[0], e[1], e[2]), sy = Math.hypot(e[4], e[5], e[6]), sz = Math.hypot(e[8], e[9], e[10]), bh = this.bodyHalf;
@@ -94,12 +100,21 @@ export class Character {
     sh.uBodyK.value.set(1 / (rh * rh), 1 / (ry * ry), 1 / (rh * rh)); sh.uBodyYS.value = sy;
     this.slots.forEach((sl, i) => {
       this.deform.localToWorld(_c.copy(sl.a));
-      if (sl.h) _d.copy(sl.h.p); else _d.copy(sl.f.p).setY(sl.f.p.y + this.cfg.footSize[1] * 0.95);
+      const isFoot = !!sl.f; let fp = isFoot ? sl.f.p : sl.h.p;
+      { const dx = fp.x - _c.x, dy = fp.y - _c.y, dz = fp.z - _c.z, dd = Math.hypot(dx, dy, dz), mxl = this.R * 3.2; if (dd > mxl) { fp = _f.set(_c.x + dx * mxl / dd, _c.y + dy * mxl / dd, _c.z + dz * mxl / dd); } }   // 還沒收斂回來的手腳（遠處、剛傳送）不要拉出長條
+      if (sl.kind === 'old') { if (isFoot) _d.copy(fp).setY(fp.y + this.cfg.footSize[1] * 0.95); else _d.copy(fp); }
+      else if (isFoot) _d.set(fp.x, fp.y + this.cfg.footSize[1] * 1.3, fp.z); else _d.copy(fp);
       // 軸線穿出身體（橢球）的位置
       const K = sh.uBodyK.value, C = sh.uBodyC.value; _a.copy(_d).sub(_c); _b.copy(_c).sub(C);
       const qa = K.x * _a.x * _a.x + K.y * _a.y * _a.y + K.z * _a.z * _a.z, qb = 2 * (K.x * _b.x * _a.x + K.y * _b.y * _a.y + K.z * _b.z * _a.z), qc = K.x * _b.x * _b.x + K.y * _b.y * _b.y + K.z * _b.z * _b.z - 1, disc = qb * qb - 4 * qa * qc;
       const ts = qa > 1e-9 && disc > 0 ? clamp((-qb + Math.sqrt(disc)) / (2 * qa), 0, 1) : 0.5;
-      this.setLocal(_c, _c); this.setLocal(_d, _d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts);
+      if (sl.kind === 'arm') {
+        // 二次貝茲：中間控制點朝重力與運動的反方向落後
+        const L = _c.distanceTo(_d), v = sl.h.v; _e.copy(_c).add(_d).multiplyScalar(0.5); _e.y -= 0.22 * L; _e.x -= v.x * 0.03; _e.y -= v.y * 0.03; _e.z -= v.z * 0.03;
+        this.setLocal(_c, _c); this.setLocal(_d, _d); this.setLocal(_e, _e); S.setArm(i, _c, _e, _d, sl.rf, sl.rt, sl.collar, sl.Lf, ts);
+      } else if (sl.kind === 'leg') {
+        const F = _e.copy(fp); this.setLocal(_c, _c); this.setLocal(F, F); S.setLeg(i, _c, F, sl.f.yaw, sl.fs[0], sl.fs[1] * 0.8, sl.fs[2], sl.rf, sl.collar, sl.Lf, ts);
+      } else { this.setLocal(_c, _c); this.setLocal(_d, _d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts); }
     });
     S.commit();
   }

@@ -46,7 +46,7 @@ export const SPECIES = {
       c.main = put(c, blobGeo(v => { const y = v.y, b = 1 + 0.15 * sstep(0.4, -0.7, y); v.set(v.x * 0.455 * b, y * (y > 0 ? 0.385 : 0.345), v.z * 0.425 * b); }), m, 0, 0.335, 0);
       const em = MR(c, { color: p.acc, top: p.acc, y0: -0.4, y1: 0.9, sss: p.sss });
       for (const s of [-1, 1]) { const g = piv(c, s * 0.25, 0.62, -0.02, { side: s, g: 0.016, gy: 0.012, rest: [0, s * -0.22], droop: 0.75 }); put(c, taperGeo({ q: 0.8, p: 2.6, cap: 0.55, bulge: 0.12 }), em, 0, -0.05, 0, 0.115, 0.2, 0.08, g); }
-      const t = piv(c, 0.06, 0.2, -0.4, { k: 220, c: 10, g: 0.03, wag: true }); put(c, taperGeo({ q: 0.85, p: 2.4, cap: 0.6, bulge: 0.1 }), em, 0, 0, -0.01, 0.085, 0.1, 0.085, t).rotation.x = -1.57;
+      const t = piv(c, 0.06, 0.2, -0.4, { k: 220, c: 10, g: 0.03, wag: true }); put(c, ball(), em, 0, 0, -0.03, 0.08, 0.08, 0.08, t);
       c.limbMat = M(c, { color: p.acc, top: p.top, y0: 0, y1: 1.6, sss: p.sss });
     },
     idle(c, dt, t) { if (calm(c) && every(c, 'ear', 3.2, dt)) for (const a of c.apps) if (a.side) a.vz += a.side * 5; },
@@ -233,10 +233,11 @@ export const SPECIES = {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3 };
       c.main = put(c, blobGeo(v => { const y = v.y, b = 1 + 0.09 * sstep(-0.6, 0.5, y); v.set(v.x * 0.345 * b, y * (y > 0 ? 0.37 : 0.31), v.z * 0.33 * b); }), M(c, { ...o, y0: -0.3, y1: 0.3, face: c.face, headC: [0, -0.03, 0], span: [2.2, 2.2] }), 0, 0.45, 0);
       const tm = MR(c, { ...o, color: p.body, top: p.body, y0: -1.5, y1: 1.5 }), tp = M(c, { color: p.tip, top: p.tip, sss: p.sss, sssAmt: 0.2 });
-      for (let i = 0; i < 7; i++) { const a = (i + 0.5) / 7 * Math.PI * 2 + Math.PI / 2, cx = Math.cos(a), sz = Math.sin(a); const g = piv(c, cx * 0.2, 0.2, sz * 0.2, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 }); const dv = new V3(cx * 0.25, -0.17, sz * 0.25), dl = dv.length(); put(c, taperGeo({ q: 0.5, p: 1.7, cap: 0.35 }), tm, 0, 0, 0, 0.088, dl * 1.12, 0.088, g).quaternion.setFromUnitVectors(new V3(0, 1, 0), dv.normalize()); put(c, ball(), tp, cx * 0.255, -0.17, sz * 0.255, 0.052, 0.034, 0.052, g); }
+      for (let i = 0; i < 7; i++) { const a = (i + 0.5) / 7 * Math.PI * 2 + Math.PI / 2, cx = Math.cos(a), sz = Math.sin(a); const g = piv(c, cx * 0.2, 0.2, sz * 0.2, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 }); const dv = new V3(cx * 0.25, -0.17, sz * 0.25), dl = dv.length(); { const dn = dv.clone().normalize(), hx = new V3(0, 1, 0).cross(dn); if (hx.lengthSq() < 1e-4) hx.set(1, 0, 0); hx.normalize(); const zz = hx.clone().cross(dn), up = zz.y >= 0 ? 1 : -1, len = dl * 1.12, rz = 0.09;
+          const m = put(c, taperGeo({ q: 0.78, p: 1.3, cap: 0.3, curl: up * 0.075 / rz }), tm, 0, 0, 0, 0.1, len * 0.95, rz * 1.1, g); m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hx, dn, zz)); } }
       const sp = M(c, { color: p.top, top: p.top, sss: p.sss, sssAmt: 0.2 }); for (const [x, y, z, r] of [[-0.2, 0.72, 0.1, 0.06], [-0.27, 0.62, 0.02, 0.035], [0.22, 0.7, -0.08, 0.045]]) put(c, ball(), sp, x, y, z, r, r * 0.5, r);
     },
-    idle(c, dt, t) { for (const a of c.apps) if (a.wig != null) { a.vx += Math.sin(t * 2.3 + a.wig) * 2.5 * dt; a.vz += Math.cos(t * 1.9 + a.wig * 1.7) * 2.5 * dt; } },
+    idle(c, dt, t) { const sp = Math.hypot(c.vel.x, c.vel.z); for (const a of c.apps) if (a.wig != null) { a.vx += Math.sin(t * 2.3 + a.wig) * 2.5 * dt; a.vz += Math.cos(t * 1.9 + a.wig * 1.7) * 2.5 * dt; if (sp > 0.2) { a.vz += Math.sin(t * 9 - a.wig * 1.1) * (6 + sp * 5) * dt * 3; a.vx += Math.cos(t * 9 - a.wig * 1.1) * 3 * dt * 3; } } },
     sig: { dur: 2.4, fn(c, u, a, P) { if (u < 0.3) { P.sq = -0.2 * sstep(0, 0.3, u); P.expr = 'effort'; } else { P.sq = 0.12 * (1 - sstep(0.3, 0.6, u)); P.expr = u < 0.5 ? 'surprised' : 'shy'; if (u > 0.5) { P.tint = [1, 0.6, 0.68]; P.tintA = 0.3; } if (!a.f) { a.f = 1; c.fx.sfx('skid'); c.sqV += 5; for (let i = 0; i < 12; i++) c.fx.spawn('dust', _v.set(c.pos.x - Math.sin(c.yaw) * 0.3, c.pos.y + 0.2, c.pos.z - Math.cos(c.yaw) * 0.3).clone(), { v: new V3(-Math.sin(c.yaw) * rnd(0.6, 1.8) + rnd(-0.4, 0.4), rnd(0, 0.7), -Math.cos(c.yaw) * rnd(0.6, 1.8) + rnd(-0.4, 0.4)), life: 1.3, size: 0.22, grow: 1.6, drag: 2.2, color: 0x4a3c6a }); } } } },
   },
   // ───────── 11 閃閃：小星星（鼓鼓的五角星，站在兩個下尖角上，會側翻）

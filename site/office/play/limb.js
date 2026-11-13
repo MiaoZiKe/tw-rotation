@@ -7,21 +7,29 @@ const V3 = THREE.Vector3;
 // ── 靜態：沿 +y 長的錐形體（耳朵、尾巴、觸手），根在 y=0（埋進身體），尖端在 y=1，單位半徑 1（再用 scale 放大）
 //   q＝尖端半徑比例，p＝張開的曲線（越大越快收細），cap＝尖端圓頭佔的長度比例，bulge＝中段鼓起（0~0.4）
 const cache = new Map();
-export function taperGeo({ q = 0.4, p = 2.2, cap = 0.25, bulge = 0 } = {}) {
-  const k = `${q}|${p}|${cap}|${bulge}|${DETAIL.k}`; if (cache.has(k)) return cache.get(k);
+export function taperGeo({ q = 0.4, p = 2.2, cap = 0.25, bulge = 0, curl = 0 } = {}) {
+  const k = `${q}|${p}|${cap}|${bulge}|${curl}|${DETAIL.k}`; if (cache.has(k)) return cache.get(k);
   const pts = [new THREE.Vector2(0, 0)], N = Math.max(8, Math.round(14 * DETAIL.k)), tc = 1 - cap;
   const body = (t) => (q + (1 - q) * Math.pow(1 - t, p)) * (1 + bulge * Math.sin(Math.PI * Math.min(1, t / tc)));
   for (let i = 0; i <= N; i++) { const t = i / N * tc; pts.push(new THREE.Vector2(body(t), t)); }
   const rc = body(tc), M = Math.max(5, Math.round(8 * DETAIL.k));
   for (let i = 1; i <= M; i++) { const a = i / M * Math.PI / 2; pts.push(new THREE.Vector2(rc * Math.cos(a), tc + cap * Math.sin(a))); }
   const g = new THREE.LatheGeometry(pts, Math.max(12, Math.round(20 * DETAIL.k)));
+  if (curl) {   // S 形：先下垂再上翹（沿 z 位移，curl 是單位半徑的倍數）
+    const P = g.attributes.position, N = g.attributes.normal, f = (t) => -0.5 * Math.sin(Math.PI * t) + 1.2 * t * t * t, df = (t) => -0.5 * Math.PI * Math.cos(Math.PI * t) + 3.6 * t * t;
+    for (let i = 0; i < P.count; i++) { const t = Math.min(1, Math.max(0, P.getY(i))); P.setZ(i, P.getZ(i) + curl * f(t)); let nx = N.getX(i), ny = N.getY(i), nz = N.getZ(i) - curl * df(t) * ny * 0.35; const il = 1 / Math.hypot(nx, ny, nz); N.setXYZ(i, nx * il, ny * il, nz * il); }
+  }
   cache.set(k, g); return g;
 }
 
 // ── 動態：一隻角色的所有手腳「皮膚」合成一個網格（一次繪製）
-//   每條肢體 ＝ 根（身體座標裡的錨點，埋在身體裡）→ 末端（手／腳的球心），路徑略彎，粗細 rr→rt，根部張開
+//   每條肢體固定 R 圈、每圈 S 點。三種寫法：
+//   set()    舊的直管（硬質物種、豆芽）：根→末端，根部張開
+//   setArm() 短胖彎曲的手臂：二次貝茲曲線，末端圓頭就是手掌（手球縮進圓頭裡）
+//   setLeg() 腿＋腳掌連成一體：腿末端往前擴成橢球腳掌
+const sst = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 export class LimbSkin {
-  constructor(n, mat, sides = 24, rings = 14) {
+  constructor(n, mat, sides = 24, rings = 16) {
     this.n = n; this.S = sides; this.Rg = rings; this.per = sides * rings;
     const g = this.geo = new THREE.BufferGeometry();
     this.pos = new Float32Array(n * this.per * 3); this.nor = new Float32Array(n * this.per * 3);
@@ -35,28 +43,79 @@ export class LimbSkin {
     g.setAttribute('position', pa); g.setAttribute('normal', na);
     g.boundingSphere = new THREE.Sphere(new V3(), 1e4);
     mat.side = THREE.DoubleSide; this.mesh = new THREE.Mesh(g, mat); this.mesh.frustumCulled = false; this.mesh.castShadow = false; this.mesh.userData.limb = true;
-    this.on = new Array(n).fill(true);
-    this._u = new V3(); this._w = new V3(); this._d = new V3(); this._c = new V3(); this._m = new V3();
+    this._u = new V3(); this._w = new V3(); this._d = new V3(); this._c = new V3(); this._p = new V3(); this._q = new V3();
+    this.cen = new Float32Array(rings * 3); this.rad = new Float32Array(rings); this.tan = new Float32Array(rings * 3); this.fr = new Float32Array(rings * 6);
   }
-  // A 根、B 末端（世界座標）；rt 末端半徑、rf 穿出身體表面處的半徑（張開的裙邊）、Lf 張開的長度、ts 軸線穿出身體的位置（0~1）
+  // 寫一圈：中心 c、基底 u/w、橢圓半徑 rx/rz、法線函式
+  _ring(l, r, c, u, w, rx, rz, nfn) {
+    const S = this.S, P = this.pos, N = this.nor, base = (l * this.per + r * S) * 3;
+    for (let s = 0; s < S; s++) {
+      const a = s / S * 6.2832, ca = Math.cos(a), sa = Math.sin(a), o = base + s * 3;
+      P[o] = c.x + (u.x * ca * rx + w.x * sa * rz); P[o + 1] = c.y + (u.y * ca * rx + w.y * sa * rz); P[o + 2] = c.z + (u.z * ca * rx + w.z * sa * rz);
+      nfn(ca, sa, N, o);
+    }
+  }
+  // 舊直管
   set(l, A, B, rf, rt, Lf, p, ts) {
     const d = this._d.subVectors(B, A), L = d.length() || 1e-4; d.multiplyScalar(1 / L);
     const u = this._u, w = this._w; u.set(Math.abs(d.y) > 0.9 ? 1 : 0, Math.abs(d.y) > 0.9 ? 0 : 1, 0); w.crossVectors(d, u).normalize(); u.crossVectors(w, d).normalize();
-    const S = this.S, Rg = this.Rg, P = this.pos, Nn = this.nor, base = l * this.per * 3, c = this._c, t0 = Math.min(0.98, Math.max(0, ts - 0.5 * Lf / L));
+    const Rg = this.Rg, c = this._c, t0 = Math.min(0.98, Math.max(0, ts - 0.5 * Lf / L));
     for (let r = 0; r < Rg; r++) {
-      const t = r === 0 ? 0 : t0 + (1 - t0) * (r - 1) / (Rg - 2), sd = (t - ts) * L;
-      let rad, slope = 0;
+      const t = t0 + (1 - t0) * r / (Rg - 1), sd = (t - ts) * L; let rad, slope = 0;
       if (sd <= 0) { rad = Math.max(rt * 1.15, rf * (1 + 1.6 * sd / Lf)); slope = rad > rt * 1.15 ? 1.6 * rf / Lf : 0; } else if (sd >= Lf) rad = rt; else { const q = 1 - sd / Lf; rad = rt + (rf - rt) * Math.pow(q, p); slope = -(rf - rt) * p * Math.pow(q, p - 1) / Lf; }
       c.copy(A).addScaledVector(d, L * t);
-      for (let s = 0; s < S; s++) {
-        const a = s / S * 6.2832, ca = Math.cos(a), sa = Math.sin(a);
-        const rx = u.x * ca + w.x * sa, ry = u.y * ca + w.y * sa, rz = u.z * ca + w.z * sa, o = base + (r * S + s) * 3;
-        P[o] = c.x + rx * rad; P[o + 1] = c.y + ry * rad; P[o + 2] = c.z + rz * rad;
-        const nx = rx - d.x * slope, ny = ry - d.y * slope, nz = rz - d.z * slope, il = 1 / Math.hypot(nx, ny, nz);
-        Nn[o] = nx * il; Nn[o + 1] = ny * il; Nn[o + 2] = nz * il;
-      }
+      this._ring(l, r, c, u, w, rad, rad, (ca, sa, N, o) => { const nx = u.x * ca + w.x * sa - d.x * slope, ny = u.y * ca + w.y * sa - d.y * slope, nz = u.z * ca + w.z * sa - d.z * slope, il = 1 / Math.hypot(nx, ny, nz); N[o] = nx * il; N[o + 1] = ny * il; N[o + 2] = nz * il; });
     }
   }
-  hide(l) { const P = this.pos, b = l * this.per * 3; for (let i = 0; i < this.per * 3; i++) P[b + i] = 0; }
+  // 手臂：A 肩（身體裡）→ ctrl 控制點 → B 手尖；rf 根半徑、rt 手掌半徑；末端半球圓頭；collar＝穿出身體處的裙邊半徑，Lf 裙邊長
+  setArm(l, A, ctrl, B, rf, rt, collar, Lf, ts) {
+    const Rg = this.Rg, NB = Rg - 4, T = this._d, E = this._p, c = this._c, u = this._u, w = this._w;
+    T.subVectors(B, ctrl).normalize(); E.copy(B).addScaledVector(T, -rt * 0.5);   // 圓頭的底（再往外一個半徑的半球）
+    const bz = (t, out) => { const m = 1 - t; return out.set(m * m * A.x + 2 * m * t * ctrl.x + t * t * E.x, m * m * A.y + 2 * m * t * ctrl.y + t * t * E.y, m * m * A.z + 2 * m * t * ctrl.z + t * t * E.z); };
+    const L = A.distanceTo(E) || 1e-4, t0 = Math.min(0.9, Math.max(0, ts - 0.5 * Lf / L));
+    const cen = this.cen, rad = this.rad, tan = this.tan, q = this._q, arc = [];
+    let prev = null;
+    for (let k = 0; k < NB; k++) {
+      const t = t0 + (1 - t0) * k / (NB - 1); bz(t, q); cen[k * 3] = q.x; cen[k * 3 + 1] = q.y; cen[k * 3 + 2] = q.z;
+      const m = 1 - t; tan[k * 3] = 2 * m * (ctrl.x - A.x) + 2 * t * (E.x - ctrl.x); tan[k * 3 + 1] = 2 * m * (ctrl.y - A.y) + 2 * t * (E.y - ctrl.y); tan[k * 3 + 2] = 2 * m * (ctrl.z - A.z) + 2 * t * (E.z - ctrl.z);
+      const il = 1 / (Math.hypot(tan[k * 3], tan[k * 3 + 1], tan[k * 3 + 2]) || 1); tan[k * 3] *= il; tan[k * 3 + 1] *= il; tan[k * 3 + 2] *= il;
+      const sd = (t - ts) * L; let r = rt + (rf - rt) * Math.pow(1 - t, 1.5);
+      const col = sd <= 0 ? collar * Math.max(0, 1 + 1.6 * sd / Lf) : sd < Lf ? rt + (collar - rt) * Math.pow(1 - sd / Lf, 2.2) : 0; rad[k] = Math.max(r, col, rt);
+      arc[k] = k ? arc[k - 1] + Math.hypot(cen[k * 3] - cen[k * 3 - 3], cen[k * 3 + 1] - cen[k * 3 - 2], cen[k * 3 + 2] - cen[k * 3 - 1]) : 0;
+    }
+    for (let k = 0; k < NB; k++) {
+      c.set(cen[k * 3], cen[k * 3 + 1], cen[k * 3 + 2]); const tx = tan[k * 3], ty = tan[k * 3 + 1], tz = tan[k * 3 + 2];
+      if (!prev) { u.set(Math.abs(ty) > 0.9 ? 1 : 0, Math.abs(ty) > 0.9 ? 0 : 1, 0); } else u.copy(prev);
+      const dot = u.x * tx + u.y * ty + u.z * tz; u.x -= tx * dot; u.y -= ty * dot; u.z -= tz * dot; u.normalize(); prev = this._q2 ??= new V3(); prev.copy(u);
+      w.set(ty * u.z - tz * u.y, tz * u.x - tx * u.z, tx * u.y - ty * u.x);
+      const k0 = Math.max(0, k - 1), k1 = Math.min(NB - 1, k + 1), slope = (rad[k1] - rad[k0]) / Math.max(1e-5, arc[k1] - arc[k0]), r = rad[k];
+      this._ring(l, k, c, u, w, r, r, (ca, sa, N, o) => { const nx = u.x * ca + w.x * sa - tx * slope, ny = u.y * ca + w.y * sa - ty * slope, nz = u.z * ca + w.z * sa - tz * slope, il = 1 / Math.hypot(nx, ny, nz); N[o] = nx * il; N[o + 1] = ny * il; N[o + 2] = nz * il; });
+      if (k === NB - 1) { this._lastU = u.clone(); this._lastW = w.clone(); this._lastC = c.clone(); this._lastT = new V3(tx, ty, tz); }
+    }
+    const lu = this._lastU, lw = this._lastW, lc = this._lastC, lt = this._lastT;
+    for (let j = 1; j <= 4; j++) {
+      const a = j / 4 * Math.PI / 2, ca0 = Math.cos(a), sa0 = Math.sin(a); c.copy(lc).addScaledVector(lt, rt * sa0); const rr = Math.max(1e-4, rt * ca0);
+      this._ring(l, NB - 1 + j, c, lu, lw, rr, rr, (ca, sa, N, o) => { const nx = (lu.x * ca + lw.x * sa) * ca0 + lt.x * sa0, ny = (lu.y * ca + lw.y * sa) * ca0 + lt.y * sa0, nz = (lu.z * ca + lw.z * sa) * ca0 + lt.z * sa0; N[o] = nx; N[o + 1] = ny; N[o + 2] = nz; });
+    }
+  }
+  // 腿＋腳掌：A 髖（身體裡）→ 腳踝，接橢球腳掌（中心 F、半徑 fx 側、fy 高、fz 前後；yaw 朝向）
+  setLeg(l, A, F, yaw, fx, fy, fz, rf, collar, Lf, ts) {
+    const Rg = this.Rg, NL = 8, NF = Rg - NL, cy = Math.cos(yaw), sy = Math.sin(yaw), u = this._u.set(cy, 0, -sy), w = this._w.set(sy, 0, cy), c = this._c, d = this._d;
+    const cE = this._p.copy(F); cE.y += fy; cE.x += sy * fz * 0.12; cE.z += cy * fz * 0.12;
+    const th0 = 0.75, ank = this._q.set(cE.x, cE.y + fy * Math.cos(th0), cE.z); const rt = fx * Math.sin(th0);
+    d.subVectors(ank, A); const L = d.length() || 1e-4; d.multiplyScalar(1 / L);
+    const t0 = Math.min(0.9, Math.max(0, ts - 0.5 * Lf / L)), ezk = fz / fx;
+    for (let k = 0; k < NL; k++) {
+      const t = t0 + (1 - t0) * k / (NL - 1), sd = (t - ts) * L; let r = rt + (rf - rt) * Math.pow(1 - t, 1.8);
+      const col = sd <= 0 ? collar * Math.max(0, 1 + 1.6 * sd / Lf) : sd < Lf ? rt + (collar - rt) * Math.pow(1 - sd / Lf, 2.2) : 0; r = Math.max(r, col, rt);
+      const ez = 1 + (ezk - 1) * sst(0.55, 1, t) * 0.85, fwd = (ezk - 1) * sst(0.55, 1, t) * 0.0;
+      c.copy(A).addScaledVector(d, L * t); const slope = -(rf - rt) * 1.8 * Math.pow(1 - t, 0.8) / L * 0.6;
+      this._ring(l, k, c, u, w, r, r * ez, (ca, sa, N, o) => { const nx = u.x * ca + w.x * sa / ez - d.x * slope, ny = u.y * ca + w.y * sa / ez - d.y * slope, nz = u.z * ca + w.z * sa / ez - d.z * slope, il = 1 / Math.hypot(nx, ny, nz); N[o] = nx * il; N[o + 1] = ny * il; N[o + 2] = nz * il; });
+    }
+    for (let j = 0; j < NF; j++) {
+      const th = th0 + (3.08 - th0) * j / (NF - 1), st = Math.sin(th), ct = Math.cos(th); c.set(cE.x, cE.y + fy * ct, cE.z);
+      this._ring(l, NL + j, c, u, w, fx * st, fz * st, (ca, sa, N, o) => { const nx = u.x * ca * st / fx + w.x * sa * st / fz, ny = u.y * ca * st / fx + w.y * sa * st / fz + ct / fy, nz = u.z * ca * st / fx + w.z * sa * st / fz, il = 1 / Math.hypot(nx, ny, nz); N[o] = nx * il; N[o + 1] = ny * il; N[o + 2] = nz * il; });
+    }
+  }
   commit() { this.geo.attributes.position.needsUpdate = true; this.geo.attributes.normal.needsUpdate = true; }
 }
