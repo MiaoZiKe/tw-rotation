@@ -21,6 +21,7 @@ const ACT = {
 };
 const EMO_DUR = 3.2;
 
+const cfg_pm = (ch) => ch.cfg.pitchMax || 0;
 export class Character {
   // spec：物種代號或 { species, pal, hue, acc, accColor }；opts.space＝腳、手這些世界座標零件要掛在哪個群組（預設 scene）
   constructor(spec, scene, world, fx, opts = {}) {
@@ -520,6 +521,7 @@ export class Character {
     if (c.floatH) { const down = this.mode === 'sit' || this.mode === 'sleep' || this.mode === 'tumble' || this.mode === 'recover' || this.mode === 'dizzy' || this.mode === 'held'; this.floatCur = (this.floatCur ?? c.floatH) + ((down ? 0.02 : c.floatH + Math.sin(t * 2.1) * 0.035) - (this.floatCur ?? c.floatH)) * (1 - Math.exp(-dt * 5)); yOff += this.floatCur; }
     rollT += this.rollAdd; this.spinZ = spinZ; this.sideOff = side;
     if (this.mode !== 'tumble' && this.mode !== 'held') this.sqT += Math.sin(t * 2.1) * 0.014;   // 呼吸
+    if (cfg_pm(this)) pitchT = Math.max(-cfg_pm(this), Math.min(cfg_pm(this), pitchT));   // 有杯口的物種前傾角度上限
     const tk = 1 - Math.exp(-dt * 11); this.pitch += (pitchT - this.pitch) * tk; this.roll += (rollT - this.roll) * tk; this.yOff += (yOff - this.yOff) * (1 - Math.exp(-dt * 30));
     this.yawAdd = yawAdd;
     const sh = this.sh; if (tint) sh.uTint.value.setRGB(...tint); sh.uTintAmt.value += ((tint ? tintA * (c.tintK ?? 1) : 0) - sh.uTintAmt.value) * (1 - Math.exp(-dt * 6));
@@ -529,6 +531,7 @@ export class Character {
       const wig = appWig ? Math.sin(t * 11 + a.side) * appWig : 0;
       a.tx = a.rest[0] + (a.wag ? 0 : 0) + (a.side === 0 && !a.wag ? appDroop * 0.5 : 0); a.tz = a.rest[1] - a.side * a.droop * appDroop + wig * (a.side || 1);
       if (a.wag) a.tz = Math.sin(t * (appWig ? 16 : 3)) * (appWig ? 0.5 : 0.08);
+      if (a.fn) a.tz += a.fn(this, t, a);   // 附屬物自訂的額外擺動（啾啾小翅膀的拍動）
       a.piv.rotation.set(a.x, 0, a.z);
     }
     this.face.set(expr);

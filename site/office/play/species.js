@@ -60,7 +60,7 @@ export const SPECIES = {
     hand: [0.35, 0.33, 0.04], front: 0.31, cheek: [0.21, 0.5, 0.28], waddle: 0.05, bob: 0.035, wob: 0.8, mouth: [0, 0.44, 0.31], top: 0.9, legs: true, tintK: 0.5, faceUp: 0.1,
     face: { ...FACE, rx: 35, ry: 45, eye: '#2f2a26', eye2: '#5a4a3c', blush: '255,140,150' },
     pals: [{ n: '薄荷', body: 0xbfe6c4, top: 0xe6f8e2, leaf: 0x6fca82, leaf2: 0xa6e6a0, shoe: 0xfff3da, leg: 0xa9dcb2, sss: 0x6fcf9a }, { n: '檸檬', body: 0xffe79a, top: 0xfff8d8, leaf: 0x86cf78, leaf2: 0xb4e8a0, shoe: 0xffffff, leg: 0xf5d67a, sss: 0xffc040 }, { n: '蜜桃', body: 0xffc4b0, top: 0xffece0, leaf: 0x86cf78, leaf2: 0xb4e8a0, shoe: 0xfff3da, leg: 0xf7ad98, sss: 0xff8060 }, { n: '晴空', body: 0xb9dcff, top: 0xe6f4ff, leaf: 0x7fd4b0, leaf2: 0xb0ecd0, shoe: 0xfff3da, leg: 0xa0c8f2, sss: 0x70a8ff }],
-    anc: { hat: [-0.1, 0.83, 0.02, 0.8], bow: [0.18, 0.8, 0.1], chest: [0, 0.24, 0.3], neck: [0.3, 0.33, 0.3], glasses: 1 },
+    anc: { hat: [-0.19, 0.76, 0.03, 0.7], bow: [0.18, 0.8, 0.1], chest: [0, 0.24, 0.3], neck: [0.3, 0.33, 0.3], glasses: 1 },
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.4, y1: 0.35, sss: p.sss, sssAmt: 0.3, rim: 0xffffff, face: c.face, headC: [0, 0.07, 0], span: [2.1, 2.1] });
       c.main = put(c, blobGeo(v => { const y = v.y, rh = Math.hypot(v.x, v.z) || 1e-6, k = Math.pow(rh, 0.7) / rh, w = 1 + 0.1 * y - 0.05 * Math.exp(-Math.pow((y + 0.1) / 0.3, 2)); v.set(v.x * k * 0.335 * w, Math.sign(y) * Math.pow(Math.abs(y), 0.92) * 0.375, v.z * k * 0.305 * w); }), m, 0, 0.46, 0);
@@ -84,7 +84,7 @@ export const SPECIES = {
     front: 0.34, cheek: [0.24, 0.45, 0.3], wob: 0.6, mouth: [0, 0.68, 0.3], top: 1.0,
     face: { kind: 'screen', ex: 92, ey: 262, rx: 30, ry: 21, my: 318, mw: 14, line: 6, glow: '#ffd66b', blush: '255,143,107', blushAmt: 0.8, visor: { w: 440, h: 252, y: 146, r: 96, c0: '#3a4466', c1: '#4c5890' } },
     pals: [{ n: '薄荷青', body: 0x7fd6c4, top: 0xc9f2e8, joint: 0xf4f1ea, tip: 0xff8f6b, glow: '#ffd66b' }, { n: '奶油黃', body: 0xffd166, top: 0xffefb8, joint: 0xf4f1ea, tip: 0xff8f6b, glow: '#ffe8a0' }, { n: '莓粉', body: 0xf58aa8, top: 0xffd0dc, joint: 0xf4f1ea, tip: 0xffd166, glow: '#ffe2a0' }, { n: '薰衣草', body: 0xa99cf0, top: 0xddd6ff, joint: 0xf4f1ea, tip: 0xffd166, glow: '#ffe8a0' }],
-    anc: { hat: [0.1, 0.95, 0.04, 0.8], bow: [-0.25, 0.9, 0.1], chest: [0, 0.27, 0.22], neck: [0.2, 0.42, 0.13], glasses: 0 },
+    anc: { hat: [-0.15, 0.95, 0.04, 0.75], bow: [-0.25, 0.9, 0.1], chest: [0, 0.27, 0.22], neck: [0.2, 0.42, 0.13], glasses: 0 },
     build(c, p) {
       c.face.st.glow = p.glow;
       const sh = { color: p.body, top: p.top, sss: p.body, sssAmt: 0.2, rim: 0xffffff, rimAmt: 0.25, rough: 0.42 };
@@ -146,7 +146,8 @@ export const SPECIES = {
       const m = M(c, { color: p.body, top: p.top, y0: 0.1, y1: 0.6, sss: p.sss, sssAmt: 0.5, rim: p.inner, rimAmt: 0.3, rough: 0.5, face: c.face, headC: [0, -0.04, 0], span: [2.1, 2.1] }); c.glowU = m.userData.U.uSssAmt;
       // 三舌火焰：中間最高且歪向一側的大舌（帶臉）＋左右各一舌（高度比約 1.0 : 0.62 : 0.45），底部融成一團、舌間是內凹弧
       const tear = (R, H1, lean) => blobGeo(v => { const y = v.y, t = sstep(-0.15, 1, y), r = R * (1 - 0.84 * t * t) * (1 + 0.1 * sstep(0.2, -0.8, y)); v.set(v.x * r + lean * t * t * t, y < 0 ? y * 0.3 : y * H1, v.z * r * 0.93); }, 72, 60);
-      c.main = put(c, mergeGeos([[tear(0.34, 0.56, 0.13)], [tear(0.2, 0.4, -0.1), -0.24, -0.09, 0.02, 1, 1, 1, 0, 0, 0.15], [tear(0.15, 0.27, 0.07), 0.25, -0.13, 0, 1, 1, 1, 0, 0, -0.12]]), m, 0, 0.47, 0);
+      // 左舌往後移、縮小，不再遮臉（稽核問題 16）
+      c.main = put(c, mergeGeos([[tear(0.34, 0.56, 0.13)], [tear(0.17, 0.34, -0.09), -0.26, -0.09, -0.09, 1, 1, 1, 0, 0, 0.15], [tear(0.15, 0.27, 0.07), 0.25, -0.13, -0.05, 1, 1, 1, 0, 0, -0.12]]), m, 0, 0.47, 0);
       // 蠟燭頭：上大下小（燭身比火焰窄）＋頂上融蠟圈與流下的蠟滴（合併成一個網格）
       const cm = M(c, { color: 0xfff4e0, top: 0xffffff, y0: 0, y1: 0.2, sss: 0xffd0a0, sssAmt: 0.2, rough: 0.7 }), ci = [[new THREE.CylinderGeometry(0.15, 0.17, 0.2, 28), 0, 0.1, 0], [new THREE.TorusGeometry(0.155, 0.032, 12, 40), 0, 0.2, 0, 1, 1, 1, Math.PI / 2, 0, 0]];
       for (const [ang, L] of [[0.4, 0.07], [2.1, 0.045], [3.9, 0.06], [5.3, 0.035]]) ci.push([ball(), Math.sin(ang) * 0.165, 0.18 - L * 0.5, Math.cos(ang) * 0.165, 0.028, L * 0.5 + 0.02, 0.028]);
@@ -167,7 +168,7 @@ export const SPECIES = {
     R: 0.3, move: 'hop', hopH: 0.09, footSize: null, handR: 0, top: 0.9, wob: 0.75, mouth: [0, 0.5, 0.27], front: 0.28, tintK: 0.45, faceUp: 0.06, walk: 1.3, run: 3.1,
     face: { ...FACE, ex: 62, ey: 262, rx: 26, ry: 34, my: 308, mw: 13, line: 6, eye: '#27352b', eye2: '#47604c', blush: '255,140,150' },
     pals: [{ n: '陶盆', body: 0x86cf96, top: 0xbdecb4, pot: 0xee9f7c, pot2: 0xf9c4a4, fl: 0xff9fb5, sss: 0x50c070 }, { n: '白盆', body: 0x7fd0b8, top: 0xbff0dc, pot: 0xf2ece4, pot2: 0xffffff, fl: 0xffd27a, sss: 0x40c0a0 }, { n: '粉盆', body: 0xa8d880, top: 0xd8f2b0, pot: 0xffb7c5, pot2: 0xffdbe2, fl: 0xffffff, sss: 0x80c040 }, { n: '藍盆', body: 0x8fc8a8, top: 0xc8ecd0, pot: 0x9db8f0, pot2: 0xc6d6ff, fl: 0xffb38a, sss: 0x50b080 }],
-    anc: { hat: [-0.09, 0.8, 0.02, 0.8], bow: [-0.15, 0.76, 0.12], neck: [0.31, 0.27, 0.26], glasses: 1 },
+    anc: { hat: [-0.2, 0.7, 0.04, 0.7], bow: [-0.15, 0.76, 0.12], neck: [0.31, 0.27, 0.26], glasses: 1 },
     build(c, p) {
       put(c, lathe([[0, 0], [0.17, 0], [0.19, 0.02], [0.235, 0.2], [0.255, 0.235], [0.255, 0.275], [0.2, 0.28], [0, 0.27]], 48), M(c, { color: p.pot, top: p.pot2, y0: 0, y1: 0.3, sss: p.pot, sssAmt: 0.2, rough: 0.8 }));
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3 };
@@ -186,7 +187,8 @@ export const SPECIES = {
   // ───────── 7 拿鐵：咖啡杯（單邊把手、杯裡的咖啡會晃、會冒蒸氣）
   mug: {
     name: '拿鐵', sub: '咖啡杯', moveZh: '搖擺走', sigZh: '乾杯', why: '辦公室味最重；單邊把手讓輪廓不對稱',
-    R: 0.31, stride: [0.36, 0.8], lat: 0.12, footFwd: 0.02, footSize: [0.08, 0.055, 0.1], handR: 0.055, hand: [0.34, 0.24, 0.07], front: 0.3, cheek: [0.2, 0.33, 0.28], waddle: 0.11, wob: 0.45, mouth: [0, 0.27, 0.3], top: 0.64, walk: 1.4, run: 3.3,
+    // pitchMax：前傾上限 10 度；手靠前一點，不穿過右側把手
+    R: 0.31, pitchMax: 0.17, stride: [0.36, 0.8], lat: 0.12, footFwd: 0.02, footSize: [0.08, 0.055, 0.1], handR: 0.055, hand: [0.31, 0.24, 0.17], front: 0.3, cheek: [0.2, 0.33, 0.28], waddle: 0.11, wob: 0.45, mouth: [0, 0.27, 0.3], top: 0.64, walk: 1.4, run: 3.3,
     face: { ...FACE, ex: 80, ey: 258, rx: 31, ry: 40, my: 312, mw: 15, eye: '#4a3024', eye2: '#7a5040' },
     pals: [{ n: '奶白', body: 0xfff0e2, top: 0xffffff, cof: 0xb9855a, acc: 0xffb7a0, sss: 0xffb080 }, { n: '櫻粉', body: 0xffbccb, top: 0xffe6ec, cof: 0xc99a70, acc: 0xffffff, sss: 0xff7fa0 }, { n: '晴藍', body: 0xb4d4ff, top: 0xe4f1ff, cof: 0xb9855a, acc: 0xffffff, sss: 0x70a0ff }, { n: '奶黃', body: 0xffe08a, top: 0xfff4c8, cof: 0x9a6a48, acc: 0xffffff, sss: 0xffb030 }],
     anc: { bow: [-0.2, 0.6, 0.14], chest: [0, 0.13, 0.275], glasses: 1 },
@@ -195,11 +197,12 @@ export const SPECIES = {
       c.main = put(c, lathe([[0, 0.06], [0.2, 0.06], [0.262, 0.105], [0.285, 0.25], [0.292, 0.52], [0.283, 0.56], [0.258, 0.56], [0.25, 0.52], [0, 0.515]], 72, 64), M(c, { ...o, y0: 0.05, y1: 0.55, face: c.face, headC: [0, 0.31, 0], span: [2.15, 2.15] }));
       const hd = put(c, new THREE.TorusGeometry(0.105, 0.036, 18, 40, Math.PI * 1.16), M(c, { ...o, y0: -0.1, y1: 0.1 }), 0.275, 0.31, 0); hd.rotation.z = -Math.PI * 0.58;
       const g = piv(c, 0, 0.525, 0, { k: 60, c: 3.2, g: 0.02 }); c.slosh = g;
-      put(c, new THREE.CylinderGeometry(0.25, 0.25, 0.012, 48), M(c, { color: p.cof, top: p.cof, sss: 0x703010, sssAmt: 0.3, rough: 0.25 }), 0, 0, 0, 1, 1, 1, g);
+      put(c, new THREE.CylinderGeometry(0.235, 0.235, 0.012, 48), M(c, { color: p.cof, top: p.cof, sss: 0x703010, sssAmt: 0.3, rough: 0.25 }), 0, 0, 0, 1, 1, 1, g);
       const fm = M(c, { color: 0xfff3e0, sss: 0xffd0a0, rough: 0.5 }); for (const s of [-1, 1]) put(c, ball(), fm, s * 0.04, 0.008, -0.02, 0.06, 0.008, 0.075, g).rotation.y = s * 0.5;
       c.limbMat = M(c, { color: p.acc, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
     },
-    idle(c, dt, t) { if (c.mode !== 'held' && c.mode !== 'tumble' && every(c, 'stm', c.cheer ? 0.12 : 0.55, dt)) c.fx.spawn(c.cheer ? 'heart' : 'dust', c.headTop(new V3()).add(_v.set(rnd(-0.1, 0.1), -0.02, 0)), { v: new V3(rnd(-0.05, 0.05), 0.35, 0), life: 1.3, size: c.cheer ? 0.12 : 0.1, grow: 0.9, sway: 0.35 }); c.cheer = false; },
+    idle(c, dt, t) { c.sloshApp ??= c.apps.find(q => q.piv === c.slosh); if (c.sloshApp) { c.sloshApp.x = Math.max(-0.1, Math.min(0.1, c.sloshApp.x ?? 0)); c.sloshApp.z = Math.max(-0.1, Math.min(0.1, c.sloshApp.z ?? 0)); }   // 咖啡液面最多傾 6 度，不凸出杯口（稽核問題 8）
+      if (c.mode !== 'held' && c.mode !== 'tumble' && every(c, 'stm', c.cheer ? 0.12 : 0.55, dt)) c.fx.spawn(c.cheer ? 'heart' : 'dust', c.headTop(new V3()).add(_v.set(rnd(-0.1, 0.1), -0.02, 0)), { v: new V3(rnd(-0.05, 0.05), 0.35, 0), life: 1.3, size: c.cheer ? 0.12 : 0.1, grow: 0.9, sway: 0.35 }); c.cheer = false; },
     sig: { dur: 1.9, fn(c, u, a, P) { const b = sstep(0, 0.2, u) * (1 - sstep(0.8, 1, u)); c.cheer = b > 0.5; P.yOff = Math.abs(Math.sin(a.t * 6)) * 0.1 * b; P.pitch = -0.22 * b; P.expr = 'happy'; P.hands = [1.15, 0.32 * b]; if (!a.f) { a.f = 1; c.say('乾杯！', 1.4); c.fx.sfx('heart'); } } },
   },
   // ───────── 8 飄飄：小幽靈（圓頂＋波浪裙擺，飄在半空）
@@ -209,7 +212,7 @@ export const SPECIES = {
     R: 0.31, move: 'float', floatH: 0.17, footSize: null, handR: 0.062, hand: [0.33, 0.3, 0.12], stick: [0.33, 0.4, 0.31, 0.32], top: 0.74, wob: 1.6, mouth: [0, 0.3, 0.31], front: 0.31, cheek: [0.2, 0.36, 0.28], faceUp: 0.1, walk: 1.5, run: 3.5,
     face: { ...FACE, ex: 78, ey: 260, rx: 31, ry: 42, my: 316, mw: 14, eye: '#353058', eye2: '#5c5490', blush: '255,150,190' },
     pals: [{ n: '牛奶白', body: 0xd2cdfc, top: 0xffffff, sss: 0xb0a0ff }, { n: '薄荷', body: 0xbdeadb, top: 0xfbfffd, sss: 0x70d8b0 }, { n: '蜜桃', body: 0xffcabd, top: 0xfff6f0, sss: 0xff9080 }, { n: '夜藍', body: 0x8f9ae6, top: 0xd9defc, sss: 0x6070ff }],
-    anc: { hat: [0, 0.7, 0.02, 0.95], bow: [0.17, 0.68, 0.1], neck: [0.2, 0.345, 0.325], glasses: 1 },
+    anc: { hat: [-0.14, 0.64, 0.03, 0.8], bow: [0.17, 0.68, 0.1], neck: [0.2, 0.345, 0.325], glasses: 1 },
     build(c, p) {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3, rim: 0xffffff, rimAmt: 0.42 };
       c.main = put(c, blobGeo(v => { const y = v.y, th = Math.atan2(v.z, v.x), hem = sstep(-0.05, -0.7, y), wv = Math.sin(th * 6 + 0.5), r = 0.3 * (1 + 0.24 * hem) * (1 + 0.16 * wv * hem * hem), yy = Math.max(y, -0.74 + 0.16 * (0.5 + 0.5 * wv)), rh = Math.hypot(v.x, v.z) || 1e-6, kk = y < -0.74 ? Math.sqrt(1 - 0.74 * 0.74) / rh * (rh / Math.sqrt(1 - 0.74 * 0.74)) : 1; v.set(v.x * r * kk, yy * (yy > 0 ? 0.4 : 0.37), v.z * r * 0.95 * kk); }, 96, 64), M(c, { ...o, y0: -0.28, y1: 0.2, face: c.face, headC: [0, 0.04, 0], span: [2.15, 2.15] }), 0, 0.33, 0);
@@ -224,10 +227,11 @@ export const SPECIES = {
   bird: {
     pat: ['spots','belly','stripes'],
     name: '啾啾', sub: '水滴小鳥', moveZh: '左右搖擺', sigZh: '拍翅膀', why: '側面是橫放上翹的水滴，往後甩的三片冠羽、扇形尾羽、三趾腳掌', memo: '冠羽＋扇形尾羽',
-    R: 0.31, walk: 1.35, run: 3.3, stride: [0.3, 0.72], lat: 0.1, footFwd: 0.07, footSize: [0.075, 0.032, 0.105], footGeo: 'web', hip: [0.1, 0.17, 0.02], handR: 0.05, handScale: [0.05, 0.17, 0.115], hand: [0.36, 0.4, -0.07], shoulder: [0.27, 0.46, 0.02], front: 0.3, cheek: [0.2, 0.44, 0.28], waddle: 0.17, bob: 0.03, wob: 0.8, mouth: [0, 0.4, 0.4], top: 0.86, faceUp: 0.1,
+    R: 0.31, walk: 1.35, run: 3.3, stride: [0.3, 0.72], lat: 0.1, footFwd: 0.07, footSize: [0.075, 0.032, 0.105], footGeo: 'web', hip: [0.1, 0.17, 0.02], handR: 0, hand: [0.36, 0.4, -0.07],   // handR 0＝不當手用：翅膀改成貼在身體兩側的一體小翅（稽核問題 4，過渡做法）
+     front: 0.3, cheek: [0.2, 0.44, 0.28], waddle: 0.17, bob: 0.03, wob: 0.8, mouth: [0, 0.4, 0.4], top: 0.86, faceUp: 0.1,
     face: { ...FACE, ex: 80, ey: 244, rx: 35, ry: 45, my: 300, mw: 0, noMouth: true, eye: '#2a2a36', eye2: '#4a4a66', belly: 1, heart: 1 },
     pals: [{ n: '青綠', body: 0x4fc3b0, top: 0x9fe8d8, belly: '#fff6e0', beak: 0xff9a4d, crest: 0xffd35a, sss: 0x20b098 }, { n: '天空藍', body: 0x6fb1ff, top: 0xb4d6ff, belly: '#fff6e0', beak: 0xff9a4d, crest: 0xffd35a, sss: 0x4a90ff }, { n: '櫻花粉', body: 0xffb0c4, top: 0xffe2ea, belly: '#fff6f0', beak: 0xffc060, sss: 0xff6f9a }, { n: '企鵝灰', body: 0x8c9cb8, top: 0xb8c6dc, belly: '#ffffff', beak: 0xffb45a, sss: 0x6070a0 }],
-    anc: { hat: [0, 0.8, 0.03, 0.85], bow: [0.17, 0.78, 0.1], chest: [0, 0.24, 0.3], neck: [0.3, 0.34, 0.32], glasses: 1 },
+    anc: { hat: [-0.14, 0.76, 0.08, 0.7], bow: [0.17, 0.78, 0.1], chest: [0, 0.24, 0.3], neck: [0.3, 0.34, 0.32], glasses: 1 },
     build(c, p) {
       c.face.st.bellyCol = p.belly; const cr = p.crest ?? 0xffd35a;
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.26 };
@@ -236,7 +240,7 @@ export const SPECIES = {
       c.main = put(c, blobGeo(v => { const bs = bumpS(v, BB), dx = v.x, dy = v.y, dz = v.z, y = dy, b = 1 + 0.14 * sstep(0.5, -0.6, y); v.set(dx * 0.35 * b, y * (y > 0 ? 0.42 : 0.37) + 0.075 * sstep(0.1, -1, dz) * sstep(-0.6, 0.5, dy), dz * 0.295 * b - 0.02 * sstep(0, -1, dz)); v.x += dx * bs; v.y += dy * bs; v.z += dz * bs; }, 88, 64), M(c, { ...o, y0: -0.3, y1: 0.3, face: c.face, headC: [0, 0.03, 0], span: [2.3, 2.3] }), 0, 0.42, 0);
       // 嘴：寬扁的圓角三角（位置在兩眼連線下方）
       const bk = M(c, { color: p.beak, top: 0xffd890, y0: -0.05, y1: 0.05, sss: 0xff7020, sssAmt: 0.35, rough: 0.4 });
-      c.beak = put(c, blobGeo(v => { const t = (v.z + 1) / 2; v.set(v.x * 0.085 * (1 - 0.55 * t * t), v.y * 0.04 * (1 - 0.3 * t), v.z * 0.065); }, 32, 24), bk, 0, 0.395, 0.325);
+      c.beak = put(c, blobGeo(v => { const t = (v.z + 1) / 2; v.set(v.x * 0.06 * (1 - 0.55 * t * t), v.y * 0.032 * (1 - 0.3 * t), v.z * 0.036); }, 32, 24), bk, 0, 0.395, 0.326);   // 喙小、貼臉，不往前凸（擁有者不要鼻子）
       // 冠羽：往後甩的大中小三片
       const cm = softMat({ color: cr, top: cr, sss: cr, sssAmt: 0.3, rough: 0.5, y0: -1, y1: 1 }, c.sh), tm = MR(c, { ...o, top: p.body, y0: -1, y1: 1 });
       const tm2 = softMat({ ...o, color: p.body, top: p.body, y0: -1, y1: 1, rough: 0.55 }, c.sh), g = piv(c, 0, 0.84, -0.04, { k: 120, c: 6, g: 0.03 });
@@ -244,10 +248,16 @@ export const SPECIES = {
       // 尾羽：三片扇形上翹，從屁股兩側都看得到
       const t = piv(c, 0, 0.44, -0.25, { k: 200, c: 9, g: 0.03, wag: true }); c.tailG = t;
       [[0, -0.9, 0.3], [-0.6, -0.8, 0.25], [0.6, -0.8, 0.25]].forEach(([rz, rx, L]) => { const f = put(c, taperGeo({ q: 0.55, p: 1.1, cap: 0.35, flare: 1.35, fl: 0.2 }), tm2, 0, 0, -0.03, 0.065, L, 0.022, t); f.rotation.set(rx - 0.0, 0, rz); });
+      // 小翅膀：身體兩側各一片、與身體同色的水滴形薄片，上端埋進身體，貼著側面往下垂；走路小幅拍動、拍翅膀招式用力拍
+      const wm = softMat({ ...o, color: p.body, top: p.body, y0: -1, y1: 1, rough: 0.55 }, c.sh);
+      for (const s of [-1, 1]) {
+        const w = piv(c, s * 0.3, 0.46, 0.0, { side: s, k: 150, c: 9, g: 0.01, rest: [0, s * 0.3], droop: 0 }); c.apps[c.apps.length - 1].fn = (ch, tt, a) => { const sp = Math.hypot(ch.vel.x, ch.vel.z), k = Math.min(1, Math.max(0, (sp - 0.3) / 1.2)) * (ch.grounded ? 1 : 0.5); let b = a.side * k * 0.2 * Math.sin(tt * 15); if (ch.wingK) { b += a.side * ch.wingK * (0.5 + 0.5 * Math.sin(tt * 22)); if (a.side > 0) ch.wingK *= 0.8; } return b; };
+        put(c, blobGeo(v => { const t = (1 - v.y) / 2, k = 1.15 - 0.6 * t; v.set(v.x * 0.05 * k + s * 0.05, -t * 0.24 + 0.02, v.z * 0.085 * k); }, 28, 20), wm, 0, 0, 0, 1, 1, 1, w);
+      }
       c.limbMat = tm; c.footMat = bk;
     },
     idle(c, dt, t) { c.beak.scale.y = 1 + Math.min(1, Math.max(0, c.face.cur.mOpen + c.face.talk)) * 0.55; if (calm(c) && every(c, 'tilt', 3.6, dt)) { c.tiltT = 0.9; c.tiltS = Math.random() < 0.5 ? -1 : 1; if (Math.random() < 0.5) { c.fx.sfx('squeak'); c.fx.spawn('note', c.headTop(new V3()).add(_v.set(0.2, 0, 0.1)), { v: new V3(0.2, 0.5, 0), life: 0.9, size: 0.14, sway: 0.5 }); } } if (c.tiltT > 0) { c.tiltT -= dt; c.rollAdd = c.tiltS * 0.26 * sstep(0, 0.15, 0.9 - c.tiltT) * sstep(0, 0.15, c.tiltT); } },
-    sig: { dur: 2.0, fn(c, u, a, P) { const b = sstep(0, 0.2, u) * (1 - sstep(0.8, 1, u)), f = Math.sin(a.t * 34); P.yOff = 0.3 * b + f * 0.012; P.expr = 'effort'; P.hands = [1.25 + 0.15 * f, 0.1 + 0.16 * f]; P.handK = 600; P.sq = 0.06 * b; if (c.every('sg', 0.2)) { c.fx.sfx('step', 3); c.fx.spawn('dust', _v.set(c.pos.x + rnd(-0.3, 0.3), c.pos.y + 0.05, c.pos.z).clone(), { v: new V3(rnd(-0.6, 0.6), 0.2, rnd(-0.3, 0.3)), life: 0.4, size: 0.14, grow: 2 }); } } },
+    sig: { dur: 2.0, fn(c, u, a, P) { const b = sstep(0, 0.2, u) * (1 - sstep(0.8, 1, u)), f = Math.sin(a.t * 34); P.yOff = 0.3 * b + f * 0.012; P.expr = 'effort'; c.wingK = b * 1.1; P.sq = 0.06 * b; if (c.every('sg', 0.2)) { c.fx.sfx('step', 3); c.fx.spawn('dust', _v.set(c.pos.x + rnd(-0.3, 0.3), c.pos.y + 0.05, c.pos.z).clone(), { v: new V3(rnd(-0.6, 0.6), 0.2, rnd(-0.3, 0.3)), life: 0.4, size: 0.14, grow: 2 }); } } },
   },
   // ───────── 10 八寶：小章魚（大圓頭＋一圈短觸手，貼地滑行）
   octo: {
@@ -270,8 +280,9 @@ export const SPECIES = {
       for (let i = 0; i < 6; i++) {
         const a = (i + 0.5) / 6 * Math.PI * 2 + Math.PI / 2, cx = Math.cos(a), sz = Math.sin(a), SC = 0.62;
         // 觸手路徑（相對根）：先往外下垂、再往上捲成 0.6 圈的小圈；R＝徑向，Y＝向上，T＝切向（捲圈略偏出平面避免自交）
-        const pth = (u) => { const t = Math.min(1, u / SC); let r, y, q = 0; if (u <= SC) { r = 0.05 + 0.3 * t; y = 0.03 - 0.2 * Math.sin(t * Math.PI / 2) + 0.03 * (1 - t); } else { const ph = (u - SC) / (1 - SC) * Math.PI * 1.25; const r0 = 0.35, y0 = -0.17; r = r0 + RC * Math.sin(ph); y = y0 + RC * (1 - Math.cos(ph)); q = 0.022 * (ph / 4); } return [cx * r - sz * q, y, sz * r + cx * q]; };
-        const g = piv(c, cx * 0.1, 0.145, sz * 0.1, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 });
+        const pth = (u) => { const t = Math.min(1, u / SC); let r, y, q = 0; if (u <= SC) { r = 0.05 + 0.3 * t; y = 0.03 - 0.1 * Math.sin(t * Math.PI / 2) + 0.03 * (1 - t); } else { const ph = (u - SC) / (1 - SC) * Math.PI * 1.25; const r0 = 0.35, y0 = -0.075;   // 觸手整體抬高：原本末端在地面以下，被地面裁切成漂浮碎片（稽核問題 15）
+           r = r0 + RC * Math.sin(ph); y = y0 + RC * (1 - Math.cos(ph)); q = 0.022 * (ph / 4); } return [cx * r - sz * q, y, sz * r + cx * q]; };
+        const g = piv(c, cx * 0.1, 0.19, sz * 0.1, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 });
         put(c, tubeGeo({ key: 'octo6_' + i, path: pth, rad: (u) => 0.031 + 0.056 * Math.pow(1 - u, 1.25), flare: 1.45, fl: 0.14, cap: 0.1, N: 34, S: 14 }), tm, 0, 0, 0, 1, 1, 1, g);
         for (const u of [0.74, 0.84, 0.94]) { const P = pth(u), P2 = pth(u + 0.01), cx2 = cx * (0.27 + 0), r = 0.031 + 0.056 * Math.pow(1 - u, 1.25); // 吸盤：捲圈內側（朝圈心）
           const ph = (u - SC) / (1 - SC) * Math.PI * 1.25, inx = -Math.sin(ph) * cx, iny = Math.cos(ph) - 0, inz = -Math.sin(ph) * sz; const L = Math.hypot(inx, iny, inz) || 1;
@@ -279,21 +290,21 @@ export const SPECIES = {
       }
       const sp = M(c, { color: p.top, top: p.top, sss: p.sss, sssAmt: 0.2 }); for (const [x, y, z, r] of [[-0.2, 0.72, 0.1, 0.06], [-0.27, 0.62, 0.02, 0.035], [0.22, 0.7, -0.08, 0.045]]) put(c, ball(), sp, x, y, z, r, r * 0.5, r);
     },
-    idle(c, dt, t) { const sp = Math.hypot(c.vel.x, c.vel.z); for (const a of c.apps) if (a.wig != null) { a.vx += Math.sin(t * 2.3 + a.wig) * 2.5 * dt; a.vz += Math.cos(t * 1.9 + a.wig * 1.7) * 2.5 * dt; if (sp > 0.2) { a.vz += Math.sin(t * 9 - a.wig * 1.1) * (6 + sp * 5) * dt * 3; a.vx += Math.cos(t * 9 - a.wig * 1.1) * 3 * dt * 3; } } },
+    idle(c, dt, t) { const sp = Math.hypot(c.vel.x, c.vel.z); for (const a of c.apps) if (a.wig != null) { a.vx += Math.sin(t * 2.3 + a.wig) * 2.5 * dt; a.vz += Math.cos(t * 1.9 + a.wig * 1.7) * 2.5 * dt; if (sp > 0.2) { a.vz += Math.sin(t * 9 - a.wig * 1.1) * (6 + sp * 5) * dt * 3; a.vx += Math.cos(t * 9 - a.wig * 1.1) * 3 * dt * 3; } a.x = Math.max(-0.14, Math.min(0.14, a.x ?? 0)); a.z = Math.max(-0.14, Math.min(0.14, a.z ?? 0)); } },
     sig: { dur: 2.4, fn(c, u, a, P) { if (u < 0.3) { P.sq = -0.2 * sstep(0, 0.3, u); P.expr = 'effort'; } else { P.sq = 0.12 * (1 - sstep(0.3, 0.6, u)); P.expr = u < 0.5 ? 'surprised' : 'shy'; if (u > 0.5) { P.tint = [1, 0.6, 0.68]; P.tintA = 0.3; } if (!a.f) { a.f = 1; c.fx.sfx('skid'); c.sqV += 5; for (let i = 0; i < 12; i++) c.fx.spawn('dust', _v.set(c.pos.x - Math.sin(c.yaw) * 0.3, c.pos.y + 0.2, c.pos.z - Math.cos(c.yaw) * 0.3).clone(), { v: new V3(-Math.sin(c.yaw) * rnd(0.6, 1.8) + rnd(-0.4, 0.4), rnd(0, 0.7), -Math.cos(c.yaw) * rnd(0.6, 1.8) + rnd(-0.4, 0.4)), life: 1.3, size: 0.22, grow: 1.6, drag: 2.2, color: 0x4a3c6a }); } } } },
   },
   // ───────── 11 閃閃：小星星（鼓鼓的五角星，站在兩個下尖角上，會側翻）
   star: {
     pat: ['spots'],
     name: '閃閃', sub: '小星星', moveZh: '蹦蹦跳', sigZh: '側翻', why: '唯一有五個尖角（都磨圓）的剪影，側翻很搶眼',
-    R: 0.3, move: 'hop', hopH: 0.13, lat: 0.13, footFwd: 0.02, footSize: [0.075, 0.05, 0.095], handR: 0, top: 0.76, wob: 0.9, mouth: [0, 0.34, 0.23], front: 0.24, tintK: 0.5, faceUp: 0.0, faceShift: 0.3, walk: 1.5, run: 3.6,
+    R: 0.3, move: 'hop', hopH: 0.13, lat: 0.13, footFwd: 0.02, footSize: [0.075, 0.05, 0.095], hip: [0.13, 0.15, 0.0], handR: 0, top: 0.76, wob: 0.9, mouth: [0, 0.34, 0.23], front: 0.24, tintK: 0.5, faceUp: 0.0, faceShift: 0.3, walk: 1.5, run: 3.6,
     face: { ...FACE, ex: 72, ey: 254, rx: 34, ry: 44, my: 312, mw: 15, line: 7, eye: '#4a3418', eye2: '#7a5a30', blush: '255,130,110' },
     pals: [{ n: '星星黃', body: 0xffd04a, top: 0xfff2a0, shoe: 0xff9f6a, sss: 0xffa020 }, { n: '櫻粉', body: 0xff9fbe, top: 0xffe0ea, shoe: 0xffffff, sss: 0xff6090 }, { n: '薄荷', body: 0x8fe0c0, top: 0xd8fbe8, shoe: 0xffffff, sss: 0x40d0a0 }, { n: '天藍', body: 0x8fc2ff, top: 0xd8ecff, shoe: 0xffe08a, sss: 0x5090ff }],
     anc: { hat: [0, 0.71, 0, 0.55], bow: [0.13, 0.55, 0.17], chest: [0, 0.17, 0.215], glasses: 1 },
     build(c, p) {
       c.main = put(c, blobGeo(v => { const ph = Math.atan2(v.x, v.y), k = Math.cos(5 * ph), rho = Math.hypot(v.x, v.y), rr = 0.3 * (1 + 0.21 * k * Math.pow(rho, 1.6)); v.set(v.x * rr, v.y * rr, v.z * 0.275 * (1 - 0.1 * rho * rho - 0.12 * Math.max(0, k) * rho)); }, 120, 60), M(c, { color: p.body, top: p.top, y0: -0.3, y1: 0.36, sss: p.sss, sssAmt: 0.45, rim: 0xffffff, rimAmt: 0.4, face: c.face, headC: [0, -0.02, -0.05], span: [1.95, 1.95] }), 0, 0.385, 0);
       const ck = M(c, { color: p.top, top: 0xffffff, sss: p.sss, sssAmt: 0.5 }); for (const q of [-1, 1]) put(c, ball(), ck, q * 0.2, 0.52, 0.1, 0.03, 0.03, 0.02);
-      c.limbMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });
+      c.limbMat = M(c, { color: p.body, top: p.body, y0: 0, y1: 1.6, sss: p.sss }); c.footMat = M(c, { color: p.shoe, top: 0xffffff, y0: 0, y1: 1.6, sss: p.sss });   // 腳與身體同色、只有腳掌是鞋色（稽核問題 19：粉色長腿接黃身體）
     },
     idle(c, dt, t) { if (c.mode !== 'sleep' && every(c, 'tw', 0.9, dt)) { const a = Math.floor(Math.random() * 5) * 1.2566, cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), lx = Math.sin(a) * 0.36; c.fx.spawn('spark', new V3(c.pos.x + lx * cy, c.pos.y + c.yOff + 0.385 + Math.cos(a) * 0.36, c.pos.z - lx * sy), { life: 0.5, size: 0.11, spin: 3 }); } },
     sig: { dur: 1.5, fn(c, u, a, P) { const e = sstep(0.1, 0.9, u); P.spinZ = -e * Math.PI * 2; P.yOff = Math.sin(e * Math.PI) * 0.3; P.side = Math.sin(e * Math.PI) * 1.4; P.expr = 'whee'; P.sq = u < 0.1 ? -0.2 * u / 0.1 : 0.05; if (c.every('sg', 0.07)) c.fx.spawn('spark', c.headTop(new V3()).add(_v.set(rnd(-0.3, 0.3), rnd(-0.4, 0), 0)), { life: 0.5, size: 0.1 }); if (!a.f) { a.f = 1; c.fx.sfx('whee'); } } },
@@ -513,7 +524,7 @@ export const SPECIES = {
     pat: ['spots', 'stripes', 'belly'], R: 0.33, stride: [0.46, 0.95], lat: 0.14, footFwd: 0.04, footSize: [0.1, 0.07, 0.13], hip: [0.13, 0.1, 0.02], shoulder: [0.2, 0.47, 0.17], handR: 0.046, hand: [0.27, 0.36, 0.2], front: 0.33, cheek: [0.22, 0.4, 0.33], waddle: 0.08, bob: 0.03, wob: 0.9, mouth: [0, 0.38, 0.34], top: 0.9, faceUp: 0.06, tintK: 0.5,
     face: { ...FACE, ex: 84, ey: 266, rx: 36, ry: 47, my: 330, mw: 15, eye: '#3a2420', eye2: '#6a4036', blush: '255,150,130' },
     pals: [{ n: '珊瑚龍', body: 0xf08a6c, top: 0xffc9b0, plate: 0xffd35a, tail: 0xe87a5e, sss: 0xff7a50 }, { n: '薄荷龍', body: 0x6cc98a, top: 0xc8f0d4, plate: 0xffb86b, tail: 0x5ab878, sss: 0x30b060 }, { n: '天藍龍', body: 0x7fb0ff, top: 0xd2e6ff, plate: 0xff9fb5, tail: 0x6aa0f4, sss: 0x4a80ff }, { n: '芋紫龍', body: 0xb59af0, top: 0xe6dcff, plate: 0xffd27a, tail: 0xa388e6, sss: 0x8a6bff }],
-    anc: { hat: [0, 0.86, 0.04, 0.85], bow: [0.18, 0.8, 0.13], chest: [0, 0.26, 0.31], neck: [0.46, 0.25, 0.24], glasses: 1 },
+    anc: { hat: [-0.14, 0.8, 0.12, 0.7], bow: [0.18, 0.8, 0.13], chest: [0, 0.26, 0.31], neck: [0.46, 0.25, 0.24], glasses: 1 },
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.4, y1: 0.45, sss: p.sss, sssAmt: 0.22, rim: 0xffffff, rimAmt: 0.22, face: c.face, headC: [0, 0.03, 0.02], span: [2.1, 2.1] });
       // 身體＝前傾梨形；肩丘、大腿根、尾根、背板底座都是同一張曲面上的高斯鼓包（鼻吻那個鼓包已拿掉，不要鼻子）
@@ -528,9 +539,9 @@ export const SPECIES = {
         const g = put(c, taperGeo({ q: 0.45, p: 1.2, cap: 0.45, flare: 1.4, fl: 0.25 }), pm, B.x, B.y - 0.03, B.z + 0.012, rb, L, rb * 0.55); g.rotation.x = -tl;
       });
       // 尾巴：根部和身體同粗，往右後方甩出再上翹（正面看得到尾尖），全長前三分之一粗細幾乎不變
-      const tl = new V3(0, 0.2, -0.2); c.tail = null;
+      const tl = new V3(0, 0.2, -0.09); c.tail = null;   // 根部往身體裡多埋 0.11 公尺，不再露出平切的破面（稽核問題 14）
       const t = piv(c, tl.x, tl.y, tl.z, { k: 120, c: 5.5, g: 0.04, wag: true }); c.tail = c.apps[c.apps.length - 1];
-      const tg = tubeGeo({ key: 'dinotail', path: (u) => [0.5 * Math.pow(u, 1.7), 0.02 + 0.2 * Math.pow(u, 2.2), -0.04 - 0.3 * u], rad: (u) => 0.175 * (1 - 0.9 * sstep(0.2, 1, u)) + 0.012, flare: 1.35, fl: 0.18, cap: 0.14, N: 30, S: 18 });
+      const tg = tubeGeo({ key: 'dinotail', path: (u) => [0.5 * Math.pow(u, 1.7), 0.02 + 0.2 * Math.pow(u, 2.2), -0.04 - 0.3 * u], rad: (u) => 0.16 * (1 - 0.9 * sstep(0.2, 1, u)) + 0.012, flare: 1.1, fl: 0.18, cap: 0.14, N: 30, S: 18 });
       put(c, tg, MR(c, { color: p.tail, top: p.top, y0: -0.2, y1: 0.3, sss: p.sss, sssAmt: 0.22 }), 0, 0, 0, 1, 1, 1, t);
       c.limbMat = M(c, { color: p.body, top: p.body, y0: 0, y1: 1.6, sss: p.sss });
     },
@@ -563,7 +574,7 @@ export const SPECIES = {
     pat: ['stripes', 'spots'], R: 0.28, stride: [0.4, 0.9], lat: 0.09, footFwd: 0.02, footSize: [0.07, 0.05, 0.095], handR: 0.05, hand: [0.27, 0.48, 0.06], front: 0.28, cheek: [0.2, 0.84, 0.27], waddle: 0.09, bob: 0.03, wob: 0.6, mouth: [0, 0.74, 0.28], top: 1.06, tintK: 0.5, faceUp: 0.04,
     face: { ...FACE, ex: 76, ey: 258, rx: 30, ry: 40, my: 320, mw: 14, eye: '#26382c', eye2: '#4a6a52', blush: '255,140,130' },
     pals: [{ n: '青蘋果', body: 0xb9e48c, top: 0xf0fcd8, seg: 0x96d070, tip: 0xff9fb5, sss: 0x70c040 }, { n: '蜜柑', body: 0xffcf86, top: 0xfff0cc, seg: 0xffb458, tip: 0x9db8ff, sss: 0xffa030 }, { n: '莓果', body: 0xffb3c8, top: 0xffe6ee, seg: 0xf58fae, tip: 0xffe08a, sss: 0xff6a98 }, { n: '薰衣草', body: 0xcdb9f2, top: 0xf2ebff, seg: 0xb09ae6, tip: 0xa8f0d0, sss: 0x9a7bff }],
-    anc: { hat: [0, 1.03, 0.02, 0.85], bow: [0.2, 0.96, 0.1], chest: [0, 0.52, 0.2], neck: [0.64, 0.24, 0.22], glasses: 1 },
+    anc: { hat: [-0.12, 0.98, 0.08, 0.65], bow: [0.2, 0.96, 0.1], chest: [0, 0.52, 0.2], neck: [0.64, 0.24, 0.22], glasses: 1 },
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.28, y1: 0.28, sss: p.sss, sssAmt: 0.3, rim: 0xffffff, face: c.face, headC: [0, 0.02, 0], span: [2.15, 2.15] });
       c.main = put(c, blobGeo(v => v.set(v.x * 0.285, v.y * 0.27, v.z * 0.265)), m, 0, 0.8, 0); c.wseg = [c.main];
@@ -679,11 +690,54 @@ const _tor = (() => { let g; return () => g || (g = new THREE.TorusGeometry(1, 0
 
 // 配件：位置由各物種的 anc 決定，掛在會跟著身體擠壓的那一層
 // 做工：布料（帽、蝴蝶結、圍巾）霧面、邊緣光很弱；領帶偏絲質；識別證、皇冠偏塑膠／金屬；加縫線、飾帶、標籤、流蘇、條紋等小細節
+// 在身體表面取樣：kind 'z'＝(x, y) 處最前面的 z；'y'＝(x, z) 處最高的 y。身體網格的座標換算成 deform 群組座標；找不到回 null
+function surf(c, kind, a, b) {
+  const m = c.main; if (!m || m.parent !== c.deform) return null;
+  const P = m.geometry.attributes.position, sc = m.scale, ps = m.position;
+  for (const tol of [0.03, 0.06, 0.1]) {
+    let best = null;
+    for (let i = 0; i < P.count; i++) {
+      const x = P.getX(i) * sc.x + ps.x, y = P.getY(i) * sc.y + ps.y, z = P.getZ(i) * sc.z + ps.z;
+      if (kind === 'z') { if (Math.abs(x - a) < tol && Math.abs(y - b) < tol && (best === null || z > best)) best = z; }
+      else if (Math.abs(x - a) < tol && Math.abs(z - b) < tol && (best === null || y > best)) best = y;
+    }
+    if (best !== null) return best;
+  }
+  return null;
+}
+// 同一隻最多一件頭飾（皇冠＞帽子＞蝴蝶結，依清單順序先到先得）、領帶與識別證掛不同位置、頭頂有特徵的物種不戴會壓到它的帽子
+export function resolveAcc(cfg, list) {
+  const out = []; let head = false;
+  for (const a of list) {
+    if (out.includes(a)) continue;
+    if (a === 'hat' || a === 'crown' || a === 'bow') { if (head) continue; if ((a === 'hat') && cfg.noHat) continue; head = true; }
+    out.push(a);
+  }
+  return out;
+}
+// 胸前掛點：識別證別在臉下緣高度的側前方、領帶掛在正中的下巴下，z 一律貼著身體表面（不浮在身體外、不落到地面）。回傳 [x, z, 掛點 y, 領帶縮放]
+function chestSpot(c, dx, kind) {
+  const cfg = c.cfg, ch = cfg.anc.chest, my = cfg.mouth ? cfg.mouth[1] : ch[1] + 0.1;
+  const ky = Math.max(0.17, my - (kind === 'tie' ? 0.07 : 0.02));
+  const zs = surf(c, 'z', dx, ky - 0.03), z = (zs ?? ch[2]) - 0.004;
+  return [dx, z, ky, Math.max(0.5, Math.min(1, (ky - 0.05) / 0.16))];
+}
+function scarfColor(c, col) {
+  const a = new THREE.Color(col), b = new THREE.Color(c.pal && c.pal.body != null ? c.pal.body : col), ha = {}, hb = {}; a.getHSL(ha); b.getHSL(hb);
+  let d = Math.abs(ha.h - hb.h); d = Math.min(d, 1 - d);
+  if (hb.s < 0.2 || d * 360 >= 60) return a.getHex();
+  return new THREE.Color().setHSL((hb.h + 0.5) % 1, 0.5, 0.64).getHex();
+}
+// 掛點處身體表面的前後傾斜（讓識別證、領帶貼著曲面）
+function tiltAt(c, x, y) { const a = surf(c, 'z', x, y + 0.05), b = surf(c, 'z', x, y - 0.1); return a == null || b == null ? 0 : Math.max(-0.5, Math.min(0.5, Math.atan2(a - b, 0.15))); }
 export function addAccessories(c, list, col) {
+  list = resolveAcc(c.cfg, list);
   const n = c.cfg.anc, o = { color: col, top: 0xffffff, y0: -1, y1: 4, sss: col, sssAmt: 0.25 };
   const cloth = M(c, { ...o, rough: 0.95, rimAmt: 0.16, sssAmt: 0.14 }), silk = M(c, { ...o, rough: 0.4, rimAmt: 0.4 }), m = M(c, o), wm = M(c, { color: 0xfffaf2, sss: 0xffd0a0, rough: 0.92, rimAmt: 0.15 });
   const dk = M(c, { color: 0x6a5a55, sss: 0x6a5a55, sssAmt: 0.05, rough: 0.5 });
+  c.accWorn = list;
   for (const a of list) {
+    const k0 = c.apps.length;
     if (a === 'glasses') { c.face.st.glasses = '#' + new THREE.Color(col).multiplyScalar(0.55).getHexString(); c.face.dirty = true; }
     else if (a === 'hat') {
       const [x, y, z, s] = n.hat, g = piv(c, x, y, z, { k: 260, c: 14, g: 0.008 }); g.scale.setScalar(s);
@@ -700,21 +754,24 @@ export function addAccessories(c, list, col) {
       mrg(c, wm, [-1, 1].flatMap(sd => [-0.01, 0.012].map(dx => [_box(), sd * (0.05 + dx), 0.008, 0.022, 0.011, 0.003, 0.003, 0, 0, sd * 0.3])), g);
     }
     else if (a === 'tie') {
-      const [x, y, z] = n.chest, g = piv(c, x, y + 0.07, z, { k: 120, c: 6, g: 0.03 });
+      const [x, z, ky, ts] = chestSpot(c, 0, 'tie'), g = piv(c, x, ky, z, { k: 120, c: 6, g: 0.03, rest: [tiltAt(c, 0, ky), 0] }); g.scale.setScalar(ts);
       mrg(c, silk, [[_lb(), 0, 0, 0.012, 0.03, 0.026, 0.02], [blobGeo(v => { const w = 0.6 + 0.4 * (1 - Math.abs(v.y + 0.3)); v.set(v.x * 0.04 * w, v.y * 0.075, v.z * 0.014); }, 24, 16), 0, -0.085, 0.016]], g);
       mrg(c, wm, [-0.05, -0.085, -0.12].map(yy => [_box(), 0, yy, 0.03, 0.062, 0.007, 0.004, 0, 0, 0.45]), g);
     }
     else if (a === 'badge') {
-      const [x, y, z] = n.chest, g = piv(c, x + 0.1, y + 0.04, z - 0.01, { k: 140, c: 7, g: 0.02 });
+      const [x, z, ky] = chestSpot(c, list.includes('tie') ? 0.17 : 0.12, 'badge'), g = piv(c, x, ky, z, { k: 140, c: 7, g: 0.02, rest: [tiltAt(c, x, ky), 0] });
       put(c, rbox(0.085, 0.105, 0.014, 0.006, 2), wm, 0, -0.03, 0.012, 1, 1, 1, g); put(c, rbox(0.085, 0.03, 0.016, 0.006, 2), m, 0, 0.005, 0.013, 1, 1, 1, g);
       mrg(c, dk, [[_lb(), 0, -0.004, 0.022, 0.017, 0.017, 0.004], [_box(), 0, 0.03, 0.016, 0.034, 0.014, 0.012], [_box(), 0.004, -0.062, 0.021, 0.05, 0.006, 0.003], [_box(), -0.006, -0.076, 0.021, 0.036, 0.006, 0.003]], g);
       put(c, _lb(), M(c, { color: 0xf2c9a4, sss: 0xff9070, sssAmt: 0.15 }), 0, -0.03, 0.022, 0.022, 0.024, 0.004, g);
     }
     else if (a === 'scarf') {
       const [y, rx, rz, tk = 0.06] = n.neck, g = piv(c, rx * 0.5, y - 0.03, rz * 0.82, { k: 90, c: 5, g: 0.04 });
-      mrg(c, cloth, [[_tor(), 0, y, 0, rx * 0.84, rz * 0.84, tk / 0.24 * 1.25, Math.PI / 2, 0, 0]]);
-      mrg(c, cloth, [[_lb(), 0, -0.07, 0.03, 0.045, 0.09, 0.025]], g);
+      // 圍巾：環變細（原本像游泳圈）；顏色與身體色相差 60 度以上（同色就改成互補色的淡色）
+      const sm = M(c, { ...o, color: scarfColor(c, col), sss: scarfColor(c, col), rough: 0.95, rimAmt: 0.16, sssAmt: 0.14 });
+      mrg(c, sm, [[_tor(), 0, y, 0, rx * 0.84, rz * 0.84, tk / 0.24 * 0.62, Math.PI / 2, 0, 0]]).userData.scarfRing = true;
+      mrg(c, sm, [[_lb(), 0, -0.07, 0.03, 0.04, 0.085, 0.022]], g);
       mrg(c, wm, [[_box(), 0, -0.05, 0.052, 0.088, 0.012, 0.004], [_box(), 0, -0.09, 0.052, 0.088, 0.012, 0.004], ...[-0.03, 0, 0.03].map(fx => [_box(), fx, -0.17, 0.03, 0.01, 0.036, 0.01]), [_box(), 0.062, -0.1, 0.03, 0.024, 0.03, 0.006, 0, 0, 0.15]], g);
     }
+    for (let q = k0; q < c.apps.length; q++) c.apps[q].acc = a;   // 標記這個附屬物是哪一件配件（驗收與除錯用）
   }
 }
