@@ -48,7 +48,7 @@ FACE = dict(eye_x=0.115, eye_z=0.285, nose_z=0.24, mouth_z=0.222, cheek_x=0.178,
             decal_x=0.235, decal_z0=0.055, decal_z1=0.47, decal_cz=0.27, decal_rz=0.21)
 CHEEK_KEY = (0.178, -0.25, 0.222)
 ANCHOR_PTS = dict(chest=(0, 0.16), bow=(0.11, 0.50), badge=(0.14, 0.17), scarf=(0, 0.12))
-LODS = {0: 2150, 1: 850, 2: 420}
+LODS = {0: 1850, 1: 850, 2: 420}
 AO_SMOOTH = 2
 ZONE_SMOOTH = 2
 REFINE = [((0.26, -0.07, 0.235), (0.39, -0.075, 0.22), 0.09), ((-0.26, -0.07, 0.235), (-0.39, -0.075, 0.22), 0.09),
