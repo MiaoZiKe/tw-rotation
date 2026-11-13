@@ -94,6 +94,13 @@ def _near_spot(pg, oid):
       return null; }""", oid)
 
 
+def _open_area(pg):
+    """找辦公室裡最空曠的一點（周圍 3 公尺內都能走），量速度才不會被家具擋住"""
+    return pg.evaluate("""() => { const W = __world; let best = null, bn = -1;
+      for (let x = 3; x <= 37; x += 0.5) for (let z = 3; z <= 27; z += 0.5) { let n = 0, bad = 0; for (let dx = -3; dx <= 3; dx += 0.5) for (let dz = -3; dz <= 3; dz += 0.5) { if (W.nav.isFree(x + dx, z + dz)) n++; else bad++; } if (!bad && n > bn) { bn = n; best = [x, z]; } }
+      return best; }""")
+
+
 def t_desktop(b, base):
     c, pg, got = _open(b, base)
     try:
@@ -170,6 +177,10 @@ def t_desktop(b, base):
         pg.keyboard.up("ArrowUp")
         wait_until(pg, "() => !__world.pilot.engaging", 8000)
         pg.wait_for_timeout(500)
+        oa = _open_area(pg)
+        ok("（前置）找得到空曠處量速度", bool(oa), oa)
+        pg.evaluate("(a) => { __world.chars.get('ceo').standAt(a[0], a[1], 0); }", oa)
+        pg.wait_for_timeout(900)
         # 穩定量測：先站定，再量 ArrowUp
         sp_walk, d = _sim_speed(pg, "ceo", "ArrowUp", 1600)
         fdir = pg.evaluate("() => { const W = __world, c = W.camera, t = W.controls.target; const x = t.x - c.position.x, z = t.z - c.position.z, l = Math.hypot(x, z); return [x / l, z / l]; }")
@@ -194,9 +205,10 @@ def t_desktop(b, base):
 
         # ───────── 跑步：連按兩次 ─────────
         pg.wait_for_timeout(400)
-        pg.keyboard.down("ArrowRight"); pg.wait_for_timeout(60); pg.keyboard.up("ArrowRight"); pg.wait_for_timeout(90)
+        pg.keyboard.down("ArrowRight"); pg.keyboard.up("ArrowRight")
+        pg.keyboard.down("ArrowRight")
         p0 = _pos(pg, "ceo")
-        pg.keyboard.down("ArrowRight"); pg.wait_for_timeout(1500)
+        pg.wait_for_timeout(1000)
         p1 = _pos(pg, "ceo")
         run_now = pg.evaluate("() => __world.pilot.run")
         pg.keyboard.up("ArrowRight")
