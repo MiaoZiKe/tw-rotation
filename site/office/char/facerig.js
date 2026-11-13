@@ -132,16 +132,18 @@ export class FaceRig {
   /** 視線目標（弧度）：yaw 左右（+ 往角色的左＝模型 +X）、pitch 上下（+ 往上）。 */
   lookAt(yaw, pitch) { this.gaze.ty = yaw; this.gaze.tp = pitch; }
   setMorphScale(sx, sy, sz) { this.morphScale.set(sx, sy, sz); }
-  update(dt, speed = 12) {
-    this.time += dt; const k = 1 - Math.exp(-dt * speed), c = this.cur, t = this.target;
+  /** frozen＝靜止模式：表情與視線目標仍會平滑過去（按鈕要有反應），但眨眼排程、微跳視、時間都停住 */
+  update(dt, speed = 12, frozen = false) {
+    if (!frozen) this.time += dt; const k = 1 - Math.exp(-dt * speed), c = this.cur, t = this.target;
     for (const key of KEYS) c[key] += (t[key] - c[key]) * k;
-    this.blinkT -= dt;
-    if (this.autoBlink && this.blinkT <= 0) { this.blinkV = 1; this.blinkT = Math.random() < 0.2 ? 0.28 : 1.8 + Math.random() * 3.6; }
-    if (this.blinkV > 0) { this.blink += dt / 0.055; if (this.blink >= 1) { this.blink = 1; this.blinkV = -1; } }
+    if (!frozen) this.blinkT -= dt;
+    if (!frozen && this.autoBlink && this.blinkT <= 0) { this.blinkV = 1; this.blinkT = Math.random() < 0.2 ? 0.28 : 1.8 + Math.random() * 3.6; }
+    if (frozen) { /* 眨眼進行到一半就停在原處 */ }
+    else if (this.blinkV > 0) { this.blink += dt / 0.055; if (this.blink >= 1) { this.blink = 1; this.blinkV = -1; } }
     else if (this.blinkV < 0) { this.blink -= dt / 0.09; if (this.blink <= 0) { this.blink = 0; this.blinkV = 0; } }
     // 視線：平滑追上目標；微跳視
     const g = this.gaze, kg = 1 - Math.exp(-dt * 14); g.yaw += (g.ty - g.yaw) * kg; g.pitch += (g.tp - g.pitch) * kg;
-    this.sac.t -= dt; if (this.sac.t <= 0) { this.sac.t = 0.8 + Math.random() * 1.7; this.sac.x = (Math.random() - 0.5) * 0.09; this.sac.y = (Math.random() - 0.5) * 0.06; }
+    if (!frozen) this.sac.t -= dt; if (!frozen && this.sac.t <= 0) { this.sac.t = 0.8 + Math.random() * 1.7; this.sac.x = (Math.random() - 0.5) * 0.09; this.sac.y = (Math.random() - 0.5) * 0.06; }
     this.applyEyes(dt);
     const sig = KEYS.map(q => Math.round(c[q] * 40)).join() + '|' + Math.round(this.talk * 24) + '|' + (c.tear > 0.04 ? Math.round(this.time * 8) : 0);
     if (this.dirty || sig !== this._sig) { this._sig = sig; this.dirty = false; this.paint(); }

@@ -25,7 +25,7 @@ async function buildNew() {
   asset = await loadMochi({ lod: S.lod });
   const prev = S.ch; S.ch = new MochiChar(asset, { preset: S.preset }); scene.add(S.ch.root);
   S.contact = stage.addContact(S.ch); applyWire();
-  if (prev && prev.face) S.ch.face.set(prev.face.name);
+  if (prev && prev.face && S.ch.face) S.ch.face.set(prev.face.name);
   if (S.lod === 2) S.contact.base = 1;
   layout();
 }
@@ -47,7 +47,7 @@ function layout() { $('#tag').classList.toggle('on', S.cmp); if (S.ch) S.ch.root
 // ── 視角
 const VIEWS = { front: ['正面', 0], side: ['側面', Math.PI / 2], back: ['背面', Math.PI], q45: ['45 度', Math.PI / 4] };
 function setView(name, instant) {
-  const az = VIEWS[name][1], d = S.cmp ? 5.0 : 3.4, el = 0.12;
+  const az = VIEWS[name][1], d = camDist(), el = 0.12;
   const to = new V3(Math.sin(az) * d * Math.cos(el), 0.36 + Math.sin(el) * d, Math.cos(az) * d * Math.cos(el)), tg = new V3(0, 0.36, 0);
   ctl.minPolarAngle = 0;
   if (instant) { camera.position.copy(to); ctl.target.copy(tg); ctl.update(); } else S.tween = { t: 0, a: camera.position.clone(), b: to };
@@ -57,9 +57,9 @@ function setView(name, instant) {
 // ── 動作示範（最小驅動：證明骨頭＋形態鍵變形不裂不穿；完整動作與狀態機是第三階段）
 const ease = (t) => t * t * (3 - 2 * t);
 const ACTS = {
-  wave: { dur: 2.2, fn(c, t, u) { const e = Math.min(ease(Math.min(1, t / 0.35)), ease(Math.min(1, (2.2 - t) / 0.35))); c.rot('arm.L', 0, 0, 1.75 * e); c.rot('hand.L', 0, 0, 0.55 * Math.sin(t * 15) * e); c.rot('head', 0, 0, -0.1 * e); c.face.set(e > 0.4 ? 'smile' : 'neutral'); } },
-  squash: { dur: 1.5, fn(c, t) { const p = t < 0.35 ? ease(t / 0.35) : Math.exp(-(t - 0.35) * 3.4) * Math.cos((t - 0.35) * 13); const w = clamp(p, -0.25, 1); c.morph('land', clamp(w, 0, 1) * 0.9); c.morph('stretch', clamp(-w, 0, 1) * 0.6); c.rot('ear.L', 0, 0, 0.35 * (w - (t < 0.35 ? 0 : 0))); c.rot('ear.R', 0, 0, -0.35 * w); c.face.set(t < 0.4 ? 'sad' : 'surprised'); } },
-  stretch: { dur: 1.6, fn(c, t) { const w = t < 0.4 ? ease(t / 0.4) : Math.exp(-(t - 0.4) * 3) * Math.cos((t - 0.4) * 11); c.morph('stretch', clamp(w, 0, 1)); c.morph('squash', clamp(-w, 0, 1) * 0.7); c.rot('ear.L', 0, 0, -0.3 * w); c.rot('ear.R', 0, 0, 0.3 * w); c.rot('arm.L', 0, 0, 0.8 * w); c.rot('arm.R', 0, 0, -0.8 * w); c.face.set('surprised'); } },
+  wave: { dur: 2.2, fn(c, t, u) { const e = Math.min(ease(Math.min(1, t / 0.35)), ease(Math.min(1, (2.2 - t) / 0.35))); c.rot('arm.L', 0, 0, 1.75 * e); c.rot('hand.L', 0, 0, 0.55 * Math.sin(t * 15) * e); c.rot('head', 0, 0, -0.1 * e); c.face?.set(e > 0.4 ? 'smile' : 'neutral'); } },
+  squash: { dur: 1.5, fn(c, t) { const p = t < 0.35 ? ease(t / 0.35) : Math.exp(-(t - 0.35) * 3.4) * Math.cos((t - 0.35) * 13); const w = clamp(p, -0.25, 1); c.morph('land', clamp(w, 0, 1) * 0.9); c.morph('stretch', clamp(-w, 0, 1) * 0.6); c.rot('ear.L', 0, 0, 0.35 * (w - (t < 0.35 ? 0 : 0))); c.rot('ear.R', 0, 0, -0.35 * w); c.face?.set(t < 0.4 ? 'sad' : 'surprised'); } },
+  stretch: { dur: 1.6, fn(c, t) { const w = t < 0.4 ? ease(t / 0.4) : Math.exp(-(t - 0.4) * 3) * Math.cos((t - 0.4) * 11); c.morph('stretch', clamp(w, 0, 1)); c.morph('squash', clamp(-w, 0, 1) * 0.7); c.rot('ear.L', 0, 0, -0.3 * w); c.rot('ear.R', 0, 0, 0.3 * w); c.rot('arm.L', 0, 0, 0.8 * w); c.rot('arm.R', 0, 0, -0.8 * w); c.face?.set('surprised'); } },
   turn: { dur: 2.6, fn(c, t) { const y = Math.sin(t / 2.6 * Math.PI * 2) * 0.62; c.rot('head', 0, y, 0); c.rot('spine', 0, y * 0.3, 0); c.rot('tail', 0, 0, y * 0.5); } },
   hop: { dur: 1.0, fn(c, t) { const y = 0.55 * 4 * t * (1 - t) * (t < 1 ? 1 : 0); c.rot('root', 0, 0, 0); c.move('root', 0, y, 0); const pre = t < 0.12 ? ease(t / 0.12) : 0, post = t > 0.86 ? ease((t - 0.86) / 0.14) : 0; c.morph('land', Math.max(pre * 0.6, post * 0.8 * (1 - (t - 0.86) * 0)) * (t > 0.93 ? (1 - (t - 0.93) / 0.07) : 1)); c.morph('stretch', y > 0.05 ? 0.5 : 0); c.rot('ear.L', 0, 0, -0.5 * Math.sin(t * Math.PI)); c.rot('ear.R', 0, 0, 0.5 * Math.sin(t * Math.PI)); } },
 };
@@ -100,8 +100,8 @@ const applyWire = applyMode, applySil = applyMode;
 
 // ── 介面
 const gv = $('#gView'); for (const [k, [zh]] of Object.entries(VIEWS)) { const b = document.createElement('button'); b.textContent = zh; b.dataset.v = k; b.onclick = () => setView(k); gv.appendChild(b); }
-const ge = $('#gExpr'); for (const [k, zh] of EXPR_LIST) { const b = document.createElement('button'); b.textContent = zh; b.dataset.e = k; b.onclick = () => { S.ch.face.set(k); ge.querySelectorAll('button[data-e]').forEach(x => x.classList.toggle('on', x === b)); }; ge.appendChild(b); }
-{ const b = document.createElement('button'); b.textContent = '眨眼一下'; b.onclick = () => S.ch.face.blinkNow(); ge.appendChild(b);
+const ge = $('#gExpr'); for (const [k, zh] of EXPR_LIST) { const b = document.createElement('button'); b.textContent = zh; b.dataset.e = k; b.onclick = () => { S.ch.face?.set(k); ge.querySelectorAll('button[data-e]').forEach(x => x.classList.toggle('on', x === b)); }; ge.appendChild(b); }
+{ const b = document.createElement('button'); b.textContent = '眨眼一下'; b.onclick = () => S.ch.face?.blinkNow(); ge.appendChild(b);
   const t = document.createElement('button'); t.textContent = '視線追蹤游標'; t.id = 'btnTrack'; t.onclick = () => { S.track = !S.track; t.classList.toggle('on', S.track); }; ge.appendChild(t); }
 const ga = $('#gAct'); for (const [k, zh] of [['wave', '揮手'], ['squash', '被壓扁回彈'], ['stretch', '拉長'], ['turn', '轉頭'], ['hop', '小跳']]) { const b = document.createElement('button'); b.textContent = zh; b.dataset.a = k; b.onclick = () => playAct(k); ga.appendChild(b); }
 { const b = document.createElement('button'); b.textContent = '動態'; b.id = 'btnMotion'; b.className = 'on'; b.setAttribute('aria-pressed', 'true'); b.onclick = () => { S.paused = !S.paused; b.textContent = S.paused ? '靜止' : '動態'; b.classList.toggle('on', !S.paused); b.setAttribute('aria-pressed', String(!S.paused)); }; ga.appendChild(b); }
@@ -143,7 +143,7 @@ function frame(now) {
       idle(c, S.time); trackGaze(c);
       if (S.act) S.act.fn(c, S.act.t);
     }
-    c.update(sdt); stage.updateContact();
+    c.update(dt, S.paused); stage.updateContact();
   }
   if (S.old && S.cmp && sdt > 0) { S.old.step(sdt, { mx: 0, mz: 0, run: false, jump: false }); S.old.animate(sdt, { look: null, cam: camera.position }); S.old.lookT = 1e9; }
   if (S.cmp && S.old) {

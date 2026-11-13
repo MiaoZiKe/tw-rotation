@@ -88,7 +88,7 @@ export class MochiChar {
   resetPose() { for (const [nm, b] of Object.entries(this.bones)) { b.quaternion.copy(this.rest[nm].q); b.position.copy(this.rest[nm].p); } for (const s of SHAPES) this.morph(s, 0); }
   /** 骨頭在模型座標的目前位置 */
   boneWorld(name, out = new THREE.Vector3()) { this.model.updateMatrixWorld(); const b = this.bones[name]; return b.getWorldPosition(out).applyMatrix4(this.root.matrixWorld.clone().invert()); }
-  update(dt) {
+  update(dt, frozen = false) {
     this.t += dt;
     if (this.face) {
       // 形態鍵造成的身體尺寸改變 → 眼睛位置跟著走
@@ -96,7 +96,7 @@ export class MochiChar {
       const sx = 1 + g('squash') * 0.10 + g('stretch') * -0.065 + g('land') * 0.17 + g('plump') * 0.07;
       const sz = 1 + g('squash') * 0.10 + g('stretch') * -0.065 + g('land') * 0.17 + g('plump') * 0.07;
       const sy = 1 + g('squash') * -0.20 + g('stretch') * 0.15 + g('land') * -0.30 + g('plump') * -0.025;
-      this.face.setMorphScale(sx, sy, sz); this.face.update(dt);
+      this.face.setMorphScale(sx, sy, sz); this.face.update(dt, 12, frozen);
     }
     this.model.updateMatrixWorld(true);
   }
