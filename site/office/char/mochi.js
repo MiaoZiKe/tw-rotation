@@ -101,7 +101,7 @@ export class MochiChar {
     this.model.updateMatrixWorld(true);
   }
   dispose() {
-    this.mat.dispose(); this.lidMat.dispose(); if (this.face) { this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh) { n.geometry.dispose(); if (n.material && n.material !== this.lidMat) n.material.dispose(); } }); this.decal.material.dispose(); }
+    this.mat.dispose(); this.lidMat.dispose(); if (this.face) { this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh && !n.geometry.userData.shared) n.geometry.dispose(); }); this.decal.material.dispose(); }
     this.root.removeFromParent();
   }
 }

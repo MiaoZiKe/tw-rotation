@@ -33,7 +33,8 @@ function irisTexture() {
   g.fillStyle = gr; g.beginPath(); g.arc(s / 2, s / 2, s / 2, 0, 7); g.fill();
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-let IRIS = null;
+let IRIS = null; const SHARED = {};   // 所有角色共用的不變幾何（眼球帽、眼皮殼、笑眼弧）：每隻只剩高光網格與臉貼片是自己的
+const shared = (k, mk) => SHARED[k] || (SHARED[k] = (() => { const g = mk(); g.userData.shared = true; return g; })());
 
 export class FaceRig {
   /** meta：mochi.json；holder：掛在 head 骨頭下、已抵銷骨頭靜止矩陣的群組；decal：臉貼片 SkinnedMesh；skinMat：眼皮用的毛料材質 */
@@ -50,10 +51,9 @@ export class FaceRig {
     const grp = new THREE.Group(); grp.position.copy(p).addScaledVector(n, -EYE.d); grp.quaternion.copy(q); grp.userData.base = grp.position.clone(); this.holder.add(grp);
     const ball = new THREE.Group(); grp.add(ball);
     // 眼球：只做會露出來的前半球帽（75°），一顆網格＋一張極座標貼圖（瞳孔、虹膜、外圍深色），跟著眼球轉＝瞳孔在動
-    const geo = new THREE.SphereGeometry(1, 22, 9, 0, Math.PI * 2, 0, 75 * D2R).rotateX(Math.PI / 2);
-    { const pos = geo.attributes.position, uv = geo.attributes.uv, tm = 64 * D2R; for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), th = Math.acos(Math.max(-1, Math.min(1, z))), ph = Math.atan2(y, x), r = 0.5 * Math.min(1, th / tm); uv.setXY(i, 0.5 + r * Math.cos(ph), 0.5 + r * Math.sin(ph)); } }
+    const geo = shared('cap', () => { const g = new THREE.SphereGeometry(1, 22, 9, 0, Math.PI * 2, 0, 75 * D2R).rotateX(Math.PI / 2); const pos = g.attributes.position, uv = g.attributes.uv, tm = 64 * D2R; for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), th = Math.acos(Math.max(-1, Math.min(1, z))), ph = Math.atan2(y, x), r = 0.5 * Math.min(1, th / tm); uv.setXY(i, 0.5 + r * Math.cos(ph), 0.5 + r * Math.sin(ph)); } return g; });
     IRIS ||= irisTexture();
-    const eyeMat = new THREE.MeshStandardMaterial({ map: IRIS, roughness: 0.16, metalness: 0, envMapIntensity: 0.7 });
+    const eyeMat = (SHARED.eyeMat ||= new THREE.MeshStandardMaterial({ map: IRIS, roughness: 0.16, metalness: 0, envMapIntensity: 0.7 }));
     const sph = new THREE.Mesh(geo, eyeMat); sph.scale.set(EYE.a, EYE.b, EYE.c); ball.add(sph);
     // 高光：兩個小圓合併成一個網格，固定在眼窩上（不隨眼球轉），頂點貼在橢球表面（強度改變時重算）
     const hlGeo = new THREE.BufferGeometry(), NSEG = 18, hlDefs = [[-0.022, 0.027, 0.0125, 1.12], [0.024, -0.024, 0.0058, 1.0]];
@@ -65,10 +65,10 @@ export class FaceRig {
     setHl(1); hl.userData.setHl = setHl;
     // 眼皮殼：半球殼（極點方向決定蓋住多少）。外層群組負責橢球縮放，內層負責旋轉。
     const lidS = new THREE.Group(); lidS.scale.set(EYE.a * 1.07, EYE.b * 1.07, EYE.c * 1.11); grp.add(lidS);
-    const lid = new THREE.Mesh(new THREE.SphereGeometry(1, 30, 14, 0, Math.PI * 2, 0, Math.PI / 2), lidMat); lidS.add(lid);
+    const lid = new THREE.Mesh(shared('lid', () => new THREE.SphereGeometry(1, 30, 14, 0, Math.PI * 2, 0, Math.PI / 2)), lidMat); lidS.add(lid);
     // 笑眼 ∩、睡眼 ∪ 的弧線（畫在眼皮殼上）
-    const arc = (sgn) => { const pts = []; const w = 0.052, h = 0.026 * sgn; for (let i = 0; i <= 18; i++) { const u = i / 18 * 2 - 1, x = u * w, y = h * (1 - u * u) - 0.004 * sgn; pts.push(new V3(x, y, ellPoint(x, y, 1.115) + 0.0015)); }
-      const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 22, 0.0046, 6), new THREE.MeshBasicMaterial({ color: 0x3a2622 })); m.visible = false; grp.add(m); return m; };
+    const arc = (sgn) => { const key = 'arc' + sgn; const pts = []; const w = 0.052, h = 0.026 * sgn; for (let i = 0; i <= 18; i++) { const u = i / 18 * 2 - 1, x = u * w, y = h * (1 - u * u) - 0.004 * sgn; pts.push(new V3(x, y, ellPoint(x, y, 1.115) + 0.0015)); }
+      const m = new THREE.Mesh(shared(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 22, 0.0046, 6)), (SHARED.arcMat ||= new THREE.MeshBasicMaterial({ color: 0x3a2622 }))); m.visible = false; grp.add(m); return m; };
     const arcUp = arc(1), arcDn = arc(-1);
     return { side, grp, ball, lid, hl, arcUp, arcDn, q, n, hlK: 1 };
   }
