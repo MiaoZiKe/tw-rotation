@@ -19,7 +19,7 @@ export function colorsFor(look) {
 // 各物種的個性檔覆寫（疊在 profiles/mochi.json 上）：只列有差異的鍵
 export const PROFILE_OVERRIDE = {
   bunny: { waddle: 0.05, jump: { height: 0.78 }, move: { walk: 0.62, run: 1.4 }, secondary_gain: 1.35, bounce: { dy: 0.04, sq: 0.3, sway: 0.0 } },
-  pudding: { waddle: 0.12, land: { peakK: 0.1, zeta: 0.28 }, move: { walk: 0.52, run: 1.2 }, bounce: { dy: 0.03, sq: 0.7, sway: 0.16 } },
+  pudding: { waddle: 0.10, land: { peakK: 0.1, zeta: 0.28 }, move: { walk: 0.52, run: 1.2 }, bounce: { dy: 0.03, sq: 0.45, sway: 0.09 } },
 };
 export function mergeProfile(base, ov) {
   const out = JSON.parse(JSON.stringify(base)); if (!ov) return out;
