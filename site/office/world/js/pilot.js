@@ -181,7 +181,7 @@ export function createPilot(W, X) {
     o.script = (o.script || 0) + 1; o.job = (o.job || 0) + 1; o.busy = true; o.stop(false); o.setAction('idle');
     const mp = me.object3D.position, op = o.object3D.position; me.faceTo(op.x, op.z); o.faceTo(mp.x, mp.z); o.setAction('listen');
     ui.showCard(o);
-    me.setAction('talk', { duration: 2.2 }); me.say(greetFor(me, o), 2.6); await W.sleep(2.7);
+    me.setAction('talk', { duration: 2.2 }); me.say(greetFor(me, o), 3.4); await W.sleep(2.7);   // 我的泡泡比對方開口晚收一點，兩個泡泡會同時在畫面上一小段
     if (P.sel === me) { o.setAction('talk', { duration: 2.2 }); o.say(lineFor(o), 2.8); me.setAction('listen'); }
     await W.sleep(2.9);
     if (P.sel === me) { me.setExpression('happy', 1.2); o.setExpression('happy', 1.2); me.setAction('nod'); }

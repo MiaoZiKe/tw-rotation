@@ -311,7 +311,9 @@ def t_desktop(b, base):
         pg.keyboard.press("Space")
         pg.wait_for_timeout(300)
         _shot(pg, "_jump_mid.png")
-        pg.wait_for_timeout(2500)
+        wait_until(pg, "() => __land || __ys.length >= 599", 90000)
+        pg.wait_for_timeout(1500)
+        pg.evaluate("() => { __world.speed = 8; }")
         ys = pg.evaluate("() => __ys")
         ymax = max(v[0] for v in ys)
         ipeak = [v[0] for v in ys].index(ymax)
@@ -323,7 +325,7 @@ def t_desktop(b, base):
         _jump_strip(pg)
 
         # ───────── 碰撞：不穿牆、不穿家具、不出辦公室 ─────────
-        pg.evaluate("() => { __world.speed = 8; window.__hit = { solid: 0, out: 0, n: 0, minx: 99, minz: 99, maxx: -99, maxz: -99 }; const f = () => { const W = __world, c = W.chars.get('ceo'), p = c.object3D.position; const h = __hit; h.n++; if (W.nav.isSolid(p.x, p.z)) h.solid++; if (p.x < 0.3 || p.x > W.layout.size.w - 0.3 || p.z < 0.3 || p.z > W.layout.size.d - 0.3) h.out++; h.minx = Math.min(h.minx, p.x); h.minz = Math.min(h.minz, p.z); h.maxx = Math.max(h.maxx, p.x); h.maxz = Math.max(h.maxz, p.z); requestAnimationFrame(f); }; f(); }")
+        pg.evaluate("() => { __world.speed = 8; window.__hit = { solid: 0, out: 0, n: 0, minx: 99, minz: 99, maxx: -99, maxz: -99 }; const f = () => { const W = __world, c = W.chars.get('ceo'), p = c.object3D.position; const h = __hit; h.n++; if (W.nav.isSolid(p.x, p.z)) { h.solid++; h.at = h.at || [p.x, p.z, W.time]; } if (p.x < 0.3 || p.x > W.layout.size.w - 0.3 || p.z < 0.3 || p.z > W.layout.size.d - 0.3) h.out++; h.minx = Math.min(h.minx, p.x); h.minz = Math.min(h.minz, p.z); h.maxx = Math.max(h.maxx, p.x); h.maxz = Math.max(h.maxz, p.z); requestAnimationFrame(f); }; f(); }")
         for key, ms in (("ArrowUp", 5000), ("ArrowLeft", 5000), ("ArrowDown", 6000), ("ArrowRight", 6000), ("ArrowUp", 4000), ("ArrowLeft", 4000)):
             pg.keyboard.down(key); pg.wait_for_timeout(60); pg.keyboard.up(key); pg.wait_for_timeout(80)    # 連按兩次 → 跑著撞牆，最容易穿牆
             pg.keyboard.down(key); pg.wait_for_timeout(ms); pg.keyboard.up(key)
@@ -343,16 +345,16 @@ def t_desktop(b, base):
         _shot(pg, "靠近提示_按E溝通.png")
         ov = _no_overlap(pg, [".pt-hint", ".pt-tips", ".cm-hint", *_BAR, "#card"])
         ok("版面：「按 E 溝通」不與提示卡／工具列／資訊卡重疊", not ov, ov)
+        pg.evaluate("() => { __world.speed = 1; }")     # 泡泡只有 2～3 模擬秒，放慢才抓得到畫面
         pg.keyboard.press("KeyE")
         ok("按 E：操控的角色說話（出現泡泡）", wait_until(pg, "() => __world.chars.get('ceo').speech && __world.chars.get('ceo').speech.text.length > 0", 5000))
         ok("按 E：兩人面對面（我朝向對方）", pg.evaluate("""(id) => { const W = __world, a = W.chars.get('ceo'), o = W.chars.get(id), pa = a.object3D.position, po = o.object3D.position;
           const want = Math.atan2(po.x - pa.x, po.z - pa.z); return Math.abs(((a.heading - want + Math.PI) % (2 * Math.PI)) - Math.PI) < 0.5; }""", oid))
         ok("按 E：對方的資訊卡打開（顯示對方名字）", pg.evaluate("(id) => { const W = __world, o = W.chars.get(id); return !document.getElementById('card').hidden && document.querySelector('#card .hd b').textContent.includes(o.spec.nick); }", oid))
         ok("按 E：對方停下原本動作並回話（對方也出現泡泡）", wait_until(pg, f"() => {{ const o = __world.chars.get('{oid}'); return o.speech && o.speech.text.length > 0; }}", 15000))
-        pg.wait_for_timeout(300)
         _shot(pg, "溝通對話.png")
         bub = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).length")
-        ok("對話泡泡顯示在畫面上（≥ 1 個）", bub >= 1, bub)
+        ok("對方回話的當下，兩個人的對話泡泡同時顯示在畫面上（= 2 個）", bub == 2, bub)
         ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR])
         ok("版面：資訊卡、提示卡、鏡頭提示、工具列不重疊（溝通中）", not ov, ov)
         bubs = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).map(b => { const r = b.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
@@ -360,6 +362,7 @@ def t_desktop(b, base):
         ok("兩個對話泡泡彼此不重疊", okb, bubs)
         pc = [_rect(pg, s) for s in (".pt-tips", "#card")]
         ok("對話泡泡不蓋到提示卡與資訊卡", all(not _overlap(bb, r) for bb in bubs for r in pc if r), (bubs, pc))
+        pg.evaluate("() => { __world.speed = 8; }")
         ok("演出結束後對方回到原本行為（坐回座位工作、不忙）", wait_until(pg, "() => { const o = __world.chars.get('data-steward'); return !o.busy && o.state === 'sit' && o.atDesk; }", 20000))
         ok("演出結束後我可繼續操控（沒被鎖住）", pg.evaluate("() => !__world.pilot.talking && __world.pilot.engaged"))
         # F 揮手
