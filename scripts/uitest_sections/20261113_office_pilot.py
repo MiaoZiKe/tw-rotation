@@ -15,7 +15,7 @@ def _root(base):
     return base.split("/index.html")[0].rstrip("/")
 
 
-def _open(b, base, w=1280, h=760, touch=False, qs="?ambient=0&q=low"):
+def _open(b, base, w=1280, h=760, touch=False, qs="?ambient=0&q=low&view=ceo"):   # 預設進場是俯視；這些操控流程要從 CEO 視角開始，所以帶 view=ceo（預設視角另有 t_view 驗）
     c = b.new_context(viewport={"width": w, "height": h}, has_touch=touch, is_mobile=touch)
     pg = c.new_page()
     pg.set_default_timeout(120000)
@@ -665,7 +665,7 @@ def t_camera(b, base):
 
 
 def t_mobile(b, base):
-    c, pg, got = _open(b, base, 390, 844, touch=True, qs="?ambient=0")
+    c, pg, got = _open(b, base, 390, 844, touch=True, qs="?ambient=0&view=ceo")
     try:
         ok("手機：頁面載入", got)
         if not got:
@@ -754,7 +754,7 @@ def t_daytime(b, base):
     pg.on("pageerror", lambda e: pg.errs.append(str(e)))
     pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text else None)
     try:
-        pg.goto(_root(base) + "/office/world.html?ambient=0&q=low", wait_until="domcontentloaded")
+        pg.goto(_root(base) + "/office/world.html?ambient=0&q=low&view=ceo", wait_until="domcontentloaded")
         got = wait_until(pg, "() => window.__world && window.__world.ready", 90000)
         ok("天色：頁面載入", got)
         if not got:
@@ -830,10 +830,81 @@ def t_daytime(b, base):
         c.close()
 
 
+def t_view(b, base):
+    """預設視角是俯視；選了角色之後在背景拖曳仍可移動鏡頭（拖曳與點一下要分清）"""
+    # 不帶任何 view 參數 ＝ 使用者直接打開辦公室頁
+    c, pg, got = _open(b, base, qs="?ambient=0&q=low")
+    try:
+        ok("預設視角：頁面載入", got)
+        if not got:
+            return
+        wait_until(pg, "() => !__world.view.tween", 15000)
+        pg.wait_for_timeout(600)
+        v = pg.evaluate("""() => { const W = __world, c = W.camera, t = W.controls.target, d = c.position.distanceTo(t), T = W.THREE, r = document.getElementById('cv').getBoundingClientRect();
+          const polar = Math.acos((c.position.y - t.y) / d);
+          const corners = [[0, 0], [40, 0], [40, 30], [0, 30]].map(q => { const p = new T.Vector3(q[0], 0, q[1]).project(c); return [(p.x + 1) / 2 * r.width, (1 - p.y) / 2 * r.height]; });
+          return { mode: W.view.mode, y: c.position.y, polar, d, corners, on: document.querySelector('#viewSeg .on').dataset.v, w: r.width, h: r.height }; }""")
+        ok("預設是俯視模式（view.mode = god、「俯瞰」鈕亮著）", v["mode"] == "god" and v["on"] == "god", v)
+        ok("俯視判定：鏡頭高度 ≥ 25 公尺、與垂直的夾角（polar）≤ 0.8 弧度（約 46 度）", v["y"] >= 25 and v["polar"] <= 0.8, (round(v["y"], 1), round(v["polar"], 3)))
+        ok("整間辦公室（四個角）都在畫面內", all(-5 <= x <= v["w"] + 5 and -5 <= y <= v["h"] + 5 for x, y in v["corners"]), v["corners"])
+        _shot(pg, "預設俯視.png")
+        ok("「回 CEO 視角」鈕保留且可用", pg.evaluate("() => !!document.querySelector('#viewSeg [data-v=\"ceo\"]')"))
+        pg.click("#viewSeg [data-v='ceo']")
+        ok("按「CEO 視角」仍會運鏡到 CEO", wait_until(pg, "() => __world.view.mode === 'ceo' && !__world.view.tween", 15000))
+        ok("預設視角：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+    # ── 選了角色之後，在背景拖曳 ──
+    c, pg, got = _open(b, base)
+    try:
+        x, y = _scr(pg, "ceo")
+        pg.mouse.click(x, y)
+        wait_until(pg, "() => __world.pilot.sel", 6000)
+        _tween_done(pg, 12000)
+        _settle(pg)
+        ok("（前置）選了角色、資訊卡開著", pg.evaluate("() => !document.getElementById('card').hidden && __world.pilot.sel.spec.id === 'ceo'"))
+        hit = pg.evaluate("() => [[900, 250], [1100, 300], [700, 120], [1000, 600], [640, 700]].map(p => document.elementFromPoint(p[0], p[1]).id)")
+        ok("資訊卡與面板只擋自己的範圍：畫面其他區域的滑鼠事件打在畫布上", all(h == "cv" for h in hit), hit)
+        c0 = _cam(pg)
+        pg.mouse.move(900, 250); pg.mouse.down()
+        for i in range(1, 9):
+            pg.mouse.move(900 + i * 30, 250)
+            pg.wait_for_timeout(40)
+        pg.mouse.up()
+        c1 = _settle(pg)
+        da = abs((c1["az"] - c0["az"] + _m.pi) % (2 * _m.pi) - _m.pi)
+        ok("選了角色後在背景按住拖曳：鏡頭方位真的改變（> 0.2 弧度）", da > 0.2, da)
+        ok("拖曳後選取仍在、資訊卡仍開著、提示卡仍在", pg.evaluate("() => !!__world.pilot.sel && !document.getElementById('card').hidden && !document.querySelector('.pt-tips').hidden"))
+        _shot(pg, "選角後拖曳背景.png")
+        pg.mouse.move(900, 250); pg.mouse.wheel(0, 500)
+        pg.wait_for_timeout(600)
+        c2 = _settle(pg)
+        ok("選了角色後滾輪仍能縮放", abs(c2["dist"] - c1["dist"]) > 0.3, (c1["dist"], c2["dist"]))
+        pg.mouse.move(900, 250); pg.mouse.down(button="right"); pg.mouse.move(800, 300, steps=6); pg.mouse.up(button="right")
+        c3 = _settle(pg)
+        ok("選了角色後右鍵拖曳仍能平移（注視點改變）", _m.hypot(c3["tx"] - c2["tx"], c3["tz"] - c2["tz"]) > 0.3, (c2, c3))
+        ok("拖曳平移後仍保持選取", pg.evaluate("() => !!__world.pilot.sel && !document.getElementById('card').hidden"))
+        # 按住不動超過 250 毫秒再放開 ＝ 不是點一下 → 不取消選取
+        pg.mouse.move(900, 250); pg.mouse.down(); pg.wait_for_timeout(450); pg.mouse.up()
+        pg.wait_for_timeout(600)
+        ok("在背景按住超過 250 毫秒再放開：不算「點一下」，不取消選取", pg.evaluate("() => !!__world.pilot.sel"))
+        # 位移超過 5 像素的小拖曳也不算點
+        pg.mouse.move(900, 250); pg.mouse.down(); pg.mouse.move(912, 252, steps=3); pg.mouse.up()
+        pg.wait_for_timeout(600)
+        ok("位移超過 5 像素的小拖曳：不取消選取", pg.evaluate("() => !!__world.pilot.sel"))
+        # 真正的點一下空白 ＝ 取消選取
+        pg.mouse.click(900, 250)
+        ok("快速點一下空白處：取消選取", wait_until(pg, "() => __world.pilot.sel === null", 3000))
+        ok("選角拖曳段落：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
 def t_all(b, base):
     t_desktop(b, base)
     t_board(b, base)
     t_camera(b, base)
+    t_view(b, base)
     t_daytime(b, base)
     t_mobile(b, base)
 
