@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-12",
+ "updated": "2026-11-13",
  "days": [
+  {
+   "date": "2026-11-13",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "輝達韓國前代表談黃仁勳卸任，CUDA 優勢仍在短期影響有限",
+     "url": "https://technews.tw/2026/11/13/former-nvidia-korea-representative-discusses-jensen-huang-departure-cuda-advantage-remains-short-term-impact-limited/",
+     "source": "科技新報",
+     "time": "2026-11-13T14:30:20+08:00",
+     "desc": "輝達（NVIDIA）執行長黃仁勳投下卸任震撼彈，曾與他共事 7 年的輝達韓國（NVIDIA Korea）前代表"
+    },
+    {
+     "cat": "科技",
+     "title": "黃仁勳去職，日本政府關注 AI 產業及半導體供應鏈衝擊",
+     "url": "https://technews.tw/2026/11/13/jensen-huang-steps-down-japanese-government-monitors-ai-industry-semiconductor-supply-chain-impact/",
+     "source": "科技新報",
+     "time": "2026-11-13T14:40:06+08:00",
+     "desc": "美國半導體大廠輝達（NVIDIA）執行長黃仁勳辭職，引發全球科技業震撼。日本內閣官房副長官尾崎正直今天表示，輝"
+    },
+    {
+     "cat": "新聞",
+     "title": "日月光高雄路竹廠一期啟用、二期動土 千億布局擴大先進封裝量能",
+     "url": "https://news.cnyes.com/news/id/6661623",
+     "source": "鉅亨",
+     "time": "2026-11-13T14:00:14+08:00",
+     "desc": "日月光南科路竹廠一期啟用、二期動土，首度進駐科學園區建先進封裝廠；一期二期滿載投資估千億元，年營收約800億元，將創造約5,000個工作機會；布局由楠梓延伸至路…"
+    },
+    {
+     "cat": "總經",
+     "title": "波克夏再發日圓債、金額縮小 日本商社漲跌互見",
+     "url": "https://finance.technews.tw/2026/11/13/berkshire-hathaway-reissues-yen-bonds-reduced-amount-japanese-trading-companies-mixed-results/",
+     "source": "科技新報",
+     "time": "2026-11-13T14:45:49+08:00",
+     "desc": "美國投資公司波克夏海瑟威（Berkshire Hathaway）是日本 5 大商社（三菱商事、三井物產、伊藤忠"
+    },
+    {
+     "cat": "事件",
+     "title": "「白宮股神」川普先賣了！8月套現最多百萬美元輝達股票 輝達如今創16個月新低",
+     "url": "https://news.cnyes.com/news/id/6661110",
+     "source": "鉅亨",
+     "time": "2026-11-13T15:41:09+08:00",
+     "desc": "川普名下投資組合8月21日賣出最多100萬美元輝達股票，10月8日申報公開；輝達週四跌4.34%至166.19美元，較申報公開當天已跌27.9%，本週市值蒸發約…"
+    }
+   ]
+  },
   {
    "date": "2026-11-12",
    "items": [
