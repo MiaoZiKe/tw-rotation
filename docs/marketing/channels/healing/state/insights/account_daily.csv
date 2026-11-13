@@ -7,3 +7,5 @@ date,fetched_at,platform,status,followers,views,reach,profile_views,accounts_eng
 2026-11-12,2026-11-12T06:01:35+08:00,threads,ok,0,0,,,,0,0,0,0,,
 2026-11-13,2026-11-13T05:52:29+08:00,ig,partial,0,,,,,,,,,reach=permission;views=permission;profile_views=permission;accounts_engaged=permission;saved=permission;shares=permission;total_interactions=permission,instagram_manage_insights
 2026-11-13,2026-11-13T05:52:29+08:00,threads,ok,0,0,,,,0,0,0,0,,
+2026-11-14,2026-11-14T05:27:52+08:00,ig,partial,0,,,,,,,,,reach=permission;views=permission;profile_views=permission;accounts_engaged=permission;saved=permission;shares=permission;total_interactions=permission,instagram_manage_insights
+2026-11-14,2026-11-14T05:27:52+08:00,threads,ok,0,1,,,,0,0,0,0,,

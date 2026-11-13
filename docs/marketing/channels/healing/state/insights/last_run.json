@@ -1,7 +1,7 @@
 {
  "channel": "healing",
  "account": "talk_01010909",
- "at": "2026-11-13T05:52:29+08:00",
+ "at": "2026-11-14T05:27:52+08:00",
  "platforms": {
   "ig": {
    "status": "partial",
@@ -15,28 +15,28 @@
     "total_interactions": "permission"
    },
    "need_permission": "instagram_manage_insights",
-   "posts_total": 3,
-   "posts_with_data": 3,
+   "posts_total": 4,
+   "posts_with_data": 4,
    "account_values": {
     "followers": 0
    },
-   "last_success": "2026-11-13T05:52:29+08:00"
+   "last_success": "2026-11-14T05:27:52+08:00"
   },
   "threads": {
    "status": "ok",
    "missing": {},
    "need_permission": "",
-   "posts_total": 3,
-   "posts_with_data": 3,
+   "posts_total": 4,
+   "posts_with_data": 4,
    "account_values": {
     "followers": 0,
-    "views": 0,
+    "views": 1,
     "likes": 0,
     "replies": 0,
     "reposts": 0,
     "quotes": 0
    },
-   "last_success": "2026-11-13T05:52:29+08:00"
+   "last_success": "2026-11-14T05:27:52+08:00"
   }
  }
 }
