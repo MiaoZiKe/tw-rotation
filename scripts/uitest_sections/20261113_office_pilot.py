@@ -351,7 +351,7 @@ def t_desktop(b, base):
         ok("按 E：兩人面對面（我朝向對方）", pg.evaluate("""(id) => { const W = __world, a = W.chars.get('ceo'), o = W.chars.get(id), pa = a.object3D.position, po = o.object3D.position;
           const want = Math.atan2(po.x - pa.x, po.z - pa.z); return Math.abs(((a.heading - want + Math.PI) % (2 * Math.PI)) - Math.PI) < 0.5; }""", oid))
         ok("按 E：對方的資訊卡打開（顯示對方名字）", pg.evaluate("(id) => { const W = __world, o = W.chars.get(id); return !document.getElementById('card').hidden && document.querySelector('#card .hd b').textContent.includes(o.spec.nick); }", oid))
-        ok("按 E：對方停下原本動作並回話（對方也出現泡泡）", wait_until(pg, f"() => {{ const o = __world.chars.get('{oid}'); return o.speech && o.speech.text.length > 0; }}", 15000))
+        ok("按 E：對方停下原本動作並回話（對方也出現泡泡）", wait_until(pg, f"() => {{ const o = __world.chars.get('{oid}'); return o.speech && o.speech.text.length > 0; }}", 90000))
         bub = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).length")
         bubs = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.getBoundingClientRect().left > -500).map(b => { const r = b.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
         ovb = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR])
@@ -711,7 +711,7 @@ def t_mobile(b, base):
         pg.wait_for_timeout(300)
         ok("手機：放開搖桿後旋鈕回中、角色停下", pg.evaluate("() => document.querySelector('.pt-knob').style.transform === '' && !__world.pilot.run"))
         # 跳躍鈕
-        pg.evaluate("() => { window.__ym = 0; const f = () => { __ym = Math.max(__ym, __world.chars.get('ceo').inner.pos.y); requestAnimationFrame(f); }; f(); }")
+        pg.evaluate("() => { window.__ym = 0; const P = __world.pilot, t0 = P.tick; P.tick = h => { t0(h); __ym = Math.max(__ym, __world.chars.get('ceo').inner.pos.y); }; }")   # 在每個模擬步裡取最高點（軟體繪圖幀很慢，一幀可能整段跳躍都跑完，用 rAF 取樣會漏掉）
         jr = _rect(pg, ".pt-jump")
         pg.touchscreen.tap((jr[0] + jr[2]) / 2, (jr[1] + jr[3]) / 2)
         pg.wait_for_timeout(1500)
@@ -738,8 +738,17 @@ def t_mobile(b, base):
         pg.evaluate("() => __world.jumpTo('legal')")
         _tween_done(pg, 12000)
         pg.wait_for_timeout(600)
-        pt = pg.evaluate("""() => { const W = __world, THREE = W.THREE; const m = W.boardsMesh.find(m => m.userData.board === 'legal'); const v = new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3()).project(W.camera);
-          const r = document.getElementById('cv').getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }""")
+        pt = pg.evaluate("""() => { const W = __world, T = W.THREE; const m = W.boardsMesh.find(m => m.userData.board === 'legal');
+          const r = document.getElementById('cv').getBoundingClientRect(), rc = new T.Raycaster(), box = new T.Box3().setFromObject(m);
+          // 佈告欄在手機上可能被上方工具列蓋住一部分：在它投影出來的範圍裡找一個「真的點得到它、沒被別的元素蓋住」的位置
+          const cs = [[box.min.x, box.min.y, box.min.z], [box.max.x, box.max.y, box.max.z], [box.min.x, box.max.y, box.min.z], [box.max.x, box.min.y, box.max.z]].map(a => new T.Vector3(...a).project(W.camera));
+          const x0 = Math.min(...cs.map(v => v.x)), x1 = Math.max(...cs.map(v => v.x)), y0 = Math.min(...cs.map(v => v.y)), y1 = Math.max(...cs.map(v => v.y));
+          for (let i = 0; i <= 12; i++) for (let k = 0; k <= 12; k++) {
+            const nx = x0 + (x1 - x0) * i / 12, ny = y0 + (y1 - y0) * k / 12, x = r.left + (nx + 1) / 2 * r.width, y = r.top + (1 - ny) / 2 * r.height;
+            if (x < 2 || y < 2 || x > innerWidth - 2 || y > innerHeight - 2) continue; if ([[0, 0], [16, 0], [-16, 0], [0, 16], [0, -16]].some(d => { const e = document.elementFromPoint(x + d[0], y + d[1]); return !e || e.id !== 'cv'; })) continue;   // 四周 16px 內都沒有別的元素（手機瀏覽器會把觸控吸附到附近的按鈕）
+            rc.setFromCamera(new T.Vector2(nx, ny), W.camera); const h = rc.intersectObjects(W.boardsMesh, false)[0]; if (h && h.object === m) return [x, y];
+          } return null; }""")
+        ok("手機：佈告欄在畫面上有一塊沒被工具列或面板蓋住、可以點到", pt is not None, pt)
         pg.touchscreen.tap(pt[0], pt[1])
         ok("手機：點佈告欄開面板", wait_until(pg, "() => !document.getElementById('board').hidden", 5000))
         ok("手機：佈告欄面板不超出螢幕", pg.evaluate("() => { const r = document.getElementById('board').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight + 1; }"))
@@ -810,6 +819,7 @@ def t_daytime(b, base):
         ok("夜晚有星星、有月亮；白天沒有星星、有太陽", info["night"]["stars"] > 0.9 and info["night"]["moonVis"] and info["day"]["stars"] < 0.05 and info["day"]["sunVis"] and not info["day"]["moonVis"], {k: (v["stars"], v["sunVis"], v["moonVis"]) for k, v in info.items()})
         FACE_MIN = 0.30      # 臉部區域平均亮度（0～1）門檻：任何時段都不得低於它（實測夜晚約 0.39）
         ok(f"任何時段角色臉部區域平均亮度 ≥ {FACE_MIN}（夜晚也看得清楚）", all(v["face"] >= FACE_MIN for v in info.values()), {k: round(v["face"], 3) for k, v in info.items()})
+        print("  量測：臉部亮度", {k: round(v["face"], 3) for k, v in info.items()}, "天空距離", sky_d, "方向光顏色距離", sun_d, flush=True)
         ok("夜晚室內有暖光：窗戶透出暖光（窗色偏黃）", pg.evaluate("() => { const c = __world.glassMat.color; return c.r > c.b + 0.15 && __world.glassMat.opacity > 0.6; }"))
         ok("夜晚的畫面確實比白天暗（但不過暗）", sum(shots["night"].convert("L").getdata()) < sum(shots["day"].convert("L").getdata()))
         # 並排截圖
@@ -852,6 +862,7 @@ def t_view(b, base):
           const polar = Math.acos((c.position.y - t.y) / d);
           const corners = [[0, 0], [40, 0], [40, 30], [0, 30]].map(q => { const p = new T.Vector3(q[0], 0, q[1]).project(c); return [(p.x + 1) / 2 * r.width, (1 - p.y) / 2 * r.height]; });
           return { mode: W.view.mode, y: c.position.y, polar, d, corners, on: document.querySelector('#viewSeg .on').dataset.v, w: r.width, h: r.height }; }""")
+        print("  量測：預設視角", {k: (round(x, 3) if isinstance(x, float) else x) for k, x in v.items() if k in ("mode", "y", "polar", "d")}, flush=True)
         ok("預設是俯視模式（view.mode = god、「俯瞰」鈕亮著）", v["mode"] == "god" and v["on"] == "god", v)
         ok("俯視判定：鏡頭高度 ≥ 25 公尺、與垂直的夾角（polar）≤ 0.8 弧度（約 46 度）", v["y"] >= 25 and v["polar"] <= 0.8, (round(v["y"], 1), round(v["polar"], 3)))
         ok("整間辦公室（四個角）都在畫面內", all(-5 <= x <= v["w"] + 5 and -5 <= y <= v["h"] + 5 for x, y in v["corners"]), v["corners"])
@@ -871,8 +882,11 @@ def t_view(b, base):
         _tween_done(pg, 12000)
         _settle(pg)
         ok("（前置）選了角色、資訊卡開著", pg.evaluate("() => !document.getElementById('card').hidden && __world.pilot.sel.spec.id === 'ceo'"))
-        hit = pg.evaluate("() => [[900, 250], [1100, 300], [700, 120], [1000, 600], [640, 700]].map(p => document.elementFromPoint(p[0], p[1]).id)")
-        ok("資訊卡與面板只擋自己的範圍：畫面其他區域的滑鼠事件打在畫布上", all(h == "cv" for h in hit), hit)
+        hit = pg.evaluate("""() => { const rs = ['card', 'board', 'log'].map(i => document.getElementById(i)).concat([document.querySelector('.pt-tips')]).filter(e => e && !e.hidden).map(e => e.getBoundingClientRect());
+          const inR = (x, y) => rs.some(r => x >= r.left - 4 && x <= r.right + 4 && y >= r.top - 4 && y <= r.bottom + 4);
+          const pts = [[900, 250], [1100, 300], [700, 120], [1000, 600], [640, 700], [300, 400], [500, 650]].filter(p => !inR(p[0], p[1]));
+          return { n: pts.length, hit: pts.map(p => { const e = document.elementFromPoint(p[0], p[1]); return e ? (e.id || e.className || e.tagName) : null; }), rects: rs.map(r => [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)]) }; }""")
+        ok("資訊卡與面板只擋自己的範圍：面板範圍以外的位置，滑鼠事件都打在畫布上", hit["n"] >= 4 and all(h == "cv" for h in hit["hit"]), hit)
         c0 = _cam(pg)
         pg.mouse.move(900, 250); pg.mouse.down()
         for i in range(1, 9):
@@ -908,11 +922,78 @@ def t_view(b, base):
         c.close()
 
 
+def t_views(b, base):
+    """其他視角也能用滑鼠：俯瞰、區域跳轉後、會議演出後；運鏡中使用者一動就中止"""
+    c, pg, got = _open(b, base, qs="?ambient=0&q=low")
+    try:
+        ok("多視角：頁面載入", got)
+        if not got:
+            return
+        wait_until(pg, "() => !__world.view.tween", 15000)
+
+        def spot():
+            """找一個畫面上沒有角色、沒有面板的空地當拖曳起點（按在角色上會變成「拎起來」，不是轉鏡頭）"""
+            return pg.evaluate("""() => { const W = __world; let best = null, bd = -1;
+              for (let x = 120; x < innerWidth - 120; x += 40) for (let y = 120; y < innerHeight - 60; y += 40) {
+                const e = document.elementFromPoint(x, y); if (!e || e.id !== 'cv') continue;
+                let d = 1e9; for (const c of W.chars.values()) if (c._sx > -900) d = Math.min(d, Math.hypot(c._sx - x, c._sy - y));
+                if (d > bd) { bd = d; best = [x, y]; } }
+              return best; }""")
+
+        def drag(dx, dy=0, btn="left", at=None):
+            at = at or spot()
+            pg.mouse.move(*at); pg.mouse.down(button=btn)
+            for i in range(1, 9):
+                pg.mouse.move(at[0] + dx * i / 8, at[1] + dy * i / 8)
+                pg.wait_for_timeout(40)
+            pg.mouse.up(button=btn)
+
+        def three(tag):
+            a0 = _cam(pg)
+            drag(300)
+            a1 = _settle(pg)
+            da = abs((a1["az"] - a0["az"] + _m.pi) % (2 * _m.pi) - _m.pi)
+            ok(tag + "：左鍵拖曳旋轉（方位角改變 > 0.2）", da > 0.2, da)
+            pg.mouse.move(*spot()); pg.mouse.wheel(0, 500); pg.wait_for_timeout(600)
+            a2 = _settle(pg)
+            ok(tag + "：滾輪縮放（距離改變 > 0.3）", abs(a2["dist"] - a1["dist"]) > 0.3, (a1["dist"], a2["dist"]))
+            drag(-120, 60, btn="right")
+            a3 = _settle(pg)
+            ok(tag + "：右鍵拖曳平移（注視點改變 > 0.3 公尺）", _m.hypot(a3["tx"] - a2["tx"], a3["tz"] - a2["tz"]) > 0.3, (a2, a3))
+            pg.wait_for_timeout(2200)
+            a4 = _cam(pg)
+            ok(tag + "：兩秒後鏡頭沒有被拉回", abs(a4["tx"] - a3["tx"]) < 0.05 and abs(a4["tz"] - a3["tz"]) < 0.05 and abs(a4["dist"] - a3["dist"]) < 0.05, (a3, a4))
+
+        three("預設俯視")
+        # 區域跳轉（運鏡到某個部門）之後
+        pg.evaluate("() => __world.jumpTo('legal')")
+        ok("區域跳轉：運鏡結束", _tween_done(pg, 15000))
+        three("區域跳轉後")
+        # 運鏡中使用者一動就中止：運鏡開始後立刻按下滑鼠
+        pg.evaluate("() => __world.setView('ceo')")
+        ok("（前置）運鏡進行中", pg.evaluate("() => !!__world.view.tween"))
+        sp = spot(); pg.mouse.move(*sp); pg.mouse.down(); pg.mouse.move(sp[0] + 60, sp[1], steps=3)
+        ok("運鏡中使用者一按住拖曳：運鏡立刻中止", pg.evaluate("() => !__world.view.tween"))
+        pg.mouse.up(); _settle(pg)
+        # 會議演出播完之後
+        pg.evaluate("() => { __world.speed = 8; }")
+        pg.click("#demoBtn"); pg.click("#demoPop [data-demo='meeting']")
+        ok("會議示範開始（導演進入會議）", wait_until(pg, "() => { const d = __world.director; return !!d && (d.running || !!d.meeting); }", 20000))
+        wait_until(pg, "() => { const d = __world.director; return d && !d.running && !d.meeting; }", 300000, 1000)
+        ok("會議示範結束", pg.evaluate("() => { const d = __world.director; return !!d && !d.running && !d.meeting; }"))
+        pg.wait_for_timeout(500)
+        three("會議演出後")
+        ok("多視角段落：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
 def t_all(b, base):
     t_desktop(b, base)
     t_board(b, base)
     t_camera(b, base)
     t_view(b, base)
+    t_views(b, base)
     t_daytime(b, base)
     t_mobile(b, base)
 

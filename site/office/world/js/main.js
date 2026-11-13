@@ -156,10 +156,11 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     ui.setViewUI(mode, c); W.ring.visible = mode !== 'god'; W.ring.scale.setScalar(Math.max(0.6, (c && c.scale) || 1));
     if (mode !== 'char') ui.hideCard();
   }
+  // 手機直式：上方有工具列，注視點往後牆移一點，後牆的佈告欄才會落在工具列下面、點得到
   function jumpTo(roomId) {
     const r = layout.rooms.find(q => q.id === roomId); if (!r) return;
     view.mode = 'god'; view.char = null; env.followed = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false;
-    tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
+    tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, portrait() ? r.z + r.d * 0.3 : r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
   // 跟隨的做法：不是每幀把注視點「拉」到角色身上，而是角色走多少、鏡頭就跟著平移多少（保留使用者拖出來的方位、距離、平移量）。
   // 使用者手動平移之後暫停跟隨（view.detached），直到角色「再次移動」超過 0.25 公尺才自動接回（平順拉回）；或按「回到角色」鈕。
@@ -279,7 +280,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (grab) { endGrab(); down = null; return; }
     if (down && down.c) controls.enabled = true;
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
-    if (moved > 7 || dt > 600) return; ui.closePops();
+    if (moved > 5 || dt > 250) return; ui.closePops();   // 位移超過約 5 像素或按住超過約 250 毫秒＝拖曳，不是點一下：不取消選取、不關資訊卡
     if (edit.on) { editTap(e); return; }
     const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); pilot.select(c); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
@@ -353,7 +354,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   };
 
   // ── 主迴圈 ──
-  setView(qs.get('view') === 'god' ? 'god' : 'ceo', ceo, true);
+  setView(qs.get('view') === 'ceo' ? 'ceo' : 'god', ceo, true);   // 預設進場是俯視（看得到整間辦公室）；網址帶 view=ceo 才從 CEO 視角開始
   let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true, shift = 0;
   function frame(now) {
     requestAnimationFrame(frame);
