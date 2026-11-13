@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><script type="importmap">{"imports":{"three":"../vendor/three.module.min.js"}}</script>
+<body style="margin:0;background:#f6e6d4"><canvas id="c" width="1200" height="520"></canvas>
+<script type="module">
+import * as THREE from 'three'; import { GLTFLoader } from '../vendor/GLTFLoader.js';
+const q=new URLSearchParams(location.search), lod=q.get('lod')||0;
+const r=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,preserveDrawingBuffer:true}); r.setClearColor(0xf6e6d4);
+const g=await new GLTFLoader().loadAsync(`./models/mochi_lod${lod}.glb`);
+const sc=new THREE.Scene(); sc.add(g.scene); sc.add(new THREE.HemisphereLight(0xfff6ec,0xf0cdb0,1.6)); const k=new THREE.DirectionalLight(0xfff1e0,2.2); k.position.set(2,4,3); sc.add(k);
+g.scene.traverse(o=>{ if(o.isSkinnedMesh){ o.material=new THREE.MeshStandardMaterial({color:o.name.includes('Decal')?0xff0000:0xffd9c0,roughness:0.85,vertexColors:!!o.geometry.attributes.color_0||!!o.geometry.attributes.color, wireframe:q.has('wire')}); if(o.name.includes('Decal')) o.material.transparent=false; }});
+const cam=new THREE.PerspectiveCamera(30,300/520,0.1,50);
+const views=[[0,0],[Math.PI/2,0],[Math.PI,0],[Math.PI/4,0.15]];
+window.render=()=>{ views.forEach(([yaw,p],i)=>{ r.setViewport(i*300,0,300,520); r.setScissor(i*300,0,300,520); r.setScissorTest(true); const d=3.3; cam.position.set(Math.sin(yaw)*d,0.36+Math.sin(p)*d*0.5,Math.cos(yaw)*d); cam.lookAt(0,0.36,0); r.render(sc,cam);}); document.title='ok'; };
+window.mesh=g.scene; render();
+</script>
