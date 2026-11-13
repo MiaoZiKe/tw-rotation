@@ -83,8 +83,10 @@ def _hold(pg, key, ms):
 
 def _sim_speed(pg, cid, key, ms=1500):
     """按住 key ms 毫秒，回傳模擬時間內的平均速度（公尺／模擬秒）與位移向量"""
-    p0 = _pos(pg, cid)
     pg.keyboard.down(key)
+    wait_until(pg, "() => __world.pilot.speedNow > 0.2", 8000)     # 等按鍵真的被這一幀處理到、角色起步（軟體繪圖每幀很久，按鍵到起步有延遲）
+    pg.wait_for_timeout(350)                                        # 再等加速完成，量的是穩定速度
+    p0 = _pos(pg, cid)
     pg.wait_for_timeout(ms)
     p1 = _pos(pg, cid)
     pg.keyboard.up(key)
@@ -229,6 +231,8 @@ def t_desktop(b, base):
         # ───────── 跑步：連按兩次 ─────────
         reset("r")
         _tap_twice(pg, "ArrowRight", 120)
+        wait_until(pg, "() => __world.pilot.run && __world.pilot.speedNow > 2", 8000)
+        pg.wait_for_timeout(350)
         p0 = _pos(pg, "ceo")
         pg.wait_for_timeout(1000)
         p1 = _pos(pg, "ceo")
