@@ -24,7 +24,7 @@
   #stat { position:fixed; right:132px; top:12px; font-size:12px; color:var(--mut); text-align:right; pointer-events:none; }
   #tag { position:fixed; top:46px; left:0; right:0; display:flex; pointer-events:none; font-size:13px; color:var(--mut); opacity:0; } #tag span { flex:1; text-align:center; } #tag.on { opacity:1; }
   /* 場地模式：控制面板收成一條精簡動作列（只留場地動作鈕），要看視角／表情／材質等再按「更多選項」展開 */
-  #btnMore { display:none; } body.play #btnMore { display:inline-flex; align-items:center; }
+  #btnMore { display:none; } body.play #btnMore { display:inline-flex; align-items:center; }  /* 在標題列，不佔動作列 */
   body.play:not(.more) #panel { grid-template-columns:1fr; max-height:none; overflow:visible; padding:8px 10px; gap:0; }
   body.play:not(.more) #panel > .grp:not(#grpPlay), body.play:not(.more) #grpPlay > b, body.play:not(.more) #playHint, body.play:not(.more) button.adv { display:none; }
   body.play #panel { max-height:46vh; }

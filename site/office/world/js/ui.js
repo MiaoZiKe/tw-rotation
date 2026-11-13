@@ -134,6 +134,7 @@ export function createUI(W, demo, api) {
   U.tickCard = () => { if (cardChar && !$('card').hidden) { const el = $('cardNow'), t = '目前：' + STATE(cardChar); if (el && el.textContent !== t) el.textContent = t; } };
   $('card').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-r]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
   $('card').onclick = e => {
+    { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }   // 滑鼠點過就放掉焦點，之後按 Space 才是「跳躍」而不是再點一次這顆按鈕（鍵盤操作不受影響）
     if (e.target.closest('.x')) { $('card').hidden = true; draft = null; api.cardClosed(); return; }
     const c = cardChar, D = api.director(); let b;
     if ((b = e.target.closest('[data-k]'))) { const k = +b.dataset.k; cardF = cardF === k ? 0 : k; cardOpen = -1; renderList(); if (e.detail) b.blur(); return; }
@@ -181,7 +182,7 @@ export function createUI(W, demo, api) {
     $('card').hidden = true; boardOwner = owner; boardF = 2; boardOpen = -1; renderBoard(); $('board').hidden = false;
   };
   $('board').onclick = e => {
-    let b;
+    let b; { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }
     if (e.target.closest('.x')) { $('board').hidden = true; return; }
     if ((b = e.target.closest('[data-bk]'))) { const k = +b.dataset.bk; boardF = boardF === k ? 0 : k; boardOpen = -1; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; if (e.detail) document.activeElement.blur(); return; }
     if ((b = e.target.closest('[data-br]'))) { const i = +b.dataset.br; boardOpen = boardOpen === i ? -1 : i; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; return; }

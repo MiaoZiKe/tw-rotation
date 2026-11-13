@@ -81,17 +81,34 @@ def _hold(pg, key, ms):
     pg.keyboard.up(key)
 
 
-def _sim_speed(pg, cid, key, ms=1500):
-    """按住 key ms 毫秒，回傳模擬時間內的平均速度（公尺／模擬秒）與位移向量"""
+def _sim_speed(pg, cid, key, sim=1.2):
+    """按住 key，穩定後量 sim 個模擬秒內的平均速度（公尺／模擬秒）與位移向量。播放速度暫時降到 3 倍，
+    讓軟體繪圖下每幀的模擬量小一點（8 倍時每幀跑 0.8 秒，會一口氣衝過空地撞牆）。"""
+    pg.evaluate("() => { __world.speed = 3; }")
     pg.keyboard.down(key)
-    wait_until(pg, "() => __world.pilot.speedNow > 0.2", 8000)     # 等按鍵真的被這一幀處理到、角色起步（軟體繪圖每幀很久，按鍵到起步有延遲）
-    pg.wait_for_timeout(350)                                        # 再等加速完成，量的是穩定速度
+    wait_until(pg, "() => __world.pilot.speedNow > 0.2", 15000)     # 等按鍵真的被這一幀處理到、角色起步
     p0 = _pos(pg, cid)
-    pg.wait_for_timeout(ms)
+    wait_until(pg, f"() => __world.time - {p0[3]} >= {sim}", 30000)
     p1 = _pos(pg, cid)
     pg.keyboard.up(key)
+    pg.evaluate("() => { __world.speed = 8; }")
     dt = max(1e-6, p1[3] - p0[3])
     return _m.hypot(p1[0] - p0[0], p1[1] - p0[1]) / dt, (p1[0] - p0[0], p1[1] - p0[1])
+
+
+def _rec_start(pg, cid="ceo"):
+    pg.evaluate("(id) => { window.__rec = []; window.__recOn = true; const f = () => { if (!window.__recOn) return; const c = __world.chars.get(id), p = c.object3D.position; __rec.push([__world.time, p.x, p.z, __world.pilot.run]); requestAnimationFrame(f); }; f(); }", cid)
+
+
+def _rec_speeds(pg):
+    """每一幀的實際速度（公尺／模擬秒）：用相鄰兩幀的位移與模擬時間差算，不受按鍵延遲與撞牆停下的影響"""
+    r = pg.evaluate("() => { __recOn = false; return __rec; }")
+    out = []
+    for a, b2 in zip(r, r[1:]):
+        dt = b2[0] - a[0]
+        if dt > 1e-6:
+            out.append((_m.hypot(b2[1] - a[1], b2[2] - a[2]) / dt, b2[3]))
+    return out
 
 
 def _near_spot(pg, oid):
@@ -112,9 +129,15 @@ def _open_area(pg, kind="f", reach=3.6):
 
 
 def _tap_twice(pg, code, gap):
-    """在頁面內連續送出 keydown→keyup→keydown（兩次按下相隔 gap 毫秒；軟體繪圖很慢時，外部逐筆送鍵的間隔不可靠）。第二次按下後維持按住"""
-    pg.evaluate("""([code, gap]) => new Promise(res => { const k = (t) => window.dispatchEvent(new KeyboardEvent(t, { code, key: code, bubbles: true, cancelable: true }));
-      k('keydown'); setTimeout(() => { k('keyup'); setTimeout(() => { k('keydown'); res(); }, Math.max(1, gap - 10)); }, 10); })""", [code, gap])
+    """連按同一個方向鍵兩次，第二次按下後維持按住。gap ≤ 300：在同一個 JS 工作裡連送 keydown→keyup→keydown（兩次相隔不到 1 毫秒；
+    軟體繪圖很慢時，頁面計時器會被一幀拖到幾百毫秒，外部逐筆送鍵的間隔不可靠）。gap > 300：兩次分開送，中間真的等 gap 毫秒。"""
+    ev = "(code) => { const k = (t) => window.dispatchEvent(new KeyboardEvent(t, { code, key: code, bubbles: true, cancelable: true }));"
+    if gap <= 300:
+        pg.evaluate(ev + " k('keydown'); k('keyup'); k('keydown'); }", code)
+    else:
+        pg.evaluate(ev + " k('keydown'); k('keyup'); }", code)
+        pg.wait_for_timeout(gap)
+        pg.evaluate(ev + " k('keydown'); }", code)
 
 
 def _release(pg, code):
@@ -201,11 +224,15 @@ def t_desktop(b, base):
         ok("（前置）鏡頭前後左右四個方向都找得到可以走 3 公尺以上的空地", all(oas.values()), oas)
 
         def reset(kind="f"):
-            pg.evaluate("(a) => { __world.chars.get('ceo').standAt(a[0], a[1], 0); }", oas[kind])
+            a = _open_area(pg, kind) or oas[kind]       # 每次都依「現在的鏡頭」重找（鏡頭方位可能已經變了）
+            pg.evaluate("(a) => { __world.chars.get('ceo').standAt(a[0], a[1], 0); }", a)
             pg.wait_for_timeout(700)
         reset("f")
         # 穩定量測：先站定，再量 ArrowUp
-        sp_walk, d = _sim_speed(pg, "ceo", "ArrowUp", 1600)
+        _rec_start(pg)
+        sp_walk, d = _sim_speed(pg, "ceo", "ArrowUp", 1.2)
+        walk_frames = [v for v, _ in _rec_speeds(pg)]
+        sp_walk_peak = max(walk_frames)
         fdir = pg.evaluate("() => { const W = __world, c = W.camera, t = W.controls.target; const x = t.x - c.position.x, z = t.z - c.position.z, l = Math.hypot(x, z); return [x / l, z / l]; }")
         mv = _m.hypot(*d)
         dot = (d[0] * fdir[0] + d[1] * fdir[1]) / mv if mv > 1e-6 else -1
@@ -217,12 +244,12 @@ def t_desktop(b, base):
         cfgwalk = pg.evaluate("() => __world.chars.get('ceo').inner.cfg.walk * (__world.chars.get('ceo').scale || 1)")
         ok("走路速度符合角色走路速度（±25%）", 0.75 * cfgwalk < sp_walk < 1.25 * cfgwalk, (sp_walk, cfgwalk))
         reset("r")
-        _, dd = _sim_speed(pg, "ceo", "KeyD", 1200)
+        _, dd = _sim_speed(pg, "ceo", "KeyD", 1.0)
         rdir = (-fdir[1], fdir[0])
         md = _m.hypot(*dd)
         ok("WASD 也能移動：D 往鏡頭右方", md > 0.3 and (dd[0] * rdir[0] + dd[1] * rdir[1]) / md > 0.9, (dd, rdir))
         reset("f")
-        _, dd = _sim_speed(pg, "ceo", "KeyW", 800)
+        _, dd = _sim_speed(pg, "ceo", "KeyW", 0.8)
         ok("WASD：W 往遠離鏡頭的方向", _m.hypot(*dd) > 0.2 and (dd[0] * fdir[0] + dd[1] * fdir[1]) / _m.hypot(*dd) > 0.9, dd)
         # 走路連拍（至少 6 格）
         reset("b")
@@ -230,21 +257,22 @@ def t_desktop(b, base):
 
         # ───────── 跑步：連按兩次 ─────────
         reset("r")
+        pg.evaluate("() => { __world.speed = 3; }")
+        _rec_start(pg)
+        t_start = _pos(pg, "ceo")[3]
         _tap_twice(pg, "ArrowRight", 120)
-        wait_until(pg, "() => __world.pilot.run && __world.pilot.speedNow > 2", 8000)
-        pg.wait_for_timeout(350)
-        p0 = _pos(pg, "ceo")
-        pg.wait_for_timeout(1000)
-        p1 = _pos(pg, "ceo")
+        wait_until(pg, f"() => __world.time - {t_start} >= 1.0", 40000)
         run_now = pg.evaluate("() => __world.pilot.run")
         _release(pg, "ArrowRight")
-        sp_run = _m.hypot(p1[0] - p0[0], p1[1] - p0[1]) / max(1e-6, p1[3] - p0[3])
+        pg.evaluate("() => { __world.speed = 8; }")
+        run_frames = [v for v, r in _rec_speeds(pg) if r]
+        sp_run = max(run_frames) if run_frames else 0
         ok("同一方向 300 毫秒內連按兩次：進入跑步（pilot.run）", run_now)
-        ok("跑步速度明顯高於走路（≥ 1.8 倍）", sp_run >= 1.8 * sp_walk, (sp_run, sp_walk))
+        ok("跑步速度明顯高於走路（逐幀最高速 ≥ 1.8 倍）", sp_run >= 1.8 * sp_walk_peak, (sp_run, sp_walk_peak))
         pg.wait_for_timeout(250)
         ok("放開方向鍵後回到走路（run 解除）", not pg.evaluate("() => __world.pilot.run"))
         reset("l")
-        sp2, _ = _sim_speed(pg, "ceo", "ArrowLeft", 1300)
+        sp2, _ = _sim_speed(pg, "ceo", "ArrowLeft", 1.2)
         ok("再單按一次是走路速度（不殘留跑步）", sp2 < 1.4 * sp_walk, (sp2, sp_walk))
         reset("r")
         _tap_twice(pg, "ArrowRight", 600)

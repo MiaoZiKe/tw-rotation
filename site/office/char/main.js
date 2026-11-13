@@ -182,7 +182,9 @@ pbtn('跑（切換）', 'btnRun', 'run', () => { S.runMode = !S.runMode; $('#btn
 pbtn('拖曳跑（切換）', 'btnDrag', 'drag', () => { S.dragMode = !S.dragMode; $('#btnDrag').classList.toggle('on', S.dragMode); }).classList.add('adv');
 pbtn('開發面板', 'btnDev', 'dev', () => { S.devOn = !S.devOn; $('#dev').hidden = !S.devOn; $('#btnDev').classList.toggle('on', S.devOn); });
 pbtn('檢查模式', 'btnQA', 'qa', () => { qa.hidden = !qa.hidden; $('#btnQA').classList.toggle('on', !qa.hidden); $('#btnQA').setAttribute('aria-pressed', String(!qa.hidden)); });
-pbtn('更多選項', 'btnMore', 'more', () => { const on = document.body.classList.toggle('more'); $('#btnMore').classList.toggle('on', on); $('#btnMore').setAttribute('aria-pressed', String(on)); requestAnimationFrame(applyOffset); });
+{ const mb = document.createElement('button'); mb.id = 'btnMore'; mb.textContent = '更多選項'; mb.setAttribute('aria-pressed', 'false'); mb.style.marginLeft = '6px';   // 放在標題列（場地模式才顯示）：精簡動作列保持乾淨，要看視角／表情／材質再展開
+  mb.onclick = () => { const on = document.body.classList.toggle('more'); mb.classList.toggle('on', on); mb.setAttribute('aria-pressed', String(on)); requestAnimationFrame(applyOffset); };
+  $('#btnPanel').after(mb); }
 for (const b of gp.querySelectorAll('button[data-p]')) if (!['play', 'dev', 'more', 'qa'].includes(b.dataset.p)) b.disabled = true;
 // 指標：點地面走過去（雙擊跑）、點凳子坐下、按住頭頂摸頭、拖曳跑
 view.addEventListener('pointerdown', (e) => {

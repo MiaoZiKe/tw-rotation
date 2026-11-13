@@ -59,7 +59,7 @@ export function createPilot(W, X) {
     tips.hidden = false; document.body.classList.add('pt-sel'); document.body.classList.toggle('pt-tipsopen', tipsOpen && !mob);
   }
   tips.addEventListener('click', e => {
-    const b = e.target.closest('[data-t]'); if (!b) return;
+    const b = e.target.closest('[data-t]'); if (!b) return; if (e.detail) queueMicrotask(() => b.blur());
     if (b.dataset.t === 'min') { tipsOpen = !tipsOpen; lsSet(tipsOpen ? '1' : '0'); renderTips(); } else release();
   });
 
