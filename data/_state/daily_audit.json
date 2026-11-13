@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-13T05:08:02+08:00",
+  "checked_at": "2026-11-13T15:20:56+08:00",
   "today": "2026-11-13",
   "expected_price_date": "2026-11-12",
   "is_trading_day": true,
@@ -18,18 +18,20 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "social-live 今天有成功執行 1 次",
+          "why": "social-live 今天有成功執行 6 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43255550121"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43384910408",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43381390720",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43377826774"
           ],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": false,
-          "why": "盤前消息日期 2026-11-12、5 則",
+          "ok": true,
+          "why": "盤前消息日期 2026-11-13、5 則",
           "evidence": [
-            "2026-11-12"
+            "2026-11-13"
           ],
           "busy": false,
           "hard": false
@@ -51,9 +53,11 @@
       "status": "pending",
       "gates": {
         "run": {
-          "ok": false,
-          "why": "daily.yml 窗口內沒有成功的執行（找到 0 次）",
-          "evidence": [],
+          "ok": true,
+          "why": "daily.yml 今天有成功執行 1 次",
+          "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43384601072"
+          ],
           "busy": false,
           "hard": false
         },
@@ -84,9 +88,9 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "daily.yml 今天有成功的 price／full 輪 6 次",
+          "why": "daily.yml 今天有成功的 price／full 輪 7 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43263657072"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43347349699"
           ],
           "busy": false,
           "hard": false,
@@ -293,11 +297,11 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 41 次",
+          "why": "pages.yml 今天有成功執行 48 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43303256144",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43301292435",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43286435207"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43384366287",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43376808409",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43371324782"
           ],
           "busy": false,
           "hard": false
