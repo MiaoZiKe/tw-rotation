@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>糰糰 v2・角色展示</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+<style>
+  :root { --bg:#f3e6d8; --ink:#3a2622; --mut:#7b6256; --line:rgba(58,38,34,.14); --panel:rgba(255,250,243,.9); --acc:#e0795a; --on:#3a2622; --onfg:#fff6ec; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#2a211d; --ink:#f5e8dc; --mut:#c4aa99; --line:rgba(245,232,220,.16); --panel:rgba(48,38,33,.92); --acc:#ff9b7a; --on:#f5e8dc; --onfg:#2a211d; } }
+  * { box-sizing:border-box; } html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; }
+  #view { position:fixed; inset:0; } #view canvas { display:block; width:100%; height:100%; touch-action:none; }
+  header { position:fixed; top:0; left:0; right:0; padding:10px 14px; display:flex; gap:10px; align-items:center; pointer-events:none; z-index:2; }
+  header h1 { margin:0; font-size:16px; } header small { color:var(--mut); font-size:12px; }
+  header > * { pointer-events:auto; }
+  #panel { position:fixed; left:12px; bottom:12px; right:12px; max-width:980px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:10px 12px; backdrop-filter:blur(8px); display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:8px 16px; max-height:46vh; overflow:auto; }
+  .grp b { display:block; font-size:12px; color:var(--mut); margin:0 0 4px; font-weight:600; }
+  .row { display:flex; flex-wrap:wrap; gap:6px; }
+  button, select { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:999px; padding:5px 11px; cursor:pointer; min-height:32px; }
+  button:hover { border-color:var(--acc); } button.on { background:var(--on); color:var(--onfg); border-color:var(--on); }
+  select { border-radius:10px; background:var(--panel); }
+  #stat { position:fixed; right:14px; top:12px; font-size:12px; color:var(--mut); text-align:right; pointer-events:none; }
+  #tag { position:fixed; top:46px; left:0; right:0; display:flex; pointer-events:none; font-size:13px; color:var(--mut); opacity:0; } #tag span { flex:1; text-align:center; } #tag.on { opacity:1; }
+  @media (max-width:640px){ #panel{ max-height:52vh; } header small{display:none} }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<header><h1>糰糰 v2</h1><small>Blender 一體成形網格・骨架＋形態鍵驅動</small></header>
+<div id="tag"><span>新（GLB 骨架）</span><span>舊（球體拼接）</span></div>
+<div id="stat"></div>
+<div id="panel">
+  <div class="grp"><b>視角</b><div class="row" id="gView"></div></div>
+  <div class="grp"><b>表情</b><div class="row" id="gExpr"></div></div>
+  <div class="grp"><b>動作示範</b><div class="row" id="gAct"></div></div>
+  <div class="grp"><b>顯示</b><div class="row" id="gShow"></div></div>
+  <div class="grp"><b>材質預設／細緻度</b><div class="row"><select id="selMat" aria-label="材質預設"></select><select id="selLod" aria-label="細緻度"><option value="0">LOD0（近）</option><option value="1">LOD1（中）</option><option value="2">LOD2（遠）</option></select></div></div>
+</div>
+<script type="module" src="./char/main.js"></script>
+</body>
+</html>

@@ -81,7 +81,7 @@ def skin_weights(P, P0, n, E):
     fsum = np.clip(fsum, 0, 1)
     rest = 1 - fsum
     a, b = P0.TORSO_Z
-    t1_ = sstep(a - 0.09, a + 0.09, z); t2_ = sstep(b - 0.09, b + 0.09, z)
+    w_ = getattr(P0, 'TORSO_W', 0.09); t1_ = sstep(a - w_, a + w_, z); t2_ = sstep(b - w_, b + w_, z)
     W[:, idx['pelvis']] += rest * (1 - t1_); W[:, idx['spine']] += rest * t1_ * (1 - t2_); W[:, idx['head']] += rest * t1_ * t2_
     # 平滑權重，再取前四名
     for _ in range(3):
@@ -153,7 +153,7 @@ def make_decal(ob, P0, sdf):
     keep = []
     for f in bm.faces:
         c = f.calc_center_median()
-        if c.y < 0 and abs(c.x) < F['decal_x'] and F['decal_z0'] < c.z < F['decal_z1'] and f.normal.y < -0.12: keep.append(f)
+        if c.y < 0 and (c.x / F['decal_x']) ** 2 + ((c.z - F['decal_cz']) / F['decal_rz']) ** 2 < 1.0 and f.normal.y < -0.2: keep.append(f)
     kv = set(v for f in keep for v in f.verts)
     nb = bmesh.new(); mp = {}
     for v in kv: mp[v] = nb.verts.new(v.co)
@@ -255,7 +255,7 @@ def main():
                 anchors={k: dict(p=to_gltf(v['p']), n=to_gltf(v['n'])) for k, v in A.items()},
                 face=dict(P0.FACE), shapes=['squash', 'stretch', 'land', 'plump', 'breath', 'cheek.L', 'cheek.R'],
                 decal=dict(x=P0.FACE['decal_x'], z0=P0.FACE['decal_z0'], z1=P0.FACE['decal_z1']),
-                eye_r=P0.FACE['eye_r'])
+                bodyCy=P0.BODY['c'][1])
     json.dump(meta, open(os.path.join(out, f'{P0.NAME}.json'), 'w'), ensure_ascii=False, indent=1)
     print('done', round(time.time() - t0, 1), 's')
 
