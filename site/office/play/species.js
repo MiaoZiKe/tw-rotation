@@ -229,11 +229,11 @@ export const SPECIES = {
       c.beak = put(c, blobGeo(v => { const t = (v.z + 1) / 2; v.set(v.x * 0.085 * (1 - 0.55 * t * t), v.y * 0.04 * (1 - 0.3 * t), v.z * 0.065); }, 32, 24), bk, 0, 0.395, 0.325);
       // 冠羽：往後甩的大中小三片
       const cm = softMat({ color: cr, top: cr, sss: cr, sssAmt: 0.3, rough: 0.5, y0: -1, y1: 1 }, c.sh), tm = MR(c, { ...o, y0: -1, y1: 1 });
-      const g = piv(c, 0, 0.82, -0.03, { k: 120, c: 6, g: 0.03 });
-      [[0, 0.17, 0.034, -0.5, 0], [0.04, 0.13, 0.03, -0.9, 0.35], [-0.04, 0.095, 0.026, -0.8, -0.35]].forEach(([x, L, r0, rx, rz]) => { const f = put(c, taperGeo({ q: 0.35, p: 1.2, cap: 0.4, flare: 1.4, fl: 0.2 }), cm, x, -0.01, 0, r0, L, r0 * 0.75, g); f.rotation.set(rx, 0, rz); });
+      const tm2 = softMat({ ...o, color: p.body, top: p.body, y0: -1, y1: 1, rough: 0.55 }, c.sh), g = piv(c, 0, 0.84, -0.04, { k: 120, c: 6, g: 0.03 });
+      [[0, 0.27, 0.065, -0.6, 0], [0.065, 0.2, 0.056, -1.0, 0.6], [-0.065, 0.15, 0.05, -0.9, -0.6]].forEach(([x, L, r0, rx, rz]) => { const f = put(c, taperGeo({ q: 0.4, p: 1.1, cap: 0.4, flare: 1.4, fl: 0.2 }), cm, x, -0.02, -0.01, r0, L, r0 * 0.4, g); f.rotation.set(rx, 0, rz); });
       // 尾羽：三片扇形上翹，從屁股兩側都看得到
-      const t = piv(c, 0, 0.36, -0.27, { k: 200, c: 9, g: 0.03, wag: true }); c.tailG = t;
-      [[0, -0.95, 0.15], [-0.45, -0.85, 0.12], [0.45, -0.85, 0.12]].forEach(([rz, rx, L]) => { const f = put(c, taperGeo({ q: 0.5, p: 1.1, cap: 0.35, flare: 1.35, fl: 0.2 }), tm, 0, 0, -0.03, 0.038, L, 0.018, t); f.rotation.set(rx - 0.0, 0, rz); });
+      const t = piv(c, 0, 0.44, -0.25, { k: 200, c: 9, g: 0.03, wag: true }); c.tailG = t;
+      [[0, -0.9, 0.3], [-0.6, -0.8, 0.25], [0.6, -0.8, 0.25]].forEach(([rz, rx, L]) => { const f = put(c, taperGeo({ q: 0.55, p: 1.1, cap: 0.35, flare: 1.35, fl: 0.2 }), tm2, 0, 0, -0.03, 0.065, L, 0.022, t); f.rotation.set(rx - 0.0, 0, rz); });
       c.limbMat = tm; c.footMat = bk;
     },
     idle(c, dt, t) { c.beak.scale.y = 1 + Math.min(1, Math.max(0, c.face.cur.mOpen + c.face.talk)) * 0.55; if (calm(c) && every(c, 'tilt', 3.6, dt)) { c.tiltT = 0.9; c.tiltS = Math.random() < 0.5 ? -1 : 1; if (Math.random() < 0.5) { c.fx.sfx('squeak'); c.fx.spawn('note', c.headTop(new V3()).add(_v.set(0.2, 0, 0.1)), { v: new V3(0.2, 0.5, 0), life: 0.9, size: 0.14, sway: 0.5 }); } } if (c.tiltT > 0) { c.tiltT -= dt; c.rollAdd = c.tiltS * 0.26 * sstep(0, 0.15, 0.9 - c.tiltT) * sstep(0, 0.15, c.tiltT); } },
