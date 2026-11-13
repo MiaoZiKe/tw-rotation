@@ -62,6 +62,9 @@ def _overlap(a, b, pad=1):
     return a and b and not (a[2] <= b[0] + pad or b[2] <= a[0] + pad or a[3] <= b[1] + pad or b[3] <= a[1] + pad)
 
 
+_BAR = ("#bar .ttl", "#viewSeg", "#areaBtn", "#demoBtn", "#speedSeg", "#editBtn")   # 工具列本身是整排寬的容器，要比的是裡面的按鈕
+
+
 def _no_overlap(pg, sels):
     rs = [(s, _rect(pg, s)) for s in sels]
     bad = [(a[0], b[0]) for i, a in enumerate(rs) for b in rs[i + 1:] if _overlap(a[1], b[1])]
@@ -113,10 +116,10 @@ def t_desktop(b, base):
         pg.wait_for_timeout(300)
         _shot(pg, "選取效果.png")
         _shot(pg, "操作提示卡.png")
-        ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", "#bar", "#log"])
+        ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR, "#log"])
         ok("版面：資訊卡、提示卡、鏡頭小提示、工具列兩兩不重疊", not ov, ov)
         tag = pg.evaluate("() => { const e = document.querySelector('#labels .tag.sel'); const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }")
-        ov2 = [s for s in ["#card", ".pt-tips", ".cm-hint", "#bar"] if _overlap(tag, _rect(pg, s))]
+        ov2 = [s for s in ["#card", ".pt-tips", ".cm-hint", *_BAR] if _overlap(tag, _rect(pg, s))]
         ok("版面：選取名牌不與資訊卡／提示卡／工具列重疊", not ov2, ov2)
 
         # ───────── 提示卡收起、記住（localStorage） ─────────
@@ -242,7 +245,7 @@ def t_desktop(b, base):
         pg.wait_for_timeout(700)
         ok("靠近同事：對方頭上出現「按 E 溝通」", wait_until(pg, "() => { const h = document.querySelector('.pt-hint'); return !h.hidden && h.textContent.includes('按 E 溝通'); }", 6000))
         _shot(pg, "靠近提示_按E溝通.png")
-        ov = _no_overlap(pg, [".pt-hint", ".pt-tips", ".cm-hint", "#bar", "#card"])
+        ov = _no_overlap(pg, [".pt-hint", ".pt-tips", ".cm-hint", *_BAR, "#card"])
         ok("版面：「按 E 溝通」不與提示卡／工具列／資訊卡重疊", not ov, ov)
         pg.keyboard.press("KeyE")
         ok("按 E：操控的角色說話（出現泡泡）", wait_until(pg, "() => __world.chars.get('ceo').speech && __world.chars.get('ceo').speech.text.length > 0", 5000))
@@ -254,7 +257,7 @@ def t_desktop(b, base):
         _shot(pg, "溝通對話.png")
         bub = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.style.transform.indexOf('-999') < 0).length")
         ok("對話泡泡顯示在畫面上（≥ 1 個）", bub >= 1, bub)
-        ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", "#bar"])
+        ov = _no_overlap(pg, ["#card", ".pt-tips", ".cm-hint", *_BAR])
         ok("版面：資訊卡、提示卡、鏡頭提示、工具列不重疊（溝通中）", not ov, ov)
         bubs = pg.evaluate("() => [...document.querySelectorAll('#labels .bub')].filter(b => b.style.transform.indexOf('-999') < 0).map(b => { const r = b.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
         okb = all(not _overlap(a, c2) for i, a in enumerate(bubs) for c2 in bubs[i + 1:])
@@ -391,7 +394,7 @@ def t_board(b, base):
         pg.click("#boardList .row")
         ok("面板：點一列展開細節", pg.evaluate("() => !!document.querySelector('#boardList .det')"))
         _shot(pg, "佈告欄面板.png")
-        ov = _no_overlap(pg, ["#board", ".pt-tips", ".cm-hint", "#bar", "#card"])
+        ov = _no_overlap(pg, ["#board", ".pt-tips", ".cm-hint", *_BAR, "#card"])
         ok("版面：佈告欄面板、提示卡、鏡頭提示、工具列兩兩不重疊", not ov, ov)
         p0 = _pos(pg, "ceo")
         pg.keyboard.down("ArrowUp"); pg.wait_for_timeout(900); pg.keyboard.up("ArrowUp")
@@ -553,7 +556,7 @@ def t_camera(b, base):
         pg.mouse.wheel(0, 300)
         pg.wait_for_timeout(1200)
         _shot(pg, "CEO視角_滑鼠移動後.png")
-        ov = _no_overlap(pg, [".cm-hint", "#bar", "#card", ".pt-tips"])
+        ov = _no_overlap(pg, [".cm-hint", *_BAR, "#card", ".pt-tips"])
         ok("版面：鏡頭小提示與工具列、面板不重疊", not ov, ov)
         ok("鏡頭段落：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
     finally:
@@ -578,7 +581,7 @@ def t_mobile(b, base):
         joy = _rect(pg, ".pt-joy")
         btns = _rect(pg, ".pt-btns")
         ok("手機：搖桿在左下、按鈕在右下（固定位置）", joy[0] < 60 and joy[3] > 600 and btns[2] > 330 and btns[3] > 600, (joy, btns))
-        ov = _no_overlap(pg, [".pt-joy", ".pt-btns", ".pt-tips", "#card", "#bar", ".cm-hint"])
+        ov = _no_overlap(pg, [".pt-joy", ".pt-btns", ".pt-tips", "#card", *_BAR, ".cm-hint"])
         ok("手機：搖桿、按鈕、提示卡、資訊卡、工具列、鏡頭提示兩兩不重疊", not ov, ov)
         ok("手機：資訊卡不超出螢幕", pg.evaluate("() => { const r = document.getElementById('card').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight + 1 && r.top >= 0; }"))
         _shot(pg, "手機_虛擬搖桿.png")

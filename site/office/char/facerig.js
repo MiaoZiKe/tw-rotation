@@ -165,7 +165,7 @@ export class FaceRig {
     for (const e of this.eyes) {
       const s = e.side, asy = c.asym ? (s > 0 ? 1.0 : 0.72) : 1;
       let open = clamp(c.open * (1 - this.blink) * asy, 0, 1); const cover = clamp(c.lidT * 1.5 + c.lidB * 0.4, 0, 0.9); open = clamp(open * (1 - cover), 0, 1);
-      const beta = (8 + 134 * Math.pow(open, 0.85)) * D2R, roll = c.lidA * 0.5 * (s > 0 ? -1 : 1) * (c.lidT > 0.02 ? 1 : 0) * Math.min(1, c.lidT * 5);
+      const beta = (8 + 134 * Math.pow(open, 0.85)) * D2R, roll = c.lidA * 0.5 * (s > 0 ? 1 : -1) *   /* 第四階段修正：原本符號相反，生氣的眼皮斜成難過、難過斜成生氣。s>0 是角色的左眼＝畫面右側，生氣要「內側低」 */  (c.lidT > 0.02 ? 1 : 0) * Math.min(1, c.lidT * 5);
       const pole = new V3(0, Math.sin(beta), Math.cos(beta)).applyAxisAngle(new V3(0, 0, 1), roll);
       e.lid.quaternion.setFromUnitVectors(new V3(0, 1, 0), pole);
       e.lid.visible = open < 0.97; e.rim.visible = open > 0.06 && open < 0.95;
