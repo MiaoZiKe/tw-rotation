@@ -9,7 +9,7 @@ export function softMat(o, sh) {
   const U = {
     uTop: { value: new THREE.Color(o.top ?? o.color) }, uY: { value: new THREE.Vector2(o.y0 ?? -0.3, o.y1 ?? 0.3) },
     uSss: { value: new THREE.Color(o.sss ?? 0xff8a70) }, uSssAmt: { value: o.sssAmt ?? 0.3 }, uRim: { value: new THREE.Color(o.rim ?? 0xfff6ea) }, uRimAmt: { value: o.rimAmt ?? 0.32 },
-    uTint: sh.uTint, uTintAmt: sh.uTintAmt, uGround: sh.uGround, uDent: { value: new THREE.Vector4(0, 1, 0, 0) }, uDentR: { value: 0.17 },
+    uTint: sh.uTint, uTintAmt: sh.uTintAmt, uPat: { value: new THREE.Vector4(0, 0, 4, 0) }, uPatCol: { value: new THREE.Color(0xffffff) }, uPatC: { value: new V3() }, uPatR: { value: 0.1 }, uGround: sh.uGround, uDent: { value: new THREE.Vector4(0, 1, 0, 0) }, uDentR: { value: 0.17 },
   };
   if (o.face) Object.assign(U, { uFace: { value: o.face.tex }, uHeadC: { value: new V3(...o.headC) }, uFaceSpan: { value: new THREE.Vector2(...o.span) }, uFaceOff: { value: new THREE.Vector2() }, uFaceGlow: { value: o.glow ?? 0 }, uFaceGloss: { value: o.gloss ?? 0.7 } });
   m.userData.U = U; if (o.face) m.defines = { USE_FACE: '' };
@@ -21,8 +21,35 @@ export function softMat(o, sh) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n vObjP = position; transformed -= normal * uDent.w * dW;')
       .replace('#include <project_vertex>', 'vec4 wPos = modelMatrix * vec4(transformed,1.0); float gd = uGround - wPos.y; if (gd > 0.0) wPos.y = uGround - gd*0.06;\n vec4 mvPosition = viewMatrix * wPos; gl_Position = projectionMatrix * mvPosition;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt;\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
-      .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, uTint, uTintAmt);')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt; uniform vec4 uPat; uniform vec3 uPatCol; uniform vec3 uPatC; uniform float uPatR;\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, uTint, uTintAmt);
+        float gPat = 0.0, gStitch = 0.0;
+        if (uPat.y > 0.001) {
+          vec3 q = vObjP; float pk = uPat.x;
+          if (pk < 1.5) {
+            vec3 pp = q * uPat.z + uPat.w; vec3 id = floor(pp); vec3 fq = fract(pp) - 0.5;
+            float h = fract(sin(dot(id, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+            vec3 off = (vec3(fract(h * 7.13), fract(h * 3.71), fract(h * 5.37)) - 0.5) * 0.4;
+            gPat = smoothstep(0.17 + 0.12 * fract(h * 11.7), 0.1, length(fq - off)) * step(0.15, h);
+          } else if (pk < 2.5) {
+            float sb = sin(q.y * uPat.z * 3.1416 + sin(q.x * uPat.z * 2.0 + uPat.w) * 0.3); gPat = smoothstep(0.1, 0.4, sb);
+          } else if (pk < 3.5) {
+            vec2 dd = q.xy - uPatC.xy; float d = length(dd); float zz = step(uPatC.z, q.z);
+            gPat = smoothstep(uPatR, uPatR * 0.94, d) * zz;
+            float ang = atan(dd.y, dd.x) / 6.2832 * 18.0;
+            gStitch = smoothstep(uPatR * 0.74, uPatR * 0.78, d) * smoothstep(uPatR * 0.86, uPatR * 0.82, d) * step(0.45, fract(ang)) * zz;
+          } else {
+            vec2 dd = (q.xy - uPatC.xy) / vec2(uPatR * 0.9, uPatR * 1.1); gPat = smoothstep(1.0, 0.78, length(dd)) * step(uPatC.z, q.z);
+          }
+          #ifdef USE_FACE
+            vec3 fdd = normalize(vObjP - uHeadC); float pm = 1.0 - smoothstep(0.30, 0.72, fdd.z) * (1.0 - smoothstep(0.4, 0.7, abs(fdd.y))) * 0.92; gPat *= pm; gStitch *= pm;
+          #endif
+          gPat *= uPat.y; gStitch *= uPat.y;
+          diffuseColor.rgb = mix(diffuseColor.rgb, uPatCol, gPat);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.96, 0.9, 0.8), gStitch * 0.85);
+        }`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = clamp(roughnessFactor + gPat * 0.28 + gStitch * 0.3, 0.0, 1.0);')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         float fr = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4);
         #ifdef USE_FACE

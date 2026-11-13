@@ -41,7 +41,7 @@ export function lookFor(spec) {
   const h = hash(spec.id || spec.nick || 'x'), cfgId = spec.species && SPECIES[spec.species] ? spec.species : SPECIES_IDS[h % SPECIES_IDS.length];
   const cfg = SPECIES[cfgId], pool = ['glasses', 'bow', 'scarf', 'badge', 'hat'].filter(a => canWear(cfg, a));
   let acc = spec.acc; if (!acc) { acc = []; if (pool.length && (h >> 3) % 3) acc.push(pool[(h >> 5) % pool.length]); if (spec.lead || spec.isCeo) acc.push('tie'); if (spec.isCeo) acc.push('crown', 'badge'); }
-  return { species: cfgId, pal: spec.pal ?? (h >> 9) % 4, hue: spec.hue ?? (((h >> 12) % 9) - 4) * 0.008, acc: [...new Set(acc)], accColor: spec.accColor ?? (h >> 16) % 6 };
+  return { species: cfgId, pal: spec.pal ?? (h >> 9) % 4, hue: spec.hue ?? (((h >> 12) % 9) - 4) * 0.008, acc: [...new Set(acc)], accColor: spec.accColor ?? (h >> 16) % 6, seed: spec.seed ?? (h | 1) };
 }
 
 // ── 頭上的情緒圖示（畫布畫的柔邊貼圖，不是文字）

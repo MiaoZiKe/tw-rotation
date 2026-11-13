@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Face } from './face.js';
 import { G, BOUNDS } from './world.js';
 import { ball, foot } from './soft.js';
-import { SPECIES, resolveSpec, addAccessories } from './species.js';
+import { SPECIES, resolveSpec, addAccessories, faceStyleFor, applyTraits } from './species.js';
 
 import { clamp, lerp, sstep } from './soft.js';
 const V3 = THREE.Vector3;
@@ -23,12 +23,12 @@ export class Character {
     const rs = resolveSpec(spec), cfg = rs.cfg; this.spec = rs.spec; this.pal = rs.pal; this.palIndex = rs.palIndex; this.accList = rs.acc;
     this.cfg = cfg; this.scene = scene = opts.space || scene; this.world = world; this.fx = fx; this.R = cfg.R;
     this.sh = { uTint: { value: new THREE.Color(1, 1, 1) }, uTintAmt: { value: 0 }, uGround: { value: 0 } };
-    this.face = new Face(cfg.face, opts.faceSize || 512);
+    this.v = rs.v; this.face = new Face(faceStyleFor(cfg.face, rs.v), opts.faceSize || 512);
     this.root = new THREE.Group(); this.tilt = new THREE.Group(); this.tumble = new THREE.Group(); this.deform = new THREE.Group();
     this.root.add(this.tilt); this.tilt.add(this.tumble); this.tumble.add(this.deform);
     this.tumble.position.y = cfg.R; this.deform.position.y = -cfg.R; this.deform.matrixAutoUpdate = false;
     this.apps = []; this.extra = []; this.parts = [];
-    cfg.build(this, rs.pal);
+    cfg.build(this, rs.pal); applyTraits(this, rs);
     if (rs.acc.length) addAccessories(this, rs.acc, rs.accColor);
     scene.add(this.root);
     this.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.userData.char = this; } });
@@ -265,7 +265,7 @@ export class Character {
     const camYaw = Math.atan2(env.cam.x - p.x, env.cam.z - p.z);
     this.faceYaw = null; this.sqT = 0;
     let expr = 'neutral', pitchT = 0, rollT = 0, yOff = 0, yawAdd = 0, tint = null, tintA = 0, appDroop = 0, appWig = 0, spinZ = 0, side = 0;
-    this.rollAdd = 0; if (c.idle) c.idle(this, dt, t);
+    this.rollAdd = 0; this.idleYaw = this.idleY = 0; if (c.idle) c.idle(this, dt, t); yawAdd += this.idleYaw; yOff += this.idleY;
     const HP = [new V3(), new V3()]; let hk = 230, hc = 20;   // 手的目標（相對腳底的區域座標）
     const hx = c.hand[0], hy = c.hand[1], hz = c.hand[2];
     const setH = (i, x, y, z) => HP[i].set(x, y, z);
@@ -481,7 +481,7 @@ export class Character {
     this.shadow.position.set(p.x, gh + 0.015, p.z); this.shadow.material.opacity = 0.6 * Math.max(0.2, 1 - hg * 0.45); this.shadow.scale.setScalar(c.R * 3.0 * (1 + hg * 0.35) * (1 - this.sq * 0.3));
   }
   syncGroups() {
-    const sy = 1 + this.sq, sx = 1 / Math.sqrt(sy);
+    const sy = (1 + this.sq) * this.v.sy, sx = this.v.sx / Math.sqrt(1 + this.sq);
     const so = this.sideOff || 0, ry = this.yaw + (this.yawAdd || 0);
     this.root.position.set(this.pos.x + Math.cos(ry) * so * 0, this.pos.y + (this.yOff || 0), this.pos.z); this.root.rotation.y = ry;
     this.tilt.rotation.set(this.pitch, 0, this.roll); this.tumble.rotation.z = this.mode === 'normal' ? (this.spinZ || 0) : this.tumble.rotation.z;

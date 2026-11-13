@@ -60,15 +60,14 @@
    "why": "K 線就是蠟燭圖：小燭火"
   },
   "strategy-backtest": {
-   "species": "ghost",
+   "species": "snail",
    "pal": 0,
    "hue": 0.0,
    "acc": [
-    "badge",
-    "scarf"
+    "bow"
    ],
    "accColor": "#f6c177",
-   "why": "回到過去重跑：小幽靈"
+   "why": "回到過去重跑：慢慢爬的蝸牛"
   },
   "industry-analyst": {
    "species": "bean",
@@ -148,15 +147,14 @@
    "why": "粒子動效：小星星"
   },
   "visual-explainer": {
-   "species": "bulb",
+   "species": "lamp",
    "pal": 0,
    "hue": 0.0,
    "acc": [
-    "badge",
-    "scarf"
+    "bow"
    ],
    "accColor": "#a4c2f7",
-   "why": "圖解教學：一點就亮的燈泡"
+   "why": "圖解教學：把重點打亮的檯燈"
   },
   "product-design-lead": {
    "species": "pencil",
@@ -171,15 +169,14 @@
    "why": "設計總監：鉛筆"
   },
   "visual-designer": {
-   "species": "pudding",
+   "species": "donut",
    "pal": 0,
    "hue": 0.0,
    "acc": [
-    "badge",
     "bow"
    ],
    "accColor": "#f7b0c6",
-   "why": "配色：甜甜的布丁"
+   "why": "配色：糖霜與彩色糖粒的甜甜圈"
   },
   "tech-illustrator": {
    "species": "bean",
@@ -261,15 +258,14 @@
    "why": "快訊：啾一聲就發出去"
   },
   "content-planner": {
-   "species": "bulb",
+   "species": "lamp",
    "pal": 1,
    "hue": 0.0,
    "acc": [
-    "badge",
     "hat"
    ],
    "accColor": "#ffc48f",
-   "why": "點子：燈泡"
+   "why": "點子：彎著脖子想事情的檯燈"
   },
   "market-researcher": {
    "species": "seal",
@@ -295,14 +291,14 @@
    "why": "分鏡龍：小火苗"
   },
   "storyboard-artist": {
-   "species": "note",
+   "species": "worm",
    "pal": 1,
    "hue": 0.0,
    "acc": [
     "badge"
    ],
    "accColor": "#cbb2f2",
-   "why": "一格一格的分鏡：便利貼"
+   "why": "一格一格的分鏡：一節一節的毛毛蟲"
   },
   "motion-designer": {
    "species": "pudding",
@@ -405,7 +401,7 @@
    "why": "條文：資料夾"
   },
   "security-privacy": {
-   "species": "cactus",
+   "species": "dino",
    "pal": 1,
    "hue": 0.0,
    "acc": [
@@ -413,7 +409,7 @@
     "glasses"
    ],
    "accColor": "#b4c4d8",
-   "why": "資安：帶刺的盆栽"
+   "why": "資安：尾巴一甩的守門小恐龍"
   },
   "delivery-planner": {
    "species": "folder",
@@ -439,15 +435,15 @@
    "why": "火箭上線：小火苗"
   },
   "efficiency-planner": {
-   "species": "seal",
-   "pal": 1,
+   "species": "bunny",
+   "pal": 0,
    "hue": 0.0,
    "acc": [
     "badge",
     "bow"
    ],
    "accColor": "#97dfcc",
-   "why": "抄捷徑：滑得很快的海豹"
+   "why": "抄捷徑：蹦蹦跳的長耳兔"
   },
   "inspector": {
    "species": "cloud",

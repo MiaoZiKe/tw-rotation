@@ -28,6 +28,7 @@ export const EXPR = {
   look: E({ eyeS: 1.04, mCurve: 0.35, mW: 0.8 }),
 };
 const KEYS = Object.keys(B);
+const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
 export class Face {
   constructor(style, size = 512) {
@@ -90,6 +91,7 @@ export class Face {
         g.restore();
       }
     }
+    if (s.freck && bl > 0.02) { g.save(); g.fillStyle = `rgba(${s.blush},0.75)`; for (const sd of [-1, 1]) for (const [fx, fy, fr] of [[-9, -4, 3.2], [3, -9, 2.8], [10, 1, 3], [-2, 5, 2.6], [-12, 9, 2.4]]) { g.beginPath(); g.arc(cx + sd * (s.ex + s.rx * 1.25) + fx * sd, s.ey + s.ry * 0.95 + gy * 0.6 + fy, fr, 0, 7); g.fill(); } g.restore(); }
     // 眼睛
     const col = glow || s.eye;
     for (const sd of [-1, 1]) {
@@ -113,6 +115,13 @@ export class Face {
         if (glow) g.fillStyle = glow;
         else { const gr = g.createLinearGradient(0, -oy, 0, oy); gr.addColorStop(0, s.eye); gr.addColorStop(0.55, s.eye); gr.addColorStop(1, s.eye2); g.fillStyle = gr; }
         g.fill();
+        if (s.iris && !glow && s.kind !== 'lcd') {
+          g.save(); g.beginPath(); g.ellipse(0, 0, rx, oy, 0, 0, 7); g.clip();
+          const ig = g.createRadialGradient(0, oy * 0.42, 0, 0, oy * 0.42, rx * 1.05); ig.addColorStop(0, hexA(s.iris, 0.95)); ig.addColorStop(0.6, hexA(s.iris, 0.5)); ig.addColorStop(1, hexA(s.iris, 0));
+          g.fillStyle = ig; g.fillRect(-rx, -oy, rx * 2, oy * 2);
+          g.strokeStyle = hexA(s.eye, 0.55); g.lineWidth = Math.max(3, rx * 0.12); g.beginPath(); g.ellipse(0, 0, rx - 1.5, oy - 1.5, 0, 0, 7); g.stroke();
+          g.restore();
+        }
         if (s.kind === 'lcd') { }
         else if (!glow) {
           const ha = Math.min(1, (open - 0.1) / 0.5);
@@ -134,8 +143,9 @@ export class Face {
       }
       g.restore();
       // 眉毛
-      if (c.brow > 0.04) {
-        g.save(); g.globalAlpha = Math.min(1, c.brow); g.strokeStyle = col; g.lineWidth = s.line; g.lineCap = 'round';
+      const bA = Math.max(c.brow, (s.restBrow || 0) * (1 - c.arc * 0.0));
+      if (bA > 0.04) {
+        g.save(); g.globalAlpha = Math.min(1, bA) * (c.brow > 0.04 ? 1 : 0.8); g.strokeStyle = col; g.lineWidth = s.line * (s.restBrow && c.brow < 0.04 ? 0.85 : 1); g.lineCap = 'round';
         if (glow) { g.shadowColor = glow; g.shadowBlur = 12; }
         g.translate(ex, ey - ry - 13 - c.browY + c.lidT * ry * 0.5); g.rotate(-c.browA * 0.38 * sd);
         g.beginPath(); g.moveTo(-rx * 0.62, 0); g.quadraticCurveTo(0, -3, rx * 0.62, 0); g.stroke(); g.restore();
@@ -152,9 +162,11 @@ export class Face {
     if (s.glasses) {
       g.save(); g.strokeStyle = s.glasses; g.lineWidth = 6; const R = s.ry * 1.22, ey = s.ey + gy * 0.4;
       for (const sd of [-1, 1]) { g.fillStyle = 'rgba(255,255,255,.16)'; g.beginPath(); g.arc(cx + sd * s.ex, ey, R, 0, 7); g.fill(); g.stroke(); }
+      g.save(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 4; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * s.ex, ey, R * 0.7, Math.PI * 1.15, Math.PI * 1.45); g.stroke(); } g.restore();
       g.beginPath(); g.moveTo(cx - s.ex + R, ey - 4); g.quadraticCurveTo(cx, ey - 14, cx + s.ex - R, ey - 4); g.stroke(); g.restore();
     }
     if (s.nose) { g.fillStyle = s.eye; g.beginPath(); g.ellipse(cx - this.gx * 1.5, s.my - 17 + gy * 0.8, 10, 7, 0, 0, 7); g.fill(); }
+    if (s.nostril) { g.fillStyle = s.eye; g.globalAlpha = 0.6; for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(cx + sd * 11 - this.gx * 1.5, s.my - 30 + gy * 0.8, 4.2, 5.6, 0, 0, 7); g.fill(); } g.globalAlpha = 1; }
     if (s.whisk) { g.fillStyle = s.eye; g.globalAlpha = 0.55; for (const sd of [-1, 1]) for (const [x, y] of [[30, -4], [42, 6], [30, 14]]) { g.beginPath(); g.arc(cx + sd * x, s.my + y + gy * 0.8, 2.6, 0, 7); g.fill(); } g.globalAlpha = 1; }
     if (s.noMouth) { this.tex.needsUpdate = true; return; }
     // 嘴
@@ -171,6 +183,7 @@ export class Face {
       if (glow) { g.fillStyle = glow; g.globalAlpha = 0.9; g.fill(); }
       else {
         g.fillStyle = s.mouthIn; g.fill(); g.save(); g.clip();
+        if (s.tooth) { g.fillStyle = '#fffaf0'; g.beginPath(); g.roundRect(-w * 0.16, tY * 0.8 - 2, w * 0.32, H * 0.34 + 2, 3); g.fill(); }
         g.fillStyle = s.tongue; g.beginPath(); g.ellipse(0, bY + H * 0.3, w * 0.62, H * 0.62, 0, 0, 7); g.fill(); g.restore();
         g.lineWidth = s.line * 0.8; g.stroke();
       }
