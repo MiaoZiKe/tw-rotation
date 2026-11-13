@@ -47,3 +47,11 @@ python3.13 -m venv /tmp/bpyenv
 - `params_mochi.py`　糰糰參數（比例、部件、骨架、蒙皮範圍、臉、LOD）
 - `sdf.py`　距離場、梯度投影、解析 AO
 - `build_char.py`　Blender 腳本（上表 2～9）
+
+## 第五階段：通用產生器（2026-11-14）
+
+- 新物種＝複製 `params_mochi.py`：`PARTS` 現在有三種零件 —— 橢球（預設）、**鏈**（`kind='chain'`：沿折線的錐形橢圓截面管，`pts／rw／rt／wdir(s)／ck`，用於耳、尾、觸手）、**減去**（`op='sub'`：凹窩）；`BODY` 可以是橢球或**旋轉體**（`kind='lathe'`，凸多邊形截面＋圓角，布布）。
+- 其他可選鍵：`GRID`（取樣範圍與格距）、`GRAD_Y`（材質上下漸層高度）、`SYMMETRY`（左右不對稱的物種要設 False）、`VOXEL`、`TINT_PATCHES`（通用局部顏色）、`ANCHOR_PTS`（配件掛點）、`ZONE`＋`zone_mask(P, N)`（區域色遮罩，存在本體 UV 的 U；布布焦糖、垂垂棉球尾）、`BREATH_Z`、`FACE.eyeK`（眼睛縮放）。
+- QuadriFlow 對體素網格很挑：`quad_mesh` 會自動換體素大小、加平滑再試（印出 `quadriflow ok at voxel …`）。
+- `--meta`：只重算錨點併進既有 json（不動 GLB）。三隻：`params_mochi／params_bunny／params_pudding`。
+- 執行期：`site/office/char/mochi.js` 的 `loadMochi({species})`／`MochiChar`（通用）、`kinds.js`（物種設定）、`accs.js`（配件）；辦公室相容層 `site/office/world/js/newchar.js`；檢視器 `site/office/char/species_view.html?sp=bunny`。

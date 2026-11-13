@@ -98,6 +98,7 @@ function makeNew(spec, look, env) {
     cfg: { R: kind.rad, move: 'walk', walk: 1.5, run: 3.5, mouth: [0, mouthY, front], top: topY, front, cheek: [0.25, 0.3, 0.3] },
     get extFall() { return ['air', 'jumpPrep', 'tumble'].includes(ctl.state); }, set extFall(v) { if (v && !['air', 'jumpPrep', 'tumble', 'held'].includes(ctl.state) && ctl.body.grounded && !c._seat) ctl.jump(); },
     get jumpPrep() { return ctl.state === 'jumpPrep' ? 1 : 0; }, set jumpPrep(v) { if (v > 0 && ctl.state !== 'jumpPrep' && ctl.body.grounded && !c._seat) ctl.jump(); },
+    onLand(imp, sf) { }, get sq() { return ctl.sq.x; },
     feet: { forEach() { } }, hands: look.species === 'pudding' ? [] : ['L', 'R'].map(sd => ({ m: ch.bones['hand.' + sd], get p() { return ch.boneWorld('hand.' + sd).add(inner.pos); } })), ext,
     wake() { if (ctl.state === 'sleep') ctl.wake(); if (c._seat) { c._seat = null; ctl.standUp(); } },
     doAct(n) { if (n === 'sig') { ctl.trigger('happy'); ctl.jump(); } else if (n === 'wave') c.setAction('wave'); },
@@ -105,6 +106,7 @@ function makeNew(spec, look, env) {
     headTop(out) { return out.set(root.position.x, (ctl.body.y + topY) * s, root.position.z); },
     get extPose() { return ACTS[c.action]?.pose || null; }, set extPose(v) { },
   };
+  ctl.onEvent = (e) => { if (e.type === 'land') { inner.sqV = -(e.imp * 0.85); inner.onLand(e.imp, false); } };
   const camP = new V3(0, 6, 10), slot = { A: null, L: null, R: null }, slotType = { A: '', L: '', R: '' };
   let icon = null, iconT = 0, iconDur = 0, lod = 0, frame = (hash(spec.id || 'x') % 6), accDt = 0, react = null, loud = 0, hold = null, speakUntil = 0, curPose = null, poseT0 = 0;
   const c = {

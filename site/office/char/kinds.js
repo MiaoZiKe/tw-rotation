@@ -28,7 +28,7 @@ export function mergeProfile(base, ov) {
 }
 /** 辦公室用的個性檔：走路／跑步速度與步幅依「世界速度」放大 k 倍（距離與步幅同比放大，步頻不變；腳的可及範圍由腳 IK 夾住）。 */
 export function officeProfile(base, k = 1.5) {
-  const P = JSON.parse(JSON.stringify(base)); const M = P.move; M.walk *= k; M.run *= k; M.accel *= k; M.decel *= k;
-  for (const g of [P.gait.walk, P.gait.run]) { g.vmax *= k; g.stride = g.stride.map(x => x * Math.min(k, 1.25)); g.lift *= Math.min(k, 1.2); }
+  const P = JSON.parse(JSON.stringify(base)); const M = P.move; M.walk *= k; M.run *= k * 1.6; M.accel *= k; M.decel *= k;
+  for (const g of [P.gait.walk, P.gait.run]) { g.vmax *= (g === P.gait.run ? k * 1.6 : k); g.stride = g.stride.map(x => x * Math.min(k, 1.25)); g.lift *= Math.min(k, 1.2); }
   P.gait.walk.vmax *= 1; return P;
 }
