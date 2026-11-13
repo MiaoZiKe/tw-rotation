@@ -30,7 +30,7 @@ def noise(key, i, amp):
 
 def chain(key, s0, prev0):
     """s[0]=本週；s[1]=上週（用示範的 prev）；之後每週加一點可重現的雜訊。回傳 7 個分數（算 6 週的升降用）"""
-    out = [s0, prev0]
+    out = [s0, prev0 if prev0 is not None else s0]
     for i in range(2, 7):
         out.append(round(max(32, min(99, out[-1] + noise(key, i, 4.5))), 1))
     return out
@@ -80,6 +80,8 @@ def make_week(wi):
                 r["score"] = scores[wi]
                 r["prev"] = scores[wi + 1]
                 r["delta"] = round(scores[wi] - scores[wi + 1], 1)
+                if r["delta"] == 0:
+                    r["delta"] = 0
                 r["grade"] = grade_of(r["score"])
                 if "tasks" in r:
                     r["tasks"] = jitter_tasks(r["tasks"], key, wi)
