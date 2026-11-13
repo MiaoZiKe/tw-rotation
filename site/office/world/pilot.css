@@ -48,3 +48,22 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
   .pt-list kbd{min-width:80px}
   body.pt-sel #card,body.pt-sel #board{max-height:26dvh;overflow:auto}
 }
+
+/* ───── 資訊卡：三個狀態格可點（篩選任務清單）、任務列可展開 ───── */
+.kpi button{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center;font:inherit;color:inherit;cursor:pointer;min-height:44px;transition:background .12s,border-color .12s,transform .12s}
+.kpi button:hover{border-color:var(--on);transform:translateY(-1px)}
+.kpi button:focus-visible,.list .row:focus-visible{outline:2px solid var(--on);outline-offset:1px}
+.kpi button.on{border-color:var(--on);background:var(--on2);box-shadow:0 0 0 2px var(--on) inset}
+.kpi button b{display:block;font-size:22px;line-height:1.2}.kpi button span{font-size:12px;color:var(--sub)}.kpi button em{display:block;font-style:normal;font-size:11px;color:var(--sub);margin-top:2px}
+.kpi .k1 b{color:#d0703c}.kpi .k2 b{color:#3f7fd0}.kpi .k3 b{color:#3d9a63}
+#cardList,.list.bl{max-height:176px;overflow:auto}
+.list .row[role=button]{cursor:pointer}.list .row[role=button]:hover{background:var(--on2)}
+.list .row .st{font-style:normal;font-size:11px;border-radius:999px;padding:0 8px;background:#eee7df;color:#7a685c;white-space:nowrap}
+.list .rowx.open{background:#fff8ef}
+.det{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0;padding:6px 8px 8px 18px;font-size:12px;border-bottom:1px solid var(--line)}
+.det dt{color:var(--sub)}.det dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.empty{padding:12px 4px;font-size:13px;color:var(--sub);text-align:center}
+.bmeta{margin:0 0 6px 2px;font-size:12px;color:var(--sub)}
+.bsec{font-size:12px;font-weight:700;color:var(--sub);margin:8px 2px 0}
+#board .kpi{margin:6px 0 4px}
+#board .scroll{max-height:calc(100dvh - 190px)}

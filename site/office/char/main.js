@@ -342,6 +342,6 @@ if (S.cmp) layout();
 raf = requestAnimationFrame(frame);
 // 測試與截圖用的對外介面
 window.CH = { enablePlay, get field() { return S.field; }, get cc() { return S.field?.ctl; }, THREE, pose(name, t) { const c = S.ch; c.resetPose(); idle(c, 0.5); if (name) ACTS[name].fn(c, t); c.update(0); stage.updateContact(); }, S, stage, scene, camera, renderer, ctl, setView, playAct, endAct, buildNew, buildOld, layout, applyWire, applySil, get ch() { return S.ch; }, frame, mood: (k) => S.ch.face.set(k), setCmp(on) { S.cmp = on; if (on) buildOld(); layout(); applyOffset(); setView(S.view || 'front', true); }, setSil(on) { S.sil = on; applySil(); }, setWire(on) { S.wire = on; applyWire(); } };
-window.CH.qa = makeQA(window.CH); Object.assign(window.CH, { qaPlay, shotPNG, setPaused, get qav() { return S.qav; }, ensureQav, applyMode, qaPanel: qa });
+window.CH.qa = makeQA(window.CH); Object.assign(window.CH, { qaPlay, shotPNG, setPaused, ensureQav, applyMode, qaPanel: qa }); Object.defineProperty(window.CH, 'qav', { get: () => S.qav });   // Object.assign 會把 getter 取值一次，所以 qav 要用 defineProperty
 if (qs.has('qa')) { qa.hidden = false; $('#btnQA').classList.add('on'); }
 document.title = 'ok'; document.documentElement.dataset.ready = '1';

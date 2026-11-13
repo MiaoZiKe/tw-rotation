@@ -248,9 +248,19 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (moved > 7 || dt > 600) return; ui.closePops();
     if (edit.on) { editTap(e); return; }
     const c = pickChar(e); if (c) { if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); pilot.select(c); return; }
-    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; pilot.deselect(); if (hit) { ui.showBoard(hit.object.userData.board); return; }
+    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
+    pilot.deselect();
   });
   cv.addEventListener('contextmenu', e => e.preventDefault());
+  // 佈告欄：滑鼠停上去游標變手指、板子微微提亮（用一塊半透明的外框蓋在板子上，不動共用材質）
+  const bh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.28, depthWrite: false })); bh.visible = false; bh.renderOrder = 7; scene.add(bh);
+  let hoverBoard = null, hoverT = 0; const bbox = new THREE.Box3(), bsz = new THREE.Vector3(), bct = new THREE.Vector3();
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch' || grab || edit.on || (e.buttons & 7)) return; const t = performance.now(); if (t - hoverT < 60) return; hoverT = t;
+    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0], m = hit ? hit.object : null; if (m === hoverBoard) return; hoverBoard = m;
+    cv.style.cursor = m ? 'pointer' : ''; bh.visible = !!m;
+    if (m) { bbox.setFromObject(m); bbox.getSize(bsz); bbox.getCenter(bct); bh.position.copy(bct); bh.scale.set(bsz.x + 0.06, bsz.y + 0.06, bsz.z + 0.06); }
+  });
 
   // ── 整修模式 ──
   const edit = { on: false, sel: null, room: null, drag: null }; W.edit = edit;

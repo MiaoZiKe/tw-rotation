@@ -109,7 +109,9 @@ export function createPilot(W, X) {
   const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
   addEventListener('keydown', e => {
     if (!P.sel || typing() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!$('board').hidden) return;                                  // 佈告欄面板開著：方向鍵等不移動角色（Esc 由面板自己關），關掉面板才恢復
     const k = e.code;
+    if ((k === 'Space' || k === 'Enter') && document.activeElement && document.activeElement.closest && document.activeElement.closest('#card,#board') && document.activeElement.matches('button,[role=button]')) return;   // 鍵盤操作面板上的按鈕時，Space 不當成跳躍
     if (k === 'Escape') { e.preventDefault(); release(); return; }
     const d = DIRS[k];
     if (d) {

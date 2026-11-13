@@ -185,9 +185,9 @@ def t_s4_qa(b, base):
         def sim_rate(ms):
             t0 = pg.evaluate("() => CH.cc.time"); pg.wait_for_timeout(ms); t1 = pg.evaluate("() => CH.cc.time"); return (t1 - t0) / (ms / 1000)
         r1 = sim_rate(1500)
-        pg.click("#qs_0.25")
+        pg.click("[id='qs_0.25']")
         r025 = sim_rate(1500)
-        pg.click("#qs_0.5")
+        pg.click("[id='qs_0.5']")
         r05 = sim_rate(1500)
         ok("★ 播放速度：1× / 0.5× / 0.25× 的模擬進度比約為 1 : 0.5 : 0.25", 0.8 < r1 < 1.2 and 0.38 < r05 / r1 < 0.62 and 0.17 < r025 / r1 < 0.33, [r1, r05, r025])
         pg.click("#qs_1")

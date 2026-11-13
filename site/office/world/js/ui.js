@@ -74,20 +74,34 @@ export function createUI(W, demo, api) {
   const thumbs = new Map();
   function thumb(sp) { const k = [sp.species, sp.pal, sp.hue, (sp.acc || []).join('+'), sp.accColor].join('|'); if (!thumbs.has(k)) { let u = ''; try { u = renderThumb(W.renderer, { species: sp.species, pal: sp.pal, hue: sp.hue, acc: sp.acc, accColor: sp.accColor }, { size: 128, frames: 12 }); } catch (e) { u = ''; } thumbs.set(k, u); } return thumbs.get(k); }
   const spName = sp => (SPECIES[sp.species] ? `${SPECIES[sp.species].name}（${SPECIES[sp.species].sub}）` : '');
-  let cardChar = null, draft = null;
+  let cardChar = null, draft = null, cardP = null, cardF = 0, cardOpen = -1;
   const ava = sp => { const u = thumb(sp); return u ? `<img class="ava2" src="${u}" alt="">` : `<div class="ava" style="background:${sp.color || '#ffb057'}"></div>`; };
+  // 任務清單：依點選的狀態格篩選；點一列展開細節（只列有資料的欄位，沒有的不顯示空白列）
+  const SN = ['', '未完成', '進行中', '已完成'], TL = ['', '排定', '開始', '完成'];
+  function taskDetail(x, spec, p) {
+    const m = W.members.get(spec.id) || spec, rows = [['狀態', SN[x.s]], [TL[x.s] + '時間', x.t], ['負責人', `${spec.nick}（${spec.id}・${spec.zh}）`]];
+    if (m.deptName) rows.push(['所屬部門', m.deptName]);
+    if (x.s === 2) { rows.push(['預估完成', `${p.eta}（約 ${p.etaMin} 分鐘後）`]); if (p.opt) rows.push(['能否優化', p.opt]); }
+    return `<dl class="det">${rows.filter(r => r[1]).map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`;
+  }
+  function renderList() {
+    const el = $('cardList'); if (!el || !cardP || !cardChar) return; const p = cardP, spec = cardChar.spec;
+    $('cardKpi').querySelectorAll('[data-k]').forEach(b => { const on = +b.dataset.k === cardF; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    const rows = p.list.map((x, i) => ({ x, i })).filter(r => !cardF || r.x.s === cardF);
+    el.innerHTML = rows.length ? rows.map(({ x, i }) => `<div class="rowx${cardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-r="${i}" aria-expanded="${cardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${cardOpen === i ? taskDetail(x, spec, p) : ''}</div>`).join('') : `<div class="empty">這個狀態目前沒有任務</div>`;
+  }
   U.showCard = c => {
-    cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, p = progress(s), m = W.members.get(s.id) || s;
+    cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, p = progress(s), m = W.members.get(s.id) || s; cardP = p; cardF = 0; cardOpen = -1;
     $('card').innerHTML = `<button class="x" aria-label="關閉">×</button>
       <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b>${s.name && s.name !== s.nick ? `<span class="nm2">${esc(s.name)}</span>` : ''}${s.lead ? '<span class="tag2">主管</span>' : ''}
         <p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p><p>${esc(spName(s))}</p></div></div>
       <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
       <div class="acts g3"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button></div>
-      <div class="kpi"><div class="k1"><span>未完成</span><b>${p.nTodo}</b><em>${p.nextTodo ? '排 ' + p.nextTodo : '—'}</em></div><div class="k2"><span>進行中</span><b>${p.nDoing}</b><em>起 ${p.lastDoing}</em></div><div class="k3"><span>已完成</span><b>${p.nDone}</b><em>末 ${p.lastDone}</em></div></div>
+      <div class="kpi" id="cardKpi">${[[1, 'k1', '未完成', p.nTodo, p.nextTodo ? '排 ' + p.nextTodo : '—'], [2, 'k2', '進行中', p.nDoing, '起 ' + p.lastDoing], [3, 'k3', '已完成', p.nDone, '末 ' + p.lastDone]].map(([k, c, n, v, em]) => `<button class="${c}" data-k="${k}" aria-pressed="false" title="點一下只看「${n}」的任務，再點一次回到全部"><span>${n}</span><b>${v}</b><em>${em}</em></button>`).join('')}</div>
       <dl class="meta"><dt>預估完成</dt><dd>${p.eta}（約 ${p.etaMin} 分鐘後）</dd><dt>能否優化</dt><dd>${esc(p.opt)}</dd></dl>
-      <div class="list">${p.list.map(x => `<div class="row"><i class="s${x.s}"></i><span>${esc(x.title)}</span><time>${['', '排定', '開始', '完成'][x.s]} ${x.t}</time></div>`).join('')}</div>
+      <div class="list" id="cardList"></div>
       <div class="acts"><button class="btn" data-a="ceo">回 CEO 視角</button><button class="btn" data-a="god">俯瞰</button></div>`;
-    $('card').hidden = false;
+    $('card').hidden = false; renderList();
   };
   // 寵物的小卡
   U.showPet = c => {
@@ -118,9 +132,12 @@ export function createUI(W, demo, api) {
     draft = null; U.showCard(c); api.setView('char', c); U.toast(reset ? '已還原預設造型' : saved ? '已儲存（只記在這台裝置）' : '這台裝置無法儲存，重新整理後會還原');
   }
   U.tickCard = () => { if (cardChar && !$('card').hidden) { const el = $('cardNow'), t = '目前：' + STATE(cardChar); if (el && el.textContent !== t) el.textContent = t; } };
+  $('card').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-r]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
   $('card').onclick = e => {
     if (e.target.closest('.x')) { $('card').hidden = true; draft = null; api.cardClosed(); return; }
     const c = cardChar, D = api.director(); let b;
+    if ((b = e.target.closest('[data-k]'))) { const k = +b.dataset.k; cardF = cardF === k ? 0 : k; cardOpen = -1; renderList(); if (e.detail) b.blur(); return; }
+    if ((b = e.target.closest('[data-r]'))) { const i = +b.dataset.r; cardOpen = cardOpen === i ? -1 : i; renderList(); const nb = $('cardList').querySelector(`[data-r="${i}"]`); if (nb && !e.detail) nb.focus(); return; }
     if ((b = e.target.closest('[data-a]'))) { $('card').hidden = true; api.setView(b.dataset.a); return; }
     if ((b = e.target.closest('[data-i]'))) {
       const k = b.dataset.i, inMeet = D.meeting && D.meeting.people.includes(c);
@@ -141,13 +158,36 @@ export function createUI(W, demo, api) {
   U.hideCard = () => { $('card').hidden = true; draft = null; };
 
   // ── 佈告欄 ──
+  // 佈告欄面板：公告（便利貼）＋該部門的人數、主管、成員事項彙總（進行中／未完成／已完成，可點篩選，點一列看細節）
+  let boardOwner = null, boardF = 2, boardOpen = -1, boardTasks = [];
+  function boardData(owner) {
+    const d = W.org.departments.find(q => q.id === owner), people = owner === 'ceo' ? [{ ...W.org.ceo, dept: 'ceo', isCeo: true }] : d.members.map(m => ({ ...m, dept: d.id }));
+    const all = owner === 'ceo' ? 1 + W.org.departments.reduce((n, q) => n + q.members.length, 0) : d.members.length, lead = owner === 'ceo' ? 'CEO' : ((d.members.find(m => m.lead) || {}).nick || '—');
+    const tasks = []; people.forEach(sp => { const p = progress(sp); p.list.forEach(x => tasks.push({ ...x, who: sp.nick, whoId: sp.id, zh: sp.zh, p })); });
+    tasks.sort((a, b) => (a.t < b.t ? 1 : -1));
+    return { name: owner === 'ceo' ? 'CEO' : d.name, color: owner === 'ceo' ? '#ffb057' : d.color, all, lead, tasks, notes: demo.boards[owner] || [] };
+  }
+  function renderBoard() {
+    const B = boardData(boardOwner); boardTasks = B.tasks; const cnt = k => B.tasks.filter(x => x.s === k).length;
+    const rows = B.tasks.map((x, i) => ({ x, i })).filter(r => !boardF || r.x.s === boardF);
+    $('board').innerHTML = `<button class="x" aria-label="關閉">×</button><h3><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${B.color}"></span>${esc(B.name)}佈告欄</h3>
+      <p class="bmeta">${boardOwner === 'ceo' ? '全公司' : '部門'}人數 ${B.all} 人・主管：${esc(B.lead)}</p>
+      <div class="scroll" id="boardScroll"><div class="bsec">便利貼公告</div>${B.notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p class="empty">目前沒有公告</p>'}
+      <div class="bsec">事項彙總（${boardOwner === 'ceo' ? 'CEO' : esc(B.name) + '成員'}）</div>
+      <div class="kpi" id="boardKpi">${[[1, 'k1', '未完成'], [2, 'k2', '進行中'], [3, 'k3', '已完成']].map(([k, c, n]) => `<button class="${c}${boardF === k ? ' on' : ''}" data-bk="${k}" aria-pressed="${boardF === k}" title="只看「${n}」的事項，再點一次看全部"><span>${n}</span><b>${cnt(k)}</b></button>`).join('')}</div>
+      <div class="list bl" id="boardList">${rows.length ? rows.map(({ x, i }) => `<div class="rowx${boardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-br="${i}" aria-expanded="${boardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.who)}：${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${boardOpen === i ? `<dl class="det"><dt>狀態</dt><dd>${SN[x.s]}</dd><dt>${TL[x.s]}時間</dt><dd>${esc(x.t)}</dd><dt>負責人</dt><dd>${esc(x.who)}（${esc(x.whoId)}・${esc(x.zh)}）</dd>${x.s === 2 ? `<dt>預估完成</dt><dd>${esc(x.p.eta)}（約 ${x.p.etaMin} 分鐘後）</dd>` : ''}</dl>` : ''}</div>`).join('') : '<div class="empty">這個狀態目前沒有事項</div>'}</div></div>`;
+  }
   U.showBoard = owner => {
-    $('card').hidden = true; const d = W.org.departments.find(q => q.id === owner), name = owner === 'ceo' ? 'CEO 佈告欄' : d.name + '佈告欄', notes = demo.boards[owner] || [];
-    $('board').innerHTML = `<button class="x" aria-label="關閉">×</button><h3><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${owner === 'ceo' ? '#ffb057' : d.color}"></span>${esc(name)}</h3>
-      <div class="scroll">${notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p>目前沒有公告</p>'}</div>`;
-    $('board').hidden = false;
+    $('card').hidden = true; boardOwner = owner; boardF = 2; boardOpen = -1; renderBoard(); $('board').hidden = false;
   };
-  $('board').onclick = e => { if (e.target.closest('.x')) $('board').hidden = true; };
+  $('board').onclick = e => {
+    let b;
+    if (e.target.closest('.x')) { $('board').hidden = true; return; }
+    if ((b = e.target.closest('[data-bk]'))) { const k = +b.dataset.bk; boardF = boardF === k ? 0 : k; boardOpen = -1; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; if (e.detail) document.activeElement.blur(); return; }
+    if ((b = e.target.closest('[data-br]'))) { const i = +b.dataset.br; boardOpen = boardOpen === i ? -1 : i; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; return; }
+  };
+  $('board').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-br]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('board').hidden) { e.preventDefault(); $('board').hidden = true; } });
   U.postBoard = (owner, note) => { (demo.boards[owner] = demo.boards[owner] || []).unshift({ ...note, isNew: true }); U.toast('會議結論已貼上 CEO 佈告欄'); };
   U.fmtTs = ts => { const m = /(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(ts || ''); return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : ''; };
 
