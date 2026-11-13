@@ -1,0 +1,50 @@
+/* 操控模式：選取名牌、提示卡、「按 E 溝通」、手機虛擬搖桿。配色沿用 world.css 的 token。 */
+
+/* 被選取的角色：名牌改成亮黃底、外加光暈與小箭頭（箭頭在名牌與頭頂之間的空隙，不蓋臉） */
+.tag.sel{background:#ffd23c;color:#4a3a32;box-shadow:0 0 0 2px #fff,0 0 14px 3px rgba(255,179,0,.85);z-index:3}
+.tag.sel span{color:#6b5a30}
+.tag.sel:after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-6px;border:6px solid transparent;border-top-color:#ffd23c;border-bottom:0}
+.tag.sel.lead b:after{color:#c46a00}
+
+/* 靠近同事時，對方頭上的提示 */
+.pt-hint{position:absolute;left:0;top:0;transform:translate(-999px,-999px);white-space:nowrap;background:#4a3a32;color:#fff;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;line-height:1.4;box-shadow:0 3px 10px rgba(74,58,50,.35);z-index:4;animation:ptPulse 1s ease-in-out infinite}
+@keyframes ptPulse{50%{background:#f58a34}}
+
+/* 操作提示卡：桌機在右下角，可收起 */
+.pt-tips{position:absolute;z-index:22;right:12px;bottom:12px;width:272px;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 12px 12px;line-height:1.5}
+.pt-th{display:flex;align-items:center;gap:6px;min-height:32px}
+.pt-th b{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-th button{border:0;border-radius:999px;height:28px;padding:0 12px;font-size:12px;font-weight:700;background:var(--on2);color:var(--on);white-space:nowrap}
+.pt-th .pt-end{background:var(--on);color:#fff}
+.pt-th button:hover{filter:brightness(.96)}
+.pt-list{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px}
+.pt-list li{display:flex;align-items:center;gap:8px;font-size:13px}
+.pt-list kbd{flex:none;min-width:104px;text-align:center;font:inherit;font-size:12px;font-weight:700;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:8px;padding:1px 8px;color:var(--ink)}
+.pt-list .pt-first{font-weight:700;color:var(--on);margin-bottom:2px}
+.pt-tips.min .pt-list{display:none}
+/* 桌機展開提示卡時，會議紀錄（右上）的高度讓出來，兩張卡不重疊 */
+body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
+
+/* 手機虛擬搖桿與按鈕（桌機不顯示；固定在左下與右下，會讓出底部面板的高度 --lift） */
+:root{--lift:0px}
+.pt-pad{display:none}
+@media (pointer:coarse), (max-width:640px){
+  .pt-pad:not([hidden]){display:block}
+  .pt-pad{position:absolute;inset:0;z-index:21;pointer-events:none}
+  .pt-joy{position:absolute;left:16px;bottom:calc(16px + var(--lift));width:128px;height:128px;border-radius:50%;background:rgba(255,250,243,.55);border:2px solid rgba(245,138,52,.55);box-shadow:var(--sh);pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+  .pt-knob{width:56px;height:56px;border-radius:50%;background:var(--on);box-shadow:0 3px 8px rgba(120,80,40,.35);pointer-events:none;transition:background .1s}
+  .pt-joy.run .pt-knob{background:#e5412d}
+  .pt-btns{position:absolute;right:16px;bottom:calc(16px + var(--lift));width:176px;height:136px;pointer-events:none}
+  .pt-b{position:absolute;border:0;border-radius:50%;font-size:15px;font-weight:800;box-shadow:var(--sh);pointer-events:auto;touch-action:none;color:#fff}
+  .pt-jump{right:0;bottom:0;width:72px;height:72px;background:var(--on);font-size:18px}
+  .pt-talk{right:84px;bottom:0;width:56px;height:56px;background:#9aa6b2}
+  .pt-talk.ready{background:#3d9a63;animation:ptReady 1s ease-in-out infinite}
+  .pt-wave{right:8px;bottom:80px;width:52px;height:52px;background:#6aa3e8}
+  @keyframes ptReady{50%{box-shadow:0 0 0 6px rgba(61,154,99,.3),var(--sh)}}
+  /* 提示卡：搖桿正上方，預設收起；按鈕至少 44px 高 */
+  .pt-tips{right:auto;left:8px;bottom:calc(160px + var(--lift));width:auto;max-width:calc(100vw - 16px);padding:6px 8px 8px}
+  .pt-th button{height:44px;min-width:44px;font-size:13px}
+  .pt-th b{font-size:13px}
+  .pt-list kbd{min-width:80px}
+  body.pt-sel #card,body.pt-sel #board{max-height:26dvh;overflow:auto}
+}

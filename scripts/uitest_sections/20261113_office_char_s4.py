@@ -22,7 +22,7 @@ def _open(b, base, qs="?shot&play=1", vp=None, mobile=False, skip=True):
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(_root(base) + "/office/char.html" + qs, wait_until="domcontentloaded")
-    got = wait_until(pg, "() => document.documentElement.dataset.ready === '1' && !!CH.cc", 90000)
+    got = wait_until(pg, "() => document.documentElement.dataset.ready === '1' && (%s)" % ("!!CH.cc" if "play" in qs else "true"), 90000)
     if got and skip:   # 軟體繪圖一幀要好幾百毫秒：不繪圖，只跑模擬與互動（需要看畫面的段落自己重新繪圖）
         pg.evaluate("() => { CH.S.skipRender = true; }")
     return c, pg, errs, got
@@ -103,12 +103,12 @@ def t_s4_grab(b, base):
         wait_until(pg, "() => CH.cc.body.y > 0.3", 4000)
         y1 = pg.evaluate("() => CH.cc.body.y")
         ok("★ 拖曳：身體真的被拉離地面（高度 %.2f → %.2f）" % (y0, y1), y1 > y0 + 0.25, [y0, y1])
+        pg.evaluate("() => { window.__hmax = 0; window.__hiv = setInterval(() => { window.__hmax = Math.max(window.__hmax, Math.abs(CH.cc.hang.x), Math.abs(CH.cc.hang.z)); }, 10); }")
         for i in range(0, 16):   # 左右甩動，讓擺產生振幅
-            pg.mouse.move(bx + (60 if i % 2 == 0 else -60), by - 170)
-            pg.wait_for_timeout(60)
-        sw = pg.evaluate("() => Math.max(Math.abs(CH.cc.hang.x), Math.abs(CH.cc.hang.z))")
-        rz = pg.evaluate("() => Math.abs(CH.cc.pose[%d])" % 6)
-        ok("★ 左右甩動：身體懸吊擺盪（擺角 > 0.05 rad）", sw > 0.05, sw)
+            pg.mouse.move(bx + (110 if i % 2 == 0 else -110), by - 170)
+            pg.wait_for_timeout(70)
+        sw = pg.evaluate("() => { clearInterval(window.__hiv); return window.__hmax; }")
+        ok("★ 左右甩動：身體懸吊擺盪（甩動期間最大擺角 > 0.1 rad）", sw > 0.1, sw)
         # ── 甩出去：放手時給初速度（有上限）
         for i in range(0, 8):
             pg.mouse.move(bx + 40 * i, by - 170 - 6 * i)
@@ -285,6 +285,7 @@ def t_s4_res(b, base):
         ok("★ 重建後：舊角色已從場景移除、控制器指向新角色、動畫狀態乾淨（idle、無覆蓋動作、無待反應、無抓取）",
            r["detached"] and r["ctlOk"] and r["state"] == "idle" and not r["overlay"] and not r["pend"] and not r["held"] and r["intent"] == 0, r)
         # 用介面切細緻度（下拉選單）也一樣
+        pg.click("#btnMore")   # 場地模式下細緻度選單收在「更多選項」裡
         pg.select_option("#selLod", "1")
         wait_until(pg, "() => CH.S.lod === 1 && CH.cc && CH.cc.ch === CH.S.ch", 20000)
         a = pg.evaluate("() => CH.qa.resources()")
@@ -293,6 +294,7 @@ def t_s4_res(b, base):
         pg.select_option("#selLod", "1")
         wait_until(pg, "() => CH.S.lod === 1 && CH.cc && CH.cc.ch === CH.S.ch", 20000)
         a2 = pg.evaluate("() => CH.qa.resources()")
+        pg.click("#btnMore")
         ok("用下拉選單切細緻度 1→0→1：資源數量回到原值", (a["geo"], a["tex"], a["meshes"]) == (a2["geo"], a2["tex"], a2["meshes"]), [a, a2])
         # 檢查模式疊加物反覆開關：不累積資源
         pg.evaluate("() => { CH.ensureQav().setCollide(true); CH.ensureQav().setContacts(true); CH.qav.update(CH.cc); }")

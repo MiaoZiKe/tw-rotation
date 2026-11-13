@@ -146,7 +146,9 @@ export function createCharacter(spec, env = {}) {
       if (react && t > react.until) { const r = react; react = null; r.done && r.done(); }
       if (c._held) { ch.ext.vx = ch.ext.vz = 0; }
       else if (c._hop) { ch.ext.vx = ch.ext.vz = 0; }
-      else if (c._path) step(dt); else { ch.ext.vx = ch.ext.vz = 0; }
+      else if (c._path) step(dt);
+      else if (c._drive) { const d = c._drive; ch.ext.vx = d.vx / s; ch.ext.vz = d.vz / s; if (d.fx || d.fz) c.heading = Math.atan2(d.fx, d.fz); else if (d.vx || d.vz) c.heading = Math.atan2(d.vx, d.vz); }
+      else { ch.ext.vx = ch.ext.vz = 0; }
       if (!c._held) ch.ext.yaw = c.heading;
       if (cushion) cushion.visible = !!c._seat && c._boost > 0 && !c._hop && lod < 2 && root.visible;
       const n = Math.max(1, Math.ceil(dt / (1 / 90))), h = dt / n; for (let i = 0; i < n; i++) ch.step(h, ctl);
@@ -167,8 +169,10 @@ export function createCharacter(spec, env = {}) {
     },
     setAction(name, opts = {}) { if (!ACTS[name]) name = 'idle'; if (ONE_SHOT[name]) { c._until = c._t + (opts.duration || ONE_SHOT[name]); if (opts.then) c._base = opts.then; apply(name); } else { c._base = name; if (opts.duration) { c._until = c._t + opts.duration; c._base = opts.then || 'idle'; apply(name); } else if (!c._until) apply(name); } },
     setExpression(name, sec) { c.expression = name; const e = EXPR[name]; if (e) ch.emote(e, sec || 1e9); else ch.emo = null; },
+    // 外部操控（pilot.js）：直接給世界速度（公尺／秒）與想面向的方向；傳 null 結束。走路／跑步的腳步由實際速度推進，不會滑行
+    drive(vx, vz, fx, fz) { c._drive = vx == null ? null : { vx, vz, fx: fx || 0, fz: fz || 0 }; if (vx == null) { ch.ext.vx = ch.ext.vz = 0; } },
     walkTo(path, opts = {}) {
-      c.stop(false); if (!path || path.length < 2 || c._held) return Promise.resolve(!c._held);
+      c._drive = null; c.stop(false); if (!path || path.length < 2 || c._held) return Promise.resolve(!c._held);
       c._path = path; c._pi = 1; c._speed = opts.speed || 1.6; c._stuck = 0;
       if (ch.mode !== 'normal') { ch.mode = 'normal'; ch.modeT = 0; }
       if (c._seat) {         // 從椅子上跳下來，再開始走

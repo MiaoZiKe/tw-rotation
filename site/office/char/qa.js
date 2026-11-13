@@ -169,7 +169,7 @@ export function makeQA(CH) {
         if (!finite(c)) { out.nonFinite++; break; }
         out.maxSpeed = Math.max(out.maxSpeed, Math.hypot(b.vx, b.vy, b.vz));
         const lo = c.lowestBody(false) - b.supportY; if (lo < below) { below = lo; if (lo < (out.worst?.lo ?? 1e9)) out.worst = { k, lo: +lo.toFixed(4), state: c.state, t: +(i * dt).toFixed(3), vy: +b.vy.toFixed(2), y: +b.y.toFixed(3), sup: b.supportY, dyx: +(c.dyx || 0).toFixed(3), pass: c.debug.lastPen }; }
-        for (const bx of c.world.boxes) { if (b.y > bx.y1 - c.shape.stepH - 0.01) continue; const dx = Math.max(Math.abs(b.x - bx.cx) - bx.hx, 0), dz = Math.max(Math.abs(b.z - bx.cz) - bx.hz, 0); out.maxPen = Math.max(out.maxPen, c.shape.R - Math.hypot(dx, dz)); }
+        for (const bx of c.world.boxes) { if (b.y > bx.y1 - c.shape.stepH - 0.01) continue; const dx = Math.max(Math.abs(b.x - bx.cx) - bx.hx, 0), dz = Math.max(Math.abs(b.z - bx.cz) - bx.hz, 0); const pen = c.shape.R - Math.hypot(dx, dz); if (pen > out.maxPen) { out.maxPen = pen; out.penAt = { k, id: bx.id, state: c.state, t: +(i * dt).toFixed(3), y: +b.y.toFixed(3), vy: +b.vy.toFixed(2), x: +b.x.toFixed(2), z: +b.z.toFixed(2), vx: +b.vx.toFixed(2), vz: +b.vz.toFixed(2) }; } }
         if (c.state === 'idle' && c.stateT > 0.3) { settled = i * dt; break; }
       }
       c.onEvent = null; out.maxBounces = Math.max(out.maxBounces, bounces); out.minBelow = Math.min(out.minBelow, below); out.conflicts += c.bus.conflicts.length;
@@ -199,7 +199,7 @@ export function makeQA(CH) {
     c.life = true; const idleP = breathPeriod(14);
     c.sleep(); run(c, fps, 2.0); const sq = c.ch.wm.squash || 0, plump = c.ch.wm.plump || 0, face = c.expr;
     const sleepP = breathPeriod(16); let zmax = 0; for (let i = 0; i < 4 * fps; i++) { c.update(dt); fx?.update(dt, c); zmax = Math.max(zmax, fx ? fx.active : 0); }
-    c.wake(); const st1 = c.state; let ti = until(c, fps, 3, () => c.state === 'idle'); run(c, fps, 4, null, () => { fx?.update(dt, c); }); const zAfter = fx ? fx.active : 0; c.life = false; run(c, fps, 3.5); const rd = restDiff(c);
+    c.wake(); const st1 = c.state; let ti = until(c, fps, 3, () => c.state === 'idle'); run(c, fps, 4, null, () => { fx?.update(dt, c); }); const zAfter = fx ? fx.active : 0; c.life = false; c.micro = null; run(c, fps, 3.5); const rd = restDiff(c);
     return { idleP, sleepP, ratio: sleepP / (idleP || 1), squash: sq, plump, face, zmax, zAfter, wakeState: st1, idleAfter: c.state, expr: c.expr, ...rd };
   }
   /** 情緒動作五段：依序經過 pre → main → settle → out，結束後骨頭與形態鍵回到靜止。 */

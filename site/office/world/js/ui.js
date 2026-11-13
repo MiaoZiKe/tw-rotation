@@ -67,8 +67,9 @@ export function createUI(W, demo, api) {
     const eta = 15 + Math.floor(r() * 50);
     return { nDone, nDoing, nTodo, list, eta: stamp(-eta), etaMin: eta, opt: demo.optimize[Math.floor(r() * demo.optimize.length)], lastDone: list.find(x => x.s === 3).t, lastDoing: list[0].t, nextTodo: nTodo ? list.find(x => x.s === 1).t : '' };
   }
+  U.progress = progress;      // 操控模式的「按 E 溝通」要用對方現有的進度資料當對話內容
   const DOING = { type: '打電腦', note: '做筆記', think: '想事情', phone: '講電話', drink: '喝咖啡', tablet: '看平板', doc: '讀文件', read: '翻書查資料', magnify: '拿放大鏡細看', stretch: '伸懶腰', doze: '打瞌睡', sleep: '睡著了', listen: '聽人說話', talk: '發言中', eat: '吃點心', paddle: '打桌球', carry: '拿著文件', present: '交件中', slam: '拍桌', sulk: '有點委屈', clap: '鼓掌', cheer: '歡呼' };
-  const STATE = c => { const d = DOING[c.action]; return c.away ? '已下班' : c.state === 'held' ? '被拎起來了' : c.state === 'walk' ? '走路中' + (d && c.action !== 'type' ? `（${d}）` : '') : (c.atDesk ? `坐在位子上${d || '工作'}${c.task ? '：' + c.task : ''}` : (d || (c.state === 'sit' ? '坐著' : '離開座位'))); };
+  const STATE = c => { const d = DOING[c.action]; if (c.piloted) return '被你操控中'; return c.away ? '已下班' : c.state === 'held' ? '被拎起來了' : c.state === 'walk' ? '走路中' + (d && c.action !== 'type' ? `（${d}）` : '') : (c.atDesk ? `坐在位子上${d || '工作'}${c.task ? '：' + c.task : ''}` : (d || (c.state === 'sit' ? '坐著' : '離開座位'))); };
   // 頭像：用同一個繪圖器把角色畫成小圖（同一種長相只畫一次）
   const thumbs = new Map();
   function thumb(sp) { const k = [sp.species, sp.pal, sp.hue, (sp.acc || []).join('+'), sp.accColor].join('|'); if (!thumbs.has(k)) { let u = ''; try { u = renderThumb(W.renderer, { species: sp.species, pal: sp.pal, hue: sp.hue, acc: sp.acc, accColor: sp.accColor }, { size: 128, frames: 12 }); } catch (e) { u = ''; } thumbs.set(k, u); } return thumbs.get(k); }
