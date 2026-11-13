@@ -100,3 +100,4 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
 .sens{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px}
 .sens button{border:1px solid var(--line);background:#fff;border-radius:999px;height:32px;min-width:44px;padding:0 12px;font-size:13px;font-weight:600}
 .sens button.on{background:var(--on);border-color:var(--on);color:#fff}
+@media (max-width:640px){.cm-hint .cm-t{display:none}.cm-hint .cm-lab{display:none}}   /* 手機：說明文字收起（放進「?」才看），只留切換與旋轉鈕，鏡頭提示只佔一行，不蓋到佈告欄 */
