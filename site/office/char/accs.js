@@ -46,5 +46,5 @@ export function addCherry(ch, color) {
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.058, 20, 14), new THREE.MeshStandardMaterial({ color, roughness: 0.28, metalness: 0 }));
   const st = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0075, 0.075, 8), new THREE.MeshStandardMaterial({ color: 0x7a9a50, roughness: 0.7 })); st.position.set(0.012, 0.062, 0); st.rotation.z = -0.3;
   const hl = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff4ec })); hl.position.set(-0.02, 0.028, 0.04);
-  g.add(ball, st, hl); g.position.set(0.03, 0.478, 0); h.add(g); ch.follow(g, g.position); g.userData.acc = 'cherry'; return g;
+  g.add(ball, st, hl); const cp = ch.meta.cherry; g.position.set(cp ? cp[0] : 0.03, cp ? cp[1] : 0.478, cp ? cp[2] : 0); h.add(g); ch.follow(g, g.position); g.userData.acc = 'cherry'; return g;
 }

@@ -275,13 +275,15 @@ def build_lod(P0, lod, quads, cache, out_dir):
     apply_weights(ob, names, M)
     # AO 頂點色
     ao = S.ao(sdf, P, N)
+    for _ in range(getattr(P0, 'AO_SMOOTH', 0)): ao = lap_smooth(ao[:, None], n, E, 1, 0.5)[:, 0]
     ca = ob.data.color_attributes.new(name='AO', type='FLOAT_COLOR', domain='POINT')
     tint = local_tint(P, N, P0)            # RGB＝局部顏色乘數；A＝AO（執行期 setAOStrength 依材質調強度，再合成成 RGB）
     col = np.concatenate([tint, ao[:, None]], 1); ca.data.foreach_set('color', col.reshape(-1))
     if hasattr(P0, 'zone_mask'):
-        zm = np.clip(P0.zone_mask(P, N), 0, 1); uvl = ob.data.uv_layers.new(name='UV0')
+        zm = np.clip(P0.zone_mask(P, N), 0, 1); zm2 = np.clip(P0.zone_mask2(P, N), 0, 1) if hasattr(P0, 'zone_mask2') else np.zeros(len(P)); uvl = ob.data.uv_layers.new(name='UV0')
+        for _ in range(getattr(P0, 'ZONE_SMOOTH', 0)): zm = np.clip(lap_smooth(zm[:, None], n, E, 1, 0.5)[:, 0], 0, 1); zm2 = np.clip(lap_smooth(zm2[:, None], n, E, 1, 0.5)[:, 0], 0, 1)
         for poly in ob.data.polygons:
-            for li in poly.loop_indices: uvl.data[li].uv = (float(zm[ob.data.loops[li].vertex_index]), 0.5)
+            for li in poly.loop_indices: vi = ob.data.loops[li].vertex_index; uvl.data[li].uv = (float(zm[vi]), float(zm2[vi]))
     arm = make_armature(P0); bind(ob, arm)
     D = shape_deltas(P, N, fsum, P0); add_shapes(ob, D)
     if lod >= 2: join_eye_dots(ob, sdf, P0, names, arm)
@@ -366,7 +368,7 @@ def main():
                 face=dict(P0.FACE), shapes=['squash', 'stretch', 'land', 'plump', 'breath', 'cheek.L', 'cheek.R'],
                 decal=dict(x=P0.FACE['decal_x'], z0=P0.FACE['decal_z0'], z1=P0.FACE['decal_z1']),
                 bodyCy=P0.BODY['c'][1], gradY=list(getattr(P0, 'GRAD_Y', (-0.025, 0.585))), zone=getattr(P0, 'ZONE', None),
-                noNose=True)
+                noNose=True, cherry=getattr(P0, 'CHERRY', None), hop=getattr(P0, 'HOP', None))
     json.dump(meta, open(os.path.join(out, f'{P0.NAME}.json'), 'w'), ensure_ascii=False, indent=1)
     print('done', round(time.time() - t0, 1), 's')
 

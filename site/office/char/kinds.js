@@ -13,13 +13,13 @@ export const isNew = (id) => !!NEW_KINDS[id];
 /** 依個體規格取顏色：本體色、頂色、區域色（布布的焦糖）、櫻桃色、配件色 */
 export function colorsFor(look) {
   const rs = resolveSpec({ species: look.species, pal: look.pal, hue: look.hue, acc: look.acc, accColor: look.accColor, seed: look.seed });
-  const p = rs.pal; return { color: p.body, top: p.top, zone: p.cap ?? (look.species === 'bunny' ? 0xfffaf2 : null), cherry: p.ch ?? 0xff5f6e, acc: rs.accColor, pal: p, accWorn: look.acc.filter(a => NEW_KINDS[look.species].can.includes(a)) };
+  const p = rs.pal; return { color: p.body, top: p.top, zone: p.cap ?? (look.species === 'bunny' ? 0xffffff : null), zone2: look.species === 'pudding' ? 0xfff6ea : null, cherry: p.ch ?? 0xff5f6e, acc: rs.accColor, pal: p, accWorn: look.acc.filter(a => NEW_KINDS[look.species].can.includes(a)) };
 }
 
 // 各物種的個性檔覆寫（疊在 profiles/mochi.json 上）：只列有差異的鍵
 export const PROFILE_OVERRIDE = {
-  bunny: { waddle: 0.06, jump: { height: 0.78 }, move: { walk: 0.62, run: 1.4 }, secondary_gain: 1.35 },
-  pudding: { waddle: 0.12, land: { peakK: 0.1, zeta: 0.28 }, move: { walk: 0.52, run: 1.2 } },
+  bunny: { waddle: 0.05, jump: { height: 0.78 }, move: { walk: 0.62, run: 1.4 }, secondary_gain: 1.35, bounce: { dy: 0.04, sq: 0.3, sway: 0.0 } },
+  pudding: { waddle: 0.16, land: { peakK: 0.1, zeta: 0.28 }, move: { walk: 0.52, run: 1.2 }, bounce: { dy: 0.03, sq: 0.7, sway: 0.16 } },
 };
 export function mergeProfile(base, ov) {
   const out = JSON.parse(JSON.stringify(base)); if (!ov) return out;

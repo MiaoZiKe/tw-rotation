@@ -65,7 +65,7 @@ _SLEEP = """(id) => { const W = __world, c = W.chars.get(id), ch = c.inner.ch, c
  const h1 = top(), st = ctl.state, sq = ch.wm.squash || 0, cl = ch.face.cur.open; c.setAction('idle'); for (let i = 0; i < 120; i++) { t += dt; c.update(dt, t); } return { h0, h1, st, sq, open: cl, after: ctl.state }; }"""
 
 
-def _open(b, base, qs="?ambient=0&q=low&pr=0.3&view=ceo", w=1000, h=640):
+def _open(b, base, qs="?ambient=0&q=low&pr=0.3&view=ceo&body=v2", w=1000, h=640):
     root = base.split("/index.html")[0].rstrip("/")
     c = b.new_context(viewport={"width": w, "height": h})
     pg = c.new_page(); pg.set_default_timeout(120000); pg.errs = []
@@ -138,9 +138,9 @@ def t_newchar(b, base):
 
 
 def t_newchar_calls(b, base):
-    """繪製次數：同一個場景、同一個視角，新系統（預設）與舊系統（?body=v1）各量一次 renderer.info.render.calls；新系統不得高於舊系統。"""
+    """繪製次數：同一個場景、同一個視角，新系統（?body=v2）與舊系統（預設）各量一次 renderer.info.render.calls；新系統不得高於舊系統。"""
     res = {}
-    for tag, qs in (("new", "?ambient=0&q=low&pr=0.3&view=ceo"), ("old", "?ambient=0&q=low&pr=0.3&view=ceo&body=v1")):
+    for tag, qs in (("new", "?ambient=0&q=low&pr=0.3&view=ceo&body=v2"), ("old", "?ambient=0&q=low&pr=0.3&view=ceo")):
         c, pg, got = _open(b, base, qs)
         if not got:
             ok("繪製次數：%s 載入完成" % tag, False); c.close(); return

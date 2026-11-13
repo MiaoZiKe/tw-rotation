@@ -34,7 +34,7 @@ async function build() {
     old = c; SV.old = c; return;
   }
   const asset = await loadMochi({ species: sp, lod: 0 }), col = colorsFor({ species: sp, pal, hue: 0, acc, accColor: +(qs.get('ac') || 0), seed: 0 });
-  ch = new MochiChar(asset, { preset: NEW_KINDS[sp].preset, color: col.color, top: col.top, zone: col.zone }); scene.add(ch.root); stage.addContact(ch);
+  ch = new MochiChar(asset, { preset: NEW_KINDS[sp].preset, color: col.color, top: col.top, zone: col.zone, zone2: col.zone2 }); scene.add(ch.root); stage.addContact(ch);
   if (acc.length) addAccs(ch, acc, col.acc);
   if (NEW_KINDS[sp].cherry) addCherry(ch, col.cherry);
   world = new PhysWorld({ minX: -3, maxX: 3, minZ: -3, maxZ: 3 }); world.addBox({ id: 'seat', cx: 0, cz: -0.9, hx: 0.25, hz: 0.25, y1: 0.42, face: 0 });   // 面向 +Z 的座位（椅背在 -Z 側）

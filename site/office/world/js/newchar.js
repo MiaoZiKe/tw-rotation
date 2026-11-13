@@ -2,7 +2,7 @@
 // 新角色相容層（2026-11-14，3D 角色建模師）：辦公室的 createCharacter(spec, env) 掛鉤。
 //   · 物種在 char/kinds.js 的 NEW_KINDS 裡（糰糰 mochi、垂垂 bunny、布布 pudding）→ 用 Blender 參數化一體成形網格（char/mochi.js）
 //     ＋骨架／形態鍵＋固定步長控制器（char/controller.js）驅動；介面與 play/office_character.js 的 createCharacter 一樣（含 inner 墊片）。
-//   · 其他物種 → 原封不動交給舊系統（play/office_character.js）。兩套並存。網址加 ?body=v1 可強制全部走舊系統（新舊對照用）。
+//   · 其他物種 → 原封不動交給舊系統（play/office_character.js）。兩套並存。網址加 ?body=v2 才啟用新模型（預設全走舊系統，新舊對照用）。
 // 世界端只需要把 loadCharacterModule 的預設路徑指到本檔；本檔會 re-export 舊模組的所有名稱（configure、lookFor、ICON_NAMES…）。
 // 座標：控制器在「模型座標」（公尺、未縮放）裡運算；物件的世界位置＝模型位置 × scale（CEO 1.15、寵物 0.5）。
 // ════════════════════════════════════════════════════════════════════════
@@ -20,7 +20,7 @@ export * from '../../play/office_character.js';
 const V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
 const IDX = Object.fromEntries(CHANNELS.map((n, i) => [n, i]));
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h; };
-const FORCE_OLD = /[?&]body=v1\b/.test(location.search);
+const FORCE_OLD = !/[?&]body=v2\b/.test(location.search);   // 預設走舊系統（擁有者點頭前不蓋掉現有角色）；網址加 ?body=v2 才啟用新模型
 
 // ── 資源預載（頂層 await：模組載入完成時，三個物種的近景／遠景網格與個性檔都已就緒，createCharacter 可以同步建立）
 const ASSET = {}; let BASE_PROFILE = null;
@@ -76,7 +76,7 @@ export function createCharacter(spec, env = {}) {
 function makeNew(spec, look, env) {
   const kind = NEW_KINDS[look.species], col = colorsFor(look), s = spec.scale || 1, B = env.bounds || { x0: 0.6, x1: 39.4, z0: 0.6, z1: 33 };
   const A = ASSET[look.species], meta = A[0].meta;
-  const ch = new MochiChar(A[0], { preset: kind.preset, color: col.color, top: col.top, zone: col.zone, faceW: 512 }); ch.attachFar(A[2]);
+  const ch = new MochiChar(A[0], { preset: kind.preset, color: col.color, top: col.top, zone: col.zone, zone2: col.zone2, faceW: 512 }); ch.attachFar(A[2]);
   const root = new THREE.Group(), space = new THREE.Group(); space.matrixAutoUpdate = false; root.userData.character = true; root.add(ch.root, space); root.name = 'newchar-' + look.species;
   ch.body.castShadow = false; ch.body.receiveShadow = false;
   const worn = addAccs(ch, col.accWorn, col.acc), anch = meta.anchors, mouthY = anch.mouth.p[1], eyeY = anch['eye.L'].p[1], front = Math.abs(anch.mouth.p[2]);

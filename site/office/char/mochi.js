@@ -50,7 +50,7 @@ export class MochiChar {
       this.rest[nm] = { q: b.quaternion.clone(), p: b.position.clone(), pw, pwi: pw.clone().invert() };
     }
     this.cfg = { preset: o.preset || 'fur', color: o.color ?? 0xffc9ad, top: o.top ?? 0xfff1e2, far: !!o.far };
-    this.cfg.zone = o.zone ?? null; this.mat = this.mkBodyMat();
+    this.cfg.zone = o.zone ?? null; this.cfg.zone2 = o.zone2 ?? null; this.mat = this.mkBodyMat();
     if (this.body) { this.body.material = this.mat; this.body.castShadow = true; this.body.frustumCulled = false; setAOStrength(this.body.geometry, PRESETS[this.cfg.preset].ao); }
     this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
     if (this.decal) { this.decal.frustumCulled = false; }
@@ -89,11 +89,11 @@ export class MochiChar {
   mkBodyMat() {
     const m = makeMaterial(this.cfg.preset, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far, ...this.gradOpt() });
     if (this.meta.zone && this.cfg.zone != null) {
-      const uZ = { value: new THREE.Color(this.cfg.zone) }, orig = m.onBeforeCompile; this.zoneU = uZ; m.userData.zoneU = uZ;
-      m.onBeforeCompile = (s) => { orig(s); s.uniforms.uZoneCol = uZ;
-        s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying float vZone;').replace('vRestP = position;', 'vRestP = position; vZone = uv.x;');
-        s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vZone; uniform vec3 uZoneCol;')
-          .replace('#include <emissivemap_fragment>', '{ float zk = smoothstep(0.0, 1.0, vZone); vec3 zc = uZoneCol * vColor.rgb; diffuseColor.rgb = mix(diffuseColor.rgb, zc, zk); }\n#include <emissivemap_fragment>'); };
+      const uZ = { value: new THREE.Color(this.cfg.zone) }, uZ2 = { value: new THREE.Color(this.cfg.zone2 ?? 0xfff6ea) }, orig = m.onBeforeCompile; this.zoneU = uZ; m.userData.zoneU = uZ;
+      m.onBeforeCompile = (s) => { orig(s); s.uniforms.uZoneCol = uZ; s.uniforms.uZone2Col = uZ2;
+        s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying float vZone, vZone2;').replace('vRestP = position;', 'vRestP = position; vZone = uv.x; vZone2 = uv.y;');
+        s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vZone, vZone2; uniform vec3 uZoneCol, uZone2Col;')
+          .replace('#include <emissivemap_fragment>', '{ float zk = smoothstep(0.0, 1.0, vZone); vec3 zc = uZoneCol * vColor.rgb; diffuseColor.rgb = mix(diffuseColor.rgb, zc, zk); float z2 = smoothstep(0.0, 1.0, vZone2); diffuseColor.rgb = mix(diffuseColor.rgb, uZone2Col * vColor.rgb, z2); }\n#include <emissivemap_fragment>'); };
       const key = m.customProgramCacheKey; m.customProgramCacheKey = () => key.call(m) + '-zone';
     }
     return m;
