@@ -12,6 +12,7 @@ import { CHANNELS, CYCLES, CLIPS, POSES, MICRO, TRANSITIONS, FADE } from './acti
 const N = CHANNELS.length, IDX = Object.fromEntries(CHANNELS.map((n, i) => [n, i]));
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t, TAU = Math.PI * 2;
 const angDiff = (a, b) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
+const _hq = new THREE.Quaternion(), _he = new THREE.Euler(), _hv = new THREE.Vector3();
 const frac = (x) => x - Math.floor(x);
 const EASE = { lin: (t) => t, in2: (t) => t * t, out2: (t) => 1 - (1 - t) * (1 - t), io: (t) => t * t * (3 - 2 * t), in3: (t) => t * t * t };
 const BONES = ['root', 'pelvis', 'spine', 'head', 'tail', 'tail.tip', 'ear.L', 'ear.R', 'ear.tip.L', 'ear.tip.R', 'arm.L', 'arm.R', 'hand.L', 'hand.R'];
@@ -65,7 +66,7 @@ export class CharController {
     this.sig = { vy: 0, speed: 0, n: 0, wy: 0, afwd: 0, alat: 0, avert: 0 }; this.vprev = { x: 0, z: 0, vy: 0 };
     this.springs = profile.secondary.map(s => ({ ...s, x: 0, v: 0, i: IDX[s.ch] }));
     this.sq = { x: 0, v: 0 }; this.pet = { on: false, want: false, t: 0, p: 0, v: 0, headHit: false }; this.overlay = null; this.clip = null; this.micro = null; this.microT = 1.5; this.cd = {};
-    this.gaitAmp = 0; this.look = null; this.lookS = { y: 0, p: 0 }; this.expr = 'neutral'; this.exprOverride = null; this.held = null; this.sit = null; this.sleepT = 0; this.spin = { x: 0, z: 0, ax: 0, az: 0 };
+    this.gaitAmp = 0; this.look = null; this.lookS = { y: 0, p: 0 }; this.expr = 'neutral'; this.exprOverride = null; this.held = null; this.sit = null; this.sleepT = 0; this.spin = { x: 0, z: 0, ax: 0, az: 0 }; this.pend = null; this.hang = { x: 0, vx: 0, z: 0, vz: 0 };
     this.snap = { x: 0, y: 0, z: 0, yaw: 0 }; this.snapPrev = { x: 0, y: 0, z: 0, yaw: 0 };
     this.debug = { rotCalls: 0, perBone: {}, proj: 0, projMax: 0, frames: 0 };
     this.sampleIdx = this.buildSamples();
@@ -74,7 +75,7 @@ export class CharController {
   // ── 初始化／重設
   reset(x, z, yaw = 0) {
     const b = this.body; b.place(x, z, yaw); b.wy = 0; b.held = false; b.restitution = 0; b.ignoreH.clear();
-    this.state = 'idle'; this.sub = null; this.stateT = 0; this.sit = null; this.held = null; this.pet.on = this.pet.want = false; this.pet.p = this.pet.v = 0; this.overlay = null; this.clip = null; this.micro = null;
+    this.state = 'idle'; this.sub = null; this.stateT = 0; this.sit = null; this.held = null; this.pet.on = this.pet.want = false; this.pet.p = this.pet.v = 0; this.overlay = null; this.clip = null; this.micro = null; this.pend = null; this.hang.x = this.hang.vx = this.hang.z = this.hang.vz = 0;
     this.intent.mag = 0; this.goal = null; this.faceYaw = null; this.sq.x = this.sq.v = 0; for (const s of this.springs) s.x = s.v = 0;
     this.feet.phase = 0; this.feet.cad = 0; for (const f of this.feet.feet) { this.feet.plantAt(f, this.bodyState(), ...this.feet.homeWorld(f, this.bodyState())); f.yaw = yaw; }
     for (const f of this.feet.feet) { const g = f.goal; g.x = f.x; g.z = f.z; g.y = f.gy + this.feet.ankleH(0); g.pitch = 0; g.yaw = yaw; f.lastMode = f.mode; Object.assign(f.prev, g); }
@@ -137,22 +138,28 @@ export class CharController {
   cancelOverlay() { this.overlay = null; }
   trigger(name) {
     switch (name) {
-      case 'hit': case 'happy': case 'angry': case 'sad': return this.overlayStart(name);
+      case 'hit': case 'happy': case 'angry': case 'sad': {
+        // 個性（profile.react）：糰糰「慢半拍」——開心／生氣／難過先歪頭看一下（好奇）再反應；受擊是反射，幾乎沒有延遲
+        if (!(this.state === 'idle' || (this.state === 'sit' && this.sit?.sub === 'seated'))) return this.overlayStart(name);
+        const R = this.P.react || {}, lat = name === 'hit' ? (R.hitLatency || [0.03, 0.08]) : (R.latency || [0.25, 0.45]);
+        this.pend = { name, t: lerp(lat[0], lat[1], this.rng()), t0: 0 }; this.pend.t0 = this.pend.t; this.cancelPet(); return true; }
       case 'sleep': return this.sleep(); case 'wake': return this.wake();
       case 'jump': return this.jump(); case 'standUp': return this.standUp();
       default: return false;
     }
   }
-  grab(x, y, z) { if (this.state === 'held') { this.held.t = { x, y, z }; return true; } this.cancelPet(); this.sit = null; this.goal = null; this.body.ignoreH.clear(); if (!this.go('held', 'grab')) { /* 睡覺／坐著不可直接抓：先強制喚醒 */ this.state = 'idle'; if (!this.go('held', 'grab')) return false; } this.body.held = true; this.held = { t: { x, y, z }, v: { x: 0, y: 0, z: 0 }, last: { x: this.body.x, y: this.body.y, z: this.body.z } }; return true; }
+  grab(x, y, z, pivot = null) { if (this.state === 'held') { this.held.t = { x, y, z }; return true; } this.cancelPet(); this.sit = null; this.goal = null; this.body.ignoreH.clear(); if (!this.go('held', 'grab')) { /* 睡覺／坐著不可直接抓：先強制喚醒 */ this.state = 'idle'; if (!this.go('held', 'grab')) return false; } this.body.held = true; this.held = { t: { x, y, z }, v: { x: 0, y: 0, z: 0 }, vp: { x: 0, y: 0, z: 0 }, last: { x: this.body.x, y: this.body.y, z: this.body.z }, pivot: pivot || { x: 0, y: 0.62, z: 0 } }; this.hang.x = this.hang.vx = this.hang.z = this.hang.vz = 0; return true; }
   release(vx = 0, vy = 0, vz = 0) {
-    if (this.state !== 'held') return false; this.body.held = false; const sp = Math.hypot(vx, vy, vz);
+    if (this.state !== 'held') return false; this.body.held = false;
+    if (![vx, vy, vz].every(Number.isFinite)) { vx = vy = vz = 0; }   // 指標速度估計若出現非有限值，一律當作 0（不讓它進物理）
+    vy = clamp(vy, -12, 9); const sp = Math.hypot(vx, vy, vz);
     if (sp > 3.2) { const k = Math.min(1, 10 / sp); this.go('tumble', 'throw'); this.body.restitution = 0.42; this.body.launch(vx * k * 0.9, vy * k * 0.9, vz * k * 0.9); this.spin.ax = (this.rng() - 0.5) * 12; this.spin.az = (this.rng() - 0.5) * 12; return true; }
     this.go('air', 'release'); this.body.launch(vx, vy, vz); return true;
   }
   throwAt(vx, vy, vz) { this.grab(this.body.x, this.body.y + 0.3, this.body.z); this.update(1 / 120); return this.release(vx, vy, vz); }
   /** 回到 Idle：任何狀態都能被打斷（空中會等落地：Air 不能直接 Idle） */
   interrupt() {
-    this.cancelPet(); this.cancelOverlay(); this.intent.mag = 0; this.goal = null; this.faceYaw = null; this.jumpBuf = 0; this.micro = null; this.exprOverride = null;
+    this.pend = null; this.cancelPet(); this.cancelOverlay(); this.intent.mag = 0; this.goal = null; this.faceYaw = null; this.jumpBuf = 0; this.micro = null; this.exprOverride = null;
     if (this.sit) { if (this.sit.sub === 'seated') { this.standUp(); return 'rising'; } if (['hop', 'settle', 'risePrep', 'riseHop'].includes(this.sit.sub)) return 'busy'; this.sit = null; }
     if (this.state === 'held') { this.body.held = false; this.go('idle', 'interrupt'); this.body.launch(0, 0, 0); this.go('air', 'interrupt'); return 'fall'; }
     if (this.state === 'air' || this.state === 'tumble' || this.state === 'jumpPrep') return this.state === 'jumpPrep' ? (this.go('idle', 'interrupt'), 'idle') : 'airborne';
@@ -233,7 +240,13 @@ export class CharController {
       case 'sleep': this.clip.step(dt); this.sleepT += dt; if (I.mag > 0.05 || this.jumpBuf > 0) { this.go('idle', 'wake'); } break;
       case 'held': { const h = this.held, T = h.t, k = 1 - Math.exp(-dt * 14); const tx = lerp(b.x, T.x, k), ty = lerp(b.y, Math.max(T.y, b.supportY), k), tz = lerp(b.z, T.z, k);
         h.v.x = lerp(h.v.x, (tx - h.last.x) / dt, 1 - Math.exp(-dt * 12)); h.v.y = lerp(h.v.y, (ty - h.last.y) / dt, 1 - Math.exp(-dt * 12)); h.v.z = lerp(h.v.z, (tz - h.last.z) / dt, 1 - Math.exp(-dt * 12));
-        h.last = { x: tx, y: ty, z: tz }; b.x = tx; b.y = ty; b.z = tz; b.grounded = false; b.vy = 0; b.collideH(); break; }
+        h.last = { x: tx, y: ty, z: tz }; b.x = tx; b.y = ty; b.z = tz; b.grounded = false; b.vy = 0; b.collideH();
+        // 懸吊擺盪：把抓點的加速度（平滑後的速度差）換成角色局部座標，驅動一個欠阻尼的擺（前後＝繞 X、左右＝繞 Z）；靜止時只剩很輕的呼吸式微晃
+        { const g = this.hang, c = Math.cos(b.yaw), s = Math.sin(b.yaw), ax = (h.v.x - h.vp.x) / dt, az = (h.v.z - h.vp.z) / dt; h.vp.x = h.v.x; h.vp.z = h.v.z;
+          const lat = clamp(ax * c - az * s, -40, 40), fwd = clamp(ax * s + az * c, -40, 40), W = TAU * 1.25, Z = 0.1, K = 0.045;
+          const tz_ = clamp(-K * lat, -0.8, 0.8) + 0.03 * Math.sin(this.time * 2.1), tx_ = clamp(K * fwd, -0.8, 0.8) + 0.02 * Math.sin(this.time * 1.7 + 1);
+          g.vz += (W * W * (tz_ - g.z) - 2 * Z * W * g.vz) * dt; g.z = clamp(g.z + g.vz * dt, -1.0, 1.0); g.vx += (W * W * (tx_ - g.x) - 2 * Z * W * g.vx) * dt; g.x = clamp(g.x + g.vx * dt, -1.0, 1.0); }
+        break; }
       case 'tumble': {
         const sp = this.spin; this.rollA = (this.rollA || 0); this.pitchA = (this.pitchA || 0);
         if (!b.grounded) { this.pitchA += sp.ax * dt; this.rollA += sp.az * dt; } else { sp.ax *= 0.9; sp.az *= 0.9; this.pitchA = lerp(this.pitchA, Math.round(this.pitchA / TAU) * TAU, 1 - Math.exp(-dt * 10)); this.rollA = lerp(this.rollA, Math.round(this.rollA / TAU) * TAU, 1 - Math.exp(-dt * 10)); }
@@ -241,6 +254,7 @@ export class CharController {
         break; }
       case 'recover': if (this.stateT > 0.8) this.go('idle', 'recovered'); else if (I.mag > 0.05 && this.stateT > 0.4) this.go('idle', 'recovered'); break;
     }
+    if (this.pend) { this.pend.t -= dt; if (this.pend.t <= 0) { const n = this.pend.name; this.pend = null; this.overlayStart(n); } }
     // 摸頭
     const pt = this.pet;
     if (pt.want) { pt.t += dt; if (pt.t >= P.pet.latency) pt.on = true; }
@@ -368,11 +382,13 @@ export class CharController {
     // 次級彈簧（耳朵、尾巴）：追蹤「加速度 × 增益」的目標，帶阻尼
     for (const s of this.springs) { const w = TAU * s.hz, tgt = s.gain * S[s.src]; s.v += (w * w * (tgt - s.x) - 2 * s.zeta * w * s.v) * dt; s.x = clamp(s.x + s.v * dt, -0.9, 0.9); bus.add(s.ch, s.x, 'secondary'); }
     // 呼吸（形態鍵）＋ 身體重心輕微起伏
-    if (this.life) { const L = P.life.breath, slow = this.state === 'sleep' ? 1.35 : 1; bus.add('morph.breath', (0.5 + 0.5 * Math.sin(this.time * TAU / (L.period * slow))) * L.amp, 'breath'); }
+    if (this.life) { const L = P.life.breath, slow = this.state === 'sleep' ? 1.9 : 1; bus.add('morph.breath', (0.5 + 0.5 * Math.sin(this.time * TAU / (L.period * slow))) * L.amp, 'breath'); }
     // 待機小動作
     if (this.micro) { const m = this.micro; for (const [ch, keys] of Object.entries(m.def.ch)) bus.add(ch, this.keyv(keys, m.t), 'micro'); }
     // 覆蓋層（hit／happy…）
-    if (this.overlay) { const o = this.overlay.player.out; for (let i = 0; i < N; i++) if (o[i]) bus.a[i] += o[i]; for (let i = 0; i < N; i++) if (o[i]) bus.addWho[i].add('overlay'); }
+    if (this.overlay) { const o = this.overlay.player.out, am = (P.react?.amp?.[this.overlay.name]) ?? 1; for (let i = 0; i < N; i++) if (o[i]) bus.a[i] += o[i] * am; for (let i = 0; i < N; i++) if (o[i]) bus.addWho[i].add('overlay'); }
+    // 等待反應的那半拍：歪頭、耳朵豎起（好奇）。pend.t 由 t0 倒數到 0，用正弦包絡讓進出都是 0
+    if (this.pend) { const u = 1 - this.pend.t / Math.max(1e-3, this.pend.t0), e = Math.sin(clamp(u, 0, 1) * Math.PI), tilt = P.react?.curiousTilt ?? 0.12; bus.add('head.rz', tilt * e, 'react'); bus.add('ear.L.rx', 0.12 * e, 'react'); bus.add('ear.R.rx', 0.12 * e, 'react'); }
     // 視線（疊加層）：轉身時頭先動（慢半拍）、看向游標
     this.gazeLayer(dt);
     // 擠壓彈簧（落地壓縮與回彈，卡通變形層）
@@ -381,7 +397,9 @@ export class CharController {
     // 摸頭
     this.petLayer(dt);
     // 翻滾旋轉（視覺）
-    if (this.state === 'tumble') { bus.add('root.rx', this.pitchA || 0, 'tumble'); bus.add('root.rz', this.rollA || 0, 'tumble'); }
+    if (this.state === 'tumble') {   // 繞身體中心（不是腳底）翻滾：旋轉後把中心補回原位，翻滾才不會整個陷進地面
+      const px = this.pitchA || 0, rz = this.rollA || 0, R = _hq.setFromEuler(_he.set(px, 0, rz, 'XYZ')), o = _hv.set(0, 0.3, 0).applyQuaternion(R);
+      bus.add('root.rx', px, 'tumble'); bus.add('root.rz', rz, 'tumble'); bus.add('root.dx', -o.x, 'tumble'); bus.add('root.dy', 0.3 - o.y, 'tumble'); bus.add('root.dz', -o.z, 'tumble'); }
     // 橫向膨脹限制：不穿牆、不穿家具（規則 10）
     this.limitSquash();
     for (const m of MORPHS) { const i = IDX['morph.' + m]; a[i] = clamp(a[i], 0, 1); }
@@ -448,7 +466,11 @@ export class CharController {
       case 'air': { const A = POSES.air; for (const [k, v] of Object.entries(A.pose)) bus.set(k, v, who); drv(A.drv, this.sig); expr = A.expr; break; }
       case 'sit': { const A = POSES.sit; for (const [k, v] of Object.entries(A.pose)) bus.set(k, v, who); bus.set('root.dy', 0, who); expr = A.expr; break; }
       case 'sleep': { const c = this.clip; if (c && !c.done) bus.a.set(c.out); else for (const [k, v] of Object.entries(POSES.sleep.pose)) bus.a[IDX[k]] = v; for (let i = 0; i < N; i++) bus.owner[i] = bus.a[i] ? who : null; expr = 'sleep'; break; }
-      case 'held': case 'tumble': case 'recover': { const A = POSES[key]; for (const [k, v] of Object.entries(A.pose)) bus.set(k, v, who); expr = A.expr; break; }
+      case 'held': case 'tumble': case 'recover': { const A = POSES[key]; for (const [k, v] of Object.entries(A.pose)) bus.set(k, v, who); expr = A.expr;
+        if (key === 'held' && this.held) {   // 繞抓點旋轉：先轉身體，再把抓點補回原位（位置 = P − R·P）
+          const g = this.hang, pv = this.held.pivot, R = _hq.setFromEuler(_he.set(g.x, 0, g.z, 'XYZ')), o = _hv.set(pv.x, pv.y, pv.z).applyQuaternion(R);
+          bus.add('root.rx', g.x, 'hang'); bus.add('root.rz', g.z, 'hang'); bus.add('root.dx', pv.x - o.x, 'hang'); bus.add('root.dy', pv.y - o.y, 'hang'); bus.add('root.dz', pv.z - o.z, 'hang'); }
+        break; }
     }
     if (this.state === 'sit' && ['approach', 'turn'].includes(this.sit?.sub) === false && key === 'jumpPrep') expr = 'neutral';
     this.base_expr = expr;
@@ -496,11 +518,11 @@ export class CharController {
     const big = this.state === 'tumble' || Math.abs(p[IDX['root.rx']]) + Math.abs(p[IDX['root.rz']]) + Math.abs(p[IDX['head.rx']]) + Math.abs(p[IDX['spine.rx']]) + Math.abs(p[IDX['pelvis.rx']]) > 0.15, sup = this.body.supportY;
     const snap = this.state === 'sit' && ['settle', 'seated', 'risePrep'].includes(this.sit?.sub);
     let dyx = 0, pen = 0;
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < 4; pass++) {
       const low = this.lowestBody(big && !snap); const e = sup + (snap ? 0.003 : 0) - low;   // 坐著留 3 mm 縫隙，避免座面與圓肚皮共平面的 z-fighting（仍遠小於 1 cm）
  if (pass === 0) pen = e;
       if (snap ? Math.abs(e) < 0.0005 : e < 0.0008) break;
-      dyx = clamp(dyx + e, snap ? -0.08 : 0, 0.5); this.applyPose(p, dyx); root.updateMatrixWorld(true); this.feet.apply(alpha);
+      dyx = clamp(dyx + e, snap ? -0.08 : 0, 0.8); this.applyPose(p, dyx); root.updateMatrixWorld(true); this.feet.apply(alpha);
       if (pass === 0 && !snap) { dbg.proj++; }
     }
     if (dyx > 0 && !snap) dbg.projMax = Math.max(dbg.projMax, dyx); this.dyx = dyx;

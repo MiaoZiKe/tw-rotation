@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { PhysWorld } from './physics.js';
 import { CharController, loadProfile } from './controller.js';
+import { SleepFx } from './fx.js';
 
 const V3 = THREE.Vector3;
 export const FIELD = { half: 2.3 };
@@ -46,7 +47,7 @@ export class Field {
     this.blobs = [];
     const blob = (x, z, sx, sz, op) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: stage.texBody, transparent: true, depthWrite: false, opacity: op })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.0025, z); m.scale.set(sx, sz, 1); m.renderOrder = 1; this.group.add(m); this.blobs.push(m); };
     blob(1.15, -0.85, 0.95, 0.95, 0.5); blob(sx, sz, 0.8, 0.8, 0.42);
-    this.keys = new Set(); this.ctl = null; this.dragMode = false;
+    this.keys = new Set(); this.ctl = null; this.dragMode = false; this.fx = new SleepFx(scene);
   }
   async attach(ch, { x = 0, z = 0.9, yaw = Math.PI, keep = null, seed } = {}) {
     if (!this.profile) this.profile = await loadProfile(new URL('./profiles/mochi.json', import.meta.url).href);
@@ -54,7 +55,7 @@ export class Field {
     this.ctl = new CharController(ch, this.world, this.profile, { x: pos?.x ?? x, z: pos?.z ?? z, yaw: pos?.yaw ?? yaw, seed });
     return this.ctl;
   }
-  setVisible(v) { this.group.visible = v; }
+  setVisible(v) { this.group.visible = v; this.fx.group.visible = v; }
   /** 滑鼠／觸控射線（THREE.Raycaster）：回傳 { kind:'head'|'stool'|'crate'|'ground'|null, point, d } */
   pick(rc) {
     const ctl = this.ctl, ch = ctl?.ch, ray = rc.ray; let best = { kind: null, d: 1e9, point: null };
@@ -63,10 +64,14 @@ export class Field {
       const head = new V3(0, 0.46, 0.02).applyMatrix4(ch.root.matrixWorld), hit = new V3(), sph = new THREE.Sphere(head, 0.37);
       if (ray.intersectSphere(sph, hit)) { const loc = ch.root.worldToLocal(hit.clone()); if (loc.y > 0.4) { const d = hit.distanceTo(ray.origin); if (d < best.d) best = { kind: 'head', d, point: hit.clone() }; } }
     }
+    if (ch && best.kind == null) {   // 身體（頭以外）：同樣可以被抓起
+      const bc = new V3(0, 0.3, 0).applyMatrix4(ch.root.matrixWorld), hit = new V3();
+      if (ray.intersectSphere(new THREE.Sphere(bc, 0.42), hit)) best = { kind: 'body', d: hit.distanceTo(ray.origin), point: hit.clone() };
+    }
     for (const k of ['stool', 'crate']) { const h = rc.intersectObject(this.meshes[k], true)[0]; if (h && h.distance < best.d) best = { kind: k, d: h.distance, point: h.point.clone() }; }
     const hit = new V3(); if (best.kind == null && ray.intersectPlane(new THREE.Plane(new V3(0, 1, 0), 0), hit)) best = { kind: 'ground', d: hit.distanceTo(ray.origin), point: hit };
     return best;
   }
-  update(dt) { if (this.ctl) { this.ctl.update(dt); } }
-  dispose() { this.scene.remove(this.group); }
+  update(dt) { if (this.ctl) { this.ctl.update(dt); } this.fx.update(dt, this.ctl); }
+  dispose() { this.scene.remove(this.group); this.fx.dispose(); }
 }

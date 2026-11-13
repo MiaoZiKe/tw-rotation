@@ -20,6 +20,20 @@ def _shot(pg, clip=None):
     return _hl.md5(pg.screenshot(clip=clip)).hexdigest()
 
 
+def _settled(pg, clip=None, tries=8):
+    """移開滑鼠、取消焦點，連拍到兩張相同才回傳（排除按鈕 hover／焦點外框與尚未穩定的畫面）"""
+    pg.mouse.move(2, 2)
+    pg.evaluate("() => document.activeElement && document.activeElement.blur && document.activeElement.blur()")
+    prev = None
+    for _ in range(tries):
+        pg.wait_for_timeout(250)
+        cur = _shot(pg, clip)
+        if cur == prev:
+            return cur
+        prev = cur
+    return prev
+
+
 _FACE_CLIP = {"x": 0, "y": 0, "width": 0, "height": 0}
 
 _LOWEST_Y = """() => { const ch = CH.ch, b = ch.body, g = b.geometry, p = g.attributes.position, T = new CH.camera.position.constructor(), M = g.morphAttributes.position, w = b.morphTargetInfluences;
@@ -173,11 +187,13 @@ def t_office_char(b, base):
         pg.evaluate("() => CH.endAct()"); pg.click("#btnMotion"); wait_until(pg, "() => CH.S.paused === true", 3000)
         pg.evaluate("() => { CH.S.ch.resetPose(); CH.S.ch.update(0); }"); _calm(pg); pg.wait_for_timeout(300)
         CL = {"x": 0, "y": 50, "width": 1100, "height": 440}   # 只比 3D 畫面（面板按鈕的 hover 狀態會讓整頁截圖不同）
-        a0 = _shot(pg, CL)
-        pg.click("#btnWire"); pg.wait_for_timeout(300); a1 = _shot(pg, CL)
+        # 查證（第四階段）：原本這條偶爾失敗，不是程式沒還原——3D 畫面逐像素相同，差的是剛按過的「靜止」按鈕還留著 hover／焦點外框。
+        # 所以每次截圖前先把滑鼠移開、取消焦點，並等到連續兩張相同（畫面穩定）才比對。
+        a0 = _settled(pg, CL)
+        pg.click("#btnWire"); pg.wait_for_timeout(300); a1 = _settled(pg, CL)
         ok("★ 線框鈕：畫面改變，覆蓋材質為 wireframe", a1 != a0 and pg.evaluate("() => !!CH.scene.overrideMaterial && CH.scene.overrideMaterial.wireframe"), [a0 != a1])
         pg.click("#btnWire"); pg.wait_for_timeout(500)
-        ok("線框再按一次：還原（畫面與原圖相同）", _shot(pg, CL) == a0)
+        ok("線框再按一次：還原（畫面與原圖相同）", _settled(pg, CL) == a0)
         pg.click("#btnSil"); pg.wait_for_timeout(300)
         sil = pg.evaluate("() => !!CH.scene.overrideMaterial && CH.scene.overrideMaterial.color.getHex() === 0x111111")
         ok("★ 黑色剪影鈕：整個場景改成純黑剪影", sil and _shot(pg, CL) != a0)

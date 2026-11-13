@@ -96,6 +96,7 @@ export class PhysBody {
       }
     } else if (sup.h < this.y - 1e-4) { this.grounded = false; this.groundId = null; this.vy = 0; this.airT = 0; this.events.push({ type: 'leave', vy: 0, fall: true }); }
     else { this.y = sup.h; this.groundId = sup.id; }
+    if (!this.grounded && this.y < prevY) this.collideH();   // 垂直下落跨過方塊的「踏高」門檻後，同一步立刻把水平嵌入推出去（否則要到下一步才推，端點狀態會嵌在方塊裡）
     this.yaw += this.wy * dt;
   }
   collideH() {

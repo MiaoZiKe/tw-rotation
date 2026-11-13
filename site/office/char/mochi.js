@@ -85,7 +85,6 @@ export class MochiChar {
     const old = this.mat, oldLid = this.lidMat; this.cfg.preset = id; Object.assign(this.cfg, extra);
     this.mat = makeMaterial(id, { color: this.cfg.color, top: this.cfg.top, vertexAO: true, far: this.cfg.far });
     this.body.material = this.mat; setAOStrength(this.body.geometry, PRESETS[id].ao); this.lidMat = { L: this.makeLidMat('L'), R: this.makeLidMat('R') };
-    if (this.face) for (const e of this.face.eyes) e.lid.material = this.lidMat[e.side > 0 ? 'L' : 'R'];
     old.dispose(); oldLid.L.dispose(); oldLid.R.dispose();
   }
   setColor(color, top) { this.cfg.color = color; if (top != null) this.cfg.top = top; this.setPreset(this.cfg.preset); }
@@ -115,7 +114,8 @@ export class MochiChar {
     this.model.updateMatrixWorld(true);
   }
   dispose() {
-    this.mat.dispose(); this.lidMat.L.dispose(); this.lidMat.R.dispose(); if (this.face) { this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh && !n.geometry.userData.shared) n.geometry.dispose(); }); this.decal.material.dispose(); }
+    this.model.traverse(n => { if (n.isSkinnedMesh && n.skeleton) n.skeleton.dispose(); });   // 骨頭貼圖（每隻角色自己的，不釋放會一直累積）
+    this.mat.dispose(); this.lidMat.L.dispose(); this.lidMat.R.dispose(); if (this.face) { this.face.dispose(); this.face.tex.dispose(); this.holder.traverse(n => { if (n.isMesh && !n.geometry.userData.shared) n.geometry.dispose(); }); this.decal.material.dispose(); }
     this.root.removeFromParent();
   }
 }

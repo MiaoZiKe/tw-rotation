@@ -1,0 +1,1538 @@
+{
+ "version": 1,
+ "reasonLabels": {
+  "quality": "品質退件偏高",
+  "speed": "工時超預估",
+  "token": "Token 超預算",
+  "completion": "完成率低",
+  "load": "人力吃緊",
+  "sample": "",
+  "": ""
+ },
+ "demo": true,
+ "note": "示範資料（全是假的）。真資料由 hr-officer 每週一產出。",
+ "week": "2026-W45",
+ "range": [
+  "2026-11-02",
+  "2026-11-08"
+ ],
+ "generatedAt": "2026-11-09T09:00+08:00",
+ "prevWeek": "2026-W44",
+ "rules": {
+  "grade": [
+   [
+    95,
+    "S"
+   ],
+   [
+    85,
+    "A"
+   ],
+   [
+    75,
+    "B"
+   ],
+   [
+    65,
+    "C"
+   ],
+   [
+    50,
+    "D"
+   ],
+   [
+    35,
+    "E"
+   ],
+   [
+    0,
+    "F"
+   ]
+  ],
+  "levelByGrade": {
+   "S": 5,
+   "A": 4,
+   "B": 3,
+   "C": 2,
+   "D": 2,
+   "E": 1,
+   "F": 1
+  }
+ },
+ "ceo": {
+  "grade": "B",
+  "score": 81.0,
+  "prev": 78.0,
+  "delta": 3.0,
+  "tasks": {
+   "todo": 2,
+   "doing": 3,
+   "done": 11
+  },
+  "done_rate": 0.79,
+  "ontime": 0.82,
+  "reject_rate": 0.12,
+  "token_ratio": 1.05,
+  "time_ratio": 1.1,
+  "false_reports": 0,
+  "dims": {
+   "assigned_done": 74,
+   "rejects": 80,
+   "honest": 100,
+   "dispatch_token": 78,
+   "deploy_stuck": 85,
+   "proactive": 70
+  },
+  "top_loss": "completion",
+  "advice": "交辦事項 3 件缺完成證據：補網址／commit 再結案",
+  "streak": 0,
+  "level": 3,
+  "acc": [
+   "grade_chip"
+  ],
+  "note": "CEO 由 inspector 評，直送 Andy"
+ },
+ "depts": [
+  {
+   "id": "data",
+   "name": "資料部",
+   "grade": "B",
+   "score": 77.8,
+   "prev": 76.0,
+   "delta": 1.8,
+   "deptMetric": 72,
+   "level": 3,
+   "tasks": {
+    "todo": 2,
+    "doing": 3,
+    "done": 6
+   },
+   "done_rate": 0.55,
+   "ontime": 0.91,
+   "reject_rate": 0.11,
+   "token_ratio": 1.02,
+   "time_ratio": 1.06,
+   "false_reports": 0,
+   "top_loss": "speed",
+   "sampleShort": 0,
+   "members": {
+    "data-steward": {
+     "grade": "A",
+     "score": 88,
+     "prev": 84,
+     "delta": 4,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 6,
+     "done_rate": 0.67,
+     "ontime": 0.95,
+     "reject_rate": 0.08,
+     "token_ratio": 0.93,
+     "time_ratio": 0.98,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "data-scraper": {
+     "grade": "C",
+     "score": 71,
+     "prev": 74,
+     "delta": -3,
+     "tasks": {
+      "todo": 1,
+      "doing": 2,
+      "done": 2
+     },
+     "n": 5,
+     "done_rate": 0.4,
+     "ontime": 0.87,
+     "reject_rate": 0.15,
+     "token_ratio": 1.12,
+     "time_ratio": 1.15,
+     "false_reports": 0,
+     "top_loss": "speed",
+     "advice": "補規則：抓取改增量",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "quant",
+   "name": "量化研究部",
+   "grade": "A",
+   "score": 85.8,
+   "prev": 84.5,
+   "delta": 1.3,
+   "deptMetric": 84,
+   "level": 4,
+   "tasks": {
+    "todo": 2,
+    "doing": 3,
+    "done": 12
+   },
+   "done_rate": 0.71,
+   "ontime": 0.94,
+   "reject_rate": 0.06,
+   "token_ratio": 0.95,
+   "time_ratio": 0.99,
+   "false_reports": 0,
+   "top_loss": "",
+   "sampleShort": 0,
+   "members": {
+    "finance-quant": {
+     "grade": "A",
+     "score": 92,
+     "prev": 90,
+     "delta": 2,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 6
+     },
+     "n": 7,
+     "done_rate": 0.86,
+     "ontime": 0.96,
+     "reject_rate": 0.04,
+     "token_ratio": 0.89,
+     "time_ratio": 0.93,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 5,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "smc-technical": {
+     "grade": "A",
+     "score": 86,
+     "prev": 85,
+     "delta": 1,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 6,
+     "done_rate": 0.67,
+     "ontime": 0.94,
+     "reject_rate": 0.07,
+     "token_ratio": 0.95,
+     "time_ratio": 1.0,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "strategy-backtest": {
+     "grade": "B",
+     "score": 78,
+     "prev": 80,
+     "delta": -2,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 4,
+     "done_rate": 0.5,
+     "ontime": 0.9,
+     "reject_rate": 0.1,
+     "token_ratio": 1.04,
+     "time_ratio": 1.08,
+     "false_reports": 0,
+     "top_loss": "speed",
+     "advice": "估時偏短，重估預估工時",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "industry",
+   "name": "產業研究部",
+   "grade": "B",
+   "score": 76.5,
+   "prev": 78.0,
+   "delta": -1.5,
+   "deptMetric": 70,
+   "level": 3,
+   "tasks": {
+    "todo": 5,
+    "doing": 5,
+    "done": 16
+   },
+   "done_rate": 0.62,
+   "ontime": 0.91,
+   "reject_rate": 0.14,
+   "token_ratio": 1.03,
+   "time_ratio": 1.07,
+   "false_reports": 0,
+   "top_loss": "quality",
+   "sampleShort": 0,
+   "members": {
+    "industry-analyst": {
+     "grade": "B",
+     "score": 83,
+     "prev": 81,
+     "delta": 2,
+     "tasks": {
+      "todo": 2,
+      "doing": 1,
+      "done": 5
+     },
+     "n": 8,
+     "done_rate": 0.62,
+     "ontime": 0.92,
+     "reject_rate": 0.08,
+     "token_ratio": 0.99,
+     "time_ratio": 1.03,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "semi-chain-analyst": {
+     "grade": "A",
+     "score": 90,
+     "prev": 86,
+     "delta": 4,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 5
+     },
+     "n": 6,
+     "done_rate": 0.83,
+     "ontime": 0.96,
+     "reject_rate": 0.05,
+     "token_ratio": 0.91,
+     "time_ratio": 0.95,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 3,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "pcb-substrate-analyst": {
+     "grade": "B",
+     "score": 76,
+     "prev": 79,
+     "delta": -3,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 5,
+     "done_rate": 0.6,
+     "ontime": 0.89,
+     "reject_rate": 0.12,
+     "token_ratio": 1.06,
+     "time_ratio": 1.1,
+     "false_reports": 0,
+     "top_loss": "quality",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "ai-server-analyst": {
+     "grade": "C",
+     "score": 68,
+     "prev": 72,
+     "delta": -4,
+     "tasks": {
+      "todo": 2,
+      "doing": 2,
+      "done": 3
+     },
+     "n": 7,
+     "done_rate": 0.43,
+     "ontime": 0.86,
+     "reject_rate": 0.29,
+     "token_ratio": 1.15,
+     "time_ratio": 1.19,
+     "false_reports": 0,
+     "top_loss": "quality",
+     "advice": "補規則：數字要回頭確認是誰的",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "frontend",
+   "name": "前端工程部",
+   "grade": "A",
+   "score": 88.1,
+   "prev": 86.0,
+   "delta": 2.1,
+   "deptMetric": 90,
+   "level": 4,
+   "tasks": {
+    "todo": 4,
+    "doing": 5,
+    "done": 18
+   },
+   "done_rate": 0.67,
+   "ontime": 0.94,
+   "reject_rate": 0.07,
+   "token_ratio": 0.94,
+   "time_ratio": 0.98,
+   "false_reports": 0,
+   "top_loss": "quality",
+   "sampleShort": 0,
+   "members": {
+    "frontend-ui": {
+     "grade": "S",
+     "score": 96,
+     "prev": 91,
+     "delta": 5,
+     "tasks": {
+      "todo": 1,
+      "doing": 2,
+      "done": 7
+     },
+     "n": 10,
+     "done_rate": 0.7,
+     "ontime": 0.98,
+     "reject_rate": 0.03,
+     "token_ratio": 0.84,
+     "time_ratio": 0.89,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 4,
+     "acc": [
+      "grade_chip",
+      "ring_gold",
+      "halo",
+      "star_gold",
+      "cape_gold",
+      "glasses_gold",
+      "nameplate_gold",
+      "trophy",
+      "mvp_sash"
+     ]
+    },
+    "mobile-ui": {
+     "grade": "A",
+     "score": 89,
+     "prev": 87,
+     "delta": 2,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 6
+     },
+     "n": 8,
+     "done_rate": 0.75,
+     "ontime": 0.95,
+     "reject_rate": 0.06,
+     "token_ratio": 0.92,
+     "time_ratio": 0.97,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 2,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "canvas-motion-engineer": {
+     "grade": "B",
+     "score": 81,
+     "prev": 77,
+     "delta": 4,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 5,
+     "done_rate": 0.6,
+     "ontime": 0.91,
+     "reject_rate": 0.09,
+     "token_ratio": 1.01,
+     "time_ratio": 1.05,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "visual-explainer": {
+     "grade": "C",
+     "score": 70,
+     "prev": 63,
+     "delta": 7,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 4,
+     "done_rate": 0.5,
+     "ontime": 0.86,
+     "reject_rate": 0.18,
+     "token_ratio": 1.13,
+     "time_ratio": 1.16,
+     "false_reports": 0,
+     "top_loss": "quality",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "design",
+   "name": "設計與繪圖部",
+   "grade": "A",
+   "score": 85.0,
+   "prev": 85.5,
+   "delta": -0.5,
+   "deptMetric": 82,
+   "level": 4,
+   "tasks": {
+    "todo": 3,
+    "doing": 6,
+    "done": 18
+   },
+   "done_rate": 0.67,
+   "ontime": 0.94,
+   "reject_rate": 0.07,
+   "token_ratio": 0.95,
+   "time_ratio": 0.99,
+   "false_reports": 0,
+   "top_loss": "",
+   "sampleShort": 1,
+   "members": {
+    "product-design-lead": {
+     "grade": "B",
+     "score": 84,
+     "prev": 82,
+     "delta": 2,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 5,
+     "done_rate": 0.6,
+     "ontime": 0.93,
+     "reject_rate": 0.07,
+     "token_ratio": 0.98,
+     "time_ratio": 1.02,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "visual-designer": {
+     "grade": "B",
+     "score": 79,
+     "prev": 83,
+     "delta": -4,
+     "tasks": {
+      "todo": 2,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 7,
+     "done_rate": 0.57,
+     "ontime": 0.91,
+     "reject_rate": 0.13,
+     "token_ratio": 1.03,
+     "time_ratio": 1.07,
+     "false_reports": 0,
+     "top_loss": "quality",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "tech-illustrator": {
+     "grade": "A",
+     "score": 87,
+     "prev": 88,
+     "delta": -1,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 4,
+     "done_rate": 0.75,
+     "ontime": 0.94,
+     "reject_rate": 0.06,
+     "token_ratio": 0.94,
+     "time_ratio": 0.99,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "art-director": {
+     "grade": "A",
+     "score": 93,
+     "prev": 92,
+     "delta": 1,
+     "tasks": {
+      "todo": 0,
+      "doing": 2,
+      "done": 7
+     },
+     "n": 9,
+     "done_rate": 0.78,
+     "ontime": 0.97,
+     "reject_rate": 0.03,
+     "token_ratio": 0.88,
+     "time_ratio": 0.92,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 6,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "mechanical-engineer": {
+     "grade": null,
+     "score": null,
+     "prev": null,
+     "delta": null,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 1
+     },
+     "n": 2,
+     "top_loss": "sample",
+     "advice": "",
+     "streak": 0,
+     "acc": [],
+     "note": "樣本不足"
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "social",
+   "name": "社群媒體部",
+   "grade": "D",
+   "score": 62.2,
+   "prev": 67.0,
+   "delta": -4.8,
+   "deptMetric": 56,
+   "level": 2,
+   "tasks": {
+    "todo": 11,
+    "doing": 8,
+    "done": 14
+   },
+   "done_rate": 0.42,
+   "ontime": 0.84,
+   "reject_rate": 0.19,
+   "token_ratio": 1.19,
+   "time_ratio": 1.22,
+   "false_reports": 0,
+   "top_loss": "quality",
+   "sampleShort": 0,
+   "members": {
+    "social-ops-lead": {
+     "grade": "B",
+     "score": 82,
+     "prev": 79,
+     "delta": 3,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 6,
+     "done_rate": 0.67,
+     "ontime": 0.92,
+     "reject_rate": 0.08,
+     "token_ratio": 1.0,
+     "time_ratio": 1.04,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "tc-channel-lead": {
+     "grade": "D",
+     "score": 58,
+     "prev": 66,
+     "delta": -8,
+     "tasks": {
+      "todo": 2,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 5,
+     "done_rate": 0.4,
+     "ontime": 0.81,
+     "reject_rate": 0.2,
+     "token_ratio": 1.26,
+     "time_ratio": 1.29,
+     "false_reports": 0,
+     "top_loss": "token",
+     "advice": "Token 超預算兩次，拆小任務",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_amber",
+      "lamp_amber",
+      "mentor_book"
+     ]
+    },
+    "healing-editor": {
+     "grade": "D",
+     "score": 64,
+     "prev": 70,
+     "delta": -6,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 4,
+     "done_rate": 0.5,
+     "ontime": 0.84,
+     "reject_rate": 0.25,
+     "token_ratio": 1.2,
+     "time_ratio": 1.23,
+     "false_reports": 0,
+     "top_loss": "quality",
+     "advice": "補規則：易退件的三件事",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_amber",
+      "lamp_amber",
+      "mentor_book"
+     ]
+    },
+    "finance-content-editor": {
+     "grade": "C",
+     "score": 72,
+     "prev": 74,
+     "delta": -2,
+     "tasks": {
+      "todo": 3,
+      "doing": 2,
+      "done": 4
+     },
+     "n": 9,
+     "done_rate": 0.44,
+     "ontime": 0.87,
+     "reject_rate": 0.14,
+     "token_ratio": 1.11,
+     "time_ratio": 1.14,
+     "false_reports": 0,
+     "top_loss": "completion",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    },
+    "content-planner": {
+     "grade": "E",
+     "score": 45,
+     "prev": 58,
+     "delta": -13,
+     "tasks": {
+      "todo": 3,
+      "doing": 2,
+      "done": 1
+     },
+     "n": 6,
+     "done_rate": 0.17,
+     "ontime": 0.75,
+     "reject_rate": 0.33,
+     "token_ratio": 1.4,
+     "time_ratio": 1.43,
+     "false_reports": 0,
+     "top_loss": "completion",
+     "advice": "手上同時 5 件：拆職責或補人",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_amber",
+      "lamp_amber",
+      "mentor_book"
+     ]
+    },
+    "market-researcher": {
+     "grade": "D",
+     "score": 61,
+     "prev": 60,
+     "delta": 1,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 1
+     },
+     "n": 3,
+     "done_rate": 0.33,
+     "ontime": 0.82,
+     "reject_rate": 0.15,
+     "token_ratio": 1.23,
+     "time_ratio": 1.26,
+     "false_reports": 0,
+     "top_loss": "speed",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_amber",
+      "lamp_amber",
+      "mentor_book"
+     ]
+    }
+   },
+   "flag": {
+    "text": "待加強",
+    "reason": "quality"
+   },
+   "advice": "補規則：易退件三件事；內容企劃拆職責"
+  },
+  {
+   "id": "video",
+   "name": "影音製作部",
+   "grade": "C",
+   "score": 71.8,
+   "prev": 73.5,
+   "delta": -1.7,
+   "deptMetric": 64,
+   "level": 3,
+   "tasks": {
+    "todo": 5,
+    "doing": 7,
+    "done": 13
+   },
+   "done_rate": 0.52,
+   "ontime": 0.89,
+   "reject_rate": 0.11,
+   "token_ratio": 1.07,
+   "time_ratio": 1.11,
+   "false_reports": 0,
+   "top_loss": "speed",
+   "sampleShort": 2,
+   "members": {
+    "animation-director": {
+     "grade": "B",
+     "score": 80,
+     "prev": 78,
+     "delta": 2,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 5,
+     "done_rate": 0.6,
+     "ontime": 0.91,
+     "reject_rate": 0.08,
+     "token_ratio": 1.02,
+     "time_ratio": 1.06,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "storyboard-artist": {
+     "grade": "A",
+     "score": 85,
+     "prev": 84,
+     "delta": 1,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 5,
+     "done_rate": 0.8,
+     "ontime": 0.93,
+     "reject_rate": 0.06,
+     "token_ratio": 0.96,
+     "time_ratio": 1.01,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "motion-designer": {
+     "grade": "B",
+     "score": 77,
+     "prev": 75,
+     "delta": 2,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 4,
+     "done_rate": 0.5,
+     "ontime": 0.9,
+     "reject_rate": 0.1,
+     "token_ratio": 1.05,
+     "time_ratio": 1.09,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "video-editor": {
+     "grade": "C",
+     "score": 66,
+     "prev": 70,
+     "delta": -4,
+     "tasks": {
+      "todo": 2,
+      "doing": 2,
+      "done": 2
+     },
+     "n": 6,
+     "done_rate": 0.33,
+     "ontime": 0.85,
+     "reject_rate": 0.17,
+     "token_ratio": 1.17,
+     "time_ratio": 1.21,
+     "false_reports": 0,
+     "top_loss": "speed",
+     "advice": "排隊過長：重排優先順序",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    },
+    "bibi-animator": {
+     "grade": "C",
+     "score": 69,
+     "prev": 72,
+     "delta": -3,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 4,
+     "done_rate": 0.5,
+     "ontime": 0.86,
+     "reject_rate": 0.14,
+     "token_ratio": 1.14,
+     "time_ratio": 1.18,
+     "false_reports": 0,
+     "top_loss": "quality",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    },
+    "bibi-illustrator": {
+     "grade": null,
+     "score": null,
+     "prev": null,
+     "delta": null,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 0
+     },
+     "n": 1,
+     "top_loss": "sample",
+     "advice": "",
+     "streak": 0,
+     "acc": [],
+     "note": "樣本不足"
+    },
+    "bibi-interaction": {
+     "grade": null,
+     "score": null,
+     "prev": null,
+     "delta": null,
+     "tasks": {
+      "todo": 0,
+      "doing": 0,
+      "done": 0
+     },
+     "n": 0,
+     "top_loss": "sample",
+     "advice": "",
+     "streak": 0,
+     "acc": [],
+     "note": "樣本不足"
+    }
+   },
+   "flag": null,
+   "levelPending": {
+    "to": 2,
+    "since": "2026-W45",
+    "note": "連續 2 週低於 B 才降級"
+   },
+   "advice": "重排優先順序，剪輯排隊過長"
+  },
+  {
+   "id": "biz",
+   "name": "商務與上架部",
+   "grade": "A",
+   "score": 88.9,
+   "prev": 87.0,
+   "delta": 1.9,
+   "deptMetric": 88,
+   "level": 4,
+   "tasks": {
+    "todo": 2,
+    "doing": 3,
+    "done": 6
+   },
+   "done_rate": 0.55,
+   "ontime": 0.95,
+   "reject_rate": 0.04,
+   "token_ratio": 0.92,
+   "time_ratio": 0.96,
+   "false_reports": 0,
+   "top_loss": "",
+   "sampleShort": 1,
+   "members": {
+    "marketing-strategist": {
+     "grade": "A",
+     "score": 91,
+     "prev": 88,
+     "delta": 3,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 5,
+     "done_rate": 0.8,
+     "ontime": 0.96,
+     "reject_rate": 0.04,
+     "token_ratio": 0.9,
+     "time_ratio": 0.94,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 3,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "payments-billing": {
+     "grade": "A",
+     "score": 87,
+     "prev": 85,
+     "delta": 2,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 4,
+     "done_rate": 0.5,
+     "ontime": 0.94,
+     "reject_rate": 0.05,
+     "token_ratio": 0.94,
+     "time_ratio": 0.99,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 2,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "mobile-release": {
+     "grade": null,
+     "score": null,
+     "prev": null,
+     "delta": null,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 0
+     },
+     "n": 2,
+     "top_loss": "sample",
+     "advice": "",
+     "streak": 0,
+     "acc": [],
+     "note": "樣本不足"
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "legal",
+   "name": "法遵與資安部",
+   "grade": "S",
+   "score": 97.1,
+   "prev": 95.5,
+   "delta": 1.6,
+   "deptMetric": 97,
+   "level": 5,
+   "tasks": {
+    "todo": 0,
+    "doing": 2,
+    "done": 7
+   },
+   "done_rate": 0.78,
+   "ontime": 0.99,
+   "reject_rate": 0.01,
+   "token_ratio": 0.83,
+   "time_ratio": 0.88,
+   "false_reports": 0,
+   "top_loss": "",
+   "sampleShort": 0,
+   "members": {
+    "legal-compliance": {
+     "grade": "S",
+     "score": 98,
+     "prev": 95,
+     "delta": 3,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 5,
+     "done_rate": 0.8,
+     "ontime": 0.99,
+     "reject_rate": 0.0,
+     "token_ratio": 0.82,
+     "time_ratio": 0.87,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 7,
+     "acc": [
+      "grade_chip",
+      "ring_gold",
+      "halo",
+      "star_gold",
+      "cape_gold",
+      "glasses_gold",
+      "nameplate_gold",
+      "trophy",
+      "pet_rare"
+     ]
+    },
+    "security-privacy": {
+     "grade": "S",
+     "score": 96,
+     "prev": 94,
+     "delta": 2,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 4,
+     "done_rate": 0.75,
+     "ontime": 0.98,
+     "reject_rate": 0.02,
+     "token_ratio": 0.84,
+     "time_ratio": 0.89,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 5,
+     "acc": [
+      "grade_chip",
+      "ring_gold",
+      "halo",
+      "star_gold",
+      "cape_gold",
+      "glasses_gold",
+      "nameplate_gold",
+      "trophy"
+     ]
+    }
+   },
+   "flag": null,
+   "advice": ""
+  },
+  {
+   "id": "ops",
+   "name": "營運與部署部",
+   "grade": "D",
+   "score": 60.1,
+   "prev": 61.0,
+   "delta": -0.9,
+   "deptMetric": 48,
+   "level": 2,
+   "tasks": {
+    "todo": 6,
+    "doing": 6,
+    "done": 8
+   },
+   "done_rate": 0.4,
+   "ontime": 0.84,
+   "reject_rate": 0.11,
+   "token_ratio": 1.18,
+   "time_ratio": 1.21,
+   "false_reports": 0,
+   "top_loss": "load",
+   "sampleShort": 0,
+   "members": {
+    "delivery-planner": {
+     "grade": "C",
+     "score": 74,
+     "prev": 77,
+     "delta": -3,
+     "tasks": {
+      "todo": 2,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 6,
+     "done_rate": 0.5,
+     "ontime": 0.88,
+     "reject_rate": 0.11,
+     "token_ratio": 1.09,
+     "time_ratio": 1.12,
+     "false_reports": 0,
+     "top_loss": "speed",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "todo_stack"
+     ]
+    },
+    "deployer": {
+     "grade": "D",
+     "score": 52,
+     "prev": 60,
+     "delta": -8,
+     "tasks": {
+      "todo": 3,
+      "doing": 4,
+      "done": 2
+     },
+     "n": 9,
+     "done_rate": 0.22,
+     "ontime": 0.78,
+     "reject_rate": 0.12,
+     "token_ratio": 1.33,
+     "time_ratio": 1.35,
+     "false_reports": 0,
+     "top_loss": "load",
+     "advice": "手上同時 4 件：補人（部署只有 1 人）",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_amber",
+      "lamp_amber",
+      "mentor_book"
+     ]
+    },
+    "efficiency-planner": {
+     "grade": "B",
+     "score": 79,
+     "prev": 80,
+     "delta": -1,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 3
+     },
+     "n": 5,
+     "done_rate": 0.6,
+     "ontime": 0.91,
+     "reject_rate": 0.08,
+     "token_ratio": 1.03,
+     "time_ratio": 1.07,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    }
+   },
+   "flag": {
+    "text": "待加強",
+    "reason": "load"
+   },
+   "advice": "補人：部署只有 1 人，手上 4 件"
+  },
+  {
+   "id": "audit",
+   "name": "監察與稽核室",
+   "grade": "A",
+   "score": 85.6,
+   "prev": 84.0,
+   "delta": 1.6,
+   "deptMetric": 85,
+   "level": 4,
+   "tasks": {
+    "todo": 2,
+    "doing": 5,
+    "done": 19
+   },
+   "done_rate": 0.73,
+   "ontime": 0.94,
+   "reject_rate": 0.04,
+   "token_ratio": 0.95,
+   "time_ratio": 1.0,
+   "false_reports": 0,
+   "top_loss": "",
+   "sampleShort": 0,
+   "members": {
+    "inspector": {
+     "grade": "A",
+     "score": 90,
+     "prev": 89,
+     "delta": 1,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 7
+     },
+     "n": 8,
+     "done_rate": 0.88,
+     "ontime": 0.96,
+     "reject_rate": 0.03,
+     "token_ratio": 0.91,
+     "time_ratio": 0.95,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 3,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "reviewer": {
+     "grade": "A",
+     "score": 86,
+     "prev": 86,
+     "delta": 0,
+     "tasks": {
+      "todo": 1,
+      "doing": 2,
+      "done": 6
+     },
+     "n": 9,
+     "done_rate": 0.67,
+     "ontime": 0.94,
+     "reject_rate": 0.04,
+     "token_ratio": 0.95,
+     "time_ratio": 1.0,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip",
+      "ring_silver",
+      "star_silver",
+      "cape_silver",
+      "glasses_silver",
+      "scarf_satin",
+      "nameplate_silver",
+      "frame"
+     ]
+    },
+    "resource-auditor": {
+     "grade": "B",
+     "score": 83,
+     "prev": 80,
+     "delta": 3,
+     "tasks": {
+      "todo": 1,
+      "doing": 1,
+      "done": 4
+     },
+     "n": 6,
+     "done_rate": 0.67,
+     "ontime": 0.92,
+     "reject_rate": 0.06,
+     "token_ratio": 0.99,
+     "time_ratio": 1.03,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    },
+    "hr-officer": {
+     "grade": "B",
+     "score": 80,
+     "prev": null,
+     "delta": null,
+     "tasks": {
+      "todo": 0,
+      "doing": 1,
+      "done": 2
+     },
+     "n": 3,
+     "done_rate": 0.67,
+     "ontime": 0.91,
+     "reject_rate": 0.07,
+     "token_ratio": 1.02,
+     "time_ratio": 1.06,
+     "false_reports": 0,
+     "top_loss": "",
+     "advice": "",
+     "streak": 0,
+     "acc": [
+      "grade_chip"
+     ]
+    }
+   },
+   "flag": null,
+   "advice": ""
+  }
+ ]
+}

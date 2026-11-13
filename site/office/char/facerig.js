@@ -23,6 +23,8 @@ function basisQuat(n) {
   const z = new V3(...n).normalize(), x = new V3(0, 1, 0).cross(z).normalize(), y = z.clone().cross(x);
   return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
 }
+// 閉眼時線條畫在身體表面上（眼球座標系的 z：表面在 +d，再依曲率往下掉一點，抬高 3.5 mm 讓線條不被皮膚吃掉）
+function skinZ(x, y) { return EYE.d + 0.0035 - (x * x + y * y) / (2 * 0.8); }
 function ellPoint(x, y, k = 1) { const a = EYE.a * k, b = EYE.b * k, c = EYE.c * k; const t = 1 - (x / a) ** 2 - (y / b) ** 2; return Math.max(0, t) > 0 ? c * Math.sqrt(t) : 0; }
 
 function irisTexture() {
@@ -54,33 +56,48 @@ export class FaceRig {
   buildEye(side, lidMat) {
     const nm = side > 0 ? 'eye.L' : 'eye.R', A = this.meta.anchors[nm], n = new V3(...A.n), p = new V3(...A.p), q = basisQuat(A.n);
     const grp = new THREE.Group(); grp.position.copy(p).addScaledVector(n, -EYE.d); grp.quaternion.copy(q); grp.userData.base = grp.position.clone(); this.holder.add(grp);
-    const ball = new THREE.Group(); grp.add(ball);
+    // dep：眼球、高光、眼皮殼的共同外層。閉眼時沿法線方向壓平埋進身體（見 applyEyes），閉眼處就只剩身體本身的皮膚，沒有任何一塊「眼皮殼」可以跟周圍顏色對不上。
+    const dep = new THREE.Group(); grp.add(dep);
+    const ball = new THREE.Group(); dep.add(ball);
     // 眼球：只做會露出來的前半球帽（75°），一顆網格＋一張極座標貼圖（瞳孔、虹膜、外圍深色），跟著眼球轉＝瞳孔在動
     const [CS, CR] = this.eyeSeg, geo = shared('cap' + CS, () => { const g = new THREE.SphereGeometry(1, CS, CR, 0, Math.PI * 2, 0, 75 * D2R).rotateX(Math.PI / 2); const pos = g.attributes.position, uv = g.attributes.uv, tm = 64 * D2R; for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), th = Math.acos(Math.max(-1, Math.min(1, z))), ph = Math.atan2(y, x), r = 0.5 * Math.min(1, th / tm); uv.setXY(i, 0.5 + r * Math.cos(ph), 0.5 + r * Math.sin(ph)); } return g; });
     IRIS ||= irisTexture();
-    const eyeMat = (SHARED.eyeMat ||= new THREE.MeshStandardMaterial({ map: IRIS, roughness: 0.3, metalness: 0, envMapIntensity: 0.15 }));
+    // 每隻眼睛自己一個材質（共用貼圖與著色器程式）：眼皮不再用「另一層殼」遮眼球，而是在著色器裡把眼球被眼皮蓋住的半球直接切掉（discard），
+    // 露出的就是身體本身的皮膚——所以半閉的眼（生氣、難過、疑惑、想睡）也不會有一塊顏色對不上的眼皮圓片。切面＝通過球心、法線＝眼皮極點的平面，與原本殼的邊緣同一條線。
+    const eyeMat = new THREE.MeshStandardMaterial({ map: IRIS, roughness: 0.3, metalness: 0, envMapIntensity: 0.15 });
+    const clip = { uPole: { value: new V3(0, 1, 0) }, uOn: { value: 0 } };
+    eyeMat.onBeforeCompile = (sh) => { sh.uniforms.uPole = clip.uPole; sh.uniforms.uOn = clip.uOn;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vUnitP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvUnitP = position;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vUnitP; uniform vec3 uPole; uniform float uOn;').replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif (uOn > 0.5 && dot(normalize(vUnitP), uPole) > 0.0) discard;'); };
+    eyeMat.customProgramCacheKey = () => 'mochi-eyeclip1'; eyeMat.userData.clip = clip;
     const sph = new THREE.Mesh(geo, eyeMat); sph.scale.set(EYE.a, EYE.b, EYE.c); ball.add(sph);
     // 高光：兩個小圓合併成一個網格，固定在眼窩上（不隨眼球轉），頂點貼在橢球表面（強度改變時重算）
     const hlGeo = new THREE.BufferGeometry(), NSEG = this.hlSeg, hlDefs = [[-0.024, 0.038, 0.025, 1.0], [0.028, -0.043, 0.0107, 1.0]];
     hlGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hlDefs.length * (NSEG + 1) * 3), 3));
     { const idx = []; hlDefs.forEach((_, k) => { const o = k * (NSEG + 1); for (let i = 0; i < NSEG; i++) idx.push(o, o + 1 + i, o + 1 + ((i + 1) % NSEG)); }); hlGeo.setIndex(idx); }
-    const hl = new THREE.Mesh(hlGeo, new THREE.MeshBasicMaterial({ color: 0xfff4ec, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-    hl.frustumCulled = false; hl.userData.defs = hlDefs; hl.userData.NSEG = NSEG; grp.add(hl);
+    const hlMat = new THREE.MeshBasicMaterial({ color: 0xfff4ec, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), hlClip = { uPole: { value: new V3(0, 1, 0) }, uOn: { value: 0 } };   // 高光也要被眼皮切掉（否則會浮在皮膚上）
+    hlMat.onBeforeCompile = (sh) => { sh.uniforms.uPole = hlClip.uPole; sh.uniforms.uOn = hlClip.uOn;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vUnitP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvUnitP = position / vec3(0.077, 0.104, 0.054);');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vUnitP; uniform vec3 uPole; uniform float uOn;').replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif (uOn > 0.5 && dot(normalize(vUnitP), uPole) > 0.0) discard;'); };
+    hlMat.customProgramCacheKey = () => 'mochi-hlclip1'; hlMat.userData.clip = hlClip;
+    const hl = new THREE.Mesh(hlGeo, hlMat);
+    hl.frustumCulled = false; hl.userData.defs = hlDefs; hl.userData.NSEG = NSEG; dep.add(hl);
     const setHl = (k) => { const P = hlGeo.attributes.position; hlDefs.forEach(([cx, cy, r, sy], d) => { const o = d * (NSEG + 1); const put = (n, x, y) => P.setXYZ(o + n, x, y, ellPoint(x, y, 1.0) + 0.0025); put(0, cx, cy); for (let i = 0; i < NSEG; i++) { const a = i / NSEG * Math.PI * 2; put(1 + i, cx + Math.cos(a) * r * k, cy + Math.sin(a) * r * k * sy); } }); P.needsUpdate = true; };
     setHl(1); hl.userData.setHl = setHl;
     // 眼皮殼：半球殼（極點方向決定蓋住多少）。外層群組負責橢球縮放，內層負責旋轉。
-    const lidS = new THREE.Group(); lidS.scale.set(EYE.a * 1.07, EYE.b * 1.07, EYE.c * 1.12); grp.add(lidS);
-    const lid = new THREE.Mesh(shared('lid', () => new THREE.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2)), lidMat); lidS.add(lid);
+    const lidS = new THREE.Group(); lidS.scale.set(EYE.a * 1.07, EYE.b * 1.07, EYE.c * 1.12); dep.add(lidS);
+    const lid = new THREE.Mesh(shared('lid', () => new THREE.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2)), new THREE.MeshBasicMaterial({ visible: false })); lidS.add(lid);   // 眼皮殼本身不畫（只當睫毛線的座標系）
     // 笑眼 ∩、睡眼 ∪ 的弧線（畫在眼皮殼上）
-    const arc = (sgn) => { const key = 'arc' + sgn; const pts = []; const w = 0.074, h = 0.068 * sgn; for (let i = 0; i <= 18; i++) { const u = i / 18 * 2 - 1, x = u * w, t = (u + 1) / 2, y = h * (-0.42 * ((1 - t) ** 2 + t * t) + 2.3 * t * (1 - t)); pts.push(new V3(x, y, ellPoint(x, y, 1.115) + 0.0015)); }
+    const arc = (sgn) => { const key = 'arc' + sgn; const pts = []; const w = 0.074, h = 0.068 * sgn; for (let i = 0; i <= 18; i++) { const u = i / 18 * 2 - 1, x = u * w, t = (u + 1) / 2, y = h * (-0.42 * ((1 - t) ** 2 + t * t) + 2.3 * t * (1 - t)); pts.push(new V3(x, y, skinZ(x, y))); }
       const m = new THREE.Mesh(shared(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 22, 0.0075, 6)), (SHARED.arcMat ||= new THREE.MeshBasicMaterial({ color: 0x3a2622 }))); m.visible = false; grp.add(m); return m; };
     const arcUp = arc(1), arcDn = arc(-1);
     // 眼皮邊緣的睫毛線（半閉、生氣、疑惑時看得到眼皮的邊）＋全閉時的睫毛弧（比 ∪ 眼更淺、兩端微上揚，像眨眼的睫毛線）
     const rim = new THREE.Mesh(shared('rim', () => new THREE.TorusGeometry(1, 0.034, 6, 56).rotateX(Math.PI / 2)), (SHARED.arcMat ||= new THREE.MeshBasicMaterial({ color: 0x3a2622 }))); rim.visible = false; lid.add(rim);
-    const lash = (() => { const pts = []; const w = 0.071; for (let i = 0; i <= 20; i++) { const u = i / 20 * 2 - 1, x = u * w, y = -0.008 * (1 - u * u) + 0.003 * u * u; pts.push(new V3(x, y, ellPoint(x, y, 1.115) + 0.0016)); }
+    const lash = (() => { const pts = []; const w = 0.071; for (let i = 0; i <= 20; i++) { const u = i / 20 * 2 - 1, x = u * w, y = -0.008 * (1 - u * u) + 0.003 * u * u; pts.push(new V3(x, y, skinZ(x, y))); }
       const m = new THREE.Mesh(shared('lash', () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0062, 6)), SHARED.arcMat); m.visible = false; grp.add(m); return m; })();
-    return { side, grp, ball, lid, hl, arcUp, arcDn, rim, lash, q, n, hlK: 1 };
+    return { side, eyeMat, hlMat, grp, dep, ball, lid, hl, arcUp, arcDn, rim, lash, q, n, hlK: 1 };
   }
+  dispose() { for (const e of this.eyes) { e.eyeMat.dispose(); e.hlMat.dispose(); e.lid.material.dispose(); } }
   // ── 臉貼片（Canvas 貼圖）
   initDecal(W) {
     const d = this.meta.decal, H = Math.round(W * (d.z1 - d.z0) / (2 * d.x)); this.W = W; this.H = H; this.K = W / (2 * d.x);
@@ -161,11 +178,12 @@ export class FaceRig {
     for (const e of this.eyes) {
       const s = e.side, asy = c.asym ? (s > 0 ? 1.0 : 0.72) : 1;
       let open = clamp(c.open * (1 - this.blink) * asy, 0, 1); const cover = clamp(c.lidT * 1.5 + c.lidB * 0.4, 0, 0.9); open = clamp(open * (1 - cover), 0, 1);
-      const beta = (8 + 134 * Math.pow(open, 0.85)) * D2R, roll = c.lidA * 0.5 * (s > 0 ? -1 : 1) * (c.lidT > 0.02 ? 1 : 0) * Math.min(1, c.lidT * 5);
+      const beta = (8 + 134 * Math.pow(open, 0.85)) * D2R, roll = c.lidA * 0.5 * (s > 0 ? 1 : -1) *   /* 第四階段修正：原本符號相反，生氣的眼皮斜成難過、難過斜成生氣。s>0 是角色的左眼＝畫面右側，生氣要「內側低」 */  (c.lidT > 0.02 ? 1 : 0) * Math.min(1, c.lidT * 5);
       const pole = new V3(0, Math.sin(beta), Math.cos(beta)).applyAxisAngle(new V3(0, 0, 1), roll);
       e.lid.quaternion.setFromUnitVectors(new V3(0, 1, 0), pole);
       e.lid.visible = open < 0.97; e.rim.visible = open > 0.06 && open < 0.95;
-      { const ud = e.lid.material.userData; if (ud.surfN) { ud.surfN.copy(e.n).transformDirection(this.holder.matrixWorld); e.grp.getWorldPosition(ud.eyeW); if (this.rootInv) ud.invRoot.copy(this.rootInv); } }
+      { const t = clamp((open - 0.03) / 0.20, 0, 1), zk = t * t * (3 - 2 * t); e.dep.scale.z = Math.max(zk, 1e-3); e.dep.visible = zk > 0.004; }   // 閉眼：壓平埋進身體；睜眼（open≥0.23）時 zk＝1，與舊版一模一樣
+      { e.ball.rotation.set(-gp, gy * (1), 0, 'YXZ'); const k = e.eyeMat.userData.clip; k.uOn.value = e.lid.visible ? 1 : 0; k.uPole.value.copy(pole).applyQuaternion(e.ball.quaternion.clone().invert()); const h = e.hlMat.userData.clip; h.uOn.value = k.uOn.value; h.uPole.value.copy(pole); }   // 被眼皮蓋住的半球（極點方向）在眼球座標系的樣子
       // 視線：眼球轉（瞳孔在動）。眼睛朝向角色的左為 +yaw（繞局部 Y 轉）
       e.ball.rotation.set(-gp, gy * (1), 0, 'YXZ');
       const es = clamp(this.eyeScale * c.eyeS * (c.asym ? (s > 0 ? 1.0 : 0.88) : 1), 0.5, 1.4);
@@ -174,7 +192,7 @@ export class FaceRig {
       if (Math.abs(e.hlK - c.hl) > 0.01) { e.hlK = c.hl; e.hl.userData.setHl(c.hl); }
       // 笑眼／睡眼弧
       const closed = clamp(1 - open / 0.35, 0, 1), up = clamp(c.arc, 0, 1) * closed, dn = clamp(-c.arc, 0, 1) * closed;
-      e.arcUp.visible = up > 0.05; e.arcUp.scale.setScalar(0.6 + 0.4 * up); e.arcDn.visible = dn > 0.05; e.arcDn.scale.setScalar(0.6 + 0.4 * dn);
+      e.arcUp.visible = up > 0.05; e.arcUp.scale.set(0.6 + 0.4 * up, 0.6 + 0.4 * up, 1); e.arcDn.visible = dn > 0.05; e.arcDn.scale.set(0.6 + 0.4 * dn, 0.6 + 0.4 * dn, 1);
       e.lash.visible = open < 0.12 && !e.arcUp.visible && !e.arcDn.visible;
       // 形態鍵造成的身體變形：位置跟著走（只位移，不縮放）
       const b = e.grp.userData.base, ms2 = ms; e.grp.position.set(b.x * ms2.x, b.y * ms2.y, cz + (b.z - cz) * ms2.z);

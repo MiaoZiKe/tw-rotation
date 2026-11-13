@@ -9,6 +9,7 @@ import { Character } from '../play/character.js';
 import { stubWorld, stubFx } from '../play/lite.js';
 import { Field } from './field.js';
 import { makeQA } from './qa.js';
+import { QAView } from './qaview.js';
 
 const $ = (s) => document.querySelector(s), qs = new URLSearchParams(location.search), V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const view = $('#view');
@@ -92,9 +93,9 @@ function trackGaze(c) {
 // 線框／剪影：用覆蓋材質畫整個場景（深褐線框或純黑剪影），並收起地面與柔影
 let oldDisc = null;
 function applyMode() {
-  const om = S.sil ? new THREE.MeshBasicMaterial({ color: 0x111111 }) : S.wire ? new THREE.MeshBasicMaterial({ color: 0x6a4636, wireframe: true }) : null;
-  scene.overrideMaterial = om; oldScene.overrideMaterial = om;
-  const flat = S.sil || S.wire;
+  const om = S.sil ? new THREE.MeshBasicMaterial({ color: 0x111111 }) : S.wire ? new THREE.MeshBasicMaterial({ color: 0x6a4636, wireframe: true }) : S.norm ? new THREE.MeshNormalMaterial() : null;
+  if (scene.overrideMaterial) scene.overrideMaterial.dispose(); scene.overrideMaterial = om; oldScene.overrideMaterial = om;
+  const flat = S.sil || S.wire || S.norm; if (S.qav) S.qav.group.visible = !flat && (S.qav.collide || S.qav.contacts); if (S.field) S.field.fx.group.visible = !flat && S.play;
   scene.background.set(S.sil ? 0xffffff : BG); stage.floor.visible = !flat; stage.disc.visible = !flat;
   for (const o of stage.shadows) for (const m of [o.body, o.belly, ...o.feet]) m.visible = !flat;
   oldScene.children.forEach(o => { if (o.geometry && o.geometry.type === 'PlaneGeometry') o.visible = !flat; });
@@ -132,10 +133,10 @@ addEventListener('resize', resize);
 
 
 // ── 走動小場地（第三階段）：點地面走過去、雙擊跑、WASD／方向鍵移動、Shift 跑、Space 跳、點凳子坐下、按住頭頂摸頭
-S.keys = new Set(); S.keyMag = 0; S.runMode = false; S.dragMode = false; S.drag = null; S.click = null; S.devOn = false; S.grabbed = false;
+S.timeScale = 1; S.stepN = 0; S.keys = new Set(); S.keyMag = 0; S.runMode = false; S.dragMode = false; S.drag = null; S.click = null; S.devOn = false; S.grabbed = false;
 async function enablePlay(on) {
   if (on === S.play) return;
-  S.play = on; $('#btnPlay').classList.toggle('on', on); $('#btnPlay').setAttribute('aria-pressed', String(on)); $('#playHint').hidden = !on;
+  S.play = on; document.body.classList.toggle('play', on); if (!on) document.body.classList.remove('more'); $('#btnPlay').classList.toggle('on', on); $('#btnPlay').setAttribute('aria-pressed', String(on)); $('#playHint').hidden = !on;
   if (on) {
     if (S.cmp) { S.cmp = false; $('#btnCmp').classList.remove('on'); layout(); applyOffset(); }
     endAct(); if (!S.field) { S.field = new Field(scene, stage); }
@@ -147,7 +148,8 @@ async function enablePlay(on) {
     const k = stage.key; k.position.set(1.7, 5.2, 2.6); k.target.position.set(0, 0, 0); k.shadow.camera.left = -1.4; k.shadow.camera.right = 1.4; k.shadow.camera.top = 1.4; k.shadow.camera.bottom = -1.4; k.shadow.mapSize.set(1024, 1024); k.shadow.map?.dispose(); k.shadow.map = null; k.shadow.radius = 14;
     S.focus.set(0, 0.36, 0); S.ch.resetPose(); S.ch.root.position.set(0, 0, 0); S.ch.root.rotation.y = 0; setView(S.view || 'front', true); S.ch.face?.set('neutral');
   }
-  for (const b of document.querySelectorAll('#gPlay button[data-p]')) b.disabled = !on && b.dataset.p !== 'play' && b.dataset.p !== 'dev';
+  requestAnimationFrame(applyOffset);
+  for (const b of document.querySelectorAll('#gPlay button[data-p]')) b.disabled = !on && !['play', 'dev', 'more', 'qa'].includes(b.dataset.p);
 }
 function camForward() { const f = new V3(); camera.getWorldDirection(f); f.y = 0; return f.lengthSq() < 1e-6 ? new V3(0, 0, -1) : f.normalize(); }
 function trackPlay(dt, cc) {
@@ -176,22 +178,59 @@ pbtn('抓起／放下', 'btnGrab', 'grab', () => { const c = cc(); if (!c) retur
 pbtn('丟出去', 'btnThrow', 'throw', () => { const c = cc(); if (!c) return; const f = camForward(); c.throwAt(f.x * 4.2, 4.6, f.z * 4.2); });
 for (const [k, zh] of [['hit', '受擊'], ['happy', '開心'], ['angry', '生氣'], ['sad', '難過']]) pbtn(zh, 'btn_' + k, k, () => cc()?.trigger(k));
 pbtn('停下回待機', 'btnStop', 'stop', () => { const c = cc(); if (!c) return; c.stop(); c.interrupt(); });
-pbtn('跑（切換）', 'btnRun', 'run', () => { S.runMode = !S.runMode; $('#btnRun').classList.toggle('on', S.runMode); });
-pbtn('拖曳跑（切換）', 'btnDrag', 'drag', () => { S.dragMode = !S.dragMode; $('#btnDrag').classList.toggle('on', S.dragMode); });
+pbtn('跑（切換）', 'btnRun', 'run', () => { S.runMode = !S.runMode; $('#btnRun').classList.toggle('on', S.runMode); }).classList.add('adv');
+pbtn('拖曳跑（切換）', 'btnDrag', 'drag', () => { S.dragMode = !S.dragMode; $('#btnDrag').classList.toggle('on', S.dragMode); }).classList.add('adv');
 pbtn('開發面板', 'btnDev', 'dev', () => { S.devOn = !S.devOn; $('#dev').hidden = !S.devOn; $('#btnDev').classList.toggle('on', S.devOn); });
-for (const b of gp.querySelectorAll('button[data-p]')) if (b.dataset.p !== 'play' && b.dataset.p !== 'dev') b.disabled = true;
+pbtn('檢查模式', 'btnQA', 'qa', () => { qa.hidden = !qa.hidden; $('#btnQA').classList.toggle('on', !qa.hidden); $('#btnQA').setAttribute('aria-pressed', String(!qa.hidden)); });
+{ const mb = document.createElement('button'); mb.id = 'btnMore'; mb.textContent = '更多選項'; mb.setAttribute('aria-pressed', 'false'); mb.style.marginLeft = '6px';   // 放在標題列（場地模式才顯示）：精簡動作列保持乾淨，要看視角／表情／材質再展開
+  mb.onclick = () => { const on = document.body.classList.toggle('more'); mb.classList.toggle('on', on); mb.setAttribute('aria-pressed', String(on)); requestAnimationFrame(applyOffset); };
+  $('#btnPanel').after(mb); }
+for (const b of gp.querySelectorAll('button[data-p]')) if (!['play', 'dev', 'more', 'qa'].includes(b.dataset.p)) b.disabled = true;
 // 指標：點地面走過去（雙擊跑）、點凳子坐下、按住頭頂摸頭、拖曳跑
 view.addEventListener('pointerdown', (e) => {
   if (!S.play || !cc() || e.button !== 0) return;
   const r = renderer.domElement.getBoundingClientRect(), rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
   const hit = S.field.pick(rc);
-  if (hit.kind === 'head') { if (cc().petStart()) { S.petPtr = e.pointerId; e.stopPropagation(); ctl.enabled = false; } return; }
+  if ((hit.kind === 'head' || hit.kind === 'body') && !S.dragMode) {   // 按住角色：不動＝摸頭（頭）；拖曳超過幾個像素＝抓起、甩出去放手＝拋擲
+    S.gp = { id: e.pointerId, x0: e.clientX, y0: e.clientY, kind: hit.kind, point: hit.point.clone(), grabbed: false, samples: [] };
+    if (hit.kind === 'head' && cc().petStart()) S.petPtr = e.pointerId;
+    e.stopPropagation(); ctl.enabled = false; try { view.setPointerCapture(e.pointerId); } catch (_) {} return;
+  }
   if (S.dragMode && hit.kind !== 'stool') { S.drag = { on: true, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, id: e.pointerId }; e.stopPropagation(); ctl.enabled = false; return; }
   S.click = { x: e.clientX, y: e.clientY, t: performance.now(), kind: hit.kind, point: hit.point, id: e.pointerId };
 }, true);
-addEventListener('pointermove', (e) => { if (S.drag && S.drag.on) { S.drag.x = e.clientX; S.drag.y = e.clientY; } });
+addEventListener('pointermove', (e) => {
+  if (S.drag && S.drag.on) { S.drag.x = e.clientX; S.drag.y = e.clientY; }
+  const g = S.gp; if (!g || e.pointerId !== g.id || !S.play || !cc()) return;
+  if (!g.grabbed && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > (e.pointerType === 'touch' ? 12 : 8)) beginGrab(g);
+  if (g.grabbed) { g.x = e.clientX; g.y = e.clientY; const o = holdOrigin(g); if (o) { cc().grab(o.x, o.y, o.z, g.pivot); g.samples.push({ t: e.timeStamp, x: o.x, y: o.y, z: o.z }); while (g.samples.length > 12) g.samples.shift(); } }
+});
+// ── 抓起與拋出：抓點＝按下的那個點（在角色身上）；抓點跟著指標走在「面向鏡頭的垂直面」上，放手時依最近 ~100 ms 的指標速度拋出
+function beginGrab(g) {
+  const c = cc(), root = c.ch.root; S.petPtr = null; c.petEnd(); root.updateMatrixWorld(true);
+  const lp = root.worldToLocal(g.point.clone()); lp.y = clamp(lp.y, 0.12, 0.72); g.pivot = { x: lp.x, y: lp.y, z: lp.z };
+  const f = camForward(); g.plane = new THREE.Plane().setFromNormalAndCoplanarPoint(new V3(-f.x, 0, -f.z), g.point); g.x = g.x0; g.y = g.y0;
+  g.grabbed = true; g.samples = [];
+  const o = holdOrigin(g); if (o) c.grab(o.x, o.y, o.z, g.pivot); else c.grab(c.body.x, c.body.y + 0.2, c.body.z, g.pivot);
+}
+function holdOrigin(g) {
+  const r = renderer.domElement.getBoundingClientRect(), rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(((g.x - r.left) / r.width) * 2 - 1, -((g.y - r.top) / r.height) * 2 + 1), camera);
+  const q = new V3(); if (!rc.ray.intersectPlane(g.plane, q)) return null;
+  const yaw = cc().body.yaw, c = Math.cos(yaw), s = Math.sin(yaw), p = g.pivot, ox = p.x * c + p.z * s, oz = -p.x * s + p.z * c, H = 2.3 - cc().shape.R;
+  return { x: clamp(q.x - ox, -H, H), y: clamp(q.y - p.y, 0, 1.9), z: clamp(q.z - oz, -H, H) };
+}
+function endGrab(e, cancel) {
+  const g = S.gp; if (!g) return; S.gp = null; ctl.enabled = true; try { view.releasePointerCapture(g.id); } catch (_) {}
+  if (!g.grabbed) return false;
+  const c = cc(); if (!c) return true; const now = e.timeStamp, sm = g.samples.filter(q => now - q.t < 110); let v = { x: 0, y: 0, z: 0 };
+  if (!cancel && sm.length >= 2) { const a = sm[0], b = sm[sm.length - 1], dt = Math.max(0.03, (b.t - a.t) / 1000); v = { x: (b.x - a.x) / dt, y: (b.y - a.y) / dt, z: (b.z - a.z) / dt }; }
+  const sp = Math.hypot(v.x, v.y, v.z); if (!Number.isFinite(sp)) v = { x: 0, y: 0, z: 0 }; else if (sp > 12) { const k = 12 / sp; v = { x: v.x * k, y: v.y * k, z: v.z * k }; }
+  S.lastRelease = { ...v, speed: Math.hypot(v.x, v.y, v.z), n: sm.length }; c.release(v.x, v.y, v.z); return true;
+}
+addEventListener('pointercancel', (e) => { if (S.gp && e.pointerId === S.gp.id) { if (S.petPtr != null) { S.petPtr = null; cc()?.petEnd(); } endGrab(e, true); } });
 addEventListener('pointerup', (e) => {
   if (S.petPtr != null) { S.petPtr = null; cc()?.petEnd(); ctl.enabled = true; }
+  if (S.gp && e.pointerId === S.gp.id) { endGrab(e, false); return; }
   if (S.drag && S.drag.on) { S.drag.on = false; cc()?.setMove(0, 0, 0); S.drag = null; ctl.enabled = true; }
   const c = S.click; S.click = null; if (!c || !S.play || !cc()) return;
   if (Math.hypot(e.clientX - c.x, e.clientY - c.y) > 6 || performance.now() - c.t > 450) return;
@@ -209,6 +248,51 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => S.keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => S.keys.clear());
+// ── 檢查模式（開發用 Character QA）：鏡頭視角、線框／法線、碰撞形狀、接觸點與接地、各動作單獨播放、慢速、暫停與逐格、狀態與速度、新舊對照、截圖
+const qa = $('#qa'); S.qav = null;
+function qbtn(parent, label, id, fn, tip) { const b = document.createElement('button'); b.textContent = label; if (id) b.id = id; if (tip) b.title = tip; b.onclick = () => fn(b); parent.appendChild(b); return b; }
+function qgrp(title) { const g = document.createElement('div'); g.className = 'grp'; g.innerHTML = '<b>' + title + '</b><div class="row"></div>'; qa.appendChild(g); return g.querySelector('.row'); }
+{
+  const h = document.createElement('div'); h.className = 'qh'; h.innerHTML = '<b>檢查模式</b><span>開發用・不影響一般使用</span>'; qa.appendChild(h);
+  const rv = qgrp('鏡頭'); for (const [k, [zh]] of Object.entries(VIEWS)) qbtn(rv, zh, 'qv_' + k, () => setView(k));
+  const rs = qgrp('顯示'); const tg = (label, id, get, set) => qbtn(rs, label, id, (b) => { const on = !get(); set(on); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  tg('線框', 'qWire', () => S.wire, (on) => { S.wire = on; if (on) S.norm = false, $('#qNorm').classList.remove('on'); applyMode(); });
+  tg('法線', 'qNorm', () => S.norm, (on) => { S.norm = on; if (on) S.wire = false, $('#qWire').classList.remove('on'); applyMode(); });
+  tg('碰撞形狀', 'qCollide', () => S.qav?.collide, (on) => { ensureQav().setCollide(on); applyMode(); });
+  tg('接觸點與接地', 'qContacts', () => S.qav?.contacts, (on) => { ensureQav().setContacts(on); applyMode(); });
+  tg('狀態與速度', 'qInfo', () => !$('#qTxt').hidden, (on) => { $('#qTxt').hidden = !on; });
+  const rt = qgrp('播放速度'); for (const [k, zh] of [[1, '1×'], [0.5, '0.5×'], [0.25, '0.25×']]) qbtn(rt, zh, 'qs_' + k, (b) => { S.timeScale = k; rt.querySelectorAll('button[data-k]').forEach(x => x.classList.toggle('on', x === b)); }).dataset.k = k;
+  rt.querySelector('[data-k="1"]').classList.add('on');
+  qbtn(rt, '暫停', 'qPause', () => setPaused(!S.paused)); qbtn(rt, '逐格 ▶|', 'qStep', () => { if (!S.paused) setPaused(true); S.stepN++; }, '暫停時前進 1/60 秒');
+  const ra = qgrp('各動作單獨播放'); for (const [k, zh] of [['idle', '待機'], ['walk', '走'], ['run', '跑'], ['jump', '跳'], ['sit', '坐下'], ['sleep', '睡覺'], ['grab', '抓起'], ['throw', '拋出'], ['hit', '受擊'], ['happy', '開心'], ['angry', '生氣'], ['sad', '難過']]) qbtn(ra, zh, 'qa_' + k, () => qaPlay(k));
+  const rx = qgrp('工具'); qbtn(rx, '新舊對照', 'qCmp', () => { if (S.play) enablePlay(false); document.getElementById('btnCmp').click(); }); qbtn(rx, '截圖輸出', 'qShot', () => { const u = shotPNG(); const a = document.createElement('a'); a.href = u; a.download = `糰糰_${cc()?.state || S.view}_${Date.now()}.png`; a.click(); });
+  const tx = document.createElement('pre'); tx.id = 'qTxt'; tx.hidden = true; qa.appendChild(tx);
+}
+function ensureQav() { if (!S.qav) S.qav = new QAView(scene); return S.qav; }
+function setPaused(p) { S.paused = p; const b = $('#btnMotion'); b.textContent = p ? '靜止' : '動態'; b.classList.toggle('on', !p); b.setAttribute('aria-pressed', String(!p)); $('#qPause').classList.toggle('on', p); $('#qPause').textContent = p ? '繼續' : '暫停'; }
+$('#btnMotion').addEventListener('click', () => { $('#qPause').classList.toggle('on', S.paused); $('#qPause').textContent = S.paused ? '繼續' : '暫停'; });
+function shotPNG() { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); }
+async function qaPlay(name) {
+  if (!S.play) await enablePlay(true); const c = cc(); if (!c) return false; setPaused(false); c.life = false; S.runMode = false;
+  c.interrupt?.(); c.stop();
+  switch (name) {
+    case 'idle': c.reset(0, 0.9, 0); break;
+    case 'walk': c.reset(0, 1.6, Math.PI); c.walkTo(0, -1.2, false); break;
+    case 'run': c.reset(0, 1.8, Math.PI); c.walkTo(0, -1.6, true); break;
+    case 'jump': c.reset(0, 0.9, 0); c.jump(); break;
+    case 'sit': c.reset(-0.6, 0.1, 0.4); c.sitOn('stool'); break;
+    case 'sleep': c.reset(0, 0.9, 0); c.sleep(); break;
+    case 'grab': c.reset(0, 0.9, 0); c.grab(0, 0.95, 0.9); break;
+    case 'throw': c.reset(-1.4, 0.9, 0); c.throwAt(3.2, 5.2, -0.4); break;
+    default: c.reset(0, 0.9, 0); c.trigger(name);
+  }
+  S.qaAction = name; return true;
+}
+setInterval(() => {
+  if (qa.hidden || $('#qTxt').hidden) return; const c = cc(); if (!c) { $('#qTxt').textContent = '（先進入場地模式）'; return; }
+  const i = c.info(), f = (v, n = 2) => (+v).toFixed(n), b = c.body;
+  $('#qTxt').textContent = `狀態　${i.state}${i.sub ? '／' + i.sub : ''}（姿勢 ${i.key}）\n速度　水平 ${f(i.speed)}　垂直 ${f(i.vy)} m/s\n接地　${i.grounded ? '是（接地）' : '否（空中）'}　支撐面 ${f(b.supportY, 3)} m\n高度　${f(i.y, 3)} m　位置 (${f(i.x)}, ${f(i.z)})\n播放　${S.timeScale}×${S.paused ? '（暫停）' : ''}　逐格 ${S.stepped || 0}`;
+}, 120);
 // 開發用小面板（預設收起）
 setInterval(() => {
   if (!S.devOn || !cc()) return; const i = cc().info(), f = (v, n = 2) => (+v).toFixed(n);
@@ -222,20 +306,22 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (S.tween) { S.tween.t += dt / 0.55; const u = ease(Math.min(1, S.tween.t)); const r = S.tween.a.length() > 0 ? 1 : 1; camera.position.lerpVectors(S.tween.a, S.tween.b, u); if (S.tween.t >= 1) S.tween = null; }
   ctl.update();
-  const sdt = S.paused ? 0 : dt; S.time += sdt;
+  // 播放速度與逐格：timeScale 0.25／0.5／1；暫停時按「逐格」才前進 1/60 秒（不受 timeScale 影響）
+  let sim = S.paused ? 0 : dt * S.timeScale; if (S.paused && S.stepN > 0) { S.stepN--; sim = 1 / 60; S.stepped = (S.stepped || 0) + 1; }
+  const sdt = sim; S.time += sdt;
   if (S.ch) {
     const c = S.ch;
     if (S.play && S.field?.ctl) {
-      const cc = S.field.ctl; trackPlay(dt, cc); if (!S.paused) cc.update(dt); else c.update(dt, true);
-      followCam(dt, cc);
+      const cc = S.field.ctl; trackPlay(dt, cc); if (sim > 0) { cc.update(sim); S.field.fx.update(sim, cc); } else c.update(dt, true);
+      followCam(dt, cc); S.qav?.update(cc);
     } else {
-    if (!S.paused) {
-      if (S.act) { S.act.t += dt; if (S.act.t >= S.act.dur) endAct(); }
+    if (sim > 0) {
+      if (S.act) { S.act.t += sim; if (S.act.t >= S.act.dur) endAct(); }
       if (!S.act) { c.resetPose(); } else { c.resetPose(); }
       idle(c, S.time); trackGaze(c);
       if (S.act) S.act.fn(c, S.act.t);
     }
-    c.update(dt, S.paused);
+    c.update(sim > 0 ? sim : dt, sim <= 0);
     }
     stage.updateContact();
   }
@@ -258,5 +344,6 @@ if (S.cmp) layout();
 raf = requestAnimationFrame(frame);
 // 測試與截圖用的對外介面
 window.CH = { enablePlay, get field() { return S.field; }, get cc() { return S.field?.ctl; }, THREE, pose(name, t) { const c = S.ch; c.resetPose(); idle(c, 0.5); if (name) ACTS[name].fn(c, t); c.update(0); stage.updateContact(); }, S, stage, scene, camera, renderer, ctl, setView, playAct, endAct, buildNew, buildOld, layout, applyWire, applySil, get ch() { return S.ch; }, frame, mood: (k) => S.ch.face.set(k), setCmp(on) { S.cmp = on; if (on) buildOld(); layout(); applyOffset(); setView(S.view || 'front', true); }, setSil(on) { S.sil = on; applySil(); }, setWire(on) { S.wire = on; applyWire(); } };
-window.CH.qa = makeQA(window.CH);
+window.CH.qa = makeQA(window.CH); Object.assign(window.CH, { qaPlay, shotPNG, setPaused, ensureQav, applyMode, qaPanel: qa }); Object.defineProperty(window.CH, 'qav', { get: () => S.qav });   // Object.assign 會把 getter 取值一次，所以 qav 要用 defineProperty
+if (qs.has('qa')) { qa.hidden = false; $('#btnQA').classList.add('on'); }
 document.title = 'ok'; document.documentElement.dataset.ready = '1';
