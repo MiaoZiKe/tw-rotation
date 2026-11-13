@@ -57,7 +57,7 @@ function setView(name, instant) {
 // ── 動作示範（最小驅動：證明骨頭＋形態鍵變形不裂不穿；完整動作與狀態機是第三階段）
 const ease = (t) => t * t * (3 - 2 * t);
 const ACTS = {
-  wave: { dur: 2.2, fn(c, t, u) { const e = Math.min(ease(Math.min(1, t / 0.35)), ease(Math.min(1, (2.2 - t) / 0.35))); c.rot('arm.L', 0, 0, 1.75 * e); c.rot('hand.L', 0, 0, 0.55 * Math.sin(t * 15) * e); c.rot('head', 0, 0, -0.1 * e); c.face?.set(e > 0.4 ? 'smile' : 'neutral'); } },
+  wave: { dur: 2.2, fn(c, t, u) { const e = Math.min(ease(Math.min(1, t / 0.35)), ease(Math.min(1, (2.2 - t) / 0.35))); c.rot('arm.L', 0, -0.55 * e, 1.0 * e); c.rot('hand.L', 0, 0, 0.5 * Math.sin(t * 15) * e); c.rot('head', 0, 0, -0.1 * e); c.face?.set(e > 0.4 ? 'smile' : 'neutral'); } },
   squash: { dur: 1.5, fn(c, t) { const p = t < 0.35 ? ease(t / 0.35) : Math.exp(-(t - 0.35) * 3.4) * Math.cos((t - 0.35) * 13); const w = clamp(p, -0.25, 1); c.morph('land', clamp(w, 0, 1) * 0.9); c.morph('stretch', clamp(-w, 0, 1) * 0.6); c.rot('ear.L', 0, 0, 0.35 * (w - (t < 0.35 ? 0 : 0))); c.rot('ear.R', 0, 0, -0.35 * w); c.face?.set(t < 0.4 ? 'sad' : 'surprised'); } },
   stretch: { dur: 1.6, fn(c, t) { const w = t < 0.4 ? ease(t / 0.4) : Math.exp(-(t - 0.4) * 3) * Math.cos((t - 0.4) * 11); c.morph('stretch', clamp(w, 0, 1)); c.morph('squash', clamp(-w, 0, 1) * 0.7); c.rot('ear.L', 0, 0, -0.3 * w); c.rot('ear.R', 0, 0, 0.3 * w); c.rot('arm.L', 0, 0, 0.8 * w); c.rot('arm.R', 0, 0, -0.8 * w); c.face?.set('surprised'); } },
   turn: { dur: 2.6, fn(c, t) { const y = Math.sin(t / 2.6 * Math.PI * 2) * 0.62; c.rot('head', 0, y, 0); c.rot('spine', 0, y * 0.3, 0); c.rot('tail', 0, 0, y * 0.5); } },

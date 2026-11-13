@@ -68,7 +68,8 @@ export class MochiChar {
     const P = PRESETS[this.cfg.preset], A = this.meta.anchors['eye.' + sd], sk = this.body ? skinColorAt(this.body.geometry, A.p, P.ao) : [1, 1, 1];
     const base = new THREE.Color(this.cfg.color), top = new THREE.Color(this.cfg.top), mx = Math.max(base.r, base.g, base.b, 1e-3);
     const t = THREE.MathUtils.smoothstep(A.p[1], 0.08, 0.74) * P.topAmt * 0.55;      // 與身體材質的上下漸層同一條公式
-    const col = base.clone().lerp(new THREE.Color(top.r * base.r / mx, top.g * base.g / mx, top.b * base.b / mx), t); col.r *= sk[0]; col.g *= sk[1]; col.b *= sk[2];
+    const col = base.clone().lerp(new THREE.Color(top.r * base.r / mx, top.g * base.g / mx, top.b * base.b / mx), t); const LID_GAIN = 1.035; // 實測校正：眼皮殼與身體同公式算色後，畫面上仍暗約 4%（法線混合、無絨毛雜訊的差），補回來才與周圍皮膚無色差
+    col.r *= sk[0] * LID_GAIN; col.g *= sk[1] * LID_GAIN; col.b *= sk[2] * LID_GAIN;
     const mat = makeMaterial(this.cfg.preset, { color: col, over: { topAmt: 0, noiseA: 0 }, far: this.cfg.far });
     const U = { value: new THREE.Vector3(0, 0, 1) }, orig = mat.onBeforeCompile; mat.userData.surfN = U.value;
     mat.onBeforeCompile = (s) => { orig(s); s.uniforms.uSurfN = U;

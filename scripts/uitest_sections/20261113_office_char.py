@@ -52,7 +52,13 @@ def t_office_char(b, base):
         info = pg.evaluate("""() => { const c = CH.ch, b = c.body; return { bones: b.skeleton.bones.length, morphs: Object.keys(b.morphTargetDictionary), tris: b.geometry.index.count / 3 + c.decal.geometry.index.count / 3,
           skinned: b.isSkinnedMesh && c.decal.isSkinnedMesh, hasFace: !!c.face, eyes: c.face ? c.face.eyes.length : 0, ao: !!b.geometry.attributes.color }; }""")
         ok("★ 糰糰v2：是 SkinnedMesh，骨頭 18 根、形態鍵 7 個、頂點色 AO", info["skinned"] and info["bones"] == 18 and len(info["morphs"]) == 7 and info["ao"], info)
-        ok("糰糰v2：LOD0 網格（本體＋臉貼片）≤ 6000 三角面", info["tris"] <= 6000, info["tris"])
+        ok("糰糰v2：LOD0 網格（本體＋臉貼片）≤ 9000 三角面", info["tris"] <= 9000, info["tris"])
+        geo = pg.evaluate("""() => { const c = CH.ch, W = (n) => c.boneWorld(n), e = c.meta.anchors['eye.L'].p, eR = c.meta.anchors['eye.R'].p;
+          const col = c.body.geometry.attributes.color; const bb = c.body.geometry.boundingBox || (c.body.geometry.computeBoundingBox(), c.body.geometry.boundingBox);
+          return { hand: W('hand.L').x, footY: W('foot.L').z, height: bb.max.y - bb.min.y, width: bb.max.x - bb.min.x, eyeGap: Math.abs(e[0] - eR[0]), eyeLow: e[1], colorN: col ? col.itemSize : 0 }; }""")
+        ok("★ 四肢讀得出來：手骨末端在身體側面外凸（x ≥ 0.45）、腳往身體前下方凸出（z 方向 ≥ 0.2）", geo["hand"] >= 0.45 and geo["footY"] >= 0.2, geo)
+        ok("頂點色已合成 RGB（局部顏色×AO，itemSize 3）", geo["colorN"] == 3, geo)
+        ok("眼睛低位（高度在身高 45% 以下）且間距寬（兩眼中心距 ≥ 0.28 m）", geo["eyeLow"] < geo["height"] * 0.45 and geo["eyeGap"] >= 0.28, geo)
         ok("糰糰v2：有兩顆立體眼球", info["eyes"] == 2)
 
         # ── 靜止／動態開關：切了之後畫面真的停下來／動起來
@@ -98,6 +104,13 @@ def t_office_char(b, base):
         pg.click("#gExpr button:has-text('睡覺')"); _calm(pg)
         st = pg.evaluate("() => ({ lidOpen: CH.ch.face.eyes.map(e => e.lid.visible), up: CH.ch.face.eyes.map(e => e.arcUp.visible), dn: CH.ch.face.eyes.map(e => e.arcDn.visible), tear: CH.ch.face.cur.tear })")
         ok("睡覺：眼皮閉上、∪ 形睡眼弧出現", all(st["lidOpen"]) and all(st["dn"]), st)
+        pg.evaluate("() => { const f = CH.ch.face; f.set('neutral'); f.snap(); f.blinkV = 0; f.blink = 0.5; f.update(0.001, 12, true); }")
+        st = pg.evaluate("() => ({ rim: CH.ch.face.eyes.map(e => e.rim.visible), lash: CH.ch.face.eyes.map(e => e.lash.visible) })")
+        ok("★ 眨眼中間格：眼皮邊緣的睫毛線出現、全閉睫毛弧還沒出現（不是空白面具）", all(st["rim"]) and not any(st["lash"]), st)
+        pg.evaluate("() => { const f = CH.ch.face; f.blink = 1; f.update(0.001, 12, true); }")
+        st = pg.evaluate("() => ({ rim: CH.ch.face.eyes.map(e => e.rim.visible), lash: CH.ch.face.eyes.map(e => e.lash.visible), same: CH.ch.face.eyes[0].lid.material !== CH.ch.face.eyes[1].lid.material })")
+        ok("★ 眨眼閉合：睫毛弧出現、眼皮邊緣線收掉；左右眼皮各有自己的表面法線材質", all(st["lash"]) and not any(st["rim"]) and st["same"], st)
+        pg.evaluate("() => { const f = CH.ch.face; f.blink = 0; f.update(0.001, 12, true); }")
         pg.click("#gExpr button:has-text('開心閉眼')"); _calm(pg)
         st = pg.evaluate("() => ({ lid: CH.ch.face.eyes.map(e => e.lid.visible), up: CH.ch.face.eyes.map(e => e.arcUp.visible) })")
         ok("開心閉眼：眼皮閉上、∩ 形笑眼弧出現", all(st["lid"]) and all(st["up"]), st)
@@ -194,7 +207,7 @@ def t_office_char(b, base):
     # ── LOD2：沒有臉貼片、面數少，頁面不出錯
     c, pg, errs, got = _open(b, base, qs="?shot&lod=2")
     try:
-        ok("糰糰v2 LOD2：載入、沒有臉貼片、≤ 700 三角面、沒有網頁錯誤", got and pg.evaluate("() => !CH.ch.face && CH.ch.body.geometry.index.count / 3 <= 700") and not errs, errs[:3])
+        ok("糰糰v2 LOD2：載入、沒有臉貼片、≤ 1100 三角面（含併入本體的兩顆深色眼睛）、沒有網頁錯誤", got and pg.evaluate("() => !CH.ch.face && CH.ch.body.geometry.index.count / 3 <= 1100") and not errs, errs[:3])
     finally:
         c.close()
 

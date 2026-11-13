@@ -6,7 +6,7 @@ export const BG = 0xf3e6d8;
 function blobTex(core = 0.0, soft = 1.0) {
   const s = 128, cv = document.createElement('canvas'); cv.width = cv.height = s; const g = cv.getContext('2d');
   const gr = g.createRadialGradient(s / 2, s / 2, s * 0.5 * core, s / 2, s / 2, s * 0.5);
-  gr.addColorStop(0, 'rgba(60,34,24,1)'); gr.addColorStop(0.45 * soft + 0.1, 'rgba(60,34,24,0.55)'); gr.addColorStop(0.8, 'rgba(60,34,24,0.12)'); gr.addColorStop(1, 'rgba(60,34,24,0)');
+  gr.addColorStop(0, 'rgba(104,52,38,1)'); gr.addColorStop(0.45 * soft + 0.1, 'rgba(104,52,38,0.55)'); gr.addColorStop(0.8, 'rgba(104,52,38,0.12)'); gr.addColorStop(1, 'rgba(104,52,38,0)');
   g.fillStyle = gr; g.fillRect(0, 0, s, s); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 export class Stage {

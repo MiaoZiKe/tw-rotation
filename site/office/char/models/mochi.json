@@ -6,11 +6,27 @@
  "lods": [
   {
    "lod": 0,
-   "verts": 3377,
-   "quads": 3342,
-   "tris": 6750,
-   "bytes": 516716,
-   "decal_tris": 888
+   "verts": 3446,
+   "quads": 3410,
+   "tris": 6888,
+   "bytes": 526392,
+   "decal_tris": 887
+  },
+  {
+   "lod": 1,
+   "verts": 1362,
+   "quads": 1328,
+   "tris": 2720,
+   "bytes": 215296,
+   "decal_tris": 331
+  },
+  {
+   "lod": 2,
+   "verts": 514,
+   "quads": 588,
+   "tris": 1016,
+   "bytes": 75816,
+   "decal_tris": 0
   }
  ],
  "bones": {
