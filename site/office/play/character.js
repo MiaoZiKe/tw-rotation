@@ -4,6 +4,7 @@ import { Face } from './face.js';
 import { G, BOUNDS } from './world.js';
 import { ball, foot, softMat, blobGeo } from './soft.js';
 import { LimbSkin } from './limb.js';
+const padFoot = (() => { let g; return () => g || (g = blobGeo(v => { v.set(v.x, Math.max(v.y, 0), v.z * 1.05); }, 28, 18)); })();   // 半球形止滑墊
 const webFoot = (() => { let g; return () => g || (g = blobGeo(v => { const an = Math.atan2(v.x, v.z), w = [-0.9, 0, 0.9].reduce((a, c) => a + Math.exp(-Math.pow((an - c) / 0.42, 2)), 0), r = 1 + 0.55 * w * Math.max(0, v.z + 0.2); v.set(v.x * r * 0.95, Math.max(v.y, -0.2) * 0.5 + 0.35, v.z * r + 0.25); }, 40, 28)); })();   // 三趾腳掌
 import { SPECIES, resolveSpec, addAccessories, faceStyleFor, applyTraits } from './species.js';
 
@@ -41,7 +42,7 @@ export class Character {
     const rootify = (m) => { if (this.hard || !m || !m.userData.o || m.userData.o.root || !this.bodyO || cfg.noSkin) return m; return m.userData.rootVer ??= softMat({ ...m.userData.o, root: this.bodyO, rootSpan: cfg.rootSpan ?? 0.34 }, this.sh); };
     this.limbMat = rootify(this.limbMat); this.footMat = rootify(this.footMat);
     const fs = cfg.footSize;
-    this.feet = (fs ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(cfg.footGeo === 'web' ? webFoot() : foot(), this.footMat || this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
+    this.feet = (fs ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(cfg.footGeo === 'web' ? webFoot() : cfg.footGeo === 'pad' ? padFoot() : foot(), this.footMat || this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
     this.hands = (cfg.handR ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(cfg.handGeo ? cfg.handGeo() : ball(), cfg.handMat ? cfg.handMat(this) : this.limbMat); if (cfg.handScale) m.scale.set(...cfg.handScale); else m.scale.setScalar(cfg.handR); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3() }; });
     this.limbs = [];
     if (cfg.legs) {
