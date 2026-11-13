@@ -5,6 +5,7 @@ import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createPilot } from './pilot.js';
 import { createCamHint } from './camhint.js';
+import { createDaytime } from './daytime.js';
 import { createUI } from './ui.js';
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
@@ -220,6 +221,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   if (qs.get('ambient') === '0') director.ambient = false;
   // 鍵盤／觸控操控（點選角色後）：輸入、碰撞、溝通演出都在 pilot.js，這裡只掛鉤
   const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot; const camHint = createCamHint(view);
+  const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
 
   // ── 名牌、泡泡 ──
   const pv = new THREE.Vector3(), bubs = [];
@@ -317,7 +319,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     const ov = W.overrides; ov.f = ov.f || {};
     for (const inst of W.furn.values()) { const f = inst.f, h = inst.home; if (f.x !== h.x || f.z !== h.z || f.rot !== h.rot) ov.f[f.id] = [f.x, f.z, f.rot]; else delete ov.f[f.id]; }
     if (!saveOverrides(ov)) ui.toast('這台裝置無法儲存，重新整理後會還原');
-    W.respot();
+    W.respot(); W.glowRebuild && W.glowRebuild();
     for (const c of W.chars.values()) { if (!c.spot) continue; const s = W.spots.find(q => q.uid === c.spot.uid); if (!s) { c.spot = null; continue; } c.spot = s; if (c.state === 'sit' && s.seat) c.sitAt(s.seat); }
   }
   function editDown(e) {
@@ -370,7 +372,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     }
     renderer.render(scene, camera);
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
-    updateLabels(); pilot.frame(real, W.time); camHint.tick(); ui.tickCard();
+    updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard();
     acc += real; frames++;
     if (acc >= 1) {
       W.stats.fps = Math.round(frames / acc); acc = 0; frames = 0;

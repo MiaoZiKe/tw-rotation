@@ -31,7 +31,7 @@ export function createWorld(canvas, layout, org, quality) {
   const scene = new THREE.Scene(); scene.fog = new THREE.Fog('#e3f4fc', 110, 260);
   scene.background = canvasTex(8, 256, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#a9ddf8'); g.addColorStop(0.55, '#d7f0fc'); g.addColorStop(1, '#f1fbff'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
   const camera = new THREE.PerspectiveCamera(38, 1, 0.3, 320);
-  const hemi = new THREE.HemisphereLight('#fffaf3', '#f3d5b4', 1.5); scene.add(hemi);
+  const hemi = new THREE.HemisphereLight('#fffaf3', '#f3d5b4', 1.5); scene.add(hemi); W.hemi = hemi; W.skyTex = scene.background;   // 天色（daytime.js）要改這幾個
   const sun = new THREE.DirectionalLight('#fff3e0', 1.55); sun.position.set(20 - 10, 36, 15 + 9); sun.target.position.set(20, 0, 15); scene.add(sun, sun.target);
   sun.castShadow = true; const sm = quality === 'low' ? 1024 : 2048; sun.shadow.mapSize.set(sm, sm);
   Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 20, bottom: -20, near: 1, far: 90 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.035; sun.shadow.radius = 3;
@@ -137,10 +137,10 @@ export function createWorld(canvas, layout, org, quality) {
       for (const i of ix) { sp.push(p[i][0], y, p[i][1]); suv.push(uvs[i][0], uvs[i][1]); }
     }
     const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
-    scene.add(new THREE.Mesh(gg, new THREE.MeshBasicMaterial({ color: '#cfefff', transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false })));
+    W.glassMat = new THREE.MeshBasicMaterial({ color: '#cfefff', transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false }); scene.add(new THREE.Mesh(gg, W.glassMat));
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sg.setAttribute('uv', new THREE.Float32BufferAttribute(suv, 2));
     const stex = canvasTex(64, 128, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,244,200,0.9)'); g.addColorStop(1, 'rgba(255,244,200,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); c.clearRect(w / 2 - 2, 0, 4, h); });
-    const sunPatch = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: stex, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); sunPatch.renderOrder = 2; scene.add(sunPatch);
+    const sunPatch = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: stex, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); sunPatch.renderOrder = 2; scene.add(sunPatch); W.patchMat = sunPatch.material;
   }
 
   // ── 家具 ──

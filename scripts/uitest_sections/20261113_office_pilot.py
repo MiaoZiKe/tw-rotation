@@ -98,11 +98,25 @@ def _near_spot(pg, oid):
       return null; }""", oid)
 
 
-def _open_area(pg):
-    """找辦公室裡最空曠的一點（周圍 3 公尺內都能走），量速度才不會被家具擋住"""
-    return pg.evaluate("""() => { const W = __world; let best = null, bn = -1;
-      for (let x = 3; x <= 37; x += 0.5) for (let z = 3; z <= 27; z += 0.5) { let n = 0, bad = 0; for (let dx = -3; dx <= 3; dx += 0.5) for (let dz = -3; dz <= 3; dz += 0.5) { if (W.nav.isFree(x + dx, z + dz)) n++; else bad++; } if (!bad && n > bn) { bn = n; best = [x, z]; } }
-      return best; }""")
+def _open_area(pg, kind="f", reach=3.6):
+    """找一個起點，沿鏡頭的 f 前／b 後／r 右／l 左 方向有 reach 公尺的空地（走道寬 1 公尺，靠近辦公室中央優先）——量速度才不會撞到家具或牆"""
+    return pg.evaluate("""([kind, reach]) => { const W = __world, c = W.camera, t = W.controls.target; let fx = t.x - c.position.x, fz = t.z - c.position.z; const l = Math.hypot(fx, fz); fx /= l; fz /= l; const rx = -fz, rz = fx;
+      const [dx, dz] = { f: [fx, fz], b: [-fx, -fz], r: [rx, rz], l: [-rx, -rz] }[kind], px = -dz, pz = dx;
+      const clear = (x, z, R) => { for (let s = 0; s <= R; s += 0.25) for (const o of [-0.5, 0, 0.5]) { if (!W.nav.isFree(x + dx * s + px * o, z + dz * s + pz * o)) return false; } return true; };
+      for (const R of [reach, reach - 0.6, reach - 1.2]) { let best = null, bm = -1e9;
+        for (let x = 2.5; x <= 37.5; x += 0.5) for (let z = 2.5; z <= 27.5; z += 0.5) { if (!clear(x, z, R)) continue; const m = -Math.hypot(x - 20, z - 15); if (m > bm) { bm = m; best = [x, z]; } }
+        if (best) return best; }
+      return null; }""", [kind, reach])
+
+
+def _tap_twice(pg, code, gap):
+    """在頁面內連續送出 keydown→keyup→keydown（兩次按下相隔 gap 毫秒；軟體繪圖很慢時，外部逐筆送鍵的間隔不可靠）。第二次按下後維持按住"""
+    pg.evaluate("""([code, gap]) => new Promise(res => { const k = (t) => window.dispatchEvent(new KeyboardEvent(t, { code, key: code, bubbles: true, cancelable: true }));
+      k('keydown'); setTimeout(() => { k('keyup'); setTimeout(() => { k('keydown'); res(); }, Math.max(1, gap - 10)); }, 10); })""", [code, gap])
+
+
+def _release(pg, code):
+    pg.evaluate("(code) => window.dispatchEvent(new KeyboardEvent('keyup', { code, key: code, bubbles: true, cancelable: true }))", code)
 
 
 def t_desktop(b, base):
@@ -181,10 +195,13 @@ def t_desktop(b, base):
         pg.keyboard.up("ArrowUp")
         wait_until(pg, "() => !__world.pilot.engaging", 8000)
         pg.wait_for_timeout(500)
-        oa = _open_area(pg)
-        ok("（前置）找得到空曠處量速度", bool(oa), oa)
-        pg.evaluate("(a) => { __world.chars.get('ceo').standAt(a[0], a[1], 0); }", oa)
-        pg.wait_for_timeout(900)
+        oas = {k: _open_area(pg, k) for k in "fbrl"}
+        ok("（前置）鏡頭前後左右四個方向都找得到可以走 3 公尺以上的空地", all(oas.values()), oas)
+
+        def reset(kind="f"):
+            pg.evaluate("(a) => { __world.chars.get('ceo').standAt(a[0], a[1], 0); }", oas[kind])
+            pg.wait_for_timeout(700)
+        reset("f")
         # 穩定量測：先站定，再量 ArrowUp
         sp_walk, d = _sim_speed(pg, "ceo", "ArrowUp", 1600)
         fdir = pg.evaluate("() => { const W = __world, c = W.camera, t = W.controls.target; const x = t.x - c.position.x, z = t.z - c.position.z, l = Math.hypot(x, z); return [x / l, z / l]; }")
@@ -197,32 +214,41 @@ def t_desktop(b, base):
         ok("角色朝向跟移動方向一致（誤差 < 0.35 弧度）", diff < 0.35, (yaw, want, diff))
         cfgwalk = pg.evaluate("() => __world.chars.get('ceo').inner.cfg.walk * (__world.chars.get('ceo').scale || 1)")
         ok("走路速度符合角色走路速度（±25%）", 0.75 * cfgwalk < sp_walk < 1.25 * cfgwalk, (sp_walk, cfgwalk))
-        pg.wait_for_timeout(400)
+        reset("r")
         _, dd = _sim_speed(pg, "ceo", "KeyD", 1200)
         rdir = (-fdir[1], fdir[0])
         md = _m.hypot(*dd)
         ok("WASD 也能移動：D 往鏡頭右方", md > 0.3 and (dd[0] * rdir[0] + dd[1] * rdir[1]) / md > 0.9, (dd, rdir))
+        reset("f")
         _, dd = _sim_speed(pg, "ceo", "KeyW", 800)
         ok("WASD：W 往遠離鏡頭的方向", _m.hypot(*dd) > 0.2 and (dd[0] * fdir[0] + dd[1] * fdir[1]) / _m.hypot(*dd) > 0.9, dd)
         # 走路連拍（至少 6 格）
+        reset("b")
         _frames(pg, "走路連拍.png", "ArrowDown", 6, 420)
 
         # ───────── 跑步：連按兩次 ─────────
-        pg.wait_for_timeout(400)
-        pg.keyboard.down("ArrowRight"); pg.keyboard.up("ArrowRight")
-        pg.keyboard.down("ArrowRight")
+        reset("r")
+        _tap_twice(pg, "ArrowRight", 120)
         p0 = _pos(pg, "ceo")
         pg.wait_for_timeout(1000)
         p1 = _pos(pg, "ceo")
         run_now = pg.evaluate("() => __world.pilot.run")
-        pg.keyboard.up("ArrowRight")
+        _release(pg, "ArrowRight")
         sp_run = _m.hypot(p1[0] - p0[0], p1[1] - p0[1]) / max(1e-6, p1[3] - p0[3])
         ok("同一方向 300 毫秒內連按兩次：進入跑步（pilot.run）", run_now)
         ok("跑步速度明顯高於走路（≥ 1.8 倍）", sp_run >= 1.8 * sp_walk, (sp_run, sp_walk))
         pg.wait_for_timeout(250)
         ok("放開方向鍵後回到走路（run 解除）", not pg.evaluate("() => __world.pilot.run"))
+        reset("l")
         sp2, _ = _sim_speed(pg, "ceo", "ArrowLeft", 1300)
         ok("再單按一次是走路速度（不殘留跑步）", sp2 < 1.4 * sp_walk, (sp2, sp_walk))
+        reset("r")
+        _tap_twice(pg, "ArrowRight", 600)
+        pg.wait_for_timeout(600)
+        ok("兩次按下間隔 600 毫秒（超過 300）：不算連按，不跑步", not pg.evaluate("() => __world.pilot.run"))
+        _release(pg, "ArrowRight")
+        reset("f")
+        reset("f")
         _frames(pg, "跑步連拍.png", "ArrowUp", 6, 330, run=True)
 
         # ───────── 跳躍 ─────────
@@ -329,15 +355,19 @@ def _frames(pg, name, key, n, gap, run=False):
     from PIL import Image
     import io
     if run:
-        pg.keyboard.down(key); pg.wait_for_timeout(60); pg.keyboard.up(key); pg.wait_for_timeout(80)
-    pg.keyboard.down(key)
+        _tap_twice(pg, key, 120)
+    else:
+        pg.keyboard.down(key)
     ims = []
     for i in range(n):
         pg.wait_for_timeout(gap)
         x, y = _scr(pg, "ceo", 70)
         x = max(150, min(1130, x)); y = max(150, min(610, y))
         ims.append(Image.open(io.BytesIO(pg.screenshot(clip={"x": x - 150, "y": y - 150, "width": 300, "height": 300}))))
-    pg.keyboard.up(key)
+    if run:
+        _release(pg, key)
+    else:
+        pg.keyboard.up(key)
     W = Image.new("RGB", (300 * 3, 300 * ((n + 2) // 3)), "white")
     for i, im in enumerate(ims):
         W.paste(im, ((i % 3) * 300, (i // 3) * 300))
@@ -657,10 +687,100 @@ def t_mobile(b, base):
         c.close()
 
 
+def t_daytime(b, base):
+    """天色依台北時間連續變化：四個時段、夜晚室內可見度、跟隨現在時間、選單與記憶"""
+    import datetime as _dt
+    import io
+    from zoneinfo import ZoneInfo
+    from PIL import Image
+    # 故意把瀏覽器時區設成洛杉磯：顯示的必須是台北時間，不是瀏覽器所在時區
+    c = b.new_context(viewport={"width": 1280, "height": 760}, timezone_id="America/Los_Angeles")
+    pg = c.new_page()
+    pg.errs = []
+    pg.on("pageerror", lambda e: pg.errs.append(str(e)))
+    pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text else None)
+    try:
+        pg.goto(_root(base) + "/office/world.html?ambient=0&q=low", wait_until="domcontentloaded")
+        got = wait_until(pg, "() => window.__world && window.__world.ready", 90000)
+        ok("天色：頁面載入", got)
+        if not got:
+            return
+        pg.evaluate("() => { __world.speed = 8; }")
+        pg.wait_for_timeout(800)
+        tp = _dt.datetime.now(ZoneInfo("Asia/Taipei"))
+        txt = pg.evaluate("() => document.querySelector('.dt-chip').textContent")
+        ok("預設跟隨現在時間：左上小字顯示時段與台北時間（與台北時間誤差 ≤ 1 分鐘，即使瀏覽器時區是洛杉磯）",
+           "台北" in txt and abs((int(txt.split("台北 ")[1][:2]) * 60 + int(txt.split("台北 ")[1][3:5])) - (tp.hour * 60 + tp.minute)) <= 1 and "預覽" not in txt, (txt, tp.strftime("%H:%M")))
+        ok("預設模式是跟隨現在時間（auto）", pg.evaluate("() => __world.daytime.mode") == "auto")
+        pg.click(".dt-b")
+        ok("點小字：展開「時間」選單（跟隨現在時間／早晨／白天／黃昏／夜晚）", pg.evaluate("() => { const p = document.querySelector('.dt-pop'); return !p.hidden && ['跟隨現在時間', '早晨', '白天', '黃昏', '夜晚'].every(k => p.textContent.includes(k)); }"))
+        ov = _no_overlap(pg, [".dt-chip", ".dt-pop", ".cm-hint", *_BAR])
+        ok("版面：時間小字／選單與鏡頭提示、工具列不重疊", not ov, ov)
+        pg.click(".dt-b")
+        shots = {}
+        info = {}
+        for key, nm in (("morning", "早晨"), ("day", "白天"), ("dusk", "黃昏"), ("night", "夜晚")):
+            pg.click(".dt-b")
+            pg.click(f".dt-pop [data-m='{key}']")
+            pg.wait_for_timeout(1300)
+            info[key] = pg.evaluate("""() => { const W = __world, cv = W.skyTex.image, d = cv.getContext('2d').getImageData(0, 140, 1, 1).data, sc = W.sun.color, hc = W.hemi.color;
+              return { sky: [d[0] / 255, d[1] / 255, d[2] / 255], sun: [sc.r, sc.g, sc.b], int: W.sun.intensity, hemi: W.hemi.intensity, hc: [hc.r, hc.g, hc.b], stars: __world.daytime.stars.material.opacity,
+                       sunVis: __world.daytime.sunS.visible, moonVis: __world.daytime.moonS.visible, dir: __world.daytime.dir ? __world.daytime.dir.toArray() : null, chip: document.querySelector('.dt-chip').textContent, glow: document.querySelector('.dt-chip') && 0 }; }""")
+            im = Image.open(io.BytesIO(pg.screenshot()))
+            shots[key] = im
+            # 臉部區域（CEO 嘴巴附近 36×36 像素）平均亮度
+            pt = pg.evaluate("""() => { const W = __world, c = W.chars.get('ceo'), T = W.THREE, i = c.inner, s = c.scale || 1, p = c.object3D.position;
+              const v = new T.Vector3(p.x, i.cfg.mouth[1] * s + 0.02, p.z).project(W.camera), r = document.getElementById('cv').getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }""")
+            face = Image.open(io.BytesIO(pg.screenshot(clip={"x": pt[0] - 18, "y": pt[1] - 22, "width": 36, "height": 36}))).convert("RGB")
+            px = list(face.getdata())
+            info[key]["face"] = sum(0.2126 * r + 0.7152 * g + 0.0722 * b for r, g, b in px) / len(px) / 255
+        ok("強制四個時段：小字顯示「預覽・時段」", all(("預覽" in info[k]["chip"]) and nm in info[k]["chip"] for k, nm in (("morning", "清晨"), ("day", "白天"), ("dusk", "黃昏"), ("night", "夜晚"))), {k: v["chip"] for k, v in info.items()})
+
+        def dist(a, b2):
+            return _m.sqrt(sum((x - y) ** 2 for x, y in zip(a, b2)))
+        ks = list(info)
+        pairs = [(a, b2) for i, a in enumerate(ks) for b2 in ks[i + 1:]]
+        sky_d = {f"{a}-{b2}": round(dist(info[a]["sky"], info[b2]["sky"]), 3) for a, b2 in pairs}
+        sun_d = {f"{a}-{b2}": round(dist(info[a]["sun"], info[b2]["sun"]), 3) for a, b2 in pairs}
+        ok("四個時段的天空顏色兩兩明顯不同（RGB 距離 ≥ 0.10）", min(sky_d.values()) >= 0.10, sky_d)
+        ok("四個時段的方向光顏色兩兩明顯不同（RGB 距離 ≥ 0.10）", min(sun_d.values()) >= 0.10, sun_d)
+        ok("方向光角度隨時段改變（陰影方向跟著太陽走：早晨與黃昏的光向量不同）", dist(info["morning"]["dir"], info["dusk"]["dir"]) > 0.4, (info["morning"]["dir"], info["dusk"]["dir"]))
+        ok("夜晚有星星、有月亮；白天沒有星星、有太陽", info["night"]["stars"] > 0.9 and info["night"]["moonVis"] and info["day"]["stars"] < 0.05 and info["day"]["sunVis"] and not info["day"]["moonVis"], {k: (v["stars"], v["sunVis"], v["moonVis"]) for k, v in info.items()})
+        FACE_MIN = 0.30      # 臉部區域平均亮度（0～1）門檻：任何時段都不得低於它（實測夜晚約 0.39）
+        ok(f"任何時段角色臉部區域平均亮度 ≥ {FACE_MIN}（夜晚也看得清楚）", all(v["face"] >= FACE_MIN for v in info.values()), {k: round(v["face"], 3) for k, v in info.items()})
+        ok("夜晚室內有暖光：窗戶透出暖光（窗色偏黃）", pg.evaluate("() => { const c = __world.glassMat.color; return c.r > c.b + 0.15 && __world.glassMat.opacity > 0.6; }"))
+        ok("夜晚的畫面確實比白天暗（但不過暗）", sum(shots["night"].convert("L").getdata()) < sum(shots["day"].convert("L").getdata()))
+        # 並排截圖
+        d = _os.environ.get("PILOT_SHOTS")
+        if d:
+            W2 = Image.new("RGB", (1280, 760), "white")
+            for i, k in enumerate(("morning", "day", "dusk", "night")):
+                W2.paste(shots[k].convert("RGB").resize((640, 380)), ((i % 2) * 640, (i // 2) * 380))
+            _os.makedirs(d, exist_ok=True)
+            W2.save(_os.path.join(d, "四個時段並排.png"))
+        # 記住選擇
+        ok("選擇記進 localStorage", pg.evaluate("() => localStorage.getItem('aiOffice.daytime')") == "night")
+        pg.reload(wait_until="domcontentloaded")
+        wait_until(pg, "() => window.__world && window.__world.ready", 90000)
+        pg.wait_for_timeout(800)
+        ok("重新整理後仍是上次選的「夜晚」", "夜晚" in pg.evaluate("() => document.querySelector('.dt-chip').textContent") and "預覽" in pg.evaluate("() => document.querySelector('.dt-chip').textContent"))
+        pg.click(".dt-b")
+        pg.click(".dt-pop [data-m='auto']")
+        pg.wait_for_timeout(800)
+        tp = _dt.datetime.now(ZoneInfo("Asia/Taipei"))
+        txt = pg.evaluate("() => document.querySelector('.dt-chip').textContent")
+        ok("切回「跟隨現在時間」：顯示的時間與台北時間一致（±1 分鐘）、不再標「預覽」", "預覽" not in txt and abs((int(txt.split("台北 ")[1][:2]) * 60 + int(txt.split("台北 ")[1][3:5])) - (tp.hour * 60 + tp.minute)) <= 1, (txt, tp.strftime("%H:%M")))
+        ok("跟隨現在時間的時段與台北時間相符", pg.evaluate("() => __world.daytime.phaseOf(__world.daytime.now().t)") in txt)
+        ok("天色：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
 def t_all(b, base):
     t_desktop(b, base)
     t_board(b, base)
     t_camera(b, base)
+    t_daytime(b, base)
     t_mobile(b, base)
 
 

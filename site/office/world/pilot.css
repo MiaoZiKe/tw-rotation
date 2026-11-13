@@ -75,3 +75,13 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 236px)}
 .cm-hint .cm-back{background:var(--on);color:#fff}
 .cm-hint .cm-q{margin-left:-8px}
 @media (pointer:coarse),(max-width:640px){.cm-hint{font-size:12px;padding:2px 4px 2px 12px}.cm-hint button{height:44px;min-width:44px}}
+
+/* ───── 時間（天色）小字與選單：左上、工具列下方；窄螢幕與手機在鏡頭提示下方 ───── */
+.dt-chip{position:absolute;z-index:9;left:12px;top:56px}
+.dt-b{border:0;border-radius:999px;height:28px;padding:0 12px;font-size:12px;font-weight:600;background:rgba(255,250,243,.9);color:var(--sub);box-shadow:var(--sh);white-space:nowrap}
+.dt-b:hover{color:var(--ink)}
+.dt-pop{position:absolute;z-index:31;min-width:150px;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:8px;display:flex;flex-direction:column;gap:4px}
+.dt-h{font-size:12px;color:var(--sub);font-weight:600;margin:2px 4px}
+.dt-it{border:1px solid var(--line);background:#fff;border-radius:12px;height:36px;padding:0 12px;font-size:14px;text-align:left}
+.dt-it.on{background:var(--on);border-color:var(--on);color:#fff;font-weight:700}
+@media (pointer:coarse),(max-width:640px){.dt-b{height:36px;font-size:12px}.dt-it{height:44px}}
