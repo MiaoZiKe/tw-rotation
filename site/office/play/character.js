@@ -95,6 +95,8 @@ export class Character {
   }
   // 世界座標 → 手腳掛載群組的座標（辦公室的群組有縮放，CEO 與寵物不是 1 倍）
   setLocal(out, p) { return out.copy(p); }   // 辦公室群組縮放：原本手腳的座標約定就是這樣，維持不動（第一輪誤判為錯誤，已還原）
+  // 皮膚專用：世界座標 → 群組內座標（手腳網格本身仍用 setLocal，它們的座標本來就是群組內座標）
+  toLocal(p) { return this.scene.isScene ? p : p.applyMatrix4(this._sInv); }
   updateSkin() {
     const S = this.skin; if (!S) return;
     const sh = this.sh, e = this.main.matrixWorld.elements, sx = Math.hypot(e[0], e[1], e[2]), sy = Math.hypot(e[4], e[5], e[6]), sz = Math.hypot(e[8], e[9], e[10]), bh = this.bodyHalf;
@@ -103,6 +105,7 @@ export class Character {
     this.slots.forEach((sl, i) => {
       this.deform.localToWorld(_c.copy(sl.a));
       const isFoot = !!sl.f; let fp = isFoot ? sl.f.p : sl.h.p;
+      if (!this.scene.isScene) fp = _f.copy(fp).applyMatrix4(this.scene.matrixWorld);   // 手腳的座標是群組內的座標；皮膚的計算（肩膀、身體橢球）是世界座標，群組有縮放（CEO 1.18、寵物 0.5）時要先換成世界座標，否則離原點越遠手腳偏離身體越多
       { const dx = fp.x - _c.x, dy = fp.y - _c.y, dz = fp.z - _c.z, dd = Math.hypot(dx, dy, dz), mxl = this.R * 3.2; if (dd > mxl) { fp = _f.set(_c.x + dx * mxl / dd, _c.y + dy * mxl / dd, _c.z + dz * mxl / dd); } }   // 還沒收斂回來的手腳（遠處、剛傳送）不要拉出長條
       if (sl.kind === 'old') { if (isFoot) _d.copy(fp).setY(fp.y + this.cfg.footSize[1] * 0.95); else _d.copy(fp); }
       else if (isFoot) _d.set(fp.x, fp.y + this.cfg.footSize[1] * 1.3, fp.z); else _d.copy(fp);
@@ -113,10 +116,10 @@ export class Character {
       if (sl.kind === 'arm') {
         // 二次貝茲：中間控制點朝重力與運動的反方向落後
         const L = _c.distanceTo(_d), v = sl.h.v; _e.copy(_c).add(_d).multiplyScalar(0.5); _e.y -= 0.22 * L; _e.x -= v.x * 0.03; _e.y -= v.y * 0.03; _e.z -= v.z * 0.03;
-        this.setLocal(_c, _c); this.setLocal(_d, _d); this.setLocal(_e, _e); S.setArm(i, _c, _e, _d, sl.rf, sl.rt, sl.collar, sl.Lf, ts);
+        this.toLocal(_c); this.toLocal(_d); this.toLocal(_e); S.setArm(i, _c, _e, _d, sl.rf, sl.rt, sl.collar, sl.Lf, ts);
       } else if (sl.kind === 'leg') {
-        const F = _e.copy(fp); this.setLocal(_c, _c); this.setLocal(F, F); S.setLeg(i, _c, F, sl.f.yaw, sl.fs[0], sl.fs[1] * 0.8, sl.fs[2], sl.rf, sl.collar, sl.Lf, ts);
-      } else { this.setLocal(_c, _c); this.setLocal(_d, _d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts, sl.h ? (this.cfg.armRip || 0) : 0); }
+        const F = _e.copy(fp); this.toLocal(_c); this.toLocal(F); S.setLeg(i, _c, F, sl.f.yaw, sl.fs[0], sl.fs[1] * 0.8, sl.fs[2], sl.rf, sl.collar, sl.Lf, ts);
+      } else { this.toLocal(_c); this.toLocal(_d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts, sl.h ? (this.cfg.armRip || 0) : 0); }
     });
     S.commit();
   }
@@ -562,7 +565,7 @@ export class Character {
         // 空中、被拎著、翻滾：腳用彈簧跟著身體
         const kick = this.mode === 'held' && this.modeT > 0.5 ? Math.sin(this.t * 17 + i * Math.PI) * 0.09 : 0;
         const tuck = this.mode === 'normal' ? clamp(v.y * 0.012, -0.05, 0.06) : 0;
-        this.tumble.localToWorld(_a.set(f.s * c.lat * 1.1, -this.R + 0.02 - tuck + (this.mode === 'held' ? -0.05 : 0), c.footFwd + kick + (this.mode === 'normal' ? i * 0.05 - 0.02 : 0)));
+        this.tumble.localToWorld(_a.set(f.s * c.lat * 1.1, -this.R + 0.02 - tuck + (this.mode === 'held' ? -0.05 : 0), c.footFwd + kick + (this.mode === 'normal' ? i * 0.05 - 0.02 : 0))); this.toLocal(_a);   // localToWorld 給的是世界座標，群組有縮放時要換回群組內座標（跳躍、被拎起時腳才會跟著身體）
         const k = 420, d = 26, nn = Math.max(1, Math.ceil(dt / 0.012)), hh = dt / nn; for (let j = 0; j < nn; j++) { f.v.x += ((_a.x - f.p.x) * k - f.v.x * d) * hh; f.v.y += ((_a.y - f.p.y) * k - f.v.y * d) * hh; f.v.z += ((_a.z - f.p.z) * k - f.v.z * d) * hh; f.p.addScaledVector(f.v, hh); }
         if (this.mode !== 'held') f.p.y = Math.max(f.p.y, this.sh.uGround.value);
         f.planted = false; f.yaw = this.yaw; pitch = this.mode === 'normal' ? clamp(-v.y * 0.06, -0.5, 0.6) : 0;
@@ -604,7 +607,7 @@ export class Character {
     this.hands.forEach((h, i) => {
       // 目標：身體座標（含傾斜、翻滾與擠壓的一部分）→ 世界
       const tp = HP[i]; if (c.stick) { const k = c.stick, dx = tp.x / k[0], dy = (tp.y - k[3]) / k[1], dz = tp.z / k[2], L = Math.hypot(dx, dy, dz) || 1; tp.set(tp.x / L, k[3] + (tp.y - k[3]) / L, tp.z / L); }
-      _a.set(tp.x * (1 + (1 / Math.sqrt(1 + this.sq) - 1) * 0.8), (tp.y) * (1 + this.sq * 0.8) - R, tp.z); this.tumble.localToWorld(_a);
+      _a.set(tp.x * (1 + (1 / Math.sqrt(1 + this.sq) - 1) * 0.8), (tp.y) * (1 + this.sq * 0.8) - R, tp.z); this.tumble.localToWorld(_a); this.toLocal(_a);
       const n = Math.max(1, Math.ceil(dt / 0.012)), hh = dt / n;
       for (let j = 0; j < n; j++) { h.v.x += ((_a.x - h.p.x) * k - h.v.x * d) * hh; h.v.y += ((_a.y - h.p.y) * k - h.v.y * d) * hh; h.v.z += ((_a.z - h.p.z) * k - h.v.z * d) * hh; h.p.addScaledVector(h.v, hh); }
       // 手不要離身體太遠（被丟的時候）
@@ -613,7 +616,7 @@ export class Character {
     });
     // 豆芽的手臂與腿：連接身體與手腳的小圓柱
     if (this.limbs.length) {
-      const put = (m, ax, ay, az, to, r) => { this.deform.localToWorld(_a.set(ax, ay, az)); _b.copy(to).sub(_a); const L = _b.length(); m.position.copy(_a); m.quaternion.setFromUnitVectors(_UP, _b.divideScalar(L || 1)); m.scale.set(r, L, r); };
+      const put = (m, ax, ay, az, to, r) => { this.deform.localToWorld(_a.set(ax, ay, az)); this.toLocal(_a); _b.copy(to).sub(_a); const L = _b.length(); m.position.copy(_a); m.quaternion.setFromUnitVectors(_UP, _b.divideScalar(L || 1)); m.scale.set(r, L, r); };
       this.feet.forEach((f, i) => put(this.limbs[i], f.s * this.hip[0], this.hip[1], this.hip[2], _c.copy(f.p).setY(f.p.y + c.footSize[1] * 0.9), 0.034));
       this.hands.forEach((h, i) => put(this.limbs[2 + i], h.s * this.shoulder[0], this.shoulder[1], this.shoulder[2], h.p, 0.03));
     }
