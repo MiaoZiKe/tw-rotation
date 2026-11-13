@@ -1,6 +1,120 @@
 {
- "updated": "2026-11-12",
+ "updated": "2026-11-13",
  "topics": [
+  {
+   "id": "n_nvda_ceo_exit",
+   "cat": "news",
+   "title": "輝達執行長卸任：股價收跌4.34%，對手為何反漲",
+   "why": "11/12 美股開盤前傳出輝達執行長黃仁勳卸任，輝達開盤重挫後收跌 4.34%，超微、博通同日大漲，三大指數收跌約 0.4%（Yahoo Finance、Motley Fool 11/12）；台股同日尾盤也加速下跌。讀者會問換人對 AI 供應鏈訂單有沒有影響。卸任原因各家說法不一、未獲證實，寫稿只寫公司公告的事實並標明。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "n_tw_drop_1165_components",
+   "cat": "news",
+   "title": "台股跌1,165點：電子零組件類指數為何跌近6%",
+   "why": "11/12 加權指數跌 1,165 點（2.63%）收 43,091 點，結束三連漲，上市成交值重回兆元；電子零組件類指數跌 5.97%，載板、銅箔基板跌幅最重，玻璃陶瓷類反漲 5.93%（財訊快報、新浪財經 11/12）。讀者會問為什麼跌最兇的是板材。族群與個股數字來自盤後評論，寫稿要用本站資料核對。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-13",
+   "site_links": [
+    "#flow",
+    "#industry/group/ic_substrate",
+    "#industry/group/ccl"
+   ]
+  },
+  {
+   "id": "n_us_cpi_oct_hot",
+   "cat": "news",
+   "title": "美國10月CPI月增0.4%：升息機率為何衝到87%",
+   "why": "11/10 公布美國 10 月 CPI 月增 0.4%（預期 0.3%）、核心月增 0.3%（預期 0.2%），能源上漲 0.7%；兩年期公債殖利率單日升 15 個基點到 4.69%，市場估 12 月升息一碼的機率升到 87.3%（路透、Yahoo Finance 11/10）。讀者會問通膨回頭對股市代表什麼。年增率查不到可靠數字，寫稿要回美國勞工統計局原始報告補上。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-13",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rdl",
+   "cat": "know",
+   "title": "重佈線層 RDL 是什麼？晶片接點怎麼被重新拉線",
+   "why": "先進封裝裡晶片的接點太密，要靠重佈線層把訊號扇出到載板；讀者看 CoWoS、扇出型封裝時常看到 RDL 卻不知道它在哪一層。用站內 3D 場景 semiconductor（CoWoS-L 立體剖面）指出 RDL 的位置，和已有的 CoWoS-L 矽橋、SoIC 兩題分開講「拉線」本身。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_cold_plate",
+   "cat": "know",
+   "title": "水冷板是什麼？冷卻液怎麼流過晶片上方的細槽",
+   "why": "液冷機櫃裡直接貼在晶片上的是水冷板，內部是很細的流道；讀者會問「水為什麼不會碰到晶片、熱怎麼被帶走」。用站內 3D 場景 liquid_cooling（從晶片到 CDU）說明，和已有的 CDU、均熱片兩題分開，只講水冷板這一塊。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/liquid_cooling"
+   ]
+  },
+  {
+   "id": "k_back_drill",
+   "cat": "know",
+   "title": "PCB 背鑽是什麼？高速板為何要鑽掉多餘的孔銅",
+   "why": "高速訊號經過通孔時，用不到的那段孔銅會像天線一樣反射訊號，所以高階伺服器板要從背面把它鑽掉；讀者會問「多鑽一次差在哪」。用站內 3D 場景 pcb_rigid（多層板剖面與四種孔）說明，和已有的 PCB 硬板總覽題分開講背鑽。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "i_asic_service",
+   "cat": "intro",
+   "title": "客製 ASIC 鏈：規格、設計服務到投片量產怎麼接",
+   "why": "雲端業者自己開晶片規格，中間要經過矽智財授權、設計服務、晶圓代工投片與封測才變成量產晶片；站內有客製 ASIC 矽智財族群頁，可畫出各環節誰交棒給誰，只講分工不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/ip_asic",
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_hpc_network_ic",
+   "cat": "intro",
+   "title": "HPC 與網通晶片鏈：交換晶片到訊號調節晶片",
+   "why": "資料中心裡除了運算晶片，還有交換晶片、訊號調節與介面晶片負責把資料送出去；站內有 HPC 與網通 IC、高速交換器兩個族群頁，可串成晶片設計到交換器整機的供應鏈圖，和既有的 AI 網通鏈題分開，只看晶片這一段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/hpc_network_ic",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "i_cpo_light_source",
+   "cat": "intro",
+   "title": "CPO 外置光源鏈：雷射晶粒、光源模組到交換器",
+   "why": "共同封裝光學把光引擎搬到交換晶片旁邊，怕熱的雷射則拉到外面做成外置光源模組；站內矽光子頁有磊晶與雷射晶粒、外置光源、光纖耦合等分段，可畫出光從雷射一路送進交換器的環節，和既有的矽光子供應鏈總覽分開講光源這一段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/siph_laser",
+    "#industry/group/siph_els",
+    "#industry/group/siph_fiber"
+   ]
+  },
   {
    "id": "n_btc_below75k_etf_outflow",
    "cat": "news",
