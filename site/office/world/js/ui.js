@@ -55,7 +55,7 @@ export function createUI(W, demo, api) {
   // 視角與速度
   $('viewSeg').onclick = e => { const b = e.target.closest('button'); if (b) api.setView(b.dataset.v); };
   U.setViewUI = (mode, c) => {
-    const vc = $('viewChar'); if (mode === 'char' && c) { vc.hidden = false; vc.textContent = c.spec.nick; } else if (mode !== 'char') vc.hidden = true;
+    const vc = $('viewChar'); if (mode === 'char' && c) { vc.hidden = false; vc.textContent = '跟隨'; vc.title = '跟隨 ' + c.spec.nick;   // 不用暱稱：選到 CEO 時會和左邊的「CEO 視角」字面重複 } else if (mode !== 'char') vc.hidden = true;
     $('viewSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
   };
   $('speedSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; api.setSpeed(+b.dataset.s); $('speedSeg').querySelectorAll('button').forEach(q => q.classList.toggle('on', q === b)); };

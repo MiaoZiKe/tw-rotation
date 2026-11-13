@@ -108,11 +108,28 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   const portrait = () => cv.clientWidth < cv.clientHeight;
   // 任何視角（CEO 視角、俯瞰、跟隨角色）滑鼠操作都一樣：左鍵拖曳旋轉、右鍵或 Shift＋左鍵拖曳平移、滾輪縮放；
   // 觸控單指旋轉、雙指平移＋縮放。距離範圍固定：近不穿牆（≥3 公尺）、遠不離開辦公室太多。
+  // ── 鏡頭操作（擁有者 11-13：一律左鍵）──
+  //   預設「拖曳＝移動」：左鍵（觸控單指）抓著地面拖，游標下的那個地面點跟著滑鼠一比一移動（用射線打到地面算位移，不是固定倍率），所以遠近都不會太快或太慢。
+  //   切到「旋轉」：左鍵拖曳旋轉，每拖曳畫面寬度的一半轉 90 度。滾輪縮放。右鍵拖曳＝旋轉的隱藏捷徑（任何提示都不提它）。觸控雙指＝縮放＋旋轉。
+  //   「↺ ↻」鈕：點一下轉 30 度，按住持續旋轉。靈敏度慢／中／快（0.6／1／1.5）同時乘在移動與旋轉上。
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 只在這次有效 */ } };
+  const cam = { mode: lsGet('aiOffice.cam.mode') === 'rotate' ? 'rotate' : 'move', sens: [0.6, 1, 1.5].includes(+lsGet('aiOffice.cam.sens')) ? +lsGet('aiOffice.cam.sens') : 1, spin: 0, step: 0, coast: new THREE.Vector3(), listeners: [] };
+  W.cam = cam;
+  function rotateSpeed() { return cam.sens * cv.clientHeight / (2 * Math.max(1, cv.clientWidth)); }   // OrbitControls 的旋轉量 ＝ 2π×位移÷畫面高度×rotateSpeed；要的是「位移 ＝ 寬度一半 → 90 度」，即 π×位移÷畫面寬度
+  function applyDrag() {
+    const rot = cam.mode === 'rotate';
+    controls.mouseButtons = { LEFT: rot ? THREE.MOUSE.ROTATE : -1, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+    controls.touches = { ONE: rot ? THREE.TOUCH.ROTATE : -1, TWO: THREE.TOUCH.DOLLY_ROTATE };
+    controls.rotateSpeed = rotateSpeed(); controls.zoomSpeed = 0.9; controls.dampingFactor = 0.1;
+    cam.listeners.forEach(f => f());
+  }
+  cam.setMode = m => { cam.mode = m === 'rotate' ? 'rotate' : 'move'; lsSet('aiOffice.cam.mode', cam.mode); applyDrag(); };
+  cam.setSens = v => { cam.sens = [0.6, 1, 1.5].includes(+v) ? +v : 1; lsSet('aiOffice.cam.sens', String(cam.sens)); applyDrag(); };
   function modeControls() {
     controls.enablePan = true; controls.enableRotate = true; controls.enableZoom = true; controls.minDistance = 3; controls.maxDistance = 110;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-    controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+    applyDrag();
   }
+  addEventListener('resize', () => { controls.rotateSpeed = rotateSpeed(); });
   const LIM = { x0: -6, x1: layout.size.w + 6, z0: -6, z1: layout.size.d + 10 };    // 注視點可以平移到的範圍（辦公室外圍多留一圈）
   function clampCam() {
     const t = controls.target, cx = Math.max(LIM.x0, Math.min(LIM.x1, t.x)), cz = Math.max(LIM.z0, Math.min(LIM.z1, t.z)), cy = Math.max(0, Math.min(3, t.y));
@@ -229,7 +246,7 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
   director = createDirector(W, ui); W.director = director; W.ui = ui; W.meet = meet; director.pets = W.pets;
   if (qs.get('ambient') === '0') director.ambient = false;
   // 鍵盤／觸控操控（點選角色後）：輸入、碰撞、溝通演出都在 pilot.js，這裡只掛鉤
-  const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot; const camHint = createCamHint(view);
+  const pilot = createPilot(W, { cv, camera, controls, ui, setView, director: () => director }); W.pilot = pilot; const camHint = createCamHint(view, cam);
   const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
 
   // ── 辦公室狀態層與各控制器：所有演出只讀 state，示範（sim）與之後的真資料都從 state.emit 進來 ──
@@ -309,6 +326,29 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     if (now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30 && ray.ray.intersectPlane(ground, gp)) { clearTimeout(deselT); lastTap.t = 0; moveCamTo(gp.x, gp.z); return; }
     lastTap.t = now; lastTap.x = e.clientX; lastTap.y = e.clientY; clearTimeout(deselT); deselT = setTimeout(() => pilot.deselect(), 330);
   });
+  // ── 左鍵（觸控單指）抓著地面拖：一比一 ──
+  const pan = { on: false, id: -1, g0: new THREE.Vector3(), g1: new THREE.Vector3(), t: 0, touches: new Set() };
+  const groundHit = (e, out) => { setRay(e); return !!ray.ray.intersectPlane(ground, out); };
+  function movePan(dx, dz) {
+    camera.position.x += dx; camera.position.z += dz; controls.target.x += dx; controls.target.z += dz;
+    if (view.char && !view.detached) { view.detached = true; view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z }; }   // 手動平移後暫停自動跟隨（既有規則）
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') pan.touches.add(e.pointerId);
+    if (cam.mode !== 'move' || e.button !== 0 || edit.on || (down && down.c) || (e.pointerType === 'touch' && pan.touches.size > 1)) { if (pan.touches.size > 1) pan.on = false; return; }
+    if (!groundHit(e, pan.g0)) return;
+    pan.on = true; pan.id = e.pointerId; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9;
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!pan.on || e.pointerId !== pan.id || grab) return;
+    if (!groundHit(e, pan.g1)) return;
+    const k = cam.sens, now = performance.now(), dtm = Math.max(8, now - pan.t); pan.t = now;
+    const dx = (pan.g0.x - pan.g1.x) * k, dz = (pan.g0.z - pan.g1.z) * k, L = Math.hypot(dx, dz); if (L > 40) return;   // 射線快貼近地平線時位移會暴增，丟掉
+    movePan(dx, dz); cam.coast.set(dx / dtm * 1000, 0, dz / dtm * 1000);
+    if (k !== 1) { groundHit(e, pan.g0); }   // 非 1 倍時，每次以目前游標下的點重新抓，手感才是「相對」而不是越拖越飄
+  });
+  const panEnd = e => { if (e.pointerType === 'touch') pan.touches.delete(e.pointerId); if (pan.on && e.pointerId === pan.id) { pan.on = false; userActive = performance.now() + 600; if (cam.coast.length() < 1.5 || performance.now() - pan.t > 90) cam.coast.set(0, 0, 0); } };
+  addEventListener('pointerup', panEnd); addEventListener('pointercancel', panEnd);
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // 佈告欄：滑鼠停上去游標變手指、板子微微提亮（用一塊半透明的外框蓋在板子上，不動共用材質）
   const bh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.28, depthWrite: false })); bh.visible = false; bh.renderOrder = 7; scene.add(bh); W.boardHover = bh;
@@ -382,6 +422,11 @@ async function loadCharacterModule() { const p = qs.get('char') || '../../play/o
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
     for (let i = 0; i < n; i++) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
     W.updateBlobs(); W.updateScreens(real);
+    if (cam.coast.lengthSq() > 0.0004) { movePan(cam.coast.x * wall, cam.coast.z * wall); cam.coast.multiplyScalar(Math.exp(-wall * 7)); } else cam.coast.set(0, 0, 0);   // 放開後用阻尼慢慢停下
+    if (cam.spin || cam.step) {                                                         // 旋轉鈕：按住持續轉（每秒 60 度），點一下轉 30 度（平順插值）
+      let a = cam.spin * 1.05 * wall * cam.sens; if (cam.step) { const q = cam.step * (1 - Math.exp(-wall * 12)); cam.step -= q; a += q; if (Math.abs(cam.step) < 0.002) { a += cam.step; cam.step = 0; } }
+      view.tween = null; const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, cs = Math.cos(a), sn = Math.sin(a); camera.position.x = controls.target.x + ox * cs + oz * sn; camera.position.z = controls.target.z - ox * sn + oz * cs;
+    }
     updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
     // 使用者拖曳平移（注視點被他移動）→ 暫停跟隨
     if (view.char && !view.detached && !view.tween && performance.now() < userActive && controls.target.distanceToSquared(tg0) > 1e-4) { view.detached = true; view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z }; }

@@ -4,6 +4,7 @@
 # 手動以 1/60 秒一步推進（模擬高幀率），不靠瀏覽器幀率；軟體繪圖很慢，所以不用真實時間。
 # flake8: noqa
 LIMIT = 2.0
+LIMIT_HELD = 4.0     # 被拎在半空中時手腳本來就會垂下來晃（寵物個子小，相對身高更大）
 
 _JS = """(id) => { const W = __world, V = W.THREE.Vector3, a = new V(), b = new V(), c = W.chars.get(id) || W.pets.find(p => p.spec.id === id), ch = c.inner, out = {};
  W.speed = 0.01; let t = W.time; const dt = 1 / 60;
@@ -52,9 +53,9 @@ def t_limbs(b, base):
             m = max(v for v in r.values() if v == v)
             if m > worst[0]:
                 worst = (m, cid, r)
-            if not all(v == v and v <= LIMIT for v in r.values()):
+            if not all(v == v and v <= (LIMIT_HELD if k == '被拎起放下' else LIMIT) for k, v in r.items()):
                 bad.append((cid, r))
-        ok("手腳跟隨：%d 個角色（%d 種物種＋CEO＋寵物）在 站／走／跑／轉身／瞬間反向／跳／被拎起放下／坐下／睡覺 時，手腳到身體的距離都 ≤ 身高的 %.1f 倍（最大 %.2f，%s）" % (len(dict.fromkeys(pick)), len(seen), LIMIT, worst[0], worst[1]), not bad, bad[:2])
+        ok("手腳跟隨：%d 個角色（%d 種物種＋CEO＋寵物）在 站／走／跑／轉身／瞬間反向／跳／被拎起放下／坐下／睡覺 時，手腳到身體的距離都 ≤ 身高的 %.1f 倍（被拎起時 ≤ 4 倍；最大 %.2f，%s）" % (len(dict.fromkeys(pick)), len(seen), LIMIT, worst[0], worst[1]), not bad, bad[:2])
         ok("手腳跟隨：沒有主控台錯誤", not errs, errs[:3])
     finally:
         c.close()
