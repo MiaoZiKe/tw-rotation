@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { Face } from './face.js';
 import { G, BOUNDS } from './world.js';
-import { ball, foot } from './soft.js';
+import { ball, foot, softMat } from './soft.js';
+import { LimbSkin } from './limb.js';
 import { SPECIES, resolveSpec, addAccessories, faceStyleFor, applyTraits } from './species.js';
 
 import { clamp, lerp, sstep } from './soft.js';
@@ -10,6 +11,7 @@ const V3 = THREE.Vector3;
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const _a = new V3(), _b = new V3(), _c = new V3(), _d = new V3(), _q = new THREE.Quaternion(), _UP = new V3(0, 1, 0);
 
+const HARD = new Set(['robo', 'mug', 'calc', 'note', 'folder', 'pencil', 'stamp', 'lamp', 'bulb']);   // 硬質物種：手腳用關節座與短袖口，不做有機融合
 const ACT = {
   wave: { dur: 2.0, lock: true, cam: true }, bow: { dur: 1.7, lock: true, cam: true }, dance: { dur: 4.4, lock: true, cam: true }, spin: { dur: 0.9, lock: true },
   eat: { dur: 2.9, lock: true, cam: true }, catch: { dur: 2.6, lock: true }, yawn: { dur: 2.2, lock: false }, talk: { dur: 1.8, lock: false, cam: true },
@@ -22,7 +24,7 @@ export class Character {
   constructor(spec, scene, world, fx, opts = {}) {
     const rs = resolveSpec(spec), cfg = rs.cfg; this.spec = rs.spec; this.pal = rs.pal; this.palIndex = rs.palIndex; this.accList = rs.acc;
     this.cfg = cfg; this.scene = scene = opts.space || scene; this.world = world; this.fx = fx; this.R = cfg.R;
-    this.sh = { uTint: { value: new THREE.Color(1, 1, 1) }, uTintAmt: { value: 0 }, uGround: { value: 0 } };
+    this.sh = { uTint: { value: new THREE.Color(1, 1, 1) }, uTintAmt: { value: 0 }, uGround: { value: 0 }, uBodyC: { value: new V3() }, uBodyK: { value: new V3(1, 1, 1) }, uBodyYS: { value: 1 } };
     this.v = rs.v; this.face = new Face(faceStyleFor(cfg.face, rs.v), opts.faceSize || 512);
     this.root = new THREE.Group(); this.tilt = new THREE.Group(); this.tumble = new THREE.Group(); this.deform = new THREE.Group();
     this.root.add(this.tilt); this.tilt.add(this.tumble); this.tumble.add(this.deform);
@@ -34,6 +36,9 @@ export class Character {
     this.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.userData.char = this; } });
     this.pickList = []; this.root.traverse(o => { if (o.isMesh) this.pickList.push(o); });
     // 腳、手（放在世界座標，腳會「種」在地上）
+    const sid = Object.keys(SPECIES).find(k => SPECIES[k] === cfg); this.hard = HARD.has(sid);
+    const rootify = (m) => { if (this.hard || !m || !m.userData.o || m.userData.o.root || !this.bodyO || cfg.noSkin) return m; return m.userData.rootVer ??= softMat({ ...m.userData.o, root: this.bodyO, rootSpan: cfg.rootSpan ?? 0.34 }, this.sh); };
+    this.limbMat = rootify(this.limbMat); this.footMat = rootify(this.footMat);
     const fs = cfg.footSize;
     this.feet = (fs ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(foot(), this.footMat || this.limbMat); m.scale.set(fs[0], fs[1], fs[2]); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3(), from: new V3(), planted: true, sw: 1, yaw: 0, lift: 0, timed: 0 }; });
     this.hands = (cfg.handR ? [-1, 1] : []).map(s => { const m = new THREE.Mesh(ball(), this.limbMat); if (cfg.handScale) m.scale.set(...cfg.handScale); else m.scale.setScalar(cfg.handR); m.castShadow = true; m.userData.char = this; scene.add(m); this.pickList.push(m); return { s, m, p: new V3(), v: new V3() }; });
@@ -42,7 +47,7 @@ export class Character {
       const lg = new THREE.CylinderGeometry(1, 1, 1, 14); lg.translate(0, 0.5, 0);
       for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(lg, this.legMat); m.castShadow = true; scene.add(m); this.limbs.push(m); }
     }
-    this.shadow = world.mkShadow(cfg.R * 1.15);
+    this.initSkin(); this.shadow = world.mkShadow(cfg.R * 1.15);
     // 狀態
     this.pos = new V3(0, 0, 0.9); this.vel = new V3(); this.yaw = 0; this.yawRate = 0; this.grounded = true; this.groundS = null; this.airT = 0;
     this.mode = 'normal'; this.modeT = 0; this.act = null; this.goal = null; this.jumpPrep = 0; this.jumpBuf = 0; this.skid = false; this.pushing = 0; this.hop = null;
@@ -57,8 +62,46 @@ export class Character {
     this.t = 0; this.phase0 = Math.random() * 6.28; this.syncGroups(); this.root.updateMatrixWorld(true);
   }
   dispose() {
-    const S = this.scene; S.remove(this.root, this.shadow, ...this.feet.map(f => f.m), ...this.hands.map(h => h.m), ...this.limbs);
+    const S = this.scene; if (this.skin) this.skin.geo.dispose(); S.remove(this.root, this.shadow, ...(this.skin ? [this.skin.mesh] : []), ...this.feet.map(f => f.m), ...this.hands.map(h => h.m), ...this.limbs);
     this.face.tex.dispose();
+  }
+  // 肢體皮膚：手臂、腿與身體連成一體（根部張開、埋進身體，顏色與法線朝身體表面混合），一隻角色一次繪製
+  initSkin() {
+    const cfg = this.cfg, hard = this.hard, lm = (cfg.legs ? this.legMat : null) || this.limbMat || this.legMat; this.skin = null;
+    if (cfg.noSkin || (!this.hands.length && !this.feet.length) || !lm || !this.main) return;
+    if (this.limbs.length) { this.limbs.forEach(m => this.scene.remove(m)); this.limbs = []; }   // 豆芽原本的圓柱手腳，改用皮膚
+    const bo = this.bodyO, lo = lm.userData.o; if (!lo || (!hard && !bo)) return;
+    const tc = new THREE.Color(lo.color).lerp(new THREE.Color(lo.top ?? lo.color), hard ? 0 : 0.12);
+    const mat = softMat({ ...lo, color: tc, top: tc, y0: -1, y1: 1, ...(hard ? {} : { root: bo, rootSpan: cfg.rootSpan ?? 0.34 }) }, this.sh);
+    this.slots = []; const my = this.main.position.y, thin = !!cfg.legs;
+    this.hands.forEach((h, i) => {
+      const sh = this.shoulder || cfg.shoulder || [cfg.hand[0] * 0.5, my + (cfg.hand[1] - my) * 0.5, cfg.hand[2] * 0.5], hs = cfg.handScale, hr = hs ? Math.max(...hs) * 0.5 : cfg.handR, rt = hs ? Math.min(...hs) : hr * (cfg.wrist ?? (hard ? 0.62 : 0.5));
+      this.slots.push({ h, a: new V3(h.s * sh[0], sh[1], sh[2]), rt, rf: hr * (cfg.armFlare ?? (hard ? 1.45 : thin ? 1.2 : 2.0)), Lf: hr * (cfg.armLf ?? (hard ? 0.55 : 1.5)), p: 2.0 });
+    });
+    this.feet.forEach((f, i) => {
+      const hp = this.hip || cfg.hip || [cfg.lat * 0.55, my * 0.5 + cfg.footSize[1] * 0.5, cfg.footFwd * 0.5], fr = cfg.footSize[0], rt = fr * (thin ? 0.42 : 0.6);
+      this.slots.push({ f, a: new V3(f.s * hp[0], hp[1], hp[2]), rt, rf: fr * (cfg.legFlare ?? (hard ? 1.25 : thin ? 1.0 : 1.4)), Lf: fr * (hard ? 0.5 : 0.9), p: 2.2 });
+    });
+    this.main.geometry.computeBoundingBox(); const bb = this.main.geometry.boundingBox; this.bodyHalf = new V3((bb.max.x - bb.min.x) / 2, (bb.max.y - bb.min.y) / 2, (bb.max.z - bb.min.z) / 2).multiplyScalar(0.92);
+    this.skin = new LimbSkin(this.slots.length, mat); this.scene.add(this.skin.mesh); this.pickList.push(this.skin.mesh); this.skin.mesh.userData.char = this;
+  }
+  // 世界座標 → 手腳掛載群組的座標（辦公室的群組有縮放，CEO 與寵物不是 1 倍）
+  setLocal(out, p) { out.copy(p); if (!this.scene.isScene) out.applyMatrix4(this._sInv); return out; }
+  updateSkin() {
+    const S = this.skin; if (!S) return;
+    const sh = this.sh, e = this.main.matrixWorld.elements, sx = Math.hypot(e[0], e[1], e[2]), sy = Math.hypot(e[4], e[5], e[6]), sz = Math.hypot(e[8], e[9], e[10]), bh = this.bodyHalf;
+    this.main.getWorldPosition(sh.uBodyC.value); const rx = bh.x * sx, rz = bh.z * sz, rh = (rx + rz) / 2, ry = bh.y * sy;
+    sh.uBodyK.value.set(1 / (rh * rh), 1 / (ry * ry), 1 / (rh * rh)); sh.uBodyYS.value = sy;
+    this.slots.forEach((sl, i) => {
+      this.deform.localToWorld(_c.copy(sl.a));
+      if (sl.h) _d.copy(sl.h.p); else _d.copy(sl.f.p).setY(sl.f.p.y + this.cfg.footSize[1] * 0.95);
+      // 軸線穿出身體（橢球）的位置
+      const K = sh.uBodyK.value, C = sh.uBodyC.value; _a.copy(_d).sub(_c); _b.copy(_c).sub(C);
+      const qa = K.x * _a.x * _a.x + K.y * _a.y * _a.y + K.z * _a.z * _a.z, qb = 2 * (K.x * _b.x * _a.x + K.y * _b.y * _a.y + K.z * _b.z * _a.z), qc = K.x * _b.x * _b.x + K.y * _b.y * _b.y + K.z * _b.z * _b.z - 1, disc = qb * qb - 4 * qa * qc;
+      const ts = qa > 1e-9 && disc > 0 ? clamp((-qb + Math.sqrt(disc)) / (2 * qa), 0, 1) : 0.5;
+      this.setLocal(_c, _c); this.setLocal(_d, _d); S.set(i, _c, _d, sl.rf, sl.rt, sl.Lf, sl.p, ts);
+    });
+    S.commit();
   }
   every(k, sec) { this._ev ??= {}; const n = Math.floor(this.t / sec); if (this._ev[k] !== n) { this._ev[k] = n; return true; } return false; }
   get center() { return _d.set(this.pos.x, this.pos.y + this.R, this.pos.z); }
@@ -474,8 +517,9 @@ export class Character {
     this.face.update(dt, expr === 'dizzy' || expr === 'surprised' ? 22 : 12);
     const U = this.main.material.userData.U; U.uFaceOff.value.set(this.gx * 0.2 * (c.faceShift ?? 1), this.gy * 0.1 * (c.faceShift ?? 1) + (c.faceUp || 0)); U.uDent.value.w = this.dent;
     this.syncGroups(); this.root.updateMatrixWorld(true);
+    if (!this.scene.isScene) { this._sInv ??= new THREE.Matrix4(); this._sInv.copy(this.scene.matrixWorld).invert(); }
     this.updateFeet(dt, moving, sp, runF);
-    this.updateHands(dt, HP, hk, hc);
+    this.updateHands(dt, HP, hk, hc); this.updateSkin();
     // 接觸陰影
     const gh = this.world.groundAt(p.x, p.z, p.y + 0.05).h, hg = p.y + this.yOff - gh;
     this.shadow.position.set(p.x, gh + 0.015, p.z); this.shadow.material.opacity = 0.6 * Math.max(0.2, 1 - hg * 0.45); this.shadow.scale.setScalar(c.R * 3.0 * (1 + hg * 0.35) * (1 - this.sq * 0.3));
@@ -535,7 +579,7 @@ export class Character {
         }
         f.m.rotation.set(0, 0, 0); f.m.rotation.order = 'YXZ'; f.m.rotation.y = f.yaw; f.m.rotation.x = pitch;
       }
-      f.m.position.copy(f.p);
+      this.setLocal(f.m.position, f.p);
     });
   }
   updateHands(dt, HP, k, d) {
@@ -548,7 +592,7 @@ export class Character {
       for (let j = 0; j < n; j++) { h.v.x += ((_a.x - h.p.x) * k - h.v.x * d) * hh; h.v.y += ((_a.y - h.p.y) * k - h.v.y * d) * hh; h.v.z += ((_a.z - h.p.z) * k - h.v.z * d) * hh; h.p.addScaledVector(h.v, hh); }
       // 手不要離身體太遠（被丟的時候）
       const cx = this.pos.x, cyy = this.pos.y + R, cz = this.pos.z, dd = Math.hypot(h.p.x - cx, h.p.y - cyy, h.p.z - cz), mx = R * 2.1; if (dd > mx) { h.p.set(cx + (h.p.x - cx) * mx / dd, cyy + (h.p.y - cyy) * mx / dd, cz + (h.p.z - cz) * mx / dd); }
-      h.m.position.copy(h.p); h.m.quaternion.copy(this.tumble.getWorldQuaternion(_q));
+      this.setLocal(h.m.position, h.p); h.m.quaternion.copy(this.tumble.getWorldQuaternion(_q));
     });
     // 豆芽的手臂與腿：連接身體與手腳的小圓柱
     if (this.limbs.length) {

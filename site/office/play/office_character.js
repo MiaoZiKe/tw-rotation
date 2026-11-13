@@ -129,7 +129,7 @@ export function createCharacter(spec, env = {}) {
   const ch = new Character(look, null, world, fx, { space, faceSize: CFG.faceSize });
   ch.ext = { vx: 0, vz: 0, yaw: 0, y: 0 }; ch.pos.set(0, 0, 0); ch.bounds = { x0: B.x0 / s, x1: B.x1 / s, z0: B.z0 / s, z1: B.z1 / s };
   // 場景的影子是靜態烘的，角色不投影（腳下另有接觸陰影）
-  const tiny = [], small = []; space.traverse(o => { if (!o.isMesh) return; o.castShadow = false; o.receiveShadow = false; if (o !== ch.main && o.geometry) { o.geometry.boundingSphere || o.geometry.computeBoundingSphere(); const r = o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z); if (r < 0.045) tiny.push(o); else if (r < 0.1) small.push(o); } });
+  const tiny = [], small = []; space.traverse(o => { if (!o.isMesh) return; o.castShadow = false; o.receiveShadow = false; if (o.userData.limb) { small.push(o); return; } if (o !== ch.main && o.geometry) { o.geometry.boundingSphere || o.geometry.computeBoundingSphere(); const r = o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z); if (r < 0.045) tiny.push(o); else if (r < 0.1) small.push(o); } });
   const camP = new V3(0, 6, 10), aenv = { look: null, cam: camP, idleScale: 0 }, ctl = { mx: 0, mz: 0, run: false, jump: false };
   const slot = { A: null, L: null, R: null }, slotType = { A: '', L: '', R: '' }; let icon = null, iconT = 0, iconDur = 0, lod = 0, frame = (serial++) % 6, accDt = 0, react = null;
   const c = {

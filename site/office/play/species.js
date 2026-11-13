@@ -3,11 +3,16 @@
 import * as THREE from 'three';
 import { softMat, blobGeo, ball, sstep, clamp, DETAIL } from './soft.js';
 import { lathe, rbox } from './world.js';
+import { taperGeo } from './limb.js';
 
 const V3 = THREE.Vector3, _v = new V3();
-const M = (c, o) => softMat(o, c.sh);
+const M = (c, o) => { if (o.face && !c.bodyO) c.bodyO = { color: o.color, top: o.top ?? o.color, y0: o.y0 ?? -0.3, y1: o.y1 ?? 0.3 }; return softMat(o, c.sh); };
+const MR = (c, o) => softMat({ ...o, root: c.bodyO, rootSpan: c.cfg.rootSpan ?? 0.34 }, c.sh);   // 會與身體表面融合的材質（附屬物根部）
 const put = (c, geo, mat, x = 0, y = 0, z = 0, sx = 1, sy = sx, sz = sx, parent = null) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); (parent || c.deform).add(m); return m; };
 const piv = (c, x, y, z, o = {}) => { const g = new THREE.Group(); g.position.set(x, y, z); c.deform.add(g); c.apps.push({ piv: g, side: 0, k: 150, c: 9, g: 0.02, gy: 0, rest: [0, 0], droop: 0, ...o }); return g; };
+// 從 a 到 b 的錐形肢體（根在 a、埋進身體；用會與身體融合的材質）
+const UP = new V3(0, 1, 0);
+const limbTo = (c, mat, a, b, r, o = {}, parent = null) => { const A = new V3(...a), d = new V3(...b).sub(A), L = d.length(), m = put(c, taperGeo({ q: 0.6, p: 1.8, cap: 0.3, ...o }), mat, A.x, A.y, A.z, r, L * 1.08, o.rz ?? r, parent); m.quaternion.setFromUnitVectors(UP, d.normalize()); return m; };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const every = (c, key, sec, dt) => { c.tm ??= {}; c.tm[key] = (c.tm[key] ?? Math.random() * sec) - dt; if (c.tm[key] <= 0) { c.tm[key] = sec * rnd(0.7, 1.3); return true; } return false; };
 const calm = (c) => c.mode === 'normal' && c.grounded && !c.act;
@@ -32,16 +37,16 @@ export const SPECIES = {
     pat: ['spots','belly','patch'],
     name: '糰糰', sub: '麻糬糰子', moveZh: '小碎步', sigZh: '彈彈跳', why: '頭就是身體，臉最大、擠壓伸展最誇張',
     R: 0.36, walk: 1.5, run: 3.5, jumpV: 5.7, stride: [0.42, 0.9], lat: 0.15, footFwd: 0.2, footSize: [0.082, 0.062, 0.1], handR: 0.062,
-    stick: [0.475, 0.37, 0.445, 0.335], hand: [0.45, 0.2, 0.17], front: 0.4, cheek: [0.26, 0.3, 0.36], waddle: 0.085, wob: 1.25, mouth: [0, 0.24, 0.42], top: 0.72, faceUp: 0.14,
+    stick: [0.575, 0.455, 0.53, 0.335], hand: [0.45, 0.2, 0.17], shoulder: [0.3, 0.27, 0.12], front: 0.4, cheek: [0.26, 0.3, 0.36], waddle: 0.085, wob: 1.25, mouth: [0, 0.24, 0.42], top: 0.72, faceUp: 0.14,
     face: { ...FACE, ex: 92, rx: 36, ry: 47, my: 322, mw: 17, wmouth: true },
     pals: [{ n: '奶油桃', body: 0xffc9ad, top: 0xfff1e2, acc: 0xffbfa6, sss: 0xff8f6e }, { n: '草莓牛奶', body: 0xffb4c6, top: 0xffe8ef, acc: 0xff9db6, sss: 0xff6f9a }, { n: '抹茶', body: 0xc3e0ad, top: 0xeff8de, acc: 0xa5d291, sss: 0x8fd070 }, { n: '芋頭', body: 0xcdb9f0, top: 0xf2ebff, acc: 0xb7a0ea, sss: 0x9a7bff }],
     anc: { hat: [0, 0.7, 0.02, 1], bow: [0.2, 0.66, 0.12], chest: [0, 0.1, 0.43], glasses: 1 },
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.36, y1: 0.25, sss: p.sss, sssAmt: 0.27, face: c.face, headC: [0, 0, 0], span: [2.2, 2.2] });
       c.main = put(c, blobGeo(v => { const y = v.y, b = 1 + 0.15 * sstep(0.4, -0.7, y); v.set(v.x * 0.455 * b, y * (y > 0 ? 0.385 : 0.345), v.z * 0.425 * b); }), m, 0, 0.335, 0);
-      const em = M(c, { color: p.acc, top: p.top, y0: -0.4, y1: 0.9, sss: p.sss });
-      for (const s of [-1, 1]) { const g = piv(c, s * 0.25, 0.62, -0.02, { side: s, g: 0.016, gy: 0.012, rest: [0, s * -0.22], droop: 0.75 }); put(c, ball(), em, 0, 0.065, 0, 0.105, 0.1, 0.07, g); }
-      const t = piv(c, 0.06, 0.2, -0.4, { k: 220, c: 10, g: 0.03, wag: true }); put(c, ball(), em, 0, 0, -0.04, 0.075, 0.075, 0.075, t);
+      const em = MR(c, { color: p.acc, top: p.acc, y0: -0.4, y1: 0.9, sss: p.sss });
+      for (const s of [-1, 1]) { const g = piv(c, s * 0.25, 0.62, -0.02, { side: s, g: 0.016, gy: 0.012, rest: [0, s * -0.22], droop: 0.75 }); put(c, taperGeo({ q: 0.8, p: 2.6, cap: 0.55, bulge: 0.12 }), em, 0, -0.05, 0, 0.115, 0.2, 0.08, g); }
+      const t = piv(c, 0.06, 0.2, -0.4, { k: 220, c: 10, g: 0.03, wag: true }); put(c, taperGeo({ q: 0.85, p: 2.4, cap: 0.6, bulge: 0.1 }), em, 0, 0, -0.01, 0.085, 0.1, 0.085, t).rotation.x = -1.57;
       c.limbMat = M(c, { color: p.acc, top: p.top, y0: 0, y1: 1.6, sss: p.sss });
     },
     idle(c, dt, t) { if (calm(c) && every(c, 'ear', 3.2, dt)) for (const a of c.apps) if (a.side) a.vz += a.side * 5; },
@@ -227,8 +232,8 @@ export const SPECIES = {
     build(c, p) {
       const o = { color: p.body, top: p.top, sss: p.sss, sssAmt: 0.3 };
       c.main = put(c, blobGeo(v => { const y = v.y, b = 1 + 0.09 * sstep(-0.6, 0.5, y); v.set(v.x * 0.345 * b, y * (y > 0 ? 0.37 : 0.31), v.z * 0.33 * b); }), M(c, { ...o, y0: -0.3, y1: 0.3, face: c.face, headC: [0, -0.03, 0], span: [2.2, 2.2] }), 0, 0.45, 0);
-      const tm = M(c, { ...o, color: p.body, top: p.top, y0: -1.5, y1: 1.5 }), tp = M(c, { color: p.tip, top: p.tip, sss: p.sss, sssAmt: 0.2 });
-      for (let i = 0; i < 7; i++) { const a = (i + 0.5) / 7 * Math.PI * 2 + Math.PI / 2, cx = Math.cos(a), sz = Math.sin(a); const g = piv(c, cx * 0.2, 0.2, sz * 0.2, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 }); put(c, ball(), tm, cx * 0.07, -0.07, sz * 0.07, 0.095, 0.1, 0.095, g); put(c, ball(), tm, cx * 0.17, -0.14, sz * 0.17, 0.075, 0.06, 0.075, g); put(c, ball(), tp, cx * 0.25, -0.165, sz * 0.25, 0.055, 0.035, 0.055, g); }
+      const tm = MR(c, { ...o, color: p.body, top: p.body, y0: -1.5, y1: 1.5 }), tp = M(c, { color: p.tip, top: p.tip, sss: p.sss, sssAmt: 0.2 });
+      for (let i = 0; i < 7; i++) { const a = (i + 0.5) / 7 * Math.PI * 2 + Math.PI / 2, cx = Math.cos(a), sz = Math.sin(a); const g = piv(c, cx * 0.2, 0.2, sz * 0.2, { side: cx > 0.2 ? 1 : cx < -0.2 ? -1 : 0, k: 80 + i * 6, c: 4.5, g: 0.035, gy: 0.01, wig: i * 0.9 }); const dv = new V3(cx * 0.25, -0.17, sz * 0.25), dl = dv.length(); put(c, taperGeo({ q: 0.5, p: 1.7, cap: 0.35 }), tm, 0, 0, 0, 0.088, dl * 1.12, 0.088, g).quaternion.setFromUnitVectors(new V3(0, 1, 0), dv.normalize()); put(c, ball(), tp, cx * 0.255, -0.17, sz * 0.255, 0.052, 0.034, 0.052, g); }
       const sp = M(c, { color: p.top, top: p.top, sss: p.sss, sssAmt: 0.2 }); for (const [x, y, z, r] of [[-0.2, 0.72, 0.1, 0.06], [-0.27, 0.62, 0.02, 0.035], [0.22, 0.7, -0.08, 0.045]]) put(c, ball(), sp, x, y, z, r, r * 0.5, r);
     },
     idle(c, dt, t) { for (const a of c.apps) if (a.wig != null) { a.vx += Math.sin(t * 2.3 + a.wig) * 2.5 * dt; a.vz += Math.cos(t * 1.9 + a.wig * 1.7) * 2.5 * dt; } },
@@ -458,10 +463,10 @@ export const SPECIES = {
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.4, y1: 0.4, sss: p.sss, sssAmt: 0.3, rim: 0xffffff, face: c.face, headC: [0, 0.14, 0.02], span: [2.1, 2.1] });
       c.main = put(c, blobGeo(v => { const y = v.y, w = 1 + 0.13 * sstep(0.2, -0.8, y), sn = 0.075 * Math.exp(-Math.pow((y - 0.42) / 0.3, 2)) * Math.max(0, v.z); v.set(v.x * 0.315 * w, y * (y > 0 ? 0.4 : 0.37), v.z * 0.3 * w + 0.07 * sstep(-0.1, 1, y) + sn); }, 88, 64), m, 0, 0.5, 0);
-      const pm = M(c, { color: p.plate, top: 0xffffff, y0: -0.1, y1: 0.3, sss: p.plate, sssAmt: 0.3, rough: 0.5 });
-      for (const [y, z, sc, rx] of [[0.9, -0.13, 0.085, 0.35], [0.78, -0.25, 0.12, 0.7], [0.62, -0.33, 0.12, 0.95], [0.43, -0.34, 0.1, 1.15], [0.27, -0.32, 0.08, 1.3]]) { const b = put(c, ball(), pm, 0, y, z, 0.034, sc, sc * 0.8); b.rotation.x = rx - 0.2; }
+      const pm = MR(c, { color: p.plate, top: p.plate, y0: -0.1, y1: 0.3, sss: p.plate, sssAmt: 0.3, rough: 0.5 });
+      for (const [y, z, sc, rx] of [[0.9, -0.13, 0.085, 0.35], [0.78, -0.25, 0.12, 0.7], [0.62, -0.33, 0.12, 0.95], [0.43, -0.34, 0.1, 1.15], [0.27, -0.32, 0.08, 1.3]]) { const r = rx - 0.2, ay = Math.cos(r), az = Math.sin(r); const b = put(c, taperGeo({ q: 0.4, p: 1.5, cap: 0.45 }), pm, 0, y - ay * sc * 1.1, z - az * sc * 1.1, 0.05, sc * 2.1, sc * 0.8); b.rotation.x = r; }
       const t = piv(c, 0, 0.24, -0.28, { k: 120, c: 5.5, g: 0.04, wag: true }); c.tail = c.apps[c.apps.length - 1];
-      put(c, blobGeo(v => { const tt = (1 - v.z) / 2, r = 0.15 * (1 - 0.84 * tt); v.set(v.x * r, v.y * r * 0.85 + 0.04 * tt * tt, v.z * 0.26 - 0.26); }, 48, 36), M(c, { color: p.tail, top: p.top, y0: -0.2, y1: 0.2, sss: p.sss, sssAmt: 0.3 }), 0, 0, 0, 1, 1, 1, t);
+      put(c, blobGeo(v => { const tt = (1 - v.z) / 2, r = 0.15 * (1 - 0.84 * tt); v.set(v.x * r, v.y * r * 0.85 + 0.04 * tt * tt, v.z * 0.26 - 0.26); }, 48, 36), MR(c, { color: p.tail, top: p.top, y0: -0.2, y1: 0.2, sss: p.sss, sssAmt: 0.3 }), 0, 0, 0, 1, 1, 1, t);
       for (const [y, z, sc] of [[0.045, -0.2, 0.05], [0.04, -0.34, 0.035]]) put(c, ball(), pm, 0, y + 0.07, z, 0.02, sc, sc * 0.8, t);
       c.limbMat = M(c, { color: p.tail, top: p.top, y0: 0, y1: 1.6, sss: p.sss });
     },
@@ -521,14 +526,14 @@ export const SPECIES = {
     build(c, p) {
       const m = M(c, { color: p.body, top: p.top, y0: -0.3, y1: 0.34, sss: p.sss, sssAmt: 0.28, rim: 0xffffff, face: c.face, headC: [0, 0.08, 0], span: [2.15, 2.15] });
       c.main = put(c, blobGeo(v => { const y = v.y, w = 1 + 0.14 * sstep(0.3, -0.8, y); v.set(v.x * 0.315 * w, y * (y > 0 ? 0.35 : 0.3), v.z * 0.3 * w); }, 88, 64), m, 0, 0.42, 0);
-      const em = M(c, { color: p.body, top: p.top, y0: 0, y1: 0.4, sss: p.sss, sssAmt: 0.3 }), im = M(c, { color: p.ear, top: 0xffffff, y0: 0, y1: 0.4, sss: p.ear, sssAmt: 0.3 });
+      const em = MR(c, { color: p.body, top: p.top, y0: 0, y1: 0.4, sss: p.sss, sssAmt: 0.3 }), im = M(c, { color: p.ear, top: 0xffffff, y0: 0, y1: 0.4, sss: p.ear, sssAmt: 0.3 });
       const g1 = piv(c, -0.115, 0.74, -0.02, { side: -1, k: 140, c: 7, g: 0.018, rest: [0, 0.14], droop: 0.35 }); c.earL = c.apps[c.apps.length - 1];
-      put(c, ball(), em, 0, 0.2, 0, 0.075, 0.23, 0.045, g1); put(c, ball(), im, 0, 0.2, 0.02, 0.043, 0.17, 0.02, g1);
+      put(c, taperGeo({ q: 0.5, p: 1.5, cap: 0.4 }), em, 0, -0.05, 0, 0.088, 0.48, 0.055, g1); put(c, ball(), im, 0, 0.2, 0.02, 0.043, 0.17, 0.02, g1);
       const g2 = piv(c, 0.115, 0.74, -0.02, { side: 1, k: 110, c: 6, g: 0.02, rest: [0, -0.1], droop: 0.35 }); c.earR = c.apps[c.apps.length - 1];
-      put(c, ball(), em, 0, 0.1, 0, 0.075, 0.125, 0.045, g2); put(c, ball(), im, 0, 0.1, 0.02, 0.043, 0.085, 0.02, g2);
+      put(c, taperGeo({ q: 0.6, p: 1.5, cap: 0.5 }), em, 0, -0.05, 0, 0.088, 0.27, 0.055, g2); put(c, ball(), im, 0, 0.1, 0.02, 0.043, 0.085, 0.02, g2);
       const f = new THREE.Group(); f.position.set(0, 0.2, 0); f.rotation.z = -1.5; g2.add(f); put(c, ball(), em, 0, 0.12, 0, 0.07, 0.15, 0.042, f); put(c, ball(), im, 0, 0.12, 0.02, 0.04, 0.1, 0.02, f);
-      const t = piv(c, 0, 0.2, -0.3, { k: 160, c: 8, g: 0.03, wag: true }); put(c, ball(), M(c, { color: 0xffffff, top: 0xffffff, sss: 0xffd0d8, sssAmt: 0.2, rough: 0.9 }), 0, 0.01, -0.05, 0.095, 0.095, 0.095, t);
-      for (const s of [-1, 1]) put(c, blobGeo(v => { v.y = v.y * (v.y < 0 ? 0.5 : 1) + 0.5; v.z += 0.1 * (1 - Math.abs(v.y - 0.5)); }, 36, 24), em, s * 0.14, 0.015, 0.16, 0.075, 0.08, 0.125).rotation.y = s * 0.15;
+      const t = piv(c, 0, 0.2, -0.3, { k: 160, c: 8, g: 0.03, wag: true }); put(c, ball(), MR(c, { color: 0xffffff, top: 0xffffff, sss: 0xffd0d8, sssAmt: 0.2, rough: 0.9 }), 0, 0.01, -0.05, 0.095, 0.095, 0.095, t);
+      for (const s of [-1, 1]) { put(c, blobGeo(v => { v.y = v.y * (v.y < 0 ? 0.5 : 1) + 0.5; v.z += 0.1 * (1 - Math.abs(v.y - 0.5)); }, 36, 24), em, s * 0.14, 0.015, 0.16, 0.075, 0.08, 0.125).rotation.y = s * 0.15; limbTo(c, em, [s * 0.12, 0.25, 0.06], [s * 0.14, 0.07, 0.15], 0.085, { q: 0.75, p: 1.4 }); }
       c.limbMat = em;
     },
     idle(c, dt, t) { tic(c, 'ear', 3.4, 1.0, dt, (u, end, st) => { if (st) { c.earL.vz += (Math.random() < 0.5 ? 1 : -1) * 6; c.earR.vz += 3; c.earR.vx -= 4; } if (!end && u > 0.4 && u < 0.45) c.earL.vz += 3; }); },

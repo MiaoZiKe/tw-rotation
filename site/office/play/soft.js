@@ -11,19 +11,26 @@ export function softMat(o, sh) {
     uSss: { value: new THREE.Color(o.sss ?? 0xff8a70) }, uSssAmt: { value: o.sssAmt ?? 0.3 }, uRim: { value: new THREE.Color(o.rim ?? 0xfff6ea) }, uRimAmt: { value: o.rimAmt ?? 0.32 },
     uTint: sh.uTint, uTintAmt: sh.uTintAmt, uPat: { value: new THREE.Vector4(0, 0, 4, 0) }, uPatCol: { value: new THREE.Color(0xffffff) }, uPatC: { value: new V3() }, uPatR: { value: 0.1 }, uGround: sh.uGround, uDent: { value: new THREE.Vector4(0, 1, 0, 0) }, uDentR: { value: 0.17 },
   };
+  if (o.root) Object.assign(U, { uBodyC: sh.uBodyC, uBodyK: sh.uBodyK, uBodyYS: sh.uBodyYS, uRootCol: { value: new THREE.Color(o.root.color) }, uRootTop: { value: new THREE.Color(o.root.top ?? o.root.color) }, uRootY: { value: new THREE.Vector2(o.root.y0 ?? -0.3, o.root.y1 ?? 0.3) }, uRootSpan: { value: o.rootSpan ?? 0.3 } });
+  m.userData.o = o;
   if (o.face) Object.assign(U, { uFace: { value: o.face.tex }, uHeadC: { value: new V3(...o.headC) }, uFaceSpan: { value: new THREE.Vector2(...o.span) }, uFaceOff: { value: new THREE.Vector2() }, uFaceGlow: { value: o.glow ?? 0 }, uFaceGloss: { value: o.gloss ?? 0.7 } });
-  m.userData.U = U; if (o.face) m.defines = { USE_FACE: '' };
+  m.userData.U = U; if (o.face || o.root) { m.defines = {}; if (o.face) m.defines.USE_FACE = ''; if (o.root) m.defines.USE_ROOT = ''; }
   m.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, U);
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec4 uDent; uniform float uDentR; uniform float uGround;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec4 uDent; uniform float uDentR; uniform float uGround;\n#ifdef USE_ROOT\nvarying vec3 vWP;\n#endif')
       .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n vec3 dP = position - uDent.xyz; float dW = exp(-dot(dP,dP)/(uDentR*uDentR)); objectNormal = normalize(objectNormal - uDent.w*dW*2.0*dP/(uDentR*uDentR));')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n vObjP = position; transformed -= normal * uDent.w * dW;')
-      .replace('#include <project_vertex>', 'vec4 wPos = modelMatrix * vec4(transformed,1.0); float gd = uGround - wPos.y; if (gd > 0.0) wPos.y = uGround - gd*0.06;\n vec4 mvPosition = viewMatrix * wPos; gl_Position = projectionMatrix * mvPosition;');
+      .replace('#include <project_vertex>', 'vec4 wPos = modelMatrix * vec4(transformed,1.0); float gd = uGround - wPos.y; if (gd > 0.0) wPos.y = uGround - gd*0.06;\n vec4 mvPosition = viewMatrix * wPos; gl_Position = projectionMatrix * mvPosition;\n#ifdef USE_ROOT\n vWP = wPos.xyz;\n#endif');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt; uniform vec4 uPat; uniform vec3 uPatCol; uniform vec3 uPatC; uniform float uPatR;\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjP; uniform vec3 uTop; uniform vec2 uY; uniform vec3 uSss; uniform float uSssAmt; uniform vec3 uRim; uniform float uRimAmt; uniform vec3 uTint; uniform float uTintAmt; uniform vec4 uPat; uniform vec3 uPatCol; uniform vec3 uPatC; uniform float uPatR;\n#ifdef USE_ROOT\nvarying vec3 vWP; uniform vec3 uBodyC; uniform vec3 uBodyK; uniform float uBodyYS; uniform vec3 uRootCol; uniform vec3 uRootTop; uniform vec2 uRootY; uniform float uRootSpan;\n#endif\n#ifdef USE_FACE\nuniform sampler2D uFace; uniform vec3 uHeadC; uniform vec2 uFaceSpan; uniform vec2 uFaceOff; uniform float uFaceGlow; uniform float uFaceGloss;\n#endif')
       .replace('#include <color_fragment>', `#include <color_fragment>
         diffuseColor.rgb = mix(diffuseColor.rgb, uTop, smoothstep(uY.x, uY.y, vObjP.y)); diffuseColor.rgb = mix(diffuseColor.rgb, uTint, uTintAmt);
+        #ifdef USE_ROOT
+          vec3 rpv = vWP - uBodyC; float rootE = sqrt(dot(rpv * rpv, uBodyK)); float rootW = 1.0 - smoothstep(1.08, 1.08 + uRootSpan, rootE);
+          vec3 rcol = mix(uRootCol, uRootTop, smoothstep(uRootY.x, uRootY.y, rpv.y / uBodyYS)); rcol = mix(rcol, uTint, uTintAmt);
+          diffuseColor.rgb = mix(diffuseColor.rgb, rcol, rootW);
+        #endif
         float gPat = 0.0, gStitch = 0.0;
         if (uPat.y > 0.001) {
           vec3 q = vObjP; float pk = uPat.x;
@@ -49,6 +56,10 @@ export function softMat(o, sh) {
           diffuseColor.rgb = mix(diffuseColor.rgb, uPatCol, gPat);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.96, 0.9, 0.8), gStitch * 0.85);
         }`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        #ifdef USE_ROOT
+          { vec3 nW = inverseTransformDirection(normal, viewMatrix); vec3 nb = normalize(rpv * uBodyK); nW = normalize(mix(nW, nb, rootW)); normal = transformDirection(nW, viewMatrix); }
+        #endif`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = clamp(roughnessFactor + gPat * 0.28 + gStitch * 0.3, 0.0, 1.0);')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         float fr = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4);
@@ -70,7 +81,7 @@ export function softMat(o, sh) {
         #endif
         totalEmissiveRadiance += (diffuseColor.rgb * uSss * uSssAmt * (0.3 + 0.7*fr) + uRim * uRimAmt * fr) * (1.0 - faceA);`);
   };
-  m.customProgramCacheKey = () => (o.face ? 'softface' : 'soft');
+  m.customProgramCacheKey = () => (o.face ? 'softface' : 'soft') + (o.root ? 'R' : '');
   return m;
 }
 
