@@ -1,6 +1,6 @@
 {
  "disclaimer": "研究用，不是買賣建議，不會下單。",
- "rows_added": 5,
+ "rows_added": 0,
  "data_last": "2026-11-13",
  "signals": {
   "disclaimer": "研究用，不是買賣建議，不會下單。",
@@ -31,31 +31,31 @@
    "目標權重": "80% E2 + 20% 衛星"
   },
   "BENCH_last": {
-   "date": "2026-11-13",
+   "date": "2026-11-13 00:00:00",
    "nav": 9442506.878597228,
    "plan_cum": -0.05574931214027723,
    "action": ""
   },
   "E2_last": {
-   "date": "2026-11-13",
+   "date": "2026-11-13 00:00:00",
    "nav": 8006847.090698231,
    "plan_cum": -0.19931529093017686,
    "action": ""
   },
   "F2_last": {
-   "date": "2026-11-13",
+   "date": "2026-11-13 00:00:00",
    "nav": 9135124.531153496,
    "plan_cum": -0.08648754688465032,
    "action": ""
   },
   "SAT_last": {
-   "date": "2026-11-13",
+   "date": "2026-11-13 00:00:00",
    "nav": 9434824.328656845,
    "plan_cum": -0.05651756713431555,
    "action": ""
   },
   "E2SAT_last": {
-   "date": "2026-11-13",
+   "date": "2026-11-13 00:00:00",
    "nav": 8292562.345583015,
    "plan_cum": -0.17074376544169845,
    "action": ""
@@ -66,81 +66,9 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 2,
+  "rows_added": 0,
   "signal_rows_added": 0,
   "data_last": "2026-11-13",
-  "watch_top": [
-   {
-    "rank": 1,
-    "code": "3029",
-    "name": "零壹",
-    "group": "ind_資訊服務業",
-    "score": 98.6
-   },
-   {
-    "rank": 2,
-    "code": "6617",
-    "name": "共信-KY",
-    "group": "ind_生技醫療業",
-    "score": 98.4
-   },
-   {
-    "rank": 3,
-    "code": "2465",
-    "name": "麗臺",
-    "group": "ai_pc",
-    "score": 95.6
-   },
-   {
-    "rank": 4,
-    "code": "6234",
-    "name": "高僑",
-    "group": "ind_光電業",
-    "score": 95.4
-   },
-   {
-    "rank": 5,
-    "code": "6108",
-    "name": "競國",
-    "group": "ind_電子零組件業",
-    "score": 94.7
-   },
-   {
-    "rank": 6,
-    "code": "3693",
-    "name": "營邦",
-    "group": "chassis_rail",
-    "score": 93.6
-   },
-   {
-    "rank": 7,
-    "code": "3701",
-    "name": "大眾控",
-    "group": "ind_電腦及週邊設備業",
-    "score": 93.0
-   },
-   {
-    "rank": 8,
-    "code": "4927",
-    "name": "泰鼎-KY",
-    "group": "ind_電子零組件業",
-    "score": 91.1
-   },
-   {
-    "rank": 9,
-    "code": "6199",
-    "name": "天品",
-    "group": "ind_其他",
-    "score": 90.5
-   },
-   {
-    "rank": 10,
-    "code": "6782",
-    "name": "視陽",
-    "group": "ind_生技醫療業",
-    "score": 90.3
-   }
-  ],
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -152,5 +80,5 @@
    "tomorrow_candidates": []
   }
  },
- "generated": "2026-11-13T08:03Z"
+ "generated": "2026-11-13T08:27Z"
 }
