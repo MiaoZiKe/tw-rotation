@@ -308,6 +308,8 @@ def t_jobs(b, base):
         ok("派工：資訊卡的「進行中」格多了這一件", pg.evaluate("""() => { const W = __world, p = W.ui.progress(W.members.get('finance-quant')); return p.list.some(x => x.s === 2 && /整理本週資金流向/.test(x.title)); }"""))
         # 四種工具道具
         res = {}
+        pg.evaluate("() => __world.setView('char', __world.chars.get('finance-quant'), true)")   # 拉近看他（遠景時為了效能，手上的小道具會被收起來）
+        pg.wait_for_timeout(800)
         for cat, act, prop in [("read", "doc", "doc"), ("write", "note", "notebook"), ("search", "magnify", "magnifier"), ("other", "tablet", "tablet")]:
             _sim(pg, "tool", "finance-quant", cat)
             pg.wait_for_timeout(700)
@@ -320,7 +322,7 @@ def t_jobs(b, base):
         pg.evaluate("() => __world.ui.showCard(__world.chars.get('finance-quant'))")
         _track(pg, "fq", "__world.statusOf(__world.chars.get('finance-quant')) + '|' + __world.chars.get('finance-quant').state + '|' + __world.chars.get('finance-quant').action")
         pg.evaluate("() => __world.sim.stop('finance-quant', true)")
-        ok("交件：同事拿文件走去 CEO 桌前（狀態字「交件中」、走路、動作 carry、遞交時 present）", wait_until(pg, "() => __trk.fq.has('交件中|walk|carry')", 60000, 100) and any(x.endswith("|present") for x in _seen(pg, "fq")), _seen(pg, "fq")[:8])
+        ok("交件：同事拿文件走去 CEO 桌前（狀態字「交件中」、走路、動作 carry、遞交時 present）", wait_until(pg, "() => __trk.fq.has('交件中|walk|carry')", 60000, 100) and wait_until(pg, "() => [...__trk.fq].some(x => x.endsWith('|present'))", 120000, 100), _seen(pg, "fq")[:8])
         ok("交件：交完回座、狀態回到待命（phase idle、坐在位子上）", wait_until(pg, "() => { const c = __world.chars.get('finance-quant'); return __world.state.agent('finance-quant').phase === 'idle' && c.state === 'sit' && c.atDesk; }", 120000, 300))
         n1 = pg.evaluate("() => __world.ui.progress(__world.members.get('finance-quant')).nDone")
         ok("交件：已完成 +1（%d → %d）" % (n0, n1), n1 == n0 + 1)
@@ -368,7 +370,7 @@ def t_jobs(b, base):
         pg.evaluate("() => { __world.state.cfg.quietMs = 5 * 60e3; }")
         # 典型的一天（10 倍速）
         pg.evaluate("() => { __world.state.log.length = 0; __world.power.sleepOrder = []; }")
-        pg.evaluate("() => __world.sim.playDay(0.1)")
+        pg.evaluate("() => __world.sim.playDay(0.1, 50)")   # 10 倍速；額度用完到恢復給 50 秒，讓全員有時間睡下去再醒來
         ok("典型的一天：播放中", pg.evaluate("() => __world.sim.playing"))
         ok("典型的一天：播完（額度用完去睡、時間到自動恢復、收工）", wait_until(pg, "() => !__world.sim.playing && __world.power.phase === 'awake' && !__world.state.q.exhausted", 300000, 500))
         lg = pg.evaluate("() => __world.state.log.map(l => l.text)")
@@ -652,6 +654,7 @@ def t_perf(b, base):
         ok("繪製次數：CEO 視角 %d（前 %d，增加 %d）" % (e, BASE_CALLS["ceo"], e - BASE_CALLS["ceo"]), e <= BASE_CALLS["ceo"] + 8, e)
         pg.evaluate("() => __world.sim.exhaust(8100)")
         wait_until(pg, "() => __world.power.phase === 'asleep'", 200000, 500)
+        pg.wait_for_timeout(6000)      # 趴下時頭上的 z 圖示會飄 3 秒，等它們消失再量穩定值
         g2 = _calls(pg, "god")
         ok("繪製次數：額度用完（牌子掛出）時俯瞰 %d，比平時再多 %d（門牌兩面）" % (g2, g2 - g), g2 - g <= 4, g2)
         print("    繪製次數量測：俯瞰 前%d 後%d｜CEO 視角 前%d 後%d｜用完掛牌時俯瞰 %d" % (BASE_CALLS["god"], g, BASE_CALLS["ceo"], e, g2))

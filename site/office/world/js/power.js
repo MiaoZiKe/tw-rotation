@@ -119,7 +119,7 @@ export function createPower(W, X) {
     if (key !== lastKey || force) { lastKey = key; drawMeter(); }
     if (!pop.hidden) { renderPop(); placePop(); }
     if (Q.exhausted || P.signText === '已恢復') renderSign();
-    document.body.classList.toggle('pw-sign', !!P.signShow);   // 牌子出現時，提示（toast）改放畫面下方，不蓋到牌子
+    document.body.classList.toggle('pw-signon', !!P.signShow);   // 牌子出現時，提示（toast）改放畫面下方，不蓋到牌子
     signEl.hidden = !P.signShow; if (signEl.hidden) signEl.removeAttribute('data-on'); else signEl.dataset.on = '1';
     const showMesh = P.signShow && P.signK > 0.02; signOut.visible = signIn.visible = showMesh;
     // 手機：牌子放在頂列下方，位置會隨頂列高度變，這裡隨時對一次
@@ -133,7 +133,7 @@ export function createPower(W, X) {
   // ───────── ③ 預警：剩 20%、10% ─────────
   function warnCheck(e, ctx) {
     const Q = S.quotaInfo(); if (Q.exhausted || Q.remain == null) return;
-    const lim = [Q.five, Q.week].filter(Boolean).sort((a, b) => a.remain - b.remain)[0], key = String(lim && lim.resetsAt || 'na');
+    const lim = [Q.five, Q.week].filter(Boolean).sort((a, b) => a.remain - b.remain)[0], key = String(lim && lim.resetsAt ? Math.floor(lim.resetsAt / 600000) : 'na');   // 重置時間以 10 分鐘為一格：同一個週期內秒級的抖動不算新的週期
     if (Q.remain <= S.cfg.lowPct && !P.warned.has('low' + key)) {
       P.warned.add('low' + key); ui.toast(`電力剩 ${Q.remain}%${lim.resetsAt ? '，約 ' + hhmm(lim.resetsAt) + ' 重置' : ''}`);
       const ceo = C('ceo'); if (ceo && !ceo.piloted && !P.sleeping()) { ceo.emote('sweat', 2.4); }

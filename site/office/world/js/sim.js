@@ -8,20 +8,21 @@ const NAMES = { read: '讀檔', write: '寫檔', search: '查資料', test: '跑
 export function createSim(W, X) {
   const { state: S, demo, ui } = X, Sim = { n: 0, timers: [], playing: false, last: new Map() };
   const sec = () => Math.floor(Date.now() / 1000);
+  Sim.cycleEnd = 0;     // 同一個額度週期的重置時間固定（真資料也是固定的），用完／恢復才換新的一輪
   const members = () => [...W.chars.values()].filter(c => !c.spec.isCeo && !c.jobless && !c.away);
   const emit = o => S.emit({ hook_event_name: o.name, ...o.rest, ...(o.ev || {}) });
   const E = (name, rest = {}) => S.emit({ hook_event_name: name, ...rest });
   Sim.emit = E;
 
   // ── 額度 ──
-  Sim.quota = (remainFive, remainWeek, resetSec = 8100) => E('rate_limits', {
-    five_hour: remainFive == null ? undefined : { used_percentage: 100 - remainFive, resets_at: sec() + resetSec },
+  Sim.quota = (remainFive, remainWeek, resetSec = 8100) => { if (!Sim.cycleEnd || Sim.cycleEnd < sec()) Sim.cycleEnd = sec() + resetSec; return E('rate_limits', {
+    five_hour: remainFive == null ? undefined : { used_percentage: 100 - remainFive, resets_at: Sim.cycleEnd },
     seven_day: remainWeek == null ? undefined : { used_percentage: 100 - remainWeek, resets_at: sec() + 3 * 86400 }
-  });
+  }); };
   Sim.quotaNone = () => E('rate_limits', { rate_limits: null });
   Sim.stale = (min = 23) => E('rate_limits', { ts: Date.now() - min * 60e3, five_hour: { used_percentage: 38, resets_at: sec() + 5000 }, seven_day: { used_percentage: 59, resets_at: sec() + 3 * 86400 } });
   Sim.exhaust = (resetSec = 8100) => E('rate_limit_event', { status: 'rejected', ...(resetSec == null ? {} : { resetsAt: sec() + resetSec }) });
-  Sim.recover = () => E('QuotaRecovered');
+  Sim.recover = () => { Sim.cycleEnd = 0; return E('QuotaRecovered'); };
   // ── 工作階段與提醒 ──
   Sim.session = on => E(on ? 'SessionStart' : 'SessionEnd');
   Sim.prompt = () => E('UserPromptSubmit');
@@ -37,10 +38,10 @@ export function createSim(W, X) {
 
   // ── 典型的一天：約 80 秒；k 是時間倍率（k=0.1 就是 8 秒播完，測試用） ──
   Sim.stopDay = () => { Sim.timers.forEach(clearTimeout); Sim.timers = []; Sim.playing = false; if ($('simDay')) $('simDay').textContent = '播放'; };
-  Sim.playDay = (k = 1) => {
+  Sim.playDay = (k = 1, outSec = null) => {      // outSec：額度用完到恢復要幾秒（預設隨倍率縮；測試會給長一點，讓全員有時間睡下去）
     Sim.stopDay(); Sim.playing = true; if ($('simDay')) $('simDay').textContent = '停止';
     const ms = members(), pick = i => ms[(i * 7) % ms.length].spec.id, A = pick(1), B = pick(2), Cc = pick(3), Dd = pick(4);
-    const R = 8100 * k / 1;                    // 用完到恢復的時間，跟著倍率縮
+    const out = outSec != null ? outSec : Math.max(3, Math.round(25 * k)), after = 57 * 1000 * k + (out + 2) * 1000;   // 恢復之後的步驟，接在恢復時間後面
     const steps = [
       [0, () => Sim.session(true)], [1, () => Sim.quota(62, 80)], [2.5, () => Sim.prompt()],
       [4, () => Sim.start(A)], [5, () => Sim.start(B)], [6, () => Sim.start(Cc)],
@@ -49,11 +50,12 @@ export function createSim(W, X) {
       [21, () => Sim.tool(A, 'test')], [24, () => Sim.stop(A, true)], [27, () => Sim.stop(Cc, false)], [30, () => Sim.stop(B, true)],
       [33, () => Sim.quota(18, 70)], [37, () => Sim.question('要先處理哪一件？')], [42, () => Sim.prompt()],
       [44, () => Sim.start(Dd)], [47, () => Sim.tool(Dd, 'deploy')], [50, () => Sim.tool(Dd, 'wait')], [53, () => Sim.stop(Dd, true)],
-      [57, () => Sim.exhaust(Math.max(3, Math.round(25 * k)))],                         // 額度用完：大家去睡，約 25 秒（×k）後時間到自動恢復
-      [57 + 30, () => Sim.quota(95, 60)], [90, () => Sim.session(false)]
+      [57, () => Sim.exhaust(out)]                         // 額度用完：大家去睡，out 秒後時間到自動恢復
     ];
     for (const [t, fn] of steps) Sim.timers.push(setTimeout(() => { try { fn(); } catch (e) { console.error('模擬器步驟例外', e); } }, t * 1000 * k));
-    Sim.timers.push(setTimeout(() => Sim.stopDay(), 92 * 1000 * k)); void R;
+    Sim.timers.push(setTimeout(() => { try { Sim.quota(95, 60); } catch (e) { console.error(e); } }, after));
+    Sim.timers.push(setTimeout(() => { try { Sim.session(false); } catch (e) { console.error(e); } }, after + 3000 * k));
+    Sim.timers.push(setTimeout(() => Sim.stopDay(), after + 5000 * k));
   };
 
   // ── 面板（只有 ?sim=1 才建立入口） ──
