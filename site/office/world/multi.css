@@ -52,7 +52,7 @@
 }
 /* 手機：面板往下捲時關閉鈕固定在面板頂端（以前跟著捲走，照原位置點下去會點到下面的東西） */
 @media (max-width:640px){
-  .panel .x{position:sticky;top:0;right:auto;align-self:flex-end;margin:0 0 -30px 0;flex:none;z-index:3}
+  .panel:not(#ledger) .x{position:sticky;top:0;right:auto;align-self:flex-end;margin:0 0 -30px 0;flex:none;z-index:3}
   #grp .x{margin-bottom:-44px}
   /* 卡片範圍內的點擊與觸控不穿到畫布（面板本身是實心的，這裡再保險：不讓捲動手勢傳給畫布去平移鏡頭） */
   .panel{overscroll-behavior:contain}
