@@ -6,6 +6,22 @@
 import math as _m
 
 
+
+def _cdrag(pg, x0, y0, dx, dy, steps=8, button="left"):
+    """事件時間明確指定的拖曳：軟體繪圖下每個動作來回要好幾百毫秒，用實際時間會被判成「長按」（11-14 起長按＝旋轉）"""
+    import time as _t
+    cdp = getattr(pg, "_ccdp", None)
+    if cdp is None:
+        cdp = pg.context.new_cdp_session(pg)
+        pg._ccdp = cdp
+    T = _t.time()
+    snd = lambda t, x, y, b, ts: cdp.send("Input.dispatchMouseEvent", {"type": t, "x": x, "y": y, "button": button if b else "none", "buttons": (1 if button == "left" else 2) if b else 0, "clickCount": 1 if t != "mouseMoved" else 0, "timestamp": ts})
+    snd("mouseMoved", x0, y0, False, T)
+    snd("mousePressed", x0, y0, True, T + 0.001)
+    for i in range(1, steps + 1):
+        snd("mouseMoved", x0 + dx * i / steps, y0 + dy * i / steps, True, T + 0.01 + 0.016 * i)
+    snd("mouseReleased", x0 + dx, y0 + dy, True, T + 0.2)
+
 def _o(b, base, w=1280, h=800, touch=False):
     c = b.new_context(viewport={"width": w, "height": h}, has_touch=touch, is_mobile=touch)
     pg = c.new_page(); pg.set_default_timeout(120000); pg.errs = []
@@ -46,14 +62,14 @@ def t_camera2(b, base):
                 pg.evaluate("() => __world.godAt(20, 15, 14)"); wait_until(pg, "() => !__world.view.tween", 12000)
             pg.wait_for_timeout(600)
             a = _st(pg); x0, y0 = 640, 420; g0 = _ground(pg, x0, y0)
-            pg.mouse.move(x0, y0); pg.mouse.down(); pg.mouse.move(x0 + 100, y0, steps=8); pg.wait_for_timeout(80); pg.mouse.up(); pg.wait_for_timeout(1500)
+            _cdrag(pg, x0, y0, 100, 0); pg.wait_for_timeout(1500)
             b2 = _st(pg); s = _scr(pg, *g0)
             err = abs((s[0] - x0) - 100) / 100
             ok("左鍵拖曳 100 像素（%s）：注視點移動 %.2f 公尺；拖曳起點的地面點在畫面上位移 %.1f 像素，與滑鼠位移誤差 %.1f%%（≤ 10%%）、方位角不變" % (name, _m.hypot(b2["tx"] - a["tx"], b2["tz"] - a["tz"]), s[0] - x0, err * 100), err <= 0.10 and abs(s[1] - y0) < 10 and abs(b2["az"] - a["az"]) < 0.01, (s, a, b2))
         # 旋轉模式
         pg.click(".cm-seg [data-c=ro]")
         ok("切到「旋轉」：模式記在 localStorage", pg.evaluate("() => localStorage.getItem('aiOffice.cam.mode') === 'rotate' && __world.cam.mode === 'rotate'"))
-        a = _st(pg); pg.mouse.move(640, 420); pg.mouse.down(); pg.mouse.move(640 + 320, 420, steps=8); pg.wait_for_timeout(80); pg.mouse.up(); pg.wait_for_timeout(1800); b2 = _st(pg)
+        a = _st(pg); _cdrag(pg, 640, 420, 320, 0); pg.wait_for_timeout(1800); b2 = _st(pg)
         da = abs(_m.degrees((b2["az"] - a["az"] + _m.pi) % (2 * _m.pi) - _m.pi))
         ok("旋轉模式左鍵拖曳畫面寬度 1/4（320 像素）：方位角轉 %.1f 度（目標約 45，容許 30–60）、注視點不動" % da, 30 <= da <= 60 and _m.hypot(b2["tx"] - a["tx"], b2["tz"] - a["tz"]) < 0.05, (a, b2))
         a = _st(pg); pg.mouse.move(640, 420); pg.mouse.down(button="right"); pg.mouse.move(740, 420, steps=6); pg.mouse.up(button="right"); pg.wait_for_timeout(800); b2 = _st(pg)
@@ -81,7 +97,7 @@ def t_camera2(b, base):
         for name, dist in [("遠景", 40), ("近景", 14)]:
             for sens in (0.6, 1, 1.5):
                 pg.evaluate("([d, s]) => { __world.cam.setSens(s); __world.godAt(20, 15, d); }", [dist, sens]); wait_until(pg, "() => !__world.view.tween", 12000); pg.wait_for_timeout(700)
-                a = _st(pg); pg.mouse.move(640, 420); pg.mouse.down(); pg.mouse.move(740, 420, steps=10); pg.wait_for_timeout(60); pg.mouse.up(); pg.wait_for_timeout(1500); b2 = _st(pg)
+                a = _st(pg); _cdrag(pg, 640, 420, 100, 0, steps=10); pg.wait_for_timeout(1500); b2 = _st(pg)
                 disp[(name, sens)] = _m.hypot(b2["tx"] - a["tx"], b2["tz"] - a["tz"])
             d1 = disp[(name, 1)]
             r6, r15 = disp[(name, 0.6)] / d1, disp[(name, 1.5)] / d1
@@ -104,7 +120,7 @@ def t_camera2(b, base):
         ok("鏡頭（手機）：頂端工具列預設收起，鏡頭提示（拖曳切換、旋轉鈕）收在「更多」裡", pg.evaluate("() => !document.querySelector('.cm-hint').offsetParent && document.getElementById('moreBtn').getAttribute('aria-expanded') === 'false'"))
         pg.click("#moreBtn"); pg.wait_for_timeout(600)
         ok("鏡頭（手機）：點「更多」後旋轉鈕與拖曳切換都出現（%d 顆按鈕）、至少 44px、不超出畫面" % pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).length"), pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).length >= 4") and pg.evaluate("() => [...document.querySelectorAll('.cm-hint button')].filter(b => b.offsetParent).every(b => b.offsetHeight >= 28)") and pg.evaluate("() => { const r = document.querySelector('.cm-hint').getBoundingClientRect(); return r.left >= 0 && r.right <= 390; }"))
-        ok("鏡頭（手機）：提示是「單指拖曳移動・雙指縮放旋轉・雙點地面前往」、沒有橫向捲軸", pg.evaluate("() => document.querySelector('.cm-hint').textContent.includes('單指拖曳移動・雙指縮放旋轉・雙點地面前往') && document.documentElement.scrollWidth <= innerWidth"))
+        ok("鏡頭（手機）：提示是「單指快拖：移動・長按後拖：調整角度・雙指：縮放・雙點地面：前往・長按角色：拎起」、沒有橫向捲軸", pg.evaluate("() => document.querySelector('.cm-hint').textContent.includes('單指快拖：移動・長按後拖：調整角度・雙指：縮放・雙點地面：前往・長按角色：拎起') && document.documentElement.scrollWidth <= innerWidth"))
         r1 = pg.evaluate("() => [...document.querySelectorAll('#bar > *')].filter(e => e.offsetParent).map(e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
         h = pg.evaluate("() => { const r = document.querySelector('.cm-hint').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }")
         ok("鏡頭（手機）：鏡頭提示與頂列各按鈕不重疊", not any(not (a[2] <= h[0] or h[2] <= a[0] or a[3] <= h[1] or h[3] <= a[1]) for a in r1), h)

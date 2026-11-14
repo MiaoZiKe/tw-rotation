@@ -134,10 +134,10 @@ def t_main(b, base):
     ok("績效：琥珀小旗只出現在等第 D 以下的部門", flag_depts == want and len(want) >= 1, (flag_depts, want))
     ok("績效：每個部門招牌都有等第字章", sorted({m["dept"] for m in marks if m["kind"] == "chip"}) == sorted(depts), None)
 
-    # 旗：滑過顯示原因（先飛到那個部門，再把滑鼠真的移到旗上）
+    # 旗：滑過顯示原因（11-14 鏡頭提示列變長，原本 z+3 會讓旗落在提示列底下點不到，改成注視點對準招牌；先飛到那個部門，再把滑鼠真的移到旗上）
     fd = want[0]
     pos = pg.evaluate("(id) => { for (const i of __world.furn.values()) if (i.spec.deptsign === id) return [i.f.x, i.f.z]; }", fd)
-    pg.evaluate("([x, z]) => __world.godAt(x, z + 3, 12)", pos)
+    pg.evaluate("([x, z]) => __world.godAt(x, z, 12)", pos)
     wait_until(pg, "() => !__world.view.tween", 15000)   # 軟體繪圖很慢時固定等 1.8 秒鏡頭還沒飛完，旗的位置會算錯（11-14 改成等鏡頭真的停了）
     pg.wait_for_timeout(300)
     fx, fy = pg.evaluate(_PROJ, [pos[0] - 1.38, 1.45, pos[1]])
