@@ -223,6 +223,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       const c = view.char, cp = c.object3D.position;
       if (!view.last) view.last = { x: cp.x, z: cp.z };
       const mx = cp.x - view.last.x, mz = cp.z - view.last.z; view.last.x = cp.x; view.last.z = cp.z;
+      view.spd = (view.spd || 0) * 0.9 + (Math.hypot(mx, mz) / Math.max(dt, 0.001)) * 0.1;      // 角色實際移動速度（平滑）：卡住原地「走路」的人不要讓鏡頭一直繞
       if (view.detached && view.dpos && Math.hypot(cp.x - view.dpos.x, cp.z - view.dpos.z) > 0.25) { view.detached = false; view.pull = 0.9; }
       if (!view.detached) {
         if (view.pull > 0) {                    // 剛接回：平順拉向角色
@@ -230,7 +231,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
           charTarget(c, v3); v3b.subVectors(v3, controls.target).multiplyScalar(Math.min(1, dt * 6)); controls.target.add(v3b); camera.position.add(v3b);
         } else { controls.target.x += mx; controls.target.z += mz; camera.position.x += mx; camera.position.z += mz; }
         // 角色走路時，鏡頭慢慢繞回他身後（使用者剛拖過就先不動）
-        if (c.state === 'walk' && !grab && performance.now() / 1000 - view.lastUser > 2.5) {
+        if (c.state === 'walk' && view.spd > 0.4 && !grab && performance.now() / 1000 - view.lastUser > 2.5) {   // 要真的在移動才繞到身後（以前只看狀態是 walk：被丟進遊民區卡在原地「走路」時，鏡頭每格在身後方位來回擺，畫面左右跳）
           const ox = camera.position.x - controls.target.x, oz = camera.position.z - controls.target.z, a = Math.atan2(ox, oz), want = c.heading + Math.PI;
           let d = Math.atan2(Math.sin(want - a), Math.cos(want - a)); d = Math.max(-dt * 0.9, Math.min(dt * 0.9, d));
           const cs = Math.cos(d), sn = Math.sin(d); camera.position.x = controls.target.x + ox * cs + oz * sn; camera.position.z = controls.target.z - ox * sn + oz * cs;

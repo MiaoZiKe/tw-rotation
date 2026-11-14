@@ -721,6 +721,31 @@ def _mu_thrown_text(pg_, b, base, code):
         c.close()
 
 
+def _mu_homeless_follow(pg_, b, base, code):
+    """遊民區跟隨不抖：用真滑鼠把角色長按拖到路燈旁放開（會被丟進遊民區、可能卡在原地「走路」），再點他跟隨，3 秒內鏡頭每一格的位置變化都要 < 0.15 公尺；
+    鏡頭不繞著卡住的人擺動（以前 state 是 walk 就一直往「身後方位」轉，heading 一抖鏡頭就左右跳）。"""
+    c, pg, got = _mu_open(b, base, w=1920, h=990, qs="?q=low&pr=0.4&ambient=0", speed=1)
+    try:
+        ok("遊民區跟隨：載入", got)
+        if not got:
+            return
+        pg.wait_for_timeout(2500)
+        PT = "(id) => { const W = __world, c = W.chars.get(id), cv = document.getElementById('cv'), pp = cv.clientHeight / (2 * Math.tan(W.camera.fov * Math.PI / 360) * c._sd); return { x: c._sx, y: c._sy + pp * 0.45 }; }"
+        q = pg.evaluate(PT, "resource-auditor")
+        tg = pg.evaluate("() => { const W = __world, v = new W.THREE.Vector3(23.6, 1.05, 38.4).project(W.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; }")
+        pg.mouse.move(q["x"], q["y"]); pg.mouse.down(); pg.wait_for_timeout(700); pg.mouse.move(q["x"] + 8, q["y"] + 8, steps=3); pg.mouse.move(tg["x"], tg["y"], steps=12); pg.wait_for_timeout(300); pg.mouse.up(); pg.wait_for_timeout(3000)
+        q = pg.evaluate(PT, "resource-auditor"); pg.mouse.click(q["x"], q["y"]); pg.wait_for_timeout(3000)
+        r = pg.evaluate("""async () => { const W = __world, c = W.chars.get('resource-auditor'); const xs = []; for (let i = 0; i < 40; i++) { await new Promise(r => requestAnimationFrame(r)); const p = W.camera.position; xs.push([p.x, p.z]); }
+          let mx = 0; for (let i = 1; i < xs.length; i++) mx = Math.max(mx, Math.hypot(xs[i][0] - xs[i - 1][0], xs[i][1] - xs[i - 1][1]));
+          return { maxStep: mx, view: W.view.mode, inZone: c.object3D.position.z > 30, state: c.state }; }""")
+        ok("角色被丟進遊民區並被跟隨", r["view"] == "char" and r["inZone"], r)
+        ok("遊民區跟隨：連續 40 格鏡頭位置每格變化 < 0.15 公尺（%.3f）" % r["maxStep"], r["maxStep"] < 0.15, r)
+        ok("無主控台錯誤（遊民區跟隨）", not [e for e in pg.errs if "vScP" not in e], pg.errs[:2])
+    finally:
+        c.close()
+
+
+register("辦公室遊民區跟隨", _mu_homeless_follow)
 register("辦公室被丟出去文字", _mu_thrown_text)
 register("辦公室路燈遮擋", _mu_lamp)
 register("辦公室介面驗收1115b", _mu_ui1115b)

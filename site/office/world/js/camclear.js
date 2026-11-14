@@ -12,7 +12,10 @@ export function createCamClear(W, X) {
   // 遊民區的靜態物件（路燈離角色只有 0.2～0.3 公尺）：射線一路算到頭部前 8 公分；以前一律排除頭部前 0.6 公尺，剛好把路燈排除、鏡頭被擋 15 秒都不動。
   // 辦公室家具維持排除頭部前 0.6 公尺（坐著的人自己的桌椅就在身邊，算進去會一直被判成擋住）。
   const hit = (objs, from, to, tail) => { d.copy(to).sub(from); const L = d.length(); if (L < 0.5) return false; ray.set(from, d.normalize()); ray.far = L - tail; ray.near = 0.2; return ray.intersectObjects(objs, false).length > 0; };
-  const blockedFrom = (from, to) => { blockers(); return (outMesh && hit([outMesh], from, to, 0.08)) || hit(list.filter(o => o !== outMesh), from, to, 0.6); };
+  const one = (from, to) => (outMesh && hit([outMesh], from, to, 0.08)) || hit(list.filter(o => o !== outMesh), from, to, 0.6);
+  const side = new THREE.Vector3(), tl = new THREE.Vector3(), tr = new THREE.Vector3();
+  // 頭部中心與身體左右兩側（各 0.3 公尺）共 3 條線，任一被擋就算擋住：路燈可能只蓋住半邊身體
+  const blockedFrom = (from, to) => { blockers(); side.set(to.z - from.z, 0, from.x - to.x); if (side.lengthSq() < 1e-6) return one(from, to); side.normalize().multiplyScalar(0.3); tl.copy(to).add(side); tr.copy(to).sub(side); return one(from, to) || one(from, tl) || one(from, tr); };
   C.tick = dt => {
     const c = view.char;
     if (view.mode !== 'char' || !c || view.tween || (W.pov && W.pov.on())) { goal = null; return; }
