@@ -150,8 +150,11 @@ export function createMulti(W, X) {
   // ───────── 手機：多選模式切換鈕 ─────────
   function enterMode(c) { adopt(); M.mode = true; if (c && !M.list.includes(c)) { stopDrive(); M.list.push(c); } if (c && M.list.includes(c) && M.list.length === 1) { /* 只有他一位：模式開著，面板照樣顯示「已選 1 位」 */ } refresh(); }
   function exitMode() { M.mode = false; const n = M.list.length; if (n >= 2) refresh(); else if (n === 1) refresh(); else clear(); ui.toast(n >= 2 ? `已選 ${n} 位` : '多選結束'); }
+  // 績效總表、佈告欄、會議紀錄等整張面板開著時，頂端的「多選」浮鈕要讓位（以前壓在總表標題上、擋住點擊）
+  const panelOpen = () => !!document.querySelector('#ledger:not([hidden]), #aioLedger:not([hidden]), #board:not([hidden]), #log:not([hidden]), #aioGuide:not([hidden]), .dlg-back');
+  const wantBar = () => isMobile() && (M.mode || M.list.length >= 2 || !!pilot.sel) && !panelOpen();
   function syncBar() {
-    const show = isMobile() && (M.mode || M.list.length >= 2 || !!pilot.sel); bar.hidden = !show; if (!show) return;
+    const show = wantBar(); bar.hidden = !show; if (!show) return;
     if (M.mode) bar.innerHTML = `<span id="mBarN">多選中：已選 ${M.list.length} 位</span><button class="mb-done" data-m="done" aria-label="完成多選">完成</button>`;
     else bar.innerHTML = `<button class="mb-on" data-m="on" aria-label="開啟多選模式（之後點角色就是加入或移出）">多選</button>`;
   }
@@ -320,7 +323,7 @@ export function createMulti(W, X) {
       sumT -= dt; if (sumT <= 0) { sumT = 1.2; prune(); if (M.list.length) renderPanel(); }
       if (isMobile() && !pilot.padEl.hidden) { const cur = parseFloat(document.documentElement.style.getPropertyValue('--lift')) || 0; document.documentElement.style.setProperty('--lift', Math.max(cur, panel.offsetHeight + 8) + 'px'); }
     }
-    if (M.mode || M.list.length >= 2 || pilot.sel) { if (isMobile() && bar.hidden) syncBar(); } else if (!bar.hidden) syncBar();
+    if (wantBar() === bar.hidden) syncBar();
     const nb = $('mBarN'); if (nb) { const t2 = `多選中：已選 ${M.list.length} 位`; if (nb.textContent !== t2) nb.textContent = t2; }
   };
 

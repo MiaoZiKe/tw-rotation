@@ -43,3 +43,19 @@
   .grp .x{width:44px;height:44px}
   .grp.drv .hd p{display:none}
 }
+
+/* ── 2026-11-15 介面驗收修正 ── */
+/* 手機名牌字最小 11px（以前副標 10px、遠處名牌 10px；名牌避讓是量完尺寸才算，字變大不影響） */
+@media (max-width:640px){
+  .tag span,.tag.far,.tag.far b,.tag.lead b:after,.tag.far .gr{font-size:11px}
+  .tag.far .gr{line-height:13px}
+}
+/* 手機：面板往下捲時關閉鈕固定在面板頂端（以前跟著捲走，照原位置點下去會點到下面的東西） */
+@media (max-width:640px){
+  .panel .x{position:sticky;top:0;right:auto;align-self:flex-end;margin:0 0 -30px 0;flex:none;z-index:3}
+  #grp .x{margin-bottom:-44px}
+  /* 卡片範圍內的點擊與觸控不穿到畫布（面板本身是實心的，這裡再保險：不讓捲動手勢傳給畫布去平移鏡頭） */
+  .panel{overscroll-behavior:contain}
+}
+/* 版本標記：有資訊卡、群組面板、績效總表、佈告欄、會議紀錄開著時淡出，不壓在它們的文字上 */
+body:has(#card:not([hidden]), #grp:not([hidden]), #ledger:not([hidden]), #board:not([hidden]), #log:not([hidden]), #aioLedger:not([hidden])) #aoBuild{opacity:0!important}

@@ -484,6 +484,133 @@ def _mu_click(pg_, b, base, code):
         c.close()
 
 
+def _mu_cdp_clicks(b, base, touch):
+    """帶真實時間的事件（CDP 指定 timestamp）：按住 0／100／250／400／650 毫秒、位移 0 像素的點擊，各 4 次共 20 次，全部要選得到。
+    驗證 main.js 用「事件時間」判斷按住多久（畫面卡時處理會晚到，不能用處理當下的時間）。手機按住 ≥ 450 毫秒算長按，進多選模式也算成功。"""
+    import time as _t
+    c, pg, got = _mu_open(b, base, w=390 if touch else 1280, h=844 if touch else 800, touch=touch, qs="?q=low&pr=0.6&ambient=0", speed=1)
+    try:
+        who = "手機觸控" if touch else "桌機滑鼠"
+        ok(f"帶時間的點擊（{who}）：頁面載入", got)
+        if not got:
+            return
+        cdp = c.new_cdp_session(pg)
+
+        def god():
+            if touch:
+                pg.evaluate("() => { const W = __world, c = W.chars.get('data-steward'), p = c.object3D.position; W.godAt(p.x, p.z, 26); }")
+            else:
+                pg.evaluate("() => __world.setView('god', null, true)")
+            pg.wait_for_timeout(2500)
+        god()
+        good = 0; tot = 0; bad = []
+        for rep in range(4):
+            for hold in (0, 100, 250, 400, 650):
+                pg.evaluate("() => { __world.pilot.deselect(); __world.ui.hideCard(); __world.multi.clear(); }")
+                god()
+                lim = dict(xmin=20, xmax=370, ymin=170, ymax=520, gap=40) if touch else dict(xmin=380, xmax=1250, ymin=150, ymax=640, gap=40)
+                pts = _mu_free_pts(pg, 30, **lim)
+                if not pts:
+                    continue
+                q = pts[(rep * 5 + (0, 100, 250, 400, 650).index(hold)) % len(pts)]
+                t = _t.time()
+                if touch:
+                    cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": q["x"], "y": q["y"]}], "timestamp": t})
+                    cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": [], "timestamp": t + hold / 1000})
+                else:
+                    cdp.send("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": q["x"], "y": q["y"], "timestamp": t - 0.01})
+                    cdp.send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": q["x"], "y": q["y"], "button": "left", "buttons": 1, "clickCount": 1, "timestamp": t})
+                    cdp.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": q["x"], "y": q["y"], "button": "left", "buttons": 0, "clickCount": 1, "timestamp": t + hold / 1000})
+                pg.wait_for_timeout(1400)
+                r = pg.evaluate("() => [__world.pilot.sel && __world.pilot.sel.spec.id, !document.getElementById('card').hidden, __world.multi.mode]")
+                hit = (r[0] == q["id"] and r[1]) or (touch and hold >= 450 and r[2])
+                tot += 1; good += 1 if hit else 0
+                if not hit:
+                    bad.append((hold, q["id"], r))
+        ok(f"帶時間的點擊（{who}）：按住 0～650 毫秒、不移動，{tot} 次全部選得到（手機 ≥ 450 毫秒進多選模式也算）", tot == 20 and good == tot, (good, tot, bad[:3]))
+    finally:
+        c.close()
+
+
+def _mu_ui1115(pg_, b, base, code):
+    """驗收員 11-15 的介面問題：手機跟隨視角上方藍塊、多選浮鈕壓總表、版本標記壓卡片、面板層級、營火露出、× 固定、遮擋閃避、手機名牌字級"""
+    # ── 桌機 ──
+    for (w, h) in ((1280, 800), (1920, 990)):
+        c, pg, got = _mu_open(b, base, w=w, h=h, qs="?q=low&pr=0.5&ambient=0", speed=1)
+        try:
+            ok(f"{w}x{h}：預設俯視載入", got)
+            if not got:
+                continue
+            pg.wait_for_timeout(1500); _mu_settle(pg)
+            fy = pg.evaluate("() => { const W = __world, v = new W.THREE.Vector3(W.outside.fire.x, 0, W.outside.fire.z).project(W.camera); return Math.round((1 - v.y) / 2 * innerHeight); }")
+            ok(f"{w}x{h}：預設俯視看得到營火（營火在畫面 y=%d，視窗高 %d，要在底邊上方至少 40px）" % (fy, h), fy < h - 40, fy)
+            if w == 1280:
+                pts = []
+                for _ in range(20):
+                    pts = _mu_free_pts(pg, 1, xmin=380, gap=30)
+                    if pts:
+                        break
+                    pg.wait_for_timeout(700)
+                pg.mouse.click(pts[0]["x"], pts[0]["y"]); pg.wait_for_timeout(900)
+                op = pg.evaluate("() => { const e = document.getElementById('aoBuild'); return e ? getComputedStyle(e).opacity : null; }")
+                ok("版本標記：資訊卡開著時淡出（不壓在卡片文字上）", op == "0", op)
+                ok("資訊卡在所有 3D 名牌、泡泡、提示之上（名牌中心落在卡片範圍內時，最上層是卡片）", pg.evaluate("""() => { const card = document.getElementById('card').getBoundingClientRect(); let bad = 0;
+                  for (const t of document.querySelectorAll('.tag, .bub')) { const r = t.getBoundingClientRect(); const x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2; if (r.width && x > card.left && x < card.right && y > card.top && y < card.bottom) { const e = document.elementFromPoint(x, y); if (!e || !e.closest('#card')) bad++; } } return bad === 0; }"""))
+                # 遮擋閃避：在鏡頭與角色之間放一個臨時擋板，等它自己繞開
+                pg.evaluate("() => { const W = __world, c = W.chars.get('data-steward'); W.setView('char', c, true); }"); pg.wait_for_timeout(1500); _mu_settle(pg)
+                res = pg.evaluate("""async () => { const W = __world, T = W.THREE, c = W.chars.get('data-steward'), p = c.object3D.position, cam = W.camera.position;
+                  const mid = new T.Vector3((cam.x + p.x) / 2, 1, (cam.z + p.z) / 2); const m = new T.Mesh(new T.BoxGeometry(0.6, 6, 0.6), new T.MeshBasicMaterial({ color: '#888' })); m.position.copy(mid); W.scene.add(m);
+                  W.furn.set('__test_block', { mesh: m, obj: m, f: { id: '__test_block' } });
+                  const ray = new T.Raycaster(), head = new T.Vector3(p.x, 0.9, p.z);
+                  const blocked = () => { const d = head.clone().sub(W.camera.position), L = d.length(); ray.set(W.camera.position.clone(), d.normalize()); ray.far = L - 0.6; return ray.intersectObject(m, false).length > 0; };
+                  const before = blocked(); const t0 = performance.now(); let after = before;
+                  while (performance.now() - t0 < 9000) { await new Promise(r => setTimeout(r, 300)); after = blocked(); if (!after) break; }
+                  W.scene.remove(m); W.furn.delete('__test_block'); return { before, after, moves: W.camclear.moves }; }""")
+                ok("跟隨視角：鏡頭與角色之間有遮擋物時，鏡頭自動繞開（原本被擋、之後看得到頭）", res["before"] and not res["after"], res)
+        finally:
+            c.close()
+    # ── 手機 ──
+    c, pg, got = _mu_open(b, base, w=390, h=844, touch=True, qs="?q=low&pr=0.5&ambient=0", speed=1)
+    try:
+        ok("手機：頁面載入", got)
+        if not got:
+            return
+        pg.evaluate("() => { const W = __world, c = W.chars.get('finance-content-editor'); W.setView('char', c); W.ui.showCard(c); W.pilot.select(c); }")
+        pg.wait_for_timeout(1800); _mu_settle(pg)
+        _mu_shot(pg, "手機跟隨視角_上方.png")
+        # 上方 1/4 不能是一整塊「網頁底色」（畫布看出去是天空時透出 #d9f0fb）：取 y 190～215（頂列下方）整條掃描，近似底色的像素比例要低
+        import io as _io
+        try:
+            from PIL import Image as _Img
+            im = _Img.open(_io.BytesIO(pg.screenshot())).convert("RGB")
+            bgc = (217, 240, 251); n = 0; tot = 0
+            for yy in range(190, 216, 3):
+                for xx in range(30, 360, 6):
+                    r_, g_, b_ = im.getpixel((xx, yy)); tot += 1
+                    if abs(r_ - bgc[0]) < 7 and abs(g_ - bgc[1]) < 7 and abs(b_ - bgc[2]) < 7:
+                        n += 1
+            ok("手機跟隨視角：畫面上方沒有整塊淡藍色（近似網頁底色的像素 %d／%d）" % (n, tot), n / max(1, tot) < 0.3, (n, tot))
+        except ImportError:
+            ok("手機跟隨視角：（沒有 PIL，略過像素檢查）", True)
+        sz = pg.evaluate("() => [...document.querySelectorAll('.tag, .tag *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize)).filter(f => f < 11).length")
+        ok("手機：名牌文字全部 ≥ 11px", sz == 0, sz)
+        # 手機卡片 × 固定在卡片頂端
+        pg.evaluate("() => { const cd = document.getElementById('card'); cd.scrollTop = 300; }"); pg.wait_for_timeout(300)
+        xr = _mu_rect(pg, "#card .x"); cr = _mu_rect(pg, "#card")
+        ok("手機資訊卡往下捲後，關閉 × 仍固定在卡片頂端", xr and cr and xr[1] < cr[1] + 20 and xr[1] >= cr[1] - 2, (xr, cr))
+        # 多選浮鈕與績效總表
+        pg.click("#rwBtn"); pg.wait_for_timeout(1200)
+        bar_ok = pg.evaluate("() => document.getElementById('mBar').hidden")
+        ok("績效總表開著時，手機「多選」浮鈕隱藏（不壓在總表標題上）", bar_ok, _mu_rect(pg, "#mBar"))
+        ok("手機：績效總表開著時版本標記淡出", pg.evaluate("() => getComputedStyle(document.getElementById('aoBuild')).opacity") == "0")
+        ok("無主控台錯誤（介面修正）", not [e for e in pg.errs if "vScP" not in e and "setPointerCapture" not in e], pg.errs[:2])
+    finally:
+        c.close()
+
+
+register("辦公室點選CDP桌機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, False))
+register("辦公室點選CDP手機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, True))
+register("辦公室介面驗收1115", _mu_ui1115)
 register("辦公室點選", _mu_click)
 register("辦公室多選Esc回俯視", _mu_esc)
 register("辦公室多選", _mu_main)

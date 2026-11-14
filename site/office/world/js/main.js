@@ -4,7 +4,8 @@ import { OrbitControls } from '../../vendor/OrbitControls.js';
 import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createPilot } from './pilot.js';
-import { createMulti } from './multi.js';   // 按住 Ctrl 多選（新檔；main 只掛鉤）
+import { createMulti } from './multi.js';
+import { createCamClear } from './camclear.js';   // 跟隨視角被路燈等擋住時，鏡頭自動繞開（新檔）   // 按住 Ctrl 多選（新檔；main 只掛鉤）
 import { createAttention } from './attention.js';
 import { createPOV } from './pov.js';
 import { createCamHint } from './camhint.js';
@@ -160,7 +161,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     return false;
   }
   function followPose(c) {
-    const sitV = c.state === 'sit', k = (c.scale || 1) > 1 ? 1.12 : 1, h0 = c.spot && c.spot.seat && sitV ? c.spot.seat.face : c.heading, back = (portrait() ? 5.6 : 4.4) * (sitV ? 1.25 : 1) * k, up = ((portrait() ? 3.4 : 2.5) + (sitV ? 1.3 : 0)) * k, cp = c.object3D.position;
+    const sitV = c.state === 'sit', k = (c.scale || 1) > 1 ? 1.12 : 1, h0 = c.spot && c.spot.seat && sitV ? c.spot.seat.face : c.heading, back = (portrait() ? 5.6 : 4.4) * (sitV ? 1.25 : 1) * k, up = ((portrait() ? 4.6 : 2.5) + (sitV ? 1.3 : 0)) * k, cp = c.object3D.position;
     let best = null;
     const seatedC = c.state === 'sit';
     // 坐著的人從斜後方看（不被椅背擋住）；兩側挑「看出去是辦公室而不是牆」的那一側
@@ -178,7 +179,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   function godPose(target, dist) {
     // 預設俯視的注視點往前（南）挪一點，讓大門外的「無業遊民區」露出一部分（擁有者 11-14：找不到遊民區）；指定了目標（飛到某區域）就照指定的
-    const t = (target || CENTER.clone().add(v3c.set(0, 0, portrait() ? 4.5 : 2.4))).clone(), d = dist || (portrait() ? 84 : 52), pol = 0.62;
+    const t = (target || CENTER.clone().add(v3c.set(0, 0, portrait() ? 4.5 : 4.2))).clone(), d = dist || (portrait() ? 84 : 58), pol = 0.62;
     return { t, p: new THREE.Vector3(t.x, t.y + d * Math.cos(pol), t.z + d * Math.sin(pol)), fov: 38 };
   }
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
@@ -268,6 +269,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const pov = createPOV(W, { camera, controls, cv, view, cam, ui, charTarget: (c, o) => charTarget(c, o), restoreControls: modeControls, everyone: () => everyone, isGrabbing: () => !!grab, downChar: () => !!(down && down.c) }); W.pov = pov;
   const attn = createAttention(W, { camera, pilot, director: () => director }); W.attn = attn;
   const multi = createMulti(W, { cv, camera, ui, pilot, setView, director: () => director, pick: pickChar, isEdit: () => edit.on }); W.multi = multi;   // 多選：Ctrl＋點／框選／群組面板（multi.js；下面 pointerdown／pointerup 各有一行掛鉤）
+  W.camclear = createCamClear(W, { camera, controls, view, pilot });
   const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
   const noPhys = qs.get('nophys') === '1';   // 網址加 nophys=1＝關掉物理與火焰（驗收量「繪製次數增量」時當對照組）
   const phys = noPhys ? { tick() { }, preRender() { }, postRender() { } } : createPhysics(W), fire = noPhys ? { tick() { }, frame() { } } : createFire(W);   // 物理互動與火焰（主迴圈每個模擬步呼叫 tick）
