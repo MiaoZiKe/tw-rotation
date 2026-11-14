@@ -1,0 +1,50 @@
+name: 收掉預覽分支
+# 2026-11-14 Andy：「預覽全部收掉，只留簽到」，並選擇「方式 A：同意用 GitHub 自動流程刪預覽分支」。
+# 容器的 git 代理不准刪遠端分支，由 Actions 用 GITHUB_TOKEN 刪。只會刪 preview/* 分支，keep 清單內的保留。
+# 用 GITHUB_TOKEN 刪分支不會觸發 pages.yml 的 delete 事件，所以刪完派一次 pages.yml，讓網站上的預覽一起消失。
+on:
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: "要保留的預覽名稱（空白分隔，不含 preview/ 前綴）"
+        type: string
+        default: "checkin"
+      dry_run:
+        description: "true＝只列出會刪哪些，不刪"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: preview-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: ${{ inputs.keep }}
+          DRY: ${{ inputs.dry_run }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -u
+          gh api --paginate "repos/$REPO/git/matching-refs/heads/preview/" --jq '.[].ref' | sed 's#refs/heads/##' > all.txt
+          : > del.txt
+          while read -r b; do
+            n="${b#preview/}"; skip=0
+            for k in $KEEP; do [ "$n" = "$k" ] && skip=1; done
+            [ "$skip" = 1 ] || echo "$b" >> del.txt
+          done < all.txt
+          echo "### 預覽分支：共 $(wc -l < all.txt)，要刪 $(wc -l < del.txt)，保留：$KEEP" >> "$GITHUB_STEP_SUMMARY"
+          sed 's/^/- /' del.txt >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DRY" = "true" ]; then echo "（只列清單，沒有刪）" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          fail=0
+          while read -r b; do
+            if gh api -X DELETE "repos/$REPO/git/refs/heads/$b" >/dev/null; then echo "已刪 $b"; else echo "::error::刪不掉 $b"; fail=1; fi
+          done < del.txt
+          gh workflow run pages.yml -R "$REPO" --ref main
+          echo "已派 pages.yml 重新部署（網站上的預覽一起移除）" >> "$GITHUB_STEP_SUMMARY"
+          exit $fail
