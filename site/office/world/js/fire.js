@@ -39,7 +39,7 @@ if (uScorch > 0.002) {
 `;
 
 export function createFire(W, opts = {}) {
-  const F = { cfg: { range: 1.3, recoverMin: 30, recoverMax: 60, burnMin: 3.2, burnMax: 4.8, smoke: 9, fade: 7 }, states: new Map(), stats: { ignited: 0, recovered: 0, patched: 0, particles: 0 }, on: true };
+  const F = { cfg: { range: 1.45, recoverMin: 30, recoverMax: 60, burnMin: 3.2, burnMax: 4.8, smoke: 9, fade: 7 }, states: new Map(), stats: { ignited: 0, recovered: 0, patched: 0, particles: 0 }, on: true };
   W.fire = F; W.fireFlick = fireFlick;
   const scene = W.scene, O = W.outside, D = () => W.director, allChars = () => [...W.chars.values(), ...(W.pets || []), ...(W.extras || [])];
   const fx = O ? O.fire.x : 30.2, fz = O ? O.fire.z : 36.6;
@@ -288,7 +288,7 @@ export function createFire(W, opts = {}) {
       const sx = p.x - ox, sz = p.z - oz, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fx - ox) * sx + (fz - oz) * sz) / sl, 0, 1) : 1, d = Math.hypot(ox + sx * u - fx, oz + sz * u - fz);
       // 腳離地低於火焰高度（約 1.3 公尺）就碰得到；被拎著的角色（高度約 1）在火焰正上方 0.9 公尺內也算
       const held = c.state === 'held' || (c.newModel ? c.inner.ctl.state === 'held' : c.inner.mode === 'held');
-      const rng = (c.piloted || lift > 0.05 || held) ? F.cfg.range : F.cfg.range - 0.18;   // 操控中、飛行中的角色用完整範圍；自己走路經過的只在幾乎貼到石圈時才算（避免路過的同事常常著火）
+      const rng = (c.piloted || lift > 0.05 || held) ? F.cfg.range : F.cfg.range - 0.3;   // 操控中、飛行中的角色用完整範圍；自己走路經過的只在幾乎貼到石圈時才算（避免路過的同事常常著火）
       if ((d < rng && lift < 1.3) || (held && d < 0.9 && lift < 2)) ignite(c, 'campfire');
     }
     for (const o of F.states.values()) { if (o.state !== 'none') tickChar(o, h); }

@@ -406,7 +406,7 @@ def t_office_physics(b, base):
                         pg.keyboard.down(k)
                         cur.add(k)
             hit = False
-            for it in range(70):
+            for it in range(160):
                 r = pg.evaluate("""() => { const W = __world, c = __rc, p = c.object3D.position, d = new W.THREE.Vector3(); W.camera.getWorldDirection(d); const fl = Math.hypot(d.x, d.z) || 1, fx = d.x / fl, fz = d.z / fl, tx = 30.2 - p.x, tz = 36.6 - p.z, tl = Math.hypot(tx, tz) || 1;
                   return { fwd: (fx * tx + fz * tz) / tl, right: (-fz * tx + fx * tz) / tl, st: W.fire.stateOf(c).state, sel: W.pilot.sel === c }; }""")
                 if r["st"] != "none":
