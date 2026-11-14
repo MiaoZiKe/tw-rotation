@@ -1,3 +1,5 @@
+// 夜晚＝室內開燈：半球光轉暖變亮（像日光燈加暖色檯燈）、窗玻璃自發光暖黃、窗邊斜影（窗光貼片）強度 0（光是從屋裡透出去，不是從窗外照進來）；
+//       室外的地面另外壓暗（見 world.js 的 groundDim），天空仍是深藍有星月。
 // 天色：依「台北時間」連續變化（清晨淡粉橘 → 白天淡藍 → 黃昏暖橘金 → 夜晚深藍有星月），不是硬切。
 // 一起變的有：天空漸層、霧色、太陽／月亮的位置與方向光（陰影跟著走）、光色與強度、環境光（半球光）、雲色、
 // 窗玻璃與地上的窗光、夜間室內的暖光（桌面與立燈的光暈，用一個加法混色的點雲，不加任何會投影的燈）。
@@ -5,6 +7,7 @@
 //       方向光轉動超過 0.4 度才重烘一次陰影（陰影是靜態烘的）。
 // 介面：左上角一個小字「時段・台北 HH:MM」，點開可切「跟隨現在時間／早晨／白天／黃昏／夜晚」，選擇記在 localStorage。
 import * as THREE from 'three';
+import { MAT } from './kit.js';
 
 const KEY = 'aiOffice.daytime';
 const $ = id => document.getElementById(id);
@@ -13,16 +16,16 @@ const C = h => new THREE.Color(h);
 // 關鍵時刻（小時，台北時間）→ 各項參數；兩個關鍵時刻之間線性漸變。顏色維持柔和的淺色美術風格，夜晚也不過暗。
 const K = [
   // t     天頂       天中       地平       霧        半球天      半球地      半球強度 光色       光強  雲色       窗色       窗不透明 窗光斑色   斑強  暖光  星
-  [0,    '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#bcc9f2', '#7e7ab4', 1.12, '#aebfff', 0.58, '#56608e', '#ffd48a', 0.78, '#ffcf80', 0.34, 1.0, 1.0],
-  [5,    '#1c2552', '#3d4c88', '#7c6c9c', '#6c6c9c', '#c6cef2', '#8c88b8', 1.18, '#b4c0f4', 0.58, '#6a6a98', '#ffd48a', 0.74, '#ffcf80', 0.30, 0.9, 0.9],
+  [0,    '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#ffe8c8', '#d9b693', 1.5, '#aebfff', 0.5, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
+  [5,    '#1c2552', '#3d4c88', '#7c6c9c', '#6c6c9c', '#ffe8c8', '#d9b693', 1.45, '#b4c0f4', 0.5, '#6a6a98', '#ffd48a', 0.8, '#ffcf80', 0.0, 0.9, 0.9],
   [6.3,  '#9db8e8', '#f6c8b8', '#ffe2c0', '#f9d9c4', '#ffeadf', '#ebc8b4', 1.36, '#ffc9a0', 1.05, '#ffdcd0', '#ffe0c8', 0.48, '#ffd0b0', 0.16, 0.25, 0.0],
   [7.8,  '#a9ddf8', '#d7f0fc', '#f1fbff', '#e3f4fc', '#fffaf3', '#f3d5b4', 1.50, '#fff3e0', 1.55, '#ffffff', '#cfefff', 0.38, '#ffffff', 0.10, 0.0, 0.0],
   [12,   '#8fd0f6', '#cdeefc', '#f1fbff', '#e3f4fc', '#fffaf3', '#f3d5b4', 1.55, '#fff6e6', 1.65, '#ffffff', '#cfefff', 0.38, '#ffffff', 0.10, 0.0, 0.0],
   [16.5, '#a9ddf8', '#d7f0fc', '#f1fbff', '#e3f4fc', '#fffaf3', '#f3d5b4', 1.50, '#fff3e0', 1.55, '#ffffff', '#cfefff', 0.38, '#ffffff', 0.10, 0.0, 0.0],
   [17.8, '#a6b9e8', '#ffd2a0', '#ffe9c2', '#ffdcb0', '#ffe3c4', '#f0c49a', 1.32, '#ffb878', 1.30, '#ffd9b0', '#ffc58a', 0.55, '#ffb070', 0.22, 0.35, 0.0],
   [18.8, '#4e5496', '#da8a76', '#ffb87a', '#cf9078', '#eec6c8', '#a88cac', 1.05, '#ff9a70', 0.70, '#e0a090', '#ffc880', 0.66, '#ffb060', 0.28, 0.8, 0.45],
-  [20.2, '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#bcc9f2', '#7e7ab4', 1.12, '#aebfff', 0.58, '#56608e', '#ffd48a', 0.78, '#ffcf80', 0.34, 1.0, 1.0],
-  [24,   '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#bcc9f2', '#7e7ab4', 1.12, '#aebfff', 0.58, '#56608e', '#ffd48a', 0.78, '#ffcf80', 0.34, 1.0, 1.0],
+  [20.2, '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#ffe8c8', '#d9b693', 1.5, '#aebfff', 0.5, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
+  [24,   '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#ffe8c8', '#d9b693', 1.5, '#aebfff', 0.5, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
 ];
 const KC = [1, 2, 3, 4, 5, 6, 8, 10, 11, 13];   // 哪些欄位是顏色
 const MODES = { auto: null, morning: 6.3, day: 12, dusk: 18, night: 22 };   // 預覽用：強制時刻（清晨／白天／黃昏／夜晚）
@@ -66,9 +69,14 @@ export function createDaytime(W, X) {
   function glowTex(n, draw) { const cv = document.createElement('canvas'); cv.width = cv.height = n; draw(cv.getContext('2d')); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
   // ── 夜間室內的暖光：每張辦公桌與立燈一個光暈（一個加法混色的點雲，不投影、不增加光源）──
-  let glow = null;
+  let glow = null, ceil = null;   // ceil＝天花板日光燈的光暈（每個部門區域上方 2 盞）
   W.glowRebuild = () => {
     if (glow) { scene.remove(glow); glow.geometry.dispose(); glow = null; }
+    if (ceil) { scene.remove(ceil); ceil.geometry.dispose(); ceil = null; }
+    { const cp = []; for (const { room } of W.rooms.values()) { if (room.kind !== 'dept') continue; for (const k of [0.3, 0.7]) cp.push(room.x + room.w * k, 2.55, room.z + room.d / 2); }
+      if (cp.length) { const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3));
+        const ct = glowTex(64, c => { const r = c.createRadialGradient(32, 32, 1, 32, 32, 31); r.addColorStop(0, 'rgba(255,246,214,.9)'); r.addColorStop(0.3, 'rgba(255,232,180,.32)'); r.addColorStop(1, 'rgba(255,220,160,0)'); c.fillStyle = r; c.fillRect(0, 0, 64, 64); });
+        ceil = new THREE.Points(cg, new THREE.PointsMaterial({ map: ct, size: 3.4, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); ceil.frustumCulled = false; ceil.renderOrder = 5; scene.add(ceil); } }
     const pts = []; for (const inst of W.furn.values()) { const f = inst.f; if (f.type === 'lamp') pts.push(f.x, 1.35, f.z); else if (f.type === 'workstation' || f.type === 'ceo_desk') pts.push(f.x, 1.0, f.z); }
     for (const q of W.extraGlow || []) pts.push(q[0], q[1], q[2]);   // 戶外的路燈、營火（無業遊民區）
     if (!pts.length) return;
@@ -77,6 +85,21 @@ export function createDaytime(W, X) {
     glow = new THREE.Points(g, new THREE.PointsMaterial({ map: tex, size: 1.9, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); glow.frustumCulled = false; glow.renderOrder = 5; scene.add(glow);
   };
   W.glowRebuild();
+
+
+  // ── 室外壓暗：夜晚把半球光調暖調亮是為了「室內開燈」，但同一盞半球光也會照亮屋外的草地、樹與地面。
+  //    做法：在共用材質（MAT.solid）的片段著色器裡，屋外（建築範圍之外）的光照乘上 night.out（白天 1，夜晚 ~0.42），
+  //    屋內不變。只是換一支著色器，不增加繪製、不增加光源。
+  const outU = { value: 1 };
+  {
+    const Lw = W.floorBase ? W.floorBase.position.x * 2 : 40, Ld = W.floorBase ? W.floorBase.position.z * 2 : 30;
+    MAT.solid.onBeforeCompile = sh => {
+      sh.uniforms.uOut = outU; sh.uniforms.uBox = { value: new THREE.Vector4(0, 0, Lw, Ld) };
+      sh.vertexShader = 'varying vec2 vOutWp;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n\tvec4 owp = vec4( transformed, 1.0 );\n#ifdef USE_INSTANCING\n\towp = instanceMatrix * owp;\n#endif\n\tvOutWp = ( modelMatrix * owp ).xz;');
+      sh.fragmentShader = 'varying vec2 vOutWp;\nuniform float uOut;\nuniform vec4 uBox;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', 'vec2 oq = max( max( uBox.xy - vOutWp, vOutWp - uBox.zw ), vec2( 0.0 ) );\n\toutgoingLight *= mix( 1.0, uOut, smoothstep( 0.0, 1.5, length( oq ) ) );\n\t#include <opaque_fragment>');
+    };
+    MAT.solid.customProgramCacheKey = () => 'outdim1'; MAT.solid.needsUpdate = true;
+  }
 
   // ── 套用某一時刻的天色 ──
   const cv = W.skyTex && W.skyTex.image, g2 = cv && cv.getContext('2d'), center = new THREE.Vector3(20, 0, 15), dir = new THREE.Vector3(), sd = new THREE.Vector3(), md = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 1, 0);
@@ -95,7 +118,7 @@ export function createDaytime(W, X) {
     if (W.clouds) W.clouds.material.color.copy(f[10]);
     if (W.glassMat) { W.glassMat.color.copy(f[11]); W.glassMat.opacity = f[12]; }
     if (W.patchMat) { W.patchMat.color.copy(f[13]); W.patchMat.opacity = f[14]; }
-    if (glow) glow.material.opacity = f[15] * 0.75; stars.material.opacity = f[16];
+    outU.value = 1 - 0.58 * Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4; stars.material.opacity = f[16];
     // 太陽 6～18 點在天上；月亮 18～6 點。方向光：白天用太陽，夜晚用月亮，兩者交接的 1 小時內方向平順轉過去
     bodyDir(t, 6, sd); bodyDir(t, 18, md);
     const isDay = t >= 5.5 && t < 18.5, w = isDay ? Math.min(1, Math.min(t - 5.5, 18.5 - t) / 1.0) : 0;

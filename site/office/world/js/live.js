@@ -54,11 +54,9 @@ const GUIDE_PROMPT = `請你幫我把這個雲端環境接上「AI 辦公室」�
 把回應回報給我；回應有 "ok":true 就代表接上了。若回 401 或被擋，等一分鐘再試一次，仍失敗就告訴我原因。最後提醒我：設定腳本只在「新的」雲端工作階段生效，請開一個新的工作階段試試。`;
 // 操作圖片：實測後把截圖放進 site/office/guide/shots/，再把該筆 ready 改成 true（沒檔案就不發請求，避免主控台出現 404）
 const GUIDE_SHOTS = {
-  1: [{ file: 's1_copy.png', ready: false, alt: '在這個畫面按「複製提示詞」，再貼到 Claude 對話框送出' }],
-  2: [{ file: 's2_card.png', ready: false, alt: 'Claude 跳出的安全表單卡片：貼上接入碼的位置' }, { file: 's2_paste.png', ready: false, alt: '把接入碼貼進「值」那一格並按儲存' }],
-  3: [{ file: 's3_done.png', ready: false, alt: '接上之後，辦公室頂列顯示「即時」' }],
+  1: { file: 's1_copy.png', ready: false, alt: '按「複製提示詞」，到 Claude 對話框貼上送出' },
+  2: { file: 's2_paste.png', ready: false, alt: 'Claude 跳出表單卡片時，把接入碼貼進「值」那一格，按儲存' },
 };
-const GUIDE_STEPS = [['1', '複製提示詞'], ['2', '貼上接入碼'], ['3', '確認接上']];
 const EMPTY_BASE = { nDone: 0, nDoing: 0, nTodo: 0, list: [], eta: '未提供', etaMin: '—', opt: '', lastDone: '—', lastDoing: '—', nextTodo: '' };
 
 function loadCfg() { try { const o = JSON.parse(lsGet(LS) || 'null'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
@@ -67,7 +65,7 @@ export function createLive(W, X) {
   const { state: S, ui, sim } = X, R = X.rewards || W.rewards, qs = new URLSearchParams(location.search);
   const L = { mode: 'demo', status: 'off', cfg: loadCfg(), seq: 0, pollMs: Math.max(500, +qs.get('live_poll') || POLL_MS), polls: 0, timer: 0, inflight: false, data: null, lastOk: 0, fails: 0,
     project: null, primary: null, clones: [], typeMap: new Map(), extras: new Map(), seen: new Set(), sharedNoted: new Set(), revealCode: null, msg: '', lastQuota: '', url: '',
-    guide: { open: false, step: 1, owner: 'unknown', eye: false, base: null, done: false, copied: '', codeExists: false, sig: '' } };
+    guide: { open: false, step: 1, showPrompt: false, fix: false, busy: false, owner: 'unknown', eye: false, base: null, done: false, copied: '', codeExists: false, sig: '' } };
   W.live = L;
   const save = () => lsSet(LS, JSON.stringify(L.cfg));
   const emit = (name, o = {}) => S.emit({ hook_event_name: name, live: true, ...o });
@@ -170,6 +168,17 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
 .aio-gbody label{display:block;font-size:12px;color:var(--sub);margin:6px 0 2px}
 .aio-gp footer{display:flex;gap:8px;align-items:center;padding:8px 16px 14px;border-top:1px solid var(--line)}.aio-gp footer .sp{flex:1}
 .aio-msg{margin:4px 0;font-size:13px;color:var(--ink);font-weight:700}
+.aio-gp{width:min(780px,100%)}
+.aio-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 10px}
+.aio-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.aio-card h4{margin:0 0 2px;font-size:15px;color:var(--ink)}.aio-card p{margin:2px 0 4px;font-size:13px;color:var(--sub);line-height:1.5}
+.aio-card .aio-row{margin:6px 0 2px}
+.aio-gbody code.aio-mask{display:block;flex:1;min-width:0;background:var(--on2);border-radius:12px;padding:10px 12px;font-size:13px;word-break:break-all}
+.aio-lk{background:none;border:0;padding:0 2px;min-height:32px;display:inline-flex;align-items:center;font:inherit;font-size:13px;color:var(--on);text-decoration:underline;cursor:pointer;width:fit-content}
+.aio-lk.warnlk{color:#c2590c}
+.aio-cap{margin:4px 0 0;font-size:12px;color:var(--sub)}
+.aio-gbody details#aioHelp{margin:6px 0 10px}
+@media (max-width:640px){.aio-cards{grid-template-columns:1fr}}
 @media (max-width:640px){
   .aio-g{padding:0;align-items:stretch}.aio-gp{width:100%;max-height:none;height:100dvh;border-radius:0}
   .aio-gp header{padding-top:max(14px,env(safe-area-inset-top))}.aio-gp footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}
@@ -185,7 +194,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   const placePop = () => { const r = badge.getBoundingClientRect(), w = pop.offsetWidth; pop.style.top = (r.bottom + 8) + 'px'; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px'; };
   // 還沒接上（或已設碼但沒收到回報）→ 開三步驟引導；已接上或展示模式 → 原本的說明框
   const wantsGuide = () => (L.mode !== 'live' ? !(hasCred() && L.cfg.show) : L.status === 'nodata' || L.status === 'setup');
-  badge.onclick = () => { if (wantsGuide()) { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(L.mode === 'live' ? 3 : (hasCred() ? 3 : 1)); return; } const was = pop.hidden; ui.closePops && ui.closePops(); closeLedger(); pop.hidden = !was; badge.setAttribute('aria-expanded', String(was)); if (was) { renderPop(); placePop(); } };
+  badge.onclick = () => { if (wantsGuide()) { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); return; } const was = pop.hidden; ui.closePops && ui.closePops(); closeLedger(); pop.hidden = !was; badge.setAttribute('aria-expanded', String(was)); if (was) { renderPop(); placePop(); } };
   document.addEventListener('pointerdown', e => { if (!pop.hidden && !e.target.closest('#aioPop') && !e.target.closest('#aioBadge')) { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); } });
   addEventListener('resize', () => { if (!pop.hidden) placePop(); });
 
@@ -246,11 +255,11 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   pop.addEventListener('change', e => { if (e.target.id === 'aioProj') { L.cfg.project = e.target.value; save(); restartLive(); } });
   pop.addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a; L.msg2 = '';
-    if (a === 'guide') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(hasCred() ? 3 : 1); return; }
+    if (a === 'guide') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); return; }
     if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; renderPop(); return; } L.cfg = { ...L.cfg, code: v, office: 'main', login: false }; delete L.cfg.show; save(); enterLive(); return; }
     if (a === 'login') { L.cfg = { ...L.cfg, login: true, office: 'main' }; delete L.cfg.code; delete L.cfg.show; save(); enterLive(); return; }
     if (a === 'url') { const v = ($('aioUrl').value || '').trim().replace(/\/+$/, ''); if (v && !/^https?:\/\/[^\s]+$/.test(v)) { L.msg2 = '網址格式不對'; renderPop(); return; } if (v) L.cfg.url = v; else delete L.cfg.url; save(); L.msg2 = '已儲存'; if (L.mode === 'live') restartLive(); else renderPop(); return; }
-    if (a === 'rotate') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(2); await claim(true); return; }
+    if (a === 'rotate') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); await claim(true); return; }
     if (a === 'wipe') { if (!confirm('要刪除這間辦公室收到的所有紀錄嗎？（接入碼保留）')) return; await wipe(); return; }
     if (a === 'now') { poll(); return; }
     if (a === 'show') { L.cfg.show = true; save(); enterDemo(); return; }
@@ -284,7 +293,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   // 步驟 1 複製提示詞（不含接入碼）貼到 Claude → 2 Claude 跳出安全表單卡片時貼上接入碼 → 3 等第一筆事件，收到就顯示「已接上」。
   const G = L.guide, gEl = document.createElement('div');
   gEl.className = 'aio-g'; gEl.id = 'aioGuide'; gEl.hidden = true;
-  gEl.innerHTML = '<div class="aio-gbk" data-a="gclose"></div><section class="aio-gp" role="dialog" aria-modal="true" aria-labelledby="aioGt" tabindex="-1"><header><h3 id="aioGt">連接我的 Claude</h3><button class="aio-gx" data-a="gclose" aria-label="關閉">×</button></header><ol class="aio-steps" id="aioGs" aria-label="步驟"></ol><div class="aio-gbody" id="aioGb"></div><footer id="aioGf"></footer></section>';
+  gEl.innerHTML = '<div class="aio-gbk" data-a="gclose"></div><section class="aio-gp" role="dialog" aria-modal="true" aria-labelledby="aioGt" tabindex="-1"><header><h3 id="aioGt">連接我的 Claude</h3><button class="aio-gx" data-a="gclose" aria-label="關閉">×</button></header><div class="aio-gbody" id="aioGb"></div></section>';
   document.body.append(gEl);
   const promptText = () => { const u = L.cfg.url || L.url || '', host = u.replace(/^https?:\/\//, '').replace(/\/.*$/, ''); return host ? GUIDE_PROMPT.replace(/\{HOST\}/g, host) : ''; };
   const maskCode = c => (c ? c.slice(0, 7) + '…（已隱藏）' : '');
@@ -301,81 +310,71 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     } catch (x) { /* 略：維持 unknown */ }
     guideRender();
   }
-  function openGuide(step) {
-    G.open = true; G.step = step || 1; G.eye = false; G.done = false; G.base = null; G.sig = '';
+  function openGuide() {
+    G.open = true; G.eye = false; G.done = false; G.base = null; G.sig = ''; G.fix = false;
     if (L.cfg.code && G.owner === 'nologin') G.owner = 'unknown';
     gEl.hidden = false; badge.setAttribute('aria-expanded', 'false');
     resolveUrl().then(() => { guideRender(); }); guideRender(); checkOwner();
     const p = gEl.querySelector('.aio-gp'); p && p.focus({ preventScroll: true });
-    if (L.mode === 'live' && G.step === 3) { clearTimeout(L.timer); poll(); }
+    if (L.mode === 'live') { clearTimeout(L.timer); poll(); }
   }
   function closeGuide() { G.open = false; gEl.hidden = true; clearTimeout(G.t); try { badge.focus({ preventScroll: true }); } catch (x) { /* 略 */ } }
   L.openGuide = openGuide; L.closeGuide = closeGuide;
+  // 一個畫面、兩個動作：① 複製提示詞貼到 Claude　② Claude 跳出表單時貼接入碼（沒有就自動產生、一律遮罩）；底下一行狀態，收到第一筆事件就「已接上」
+  const shotHtml = n => { const x = GUIDE_SHOTS[n]; return x.ready ? `<figure class="aio-shot" data-shot="${esc(x.file)}"><img src="guide/shots/${esc(x.file)}" alt="${esc(x.alt)}"></figure>` : `<p class="aio-cap" data-shot="${esc(x.file)}">${esc(x.alt)}</p>`; };
   function guideRender(force) {
     if (!G.open) return;
     const code = L.cfg.code || '', pr = promptText();
-    const sig = JSON.stringify([G.step, !!code, G.eye, G.owner, G.done, G.base, L.status, L.mode, L.msg2, G.copied, !!pr, G.codeExists, L.msg, L.data && L.data.total_events]);
+    const sig = JSON.stringify([!!code, G.owner, G.done, L.status, L.mode, L.msg2, G.copied, !!pr, G.showPrompt, G.fix, L.msg, L.data && L.data.total_events, G.busy]);
     if (!force && sig === G.sig) return; G.sig = sig;
-    const ae = document.activeElement, keep = ae && gEl.contains(ae) && /^(INPUT)$/.test(ae.tagName) ? { id: ae.id, v: ae.value } : null;
-    $('aioGs').innerHTML = GUIDE_STEPS.map(([n, t], i) => `<li class="${i + 1 === G.step ? 'on' : ''} ${(i + 1 < G.step || G.done) ? 'ok' : ''}"><button data-a="gstep" data-n="${n}" ${i + 1 === G.step ? 'aria-current="step"' : ''}><b>${(i + 1 < G.step || G.done) ? '✓' : n}</b><span>${t}</span></button></li>`).join('');
-    let h = '';
-    if (G.step === 1) {
-      h += `<p class="k">先把下面這段提示詞複製，貼到 Claude 的對話框送出。<b>提示詞裡沒有接入碼</b>，可以放心貼。</p>`;
-      h += pr ? `<pre class="aio-prompt" id="aioPrompt" tabindex="0" aria-label="接入提示詞（可捲動）">${esc(pr)}</pre>` : '<div class="aio-box">還不知道收件端網址，沒辦法產生提示詞。請展開下方「進階」填寫收件端網址。</div>';
-      h += `<div class="aio-row"><button class="btn big" data-a="cpprompt" ${pr ? '' : 'disabled'}>複製提示詞</button><a class="btn" href="https://claude.ai/code" target="_blank" rel="noopener">打開 Claude</a></div>`;
-      if (G.copied === 'prompt') h += '<p class="aio-msg" role="status">已複製。到 Claude 貼上並送出，再按「下一步」。</p>';
-      else if (G.copied === 'promptsel') h += '<p class="aio-msg" role="status">已選取全文，請按 Ctrl+C（手機長按）複製。</p>';
-      h += shotsHtml(1);
-    } else if (G.step === 2) {
-      const blocked = !code && (G.owner === 'notowner' || G.owner === 'nologin');
-      if (!blocked) h += `<p class="k">Claude 讀到提示詞後，會跳出一張「安全表單」卡片，向你要網路金鑰。<b>把下面的接入碼貼進卡片的「值」那一格，按「儲存」。</b>不要貼在聊天室。</p>`;
-      if (blocked) h += '<div class="aio-box lock" role="status">目前只開放站長使用，之後開放。</div>' + (G.owner === 'nologin' ? '<p>站長請先回<a href="../index.html">網站首頁</a>用 Google 登入，再回到這裡。</p>' : '');
-      else if (!code) h += `<div class="aio-row"><button class="btn big" data-a="claim">產生接入碼</button></div><p>每個接入碼只會顯示一次，產生後這台裝置會記住。</p>`;
-      else h += `<div class="aio-row"><div class="aio-mask"><code id="aioCodeMask" aria-label="接入碼">${esc(G.eye ? code : maskCode(code))}</code><button class="btn sq" data-a="eye" aria-pressed="${G.eye}" aria-label="${G.eye ? '隱藏接入碼' : '暫時顯示接入碼'}" title="${G.eye ? '隱藏' : '暫時顯示'}">${G.eye ? '🙈' : '👁'}</button></div><button class="btn big" data-a="cpcode">複製接入碼</button></div>`
-        + (G.copied === 'code' ? '<p class="aio-msg" role="status">已複製接入碼，貼進 Claude 的卡片就好。</p>' : G.copied === 'codesel' ? '<p class="aio-msg" role="status">請按 Ctrl+C（手機長按）複製。</p>' : '')
-        + `<div class="aio-row"><button class="btn warn" data-a="rotate">我不小心外流了，換一組</button></div><p>如果接入碼被貼在聊天室、或貼錯地方，按這顆產生新的，舊的立刻失效，再把新的貼進卡片。</p>`;
-      if (!code && G.codeExists && !blocked) h += `<div class="aio-row"><button class="btn warn" data-a="rotate">換一組新的接入碼</button></div>`;
-      if (!blocked) { h += `<p>卡片上要按的：<b>值</b>那一格貼上接入碼 → 按「儲存」。其他欄位已經由 Claude 預填，不用動。</p>`; h += shotsHtml(2); }
-    } else {
-      if (G.done) h += '<div class="aio-box ok" role="status">已接上 ✓，你的辦公室正在即時更新</div>';
-      else if (!code && !(L.cfg.login && loginTok())) h += '<p class="k">還沒有接入碼，請先回第 2 步產生並貼進 Claude 的卡片。</p><div class="aio-row"><button class="btn" data-a="gstep" data-n="2">回第 2 步</button></div>';
-      else {
-        h += `<div class="aio-wait" role="status"><i aria-hidden="true"></i>等待第一筆回報…</div><p>Claude 把設定做完、送出測試事件後，這裡會自動變成「已接上」。每 5 秒檢查一次。</p>`;
-        if (L.status === 'error') h += `<p class="aio-msg">暫時連不上收件端（${esc(L.msg || '網路問題')}），會自動重試。</p>`;
-        if (L.status === 'auth') h += '<p class="aio-msg">收件端不認得這組接入碼，請回第 2 步換一組。</p>';
-        h += `<div class="aio-row"><button class="btn" data-a="now">立即檢查</button></div>`;
-        h += `<details><summary>沒反應怎麼辦</summary><ol class="fix" id="aioFix"><li>Claude 對話裡的卡片按過「儲存」了嗎？沒按的話，回第 2 步複製接入碼再貼一次。</li><li>Claude 請你核准設定腳本時，有按「同意」嗎？沒有的話請它再提出一次。</li><li>設定腳本只在「新的」雲端工作階段生效：開一個新的工作階段，隨便交代一件小事。</li><li>請 Claude 回報測試事件的結果；回應不是 "ok":true 就把原文告訴它。</li><li>接入碼貼錯或貼在聊天室：回第 2 步按「我不小心外流了，換一組」。</li></ol></details>`;
-      }
-      h += shotsHtml(3);
-    }
+    const ae = document.activeElement, keep = ae && gEl.contains(ae) && ae.tagName === 'INPUT' ? { id: ae.id, v: ae.value } : null;
+    const blocked = !code && (G.owner === 'notowner' || G.owner === 'nologin');
+    let h = '<div class="aio-cards">';
+    h += `<section class="aio-card" id="aioC1"><h4>① 複製這段，貼到 Claude</h4><p>貼進 Claude 的對話框送出（裡面沒有接入碼）。</p>
+      <div class="aio-row"><button class="btn big" data-a="cpprompt" ${pr ? '' : 'disabled'}>複製提示詞</button><a class="aio-lk" href="https://claude.ai/code" target="_blank" rel="noopener">打開 Claude</a></div>
+      ${G.copied === 'prompt' ? '<p class="aio-msg" role="status">已複製，到 Claude 貼上送出。</p>' : G.copied === 'promptsel' ? '<p class="aio-msg" role="status">已選取全文，請按 Ctrl+C（手機長按）複製。</p>' : ''}
+      ${pr ? `<button class="aio-lk" data-a="viewp" aria-expanded="${!!G.showPrompt}">${G.showPrompt ? '收起內容' : '看內容'}</button>` : '<p class="aio-msg">還不知道收件端網址，請展開下方「遇到問題？」填寫。</p>'}
+      ${G.showPrompt && pr ? `<pre class="aio-prompt" id="aioPrompt" tabindex="0" aria-label="接入提示詞（可捲動）">${esc(pr)}</pre>` : ''}${shotHtml(1)}</section>`;
+    h += `<section class="aio-card" id="aioC2"><h4>② Claude 跳出表單時，貼這個</h4>`;
+    if (blocked) h += `<div class="aio-box lock" role="status">目前只開放站長使用</div>${G.owner === 'nologin' ? '<p>站長請先回<a href="../index.html">網站首頁</a>用 Google 登入。</p>' : ''}`;
+    else h += `<p>貼進表單的「值」那一格，按儲存；不要貼在聊天室。</p>
+      <div class="aio-row">${code ? `<code class="aio-mask" id="aioCodeMask" aria-label="接入碼（已隱藏）">${esc(maskCode(code))}</code>` : ''}<button class="btn big" data-a="cpcode" ${G.busy ? 'disabled' : ''}>複製接入碼</button></div>
+      ${G.copied === 'code' ? '<p class="aio-msg" role="status">已複製，貼進 Claude 的表單就好。</p>' : G.copied === 'codesel' ? '<p class="aio-msg" role="status">接入碼已產生，請再按一次「複製接入碼」。</p>' : ''}
+      ${code || G.owner === 'owner' ? '<button class="aio-lk warnlk" data-a="rotate">不小心外流？換一組</button>' : ''}${shotHtml(2)}`;
+    h += '</section></div>';
+    h += G.done ? '<div class="aio-box ok" role="status" id="aioStat">已接上 ✓，你的辦公室正在即時更新</div>'
+      : `<div class="aio-wait" role="status" id="aioStat"><i aria-hidden="true"></i>等待你的 Claude 回報…</div>${L.status === 'error' ? `<p class="aio-msg">暫時連不上收件端（${esc(L.msg || '網路問題')}），會自動重試。</p>` : ''}${L.status === 'auth' ? '<p class="aio-msg">收件端不認得這組接入碼，請按「不小心外流？換一組」。</p>' : ''}`;
     if (L.msg2) h += `<p class="aio-msg" role="status">${esc(L.msg2)}</p>`;
-    h += `<details><summary>進階：自己填收件端網址、貼上已有的接入碼</summary><label for="aioUrl">收件端網址（通常不用填）</label><div class="aio-row"><input id="aioUrl" value="${esc(L.cfg.url || L.url || '')}" placeholder="https://tw-ai-office-bridge.….workers.dev"><button class="btn" data-a="url">儲存</button></div><label for="aioIn">已經有接入碼</label><div class="aio-row"><input id="aioIn" autocomplete="off" spellcheck="false" placeholder="aio_…"><button class="btn" data-a="code">連接</button></div></details>`;
-    const body = $('aioGb'), top = body.scrollTop, det = body.querySelector('details') && body.querySelector('details').open;
-    body.innerHTML = h;
-    body.scrollTop = top;
-    if (det) body.querySelectorAll('details').forEach(d => { if (d.querySelector('#aioUrl')) d.open = true; });
+    h += `<details id="aioHelp" ${G.fix ? 'open' : ''}><summary>遇到問題？</summary><ol class="fix" id="aioFix"><li>Claude 的表單卡片按過「儲存」了嗎？沒有的話再按一次「複製接入碼」貼上。</li><li>Claude 請你核准設定腳本時，有按「同意」嗎？沒有就請它再提出一次。</li><li>設定腳本只在「新的」雲端工作階段生效：開一個新的工作階段，隨便交代一件小事。</li><li>請 Claude 回報測試事件結果；回應不是 "ok":true 就把原文告訴它。</li><li>接入碼貼在聊天室或貼錯：按②的「不小心外流？換一組」。</li></ol>
+      <label for="aioUrl">收件端網址（通常不用填）</label><div class="aio-row"><input id="aioUrl" value="${esc(L.cfg.url || L.url || '')}" placeholder="https://tw-ai-office-bridge.….workers.dev"><button class="btn" data-a="url">儲存</button></div><label for="aioIn">已經有接入碼</label><div class="aio-row"><input id="aioIn" autocomplete="off" spellcheck="false" placeholder="aio_…"><button class="btn" data-a="code">連接</button></div><button class="btn" data-a="now">立即檢查</button></details>`;
+    const body = $('aioGb'), top = body.scrollTop;
+    body.innerHTML = h; body.scrollTop = top;
     if (keep && keep.id) { const e2 = $(keep.id); if (e2) { e2.value = keep.v; try { e2.focus({ preventScroll: true }); } catch (x) { /* 略 */ } } }
-    $('aioGf').innerHTML = `<button class="btn" data-a="gprev" ${G.step === 1 ? 'disabled style="visibility:hidden"' : ''}>上一步</button><span class="sp"></span>${G.done ? '<button class="btn big" data-a="gclose">完成</button>' : G.step < 3 ? `<button class="btn big" data-a="gnext">下一步</button>` : '<button class="btn" data-a="gclose">先關閉，稍後再看</button>'}`;
   }
   async function copyText(text, sel) {
     try { await navigator.clipboard.writeText(text); return true; } catch (x) { /* 退而求其次：選取文字讓使用者自己複製 */ }
     if (sel) { const r = document.createRange(); r.selectNodeContents(sel); const g = getSelection(); g.removeAllRanges(); g.addRange(r); }
     return false;
   }
+  gEl.addEventListener('toggle', e => { if (e.target.id === 'aioHelp') G.fix = e.target.open; }, true);
   gEl.addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a; L.msg2 = '';
     if (a === 'gclose') { closeGuide(); return; }
-    if (a === 'gstep') { G.step = +b.dataset.n; G.eye = false; guideRender(); if (G.step === 3 && L.mode === 'live') poll(); return; }
-    if (a === 'gnext') { G.step = Math.min(3, G.step + 1); G.eye = false; guideRender(); if (G.step === 3 && L.mode === 'live') poll(); return; }
-    if (a === 'gprev') { G.step = Math.max(1, G.step - 1); guideRender(); return; }
-    if (a === 'cpprompt') { G.copied = (await copyText(promptText(), $('aioPrompt'))) ? 'prompt' : 'promptsel'; guideRender(true); return; }
-    if (a === 'cpcode') { G.copied = (await copyText(L.cfg.code || '', null)) ? 'code' : 'codesel'; if (G.copied === 'codesel') G.eye = true; guideRender(true); return; }
-    if (a === 'eye') { G.eye = !G.eye; clearTimeout(G.t); if (G.eye) G.t = setTimeout(() => { G.eye = false; guideRender(); }, 10000); guideRender(); return; }
-    if (a === 'claim') { await claim(false); guideRender(true); return; }
-    if (a === 'rotate') { await claim(true); guideRender(true); return; }
+    if (a === 'viewp') { G.showPrompt = !G.showPrompt; guideRender(true); return; }
+    if (a === 'cpprompt') { if (!G.showPrompt) { G.showPrompt = true; guideRender(true); } G.copied = (await copyText(promptText(), $('aioPrompt'))) ? 'prompt' : 'promptsel'; G.showPrompt = G.copied === 'promptsel'; guideRender(true); return; }
+    if (a === 'cpcode') {
+      if (!L.cfg.code) {                                                  // 還沒有碼：自動產生（領過但這台沒存＝直接換新的，使用者不用多按一步）
+        G.busy = true; guideRender(true); await claim(false);
+        if (!L.cfg.code && G.codeExists && L.guide.owner === 'owner') { L.msg2 = ''; await claim(true); }
+        G.busy = false;
+      }
+      if (L.cfg.code) G.copied = (await copyText(L.cfg.code, null)) ? 'code' : 'codesel';
+      guideRender(true); return;
+    }
+    if (a === 'rotate') { G.busy = true; guideRender(true); await claim(true); G.busy = false; G.copied = ''; guideRender(true); return; }
     if (a === 'now') { poll(); return; }
     if (a === 'url') { const v = ($('aioUrl').value || '').trim().replace(/\/+$/, ''); if (v && !/^https?:\/\/[^\s]+$/.test(v)) { L.msg2 = '網址格式不對'; guideRender(true); return; } if (v) L.cfg.url = v; else delete L.cfg.url; save(); L.msg2 = '已儲存'; if (L.mode === 'live') restartLive(); guideRender(true); return; }
-    if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; guideRender(true); return; } L.cfg = { ...L.cfg, code: v, office: 'main', login: false }; delete L.cfg.show; save(); Object.assign(G, { step: 3, base: null, eye: false, copied: '' }); enterLive(); guideRender(true); return; }
+    if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; guideRender(true); return; } L.cfg = { ...L.cfg, code: v, office: 'main', login: false }; delete L.cfg.show; save(); Object.assign(G, { base: null, copied: '' }); enterLive(); guideRender(true); return; }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && G.open) { e.stopPropagation(); closeGuide(); } }, true);
   // 收到第一筆事件（比打開引導時多）就算接上：顯示成功、2.5 秒後自動關閉，辦公室本來就已經是即時模式
@@ -384,11 +383,11 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const n = j.total_events || 0;
     if (G.base == null) { G.base = n; return; }
     if (n > G.base && !G.done) {
-      G.done = true; G.step = 3; guideRender(true); ui.toast('已接上 Claude，辦公室正在即時更新');
+      G.done = true; guideRender(true); ui.toast('已接上 Claude，辦公室正在即時更新');
       clearTimeout(G.t); G.t = setTimeout(() => { if (G.done) closeGuide(); }, 2500);
     }
   }
-  const guideFast = () => G.open && G.step === 3 && !G.done;
+  const guideFast = () => G.open && !G.done;
 
   // ───────── 示範資料的開關：即時模式下把示範數字全部換掉 ─────────
   const rwBtn = $('rwBtn');
