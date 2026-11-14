@@ -1,0 +1,102 @@
+name: 部署 Worker（AI Office 收件端）
+# 2026-11-14 擁有者原話：「目前看起來還是 Demo 版本，我想實際串接我的專案」。說明：docs/ai_office/bridge_setup.md。
+# - workers/ai-office-bridge 有改就部署（Worker ＋ Durable Object，免費方案可用）。
+# - 測試紅了不准部署；沒有 Cloudflare 金鑰就跳過並在摘要寫待辦，不紅燈。
+# - 這支流程「不需要、也不產生」任何接入碼：接入碼由擁有者登入網站後，在辦公室頁按「產生接入碼」領取（Worker 只存雜湊）。
+#   所以這裡沒有任何要遮罩的值，也不會有碼出現在 log 或摘要。
+# - 「誰是擁有者」靠會員 Worker（tw-account）的管理者名單：tw-account 已部署才打開服務綁定；還沒部署就照樣部署收件端，
+#   只是「產生接入碼」會回「會員登入服務未接上」，摘要寫待辦。
+on:
+  push:
+    branches: [main]
+    paths: ['workers/ai-office-bridge/**', '.github/workflows/deploy-ai-office-bridge.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-ai-office-bridge
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 收件端測試（驗證、欄位白名單、限速、讀取、領碼；紅了就不准部署）
+        run: node --test workers/ai-office-bridge/test/bridge.test.mjs
+      - name: 外掛去識別測試
+        run: python3 tools/ai_office_bridge/plugin/ai-office-bridge/scripts/test_bridge.py
+      - id: guard
+        name: 檢查金鑰
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$miss" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            { echo "### AI Office 收件端尚未部署"; echo ""; echo "缺少：$miss"; echo ""; echo "辦公室頁照常可看（示範模式），只是還不能接真資料。"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - id: acct
+        name: 會員 Worker（tw-account）在不在：在才打開服務綁定
+        if: steps.guard.outputs.ok == 'true'
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          tok, acc = os.environ["CF_TOKEN"], os.environ["CF_ACCOUNT"]
+          req = urllib.request.Request(f"https://api.cloudflare.com/client/v4/accounts/{acc}/workers/scripts",
+                                       headers={"Authorization": "Bearer " + tok})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  names = {s.get("id") for s in json.load(r).get("result", [])}
+          except urllib.error.HTTPError as e:
+              names = set(); print("查 Worker 清單失敗：", e.code)
+          have = "tw-account" in names
+          if have:
+              p = "workers/ai-office-bridge/wrangler.toml"
+              s = open(p, encoding="utf-8").read()
+              a, b = s.index("# ACCOUNT-BEGIN"), s.index("# ACCOUNT-END")
+              mid = "\n".join(l[2:] if l.startswith("# [") or l.startswith("# binding") or l.startswith("# service") else l for l in s[a:b].split("\n"))
+              open(p, "w", encoding="utf-8").write(s[:a] + mid + s[b:])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"have={'true' if have else 'false'}\n")
+          PY
+          grep -n -A3 "ACCOUNT-BEGIN" workers/ai-office-bridge/wrangler.toml
+      - name: 部署
+        id: deploy
+        if: steps.guard.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/ai-office-bridge
+      - name: 線上自我檢查與摘要
+        if: steps.guard.outputs.ok == 'true'
+        env:
+          WURL: ${{ steps.deploy.outputs.deployment-url }}
+          HAVE_ACCT: ${{ steps.acct.outputs.have }}
+        run: |
+          {
+            echo "### AI Office 收件端已部署"
+            echo ""
+            echo "- 收件端網址：${WURL:-（wrangler 沒有回傳，請到 Cloudflare 後台 Workers 清單看 tw-ai-office-bridge）}"
+            echo "- 外掛的 AIO_URL 填這個網址；雲端環境的網路金鑰主機填這個網址的主機名稱。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$WURL" ]; then
+            for i in 1 2 3 4 5 6; do
+              if curl -fsS "${WURL%/}/health" -o /tmp/h.json; then cat /tmp/h.json; echo "- 健康檢查：$(cat /tmp/h.json)" >> "$GITHUB_STEP_SUMMARY"; break; fi
+              sleep 10
+            done
+          fi
+          if [ "$HAVE_ACCT" != "true" ]; then
+            echo "- ⚠ 會員 Worker（tw-account）還沒部署：辦公室頁的「產生接入碼」暫時不能用（會回『會員登入服務未接上』）。" >> "$GITHUB_STEP_SUMMARY"
+          fi

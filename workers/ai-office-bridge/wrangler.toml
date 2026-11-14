@@ -1,0 +1,30 @@
+# AI Office 收件端（docs/ai_office/bridge_setup.md；實測依據 docs/ai_office/bridge_test_report.md）
+# 部署：.github/workflows/deploy-ai-office-bridge.yml（推上 main 自動部署；缺 Cloudflare 金鑰就跳過並寫摘要，不紅燈）
+# 這裡沒有任何金鑰：接入碼由擁有者登入網站後在辦公室頁按「產生接入碼」取得，Worker 只存雜湊。
+name = "tw-ai-office-bridge"
+main = "worker.js"
+compatibility_date = "2026-09-27"
+workers_dev = true
+
+# 只有這些網站的瀏覽器可以呼叫（CORS ＋ Origin 檢查）。這不是金鑰，是公開的網域白名單。
+# 外掛從終端機送事件時不帶 Origin，不受這條影響（它靠接入碼）。
+[vars]
+ALLOWED_ORIGINS = "https://liguligu-puipui.com https://www.liguligu-puipui.com https://miaozike.github.io"
+
+# 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取。
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]
+
+# 「誰是擁有者」問會員 Worker（tw-account）的 /v1/me：管理者（ADMIN_EMAILS）才領得到接入碼。
+# 用服務綁定而不是公開網址：workers.dev 上 Worker 打 Worker 的公開網址會被 Cloudflare 擋（錯誤 1042）。
+# 部署流程先確認 tw-account 已經存在，才把下面兩行打開（會員 Worker 沒部署時，綁一個不存在的服務會讓部署失敗）。
+# ACCOUNT-BEGIN
+# [[services]]
+# binding = "ACCOUNT"
+# service = "tw-account"
+# ACCOUNT-END
