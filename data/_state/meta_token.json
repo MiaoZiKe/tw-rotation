@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13T08:49:18+00:00",
+  "updated_at": "2026-11-14T08:06:17+00:00",
   "mode": "check",
   "platforms": {
     "threads": {
@@ -8,7 +8,7 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T11:05:36+00:00",
       "status": "check-ok",
-      "days_left": 56.1
+      "days_left": 55.1
     },
     "ig": {
       "source": "auto",
@@ -16,7 +16,7 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T18:33:17+00:00",
       "status": "check-ok",
-      "days_left": 56.4
+      "days_left": 55.4
     },
     "tc_threads": {
       "source": "original",
@@ -40,12 +40,12 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T16:24:11+00:00",
       "status": "check-ok",
-      "days_left": 56.3
+      "days_left": 55.3
     },
     "healing_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-13T08:49:18+00:00",
+      "last_ok_at": "2026-11-14T08:06:17+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@talk_01010909）",
@@ -60,12 +60,12 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T16:25:02+00:00",
       "status": "check-ok",
-      "days_left": 56.3
+      "days_left": 55.3
     },
     "tech_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-13T08:49:18+00:00",
+      "last_ok_at": "2026-11-14T08:06:17+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@tech_01010909）",
@@ -80,12 +80,12 @@
       "last_ok_at": "2026-11-09T18:33:17+00:00",
       "expires_at": "2027-01-08T16:57:53+00:00",
       "status": "check-ok",
-      "days_left": 56.3
+      "days_left": 55.4
     },
     "caffaine_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-13T08:49:18+00:00",
+      "last_ok_at": "2026-11-14T08:06:17+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@caffaine.ai）",
