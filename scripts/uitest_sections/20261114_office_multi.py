@@ -423,6 +423,68 @@ def _mu_esc(pg_, b, base, code):
         c.close()
 
 
+def _mu_click(pg_, b, base, code):
+    """擁有者 11-15：「你改成這樣都點不了員工」。像人一樣：游標先停在角色上（出現提示）再點、直接點、畫面卡頓時快速點一下，都要選得到。
+    預設網址（不帶 ambient=0，角色會走動）；若用壓縮版網站目錄跑（runsec2 指到 minify 後的 site），這就是線上的樣子。"""
+    c, pg, got = _mu_open(b, base, qs="?q=low&pr=0.6", speed=1)
+    try:
+        ok("點選：頁面載入（預設網址）", got)
+        if not got:
+            return
+        pg.evaluate("() => __world.setView('god', null, true)"); pg.wait_for_timeout(1200); _mu_settle(pg)
+        pts = []
+        for _ in range(20):
+            pts = _mu_free_pts(pg, 6, gap=36)
+            if len(pts) == 6:
+                break
+            pg.wait_for_timeout(700)
+        ok("點選：畫面上找得到 6 位可點的角色", len(pts) == 6, len(pts))
+
+        def cur(cid):
+            q = [z for z in pg.evaluate(_MU_PTS) if z["id"] == cid]
+            return q[0] if q else None
+
+        def top_is_cv(x, y):
+            return pg.evaluate("([x, y]) => document.elementFromPoint(x, y).id === 'cv'", [x, y])
+
+        def selected(cid):
+            return pg.evaluate("(id) => !!__world.pilot.sel && __world.pilot.sel.spec.id === id && !document.getElementById('card').hidden", cid)
+
+        def reset():
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(300); _mu_settle(pg, 8000)
+
+        # ① 游標先停在角色上 1 秒（出現小提示）再點
+        q = cur(pts[0]["id"]); pg.mouse.move(q["x"] - 20, q["y"] - 20); pg.mouse.move(q["x"], q["y"])
+        wait_until(pg, "() => { const t = document.getElementById('hoverTip'); return t && !t.hidden; }", 4000)
+        tip_vis = pg.evaluate("() => { const t = document.getElementById('hoverTip'); return t && !t.hidden; }")
+        q = cur(pts[0]["id"]); pg.mouse.move(q["x"], q["y"])
+        ok("點選：游標提示不蓋住角色（畫布仍是最上層）", top_is_cv(q["x"], q["y"]), tip_vis)
+        pg.mouse.down(); pg.wait_for_timeout(90); pg.mouse.up(); pg.wait_for_timeout(500)
+        ok("游標先停在角色上再點 → 選得到（單人資訊卡出現）", selected(pts[0]["id"]))
+        ok("選取後名牌提亮（.tag.sel）", wait_until(pg, "() => document.querySelectorAll('.tag.sel').length === 1", 4000))
+        reset()
+        # ② 直接點（不先停）：每一位都點
+        good = 0
+        for p_ in pts[1:]:
+            q = cur(p_["id"])
+            pg.mouse.click(q["x"], q["y"]); pg.wait_for_timeout(500)
+            good += 1 if selected(p_["id"]) else 0
+            reset()
+        ok("直接點 5 位坐著的角色 → 都選得到", good == 5, good)
+        # ③ 走動中的角色：叫他走起來再點
+        pg.evaluate("() => { const W = __world, c = W.chars.get('data-scraper'); W.director.routine('data-scraper', 'water'); }")
+        wait_until(pg, "() => __world.chars.get('data-scraper').state === 'walk'", 15000)
+        q = cur("data-scraper")
+        if q:
+            pg.mouse.click(q["x"], q["y"]); pg.wait_for_timeout(500)
+            ok("走動中的角色點得到", selected("data-scraper") or pg.evaluate("() => !!__world.pilot.sel"), q)
+            reset()
+        ok("無主控台錯誤（點選）", not [e for e in pg.errs if "vScP" not in e], pg.errs[:2])
+    finally:
+        c.close()
+
+
+register("辦公室點選", _mu_click)
 register("辦公室多選Esc回俯視", _mu_esc)
 register("辦公室多選", _mu_main)
 register("辦公室多選手機", _mu_touch)

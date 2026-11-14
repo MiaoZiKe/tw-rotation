@@ -400,7 +400,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     if (edit.drag) { editUp(e); down = null; return; }
     if (grab) { endGrab(); down = null; return; }
     ringOff(); controls.enabled = true; if (down && down.mode === 'rot') { down = null; cv.style.cursor = ''; return; } cv.style.cursor = '';
-    if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
+    if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = down.ts != null ? e.timeStamp - down.ts : performance.now() - down.t; down = null;   // 按住多久用「事件時間」算：畫面卡（一格好幾百毫秒）時放開的處理會晚到，用處理當下的時間會把快速點一下誤判成長按而不算點
     // 位移超過約 5 像素＝拖曳，不是點一下。按住 0.7 秒以上也不算點。0.25～0.7 秒的「慢點」：點到角色、佈告欄、招牌／旗／打卡機照常算點擊
     // （慢慢點的人 0.3～0.5 秒很常見，以前 0.25 秒就判定不算，點招牌常常沒反應）；但點在空白處不算（維持「按住不動再放開不取消選取、不關資訊卡」）。
     if (moved > 5 || dt > 700) return; const slow = dt > 250; if (!slow) ui.closePops();
