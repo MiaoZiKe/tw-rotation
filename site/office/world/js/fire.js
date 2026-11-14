@@ -39,7 +39,7 @@ if (uScorch > 0.002) {
 `;
 
 export function createFire(W, opts = {}) {
-  const F = { cfg: { range: 1.2, recoverMin: 30, recoverMax: 60, burnMin: 3.2, burnMax: 4.8, smoke: 9, fade: 7 }, states: new Map(), stats: { ignited: 0, recovered: 0, patched: 0, particles: 0 }, on: true };
+  const F = { cfg: { range: 1.3, recoverMin: 30, recoverMax: 60, burnMin: 3.2, burnMax: 4.8, smoke: 9, fade: 7 }, states: new Map(), stats: { ignited: 0, recovered: 0, patched: 0, particles: 0 }, on: true };
   W.fire = F; W.fireFlick = fireFlick;
   const scene = W.scene, O = W.outside, D = () => W.director, allChars = () => [...W.chars.values(), ...(W.pets || []), ...(W.extras || [])];
   const fx = O ? O.fire.x : 30.2, fz = O ? O.fire.z : 36.6;
@@ -278,10 +278,16 @@ export function createFire(W, opts = {}) {
     // 進入火範圍的角色：被丟的、被操控的、走路經過的
     for (const c of allChars()) {
       if (imm(c) || !c.object3D.visible || c.away) continue; const s = st(c);
-      if (s && s.state === 'burning') continue;
+      if (s && s.state !== 'none') continue;   // 剛燒完（愣著冒煙）的不再重燒
       if (c._seat && c.state === 'sit') continue;
-      const p = posOf(c), d = Math.hypot(p.x - fx, p.z - fz);
-      if (d < F.cfg.range && (c.lift || 0) < 1.0) { if (!(s && s.cool && W.time < s.cool)) ignite(c, 'campfire'); }
+      const p = posOf(c), pv = c._fp || (c._fp = { x: p.x, z: p.z }); const lift = c.lift || 0;
+      // 這一步走過的線段離火心多近（被甩得很快的角色一步會飛 0.3 公尺以上，只看終點會漏接）
+      const sx = p.x - pv.x, sz = p.z - pv.z, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fx - pv.x) * sx + (fz - pv.z) * sz) / sl, 0, 1) : 1, d = Math.hypot(pv.x + sx * u - fx, pv.z + sz * u - fz);
+      pv.x = p.x; pv.z = p.z;
+      // 腳離地低於火焰高度（約 1.3 公尺）就碰得到；被拎著的角色（高度約 1）在火焰正上方 0.9 公尺內也算
+      const held = c.state === 'held' || (c.newModel ? c.inner.ctl.state === 'held' : c.inner.mode === 'held');
+      const rng = (c.piloted || lift > 0.05 || held) ? F.cfg.range : F.cfg.range - 0.18;   // 操控中、飛行中的角色用完整範圍；自己走路經過的只在幾乎貼到石圈時才算（避免路過的同事常常著火）
+      if ((d < rng && lift < 1.3) || (held && d < 0.9 && lift < 2)) ignite(c, 'campfire');
     }
     for (const o of F.states.values()) { if (o.state !== 'none') tickChar(o, h); }
     // 背景把每個角色的材質先補好焦黑著色器（不在第一次燒的瞬間才編譯）

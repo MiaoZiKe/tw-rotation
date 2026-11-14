@@ -256,7 +256,8 @@ export function createPhysics(W, opts = {}) {
       if (ci.y0 > top - 0.02 || ci.y0 + (ci.c.height || 0.7) < bot + 0.05) continue;
       const d = Math.hypot(dx, dz) || 1e-6, nx = dx / d, nz = dz / d;                        // 從角色指向物件
       const pvx = p.mode === 'home' ? 0 : p.vx, pvz = p.mode === 'home' ? 0 : p.vz;
-      const vn = (ci.vx - pvx) * nx + (ci.vz - pvz) * nz;                                // 角色逼近物件的速度
+      let vn = (ci.vx - pvx) * nx + (ci.vz - pvz) * nz;                                // 角色逼近物件的速度
+      if (vn < 0.2 && ci.fly && ci.vy < -1.2 && d < rr * 0.85) vn = Math.max(vn, -ci.vy * 0.55);   // 從上面掉下來砸到：垂直速度換成把它往外壓的力
       if (vn < 0.2) { // 緩慢貼著：只把角色推開一點點，不傷物件
         if (p.mode !== 'home') { const k = (rr - d) * 0.5; p.x += nx * k; p.z += nz * k; moveBy(ci, -nx * k, -nz * k); } continue;
       }

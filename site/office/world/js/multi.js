@@ -291,12 +291,12 @@ export function createMulti(W, X) {
   let povExitT = -1e9; { const ex = W.pov && W.pov.exit; if (ex) W.pov.exit = function (...a) { povExitT = performance.now(); return ex.apply(this, a); }; }
   addEventListener('keydown', e => {
     if (e.code !== 'Escape' || e._multi || typing() || document.body.classList.contains('dlg-open')) return;
-    if (document.querySelector('[role=dialog]:not([hidden]), #board:not([hidden]), #aioGuide:not([hidden])')) return;      // 對話框、佈告欄：由它們自己關
+    if ([...document.querySelectorAll('[role=dialog], #board')].some(el => el.getClientRects().length)) return;      // 對話框、佈告欄：由它們自己關
     if (performance.now() - povExitT < 80) return;                                              // 這次 Esc 剛把角色視角退回原視角，不再往下飛
     if (W.pov && W.pov.on() && W.pov.st !== 'out') return;
     if (M.list.length) clear(); else if (pilot.sel) pilot.release();
     setView('god');
-  });
+  }, true);       // 一定要用捕捉階段：hr.js 的 Esc 在 document 上關確認框，若晚於它，確認框已關掉、這裡會誤以為沒有對話框
 
   // ───────── 每一幀：光環位置、面板彙總 ─────────
   const pf = pilot.frame, pt = pilot.tick;

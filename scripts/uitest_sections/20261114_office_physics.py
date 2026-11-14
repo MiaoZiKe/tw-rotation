@@ -328,6 +328,111 @@ def t_office_physics(b, base):
         held, moved, pos = real_drag(pg, "1280")
         ok("真人操作（1280）：滑鼠按住角色 0.4 秒後被拎起", held, held)
         ok("真人操作（1280）：拖動後放開，角色被丟出、離開原位（現在在 %.1f,%.1f）" % (pos[0], pos[1]), moved, pos)
+        # ───── 真人操作（只用滑鼠與鍵盤，不呼叫內部函式；2026-11-14 擁有者回報「沒有燒起來」後補）─────
+        _PROJ = """(a) => { const W = __world, V = W.THREE.Vector3, f = (x, y, z) => { const v = new V(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const c = window.__rc, p = c.object3D.position; return { c: f(p.x, 0.45, p.z), fire: f(30.2, 0.6, 36.6) }; }"""
+
+        def real_fire(mode, who, tod, shot=None):
+            pg.evaluate("""([who, tod]) => { const W = __world, cs = [...W.chars.values()]; W.fire.reset(); W.phys.restoreAll(true); W.daytime.set(tod); for (const o of cs) o.busy = false;
+              const c = who === 'new' ? cs.find(q => q.newModel && !q.spec.isCeo) : cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); window.__rc = c; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(26.5, 35.0, 0);
+              W.fire.states.delete(c.spec.id); c._sootU && (c._sootU.value = 0); W.speed = 1; W.godAt(30.2, 36.0, 26); }""", [who, tod])
+            pg.wait_for_timeout(2500)
+            pt = pg.evaluate(_PROJ, 0)
+            cx, cy = pt["c"]; fx, fy = pt["fire"]
+            if mode == "throw":
+                fx, fy = fx + (fx - cx) * 0.5, fy + (fy - cy) * 0.5          # 甩過頭：往火的方向再多拖 50%
+            pg.mouse.move(cx, cy)
+            pg.mouse.down()
+            pg.wait_for_timeout(700)
+            for i in range(1, 9):
+                pg.mouse.move(cx + (fx - cx) * i / 8, cy + (fy - cy) * i / 8)
+                pg.wait_for_timeout(16 if mode == "throw" else 150)
+            held = pg.evaluate("() => __rc.state === 'held'")
+            if shot:
+                pg.wait_for_timeout(300)
+            pg.mouse.up()
+            frames = []
+            burned = False
+            for k in range(14):
+                pg.wait_for_timeout(450)
+                st = pg.evaluate("() => __world.fire.stateOf(__rc).state")
+                burned = burned or st == "burning"
+                if shot and k % 1 == 0 and len(frames) < 12:
+                    frames.append(pg.screenshot())
+            soot = pg.evaluate("() => __world.fire.scorch(__rc)")
+            if shot and frames:
+                ims = [_Im.open(_io.BytesIO(f)).convert("RGB").crop((240, 150, 1040, 650)).resize((400, 250)) for f in frames[:12]]
+                sh = _Im.new("RGB", (400 * 4, 250 * 3))
+                for k, im in enumerate(ims):
+                    sh.paste(im, ((k % 4) * 400, (k // 4) * 250))
+                sh.save(shot)
+            pg.evaluate("() => { __world.fire.reset(); __world.speed = 0.001; __rc.busy = true; }")
+            return held, burned, soot
+
+        for mode, who, tod, nm in (("drop", "old", "day", "放下（舊角色，白天）"), ("drop", "new", "night", "放下（新角色，夜晚）"), ("throw", "old", "night", "甩出（舊角色，夜晚）"), ("throw", "new", "day", "甩出（新角色，白天）")):
+            held, burned, soot = real_fire(mode, who, tod)
+            ok("真人操作（滑鼠）拎起角色、拖到營火上、%s：被拎起且燒起來（焦黑 %.2f）" % (nm, soot), held and burned and soot > 0.3, (held, burned, soot))
+        pg.evaluate("() => { __world.speed = 1; }")
+
+        # ───── 真人操作：方向鍵操控角色走到營火邊 ─────
+        def real_walk(who):
+            pg.evaluate("""(who) => { const W = __world, cs = [...W.chars.values()]; W.fire.reset(); W.daytime.set('night'); for (const o of cs) o.busy = false; const c = who === 'new' ? cs.find(q => q.newModel && !q.spec.isCeo) : cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird');
+              window.__rc = c; c.script = (c.script || 0) + 1; c.stop(false); c.standAt(25.5, 36.6, Math.PI / 2); W.fire.states.delete(c.spec.id); W.speed = 1; W.godAt(28, 36, 22); }""", who)
+            pg.wait_for_timeout(2500)
+            pt = pg.evaluate(_PROJ, 0)
+            pg.mouse.click(pt["c"][0], pt["c"][1])
+            pg.wait_for_timeout(1500)
+            cur = set()
+
+            def setkeys(want):
+                for k in list(cur):
+                    if k not in want:
+                        pg.keyboard.up(k)
+                        cur.discard(k)
+                for k in want:
+                    if k not in cur:
+                        pg.keyboard.down(k)
+                        cur.add(k)
+            hit = False
+            for it in range(70):
+                r = pg.evaluate("""() => { const W = __world, c = __rc, p = c.object3D.position, d = new W.THREE.Vector3(); W.camera.getWorldDirection(d); const fl = Math.hypot(d.x, d.z) || 1, fx = d.x / fl, fz = d.z / fl, tx = 30.2 - p.x, tz = 36.6 - p.z, tl = Math.hypot(tx, tz) || 1;
+                  return { fwd: (fx * tx + fz * tz) / tl, right: (-fz * tx + fx * tz) / tl, st: W.fire.stateOf(c).state, sel: W.pilot.sel === c }; }""")
+                if r["st"] != "none":
+                    hit = True
+                    break
+                w = []
+                if r["fwd"] > 0.2: w.append("ArrowUp")
+                if r["fwd"] < -0.2: w.append("ArrowDown")
+                if r["right"] > 0.25: w.append("ArrowRight")
+                if r["right"] < -0.25: w.append("ArrowLeft")
+                setkeys(w)
+                pg.wait_for_timeout(250)
+            setkeys([])
+            pg.evaluate("() => { __world.fire.reset(); __world.pilot.release && __world.pilot.release(); __world.speed = 0.001; }")
+            return hit, r
+
+        for who in ("old", "new"):
+            hit, r = real_walk(who)
+            ok("真人操作（方向鍵）操控%s角色走到營火邊：會燒起來" % ("舊" if who == "old" else "新"), hit, r)
+
+        # ───── 真人操作：滑鼠甩人撞椅子 ─────
+        pg.evaluate("""() => { const W = __world, cs = [...W.chars.values()]; W.phys.restoreAll(true); W.fire.reset(); W.daytime.set('day'); for (const o of cs) o.busy = false; const c = cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); window.__rc = c;
+          c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(13.0, 10.6, Math.PI); W.speed = 1; W.godAt(13, 9, 16); window.__chair = W.phys.find('meeting_table_13/chair4'); }""")
+        pg.wait_for_timeout(2500)
+        pt = pg.evaluate("""() => { const W = __world, V = W.THREE.Vector3, f = (x, y, z) => { const v = new V(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const p = __rc.object3D.position; return { c: f(p.x, 0.45, p.z), t: f(13.0, 0.45, 6.4) }; }""")
+        pg.mouse.move(pt["c"][0], pt["c"][1])
+        pg.mouse.down()
+        pg.wait_for_timeout(700)
+        for i in range(1, 9):
+            pg.mouse.move(pt["c"][0] + (pt["t"][0] - pt["c"][0]) * i / 8, pt["c"][1] + (pt["t"][1] - pt["c"][1]) * i / 8)
+            pg.wait_for_timeout(16)
+        pg.mouse.up()
+        hit = wait_until(pg, "() => __chair.mode !== 'home'", 12000)
+        th = pg.evaluate("() => __chair.th")
+        ok("真人操作（滑鼠）甩出角色撞椅子：椅子被撞離原位（傾角 %.2f）" % th, hit, (hit, th))
+        pg.evaluate("() => { __world.phys.restoreAll(true); __world.speed = 0.001; }")
+        # 連拍圖（給人看的）
+        real_fire("drop", "old", "night", shot="/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/physics/真人拖進營火_連拍.png")
+        real_fire("throw", "new", "night", shot="/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/physics/真人甩進營火_連拍.png")
         ok("物理段：1280 沒有主控台錯誤、主迴圈無例外（loopErr=%s）" % pg.evaluate("() => __world.loopErr || 0"), not errs and not pg.evaluate("() => __world.loopErr"), errs[:3])
     finally:
         c1.close()

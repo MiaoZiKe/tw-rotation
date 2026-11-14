@@ -207,7 +207,7 @@ export function createPilot(W, X) {
   }
 
   // ───────── 每個模擬步：把輸入變成移動指令 ─────────
-  const inBox = (x, z) => x > 0.55 && x < layout.size.w - 0.55 && z > 0.55 && z < layout.size.d - 0.55;
+  const inBox = (x, z) => x > 0.55 && x < layout.size.w - 0.55 && z > 0.55 && z < layout.size.d + 9;   // 11-14：往南放寬到大門外的小路與無業遊民區（能不能走由 nav 決定：建築外只有小路與遊民區是可走的），操控的角色才走得到營火
   const free = (x, z) => inBox(x, z) && W.nav.isFree(x, z);
   P.input = () => {                                                  // 鏡頭為準的移動向量（往上＝遠離鏡頭）
     let ix = 0, iy = 0; const ds = new Set([...held].map(k => DIRS[k]));

@@ -241,10 +241,15 @@ def _mu_main(pg, b, base, code):
         # ───── ④ 全選 ─────
         _mu_clear(pg)
         pg.wait_for_timeout(500)
-        base_calls = pg.evaluate("() => __world.stats.calls")
+        def _calls_min():       # 場景裡別的動態物件（粒子、特效）會讓繪製次數上下跳，取連續 8 次的最小值才是穩定的底數
+            v = []
+            for _ in range(8):
+                v.append(pg.evaluate("() => __world.stats.calls")); pg.wait_for_timeout(250)
+            return min(v)
+        base_calls = _calls_min()
         n_all = pg.evaluate("() => { const W = __world; let n = 0; for (const c of W.chars.values()) if (W.multi.add(c)) n++; return n; }")
-        pg.wait_for_timeout(900)
-        calls = pg.evaluate("() => __world.stats.calls")
+        pg.wait_for_timeout(600)
+        calls = _calls_min()
         txt = pg.evaluate("() => document.getElementById('grpN').textContent")
         ok(f"全選 {n_all} 位：面板顯示已選 {n_all} 位", txt == f"已選 {n_all} 位" and n_all >= 40, (txt, n_all))
         ok("全選時繪製次數增量 ≤ +3（光環合併成實例網格）", calls - base_calls <= 3, (base_calls, calls))
@@ -399,10 +404,11 @@ def _mu_esc(pg_, b, base, code):
         # ④ 開除確認框開著：Esc 只關框，鏡頭不動
         pg.evaluate("() => { const W = __world; for (const id of [...W.chars.keys()].slice(1, 3)) W.multi.add(W.chars.get(id)); }"); pg.wait_for_timeout(300)
         pg.click("[data-g=fire]"); pg.wait_for_timeout(400)
-        pg.mouse.move(900, 200); pg.mouse.down(); pg.mouse.move(800, 260, steps=6); pg.mouse.up(); pg.wait_for_timeout(500)
+        pg.evaluate("() => { __world.camera.position.x += 2; __world.controls.target.x += 2; }"); pg.wait_for_timeout(300)       # 先把鏡頭挪離俯視位置（確認框的遮罩一點就關，所以不用滑鼠拖）
         before = _mu_pose(pg)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(900)
-        ok("開除確認框開著按 Esc：只關框、鏡頭不動、群組仍在", pg.evaluate("() => !document.getElementById('fireDlg') && __world.multi.list.length === 2") and _mu_dist(_mu_pose(pg), before) < 0.05, round(_mu_dist(_mu_pose(pg), before), 3))
+        info = pg.evaluate("() => ({ dlg: !!document.getElementById('fireDlg'), n: __world.multi.list.length })")
+        ok("開除確認框開著按 Esc：只關框、鏡頭不動、群組仍在", (not info["dlg"]) and info["n"] == 2 and _mu_dist(_mu_pose(pg), before) < 0.05, (info, round(_mu_dist(_mu_pose(pg), before), 3)))
         pg.keyboard.press("Escape"); pg.wait_for_timeout(500); _mu_settle(pg, 8000)
         ok("再按 Esc：群組清空、鏡頭回俯視", pg.evaluate("() => __world.multi.list.length === 0") and _mu_dist(_mu_pose(pg), ref) < TOL, round(_mu_dist(_mu_pose(pg), ref), 2))
         # ⑤ 飛回途中拖曳就中止
