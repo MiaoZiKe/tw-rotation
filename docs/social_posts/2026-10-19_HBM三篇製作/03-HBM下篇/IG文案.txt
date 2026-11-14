@@ -1,0 +1,29 @@
+🔍 一顆HBM，不是一家公司名字就能講完。先問「它做哪一段」，才不會把記憶體、邏輯和先進封裝混成同一件事。🐹
+
+🧩 三個角色，分開看：
+① core die是儲存資料的DRAM晶粒，記憶體原廠是重要主角。
+② 本篇示意的base die負責底層介面，實際配置依產品與世代而變。
+③ 完成HBM堆疊後，還要與運算晶粒整合；CoWoS是先進封裝技術之一。
+
+📌 合作範圍也要看清楚。SK hynix在2024年公告與台積電合作HBM4，涉及base die及CoWoS整合。這不是「台積電承作整套HBM」，更不能套用到所有原廠與世代。
+
+測試同樣不只在最後：組裝前篩選合格晶粒，堆疊後還要檢查連接與功能。知道角色、產品和工序，再回公告核對，會比只追概念族群更有方向。
+
+💬 你最想讓比比再拆解哪一段分工？
+
+🌐 https://liguligu-puipui.com/?utm_source=instagram&utm_medium=social&utm_campaign=hbm_series&utm_content=hbm_lower#overview
+
+📚 來源（查閱2026/10/19）：
+本站HBM產業圖
+https://github.com/MiaoZiKe/tw-rotation/blob/32b22653fab6b819ed036200d436ed5c2449a9e7/site/dg/hbm.js
+SK hynix｜2024/4/19合作公告
+https://news.skhynix.com/en/sk-hynix-partners-with-tsmc-to-strengthen-hbm-technological-leadership/
+Micron｜HBM4製造FAQ
+https://www.micron.com/products/memory/hbm/hbm4
+TSMC｜3DFabric說明（2020/8/24）
+https://www.tsmc.com/english/news-events/blog-article-20200803
+
+圖為分工／結構示意，層數與尺寸非產品規格。合作公告不代表目前交付、訂單或所有世代均採相同分工。
+整理公開資訊，非投顧，投資請自行判斷。
+
+#哩股哩股 #比比科技教室 #HBM #半導體 #先進封裝 #產業鏈

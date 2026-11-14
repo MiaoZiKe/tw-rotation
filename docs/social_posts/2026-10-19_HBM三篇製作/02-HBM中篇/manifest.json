@@ -1,0 +1,175 @@
+{
+  "title": "AI越強，記憶體壓力越大？",
+  "topic": "HBM",
+  "part": "中篇",
+  "status": "10張原生PNG與文案完成，本機品管完成；外部備份由總編另行處理",
+  "tool": "GPT內建image_gen",
+  "role_reference": "跳跳.gif首幀，user_provided，原作者/權利unknown",
+  "source_commit": "6dc0601e1c7c1575b9b5a0683382b862dd8e4cb5",
+  "pages": [
+    {
+      "number": 1,
+      "file": "slides/01.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE01/10.Main title『AI越強，記憶體壓力越大？』.Two exactpoints『算得快，還得有資料跟得上。』『先分清容量、帶寬與工作負載。』.Yellow supplement『不能只看GPU的運算規格。』.SceneandBibi:精緻GPU與HBM左右並排在同一中介層，藍色資料小卡沿多條細密橫向路線進GPU，GPU上方一個小待處理任務牌，示意不是實際利用率；比比在左側微向右傾，短掌拿資料板另一掌指向資料路線，神情好奇，視線朝GPU。.Main diagramlabels:GPU、HBM、資料搬運示意.No othertext. Main title in2balancedlines and leaveuniformsideborders. Data cards represent flow not queuepressuremeasurement, labelconcept. Noemptylowerfooterspace.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-e3fd274f-7672-427e-9b44-443d687b438d.png",
+      "qa": "全圖目視：標題/兩點/補充與01/10正確；GPU與HBM並排，主圖含資料搬運示意，無底腳/來源/日期/免責；比比兩短掌持資料板與指模型，無尾。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "3b2adf9c85014cb2b6c15236a84ffdb804a8c54b2843ec0cd559992989e21715"
+    },
+    {
+      "number": 2,
+      "file": "slides/02.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE02/10.Title『裝得下，不等於搬得快』.Two exactpoints『容量：記憶體能放多少資料。』『帶寬：每秒能搬動多少資料。』.Yellow supplement『兩種限制，要分開看。』.SceneandBibi:一個研究桌上容量收納匣與旁邊寬資料傳送通道形成單一圖解，收納匣有整齊資料卡、通道上3張小資料卡移動，標容量/帶寬、主圖內標概念示意，不用水管誤當物理模型；比比右側歪頭蹲坐一短掌扶匣、另一短掌拿小比較本，視線左移看匣，無相鄰頁相同指姿。.Main diagramlabels:容量、帶寬、概念示意.ONEintegrated handpainted desk model,a storagecapacitydrawer withblue datacards andbeside wide transferconveyor palemint with movingcards, no numericmeasurements. Bibi rightcrouching headtilt withbook and onepaw ondrawer;avoid extra mascots. NO footnote area;yellowbottomsupplementfillsbalance.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-108b9302-1e67-479e-af3b-2786c87c8ee3.png",
+      "qa": "全圖目視：容量/帶寬分辨與概念示意正確，無量測數字，無底腳；角色右側短掌扶收納匣/拿本、無尾。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "00491bbc2755d6f2ca956028306ddf3b573412c714fe96bda5b63b006c3f0ccd"
+    },
+    {
+      "number": 3,
+      "file": "slides/03.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE03/10.Title『訓練與推論，工作不同』.Two exactpoints『訓練要更新模型，也要保存中間結果。』『推論讀取模型，產生輸出。』.Yellow supplement『記憶體壓力，取決於實際任務。』.SceneandBibi:一張開放研究筆記有兩段小流程，左訓練 資料→模型更新→循環，右推論 輸入→模型→輸出，各有模型樣本卡而非兩個房間，柔色清楚角色；比比左下低頭拿短鉛筆記錄，另一掌壓筆記本，微側身，視線在模型更新。.Main diagramlabels:訓練、模型更新、推論、輸入、輸出. One openresearchnotebook with training onleft looping update and inference onright input→model→output,moderate dimensionalpaperbinding shadows. One Bibi lowerleft angledsideview writingwithshortpencil inONEpaw otherpawflattenpage,eyeslookingdown. Mainpicture fillsmidarea,lowerpoints andsupplement providebalancedlowerfill.No plants,flowers,decorative books,stars orpenpot;onlynecessary notebookandtechnicalmodelcards. EXACTTRAININGwordupdate ratherthan claims alltrainingmemorybound.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-a28c98ba-bd2a-4b73-8c9a-3b98fa2ac225.png",
+      "selected_native_source": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-216ad088-36d3-4245-bb7a-fbc258f91764.png",
+      "edits": [
+        {
+          "prompt": "精準修圖，只修圖片中的比比位置和大小，其餘標題/全部文字/研究筆記/箭頭/底部兩點與黃補充完全保持。現比比在左邊被畫面裁到，請整隻稍縮小約15%並往右移，完整輪廓含左側毛邊與短腳都落在畫面內，最左至少留40px呼吸空間。仍在筆記左下拿鉛筆寫字，另一短掌壓頁，保持自然接觸、兩掌無尾、小純黑點眼無高光與橘粉腮紅。不能刪角色或把它貼在字上，不增加其他裝飾，不改文字內容。",
+          "reason": "比比左側輪廓原遭裁切，原生縮移修正完整入畫"
+        }
+      ],
+      "qa": "原生修圖後比比完整留邊，短掌持筆/壓頁正常；訓練與推論兩段流程/文字正確，無底腳。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "38b16798938e36637d4bb8c178fce3e68ccec8c6d8412cdfa7e98fd0855a2e4a"
+    },
+    {
+      "number": 4,
+      "file": "slides/04.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE04/10.Title『推論，也有不同節奏』.Two exactpoints『先處理輸入，再逐步產生輸出。』『不同階段，可能卡在不同資源。』.Yellow supplement『瓶頸也會隨模型與批次改變。』.SceneandBibi:一個精緻平板呈兩段連續流程，左『處理輸入』多張輸入token小片並行進計算格，右『生成輸出』小片依序出來，中間轉換箭頭；比比右側稍向後坐，短棒指向右方輸出小片，另一掌抱小記事板，視線沿輸出方向。不可宣稱所有輸入計算受限或所有輸出必然memorybound，不畫比例。.Main diagramlabels:處理輸入、生成輸出、流程示意. ONE detailed tablet shows a continuing flow with left inputtoken cards inparallel to small computationgrid andright sequential outputcards. Labelphases『處理輸入』『生成輸出』and『流程示意』inside screen. Bibi at right slightbacklean,seatedholding shortpointer inonepaw aiming tooutput andotherpaw holdsnote, gazeonoutput, completeinsideedges.Nonumericperformance,no loadpercent. NO plants/pencilpot/unrelatedbooks orroom;only tablet andone tiny notebook. Bottomhas nofooterfootnote,fillbalanced.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-23b86efc-b786-43d2-b96e-c0c0c73c0de0.png",
+      "qa": "全圖目視：輸入並行/輸出依序圖示與流程示意清楚，瓶頸說法有模型批次條件，無絕對化；角色兩掌握棒與本、完整無尾，無底腳。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "3558810876c8996cea6c4ad0d671ab02264fa99032a4f7b3dea27de106653457"
+    },
+    {
+      "number": 5,
+      "file": "slides/05.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE05/10.Title『長對話，暫存也要空間』.Two exactpoints『KV暫存，重用先前的計算結果。』『上下文變長，暫存需求可能增加。』.Yellow supplement『不是把整段對話原文塞進去。』.SceneandBibi:單一AI研究終端旁一個精細KV暫存資料匣，左輸入片段經計算箭頭到抽屜鍵/值卡片，再短箭頭回下一步輸出，畫記錄是中間結果不是原文字母大量資料；比比左側身自然抱住靠身的小暫存抽屜，眼睛看向抽屜，短掌托住抽屜底。標鍵值暫存（KV cache）簡短。.Main diagramlabels:鍵值暫存、KV cache、重用計算結果. ONE small detailed AIterminal ANDoneKeyValue cache drawer integrated in onegraphic, symbolic intermediate K/Vcards inside drawer labelled『鍵』『值』notconversationtext. Input→computedintermediate→drawer→nextstepoutput clear minimalpurpose arrows. Bibi left seatedhugging drawerclosetobody,onepawbelowdrawer onepawnearfront holdingsecure,eyeslookdown atdrawer. Entire Bibi outline within48pxmargin,blackdoteeyes,orange-pinkpawsmall,noextra limbs. NOplants,room,pencilpot or stacksunrelatedbooks. Noemptyfooter.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-9b20841d-d6a9-4b68-8ff8-c75327f09313.png",
+      "qa": "全圖目視通過：鍵/值暫存、重用計算結果與不是原文塞入補充正確；角色短掌抱抽屜無多肢尾巴、無底腳。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "d8501982f549730db25aff2f9680fc15a92f305893dc7871865b0e1d3035b83c"
+    },
+    {
+      "number": 6,
+      "file": "slides/06.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE06/10.Title『多人同時問，怎麼擠？』.Two exactpoints『多個請求可共用模型權重。』『但各自的暫存仍會占用空間。』.Yellow supplement『併發更多，不代表速度無限增加。』.SceneandBibi:一台精緻服務端模型箱標共用模型，3條請求A/B/C路線各連自己的KV小抽屜，三抽屜整齊共用同記憶體底座但互不混寫，色不超3種；比比右側拿分配清單，另一短掌貼在底座邊緣，眼睛看向A/B/C不同抽屜，身體向左前傾。沒有三隻用戶比比。.Main diagramlabels:共用模型、請求A、請求B、請求C、各自暫存.One serverconsole labelled『共用模型』 with detailed grill panels simplecircuiticon,3requestflow paths A/B/C to THREEdistinct littlecache drawers;they share onebig memorytraybutseparate K/Vallocations. No duplication ofmodel weights,no threeusersmascots. Bibi rightside leaningforward readingallocationclipboard heldonepaw, otherpawresttray,headslightlydown,fulloutlineinside48pxmargin. Dataarrowsconceptual not measurements. No extra plants/books/room/pencilpots;ONLY necessarytechnicalobjects. Nofooter.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-9f2d6938-d5fc-4ce6-9131-9de4f3c2593d.png",
+      "qa": "全圖目視通過：同一模型三請求，各自暫存不混成三權重副本；正文含『可』和併發非無限加速限制；比比兩短掌持清單/扶底座，無尾與底腳。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "e9ff14901fd0f6df1e6e05f9810a0e40ce187ba96537368babbef551b5c78392"
+    },
+    {
+      "number": 7,
+      "file": "slides/07.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE07/10.Title『HBM靠近GPU，有用在哪？』.Two exactpoints『高密度連線，協助資料持續搬運。』『HBM與GPU並排，不是疊在上面。』.Yellow supplement『位置近，也不能代替整套系統設計。』.SceneandBibi:大幅細緻俯斜視AI封裝GPU中間、左右各一HBM並排同中介層，上側細引線與細密資料藍路，底部載板簡化，視覺重點短路徑；比比左上微側身拿放大鏡觀察連線，另一掌扶模型下方底座，無探針亂碰電路。.Main diagramlabels:GPU、HBM、連線示意. Mainthreequarter topview GPUcenter andoneHBMeachleft/right atSAMEplane on thincommon interposer clearlybluefinewires goingSIDES,no HBM mountedontopGPU,lowerpackageboard simplified notlayertextbook. HBMoutside stackappearanceonly,3–4blueplates+peachbase notspecificproductcount. One Bibi leftupper sidewaysbendingclosetomodel holdingmagnifieronepaw anotherpawholdsbase,eyeslookatfineinterconnect. CompleteBibioutlineinside48pxedges. Place『連線示意』small but readable inside mainobjectlabel notfooter. No unrequestedword,noplantspenpot,noemptyfooter.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-cd86cb72-a816-446f-9269-1b3cf08fd86e.png",
+      "selected_native_source": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-633b4d27-627a-4d26-80ce-df43362ec6ab.png",
+      "edits": [
+        {
+          "prompt": "精準修圖，只修比比多掌：目前牠有三隻掌（左腹前一掌、放大鏡柄上一掌、鏡片下方板邊一掌）。請刪掉『最靠左、腹前的那一掌與手臂輪廓』，以自然奶白柔毛身體補回。只保留放大鏡柄上握持的一隻短掌，以及右邊扶板邊的一隻短掌，總共正好兩隻掌。完整保留兩掌與鏡柄/板邊合理接觸，眼睛黑點無高光、身形短胖無尾。其他所有圖表、HBM/GPU位置連線、標題與文字、頁碼、色彩、留白完全不變，禁止新增其他肢體或裝飾。",
+          "reason": "移除首版第三隻掌，僅留握鏡與扶板兩掌"
+        }
+      ],
+      "qa": "修訂後全圖檢查：GPU/HBM同平面並排，主圖連線示意，正文/補充正確；比比正好兩短掌，無尾/底腳。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "c96b9c1d83385622fdc07e43a15c50301e847de25c75703a65e9258b55530c56"
+    },
+    {
+      "number": 8,
+      "file": "slides/08.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE08/10.Title『快記憶體，仍非萬能』.Two exactpoints『運算、資料搬運與溝通都可能成瓶頸。』『軟體最佳化，也會改變記憶體用法。』.Yellow supplement『不能把HBM升級，當成效能保證。』.SceneandBibi:一個整合研究儀表板只3個大而清晰研究項『運算』『資料搬運』『協同處理』，下方一張小程式調整便條『軟體調整』用細線連主模型，無百分比或數字儀表值；比比右側托腮思考，另一掌拿短筆靠身，視線看不同指標，坐姿有接地。.Main diagramlabels:運算、資料搬運、協同處理、軟體調整. ONE elegant illustratedresearchconsole with3large readable areas 『運算』『資料搬運』『協同處理』 icons chip/dataarrows/twolinkedunits,connected toone modest『軟體調整』notepaper. No imaginaryutilizationnumbers/no changinggauges,onlyconceptualdiagram. One Bibi lower right seatedthoughtful,one shortpawnear chin,otherholds shortpencil closebody,gazeatthreefactors,fullinsideedges.Exactly2paws,no floatingprops/no plants/books/penpots/room. Reflowblankbottomwithlargepoints/yellowsupplement,nofootnote.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-ea6d2f0d-3a49-4f6b-b617-cbb883e748a7.png",
+      "qa": "全圖目視通過：三瓶頸/軟體調整與非效能保證正確，無量測數值；比比托腮與持筆正好兩短掌，無尾/底腳，物件與留白平衡。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "34763f6e589e6085e2b7e2635e2f6d47ccbae987777968b3b8bea753e37f39fc"
+    },
+    {
+      "number": 9,
+      "file": "slides/09.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nPAGE09/10.Title『做得快，也要做得穩』.Two exactpoints『高密度整合，仍要測試與散熱。』『能否落地，還要看系統與成本條件。』.Yellow supplement『不以規格進步，推算良率或訂單。』.SceneandBibi:一個HBM/GPU簡化並排封裝坐在測試托盤，旁小散熱鰭片與規格核對本，各一個功能物件，有暖色向上熱路徑但無火災、溫度數字；比比左邊短掌拿檢查表另一掌靠近托盤確認接觸，神情專注眼看封裝，不畫金錢/股票。.Main diagramlabels:測試、散熱、條件核對. ONE simplifiedHBM/GPU SIDE-BYSIDE commonpackage in detailed testtray socket,besides ONE small detachablemetalheatsink andONEinspectionnotebook.2–3warm upwardthermalarrowsfromGPU/HBM towardheatsink,not flames/numerictemperature. ONE Bibi LEFTleaningclosetowardtesttray withfirstshortpawholdinginspectionclipboard secondshortpawrestingtrayedge,lookdownatpackage,fullinside48pxmargin. NOextra bodypaws.Only requestedwords『測試』『散熱』『條件核對』 labels. Do not show fabricatedyield/price/orderfigures,or money symbols.Nofooter.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-33567f4c-c814-4e9d-9156-01e50375fc85.png",
+      "qa": "全圖目視通過：HBM/GPU並排測試托盤、散熱與條件核對，無溫度/良率/成本/訂單數字；比比兩掌持單/扶托盤合理，無尾/底腳。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "a8a9bdff2398b719cd44b4f66b54e0667beeed9a2436381cefd639bf6be1792c"
+    },
+    {
+      "number": 10,
+      "file": "slides/10.png",
+      "prompt": "Create ONE finished IG educational carousel slide portrait4:5, all requested Traditional Chinese exact readable. Reference1 is ONLY Bibi identity, reference2 the approved warm painterly balanced visual style (do not copy its financial contents). Creamwarm paper, soft peach coral/paleblue/mint accents, deepcoffee lines, full rounded wide thick handlettered title filledstrokes (not thin font outlined thick). Real visible watercolor/pastel strokes on detailed tech objects, soft shadows, no generic vector/3cards. Fill composition with meaning: ONE main explanatory illustration45–50%,ONE Bibi15–20%, lower TWO points and yellow supplementary band; generous yet balanced whitespace, safety margins48–64px, NO leftover empty footer area. Top brand『哩股哩股』 small series『HBM中篇』and xx/10. IMPORTANT absolutely NO bottomfootnote/source/date/disclaimer/URL/QR/microtext anywhere; supplement is the final content ending48–64pxfrombottom, reflow lowerlayout. Only exact requestedlabels and points. Diagrams conceptual and should have『示意』inside diagram if appropriate, not as footer. No unverified performance/value/capacity numbers,stock/moneyicons/logos/watermarks. Bibi is squatwide creamfluffy guinea pig, coarse irregularcoffee outline,small pureblack rounddot eyes NOwhitehighlight, smallblacknose omega mouth orange-pinktongue,largepaleorange-pink circularcheeks,little toporange-pink roundears,side orange-brown tufts,tinycurvedpaws/shortorange-pinkfeet no tail no longlimbs. ONErole activelyhosting with naturalcurvature/weightshift/gaze matching object. Exactly2paws,correctgrip andground. GPU and HBM ifshown always SIDEBYSIDE on SAME interposer NEVER HBM atopGPU. HBM looks stackofbluechips overdifferentpeachbasedie,not skyscraper. Rich object details purposeful1–2props,nomorethan3smalldecorativestrokes,no fullroombg/no multiBibi.\nFINAL PAGE10/10.Title『需求，要連條件一起看』.Two exactpoints『模型、用法與系統配置，要一起看。』『技術需求，不等於每家公司都獲利。』.Yellow supplement『下一篇：一顆HBM，誰一起完成？』.One clear CTA『你會先問容量，還是帶寬？』.SceneandBibi:比比居中偏左自然歪頭抱三冊研究本，旁同一張研究路線紙以『工作負載→記憶體需求→系統條件』三小站收尾，右小GPU與HBM並排模型僅一個；動作放鬆笑但黑點眼，沒有網址、來源列表、免責或底腳。下方保留一條清楚討論CTA『你會先問容量，還是帶寬？』與黃色補充句各有空間。.Main diagramlabels:工作負載、記憶體需求、系統條件. ONE Bibi nearcenterleft naturalheadtilt relaxed smileHOLDINGONEsmall researchnotebook (not3actualbooks so shortpawgrip isclear),two shortpawsgripbookclosebody,gazealongonepaperroadmapatrightwith3smallstops『工作負載→記憶體需求→系統條件』.One small detailedGPU/HBMcommonmodel belowpaperbutNOTtwoextra models. NO upwardstockarrow/moneysymbols orcompanylogos. Mainfigure45% then2points,CTAandfinalyellowsupplementbalanced ending48pxbottom.No sources,date,URL,QR,disclaimerorfooteratall. No room/plants/unrelatedprops.",
+      "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-03bf-7850-9948-fcca6957ffc8\\exec-66e8c809-04f0-4a05-bcbe-18aa11e8c6f3.png",
+      "qa": "末頁全圖目視通過：需求有條件、非每公司獲利、討論與下篇鉤子正確，無來源/網址/免責/底腳；比比兩短掌抱本自然、無尾。",
+      "qa_full100": true,
+      "qa_role200": true,
+      "qa_mobile360": true,
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "sha256": "58a5f5ba357df2a5a49c6dabe889cefaa3ab7a602ff708857b2818dba74e7331"
+    }
+  ]
+}

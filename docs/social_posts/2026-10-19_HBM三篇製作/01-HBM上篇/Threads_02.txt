@@ -1,0 +1,9 @@
+🧩 那一疊裡面，有不同角色。
+
+典型結構中，core die是記憶體晶粒，base die位於最底部。TSV穿矽孔協助上下層的資料與訊號連接。
+
+HBM與GPU在典型封裝中並排於中介層，不是把HBM疊在GPU頭頂。圖中層厚與孔徑是放大示意。
+
+來源：本站產業地圖
+https://github.com/MiaoZiKe/tw-rotation/blob/32b22653fab6b819ed036200d436ed5c2449a9e7/site/dg/hbm.js
+整理公開資訊，非投顧，投資請自行判斷。

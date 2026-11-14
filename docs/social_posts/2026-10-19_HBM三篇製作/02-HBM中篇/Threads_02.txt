@@ -1,0 +1,11 @@
+🧩 2/5 訓練與推論，不是同一種工作。
+
+訓練更新模型，也需保存中間結果。推論先處理輸入，再逐步生成輸出。
+
+不同階段、模型與批次，可能卡在不同資源。不能把所有AI都寫成同一種記憶體瓶頸。
+
+來源：NVIDIA訓練文件／推論說明
+https://docs.nvidia.com/nemo/megatron-bridge/0.5.0/apidocs/bridge/bridge.training.utils.theoretical_memory_utils.html
+https://developer.nvidia.com/blog/mastering-llm-techniques-inference-optimization/
+資料查核：2026/10/19（台北）；架構與流程為示意，依模型與系統而異。
+整理公開資訊，非投顧，投資請自行判斷。
