@@ -1,7 +1,7 @@
 // 版本標記（2026-11-15）：左下角小字，讓擁有者一眼看出瀏覽器拿到的是不是最新版。
 // 每次推預覽前更新 BUILD（提交代號＋台北時間）。這支檔不被其他程式依賴，載入失敗也不影響辦公室。
 (function () {
-  var BUILD = '89050e3e・11月15日 01:58';
+  var BUILD = '6eae1579・11月15日 02:07';
   function show() {
     if (document.getElementById('aoBuild')) return;
     var el = document.createElement('div');
