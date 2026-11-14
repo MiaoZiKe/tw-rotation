@@ -103,7 +103,8 @@ export function createMulti(W, X) {
     }
     if (e.pointerType === 'touch' && isMobile()) {              // 手機：在角色身上長按不動 → 進入多選模式
       const c = X.pick(e); clearTimeout(lp && lp.t); lp = null;
-      if (c && okChar(c)) { const L = lp = { c, x: e.clientX, y: e.clientY, id: e.pointerId, t: 0, ts: e.timeStamp }; L.t = setTimeout(() => { if (lp !== L) return; lp = null; swallow = true; enterMode(c); if (navigator.vibrate) { try { navigator.vibrate(18); } catch (x) { /* 不支援就算了 */ } } }, LONG_MS); }
+      // 計時器只負責「回饋」（震一下），判定一律在放開時用事件時間（見 upAll）：畫面卡的時候計時器會先響，若在這裡直接進模式，快速點一下就被誤判成長按而吞掉
+      if (c && okChar(c)) { const L = lp = { c, x: e.clientX, y: e.clientY, id: e.pointerId, t: 0, ts: e.timeStamp }; L.t = setTimeout(() => { if (lp === L && navigator.vibrate) { try { navigator.vibrate(18); } catch (x) { /* 不支援就算了 */ } } }, LONG_MS); }
     }
     return false;
   };

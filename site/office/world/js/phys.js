@@ -164,9 +164,9 @@ export function createPhysics(W, opts = {}) {
     const e = p.K.e, j = (1 + e) * vn / (1 / mSrc + 1 / p.m), dv = Math.min(j / p.m, p.isItem ? 2.8 : 5.5), Ieff = 1.1 * p.hcg * p.hcg + p.rb * p.rb;
     let tipped = false;
     if (p.K.tip) {
-      const om0 = dv * p.hhit / Ieff * 0.9, barrier = G * (Math.hypot(p.rb, p.hcg) - p.hcg), need = 0.5 * Ieff * om0 * om0;
+      const om0 = dv * p.hhit / Ieff * 1.1, barrier = G * (Math.hypot(p.rb, p.hcg) - p.hcg), need = 0.5 * Ieff * om0 * om0;
       if (p.th < 0.05) { p.dx = nx; p.dz = nz; p.om += om0; } else p.om += om0 * 0.4 * Math.max(0, p.dx * nx + p.dz * nz);
-      tipped = need > barrier * 0.95 || p.th > 0.3;
+      tipped = need > barrier * 0.7 || p.th > 0.3;   // 普通力道（約 2 m/s 以上）撞椅子就會倒
       if (tipped && !p.toppled) { p.toppled = true; P.stats.topples++; W.emit('toppled', p.id, { kind: p.kind, zh: p.K.zh, x: p.x, z: p.z }); }
     }
     const k = tipped ? 0.45 : 1; p.vx += nx * dv * k; p.vz += nz * dv * k;
@@ -200,6 +200,27 @@ export function createPhysics(W, opts = {}) {
     c.stop && c.stop(false); c._drive = null;
     if (ci.newM) { ci.ctl.throwAt(vx / ci.s, vy / ci.s, vz / ci.s); c._held = true; c._released = true; }
     else { const ch = ci.ch; ch.act = null; ch.goal = null; ch.mode = 'tumble'; ch.modeT = 0; ch.rest = 0; ch.grounded = false; ch.vel.set(vx / ci.s, vy / ci.s, vz / ci.s); ch.w.set(ch.vel.z, 0, -ch.vel.x).multiplyScalar(2.5 / ch.R); c._held = true; c._released = true; }
+  }
+  // 拎起與放開的包裝（2026-11-15）：① 用「事件時間」估甩出速度（畫面卡頓時模擬時間比手慢，用它會把速度低估）；
+  // ② 放開後 2 秒（模擬時間）還在「被拎著」的物理狀態 → 強制放開讓他落下（保底）。對新舊角色都有效。
+  function wrapChar(c) {
+    if (c._pw) return; c._pw = true; const g0 = c.grab, d0 = c.dragTo, r0 = c.release; if (!g0 || !d0 || !r0) return;
+    c.grab = function (...a) { c._dh = []; c._relT = null; return g0.apply(c, a); };
+    c.dragTo = function (x, y, z) { const h = c._dh || (c._dh = []); h.push([performance.now() / 1000, x, y, z]); if (h.length > 10) h.shift(); return d0.apply(c, arguments); };
+    c.release = function (...a) {
+      if (!c._held) return r0.apply(c, a);
+      const h = c._dh || []; if (!c.newModel && c.inner && c.inner.vel && h.length >= 2) {
+        const last = h[h.length - 1]; let first = last; for (let i = h.length - 2; i >= 0 && last[0] - h[i][0] <= 0.15; i--) first = h[i];
+        const dt = last[0] - first[0], s = c.scale || 1;
+        if (dt > 0.02) { let vx = (last[1] - first[1]) / dt, vy = (last[2] - first[2]) / dt, vz = (last[3] - first[3]) / dt; const m = Math.hypot(vx, vz); if (m > 12) { vx *= 12 / m; vz *= 12 / m; } c.inner.vel.set(vx / s, vy / s, vz / s); }
+      }
+      c._relT = W.time; return r0.apply(c, a);
+    };
+  }
+  function heldStuck(c) {
+    if (c._relT == null) return; const held = c.newModel ? (c.inner.ctl && c.inner.ctl.state === 'held') : (c.inner && c.inner.mode === 'held');
+    if (!held) { if (!c._held || W.time - c._relT > 8) c._relT = null; return; }
+    if (W.time - c._relT > 2) { c._relT = null; P.stats.forcedRelease = (P.stats.forcedRelease || 0) + 1; if (c.newModel) c.inner.ctl.release(0, 0, 0); else c.inner.release(); }
   }
   // 丟人（給測試與其他模組用）：新舊角色同一個介面。速度單位：世界公尺／秒
   P.throwChar = (c, vx, vy, vz) => {
@@ -471,6 +492,7 @@ export function createPhysics(W, opts = {}) {
     if (W.edit && W.edit.on) { if (P.props.some(p => p.mode !== 'home')) P.restoreAll(true); return; }
     // 角色 → 物件、角色 → 重家具
     for (const c of allChars()) {
+      wrapChar(c); heldStuck(c);
       const ci = cinfo(c); if (!ci) continue;
       if (ci.fly || ci.sp > 2.4) { charVsProps(ci, h); }
       if (ci.fly && ci.sp > 0.3) charVsStatics(ci, h);

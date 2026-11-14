@@ -429,7 +429,7 @@ def t_office_physics(b, base):
 
         # ───── 真人操作：滑鼠甩人撞椅子 ─────
         pg.evaluate("""() => { const W = __world, cs = [...W.chars.values()]; W.phys.restoreAll(true); W.fire.reset(); W.daytime.set('day'); for (const o of cs) o.busy = false; const c = cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); window.__rc = c;
-          c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(13.0, 10.6, Math.PI); W.speed = 1; W.godAt(13, 9, 16); window.__chair = W.phys.find('meeting_table_13/chair4'); }""")
+          c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(13.0, 10.6, Math.PI); W.speed = 0.3; W.godAt(13, 9, 16);   // 模擬時間走得比手慢（模擬畫面卡頓）：甩出速度要用事件時間算才不會被低估 window.__chair = W.phys.find('meeting_table_13/chair4'); }""")
         pg.wait_for_timeout(2500)
         pt = pg.evaluate("""() => { const W = __world, V = W.THREE.Vector3, f = (x, y, z) => { const v = new V(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const p = __rc.object3D.position; return { c: f(p.x, 0.45, p.z), t: f(13.0, 0.45, 6.4) }; }""")
         pg.mouse.move(pt["c"][0], pt["c"][1])
@@ -443,6 +443,32 @@ def t_office_physics(b, base):
         th = pg.evaluate("() => __chair.th")
         ok("真人操作（滑鼠）甩出角色撞椅子：椅子被撞離原位（傾角 %.2f）" % th, hit, (hit, th))
         pg.evaluate("() => { __world.phys.restoreAll(true); __world.speed = 0.001; }")
+        # ───── 真人操作：拎起後放在 CEO 室、桌面、牆邊、部門椅子旁、書架：放開後不能一直被拎著（11-15 劇本 6）─────
+        for nm, who in (("舊", "old"), ("新", "new")):
+            for tname, tx, tz in (("CEO 椅子上", 4.0, 6.48), ("CEO 桌面上", 4.0, 5.5), ("CEO 椅子旁", 5.2, 6.7), ("北牆邊", 8.0, 1.0), ("書架上", None, None), ("辦公桌椅子上", None, None)):
+                tt = pg.evaluate("""([x, z, tname]) => { const W = __world; if (x == null) { const i = [...W.furn.values()].find(q => tname === '書架上' ? q.f.type === 'bookshelf' : q.f.type === 'workstation'); return [i.f.x, i.f.z + (tname === '書架上' ? 0 : 0.8)]; } return [x, z]; }""", [tx, tz, tname])
+                pg.evaluate("""([who, x, z]) => { const W = __world, cs = [...W.chars.values()]; W.fire.reset(); W.phys.restoreAll(true); W.daytime.set('day'); for (const o of cs) o.busy = false;
+                  const L = who === 'new' ? cs.filter(q => q.newModel && !q.spec.isCeo) : cs.filter(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'), c = L[0]; window.__rc = c; c._held = false; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(x - 2.5, z + 2.5, 0); W.speed = 1; W.godAt(x, z + 1, 22); }""", [who, tt[0], tt[1]])
+                wait_until(pg, "() => !__world.view.tween", 30000)
+                pg.wait_for_timeout(1200)
+                pt = pg.evaluate("""([x, z]) => { const W = __world, V = W.THREE.Vector3, f = (a, y, b) => { const v = new V(a, y, b).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const p = __rc.object3D.position; return { c: f(p.x, 0.45, p.z), t: f(x, 1.05, z) }; }""", tt)
+                cx, cy = pt["c"]; tx2, ty2 = pt["t"]
+                pg.mouse.move(cx, cy)
+                pg.mouse.down()
+                pg.wait_for_timeout(700)
+                for i in range(1, 9):
+                    pg.mouse.move(cx + (tx2 - cx) * i / 8, cy + (ty2 - cy) * i / 8)
+                    pg.wait_for_timeout(100)
+                pg.wait_for_timeout(300)
+                pg.mouse.up()
+                freed = wait_until(pg, "() => !__rc._held && __rc.state !== 'held' && (__rc.lift || 0) < 0.05", 25000)
+                ok("真人拎起放在%s（%s角色）：放開後落地、不會一直被拎著" % (tname, nm), freed, pg.evaluate("() => [__rc.state, __rc._held, __rc.newModel ? __rc.inner.ctl.state : __rc.inner.mode, __rc.lift]"))
+        pg.evaluate("() => { __world.speed = 0.001; for (const o of __world.chars.values()) o.busy = false; }")
+        gd = pg.evaluate("""async () => { const W = __world, P = W.phys, cs = [...W.chars.values()], c = cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); c.busy = true; c.script = (c.script || 0) + 1; c.stop(false); c._held = false; c.standAt(20, 20, 0); W.advance(0.3);
+          c.grab(); c.release(); c.inner.mode = 'held'; c._held = true;                       // 模擬「放開後狀態機卡在被拎著」
+          const f0 = P.stats.forcedRelease || 0; for (let i = 0; i < 40; i++) await W.advanceAsync(0.1, 0.05);
+          const ok1 = c.inner.mode !== 'held'; await W.advanceAsync(4, 0.05); const r = { freed: ok1, forced: (P.stats.forcedRelease || 0) - f0, held: c._held, mode: c.inner.mode }; c.busy = false; return r; }""")
+        ok("保底：放開後 2 秒（模擬時間）內還卡在被拎著，會被強制放開落下", gd["freed"] and gd["forced"] >= 1 and not gd["held"], gd)
         # 連拍圖（給人看的）
         real_fire("drop", "old", "night", shot="/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/physics/真人拖進營火_連拍.png")
         real_fire("throw", "new", "night", shot="/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/physics/真人甩進營火_連拍.png")

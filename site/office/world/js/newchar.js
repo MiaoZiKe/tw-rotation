@@ -183,7 +183,8 @@ function makeNew(spec, look, env) {
       react = { until: c._t + 3.2, done() { apply(base); ctl.trigger('happy'); c.emote('heart', 1.6); c.say(['好吃！', '謝謝～', '還要！'][Math.floor(Math.random() * 3)], 1.6); } };
     },
     grab() { c.stop(false); c._rising = false; if (c._seat) { c._seat = null; ctl.sit = null; } c._held = true; c._until = 0; react = null; loud = 9; apply('idle'); const b = ctl.body; ctl.grab(b.x, b.y + 0.3, b.z); hist.length = 0; },
-    dragTo(x, y, z) { ctl.grab(x / s, y / s, z / s); loud = 6; hist.push([c._t, x, y, z]); if (hist.length > 8) hist.shift(); },
+    // 甩出速度用事件時間（performance.now）估，不用模擬時間：畫面卡頓時模擬時間走得比手慢，速度會被低估
+    dragTo(x, y, z) { ctl.grab(x / s, y / s, z / s); loud = 6; hist.push([performance.now() / 1000, x, y, z]); if (hist.length > 8) hist.shift(); },
     release() {
       if (!c._held) return; let vx = 0, vy = 0, vz = 0; const n = hist.length;
       if (n >= 2) { const a = hist[Math.max(0, n - 4)], b = hist[n - 1], dt = Math.max(0.03, b[0] - a[0]); vx = (b[1] - a[1]) / dt / s; vy = (b[2] - a[2]) / dt / s; vz = (b[3] - a[3]) / dt / s; }
