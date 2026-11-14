@@ -30,9 +30,13 @@ def t_office_night(b, base):
             pg.wait_for_timeout(1800)
             info[k] = pg.evaluate("""() => { const W = __world, cv = W.skyTex.image, d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let s = 0, n = 0;
               for (let i = 0; i < d.length; i += 4) { s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; n++; }
-              return { patch: W.patchMat.opacity, sky: s / n, calls: W.stats.calls, glass: W.glassMat.opacity }; }""")
+              const oL = W.daytime.outL, mk = o => !!(o && o.visible); W.daytime.flicker(1000); const f0 = oL.fire ? oL.fire.material.opacity : 0; const fs = [];
+              for (const tt of [1000, 1300, 1600, 2300]) { W.daytime.flicker(tt); fs.push(oL.fire ? oL.fire.material.opacity : 0); }
+              return { spots: { spots: mk(oL.spots), fire: mk(oL.fire), cores: mk(oL.cores), k: oL.k, fireSeq: fs }, patch: W.patchMat.opacity, sky: s / n, calls: W.stats.calls, glass: W.glassMat.opacity }; }""")
             if k == "night":
                 info[k]["overview"] = pg.screenshot()
+                P = pg.evaluate("""() => { const W = __world, V = W.THREE.Vector3, o = (x, z) => { const v = new V(x, 0.1, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; return { win: o(41.2, 14), lamp: o(22.6, 32.4), ref: o(12, 34) }; }""")
+                info[k]["P"] = P
                 pg.evaluate("() => __world.jumpTo(__world.rooms.keys().next().value)")
                 pg.wait_for_timeout(2200)
                 info[k]["room"] = pg.screenshot()
@@ -51,8 +55,19 @@ def t_office_night(b, base):
         gl = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
         ok("夜晚：屋外草地樹木平均亮度 ≤ 室內的 55%%（%.0f 對 %.0f）" % (gl, ind), gl <= ind * 0.55, (gl, ind))
         ok("夜晚：屋外草地色相偏藍綠（R %.0f、G %.0f、B %.0f，綠或藍 ≥ 紅）" % tuple(rgb), max(rgb[1], rgb[2]) >= rgb[0], rgb)
+        sp = dict(info["night"]["spots"])
+        _lm = lambda c: _nt_lum(info["night"]["overview"], (int(c[0]) - 22, int(c[1]) - 16, int(c[0]) + 22, int(c[1]) + 16))
+        sp["win"], sp["lamp"], sp["ref"] = _lm(info["night"]["P"]["win"]), _lm(info["night"]["P"]["lamp"]), _lm(info["night"]["P"]["ref"])
+        ok("夜晚：屋外有燈光網格（窗光＋路燈＋門口＝1 個網格，營火 1 個，燈頭亮芯 1 個）", sp["spots"] and sp["fire"] and sp["cores"] and sp["k"] > 0.95, sp)
+        wl, ll, gr = sp["win"], sp["lamp"], sp["ref"]
+        ok("夜晚：屋外窗邊光斑區平均亮度 ≥ 屋外草地的 1.35 倍（%.0f 對 %.0f）" % (wl, gl), wl >= gl * 1.35, (wl, gl))
+        ok("夜晚：路燈下光斑區亮於周圍（%.0f 對 %.0f，≥ 1.3 倍）" % (ll, gr), ll >= gr * 1.3, (ll, gr))
+        ok("夜晚：路燈與窗光斑只是局部（整片屋外草地仍 ≤ 室內 55%）", gl <= ind * 0.55, (gl, ind))
+        ok("白天：屋外光斑完全不顯示（網格隱藏、強度 0）", info["day"]["spots"]["spots"] is False and info["day"]["spots"]["cores"] is False and info["day"]["spots"]["fire"] is False, info["day"]["spots"])
+        ok("黃昏後段開始漸亮、白天為 0（黃昏 k=%.2f）" % info["dusk"]["spots"]["k"], 0 <= info["dusk"]["spots"]["k"] < info["night"]["spots"]["k"], info["dusk"]["spots"])
+        ok("夜晚：營火光斑會跳動（兩次取樣強度不同）", len({round(v, 3) for v in sp["fireSeq"]}) >= 3, sp["fireSeq"])
         ok("夜晚：室外天空仍是深色（亮度 %.0f ≤ 90）" % info["night"]["sky"], info["night"]["sky"] <= 90, info["night"]["sky"])
-        ok("夜晚：繪製次數增量 ≤ +5（%d → %d）" % (info["day"]["calls"], info["night"]["calls"]), info["night"]["calls"] - info["day"]["calls"] <= 5, info)
+        ok("夜晚：繪製次數增量 ≤ +6（%d → %d）" % (info["day"]["calls"], info["night"]["calls"]), info["night"]["calls"] - info["day"]["calls"] <= 6, info)
         ok("夜晚段：沒有主控台錯誤", not errs, errs[:3])
     finally:
         c.close()

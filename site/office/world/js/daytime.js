@@ -108,6 +108,49 @@ export function createDaytime(W, X) {
     MAT.solid.customProgramCacheKey = () => 'outdim1'; MAT.solid.needsUpdate = true;
   }
 
+
+  // ── 夜晚屋外的燈光：窗戶透出的光灑在屋外地面、路燈與大門口燈、營火的地面光斑 ──
+  // 做法：全部合併成「一個加法混色的貼片網格」（窗光＋路燈圓斑共用一張圖集），營火光斑另一個小網格（要跳動），
+  //       路燈燈頭一個小點雲（亮芯）。共 +3 次繪製，不新增任何光源、不投影。白天不顯示，黃昏後段漸亮、清晨熄滅。
+  const outL = { spots: null, fire: null, cores: null, k: 0 };
+  W.outLightRebuild = () => {
+    for (const k of ['spots', 'fire', 'cores']) { const o = outL[k]; if (o) { scene.remove(o); o.geometry.dispose(); outL[k] = null; } }
+    const lay = W.layout, Lw = lay.size.w, Ld = lay.size.d, y = 0.12;
+    if (!outL.tex) {                                                // 圖集：左半＝窗光（牆邊最亮、往外淡出、左右柔化），右半＝圓形光斑
+      const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 128; const c = cvs.getContext('2d'), im = c.createImageData(256, 128);
+      for (let py = 0; py < 128; py++) for (let px = 0; px < 256; px++) {
+        let a; if (px < 128) { const u = px / 127, v = 1 - py / 127, e = Math.abs(u * 2 - 1); a = Math.pow(Math.max(0, 1 - v), 1.4) * Math.pow(Math.max(0, 1 - e * e), 1.5) * (v < 0.02 ? v / 0.02 : 1); }
+        else { const u = (px - 128) / 127 * 2 - 1, v = py / 127 * 2 - 1, r = Math.sqrt(u * u + v * v); a = Math.pow(Math.max(0, 1 - r), 1.7); }
+        const i = (py * 256 + px) * 4; im.data[i] = 255; im.data[i + 1] = 255; im.data[i + 2] = 255; im.data[i + 3] = Math.round(a * 255);
+      }
+      c.putImageData(im, 0, 0); outL.tex = new THREE.CanvasTexture(cvs); outL.tex.colorSpace = THREE.SRGBColorSpace;
+    }
+    const pos = [], uv = [], quad = (p4, u0, u1) => { const u = [[u0, 0], [u1, 0], [u1, 1], [u0, 1]]; for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(p4[i][0], y, p4[i][1]); uv.push(u[i][0], u[i][1]); } };
+    const L = 3.2, sp = 0.6, off = 0.14;
+    for (const q of lay.windows || []) {                            // 窗光：從牆外側往外灑（v＝0 在牆邊）
+      const a = q.at - q.w / 2, b = q.at + q.w / 2;
+      if (q.side === 'n') quad([[a, -off], [b, -off], [b + sp, -L], [a - sp, -L]], 0, 0.5);
+      else if (q.side === 'w') quad([[-off, a], [-off, b], [-L, b + sp], [-L, a - sp]], 0, 0.5);
+      else if (q.side === 'e') quad([[Lw + off, a], [Lw + off, b], [Lw + L, b + sp], [Lw + L, a - sp]], 0, 0.5);
+    }
+    const disc = (x, z, r, arr) => { const p4 = [[x - r, z - r], [x + r, z - r], [x + r, z + r], [x - r, z + r]]; if (arr) { const u = [[0.5, 0], [1, 0], [1, 1], [0.5, 1]]; for (const i of [0, 1, 2, 0, 2, 3]) { arr.pos.push(p4[i][0], y + 0.002, p4[i][1]); arr.uv.push(u[i][0], u[i][1]); } } else quad(p4, 0.5, 1); };
+    const lamps = [[18.4, Ld + 2.4], [22.6, Ld + 2.4]], cores = [];
+    for (const q of W.extraGlow || []) if (q[1] > 2) lamps.push([q[0], q[2]]);   // 遊民區的路燈（營火的 y 較低，不在內）
+    for (const [x, z] of lamps) { disc(x, z, 2.5); cores.push(x, 2.5, z); }
+    disc(20.5, Ld + 0.9, 2.2);                                       // 大門口：門前一塊較小的暖光
+    const mk = (pp, uu) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uu, 2)); return g; };
+    const mat = (col) => new THREE.MeshBasicMaterial({ map: outL.tex, color: col, side: THREE.DoubleSide, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+    outL.spots = new THREE.Mesh(mk(pos, uv), mat('#ffc778')); outL.spots.renderOrder = 3; outL.spots.frustumCulled = false; scene.add(outL.spots);
+    if (W.outside && W.outside.fire) { const fa = { pos: [], uv: [] }, f = W.outside.fire; disc(f.x, f.z, 3.8, fa); outL.fire = new THREE.Mesh(mk(fa.pos, fa.uv), mat('#ffb060')); outL.fire.renderOrder = 3; outL.fire.frustumCulled = false; scene.add(outL.fire); }
+    if (cores.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(cores, 3));
+      const t = glowTex(32, c => { const r = c.createRadialGradient(16, 16, 0, 16, 16, 15); r.addColorStop(0, 'rgba(255,255,235,1)'); r.addColorStop(0.35, 'rgba(255,240,190,.8)'); r.addColorStop(1, 'rgba(255,220,150,0)'); c.fillStyle = r; c.fillRect(0, 0, 32, 32); });
+      outL.cores = new THREE.Points(g, new THREE.PointsMaterial({ map: t, size: 1.1, sizeAttenuation: true, transparent: true, opacity: 0, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); outL.cores.frustumCulled = false; outL.cores.renderOrder = 6; scene.add(outL.cores); }
+  };
+  W.outLightRebuild();
+  // 營火光斑的跳動（不在每 2 秒的天色更新裡，要每幀；只改一個網格的透明度，很便宜）
+  D.flicker = tt => { if (outL.fire && outL.k > 0.01) outL.fire.material.opacity = outL.k * (0.55 + 0.2 * Math.sin(tt * 0.011) + 0.12 * Math.sin(tt * 0.023 + 1.3) + 0.08 * Math.sin(tt * 0.047)); };
+  D.outL = outL;
+
   // ── 套用某一時刻的天色 ──
   const cv = W.skyTex && W.skyTex.image, g2 = cv && cv.getContext('2d'), center = new THREE.Vector3(20, 0, 15), dir = new THREE.Vector3(), sd = new THREE.Vector3(), md = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 1, 0);
   function bodyDir(h, riseH, out) {                                // 太陽（或月亮）在天空的方向：東邊升起、南邊偏高、西邊落下
@@ -125,7 +168,8 @@ export function createDaytime(W, X) {
     if (W.clouds) W.clouds.material.color.copy(f[10]);
     if (W.glassMat) { W.glassMat.color.copy(f[11]); W.glassMat.opacity = f[12]; }
     if (W.patchMat) { W.patchMat.color.copy(f[13]); W.patchMat.opacity = f[14]; }
-    { const nk = Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); outU.value.setRGB(1 - 0.84 * nk, 1 - 0.74 * nk, 1 - 0.6 * nk); } if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4; stars.material.opacity = f[16];
+    { const nk = Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); outU.value.setRGB(1 - 0.84 * nk, 1 - 0.74 * nk, 1 - 0.6 * nk); } if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4;
+    { const k = Math.max(0, Math.min(1, (f[15] - 0.3) / 0.7)); outL.k = k; for (const o of [outL.spots, outL.cores]) if (o) { o.visible = k > 0.01; o.material.opacity = k * (o === outL.spots ? 1 : 1); } if (outL.fire) outL.fire.visible = k > 0.01; if (outL.fire && k <= 0.01) outL.fire.material.opacity = 0; } stars.material.opacity = f[16];
     // 太陽 6～18 點在天上；月亮 18～6 點。方向光：白天用太陽，夜晚用月亮，兩者交接的 1 小時內方向平順轉過去
     bodyDir(t, 6, sd); bodyDir(t, 18, md);
     const isDay = t >= 5.5 && t < 18.5, w = isDay ? Math.min(1, Math.min(t - 5.5, 18.5 - t) / 1.0) : 0;
@@ -170,7 +214,7 @@ export function createDaytime(W, X) {
     if (n.text !== lastTxt || force) { lastTxt = n.text; renderChip(); }
     place();
   };
-  D.tick = () => { sky.position.copy(camera.position); D.update(false); };
+  D.tick = () => { sky.position.copy(camera.position); D.flicker(performance.now()); D.update(false); };
   D.now = () => ({ ...taipeiNow(), t: D.t }); D.mode0 = () => D.mode; D.phaseOf = phaseOf; D.MODES = MODES; D.chip = chip; D.pop = pop; D.stars = stars; D.sunS = sunS; D.moonS = moonS;
   D.update(true); place();
   return D;
