@@ -3,7 +3,7 @@
 #   新模型的物理邊界多扣了一次身體半徑，只能走到 x=1.06 → 原地跑步 20 秒以上、沒有重新找路也沒有保底。
 #   這一段用真滑鼠（長按 0.9 秒 → 拖 → 放開）把新舊模型角色丟到各處，按畫面上的「4×」，量：
 #     · 回到座位坐好的模擬時間（≤ 60 秒）
-#     · 走路中「原地不前進」（0.2 公尺內）連續最久幾秒（≤ 4.5 秒：3 秒保底門檻＋重新找路的餘裕）
+#     · 走路中「原地不前進」（0.2 公尺內）連續最久幾秒（≤ 4.5 秒：3 秒保底門檻＋重新找路的餘裕；刻意暫停的暈眩演出不算）
 #     · 新模型用了哪一種保底（重新找路／略過路徑點／平順滑回），以及有沒有瞬移（相鄰取樣的平均速度 > 6 公尺／秒＝瞬移；跑步約 3）
 import math as _m
 import os as _os
@@ -53,7 +53,7 @@ def _ws_drop(pg, who, wx, wz, limit=60):
     samp, seated = [], False
     while True:
         s = pg.evaluate(f"""() => {{ const W = __world, c = W.chars.get('{who}'), p = c.object3D.position;
-          return [W.time, p.x, p.z, c.state, !!c.atDesk, c._lastRescue || '']; }}""")
+          return [W.time, p.x, p.z, c.state, !!c.atDesk, c._lastRescue || '', !!c._pause]; }}""")
         samp.append(s)
         if s[3] == "sit" and s[4]:
             seated = True; break
@@ -61,12 +61,13 @@ def _ws_drop(pg, who, wx, wz, limit=60):
             break
         pg.wait_for_timeout(250)
     # 走路中原地不前進：從每個 walk 取樣往後看，0.2 公尺圓內連續停留最久多久
+    #   排除刻意的暫停（c._pause：被丟下後的暈眩、有人看他時停下腳步），那是演出不是卡住
     worst = 0.0
     for i, a in enumerate(samp):
-        if a[3] != "walk":
+        if a[3] != "walk" or a[6]:
             continue
         for bq in samp[i + 1:]:
-            if bq[3] != "walk" or _m.hypot(bq[1] - a[1], bq[2] - a[2]) > 0.2:
+            if bq[3] != "walk" or bq[6] or _m.hypot(bq[1] - a[1], bq[2] - a[2]) > 0.2:
                 break
             worst = max(worst, bq[0] - a[0])
     jump = max([_m.hypot(samp[i][1] - samp[i - 1][1], samp[i][2] - samp[i - 1][2]) / max(0.05, samp[i][0] - samp[i - 1][0]) for i in range(1, len(samp))] or [0])   # 最大平均速度（公尺／模擬秒）
