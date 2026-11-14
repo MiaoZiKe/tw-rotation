@@ -1,11 +1,23 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-14T11:00+08:00
 weekday: 六
 platforms: ig, threads
 images: 1_cover.jpg, 2_listed.jpg, 3_otc.jpg, 4_why.jpg
 title: 上市櫃非主管年薪榜（台積電為什麼不是第一）
+urls_ig: https://www.instagram.com/p/DftO0oLF9rH/
+ids_ig: 18034530365685120
+verified_ig: CAROUSEL_ALBUM
+urls_threads: https://www.threads.com/@tech_01010909/post/DftO33iDvsA
+ids_threads: 18130589116846138
+ids_threads_reply: 18112186808242689
+verified_threads: CAROUSEL_ALBUM
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DftO55HDnQj
+done: ig, threads
+urls: https://www.instagram.com/p/DftO0oLF9rH/ https://www.threads.com/@tech_01010909/post/DftO33iDvsA https://www.threads.com/@tech_01010909/post/DftO55HDnQj
+posted_at: 2026-11-14T11:22+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：上市櫃非主管年薪榜
 
