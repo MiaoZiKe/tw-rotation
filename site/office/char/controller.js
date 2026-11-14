@@ -354,7 +354,7 @@ export class CharController {
     const st = this.state, b = this.body, d = { mode: 'stand', kind: 'walk', t: this.time, free: null };
     const key = this.key;
     if (key === 'walk' || key === 'run') { d.mode = 'gait'; d.kind = key; }
-    else if (key === 'air' || st === 'held' || st === 'tumble') { d.mode = 'free'; d.free = { dy: st === 'held' ? -0.012 : clamp(pw([[-6, -0.02], [0, 0], [4, 0.03]], b.vy), -0.02, 0.03), pitch: st === 'held' ? 0.3 : 0.15, swingZ: st === 'held' ? 0.03 : 0, hz: 9 }; }
+    else if (key === 'air' || st === 'held' || st === 'tumble') { d.mode = 'free'; d.free = { dy: st === 'held' ? -0.012 : st === 'sit' ? this.sitFootUp : clamp(pw([[-6, -0.02], [0, 0], [4, 0.03]], b.vy), -0.02, 0.03), pitch: st === 'held' ? 0.3 : 0.15, swingZ: st === 'held' ? 0.03 : 0, hz: 9 }; }
     else if (st === 'sit' && ['settle', 'seated', 'risePrep'].includes(this.sit?.sub)) { d.mode = 'free'; d.free = { dy: this.sitFootUp, swingZ: this.sit.sub === 'seated' ? 0.03 : 0.0, hz: 3.2, pitch: 0.12 }; }
     else if (key === 'jumpPrep' && b.speed > 0.3) { d.mode = 'gait'; d.kind = b.speed > 0.9 ? 'run' : 'walk'; }
     else if (st === 'land' && b.speed > 0.2) { d.mode = 'gait'; d.kind = b.speed > 0.9 ? 'run' : 'walk'; }   // 落地的衝勢用小碎步收掉，不滑腳
