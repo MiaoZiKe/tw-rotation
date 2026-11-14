@@ -77,8 +77,9 @@ def _lift():
     up = lambda p, d=LIFT: (p[0], p[1], p[2] + d)
     BODY = dict(BODY, c=up(BODY['c']))
     PARTS = [p if p['n'] == 'leg' else dict(p, c=up(p['c'])) for p in PARTS]
-        # 短腿柱：腳掌與抬高後的肚子之間補一段圓胖的腿（平滑聯集，k 大＝根部內凹過渡肥厚），不然腳掌像墊在肚子下的另一塊零件
-    PARTS.insert([i for i, p in enumerate(PARTS) if p['n'] == 'leg'][0] + 1, dict(n='leg', c=(0.150, -0.215, 0.085), r=(0.068, 0.066, 0.066), rot=0, k=0.06, mirror=True))
+    # 短腿柱：腳掌與抬高後的肚子之間補一段圓胖的腿（平滑聯集 k 0.07，根部內凹過渡肥厚），不然腳掌像墊在肚子下的另一塊零件。
+    # 腿柱要往前貼近腳掌（中心 y −0.235、z 0.075）：放在 y −0.215／z 0.085、k 0.06 時腳背與腿柱間留下窄縫，重拓撲捏出 96～119° 的法線折角
+    PARTS.insert([i for i, p in enumerate(PARTS) if p['n'] == 'leg'][0] + 1, dict(n='leg', c=(0.150, -0.235, 0.075), r=(0.074, 0.072, 0.062), rot=0, k=0.07, mirror=True))
     nb = {}
     for k, (par, h, t) in BONES.items():
         if k == 'root' or k.startswith('foot'): nb[k] = (par, h, t)
@@ -91,3 +92,4 @@ def _lift():
     ANCHOR_PTS = {k: (v[0], v[1] + LIFT) for k, v in ANCHOR_PTS.items()}
     BREATH_Z = (0.08 + LIFT, 0.2 + LIFT, 0.62 + LIFT, 0.45 + LIFT)
 _lift()
+LODS = {**LODS, 0: 3000}   # 11-14：抬高後多了腿柱，LOD0 四邊形 2700→3000（腳尖小弧面原本出現 96° 的法線折角；三角面仍 < 9000）

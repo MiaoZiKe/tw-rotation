@@ -6,26 +6,26 @@
  "lods": [
   {
    "lod": 0,
-   "verts": 3373,
-   "quads": 3330,
-   "tris": 6742,
-   "bytes": 482904,
-   "decal_tris": 572
+   "verts": 3809,
+   "quads": 3763,
+   "tris": 7614,
+   "bytes": 542164,
+   "decal_tris": 646
   },
   {
    "lod": 1,
-   "verts": 1192,
-   "quads": 1160,
-   "tris": 2380,
-   "bytes": 179980,
-   "decal_tris": 204
+   "verts": 1187,
+   "quads": 1158,
+   "tris": 2370,
+   "bytes": 178780,
+   "decal_tris": 200
   },
   {
    "lod": 2,
-   "verts": 513,
-   "quads": 587,
-   "tris": 1014,
-   "bytes": 74788,
+   "verts": 485,
+   "quads": 559,
+   "tris": 958,
+   "bytes": 71120,
    "decal_tris": 0
   }
  ],
