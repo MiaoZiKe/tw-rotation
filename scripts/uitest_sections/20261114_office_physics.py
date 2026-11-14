@@ -340,6 +340,8 @@ def t_office_physics(b, base):
             pg.evaluate("""([who, tod, n]) => { const W = __world, cs = [...W.chars.values()]; W.fire.reset(); W.phys.restoreAll(true); W.daytime.set(tod); for (const o of cs) o.busy = false;
               const L = who === 'new' ? cs.filter(q => q.newModel && !q.spec.isCeo) : cs.filter(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'), c = L[n % L.length]; window.__rc = c; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(26.5, 35.0, 0);
               W.fire.states.delete(c.spec.id); c._sootU && (c._sootU.value = 0); W.speed = 1; W.godAt(30.2, 36.0, 26); }""", [who, tod, _rf_n[0]])
+            if shot:
+                pg.evaluate("() => { if (!document.getElementById('__hide')) { const st = document.createElement('style'); st.id = '__hide'; st.textContent = '#app > *:not(#cv){display:none !important}'; document.head.append(st); } __world.godAt(30.2, 36.4, 13); }")
             wait_until(pg, "() => !__world.view.tween", 20000)         # 鏡頭飛完才量位置
             pg.wait_for_timeout(1500)
             pt = pg.evaluate(_PROJ, 0)
@@ -350,30 +352,33 @@ def t_office_physics(b, base):
             pg.mouse.move(cx, cy)
             pg.mouse.down()
             pg.wait_for_timeout(700)
+            frames = []
             for i in range(1, 9):
                 pg.mouse.move(cx + (fx - cx) * i / 8, cy + (fy - cy) * i / 8)
                 pg.wait_for_timeout(16 if mode == "throw" else 150)
+                if shot and mode == "drop" and i % 2 == 0:
+                    frames.append(pg.screenshot())
             held = pg.evaluate("() => __rc.state === 'held'")
             dbg = (pre, pt, pg.evaluate("() => [__rc.state, __rc.object3D.position.x, __rc.object3D.position.z, __world.fire.stateOf(__rc).state]"))
             if shot:
                 pg.wait_for_timeout(300)
             pg.mouse.up()
-            frames = []
             burned = False
             for k in range(14):
-                pg.wait_for_timeout(450)
+                pg.wait_for_timeout(300 if shot else 450)
                 st = pg.evaluate("() => __world.fire.stateOf(__rc).state")
                 burned = burned or st == "burning"
-                if shot and k % 1 == 0 and len(frames) < 12:
+                if shot and len(frames) < 12:
                     frames.append(pg.screenshot())
             soot = pg.evaluate("() => __world.fire.scorch(__rc)")
             if shot and frames:
-                ims = [_Im.open(_io.BytesIO(f)).convert("RGB").crop((240, 150, 1040, 650)).resize((400, 250)) for f in frames[:12]]
+                fp = pg.evaluate("() => { const W = __world, v = new W.THREE.Vector3(30.2, 0.6, 36.6).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }")
+                ims = [_Im.open(_io.BytesIO(f)).convert("RGB").crop((int(fp[0]) - 320, int(fp[1]) - 200, int(fp[0]) + 320, int(fp[1]) + 200)).resize((400, 250)) for f in frames[:12]]
                 sh = _Im.new("RGB", (400 * 4, 250 * 3))
                 for k, im in enumerate(ims):
                     sh.paste(im, ((k % 4) * 400, (k // 4) * 250))
                 sh.save(shot)
-            pg.evaluate("() => { __world.fire.reset(); __world.speed = 0.001; __rc.busy = true; }")
+            pg.evaluate("() => { __world.fire.reset(); __world.speed = 0.001; __rc.busy = true; const h = document.getElementById('__hide'); if (h) h.remove(); }")
             return held, burned, soot, dbg
 
         for mode, who, tod, nm in (("drop", "old", "day", "放下（舊角色，白天）"), ("drop", "new", "night", "放下（新角色，夜晚）"), ("throw", "old", "night", "甩出（舊角色，夜晚）"), ("throw", "new", "day", "甩出（新角色，白天）")):
