@@ -8,7 +8,7 @@ on:
       keep:
         description: "要保留的預覽名稱（空白分隔，不含 preview/ 前綴）"
         type: string
-        default: "checkin"
+        default: "checkin office"
       dry_run:
         description: "true＝只列出會刪哪些，不刪"
         type: boolean
