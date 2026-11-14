@@ -45,7 +45,8 @@ export class QAView {
       // 全身最低點（蒙皮後的實際頂點）
       const ch = ctl.ch, bm = ch.body, g = bm.geometry, p = g.attributes.position, M = g.morphAttributes.position, w = bm.morphTargetInfluences, T = this._T;
       ch.model.updateMatrixWorld(true); bm.skeleton.update(); let mn = 1e9, bx = 0, bz = 0;
-      for (let i = 0; i < p.count; i++) {   // 最低點＝整張網格（含腿腳）：有腿的模型站著時是腳底貼地，不是肚子 T.set(p.getX(i), p.getY(i), p.getZ(i)); for (let k = 0; k < M.length; k++) if (w[k]) { T.x += M[k].getX(i) * w[k]; T.y += M[k].getY(i) * w[k]; T.z += M[k].getZ(i) * w[k]; } bm.applyBoneTransform(i, T); T.applyMatrix4(bm.matrixWorld); if (T.y < mn) { mn = T.y; bx = T.x; bz = T.z; } }
+      // 最低點＝整張網格（含腿腳）：有腿的模型站著時是腳底貼地，不是肚子
+      for (let i = 0; i < p.count; i++) { T.set(p.getX(i), p.getY(i), p.getZ(i)); for (let k = 0; k < M.length; k++) if (w[k]) { T.x += M[k].getX(i) * w[k]; T.y += M[k].getY(i) * w[k]; T.z += M[k].getZ(i) * w[k]; } bm.applyBoneTransform(i, T); T.applyMatrix4(bm.matrixWorld); if (T.y < mn) { mn = T.y; bx = T.x; bz = T.z; } }
       this.low.position.set(bx, mn, bz);
       const v = new V3(b.vx, b.vy, b.vz), sp = v.length(); this.arrow.visible = sp > 0.05; if (sp > 0.05) { this.arrow.position.set(b.x, b.y + sh.H * 0.55, b.z); this.arrow.setDirection(v.normalize()); this.arrow.setLength(Math.min(1.6, 0.12 + sp * 0.18), 0.07, 0.05); }
     }
