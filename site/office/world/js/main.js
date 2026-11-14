@@ -348,7 +348,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   // 拎起來：按住角色拖曳；放開後掉下來（甩得快會滾出去），再自己走回座位
   const lastTap = { t: 0, x: 0, y: 0 }; let deselT = 0;
-  let down = null, grab = null; const HOLD_MS = 400; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
+  let down = null, grab = null; const HOLD_MS = 350; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
   cv.addEventListener('pointerdown', e => {
     down = { x: e.clientX, y: e.clientY, t: performance.now(), c: null };
     if (edit.on) { editDown(e); return; }
@@ -357,25 +357,40 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     // 長按的判斷用「事件時間」而不是計時器：低階手機、畫面很卡的時候計時器會在移動事件被處理之前先響，結果一按下去就變成拎起。
     // 規則：按在角色身上、而且第一次位移超過 5 像素的那個瞬間離按下已經 ≥ 0.4 秒（中間沒有先移動過）→ 拎起；否則照一般拖曳（平移／旋轉）。
     const c = pickChar(e);
-    if (c && c.grab && !c.away && e.button === 0 && !(W.pov && W.pov.on())) { down.c = c; down.ts = e.timeStamp; }
+    down.ts = e.timeStamp; if (c && c.grab && !c.away && e.button === 0 && !(W.pov && W.pov.on())) down.c = c;
+    if (e.button === 0 && !(W.pov && W.pov.on()) && e.target === cv) {   // 回饋：按住不動 0.35 秒，小圓環出現（長按角色寫「拎起」、其他地方寫「旋轉」），游標跟著換
+      const d0 = down; d0.rt = setTimeout(() => { if (down !== d0 || d0.mode || grab) return; ring.hidden = false; ring.className = d0.c ? 'grab' : 'rot'; ring.querySelector('b').textContent = d0.c ? '拎起' : '↻ 旋轉中'; ring.style.transform = `translate(${d0.x}px,${d0.y}px)`; if (!d0.c) cv.style.cursor = ROT_CUR; }, HOLD_MS);
+    }
   }, true);
+  // 擁有者 11-14 追加：快速拖曳＝平移；長按（不動約 0.35 秒）再拖＝調整角度（旋轉，取代右鍵）；長按角色＝拎起角色。
+  // 判斷用「事件時間」（e.timeStamp）：第一次位移超過 5 像素的那個事件離按下 ≥ 0.35 秒就是長按，否則是快拖。畫面很卡時計時器會先響，所以計時器只負責「回饋」（小圓環＋游標）。
+  const ROT_CUR = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='white' fill-opacity='.85' stroke='%23f58a34' stroke-width='2'/><path d='M22 12a7.5 7.5 0 1 0 1 5' fill='none' stroke='%23f58a34' stroke-width='2.6' stroke-linecap='round'/><path d='M23.5 7v6h-6' fill='none' stroke='%23f58a34' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>\") 16 16, move";
+  const ring = document.createElement('div'); ring.id = 'holdRing'; ring.hidden = true; ring.innerHTML = '<i></i><b></b>'; $('app').append(ring);
+  const ringOff = () => { clearTimeout(down && down.rt); ring.hidden = true; };
+  const sph = new THREE.Spherical(), off3 = new THREE.Vector3();
+  function rotateBy(dx, dy) {       // 長按後拖曳：左右轉方位、上下調俯仰；速度同「旋轉」模式（拖曳畫面寬度一半＝90 度）
+    const k = cam.sens * Math.PI / 2 / Math.max(1, cv.clientWidth) * 2; off3.copy(camera.position).sub(controls.target); sph.setFromVector3(off3);
+    sph.theta -= dx * k; sph.phi = Math.max(0.08, Math.min(controls.maxPolarAngle, sph.phi - dy * k)); off3.setFromSpherical(sph); camera.position.copy(controls.target).add(off3); camera.lookAt(controls.target);
+    view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9;
+  }
   cv.addEventListener('pointermove', e => {
     if (edit.drag) { editMove(e); return; }
-    if (down && !grab && !down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) {
-      down.moved = true;
-      if (down.c && (e.buttons & 1) && e.timeStamp - down.ts >= HOLD_MS) {
-        grab = down.c; controls.enabled = false; pan.pend = false; director.grabbed(grab); grab.grab(); ui.closePops(); cv.style.cursor = 'grabbing';
-        if (navigator.vibrate) { try { navigator.vibrate(18); } catch (er) { /* 不支援就算了 */ } }
-      }
+    if (down && !edit.on && !grab && !down.mode && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 && (e.buttons & 1) && !(W.pov && W.pov.on())) {
+      const long = e.timeStamp - down.ts >= HOLD_MS; ringOff();
+      if (pan.touches.size > 1) down.mode = 'multi';
+      else if (long && down.c) { down.mode = 'grab'; grab = down.c; controls.enabled = false; pan.pend = false; director.grabbed(grab); grab.grab(); ui.closePops(); cv.style.cursor = 'grabbing'; if (navigator.vibrate) { try { navigator.vibrate(18); } catch (er) { /* 不支援就算了 */ } } }
+      else if (long) { down.mode = 'rot'; down.lx = down.x; down.ly = down.y; pan.pend = false; controls.enabled = false; cv.style.cursor = ROT_CUR; }
+      else down.mode = 'pan';
     }
+    if (down && down.mode === 'rot') { rotateBy(e.clientX - down.lx, e.clientY - down.ly); down.lx = e.clientX; down.ly = e.clientY; }
     if (grab) { setRay(e); if (ray.ray.intersectPlane(hold, hp)) grab.dragTo(hp.x, 1.05, hp.z); }
   });
-  const endGrab = () => { if (grab) { grab.release(); grab = null; cv.style.cursor = ''; } controls.enabled = true; };
+  const endGrab = () => { ringOff(); if (grab) { grab.release(); grab = null; cv.style.cursor = ''; } controls.enabled = true; };
   addEventListener('pointercancel', () => { endGrab(); down = null; });
   addEventListener('pointerup', e => {
     if (edit.drag) { editUp(e); down = null; return; }
     if (grab) { endGrab(); down = null; return; }
-    controls.enabled = true;
+    ringOff(); controls.enabled = true; if (down && down.mode === 'rot') { down = null; cv.style.cursor = ''; return; } cv.style.cursor = '';
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
     // 位移超過約 5 像素＝拖曳，不是點一下。按住 0.7 秒以上也不算點。0.25～0.7 秒的「慢點」：點到角色、佈告欄、招牌／旗／打卡機照常算點擊
     // （慢慢點的人 0.3～0.5 秒很常見，以前 0.25 秒就判定不算，點招牌常常沒反應）；但點在空白處不算（維持「按住不動再放開不取消選取、不關資訊卡」）。
@@ -407,9 +422,9 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   cv.addEventListener('pointermove', e => {
     if (grab || e.pointerId !== pan.id) return;
     if (pan.pend && !pan.on) {
-      if (Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) <= 5 || (e.buttons & 1) === 0) return;
+      if (!down || down.mode !== 'pan' || (e.buttons & 1) === 0) return;
       pan.pend = false; if (!groundHit({ clientX: pan.sx, clientY: pan.sy }, pan.g0)) return;   // 起點打不到地面（天空）就不平移
-      pan.on = true; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9; cv.style.cursor = 'move';
+      pan.on = true; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9; cv.style.cursor = 'grabbing';
     }
     if (!pan.on) return;
     // 靈敏度的做法（修正：以前每步重新抓點，用到還沒更新的鏡頭矩陣，非 1 倍時遠景慢 1.5 公尺、快 23.6 公尺，遠超 0.6:1.5 的倍率）：
@@ -436,6 +451,29 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     if (m) { bbox.setFromObject(m); bbox.getSize(bsz); bbox.getCenter(bct); bh.position.copy(bct); bh.scale.set(bsz.x + 0.06, bsz.y + 0.06, bsz.z + 0.06); }
   });
 
+  // 游標與提示（擁有者 11-14）：平常張開的手（CSS grab）、拖曳中握拳、長按旋轉中旋轉圖示、停在可點的東西上變指著的手；
+  // 停在角色上約 0.6 秒，旁邊出現極小提示「點一下：選取・長按：拎起」；佈告欄「點一下：打開」。手機（觸控）不顯示，改寫在操作提示裡。
+  const tip = document.createElement('div'); tip.id = 'hoverTip'; tip.hidden = true; $('app').append(tip); let tipT = 0, tipKey = null, tipXY = [0, 0];
+  const tipOff = () => { clearTimeout(tipT); tipKey = null; tip.hidden = true; };
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch' || edit.on || grab || (e.buttons & 7)) { if (e.buttons & 7) tipOff(); return; }
+    const c = pickChar(e); let key = null, txt = '';
+    if (c && !c.away) { key = 'c:' + c.spec.id; txt = c.spec.pet ? '點一下：摸摸看' : '點一下：選取・長按：拎起'; }
+    else { setRay(e); if (ray.intersectObjects(W.boardsMesh, false)[0]) { key = 'b'; txt = '點一下：打開'; } }
+    cv.style.cursor = key ? 'pointer' : '';
+    tipXY = [e.clientX, e.clientY]; if (key === tipKey) { if (!tip.hidden) tip.style.transform = `translate(${e.clientX + 16}px,${e.clientY + 20}px)`; return; }
+    tipOff(); tipKey = key; if (!key) return;
+    tipT = setTimeout(() => { tip.textContent = txt; tip.hidden = false; tip.style.transform = `translate(${tipXY[0] + 16}px,${tipXY[1] + 20}px)`; }, 600);
+  });
+  cv.addEventListener('pointerdown', tipOff); cv.addEventListener('pointerleave', tipOff);
+  // 第一次進入的小提示（只出現一次，記在這台裝置）
+  { let seen = false; try { seen = localStorage.getItem('aiOffice.hint1') === '1'; } catch (er) { /* 讀不到就當沒看過 */ }
+    if (!seen && !qs.get('empty')) {
+      const fh = document.createElement('div'); fh.id = 'firstHint'; fh.setAttribute('role', 'status');
+      fh.innerHTML = '<div class="fh-row"><svg viewBox="0 0 32 32" class="fh-hand fh-a" aria-hidden="true"><path d="M11 17V7a2 2 0 0 1 4 0v8m0-3a2 2 0 0 1 4 0v3m0-2a2 2 0 0 1 4 0v6c0 5-3 8-8 8-4 0-6-2-8-6l-2-4a2 2 0 0 1 3-2l3 3" fill="#fff" stroke="#c76a1d" stroke-width="1.6" stroke-linejoin="round"/></svg><span>快速拖曳：移動場景</span></div><div class="fh-row"><svg viewBox="0 0 32 32" class="fh-hand fh-b" aria-hidden="true"><path d="M11 17V7a2 2 0 0 1 4 0v8m0-3a2 2 0 0 1 4 0v3m0-2a2 2 0 0 1 4 0v6c0 5-3 8-8 8-4 0-6-2-8-6l-2-4a2 2 0 0 1 3-2l3 3" fill="#fff" stroke="#c76a1d" stroke-width="1.6" stroke-linejoin="round"/></svg><span>長按後拖曳：調整角度</span></div>';
+      $('app').append(fh); setTimeout(() => { fh.classList.add('out'); setTimeout(() => fh.remove(), 700); }, 3800);
+      try { localStorage.setItem('aiOffice.hint1', '1'); } catch (er) { /* 只在這次有效 */ }
+    } }
   // ── 整修模式 ──
   const edit = { on: false, sel: null, room: null, drag: null }; W.edit = edit;
   const TYPE = { workstation: '辦公桌', ceo_desk: 'CEO 辦公桌', meeting_table: '會議桌', whiteboard: '白板', bookshelf: '書架', cabinet: '資料櫃', sofa: '沙發', armchair: '單人沙發', reserve_seat: '後備座位', beanbag: '懶骨頭', coffee_table: '茶几', side_table: '小圓桌', dining: '餐桌', counter: '流理台', water: '飲水機', fridge: '冰箱', snack: '點心櫃', pingpong: '桌球桌', arcade: '街機', plant: '盆栽', plant_big: '大盆栽', lamp: '立燈', board: '佈告欄', deptsign: '部門名牌', roomsign: '區域名牌', doormat: '門墊', kiosk: '打卡機', bench: '長凳', rug: '地毯' };
@@ -449,7 +487,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     el.innerHTML = h + `<button class="btn" data-e="reset">全部復原</button><button class="btn on" data-e="done">完成</button>`; el.hidden = false;
   }
   function toggleEdit() {
-    edit.on = !edit.on; edit.sel = null; edit.room = null; $('editBtn').classList.toggle('on', edit.on); W.ring.visible = false;
+    edit.on = !edit.on; document.body.classList.toggle('edit-on', edit.on); cv.style.cursor = ''; edit.sel = null; edit.room = null; $('editBtn').classList.toggle('on', edit.on); W.ring.visible = false;
     if (edit.on) { setView('god'); ui.toast('整修模式：改動會記在這台裝置上'); } editBar();
   }
   function commit() {

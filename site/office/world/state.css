@@ -108,3 +108,23 @@ body.pw-signon #toast{top:auto;bottom:76px}
 .jl-hint[hidden]{display:none}
 body.pt-sel .jl-hint{display:none}
 @media (max-width:640px){.jl-hint{right:auto;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
+
+/* 游標（擁有者 11-14）：平常張開的手；整修模式維持移動游標；拖曳中、長按旋轉中由程式改成握拳／旋轉圖示 */
+#cv{cursor:grab}
+body.edit-on #cv{cursor:move}
+#cv:active{cursor:grabbing}
+#holdRing{position:absolute;left:0;top:0;z-index:8;pointer-events:none;width:0;height:0}
+#holdRing i{position:absolute;left:-26px;top:-26px;width:52px;height:52px;border-radius:50%;border:3px solid #f58a34;background:rgba(255,241,216,.55);box-shadow:0 0 0 3px rgba(255,255,255,.7);animation:hr-pop .28s ease-out}
+#holdRing b{position:absolute;left:50%;top:32px;transform:translateX(-50%);white-space:nowrap;background:#fff1d8;color:#6b4a22;border:2px solid #f58a34;border-radius:999px;padding:1px 10px;font:700 12px/1.5 "Noto Sans TC",sans-serif}
+#holdRing.grab i{border-color:#2f7fd0}
+@keyframes hr-pop{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+#hoverTip{position:absolute;left:0;top:0;z-index:8;pointer-events:none;background:rgba(255,250,243,.96);color:#5a4638;border:1px solid #e0c9a8;border-radius:8px;padding:1px 8px;font:600 11px/1.5 "Noto Sans TC",sans-serif;white-space:nowrap;box-shadow:0 2px 6px rgba(120,80,40,.18)}
+#firstHint{position:absolute;z-index:12;left:50%;top:42%;transform:translateX(-50%);background:rgba(255,250,243,.96);border:2px solid #f2a93b;border-radius:16px;box-shadow:var(--sh);padding:10px 18px;pointer-events:none;transition:opacity .6s;animation:fh-in .5s ease-out}
+#firstHint.out{opacity:0}
+#firstHint .fh-row{display:flex;align-items:center;gap:10px;font:700 14px/1.6 "Noto Sans TC",sans-serif;color:#5a4638}
+.fh-hand{width:32px;height:32px;flex:none}
+.fh-a{animation:fh-drag 1.4s ease-in-out infinite}
+.fh-b{animation:fh-press 1.4s ease-in-out infinite}
+@keyframes fh-in{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes fh-drag{0%,15%{transform:translateX(-6px)}70%,100%{transform:translateX(10px)}}
+@keyframes fh-press{0%{transform:scale(1)}40%,60%{transform:scale(.82)}100%{transform:scale(1)}}

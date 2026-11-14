@@ -7,7 +7,7 @@ export function createCamHint(view, cam) {
   const el = document.createElement('div'); el.className = 'cm-hint'; $('app').append(el);
   const coarse = () => matchMedia('(pointer:coarse)').matches;
   function render() {
-    const rot = cam.mode === 'rotate', pv = document.body.classList.contains('pov-on'), txt = pv ? (coarse() ? '單指拖曳環顧・點「視角」回原視角' : '拖曳環顧・按 V 或 Esc 回原視角') : coarse() ? (rot ? '單指拖曳旋轉・雙指縮放旋轉・雙點地面前往' : '單指拖曳移動・雙指縮放旋轉・雙點地面前往') : (rot ? '拖曳旋轉・滾輪縮放・雙擊地面前往' : '拖曳移動・滾輪縮放・雙擊地面前往');
+    const rot = cam.mode === 'rotate', pv = document.body.classList.contains('pov-on'), txt = pv ? (coarse() ? '單指拖曳環顧・點「視角」回原視角' : '拖曳環顧・按 V 或 Esc 回原視角') : coarse() ? (rot ? '單指拖曳：旋轉・雙指：縮放・雙點地面：前往・長按角色：拎起' : '單指快拖：移動・長按後拖：調整角度・雙指：縮放・雙點地面：前往・長按角色：拎起') : (rot ? '拖曳：旋轉・滾輪：縮放・雙擊地面：前往・長按角色：拎起' : '快速拖曳：移動場景・長按後拖曳：調整角度・滾輪：縮放・雙擊地面：前往・長按角色：拎起');
     const ctl = `<span class="cm-ctl"><span class="cm-lab">拖曳</span><span class="cm-seg" role="group" aria-label="拖曳的功能"><button data-c="mv" class="${rot ? '' : 'on'}" aria-pressed="${!rot}">移動</button><button data-c="ro" class="${rot ? 'on' : ''}" aria-pressed="${rot}">旋轉</button></span><button class="cm-rot" data-c="rl" aria-label="向左旋轉（點一下轉一格，按住持續轉）" title="向左旋轉：點一下轉 30 度，按住持續轉">↺</button><button class="cm-rot" data-c="rr" aria-label="向右旋轉（點一下轉一格，按住持續轉）" title="向右旋轉：點一下轉 30 度，按住持續轉">↻</button></span>`;
     el.innerHTML = (open ? `<span class="cm-t">${txt}</span>` : '') + ctl + (open ? `<button class="cm-x" data-c="x" aria-label="收起鏡頭操作提示">×</button>` : `<button class="cm-q" data-c="q" aria-label="展開鏡頭操作提示">?</button>`) + `<button class="cm-back" data-c="back" hidden>回到角色</button>`;
     const b = el.querySelector('.cm-back'); if (b) b.hidden = !(view.detached && view.char);

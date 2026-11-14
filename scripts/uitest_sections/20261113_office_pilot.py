@@ -664,7 +664,7 @@ def t_camera(b, base):
         _mode(pg, "move")
         ok("操控中切到「旋轉」後左鍵拖曳仍可旋轉", abs((_cam(pg)["az"] - az0 + _m.pi) % (2 * _m.pi) - _m.pi) > 0.1)
         # 鏡頭小提示
-        ok("鏡頭操作小提示：寫明「拖曳移動・滾輪縮放・雙擊地面前往」、不提右鍵，並有「移動｜旋轉」切換與 ↺ ↻ 鈕", pg.evaluate("() => { const t = document.querySelector('.cm-hint').textContent; return t.includes('拖曳移動・滾輪縮放・雙擊地面前往') && !t.includes('右鍵') && !!document.querySelector('.cm-seg [data-c=ro]') && !!document.querySelector('.cm-rot[data-c=rl]') && !!document.querySelector('.cm-rot[data-c=rr]'); }"))
+        ok("鏡頭操作小提示：寫明「快速拖曳：移動場景・長按後拖曳：調整角度・滾輪：縮放・雙擊地面：前往」、不提右鍵，並有「移動｜旋轉」切換與 ↺ ↻ 鈕", pg.evaluate("() => { const t = document.querySelector('.cm-hint').textContent; return t.includes('快速拖曳：移動場景・長按後拖曳：調整角度・滾輪：縮放・雙擊地面：前往') && !t.includes('右鍵') && !!document.querySelector('.cm-seg [data-c=ro]') && !!document.querySelector('.cm-rot[data-c=rl]') && !!document.querySelector('.cm-rot[data-c=rr]'); }"))
         pg.click(".cm-x")
         ok("鏡頭小提示可收起並記住", pg.evaluate("() => !!document.querySelector('.cm-q') && localStorage.getItem('aiOffice.camhint') === '0'"))
         pg.click(".cm-q")

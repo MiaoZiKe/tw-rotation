@@ -1,5 +1,5 @@
 # 驗收段落「辦公室第三輪修正」：AI Office 3D 辦公室（site/office/world.html）擁有者 11-14 試用後回報的四件事。
-#   F1 拖曳一律平移：從角色身上、桌子上、佈告欄上、空地按下拖曳，鏡頭注視點都會移動，而且沒有選取、沒有拎起；
+#   F1 快拖＝平移、長按（0.35 秒）再拖＝調整角度、長按角色＝拎起，含游標四態、首次提示、角色上的游標提示；原：拖曳一律平移：從角色身上、桌子上、佈告欄上、空地按下拖曳，鏡頭注視點都會移動，而且沒有選取、沒有拎起；
 #      短按角色＝選取；按住角色不動約 0.4 秒再拖＝拎起（鏡頭不動）；旋轉模式、整修模式維持原樣；慢慢點（0.45 秒）招牌也算點擊
 #   F2 績效總表：頂端鈕（桌機／手機直接露出）、入口打卡機、部門招牌三個入口都打得開；排序、切週、只看需要加強、展開部門、
 #      點列飛過去、關閉，每一項都驗畫面真的改變；預設網址與 ?body=v2、直接複製的站台副本（沒有 data／preview）都要能用
@@ -496,6 +496,161 @@ def t_f3_layout(b, base):
             c.close()
 
 
+def _f3_cdp(pg):
+    cdp = getattr(pg, "_f3cdp", None)
+    if cdp is None:
+        cdp = pg.context.new_cdp_session(pg)
+        pg._f3cdp = cdp
+    return cdp
+
+
+def _f3_free_spot(pg):
+    """畫面中間一塊沒有角色、也不在面板上的空地（長按旋轉要從這裡開始）"""
+    return pg.evaluate("""() => { const W = __world, cv = document.getElementById('cv'); let best = null;
+      for (let x = 260; x < innerWidth - 260; x += 40) for (let y = 220; y < innerHeight - 160; y += 40) { if (document.elementFromPoint(x, y) !== cv) continue;
+        let near = 1e9; for (const c of W.chars.values()) { const v = new W.THREE.Vector3(c.object3D.position.x, 0.5, c.object3D.position.z).project(W.camera), sx = (v.x + 1) / 2 * innerWidth, sy = (1 - v.y) / 2 * innerHeight; near = Math.min(near, Math.hypot(sx - x, sy - y)); }
+        const r = new W.THREE.Raycaster(); r.setFromCamera(new W.THREE.Vector2(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1), W.camera); if (r.intersectObjects(W.boardsMesh, false)[0]) continue;
+        if (!best || near > best.n) best = { x, y, n: near }; }
+      return best && [best.x, best.y]; }""")
+
+
+def _f3_az(pg):
+    return pg.evaluate("() => { const c = __world.camera.position, t = __world.controls.target; return [Math.atan2(c.x - t.x, c.z - t.z), Math.atan2(c.y - t.y, Math.hypot(c.x - t.x, c.z - t.z))]; }")
+
+
+def t_f3_longrot(b, base):
+    import time as _t
+    c, pg, got = _f3_open(b, base)
+    ok("長按旋轉：載入完成", got)
+    if not got:
+        return
+    try:
+        pg.evaluate("() => { __world.cam.setMode('move'); __world.setView('god', null, true); }")
+        pg.wait_for_timeout(900)
+        cur = lambda: pg.evaluate("() => document.getElementById('cv').style.cursor || getComputedStyle(document.getElementById('cv')).cursor")
+        ok("游標（平常）：張開的手 grab", cur() == "grab", cur())
+        spot = _f3_free_spot(pg)
+        ok("畫面上找得到空地", bool(spot), spot)
+        x, y = spot
+        # 快拖：平移、方位不變
+        a0, t0 = _f3_az(pg), _f3_target(pg)
+        _f3_drag(pg, x, y, dx=-140, dy=-40)
+        a1, t1 = _f3_az(pg), _f3_target(pg)
+        ok("快速拖曳（按下即移動）：注視點移動 %.1f 公尺、方位幾乎不變（%.3f 弧度）" % (_f3_dist(t0, t1), abs(a1[0] - a0[0])), _f3_dist(t0, t1) > 1.5 and abs(a1[0] - a0[0]) < 0.05, (a0, a1))
+        pg.evaluate("() => __world.setView('god', null, true)")
+        pg.wait_for_timeout(800)
+        # 長按 0.65 秒（事件時間）再拖：旋轉，注視點不動；中途量游標與回饋圓環
+        cdp = _f3_cdp(pg)
+        T = _t.time()
+        send = lambda t, px, py, bb, ts: cdp.send("Input.dispatchMouseEvent", {"type": t, "x": px, "y": py, "button": "left" if bb else "none", "buttons": 1 if bb else 0, "clickCount": 1 if t != "mouseMoved" else 0, "timestamp": ts})
+        a0, t0 = _f3_az(pg), _f3_target(pg)
+        send("mouseMoved", x, y, False, T)
+        send("mousePressed", x, y, True, T + 0.001)
+        pg.wait_for_timeout(900)   # 真的等一下，讓回饋計時器響（圓環出現）
+        ring = pg.evaluate("() => { const r = document.getElementById('holdRing'); return [!r.hidden, r.textContent, r.className, document.getElementById('cv').style.cursor.slice(0, 40)]; }")
+        ok("長按空地 0.35 秒：出現小圓環「%s」、游標換成旋轉圖示" % ring[1], ring[0] and "旋轉" in ring[1] and "svg" in ring[3], ring)
+        _f3_shot(pg, "長按旋轉_回饋.png")
+        for i in range(1, 11):
+            send("mouseMoved", x + 18 * i, y - 6 * i, True, T + 0.65 + 0.016 * i)
+        pg.wait_for_timeout(200)
+        cur_rot = cur()
+        send("mouseReleased", x + 180, y - 60, True, T + 1.0)
+        pg.wait_for_timeout(250)
+        a1, t1 = _f3_az(pg), _f3_target(pg)
+        ok("長按後拖曳：方位轉了 %.2f 弧度、俯仰變了 %.2f，注視點沒有平移（%.2f 公尺）" % (a1[0] - a0[0], a1[1] - a0[1], _f3_dist(t0, t1)), abs(a1[0] - a0[0]) > 0.15 and abs(a1[1] - a0[1]) > 0.02 and _f3_dist(t0, t1) < 0.3, (a0, a1))
+        ok("旋轉中游標是旋轉圖示、放開後回到張開的手", "svg" in cur_rot and cur() == "grab", (cur_rot[:30], cur()))
+        # 拖曳平移中游標＝握拳
+        pg.evaluate("() => __world.setView('god', null, true)")
+        pg.wait_for_timeout(800)
+        T = _t.time()
+        send("mouseMoved", x, y, False, T)
+        send("mousePressed", x, y, True, T + 0.001)
+        for i in range(1, 6):
+            send("mouseMoved", x - 12 * i, y, True, T + 0.01 + 0.016 * i)
+        pg.wait_for_timeout(150)
+        cur_pan = cur()
+        send("mouseReleased", x - 60, y, True, T + 0.2)
+        pg.wait_for_timeout(200)
+        ok("拖曳平移中游標是握拳 grabbing", cur_pan == "grabbing", cur_pan)
+        # 滑到角色上：指的手＋提示
+        pg.evaluate("() => __world.setView('god', null, true)")
+        pg.wait_for_timeout(800)
+        ch = _f3_free_char(pg)
+        pg.mouse.move(ch[1] - 40, ch[2] + 80)
+        pg.mouse.move(ch[1], ch[2], steps=3)
+        wait_until(pg, "() => !document.getElementById('hoverTip').hidden", 8000)
+        tip = pg.evaluate("() => { const t = document.getElementById('hoverTip'); return [!t.hidden, t.textContent, document.getElementById('cv').style.cursor]; }")
+        ok("游標停在角色上：變成指的手 pointer，0.6 秒後出現提示「%s」" % tip[1], tip[2] == "pointer" and tip[0] and "長按" in tip[1] and "拎起" in tip[1], tip)
+        _f3_shot(pg, "角色上的游標提示.png")
+        bad, n = _f3_overlaps(pg, ["#hoverTip", "#bar .ttl", "#viewSeg", ".cm-hint", ".dt-chip"])
+        ok("角色上的提示不與頂列、提示列重疊", not bad, bad)
+        # 整修模式游標＝移動
+        pg.click("#editBtn")
+        pg.wait_for_timeout(500)
+        ok("整修模式游標維持移動 move", pg.evaluate("() => getComputedStyle(document.getElementById('cv')).cursor") == "move")
+        pg.click('[data-e="done"]')
+        # 提示文字
+        txt = pg.evaluate("() => document.querySelector('.cm-hint').textContent")
+        ok("角落操作提示寫「快速拖曳：移動場景・長按後拖曳：調整角度…長按角色：拎起」且不提右鍵", "快速拖曳" in txt and "長按後拖曳：調整角度" in txt and "長按角色：拎起" in txt and "右鍵" not in txt, txt)
+        pg.click("#helpBtn")
+        h = pg.evaluate("() => document.getElementById('helpPop').innerText")
+        ok("「?」說明同步更新（快速拖曳、長按、拎起），不提右鍵", "快速拖曳" in h and "長按" in h and "拎起" in h and "右鍵" not in h, h[:80])
+        ok("長按旋轉：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
+def t_f3_firsthint(b, base):
+    # 全新的瀏覽器（沒有 localStorage）：第一次出現提示、第二次不再出現
+    c = b.new_context(viewport={"width": 1280, "height": 800})
+    pg = c.new_page()
+    pg.set_default_timeout(120000)
+    pg.goto(_f3_root(base) + "/office/world.html" + _F3_QS, wait_until="domcontentloaded")
+    wait_until(pg, "() => window.__world && window.__world.ready", 90000)
+    pg.wait_for_timeout(300)
+    ok("首次提示：第一次進入出現小手提示（快速拖曳、長按後拖曳）", pg.evaluate("() => { const f = document.getElementById('firstHint'); return !!f && /快速拖曳/.test(f.textContent) && /長按後拖曳/.test(f.textContent) && !/右鍵/.test(f.textContent); }"))
+    _f3_shot(pg, "首次提示.png")
+    ok("首次提示：約 4 秒後自己淡出消失", wait_until(pg, "() => !document.getElementById('firstHint')", 12000))
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => window.__world && window.__world.ready", 90000)
+    pg.wait_for_timeout(500)
+    ok("首次提示：重新整理後不再出現（只出現一次）", pg.evaluate("() => !document.getElementById('firstHint')"))
+    c.close()
+
+
+def t_f3_longrot_touch(b, base):
+    import time as _t
+    c, pg, got = _f3_open(b, base, w=390, h=844)
+    ok("長按旋轉（手機）：載入完成", got)
+    if not got:
+        return
+    try:
+        pg.evaluate("() => __world.setView('god', null, true)")
+        pg.wait_for_timeout(900)
+        cdp = c.new_cdp_session(pg)
+        spot = pg.evaluate("""() => { const W = __world, cv = document.getElementById('cv'); for (let y = 300; y < 700; y += 30) for (let x = 60; x < 330; x += 30) { if (document.elementFromPoint(x, y) !== cv) continue; let ok = true; for (const c of W.chars.values()) { const v = new W.THREE.Vector3(c.object3D.position.x, 0.5, c.object3D.position.z).project(W.camera); if (Math.hypot((v.x + 1) / 2 * innerWidth - x, (1 - v.y) / 2 * innerHeight - y) < 26) { ok = false; break; } } if (ok) return [x, y]; } return null; }""")
+        ok("手機：找得到空地", bool(spot), spot)
+        x, y = spot
+        a0, t0 = _f3_az(pg), _f3_target(pg)
+        T = _t.time()
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x, "y": y, "id": 1}], "timestamp": T})
+        for i in range(1, 11):
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x + 12 * i, "y": y - 4 * i, "id": 1}], "timestamp": T + 0.7 + 0.016 * i})
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": [], "timestamp": T + 1.0})
+        pg.wait_for_timeout(300)
+        a1, t1 = _f3_az(pg), _f3_target(pg)
+        ok("手機：單指長按後拖曳＝旋轉（方位 %.2f 弧度），注視點沒平移（%.2f 公尺）" % (a1[0] - a0[0], _f3_dist(t0, t1)), abs(a1[0] - a0[0]) > 0.15 and _f3_dist(t0, t1) < 0.3, (a0, a1))
+        ok("手機：不顯示游標提示（#hoverTip 不存在於可見）", pg.evaluate("() => document.getElementById('hoverTip').hidden"))
+        txt = pg.evaluate("() => { const h = document.querySelector('.cm-hint'); return h ? h.textContent : ''; }")
+        pg.click("#moreBtn")
+        pg.wait_for_timeout(300)
+        txt = pg.evaluate("() => document.querySelector('.cm-hint').textContent")
+        ok("手機操作提示寫「單指快拖：移動・長按後拖：調整角度…長按角色：拎起」", "單指快拖" in txt and "長按後拖" in txt and "長按角色" in txt and "右鍵" not in txt, txt)
+        ok("長按旋轉（手機）：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
 register("辦公室第三輪修正-拖曳平移", lambda pg, b, base, code: t_f3_pan(b, base))
 register("辦公室第三輪修正-手機觸控", lambda pg, b, base, code: t_f3_pan_touch(b, base))
 register("辦公室第三輪修正-績效總表桌機", lambda pg, b, base, code: t_f3_ledger_desktop(b, base))
@@ -504,3 +659,6 @@ register("辦公室第三輪修正-遊民區", lambda pg, b, base, code: t_f3_jo
 register("辦公室第三輪修正-遊民區手機", lambda pg, b, base, code: t_f3_jobless_mobile(b, base))
 register("辦公室第三輪修正-新角色預設", lambda pg, b, base, code: t_f3_model(b, base))
 register("辦公室第三輪修正-版面", lambda pg, b, base, code: t_f3_layout(b, base))
+register("辦公室第三輪修正-長按旋轉與游標", lambda pg, b, base, code: t_f3_longrot(b, base))
+register("辦公室第三輪修正-首次提示", lambda pg, b, base, code: t_f3_firsthint(b, base))
+register("辦公室第三輪修正-長按旋轉手機", lambda pg, b, base, code: t_f3_longrot_touch(b, base))

@@ -38,7 +38,7 @@ def t_camera2(b, base):
         if not got:
             return
         hint = pg.evaluate("() => document.querySelector('.cm-hint').textContent")
-        ok("鏡頭：提示文字是「拖曳移動・滾輪縮放・雙擊地面前往」且不含「右鍵」", "拖曳移動・滾輪縮放・雙擊地面前往" in hint and "右鍵" not in hint, hint)
+        ok("鏡頭：提示文字是「快速拖曳：移動場景・長按後拖曳：調整角度・滾輪：縮放・雙擊地面：前往」且不含「右鍵」（11-14 改成長按旋轉）", "快速拖曳：移動場景・長按後拖曳：調整角度・滾輪：縮放・雙擊地面：前往" in hint and "右鍵" not in hint, hint)
         ok("鏡頭：畫面上任何文字都不提右鍵", "右鍵" not in pg.evaluate("() => document.body.innerText + [...document.querySelectorAll('[title],[aria-label]')].map(e => e.title + e.getAttribute('aria-label')).join('')"))
         ok("鏡頭：預設是「移動」（localStorage 沒記就是移動）", pg.evaluate("() => __world.cam.mode === 'move' && document.querySelector('.cm-seg [data-c=mv]').classList.contains('on')"))
         for name, close in [("預設俯視", False), ("近距離", True)]:
