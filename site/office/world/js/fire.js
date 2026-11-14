@@ -207,7 +207,7 @@ export function createFire(W, opts = {}) {
     }
     return { x: dx, z: dz };
   }
-  function grounded(c) { if (c.newModel) { const ctl = c.inner.ctl; return ctl.body.grounded && ctl.state !== 'tumble' && ctl.state !== 'air'; } const ch = c.inner; return ch.grounded && ch.mode === 'normal'; }
+  function grounded(c) { if (c._held || c.state === 'held') return false; if (c.newModel) { const ctl = c.inner.ctl; return ctl.body.grounded && ctl.state !== 'tumble' && ctl.state !== 'air'; } const ch = c.inner; return ch.grounded && ch.mode === 'normal'; }
   function jumpHop(c) { if (c.newModel) { try { c.inner.ctl.jump(); } catch (e) { /* 跳不起來就算了 */ } } else if (c.inner && c.inner.jumpBuf !== undefined) c.inner.jumpBuf = 0.15; }
   const sampleBody = (c, out) => { const p = posOf(c), a = Math.random() * 6.28, r = (c.radius || 0.3) * rnd(0.2, 0.8); return out.set(p.x + Math.cos(a) * r, (c.lift || 0) + rnd(0.15, 0.85) * (c.height || 0.8), p.z + Math.sin(a) * r); };
   const tmp = new V3();
