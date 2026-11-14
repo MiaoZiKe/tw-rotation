@@ -16,7 +16,7 @@ const C = h => new THREE.Color(h);
 // 關鍵時刻（小時，台北時間）→ 各項參數；兩個關鍵時刻之間線性漸變。顏色維持柔和的淺色美術風格，夜晚也不過暗。
 const K = [
   // t     天頂       天中       地平       霧        半球天      半球地      半球強度 光色       光強  雲色       窗色       窗不透明 窗光斑色   斑強  暖光  星
-  [0,    '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#ffe8c8', '#d9b693', 1.5, '#aebfff', 0.5, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
+  [0,    '#0d1538', '#1c2c62', '#34447e', '#0e1838', '#fff4e6', '#e3d3c0', 1.12, '#fff1de', 0.95, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
   [5,    '#1c2552', '#3d4c88', '#7c6c9c', '#6c6c9c', '#ffe8c8', '#d9b693', 1.45, '#b4c0f4', 0.5, '#6a6a98', '#ffd48a', 0.8, '#ffcf80', 0.0, 0.9, 0.9],
   [6.3,  '#9db8e8', '#f6c8b8', '#ffe2c0', '#f9d9c4', '#ffeadf', '#ebc8b4', 1.36, '#ffc9a0', 1.05, '#ffdcd0', '#ffe0c8', 0.48, '#ffd0b0', 0.16, 0.25, 0.0],
   [7.8,  '#a9ddf8', '#d7f0fc', '#f1fbff', '#e3f4fc', '#fffaf3', '#f3d5b4', 1.50, '#fff3e0', 1.55, '#ffffff', '#cfefff', 0.38, '#ffffff', 0.10, 0.0, 0.0],
@@ -24,8 +24,8 @@ const K = [
   [16.5, '#a9ddf8', '#d7f0fc', '#f1fbff', '#e3f4fc', '#fffaf3', '#f3d5b4', 1.50, '#fff3e0', 1.55, '#ffffff', '#cfefff', 0.38, '#ffffff', 0.10, 0.0, 0.0],
   [17.8, '#a6b9e8', '#ffd2a0', '#ffe9c2', '#ffdcb0', '#ffe3c4', '#f0c49a', 1.32, '#ffb878', 1.30, '#ffd9b0', '#ffc58a', 0.55, '#ffb070', 0.22, 0.35, 0.0],
   [18.8, '#4e5496', '#da8a76', '#ffb87a', '#cf9078', '#eec6c8', '#a88cac', 1.05, '#ff9a70', 0.70, '#e0a090', '#ffc880', 0.66, '#ffb060', 0.28, 0.8, 0.45],
-  [20.2, '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#ffe8c8', '#d9b693', 1.5, '#aebfff', 0.5, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
-  [24,   '#0d1538', '#1c2c62', '#34447e', '#2a3870', '#ffe8c8', '#d9b693', 1.5, '#aebfff', 0.5, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
+  [20.2, '#0d1538', '#1c2c62', '#34447e', '#0e1838', '#fff4e6', '#e3d3c0', 1.12, '#fff1de', 0.95, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
+  [24,   '#0d1538', '#1c2c62', '#34447e', '#0e1838', '#fff4e6', '#e3d3c0', 1.12, '#fff1de', 0.95, '#56608e', '#ffd48a', 0.86, '#ffcf80', 0.0, 1.0, 1.0],
 ];
 const KC = [1, 2, 3, 4, 5, 6, 8, 10, 11, 13];   // 哪些欄位是顏色
 const MODES = { auto: null, morning: 6.3, day: 12, dusk: 18, night: 22 };   // 預覽用：強制時刻（清晨／白天／黃昏／夜晚）
@@ -90,14 +90,21 @@ export function createDaytime(W, X) {
   // ── 室外壓暗：夜晚把半球光調暖調亮是為了「室內開燈」，但同一盞半球光也會照亮屋外的草地、樹與地面。
   //    做法：在共用材質（MAT.solid）的片段著色器裡，屋外（建築範圍之外）的光照乘上 night.out（白天 1，夜晚 ~0.42），
   //    屋內不變。只是換一支著色器，不增加繪製、不增加光源。
-  const outU = { value: 1 };
+  const outU = { value: new THREE.Color(1, 1, 1) };   // 屋外的光照顏色係數：白天 1，夜晚壓成約 0.3 的冷藍
   {
     const Lw = W.floorBase ? W.floorBase.position.x * 2 : 40, Ld = W.floorBase ? W.floorBase.position.z * 2 : 30;
     MAT.solid.onBeforeCompile = sh => {
       sh.uniforms.uOut = outU; sh.uniforms.uBox = { value: new THREE.Vector4(0, 0, Lw, Ld) };
       sh.vertexShader = 'varying vec2 vOutWp;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n\tvec4 owp = vec4( transformed, 1.0 );\n#ifdef USE_INSTANCING\n\towp = instanceMatrix * owp;\n#endif\n\tvOutWp = ( modelMatrix * owp ).xz;');
-      sh.fragmentShader = 'varying vec2 vOutWp;\nuniform float uOut;\nuniform vec4 uBox;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', 'vec2 oq = max( max( uBox.xy - vOutWp, vOutWp - uBox.zw ), vec2( 0.0 ) );\n\toutgoingLight *= mix( 1.0, uOut, smoothstep( 0.0, 1.5, length( oq ) ) );\n\t#include <opaque_fragment>');
+      sh.fragmentShader = 'varying vec2 vOutWp;\nuniform vec3 uOut;\nuniform vec4 uBox;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', 'vec2 oq = max( max( uBox.xy - vOutWp, vOutWp - uBox.zw ), vec2( 0.0 ) );\n\toutgoingLight *= mix( vec3( 1.0 ), uOut, smoothstep( 0.0, 0.25, length( oq ) ) );\n\t#include <opaque_fragment>');
     };
+    if (W.floorBase) {                                   // 底座那圈側面（屋外）：夜晚與屋外同色；頂面（屋內地板）不動
+      const fm = W.floorBase.material;
+      fm.onBeforeCompile = sh => { sh.uniforms.uOut = outU;
+        sh.vertexShader = 'varying float vSideK;\n' + sh.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n\tvSideK = 1.0 - smoothstep( 0.3, 0.7, abs( normalize( mat3( modelMatrix ) * objectNormal ).y ) );');
+        sh.fragmentShader = 'varying float vSideK;\nuniform vec3 uOut;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight *= mix( vec3( 1.0 ), uOut, vSideK );\n\t#include <opaque_fragment>'); };
+      fm.customProgramCacheKey = () => 'sidedim1'; fm.needsUpdate = true;
+    }
     MAT.solid.customProgramCacheKey = () => 'outdim1'; MAT.solid.needsUpdate = true;
   }
 
@@ -118,7 +125,7 @@ export function createDaytime(W, X) {
     if (W.clouds) W.clouds.material.color.copy(f[10]);
     if (W.glassMat) { W.glassMat.color.copy(f[11]); W.glassMat.opacity = f[12]; }
     if (W.patchMat) { W.patchMat.color.copy(f[13]); W.patchMat.opacity = f[14]; }
-    outU.value = 1 - 0.58 * Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4; stars.material.opacity = f[16];
+    { const nk = Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); outU.value.setRGB(1 - 0.84 * nk, 1 - 0.74 * nk, 1 - 0.6 * nk); } if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4; stars.material.opacity = f[16];
     // 太陽 6～18 點在天上；月亮 18～6 點。方向光：白天用太陽，夜晚用月亮，兩者交接的 1 小時內方向平順轉過去
     bodyDir(t, 6, sd); bodyDir(t, 18, md);
     const isDay = t >= 5.5 && t < 18.5, w = isDay ? Math.min(1, Math.min(t - 5.5, 18.5 - t) / 1.0) : 0;

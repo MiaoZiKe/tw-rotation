@@ -46,6 +46,11 @@ def t_office_night(b, base):
         ok("夜晚：俯瞰室內平均亮度 ≥ 150（%.0f，修改前約 128）" % ind, ind >= 150, ind)
         ok("夜晚：室內地板平均亮度 ≥ 150（%.0f，修改前約 131）" % floor, floor >= 150, floor)
         ok("夜晚：角色臉部平均亮度 ≥ 155（%.0f，修改前約 139）" % face, face >= 155, face)
+        px = list(_Im.open(_io.BytesIO(info["night"]["overview"])).convert("RGB").crop((0, 200, 80, 560)).getdata()) if not hasattr(_Im.Image, "get_flattened_data") else list(_Im.open(_io.BytesIO(info["night"]["overview"])).convert("RGB").crop((0, 200, 80, 560)).get_flattened_data())
+        rgb = [sum(q[i] for q in px) / len(px) for i in range(3)]
+        gl = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
+        ok("夜晚：屋外草地樹木平均亮度 ≤ 室內的 55%%（%.0f 對 %.0f）" % (gl, ind), gl <= ind * 0.55, (gl, ind))
+        ok("夜晚：屋外草地色相偏藍綠（R %.0f、G %.0f、B %.0f，綠或藍 ≥ 紅）" % tuple(rgb), max(rgb[1], rgb[2]) >= rgb[0], rgb)
         ok("夜晚：室外天空仍是深色（亮度 %.0f ≤ 90）" % info["night"]["sky"], info["night"]["sky"] <= 90, info["night"]["sky"])
         ok("夜晚：繪製次數增量 ≤ +5（%d → %d）" % (info["day"]["calls"], info["night"]["calls"]), info["night"]["calls"] - info["day"]["calls"] <= 5, info)
         ok("夜晚段：沒有主控台錯誤", not errs, errs[:3])
