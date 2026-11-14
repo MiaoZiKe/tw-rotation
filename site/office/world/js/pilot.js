@@ -99,8 +99,9 @@ export function createPilot(W, X) {
     if (seat) {                                                      // 把椅子拉開，站到椅子後方
       const bx = -Math.sin(seat.face), bz = -Math.cos(seat.face);
       const to = W.nav.nearestFree(seat.x + bx * 0.8, seat.z + bz * 0.8, 12) || W.nav.nearestFree(seat.x, seat.z, 12) || from;
-      P.engaging = c.walkTo([from, { x: to.x, z: to.z }], { speed: 1.8 }).then(() => { P.engaging = null; return true; });
-      return P.engaging;
+      const prom = P.engaging = c.walkTo([from, { x: to.x, z: to.z }], { speed: 1.8 }).then(() => { if (P.engaging === prom) P.engaging = null; return true; });
+      W.sleep(5).then(() => { if (P.engaging === prom && P.sel === c && c._path) c.stop(false); });   // 保底：起身路徑 5 秒（模擬時間）還沒走完就放手交給操控（不讓 engaging 永遠不結束）
+      return prom;
     }
     c.stop(false); return Promise.resolve(true);
   }

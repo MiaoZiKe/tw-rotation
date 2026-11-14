@@ -198,6 +198,9 @@ function makeNew(spec, look, env) {
   function drive(dt) {
     const b = ctl.body;
     if (c._held || ctl.state === 'held') return;
+    // 座面方塊只在坐著（含坐下／起身的跳躍）時存在：起身落地後不清掉，它會變成擋在椅子位置的隱形障礙，
+    // 從座位往椅子後方走的路徑正好穿過它 → 原地跑、walkTo 永不結束（11-14 操控卡住的根因）
+    if (!c._seat && !ctl.sit && ctl.state !== 'sit' && world.boxes.length) { world.boxes.length = 0; ctl.body.ignoreH.clear(); }
     if (c._rising) { if (ctl.state !== 'sit') { c._rising = false; ctl.stop(); } return; }
     if (c._seat) { if (ctl.sit && ctl.sit.sub === 'seated' && !c._seated) { c._seated = true; seated(); } return; }
     c._seated = false;
