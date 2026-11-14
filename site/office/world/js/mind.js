@@ -126,6 +126,8 @@ export function createMind(W, X = {}) {
     c.release = () => {
       const h = c._dhMind, n = h.length; let sp = 0; if (n >= 2) { const a = h[Math.max(0, n - 4)], b = h[n - 1], dt = Math.max(0.03, (b[0] - a[0]) / 1000); sp = Math.hypot(b[1] - a[1], b[2] - a[2], b[3] - a[3]) / dt; }
       const was = c._held; const r = rel0();
+      let v0 = 0; try { const bd = c.inner && c.inner.ctl && c.inner.ctl.body, w = bd || (c.inner && c.inner.vel); if (w) v0 = Math.hypot(w.vx || 0, w.vy || 0, w.vz || 0) * (c.scale || 1); } catch (e) { v0 = 0; }   // 放開那一刻的出手速度（比拖曳時間戳可靠）
+      sp = Math.max(sp, v0); m.relSpeed = sp;
       if (was) { m.releasedAt = W.time; m.thrownAt = sp > 2.2 ? W.time : m.thrownAt;     // 真人拎起又放開：物理層之後送的 knocked（by 是牆、家具、椅子…）都算「你丟的」
         m.relPending = W.time;                                                  // 之後由 tick 看他有沒有飛起來／落地，再補送 knocked（慢動作或畫面卡時，速度估不準）
         if (sp > 2.2) setTimeout(() => emit('knocked', c.spec.id, { by: 'you', speed: sp }), 0); }
@@ -259,27 +261,27 @@ export function createMind(W, X = {}) {
   function knocked(id, d = {}) {
     const c = C(id), m = mindOf(c); if (!c || !m) return; if (m.sc && m.sc.name === 'knocked' && W.time - m.sc.t0 < 1.2) return;   // 兩邊都送也只演一次
     const byUser = m.releasedAt != null && W.time - m.releasedAt < 8;     // 放開後 8 秒內的碰撞，都是被你丟出去造成的
-    const by = d.by === 'you' || byUser ? 'you' : (d.by || 'obj'), you = by === 'you', t = m.t;
-    if (m.sc && m.sc.name === 'knocked' && you && !m.sc.you) { m.sc.you = true; if (m.last) m.last.by = 'you'; m.wary = W.time + 150 * (1.25 - .6 * t.opt); return; }   // 先被物理層當成撞到、再補上「是你丟的」：升級成戒心，不重演
-    m.knockedAt = W.time;
-    affect(m, { val: -(gentle ? .04 : you ? .36 : .2) * (.7 + .6 * t.sens), stress: gentle ? .02 : .12 }, you ? CAUSE.knocked : CAUSE.knockedObj, 220); remember(m, 'knocked', you ? '你' : '', you ? CAUSE.knocked : CAUSE.knockedObj);
-    const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, gentle = !!d.gentle, light = (!you && d.speed != null && d.speed < 2.5) || gentle; m.wary = you ? W.time + 150 * (1.25 - .6 * t.opt) : m.wary;   // 輕輕撞到：不暈
+    const by = d.by === 'you' || byUser ? 'you' : (d.by || 'obj'), you = by === 'you', t = m.t, gentleIn = !!d.gentle;
+    if (m.sc && m.sc.name === 'knocked' && you && !gentleIn && !m.sc.you) { m.sc.you = true; if (m.last) m.last.by = 'you'; m.wary = W.time + 150 * (1.25 - .6 * t.opt); return; }   // 先被物理層當成撞到、再補上「是你丟的」：升級成戒心，不重演
+    m.knockedAt = W.time; const gentle = !!d.gentle, hostile = you && !gentle;   // gentle＝慢慢放下：不算撞、不暈、不戒備
+    affect(m, { val: -(gentle ? .04 : you ? .36 : .2) * (.7 + .6 * t.sens), stress: gentle ? .02 : .12 }, gentle ? '被放下了' : you ? CAUSE.knocked : CAUSE.knockedObj, 220); remember(m, 'knocked', you ? '你' : '', gentle ? '被放下了' : you ? CAUSE.knocked : CAUSE.knockedObj);
+    const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, light = (!you && d.speed != null && d.speed < 2.5) || gentle; m.wary = hostile ? W.time + 150 * (1.25 - .6 * t.opt) : m.wary;   // 輕輕撞到：不暈
     scene(c, m, 8, 'knocked', sc => {
       sc.you = you; let ph = 0, ts = 0, glare = null;
       face(c, m, 'scared', 6); c.emote('exclaim', 1); say(c, '哇啊！', 1, true); act(c, 'flail', { duration: 1.4 }, true);
       sc.poll = () => {
         const age = W.time - sc.t0, grounded = c.state !== 'held' && !(c.inner && c.inner.extFall) && age > .5;
         if (ph === 0 && light && age > .6) { ph = 1; ts = W.time - dz; }
-        else if (ph === 0 && (grounded || age > 5)) {                // 落地：暈眩，頭上轉圈
-          ph = 1; ts = W.time; face(c, m, 'dizzy', dz + .2); c.emote('swirl', dz); act(c, 'dizzy', { duration: dz }, true); c.pause(true); sc.on_end(() => c.pause(false)); m.flag = { name: 'dizzy', until: W.time + dz };
+        else if (ph === 0 && !light && (grounded || age > 5)) {                // 落地：暈眩，頭上轉圈
+          ph = 1; ts = W.time; face(c, m, 'dizzy', dz + .2); c.emote('swirl', dz); act(c, 'dizzy', { duration: dz }, true); c.pause(true); sc.on_end(() => c.pause(false)); m.flag = { name: 'dizzy', until: W.time + dz, by: you ? 'you' : 'obj' };
         } else if (ph === 1 && W.time - ts >= dz) {              // 看向你（記住是你）
-          ph = 2; ts = W.time; m.flag = you ? { name: 'upset', until: W.time + 3.4 } : null;
-          if (you) {
+          ph = 2; ts = W.time; m.flag = null;
+          if (hostile) {
             const p = pos(c), q = cam(); c.faceTo(q.x, q.z); c.lookAt(q); sc.on_end(() => { if (!(A() && A().current() === c)) c.lookAt(null); });
             if (angry) { face(c, m, 'angry', 3); c.emote('anger', 2.4); say(c, rnd(['喂！很危險耶！', '不要這樣啦！']), 2, true); } else if (t.sens >= .6) { face(c, m, 'sad', 3.2); c.emote('cloud', 2.4); say(c, rnd(['嗚…', '好可怕…']), 2, true); } else { face(c, m, 'pout', 3); c.emote('dots', 2); say(c, '…哼', 1.6, true); }
             void p;
           } else { face(c, m, 'confused', 2.2); c.emote('question', 2); }
-        } else if (ph === 2 && W.time - ts >= (you ? 3.2 : 2.2)) { if (you) m.wary = W.time + 150 * (1.25 - .6 * t.opt); return true; }
+        } else if (ph === 2 && W.time - ts >= (hostile ? 3.2 : 2.2)) { if (hostile) m.wary = W.time + 150 * (1.25 - .6 * t.opt); return true; }
         return false;
       };
       holdCap(c, m, sc);
@@ -471,10 +473,14 @@ export function createMind(W, X = {}) {
     const cz = m.cause && W.time < m.cause.until ? m.cause.text : '';
     if (c.sleeping || c.action === 'sleep') { k = 'sleep'; label = '睡覺中'; cause = c.jobless ? '待業中，在毯子上休息' : (S && S.q.exhausted ? '電力用完了' : '正在休息'); }
     else if (m.burned) { k = 'burned'; label = '驚魂未定'; cause = CAUSE.burned; }
-    else if (m.flag && m.flag.name === 'dizzy' && W.time < m.flag.until) { k = 'dizzy'; label = '頭暈'; cause = m.last && m.last.by === 'you' ? CAUSE.knocked : CAUSE.knockedObj; }
-    else if (m.flag && m.flag.name === 'upset' && W.time < m.flag.until) { k = 'upset'; label = '有點生氣'; cause = CAUSE.knocked; }
+    else if (m.flag && m.flag.name === 'dizzy' && W.time < m.flag.until) { k = 'dizzy'; label = '頭暈'; cause = m.flag.by === 'you' ? CAUSE.knocked : CAUSE.knockedObj; }
+    else if (W.time < m.wary && !c.jobless) {                    // 被你丟過之後的一段時間：心情跟著當下的臉走，原因一律寫清楚
+      const f = m.faceName || c.expression;
+      if (f === 'angry' || f === 'sulkf') { k = 'upset'; label = '生氣'; cause = '被你丟出去'; }
+      else if (f === 'sad' || f === 'pout' || f === 'cry') { k = 'sad'; label = '委屈'; cause = '被你丟出去'; }
+      else { k = 'wary'; label = '戒備'; cause = '剛被你丟過'; }
+    }
     else if (c.jobless) { const calm = W.time - m.jobT > 90 || m.val > -.2; k = calm ? 'jobless' : 'low'; label = calm ? '慢慢平靜' : '失落'; cause = calm ? '待業中' : cz || CAUSE.fired; }
-    else if (W.time < m.wary && m.faceName === 'wary') { k = 'wary'; label = '戒備'; cause = CAUSE.wary; }
     else if (m.val >= .6) { k = 'excited'; label = '興奮'; cause = cz; }
     else if (m.val >= .3) { k = 'happy'; label = '開心'; cause = cz || (m.bias > .05 ? '上週表現不錯' : ''); }
     else if (m.val > -.15) { if (m.stress > .7) { k = 'stress'; label = '壓力大'; cause = '工作很久了'; } else if (m.energy < .35) { k = 'tired'; label = '有點睏'; cause = cz; } else { k = 'calm'; label = '平靜'; cause = cz; } }
@@ -528,8 +534,8 @@ export function createMind(W, X = {}) {
         const age = now - m.relPending, air = c.inner && (c.inner.extFall || (c.inner.ctl && ['air', 'tumble'].includes(c.inner.ctl.state)));
         if ((m.knockedAt || -99) > m.relPending || age > 8) m.relPending = null;
         else if (air || age > .5) {
-          m.relPending = null; let v = 3; try { const bd = c.inner && c.inner.ctl && c.inner.ctl.body, w = bd ? bd : c.inner && c.inner.vel; if (w) v = Math.hypot(w.vx || 0, w.vy || 0, w.vz || 0) * (c.scale || 1); } catch (e) { v = 3; }
-          emit('knocked', c.spec.id, { by: 'you', speed: Math.max(v, .1), gentle: v < 1.6 });   // 慢慢放下：不算撞，不暈
+          m.relPending = null; const v = m.relSpeed != null ? m.relSpeed : 3;
+          emit('knocked', c.spec.id, { by: 'you', speed: Math.max(v, .1), gentle: v < 0.6 });   // 放開時手還在動（哪怕很慢）就算丟；幾乎靜止才是「慢慢放下」   // 慢慢放下：不算撞，不暈
         }
       }
       if (m.spin) { const u = (now - m.spin.t0) / m.spin.dur; if (u >= 1 || c.state !== 'stand') m.spin = null; else c.heading = m.spin.h0 + Math.PI * 2 * u; }

@@ -386,6 +386,8 @@ def t_mn_real(b, base, w=1280, h=800, touch=False):
     pg.evaluate("(id) => { __world.ui.showCard(__world.chars.get(id)); }", cid)
     r1 = pg.evaluate("(id) => { __world.chars.get(id).pet(1.5); return __world.mind.get(id).last; }", cid)
     ok("真人丟出（%s）：摸頭被閃躲，沒有冒愛心（%s）" % (tag, r1.get("event")), r1.get("event") == "dodge" and pg.evaluate("(id) => { const e = __world.chars.get(id).emoteSym; return !e || e.sym !== 'heart'; }", cid), r1)
+    ml = pg.evaluate("(id) => __world.mind.moodLine(__world.chars.get(id)).text", cid)
+    ok("真人丟出（%s）：戒心期間心情列寫明被你丟過（%s）" % (tag, ml), bool(_re.search(r"(戒備（剛被你丟過）|生氣（被你丟出去）|委屈（被你丟出去）)", ml)), ml)
     pg.evaluate("(id) => { __world.emit('knocked', id, { by: 'you' }); }", cid)
     txt = pg.evaluate("() => document.getElementById('cardMood') && document.getElementById('cardMood').textContent")
     ok("真人丟出（%s）：心情列原因是「被丟出去」，不是「被摸了頭」（%s）" % (tag, txt), bool(txt) and "被摸了頭" not in txt, txt)
@@ -393,6 +395,29 @@ def t_mn_real(b, base, w=1280, h=800, touch=False):
     c1.close()
 
 
+def t_mn_gentle(b, base):
+    c1, pg, got = _mn_open(b, base)
+    if not ok("慢慢放下：世界載入", got):
+        c1.close(); return
+    cid = _mn_pick(pg, "(t, c) => c.state === 'sit'", 1)[0]
+    pg.evaluate("() => __world.setView('god', null, true)"); pg.wait_for_timeout(600)
+    x, y = _mn_proj(pg, cid)
+    pg.mouse.move(x, y); pg.mouse.down(); pg.wait_for_timeout(650)
+    for i in range(1, 4):
+        pg.mouse.move(x + i * 3, y); pg.wait_for_timeout(500)
+    pg.mouse.up()
+    wait_until(pg, "() => { const g = __world.mind.get(%s); return g.last && g.last.event === 'knocked'; }" % _json.dumps(cid), 8000)
+    pg.wait_for_timeout(1500)
+    flags = []
+    for _ in range(12):
+        g = _mn_get(pg, cid); flags.append((g["flag"], g["wary"], g["face"])); pg.wait_for_timeout(300)
+    ok("慢慢放下：沒有頭暈、沒有戒心（%s）" % flags[:2], all(f[0] != "dizzy" and not f[1] for f in flags), flags)
+    ml = pg.evaluate("(id) => __world.mind.moodLine(__world.chars.get(id)).text", cid)
+    ok("慢慢放下：心情列不寫頭暈（%s）" % ml, "頭暈" not in ml, ml)
+    c1.close()
+
+
+register("辦公室心-慢慢放下", lambda pg, b, base, code: t_mn_gentle(b, base))
 register("辦公室心-個性", lambda pg, b, base, code: t_mn_traits(b, base))
 register("辦公室心-獎勵", lambda pg, b, base, code: t_mn_reward(b, base))
 register("辦公室心-懲罰", lambda pg, b, base, code: t_mn_punish(b, base))
