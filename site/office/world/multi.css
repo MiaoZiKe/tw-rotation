@@ -58,8 +58,15 @@
   .panel{overscroll-behavior:contain}
   /* 資訊卡：卡片本身不捲動，內容包在 .card-scroll 裡捲（見 multi.js 說明）；× 固定在卡片右上角 */
   #card,body.pt-sel #card{overflow:hidden!important}
-  #card .card-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  #card .card-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;padding-right:38px}   /* 右側留出 × 的寬度，內容行右端的字不會被 × 蓋住 */
+  #card .card-scroll>*{flex:none;order:2}
+  #card .card-scroll>.hd{order:0}
+  #card .card-scroll>.acts:has([data-hr="hire"]){order:1;margin:0 0 8px}   /* 待業中的卡：「重新聘用」鈕移到名字下面，不用捲到最底下 */
   #card .x{position:absolute;right:10px;top:10px;margin:0;z-index:3}
 }
 /* 版本標記：有資訊卡、群組面板、績效總表、佈告欄、會議紀錄開著時淡出，不壓在它們的文字上 */
 body:has(#card:not([hidden]), #grp:not([hidden]), #ledger:not([hidden]), #board:not([hidden]), #log:not([hidden]), #aioLedger:not([hidden])) #aoBuild{opacity:0!important}
+
+/* 績效總表的陰影：box-shadow 在這張大面板上會讓合成層在畫面下方畫出一條透出網頁底色的橫條（1920×990 實測 y 780～811；展開部門後更明顯），
+   改用 filter:drop-shadow 畫同樣的陰影就沒有（實測 1920／1280／手機都沒有）。 */
+#ledger.panel{box-shadow:none;filter:drop-shadow(0 6px 10px rgba(120,80,40,.16))}

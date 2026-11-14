@@ -626,6 +626,61 @@ def _mu_ui1115(pg_, b, base, code):
         c.close()
 
 
+def _mu_band(pg, w, h):
+    """畫面上「近似網頁底色 rgb(217,240,251)」的橫條（整列有 30% 以上的取樣點是這個顏色）的 y 座標；畫布正常時不會有"""
+    import io as _io
+    from PIL import Image as _Img
+    im = _Img.open(_io.BytesIO(pg.screenshot())).convert("RGB"); out = []
+    for yy in range(0, h, 6):
+        n = sum(1 for xx in range(0, w, 20) if all(abs(a - b) < 4 for a, b in zip(im.getpixel((xx, yy)), (217, 240, 251))))
+        if n > (w / 20) * 0.3:
+            out.append(yy)
+    return out
+
+
+def _mu_ui1115b(pg_, b, base, code):
+    """第二輪驗收：績效總表下方淡藍橫條（box-shadow 合成問題）、溝通時資訊卡頂端說明、手機待業卡「重新聘用」位置、卡片 × 不蓋內容"""
+    for (w, h, touch) in ((1920, 990, False), (1280, 800, False), (390, 844, True)):
+        c, pg, got = _mu_open(b, base, w=w, h=h, touch=touch, qs="?q=low&pr=0.5&ambient=0", speed=1)
+        try:
+            ok(f"{w}x{h}：載入", got)
+            if not got:
+                continue
+            pg.wait_for_timeout(1500)
+            pg.click("#rwBtn"); pg.wait_for_timeout(2200)
+            b1 = _mu_band(pg, w, h)
+            pg.evaluate("() => { const e = document.querySelector('#ledger [aria-expanded=\"false\"]'); if (e) e.click(); }"); pg.wait_for_timeout(2200)
+            b2 = _mu_band(pg, w, h)
+            ok(f"{w}x{h}：績效總表開著、展開部門後，畫面上沒有淡藍色橫條（網頁底色）", not b1 and not b2, (b1[:3], b2[:3]))
+        finally:
+            c.close()
+    # 溝通說明
+    c, pg, got = _mu_open(b, base, qs="?q=low&pr=0.6&ambient=0", speed=1)
+    try:
+        ok("溝通：載入", got)
+        if got:
+            r = pg.evaluate("""async () => { const W = __world, a = W.chars.get('data-steward'), o = W.chars.get('data-scraper'); W.pilot.select(a); await W.pilot.engage(); await W.sleep(2);
+              const op = o.object3D.position; a.standAt(op.x + 0.9, op.z + 0.9, 0); W.pilot.talk(); await W.sleep(0.4);
+              const note = document.querySelector('#card .pt-talknote'); return { note: note && note.textContent, tips: document.querySelector('.pt-th b') && document.querySelector('.pt-th b').textContent, card: document.querySelector('#card .hd b') && document.querySelector('#card .hd b').textContent }; }""")
+            ok("溝通時資訊卡頂端寫「正在和 阿梟 說話」，操控面板仍是「操控中：阿梟」", r["note"] and "正在和" in r["note"] and "操控中" in (r["tips"] or ""), r)
+    finally:
+        c.close()
+    # 手機：待業卡的重新聘用鈕、× 不蓋內容
+    c, pg, got = _mu_open(b, base, w=390, h=844, touch=True, qs="?q=low&pr=0.5&ambient=0", speed=1)
+    try:
+        ok("手機待業卡：載入", got)
+        if got:
+            pg.evaluate("""async () => { const W = __world; await W.hr.fire(['data-scraper'], { to: 'ceo' }); W.speed = 8; await W.sleep(1); const c = W.chars.get('data-scraper'); W.setView('char', c, true); W.ui.showCard(c); }""")
+            pg.wait_for_timeout(1500)
+            hb = pg.evaluate("""() => { const b = document.querySelector('#card [data-hr=hire]'), cd = document.getElementById('card').getBoundingClientRect(); if (!b) return null; const r = b.getBoundingClientRect(); return { top: r.top - cd.top, bottom: cd.bottom - r.bottom, h: r.height, vis: r.bottom <= innerHeight && r.top >= cd.top }; }""")
+            ok("手機待業卡：「重新聘用」鈕在卡片上半部、不用捲動就看得到", hb and hb["vis"] and hb["top"] < 150, hb)
+            pr = pg.evaluate("() => parseFloat(getComputedStyle(document.querySelector('#card .card-scroll')).paddingRight)")
+            ok("手機資訊卡內容右側留出 × 的寬度（≥ 36px）", pr >= 36, pr)
+    finally:
+        c.close()
+
+
+register("辦公室介面驗收1115b", _mu_ui1115b)
 register("辦公室點選CDP桌機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, False))
 register("辦公室點選CDP手機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, True))
 register("辦公室介面驗收1115", _mu_ui1115)

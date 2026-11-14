@@ -110,3 +110,6 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 296px)}
 .btn.povb.on,.seg button#viewPov.on{background:#7d57b8;border-color:#7d57b8;color:#fff}
 body.pov-on .cm-ctl{display:none}
 body.pov-on .cm-hint .cm-back{display:none}
+
+/* 溝通時資訊卡頂端的小字：說明現在是誰在和誰說話 */
+.pt-talknote{font-size:12px;font-weight:700;color:var(--on);background:var(--on2);border-radius:999px;padding:3px 12px;margin:0 36px 8px 0;align-self:flex-start}
