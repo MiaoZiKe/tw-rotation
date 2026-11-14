@@ -112,4 +112,45 @@ def t_wallstuck(b, base):
         c.close()
 
 
-register("辦公室牆邊卡住", lambda pg, b, base, code: t_wallstuck(b, base))
+def t_rescue(b, base):
+    """保底本身：在路上放一個導航網格不知道的隱形障礙（只在新模型的物理世界裡），逼他卡住，看三段保底依序接手、最後平順到達"""
+    c, pg, got = _ws_open(b, base)
+    try:
+        ok("保底：頁面載入", got)
+        if not got:
+            return
+        pg.evaluate("() => { __world.speed = 4; }")
+        for who in ("bibi-animator", "hr-officer", "ceo"):
+            st = pg.evaluate("""(id) => { const W = __world, c = W.chars.get(id); if (!c || !c.newModel) return null;
+              // 找一段 3 公尺直線空地
+              for (let z = 3; z < W.layout.size.d - 3; z += 0.5) for (let x = 3; x < W.layout.size.w - 6; x += 0.5) { let ok = true; for (let s = 0; s <= 3.4 && ok; s += 0.2) for (const o of [-0.6, 0, 0.6]) if (!W.nav.isFree(x + s, z + o)) { ok = false; break; }
+                if (ok) { c.standAt(x, z, Math.PI / 2); const s = c.scale || 1; c.inner.ctl.world.addBox({ id: 'test-wall', cx: (x + 1.6) / s, cz: z / s, hx: 0.08 / s, hz: 1.5 / s, y0: 0, y1: 2 });
+                  window.__rs = { t0: W.time, how: [], done: null }; const r0 = __ncStats.rescue;
+                  c.walkTo([{ x, z }, { x: x + 3, z }], { speed: 1.6 }).then(v => { __rs.done = { ok: v, t: W.time - __rs.t0, x: c.object3D.position.x, z: c.object3D.position.z, n: __ncStats.rescue - r0 }; });
+                  return [x, z]; } }
+              return null; }""", who)
+            if not st:
+                ok(f"保底（{who}）：找得到空地", False); continue
+            seq, last = [], None
+            for _ in range(240):
+                s = pg.evaluate(f"() => {{ const c = __world.chars.get('{who}'), p = c.object3D.position; return [__world.time - __rs.t0, p.x, p.z, c._lastRescue || '', __rs.done]; }}")
+                if s[3] and s[3] != last:
+                    seq.append(s[3]); last = s[3]
+                if s[4]:
+                    break
+                pg.wait_for_timeout(250)
+            done = s[4]
+            pg.evaluate(f"() => {{ const c = __world.chars.get('{who}'), w = c.inner.ctl.world, i = w.boxes.findIndex(b => b.id === 'test-wall'); if (i >= 0) w.boxes.splice(i, 1); }}")
+            ok(f"保底（{who}）：被隱形牆擋住 → 依序 {seq} → {round(done['t'], 1) if done else '—'} 秒到達（≤ 25）、到達點離目的地 {round(_m.hypot(done['x'] - st[0] - 3, done['z'] - st[1]), 2) if done else '—'} 公尺（≤ 0.2）、用了 {done['n'] if done else '—'} 次保底",
+               bool(done) and done["ok"] and done["t"] <= 25 and _m.hypot(done["x"] - st[0] - 3, done["z"] - st[1]) <= 0.2 and seq and seq[-1] == "glide", (seq, done, st))
+        ok("保底：全程沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
+def t_all(b, base):
+    t_rescue(b, base)
+    t_wallstuck(b, base)
+
+
+register("辦公室牆邊卡住", lambda pg, b, base, code: t_all(b, base))
