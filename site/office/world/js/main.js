@@ -275,6 +275,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
   const sim = createSim(W, { state, demo, ui }); W.sim = sim;
   const rewards = createRewards(W, rw, { ui, cv, camera }); if (rewards.on) createLedger(W, rewards, { ui, fly: flyTo }); else { const b = $('rwBtn'); if (b) b.hidden = true; }
+  import('./live.js').then(m => m.createLive(W, { state, ui, sim, rewards })).catch(e => console.warn('即時模式載入失敗，維持示範', e));   // 2026-11-14 即時模式：有接入碼就讀 AI Office 收件端的真實事件（live.js）
 
   // ── 名牌、泡泡 ──
   const pv = new THREE.Vector3(), bubs = [];
