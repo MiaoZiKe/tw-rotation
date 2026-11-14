@@ -199,6 +199,7 @@ def t_mn_knocked(b, base):
     pg.wait_for_timeout(1500)
     pg.evaluate("(id) => __world.emit('knocked', id, { by: 'you' })", cid)
     wait_until(pg, "() => __world.mind.get(%s).wary" % _json.dumps(cid), 15000)
+    wait_until(pg, "() => { const g = __world.mind.get(%s); return !g.scene || g.scene.indexOf('knocked') < 0; }" % _json.dumps(cid), 40000)
     r1 = pg.evaluate("(id) => { const c = __world.chars.get(id); c.pet(1.5); return __world.mind.get(id).last; }", cid)
     ok("摸頭：剛被丟過，第一次被閃躲（%s）" % r1.get("event"), r1.get("event") == "dodge", r1)
     forgave = False
@@ -344,6 +345,54 @@ def t_mn_layout(b, base):
         c1.close()
 
 
+def _mn_proj(pg, cid):
+    return pg.evaluate("""(id) => { const W = __world, c = W.chars.get(id), v = new W.THREE.Vector3(c.object3D.position.x, (c.height || 1) * 0.55 + (c.lift || 0), c.object3D.position.z).project(W.camera), r = document.getElementById('cv').getBoundingClientRect(); return [(v.x + 1) / 2 * r.width + r.left, (1 - v.y) / 2 * r.height + r.top]; }""", cid)
+
+
+def _mn_real_throw(pg, cid, touch=False):
+    """真人操作：按住角色約 0.6 秒拎起，快速往旁邊甩，放開（桌機走滑鼠、手機走觸控事件）。"""
+    x, y = _mn_proj(pg, cid)
+    if not touch:
+        pg.mouse.move(x, y); pg.mouse.down(); pg.wait_for_timeout(650)
+        for i in range(1, 7):
+            pg.mouse.move(x + i * 45, y - i * 6); pg.wait_for_timeout(18)
+        pg.mouse.up()
+    else:
+        cdp = pg.context.new_cdp_session(pg)
+        def tev(t, px, py): cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [{"x": px, "y": py, "id": 1}] if t != "touchEnd" else []})
+        tev("touchStart", x, y); pg.wait_for_timeout(650)
+        for i in range(1, 7):
+            tev("touchMove", x + i * 30, y - i * 4); pg.wait_for_timeout(18)
+        tev("touchEnd", 0, 0)
+
+
+def t_mn_real(b, base, w=1280, h=800, touch=False):
+    tag = "手機觸控" if touch else "桌機滑鼠"
+    c1, pg, got = _mn_open(b, base, w, h)
+    if not ok("真人丟出（%s）：世界載入" % tag, got):
+        c1.close(); return
+    cid = _mn_pick(pg, "(t, c) => c.state === 'sit'", 1)[0]
+    pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); W.setView('god', null, true); }", cid)
+    pg.wait_for_timeout(600)
+    _mn_real_throw(pg, cid, touch)
+    held = wait_until(pg, "() => { const g = __world.mind.get(%s); return g && g.last && g.last.event === 'knocked'; }" % _json.dumps(cid), 8000)
+    g = _mn_get(pg, cid)
+    ok("真人丟出（%s）：心層收到「被你丟出去」（by=%s）" % (tag, (g["last"] or {}).get("by")), bool(held) and g["last"].get("by") == "you", g["last"])
+    ok("真人丟出（%s）：之後戒心成立" % tag, bool(wait_until(pg, "() => __world.mind.get(%s).wary" % _json.dumps(cid), 4000)), g)
+    wait_until(pg, "() => { const g = __world.mind.get(%s); return !g.scene || g.scene.indexOf('knocked') < 0; }" % _json.dumps(cid), 40000)
+    pg.evaluate("(id) => __world.pilot.select(__world.chars.get(id))", cid)
+    s4 = _mn_face_seen(pg, cid, ["wary"], 4000)
+    ok("真人丟出（%s）：點選他，表情是戒備（%s）" % (tag, s4), bool(s4), _mn_get(pg, cid)["face"])
+    pg.evaluate("(id) => { __world.ui.showCard(__world.chars.get(id)); }", cid)
+    r1 = pg.evaluate("(id) => { __world.chars.get(id).pet(1.5); return __world.mind.get(id).last; }", cid)
+    ok("真人丟出（%s）：摸頭被閃躲，沒有冒愛心（%s）" % (tag, r1.get("event")), r1.get("event") == "dodge" and pg.evaluate("(id) => { const e = __world.chars.get(id).emoteSym; return !e || e.sym !== 'heart'; }", cid), r1)
+    pg.evaluate("(id) => { __world.emit('knocked', id, { by: 'you' }); }", cid)
+    txt = pg.evaluate("() => document.getElementById('cardMood') && document.getElementById('cardMood').textContent")
+    ok("真人丟出（%s）：心情列原因是「被丟出去」，不是「被摸了頭」（%s）" % (tag, txt), bool(txt) and "被摸了頭" not in txt, txt)
+    ok("真人丟出（%s）：沒有主控台錯誤" % tag, not pg.errs, pg.errs[:3])
+    c1.close()
+
+
 register("辦公室心-個性", lambda pg, b, base, code: t_mn_traits(b, base))
 register("辦公室心-獎勵", lambda pg, b, base, code: t_mn_reward(b, base))
 register("辦公室心-懲罰", lambda pg, b, base, code: t_mn_punish(b, base))
@@ -354,3 +403,5 @@ register("辦公室心-資訊卡", lambda pg, b, base, code: t_mn_card(b, base))
 register("辦公室心-人事", lambda pg, b, base, code: t_mn_hr(b, base))
 register("辦公室心-額度", lambda pg, b, base, code: t_mn_power(b, base))
 register("辦公室心-版面", lambda pg, b, base, code: t_mn_layout(b, base))
+register("辦公室心-真人丟出桌機", lambda pg, b, base, code: t_mn_real(b, base))
+register("辦公室心-真人丟出手機", lambda pg, b, base, code: t_mn_real(b, base, 390, 844, True))

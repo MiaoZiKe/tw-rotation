@@ -125,7 +125,11 @@ export function createMind(W, X = {}) {
     c.dragTo = (x, y, z) => { c._dh.push([performance.now(), x, y, z]); if (c._dh.length > 8) c._dh.shift(); return drag0(x, y, z); };
     c.release = () => {
       const h = c._dh, n = h.length; let sp = 0; if (n >= 2) { const a = h[Math.max(0, n - 4)], b = h[n - 1], dt = Math.max(0.03, (b[0] - a[0]) / 1000); sp = Math.hypot(b[1] - a[1], b[2] - a[2], b[3] - a[3]) / dt; }
-      const was = c._held; const r = rel0(); if (was && sp > 3.2) { m.thrownAt = W.time; setTimeout(() => emit('knocked', c.spec.id, { by: 'you', speed: sp }), 0); } return r;
+      const was = c._held; const r = rel0();
+      if (was) { m.releasedAt = W.time; m.thrownAt = sp > 2.2 ? W.time : m.thrownAt;     // 真人拎起又放開：物理層之後送的 knocked（by 是牆、家具、椅子…）都算「你丟的」
+        m.relPending = W.time;                                                  // 之後由 tick 看他有沒有飛起來／落地，再補送 knocked（慢動作或畫面卡時，速度估不準）
+        if (sp > 2.2) setTimeout(() => emit('knocked', c.spec.id, { by: 'you', speed: sp }), 0); }
+      return r;
     };
   }
 
@@ -254,11 +258,14 @@ export function createMind(W, X = {}) {
   // ───────── 物理：被丟出去、被燒到、恢復 ─────────
   function knocked(id, d = {}) {
     const c = C(id), m = mindOf(c); if (!c || !m) return; if (m.sc && m.sc.name === 'knocked' && W.time - m.sc.t0 < 1.2) return;   // 兩邊都送也只演一次
-    const by = d.by || (m.thrownAt && W.time - m.thrownAt < 2 ? 'you' : m.grabbedAt && W.time - m.grabbedAt < 5 ? 'you' : 'obj'), you = by === 'you', t = m.t;
+    const byUser = m.releasedAt != null && W.time - m.releasedAt < 8;     // 放開後 8 秒內的碰撞，都是被你丟出去造成的
+    const by = d.by === 'you' || byUser ? 'you' : (d.by || 'obj'), you = by === 'you', t = m.t;
+    if (m.sc && m.sc.name === 'knocked' && you && !m.sc.you) { m.sc.you = true; if (m.last) m.last.by = 'you'; m.wary = W.time + 150 * (1.25 - .6 * t.opt); return; }   // 先被物理層當成撞到、再補上「是你丟的」：升級成戒心，不重演
+    m.knockedAt = W.time;
     affect(m, { val: -(you ? .36 : .2) * (.7 + .6 * t.sens), stress: .12 }, you ? CAUSE.knocked : CAUSE.knockedObj, 220); remember(m, 'knocked', you ? '你' : '', you ? CAUSE.knocked : CAUSE.knockedObj);
-    const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, light = !you && d.speed != null && d.speed < 2.5;   // 輕輕撞到：不暈
+    const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, light = !you && d.speed != null && d.speed < 2.5; m.wary = you ? W.time + 150 * (1.25 - .6 * t.opt) : m.wary;   // 輕輕撞到：不暈
     scene(c, m, 8, 'knocked', sc => {
-      let ph = 0, ts = 0, glare = null;
+      sc.you = you; let ph = 0, ts = 0, glare = null;
       face(c, m, 'scared', 6); c.emote('exclaim', 1); say(c, '哇啊！', 1, true); act(c, 'flail', { duration: 1.4 }, true);
       sc.poll = () => {
         const age = W.time - sc.t0, grounded = c.state !== 'held' && !(c.inner && c.inner.extFall) && age > .5;
@@ -363,6 +370,7 @@ export function createMind(W, X = {}) {
   function resenting(m) { return W.time < m.wary || m.val < -.3 || recent(m, 'knocked', 100 * (1.3 - .6 * m.t.opt), '你') || recent(m, 'bonk', 100 * (1.3 - .6 * m.t.opt), '你'); }
   function onPetAttempt(c, m, kind) {
     if (c.sleeping || c.jobless && false) return null;
+    if (m.sc && m.sc.name === 'knocked') { m.petAt = W.time; record(m, { event: 'dodge', kind, face: m.faceName || '', action: 'still-dizzy' }); return 'dodge'; }   // 還在暈、還在氣頭上：摸頭沒用，也不改心情
     if (W.time - m.petAt > 25) { m.petTry = 0; m.feedTry = 0; } m.petAt = W.time;
     if (!resenting(m)) { m.petTry = m.feedTry = 0; return null; }
     const need = kind === 'feed' ? 2 : 2 + (m.t.opt < .5 ? 1 : 0) + (m.t.comp > .6 ? 1 : 0), key = kind === 'feed' ? 'feedTry' : 'petTry'; m[key]++;
@@ -463,8 +471,8 @@ export function createMind(W, X = {}) {
     const cz = m.cause && W.time < m.cause.until ? m.cause.text : '';
     if (c.sleeping || c.action === 'sleep') { k = 'sleep'; label = '睡覺中'; cause = c.jobless ? '待業中，在毯子上休息' : (S && S.q.exhausted ? '電力用完了' : '正在休息'); }
     else if (m.burned) { k = 'burned'; label = '驚魂未定'; cause = CAUSE.burned; }
-    else if (m.flag && m.flag.name === 'dizzy' && W.time < m.flag.until) { k = 'dizzy'; label = '頭暈'; cause = cz || CAUSE.knocked; }
-    else if (m.flag && m.flag.name === 'upset' && W.time < m.flag.until) { k = 'upset'; label = '有點生氣'; cause = cz || CAUSE.knocked; }
+    else if (m.flag && m.flag.name === 'dizzy' && W.time < m.flag.until) { k = 'dizzy'; label = '頭暈'; cause = m.last && m.last.by === 'you' ? CAUSE.knocked : CAUSE.knockedObj; }
+    else if (m.flag && m.flag.name === 'upset' && W.time < m.flag.until) { k = 'upset'; label = '有點生氣'; cause = CAUSE.knocked; }
     else if (c.jobless) { const calm = W.time - m.jobT > 90 || m.val > -.2; k = calm ? 'jobless' : 'low'; label = calm ? '慢慢平靜' : '失落'; cause = calm ? '待業中' : cz || CAUSE.fired; }
     else if (W.time < m.wary && m.faceName === 'wary') { k = 'wary'; label = '戒備'; cause = CAUSE.wary; }
     else if (m.val >= .6) { k = 'excited'; label = '興奮'; cause = cz; }
@@ -515,6 +523,11 @@ export function createMind(W, X = {}) {
       if (sc) {
         if (sc.poll && sc.poll()) endScene(c, m);
         else { while (sc.i < sc.steps.length && now - sc.t0 >= sc.steps[sc.i].t) { const s = sc.steps[sc.i++]; try { s.fn(); } catch (e) { console.error(e); } } if (!sc.poll && sc.i >= sc.steps.length && now - sc.t0 >= sc.len + .05) endScene(c, m); }
+      }
+      if (m.relPending != null) {                                  // 真人放開後：8 秒內只要飛起來或過了半秒，就算「被你丟了」（物理層沒送 by:'you' 時由這裡補）
+        const age = now - m.relPending, air = c.inner && (c.inner.extFall || (c.inner.ctl && ['air', 'tumble'].includes(c.inner.ctl.state)));
+        if ((m.knockedAt || -99) > m.relPending || age > 8) m.relPending = null;
+        else if (air || age > .5) { m.relPending = null; emit('knocked', c.spec.id, { by: 'you', speed: 3 }); }
       }
       if (m.spin) { const u = (now - m.spin.t0) / m.spin.dur; if (u >= 1 || c.state !== 'stand') m.spin = null; else c.heading = m.spin.h0 + Math.PI * 2 * u; }
       if (!c.jobless) m.rehiring = false;
