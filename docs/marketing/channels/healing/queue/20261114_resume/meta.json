@@ -4,7 +4,11 @@
   "ig",
   "threads"
  ],
- "status": "approved",
+ "status": "posted",
  "publish_at": "2026-11-14T20:27+08:00",
- "note": "draft，等 Andy 確認後改 approved。依 Andy 11-10 素材與頁序規則製作（封面→資料從哪來＋圖表→數字背後）。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；重疊與對比 overlap_report.json；審查 ai_review.md（自審）；素材已登記 ../../素材登記.md。"
+ "note": "draft，等 Andy 確認後改 approved。依 Andy 11-10 素材與頁序規則製作（封面→資料從哪來＋圖表→數字背後）。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；重疊與對比 overlap_report.json；審查 ai_review.md（自審）；素材已登記 ../../素材登記.md。",
+ "urls": {
+  "ig": "https://www.instagram.com/p/DfuPF7CF2Db/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DfuPJz5oQlx"
+ }
 }
