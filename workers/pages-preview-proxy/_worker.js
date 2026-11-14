@@ -22,6 +22,7 @@ export default {
       const u = new URL(loc, target);
       if (u.origin === UPSTREAM) h.set('Location', url.origin + '/preview' + u.pathname + u.search);
     }
+    if (rest.includes('/office/')) h.set('Cache-Control', 'no-cache');   // 2026-11-14 擁有者同意：辦公室頁沒有版本戳，預覽一律先向伺服器確認，避免半新半舊
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
   },
 };
