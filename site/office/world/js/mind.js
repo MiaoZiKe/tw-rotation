@@ -199,18 +199,19 @@ export function createMind(W, X = {}) {
     const kind = kindIn || d.kind || 'rejected', t = m.t, I = { rejected: .38, bonk: .3, demote: .42 }[kind] || .35;
     affect(m, { val: -I * (.7 + .6 * t.sens) * (1.1 - .4 * t.opt), stress: .1, energy: -.04 }, CAUSE[kind], 200);
     remember(m, kind, kind === 'bonk' ? '你' : '', CAUSE[kind]);
+    const emo = (sym, sec) => { if (kind !== 'rejected') c.emote(sym, sec); };   // 交件失敗時派工那邊已經放了小烏雲，不蓋掉
     const style = t.comp >= .62 && t.sens < .6 ? 'angry' : t.sens >= .55 ? 'sad' : 'stoic', body = canAct(c);
     const dur = 2.6 + 3.6 * t.sens;
     scene(c, m, 6, 'punish-' + style, sc => {
       if (style === 'angry') {                       // 好勝：生氣、跺腳
-        sc.at(0, () => { face(c, m, 'angry', 2.4); c.emote('anger', 2.2); say(c, rnd(['可惡…', '下次不會了！', '氣死我了！']), 1.8); act(c, 'slam', { duration: 1.8 }); });
+        sc.at(0, () => { face(c, m, 'angry', 2.4); emo('anger', 2.2); say(c, rnd(['可惡…', '下次不會了！', '氣死我了！']), 1.8); act(c, 'slam', { duration: 1.8 }); });
         sc.at(2.6, () => face(c, m, 'sulkf', 2)).at(4.6, () => { });
       } else if (style === 'sad') {                  // 敏感：難過、輕微流淚、垂頭
-        sc.at(0, () => { face(c, m, 'sad', dur); c.emote('cloud', Math.min(2.6, dur)); act(c, 'sob', { duration: dur }); say(c, rnd(['…', '嗚…', '我知道了…']), 1.6); if (body) c.lookAt(downPt(c)); });
+        sc.at(0, () => { face(c, m, 'sad', dur); emo('cloud', Math.min(2.6, dur)); act(c, 'sob', { duration: dur }); say(c, rnd(['…', '嗚…', '我知道了…']), 1.6); if (body) c.lookAt(downPt(c)); });
         sc.on_end(() => { if (!(A() && A().current() === c)) c.lookAt(null); });
         if (t.opt >= .6) sc.at(dur, () => { face(c, m, 'effort', 1.4); say(c, '我再試一次！', 1.6); m.val = Math.max(m.val, -.1); }).at(dur + 1.5, () => { }); else sc.at(dur, () => face(c, m, 'worried', 2)).at(dur + 2, () => { });
       } else {                                       // 悶著的人：嘟嘴
-        sc.at(0, () => { face(c, m, 'pout', 2.4); act(c, 'sulk', { duration: 2.2 }); c.emote('dots', 1.8); say(c, '好吧…', 1.5); });
+        sc.at(0, () => { face(c, m, 'pout', 2.4); act(c, 'sulk', { duration: 2.2 }); emo('dots', 1.8); say(c, '好吧…', 1.5); });
         sc.at(2.4, () => { }).at(2.6, () => { });
       }
       holdCap(c, m, sc);
@@ -460,7 +461,7 @@ export function createMind(W, X = {}) {
   M.moodLine = c => {
     const m = mindOf(c); if (!m) return null; let k, label, cause = '';
     const cz = m.cause && W.time < m.cause.until ? m.cause.text : '';
-    if (c.sleeping || c.action === 'sleep') { k = 'sleep'; label = '睡覺中'; cause = '電力用完了'; }
+    if (c.sleeping || c.action === 'sleep') { k = 'sleep'; label = '睡覺中'; cause = c.jobless ? '待業中，在毯子上休息' : (S && S.q.exhausted ? '電力用完了' : '正在休息'); }
     else if (m.burned) { k = 'burned'; label = '驚魂未定'; cause = CAUSE.burned; }
     else if (m.flag && m.flag.name === 'dizzy' && W.time < m.flag.until) { k = 'dizzy'; label = '頭暈'; cause = cz || CAUSE.knocked; }
     else if (m.flag && m.flag.name === 'upset' && W.time < m.flag.until) { k = 'upset'; label = '有點生氣'; cause = cz || CAUSE.knocked; }

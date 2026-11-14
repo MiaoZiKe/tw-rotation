@@ -262,17 +262,17 @@ def t_office_physics(b, base):
 
         # ───── 焦黑在畫面上真的變暗（截圖亮度）─────
         for who, nm in (("old", "舊"), ("new", "新")):
-            pg.evaluate("""(who) => { const W = __world, T = __T, c = who === 'new' ? T.newChar() : T.oldChar(); T.place(c, who === 'new' ? 15.2 : 13.0, who === 'new' ? 11.6 : 10.9, Math.PI); W.daytime.set('day'); W.fire.ensureScorch(c); window.__pc = c; W.advance(0.5);
+            pg.evaluate("""(who) => { const W = __world, T = __T, c = who === 'new' ? T.newChar() : T.oldChar(); T.place(c, who === 'new' ? 15.2 : 13.0, who === 'new' ? 11.6 : 10.9, Math.PI); W.daytime.set('day'); W.fire.ensureScorch(c); window.__pc = c; W.advance(0.5); window.__hid = []; for (const o of [...W.chars.values(), ...(W.pets || [])]) if (o !== c && o.object3D.visible) { o.object3D.visible = false; window.__hid.push(o); }   // 其他角色先藏起來，免得擋在前面
               W.view.mode = 'god'; W.view.char = null; W.view.tween = null; const p = c.object3D.position; W.controls.target.set(p.x, 0.5, p.z); W.camera.position.set(p.x + 0.4, 1.6, p.z + 3.0); W.camera.fov = 30; W.camera.updateProjectionMatrix(); W.controls.update(); c._sootU.value = 0; }""", who)
             pg.wait_for_timeout(900)
-            box = pg.evaluate("() => { const W = __world, c = window.__pc, b3 = new W.THREE.Box3().setFromObject(c.object3D), v = b3.getCenter(new W.THREE.Vector3()).project(W.camera); return [Math.round((v.x + 1) / 2 * innerWidth), Math.round((1 - v.y) / 2 * innerHeight)]; }")
+            box = pg.evaluate("() => { const W = __world, c = window.__pc, v = new W.THREE.Vector3(c.object3D.position.x, (c.height || 0.8) * 0.5, c.object3D.position.z).project(W.camera); return [Math.round((v.x + 1) / 2 * innerWidth), Math.round((1 - v.y) / 2 * innerHeight)]; }")
             crop = (box[0] - 28, box[1] - 28, box[0] + 28, box[1] + 28)
             l0 = _ph_lum(pg.screenshot(), crop)
             pg.evaluate("() => { window.__pc._sootU.value = 0.9; }")
             pg.wait_for_timeout(700)
             l1 = _ph_lum(pg.screenshot(), crop)
-            pg.evaluate("() => { window.__pc._sootU.value = 0; window.__pc.busy = false; }")
-            ok("焦黑畫面（%s角色）：身體區域平均亮度 %.0f → %.0f（變暗 ≥ 25%%）" % (nm, l0, l1), l1 <= l0 * 0.75, (l0, l1, box))
+            pg.evaluate("() => { window.__pc._sootU.value = 0; window.__pc.busy = false; for (const o of window.__hid) o.object3D.visible = true; }")
+            ok("焦黑畫面（%s角色）：身體區域平均亮度 %.0f → %.0f（變暗 ≥ 25%%）" % (nm, l0, l1), l0 > 20 and l1 <= l0 * 0.75, (l0, l1, box))
 
         # ───── 整修模式：翻倒的東西立刻歸位、手動擺放的位置是新的原位 ─────
         r10 = pg.evaluate("""async () => {
