@@ -331,13 +331,20 @@ def t_office_physics(b, base):
         # ───── 真人操作（只用滑鼠與鍵盤，不呼叫內部函式；2026-11-14 擁有者回報「沒有燒起來」後補）─────
         _PROJ = """(a) => { const W = __world, V = W.THREE.Vector3, f = (x, y, z) => { const v = new V(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const c = window.__rc, p = c.object3D.position; return { c: f(p.x, 0.45, p.z), fire: f(30.2, 0.6, 36.6) }; }"""
 
+        _rf_n = [0]
+
         def real_fire(mode, who, tod, shot=None):
-            pg.evaluate("""([who, tod]) => { const W = __world, cs = [...W.chars.values()]; W.fire.reset(); W.phys.restoreAll(true); W.daytime.set(tod); for (const o of cs) o.busy = false;
-              const c = who === 'new' ? cs.find(q => q.newModel && !q.spec.isCeo) : cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); window.__rc = c; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(26.5, 35.0, 0);
-              W.fire.states.delete(c.spec.id); c._sootU && (c._sootU.value = 0); W.speed = 1; W.godAt(30.2, 36.0, 26); }""", [who, tod])
-            pg.wait_for_timeout(2500)
+            _rf_n[0] += 1
+            pg.evaluate("() => { __world.speed = 1; }")
+            wait_until(pg, "() => [...__world.chars.values()].every(c => !c._held)", 20000)      # 上一輪丟出去的角色先落地站穩
+            pg.evaluate("""([who, tod, n]) => { const W = __world, cs = [...W.chars.values()]; W.fire.reset(); W.phys.restoreAll(true); W.daytime.set(tod); for (const o of cs) o.busy = false;
+              const L = who === 'new' ? cs.filter(q => q.newModel && !q.spec.isCeo) : cs.filter(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'), c = L[n % L.length]; window.__rc = c; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(26.5, 35.0, 0);
+              W.fire.states.delete(c.spec.id); c._sootU && (c._sootU.value = 0); W.speed = 1; W.godAt(30.2, 36.0, 26); }""", [who, tod, _rf_n[0]])
+            wait_until(pg, "() => !__world.view.tween", 20000)         # 鏡頭飛完才量位置
+            pg.wait_for_timeout(1500)
             pt = pg.evaluate(_PROJ, 0)
             cx, cy = pt["c"]; fx, fy = pt["fire"]
+            pre = pg.evaluate("() => [__rc.state, __rc.object3D.position.x, __rc.object3D.position.z, __world.view.mode, !!__world.view.tween]")
             if mode == "throw":
                 fx, fy = fx + (fx - cx) * 0.5, fy + (fy - cy) * 0.5          # 甩過頭：往火的方向再多拖 50%
             pg.mouse.move(cx, cy)
@@ -347,6 +354,7 @@ def t_office_physics(b, base):
                 pg.mouse.move(cx + (fx - cx) * i / 8, cy + (fy - cy) * i / 8)
                 pg.wait_for_timeout(16 if mode == "throw" else 150)
             held = pg.evaluate("() => __rc.state === 'held'")
+            dbg = (pre, pt, pg.evaluate("() => [__rc.state, __rc.object3D.position.x, __rc.object3D.position.z, __world.fire.stateOf(__rc).state]"))
             if shot:
                 pg.wait_for_timeout(300)
             pg.mouse.up()
@@ -366,11 +374,11 @@ def t_office_physics(b, base):
                     sh.paste(im, ((k % 4) * 400, (k // 4) * 250))
                 sh.save(shot)
             pg.evaluate("() => { __world.fire.reset(); __world.speed = 0.001; __rc.busy = true; }")
-            return held, burned, soot
+            return held, burned, soot, dbg
 
         for mode, who, tod, nm in (("drop", "old", "day", "放下（舊角色，白天）"), ("drop", "new", "night", "放下（新角色，夜晚）"), ("throw", "old", "night", "甩出（舊角色，夜晚）"), ("throw", "new", "day", "甩出（新角色，白天）")):
-            held, burned, soot = real_fire(mode, who, tod)
-            ok("真人操作（滑鼠）拎起角色、拖到營火上、%s：被拎起且燒起來（焦黑 %.2f）" % (nm, soot), held and burned and soot > 0.3, (held, burned, soot))
+            held, burned, soot, dbg = real_fire(mode, who, tod)
+            ok("真人操作（滑鼠）拎起角色、拖到營火上、%s：被拎起且燒起來（焦黑 %.2f）" % (nm, soot), held and burned and soot > 0.3, (held, burned, soot, dbg))
         pg.evaluate("() => { __world.speed = 1; }")
 
         # ───── 真人操作：方向鍵操控角色走到營火邊 ─────
