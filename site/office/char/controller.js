@@ -71,8 +71,8 @@ export class CharController {
     this.debug = { rotCalls: 0, perBone: {}, proj: 0, projMax: 0, frames: 0 };
     this.sampleIdx = this.buildSamples();
     // 坐姿腳要抬多少：靜止姿勢下身體（不含腿腳）最低點離地多高。有腿的模型（糰糰 11-14 抬高後肚底離地約 2 公分）坐下時懸空的腳會比臀部低，
-    // 抬起這個量（再多 1.2 公分）腳才會在座面之上、往前伸，臀部仍是最低接觸點。
-    { ch.resetPose(); ch.root.position.set(0, 0, 0); ch.model.updateMatrixWorld(true); this.sitFootUp = Math.max(0, this.lowestBody(false)) + 0.012; }
+    // 抬起這個量（再多 3 公分）腳才會在座面之上、往前伸，臀部仍是最低接觸點。
+    { ch.resetPose(); ch.root.position.set(0, 0, 0); ch.model.updateMatrixWorld(true); this.sitFootUp = Math.max(0, this.lowestBody(false)) + 0.03; }
     this.reset(opts.x ?? 0, opts.z ?? 0, opts.yaw ?? 0);
   }
   // ── 初始化／重設
