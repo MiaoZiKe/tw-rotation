@@ -262,7 +262,7 @@ def t_office_physics(b, base):
 
         # ───── 焦黑在畫面上真的變暗（截圖亮度）─────
         for who, nm in (("old", "舊"), ("new", "新")):
-            pg.evaluate("""(who) => { const W = __world, T = __T, c = who === 'new' ? T.newChar() : T.oldChar(); T.place(c, who === 'new' ? 15.2 : 13.0, who === 'new' ? 11.6 : 10.9, Math.PI); W.daytime.set('day'); W.fire.ensureScorch(c); window.__pc = c; W.advance(0.5); window.__hid = []; for (const o of [...W.chars.values(), ...(W.pets || [])]) if (o !== c && o.object3D.visible) { o.object3D.visible = false; window.__hid.push(o); }   // 其他角色先藏起來，免得擋在前面
+            pg.evaluate("""(who) => { const W = __world, T = __T, c = who === 'new' ? T.newChar() : T.oldChar(); W.fire.reset(); T.place(c, who === 'new' ? 15.2 : 13.0, who === 'new' ? 11.6 : 10.9, Math.PI); W.daytime.set('day'); W.fire.ensureScorch(c); window.__pc = c; W.advance(0.5); window.__hid = []; for (const o of [...W.chars.values(), ...(W.pets || [])]) if (o !== c && o.object3D.visible) { o.object3D.visible = false; window.__hid.push(o); }   // 其他角色先藏起來，免得擋在前面
               W.view.mode = 'god'; W.view.char = null; W.view.tween = null; const p = c.object3D.position; W.controls.target.set(p.x, 0.5, p.z); W.camera.position.set(p.x + 0.4, 1.6, p.z + 3.0); W.camera.fov = 30; W.camera.updateProjectionMatrix(); W.controls.update(); c._sootU.value = 0; }""", who)
             pg.wait_for_timeout(900)
             box = pg.evaluate("() => { const W = __world, c = window.__pc, v = new W.THREE.Vector3(c.object3D.position.x, (c.height || 0.8) * 0.5, c.object3D.position.z).project(W.camera); return [Math.round((v.x + 1) / 2 * innerWidth), Math.round((1 - v.y) / 2 * innerHeight)]; }")
@@ -427,9 +427,9 @@ def t_office_physics(b, base):
             hit, r = real_walk(who)
             ok("真人操作（方向鍵）操控%s角色走到營火邊：會燒起來" % ("舊" if who == "old" else "新"), hit, r)
 
-        # ───── 真人操作：滑鼠甩人撞椅子 ─────
+        # ───── 真人操作：滑鼠甩人撞椅子（W.speed=0.3 模擬畫面卡頓：模擬時間走得比手慢，甩出速度要用事件時間算才不會被低估）─────
         pg.evaluate("""() => { const W = __world, cs = [...W.chars.values()]; W.phys.restoreAll(true); W.fire.reset(); W.daytime.set('day'); for (const o of cs) o.busy = false; const c = cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); window.__rc = c;
-          c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(13.0, 10.6, Math.PI); W.speed = 0.3; W.godAt(13, 9, 16);   // 模擬時間走得比手慢（模擬畫面卡頓）：甩出速度要用事件時間算才不會被低估 window.__chair = W.phys.find('meeting_table_13/chair4'); }""")
+          c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(13.0, 10.6, Math.PI); W.speed = 0.3; W.godAt(13, 9, 16); window.__chair = W.phys.find('meeting_table_13/chair4'); }""")
         pg.wait_for_timeout(2500)
         pt = pg.evaluate("""() => { const W = __world, V = W.THREE.Vector3, f = (x, y, z) => { const v = new V(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const p = __rc.object3D.position; return { c: f(p.x, 0.45, p.z), t: f(13.0, 0.45, 6.4) }; }""")
         pg.mouse.move(pt["c"][0], pt["c"][1])
