@@ -15,6 +15,7 @@ import { CHANNELS } from '../../char/actions.js';
 import { NEW_KINDS, isNew, colorsFor, mergeProfile, officeProfile, PROFILE_OVERRIDE } from '../../char/kinds.js';
 import { addAccs, addCherry } from '../../char/accs.js';
 import { G as KG } from './kit.js';
+import { NAV } from './nav.js';
 export * from '../../play/office_character.js';
 
 const V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
@@ -28,7 +29,8 @@ if (!FORCE_OLD) {
   BASE_PROFILE = await loadProfile(new URL('../../char/profiles/mochi.json', import.meta.url).href);
   await Promise.all(Object.keys(NEW_KINDS).map(async (sp) => { const [a0, a2] = await Promise.all([loadMochi({ species: sp, lod: 0 }), loadMochi({ species: sp, lod: 2 })]); ASSET[sp] = { 0: a0, 2: a2 }; }));
 }
-export const newCharStats = { created: 0, species: {} };
+export const newCharStats = { created: 0, species: {}, rescue: 0 };
+try { globalThis.__ncStats = newCharStats; } catch (e) { /* 沒有全域物件的環境不需要 */ }
 
 const EXPR = { neutral: null, happy: 'happy', angry: 'angry', surprised: 'surprised', sad: 'sad', think: 'look', awkward: 'shy', proud: 'smug', sleepy: 'sleepy', laugh: 'laugh', ouch: 'ouch', pout:'pout', worried:'worried', wary:'wary', relieved:'relieved', blank:'blank', cry:'cry', grateful:'grateful', fistpump:'fistpump', sulkf:'sulkf', scared:'scared', cough:'cough', giggle:'giggle', smile:'smile', confused:'confused', dizzy:'dizzy', bliss:'bliss', yawn:'yawn', whee:'whee', effort:'effort', shy:'shy', smug:'smug' };
 const ALIAS = { '!': 'exclaim', '?': 'question', '怒': 'anger', '♪': 'note', '…': 'dots', '汗': 'sweat', '☆': 'star', '♥': 'heart' };
@@ -96,6 +98,10 @@ function makeNew(spec, look, env) {
   const k = 1.5 * Math.pow(1 / s, 0.5);
   const prof = officeProfile(mergeProfile(BASE_PROFILE, PROFILE_OVERRIDE[look.species]), k), walkV = prof.move.walk * s, runV = prof.move.run * s;
   const ctl = new CharController(ch, world, prof, { life: true, seed: hash(spec.id || spec.nick || 'x') });
+  // 場景給的 bounds 是「角色中心」能到的範圍（舊系統與導航網格都這樣用：牆內側 0.125＋避讓 0.32 → 中心最近到 0.6）；
+  // 物理的邊界是「身體外緣」，直接拿來用等於再扣一次身體半徑（跳跳 R≈0.46 → 中心只能到 1.06），導航給的貼牆路徑點就走不到（11-15 驗收 B 問題 3）
+  const R0 = ctl.shape.R, BND = { minX: B.x0 / s - R0, maxX: B.x1 / s + R0, minZ: B.z0 / s - R0, maxZ: B.z1 / s + R0 }; world.bounds = { ...BND };
+  const clampPt = (q) => ({ x: clamp(q.x, B.x0 + 0.02, B.x1 - 0.02), z: clamp(q.z, B.z0 + 0.02, B.z1 - 0.02) });
   newCharStats.created++; newCharStats.species[look.species] = (newCharStats.species[look.species] || 0) + 1;
 
   const ext = { vx: 0, vz: 0 };
@@ -153,11 +159,11 @@ function makeNew(spec, look, env) {
     drive(vx, vz, fx, fz) { c._drive = vx == null ? null : { vx, vz, fx: fx || 0, fz: fz || 0 }; if (vx == null) { ext.vx = ext.vz = 0; ctl.stop(); } },
     walkTo(path, opts = {}) {
       c._drive = null; c.stop(false); if (!path || path.length < 2 || c._held) return Promise.resolve(!c._held);
-      c._path = path; c._pi = 1; c._speed = opts.speed || 1.6; c._stuck = 0;
+      c._path = path.map(clampPt); c._pi = 1; c._speed = opts.speed || 1.6; c._stuck = 0; c._prog = null; c._rescue = 0; endGlide();
       if (c._seat) { c._seat = null; c._rising = true; ctl.standUp(); }
       return new Promise(res => { c._resolve = res; });
     },
-    stop(ok = false) { if (c._path) { c._path = null; const r = c._resolve; c._resolve = null; ctl.stop(); if (r) r(ok); } },
+    stop(ok = false) { if (c._path) { c._path = null; c._prog = null; endGlide(); const r = c._resolve; c._resolve = null; ctl.stop(); if (r) r(ok); } },
     sitAt(seat, opts = {}) {
       c.stop(false); if (c._held) return; const px = root.position.x, pz = root.position.z, d = Math.hypot(seat.x - px, seat.z - pz);
       c._seat = seat; c._rising = false; const sy = seatY(seat), SP = seatPos(seat); setSeatBox(seat, sy, SP);
@@ -224,9 +230,32 @@ function makeNew(spec, look, env) {
     }
     if (ctl.state === 'idle' || ctl.state === 'land') { ctl.stop(); ctl.faceTo(c.heading); }
   }
+  // ── 卡住保底（11-15）：同一個路徑點 3 秒（模擬時間）沒有實質前進（< 0.2 公尺）就依序：
+  //   ① 從現在的位置重新找路 → ② 略過這個點（最後一個點且已很近就當作到了）→ ③ 平順地滑回目的地（不瞬移：照樣走路動作，只是暫時不受邊界／座面擋）
+  const PROG_T = 3, PROG_D = 0.2;
+  let glide = false;
+  function endGlide() { if (!glide) return; glide = false; world.bounds = { ...BND }; ctl.body.ignoreH.clear(); c._ghost = 0; }
+  function rescue(p) {
+    const path = c._path, last = path[path.length - 1], n = c._rescue++; c._prog = null; c._stuck = 0;
+    newCharStats.rescue = (newCharStats.rescue || 0) + 1;
+    if (n === 0) {
+      const nav = NAV.cur, np = nav && nav.findPath(p, last);
+      if (np && np.length >= 2) { c._path = np.map(clampPt); c._path[c._path.length - 1] = clampPt(last); c._pi = 1; return 'replan'; }
+    }
+    if (n <= 1) {
+      if (c._pi < path.length - 1) { c._pi++; return 'skip'; }
+      if (Math.hypot(last.x - p.x, last.z - p.z) < 0.6) { c.stop(true); return 'near'; }
+    }
+    glide = true; world.bounds = { minX: -1e4, maxX: 1e4, minZ: -1e4, maxZ: 1e4 }; for (const bx of world.boxes) ctl.body.ignoreH.add(bx.id);
+    c._path = [p, clampPt(last)]; c._pi = 1; c._ghost = 99; return 'glide';
+  }
   function pathStep(dt) {
     const p = { x: ctl.body.x * s, z: ctl.body.z * s }, tgt = c._path[c._pi]; let dx = tgt.x - p.x, dz = tgt.z - p.z; const dist = Math.hypot(dx, dz);
-    if (dist < 0.12) { c._pi++; if (c._pi >= c._path.length) c.stop(true); return; }
+    if (dist < 0.12) { c._pi++; c._prog = null; if (c._pi >= c._path.length) c.stop(true); return; }
+    const pr = c._prog;
+    if (!pr || pr.i !== c._pi || pr.path !== c._path) c._prog = { i: c._pi, path: c._path, best: dist, t: 0 };
+    else if (dist < pr.best - PROG_D) { pr.best = dist; pr.t = 0; }
+    else if (!c._pause && (pr.t += dt) > PROG_T) { c._lastRescue = rescue(p); return; }
     dx /= dist; dz /= dist; let vx = dx * c._speed, vz = dz * c._speed, slow = 1; c._ghost = Math.max(0, c._ghost - dt);
     if (env.separation && c._ghost <= 0 && !spec.pet) { const q = env.separation(c, dx, dz); vx += q.x; vz += q.z; slow = q.slow ?? 1; }
     const sp = Math.min(c._speed * slow, dist / Math.max(dt, 1e-3)), vl = Math.hypot(vx, vz) || 1; vx = vx / vl * sp; vz = vz / vl * sp;

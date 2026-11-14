@@ -7,9 +7,12 @@ import * as THREE from 'three';
 
 export function createCamClear(W, X) {
   const { camera, controls, view } = X, C = { moves: 0 }, ray = new THREE.Raycaster(), a = new THREE.Vector3(), d = new THREE.Vector3(), head = new THREE.Vector3(), off = new THREE.Vector3(), cand = new THREE.Vector3();
-  let acc = 0, quiet = 0, goal = null, list = [], listT = 0;
-  const blockers = () => { if (W.time - listT > 2 || !list.length) { listT = W.time; list = []; if (W.outside && W.outside.mesh) list.push(W.outside.mesh); for (const i of W.furn.values()) if (i.mesh && i.mesh.visible && i.obj.visible) list.push(i.mesh); } return list; };
-  const blockedFrom = (from, to) => { d.copy(to).sub(from); const L = d.length(); if (L < 0.5) return false; ray.set(from, d.normalize()); ray.far = L - 0.08; ray.near = 0.2;   // 一路算到頭部前 8 公分：路燈離角色只有 0.2～0.3 公尺，以前排除頭部前 0.6 公尺，剛好把它排除、鏡頭被擋 15 秒都不動 return ray.intersectObjects(blockers(), false).length > 0; };
+  let acc = 0, quiet = 0, goal = null, list = [], listT = 0, outMesh = null;
+  const blockers = () => { if (W.time - listT > 2 || !list.length) { listT = W.time; list = []; outMesh = W.outside && W.outside.mesh || null; if (outMesh) list.push(outMesh); for (const i of W.furn.values()) if (i.mesh && i.mesh.visible && i.obj.visible) list.push(i.mesh); } return list; };
+  // 遊民區的靜態物件（路燈離角色只有 0.2～0.3 公尺）：射線一路算到頭部前 8 公分；以前一律排除頭部前 0.6 公尺，剛好把路燈排除、鏡頭被擋 15 秒都不動。
+  // 辦公室家具維持排除頭部前 0.6 公尺（坐著的人自己的桌椅就在身邊，算進去會一直被判成擋住）。
+  const hit = (objs, from, to, tail) => { d.copy(to).sub(from); const L = d.length(); if (L < 0.5) return false; ray.set(from, d.normalize()); ray.far = L - tail; ray.near = 0.2; return ray.intersectObjects(objs, false).length > 0; };
+  const blockedFrom = (from, to) => { blockers(); return (outMesh && hit([outMesh], from, to, 0.08)) || hit(list.filter(o => o !== outMesh), from, to, 0.6); };
   C.tick = dt => {
     const c = view.char;
     if (view.mode !== 'char' || !c || view.tween || (W.pov && W.pov.on())) { goal = null; return; }

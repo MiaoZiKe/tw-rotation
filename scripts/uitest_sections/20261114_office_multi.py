@@ -706,6 +706,22 @@ def _mu_lamp(pg_, b, base, code):
         c.close()
 
 
+def _mu_thrown_text(pg_, b, base, code):
+    """被拎起來時資訊卡寫「被拎起來了」；放開後到落地前（_released）寫「被丟出去了」"""
+    c, pg, got = _mu_open(b, base, qs="?q=low&pr=0.6&ambient=0", speed=1)
+    try:
+        ok("被丟出去文字：載入", got)
+        if not got:
+            return
+        r = pg.evaluate("""async () => { const W = __world, c = W.chars.get('data-steward'); W.ui.showCard(c); c.grab(); await W.sleep(0.3);
+          const a = document.getElementById('cardNow').textContent; W.ui.tickCard(); const a2 = document.getElementById('cardNow').textContent;
+          c._released = true; W.ui.tickCard(); const b = document.getElementById('cardNow').textContent; c._released = false; return { a2, b }; }""")
+        ok("拎著時寫「被拎起來了」、放開還在飛時寫「被丟出去了」", "被拎起來了" in r["a2"] and "被丟出去了" in r["b"], r)
+    finally:
+        c.close()
+
+
+register("辦公室被丟出去文字", _mu_thrown_text)
 register("辦公室路燈遮擋", _mu_lamp)
 register("辦公室介面驗收1115b", _mu_ui1115b)
 register("辦公室點選CDP桌機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, False))

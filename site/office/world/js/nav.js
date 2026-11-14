@@ -1,6 +1,8 @@
 // 尋路：依佈局（牆＋家具佔地）產生可走格子，A* 找路，再把路徑拉直。
 // block＝把障礙物外擴一個角色半徑後的格子（找路用）；solid＝障礙物本體（驗證「沒有穿牆穿家具」用）。
 export const AGENT_R = 0.27;
+// 目前場景的導航網格（最後一個 createNav 建的那份）：新角色相容層（newchar.js）卡住時重新找路用；場景端不必多傳參數
+export const NAV = { cur: null };
 
 export function createNav(layout) {
   const cs = layout.cell || 0.25, W = layout.size.w, D = layout.size.d;
@@ -109,7 +111,8 @@ export function createNav(layout) {
   // 驗證用：沿路每 5 公分取樣，回報有幾個點落在障礙物本體裡
   function pathHits(p) { let hits = 0; for (let i = 1; i < p.length; i++) { const d = Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z), n = Math.max(1, Math.ceil(d / 0.05)); for (let k = 0; k <= n; k++) { const t = k / n; if (isSolid(p[i - 1].x + (p[i].x - p[i - 1].x) * t, p[i - 1].z + (p[i].z - p[i - 1].z) * t)) hits++; } } return hits; }
 
-  return { rebuild, isFree, isReach, isSolid, nearestFree, findPath, los, pathLength, pathHits, cs, nx, nz, ox, oz, get block() { return block; } };
+  const api = { rebuild, isFree, isReach, isSolid, nearestFree, findPath, los, pathLength, pathHits, cs, nx, nz, ox, oz, get block() { return block; } };
+  NAV.cur = api; return api;
 }
 
 // 家具佔地：區域座標 → 世界座標（rot 是 90 度的倍數）
