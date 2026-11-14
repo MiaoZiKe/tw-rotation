@@ -101,3 +101,10 @@ body.pw-signon #toast{top:auto;bottom:76px}
   .em-banner{left:8px;right:8px;transform:none;bottom:12px}
 }
 @media (pointer:coarse){ .sim-pop .it.sm{min-height:40px} .btn.dng{min-height:44px} }
+
+/* 無業遊民區的邊緣標示（2026-11-14）：遊民區不在畫面裡時，右下角一顆小標籤，點了鏡頭飛過去；手機放在客服鈕之外、不蓋到搖桿 */
+.jl-hint{position:absolute;z-index:9;right:16px;bottom:16px;border:2px solid #d9a867;background:#fff1d8;color:#6b4a22;border-radius:999px;padding:6px 14px;min-height:36px;font:700 13px/1.2 "Noto Sans TC",sans-serif;box-shadow:var(--sh);cursor:pointer}
+.jl-hint:hover{background:#ffe6bd}
+.jl-hint[hidden]{display:none}
+body.pt-sel .jl-hint{display:none}
+@media (max-width:640px){.jl-hint{right:auto;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px))}}

@@ -1,7 +1,13 @@
 {
   "name": "ai-office-local",
-  "owner": { "name": "AI Office" },
+  "owner": {
+    "name": "AI Office"
+  },
   "plugins": [
-    { "name": "ai-office-bridge", "source": "./ai-office-bridge", "description": "把工作階段與子 Agent 的事件上報到 AI Office（雛形，測試用）" }
+    {
+      "name": "ai-office-bridge",
+      "source": "./ai-office-bridge",
+      "description": "把工作階段與子 Agent 的事件（去識別後）上報到 AI Office"
+    }
   ]
 }

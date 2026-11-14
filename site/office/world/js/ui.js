@@ -25,7 +25,7 @@ export function createUI(W, demo, api) {
     <li>點角色後他會轉過來面向你（坐著的人轉椅子、走路的人先停下來、睡覺的人不會被吵醒）；取消選取後他回到原本的朝向與行為。</li>
     <li>「角色視角」（資訊卡的按鈕、視角列、鍵盤 V、手機操控列的「視角」）：鏡頭換到他的眼睛，拖曳可以環顧；操控中 ↑ ↓ 是往前往後、← → 是轉身。Esc 或再按一次回到原視角。</li>
     <li>手機：頂列的「更多」裡有區域、示範、速度、整修、拖曳功能與時間。</li>
-    <li>按住角色拖曳：把他拎起來放到別處，放開後他會自己走回座位。寵物也可以摸、餵、拎。</li>
+    <li>拖曳（包含從角色或家具身上開始）一律是平移畫面。想把角色拎起來：按住他不動約半秒（觸控同理）再拖曳，放開後他會自己走回座位。寵物也可以摸、餵、拎。</li>
     <li>點佈告欄：看 CEO 或該部門的公告。</li>
     <li>頂列「電力」：Claude 額度還剩多少（台北時間）。額度用完，全體會自動睡覺，恢復後依序醒來。</li>
     <li>資訊卡的「開除」：同事會搬到公司外面的無業遊民區，點他可以看資訊並「重新聘用」；CEO 不能被開除。</li>
@@ -127,11 +127,11 @@ export function createUI(W, demo, api) {
         <p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p><p>${esc(spName(s))}</p></div></div>
       ${W.rewards && W.rewards.on ? W.rewards.cardBlock(s) : ''}
       <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
-      <div class="acts g3 g4"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button><button class="btn povb" data-i="pov" aria-pressed="false" title="從他的眼睛看出去（鍵盤 V）">角色視角</button></div>
+      <div class="acts g3 g4"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button><button class="btn povb" data-i="pov" aria-pressed="false" title="從他的眼睛看出去（鍵盤 V）">角色視角</button>${s.isCeo ? '' : '<button class="btn dng" data-i="fire" title="開除：同事會搬到公司外面的無業遊民區（會先跳確認框）">開除</button>'}</div>
       <div class="kpi" id="cardKpi">${[[1, 'k1', '未完成', p.nTodo, p.nextTodo ? '排 ' + p.nextTodo : '—'], [2, 'k2', '進行中', p.nDoing, '起 ' + p.lastDoing], [3, 'k3', '已完成', p.nDone, '末 ' + p.lastDone]].map(([k, c, n, v, em]) => `<button class="${c}" data-k="${k}" aria-pressed="false" title="點一下只看「${n}」的任務，再點一次回到全部"><span>${n}</span><b>${v}</b><em>${em}</em></button>`).join('')}</div>
       <dl class="meta">${p.nDoing ? `<dt>預估完成</dt><dd>${p.eta}（約 ${p.etaMin} 分鐘後）</dd><dt>能否優化</dt><dd>${esc(p.opt)}</dd>` : '<dt>預估完成</dt><dd>目前沒有進行中的任務</dd>'}</dl>
       <div class="list" id="cardList"></div>
-      <div class="acts"><button class="btn" data-a="ceo">回 CEO 視角</button><button class="btn" data-a="god">俯瞰</button>${s.isCeo ? '' : '<button class="btn dng" data-i="fire">開除</button>'}</div>`;
+      <div class="acts"><button class="btn" data-a="ceo">回 CEO 視角</button><button class="btn" data-a="god">俯瞰</button></div>`;   // 「開除」鈕搬到上面的動作格裡（手機卡片很長，以前放在最底下要捲動才找得到）
     $('card').hidden = false; renderList();
   };
   // 待業中的資訊卡：開除日期、原因、任務轉給誰、在職期間完成的任務；可以重新聘用

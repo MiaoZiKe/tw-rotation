@@ -457,7 +457,7 @@ export class CharController {
           if (t.n) v *= lerp(t.n[0], t.n[1], Math.min(1, n)); if (t.w) v *= wk;
           bus.set(t.ch, v, who);
         }
-        drv(C.drv, this.sig); expr = C.expr; break; }
+        drv(C.drv, this.sig); this.gaitStyle(G, who); expr = C.expr; break; }
       case 'jumpPrep': case 'land': {
         const c = this.clip; if (c) bus.a.set(c.out); for (let i = 0; i < N; i++) if (c && c.out[i]) bus.owner[i] = who;
         expr = key === 'land' ? 'surprised' : 'neutral';
@@ -474,6 +474,42 @@ export class CharController {
     }
     if (this.state === 'sit' && ['approach', 'turn'].includes(this.sit?.sub) === false && key === 'jumpPrep') expr = 'neutral';
     this.base_expr = expr;
+  }
+
+  /** 步態風格層（各物種的走路個性，profile.gait.<walk|run>.style）：在腳 IK「之前」疊上身體起伏、重心左右轉移、落地擠壓／騰空拉長、
+   *  前傾、頭慢半拍、耳朵與尾巴的次級擺動。著地腳由腳 IK 鎖在地面，身體抬高只會拉長腿（上限 gait.maxStretch），不會把腳帶離地面。
+   *   · type 'alt'：交替走。每步（半個循環）一次：腳踩下後 q≈0.08 身體最低＋壓扁、站立中點 q≈0.58 最高＋拉長。
+   *   · type 'hop'：雙腳同步跳步（gait.sync=0）。站立期蹲低壓扁→騰空期拋物線（高度 bob）＋拉長→落地；耳朵跟著上下甩。
+   *  數值單位：bob／crouch／shift 公尺；sway／lean／spineLean／rock／head／ear／tail／arm 弧度；sq／st 形態鍵權重。
+   *  平底的物種（布布）前傾要用 spineLean（轉脊椎）並用負的 lean 抵掉共用表 root.rx 的前傾：root 一傾，底緣就壓進地面，接地投影會把身體整個抬回去、起伏被吃掉。 */
+  gaitStyle(G, who) {
+    const St = G.style; if (!St) return;
+    const bus = this.bus, a = bus.a, u = this.feet.phase, d = G.duty, n = clamp(this.sig.speed / G.vmax, 0, 1.2), k = lerp(0.6, 1, Math.min(1, n)) * this.gaitAmp;
+    const add = (ch, v) => { if (!v) return; const i = IDX[ch]; bus.set(ch, a[i] + v * k, who); }, S = (x) => Math.sin(TAU * x);
+    const side = S(u - d / 2 + 0.25);   // +1＝左腳站立中點、−1＝右腳站立中點（重心轉向站立腳）
+    if (St.type === 'hop') {
+      const air = u >= d, s = air ? (u - d) / (1 - d) : 0, g = air ? 0 : u / d;
+      add('root.dy', air ? St.bob * Math.sin(Math.PI * s) : -St.crouch * Math.sin(Math.PI * g));
+      add('morph.squash', air ? 0 : St.sq * Math.sin(Math.PI * g));
+      add('morph.stretch', air ? St.st * Math.sin(Math.PI * Math.min(1, s * 1.35)) : 0);
+      add('root.rx', (St.lean || 0) + (St.pitch || 0) * (air ? -Math.cos(Math.PI * s) : Math.sin(Math.PI * g)));   // 起跳抬頭、落地前傾
+      const e = S(u - d - 0.12);   // 耳朵慢 0.12 循環：起跳往後甩、落地往前垂
+      add('ear.L.rx', (St.ear || 0) * e); add('ear.R.rx', (St.ear || 0) * e); add('ear.tip.L.rx', (St.earTip || 0) * S(u - d - 0.25)); add('ear.tip.R.rx', (St.earTip || 0) * S(u - d - 0.25));
+      add('tail.rx', (St.tail || 0) * e); add('head.rx', (St.head || 0) * S(u - d - 0.05));
+      add('arm.L.rz', (St.arm || 0) * (air ? Math.sin(Math.PI * s) : 0)); add('arm.R.rz', -(St.arm || 0) * (air ? Math.sin(Math.PI * s) : 0));
+    } else {
+      const q = frac(u * 2), c = Math.cos(TAU * (q - 0.08));
+      add('root.dy', (St.bob || 0) * 0.5 * (1 - c));
+      add('morph.squash', (St.sq || 0) * Math.max(0, c) ** 3); add('morph.stretch', (St.st || 0) * Math.max(0, -c) ** 2);
+      // 搖擺轉脊椎（上半身倒向站立腳），不轉 root：root 的支點在地面，轉它會把兩髖甩出腿長範圍
+      add('spine.rz', -(St.sway || 0) * side); add('root.dx', (St.shift || 0) * side);
+      add('root.rx', St.lean || 0); add('spine.rx', (St.spineLean || 0) + (St.rock || 0) * Math.cos(TAU * (q - 0.08)));   // rock：踩下時上半身往前點、站立中點回正（轉脊椎：平底的布布轉 root 會讓底緣壓地，被接地投影整個抬回去，起伏就不見了）
+      const lag = St.lag || 0.1;   // 頭、耳、尾比身體慢半拍
+      add('head.rz', (St.headRoll || 0) * S(u - d / 2 + 0.25 - lag)); add('head.rx', (St.head || 0) * Math.cos(TAU * (q - 0.08 - lag)));
+      add('ear.L.rx', (St.ear || 0) * Math.cos(TAU * (q - 0.08 - lag))); add('ear.R.rx', (St.ear || 0) * Math.cos(TAU * (q - 0.08 - lag)));
+      add('ear.L.rz', (St.earSide || 0) * S(u - d / 2 + 0.25 - lag)); add('ear.R.rz', (St.earSide || 0) * S(u - d / 2 + 0.25 - lag));
+      add('tail.ry', (St.tail || 0) * S(u - d / 2 - lag)); add('tail.rx', (St.tailUp || 0) * Math.cos(TAU * (q - 0.08 - lag)));
+    }
   }
 
   // ── 畫面：內插＋套用到骨頭＋腳 IK＋接地投影

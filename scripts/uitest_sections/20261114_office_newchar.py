@@ -138,9 +138,9 @@ def t_newchar(b, base):
 
 
 def t_newchar_calls(b, base):
-    """繪製次數：同一個場景、同一個視角，新系統（?body=v2）與舊系統（預設）各量一次 renderer.info.render.calls；新系統不得高於舊系統。"""
+    """繪製次數：同一個場景、同一個視角，新系統（預設，?body=v2 同）與舊系統（?body=v1）各量一次 renderer.info.render.calls；新系統不得高於舊系統。"""
     res = {}
-    for tag, qs in (("new", "?ambient=0&q=low&pr=0.3&view=ceo&body=v2"), ("old", "?ambient=0&q=low&pr=0.3&view=ceo")):
+    for tag, qs in (("new", "?ambient=0&q=low&pr=0.3&view=ceo&body=v2"), ("old", "?ambient=0&q=low&pr=0.3&view=ceo&body=v1")):
         c, pg, got = _open(b, base, qs)
         if not got:
             ok("繪製次數：%s 載入完成" % tag, False); c.close(); return
@@ -155,4 +155,72 @@ def t_newchar_calls(b, base):
         ok("繪製次數（%s 視角）：新 %s ≤ 舊 %s（+10%% 容差）" % (view, res[("new", view)], res[("old", view)]), res[("new", view)] >= 0 and res[("new", view)] <= res[("old", view)] * 1.10 + 2, res)
 
 
-register("辦公室新角色", lambda pg, b, base, code: (t_newchar(b, base), t_newchar_calls(b, base)))
+# ── 走路看不看得出在走（2026-11-14 走路改版；擁有者：「並沒有改善移動這件事情」）
+# 一位同事（縮放 1）在空地直走（走路 1.0、跑步 1.8 世界公尺／秒），手動 1/60 秒推進 150 幀、丟掉前 45 幀暖機，量：
+#   身體起伏（脊椎骨世界高度的範圍）、擺動腳最高離地、著地腳水平滑移、著地腳最低點離地（浮著＝滑行感；負＝穿地）、
+#   步頻×步幅 與 實際位移速度的誤差、辦公室預設俯視鏡頭（1280×800）下輪廓的變化（像素：輪廓高度變化、輪廓重心左右擺動，取大者）。
+_GAIT = """([sp, speed, nfr, shotEvery]) => {
+  const W = __world, V = W.THREE.Vector3, c = [...W.chars.values()].find(x => x.newModel && x.look.species === sp && !x.spec.isCeo && !x.spec.pet);
+  const ch = c.inner.ch, ctl = c.inner.ctl, cam = W.camera, dt = 1 / 60; W.speed = 0.01; let t = W.time;
+  c.stop(false); c.standAt(20, 24, 0); c.busy = true; for (let i = 0; i < 40; i++) { t += dt; c.update(dt, t); }
+  const b = ch.body, g = b.geometry, P = g.attributes.position, M = g.morphAttributes.position || [], w = b.morphTargetInfluences, v = new V(), r = new V(), sp0 = new V(), a = new V();
+  const cw = W.renderer.domElement.clientWidth, chh = W.renderer.domElement.clientHeight;
+  const sil = () => { ch.model.updateMatrixWorld(true); b.skeleton.update(); c.object3D.getWorldPosition(r); r.project(cam); const rx = r.x, ry = r.y; const cells = new Set(); let y0 = 1e9, y1 = -1e9, sx = 0, nn = 0;
+    for (let i = 0; i < P.count; i += 2) { v.set(P.getX(i), P.getY(i), P.getZ(i)); for (let k = 0; k < M.length; k++) if (w[k]) { v.x += M[k].getX(i) * w[k]; v.y += M[k].getY(i) * w[k]; v.z += M[k].getZ(i) * w[k]; } b.applyBoneTransform(i, v); v.applyMatrix4(b.matrixWorld).project(cam);
+      const px = (v.x - rx) * cw / 2, py = (v.y - ry) * chh / 2; cells.add(Math.round(px * 2) + ',' + Math.round(py * 2)); y0 = Math.min(y0, py); y1 = Math.max(y1, py); sx += px; nn++; }
+    return { area: cells.size / 4, h: y1 - y0, cx: sx / nn, cells }; };
+  const rows = [], z0 = ctl.body.z, t0 = t; let cadSum = 0, strideSum = 0, n = 0, slide = 0; const st = [null, null], shots = [];
+  const ref = []; let ovMax = 0, zs = 0, ts = 0, flo = 0, flMin = 9;
+  for (let i = 0; i < nfr; i++) {
+    c.drive(0, speed, 0, 1); t += dt; c.update(dt, t);
+    if (i < 45) continue;
+    if (i === 45) { zs = ctl.body.z; ts = t; }
+    ch.model.updateMatrixWorld(true); ch.bones.spine.getWorldPosition(sp0);
+    const feet = ctl.feet.feet.map((f, k) => { ch.bones['foot.' + f.side].getWorldPosition(a); if (f.mode === 'plant') { if (!f.blend) { const lo = ctl.feet.lowestLeg(f.side) - f.gy; flo = Math.max(flo, lo); flMin = Math.min(flMin, lo); } if (!st[k]) st[k] = a.clone(); slide = Math.max(slide, Math.hypot(a.x - st[k].x, a.z - st[k].z)); } else st[k] = null; return { m: f.mode, y: a.y }; });
+    const S = sil(); rows.push({ spy: sp0.y, f: feet, area: S.area, h: S.h, cx: S.cx, ph: ctl.feet.phase });
+    // 與第一格輪廓的差異（相對身體根部，半像素格；XOR 面積／平均面積）＝ 俯視下「形狀在動」的量
+    if (!ref.length) ref.push(S.cells); else { let x = 0; for (const k of S.cells) if (!ref[0].has(k)) x++; for (const k of ref[0]) if (!S.cells.has(k)) x++; ovMax = Math.max(ovMax, x / 2 / S.cells.size); }
+    if (ctl.feet.cad > 0) { cadSum += ctl.feet.cad; strideSum += ctl.feet.stride; n++; }
+    if (shotEvery && (i - 45) % shotEvery === 0) { c.object3D.getWorldPosition(r); r.project(cam); shots.push({ i, x: (r.x + 1) / 2 * cw, y: (1 - r.y) / 2 * chh }); }
+  }
+  const dist = ctl.body.z - z0, secs = (nfr) * dt, k = rows.length;
+  const spy = rows.map(x => x.spy), ar = rows.map(x => x.area), hh = rows.map(x => x.h), gy = Math.min(...rows.flatMap(x => x.f.map(f => f.y)));
+  const swingY = rows.flatMap(x => x.f.filter(f => f.m === 'swing').map(f => f.y));
+  // 實際速度：用後半段（穩定段）的位移
+  return { scale: c.scale, bob: (Math.max(...spy) - Math.min(...spy)), lift: swingY.length ? Math.max(...swingY) - gy : 0, slide, area: [Math.min(...ar), Math.max(...ar)], areaVar: Math.max(...ar) / Math.min(...ar) - 1, hVar: Math.max(...hh) - Math.min(...hh), cxVar: Math.max(...rows.map(x => x.cx)) - Math.min(...rows.map(x => x.cx)), hMean: hh.reduce((s, x) => s + x, 0) / k, shapeDiff: ovMax,
+    avgSpeed: (ctl.body.z - zs) / (t - ts) * c.scale, plantFloat: flo, plantMin: flMin, cad: cadSum / n, stride: strideSum / n, cadStride: (cadSum / n) * (strideSum / n) * c.scale, ctlSpeed: ctl.body.speed * c.scale, cmd: speed, state: ctl.state, shots };
+}"""
+
+# 門檻：(身體起伏公尺, 抬腳公尺, 俯視輪廓變化像素)。俯視門檻取「改前達不到、改後達得到」：改前（11-14 走路改版前）同一支量測
+#   垂垂 走 2.54／跑 2.12、布布 走 1.57／跑 1.43、糰糰 走 2.37／跑 1.66 像素；改後 4.96／6.23、3.61／1.93、3.33／2.90。
+#   改前垂垂、布布的起伏雖有 3.7～4.8 公分，但那是整隻（含著地腳）一起浮起來，會被「著地腳最低點離地 ≤ 1.5 公分」擋下（改前 2.7～5.6 公分）。
+_GAIT_MIN = {
+    ("bunny", "walk"): (0.06, 0.06, 4.0), ("bunny", "run"): (0.08, 0.08, 5.0),
+    ("pudding", "walk"): (0.025, 0.05, 3.0), ("pudding", "run"): (0.03, 0.05, 1.7),
+    ("mochi", "walk"): (0.025, 0.05, 3.0), ("mochi", "run"): (0.03, 0.05, 2.4),
+}
+
+
+def t_newchar_gait(b, base):
+    c, pg, got = _open(b, base, "?ambient=0&q=low&pr=1&body=v2", 1280, 800)
+    ok("走路改版：辦公室載入完成", got)
+    if not got:
+        c.close(); return
+    try:
+        for (sp, kind), (bob_min, lift_min, h_min) in _GAIT_MIN.items():
+            pg.evaluate("() => __world.setView('god', null, true)"); pg.wait_for_timeout(600)
+            r = pg.evaluate(_GAIT, [sp, 1.0 if kind == "walk" else 1.8, 150, 0])
+            err = abs(r["cadStride"] - r["avgSpeed"]) / max(1e-6, r["avgSpeed"])
+            tag = "%s %s" % (sp, kind)
+            ok("走路改版 %s：狀態 %s、身體起伏 %.1f 公分（要 ≥ %.1f）" % (tag, r["state"], r["bob"] * 100, bob_min * 100), r["state"] == kind and r["bob"] >= bob_min, r)
+            ok("走路改版 %s：擺動腳最高離地 %.1f 公分（要 ≥ %.1f）" % (tag, r["lift"] * 100, lift_min * 100), r["lift"] >= lift_min, r)
+            ok("走路改版 %s：俯視（預設鏡頭）輪廓變化 %.2f 像素（高度變化 %.2f、左右擺動 %.2f 取大者；要 ≥ %.1f；角色高約 %.0f 像素）" % (tag, max(r["hVar"], r["cxVar"]), r["hVar"], r["cxVar"], h_min, r["hMean"]), max(r["hVar"], r["cxVar"]) >= h_min, r)
+            ok("走路改版 %s：步頻 %.2f 次／秒 × 步幅 %.2f 公尺 ＝ %.3f，實際速度 %.3f 公尺／秒，誤差 %.1f%%（要 < 5%%）" % (tag, r["cad"], r["stride"], r["cadStride"], r["avgSpeed"], err * 100), err < 0.05, r)
+            ok("走路改版 %s：著地腳水平滑移 %.2f 公分（要 ≤ 1）" % (tag, r["slide"] * 100), r["slide"] <= 0.01, r)
+            ok("走路改版 %s：著地腳最低點離地 %.2f～%.2f 公分（要 −0.3～1.5：不浮、不穿地）" % (tag, r["plantMin"] * 100, r["plantFloat"] * 100), -0.003 <= r["plantMin"] and r["plantFloat"] <= 0.015, r)
+        ok("走路改版：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+
+
+register("辦公室新角色", lambda pg, b, base, code: (t_newchar(b, base), t_newchar_calls(b, base), t_newchar_gait(b, base)))

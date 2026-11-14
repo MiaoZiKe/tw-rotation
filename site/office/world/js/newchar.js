@@ -2,7 +2,7 @@
 // 新角色相容層（2026-11-14，3D 角色建模師）：辦公室的 createCharacter(spec, env) 掛鉤。
 //   · 物種在 char/kinds.js 的 NEW_KINDS 裡（糰糰 mochi、垂垂 bunny、布布 pudding）→ 用 Blender 參數化一體成形網格（char/mochi.js）
 //     ＋骨架／形態鍵＋固定步長控制器（char/controller.js）驅動；介面與 play/office_character.js 的 createCharacter 一樣（含 inner 墊片）。
-//   · 其他物種 → 原封不動交給舊系統（play/office_character.js）。兩套並存。網址加 ?body=v2 才啟用新模型（預設全走舊系統，新舊對照用）。
+//   · 其他物種 → 原封不動交給舊系統（play/office_character.js）。兩套並存。預設就是新模型（擁有者 11-14 點頭）；網址加 ?body=v1 才走舊系統（新舊對照用）。
 // 世界端只需要把 loadCharacterModule 的預設路徑指到本檔；本檔會 re-export 舊模組的所有名稱（configure、lookFor、ICON_NAMES…）。
 // 座標：控制器在「模型座標」（公尺、未縮放）裡運算；物件的世界位置＝模型位置 × scale（CEO 1.15、寵物 0.5）。
 // ════════════════════════════════════════════════════════════════════════
@@ -12,7 +12,7 @@ import { loadMochi, MochiChar } from '../../char/mochi.js';
 import { CharController, loadProfile } from '../../char/controller.js';
 import { PhysWorld } from '../../char/physics.js';
 import { CHANNELS } from '../../char/actions.js';
-import { NEW_KINDS, isNew, colorsFor, mergeProfile, officeProfile, PROFILE_OVERRIDE, applyBounce } from '../../char/kinds.js';
+import { NEW_KINDS, isNew, colorsFor, mergeProfile, officeProfile, PROFILE_OVERRIDE } from '../../char/kinds.js';
 import { addAccs, addCherry } from '../../char/accs.js';
 import { G as KG } from './kit.js';
 export * from '../../play/office_character.js';
@@ -20,7 +20,7 @@ export * from '../../play/office_character.js';
 const V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
 const IDX = Object.fromEntries(CHANNELS.map((n, i) => [n, i]));
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h; };
-const FORCE_OLD = !/[?&]body=v2\b/.test(location.search);   // 預設走舊系統（擁有者點頭前不蓋掉現有角色）；網址加 ?body=v2 才啟用新模型
+const FORCE_OLD = /[?&]body=v1\b/.test(location.search);   // 2026-11-14 擁有者點頭：預設就是新模型（?body=v2 也一樣是新版）；網址加 ?body=v1 才回到舊版，新舊對照用
 
 // ── 資源預載（頂層 await：模組載入完成時，三個物種的近景／遠景網格與個性檔都已就緒，createCharacter 可以同步建立）
 const ASSET = {}; let BASE_PROFILE = null;
@@ -81,7 +81,7 @@ function makeNew(spec, look, env) {
   ch.body.castShadow = false; ch.body.receiveShadow = false;
   const worn = addAccs(ch, col.accWorn, col.acc), anch = meta.anchors, mouthY = anch.mouth.p[1], eyeY = anch['eye.L'].p[1], front = Math.abs(anch.mouth.p[2]);
   const cherry = kind.cherry ? addCherry(ch, col.cherry) : null;
-  const topY = look.species === 'bunny' ? 1.07 : look.species === 'pudding' ? 0.52 : 0.72;
+  const topY = look.species === 'bunny' ? 1.07 : look.species === 'pudding' ? 0.52 : 0.76;   // 糰糰 11-14 身體抬高 4 公分（走路改版）
   const world = new PhysWorld({ minX: B.x0 / s, maxX: B.x1 / s, minZ: B.z0 / s, maxZ: B.z1 / s });
   const k = 1.5 * Math.pow(1 / s, 0.5);
   const prof = officeProfile(mergeProfile(BASE_PROFILE, PROFILE_OVERRIDE[look.species]), k), walkV = prof.move.walk * s, runV = prof.move.run * s;
@@ -231,7 +231,7 @@ function makeNew(spec, look, env) {
   // 動作姿勢疊加：在控制器輸出的骨頭旋轉上加增量（站著或坐著、沒在走路時才套；走路／空中／被抓時由控制器完全負責）
   const POSE_OK = new Set(['idle', 'sit', 'land']);
   function applyPose(t) {
-    const st = ctl.state; inner.poseT = (t - poseT0); const p = ctl._p; if (!p) return; applyBounce(ch, ctl, PROFILE_OVERRIDE[look.species]?.bounce);
+    const st = ctl.state; inner.poseT = (t - poseT0); const p = ctl._p; if (!p) return;
     let name = ACTS[c.action]?.pose; if (c.action === 'sleep' && st !== 'sleep') name = 'doze';
     const calm = POSE_OK.has(st) && !(st === 'sit' && ctl.sit && ctl.sit.sub !== 'seated') && !ctl.overlay && !ctl.pet.on, ex = {};
     if (name && calm && POSES[name]) Object.assign(ex, POSES[name](t - poseT0));

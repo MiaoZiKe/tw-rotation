@@ -51,8 +51,8 @@ export function createPilot(W, X) {
     if (tipsOpen == null) { const v = lsGet(); tipsOpen = v == null ? !isMobile() : v === '1'; }
     const mob = isMobile(), nm = esc(c.spec.nick);
     const rows = mob
-      ? [['左下搖桿', '移動（推到底＝跑步）'], ['跳', '跳躍'], ['溝通', '與旁邊的同事溝通'], ['揮手', '揮手打招呼'], ['視角', '角色視角（再按回來）'], ['結束', '結束操控']]
-      : [['方向鍵／WASD', '移動'], ['連按兩次方向', '跑步'], ['Space', '跳躍'], ['E', '與旁邊的同事溝通'], ['F', '揮手打招呼'], ['V', '角色視角（再按回來）'], ['Esc', '結束操控／回原視角']];
+      ? [['左下搖桿', '移動（推到底＝跑步）'], ['跳', '跳躍'], ['溝通', '與旁邊的同事溝通'], ['揮手', '揮手打招呼'], ['視角', '角色視角（再按回來）'], ['結束', '結束操控'], ['按住角色不動', '約半秒後再拖曳＝拎起來']]
+      : [['方向鍵／WASD', '移動'], ['連按兩次方向', '跑步'], ['Space', '跳躍'], ['E', '與旁邊的同事溝通'], ['F', '揮手打招呼'], ['V', '角色視角（再按回來）'], ['Esc', '結束操控／回原視角'], ['按住角色不動', '約半秒後再拖曳＝拎起來']];
     tips.className = 'pt-tips' + (tipsOpen ? '' : ' min');
     tips.innerHTML = `<div class="pt-th"><b>${P.engaged ? '操控中' : '已選取'}：${nm}</b><button class="pt-min" data-t="min" aria-label="${tipsOpen ? '收起操作說明' : '展開操作說明'}" aria-expanded="${tipsOpen}">${tipsOpen ? '收起' : '說明'}</button><button class="pt-end" data-t="end" aria-label="結束操控">結束</button></div>
       <ul class="pt-list">${P.engaged ? '' : `<li class="pt-first">${mob ? '拖動左下搖桿' : '按方向鍵'}開始操控</li>`}${rows.map(([k, v]) => `<li><kbd>${esc(k)}</kbd><span>${esc(v)}</span></li>`).join('')}</ul>`;

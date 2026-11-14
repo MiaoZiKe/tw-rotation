@@ -23,7 +23,7 @@ export class Feet {
     const r = ch.rest['foot.L']; this.L0 = r.p.length(); this.restAnkle = { x: ch.meta.bones['foot.L'].head[0], y: ch.meta.bones['foot.L'].head[1], z: ch.meta.bones['foot.L'].head[2] };
     const hp = ch.meta.bones['leg.L'].head; this.hip = { x: hp[0], y: hp[1], z: hp[2] };   // 髖位置取自模型
     cfg.footSpacing = this.hip.x * (cfg.footSpacingK ?? 0.86); cfg.centerZ = this.hip.z + (cfg.centerOff ?? 0.02);   // 步態落腳中心由模型量出，換模型不用改
-    this.reachH = Math.sqrt(Math.max(1e-6, (0.97 * (cfg.maxStretch || 1.15) * this.L0) ** 2 - (this.hip.y + 0.015 - ch.meta.bones['foot.L'].head[1]) ** 2));   // 站立落腳點離髖的水平可及半徑
+    this.reachH = Math.sqrt(Math.max(1e-6, (0.97 * (cfg.maxStretch || 1.15) * this.L0) ** 2 - (this.hip.y + 0.015 + (cfg.bobReach || 0) - ch.meta.bones['foot.L'].head[1]) ** 2));   // 站立落腳點離髖的水平可及半徑（bobReach＝步態風格讓身體在站立期最多抬高多少，可及半徑要扣掉）
     this.sole = this.measureSole(); this.sub = this.buildSub(); this._T = new THREE.Vector3(); this._M = new THREE.Matrix4(); this._Q = new THREE.Quaternion(); this._S = new THREE.Vector3();
     // invB0＝靜止姿勢下 root 骨相對角色群組的矩陣之反矩陣
     ch.resetPose(); ch.model.updateMatrixWorld(true); this.invB0 = ch.bones.root.matrixWorld.clone().premultiply(ch.root.matrixWorld.clone().invert()).invert(); this.axis = { L: ch.rest['foot.L'].p.clone().normalize(), R: ch.rest['foot.R'].p.clone().normalize() }; this.restFootQ = {}; for (const f of this.feet) { const rr = ch.rest['foot.' + f.side]; this.restFootQ[f.side] = rr.pw.clone().multiply(rr.q); }
@@ -91,8 +91,8 @@ export class Feet {
     const duty = P.duty, ex = stride * duty / 2 * (1 - Math.min(0.55, Math.abs(b.wy) * 0.45)),   // 轉彎時落腳點少往前伸
        vx = v > 1e-4 ? b.vx / v : 0, vz = v > 1e-4 ? b.vz / v : 0;
     for (const f of this.feet) {
-      const pf = frac(this.phase + (f.s > 0 ? 0 : 0.5));
-      if (f.mode === 'plant' && pf >= duty) { f.mode = 'swing'; f.sw = { fx: f.x, fz: f.z, fy: f.gy, fyaw: f.yaw, s: 0, timed: false, lift: P.lift }; }
+      const pf = frac(this.phase + (f.s > 0 ? 0 : (P.sync ?? 0.5)));   // sync＝右腳相位落後量：0.5 交替走、0 雙腳同步（兔子跳步）
+      if (f.mode === 'plant' && pf >= duty) { f.mode = 'swing'; f.sw = { fx: f.x, fz: f.z, fy: f.gy, fyaw: f.yaw, s: 0, timed: false, lift: P.lift, peak: P.liftPeak ?? 0.5, kick: P.kick || 0 }; }
       else if (f.mode === 'swing' && pf < duty && !f.sw.timed) { const t = f.sw; this.plantAt(f, b, t.tx ?? f.x, t.tz ?? f.z); f.yaw = t.tyaw ?? b.yaw; continue; }
       if (f.mode === 'swing') {
         const t = f.sw; if (t.timed) { this.timedSwing(f, b, dt); continue; }
@@ -104,6 +104,7 @@ export class Feet {
           const hx = px + this.hip.x * f.s * c + this.hip.z * si + (f.hoX || 0), hz = pz - this.hip.x * f.s * si + this.hip.z * c + (f.hoZ || 0), dx = t.tx - hx, dz = t.tz - hz, dl = Math.hypot(dx, dz);
           if (dl > this.reachH) { t.tx = hx + dx * this.reachH / dl; t.tz = hz + dz * this.reachH / dl; } } t.ty = this.groundAt(b, t.tx, t.tz); t.s = s;
         const e = sm(s); f.x = lerp(t.fx, t.tx, e); f.z = lerp(t.fz, t.tz, e); f.gy = lerp(t.fy, t.ty, e); f.yaw = t.fyaw + angDiff(t.fyaw, yaw) * e;
+        if (t.kick) { const kk = t.kick * Math.sin(Math.PI * clamp((s - 0.2) / 0.8, 0, 1)) ** 1.5; f.x += Math.sin(yaw) * kk; f.z += Math.cos(yaw) * kk; }   // 往前踢：擺動後段腳掌伸出肚子前緣再落回落腳點（短腿角色側面才看得到在邁步）
       }
     }
   }
@@ -136,7 +137,8 @@ export class Feet {
     } else {
       x = f.x; z = f.z; yaw = f.yaw; let lift = 0;
       if (f.mode === 'swing') {
-        const t = f.sw, s = t.s ?? 0; lift = t.lift * Math.sin(Math.PI * clamp(s, 0, 1)) ** 0.8;
+        // 抬腳曲線：最高點落在擺動期的 peak 處（>0.5 ＝腳往前伸出肚子外緣時才抬到最高，側面看得到腳掌抬起）
+        const t = f.sw, s = t.s ?? 0, pk = t.peak ?? 0.5, sw = s < pk ? 0.5 * s / pk : 0.5 + 0.5 * (s - pk) / (1 - pk); lift = t.lift * Math.sin(Math.PI * clamp(sw, 0, 1)) ** 0.8;
         pitch = 0.5 * Math.max(0, 1 - 2.2 * s) ** 2 - 0.22 * Math.sin(Math.PI * clamp((s - 0.45) / 0.55, 0, 1));
       }
       y = f.gy + this.ankleH(pitch) + lift;

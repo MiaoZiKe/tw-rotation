@@ -2,7 +2,7 @@
 // 做法：整區所有靜態物件（地面、長椅、路燈、紙箱、營火石圈、拱門）合併成一個網格，加上拱門招牌與一團會閃的火苗，
 // 全場只多 3 次繪製；夜晚的路燈與營火光暈併進原本的暖光點雲（daytime.js 的 W.extraGlow），不另外加光源。
 // 位置：大門外小路的右邊（東邊）；通往那裡的路在 layout.json 的 walkAreas（尋路用）。
-import { THREE, G, Part, PAL, shade, textPlane } from './kit.js';
+import { THREE, G, Part, PAL, shade, textPlane, textTexture } from './kit.js';
 
 export function buildOutside(W) {
   const Ld = W.layout.size.d, zx0 = 22.4, zx1 = 37.6, zz0 = 31.9, zz1 = 38.8;
@@ -35,8 +35,16 @@ export function buildOutside(W) {
   const ax = 24.0, az = 32.7;   // 拱門貼近大門外小路，預設俯視就看得到入口
   P.cyl(PAL.cream, 0.07, 1.7, ax - 1.1, 0, az, 0.02); P.cyl(PAL.cream, 0.07, 1.7, ax + 1.1, 0, az, 0.02); P.box(PAL.woodMid, 2.5, 0.12, 0.14, ax, 1.62, az, 0.04);
   feet.push({ x: ax - 1.1, z: az, r: 0.12 }, { x: ax + 1.1, z: az, r: 0.12 });
+  for (const dx of [-1.1, 1.1]) P.cyl(PAL.woodMid, 0.06, 0.6, ax + dx, 1.7, az, 0.02);       // 拱門柱子往上延伸，撐住木牌
   const m = P.mesh(); m.castShadow = false; m.receiveShadow = true; m.renderOrder = 0; W.scene.add(m); O.mesh = m;
-  const sign = textPlane('無業遊民區', 2.2, 0.5, { pw: 512, bg: '#fff1d8', fg: '#6b5a4a', px: 84, radius: 40, border: '#d9c8a4', borderW: 10 }); sign.position.set(ax, 1.98, az + 0.09); W.scene.add(sign); O.sign = sign;
+  // 招牌：加大的木牌，下面一行寫目前有幾位待業（沒有人被開除時寫「目前沒有人待業」），免得走到這裡看到空地不知道是什麼
+  const SIGN = { bg: '#d9a867', fg: '#fff6e2', fg2: '#fff0cf', px: 100, subScale: 0.62, radius: 36, border: '#8a5a2b', borderW: 14, pw: 640 };
+  const sign = textPlane(['無業遊民區', '目前沒有人待業'], 2.9, 0.96, SIGN); sign.material = new THREE.MeshBasicMaterial({ map: sign.userData.tex, transparent: true, alphaTest: 0.3, toneMapped: false }); sign.position.set(ax, 2.25, az + 0.09); W.scene.add(sign); O.sign = sign; O.signN = 0;
+  O.setCount = n => {
+    if (n === O.signN) return; O.signN = n; const old = sign.material.map;
+    const tx = textTexture(['無業遊民區', n ? `目前 ${n} 位待業中` : '目前沒有人待業'], { ...SIGN, ph: Math.round(SIGN.pw * 0.96 / 2.9) });
+    sign.material.map = tx; sign.material.needsUpdate = true; sign.userData.tex = tx; if (old) old.dispose();
+  };
   // 火苗：一個會晃動的小錐體（不受光）
   const F = new Part(); F.cyl('#ff8a3c', 0.3, 0.62, 0, 0, 0, 0.05, 0.04); F.cyl('#ffd36b', 0.17, 0.42, 0, 0.03, 0, 0.04, 0.02);
   const flame = new THREE.Mesh(F.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true })); flame.position.set(fx, 0.2, fz); flame.renderOrder = 1; W.scene.add(flame); O.flame = flame;
@@ -45,6 +53,17 @@ export function buildOutside(W) {
   for (const [x, z] of [[29.4, 33.7], [31.0, 33.5], [35.2, 35.6], [24.6, 35.2], [27.6, 36.0], [36.4, 35.0], [23.6, 34.2]]) O.stands.push({ x, z, face: Math.PI, taken: null });
   W.extraFeet = feet; W.extraGlow = glow; O.feet = feet;
   W.respot();                                       // 把新增的佔地算進尋路（這時還沒有任何角色，不會弄亂座位）
+  // 畫面邊緣的小標示：遊民區的中心不在畫面裡（預設俯視在畫面下緣之外）時，右下角出現「▼ 無業遊民區」，點一下鏡頭飛過去
+  const hint = document.createElement('button'); hint.className = 'jl-hint'; hint.id = 'jlHint'; hint.type = 'button'; hint.hidden = true; hint.textContent = '▼ 無業遊民區'; hint.setAttribute('aria-label', '前往無業遊民區（公司外面）');
+  (document.getElementById('app') || document.body).append(hint); const pj = new THREE.Vector3(); let hint0 = 0, cnt0 = -1;
+  O.hint = (jump) => { if (!O.jump) { O.jump = jump; hint.addEventListener('click', () => O.jump()); } };
+  O.tick = () => {
+    const n = W.hr ? W.hr.fired.size : 0; if (n !== cnt0) { cnt0 = n; O.setCount(n); }
+    const t = performance.now(); if (t - hint0 < 200) return; hint0 = t;
+    pj.set(O.center.x, 0.5, O.center.z).project(W.camera);
+    const off = !(pj.z < 1 && Math.abs(pj.x) < 0.8 && pj.y > -0.78 && pj.y < 1) || document.body.classList.contains('pov-on');
+    hint.hidden = !off || document.body.classList.contains('pov-on');
+  };
   O.frame = t => { flame.scale.set(1 + Math.sin(t * 13) * 0.07, 1 + Math.sin(t * 9 + 1) * 0.16 + Math.sin(t * 23) * 0.06, 1 + Math.cos(t * 11) * 0.07); flame.rotation.y = t * 0.7; };
   O.inZone = (x, z) => x >= zx0 - 0.2 && x <= zx1 + 0.2 && z >= zz0 - 0.2 && z <= zz1 + 0.2;
   W.outside = O;

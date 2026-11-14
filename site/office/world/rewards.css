@@ -124,9 +124,8 @@
   #ledger .x{width:36px;height:36px}
   #ledger .lg-top{min-height:38px}
   .lg-help{left:8px;width:calc(100% - 16px)}
-  /* 手機的頂列：績效總表鈕跟區域、示範等一起收進「更多」 */
-  #rwBtn{order:10}
-  body:not(.m-more) #rwBtn{display:none}
+  /* 手機的頂列：績效總表鈕留在第二排（電力膠囊旁邊），不收進「更多」——擁有者 11-14 回報「績效總表不能用」，手機上找不到入口是主因 */
+  #rwBtn{order:10;border-color:var(--amber,#f2a93b);font-weight:700}
 }
 
 /* 資訊卡加了績效區塊後會變高：桌機限高到鏡頭提示列下方，不蓋住左上角的提示（任務清單在卡內縮短） */

@@ -173,7 +173,8 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     return { t: charTarget(c, new THREE.Vector3()), p: best.p, fov: 46 };
   }
   function godPose(target, dist) {
-    const t = (target || CENTER).clone(), d = dist || (portrait() ? 84 : 52), pol = 0.62;
+    // 預設俯視的注視點往前（南）挪一點，讓大門外的「無業遊民區」露出一部分（擁有者 11-14：找不到遊民區）；指定了目標（飛到某區域）就照指定的
+    const t = (target || CENTER.clone().add(v3c.set(0, 0, portrait() ? 4.5 : 2.4))).clone(), d = dist || (portrait() ? 84 : 52), pol = 0.62;
     return { t, p: new THREE.Vector3(t.x, t.y + d * Math.cos(pol), t.z + d * Math.sin(pol)), fov: 38 };
   }
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
@@ -275,6 +276,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
   const sim = createSim(W, { state, demo, ui }); W.sim = sim;
   const rewards = createRewards(W, rw, { ui, cv, camera }); if (rewards.on) createLedger(W, rewards, { ui, fly: flyTo }); else { const b = $('rwBtn'); if (b) b.hidden = true; }
+  import('./live.js').then(m => m.createLive(W, { state, ui, sim, rewards })).catch(e => console.warn('即時模式載入失敗，維持示範', e));   // 2026-11-14 即時模式：有接入碼就讀 AI Office 收件端的真實事件（live.js）
 
   // ── 名牌、泡泡 ──
   const pv = new THREE.Vector3(), bubs = [];
@@ -346,25 +348,36 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   // 拎起來：按住角色拖曳；放開後掉下來（甩得快會滾出去），再自己走回座位
   const lastTap = { t: 0, x: 0, y: 0 }; let deselT = 0;
-  let down = null, grab = null; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
+  let down = null, grab = null; const HOLD_MS = 400; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
   cv.addEventListener('pointerdown', e => {
     down = { x: e.clientX, y: e.clientY, t: performance.now(), c: null };
     if (edit.on) { editDown(e); return; }
-    const c = pickChar(e); if (c && c.grab && !c.away) { down.c = c; controls.enabled = false; }
+    // 拖曳一律是平移（2026-11-14 擁有者：「我滑鼠點擊是要可以平移」）：按在角色身上也一樣。拎起角色改成「按住不動約 0.4 秒」才會發生，
+    // 這裡不再一按下去就關掉 controls：旋轉模式下按在角色上拖曳也是旋轉。
+    // 長按的判斷用「事件時間」而不是計時器：低階手機、畫面很卡的時候計時器會在移動事件被處理之前先響，結果一按下去就變成拎起。
+    // 規則：按在角色身上、而且第一次位移超過 5 像素的那個瞬間離按下已經 ≥ 0.4 秒（中間沒有先移動過）→ 拎起；否則照一般拖曳（平移／旋轉）。
+    const c = pickChar(e);
+    if (c && c.grab && !c.away && e.button === 0 && !(W.pov && W.pov.on())) { down.c = c; down.ts = e.timeStamp; }
   }, true);
   cv.addEventListener('pointermove', e => {
     if (edit.drag) { editMove(e); return; }
-    if (down && down.c && !grab && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 9) { grab = down.c; director.grabbed(grab); grab.grab(); ui.closePops(); }
+    if (down && !grab && !down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) {
+      down.moved = true;
+      if (down.c && (e.buttons & 1) && e.timeStamp - down.ts >= HOLD_MS) {
+        grab = down.c; controls.enabled = false; pan.pend = false; director.grabbed(grab); grab.grab(); ui.closePops(); cv.style.cursor = 'grabbing';
+        if (navigator.vibrate) { try { navigator.vibrate(18); } catch (er) { /* 不支援就算了 */ } }
+      }
+    }
     if (grab) { setRay(e); if (ray.ray.intersectPlane(hold, hp)) grab.dragTo(hp.x, 1.05, hp.z); }
   });
-  const endGrab = () => { if (grab) { grab.release(); grab = null; } controls.enabled = true; };
+  const endGrab = () => { if (grab) { grab.release(); grab = null; cv.style.cursor = ''; } controls.enabled = true; };
   addEventListener('pointercancel', () => { endGrab(); down = null; });
   addEventListener('pointerup', e => {
     if (edit.drag) { editUp(e); down = null; return; }
     if (grab) { endGrab(); down = null; return; }
-    if (down && down.c) controls.enabled = true;
+    controls.enabled = true;
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
-    if (moved > 5 || dt > 250) return; ui.closePops();   // 位移超過約 5 像素或按住超過約 250 毫秒＝拖曳，不是點一下：不取消選取、不關資訊卡
+    if (moved > 5 || dt > 700) return; ui.closePops();   // 位移超過約 5 像素＝拖曳，不是點一下：不取消選取、不關資訊卡。按住超過 0.7 秒也不算點（慢慢點的人 0.3～0.5 秒很常見，以前 0.25 秒就判定不算，點招牌／旗／打卡機常常沒反應）
     if (edit.on) { editTap(e); return; }
     const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
@@ -384,12 +397,18 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   cv.addEventListener('pointerdown', e => {
     if (e.pointerType === 'touch') pan.touches.add(e.pointerId);
-    if (cam.mode !== 'move' || e.button !== 0 || edit.on || (W.pov && W.pov.on()) || (down && down.c) || (e.pointerType === 'touch' && pan.touches.size > 1)) { if (pan.touches.size > 1) pan.on = false; return; }
-    if (!groundHit(e, pan.g0)) return;
-    pan.px = e.clientX; pan.py = e.clientY; pan.on = true; pan.id = e.pointerId; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9;
+    if (cam.mode !== 'move' || e.button !== 0 || edit.on || (W.pov && W.pov.on()) || (e.pointerType === 'touch' && pan.touches.size > 1)) { if (pan.touches.size > 1) { pan.on = false; pan.pend = false; } return; }
+    // 先「待命」：位移超過 5 像素才真的開始平移，單純點一下（選角色、開佈告欄…）不會讓鏡頭抖動、也不會打斷正在飛的鏡頭
+    pan.pend = true; pan.id = e.pointerId; pan.sx = pan.px = e.clientX; pan.sy = pan.py = e.clientY;
   });
   cv.addEventListener('pointermove', e => {
-    if (!pan.on || e.pointerId !== pan.id || grab) return;
+    if (grab || e.pointerId !== pan.id) return;
+    if (pan.pend && !pan.on) {
+      if (Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) <= 5 || (e.buttons & 1) === 0) return;
+      pan.pend = false; if (!groundHit({ clientX: pan.sx, clientY: pan.sy }, pan.g0)) return;   // 起點打不到地面（天空）就不平移
+      pan.on = true; pan.t = performance.now(); cam.coast.set(0, 0, 0); view.tween = null; view.lastUser = performance.now() / 1000; userActive = 1e9; cv.style.cursor = 'move';
+    }
+    if (!pan.on) return;
     // 靈敏度的做法（修正：以前每步重新抓點，用到還沒更新的鏡頭矩陣，非 1 倍時遠景慢 1.5 公尺、快 23.6 公尺，遠超 0.6:1.5 的倍率）：
     // 每次移動都用「同一個、剛更新過的鏡頭」算前一個游標與目前游標各對到地面哪裡，位移 = 倍率 ×（兩點之差）。
     // 倍率 1 時鏡頭平移後，目前游標下的點正好是前一個游標的點，等於一比一抓著地面；0.6／1.5 則等比例縮放。
@@ -401,7 +420,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     const dx = (pan.g0.x - pan.g1.x) * k, dz = (pan.g0.z - pan.g1.z) * k, L = Math.hypot(dx, dz); if (L > 40) return;   // 射線快貼近地平線時位移會暴增，丟掉
     movePan(dx, dz); pan.v.set(dx / dtm * 1000, 0, dz / dtm * 1000);     // 放開時才變成餘動；拖曳中不能邊拖邊套餘動（會重複位移，每次移動都是相對上一次，誤差會累積）
   });
-  const panEnd = e => { if (e.pointerType === 'touch') pan.touches.delete(e.pointerId); if (pan.on && e.pointerId === pan.id) { pan.on = false; userActive = performance.now() + 600; if (pan.v.length() >= 1.5 && performance.now() - pan.t <= 90) cam.coast.copy(pan.v); else cam.coast.set(0, 0, 0); pan.v.set(0, 0, 0); } };
+  const panEnd = e => { if (e.pointerType === 'touch') pan.touches.delete(e.pointerId); if (e.pointerId === pan.id) pan.pend = false; if (pan.on && e.pointerId === pan.id) cv.style.cursor = ''; if (pan.on && e.pointerId === pan.id) { pan.on = false; userActive = performance.now() + 600; if (pan.v.length() >= 1.5 && performance.now() - pan.t <= 90) cam.coast.copy(pan.v); else cam.coast.set(0, 0, 0); pan.v.set(0, 0, 0); } };
   addEventListener('pointerup', panEnd); addEventListener('pointercancel', panEnd);
   cv.addEventListener('contextmenu', e => e.preventDefault());
   // 佈告欄：滑鼠停上去游標變手指、板子微微提亮（用一塊半透明的外框蓋在板子上，不動共用材質）
@@ -496,7 +515,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     }
     renderer.render(scene, camera);
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
-    updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.empty.frame();
+    updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.outside.tick(); W.empty.frame();
     acc += real; frames++;
     if (acc >= 1) {
       W.stats.fps = Math.round(frames / acc); acc = 0; frames = 0;
@@ -507,5 +526,5 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   W.shadowDirty(); requestAnimationFrame(frame);
   W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
-  window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
+  W.outside.hint(() => jumpTo('jobless')); window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });

@@ -385,10 +385,9 @@ def t_mobile(b, base):
     if not got:
         ok("績效總表手機：載入", False)
         return
-    ok("績效總表手機：頂列沒有總表鈕（收進「更多」）", not pg.evaluate("() => { const r = document.getElementById('rwBtn').getBoundingClientRect(); return r.width > 0; }"), None)
-    pg.click("#moreBtn")
+    ok("績效總表手機：總表鈕直接露在頂列第二排（不用先點「更多」；11-14 擁有者回報手機找不到入口）", pg.evaluate("() => { const r = document.getElementById('rwBtn').getBoundingClientRect(), p = document.getElementById('pwBtn').getBoundingClientRect(); return r.width >= 60 && r.height >= 36 && r.bottom < 120 && (r.right <= p.left || r.left >= p.right || r.top >= p.bottom || r.bottom <= p.top); }"), None)
     pg.click("#rwBtn")
-    ok("績效總表手機：從「更多」打開總表，「更多」自動收起", wait_until(pg, "() => !document.getElementById('ledger').hidden && !document.body.classList.contains('m-more')", 4000), None)
+    ok("績效總表手機：直接按總表鈕就打開（「更多」維持收起）", wait_until(pg, "() => !document.getElementById('ledger').hidden && !document.body.classList.contains('m-more')", 4000), None)
     ok("績效總表手機：改成卡片列（12 張，預設全部收起）", pg.evaluate("() => document.querySelectorAll('#ledger .lg-card[data-lvl=top]').length") == 12 and pg.evaluate("() => document.querySelectorAll('#ledger .lg-c3').length") == 0 and pg.evaluate("() => document.querySelectorAll('#ledger .lg-head').length") == 0, None)
     ok("績效總表手機：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth && document.getElementById('lgScroll').scrollWidth <= document.getElementById('lgScroll').clientWidth + 1"), None)
     ok("績效總表手機：整頁（卡片清單）≤ 3 屏、第一屏看得到前 4 張卡", pg.evaluate("() => document.getElementById('lgScroll').scrollHeight <= 3 * innerHeight") and pg.evaluate("() => { const cs = [...document.querySelectorAll('#ledger .lg-card[data-lvl=top]')]; return cs.slice(0, 4).every(c => c.getBoundingClientRect().bottom <= innerHeight); }"), None)
