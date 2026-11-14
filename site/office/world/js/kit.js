@@ -72,7 +72,12 @@ export class Part {
   slab(color, w, d, h, x, y0, z, r = 0.2, ry = 0, bev = 0.02) { return this.add(G.slab(w, d, h, r, bev), color, x, y0, z, ry); }
   cyl(color, r, h, x, y0, z, bev = 0.03, rTop = r, seg = 0) { if (!seg) seg = r < 0.07 ? 8 : r < 0.3 ? 12 : 18; return this.add(G.cyl(r, h, bev, seg, rTop), color, x, y0, z); }
   sph(color, r, x, y, z, sx = 1, sy = 1, sz = 1) { return this.add(r < 0.1 ? G.sph(r, 8, 6) : r < 0.3 ? G.sph(r, 10, 7) : G.sph(r, 14, 10), color, x, y, z, 0, 0, 0, sx, sy, sz); }
-  geometry() { const g = mergeGeometries(this.list, false); this.list.forEach(x => x.dispose()); this.list = []; return g; }
+  // 標記：把「可被撞開的小東西」（椅子、桌上的杯子…）在合併前標出是第幾個零件；合併後換算成頂點範圍，物理層（phys.js）才切得出來。
+  mk(kind, meta, i0) { (this.marks ||= []).push({ kind, ...meta, i0, i1: this.list.length }); return this; }
+  geometry() {
+    if (this.marks) { const cum = [0]; for (const g of this.list) cum.push(cum[cum.length - 1] + g.attributes.position.count); for (const m of this.marks) { m.v0 = cum[m.i0]; m.v1 = cum[m.i1]; } }
+    const g = mergeGeometries(this.list, false); this.list.forEach(x => x.dispose()); this.list = []; return g;
+  }
   mesh(mat = MAT.solid) { const m = new THREE.Mesh(this.geometry(), mat); m.castShadow = true; m.receiveShadow = true; return m; }
 }
 

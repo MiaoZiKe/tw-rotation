@@ -46,6 +46,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .hd b{font-size:18px}.hd .tag2{font-size:12px;background:var(--on2);color:var(--on);border-radius:999px;padding:2px 8px;margin-left:6px;font-weight:700;vertical-align:2px}
 .hd p{margin:2px 0 0;font-size:12px;color:var(--sub)}
 .now{margin:12px 0 8px;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.now.mood{margin:-2px 0 8px;font-size:12.5px}
 .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .kpi div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center}
 .kpi b{display:block;font-size:22px;line-height:1.2}.kpi span{font-size:12px;color:var(--sub)}.kpi em{display:block;font-style:normal;font-size:11px;color:var(--sub);margin-top:2px}

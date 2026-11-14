@@ -47,7 +47,7 @@ export function createDirector(W, ui) {
     quant: { think: 1.8, note: 1.6 }, industry: { doc: 1.8, magnify: 0.9 }, data: { type: 7 }, frontend: { type: 7 }, ops: { phone: 1.3, note: 1.4 }, ceo: { phone: 1.6, doc: 1.6, think: 1.4 }
   };
   function pickWork(c) {
-    const w = { ...HABIT.def, ...(HABIT[c.spec.dept] || {}) }; let sum = 0; for (const k in w) sum += w[k]; let r = Math.random() * sum;
+    const w = { ...HABIT.def, ...(HABIT[c.spec.dept] || {}) }; if (W.mind) W.mind.bias(c, w); let sum = 0; for (const k in w) sum += w[k]; let r = Math.random() * sum;
     for (const k in w) { r -= w[k]; if (r <= 0) return k; } return 'type';
   }
   function deskWork(c) {

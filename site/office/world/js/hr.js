@@ -68,10 +68,10 @@ export function createHR(W, X) {
       c.setAction('box'); c.say('我先收拾一下…', 1.8); c.emote('dots', 1.6); await W.sleep(1.9); if (gone()) return;
       seatClear(c); c.setAction('box');
       const door = W.findSpots('door_out')[0]; const ok = await D.goTo(c, door, { speed: 1.9 }); door.taken = null; if (gone() || !ok) { if (!gone()) c.hrBusy = false; return; }
-      c.setAction('wave'); c.say('謝謝大家，再見～', 2); await W.sleep(1.5); if (gone()) return; c.setAction('box');
+      c.setAction('wave'); c.say('謝謝大家，再見～', 2); W.emit && W.emit('fired_door', c.spec.id, {}); await W.sleep(1.5); if (gone()) return; c.setAction('box');
       const t = pickStand(c.spec.id); const ok2 = await walkTo(c, t.x, t.z, 1.8); if (gone()) return;
       if (!ok2) c.standAt(t.x, t.z, t.face);
-      c.standAt(c.object3D.position.x, c.object3D.position.z, t.face); c.setAction('idle'); c.setExpression('neutral', 0.1);
+      c.standAt(c.object3D.position.x, c.object3D.position.z, t.face); c.setAction('idle'); c.setExpression('neutral', 0.1); W.emit && W.emit('jobless_arrived', c.spec.id, {});
     } else { seatClear(c); const t = pickStand(c.spec.id); c.standAt(t.x, t.z, t.face); c.setAction('idle'); }
     c.hrBusy = false; c.lifeAt = W.time + R(1.5, 4);
   }
@@ -90,6 +90,7 @@ export function createHR(W, X) {
       const a = S.agents.get(id); if (a) { a.phase = 'idle'; a.task = ''; a.tool = null; }
     }
     persist();
+    ids.forEach(id => W.emit && W.emit('fired', id, { reason: String(o.reason || '') }));   // 心情層：被開除的失落
     ids.forEach((id, i) => { const c = C(id); markFired(c); if (c.spot && c.spot.taken === id) { /* 座位在 walkOut 清掉 */ } walkOut(c, i); });
     ui.toast(`${ids.length > 1 ? ids.length + ' 位同事' : H.nameOf(ids[0])}離開了公司，${moved} 項任務交給${H.nameOf(to)}`);
     ui.afterHr && ui.afterHr(); S.say(`${ids.map(H.nameOf).join('、')}離開了公司`);
@@ -99,7 +100,7 @@ export function createHR(W, X) {
   // ───────── 重新聘用 ─────────
   H.rehire = async id => {
     const rec = H.fired.get(id), c = C(id); if (!rec || !c) return false;
-    H.fired.delete(id); persist(); freeAll(id);
+    H.fired.delete(id); persist(); freeAll(id); W.emit && W.emit('rehired', id, {});
     const tok = c.lifeTok = (c.lifeTok || 0) + 1; c.hrBusy = true; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.stop(false); c.setAction('idle');
     const seat = W.spots.find(q => q.name === 'seat:' + id); c.homeSpot = null;
     if (seat && seat.taken && seat.taken !== id) c.homeSpot = W.spots.find(q => q.name === 'spare' && !q.taken) || W.spots.find(q => q.name === 'reserve' && !q.taken) || null;   // 原座位被占了：換新座位

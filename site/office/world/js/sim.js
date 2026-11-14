@@ -70,6 +70,7 @@ export function createSim(W, X) {
         <h4>工作階段</h4><div class="sm-row">${b('ss1', '開始')}${b('ss0', '結束')}${b('prompt', '送出指令')}</div>
         <h4>派工</h4><div class="sm-row"><select id="simWho" aria-label="同事">${opts}</select><select id="simTool" aria-label="工具類別">${Object.entries(NAMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
         <div class="sm-row">${b('st', '派出')}${b('tl', '換工具')}${b('okk', '交件成功')}${b('bad', '交件失敗')}${b('many', '一次派 10 位')}</div>
+        <h4>情緒演示（對上面選的同事）</h4><div class="sm-row">${b('mrw', '頒獎')}${b('mpr', '稱讚')}${b('mrj', '退件')}${b('mdm', '降等')}${b('mkn', '被丟出去')}${b('mbn', '被燒到')}${b('mrc', '恢復')}</div>
         <h4>典型的一天</h4><div class="sm-row"><button class="it sm on" id="simDay" data-sim="day">${Sim.playing ? '停止' : '播放'}</button><label class="sm-k">倍速<select id="simK"><option value="1">1×</option><option value="0.2">5×</option><option value="0.1">10×</option></select></label></div>`;
     };
     const who = () => $('simWho').value;
@@ -78,6 +79,7 @@ export function createSim(W, X) {
       const m = { q62: () => Sim.quota(62, 80), q18: () => Sim.quota(18, 70), q8: () => Sim.quota(8, 70), out1: () => Sim.exhaust(8100), out2: () => Sim.exhaust(null), rec: Sim.recover, qna: Sim.quotaNone, stale: () => Sim.stale(23),
         perm: () => Sim.permission('command'), ask: () => Sim.question(), clr: Sim.clear, lost: Sim.lost, ping: Sim.prompt, ss1: () => Sim.session(true), ss0: () => Sim.session(false), prompt: Sim.prompt,
         st: () => Sim.start(who(), null, $('simTool').value), tl: () => Sim.tool(who(), $('simTool').value), okk: () => Sim.stop(who(), true), bad: () => Sim.stop(who(), false),
+        mrw: () => W.emit('rewarded', who(), { kind: 'award' }), mpr: () => W.emit('praised', who(), { by: 'ceo' }), mrj: () => W.emit('rejected', who(), {}), mdm: () => W.emit('demoted', who(), {}), mkn: () => W.emit('knocked', who(), { by: 'you' }), mbn: () => W.emit('burned', who(), {}), mrc: () => W.emit('recovered', who(), {}),
         many: () => members().slice(0, 10).forEach(c => Sim.start(c.spec.id)), day: () => { if (Sim.playing) Sim.stopDay(); else Sim.playDay(+$('simK').value || 1); } };
       if (m[k]) m[k]();
     });

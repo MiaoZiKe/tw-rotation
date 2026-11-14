@@ -26,6 +26,21 @@ export const EXPR = {
   whee: E({ eyeS: 1.12, hl: 1.2, mCurve: 0.8, mOpen: 0.9, mW: 1.1, blush: 0.8 }),
   ouch: E({ open: 0, arc: -0.2, lidA: 1, brow: 1, browA: -0.7, browY: 4, mCurve: -0.6, mOpen: 0.4, mW: 0.9, blush: 0.5, tear: 0.5 }),
   look: E({ eyeS: 1.04, mCurve: 0.35, mW: 0.8 }),
+  // ── 情緒層（world/js/mind.js）用的細緻表情：新舊兩種角色共用這張表（新做法的臉在 char/facerig.js 會複製這張表）
+  smile: E({ mCurve: 0.78, mW: 1.05, blush: 0.8 }),
+  confused: E({ brow: 1, browA: -0.5, browY: 7, mCurve: 0, mOpen: 0.2, mW: 0.55, mRound: 1, blush: 0.45 }),
+  pout: E({ lidT: 0.14, lidA: -0.5, brow: 1, browA: -0.55, browY: 4, mCurve: -0.7, mOpen: 0, mW: 0.55, mRound: 0.35, blush: 0.8, tear: 0.35, hl: 1.15 }),          // 委屈嘟嘴：嘴角下垂、眼眶微濕
+  worried: E({ lidT: 0.06, lidA: -0.6, brow: 1, browA: -1, browY: 8, mCurve: -0.35, mW: 0.75, blush: 0.35, eyeS: 1.04, hl: 1.15 }),                                 // 擔心：八字眉
+  wary: E({ lidT: 0.3, lidB: 0.12, lidA: 0.4, brow: 1, browA: 0.55, browY: -2, mCurve: -0.15, mW: 0.7, smirk: 0.2, blush: 0.25, eyeS: 0.94, hl: 0.8 }),              // 戒備：半瞇眼、眉頭微壓
+  relieved: E({ lidT: 0.32, lidB: 0.05, brow: 0.6, browA: -0.4, browY: 6, mCurve: 0.65, mOpen: 0.35, mW: 0.8, mRound: 0.8, blush: 0.8 }),                           // 鬆一口氣
+  blank: E({ eyeS: 0.86, hl: 0.45, lidT: 0.2, mCurve: 0, mOpen: 0, mW: 0.55, blush: 0.15 }),                                                                         // 呆滯
+  cry: E({ lidT: 0.2, lidA: -1, brow: 1, browA: -1, browY: 7, mCurve: -1, mOpen: 0.55, mW: 1.0, blush: 0.5, tear: 1.6, hl: 1.3, eyeS: 1.05 }),                      // 大聲哭（很少用）
+  grateful: E({ eyeS: 1.12, hl: 1.45, brow: 0.7, browA: -0.5, browY: 9, mCurve: 1, mOpen: 0.45, mW: 1.05, blush: 1.1, tear: 0.9, sparkle: 1 }),                      // 驚喜感激（眼眶含淚笑）
+  fistpump: E({ lidT: 0.18, brow: 1, browA: 0.5, browY: -3, mCurve: 0.9, mOpen: 0.6, mW: 1.1, blush: 0.9, eyeS: 1.04 }),                                           // 握拳：好勝的開心
+  sulkf: E({ lidT: 0.3, lidA: 0.9, brow: 1, browA: 0.7, browY: -5, mCurve: -0.6, mOpen: 0, mW: 0.6, mRound: 0.3, smirk: 0.3, blush: 1 }),                            // 賭氣
+  scared: E({ eyeS: 1.3, hl: 1.4, brow: 1, browA: -0.5, browY: 20, mCurve: -0.4, mOpen: 1.0, mW: 0.85, mRound: 0.6, blush: 0.1 }),                                   // 驚叫
+  cough: E({ open: 0.25, arc: -0.4, lidA: 0.5, brow: 1, browA: -0.3, mCurve: -0.2, mOpen: 0.85, mW: 0.6, mRound: 1, blush: 0.8, tear: 0.2 }),                       // 咳一下
+  giggle: E({ lidT: 0.12, brow: 0.5, browA: 0.3, mCurve: 0.9, mOpen: 0.2, mW: 0.7, smirk: 0.4, blush: 1, cheek: 0.6 }),                                             // 小小偷笑
 };
 const KEYS = Object.keys(B);
 const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };

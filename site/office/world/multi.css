@@ -1,0 +1,45 @@
+/* 多選：群組面板、框選矩形、手機多選模式列。配色沿用 world.css 的 token。 */
+#grp{left:12px;bottom:12px;width:340px}
+.grp .hd{display:flex;gap:10px;align-items:flex-start;padding-right:34px}
+.grp .hd b{font-size:18px}
+.grp .hd p{margin:2px 0 0;font-size:12px;color:var(--sub);line-height:1.5}
+.grp .tag2{font-size:12px;background:var(--on2);color:var(--on);border-radius:999px;padding:2px 8px;margin-left:6px;font-weight:700;vertical-align:2px}
+.grp-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 8px}
+.grp-sum span{background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 4px;text-align:center;font-size:12px;color:var(--sub);line-height:1.3}
+.grp-sum b{display:block;font-size:20px;line-height:1.2}
+.grp-sum .k1 b{color:#d0703c}.grp-sum .k2 b{color:#3f7fd0}.grp-sum .k3 b{color:#3d9a63}
+.grp-list{list-style:none;margin:0;padding:0;overflow:auto;max-height:150px;border-top:1px solid var(--line);flex:1 1 auto!important;min-height:44px}
+.grp-list li{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--line)}
+.grp-who{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;text-align:left;padding:4px 2px;min-height:40px;cursor:pointer;color:var(--ink)}
+.grp-who:hover b{color:var(--on)}
+.grp-who b{font-size:14px;white-space:nowrap}
+.grp-who span{font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.grp .ava2,.grp .ava{width:28px;height:28px;flex:none}
+.grp .ava:before,.grp .ava:after{display:none}
+.grp-rm{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:var(--on2);color:var(--on);font-size:13px;font-weight:800;padding:0}
+.grp-rm:hover{background:var(--on);color:#fff}
+.grp-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.grp-acts .btn{box-shadow:none;border:1px solid var(--line);height:36px;padding:0 4px;font-size:13px;justify-content:center}
+.grp-acts .btn.dng{grid-column:span 2;color:#c0392b}
+.grp-acts .btn:hover{border-color:var(--on)}
+.grp.drv .grp-list,.grp.drv .grp-acts{display:none}
+
+/* Ctrl＋拖曳的框選矩形 */
+#mBox{position:fixed;z-index:26;border:2px solid var(--on);background:rgba(245,138,52,.16);border-radius:6px;pointer-events:none}
+
+/* 選取中的名牌：多選時每位都提亮（沿用 .tag.sel） */
+.tag.msel{z-index:3}
+
+/* 手機：多選模式列（頂端，工具列下方） */
+#mBar{position:absolute;z-index:24;top:calc(env(safe-area-inset-top,0px) + 108px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:var(--card);border-radius:999px;box-shadow:var(--sh);padding:4px 4px 4px 14px;font-size:13px;font-weight:700;white-space:nowrap}
+#mBar[hidden]{display:none}
+#mBar button{border:0;border-radius:999px;height:40px;min-width:56px;padding:0 16px;font-size:14px;font-weight:800;background:var(--on);color:#fff}
+#mBar .mb-on{margin-left:-10px}
+@media (max-width:640px){
+  #grp{left:8px;right:8px;width:auto}
+  .grp-list{max-height:17dvh}
+  .grp-acts .btn{height:44px;font-size:13px}
+  .grp-rm{width:44px;height:44px}
+  .grp .x{width:44px;height:44px}
+  .grp.drv .hd p{display:none}
+}

@@ -77,10 +77,11 @@ export function createDaytime(W, X) {
       if (cp.length) { const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3));
         const ct = glowTex(64, c => { const r = c.createRadialGradient(32, 32, 1, 32, 32, 31); r.addColorStop(0, 'rgba(255,246,214,.9)'); r.addColorStop(0.3, 'rgba(255,232,180,.32)'); r.addColorStop(1, 'rgba(255,220,160,0)'); c.fillStyle = r; c.fillRect(0, 0, 64, 64); });
         ceil = new THREE.Points(cg, new THREE.PointsMaterial({ map: ct, size: 3.4, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); ceil.frustumCulled = false; ceil.renderOrder = 5; scene.add(ceil); } }
-    const pts = []; for (const inst of W.furn.values()) { const f = inst.f; if (f.type === 'lamp') pts.push(f.x, 1.35, f.z); else if (f.type === 'workstation' || f.type === 'ceo_desk') pts.push(f.x, 1.0, f.z); }
+    const pts = []; W.glowIdx = new Map();   // glowIdx：立燈 id → 光暈點的編號（立燈被撞倒時，phys.js 直接改這個點的位置）
+    for (const inst of W.furn.values()) { const f = inst.f; if (f.type === 'lamp') { W.glowIdx.set(f.id, pts.length / 3); pts.push(f.x, 1.35, f.z); } else if (f.type === 'workstation' || f.type === 'ceo_desk') pts.push(f.x, 1.0, f.z); }
     for (const q of W.extraGlow || []) pts.push(q[0], q[1], q[2]);   // 戶外的路燈、營火（無業遊民區）
     if (!pts.length) return;
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); W.glowGeo = g; if (W.phys) W.phys.glowChanged();
     const tex = glowTex(64, c => { const r = c.createRadialGradient(32, 32, 1, 32, 32, 31); r.addColorStop(0, 'rgba(255,236,180,.95)'); r.addColorStop(0.35, 'rgba(255,214,140,.38)'); r.addColorStop(1, 'rgba(255,200,120,0)'); c.fillStyle = r; c.fillRect(0, 0, 64, 64); });
     glow = new THREE.Points(g, new THREE.PointsMaterial({ map: tex, size: 1.9, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); glow.frustumCulled = false; glow.renderOrder = 5; scene.add(glow);
   };
@@ -148,7 +149,8 @@ export function createDaytime(W, X) {
   };
   W.outLightRebuild();
   // 營火光斑的跳動（不在每 2 秒的天色更新裡，要每幀；只改一個網格的透明度，很便宜）
-  D.flicker = tt => { if (outL.fire && outL.k > 0.01) outL.fire.material.opacity = outL.k * (0.55 + 0.2 * Math.sin(tt * 0.011) + 0.12 * Math.sin(tt * 0.023 + 1.3) + 0.08 * Math.sin(tt * 0.047)); };
+  // 營火光斑的亮度跟著火焰一起跳：fire.js 提供同一個時間函數 W.fireFlick(毫秒)（火焰的高度與亮度都用它，約 0.4～1.0），光斑直接讀它；沒有火焰模組時用原本的正弦組合
+  D.flicker = tt => { if (outL.fire && outL.k > 0.01) outL.fire.material.opacity = outL.k * (W.fireFlick ? W.fireFlick(tt) : (0.55 + 0.2 * Math.sin(tt * 0.011) + 0.12 * Math.sin(tt * 0.023 + 1.3) + 0.08 * Math.sin(tt * 0.047))); };
   D.outL = outL;
 
   // ── 套用某一時刻的天色 ──

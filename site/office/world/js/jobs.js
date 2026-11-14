@@ -116,9 +116,9 @@ export function createJobs(W, X) {
     S.say(failed ? `${c.spec.nick}遇到問題：${summary}` : `${c.spec.nick}交件：${summary}`);
     const finalize = () => { a.phase = 'idle'; a.tool = null; a.failedNow = false; if (failed) a.failed++; else a.done.unshift({ title: title || '任務', t: S.now(), summary }); a.task = ''; c.busy = !!(D.meeting && D.meeting.people.includes(c)); c.workAt = W.time + 3; if (W.ui && W.ui.refreshCard) W.ui.refreshCard(); };
     const inMeet = D.meeting && D.meeting.people.includes(c);
-    if (inMeet || c.piloted || c.state === 'held' || reduce() || !acquire()) { c.emote(failed ? 'cloud' : 'check', 2.4); if (c.state === 'sit') c.setAction('type'); finalize(); return; }
+    if (inMeet || c.piloted || c.state === 'held' || reduce() || !acquire()) { c.emote(failed ? 'cloud' : 'check', 2.4); W.emit && W.emit(failed ? 'rejected' : 'praised', c.spec.id, { by: 'job' }); if (c.state === 'sit') c.setAction('type'); finalize(); return; }
     try {
-      c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.setAction('carry'); if (failed) { c.setExpression('sad', 4); c.emote('cloud', 2.6); }
+      c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.setAction('carry'); if (failed) { c.setExpression('sad', 4); c.emote('cloud', 2.6); W.emit && W.emit('rejected', c.spec.id, { by: 'job' }); }
       const slot = await takeSlot(c, jt); if (slot < 0) return;
       try {
         const okk = await D.goTo(c, deskSpots()[slot], { speed: 2.4 });
@@ -126,10 +126,10 @@ export function createJobs(W, X) {
           const ceo = ceoTurn(c), p = pos(C('ceo') || c); c.faceTo(p.x, p.z);
           if (failed) {
             c.setAction('sulk', { duration: 2.2 }); c.say('這邊卡住了：' + summary, 3); if (ceo) { ceo.setAction('listen'); } await W.sleep(3.1); if (c.jtok !== jt) return;
-            if (ceo) { ceo.say('沒關係，我來看看', 2.4); ceo.setAction('nod', { duration: 1.4 }); ceo.emote('check', 1.6); } c.setExpression('neutral', 0.1); await W.sleep(1.8);
+            if (ceo) { ceo.say('沒關係，我來看看', 2.4); ceo.setAction('nod', { duration: 1.4 }); ceo.emote('check', 1.6); } W.emit && W.emit('comforted', c.spec.id, {}); c.setExpression('neutral', 0.1); await W.sleep(1.8);
           } else {
             c.setAction('present'); c.say(summary, 3.2); c.speech.kind = 'ack'; if (ceo) ceo.setAction('listen'); await W.sleep(3.3); if (c.jtok !== jt) return;
-            if (ceo) { ceo.say('收到，辛苦了', 2.2); ceo.speech.kind = 'summary'; ceo.setAction('nod', { duration: 1.4 }); ceo.emote('check', 2); } c.setExpression('happy', 1.8); await W.sleep(1.6);
+            if (ceo) { ceo.say('收到，辛苦了', 2.2); ceo.speech.kind = 'summary'; ceo.setAction('nod', { duration: 1.4 }); ceo.emote('check', 2); } c.setExpression('happy', 1.8); W.emit && W.emit('praised', c.spec.id, { by: 'ceo' }); await W.sleep(1.6);
           }
           ceoBack();
         }

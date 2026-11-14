@@ -105,6 +105,7 @@ export function createUI(W, demo, api) {
   const spName = sp => (SPECIES[sp.species] ? `${SPECIES[sp.species].name}（${SPECIES[sp.species].sub}）` : '');
   let cardChar = null, draft = null, cardP = null, cardF = 0, cardOpen = -1;
   const ava = sp => { const u = thumb(sp); return u ? `<img class="ava2" src="${u}" alt="">` : `<div class="ava" style="background:${sp.color || '#ffb057'}"></div>`; };
+  U.ava = ava;      // 多選的群組面板（multi.js）用同一套小頭像
   // 任務清單：依點選的狀態格篩選；點一列展開細節（只列有資料的欄位，沒有的不顯示空白列）
   const SN = ['', '未完成', '進行中', '已完成'], TL = ['', '排定', '開始', '完成'];
   function taskDetail(x, spec, p) {
@@ -119,6 +120,8 @@ export function createUI(W, demo, api) {
     const rows = p.list.map((x, i) => ({ x, i })).filter(r => !cardF || r.x.s === cardF);
     el.innerHTML = rows.length ? rows.map(({ x, i }) => `<div class="rowx${cardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-r="${i}" aria-expanded="${cardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${cardOpen === i ? taskDetail(x, spec, p) : ''}</div>`).join('') : `<div class="empty">這個狀態目前沒有任務</div>`;
   }
+  // 心情列（mind.js）：一個小圖示＋心情＋原因，例如「心情：😊 開心（剛被稱讚）」；沒有心情層就不畫
+  const moodRow = c => { const ml = W.mind && W.mind.moodLine(c); return ml ? `<div class="now mood" id="cardMood" data-mood="${ml.key}" role="status">${esc(ml.text)}</div>` : ''; };
   U.showCard = c => {
     if (c.jobless) return showJobless(c);
     cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, p = progress(s), m = W.members.get(s.id) || s; cardP = p; cardF = 0; cardOpen = -1;
@@ -126,7 +129,7 @@ export function createUI(W, demo, api) {
       <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b>${s.name && s.name !== s.nick ? `<span class="nm2">${esc(s.name)}</span>` : ''}${s.lead ? '<span class="tag2">主管</span>' : ''}
         <p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p><p>${esc(spName(s))}</p></div></div>
       ${W.rewards && W.rewards.on ? W.rewards.cardBlock(s) : ''}
-      <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
+      <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>${moodRow(c)}
       <div class="acts g3 g4"><button class="btn" data-i="pet">摸頭</button><button class="btn" data-i="bonk">敲頭</button><button class="btn" data-i="feed">餵點心</button><button class="btn" data-i="rest">去休息</button><button class="btn" data-i="home">回座位</button><button class="btn" data-i="edit">改造型</button><button class="btn povb" data-i="pov" aria-pressed="false" title="從他的眼睛看出去（鍵盤 V）">角色視角</button>${s.isCeo ? '' : '<button class="btn dng" data-i="fire" title="開除：同事會搬到公司外面的無業遊民區（會先跳確認框）">開除</button>'}</div>
       <div class="kpi" id="cardKpi">${[[1, 'k1', '未完成', p.nTodo, p.nextTodo ? '排 ' + p.nextTodo : '—'], [2, 'k2', '進行中', p.nDoing, '起 ' + p.lastDoing], [3, 'k3', '已完成', p.nDone, '末 ' + p.lastDone]].map(([k, c, n, v, em]) => `<button class="${c}" data-k="${k}" aria-pressed="false" title="點一下只看「${n}」的任務，再點一次回到全部"><span>${n}</span><b>${v}</b><em>${em}</em></button>`).join('')}</div>
       <dl class="meta">${p.nDoing ? `<dt>預估完成</dt><dd>${p.eta}（約 ${p.etaMin} 分鐘後）</dd><dt>能否優化</dt><dd>${esc(p.opt)}</dd>` : '<dt>預估完成</dt><dd>目前沒有進行中的任務</dd>'}</dl>
@@ -139,7 +142,7 @@ export function createUI(W, demo, api) {
     cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, r = W.hr.recordOf(s.id) || { at: Date.now(), reason: '', to: 'ceo' }, p = baseProgress(W.members.get(s.id) || s), done = p.list.filter(x => x.s === 3), m = W.members.get(s.id) || s;
     $('card').innerHTML = `<button class="x" aria-label="關閉">×</button>
       <div class="hd">${ava(s)}<div><b>${esc(s.nick)}</b><span class="tag2 gray">待業中</span><p>${esc(s.id)}・${esc(s.zh)}${m.deptName ? '・' + esc(m.deptName) : ''}</p></div></div>
-      <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>
+      <div class="now" id="cardNow">目前：${esc(STATE(c))}</div>${moodRow(c)}
       <dl class="meta"><dt>開除日期</dt><dd>${esc(U.fmtDate(r.at))}</dd><dt>原因</dt><dd>${r.reason ? esc(r.reason) : '未填寫'}</dd><dt>任務交給</dt><dd>${esc(W.hr.nameOf(r.to))}（${r.moved ? r.moved.length : 0} 項）</dd></dl>
       <div class="bsec">在職期間完成的任務（${done.length}）</div>
       <div class="list" id="cardList">${done.length ? done.map(x => `<div class="row"><i class="s3"></i><span>${esc(x.title)}</span><time>完成 ${esc(x.t)}</time></div>`).join('') : '<div class="empty">沒有紀錄</div>'}</div>
@@ -176,7 +179,7 @@ export function createUI(W, demo, api) {
     if (!c) { U.toast('他正在開會，散會後再改'); return; }
     draft = null; U.showCard(c); api.setView('char', c); U.toast(reset ? '已還原預設造型' : saved ? '已儲存（只記在這台裝置）' : '這台裝置無法儲存，重新整理後會還原');
   }
-  U.tickCard = () => { if (cardChar && !$('card').hidden) { const el = $('cardNow'), t = '目前：' + STATE(cardChar); if (el && el.textContent !== t) el.textContent = t; } };
+  U.tickCard = () => { if (cardChar && !$('card').hidden) { const el = $('cardNow'), t = '目前：' + STATE(cardChar); if (el && el.textContent !== t) el.textContent = t; const me = $('cardMood'), ml = W.mind && W.mind.moodLine(cardChar); if (me && ml && me.textContent !== ml.text) { me.textContent = ml.text; me.dataset.mood = ml.key; } } };
   $('card').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-r]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
   $('card').onclick = e => {
     { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }   // 滑鼠點過就放掉焦點，之後按 Space 才是「跳躍」而不是再點一次這顆按鈕（鍵盤操作不受影響）

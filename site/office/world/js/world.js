@@ -186,7 +186,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
     if (spec.flat || spec.noshadow) mesh.castShadow = false;
     obj.add(mesh); (spec.extras || []).forEach(e => obj.add(e));
     mesh.userData.fid = f.id; obj.userData.fid = f.id;
-    const inst = { f, spec, obj, mesh, home: { x: f.x, z: f.z, rot: f.rot } };
+    const inst = { f, spec, obj, mesh, home: { x: f.x, z: f.z, rot: f.rot }, marks: spec.part.marks || null };   // marks：椅子、桌上小物的頂點範圍（物理層用）
     const o = ov.f && ov.f[f.id]; if (o) { f.x = o[0]; f.z = o[1]; f.rot = o[2]; }
     place(inst); furnRoot.add(obj); W.furn.set(f.id, inst);
     if (spec.board) { mesh.userData.board = spec.board; W.boardsMesh.push(mesh); }
@@ -218,7 +218,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
   W.restyle = inst => {
     const b = BUILD[inst.f.type]; if (!b) return; const spec = b(inst.f, ctx);
     (spec.extras || []).forEach(e => { e.geometry.dispose(); if (e.material.map) e.material.map.dispose(); e.material.dispose(); });
-    inst.mesh.geometry.dispose(); inst.mesh.geometry = spec.part.geometry(); W.shadowDirty();
+    inst.mesh.geometry.dispose(); inst.mesh.geometry = spec.part.geometry(); inst.marks = spec.part.marks || null; W.phys && W.phys.onRestyle && W.phys.onRestyle(inst); W.shadowDirty();
   };
 
   // 座位與具名目標點；家具動過就重算
@@ -248,6 +248,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
       l.makeScale(s.w, s.h, 1).setPosition(s.x, s.y, s.z); m4.multiplyMatrices(inst.obj.matrixWorld, l); screens.setMatrixAt(k, m4); W.screenOwner[k] = inst.f.owner; { const mem = members.get(inst.f.owner) || {}, list = SCR_DEPT[mem.dept] || [0], kind = list[k % list.length]; scrOff.setXY(k, (kind % 4) * 0.25, 1 - (Math.floor(kind / 4) + 1) * 0.5); } k++;
     }
     screens.count = k; screens.instanceMatrix.needsUpdate = true; scrOff.needsUpdate = true; W.shadowDirty();
+    for (const f of W.respotHooks || []) f();   // 家具動過：物理層重算重家具的碰撞範圍
   }
   W.respot = respot; respot();
   const _on = new THREE.Color('#ffffff'), _off = new THREE.Color('#55607a');
@@ -260,7 +261,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
   W.findSpots = name => W.spots.filter(s => s.name === name);
   W.spot = (name, near, who) => {
     const all = W.findSpots(name); if (!all.length) return null;
-    const free = all.filter(s => !s.taken || s.taken === who); const pool = free.length ? free : all;
+    const free = all.filter(s => (!s.taken || s.taken === who) && !s.blocked); const pool = free.length ? free : all;   // blocked：椅子被撞翻、還沒扶起來
     if (!near) return pool[Math.floor(Math.random() * pool.length)];
     return pool.reduce((b, s) => (Math.hypot(s.x - near.x, s.z - near.z) < Math.hypot(b.x - near.x, b.z - near.z) ? s : b));
   };
@@ -276,6 +277,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
       const p = c.object3D.position, vis = c.object3D.visible && c.state !== 'sit', s = vis ? (0.85 - Math.min(0.3, (c.lift || 0) * 0.5)) * (c.scale || 1) : 0.0001;
       bm.makeScale(s, 1, s).setPosition(p.x, 0.07, p.z); blobs.setMatrixAt(i++, bm);
     }
+    for (const b of W.extraBlobs || []) { if (i >= 62) break; bm.makeScale(b.s, 1, b.s).setPosition(b.x, 0.075, b.z); blobs.setMatrixAt(i++, bm); }   // 被撞飛、滑動中的家具（phys.js）腳下的接觸陰影
     blobs.count = i; blobs.instanceMatrix.needsUpdate = true;
   };
 

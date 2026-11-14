@@ -30,16 +30,16 @@ if (!FORCE_OLD) {
 }
 export const newCharStats = { created: 0, species: {} };
 
-const EXPR = { neutral: null, happy: 'happy', angry: 'angry', surprised: 'surprised', sad: 'sad', think: 'look', awkward: 'shy', proud: 'smug', sleepy: 'sleepy', laugh: 'laugh', ouch: 'ouch' };
+const EXPR = { neutral: null, happy: 'happy', angry: 'angry', surprised: 'surprised', sad: 'sad', think: 'look', awkward: 'shy', proud: 'smug', sleepy: 'sleepy', laugh: 'laugh', ouch: 'ouch', pout:'pout', worried:'worried', wary:'wary', relieved:'relieved', blank:'blank', cry:'cry', grateful:'grateful', fistpump:'fistpump', sulkf:'sulkf', scared:'scared', cough:'cough', giggle:'giggle', smile:'smile', confused:'confused', dizzy:'dizzy', bliss:'bliss', yawn:'yawn', whee:'whee', effort:'effort', shy:'shy', smug:'smug' };
 const ALIAS = { '!': 'exclaim', '?': 'question', '怒': 'anger', '♪': 'note', '…': 'dots', '汗': 'sweat', '☆': 'star', '♥': 'heart' };
-const ONE_SHOT = { talk: 2.2, nod: 1.2, shake: 1.2, raise: 1.6, cheer: 1.8, clap: 1.6, angry: 1.8, wave: 1.4, stretch: 2.7, slam: 1.8, point: 1.6, pour: 1.6, reach: 1.4 };
+const ONE_SHOT = { talk: 2.2, nod: 1.2, shake: 1.2, raise: 1.6, cheer: 1.8, clap: 1.6, angry: 1.8, wave: 1.4, stretch: 2.7, slam: 1.8, point: 1.6, pour: 1.6, reach: 1.4, shy: 2.4, fist: 1.5, sob: 3.6, flail: 1.6, cough: 1.5, yawn: 2.6, rub: 1.9, dizzy: 3, fidget: 3 };
 const ACTS = {
   idle: {}, type: { pose: 'type' }, read: { pose: 'read', A: 'book' }, tablet: { pose: 'read', A: 'tablet' }, doc: { pose: 'read', A: 'doc' },
   note: { pose: 'note', L: 'notebook', R: 'pen' }, listen: { pose: 'listen' }, think: { pose: 'think' }, nod: { pose: 'nod' }, shake: { pose: 'no' },
   raise: { pose: 'raise' }, clap: { pose: 'clap' }, cheer: { pose: 'cheer' }, drink: { pose: 'drink', R: 'cup' }, phone: { pose: 'phone', R: 'phone' },
   talk: { pose: 'talkg' }, stretch: { pose: 'stretch' }, doze: { pose: 'doze' }, slam: { pose: 'slam' }, point: { pose: 'point' },
   carry: { pose: 'carry', A: 'doc' }, present: { pose: 'present', A: 'doc' }, eat: { pose: 'eat', R: 'donut' }, magnify: { pose: 'magnify', R: 'magnifier', L: 'doc' },
-  box: { pose: 'carry', A: 'box' }, paddle: { pose: 'paddle', R: 'paddle' }, pour: { pose: 'pour', R: 'cup' }, reach: { pose: 'reach' }, sulk: { pose: 'sulk' }, angry: { pose: 'slam' }, wave: { pose: 'raise' }, sleep: {},
+  box: { pose: 'carry', A: 'box' }, paddle: { pose: 'paddle', R: 'paddle' }, pour: { pose: 'pour', R: 'cup' }, reach: { pose: 'reach' }, sulk: { pose: 'sulk' }, angry: { pose: 'slam' }, wave: { pose: 'raise' }, shy: { pose: 'shy' }, fist: { pose: 'fist' }, sob: { pose: 'sob' }, flail: { pose: 'flail' }, cough: { pose: 'cough' }, yawn: { pose: 'yawn' }, rub: { pose: 'rub' }, dizzy: { pose: 'dizzy' }, fidget: { pose: 'fidget' }, sleep: {},
 };
 // 動作姿勢＝疊在控制器輸出之上的「手臂／頭」增量（模型座標軸的歐拉角；arm.L 骨頭朝 +X：rz＋抬起、ry－往前；arm.R 朝 −X：rz－抬起、ry＋往前）
 const sn = Math.sin;
@@ -65,6 +65,16 @@ const POSES = {
   magnify: (t) => ({ 'arm.R': [0, 1.0, -0.8], 'arm.L': [0, -0.9, 0.6], head: [0.1, 0.12 * sn(t * 0.9), 0] }),
   paddle: (t) => ({ 'arm.R': [0, 1.1, -0.7 + 0.5 * sn(t * 6)] }), pour: (t) => ({ 'arm.R': [0, 1.0, -0.6], head: [0.12, 0, 0] }), reach: (t) => ({ 'arm.R': [0, 1.3, -0.6], 'arm.L': [0, -1.3, 0.6], head: [0.05, 0, 0] }),
   sulk: (t) => ({ head: [0.3, 0.2, 0.05], spine: [0.08, 0, 0] }),
+  // ── 情緒層（mind.js）新增的姿勢：每個都是「單次演出」，時間 t 從 0 起算
+  shy: (t) => { const k = clamp(Math.min(t / 0.35, (2.4 - t) / 0.4), 0, 1); return { head: [0.3 * k, -0.18 * k + 0.03 * sn(t * 3), 0.12 * k], 'arm.L': [0, -1.0 * k, 0.28 * k], 'arm.R': [0, 1.0 * k, -0.28 * k], spine: [0.07 * k, 0, 0] }; },      // 低頭、雙手在身前絞著、微側頭
+  fist: (t) => { const k = clamp(Math.min(t / 0.18, (1.5 - t) / 0.3), 0, 1); return { 'arm.R': [0, 0.3 * k, -1.75 * k + 0.1 * sn(t * 22) * k], head: [-0.1 * k, 0, 0], spine: [-0.05 * k, 0, 0] }; },                                      // 右手握拳高舉
+  sob: (t) => { const k = clamp(t / 0.5, 0, 1); return { head: [0.34 * k, 0, 0.05 * sn(t * 2)], spine: [(0.1 + 0.025 * sn(t * 11)) * k, 0, 0], 'arm.L': [0, -0.85 * k, 0.5 * k], 'arm.R': [0, 0.85 * k, -0.5 * k] }; },             // 垂頭、肩膀輕輕抖、手在臉前
+  flail: (t) => ({ 'arm.L': [0, 0, 1.6 + 0.45 * sn(t * 19)], 'arm.R': [0, 0, -1.6 - 0.45 * sn(t * 19 + 1)], head: [-0.15, 0.1 * sn(t * 15), 0], spine: [-0.06, 0, 0.06 * sn(t * 13)] }),                                                    // 雙手亂揮、頭轉來轉去
+  cough: (t) => { const p = Math.max(0, sn(t * 8.5)); return { 'arm.R': [0, 0.55, -1.3], head: [0.18 * p, 0, 0], spine: [0.1 * p, 0, 0] }; },                                                                                             // 握拳掩嘴、身體一抖一抖
+  yawn: (t) => { const k = clamp(Math.min(t / 0.5, (2.6 - t) / 0.5), 0, 1); return { head: [-0.32 * k, 0, 0], 'arm.R': [0, 0.5 * k, -1.4 * k], spine: [-0.08 * k, 0, 0] }; },                                                            // 仰頭打哈欠、一手掩嘴
+  rub: (t) => { const k = clamp(Math.min(t / 0.3, (1.9 - t) / 0.3), 0, 1); return { 'arm.R': [0, 0.9 * k, -1.55 * k + 0.08 * sn(t * 14) * k], head: [0.12 * k, 0, 0] }; },                                                                         // 揉眼睛
+  dizzy: (t) => ({ head: [0.06, 0, 0.22 * sn(t * 4.2)], spine: [0.05 * sn(t * 3.1), 0, 0.1 * sn(t * 2.6)], 'arm.L': [0, -0.2, 0.35 + 0.1 * sn(t * 3)], 'arm.R': [0, 0.2, -0.35 - 0.1 * sn(t * 3.4)] }),                                  // 站不穩：頭與身體慢慢畫圈
+  fidget: (t) => ({ 'arm.L': [0, -1.0, 0.5 + 0.08 * sn(t * 6)], 'arm.R': [0, 1.0, -0.5 - 0.08 * sn(t * 5.3)], head: [0.08, 0.12 * sn(t * 1.6), 0] }),                                                                                  // 坐立不安、手指絞在一起
 };
 
 export function createCharacter(spec, env = {}) {
@@ -135,7 +145,7 @@ function makeNew(spec, look, env) {
       { const sv = !!c._seat && ctl.state === 'sit' && lod < 2 && root.visible; if (cushion) cushion.visible = sv && c._boost > 0 && !(c._lift > 0); if (riser) riser.visible = sv && c._lift > 0; }
       speakLip(t);
       if (icon && icon.visible) {
-        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, kk = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(kk); icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + kk * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }
+        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, kk = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(kk); icon.material.rotation = c.emoteSym && c.emoteSym.sym === 'swirl' ? -iconT * 7 : 0; icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + kk * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }
       }
     },
     setAction(name, opts = {}) { if (!ACTS[name]) name = 'idle'; if (ONE_SHOT[name]) { c._until = c._t + (opts.duration || ONE_SHOT[name]); if (opts.then) c._base = opts.then; apply(name); } else { c._base = name; if (opts.duration) { c._until = c._t + opts.duration; c._base = opts.then || 'idle'; apply(name); } else if (!c._until) apply(name); } },

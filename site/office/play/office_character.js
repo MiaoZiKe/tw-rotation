@@ -20,7 +20,7 @@ import { DETAIL, clamp, lerp, sstep } from './soft.js';
 import { G as KG, Part, MAT } from '../world/js/kit.js';
 
 const V3 = THREE.Vector3, _v = new V3(), _w = new V3();
-const EXPR = { neutral: null, happy: 'happy', angry: 'angry', surprised: 'surprised', sad: 'sad', think: 'look', awkward: 'shy', proud: 'smug', sleepy: 'sleepy', laugh: 'laugh', ouch: 'ouch' };
+const EXPR = { neutral: null, happy: 'happy', angry: 'angry', surprised: 'surprised', sad: 'sad', think: 'look', awkward: 'shy', proud: 'smug', sleepy: 'sleepy', laugh: 'laugh', ouch: 'ouch', pout:'pout', worried:'worried', wary:'wary', relieved:'relieved', blank:'blank', cry:'cry', grateful:'grateful', fistpump:'fistpump', sulkf:'sulkf', scared:'scared', cough:'cough', giggle:'giggle', smile:'smile', confused:'confused', dizzy:'dizzy', bliss:'bliss', yawn:'yawn', whee:'whee', effort:'effort', shy:'shy', smug:'smug' };
 const ONE_SHOT = { talk: 2.2, nod: 1.2, shake: 1.2, raise: 1.6, cheer: 1.8, clap: 1.6, angry: 1.8, wave: 1.4, stretch: 2.7, slam: 1.8, point: 1.6, pour: 1.6, reach: 1.4 };
 // 動作 → 姿勢與手上的道具（A＝兩手之間、L＝左手、R＝右手）
 const ACTS = {
@@ -67,12 +67,15 @@ function iconTex(name) {
     battery() { const body = () => { g.beginPath(); g.roundRect(-r * 0.66, -r * 0.34, r * 1.2, r * 0.68, r * 0.16); }; halo(() => { g.beginPath(); g.roundRect(r * 0.54, -r * 0.14, r * 0.16, r * 0.28, r * 0.05); }, '#b9a99a', '#fff', r * 0.14); halo(body, '#fff6ea'); g.lineWidth = r * 0.08; g.strokeStyle = '#8a766a'; body(); g.stroke(); g.fillStyle = '#ff6a4d'; g.beginPath(); g.roundRect(-r * 0.54, -r * 0.2, r * 0.2, r * 0.4, r * 0.05); g.fill(); },
     shield() { const sh = () => { g.beginPath(); g.moveTo(0, -r * 0.74); g.bezierCurveTo(r * 0.3, -r * 0.55, r * 0.55, -r * 0.5, r * 0.62, -r * 0.5); g.bezierCurveTo(r * 0.62, r * 0.2, r * 0.32, r * 0.55, 0, r * 0.78); g.bezierCurveTo(-r * 0.32, r * 0.55, -r * 0.62, r * 0.2, -r * 0.62, -r * 0.5); g.bezierCurveTo(-r * 0.55, -r * 0.5, -r * 0.3, -r * 0.55, 0, -r * 0.74); g.closePath(); }; halo(sh, '#ffb300'); g.fillStyle = '#fff'; g.beginPath(); g.roundRect(-r * 0.2, -r * 0.08, r * 0.4, r * 0.32, r * 0.06); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = r * 0.1; g.beginPath(); g.arc(0, -r * 0.1, r * 0.14, Math.PI, 0); g.stroke(); },
     cloud() { halo(() => { g.beginPath(); g.arc(-r * 0.28, r * 0.06, r * 0.26, 0, 7); g.arc(r * 0.02, -r * 0.14, r * 0.34, 0, 7); g.arc(r * 0.34, r * 0.08, r * 0.26, 0, 7); g.roundRect(-r * 0.54, r * 0.06, r * 1.12, r * 0.28, r * 0.14); }, '#a9b7cf'); g.fillStyle = '#7cc8ff'; for (const x of [-0.3, 0.05, 0.38]) { g.beginPath(); g.ellipse(x * r, r * 0.62, r * 0.05, r * 0.1, 0, 0, 7); g.fill(); } },
+    // 情緒層用：暈眩的轉圈（畫成螺旋，精靈在轉）、咳出的黑煙（三團深灰煙，不是燒焦的羞辱感，只是小小一縷）
+    swirl() { g.save(); g.shadowColor = 'rgba(80,60,120,.35)'; g.shadowBlur = r * 0.12; g.lineCap = 'round'; for (const [col, lw] of [['#ffffff', r * 0.3], ['#8f7bd6', r * 0.14]]) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); for (let i = 0; i <= 44; i++) { const a = i / 44 * Math.PI * 4.2, rr = r * (0.08 + 0.62 * i / 44); const x = Math.cos(a) * rr, y = Math.sin(a) * rr; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); } g.restore(); },
+    smoke() { for (const [x, y, k, a] of [[-0.3, 0.2, 0.34, 0.9], [0.05, -0.1, 0.42, 0.95], [0.34, -0.38, 0.3, 0.8]]) { const gr = g.createRadialGradient(x * r, y * r, 0, x * r, y * r, k * r * 1.3); gr.addColorStop(0, `rgba(70,64,64,${a})`); gr.addColorStop(0.6, `rgba(95,88,88,${a * 0.7})`); gr.addColorStop(1, 'rgba(120,110,110,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x * r, y * r, k * r * 1.3, 0, 7); g.fill(); } },
     check() { g.save(); g.shadowColor = 'rgba(40,120,60,.4)'; g.shadowBlur = r * 0.12; const q = () => { g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(-r * 0.12, r * 0.4); g.lineTo(r * 0.56, -r * 0.42); g.stroke(); }; g.lineWidth = r * 0.42; g.strokeStyle = '#fff'; q(); g.restore(); g.lineWidth = r * 0.22; g.strokeStyle = '#4cc27a'; q(); },
   };
   (P[name] || P.exclaim)();
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return (ICON[name] = t);
 }
-export const ICON_NAMES = ['exclaim', 'question', 'anger', 'sweat', 'bulb', 'star', 'heart', 'note', 'dots', 'zzz', 'check', 'battery', 'shield', 'cloud'];
+export const ICON_NAMES = ['exclaim', 'question', 'anger', 'sweat', 'bulb', 'star', 'heart', 'note', 'dots', 'zzz', 'check', 'battery', 'shield', 'cloud', 'swirl', 'smoke'];
 
 // ── 道具（每種一份合併幾何，全部角色共用；造型已經是「拿在手上」的角度：+z 朝前、+y 朝上）
 const PROP = {}; let inkMat = null, inkCtx = null, inkTex = null, inkT = 0, inkN = 0, tabMat = null, tabCtx = null, tabTex = null, tabN = 0, sharedT = -1;
@@ -169,7 +172,7 @@ export function createCharacter(spec, env = {}) {
         ch.animate(Math.min(accDt, 0.1), aenv); accDt = 0; props(t); tickShared(t);
       } else { root.updateMatrix(); space.matrix.copy(root.matrix).invert(); if (s !== 1) space.matrix.scale(_v.set(s, s, s)); root.updateMatrixWorld(true); }
       if (icon && icon.visible) {
-        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }   // 圖示放在名牌上方
+        iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.material.rotation = c.emoteSym && c.emoteSym.sym === 'swirl' ? -iconT * 7 : 0; icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }   // 圖示放在名牌上方
       }
     },
     setAction(name, opts = {}) { if (!ACTS[name]) name = 'idle'; if (ONE_SHOT[name]) { c._until = c._t + (opts.duration || ONE_SHOT[name]); if (opts.then) c._base = opts.then; apply(name); } else { c._base = name; if (opts.duration) { c._until = c._t + opts.duration; c._base = opts.then || 'idle'; apply(name); } else if (!c._until) apply(name); } },

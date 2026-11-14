@@ -4,10 +4,13 @@ import { OrbitControls } from '../../vendor/OrbitControls.js';
 import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createPilot } from './pilot.js';
+import { createMulti } from './multi.js';   // 按住 Ctrl 多選（新檔；main 只掛鉤）
 import { createAttention } from './attention.js';
 import { createPOV } from './pov.js';
 import { createCamHint } from './camhint.js';
 import { createDaytime } from './daytime.js';
+import { createPhysics } from './phys.js';   // 物理互動：椅子盆栽立燈被撞翻、角色撞擊反作用、同事扶起復原（phys.js）
+import { createFire } from './fire.js';       // 火焰、碰到火燒起來、焦黑與恢復（fire.js）
 import { createUI } from './ui.js';
 import { loadRewards, makeStyleOf, createRewards } from './rewards.js';
 import { createLedger } from './ledger.js';
@@ -15,6 +18,7 @@ import { createState } from './state.js';
 import { createPower } from './power.js';
 import { createJobs } from './jobs.js';
 import { createHR } from './hr.js';
+import { createMind } from './mind.js';
 import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
@@ -263,7 +267,10 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   // 角色視角（鏡頭綁在選取角色的眼睛上）與「點選後面向鏡頭」；兩者都只讀 pilot 的選取狀態，不動操控邏輯
   const pov = createPOV(W, { camera, controls, cv, view, cam, ui, charTarget: (c, o) => charTarget(c, o), restoreControls: modeControls, everyone: () => everyone, isGrabbing: () => !!grab, downChar: () => !!(down && down.c) }); W.pov = pov;
   const attn = createAttention(W, { camera, pilot, director: () => director }); W.attn = attn;
+  const multi = createMulti(W, { cv, camera, ui, pilot, setView, director: () => director, pick: pickChar, isEdit: () => edit.on }); W.multi = multi;   // 多選：Ctrl＋點／框選／群組面板（multi.js；下面 pointerdown／pointerup 各有一行掛鉤）
   const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
+  const noPhys = qs.get('nophys') === '1';   // 網址加 nophys=1＝關掉物理與火焰（驗收量「繪製次數增量」時當對照組）
+  const phys = noPhys ? { tick() { }, preRender() { }, postRender() { } } : createPhysics(W), fire = noPhys ? { tick() { }, frame() { } } : createFire(W);   // 物理互動與火焰（主迴圈每個模擬步呼叫 tick）
 
   // ── 辦公室狀態層與各控制器：所有演出只讀 state，示範（sim）與之後的真資料都從 state.emit 進來 ──
   W.extras = [];
@@ -276,6 +283,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
   const sim = createSim(W, { state, demo, ui }); W.sim = sim;
   const rewards = createRewards(W, rw, { ui, cv, camera }); if (rewards.on) createLedger(W, rewards, { ui, fly: flyTo }); else { const b = $('rwBtn'); if (b) b.hidden = true; }
+  createMind(W, { state });   // 每位同事的「心」：個性、心情、記憶，把獎勵／懲罰／被丟／著火等事件轉成表情與反應（mind.js）
   import('./live.js').then(m => m.createLive(W, { state, ui, sim, rewards })).catch(e => console.warn('即時模式載入失敗，維持示範', e));   // 2026-11-14 即時模式：有接入碼就讀 AI Office 收件端的真實事件（live.js）
 
   // ── 名牌、泡泡 ──
@@ -310,7 +318,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       if (!on) { if (L.on) { L.tag.style.transform = L.bub.style.transform = 'translate(-999px,-999px)'; L.on = L.bon = false; L.txt = ''; } else if (L.bon) { L.bub.style.transform = 'translate(-999px,-999px)'; L.bon = false; L.txt = ''; } c._sx = -999; continue; }
       const x = Math.round((pv.x + 1) / 2 * w), y = Math.round((1 - pv.y) / 2 * h); c._sx = x; c._sy = y; c._sd = dist;
       const st = W.statusOf(c); if (st !== L.st) { L.stEl.textContent = st; L.st = st; }
-      const cls = 'tag' + (st ? ' hasst' : '') + (L.grv ? ' hasgr' : '') + (c.jobless ? ' jobless' : '') + (c.sleeping ? ' zz' : '') + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c ? ' sel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far');
+      const cls = 'tag' + (st ? ' hasst' : '') + (L.grv ? ' hasgr' : '') + (c.jobless ? ' jobless' : '') + (c.sleeping ? ' zz' : '') + (c.spec.lead || c.spec.isCeo ? ' lead' : '') + (c.spec.pet ? ' pet' : '') + (view.char === c ? ' me' : '') + (pilot.sel === c || multi.has(c) ? ' sel' : '') + (multi.has(c) ? ' msel' : '') + (dist < 15 ? '' : dist < 34 ? ' mid' : ' far');
       const mk = cls + '|' + st + '|' + c.spec.nick; if (cls !== L.cls) { L.tag.className = cls; L.cls = cls; L.fd = false; }
       if (mk !== L.mk) { L.mk = mk; L.tw = L.tag.offsetWidth; L.th = L.tag.offsetHeight; }     // 尺寸只在樣式或文字變了才量（避免每幀強制排版）
       L.on = true; const pri = (view.char === c || pilot.sel === c ? 0 : c.spec.pet ? 3 : c.spec.isCeo ? 1 : 2) * 1e4 + Math.min(9999, dist);
@@ -350,6 +358,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const lastTap = { t: 0, x: 0, y: 0 }; let deselT = 0;
   let down = null, grab = null; const HOLD_MS = 350; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
   cv.addEventListener('pointerdown', e => {
+    if (multi.down(e)) return;     // 多選：Ctrl／⌘＋按下 → 由 multi.js 接管（點＝加入或移出、拖＝框選），不平移也不旋轉
     down = { x: e.clientX, y: e.clientY, t: performance.now(), c: null };
     if (edit.on) { editDown(e); return; }
     // 拖曳一律是平移（2026-11-14 擁有者：「我滑鼠點擊是要可以平移」）：按在角色身上也一樣。拎起角色改成「按住不動約 0.4 秒」才會發生，
@@ -396,15 +405,16 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     // （慢慢點的人 0.3～0.5 秒很常見，以前 0.25 秒就判定不算，點招牌常常沒反應）；但點在空白處不算（維持「按住不動再放開不取消選取、不關資訊卡」）。
     if (moved > 5 || dt > 700) return; const slow = dt > 250; if (!slow) ui.closePops();
     if (edit.on) { editTap(e); return; }
-    const c = pickChar(e); if (c) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
+    const c = pickChar(e); if (c && multi.tap(e, c)) return; if (c) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
     setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
     if (W.rewards && W.rewards.on && W.rewards.pick(ray)) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; return; }   // 點部門招牌、琥珀旗、字章、入口大廳的看板 → 績效總表
+    if (multi.bgTap(e)) return;           // 手機多選模式中點空白處不取消（要按「完成」）
     if (slow) return;                     // 空白處的慢點（按住 0.25 秒以上）不算點：不取消選取
     if (W.pov && W.pov.on()) return;      // 角色視角中點空白處不取消選取、不移動鏡頭（要退出請按 Esc、V 或「角色視角」鈕）
     // 點空白處：取消選取；但 0.3 秒內再點一下（雙點地面）是「鏡頭移過去」，不取消
     const now = performance.now(), gp = new THREE.Vector3();
     if (now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30 && ray.ray.intersectPlane(ground, gp)) { clearTimeout(deselT); lastTap.t = 0; moveCamTo(gp.x, gp.z); return; }
-    lastTap.t = now; lastTap.x = e.clientX; lastTap.y = e.clientY; clearTimeout(deselT); deselT = setTimeout(() => pilot.deselect(), 330);
+    lastTap.t = now; lastTap.x = e.clientX; lastTap.y = e.clientY; clearTimeout(deselT); deselT = setTimeout(() => { pilot.deselect(); multi.clear(); }, 330);
   });
   // ── 左鍵（觸控單指）抓著地面拖：一比一 ──
   const pan = { on: false, id: -1, g0: new THREE.Vector3(), g1: new THREE.Vector3(), v: new THREE.Vector3(), t: 0, touches: new Set() };
@@ -458,7 +468,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   cv.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch' || edit.on || grab || (e.buttons & 7)) { if (e.buttons & 7) tipOff(); return; }
     const c = pickChar(e); let key = null, txt = '';
-    if (c && !c.away) { key = 'c:' + c.spec.id; txt = c.spec.pet ? '點一下：摸摸看' : '點一下：選取・長按：拎起'; }
+    if (c && !c.away) { key = 'c:' + c.spec.id; txt = c.spec.pet ? '點一下：摸摸看' : '點一下：選取・Ctrl＋點：多選・長按：拎起'; }
     else { setRay(e); if (ray.intersectObjects(W.boardsMesh, false)[0]) { key = 'b'; txt = '點一下：打開'; } }
     cv.style.cursor = key ? 'pointer' : '';
     tipXY = [e.clientX, e.clientY]; if (key === tipKey) { if (!tip.hidden) tip.style.transform = `translate(${e.clientX + 16}px,${e.clientY + 20}px)`; return; }
@@ -530,11 +540,15 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   // ── 主迴圈 ──
   setView(qs.get('view') === 'ceo' ? 'ceo' : 'god', ceo, true);   // 預設進場是俯視（看得到整間辦公室）；網址帶 view=ceo 才從 CEO 視角開始
   let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true, shift = 0;
+  // 一個模擬步（畫面更新與 W.advance 共用）：W.advance(秒) 不繪圖、直接把模擬往前推（驗收與「加速時間」用）
+  function simStep(h) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); W.mind && W.mind.tick(h); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); phys.tick(h); fire.tick(h); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
+  W.advance = (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) simStep(sec / n); };
+  W.advanceAsync = async (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) { simStep(sec / n); await null; await null; } };   // 同上，但每步讓出一次，導演的 async 流程（走過去、等一下）才會往下走
   function frame(now) {
     requestAnimationFrame(frame);
     const wall = Math.max(0.004, Math.min(0.3, (now - last) / 1000)), real = Math.min(0.1, wall); last = now;   // max(0.004,…)：第一幀的 rAF 時間戳可能比 last 早，負 dt 會讓臉部表情彈簧發散、之後一連串畫臉例外；也不能是 0（慣性要除以 dt，0/0 會讓身體變成 NaN 而消失）
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
-    for (let i = 0; i < n; i++) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
+    for (let i = 0; i < n; i++) simStep(h);
     W.updateBlobs(); W.updateScreens(real);
     if (cam.coast.lengthSq() > 0.0004) { movePan(cam.coast.x * wall, cam.coast.z * wall); cam.coast.multiplyScalar(Math.exp(-wall * 7)); } else cam.coast.set(0, 0, 0);   // 放開後用阻尼慢慢停下
     if (cam.spin || cam.step) {                                                         // 旋轉鈕：按住持續轉（每秒 60 度），點一下轉 30 度（平順插值）
@@ -554,7 +568,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       if (Math.abs(want - shift) > 0.002) { shift += (want - shift) * Math.min(1, wall * 6); const w = cv.clientWidth, h = cv.clientHeight; camera.setViewOffset(w, h, 0, shift * h, w, h); }
       else if (shift !== want) { shift = want; if (!want) camera.clearViewOffset(); }
     }
-    renderer.render(scene, camera);
+    fire.frame(real); phys.preRender(real); renderer.render(scene, camera); phys.postRender();   // 鏡頭微晃只在渲染的那一刻加上
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
     updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.outside.tick(); W.empty.frame();
     acc += real; frames++;

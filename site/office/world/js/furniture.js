@@ -12,11 +12,12 @@ const q = v => Math.round(v * 50) / 50;
 
 function chair(P, x, z, ang, color, big = false) {
   // ang：椅背所在方向（從座位中心看出去）
-  const sx = Math.sin(ang), cz = Math.cos(ang), s = big ? 1.15 : 1;
+  const sx = Math.sin(ang), cz = Math.cos(ang), s = big ? 1.15 : 1, i0 = P.list.length;
   P.cyl(PAL.grey, 0.24 * s, 0.05, x, 0, z, 0.02);
   P.cyl(PAL.greyDark, 0.045, 0.3, x, 0.04, z, 0.01);
   P.cyl(color, 0.27 * s, 0.11, x, 0.31, z, 0.045);
   P.box(shade(color, -0.08), 0.52 * s, big ? 0.62 : 0.44, 0.11, x + sx * 0.27 * s, 0.4, z + cz * 0.27 * s, 0.05, ang);
+  P.mk('chair', { x, z, big, ang }, i0);   // 物理層可以把這張椅子從合併網格裡拆出來（被撞翻時）
 }
 // 花盆顏色隨部門設備等級：L1 灰、L2 原色、L3 現況、L4 部門色、L5 金
 function potColor(lv, st, ctx, dflt) { if (lv === 3) return dflt; if (lv === 1) return PAL.grey; if (lv === 2) return PAL.pot; if (lv === 5) return '#ffcf6b'; return (st && st.dept && ctx.deptColor(st.dept)) || PAL.gold; }
@@ -52,7 +53,7 @@ export const BUILD = {
     P.box('#7d8fb5', 0.52, 0.31, 0.02, 0, 0.825, -0.172, 0.008);
     // 鍵盤、滑鼠、杯子
     P.box(PAL.grey, 0.36, 0.025, 0.13, 0, 0.67, 0.1, 0.012); P.sph(PAL.grey, 0.035, 0.28, 0.685, 0.12, 1, 0.6, 1.3);
-    P.cyl(col, 0.05, 0.1, 0.52, 0.67, 0.08, 0.02);
+    { const i0 = P.list.length; P.cyl(col, 0.05, 0.1, 0.52, 0.67, 0.08, 0.02); P.mk('item', { x: 0.52, z: 0.08, y: 0.67, r: 0.05, h: 0.1, what: 'mug' }, i0); }
     const deco = Math.floor(r() * 4);
     if (deco === 0) { P.cyl(PAL.pot, 0.07, 0.09, -0.56, 0.67, -0.18, 0.02, 0.085); leaves(P, r, -0.56, 0.82, -0.18, 4, 0.05, 0.075); }
     else if (deco === 1) { for (let i = 0; i < 3; i++) P.box(PASTEL[Math.floor(r() * 10)], 0.24 - i * 0.02, 0.04, 0.17, -0.54, 0.67 + i * 0.04, -0.15, 0.012, r() * 0.5 - 0.25); }
@@ -160,7 +161,8 @@ export const BUILD = {
   coffee_table(f) {
     const P = new Part(), r = rng(f.id);
     P.cyl(PAL.wood, 0.6, 0.07, 0, 0.34, 0, 0.03); P.cyl(PAL.cream, 0.2, 0.34, 0, 0, 0, 0.04, 0.12);
-    P.cyl(PASTEL[Math.floor(r() * 10)], 0.05, 0.09, 0.25, 0.41, 0.1, 0.02); P.box(PASTEL[Math.floor(r() * 10)], 0.3, 0.025, 0.22, -0.15, 0.41, -0.1, 0.01, 0.4);
+    { const i0 = P.list.length; P.cyl(PASTEL[Math.floor(r() * 10)], 0.05, 0.09, 0.25, 0.41, 0.1, 0.02); P.mk('item', { x: 0.25, z: 0.1, y: 0.41, r: 0.05, h: 0.09, what: 'mug' }, i0); }
+    { const i0 = P.list.length; P.box(PASTEL[Math.floor(r() * 10)], 0.3, 0.025, 0.22, -0.15, 0.41, -0.1, 0.01, 0.4); P.mk('item', { x: -0.15, z: -0.1, y: 0.41, r: 0.15, h: 0.03, what: 'book' }, i0); }
     P.cyl(PAL.pot, 0.07, 0.08, -0.05, 0.41, 0.28, 0.02); leaves(P, r, -0.05, 0.55, 0.28, 3, 0.04, 0.07);
     return { part: P, foot: [{ x: 0, z: 0, r: 0.6 }] };
   },
@@ -168,7 +170,7 @@ export const BUILD = {
     const P = new Part(), h = f.tall ? 0.95 : 0.5, r = rng(f.id);
     P.cyl(PAL.cream, 0.28, 0.04, 0, 0, 0, 0.015); P.cyl(PAL.cream, 0.06, h, 0, 0, 0, 0.01); P.cyl(PAL.wood, 0.5, 0.06, 0, h, 0, 0.025);
     if (f.tall) { P.cyl(PASTEL[2], 0.05, 0.1, 0.2, h + 0.06, 0.05, 0.02); P.cyl(PASTEL[0], 0.05, 0.1, -0.15, h + 0.06, -0.12, 0.02); }
-    else { P.box(PASTEL[4], 0.34, 0.04, 0.26, 0, h + 0.06, 0, 0.012, 0.3); P.box(PASTEL[1], 0.3, 0.04, 0.24, 0.02, h + 0.1, 0, 0.012, -0.2); P.sph(PAL.red, 0.06, 0.24, h + 0.12, 0.22); }
+    else { { const i0 = P.list.length; P.box(PASTEL[4], 0.34, 0.04, 0.26, 0, h + 0.06, 0, 0.012, 0.3); P.box(PASTEL[1], 0.3, 0.04, 0.24, 0.02, h + 0.1, 0, 0.012, -0.2); P.mk('item', { x: 0, z: 0, y: h + 0.06, r: 0.17, h: 0.08, what: 'book' }, i0); } { const i0 = P.list.length; P.sph(PAL.red, 0.06, 0.24, h + 0.12, 0.22); P.mk('item', { x: 0.24, z: 0.22, y: h + 0.06, r: 0.06, h: 0.12, what: 'ball' }, i0); } }
     return { part: P, foot: [{ x: 0, z: 0, r: 0.5 }], spots: f.tall ? [{ name: 'chat', x: 0, z: 0.95, face: Math.PI }, { name: 'chat', x: 0.9, z: -0.3, face: -1.9 }, { name: 'chat', x: -0.9, z: -0.3, face: 1.9 }] : [{ name: 'read', x: 0, z: 0.95, face: Math.PI }] };
   },
   dining(f) {
