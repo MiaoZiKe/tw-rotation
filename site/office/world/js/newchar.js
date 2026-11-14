@@ -81,7 +81,7 @@ function makeNew(spec, look, env) {
   ch.body.castShadow = false; ch.body.receiveShadow = false;
   const worn = addAccs(ch, col.accWorn, col.acc), anch = meta.anchors, mouthY = anch.mouth.p[1], eyeY = anch['eye.L'].p[1], front = Math.abs(anch.mouth.p[2]);
   const cherry = kind.cherry ? addCherry(ch, col.cherry) : null;
-  const topY = look.species === 'bunny' ? 1.07 : look.species === 'pudding' ? 0.52 : 0.76;   // 糰糰 11-14 身體抬高 4 公分（走路改版）
+  const topY = look.species === 'bunny' ? 1.07 : look.species === 'pudding' ? 0.52 : 0.79;   // 糰糰 11-14 身體抬高 7 公分（走路改版，tools/ai_office_char/params_mochi.py 的 LIFT）
   const world = new PhysWorld({ minX: B.x0 / s, maxX: B.x1 / s, minZ: B.z0 / s, maxZ: B.z1 / s });
   const k = 1.5 * Math.pow(1 / s, 0.5);
   const prof = officeProfile(mergeProfile(BASE_PROFILE, PROFILE_OVERRIDE[look.species]), k), walkV = prof.move.walk * s, runV = prof.move.run * s;

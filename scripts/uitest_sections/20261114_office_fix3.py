@@ -471,7 +471,7 @@ def t_f3_model(b, base):
         finally:
             c.close()
     if "預設" in r and "body=v1" in r:
-        ok("預設網址載入的是新模型（%d／%d 位是新模型），?body=v1 是舊的（%d 位新模型）" % (r["預設"][0], r["預設"][1], r["body=v1"][0]), r["預設"][0] >= 10 and r["body=v1"][0] == 0, r)
+        ok("預設網址載入的是新模型（%d／%d 位是新模型：糰糰、垂垂、布布三個物種，其餘物種仍是舊系統），?body=v1 是舊的（%d 位新模型）" % (r["預設"][0], r["預設"][1], r["body=v1"][0]), r["預設"][0] >= 3 and r["body=v1"][0] == 0, r)
     if "預設" in r and "body=v2" in r:
         ok("?body=v2 與預設一樣是新模型", r["body=v2"][0] == r["預設"][0], r)
 
@@ -490,7 +490,7 @@ def t_f3_layout(b, base):
             ok("版面（%s）：沒有橫向捲軸" % tag, pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth"))
             txt = pg.evaluate("() => document.body.innerText")
             ok("版面（%s）：畫面文字不含禁用字" % tag, not _F3_FORBID.search(txt), _F3_FORBID.search(txt))
-            ok("版面（%s）：最小字 ≥ 11px（邊緣標示 %spx）" % (tag, pg.evaluate("() => getComputedStyle(document.getElementById('jlHint')).fontSize")), pg.evaluate("() => parseFloat(getComputedStyle(document.getElementById('jlHint')).fontSize)") >= 11)
+            ok("版面（%s）：最小字 ≥ 11px（邊緣標示 %s）" % (tag, pg.evaluate("() => getComputedStyle(document.getElementById('jlHint')).fontSize")), pg.evaluate("() => parseFloat(getComputedStyle(document.getElementById('jlHint')).fontSize)") >= 11)
             ok("版面（%s）：沒有主控台錯誤" % tag, not pg.errs, pg.errs[:3])
         finally:
             c.close()

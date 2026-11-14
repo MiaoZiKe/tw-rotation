@@ -192,7 +192,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   function jumpTo(roomId) {
     const r = layout.rooms.find(q => q.id === roomId) || (roomId === 'jobless' ? { x: W.outside.zone.x0, z: W.outside.zone.z0, w: W.outside.zone.x1 - W.outside.zone.x0, d: W.outside.zone.z1 - W.outside.zone.z0 } : null); if (!r) return;
     view.mode = 'god'; view.char = null; env.followed = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false;
-    tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, portrait() ? r.z + r.d * 0.3 : r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
+    tweenTo(godPose(new THREE.Vector3(r.x + r.w / 2, 0, roomId === 'jobless' ? r.z + r.d * (portrait() ? 0.15 : 0.25) : portrait() ? r.z + r.d * 0.3 : r.z + r.d / 2 + 0.4), Math.max(r.w, r.d * 1.5) * (portrait() ? 2.2 : 0.82) + 5));
   }
   // 績效總表點一列 → 鏡頭飛到那個人或部門（比照點角色／點區域的既有做法）
   function flyTo(u) {
@@ -377,11 +377,14 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     if (grab) { endGrab(); down = null; return; }
     controls.enabled = true;
     if (!down || e.target !== cv) { down = null; return; } const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
-    if (moved > 5 || dt > 700) return; ui.closePops();   // 位移超過約 5 像素＝拖曳，不是點一下：不取消選取、不關資訊卡。按住超過 0.7 秒也不算點（慢慢點的人 0.3～0.5 秒很常見，以前 0.25 秒就判定不算，點招牌／旗／打卡機常常沒反應）
+    // 位移超過約 5 像素＝拖曳，不是點一下。按住 0.7 秒以上也不算點。0.25～0.7 秒的「慢點」：點到角色、佈告欄、招牌／旗／打卡機照常算點擊
+    // （慢慢點的人 0.3～0.5 秒很常見，以前 0.25 秒就判定不算，點招牌常常沒反應）；但點在空白處不算（維持「按住不動再放開不取消選取、不關資訊卡」）。
+    if (moved > 5 || dt > 700) return; const slow = dt > 250; if (!slow) ui.closePops();
     if (edit.on) { editTap(e); return; }
-    const c = pickChar(e); if (c) { clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
-    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
-    if (W.rewards && W.rewards.on && W.rewards.pick(ray)) { clearTimeout(deselT); lastTap.t = 0; return; }   // 點部門招牌、琥珀旗、字章、入口大廳的看板 → 績效總表
+    const c = pickChar(e); if (c) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; if (c.spec.pet) { pilot.deselect(); ui.showPet(c); return; } setView('char', c); ui.showCard(c); if (!c.jobless) pilot.select(c); else pilot.deselect(); return; }
+    setRay(e); const hit = ray.intersectObjects(W.boardsMesh, false)[0]; if (hit) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; ui.showBoard(hit.object.userData.board); return; }   // 操控中點佈告欄只開面板，不結束操控
+    if (W.rewards && W.rewards.on && W.rewards.pick(ray)) { if (slow) ui.closePops(); clearTimeout(deselT); lastTap.t = 0; return; }   // 點部門招牌、琥珀旗、字章、入口大廳的看板 → 績效總表
+    if (slow) return;                     // 空白處的慢點（按住 0.25 秒以上）不算點：不取消選取
     if (W.pov && W.pov.on()) return;      // 角色視角中點空白處不取消選取、不移動鏡頭（要退出請按 Esc、V 或「角色視角」鈕）
     // 點空白處：取消選取；但 0.3 秒內再點一下（雙點地面）是「鏡頭移過去」，不取消
     const now = performance.now(), gp = new THREE.Vector3();

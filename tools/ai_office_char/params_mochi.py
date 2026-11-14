@@ -70,14 +70,14 @@ ANCHOR_PTS = dict(chest=(0, 0.16), bow=(0.17, 0.52), badge=(0.13, 0.17), scarf=(
 
 # ───────── 2026-11-14 走路改版：身體整體抬高 LIFT，腳掌不動 ─────────
 # 擁有者「並沒有改善移動」：原本肚子底貼地、腳掌只在肚子前緣露出 4 公分，腳一抬就藏進肚子裡，側面與俯視都看不出邁步。
-# 抬高身體（含耳、手、尾、臉、髖骨）4 公分、腳掌留在地面，短腿從肚子下露出，擺動腳在肚子與地面之間看得見；腿骨跟著變長（髖 0.13→0.17），步幅可及範圍變大。
+# 抬高身體（含耳、手、尾、臉、髖骨）7 公分、腳掌留在地面（4 公分時肚底仍貼地，試過不夠），短腿從肚子下露出，擺動腳在肚子與地面之間看得見；腿骨跟著變長（髖 0.13→0.20），步幅可及範圍變大。
 LIFT = 0.07
 def _lift():
     global BODY, PARTS, BONES, FACE, CHEEK_KEY, TORSO_Z, REFINE, ANCHOR_PTS, BREATH_Z
     up = lambda p, d=LIFT: (p[0], p[1], p[2] + d)
     BODY = dict(BODY, c=up(BODY['c']))
     PARTS = [p if p['n'] == 'leg' else dict(p, c=up(p['c'])) for p in PARTS]
-    # 短腿柱：腳掌與抬高後的肚子之間補一段圓胖的腿（平滑聯集，k 大＝根部內凹過渡肥厚），不然腳掌像墊在肚子下的另一塊零件
+        # 短腿柱：腳掌與抬高後的肚子之間補一段圓胖的腿（平滑聯集，k 大＝根部內凹過渡肥厚），不然腳掌像墊在肚子下的另一塊零件
     PARTS.insert([i for i, p in enumerate(PARTS) if p['n'] == 'leg'][0] + 1, dict(n='leg', c=(0.150, -0.215, 0.085), r=(0.068, 0.066, 0.066), rot=0, k=0.06, mirror=True))
     nb = {}
     for k, (par, h, t) in BONES.items():

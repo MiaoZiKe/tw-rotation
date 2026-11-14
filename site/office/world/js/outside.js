@@ -38,11 +38,11 @@ export function buildOutside(W) {
   for (const dx of [-1.1, 1.1]) P.cyl(PAL.woodMid, 0.06, 0.6, ax + dx, 1.7, az, 0.02);       // 拱門柱子往上延伸，撐住木牌
   const m = P.mesh(); m.castShadow = false; m.receiveShadow = true; m.renderOrder = 0; W.scene.add(m); O.mesh = m;
   // 招牌：加大的木牌，下面一行寫目前有幾位待業（沒有人被開除時寫「目前沒有人待業」），免得走到這裡看到空地不知道是什麼
-  const SIGN = { bg: '#d9a867', fg: '#fff6e2', fg2: '#fff0cf', px: 100, subScale: 0.62, radius: 36, border: '#8a5a2b', borderW: 14, pw: 640 };
-  const sign = textPlane(['無業遊民區', '目前沒有人待業'], 2.9, 0.96, SIGN); sign.material = new THREE.MeshBasicMaterial({ map: sign.userData.tex, transparent: true, alphaTest: 0.3, toneMapped: false }); sign.position.set(ax, 2.25, az + 0.09); W.scene.add(sign); O.sign = sign; O.signN = 0;
+  const SIGN = { bg: '#9c6a34', fg: '#ffffff', fg2: '#ffe9b8', px: 96, subScale: 0.7, radius: 36, border: '#5e3d1a', borderW: 14, pw: 640 };
+  const sign = textPlane(['無業遊民區', '目前沒有人待業'], 2.9, 1.0, SIGN); sign.material = new THREE.MeshBasicMaterial({ map: sign.userData.tex, transparent: true, alphaTest: 0.3, toneMapped: false }); sign.position.set(ax, 2.25, az + 0.09); W.scene.add(sign); O.sign = sign; O.signN = 0;
   O.setCount = n => {
     if (n === O.signN) return; O.signN = n; const old = sign.material.map;
-    const tx = textTexture(['無業遊民區', n ? `目前 ${n} 位待業中` : '目前沒有人待業'], { ...SIGN, ph: Math.round(SIGN.pw * 0.96 / 2.9) });
+    const tx = textTexture(['無業遊民區', n ? `目前 ${n} 位待業中` : '目前沒有人待業'], { ...SIGN, ph: Math.round(SIGN.pw * 1.0 / 2.9) });
     sign.material.map = tx; sign.material.needsUpdate = true; sign.userData.tex = tx; if (old) old.dispose();
   };
   // 火苗：一個會晃動的小錐體（不受光）
