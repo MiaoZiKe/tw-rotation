@@ -15,6 +15,9 @@ Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。說
   ig.txt      IG 說明文字（整段原樣）
   threads.txt 【主文】……【第 1 則留言】……
   *.jpg       圖（IG 只收 JPEG；IG 發輪播、Threads 主文帶同一組圖）
+  *.mp4       影片（2026-11-14 加）：檔頭 media: video ＋ video: <檔名>；images 可留空，
+              有填就拿第 1 張當 IG Reels 封面（cover_url）。IG 發 Reels（media_type=REELS），
+              Threads 發 VIDEO；兩邊都每 10 秒查一次容器狀態，FINISHED 才發布，最多等 5 分鐘，ERROR 就報錯。
 
 規則：
   · 只有 status: approved 才發；沒有 approved 稿 → 什麼都不做（不連 Meta）。
@@ -51,6 +54,15 @@ STATE_DIR = ROOT / "state" / "tc"
 TAIPEI = timezone(timedelta(hours=8))
 STATUSES = {"draft", "approved", "posted", "error"}
 PLATFORMS = ("ig", "threads")
+MEDIA = ("image", "video")
+VIDEO_EXT = (".mp4", ".mov")
+VIDEO_POLL_SEC = 10           # 影片容器每 10 秒查一次
+VIDEO_MAX_WAIT_SEC = 300      # 最多等 5 分鐘
+# 發完回查 media_type：圖片稿照舊；影片稿 IG 收 VIDEO／REELS、Threads 收 VIDEO
+VERIFY_OK = {
+    "image": {"ig": {"IMAGE", "CAROUSEL_ALBUM", "CAROUSEL"}, "threads": {"IMAGE", "CAROUSEL_ALBUM", "CAROUSEL"}},
+    "video": {"ig": {"VIDEO", "REELS"}, "threads": {"VIDEO"}},
+}
 MONITOR_GRACE_MIN = 30
 RAW = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/"
 TC_DEFAULT = {"enabled": False, "threads": False, "ig": False, "per_day": 1, "min_gap_hours": 20}
@@ -118,6 +130,8 @@ def load(d: Path) -> dict:
     p = {"dir": d, "id": d.name, "meta": meta}
     p["platforms"] = [x for x in re.split(r"[\s,]+", meta.get("platforms", "")) if x]
     p["images"] = [x for x in re.split(r"[\s,]+", meta.get("images", "")) if x]
+    p["media"] = (meta.get("media", "") or "image").strip().lower()
+    p["video"] = (meta.get("video", "") or "").strip()
     p["caption"] = (d / "ig.txt").read_text(encoding="utf-8").strip() if (d / "ig.txt").is_file() else ""
     p["main"], p["reply"] = ("", "")
     if (d / "threads.txt").is_file():
@@ -180,7 +194,18 @@ def validate(p: dict, check_files: bool = True) -> list[str]:
     bad = [x for x in p["platforms"] if x not in PLATFORMS]
     if not p["platforms"] or bad:
         errs.append(f"platforms 只能填 ig、threads（目前 {m.get('platforms')!r}）")
-    if not p["images"]:
+    media = p.get("media", "image")
+    if media not in MEDIA:
+        errs.append(f"media 只能填 image 或 video（目前 {media!r}）")
+    if media == "video":
+        v = p.get("video", "")
+        if not v:
+            errs.append("media: video 但 video: 沒填影片檔名")
+        elif not v.lower().endswith(VIDEO_EXT):
+            errs.append(f"{v} 不是 mp4／mov 影片")
+        elif check_files and not (p["dir"] / v).is_file():
+            errs.append(f"找不到影片檔 {v}")
+    elif not p["images"]:
         errs.append("封面一定要有圖：images 沒填")
     if len(p["images"]) > 10:
         errs.append(f"最多 10 張，目前 {len(p['images'])} 張")
@@ -212,6 +237,21 @@ def rel(p: dict, img: str) -> str:
 
 def image_urls(p: dict) -> list[str]:
     return [RAW + urllib.parse.quote(rel(p, x)) for x in p["images"]]
+
+
+def video_url(p: dict) -> str:
+    """影片的 raw.githubusercontent 公開網址（影片要先在 main 上）。"""
+    return RAW + urllib.parse.quote(rel(p, p["video"])) if p.get("video") else ""
+
+
+def is_video(p: dict) -> bool:
+    return p.get("media") == "video"
+
+
+def media_desc(p: dict) -> str:
+    if is_video(p):
+        return f"影片 {p.get('video', '')}" + (f"＋封面 {p['images'][0]}" if p["images"] else "")
+    return f"{len(p['images'])} 張圖"
 
 
 # ---------- 紀錄與名額 ----------
@@ -370,6 +410,21 @@ def _wait_ig(cid: str, token: str) -> None:
     raise PostError("IG 容器 60 秒內沒處理完")
 
 
+def _wait_video(platform: str, cid: str, token: str) -> None:
+    """影片容器：每 10 秒查一次狀態，FINISHED 才回；ERROR／EXPIRED 報錯；最多等 5 分鐘。"""
+    field = "status_code" if platform == "ig" else "status,error_message"
+    name = "IG" if platform == "ig" else "Threads"
+    for i in range(VIDEO_MAX_WAIT_SEC // VIDEO_POLL_SEC):
+        st = api(platform, "GET", f"/{cid}", token, {"fields": field})
+        s = st.get("status_code") or st.get("status") or ""
+        if s == "FINISHED":
+            return
+        if s in ("ERROR", "EXPIRED"):
+            raise PostError(f"{name} 影片容器處理失敗（{s}）：{st.get('error_message', '')}")
+        SLEEP(VIDEO_POLL_SEC)
+    raise PostError(f"{name} 影片容器 {VIDEO_MAX_WAIT_SEC // 60} 分鐘內沒處理完")
+
+
 def _permalink(platform: str, mid: str, token: str) -> tuple[str, str]:
     try:
         d = api(platform, "GET", f"/{mid}", token, {"fields": "permalink,media_type"})
@@ -397,6 +452,20 @@ def post_ig(uid: str, urls: list[str], caption: str, token: str) -> dict:
     return {"id": mid, "permalink": link, "media_type": mtype}
 
 
+def post_ig_reel(uid: str, vurl: str, caption: str, token: str, cover: str = "") -> dict:
+    """IG Reels：建 REELS 容器（video_url＋caption，可帶 cover_url）→ 等 FINISHED → media_publish。"""
+    check_public(vurl)
+    params = {"media_type": "REELS", "video_url": vurl, "caption": caption}
+    if cover:
+        check_public(cover)
+        params["cover_url"] = cover
+    c = api("ig", "POST", f"/{uid}/media", token, params)["id"]
+    _wait_video("ig", c, token)
+    mid = api("ig", "POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
+    link, mtype = _permalink("ig", mid, token)
+    return {"id": mid, "permalink": link, "media_type": mtype}
+
+
 def _threads_publish(uid: str, cid: str, token: str) -> str:
     for wait in (0, 10, 20, 30):
         SLEEP(wait)
@@ -408,9 +477,12 @@ def _threads_publish(uid: str, cid: str, token: str) -> str:
     raise PostError("Threads 發布失敗")
 
 
-def post_threads(uid: str, urls: list[str], main: str, reply: str, token: str) -> dict:
-    """主文一定帶圖（1 張＝IMAGE、2 張以上＝CAROUSEL）；圖失敗不退回純文字。主文發出後再發第 1 則留言。"""
-    if len(urls) == 1:
+def post_threads(uid: str, urls: list[str], main: str, reply: str, token: str, video: str = "") -> dict:
+    """主文一定帶圖（1 張＝IMAGE、2 張以上＝CAROUSEL）或影片（VIDEO）；失敗不退回純文字。主文發出後再發第 1 則留言。"""
+    if video:
+        check_public(video)
+        params = {"media_type": "VIDEO", "video_url": video, "text": main}
+    elif len(urls) == 1:
         params = {"media_type": "IMAGE", "image_url": urls[0], "text": main}
     else:
         kids = [api("threads", "POST", f"/{uid}/threads", token,
@@ -419,7 +491,10 @@ def post_threads(uid: str, urls: list[str], main: str, reply: str, token: str) -
             _wait_threads(k, token)
         params = {"media_type": "CAROUSEL", "children": ",".join(kids), "text": main}
     cid = api("threads", "POST", f"/{uid}/threads", token, params)["id"]
-    _wait_threads(cid, token)
+    if video:
+        _wait_video("threads", cid, token)
+    else:
+        _wait_threads(cid, token)
     mid = _threads_publish(uid, cid, token)
     link, mtype = _permalink("threads", mid, token)
     out = {"id": mid, "permalink": link, "media_type": mtype, "reply_permalink": "", "reply_error": "", "reply_id": ""}
@@ -454,18 +529,22 @@ def publish_one(p: dict, env: dict, tok: dict, now: datetime, state_dir: Path) -
         ids[plat] = preflight(plat, tok[plat], (env.get(f"TC_{plat.upper()}_USER_ID") or "").strip(),
                               (env.get("THREADS_USER_ID" if plat == "threads" else "IG_USER_ID") or "").strip())
     urls = image_urls(p)
+    vurl = video_url(p) if is_video(p) else ""
     upd: dict = {}
     done = list(p["done"])
     err = ""
     for plat in todo:
         try:
             if plat == "ig":
-                r = post_ig(ids["ig"][0], urls, p["caption"], tok["ig"])
+                if vurl:
+                    r = post_ig_reel(ids["ig"][0], vurl, p["caption"], tok["ig"], urls[0] if urls else "")
+                else:
+                    r = post_ig(ids["ig"][0], urls, p["caption"], tok["ig"])
                 upd["urls_ig"] = r["permalink"] or f"id:{r['id']}"
                 upd["ids_ig"] = r["id"]
                 upd["verified_ig"] = r["media_type"] or "未知"
             else:
-                r = post_threads(ids["threads"][0], urls, p["main"], p["reply"], tok["threads"])
+                r = post_threads(ids["threads"][0], urls, p["main"], p["reply"], tok["threads"], video=vurl)
                 upd["urls_threads"] = r["permalink"] or f"id:{r['id']}"
                 upd["ids_threads"] = r["id"]
                 if r["reply_id"]:
@@ -491,10 +570,12 @@ def publish_one(p: dict, env: dict, tok: dict, now: datetime, state_dir: Path) -
         upd.update(status="error", error=err[:200].replace("\n", " "))
     else:
         upd.update(status="posted", posted_at=fmt(now), error="")
+    kind = "video" if is_video(p) else "image"
     for plat in done:
         v = upd.get("verified_" + plat) or meta.get("verified_" + plat, "")
-        if v and v not in ("IMAGE", "CAROUSEL_ALBUM", "CAROUSEL"):
-            log(f"::warning::{p['id']}：{plat} 回查 media_type＝{v}，不是圖片貼文，請人工確認")
+        if v and v not in VERIFY_OK[kind][plat]:
+            what = "影片貼文" if kind == "video" else "圖片貼文"
+            log(f"::warning::{p['id']}：{plat} 回查 media_type＝{v}，不是{what}，請人工確認")
     IG.rewrite_meta(p["dir"] / "post.md", upd)
     if len(done) > len(p["done"]):
         _record(state_dir, p, now, upd, meta)
@@ -614,7 +695,7 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
                 log(f"{d.name}（{p['meta'].get('status')}）格式提醒：{'；'.join(errs)}")
             p["invalid"] = True
         posts.append(p)
-        log(f"{d.name}：status={p['meta'].get('status')}，平台={','.join(p['platforms'])}，{len(p['images'])} 張圖"
+        log(f"{d.name}：status={p['meta'].get('status')}，平台={','.join(p['platforms'])}，{media_desc(p)}"
             + ("" if errs else "，格式 OK"))
 
     if not cfg["enabled"]:
@@ -667,7 +748,7 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
             try:
                 uid, uname = preflight(plat, tok[plat], (env.get(f"TC_{plat.upper()}_USER_ID") or "").strip(),
                                        (env.get("THREADS_USER_ID" if plat == "threads" else "IG_USER_ID") or "").strip())
-                log(f"[dry-run] {cand['id']}：會發到 {plat} @{uname}（{len(cand['images'])} 張圖）；沒有真的發")
+                log(f"[dry-run] {cand['id']}：會發到 {plat} @{uname}（{media_desc(cand)}）；沒有真的發")
             except PostError as e:
                 log(f"[dry-run] ✗ {cand['id']}：{e}")
                 rc = 1

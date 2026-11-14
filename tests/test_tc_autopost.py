@@ -694,3 +694,162 @@ def test_佇列稿件都有weekday且對得上():
             p = tc.load(d)
             if p["meta"].get("status") in ("approved", "draft"):
                 assert tc.weekday_check(p) == ("", ""), d.name
+
+
+# ---------------- 影片發文（2026-11-14：IG Reels＋Threads VIDEO） ----------------
+
+def mkvideo(q: Path, name="20261115_v", when="2026-11-15T20:00+08:00", imgs=(), extra="weekday: 日\n"):
+    d = q / name
+    d.mkdir(parents=True)
+    (d / "ep.mp4").write_bytes(b"\x00\x00\x00\x18ftypmp42")
+    for i in imgs:
+        (d / i).write_bytes(b"\xff\xd8jpg")
+    (d / "post.md").write_text(f"---\nstatus: approved\nscheduled_at: {when}\n{extra}platforms: ig, threads\n"
+                               f"media: video\nvideo: ep.mp4\nimages: {', '.join(imgs)}\n---\n說明\n", encoding="utf-8")
+    (d / "ig.txt").write_text("IG 影片說明 #科技透明圈", encoding="utf-8")
+    (d / "threads.txt").write_text("【主文】\n影片主文\n\n【第 1 則留言】\n影片留言\n", encoding="utf-8")
+    return d
+
+
+class VideoAPI(FakeAPI):
+    """容器狀態照順序回（IN_PROGRESS → … → FINISHED），回查 media_type 回影片。"""
+
+    def __init__(self, seq=("IN_PROGRESS", "IN_PROGRESS", "FINISHED"), ig_type="VIDEO", th_type="VIDEO", **kw):
+        super().__init__(**kw)
+        self.seq = {"ig": list(seq), "threads": list(seq)}
+        self.types = {"ig": ig_type, "threads": th_type}
+        self.polls = {"ig": 0, "threads": 0}
+
+    def __call__(self, platform, method, path, token, params=None):
+        f = (params or {}).get("fields", "")
+        if method == "GET" and path != "/me" and "status" in f:
+            self.calls.append((platform, method, path, token, dict(params or {})))
+            self.polls[platform] += 1
+            s = self.seq[platform].pop(0) if len(self.seq[platform]) > 1 else self.seq[platform][0]
+            return {"status": s, "status_code": s, "error_message": "bad codec" if s == "ERROR" else ""}
+        if method == "GET" and "media_type" in f:
+            self.calls.append((platform, method, path, token, dict(params or {})))
+            return {"permalink": f"https://{platform}.example/{path.strip('/')}", "media_type": self.types[platform]}
+        return super().__call__(platform, method, path, token, params)
+
+
+VNOW = datetime(2026, 11, 15, 20, 1, tzinfo=TPE)
+
+
+def test_影片稿件通過驗證_images可空_weekday照查():
+    import tempfile
+    q = Path(tempfile.mkdtemp())
+    p = tc.load(mkvideo(q))
+    assert p["media"] == "video" and p["video"] == "ep.mp4" and p["images"] == []
+    assert tc.validate(p) == []
+    assert tc.main(["--check", "--queue", str(q)]) == 0
+    bad = tc.load(mkvideo(q, "20261115_w", extra="weekday: 六\n"))      # 11/15 是星期日
+    assert any("星期對不上" in e for e in tc.validate(bad))
+    nofile = tc.load(mkvideo(q, "20261115_x"))
+    (nofile["dir"] / "ep.mp4").unlink()
+    assert any("找不到影片檔" in e for e in tc.validate(nofile))
+    nofile["video"] = ""
+    assert any("video: 沒填" in e for e in tc.validate(nofile))
+    nofile["media"] = "gif"
+    assert any("media 只能填" in e for e in tc.validate(nofile))
+
+
+def test_IG影片一直查到FINISHED才發布_每10秒(monkeypatch, tmp_path, capsys):
+    sleeps = []
+    monkeypatch.setattr(tc, "SLEEP", lambda s: sleeps.append(s))
+    a = mkvideo(tmp_path / "q", imgs=("cover.jpg",))
+    api = VideoAPI(seq=("IN_PROGRESS", "IN_PROGRESS", "IN_PROGRESS", "FINISHED"))
+    rc, res, api = go(monkeypatch, tmp_path, api=api, now=VNOW)
+    assert rc == 0 and res["posted"] == ["20261115_v"]
+    ig = [c for c in api.calls if c[0] == "ig"]
+    create = next(c for c in ig if c[2] == "/222/media")
+    assert create[4]["media_type"] == "REELS" and create[4]["caption"] == "IG 影片說明 #科技透明圈"
+    assert create[4]["video_url"] == tc.RAW + "social/tc/queue/20261115_v/ep.mp4"
+    assert create[4]["cover_url"] == tc.RAW + "social/tc/queue/20261115_v/cover.jpg"
+    assert "image_url" not in create[4]
+    i_create, i_pub = ig.index(create), next(i for i, c in enumerate(ig) if c[2].endswith("media_publish"))
+    polls = [i for i, c in enumerate(ig) if c[1] == "GET" and "status" in c[4].get("fields", "")]
+    assert len(polls) == 4 and all(i_create < i < i_pub for i in polls)      # 4 次查到 FINISHED 才發布
+    assert sleeps.count(10) >= 3
+    head = (a / "post.md").read_text()
+    assert "status: posted" in head and "verified_ig: VIDEO" in head and "verified_threads: VIDEO" in head
+    assert "回查 media_type" not in capsys.readouterr().out                 # 影片回查不跳警告
+
+
+def test_IG影片ERROR就報錯不發布(monkeypatch, tmp_path):
+    a = mkvideo(tmp_path / "q")
+    rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(seq=("IN_PROGRESS", "ERROR")), now=VNOW)
+    assert rc == 1 and api.posts("ig") == [] and api.posts("threads") == []
+    assert "IG 影片容器處理失敗（ERROR）" in res["errors"][0] and res["alert"]
+    assert "status: error" in (a / "post.md").read_text()
+
+
+def test_影片容器5分鐘沒好就報錯(monkeypatch, tmp_path):
+    mkvideo(tmp_path / "q")
+    api = VideoAPI(seq=("IN_PROGRESS",))
+    rc, res, api = go(monkeypatch, tmp_path, api=api, now=VNOW)
+    assert rc == 1 and api.posts("ig") == [] and api.polls["ig"] == 30       # 300 秒 ÷ 10 秒
+    assert "5 分鐘內沒處理完" in res["errors"][0]
+
+
+def test_Threads影片可以發出_再發第1則留言(monkeypatch, tmp_path):
+    a = mkvideo(tmp_path / "q")
+    rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(), now=VNOW)
+    assert rc == 0
+    th = [c for c in api.calls if c[0] == "threads" and c[1] == "POST"]
+    main = th[0]
+    assert main[4] == {"media_type": "VIDEO", "video_url": tc.RAW + "social/tc/queue/20261115_v/ep.mp4", "text": "影片主文"}
+    assert api.polls["threads"] >= 1
+    assert len(api.posts("threads")) == 2                                      # 主文＋第 1 則留言
+    reply = [c for c in th if c[4].get("reply_to_id")]
+    assert reply and reply[0][4]["text"] == "影片留言" and reply[0][4]["media_type"] == "TEXT"
+    head = (a / "post.md").read_text()
+    assert "urls_threads: https://threads.example" in head and "urls_threads_reply:" in head
+
+
+def test_Threads影片ERROR報錯_IG已發只補Threads(monkeypatch, tmp_path):
+    class ThErr(VideoAPI):
+        def __call__(self, platform, method, path, token, params=None):
+            if platform == "threads":
+                self.seq["threads"] = ["ERROR"]
+            return super().__call__(platform, method, path, token, params)
+    a = mkvideo(tmp_path / "q")
+    rc, res, api = go(monkeypatch, tmp_path, api=ThErr(), now=VNOW)
+    head = (a / "post.md").read_text()
+    assert rc == 1 and "done: ig" in head and api.posts("threads") == []
+    assert "Threads 影片容器處理失敗（ERROR）：bad codec" in res["errors"][0]
+
+
+def test_影片回查不是影片會警告(monkeypatch, tmp_path, capsys):
+    mkvideo(tmp_path / "q")
+    rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(ig_type="IMAGE"), now=VNOW)
+    assert rc == 0
+    assert "ig 回查 media_type＝IMAGE，不是影片貼文" in capsys.readouterr().out
+
+
+def test_影片dry_run不發不寫(monkeypatch, tmp_path, capsys):
+    a = mkvideo(tmp_path / "q")
+    before = (a / "post.md").read_text()
+    rc, res, api = go(monkeypatch, tmp_path, dry=True, api=VideoAPI(), now=VNOW)
+    assert rc == 0 and all(c[1] == "GET" for c in api.calls)
+    assert (a / "post.md").read_text() == before
+    assert "影片 ep.mp4" in capsys.readouterr().out
+
+
+def test_圖片稿件行為不變_不帶影片參數_回查影片會警告(monkeypatch, tmp_path, capsys):
+    a = mkpost(tmp_path / "q")
+    p = tc.load(a)
+    assert p["media"] == "image" and p["video"] == "" and tc.validate(p) == []
+    rc, res, api = go(monkeypatch, tmp_path)
+    assert rc == 0
+    assert not any(c[4].get("media_type") in ("REELS", "VIDEO") or "video_url" in c[4] for c in api.calls)
+    assert not any("cover_url" in c[4] for c in api.calls)
+    # 圖片稿回查到 VIDEO 照舊警告
+    b = mkpost(tmp_path / "q2", "20261111_b")
+    monkeypatch.setattr(tc, "api", VideoAPI(seq=("FINISHED",)))
+    tc.run(dict(ENV), NOW + timedelta(days=1), False, queue=tmp_path / "q2", state_dir=tmp_path / "s2", cfg=CFG)
+    assert "不是圖片貼文" in capsys.readouterr().out
+    assert "verified_ig: VIDEO" in (b / "post.md").read_text()
+    # 圖片稿沒圖照舊擋
+    p["images"] = []
+    assert any("封面一定要有圖" in e for e in tc.validate(p))

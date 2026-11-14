@@ -69,6 +69,10 @@ social/tc/queue/20261105_quanta/
 - IG 發輪播（2～10 張）；Threads 主文帶同一組圖，**圖失敗不退回純文字**，整篇標 error。
 - 上限：一天 1 篇、兩篇間隔 20 小時；超過就順延，檔頭寫 `deferred_until`，不算「沒發」。
 - 圖要先在 main 上（用 raw.githubusercontent.com 公開網址給 Meta 抓）。
+- **影片稿（2026-11-14 起）**：檔頭加 `media: video` 和 `video: <檔名>.mp4`（同資料夾）；`images` 可留空，有填就拿第 1 張 JPEG 當 IG Reels 封面（`cover_url`）。weekday 照查。
+  IG 發 Reels（`media_type=REELS`＋`video_url`＋`caption`），Threads 主文發 `media_type=VIDEO`＋`video_url`，發完照舊發第 1 則留言。
+  兩邊都每 10 秒查一次容器狀態，`FINISHED` 才發布；`ERROR` 直接報錯（整篇標 error、開 issue）；5 分鐘沒好也報錯。
+  回查 media_type：影片稿 IG 要 `VIDEO`／`REELS`、Threads 要 `VIDEO`；圖片稿照舊。影片一樣要先在 main 上。
 
 ## 四、沒發出怎麼辦（10-29 規矩）
 
@@ -133,3 +137,4 @@ social/tc/queue/20261105_quanta/
 - 2026-11-08 同批：IG 留言關鍵字私訊（輪詢版 tc_ig_dm.py＋Worker workers/tc-dm）、App Review 送審包、Andy 必做清單。
 - 2026-11-09 法遵審後修改：文案改「重點整理」、面試方向不寫題目原文、加 follow_gate 開關、legal_reviewed=true；廣達 threads.txt 主文刪 4 個表情符號到 494 字。
 - 2026-11-10 頻道④交接：改吃 TECH_*、IG 支援 EAA（graph.facebook.com）、channel_post 停排 tech；EAA 下 IG 私訊做不到（缺粉絲專頁）。
+- 2026-11-14 加影片發文（social-ops-lead）：post.md `media: video`＋`video:`；IG Reels、Threads VIDEO，等容器 FINISHED 才發布；測試 tests/test_tc_autopost.py 補 9 條。
