@@ -45,7 +45,18 @@ _MU_PTS = """() => { const W = __world, cv = document.getElementById('cv'), r = 
   return out; }"""
 
 
-def _mu_free_pts(pg, n, xmin=370, xmax=1250, ymin=150, ymax=640, gap=40):
+def _mu_free_pts_wait(pg, n, tries=14, **k):
+    """鏡頭剛切到俯視、畫面一格要好幾百毫秒時，角色的螢幕座標要等幾格才算出來：重試到找夠為止"""
+    pts = []
+    for _ in range(tries):
+        pts = _mu_free_pts(pg, n, **k)
+        if len(pts) >= n:
+            return pts
+        pg.wait_for_timeout(700)
+    return pts
+
+
+def _mu_free_pts(pg, n, xmin=370, xmax=1250, ymin=150, ymax=640, gap=30):
     """畫面上互相離得夠遠、不被面板蓋住、而且坐著的角色（點得準）"""
     pts = pg.evaluate(_MU_PTS)
     good = [p for p in pts if xmin < p["x"] < xmax and ymin < p["y"] < ymax and p["state"] == "sit"
@@ -103,7 +114,7 @@ def _mu_main(pg, b, base, code):
             return
         pg.evaluate("() => __world.setView('god')")
         pg.wait_for_timeout(1500)
-        pts = _mu_free_pts(pg, 4)
+        pts = _mu_free_pts_wait(pg, 4)
         ok("多選：畫面上找得到 4 位互相分開的角色", len(pts) == 4, len(pts))
         if len(pts) < 4:
             _mu_shot(pg, "多選_找不到角色.png")
@@ -378,7 +389,7 @@ def _mu_esc(pg_, b, base, code):
         pg.evaluate("() => __world.setView('god', null, true)"); pg.wait_for_timeout(900); _mu_settle(pg)
         ref = _mu_pose(pg)
         TOL = 0.6                                  # 公尺：鏡頭位置與注視點各軸誤差上限
-        pts = _mu_free_pts(pg, 2)
+        pts = _mu_free_pts_wait(pg, 2)
         # ① 選一位、平移鏡頭、按 Esc → 選取清空、鏡頭回到預設俯視
         pg.mouse.click(pts[0]["x"], pts[0]["y"]); pg.wait_for_timeout(500)
         pg.mouse.move(900, 600); pg.mouse.down(); pg.mouse.move(700, 520, steps=8); pg.mouse.up(); pg.wait_for_timeout(500)
@@ -508,9 +519,15 @@ def _mu_cdp_clicks(b, base, touch):
             for hold in (0, 100, 250, 400, 650):
                 pg.evaluate("() => { __world.pilot.deselect(); __world.ui.hideCard(); __world.multi.clear(); }")
                 god()
-                lim = dict(xmin=20, xmax=370, ymin=170, ymax=520, gap=40) if touch else dict(xmin=380, xmax=1250, ymin=150, ymax=640, gap=40)
-                pts = _mu_free_pts(pg, 30, **lim)
+                lim = dict(xmin=20, xmax=370, ymin=170, ymax=520, gap=30) if touch else dict(xmin=40, xmax=1250, ymin=150, ymax=640, gap=30)
+                pts = []
+                for _ in range(12):
+                    pts = _mu_free_pts(pg, 30, **lim)
+                    if pts:
+                        break
+                    pg.wait_for_timeout(600)
                 if not pts:
+                    bad.append((hold, "找不到角色", [(round(z["x"]), round(z["y"]), z["state"]) for z in pg.evaluate(_MU_PTS)][:4])); tot += 1
                     continue
                 q = pts[(rep * 5 + (0, 100, 250, 400, 650).index(hold)) % len(pts)]
                 t = _t.time()
@@ -559,7 +576,7 @@ def _mu_ui1115(pg_, b, base, code):
                 # 遮擋閃避：在鏡頭與角色之間放一個臨時擋板，等它自己繞開
                 pg.evaluate("() => { const W = __world, c = W.chars.get('data-steward'); W.setView('char', c, true); }"); pg.wait_for_timeout(1500); _mu_settle(pg)
                 res = pg.evaluate("""async () => { const W = __world, T = W.THREE, c = W.chars.get('data-steward'), p = c.object3D.position, cam = W.camera.position;
-                  const mid = new T.Vector3((cam.x + p.x) / 2, 1, (cam.z + p.z) / 2); const m = new T.Mesh(new T.BoxGeometry(0.6, 6, 0.6), new T.MeshBasicMaterial({ color: '#888' })); m.position.copy(mid); W.scene.add(m);
+                  const mid = new T.Vector3((cam.x + p.x) / 2, 1, (cam.z + p.z) / 2); const m = new T.Mesh(new T.BoxGeometry(0.6, 6, 0.6), new T.MeshBasicMaterial({ color: '#888' })); m.position.copy(mid); W.scene.add(m); m.updateMatrixWorld(true);
                   W.furn.set('__test_block', { mesh: m, obj: m, f: { id: '__test_block' } });
                   const ray = new T.Raycaster(), head = new T.Vector3(p.x, 0.9, p.z);
                   const blocked = () => { const d = head.clone().sub(W.camera.position), L = d.length(); ray.set(W.camera.position.clone(), d.normalize()); ray.far = L - 0.6; return ray.intersectObject(m, false).length > 0; };
@@ -592,11 +609,12 @@ def _mu_ui1115(pg_, b, base, code):
             ok("手機跟隨視角：畫面上方沒有整塊淡藍色（近似網頁底色的像素 %d／%d）" % (n, tot), n / max(1, tot) < 0.3, (n, tot))
         except ImportError:
             ok("手機跟隨視角：（沒有 PIL，略過像素檢查）", True)
-        sz = pg.evaluate("() => [...document.querySelectorAll('.tag, .tag *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize)).filter(f => f < 11).length")
-        ok("手機：名牌文字全部 ≥ 11px", sz == 0, sz)
+        sz = pg.evaluate("() => [...document.querySelectorAll('.tag, .tag *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => e.tagName + '.' + e.className + ':' + getComputedStyle(e).fontSize).filter(f => parseFloat(f.split(':')[1]) < 11).slice(0, 5)")
+        ok("手機：名牌文字全部 ≥ 11px", not sz, sz)
         # 手機卡片 × 固定在卡片頂端
-        pg.evaluate("() => { const cd = document.getElementById('card'); cd.scrollTop = 300; }"); pg.wait_for_timeout(300)
+        pg.evaluate("() => { const cd = document.querySelector('#card .card-scroll') || document.getElementById('card'); cd.scrollTop = 300; }"); pg.wait_for_timeout(300)
         xr = _mu_rect(pg, "#card .x"); cr = _mu_rect(pg, "#card")
+        ok("手機資訊卡的捲動在內層（.card-scroll），卡片本身不捲動", pg.evaluate("() => !!document.querySelector('#card > .card-scroll') && getComputedStyle(document.getElementById('card')).overflowY === 'hidden'"))
         ok("手機資訊卡往下捲後，關閉 × 仍固定在卡片頂端", xr and cr and xr[1] < cr[1] + 20 and xr[1] >= cr[1] - 2, (xr, cr))
         # 多選浮鈕與績效總表
         pg.click("#rwBtn"); pg.wait_for_timeout(1200)

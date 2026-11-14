@@ -327,6 +327,13 @@ export function createMulti(W, X) {
     const nb = $('mBarN'); if (nb) { const t2 = `多選中：已選 ${M.list.length} 位`; if (nb.textContent !== t2) nb.textContent = t2; }
   };
 
+  // 手機資訊卡：捲動交給內層容器（驗收員 11-15：手機點員工進跟隨視角後，畫面上方約 1/4 變成一整塊淡藍色）。
+  // 原因：卡片本身是「有捲動的面板」（手機選取時 max-height:26dvh＋overflow:auto）時，瀏覽器的合成層會在畫面上方畫出一塊透出網頁底色的方形；
+  // 實測只要卡片本身不捲動（overflow 改 visible／hidden、或讓內層容器捲動）就消失。所以手機上把卡片的內容包進 .card-scroll 去捲，卡片本身 overflow:hidden（× 因此也不會跟著捲走）。
+  { const card = $('card'), mq = matchMedia('(max-width:640px)');
+    const wrap = () => { if (!mq.matches || card.querySelector(':scope > .card-scroll')) return; const kids = [...card.children].filter(e => !e.classList.contains('x')); if (!kids.length) return; const w = document.createElement('div'); w.className = 'card-scroll'; kids.forEach(e => w.appendChild(e)); card.appendChild(w); };
+    if (card) { new MutationObserver(wrap).observe(card, { childList: true }); wrap(); } }
+
   // 「?」說明：把多選的用法接在最後面（ui.js 的說明清單不動）
   { const ul = $('helpPop') && $('helpPop').querySelector('ul'); if (ul) ul.insertAdjacentHTML('beforeend', '<li>Esc：結束操控並取消選取，鏡頭回到俯視。</li><li>多選：按住 Ctrl（Mac 是 ⌘）點角色＝加入或移出；Ctrl＋在背景拖曳＝拉框一次選多位；不按 Ctrl 點角色＝只選那一位；點空白處或 Esc＝全部取消。選了 2 位以上會出現群組面板：一起回座位、一起去休息、集合開會、全部摸頭、全部揮手、開除選取的人；按方向鍵可操控第一位，其他人排隊跟著走。手機：長按角色出現「多選」，之後點角色加入或移出，按「完成」結束。</li>'); }
 
