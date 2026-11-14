@@ -168,7 +168,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     const toC = (da) => { const h = h0 + da; return Math.sin(h) * (CENTER.x - cp.x) + Math.cos(h) * (CENTER.z - cp.z); }, sg = toC(0.72) >= toC(-0.72) ? 1 : -1;
     for (const da of (seatedC ? [0.72 * sg, -0.72 * sg, 1.25 * sg, -1.25 * sg, 0.3, 1.9, -1.9, Math.PI] : [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI])) {
       const h = h0 + da, p = new THREE.Vector3(cp.x - Math.sin(h) * back, up, cp.z - Math.cos(h) * back);
-      p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 4, p.z));
+      p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 14, p.z));   // 跟隨鏡頭在遊民區（z 32～39）以前被限制在 d+4＝34，鏡頭貼太近、角色被切到畫面下緣；放寬到 d+14
       const d = Math.hypot(p.x - cp.x, p.z - cp.z); if (d < back - 0.3) p.y += (back - d) * 0.35;
       const cand = { p, h, d }; if (!best) best = cand;
       if (d > back * 0.6 && !blocked(p.x, p.z, cp.x, cp.z)) { best = cand; break; }

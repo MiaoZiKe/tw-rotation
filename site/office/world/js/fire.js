@@ -277,13 +277,15 @@ export function createFire(W, opts = {}) {
     candleT += h; if (candleT > 0.18 && !reduce) { candleT = 0; for (const c of allChars()) if (imm(c) && c.object3D.visible && !c.away && Math.random() < 0.55) { const p = posOf(c); spawn(PA, p.x + rnd(-0.06, 0.06), (c.lift || 0) + (c.height || 0.8) * 0.95, p.z + rnd(-0.06, 0.06), rnd(-0.15, 0.15), rnd(0.6, 1.2), rnd(-0.15, 0.15), rnd(0.7, 1.3), 0.05 * (c.scale || 1), 0.015, 0, { drag: 1.3 }); } }
     // 進入火範圍的角色：被丟的、被操控的、走路經過的
     for (const c of allChars()) {
+      // 「上一步位置」每一步都先更新（不管後面會不會 continue）：燒焦、坐著、隱藏、被瞬移期間不更新的話，恢復那一刻線段會從舊位置拉到現在，穿過火心而誤燒
+      const p = posOf(c), pv = c._fp || (c._fp = { x: p.x, z: p.z }); let ox = pv.x, oz = pv.z; pv.x = p.x; pv.z = p.z;
+      if (Math.hypot(p.x - ox, p.z - oz) > 2.5) { ox = p.x; oz = p.z; }   // 一步跳超過 2.5 公尺＝瞬移（重新聘用、整修歸位、被放到別處），不當成飛過去
       if (imm(c) || !c.object3D.visible || c.away) continue; const s = st(c);
       if (s && s.state !== 'none') continue;   // 剛燒完（愣著冒煙）的不再重燒
       if (c._seat && c.state === 'sit') continue;
-      const p = posOf(c), pv = c._fp || (c._fp = { x: p.x, z: p.z }); const lift = c.lift || 0;
+      const lift = c.lift || 0;
       // 這一步走過的線段離火心多近（被甩得很快的角色一步會飛 0.3 公尺以上，只看終點會漏接）
-      const sx = p.x - pv.x, sz = p.z - pv.z, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fx - pv.x) * sx + (fz - pv.z) * sz) / sl, 0, 1) : 1, d = Math.hypot(pv.x + sx * u - fx, pv.z + sz * u - fz);
-      pv.x = p.x; pv.z = p.z;
+      const sx = p.x - ox, sz = p.z - oz, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fx - ox) * sx + (fz - oz) * sz) / sl, 0, 1) : 1, d = Math.hypot(ox + sx * u - fx, oz + sz * u - fz);
       // 腳離地低於火焰高度（約 1.3 公尺）就碰得到；被拎著的角色（高度約 1）在火焰正上方 0.9 公尺內也算
       const held = c.state === 'held' || (c.newModel ? c.inner.ctl.state === 'held' : c.inner.mode === 'held');
       const rng = (c.piloted || lift > 0.05 || held) ? F.cfg.range : F.cfg.range - 0.18;   // 操控中、飛行中的角色用完整範圍；自己走路經過的只在幾乎貼到石圈時才算（避免路過的同事常常著火）

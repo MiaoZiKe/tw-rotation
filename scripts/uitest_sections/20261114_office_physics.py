@@ -427,11 +427,19 @@ def t_office_physics(b, base):
             hit, r = real_walk(who)
             ok("真人操作（方向鍵）操控%s角色走到營火邊：會燒起來" % ("舊" if who == "old" else "新"), hit, r)
 
+        # ───── 燒焦恢復後不會在離火很遠的地方又著火（11-15：恢復那一刻在沙發上又燒一次）─────
+        rr = pg.evaluate("""async () => { const W = __world, F = W.fire, T = __T, c = T.oldChar(); await T.settle(c); F.reset(); T.place(c, 30.2, 34.3, 0); const ev0 = T.ev.length; T.throwTo(c, 30.2, 36.6, 4.5, 1.5);
+          let tRec = -1; for (let i = 0; i < 30 * 160; i++) { await W.advanceAsync(1 / 30, 1 / 30); if (T.ev.slice(ev0).some(e => e.type === 'recovered' && e.id === c.spec.id)) { tRec = W.time; break; } }
+          await W.advanceAsync(25, 1 / 30); const E = n => T.ev.slice(ev0).filter(e => e.type === n && e.id === c.spec.id), p = c.object3D.position;
+          return { tRec, burned: E('burned').length, rec: E('recovered').length, dist: Math.hypot(p.x - 30.2, p.z - 36.6) }; }""")
+        ok("燒焦恢復後 25 秒內不會再著火（燒 %d 次、恢復 %d 次，現在離火 %.1f 公尺）" % (rr["burned"], rr["rec"], rr["dist"]), rr["tRec"] > 0 and rr["burned"] == 1 and rr["rec"] == 1, rr)
+
         # ───── 真人操作：滑鼠甩人撞椅子（W.speed=0.3 模擬畫面卡頓：模擬時間走得比手慢，甩出速度要用事件時間算才不會被低估）─────
         pg.evaluate("""() => { const W = __world, cs = [...W.chars.values()]; W.phys.restoreAll(true); W.fire.reset(); W.daytime.set('day'); for (const o of cs) o.busy = false; const c = cs.find(q => !q.newModel && !q.spec.isCeo && q.look.species === 'bird'); window.__rc = c;
           c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.stop(false); c.standAt(13.0, 10.6, Math.PI); W.speed = 0.3; W.godAt(13, 9, 16); window.__chair = W.phys.find('meeting_table_13/chair4'); }""")
         pg.wait_for_timeout(2500)
         pt = pg.evaluate("""() => { const W = __world, V = W.THREE.Vector3, f = (x, y, z) => { const v = new V(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; const p = __rc.object3D.position; return { c: f(p.x, 0.45, p.z), t: f(13.0, 0.45, 6.4) }; }""")
+        pg.evaluate("() => { window.__pk = 0; clearInterval(window.__pki); window.__pki = setInterval(() => { window.__pk = Math.max(window.__pk, __T.spd(__rc)); }, 30); }")
         pg.mouse.move(pt["c"][0], pt["c"][1])
         pg.mouse.down()
         pg.wait_for_timeout(700)
@@ -442,6 +450,8 @@ def t_office_physics(b, base):
         hit = wait_until(pg, "() => __chair.mode !== 'home'", 12000)
         th = pg.evaluate("() => __chair.th")
         ok("真人操作（滑鼠）甩出角色撞椅子：椅子被撞離原位（傾角 %.2f）" % th, hit, (hit, th))
+        pk = pg.evaluate("() => { clearInterval(window.__pki); return window.__pk; }")
+        ok("舊模型角色被真滑鼠甩出：算出的甩出速度 %.1f m/s > 2（拖曳記錄不被情緒層覆蓋）" % pk, pk > 2, pk)
         pg.evaluate("() => { __world.phys.restoreAll(true); __world.speed = 0.001; }")
         # ───── 真人操作：拎起後放在 CEO 室、桌面、牆邊、部門椅子旁、書架：放開後不能一直被拎著（11-15 劇本 6）─────
         for nm, who in (("舊", "old"), ("新", "new")):

@@ -120,11 +120,11 @@ export function createMind(W, X = {}) {
     const feed0 = c.feed.bind(c); c.feed = () => { if (onPetAttempt(c, m, 'feed') === 'dodge') return; feed0(); afterFeed(c, m); };
     const bonk0 = c.bonk.bind(c); c.bonk = () => { bonk0(); emit('bonked', c.spec.id, { by: 'you' }); };
     // 拎起來快速甩出去：沒人先送 knocked 就由這裡補送
-    const grab0 = c.grab.bind(c), drag0 = c.dragTo.bind(c), rel0 = c.release.bind(c); c._dh = [];
-    c.grab = () => { c._dh.length = 0; m.grabbedAt = W.time; return grab0(); };
-    c.dragTo = (x, y, z) => { c._dh.push([performance.now(), x, y, z]); if (c._dh.length > 8) c._dh.shift(); return drag0(x, y, z); };
+    const grab0 = c.grab.bind(c), drag0 = c.dragTo.bind(c), rel0 = c.release.bind(c); c._dhMind = [];
+    c.grab = () => { c._dhMind.length = 0; m.grabbedAt = W.time; return grab0(); };
+    c.dragTo = (x, y, z) => { c._dhMind.push([performance.now(), x, y, z]); if (c._dhMind.length > 8) c._dhMind.shift(); return drag0(x, y, z); };
     c.release = () => {
-      const h = c._dh, n = h.length; let sp = 0; if (n >= 2) { const a = h[Math.max(0, n - 4)], b = h[n - 1], dt = Math.max(0.03, (b[0] - a[0]) / 1000); sp = Math.hypot(b[1] - a[1], b[2] - a[2], b[3] - a[3]) / dt; }
+      const h = c._dhMind, n = h.length; let sp = 0; if (n >= 2) { const a = h[Math.max(0, n - 4)], b = h[n - 1], dt = Math.max(0.03, (b[0] - a[0]) / 1000); sp = Math.hypot(b[1] - a[1], b[2] - a[2], b[3] - a[3]) / dt; }
       const was = c._held; const r = rel0();
       if (was) { m.releasedAt = W.time; m.thrownAt = sp > 2.2 ? W.time : m.thrownAt;     // 真人拎起又放開：物理層之後送的 knocked（by 是牆、家具、椅子…）都算「你丟的」
         m.relPending = W.time;                                                  // 之後由 tick 看他有沒有飛起來／落地，再補送 knocked（慢動作或畫面卡時，速度估不準）
@@ -262,8 +262,8 @@ export function createMind(W, X = {}) {
     const by = d.by === 'you' || byUser ? 'you' : (d.by || 'obj'), you = by === 'you', t = m.t;
     if (m.sc && m.sc.name === 'knocked' && you && !m.sc.you) { m.sc.you = true; if (m.last) m.last.by = 'you'; m.wary = W.time + 150 * (1.25 - .6 * t.opt); return; }   // 先被物理層當成撞到、再補上「是你丟的」：升級成戒心，不重演
     m.knockedAt = W.time;
-    affect(m, { val: -(you ? .36 : .2) * (.7 + .6 * t.sens), stress: .12 }, you ? CAUSE.knocked : CAUSE.knockedObj, 220); remember(m, 'knocked', you ? '你' : '', you ? CAUSE.knocked : CAUSE.knockedObj);
-    const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, light = !you && d.speed != null && d.speed < 2.5; m.wary = you ? W.time + 150 * (1.25 - .6 * t.opt) : m.wary;   // 輕輕撞到：不暈
+    affect(m, { val: -(gentle ? .04 : you ? .36 : .2) * (.7 + .6 * t.sens), stress: gentle ? .02 : .12 }, you ? CAUSE.knocked : CAUSE.knockedObj, 220); remember(m, 'knocked', you ? '你' : '', you ? CAUSE.knocked : CAUSE.knockedObj);
+    const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, gentle = !!d.gentle, light = (!you && d.speed != null && d.speed < 2.5) || gentle; m.wary = you ? W.time + 150 * (1.25 - .6 * t.opt) : m.wary;   // 輕輕撞到：不暈
     scene(c, m, 8, 'knocked', sc => {
       sc.you = you; let ph = 0, ts = 0, glare = null;
       face(c, m, 'scared', 6); c.emote('exclaim', 1); say(c, '哇啊！', 1, true); act(c, 'flail', { duration: 1.4 }, true);
@@ -527,7 +527,10 @@ export function createMind(W, X = {}) {
       if (m.relPending != null) {                                  // 真人放開後：8 秒內只要飛起來或過了半秒，就算「被你丟了」（物理層沒送 by:'you' 時由這裡補）
         const age = now - m.relPending, air = c.inner && (c.inner.extFall || (c.inner.ctl && ['air', 'tumble'].includes(c.inner.ctl.state)));
         if ((m.knockedAt || -99) > m.relPending || age > 8) m.relPending = null;
-        else if (air || age > .5) { m.relPending = null; emit('knocked', c.spec.id, { by: 'you', speed: 3 }); }
+        else if (air || age > .5) {
+          m.relPending = null; let v = 3; try { const bd = c.inner && c.inner.ctl && c.inner.ctl.body, w = bd ? bd : c.inner && c.inner.vel; if (w) v = Math.hypot(w.vx || 0, w.vy || 0, w.vz || 0) * (c.scale || 1); } catch (e) { v = 3; }
+          emit('knocked', c.spec.id, { by: 'you', speed: Math.max(v, .1), gentle: v < 1.6 });   // 慢慢放下：不算撞，不暈
+        }
       }
       if (m.spin) { const u = (now - m.spin.t0) / m.spin.dur; if (u >= 1 || c.state !== 'stand') m.spin = null; else c.heading = m.spin.h0 + Math.PI * 2 * u; }
       if (!c.jobless) m.rehiring = false;

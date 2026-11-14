@@ -205,11 +205,11 @@ export function createPhysics(W, opts = {}) {
   // ② 放開後 2 秒（模擬時間）還在「被拎著」的物理狀態 → 強制放開讓他落下（保底）。對新舊角色都有效。
   function wrapChar(c) {
     if (c._pw) return; c._pw = true; const g0 = c.grab, d0 = c.dragTo, r0 = c.release; if (!g0 || !d0 || !r0) return;
-    c.grab = function (...a) { c._dh = []; c._relT = null; return g0.apply(c, a); };
-    c.dragTo = function (x, y, z) { const h = c._dh || (c._dh = []); h.push([performance.now() / 1000, x, y, z]); if (h.length > 10) h.shift(); return d0.apply(c, arguments); };
+    c.grab = function (...a) { c._dhPhys = []; c._relT = null; return g0.apply(c, a); };
+    c.dragTo = function (x, y, z) { const h = c._dhPhys || (c._dhPhys = []); h.push([performance.now() / 1000, x, y, z]); if (h.length > 10) h.shift(); return d0.apply(c, arguments); };
     c.release = function (...a) {
       if (!c._held) return r0.apply(c, a);
-      const h = c._dh || []; if (!c.newModel && c.inner && c.inner.vel && h.length >= 2) {
+      const h = c._dhPhys || []; if (!c.newModel && c.inner && c.inner.vel && h.length >= 2) {
         const last = h[h.length - 1]; let first = last; for (let i = h.length - 2; i >= 0 && last[0] - h[i][0] <= 0.15; i--) first = h[i];
         const dt = last[0] - first[0], s = c.scale || 1;
         if (dt > 0.02) { let vx = (last[1] - first[1]) / dt, vy = (last[2] - first[2]) / dt, vz = (last[3] - first[3]) / dt; const m = Math.hypot(vx, vz); if (m > 12) { vx *= 12 / m; vz *= 12 / m; } c.inner.vel.set(vx / s, vy / s, vz / s); }

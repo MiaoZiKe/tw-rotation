@@ -680,6 +680,33 @@ def _mu_ui1115b(pg_, b, base, code):
         c.close()
 
 
+def _mu_lamp(pg_, b, base, code):
+    """用真實的遊民區路燈（outside.js 的 [23.4,36.9]）：角色站在路燈旁 0.25 公尺，鏡頭在路燈另一側（路燈正好擋在中間）。
+    跟隨鏡頭要在幾秒內繞開、角色的臉看得到（鏡頭到頭部之間沒有東西）、角色不被切到畫面下緣。"""
+    c, pg, got = _mu_open(b, base, qs="?q=low&pr=0.6&ambient=0", speed=1)
+    try:
+        ok("路燈遮擋：載入", got)
+        if not got:
+            return
+        r = pg.evaluate("""async () => { const W = __world, T = W.THREE, c = W.chars.get('data-steward'); const lamp = { x: 23.4, z: 36.9 };
+          c.standAt(lamp.x + 0.25, lamp.z, Math.PI / 2); await W.sleep(0.3);
+          W.setView('char', c, true); await W.sleep(0.5);
+          const ray = new T.Raycaster(), head = () => new T.Vector3(c.object3D.position.x, 0.9, c.object3D.position.z);
+          const blocked = () => { const h = head(), d = h.clone().sub(W.camera.position), L = d.length(); ray.set(W.camera.position.clone(), d.normalize()); ray.far = L - 0.08; ray.near = 0.2; return ray.intersectObject(W.outside.mesh, false).length > 0; };
+          const before = blocked(), cam0 = W.camera.position.clone(); const t0 = performance.now(); let after = before;
+          while (performance.now() - t0 < 8000) { await new Promise(r => setTimeout(r, 250)); after = blocked(); if (!after) break; }
+          const secs = (performance.now() - t0) / 1000; await new Promise(r => setTimeout(r, 1500));
+          const p = (y) => { const v = new T.Vector3(c.object3D.position.x, y, c.object3D.position.z).project(W.camera); return Math.round((1 - v.y) / 2 * innerHeight); };
+          return { before, after: blocked(), secs, moved: W.camera.position.distanceTo(cam0), moves: W.camclear.moves, feetY: p(0), headY: p(1.6), h: innerHeight, camz: W.camera.position.z }; }""")
+        ok("路燈在鏡頭與角色之間 → 原本被擋住（射線撞到路燈）", r["before"], r)
+        ok("跟隨鏡頭自動繞開，角色的臉看得到（%.1f 秒內，環境一格要 0.2～0.5 秒）" % r["secs"], (not r["after"]) and r["moves"] >= 1 and r["moved"] > 0.5, r)
+        ok("角色不被切到畫面下緣（腳在畫面底邊上方至少 30px）", 0 < r["headY"] and r["feetY"] < r["h"] - 30, r)
+        ok("無主控台錯誤（路燈）", not [e for e in pg.errs if "vScP" not in e], pg.errs[:2])
+    finally:
+        c.close()
+
+
+register("辦公室路燈遮擋", _mu_lamp)
 register("辦公室介面驗收1115b", _mu_ui1115b)
 register("辦公室點選CDP桌機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, False))
 register("辦公室點選CDP手機", lambda pg, b, base, code: _mu_cdp_clicks(b, base, True))
