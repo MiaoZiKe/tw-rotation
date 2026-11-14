@@ -125,6 +125,18 @@ def _etf_notice_step() -> pd.DataFrame:
     return df
 
 
+def _inst_day_codes(day: str) -> int | None:
+    """inst_daily 裡 day 這一天有幾檔（不同代號）。讀不到回 None，不拖垮管線。"""
+    try:
+        df = store.read("inst_daily", years=[int(day[:4])])
+        if df.empty:
+            return 0
+        return int(df.loc[df["date"].astype(str).str[:10] == day, "code"].astype(str).nunique())
+    except Exception:  # noqa: BLE001
+        log.warning("讀 inst_daily 計數失敗（%s）", day, exc_info=True)
+        return None
+
+
 def _inst_bulk_step() -> pd.DataFrame:
     """整天全市場法人補抓。不走 step()：拿不到（會員等級不夠）是預期內的，
     若記進 RESULT["empty"]，網站每一輪都會顯示「部分資料這一輪沒有更新」，變成天天的假警報。"""
@@ -1258,14 +1270,24 @@ def main() -> int:
     if not light and not news_only and not args.skip_finmind and trade_date:
         # 2026-10-20：先用 1 次請求試整天全市場（成功就不必逐檔燒額度），再逐檔補剩下的。
         #   逐檔名單 ＝ 成交值前 N 檔 ∪ 網站用到的全部個股，頁面用到的一檔都不缺。
-        save("inst_daily", step("finmind.institutional_bulk", inst_bulk.fill_inst_bulk))
-        codes = inst_bulk.with_site_codes(universe(args.universe))
         # 2026-11-09：trade_date 是 openapi 的日期（T-1，當天 11-06），逐檔法人抓到它為止，當天（mis 暫定價量那天）的上市法人
         # 整輪沒人抓 —— 只有 inst 輪（用湖裡價量最新日）顧到名單內約 456 檔。目標日改成三者最新：openapi 日、暫定價量日、湖裡價量最新日。
         inst_day = max([d for d in (trade_date, RESULT.get("provisional_date"),
                                     str(store.latest_date("price_daily") or "")[:10]) if d])
+        # 2026-11-13：記下「目標日有幾檔法人」前後各一次，狀態頁才分得清是這一輪補進來的、還是本來就有。
+        # 只記數字，不拿來改判定（什麼時候算 skipped 要先有證據，見 DECISIONS／HANDOFF）。
+        codes_before = _inst_day_codes(inst_day)
+        save("inst_daily", step("finmind.institutional_bulk", inst_bulk.fill_inst_bulk))
+        codes = inst_bulk.with_site_codes(universe(args.universe))
         save("inst_daily", step("finmind.institutional",
                                 fetch_institutional, codes, inst_day))
+        codes_after = _inst_day_codes(inst_day)
+        RESULT["inst_today_codes"] = {
+            "date": inst_day,
+            "before": codes_before,
+            "after": codes_after,
+            "added": (codes_after - codes_before) if None not in (codes_after, codes_before) else None,
+        }
         # 財報一季才變一次，每天用剩餘額度補一小批就夠（財報季會自然滾完）
         save("financial_q", step("finmind.financial_refresh",
                                  refresh_financials, codes[:60]))
