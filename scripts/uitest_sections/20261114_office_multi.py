@@ -356,5 +356,67 @@ def _mu_touch(pg_, b, base, code):
         c.close()
 
 
+def _mu_pose(pg):
+    return pg.evaluate("() => { const W = __world, p = W.camera.position, t = W.controls.target; return [p.x, p.y, p.z, t.x, t.y, t.z]; }")
+
+
+def _mu_dist(a, b):
+    return max(abs(x - y) for x, y in zip(a, b))
+
+
+def _mu_esc(pg_, b, base, code):
+    c, pg, got = _mu_open(b, base)
+    try:
+        ok("Esc 回俯視：頁面載入", got)
+        if not got:
+            return
+        pg.evaluate("() => __world.setView('god', null, true)"); pg.wait_for_timeout(900); _mu_settle(pg)
+        ref = _mu_pose(pg)
+        TOL = 0.6                                  # 公尺：鏡頭位置與注視點各軸誤差上限
+        pts = _mu_free_pts(pg, 2)
+        # ① 選一位、平移鏡頭、按 Esc → 選取清空、鏡頭回到預設俯視
+        pg.mouse.click(pts[0]["x"], pts[0]["y"]); pg.wait_for_timeout(500)
+        pg.mouse.move(900, 600); pg.mouse.down(); pg.mouse.move(700, 520, steps=8); pg.mouse.up(); pg.wait_for_timeout(500)
+        moved = _mu_pose(pg)
+        ok("Esc 前：已選一位且鏡頭離開了俯視位置", pg.evaluate("() => !!__world.pilot.sel") and _mu_dist(moved, ref) > 1.0, round(_mu_dist(moved, ref), 2))
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500); _mu_settle(pg, 8000)
+        after = _mu_pose(pg)
+        ok("Esc：選取清空、鏡頭注視點與高度回到預設俯視（各軸誤差 < %.1f 公尺）" % TOL, pg.evaluate("() => !__world.pilot.sel && __world.multi.list.length === 0") and _mu_dist(after, ref) < TOL, (round(_mu_dist(after, ref), 2)))
+        ok("Esc 後跟隨狀態清掉（視角列在俯瞰）", pg.evaluate("() => !__world.pilot.sel") and pg.evaluate("() => document.querySelector('#viewSeg .on') && document.querySelector('#viewSeg .on').dataset.v") == "god")
+        # ② 沒有任何選取時按 Esc 也回俯視
+        pg.mouse.move(900, 600); pg.mouse.down(); pg.mouse.move(700, 500, steps=8); pg.mouse.up(); pg.wait_for_timeout(400)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500); _mu_settle(pg, 8000)
+        ok("沒有選取時按 Esc 也回到俯視", _mu_dist(_mu_pose(pg), ref) < TOL, round(_mu_dist(_mu_pose(pg), ref), 2))
+        # ③ 角色視角：Esc 兩次
+        pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); W.setView('char', c, true); W.ui.showCard(c); W.pilot.select(c); }", pts[0]["id"]); pg.wait_for_timeout(500)
+        pg.keyboard.press("KeyV"); pg.wait_for_timeout(1500)
+        ok("角色視角已開", pg.evaluate("() => __world.pov.on()"))
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(1500)
+        st = pg.evaluate("() => ({ pov: __world.pov.on(), sel: !!__world.pilot.sel, mode: document.querySelector('#viewSeg .on') && document.querySelector('#viewSeg .on').dataset.v })")
+        ok("角色視角中第一次 Esc：只回原視角（仍選取、不是俯視）", (not st["pov"]) and st["sel"] and st["mode"] != "god", st)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500); _mu_settle(pg, 8000)
+        ok("第二次 Esc：結束選取並回到預設俯視", (not pg.evaluate("() => !!__world.pilot.sel")) and _mu_dist(_mu_pose(pg), ref) < TOL, round(_mu_dist(_mu_pose(pg), ref), 2))
+        # ④ 開除確認框開著：Esc 只關框，鏡頭不動
+        pg.evaluate("() => { const W = __world; for (const id of [...W.chars.keys()].slice(1, 3)) W.multi.add(W.chars.get(id)); }"); pg.wait_for_timeout(300)
+        pg.click("[data-g=fire]"); pg.wait_for_timeout(400)
+        pg.mouse.move(900, 200); pg.mouse.down(); pg.mouse.move(800, 260, steps=6); pg.mouse.up(); pg.wait_for_timeout(500)
+        before = _mu_pose(pg)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(900)
+        ok("開除確認框開著按 Esc：只關框、鏡頭不動、群組仍在", pg.evaluate("() => !document.getElementById('fireDlg') && __world.multi.list.length === 2") and _mu_dist(_mu_pose(pg), before) < 0.05, round(_mu_dist(_mu_pose(pg), before), 3))
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500); _mu_settle(pg, 8000)
+        ok("再按 Esc：群組清空、鏡頭回俯視", pg.evaluate("() => __world.multi.list.length === 0") and _mu_dist(_mu_pose(pg), ref) < TOL, round(_mu_dist(_mu_pose(pg), ref), 2))
+        # ⑤ 飛回途中拖曳就中止
+        pg.mouse.move(900, 600); pg.mouse.down(); pg.mouse.move(600, 450, steps=8); pg.mouse.up(); pg.wait_for_timeout(300)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(120)
+        pg.mouse.move(900, 600); pg.mouse.down(); pg.mouse.move(800, 560, steps=5); pg.mouse.up(); pg.wait_for_timeout(1500)
+        ok("飛回途中使用者一拖曳就中止（鏡頭沒有被拉回俯視）", _mu_dist(_mu_pose(pg), ref) > TOL, round(_mu_dist(_mu_pose(pg), ref), 2))
+        ok("操作提示與「?」說明有「Esc」回俯視", "回到俯視" in pg.evaluate("() => document.getElementById('helpPop').textContent"))
+        errs_ = [e for e in pg.errs if "vScP" not in e]
+        ok("Esc 回俯視：無主控台錯誤", not errs_, errs_[:2])
+    finally:
+        c.close()
+
+
+register("辦公室多選Esc回俯視", _mu_esc)
 register("辦公室多選", _mu_main)
 register("辦公室多選手機", _mu_touch)

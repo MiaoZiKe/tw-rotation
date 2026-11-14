@@ -285,6 +285,19 @@ export function createMulti(W, X) {
     const ev = new KeyboardEvent('keydown', { code: e.code, key: e.key, bubbles: true, cancelable: true }); ev._multi = true; dispatchEvent(ev);                // 領頭的人已被 pilot 選取，把這個按鍵重送一次讓 pilot 接手
   }, true);
 
+  // ───────── Esc：結束操控、清空選取之後，鏡頭平順回到預設俯視（擁有者 11-14：「點選 ESC 變成俯視」） ─────────
+  // 層次：角色視角中第一次 Esc 只回原視角（pilot 處理）；對話框／輸入框開著時 Esc 只關它；其餘一律 setView('god')（同時清掉跟隨）。
+  // 飛行途中使用者一拖曳就中止，是既有運鏡規則（拖曳會清掉 view.tween），這裡不另外處理。
+  let povExitT = -1e9; { const ex = W.pov && W.pov.exit; if (ex) W.pov.exit = function (...a) { povExitT = performance.now(); return ex.apply(this, a); }; }
+  addEventListener('keydown', e => {
+    if (e.code !== 'Escape' || e._multi || typing() || document.body.classList.contains('dlg-open')) return;
+    if (document.querySelector('[role=dialog]:not([hidden]), #board:not([hidden]), #aioGuide:not([hidden])')) return;      // 對話框、佈告欄：由它們自己關
+    if (performance.now() - povExitT < 80) return;                                              // 這次 Esc 剛把角色視角退回原視角，不再往下飛
+    if (W.pov && W.pov.on() && W.pov.st !== 'out') return;
+    if (M.list.length) clear(); else if (pilot.sel) pilot.release();
+    setView('god');
+  });
+
   // ───────── 每一幀：光環位置、面板彙總 ─────────
   const pf = pilot.frame, pt = pilot.tick;
   pilot.tick = h => { pt(h); M.tick(h); };
@@ -311,7 +324,7 @@ export function createMulti(W, X) {
   };
 
   // 「?」說明：把多選的用法接在最後面（ui.js 的說明清單不動）
-  { const ul = $('helpPop') && $('helpPop').querySelector('ul'); if (ul) ul.insertAdjacentHTML('beforeend', '<li>多選：按住 Ctrl（Mac 是 ⌘）點角色＝加入或移出；Ctrl＋在背景拖曳＝拉框一次選多位；不按 Ctrl 點角色＝只選那一位；點空白處或 Esc＝全部取消。選了 2 位以上會出現群組面板：一起回座位、一起去休息、集合開會、全部摸頭、全部揮手、開除選取的人；按方向鍵可操控第一位，其他人排隊跟著走。手機：長按角色出現「多選」，之後點角色加入或移出，按「完成」結束。</li>'); }
+  { const ul = $('helpPop') && $('helpPop').querySelector('ul'); if (ul) ul.insertAdjacentHTML('beforeend', '<li>Esc：結束操控並取消選取，鏡頭回到俯視。</li><li>多選：按住 Ctrl（Mac 是 ⌘）點角色＝加入或移出；Ctrl＋在背景拖曳＝拉框一次選多位；不按 Ctrl 點角色＝只選那一位；點空白處或 Esc＝全部取消。選了 2 位以上會出現群組面板：一起回座位、一起去休息、集合開會、全部摸頭、全部揮手、開除選取的人；按方向鍵可操控第一位，其他人排隊跟著走。手機：長按角色出現「多選」，之後點角色加入或移出，按「完成」結束。</li>'); }
 
   M.add = add; M.remove = remove; M.toggle = toggle; M.clear = clear; M.has = c => M.list.includes(c) && !panel.hidden; M.only = only; M.act = act; M.lead = lead; M.panelEl = panel; M.barEl = bar; M.boxEl = box;
   M.followers = () => foll.slice();
