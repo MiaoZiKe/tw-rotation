@@ -115,6 +115,11 @@ self.addEventListener('fetch', (event) => {
   // 那些每分鐘就過期，而且快取 opaque response 只會浪費配額。
   if (url.origin !== self.location.origin) return;
 
+  // ⓪ 2026-11-15 擁有者同意：AI 辦公室（office/）與所有分支預覽（preview/）一律不碰。
+  //    原因：它們不跟主站版號走，快取優先會讓使用者一直拿到舊程式（「做好了卻看不到」）。
+  { const rel0 = url.pathname.startsWith(SCOPE_PATH) ? url.pathname.slice(SCOPE_PATH.length) : url.pathname;
+    if (/^(office|preview)\//.test(rel0)) return; }
+
   // ① 每天會變的資料 —— 這支 SW 連碰都不碰（最重要的一條）
   if (isLiveData(url)) return;
 
