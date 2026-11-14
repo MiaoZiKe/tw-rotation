@@ -410,6 +410,12 @@ def session_closed(mis_date: str) -> bool:
     return (now.hour, now.minute) >= TPE_CLOSE_HHMM
 
 
+def _in_session() -> bool:
+    """台北現在是不是台股盤中（週一～五 09:00～13:35）。盤中時段的「回空」不當成「沒有新的」。"""
+    now = _tpe_now()
+    return now.weekday() < 5 and (9, 0) <= (now.hour, now.minute) < TPE_CLOSE_HHMM
+
+
 def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
     """openapi 還沒給今天的上市價量時，用 mis 的即時報價把那一天補起來。
 
@@ -446,6 +452,11 @@ def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
         why = ("那一場還沒收盤" if not closed else
                "報價比 openapi 還舊" if stale else f"上市已有 {have_twse} 檔")
         log.info("mis 的 %s 不用補：%s", mis_date, why)
+        if closed:
+            # 2026-11-14：收盤後「不用補」（官方日收已給、或 mis 報價比官方還舊）是常態，不是失敗。
+            # 以前回空 DataFrame → step() 記成 ok:false，每晚 source_health 連續失敗 +1。
+            # 「那一場還沒收盤」（盤中手動觸發）維持回空，不宣告 skipped。
+            return skipped_df(f"mis {mis_date} 不用補：{why}")
         return pd.DataFrame()
 
     pairs = universe_pairs()
@@ -544,6 +555,10 @@ def collect_intraday_60m() -> pd.DataFrame:
     RESULT["steps"]["intraday.since"] = {"since": info.get("lake_last"), **info}
     if not info.get("codes"):
         log.warning("還沒有價量資料，不知道要抓哪些代號的分 K")
+    elif df.empty and info.get("got_codes", 0) > 0 and not _in_session():
+        # 2026-11-14：Yahoo 有回資料、只是湖裡都已經有（今天稍早那輪抓過）＝本輪沒有新的，不是失敗。
+        # Yahoo 一檔都沒回（got_codes=0）或盤中時段，照舊記失敗。
+        return skipped_df(f"Yahoo 回 {info['got_codes']} 檔、都已在湖裡（湖最後一根 {info.get('lake_last')}），沒有新的 60 分 K")
     return df
 
 
@@ -558,8 +573,15 @@ def collect_index_intraday() -> pd.DataFrame:
 
     have = store.read("index_intraday")
     parts = [yahoo.index_intraday_since(have, iv) for iv in ("60m", "15m")]
+    fetched = sum(int(p.attrs.get("fetched", 0)) for p in parts if p is not None)
     parts = [p for p in parts if p is not None and not p.empty]
-    return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    if parts:
+        return pd.concat(parts, ignore_index=True)
+    if fetched > 0 and not _in_session():
+        # 2026-11-14：Yahoo 有回資料、全都是湖裡已有的舊根＝收盤後沒有新的，不是失敗。
+        # Yahoo 完全沒回（fetched=0）或盤中時段，照舊記失敗。
+        return skipped_df(f"Yahoo 回 {fetched} 列、都已在湖裡，沒有新的 60／15 分 K")
+    return pd.DataFrame()
 
 
 def collect_index_minute() -> pd.DataFrame:

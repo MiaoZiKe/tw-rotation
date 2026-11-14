@@ -294,9 +294,12 @@ def index_intraday_since(have: pd.DataFrame, interval: str) -> pd.DataFrame:
     df = index_intraday(interval, period_for(gap, interval))
     if df.empty:
         return df
+    fetched = int(len(df))
     ts = pd.to_datetime(df["ts"].astype(str), utc=True, format="mixed")
     keep = pd.Series(True, index=df.index)
     for sym, v in since.items():
         if v is not None:
             keep &= ~((df["symbol"].astype(str) == sym) & (ts <= v))
-    return df[keep].reset_index(drop=True)
+    out = df[keep].reset_index(drop=True)
+    out.attrs["fetched"] = fetched      # Yahoo 實際回了幾列（過濾前）：呼叫端用來分辨「沒新的」與「抓不到」
+    return out
