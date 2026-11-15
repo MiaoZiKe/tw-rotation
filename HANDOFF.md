@@ -6,6 +6,15 @@
 - 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
 
 
+## 2026-11-15 頻道④自動發文支援影片（IG Reels＋Threads 影片）（social-ops-lead；plan_202611_影片為主.md T5～T7）
+- `scripts/healing_post.py`：meta.json `"format": "video"`＋`video.mp4`（可選 `cover.jpg`）→ IG `REELS`（`share_to_feed=true`、`cover_url`）／Threads `VIDEO`，輪詢 FINISHED（最多 15 分鐘）才 publish；EAA／IGAA 兩種 IG 權杖都走 `ig_host()`。沒寫 `format` 一律輪播，tech／caffaine 共用程式行為不變（test_channel_post 全綠）。
+- 影片網址：正式站 `https://liguligu-puipui.com/media/healing/<資料夾>/video.mp4`（`--prepare` 同步到 `site/media/healing/`，pages.yml 部署，回 video/mp4）優先，raw.githubusercontent（實測回 application/octet-stream）保底；一條失敗換下一條。
+- 驗證模式加 `--target`（工作流 `target` 欄）：只驗指定資料夾（draft 也行、不發布、不改 status）；影片每條網址都建容器，結果記 `state/verify.json` 的 `video`。
+- `scripts/healing_article.py`：影片貼文存檔＝封面＋影片連結＋文案。
+- 驗證用佇列：`queue/20261116v_worktime/`（talk-ep01，**status draft**，還沒有 article.json；放 approved 前要補 sources 網址並等 Andy 確認樣片 T4）。
+- 這批跑了：pytest 全套。沒動 site/** 的 JS/CSS（只新增 site/media 影片檔），沒跑 _preview／_uitest。
+- 待做：T6 的 12:27 輪播時段還沒加。
+
 ## 2026-11-13 整天法人「回空」補原因＋inst_today_codes 計數（data-steward，維修）
 - 11-12 13:18 UTC 那輪：證交所 T86 回 HTML 欄位對不上、櫃買回 893 檔、FinMind 整天額度用盡；source_health 只看得到「回空（0 筆）」。判定：真的壞，不是「還沒出」，所以沒改成 skipped。
 - 改：`inst_bulk.fill_inst_bulk` 回空時把原因寫進 attrs（step() 原樣記進 last_run／source_health）；`last_run.json` 新增 `inst_today_codes`（目標日法人檔數 before／after／added）。判定不變。

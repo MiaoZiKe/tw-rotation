@@ -1,0 +1,11 @@
+{
+ "title": "一年工作 2,027 小時（talk-ep01，頻道④第一支有旁白的完整片，53.4 秒）",
+ "format": "video",
+ "platforms": [
+  "ig",
+  "threads"
+ ],
+ "status": "draft",
+ "publish_at": null,
+ "note": "2026-11-15 social-ops-lead：影片自動發文（T5～T7）驗證用。video.mp4＝incoming/talk-ep01/talk-ep01.mp4（1080×1920、H.264＋AAC、53.4 秒、16.5MB）；cover.jpg 由 talk-ep01-cover.png 轉；caption.txt 取自 ai-mp4 review/tanqing-talk-ep01 的 videos/talk-ep01/caption.md（貼文本文到標籤行）。caption.md 註明數字只對過搜尋摘要、還沒讀到原始統計表；放 approved 前要補 article.json（sources 附網址）並經 Andy 確認樣片（T4）。"
+}

@@ -7,6 +7,9 @@
 IG／Threads 網址從 state/posted.json 取；還沒發出的寫「排程於…發出後補上公開網址」，發出後再跑一次就會補上。
 用法：python -m scripts.healing_article <資料夾名> [<資料夾名>…]     （--all＝佇列裡有 article.json 的全部）
 寫入：site/articles/healing/<id>.json、site/articles/healing/index.json、site/articles/healing/img/<id>-<n>.jpg
+影片貼文（meta.json "format": "video"，2026-11-15）：放封面（cover.jpg → img/<id>-cover.jpg）＋影片連結
+  （正式站 https://liguligu-puipui.com/media/healing/<資料夾>/video.mp4，由 healing_post.py --prepare 同步）＋文案全文；
+  沒有 cover.jpg 就只放影片連結與文案。alts 只要一個（封面的替代文字）。
 """
 from __future__ import annotations
 
@@ -45,6 +48,8 @@ def build(folder, cfg):
         rest = rest[:i]
     paras = [x for x in rest if x]
     pid = f"{cfg['date']}-healing-{cfg['slug']}"
+    if meta.get("format") == "video":
+        return build_video(folder, cfg, q, meta, title, paras, tags, pid)
     items = []
     for n in (1, 2, 3):
         src = q / f"{n}.jpg"
@@ -75,6 +80,48 @@ def build(folder, cfg):
             "blocks": blocks, "sources": cfg["sources"], "confidence": cfg["confidence"], "status": "published",
             "social": {"ig": ig, "threads": th, "queue": folder}}
     return post
+
+
+def _publish_record(folder, meta):
+    p = posted.get(folder) or {}
+    ig, th = (p.get("ig") or {}).get("link"), (p.get("threads") or {}).get("link")
+    blocks = [{"t": "h", "text": "發布紀錄"}]
+    if ig or th:
+        when = (p.get("at") or "")[:16].replace("T", " ")
+        blocks.append({"t": "p", "text": f"已於台北時間 {when} 發布到 Instagram 與 Threads。"})
+        blocks.append({"t": "links", "title": "公開網址", "items": [x for x in (
+            {"label": "Instagram", "url": ig} if ig else None, {"label": "Threads", "url": th} if th else None) if x]})
+    else:
+        when = (meta.get("publish_at") or "").replace("T", " ").replace("+08:00", "")
+        blocks.append({"t": "p", "text": (f"排程於台北時間 {when} 發布到 Instagram 與 Threads；發出後補上公開網址。" if when
+                                          else "還沒排程發布；發出後補上公開網址。")})
+    return blocks, ig, th
+
+
+def build_video(folder, cfg, q, meta, title, paras, tags, pid):
+    """影片貼文：封面圖（有的話）＋影片連結＋文案全文＋發布紀錄。"""
+    blocks = [{"t": "h", "text": "影片"}]
+    alts = cfg.get("alts") or [title]
+    cov = q / "cover.jpg"
+    if cov.exists():
+        dst = IMG / f"{pid}-cover.jpg"
+        shutil.copyfile(cov, dst)
+        blocks.append({"t": "img", "items": [{"src": f"articles/healing/img/{dst.name}", "alt": alts[0], "cap": "影片封面"}],
+                       "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"})
+    media = ROOT / "site/media/healing" / folder / "video.mp4"
+    vurl = f"https://liguligu-puipui.com/media/healing/{folder}/video.mp4" if media.exists() else \
+        f"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/queue/{folder}/video.mp4"
+    if (q / "video.mp4").exists():
+        blocks.append({"t": "links", "title": "影片檔", "items": [{"label": "觀看影片（MP4）", "url": vurl}]})
+    blocks.append({"t": "h", "text": "文案全文"})
+    for x in paras:
+        blocks.append({"t": "p", "text": x})
+    rec, ig, th = _publish_record(folder, meta)
+    blocks += rec
+    return {"id": pid, "cat": "healing", "title": title, "subtitle": "談晴說礙・IG Reels／Threads 影片存檔（封面、影片、文案全文、出處）",
+            "date": cfg["date"], "updated": cfg["date"], "tags": tags, "summary": cfg["summary"], "reading_min": 2,
+            "blocks": blocks, "sources": cfg["sources"], "confidence": cfg["confidence"], "status": "published",
+            "social": {"ig": ig, "threads": th, "queue": folder, "format": "video", "video": vurl}}
 
 
 def main(argv=None) -> int:

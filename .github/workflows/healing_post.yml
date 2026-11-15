@@ -6,6 +6,9 @@ name: healing_post
 # - 只用頻道④自己的 Secrets（HEALING_*）；沒設好 → 空跑、以成功結束，摘要寫「等待 Andy 設定權杖」。
 # - 權杖第一次出現：先自動跑驗證模式（只建容器、等 FINISHED，不發布），state/verify.json 記 verified 後才正式發。
 # - 手動 mode=delete／test_delete（2026-11-08 Andy：「我希望可以自動化全部 包含測試發文 還有自動刪文」）。
+# - 2026-11-15 影片（meta.json "format": "video"、video.mp4）：IG Reels＋Threads 影片；影片網址先用正式站
+#   https://liguligu-puipui.com/media/healing/<資料夾>/video.mp4（--prepare 同步到 site/media/ 並叫 pages.yml 部署），失敗換 raw。
+#   mode=verify 可填 target 只驗某一則（draft 也行，不發布）。
 # - 發文紀錄 state/posted.json（完成證據：貼文網址）寫回 main；同一則不重發。失敗 → 重試後仍失敗就紅燈（GitHub 寄信）。
 on:
   schedule:
@@ -31,7 +34,7 @@ on:
         type: boolean
         default: true
       target:
-        description: "mode=delete：佇列資料夾名（例如 20261108_intro）或貼文 id"
+        description: "mode=delete：佇列資料夾名（例如 20261108_intro）或貼文 id；mode=verify：只驗這個佇列資料夾（例如 20261116v_worktime）"
         type: string
         default: ""
       platform:
@@ -52,7 +55,7 @@ concurrency:
 jobs:
   post:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50   # 影片容器轉檔每個平台最多輪詢 15 分鐘
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,11 +105,16 @@ jobs:
           if [ -z "$DRY" ] && { [ "$MODE" = "delete" ] || [ "$MODE" = "test_delete" ]; } && [ "${{ inputs.confirm }}" != "我確定刪除" ]; then
             echo "::error::mode=$MODE 要在 confirm 填「我確定刪除」，什麼都沒做"; exit 2
           fi
-      - name: IG 用的 JPEG（缺的從 PNG 轉，先推上 main 讓 Meta 抓得到）
+      - name: IG 用的 JPEG（缺的從 PNG 轉）＋影片同步到 site/media（先推上 main 讓 Meta 抓得到）
         if: steps.mode.outputs.dry == '' && steps.mode.outputs.mode != 'delete'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python scripts/healing_post.py --prepare
-          bash "$RUNNER_TEMP/push.sh" "談晴說礙：佇列補轉 IG 用 JPEG $(date -u '+%Y-%m-%d')" docs/marketing/channels/healing/queue
+          OUT=$(bash "$RUNNER_TEMP/push.sh" "談晴說礙：佇列補轉 IG 用 JPEG／同步影片 $(date -u '+%Y-%m-%d')" docs/marketing/channels/healing/queue site/media/healing) || { echo "$OUT"; exit 1; }
+          echo "$OUT"
+          # 新同步的影片要部署到正式站才有 video/mp4 網址（GITHUB_TOKEN 推的 commit 不會自動觸發 pages.yml）；這一輪先用 raw 保底
+          if echo "$OUT" | grep -q "推送成功" && echo "$OUT" | grep -q "site/media/"; then gh workflow run pages.yml --ref main || echo "::warning::叫不動 pages.yml"; fi
       - name: 發文（失敗會紅燈）
         id: post
         env:

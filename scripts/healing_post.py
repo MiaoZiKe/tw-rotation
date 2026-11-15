@@ -23,6 +23,15 @@ Andy 原話（2026-11-08）：「開通自動發文，這部分幫我想辦法�
   · 權杖、帳號編號一律 ::add-mask:: 並經 social_publish.redact 才輸出。
   · 2026-11-09 起多頻道共用：--channel <代碼>（docs/marketing/channels/channels.json）換佇列、state、開關檔與權杖前綴；
     入口 scripts/channel_post.py、工作流 .github/workflows/channel_post.yml。不給 --channel 就是頻道④，行為不變。
+  · 2026-11-15 起支援影片（plan_202611_影片為主.md T5～T7）：meta.json 加 "format": "video"（預設 carousel，舊佇列不受影響），
+    資料夾放 video.mp4（1080×1920、H.264＋AAC）、可選 cover.jpg、caption.txt。
+      IG：media_type=REELS、video_url、cover_url（有 cover.jpg 才帶）、share_to_feed=true → 輪詢 status_code 到 FINISHED → media_publish。
+      Threads：media_type=VIDEO、video_url → 輪詢 status 到 FINISHED → threads_publish。EAA／IGAA 兩種 IG 權杖都走 ig_host()。
+    影片網址候選（video_sources）：meta.video_url（有填才用）→ 正式站 https://liguligu-puipui.com/media/<頻道>/<資料夾>/video.mp4
+    （--prepare 從佇列同步到 site/media/，pages.yml 部署；Content-Type 是 video/mp4）→ raw.githubusercontent（Content-Type 是
+    application/octet-stream，保底）。驗證模式通過的那條記進 state/verify.json 的 video.<平台>.url_via，正式發文優先用它；
+    一條建容器失敗就換下一條，不讓一個網址卡住整篇。
+    驗證模式可用 --target <資料夾名> 指定只驗某一則（draft 也可以，不發布、不改 status），不碰排程中的其他貼文。
 """
 from __future__ import annotations
 
@@ -44,6 +53,11 @@ QUEUE = HEAL / "queue"
 STATE = HEAL / "state"
 QUOTA = HEAL / "post_quota.json"
 RAW = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/"
+SITE = "https://liguligu-puipui.com/"          # 正式站（Cloudflare Pages；mp4 回 video/mp4）
+VIDEO_FILE, COVER_FILE = "video.mp4", "cover.jpg"
+VIDEO_MAX_BYTES = 25 * 1024 * 1024            # Cloudflare Pages 單檔上限 25 MiB（正式站網址要放得上去）
+VIDEO_POLL_EVERY, VIDEO_POLL_TIMEOUT = 10, 900  # 影片處理比圖久：每 10 秒查一次，最多 15 分鐘
+FORMATS = ("carousel", "video")
 TAIPEI = timezone(timedelta(hours=8))
 IG_MAX_CAPTION, IG_MAX_TAGS, IG_MAX_IMAGES = 2200, 30, 10
 PLATFORMS = ("ig", "threads")
@@ -122,7 +136,9 @@ def read_item(folder: Path) -> dict:
     cap_p = folder / "caption.txt"
     caption = cap_p.read_text(encoding="utf-8").strip() if cap_p.exists() else ""
     imgs = images(folder)
+    fmt = str(meta.get("format") or "carousel")
     return {"name": folder.name, "dir": folder, "meta": meta, "caption": caption, "images": imgs,
+            "format": fmt, "is_video": fmt == "video",
             "platforms": [p for p in (meta.get("platforms") or list(PLATFORMS))]}
 
 
@@ -134,11 +150,20 @@ def validate(it: dict) -> list[str]:
     bad = [p for p in it["platforms"] if p not in PLATFORMS]
     if bad:
         errs.append(f"platforms 只能是 ig／threads，多了 {bad}")
-    if not imgs:
+    if it.get("format", "carousel") not in FORMATS:
+        errs.append(f"format 只能是 carousel／video，目前是 {it.get('format')!r}")
+    elif it.get("is_video"):     # 影片不需要 n.png
+        v = it["dir"] / VIDEO_FILE
+        if not v.is_file() or v.stat().st_size == 0:
+            errs.append(f"format=video 但沒有 {VIDEO_FILE}")
+        elif v.stat().st_size > VIDEO_MAX_BYTES:
+            errs.append(f"{VIDEO_FILE} {v.stat().st_size / 1048576:.1f}MB，超過正式站單檔上限 25MB（請壓縮）")
+        imgs = None
+    if imgs is not None and not imgs:
         errs.append("沒有圖（要有 1.png、2.png…）")
-    if [f"{i}.png" for i in range(1, len(imgs) + 1)] != imgs:
+    if imgs and [f"{i}.png" for i in range(1, len(imgs) + 1)] != imgs:
         errs.append(f"圖要從 1.png 連號，目前是 {imgs}")
-    if "ig" in it["platforms"] and len(imgs) > IG_MAX_IMAGES:
+    if imgs and "ig" in it["platforms"] and len(imgs) > IG_MAX_IMAGES:
         errs.append(f"IG 輪播最多 {IG_MAX_IMAGES} 張，目前 {len(imgs)} 張")
     if not it["caption"]:
         errs.append("caption.txt 是空的或不存在")
@@ -205,15 +230,56 @@ def public_url(it: dict, fname: str) -> str:
     return RAW + quote(rel)
 
 
+def channel_code(it_or_queue) -> str:
+    """佇列 docs/marketing/channels/<代碼>/queue/<資料夾> → <代碼>（正式站影片路徑用）。"""
+    d = it_or_queue["dir"].parent if isinstance(it_or_queue, dict) else Path(it_or_queue)
+    return d.parent.name
+
+
+def site_media_rel(it: dict, fname: str = VIDEO_FILE) -> str:
+    return f"media/{channel_code(it)}/{it['name']}/{fname}"
+
+
+def video_sources(it: dict, prefer: str = "") -> list[tuple[str, str, str]]:
+    """影片網址候選 [(路名, 網址, 要求的 content-type 開頭)]：meta.video_url → 正式站 → raw。prefer 那條排第一。
+    正式站那條只有本機 site/media/<頻道>/<資料夾>/video.mp4 存在（已同步、會被 pages.yml 部署）才列。"""
+    out = []
+    u = str(it["meta"].get("video_url") or "").strip()
+    if u.startswith("https://"):
+        out.append(("meta", u, ""))
+    if (ROOT / "site" / site_media_rel(it)).is_file():
+        out.append(("site", SITE + quote(site_media_rel(it)), "video/mp4"))
+    out.append(("raw", public_url(it, VIDEO_FILE), ""))     # raw 回 application/octet-stream：只確認 200
+    if prefer:
+        out.sort(key=lambda x: 0 if x[0] == prefer else 1)
+    return out
+
+
+def cover_url(it: dict) -> str:
+    return public_url(it, COVER_FILE) if (it["dir"] / COVER_FILE).is_file() else ""
+
+
 def ig_files(it: dict) -> list[str]:
     return [f.replace(".png", ".jpg") for f in it["images"]]
 
 
 def prepare(queue: Path = QUEUE) -> list[Path]:
-    """IG 只收 JPEG：每個 n.png 缺 n.jpg 就轉一張（Pillow，品質 92）。回傳新產生的檔案。"""
+    """IG 只收 JPEG：每個 n.png 缺 n.jpg 就轉一張（Pillow，品質 92）。回傳新產生的檔案。
+    影片（format=video）：video.mp4、cover.jpg 同步到 site/media/<頻道>/<資料夾>/（正式站網址用；內容不同才覆寫）。"""
+    import shutil
     from PIL import Image
     made = []
     for d in sorted(x for x in queue.iterdir() if x.is_dir()):
+        meta = load_json(d / "meta.json", {})
+        if isinstance(meta, dict) and meta.get("format") == "video" and (d / VIDEO_FILE).is_file():
+            dst = ROOT / "site" / "media" / channel_code(queue) / d.name
+            for f in (VIDEO_FILE, COVER_FILE):
+                src, out = d / f, dst / f
+                if src.is_file() and src.stat().st_size <= VIDEO_MAX_BYTES and \
+                        (not out.is_file() or out.read_bytes() != src.read_bytes()):
+                    dst.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(src, out)
+                    made.append(out)
         for f in images(d):
             j = d / f.replace(".png", ".jpg")
             if not j.exists():
@@ -363,6 +429,177 @@ def verify_threads(uid: str, token: str, urls: list[str], text: str) -> str:
 
 
 VERIFIERS = {"ig": verify_ig, "threads": verify_threads}
+
+
+# ---------- 影片（IG Reels／Threads 影片，2026-11-15）----------
+# 函式簽名一致：(uid, token, video_url, text, cover_url="")；驗證只建容器等 FINISHED，發布多一步 publish＋permalink。
+def wait_video(host: str, token: str, cid: str, label: str, field: str, timeout: int | None = None) -> None:
+    """輪詢影片容器到 FINISHED（影片要轉檔，比圖久；預設最多 15 分鐘）。ERROR／EXPIRED 帶回 Meta 給的原因。"""
+    timeout = VIDEO_POLL_TIMEOUT if timeout is None else timeout
+    extra = "status" if field == "status_code" else "error_message"     # IG 的 status 是文字說明；Threads 是 error_message
+    waited = 0
+    SP._sleep(3)
+    while True:
+        try:
+            d = SP.http("GET", f"{host}/{cid}", params={"fields": f"{field},{extra}", "access_token": token})
+        except RuntimeError as e:
+            if ("2207006" in str(e) or "does not exist" in str(e)) and waited < 60:
+                SP._sleep(VIDEO_POLL_EVERY)
+                waited += VIDEO_POLL_EVERY
+                continue
+            raise
+        st = d.get(field)
+        if st == "FINISHED":
+            return
+        if st in ("ERROR", "EXPIRED"):
+            raise RuntimeError(f"{label} 影片處理失敗：{st} {d.get(extra, '')}".strip())
+        if waited >= timeout:
+            raise RuntimeError(f"{label} 影片處理逾時（{timeout} 秒）狀態={st}")
+        SP._sleep(VIDEO_POLL_EVERY)
+        waited += VIDEO_POLL_EVERY
+
+
+def ig_video_container(uid: str, token: str, video_url: str, caption: str, cover: str = "", label: str = "ig 影片") -> str:
+    host = ig_host(token)
+    data = {"media_type": "REELS", "video_url": video_url, "caption": caption, "share_to_feed": "true",
+            "access_token": token}
+    if cover:
+        data["cover_url"] = cover
+    c = str(SP.http("POST", f"{host}/{uid}/media", data=data)["id"])
+    wait_video(host, token, c, label, "status_code")
+    return c
+
+
+def threads_video_container(uid: str, token: str, video_url: str, text: str, label: str = "threads 影片") -> str:
+    c = str(SP.http("POST", f"{SP.THREADS_HOST}/{uid}/threads",
+                    data={"media_type": "VIDEO", "video_url": video_url, "text": text, "access_token": token})["id"])
+    wait_video(SP.THREADS_HOST, token, c, label, "status")
+    return c
+
+
+def verify_ig_video(uid: str, token: str, video_url: str, caption: str, cover: str = "") -> str:
+    return SP.retry_once("ig", lambda: ig_video_container(uid, token, video_url, caption, cover, "ig 驗證影片"), tries=2)
+
+
+def verify_threads_video(uid: str, token: str, video_url: str, text: str, cover: str = "") -> str:
+    return SP.retry_once("threads", lambda: threads_video_container(uid, token, video_url, text, "threads 驗證影片"),
+                         tries=2)
+
+
+def publish_ig_video(uid: str, token: str, video_url: str, caption: str, cover: str = "") -> dict:
+    host = ig_host(token)
+
+    def go():
+        c = ig_video_container(uid, token, video_url, caption, cover)
+        return SP.http("POST", f"{host}/{uid}/media_publish", data={"creation_id": c, "access_token": token})["id"]
+    pid = SP.retry_once("ig", go)
+    link = ""
+    try:
+        link = SP.http("GET", f"{host}/{pid}", params={"fields": "permalink", "access_token": token}).get("permalink", "")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"id": pid, "link": link}
+
+
+def publish_threads_video(uid: str, token: str, video_url: str, text: str, cover: str = "") -> dict:
+    def go():
+        c = threads_video_container(uid, token, video_url, text)
+        return SP.http("POST", f"{SP.THREADS_HOST}/{uid}/threads_publish",
+                       data={"creation_id": c, "access_token": token})["id"]
+    pid = SP.retry_once("threads", go)
+    link = ""
+    try:
+        link = SP.http("GET", f"{SP.THREADS_HOST}/{pid}", params={"fields": "permalink", "access_token": token}
+                       ).get("permalink", "")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"id": pid, "link": link}
+
+
+VIDEO_VERIFIERS = {"ig": verify_ig_video, "threads": verify_threads_video}
+VIDEO_PUBLISHERS = {"ig": publish_ig_video, "threads": publish_threads_video}
+
+
+def try_video_sources(fn, it: dict, p: str, check, prefer: str = "", notes: list | None = None):
+    """照 video_sources 的順序一條一條試 fn(video_url, cover_url)；第一條成功就回（結果, 路名）。
+    網址抓不到（check 失敗）或 Meta 建容器失敗都換下一條；全部失敗才丟錯，訊息列出每一條的原因。"""
+    errs = []
+    cov = cover_url(it) if p == "ig" else ""
+    if cov:
+        try:
+            check(cov, "image/jpeg")
+        except Exception as e:  # noqa: BLE001
+            if notes is not None:
+                notes.append(f"{p} 封面 cover.jpg 抓不到，這次不帶封面：{SP.redact(e)[:160]}")
+            cov = ""
+    for via, url, want in video_sources(it, prefer):
+        try:
+            check(url, want)
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"{via} 網址抓不到：{SP.redact(e)[:160]}")
+            continue
+        try:
+            out = fn(url, cov)
+            if errs and notes is not None:
+                notes += [f"{p} 影片 {x}（已改用 {via}）" for x in errs]
+            return out, via
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"{via}（{url}）建容器失敗：{SP.redact(e)[:200]}")
+            SP.log(f"[{p}] 影片網址 {via} 失敗，換下一條：{SP.redact(e)[:200]}")
+    if notes is not None:
+        notes += [f"{p} 影片 {x}" for x in errs]
+    raise RuntimeError("影片所有網址都失敗：" + "；".join(errs))
+
+
+def verify_all_sources(fn, it: dict, p: str, check, notes: list | None = None):
+    """驗證模式：每一條影片網址都建一次容器（不發布），記下每條的結果，好知道 raw／正式站 Meta 收不收。
+    回傳（第一條成功的容器 id, 路名, {路名: "FINISHED 容器 id" 或失敗原因}）；全部失敗丟錯。"""
+    results, first = {}, None
+    cov = cover_url(it) if p == "ig" else ""
+    if cov:
+        try:
+            check(cov, "image/jpeg")
+        except Exception as e:  # noqa: BLE001
+            if notes is not None:
+                notes.append(f"{p} 封面 cover.jpg 抓不到，這次不帶封面：{SP.redact(e)[:160]}")
+            cov = ""
+    for via, url, want in video_sources(it):
+        try:
+            check(url, want)
+        except Exception as e:  # noqa: BLE001
+            results[via] = f"網址抓不到：{SP.redact(e)[:160]}"
+            continue
+        try:
+            cid = fn(url, cov)
+            results[via] = f"FINISHED 容器 {cid}"
+            if first is None:
+                first = (cid, via)
+        except Exception as e:  # noqa: BLE001
+            results[via] = f"建容器失敗：{SP.redact(e)[:200]}"
+    if notes is not None:
+        notes += [f"{p} 影片網址 {k}：{v}" for k, v in results.items()]
+    if first is None:
+        raise RuntimeError("影片所有網址都失敗：" + "；".join(f"{k} {v}" for k, v in results.items()))
+    return first[0], first[1], results
+
+
+def video_via(state: Path, p: str) -> str:
+    return ((load_json(state / "verify.json", {}).get("video") or {}).get(p) or {}).get("url_via", "")
+
+
+def mark_video_verified(state: Path, p: str, now: datetime, cid: str, url_via: str, item: str, uid_via: str = "",
+                        results: dict | None = None) -> None:
+    """影片驗證紀錄另放 verify.json 的 "video" 底下，不動原本平台（輪播）那筆。"""
+    v = load_json(state / "verify.json", {})
+    vv = v.setdefault("video", {})
+    vv[p] = {"verified": True, "at": now.astimezone(TAIPEI).isoformat(timespec="seconds"), "container": str(cid),
+             "url_via": url_via, "item": item}
+    if uid_via:
+        vv[p]["via"] = uid_via
+    if results:
+        vv[p]["urls"] = results
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "verify.json").write_text(SP.redact(json.dumps(v, ensure_ascii=False, indent=1)) + "\n", encoding="utf-8")
 
 
 def is_verified(state: Path, p: str) -> bool:
@@ -793,19 +1030,36 @@ def sample_item(queue: Path, posted: dict, now: datetime) -> dict | None:
             x = read_item(d)
         except QueueError:
             continue
-        if x["images"]:
+        if x["images"] or (x["is_video"] and (d / VIDEO_FILE).is_file()):
             return x
     return None
 
 
 def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, state: Path = STATE,
                check=check_public, saver=None, verifiers: dict | None = None,
-               prefix: str | None = None) -> tuple[int, dict]:
-    """mode=verify：有權杖的平台各建一次輪播容器、等 FINISHED，不發布；通過寫 state/verify.json。"""
+               prefix: str | None = None, target: str = "", video_verifiers: dict | None = None) -> tuple[int, dict]:
+    """mode=verify：有權杖的平台各建一次容器（輪播或影片）、等 FINISHED，不發布；通過寫 state/verify.json。
+    target＝佇列資料夾名：只驗那一則（status 是 draft 也可以；不改 status、不寫 posted.json）。"""
     ver = {**VERIFIERS, **(verifiers or {})}
+    vver = {**VIDEO_VERIFIERS, **(video_verifiers or {})}
     res = {"at": now.isoformat(timespec="seconds"), "mode": "verify" + ("（dry-run）" if dry_run else ""),
            "item": None, "posted": {}, "errors": {}, "notes": [], "summary": ""}
-    it = sample_item(queue, load_json(state / "posted.json", {}), now)
+    target = (target or "").strip()
+    if target:
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", target) or not (queue / target).is_dir():
+            res["summary"] = f"驗證模式：佇列裡沒有 {target!r} 這個資料夾"
+            return 1, res
+        try:
+            it = read_item(queue / target)
+        except QueueError as e:
+            res["summary"] = f"驗證模式：{target} {e}"
+            return 1, res
+        errs = validate(it)
+        if errs:
+            res["summary"] = f"驗證模式：{target} 格式錯誤：" + "；".join(errs)
+            return 1, res
+    else:
+        it = sample_item(queue, load_json(state / "posted.json", {}), now)
     if it is None and queue != QUEUE:
         # 新頻道佇列還空著：借頻道④佇列的圖驗證權杖（只建容器、不發布，容器 24 小時後自動失效）
         it = sample_item(QUEUE, {}, now)
@@ -815,9 +1069,13 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
         res["summary"] = "佇列裡沒有可用來驗證的圖"
         return 1, res
     res["item"] = it["name"]
+    kind = "影片" if it["is_video"] else "圖"
     tok = tokens(env, prefix)
     if dry_run or not any(tok.values()):
-        res["summary"] = (f"驗證模式空跑：會用 {it['name']} 的圖建容器（不發布）" if dry_run else
+        if dry_run and it["is_video"]:
+            for via, u, _ in video_sources(it, ""):
+                SP.log(f"[video] 候選網址 {via}：{u}")
+        res["summary"] = (f"驗證模式空跑：會用 {it['name']} 的{kind}建容器（不發布）" if dry_run else
                           wait_token_msg(prefix) + "；驗證模式沒有跑")
         return 0, res
     fail, ok = False, []
@@ -826,9 +1084,22 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
             res["notes"].append(f"{p} 沒有權杖，沒驗證")
             continue
         try:
-            urls = [public_url(it, f) for f in (ig_files(it) if p == "ig" else it["images"])]
-            for u in urls:
-                check(u, "image/jpeg" if p == "ig" else "image/png")
+            body = it["caption"] if p == "ig" else _threads_text(it["caption"])
+            if it["is_video"]:
+                used: dict = {}
+
+                def attempt(uid, token, p=p, body=body, used=used):
+                    cid, uv, rs = verify_all_sources(lambda u, c: vver[p](uid, token, u, body, c), it, p, check,
+                                                     res["notes"])
+                    used.update(url_via=uv, results=rs)
+                    return cid
+            else:
+                urls = [public_url(it, f) for f in (ig_files(it) if p == "ig" else it["images"])]
+                for u in urls:
+                    check(u, "image/jpeg" if p == "ig" else "image/png")
+
+                def attempt(uid, token, p=p, urls=urls, body=body):
+                    return ver[p](uid, token, urls, body)
             dg = None
             if p == "ig" and is_fb_token(tok[p]):
                 prev = (load_json(state / "verify.json", {}).get(p) or {}).get("via", "")
@@ -839,7 +1110,6 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
                 res["notes"].append("IG 是 Facebook 登入版權杖（EAA），改走 graph.facebook.com；診斷：" + "；".join(dg["lines"]))
                 for pb in dg["problems"]:
                     res["notes"].append("IG 問題：" + pb)
-            body = it["caption"] if p == "ig" else _threads_text(it["caption"])
             env_id = (env.get(f"{_pfx(prefix)}{p.upper()}_USER_ID") or "").strip()
             if dg is not None and not env_id:
                 # EAA 沒填 USER_ID：每個候選編號都試建容器（不發布），第一個 FINISHED 的就是答案
@@ -850,7 +1120,7 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
                 for uid in dg["ids"]:
                     v = ig_via_of(dg["cands"], uid)
                     try:
-                        cid = ver[p](uid, tok[p], urls, body)
+                        cid = attempt(uid, tok[p])
                         via = v
                         break
                     except Exception as e:  # noqa: BLE001
@@ -858,13 +1128,26 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
                 res["notes"] += errs
                 if not via:
                     raise RuntimeError("；".join(errs))
-                mark_verified(state, p, now, cid, via)
-                ok.append(f"{p} 通過（帳號編號來源：{IG_PATH_NAME[via]}；容器 {cid} FINISHED，未發布）")
+                if it["is_video"]:
+                    mark_video_verified(state, p, now, cid, used["url_via"], it["name"], via, used.get("results"))
+                    ok.append(f"{p} 影片通過（帳號編號來源：{IG_PATH_NAME[via]}；影片網址 {used['url_via']}；"
+                              f"容器 {cid} FINISHED，未發布）")
+                else:
+                    mark_verified(state, p, now, cid, via)
+                    ok.append(f"{p} 通過（帳號編號來源：{IG_PATH_NAME[via]}；容器 {cid} FINISHED，未發布）")
+                res.setdefault("containers", {})[p] = {"id": str(cid), "status": "FINISHED",
+                                                      **({"urls": used.get("results", {})} if it["is_video"] else {})}
                 continue
             token, uid = _live_token(p, env, tok, res["notes"], saver, prefix, state)
-            cid = ver[p](uid, token, urls, body)
-            mark_verified(state, p, now, cid)
-            ok.append(f"{p} 通過（容器 {cid} FINISHED，未發布）")
+            cid = attempt(uid, token)
+            if it["is_video"]:
+                mark_video_verified(state, p, now, cid, used["url_via"], it["name"], results=used.get("results"))
+                ok.append(f"{p} 影片通過（影片網址 {used['url_via']}；容器 {cid} FINISHED，未發布）")
+            else:
+                mark_verified(state, p, now, cid)
+                ok.append(f"{p} 通過（容器 {cid} FINISHED，未發布）")
+            res.setdefault("containers", {})[p] = {"id": str(cid), "status": "FINISHED",
+                                                      **({"urls": used.get("results", {})} if it["is_video"] else {})}
         except Exception as e:  # noqa: BLE001
             fail = True
             res["errors"][p] = SP.redact(e)[:300]
@@ -981,7 +1264,11 @@ def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path
             check(u, "image/png")
         token, uid = _live_token("threads", env, tok, res["notes"], saver, prefix)
         t0 = time.monotonic()
-        r = publisher(uid, token, text, urls)
+        if it["is_video"]:      # 影片貼文：測試也用影片發（不然沒有圖會變成純文字）
+            r, _ = try_video_sources(lambda u, c: publish_threads_video(uid, token, u, text), it, "threads", check,
+                                     video_via(state, "threads"), res["notes"])
+        else:
+            r = publisher(uid, token, text, urls)
         rec.update(id=str(r.get("id")), link=r.get("link", ""), published=True)
         try:
             deleter("threads", rec["id"], token)
@@ -1008,11 +1295,14 @@ def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path
 # ---------- 主流程 ----------
 def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, state: Path = STATE,
         quota_path: Path = QUOTA, publishers: dict | None = None, check=check_public, saver=None,
-        verifiers: dict | None = None, prefix: str | None = None, per_day_max: int | None = None) -> tuple[int, dict]:
+        verifiers: dict | None = None, prefix: str | None = None, per_day_max: int | None = None,
+        video_publishers: dict | None = None, video_verifiers: dict | None = None) -> tuple[int, dict]:
     """回傳（結束碼, 結果）。prefix＝權杖密碼前綴（預設頻道④）；per_day_max＝channels.json 的每日上限（取較小者）。結果的 summary 給工作流摘要用。
     某平台權杖第一次出現（state/verify.json 沒有 verified 紀錄）→ 先跑驗證模式（只建容器不發布），通過才正式發。"""
     pub = {"ig": publish_ig, "threads": SP.publish_threads, **(publishers or {})}
     ver = {**VERIFIERS, **(verifiers or {})}
+    vpub = {**VIDEO_PUBLISHERS, **(video_publishers or {})}
+    vver = {**VIDEO_VERIFIERS, **(video_verifiers or {})}
     res = {"at": now.isoformat(timespec="seconds"), "mode": "dry-run" if dry_run else "live", "item": None,
            "posted": {}, "errors": {}, "notes": [], "summary": ""}
     prefix = _pfx(prefix)
@@ -1055,8 +1345,16 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             if not is_verified(state, p):
                 SP.log(f"[{p}] 權杖設好後第一輪會先跑驗證模式（只建輪播容器、等 FINISHED、不發布），通過才正式發")
         for p in todo:
-            urls = ig_urls if p == "ig" else th_urls
             text = it["caption"] if p == "ig" else _threads_text(it["caption"])
+            if it["is_video"]:
+                SP.log(f"[{p}] 會發影片（{'Reels，同步到動態' if p == 'ig' else 'VIDEO'}），網址候選：")
+                for via, u, _ in video_sources(it, video_via(state, p)):
+                    SP.log(f"    {via}：{u}")
+                if p == "ig" and cover_url(it):
+                    SP.log(f"    封面：{cover_url(it)}")
+                SP.log(f"[{p}] 文字（{len(text)} 字）：\n{text}")
+                continue
+            urls = ig_urls if p == "ig" else th_urls
             SP.log(f"[{p}] 會發 {'輪播' if len(urls) > 1 else '單圖'} {len(urls)} 張：")
             for u in urls:
                 SP.log(f"    {u}")
@@ -1073,8 +1371,9 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
     for p in [x for x in todo if tok[x]]:
         try:
             urls = ig_urls if p == "ig" else th_urls
-            for u in urls:
-                check(u, "image/jpeg" if p == "ig" else "image/png")
+            if not it["is_video"]:
+                for u in urls:
+                    check(u, "image/jpeg" if p == "ig" else "image/png")
             token = tok[p]
             if p == "threads":
                 token = threads_token_check(token, env, res["notes"], saver, prefix)
@@ -1082,20 +1381,31 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix, via)
             if not uid:
                 raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
+            body = it["caption"] if p == "ig" else _threads_text(it["caption"])
             if not is_verified(state, p):
-                SP.log(f"[{p}] 這把權杖還沒驗證過 → 先跑驗證模式（只建輪播容器、等 FINISHED，不發布）")
+                SP.log(f"[{p}] 這把權杖還沒驗證過 → 先跑驗證模式（只建容器、等 FINISHED，不發布）")
                 try:
-                    cid = ver[p](uid, token, urls, it["caption"] if p == "ig" else _threads_text(it["caption"]))
+                    if it["is_video"]:
+                        cid, uv = try_video_sources(lambda u, c: vver[p](uid, token, u, body, c), it, p, check,
+                                                    video_via(state, p))
+                        mark_video_verified(state, p, now, cid, uv, it["name"], via)
+                    else:
+                        cid = ver[p](uid, token, urls, body)
                 except Exception as e:  # noqa: BLE001
                     raise RuntimeError(f"驗證模式失敗（沒有發文）：{SP.redact(e)}") from None
                 mark_verified(state, p, now, cid, via)
                 res["notes"].append(f"{p} 驗證模式通過（容器 {cid} 已 FINISHED，未發布），接著正式發文")
-            if p == "threads":      # publish_threads(uid, token, text, urls)：超過 500 字自己會截斷
+            if it["is_video"]:      # 影片：網址一條失敗換下一條（驗證過的那條先試）
+                r, uv = try_video_sources(lambda u, c: vpub[p](uid, token, u, body, c), it, p, check,
+                                          video_via(state, p), res["notes"])
+                r = dict(r, video_via=uv)
+            elif p == "threads":      # publish_threads(uid, token, text, urls)：超過 500 字自己會截斷
                 r = pub[p](uid, token, _threads_text(it["caption"]), urls)
             else:                   # publish_ig(uid, token, urls, caption)：IG 用 caption.txt 全文
                 r = pub[p](uid, token, urls, it["caption"])
             r = {"id": str(r.get("id")), "link": r.get("link") or r.get("permalink") or "",
-                 "at": now.astimezone(TAIPEI).isoformat(timespec="seconds")}
+                 "at": now.astimezone(TAIPEI).isoformat(timespec="seconds"),
+                 **({"format": "video", "video_via": r.get("video_via", "")} if it["is_video"] else {})}
             entry[p] = r
             entry.setdefault("at", r["at"])
             res["posted"][p] = r
@@ -1131,6 +1441,8 @@ def _write_last(state: Path, res: dict, dry_run: bool) -> None:
         return
     state.mkdir(parents=True, exist_ok=True)
     out = {k: res[k] for k in ("at", "mode", "item", "posted", "errors", "notes", "summary")}
+    if res.get("containers"):
+        out["containers"] = res["containers"]
     (state / "last_run.json").write_text(SP.redact(json.dumps(out, ensure_ascii=False, indent=1)) + "\n",
                                          encoding="utf-8")
 
@@ -1165,7 +1477,7 @@ def main(argv=None) -> int:
     ap.add_argument("--prepare", action="store_true", help="把佇列裡缺的 n.jpg 從 n.png 轉出來（IG 只收 JPEG）")
     ap.add_argument("--mode", default="post", choices=["post", "verify", "delete", "test_delete"],
                     help="post＝正式發（預設）；verify＝只建容器不發布；delete＝刪 --target；test_delete＝Threads 真發測試再刪")
-    ap.add_argument("--target", default="", help="mode=delete：佇列資料夾名或貼文 id")
+    ap.add_argument("--target", default="", help="mode=delete：佇列資料夾名或貼文 id；mode=verify：只驗這個佇列資料夾")
     ap.add_argument("--platform", default="all", choices=["all", "ig", "threads"], help="mode=delete 只刪哪個平台")
     a = ap.parse_args(argv)
     try:
@@ -1178,11 +1490,11 @@ def main(argv=None) -> int:
     q, st, px = ch["queue"], ch["state"], ch["prefix"]
     if a.prepare:
         made = prepare(q) if q.is_dir() else []
-        print("新產生 JPEG：" + ("、".join(str(p.relative_to(ROOT)) for p in made) or "無"))
+        print("新產生 JPEG／同步影片：" + ("、".join(str(p.relative_to(ROOT)) for p in made) or "無"))
         return 0
     env, now = dict(os.environ), datetime.now(TAIPEI)
     if a.mode == "verify":
-        rc, res = run_verify(env, now, a.dry_run, queue=q, state=st, prefix=px)
+        rc, res = run_verify(env, now, a.dry_run, queue=q, state=st, prefix=px, target=a.target)
     elif a.mode == "delete":
         plats = PLATFORMS if a.platform == "all" else (a.platform,)
         rc, res = run_delete(env, now, a.target, a.dry_run, plats, state=st, prefix=px)

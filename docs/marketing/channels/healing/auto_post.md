@@ -1,4 +1,4 @@
-# 頻道④「談晴說礙」自動發文（IG 輪播＋Threads 輪播）
+# 頻道④「談晴說礙」自動發文（IG 輪播＋Threads 輪播；2026-11-15 起也能發影片：IG Reels＋Threads 影片）
 
 > 2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。這句是頻道④開自動發文的授權（之前寫的「Andy 決定前不開自動發文」到此為止）。
 > 跟頻道①（盤前／盤中／盤後）完全分開：不同的 Secrets、不同的開關、不同的佇列與紀錄。頻道①的 `docs/marketing/social_unit/post_quota.json` 沒有動。
@@ -35,6 +35,37 @@
 4. 推之前可以本機看一次會發什麼：`python scripts/healing_post.py --dry-run`。
 
 首篇已放好：`queue/20261108_intro/`（首篇自介短版 3 張晝版，來源 `templates_tqsa_v3/首篇_短版3張/晝版/`，內文照該資料夾 README「貼文內文」）。
+
+## 2-1. 影片貼文（IG Reels＋Threads 影片，2026-11-15 起；plan_202611_影片為主.md T5～T7）
+
+1. 資料夾一樣放 `queue/<YYYYMMDD>…/`，裡面放：
+   - `video.mp4`：1080×1920、H.264＋AAC、**≤25MB**（正式站 Cloudflare Pages 單檔上限 25 MiB；超過 `validate` 會擋，請先壓縮）。
+   - `cover.jpg`（選填）：IG Reels 封面（`cover_url`）。Threads 影片 API 沒有封面參數，不帶。
+   - `caption.txt`：同輪播（IG 全文；Threads 超過 500 字截斷加「…」）。
+   - `meta.json` 多一欄 `"format": "video"`（不寫就是 `carousel`，舊佇列完全不變；輪播資料夾裡就算放了 `video.mp4` 草稿，沒寫 `format` 也照舊發輪播）。可選 `"video_url"`：指定其他公開網址（優先試）。
+   - `article.json` 規則同輪播（approved 前要放）；文章存檔放**封面＋影片連結＋文案全文**（`scripts/healing_article.py` 的 `build_video`；沒有 cover.jpg 就只放影片連結與文案）。
+2. 推之前跑 `python scripts/healing_post.py --prepare`：把 `video.mp4`、`cover.jpg` 同步到 `site/media/healing/<資料夾>/`，跟佇列**同一個 commit** 推 main → pages.yml 自動部署到正式站。工作流的 prepare 步驟也會補同步，有新影片就叫 pages.yml 重新部署。
+3. API 流程：
+   - IG：`POST /{ig-user-id}/media`（`media_type=REELS`、`video_url`、`caption`、`share_to_feed=true`、有封面才帶 `cover_url`）→ 每 10 秒查 `status_code`（最多 15 分鐘）到 `FINISHED` → `media_publish` → 查 `permalink`。EAA 權杖走 `graph.facebook.com/v24.0`、IGAA 走 `graph.instagram.com/v24.0`（同 `ig_host()`；EAA 沒填 USER_ID 一樣用 `fb_ig_candidates` 多路徑找編號）。
+   - Threads：`POST /{threads-user-id}/threads`（`media_type=VIDEO`、`video_url`、`text`）→ 查 `status` 到 `FINISHED` → `threads_publish` → `permalink`。
+   - 容器 `ERROR` 會帶回 Meta 給的原因（IG 的 `status`、Threads 的 `error_message`）。
+
+### 影片網址方案（選定）
+
+| 順序 | 路名 | 網址 | Content-Type | 什麼時候用 |
+|---|---|---|---|---|
+| 1 | `meta` | meta.json 的 `video_url` | 看主機 | 有填才試 |
+| 2 | `site`（**主要**） | `https://liguligu-puipui.com/media/healing/<資料夾>/video.mp4` | `video/mp4` | `site/media/healing/<資料夾>/video.mp4` 存在（已同步）才列；部署前 Meta 抓不到會自動換下一條 |
+| 3 | `raw`（保底） | `https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/<佇列路徑>/video.mp4` | `application/octet-stream`（11-15 實測） | 永遠列在最後 |
+
+- 選正式站的理由：raw.githubusercontent 對 mp4 回 `application/octet-stream`（`x-content-type-options: nosniff`），Meta 有可能拒收；正式站（Cloudflare Pages）依副檔名回 `video/mp4`，16.5MB 的 talk-ep01 在 25MB 單檔上限內。GitHub Release 資產一樣是 octet-stream，不採用。
+- **保底**：發文時照「驗證通過的那條 → 其他條」一條一條試，網址抓不到或建容器失敗就換下一條，全部失敗才紅燈（不會因為一個網址整篇不發）。
+- 驗證模式對影片**每一條網址都建一次容器**（不發布），每條結果記在 `state/verify.json` 的 `video.<平台>.urls`，第一條成功的記成 `url_via`，正式發文先用它。
+
+### 只驗某一支影片（不碰排程中的輪播）
+
+Actions → healing_post → **Run workflow**（執行）：`mode`＝`verify`、`dry_run`＝**取消勾選**、`target`＝資料夾名（例如 `20261116v_worktime`）。
+`target` 有填時只驗那一則：`status` 是 `draft` 也可以，不發布、不改 `status`、不寫 `posted.json`；影片的驗證紀錄寫在 `verify.json` 的 `video` 底下，不動原本輪播那筆。`target` 留空就跟以前一樣驗佇列下一則。
 
 ## 3. 開關
 
@@ -102,10 +133,11 @@
 
 | 檔案 | 用途 |
 |---|---|
-| `scripts/healing_post.py` | 取下一則、檢查格式、空跑、驗證模式、發 IG／Threads、刪文、寫紀錄（`--dry-run`、`--prepare`、`--mode post/verify/delete/test_delete`、`--target`、`--platform`） |
+| `scripts/healing_post.py` | 取下一則、檢查格式、空跑、驗證模式、發 IG／Threads（輪播或影片）、刪文、寫紀錄（`--dry-run`、`--prepare`、`--mode post/verify/delete/test_delete`、`--target`、`--platform`） |
 | `scripts/social_publish.py` | 沿用：`publish_threads`（輪播、輪詢 FINISHED、重試）、`http`、`resolve_user_id`、`redact` |
 | `scripts/meta_token_refresh.py` | 每週續期，`healing_threads`／`healing_ig` 兩個平台 |
 | `tests/test_healing_post.py` | 空跑、取下一則、不重發、開關、缺權杖、短效換長效、權杖不外洩、驗證模式、刪文、測試發文再刪 |
+| `tests/test_healing_video.py` | 影片：格式檢查、網址候選與換條、封面抓不到不擋、Reels／Threads 影片流程（EAA／IGAA）、輪詢 FINISHED／ERROR／逾時、驗證 `--target`、`--prepare` 同步、文章存檔、輪播向下相容 |
 
 IG 輪播流程同 `scripts/ig_post.py` 的 `publish()`（子項 → CAROUSEL → media_publish → permalink），改走 `social_publish.http` 以便遮蔽權杖與輪詢「Media Not Found」。
 
@@ -114,3 +146,4 @@ IG 輪播流程同 `scripts/ig_post.py` 的 `publish()`（子項 → CAROUSEL �
 - 2026-11-08：建立（social-ops-lead）。首篇 `20261108_intro` 入佇列，等權杖設好後下一個 20:27 時段發。
 - 2026-11-08：USER_ID 改選填（/me 自動查）；Threads 短效自動換長效（THREADS_APP_SECRET）；加驗證模式、刪文、Threads 測試發文再刪（Andy：「我希望可以自動化全部 包含測試發文 還有自動刪文」）。
 - 2026-11-09：程式改成多頻道共用（`--channel`、權杖前綴參數；頻道④不給參數行為不變，`healing_post.yml` 沒動）。另外三個頻道見 `docs/marketing/channels/auto_post_all.md`。`meta_token_refresh` 的 HEALING Threads 續期失敗時，有 `THREADS_APP_SECRET` 會自動試換長效。
+- 2026-11-15：支援影片（IG Reels＋Threads 影片；plan_202611_影片為主.md T5～T7）。`format: video`、`video.mp4`、`cover.jpg`；影片網址正式站優先、raw 保底、一條失敗換下一條；驗證模式加 `--target`（只驗指定資料夾，draft 也可）；`--prepare` 同步影片到 `site/media/healing/`；文章存檔支援影片；工作流逾時 30→50 分鐘。channel_post（tech／caffaine）共用同一份程式，沒寫 `format` 的佇列行為不變（social-ops-lead）。
