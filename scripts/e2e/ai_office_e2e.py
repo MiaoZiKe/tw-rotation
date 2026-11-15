@@ -449,7 +449,7 @@ def flow(run, pg):
             pg.keyboard.press("Escape")
         pg.click('button[data-v="god"]')             # 回到俯瞰（上一位的資訊卡會把鏡頭切成「跟隨」，下一位可能不在畫面裡）
         try:                                          # 等他回到座位（上一件工作的交件演出走完）再點，點移動中的人容易點空
-            pg.wait_for_function("(id) => { const a = __world.state.agents.get(id); return !a || a.phase === 'idle'; }", arg=aid, timeout=60000)
+            pg.wait_for_function("(id) => { const a = __world.state.agents.get(id), c = __world.chars.get(id); return (!a || a.phase === 'idle') && c.state === 'sit'; }", arg=aid, timeout=90000)
         except Exception:
             log("%s 60 秒內沒有回到待命，照樣點" % agent)
         pg.wait_for_timeout(1500)
@@ -474,6 +474,7 @@ def flow(run, pg):
         pg.click("#card [data-chat]")
         pg.wait_for_selector("#mcTop:not([hidden])")
         n_before = len([1 for e, t, _ in run.subagents() if e == "SubagentStart" and t == agent])
+        done_before = pg.evaluate("(id) => __world.state.agent(id).done.length", aid)
         mid = run.send(pg, text)
         to = pg.evaluate("(id) => __world.chat.msgs.get(id).to", mid)
         ok("對 %s：收件匣收到的 to＝%s（Claude 會被告知派給 subagent_type＝%s）" % (agent, to, to), to == agent, to)
@@ -489,7 +490,8 @@ def flow(run, pg):
         except Exception:
             pass
         fin = pg.evaluate("(id) => { const a = __world.state.agents.get(id); return { ph: a.phase, done: a.done.length, last: a.done[0] && a.done[0].title }; }", aid)
-        ok("對 %s：3D 裡他有開工（階段離開待命）、交件後回到待命、資訊卡完成清單多一件" % agent, any(p.get("ph") not in (None, "idle") for p in phases) and fin["ph"] == "idle" and fin["done"] >= 1, {"phases": phases, "final": fin})
+        # 子 Agent 幾秒就做完時，取樣可能整段錯過「工作中／交件中」；資訊卡的完成清單多一件就是他真的領過任務、交過件（jobs.js 只在交件收尾時加）
+        ok("對 %s：3D 裡他領了任務、交件後回到待命、資訊卡完成清單多一件（%d → %d）" % (agent, done_before, fin["done"]), fin["ph"] == "idle" and fin["done"] > done_before, {"phases": phases, "final": fin})
         pg.click("#chatBtn")
         pg.wait_for_selector("#mcTop:not([hidden])")
         pg.wait_for_timeout(800)
