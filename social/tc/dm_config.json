@@ -14,10 +14,8 @@
       "2nm"
     ]
   },
-  "legal_pending": [
-    "2nm"
-  ],
-  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，等文章 2026-11-15-tech-2nm 上 main、網址填好就拿掉。",
+  "legal_pending": [],
+  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。",
   "ig_dm": {
     "enabled": true,
     "mode": "poll",
@@ -37,7 +35,7 @@
     "contents": {
       "default": "謝謝留言！科技透明圈的整理都放在這：https://liguligu-puipui.com/",
       "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n出處：網友公開分享，非公司公告；隨單位而異。\n更多整理：https://liguligu-puipui.com/",
-      "2nm": "謝謝留言！「2 奈米不是尺寸」完整解說放在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
+      "2nm": "謝謝留言！「2 奈米不是尺寸」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
       "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。"
     },
     "per_user_per_day": 1,
@@ -57,9 +55,9 @@
     "texts": {
       "_note": "每篇專屬的公開回覆文字（IG 私訊接不通時的保底公開回覆也用這份）；鍵同 post_keywords。寫成 2～3 句意思相同、措辭不同的清單，依留言 id 的 sha256 固定輪流（防洗版）。還有「待填」或在 legal_pending 就改用上面的 text。",
       "2nm": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
-        "收到～「2 奈米不是尺寸」整篇在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/【待填：文章 id】"
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
+        "收到～「2 奈米不是尺寸」整篇在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm"
       ]
     }
   }

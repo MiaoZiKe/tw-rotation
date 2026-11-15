@@ -939,11 +939,21 @@ def test_全域關鍵字仍然有效_兩篇都回(monkeypatch, tmp_path):
 
 
 def test_文章網址待填或法遵待審_改送預設文字不送半成品(monkeypatch, tmp_path):
-    rows = {"/p1/replies": [{"id": "a1", "text": "2奈米", "username": "amy"}]}
-    rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows, ready=False)     # 正式設定：待填＋legal_pending
+    rows = {"/p1/replies": [{"id": "a1", "text": "2奈米", "username": "amy"}, {"id": "a2", "text": "2奈米", "username": "bob"}]}
     c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
-    assert len(sent) == 1 and sent[0]["text"] == c["threads_reply"]["text"]    # 保底：照樣回，用已審過的那份
-    assert "待填" not in sent[0]["text"]
+    for case in ("待填", "法遵待審"):
+        c2 = json.loads(json.dumps(c))
+        if case == "待填":
+            c2["threads_reply"]["texts"]["2nm"] = ["謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/【待填：文章 id】"]
+        else:
+            c2["legal_pending"] = ["2nm"]
+        cp = tmp_path / f"cfg_{case}.json"
+        cp.write_text(json.dumps(c2, ensure_ascii=False), encoding="utf-8")
+        api = KwThreadsAPI(rows)
+        monkeypatch.setattr(tc, "api", api)
+        tr.run(dict(ENV), NOW, False, config_path=cp, state_path=tmp_path / f"rep_{case}.json", posted_path=_posted2(tmp_path))
+        sent = [x[4] for x in api.calls if x[4].get("reply_to_id")]
+        assert len(sent) == 2 and all(x["text"] == c["threads_reply"]["text"] for x in sent), case   # 保底：照樣回，用預設
 
 
 def test_專屬關鍵字_法遵閘照舊只記錄(monkeypatch, tmp_path):
