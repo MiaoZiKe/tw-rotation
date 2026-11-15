@@ -27,6 +27,7 @@ const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else 
 const hash = s => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
 // Claude Code 內建的子 Agent 類型 → 暱稱與物種（名冊裡沒有的類型才用得到）
 const BUILTIN = { 'general-purpose': ['通才', 'bird'], Explore: ['探路', 'snail'], Plan: ['規劃', 'note'], 'statusline-setup': ['設定', 'robo'], 'claude-code-guide': ['導覽', 'bulb'], 'output-style-setup': ['樣式', 'pencil'] };
+const TO_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;   // 跟收件服務 worker.js 的 TO_RE 一致（指令的 to 欄位格式）
 const POOL = ['bird', 'snail', 'robo', 'bulb', 'note', 'cloud', 'mug', 'star', 'seal', 'octo', 'folder', 'stamp'];
 const STATE_CATS = new Set(['read', 'write', 'search', 'test', 'deploy', 'wait', 'other']);
 const SESS_TEXT = { working: '工作中', idle: '待命中', ended: '已結束', error: '遇到錯誤' };
@@ -533,7 +534,11 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     L.typeMap.set(type, id || type); return id || type;
   }
   function ensureExtra(type) {
-    const id = 'x-' + String(type).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    // 角色代號直接用子 Agent 類型本身（例如 tester）：對話框對他下指令時，收件匣的 to 就是這個代號，
+    // Claude 端照 to 派給同名的 subagent_type。以前加 x- 前綴，to 變成 x-tester，Claude 找不到這位 Agent（2026-11-15 端到端實測）。
+    // 只有名稱不合收件匣格式、或跟現有角色撞名（例如 ceo）時才退回 x- 前綴。
+    const id = TO_RE.test(type) && !C(type) && !L.extras.has(type) ? type : 'x-' + String(type).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    if (L.extras.has(type)) return L.extras.get(type);
     if (C(id)) return id;
     const spot = W.spots.find(q => q.name === 'reserve' && !q.taken);
     if (!spot || !W.addExtra) return null;

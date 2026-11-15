@@ -140,7 +140,7 @@ def t_connect_and_live(b, base):
         ok("即時：標章「即時・最後更新 HH:MM」", bool(_re.fullmatch(r"即時・最後更新 \d\d:\d\d", _badge(pg) or "")), _badge(pg))
         ok("即時：CEO 開工（工作階段進行中）", pg.evaluate("() => __world.state.session.active"))
         ok("即時：名冊上的同事（frontend-ui）接到真的任務", wait_until(pg, "() => { const a = __world.state.agents.get('frontend-ui'); return a && a.phase !== 'idle' && a.task === '修手機版頂列按鈕'; }", 8000))
-        ok("即時：名冊沒有的類型（general-purpose）自動坐進後備座位", pg.evaluate("() => { const c = __world.chars.get('x-general-purpose'); return !!c && c.homeSpot && c.homeSpot.name === 'reserve' && __world.state.agents.get('x-general-purpose').phase !== 'idle'; }"))
+        ok("即時：名冊沒有的類型（general-purpose）自動坐進後備座位", pg.evaluate("() => { const c = __world.chars.get('general-purpose'); return !!c && c.homeSpot && c.homeSpot.name === 'reserve' && __world.state.agents.get('general-purpose').phase !== 'idle'; }"))
         ok("即時：示範鈕與模擬鈕藏起來（不讓示範事件混進真資料）", not _shown(pg, "#demoBtn"))
         ok("即時：名牌上沒有示範等第字章", pg.evaluate("() => [...document.querySelectorAll('#labels .tag .gr')].every(e => !e.textContent.trim())"))
         # 等核准
