@@ -17,8 +17,8 @@ model: opus
 | 佐證 | 每個數字回一手來源核對、圖上一行出處、文案末段完整來源 | `topics_202611_佐證.md` |
 | 文案 | 觀察者口吻、封面 ≤20 字、內頁 ≤50 字 | 各篇 `queue/<日期>_<名稱>/caption.txt` |
 | 排版與圖 | 晝版、LOGO 左上、右下頁碼小太陽＋淡橘實心點＋箭頭（最後一頁無箭頭） | `templates_tqsa_v3/`、`首篇_短版3張/src/` |
-| 發布 | 放進佇列、`meta.json` 填 `publish_at`、確認 20:27 發出 | `queue/`、`.github/workflows/healing_post.yml` |
-| 發布後 | 讀 `state/posted.json` 拿 IG／Threads 網址；沒發出就修到發出 | `state/` |
+| 發布 | 放進佇列、`meta.json` 填 `publish_at`、確認 20:27 發出；**每篇同時放 `article.json`，貼文存成網站精選文章「談晴說礙」隱藏分頁**（2026-11-15 Andy：「所有頻道都需要這樣」；`python -m scripts.healing_article <資料夾>`，發出後工作流自動補 IG／Threads 網址） | `queue/`、`.github/workflows/healing_post.yml`、`site/articles/healing/` |
+| 發布後 | 讀 `state/posted.json` 拿 IG／Threads 網址；沒發出就修到發出；確認文章 `site/articles/healing/<id>.json` 的「發布紀錄」已有兩個網址（沒有就跑 `python -m scripts.healing_article <資料夾>` 推 main） | `state/`、`site/articles/healing/` |
 | 留言私訊 | 管 `dm_config.json` 與私訊文字（只私訊有追蹤者，自傷關鍵字回 1925） | `comment_dm.md` |
 | 每週檢討 | 週日 15:41 排程叫醒 CEO 時由你主持，企劃／市調／美編私下討論 | `weekly/` |
 

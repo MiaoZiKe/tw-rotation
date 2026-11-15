@@ -81,7 +81,7 @@
     tech: { t: '科技透明圈', s: '科技', col: ['#e3b341', '#8a6100'], ic: 'tech' },
     ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'] },
     caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'] },
-    // healing: { t: '談晴說礙', s: '談晴', col: ['#f2b880', '#9a5a1a'] },
+    healing: { t: '談晴說礙', s: '談晴', col: ['#f5a55a', '#b35c12'] },   // 頻道④ 晝版晴光橘（深色主題亮橘、淺色主題深橘，避開紅綠）
   };
   Object.keys(PRIV).forEach((k) => { Object.assign(PRIV[k], { file: `articles/${k}/index.json`, dir: `articles/${k}/` }); CAT_S[k] = PRIV[k].s || PRIV[k].t; });
   const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW), Object.keys(PRIV));   // 分頁由左到右
@@ -423,7 +423,7 @@
   text-decoration:none;font-size:var(--fs-sm);white-space:nowrap}
 .artlinks a::after{content:"›";color:var(--cyan)}
 .artlinks a:hover{border-color:var(--cyan)}
-.artsrc{margin:0;padding-left:1.4em;font-size:14px;line-height:1.7;color:var(--ink-2)}
+.artimgs .aigw{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:720px}.artimgs .aig{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:var(--ink-2);font-size:12px;min-width:0}.artimgs .aig img{width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:6px;border:1px solid var(--line,rgba(127,127,127,.25));display:block}.artimgs .aign{font-size:12px;color:var(--ink-2);margin-top:6px}.artxl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}.artxl .lbl{font-size:13px;color:var(--ink-2);margin-right:4px}.artxl a{color:var(--cyan);font-size:14px;padding:4px 10px;border:1px solid var(--line,rgba(127,127,127,.3));border-radius:6px;text-decoration:none}.artsrc{margin:0;padding-left:1.4em;font-size:14px;line-height:1.7;color:var(--ink-2)}
 .artsrc li{margin:4px 0;overflow-wrap:anywhere}
 .artsrc a{color:var(--cyan)}
 .artmore{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--sp-2)}
@@ -1775,6 +1775,19 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         return `<div class="artstk"><div class="lbl">相關台股</div><div class="g">${its.map((x) => `<a href="#stock/${esc(x.code)}" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code)}：到個股頁看 K 線與基本面">
           <div class="h"><b>${esc(x.code)}</b><span>${esc(x.name || '')}</span></div>${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}</a>`).join('')}</div></div>`;
       }
+      /* 2026-11-15 頻道貼文存檔（談晴說礙等）：{t:'img', items:[{src:'articles/<頻道>/img/<檔名>.jpg', alt, cap?}], title?, note?}
+         只收站內 articles/<小寫英文>/img/ 底下的 jpg／png／webp，JSON 字串進不了任意網址。 */
+      case 'img': {
+        const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && /^articles\/[a-z]{2,20}\/img\/[\w.-]{1,120}\.(jpg|jpeg|png|webp)$/.test(String(x.src || '')));
+        if (!its.length) return '';
+        return `<figure class="artfig artimgs" data-bi="${bi}">${b.title ? `<figcaption class="fh">${esc(b.title)}</figcaption>` : ''}<div class="aigw">${its.map((x, i) => `<a href="${esc(x.src)}" target="_blank" rel="noopener" class="aig"><img src="${esc(x.src)}" alt="${esc(x.alt || `第 ${i + 1} 張`)}" loading="lazy" decoding="async"><span>${esc(x.cap || `${i + 1}／${its.length}`)}</span></a>`).join('')}</div>${b.note ? `<div class="aign">${esc(b.note)}</div>` : ''}</figure>`;
+      }
+      /* 外部連結清單（例如本篇在 IG／Threads 的公開網址）：{t:'links', title?, items:[{label, url}]}，只收 http(s) */
+      case 'links': {
+        const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && x.label && okUrl(x.url));
+        if (!its.length) return '';
+        return `<div class="artxl">${b.title ? `<div class="lbl">${esc(b.title)}</div>` : ''}${its.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)} ↗</a>`).join('')}</div>`;
+      }
       case 'kpi': return kpiHTML(b);
       case 'chart': return chartHTML(b, bi);
       case 'flow': return flowHTML(b, bi);
@@ -2154,8 +2167,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     acc = acc || access();
     const qnote = meta && meta.unl ? '' : isOpenArt(meta) ? (acc.mode === 'full' ? '' : `<span class="artqt free" title="這篇暫時開放給所有人閱讀，不佔 Plus 全文額度">${CHK_IC}限時公開・不佔額度</span>`)
       : acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
-    const cat = CATS[d.cat] ? d.cat : (meta && meta.cat) || '';
-    const kk = CATS[cat] ? cat : 'all';
+    const cat = CATS[d.cat] || PRIV[d.cat] ? d.cat : (meta && meta.cat) || '';   // 11-15：頻道分頁的文章顯示自己頻道（以前一律當科技透明圈）
+    const kk = CATS[cat] || PRIV[cat] ? cat : 'all';
     const links = (Array.isArray(d.site_links) ? d.site_links : []).filter((l) => l && okHash(l.hash) && l.label);
     const srcs = (Array.isArray(d.sources) ? d.sources : []).filter((s) => s && (s.title || s.url));
     const more = S.idx ? S.idx.list.filter((a) => a.cat === cat && a.id !== d.id).slice(0, 3) : [];
@@ -2165,7 +2178,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const toc = blocks.map((b, i) => (b && b.t === 'h' && b.text ? `<button type="button" data-bi="${i}" title="${esc(b.text)}">${esc(b.text)}</button>` : '')).join('');
     const codes = [];
     blocks.forEach((b) => { if (b && b.t === 'stocks' && Array.isArray(b.items)) b.items.forEach((x) => { if (x && okCode(x.code) && !codes.some((c) => c.code === x.code)) codes.push({ code: x.code, name: x.name || '' }); }); });
-    const listHash = CATS[cat] ? '#articles/' + cat : '#articles';
+    const listHash = CATS[cat] || (PRIV[cat] && isAdminUser()) ? '#articles/' + cat : '#articles';   // 頻道分頁只有站主回得去，其他人回全部文章
+    const endK = listHash === '#articles' ? 'all' : cat;
     return `
 <div class="artpage k-${kk}">
 <article class="card artpost" id="artPost" data-id="${esc(d.id)}" data-cat="${esc(cat)}">
@@ -2181,7 +2195,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     return `<li>${okUrl(s.url) ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${t}</a>` : t}${info ? `（${info}）` : ''}</li>`; }).join('')}</ol></details>` : ''}
   ${more.length ? `<details class="artsec artfold" id="artMore" data-fold="more"${foldOpen('more')}><summary><h4>同類別其他文章<small>${more.length}</small></h4></summary><div class="artmore">${more.map((a) => cardHTML(a, acc)).join('')}</div></details>` : ''}
   <p class="artdisc">${esc(DISC)}</p>
-  <div class="artend"><a href="${listHash}" id="artEnd">${icon(kk, 15)}回到${esc(catT(cat))}清單</a></div>
+  <div class="artend"><a href="${listHash}" id="artEnd">${icon(endK, 15)}回到${esc(catT(endK))}清單</a></div>
 </article>
 <div class="arttoc" role="complementary" aria-label="本文目錄">
   ${toc ? `<section><h5>本文目錄</h5><div class="tl">${toc}</div></section>` : ''}
@@ -2202,7 +2216,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     /* 隱藏分頁的文章（科技透明圈）：不在 index.json，但有直接連結就打開（不看額度、不記點閱、不列同類別）；清單裡找不到才去讀 */
     const unl = meta0 ? null : await loadUnlisted(id);
     if (gone()) return;
-    const meta = meta0 || (unl ? { id, cat: 'tech', title: unl.title, date: unl.date, open: true, unl: true } : null);
+    const meta = meta0 || (unl ? { id, cat: unl.cat || 'tech', title: unl.title, date: unl.date, open: true, unl: true } : null);
     const notFound = () => {
       S.curData = null; S.sig = sigOf(access());
       root.innerHTML = `<div class="card artpost" id="artPost"><button type="button" class="artback" id="artBack" data-to="#articles">← 返回</button><nav class="artcrumb"><a href="#articles">精選文章</a><span aria-hidden="true">›</span><span class="cur">找不到文章</span></nav>

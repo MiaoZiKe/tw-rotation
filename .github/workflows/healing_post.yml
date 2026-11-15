@@ -44,6 +44,7 @@ on:
         type: string
         default: ""
 permissions:
+  actions: write    # 存完文章叫 pages.yml 重新部署
   contents: write   # 把 state/posted.json、last_run.json、補轉的 JPEG 推回 main（不含權杖）
 concurrency:
   group: healing-post
@@ -127,3 +128,18 @@ jobs:
         run: |
           bash "$RUNNER_TEMP/push.sh" "談晴說礙：發文紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')" \
             docs/marketing/channels/healing/state docs/marketing/channels/healing/queue
+      # 2026-11-15 Andy：「所有頻道都需要這樣」—— 每篇貼文也存成網站精選文章「談晴說礙」隱藏分頁（site/articles/healing/），
+      # 發出後把 IG／Threads 網址補進那篇。失敗不擋發文（只黃燈提示）；推完叫 pages.yml 重新部署（GITHUB_TOKEN 推的 commit 不會自動觸發部署）。
+      - name: 貼文存進精選文章隱藏分頁
+        if: always() && steps.mode.outputs.dry == '' && steps.mode.outputs.mode == 'post'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git pull -q --rebase --autostash origin main || true
+          if python -m scripts.healing_article --all; then
+            OUT=$(bash "$RUNNER_TEMP/push.sh" "談晴說礙：貼文存進精選文章隱藏分頁 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')" site/articles/healing) || echo "::warning::文章存檔推不上 main"
+            echo "$OUT"
+            if echo "$OUT" | grep -q "推送成功"; then gh workflow run pages.yml --ref main || echo "::warning::叫不動 pages.yml，下次部署會帶上"; fi
+          else
+            echo "::warning::貼文存成文章失敗（看上面訊息），不影響發文"
+          fi

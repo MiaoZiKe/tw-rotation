@@ -1,0 +1,39 @@
+{
+ "slug": "salary",
+ "date": "2026-11-12",
+ "summary": "主計總處：2025 年平均經常性薪資 47,884 元，中位數 38,406 元；69.74% 員工領不到平均，2026 上半年升到 70.03%。",
+ "alts": [
+  "封面：近7成員工，領不到平均月薪",
+  "第 2 頁：資料從哪來與平均、中位數",
+  "第 3 頁：數字背後"
+ ],
+ "sources": [
+  {
+   "title": "薪資及生產力統計（2025 年全年；全體受僱員工每人每月經常性薪資，含部分工時與外籍員工）",
+   "publisher": "行政院主計總處",
+   "date": "2026-02-11"
+  },
+  {
+   "title": "2026 年上半年薪資統計",
+   "publisher": "行政院主計總處",
+   "date": "2026-08"
+  },
+  {
+   "title": "Taiwan's average regular monthly wage 2025",
+   "publisher": "中央社 Focus Taiwan",
+   "date": "2026-02-11",
+   "url": "https://focustaiwan.tw/business/202602110021"
+  },
+  {
+   "title": "Why 70% of Workers in Taiwan Still Earn Below Average Pay",
+   "publisher": "TaiwanPlus",
+   "date": "2026-08-11"
+  },
+  {
+   "title": "上半年低於平均薪資比率首度破 7 成",
+   "publisher": "聯合報",
+   "date": "2026-08"
+  }
+ ],
+ "confidence": "官方統計＋媒體一致；口徑含部分工時與外籍員工"
+}

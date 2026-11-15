@@ -1,0 +1,97 @@
+{
+ "id": "2026-11-10-healing-intro",
+ "cat": "healing",
+ "title": "談晴，也說礙：說這一代的難，也說還在的光。",
+ "subtitle": "談晴說礙・IG／Threads 貼文存檔（圖、文案全文、出處）",
+ "date": "2026-11-10",
+ "updated": "2026-11-10",
+ "tags": [
+  "談晴說礙",
+  "一小段晴",
+  "這一代",
+  "生活紀錄"
+ ],
+ "summary": "頻道自介：用觀察的角度，記錄這一代年輕人的生活；說這一代的「礙」，也說還在的「晴」。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "貼文圖（3 張）"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-10-healing-intro-1.jpg",
+     "alt": "封面：談晴，也說礙",
+     "cap": "1／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-10-healing-intro-2.jpg",
+     "alt": "第 2 頁：頻道在記錄什麼",
+     "cap": "2／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-10-healing-intro-3.jpg",
+     "alt": "第 3 頁：一起觀察，一起努力",
+     "cap": "3／3"
+    }
+   ],
+   "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "用觀察的角度，記錄這時代年輕人的生活。"
+  },
+  {
+   "t": "p",
+   "text": "薪水、房租、催婚，是這一代的「礙」：不美化，也不抱怨，只把它說清楚。"
+  },
+  {
+   "t": "p",
+   "text": "下班的夕陽、一句「辛苦了」、多一點點的存款，是還在的「晴」。"
+  },
+  {
+   "t": "p",
+   "text": "一起觀察，一起努力，總會等到放晴的那天。"
+  },
+  {
+   "t": "p",
+   "text": "今天的一小段晴是什麼？"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "已於台北時間 2026-11-10 06:38 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/DfibI4ljJys/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DfibMtmiTCx"
+    }
+   ]
+  }
+ ],
+ "sources": [],
+ "confidence": "自介篇，沒有引用數字",
+ "status": "published",
+ "social": {
+  "ig": "https://www.instagram.com/p/DfibI4ljJys/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DfibMtmiTCx",
+  "queue": "20261108_intro"
+ }
+}

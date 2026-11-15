@@ -1,0 +1,137 @@
+{
+ "id": "2026-11-11-healing-unemployment",
+ "cat": "healing",
+ "title": "失業率26年同月最低，15-24歲仍逾11%",
+ "subtitle": "談晴說礙・IG／Threads 貼文存檔（圖、文案全文、出處）",
+ "date": "2026-11-11",
+ "updated": "2026-11-11",
+ "tags": [
+  "談晴說礙",
+  "失業率",
+  "青年就業",
+  "主計總處",
+  "這一代",
+  "數字裡的日子"
+ ],
+ "summary": "主計總處：9 月失業率 3.36%，26 年同月最低；15–24 歲 11.59%，隨年齡一階一階往下。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "貼文圖（3 張）"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-11-healing-unemployment-1.jpg",
+     "alt": "封面：失業率26年同月最低，15-24歲仍逾11%",
+     "cap": "1／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-11-healing-unemployment-2.jpg",
+     "alt": "第 2 頁：資料從哪來與各年齡失業率",
+     "cap": "2／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-11-healing-unemployment-3.jpg",
+     "alt": "第 3 頁：數字背後",
+     "cap": "3／3"
+    }
+   ],
+   "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "主計總處 2026 年 10 月 23 日公布，9 月失業率 3.36%，創 26 年來同月最低，較 8 月降 0.05 個百分點。"
+  },
+  {
+   "t": "p",
+   "text": "分年齡看：15–24 歲 11.59%、25–29 歲 5.69%、30–34 歲 3.40%，35–64 歲都低於 3%，隨年齡一階一階往下。"
+  },
+  {
+   "t": "p",
+   "text": "換個說法：每 100 位勞動力（有工作的人加上正在找工作的人，不含學生、家管等沒在找工作的人）中，整體約 3 位失業；15–24 歲約 12 位。"
+  },
+  {
+   "t": "p",
+   "text": "為什麼是「15–24 歲」？這是主計總處人力資源調查的官方分組：勞動統計從 15 歲算起，所以這一組含 15–19 歲，也含一邊念書一邊找工作的學生；本期公開報導只列出 15–24 歲合計，沒有 20–24 歲單獨的數字。"
+  },
+  {
+   "t": "p",
+   "text": "官方說明，青年失業率較高，多數是初次尋職、仍在適應職場，所以這個數字不能直接等同「年輕人找不到工作」。"
+  },
+  {
+   "t": "p",
+   "text": "整體在變好，起步那幾年的路仍然比較長。一起觀察，一起努力。"
+  },
+  {
+   "t": "p",
+   "text": "第一份工作，花了多久才找到？"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "已於台北時間 2026-11-11 21:03 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/Dfmi7HCDmcs/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Dfmi_qYHBqp"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "人力資源調查統計（2026 年 9 月；9 月失業率 3.36% 為未經季節調整，季調後 3.33%）",
+   "publisher": "行政院主計總處",
+   "date": "2026-10-23"
+  },
+  {
+   "title": "Taiwan's September jobless rate lowest for the month in 26 years",
+   "publisher": "中央社 Focus Taiwan",
+   "date": "2026-10-23",
+   "url": "https://focustaiwan.tw/business/202610230014"
+  },
+  {
+   "title": "9月失業率 3.36% 26年同月最低",
+   "publisher": "自由時報 自由財經",
+   "date": "2026-10-23",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5616537"
+  },
+  {
+   "title": "9月失業率報導",
+   "publisher": "中國時報",
+   "date": "2026-10-23",
+   "url": "https://www.chinatimes.com/realtimenews/20261023003346-260410"
+  },
+  {
+   "title": "9月失業率報導",
+   "publisher": "經濟日報",
+   "date": "2026-10-23",
+   "url": "https://money.udn.com/money/story/10869/9833808"
+  }
+ ],
+ "confidence": "官方統計＋4 家媒體一致",
+ "status": "published",
+ "social": {
+  "ig": "https://www.instagram.com/p/Dfmi7HCDmcs/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Dfmi_qYHBqp",
+  "queue": "20261111_unemployment"
+ }
+}
