@@ -32,7 +32,7 @@ export function createOutline(W, { camera, cv }) {
     sh.vertexShader = 'uniform float uThk;\n' + sh.vertexShader.replace('#include <project_vertex>',
       `#include <project_vertex>
       #if defined( USE_SKINNING )
-        vec3 olN = normalize( transformedNormal );
+        vec3 olN = normalize( -transformedNormal );   // 反面渲染時 three 會把 transformedNormal 反過來（FLIP_SIDED），這裡要的是朝外，所以再反回來
       #else
         vec3 olN = normalize( normalMatrix * normal );
       #endif
@@ -74,6 +74,6 @@ export function createOutline(W, { camera, cv }) {
     uThk.value = Math.min(0.4, Math.max(0.012, PX / pxPerM));
     for (const h of O.hulls) h.visible = h.userData.src.visible;
   };
-  O.clear = clear;
+  O.clear = clear; O.uThk = uThk;
   return O;
 }

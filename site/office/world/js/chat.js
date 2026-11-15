@@ -46,7 +46,7 @@ export function createChat(W, X) {
   const K = { open: false, mode: 'idle', to: 'ceo', touched: false, msgs: new Map(), rev: 0, lastSeen: null, srvNow: null, busy: false, err: '', timer: 0, inflight: false, first: true, started: new Set(), todo: new Map(), url: '', fails: 0, seen: new Set(), cardFor: null,
     pollMs: Math.max(300, +qs.get('chat_poll') || 5000),
     // 有指令在傳送中／已送達／輸入中時，不管展開或收合一律每 2 秒讀一次（以前收合時 15 秒，等回覆等得最久）；測試用 chat_fast（或舊參數 chat_bg_poll）縮短
-    fastMs: Math.max(300, +qs.get('chat_fast') || +qs.get('chat_bg_poll') || 2000), polls: 0, view: 'list', again: false, pref: null };
+    fastMs: Math.max(300, +qs.get('chat_fast') || +qs.get('chat_bg_poll') || 2000), polls: 0, roomTo: {}, view: 'list', again: false, pref: null };
   W.chat = K;
 
   // ───────── 介面骨架 ─────────
@@ -314,10 +314,10 @@ export function createChat(W, X) {
   }
   function stripHtml() {
     const rk = roomOfTo(K.to), row = r => {
-      const tg = r === rk ? K.to : roomTarget(r), list = threadOf(tg), m = list[list.length - 1], un = r === rk && K.open && (desk() || K.view === 'thread') ? 0 : unreadOf(tg), act = list.filter(x => ACTIVE.has(x.status)).length;
+      const tg = r === rk ? K.to : (K.roomTo[r] || roomTarget(r)), list = threadOf(tg), m = list[list.length - 1], un = r === rk && K.open && (desk() || K.view === 'thread') ? 0 : unreadOf(tg), act = list.filter(x => ACTIVE.has(x.status)).length;
       let pv = r === 'ceo' ? roleOf('ceo') : `${membersOf(r).length} 位成員`, tm = '';
       if (m) { const rt = clean(m.reply); pv = m.status === 'done' && rt ? short(rt.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 22) : m.status === 'running' ? '輸入中…' : '你：' + short(m.text, 20); tm = clock(m.created); }
-      return `<button class="mc-th${r === rk ? ' on' : ''}" type="button" role="tab" aria-selected="${r === rk}" data-th="${esc(r === rk ? K.to : roomTarget(r))}" data-room="${esc(r)}"><span class="mc-ava">${avaRoom(r)}</span><span class="mc-tb"><span class="mc-t1"><b>${esc(roomName(r))}</b><time>${esc(tm)}</time></span><span class="mc-t2"><span class="mc-pv">${esc(pv)}</span>${un ? `<i class="cn">${un}</i>` : act ? '<i class="mc-wait" title="進行中"></i>' : ''}</span></span></button>`;
+      return `<button class="mc-th${r === rk ? ' on' : ''}" type="button" role="tab" aria-selected="${r === rk}" data-th="${esc(tg)}" data-room="${esc(r)}"><span class="mc-ava">${avaRoom(r)}</span><span class="mc-tb"><span class="mc-t1"><b>${esc(roomName(r))}</b><time>${esc(tm)}</time></span><span class="mc-t2"><span class="mc-pv">${esc(pv)}</span>${un ? `<i class="cn">${un}</i>` : act ? '<i class="mc-wait" title="進行中"></i>' : ''}</span></span></button>`;
     };
     return roomIds().map(row).join('');
   }
@@ -384,7 +384,7 @@ export function createChat(W, X) {
   function close() { K.open = false; render(); applyPos(); schedule(); }
   function setTarget(id, quiet) {
     id = id || 'ceo'; if (C(id) && C(id).spec.isCeo) id = 'ceo'; if (id !== 'ceo' && !knownTo(id)) id = 'ceo';
-    const ch = K.to !== id; K.to = id; K.err = ''; $('chatList').dataset.h = '';
+    const ch = K.to !== id; K.to = id; K.err = ''; K.roomTo[roomOfTo(id)] = id;       // 每個聊天室記住上次對誰說（切走再切回來還是同一位） $('chatList').dataset.h = '';
     if (ch && !quiet) { btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash'); }
     render();
   }
