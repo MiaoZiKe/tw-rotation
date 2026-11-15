@@ -24,7 +24,7 @@ Andy 原話（2026-11-08）：「我希望可以自動化全部……以及讀�
 |---|---|---|
 | 自己帳號留的 | 略過 | `own` |
 | 留言超過 7 天（Meta 私回期限） | 不送 | `expired` |
-| 有自傷關鍵字 | **不送一般私訊**，改送關懷資源訊息（不看追蹤）；摘要＋警告提醒 CEO | `care` |
+| 有自傷關鍵字 | **不自動回覆、不私訊**（不送 1925、不送資料、不送一般問候），只在摘要與紀錄標「需人工看」（2026-11-15 Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」） | `needs_human` |
 | 有追蹤（`is_user_follow_business=true`） | 私訊預設文案 | `dm` |
 | 沒追蹤 | 不私訊 | `skip_not_follower` |
 | 查不到追蹤狀態 | 預設不私訊（`unknown_follow=skip`）；改成 `send` 就照樣私訊 | `skip_unknown_follow`／`dm_unknown_follow` |
@@ -44,9 +44,9 @@ Andy 原話（2026-11-08）：「我希望可以自動化全部……以及讀�
 | `max_per_run` | `20` | 每輪最多送幾則 |
 | `lookback_days` | `7` | 讀幾天內的貼文 |
 | `message` | 見下 | 一般私訊文案 |
-| `care_enabled` | `true` | 自傷關鍵字時要不要送關懷資源訊息 |
-| `care_message` | 見下 | 關懷資源訊息 |
-| `self_harm_keywords` | 死、不想活、自殺、輕生、結束生命…… | 命中任一個就走關懷訊息 |
+| `care_enabled` | `false` | 2026-11-15 起關閉（Andy 原話見下）；`true` 才會送關懷資源訊息 |
+| `care_message` | 見下 | 關懷資源訊息（保留備查，`care_enabled=false` 不送） |
+| `self_harm_keywords` | 死、不想活、自殺、輕生、結束生命…… | 命中任一個就標「需人工看」、不自動回 |
 | `self_harm_exclude` | 笑死、累死、熱死、死忠…… | 先把這些詞拿掉再比對，避免「笑死」被誤判 |
 
 一般私訊預設文案（客觀、不用「我／我們」、不叫人做事、不放投資或醫療／諮商字眼）：
@@ -55,7 +55,7 @@ Andy 原話（2026-11-08）：「我希望可以自動化全部……以及讀�
 > 這裡每天說一點礙，也談一點晴。
 > 日子很硬的時候，記得光還在縫裡。
 
-關懷資源訊息（依 `legal.md` 2-7；只給資源，不做諮商式回應）：
+關懷資源訊息（**2026-11-15 起停用**，文字保留備查；只有 `care_enabled=true` 才會送）：
 
 > 看到這則留言，先把幾個隨時接得通的電話放在這裡：
 > 安心專線 1925（24 小時、免付費）
@@ -63,7 +63,10 @@ Andy 原話（2026-11-08）：「我希望可以自動化全部……以及讀�
 > 如果現在有立即的危險，請撥 119 或 110。
 > 不用一個人撐。
 
-**自動訊息只是第一步，不取代人工。** 工作流摘要出現「⚠️ 自傷訊號 N 則」時，CEO 要照 `legal.md` 2-7：到 IG 收件匣／貼文看原留言、判斷級別、公開回範本 A、立即危險就檢舉「自殺或自傷」並視情況撥 110／119。紀錄檔只標 `self_harm: true`，不存原文（repo 是 public）。
+**自傷留言一律不自動回（2026-11-15 Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」，IG 與 Threads 都一樣）。** 理由：對情緒低落的留言送出制式資料或問候，弊大於利；改由 Andy 本人決定要不要親自回。
+- 工作流摘要出現「⚠️ 自傷訊號 N 則（需人工看）」並附貼文 id；紀錄檔 IG 標 `self_harm: true`、`needs_human: true`、`post: <貼文 id>`，Threads 記在 `state/threads_replied.json` 的 `needs_human`（雜湊 → 時間、貼文 id）。**只存雜湊與貼文 id，不存留言內容、留言 id、帳號**（repo 是 public）。
+- CEO 每晚回報固定一行「談晴說礙需人工看的自傷留言：IG N 則、Threads M 則（貼文 id …）」，沒有就寫 0。查法：`python scripts/healing_comments.py --needs-human 24`（只讀紀錄、不連 Meta）。
+- 回不回、怎麼回由 Andy 決定；有立即危險的跡象時，CEO 仍要當下告訴 Andy（`legal.md` 2-7 的檢舉與 110／119 由他判斷）。
 
 ## 三、Andy 要做的事：產生權杖時要勾的權限
 
@@ -109,9 +112,9 @@ Andy 原話（2026-11-08）：「我希望可以自動化全部……以及讀�
 | 大量「追蹤無法確認，未私訊」 | 查追蹤被拒（多半是對方沒傳過訊息給帳號、不算授權） | 見第六節第 1 條；要不要改 `unknown_follow=send` 由 Andy 決定 |
 | 錯誤「私訊失敗」 | 沒勾 `instagram_business_manage_messages`、開發模式限制、或超過 7 天 | 看錯誤代碼；3 輪後停止重試 |
 | 「已達每輪上限」 | 一次湧入很多留言 | 正常，下一輪會接著送 |
-| ⚠️ 自傷訊號 | 有留言命中自傷關鍵字，已送關懷訊息 | CEO 依 `legal.md` 2-7 人工處理 |
+| ⚠️ 自傷訊號（需人工看） | 有留言命中自傷關鍵字，未自動回覆 | CEO 每晚回報則數與貼文 id 給 Andy，由 Andy 決定是否親自回 |
 
-紀錄檔 `state/comments_dm.json`：`seen`（雜湊 → 時間、結果、follow、self_harm）、`weekly`（每週各結果則數，週報用，包含「無法確認追蹤」的數量）、`last_change`。只留 30 天。
+紀錄檔 `state/comments_dm.json`：`seen`（雜湊 → 時間、結果、follow、self_harm、needs_human、post）、`weekly`（每週各結果則數，週報用，包含「無法確認追蹤」的數量）、`last_change`。只留 30 天。
 
 ## 六、要等權杖才能實測的事（未確認）
 
@@ -155,7 +158,7 @@ IG 貼文 id ↔ 佇列資料夾用 `state/posted.json`（鍵＝資料夾名，`
 
 | 順序 | 情況 | 處理 | 結果代碼 |
 |---|---|---|---|
-| 1 | 自傷關鍵字（照舊最優先） | 送關懷訊息（1925），不送資料 | `care` |
+| 1 | 自傷關鍵字（最優先） | 不自動回：不送 1925、不送資料、不公開回，只標需人工看（2026-11-15 Andy） | `needs_human` |
 | 2 | 含專屬關鍵字、私訊接得通、查得到**有追蹤** | 私訊 `dm` 全文（只私訊有追蹤者：規則照舊） | `kw_dm` |
 | 3 | 含專屬關鍵字、**沒追蹤** | 不私訊；公開回覆一句（保底） | `kw_public_not_follower` |
 | 4 | 含專屬關鍵字、**查不到追蹤**（Meta 要對方先傳過訊息才查得到，多數留言者是這種） | 不私訊；公開回覆一句 | `kw_public_unknown_follow` |
@@ -170,7 +173,7 @@ IG 貼文 id ↔ 佇列資料夾用 `state/posted.json`（鍵＝資料夾名，`
 
 ### Threads
 
-Threads 沒有私訊 API、查不到追蹤 → 只對設了 `comment_keyword` 的貼文讀留言（`threads_read_replies`），含關鍵字就公開回覆同一份 `public` 句子（`threads_manage_replies`），每人每篇 1 次、每輪最多 `threads_reply.max_per_run`。自傷關鍵字**不自動回**，摘要＋警告提醒 CEO 依 2-7 人工處理（legal.md：第二、三級訊號不得自動回覆）。紀錄 `state/threads_replied.json`（只存雜湊）。Threads 出錯只出黃色警告、不讓工作流紅燈。
+Threads 沒有私訊 API、查不到追蹤 → 只對設了 `comment_keyword` 的貼文讀留言（`threads_read_replies`），含關鍵字就公開回覆同一份 `public` 句子（`threads_manage_replies`），每人每篇 1 次、每輪最多 `threads_reply.max_per_run`。自傷關鍵字**不自動回**（不論留言有沒有專屬關鍵字都會檢查），只標「需人工看」，CEO 每晚回報則數給 Andy（2026-11-15 Andy 原話同上）。紀錄 `state/threads_replied.json`（`replied` 與 `needs_human`，只存雜湊與貼文 id）。Threads 出錯只出黃色警告、不讓工作流紅燈。
 
 ### 網站文章能不能打開
 
@@ -185,4 +188,5 @@ Threads 沒有私訊 API、查不到追蹤 → 只對設了 `comment_keyword` �
 | 日期（台北） | 內容 |
 |---|---|
 | 2026-11-08 | 建立：輪詢讀主留言、查追蹤、Private Replies、自傷關懷訊息、空跑與上限 |
+| 2026-11-15 | Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」→ `care_enabled=false`；自傷留言 IG／Threads 都不自動回，只標需人工看（雜湊＋貼文 id），新增 `--needs-human` 給 CEO 每晚回報 |
 | 2026-11-16 | 每篇專屬留言關鍵字（meta.json `comment_keyword`＋`keyword_replies`）、IG 私訊接不通／沒追蹤／查不到追蹤時公開回覆保底、Threads 公開回覆、空跑能力檢查（第九節） |

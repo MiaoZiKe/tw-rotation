@@ -1,5 +1,6 @@
 """頻道④ 每篇專屬留言關鍵字（2026-11-16）：meta.json comment_keyword → 私訊完整資料／公開回覆保底／Threads 公開回覆。"""
 import json
+from datetime import timedelta
 import re
 import sys
 from pathlib import Path
@@ -74,8 +75,8 @@ def test_沒關鍵字的留言照舊一般問候(kw, monkeypatch):
 def test_自傷關鍵字優先_不送資料(kw, monkeypatch):
     fake = KwFake({"M1": [c("C1", "U1", "結婚什麼的 不想活了")]}, {"U1": True})
     _, res = go(kw, fake, monkeypatch)
-    assert res["counts"] == {"care": 1} and res["alerts"] == 1 and fake.replies == []
-    assert "1925" in fake.sent[0][1] and "147,861" not in fake.sent[0][1]
+    assert res["counts"] == {"needs_human": 1} and res["alerts"] == 1
+    assert fake.replies == [] and fake.sent == []           # 不送資料、不送 1925、不公開回
 
 
 def test_私訊失敗_改公開回覆(kw, monkeypatch):
@@ -195,9 +196,17 @@ def test_Threads_關鍵字公開回覆_每人每篇一次(kw, monkeypatch):
 
 
 def test_Threads_自傷不自動回_提醒(kw, monkeypatch):
-    fake = ThFake({"T1": [r("R1", "amy", "結婚 好想消失")]})
+    fake = ThFake({"T1": [r("R1", "amy", "結婚 好想消失"), r("R2", "bob", "撐不下去了")]})   # 沒關鍵字的也標
     _, res = th(kw, fake, monkeypatch)
-    assert fake.posts == [] and res["alerts"] == 1
+    assert fake.posts == [] and res["alerts"] == 2 and res["counts"] == {"needs_human": 2}
+    sp = kw["posted"].parent / "threads_replied.json"
+    raw = sp.read_text(encoding="utf-8")
+    assert "amy" not in raw and "R1" not in raw and "消失" not in raw
+    assert {v["post"] for v in json.loads(raw)["needs_human"].values()} == {"T1"}
+    _, res = th(kw, fake, monkeypatch)                     # 第二輪不重複計
+    assert res["alerts"] == 0
+    n = HC.needs_human_count(NOW - timedelta(days=1), state_path=kw["state"], threads_path=sp)
+    assert n["threads"] == 2 and n["posts"] == ["T1"]
 
 
 def test_Threads_沒設關鍵字的貼文不讀(paths, monkeypatch):

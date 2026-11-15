@@ -113,16 +113,33 @@ def test_略過自己帳號與超過七天(paths, monkeypatch):
     assert fake.sent == [] and res["counts"] == {"own": 1, "expired": 1}
 
 
-def test_自傷關鍵字走關懷訊息_不看追蹤(paths, monkeypatch):
-    fake = Fake({"M1": [c("C1", "U1", "真的不想活了"), c("C2", "U2", "笑死 太可愛")]}, {"U1": False, "U2": True})
+def test_自傷關鍵字不自動回_只標需人工看(paths, monkeypatch):
+    """2026-11-15 Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」。"""
+    fake = Fake({"M1": [c("C1", "U1", "真的不想活了"), c("C2", "U2", "笑死 太可愛")]}, {"U1": True, "U2": True})
     _, res = go(paths, fake, monkeypatch)
     sent = dict(fake.sent)
-    assert "1925" in sent["C1"] and "119" in sent["C1"] and "謝謝留下今天的晴" not in sent["C1"]
+    assert "C1" not in sent                                # 不送 1925、不送資料、不送一般問候
     assert sent["C2"].startswith("謝謝留下今天的晴")       # 「笑死」被排除，不誤判
-    assert res["alerts"] == 1 and res["counts"]["care"] == 1
-    st = json.loads(paths["state"].read_text(encoding="utf-8"))
-    assert sum(1 for v in st["seen"].values() if v.get("self_harm")) == 1
-    assert "自傷訊號 1 則" in HC.summary_md(res)
+    assert res["alerts"] == 1 and res["counts"]["needs_human"] == 1 and res["needs_human"] == ["M1"]
+    raw = paths["state"].read_text(encoding="utf-8")
+    st = json.loads(raw)
+    flagged = [v for v in st["seen"].values() if v.get("self_harm")]
+    assert len(flagged) == 1 and flagged[0]["needs_human"] is True and flagged[0]["post"] == "M1"
+    for leak in ("C1", "U1", "不想活", "someone"):          # 只存雜湊與貼文 id
+        assert leak not in raw
+    md = HC.summary_md(res)
+    assert "自傷訊號 1 則" in md and "需人工看" in md and "M1" in md
+    n = HC.needs_human_count(NOW - timedelta(days=1), state_path=paths["state"])
+    assert n == {"ig": 1, "threads": 0, "posts": ["M1"]}
+    go(paths, fake, monkeypatch)                           # 第二輪不重複計
+    assert len(fake.sent) == 1
+
+
+def test_care_enabled_手動打開才送關懷訊息(paths, monkeypatch):
+    paths["set_cfg"](care_enabled=True)
+    fake = Fake({"M1": [c("C1", "U1", "真的不想活了")]}, {"U1": False})
+    _, res = go(paths, fake, monkeypatch)
+    assert res["counts"] == {"care": 1} and "1925" in dict(fake.sent)["C1"]
 
 
 def test_每輪上限_其餘下一輪(paths, monkeypatch):
@@ -182,7 +199,7 @@ def test_預設文案合規():
     for bad in ("我", "我們", "投資", "股", "諮商", "治療", "醫"):
         assert bad not in m
     assert cfg["only_followers"] is True and cfg["unknown_follow"] == "skip"
-    assert "1925" in cfg["care_message"] and "119" in cfg["care_message"] and "110" in cfg["care_message"]
+    assert cfg["care_enabled"] is False                    # 2026-11-15 Andy：自傷留言不自動回 1925
 
 
 def test_沒有新留言不寫檔(paths, monkeypatch):

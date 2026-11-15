@@ -353,7 +353,7 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
     now = now or datetime.now(timezone.utc)
     cfg = load_cfg(cfg_path)
     res = {"at": now.astimezone(TAIPEI).isoformat(timespec="seconds"), "mode": "dry" if dry_run else "live",
-           "counts": {}, "alerts": 0, "errors": [], "summary": ""}
+           "counts": {}, "alerts": 0, "needs_human": [], "errors": [], "summary": ""}
 
     def bump(k):
         res["counts"][k] = res["counts"].get(k, 0) + 1
@@ -522,9 +522,13 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
                 harm = is_self_harm(c.get("text"), cfg)
                 follow = None if harm else follows(who_id, token)
                 if harm:
+                    # 2026-11-15 Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」
+                    # → care_enabled=false：不自動回 1925、不送資料、不送一般問候，只標「需人工看」（存雜湊＋貼文 id）
                     text = cfg.get("care_message") if cfg.get("care_enabled") else None
-                    result = "care" if text else "care_disabled"
+                    result = "care" if text else "needs_human"
                     res["alerts"] += 1
+                    if not text:
+                        res["needs_human"].append(str(mid))
                 elif follow is True or (follow is None and not cfg.get("only_followers")):
                     text, result = cfg.get("message"), "dm"
                 elif follow is None:
@@ -561,6 +565,9 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
                 entry["follow"] = follow
             if harm:
                 entry["self_harm"] = True
+                entry["post"] = str(mid)          # 貼文 id 是公開的；留言內容、留言 id、帳號一律不存
+                if result.endswith("needs_human"):
+                    entry["needs_human"] = True
             if not dry_run:
                 seen[key] = entry
             bump(result)
@@ -608,7 +615,7 @@ def threads_run(env: dict | None = None, dry_run: bool = False, now: datetime | 
     cfg = load_cfg(cfg_path)
     tcfg = cfg.get("threads_reply") or {}
     state_path = state_path or Path(posted_path).parent / THREADS_STATE_NAME
-    res = {"counts": {}, "alerts": 0, "errors": [], "summary": ""}
+    res = {"counts": {}, "alerts": 0, "needs_human": [], "errors": [], "summary": ""}
 
     def bump(k):
         res["counts"][k] = res["counts"].get(k, 0) + 1
@@ -656,7 +663,10 @@ def threads_run(env: dict | None = None, dry_run: bool = False, now: datetime | 
     st = load_json(state_path, {})
     replied = {k: v for k, v in (st.get("replied") or {}).items()
                if v >= (now - timedelta(days=KEEP_DAYS)).isoformat(timespec="seconds")}
-    before = dict(replied)
+    cut = (now - timedelta(days=KEEP_DAYS)).isoformat(timespec="seconds")
+    flagged = {k: v for k, v in (st.get("needs_human") or {}).items()
+               if isinstance(v, dict) and str(v.get("at", "")) >= cut}
+    before = (dict(replied), json.dumps(flagged, sort_keys=True))
     budget = int(tcfg.get("max_per_run") or 10)
     for tid, folder, kws in targets:
         try:
@@ -669,17 +679,22 @@ def threads_run(env: dict | None = None, dry_run: bool = False, now: datetime | 
             rid, who = str(r.get("id") or ""), str(r.get("username") or "")
             if not rid or (mine and who == mine):
                 continue
+            rk, uk = "r" + h(rid), "u" + h(f"{who}|{tid}")
+            if is_self_harm(r.get("text"), cfg):
+                # 自傷最優先（不論有沒有關鍵字）：不自動回 1925、不送資料、不送問候，只標「需人工看」
+                # （2026-11-15 Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」）
+                if rk in flagged or rk in replied:
+                    continue
+                res["alerts"] += 1
+                res["needs_human"].append(tid)
+                bump("needs_human")
+                if not dry_run:
+                    flagged[rk] = {"at": now.isoformat(timespec="seconds"), "post": tid}
+                continue
             kw = match_kw(r.get("text"), kws)
             if not kw:
                 continue
-            rk, uk = "r" + h(rid), "u" + h(f"{who}|{tid}")
             if rk in replied or uk in replied:
-                continue
-            if is_self_harm(r.get("text"), cfg):          # 自傷優先：不自動回資料，提醒 CEO 人工處理（legal.md 2-7）
-                res["alerts"] += 1
-                bump("care_manual")
-                if not dry_run:
-                    replied[rk] = now.isoformat(timespec="seconds")
                 continue
             if budget <= 0:
                 res["summary"] = "本輪到上限，其餘下一輪"
@@ -701,9 +716,12 @@ def threads_run(env: dict | None = None, dry_run: bool = False, now: datetime | 
             replied[rk] = replied[uk] = now.isoformat(timespec="seconds")
             budget -= 1
             bump("threads_public")
-    if not dry_run and replied != before:
+    if not dry_run and (replied, json.dumps(flagged, sort_keys=True)) != before:
         state_path.parent.mkdir(parents=True, exist_ok=True)
-        state_path.write_text(json.dumps({"replied": replied}, indent=1) + "\n", encoding="utf-8")
+        out = {"replied": replied}
+        if flagged:
+            out["needs_human"] = flagged       # 只存留言 id 雜湊＋Threads 貼文 id，不存內容與帳號
+        state_path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
     parts = [f"{k} {v}" for k, v in sorted(res["counts"].items())]
     res["summary"] = (f"Threads 關鍵字貼文 {len(targets)} 篇；" + ("、".join(parts) if parts else "沒有新的關鍵字留言")
                       + (f"；{res['summary']}" if res["summary"] else ""))
@@ -713,6 +731,7 @@ def threads_run(env: dict | None = None, dry_run: bool = False, now: datetime | 
 LABEL = {
     "dm": "已私訊（有追蹤）", "dm_unknown_follow": "已私訊（追蹤無法確認，設定為照樣送）",
     "care": "已送關懷資源訊息（自傷關鍵字）", "care_disabled": "自傷關鍵字（關懷訊息已關閉，未送）",
+    "needs_human": "自傷關鍵字：未自動回覆，需人工看",
     "skip_not_follower": "沒追蹤，未私訊", "skip_unknown_follow": "追蹤無法確認，未私訊",
     "own": "自己帳號的留言", "expired": "超過 7 天，無法私回", "send_failed": "私訊失敗（下一輪重試）",
     "kw_dm": "專屬關鍵字：已私訊完整資料（有追蹤）", "kw_dm_already": "專屬關鍵字：已私回過",
@@ -722,7 +741,30 @@ LABEL = {
     "kw_public_dm_failed": "專屬關鍵字：私訊失敗，已公開回覆（保底）",
     "kw_dup": "專屬關鍵字：同一人同一篇已回過", "threads_public": "Threads 專屬關鍵字：已公開回覆",
     "care_manual": "Threads 自傷關鍵字：未自動回，請人工處理",
+    "needs_human_threads": "Threads 自傷關鍵字：未自動回覆，需人工看",
 }
+
+
+def _posts_note(res: dict) -> str:
+    ids = sorted(set(res.get("needs_human") or []))
+    return f"；貼文 id：{'、'.join(ids)}" if ids else ""
+
+
+def needs_human_count(since: datetime, state_path: Path = STATE, threads_path: Path | None = None) -> dict:
+    """CEO 每晚回報用：since 之後被標「需人工看」的自傷留言則數（IG／Threads 分開，附貼文 id）。"""
+    threads_path = threads_path or Path(state_path).parent / THREADS_STATE_NAME
+    cut = since.astimezone(TAIPEI).isoformat(timespec="seconds")
+    out = {"ig": 0, "threads": 0, "posts": []}
+    for v in (load_json(state_path, {}).get("seen") or {}).values():
+        if isinstance(v, dict) and v.get("needs_human") and str(v.get("at", "")) >= cut:
+            out["ig"] += 1
+            out["posts"].append(str(v.get("post") or ""))
+    for v in (load_json(threads_path, {}).get("needs_human") or {}).values():
+        if isinstance(v, dict) and str(v.get("at", "")) >= since.isoformat(timespec="seconds"):
+            out["threads"] += 1
+            out["posts"].append(str(v.get("post") or ""))
+    out["posts"] = sorted({p for p in out["posts"] if p})
+    return out
 
 
 def summary_md(res: dict, name: str = "談晴說礙") -> str:
@@ -734,7 +776,8 @@ def summary_md(res: dict, name: str = "談晴說礙") -> str:
             base = k[4:] if k.startswith("dry_") else k
             lines.append(f"| {LABEL.get(base.replace('_already', ''), base)}{'（空跑）' if k.startswith('dry_') else ''} | {v} |")
     if res["alerts"]:
-        lines += ["", f"### ⚠️ 自傷訊號 {res['alerts']} 則：請 CEO 依 legal.md 2-7 人工處理（到 IG 收件匣看原留言，評估級別、公開回範本 A、必要時檢舉）"]
+        lines += ["", f"### ⚠️ 自傷訊號 {res['alerts']} 則（需人工看）：未自動回覆；CEO 每晚回報告知 Andy 則數，"
+                  f"由 Andy 決定是否親自回（legal.md 2-7）{_posts_note(res)}"]
     if res.get("probe"):
         lines += ["", "### 能力檢查（只讀）"] + [f"- {k}：{v}" for k, v in res["probe"].items()]
     for e in res["errors"]:
@@ -746,7 +789,14 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--channel", default="", help="channels.json 的頻道代碼；不給＝頻道④談晴說礙")
+    ap.add_argument("--needs-human", type=float, metavar="小時", default=None,
+                    help="CEO 每晚回報用：只印最近 N 小時被標「需人工看」的自傷留言則數（頻道④），不讀 Meta")
     a = ap.parse_args(argv)
+    if a.needs_human is not None:
+        n = needs_human_count(datetime.now(timezone.utc) - timedelta(hours=a.needs_human))
+        print(f"談晴說礙 最近 {a.needs_human:g} 小時需人工看的自傷留言：IG {n['ig']} 則、Threads {n['threads']} 則"
+              + (f"；貼文 id：{'、'.join(n['posts'])}" if n["posts"] else ""))
+        return 0
     if a.channel and a.channel != "healing":
         c = channel_paths(a.channel)
         code, res = run(dry_run=a.dry_run, cfg_path=c["cfg"], state_path=c["state"], posted_path=c["posted"],
@@ -759,7 +809,8 @@ def main(argv=None) -> int:
         md += f"\n## 談晴說礙：Threads 專屬關鍵字回覆\n\n- 摘要：{tres['summary']}\n" + "".join(
             f"- 錯誤：{e}\n" for e in tres["errors"])
         if tres["alerts"]:
-            md += f"\n### ⚠️ Threads 自傷訊號 {tres['alerts']} 則：請 CEO 依 legal.md 2-7 人工處理\n"
+            md += (f"\n### ⚠️ Threads 自傷訊號 {tres['alerts']} 則（需人工看）：未自動回覆；CEO 每晚回報告知 Andy 則數，"
+                   f"由 Andy 決定是否親自回{_posts_note(tres)}\n")
             res["alerts"] += tres["alerts"]
         if tcode or tres["errors"]:      # Threads 出錯只警告、不讓整個工作流紅燈（IG 私訊才是主流程）
             print("::warning::談晴說礙 Threads 專屬關鍵字回覆有錯誤：" + SP.redact("；".join(tres["errors"]))[:300])

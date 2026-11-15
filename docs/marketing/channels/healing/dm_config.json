@@ -6,7 +6,8 @@
  "max_per_run": 20,
  "lookback_days": 7,
  "message": "謝謝留下今天的晴 ☀️\n這裡每天說一點礙，也談一點晴。\n日子很硬的時候，記得光還在縫裡。",
- "care_enabled": true,
+ "care_enabled": false,
+ "_care_說明": "2026-11-15 Andy：「留言提到自傷的，照舊優先回 1925 安心專線，不會回資料——不需要」→ 自傷關鍵字留言（IG／Threads）一律不自動回覆、不私訊 1925、不送資料、不送問候；只在工作流摘要與 state 標「需人工看」（只存雜湊與貼文 id），CEO 每晚回報則數給 Andy，由 Andy 決定是否親自回。care_message 保留備查，care_enabled=false 時不會送出。",
  "care_message": "看到這則留言，先把幾個隨時接得通的電話放在這裡：\n安心專線 1925（24 小時、免付費）\n生命線 1995（24 小時）\n如果現在有立即的危險，請撥 119 或 110。\n不用一個人撐。",
  "self_harm_keywords": [
   "死",
@@ -47,7 +48,7 @@
   "死記",
   "死心塌地"
  ],
- "_專屬關鍵字說明": "2026-11-16 起：佇列 meta.json 設 comment_keyword（例 \"結婚\"）→ 該篇留言含這個字時，有追蹤且私訊接得通 → 私訊 keyword_replies[關鍵字].dm；沒追蹤／查不到追蹤／私訊接不通／私訊失敗 → 公開回覆 keyword_replies[關鍵字].public（清單依留言 id 雜湊固定輪流，防洗版）。自傷關鍵字照舊最優先。內容還有「待填」就改用 keyword_default_public。Threads 只做公開回覆（threads_reply）。說明見 comment_dm.md 第九節。",
+ "_專屬關鍵字說明": "2026-11-16 起：佇列 meta.json 設 comment_keyword（例 \"結婚\"）→ 該篇留言含這個字時，有追蹤且私訊接得通 → 私訊 keyword_replies[關鍵字].dm；沒追蹤／查不到追蹤／私訊接不通／私訊失敗 → 公開回覆 keyword_replies[關鍵字].public（清單依留言 id 雜湊固定輪流，防洗版）。自傷關鍵字最優先（2026-11-15 起不自動回、只標需人工看）。內容還有「待填」就改用 keyword_default_public。Threads 只做公開回覆（threads_reply）。說明見 comment_dm.md 第九節。",
  "keyword_replies": {
   "結婚": {
    "post": "20261115v_marriage（影片，2026-11-16 20:27）；文章 2026-11-15-healing-marriage-video（隱藏分頁，直接連結訪客可開）",
@@ -66,6 +67,6 @@
  "threads_reply": {
   "enabled": true,
   "max_per_run": 10,
-  "_說明": "Threads 沒有私訊 API、查不到追蹤：只對設了 comment_keyword 的貼文公開回覆 keyword_replies[關鍵字].public；自傷關鍵字不自動回、只提醒 CEO。"
+  "_說明": "Threads 沒有私訊 API、查不到追蹤：只對設了 comment_keyword 的貼文公開回覆 keyword_replies[關鍵字].public；自傷關鍵字（不論有沒有專屬關鍵字）不自動回、只標需人工看。"
  }
 }
