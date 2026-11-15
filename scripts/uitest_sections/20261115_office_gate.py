@@ -421,8 +421,8 @@ def _og_ui(b, base):
         pg.fill("#chatText", "鍵盤測試")
         _og_js(pg, "#chatSend")
         wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 30000)
-        r = pg.evaluate("() => { const l = document.getElementById('chatList').getBoundingClientRect(), b = document.querySelector('#chatList [data-cancel]').getBoundingClientRect(), p = document.getElementById('chatPanel').getBoundingClientRect(); return { lt: l.top, lb: l.bottom, bt: b.top, bb: b.bottom, ph: p.height, lh: l.height }; }")
-        ok("手機鍵盤彈出（可視高 480）：訊息卡與「撤回」鈕完整看得見（沒被切）", r["bt"] >= r["lt"] - 1 and r["bb"] <= r["lb"] + 1 and r["lh"] >= 100, r)
+        r = pg.evaluate("() => { const l = document.getElementById('chatList').getBoundingClientRect(), b = document.querySelector('#chatList .c-me').getBoundingClientRect(), p = document.getElementById('chatPanel').getBoundingClientRect(); return { lt: l.top, lb: l.bottom, bt: b.top, bb: b.bottom, ph: p.height, lh: l.height }; }")
+        ok("手機鍵盤彈出（可視高 480）：訊息氣泡完整看得見（沒被切；撤回改成長按小選單）", r["bt"] >= r["lt"] - 1 and r["bb"] <= r["lb"] + 1 and r["lh"] >= 100, r)
         _og_shot(pg, "gate_m3_鍵盤480.png")
     finally:
         c.close()
