@@ -48,6 +48,24 @@ s = bridge.scrub("改 /home/andy/tw-rotation/site/app.js 跟 site/m4/x.css，看
 ok("文字去識別：路徑、檔名、網址、信箱、金鑰都遮掉", not any(x in s for x in ["andy", "app.js", "x.css", "a.b/c", "a@b.com", "tokABCDEF"]), s)
 ok("文字去識別：中文不被吃掉", bridge.scrub("修改app.js的按鈕", 80) == "修改〔檔名〕的按鈕", bridge.scrub("修改app.js的按鈕", 80))
 
+# ── 專案名稱與雜湊（2026-11-15：一個專案一間辦公室） ──
+_tmp = tempfile.mkdtemp()
+_d1, _d2, _d3 = (os.path.join(_tmp, n) for n in ("copy-one", "copy-two", "plain"))
+for _d in (_d1, _d2, _d3):
+    os.makedirs(_d)
+for _d, _url in ((_d1, "https://github.com/someone/tw-rotation.git"), (_d2, "http://local_proxy@127.0.0.1:41234/git/someone/tw-rotation")):
+    subprocess.run(["git", "init", "-q", _d], check=True)
+    subprocess.run(["git", "-C", _d, "remote", "add", "origin", _url], check=True)
+_n1, _h1 = bridge.project_info(_d1)
+_n2, _h2 = bridge.project_info(_d2)
+_n3, _h3 = bridge.project_info(_d3)
+ok("專案名：優先用 git 遠端的儲存庫名（不是資料夾名）", _n1 == "tw-rotation" and _n2 == "tw-rotation", (_n1, _n2))
+ok("專案雜湊：同一個儲存庫的不同複本／不同資料夾是同一個專案", _h1 == _h2 and len(_h1) == 16, (_h1, _h2))
+ok("專案名：沒有 git 就用資料夾名，雜湊不同於有遠端的", _n3 == "plain" and _h3 != _h1, (_n3, _h3))
+ok("專案：不送遠端網址與帳密", "someone" not in json.dumps(bridge.sanitize({"hook_event_name": "Stop", "cwd": _d2, "session_id": "s"}, {})) and "local_proxy" not in json.dumps(bridge.sanitize({"hook_event_name": "Stop", "cwd": _d2, "session_id": "s"}, {})))
+ok("專案：沒有 cwd 就沒有專案名與雜湊", bridge.project_info("") == (None, None) and bridge.project_info(None) == (None, None))
+ok("sanitize 用 project_info（事件裡的雜湊與取指令用的一致）", bridge.sanitize({"hook_event_name": "Stop", "cwd": _d1, "session_id": "s"}, {})["project_hash"] == _h1)
+
 # ── 工具類別 ──
 cases = [("Read", {}, "read"), ("Grep", {}, "read"), ("Edit", {}, "write"), ("WebSearch", {}, "search"), ("Bash", {"command": "python -m pytest tests -q"}, "test"),
          ("Bash", {"command": "git push origin main"}, "deploy"), ("Bash", {"command": "python scripts/deploy_wait.py --branch main"}, "wait"), ("Bash", {"command": "ls"}, "other"),

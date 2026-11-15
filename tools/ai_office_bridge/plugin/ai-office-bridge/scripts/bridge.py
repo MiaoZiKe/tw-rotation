@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -144,17 +145,47 @@ def tokens(u):
     return None if not u else u["input"] + u["output"] + u["cache_write"]
 
 
+def repo_name(cwd):
+    """git 遠端的儲存庫名稱（只取最後一段，不含擁有者、主機、帳密）。沒有 git 或沒有遠端就回 None。
+    為什麼：雲端工作階段的資料夾常常都是 /home/user、同一台機器的不同複本資料夾名也不同，
+    用儲存庫名才認得出「這是同一個專案」。"""
+    if not cwd:
+        return None
+    try:
+        r = subprocess.run(["git", "-C", cwd, "config", "--get", "remote.origin.url"], capture_output=True, text=True, timeout=1.5, stdin=subprocess.DEVNULL)
+        url = (r.stdout or "").strip() if r.returncode == 0 else ""
+    except Exception:
+        return None
+    if not url:
+        return None
+    last = re.split(r"[/\\:]", url.rstrip("/\\"))[-1]
+    last = re.sub(r"\.git$", "", last, flags=re.I)
+    return last if re.match(r"^[\w.-]{1,60}$", last, re.A) else None
+
+
+def project_info(cwd):
+    """回傳 (專案名稱, 專案雜湊)。優先用 git 遠端的儲存庫名（雜湊也只用儲存庫名，不含路徑），其次資料夾名（雜湊用完整路徑）。
+    inbox.py 取指令時用同一個函式，所以 Claude 端「我是哪個專案」與送出的事件一定對得上。"""
+    if not cwd:
+        return None, None
+    rn = repo_name(cwd)
+    if rn:
+        return scrub(rn, 60), hashlib.sha256(("git:" + rn.lower()).encode()).hexdigest()[:16]
+    return scrub(os.path.basename(cwd.rstrip("/\\")), 60), hashlib.sha256(cwd.encode()).hexdigest()[:16]
+
+
 def sanitize(p, cfg):
     """只留白名單欄位。完整路徑改成「資料夾名＋雜湊」。回傳 None＝這筆不送。"""
     name = p.get("hook_event_name") or EVENT
     cwd = p.get("cwd") or ""
     summ = cfg.get("AIO_SUMMARY", "1") != "0"
+    pname, phash = project_info(cwd)
     ev = {
         "event": name,
         "ts": int(time.time() * 1000),        # 掛鉤資料本身沒有時間欄位，由腳本補
         "session_id": p.get("session_id"),
-        "project_name": scrub(os.path.basename(cwd.rstrip("/\\")), 60) if cwd else None,
-        "project_hash": hashlib.sha256(cwd.encode()).hexdigest()[:16] if cwd else None,
+        "project_name": pname,
+        "project_hash": phash,
         "cloud": os.environ.get("CLAUDE_CODE_REMOTE") == "true",
     }
     for k in ("agent_id", "agent_type", "source", "reason", "permission_mode"):
