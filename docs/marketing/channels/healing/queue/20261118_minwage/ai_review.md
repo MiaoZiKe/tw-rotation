@@ -3,7 +3,7 @@
 - 圖檔：`1.png`、`2.png`、`3.png`（同名 `.jpg` 為 IG 用轉檔，品質 92）
 - 產生方式：**不是 AI 生圖**。全部是程式畫的向量圖表與線條插圖（`templates_tqsa_v3/src/gen_posts.py`：sc_clock（時鐘＋時薪吊牌）、sc_vbars（2024～2027 月薪直條）、sc_split（受惠人數分段條＋人形示意）），Playwright 渲染成 PNG。沒有模型、沒有 prompt。
 - 審查人：談晴說礙總編輯 healing-editor 自審（照 `docs/marketing/social_unit/ai_image_review.md` 十條逐項審）
-- 時間：2026-11-15 17:40（台北）；方式：Read 逐張看（15 張縮圖總覽＋封面與既有 11/17 封面並排比對）
+- 時間：2026-11-15 17:20（台北）；方式：Read 逐張看（15 張縮圖總覽＋封面與既有 11/17 封面並排比對）
 
 | # | 項目 | 結果 |
 |---|---|---|
