@@ -7,6 +7,8 @@ description: CaffAIne（頻道③ caffaine.ai）的「資訊差」發文技能�
 
 > Andy 2026-11-14 原話：「想要衝粉絲的手段之一：『搬運』／每週找 前10 的 GitHub repo／用 grok 爬相關的討論建立貼文／用 ChatGpt 統合成爆文形式+做圖／然後每天晚上固定發文／恭喜學會『資訊差』／幫我將這技巧寫在 AI 內，以後需要發文用的技能」
 
+> ★ 2026-11-15 起做成**影片**時，內容邏輯一律照 `docs/marketing/channels/video_logic.md`（三段結構：0–3 秒反常事實鉤子 → 有邏輯地講清楚 → 吊胃口結尾；第四節 CaffAIne 那一列），製作照 ai-mp4 `docs/channels/ai-daily-playbook.md`（分支 `claude/caffaine-ai` 第七節），交片附自查五項。
+
 **一句話**：英文圈（GitHub、X、Reddit、Hacker News）已經在討論的工具，台灣上班族還不知道 → 我們先整理成看得懂的中文，這就是資訊差。
 
 欄目名稱：**☕ 本週新豆**（新鮮的豆子＝這週剛冒出來的工具；跟試飲報告／手沖教室／本週三杯／這杯有點苦同一套咖啡菜單）。Andy 要換名字就改這裡與 `opening_closing.md`。
