@@ -387,4 +387,14 @@ def t_sports_mobile(b, base):
         c.close()
 
 
-register("辦公室運動場", lambda pg, b, base, code: (t_sports(b, base), t_sports_ambient(b, base), t_sports_night_perf(b, base), t_sports_mobile(b, base)))
+import os as _os
+
+
+def _sp_run(b, base):
+    parts = _os.environ.get("SP_PARTS", "main,ambient,night,mobile").split(",")   # 只重跑某幾塊時用（例如 SP_PARTS=night,mobile）
+    for name, fn in (("main", t_sports), ("ambient", t_sports_ambient), ("night", t_sports_night_perf), ("mobile", t_sports_mobile)):
+        if name in parts:
+            fn(b, base)
+
+
+register("辦公室運動場", lambda pg, b, base, code: _sp_run(b, base))

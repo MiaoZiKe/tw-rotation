@@ -28,7 +28,8 @@ import time
 import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-P_SITE, P_BRIDGE, P_ACCT = 8805, 8806, 8807
+# 埠：網站、收件服務、假會員服務。有人在用時可用環境變數 E2E_PORTS="8815,8816,8817" 換一組
+P_SITE, P_BRIDGE, P_ACCT = [int(x) for x in os.environ.get("E2E_PORTS", "8805,8806,8807").split(",")]
 ORIGIN = "http://127.0.0.1:%d" % P_SITE
 BRIDGE = "http://127.0.0.1:%d" % P_BRIDGE
 CLAUDE = os.environ.get("CLAUDE_BIN", "/opt/node22/bin/claude")
