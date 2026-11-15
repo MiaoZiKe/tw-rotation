@@ -72,7 +72,7 @@ export function createFeel(W, K) {
     const n = wsum(m, 300), tier = n >= 2.4 ? 3 : n >= 1.4 ? 2 : 1; f.tier = tier;
     if (d.upgrade) return tier;
     if (tier === 3 && kind !== 'obj') f.fearYou = W.time + 260 * (1.3 - .6 * t.opt);
-    if (tier >= 2 && kind !== 'obj') later(m, kind === 'bonk' ? 2.4 : 6, () => tierScene(c, m, tier));
+    if (tier >= 2 && kind !== 'obj') later(m, kind === 'bonk' ? 2.4 : 4, () => tierScene(c, m, tier), { cond: (cc, mm) => !mm.sc || (mm.sc.name === 'knocked' && W.time - mm.sc.t0 > 3.5), wait: 40 });   // 暈眩演到一半就接上，連續被丟時反應才不會被後面的丟蓋掉
     record(m, { event: 'hit-tier', kind, tier, n: Math.round(n * 10) / 10 });
     return tier;
   };
@@ -80,7 +80,7 @@ export function createFeel(W, K) {
     if (!awake(c) || c.jobless) return; const t = m.t, f = of(m);
     if (tier === 2) {
       const angry = t.comp >= .55 && t.sens < .75;
-      scene(c, m, 5, 'feel-tier2', sc => {
+      scene(c, m, 8, 'feel-tier2', sc => {
         if (angry) sc.at(0, () => { face(c, m, 'angry', 2.6); c.emote('anger', 2.2); say(c, rnd(['又來了！很痛耶！', '不要一直這樣！', '你很過分欸！']), 2, true); act(c, 'slam', { duration: 1.8 }); });
         else if (t.sens >= .5) sc.at(0, () => { face(c, m, 'cry', 3); c.emote('cloud', 2.4); say(c, rnd(['嗚…又…', '為什麼一直這樣…']), 2, true); act(c, 'sob', { duration: 3 }); if (canAct(c)) c.lookAt(downPt(c)); });
         else sc.at(0, () => { face(c, m, 'pout', 2.6); c.emote('dots', 2); say(c, '…夠了喔', 1.8, true); act(c, 'sulk', { duration: 2.4 }); });
@@ -89,7 +89,7 @@ export function createFeel(W, K) {
       record(m, { event: 'bully-reaction', tier: 2, style: angry ? 'stomp' : t.sens >= .5 ? 'cry' : 'pout', face: angry ? 'angry' : t.sens >= .5 ? 'cry' : 'pout', action: angry ? 'slam' : t.sens >= .5 ? 'sob' : 'sulk' });
     } else if (tier >= 3) {
       f.mode = null; const tell = t.ext >= .45 || t.comp >= .6, ceo = C('ceo');
-      scene(c, m, 5, 'feel-tier3', sc => { sc.at(0, () => { face(c, m, 'scared', 2.2); c.emote('sweat', 1.8); say(c, rnd(['不、不要再來了…', '我好怕…']), 1.8, true); }); sc.at(2.4, () => { }); K.holdCap(c, m, sc); });
+      scene(c, m, 8, 'feel-tier3', sc => { sc.at(0, () => { face(c, m, 'scared', 2.2); c.emote('sweat', 1.8); say(c, rnd(['不、不要再來了…', '我好怕…']), 1.8, true); }); sc.at(2.4, () => { }); K.holdCap(c, m, sc); });
       record(m, { event: 'bully-reaction', tier: 3, style: tell && ceo && ceo !== c ? 'complain' : 'hide', face: 'scared' });
       later(m, 3, () => { if (tell && ceo && ceo !== c && !ceo.away && !ceo.jobless) complain(c, m, ceo); else hideAway(c, m); }, { cond: (cc, mm) => !mm.sc && canAct(cc), wait: 40 });
     }
