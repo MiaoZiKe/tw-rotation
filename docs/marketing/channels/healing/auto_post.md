@@ -60,6 +60,7 @@
 
 - 選正式站的理由：raw.githubusercontent 對 mp4 回 `application/octet-stream`（`x-content-type-options: nosniff`），Meta 有可能拒收；正式站（Cloudflare Pages）依副檔名回 `video/mp4`，16.5MB 的 talk-ep01 在 25MB 單檔上限內。GitHub Release 資產一樣是 octet-stream，不採用。
 - **保底**：發文時照「驗證通過的那條 → 其他條」一條一條試，網址抓不到或建容器失敗就換下一條，全部失敗才紅燈（不會因為一個網址整篇不發）。
+- **11-15 18:34 實測**（run 43704659369，`20261116v_worktime`＝talk-ep01 旁白起音修正版 53.57 秒、16.5MB）：IG（EAA 權杖、graph.facebook.com）與 Threads 用正式站、raw 兩條網址**都建得出容器且 FINISHED**（IG site 17969223779998522／raw 17969224556998522；Threads site 17924280609246114／raw 17924280756246114），沒有發布。Meta 收 raw 的 octet-stream，但仍以正式站為主、raw 保底。
 - 驗證模式對影片**每一條網址都建一次容器**（不發布），每條結果記在 `state/verify.json` 的 `video.<平台>.urls`，第一條成功的記成 `url_via`，正式發文先用它。
 
 ### 只驗某一支影片（不碰排程中的輪播）

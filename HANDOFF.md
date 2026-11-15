@@ -13,7 +13,8 @@
 - `scripts/healing_article.py`：影片貼文存檔＝封面＋影片連結＋文案。
 - 驗證用佇列：`queue/20261116v_worktime/`（talk-ep01，**status draft**，還沒有 article.json；放 approved 前要補 sources 網址並等 Andy 確認樣片 T4）。
 - 這批跑了：pytest 全套。沒動 site/** 的 JS/CSS（只新增 site/media 影片檔），沒跑 _preview／_uitest。
-- 待做：T6 的 12:27 輪播時段還沒加。
+- T7 驗證實測 ✅（run 43704659369，11-15 18:34）：IG 影片容器 17969223779998522、Threads 17924280609246114 都 FINISHED、未發布；raw 網址兩平台也 FINISHED。11/16 輪播 `20261116_marriage` 沒動（仍 approved）。
+- 待做：T6 的 12:27 輪播時段還沒加；talk-ep01 正式發前要補 article.json＋Andy 確認樣片（T4）。
 
 ## 2026-11-13 整天法人「回空」補原因＋inst_today_codes 計數（data-steward，維修）
 - 11-12 13:18 UTC 那輪：證交所 T86 回 HTML 欄位對不上、櫃買回 893 檔、FinMind 整天額度用盡；source_health 只看得到「回空（0 筆）」。判定：真的壞，不是「還沒出」，所以沒改成 skipped。
