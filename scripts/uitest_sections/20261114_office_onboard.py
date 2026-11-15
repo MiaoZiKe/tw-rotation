@@ -51,7 +51,10 @@ class _ObFake:
     def body(self, since):
         evs = [e for e in self.events if e["seq"] > since] if since else self.events[-60:]
         return {"office": "main", "now": _OB_T0, "seq": len(self.events), "since": since, "initial": since == 0, "total_events": len(self.events),
-                "last_event_at": self.events[-1]["rcv"] if self.events else None, "projects": [], "sessions": [], "agents": [], "types": [],
+                "last_event_at": self.events[-1]["rcv"] if self.events else None,
+                # 辦公室頁現在只算「掛鉤事件」（各專案事件數加總）判斷已接上，所以有事件就要有對應的專案列（跟真的收件端一致）
+                "projects": [{"hash": "abcdef0123456789", "name": "tw-rotation", "first": _OB_T0, "last": _OB_T0, "events": len(self.events), "active": 1}] if self.events else [],
+                "sessions": [], "agents": [], "types": [],
                 "ceo": {"sessions": 0, "prompts": 0, "turns": 0}, "quota": None, "events": evs}
 
     def handle(self, route):
