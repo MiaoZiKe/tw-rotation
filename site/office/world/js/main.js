@@ -453,7 +453,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     camera.position.copy(controls.target).addScaledVector(off.normalize(), d); W.grabStat.zoom++; redrag();
   }, { capture: true, passive: false });
   addEventListener('pointermove', e => { if (grab) grabE = { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType }; });   // 游標移出畫布也持續記錄（才推得動邊緣平移）
-  W.grabbing = () => grab;
+  W.grabbing = () => grab;  W.pickChar = pickChar;
   const endGrab = () => { ringOff(); if (grab) { if (view.char === grab) view.dpos = { x: grab.object3D.position.x, z: grab.object3D.position.z }; grab.release(); grab = null; grabE = null; cv.style.cursor = ''; outline.clear(); } controls.enabled = true; };
   addEventListener('pointercancel', () => { endGrab(); down = null; });
   addEventListener('pointerup', e => {
