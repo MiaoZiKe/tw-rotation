@@ -143,7 +143,8 @@ def t_office_pick(b, base):
         # 游標拖到畫面內另一個點 → 員工位置 = 游標在拎起高度水平面上的投影點（也量對地面的差）
         for tx, ty in ((640, 300), (420, 520), (860, 420)):
             pg.mouse.move(tx, ty, steps=8)
-            pg.wait_for_timeout(900)
+            pg.wait_for_timeout(1000)
+            pg.evaluate("() => __world.advanceAsync(1.2)")      # 彈簧追上游標需要一點模擬時間（畫面很卡時真實時間不夠）
             exp = pg.evaluate("([a, b]) => __pk.plane(a, b, 1.05)", [tx, ty])
             gnd = pg.evaluate("([a, b]) => __pk.plane(a, b, 0)", [tx, ty])
             pp = pg.evaluate("(id) => __pk.pos(id)", cid)
@@ -180,6 +181,8 @@ def t_office_pick(b, base):
         pg.mouse.up()
         pg.wait_for_timeout(500)
         pg.evaluate("() => __world.advanceAsync(6)")      # 讓他落地（放開後有掉落動畫）
+        pg.mouse.move(8, 400)                              # 游標離開（放開後員工落在游標下的話，外框本來就該亮著，所以先移開再驗）
+        pg.wait_for_timeout(400)
         rel = pg.evaluate("(id) => ({ g: !!__world.grabbing(), st: __world.chars.get(id).state, h: !!__world.chars.get(id)._held, n: __world.outline.hulls.length })", cid)
         ok("拎著：放開後不再拎著、外框拆掉 %s" % rel, (not rel["g"]) and rel["n"] == 0 and rel["h"] is False, rel)
 
