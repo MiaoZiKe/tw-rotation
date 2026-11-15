@@ -1,6 +1,6 @@
 ---
 name: caffaine-github-weekly
-description: CaffAIne（頻道③ caffaine.ai）的「資訊差」發文技能：每週抓 GitHub 前 10 名熱門 repo → 收集相關討論（Grok／WebSearch／GitHub issues）→ 統合成爆文格式＋做圖 → 每天晚上 19:13 固定發。Andy 說「GitHub 熱門」「本週新豆」「資訊差」「搬運 GitHub」「幫 CaffAIne 做這週的貼文」「AI 頻道要發文」時使用。產出放 docs/marketing/channels/caffaine/queue/，走既有 channel_post.yml 發文。
+description: CaffAIne（頻道③ caffaine.ai）的「資訊差」發文技能：每週抓 GitHub 前 10 名熱門 repo → 收集相關討論（Grok／WebSearch／GitHub issues）→ 統合成爆文格式＋做圖 → 走自動時段發（2026-11-15 起台北 12:15、21:00 兩個時段）。Andy 說「GitHub 熱門」「本週新豆」「資訊差」「搬運 GitHub」「幫 CaffAIne 做這週的貼文」「AI 頻道要發文」時使用。產出放 docs/marketing/channels/caffaine/queue/，走既有 channel_post.yml 發文。
 ---
 
 # CaffAIne｜GitHub 每週熱門「資訊差」發文技能
@@ -25,7 +25,9 @@ description: CaffAIne（頻道③ caffaine.ai）的「資訊差」發文技能�
 
 ---
 
-## 一、一週節奏（每天晚上 19:13 自動發，保底 20:43）
+## 一、一週節奏（⚠ 2026-11-15 起時段改成台北 12:15、21:00，各保底 13:43、22:27）
+
+> 2026-11-15 Andy：「我決定每天兩隻 Reels」。自動發文改成每天最多 2 則、每個時段 1 則（`auto_post_all.md` 第 10 節）；下面這張一週節奏表是 11-15 之前的輪播排法，還沒依兩支 Reels 重排，排內容前先跟 CEO 確認。
 
 | 星期 | 發什麼 | 張數 |
 |---|---|---|
@@ -33,8 +35,8 @@ description: CaffAIne（頻道③ caffaine.ai）的「資訊差」發文技能�
 | 週一、三、五、六 | **單篇深入**：從 Top 10 挑 4 個最適合上班族的，一天一個 | 輪播 5～7 張 |
 | 週二、四 | 留給影片（`video_plan.md`：週二手沖教室、週四試飲報告）；沒影片才用新豆補位 | — |
 
-- 一天只有 1 個名額（`docs/marketing/channels/caffaine/post_quota.json` 的 `per_day: 1`）；不補發、不一天兩則。
-- 時段由 `channels.json` 決定（台北 19:13），本技能不改時段。
+- 一天 2 個名額（`docs/marketing/channels/caffaine/post_quota.json` 的 `per_day: 2`），每個時段最多 1 則；不補發。
+- 時段由 `channels.json` 的 `slots` 決定（台北 12:15、21:00），本技能不改時段。
 
 ---
 
@@ -135,7 +137,7 @@ gh api -X GET search/repositories -f q="topic:llm pushed:>$SINCE stars:>2000" -f
 docs/marketing/channels/caffaine/queue/<YYYYMMDD>_gh_<短名>/
   1.png … 7.png
   caption.txt
-  meta.json   {"title": "本週新豆｜<repo>", "platforms": ["ig","threads"], "status": "draft", "publish_at": "<YYYY-MM-DD>T19:13+08:00"}
+  meta.json   {"title": "本週新豆｜<repo>", "platforms": ["ig","threads"], "status": "draft", "publish_at": "<YYYY-MM-DD>T12:15+08:00 或 T21:00+08:00"}
   ai_review.md（有 AI 圖才要）
   sources.md（這篇每個數字、每句引用的出處連結）
 ```

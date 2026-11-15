@@ -10,7 +10,7 @@ GitHub 密碼頁：https://github.com/MiaoZiKe/tw-rotation/settings/secrets/acti
 | ④ 談晴說礙 | talk_01010909 | `HEALING_IG_ACCESS_TOKEN` | `HEALING_THREADS_ACCESS_TOKEN` | Andy 11-09 回報已設好 |
 | ② 科技透明圈 | Tech_01010909 | `TECH_IG_ACCESS_TOKEN` | `TECH_THREADS_ACCESS_TOKEN` | 等 GitHub 密碼；11-09 管線已建好（`channel_post.yml`，每天 12:17，佇列空），見 `auto_post_all.md` |
 | 水下蝦米（幣圈） | Shrimp_01010909 | `SHRIMP_IG_ACCESS_TOKEN` | `SHRIMP_THREADS_ACCESS_TOKEN` | 不接，使用 Buffer（Andy 11-09：「Shrimp_01010909 不用」）；不用建這兩個密碼 |
-| ③ AI 介紹頻道 | caffaine.ai | `CAFFAINE_IG_ACCESS_TOKEN` | `CAFFAINE_THREADS_ACCESS_TOKEN` | 等 GitHub 密碼；11-09 管線已建好（`channel_post.yml`，每天 19:13，佇列空），見 `auto_post_all.md` |
+| ③ AI 介紹頻道 | caffaine.ai | `CAFFAINE_IG_ACCESS_TOKEN` | `CAFFAINE_THREADS_ACCESS_TOKEN` | 等 GitHub 密碼；11-09 管線已建好（`channel_post.yml`，2026-11-15 起每天 12:15、21:00 兩時段，佇列空），見 `auto_post_all.md` |
 
 共用：`THREADS_APP_SECRET`（Threads 應用程式密鑰，讓系統把 1 小時的 Threads 權杖自動換成 60 天）。
 帳號 ID 不用另外放：程式用權杖自動查（/me）。權杖每週自動續期，續期後的新值寫回同名加 `_AUTO` 的密碼（例如 `TECH_IG_ACCESS_TOKEN_AUTO`），不用手動建。

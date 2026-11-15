@@ -1,5 +1,5 @@
 {
- "_說明": "多頻道自動發文設定（2026-11-09）。Andy 原話：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」。程式：scripts/channel_post.py（共用 scripts/healing_post.py 的發文邏輯）。說明：docs/marketing/channels/auto_post_all.md。slot／backup 是台北時間；cron 是同一時間換成 UTC（GitHub 排程只吃 UTC），兩者要一致（tests/test_channel_post.py 會檢查）。per_day 是上限，實際取它和該頻道 post_quota.json 的 per_day 較小者。 2026-11-09 Andy：「Shrimp_01010909 不用 其他都幫我確認」→ 水下蝦米不接這套（繼續用 Buffer），不在清單。",
+ "_說明": "多頻道自動發文設定（2026-11-09）。Andy 原話：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」。程式：scripts/channel_post.py（共用 scripts/healing_post.py 的發文邏輯）。說明：docs/marketing/channels/auto_post_all.md。slot／backup 是台北時間；cron 是同一時間換成 UTC（GitHub 排程只吃 UTC），兩者要一致（tests/test_channel_post.py 會檢查）。per_day 是上限，實際取它和該頻道 post_quota.json 的 per_day 較小者。 2026-11-09 Andy：「Shrimp_01010909 不用 其他都幫我確認」→ 水下蝦米不接這套（繼續用 Buffer），不在清單。 2026-11-15：頻道可以改寫 slots（一天多個時段，每個 {slot, backup}；cron 依序是各時段的主時段、保底），每個時段最多開始發 1 則；video_host=release＝影片放 GitHub Release 不進 main。",
  "channels": {
   "healing": {
    "name": "④ 談晴說礙",
@@ -51,14 +51,26 @@
    "dm_config": "docs/marketing/channels/caffaine/dm_config.json",
    "workflow": "channel_post.yml",
    "comments_workflow": "channel_comments.yml",
-   "slot": "19:13",
-   "backup": "20:43",
-   "cron": [
-    "13 11 * * *",
-    "43 12 * * *"
+   "slots": [
+    {
+     "slot": "12:15",
+     "backup": "13:43"
+    },
+    {
+     "slot": "21:00",
+     "backup": "22:27"
+    }
    ],
-   "per_day": 1,
-   "why_slot": "下班通勤到晚餐（18:30～20:00）是工具／教學類收藏最多的時段；跟談晴說礙 20:27 錯開一小時以上"
+   "cron": [
+    "15 4 * * *",
+    "43 5 * * *",
+    "0 13 * * *",
+    "27 14 * * *"
+   ],
+   "per_day": 2,
+   "why_slot": "2026-11-15 Andy：「我決定每天兩隻 Reels」，時段定台北 12:15（午休）與 21:00（睡前）。每個時段最多 1 則，保底補跑 13:43、22:27（同一個時段，已發就不再發）。舊時段 19:13／20:43 停用",
+   "video_host": "release",
+   "video_host_note": "影片放 GitHub Release（tag channel-media）的資產、本體推 media/caffaine/<資料夾> 分支，不進 main；scripts/channel_media.py。說明 docs/marketing/channels/auto_post_all.md「影片（Reels）」"
   }
  }
 }

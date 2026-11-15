@@ -41,13 +41,15 @@ def test_channels_json三個頻道與資料夾開關_水下蝦米不接():
     assert {k: v["prefix"] for k, v in chs.items()} == CODES
     for code, c in chs.items():
         assert c["queue"].is_dir() and c["state"].is_dir() and c["quota"].is_file(), code
-        assert c["per_day"] == 1
+        assert c["per_day"] == (2 if code == "caffaine" else 1)       # 2026-11-15 Andy：「我決定每天兩隻 Reels」
         assert c["queue"] == ROOT / f"docs/marketing/channels/{code}/queue"
     q = {k: json.loads(v["quota"].read_text(encoding="utf-8")) for k, v in chs.items()}
     assert q["tech"]["live"] is True and q["caffaine"]["live"] is True
     assert not (ROOT / "docs/marketing/channels/shrimp").exists(), "Andy 11-09：「Shrimp_01010909 不用」"
     # 2026-11-15 Andy 同意談晴說礙放量（影片＋輪播同一天＝IG 2 則）→ healing 上限 2，其他頻道維持 1
-    assert all(x["per_day"] == (2 if k == "healing" else 1) for k, x in q.items())
+    # 2026-11-15 Andy：「我決定每天兩隻 Reels」→ caffaine 也是 2（兩個時段各 1 則）；tech 維持 1
+    assert all(x["per_day"] == (2 if k in ("healing", "caffaine") else 1) for k, x in q.items())
+    assert "我決定每天兩隻 Reels" in q["caffaine"]["note"]
     # 頻道④首篇仍在佇列
     assert (chs["healing"]["queue"] / "20261108_intro" / "1.png").exists()
 
@@ -66,6 +68,15 @@ def test_時段_cron與工作流一致且避開整點():
     mine = {"healing_post.yml": set(), "channel_post.yml": set()}
     slots = []
     for code, c in chs.items():
+        if c.get("slots"):        # 一天多時段：cron 依序是每個時段的主時段、保底
+            assert c["cron"] == [_utc_cron(x[k]) for x in c["slots"] for k in ("slot", "backup")], code
+            assert "slot" not in c and "backup" not in c, code
+            for x in c["slots"]:
+                assert x["backup"] > x["slot"], code
+                assert not x["backup"].endswith(":00") and not x["backup"].endswith(":30")
+            slots += [x["slot"] for x in c["slots"]]
+            mine[c["workflow"]] |= set(c["cron"])
+            continue
         assert c["cron"] == [_utc_cron(c["slot"]), _utc_cron(c["backup"])], code
         assert not c["slot"].endswith(":00") and not c["slot"].endswith(":30")
         mine[c["workflow"]] |= set(c["cron"])
@@ -76,7 +87,11 @@ def test_時段_cron與工作流一致且避開整點():
         assert mine[f] <= wf[f], f
         for cr in wf[f] - mine[f]:
             assert cr.split()[0] not in ("0", "30"), cr
-    assert len(set(slots)) == 3
+    assert len(set(slots)) == len(slots) == 4
+    # 2026-11-15 Andy 定的兩個時段：台北 12:15、21:00（UTC 04:15、13:00），21:00 是 Andy 指定的整點，照他的
+    assert [x["slot"] for x in chs["caffaine"]["slots"]] == ["12:15", "21:00"]
+    assert {"15 4 * * *", "0 13 * * *"} <= set(chs["caffaine"]["cron"])
+    assert not {"13 11 * * *", "43 12 * * *"} & wf["channel_post.yml"]          # 舊時段 19:13／20:43 停用
 
 
 def test_plan排程只挑那個頻道_手動all不含healing():
@@ -84,7 +99,9 @@ def test_plan排程只挑那個頻道_手動all不含healing():
     assert cp.plan("17 4 * * *") == []
     assert cp.plan("", "tech") == [] and cp.plan_comments("tech") == []
     assert cp.plan("43 0 * * *") == []
-    assert cp.plan("13 11 * * *") == [{"channel": "caffaine", "prefix": "CAFFAINE_"}]
+    for cr in ("15 4 * * *", "43 5 * * *", "0 13 * * *", "27 14 * * *"):
+        assert cp.plan(cr) == [{"channel": "caffaine", "prefix": "CAFFAINE_"}], cr
+    assert cp.plan("13 11 * * *") == []
     assert cp.plan("27 12 * * *") == []                       # healing 的時段歸 healing_post.yml
     assert [x["channel"] for x in cp.plan("", "all")] == ["caffaine"]
     assert cp.plan("", "healing") == []

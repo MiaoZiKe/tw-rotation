@@ -32,6 +32,12 @@ Andy 原話（2026-11-08）：「開通自動發文，這部分幫我想辦法�
     application/octet-stream，保底）。驗證模式通過的那條記進 state/verify.json 的 video.<平台>.url_via，正式發文優先用它；
     一條建容器失敗就換下一條，不讓一個網址卡住整篇。
     驗證模式可用 --target <資料夾名> 指定只驗某一則（draft 也可以，不發布、不改 status），不碰排程中的其他貼文。
+  · 2026-11-15 頻道③ CaffAIne（Andy：「我決定每天兩隻 Reels」）加兩樣，只有 channels.json 寫了才生效，頻道④／②不受影響：
+    - video_host: "release"：影片放 GitHub Release（tag channel-media）的資產，不進 main（repo 不會越來越肥）。
+      上傳／清理在 scripts/channel_media.py；網址記在 state/media.json，video_sources 第一條就是 release。
+      影片本體可以放 media/<頻道>/<資料夾> 分支（meta.json 寫 "video_src"），或照舊放在佇列資料夾裡。
+      驗證模式 --target @reels-test：用工作流當場以 ffmpeg 產的 3 秒測試片建容器（不發布、不用放進佇列）。
+    - slots：一天多個時段（例如 12:15、21:00），每個時段最多開始發 1 則（posted.json 記 "slot"），整天仍受 per_day 限制。
 """
 from __future__ import annotations
 
@@ -58,6 +64,9 @@ VIDEO_FILE, COVER_FILE = "video.mp4", "cover.jpg"
 VIDEO_MAX_BYTES = 25 * 1024 * 1024            # Cloudflare Pages 單檔上限 25 MiB（正式站網址要放得上去）
 VIDEO_POLL_EVERY, VIDEO_POLL_TIMEOUT = 10, 900  # 影片處理比圖久：每 10 秒查一次，最多 15 分鐘
 FORMATS = ("carousel", "video")
+RELEASE_MAX_BYTES = 95 * 1024 * 1024          # video_host=release：GitHub 單檔推送上限 100MB，留一點餘裕
+# video_host=release 的頻道：{佇列資料夾: state 資料夾}（main() 依 channels.json 註冊；沒註冊＝原本行為）
+MEDIA: dict = {}
 TAIPEI = timezone(timedelta(hours=8))
 IG_MAX_CAPTION, IG_MAX_TAGS, IG_MAX_IMAGES = 2200, 30, 10
 PLATFORMS = ("ig", "threads")
@@ -137,9 +146,19 @@ def read_item(folder: Path) -> dict:
     caption = cap_p.read_text(encoding="utf-8").strip() if cap_p.exists() else ""
     imgs = images(folder)
     fmt = str(meta.get("format") or "carousel")
-    return {"name": folder.name, "dir": folder, "meta": meta, "caption": caption, "images": imgs,
-            "format": fmt, "is_video": fmt == "video",
-            "platforms": [p for p in (meta.get("platforms") or list(PLATFORMS))]}
+    it = {"name": folder.name, "dir": folder, "meta": meta, "caption": caption, "images": imgs,
+          "format": fmt, "is_video": fmt == "video",
+          "platforms": [p for p in (meta.get("platforms") or list(PLATFORMS))]}
+    if folder.parent in MEDIA:          # video_host=release 的頻道才有這兩格
+        it["release"] = True
+        it["media"] = media_entry(MEDIA[folder.parent], folder.name)
+    return it
+
+
+def media_entry(state: Path, name: str) -> dict:
+    """state/media.json 裡這則影片在 GitHub Release 的網址（scripts/channel_media.py sync 寫的）；沒有回 {}。"""
+    e = (load_json(state / "media.json", {}) or {}).get(name)
+    return e if isinstance(e, dict) and str(e.get("video", "")).startswith("https://") else {}
 
 
 def validate(it: dict) -> list[str]:
@@ -154,10 +173,14 @@ def validate(it: dict) -> list[str]:
         errs.append(f"format 只能是 carousel／video，目前是 {it.get('format')!r}")
     elif it.get("is_video"):     # 影片不需要 n.png
         v = it["dir"] / VIDEO_FILE
-        if not v.is_file() or v.stat().st_size == 0:
+        lim = RELEASE_MAX_BYTES if it.get("release") else VIDEO_MAX_BYTES
+        remote = it.get("release") and (it.get("media") or str(m.get("video_src") or "").startswith("media/"))
+        if v.is_file() and v.stat().st_size > lim:
+            errs.append(f"{VIDEO_FILE} {v.stat().st_size / 1048576:.1f}MB，超過單檔上限 {lim // 1048576}MB（請壓縮）")
+        elif remote:
+            pass                 # 影片在 media 分支／Release，不在 main（video_host=release）
+        elif not v.is_file() or v.stat().st_size == 0:
             errs.append(f"format=video 但沒有 {VIDEO_FILE}")
-        elif v.stat().st_size > VIDEO_MAX_BYTES:
-            errs.append(f"{VIDEO_FILE} {v.stat().st_size / 1048576:.1f}MB，超過正式站單檔上限 25MB（請壓縮）")
         imgs = None
     if imgs is not None and not imgs:
         errs.append("沒有圖（要有 1.png、2.png…）")
@@ -244,26 +267,39 @@ def video_sources(it: dict, prefer: str = "") -> list[tuple[str, str, str]]:
     """影片網址候選 [(路名, 網址, 要求的 content-type 開頭)]：meta.video_url → 正式站 → raw。prefer 那條排第一。
     正式站那條只有本機 site/media/<頻道>/<資料夾>/video.mp4 存在（已同步、會被 pages.yml 部署）才列。"""
     out = []
+    rel = (it.get("media") or {}).get("video", "")
+    if rel:                     # video_host=release：GitHub Release 資產（302 轉到 release-assets，用 GET 確認抓得到）
+        out.append(("release", rel, "*"))
     u = str(it["meta"].get("video_url") or "").strip()
     if u.startswith("https://"):
         out.append(("meta", u, ""))
     if (ROOT / "site" / site_media_rel(it)).is_file():
         out.append(("site", SITE + quote(site_media_rel(it)), "video/mp4"))
-    out.append(("raw", public_url(it, VIDEO_FILE), ""))     # raw 回 application/octet-stream：只確認 200
+    if not it.get("release") or (it["dir"] / VIDEO_FILE).is_file():
+        out.append(("raw", public_url(it, VIDEO_FILE), ""))     # raw 回 application/octet-stream：只確認 200
     if prefer:
         out.sort(key=lambda x: 0 if x[0] == prefer else 1)
     return out
 
 
 def cover_url(it: dict) -> str:
-    return public_url(it, COVER_FILE) if (it["dir"] / COVER_FILE).is_file() else ""
+    return cover_src(it)[0]
+
+
+def cover_src(it: dict) -> tuple[str, str]:
+    """IG Reels 封面（網址, 要求的 content-type）：佇列裡有 cover.jpg 用 raw（image/jpeg）；
+    video_host=release 且只有 Release 上有封面 → 用 Release 網址（"*"＝GET 確認 200）。"""
+    if (it["dir"] / COVER_FILE).is_file():
+        return public_url(it, COVER_FILE), "image/jpeg"
+    c = (it.get("media") or {}).get("cover", "")
+    return (c, "*") if str(c).startswith("https://") else ("", "")
 
 
 def ig_files(it: dict) -> list[str]:
     return [f.replace(".png", ".jpg") for f in it["images"]]
 
 
-def prepare(queue: Path = QUEUE) -> list[Path]:
+def prepare(queue: Path = QUEUE, site_media: bool = True) -> list[Path]:
     """IG 只收 JPEG：每個 n.png 缺 n.jpg 就轉一張（Pillow，品質 92）。回傳新產生的檔案。
     影片（format=video）：video.mp4、cover.jpg 同步到 site/media/<頻道>/<資料夾>/（正式站網址用；內容不同才覆寫）。"""
     import shutil
@@ -271,7 +307,7 @@ def prepare(queue: Path = QUEUE) -> list[Path]:
     made = []
     for d in sorted(x for x in queue.iterdir() if x.is_dir()):
         meta = load_json(d / "meta.json", {})
-        if isinstance(meta, dict) and meta.get("format") == "video" and (d / VIDEO_FILE).is_file():
+        if site_media and isinstance(meta, dict) and meta.get("format") == "video" and (d / VIDEO_FILE).is_file():
             dst = ROOT / "site" / "media" / channel_code(queue) / d.name
             for f in (VIDEO_FILE, COVER_FILE):
                 src, out = d / f, dst / f
@@ -294,6 +330,14 @@ def check_public(url: str, want: str, tries: int = 6) -> None:
     last = ""
     for k in range(tries):
         try:
+            if want == "*":      # GitHub Release 資產：302 轉到簽名網址，HEAD 不一定准 → 用 GET 只讀標頭
+                with requests.get(url, allow_redirects=True, timeout=30, stream=True) as r:
+                    if r.status_code == 200:
+                        return
+                    last = f"HTTP {r.status_code}"
+                if k < tries - 1:
+                    SP._sleep(30)
+                continue
             r = requests.head(url, allow_redirects=True, timeout=30)
             ct = r.headers.get("content-type", "")
             if r.status_code == 200 and ct.startswith(want):
@@ -524,10 +568,10 @@ def try_video_sources(fn, it: dict, p: str, check, prefer: str = "", notes: list
     """照 video_sources 的順序一條一條試 fn(video_url, cover_url)；第一條成功就回（結果, 路名）。
     網址抓不到（check 失敗）或 Meta 建容器失敗都換下一條；全部失敗才丟錯，訊息列出每一條的原因。"""
     errs = []
-    cov = cover_url(it) if p == "ig" else ""
+    cov, cwant = cover_src(it) if p == "ig" else ("", "")
     if cov:
         try:
-            check(cov, "image/jpeg")
+            check(cov, cwant)
         except Exception as e:  # noqa: BLE001
             if notes is not None:
                 notes.append(f"{p} 封面 cover.jpg 抓不到，這次不帶封面：{SP.redact(e)[:160]}")
@@ -555,10 +599,10 @@ def verify_all_sources(fn, it: dict, p: str, check, notes: list | None = None):
     """驗證模式：每一條影片網址都建一次容器（不發布），記下每條的結果，好知道 raw／正式站 Meta 收不收。
     回傳（第一條成功的容器 id, 路名, {路名: "FINISHED 容器 id" 或失敗原因}）；全部失敗丟錯。"""
     results, first = {}, None
-    cov = cover_url(it) if p == "ig" else ""
+    cov, cwant = cover_src(it) if p == "ig" else ("", "")
     if cov:
         try:
-            check(cov, "image/jpeg")
+            check(cov, cwant)
         except Exception as e:  # noqa: BLE001
             if notes is not None:
                 notes.append(f"{p} 封面 cover.jpg 抓不到，這次不帶封面：{SP.redact(e)[:160]}")
@@ -1045,7 +1089,20 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
     res = {"at": now.isoformat(timespec="seconds"), "mode": "verify" + ("（dry-run）" if dry_run else ""),
            "item": None, "posted": {}, "errors": {}, "notes": [], "summary": ""}
     target = (target or "").strip()
-    if target:
+    if target.startswith("@"):
+        # @reels-test 這類：Release 上的測試片（scripts/channel_media.py testclip 產生），不在佇列、不會被發布
+        e = media_entry(state, target) if queue in MEDIA else {}
+        if not e and dry_run and queue in MEDIA:
+            res["summary"] = (f"驗證模式空跑：不是空跑時會先用 ffmpeg 產 3 秒測試片傳到 Release，再用 {target} "
+                              "建 IG Reels／Threads 影片容器（不發布）")
+            return 0, res
+        if not e:
+            res["summary"] = f"驗證模式：state/media.json 沒有 {target}（要先跑 channel_media.py testclip；只有 video_host=release 的頻道有）"
+            return 1, res
+        it = {"name": target, "dir": queue / target, "meta": {}, "caption": "驗證用 3 秒測試片（只建容器、不發布）",
+              "images": [], "format": "video", "is_video": True, "platforms": list(PLATFORMS),
+              "release": True, "media": e}
+    elif target:
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", target) or not (queue / target).is_dir():
             res["summary"] = f"驗證模式：佇列裡沒有 {target!r} 這個資料夾"
             return 1, res
@@ -1296,7 +1353,8 @@ def run_test_delete(env: dict, now: datetime, dry_run: bool = False, queue: Path
 def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, state: Path = STATE,
         quota_path: Path = QUOTA, publishers: dict | None = None, check=check_public, saver=None,
         verifiers: dict | None = None, prefix: str | None = None, per_day_max: int | None = None,
-        video_publishers: dict | None = None, video_verifiers: dict | None = None) -> tuple[int, dict]:
+        video_publishers: dict | None = None, video_verifiers: dict | None = None,
+        slots: list | None = None) -> tuple[int, dict]:
     """回傳（結束碼, 結果）。prefix＝權杖密碼前綴（預設頻道④）；per_day_max＝channels.json 的每日上限（取較小者）。結果的 summary 給工作流摘要用。
     某平台權杖第一次出現（state/verify.json 沒有 verified 紀錄）→ 先跑驗證模式（只建容器不發布），通過才正式發。"""
     pub = {"ig": publish_ig, "threads": SP.publish_threads, **(publishers or {})}
@@ -1332,6 +1390,12 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
     if not partial and started_today(posted, now) >= q["per_day"]:
         res["summary"] = f"今天已發 {started_today(posted, now)} 則（per_day={q['per_day']}），下一則留到明天：{it['name']}"
         return 0, res
+    skey = slot_key(now, slots) if slots else ""
+    if skey and not partial:
+        used = [k for k, v in posted.items() if isinstance(v, dict) and v.get("slot") == skey]
+        if used:
+            res["summary"] = f"這個時段（{skey}）已發 {used[0]}，每個時段最多 1 則，下一則留到下一個時段：{it['name']}"
+            return 0, res
     res["item"] = it["name"]
     tok = tokens(env, prefix)
     th_urls = [public_url(it, f) for f in it["images"]]
@@ -1408,6 +1472,8 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
                  **({"format": "video", "video_via": r.get("video_via", "")} if it["is_video"] else {})}
             entry[p] = r
             entry.setdefault("at", r["at"])
+            if skey:
+                entry.setdefault("slot", skey)
             res["posted"][p] = r
             SP.log(f"[{p}] 已發布 id={r['id']} {r['link']}")
         except Exception as e:  # noqa: BLE001
@@ -1428,6 +1494,19 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
     res["summary"] = f"{it['name']}：" + ("；".join(x for x in (links and f"已發 {links}", errs) if x) or "沒有發出")
     _write_last(state, res, dry_run)
     return (1 if fail else 0), res
+
+
+def slot_key(now: datetime, slots: list) -> str:
+    """一天多時段（channels.json 的 slots，台北 HH:MM）：現在屬於哪個時段 → "YYYY-MM-DD HH:MM"。
+    規則：最近一個「已經到了」的主時段（保底補跑、GitHub 排程延遲都算同一個時段）；
+    今天第一個時段之前 → 算前一天最後一個時段。"""
+    t = now.astimezone(TAIPEI)
+    hm = sorted(str(x["slot"] if isinstance(x, dict) else x) for x in slots)
+    cur = t.strftime("%H:%M")
+    past = [h for h in hm if h <= cur]
+    if past:
+        return f"{t.date().isoformat()} {past[-1]}"
+    return f"{(t - timedelta(days=1)).date().isoformat()} {hm[-1]}"
 
 
 def _threads_text(caption: str) -> str:
@@ -1488,8 +1567,10 @@ def main(argv=None) -> int:
         ch = {"code": "healing", "name": "④ " + LABEL, "prefix": PREFIX, "queue": QUEUE, "state": STATE,
               "quota": QUOTA, "per_day": None}            # channels.json 壞了，頻道④照舊用原本的路徑
     q, st, px = ch["queue"], ch["state"], ch["prefix"]
+    if ch.get("video_host") == "release":
+        MEDIA[q] = st
     if a.prepare:
-        made = prepare(q) if q.is_dir() else []
+        made = prepare(q, site_media=ch.get("video_host", "site") == "site") if q.is_dir() else []
         print("新產生 JPEG／同步影片：" + ("、".join(str(p.relative_to(ROOT)) for p in made) or "無"))
         return 0
     env, now = dict(os.environ), datetime.now(TAIPEI)
@@ -1502,7 +1583,7 @@ def main(argv=None) -> int:
         rc, res = run_test_delete(env, now, a.dry_run, queue=q, state=st, prefix=px)
     else:
         rc, res = run(env, now, a.dry_run, queue=q, state=st, quota_path=ch["quota"], prefix=px,
-                      per_day_max=ch.get("per_day"))
+                      per_day_max=ch.get("per_day"), **({"slots": ch["slots"]} if ch.get("slots") else {}))
     summ = os.environ.get("GITHUB_STEP_SUMMARY")
     if summ:
         with open(summ, "a", encoding="utf-8") as f:

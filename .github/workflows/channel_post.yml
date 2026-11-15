@@ -1,5 +1,5 @@
 name: channel_post
-# 多頻道自動發文（IG 輪播＋Threads 輪播）：② 科技透明圈（tech）、③ AI 介紹頻道（caffaine）（水下蝦米不接，繼續用 Buffer）。
+# 多頻道自動發文（IG 輪播＋Threads 輪播；2026-11-15 起也發影片：IG Reels＋Threads 影片）：② 科技透明圈（tech）、③ AI 介紹頻道（caffaine）（水下蝦米不接，繼續用 Buffer）。
 # 2026-11-09 Andy：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai」。
 # 說明：docs/marketing/channels/auto_post_all.md；頻道清單：docs/marketing/channels/channels.json。
 # - 頻道④（healing）不在這支：照舊由 healing_post.yml 排程（同一份程式 scripts/healing_post.py）。
@@ -12,8 +12,11 @@ on:
     # ★ tech：頻道② 改用 tc_post.yml，2026-11-10 頻道④交接。channels.json 標 handed_over，plan 會跳過 tech（這兩條排程醒來也是 0 個頻道）。
     - cron: "17 4 * * *"    # tech 台北 12:17（主時段）
     - cron: "47 5 * * *"    # tech 台北 13:47（保底補跑）
-    - cron: "13 11 * * *"   # caffaine 台北 19:13（主時段）
-    - cron: "43 12 * * *"   # caffaine 台北 20:43（保底補跑）
+    # ★ caffaine：2026-11-15 Andy「我決定每天兩隻 Reels」→ 兩個時段，每個時段最多 1 則（channels.json slots）
+    - cron: "15 4 * * *"    # caffaine 台北 12:15（第一個時段）
+    - cron: "43 5 * * *"    # caffaine 台北 13:43（第一個時段保底補跑）
+    - cron: "0 13 * * *"    # caffaine 台北 21:00（第二個時段）
+    - cron: "27 14 * * *"   # caffaine 台北 22:27（第二個時段保底補跑）
   workflow_dispatch:
     inputs:
       channel:
@@ -22,7 +25,7 @@ on:
         options: [all, tech, caffaine]
         default: all
       mode:
-        description: "post＝正式發；verify＝驗證模式（只建輪播容器不發布）；delete＝刪 target；test_delete＝Threads 真發一則測試、60 秒內自動刪"
+        description: "post＝正式發；verify＝驗證模式（只建容器不發布；target 填 @reels-test＝用 3 秒測試片驗 Reels）；delete＝刪 target；test_delete＝Threads 真發一則測試、60 秒內自動刪"
         type: choice
         options: [post, verify, delete, test_delete]
         default: post
@@ -31,7 +34,7 @@ on:
         type: boolean
         default: true
       target:
-        description: "mode=delete：佇列資料夾名或貼文 id"
+        description: "mode=delete：佇列資料夾名或貼文 id；mode=verify：佇列資料夾名或 @reels-test"
         type: string
         default: ""
       platform:
@@ -44,7 +47,7 @@ on:
         type: string
         default: ""
 permissions:
-  contents: write   # 把各頻道 state/posted.json、last_run.json、補轉的 JPEG 推回 main（不含權杖）
+  contents: write   # 把各頻道 state/posted.json、last_run.json、補轉的 JPEG 推回 main（不含權杖）；影片傳到 Release channel-media、發完刪 media/* 分支
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -70,7 +73,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60   # 影片容器每平台最多等 15 分鐘
     strategy:
       fail-fast: false
       max-parallel: 1   # 一個一個跑：各頻道推回 main 的檔不同，但排隊比較不會互相擋推送
@@ -136,6 +139,17 @@ jobs:
         run: |
           python scripts/channel_post.py --channel "$CH" --prepare
           bash "$RUNNER_TEMP/push.sh" "$CH：佇列補轉 IG 用 JPEG $(date -u '+%Y-%m-%d')" "$CH_DIR/queue"
+      - name: 影片傳到 GitHub Release（video_host=release 的頻道；影片不進 main）
+        if: steps.mode.outputs.dry == '' && steps.mode.outputs.mode != 'delete'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IN_TARGET: ${{ inputs.target }}
+        run: |
+          if [ "${{ steps.mode.outputs.mode }}" = "verify" ] && [ "$IN_TARGET" = "@reels-test" ]; then
+            command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; }
+            python scripts/channel_media.py testclip --channel "$CH"
+          fi
+          python scripts/channel_media.py sync --channel "$CH"
       - name: 發文（失敗會紅燈）
         env:
           # tech：只有 matrix.channel == 'tech' 的 job 才拿得到 TECH_*，其他頻道的 job 這幾格是空字串
@@ -159,6 +173,12 @@ jobs:
         run: |
           P="${IN_PLATFORM:-all}"
           python scripts/channel_post.py --channel "$CH" ${{ steps.mode.outputs.dry }} --mode "${{ steps.mode.outputs.mode }}" --target "$IN_TARGET" --platform "$P"
+      - name: 清掉發完 3 天的影片（Release 資產＋media 分支）
+        if: always() && steps.mode.outputs.dry == '' && steps.mode.outputs.mode == 'post'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/channel_media.py clean --channel "$CH" --keep-days 3
       - name: 發文紀錄寫回 main（只有貼文網址與狀態，沒有權杖）
         if: always() && steps.mode.outputs.dry == ''
         run: |

@@ -6,6 +6,9 @@
 - 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
 
 
+## 2026-11-15 頻道③ CaffAIne 每天兩支 Reels：12:15／21:00 兩時段＋影片放 GitHub Release（social-ops-lead；Andy：「我決定每天兩隻 Reels」）
+- caffaine 改兩時段（保底 13:43／22:27），每時段最多 1 則、整天 2 則（channels.json `slots`、post_quota `per_day` 2）；影片走 Release `channel-media`（`scripts/channel_media.py`：作者 `stage` 推 media/caffaine/<資料夾> 分支，工作流 sync 上傳、發完 3 天 clean），不進 main。驗 Reels：channel_post verify、target `@reels-test`。說明 `docs/marketing/channels/auto_post_all.md` 第 10 節。佇列沒放任何貼文。
+
 ## 2026-11-15 頻道④自動發文支援影片（IG Reels＋Threads 影片）（social-ops-lead；plan_202611_影片為主.md T5～T7）
 - `scripts/healing_post.py`：meta.json `"format": "video"`＋`video.mp4`（可選 `cover.jpg`）→ IG `REELS`（`share_to_feed=true`、`cover_url`）／Threads `VIDEO`，輪詢 FINISHED（最多 15 分鐘）才 publish；EAA／IGAA 兩種 IG 權杖都走 `ig_host()`。沒寫 `format` 一律輪播，tech／caffaine 共用程式行為不變（test_channel_post 全綠）。
 - 影片網址：正式站 `https://liguligu-puipui.com/media/healing/<資料夾>/video.mp4`（`--prepare` 同步到 `site/media/healing/`，pages.yml 部署，回 video/mp4）優先，raw.githubusercontent（實測回 application/octet-stream）保底；一條失敗換下一條。
