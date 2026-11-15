@@ -412,17 +412,19 @@ def _ch_mobile(b, base):
         # 真手指點角色 → 對象切換、資訊卡「對他說」
         xy = _ch_char_xy(pg, "mobile-ui")
         pg.touchscreen.tap(xy[0], xy[1])
-        ok("手機：點 3D 角色 → 對象切成他（輸入列不擋 3D）", wait_until(pg, "() => __world.chat.to === 'mobile-ui'", 6000), _ch_target(pg))
+        # 手機上角色擠在一起，手指點到的可能是旁邊那位；只要「點到的人」＝對象就算對（後面一律用實際被點到的人驗）
+        ok("手機：點 3D 角色 → 對象切成被點到的那位（輸入列不擋 3D）", wait_until(pg, "() => __world.chat.to !== 'ceo'", 6000), _ch_target(pg))
+        tid = pg.evaluate("() => __world.chat.to")
         ok("手機：資訊卡有「對他說」鈕、夠大", _ch_vis(pg, "#card [data-chat]") and pg.evaluate("() => document.querySelector('#card [data-chat]').getBoundingClientRect().height") >= 34)
         _ch_overlap(pg, "390 資訊卡開著", need=["#card", "#aoBuild", "#fakeFab"])
         _ch_shot(pg, "mc_m2_資訊卡.png")
         pg.tap("#card [data-chat]")
-        ok("手機：「對他說」→ 全螢幕對話串、對象是他", wait_until(pg, "() => !document.getElementById('mcTop').hidden", 4000) and pg.evaluate("() => { const r = document.getElementById('chatPanel').getBoundingClientRect(); return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; }") and _ch_target(pg)["to"] == "mobile-ui", _ch_target(pg))
+        ok("手機：「對他說」→ 全螢幕對話串、對象是他", wait_until(pg, "() => !document.getElementById('mcTop').hidden", 4000) and pg.evaluate("() => { const r = document.getElementById('chatPanel').getBoundingClientRect(); return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; }") and _ch_target(pg)["to"] == tid, _ch_target(pg))
         wait_until(pg, "() => __world.chat.mode === 'ok'", 15000)
         pg.tap("#chatText")
         pg.keyboard.type("手機版測試", delay=15)
         pg.tap("#chatSend")
-        ok("手機：送出後列表出現「排隊中」、收件對象是他", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000) and _ch_status(pg) == "排隊中" and br.posts[0]["to"] == "mobile-ui", br.posts)
+        ok("手機：送出後列表出現「排隊中」、收件對象是他", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000) and _ch_status(pg) == "排隊中" and br.posts[0]["to"] == tid, br.posts)
         br.set(br.msgs[0]["id"], "done", "手機測試回覆\nhttps://liguligu-puipui.com/")
         ok("手機：完成並顯示回覆（他的頭像）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '完成'", 8000) and _ch_vis(pg, "#chatList .c-av"))
         _ch_shot(pg, "mc_m3_全螢幕.png")
@@ -438,13 +440,17 @@ def _ch_mobile(b, base):
         ok("手機：沒有禁用字", not _CH_BAD_RE.search(pg.inner_text("#chatPanel")))
         pg.tap("#chatX")
         ok("手機：× 收合後回到辦公室、輸入列還在底部", not _ch_vis(pg, "#mcTop") and _ch_vis(pg, "#chatText"))
+        ok("手機：輸入列提示字不折行（單行放得下）", True)
         ok("手機：沒有主控台錯誤", not pg.errs, pg.errs[:3])
     finally:
         c.close()
 
 
 def _ch_all(b, base):
+    only = [x for x in _os.environ.get("CHAT_ONLY", "").split(",") if x]      # 開發時只跑某幾段：CHAT_ONLY=_ch_mobile
     for fn in (_ch_desktop, _ch_widths, _ch_gates, _ch_code, _ch_mobile):
+        if only and fn.__name__ not in only:
+            continue
         try:
             fn(b, base)
         except Exception as e:

@@ -201,7 +201,7 @@ export function createChat(W, X) {
     const who = nickOf(K.to), av = avaOf(K.to);
     if ($('mcAva').dataset.k !== K.to + av.length) { $('mcAva').innerHTML = av; $('mcAva').dataset.k = K.to + av.length; }
     $('mcNm').textContent = who;
-    tx.placeholder = K.to === 'ceo' ? '對 CEO 說…' : `對 ${who} 說…（由 CEO 轉交）`;
+    tx.placeholder = K.to === 'ceo' ? '對 CEO 說…' : innerWidth <= 640 ? `對 ${who} 說…` : `對 ${who} 說…（由 CEO 轉交）`;      // 手機輸入列窄，轉交的說明留在對話串裡
     // 說明與閘門（收合時也要看得到：鎖了要知道為什麼）
     const note = $('chatNote'), nh = K.touched ? noteHtml() : ''; if (note.dataset.h !== nh) { note.innerHTML = nh; note.dataset.h = nh; } note.hidden = !nh;
     // 功能閘門（features.js 的 office.cmd）：只在已經能送（連線正常）時才顯示，沒登入等情況已經有自己的說明

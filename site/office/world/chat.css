@@ -115,7 +115,8 @@
   #app .sp-go{left:12px}
   #app .jl-hint{left:50%}
   .pt-joy,.pt-btns{bottom:calc(16px + var(--lift,0px) + var(--mc-h,0px))}
-  .pt-tips{bottom:calc(160px + var(--lift,0px) + var(--mc-h,0px))}
+  #app.mc-open .pt-joy,#app.mc-open .pt-btns,#app.mc-open .pt-tips{visibility:hidden}      /* 全螢幕對話串蓋住整個畫面，底下的虛擬搖桿先藏起來（收合就回來） */
+  #app .pt-tips{bottom:calc(160px + var(--lift,0px) + var(--mc-h,0px))}
   #app #editBar{width:calc(100vw - 16px)}
 }
 /* 手機螢幕鍵盤彈出（可視高約 480）：展開時說明列隱藏，讓訊息串留得出空間 */
