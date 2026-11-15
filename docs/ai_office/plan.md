@@ -255,3 +255,9 @@ Claude（程式生成）的強弱項，依這兩天實測：
 - 事件：splashed、left_pool、extinguished（cause:'pool'）、sport_start、sport_end、sport_score（每一分一則＋結束時勝負各一則，含 opponent）。情緒由 mind.js 訂閱處理。
 - 驗收：`scripts/uitest_sections/20261115_office_sports.py`。
 - 11-15 18:18 雲端接入工作階段正式交接給本工作階段：使用者 Default 雲端環境已設網路金鑰（AI 辦公室接入碼，主機 tw-ai-office-bridge…workers.dev）與設定腳本（clone→/opt/ai-office-bridge→install_hooks.py→config.json），測試事件 ok。待辦：① 合併 aio-task-name→main（需擁有者同意）並確認 Worker 部署；② 前端 task_name 名牌＋多專案（進行中）；③ 合併上線後把設定腳本 install_hooks.py 那行加 `--instructions ~/.claude/CLAUDE.md`（先在容器實跑，提出更新環境請使用者按同意）。
+
+## 2026-11-16 凌晨：擁有者回饋（原話摘錄）與處理
+- 「可以推，也同意打開網頁下指令」→ 收件服務與外掛已推 main（a30c845c，Worker 部署成功）；環境設定腳本加 --instructions（任務簡稱）。
+- 「以後問事情不能在這裡回應，需要自動另創聊天室窗，將所有跟 Agent 網站對話在那邊執行，避免影響開發」→ 另開專用工作階段「AI 辦公室收件 CEO」（session_018gakVR9GMmyV91M26DzgTQ），用 `AIO_INBOX=1 inbox.py wait` 待命；環境不設全域 AIO_INBOX，開發聊天室的掛鉤不會取網站指令。
+- 對話框：「改成像 Messenger 或 Teams」「已取走、排隊中改成傳送中等，CEO 轉交不用備註」「對象列修正」「靠左，可切中間／靠右、自行移動、鎖定、透明」「聊天室依單位區分」「佈告欄可直接對整個部門說話」「等回應很久」→ frontend-ui 改版中。
+- 3D：「這樣距離抓不到員工」「游標移到員工身上要有明顯外框」「拎著員工拖曳時跟著螢幕方向、無法移動背景」「佈告欄 Follow 回報進度格式」→ canvas-motion-engineer 處理中。
