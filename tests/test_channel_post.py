@@ -41,7 +41,7 @@ def test_channels_json三個頻道與資料夾開關_水下蝦米不接():
     assert {k: v["prefix"] for k, v in chs.items()} == CODES
     for code, c in chs.items():
         assert c["queue"].is_dir() and c["state"].is_dir() and c["quota"].is_file(), code
-        assert c["per_day"] == (2 if code == "caffaine" else 1)       # 2026-11-15 Andy：「我決定每天兩隻 Reels」
+        assert c["per_day"] == (2 if code in ("caffaine", "healing") else 1)   # 2026-11-15 Andy：「我決定每天兩隻 Reels」（caffaine）；2026-11-16 Andy「放寬」（healing）
         assert c["queue"] == ROOT / f"docs/marketing/channels/{code}/queue"
     q = {k: json.loads(v["quota"].read_text(encoding="utf-8")) for k, v in chs.items()}
     assert q["tech"]["live"] is True and q["caffaine"]["live"] is True
