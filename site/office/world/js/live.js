@@ -476,7 +476,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   // 收到第一筆事件（比打開引導時多）就算接上：顯示成功、2.5 秒後自動關閉，辦公室本來就已經是即時模式
   function guideCheck(j) {
     if (!G.open) return;
-    const n = j.total_events || 0;
+    const n = claudeEvents(j);
     if (G.base == null) { G.base = n; return; }
     if (n > G.base && !G.done) {
       G.done = true; guideRender(true); ui.toast('已接上 Claude，辦公室正在即時更新');
@@ -628,6 +628,9 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
       case 'PreCompact': S.say('CEO 整理了一下記憶'); break;
     }
   }
+  // 「Claude 真的送來的事件」數：只算掛鉤事件（各專案的事件數加總）。total_events 還含收件匣的 InboxUpdate——
+  // 站長在對話框送出／撤回指令也會寫一筆，若拿它判斷，Claude 根本沒接上時頂列就變「即時」、接入引導就誤報「已接上」（2026-11-15 端到端實測抓到）。
+  const claudeEvents = j => (j.projects || []).reduce((a, p) => a + (p.events || 0), 0);
   function applySnapshot(j) {
     const inP = x => !L.project || x.project_hash === L.project;
     syncSessions();
@@ -641,7 +644,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const run = ag.filter(x => x.status === 'running');
     run.slice(0, 12).forEach(a => startAgent(a.agent_id, a.agent_type, a.description, 'as:' + a.agent_id, a.tool));
     for (const e of j.events) L.seen.add(e.seq);                                                    // 連上之前的事件不重演
-    if (j.total_events) ui.toast(`已連上你的 Claude：${sessionsOfProject().filter(s => !s.ended).length} 個工作階段開著、${run.length} 位同事進行中`);
+    if (claudeEvents(j)) ui.toast(`已連上你的 Claude：${sessionsOfProject().filter(s => !s.ended).length} 個工作階段開著、${run.length} 位同事進行中`);
   }
   function applyQuota(qt) {
     if (!qt || !qt.rate_limits) return;
@@ -664,7 +667,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     }
     applyQuota(j.quota);
     L.seq = Math.max(L.seq, j.seq || 0);
-    L.status = j.total_events ? 'ok' : 'nodata';
+    L.status = claudeEvents(j) ? 'ok' : 'nodata';
     if (L.cfg.login && !L.code) L.msg = '';
     guideCheck(j);
   }
