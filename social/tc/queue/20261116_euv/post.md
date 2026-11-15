@@ -8,6 +8,7 @@ media: video
 video: tech-euv.mp4
 images: cover.jpg
 title: 科技透明圈影片：曝光機：光比線還粗（tech-euv v2）
+hook_type: 反差（#2）
 ---
 # 頻道②「科技透明圈」：影片「曝光機：光比線還粗」
 
