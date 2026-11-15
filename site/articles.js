@@ -52,7 +52,12 @@
     tech: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
     know: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   };
-  const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || (PRIV[k] && CAT_IC[PRIV[k].ic || 'tech']) || CAT_IC.all}</svg>`;
+  /* 2026-11-15 Andy：頻道分頁換上各自 LOGO。PRIV[k].logo＝[淺色主題檔, 深色主題檔]（放 articles/<k>/）；沒有 logo 或做成浮水印大圖（sz≥90）時退回通用圖示。
+     兩張都畫、靠 CSS 依主題顯示其一，避免換主題時要重畫整個清單。 */
+  const icon = (k, sz) => (PRIV[k] && PRIV[k].logo && (sz || 16) < 90
+    ? `<span class="artlg" style="--lg:${sz || 16}px"><img class="lgl" src="articles/${k}/${PRIV[k].logo[0]}" alt="${PRIV[k].t}" width="${sz || 16}" height="${sz || 16}" draggable="false"><img class="lgd" src="articles/${k}/${PRIV[k].logo[1]}" alt="${PRIV[k].t}" width="${sz || 16}" height="${sz || 16}" draggable="false"></span>`
+    : iconSvg(k, sz));
+  const iconSvg = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || (PRIV[k] && CAT_IC[PRIV[k].ic || 'tech']) || CAT_IC.all}</svg>`;
   /* 類別：名稱＋色（--art-<k>，深淺主題各一組，在 css() 定義）。紅綠保留給漲跌，所以快訊用橘、產業鏈用青綠（偏藍，跟跌的綠分得開）、知識用紫 */
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
   /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
@@ -78,10 +83,10 @@
        col＝[深色主題色, 淺色主題色]（不要紅、綠，紅綠留給漲跌）；ic＝圖示 key（沿用 CAT_IC 的某一個，不加就用 tech 那顆）。
        預定的列（Andy 11-15 交代，各頻道要用時再加）：ligu 哩股哩股、caffaine CaffAIne、healing 談晴說礙。 */
   const PRIV = {
-    tech: { t: '科技透明圈', s: '科技', col: ['#e3b341', '#8a6100'], ic: 'tech' },
-    ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'] },
-    caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'] },
-    healing: { t: '談晴說礙', s: '談晴', col: ['#f5a55a', '#b35c12'] },   // 頻道④ 晝版晴光橘（深色主題亮橘、淺色主題深橘，避開紅綠）
+    tech: { t: '科技透明圈', s: '科技', col: ['#e3b341', '#8a6100'], logo: ['logo.svg', 'logo-d.svg'], ic: 'tech' },
+    ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'], logo: ['logo.png', 'logo-d.png'] },
+    caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'], logo: ['logo.svg', 'logo-d.svg'] },
+    healing: { t: '談晴說礙', s: '談晴', col: ['#f5a55a', '#b35c12'], logo: ['logo.svg', 'logo-d.svg'] },   // 頻道④ 晝版晴光橘（深色主題亮橘、淺色主題深橘，避開紅綠）
   };
   Object.keys(PRIV).forEach((k) => { Object.assign(PRIV[k], { file: `articles/${k}/index.json`, dir: `articles/${k}/` }); CAT_S[k] = PRIV[k].s || PRIV[k].t; });
   const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW), Object.keys(PRIV));   // 分頁由左到右
@@ -133,6 +138,7 @@
 .pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
 .k-all{--k:var(--art-all)}.k-premarket{--k:var(--art-pre)}.k-postmarket{--k:var(--art-post)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
 .artic{flex:none;display:block}
+.artlg{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--lg);height:var(--lg);vertical-align:middle}.artlg img{width:100%;height:100%;object-fit:contain;display:block}.artlg .lgd{display:none}:root:not([data-theme="light"]) .artlg .lgl{display:none}:root:not([data-theme="light"]) .artlg .lgd{display:block}
 /* 10-26 盤前消息：每天一張卡（5 則、依分類色塊、可點連結）＋「複製整包」。分類色用 --art-p*／--art-tn-*（不用紅綠，紅綠留給漲跌）。 */
 #artCard #artPre{display:none}
 #artCard.pre #artPre{display:block}
