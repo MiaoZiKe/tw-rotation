@@ -375,7 +375,8 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
     const t = performance.now(); if (t - hint0 > 250) { hint0 = t; PV.set(9.9, 0.5, 40.2).project(W.camera); const off = !(PV.z < 1 && Math.abs(PV.x) < 0.8 && PV.y > -0.78 && PV.y < 1) || document.body.classList.contains('pov-on'); go.hidden = !off; }
   }
   // 掛進主迴圈：每個模擬步（W.tickTimers 後面）、每一畫面（W.updateBlobs 後面）
-  const t0 = W.tickTimers; S.perf = { ms: 0, n: 0, max: 0 }; W.tickTimers = () => { t0(); const h = W.time - lastT; lastT = W.time; if (h > 0) { const p0 = performance.now(); try { tick(Math.min(h, 0.1)); } catch (e) { if (!S.err) console.error('運動場例外', e); S.err = (S.err || 0) + 1; } const dt = performance.now() - p0; S.perf.ms += dt; S.perf.n++; if (dt > S.perf.max) S.perf.max = dt; } };   // 量測：運動場每個模擬步花多少毫秒（驗收用）
+  const t0 = W.tickTimers; S.perf = { ms: 0, n: 0, max: 0, best: 1e9, bms: 0, bn: 0 };   // best：每 40 步一批的平均毫秒數裡最小的那批（機器很忙、被搶 CPU 時，整體平均會失真）
+   W.tickTimers = () => { t0(); const h = W.time - lastT; lastT = W.time; if (h > 0) { const p0 = performance.now(); try { tick(Math.min(h, 0.1)); } catch (e) { if (!S.err) console.error('運動場例外', e); S.err = (S.err || 0) + 1; } const dt = performance.now() - p0; S.perf.ms += dt; S.perf.n++; if (dt > S.perf.max) S.perf.max = dt; S.perf.bms += dt; if (++S.perf.bn >= 40) { S.perf.best = Math.min(S.perf.best, S.perf.bms / S.perf.bn); S.perf.bms = 0; S.perf.bn = 0; } } };   // 量測：運動場每個模擬步花多少毫秒（驗收用）
   const u0 = W.updateBlobs; W.updateBlobs = () => { u0(); try { frame(); } catch (e) { if (!S.err) console.error('運動場畫面例外', e); S.err = (S.err || 0) + 1; } };
   // 運動場自己的繪製物件（驗收數「繪製次數增量」用：靜態＋目前顯示中的球、陰影、撞球組）
   S.drawObjects = () => [B.mesh, B.nets, B.sign, water.mesh, water.points, V.shuttle, V.tennis, V.basket, V.shadow, V.balls, V.cue, V.line].filter(o => o && o.visible);
