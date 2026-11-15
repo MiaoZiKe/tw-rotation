@@ -71605,7 +71605,7 @@ def t_articles_1014(b, base):
     ok(f"{T}：點閱數 API 不帶登入權杖（沒登入也能呼叫）", all("t" not in x[2] for x in api_log if x[1].startswith("/v1/articles/")), api_log)
     # ② 填滿版面＋分頁顏色
     st = pg.evaluate("""() => { const L = document.getElementById('artList'), C = document.getElementById('artCard'), V = document.getElementById('v-articles'), M = document.querySelector('main');
-        const tabs = [...document.querySelectorAll('#artCats>button')].map(b => [b.dataset.cat, b.textContent.trim(), getComputedStyle(b.querySelector('.artic')).color, !!b.querySelector('svg')]);
+        const tabs = [...document.querySelectorAll('#artCats>button')].filter(b => b.dataset.cat !== 'tech').map(b => [b.dataset.cat, b.textContent.trim(), getComputedStyle(b.querySelector('.artic')).color, !!b.querySelector('svg')]);
         const cards = [...document.querySelectorAll('#artList .artc')].map(a => [getComputedStyle(a, '::before').backgroundColor, !!a.querySelector('.artbadge svg')]);
         return { cols: getComputedStyle(L).gridTemplateColumns.split(' ').length, vw: Math.round(V.getBoundingClientRect().width), mw: Math.round(M.getBoundingClientRect().width), ch: Math.round(C.getBoundingClientRect().height),
           side: (() => { const s = document.getElementById('artSide'); const r = s.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.right), s.querySelectorAll('.cr').length]; })(), tabs, cards }; }""")
@@ -71958,7 +71958,7 @@ def t_articles_1014(b, base):
     MSTAT = """() => { const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
         const v = document.getElementById('v-articles'); const tiny = [...v.querySelectorAll('*')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 11).map(e => e.textContent.trim().slice(0, 20));
         const p = v.querySelector('#artBody > p'); const L = document.getElementById('artList');
-        const tabs = [...document.querySelectorAll('#artCats>button')].map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right), b.scrollWidth <= b.clientWidth + 1]; });
+        const tabs = [...document.querySelectorAll('#artCats>button:not([hidden])')].map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right), b.scrollWidth <= b.clientWidth + 1]; });
         return { h: location.hash, m4: document.documentElement.classList.contains('m4'), sw: document.documentElement.scrollWidth - innerWidth, tiny, pfs: p ? parseFloat(getComputedStyle(p).fontSize) : null,
           n: v.querySelectorAll('.artc').length, cols: L ? getComputedStyle(L.querySelector('.artgrid') || L).gridTemplateColumns.split(' ').length : 0, tabs }; }"""
     st = mp.evaluate(MSTAT)

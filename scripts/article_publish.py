@@ -14,6 +14,11 @@ Claude 寫完文章後不再把全文推進 repo，而是：
   --index-only <全文.json>   不上傳，只依全文 JSON 產出索引項目（Worker 已經有這篇時用；會先確認 Worker 真的有）
 鑰匙：Claude 雲端環境用「網路密鑰」（代理自動補，程式不碰鑰匙）；也可用環境變數 ARTICLE_PUT_KEY（最小權限，只能管全文；其次才用 ARTICLE_BOT_KEY）。
 網址：ACCOUNT_API_URL，沒設用 DEFAULT_API。
+
+頻道分頁（2026-11-15，隱藏分頁：tech 科技透明圈、之後 ligu／caffaine／healing，見 docs/tech_articles.md）：
+  python scripts/article_publish.py <全文.json> --channel tech      （全文 JSON 的 cat 寫成頻道 key 時可省略 --channel）
+  這類文章**不走 Worker、不進 site/articles/index.json**：全文寫 site/articles/<key>/<id>.json、清單項目寫 site/articles/<key>/index.json，
+  列表／搜尋／統計都看不到，只有站主在頻道分頁看得到，直接連結 #article/<id> 誰都打得開。分頁本身要先在 site/articles.js 的 PRIV 設定表有那一列。
 """
 from __future__ import annotations
 
@@ -56,6 +61,36 @@ def public_entry(post: dict, topic: str | None = None) -> dict:
             "reading_min": int(post.get("reading_min") or 3), "src": "api"}
 
 
+CH_RE = re.compile(r"^[a-z]{2,20}$")
+CH_KEYS = ("id", "title", "date", "subtitle", "summary", "tags", "reading_min", "groups")
+
+
+def publish_channel(post: dict, channel: str) -> dict:
+    """頻道分頁文章：全文與清單都寫進 site/articles/<channel>/（公開靜態檔，不進主索引）。回傳清單項目。"""
+    pid = str(post.get("id") or "")
+    if not CH_RE.match(channel) or channel in ("all", "news", "intro", "know", "premarket", "postmarket"):
+        raise ValueError(f"頻道 key 不合格：{channel!r}")
+    if not ID_RE.match(pid):
+        raise ValueError(f"文章 id 不合格：{pid!r}")
+    if not post.get("title") or not re.match(r"^\d{4}-\d\d-\d\d$", str(post.get("date") or "")):
+        raise ValueError("需要 title 與 date（YYYY-MM-DD）")
+    if not isinstance(post.get("blocks"), list) or not post["blocks"]:
+        raise ValueError("全文沒有 blocks")
+    d = ROOT / "site" / "articles" / channel
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{pid}.json").write_text(json.dumps({**post, "cat": channel}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    entry = {k: post[k] for k in CH_KEYS if k in post}
+    ip = d / "index.json"
+    try:
+        idx = json.loads(ip.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        idx = {"updated": "", "articles": []}
+    idx["articles"] = [entry] + [a for a in idx.get("articles", []) if a.get("id") != pid]
+    idx["updated"] = max(str(idx.get("updated") or ""), entry["date"])
+    ip.write_text(json.dumps(idx, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return entry
+
+
 def leaks(index_path: Path | None = None, posts_dir: Path | None = None) -> list[str]:
     """公開檔洩漏檢查：回傳問題清單（空＝乾淨）。只管 src:'api' 的新文章；舊的 4 篇維持原狀不查。"""
     index_path, posts_dir = index_path or INDEX, posts_dir or POSTS     # 呼叫時才取預設（測試會換掉模組的 INDEX）
@@ -91,6 +126,7 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--index-only", action="store_true")
     ap.add_argument("--topic", default="")
+    ap.add_argument("--channel", default="", help="頻道分頁 key（tech／ligu／caffaine／healing…）；不走 Worker")
     a = ap.parse_args(argv)
     if a.check:
         bad = leaks()
@@ -105,6 +141,15 @@ def main(argv=None) -> int:
         print(f"✗ 全文檔 {src} 在 repo 裡面；請放到 repo 以外的地方（repo 是 public）。")
         return 2
     post = json.loads(src.read_text(encoding="utf-8"))
+    ch = a.channel or (post.get("cat") if post.get("cat") not in ("news", "intro", "know", None) else "")
+    if ch:
+        try:
+            entry = publish_channel(post, ch)
+        except ValueError as e:
+            print("✗ " + str(e))
+            return 2
+        print(f"✓ 已寫入 site/articles/{ch}/{entry['id']}.json 與 {ch}/index.json（隱藏分頁，直接連結 #article/{entry['id']}）\n  下一步：git add site/articles/{ch} → 推 main → deploy_wait。")
+        return 0
     try:
         entry = public_entry(post, a.topic or None)
     except ValueError as e:

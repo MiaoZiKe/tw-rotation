@@ -49,9 +49,10 @@
     intro: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     premarket: '<path d="M12 2v6"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
     postmarket: '<path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
+    tech: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
     know: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   };
-  const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || CAT_IC.all}</svg>`;
+  const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || (PRIV[k] && CAT_IC[PRIV[k].ic || 'tech']) || CAT_IC.all}</svg>`;
   /* 類別：名稱＋色（--art-<k>，深淺主題各一組，在 css() 定義）。紅綠保留給漲跌，所以快訊用橘、產業鏈用青綠（偏藍，跟跌的綠分得開）、知識用紫 */
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
   /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
@@ -65,7 +66,25 @@
     premarket: { t: '盤前消息', file: 'articles/premarket.json', how: 'artpre', head: '台股盤前消息', empty: '尚無盤前消息，交易日開盤前會更新。' },
     postmarket: { t: '盤後消息', file: 'articles/postmarket.json', how: 'artpost', head: '台股盤後消息', empty: '今天的盤後消息還沒整理好' },
   };
-  const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW));   // 分頁由左到右
+  /* 2026-11-15 「科技透明圈」分頁（Andy：「影片的內容需要有內容存在……Tech 頻道的文章，且不可以顯示出來，意思是他是隱藏狀態」）。
+     PRIV＝「永遠隱藏」的分頁：跟眼睛關掉的分頁一樣（一般人看不到、站主看到變淡＋刪除線），但**不歸眼睛管、也不存伺服器**：
+       · 預設就是關，沒有任何開關能把它公開（眼睛不畫、toggleHide 也直接擋；hiddenNow() 每次都把 PRIV 併進去）。
+       · 文章不進 articles/index.json，所以全部文章列表、搜尋、各分類篇數、側欄、熱門族群、點閱統計、站內搜尋都看不到；
+         清單另放 articles/tech/index.json（只有站主打開這個分頁才讀）、全文放 articles/tech/<id>.json。
+       · 但 #article/<id> 直接連結誰都打得開（要私訊給在 IG／Threads 留言關鍵字的人）：showPost 找不到索引才去讀 articles/tech/<id>.json。
+     新增一篇的做法見 docs/tech_articles.md。 */
+  /* ★ 頻道分頁設定表：一個頻道一列，加頻道只要在這裡加一列（再放 site/articles/<key>/ 的資料檔），其他程式都不用動。
+       key＝分頁 key（小寫英文 2～20 字，同時是資料夾名與文章 cat）；t＝分頁名；s＝手機短名；
+       col＝[深色主題色, 淺色主題色]（不要紅、綠，紅綠留給漲跌）；ic＝圖示 key（沿用 CAT_IC 的某一個，不加就用 tech 那顆）。
+       預定的列（Andy 11-15 交代，各頻道要用時再加）：ligu 哩股哩股、caffaine CaffAIne、healing 談晴說礙。 */
+  const PRIV = {
+    tech: { t: '科技透明圈', s: '科技', col: ['#e3b341', '#8a6100'], ic: 'tech' },
+    // ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'] },
+    // caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'] },
+    // healing: { t: '談晴說礙', s: '談晴', col: ['#f2b880', '#9a5a1a'] },
+  };
+  Object.keys(PRIV).forEach((k) => { Object.assign(PRIV[k], { file: `articles/${k}/index.json`, dir: `articles/${k}/` }); CAT_S[k] = PRIV[k].s || PRIV[k].t; });
+  const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW), Object.keys(PRIV));   // 分頁由左到右
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
   const okUrl = (u) => /^https?:\/\/[^\s"'<>]+$/i.test(String(u || ''));
   const okHash = (h) => /^#[^\s"'<>]*$/.test(String(h || ''));   // 站內連結只收 # 開頭（族群 id 可能是中文：#industry/group/ind_半導體業）
@@ -85,7 +104,7 @@
   };
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
-  const S = { nw: {}, hid: null, hidP: null, views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
+  const S = { nw: {}, tech: null, techP: null, unl: {}, hid: null, hidP: null, views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
     posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
@@ -511,7 +530,8 @@
   .artsteps .sta::after{right:auto;left:-4px;top:auto;bottom:-1px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid color-mix(in srgb,var(--pc) 60%,var(--ink-3));border-bottom:0}
   .artcmp .cmg{grid-template-columns:minmax(0,1fr)!important}
 }
-`;
+`
++ Object.keys(PRIV).map((k) => `:root{--art-${k}:${PRIV[k].col[0]}}:root[data-theme="light"]{--art-${k}:${PRIV[k].col[1]}}.k-${k}{--k:var(--art-${k})}`).join('');
     s.textContent += ADM_CSS;
     document.head.appendChild(s);
   }
@@ -790,6 +810,24 @@
     S.posts[id] = fetchJson('articles/posts/' + encodeURIComponent(id) + '.json').catch(() => { delete S.posts[id]; return null; });
     return S.posts[id];
   }
+  /* 科技透明圈（隱藏分頁）：清單只有站主打開分頁時才讀；單篇用直接連結時，showPost 直接讀 articles/tech/<id>.json（不經清單）。
+     欄位照一般文章（見 docs/tech_articles.md）；cat 一律當 tech，open:true＝不走額度。讀不到＝當作沒有。 */
+  function loadTech() {
+    if (S.tech) return Promise.resolve(S.tech);
+    if (!S.techP) S.techP = fetchJson(PRIV.tech.file).then((j) => {
+      const list = (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date))
+        .map((a) => Object.assign({}, a, { cat: 'tech', open: true, groups: cleanGroups(a.groups) }));
+      list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.id).localeCompare(String(b.id))));
+      S.tech = { updated: j && j.updated, list }; return S.tech;
+    }).catch(() => { S.techP = null; return null; });
+    return S.techP;
+  }
+  function loadUnlisted(id) {
+    if (!okId(id)) return Promise.resolve(null);
+    if (!S.unl[id]) S.unl[id] = fetchJson(PRIV.tech.dir + encodeURIComponent(id) + '.json')
+      .then((d) => (d && d.title && Array.isArray(d.blocks) ? Object.assign({}, d, { id, cat: 'tech' }) : null)).catch(() => { delete S.unl[id]; return null; });
+    return S.unl[id];
+  }
   function loadTopics() {
     if (S.topics) return Promise.resolve(S.topics);
     if (!S.topicsP) S.topicsP = fetchJson('articles/topics.json').then((j) => { S.topics = { updated: j && j.updated, list: (j && Array.isArray(j.topics) ? j.topics : []).filter((t) => t && t.title) }; return S.topics; })
@@ -883,8 +921,8 @@
   }
 
   /* ------------------------------------------------------------------ 共用小片段 */
-  const catT = (k) => (CATS[k] ? CATS[k].t : NW[k] ? NW[k].t : ALL_T);
-  const badge = (cat) => `<span class="artbadge k-${CATS[cat] ? cat : 'all'}">${icon(CATS[cat] ? cat : 'all', 13)}${esc(catT(cat))}</span>`;
+  const catT = (k) => (CATS[k] ? CATS[k].t : NW[k] ? NW[k].t : PRIV[k] ? PRIV[k].t : ALL_T);
+  const badge = (cat) => `<span class="artbadge k-${CATS[cat] || PRIV[cat] ? cat : 'all'}">${icon(CATS[cat] || PRIV[cat] ? cat : 'all', 13)}${esc(catT(cat))}</span>`;
   const tagsHTML = (tags) => (Array.isArray(tags) && tags.length ? `<div class="arttags">${tags.slice(0, 8).map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : '');
   const EYE = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   /* 點閱數：只有拿到有效數字才寫（API 失敗、沒有這一篇 → 不畫，不顯示 0） */
@@ -975,7 +1013,8 @@
   function resetFilters() { const d = defRange(); S.q = ''; S.from = d.from; S.to = d.to; S.grp = new Set(); if (S.ms) S.ms.set({ selected: [] }); }
   function filtered(cat, ignoreCat) {
     const q = S.q.trim().toLowerCase();
-    return (S.idx ? S.idx.list : []).filter((a) => (ignoreCat || cat === 'all' || a.cat === cat)
+    const src = PRIV[cat] && !ignoreCat ? (isAdminUser() && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
+    return src.filter((a) => (ignoreCat || cat === 'all' || a.cat === cat)
       && (!q || String(a.title).toLowerCase().includes(q))
       && (!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)
       && (!S.grp.size || (a.groups || []).some((g) => S.grp.has(g.id))));
@@ -1111,7 +1150,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('#artCats>button', root).forEach((b) => {
       const on = b.dataset.cat === S.cat;
       b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
-      const em = $('em', b); if (em) em.textContent = S.idx && !NW[b.dataset.cat] ? String(filtered(b.dataset.cat).length) : '';
+      const em = $('em', b); if (em) em.textContent = S.idx && !NW[b.dataset.cat] && !(PRIV[b.dataset.cat] && !S.tech) ? String(filtered(b.dataset.cat).length) : '';
     });
     paintHide(root);
     const isPre = !!NW[S.cat];
@@ -1236,7 +1275,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      · 11-06 Andy：「補上隱藏功能」→ 「全部文章」也有眼睛、也能隱藏（以前不行，因為它是導回點）。
        被隱藏的分頁（一般人）一律導到第一個沒被隱藏的分頁；全部都隱藏就導回 #overview。文章本身不受影響：隱藏的是分頁入口，不是文章。 */
   const HID_KEY = window.TW_PREVIEW ? 'tw.art.hid.pv' : 'tw.art.hid';
-  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k)) : []); } catch (e) { return new Set(); } };
+  const withPriv = (set) => { Object.keys(PRIV).forEach((k) => set.add(k)); return set; };   // 科技透明圈永遠在隱藏名單裡
+  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return withPriv(new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k)) : [])); } catch (e) { return withPriv(new Set()); } };
   const hidSave = () => { try { localStorage.setItem(HID_KEY, JSON.stringify([...S.hid])); } catch (e) { /* 存不了就只留在記憶體 */ } };
   const hiddenNow = () => (S.hid || (S.hid = hidRead()));
   const canEye = () => !!window.TW_PREVIEW || isAdminUser();
@@ -1247,7 +1287,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
       const ready = !(cfg && cfg.api) || (A && A.on && A.on()) ? Promise.resolve() : new Promise((res) => { const t = setTimeout(res, 3000); window.addEventListener('tw:account-config', () => { clearTimeout(t); res(); }, { once: true }); });
       S.hidP = ready.then(() => acctCall('/v1/articles/tabs', {})).then((j) => {
-        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden.filter((k) => TAB_KEYS.includes(k))); hidSave(); }
+        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = withPriv(new Set(j.hidden.filter((k) => TAB_KEYS.includes(k)))); hidSave(); }
         return hiddenNow();
       }).catch(() => hiddenNow()).finally(() => { setTimeout(() => { S.hidP = null; }, 60000); });   // 一分鐘內不重問；回來看時會再讀一次
     }
@@ -1257,6 +1297,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      全部分頁都被隱藏＝整個精選文章對一般人關閉，比照側欄「隱藏分頁」（navhide.js）導回 #overview。
      回 true＝已導走，呼叫端不要再往下畫。管理者永遠看得到，不導。 */
   function guardHidden() {
+    if (PRIV[S.cat] && !isAdminUser()) {
+      /* 站主直接開 #articles/tech（或重新整理）時，登入資料比頁面晚幾百毫秒才回來：有登入權杖又還沒確認身分，先等（最多 5 秒），
+         等到 tw:account 再重畫；等不到或不是站主才導回。沒有權杖的訪客立刻導回。 */
+      let tok = false; try { tok = !!localStorage.getItem('tw.acct.tok'); } catch (e) { /* 私密視窗 */ }
+      const who = window.TwAccount && TwAccount.user && TwAccount.user();   // 已確認是一般會員 → 不用等
+      if (tok && !who && !S.acctGiveUp) {
+        if (!S.acctT) S.acctT = setTimeout(() => { S.acctT = null; S.acctGiveUp = true; if (location.hash.replace(/^#/, '').split('/')[0] === 'articles') guardHidden(); }, 5000);
+        return true;
+      }
+      location.replace('#articles'); return true;   // 非站主（含預覽版訪客）一律導回全部文章
+    }
     if (canEye()) return false;
     const hid = hiddenNow();
     if (!hid.has(S.cat)) return false;
@@ -1269,18 +1320,20 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const tabs = $$('#artCats>button', root);
     tabs.forEach((b) => {
       const off = hid.has(b.dataset.cat);
-      b.hidden = off && !adm;
-      b.classList.toggle('hid', off && adm);
-      b.title = off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
+      const pv = !!PRIV[b.dataset.cat], me = isAdminUser();
+      b.hidden = pv ? !me : off && !adm;
+      b.classList.toggle('hid', pv ? me : off && adm);
+      b.title = pv ? catT(b.dataset.cat) + '（永遠隱藏：一般人與會員看不到，文章只能用直接連結打開）' : off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
     });
     const n = tabs.filter((b) => !b.hidden).length;
     const cats = $('#artCats', root);
     if (cats) cats.style.setProperty('--n', String(n));
     if (cats) cats.classList.toggle('adm', adm);
+    if (cats) cats.classList.toggle('many7', n >= 7);   // 7 格以上手機改橫向拖（m4/20261115-articles-tabs7.css）
     if (cats) cats.classList.toggle('many', n >= 6);   // 手機六格塞不下圖示＋文字（m4 檔 .many 隱藏圖示）
     $$('#artCats .arteye', root).forEach((e) => {
-      e.hidden = !adm;
-      const off = hid.has(e.dataset.cat), nm = catT(e.dataset.cat);
+      e.hidden = !adm || !!PRIV[e.dataset.cat];   // 科技透明圈沒有眼睛：不能被打開
+      const off = hid.has(e.dataset.cat) && !PRIV[e.dataset.cat], nm = catT(e.dataset.cat);   // 科技透明圈等頻道分頁沒有眼睛，不算「被眼睛關掉」
       e.classList.toggle('off', off); e.innerHTML = off ? EYE_OFF : EYE_ON;
       e.setAttribute('aria-pressed', off ? 'true' : 'false');
       e.title = off ? `「${nm}」目前對外隱藏（一般訪客與會員看不到），點一下恢復顯示` : `「${nm}」目前對外顯示，點一下隱藏（一般訪客與會員將看不到這個分頁）`;
@@ -1293,23 +1346,23 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
   }
   async function toggleHide(k) {
-    if (!canEye() || !TAB_KEYS.includes(k)) return;
+    if (!canEye() || !TAB_KEYS.includes(k) || PRIV[k]) return;   // PRIV 不歸眼睛管
     const root = document.getElementById('v-articles'); if (!root) return;
     const was = new Set(hiddenNow()), next = new Set(was);
     if (next.has(k)) next.delete(k); else next.add(k);
     S.hid = next; hidSave(); paintHide(root);   // 先改畫面（點了馬上有感），伺服器回失敗再還原
     if (window.TW_PREVIEW) return;
-    const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next] });
-    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = new Set(r.hidden.filter((x) => TAB_KEYS.includes(x))); hidSave(); paintHide(root); return; }
+    const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next].filter((x) => !PRIV[x]) });   // PRIV 不存伺服器（本來就永遠隱藏）
+    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = withPriv(new Set(r.hidden.filter((x) => TAB_KEYS.includes(x)))); hidSave(); paintHide(root); return; }
     S.hid = was; hidSave(); paintHide(root);
     const e = $(`.arteye[data-cat="${k}"]`, root);
     if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
   }
-  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); guardHidden(); } });
+  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); if (!guardHidden() && isAdminUser()) { if (PRIV[S.cat] && !S.idx && location.hash.replace(/^#/, '').split('/')[0] === 'articles') showList(S.cat); else loadTech().then(() => paintList()); } } });
   async function showList(cat) {
     css();
     const root = document.getElementById('v-articles'); if (!root) return;
-    S.cat = CATS[cat] || NW[cat] ? cat : 'all';
+    S.cat = CATS[cat] || NW[cat] || PRIV[cat] ? cat : 'all';
     S.cur = ''; S.curData = null;
     ensureRange();
     markSub(S.cat);
@@ -1317,6 +1370,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (guardHidden()) return;
     paintList();
     loadStats();
+    if (isAdminUser()) loadTech().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] === 'articles') paintList(); });
     /* 隱藏設定不卡清單：回來了才補畫分頁列，被隱藏的分頁（一般人）導回「全部」 */
     loadHidden().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return; const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { if (!guardHidden()) paintHide(r); } });
     await Promise.all([loadIndex(), permReady()]);
@@ -2091,7 +2145,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
   function postHTML(d, meta, acc) {
     acc = acc || access();
-    const qnote = isOpenArt(meta) ? (acc.mode === 'full' ? '' : `<span class="artqt free" title="這篇暫時開放給所有人閱讀，不佔 Plus 全文額度">${CHK_IC}限時公開・不佔額度</span>`)
+    const qnote = meta && meta.unl ? '' : isOpenArt(meta) ? (acc.mode === 'full' ? '' : `<span class="artqt free" title="這篇暫時開放給所有人閱讀，不佔 Plus 全文額度">${CHK_IC}限時公開・不佔額度</span>`)
       : acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
     const cat = CATS[d.cat] ? d.cat : (meta && meta.cat) || '';
     const kk = CATS[cat] ? cat : 'all';
@@ -2137,7 +2191,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const gone = () => S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article';
     const [idx] = await Promise.all([loadIndex(), permReady()]);
     if (gone()) return;
-    const meta = idx ? idx.list.find((a) => a.id === id) : null;
+    const meta0 = idx ? idx.list.find((a) => a.id === id) : null;
+    /* 隱藏分頁的文章（科技透明圈）：不在 index.json，但有直接連結就打開（不看額度、不記點閱、不列同類別）；清單裡找不到才去讀 */
+    const unl = meta0 ? null : await loadUnlisted(id);
+    if (gone()) return;
+    const meta = meta0 || (unl ? { id, cat: 'tech', title: unl.title, date: unl.date, open: true, unl: true } : null);
     const notFound = () => {
       S.curData = null; S.sig = sigOf(access());
       root.innerHTML = `<div class="card artpost" id="artPost"><button type="button" class="artback" id="artBack" data-to="#articles">← 返回</button><nav class="artcrumb"><a href="#articles">精選文章</a><span aria-hidden="true">›</span><span class="cur">找不到文章</span></nav>
@@ -2158,7 +2216,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const free = isOpenArt(meta);
     if (!free && !mayOpen(acc, id)) return locked(acc);
     let d;
-    if (isRemote(meta)) {
+    if (unl) {
+      d = unl;
+    } else if (isRemote(meta)) {
       /* 新文章：伺服器才是裁判。本機判斷「可以讀」只代表「值得去問」；伺服器說不行（402 額度滿、403 沒權限、401 沒登入）就退回鎖定頁；連不到＝不顯示（fail-closed） */
       const r = await remoteGet(id, free);
       if (gone()) return;
@@ -2186,7 +2246,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     S.curData = d;
     hydrate(root, d);
     adminCopyBtns(root);
-    recordOpen(d.id, true);
+    if (!unl) recordOpen(d.id, true);   // 隱藏分頁的文章不記點閱（不進統計、不進管理區報表）
     document.title = d.title + '｜精選文章';
   }
   /* 沒授權的單篇頁：版型跟 postHTML 的頭部一致（返回、麵包屑、分類徽章、日期、標題、相關族群），內文處換成升級提示卡。

@@ -26,7 +26,7 @@ def t_artnav_1016(b, base):
     SUBT = ("比比快訊", "比比產業鏈", "比比知識")
     TABST = """() => { const C = document.getElementById('artCats'); if (!C) return null; const cr = C.getBoundingClientRect();
         return { cats: [cr.left, cr.right], vw: innerWidth, sw: document.documentElement.scrollWidth - innerWidth, ov: C.scrollWidth - C.clientWidth,
-          tabs: [...C.children].map(b => { const r = b.getBoundingClientRect(), sp = b.querySelector('span'), cs = getComputedStyle(b), lh = parseFloat(cs.fontSize) * 1.8;
+          tabs: [...C.children].filter(b => !b.hidden).map(b => { const r = b.getBoundingClientRect(), sp = b.querySelector('span'), cs = getComputedStyle(b), lh = parseFloat(cs.fontSize) * 1.8;
             const spOn = sp && getComputedStyle(sp).display !== 'none';
             const lbl = spOn ? sp.textContent.trim() : getComputedStyle(b, '::after').content.replace(/^"|"$/g, '');
             const em = b.querySelector('em'), emOn = em && getComputedStyle(em).display !== 'none' && em.textContent.trim();

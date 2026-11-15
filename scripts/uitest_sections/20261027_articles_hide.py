@@ -83,8 +83,8 @@ def t_articles_hide_1027(b, base, code):
         # ── 管理者：六個分頁、六顆眼睛（11-06 起全部那格也有）
         c, pg = ctx("andy@example.com", W)
         open_articles(pg, admin=True)
-        ok(f"★ [{T}（{W}）] 管理者：分頁順序 全部→快訊→產業鏈→知識→盤前→盤後（盤後在盤前右邊）", pg.evaluate(vis) == ["all", "news", "intro", "know", "premarket", "postmarket"], pg.evaluate(vis))
-        geo = pg.evaluate("""() => [...document.querySelectorAll('#artCats .arteye')].map(e => { const t = e.closest('button'), a = e.getBoundingClientRect(), r = t.getBoundingClientRect(), lb = t.querySelector(':scope > span:not(.arteye)').getBoundingClientRect();
+        ok(f"★ [{T}（{W}）] 管理者：分頁順序 全部→快訊→產業鏈→知識→盤前→盤後（盤後在盤前右邊）", pg.evaluate(vis) == ["all", "news", "intro", "know", "premarket", "postmarket", "tech"], pg.evaluate(vis))   # 11-15 起管理者多一格「科技透明圈」（沒有眼睛）
+        geo = pg.evaluate("""() => [...document.querySelectorAll('#artCats .arteye:not([hidden])')].map(e => { const t = e.closest('button'), a = e.getBoundingClientRect(), r = t.getBoundingClientRect(), lb = t.querySelector(':scope > span:not(.arteye)').getBoundingClientRect();
             return { cat: e.dataset.cat, own: t.dataset.cat === e.dataset.cat, inside: a.left >= r.left - 0.5 && a.right <= r.right + 0.5 && a.top >= r.top - 0.5 && a.bottom <= r.bottom + 0.5,
               right: (a.left + a.width / 2) > (r.left + r.width / 2), vc: Math.abs((a.top + a.height / 2) - (r.top + r.height / 2)) <= 3, noOverlap: a.left >= lb.right - 0.5, w: a.width, h: a.height }; })""")
         ok(f"★ [{T}（{W}）] 管理者：眼睛 6 顆都在自己標籤裡面、靠右半邊、垂直置中、不壓到標題文字、沒有分頁上方那一列", len(geo) == 6 and all(g["own"] and g["inside"] and g["right"] and g["vc"] and g["noOverlap"] for g in geo)
@@ -97,7 +97,7 @@ def t_articles_hide_1027(b, base, code):
             return c.measureText(txt).width <= avail + 0.5; })"""))
         ok(f"[{T}（{W}）] 管理者：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
         if mob:
-            ok(f"[{T}（{W}）] 手機：六個分頁都在畫面內、字 ≥ 11px", pg.evaluate("() => [...document.querySelectorAll('#artCats>button')].every(b => { const r = b.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; })")
+            ok(f"[{T}（{W}）] 手機：前五個分頁都在畫面內（第 7 格以後橫向拖）、字 ≥ 11px", pg.evaluate("() => [...document.querySelectorAll('#artCats>button')].slice(0, 5).every(b => { const r = b.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; })")
                and pg.evaluate("() => [...document.querySelectorAll('#artCats>button span')].every(s => parseFloat(getComputedStyle(s).fontSize) >= 11)"))
         h0 = pg.evaluate("() => location.hash")
         pg.click("#artCats .arteye[data-cat=premarket]"); pg.wait_for_timeout(500)

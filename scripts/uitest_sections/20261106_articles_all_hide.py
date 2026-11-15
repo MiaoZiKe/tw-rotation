@@ -112,7 +112,7 @@ def t_articles_all_hide_1106(b, base, code):
         c.close()
         c, pg = ctx("andy@example.com", W)
         open_articles(pg, admin=True)
-        ok(f"[{T}（{W}）] 全部分頁都隱藏 → 管理者仍看得到六個分頁（全是半透明）、可以再點恢復", len(pg.evaluate(vis)) == 6 and pg.locator("#artCats>button.hid").count() == 6)
+        ok(f"[{T}（{W}）] 全部分頁都隱藏 → 管理者仍看得到六個分頁（全是半透明）、可以再點恢復", len(pg.evaluate(vis)) == 7 and pg.locator("#artCats>button.hid").count() == 7)   # 6 個可用眼睛關的＋永遠隱藏的「科技透明圈」
 
         # 再按一次恢復 → 訪客又看得到「全部」並落在全部
         st["hidden"] = ["all"]
