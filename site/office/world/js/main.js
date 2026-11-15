@@ -19,6 +19,7 @@ import { createState } from './state.js';
 import { createPower } from './power.js';
 import { createJobs } from './jobs.js';
 import { createHR } from './hr.js';
+import { createWalkGuard } from './walkguard.js';   // 走路保底：暫停太久／原地不動時接手
 import { createMind } from './mind.js';
 import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
@@ -283,7 +284,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   W.empty = createEmpty(W, { ui, state });   // 要比 jobs 早註冊：空辦公室裡派工事件先讓同事「報到」，再由派工演出接手
   const power = createPower(W, { state, ui, director, daytime }); W.power = power;
   const jobs = createJobs(W, { state, ui, director }); W.jobs = jobs;
-  const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
+  createWalkGuard(W); const hr = createHR(W, { state, ui, director, pilot }); W.hr = hr; hr.boot(); ui.renderAreas();
   const sim = createSim(W, { state, demo, ui }); W.sim = sim;
   const rewards = createRewards(W, rw, { ui, cv, camera }); if (rewards.on) createLedger(W, rewards, { ui, fly: flyTo }); else { const b = $('rwBtn'); if (b) b.hidden = true; }
   createMind(W, { state });   // 每位同事的「心」：個性、心情、記憶，把獎勵／懲罰／被丟／著火等事件轉成表情與反應（mind.js）
@@ -544,7 +545,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   setView(qs.get('view') === 'ceo' ? 'ceo' : 'god', ceo, true);   // 預設進場是俯視（看得到整間辦公室）；網址帶 view=ceo 才從 CEO 視角開始
   let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true, shift = 0;
   // 一個模擬步（畫面更新與 W.advance 共用）：W.advance(秒) 不繪圖、直接把模擬往前推（驗收與「加速時間」用）
-  function simStep(h) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); W.mind && W.mind.tick(h); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); phys.tick(h); fire.tick(h); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
+  function simStep(h) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); W.mind && W.mind.tick(h); W.walkGuard && W.walkGuard.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); phys.tick(h); fire.tick(h); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
   W.advance = (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) simStep(sec / n); };
   W.advanceAsync = async (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) { simStep(sec / n); await null; await null; } };   // 同上，但每步讓出一次，導演的 async 流程（走過去、等一下）才會往下走
   function frame(now) {

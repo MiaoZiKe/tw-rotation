@@ -143,7 +143,7 @@ export function createCharacter(spec, env = {}) {
   const c = {
     object3D: root, spec, look, inner: ch, scale: s, radius: ch.R * 0.85 * s, height: (ch.cfg.top + (ch.cfg.floatH || 0) + 0.06) * s, speech: null, emoteSym: null, expression: 'neutral', action: 'idle', lift: 0,
     _base: 'idle', _until: 0, _t: 0, _path: null, _pi: 0, _speed: 1.6, _resolve: null, _stuck: 0, _ghost: 0, _seat: null, _hop: null, _held: false, heading: 0, onDrop: null,
-    get state() { return c._held ? 'held' : (c._path || (c._hop && c._hop.off)) ? 'walk' : c._seat ? 'sit' : 'stand'; },
+    get state() { return c._held ? 'held' : ((c._path && !c._pause) || (c._hop && c._hop.off)) ? 'walk' : c._seat ? 'sit' : 'stand'; },
     get lod() { return lod; },
     update(dt, t) {
       c._t = t; dt = Math.min(dt, 0.05); if (loud > 0) loud -= dt;

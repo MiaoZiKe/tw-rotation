@@ -45,7 +45,7 @@ export function createAttention(W, X) {
     if (inMeeting(c)) { A.mode = 'meeting'; return; }                                        // 開會中：只轉頭
     if (c.sleeping || c.action === 'sleep' || c.inner.mode === 'sleep') { A.mode = 'sleep'; return; }   // 睡覺中：不叫醒
     if (c.state === 'sit') { A.mode = 'sit'; const seat = c._seat; if (seat) c.swivel(seat.face + clamp(angDiff(ty, seat.face), -SEAT_LIM, SEAT_LIM)); return; }
-    if (c.state === 'walk') { if (!c._hop) { A.mode = 'walk'; c.pause(true); c.heading = ty; } return; }
+    if (c.state === 'walk' || (c._path && c._pause)) { if (!c._hop) { A.mode = 'walk'; c.pause(true); c.heading = ty; } return; }
     if (c.state === 'stand') { A.mode = 'stand'; c.pause(false); c.heading = ty; }
   };
   A.current = () => A.c;

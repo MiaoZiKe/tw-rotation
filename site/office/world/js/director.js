@@ -22,6 +22,7 @@ export function createDirector(W, ui) {
     if (!s || c.state === 'held') return false; const job = c.job = (c.job || 0) + 1;
     const from = pos(c), wasSeat = c.state === 'sit' ? c.spot : null; c.atDesk = false;
     claim(c, s);
+    await W.untilUnpaused(c); if (c.job !== job) return false;   // 頭暈暫停中不先給路徑（不然狀態是走路、人卻不動）
     let path = W.nav.findPath(wasSeat ? { x: wasSeat.x, z: wasSeat.z } : from, { x: s.x, z: s.z });
     if (!path) { path = [wasSeat ? { x: wasSeat.x, z: wasSeat.z } : from, { x: s.x, z: s.z }]; c.noPath = (c.noPath || 0) + 1; W.stats.noPath++; }
     if (wasSeat) path.unshift(from);         // 第一段是從椅子跳到旁邊的地板
@@ -231,7 +232,7 @@ export function createDirector(W, ui) {
       if (mate.script === tok) { mate.setAction('idle'); goHome(mate).then(() => { if (mate.script === tok) mate.busy = false; }); }
     },
     // 被拎起來放下之後：愣一下，再自己走回座位
-    async afterDrop(c) { c.setExpression('surprised', 1.2); c.emote('question', 1.4); await sleep(1.6); const p = pos(c), f = W.nav.isReach(p.x, p.z) ? p : W.nav.nearestFree(p.x, p.z, 24); if (f && (f.x !== p.x || f.z !== p.z)) await c.walkTo([p, { x: f.x, z: f.z }], { speed: 2 }); }
+    async afterDrop(c) { c.setExpression('surprised', 1.2); c.emote('question', 1.4); await sleep(1.6); await W.untilUnpaused(c); const p = pos(c), f = W.nav.isReach(p.x, p.z) ? p : W.nav.nearestFree(p.x, p.z, 24); if (f && (f.x !== p.x || f.z !== p.z)) await c.walkTo([p, { x: f.x, z: f.z }], { speed: 2 }); }
   };
   async function routine(c, name) {
     if (!c || c.away || c.state === 'held') return; const tok = c.script = (c.script || 0) + 1; c.busy = true; c.keep = null;

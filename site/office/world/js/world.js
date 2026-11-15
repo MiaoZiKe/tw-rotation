@@ -286,6 +286,11 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
 
   W.roomAt = (x, z) => layout.rooms.find(r => x >= r.x && x <= r.x + r.w && z >= r.z && z <= r.z + r.d);
   W.sleep = s => new Promise(r => W.timers.push({ at: W.time + s, r }));
+  // 等「暫停走路」結束（被丟出去的頭暈、回頭看一眼）再開始走：以前先給了路徑才暫停，狀態是 walk 但原地不動 3～5 秒（11-15 遊民區事故）；最多等 max 秒，免得永遠等
+  W.untilUnpaused = async (c, max = 8) => {
+    const dizzy = () => { const m = W.mind && W.mind.minds.get(c.spec.id); return !!m && (m.relPending != null || (m.sc && m.sc.name === 'knocked' && !m.sc.done)); };   // 剛被丟出去、頭暈的演出還沒開始或還沒結束：也先等（暫停是演出開始後才打開的）
+    const t0 = W.time; while ((c._pause || dizzy()) && W.time - t0 < max) await W.sleep(0.2);
+  };
   W.tickTimers = () => { if (!W.timers.length) return; const due = W.timers.filter(t => t.at <= W.time); if (due.length) { W.timers = W.timers.filter(t => t.at > W.time); due.forEach(t => t.r()); } };
   return W;
 }

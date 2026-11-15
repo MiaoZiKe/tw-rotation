@@ -55,7 +55,7 @@ export function createHR(W, X) {
   const pickStand = id => { const o = O(), free = o.stands.filter(s => !s.taken || s.taken === id); const s = rnd(free.length ? free : o.stands); s.taken = id; return s; };
   const freeAll = id => { const o = O(); [...o.stands, ...o.seats, ...o.mats].forEach(s => { if (s.taken === id) s.taken = null; }); };
   const pathTo = (c, x, z) => { const p = pos(c), path = W.nav.findPath(p, { x, z }); return path && path.length > 1 ? path : [p, { x, z }]; };
-  async function walkTo(c, x, z, speed = 1.7) { const tok = c.lifeTok; const ok = await c.walkTo(pathTo(c, x, z), { speed }); return ok && c.lifeTok === tok; }
+  async function walkTo(c, x, z, speed = 1.7) { const tok = c.lifeTok; await W.untilUnpaused(c); if (c.lifeTok !== tok) return false; const ok = await c.walkTo(pathTo(c, x, z), { speed }); return ok && c.lifeTok === tok; }
 
   // ───────── 演出：收拾 → 揮手 → 走出大門 → 無業遊民區 ─────────
   function markFired(c) { c.jobless = true; c.busy = true; c.sleeping = false; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.jtok = (c.jtok || 0) + 1; c.lifeTok = (c.lifeTok || 0) + 1; X.pilot.releaseIf(c); }

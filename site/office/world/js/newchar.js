@@ -128,7 +128,8 @@ function makeNew(spec, look, env) {
   const c = {
     object3D: root, spec, look, inner, scale: s, radius: kind.rad * s, height: (topY + 0.06) * s, speech: null, emoteSym: null, expression: 'neutral', action: 'idle', lift: 0,
     _base: 'idle', _until: 0, _t: 0, _path: null, _pi: 0, _speed: 1.6, _resolve: null, _stuck: 0, _ghost: 0, _seat: null, _hop: null, _held: false, heading: 0, onDrop: null, sleeping: false, newModel: true,
-    get state() { return (c._held || ctl.state === 'held') ? 'held' : (c._path || c._rising) ? 'walk' : c._seat ? 'sit' : 'stand'; },
+    // 暫停走路中（頭暈、回頭看、被點選面向你）路徑還在、人是站著：狀態寫 stand，不再寫 walk（2026-11-15 遊民區事故）
+    get state() { return (c._held || ctl.state === 'held') ? 'held' : ((c._path && !c._pause) || c._rising) ? 'walk' : c._seat ? 'sit' : 'stand'; },
     get lod() { return lod; },
     update(dt, t) {
       c._t = t; dt = Math.min(dt, 0.05); if (loud > 0) loud -= dt;
