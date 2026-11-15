@@ -6106,3 +6106,11 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 這批驗過：`pytest tests/test_daily_audit.py tests/test_audit_false_red_1111.py tests/test_ivx.py tests/test_step_skipped_1106.py tests/test_source_health.py`（全綠）；`-k "audit or ivx or skipped or source_health or daily"` 210 綠。未跑 `_uitest`（沒動前端）。
 - 下次看到 daily_audit 紅：先看 `data/_state/daily_audit.json` 的 gates 的 why，主站 403 且 CF 判定通過者不算紅。
 - 追加（同日）：website 的 content 關卡截止改為與 data 相同（DATA_DEADLINE），融資券未到時兩項同步 pending，不再直接紅；測試 test_website_content_pending_in_sync_with_data_before_deadline。
+
+
+### 2026-11-16 01:5x（台北）頻道④談晴說礙現況（CEO 交接用）
+- Andy 11-16：「接下來就都交給你負責」；他一週看一次，日常回報發在頻道④聊天室（session_018gakVTEEKWqEd8AD2Xp9MP）。規則：docs/marketing/channels/healing/plan.md 2026-11-15／16 各節、.claude/agents/healing-editor.md。
+- 每日上限 2：12:27 輪播（輔）＋20:27 影片（主）。保底排程：12:41、20:41 發文保底；21:13、23:13 留言回覆補跑；週日 15:41 每週討論（皆綁本聊天室）。
+- 影片流程：找題材→規劃→無旁白生成→程式檢查＋animation-director／art-director 審→優化→Gemini TTS（gemini-3.8-flash-tts、Sulafat）→最後驗證→發布＋網站文章（mp4 區塊可下載）。範本：queue/20261115v_marriage（結婚登記 v7）。
+- 進行中：11/17–11/22 六支影片批次製作（總編輯）；年總工時 talk-ep01 待 Andy 決定旁白 4 處修改。
+- 禁止：整張圖慢慢放大、手繪圈、內文與留言放 1925、我／我們。
