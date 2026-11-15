@@ -246,3 +246,4 @@ Claude（程式生成）的強弱項，依這兩天實測：
 4. **收件匣指令帶專案**：網站送指令可指定專案；Claude 端取指令時帶自己的專案雜湊，只拿自己專案（或沒指定專案）的指令。舊外掛不帶雜湊＝只拿沒指定專案的。
 5. **切換專案＝重新載入頁面**，換掉上一個專案留下的後備座位同事與分身，不混角色。
 6. 名牌／門牌：「<專案名> CEO」、「<專案名> CEO（分身 N）」、「<專案名> CEO 辦公室」；名稱 user／root／home／tmp／workspace 等一律顯示「雲端工作階段」；過長以「…」截斷（名牌 12 字、左上角 14 字）。
+- 名牌命名改用「當下任務簡稱」task_name（雲端接入工作階段已做好資料端，分支 claude/aio-task-name，commit d9284a4f：set_task_name.py、bridge.py 帶 task_name、install_hooks.py --instructions、worker.js 收 task_name）。待多專案那批交件後 cherry-pick 進開發分支，前端名牌「<task_name> CEO」、沒有就退回專案名、無意義名稱顯示「雲端工作階段 CEO」；收件服務與外掛推 main 前需擁有者同意。
