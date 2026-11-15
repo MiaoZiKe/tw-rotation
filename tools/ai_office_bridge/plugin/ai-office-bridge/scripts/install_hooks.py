@@ -6,8 +6,8 @@
   python3 install_hooks.py --settings ~/.claude/settings.json --remove   移除（只拿掉這支加的，其他設定原封不動）
   python3 install_hooks.py --settings x.json --dry-run                   只印出結果，不寫檔
 
-做法：讀 hooks/hooks.json，把 ${CLAUDE_PLUGIN_ROOT} 換成 bridge.py 的絕對路徑，合併進 settings 的 "hooks"。
-認得自己加過的條目（指令裡有 ai-office-bridge 的 bridge.py），所以重跑只會更新，不會疊兩份。
+做法：讀 hooks/hooks.json，把 ${CLAUDE_PLUGIN_ROOT}/scripts/ 換成本資料夾的絕對路徑（bridge.py 事件上報、inbox.py 網站指令），合併進 settings 的 "hooks"。
+認得自己加過的條目（指令裡有 ai-office-bridge 的 bridge.py 或 inbox.py），所以重跑只會更新，不會疊兩份。
 設定檔壞掉（不是 JSON）就不動它、直接結束並回傳 1，絕不覆寫使用者的設定。
 """
 import argparse
@@ -18,10 +18,11 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 MARK = "ai-office-bridge"
+SCRIPTS = ("bridge.py", "inbox.py")
 
 
 def ours(entry):
-    return any(MARK in str(h.get("command", "")) and "bridge.py" in str(h.get("command", "")) for h in entry.get("hooks", []) if isinstance(h, dict))
+    return any(MARK in str(h.get("command", "")) and any(x in str(h.get("command", "")) for x in SCRIPTS) for h in entry.get("hooks", []) if isinstance(h, dict))
 
 
 def main():
@@ -51,10 +52,9 @@ def main():
             if not hooks[ev]:
                 del hooks[ev]
     if not a.remove:
-        script = os.path.join(HERE, "bridge.py")
         for ev, entries in mine.items():
             for e in entries:
-                e = json.loads(json.dumps(e).replace("${CLAUDE_PLUGIN_ROOT}/scripts/bridge.py", script.replace("\\", "/")))
+                e = json.loads(json.dumps(e).replace("${CLAUDE_PLUGIN_ROOT}/scripts/", HERE.replace("\\", "/") + "/"))
                 hooks.setdefault(ev, []).append(e)
     if hooks:
         cfg["hooks"] = hooks

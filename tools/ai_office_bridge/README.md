@@ -10,9 +10,10 @@
 | `plugin/` | 外掛市集（marketplace），裡面只有一個外掛 |
 | `plugin/ai-office-bridge/` | 外掛第一版：`hooks/hooks.json` 把 12 種事件交給 `scripts/bridge.py`（全部 `async`、逾時 5 秒） |
 | `plugin/ai-office-bridge/scripts/bridge.py` | 單一掛鉤腳本：去識別 → 背景送到收件端 `POST /v1/events`；工具只送類別、同類別 20 秒內不重送；收件端連不上就暫停 2 分鐘 |
+| `plugin/ai-office-bridge/scripts/inbox.py` | 網站指令收件匣（2026-11-15，預設關閉、`AIO_INBOX=1` 才開）：`hook Stop`／`hook UserPromptSubmit` 取指令、`wait` 待命、`ack` 回報；測試 `test_inbox.py`。規格 `docs/ai_office/chat_command_spec.md` |
 | `plugin/ai-office-bridge/scripts/install_hooks.py` | 不用外掛系統時，把掛鉤寫進一份設定檔（雲端設定腳本用）；重跑不重複、`--remove` 只移除自己的 |
 | `plugin/ai-office-bridge/scripts/test_bridge.py` | 外掛自我測試（去識別、類別、節流、背景送出、暫停、安裝）：`python3 test_bridge.py` |
-| `test_rig/wait_inbox.py` | 實驗：閒置時被網站訊息叫醒（`asyncRewake`）。**第一版外掛不含網站對話**，只留在實驗工具裡 |
+| `test_rig/wait_inbox.py` | 實驗：閒置時被網站訊息叫醒（`asyncRewake`）。正式版改用 `plugin/ai-office-bridge/scripts/inbox.py`（待命改走背景指令） |
 | `test_rig/receiver.py` | 假收件端（只聽 127.0.0.1:8765）：`/event`、`/slow`、`/err`、`/inbox`、`/inbox/push`、`/reply`、`/stopdecide` |
 | `test_rig/log_event.py` | 把掛鉤收到的 JSON 原樣寫檔 |
 | `test_rig/gen_settings.py` | 產生測試專案自己的 `.claude/settings.json`（模式：all／http／stopcmd／stophttp／ctx） |
