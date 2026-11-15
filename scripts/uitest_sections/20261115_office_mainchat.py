@@ -541,7 +541,7 @@ def _ch_poll(b, base):
             return
         ok("輪詢：預設有進行中每 2 秒、只是開著看每 5 秒", pg.evaluate("() => [__world.chat.fastMs, __world.chat.pollMs]") == [2000, 5000])
         dil = pg.evaluate("""async () => { const t0 = performance.now(); for (let i = 0; i < 8; i++) await new Promise(r => setTimeout(r, 100)); return Math.max(1, (performance.now() - t0) / 800); }""")
-        pg.evaluate("() => { window.__tmo = []; const o = window.setTimeout; window.setTimeout = function (f, d, ...a) { if (d >= 1500) window.__tmo.push(d); return o.call(this, f, d, ...a); }; }")
+        pg.evaluate("() => { window.__tmo = []; const o = window.setTimeout; window.setTimeout = function (f, d, ...a) { if (d >= 1500 && /chat\.js/.test(new Error().stack || '')) window.__tmo.push(d); return o.call(this, f, d, ...a); }; }")
         pg.click("#chatText")
         wait_until(pg, "() => __world.chat.mode === 'ok'", 15000)
         pg.evaluate("() => { window.__tmo.length = 0; }")
