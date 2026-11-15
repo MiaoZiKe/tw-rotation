@@ -1,0 +1,48 @@
+{
+ "slug": "marriage-video",
+ "date": "2026-11-15",
+ "summary": "內政部：2025 年結婚登記 104,376 對，較 2016 年的 147,861 對少了約 29.4%；平均初婚年齡男 33.4、女 31.4 歲；同年總生育率 0.695。（影片版 30 秒）",
+ "alts": [
+  "影片封面：10年，結婚登記少了近3成"
+ ],
+ "sources": [
+  {
+   "title": "2025 年全年結婚登記統計（104,376 對，含同性 3,305 對；單位為登記對數）",
+   "publisher": "內政部戶政司",
+   "date": "2025 年全年資料"
+  },
+  {
+   "title": "2025 人口統計年刊：平均初婚年齡男 33.4、女 31.4 歲（世界日報、自由財經引述）",
+   "publisher": "內政部",
+   "date": "2025 年全年資料",
+   "url": "https://www.worldjournal.com/wj/story/121221/9762723"
+  },
+  {
+   "title": "民國 105 年（2016）全年結婚登記 147,861 對（臺南市政府統計通報轉引內政部全國資料）",
+   "publisher": "臺南市政府主計處",
+   "date": "民國 105 年（2016）全年資料",
+   "url": "https://w3fs.tainan.gov.tw/001/Upload/2/attachment/9375/124/month10605-3.pdf"
+  },
+  {
+   "title": "中華民國人口推估（2026 至 2075 年）",
+   "publisher": "國家發展委員會",
+   "date": "2026-08-28"
+  },
+  {
+   "title": "2025 年結婚登記報導",
+   "publisher": "經濟日報",
+   "url": "https://money.udn.com/money/story/5621/9516786"
+  },
+  {
+   "title": "2025 年結婚登記報導",
+   "publisher": "自由時報 自由財經",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5393039"
+  },
+  {
+   "title": "十年結婚對數比較報導",
+   "publisher": "世界日報",
+   "url": "https://www.worldjournal.com/wj/story/121221/9762723"
+  }
+ ],
+ "confidence": "官方統計＋媒體一致；降幅 29.4% 為兩年全年對數自行計算；初婚年齡兩源一致（世界日報、自由財經）"
+}
