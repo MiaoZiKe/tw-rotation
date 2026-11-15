@@ -196,7 +196,7 @@ export function createChat(W, X) {
     if (K.to !== 'ceo' && !isAgent(K.to) && W.chars.size) K.to = 'ceo';
     const n = activeCount(), bn = $('chatN'); bn.hidden = !n; bn.textContent = n || ''; lsSet(LS_ACTIVE, n ? '1' : null);
     btn.setAttribute('aria-label', (n ? `對話（${n} 則進行中）` : '對話') + `，目前對 ${nickOf(K.to)} 說`); btn.setAttribute('aria-expanded', String(K.open)); btn.classList.toggle('on', K.open);
-    pn.classList.toggle('open', K.open); $('mcTop').hidden = !K.open;
+    pn.classList.toggle('open', K.open); $('app').classList.toggle('mc-open', K.open); $('mcTop').hidden = !K.open;
     // 對象：頭像＋名字＋輸入框提示
     const who = nickOf(K.to), av = avaOf(K.to);
     if ($('mcAva').dataset.k !== K.to + av.length) { $('mcAva').innerHTML = av; $('mcAva').dataset.k = K.to + av.length; }
@@ -310,7 +310,7 @@ export function createChat(W, X) {
 
   // ───────── 量高度：讓其他底部元件（版本標記、運動場鈕、整修列、搖桿、緊急橫幅…）知道要讓出多少（--mc-h，chat.css 用） ─────────
   const root = document.documentElement;
-  const measure = () => { const h = $('mcDock').offsetHeight; root.style.setProperty('--mc-h', (h ? h + 18 : 0) + 'px'); };
+  const measure = () => { const h = $('mcDock').offsetHeight, b = parseFloat(getComputedStyle(pn).bottom) || 12; root.style.setProperty('--mc-h', (h ? h + b + 6 : 0) + 'px'); };      // 對話框底邊離畫面底的距離＋自己的高度＋6px 縫隙
   try { new ResizeObserver(measure).observe($('mcDock')); } catch (e) { /* 略 */ }
   addEventListener('resize', measure); measure();
 

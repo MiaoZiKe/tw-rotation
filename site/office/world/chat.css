@@ -83,6 +83,8 @@
 #app #editBar,#app .em-banner,#app .sp-hud{bottom:var(--mc-h,0px)}
 #app .gate-say{bottom:calc(var(--mc-h,0px) + 8px)}
 #app #loading.mini{bottom:calc(var(--mc-h,0px) + 6px)}
+/* 展開對話串時，置中的整修列／運動 HUD／緊急橫幅會被那張卡片蓋住：暫時藏起來，收合就回來 */
+#app.mc-open #editBar,#app.mc-open .sp-hud,#app.mc-open .em-banner{visibility:hidden}
 
 /* 窄螢幕（641～1179）：對話框貼左、變寬；底部的面板與提示整體抬高 */
 @media (max-width:1179px){
@@ -90,6 +92,8 @@
   #chatPanel.mc>*{max-width:none}
   #app #card,#app #board,#app #grp,#app .pt-tips,#app .jl-hint,#app .sp-go{bottom:var(--mc-h,12px)}
   #app #log{max-height:calc(100dvh - 76px - var(--mc-h,0px))}
+  /* 窄螢幕展開對話串時，其他底部提示暫時藏起來（收合後就回來），不跟上面那張卡片疊在一起 */
+  #app.mc-open .pt-tips,#app.mc-open .jl-hint,#app.mc-open .sp-go{visibility:hidden}
 }
 @media (max-width:820px){#chatPanel.mc{right:84px}}
 
