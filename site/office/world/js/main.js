@@ -21,6 +21,7 @@ import { createJobs } from './jobs.js';
 import { createHR } from './hr.js';
 import { createWalkGuard } from './walkguard.js';   // 走路保底：暫停太久／原地不動時接手
 import { createMind } from './mind.js';
+import { createChat } from './chat.js';   // 對 Agent 下指令的對話框（chat.js）
 import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
@@ -288,6 +289,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const sim = createSim(W, { state, demo, ui }); W.sim = sim;
   const rewards = createRewards(W, rw, { ui, cv, camera }); if (rewards.on) createLedger(W, rewards, { ui, fly: flyTo }); else { const b = $('rwBtn'); if (b) b.hidden = true; }
   createMind(W, { state });   // 每位同事的「心」：個性、心情、記憶，把獎勵／懲罰／被丟／著火等事件轉成表情與反應（mind.js）
+  createChat(W, { state, ui });   // 要在 live.js 載入之前：它包住 ui.showCard 加「對他下指令」鈕，live.js 切換模式時還原的是它記住的那一版
   import('./live.js').then(m => m.createLive(W, { state, ui, sim, rewards })).catch(e => console.warn('即時模式載入失敗，維持示範', e));   // 2026-11-14 即時模式：有接入碼就讀 AI Office 收件端的真實事件（live.js）
 
   // ── 名牌、泡泡 ──

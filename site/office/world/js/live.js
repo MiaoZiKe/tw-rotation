@@ -9,7 +9,8 @@
 //   · 收不到資料就寫「尚未收到回報」，不拿示範資料充數；資訊卡、績效總表、名牌字章在即時模式下只用真實事件算的數字，
 //     資料不夠就寫「樣本不足」或「未評等」。示範資料改成可手動切換的「展示模式」。
 //   · 分頁在背景時暫停讀取，回到前景立刻讀一次。
-//   · 接入碼存在這台裝置的 localStorage（包 try/catch，私密視窗只在這次有效）；不放進網址列（#aio=… 會被讀走後立刻清掉）。
+//   · 接入碼不長期存放（2026-11-15）：只在記憶體，領碼視窗關掉就清掉，觀看改用網站登入身分（X-AIO-Session）；localStorage 只留網址、模式、專案。
+//     不放進網址列（#aio=… 會被讀走後立刻清掉）。舊版存在儲存裡的碼，第一次載入時搬進記憶體並清除。
 import { hhmm } from './state.js';
 
 const LS = 'aiOffice.live.v1', ACCT_TOK = 'tw.acct.tok';
@@ -64,15 +65,18 @@ function loadCfg() { try { const o = JSON.parse(lsGet(LS) || 'null'); return o &
 export function createLive(W, X) {
   const { state: S, ui, sim } = X, R = X.rewards || W.rewards, qs = new URLSearchParams(location.search);
   const L = { mode: 'demo', status: 'off', cfg: loadCfg(), seq: 0, pollMs: Math.max(500, +qs.get('live_poll') || POLL_MS), polls: 0, timer: 0, inflight: false, data: null, lastOk: 0, fails: 0,
-    project: null, primary: null, clones: [], typeMap: new Map(), extras: new Map(), seen: new Set(), sharedNoted: new Set(), revealCode: null, msg: '', lastQuota: '', url: '',
+    project: null, primary: null, clones: [], typeMap: new Map(), extras: new Map(), seen: new Set(), sharedNoted: new Set(), revealCode: null, code: null, msg: '', lastQuota: '', url: '',
     guide: { open: false, step: 1, showPrompt: false, fix: false, busy: false, owner: 'unknown', eye: false, base: null, done: false, copied: '', codeExists: false, sig: '' } };
   W.live = L;
-  const save = () => lsSet(LS, JSON.stringify(L.cfg));
+  // 接入碼不長期存放（2026-11-15 規格第五節第 3 點）：只放記憶體（L.code），關掉視窗／重新整理就沒有；存進 localStorage 的只有網址、模式、專案這些設定。
+  // 觀看改用登入身分（X-AIO-Session）。舊版曾把碼存在這台裝置：第一次載入時搬進記憶體並從儲存清掉。
+  const save = () => { const o = { ...L.cfg }; delete o.code; lsSet(LS, JSON.stringify(o)); };
+  if (L.cfg.code) { L.code = L.cfg.code; delete L.cfg.code; save(); }
   const emit = (name, o = {}) => S.emit({ hook_event_name: name, live: true, ...o });
   const C = id => W.chars.get(id);
 
   // 網址 #aio=<接入碼>：讀走、存起來、立刻從網址列清掉（不留在瀏覽紀錄）
-  { const m = /(?:^#|&)aio=([A-Za-z0-9_-]{8,200})/.exec(location.hash || ''); if (m) { L.cfg.code = m[1]; L.cfg.office = L.cfg.office || 'main'; delete L.cfg.show; save(); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* 略 */ } } }
+  { const m = /(?:^#|&)aio=([A-Za-z0-9_-]{8,200})/.exec(location.hash || ''); if (m) { L.code = m[1]; L.cfg.office = L.cfg.office || 'main'; delete L.cfg.show; save(); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* 略 */ } } }
   if (qs.get('aio_url')) { L.cfg.url = qs.get('aio_url').replace(/\/+$/, ''); save(); }
 
   // ───────── 收件端網址：設定 → 從會員 API 網址推（tw-account. → tw-ai-office-bridge.） ─────────
@@ -85,13 +89,14 @@ export function createLive(W, X) {
     if (api && /\/\/tw-account\./.test(api)) L.url = api.replace('//tw-account.', '//tw-ai-office-bridge.').replace(/\/+$/, '');
     return L.url;
   }
+  L.resolveUrl = resolveUrl;
   const loginTok = () => lsGet(ACCT_TOK);
   function authHeaders() {
-    if (L.cfg.code) return { Authorization: 'Bearer ' + L.cfg.code };
+    if (L.code) return { Authorization: 'Bearer ' + L.code };
     const t = loginTok(); if (L.cfg.login && t) return { 'X-AIO-Session': t };
     return null;
   }
-  const hasCred = () => !!(L.cfg.code || (L.cfg.login && loginTok()));
+  const hasCred = () => !!(L.code || (L.cfg.login && loginTok()));
 
   // ───────── 樣式（只加新檔，不動既有 css） ─────────
   const css = document.createElement('style'); css.id = 'aioCss';
@@ -256,15 +261,15 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   pop.addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a; L.msg2 = '';
     if (a === 'guide') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); return; }
-    if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; renderPop(); return; } L.cfg = { ...L.cfg, code: v, office: 'main', login: false }; delete L.cfg.show; save(); enterLive(); return; }
-    if (a === 'login') { L.cfg = { ...L.cfg, login: true, office: 'main' }; delete L.cfg.code; delete L.cfg.show; save(); enterLive(); return; }
+    if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; renderPop(); return; } L.code = v; L.cfg = { ...L.cfg, office: 'main', login: !!loginTok() }; delete L.cfg.show; save(); enterLive(); return; }
+    if (a === 'login') { L.cfg = { ...L.cfg, login: true, office: 'main' }; L.code = null; delete L.cfg.show; save(); enterLive(); return; }
     if (a === 'url') { const v = ($('aioUrl').value || '').trim().replace(/\/+$/, ''); if (v && !/^https?:\/\/[^\s]+$/.test(v)) { L.msg2 = '網址格式不對'; renderPop(); return; } if (v) L.cfg.url = v; else delete L.cfg.url; save(); L.msg2 = '已儲存'; if (L.mode === 'live') restartLive(); else renderPop(); return; }
     if (a === 'rotate') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); await claim(true); return; }
     if (a === 'wipe') { if (!confirm('要刪除這間辦公室收到的所有紀錄嗎？（接入碼保留）')) return; await wipe(); return; }
     if (a === 'now') { poll(); return; }
     if (a === 'show') { L.cfg.show = true; save(); enterDemo(); return; }
     if (a === 'back') { delete L.cfg.show; save(); enterLive(); return; }
-    if (a === 'off') { L.cfg = {}; save(); L.revealCode = null; enterDemo(); return; }
+    if (a === 'off') { L.cfg = {}; L.code = null; save(); L.revealCode = null; enterDemo(); return; }
   });
 
   async function claim(rotate) {
@@ -277,7 +282,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
       if (r.status === 503) { L.msg2 = '會員登入服務還沒接上收件端，暫時不能產生接入碼'; renderPop(); return; }
       if (!r.ok) { L.msg2 = '產生失敗（' + r.status + '），請稍後再試'; renderPop(); return; }
       if (j.exists && !j.code) { L.guide.codeExists = true; L.guide.owner = 'owner'; L.msg2 = '已經產生過接入碼，但接入碼只會顯示一次、這台裝置沒有存。請按「換一組」產生新的（舊的會失效）'; L.cfg = { ...L.cfg, login: true, office: j.office || 'main' }; delete L.cfg.show; save(); enterLive(); return; }
-      L.revealCode = j.code; L.cfg = { ...L.cfg, code: j.code, office: j.office || 'main', login: false }; delete L.cfg.show; save();
+      L.revealCode = j.code; L.code = j.code; L.cfg = { ...L.cfg, office: j.office || 'main', login: true }; delete L.cfg.show; save();   // 領碼的一定是登入中的站長：關掉視窗後碼就清掉、觀看改用登入身分
       Object.assign(L.guide, { owner: 'owner', base: null, eye: false, codeExists: true, copied: '' });
       if (L.mode === 'live') restartLive(); else enterLive();
     } catch (x) { L.msg2 = '連不上收件端，請稍後再試'; renderPop(); }
@@ -312,19 +317,22 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   }
   function openGuide() {
     G.open = true; G.eye = false; G.done = false; G.base = null; G.sig = ''; G.fix = false;
-    if (L.cfg.code && G.owner === 'nologin') G.owner = 'unknown';
+    if (L.code && G.owner === 'nologin') G.owner = 'unknown';
     gEl.hidden = false; badge.setAttribute('aria-expanded', 'false');
     resolveUrl().then(() => { guideRender(); }); guideRender(); checkOwner();
     const p = gEl.querySelector('.aio-gp'); p && p.focus({ preventScroll: true });
     if (L.mode === 'live') { clearTimeout(L.timer); poll(); }
   }
-  function closeGuide() { G.open = false; gEl.hidden = true; clearTimeout(G.t); try { badge.focus({ preventScroll: true }); } catch (x) { /* 略 */ } }
+  function closeGuide() {
+    G.open = false; gEl.hidden = true; clearTimeout(G.t);
+    if (L.code && loginTok()) { L.cfg.login = true; save(); L.code = null; L.revealCode = null; G.copied = ''; if (L.mode === 'live') { clearTimeout(L.timer); poll(); } }   // 碼只在視窗開著時存在
+ try { badge.focus({ preventScroll: true }); } catch (x) { /* 略 */ } }
   L.openGuide = openGuide; L.closeGuide = closeGuide;
   // 一個畫面、兩個動作：① 複製提示詞貼到 Claude　② Claude 跳出表單時貼接入碼（沒有就自動產生、一律遮罩）；底下一行狀態，收到第一筆事件就「已接上」
   const shotHtml = n => { const x = GUIDE_SHOTS[n]; return x.ready ? `<figure class="aio-shot" data-shot="${esc(x.file)}"><img src="guide/shots/${esc(x.file)}" alt="${esc(x.alt)}"></figure>` : `<p class="aio-cap" data-shot="${esc(x.file)}">${esc(x.alt)}</p>`; };
   function guideRender(force) {
     if (!G.open) return;
-    const code = L.cfg.code || '', pr = promptText();
+    const code = L.code || '', pr = promptText();
     const sig = JSON.stringify([!!code, G.owner, G.done, L.status, L.mode, L.msg2, G.copied, !!pr, G.showPrompt, G.fix, L.msg, L.data && L.data.total_events, G.busy]);
     if (!force && sig === G.sig) return; G.sig = sig;
     const ae = document.activeElement, keep = ae && gEl.contains(ae) && ae.tagName === 'INPUT' ? { id: ae.id, v: ae.value } : null;
@@ -340,7 +348,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     else h += `<p>貼進表單的「值」那一格，按儲存；不要貼在聊天室。</p>
       <div class="aio-row">${code ? `<code class="aio-mask" id="aioCodeMask" aria-label="接入碼（已隱藏）">${esc(maskCode(code))}</code>` : ''}<button class="btn big" data-a="cpcode" ${G.busy ? 'disabled' : ''}>複製接入碼</button></div>
       ${G.copied === 'code' ? '<p class="aio-msg" role="status">已複製，貼進 Claude 的表單就好。</p>' : G.copied === 'codesel' ? '<p class="aio-msg" role="status">接入碼已產生，請再按一次「複製接入碼」。</p>' : ''}
-      ${code || G.owner === 'owner' ? '<button class="aio-lk warnlk" data-a="rotate">不小心外流？換一組</button>' : ''}${shotHtml(2)}`;
+      ${!code && G.owner === 'owner' && G.codeExists ? '<p class="aio-msg">接入碼只在產生的當下顯示一次，這個網頁不會保存。再按一次「複製接入碼」會換一組新的（舊的失效）。</p>' : ''}${code || G.owner === 'owner' ? '<button class="aio-lk warnlk" data-a="rotate">不小心外流？換一組</button>' : ''}${shotHtml(2)}`;
     h += '</section></div>';
     h += G.done ? '<div class="aio-box ok" role="status" id="aioStat">已接上 ✓，你的辦公室正在即時更新</div>'
       : `<div class="aio-wait" role="status" id="aioStat"><i aria-hidden="true"></i>等待你的 Claude 回報…</div>${L.status === 'error' ? `<p class="aio-msg">暫時連不上收件端（${esc(L.msg || '網路問題')}），會自動重試。</p>` : ''}${L.status === 'auth' ? '<p class="aio-msg">收件端不認得這組接入碼，請按「不小心外流？換一組」。</p>' : ''}`;
@@ -363,18 +371,18 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     if (a === 'viewp') { G.showPrompt = !G.showPrompt; guideRender(true); return; }
     if (a === 'cpprompt') { if (!G.showPrompt) { G.showPrompt = true; guideRender(true); } G.copied = (await copyText(promptText(), $('aioPrompt'))) ? 'prompt' : 'promptsel'; G.showPrompt = G.copied === 'promptsel'; guideRender(true); return; }
     if (a === 'cpcode') {
-      if (!L.cfg.code) {                                                  // 還沒有碼：自動產生（領過但這台沒存＝直接換新的，使用者不用多按一步）
+      if (!L.code) {                                                  // 還沒有碼：自動產生（領過但這台沒存＝直接換新的，使用者不用多按一步）
         G.busy = true; guideRender(true); await claim(false);
-        if (!L.cfg.code && G.codeExists && L.guide.owner === 'owner') { L.msg2 = ''; await claim(true); }
+        if (!L.code && G.codeExists && L.guide.owner === 'owner') { L.msg2 = ''; await claim(true); }
         G.busy = false;
       }
-      if (L.cfg.code) G.copied = (await copyText(L.cfg.code, null)) ? 'code' : 'codesel';
+      if (L.code) G.copied = (await copyText(L.code, null)) ? 'code' : 'codesel';
       guideRender(true); return;
     }
     if (a === 'rotate') { G.busy = true; guideRender(true); await claim(true); G.busy = false; G.copied = ''; guideRender(true); return; }
     if (a === 'now') { poll(); return; }
     if (a === 'url') { const v = ($('aioUrl').value || '').trim().replace(/\/+$/, ''); if (v && !/^https?:\/\/[^\s]+$/.test(v)) { L.msg2 = '網址格式不對'; guideRender(true); return; } if (v) L.cfg.url = v; else delete L.cfg.url; save(); L.msg2 = '已儲存'; if (L.mode === 'live') restartLive(); guideRender(true); return; }
-    if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; guideRender(true); return; } L.cfg = { ...L.cfg, code: v, office: 'main', login: false }; delete L.cfg.show; save(); Object.assign(G, { base: null, copied: '' }); enterLive(); guideRender(true); return; }
+    if (a === 'code') { const v = ($('aioIn').value || '').trim(); if (!/^[A-Za-z0-9_-]{8,200}$/.test(v)) { L.msg2 = '接入碼格式不對（應該是 aio_ 開頭的一串英數字）'; guideRender(true); return; } L.code = v; L.cfg = { ...L.cfg, office: 'main', login: !!loginTok() }; delete L.cfg.show; save(); Object.assign(G, { base: null, copied: '' }); enterLive(); guideRender(true); return; }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && G.open) { e.stopPropagation(); closeGuide(); } }, true);
   // 收到第一筆事件（比打開引導時多）就算接上：顯示成功、2.5 秒後自動關閉，辦公室本來就已經是即時模式
@@ -568,7 +576,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     applyQuota(j.quota);
     L.seq = Math.max(L.seq, j.seq || 0);
     L.status = j.total_events ? 'ok' : 'nodata';
-    if (L.cfg.login && !L.cfg.code) L.msg = '';
+    if (L.cfg.login && !L.code) L.msg = '';
     guideCheck(j);
   }
 

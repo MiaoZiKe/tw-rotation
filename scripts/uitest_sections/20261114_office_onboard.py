@@ -146,11 +146,11 @@ def _ob_owner(b, base):
         code1 = f.codes[-1]
         ok("② ：接入碼遮罩，只露前 7 碼「aio_Pp1…（已隱藏）」、畫面上沒有完整碼", pg.inner_text("#aioCodeMask") == "aio_Pp1…（已隱藏）" and code1 not in pg.inner_text("#aioGuide"), pg.inner_text("#aioCodeMask"))
         ok("② ：領到的碼真的寫進剪貼簿", wait_until(pg, "() => navigator.clipboard.readText().then(t => t === %s).catch(() => false)" % _json.dumps(code1), 5000))
-        ok("② ：碼存進這台裝置、辦公室切到即時（等回報）", wait_until(pg, "() => __world.live.mode === 'live' && __world.live.status === 'nodata'", 15000) and pg.evaluate("() => JSON.parse(localStorage.getItem('aiOffice.live.v1') || '{}').code") == code1)
+        ok("② ：碼只放記憶體（11-15 起不存 localStorage）、辦公室切到即時（等回報）", wait_until(pg, "() => __world.live.mode === 'live' && __world.live.status === 'nodata'", 15000) and pg.evaluate("() => __world.live.code") == code1 and pg.evaluate("() => JSON.parse(localStorage.getItem('aiOffice.live.v1') || '{}').code") is None)
         ok("② ：「不小心外流？換一組」小字連結在畫面上", _ob_shown(pg, "#aioC2 [data-a=rotate]") and "不小心外流？換一組" in pg.inner_text("#aioC2"))
         _ob_shot(pg, "d2_桌機_接入碼已遮罩.png")
         pg.click("#aioC2 [data-a=rotate]")
-        ok("② ：按「換一組」→ 產生新碼（rotate）、舊的失效、仍是遮罩", wait_until(pg, "() => JSON.parse(localStorage.getItem('aiOffice.live.v1') || '{}').code !== %s" % _json.dumps(code1), 10000) and f.claims[-1].get("rotate") is True and len(f.codes) == 2 and pg.inner_text("#aioCodeMask") == "aio_Pp1…（已隱藏）", f.claims)
+        ok("② ：按「換一組」→ 產生新碼（rotate）、舊的失效、仍是遮罩", wait_until(pg, "() => __world.live.code && __world.live.code !== %s" % _json.dumps(code1), 10000) and f.claims[-1].get("rotate") is True and len(f.codes) == 2 and pg.inner_text("#aioCodeMask") == "aio_Pp1…（已隱藏）", f.claims)
         code2 = f.codes[-1]
         pg.click("#aioC2 [data-a=cpcode]")
         ok("② ：已有碼時再按「複製接入碼」只複製、不再領碼", wait_until(pg, "() => navigator.clipboard.readText().then(t => t === %s).catch(() => false)" % _json.dumps(code2), 5000) and len(f.claims) == 2, f.claims)

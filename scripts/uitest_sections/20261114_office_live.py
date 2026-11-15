@@ -1,5 +1,5 @@
 # 驗收段落「辦公室即時模式」：AI Office 3D 辦公室（site/office/world.html）接上收件端（workers/ai-office-bridge）之後
-#   ① 沒接：頂列標章寫「連接我的 Claude」、點開是連接對話框；格式不對的接入碼擋下；填網址＋接入碼 → 真的切到即時模式（存進 localStorage）
+#   ① 沒接：頂列標章寫「連接我的 Claude」、點開是連接對話框；格式不對的接入碼擋下；填網址＋接入碼 → 真的切到即時模式（網址存 localStorage、接入碼只放記憶體）
 #   ② 即時：標章「即時・最後更新 HH:MM」；收件端回來的工作階段＝CEO 開工、子 Agent 進行中、名冊沒有的類型坐進後備座位、
 #      等核准（頂列琥珀膠囊）、交件、第二個工作階段＝CEO 分身；示範鈕與模擬鈕藏起來；名牌上的示範等第字章拿掉
 #   ③ 沒資料：標章「即時・尚未收到回報」；資訊卡數字全是 0（沒有示範任務）；績效總表是即時版、寫「樣本不足」、示範總表不打開；電力「未提供」
@@ -135,7 +135,7 @@ def t_connect_and_live(b, base):
         pg.click("#aioGuide [data-a=code]")
         ok("連接：切到即時模式", wait_until(pg, "() => __world.live.mode === 'live' && __world.live.status === 'ok'", 20000), pg.evaluate("() => [__world.live.mode, __world.live.status, __world.live.msg]"))
         saved = pg.evaluate("() => JSON.parse(localStorage.getItem('aiOffice.live.v1') || '{}')")
-        ok("連接：網址與接入碼存進這台裝置（localStorage）", saved.get("code") == _CODE and saved.get("url") == _AIO, saved)
+        ok("連接：網址存進這台裝置（localStorage）、接入碼只放記憶體不存（11-15 起）", saved.get("code") is None and saved.get("url") == _AIO and pg.evaluate("() => __world.live.code") == _CODE, saved)
         pg.click("#aioGuide .aio-gx")
         ok("即時：標章「即時・最後更新 HH:MM」", bool(_re.fullmatch(r"即時・最後更新 \d\d:\d\d", _badge(pg) or "")), _badge(pg))
         ok("即時：CEO 開工（工作階段進行中）", pg.evaluate("() => __world.state.session.active"))
