@@ -247,3 +247,11 @@ Claude（程式生成）的強弱項，依這兩天實測：
 5. **切換專案＝重新載入頁面**，換掉上一個專案留下的後備座位同事與分身，不混角色。
 6. 名牌／門牌：「<專案名> CEO」、「<專案名> CEO（分身 N）」、「<專案名> CEO 辦公室」；名稱 user／root／home／tmp／workspace 等一律顯示「雲端工作階段」；過長以「…」截斷（名牌 12 字、左上角 14 字）。
 - 名牌命名改用「當下任務簡稱」task_name（雲端接入工作階段已做好資料端，分支 claude/aio-task-name，commit d9284a4f：set_task_name.py、bridge.py 帶 task_name、install_hooks.py --instructions、worker.js 收 task_name）。待多專案那批交件後 cherry-pick 進開發分支，前端名牌「<task_name> CEO」、沒有就退回專案名、無意義名稱顯示「雲端工作階段 CEO」；收件服務與外掛推 main 前需擁有者同意。
+
+### S1～S3 實作紀錄（運動場，2026-11-15 晚，canvas-motion-engineer）
+- 位置：大門外小路西邊（遊民區在東邊），x 0.7～19.0、z 31.7～48.2；導航格擴到 D+20、角色與鏡頭邊界 z 擴到 d+18／d+19、小路旁加一塊可走區域。
+- 檔案：`site/office/world/js/sports_build.js`（場地模型）、`sports_water.js`（水面、落水、濕身、免疫著火）、`sports_games.js`（球拍球類、籃球、撞球的物理與規則）、`sports.js`（組裝、輸入、介面、閒著的員工去運動）。main.js 只加 import 與一行掛載；fire.js 新增 `F.extinguish(c, cause)` 與 `_fireImmuneUntil`；nav.js、pilot.js 各改一個常數。
+- 玩法：點選員工用方向鍵操控，走進場地按 E → 「找一位同事一起打」（點另一位員工邀請、或 E／Enter 自動找、籃球與撞球可自己練習）→ 羽毛球／網球：空白鍵揮拍；籃球：按住空白鍵蓄力；撞球：滑鼠拖曳；游泳：走進池或池邊按 E 跳進去；Esc 結束。手機有「開始」「自動找同事」「自己練習」「蓄力」「結束」鈕。
+- 事件：splashed、left_pool、extinguished（cause:'pool'）、sport_start、sport_end、sport_score（每一分一則＋結束時勝負各一則，含 opponent）。情緒由 mind.js 訂閱處理。
+- 驗收：`scripts/uitest_sections/20261115_office_sports.py`。
+- 11-15 18:18 雲端接入工作階段正式交接給本工作階段：使用者 Default 雲端環境已設網路金鑰（AI 辦公室接入碼，主機 tw-ai-office-bridge…workers.dev）與設定腳本（clone→/opt/ai-office-bridge→install_hooks.py→config.json），測試事件 ok。待辦：① 合併 aio-task-name→main（需擁有者同意）並確認 Worker 部署；② 前端 task_name 名牌＋多專案（進行中）；③ 合併上線後把設定腳本 install_hooks.py 那行加 `--instructions ~/.claude/CLAUDE.md`（先在容器實跑，提出更新環境請使用者按同意）。
