@@ -243,6 +243,7 @@ export function createUI(W, demo, api) {
     const rows = B.tasks.map((x, i) => ({ x, i })).filter(r => !boardF || r.x.s === boardF);
     $('board').innerHTML = `<button class="x" aria-label="關閉">×</button><h3><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${B.color}"></span>${esc(B.name)}佈告欄</h3>
       <p class="bmeta">${boardOwner === 'ceo' ? '全公司' : '部門'}人數 ${B.all} 人・主管：${esc(B.lead)}</p>
+      <button class="btn on bsay" type="button" data-say="${esc(boardOwner)}">${boardOwner === 'ceo' ? '對 CEO 說' : '對整個部門說'}</button>
       <div class="scroll" id="boardScroll"><div class="bsec">便利貼公告</div>${B.notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p class="empty">目前沒有公告</p>'}
       <div class="bsec">進度回報（${boardOwner === 'ceo' ? 'CEO' : esc(B.name) + '成員'}）</div>
       <div class="kpi" id="boardKpi">${[[1, 'k1', '未完成', '⬜'], [2, 'k2', '進行中', '🛠️'], [3, 'k3', '已完成', '✅']].map(([k, c, n, ic]) => `<button class="${c}${boardF === k ? ' on' : ''}" data-bk="${k}" aria-pressed="${boardF === k}" title="只看「${n}」的事項，再點一次看全部"><span>${ic} ${n}</span><b>${cnt(k)}</b></button>`).join('')}</div>
