@@ -70,7 +70,12 @@ def test_時段_cron與工作流一致且避開整點():
         assert not c["slot"].endswith(":00") and not c["slot"].endswith(":30")
         mine[c["workflow"]] |= set(c["cron"])
         slots.append(c["slot"])
-    assert mine == wf
+    # 2026-11-10：healing_post.yml 因 GitHub 排程常延遲數小時，另加晚間補跑時段（publish_at／per_day 擋重複），
+    # 所以只要求 channels.json 的主時段與保底都在工作流裡，且額外時段也都避開整點與半點。
+    for f in wf:
+        assert mine[f] <= wf[f], f
+        for cr in wf[f] - mine[f]:
+            assert cr.split()[0] not in ("0", "30"), cr
     assert len(set(slots)) == 3
 
 
