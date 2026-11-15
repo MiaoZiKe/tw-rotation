@@ -51,8 +51,10 @@ export function buildSports(W) {
   // ── 涼亭＋撞球桌：四根柱子、疏疏的橫樑（俯視看得到桌面）、桌子
   const Z = LAY.gaz, X = LAY.table;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const px = Z.cx + sx * (Z.w / 2 - 0.1), pz = Z.cz + sz * (Z.d / 2 - 0.1); P.cyl(PAL.woodMid, 0.09, 2.3, px, 0, pz, 0.03); feet.push({ x: px, z: pz, r: 0.1 }); }
-  for (let i = 0; i < 9; i++) P.box(PAL.wood, 0.12, 0.1, Z.d + 0.4, Z.cx - Z.w / 2 + 0.1 + i * (Z.w - 0.2) / 8, 2.3, Z.cz, 0.03);
-  P.box(PAL.woodMid, Z.w + 0.2, 0.12, 0.12, Z.cx, 2.4, Z.cz - Z.d / 2 + 0.1, 0.03); P.box(PAL.woodMid, Z.w + 0.2, 0.12, 0.12, Z.cx, 2.4, Z.cz + Z.d / 2 - 0.1, 0.03);
+  // 屋頂只做一圈細框＋兩端各兩根橫條（中間全空，俯視與斜視都看得到桌面）
+  P.box(PAL.woodMid, Z.w + 0.2, 0.07, 0.07, Z.cx, 2.3, Z.cz - Z.d / 2 + 0.1, 0.02); P.box(PAL.woodMid, Z.w + 0.2, 0.07, 0.07, Z.cx, 2.3, Z.cz + Z.d / 2 - 0.1, 0.02);
+  P.box(PAL.woodMid, 0.07, 0.07, Z.d - 0.1, Z.cx - Z.w / 2 + 0.1, 2.3, Z.cz, 0.02); P.box(PAL.woodMid, 0.07, 0.07, Z.d - 0.1, Z.cx + Z.w / 2 - 0.1, 2.3, Z.cz, 0.02);
+  for (const dx of [0.35, 0.7, 1.05]) for (const sg of [-1, 1]) P.box(PAL.wood, 0.07, 0.05, Z.d - 0.1, Z.cx + sg * (Z.w / 2 - 0.1 - dx), 2.31, Z.cz, 0.015);
   P.slab('#ecdcc2', Z.w - 0.1, Z.d - 0.1, 0.03, Z.cx, 0.04, Z.cz, 0.2, 0, 0.01);
   const tw = X.L + 0.34, td = X.W + 0.34;
   P.box('#8a5a3a', tw, 0.5, td, X.cx, 0.1, X.cz, 0.06);                            // 桌身

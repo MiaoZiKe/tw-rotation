@@ -276,6 +276,24 @@ export function createFeel(W, K) {
   const fireInfo = () => { const fr = W.fire; return fr && fr.on !== false && fr.center ? fr.center : null; };
   const nightK = () => (W.daytime && W.daytime.outL ? W.daytime.outL.k : 0) || 0;
   const flat = (c, x, z) => Math.hypot(pos(c).x - x, pos(c).z - z);
+  // 距離折線最近的一點到火堆的距離
+  const polyMin = (pts, fc) => { let mn = 1e9; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], sx = b.x - a.x, sz = b.z - a.z, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fc.x - a.x) * sx + (fc.z - a.z) * sz) / sl, 0, 1) : 0; mn = Math.min(mn, Math.hypot(a.x + sx * u - fc.x, a.z + sz * u - fc.z)); } return mn; };
+  const plen = pts => { let l = 0; for (let i = 0; i < pts.length - 1; i++) l += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].z - pts[i].z); return l; };
+  function replan(c, m, f, fc, fearNow, now) {
+    const P = c._path, p = pos(c), rad = 2.8 + 1.6 * fearNow, pts = [{ x: p.x, z: p.z }, ...P.slice(c._pi)], end = pts[pts.length - 1];
+    if (polyMin(pts, fc) >= rad || Math.hypot(p.x - fc.x, p.z - fc.z) < 1.2 || Math.hypot(end.x - fc.x, end.z - fc.z) < rad) return false;   // 本來就遠、已經在火邊、或終點就在火邊：不處理
+    const orig = polyMin(pts, fc); let best = null;
+    for (const r of [rad + .9, rad + .2, 3.4]) for (let k = 0; k < 10; k++) {   // 火堆外圈取點（火在地圖邊緣時只剩幾個點可走），挑「離火最遠、同樣遠就走最短」的繞法
+      const a = k / 10 * 6.2832, w = W.nav.nearestFree(fc.x + Math.cos(a) * r, fc.z + Math.sin(a) * r, 1.2); if (!w || Math.hypot(w.x - fc.x, w.z - fc.z) < Math.min(r - .5, 2.6)) continue;
+      const p1 = W.nav.findPath({ x: p.x, z: p.z }, w), p2 = p1 && W.nav.findPath(w, end); if (!p1 || !p2) continue;
+      const all = [{ x: p.x, z: p.z }, ...p1.slice(1), ...p2.slice(1)], cl = polyMin(all, fc); if (cl < orig + .5) continue; const L = plen(all);
+      if (!best || cl > best.cl + .15 || (cl > best.cl - .15 && L < best.L)) best = { all, L, cl };
+    }
+    if (!best) return false;
+    c._path = best.all; c._pi = 1; f.detKey = c._path; F.stats.detours++; f.detours = (f.detours || 0) + 1;
+    if (now >= (f.cd.detSay || 0)) { f.cd.detSay = now + 20; c.emote('sweat', 1.4); if (!m.sc) face(c, m, 'worried', 1.8); record(m, { event: 'fire-detour', fear: Math.round(fearNow * 100) / 100, face: 'worried' }); }
+    return true;
+  }
   F.tickChar = (c, m, now, d) => {
     const f = of(m); if (!awake(c) || c.jobless) { runQ(c, m); return; }
     relDecay(m, d); runQ(c, m);
@@ -285,18 +303,7 @@ export function createFeel(W, K) {
     const fc = fireInfo(), moving = c.state === 'walk', fearNow = f.fear;
     if (fc && fearNow >= .25) {
       const fd = flat(c, fc.x, fc.z);
-      if (moving && c._path && c._pi < c._path.length && (f.detKey !== c._path || f.detPi !== c._pi)) {          // 繞遠：下一段路若會經過火堆附近，就插一個繞開的點
-        f.detKey = c._path; f.detPi = c._pi; const p = pos(c), tg = c._path[c._pi], rad = 3 + 2.6 * fearNow;
-        const sx = tg.x - p.x, sz = tg.z - p.z, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fc.x - p.x) * sx + (fc.z - p.z) * sz) / sl, 0, 1) : 0, qx = p.x + sx * u, qz = p.z + sz * u, dd = Math.hypot(qx - fc.x, qz - fc.z);
-        if (dd < rad && Math.hypot(p.x - fc.x, p.z - fc.z) > 1.2) {
-          let ox = qx - fc.x, oz = qz - fc.z, L = Math.hypot(ox, oz); if (L < .05) { ox = -sz; oz = sx; L = Math.hypot(ox, oz) || 1; } ox /= L; oz /= L;
-          let w = null;     // 兩側、幾種半徑都試；火在地圖邊緣時另一側才走得通。要求走過去的兩段路都沒有被家具擋住
-          for (const r of [rad + 1.1, rad + .2, rad * .8, 3.2]) { for (const sg of [1, -1]) {
-            const q2 = W.nav.nearestFree(fc.x + ox * sg * r, fc.z + oz * sg * r, 1.5); if (!q2 || Math.hypot(q2.x - fc.x, q2.z - fc.z) < Math.min(r - .9, 2.8)) continue;
-            if (W.nav.los && !(W.nav.los(p.x, p.z, q2.x, q2.z) && W.nav.los(q2.x, q2.z, tg.x, tg.z))) continue; w = q2; break; } if (w) break; }
-          if (w) { c._path.splice(c._pi, 0, { x: w.x, z: w.z }); F.stats.detours++; f.detours = (f.detours || 0) + 1; if (now >= (f.cd.detSay || 0)) { f.cd.detSay = now + 20; c.emote('sweat', 1.4); if (!m.sc) face(c, m, 'worried', 1.8); record(m, { event: 'fire-detour', fear: Math.round(fearNow * 100) / 100, face: 'worried' }); } }
-        }
-      }
+      if (moving && c._path && c._pi < c._path.length && f.detKey !== c._path) { f.detKey = c._path; replan(c, m, f, fc, fearNow, now); }   // 繞遠：這條路若會貼近火堆，重新規劃一條繞開的
       if (fd < 5.5 && now >= (f.cd.shake || 0) && !m.sc && c.state !== 'sit' && !moving && canAct(c)) {   // 站在火邊：發抖
         f.cd.shake = now + R(7, 11); face(c, m, 'scared', 2.2); act(c, 'fidget', { duration: 2.2 }); c.emote('sweat', 1.6); say(c, rnd(['…好怕火', '離火遠一點…']), 1.6); record(m, { event: 'fire-shiver', face: 'scared', action: 'fidget' });
       }

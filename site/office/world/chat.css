@@ -1,61 +1,121 @@
-/* 對 Agent 下指令（world/js/chat.js）。只在辦公室頁載入；手機（≤640）全螢幕。 */
-.btn.chat-b{gap:6px}
-/* world.css 的 .btn i 是下拉三角形（寬高 0、5px 邊框、上邊距 5px），徽章不能吃到它 */
-.btn.chat-b .cn{border:0;margin:0;width:auto;box-sizing:border-box;display:inline-block;font-style:normal;font-size:12px;line-height:18px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--on);color:#fff;text-align:center;font-weight:800}
-.btn.chat-b.on .cn{background:#fff;color:var(--on)}
-#chatPanel{right:12px;top:64px;width:392px;height:calc(100dvh - 76px);max-height:calc(100dvh - 76px);z-index:26;padding:14px;gap:8px}
-#chatPanel h3{margin:0 40px 0 2px;font-size:16px}
-#chatPanel .c-live{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.5;color:var(--sub);min-height:18px;margin:0 2px}
-#chatPanel .c-live:empty{display:none}
-#chatPanel .c-live .dot{flex:none;width:8px;height:8px;border-radius:50%;background:#b9aca2}
-#chatPanel .c-live .dot.on{background:#35b36b;box-shadow:0 0 0 3px rgba(53,179,107,.18)}
-#chatPanel .c-note{font-size:13px;line-height:1.65;background:#fff6e6;border:1px solid #f1d9a8;border-radius:12px;padding:10px 12px;color:var(--ink)}
-#chatPanel .c-note .btn{height:32px;margin-top:6px;box-shadow:none;border:1px solid var(--line);font-size:13px}
-#chatPanel .c-note a,#chatPanel .c-rp a{color:var(--on);font-weight:700;word-break:break-all}
-#chatPanel .c-list{flex:1 1 auto;min-height:60px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 4px;overscroll-behavior:contain}
-#chatPanel .c-empty{margin:8px 4px;font-size:13px;line-height:1.7;color:var(--sub)}
-#chatPanel .c-msg{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.55}
-#chatPanel .c-msg header{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-#chatPanel .c-msg header b{font-size:13px}
-#chatPanel .c-msg time{font-size:12px;color:var(--sub);margin-right:auto}
-#chatPanel .c-st{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;background:#eee8e2;color:#6b5a50}
-#chatPanel .c-st.sc,#chatPanel .c-st.sr{background:#e3effd;color:#2a5f9e}
-#chatPanel .c-st.sd{background:#dff3e6;color:#237a47}
-#chatPanel .c-st.sf{background:#fde4e0;color:#b3392b}
-#chatPanel .c-st.sx{background:#f3eee9;color:#a39387}
-#chatPanel .c-st.sw{background:#fff0c7;color:#8a6200}
-#chatPanel .c-st .spin{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:cspin .9s linear infinite}
+/* 主對話框（world/js/chat.js，2026-11-15 晚改版）。常駐在畫面下方：收合＝一行輸入列（對象頭像＋輸入框＋送出），展開＝上方多一張對話串。
+   版面原則（為什麼這樣排）：
+   · 寬螢幕（≥1180）：對話框放在畫面底部正中間的「帶狀區」，左邊讓給資訊卡／佈告欄／群組（寬 340、左 12），右邊讓給操控提示卡與紀錄欄，所以彼此不用互相讓位。
+   · 窄螢幕（641～1179）：對話框變寬、貼左；左下／右下的面板、運動場鈕、操控提示等底部元件整體抬高，用 --mc-h（chat.js 量出來的對話框高度）讓位。
+   · 手機（≤640）：輸入列固定在底部，右邊留 76px 給客服鈕；點開變全螢幕對話串。
+   · 版本標記（#aoBuild，左下 8／6、高約 17）：窄螢幕與手機的對話框抬高 26px 避開它。
+   · pointer-events：外框不吃滑鼠，只有真正的內容（輸入列、對話串、說明）吃；3D 場景的點選與拖曳不會被擋。 */
+#chatPanel.mc{position:absolute;z-index:26;left:372px;right:372px;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;color:var(--ink)}
+#chatPanel.mc>*{pointer-events:auto;width:100%;max-width:720px;box-sizing:border-box}
+#chatPanel [hidden]{display:none!important}
+#chatPanel button{font:inherit;color:inherit;cursor:pointer}
+/* 展開時的對話串卡片 */
+.mc-top{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 12px 8px;height:min(52dvh,460px);min-height:240px}
+.mc-head{display:flex;align-items:center;gap:8px}
+.mc-who{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.mc-nmx{display:flex;flex-direction:column;min-width:0}.mc-nmx b{font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mc-nmx small{font-size:12px;color:var(--sub);line-height:1.3}
+.mc-ceo{height:32px;padding:0 12px;font-size:13px;box-shadow:none;border:1px solid var(--line)}
+.mc-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:var(--on2);color:var(--on);font-size:16px;font-weight:800;line-height:1;padding:0}
+/* 頭像（沿用資訊卡的小頭像繪圖器，這裡縮小） */
+.mc-ava{flex:none;display:inline-block;width:34px;height:34px;border-radius:50%;overflow:hidden;position:relative;background:#fff3e4;box-shadow:inset 0 0 0 1px var(--line)}
+.mc-ava .ava2{width:100%;height:100%;display:block;box-shadow:none}
+.mc-ava .ava{width:100%;height:100%;box-shadow:none}.mc-ava .ava:before,.mc-ava .ava:after{top:42%}.mc-ava .ava:before{left:30%}.mc-ava .ava:after{right:30%}
+.c-live{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.5;color:var(--sub);min-height:18px;margin:0 2px}
+.c-live:empty{display:none}
+.c-live .dot{flex:none;width:8px;height:8px;border-radius:50%;background:#b9aca2}
+.c-live .dot.on{background:#35b36b;box-shadow:0 0 0 3px rgba(53,179,107,.18)}
+/* 對話串切換列：CEO 一串、每位有說過話的 Agent 一串 */
+.mc-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:thin;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.mc-th{flex:none;display:flex;align-items:center;gap:6px;height:36px;padding:0 12px 0 4px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;white-space:nowrap}
+.mc-th .mc-ava{width:28px;height:28px}
+.mc-th.on{background:var(--on);border-color:var(--on);color:#fff}
+.mc-th .cn,.mc-tg .cn{border:0;margin:0;display:inline-block;font-style:normal;font-size:12px;line-height:18px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--on);color:#fff;text-align:center;font-weight:800;box-sizing:border-box}
+.mc-th.on .cn{background:#fff;color:var(--on)}
+/* 訊息串：右邊是我說的、左邊是對方回的（頭像＋名字） */
+.c-list{flex:1 1 auto;min-height:60px;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:2px 2px 4px;overscroll-behavior:contain}
+.c-empty{margin:8px 4px;font-size:13px;line-height:1.7;color:var(--sub)}
+.c-msg{display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.55}
+.c-me{align-self:flex-end;max-width:88%;background:var(--on2);border:1px solid #f6d9bb;border-radius:14px 14px 4px 14px;padding:7px 10px}
+.c-me header{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.c-msg time{font-size:12px;color:var(--sub);margin-right:auto}
+.c-st{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;background:#eee8e2;color:#6b5a50}
+.c-st.sc,.c-st.sr{background:#e3effd;color:#2a5f9e}
+.c-st.sd{background:#dff3e6;color:#237a47}
+.c-st.sf{background:#fde4e0;color:#b3392b}
+.c-st.sx{background:#f3eee9;color:#a39387}
+.c-st.sw{background:#fff0c7;color:#8a6200}
+.c-st .spin{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:cspin .9s linear infinite}
 @keyframes cspin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){#chatPanel .c-st .spin{animation:none}}
-#chatPanel .c-tx{margin:4px 0 0;white-space:pre-wrap;word-break:break-word}
-#chatPanel .c-rp{margin-top:6px;border-top:1px dashed var(--line);padding-top:6px;white-space:pre-wrap;word-break:break-word}
-#chatPanel .c-rp b{display:block;font-size:12px;color:var(--sub);margin-bottom:2px}
-#chatPanel .c-mini{height:30px;margin-top:6px;padding:0 12px;font-size:13px;box-shadow:none;border:1px solid var(--line)}
-#chatPanel .c-form{flex:none;display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:8px}
-#chatPanel .c-form label{font-size:12px;color:var(--sub)}
-#chatPanel .c-form select,#chatPanel .c-form textarea{font:inherit;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:7px 10px;background:#fff;width:100%;min-width:0;box-sizing:border-box}
-#chatPanel .c-form textarea{resize:none;min-height:72px;max-height:30dvh;line-height:1.5}
-#chatPanel .c-form select:focus,#chatPanel .c-form textarea:focus{outline:2px solid var(--on);outline-offset:-1px}
-#chatPanel .c-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-#chatPanel .c-cnt{font-size:12px;color:var(--sub)}#chatPanel .c-cnt.over{color:#b3392b;font-weight:700}
-#chatPanel .c-row .btn{height:38px;min-width:96px;justify-content:center}
-#chatPanel .c-row .btn:disabled{opacity:.45;cursor:not-allowed}
-#chatPanel .c-hint{margin:0;font-size:12px;line-height:1.5;color:var(--sub)}
-#chatPanel .c-err{margin:0;font-size:13px;color:#b3392b;font-weight:600}
-@media (max-width:640px){
-  #chatBtn{order:10}                     /* 手機：跟區域、示範、整修一樣收進「更多」，預設收起（手機只留重點；頂列第二排已經滿了） */
-  body:not(.m-more) #chatBtn{display:none}
-  #chatPanel{left:0!important;right:0!important;top:0!important;bottom:0!important;width:auto;height:100dvh;max-height:none;border-radius:0;padding:12px 12px calc(34px + env(safe-area-inset-bottom));z-index:60}   /* 底下留出版號小字的位置，不壓到說明 */
-  #chatPanel .x{width:36px;height:36px;right:8px;top:8px}
-  #chatPanel h3{font-size:17px;min-height:36px;display:flex;align-items:center}
-  #chatPanel .c-form select,#chatPanel .c-form textarea{font-size:16px}
-  #chatPanel .c-row .btn{height:42px}
+@media (prefers-reduced-motion:reduce){.c-st .spin{animation:none}.mc-tg.flash{animation:none}}
+.c-tx{margin:4px 0 0;white-space:pre-wrap;word-break:break-word}
+.c-relay{margin:3px 0 0;font-size:12px;color:var(--sub)}
+.c-rp{align-self:flex-start;max-width:92%;display:flex;gap:8px;align-items:flex-start}
+.c-av{flex:none;width:32px;height:32px;border-radius:50%;overflow:hidden;background:#fff3e4;box-shadow:inset 0 0 0 1px var(--line);display:block}
+.c-av .ava2{width:100%;height:100%;display:block;box-shadow:none}.c-av .ava{width:100%;height:100%;box-shadow:none}
+.c-rb{background:#fff;border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:6px 10px;white-space:pre-wrap;word-break:break-word;min-width:0}
+.c-rb b{display:block;font-size:12px;color:var(--sub);margin-bottom:2px}
+.c-note a,.c-rb a{color:var(--on);font-weight:700;word-break:break-all}
+.c-mini{height:30px;margin-top:6px;padding:0 12px;font-size:13px;box-shadow:none;border:1px solid var(--line)}
+/* 常駐的下半：一行提示、說明、輸入列 */
+.mc-dock{display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.mc-dock>*{pointer-events:auto}
+.mc-peek{align-self:stretch;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;line-height:1.4;box-shadow:var(--sh);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:32px}
+.c-note{font-size:13px;line-height:1.65;background:#fff6e6;border:1px solid #f1d9a8;border-radius:12px;padding:8px 12px;color:var(--ink)}
+.c-note .btn{height:32px;margin-top:6px;box-shadow:none;border:1px solid var(--line);font-size:13px}
+.c-gate{margin:0}
+.c-err{margin:0;font-size:13px;color:#b3392b;font-weight:600;background:var(--card);border-radius:10px;padding:4px 10px}
+.mc-bar{display:flex;align-items:flex-end;gap:6px;background:var(--card);border-radius:24px;box-shadow:var(--sh);padding:6px}
+.mc-bar:focus-within{box-shadow:var(--sh),0 0 0 2px var(--on)}
+.mc-tg{flex:none;display:flex;align-items:center;gap:6px;height:40px;padding:0 10px 0 4px;border-radius:999px;border:0;background:var(--on2);font-size:14px;font-weight:700;max-width:150px}
+.mc-tg .mc-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-chev{font-style:normal;font-size:12px;color:var(--on);display:inline-block;transition:transform .15s}
+.mc-tg[aria-expanded=true] .mc-chev{transform:rotate(180deg)}
+.mc-tg.flash{animation:mcflash .8s ease-out}
+@keyframes mcflash{0%{box-shadow:0 0 0 0 rgba(245,138,52,.7)}100%{box-shadow:0 0 0 12px rgba(245,138,52,0)}}
+#chatText{flex:1 1 auto;min-width:0;border:0;background:transparent;font:inherit;font-size:14px;line-height:1.5;color:var(--ink);padding:8px 4px;resize:none;height:40px;max-height:104px;box-sizing:border-box;outline:none}
+.mc-bar .btn{height:40px;min-width:68px;justify-content:center;box-shadow:none}
+.mc-bar .btn:disabled{opacity:.45;cursor:not-allowed}
+.c-row{display:flex;justify-content:flex-end}.c-row:empty,.c-row:has(>[hidden]){display:none}
+.c-cnt{font-size:12px;color:var(--sub);background:var(--card);border-radius:8px;padding:0 8px}.c-cnt.over{color:#b3392b;font-weight:700}
+.c-hint{margin:0;font-size:12px;line-height:1.5;color:var(--sub);background:var(--card);border-radius:10px;padding:4px 10px}
+
+/* 其他底部元件讓位（所有寬度）：置中的整修列、緊急橫幅、運動 HUD、提示氣泡、載入膠囊都會蓋到帶狀區，整體抬到對話框上方 */
+#app #editBar,#app .em-banner,#app .sp-hud{bottom:var(--mc-h,0px)}
+#app .gate-say{bottom:calc(var(--mc-h,0px) + 8px)}
+#app #loading.mini{bottom:calc(var(--mc-h,0px) + 6px)}
+
+/* 窄螢幕（641～1179）：對話框貼左、變寬；底部的面板與提示整體抬高 */
+@media (max-width:1179px){
+  #chatPanel.mc{left:12px;right:150px;bottom:26px;align-items:stretch}
+  #chatPanel.mc>*{max-width:none}
+  #app #card,#app #board,#app #grp,#app .pt-tips,#app .jl-hint,#app .sp-go{bottom:var(--mc-h,12px)}
+  #app #log{max-height:calc(100dvh - 76px - var(--mc-h,0px))}
 }
-/* 手機螢幕鍵盤彈出（可視高約 480）：表單縮緊、說明列隱藏，讓訊息列表至少完整露出一張卡（含「撤回」鈕）；整個面板放不下時自己可捲 */
+@media (max-width:820px){#chatPanel.mc{right:84px}}
+
+@media (max-width:640px){
+  #chatPanel.mc{left:8px;right:76px;bottom:calc(26px + env(safe-area-inset-bottom))}
+  .mc-tg{padding:0 6px 0 4px;max-width:none}.mc-tg .mc-nm,.mc-tg .mc-chev{display:none}
+  .mc-tg .cn{position:absolute;margin:-26px 0 0 22px}
+  .mc-tg{position:relative}
+  #chatText{font-size:16px}
+  .mc-bar .btn{min-width:56px;padding:0 12px}
+  /* 展開＝全螢幕對話串；輸入列留在底部，右邊仍留給客服鈕 */
+  #chatPanel.mc.open{z-index:60;left:0;right:0;top:0;bottom:0;gap:0;background:var(--bg);padding:8px 76px calc(26px + env(safe-area-inset-bottom)) 8px;align-items:stretch}
+  #chatPanel.mc.open>.mc-top{height:auto;flex:1 1 auto;min-height:0;max-height:none;border-radius:14px;box-shadow:none;margin-right:-68px;width:auto}
+  #chatPanel.mc.open>.mc-dock{margin-top:8px}
+  .mc-x{width:40px;height:40px}.mc-th{height:40px}.mc-ceo{height:36px}
+  .c-me{max-width:94%}.c-rp{max-width:98%}
+  #app #card,#app #board,#app #grp{bottom:var(--mc-h,8px)!important}
+  #app .sp-hud{bottom:calc(162px + var(--lift,0px) + var(--mc-h,0px))}
+  #app .sp-go{left:12px}
+  #app .jl-hint{left:50%}
+  .pt-joy,.pt-btns{bottom:calc(16px + var(--lift,0px) + var(--mc-h,0px))}
+  .pt-tips{bottom:calc(160px + var(--lift,0px) + var(--mc-h,0px))}
+  #app #editBar{width:calc(100vw - 16px)}
+}
+/* 手機螢幕鍵盤彈出（可視高約 480）：展開時說明列隱藏，讓訊息串留得出空間 */
 @media (max-width:640px) and (max-height:600px){
-  #chatPanel{overflow-y:auto;padding-bottom:12px}
-  #chatPanel .c-hint,#chatPanel .c-live,#chatPanel .c-form label{display:none}
-  #chatPanel .c-form textarea{min-height:44px;max-height:64px}
-  #chatPanel .c-list{flex:1 0 150px;min-height:150px}
-  #chatPanel h3{min-height:30px}
+  #chatPanel.mc.open .c-hint,#chatPanel.mc.open .c-live{display:none}
+  #chatPanel.mc.open>.mc-top{min-height:150px}
 }

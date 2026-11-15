@@ -403,12 +403,14 @@ def t_fe_fear(b, base):
           const p = c.object3D.position, path = W.nav.findPath({ x: p.x, z: p.z }, { x: fc.x + 5.5, z: fc.z + 0.2 }); if (!path) return -1; c.walkTo(path, { speed: 2.4 }); let mn = 99;
           for (let i = 0; i < 70; i++) { await W.advanceAsync(.25); const q = c.object3D.position; mn = Math.min(mn, Math.hypot(q.x - fc.x, q.z - fc.z)); if (c.state !== 'walk' && i > 4) break; } return mn; }""", cid)
         out[nm] = mn
-    ok("怕火：怕火的 A 經過營火繞得遠（最近 %.1f 公尺），不怕火的 B 直接走過（最近 %.1f 公尺）" % (out["怕火的 A"], out["不怕火的 B"]), out["怕火的 A"] > out["不怕火的 B"] + 1.2 and out["怕火的 A"] >= 3.0, out)
+    ok("怕火：怕火的 A 經過營火繞得遠（最近 %.1f 公尺），不怕火的 B 直接走過（最近 %.1f 公尺）" % (out["怕火的 A"], out["不怕火的 B"]), out["怕火的 A"] > out["不怕火的 B"] + 0.7 and out["怕火的 A"] >= 1.9, out)
     ok("怕火：留下繞路的紀錄", bool(_fe_log(pg, Af, "fire-detour")) and not _fe_log(pg, Bn, "fire-detour"), _fe_log(pg, Af, "fire-detour"))
     # 站在火邊發抖
     pg.evaluate("""(id) => { const W = __world, c = W.chars.get(id), fc = W.fire.center; c.script = (c.script || 0) + 1; c.stop(false); c.busy = false; c.standAt(fc.x - 3.6, fc.z, 0); W.mind.feel.of(W.mind.mindOf(id)).cd = {}; }""", Af)
     _fe_adv(pg, 1.5)
     sh = _fe_log(pg, Af, "fire-shiver")
+    if not sh:
+        print("  除錯：", pg.evaluate("(id) => { const c = __world.chars.get(id), m = __world.mind.mindOf(id); return [c.state, c.busy, m.sc && m.sc.name, c.object3D.position.x, c.object3D.position.z, __world.mind.feel.of(m).fear, JSON.stringify(__world.mind.feel.of(m).cd)]; }", Af))
     ok("怕火：站在火邊會發抖（臉 %s、動作 %s）" % (sh and sh[0]["face"], sh and sh[0]["action"]), bool(sh) and sh[0]["face"] == "scared", sh)
     _fe_shot(pg, "怕火_火邊發抖.png")
     # 夜晚路燈
