@@ -116,7 +116,7 @@ export function createMind(W, X = {}) {
     // 被點選時角色會「精神一振」（perk，開心的眼神）：心在演的期間不要蓋掉我的表情（舊做法的臉用同一個口子，後呼叫的會贏）
     const perk0 = c.perk && (c._mindPerk0 || (c._mindPerk0 = c.perk.bind(c))); if (perk0) c.perk = (sec) => { if (m.holdUntil > W.time) return; return perk0(sec); };
     // 摸頭、餵點心、敲頭：心情不好或剛被你欺負過時不吃這套
-    const pet0 = c.pet.bind(c); c.pet = (sec) => { if (onPetAttempt(c, m, 'pet') === 'dodge') return; pet0(sec); afterPet(c, m, sec || 2.2); };
+    const pet0 = c.pet.bind(c); c.pet = (sec) => { if (onPetAttempt(c, m, 'pet') === 'dodge') return 'dodge'; pet0(sec); afterPet(c, m, sec || 2.2); };   // 回傳 'dodge' 讓提示文字跟著改
     const feed0 = c.feed.bind(c); c.feed = () => { if (onPetAttempt(c, m, 'feed') === 'dodge') return; feed0(); afterFeed(c, m); };
     const bonk0 = c.bonk.bind(c); c.bonk = () => { bonk0(); emit('bonked', c.spec.id, { by: 'you' }); };
     // 拎起來快速甩出去：沒人先送 knocked 就由這裡補送

@@ -195,7 +195,7 @@ export function createUI(W, demo, api) {
       if (k === 'fire') { W.hr.ask([c.spec.id]); return; }
       if (k === 'pov') { if (W.pov) W.pov.toggle(c); return; }
       if (c.state === 'held' || c.away) return;
-      if (k === 'pet') { c.pet(2.4); U.toast(`摸摸${c.spec.nick}，他很開心`); }
+      if (k === 'pet') { const r = c.pet(2.4); U.toast(r === 'dodge' ? `${c.spec.nick}躲開了，他現在還不想被摸` : `摸摸${c.spec.nick}，他很開心`); }
       else if (k === 'bonk') { c.bonk(); U.toast(`敲了${c.spec.nick}一下，他有點委屈`); }
       else if (k === 'feed') { c.feed(); U.toast(`給${c.spec.nick}一個甜甜圈`); }
       else if (k === 'rest') { if (inMeet) U.toast('他正在開會'); else if (c.busy) U.toast('他手上有事，等一下再叫他'); else { D.routine(c.spec.id, 'rest'); U.toast(`${c.spec.nick}去休息區了`); } }

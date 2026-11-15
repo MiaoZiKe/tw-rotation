@@ -175,7 +175,7 @@ export function createMulti(W, X) {
     if (k === 'home') { for (const c of idle) { release1(c); if (D().sendHome(c)) n++; } ui.toast(n ? `${n} 位一起走回座位` : '他們正在開會'); }
     else if (k === 'rest') { for (const c of idle) { release1(c); D().routine(c.spec.id, 'rest'); n++; } ui.toast(`${n} 位一起去休息區`); }
     else if (k === 'meet') gather(idle);
-    else if (k === 'pet') { for (const c of ps) { c.pet(2.4); n++; } ui.toast(`摸摸 ${n} 位，大家都很開心`); }
+    else if (k === 'pet') { let dz = 0; for (const c of ps) { if (c.pet(2.4) === 'dodge') dz++; else n++; } ui.toast(dz ? (n ? `摸摸 ${n} 位，另外 ${dz} 位躲開了` : `${dz} 位都躲開了，他們現在還不想被摸`) : `摸摸 ${n} 位，大家都很開心`); }
     else if (k === 'wave') { for (const c of ps) { c.setAction('wave'); c.say('嗨～', 1.4); c.emote('note', 1.2); n++; } ui.toast(`${n} 位一起揮手`); }
   }
   // 集合開會：走到會議室（有座位的先坐，其餘站在桌子周圍，彼此保持間距），待一陣子自動散會回座位
