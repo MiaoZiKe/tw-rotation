@@ -190,7 +190,8 @@ class Run:
         return http("GET", BRIDGE + "/v1/office/main/state?since=0", headers={"Authorization": "Bearer " + self.code})[1] if self.code else {}
 
     def events_all(self):
-        st, out, since = 200, [], 0
+        # since=0 只回「最近 60 筆」；要完整事件串就從 since=1 往後翻（seq 從 1 開始，第 1 筆是撤回測試那則的 InboxUpdate，不影響判斷）
+        st, out, since = 200, [], 1
         while True:
             st, j = http("GET", BRIDGE + "/v1/office/main/state?since=%d" % since, headers={"Authorization": "Bearer " + self.code})
             ev = j.get("events") or []
@@ -281,6 +282,11 @@ class Run:
                 return f.read()
         except Exception:
             return ""
+
+    def inbox_history(self, mid):
+        """收件服務記下的這則指令每一次狀態改變（InboxUpdate 事件）：網站輪詢慢的時候，畫面可能跳過很快的中間狀態，以這個為準。"""
+        ev, _ = self.events_all()
+        return [e.get("status") for e in ev if e["event"] == "InboxUpdate" and e.get("message_id") == mid]
 
     def subagents(self):
         """從收件服務收到的事件裡找 SubagentStart／SubagentStop（這些是外掛掛鉤真的送上來的）。"""
@@ -403,7 +409,9 @@ def flow(run, pg):
     seen1, m1, _ = run.follow(pg, mid1, "CEO_README")
     readme1 = open(os.path.join(proj, "README.md"), encoding="utf-8").read()
     today = time.strftime("%Y-%m-%d")
-    ok("CEO 指令：網站狀態依序 排隊中→（已取走）→執行中→完成", seen1 and seen1[0] == "queued" and seen1[-1] == "done" and "running" in seen1, seen1)
+    h1 = run.inbox_history(mid1)
+    ok("CEO 指令：收件服務的狀態紀錄依序 排隊中→已取走→執行中→完成", h1 == ["queued", "claimed", "running", "done"], h1)
+    ok("CEO 指令：網站畫面看到的狀態是同一個順序、最後是「完成」（Claude 在待命時幾乎是一送出就取走，排隊中可能一閃而過）", seen1 and seen1[-1] == "done" and seen1 == [x for x in h1 if x in seen1], seen1)
     ok("CEO 指令：README.md 真的被改了（多一行今天日期 %s）" % today, today in readme1 and readme1 != readme0, readme1[-80:])
     ok("CEO 指令：網站對話框看得到 Claude 的回覆", bool(m1 and m1.get("r")), (m1 or {}).get("r"))
     run.shot(pg, "CEO_README_回覆")
@@ -435,7 +443,16 @@ def flow(run, pg):
             pg.wait_for_timeout(500)
         if pg.is_visible("#card"):
             pg.keyboard.press("Escape")
-        xy = pg.evaluate("(id) => { const c = __world.chars.get(id); return [Math.round(c._sx), Math.round(c._sy + 24), innerWidth, innerHeight]; }", aid)
+        pg.click('button[data-v="god"]')             # 回到俯瞰（上一位的資訊卡會把鏡頭切成「跟隨」，下一位可能不在畫面裡）
+        try:                                          # 等他回到座位（上一件工作的交件演出走完）再點，點移動中的人容易點空
+            pg.wait_for_function("(id) => { const a = __world.state.agents.get(id); return !a || a.phase === 'idle'; }", arg=aid, timeout=60000)
+        except Exception:
+            log("%s 60 秒內沒有回到待命，照樣點" % agent)
+        pg.wait_for_timeout(1500)
+        # 點的位置＝main.js pickChar() 判定的角色中心（頭頂投影點往下 0.45 公尺），不是猜的偏移
+        xy = pg.evaluate("""(id) => { const W = __world, c = W.chars.get(id), cv = document.getElementById('cv'), r = cv.getBoundingClientRect();
+            const px = cv.clientHeight / (2 * Math.tan(W.camera.fov * Math.PI / 360) * c._sd), k = c.scale || 1;
+            return [Math.round(r.left + c._sx), Math.round(r.top + c._sy + px * 0.45 * k), innerWidth, innerHeight]; }""", aid)
         top = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? (e.id || e.tagName) : null; }", xy[:2])
         clicked = False
         if 0 < xy[0] < xy[2] and 0 < xy[1] < xy[3]:
@@ -460,8 +477,15 @@ def flow(run, pg):
         pg.click("#chatX")                           # 收合，讓 3D 看得到他工作
         seen, m, phases = run.follow(pg, mid, label, watch=aid)
         n_after = len([1 for e, t, _ in run.subagents() if e == "SubagentStart" and t == agent])
+        h = run.inbox_history(mid)
+        ok("對 %s：收件服務的狀態紀錄依序 排隊中→已取走→執行中→完成" % agent, h == ["queued", "claimed", "running", "done"], h)
         ok("對 %s：Claude 真的派了 %s（SubagentStart 多一筆）、狀態走到完成、有回覆" % (agent, agent), n_after > n_before and seen and seen[-1] == "done" and m and m.get("r"), {"seen": seen, "reply": (m or {}).get("r"), "starts": [n_before, n_after]})
-        ok("對 %s：3D 裡他有開工（階段離開待命）而且交件後完成數增加" % agent, any(p.get("ph") not in (None, "idle") for p in phases) and phases and phases[-1].get("done", 0) >= 1, phases)
+        try:
+            pg.wait_for_function("(id) => { const a = __world.state.agents.get(id); return a && a.phase === 'idle' && a.done.length > 0; }", arg=aid, timeout=60000)
+        except Exception:
+            pass
+        fin = pg.evaluate("(id) => { const a = __world.state.agents.get(id); return { ph: a.phase, done: a.done.length, last: a.done[0] && a.done[0].title }; }", aid)
+        ok("對 %s：3D 裡他有開工（階段離開待命）、交件後回到待命、資訊卡完成清單多一件" % agent, any(p.get("ph") not in (None, "idle") for p in phases) and fin["ph"] == "idle" and fin["done"] >= 1, {"phases": phases, "final": fin})
         pg.click("#chatBtn")
         pg.wait_for_selector("#mcTop:not([hidden])")
         pg.wait_for_timeout(800)

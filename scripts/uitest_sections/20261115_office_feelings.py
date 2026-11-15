@@ -219,11 +219,16 @@ def t_fe_bully(b, base):
     for cid in (X, Y):
         seq = []
         for k in range(3):
-            pg.evaluate("(id) => { const c = __world.chars.get(id); c.busy = false; }", cid)
-            if k:
-                pg.evaluate("(id) => { const c = __world.chars.get(id); c.stop(false); }", cid)
-            _fe_throw_wall(pg, cid)
-            ok_ = wait_until(pg, "() => __world.mind.get(%s).feel.hits >= %d" % (_json.dumps(cid), k + 1), 9000)
+            ok_ = False
+            for attempt in range(3):         # 機器忙的時候角色可能剛好走開沒抓到：最多重丟兩次（每次都是真滑鼠）
+                wait_until(pg, "() => { const c = __world.chars.get(%s); return c.state !== 'held' && c.state !== 'walk'; }" % _json.dumps(cid), 12000)
+                pg.evaluate("(id) => { const c = __world.chars.get(id); c.script = (c.script || 0) + 1; c.stop(false); c.busy = true; }", cid)
+                pg.wait_for_timeout(250)
+                _fe_throw_wall(pg, cid)
+                ok_ = wait_until(pg, "() => __world.mind.get(%s).feel.hits >= %d" % (_json.dumps(cid), k + 1), 9000)
+                if ok_:
+                    break
+            pg.evaluate("(id) => { __world.chars.get(id).busy = false; }", cid)
             wait_until(pg, "() => { const c = __world.chars.get(%s); return c.state !== 'held'; }" % _json.dumps(cid), 8000)
             g = _fe_get(pg, cid)
             seq.append((g["feel"]["tier"], round(g["feel"]["rel"], 2), g["face"], bool(ok_)))
