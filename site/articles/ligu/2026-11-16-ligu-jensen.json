@@ -1,0 +1,158 @@
+{
+ "id": "2026-11-16-ligu-jensen",
+ "cat": "ligu",
+ "title": "33 年的執行長即刻辭職，公告為什麼沒寫原因？",
+ "subtitle": "哩股哩股：四天前董事會才說沒理由相信機密外洩，四天後人就走了。是請辭，還是被請走？",
+ "date": "2026-11-16",
+ "updated": "2026-11-16",
+ "tags": [
+  "哩股哩股",
+  "輝達",
+  "黃仁勳",
+  "8-K",
+  "執行長交接"
+ ],
+ "summary": "輝達 11/12 公告黃仁勳辭去總裁、執行長與董事，即刻生效，公告沒寫原因。8-K 寫接受辭呈，媒體引述知情人士說是董事會要他走；有人樂見他下台，但查不到有人設局的證據。查證截至 2026/11/14。",
+ "reading_min": 3,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/ligu/20261116v_jensen/video.mp4",
+   "poster": "media/ligu/20261116v_jensen/cover.jpg",
+   "title": "33 年執行長，辭職即刻生效",
+   "note": "影片 1080×1920；下方可下載。"
+  },
+  {
+   "t": "h",
+   "text": "念稿全文"
+  },
+  {
+   "t": "p",
+   "text": "33 年的執行長，辭職即刻生效。公告沒寫原因。4 天前董事會才說，沒理由相信機密外洩。文件寫辭職，媒體卻說董事會要他走。是政治操作嗎？華盛頓郵報說，對中強硬派樂見他下台。但樂見，不等於設局。調查還沒結論，他也還沒開口。請辭還是被請走？下集看國會想問什麼。"
+  },
+  {
+   "t": "h",
+   "text": "逐句查證"
+  },
+  {
+   "t": "table",
+   "head": [
+    "旁白",
+    "狀態",
+    "依據"
+   ],
+   "rows": [
+    [
+     "33 年的執行長，辭職即刻生效。公告沒寫原因。",
+     "已確定",
+     "輝達新聞稿 2026/11/12；8-K"
+    ],
+    [
+     "4 天前董事會才說，沒理由相信機密外洩。",
+     "已確定",
+     "輝達董事會聲明 2026/11/8"
+    ],
+    [
+     "文件寫辭職，媒體卻說董事會要他走。",
+     "已確定（8-K：接受辭呈）／媒體報導（CNBC 引述知情人士，公司未證實）",
+     "8-K；CNBC 即時報導 11/12"
+    ],
+    [
+     "是政治操作嗎？華盛頓郵報說，對中強硬派樂見他下台。",
+     "媒體報導（華盛頓郵報 11/14，經中文媒體轉述，原文未讀）",
+     "中時新聞網轉述"
+    ],
+    [
+     "但樂見，不等於設局。",
+     "查不到證據（截至 2026/11/14）",
+     "13 組關鍵字搜尋，沒有任何來源證明有人策劃"
+    ],
+    [
+     "調查還沒結論，他也還沒開口。",
+     "截至 2026/11/14 尚未確定",
+     "PBS、CNN 即時報導"
+    ],
+    [
+     "請辭還是被請走？下集看國會想問什麼。",
+     "提問",
+     "眾議院三個委員會致函要求約談（CNN、CBS、The Hill 報導）"
+    ]
+   ]
+  },
+  {
+   "t": "h",
+   "text": "還不知道的事"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "董事會獨立調查的結論",
+    "本人的公開說明",
+    "正式接班人",
+    "國會約談的確切日期"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "刻意沒放的內容"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "當事人私生活細節與第三人姓名",
+    "網路流傳、已被查核機構或當事人否認的內容",
+    "股價與投資相關說法"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "查證截至 2026/11/14。本文整理公開資訊，不構成投資建議。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "NVIDIA Announces CEO Transition",
+   "publisher": "NVIDIA 新聞稿",
+   "date": "2026-11-12",
+   "url": "https://nvidianews.nvidia.com/news/nvidia-announces-ceo-transition"
+  },
+  {
+   "title": "Statement From NVIDIA Board of Directors",
+   "publisher": "NVIDIA 新聞稿",
+   "date": "2026-11-08",
+   "url": "https://nvidianews.nvidia.com/news/statement-from-nvidia-board-of-directors"
+  },
+  {
+   "title": "NVIDIA 8-K（Item 5.02）",
+   "publisher": "美國證管會 EDGAR",
+   "date": "2026-11-12",
+   "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000082/nvda-20261111.htm"
+  },
+  {
+   "title": "Nvidia CEO Jensen Huang resigns: Live updates",
+   "publisher": "CNBC",
+   "date": "2026-11-12",
+   "url": "https://www.cnbc.com/2026/11/12/nvidia-jensen-huang-ceo-live-updates.html"
+  },
+  {
+   "title": "轉述華盛頓郵報報導",
+   "publisher": "中時新聞網",
+   "date": "2026-11-14",
+   "url": "https://www.chinatimes.com/realtimenews/20261114001684-260408"
+  },
+  {
+   "title": "What we know after Jensen Huang's resignation",
+   "publisher": "PBS",
+   "date": "2026-11-12",
+   "url": "https://www.pbs.org/newshour/nation/what-we-know-after-jensen-huangs-resignation-as-nvidias-ceo"
+  },
+  {
+   "title": "Jensen Huang asked to testify before Congress",
+   "publisher": "CBS News",
+   "date": "2026-11-13",
+   "url": "https://www.cbsnews.com/news/jensen-huang-nvidia-congress-testify/"
+  }
+ ],
+ "confidence": "官方文件（新聞稿、董事會聲明）原文已讀；8-K 與媒體報導 11/14 時只看到摘要，11/15 已讀過 8-K 原文；華盛頓郵報原文未讀。",
+ "status": "published"
+}
