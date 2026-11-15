@@ -5,6 +5,7 @@
 - 2026-11-11 上線：冷啟動（隱藏價格、試營運額度）＋手機四項＋新 ⑤C LOGO＋站名 LIGULIGU（Andy 11-10「可以，冷啟動和 LOGO 都推上線」「記得名稱改成大寫英文」）。驗：桌機守門1008、冷啟動1110（390 寬「即將開放」判定偶發空陣列，截圖確認未切，放行）、手機導流1110、手機按鈕普查（修副標類名衝突 m4sub→m4tagline；產業地圖 4 處切分段逾時為負載偶發、本批未動 industry）、手機總覽指數觀察清單、淺色／明亮主題、設定面板、會員與自選五分頁（☆ 偶發，單跑 0）、使用統計1109、_preview 全綠；品牌哩股哩股 supFab 逾時 main 同樣有，放行。上線後 Andy 需在 #admin/perm 按「套用建議方案」（先要截圖再給步驟）。
 - 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
 
+- 2026-11-16 頻道③ CaffAIne 第一支 Reels（AI 代理：看、做、檢查，ai-mp4 caffaine-agent-loop）：Andy 11-16 決定不發。佇列資料夾沒有推進 main、隱藏文章沒做、dm_config.json 沒動（留言私訊維持關閉）。⚠ 待清：影片已推到 `media/caffaine/20261116_agent_loop` 分支，但工作流 `clean` 只清佇列裡發過的資料夾、清不到它，這個 session 刪分支被代理擋（HTTP 403）；之後有權限的 session 執行 `git push origin --delete media/caffaine/20261116_agent_loop`（social-ops-lead）。
 
 ## 2026-11-15 頻道③ CaffAIne 每天兩支 Reels：12:15／21:00 兩時段＋影片放 GitHub Release（social-ops-lead；Andy：「我決定每天兩隻 Reels」）
 - caffaine 改兩時段（保底 13:43／22:27），每時段最多 1 則、整天 2 則（channels.json `slots`、post_quota `per_day` 2）；影片走 Release `channel-media`（`scripts/channel_media.py`：作者 `stage` 推 media/caffaine/<資料夾> 分支，工作流 sync 上傳、發完 3 天 clean），不進 main。驗 Reels：channel_post verify、target `@reels-test`。說明 `docs/marketing/channels/auto_post_all.md` 第 10 節。佇列沒放任何貼文。驗證：run 43705958501（@reels-test，IG REELS 容器 17975794271983309、Threads VIDEO 容器 17992662524881222 皆經 release 網址 FINISHED，未發布）；空跑 run 43705960624 綠燈。pytest 全套 2226 passed。
