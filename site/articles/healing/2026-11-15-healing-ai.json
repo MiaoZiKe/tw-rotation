@@ -75,7 +75,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-15 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-15 20:42 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/DfwzwDDmLmE/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Dfwz0ahm_Ps"
+    }
+   ]
   }
  ],
  "sources": [
@@ -107,8 +121,8 @@
  "confidence": "民調（受訪者自估，非預測），一手發布者＋媒體一致",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/p/DfwzwDDmLmE/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Dfwz0ahm_Ps",
   "queue": "20261115_ai"
  }
 }
