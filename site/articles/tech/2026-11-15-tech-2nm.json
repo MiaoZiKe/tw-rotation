@@ -16,6 +16,13 @@
  "reading_min": 4,
  "blocks": [
   {
+   "t": "mp4",
+   "src": "media/tech/20261115v_2nm/video.mp4",
+   "poster": "media/tech/20261115v_2nm/cover.jpg",
+   "title": "兩奈米不是尺寸",
+   "note": "影片 1080×1920；示意動畫，非實際比例。"
+  },
+  {
    "t": "h",
    "text": "先講結論"
   },

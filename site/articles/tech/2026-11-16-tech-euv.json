@@ -16,6 +16,13 @@
  "reading_min": 4,
  "blocks": [
   {
+   "t": "mp4",
+   "src": "media/tech/20261116v_euv/video.mp4",
+   "poster": "media/tech/20261116v_euv/cover.jpg",
+   "title": "曝光機：光比線還粗",
+   "note": "影片 1080×1920；示意動畫，非實際比例。"
+  },
+  {
    "t": "h",
    "text": "先講結論"
   },
