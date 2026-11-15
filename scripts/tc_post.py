@@ -178,8 +178,27 @@ def weekday_check(p: dict) -> tuple[str, str]:
     return "", ""
 
 
+def cta_check(p: dict, cfg: dict | None = None) -> list[str]:
+    """文案裡「留言「X」…」的 X 有沒有設成這篇的關鍵字；Threads 的那行不准講私訊（Threads 沒有私訊，實際是公開回覆）。
+    回警告清單（只警告不擋：關鍵字沒設頂多回不到，不該讓整篇不發）。規則見 autopost.md 三之一。"""
+    import tc_dm_keys as K  # noqa: PLC0415
+    cfg = cfg if cfg is not None else load_json(ROOT / "social" / "tc" / "dm_config.json", {})
+    kws = [K.norm(k) for k in K.keywords_for(cfg, p["id"])]
+    out = []
+    for label, t in (("ig.txt", p.get("caption", "")), ("threads.txt 主文", p.get("main", ""))):
+        for kw in K.cta_keywords(t):
+            if K.norm(kw) not in kws:
+                out.append(f"{p['id']}：{label} 寫「留言「{kw}」」，但 dm_config.json 沒把「{kw}」設成這篇的關鍵字（post_keywords），留言的人會收不到")
+    for line in (p.get("main", "") or "").splitlines():
+        if K.cta_keywords(line) and ("私訊" in line or "傳給你" in line):
+            out.append(f"{p['id']}：threads.txt 的關鍵字那行寫了私訊／傳給你，但 Threads 實際是公開回覆加連結，請改成「我把完整資料回覆給你」")
+    return out
+
+
 def validate(p: dict, check_files: bool = True) -> list[str]:
     m, errs = p["meta"], []
+    for w in cta_check(p):
+        log("⚠ " + w)
     werr, wwarn = weekday_check(p)
     if werr:
         errs.append(werr)
@@ -592,7 +611,7 @@ def _record(state_dir: Path, p: dict, now: datetime, upd: dict, meta: dict) -> N
     if e is None:
         e = {"id": p["id"], "first_posted_at": now.isoformat(timespec="seconds")}
         posts.append(e)
-    for k in ("urls_ig", "urls_threads", "urls_threads_reply", "verified_ig", "verified_threads", "ids_ig"):
+    for k in ("urls_ig", "urls_threads", "urls_threads_reply", "verified_ig", "verified_threads", "ids_ig", "ids_threads"):
         v = upd.get(k) or meta.get(k)
         if v:
             e[k.replace("urls_", "")] = v

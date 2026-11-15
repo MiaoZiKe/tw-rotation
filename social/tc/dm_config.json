@@ -5,6 +5,19 @@
   "keywords": [
     "透明"
   ],
+  "keywords_note": "全域關鍵字：任何一篇的留言含這些字都會觸發，回該篇的內容（該篇沒設就回 default）。沒有專屬關鍵字的貼文就靠它。",
+  "post_keywords": {
+    "_note": "每篇專屬關鍵字（2026-11-15 Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」）。鍵＝佇列資料夾名稱（例 20261122_2nm），或只寫日期後那段（例 2nm，影片還沒排進佇列時用）。只在那一篇觸發；影片文案最後一行「留言「X」…」的 X 一定要列在這裡（pytest 會查）。規則在 scripts/tc_dm_keys.py。",
+    "2nm": [
+      "2奈米",
+      "兩奈米",
+      "2nm"
+    ]
+  },
+  "legal_pending": [
+    "2nm"
+  ],
+  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 新增，回覆文字拿掉『僅供參考／未經查證』（lessons 第 5 條；這篇是技術解說不是網友待遇資料）、『重點整理』改『完整資料』（Andy 的 CTA 原話），屬改到意思，交 CEO 送法遵。",
   "ig_dm": {
     "enabled": true,
     "mode": "poll",
@@ -23,16 +36,24 @@
     "already_sent": "這篇的重點整理已經傳給你囉，往上滑就看得到",
     "contents": {
       "default": "科技透明圈的待遇重點整理都放在這裡：https://liguligu-puipui.com/\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考。",
-      "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考，隨單位而異。\n更多整理：https://liguligu-puipui.com/"
+      "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考，隨單位而異。\n更多整理：https://liguligu-puipui.com/",
+      "2nm": "「2 奈米不是尺寸」完整資料在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
+      "_note": "鍵同 post_keywords。內容裡還有「待填」就不送，改送 default（保底）。"
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
-    "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}"
+    "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}",
+    "public_fallback": true,
+    "public_fallback_note": "私訊接不通（EAA 權杖看不到連結的粉絲專頁）時，改成公開回覆那則留言一句＋連結，文字用 threads_reply 的同一份；私訊一接通自動改回私訊流程。false＝接不通就安靜跳過（舊行為）。"
   },
   "threads_reply": {
     "enabled": true,
     "text": "謝謝留言！重點整理放在這：https://liguligu-puipui.com/（網友公開分享整理，非公司公告，僅供參考）",
     "lookback_posts": 5,
-    "max_per_run": 10
+    "max_per_run": 10,
+    "texts": {
+      "_note": "每篇專屬的公開回覆文字（IG 私訊接不通時的保底公開回覆也用這份）；鍵同 post_keywords。還有「待填」或在 legal_pending 就改用上面的 text。",
+      "2nm": "謝謝留言！「2 奈米不是尺寸」完整資料放在這：https://liguligu-puipui.com/#article/【待填：文章 id】"
+    }
   }
 }

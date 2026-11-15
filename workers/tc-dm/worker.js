@@ -54,7 +54,20 @@ export async function sha(s) {
   return [...d].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const contentOf = (d, post) => ((d.contents || {})[post]) || ((d.contents || {}).default) || "";
+// 每篇專屬關鍵字與內容（2026-11-15，規則同 scripts/tc_dm_keys.py）：鍵＝貼文代號或日期後那段；內容有「待填」或代號在 legal_pending → 用 default
+export const slugOf = (post) => { const m = /^\d{8}_(.+)$/.exec(String(post || "")); return m ? m[1] : String(post || ""); };
+const pickOf = (t, post) => { for (const k of [post, slugOf(post)]) if (k && !k.startsWith("_") && t && t[k] != null) return t[k]; return null; };
+export const keywordsFor = (cfg, post) => {
+  const base = [...(cfg.keywords || [])];
+  let own = post && post !== "default" ? pickOf(cfg.post_keywords, post) : null;
+  if (typeof own === "string") own = [own];
+  return base.concat((own || []).filter((k) => !base.includes(k)));
+};
+export const contentOf = (d, post, pending) => {
+  const v = post && post !== "default" ? pickOf(d.contents, post) : null;
+  const held = (pending || []).some((x) => x === post || x === slugOf(post));
+  return (v && !String(v).includes("待填") && !held) ? v : (((d.contents || {}).default) || "");
+};
 export const norm = (s) => String(s || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "");
 export const hasKw = (t, kws) => (kws || []).some((k) => norm(k) && norm(t).includes(norm(k)));
 const today = (now) => new Date(now + 8 * 3600e3).toISOString().slice(0, 10); // 台北日期
@@ -123,19 +136,19 @@ async function handleName(env, cfg) {
 
 async function onComment(v, own, cfg, env, now, live) {
   const d = cfg.ig_dm, who = String((v.from || {}).id || ""), cid = String(v.id || "");
-  if (!cid || !who || who === own || !hasKw(v.text, cfg.keywords)) return "略過";
+  const posted = await cachedJson(env, "posted", env.POSTED_URL, { posts: [] });
+  const mid = String((v.media || {}).id || "");
+  const post = ((posted.posts || []).find((p) => String(p.ids_ig || p.ig_id || "") === mid) || {}).id || "default";
+  if (!cid || !who || who === own || !hasKw(v.text, keywordsFor(cfg, post))) return "略過";
   const ck = "c:" + (await sha(cid)), uh = await sha(who), dayKey = `u:${uh}:${today(now)}`;
   if (await env.KV.get(ck)) return "重複";
   if (Number((await env.KV.get(dayKey)) || 0) >= Number(d.per_user_per_day || 1)) return "今天已私訊過";
   if (!live) { await logEvent(env, now, "comment", "dry"); return "只記錄"; }
   if (!(await rateOk(env, now, Number(d.max_per_minute || 10)))) { await logEvent(env, now, "comment", "rate-limited"); return "速率上限"; }
   const handle = await handleName(env, cfg);
-  const posted = await cachedJson(env, "posted", env.POSTED_URL, { posts: [] });
-  const mid = String((v.media || {}).id || "");
-  const post = ((posted.posts || []).find((p) => String(p.ids_ig || p.ig_id || "") === mid) || {}).id || "default";
   const gate = d.follow_gate !== false;
   const text = gate ? String(d.prompt || "").replaceAll("{handle}", handle)
-    : String(d.prompt_no_gate || "").replaceAll("{handle}", handle) + "\n\n" + contentOf(d, post);
+    : String(d.prompt_no_gate || "").replaceAll("{handle}", handle) + "\n\n" + contentOf(d, post, cfg.legal_pending);
   try {
     await graph(env, "POST", "/me/messages", { recipient: { comment_id: cid }, message: { text } });
   } catch (e) { await logEvent(env, now, "comment", "send-failed"); return "失敗：" + String(e).slice(0, 100); }
@@ -163,7 +176,7 @@ async function onMessage(m, own, cfg, env, now, live) {
     if (p.sent) { await send(d.already_sent || ""); return "已送過"; }
     const prof = await graph(env, "GET", "/" + who, { fields: "is_user_follow_business" });
     if (prof.is_user_follow_business === true) {
-      await send(contentOf(d, p.post));
+      await send(contentOf(d, p.post, cfg.legal_pending));
       p.sent = true;
       await env.KV.put(pk, JSON.stringify(p), { expirationTtl: 30 * DAY });
       await logEvent(env, now, "message", "delivered");

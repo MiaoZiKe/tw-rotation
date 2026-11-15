@@ -853,3 +853,161 @@ def test_圖片稿件行為不變_不帶影片參數_回查影片會警告(monke
     # 圖片稿沒圖照舊擋
     p["images"] = []
     assert any("封面一定要有圖" in e for e in tc.validate(p))
+
+
+# ---------------- 2026-11-15 每篇專屬關鍵字（Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」） ----------------
+
+import tc_dm_keys as K  # noqa: E402
+
+URL_2NM = "https://liguligu-puipui.com/#article/tc-2nm"
+
+
+def _cfg2(tmp_path, legal=True, ready=False):
+    """正式設定＋（ready＝True 時）把 2nm 的文章網址填好、法遵待審拿掉。"""
+    p = _cfg(tmp_path, legal)
+    c = json.loads(p.read_text(encoding="utf-8"))
+    if ready:
+        c["legal_pending"] = []
+        c["threads_reply"]["texts"]["2nm"] = "謝謝留言！「2 奈米不是尺寸」完整資料放在這：" + URL_2NM
+        c["ig_dm"]["contents"]["2nm"] = "「2 奈米不是尺寸」完整資料在這：" + URL_2NM
+    p.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
+    return p
+
+
+def _posted2(tmp_path):
+    p = tmp_path / "posted.json"
+    p.write_text(json.dumps({"posts": [
+        {"id": "20261122_2nm", "ids_threads": "p1", "ids_ig": "m1"},
+        {"id": "20261105_quanta", "threads": "https://www.threads.com/@tech_01010909/post/QQQ", "ids_ig": "m2"}]}))
+    return p
+
+
+class KwThreadsAPI(FakeAPI):
+    def __init__(self, rows, **kw):
+        super().__init__(**kw)
+        self.rows = rows
+
+    def __call__(self, platform, method, path, token, params=None):
+        if path == "/me/threads":
+            return {"data": [{"id": "p1"}, {"id": "p2", "permalink": "https://www.threads.com/@tech_01010909/post/QQQ"}]}
+        if path in ("/p1/replies", "/p2/replies"):
+            return {"data": self.rows.get(path, [])}
+        return super().__call__(platform, method, path, token, params)
+
+
+def _threads_kw(monkeypatch, tmp_path, rows, legal=True, ready=True):
+    api = KwThreadsAPI(rows)
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = tr.run(dict(ENV), NOW, False, config_path=_cfg2(tmp_path, legal, ready), state_path=tmp_path / "rep.json",
+                     posted_path=_posted2(tmp_path))
+    return rc, res, [c[4] for c in api.calls if c[4].get("reply_to_id")]
+
+
+def test_設定_2nm專屬關鍵字與待填條目():
+    c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+    assert "透明" in c["keywords"]                                              # 全域保留
+    assert "2奈米" in c["post_keywords"]["2nm"]
+    for t in (c["threads_reply"]["texts"]["2nm"], c["ig_dm"]["contents"]["2nm"]):
+        assert "liguligu-puipui.com/#article/" in t and "待填" in t               # 網址待同事回報
+        for w in ("僅供參考", "未經查證", "網友回報", "網路上說", "據了解"):         # lessons 第 5 條
+            assert w not in t
+    assert "2nm" in c["legal_pending"]                                          # 新文案改到意思 → 交法遵
+
+
+def test_專屬關鍵字只觸發該篇_Threads(monkeypatch, tmp_path):
+    rows = {"/p1/replies": [{"id": "a1", "text": "2 奈米！", "username": "amy"}],
+            "/p2/replies": [{"id": "b1", "text": "2奈米", "username": "bob"}]}       # 廣達那篇留 2奈米：不觸發
+    rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows)
+    assert rc == 0 and [s["reply_to_id"] for s in sent] == ["a1"]
+    assert URL_2NM in sent[0]["text"]                                           # 回的是這篇的文章
+
+
+def test_全域關鍵字仍然有效_兩篇都回(monkeypatch, tmp_path):
+    rows = {"/p1/replies": [{"id": "a1", "text": "透明", "username": "amy"}],
+            "/p2/replies": [{"id": "b1", "text": "求透明", "username": "bob"}]}
+    rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows)
+    assert sorted(s["reply_to_id"] for s in sent) == ["a1", "b1"]
+    by = {s["reply_to_id"]: s["text"] for s in sent}
+    assert URL_2NM in by["a1"]                                                  # 2nm 那篇回 2nm 的文章
+    assert URL_2NM not in by["b1"] and "liguligu-puipui.com" in by["b1"]         # 廣達回預設
+
+
+def test_文章網址待填或法遵待審_改送預設文字不送半成品(monkeypatch, tmp_path):
+    rows = {"/p1/replies": [{"id": "a1", "text": "2奈米", "username": "amy"}]}
+    rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows, ready=False)     # 正式設定：待填＋legal_pending
+    c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+    assert len(sent) == 1 and sent[0]["text"] == c["threads_reply"]["text"]    # 保底：照樣回，用已審過的那份
+    assert "待填" not in sent[0]["text"]
+
+
+def test_專屬關鍵字_法遵閘照舊只記錄(monkeypatch, tmp_path):
+    rows = {"/p1/replies": [{"id": "a1", "text": "2奈米", "username": "amy"}]}
+    rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows, legal=False)
+    assert sent == [] and res["would_reply"] == 1 and res["replied"] == 0
+
+
+class KwIGAPI(DMAPI):
+    def __call__(self, platform, method, path, token, params=None):
+        p = dict(params or {})
+        if path == "/222/media":
+            self.calls.append((platform, method, path, token, p))
+            return {"data": [{"id": "m1"}, {"id": "m2"}]}
+        if path in ("/m1/comments", "/m2/comments"):
+            self.calls.append((platform, method, path, token, p))
+            return {"data": [{"id": "c-" + path[1:3], "text": "2奈米", "timestamp": "2026-11-10T12:00:00+0000",
+                              "from": {"id": "u9" if path == "/m1/comments" else "u7"}}]}
+        if path.endswith("/replies") and method == "POST":
+            self.calls.append((platform, method, path, token, p))
+            self.sent.append((path, p["message"]))
+            return {"id": "rep"}
+        return super().__call__(platform, method, path, token, params)
+
+
+def test_IG專屬關鍵字只觸發該篇_並送該篇內容(monkeypatch, tmp_path):
+    p = _cfg2(tmp_path, ready=True)
+    c = json.loads(p.read_text(encoding="utf-8"))
+    c["ig_dm"]["follow_gate"] = False                                           # 直接送內容，方便看送了哪篇
+    p.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
+    api = KwIGAPI()
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = dm.run(dict(ENV), NOW, False, config_path=p, state_path=tmp_path / "s.json", posted_path=_posted2(tmp_path))
+    first = [s for s in api.sent if s[0] == {"comment_id": "c-m1"}]
+    assert len(first) == 1 and URL_2NM in first[0][1]
+    assert not any(s[0] == {"comment_id": "c-m2"} for s in api.sent)            # 廣達那篇留 2奈米：不觸發
+
+
+def test_IG私訊接不通_保底公開回覆留言加連結(monkeypatch, tmp_path):
+    monkeypatch.setattr(dm, "messaging_ctx", lambda uid, tok: (None, "看不到粉絲專頁"))
+    api = KwIGAPI()
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = dm.run(dict(ENV), NOW, False, config_path=_cfg2(tmp_path, ready=True), state_path=tmp_path / "s.json",
+                     posted_path=_posted2(tmp_path))
+    assert rc == 0 and res["public"] == 1 and res["prompted"] == 0
+    assert api.sent == [("/c-m1/replies", "謝謝留言！「2 奈米不是尺寸」完整資料放在這：" + URL_2NM)]
+    assert not any(c[2].endswith("/messages") or c[2] == "/me/conversations" for c in api.calls)   # 沒有試私訊
+    api2 = KwIGAPI()                                                            # 再跑一輪不重複回
+    monkeypatch.setattr(tc, "api", api2)
+    dm.run(dict(ENV), NOW, False, config_path=_cfg2(tmp_path, ready=True), state_path=tmp_path / "s.json",
+           posted_path=_posted2(tmp_path))
+    assert api2.sent == []
+    # 法遵閘照舊：沒過法遵就只記錄
+    api3 = KwIGAPI()
+    monkeypatch.setattr(tc, "api", api3)
+    rc, res = dm.run(dict(ENV), NOW, False, config_path=_cfg2(tmp_path, legal=False, ready=True),
+                     state_path=tmp_path / "s2.json", posted_path=_posted2(tmp_path))
+    assert api3.sent == [] and res["would"] == 1
+
+
+def test_佇列文案的留言關鍵字都有設定_Threads不講私訊():
+    q = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue"
+    for d in sorted(x for x in q.iterdir() if (x / "post.md").is_file()):
+        assert tc.cta_check(tc.load(d)) == [], d.name
+
+
+def test_交件檢查抓得到沒設的關鍵字與Threads講私訊():
+    p = {"id": "20261122_2nm", "caption": "…\n留言「3奈米」，我把完整資料傳給你", "main": "…\n留言「2奈米」，我把完整資料傳給你"}
+    w = tc.cta_check(p, {"keywords": ["透明"], "post_keywords": {"2nm": ["2奈米"]}})
+    assert any("3奈米" in x for x in w) and any("公開回覆" in x for x in w)
+    ok = {"id": "20261122_2nm", "caption": "留言「2奈米」，我把完整資料回覆給你", "main": "留言「2奈米」，我把完整資料回覆給你"}
+    assert tc.cta_check(ok, {"keywords": ["透明"], "post_keywords": {"2nm": ["2奈米"]}}) == []
+    assert K.slug("20261122_2nm") == "2nm" and K.keywords_for({"keywords": ["透明"], "post_keywords": {"2nm": "2奈米"}}, "x_2nm") == ["透明"]

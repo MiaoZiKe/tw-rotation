@@ -9,6 +9,11 @@ Threads API 沒有私訊、也查不到對方有沒有追蹤，所以 Threads �
   用 threads_manage_replies 公開回覆（reply_to_id）。每人每篇 1 次、每輪上限 max_per_run。
 紀錄：state/tc/threads_replied.json 只存 sha256 雜湊（留言 id、使用者＋貼文），不存留言內容與帳號名稱；保留 30 天。
 法遵閘：dm_config.json 的 legal_reviewed 不是 true → 只記錄「會回什麼」，不送出。
+
+每篇專屬關鍵字（2026-11-15，Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他」）：
+  Threads 貼文 id → 貼文代號：state/tc/posted.json 的 ids_threads，或 permalink 的短碼（舊紀錄沒有 ids_threads）。
+  比對字＝全域 keywords＋post_keywords[代號]；回覆文字＝threads_reply.texts[代號]，沒有或還有「待填」就用 threads_reply.text。
+  規則與理由在 scripts/tc_dm_keys.py。
 """
 from __future__ import annotations
 
@@ -23,10 +28,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+import tc_dm_keys as K  # noqa: E402
 import tc_post as T  # noqa: E402
 
 CONFIG = ROOT / "social" / "tc" / "dm_config.json"
 STATE = ROOT / "state" / "tc" / "threads_replied.json"
+POSTED = ROOT / "state" / "tc" / "posted.json"
 KEEP_DAYS = 30
 
 
@@ -39,11 +46,27 @@ def h(*parts: str) -> str:
 
 
 def matched(text: str, keywords: list[str]) -> bool:
-    t = norm(text)
-    return any(norm(k) and norm(k) in t for k in keywords)
+    return K.has_kw(text, keywords)
 
 
-def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, state_path: Path = STATE) -> tuple[int, dict]:
+def _short(url: str) -> str:
+    u = str(url or "").rstrip("/")
+    return u.rsplit("/post/", 1)[-1] if "/post/" in u else ""
+
+
+def post_map(posted_path: Path) -> dict:
+    """Threads 貼文 id 或 permalink 短碼 → 貼文代號。"""
+    out = {}
+    for e in T.load_json(posted_path, {}).get("posts") or []:
+        if e.get("ids_threads"):
+            out[str(e["ids_threads"])] = e.get("id")
+        if _short(e.get("threads")):
+            out["sc:" + _short(e.get("threads"))] = e.get("id")
+    return out
+
+
+def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, state_path: Path = STATE,
+        posted_path: Path = POSTED) -> tuple[int, dict]:
     cfg = T.load_json(config_path, {})
     rcfg = cfg.get("threads_reply") or {}
     res = {"replied": 0, "would_reply": 0, "seen": 0}
@@ -71,11 +94,15 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
     rc, budget = 0, int(rcfg.get("max_per_run", 10))
     try:
         posts = T.api("threads", "GET", "/me/threads", tok,
-                      {"fields": "id,timestamp", "limit": str(int(rcfg.get("lookback_posts", 5)))}).get("data") or []
+                      {"fields": "id,timestamp,permalink", "limit": str(int(rcfg.get("lookback_posts", 5)))}).get("data") or []
     except T.PostError as e:
         T.log(f"✗ 讀不到自己的貼文：{e}")
         return 1, res
+    codes = post_map(posted_path)
     for p in posts:
+        code = codes.get(str(p.get("id"))) or codes.get("sc:" + _short(p.get("permalink"))) or "default"
+        kws = K.keywords_for(cfg, code)
+        text = K.text_for(rcfg.get("texts"), code, rcfg.get("text", ""), cfg.get("legal_pending"))
         try:
             rows = T.api("threads", "GET", f"/{p['id']}/replies", tok,
                          {"fields": "id,text,username,timestamp"}).get("data") or []
@@ -85,7 +112,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
             continue
         for r in rows:
             res["seen"] += 1
-            if not r.get("id") or r.get("username") == me or not matched(r.get("text", ""), cfg.get("keywords") or []):
+            if not r.get("id") or r.get("username") == me or not matched(r.get("text", ""), kws):
                 continue
             rk, uk = h("r", r["id"]), h("u", r.get("username", ""), p["id"])
             if rk in replied or uk in users:
@@ -100,7 +127,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                 continue
             try:
                 cid = T.api("threads", "POST", f"/{uid}/threads", tok,
-                            {"media_type": "TEXT", "text": rcfg["text"], "reply_to_id": r["id"]})["id"]
+                            {"media_type": "TEXT", "text": text, "reply_to_id": r["id"]})["id"]
                 T.SLEEP(5)
                 T._threads_publish(uid, cid, tok)
             except T.PostError as e:

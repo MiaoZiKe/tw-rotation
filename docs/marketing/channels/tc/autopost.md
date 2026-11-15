@@ -19,13 +19,23 @@ Andy 11-10：「Tech_01010909 丟給他們單位處理」。頻道②的帳號�
 |---|---|---|
 | IG 發輪播、建容器、回查 media_type | ✅ 可以 | `/{ig-user-id}/media`、`media_publish` 在 graph.facebook.com 用法相同；頻道④已驗證 |
 | IG 讀自己貼文的留言 | ✅ 可以 | 權杖有 `instagram_manage_comments` |
-| **IG 私訊（Private Reply、回覆私訊、查追蹤 is_user_follow_business）** | ❌ **目前做不到** | Facebook 這條路的 IG 私訊是 Messenger Platform：要「連結此 IG 帳號的粉絲專頁」＋專頁權杖，端點 `/{page-id}/messages`。頻道④診斷：權杖看得到 0 個粉絲專頁、缺 `pages_show_list`／`pages_read_engagement`。程式已寫好：一旦權杖看得到連結的粉絲專頁，會自動改用專頁權杖跑兩段式；現在安靜跳過、不紅燈 |
+| **IG 私訊（Private Reply、回覆私訊、查追蹤 is_user_follow_business）** | ❌ **目前做不到** | Facebook 這條路的 IG 私訊是 Messenger Platform：要「連結此 IG 帳號的粉絲專頁」＋專頁權杖，端點 `/{page-id}/messages`。頻道④診斷：權杖看得到 0 個粉絲專頁、缺 `pages_show_list`／`pages_read_engagement`。程式已寫好：一旦權杖看得到連結的粉絲專頁，會自動改用專頁權杖跑兩段式 |
+| **IG 留言關鍵字 → 公開回覆留言＋連結（私訊的保底，2026-11-15 起）** | ✅ 程式已上（還沒在真實帳號跑過一次） | 私訊接不通時，`tc_ig_dm.py` 改成 `POST /{comment-id}/replies` 公開回覆一句＋文章連結（權杖有 `instagram_manage_comments`），文字跟 Threads 同一份；私訊一接通自動改回私訊。開關 `dm_config.json` 的 `ig_dm.public_fallback` |
 | IG 自動刪文 | ❌ 做不到（兩種權杖都一樣） | Instagram API 沒有刪貼文端點；到期照舊開 issue 請人工刪 |
 | IG 完整成效 | ⚠️ 部分 | 缺 `instagram_manage_insights` |
 | IG 私訊 Worker（workers/tc-dm） | ⏸ 先不部署 | Worker 走 graph.instagram.com（Instagram 登入版），跟 EAA 不相容 |
 | Threads 發文、留言公開回覆、自動刪文、自我測試 | ✅ 可以 | Threads 權杖不受影響（刪文需 `threads_delete`；自我測試會先查刪除額度，沒權限就不發測試文） |
 
-要讓 IG 私訊能做，有兩條路（都要本人在 Meta 後台操作）：① 建一個 Facebook 粉絲專頁並連結 @tech_01010909，系統用戶加指派粉絲專頁與 `pages_show_list`、`pages_read_engagement`、`pages_messaging`／`instagram_manage_messages`；② 改用 Instagram 登入版權杖（IGAA 開頭），走 graph.instagram.com（Worker 版即可用）。一般網友收得到仍要 Advanced Access（見 app_review/）。
+**IG 私訊要接通還差什麼（2026-11-15 整理；要 Andy 動手的只有大綱，真的要做時再照他眼前的畫面給逐格步驟）**：
+
+| 路 | Andy 要做的事（大綱） | 程式端 | 接通後還差 |
+|---|---|---|---|
+| A. 粉絲專頁（沿用現在的 TECH_* EAA 權杖） | ① 建一個 Facebook 粉絲專頁（或用現有的）；② 在 IG App 或 Meta Business Suite 把 @tech_01010909 連結到這個專頁；③ 企業管理平台裡，系統用戶「指派資產」加這個粉絲專頁；④ 重新產生系統用戶權杖，勾 `pages_show_list`、`pages_read_engagement`、`pages_manage_metadata`、`pages_messaging`、`instagram_manage_messages`；⑤ 新權杖貼進 `TECH_IG_ACCESS_TOKEN` | 不用改：`messaging_ctx` 看得到專頁就自動改走私訊 | 一般網友收不收得到：要 Advanced Access（App Review，見 app_review/），開發模式只對 App 有角色的帳號有效（信心：中） |
+| B. Instagram 登入版權杖（IGAA 開頭） | ① App 的 Instagram 使用案例 → 用 @tech_01010909 產生權杖（勾 `instagram_business_manage_messages`、`instagram_business_manage_comments`）；② 貼進 `TECH_IG_ACCESS_TOKEN` | 不用改：IGAA 權杖走 graph.instagram.com，私訊同一把權杖 | 同上要 Advanced Access；另外 IG 發文那段要確認 IGAA 也能發（tc_post 已支援兩種） |
+
+權限名稱依 Meta 文件整理（信心：中），實際勾選以 Andy 當下後台畫面為準。
+
+（舊說明）要讓 IG 私訊能做，有兩條路（都要本人在 Meta 後台操作）：① 建一個 Facebook 粉絲專頁並連結 @tech_01010909，系統用戶加指派粉絲專頁與 `pages_show_list`、`pages_read_engagement`、`pages_messaging`／`instagram_manage_messages`；② 改用 Instagram 登入版權杖（IGAA 開頭），走 graph.instagram.com（Worker 版即可用）。一般網友收得到仍要 Advanced Access（見 app_review/）。
 
 ## 一、跟頻道一（股市帳號）怎麼隔離
 
@@ -74,6 +84,34 @@ social/tc/queue/20261105_quanta/
   兩邊都每 10 秒查一次容器狀態，`FINISHED` 才發布；`ERROR` 直接報錯（整篇標 error、開 issue）；5 分鐘沒好也報錯。
   回查 media_type：影片稿 IG 要 `VIDEO`／`REELS`、Threads 要 `VIDEO`；圖片稿照舊。影片一樣要先在 main 上。
 
+## 三之一、影片稿最後一行：留言關鍵字（2026-11-15 起）
+
+> Andy 原話：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」。
+
+**格式（固定一行，放在內文最後、「—／出處」那段之前；Threads 放【主文】最後一行）**：
+
+| 平台 | 現在要寫的那一行 | 實際會發生什麼 |
+|---|---|---|
+| Threads（threads.txt【主文】） | `留言「關鍵字」，我把完整資料回覆給你` | 程式在那則留言底下**公開回覆**一句＋文章連結（Threads 沒有私訊 API）。**不准寫「私訊」「傳給你」**，交件檢查會警告 |
+| IG（ig.txt），私訊還沒接通（**現在**） | `留言「關鍵字」，我把完整資料回覆給你` | 跟 Threads 一樣：公開回覆留言＋連結（保底，`ig_dm.public_fallback: true`）。IG 留言裡的網址不能點，對方要複製；這是私訊接通前的限制 |
+| IG（ig.txt），私訊接通之後 | `留言「關鍵字」，我把完整資料傳給你` | 私訊 Private Reply：follow_gate=true 時先私訊請追蹤、回「好了」才送；false 時直接私訊送內容 |
+
+為什麼放在出處前面、不是整段最後：IG 文末是出處與照片授權，CTA 放在那後面會被折疊到最底下，看不到。
+
+**關鍵字設在哪：`social/tc/dm_config.json`，不寫在 post.md**（理由：Threads 回覆、IG 私訊、Worker 三支程式都讀這個檔，Worker 讀不到佇列裡的 post.md；關鍵字和要回的文案擺在一起，法遵一次看完；post.md 發完會被程式回寫，人工改容易撞）。
+
+| 欄位 | 寫什麼 |
+|---|---|
+| `keywords` | 全域關鍵字（「透明」），任何一篇都觸發；沒有專屬關鍵字的貼文就靠它 |
+| `post_keywords["<代號>"]` | 這篇專屬的關鍵字（例 `"2nm": ["2奈米", "兩奈米", "2nm"]`），**只在那一篇觸發**。代號＝佇列資料夾名（`20261122_2nm`），或只寫日期後那段（`2nm`，還沒排日期時用） |
+| `threads_reply.texts["<代號>"]` | Threads（與 IG 保底公開回覆）的回覆文字，含文章網址 `https://liguligu-puipui.com/#article/<id>` |
+| `ig_dm.contents["<代號>"]` | IG 私訊接通後送的內容 |
+| `legal_pending` | 新文案還沒過法遵的代號；列著的時候照樣回覆，但改送已審過的預設文字 |
+
+保底：內容裡還有「待填」（例如文章 id 還沒拿到）或代號在 `legal_pending` → 改送預設文字（首頁連結），不會整段不回、也不會送出半成品網址。
+文案規則：不寫「僅供參考／未經查證／網友回報」（lessons 第 5 條）；新增的回覆文字改到意思時，代號先放進 `legal_pending`，交 CEO 送法遵，審過再拿掉。
+交件檢查：`tc_post.cta_check`（發文前每輪跑，只警告不擋）＋ pytest `test_佇列文案的留言關鍵字都有設定_Threads不講私訊`：文案裡「留言「X」」的 X 必須設成那篇的關鍵字。
+
 ## 四、沒發出怎麼辦（10-29 規矩）
 
 1. 監工：`approved` 且（排定時間或順延時間）過 30 分鐘還沒發、或 `status: error` → 開 issue「⚠️ 頻道② 科技透明圈：已核准貼文沒發出」。
@@ -96,7 +134,7 @@ social/tc/queue/20261105_quanta/
 
 **為什麼是兩段式（Meta 規定）**：`is_user_follow_business`（User Profile API）要等對方**先傳訊息給我們、建立同意**之後才查得到；只留言的人去查會回「User consent is required」。所以第一則私訊前不能檢查追蹤，只能：
 
-1. 留言含關鍵字（`social/tc/dm_config.json` 的 `keywords`，第一版「透明」）→ Private Reply 私訊一句「謝謝留言！追蹤 @帳號 後回覆『好了』，我把重點整理傳給你」。每則留言只能私回 1 次、留言後 7 天內。
+1. 留言含關鍵字（`social/tc/dm_config.json` 的全域 `keywords`「透明」＋該篇的 `post_keywords`，見三之一）→ Private Reply 私訊一句「謝謝留言！追蹤 @帳號 後回覆『好了』，我把重點整理傳給你」。每則留言只能私回 1 次、留言後 7 天內。
 2. 對方在私訊回「好了」→ 查 `is_user_follow_business`：true → 送整理（`contents` 依貼文代號，沒有就用 `default`）；false → 「還沒看到你追蹤喔，追蹤後再回一次『好了』」（每人每天最多 3 次）。
 
 | 版本 | 程式 | 什麼時候用 |
@@ -138,3 +176,4 @@ social/tc/queue/20261105_quanta/
 - 2026-11-09 法遵審後修改：文案改「重點整理」、面試方向不寫題目原文、加 follow_gate 開關、legal_reviewed=true；廣達 threads.txt 主文刪 4 個表情符號到 494 字。
 - 2026-11-10 頻道④交接：改吃 TECH_*、IG 支援 EAA（graph.facebook.com）、channel_post 停排 tech；EAA 下 IG 私訊做不到（缺粉絲專頁）。
 - 2026-11-14 加影片發文（social-ops-lead）：post.md `media: video`＋`video:`；IG Reels、Threads VIDEO，等容器 FINISHED 才發布；測試 tests/test_tc_autopost.py 補 9 條。
+- 2026-11-15 每篇專屬留言關鍵字（social-ops-lead，Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」）：`dm_config.json` 加 `post_keywords`、`threads_reply.texts`、`legal_pending`、`ig_dm.public_fallback`；共用規則 `scripts/tc_dm_keys.py`；Threads 用 posted.json 的 ids_threads／permalink 對回貼文代號，tc_post 開始記 ids_threads；IG 私訊接不通時改公開回覆留言＋連結（保底）；Worker 同步；影片稿格式見三之一；「2nm」條目文章 id 待填、文案待法遵；測試補 9 條。

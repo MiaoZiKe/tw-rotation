@@ -30,6 +30,16 @@ follow_gate（2026-11-09 法遵審後加的開關，預設 true）：
 去重與隱私：state/tc/ig_dm.json 只存 sha256 雜湊（留言 id、使用者 id）、時間與結果，不存留言內容、帳號名稱、私訊內容。
 上限：每則留言 1 次（Meta 也只准 1 次）；每人每天 per_user_per_day 次私訊；每輪 max_per_minute 則（輪詢一輪當一分鐘算）。
 法遵閘：legal_reviewed 不是 true → 只記錄「會送什麼」，不送。
+
+每篇專屬關鍵字（2026-11-15，Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」）：
+  比對字＝全域 keywords＋post_keywords[貼文代號]（IG 貼文 id → 代號用 state/tc/posted.json 的 ids_ig）；
+  送的內容＝ig_dm.contents[代號]，沒有或還有「待填」就用 default。規則在 scripts/tc_dm_keys.py。
+
+★ 私訊接不通時的保底（public_fallback，預設 true）：
+  EAA 權杖看不到粉絲專頁 → 私訊做不到。以前是整段安靜跳過，留言的人什麼都收不到（文案寫了卻沒兌現）。
+  現在改成「公開回覆那則留言一句＋文章連結」（POST /{comment-id}/replies，權杖本來就有 instagram_manage_comments），
+  文字跟 Threads 同一份（threads_reply.texts[代號] → threads_reply.text）。每則留言 1 次、每人每篇 1 次、每輪上限照舊。
+  私訊一接通（權杖看得到連結的粉絲專頁）就自動改回私訊流程，不用改設定。
 """
 from __future__ import annotations
 
@@ -44,6 +54,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+import tc_dm_keys as K  # noqa: E402
 import tc_post as T  # noqa: E402
 
 CONFIG = ROOT / "social" / "tc" / "dm_config.json"
@@ -63,8 +74,7 @@ def h(*p: str) -> str:
 
 
 def has_kw(text: str, kws) -> bool:
-    t = norm(text)
-    return any(norm(k) and norm(k) in t for k in kws or [])
+    return K.has_kw(text, kws)
 
 
 def ts(s) -> datetime | None:
@@ -79,9 +89,14 @@ def ts(s) -> datetime | None:
         return None
 
 
-def content_of(d: dict, post: str) -> str:
+def content_of(d: dict, post: str, pending=None) -> str:
     c = d.get("contents") or {}
-    return c.get(post) or c.get("default", "")
+    return K.text_for(c, post, c.get("default", ""), pending)
+
+
+def public_text(cfg: dict, post: str) -> str:
+    r = cfg.get("threads_reply") or {}
+    return K.text_for(r.get("texts"), post, r.get("text", ""), cfg.get("legal_pending"))
 
 
 CTX: dict = {}
@@ -135,12 +150,18 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
         T.log(f"✗ IG 私訊：{e}")
         return 1, res
     ctx, why = messaging_ctx(uid, tok)
+    public = False
     if ctx is None:
-        T.log(f"IG 私訊：{why} → 安靜跳過（讀留言、發文不受影響）")
         res["unsupported"] = why
-        return 0, res
-    CTX.clear()
-    CTX.update(ctx)
+        if d.get("public_fallback", True) is False:
+            T.log(f"IG 私訊：{why} → 安靜跳過（public_fallback 關閉；讀留言、發文不受影響）")
+            return 0, res
+        T.log(f"IG 私訊：{why} → 改用保底：公開回覆留言＋連結")
+        public = True
+        res["public"] = 0
+    else:
+        CTX.clear()
+        CTX.update(ctx)
     fill = lambda s: (s or "").replace("{handle}", handle)  # noqa: E731
     st = T.load_json(state_path, {})
     comments, users, pending, msgs = (dict(st.get(k) or {}) for k in ("comments", "users", "pending", "msgs"))
@@ -161,6 +182,8 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
         T.log(f"✗ 讀不到自己的貼文：{e}")
         return 1, res
     for m in media:
+        post = post_of.get(str(m["id"])) or "default"
+        kws = K.keywords_for(cfg, post)
         try:
             rows = T.api("ig", "GET", f"/{m['id']}/comments", tok,
                          {"fields": "id,text,timestamp,from{id,username}", "limit": "50"}).get("data") or []
@@ -170,26 +193,38 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
             continue
         for c in rows:
             who = str((c.get("from") or {}).get("id") or "")
-            if not c.get("id") or not who or who == uid or not has_kw(c.get("text", ""), cfg.get("keywords")):
+            if not c.get("id") or not who or who == uid or not has_kw(c.get("text", ""), kws):
                 continue
             ck, uk = h("c", c["id"]), h("u", who)
-            if ck in comments:
+            pk = h("up", who, m["id"])
+            if ck in comments or (public and pk in comments):
                 continue
             t = ts(c.get("timestamp"))
             if t and now - t > REPLY_WINDOW:
                 comments[ck] = {"at": now.isoformat(timespec="seconds"), "result": "expired"}
                 continue
-            if users.get(uk, {}).get("n", 0) >= per_user or budget <= 0:
+            if (not public and users.get(uk, {}).get("n", 0) >= per_user) or budget <= 0:   # 公開回覆改用每人每篇 1 次（pk）
                 res["skipped"] += 1
                 continue
             if not live:
                 res["would"] += 1
-                T.log("[只記錄] 會私回 1 則留言（第 1 段：請對方追蹤後回『好了』）；不寫紀錄，法遵通過後照樣會送")
+                T.log("[只記錄] 會" + ("公開回覆" if public else "私回") + " 1 則留言；不寫紀錄，法遵通過後照樣會送")
                 continue
-            post = post_of.get(str(m["id"])) or "default"
+            if public:
+                try:
+                    T.api("ig", "POST", f"/{c['id']}/replies", tok, {"message": public_text(cfg, post)})
+                except T.PostError as e:
+                    T.log(f"✗ IG 公開回覆失敗：{e}")
+                    rc = 1
+                    continue
+                comments[ck] = comments[pk] = {"at": now.isoformat(timespec="seconds"), "result": "public"}
+                users[uk] = {"day": today, "n": users.get(uk, {}).get("n", 0) + 1}
+                budget -= 1
+                res["public"] += 1
+                continue
             gate = d.get("follow_gate", True) is not False
             body = fill(d.get("prompt")) if gate else (
-                fill(d.get("prompt_no_gate")) + "\n\n" + content_of(d, post))
+                fill(d.get("prompt_no_gate")) + "\n\n" + content_of(d, post, cfg.get("legal_pending")))
             try:
                 send(uid, tok, {"comment_id": c["id"]}, body)
             except T.PostError as e:
@@ -202,10 +237,12 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
             budget -= 1
             res["prompted"] += 1
 
-    # ---- 第 2 段：對方回「好了」→ 查追蹤 → 送內容 ----
+    # ---- 第 2 段：對方回「好了」→ 查追蹤 → 送內容（私訊接不通時沒有第 2 段）----
+    convs: list = []
     try:
-        convs = T.api("ig", "GET", CTX["conv"], CTX["tok"],
-                      {"platform": "instagram", "fields": "id,updated_time", "limit": "20"}).get("data") or []
+        if not public:
+            convs = T.api("ig", "GET", CTX["conv"], CTX["tok"],
+                          {"platform": "instagram", "fields": "id,updated_time", "limit": "20"}).get("data") or []
     except T.PostError as e:
         T.log(f"✗ 讀不到私訊（多半是沒有 instagram_business_manage_messages）：{e}")
         convs, rc = [], 1
@@ -238,7 +275,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                     break
                 prof = T.api("ig", "GET", f"/{who}", CTX["tok"], {"fields": "is_user_follow_business"})
                 if prof.get("is_user_follow_business") is True:
-                    send(uid, tok, {"id": who}, content_of(d, p.get("post")))
+                    send(uid, tok, {"id": who}, content_of(d, p.get("post"), cfg.get("legal_pending")))
                     p["sent"] = True
                     res["delivered"] += 1
                 elif p.get("nf", {}).get(today, 0) < NOT_FOLLOW_MAX_PER_DAY:
@@ -250,6 +287,8 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                 msgs.pop(mk, None)
                 rc = 1
             break
+    if public:
+        T.log(f"IG 保底公開回覆：{res['public']} 則")
     T.log(f"IG 私訊：第 1 段私回 {res['prompted']}、送出整理 {res['delivered']}、提醒追蹤 {res['not_following']}、只記錄 {res['would']}")
     if not dry_run:
         state_path.parent.mkdir(parents=True, exist_ok=True)
