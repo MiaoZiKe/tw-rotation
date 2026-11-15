@@ -108,9 +108,10 @@ def setup(out):
     subprocess.run([sys.executable, "scripts/minify_site.py", "site"], cwd=src, check=True, env={**os.environ, "ESBUILD": os.environ.get("ESBUILD", "/opt/node22/bin/esbuild")}, stdout=subprocess.DEVNULL)
     log("網站已打包壓縮：", os.path.join(src, "site"))
     # wrangler（裝在 out/wr，不動 repo）
-    wr = os.path.join(out, "wr", "node_modules", ".bin", "wrangler")
+    wr = os.environ.get("WRANGLER") or os.path.join(out, "wr", "node_modules", ".bin", "wrangler")     # WRANGLER＝已經裝好的 wrangler 路徑（省得每輪重裝）
     if not os.path.exists(wr):
-        os.makedirs(os.path.join(out, "wr"), exist_ok=True)
+        shutil.rmtree(os.path.join(out, "wr"), ignore_errors=True)
+        os.makedirs(os.path.join(out, "wr"))
         subprocess.run("npm init -y >/dev/null && npm install wrangler@%s --no-audit --no-fund >/dev/null 2>&1" % WRANGLER_VER, shell=True, check=True, cwd=os.path.join(out, "wr"))
     owner_tok = "e2e-owner-" + secrets.token_hex(16)        # 假會員服務認的「站長登入權杖」：每次隨機，不是任何真金鑰
     env = {**os.environ, "NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"}
@@ -321,6 +322,9 @@ def main():
                     os.killpg(pr.pid, signal.SIGTERM) if pr.args[0].endswith("wrangler") else pr.terminate()
                 except Exception:
                     pass
+            time.sleep(1)
+            for d in ("src", "wstate"):              # 打包的網站與收件服務資料約數百 MB：跑完就清（截圖、紀錄、使用者專案留著）
+                shutil.rmtree(os.path.join(a.out, d), ignore_errors=True)
         bad = [s for s, o, _ in R if not o]
         log("總結：%d 項通過、%d 項失敗" % (len(R) - len(bad), len(bad)))
         for s in bad:

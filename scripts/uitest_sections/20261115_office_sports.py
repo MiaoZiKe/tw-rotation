@@ -230,7 +230,7 @@ def t_sports(b, base):
         seen_float = False; seen_in = False
         for i in range(24):
             _sp_adv(pg, 0.25)
-            r = pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); return { in: W.sports.water.inWater(c), y: c.object3D.position.y, fire: W.fire.stateOf(c).state } }", who)
+            r = pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); return { in: W.sports.water.inWater(c), y: Math.max(c.object3D.position.y, c._floatY || 0), fire: W.fire.stateOf(c).state } }", who)
             seen_in = seen_in or r["in"]; seen_float = seen_float or (r["in"] and r["y"] > 0.05)
             if r["in"] and r["fire"] != "burning" and i > 4:
                 break

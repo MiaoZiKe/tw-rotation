@@ -321,7 +321,9 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
     hud.hidden = false;
     { // 主聊天室（#chatPanel，在畫面底部中間）開著時，介面往上讓開，兩者不重疊；手機則在虛擬搖桿的上方
       const cp = document.getElementById('chatPanel'), cr = cp && !cp.hidden ? cp.getBoundingClientRect() : null, lift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lift')) || 0;
-      let b = mobile ? 162 + lift : 16; if (cr && cr.height > 0 && cr.width > 0) { const kids = [...cp.querySelectorAll('.mc-bar,.mc-peek,.mc-top')].filter(e => e.getBoundingClientRect().height > 0); const top = kids.length ? Math.min(...kids.map(e => e.getBoundingClientRect().top)) : cr.top; b = Math.max(b, innerHeight - top + 8); }
+      let b = mobile ? 162 + lift : 16;
+      const pd = document.querySelector('.pt-pad'); if (pd && !pd.hidden) { const tops = [...pd.querySelectorAll('.pt-joy,.pt-btns')].map(e => e.getBoundingClientRect()).filter(r => r.height > 0).map(r => r.top); if (tops.length) b = Math.max(b, innerHeight - Math.min(...tops) + 8); }   // 手機：在虛擬搖桿與按鈕的上方
+      if (cr && cr.height > 0 && cr.width > 0) { const kids = [...cp.querySelectorAll('.mc-bar,.mc-peek,.mc-top')].filter(e => e.getBoundingClientRect().height > 0); const top = kids.length ? Math.min(...kids.map(e => e.getBoundingClientRect().top)) : cr.top; b = Math.max(b, innerHeight - top + 8); }
       b = Math.min(b, Math.max(16, innerHeight - 170)); const bs = Math.round(b) + 'px'; if (hud.style.bottom !== bs) hud.style.bottom = bs;
     }
     if (key !== hudKey || force) { hudKey = key; elT.textContent = title; elP.textContent = tip; setBtns(btns); }

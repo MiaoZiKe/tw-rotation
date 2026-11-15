@@ -98,7 +98,8 @@ export function createWater(W) {
           A.inside.delete(c); c._wetUntil = W.time + WET_SEC; c._fireImmuneUntil = W.time + IMMUNE_SEC; c._floatY = 0; if (!held) c.object3D.position.y = 0;
           W.emit && W.emit('left_pool', c.spec.id, { x: p.x, z: p.z });
         } else {
-          st.t += h; c._wetUntil = W.time + WET_SEC; c._fireImmuneUntil = W.time + IMMUNE_SEC;
+          st.t += h; c._floatY = (0.13 + (reduce ? 0 : 0.03 * Math.sin(W.time * 2.4 + st.ph))) * Math.min(1, st.t / 0.5);   // 浮起來的高度（模擬時間算；畫面更新時才加到位置上）
+          c._wetUntil = W.time + WET_SEC; c._fireImmuneUntil = W.time + IMMUNE_SEC;
           const F = W.fire, fs = F && F.states.get(c.spec.id); if (fs && fs.state === 'burning' && F.extinguish && F.extinguish(c, 'pool')) A.stats.extinguished++;   // 水裡不會燒（含剛好在水裡被點燃）
           const sp = Math.hypot(velOf(c).x, velOf(c).z); st.rippleT -= h; if (st.rippleT <= 0 && sp > 0.35) { st.rippleT = 0.45; A.ripple(p.x, p.z, 0.4); }
         }
@@ -115,7 +116,7 @@ export function createWater(W) {
     for (let i = 0; i < 6; i++) { const r = A.rip[i]; if (r && r.age < 3.2) uRip[i].set(r.x, r.z, r.age, r.amp); else uRip[i].set(0, 0, -1, 0); }
     const cam = W.camera, rend = W.renderer; uScale.value = rend.domElement.height / (2 * Math.tan(cam.fov * Math.PI / 360));
     g.attributes.position.needsUpdate = true; g.attributes.aSize.needsUpdate = true; g.attributes.aCol.needsUpdate = true;
-    for (const [c, st] of A.inside) { const k = Math.min(1, st.t / 0.5); c._floatY = (0.13 + (reduce ? 0 : 0.03 * Math.sin(now * 2.4 + st.ph))) * k; if (!isHeld(c) && c.state !== 'sit') c.object3D.position.y = c._floatY; }
+    for (const [c] of A.inside) { if (!isHeld(c) && c.state !== 'sit') c.object3D.position.y = c._floatY || 0; }
   };
   return A;
 }
