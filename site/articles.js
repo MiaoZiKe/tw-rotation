@@ -80,7 +80,7 @@
   const PRIV = {
     tech: { t: '科技透明圈', s: '科技', col: ['#e3b341', '#8a6100'], ic: 'tech' },
     ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'] },
-    // caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'] },
+    caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'] },
     // healing: { t: '談晴說礙', s: '談晴', col: ['#f2b880', '#9a5a1a'] },
   };
   Object.keys(PRIV).forEach((k) => { Object.assign(PRIV[k], { file: `articles/${k}/index.json`, dir: `articles/${k}/` }); CAT_S[k] = PRIV[k].s || PRIV[k].t; });

@@ -1,0 +1,148 @@
+{
+ "id": "2026-11-15-caffaine-intro",
+ "cat": "caffaine",
+ "title": "一杯咖啡的時間，看懂一個 AI 新知",
+ "subtitle": "CaffAIne 頻道介紹（第 1 支影片 v001／第 1 篇貼文）：四種杯子、三個原則。",
+ "date": "2026-11-15",
+ "updated": "2026-11-15",
+ "tags": [
+  "CaffAIne",
+  "頻道介紹",
+  "AI 工具",
+  "上班族"
+ ],
+ "summary": "CaffAIne 是給台灣上班族的 AI 頻道：先試、先篩，只留下一杯咖啡看得完的那一則。四個欄目、三個原則，以及我們為什麼這樣寫。內容尚未發布，待 Andy 定案。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "callout",
+   "text": "這篇是頻道介紹影片 v001（40.5 秒）與 IG／Threads 介紹貼文的完整文字版。狀態：草稿，尚未發布，等 Andy 確認版型與更新日。"
+  },
+  {
+   "t": "h",
+   "text": "為什麼開這個帳號"
+  },
+  {
+   "t": "p",
+   "text": "AI 新聞每天很多則，真正跟上班有關的其實不多（這是我們的判斷，不是統計數字）。CaffAIne 先試、先篩，只留下喝一杯咖啡就看得完的那一則。"
+  },
+  {
+   "t": "h",
+   "text": "四種杯子（欄目）"
+  },
+  {
+   "t": "table",
+   "head": [
+    "欄目",
+    "內容"
+   ],
+   "rows": [
+    [
+     "☕ 試飲報告",
+     "親手試過的 AI 工具，結果和花多少錢都寫出來"
+    ],
+    [
+     "☕ 手沖教室",
+     "可以直接複製的提示詞和做法，照著做就會"
+    ],
+    [
+     "☕ 本週三杯",
+     "一週只挑三則跟工作有關的 AI 新聞"
+    ],
+    [
+     "☕ 這杯有點苦",
+     "AI 出錯、踩雷的真實紀錄"
+    ]
+   ]
+  },
+  {
+   "t": "h",
+   "text": "三個原則"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "沒試過的不說「好用」：薦證內容要出自真實體驗（公平會薦證廣告規範）。",
+    "有業配一定標明：網路業配屬於薦證廣告，有揭露義務；2023 年起網紅也納入網路廣告處理原則。",
+    "AI 也會出錯，翻車的經驗照樣寫出來；用到 AI 生成內容會開平台的 AI 標示。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "影片 v001 分鏡"
+  },
+  {
+   "t": "table",
+   "head": [
+    "秒數",
+    "畫面",
+    "字幕"
+   ],
+   "rows": [
+    [
+     "0–4.6",
+     "36 格像素方塊，最後只剩 3 格亮",
+     "真正跟上班有關的，可能只有一兩則"
+    ],
+    [
+     "5.0–10.4",
+     "LOGO（八位元衝框）登場",
+     "我先試、先篩，只留一杯咖啡看得完的那一則"
+    ],
+    [
+     "10.8–21.6",
+     "四張菜單卡",
+     "四種杯子，每週輪流上桌／有試、有教、有整理，也有翻車"
+    ],
+    [
+     "22.0–31.6",
+     "三個原則",
+     "寫下來的，就是我真的做到的事（待 Andy 確認是否保留）"
+    ],
+    [
+     "32.0–40.5",
+     "結尾 LOGO",
+     "追蹤 CaffAIne，下一杯見"
+    ]
+   ]
+  },
+  {
+   "t": "p",
+   "text": "影片目前沒有配音（配音方式等 Andy 決定）；不含比比、不含 AI 生圖。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "公平會：網路業配屬薦證廣告，應揭露利益關係",
+   "publisher": "ETtoday 新聞雲",
+   "date": "2017-10-12",
+   "url": "https://www.ettoday.net/news/20171012/1029965.htm"
+  },
+  {
+   "title": "網路廣告處理原則修正：網紅納入規範、最高罰 2,500 萬",
+   "publisher": "INSIDE",
+   "date": "2023-02-01",
+   "url": "https://www.inside.com.tw/article/30951-Taiwan-amendment-passed-KOL-main-advertisements-are-false-the-maximum-penalty-is-25-million"
+  },
+  {
+   "title": "Meta 將為 AI 生成圖片加上標示",
+   "publisher": "TechCrunch",
+   "date": "2024-02-06",
+   "url": "https://techcrunch.com/2024/02/06/meta-ai-generated-image-labelling/"
+  },
+  {
+   "title": "Instagram 演算法不再推送轉貼與聚合帳號內容",
+   "publisher": "Tubefilter",
+   "date": "2026-04-30",
+   "url": "https://www.tubefilter.com/2026/04/30/instagram-removes-algorithm-recommendations-repost-content-aggregator/amp/"
+  },
+  {
+   "title": "Threads 調整排序、優先顯示追蹤對象內容",
+   "publisher": "TechNews 科技新報",
+   "date": "2024-11-22",
+   "url": "https://technews.tw/2024/11/22/threads-is-rebalancing-ranking-to-prioritize-content-from-people-you-follow/"
+  }
+ ],
+ "confidence": "法規與平台政策引自媒體報導（非條文全文）；INSIDE 報導日期以 112 年 2 月修正為準，日期取當月 1 日。",
+ "status": "published"
+}
