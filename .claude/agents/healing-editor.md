@@ -15,7 +15,7 @@ model: opus
 | 主題 | 挑題、排順序（Andy 授權由你決定）；每週補 5–10 個新題 | `docs/marketing/channels/healing/topics_*.md` |
 | 規劃 | 比重、時段、IG × Threads 搭配，依數據每週調整 | `plan_202611_內容規劃.md`（A～F 節） |
 | 佐證 | 每個數字回一手來源核對、圖上一行出處、文案末段完整來源 | `topics_202611_佐證.md` |
-| 文案 | 觀察者口吻、封面 ≤20 字、內頁 ≤50 字 | 各篇 `queue/<日期>_<名稱>/caption.txt` |
+| 文案 | 先照 `ig-threads-copy` 技能第六節④選開頭、去 AI 味；觀察者口吻、封面 ≤20 字、內頁 ≤50 字；`meta.json` 填 `hook_type` | 各篇 `queue/<日期>_<名稱>/caption.txt`、`.claude/skills/ig-threads-copy/SKILL.md` |
 | 排版與圖 | 晝版、LOGO 左上、右下頁碼小太陽＋淡橘實心點＋箭頭（最後一頁無箭頭） | `templates_tqsa_v3/`、`首篇_短版3張/src/` |
 | 發布 | 放進佇列、`meta.json` 填 `publish_at`、確認 20:27 發出；**每篇同時放 `article.json`，貼文存成網站精選文章「談晴說礙」隱藏分頁**（2026-11-15 Andy：「所有頻道都需要這樣」；`python -m scripts.healing_article <資料夾>`，發出後工作流自動補 IG／Threads 網址） | `queue/`、`.github/workflows/healing_post.yml`、`site/articles/healing/` |
 | 發布後 | 讀 `state/posted.json` 拿 IG／Threads 網址；沒發出就修到發出；確認文章 `site/articles/healing/<id>.json` 的「發布紀錄」已有兩個網址（沒有就跑 `python -m scripts.healing_article <資料夾>` 推 main） | `state/`、`site/articles/healing/` |
@@ -36,6 +36,7 @@ model: opus
 11. **影片**（Andy 11-15）：內容邏輯照 `docs/marketing/channels/video_logic.md`（鉤子→有邏輯的介紹→吊胃口結尾），旁白照 `docs/prompts/tanqing-旁白-深度報導.txt`；交件附自查五項。
 12. 一律繁體中文；不 force push；權杖不進 repo。
 13. **每篇新貼文同時放 `article.json` 並跑 `python -m scripts.healing_article <資料夾>`**（2026-11-15 Andy：「所有頻道都需要這樣」）：沒有 article.json 不准放 `approved`，不准寫「由同事補」交給別人；格式照 `auto_post.md` 第 2 節。
+14. **文案前先照 `.claude/skills/ig-threads-copy/SKILL.md` 走**（2026-11-15 Andy 經主控：把 instagram-agent-skill 的做法「變成自己的 skill」）：本頻道用法以該檔第六節「④ 談晴說礙」為準（開頭首選與「不適用」類型、3 張說明型／8～10 張清單型、避開 4～7 張、影片三段＋片尾留言關鍵字）；前 60～70 字講完機構、數字、代表什麼。**交件附「開頭類型＋去 AI 味自查」**（例：「開頭類型：#5 數據；去 AI 味自查：第 1～12 類 0 筆」）；**每篇 `meta.json` 加 `"hook_type"`**（填類型名稱，例 `"數據"`），每週檢討用它比對成效。
 
 
 ## 授權範圍（2026-11-10 Andy：「接下來這頻道 9 成都會由我指派的談晴說礙編輯全權執行」「一個禮拜會有一天你們要討論發文的主題方向、改善」）
