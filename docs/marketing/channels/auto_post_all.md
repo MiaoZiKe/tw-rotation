@@ -138,7 +138,7 @@ Andy 11-09：「Shrimp_01010909 不用」。水下蝦米繼續由 Buffer（api.b
 - 一支 Reels 10～30MB、每天 2 支。照頻道④的做法 commit 進 main（佇列一份＋`site/media` 一份）一個月就多 1～2GB，而且 git 歷史刪不掉，每次 clone、每個工作流 checkout 都要背著。
 - 改用 **GitHub Release 資產**（tag `channel-media`，標成預發行、不是 latest）：資產不在 git 歷史裡，public repo 不算容量、沒有流量費，單檔上限 2GB；發完 3 天工作流自動刪掉資產與 media 分支（刪掉的分支 GitHub 會回收）。
 - 影片本體怎麼到 Release：作者（Claude）把影片推到 **只有影片的分支** `media/caffaine/<資料夾>`（跟 main 沒有共同歷史，`scripts/channel_media.py stage` 一個指令做完），工作流 `sync` 從那個分支拿出來上傳。工作流用 `github.token`，不用另外設 Secret。
-- Meta 抓得到嗎：Release 網址會 302 轉到 `release-assets.githubusercontent.com`，回 `application/octet-stream`。11-15 頻道④驗證（run 43704659369）已證明 raw.githubusercontent（一樣是 octet-stream）IG Reels 與 Threads 影片容器都 FINISHED；Release 這條用 `@reels-test` 驗證（10-4）。
+- Meta 抓得到嗎：Release 網址會 302 轉到 `release-assets.githubusercontent.com`，回 `application/octet-stream`。11-15 頻道④驗證（run 43704659369）已證明 raw.githubusercontent（一樣是 octet-stream）IG Reels 與 Threads 影片容器都 FINISHED；Release 這條 11-15 用 `@reels-test` 驗證通過（run 43705958501：IG REELS、Threads VIDEO 容器都 FINISHED，未發布）。
 - 保底：影片若也放在佇列資料夾（相容舊做法），Release 失敗會退回 raw 網址；只放 media 分支時，`sync` 上傳失敗會在摘要寫原因、這輪發文失敗紅燈、保底那輪再試。
 - 頻道④（healing）、② 不受影響：沒寫 `video_host` 的頻道照舊（正式站 `site/media` → raw）。
 
