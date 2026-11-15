@@ -99,6 +99,14 @@ _sc["s7"].update({"trans": "up", "opt": ["早點成家", "等一等"],
 _V3["scenes"].append({"id": "s9", "type": "outro", "dur": 3.9, "trans": "circle", "say": "想看完整資料，留言結婚。", "keyword": "結婚",
   "slogan": "談著這一代的難，也說著晴天裡的光", "nextLine": "下一集 ▸ 剛出社會的月薪中位數", "src": "資料：內政部戶政司；內政部人口統計年刊"})
 VIDEOS["20261116_marriage_v3"] = _V3
+
+# ───────── v4 禁止慢慢放大＋素材本身動起來＋片尾 LOGO 彈入出場（2026-11-15 Andy：「不要出現圖片一直慢慢放大效果，有夠爛」「LOGO 動畫需要有吸引人的出場，配音效」）─────────
+# 同題、同鏡頭結構與字幕（s1–s9）；執行期換 video_runtime_v4.js；片尾卡拉長到 5.0 秒（f0–f150：彈入→衝出→三道光→蓋印→收束光暈→標語／下一集／關鍵字）。
+_V4 = _copy.deepcopy(_V3)
+_V4.update({"out": "video_v4.mp4", "cover": "video_v4_cover.jpg", "report": "overlap_report_video_v4.json", "runtime": "video_runtime_v4.js", "cover_t": 1.9})
+for _s in _V4["scenes"]:
+    if _s["id"] == "s9": _s["dur"] = 5.0
+VIDEOS["20261116_marriage_v4"] = _V4
 V3CSS = """
 .bgl{left:0;top:0;width:1080px;height:1920px}
 .grid{background-image:linear-gradient(rgba(110,106,102,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(110,106,102,.07) 2px,transparent 2px);background-size:72px 72px}
@@ -184,7 +192,7 @@ html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden;font-f
 <div id="stage"></div>
 <script>const V=%s;</script>
 <script src="file://%s"></script>
-</body></html>""" % (css, V2CSS, V3CSS if v["runtime"].endswith("v3.js") else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
+</body></html>""" % (css, V2CSS, V3CSS if v["runtime"].endswith(("v3.js", "v4.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
     os.makedirs(os.path.join(B, "html"), exist_ok=True)
     p = os.path.join(B, "html", name + ".html"); open(p, "w", encoding="utf-8").write(page)
     print("時間軸：", v["timing"], "總長 %.2f 秒" % v["dur"], [(s["id"], round(s["t1"] - s["t0"], 2)) for s in v["scenes"]])

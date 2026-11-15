@@ -9,6 +9,9 @@ fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
  const V=await pg.evaluate(()=>V);const out=path.join(__dirname,'..','..','queue',V.queue||name);
  const OUT=V.out||'video.mp4',COVER=V.cover||'video_cover.jpg',REP=V.report||'overlap_report_video.json',CT=V.cover_t==null?4.6:V.cover_t;const n=Math.round(V.dur*V.fps);const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
  for(let f=0;f<n;f++){const t=f/V.fps;await pg.evaluate(t=>window.renderAt(t),t);
+  if(V.runtime&&/v4/.test(V.runtime)){   // v4：插圖面板外框尺寸與面板底板尺寸逐幀記錄（同一鏡內只准一組＝沒有縮放、沒有平移）
+   const q=await pg.evaluate(()=>{const e=document.querySelector('#stage [data-o=illus]');if(!e)return null;const r=e.getBoundingClientRect(),b=e.querySelector('svg g > rect'),br=b?b.getBoundingClientRect():null,g=e.querySelector('svg > g');return{o:[r.left,r.top,r.width,r.height].map(x=>+x.toFixed(2)).join(','),b:br?[br.left,br.top,br.width,br.height].map(x=>+x.toFixed(2)).join(','):'',tf:g?(g.getAttribute('transform')||''):''}});
+   if(q){const sc=V.scenes.find(x=>t>=x.t0&&t<x.t1)||V.scenes[V.scenes.length-1];const m=(rep.panel=rep.panel||{});const r=(m[sc.id]=m[sc.id]||{frame:{},base:{},transform:{}});r.frame[q.o]=(r.frame[q.o]||0)+1;r.base[q.b]=(r.base[q.b]||0)+1;r.transform[q.tf||'（無）']=(r.transform[q.tf||'（無）']||0)+1}}
   await pg.screenshot({path:path.join(tmp,String(f).padStart(5,'0')+'.png')});
   if(f%Math.round(V.fps/2)===0){rep.checked++;
    const r=await pg.evaluate((E)=>{const els=[...document.querySelectorAll('[data-o]')].filter(e=>{let x=e;while(x&&x!==document.body){if(parseFloat(getComputedStyle(x).opacity)<0.02)return false;x=x.parentElement}return true}).map(e=>{const q=e.getBoundingClientRect();return{o:e.dataset.o,x:q.left,y:q.top,r:q.right,b:q.bottom}});
@@ -37,4 +40,5 @@ fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
  execFileSync('ffmpeg',['-y','-loglevel','error','-i',path.join(tmp,String(Math.round(CT*V.fps)).padStart(5,'0')+'.png'),'-q:v','3',path.join(out,COVER)]);
  rep.dur=n/V.fps;rep.timing=V.timing||'default';rep.scenes=(V.scenes||[]).map(x=>({id:x.id,type:x.type,t0:x.t0,t1:x.t1}));
  fs.writeFileSync(path.join(out,REP),JSON.stringify(rep,null,1));
+ if(rep.panel){const bad=Object.entries(rep.panel).filter(([k,v])=>Object.keys(v.frame).length>1||Object.keys(v.base).length>1||Object.keys(v.transform).length>1);rep.panelChangedScenes=bad.map(x=>x[0]);console.log('插圖面板外框／底板／縮放變動的鏡：',bad.length?bad.map(x=>x[0]).join(','):'無（全片每幀每鏡固定）')}fs.writeFileSync(path.join(out,REP),JSON.stringify(rep,null,1));
  console.log('幀數',n,'抽檢',rep.checked,'重疊',rep.overlap.length,'出界',rep.oob.length,'上下留白錯誤',(rep.edge||[]).length,'頂端最大留白',rep.gapTopMax,'底端最大留白',rep.gapBotMax);(rep.edge||[]).slice(0,10).forEach(x=>console.log('留白',x));rep.overlap.slice(0,10).forEach(x=>console.log(x));rep.oob.slice(0,10).forEach(x=>console.log('出界',x))})();

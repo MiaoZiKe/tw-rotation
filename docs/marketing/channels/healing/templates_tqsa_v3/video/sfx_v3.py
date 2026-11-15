@@ -32,6 +32,26 @@ def bloom(ns, g=1.0):
     x = x + .16 * env * sum(np.sin(2 * np.pi * note(n + 12) * t + i) for i, n in enumerate(ns[:3]))
     return g * x
 
+
+# ── v4 新增音色（全部正弦合成，無噪音）：物件動作音（tick 翻頁／thump 落地／glide 滑過）與片尾招牌音（bell 鈴音、click 啪、sparkle 閃、shimmer 收束上行音）──
+def T_(dur): return np.arange(int(SR * dur)) / SR
+def tick(g=.16):
+    t = T_(.06); return g * (1 - np.exp(-t / .0006)) * (np.sin(2 * np.pi * 1900 * t) * np.exp(-t / .008) + .4 * np.sin(2 * np.pi * 760 * t) * np.exp(-t / .02))
+def thump(g=.5):
+    t = T_(.28); f = 62 + 80 * np.exp(-t / .03); ph = 2 * np.pi * np.cumsum(f) / SR
+    return g * (1 - np.exp(-t / .002)) * np.sin(ph) * np.exp(-t / .07)
+def glide(f0, f1, dur, g=.15):
+    t = T_(dur); f = f0 * (f1 / f0) ** (t / dur); ph = 2 * np.pi * np.cumsum(f) / SR
+    return g * np.sin(ph) * np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 1.5
+def bell(f, g=.5, dur=2.4):
+    t = T_(dur); att = 1 - np.exp(-t / .002)
+    x = sum(a * np.sin(2 * np.pi * f * r * t) * np.exp(-t / d) for r, a, d in [(1, 1, 1.1), (2.76, .35, .5), (5.4, .14, .2), (8.9, .05, .08)])
+    return g * att * x * .6
+def click(g=.2):
+    t = T_(.05); return g * (1 - np.exp(-t / .0004)) * np.sin(2 * np.pi * 2600 * t) * np.exp(-t / .006)
+def spark(f, g=.2):
+    t = T_(.5); return g * (1 - np.exp(-t / .001)) * (np.sin(2 * np.pi * f * t) + .3 * np.sin(2 * np.pi * 2 * f * t)) * np.exp(-t / .12)
+
 def pad(dur, g=1.0):
     """片尾底墊：C4–E4–G4 正弦長音，0.5 秒漸入、最後 0.6 秒漸出（讓片尾音量穩定，不突兀）。"""
     t = np.arange(int(SR * dur)) / SR
@@ -53,6 +73,17 @@ def synth(events, dur, outro_t0, og):
             for i, n in enumerate(e["n"] if isinstance(e["n"], list) else [e["n"]]): put(kal(note(n), .5 * e.get("g", 1.0) * gg), t, pan=(.15 if n % 2 else -.15))
         elif k == "bloom": put(bloom(e["n"], gg), t)
         elif k == "pad": put(pad(e["dur"], .16 * gg), t)
+        elif k == "whoosh": put(glide(700, 260, .16, .05), t)
+        elif k == "tick": put(tick(.16 * e.get("g", 1.0)), t)
+        elif k == "thump": put(thump(e.get("g", .5) * gg), t)
+        elif k == "glide": put(glide(e["f0"], e["f1"], e["dur"], e.get("g", .15) * gg), t)
+        elif k == "click": put(click(.2 * gg), t)
+        elif k == "bell":
+            for n in e["n"]: put(bell(note(n), e.get("g", .5) * gg), t, pan=(.2 if n % 2 else -.2))
+        elif k == "sparkle":
+            for n in e["n"]: put(spark(note(n), .16 * e.get("g", 1.0) * gg), t)
+        elif k == "shimmer":
+            for i, n in enumerate(e["n"]): put(spark(note(n), .12 * e.get("g", 1.0) * gg), t + i * .045, pan=(-.3 + .12 * i))
     # 很短的早期反射，讓卡林巴有空間感（乾淨、不糊）
     for d, a in [(.031, .2), (.053, .15), (.079, .1), (.113, .07)]:
         n = int(d * SR); L[n:] += a * L[:-n].copy(); R[n:] += a * R[:-n].copy()
