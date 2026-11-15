@@ -67,7 +67,8 @@ export function createWater(W) {
   const allChars = () => [...W.chars.values(), ...(W.pets || []), ...(W.extras || [])];
   const velOf = c => { const v = c.inner && c.inner.vel; const k = c.newModel ? 1 : (c.scale || 1); return v ? { x: v.x * k, y: v.y * k, z: v.z * k } : { x: 0, y: 0, z: 0 }; };
   const inRect = (x, z, m = 0.08) => x > L.x0 + m && x < L.x1 - m && z > L.z0 + m && z < L.z1 - m;
-  const isHeld = c => c.state === 'held' || c._held;
+  // 真的被拎在手上（c._held 在被丟出去、飛行中也是 true，那不算拎著）
+  const isHeld = c => (c.newModel ? (c.inner.ctl && c.inner.ctl.state === 'held') : (c.inner && c.inner.mode === 'held'));
   A.inWater = c => A.inside.has(c);
   A.isWet = c => (c._wetUntil || 0) > W.time || A.inside.has(c);
   let dripT = 0, stepN = 0;
@@ -78,11 +79,12 @@ export function createWater(W) {
     for (const c of allChars()) {
       if (!c.object3D.visible || c.away) { if (A.inside.has(c)) A.inside.delete(c); continue; }
       const p = c.object3D.position, held = isHeld(c), lift = c.lift || 0;
+      if (lift > 0.08 || held) { const vy = velOf(c).y; c._airT = W.time; c._fallV = Math.max(c._fallV || 0, -vy); } else if (W.time - (c._airT || -9) > 0.8) c._fallV = 0;   // 飛行中記下最大下墜速度（濺水大小）
       let st = A.inside.get(c);
       if (!st) {
         if (held || !inRect(p.x, p.z) || lift > top + 0.14) { /* 不在水裡 */ }
         else {
-          const v = velOf(c), fall = Math.max(0, -v.y), speed = Math.hypot(fall, Math.hypot(v.x, v.z) * 0.6), thrown = !!(c._released || c._held || fall > 0.8 || lift > 0.04);
+          const v = velOf(c), fall = Math.max(c._fallV || 0, -v.y), speed = Math.hypot(fall, Math.hypot(v.x, v.z) * 0.6), thrown = W.time - (c._airT || -9) < 0.6 && fall > 0.8;
           st = { t: 0, ph: Math.random() * 6.28, rippleT: 0, thrown }; A.inside.set(c, st); A.stats.entered++;
           const quiet = (c._noSplashUntil || 0) > W.time;   // 自己跳水（sports.js）已經濺過了
           if (!quiet) A.splash(p.x, p.z, thrown ? Math.max(2.5, speed) : 1.2);

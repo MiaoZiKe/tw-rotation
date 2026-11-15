@@ -1,12 +1,14 @@
-# 驗收段落「辦公室下指令」：AI Office 3D 辦公室（site/office/world.html）頂列「下指令」→ 對話框（規格 docs/ai_office/chat_command_spec.md 第六節）
-#   ① 沒打開對話框前不打收件服務；打開後有收件對象下拉（第一項「交給 CEO 分派」、其餘是在職同事）、輸入框字數、送出
-#   ② 超過 2000 字送出鈕灰掉；選同事、用鍵盤打字、Ctrl+Enter 送出 → 列表出現「排隊中」、送出的內容與收件對象正確、輸入框清空、那位同事頭上出現待辦小圖示
-#   ③ 排隊中可以撤回 → 「已撤回」（收件服務真的收到撤回）
-#   ④ 假收件服務把狀態推進：已取走 → 執行中（同事真的進入派工、走去座位工作）→ 完成並顯示回覆（網址可點）；完成後同事頭上有小慶祝、頂列徽章數字回 0
-#   ⑤ 從同事的資訊卡按「對他下指令」→ 對話框開啟且收件對象已帶入
-#   ⑥ 沒登入：白話說明＋送出鈕不能按、完全沒打收件服務；收件服務沒開收件匣（404）：白話說明、沒有主控台錯誤
-#   ⑦ 接入碼：頁面任何地方（對話框、localStorage）都沒有；live.js 的「連接我的 Claude」領碼後，關掉視窗碼就清掉、觀看改用登入身分
-#   ⑧ 手機 390×844：全螢幕對話框可用、沒有橫向溢出、字不小於 11px、按鈕夠大；畫面沒有禁用字
+# 驗收段落「辦公室主對話框」：AI Office 3D 辦公室（site/office/world.html）畫面下方常駐的主對話框（world/js/chat.js、chat.css）
+#   規格：docs/ai_office/plan.md 最後一節「主對話框」、docs/ai_office/chat_command_spec.md 第六節。擁有者原話：不管對哪個 Agent 說，其實都是對 CEO 說，只是附上指定給誰。
+#   ① 常駐：一載入就有輸入列（不用先按任何鈕）、收合時只有一行；還沒碰它之前不打收件服務；沒選人＝「對 CEO 說」
+#   ② 不擋 3D：外框不吃滑鼠，真滑鼠點 3D 角色照樣選到人；輸入框打字（wasd／E／F／V／空白）不會操控角色或觸發場景快捷鍵
+#   ③ 鍵盤：Enter 送出、Shift+Enter 換行、注音選字中的 Enter 不送出、Esc 在輸入框內收合
+#   ④ 切對象：真滑鼠點 3D 的人 → 對象切成他（頭像、名字、提示字）；資訊卡「對他說」→ 對象帶入並展開；「回到 CEO」一鍵切回；對話串切換列
+#   ⑤ 每位 Agent 一串、CEO 一串：依收件匣資料的 to 分組；訊息下方標「由 CEO 轉交給 ○○」；技術上收件服務收到的 to＝指定的人
+#   ⑥ 狀態與回覆：排隊中→已取走→執行中→完成；回覆用那位 Agent 的頭像與名字顯示在他的串；3D 頭上冒泡泡（回覆第一句）；撤回
+#   ⑦ 不重疊：用程式量對話框與版本標記、運動場鈕、資訊卡、操控提示、整修列、客服鈕（測試裡放一顆同位置同大小的假客服鈕）的矩形（1440／1000／800／390 四種寬度）
+#   ⑧ 手機 390×844：輸入列固定底部、點開全螢幕對話串；資訊卡「對他說」可用；沒有橫向溢出、字不小於 11px、按鈕夠大；沒有禁用字
+#   ⑨ 沒登入／收件匣沒開：白話說明、不打收件服務；接入碼不長期存放（舊段落保留）
 # 收件服務用 page.route 模擬（https://aio.test），格式與 workers/ai-office-bridge/worker.js 的收件匣 API 一致（這就是「假資料模式」：前端走的是真的 fetch 路徑）。
 # 環境變數 CHAT_SHOTS 指到資料夾時，順便存截圖。函式名一律加 _ch 前綴，自成一格。
 # flake8: noqa
@@ -125,96 +127,204 @@ def _ch_vis(pg, sel):
     return pg.evaluate("(s) => { const e = document.querySelector(s); return !!e && !e.hidden && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0; }", sel)
 
 
+
+# ───────────────────────── 共用量測 ─────────────────────────
+_CH_FAB_JS = """(w) => { let f = document.getElementById('fakeFab'); if (f) f.remove(); f = document.createElement('div'); f.id = 'fakeFab'; f.className = 'supfab';
+    const small = innerWidth <= 820; f.style.cssText = 'position:fixed;z-index:1200;right:' + (small ? 16 : 20) + 'px;bottom:' + (small ? 16 : 20) + 'px;width:' + (small ? 52 : 130) + 'px;height:' + (small ? 52 : 48) + 'px;border-radius:999px;background:#456';
+    document.body.append(f); }"""
+# 回傳「對話框看得見的部分」與其他底部元件互相交疊的清單
+_CH_OVERLAP_JS = """() => {
+    const vis = e => { if (!e) return null; const s = getComputedStyle(e), r = e.getBoundingClientRect(); if (e.hidden || s.display === 'none' || s.visibility === 'hidden' || r.width < 2 || r.height < 2) return null; return r; };
+    const mine = [...document.querySelectorAll('#mcTop, #mcDock > *')].map(e => [e.id || e.className, vis(e)]).filter(x => x[1]);
+    const others = ['#card', '#board', '#grp', '#log', '#ledger', '.pt-tips', '.sp-go', '#jlHint', '#aoBuild', '.em-banner', '#editBar', '.sp-hud', '.gate-say', '#fakeFab', '.pt-joy', '.pt-btns']
+        .flatMap(sel => [...document.querySelectorAll(sel)].map(e => [sel, vis(e)])).filter(x => x[1]);
+    const out = [];
+    for (const [a, ra] of mine) for (const [b, rb] of others) {
+        const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left), h = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+        if (w > 1 && h > 1) out.push(a + ' × ' + b + ' (' + Math.round(w) + 'x' + Math.round(h) + ')');
+    }
+    const off = mine.filter(([a, r]) => r.left < -0.5 || r.right > innerWidth + 0.5 || r.bottom > innerHeight + 0.5 || r.top < -0.5).map(x => x[0]);
+    return { out, off, seen: others.map(x => x[0]), mine: mine.map(x => x[0]) };
+}"""
+
+
+def _ch_overlap(pg, name, need=()):
+    r = pg.evaluate(_CH_OVERLAP_JS)
+    ok("不重疊（%s）：對話框跟其他底部元件沒有交疊、也沒超出畫面" % name, not r["out"] and not r["off"], r)
+    for n in need:
+        ok("不重疊（%s）：有把「%s」一起量進去（它當時真的看得見）" % (name, n), n in r["seen"], r["seen"])
+
+
+def _ch_force_bottoms(pg):
+    """把平常藏著的底部元件叫出來（運動場鈕、遊民提示、整修列），量重疊才有意義。"""
+    pg.evaluate("""() => { const g = document.querySelector('.sp-go'); if (g) g.hidden = false; const j = document.getElementById('jlHint'); if (j) j.hidden = false;
+        const e = document.getElementById('editBar'); if (e) { e.hidden = false; if (!e.textContent.trim()) e.innerHTML = '<span>整修列</span><button class=btn>完成</button>'; } }""")
+
+
+def _ch_shot_pt(pg, name):
+    _ch_shot(pg, name)
+
+
+def _ch_char_xy(pg, cid):
+    return pg.evaluate("(id) => { const c = __world.chars.get(id); return [c._sx, c._sy + 24]; }", cid)
+
+
+def _ch_target(pg):
+    return pg.evaluate("() => ({ to: __world.chat.to, nm: document.getElementById('mcNm').textContent, ph: document.getElementById('chatText').placeholder })")
+
+
 # ───────────────────────── 桌機：完整流程 ─────────────────────────
 def _ch_desktop(b, base):
     br = _ChBridge()
-    c, pg, got = _ch_open(b, base, br)
+    c, pg, got = _ch_open(b, base, br, w=1440, h=900)
     try:
-        ok("下指令：辦公室頁載入完成、對話框模組在", got)
+        ok("主對話框：辦公室頁載入完成、對話框模組在", got)
         if not got:
             return
-        ok("下指令：頂列有「下指令」鈕", _ch_vis(pg, "#chatBtn") and "下指令" in pg.inner_text("#chatBtn"))
+        pg.evaluate(_CH_FAB_JS, 0)
+        # ① 常駐
+        ok("常駐：一載入就看得到輸入列（不用先按任何鈕）", _ch_vis(pg, "#chatText") and _ch_vis(pg, "#chatSend") and _ch_vis(pg, "#chatBtn"))
+        ok("常駐：預設收合（沒有對話串卡片）、只有一行輸入列", not _ch_vis(pg, "#mcTop") and pg.get_attribute("#chatBtn", "aria-expanded") == "false")
+        bar = pg.evaluate("() => { const r = document.getElementById('chatForm').getBoundingClientRect(); return { h: Math.round(r.height), bottom: Math.round(innerHeight - r.bottom), cx: Math.round((r.left + r.right) / 2) }; }")
+        ok("常駐：收合時輸入列在畫面底部、高度 ≤ 64、水平置中", bar["h"] <= 64 and bar["bottom"] <= 40 and abs(bar["cx"] - 720) <= 6, bar)
+        ok("目前對象：沒選人＝對 CEO 說（名字 CEO、提示字「對 CEO 說…」、有頭像）", _ch_target(pg) == {"to": "ceo", "nm": "CEO", "ph": "對 CEO 說…"} and pg.evaluate("() => !!document.querySelector('#mcAva img, #mcAva .ava')"), _ch_target(pg))
         pg.wait_for_timeout(1500)
-        ok("下指令：沒打開對話框之前，不打收件服務", br.n_all == 0, br.n_all)
-        pg.click("#chatBtn")
-        ok("下指令：點鈕打開對話框", _ch_vis(pg, "#chatPanel") and pg.get_attribute("#chatBtn", "aria-expanded") == "true")
-        ok("下指令：打開後讀了收件匣、而且只用登入權杖（沒有接入碼標頭）", wait_until(pg, "() => __world.chat.mode === 'ok'", 15000) and br.n_get >= 1 and all(h.get("x-aio-session") == _CH_TOK and "authorization" not in h for h in br.hdrs), br.hdrs[:1])
-        opts = pg.evaluate("() => [...document.querySelectorAll('#chatTo option')].map(o => [o.value, o.textContent])")
-        ok("收件對象：第一項是「交給 CEO 分派」（值 ceo）", opts and opts[0] == ["ceo", "交給 CEO 分派"], opts[:2])
-        ok("收件對象：其後列出在職同事（含 frontend-ui），不含寵物", len(opts) >= 8 and any(o[0] == "frontend-ui" for o in opts) and not any(o[0] == "ceo" for o in opts[1:]), len(opts))
-        ok("你的 Claude 在不在：沒有工作階段時寫「目前沒開、會排隊、最多保留 24 小時」", "目前沒開" in pg.inner_text("#chatLive") and "24 小時" in pg.inner_text("#chatLive"), pg.inner_text("#chatLive"))
-        br.last_seen = int(_time.time() * 1000) - 20000
-        ok("你的 Claude 在不在：5 分鐘內有工作階段 → 「你的 Claude 在線上」", wait_until(pg, "() => document.getElementById('chatLive').textContent.includes('在線上')", 8000), pg.inner_text("#chatLive"))
+        ok("常駐：還沒碰它之前，不打收件服務", br.n_all == 0, br.n_all)
         ok("送出鈕：沒打字時是灰的", pg.is_disabled("#chatSend"))
-        _ch_shot(pg, "chat_1_打開.png")
-        pg.evaluate("() => { const c = __world.chars.get('frontend-ui'); window.__emo = []; const o = c.emote.bind(c); c.emote = (s, t) => { window.__emo.push(s); return o(s, t); }; }")
-        # 超過 2000 字
-        pg.fill("#chatText", "字" * 2001)
-        ok("字數：顯示「已輸入 2001／2000」、超過就不能送", pg.inner_text("#chatCount") == "已輸入 2001／2000" and pg.is_disabled("#chatSend") and "over" in (pg.get_attribute("#chatCount", "class") or ""), pg.inner_text("#chatCount"))
-        pg.fill("#chatText", "")
-        # 選同事、用鍵盤打字、Ctrl+Enter 送出
-        pg.select_option("#chatTo", "frontend-ui")
+        ok("說明：Enter 送出、Shift＋Enter 換行（展開時看得到）", "Enter 送出" in pg.evaluate("() => document.getElementById('chatHint').textContent") and "Shift＋Enter 換行" in pg.evaluate("() => document.getElementById('chatHint').textContent"))
+        _ch_overlap(pg, "1440 收合")
+        _ch_shot(pg, "mc_d1_收合.png")
+        # ② 不擋 3D：真滑鼠點角色
+        xy = _ch_char_xy(pg, "frontend-ui")
+        top = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? (e.id || e.tagName) : null; }", xy)
+        ok("不擋 3D：角色所在位置最上面是場景畫布，不是對話框", top == "cv", top)
+        pg.mouse.click(xy[0], xy[1])
+        ok("點 3D 角色：選到人（資訊卡打開）", wait_until(pg, "() => !document.getElementById('card').hidden", 6000))
+        ok("點 3D 角色：對象切成他（對話框顯示他的名字、提示字、頭像）", wait_until(pg, "() => __world.chat.to === 'frontend-ui'", 4000) and _ch_target(pg)["nm"] == pg.evaluate("() => __world.chars.get('frontend-ui').spec.nick") and "由 CEO 轉交" in _ch_target(pg)["ph"], _ch_target(pg))
+        ok("點 3D 角色：這時還沒打收件服務（只是切對象）", br.n_all == 0, br.n_all)
+        ok("資訊卡有「對他說」鈕", _ch_vis(pg, "#card [data-chat]") and pg.inner_text("#card [data-chat]") == "對他說")
+        _ch_force_bottoms(pg)
+        _ch_overlap(pg, "1440 資訊卡開著", need=["#card", "#aoBuild", "#fakeFab"])
+        _ch_shot(pg, "mc_d2_點角色.png")
+        # 打字不觸發場景快捷鍵（角色還被選著）
+        pos0 = pg.evaluate("() => { const c = __world.chars.get('frontend-ui'); return [c.object3D.position.x, c.object3D.position.z, __world.pilot ? !!__world.pilot.sel : null]; }")
         pg.click("#chatText")
+        pg.keyboard.type("wasd efv wasd", delay=30)
+        pg.keyboard.press("ArrowUp")
+        pg.keyboard.press("Space")
+        pg.wait_for_timeout(600)
+        pos1 = pg.evaluate("() => { const c = __world.chars.get('frontend-ui'); return [c.object3D.position.x, c.object3D.position.z, __world.pilot ? !!__world.pilot.sel : null]; }")
+        ok("輸入框打字（wasd／E／F／V／方向鍵／空白）不會操控角色、也沒有走位", pos0 == pos1 and pg.input_value("#chatText") == "wasd efv wasd ", (pos0, pos1, pg.input_value("#chatText")))
+        pg.fill("#chatText", "")
+        ok("聚焦輸入框之後才開始跟收件服務連線（讀了收件匣、只用登入權杖）", wait_until(pg, "() => __world.chat.mode === 'ok'", 15000) and br.n_get >= 1 and all(h.get("x-aio-session") == _CH_TOK and "authorization" not in h for h in br.hdrs), br.hdrs[:1])
+        # ③ 鍵盤
+        pg.evaluate("() => { for (const id of ['frontend-ui', 'ceo']) { const c = __world.chars.get(id); window['__say_' + id] = []; const o = c.say.bind(c); c.say = (t, s) => { window['__say_' + id].push(t); return o(t, s); }; const e = c.emote.bind(c); window['__emo_' + id] = []; c.emote = (k, s) => { window['__emo_' + id].push(k); return e(k, s); }; } }")
+        pg.fill("#chatText", "字" * 2001)
+        ok("字數：超過 2000 字送出鈕灰掉、顯示「已輸入 2001／2000」", pg.is_disabled("#chatSend") and pg.inner_text("#chatCount") == "已輸入 2001／2000", pg.inner_text("#chatCount"))
+        pg.fill("#chatText", "")
         pg.keyboard.type("手機版按鈕太小", delay=20)
-        ok("字數：隨輸入更新（7 字）、送出鈕可按", pg.inner_text("#chatCount") == "已輸入 7／2000" and not pg.is_disabled("#chatSend"), pg.inner_text("#chatCount"))
-        pg.keyboard.press("Enter")
+        pg.keyboard.press("Shift+Enter")
         pg.keyboard.type("再補一行")
-        ok("Enter 是換行、不會送出", br.posts == [] and "\n" in pg.input_value("#chatText"), br.posts)
-        pg.keyboard.press("Control+Enter")
-        ok("送出：收件服務收到正確的對象與內容", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000) and br.posts and br.posts[0]["to"] == "frontend-ui" and br.posts[0]["text"] == "手機版按鈕太小\n再補一行", br.posts)
-        ok("送出：列表出現「排隊中」、對象名稱與內容都在、輸入框清空", _ch_status(pg) == "排隊中" and "手機版按鈕太小" in pg.inner_text("#chatList") and pg.input_value("#chatText") == "", _ch_status(pg))
-        ok("送出：頂列徽章顯示 1 則進行中", pg.inner_text("#chatN") == "1")
-        em = wait_until(pg, "() => window.__emo.includes('note')", 6000)
-        ok("3D：被指定的同事頭上出現待辦小圖示（便條）", em, pg.evaluate("() => window.__emo"))
-        _ch_shot(pg, "chat_2_排隊中.png")
-        # 撤回
-        pg.select_option("#chatTo", "ceo")
-        pg.fill("#chatText", "晚點再說的事")
-        pg.click("#chatSend")
-        ok("送出給 CEO：第二則排隊中", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 2", 8000) and br.posts[1]["to"] == "ceo")
-        pg.click("#chatList .c-msg:nth-child(2) [data-cancel]")
-        ok("撤回：變「已撤回」、收件服務真的收到撤回、撤回鈕消失", wait_until(pg, "() => document.querySelector('#chatList .c-msg:nth-child(2) .c-st').textContent.trim() === '已撤回'", 8000) and len(br.cancels) == 1 and not pg.query_selector("#chatList .c-msg:nth-child(2) [data-cancel]"), br.cancels)
+        ok("Shift+Enter 是換行、不會送出", br.posts == [] and "\n" in pg.input_value("#chatText"), br.posts)
+        ok("輸入框會跟著長高（兩行比一行高）", pg.evaluate("() => document.getElementById('chatText').getBoundingClientRect().height") > 44)
+        pg.evaluate("() => { const t = document.getElementById('chatText'); t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, keyCode: 229, bubbles: true, cancelable: true })); }")
+        pg.wait_for_timeout(300)
+        ok("注音／拼音選字中按 Enter 不會送出", br.posts == [], br.posts)
+        pg.keyboard.press("Enter")
+        ok("Enter 送出：收件服務收到的 to＝指定的人（frontend-ui）、內容正確", wait_until(pg, "() => __world.chat.msgs.size === 1", 8000) and br.posts and br.posts[0]["to"] == "frontend-ui" and br.posts[0]["text"] == "手機版按鈕太小\n再補一行", br.posts)
+        ok("送出：輸入框清空、高度回到一行", pg.input_value("#chatText") == "" and pg.evaluate("() => document.getElementById('chatText').getBoundingClientRect().height") < 48)
+        ok("送出（收合中）：輸入列上方有一行提示「排隊中・…」", wait_until(pg, "() => { const p = document.getElementById('chatPeek'); return !p.hidden && p.textContent.includes('排隊中'); }", 6000), pg.inner_text("#chatPeek") if _ch_vis(pg, "#chatPeek") else "(沒有)")
+        ok("送出：徽章顯示 1 則進行中", pg.inner_text("#chatN") == "1")
+        ok("3D：被指定的同事頭上出現待辦小圖示（便條）", wait_until(pg, "() => window['__emo_frontend-ui'].includes('note')", 6000), pg.evaluate("() => window['__emo_frontend-ui']"))
+        _ch_shot(pg, "mc_d3_已送出.png")
+        # 展開：他的對話串
+        pg.click("#chatBtn")
+        ok("展開：看得到對話串、頭像與名字、「回到 CEO」鈕", _ch_vis(pg, "#mcTop") and _ch_vis(pg, "#mcWho .mc-ava") and _ch_vis(pg, "#chatCeo") and pg.get_attribute("#chatBtn", "aria-expanded") == "true")
+        ok("他的串：只有給他的那一則、狀態「排隊中」、下方標「由 CEO 轉交給 ○○」", pg.evaluate("() => document.querySelectorAll('#chatList .c-msg').length") == 1 and _ch_status(pg) == "排隊中" and "由 CEO 轉交給" in pg.inner_text("#chatList .c-relay"), pg.inner_text("#chatList"))
+        ok("展開時沒有 CEO 的那一串訊息混進來（CEO 串還是空的）", pg.evaluate("() => { const K = __world.chat; return [...K.msgs.values()].filter(m => (m.to || 'ceo') === 'ceo').length; }") == 0)
+        _ch_overlap(pg, "1440 展開（資訊卡仍開著）", need=["#card"])
+        _ch_shot(pg, "mc_d4_展開他的串.png")
+        # 對 CEO 說：一鍵回 CEO
+        pg.click("#chatCeo")
+        ok("回到 CEO：一鍵切回（名字 CEO、「回到 CEO」鈕消失、他的訊息不在 CEO 串裡）", _ch_target(pg)["to"] == "ceo" and not _ch_vis(pg, "#chatCeo") and pg.evaluate("() => document.querySelectorAll('#chatList .c-msg').length") == 0 and pg.evaluate("() => document.activeElement.id") == "chatText", _ch_target(pg))
+        pg.keyboard.type("這個之後再說")
+        pg.keyboard.press("Enter")
+        ok("對 CEO 說：收件服務收到 to＝ceo、CEO 的串出現這一則、標「送給 CEO」", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000) and br.posts[1]["to"] == "ceo" and "送給 CEO" in pg.inner_text("#chatList .c-relay") and "轉交" not in pg.inner_text("#chatList .c-relay"), br.posts)
+        ok("對話串切換列：出現 CEO 與那位 Agent 兩串", wait_until(pg, "() => document.querySelectorAll('#mcStrip .mc-th').length === 2", 4000), pg.evaluate("() => document.getElementById('mcStrip').innerText"))
+        # 撤回 CEO 這則
+        pg.click("#chatList .c-msg [data-cancel]")
+        ok("撤回：變「已撤回」、收件服務真的收到撤回、撤回鈕消失", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '已撤回'", 8000) and len(br.cancels) == 1 and not pg.query_selector("#chatList .c-msg [data-cancel]"), br.cancels)
+        # 切到 Agent 的串
+        pg.click("#mcStrip [data-th=frontend-ui]")
+        ok("切換列：點那位 Agent → 切到他的串（只有他的訊息）", _ch_target(pg)["to"] == "frontend-ui" and "手機版按鈕太小" in pg.inner_text("#chatList") and "這個之後再說" not in pg.inner_text("#chatList"), pg.inner_text("#chatList"))
         # 狀態推進
         mid = br.msgs[0]["id"]
         br.set(mid, "claimed")
-        ok("狀態：已取走", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '已取走'", 8000), _ch_status(pg, 0))
-        ok("已取走：撤回鈕消失（不能再撤回）", not pg.query_selector("#chatList .c-msg:first-child [data-cancel]"))
+        ok("狀態：已取走（撤回鈕消失）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '已取走'", 8000) and not pg.query_selector("#chatList .c-msg [data-cancel]"), _ch_status(pg, 0))
         br.set(mid, "running")
         ok("狀態：執行中（有轉圈）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '執行中' && !!document.querySelector('#chatList .c-msg .c-st .spin')", 8000), _ch_status(pg, 0))
         ph = wait_until(pg, "() => { const a = __world.state.agents.get('frontend-ui'); return a && a.phase !== 'idle' ? a.phase : null; }", 8000)
         ok("3D：執行中 → 那位同事進入派工（領任務／工作）", bool(ph), ph)
-        ok("3D：名牌狀態字不是空的（領任務中／工作中）", bool(pg.evaluate("() => __world.statusOf(__world.chars.get('frontend-ui'))")))
-        _ch_shot(pg, "chat_3_執行中.png")
-        br.set(mid, "done", "已改好：頂列按鈕高度 36 → 44\nhttps://liguligu-puipui.com/office/world.html")
-        ok("狀態：完成、顯示回覆", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '完成'", 8000) and "頂列按鈕高度" in pg.inner_text("#chatList .c-rp"), _ch_status(pg, 0))
+        br.set(mid, "done", "已改好：頂列按鈕高度 36 → 44。後面還有第二句\nhttps://liguligu-puipui.com/office/world.html")
+        ok("狀態：完成、他的串裡出現回覆", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '完成'", 8000) and "頂列按鈕高度" in pg.inner_text("#chatList .c-rp"), _ch_status(pg, 0))
+        ok("回覆：用那位 Agent 的頭像與名字（頭像是圖、名字是他的暱稱）", pg.evaluate("() => { const r = document.querySelector('#chatList .c-rp'); const n = __world.chars.get('frontend-ui').spec.nick; return !!r.querySelector('.c-av img, .c-av .ava') && r.querySelector('.c-rb b').textContent.trim() === n; }"), pg.inner_text("#chatList .c-rp"))
         ok("回覆：網址可以點（新分頁開）", pg.evaluate("() => { const a = document.querySelector('#chatList .c-rp a'); return !!a && a.href.startsWith('https://liguligu-puipui.com/') && a.target === '_blank' && a.rel.includes('noopener'); }"))
+        ok("3D：他頭上冒泡泡，內容是回覆的第一句（短句、不含網址）", wait_until(pg, "() => window['__say_frontend-ui'].some(t => t.includes('頂列按鈕高度') && !t.includes('http') && t.length <= 19)", 25000), pg.evaluate("() => window['__say_frontend-ui']"))
+        ok("3D：完成後同事有小慶祝（星星）", wait_until(pg, "() => window['__emo_frontend-ui'].includes('star')", 25000), pg.evaluate("() => window['__emo_frontend-ui']"))
         ok("頂列徽章：全部做完後數字消失", wait_until(pg, "() => document.getElementById('chatN').hidden", 6000))
-        ok("3D：完成後同事有小慶祝（星星）", wait_until(pg, "() => window.__emo.includes('star')", 25000), pg.evaluate("() => window.__emo"))
-        ok("3D：交件後同事回到閒置", wait_until(pg, "() => { const a = __world.state.agents.get('frontend-ui'); return !a || a.phase === 'idle'; }", 40000), pg.evaluate("() => __world.state.agents.get('frontend-ui')"))
-        _ch_shot(pg, "chat_4_完成.png")
-        ok("對話框：沒有禁用字", not _CH_BAD_RE.search(pg.inner_text("#chatPanel")) and not _CH_BAD_RE.search(pg.inner_text("#chatBtn")), _CH_BAD_RE.findall(pg.inner_text("#chatPanel")))
-        # 失敗與重新整理後仍在
-        br.set(br.msgs[1]["id"], "canceled")
+        _ch_shot(pg, "mc_d5_回覆.png")
+        ok("沒有禁用字", not _CH_BAD_RE.search(pg.inner_text("#chatPanel")), _CH_BAD_RE.findall(pg.inner_text("#chatPanel")))
+        # Esc：輸入框內收合
+        pg.click("#chatText")
+        pg.keyboard.press("Escape")
+        ok("Esc（在輸入框內）：收合對話框、輸入框失焦", wait_until(pg, "() => document.getElementById('mcTop').hidden", 3000) and pg.get_attribute("#chatBtn", "aria-expanded") == "false" and pg.evaluate("() => document.activeElement.id") != "chatText")
+        ok("收合後對象還是那位 Agent（沒有被重置）", _ch_target(pg)["to"] == "frontend-ui")
+        ok("收合後：輸入列上方出現「○○：回覆第一句」的提示、點它就展開", wait_until(pg, "() => { const p = document.getElementById('chatPeek'); return !p.hidden && p.textContent.includes('頂列按鈕高度'); }", 4000), pg.evaluate("() => document.getElementById('chatPeek').textContent"))
+        pg.click("#chatPeek")
+        ok("點提示：展開那位的串", _ch_vis(pg, "#mcTop") and _ch_target(pg)["to"] == "frontend-ui")
         pg.click("#chatX")
-        ok("關閉：× 鈕關掉對話框", not _ch_vis(pg, "#chatPanel"))
-        # ⑤ 資訊卡帶入
+        ok("× 收合鈕：收合", not _ch_vis(pg, "#mcTop"))
+        # 資訊卡「對他說」
         pg.evaluate("() => __world.ui.showCard(__world.chars.get('smc-technical'))")
-        ok("資訊卡：有「對他下指令」鈕", _ch_vis(pg, "#card [data-chat]") and "對他下指令" in pg.inner_text("#card [data-chat]"))
-        _ch_shot(pg, "chat_5_資訊卡.png")
+        ok("資訊卡（另一位）：點出來對象切成他", wait_until(pg, "() => __world.chat.to === 'smc-technical'", 4000), _ch_target(pg))
+        pg.evaluate("() => document.getElementById('chatText').blur()")
         pg.click("#card [data-chat]")
-        ok("資訊卡：按下去對話框打開、資訊卡讓位、收件對象已是那位同事", _ch_vis(pg, "#chatPanel") and not _ch_vis(pg, "#card") and pg.input_value("#chatTo") == "smc-technical", pg.input_value("#chatTo"))
+        ok("資訊卡「對他說」：對話框展開、資訊卡讓位、輸入框拿到焦點、對象是他", _ch_vis(pg, "#mcTop") and not _ch_vis(pg, "#card") and _ch_target(pg)["to"] == "smc-technical" and pg.evaluate("() => document.activeElement.id") == "chatText", _ch_target(pg))
+        ok("他的串是空的、有白話提示（說明會先交給 CEO 再轉交）", "還沒有跟" in pg.inner_text("#chatList") and "CEO" in pg.inner_text("#chatList"), pg.inner_text("#chatList"))
         pg.press("#chatText", "Escape")
-        ok("Esc 可以關掉對話框", not _ch_vis(pg, "#chatPanel"))
         pg.evaluate("() => __world.ui.showCard(__world.chars.get('ceo'))")
-        ok("資訊卡（CEO）：「對 CEO 下指令」", "對 CEO 下指令" in pg.inner_text("#card [data-chat]"))
-        pg.click("#card [data-chat]")
-        ok("資訊卡（CEO）：收件對象帶入 CEO 分派", pg.input_value("#chatTo") == "ceo")
+        ok("資訊卡（CEO）：按鈕寫「對 CEO 說」、對象是 CEO", "對 CEO 說" in pg.inner_text("#card [data-chat]") and _ch_target(pg)["to"] == "ceo", _ch_target(pg))
+        ok("資訊卡反覆重畫（refreshCard）不會把我手動改的對象又切回去", pg.evaluate("() => { __world.chat.setTarget('frontend-ui'); __world.ui.refreshCard(); __world.ui.refreshCard(); return __world.chat.to; }") == "frontend-ui")
         ok("沒有主控台錯誤", not pg.errs, pg.errs[:3])
-        # ⑦ 接入碼：頁面上與儲存裡都沒有
         stored = pg.evaluate("() => { try { return JSON.stringify(Object.assign({}, localStorage)); } catch (e) { return ''; } }")
         ok("接入碼：不在 localStorage、不在頁面文字", _CH_CODE not in stored and "aio_" not in pg.inner_text("body"), stored[:200])
     finally:
         c.close()
+
+
+# ───────────────────────── 不同寬度的重疊量測 ─────────────────────────
+def _ch_widths(b, base):
+    for (w, h, touch) in ((1000, 760, False), (800, 700, False)):
+        br = _ChBridge()
+        c, pg, got = _ch_open(b, base, br, w=w, h=h, touch=touch)
+        try:
+            ok("%d 寬：辦公室頁載入完成" % w, got)
+            if not got:
+                continue
+            pg.evaluate(_CH_FAB_JS, 0)
+            xy = _ch_char_xy(pg, "frontend-ui")
+            pg.mouse.click(xy[0], xy[1])
+            wait_until(pg, "() => !document.getElementById('card').hidden", 6000)
+            _ch_force_bottoms(pg)
+            _ch_overlap(pg, "%d 收合＋資訊卡" % w, need=["#card", "#aoBuild", "#fakeFab"])
+            ok("%d 寬：收合的輸入列仍可用（看得到輸入框、高度 ≤ 64）" % w, _ch_vis(pg, "#chatText") and pg.evaluate("() => document.getElementById('chatForm').getBoundingClientRect().height") <= 64)
+            pg.click("#chatBtn")
+            wait_until(pg, "() => !document.getElementById('mcTop').hidden", 4000)
+            _ch_overlap(pg, "%d 展開" % w)
+            ok("%d 寬：展開時窄螢幕讓資訊卡讓位（不疊在對話串上）" % w, not _ch_vis(pg, "#card"))
+            _ch_shot(pg, "mc_w%d_展開.png" % w)
+        finally:
+            c.close()
 
 
 # ───────────────────────── 沒登入／收件匣沒開 ─────────────────────────
@@ -274,6 +384,7 @@ def _ch_code(b, base):
         c.close()
 
 
+
 # ───────────────────────── 手機 390×844 ─────────────────────────
 def _ch_mobile(b, base):
     br = _ChBridge()
@@ -282,53 +393,59 @@ def _ch_mobile(b, base):
         ok("手機：辦公室頁載入完成", got)
         if not got:
             return
-        ok("手機：頂列預設收起時不佔位（跟區域、示範、整修一樣收在「更多」）", not _ch_vis(pg, "#chatBtn"))
-        pg.tap("#moreBtn")
-        ok("手機：按「更多」後「下指令」鈕看得到、夠大（高 ≥ 36）", _ch_vis(pg, "#chatBtn") and pg.evaluate("() => document.getElementById('chatBtn').getBoundingClientRect().height") >= 36)
-        _ch_shot(pg, "chat_m0_頂列.png")
-        pg.tap("#chatBtn")
-        ok("手機：對話框全螢幕", _ch_vis(pg, "#chatPanel") and pg.evaluate("() => { const r = document.getElementById('chatPanel').getBoundingClientRect(); return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; }"))
+        pg.evaluate(_CH_FAB_JS, 0)
+        ok("手機：輸入列固定在底部、不用先按任何鈕、收合時只有一行", _ch_vis(pg, "#chatText") and not _ch_vis(pg, "#mcTop") and pg.evaluate("() => { const r = document.getElementById('chatForm').getBoundingClientRect(); return r.height <= 64 && innerHeight - r.bottom <= 60 && r.bottom <= innerHeight; }"))
+        ok("手機：輸入列右邊讓出客服鈕的位置（假客服鈕與輸入列沒交疊）", pg.evaluate(_CH_OVERLAP_JS)["out"] == [], pg.evaluate(_CH_OVERLAP_JS))
+        ok("手機：頂列沒有多一顆「下指令」鈕（「更多」裡也沒有）", not pg.evaluate("() => [...document.querySelectorAll('#bar button')].some(b => /下指令/.test(b.textContent))"))
+        info = pg.evaluate("""() => { const out = { hscroll: document.documentElement.scrollWidth > innerWidth + 1, small: [], tiny: [] };
+            for (const e of document.querySelectorAll('#chatPanel *')) { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue; const t = [...e.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).length;
+                if (t && parseFloat(getComputedStyle(e).fontSize) < 11) out.small.push(e.tagName + ':' + e.textContent.trim().slice(0, 12)); }
+            for (const e of document.querySelectorAll('#chatPanel button')) { const r = e.getBoundingClientRect(); if (r.width > 0 && (r.height < 32 || r.width < 32)) out.tiny.push(e.id + ' ' + e.textContent.trim().slice(0, 8) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); }
+            return out; }""")
+        ok("手機（收合）：沒有橫向溢出、字不小於 11px、按鈕夠大", not info["hscroll"] and not info["small"] and not info["tiny"], info)
+        _ch_shot(pg, "mc_m1_收合.png")
+        # 真手指點角色 → 對象切換、資訊卡「對他說」
+        xy = _ch_char_xy(pg, "mobile-ui")
+        pg.touchscreen.tap(xy[0], xy[1])
+        ok("手機：點 3D 角色 → 對象切成他（輸入列不擋 3D）", wait_until(pg, "() => __world.chat.to === 'mobile-ui'", 6000), _ch_target(pg))
+        ok("手機：資訊卡有「對他說」鈕、夠大", _ch_vis(pg, "#card [data-chat]") and pg.evaluate("() => document.querySelector('#card [data-chat]').getBoundingClientRect().height") >= 34)
+        _ch_overlap(pg, "390 資訊卡開著", need=["#card", "#aoBuild", "#fakeFab"])
+        _ch_shot(pg, "mc_m2_資訊卡.png")
+        pg.tap("#card [data-chat]")
+        ok("手機：「對他說」→ 全螢幕對話串、對象是他", wait_until(pg, "() => !document.getElementById('mcTop').hidden", 4000) and pg.evaluate("() => { const r = document.getElementById('chatPanel').getBoundingClientRect(); return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; }") and _ch_target(pg)["to"] == "mobile-ui", _ch_target(pg))
         wait_until(pg, "() => __world.chat.mode === 'ok'", 15000)
-        pg.select_option("#chatTo", "mobile-ui")
         pg.tap("#chatText")
         pg.keyboard.type("手機版測試", delay=15)
         pg.tap("#chatSend")
-        ok("手機：送出後列表出現「排隊中」", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000) and _ch_status(pg) == "排隊中")
-        _ch_shot(pg, "chat_m1_排隊中.png")
+        ok("手機：送出後列表出現「排隊中」、收件對象是他", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000) and _ch_status(pg) == "排隊中" and br.posts[0]["to"] == "mobile-ui", br.posts)
         br.set(br.msgs[0]["id"], "done", "手機測試回覆\nhttps://liguligu-puipui.com/")
-        ok("手機：完成並顯示回覆", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '完成'", 8000))
-        _ch_shot(pg, "chat_m2_完成.png")
-        info = pg.evaluate("""() => {
-            const out = { hscroll: document.documentElement.scrollWidth > innerWidth + 1, small: [], tiny: [], over: [] };
+        ok("手機：完成並顯示回覆（他的頭像）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '完成'", 8000) and _ch_vis(pg, "#chatList .c-av"))
+        _ch_shot(pg, "mc_m3_全螢幕.png")
+        info = pg.evaluate("""() => { const out = { hscroll: document.documentElement.scrollWidth > innerWidth + 1, small: [], tiny: [], over: [] };
             const P = document.getElementById('chatPanel'), pr = P.getBoundingClientRect();
-            for (const e of P.querySelectorAll('*')) {
-                const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
-                const t = [...e.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).length;
+            for (const e of P.querySelectorAll('*')) { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue; const t = [...e.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).length;
                 if (t && parseFloat(getComputedStyle(e).fontSize) < 11) out.small.push(e.tagName + ':' + e.textContent.trim().slice(0, 12));
-                if (r.right > pr.right + 1 || r.left < pr.left - 1) out.over.push(e.tagName + '.' + e.className);
-            }
-            for (const e of P.querySelectorAll('button')) { const r = e.getBoundingClientRect(); if (r.width > 0 && (r.height < 30 || r.width < 30)) out.tiny.push(e.textContent.trim().slice(0, 8) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); }
-            return out;
-        }""")
-        ok("手機：沒有橫向溢出、沒有東西超出對話框", not info["hscroll"] and not info["over"], info)
-        ok("手機：字不小於 11px", not info["small"], info["small"][:3])
-        ok("手機：按鈕夠大好按", not info["tiny"], info["tiny"])
+                if (r.right > pr.right + 1 || r.left < pr.left - 1) out.over.push(e.tagName + '.' + e.className); }
+            for (const e of P.querySelectorAll('button')) { const r = e.getBoundingClientRect(); if (r.width > 0 && (r.height < 32 || r.width < 32)) out.tiny.push(e.id + ' ' + e.textContent.trim().slice(0, 8) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); }
+            return out; }""")
+        ok("手機（全螢幕）：沒有橫向溢出、沒有東西超出對話框、字不小於 11px、按鈕夠大", not info["hscroll"] and not info["over"] and not info["small"] and not info["tiny"], info)
+        ok("手機（全螢幕）：輸入列與假客服鈕沒有交疊、版本標記被蓋住的不算（整頁蓋住）", pg.evaluate(_CH_OVERLAP_JS)["out"] == [], pg.evaluate(_CH_OVERLAP_JS))
         ok("手機：沒有禁用字", not _CH_BAD_RE.search(pg.inner_text("#chatPanel")))
         pg.tap("#chatX")
-        ok("手機：× 關掉後回到辦公室", not _ch_vis(pg, "#chatPanel"))
+        ok("手機：× 收合後回到辦公室、輸入列還在底部", not _ch_vis(pg, "#mcTop") and _ch_vis(pg, "#chatText"))
         ok("手機：沒有主控台錯誤", not pg.errs, pg.errs[:3])
     finally:
         c.close()
 
 
 def _ch_all(b, base):
-    for fn in (_ch_desktop, _ch_gates, _ch_code, _ch_mobile):
+    for fn in (_ch_desktop, _ch_widths, _ch_gates, _ch_code, _ch_mobile):
         try:
             fn(b, base)
         except Exception as e:
             import traceback
             traceback.print_exc()
-            ok("辦公室下指令：%s 中途爆掉" % fn.__name__, False, str(e)[:300])
+            ok("辦公室主對話框：%s 中途爆掉" % fn.__name__, False, str(e)[:300])
 
 
-register("辦公室下指令", lambda pg, b, base, code: _ch_all(b, base))
+register("辦公室主對話框", lambda pg, b, base, code: _ch_all(b, base))
