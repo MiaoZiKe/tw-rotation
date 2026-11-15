@@ -92,9 +92,9 @@ social/tc/queue/20261105_quanta/
 
 | 平台 | 現在要寫的那一行 | 實際會發生什麼 |
 |---|---|---|
-| Threads（threads.txt【主文】） | `留言「關鍵字」，我把完整資料回覆給你` | 程式在那則留言底下**公開回覆**一句＋文章連結（Threads 沒有私訊 API）。**不准寫「私訊」「傳給你」**，交件檢查會警告 |
-| IG（ig.txt），私訊還沒接通（**現在**） | `留言「關鍵字」，我把完整資料回覆給你` | 跟 Threads 一樣：公開回覆留言＋連結（保底，`ig_dm.public_fallback: true`）。IG 留言裡的網址不能點，對方要複製；這是私訊接通前的限制 |
-| IG（ig.txt），私訊接通之後 | `留言「關鍵字」，我把完整資料傳給你` | 私訊 Private Reply：follow_gate=true 時先私訊請追蹤、回「好了」才送；false 時直接私訊送內容 |
+| Threads（threads.txt【主文】） | `留言「關鍵字」，我把完整解說回覆給你` | 程式在那則留言底下**公開回覆**一句＋文章連結（Threads 沒有私訊 API）。**不准寫「私訊」「傳給你」**，交件檢查會警告 |
+| IG（ig.txt），私訊還沒接通（**現在**） | `留言「關鍵字」，我把完整解說回覆給你` | 跟 Threads 一樣：公開回覆留言＋連結（保底，`ig_dm.public_fallback: true`）。IG 留言裡的網址不能點，對方要複製；這是私訊接通前的限制 |
+| IG（ig.txt），私訊接通之後 | `留言「關鍵字」，我把完整解說傳給你` | 私訊 Private Reply：follow_gate=true 時先私訊請追蹤、回「好了」才送；false 時直接私訊送內容 |
 
 為什麼放在出處前面、不是整段最後：IG 文末是出處與照片授權，CTA 放在那後面會被折疊到最底下，看不到。
 
@@ -107,6 +107,13 @@ social/tc/queue/20261105_quanta/
 | `threads_reply.texts["<代號>"]` | Threads（與 IG 保底公開回覆）的回覆文字，含文章網址 `https://liguligu-puipui.com/#article/<id>` |
 | `ig_dm.contents["<代號>"]` | IG 私訊接通後送的內容 |
 | `legal_pending` | 新文案還沒過法遵的代號；列著的時候照樣回覆，但改送已審過的預設文字 |
+
+措辭固定用「完整解說」（2026-11-15 法遵審定，不用「完整資料」）；交件檢查會警告沒照格式的那行。
+
+防洗版（2026-11-15 法遵）：
+- 每篇的公開回覆寫 2～3 句意思相同、措辭不同的清單（`threads_reply.texts["<代號>"]`），用留言 id 的 sha256 除以句數取餘數決定用哪一句：固定、可重現，同一則留言永遠同一句。
+- IG 公開回覆每輪（＝每分鐘）最多 3 則（`ig_dm.public_max_per_minute`）、每篇每小時最多 30 則（`ig_dm.public_max_per_post_hour`），超過的留到下一輪回，不丟。
+- 預設文字：Threads／IG 公開回覆「謝謝留言！整理放在這：https://liguligu-puipui.com/」；IG 私訊「謝謝留言！科技透明圈的整理都放在這：https://liguligu-puipui.com/」。回覆裡有網友待遇數字時固定附「出處：網友公開分享，非公司公告」（andy_style.md 第四節例外）。
 
 保底：內容裡還有「待填」（例如文章 id 還沒拿到）或代號在 `legal_pending` → 改送預設文字（首頁連結），不會整段不回、也不會送出半成品網址。
 文案規則：不寫「僅供參考／未經查證／網友回報」（lessons 第 5 條）；新增的回覆文字改到意思時，代號先放進 `legal_pending`，交 CEO 送法遵，審過再拿掉。
@@ -177,3 +184,4 @@ social/tc/queue/20261105_quanta/
 - 2026-11-10 頻道④交接：改吃 TECH_*、IG 支援 EAA（graph.facebook.com）、channel_post 停排 tech；EAA 下 IG 私訊做不到（缺粉絲專頁）。
 - 2026-11-14 加影片發文（social-ops-lead）：post.md `media: video`＋`video:`；IG Reels、Threads VIDEO，等容器 FINISHED 才發布；測試 tests/test_tc_autopost.py 補 9 條。
 - 2026-11-15 每篇專屬留言關鍵字（social-ops-lead，Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」）：`dm_config.json` 加 `post_keywords`、`threads_reply.texts`、`legal_pending`、`ig_dm.public_fallback`；共用規則 `scripts/tc_dm_keys.py`；Threads 用 posted.json 的 ids_threads／permalink 對回貼文代號，tc_post 開始記 ids_threads；IG 私訊接不通時改公開回覆留言＋連結（保底）；Worker 同步；影片稿格式見三之一；「2nm」條目文章 id 待填、文案待法遵；測試補 9 條。
+- 2026-11-15 法遵再審後（social-ops-lead）：措辭「完整資料」改「完整解說」（回覆文字、影片稿最後一行、cta_check 同步）；預設文字改短、廣達出處句改「出處：網友公開分享，非公司公告；隨單位而異。」；防洗版：回覆 2～3 句依留言 id 雜湊輪流、IG 公開回覆每分鐘 3 則／每篇每小時 30 則。

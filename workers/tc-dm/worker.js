@@ -64,7 +64,8 @@ export const keywordsFor = (cfg, post) => {
   return base.concat((own || []).filter((k) => !base.includes(k)));
 };
 export const contentOf = (d, post, pending) => {
-  const v = post && post !== "default" ? pickOf(d.contents, post) : null;
+  let v = post && post !== "default" ? pickOf(d.contents, post) : null;
+  if (Array.isArray(v)) v = v[0] || null;   // 清單輪流只在 Python 輪詢版做（Worker 未部署；部署前再補 sha256 輪流）
   const held = (pending || []).some((x) => x === post || x === slugOf(post));
   return (v && !String(v).includes("待填") && !held) ? v : (((d.contents || {}).default) || "");
 };

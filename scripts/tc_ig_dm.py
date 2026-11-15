@@ -38,7 +38,10 @@ follow_gate（2026-11-09 法遵審後加的開關，預設 true）：
 ★ 私訊接不通時的保底（public_fallback，預設 true）：
   EAA 權杖看不到粉絲專頁 → 私訊做不到。以前是整段安靜跳過，留言的人什麼都收不到（文案寫了卻沒兌現）。
   現在改成「公開回覆那則留言一句＋文章連結」（POST /{comment-id}/replies，權杖本來就有 instagram_manage_comments），
-  文字跟 Threads 同一份（threads_reply.texts[代號] → threads_reply.text）。每則留言 1 次、每人每篇 1 次、每輪上限照舊。
+  文字跟 Threads 同一份（threads_reply.texts[代號] → threads_reply.text），清單就用留言 id 雜湊輪流挑一句。
+  每則留言 1 次、每人每篇 1 次；防洗版：每輪（＝每分鐘）最多 public_max_per_minute（3）則、
+  每篇每小時最多 public_max_per_post_hour（30）則，超過的留到下一輪（不丟、不算失敗）。
+  每篇每小時的計數只存「貼文 id 雜湊 → 回覆時間」，1 小時後清掉。
   私訊一接通（權杖看得到連結的粉絲專頁）就自動改回私訊流程，不用改設定。
 """
 from __future__ import annotations
@@ -89,14 +92,14 @@ def ts(s) -> datetime | None:
         return None
 
 
-def content_of(d: dict, post: str, pending=None) -> str:
+def content_of(d: dict, post: str, pending=None, key: str = "") -> str:
     c = d.get("contents") or {}
-    return K.text_for(c, post, c.get("default", ""), pending)
+    return K.text_for(c, post, c.get("default", ""), pending, key)
 
 
-def public_text(cfg: dict, post: str) -> str:
+def public_text(cfg: dict, post: str, cid: str = "") -> str:
     r = cfg.get("threads_reply") or {}
-    return K.text_for(r.get("texts"), post, r.get("text", ""), cfg.get("legal_pending"))
+    return K.text_for(r.get("texts"), post, r.get("text", ""), cfg.get("legal_pending"), cid)
 
 
 CTX: dict = {}
@@ -172,6 +175,12 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
     today = now.astimezone(T.TAIPEI).strftime("%Y-%m-%d")
     users = {k: v for k, v in users.items() if v.get("day") == today}
     budget, per_user = int(d.get("max_per_minute", 10)), int(d.get("per_user_per_day", 1))
+    if public:
+        budget = min(budget, int(d.get("public_max_per_minute", 3)))
+    per_hour = int(d.get("public_max_per_post_hour", 30))
+    hour_ago = (now - timedelta(hours=1)).isoformat(timespec="seconds")
+    rate = {k: [x for x in v if x >= hour_ago] for k, v in dict(st.get("rate") or {}).items()}
+    rate = {k: v for k, v in rate.items() if v}
     post_of = {str(e.get("ig_id") or e.get("ids_ig") or ""): e.get("id") for e in (T.load_json(posted_path, {}).get("posts") or [])}
     rc = 0
 
@@ -211,20 +220,25 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                 T.log("[只記錄] 會" + ("公開回覆" if public else "私回") + " 1 則留言；不寫紀錄，法遵通過後照樣會送")
                 continue
             if public:
+                mh = h("m", m["id"])
+                if len(rate.get(mh, [])) >= per_hour:
+                    res["skipped"] += 1
+                    continue
                 try:
-                    T.api("ig", "POST", f"/{c['id']}/replies", tok, {"message": public_text(cfg, post)})
+                    T.api("ig", "POST", f"/{c['id']}/replies", tok, {"message": public_text(cfg, post, c["id"])})
                 except T.PostError as e:
                     T.log(f"✗ IG 公開回覆失敗：{e}")
                     rc = 1
                     continue
                 comments[ck] = comments[pk] = {"at": now.isoformat(timespec="seconds"), "result": "public"}
+                rate.setdefault(mh, []).append(now.isoformat(timespec="seconds"))
                 users[uk] = {"day": today, "n": users.get(uk, {}).get("n", 0) + 1}
                 budget -= 1
                 res["public"] += 1
                 continue
             gate = d.get("follow_gate", True) is not False
             body = fill(d.get("prompt")) if gate else (
-                fill(d.get("prompt_no_gate")) + "\n\n" + content_of(d, post, cfg.get("legal_pending")))
+                fill(d.get("prompt_no_gate")) + "\n\n" + content_of(d, post, cfg.get("legal_pending"), c["id"]))
             try:
                 send(uid, tok, {"comment_id": c["id"]}, body)
             except T.PostError as e:
@@ -292,7 +306,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
     T.log(f"IG 私訊：第 1 段私回 {res['prompted']}、送出整理 {res['delivered']}、提醒追蹤 {res['not_following']}、只記錄 {res['would']}")
     if not dry_run:
         state_path.parent.mkdir(parents=True, exist_ok=True)
-        new = {"comments": comments, "users": users, "pending": pending, "msgs": msgs}
+        new = {"comments": comments, "users": users, "pending": pending, "msgs": msgs, "rate": rate}
         if new != {k: st.get(k) or {} for k in new}:
             state_path.write_text(json.dumps(new, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     return rc, res

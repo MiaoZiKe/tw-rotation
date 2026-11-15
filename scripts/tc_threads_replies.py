@@ -102,7 +102,6 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
     for p in posts:
         code = codes.get(str(p.get("id"))) or codes.get("sc:" + _short(p.get("permalink"))) or "default"
         kws = K.keywords_for(cfg, code)
-        text = K.text_for(rcfg.get("texts"), code, rcfg.get("text", ""), cfg.get("legal_pending"))
         try:
             rows = T.api("threads", "GET", f"/{p['id']}/replies", tok,
                          {"fields": "id,text,username,timestamp"}).get("data") or []
@@ -127,7 +126,8 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
                 continue
             try:
                 cid = T.api("threads", "POST", f"/{uid}/threads", tok,
-                            {"media_type": "TEXT", "text": text, "reply_to_id": r["id"]})["id"]
+                            {"media_type": "TEXT", "reply_to_id": r["id"],
+                             "text": K.text_for(rcfg.get("texts"), code, rcfg.get("text", ""), cfg.get("legal_pending"), r["id"])})["id"]
                 T.SLEEP(5)
                 T._threads_publish(uid, cid, tok)
             except T.PostError as e:

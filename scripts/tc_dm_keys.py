@@ -15,9 +15,12 @@ Andy 原話：「往後製作影片後面可以補上 留言『XXXX』我就把�
   - 以「_」開頭的鍵是說明，不當代號。
   - 內容裡還有「待填」字樣（例如文章網址還沒拿到）→ 不送半成品，改送 default（保底，不會整段不回）。
   - legal_pending 列著的代號＝新文案還沒過法遵 → 一樣改送 default（已審過的那份）；法遵審過後把代號拿掉。
+  - 防洗版（2026-11-15）：內容可以寫成 2～3 句意思相同、措辭不同的清單，用留言 id 的 sha256 決定用哪一句
+    （固定、可重現：同一則留言永遠拿到同一句，不同留言平均分散）。
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 
@@ -59,17 +62,29 @@ def has_kw(text: str, kws) -> bool:
 
 
 def ready(text) -> bool:
+    if isinstance(text, list):
+        return bool(text) and all(ready(x) for x in text)
     return bool(text) and PLACEHOLDER not in str(text)
+
+
+def rotate(v, key: str = "") -> str:
+    """清單 → 依 key（留言 id）的 sha256 取一句；字串原樣回。"""
+    if not isinstance(v, list):
+        return v or ""
+    if not v:
+        return ""
+    return v[int(hashlib.sha256(str(key).encode()).hexdigest(), 16) % len(v)]
 
 
 def in_pending(post: str | None, pending) -> bool:
     return bool(post) and any(x in (pending or []) for x in (post, slug(post)))
 
 
-def text_for(table: dict | None, post: str | None, fallback: str, pending=None) -> str:
-    """這篇要回的內容；沒設、還有「待填」、或代號在 legal_pending（還沒過法遵）→ 用 fallback（default）。"""
+def text_for(table: dict | None, post: str | None, fallback, pending=None, key: str = "") -> str:
+    """這篇要回的內容；沒設、還有「待填」、或代號在 legal_pending（還沒過法遵）→ 用 fallback（default）。
+    內容是清單時用 key（留言 id）輪流挑一句。"""
     v = pick(table, post or "") if post and post != "default" else None
-    return v if ready(v) and not in_pending(post, pending) else fallback
+    return rotate(v if ready(v) and not in_pending(post, pending) else fallback, key)
 
 
 def cta_keywords(text: str) -> list[str]:

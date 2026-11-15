@@ -189,9 +189,13 @@ def cta_check(p: dict, cfg: dict | None = None) -> list[str]:
         for kw in K.cta_keywords(t):
             if K.norm(kw) not in kws:
                 out.append(f"{p['id']}：{label} 寫「留言「{kw}」」，但 dm_config.json 沒把「{kw}」設成這篇的關鍵字（post_keywords），留言的人會收不到")
+    for label, t in (("ig.txt", p.get("caption", "")), ("threads.txt 主文", p.get("main", ""))):
+        for line in (t or "").splitlines():
+            if K.cta_keywords(line) and "完整解說" not in line:
+                out.append(f"{p['id']}：{label} 的關鍵字那行要照固定格式「留言「關鍵字」，我把完整解說回覆給你」（2026-11-15 法遵定的措辭）")
     for line in (p.get("main", "") or "").splitlines():
         if K.cta_keywords(line) and ("私訊" in line or "傳給你" in line):
-            out.append(f"{p['id']}：threads.txt 的關鍵字那行寫了私訊／傳給你，但 Threads 實際是公開回覆加連結，請改成「我把完整資料回覆給你」")
+            out.append(f"{p['id']}：threads.txt 的關鍵字那行寫了私訊／傳給你，但 Threads 實際是公開回覆加連結，請改成「我把完整解說回覆給你」")
     return out
 
 

@@ -576,7 +576,7 @@ def test_法遵審後的正式設定():
     assert c["legal_reviewed"] is True and "2026-11-09 法遵審過" in c["legal_note"]
     assert c["ig_dm"]["follow_gate"] is True
     assert "完整整理" not in blob and "FW 面談" not in blob and "網友分享的面試方向" in blob
-    assert c["threads_reply"]["text"].startswith("謝謝留言！重點整理放在這")
+    assert c["threads_reply"]["text"] == "謝謝留言！整理放在這：https://liguligu-puipui.com/"   # 2026-11-15 法遵再審
     assert "僅保存去識別化的編號與時間，30 天後刪除" in (root / "docs/marketing/channels/tc/app_review/README.md").read_text(encoding="utf-8")
 
 
@@ -868,8 +868,8 @@ def _cfg2(tmp_path, legal=True, ready=False):
     c = json.loads(p.read_text(encoding="utf-8"))
     if ready:
         c["legal_pending"] = []
-        c["threads_reply"]["texts"]["2nm"] = "謝謝留言！「2 奈米不是尺寸」完整資料放在這：" + URL_2NM
-        c["ig_dm"]["contents"]["2nm"] = "「2 奈米不是尺寸」完整資料在這：" + URL_2NM
+        c["threads_reply"]["texts"]["2nm"] = [t.split("https://")[0] + URL_2NM for t in c["threads_reply"]["texts"]["2nm"]]
+        c["ig_dm"]["contents"]["2nm"] = "謝謝留言！「2 奈米不是尺寸」完整解說放在這：" + URL_2NM
     p.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
     return p
 
@@ -907,11 +907,17 @@ def test_設定_2nm專屬關鍵字與待填條目():
     c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
     assert "透明" in c["keywords"]                                              # 全域保留
     assert "2奈米" in c["post_keywords"]["2nm"]
-    for t in (c["threads_reply"]["texts"]["2nm"], c["ig_dm"]["contents"]["2nm"]):
-        assert "liguligu-puipui.com/#article/" in t and "待填" in t               # 網址待同事回報
-        for w in ("僅供參考", "未經查證", "網友回報", "網路上說", "據了解"):         # lessons 第 5 條
+    texts = c["threads_reply"]["texts"]["2nm"]
+    assert isinstance(texts, list) and 2 <= len(texts) <= 3                      # 防洗版：2～3 句輪流
+    for t in texts + [c["ig_dm"]["contents"]["2nm"]]:
+        assert "liguligu-puipui.com/#article/" in t
+        for w in ("僅供參考", "未經查證", "網友回報", "網路上說", "據了解", "完整資料"):   # lessons 第 5 條；措辭改「完整解說」
             assert w not in t
-    assert "2nm" in c["legal_pending"]                                          # 新文案改到意思 → 交法遵
+        if "2nm" in c["legal_pending"]:
+            pass                                                                 # 文章還沒上 main：網址可以還是待填
+        else:
+            assert "待填" not in t and t.endswith("#article/2026-11-15-tech-2nm")   # 拿掉 legal_pending ＝ 網址一定填好
+    assert "完整解說" in c["ig_dm"]["contents"]["2nm"]
 
 
 def test_專屬關鍵字只觸發該篇_Threads(monkeypatch, tmp_path):
@@ -983,7 +989,9 @@ def test_IG私訊接不通_保底公開回覆留言加連結(monkeypatch, tmp_pa
     rc, res = dm.run(dict(ENV), NOW, False, config_path=_cfg2(tmp_path, ready=True), state_path=tmp_path / "s.json",
                      posted_path=_posted2(tmp_path))
     assert rc == 0 and res["public"] == 1 and res["prompted"] == 0
-    assert api.sent == [("/c-m1/replies", "謝謝留言！「2 奈米不是尺寸」完整資料放在這：" + URL_2NM)]
+    cfg = json.loads(_cfg2(tmp_path, ready=True).read_text(encoding="utf-8"))
+    assert api.sent == [("/c-m1/replies", K.rotate(cfg["threads_reply"]["texts"]["2nm"], "c-m1"))]
+    assert URL_2NM in api.sent[0][1]
     assert not any(c[2].endswith("/messages") or c[2] == "/me/conversations" for c in api.calls)   # 沒有試私訊
     api2 = KwIGAPI()                                                            # 再跑一輪不重複回
     monkeypatch.setattr(tc, "api", api2)
@@ -1008,6 +1016,75 @@ def test_交件檢查抓得到沒設的關鍵字與Threads講私訊():
     p = {"id": "20261122_2nm", "caption": "…\n留言「3奈米」，我把完整資料傳給你", "main": "…\n留言「2奈米」，我把完整資料傳給你"}
     w = tc.cta_check(p, {"keywords": ["透明"], "post_keywords": {"2nm": ["2奈米"]}})
     assert any("3奈米" in x for x in w) and any("公開回覆" in x for x in w)
-    ok = {"id": "20261122_2nm", "caption": "留言「2奈米」，我把完整資料回覆給你", "main": "留言「2奈米」，我把完整資料回覆給你"}
+    ok = {"id": "20261122_2nm", "caption": "留言「2奈米」，我把完整解說回覆給你", "main": "留言「2奈米」，我把完整解說回覆給你"}
+    old = {"id": "20261122_2nm", "caption": "留言「2奈米」，我把完整資料回覆給你", "main": ""}
+    assert any("完整解說" in x for x in tc.cta_check(old, {"keywords": ["透明"], "post_keywords": {"2nm": ["2奈米"]}}))
     assert tc.cta_check(ok, {"keywords": ["透明"], "post_keywords": {"2nm": ["2奈米"]}}) == []
     assert K.slug("20261122_2nm") == "2nm" and K.keywords_for({"keywords": ["透明"], "post_keywords": {"2nm": "2奈米"}}, "x_2nm") == ["透明"]
+
+
+# ---------------- 2026-11-15 法遵再審：措辭、預設文字、防洗版 ----------------
+
+def test_法遵再審_預設文字與廣達出處句():
+    c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+    assert c["ig_dm"]["contents"]["default"] == "謝謝留言！科技透明圈的整理都放在這：https://liguligu-puipui.com/"
+    q = c["ig_dm"]["contents"]["20261105_quanta"]
+    assert "出處：網友公開分享，非公司公告；隨單位而異。" in q and "58～69K" in q
+    assert "未經查證" not in q and "僅供參考" not in q
+    assert c["ig_dm"]["public_max_per_minute"] == 3 and c["ig_dm"]["public_max_per_post_hour"] == 30
+    assert "出處：網友公開分享，非公司公告" in (Path(__file__).resolve().parent.parent
+                                     / "docs/marketing/channels/tc/andy_style.md").read_text(encoding="utf-8")
+
+
+def test_回覆輪流_用留言id雜湊_固定可重現且會分散():
+    texts = ["甲", "乙", "丙"]
+    picks = [K.rotate(texts, f"c{i}") for i in range(60)]
+    assert picks == [K.rotate(texts, f"c{i}") for i in range(60)]           # 同一則留言永遠同一句
+    assert set(picks) == set(texts)                                         # 三句都會輪到
+    import hashlib
+    assert K.rotate(texts, "abc") == texts[int(hashlib.sha256(b"abc").hexdigest(), 16) % 3]
+    assert K.rotate("單句", "x") == "單句"
+
+
+def test_Threads回覆依留言輪流不同句(monkeypatch, tmp_path):
+    rows = {"/p1/replies": [{"id": f"a{i}", "text": "2奈米", "username": f"u{i}"} for i in range(9)]}
+    rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows)
+    cfg = json.loads(_cfg2(tmp_path, ready=True).read_text(encoding="utf-8"))
+    texts = cfg["threads_reply"]["texts"]["2nm"]
+    assert [s["text"] for s in sent] == [K.rotate(texts, s["reply_to_id"]) for s in sent]
+    assert len({s["text"] for s in sent}) >= 2
+
+
+class ManyIGAPI(KwIGAPI):
+    def __init__(self, n, **kw):
+        super().__init__(**kw)
+        self.n = n
+
+    def __call__(self, platform, method, path, token, params=None):
+        if path == "/m1/comments":
+            self.calls.append((platform, method, path, token, dict(params or {})))
+            return {"data": [{"id": f"c{i}", "text": "2奈米", "timestamp": "2026-11-10T12:00:00+0000",
+                              "from": {"id": f"u{i}"}} for i in range(self.n)]}
+        if path == "/m2/comments":
+            return {"data": []}
+        return super().__call__(platform, method, path, token, params)
+
+
+def test_IG公開回覆防洗版_每分鐘3則_每篇每小時30則(monkeypatch, tmp_path):
+    monkeypatch.setattr(dm, "messaging_ctx", lambda uid, tok: (None, "看不到粉絲專頁"))
+    cfgp, posted, st = _cfg2(tmp_path, ready=True), _posted2(tmp_path), tmp_path / "s.json"
+    total, now = 0, NOW
+    for i in range(12):                                                     # 12 輪，每輪間隔 1 分鐘
+        api = ManyIGAPI(40)
+        monkeypatch.setattr(tc, "api", api)
+        rc, res = dm.run(dict(ENV), now + timedelta(minutes=i), False, config_path=cfgp, state_path=st, posted_path=posted)
+        assert res["public"] <= 3
+        total += res["public"]
+    assert total == 30                                                      # 第 11 輪起這篇這小時滿了
+    d = json.loads(st.read_text())
+    import re as _re
+    assert all(_re.fullmatch(r"[0-9a-f]{24}", k) for k in list(d["rate"]) + list(d["comments"]))   # 計數只存雜湊
+    api = ManyIGAPI(40)                                                     # 一小時後又可以回
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = dm.run(dict(ENV), now + timedelta(minutes=75), False, config_path=cfgp, state_path=st, posted_path=posted)
+    assert res["public"] == 3

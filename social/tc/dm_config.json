@@ -1,7 +1,7 @@
 {
   "note": "頻道②「科技透明圈」留言關鍵字自動回覆設定（2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」）。Worker workers/tc-dm（IG 私訊）與 scripts/tc_threads_replies.py（Threads 公開回覆）都讀這個檔；改這裡、推 main 即生效（Worker 5 分鐘內會讀到新版）。",
   "legal_reviewed": true,
-  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。",
+  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。2026-11-15 法遵再審：2nm 留言回覆、預設文字、廣達出處句改完可發（措辭「完整解說」、待遇數字固定附「出處：網友公開分享，非公司公告」）。",
   "keywords": [
     "透明"
   ],
@@ -17,7 +17,7 @@
   "legal_pending": [
     "2nm"
   ],
-  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 新增，回覆文字拿掉『僅供參考／未經查證』（lessons 第 5 條；這篇是技術解說不是網友待遇資料）、『重點整理』改『完整資料』（Andy 的 CTA 原話），屬改到意思，交 CEO 送法遵。",
+  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，等文章 2026-11-15-tech-2nm 上 main、網址填好就拿掉。",
   "ig_dm": {
     "enabled": true,
     "mode": "poll",
@@ -35,25 +35,32 @@
     "not_following": "還沒看到你追蹤喔，追蹤 @{handle} 後再回一次「好了」",
     "already_sent": "這篇的重點整理已經傳給你囉，往上滑就看得到",
     "contents": {
-      "default": "科技透明圈的待遇重點整理都放在這裡：https://liguligu-puipui.com/\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考。",
-      "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n數字為網友公開分享整理，非公司公告，未經查證，僅供參考，隨單位而異。\n更多整理：https://liguligu-puipui.com/",
-      "2nm": "「2 奈米不是尺寸」完整資料在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
-      "_note": "鍵同 post_keywords。內容裡還有「待填」就不送，改送 default（保底）。"
+      "default": "謝謝留言！科技透明圈的整理都放在這：https://liguligu-puipui.com/",
+      "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n出處：網友公開分享，非公司公告；隨單位而異。\n更多整理：https://liguligu-puipui.com/",
+      "2nm": "謝謝留言！「2 奈米不是尺寸」完整解說放在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
+      "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。"
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
     "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}",
     "public_fallback": true,
-    "public_fallback_note": "私訊接不通（EAA 權杖看不到連結的粉絲專頁）時，改成公開回覆那則留言一句＋連結，文字用 threads_reply 的同一份；私訊一接通自動改回私訊流程。false＝接不通就安靜跳過（舊行為）。"
+    "public_fallback_note": "私訊接不通（EAA 權杖看不到連結的粉絲專頁）時，改成公開回覆那則留言一句＋連結，文字用 threads_reply 的同一份；私訊一接通自動改回私訊流程。false＝接不通就安靜跳過（舊行為）。",
+    "public_max_per_minute": 3,
+    "public_max_per_post_hour": 30,
+    "public_limit_note": "防洗版（2026-11-15）：IG 公開回覆每輪（＝每分鐘）最多 3 則、每篇每小時最多 30 則，超過的留到下一輪。"
   },
   "threads_reply": {
     "enabled": true,
-    "text": "謝謝留言！重點整理放在這：https://liguligu-puipui.com/（網友公開分享整理，非公司公告，僅供參考）",
+    "text": "謝謝留言！整理放在這：https://liguligu-puipui.com/",
     "lookback_posts": 5,
     "max_per_run": 10,
     "texts": {
-      "_note": "每篇專屬的公開回覆文字（IG 私訊接不通時的保底公開回覆也用這份）；鍵同 post_keywords。還有「待填」或在 legal_pending 就改用上面的 text。",
-      "2nm": "謝謝留言！「2 奈米不是尺寸」完整資料放在這：https://liguligu-puipui.com/#article/【待填：文章 id】"
+      "_note": "每篇專屬的公開回覆文字（IG 私訊接不通時的保底公開回覆也用這份）；鍵同 post_keywords。寫成 2～3 句意思相同、措辭不同的清單，依留言 id 的 sha256 固定輪流（防洗版）。還有「待填」或在 legal_pending 就改用上面的 text。",
+      "2nm": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
+        "收到～「2 奈米不是尺寸」整篇在這：https://liguligu-puipui.com/#article/【待填：文章 id】",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/【待填：文章 id】"
+      ]
     }
   }
 }
