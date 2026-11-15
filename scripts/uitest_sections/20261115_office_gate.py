@@ -400,7 +400,7 @@ def _og_ui(b, base):
     try:
         if not ok("徽章：辦公室頁載入完成", got):
             return
-        pg.click("#chatBtn")
+        _og_js(pg, "#chatBtn")
         wait_until(pg, "() => __world.chat.mode === 'ok'", 30000)
         _og_send(pg, "徽章測試")
         wait_until(pg, "() => !document.getElementById('chatN').hidden", 30000)
