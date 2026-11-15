@@ -380,7 +380,7 @@ export function createMind(W, X = {}) {
     if (m.sc && m.sc.name === 'knocked') { m.petAt = W.time; record(m, { event: 'dodge', kind, face: m.faceName || '', action: 'still-dizzy' }); return 'dodge'; }   // 還在暈、還在氣頭上：摸頭沒用，也不改心情
     if (W.time - m.petAt > 25) { m.petTry = 0; m.feedTry = 0; } m.petAt = W.time;
     if (!resenting(m)) { m.petTry = m.feedTry = 0; return null; }
-    const need = (kind === 'feed' ? 2 : 2 + (m.t.opt < .5 ? 1 : 0) + (m.t.comp > .6 ? 1 : 0)) + (FE.of(m).rel < -.55 ? 1 : 0), key = kind === 'feed' ? 'feedTry' : 'petTry'; m[key]++;
+    const need = Math.min(5, (kind === 'feed' ? 2 : 2 + (m.t.opt < .5 ? 1 : 0) + (m.t.comp > .6 ? 1 : 0)) + (FE.of(m).rel < -.35 ? 1 : 0) + (FE.of(m).rel < -.6 ? 1 : 0)), key = kind === 'feed' ? 'feedTry' : 'petTry'; m[key]++;
     if (m[key] >= need) { m[key] = 0; m.wary = 0; m.val = Math.max(m.val, -.05) + .15; m.cause = { text: '原諒你了', until: W.time + 120 }; face(c, m, 'shy', 1.4); record(m, { event: 'forgive', kind, face: 'shy', action: 'accept' }); FE.onForgive(c, m); return null; }
     FE.onDodge(c, m);
     // 閃躲

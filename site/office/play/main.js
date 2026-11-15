@@ -224,7 +224,9 @@ updateCam(0, true);
 const env = { look: null, cam: camera.position, idleScale: +(qs.get('idle') || 1), food: null };
 let T = 0, skipRender = false; const bubble = $('#bubble');
 function frame(dt) {
-  dt = Math.min(dt, 0.05); T += dt; readInput();
+  // 第一幀的 rAF 時間戳可能比 last（模組載入完才取的 performance.now()）還早 → dt 為負 → 位置變 NaN、整個 3D 畫面空白；
+  // 視窗比例會改變載入耗時，所以看起來像「某些尺寸才空白」。夾在 [1/240, 0.05]，同時擋掉 NaN／Infinity。
+  dt = Number.isFinite(dt) ? Math.max(1 / 240, Math.min(dt, 0.05)) : 1 / 60; T += dt; readInput();
   const n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
   for (let i = 0; i < n; i++) {
     char.step(h, ctl); world.step(h, char);
