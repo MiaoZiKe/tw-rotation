@@ -95,7 +95,8 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const bases = [{ ...org.ceo, isCeo: true }]; for (const d of org.departments) for (const m of d.members) bases.push({ ...m, dept: d.id, color: d.color });
   const baseOf = new Map(bases.map(b => [b.id, b]));
   const labels = $('labels');
-  function setTag(c) { const s = c.spec, L = c._lab, k = L.tag.children; k[0].textContent = s.nick; k[1].textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; L.mk = ''; W.rewards && W.rewards.tagChip && W.rewards.tagChip(c); }
+  function setTag(c) { const s = c.spec, L = c._lab, k = L.tag.children; k[0].textContent = (W.tagName && W.tagName(c)) || s.nick; k[1].textContent = s.pet ? s.zh : s.isCeo ? s.zh : `${s.id}・${s.zh}`; L.mk = ''; W.rewards && W.rewards.tagChip && W.rewards.tagChip(c); }
+  W.setTag = setTag;   // live.js 在知道專案名稱之後，用它重畫 CEO 與分身的名牌（名牌文字由 W.tagName 決定）
   function addLabel(c) {
     const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = `<b></b><span></span><u class="stx"></u><i class="gr"></i>`;
     const bub = document.createElement('div'); bub.className = 'bub';

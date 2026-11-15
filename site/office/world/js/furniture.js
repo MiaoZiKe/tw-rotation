@@ -299,6 +299,7 @@ export const BUILD = {
     if (f.stand) { P.cyl(PAL.cream, 0.045, 1.0, -w / 2 + 0.25, 0, 0, 0.01); P.cyl(PAL.cream, 0.045, 1.0, w / 2 - 0.25, 0, 0, 0.01); }
     P.box(f.color, w, 0.56, 0.1, 0, y, 0, 0.05);
     const tp = textPlane(f.text, w - 0.14, 0.42, { pw: 384, bg: '#fffaf2', px: 70, radius: 36 });
+    tp.userData.roomText = f.text; tp.userData.roomW = w - 0.14;   // live.js 要把「CEO 辦公室」門牌改成「<專案名> CEO 辦公室」時，靠這兩個標記找到它並重畫
     tp.position.set(0, y + 0.28, 0.056);
     return { part: P, extras: [tp], foot: f.stand ? [{ x: 0, z: 0, w, d: 0.2 }] : [], noshadow: !f.stand };
   },
