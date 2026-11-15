@@ -22,11 +22,25 @@
    "text": "影片"
   },
   {
-   "t": "mp4",
-   "src": "media/healing/20261116v_worktime/video.mp4",
-   "poster": "media/healing/20261116v_worktime/cover.jpg",
-   "title": "一年工作 2,027 小時",
-   "note": "影片 1080×1920；下方可下載。"
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-16-healing-worktime-cover.jpg",
+     "alt": "封面：一年工作 2,027 小時，為什麼降不下來",
+     "cap": "影片封面"
+    }
+   ],
+   "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"
+  },
+  {
+   "t": "links",
+   "title": "影片檔",
+   "items": [
+    {
+     "label": "觀看影片（MP4）",
+     "url": "https://liguligu-puipui.com/media/healing/20261116v_worktime/video.mp4"
+    }
+   ]
   },
   {
    "t": "h",
