@@ -232,7 +232,7 @@ export function createUI(W, demo, api) {
     const r = rng('bd' + x.whoId + x.title + x.t), tms = parseT(x.t);
     if (x.s === 3) { const dur = 20 + Math.floor(r() * 9) * 15; return { sym: '✅', label: '已完成', dur, lines: [['花了', `${fmtMin(dur)}（預估）`], ['完成', x.t]], head: `花 ${fmtMin(dur)}（預估）・完成 ${x.t}` }; }
     if (x.s === 2) {
-      const di = Math.max(0, x.p.list.filter(q => q.s === 2).findIndex(q => q.t === x.t)), elapsed = Math.max(1, Math.round((BASE_MS - tms) / 60000)), remain = x.p.etaMin + di * 22 + Math.floor(r() * 10), pct = Math.round(100 * elapsed / (elapsed + remain)), eta = stampOf(BASE_MS + remain * 60000), late = pct >= 65;
+      const di = Math.max(0, x.p.list.filter(q => q.s === 2).findIndex(q => q.t === x.t)), elapsed = Math.max(1, Math.round((BASE_MS - tms) / 60000)), remain = x.p.etaMin + di * 22 + Math.floor(r() * 10), pct = Math.round(100 * elapsed / (elapsed + remain)), eta = stampOf(BASE_MS + remain * 60000), late = remain <= 30;   // 預估還要 30 分鐘內＝已到收尾驗收
       return { sym: late ? '🔄' : '🛠️', label: late ? '收尾驗收中' : '製作中', pct, remain, eta, lines: [['開始', x.t], ['做到', `約 ${pct}%（預估）`], ['已做', fmtMin(elapsed)], ['預估還要', fmtMin(remain)], ['預估完成', eta]], head: `做到約 ${pct}%（預估）・預估還要 ${fmtMin(remain)}・預估完成 ${eta}` };
     }
     const dur = 30 + Math.floor(r() * 7) * 15, peers = B.people.filter(q => q.id !== x.whoId), stuck = r() < 0.4, by = stuck ? (peers.length ? `${peers[Math.floor(r() * peers.length)].nick} 的交件` : '擁有者核可') : '';

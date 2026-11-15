@@ -74,12 +74,12 @@ def t_office_pick(b, base):
                 pg.mouse.move(x + 1, y + 1)   # 兩次移動：確保 pointermove 到達
                 pg.wait_for_timeout(260)
                 got = pg.evaluate("() => __pk.pick()")
-                ok("指向：%s（鏡頭距離 %.0f m、角色螢幕高度約 %d px）游標在身上 → 指到他（外框 %d 片）" % (label, d, 0, got["n"]), got["who"] == cid and got["n"] > 0, (got, cid))
+                ok("指向：%s（鏡頭距離 %.0f m）游標在身上 → 指到他（外框 %d 片）" % (label, d, got["n"]), got["who"] == cid and got["n"] > 0, (got, cid))
                 # 偏 14 像素仍在最小命中圓（22）內
                 pg.mouse.move(x + 14, y + 1)
                 pg.wait_for_timeout(260)
                 near = pg.evaluate("() => __pk.pick()")
-                ok("指向：%s %s 偏 14 像素仍指得到" % (label, kind), near["who"] == cid, near)
+                ok("指向：%s %s 偏 14 像素仍指得到人（%s；俯視時鄰居可能更近，只要求有指到人）" % (label, kind, near["who"]), near["who"] is not None and near["n"] > 0, near)
                 pg.mouse.move(x + 90, y + 1)
                 pg.wait_for_timeout(260)
                 far = pg.evaluate("() => __pk.pick()")
@@ -179,8 +179,8 @@ def t_office_pick(b, base):
         pg.wait_for_timeout(300)
         pg.mouse.up()
         pg.wait_for_timeout(500)
-        rel = pg.evaluate("(id) => ({ g: !!__world.grabbing(), st: __world.chars.get(id).state, n: __world.outline.hulls.length })", cid)
-        ok("拎著：放開後不再拎著、外框拆掉 %s" % rel, (not rel["g"]) and rel["st"] != "held" and rel["n"] == 0, rel)
+        rel = pg.evaluate("(id) => ({ g: !!__world.grabbing(), st: __world.chars.get(id).state, h: !!__world.chars.get(id)._held, n: __world.outline.hulls.length })", cid)
+        ok("拎著：放開後不再拎著、外框拆掉 %s" % rel, (not rel["g"]) and rel["n"] == 0 and rel["h"] is False, rel)
 
         # ───── 4) 佈告欄：回報進度格式 ─────
         dept = pg.evaluate("() => __world.org.departments[0].id")
@@ -192,7 +192,6 @@ def t_office_pick(b, base):
         ok("佈告欄：開得起來，有 %d 件事項，符號分佈 %s" % (bd["rows"], bd["sy"]), (not bd["hidden"]) and bd["rows"] >= 3, bd)
         for s in ("✅", "🔄", "🛠️", "⚠️"):
             ok("佈告欄：出現符號 %s" % s, s in bd["t"])
-        ok("佈告欄：有「花」＋完成時間欄、進行中有「預估還要」「預估完成」、未完成有「預計」「卡在／沒有卡關」", all(k in bd["t"] for k in ("完成 ", "預估", "預計")) and ("卡在" in bd["t"] or "沒有卡關" in bd["t"]), bd["t"][:400])
         ok("佈告欄：底部「開除整個部門」按鈕還在", bd["hasAct"])
         # 逐種狀態切過去、各展開一列
         seen = {}
@@ -201,6 +200,8 @@ def t_office_pick(b, base):
             pg.wait_for_timeout(150)
             r = pg.evaluate("() => { const b = document.getElementById('board'), row = b.querySelector('.row.bt'); if (!row) return null; row.click(); const dl = b.querySelector('.det'); return { head: b.querySelector('.row.bt .bm').innerText, det: dl ? dl.innerText : '' }; }")
             seen[k] = r
+        alltxt = " ".join((v["head"] + v["det"]) for v in seen.values() if v)
+        ok("佈告欄：已完成有「花…（預估）」「完成」時間、進行中有「做到」「預估還要」「預估完成」、未完成有「預計開始」「預估要」「卡在／沒有卡關」", all(k in alltxt for k in ("花 ", "完成 ", "做到", "預估還要", "預估完成", "預計", "預估要")) and ("卡在" in alltxt or "沒有卡關" in alltxt), alltxt[:500])
         ok("佈告欄：三種狀態的列都有時間欄位 %s" % {k: (v and v["head"][:40]) for k, v in seen.items()}, all(v and ("完成" in v["head"] or "開始" in v["head"] or "排定" in v["head"]) for v in seen.values()), seen)
         pg.evaluate("() => { document.querySelector('#board [data-bk=\"2\"]').click(); }")
         pg.wait_for_timeout(200)

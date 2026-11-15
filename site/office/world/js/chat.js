@@ -39,7 +39,7 @@ const ERR = { too_long: '最多 2000 字', queue_full: '排隊已滿 20 則，�
 const linkify = s => esc(s).replace(/(https?:\/\/[^\s<>"')]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 const when = ms => { const p = {}; for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', month: '2-digit', day: '2-digit' }).formatToParts(new Date(ms))) p[x.type] = x.value; return `${p.month}/${p.day} ${hhmm(ms)}`; };
 // 3D 頭上泡泡用的短句：回覆的第一句、去掉網址，最多 18 字
-const bubbleLine = r => { const t = String(r || '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim(); return short(t.split(/[。！!？?\n]/)[0] || t, 18); };
+const bubbleLine = r => { const t = String(r || '').replace(/【\s*動作\s*[:：]\s*[^】]*】/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim(); return short(t.split(/[。！!？?\n]/)[0] || t, 18); };
 
 export function createChat(W, X) {
   const { ui } = X, S = X.state || W.state, qs = new URLSearchParams(location.search), C = id => W.chars.get(id);
@@ -80,6 +80,7 @@ export function createChat(W, X) {
       <p class="c-err" id="chatErr" role="alert" hidden></p>
       <form class="mc-bar" id="chatForm" autocomplete="off">
         <button class="mc-tg" id="chatBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="mc-ava" id="mcAva"></span><span class="mc-nm" id="mcNm">CEO</span><i class="cn" id="chatN" hidden></i><em class="mc-chev" aria-hidden="true">︿</em></button>
+        <select id="chatTo" class="mc-sel" aria-label="對誰說" hidden></select>
         <textarea id="chatText" rows="1" enterkeyhint="send" placeholder="對 CEO 說…" spellcheck="false" aria-label="要說的話"></textarea>
         <button class="btn on" id="chatSend" type="submit">送出</button>
       </form>
@@ -120,13 +121,14 @@ export function createChat(W, X) {
       if (old && old.status === m.status) continue;
       const ev = { queued: 'cmd_queued', claimed: 'cmd_claimed', running: 'cmd_running', done: 'cmd_done', failed: 'cmd_failed', canceled: 'cmd_gone', expired: 'cmd_gone', stale: 'cmd_gone' }[m.status];
       // 載入時就已完成的舊指令不再慶祝一次（silent）；進行中的照樣演出
-      if (ev && !(silent && !ACTIVE.has(m.status))) emit(ev, m.to, { mid: m.id, text: m.text, reply: m.reply, status: m.status });
+      if (ev && !(silent && !ACTIVE.has(m.status))) emit(ev, agentFor(toOf(m)), { mid: m.id, text: m.text, reply: m.reply, status: m.status });
     }
   }
   const activeCount = () => [...K.msgs.values()].filter(m => ACTIVE.has(m.status)).length;
   const toOf = m => m.to || 'ceo';
   const seenKey = m => m.id + '|' + m.status;      // 狀態變了（排隊中→完成）就算新的，收合時才會跳出「有新回覆」的提示
-  const threadOf = id => [...K.msgs.values()].filter(m => toOf(m) === id).sort((a, b) => a.created - b.created);
+  // 一個聊天室＝一個單位（CEO 一間、每個部門一間）：對部門裡任何一位、或對整個部門說的話都進同一間（to 欄位仍是成員代號或 dept:<部門代號>）
+  const threadOf = target => { const r = roomOfTo(target); return [...K.msgs.values()].filter(m => roomOfTo(toOf(m)) === r).sort((a, b) => a.created - b.created); };
 
   async function fetchInbox(manual) {
     if (K.inflight) { K.again = true; return; } K.inflight = true; K.polls++;
@@ -162,11 +164,38 @@ export function createChat(W, X) {
   // ───────── 對象（誰）：名字、頭像 ─────────
   const isAgent = id => { const c = C(id); return !!c && !c.spec.pet && !c.spec.isCeo && !c.jobless; };
   const hasThread = id => [...K.msgs.values()].some(m => toOf(m) === id);
-  // 對象一律顯示中文暱稱：名冊上的暱稱 → 內建類型的中文名（general-purpose＝通才）→ 都沒有才顯示代號
-  const nickOf = id => { if (id === 'ceo') return 'CEO'; const c = C(id); if (c && !c.spec.pet) return c.spec.nick; const mm = W.members && W.members.get && W.members.get(id); return (mm && mm.nick) || BUILTIN_ZH[id] || id; };
-  const roleOf = id => { if (id === 'ceo') return '分派工作'; const c = C(id); return c && c.spec.zh ? c.spec.zh : (BUILTIN_ZH[id] ? '外部協助' : ''); };
-  const avaOf = id => { const c = id === 'ceo' ? C('ceo') : C(id); if (c && ui.ava) { try { return ui.ava(c.spec); } catch (e) { /* 略 */ } } return '<div class="ava" style="background:#ffb057"></div>'; };
-  const knownTo = id => id === 'ceo' || isAgent(id) || hasThread(id);
+  // 部門與聊天室：聊天室代號 'ceo'｜'d:<部門代號>'（後備區 d:reserve、辦公室外的內建類型都歸 d:_ext「外部協助」）
+  const live = m => !(W.hr && W.hr.isFired && W.hr.isFired(m.id));
+  const deptList = () => (W.org && W.org.departments) || [];
+  const deptOfMember = id => { const c = C(id); if (c && c.spec.isCeo) return 'ceo'; const mm = W.members && W.members.get && W.members.get(id); return (c && c.spec.dept) || (mm && mm.dept) || ''; };
+  const deptInfo = did => { const d = deptList().find(q => q.id === did); if (d) return { id: did, name: d.name, color: d.color }; if (did === 'reserve') return { id: did, name: '後備區', color: '#b9aca2' }; return { id: '_ext', name: '外部協助', color: '#b9aca2' }; };
+  const roomOfTo = to => { to = to || 'ceo'; if (to === 'ceo') return 'ceo'; if (/^dept:/.test(to)) return 'd:' + to.slice(5); const dp = deptOfMember(to); if (dp === 'ceo') return 'ceo'; return 'd:' + (dp && deptInfo(dp).id !== '_ext' ? dp : '_ext'); };
+  const roomDept = r => r.slice(2);
+  const membersOf = r => {
+    const did = roomDept(r), d = deptList().find(q => q.id === did);
+    if (d) return d.members.filter(live).map(m => m.id);
+    const ids = new Set(); if (did === 'reserve') for (const id of W.chars.keys()) if (isAgent(id) && deptOfMember(id) === 'reserve') ids.add(id);
+    for (const m of K.msgs.values()) { const t = toOf(m); if (roomOfTo(t) === r && !/^dept:/.test(t)) ids.add(t); } return [...ids];
+  };
+  const knownRoom = r => r === 'ceo' || deptList().some(q => 'd:' + q.id === r) || [...K.msgs.values()].some(m => roomOfTo(toOf(m)) === r) || (r === 'd:reserve' && membersOf(r).length > 0);
+  const knownTo = id => id === 'ceo' || (/^dept:/.test(id) ? knownRoom('d:' + id.slice(5)) : (isAgent(id) || hasThread(id)));
+  // 這個聊天室的「對整個部門」代表值（CEO 室＝ceo；外部協助沒有整體對象，用第一位）
+  const roomTarget = r => r === 'ceo' ? 'ceo' : r === 'd:_ext' ? (membersOf(r)[0] || 'ceo') : 'dept:' + roomDept(r);
+  // 這則指令真正要動的角色：成員本人；整個部門＝主管（沒有主管就第一位）
+  const agentFor = to => { to = to || 'ceo'; if (/^dept:/.test(to)) { const d = deptList().find(q => q.id === to.slice(5)); const ms = d ? d.members.filter(live) : []; return (ms.find(m => m.lead) || ms[0] || { id: 'ceo' }).id; } return to; };
+  // 對象一律顯示中文暱稱：名冊暱稱 → 內建類型的中文名（general-purpose＝通才）→ 都沒有才顯示代號；整個部門＝「設計部全體」
+  const nickOf = id => { if (id === 'ceo') return 'CEO'; if (/^dept:/.test(id)) return deptInfo(id.slice(5)).name + '全體'; const c = C(id); if (c && !c.spec.pet) return c.spec.nick; const mm = W.members && W.members.get && W.members.get(id); return (mm && mm.nick) || BUILTIN_ZH[id] || id; };
+  const roleOf = id => { if (id === 'ceo') return '分派工作'; if (/^dept:/.test(id)) return '整個部門'; const c = C(id); return c && c.spec.zh ? c.spec.zh : (BUILTIN_ZH[id] ? '外部協助' : ''); };
+  const roomName = r => r === 'ceo' ? 'CEO' : deptInfo(roomDept(r)).name;
+  const deptAva = did => { const i = deptInfo(did); return `<span class="da" style="background:${esc(i.color || '#b9aca2')}">${esc(i.name.slice(0, 1))}</span>`; };
+  const avaOf = id => { if (/^dept:/.test(id)) return deptAva(id.slice(5)); const c = id === 'ceo' ? C('ceo') : C(id); if (c && ui.ava) { try { return ui.ava(c.spec); } catch (e) { /* 略 */ } } return '<div class="ava" style="background:#ffb057"></div>'; };
+  const avaRoom = r => r === 'ceo' ? avaOf('ceo') : deptAva(roomDept(r));
+  // 回覆裡的動作標記：【動作：轉圈】【動作：跳】【動作：揮手】…；網頁解析後讓那位角色在 3D 做出動作，標記本身不顯示
+  const ACT_RE = /【\s*動作\s*[:：]\s*([^】]*)】/g;
+  const ACT_MAP = { 轉圈: 'spin', 轉圈圈: 'spin', 旋轉: 'spin', 原地轉圈: 'spin', 跳: 'jump', 跳躍: 'jump', 跳一下: 'jump', 揮手: 'wave', 打招呼: 'wave', 點頭: 'nod', 搖頭: 'shake', 鼓掌: 'clap', 歡呼: 'cheer', 舉手: 'raise', 喝水: 'drink' };
+  const clean = r => String(r == null ? '' : r).replace(ACT_RE, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const actsOf = r => { const out = []; String(r || '').replace(ACT_RE, (_, g) => { for (const w of g.split(/[、,，\s+＋]+/)) if (ACT_MAP[w.trim()]) out.push(ACT_MAP[w.trim()]); return ''; }); return out.slice(0, 4); };
+  K.actsOf = actsOf; K.clean = clean;
 
   // ───────── 視窗位置、鎖定、透明（記在 localStorage，重新整理後保留） ─────────
   const OPS = [1, .7, .4];
@@ -260,39 +289,45 @@ export function createChat(W, X) {
     return `<div class="c-stl c-st ${cls}" data-s="${esc(m.status)}">${ic}<span>${esc(lab)}</span>${again}</div>`;
   }
   function msgHtml(m, prev, last) {
-    const to = toOf(m), nk = esc(nickOf(to)), showTime = !prev || minute(prev.created) !== minute(m.created);
-    const reply = m.reply ? linkify(m.reply) : (m.status === 'done' ? '做完了。' : '');
+    const to = toOf(m), nk = esc(nickOf(to)), showTime = !prev || minute(prev.created) !== minute(m.created), inDept = roomOfTo(to) !== 'ceo';
+    const rtx = clean(m.reply), reply = rtx ? linkify(rtx) : (m.status === 'done' ? '做完了。' : '');
     const typing = m.status === 'running' ? `<div class="c-rp c-typing" aria-label="${nk} 輸入中"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><span class="c-dots"><i></i><i></i><i></i></span></div><small>${nk} 輸入中…</small></div>` : '';
     const more = m.status === 'queued' ? `<button class="c-more" type="button" data-menu="${esc(m.id)}" aria-label="更多" aria-haspopup="menu">⋯</button><div class="c-menu" role="menu" hidden><button type="button" role="menuitem" data-cancel="${esc(m.id)}">撤回</button></div>` : '';
     return `<article class="c-msg${showTime ? '' : ' same'}" data-id="${esc(m.id)}" data-st="${esc(m.status)}">
       ${showTime ? `<time class="c-tm">${esc(clock(m.created))}</time>` : ''}
+      ${inDept ? `<span class="c-to">→ ${esc(/^dept:/.test(to) ? '整個部門' : nickOf(to))}</span>` : ''}
       <div class="c-mine"><div class="c-me${m.status === 'canceled' ? ' gone' : ''}"><p class="c-tx">${esc(m.text)}</p>${more}</div></div>
       ${stHtml(m, last)}
       ${typing}
       ${reply ? `<div class="c-rp"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><b>${nk}${m.done_at || m.updated ? `<time>${esc(clock(m.done_at || m.updated))}</time>` : ''}</b><div>${reply}</div></div></div>` : ''}</article>`;
   }
   const unreadOf = id => threadOf(id).filter(m => (m.status === 'done' || m.status === 'failed') && !K.seen.has(seenKey(m))).length;
-  // 左邊對話清單：CEO 第一、有說過話的依最後時間、其餘同事排在後面（點一下就能開始說）
+  // 左邊對話清單：一個單位一間聊天室（CEO、每個部門）；有說過話的依最後時間排前面，其餘照部門順序
+  function roomIds() {
+    const ids = ['ceo', ...deptList().map(d => 'd:' + d.id)], last = new Map();
+    for (const m of K.msgs.values()) { const r = roomOfTo(toOf(m)); last.set(r, Math.max(last.get(r) || 0, m.created)); if (!ids.includes(r)) ids.push(r); }
+    if (!ids.includes('d:reserve') && membersOf('d:reserve').length) ids.push('d:reserve');
+    const rk = roomOfTo(K.to); if (!ids.includes(rk)) ids.push(rk);
+    const head = ids.slice(0, 1), rest = ids.slice(1), orig = new Map(rest.map((r, i) => [r, i]));
+    rest.sort((a, b) => (last.get(b) || 0) - (last.get(a) || 0) || orig.get(a) - orig.get(b));
+    return head.concat(rest);
+  }
   function stripHtml() {
-    const ids = ['ceo'], last = new Map();
-    for (const m of K.msgs.values()) { const t = toOf(m); last.set(t, Math.max(last.get(t) || 0, m.created)); }
-    [...last.entries()].sort((a, b) => b[1] - a[1]).forEach(([t]) => { if (t !== 'ceo' && !ids.includes(t)) ids.push(t); });
-    if (!ids.includes(K.to) && knownTo(K.to)) ids.push(K.to);
-    const rest = [...W.chars.keys()].filter(id => isAgent(id) && !ids.includes(id)).sort((a, b) => nickOf(a).localeCompare(nickOf(b), 'zh-Hant'));
-    const row = id => {
-      const list = threadOf(id), m = list[list.length - 1], un = id === K.to && K.open && (desk() || K.view === 'thread') ? 0 : unreadOf(id), act = list.filter(x => ACTIVE.has(x.status)).length;
-      let pv = roleOf(id), tm = '';
-      if (m) { pv = m.status === 'done' && m.reply ? short(m.reply.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 22) : m.status === 'running' ? '輸入中…' : '你：' + short(m.text, 20); tm = clock(m.created); }
-      return `<button class="mc-th${id === K.to ? ' on' : ''}" type="button" role="tab" aria-selected="${id === K.to}" data-th="${esc(id)}"><span class="mc-ava">${avaOf(id)}</span><span class="mc-tb"><span class="mc-t1"><b>${esc(nickOf(id))}</b><time>${esc(tm)}</time></span><span class="mc-t2"><span class="mc-pv">${esc(pv)}</span>${un ? `<i class="cn">${un}</i>` : act ? '<i class="mc-wait" title="進行中"></i>' : ''}</span></span></button>`;
+    const rk = roomOfTo(K.to), row = r => {
+      const tg = r === rk ? K.to : roomTarget(r), list = threadOf(tg), m = list[list.length - 1], un = r === rk && K.open && (desk() || K.view === 'thread') ? 0 : unreadOf(tg), act = list.filter(x => ACTIVE.has(x.status)).length;
+      let pv = r === 'ceo' ? roleOf('ceo') : `${membersOf(r).length} 位成員`, tm = '';
+      if (m) { const rt = clean(m.reply); pv = m.status === 'done' && rt ? short(rt.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 22) : m.status === 'running' ? '輸入中…' : '你：' + short(m.text, 20); tm = clock(m.created); }
+      return `<button class="mc-th${r === rk ? ' on' : ''}" type="button" role="tab" aria-selected="${r === rk}" data-th="${esc(r === rk ? K.to : roomTarget(r))}" data-room="${esc(r)}"><span class="mc-ava">${avaRoom(r)}</span><span class="mc-tb"><span class="mc-t1"><b>${esc(roomName(r))}</b><time>${esc(tm)}</time></span><span class="mc-t2"><span class="mc-pv">${esc(pv)}</span>${un ? `<i class="cn">${un}</i>` : act ? '<i class="mc-wait" title="進行中"></i>' : ''}</span></span></button>`;
     };
-    return ids.map(row).join('') + (rest.length ? '<div class="mc-sh2">其他同事</div>' + rest.map(row).join('') : '');
+    return roomIds().map(row).join('');
   }
   function peekOf() {
     const list = threadOf(K.to), m = list[list.length - 1]; if (!m || K.open) return '';
     const unseen = !ACTIVE.has(m.status) && m.status !== 'canceled' && !K.seen.has(seenKey(m));
     if (!ACTIVE.has(m.status) && !unseen) return '';
     const [lab] = ST[m.status] || [m.status];
-    return m.reply ? `${nickOf(K.to)}：${short(m.reply.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 40)}` : m.status === 'running' ? `${nickOf(K.to)} 輸入中…` : `${lab}・${short(m.text, 26)}`;
+    const rt = clean(m.reply), nm = nickOf(toOf(m));
+    return rt ? `${nm}：${short(rt.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 40)}` : m.status === 'running' ? `${nm} 輸入中…` : `${lab}・${short(m.text, 26)}`;
   }
   function render() {
     // 目前對象不在了（被開除、改成寵物）→ 回到 CEO
@@ -305,7 +340,7 @@ export function createChat(W, X) {
     const who = nickOf(K.to), av = avaOf(K.to);
     if ($('mcAva').dataset.k !== K.to + av.length) { $('mcAva').innerHTML = av; $('mcAva').dataset.k = K.to + av.length; }
     $('mcNm').textContent = who;
-    tx.placeholder = `對 ${who} 說…`;
+    tx.placeholder = /^dept:/.test(K.to) ? `對整個${deptInfo(K.to.slice(5)).name}說…` : `對 ${who} 說…`;
     // 說明與閘門（收合時也要看得到：鎖了要知道為什麼）
     const note = $('chatNote'), nh = K.touched ? noteHtml() : ''; if (note.dataset.h !== nh) { note.innerHTML = nh; note.dataset.h = nh; } note.hidden = !nh;
     // 功能閘門（features.js 的 office.cmd）：只在已經能送（連線正常）時才顯示，沒登入等情況已經有自己的說明
@@ -324,10 +359,15 @@ export function createChat(W, X) {
   function renderThread() {
     const sh = stripHtml(), st = $('mcStrip'); if (st.dataset.h !== sh) { st.innerHTML = sh; st.dataset.h = sh; }
     const list = threadOf(K.to), mobList = !desk() && K.view === 'list';
-    $('mcWho').innerHTML = mobList ? '<span class="mc-nmx"><b>對話</b></span>' : `<span class="mc-ava">${avaOf(K.to)}</span><span class="mc-nmx"><b>${esc(nickOf(K.to))}</b><small>${esc(roleOf(K.to))}</small></span>`;
+    const rk = roomOfTo(K.to), isDept = rk !== 'ceo';
+    $('mcWho').innerHTML = mobList ? '<span class="mc-nmx"><b>對話</b></span>' : `<span class="mc-ava">${avaRoom(rk)}</span><span class="mc-nmx"><b>${esc(roomName(rk))}</b><small>${esc(isDept ? membersOf(rk).length + ' 位成員・可對整個部門或指定一位說' : roleOf('ceo'))}</small></span>`;
+    // 輸入框左邊的「對誰說」：只有部門聊天室才有（整個部門或某位成員）
+    const sel = $('chatTo'), ops = isDept ? [...(rk === 'd:_ext' ? [] : [['dept:' + roomDept(rk), `整個部門（${membersOf(rk).length} 人）`]]), ...membersOf(rk).map(id => [id, nickOf(id) + (roleOf(id) ? '・' + roleOf(id) : '')])] : [];
+    const oh = rk + '|' + ops.map(o => o.join(':')).join('|'); if (sel.dataset.h !== oh) { sel.innerHTML = ops.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join(''); sel.dataset.h = oh; }
+    sel.hidden = !isDept; if (isDept) sel.value = K.to;
     const lv = liveHtml(); if ($('chatLive').dataset.h !== lv) { $('chatLive').innerHTML = lv; $('chatLive').dataset.h = lv; }
     const box = $('chatList');
-    const html = list.length ? list.map((m, i) => msgHtml(m, list[i - 1], i === list.length - 1)).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟 ${esc(nickOf(K.to))} 說過話。在下面打字，按 Enter 送出。</p>` : '');
+    const html = list.length ? list.map((m, i) => msgHtml(m, list[i - 1], i === list.length - 1)).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟${esc(roomName(rk))}說過話。在下面打字，按 Enter 送出。</p>` : '');
     if (box.dataset.h !== html) { const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || box.dataset.t !== K.to; box.innerHTML = html; box.dataset.h = html; box.dataset.t = K.to; if (stick) box.scrollTop = box.scrollHeight; }
     if (desk() || K.view === 'thread') for (const m of list) K.seen.add(seenKey(m));
   }
@@ -383,6 +423,7 @@ export function createChat(W, X) {
     render();
   }
   $('chatForm').addEventListener('submit', e => { e.preventDefault(); send(); });
+  $('chatTo').addEventListener('change', e => { setTarget(e.target.value, true); tx.focus(); });
   // 我的訊息的小選單：滑鼠停上去出現「⋯」，觸控長按也能叫出；目前只有「撤回」（還在傳送中才有）
   const closeMenus = except => { for (const m of pn.querySelectorAll('.c-menu')) if (m !== except) m.hidden = true; };
   let lp = 0;
@@ -438,6 +479,15 @@ export function createChat(W, X) {
   }
   function endTodo(id, mid) { const t = K.todo.get(id); if (!t) return; t.mids.delete(mid); if (!t.mids.size) stopTodo(id); }
   const cmdAgent = mid => 'cmd:' + mid;
+  // 回覆的動作標記 → 3D 動作：轉圈＝原地轉一圈（沿用 mind.js 的 spin 走位）、跳＝原地跳一下（沿用 doAct('sig')）、其餘是角色的一次型動作
+  function doAct(id, a) {
+    const c = who(id); if (!c || c.piloted) return; K.acted = (K.acted || []).concat([id + ':' + a]).slice(-20);
+    try {
+      if (a === 'spin') { const mm = W.mind && W.mind.mindOf && W.mind.mindOf(id); if (mm && c.state === 'stand') mm.spin = { t0: W.time, h0: c.heading || 0, dur: 1.1 }; else c.setAction('cheer', { duration: 1.4 }); c.emote('star', 1.4); }
+      else if (a === 'jump') { if (c.inner && c.inner.doAct && c.state === 'stand') c.inner.doAct('sig'); else c.setAction('cheer', { duration: 1.4 }); }
+      else c.setAction(a, { duration: a === 'wave' ? 1.8 : undefined });
+    } catch (e) { console.warn('動作標記例外', e); }
+  }
   // 事件匯流排有兩種長相：phys.js 的處理函式只收一個事件物件 { type, id, …附加欄位 }；mind.js 的收 (代號, 附加欄位)。兩種都吃。
   const ok = (fn) => (a, b) => { try { if (a && typeof a === 'object') fn(a.id, a); else fn(a, b || {}); } catch (e) { console.warn('指令反應例外', e); } };
   function sub(name, fn) { if (W.on) W.on(name, ok(fn)); }
@@ -456,10 +506,11 @@ export function createChat(W, X) {
       if (K.started.has(d.mid) && !c.spec.isCeo) S.emit({ hook_event_name: 'SubagentStop', uid: 'cmd:' + d.mid + ':e', agent_id: cmdAgent(d.mid), agent_type: c.spec.id, status: failed ? 'failed' : 'completed', last_assistant_message: failed ? '指令沒做成' : '指令做完了' });
       const wasRun = K.started.has(d.mid), line = bubbleLine(d.reply) || (failed ? '這次沒做成…' : '做完了！');
       const cheer = () => { const q = who(id); if (q) { q.emote('star', 2.6); q.say(line, 4); } };   // 頭上泡泡就是回覆的第一句（短句），完整內容在他的對話串
-      if (!failed) { if (wasRun && !c.spec.isCeo) setTimeout(cheer, 6500); else cheer(); }   // 走去交件的人，等交件演出收尾再慶祝（不打斷）
+      if (!failed) { if (wasRun && !c.spec.isCeo) setTimeout(cheer, 6500); else cheer(); }
+      if (!failed) actsOf(d.reply).forEach((a, i) => setTimeout(() => doAct(id, a), (wasRun && !c.spec.isCeo ? 6900 : 400) + i * 1500));       // 回覆裡的【動作：…】標記   // 走去交件的人，等交件演出收尾再慶祝（不打斷）
       else { c.emote('cloud', 2.4); c.say(line, 4); }
       K.started.delete(d.mid);
-      if (!(K.open && K.to === toKey(id)) && ui.toast) ui.toast(failed ? `${c.spec.nick}沒做成：點對話框看回覆` : `${c.spec.nick}回覆了：點對話框看`);
+      if (!(K.open && roomOfTo(K.to) === roomOfTo(K.msgs.has(d.mid) ? toOf(K.msgs.get(d.mid)) : id)) && ui.toast) ui.toast(failed ? `${c.spec.nick}沒做成：點對話框看回覆` : `${c.spec.nick}回覆了：點對話框看`);
     };
     sub('cmd_done', fin(false)); sub('cmd_failed', fin(true));
     sub('cmd_gone', (id, d) => { endTodo(id, d.mid); });
