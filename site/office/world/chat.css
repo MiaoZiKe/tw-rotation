@@ -162,10 +162,10 @@
   #chatPanel.mc.open,#chatPanel.mc.open.pl,#chatPanel.mc.open.pc,#chatPanel.mc.open.pr{z-index:60;left:0;right:0;top:0;bottom:0;width:auto;height:auto;display:flex;flex-direction:column;gap:0;border-radius:0;box-shadow:none;background:var(--bg);padding:0 0 calc(10px + env(safe-area-inset-bottom));opacity:1!important}
   .mc-head{padding:8px 10px;cursor:default;touch-action:auto}
   .mc-ctl,.mc-help,.c-live,#chatPanel .mc-head .c-live{display:none!important}
-  #chatPanel.v-thread .mc-bk{display:flex;align-items:center;justify-content:center}
+  #chatPanel.open.v-thread .mc-bk{display:flex;align-items:center;justify-content:center}
   .mc-x{width:40px;height:40px}
-  #chatPanel.v-list .mc-main,#chatPanel.v-list .mc-bar,#chatPanel.v-list .c-row,#chatPanel.v-list .c-hint{display:none}
-  #chatPanel.v-thread .mc-side{display:none}
+  #chatPanel.open.v-list .mc-main,#chatPanel.open.v-list .mc-bar,#chatPanel.open.v-list .c-row,#chatPanel.open.v-list .c-hint{display:none}
+  #chatPanel.open.v-thread .mc-side{display:none}
   .mc-side{flex:1 1 auto;border-right:0;background:var(--bg)}
   .mc-th{min-height:64px;padding:8px 14px}
   .mc-main{flex:1 1 auto;background:var(--card)}

@@ -360,6 +360,7 @@ def _og_mobile(b, base):
         pg.tap("#moreBtn")
         pg.tap("#chatBtn")
         wait_until(pg, "() => __world.chat.mode === 'ok' && __world.gate.state.src === 'server'", 15000)
+        pg.tap("#mcStrip [data-room=ceo]")        # 手機改成先看對話清單、點進對話才有輸入框（2026-11-15 夜）
         pg.fill("#chatText", "手機第一則")
         pg.tap("#chatSend")
         ok("手機：送出第 1 則", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 30000))
