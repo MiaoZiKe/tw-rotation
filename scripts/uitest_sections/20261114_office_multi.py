@@ -737,11 +737,14 @@ def _mu_homeless_follow(pg_, b, base, code):
         tg = pg.evaluate("() => { const W = __world, v = new W.THREE.Vector3(23.6, 1.05, 34.5).project(W.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; }")
         pg.mouse.move(q["x"], q["y"]); pg.mouse.down(); pg.wait_for_timeout(700); pg.mouse.move(q["x"] + 8, q["y"] + 8, steps=3); pg.mouse.move(tg["x"], tg["y"], steps=12); pg.wait_for_timeout(300); pg.mouse.up(); pg.wait_for_timeout(3000)
         q = pg.evaluate(PT, "resource-auditor"); pg.mouse.click(q["x"], q["y"]); pg.wait_for_timeout(3000)
-        r = pg.evaluate("""async () => { const W = __world, c = W.chars.get('resource-auditor'); const xs = []; for (let i = 0; i < 40; i++) { await new Promise(r => requestAnimationFrame(r)); const p = W.camera.position; xs.push([p.x, p.z]); }
-          let mx = 0; for (let i = 1; i < xs.length; i++) mx = Math.max(mx, Math.hypot(xs[i][0] - xs[i - 1][0], xs[i][1] - xs[i - 1][1]));
-          return { maxStep: mx, view: W.view.mode, inZone: c.object3D.position.z > 30, state: c.state }; }""")
+        r = pg.evaluate("""async () => { const W = __world, c = W.chars.get('resource-auditor'); const xs = []; for (let i = 0; i < 40; i++) { await new Promise(r => requestAnimationFrame(r)); const p = W.camera.position, q = c.object3D.position; xs.push([p.x, p.z, q.x, q.z]); }
+          // 11-15：以前量「每格最大位移 < 0.15」，那是在角色卡住原地不動時的指標；走路保底修好後角色會走開、鏡頭跟著走，慢機器一格又很長，位移大是正常的。
+          //   真正的抖動是「鏡頭一格往左、下一格又往右」：連續兩格位移都 > 0.08 公尺而且方向相反的次數（反轉）必須 0。
+          let mx = 0, rev = 0; for (let i = 1; i < xs.length; i++) { const dx = xs[i][0] - xs[i - 1][0], dz = xs[i][1] - xs[i - 1][1], l = Math.hypot(dx, dz); mx = Math.max(mx, l);
+            if (i > 1) { const ex = xs[i - 1][0] - xs[i - 2][0], ez = xs[i - 1][1] - xs[i - 2][1], m = Math.hypot(ex, ez); if (l > 0.08 && m > 0.08 && dx * ex + dz * ez < 0) rev++; } }
+          return { maxStep: mx, rev, view: W.view.mode, inZone: c.object3D.position.z > 30, state: c.state }; }""")
         ok("角色被丟進遊民區並被跟隨", r["view"] == "char" and r["inZone"], r)
-        ok("遊民區跟隨：連續 40 格鏡頭位置每格變化 < 0.15 公尺（%.3f）" % r["maxStep"], r["maxStep"] < 0.15, r)
+        ok("遊民區跟隨：連續 40 格鏡頭沒有左右來回抖（方向反轉 %d 次、最大每格 %.3f 公尺）" % (r["rev"], r["maxStep"]), r["rev"] == 0, r)
         ok("無主控台錯誤（遊民區跟隨）", not [e for e in pg.errs if "vScP" not in e], pg.errs[:2])
     finally:
         c.close()
