@@ -3,7 +3,7 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.8
+      "seconds": 0.6
     },
     "official_refresh": {
       "status": "no_provisional",
@@ -15,7 +15,7 @@
     "twse.market": {
       "ok": true,
       "rows": 10,
-      "seconds": 0.2
+      "seconds": 0.0
     },
     "market_daily": {
       "stored": 0
@@ -23,7 +23,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1013,
-      "seconds": 10.1
+      "seconds": 9.1
     },
     "tape.collect": {
       "ok": true,
@@ -34,24 +34,23 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.2
+      "seconds": 1.1
     },
     "index_intraday": {
-      "stored": 0
+      "stored": 839
     },
     "taifex.futures_minute": {
       "ok": true,
-      "rows": 0,
-      "seconds": 0.0,
-      "skipped": "窗內候選日都處理過或今天的檔還沒出"
+      "rows": 839,
+      "seconds": 3.4
     },
     "news.collect": {
       "ok": true,
       "rows": 124,
-      "seconds": 2.8
+      "seconds": 2.5
     },
     "news": {
-      "stored": 41
+      "stored": 29
     },
     "news.broker_views": {
       "ok": true,
@@ -59,31 +58,31 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 1
+      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
       "rows": 2,
-      "seconds": 0.5
+      "seconds": 0.1
     },
     "material_news": {
-      "stored": 2
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4515,
-      "seconds": 2.7
+      "rows": 4516,
+      "seconds": 1.2
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 1
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15643,
-      "seconds": 2.3
+      "rows": 15645,
+      "seconds": 2.6
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
@@ -154,9 +153,15 @@
       "2026-11-13"
     ]
   },
-  "started_at": "2026-11-15T09:15:46.300407+00:00",
-  "finished_at": "2026-11-15T09:31:17.463570+00:00",
-  "duration_seconds": 931.2,
+  "taifex_minute_days": {
+    "FUT_N": [
+      "2026-11-13",
+      "2026-11-14"
+    ]
+  },
+  "started_at": "2026-11-15T18:50:31.711914+00:00",
+  "finished_at": "2026-11-15T19:07:00.979958+00:00",
+  "duration_seconds": 989.3,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -356,8 +361,8 @@
     },
     {
       "table": "news",
-      "rows": 12258,
-      "latest": "2026-11-15"
+      "rows": 12287,
+      "latest": "2026-11-16"
     },
     {
       "table": "broker_views",
@@ -366,13 +371,13 @@
     },
     {
       "table": "intl_daily",
-      "rows": 42761,
-      "latest": "2026-11-13"
+      "rows": 42762,
+      "latest": "2026-11-15"
     },
     {
       "table": "macro",
-      "rows": 15643,
-      "latest": "2026-11-14"
+      "rows": 15645,
+      "latest": "2026-11-15"
     },
     {
       "table": "macro_calendar",
@@ -396,7 +401,7 @@
     },
     {
       "table": "etf_dividend_events",
-      "rows": 4447,
+      "rows": 4495,
       "latest": "—"
     },
     {
@@ -426,7 +431,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 321354,
+      "rows": 322193,
       "latest": "—"
     },
     {
