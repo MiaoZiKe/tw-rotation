@@ -109,3 +109,31 @@ export function textPlane(lines, w, h, o = {}) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9, transparent: true, alphaTest: 0.3 }));
   m.userData.tex = tx; return m;
 }
+
+// ── 椅子取色（角色坐上加高椅時，座面盤與氣壓桿要跟原椅子同色）── 2026-11-15 效能：
+// 以前每位角色各自把整個場景的頂點逐一轉成世界座標再比對（開場約 800 萬次，佔「請同事就座」大半時間）。
+// 現在每個網格只轉一次：只留下高度落在 0.06～0.4 公尺（座面與氣壓桿判斷式唯一可能命中的範圍）的頂點，依 0.5 公尺格子分桶；
+// 查詢時照原本的網格順序、頂點順序比對，結果與逐點掃描完全相同。網格的世界矩陣或幾何換了就重建。
+const _chairIdx = new WeakMap(), _cv = new THREE.Vector3(), CELL = 0.5;
+function chairIndex(o) {
+  const g = o.geometry, P = g.attributes.position, e = o.matrixWorld.elements; let r = _chairIdx.get(o);
+  if (r && r.g === g && r.n === P.count) { let same = true; for (let k = 0; k < 16; k++) if (r.e[k] !== e[k]) { same = false; break; } if (same) return r; }
+  const cells = new Map();
+  for (let i = 0; i < P.count; i++) {
+    _cv.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); if (!(_cv.y > 0.06 && _cv.y < 0.4)) continue;
+    const key = Math.floor(_cv.x / CELL) * 4096 + Math.floor(_cv.z / CELL); let a = cells.get(key); if (!a) cells.set(key, a = []); a.push(i, _cv.x, _cv.y, _cv.z);
+  }
+  r = { g, n: P.count, e: e.slice(), cells }; _chairIdx.set(o, r); return r;
+}
+export function sampleChairColors(sc, seat) {
+  const out = { seat: null, pole: null }; if (!sc) return out; const cx = Math.floor(seat.x / CELL), cz = Math.floor(seat.z / CELL), hit = [];
+  sc.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.color || (out.seat && out.pole)) return; const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
+    const C = g.attributes.color; o.updateWorldMatrix(true, false); const bb = g.boundingBox.clone().applyMatrix4(o.matrixWorld); if (seat.x < bb.min.x - 0.3 || seat.x > bb.max.x + 0.3 || seat.z < bb.min.z - 0.3 || seat.z > bb.max.z + 0.3) return;
+    const r = chairIndex(o); hit.length = 0;
+    for (let ix = cx - 1; ix <= cx + 1; ix++) for (let iz = cz - 1; iz <= cz + 1; iz++) { const a = r.cells.get(ix * 4096 + iz); if (a) for (let k = 0; k < a.length; k += 4) hit.push(a[k], a[k + 1], a[k + 2], a[k + 3]); }
+    if (!hit.length) return; const ord = []; for (let k = 0; k < hit.length; k += 4) ord.push(k); ord.sort((p, q) => hit[p] - hit[q]);
+    for (const k of ord) { const i = hit[k], x = hit[k + 1], y = hit[k + 2], z = hit[k + 3], d = Math.hypot(x - seat.x, z - seat.z);
+      if (!out.seat && d > 0.2 && d < 0.3 && y > 0.33 && y < 0.4) out.seat = new THREE.Color().fromBufferAttribute(C, i);
+      else if (!out.pole && d < 0.05 && y > 0.06 && y < 0.345) out.pole = new THREE.Color().fromBufferAttribute(C, i); if (out.seat && out.pole) break; } });
+  return out;
+}

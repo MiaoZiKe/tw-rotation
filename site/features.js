@@ -521,15 +521,17 @@
      目前辦公室收件匣只有站長帳號寫得進去（後端 workers/ai-office-bridge 仍只認站長），這裡是前端閘門：站長（owner）永遠不受限。
      訪客 limBy 0＝不開放；註冊會員每日少量；體驗額度不替 Andy 預設（不在 GRANT_BAN，自動出現在「編輯：新會員體驗」）。
      辦公室其他互動（操控角色、多選、整修、視角、播放速度、績效總表、資訊卡）是看畫面與玩 3D 場景，不送資料、不耗資源，不登記功能鍵；
-     績效總表是示範資料的唯讀檢視，等接上真實成果再評估。 */
+     績效總表是示範資料的唯讀檢視，等接上真實成果再評估。
+     unlisted:true＝還沒對外上線：訂閱頁（pricing.js）權益表／功能數與會員額度面板（acctm4.js）先不列，免得一般人看到還用不到的功能；
+     「權限」「體驗」編輯器照列（它們不看 unlisted）。對外上線時把三個鍵的 unlisted 拿掉即可。 */
   LIST.push(
-    { id: 'office.cmd', name: 'AI 辦公室：下指令', cat: 'office', def: true, kind: 'bool', limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '則指令',
+    { id: 'office.cmd', name: 'AI 辦公室：下指令', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '則指令',
       qnote: '今天的指令次數用完了，明天會恢復', route: /^#office/,
       desc: '辦公室頂列「下指令」對話框：每成功送出一則算一次（用完：送出鈕灰掉、旁邊一行白話說明；撤回、查看回覆不算）', veil: [], mark: [], block: [] },
-    { id: 'office.connect', name: 'AI 辦公室：連接我的 Claude', cat: 'office', def: true, kind: 'bool', limBy: { guest: 0, free: 3 }, qper: 'each', qunit: '次',
+    { id: 'office.connect', name: 'AI 辦公室：連接我的 Claude', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 3 }, qper: 'each', qunit: '次',
       qnote: '今天的連接次數用完了，明天會恢復', route: /^#office/,
       desc: '辦公室「連接我的 Claude」：每產生一組接入碼（含換一組）算一次（用完：不再產生新的接入碼，已接好的連線與觀看不受影響）', veil: [], mark: [], block: [] },
-    { id: 'office.hr', name: 'AI 辦公室：開除與重新聘用', cat: 'office', def: true, kind: 'bool', limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
+    { id: 'office.hr', name: 'AI 辦公室：開除與重新聘用', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
       qnote: '今天的人事異動次數用完了，明天會恢復', route: /^#office/,
       desc: '辦公室人事：每確定開除一次（單人或整個部門算一次）、每重新聘用一位算一次（用完：確認框與資訊卡旁一行白話說明，不會執行）', veil: [], mark: [], block: [] }
   );

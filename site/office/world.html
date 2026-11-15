@@ -11,7 +11,51 @@
 <link rel="stylesheet" href="world/rewards.css">
 <link rel="stylesheet" href="world/chat.css">
 <link rel="stylesheet" href="world/gate.css">
+<style>/* 2026-11-15：房子先畫出來之後，載入提示縮成底部一顆小膠囊（角色建好、第一個正式畫面一出來就收掉） */#loading.mini{inset:auto auto 18px 50%;transform:translateX(-50%);padding:6px 14px;border-radius:999px;font-size:13px;background:var(--card,#fffaf2);box-shadow:0 2px 10px rgba(80,60,40,.18);pointer-events:none}</style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+<!-- 2026-11-15 效能（進場速度）：開場一定會用到的程式與資料先一起下載，不用等 main.js 一層一層 import 才發現（辦公室效能驗收段會檢查每一條都存在）-->
+<link rel="modulepreload" href="vendor/three.module.min.js">
+<link rel="modulepreload" href="world/js/kit.js">
+<link rel="modulepreload" href="world/js/furniture.js">
+<link rel="modulepreload" href="world/js/nav.js">
+<link rel="modulepreload" href="vendor/RoundedBoxGeometry.js">
+<link rel="modulepreload" href="vendor/BufferGeometryUtils.js">
+<link rel="modulepreload" href="play/species.js">
+<link rel="modulepreload" href="play/soft.js">
+<link rel="modulepreload" href="play/world.js">
+<link rel="modulepreload" href="play/limb.js">
+<link rel="modulepreload" href="play/lite.js">
+<link rel="modulepreload" href="play/character.js">
+<link rel="modulepreload" href="play/face.js">
+<link rel="modulepreload" href="world/js/newchar.js">
+<link rel="modulepreload" href="play/office_character.js">
+<link rel="modulepreload" href="char/mochi.js">
+<link rel="modulepreload" href="vendor/GLTFLoader.js">
+<link rel="modulepreload" href="play/materials.js">
+<link rel="modulepreload" href="char/skin.js">
+<link rel="modulepreload" href="char/facerig.js">
+<link rel="modulepreload" href="char/controller.js">
+<link rel="modulepreload" href="char/physics.js">
+<link rel="modulepreload" href="char/gait.js">
+<link rel="modulepreload" href="char/actions.js">
+<link rel="modulepreload" href="char/kinds.js">
+<link rel="modulepreload" href="char/accs.js">
+<link rel="preload" as="fetch" crossorigin href="world/cfg/layout.json">
+<link rel="preload" as="fetch" crossorigin href="world/cfg/org.json">
+<link rel="preload" as="fetch" crossorigin href="world/cfg/demo.json">
+<link rel="preload" as="fetch" crossorigin href="world/cfg/meeting_demo.json">
+<link rel="preload" as="fetch" crossorigin href="world/cfg/roster.json">
+<link rel="preload" as="fetch" crossorigin href="world/cfg/rewards.json">
+<link rel="preload" as="fetch" crossorigin href="char/profiles/mochi.json">
+<link rel="preload" as="fetch" crossorigin href="char/models/mochi.json">
+<link rel="preload" as="fetch" crossorigin href="char/models/mochi_lod0.glb">
+<link rel="preload" as="fetch" crossorigin href="char/models/mochi_lod2.glb">
+<link rel="preload" as="fetch" crossorigin href="char/models/bunny.json">
+<link rel="preload" as="fetch" crossorigin href="char/models/bunny_lod0.glb">
+<link rel="preload" as="fetch" crossorigin href="char/models/bunny_lod2.glb">
+<link rel="preload" as="fetch" crossorigin href="char/models/pudding.json">
+<link rel="preload" as="fetch" crossorigin href="char/models/pudding_lod0.glb">
+<link rel="preload" as="fetch" crossorigin href="char/models/pudding_lod2.glb">
 </head>
 <body>
 <div id="app">

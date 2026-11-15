@@ -107,7 +107,7 @@ def _ch_open(b, base, br, login=True, w=1280, h=800, touch=False, extra_ls=None)
     pg.set_default_timeout(60000)
     pg.errs = []
     pg.on("pageerror", lambda e: pg.errs.append(str(e)))
-    pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text and "401" not in m.text else None)
+    pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text and "401" not in m.text and "409" not in m.text and "429" not in m.text and "Failed to load resource" not in m.text and "ERR_" not in m.text else None)   # 409／429／連線失敗：瀏覽器自己印的載入資源失敗，程式已接住
     pg.route(_CH_AIO + "/**", br.handle)
     pg.route("**/v1/me", lambda r: r.fulfill(status=200, body='{"user":{"admin":true}}', headers={"Access-Control-Allow-Origin": "*", "Content-Type": "application/json"}) if r.request.url.startswith("http") and "aio.test" not in r.request.url else r.continue_())
     pg.goto(_ch_root(base) + "/office/world.html?ambient=0&q=low&pr=0.6&chat_poll=500&chat_bg_poll=700&live_poll=700", wait_until="domcontentloaded")

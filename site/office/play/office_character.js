@@ -17,7 +17,7 @@ import { Character } from './character.js';
 import { SPECIES, SPECIES_IDS, canWear } from './species.js';
 import { stubFx } from './lite.js';
 import { DETAIL, clamp, lerp, sstep } from './soft.js';
-import { G as KG, Part, MAT } from '../world/js/kit.js';
+import { G as KG, Part, MAT, sampleChairColors } from '../world/js/kit.js';
 
 const V3 = THREE.Vector3, _v = new V3(), _w = new V3();
 const EXPR = { neutral: null, happy: 'happy', angry: 'angry', surprised: 'surprised', sad: 'sad', think: 'look', awkward: 'shy', proud: 'smug', sleepy: 'sleepy', laugh: 'laugh', ouch: 'ouch', pout:'pout', worried:'worried', wary:'wary', relieved:'relieved', blank:'blank', cry:'cry', grateful:'grateful', fistpump:'fistpump', sulkf:'sulkf', scared:'scared', cough:'cough', giggle:'giggle', smile:'smile', confused:'confused', dizzy:'dizzy', bliss:'bliss', yawn:'yawn', whee:'whee', effort:'effort', shy:'shy', smug:'smug' };
@@ -166,10 +166,12 @@ export function createCharacter(spec, env = {}) {
       // 遠近分級：遠的隔幾幀才更新一次姿態與表情
       let dist = 0; if (env.camera) { camP.copy(env.camera.position); dist = camP.distanceTo(root.position); camP.multiplyScalar(1 / s); }
       const want = c._held || react || env.followed === c ? 0 : dist > CFG.lodFar ? 2 : dist > CFG.lodNear ? 1 : 0; if (want !== lod) setLod(want);
-      accDt += dt; frame++;
-      if (lod === 0 || c._path || c._hop || frame % (lod + 1) === 0) {
+      // 2026-11-15 效能（4× 卡頓）：一個畫面幀裡有好幾個模擬子步時（env.draw === false 的那幾步），只推進物理，
+      // 姿態／表情／蒙皮（ch.animate）累積到最後一個子步（要繪圖的那一步）一次做；時間照樣全數累積，以 0.25 秒為一段分次推進（animate 內的彈簧自己會再細分、其餘是指數平滑），計時與彈簧不受影響。
+      const draw = env.draw !== false; accDt += dt; if (draw) frame++;
+      if (draw && (lod === 0 || c._path || c._hop || frame % (lod + 1) === 0)) {
         root.updateMatrix(); space.matrix.copy(root.matrix).invert(); if (s !== 1) space.matrix.scale(_v.set(s, s, s)); root.updateMatrixWorld(true);
-        ch.animate(Math.min(accDt, 0.1), aenv); accDt = 0; props(t); tickShared(t);
+        { const na = Math.max(1, Math.ceil(accDt / 0.25 - 1e-6)), ha = accDt / na; for (let i = 0; i < na; i++) ch.animate(ha, aenv); } accDt = 0; props(t); tickShared(t);
       } else { root.updateMatrix(); space.matrix.copy(root.matrix).invert(); if (s !== 1) space.matrix.scale(_v.set(s, s, s)); root.updateMatrixWorld(true); }
       if (icon && icon.visible) {
         iconT += dt; const u = iconT / iconDur; if (u >= 1) icon.visible = false; else { const pop = u < 0.12 ? 1 + 0.5 * Math.sin(u / 0.12 * Math.PI) : 1, k = clamp(dist * 0.03, 0.34, 1.3) * pop * (u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u / 0.06)); icon.scale.setScalar(k); icon.material.rotation = c.emoteSym && c.emoteSym.sym === 'swirl' ? -iconT * 7 : 0; icon.position.set(0, c.height + c.lift + 0.2 + dist * 0.04 + k * 0.5 + Math.sin(iconT * 5) * 0.02, 0); }   // 圖示放在名牌上方
@@ -253,15 +255,7 @@ export function createCharacter(spec, env = {}) {
   const CUSHION_MAX = 0.12; let cushion = null, riser = null, poleM = null, padM = null, _cushH = -1, _chairCol = null;
   const seatMat = () => new THREE.MeshStandardMaterial({ color: new THREE.Color(spec.color || '#ffd9b0').lerp(new THREE.Color('#ffffff'), 0.35), roughness: 0.9 });
   // 取原椅子座面與氣壓桿的頂點色：在座位中心附近的合併網格裡找座面側邊（半徑 0.2~0.3、高 0.33~0.40）與氣壓桿（半徑 <0.05）的頂點
-  function sampleChair(seat) {
-    const out = { seat: null, pole: null }, sc = root.parent; if (!sc) return out; const v = new V3(), col = new THREE.Color();
-    sc.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.color || (out.seat && out.pole)) return; const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
-      const P = g.attributes.position, C = g.attributes.color; o.updateWorldMatrix(true, false); const bb = g.boundingBox.clone().applyMatrix4(o.matrixWorld); if (seat.x < bb.min.x - 0.3 || seat.x > bb.max.x + 0.3 || seat.z < bb.min.z - 0.3 || seat.z > bb.max.z + 0.3) return;
-      for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); const dx = v.x - seat.x, dz = v.z - seat.z, d = Math.hypot(dx, dz);
-        if (!out.seat && d > 0.2 && d < 0.3 && v.y > 0.33 && v.y < 0.4) out.seat = new THREE.Color().fromBufferAttribute(C, i);
-        else if (!out.pole && d < 0.05 && v.y > 0.06 && v.y < 0.345) out.pole = new THREE.Color().fromBufferAttribute(C, i); if (out.seat && out.pole) break; } });
-    return out;
-  }
+  function sampleChair(seat) { return sampleChairColors(root.parent, seat); }   // 2026-11-15：改用 kit.js 的共用索引（結果相同，開場快很多）
   function seatY(seat) {
     const base = Math.max(0, seat.y - 0.04), chair = seat.y > 0.405 && seat.y < 0.435; let boost = chair ? clamp(0.93 - (ch.cfg.mouth[1] * s + base), 0, 0.27) : 0; if (boost < 0.03) boost = 0;
     const high = boost > CUSHION_MAX, P = seatPos(seat);

@@ -14,7 +14,7 @@ import { PhysWorld } from '../../char/physics.js';
 import { CHANNELS } from '../../char/actions.js';
 import { NEW_KINDS, isNew, colorsFor, mergeProfile, officeProfile, PROFILE_OVERRIDE } from '../../char/kinds.js';
 import { addAccs, addCherry } from '../../char/accs.js';
-import { G as KG } from './kit.js';
+import { G as KG, sampleChairColors } from './kit.js';
 import { NAV } from './nav.js';
 export * from '../../play/office_character.js';
 
@@ -26,8 +26,9 @@ const FORCE_OLD = /[?&]body=v1\b/.test(location.search);   // 2026-11-14 擁有�
 // ── 資源預載（頂層 await：模組載入完成時，三個物種的近景／遠景網格與個性檔都已就緒，createCharacter 可以同步建立）
 const ASSET = {}; let BASE_PROFILE = null;
 if (!FORCE_OLD) {
-  BASE_PROFILE = await loadProfile(new URL('../../char/profiles/mochi.json', import.meta.url).href);
-  await Promise.all(Object.keys(NEW_KINDS).map(async (sp) => { const [a0, a2] = await Promise.all([loadMochi({ species: sp, lod: 0 }), loadMochi({ species: sp, lod: 2 })]); ASSET[sp] = { 0: a0, 2: a2 }; }));
+  // 2026-11-15 效能：個性檔與六個模型同時下載（以前先等個性檔才開始抓模型，多一趟來回）；world.html 也先預載了這些檔案
+  const prof = loadProfile(new URL('../../char/profiles/mochi.json', import.meta.url).href);
+  await Promise.all([prof.then(p => { BASE_PROFILE = p; }), ...Object.keys(NEW_KINDS).map(async (sp) => { const [a0, a2] = await Promise.all([loadMochi({ species: sp, lod: 0 }), loadMochi({ species: sp, lod: 2 })]); ASSET[sp] = { 0: a0, 2: a2 }; })]);
 }
 export const newCharStats = { created: 0, species: {}, rescue: 0 };
 try { globalThis.__ncStats = newCharStats; } catch (e) { /* 沒有全域物件的環境不需要 */ }
@@ -145,9 +146,11 @@ function makeNew(spec, look, env) {
       // 遠近分級
       let dist = 0; if (env.camera) { camP.copy(env.camera.position); dist = camP.distanceTo(root.position); }
       const want = c._held || react || env.followed === c ? 0 : dist > 30 ? 2 : dist > 14 ? 1 : 0; if (want !== lod) setLod(want);
-      accDt += dt; frame++;
-      if (lod === 0 || c._path || c._held || ctl.state !== 'idle' || frame % (lod + 1) === 0) {
-        step(Math.min(accDt, 0.066)); accDt = 0; applyPose(t); props(t); Old.tickShared(t);
+      // 2026-11-15 效能（4× 卡頓）：同一畫面幀的前幾個模擬子步（env.draw === false）只推進控制器的固定步物理，
+      // 姿勢內插、腳 IK、接地投影、蒙皮與臉（ctl.render）留到要繪圖的最後一個子步一次做（量測：render 佔角色更新九成）。
+      const draw = env.draw !== false; accDt += dt; if (draw) frame++;
+      if (lod === 0 || c._path || c._held || ctl.state !== 'idle' || (draw && frame % (lod + 1) === 0)) {
+        step(Math.min(accDt, 0.066), draw); accDt = 0; if (draw) { applyPose(t); props(t); Old.tickShared(t); }
       }
       { const sv = !!c._seat && ctl.state === 'sit' && lod < 2 && root.visible; if (cushion) cushion.visible = sv && c._boost > 0 && !(c._lift > 0); if (riser) riser.visible = sv && c._lift > 0; }
       speakLip(t);
@@ -265,9 +268,17 @@ function makeNew(spec, look, env) {
     c.heading = Math.atan2(vx, vz); const run = sp > walkV * 1.35;
     ctl.setMove(vx, vz, clamp(sp / (run ? runV : walkV), 0.25, 1), run);
   }
-  function step(dt) {
+  let visDt = 0;
+  function step(dt, draw = true) {
+    visDt += dt;
+    if (!draw) {     // 只推進物理：位置、朝向、離地高度用控制器的快照內插（與 ctl.render 開頭同一個算法），骨架與蒙皮不動
+      const al = ctl.stepper.advance(dt, (h) => ctl.tick(h)), s0 = ctl.snapPrev, s1 = ctl.snap, bd = ctl.body, py = lerp(s0.y, s1.y, al);
+      root.position.set(lerp(s0.x, s1.x, al) * s, 0, lerp(s0.z, s1.z, al) * s); root.rotation.y = s0.yaw + Math.atan2(Math.sin(s1.yaw - s0.yaw), Math.cos(s1.yaw - s0.yaw)) * al;
+      inner.vel.set(bd.vx * s, bd.vy * s, bd.vz * s); inner.pos.set(bd.x, bd.y, bd.z); c.lift = py * s; root.updateMatrix(); root.matrixWorld.copy(root.matrix); space.matrix.copy(root.matrix).invert();
+      return;
+    }
     root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.setScalar(1); root.updateMatrixWorld(true);
-    ctl.update(dt);
+    { const al = ctl.stepper.advance(dt, (h) => ctl.tick(h)); ctl.render(al, Math.min(visDt, 0.4)); visDt = 0; }   // ＝ ctl.update(dt)，只是臉與彈簧拿到這一幀累積的全部時間
     const p = ch.root.position, yaw = ch.root.rotation.y, py = p.y;
     root.position.set(p.x * s, 0, p.z * s); root.rotation.y = yaw; root.scale.setScalar(s); ch.root.position.set(0, py, 0); ch.root.rotation.y = 0;
     const bd = ctl.body; inner.vel.set(bd.vx * s, bd.vy * s, bd.vz * s); inner.pos.set(bd.x, bd.y, bd.z); c.lift = py * s; root.updateMatrix(); space.matrix.copy(root.matrix).invert(); root.updateMatrixWorld(true);
@@ -318,15 +329,7 @@ function makeNew(spec, look, env) {
   // ── 坐下：椅子座面抬高／坐墊（與舊系統相同的規則：嘴要高過桌面；薄墊一塊、厚就換一張高一點的椅面），座面用控制器的方塊
   const CUSHION_MAX = 0.12; let cushion = null, riser = null, poleM = null, padM = null, _cushH = -1, _chairCol = null;
   const seatMat = () => new THREE.MeshStandardMaterial({ color: new THREE.Color(spec.color || '#ffd9b0').lerp(new THREE.Color('#ffffff'), 0.35), roughness: 0.9 });
-  function sampleChair(seat) {
-    const out = { seat: null, pole: null }, sc = root.parent; if (!sc) return out; const v = new V3();
-    sc.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.color || (out.seat && out.pole)) return; const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
-      const P = g.attributes.position, C = g.attributes.color; o.updateWorldMatrix(true, false); const bb = g.boundingBox.clone().applyMatrix4(o.matrixWorld); if (seat.x < bb.min.x - 0.3 || seat.x > bb.max.x + 0.3 || seat.z < bb.min.z - 0.3 || seat.z > bb.max.z + 0.3) return;
-      for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); const dx = v.x - seat.x, dz = v.z - seat.z, d = Math.hypot(dx, dz);
-        if (!out.seat && d > 0.2 && d < 0.3 && v.y > 0.33 && v.y < 0.4) out.seat = new THREE.Color().fromBufferAttribute(C, i);
-        else if (!out.pole && d < 0.05 && v.y > 0.06 && v.y < 0.345) out.pole = new THREE.Color().fromBufferAttribute(C, i); if (out.seat && out.pole) break; } });
-    return out;
-  }
+  function sampleChair(seat) { return sampleChairColors(root.parent, seat); }   // 2026-11-15：改用 kit.js 的共用索引（結果相同，開場快很多）
   function seatY(seat) {
     const base = Math.max(0, seat.y - 0.04), chair = seat.y > 0.405 && seat.y < 0.435; let boost = chair ? clamp(0.93 - (mouthY * s + base), 0, 0.27) : 0; if (boost < 0.03) boost = 0;
     const high = boost > CUSHION_MAX, P = seatPos(seat);

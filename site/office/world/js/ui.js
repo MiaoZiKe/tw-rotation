@@ -121,7 +121,7 @@ export function createUI(W, demo, api) {
     el.innerHTML = rows.length ? rows.map(({ x, i }) => `<div class="rowx${cardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-r="${i}" aria-expanded="${cardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${cardOpen === i ? taskDetail(x, spec, p) : ''}</div>`).join('') : `<div class="empty">這個狀態目前沒有任務</div>`;
   }
   // 心情列（mind.js）：一個小圖示＋心情＋原因，例如「心情：😊 開心（剛被稱讚）」；沒有心情層就不畫
-  const moodRow = c => { const ml = W.mind && W.mind.moodLine(c); return ml ? `<div class="now mood" id="cardMood" data-mood="${ml.key}" role="status">${esc(ml.text)}</div>` : ''; };
+  const moodRow = c => { const ml = W.mind && W.mind.moodLine(c); return ml ? `<div class="now mood" id="cardMood" data-mood="${ml.key}" role="status"${ml.tip ? ` title="${esc(ml.tip)}"` : ''}>${esc(ml.text)}</div>` : ''; };
   U.showCard = c => {
     if (c.jobless) return showJobless(c);
     cardChar = c; draft = null; $('board').hidden = true; const s = c.spec, p = progress(s), m = W.members.get(s.id) || s; cardP = p; cardF = 0; cardOpen = -1;
@@ -179,7 +179,7 @@ export function createUI(W, demo, api) {
     if (!c) { U.toast('他正在開會，散會後再改'); return; }
     draft = null; U.showCard(c); api.setView('char', c); U.toast(reset ? '已還原預設造型' : saved ? '已儲存（只記在這台裝置）' : '這台裝置無法儲存，重新整理後會還原');
   }
-  U.tickCard = () => { if (cardChar && !$('card').hidden) { const el = $('cardNow'), t = '目前：' + STATE(cardChar); if (el && el.textContent !== t) el.textContent = t; const me = $('cardMood'), ml = W.mind && W.mind.moodLine(cardChar); if (me && ml && me.textContent !== ml.text) { me.textContent = ml.text; me.dataset.mood = ml.key; } } };
+  U.tickCard = () => { if (cardChar && !$('card').hidden) { const el = $('cardNow'), t = '目前：' + STATE(cardChar); if (el && el.textContent !== t) el.textContent = t; const me = $('cardMood'), ml = W.mind && W.mind.moodLine(cardChar); if (me && ml && me.textContent !== ml.text) { me.textContent = ml.text; me.dataset.mood = ml.key; if (ml.tip) me.title = ml.tip; else me.removeAttribute('title'); } } };
   $('card').addEventListener('keydown', e => { const r = e.target.closest && e.target.closest('[data-r]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
   $('card').onclick = e => {
     { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }   // 滑鼠點過就放掉焦點，之後按 Space 才是「跳躍」而不是再點一次這顆按鈕（鍵盤操作不受影響）

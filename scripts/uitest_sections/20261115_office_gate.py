@@ -147,6 +147,25 @@ def _og_used(pg, k):
     return pg.evaluate("(k) => { try { const d = JSON.parse(localStorage.getItem('tw.quota') || '{}'); return ((d.k || {})[k] || []).length; } catch (e) { return -1; } }", k)
 
 
+def _og_wused(pg, k, n, ms=30000):
+    """今天的用量要到 n：機器忙（3D 場景加上別的驗收同時在跑）時動作完成得慢，所以用等的，不是讀一次。"""
+    return bool(wait_until(pg, "() => { try { return (((JSON.parse(localStorage.getItem('tw.quota') || '{}')).k || {})['%s'] || []).length === %d; } catch (e) { return false; } }" % (k, n), ms))
+
+
+def _og_js(pg, sel):
+    """3D 場景把主執行緒吃滿時 Playwright 的「等元素穩定」會逾時；這幾顆按鈕只驗功能，用頁面內的 click() 直接按。"""
+    pg.evaluate("(s) => { const e = document.querySelector(s); if (!e) throw new Error('找不到 ' + s); e.click(); }", sel)
+
+
+def _og_srv(pg, ac, k, n):
+    """伺服器對帳是動作做完後才非同步送出的：最多等 2 秒再看伺服器記了幾次。"""
+    for _ in range(20):
+        if len(ac.quota.get(k, [])) >= n:
+            break
+        pg.wait_for_timeout(100)
+    return len(ac.quota.get(k, [])) == n
+
+
 def _og_send(pg, text):
     pg.fill("#chatText", text)
     pg.keyboard.press("Control+Enter")
@@ -270,35 +289,35 @@ def _og_connect_hr(b, base):
         # —— 連接我的 Claude：每日 1 次
         pg.evaluate("() => __world.live.openGuide()")
         ok("連接：引導視窗打開", _og_vis(pg, "#aioGuide"))
-        pg.click("#aioGuide [data-a=cpcode]")
-        ok("連接：第 1 次產生接入碼成功（遮罩版出現、收件端領了 1 次、計數 1、伺服器記 1）", wait_until(pg, "() => !!document.getElementById('aioCodeMask')", 8000) and br.claims == 1 and _og_used(pg, "office.connect") == 1 and len(ac.quota.get("office.connect", [])) == 1,
+        _og_js(pg, "#aioGuide [data-a=cpcode]")
+        ok("連接：第 1 次產生接入碼成功（遮罩版出現、收件端領了 1 次、計數 1、伺服器記 1）", wait_until(pg, "() => !!document.getElementById('aioCodeMask')", 30000) and br.claims == 1 and _og_wused(pg, "office.connect", 1) and _og_srv(pg, ac, "office.connect", 1),
            (br.claims, _og_used(pg, "office.connect")))
-        pg.click("#aioGuide .aio-gx")
-        wait_until(pg, "() => !__world.live.code", 6000)
+        _og_js(pg, "#aioGuide .aio-gx")
+        wait_until(pg, "() => !__world.live.code", 20000)
         pg.evaluate("() => __world.live.openGuide()")
-        pg.click("#aioGuide [data-a=cpcode]")
-        ok("連接：第 2 次被鎖——視窗裡寫白話「今天的連接次數用完了（今天 1／1），明天會恢復」", wait_until(pg, "() => (document.querySelector('#aioGuide .aio-msg') || {}).textContent && document.querySelector('#aioGuide .aio-msg').textContent.includes('連接次數用完了')", 8000), pg.inner_text("#aioGuide"))
+        _og_js(pg, "#aioGuide [data-a=cpcode]")
+        ok("連接：第 2 次被鎖——視窗裡寫白話「今天的連接次數用完了（今天 1／1），明天會恢復」", wait_until(pg, "() => (document.querySelector('#aioGuide .aio-msg') || {}).textContent && document.querySelector('#aioGuide .aio-msg').textContent.includes('連接次數用完了')", 30000), pg.inner_text("#aioGuide"))
         ok("連接：被鎖時不再向收件端領接入碼（仍是 1 次）、沒有遮罩版", br.claims == 1 and not pg.query_selector("#aioCodeMask"))
         ok("連接：說明沒有禁用字", not _OG_BAD.search(pg.inner_text("#aioGuide .aio-msg")), pg.inner_text("#aioGuide .aio-msg"))
         _og_shot(pg, "gate_3_桌機_連接被鎖.png")
-        pg.click("#aioGuide .aio-gx")
+        _og_js(pg, "#aioGuide .aio-gx")
         # —— 開除與重新聘用：每日 1 次
         pg.evaluate("() => __world.hr.ask(['frontend-ui'])")
         ok("開除：確認框打開、還沒用過所以沒有被鎖說明、開除鈕可按", _og_vis(pg, "#fireDlg") and not _og_vis(pg, "#fdGate") and not pg.is_disabled("#fireGo"))
-        pg.click("#fireGo")
-        pg.click("#fireGo")
-        ok("開除：第二次按才執行、frontend-ui 被開除、計數 1", wait_until(pg, "() => !document.getElementById('fireDlg') && __world.hr.fired.has('frontend-ui')", 8000) and _og_used(pg, "office.hr") == 1 and len(ac.quota.get("office.hr", [])) == 1)
+        _og_js(pg, "#fireGo")
+        _og_js(pg, "#fireGo")
+        ok("開除：第二次按才執行、frontend-ui 被開除、計數 1", wait_until(pg, "() => !document.getElementById('fireDlg') && __world.hr.fired.has('frontend-ui')", 30000) and _og_wused(pg, "office.hr", 1) and _og_srv(pg, ac, "office.hr", 1))
         pg.evaluate("() => __world.hr.ask(['mobile-ui'])")
-        ok("開除：今天的次數用完後再開確認框 → 框裡寫白話說明、開除鈕灰掉", wait_until(pg, "() => { const g = document.getElementById('fdGate'); return !!g && !g.hidden && g.textContent.includes('人事異動次數用完了') && document.getElementById('fireGo').disabled; }", 6000), pg.evaluate("() => (document.getElementById('fdGate') || {}).textContent"))
+        ok("開除：今天的次數用完後再開確認框 → 框裡寫白話說明、開除鈕灰掉", wait_until(pg, "() => { const g = document.getElementById('fdGate'); return !!g && !g.hidden && g.textContent.includes('人事異動次數用完了') && document.getElementById('fireGo').disabled; }", 20000), pg.evaluate("() => (document.getElementById('fdGate') || {}).textContent"))
         ok("開除：確認框的說明沒有禁用字", not _OG_BAD.search(pg.inner_text("#fireDlg")), _OG_BAD.findall(pg.inner_text("#fireDlg")))
         _og_shot(pg, "gate_4_桌機_開除被鎖.png")
-        pg.click("#fireCancel")
+        _og_js(pg, "#fireCancel")
         ok("開除：取消後沒有人被多開除", pg.evaluate("() => !__world.hr.fired.has('mobile-ui') && __world.hr.fired.size === 1"))
         # 重新聘用（資訊卡的鈕）
         pg.evaluate("() => __world.ui.showCard(__world.chars.get('frontend-ui'))")
         ok("重新聘用：被開除者的資訊卡有「重新聘用」鈕", _og_vis(pg, "#card [data-hr=hire]"))
-        pg.click("#card [data-hr=hire]")
-        ok("重新聘用：次數用完 → 沒有執行（仍在無業遊民區）、畫面下方浮出白話說明", wait_until(pg, "() => { const e = document.getElementById('gateSay'); return !!e && !e.hidden && e.textContent.includes('人事異動次數用完了'); }", 6000) and pg.evaluate("() => __world.hr.fired.has('frontend-ui')"), pg.evaluate("() => (document.getElementById('gateSay') || {}).textContent"))
+        _og_js(pg, "#card [data-hr=hire]")
+        ok("重新聘用：次數用完 → 沒有執行（仍在無業遊民區）、畫面下方浮出白話說明", wait_until(pg, "() => { const e = document.getElementById('gateSay'); return !!e && !e.hidden && e.textContent.includes('人事異動次數用完了'); }", 20000) and pg.evaluate("() => __world.hr.fired.has('frontend-ui')"), pg.evaluate("() => (document.getElementById('gateSay') || {}).textContent"))
         ok("重新聘用：說明沒有禁用字", not _OG_BAD.search(pg.inner_text("#gateSay")), pg.inner_text("#gateSay"))
         _og_shot(pg, "gate_5_桌機_重新聘用被鎖.png")
         ok("連接與人事：沒有主控台錯誤", not pg.errs, pg.errs[:3])
@@ -374,8 +393,40 @@ def _og_mobile(b, base):
         c.close()
 
 
+# ───────────────────────── ⑨ 下指令介面補強：數字徽章、手機鍵盤彈出 ─────────────────────────
+def _og_ui(b, base):
+    br, ac = _OgBridge(), _OgAcct(lims={"office.cmd": 5})
+    c, pg, got = _og_open(b, base, br, ac)
+    try:
+        if not ok("徽章：辦公室頁載入完成", got):
+            return
+        pg.click("#chatBtn")
+        wait_until(pg, "() => __world.chat.mode === 'ok'", 30000)
+        _og_send(pg, "徽章測試")
+        wait_until(pg, "() => !document.getElementById('chatN').hidden", 30000)
+        r = pg.evaluate("() => { const e = document.getElementById('chatN'), s = getComputedStyle(e), b = e.getBoundingClientRect(); return { bw: s.borderTopWidth, mt: s.marginTop, w: Math.round(b.width), h: Math.round(b.height), t: e.textContent }; }")
+        ok("徽章：沒吃到下拉三角形樣式（無邊框、無上邊距）、是 18 高的圓、數字 1", r["bw"] == "0px" and r["mt"] == "0px" and r["h"] == 18 and r["w"] >= 18 and r["t"] == "1", r)
+        _og_shot(pg, "gate_6_徽章.png")
+    finally:
+        c.close()
+    br, ac = _OgBridge(), _OgAcct(lims={"office.cmd": 5})
+    c, pg, got = _og_open(b, base, br, ac, w=390, h=480, touch=True)
+    try:
+        pg.evaluate("() => document.getElementById('moreBtn').click()")
+        pg.evaluate("() => document.getElementById('chatBtn').click()")
+        wait_until(pg, "() => __world.chat.mode === 'ok'", 30000)
+        pg.fill("#chatText", "鍵盤測試")
+        _og_js(pg, "#chatSend")
+        wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 30000)
+        r = pg.evaluate("() => { const l = document.getElementById('chatList').getBoundingClientRect(), b = document.querySelector('#chatList [data-cancel]').getBoundingClientRect(), p = document.getElementById('chatPanel').getBoundingClientRect(); return { lt: l.top, lb: l.bottom, bt: b.top, bb: b.bottom, ph: p.height, lh: l.height }; }")
+        ok("手機鍵盤彈出（可視高 480）：訊息卡與「撤回」鈕完整看得見（沒被切）", r["bt"] >= r["lt"] - 1 and r["bb"] <= r["lb"] + 1 and r["lh"] >= 100, r)
+        _og_shot(pg, "gate_m3_鍵盤480.png")
+    finally:
+        c.close()
+
+
 def _og_all(b, base):
-    for fn in (_og_member, _og_grants, _og_owner, _og_guest, _og_connect_hr, _og_demo, _og_mobile):
+    for fn in (_og_member, _og_grants, _og_owner, _og_guest, _og_connect_hr, _og_demo, _og_mobile, _og_ui):
         try:
             fn(b, base)
         except Exception as e:

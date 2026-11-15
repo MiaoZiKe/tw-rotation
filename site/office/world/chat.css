@@ -1,6 +1,7 @@
 /* 對 Agent 下指令（world/js/chat.js）。只在辦公室頁載入；手機（≤640）全螢幕。 */
 .btn.chat-b{gap:6px}
-.btn.chat-b .cn{font-style:normal;font-size:12px;line-height:18px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--on);color:#fff;text-align:center;font-weight:800}
+/* world.css 的 .btn i 是下拉三角形（寬高 0、5px 邊框、上邊距 5px），徽章不能吃到它 */
+.btn.chat-b .cn{border:0;margin:0;width:auto;box-sizing:border-box;display:inline-block;font-style:normal;font-size:12px;line-height:18px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--on);color:#fff;text-align:center;font-weight:800}
 .btn.chat-b.on .cn{background:#fff;color:var(--on)}
 #chatPanel{right:12px;top:64px;width:392px;height:calc(100dvh - 76px);max-height:calc(100dvh - 76px);z-index:26;padding:14px;gap:8px}
 #chatPanel h3{margin:0 40px 0 2px;font-size:16px}
@@ -49,4 +50,12 @@
   #chatPanel h3{font-size:17px;min-height:36px;display:flex;align-items:center}
   #chatPanel .c-form select,#chatPanel .c-form textarea{font-size:16px}
   #chatPanel .c-row .btn{height:42px}
+}
+/* 手機螢幕鍵盤彈出（可視高約 480）：表單縮緊、說明列隱藏，讓訊息列表至少完整露出一張卡（含「撤回」鈕）；整個面板放不下時自己可捲 */
+@media (max-width:640px) and (max-height:600px){
+  #chatPanel{overflow-y:auto;padding-bottom:12px}
+  #chatPanel .c-hint,#chatPanel .c-live,#chatPanel .c-form label{display:none}
+  #chatPanel .c-form textarea{min-height:44px;max-height:64px}
+  #chatPanel .c-list{flex:1 0 150px;min-height:150px}
+  #chatPanel h3{min-height:30px}
 }

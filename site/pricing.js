@@ -288,7 +288,7 @@
     return undefined;
   }
   /* 功能清單（方案權益用）：族群觀測另算；adminOnly（盤中即時、1／5／15 分 K，DECISIONS #326）只有管理者帳號有，不算方案權益 */
-  const boolFs = () => { const Ft = F(); return Ft ? Ft.list.filter((f) => f.kind === 'bool' && f.cat !== 'grp' && !f.adminOnly) : []; };
+  const boolFs = () => { const Ft = F(); return Ft ? Ft.list.filter((f) => f.kind === 'bool' && f.cat !== 'grp' && !f.adminOnly && !f.unlisted) : []; };   // unlisted（features.js）：還沒對外上線的功能，訂閱頁權益表先不列、不算進功能數
   /* 自選清單：preset 的 watch{tabs,size}（tabs null＝不限頁）優先；後端範本只有 watch.tabs（features.js 的 limit 開關），有 watch.size 就一起寫 */
   function watchCell(p) {
     const Ft = F(), wt = Ft && Ft.byId('watch.tabs');
@@ -649,7 +649,7 @@
       else same++;
     }
     Ft.cats.filter((c) => c.id !== 'grp').forEach((c) => {
-      const fs = Ft.inCat(c.id).filter((f) => !f.adminOnly && f.id !== 'watch.size' && (f.kind === 'bool' || f.kind === 'limit'));   // 每頁檔數併進「自選分頁數」那一格（watchCell）
+      const fs = Ft.inCat(c.id).filter((f) => !f.adminOnly && !f.unlisted && f.id !== 'watch.size' && (f.kind === 'bool' || f.kind === 'limit'));   // 每頁檔數併進「自選分頁數」那一格（watchCell）
       /* 同一列有方案寫「每日 N 次」時，不限的那格寫「不限」而不是 ✓（不然看起來像「有」但不知道幾次）*/
       const diff = fs.map((f) => { const cs = plans.map((p) => cell(p, f)); return [f, cs.some((x) => /^每日/.test(x.t)) ? cs.map((x) => (x.c === 'y' ? { c: 'y', t: '不限' } : x)) : cs]; }).filter(([, cs]) => { if (new Set(cs.map((x) => x.t)).size > 1) return true; if (cs.every((x) => x.c === 'n')) return false; same++; return false; });   // 2026-11-07：四個方案都沒開（暫不開放，例 stock.bigsmall）不算進「全部方案皆可用」
       if (!diff.length) return;
@@ -708,7 +708,7 @@
     const pbig = pr.amount == null ? '價格待定' : pr.total && pr.unit === '／年' ? `NT$ ${nt(pr.total)}<small>／年</small>${dayTag(pr)}` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>${dayTag(pr)}`;
     /* 已含功能：依 features.js 類別分組、兩欄打勾（範本 feats／lims 算出來的，跟比較表同一份）；有上限的寫「每日 N 次」 */
     const Ft = F();
-    const groups = Ft ? Ft.cats.filter((c) => c.id !== 'grp').map((c) => [c, Ft.inCat(c.id).filter((f) => !f.adminOnly && f.kind === 'bool' && on(p, f))]).filter(([, fs]) => fs.length) : [];
+    const groups = Ft ? Ft.cats.filter((c) => c.id !== 'grp').map((c) => [c, Ft.inCat(c.id).filter((f) => !f.adminOnly && !f.unlisted && f.kind === 'bool' && on(p, f))]).filter(([, fs]) => fs.length) : [];
     const wc = watchCell(p);
     const gl = groups.map(([c, fs]) => `<h4>${esc(c.name)}</h4><ul>${fs.map((f) => { const n = limOf(p, f); return `<li>${CHECK}<span>${esc(f.name)}${n !== Infinity ? `<i>・每日 ${n} 次</i>` : ''}</span></li>`; }).join('')}${c.id === 'watch' && wc.c !== 'n' ? `<li>${CHECK}<span>自選清單<i>・${esc(wc.t)}</i></span></li>` : ''}</ul>`).join('');
     dialog(`<div class="coh"><span class="ic">${svgI(lk.icon)}</span><b>${esc(showName(p))}</b><small>${esc(whoOf(p))}</small><button type="button" data-close aria-label="關閉">×</button></div>

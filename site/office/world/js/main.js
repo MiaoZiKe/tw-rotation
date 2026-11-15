@@ -26,6 +26,7 @@ import { createChat } from './chat.js';   // 對 Agent 下指令的對話框（c
 import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
+import { mountSports } from './sports.js';   // 員工運動場（羽毛球、籃球、網球、撞球、游泳池；sports*.js）
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
 
@@ -37,15 +38,29 @@ const J = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.statu
 async function loadCharacterModule() { const p = qs.get('char') || './newchar.js'; /* 2026-11-14：新角色相容層（糰糰、垂垂、布布走新模型，其餘轉給 play/office_character.js） */ const m = await import(p); if (typeof m.createCharacter !== 'function') throw new Error('角色模組必須匯出 createCharacter'); return m; }
 
 (async function boot() {
+  const PF = { t0: performance.now(), boot: {}, n: 0, sim: 0, simMax: 0, steps: 0, render: 0, post: 0, frame: 0, hist: [], mark(k) { this.boot[k] = Math.round(performance.now() - this.t0); } };   // 效能量測（極便宜）：開場各階段時間、每格模擬／繪製／其他的移動平均；window.__world.perf
   const [layout, org, demo, meet, roster, charMod, rw] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule(), qs.get('rewards') === '0' ? null : loadRewards()]);   // 績效資料缺檔／壞檔／?rewards=0：整個獎勵層關閉，辦公室維持原樣
+  PF.boot.assets = performance.now() - PF.t0; PF.boot.assetsAt = performance.now();
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality, { styleOf: makeStyleOf(rw, layout) }), { renderer, scene, camera } = W;
-  buildOutside(W);   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
+  PF.mark('world'); buildOutside(W);   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
   function resize() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
+  // 2026-11-15 效能（進場速度）：天色先建好、房子蓋好就先畫一張（預設俯視的同一個鏡頭位置），載入畫面縮成底部小字，
+  // 使用者不用對著空白等角色建完；之後的流程完全照舊，第一個正式畫面一到就收掉小字（網址帶 view=ceo 時鏡頭位置要等角色建好才知道，維持原本做法）。
+  const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化（只用到場景與燈，可以比角色早建）
+  if (qs.get('view') !== 'ceo') {
+    try {
+      const por = cv.clientWidth < cv.clientHeight, d = por ? 84 : 58, t = new THREE.Vector3(layout.size.w / 2, 0, layout.size.d / 2 + 0.6 + (por ? 4.5 : 4.2));   // ＝ 下面 godPose() 的預設俯視
+      camera.position.set(t.x, t.y + d * Math.cos(0.62), t.z + d * Math.sin(0.62)); camera.fov = 38; camera.updateProjectionMatrix(); camera.lookAt(t);
+      daytime.tick(); W.shadowDirty(); renderer.render(scene, camera); PF.mark('scene');
+      const ld = $('loading'); ld.classList.add('mini'); ld.textContent = '同事就座中…';
+      await new Promise(r => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 150); });   // 讓瀏覽器把這一張畫上螢幕（分頁在背景時不等 rAF）
+    } catch (e) { console.warn('先顯示場景失敗，照原流程載入', e); }
+  }
 
   // ── 角色 ──
   // 手機自動降級：幾何面數、臉部貼圖、遠近分級的距離都調低
@@ -64,7 +79,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   W.makeSpec = makeSpec;
   const env = {
-    camera, fx, followed: null, bounds: { x0: 0.6, x1: layout.size.w - 0.6, z0: 0.6, z1: layout.size.d + 9 },   // z1 多留到大門外的無業遊民區
+    camera, fx, followed: null, bounds: { x0: 0.6, x1: layout.size.w - 0.6, z0: 0.6, z1: layout.size.d + 18 },   // z1 多留到大門外的無業遊民區與員工運動場（z 到 48）
     isFree: (x, z) => W.nav.isFree(x, z),
     separation(c, dx, dz) {
       let px = 0, pz = 0, slow = 1; const p = c.object3D.position;
@@ -92,6 +107,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     if (seat) { seat.taken = s.id; c.spot = seat; c.sitAt(seat.seat, { instant: true }); c.atDesk = true; c.setAction('type'); c.workAt = 1 + Math.random() * 9; } else c.standAt(20, 26, 0);
     addLabel(c);
   }
+  PF.mark('chars');
   // 寵物：迷你版的物種，在主人附近自由走動
   W.pets = [];
   for (const p of roster.pets || []) {
@@ -99,7 +115,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     const o = W.chars.get(p.owner), op = o ? o.object3D.position : { x: 20, z: 26 }, f = W.nav.nearestFree(op.x + 1.1, op.z + 0.9, 12) || { x: 20, z: 26 }; c.standAt(f.x, f.z, Math.random() * 6);
     addLabel(c); W.pets.push(c);
   }
-  let everyone = [...W.chars.values(), ...W.pets];
+  let everyone = [...W.chars.values(), ...W.pets]; PF.mark('pets');
   // 改了物種、配色、配件之後，原地換一個新的身體
   W.rebuildChar = id => {
     const old = W.chars.get(id); if (!old) return null; if (director.meeting && director.meeting.people.includes(old)) return null;
@@ -142,7 +158,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     applyDrag();
   }
   addEventListener('resize', () => { controls.rotateSpeed = rotateSpeed(); });
-  const LIM = { x0: -6, x1: layout.size.w + 6, z0: -6, z1: layout.size.d + 10 };    // 注視點可以平移到的範圍（辦公室外圍多留一圈）
+  const LIM = { x0: -6, x1: layout.size.w + 6, z0: -6, z1: layout.size.d + 19 };    // 注視點可以平移到的範圍（辦公室外圍多留一圈）
   function clampCam() {
     const t = controls.target, cx = Math.max(LIM.x0, Math.min(LIM.x1, t.x)), cz = Math.max(LIM.z0, Math.min(LIM.z1, t.z)), cy = Math.max(0, Math.min(3, t.y));
     camera.position.x += cx - t.x; camera.position.z += cz - t.z; camera.position.y += cy - t.y; t.set(cx, cy, cz);
@@ -171,7 +187,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     const toC = (da) => { const h = h0 + da; return Math.sin(h) * (CENTER.x - cp.x) + Math.cos(h) * (CENTER.z - cp.z); }, sg = toC(0.72) >= toC(-0.72) ? 1 : -1;
     for (const da of (seatedC ? [0.72 * sg, -0.72 * sg, 1.25 * sg, -1.25 * sg, 0.3, 1.9, -1.9, Math.PI] : [0, 0.6, -0.6, 1.15, -1.15, 1.8, -1.8, Math.PI])) {
       const h = h0 + da, p = new THREE.Vector3(cp.x - Math.sin(h) * back, up, cp.z - Math.cos(h) * back);
-      p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 14, p.z));   // 跟隨鏡頭在遊民區（z 32～39）以前被限制在 d+4＝34，鏡頭貼太近、角色被切到畫面下緣；放寬到 d+14
+      p.x = Math.max(0.55, Math.min(layout.size.w - 0.55, p.x)); p.z = Math.max(0.55, Math.min(layout.size.d + 19, p.z));   // 跟隨鏡頭在遊民區（z 32～39）以前被限制在 d+4＝34，鏡頭貼太近、角色被切到畫面下緣；放寬到 d+14
       const d = Math.hypot(p.x - cp.x, p.z - cp.z); if (d < back - 0.3) p.y += (back - d) * 0.35;
       const cand = { p, h, d }; if (!best) best = cand;
       if (d > back * 0.6 && !blocked(p.x, p.z, cp.x, cp.z)) { best = cand; break; }
@@ -251,6 +267,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
 
   // ── 導演與介面 ──
+  PF.mark('camera');
   let director;
   const ui = createUI(W, demo, {
     setView: (m, c) => setView(m, c), jumpTo, cardClosed() { }, director: () => director, rebuild: id => W.rebuildChar(id), setTag: c => setTag(c),
@@ -274,14 +291,14 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const attn = createAttention(W, { camera, pilot, director: () => director }); W.attn = attn;
   const multi = createMulti(W, { cv, camera, ui, pilot, setView, director: () => director, pick: pickChar, isEdit: () => edit.on }); W.multi = multi;   // 多選：Ctrl＋點／框選／群組面板（multi.js；下面 pointerdown／pointerup 各有一行掛鉤）
   W.camclear = createCamClear(W, { camera, controls, view, pilot });
-  const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
+  $('app').append(daytime.chip, daytime.pop); daytime.update(true);   // 天色已在上面先建好：時間標籤移回原本的位置順序，並在操作提示出現後重新排一次位置
   const noPhys = qs.get('nophys') === '1';   // 網址加 nophys=1＝關掉物理與火焰（驗收量「繪製次數增量」時當對照組）
   const phys = noPhys ? { tick() { }, preRender() { }, postRender() { } } : createPhysics(W), fire = noPhys ? { tick() { }, frame() { } } : createFire(W);   // 物理互動與火焰（主迴圈每個模擬步呼叫 tick）
 
   // ── 辦公室狀態層與各控制器：所有演出只讀 state，示範（sim）與之後的真資料都從 state.emit 進來 ──
   W.extras = [];
   W.addExtra = b => { const s = makeSpec(b), c = charMod.createCharacter(s, env); c.onDrop = q => director.dropped(q); c.busy = true; scene.add(c.object3D); addLabel(c); W.extras.push(c); everyone = [...W.chars.values(), ...W.pets, ...W.extras]; return c; };   // 場景裡的臨時角色（空狀態的迎賓員），不在編制內
-  const state = createState(); W.state = state;
+  PF.mark('modules1'); const state = createState(); W.state = state;
   W.statusOf = c => (c.jobless ? (W.hr ? W.hr.statusOf(c) : '') : (W.jobs ? W.jobs.statusOf(c) : ''));   // 名牌上的狀態字
   W.empty = createEmpty(W, { ui, state });   // 要比 jobs 早註冊：空辦公室裡派工事件先讓同事「報到」，再由派工演出接手
   const power = createPower(W, { state, ui, director, daytime }); W.power = power;
@@ -550,13 +567,15 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   let last = performance.now(), acc = 0, frames = 0, slowFor = 0, first = true, shift = 0;
   // 一個模擬步（畫面更新與 W.advance 共用）：W.advance(秒) 不繪圖、直接把模擬往前推（驗收與「加速時間」用）
   function simStep(h) { W.time += h; try { W.tickTimers(); pilot.tick(h); director.tick(); power.tick(); hr.tick(); W.mind && W.mind.tick(h); W.walkGuard && W.walkGuard.tick(); for (const c of everyone) c.update(h, W.time); fx.update(h, W.time); phys.tick(h); fire.tick(h); } catch (e) { if (!W.loopErr) console.error('主迴圈例外', e); W.loopErr = (W.loopErr || 0) + 1; } }
-  W.advance = (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) simStep(sec / n); };
+  W.advance = (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) { env.draw = i === n - 1; simStep(sec / n); } env.draw = true; };
   W.advanceAsync = async (sec, step = 1 / 30) => { const n = Math.max(1, Math.ceil(sec / step)); for (let i = 0; i < n; i++) { simStep(sec / n); await null; await null; } };   // 同上，但每步讓出一次，導演的 async 流程（走過去、等一下）才會往下走
   function frame(now) {
     requestAnimationFrame(frame);
+    const f0 = performance.now();
     const wall = Math.max(0.004, Math.min(0.3, (now - last) / 1000)), real = Math.min(0.1, wall); last = now;   // max(0.004,…)：第一幀的 rAF 時間戳可能比 last 早，負 dt 會讓臉部表情彈簧發散、之後一連串畫臉例外；也不能是 0（慣性要除以 dt，0/0 會讓身體變成 NaN 而消失）
     const sim = real * W.speed, n = Math.max(1, Math.ceil(sim / 0.034)), h = sim / n;
-    for (let i = 0; i < n; i++) simStep(h);
+    for (let i = 0; i < n; i++) { env.draw = i === n - 1; simStep(h); } env.draw = true;   // env.draw：只有最後一個子步要算角色的姿態與蒙皮（前面幾步只推進物理），4× 時每格省下大半角色更新
+    const f1 = performance.now();
     W.updateBlobs(); W.updateScreens(real);
     if (cam.coast.lengthSq() > 0.0004) { movePan(cam.coast.x * wall, cam.coast.z * wall); cam.coast.multiplyScalar(Math.exp(-wall * 7)); } else cam.coast.set(0, 0, 0);   // 放開後用阻尼慢慢停下
     if (cam.spin || cam.step) {                                                         // 旋轉鈕：按住持續轉（每秒 60 度），點一下轉 30 度（平順插值）
@@ -576,18 +595,20 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       if (Math.abs(want - shift) > 0.002) { shift += (want - shift) * Math.min(1, wall * 6); const w = cv.clientWidth, h = cv.clientHeight; camera.setViewOffset(w, h, 0, shift * h, w, h); }
       else if (shift !== want) { shift = want; if (!want) camera.clearViewOffset(); }
     }
-    fire.frame(real); phys.preRender(real); renderer.render(scene, camera); phys.postRender();   // 鏡頭微晃只在渲染的那一刻加上
+    fire.frame(real); phys.preRender(real); const f2 = performance.now(); renderer.render(scene, camera); const f3 = performance.now(); phys.postRender();   // 鏡頭微晃只在渲染的那一刻加上
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
     updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.outside.tick(); W.empty.frame();
+    { const f4 = performance.now(), K = 0.06; PF.n++; if (PF.n === 3) PF.boot.frame3 = Math.round(f0); PF.steps = n; PF.sim += (f1 - f0 - PF.sim) * K; PF.simMax = Math.max(PF.simMax * 0.995, f1 - f0); PF.render += (f3 - f2 - PF.render) * K; PF.post += (f4 - f3 + f2 - f1 - PF.post) * K; PF.frame += (f4 - f0 - PF.frame) * K; if (PF.rec) PF.hist.push([f1 - f0, f3 - f2, f4 - f0, n]); }
     acc += real; frames++;
     if (acc >= 1) {
       W.stats.fps = Math.round(frames / acc); acc = 0; frames = 0;
       // 自動降級：太慢就先降解析度，再關陰影（網址帶 q= 時不自動調整）
       if (!pinned) { slowFor = W.stats.fps < 26 ? slowFor + 1 : 0; if (slowFor >= 3) { slowFor = 0; if (pr > 1) { pr = Math.max(1, pr - 0.5); resize(); W.stats.quality = 'auto-' + pr; } else if (renderer.shadowMap.enabled) { renderer.shadowMap.enabled = false; W.sun.castShadow = false; W.stats.quality = 'auto-noshadow'; } } }
     }
-    if (first) { first = false; $('loading').hidden = true; W.ready = true; }
+    if (first) { first = false; $('loading').hidden = true; W.ready = true; PF.boot.firstFrame = performance.now() - PF.t0; PF.boot.ready = performance.now(); }
   }
+  PF.boot.built = performance.now() - PF.t0; W.perf = PF;
   W.shadowDirty(); requestAnimationFrame(frame);
   W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
-  W.outside.hint(() => jumpTo('jobless')); window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
+  W.outside.hint(() => jumpTo('jobless')); mountSports(W, { ui, director }); window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });

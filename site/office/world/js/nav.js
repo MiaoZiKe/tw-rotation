@@ -6,7 +6,7 @@ export const NAV = { cur: null };
 
 export function createNav(layout) {
   const cs = layout.cell || 0.25, W = layout.size.w, D = layout.size.d;
-  const ox = -1, oz = -1, nx = Math.ceil((W + 2) / cs), nz = Math.ceil((D + 11) / cs);   // 多留到 D+11：大門外的小路與無業遊民區
+  const ox = -1, oz = -1, nx = Math.ceil((W + 2) / cs), nz = Math.ceil((D + 20) / cs);   // 多留到 D+20：大門外的小路、無業遊民區與員工運動場
   let block = new Uint8Array(nx * nz), solid = new Uint8Array(nx * nz), reach = new Uint8Array(nx * nz);
   const idx = (i, j) => j * nx + i;
   const ci = x => Math.floor((x - ox) / cs), cj = z => Math.floor((z - oz) / cs);

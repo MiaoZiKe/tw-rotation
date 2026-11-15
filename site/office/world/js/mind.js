@@ -13,6 +13,7 @@
 // 做法：不改角色與導演的內部，只用角色的公開介面（setExpression／setAction／emote／say／lookAt／faceTo／pause／walkTo）；
 //   表情用「保持」機制：心在演的期間，其他系統對表情的設定會被擋掉，演完才還給基準表情（依心情）。
 import { hhmm } from './state.js';
+import { createFeel } from './mind_feel.js';   // 情緒加深層（對你的態度、怕火、被欺負分級、運動、被救）
 
 const LS = 'aiOffice.mind.v1';
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
@@ -71,7 +72,7 @@ export function createMind(W, X = {}) {
     }
   }
   bus();
-  const EV = ['rewarded', 'promoted', 'awarded', 'item', 'praised', 'rejected', 'demoted', 'bonked', 'comforted', 'fired', 'fired_door', 'jobless_arrived', 'rehired', 'knocked', 'burned', 'recovered'];
+  const EV = ['rewarded', 'promoted', 'awarded', 'item', 'praised', 'rejected', 'demoted', 'bonked', 'comforted', 'fired', 'fired_door', 'jobless_arrived', 'rehired', 'knocked', 'burned', 'recovered', 'extinguished', 'splashed', 'sport_start', 'sport_end', 'sport_score'];
   M.names = EV;
   const emit = (name, id, data) => { bus(); W.emit(name, id, data); };
 
@@ -175,7 +176,7 @@ export function createMind(W, X = {}) {
     const c = C(id), m = mindOf(c); if (!c || !m || c.jobless && kindIn !== 'rehire') return;
     const kind = kindIn || d.kind || 'praise', I = { promote: 1, award: 1, item: .8, praise: .6 }[kind] || .6, t = m.t;
     affect(m, { val: .34 * I * (1 + .3 * t.opt), energy: .06, stress: -.15 * I }, CAUSE[kind], 160);
-    remember(m, kind, d.by === 'ceo' ? 'CEO' : '', CAUSE[kind]); m.flag = null; m.calmAt = 0;
+    remember(m, kind, d.by === 'ceo' ? 'CEO' : '', CAUSE[kind]); m.flag = null; m.calmAt = 0; FE.onCare(c, m, 'reward');
     const style = t.comp >= .65 && t.ext < .7 ? 'fist' : t.ext >= .62 ? 'burst' : t.ext <= .4 ? 'shy' : 'warm';
     const tgt = nearest(c, 6);
     scene(c, m, 6, 'reward-' + style, sc => {
@@ -204,7 +205,7 @@ export function createMind(W, X = {}) {
     const c = C(id), m = mindOf(c); if (!c || !m || c.jobless) return;
     const kind = kindIn || d.kind || 'rejected', t = m.t, I = { rejected: .38, bonk: .3, demote: .42 }[kind] || .35;
     affect(m, { val: -I * (.7 + .6 * t.sens) * (1.1 - .4 * t.opt), stress: .1, energy: -.04 }, CAUSE[kind], 200);
-    remember(m, kind, kind === 'bonk' ? '你' : '', CAUSE[kind]);
+    remember(m, kind, kind === 'bonk' ? '你' : '', CAUSE[kind]); if (kind === 'bonk') FE.onHit(c, m, 'bonk');
     const emo = (sym, sec) => { if (kind !== 'rejected') c.emote(sym, sec); };   // 交件失敗時派工那邊已經放了小烏雲，不蓋掉
     const style = t.comp >= .62 && t.sens < .6 ? 'angry' : t.sens >= .55 ? 'sad' : 'stoic', body = canAct(c);
     const dur = 2.6 + 3.6 * t.sens;
@@ -262,9 +263,10 @@ export function createMind(W, X = {}) {
     const c = C(id), m = mindOf(c); if (!c || !m) return; if (m.sc && m.sc.name === 'knocked' && W.time - m.sc.t0 < 1.2) return;   // 兩邊都送也只演一次
     const byUser = m.releasedAt != null && W.time - m.releasedAt < 8;     // 放開後 8 秒內的碰撞，都是被你丟出去造成的
     const by = d.by === 'you' || byUser ? 'you' : (d.by || 'obj'), you = by === 'you', t = m.t, gentleIn = !!d.gentle;
-    if (m.sc && m.sc.name === 'knocked' && you && !gentleIn && !m.sc.you) { m.sc.you = true; if (m.last) m.last.by = 'you'; m.wary = W.time + 150 * (1.25 - .6 * t.opt); return; }   // 先被物理層當成撞到、再補上「是你丟的」：升級成戒心，不重演
+    if (m.sc && m.sc.name === 'knocked' && you && !gentleIn && !m.sc.you) { m.sc.you = true; if (m.last) m.last.by = 'you'; m.wary = W.time + 150 * (1.25 - .6 * t.opt); FE.onHit(c, m, 'throw', { upgrade: true }); return; }   // 先被物理層當成撞到、再補上「是你丟的」：升級成戒心，不重演
     m.knockedAt = W.time; const gentle = !!d.gentle, hostile = you && !gentle;   // gentle＝慢慢放下：不算撞、不暈、不戒備
     affect(m, { val: -(gentle ? .04 : you ? .36 : .2) * (.7 + .6 * t.sens), stress: gentle ? .02 : .12 }, gentle ? '被放下了' : you ? CAUSE.knocked : CAUSE.knockedObj, 220); remember(m, 'knocked', you ? '你' : '', gentle ? '被放下了' : you ? CAUSE.knocked : CAUSE.knockedObj);
+    if (!gentle) FE.onHit(c, m, you ? 'throw' : 'obj', { speed: d.speed });
     const angry = t.comp >= .55 && t.sens < .75, dz = 2.2 + 1.4 * t.sens, light = (!you && d.speed != null && d.speed < 2.5) || gentle; m.wary = hostile ? W.time + 150 * (1.25 - .6 * t.opt) : m.wary;   // 輕輕撞到：不暈
     scene(c, m, 8, 'knocked', sc => {
       sc.you = you; let ph = 0, ts = 0, glare = null;
@@ -290,10 +292,10 @@ export function createMind(W, X = {}) {
     witness(id, 'knocked', { by });
   }
   function burned(id, d = {}) {
-    const c = C(id), m = mindOf(c); if (!c || !m) return; m.burned = true; m.burnedAt = W.time;
+    const c = C(id), m = mindOf(c); if (!c || !m) return; m.burned = true; m.burnedAt = W.time; FE.onBurn(c, m, d);
     affect(m, { val: -.3 * (.7 + .6 * m.t.sens), stress: .25 }, CAUSE.burned, 300); remember(m, 'burned', '', CAUSE.burned);
     scene(c, m, 9, 'burned', sc => {
-      let ph = 0, ts = W.time, nextCough = 0, coughEnd = 0;
+      let ph = 0, ts = W.time, nextCough = 0, coughEnd = 0, nextPat = 1e9, patEnd = 0;
       face(c, m, 'scared', 60); c.emote('exclaim', 1.2); say(c, rnd(['燙燙燙！', '哇！好燙！']), 1.4, true); act(c, 'flail', { duration: 1.6 }, true);
       if (c.state === 'stand' && c.newModel && c.inner && 'extFall' in c.inner) c.inner.extFall = true;   // 跳腳（舊做法的角色不跳，只亂揮手）
       sc.poll = () => {
@@ -301,10 +303,13 @@ export function createMind(W, X = {}) {
         if (ph === 0 && age > 1.5) {                          // 跑開
           ph = 1; ts = W.time;
           if (c.state === 'stand' || c.state === 'walk') { const p = pos(c), a = R(0, 6.283), f = W.nav.nearestFree(p.x + Math.cos(a) * 3.4, p.z + Math.sin(a) * 3.4, 6); const path = f && W.nav.findPath(p, f); if (path) c.walkTo(path, { speed: 3.8 }); }
-        } else if (ph === 1 && age > 1.8) { ph = 2; ts = W.time; face(c, m, 'blank', 60); nextCough = 0.6; }   // 焦黑呆滯
+        } else if (ph === 1 && age > 1.8) { ph = 2; ts = W.time; face(c, m, 'blank', 60); nextCough = 0.6; nextPat = 2.6; FE.onPain(c, m); }   // 焦黑呆滯
         else if (ph === 2) {
           if (coughEnd && age >= coughEnd) { coughEnd = 0; face(c, m, 'blank', 60); }
-          if (age >= nextCough && c.state !== 'walk') { nextCough = age + 3.2; coughEnd = age + 1.2; face(c, m, 'cough', 60); c.emote('smoke', 1.3); act(c, 'cough', { duration: 1.4 }, true); }
+          if (patEnd && age >= patEnd) { patEnd = 0; face(c, m, 'blank', 60); }
+          if (!coughEnd && !patEnd && age >= nextPat && nextCough - age > 1.9 && c.state !== 'walk') { nextPat = age + R(5.5, 8); if (FE.patDown(c, m)) patEnd = age + 1.5; }
+          if (m.f && W.time - m.f.comfortAt < 3 && !m.f.thankedC && !coughEnd && !patEnd) { m.f.thankedC = true; face(c, m, 'grateful', 2); say(c, '謝謝你…', 1.6, true); c.emote('heart', 1.4); }
+          if (age >= nextCough && !patEnd && c.state !== 'walk') { nextCough = age + 3.2; coughEnd = age + 1.2; face(c, m, 'cough', 60); c.emote('smoke', 1.3); act(c, 'cough', { duration: 1.4 }, true); }
           if (c.inner && c.inner.ch && c.inner.ch.face && Math.random() < .02) c.inner.ch.face.blinkNow && c.inner.ch.face.blinkNow();    // 眨眨眼
           if (!m.burned || age > 40) { m.burned = false; return true; }
         }
@@ -316,7 +321,7 @@ export function createMind(W, X = {}) {
     witness(id, 'burned', d);
   }
   function recovered(id, d = {}) {
-    const c = C(id), m = mindOf(c); if (!c || !m) return; m.burned = false;
+    const c = C(id), m = mindOf(c); if (!c || !m) return; m.burned = false; FE.onRecovered(c, m, d); if (m.f) m.f.thankedC = false;
     affect(m, { val: .22, stress: -.12 }, CAUSE.recovered, 140); remember(m, 'recovered', '', CAUSE.recovered);
     scene(c, m, 9, 'recovered', sc => {
       sc.at(0, () => { face(c, m, 'relieved', 2.8); say(c, rnd(['呼…', '好險…']), 1.8, true); c.emote('note', 1.6); }).at(2.8, () => face(c, m, 'smile', 2)).at(5, () => { }); holdCap(c, m, sc);
@@ -363,20 +368,21 @@ export function createMind(W, X = {}) {
     try {
       const a = pos(A0), b = pos(B), L = Math.hypot(b.x - a.x, b.z - a.z) || 1, f = W.nav.nearestFree(a.x + (b.x - a.x) / L * 1.1, a.z + (b.z - a.z) / L * 1.1, 4); if (!f) return;
       const ok = await D0.goTo(B, { x: f.x, z: f.z, face: 0 }, { speed: 2.6 }); if (B.script !== tok || !ok) return;
-      B.faceTo(a.x, a.z); B.setAction('listen'); await W.sleep(2); if (B.script !== tok) return;
+      B.faceTo(a.x, a.z); B.setAction('listen'); B.emote('heart', 1.6); say(B, rnd(['沒事了，辛苦了', '還好嗎？我陪你一下']), 2, true); await W.sleep(1.6); if (B.script !== tok) return; emit('comforted', A0.spec.id, { by: B.spec.id }); remember(mindOf(B), 'comforted', A0.spec.nick, '去安慰了' + A0.spec.nick); await W.sleep(.6); if (B.script !== tok) return;
       B.setAction('idle'); await D0.goHome(B, { speed: 2.2 });
     } finally { if (B.script === tok) B.busy = false; }
   }
 
   // ───────── 摸頭、餵點心：心情很差或剛被你欺負過時，一開始會閃躲或嘟嘴，多摸幾次才原諒 ─────────
-  function resenting(m) { return W.time < m.wary || m.val < -.3 || recent(m, 'knocked', 100 * (1.3 - .6 * m.t.opt), '你') || recent(m, 'bonk', 100 * (1.3 - .6 * m.t.opt), '你'); }
+  function resenting(m) { return W.time < m.wary || m.val < -.3 || FE.of(m).rel < -.3 || recent(m, 'knocked', 100 * (1.3 - .6 * m.t.opt), '你') || recent(m, 'bonk', 100 * (1.3 - .6 * m.t.opt), '你'); }
   function onPetAttempt(c, m, kind) {
     if (c.sleeping || c.jobless && false) return null;
     if (m.sc && m.sc.name === 'knocked') { m.petAt = W.time; record(m, { event: 'dodge', kind, face: m.faceName || '', action: 'still-dizzy' }); return 'dodge'; }   // 還在暈、還在氣頭上：摸頭沒用，也不改心情
     if (W.time - m.petAt > 25) { m.petTry = 0; m.feedTry = 0; } m.petAt = W.time;
     if (!resenting(m)) { m.petTry = m.feedTry = 0; return null; }
-    const need = kind === 'feed' ? 2 : 2 + (m.t.opt < .5 ? 1 : 0) + (m.t.comp > .6 ? 1 : 0), key = kind === 'feed' ? 'feedTry' : 'petTry'; m[key]++;
-    if (m[key] >= need) { m[key] = 0; m.wary = 0; m.val = Math.max(m.val, -.05) + .15; m.cause = { text: '原諒你了', until: W.time + 120 }; face(c, m, 'shy', 1.4); record(m, { event: 'forgive', kind, face: 'shy', action: 'accept' }); return null; }
+    const need = (kind === 'feed' ? 2 : 2 + (m.t.opt < .5 ? 1 : 0) + (m.t.comp > .6 ? 1 : 0)) + (FE.of(m).rel < -.55 ? 1 : 0), key = kind === 'feed' ? 'feedTry' : 'petTry'; m[key]++;
+    if (m[key] >= need) { m[key] = 0; m.wary = 0; m.val = Math.max(m.val, -.05) + .15; m.cause = { text: '原諒你了', until: W.time + 120 }; face(c, m, 'shy', 1.4); record(m, { event: 'forgive', kind, face: 'shy', action: 'accept' }); FE.onForgive(c, m); return null; }
+    FE.onDodge(c, m);
     // 閃躲
     const q = cam(), ty = Math.atan2(q.x - pos(c).x, q.z - pos(c).z);
     scene(c, m, 5, 'dodge', sc => {
@@ -387,7 +393,7 @@ export function createMind(W, X = {}) {
     return 'dodge';
   }
   function afterPet(c, m, sec) {
-    affect(m, { val: .1 * (1 + m.t.ext * .3) }, CAUSE.petted, 90); remember(m, 'petted', '你', CAUSE.petted);
+    affect(m, { val: .1 * (1 + m.t.ext * .3) }, CAUSE.petted, 90); remember(m, 'petted', '你', CAUSE.petted); FE.onCare(c, m, 'pet');
     scene(c, m, 4, 'petted', sc => {
       if (m.t.ext >= .65) sc.at(sec + .3, () => { face(c, m, 'laugh', 1.2); c.emote('note', 1.2); }).at(sec + 1.6, () => { });
       else if (m.t.ext <= .4) sc.at(sec + .3, () => { face(c, m, 'shy', 1.8); }).at(sec + 2.2, () => { });
@@ -396,7 +402,7 @@ export function createMind(W, X = {}) {
     });
     record(m, { event: 'petted', face: m.t.ext >= .65 ? 'laugh' : m.t.ext <= .4 ? 'shy' : 'smile' });
   }
-  function afterFeed(c, m) { affect(m, { val: .16, energy: .08, stress: -.06 }, CAUSE.fed, 120); remember(m, 'fed', '你', CAUSE.fed); record(m, { event: 'fed', face: 'eatOpen>happy' }); }
+  function afterFeed(c, m) { affect(m, { val: .16, energy: .08, stress: -.06 }, CAUSE.fed, 120); remember(m, 'fed', '你', CAUSE.fed); FE.onCare(c, m, 'feed'); record(m, { event: 'fed', face: 'eatOpen>happy' }); }
 
   // ───────── 被點選：剛被你欺負過就有戒心 ─────────
   let lastSel = null;
@@ -467,7 +473,7 @@ export function createMind(W, X = {}) {
   };
 
   // ───────── 資訊卡的心情列 ─────────
-  const ICONS = { excited: '😆', happy: '😊', calm: '😌', tired: '😪', stress: '😣', low: '😔', sad: '😢', angry: '😠', wary: '😒', shy: '😳', dizzy: '😵', burned: '😵', sleep: '😴', upset: '😤', jobless: '😌' };
+  const ICONS = { excited: '😆', happy: '😊', calm: '😌', tired: '😪', stress: '😣', low: '😔', sad: '😢', angry: '😠', wary: '😒', shy: '😳', dizzy: '😵', burned: '😵', sleep: '😴', upset: '😤', jobless: '😌', afraid: '😨', wet: '🥶', complain: '😣', hide: '😰', vent: '🗣️', rematch: '😤' };
   M.moodLine = c => {
     const m = mindOf(c); if (!m) return null; let k, label, cause = '';
     const cz = m.cause && W.time < m.cause.until ? m.cause.text : '';
@@ -487,21 +493,31 @@ export function createMind(W, X = {}) {
     else if (m.val > -.5) { k = 'low'; label = '低落'; cause = cz; }
     else { k = 'sad'; label = '難過'; cause = cz; }
     if (k === 'calm' && m.faceName === 'shy') { k = 'shy'; label = '害羞'; }
-    return { key: k, icon: ICONS[k], label, cause, text: `心情：${ICONS[k]} ${label}${cause ? '（' + cause + '）' : ''}`, val: Math.round(m.val * 100) / 100 };
+    const ov = FE.mood(c, m, { k, label, cause }); if (ov) { k = ov.k; label = ov.label; cause = ov.cause; }
+    const att = FE.attitude(m);
+    return { key: k, icon: ICONS[k], label, cause, att, tip: m.mem.length ? '最近：' + m.mem.slice(0, 3).map(x => x.text).join('、') : '', text: `心情：${ICONS[k]} ${label}${cause ? '（' + cause + '）' : ''}${att ? '・對你：' + att : ''}`, val: Math.round(m.val * 100) / 100 };
   };
 
   // ───────── 對外查詢（資訊卡、驗收用） ─────────
-  M.get = id => { const c = C(id), m = mindOf(c); if (!m) return null; return { id, traits: { ...m.t }, mood: { val: m.val, energy: m.energy, stress: m.stress }, face: m.faceName || c.expression, faceHeld: !!m.faceName, flag: m.flag && m.flag.name, last: m.last, mem: m.mem.slice(), habit: m.habit && W.time < m.habit.until ? { ...m.habit } : null, wary: W.time < m.wary, scene: m.sc && m.sc.name, burned: m.burned, expression: c.expression }; };
+  M.get = id => { const c = C(id), m = mindOf(c); if (!m) return null; return { id, traits: { ...m.t }, mood: { val: m.val, energy: m.energy, stress: m.stress }, face: m.faceName || c.expression, faceHeld: !!m.faceName, flag: m.flag && m.flag.name, last: m.last, mem: m.mem.slice(), habit: m.habit && W.time < m.habit.until ? { ...m.habit } : null, wary: W.time < m.wary, scene: m.sc && m.sc.name, burned: m.burned, expression: c.expression, feel: FE.snapshot(m) }; };
   M.mindOf = id => mindOf(C(id));
   M.faceClass = name => HAPPY_FACES.has(name) ? 'happy' : SAD_FACES.has(name) ? 'sad' : WARY_FACES.has(name) ? 'wary' : 'other';
   M.reward = (id, kind = 'award', d = {}) => reward(id, d, kind);
   M.punish = (id, kind = 'rejected', d = {}) => punish(id, d, kind);
 
+  // ───────── 情緒加深層（mind_feel.js）：用同一組工具函式 ─────────
+  const FE = createFeel(W, { S, people, C, scene, endScene, face, say, act, affect, remember, record, canAct, awake, pos, dist, hash, D, A, emit, mindOf, downPt, holdCap });
+  M.feel = FE;
+
   // ───────── 事件接線 ─────────
   const KIND = { promoted: 'promote', awarded: 'award', item: 'item', praised: 'praise' };
   sub('rewarded', (id, d) => reward(id, d)); for (const n of ['promoted', 'awarded', 'item', 'praised']) sub(n, (id, d) => reward(id, d, KIND[n]));
   sub('rejected', (id, d) => punish(id, d, 'rejected')); sub('demoted', (id, d) => punish(id, d, 'demote')); sub('bonked', (id, d) => punish(id, d, 'bonk'));
-  sub('comforted', id => { const c = C(id), m = mindOf(c); if (!m) return; affect(m, { val: .12 }, CAUSE.comforted, 90); if (!m.sc) { scene(c, m, 3, 'comforted', sc => { sc.at(0, () => { face(c, m, 'relieved', 1.8); }).at(1.8, () => { }); holdCap(c, m, sc); }); } });
+  sub('comforted', (id, d) => { const c = C(id), m = mindOf(c); if (!m) return; if (d && d.by) { FE.onComforted(c, m, d); return; } affect(m, { val: .12 }, CAUSE.comforted, 90); if (!m.sc) { scene(c, m, 3, 'comforted', sc => { sc.at(0, () => { face(c, m, 'relieved', 1.8); }).at(1.8, () => { }); holdCap(c, m, sc); }); } });
+  const poolWords = d => d && (d.cause === 'pool' || d.by === 'pool' || d.how === 'pool' || d.cause === 'splash' || d.cause === 'splashed' || d.pool);
+  sub('extinguished', (id, d) => { if (poolWords(d)) { const c = C(id), m = mindOf(c); if (c && m) FE.onPool(c, m, d); } });
+  sub('splashed', (id, d) => { const c = C(id), m = mindOf(c); if (c && m) FE.onPool(c, m, d || {}); });
+  sub('sport_start', (id, d) => FE.onSport('start', id, d)); sub('sport_score', (id, d) => FE.onSport('score', id, d)); sub('sport_end', (id, d) => FE.onSport('end', id, d));
   sub('fired', fired); sub('fired_door', firedDoor); sub('jobless_arrived', jobless); sub('rehired', rehired);
   sub('knocked', knocked); sub('burned', burned); sub('recovered', recovered);
   for (const n of EV) handlers[n] || (handlers[n] = []);
@@ -552,6 +568,7 @@ export function createMind(W, X = {}) {
       if (c.sleeping || c.action === 'sleep') { m.energy = clamp(m.energy + d / 120, 0, 1); m.stress = clamp(m.stress - d / 60, 0, 1); }
       else { m.energy = clamp(m.energy + (working ? -d / 900 : (m.base.energy - m.energy) * d / 500), 0, 1); m.stress = clamp(m.stress + (working && ag && ag.phase === 'doing' ? d / (150 * (.6 + m.t.pat)) : -d / 100), 0, 1); }
       if (m.cause && now > m.cause.until) m.cause = null;
+      FE.tickChar(c, m, now, d);
       // 走路：心情差垂頭走、心情好輕快（偶爾哼歌）
       const walking = c.state === 'walk' && !c.piloted && !(A() && A().current() === c) && !m.sc;
       if (walking && m.val < -.3 && c.state === 'walk') { c.lookAt(downPt(c)); m.lookDown = true; } else if (m.lookDown) { m.lookDown = false; if (!(A() && A().current() === c)) c.lookAt(null); }

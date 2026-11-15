@@ -80,7 +80,7 @@
     Object.keys(st.lims || {}).forEach((id) => {
       /* 族群觀測（cat 'grp'）不列：跟桌機頁首「本頁限制」（quota.js pageItems）同一個口徑 —— 族群項目是每個族群一個鍵（上百個），
          而且要等 groups_today.json 載入（addGroups）才查得到名字，列進來筆數會忽多忽少；族群的開關由族群頁與下拉的鎖頭負責。 */
-      const f = Ft.byId(id); if (!f || f.kind === 'limit' || f.cat === 'grp') return;
+      const f = Ft.byId(id); if (!f || f.kind === 'limit' || f.cat === 'grp' || f.unlisted) return;   // unlisted：還沒對外上線的功能（AI 辦公室）不進會員的額度面板
       const n = p.lim(id); if (n === Infinity) return;
       const u = Math.min(n, used(id));
       out.daily.push({ id, cat: f.cat, name: f.name, unit: f.qunit || UNIT_TXT[f.act] || '看', used: u, lim: n, rem: Math.max(0, n - u) });
@@ -90,7 +90,7 @@
        上限 0＝寫最低有開的方案（「Plus 會員」膠囊，跟 lims 0 同一個樣子）。站主專用（adminOnly）、族群觀測不列。 */
     const have = new Set(out.daily.map((x) => x.id));
     Ft.list.forEach((f) => {
-      if (f.kind === 'limit' || f.adminOnly || f.cat === 'grp' || have.has(f.id) || p.can(f.id)) return;
+      if (f.kind === 'limit' || f.adminOnly || f.unlisted || f.cat === 'grp' || have.has(f.id) || p.can(f.id)) return;
       out.daily.push({ id: f.id, cat: f.cat, name: f.name, unit: f.qunit || UNIT_TXT[f.act] || '看', used: 0, lim: 0, rem: 0, off: true });
     });
     Ft.list.forEach((f) => {

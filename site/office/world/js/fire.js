@@ -138,6 +138,7 @@ export function createFire(W, opts = {}) {
         case 0: { const k = 1 - u; r = 1; g = 0.45 + 0.5 * k * k; b = 0.12 + 0.35 * k * k * k; a = (u < 0.1 ? u / 0.1 : 1 - Math.pow(u, 1.5)) * (0.75 + 0.25 * Math.sin(p.age * 40 + p.sw)); break; }   // 火星：黃白 → 橘 → 暗紅
         case 1: { r = 1; g = 0.62 - 0.45 * u; b = 0.15 - 0.1 * u; a = (u < 0.15 ? u / 0.15 : 1 - u) * 0.85; break; }                                         // 火舌：橘 → 紅
         case 2: { const t = 0.62 + 0.1 * Math.sin(p.sw); r = g = b = t; a = (u < 0.2 ? u / 0.2 : 1 - u) * 0.2; break; }                                      // 灰煙
+        case 4: { r = g = b = 0.96; a = (u < 0.12 ? u / 0.12 : 1 - u) * 0.5; break; }                                                                       // 水蒸氣（被水澆熄的瞬間，白白的一團）
         default: { r = 0.12; g = 0.1; b = 0.11; a = (u < 0.12 ? u / 0.12 : 1 - u) * 0.62; }                                                                  // 黑煙
       }
       pool.size[i] = s; pool.col[i * 4] = r; pool.col[i * 4 + 1] = g; pool.col[i * 4 + 2] = b; pool.col[i * 4 + 3] = a;
@@ -184,6 +185,7 @@ export function createFire(W, opts = {}) {
   function ignite(c, why) {
     if (!F.on || imm(c)) return false; const s = st(c);
     if (s && s.state === 'burning') return false;
+    if (c._fireImmuneUntil && W.time < c._fireImmuneUntil) return false;   // 剛從泳池出來、身體還濕：不會著火（sports_water.js 設定）
     ensureScorch(c);
     const o = s || { state: 'none', scorch: 0 }; F.states.set(c.spec.id, o);
     const wasRec = o.state === 'recovering';
@@ -198,6 +200,17 @@ export function createFire(W, opts = {}) {
     return true;
   }
   F.ignite = ignite;
+  // 熄火介面（2026-11-15，泳池）：燒著的人被水澆熄 → 立刻停止燃燒（不用等燒夠時間）、冒一團白色水蒸氣、事件 'extinguished' 附 cause。
+  // cause 'pool'：身體泡過水，焦黑很快就洗掉（約 3 秒後自己走去休息區拍拍身體），不用等 30～60 秒。回傳是否真的熄了火。
+  F.extinguish = (c, cause = 'pool') => {
+    const o = st(c); if (!o || o.state !== 'burning') return false;
+    o.state = 'smoldering'; o.t = 0; o.recoverAt = cause === 'pool' ? 3 : rnd(F.cfg.recoverMin, F.cfg.recoverMax); o.why = cause; c.drive && c.drive(null);
+    c._sootU.value = Math.max(c._sootU.value, 0.35); c._emberU.value = 0;
+    const p = posOf(c); for (let i = 0; i < 16; i++) spawn(PS, p.x + rnd(-0.2, 0.2), (c.lift || 0) + (c.height || 0.8) * rnd(0.2, 0.9), p.z + rnd(-0.2, 0.2), rnd(-0.25, 0.25), rnd(0.7, 1.4), rnd(-0.25, 0.25), rnd(0.9, 1.6), 0.15 * (c.scale || 1), 0.55 * (c.scale || 1), 4, { drag: 1.6 });
+    F.stats.extinguished = (F.stats.extinguished || 0) + 1;
+    W.emit && W.emit('extinguished', c.spec.id, { cause, x: p.x, z: p.z });
+    return true;
+  };
   function fleeDir(c, o, s) {
     const p = posOf(c); let dx = p.x - fx, dz = p.z - fz, d = Math.hypot(dx, dz); if (d < 0.05) { const a = Math.random() * 6.28; dx = Math.cos(a); dz = Math.sin(a); d = 1; }
     dx /= d; dz /= d;
