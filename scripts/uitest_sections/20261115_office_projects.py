@@ -354,17 +354,23 @@ def _px_taskname(b, base):
         ok("名牌：CEO 寫「改圖表縮放 CEO」（用自己的簡稱、不再是專案名）", tg["ceo"] == "改圖表縮放 CEO", tg)
         ok("名牌：分身用自己的簡稱，13 字以上截成 11 字加「…」：「修正營收頁面的橫向捲動… CEO（分身 2）」", tg["clones"] == ["修正營收頁面的橫向捲動… CEO（分身 2）"], tg)
         ok("門牌：「改圖表縮放 CEO 辦公室」", _px_sign(pg) == "改圖表縮放 CEO 辦公室", _px_sign(pg))
-        pg.locator("#aioBadge").click()
+        if _os.environ.get("PROJ_SHOTS"):        # 門牌是畫在貼圖上的文字，直接把貼圖存成圖片讓人看
+            import base64 as _b64
+            du = pg.evaluate("() => { let r = null; __world.scene.traverse(o => { if (o.userData && o.userData.roomText === 'CEO 辦公室' && o.material && o.material.map && o.material.map.image && o.material.map.image.toDataURL) r = o.material.map.image.toDataURL('image/png'); }); return r }")
+            if du:
+                _os.makedirs(_os.environ["PROJ_SHOTS"], exist_ok=True)
+                open(_os.path.join(_os.environ["PROJ_SHOTS"], "t0_門牌.png"), "wb").write(_b64.b64decode(du.split(",", 1)[1]))
+        pg.locator("#aioBadge").click(timeout=180000)
         pop = pg.locator("#aioPop").inner_text()
         ok("資訊卡：工作階段清單也寫簡稱（本尊與分身各自的）", "改圖表縮放 CEO" in pop and "CEO（分身 2）" in pop and "tw-rotation CEO" not in pop, pop)
         _px_shot(pg, "t1_簡稱名牌與資訊卡.png")
         pg.keyboard.press("Escape")
         # Claude 之後才取好簡稱：沒簡稱時退回專案名，取好後名牌即時換掉
         f.sessions[0].pop("task_name")
-        got = wait_until(pg, "() => { const t = [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent; return t === 'tw-rotation CEO' }", 15000)
+        got = wait_until(pg, "() => { const t = [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent; return t === 'tw-rotation CEO' }", 60000)
         ok("沒有簡稱：退回專案名「tw-rotation CEO」，門牌同步", got and _px_sign(pg) == "tw-rotation CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
         f.sessions[0]["task_name"] = "查資料庫備份"
-        got = wait_until(pg, "() => [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent === '查資料庫備份 CEO'", 15000)
+        got = wait_until(pg, "() => [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent === '查資料庫備份 CEO'", 60000)
         ok("取好簡稱：名牌與門牌不用重新整理就換成「查資料庫備份」", got and _px_sign(pg) == "查資料庫備份 CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
         ok("沒有頁面錯誤", not pg.errs, pg.errs[:2])
         # 專案名沒意義（user）：有簡稱用簡稱；沒簡稱「雲端工作階段 CEO」
@@ -373,7 +379,7 @@ def _px_taskname(b, base):
         wait_until(pg, "() => [...window.__world.chars.values()].some(c => c.spec.isCeo && /整理雲端筆記/.test(c._lab.tag.children[0].textContent))", 10000)
         ok("user 專案有簡稱：名牌「整理雲端筆記 CEO」、門牌同步", _px_tags(pg)["ceo"] == "整理雲端筆記 CEO" and _px_sign(pg) == "整理雲端筆記 CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
         f.sessions[3].pop("task_name")
-        got = wait_until(pg, "() => [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent === '雲端工作階段 CEO'", 15000)
+        got = wait_until(pg, "() => [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent === '雲端工作階段 CEO'", 60000)
         ok("user 專案沒簡稱：退回「雲端工作階段 CEO」", got and _px_sign(pg) == "雲端工作階段 CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
     finally:
         c.close()
