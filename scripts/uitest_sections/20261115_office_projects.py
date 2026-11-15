@@ -41,7 +41,7 @@ class _PxFake:
         mk = lambda sid, ph, nm, dt: {"id": sid, "project_hash": ph, "project_name": nm, "cloud": True, "started": _PX_T0, "last": _PX_T0 + dt, "ended": None, "state": "working", "flag": None, "perm": None, "prompts": 1, "turns": 0, "summary": None, "tokens": None}
         self.sessions = [mk("sa1", _PA, "tw-rotation", 5000), mk("sa2", _PA, "tw-rotation", 4000), mk("sb1", _PB, "other-repo", 3000), mk("su1", _PU, "user", 2000)]
         ag = lambda aid, sid, ph, ty: {"agent_id": aid, "session_id": sid, "project_hash": ph, "agent_type": ty, "description": "做事", "started": _PX_T0, "last": _PX_T0 + 4000, "ended": None, "status": "running", "tool": "other"}
-        self.agents = [ag("a1", "sa1", _PA, "general-purpose"), ag("b1", "sb1", _PB, "reviewer-special"), ag("u1", "su1", _PU, "data-steward-x")]
+        self.agents = [ag("a1", "sa1", _PA, "general-purpose"), ag("b1", "sb1", _PB, "zz-agent-b"), ag("u1", "su1", _PU, "zz-agent-u")]
         self.events = [{"seq": i + 1, "rcv": _PX_T0 + i * 1000, "event": "SessionStart", "session_id": s["id"], "project_hash": s["project_hash"]} for i, s in enumerate(self.sessions)]
 
     def projects(self):
@@ -169,7 +169,7 @@ def _px_flow(b, base):
         tg = _px_tags(pg)
         ok("名牌：CEO 寫「tw-rotation CEO」", tg["ceo"] == "tw-rotation CEO", tg)
         ok("名牌：同專案的第二個工作階段是「tw-rotation CEO（分身 2）」，而且只有這一位分身", tg["clones"] == ["tw-rotation CEO（分身 2）"], tg)
-        ok("只看到該專案角色：自己專案的子 Agent 在、別的專案的（reviewer-special、data-steward-x）不在", any("general-purpose" in i for i in tg["ids"]) and not any("reviewer" in i or "data-steward" in i for i in tg["ids"]), tg["ids"])
+        ok("只看到該專案角色：自己專案的子 Agent 在、別的專案的（zz-agent-b、zz-agent-u）不在", "x-general-purpose" in tg["ids"] and not any(i.startswith("x-zz-") for i in tg["ids"]), tg["ids"])
         ok("門牌：「CEO 辦公室」改成「tw-rotation CEO 辦公室」", _px_sign(pg) == "tw-rotation CEO 辦公室", _px_sign(pg))
         pj = pg.locator(".aio-pjn")
         ok("左上角：看得出能按的「← 專案名 ▾」，旁邊的「?」另外放、仍可按", pj.is_visible() and "tw-rotation" in pj.inner_text() and "▾" in pj.inner_text() and pg.locator(".aio-pjn .pjb").inner_text().strip() == "←" and pg.locator("#helpBtn").is_visible() and not pg.locator(".ttl a[href='index.html']").is_visible())
@@ -190,7 +190,7 @@ def _px_flow(b, base):
         got = _px_world_ready(pg)
         wait_until(pg, "() => window.__world.live.projName", 30000)
         tg = _px_tags(pg)
-        ok("切換：換成 other-repo，名牌「other-repo CEO」、沒有分身、只有該專案的子 Agent", tg["ceo"] == "other-repo CEO" and tg["clones"] == [] and any("reviewer" in i for i in tg["ids"]) and not any("general-purpose" in i for i in tg["ids"]), tg)
+        ok("切換：換成 other-repo，名牌「other-repo CEO」、沒有分身、只有該專案的子 Agent", tg["ceo"] == "other-repo CEO" and tg["clones"] == [] and "x-zz-agent-b" in tg["ids"] and "x-general-purpose" not in tg["ids"] and "x-zz-agent-u" not in tg["ids"], tg)
         ok("切換：門牌跟著換", _px_sign(pg) == "other-repo CEO 辦公室", _px_sign(pg))
         pg.locator(".aio-pjn .pjn").click()
         pg.locator(".aio-pjm button[data-h='%s']" % _PU).click()
@@ -316,7 +316,7 @@ def _px_mobile(b, base):
         m = pg.evaluate("""() => { const t = document.querySelector('.ttl').getBoundingClientRect(), b1 = document.querySelector('.aio-pjn .pjb').getBoundingClientRect(), b2 = document.querySelector('.aio-pjn .pjn').getBoundingClientRect(), q = document.getElementById('helpBtn').getBoundingClientRect();
             return { inView: t.left >= 0 && t.right <= innerWidth, h1: b1.height, w1: b1.width, h2: b2.height, qh: q.height, over: document.documentElement.scrollWidth > innerWidth + 1, fs: parseFloat(getComputedStyle(document.querySelector('.aio-pjn .pjn span')).fontSize) } }""")
         ok("手機辦公室：左上角「← 專案名 ▾」在畫面內、← 與專案名都不小於 40px 高、字不小於 11px、沒有橫向溢出", m["inView"] and m["h1"] >= 40 and m["w1"] >= 40 and m["h2"] >= 40 and m["fs"] >= 11 and not m["over"], m)
-        ok("手機辦公室：「?」另外放、也夠大", m["qh"] >= 28, m)
+        ok("手機辦公室：「?」另外放、也好按（不小於 40px）", m["qh"] >= 40, m)
         _px_shot(pg, "p6_手機辦公室左上角.png")
         pg.locator(".aio-pjn .pjn").tap()
         mm = pg.evaluate("() => { const e = document.querySelector('.aio-pjm'); if (!e) return null; const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, b: r.bottom, n: e.querySelectorAll('button[data-h]').length, minh: Math.min(...[...e.querySelectorAll('button,a')].map(x => x.getBoundingClientRect().height)) } }")

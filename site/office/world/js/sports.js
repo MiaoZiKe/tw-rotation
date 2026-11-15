@@ -318,7 +318,13 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
       const v = venueAt(me); if (!v) { hud.hidden = true; hudKey = ''; return; }
       title = `${ZH[v.kind]}場`; tip = mobile ? `點「開始」${v.kind === 'pool' ? '跳進泳池' : '打' + ZH[v.kind]}` : `按 E ${v.kind === 'pool' ? '跳進泳池游泳' : '開始打' + ZH[v.kind]}`; btns = [['start', '開始', true]]; key = 'n' + v.kind;
     } else { if (!hud.hidden) { hud.hidden = true; hudKey = ''; } return; }
-    hud.hidden = false; if (key !== hudKey || force) { hudKey = key; elT.textContent = title; elP.textContent = tip; setBtns(btns); }
+    hud.hidden = false;
+    { // 主聊天室（#chatPanel，在畫面底部中間）開著時，介面往上讓開，兩者不重疊；手機則在虛擬搖桿的上方
+      const cp = document.getElementById('chatPanel'), cr = cp && !cp.hidden ? cp.getBoundingClientRect() : null, lift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lift')) || 0;
+      let b = mobile ? 162 + lift : 16; if (cr && cr.height > 0 && cr.width > 0) { const kids = [...cp.querySelectorAll('.mc-bar,.mc-peek,.mc-top')].filter(e => e.getBoundingClientRect().height > 0); const top = kids.length ? Math.min(...kids.map(e => e.getBoundingClientRect().top)) : cr.top; b = Math.max(b, innerHeight - top + 8); }
+      b = Math.min(b, Math.max(16, innerHeight - 170)); const bs = Math.round(b) + 'px'; if (hud.style.bottom !== bs) hud.style.bottom = bs;
+    }
+    if (key !== hudKey || force) { hudKey = key; elT.textContent = title; elP.textContent = tip; setBtns(btns); }
     elM.hidden = !meter; if (meter) { elMi.style.width = Math.round(meter.v * 100) + '%'; elMu.style.left = Math.round(clamp(meter.ideal, 0, 1) * 100) + '%'; elMu.style.width = Math.round(meter.tol * 200) + '%'; elMu.style.marginLeft = (-meter.tol * 100) + '%'; }
     if (s && s.game && elP.textContent !== tip) elP.textContent = tip;
     if (s && s.game) { elT.textContent = title; }
@@ -369,6 +375,8 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
   // 掛進主迴圈：每個模擬步（W.tickTimers 後面）、每一畫面（W.updateBlobs 後面）
   const t0 = W.tickTimers; S.perf = { ms: 0, n: 0, max: 0 }; W.tickTimers = () => { t0(); const h = W.time - lastT; lastT = W.time; if (h > 0) { const p0 = performance.now(); try { tick(Math.min(h, 0.1)); } catch (e) { if (!S.err) console.error('運動場例外', e); S.err = (S.err || 0) + 1; } const dt = performance.now() - p0; S.perf.ms += dt; S.perf.n++; if (dt > S.perf.max) S.perf.max = dt; } };   // 量測：運動場每個模擬步花多少毫秒（驗收用）
   const u0 = W.updateBlobs; W.updateBlobs = () => { u0(); try { frame(); } catch (e) { if (!S.err) console.error('運動場畫面例外', e); S.err = (S.err || 0) + 1; } };
+  // 運動場自己的繪製物件（驗收數「繪製次數增量」用：靜態＋目前顯示中的球、陰影、撞球組）
+  S.drawObjects = () => [B.mesh, B.nets, B.sign, water.mesh, water.points, V.shuttle, V.tennis, V.basket, V.shadow, V.balls, V.cue, V.line].filter(o => o && o.visible);
   S.end = end; S.start = (id, kind, partnerId) => { const me = W.chars.get(id), v = VENUES.find(q => q.kind === kind); return startFor(me, v, partnerId ? W.chars.get(partnerId) : null); };
   S.invite = invite; S.autoPartner = autoPartner; S.hud = hud; S.XG = XG; S.venueAt = venueAt;
   return S;

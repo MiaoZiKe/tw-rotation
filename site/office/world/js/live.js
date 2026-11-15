@@ -202,7 +202,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   .aio-prompt{max-height:36dvh}
 }`;
   css.textContent += `
-.ttl.pj{padding-left:4px;gap:2px}
+.ttl.pj{padding-left:4px;gap:2px}.ttl.pj .q{width:34px;height:34px;flex:none}
 .aio-pjn{display:inline-flex;align-items:center;min-width:0}.aio-pjn[hidden]{display:none}
 .aio-pjn .pjb,.aio-pjn .pjn{font:inherit;color:var(--ink);background:none;border:0;display:inline-flex;align-items:center;justify-content:center;min-height:40px;cursor:pointer;text-decoration:none;font-weight:800;font-size:16px;border-radius:999px}
 .aio-pjn .pjb{min-width:40px;font-size:20px}
@@ -214,7 +214,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
 .aio-pjm button:hover,.aio-pjm a:hover,.aio-pjm button:focus-visible,.aio-pjm a:focus-visible{background:var(--on2);outline:0}
 .aio-pjm em{font-style:normal;font-size:12px;color:var(--sub);flex:none}.aio-pjm .cur{background:var(--on2)}
 .aio-pjm .all{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;color:var(--sub);justify-content:center}
-@media (max-width:640px){.ttl.pj{height:44px}.aio-pjn .pjb,.aio-pjn .pjn{min-height:44px}.aio-pjn .pjb{min-width:44px}.aio-pjn .pjn{max-width:44vw}}`;
+@media (max-width:640px){.ttl.pj{height:44px}.ttl.pj .q{width:40px;height:40px;font-size:17px}.aio-pjn .pjb,.aio-pjn .pjn{min-height:44px}.aio-pjn .pjb{min-width:44px}.aio-pjn .pjn{max-width:44vw}}`;
   document.head.append(css);
 
   // ───────── 頂列標章＋說明框 ─────────
