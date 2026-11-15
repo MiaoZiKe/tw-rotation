@@ -155,7 +155,7 @@ def _oe_limit(b, base):
         for n in ("甲", "乙", "丙"):
             _oe_make(pg, "辦公室" + n)
         ok("上限：建到 3 間，第三張卡寫「已達 3 間上限」", pg.locator("#mineList li").count() == 3 and "已達 3 間上限" in pg.locator("#newSub").inner_text() and pg.locator("#newDoor").get_attribute("aria-disabled") == "true")
-        pg.locator("#newDoor").click()
+        pg.locator("#newDoor").click(force=True)   # aria-disabled：真人點得到（會出說明），Playwright 預設會當成不可點所以強制
         ok("上限：點第三張卡 → 說明「已達辦公室上限」、沒有取名字輸入框、沒有多建", "上限" in pg.locator("#dlgT").inner_text() and pg.locator("#offName").count() == 0 and pg.evaluate("() => window.__officeEntry.list().length") == 3)
         ok("上限：說明沒有禁用字", not _OE_BAD.search(_oe_text(pg)), _OE_BAD.findall(_oe_text(pg)))
         _oe_shot(pg, "entry_limit.png")
