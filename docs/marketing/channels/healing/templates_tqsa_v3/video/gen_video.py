@@ -121,6 +121,15 @@ V5CSS = """
 _V6 = _copy.deepcopy(_V5)
 _V6.update({"out": "video_v6.mp4", "cover": "video_v6_cover.jpg", "report": "overlap_report_video_v6.json", "runtime": "video_runtime_v6.js"})
 VIDEOS["20261116_marriage_v6"] = _V6
+
+# ───────── v7（Andy：「圈起來的效果很差，不喜歡那樣圈，改好看點，並且可以直接呼叫 API 完整影片」）─────────
+# 拿掉所有手繪圈；有旁白（tts/tts_take.py → tts/cut_take.py → queue/<篇>/segments.json＋narration_v7.wav），每鏡長度與字幕跟著旁白走。
+_V7 = _copy.deepcopy(_V6)
+_V7.update({"out": "video_v7.mp4", "cover": "video_v7_cover.jpg", "report": "overlap_report_video_v7.json", "runtime": "video_runtime_v7.js", "segments": "segments.json", "voice_lufs": -16.0, "outro_lufs": -13.0})
+for _s in _V7["scenes"]:
+    if _s["id"] == "s3": _s["note"] = "少 43,485 對"
+    if _s["id"] == "s9": _s["dur"] = 5.6   # 片尾：LOGO 出場（約 2.4 秒）做完才開口念「想看完整資料，留言結婚」，關鍵字膠囊跟著「留言」出現，之後停 ≥2 秒
+VIDEOS["20261116_marriage_v7"] = _V7
 V3CSS = """
 .bgl{left:0;top:0;width:1080px;height:1920px}
 .grid{background-image:linear-gradient(rgba(110,106,102,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(110,106,102,.07) 2px,transparent 2px);background-size:72px 72px}
@@ -157,6 +166,7 @@ def apply_segments(v, seg_path):
         assert not miss, "segments.json 少了這些段：%s" % miss
         for s in sc:
             g = m[s["id"]]; s["t0"], s["t1"] = float(g["start"]), float(g["end"])
+            if "speech_start" in g: s["voiceAt"] = round(float(g["speech_start"]) - float(g["start"]), 3)   # 這一鏡第幾秒開口（v7 片尾關鍵字對齊用）
             s["cap"] = g.get("text") or s.get("say", "")
         sc.sort(key=lambda s: s["t0"]); sc[0]["t0"] = 0.0
         for a, b in zip(sc, sc[1:]): a["t1"] = b["t0"]
@@ -193,7 +203,7 @@ V2CSS = """
 def build_v2(name, seg_path=None):
     import copy
     v = copy.deepcopy(VIDEOS[name]); v["name"] = name
-    seg_path = seg_path or os.path.join(QUEUE, v["queue"], "segments.json")
+    seg_path = seg_path or (os.path.join(QUEUE, v["queue"], v["segments"]) if v.get("segments") else None)
     apply_segments(v, seg_path)
     write_narration(v)
     css = ":root{" + ";".join("--%s:%s" % (k, val) for k, val in PAL.items()) + "}"
@@ -206,7 +216,7 @@ html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden;font-f
 <div id="stage"></div>
 <script>const V=%s;</script>
 <script src="file://%s"></script>
-</body></html>""" % (css, V2CSS, (V3CSS + (V5CSS if v["runtime"].endswith(("v5.js", "v6.js")) else "")) if v["runtime"].endswith(("v3.js", "v4.js", "v5.js", "v6.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
+</body></html>""" % (css, V2CSS, (V3CSS + (V5CSS if v["runtime"].endswith(("v5.js", "v6.js", "v7.js")) else "")) if v["runtime"].endswith(("v3.js", "v4.js", "v5.js", "v6.js", "v7.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
     os.makedirs(os.path.join(B, "html"), exist_ok=True)
     p = os.path.join(B, "html", name + ".html"); open(p, "w", encoding="utf-8").write(page)
     print("時間軸：", v["timing"], "總長 %.2f 秒" % v["dur"], [(s["id"], round(s["t1"] - s["t0"], 2)) for s in v["scenes"]])
