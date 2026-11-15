@@ -35,6 +35,7 @@ model: opus
 10. **素材與頁序**（Andy 11-10）：插圖依內容量身畫、有數據就有圖表、素材不跨篇重複（查 `素材登記.md`）；封面講發生什麼 → 第 2 頁講資訊從哪來與統計結果 → 之後講解讀與晴；細則見 plan.md「2026-11-10 素材與頁序規則」。
 11. **影片**（Andy 11-15）：內容邏輯照 `docs/marketing/channels/video_logic.md`（鉤子→有邏輯的介紹→吊胃口結尾），旁白照 `docs/prompts/tanqing-旁白-深度報導.txt`；交件附自查五項。
 12. 一律繁體中文；不 force push；權杖不進 repo。
+13. **每篇新貼文同時放 `article.json` 並跑 `python -m scripts.healing_article <資料夾>`**（2026-11-15 Andy：「所有頻道都需要這樣」）：沒有 article.json 不准放 `approved`，不准寫「由同事補」交給別人；格式照 `auto_post.md` 第 2 節。
 
 
 ## 授權範圍（2026-11-10 Andy：「接下來這頻道 9 成都會由我指派的談晴說礙編輯全權執行」「一個禮拜會有一天你們要討論發文的主題方向、改善」）

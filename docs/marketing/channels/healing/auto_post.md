@@ -26,7 +26,7 @@
      ```
      `status`：`approved` 才會發；`draft` 不碰；發完自動改成 `posted` 並寫入 `urls`。
      `publish_at`：`null`＝下一個時段就發；要指定最早時間就寫台北時間，例如 `"2026-11-12T20:27+08:00"`（時間沒到會先發下一則，不會卡住佇列）。
-   - `article.json`（2026-11-15 起必放；Andy：「所有頻道都需要這樣」）：這篇存成網站精選文章「談晴說礙」隱藏分頁用的資料，格式照 `queue/20261115_ai/article.json`：
+   - `article.json`（2026-11-15 起必放；Andy：「所有頻道都需要這樣」。**沒有 article.json 不准把 `status` 放 `approved`**——11-15 發現 11/18～11/22 五篇只寫「由同事補」就排程，已補齊；產圖與 article.json 同一個 commit 放進佇列）：這篇存成網站精選文章「談晴說礙」隱藏分頁用的資料，格式照 `queue/20261115_ai/article.json`：
      `slug`（英文短名）、`date`（發布日 YYYY-MM-DD）、`summary`（一句摘要）、`alts`（三張圖的替代文字）、`sources`（`{title, publisher, date, url}`，文案裡每個數字的出處都要在這裡）、`confidence`。
      放好後跑 `python -m scripts.healing_article <資料夾名>` → 寫 `site/articles/healing/<id>.json`、`index.json`、`img/<id>-<n>.jpg`，跟佇列一起推 main。
      這個分頁**對外不顯示**（只有站主看得到，見 `docs/tech_articles.md`），直接連結 `https://liguligu-puipui.com/#article/<id>` 誰都打得開，可拿來私訊。
