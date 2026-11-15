@@ -1,0 +1,130 @@
+{
+ "id": "2026-11-16-ligu-nvda-kress",
+ "cat": "ligu",
+ "title": "一個簽名、三個頭銜：輝達財報換人交",
+ "subtitle": "哩股哩股：黃仁勳辭職後，財務長兼任臨時執行長。她是過渡，還是接班？",
+ "date": "2026-11-16",
+ "updated": "2026-11-16",
+ "tags": [
+  "哩股哩股",
+  "輝達",
+  "8-K",
+  "執行長交接"
+ ],
+ "summary": "黃仁勳辭職後，財務長 Colette Kress 兼任臨時執行長，8-K 上同一個人簽了三個頭銜；5 天後的財報照常，財測卻是他在任時給的。查證截至 2026/11/15。",
+ "reading_min": 3,
+ "blocks": [
+  {
+   "t": "callout",
+   "text": "疑點：她是過渡，還是接班？本文整理公開資訊，不構成投資建議。查證截至 2026/11/15。"
+  },
+  {
+   "t": "h",
+   "text": "逐句查證"
+  },
+  {
+   "t": "table",
+   "head": [
+    "旁白",
+    "狀態",
+    "依據"
+   ],
+   "rows": [
+    [
+     "一個簽名，三個頭銜。簽字的是同一個人。",
+     "已確定",
+     "輝達 8-K（2026/11/12 申報）簽名頁"
+    ],
+    [
+     "她是財務長，暫代執行長，5 天後就要交財報。",
+     "已確定",
+     "輝達新聞稿 2026/11/12；8-K Item 5.02"
+    ],
+    [
+     "金融時報說已接觸人選，公司說還沒正式接洽。",
+     "媒體報導（金融時報 11/13，引述知情人士，公司未證實）／公司說法（經媒體轉述）",
+     "RTÉ 轉述金融時報；Benzinga 刊出輝達回應"
+    ],
+    [
+     "這季財測 1080 億美元，是他還在任時給的。",
+     "已確定",
+     "輝達第二季財報新聞稿 2026/8/26"
+    ],
+    [
+     "但暫代，不等於接班，人選還在找。",
+     "已確定（暫代）／尚未確定（接班）",
+     "輝達新聞稿 2026/11/12"
+    ],
+    [
+     "調查還沒結論，正式人選也還沒定。",
+     "截至 2026/11/15 尚未確定",
+     "輝達董事會聲明 11/8、11/10"
+    ],
+    [
+     "她是過渡，還是接班？下集看財報數字。",
+     "提問",
+     "第三季財報 11/17（美西）照原訂公布"
+    ]
+   ]
+  },
+  {
+   "t": "h",
+   "text": "還不知道的事"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "董事會獨立調查的結論",
+    "正式執行長人選",
+    "11/17 說明會是否談到領導層與調查"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "刻意沒放的內容"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "人選姓名（單一來源）",
+    "治理疑慮評論（無可靠來源）",
+    "分析師預估與股價（避免投資建議）",
+    "個人私事細節"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "NVIDIA 8-K（簽名頁、Item 5.02）",
+   "publisher": "美國證管會 EDGAR",
+   "date": "2026-11-12",
+   "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000082/nvda-20261111.htm"
+  },
+  {
+   "title": "NVIDIA Announces CEO Transition",
+   "publisher": "NVIDIA 新聞稿",
+   "date": "2026-11-12",
+   "url": "https://nvidianews.nvidia.com/news/nvidia-announces-ceo-transition"
+  },
+  {
+   "title": "轉述金融時報：輝達接觸接班人選",
+   "publisher": "RTÉ",
+   "date": "2026-11-13",
+   "url": "https://www.rte.ie/news/business/2026/1113/1599163-nvidia-approached-arm-ceo-haas-to-succeed-huang-ft/"
+  },
+  {
+   "title": "第二季財報新聞稿（第三季財測）",
+   "publisher": "NVIDIA／證管會 EDGAR",
+   "date": "2026-08-26",
+   "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+  },
+  {
+   "title": "獨立董事聲明",
+   "publisher": "NVIDIA 新聞稿",
+   "date": "2026-11-10",
+   "url": "https://nvidianews.nvidia.com/news/statement-from-the-independent-members-of-the-nvidia-board"
+  }
+ ],
+ "confidence": "官方文件原文已讀；金融時報與公司回應只看到轉述。",
+ "status": "published"
+}

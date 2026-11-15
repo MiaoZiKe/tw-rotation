@@ -96,7 +96,7 @@ def t_tech_articles_1115(b, base, code):
         c, pg = ctx("andy@example.com", W)
         open_(pg, "#articles")
         wait_until(pg, "() => [...document.querySelectorAll('#artCats>button')].some(b => b.dataset.cat === 'tech' && b.getClientRects().length)", 10000)
-        ok(f"★ [{T}（{W}）] 站主：分頁列最右邊多一格「科技透明圈」", pg.evaluate(vis)[-1:] == ["tech"], pg.evaluate(vis))
+        ok(f"★ [{T}（{W}）] 站主：分頁列多一格「科技透明圈」（頻道分頁排在消息分頁之後）", "tech" in pg.evaluate(vis) and pg.evaluate(vis).index("tech") > pg.evaluate(vis).index("postmarket"), pg.evaluate(vis))
         st = pg.evaluate("""() => { const t = document.querySelector('#artCats>button[data-cat=tech]'), s = t.querySelector(':scope > span:not(.arteye)'), e = t.querySelector('.arteye');
             return { hid: t.classList.contains('hid'), op: parseFloat(getComputedStyle(t).opacity), line: getComputedStyle(s).textDecorationLine, eye: e ? e.getClientRects().length : 0, title: t.title }; }""")
         ok(f"★ [{T}（{W}）] 站主：分頁變淡（opacity<0.8）、文字刪除線、沒有眼睛（不能被打開成公開）", st["hid"] and st["op"] < 0.8 and "line-through" in st["line"] and st["eye"] == 0, st)

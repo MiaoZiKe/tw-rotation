@@ -79,7 +79,7 @@
        預定的列（Andy 11-15 交代，各頻道要用時再加）：ligu 哩股哩股、caffaine CaffAIne、healing 談晴說礙。 */
   const PRIV = {
     tech: { t: '科技透明圈', s: '科技', col: ['#e3b341', '#8a6100'], ic: 'tech' },
-    // ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'] },
+    ligu: { t: '哩股哩股', s: '哩股', col: ['#5bc0eb', '#0e6f94'] },
     // caffaine: { t: 'CaffAIne', s: 'AI', col: ['#d69fff', '#7a2bb0'] },
     // healing: { t: '談晴說礙', s: '談晴', col: ['#f2b880', '#9a5a1a'] },
   };
@@ -812,20 +812,27 @@
   }
   /* 科技透明圈（隱藏分頁）：清單只有站主打開分頁時才讀；單篇用直接連結時，showPost 直接讀 articles/tech/<id>.json（不經清單）。
      欄位照一般文章（見 docs/tech_articles.md）；cat 一律當 tech，open:true＝不走額度。讀不到＝當作沒有。 */
-  function loadTech() {
+  function loadTech() {   // 2026-11-15：所有 PRIV 頻道（tech、ligu…）的清單一起讀、併成一份，每篇帶自己的 cat；filtered() 依 cat 分開
     if (S.tech) return Promise.resolve(S.tech);
-    if (!S.techP) S.techP = fetchJson(PRIV.tech.file).then((j) => {
-      const list = (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date))
-        .map((a) => Object.assign({}, a, { cat: 'tech', open: true, groups: cleanGroups(a.groups) }));
+    if (!S.techP) S.techP = Promise.all(Object.keys(PRIV).map((k) => fetchJson(PRIV[k].file).then((j) => ({ k, j })).catch(() => ({ k, j: null })))).then((rs) => {
+      const list = [];
+      rs.forEach(({ k, j }) => (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date))
+        .forEach((a) => list.push(Object.assign({}, a, { cat: k, open: true, groups: cleanGroups(a.groups) }))));
       list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.id).localeCompare(String(b.id))));
-      S.tech = { updated: j && j.updated, list }; return S.tech;
+      S.tech = { updated: rs.map((r) => r.j && r.j.updated).filter(Boolean).sort().pop(), list }; return S.tech;
     }).catch(() => { S.techP = null; return null; });
     return S.techP;
   }
+  /* 直接連結：依 id 裡的頻道代號（YYYY-MM-DD-<key>-…）先試那個頻道，其他頻道當備援 */
   function loadUnlisted(id) {
     if (!okId(id)) return Promise.resolve(null);
-    if (!S.unl[id]) S.unl[id] = fetchJson(PRIV.tech.dir + encodeURIComponent(id) + '.json')
-      .then((d) => (d && d.title && Array.isArray(d.blocks) ? Object.assign({}, d, { id, cat: 'tech' }) : null)).catch(() => { delete S.unl[id]; return null; });
+    if (!S.unl[id]) {
+      const ks = Object.keys(PRIV), hit = ks.find((k) => new RegExp('^\\d{4}-\\d{2}-\\d{2}-' + k + '-').test(id));
+      const order = hit ? [hit].concat(ks.filter((k) => k !== hit)) : ks;
+      const tryK = (i) => (i >= order.length ? Promise.resolve(null) : fetchJson(PRIV[order[i]].dir + encodeURIComponent(id) + '.json')
+        .then((d) => (d && d.title && Array.isArray(d.blocks) ? Object.assign({}, d, { id, cat: order[i] }) : tryK(i + 1))).catch(() => tryK(i + 1)));
+      S.unl[id] = tryK(0).then((d) => { if (!d) delete S.unl[id]; return d; });
+    }
     return S.unl[id];
   }
   function loadTopics() {
@@ -1016,7 +1023,7 @@
     const src = PRIV[cat] && !ignoreCat ? (isAdminUser() && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
     return src.filter((a) => (ignoreCat || cat === 'all' || a.cat === cat)
       && (!q || String(a.title).toLowerCase().includes(q))
-      && (!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)
+      && (PRIV[cat] || ((!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)))   // 頻道隱藏分頁只有站主看、篇數少，不套日期區間（影片文章常寫隔天的上片日）
       && (!S.grp.size || (a.groups || []).some((g) => S.grp.has(g.id))));
   }
   function groupStats() {
