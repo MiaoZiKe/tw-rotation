@@ -133,11 +133,11 @@ export function createChat(W, X) {
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && (K.open || activeCount())) fetchInbox(); });
   // 第一次碰對話框（聚焦輸入框／展開／送出）才開始跟收件服務與功能閘門對話
-  function touch() {
+  function touch(noGate) {
     if (!K.touched) K.touched = true;
     if (!tok()) K.mode = 'nologin';
     else if (K.mode === 'idle' || K.mode === 'neterr') { K.mode = K.mode === 'idle' ? 'loading' : K.mode; fetchInbox(true); }
-    if (W.gate) W.gate.load().then(render);
+    if (W.gate && !noGate) W.gate.load().then(render);        // 送出時 W.gate.begin 自己會載入，這裡不重複
     render();
   }
 
@@ -264,7 +264,7 @@ export function createChat(W, X) {
 
   async function send() {
     const text = tx.value.trim(); if (K.busy || !text || text.length > MAX_TEXT) return;
-    touch(); if (K.mode === 'loading') { K.busy = true; render(); while (K.inflight) await new Promise(r => setTimeout(r, 60)); K.busy = false; }
+    touch(true); if (K.mode === 'loading') { K.busy = true; render(); while (K.inflight) await new Promise(r => setTimeout(r, 60)); K.busy = false; }
     if (K.mode !== 'ok') { render(); return; }
     K.busy = true; K.err = ''; render();
     const gt = W.gate ? await W.gate.begin('office.cmd') : null;           // 功能閘門：今天的次數用完就不送（說明由 render 顯示在對話框裡）
