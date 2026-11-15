@@ -49,18 +49,8 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
   function resize() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
-  // 2026-11-15 效能（進場速度）：天色先建好、房子蓋好就先畫一張（預設俯視的同一個鏡頭位置），載入畫面縮成底部小字，
-  // 使用者不用對著空白等角色建完；之後的流程完全照舊，第一個正式畫面一到就收掉小字（網址帶 view=ceo 時鏡頭位置要等角色建好才知道，維持原本做法）。
-  const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化（只用到場景與燈，可以比角色早建）
-  if (qs.get('view') !== 'ceo') {
-    try {
-      const por = cv.clientWidth < cv.clientHeight, d = por ? 84 : 58, t = new THREE.Vector3(layout.size.w / 2, 0, layout.size.d / 2 + 0.6 + (por ? 4.5 : 4.2));   // ＝ 下面 godPose() 的預設俯視
-      camera.position.set(t.x, t.y + d * Math.cos(0.62), t.z + d * Math.sin(0.62)); camera.fov = 38; camera.updateProjectionMatrix(); camera.lookAt(t);
-      daytime.tick(); W.shadowDirty(); renderer.render(scene, camera); PF.mark('scene');
-      const ld = $('loading'); ld.classList.add('mini'); ld.textContent = '同事就座中…';
-      await new Promise(r => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 150); });   // 讓瀏覽器把這一張畫上螢幕（分頁在背景時不等 rAF）
-    } catch (e) { console.warn('先顯示場景失敗，照原流程載入', e); }
-  }
+  // 2026-11-15 效能：曾試過「房子蓋好先畫一張、載入提示縮成小字」，實測（軟體繪圖，各 3 次）房子 1.3 秒就出現，
+  // 但之後建角色慢了約 1.5 秒，第一個正式畫面從約 3.0 秒變成約 4.9 秒 → 拿掉，以首次可互動時間為準。
 
   // ── 角色 ──
   // 手機自動降級：幾何面數、臉部貼圖、遠近分級的距離都調低
@@ -292,7 +282,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const attn = createAttention(W, { camera, pilot, director: () => director }); W.attn = attn;
   const multi = createMulti(W, { cv, camera, ui, pilot, setView, director: () => director, pick: pickChar, isEdit: () => edit.on }); W.multi = multi;   // 多選：Ctrl＋點／框選／群組面板（multi.js；下面 pointerdown／pointerup 各有一行掛鉤）
   W.camclear = createCamClear(W, { camera, controls, view, pilot });
-  $('app').append(daytime.chip, daytime.pop); daytime.update(true);   // 天色已在上面先建好：時間標籤移回原本的位置順序，並在操作提示出現後重新排一次位置
+  const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
   const noPhys = qs.get('nophys') === '1';   // 網址加 nophys=1＝關掉物理與火焰（驗收量「繪製次數增量」時當對照組）
   const phys = noPhys ? { tick() { }, preRender() { }, postRender() { } } : createPhysics(W), fire = noPhys ? { tick() { }, frame() { } } : createFire(W);   // 物理互動與火焰（主迴圈每個模擬步呼叫 tick）
 

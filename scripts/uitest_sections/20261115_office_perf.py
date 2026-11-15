@@ -3,11 +3,11 @@
 #     · 4×：主迴圈每格把模擬切成 ⌈模擬秒數 / 0.034⌉ 個子步，以前每個子步每位角色都做一次完整的「姿勢內插＋腳 IK＋接地投影（蒙皮頂點）＋臉」，
 #       那些只影響畫面、只有最後一步會被畫出來。現在 env.draw 只在最後一個子步為真，前面幾步只推進物理；臉與動畫計時拿到累積的全部時間。
 #     · 進場：角色取椅子顏色時，每位都把整個場景約 20 萬個頂點轉成世界座標再比對（開場合計約 800 萬次）→ kit.js 的共用索引（結果逐位相同）；
-#       模型、個性檔、設定檔與深層模組在 world.html 先預載（不用等 main.js 一層層 import）；房子蓋好先畫一張、載入提示縮成底部小字。
+#       模型、個性檔、設定檔與深層模組在 world.html 先預載（不用等 main.js 一層層 import）；（「房子先畫一張」試過、拖慢首次可互動，已拿掉）。
 #   棘輪（容器是軟體繪圖、又常有別的測試同時在跑，所以絕對毫秒只當紀錄；門檻用「同一頁裡的相對比例」與「確定性的工作量」）：
 #     · 4× 每格（30fps、4 個子步）的模擬成本 ÷ 1× 每格（1 個子步）≤ 2.6（修前約 4.3，修後約 1.7）
 #     · 4× 每格每位新模型角色的完整姿態計算（controller.render）次數 ≤ 1（修前 = 子步數 4）
-#     · 首次可互動（第一個正式畫面）≤ 30 秒；房子比角色先畫出來（boot.scene 早於 boot.chars）
+#     · 首次可互動（第一個正式畫面）≤ 30 秒（11-15 試過「房子先畫一張」：房子早出現但首次可互動慢約 1.9 秒，已拿掉）
 #     · world.html 預載的每一個檔案都存在（不能預載到 404）
 
 _BENCH = """([sec, n]) => { const W = __world, o = []; for (let r = 0; r < n; r++) { const a = performance.now(); W.advance(sec, 0.034); o.push(performance.now() - a); } o.sort((a, b) => a - b); return o[Math.floor(o.length / 2)]; }"""
@@ -28,9 +28,8 @@ def t_office_perf(b, base):
         if not got:
             return
         bt = pg.evaluate("() => { const b = __world.perf.boot; return { ...b, t0: b.ready - b.firstFrame }; }")
-        ready = round(bt["ready"]); print(f"    開場（毫秒，自導覽起算）：資料到齊 {round(bt['assetsAt'])}、房子畫出 {round(bt['t0'] + bt.get('scene', -1e9))}、角色就座 {round(bt['t0'] + bt['chars'])}、第一個正式畫面 {ready}")
+        ready = round(bt["ready"]); print(f"    開場（毫秒，自導覽起算）：資料到齊 {round(bt['assetsAt'])}、角色就座 {round(bt['t0'] + bt['chars'])}、第一個正式畫面 {ready}")
         ok(f"辦公室效能：首次可互動 {ready} 毫秒（門檻 30000）", ready <= 30000, bt)
-        ok("辦公室效能：房子比角色先畫出來（載入提示縮成底部小字）", "scene" in bt and bt["scene"] < bt["chars"], bt)
         # 預載清單：每一條都要真的存在
         links = pg.evaluate("() => [...document.querySelectorAll('link[rel=modulepreload],link[rel=preload]')].map(l => l.href)")
         bad = pg.evaluate("async (u) => { const out = []; for (const x of u) { try { const r = await fetch(x, { method: 'HEAD' }); if (!r.ok) out.push([x, r.status]); } catch (e) { out.push([x, String(e)]); } } return out; }", links)
