@@ -19,6 +19,7 @@ function hullGeometry(g) {
   for (const k in g.attributes) if (k !== 'normal') h.setAttribute(k, g.attributes[k]);
   h.setAttribute('normal', new THREE.BufferAttribute(sm, 3));
   if (g.index) h.setIndex(g.index);
+  if (g.morphAttributes && Object.keys(g.morphAttributes).length) { h.morphAttributes = g.morphAttributes; h.morphTargetsRelative = g.morphTargetsRelative; }   // 身體形態鍵（胖瘦、壓扁）：殼要跟本體同形，不然縮在身體裡面看不到
   h.groups = g.groups; h.boundingSphere = g.boundingSphere; h.boundingBox = g.boundingBox;
   smoothCache.set(g, h); return h;
 }
@@ -60,6 +61,7 @@ export function createOutline(W, { camera, cv }) {
       const g = hullGeometry(m.geometry); if (!g) continue; let h;
       if (m.isSkinnedMesh) { h = new THREE.SkinnedMesh(g, mat); h.bind(m.skeleton, m.bindMatrix); h.position.copy(m.position); h.quaternion.copy(m.quaternion); h.scale.copy(m.scale); (m.parent || c.object3D).add(h); }
       else { h = new THREE.Mesh(g, mat); m.add(h); }
+      if (m.morphTargetInfluences) { h.morphTargetInfluences = m.morphTargetInfluences; h.morphTargetDictionary = m.morphTargetDictionary; }   // 共用同一個陣列，本體形態怎麼動殼就怎麼動
       h.userData.dhOutline = true; h.userData.src = m; h.frustumCulled = false; h.castShadow = false; h.receiveShadow = false; h.renderOrder = 4; h.raycast = () => { };
       O.hulls.push(h);
     }
