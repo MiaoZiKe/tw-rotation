@@ -296,9 +296,9 @@ def _og_connect_hr(b, base):
         wait_until(pg, "() => !__world.live.code", 20000)
         pg.evaluate("() => __world.live.openGuide()")
         _og_js(pg, "#aioGuide [data-a=cpcode]")
-        ok("連接：第 2 次被鎖——視窗裡寫白話「今天的連接次數用完了（今天 1／1），明天會恢復」", wait_until(pg, "() => (document.querySelector('#aioGuide .aio-msg') || {}).textContent && document.querySelector('#aioGuide .aio-msg').textContent.includes('連接次數用完了')", 30000), pg.inner_text("#aioGuide"))
+        ok("連接：第 2 次被鎖——視窗裡寫白話「今天的連接次數用完了（今天 1／1），明天會恢復」", wait_until(pg, "() => document.getElementById('aioGuide').textContent.includes('連接次數用完了')", 30000), pg.inner_text("#aioGuide"))
         ok("連接：被鎖時不再向收件端領接入碼（仍是 1 次）、沒有遮罩版", br.claims == 1 and not pg.query_selector("#aioCodeMask"))
-        ok("連接：說明沒有禁用字", not _OG_BAD.search(pg.inner_text("#aioGuide .aio-msg")), pg.inner_text("#aioGuide .aio-msg"))
+        ok("連接：說明沒有禁用字", not _OG_BAD.search(pg.inner_text("#aioGuide")), _OG_BAD.findall(pg.inner_text("#aioGuide")))
         _og_shot(pg, "gate_3_桌機_連接被鎖.png")
         _og_js(pg, "#aioGuide .aio-gx")
         # —— 開除與重新聘用：每日 1 次
