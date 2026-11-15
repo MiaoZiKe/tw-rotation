@@ -278,6 +278,7 @@ def _ch_desktop(b, base):
         pg.click("#chatText")
         pg.keyboard.type("這個之後再說")
         pg.keyboard.press("Enter")
+        wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 8000)
         pg.keyboard.type("第二句馬上補")
         pg.keyboard.press("Enter")
         ok("對 CEO 說：收件服務收到 to＝ceo、兩則都出現、CEO 室沒有「→」指定小字", wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 2", 8000) and [p["to"] for p in br.posts[1:]] == ["ceo", "ceo"] and not pg.query_selector("#chatList .c-to"), br.posts)
@@ -316,6 +317,7 @@ def _ch_desktop(b, base):
         ok("動作標記：解析成動作（轉圈、揮手）並讓那位角色真的做出來（轉圈走位＋揮手動作）", wait_until(pg, "() => __world.chat.acted && __world.chat.acted.includes('frontend-ui:spin') && __world.chat.acted.includes('frontend-ui:wave')", 25000) and wait_until(pg, "() => window['__act_ui'].includes('wave')", 8000), pg.evaluate("() => [__world.chat.acted, window['__act_ui']]"))
         ok("3D：他頭上冒泡泡，內容是回覆的第一句（短句、不含網址、不含動作標記）", wait_until(pg, "() => window['__say_frontend-ui'].some(t => t.includes('頂列按鈕高度') && !t.includes('http') && !t.includes('【') && t.length <= 19)", 25000), pg.evaluate("() => window['__say_frontend-ui']"))
         ok("3D：完成後同事有小慶祝（星星）", wait_until(pg, "() => window['__emo_frontend-ui'].includes('star')", 25000), pg.evaluate("() => window['__emo_frontend-ui']"))
+        br.set(br.msgs[1]["id"], "done", "知道了")
         ok("頂列徽章：全部做完後數字消失", wait_until(pg, "() => document.getElementById('chatN').hidden", 6000))
         _ch_shot(pg, "mc_d6_回覆.png")
         # 失敗／過期：明顯標出、可重送

@@ -179,6 +179,7 @@ def t_office_pick(b, base):
         pg.wait_for_timeout(300)
         pg.mouse.up()
         pg.wait_for_timeout(500)
+        pg.evaluate("() => __world.advanceAsync(6)")      # 讓他落地（放開後有掉落動畫）
         rel = pg.evaluate("(id) => ({ g: !!__world.grabbing(), st: __world.chars.get(id).state, h: !!__world.chars.get(id)._held, n: __world.outline.hulls.length })", cid)
         ok("拎著：放開後不再拎著、外框拆掉 %s" % rel, (not rel["g"]) and rel["n"] == 0 and rel["h"] is False, rel)
 
