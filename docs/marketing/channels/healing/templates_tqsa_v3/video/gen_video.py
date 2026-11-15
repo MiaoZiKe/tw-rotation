@@ -116,6 +116,11 @@ V5CSS = """
 .tag{font-size:32px;line-height:42px}
 .asof{font-size:32px;line-height:40px}
 """
+
+# ───────── v6（v5 複審小修：鉤子大字下壓回彈、轉場 0 幀同框、s4 第二拍提前、s3 手繪圈外擴、s2 殘影、s6 軸標字級、s2／s3 底部空白收緊）─────────
+_V6 = _copy.deepcopy(_V5)
+_V6.update({"out": "video_v6.mp4", "cover": "video_v6_cover.jpg", "report": "overlap_report_video_v6.json", "runtime": "video_runtime_v6.js"})
+VIDEOS["20261116_marriage_v6"] = _V6
 V3CSS = """
 .bgl{left:0;top:0;width:1080px;height:1920px}
 .grid{background-image:linear-gradient(rgba(110,106,102,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(110,106,102,.07) 2px,transparent 2px);background-size:72px 72px}
@@ -201,7 +206,7 @@ html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden;font-f
 <div id="stage"></div>
 <script>const V=%s;</script>
 <script src="file://%s"></script>
-</body></html>""" % (css, V2CSS, (V3CSS + (V5CSS if v["runtime"].endswith("v5.js") else "")) if v["runtime"].endswith(("v3.js", "v4.js", "v5.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
+</body></html>""" % (css, V2CSS, (V3CSS + (V5CSS if v["runtime"].endswith(("v5.js", "v6.js")) else "")) if v["runtime"].endswith(("v3.js", "v4.js", "v5.js", "v6.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
     os.makedirs(os.path.join(B, "html"), exist_ok=True)
     p = os.path.join(B, "html", name + ".html"); open(p, "w", encoding="utf-8").write(page)
     print("時間軸：", v["timing"], "總長 %.2f 秒" % v["dur"], [(s["id"], round(s["t1"] - s["t0"], 2)) for s in v["scenes"]])
