@@ -131,6 +131,7 @@ export function clean(e) {
   const put = (k, v) => { if (v != null) o[k] = v; };
   put('session_id', id(e.session_id));
   put('project_name', scrub(e.project_name, 60));
+  put('task_name', scrub(e.task_name, 24));                 // 任務簡稱（Claude 自己取的 6～12 字），名牌顯示「<簡稱> CEO」
   put('project_hash', typeof e.project_hash === 'string' && /^[0-9a-f]{16}$/.test(e.project_hash) ? e.project_hash : null);
   put('cloud', bool(e.cloud));
   put('agent_id', id(e.agent_id));
@@ -225,6 +226,7 @@ export class Hub {
     for (const s of T) this.sql.exec(s);
     // 舊資料庫的收件匣沒有 ph 欄：補上（新的指令可以指定專案；舊的指令 ph 為空＝任何專案都可以取）
     if (!this.q('PRAGMA table_info(inbox)').some((c) => c.name === 'ph')) this.sql.exec('ALTER TABLE inbox ADD COLUMN ph TEXT');
+    try { this.sql.exec('ALTER TABLE sessions ADD COLUMN tname TEXT'); } catch { /* 已經有這欄 */ }
     this.ready = true;
   }
 
@@ -381,9 +383,9 @@ export class Hub {
     if (e.rate_limits) this.sql.exec('INSERT INTO quota (office, data, at) VALUES (?, ?, ?) ON CONFLICT(office) DO UPDATE SET data = excluded.data, at = excluded.at', office, JSON.stringify(e.rate_limits), rcv);
     if (!sid) return;
     // 工作階段：第一次看到就建立（就算沒收到 SessionStart，例如外掛是中途才裝的）
-    this.sql.exec(`INSERT INTO sessions (office, sid, ph, pname, cloud, started, last, state) VALUES (?, ?, ?, ?, ?, ?, ?, 'idle')
-      ON CONFLICT(office, sid) DO UPDATE SET last = excluded.last, ph = COALESCE(excluded.ph, ph), pname = COALESCE(excluded.pname, pname), cloud = COALESCE(excluded.cloud, cloud)`,
-      office, sid, ph, e.project_name || null, e.cloud == null ? null : e.cloud ? 1 : 0, rcv, rcv);
+    this.sql.exec(`INSERT INTO sessions (office, sid, ph, pname, tname, cloud, started, last, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'idle')
+      ON CONFLICT(office, sid) DO UPDATE SET last = excluded.last, ph = COALESCE(excluded.ph, ph), pname = COALESCE(excluded.pname, pname), tname = COALESCE(excluded.tname, tname), cloud = COALESCE(excluded.cloud, cloud)`,
+      office, sid, ph, e.project_name || null, e.task_name || null, e.cloud == null ? null : e.cloud ? 1 : 0, rcv, rcv);
     const S = (set, ...a) => this.sql.exec(`UPDATE sessions SET ${set} WHERE office = ? AND sid = ?`, ...a, office, sid);
     const cat = e.tool_category;
     switch (e.event) {
@@ -462,7 +464,7 @@ export class Hub {
     const top = this.q('SELECT MAX(seq) AS s FROM events WHERE office = ?', office)[0] || {};
     const cnt = this.q('SELECT MAX(rcv) AS t, COUNT(*) AS n FROM events WHERE office = ?' + PE, office, ...PA)[0] || {};
     const projects = this.projectRows(office, now);
-    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ?' + (pj ? ' AND ph = ?' : '') + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
+    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, tname AS task_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ?' + (pj ? ' AND ph = ?' : '') + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
       .map((s) => ({ ...s, cloud: s.cloud == null ? null : !!s.cloud }));
     let agents = this.q('SELECT aid AS agent_id, sid AS session_id, ph AS project_hash, type AS agent_type, descr AS description, started, last, ended, status, tool, tool_at, summary, tokens, dur AS duration_ms FROM agents WHERE office = ? AND (ended IS NULL OR ended > ?)' + (pj ? ' AND ph = ?' : '') + ' ORDER BY COALESCE(ended, last) DESC LIMIT 200', office, now - 86400e3, ...PA)
       .map((a) => (a.status === 'running' && now - (a.last || 0) > STALE_MS ? { ...a, status: 'unknown' } : a));

@@ -174,6 +174,17 @@ def project_info(cwd):
     return scrub(os.path.basename(cwd.rstrip("/\\")), 60), hashlib.sha256(cwd.encode()).hexdigest()[:16]
 
 
+def task_name(sid):
+    """任務簡稱：Claude 開工時用 set_task_name.py 寫進 ~/.ai-office/task_names/<工作階段代號>.txt。沒有就不送。"""
+    if not isinstance(sid, str) or not re.fullmatch(r"[\w-]{1,80}", sid, flags=re.A):
+        return None
+    try:
+        with open(os.path.join(HOME, "task_names", sid + ".txt"), encoding="utf-8") as f:
+            return scrub(f.read(200), 24)
+    except Exception:
+        return None
+
+
 def sanitize(p, cfg):
     """只留白名單欄位。完整路徑改成「資料夾名＋雜湊」。回傳 None＝這筆不送。"""
     name = p.get("hook_event_name") or EVENT
@@ -187,6 +198,7 @@ def sanitize(p, cfg):
         "project_name": pname,
         "project_hash": phash,
         "cloud": os.environ.get("CLAUDE_CODE_REMOTE") == "true",
+        "task_name": task_name(p.get("session_id")),
     }
     for k in ("agent_id", "agent_type", "source", "reason", "permission_mode"):
         if isinstance(p.get(k), str):

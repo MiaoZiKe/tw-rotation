@@ -203,3 +203,17 @@ test('沒有綁會員 Worker：領碼回 503（不會讓任何人領走）', asy
   const r = await h.fetch(new Request('https://w/v1/claim', { method: 'POST', headers: { Origin: SITE, 'Content-Type': 'application/json' }, body: JSON.stringify({ t: OWNER }) }));
   assert.equal(r.status, 503);
 });
+
+test('任務簡稱：存進工作階段、讀取時帶 task_name；沒帶簡稱的事件不會把它洗掉；過長截斷、遮網址', async () => {
+  const h = await setup();
+  const send = (o) => post(h, '/v1/events', o, bearer(h.code));
+  await send(ev('SessionStart'));
+  let s = await (await get(h, '/v1/office/main/state', bearer(h.code))).json();
+  assert.equal(s.sessions[0].task_name, null);
+  await send(ev('UserPromptSubmit', { task_name: 'AI 辦公室接入' }));
+  await send(ev('Stop', { summary: '好了' }));
+  s = await (await get(h, '/v1/office/main/state', bearer(h.code))).json();
+  assert.equal(s.sessions[0].task_name, 'AI 辦公室接入');
+  assert.equal(clean(ev('Stop', { task_name: '一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十' })).task_name.length, 24);
+  assert.equal(clean(ev('Stop', { task_name: '看 https://x.y/z' })).task_name, '看 〔網址〕');
+});

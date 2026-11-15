@@ -11,6 +11,7 @@
 | `plugin/ai-office-bridge/` | 外掛第一版：`hooks/hooks.json` 把 12 種事件交給 `scripts/bridge.py`（全部 `async`、逾時 5 秒） |
 | `plugin/ai-office-bridge/scripts/bridge.py` | 單一掛鉤腳本：去識別 → 背景送到收件端 `POST /v1/events`；工具只送類別、同類別 20 秒內不重送；收件端連不上就暫停 2 分鐘 |
 | `plugin/ai-office-bridge/scripts/inbox.py` | 網站指令收件匣（2026-11-15，預設關閉、`AIO_INBOX=1` 才開）：`hook Stop`／`hook UserPromptSubmit` 取指令、`wait` 待命、`ack` 回報；測試 `test_inbox.py`。規格 `docs/ai_office/chat_command_spec.md` |
+| `plugin/ai-office-bridge/scripts/set_task_name.py` | 任務簡稱（2026-11-15）：Claude 開工時執行 `set_task_name.py "簡稱"`，寫到 `~/.ai-office/task_names/<工作階段代號>.txt`，之後事件帶 `task_name`（收件端存進 sessions.tname、讀取回 `task_name`），網站名牌顯示「<簡稱> CEO」。`install_hooks.py --instructions ~/.claude/CLAUDE.md` 會在全域指示檔加這條規矩 |
 | `plugin/ai-office-bridge/scripts/install_hooks.py` | 不用外掛系統時，把掛鉤寫進一份設定檔（雲端設定腳本用）；重跑不重複、`--remove` 只移除自己的 |
 | `plugin/ai-office-bridge/scripts/test_bridge.py` | 外掛自我測試（去識別、類別、節流、背景送出、暫停、安裝）：`python3 test_bridge.py` |
 | `test_rig/wait_inbox.py` | 實驗：閒置時被網站訊息叫醒（`asyncRewake`）。正式版改用 `plugin/ai-office-bridge/scripts/inbox.py`（待命改走背景指令） |

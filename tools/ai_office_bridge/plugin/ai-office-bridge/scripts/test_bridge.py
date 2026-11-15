@@ -137,6 +137,26 @@ with tempfile.TemporaryDirectory() as home:
     p = subprocess.run([sys.executable, os.path.join(HERE, "bridge.py"), "Stop"], input=b"{}", env={**env, "AIO_URL": ""}, timeout=10)
     ok("沒設網址：什麼都不做、exit 0", p.returncode == 0)
 
+    # 任務簡稱：set_task_name.py 寫檔 → 之後的事件帶 task_name
+    sid = SAMPLE["SessionStart"].get("session_id") or "s-test"
+    subprocess.run([sys.executable, os.path.join(HERE, "set_task_name.py"), "AI 辦公室接入"], env={**env, "CLAUDE_CODE_SESSION_ID": sid}, check=True, capture_output=True)
+    ok("任務簡稱：寫進 task_names", open(os.path.join(home, ".ai-office", "task_names", sid + ".txt"), encoding="utf-8").read() == "AI 辦公室接入")
+    time.sleep(2.5)                            # 等前面「收件端很慢」那筆逾時寫完暫停旗標，再清掉
+    try:
+        os.remove(os.path.join(home, ".ai-office", "pause_until"))
+    except FileNotFoundError:
+        pass
+    n2 = len(got)
+    run("SessionStart", dict(SAMPLE["SessionStart"], session_id=sid))
+    starts = []
+    for _ in range(60):
+        starts = [g for g in got[n2:] if g["body"].get("event") == "SessionStart"]
+        if starts:
+            break
+        time.sleep(0.05)
+    ok("任務簡稱：事件帶 task_name", starts and starts[0]["body"].get("task_name") == "AI 辦公室接入", starts[:1])
+    ok("任務簡稱：怪的工作階段代號不讀檔", bridge.task_name("../../etc/passwd") is None)
+
     # ── install_hooks.py ──
     st = os.path.join(home, ".claude", "settings.json")
     os.makedirs(os.path.dirname(st))
