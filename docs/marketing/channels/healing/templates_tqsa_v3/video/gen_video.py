@@ -107,6 +107,15 @@ _V4.update({"out": "video_v4.mp4", "cover": "video_v4_cover.jpg", "report": "ove
 for _s in _V4["scenes"]:
     if _s["id"] == "s9": _s["dur"] = 5.0
 VIDEOS["20261116_marriage_v4"] = _V4
+
+# ───────── v5（CEO 動畫／美編兩關退件小修，見 queue/20261116_marriage/video_v4_review_*.md）─────────
+_V5 = _copy.deepcopy(_V4)
+_V5.update({"out": "video_v5.mp4", "cover": "video_v5_cover.jpg", "report": "overlap_report_video_v5.json", "runtime": "video_runtime_v5.js", "cover_t": 1.9, "outro_lufs": -12.5})
+VIDEOS["20261116_marriage_v5"] = _V5
+V5CSS = """
+.tag{font-size:32px;line-height:42px}
+.asof{font-size:32px;line-height:40px}
+"""
 V3CSS = """
 .bgl{left:0;top:0;width:1080px;height:1920px}
 .grid{background-image:linear-gradient(rgba(110,106,102,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(110,106,102,.07) 2px,transparent 2px);background-size:72px 72px}
@@ -192,7 +201,7 @@ html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden;font-f
 <div id="stage"></div>
 <script>const V=%s;</script>
 <script src="file://%s"></script>
-</body></html>""" % (css, V2CSS, V3CSS if v["runtime"].endswith(("v3.js", "v4.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
+</body></html>""" % (css, V2CSS, (V3CSS + (V5CSS if v["runtime"].endswith("v5.js") else "")) if v["runtime"].endswith(("v3.js", "v4.js", "v5.js")) else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
     os.makedirs(os.path.join(B, "html"), exist_ok=True)
     p = os.path.join(B, "html", name + ".html"); open(p, "w", encoding="utf-8").write(page)
     print("時間軸：", v["timing"], "總長 %.2f 秒" % v["dur"], [(s["id"], round(s["t1"] - s["t0"], 2)) for s in v["scenes"]])

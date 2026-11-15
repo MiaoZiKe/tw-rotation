@@ -8,6 +8,7 @@
 import json, subprocess, sys, re, os, tempfile
 import numpy as np
 SR = 48000
+TARGET = float(os.environ.get("OUTRO_LUFS", "-11.5"))   # 片尾目標響度（v5 起 −12.5）
 C5 = 523.25
 
 def note(n): return C5 * 2 ** (n / 12)
@@ -112,8 +113,8 @@ def main():
         fc += ";[a]alimiter=limit=0.86:level=0:latency=1:attack=5:release=60,alimiter=limit=0.85:level=0:latency=1[o]"
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", fc, "-map", "[o]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", out], check=True)
         I, tp = measure(out, ot0, dur - ot0); hist.append({"gain": round(og, 3), "lufs": I, "tp": tp})
-        if abs(I + 11.5) <= 0.4 and tp is not None and tp <= -1.0: break
-        og *= 10 ** ((-11.5 - I) / 20)
+        if abs(I - TARGET) <= 0.4 and tp is not None and tp <= -1.0: break
+        og *= 10 ** ((TARGET - I) / 20)
         if tp is not None and tp > -1.0: og *= 10 ** ((-1.2 - tp) / 20) if I > -12.5 else 1
     # 開頭起音：前 300 毫秒每 20 毫秒的音量
     pcm = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", out, "-t", "0.3", "-ac", "1", "-f", "f32le", "-"], capture_output=True).stdout

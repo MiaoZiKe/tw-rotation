@@ -4,7 +4,8 @@ import subprocess,sys,json,glob,os,shutil
 from PIL import Image,ImageDraw,ImageFont
 name,out=sys.argv[1:3];B=os.path.dirname(os.path.abspath(__file__))
 # 每鏡：(id, 面板 top, 高, 取樣起, 終)
-SC=[("s1",972,528,0.3,2.3),("s2",392,348,0.1,1.3),("s3",392,348,0.3,1.7),("s4",310,330,0.3,1.4),("s5",392,368,0.1,2.4),("s6",392,368,0.05,1.5),("s7",392,508,0.2,1.5),("s8",392,368,0.0,1.6)]
+SC=[("s1",972,528,0.3,2.3),("s2",392,348,0.3,3.3),("s3",392,348,0.3,1.7),("s4",310,330,0.3,3.4),("s5",392,368,0.4,2.6),("s6",392,368,0.3,2.4),("s7",392,508,0.3,2.6),("s8",392,368,0.3,1.8)]
+if "v5" in name: SC[0]=("s1",978,528,0.3,2.3)
 ft=ImageFont.truetype("/root/.fonts/NotoSansCJKtc-Bold.otf",26) if os.path.exists("/root/.fonts/NotoSansCJKtc-Bold.otf") else None
 rows=[]
 for id,top,h,a,b in SC:
