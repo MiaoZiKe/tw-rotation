@@ -275,10 +275,156 @@ def sc_stack(H=560):
     return o
 
 
+# ───────── 11/18～11/22 輪播保底（2026-11-15：影片量產等 TTS 旁白＋Andy 確認樣片，期間每天 20:27 輪播不空窗）─────────
+def sc_clock(H=760):
+    """11/18 封面：牆上時鐘（指針停在打工下班的 10 點）＋一張吊牌「時薪 205 元」；下方一條地平線。"""
+    cx, cy, r = 300, 330, 220
+    o = C(cx, cy, r + 18, F3) + C(cx, cy, r, F1)
+    import math as _m
+    for k in range(12):
+        a = _m.pi / 6 * k; x1, y1 = cx + (r - 18) * _m.sin(a), cy - (r - 18) * _m.cos(a); x2, y2 = cx + (r - (44 if k % 3 == 0 else 32)) * _m.sin(a), cy - (r - (44 if k % 3 == 0 else 32)) * _m.cos(a)
+        o += Ln(x1, y1, x2, y2, at("none", 4 if k % 3 == 0 else 2))
+    o += Ln(cx, cy, cx - 110, cy - 64, at("none", 9, extra='stroke-linecap="round"')) + Ln(cx, cy, cx, cy - 170, at("none", 5, "var(--w-lamp)", extra='stroke-linecap="round"')) + C(cx, cy, 12, DK)
+    o += Ln(cx + r - 10, cy - 40, 640, 210, at("none", 2)) + C(cx + r - 10, cy - 40, 6, DK)
+    o += P('M600 190 l 30 -26 h 210 v 132 h -210 Z', at("var(--w-face3)", SW, "var(--w-lamp)")) + C(640, 190 - 0, 7, DK)
+    o += T(735, 186, "時薪", 34, 400, "var(--w-text)") + T(735, 240, "205 元", 44, 700, "var(--w-text)")
+    o += T(735, 380, "2027/1/1 起", 30)
+    o += Ln(30, 640, 858, 640, at("none", SW)) + hatch(44, 642, 800, 14, 11, at("none", 1.1, op=.25))
+    return o
+
+def sc_split(H=560):
+    """11/18 第 3 頁：受惠人數 261.16 萬，一條等比例分段長條（本國 219.72 萬＋移工 41.44 萬）；下方 10 個人形示意（約 8.4：1.6）。"""
+    x0, y, h, tot = 70, 60, 110, 261.16; k = 748 / tot
+    a, b = 219.72 * k, 41.44 * k
+    o = R(x0, y, a, h, 8, HL) + R(x0 + a, y, b, h, 8, at("var(--w-face3)", SW, dash="10 8"))
+    o += T(x0 + a / 2, y + 70, "本國 219.72 萬", 36, 700, "var(--w-text)") + T(x0 + a + b / 2, y - 22, "移工 41.44 萬", 30, 400, "var(--w-text)")
+    for i in range(10):
+        px = 120 + i * 72; py = 330; st = HL if i < 8 else (at("var(--w-face3)", 2, dash="6 6") if i > 8 else at("var(--w-lamp)", 2, op=.45))
+        o += C(px, py, 20, st) + P('M%d %d q 30 -60 60 0 v 64 h -60 Z' % (px - 30, py + 86), st)
+    o += T(444, 548, "每個人形＝約 26 萬人（示意，約數）", 30)
+    return o
+
+def sc_stairs(H=760):
+    """11/19 封面：五級階梯，最低一級晴光橘（未滿 25 歲），上面放一張小薪資袋。階高為示意，不是金額比例。"""
+    o = ""; x0, base, sw, sh = 70, 600, 150, 92
+    for i in range(5):
+        x = x0 + i * sw; top = base - (i + 1) * sh
+        o += R(x, top, sw, (i + 1) * sh, 4, HL if i == 0 else F3)
+    o += Ln(30, base, 858, base, at("none", SW)) + hatch(44, base + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    ex, ey = x0 + 22, base - sh - 92
+    o += R(ex, ey, 106, 74, 8, F1) + P('M%d %d l 53 34 l 53 -34' % (ex, ey), at("none", 2)) 
+    o += T(x0 + sw / 2, base + 56, "未滿 25 歲", 30, 700, "var(--w-text)") + T(x0 + 4 * sw + sw / 2, base + 56, "50–64 歲", 30)
+    o += T(x0 + 4 * sw + sw / 2, base - 5 * sh - 26, "階高為示意", 30)
+    return o
+
+def sc_lollipop(items, vmax, H=520):
+    """11/19 第 3 頁：棒棒糖圖（年增率，0 起算、等比例）。items=[(標籤, 值, 文字, 重點?)]"""
+    x0, x1 = 260, 760; sx = lambda v: x0 + (x1 - x0) * v / vmax; o = ""
+    for t in (0, 1, 2, 3, 4):
+        if t <= vmax: o += Ln(sx(t), 40, sx(t), 330, at("none", 1.2, op=.25, dash="3 7")) + T(sx(t), 380, "%d%%" % t, 30)
+    for i, (lab, v, vt, hi) in enumerate(items):
+        y = 110 + i * 150
+        o += T(x0 - 24, y + 12, lab, 34, 400, "var(--w-text)", "end") + Ln(x0, y, sx(v), y, at("none", 6, "var(--w-lamp)" if hi else "var(--w-line)"))
+        o += C(sx(v), y, 26, HL if hi else F3) + T(sx(v) + 44, y + 14, vt, 40, 700, "var(--w-text)", "start")
+    o += Ln(x0, 30, x0, 340, at("none", SW)) + T(444, 470, "2026 年 1–7 月，比去年同期", 30)
+    return o
+
+def sc_donut(H=760):
+    """11/20 封面：一個月收入的圓（等比例），41.46% 晴光橘弧＝房貸月付；圓心放一棟小房子。"""
+    import math as _m
+    cx, cy, r, v = 444, 380, 230, 41.46
+    o = C(cx, cy, r, at("none", 70, "var(--w-face3)"))
+    a = 2 * _m.pi * v / 100; ex, ey = cx + r * _m.sin(a), cy - r * _m.cos(a)
+    o += P('M%.1f %.1f A%d %d 0 0 1 %.1f %.1f' % (cx, cy - r, r, r, ex, ey), at("none", 70, "var(--w-lamp)", extra='stroke-linecap="butt"'))
+    o += C(cx, cy, r + 37, at("none", 1.6, op=.5)) + C(cx, cy, r - 37, at("none", 1.6, op=.5))
+    o += poly([(cx - 90, cy - 6), (cx, cy - 86), (cx + 90, cy - 6)], DK) + R(cx - 70, cy - 8, 140, 110, 4, F1) + R(cx - 20, cy + 40, 40, 62, 3, F3)
+    o += T(cx, cy + r + 100, "一個月可支配所得", 30) + T(cx + 130, 70, "房貸月付 41.46%", 34, 700, "var(--w-text)", "start")
+    return o
+
+def sc_band(H=520):
+    """11/20 第 2 頁：內政部房貸負擔率分級帶（0～60%，等比例），標出全國 41.46%。"""
+    x0, x1, y, h = 60, 828, 200, 90; sx = lambda v: x0 + (x1 - x0) * v / 60
+    bands = [(0, 30, "可合理負擔", F3), (30, 40, "略低", F1), (40, 50, "偏低", at("var(--w-lamp)", SW, op=.45)), (50, 60, "過低", DK)]
+    o = ""
+    for a, b, lab, st in bands:
+        o += R(sx(a), y, sx(b) - sx(a), h, 0, st) + T((sx(a) + sx(b)) / 2, y + h + 50, lab, 30, 400, "var(--w-text)")
+    for t in (0, 30, 40, 50, 60):
+        o += T(sx(t), y + h + 100, "%d%%" % t + ("+" if t == 60 else ""), 30)
+    mx = sx(41.46)
+    o += Ln(mx, y - 70, mx, y + h + 10, at("none", 5, "var(--w-lamp)")) + poly([(mx - 16, y - 92), (mx + 16, y - 92), (mx, y - 66)], HL)
+    o += T(mx, y - 108, "全國 41.46%", 38, 700, "var(--w-text)")
+    o += T(444, 480, "負擔率＝月付房貸 ÷ 月可支配所得（中位數家戶）", 30)
+    return o
+
+def sc_key(H=560):
+    """11/20 第 3 頁：一把鑰匙掛在掛勾上，鑰匙圈吊牌空白；旁邊一個門牌。"""
+    o = Ln(30, 90, 858, 90, at("none", SW)) + R(200, 70, 60, 40, 6, DK) + P('M230 110 v 40 q 0 30 -30 30', at("none", 5))
+    o += C(200, 230, 54, at("none", 7)) + C(200, 230, 24, at("var(--w-bg)", 3))
+    o += R(248, 220, 280, 22, 6, F3) + R(440, 242, 26, 40, 3, F3) + R(486, 242, 22, 28, 3, F3)
+    o += P('M150 200 L110 300 h 80 Z', at("var(--w-face3)", 2.4, "var(--w-lamp)"))
+    o += R(600, 160, 220, 150, 14, F1) + R(620, 180, 180, 110, 8, at("none", 2, op=.5)) + C(710, 330, 6, DK)
+    o += Ln(30, H - 60, 858, H - 60, at("none", SW)) + hatch(44, H - 58, 800, 14, 11, at("none", 1.1, op=.25))
+    return o
+
+def sc_hourglass(H=760):
+    """11/21 封面：沙漏，上半沙少、下半沙多；旁邊年份尺 2026 → 2031（精算報告推估：若不撥補，2031 年基金餘額轉負）。"""
+    cx = 300
+    o = R(cx - 170, 40, 340, 30, 8, DK) + R(cx - 170, 620, 340, 30, 8, DK)
+    o += P('M%d 70 C %d 260 %d 300 %d 345 C %d 390 %d 430 %d 620 L %d 620 C %d 430 %d 390 %d 345 C %d 300 %d 260 %d 70 Z' % (cx - 140, cx - 140, cx - 20, cx - 20, cx - 20, cx - 140, cx - 140, cx + 140, cx + 140, cx + 20, cx + 20, cx + 20, cx + 140, cx + 140), F1)
+    o += P('M%d 250 C %d 300 %d 320 %d 345 C %d 320 %d 300 %d 250 Z' % (cx - 90, cx - 60, cx - 20, cx, cx + 20, cx + 60, cx + 90), HL)
+    o += P('M%d 620 C %d 520 %d 500 %d 490 C %d 500 %d 520 %d 620 Z' % (cx - 138, cx - 120, cx - 40, cx, cx + 40, cx + 120, cx + 138), at("var(--w-lamp)", SW, op=.55))
+    o += Ln(cx, 345, cx, 490, at("none", 2, "var(--w-lamp)", dash="4 6"))
+    ax = 640
+    o += Ln(ax, 100, ax, 600, at("none", SW))
+    for i, yr in enumerate(range(2026, 2032)):
+        y = 100 + i * 100; hi = yr == 2031
+        o += Ln(ax - 14, y, ax + 14, y, at("none", 3)) + T(ax + 34, y + 12, str(yr), 34 if hi else 30, 700 if hi else 400, "var(--w-text)", "start")
+    o += C(ax, 600, 14, HL)
+    return o
+
+def sc_slope2(H=520):
+    """11/21 第 3 頁：斜率圖，未提存精算負債 10.29 兆 → 13.23 兆（0～15 兆等比例）；左上一個存錢筒。"""
+    y0, y1 = 60, 400; v2y = lambda v: y1 - (y1 - y0) * v / 15; xl, xr = 330, 640
+    o = Ln(xl, y0 - 10, xl, y1, at("none", 1.6, op=.4)) + Ln(xr, y0 - 10, xr, y1, at("none", 1.6, op=.4)) + Ln(xl - 40, y1, xr + 40, y1, at("none", SW))
+    a, b = v2y(10.29), v2y(13.23)
+    o += Ln(xl, a, xr, b, at("none", 6, "var(--w-lamp)")) + C(xl, a, 16, at("var(--w-face3)", 4)) + C(xr, b, 16, at("var(--w-lamp)", 0, "var(--w-lamp)"))
+    o += T(xl - 30, a + 14, "10.29 兆", 38, 700, "var(--w-text)", "end") + T(xr + 30, b + 14, "13.23 兆", 40, 700, "var(--w-text)", "start")
+    o += T(xl, y1 + 50, "前一份精算", 30) + T(xr, y1 + 50, "2024 精算", 30)
+    o += E(110, 330, 70, 52, F3) + R(96, 272, 30, 8, 3, DK) + C(70, 322, 5, DK) + R(60, 370, 18, 24, 3, F1) + R(140, 370, 18, 24, 3, F1)
+    return o
+
+def sc_cups(H=760):
+    """11/22 封面：桌上兩杯咖啡、兩張小生日卡（33、31，示意男女平均初婚年齡）。"""
+    ty = 520
+    o = Ln(30, ty, 858, ty, at("none", SW)) + hatch(44, ty + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    for j, (x, age, hi) in enumerate(((220, "31.4", False), (560, "33.4", True))):
+        o += P('M%d %d h 150 l -14 160 h -122 Z' % (x - 75, ty - 200), F1 if not hi else at("var(--w-face3)", SW, "var(--w-lamp)"))
+        o += P('M%d %d q 46 0 46 44 q 0 44 -46 44' % (x + 72, ty - 170), at("none", SW))
+        o += E(x, ty - 200, 75, 14, F3) + R(x - 86, ty - 40, 172, 40, 10, F3)
+        for k in range(2): o += steam(x - 20 + k * 40, ty - 230, 60, .55)
+        cx = x - 70; cy = 120
+        o += R(cx, cy, 140, 110, 10, HL if hi else F3) + T(cx + 70, cy + 72, age, 44, 700, "var(--w-text)")
+        o += Ln(cx + 70, cy + 110, x, ty - 260, at("none", 1.6, dash="5 6", op=.5))
+    o += T(220, ty + 70, "女性", 30) + T(560, ty + 70, "男性", 30)
+    return o
+
+def sc_agesteps(H=560):
+    """11/22 第 3 頁：時間軸 25 → 35 歲，一條虛線小路；在 31.4、33.4 歲各插一面旗（等比例）。"""
+    x0, x1, ay = 80, 808, 300; sx = lambda v: x0 + (x1 - x0) * (v - 25) / 10
+    o = Ln(x0, ay, x1 + 20, ay, at("none", SW))
+    for v in range(25, 36):
+        o += Ln(sx(v), ay - (14 if v % 5 == 0 else 8), sx(v), ay + (14 if v % 5 == 0 else 8), at("none", 3 if v % 5 == 0 else 1.6))
+        if v % 5 == 0: o += T(sx(v), ay + 56, "%d 歲" % v, 30)
+    for v, lab, hi in ((31.4, "女 31.4", False), (33.4, "男 33.4", True)):
+        x = sx(v); o += Ln(x, ay, x, ay - 170, at("none", 3)) + P('M%.1f %d h 110 l -22 30 l 22 30 h -110 Z' % (x, ay - 170), HL if hi else F3) + T(x + 55, ay - 190, lab, 30, 700, "var(--w-text)")
+    o += P('M%d %d C 300 420 500 380 %d 420' % (x0, ay + 120, x1), at("none", 2, "var(--w-lamp)", dash="10 10"))
+    return o
+
+
 def head(theme="晝版"):
     p = PAL[theme]; W, H = 1080, 1350
     return ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--W:%dpx;--H:%dpx;%s}%s .hintuse{font-weight:700}</style></head><body>' % (W, H, css_vars(p), CSS), GRAIN % (W, H, W, H),
-            '<div data-o="logo" class="abs" style="left:96px;top:84px;line-height:0"><img src="file://%s" style="height:64px;display:block"></div>' % LOGO_TIGHT]
+            '<div data-o="logo" class="abs" style="left:96px;top:56px;line-height:0"><img src="file://%s" style="height:64px;display:block"></div>' % LOGO_TIGHT]
 
 def src_line(t):
     return '<div data-o="src" class="abs" style="left:96px;top:1252px;font-size:30px;line-height:40px;color:var(--w-sub);white-space:nowrap">%s</div>' % html.escape(t)
@@ -364,6 +510,51 @@ POSTS = {
     "scene": lambda: (sc_gantt(), 520)},
    {"title": "數字背後", "body": ["其中 1 個百分點由政府補貼，", "利率會機動調整；", "舊貸戶適用與否，以公告為準。"], "ask": "第一份薪水先還哪筆？",
     "scene": lambda: (sc_stack(), 560)},
+  ]},
+ "20261118_minwage": {
+  "src": "資料：勞動部最低工資審議會2026/9/24",
+  "pages": [
+   {"title": ["2027年最低工資", "月薪30,900元"], "scene": lambda: (sc_clock(), 760)},
+   {"title": "資料從哪來", "body": ["勞動部最低工資審議會，", "2026/9/24 決議，2027/1/1 起；", "時薪 196 元調到 205 元。"],
+    "scene": lambda: (sc_vbars([("2024 年", 27470, "27,470", False), ("2025 年", 28590, "28,590", False), ("2026 年", 29500, "29,500", False), ("2027 年", 30900, "30,900", False)], 32000, 520, hi=(3,)), 520)},
+   {"title": "數字背後", "body": ["預估受惠約 261 萬人，", "本國勞工約 220 萬人；", "以行政院核定公告為準。"], "ask": "第一份薪水，比最低工資多多少？",
+    "scene": lambda: (sc_split(), 560)},
+  ]},
+ "20261119_young": {
+  "src": "資料：主計總處薪資統計2026年1–7月",
+  "pages": [
+   {"title": ["未滿25歲，", "月薪中位數29,825元"], "scene": lambda: (sc_stairs(), 760)},
+   {"title": "資料從哪來", "body": ["主計總處薪資統計，", "2026 年 1–7 月經常性薪資中位數；", "40–49 歲報導未列出，圖中略過。"],
+    "scene": lambda: (sc_hbars([("未滿 25 歲", 29825, "29,825"), ("25–29 歲", 36312, "36,312"), ("30–39 歲", 40171, "40,171"), ("50–64 歲", 44019, "44,019")], 50000, 520, ticks=[0, 20000, 40000], tickfmt=lambda t: "0" if not t else "%d 萬" % (t // 10000), hi=(0,), lw=210), 520)},
+   {"title": "數字背後", "body": ["中位數＝排隊站在正中間的人；", "經常性薪資不含加班與獎金。"], "ask": "第一份薪水，落在哪一級？",
+    "scene": lambda: (sc_lollipop([("未滿 25 歲", 2.44, "+2.44%", True), ("25–29 歲", 3.18, "+3.18%", False)], 4), 520)},
+  ]},
+ "20261120_mortgage": {
+  "src": "資料：內政部房價負擔能力指標2026Q1",
+  "pages": [
+   {"title": ["買房月付，", "占收入41.46%"], "scene": lambda: (sc_donut(), 760)},
+   {"title": "資料從哪來", "body": ["內政部房價負擔能力指標，", "2026 年第 1 季全國房貸負擔率；", "30% 以下才算可合理負擔。"],
+    "scene": lambda: (sc_band(), 520)},
+   {"title": "數字背後", "body": ["算法：中位數所得家庭，", "貸七成、20 年本息均攤；", "是全體家戶，非只算首購族。"], "ask": "第一把鑰匙，要等幾年？",
+    "scene": lambda: (sc_key(), 560)},
+  ]},
+ "20261121_laborins": {
+  "src": "資料：勞動部勞保普通事故精算報告2024",
+  "pages": [
+   {"title": ["勞保精算：", "若不撥補，2031年轉負"], "scene": lambda: (sc_hourglass(), 760)},
+   {"title": "資料從哪來", "body": ["勞保普通事故精算報告，", "基準日 2023/12/31；", "現行費率 11%，平衡費率 31.42%。"],
+    "scene": lambda: (sc_hbars([("現行費率", 11, "11%"), ("平衡費率", 31.42, "31.42%")], 40, 480, ticks=[0, 10, 20, 30, 40], tickfmt="%d%%", hi=(1,), lw=190, bh=96), 480)},
+   {"title": "數字背後", "body": ["2031 是推估，不是破產日；", "政府連年撥補，年限已延後 3 年。"], "ask": "退休，離現在多遠？",
+    "scene": lambda: (sc_slope2(), 520)},
+  ]},
+ "20261122_firstmarriage": {
+  "src": "資料：內政部《2025人口統計年刊》2026/8",
+  "pages": [
+   {"title": ["平均初婚年齡：", "男33.4歲、女31.4歲"], "scene": lambda: (sc_cups(), 760)},
+   {"title": "資料從哪來", "body": ["內政部《2025 人口統計年刊》，", "2026 年 8 月出版；", "2025 年第一次結婚的平均年齡。"],
+    "scene": lambda: (sc_hbars([("男性", 33.4, "33.4 歲"), ("女性", 31.4, "31.4 歲")], 40, 480, ticks=[0, 10, 20, 30, 40], tickfmt="%d", hi=(0,), ref=30, reflab="30 歲", lw=150, bh=96), 480)},
+   {"title": "數字背後", "body": ["只算當年第一次結婚的人，", "沒結婚的人不在平均裡；", "同年結婚登記 104,376 對。"], "ask": "幾歲成家，誰的時間表？",
+    "scene": lambda: (sc_agesteps(), 560)},
   ]},
 }
 

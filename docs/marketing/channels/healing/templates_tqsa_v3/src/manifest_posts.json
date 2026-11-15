@@ -1,56 +1,137 @@
 [
  {
-  "html": "html/posts/20261116_marriage/1.html",
-  "png": "../../queue/20261116_marriage/1.png",
+  "html": "html/posts/20261118_minwage/1.html",
+  "png": "../../queue/20261118_minwage/1.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261116_marriage/1",
-  "post": "20261116_marriage",
+  "key": "20261118_minwage/1",
+  "post": "20261118_minwage",
   "safe": null
  },
  {
-  "html": "html/posts/20261116_marriage/2.html",
-  "png": "../../queue/20261116_marriage/2.png",
+  "html": "html/posts/20261118_minwage/2.html",
+  "png": "../../queue/20261118_minwage/2.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261116_marriage/2",
-  "post": "20261116_marriage",
+  "key": "20261118_minwage/2",
+  "post": "20261118_minwage",
   "safe": null
  },
  {
-  "html": "html/posts/20261116_marriage/3.html",
-  "png": "../../queue/20261116_marriage/3.png",
+  "html": "html/posts/20261118_minwage/3.html",
+  "png": "../../queue/20261118_minwage/3.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261116_marriage/3",
-  "post": "20261116_marriage",
+  "key": "20261118_minwage/3",
+  "post": "20261118_minwage",
   "safe": null
  },
  {
-  "html": "html/posts/20261117_studentloan/1.html",
-  "png": "../../queue/20261117_studentloan/1.png",
+  "html": "html/posts/20261119_young/1.html",
+  "png": "../../queue/20261119_young/1.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261117_studentloan/1",
-  "post": "20261117_studentloan",
+  "key": "20261119_young/1",
+  "post": "20261119_young",
   "safe": null
  },
  {
-  "html": "html/posts/20261117_studentloan/2.html",
-  "png": "../../queue/20261117_studentloan/2.png",
+  "html": "html/posts/20261119_young/2.html",
+  "png": "../../queue/20261119_young/2.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261117_studentloan/2",
-  "post": "20261117_studentloan",
+  "key": "20261119_young/2",
+  "post": "20261119_young",
   "safe": null
  },
  {
-  "html": "html/posts/20261117_studentloan/3.html",
-  "png": "../../queue/20261117_studentloan/3.png",
+  "html": "html/posts/20261119_young/3.html",
+  "png": "../../queue/20261119_young/3.png",
   "W": 1080,
   "H": 1350,
-  "key": "20261117_studentloan/3",
-  "post": "20261117_studentloan",
+  "key": "20261119_young/3",
+  "post": "20261119_young",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261120_mortgage/1.html",
+  "png": "../../queue/20261120_mortgage/1.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261120_mortgage/1",
+  "post": "20261120_mortgage",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261120_mortgage/2.html",
+  "png": "../../queue/20261120_mortgage/2.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261120_mortgage/2",
+  "post": "20261120_mortgage",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261120_mortgage/3.html",
+  "png": "../../queue/20261120_mortgage/3.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261120_mortgage/3",
+  "post": "20261120_mortgage",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261121_laborins/1.html",
+  "png": "../../queue/20261121_laborins/1.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261121_laborins/1",
+  "post": "20261121_laborins",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261121_laborins/2.html",
+  "png": "../../queue/20261121_laborins/2.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261121_laborins/2",
+  "post": "20261121_laborins",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261121_laborins/3.html",
+  "png": "../../queue/20261121_laborins/3.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261121_laborins/3",
+  "post": "20261121_laborins",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261122_firstmarriage/1.html",
+  "png": "../../queue/20261122_firstmarriage/1.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261122_firstmarriage/1",
+  "post": "20261122_firstmarriage",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261122_firstmarriage/2.html",
+  "png": "../../queue/20261122_firstmarriage/2.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261122_firstmarriage/2",
+  "post": "20261122_firstmarriage",
+  "safe": null
+ },
+ {
+  "html": "html/posts/20261122_firstmarriage/3.html",
+  "png": "../../queue/20261122_firstmarriage/3.png",
+  "W": 1080,
+  "H": 1350,
+  "key": "20261122_firstmarriage/3",
+  "post": "20261122_firstmarriage",
   "safe": null
  }
 ]
