@@ -208,6 +208,73 @@ def sc_rings(items, H=520):
         o += T(cx, cy + 14, vt, 40, 700, "var(--w-text)") + T(cx, cy + r + 76, lab, 32, 400, "var(--w-text)")
     return o
 
+def ringpair(cx, cy, r, st1, st2):
+    return C(cx - r * .45, cy, r, st1) + C(cx + r * .45, cy, r, st2)
+
+def sc_ringpairs(H=760):
+    """11/16 封面：10 組對戒（兩個相扣的圓）排兩列；後 3 組是虛線（示意 2016→2025 結婚登記少 29.4%，近 3 成）。"""
+    o = ""; rr = 46
+    for i in range(10):
+        r, c = divmod(i, 5); cx = 124 + c * 160; cy = 170 + r * 230
+        if i < 7: o += ringpair(cx, cy, rr, at("none", 7, "var(--w-lamp)"), at("none", 7))
+        else: o += ringpair(cx, cy, rr, at("none", 3, dash="8 8", op=.55), at("none", 3, dash="8 8", op=.55))
+    yb = 560
+    o += Ln(30, yb, 858, yb, at("none", SW)) + hatch(44, yb + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    o += ringpair(140, yb + 92, 22, at("none", 4, "var(--w-lamp)"), at("none", 4)) + T(190, yb + 104, "2025 年仍在", 30, 400, "var(--w-sub)", "start")
+    o += ringpair(480, yb + 92, 22, at("none", 2.4, dash="6 6", op=.55), at("none", 2.4, dash="6 6", op=.55)) + T(530, yb + 104, "比 2016 年少的", 30, 400, "var(--w-sub)", "start")
+    return o
+
+def sc_cradle(H=560):
+    """11/16 第 3 頁：一張空搖籃，旁邊數字吊牌「總生育率 0.695」（數字卡）。"""
+    fl = H - 60; o = Ln(30, fl, 858, fl, at("none", SW)) + hatch(44, fl + 2, 800, 18, 11, at("none", 1.1, op=.25))
+    o += P('M120 %d Q 300 %d 480 %d' % (fl - 6, fl + 30, fl - 6), at("none", 4))                  # 搖籃底座弧
+    o += P('M150 %d L150 %d Q300 %d 450 %d L450 %d Z' % (fl - 240, fl - 70, fl - 20, fl - 70, fl - 240), F1)   # 籃身
+    for k in range(6): o += Ln(180 + k * 48, fl - 228, 180 + k * 48, fl - 70 + (12 if 1 < k < 4 else 0), at("none", 1.6, op=.45))
+    o += Ln(140, fl - 240, 460, fl - 240, at("none", 5))
+    o += P('M300 %d L300 %d' % (fl - 240, fl - 380), at("none", 3)) + P('M300 %d q 70 -10 90 50' % (fl - 380), at("none", 3)) + C(390, fl - 320, 10, DK)   # 吊架
+    x, y = 560, 120
+    o += R(x, y, 270, 220, 20, at("var(--w-face3)", SW, "var(--w-lamp)")) + T(x + 135, y + 70, "總生育率", 32, 400, "var(--w-text)") + T(x + 135, y + 160, "0.695", 72, 700, "var(--w-text)")
+    o += T(x + 135, y + 270, "2025 年", 30)
+    return o
+
+def sc_slope(H=760):
+    """11/17 封面：斜率圖。左「2026/7 以前 1.775%」→ 右「2026/8 起 0.775%」，等比例（0～2%）。下面一頂學士帽。"""
+    y0, y1 = 80, 440; v2y = lambda v: y1 - (y1 - y0) * v / 2.0; xl, xr = 200, 690
+    o = Ln(xl, y0 - 20, xl, y1, at("none", 1.6, op=.4)) + Ln(xr, y0 - 20, xr, y1, at("none", 1.6, op=.4)) + Ln(xl - 40, y1, xr + 40, y1, at("none", SW))
+    a, b = v2y(1.775), v2y(0.775)
+    o += Ln(xl, a, xr, b, at("none", 6, "var(--w-lamp)")) + C(xl, a, 16, at("var(--w-face3)", 4)) + C(xr, b, 16, at("var(--w-lamp)", 0, "var(--w-lamp)"))
+    o += T(xl - 30, a + 14, "1.775%", 40, 700, "var(--w-text)", "end") + T(xr + 30, b + 14, "0.775%", 44, 700, "var(--w-text)", "start")
+    o += T(xl, y1 + 50, "2026/7 以前", 30) + T(xr, y1 + 50, "2026/8 起", 30)
+    cx, cy = 444, 640
+    o += poly([(cx - 150, cy - 30), (cx, cy - 90), (cx + 150, cy - 30), (cx, cy + 30)], DK) + P('M%d %d v 46 q 90 40 180 0 v -46' % (cx - 90, cy - 4), F1)
+    o += Ln(cx + 120, cy - 40, cx + 120, cy + 40, at("none", 3)) + C(cx + 120, cy + 48, 10, LP)
+    return o
+
+def sc_gantt(H=520):
+    """11/17 第 2 頁：還款時間軸（甘特條）。舊制：畢業→寬限 1 年→開始還款；新制：寬限 2 年（期間免還本息）。等比例：1 年＝220px。"""
+    x0 = 210; yr = 220; o = ""
+    for j, (lab, g, hi) in enumerate((("舊制", 1, False), ("新制", 2, True))):
+        y = 70 + j * 170
+        o += T(x0 - 26, y + 50, lab, 34, 700 if hi else 400, "var(--w-text)", "end")
+        o += R(x0, y, g * yr, 72, 10, HL if hi else F3) + T(x0 + g * yr / 2, y + 48, "寬限 %d 年" % g, 32, 700, "var(--w-text)")
+        o += R(x0 + g * yr, y, 660 - g * yr - 10, 72, 10, at("none", 2, dash="8 8", op=.6)) + T(x0 + g * yr + 24, y + 48, "開始還款", 30, 400, "var(--w-sub)", "start")
+    o += Ln(x0, 40, x0, 340, at("none", SW)) + T(x0, 390, "畢業", 30)
+    for k in (1, 2):
+        o += Ln(x0 + k * yr, 330, x0 + k * yr, 350, at("none", 2)) + T(x0 + k * yr, 390, "%d 年" % k, 30)
+    o += T(444, 470, "寬限期間免還本息（在職專班不適用）", 30)
+    return o
+
+def sc_stack(H=560):
+    """11/17 第 3 頁：組成（堆疊長條）。基準 1.775% ＝ 學生負擔 0.775% ＋ 政府補貼 1 個百分點；等比例（1% ＝ 360px）。"""
+    x0, y, h, k = 120, 120, 110, 360
+    a, b = 0.775 * k, 1.0 * k
+    o = R(x0, y, a, h, 8, HL) + R(x0 + a, y, b, h, 8, at("var(--w-face3)", SW, dash="10 8"))
+    o += T(x0 + a / 2, y + 68, "學生 0.775%", 34, 700, "var(--w-text)") + T(x0 + a + b / 2, y + 68, "政府補貼 1%", 34, 400, "var(--w-text)")
+    o += P('M%d %d v -26 h %d v 26' % (x0, y - 20, a + b), at("none", 2)) + T(x0 + (a + b) / 2, y - 60, "基準 1.775%", 32, 700, "var(--w-text)")
+    o += R(200, 330, 488, 150, 16, F1) + Ln(232, 380, 520, 380, at("none", 2, op=.5)) + Ln(232, 430, 460, 430, at("none", 2, op=.5)) + C(620, 405, 34, at("none", 3, "var(--w-lamp)")) + T(620, 417, "%", 34, 700, "var(--w-text)")
+    return o
+
+
 def head(theme="晝版"):
     p = PAL[theme]; W, H = 1080, 1350
     return ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--W:%dpx;--H:%dpx;%s}%s .hintuse{font-weight:700}</style></head><body>' % (W, H, css_vars(p), CSS), GRAIN % (W, H, W, H),
@@ -279,6 +346,24 @@ POSTS = {
     "scene": lambda: (sc_hbars([("普通翻譯", 53.3, "53.3%"), ("行政文書", 42.5, "42.5%"), ("美編設計", 39.1, "39.1%"), ("行銷文案", 32.4, "32.4%"), ("基礎程式", 28.3, "28.3%")], 70, 520, ticks=[0, 20, 40, 60], tickfmt="%d%%", hi=(0,)), 520)},
    {"title": "數字背後", "body": ["受訪者認為最難取代的能力，", "多半落在「人」身上；", "這是自估，不是預測。"], "ask": "工作裡，哪一塊最難取代？",
     "scene": lambda: (sc_rings([("人際溝通", 55.6, "55.6%"), ("情緒判斷", 44.3, "44.3%"), ("現場應變", 41.4, "41.4%")]), 520)},
+  ]},
+ "20261116_marriage": {
+  "src": "資料：內政部戶政司結婚登記2016、2025年",
+  "pages": [
+   {"title": ["10年來，", "結婚登記少了近3成"], "scene": lambda: (sc_ringpairs(), 760)},
+   {"title": "資料從哪來", "body": ["內政部戶政司結婚登記，", "2016 年 147,861 對，", "2025 年 104,376 對，少 29.4%。"],
+    "scene": lambda: (sc_vbars([("2016 年", 147861, "147,861", False), ("2025 年", 104376, "104,376", False)], 160000, 520, hi=(1,)), 520)},
+   {"title": "數字背後", "body": ["同年總生育率 0.695；", "國發會推估 2026 年新生兒", "約 9.4 萬人。"], "ask": "成家這件事，離日常多遠？",
+    "scene": lambda: (sc_cradle(), 560)},
+  ]},
+ "20261117_studentloan": {
+  "src": "資料：教育部國教署、臺灣銀行115學年度公告",
+  "pages": [
+   {"title": ["115學年起學貸利率", "0.775%、寬限期2年"], "scene": lambda: (sc_slope(), 760)},
+   {"title": "資料從哪來", "body": ["教育部國教署、臺灣銀行公告，", "2026/8/1 起新申貸適用；", "寬限期由 1 年延為 2 年。"],
+    "scene": lambda: (sc_gantt(), 520)},
+   {"title": "數字背後", "body": ["其中 1 個百分點由政府補貼，", "利率會機動調整；", "舊貸戶適用與否，以公告為準。"], "ask": "第一份薪水先還哪筆？",
+    "scene": lambda: (sc_stack(), 560)},
   ]},
 }
 
