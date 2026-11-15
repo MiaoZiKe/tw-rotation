@@ -30779,6 +30779,13 @@ def desk_open(pg, base, route, scroll=True):
             if wait_until(pg, f"() => !!document.querySelector('{sel}.on')", 4000):
                 break
     desk_settle(pg)
+    if re.match(r"stock/\d{4}(\?|$)", r):      # 一般股才有小卡（ETF 00919 沒有，不用乾等）
+        # 11-15：#pvStock（同業估值位階小卡）要等 peerval.js 自己 fetch 資料、再 debounce 50ms 才畫；
+        #   desk_settle 看的是「沒有進行中的 fetch」，剛好落在 fetch 結束到小卡畫出之間時，指紋會少這張卡（約 1/3 假紅）。
+        #   這裡等「資料到了＋小卡畫完（或確定這檔沒有小卡，如 ETF）」再量；不放寬指紋，基準照舊要求有這張卡。
+        wait_until(pg, "() => !!window.TwPeerVal && !!window.TwPeerVal._d() && !!document.getElementById('pvStock')", 6000)
+        pg.wait_for_timeout(150)
+        desk_settle(pg)
     if not scroll:            # 剖析圖頁只量 ②／②-b（原本那一輪就是開頁等穩直接量、不捲）
         return
     # 捲到底再回頂：延後畫的卡（whenNear）都畫出來，版面才是使用者看到的那個
