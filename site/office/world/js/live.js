@@ -5,6 +5,9 @@
 //   · 每個工作階段一位 CEO：最近在動的那個是本尊，其他同時開著的在 CEO 桌旁當「分身」（最多 3 位，超過寫 +N）
 //   · 子 Agent 類型對應到名冊上的同事；名冊沒有的類型（general-purpose、Explore…）自動坐進後備座位；座位滿了由現有同事兼任
 //   · 派工 → 領任務 → 工具類別小動作 → 交件；等你核准／等你回答；回合結束；額度（有回報才顯示）
+// 一個專案一間辦公室（2026-11-15）：網址 ?project=<專案雜湊> 指定只看哪個專案（收件端依它過濾事件、角色、分身）；
+//   CEO 名牌與「CEO 辦公室」門牌加上專案名（「tw-rotation CEO」），左上角改成「← 專案名 ▾」（回專案清單、下拉切換專案）。
+//   專案名稱沒意義（user／root／tmp…，雲端工作階段沒掛儲存庫時的資料夾名）一律顯示「雲端工作階段」。
 // 規矩：
 //   · 收不到資料就寫「尚未收到回報」，不拿示範資料充數；資訊卡、績效總表、名牌字章在即時模式下只用真實事件算的數字，
 //     資料不夠就寫「樣本不足」或「未評等」。示範資料改成可手動切換的「展示模式」。
@@ -12,6 +15,7 @@
 //   · 接入碼不長期存放（2026-11-15）：只在記憶體，領碼視窗關掉就清掉，觀看改用網站登入身分（X-AIO-Session）；localStorage 只留網址、模式、專案。
 //     不放進網址列（#aio=… 會被讀走後立刻清掉）。舊版存在儲存裡的碼，第一次載入時搬進記憶體並清除。
 import { hhmm } from './state.js';
+import { textTexture } from './kit.js';
 
 const LS = 'aiOffice.live.v1', ACCT_TOK = 'tw.acct.tok';
 const POLL_MS = 15000;
@@ -68,6 +72,12 @@ export function createLive(W, X) {
     project: null, primary: null, clones: [], typeMap: new Map(), extras: new Map(), seen: new Set(), sharedNoted: new Set(), revealCode: null, code: null, msg: '', lastQuota: '', url: '',
     guide: { open: false, step: 1, showPrompt: false, fix: false, busy: false, owner: 'unknown', eye: false, base: null, done: false, copied: '', codeExists: false, sig: '' } };
   W.live = L;
+  // 專案：網址的 project（專案雜湊）、office（辦公室代號）。office 以 o_ 開頭的是伺服器上的辦公室（收件端用 view 套每間 5 位 Agent 的上限）
+  const AP = window.AIOProj || { label: n => (n && !/^(user|root|home|tmp)$/i.test(n) ? n : '雲端工作階段'), trunc: (t, n) => (Array.from(t).length > n ? Array.from(t).slice(0, n - 1).join('') + '…' : t) };
+  L.qProject = /^[0-9a-f]{16}$/.test(qs.get('project') || '') ? qs.get('project') : null;
+  L.qOffice = /^[A-Za-z0-9_-]{1,40}$/.test(qs.get('office') || '') ? qs.get('office') : null;
+  L.qView = /^o_[A-Za-z0-9_-]{6,30}$/.test(L.qOffice || '') ? L.qOffice : null;
+  L.projName = null;
   // 接入碼不長期存放（2026-11-15 規格第五節第 3 點）：只放記憶體（L.code），關掉視窗／重新整理就沒有；存進 localStorage 的只有網址、模式、專案這些設定。
   // 觀看改用登入身分（X-AIO-Session）。舊版曾把碼存在這台裝置：第一次載入時搬進記憶體並從儲存清掉。
   const save = () => { const o = { ...L.cfg }; delete o.code; lsSet(LS, JSON.stringify(o)); };
@@ -190,6 +200,20 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   .aio-steps{gap:4px;padding:6px 10px 8px}.aio-steps button{font-size:12px;gap:4px;padding:4px}.aio-gbody{padding:4px 12px 8px}
   .aio-prompt{max-height:36dvh}
 }`;
+  css.textContent += `
+.ttl.pj{padding-left:4px;gap:2px}
+.aio-pjn{display:inline-flex;align-items:center;min-width:0}.aio-pjn[hidden]{display:none}
+.aio-pjn .pjb,.aio-pjn .pjn{font:inherit;color:var(--ink);background:none;border:0;display:inline-flex;align-items:center;justify-content:center;min-height:40px;cursor:pointer;text-decoration:none;font-weight:800;font-size:16px;border-radius:999px}
+.aio-pjn .pjb{min-width:40px;font-size:20px}
+.aio-pjn .pjn{gap:6px;padding:0 10px 0 6px;min-width:0;max-width:min(52vw,230px)}.aio-pjn .pjn span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aio-pjn .pjn i{font-style:normal;color:var(--on);font-size:14px;flex:none}
+.aio-pjn .pjb:hover,.aio-pjn .pjn:hover,.aio-pjn .pjb:focus-visible,.aio-pjn .pjn:focus-visible{background:var(--on2);outline:0}
+.aio-pjm{position:fixed;z-index:40;background:var(--card);border-radius:18px;box-shadow:var(--sh);padding:6px;min-width:220px;max-width:calc(100vw - 16px);max-height:60dvh;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.aio-pjm button,.aio-pjm a{font:inherit;color:var(--ink);background:none;border:0;border-radius:12px;min-height:44px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;text-align:left;text-decoration:none;font-size:14px}
+.aio-pjm button:hover,.aio-pjm a:hover,.aio-pjm button:focus-visible,.aio-pjm a:focus-visible{background:var(--on2);outline:0}
+.aio-pjm em{font-style:normal;font-size:12px;color:var(--sub);flex:none}.aio-pjm .cur{background:var(--on2)}
+.aio-pjm .all{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;color:var(--sub);justify-content:center}
+@media (max-width:640px){.ttl.pj{height:44px}.aio-pjn .pjb,.aio-pjn .pjn{min-height:44px}.aio-pjn .pjb{min-width:44px}.aio-pjn .pjn{max-width:44vw}}`;
   document.head.append(css);
 
   // ───────── 頂列標章＋說明框 ─────────
@@ -219,6 +243,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const hint = !hasCred() || (L.mode === 'live' && (L.status === 'nodata' || L.status === 'setup'));   // 尚未接上：頂列加醒目小點，接上後消失
     badge.className = 'btn aio-b ' + cls + (hint ? ' hint' : ''); badge.innerHTML = `<i class="dot" aria-hidden="true"></i><span id="aioTxt" class="l">${esc(t)}</span><span class="s" aria-hidden="true">${esc(ts)}</span>`; badge.setAttribute('aria-label', aria); badge.title = aria;
     document.body.classList.toggle('aio-live', L.mode === 'live');
+    renderBrand();
     if (!pop.hidden) { renderPop(); placePop(); }
     if (ledgerEl && !ledgerEl.hidden) renderLedger();
     guideRender();
@@ -226,6 +251,62 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   L.render = render;
 
   // 說明框內容：示範時＝「連接我的 Claude」；即時＝狀態、專案、工作階段、展示模式、中斷連接
+  // ───────── 專案名稱：名牌、門牌、左上角「← 專案名 ▾」 ─────────
+  // 名牌文字由 main.js 的 setTag 問 W.tagName；只有 CEO 與分身加專案名，其他同事不動。
+  W.tagName = c => {
+    if (L.mode !== 'live' || !L.projName || !c || !c.spec) return null;
+    const sp = c.spec; if (!(sp.isCeo || /^ceo-clone-/.test(sp.id || ''))) return null;
+    return AP.trunc(L.projName, 12) + ' ' + sp.nick;
+  };
+  function retitleSign() {
+    if (!W.scene) return;
+    const want = L.mode === 'live' && L.projName ? AP.trunc(L.projName, 12) + ' CEO 辦公室' : 'CEO 辦公室';
+    W.scene.traverse(o => {
+      if (!(o.userData && o.userData.roomText === 'CEO 辦公室' && o.material)) return;
+      if (o.userData.signNow === want) return; o.userData.signNow = want;
+      const old = o.material.map, pw = 768, w = o.userData.roomW || 2.16;
+      o.material.map = textTexture(want, { pw, ph: Math.round(pw * 0.42 / w), bg: '#fffaf2', px: 140, radius: 72 }); o.material.needsUpdate = true;
+      if (old && old.dispose && old !== o.material.map) old.dispose();
+    });
+  }
+  function applyProjectNames() {
+    if (W.setTag) for (const c of [C('ceo'), ...L.clones.map(x => x.ch)]) if (c && c._lab) { try { W.setTag(c); } catch (e) { /* 名牌重畫失敗不影響其他 */ } }
+    retitleSign(); renderBrand();
+    try { document.title = L.mode === 'live' && L.projName ? L.projName + '・AI 辦公室' : 'AI 辦公室'; } catch (e) { /* 略 */ }
+  }
+  L.applyProjectNames = applyProjectNames;
+  // 切換專案＝重新載入頁面（網址換 project）：場景、分身、後備座位的同事一次乾淨重來，不會留下上一個專案的角色
+  function goProject(h) {
+    if (!/^[0-9a-f]{16}$/.test(h || '')) return;
+    const u = new URLSearchParams(location.search); u.set('project', h); u.delete('connect');
+    location.assign(location.pathname + '?' + u.toString());
+  }
+  L.goProject = goProject;
+  const ttl = bar.querySelector('.ttl'), brandA = ttl && ttl.querySelector('a'), pjNav = document.createElement('span'); pjNav.className = 'aio-pjn'; pjNav.hidden = true;
+  if (ttl) ttl.insertBefore(pjNav, ttl.firstChild);
+  let pjMenu = null;
+  const closePjMenu = () => { if (pjMenu) { pjMenu.remove(); pjMenu = null; } const b = pjNav.querySelector('.pjn'); if (b) b.setAttribute('aria-expanded', 'false'); };
+  function backHref() { return 'index.html?office=' + encodeURIComponent(L.qOffice || 'main') + '#pick'; }
+  function renderBrand() {
+    const on = !!(ttl && L.mode === 'live' && L.project && L.projName), sig = on ? L.projName + '|' + L.qOffice : '';
+    if (pjNav._sig === sig) return; pjNav._sig = sig; closePjMenu();
+    pjNav.hidden = !on; ttl && ttl.classList.toggle('pj', on); if (brandA) brandA.hidden = on;
+    if (!on) { pjNav.textContent = ''; return; }
+    pjNav.innerHTML = `<a class="pjb" href="${esc(backHref())}" aria-label="回專案清單" title="回專案清單">←</a><button class="pjn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="目前專案：${esc(L.projName)}，按一下切換專案"><span>${esc(AP.trunc(L.projName, 14))}</span><i aria-hidden="true">▾</i></button>`;
+  }
+  function openPjMenu(btn) {
+    closePjMenu();
+    const ps = (L.data && L.data.projects) || [], m = document.createElement('div'); m.className = 'aio-pjm'; m.setAttribute('role', 'listbox'); m.setAttribute('aria-label', '切換專案');
+    m.innerHTML = (ps.length ? ps : [{ hash: L.project, name: L.projName, active: 0 }]).map(p => { const nm = AP.label(p.name), cur = p.hash === L.project; return `<button type="button" role="option" aria-selected="${cur}" data-h="${esc(p.hash)}" class="${cur ? 'cur' : ''}"><b>${cur ? '✓ ' : ''}${esc(AP.trunc(nm, 18))}</b><em>${p.active ? p.active + ' 個進行中' : AP.ago(p.last)}</em></button>`; }).join('') + `<a class="all" href="${esc(backHref())}">看全部專案</a>`;
+    document.body.append(m); pjMenu = m; btn.setAttribute('aria-expanded', 'true');
+    const r = btn.getBoundingClientRect(); m.style.top = (r.bottom + 8) + 'px'; m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, r.left)) + 'px';
+    const f = m.querySelector('.cur,button'); if (f) f.focus({ preventScroll: true });
+  }
+  pjNav.addEventListener('click', e => { const b = e.target.closest('.pjn'); if (!b) return; if (pjMenu) closePjMenu(); else { ui.closePops && ui.closePops(); openPjMenu(b); } });
+  document.addEventListener('click', e => { if (!pjMenu) return; const o = e.target.closest('.aio-pjm button[data-h]'); if (o) { const h = o.dataset.h; if (h === L.project) closePjMenu(); else goProject(h); return; } if (!e.target.closest('.aio-pjm') && !e.target.closest('.pjn')) closePjMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && pjMenu) { const b = pjNav.querySelector('.pjn'); closePjMenu(); if (b) b.focus(); } });
+  addEventListener('resize', closePjMenu);
+
   function sessionsOfProject() { const d = L.data; return d ? d.sessions.filter(s => !L.project || s.project_hash === L.project) : []; }
   function renderPop() {
     const owner = !!loginTok(), d = L.data;
@@ -257,7 +338,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     if (h !== pop._html) { pop._html = h; pop.innerHTML = h; }
     guideRender();
   }
-  pop.addEventListener('change', e => { if (e.target.id === 'aioProj') { L.cfg.project = e.target.value; save(); restartLive(); } });
+  pop.addEventListener('change', e => { if (e.target.id === 'aioProj') goProject(e.target.value); });
   pop.addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a; L.msg2 = '';
     if (a === 'guide') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); return; }
@@ -572,7 +653,8 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const first = L.seq === 0;
     L.data = j;
     const ps = j.projects || [];
-    L.project = L.cfg.project && ps.some(p => p.hash === L.cfg.project) ? L.cfg.project : (ps[0] || {}).hash || null;
+    L.project = L.qProject || (L.cfg.project && ps.some(p => p.hash === L.cfg.project) ? L.cfg.project : (ps[0] || {}).hash || null);
+    { const pe = ps.find(p => p.hash === L.project), nm = L.project ? (pe ? AP.label(pe.name) : '這個專案') : null; if (nm !== L.projName) { L.projName = nm; applyProjectNames(); } }
     if (first) applySnapshot(j);
     else {
       const evs = (j.events || []).filter(e => !L.seen.has(e.seq));
@@ -599,7 +681,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     L.inflight = true; L.polls++;
     try {
       const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 10000);
-      const r = await fetch(`${url}/v1/office/${encodeURIComponent(L.cfg.office || 'main')}/state?since=${L.seq}`, { headers: hdr, cache: 'no-store', credentials: 'omit', signal: ctl.signal });
+      const r = await fetch(`${url}/v1/office/${encodeURIComponent(L.cfg.office || 'main')}/state?since=${L.seq}${L.qProject ? '&project=' + L.qProject : ''}${L.qView ? '&view=' + L.qView : ''}`, { headers: hdr, cache: 'no-store', credentials: 'omit', signal: ctl.signal });
       clearTimeout(tm);
       if (L.mode !== 'live') return;
       if (r.status === 401 || r.status === 403) { L.status = 'auth'; L.fails++; render(); L.inflight = false; schedule(60000); return; }
@@ -627,7 +709,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   function enterDemo() {
     clearTimeout(L.timer); L.timer = 0;
     if (L.mode === 'live') { L.mode = 'demo'; resetState(); patchDemo(false); }
-    L.status = 'off'; render();
+    L.status = 'off'; L.projName = null; applyProjectNames(); render();
   }
   L.enterLive = enterLive; L.enterDemo = enterDemo;
 
