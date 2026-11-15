@@ -32,7 +32,7 @@ for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) ad
 export function mountSports(W, X = {}) {
   const qs = new URLSearchParams(location.search); if (qs.get('sports') === '0') return null;
   const ui = X.ui || { toast() { } }, D = () => W.director || X.director, scene = W.scene, nav = W.nav;
-  const S = { sess: null, venues: VENUES, LAY, stats: { sessions: 0, ambient: 0, points: 0 }, ambientOn: qs.get('ambient') !== '0', log: [] };
+  const S = { sess: null, steps: 0, venues: VENUES, LAY, stats: { sessions: 0, ambient: 0, points: 0 }, ambientOn: qs.get('ambient') !== '0', log: [] };
   W.sports = S;
   // ───────── 場地、水、nav ─────────
   const B = buildSports(W); S.build = B;
@@ -107,7 +107,7 @@ export function mountSports(W, X = {}) {
     const d = D(); d.grabbed(c); c.sportSess = s; c.busy = true; c.keep = null; c.stop(false); c.setAction('idle');
   }
   function giveBack(c) {
-    if (!c || !c.sportSess) return; c.sportSess = null; c.drive && c.drive(null); c.setAction('idle'); c.setExpression && c.setExpression('neutral');
+    if (!c || !c.sportSess) return; c.sportSess = null; c._sportGo = (c._sportGo || 0) + 1; c.drive && c.drive(null); c.setAction('idle'); c.setExpression && c.setExpression('neutral');
     if (c.piloted) return; if (!D().sendHome(c)) c.busy = false;
   }
   function sendTo(c, tx, tz, speed = 3.4) {   // 走（跑）到定位；回傳 Promise（到了才 resolve，最久 18 模擬秒，之後直接站過去）
@@ -258,7 +258,7 @@ export function mountSports(W, X = {}) {
     } else if (!s && S.ambientOn && D().ambient && W.time > nextAmb) { nextAmb = W.time + 25 + Math.random() * 30; if (Math.random() < 0.7) startAmbient(); }
     // 球的固定時間步
     const G = (s && s.game && s.phase === 'play') ? s.game : (a && a.game) || null;
-    if (G) { acc += h; let n = 0; while (acc >= DT && n < 32) { G.update(DT); acc -= DT; n++; } if (n >= 32) acc = 0; } else acc = 0;
+    if (G) { acc += h; let n = 0; while (acc >= DT && n < 32) { G.update(DT); acc -= DT; n++; S.steps++; } if (n >= 32) acc = 0; } else acc = 0;
   }
   function hopStep(s, h) {
     const hp = s.hop, c = s.me; hp.t += h; const u = Math.min(1, hp.t / 0.75), e = u * u * (3 - 2 * u), x = hp.from.x + (hp.to.x - hp.from.x) * e, z = hp.from.z + (hp.to.z - hp.from.z) * e;
@@ -279,7 +279,7 @@ export function mountSports(W, X = {}) {
 .sp-hud[hidden]{display:none}.sp-hud .sp-t{display:block;font-size:14px;font-weight:800}.sp-hud .sp-p{display:block;color:#7a6556;min-height:19px}
 .sp-meter{height:14px;border-radius:99px;background:#ecdcc2;position:relative;margin:7px 2px 3px}.sp-meter i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:#f2a65a;width:0}.sp-meter u{position:absolute;top:-3px;bottom:-3px;width:12px;margin-left:-6px;border-radius:5px;background:#43b57f;opacity:.92}
 .sp-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.sp-btns button{min-height:36px;padding:4px 14px;border-radius:99px;border:2px solid #d9a867;background:#fff1d8;color:#6b4a22;font:700 13px "Noto Sans TC","PingFang TC",sans-serif;cursor:pointer;touch-action:manipulation}.sp-btns button:hover{background:#ffe6bd}.sp-btns button.sp-main{background:#f2a65a;border-color:#d98a3e;color:#fff}
-.sp-go{position:absolute;z-index:9;left:16px;bottom:16px;border:2px solid #7fc4a0;background:#e4f6ec;color:#2f6e55;border-radius:999px;padding:6px 14px;min-height:36px;font:700 13px/1.2 "Noto Sans TC",sans-serif;box-shadow:var(--sh,0 4px 14px rgba(74,58,50,.2));cursor:pointer}.sp-go[hidden]{display:none}body.pt-sel .sp-go{display:none}
+.sp-go{position:absolute;z-index:9;left:16px;bottom:44px;border:2px solid #7fc4a0;background:#e4f6ec;color:#2f6e55;border-radius:999px;padding:6px 14px;min-height:36px;font:700 13px/1.2 "Noto Sans TC",sans-serif;box-shadow:var(--sh,0 4px 14px rgba(74,58,50,.2));cursor:pointer}.sp-go[hidden]{display:none}body.pt-sel .sp-go{display:none}
 @media (max-width:640px){.sp-hud{bottom:calc(162px + var(--lift,0px));padding:6px 10px 8px}.sp-go{left:12px;bottom:calc(58px + env(safe-area-inset-bottom,0px))}}
 @media (max-width:1100px){body.sp-on .pt-tips{display:none}}
 body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
@@ -367,7 +367,7 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
     const t = performance.now(); if (t - hint0 > 250) { hint0 = t; PV.set(9.9, 0.5, 40.2).project(W.camera); const off = !(PV.z < 1 && Math.abs(PV.x) < 0.8 && PV.y > -0.78 && PV.y < 1) || document.body.classList.contains('pov-on'); go.hidden = !off; }
   }
   // 掛進主迴圈：每個模擬步（W.tickTimers 後面）、每一畫面（W.updateBlobs 後面）
-  const t0 = W.tickTimers; W.tickTimers = () => { t0(); const h = W.time - lastT; lastT = W.time; if (h > 0) { try { tick(Math.min(h, 0.1)); } catch (e) { if (!S.err) console.error('運動場例外', e); S.err = (S.err || 0) + 1; } } };
+  const t0 = W.tickTimers; S.perf = { ms: 0, n: 0, max: 0 }; W.tickTimers = () => { t0(); const h = W.time - lastT; lastT = W.time; if (h > 0) { const p0 = performance.now(); try { tick(Math.min(h, 0.1)); } catch (e) { if (!S.err) console.error('運動場例外', e); S.err = (S.err || 0) + 1; } const dt = performance.now() - p0; S.perf.ms += dt; S.perf.n++; if (dt > S.perf.max) S.perf.max = dt; } };   // 量測：運動場每個模擬步花多少毫秒（驗收用）
   const u0 = W.updateBlobs; W.updateBlobs = () => { u0(); try { frame(); } catch (e) { if (!S.err) console.error('運動場畫面例外', e); S.err = (S.err || 0) + 1; } };
   S.end = end; S.start = (id, kind, partnerId) => { const me = W.chars.get(id), v = VENUES.find(q => q.kind === kind); return startFor(me, v, partnerId ? W.chars.get(partnerId) : null); };
   S.invite = invite; S.autoPartner = autoPartner; S.hud = hud; S.XG = XG; S.venueAt = venueAt;

@@ -37,7 +37,7 @@ export function solveShot(P, x0, y0, z0, tx, tz) {
 }
 
 export function createRacket(X, kind, players) {
-  const P = RP[kind], C = P.C, netX = C.cx, G = { kind, zh: P.zh, players, over: false, winner: null, phase: 'serve', ball: { x: C.cx, y: 1, z: C.cz, vx: 0, vy: 0, vz: 0 }, stats: { hits: 0, rallies: 0, maxRally: 0, points: 0 } };
+  const P = RP[kind], C = P.C, netX = C.cx, G = { kind, zh: P.zh, players, over: false, winner: null, phase: 'serve', ball: { x: C.cx, y: 1, z: C.cz, vx: 0, vy: 0, vz: 0 }, stats: { hits: 0, byHuman: 0, byAI: 0, rallies: 0, maxRally: 0, points: 0 } };
   const b = G.ball, S = { A: players.find(p => p.side === 'A'), B: players.find(p => p.side === 'B') }, other = s => (s === 'A' ? 'B' : 'A'), dirOf = s => (s === 'A' ? 1 : -1);   // A 在西邊（x 小），往東（+x）打
   let t = 0, server = 'A', lastHit = null, bounces = 0, fault = false, rally = 0, pauseT = 0, serveWait = 0, tPredict = 0, predict = null, toastT = 0, rallyT = 0;
   for (const p of players) { p.score = 0; p.swing = 0; p.cool = 0; p.home = { x: netX + dirOf(p.side) * -C.L * 0.3, z: C.cz }; }
@@ -56,7 +56,7 @@ export function createRacket(X, kind, players) {
     const tx = netX + d * clamp(depth + gauss() * err * 0.4, 0.6, C.L / 2 - 0.1), z = clamp(tz, C.cz - C.W / 2 + 0.08, C.cz + C.W / 2 - 0.08);
     const sol = solveShot(P, b.x, by, b.z, tx, z);
     b.y = by; b.vx = sol.v * Math.cos(sol.th) * sol.ux; b.vy = sol.v * Math.sin(sol.th); b.vz = sol.v * Math.cos(sol.th) * sol.uz;
-    lastHit = p.side; bounces = 0; fault = false; rally++; G.stats.hits++; G.stats.maxRally = Math.max(G.stats.maxRally, rally); phase('rally'); predict = null;
+    lastHit = p.side; bounces = 0; fault = false; rally++; G.stats.hits++; if (p.human) G.stats.byHuman++; else G.stats.byAI++; G.stats.maxRally = Math.max(G.stats.maxRally, rally); phase('rally'); predict = null;
     p.c.faceTo(b.x + b.vx, b.z + b.vz); p.c.setAction('paddle', { duration: 0.55 }); p.cool = 0.3; p.swing = 0; X.hitFx && X.hitFx(kind, b);
   }
   function tryHit(p) {

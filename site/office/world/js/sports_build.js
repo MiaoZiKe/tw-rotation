@@ -97,12 +97,12 @@ export function buildSports(W) {
   // ── 外圈灌木（南邊與西邊，圓圓的）
   for (let x = 1.4; x < F.x1; x += 1.9) { P.sph(x % 3.8 < 1.9 ? PAL.leafDark : PAL.leaf, 0.36, x, 0.3, F.z1 + 0.5, 1.2, 0.9, 1); }
   for (let z = 32.6; z < F.z1; z += 2.2) P.sph(z % 4.4 < 2.2 ? PAL.leaf : PAL.leafDark, 0.34, F.x0 - 0.15, 0.28, z, 0.9, 0.9, 1.2);
+  { const sx0 = 12.4, sz0 = 31.85; for (const dx of [-1.5, 1.5]) { P.cyl(PAL.woodMid, 0.06, 2.2, sx0 + dx, 0, sz0, 0.02); feet.push({ x: sx0 + dx, z: sz0, r: 0.1 }); } }   // 招牌的兩根柱子
   const m = P.mesh(); m.castShadow = false; m.receiveShadow = true; m.renderOrder = 0; W.scene.add(m); B.mesh = m;
   // ── 招牌：員工運動場（木牌、兩根柱子，朝南）
   const sx = 12.4, sz = 31.85;
   const sg = textPlane(['員工運動場', '羽毛球・籃球・網球・撞球・游泳'], 3.3, 0.95, { bg: '#7fc4a0', fg: '#ffffff', fg2: '#f3fff7', px: 84, subScale: 0.42, radius: 30, border: '#4c8d6d', borderW: 12, pw: 720 });
   sg.material = new THREE.MeshBasicMaterial({ map: sg.userData.tex, transparent: true, alphaTest: 0.3, toneMapped: false }); sg.position.set(sx, 2.1, sz + 0.08); W.scene.add(sg); B.sign = sg;
-  const sp = new Part(); for (const dx of [-1.5, 1.5]) { sp.cyl(PAL.woodMid, 0.06, 2.2, sx + dx, 0, sz, 0.02); feet.push({ x: sx + dx, z: sz, r: 0.1 }); } W.scene.add(sp.mesh());
   // ── 球網（鐵絲網格）：三張（羽毛球、網球；籃框的網）合併成一個線框網格
   const geos = [];
   for (const C of [LAY.bad, LAY.ten]) {
