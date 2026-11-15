@@ -251,3 +251,20 @@ def test_佇列文案寫了留言關鍵字_就一定有設定():
 
 def test_結婚影片已設關鍵字():
     assert HC.post_keywords("20261115v_marriage", CH / "queue") == ["結婚"]
+
+
+def test_能力檢查_debug_token被拒改問permissions(monkeypatch):
+    eaa = "EAAprobe1234567890"
+    HC._PAGE[eaa] = {"page_id": "", "page_token": ""}
+
+    def fake(method, url, params=None, **kw):
+        if url.endswith("/debug_token"):
+            raise RuntimeError("HTTP 400 (#100) You must provide an app access token")
+        if url.endswith("/me/permissions"):
+            return {"data": [{"permission": "instagram_manage_comments", "status": "granted"},
+                             {"permission": "instagram_manage_messages", "status": "declined"}]}
+        raise AssertionError(url)
+    monkeypatch.setattr(SP, "http", fake)
+    out = HC.probe(eaa)
+    assert out["dm_available"] is False and out["scopes"] == ["instagram_manage_comments"]
+    assert out["can_public_reply"] is True

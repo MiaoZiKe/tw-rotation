@@ -333,6 +333,13 @@ def probe(token: str) -> dict:
             out["scopes"] = sorted(d.get("scopes") or [])
         except Exception as e:  # noqa: BLE001
             out["scopes_error"] = SP.redact(e)[:160]
+            try:                                   # 系統用戶權杖不是 App 擁有者時 debug_token 會被拒 → 改問 /me/permissions
+                ps = SP.http("GET", f"{FB}/me/permissions", params={"access_token": token}).get("data") or []
+                out["scopes"] = sorted(x.get("permission") for x in ps if x.get("status") == "granted")
+            except Exception as e2:  # noqa: BLE001
+                out["permissions_error"] = SP.redact(e2)[:160]
+        if "scopes" in out:
+            out["can_public_reply"] = "instagram_manage_comments" in out["scopes"]
         out["page"] = "有粉絲專頁權杖" if dm_available(token) else "看不到連結本 IG 的粉絲專頁（私訊做不到 → 走公開回覆保底）"
     return out
 
@@ -619,10 +626,20 @@ def threads_run(env: dict | None = None, dry_run: bool = False, now: datetime | 
         at = parse_ts((th or {}).get("at") or (v or {}).get("at")) if isinstance(v, dict) else None
         if isinstance(th, dict) and th.get("id") and kws and (at is None or at >= since):
             targets.append((str(th["id"]), folder, kws))
-    if not targets:
-        res["summary"] = "近期沒有設 comment_keyword 的 Threads 貼文"
-        return 0, res
     token = threads_token(env, prefix)
+    if not targets and dry_run and token:          # 空跑：拿最近一篇 Threads 貼文只讀測一次 threads_read_replies
+        last = sorted(((str(v.get("threads", {}).get("at") or ""), str(v["threads"]["id"])) for v in (posted or {}).values()
+                       if isinstance(v, dict) and isinstance(v.get("threads"), dict) and v["threads"].get("id")), reverse=True)
+        if last:
+            SP._SECRETS.append(token)
+            try:
+                n = len(SP.http("GET", f"{TH}/{last[0][1]}/replies", params={"fields": "id", "access_token": token}).get("data") or [])
+                res["summary"] = f"能力檢查（只讀）：最近一篇 Threads 貼文讀留言成功（{n} 則），threads_read_replies 可用；"
+            except Exception as e:  # noqa: BLE001
+                res["summary"] = f"能力檢查（只讀）：讀 Threads 留言失敗：{SP.redact(e)[:160]}；"
+    if not targets:
+        res["summary"] = res["summary"] + "近期沒有設 comment_keyword 的 Threads 貼文"
+        return 0, res
     if not token:
         res["summary"] = f"等待權杖（{prefix}THREADS_ACCESS_TOKEN），本輪空跑"
         return 0, res
