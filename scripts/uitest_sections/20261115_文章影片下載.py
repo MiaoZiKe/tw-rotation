@@ -8,6 +8,16 @@
 # ④ 不在白名單的 src（網址、..、副檔名不對、路徑層數不對）一律不畫；⑤ site/media 底下每支 mp4 ≤ 25 MiB（Cloudflare Pages 單檔上限）。
 import json as _av_json
 import os as _av_os
+
+def _av_repo_root():
+    # exec 進 _uitest.py 的命名空間時 __file__ 是 scripts/_uitest.py，單獨跑時是本檔；往上找到有 site/ 的那層
+    d = _av_os.path.dirname(_av_os.path.abspath(__file__))
+    for _ in range(4):
+        if _av_os.path.isdir(_av_os.path.join(d, "site")):
+            return d
+        d = _av_os.path.dirname(d)
+    return d
+
 import re as _av_re
 
 _AV_API = "https://acct1115av.example.test"
@@ -106,7 +116,7 @@ def t_article_mp4_1115(b, base, code):
         got = dli.value
         pth = got.path()
         size = _av_os.path.getsize(pth) if pth else 0
-        real = _av_os.path.getsize(_av_os.path.join(_av_os.path.dirname(_av_os.path.abspath(__file__)), "..", "..", "site", "media", "healing", "20261115v_marriage", "video.mp4"))
+        real = _av_os.path.getsize(_av_os.path.join(_av_repo_root(), "site", "media", "healing", "20261115v_marriage", "video.mp4"))
         ok(f"★ [{T}（{W}）] 按下載鈕真的下載：檔名＝{_AV_NAME}、大小與站內檔案一致（{size} B）", got.suggested_filename == _AV_NAME and size == real and size > 100000, (got.suggested_filename, size, real))
         pg.locator("#artPost .artvid.mp4").scroll_into_view_if_needed()
         pg.wait_for_timeout(400)
@@ -136,7 +146,7 @@ def t_article_mp4_1115(b, base, code):
         c.close()
 
     # ── 檔案大小：Cloudflare Pages 單檔上限 25 MiB（頻道規定 ≤ 20 MiB，這裡用 25 MiB 當硬上限）
-    root = _av_os.path.join(_av_os.path.dirname(_av_os.path.abspath(__file__)), "..", "..", "site", "media")
+    root = _av_os.path.join(_av_repo_root(), "site", "media")
     big = []
     for dp, _dn, fns in _av_os.walk(root):
         for fn in fns:
