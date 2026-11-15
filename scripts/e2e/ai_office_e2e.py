@@ -145,6 +145,10 @@ def setup(out):
     home = os.path.join(out, "home")
     shutil.rmtree(home, ignore_errors=True)
     os.makedirs(home)
+    # 信任這個專案資料夾（等於使用者第一次互動開啟時按了「信任」）。沒信任的話，無頭模式會忽略專案 .claude/settings.json 的允許清單，
+    # 待命指令 python3 inbox.py wait 會被「需要核准」擋掉、工作階段直接結束（2026-11-15 實測第一輪就卡在這裡）。
+    with open(os.path.join(home, ".claude.json"), "w") as f:
+        json.dump({"hasCompletedOnboarding": True, "projects": {proj: {"hasTrustDialogAccepted": True}}}, f)
     plug = os.path.join(src, "tools/ai_office_bridge/plugin/ai-office-bridge")
     r = subprocess.run([sys.executable, os.path.join(plug, "scripts/install_hooks.py"), "--settings", os.path.join(home, ".claude/settings.json")], capture_output=True, text=True)
     ok("準備：install_hooks.py 把掛鉤裝進暫時 HOME 的 ~/.claude/settings.json", r.returncode == 0 and os.path.exists(os.path.join(home, ".claude/settings.json")), r.stdout.strip())
@@ -212,17 +216,26 @@ class Run:
             pg.click("#chatBtn")                     # 展開對話串（看得到狀態、撤回鈕、回覆）
             pg.wait_for_selector("#mcTop:not([hidden])")
         pg.click("#chatText")
-        pg.keyboard.type(text, delay=8)
+        pg.keyboard.insert_text(text)            # 中文是用輸入法「選字送出」進來的：insert_text 就是這個動作（逐鍵 type 在 3D 頁面上太慢）
         pg.keyboard.press("Enter")
         pg.wait_for_function("(t) => [...__world.chat.msgs.values()].some(m => m.text === t)", arg=text, timeout=15000)
         return pg.evaluate("(t) => [...__world.chat.msgs.values()].filter(m => m.text === t).pop().id", text)
 
-    def follow(self, pg, mid, label, timeout=420):
-        """盯著一則指令：記下網站畫面上每一個狀態第一次出現的時間，各截一張。回傳看過的狀態序列。"""
-        seen, end, last = [], time.time() + timeout, None
+    def follow(self, pg, mid, label, timeout=420, watch=None):
+        """盯著一則指令：記下網站畫面上每一個狀態第一次出現的時間，各截一張。回傳看過的狀態序列。
+        watch＝角色代號：同時記下 3D 裡這位同事的工作階段（phase）與位置變化（看他有沒有走去工作）。"""
+        seen, end, last, ph_last, phases = [], time.time() + timeout, None, None, []
         while time.time() < end:
             m = pg.evaluate("(id) => { const m = __world.chat.msgs.get(id); return m ? { s: m.status, r: m.reply } : null; }", mid)
-            ui = pg.evaluate("(id) => { const e = document.querySelector('#chatList .c-msg[data-id=\"' + id + '\"] .c-st'); return e ? e.textContent.trim() : null; }", mid)
+            ui = pg.evaluate("(id) => { const e = document.querySelector('#chatList .c-msg[data-id=\"' + id + '\"] .c-st'); if (e) return e.textContent.trim(); const p = document.getElementById('chatPeek'); return p && !p.hidden ? '（收合列）' + p.textContent.trim() : null; }", mid)
+            if watch:
+                w = pg.evaluate("(id) => { const c = __world.chars.get(id), a = __world.state.agents.get(id); return c ? { ph: a ? a.phase : 'idle', x: Math.round(c.object3D.position.x * 10) / 10, z: Math.round(c.object3D.position.z * 10) / 10, act: c.action || c.state || null } : null; }", watch)
+                if w and w["ph"] != ph_last:
+                    ph_last = w["ph"]
+                    phases.append(w)
+                    log("  3D：%s 階段 → %s（位置 %s,%s）" % (watch, w["ph"], w["x"], w["z"]))
+                    if w["ph"] not in ("idle",):
+                        self.shot(pg, "%s_3D_%s" % (label, w["ph"]))
             s = m and m["s"]
             if s and s != last:
                 last = s
@@ -231,9 +244,15 @@ class Run:
                 log("指令「%s」狀態 → %s（畫面：%s）" % (label, s, ui))
                 self.shot(pg, "%s_%s" % (label, s))
             if s in ("done", "failed", "canceled", "expired"):
-                return seen, m
+                if watch:
+                    pg.wait_for_timeout(7000)          # 交件演出（走回 CEO 桌）收尾
+                    w = pg.evaluate("(id) => { const c = __world.chars.get(id), a = __world.state.agents.get(id); return { ph: a ? a.phase : 'idle', done: a ? a.done.length : 0, x: Math.round(c.object3D.position.x * 10) / 10, z: Math.round(c.object3D.position.z * 10) / 10 }; }", watch)
+                    phases.append(w)
+                    self.timeline.append({"t": now(), "msg": label, "agent": watch, "phases": phases})
+                    self.shot(pg, "%s_3D_交件後" % label)
+                return seen, m, phases
             pg.wait_for_timeout(400)
-        return seen, None
+        return seen, None, phases
 
     # ─────────── Claude 工作階段（待命模式） ───────────
     def start_claude(self):
@@ -345,14 +364,15 @@ def flow(run, pg):
     with open(os.path.join(run.ctx["home"], ".ai-office/config.json"), "w") as f:
         json.dump({"AIO_URL": BRIDGE, "AIO_TOKEN": code, "AIO_INBOX": "1"}, f)
     os.chmod(os.path.join(run.ctx["home"], ".ai-office/config.json"), 0o600)
+    pg.wait_for_timeout(2500)                    # 等兩輪讀取，確認引導沒有被收件匣紀錄誤判成「已接上」
+    ok("接入：Claude 還沒開工前，引導維持「等待你的 Claude 回報…」（撤回測試寫的收件匣紀錄不算接上）", not pg.evaluate("() => __world.live.guide.done") and "等待你的 Claude 回報" in pg.inner_text("#aioGuide"))
     if os.environ.get("E2E_DRY") == "1":
         log("E2E_DRY=1：只跑到接入碼為止，不啟動 Claude")
         return
     # 啟動「使用者的 Claude」（待命模式）
     run.start_claude()
-    got = pg.wait_for_function("() => __world.live.guide.done === true || __world.live.status === 'ok'", timeout=120000)
-    pg.wait_for_timeout(500)
-    ok("接入：Claude 開工後網站顯示「已接上 ✓」", got and ("已接上" in (pg.inner_text("#aioGuide") if pg.is_visible("#aioGuide") else "") or pg.evaluate("() => __world.live.guide.done")))
+    got = pg.wait_for_function("() => __world.live.guide.done === true", timeout=120000)
+    ok("接入：Claude 開工後網站顯示「已接上 ✓」", got and "已接上" in pg.inner_text("#aioGuide"))
     run.shot(pg, "已接上")
     pg.wait_for_timeout(3200)
     if pg.is_visible("#aioGuide"):
@@ -376,7 +396,7 @@ def flow(run, pg):
     readme0 = open(os.path.join(proj, "README.md"), encoding="utf-8").read()
     T1 = "在 README.md 最後加一行今天的日期（用 date +%F 取得），做完回報。"
     mid1 = run.send(pg, T1)
-    seen1, m1 = run.follow(pg, mid1, "CEO_README")
+    seen1, m1, _ = run.follow(pg, mid1, "CEO_README")
     readme1 = open(os.path.join(proj, "README.md"), encoding="utf-8").read()
     today = time.strftime("%Y-%m-%d")
     ok("CEO 指令：網站狀態依序 排隊中→（已取走）→執行中→完成", seen1 and seen1[0] == "queued" and seen1[-1] == "done" and "running" in seen1, seen1)
@@ -387,46 +407,61 @@ def flow(run, pg):
     # d-1. 要兩位子 Agent 的指令（還沒出現在辦公室的類型：tester、frontend）
     T2 = "請派 tester 跑 python3 -m unittest 回報通過幾個；同時派 frontend 把 index.html 的 h1 改成「小計算機 v2」。兩個都做完再一起回報。"
     mid2 = run.send(pg, T2)
-    seen2, m2 = run.follow(pg, mid2, "CEO_派兩位")
+    seen2, m2, _ = run.follow(pg, mid2, "CEO_派兩位")
     html = open(os.path.join(proj, "index.html"), encoding="utf-8").read()
     sa = run.subagents()
     ok("派工：收件服務收到 tester 與 frontend 的 SubagentStart／SubagentStop（外掛掛鉤真的送上來）",
        {("SubagentStart", "tester"), ("SubagentStop", "tester"), ("SubagentStart", "frontend"), ("SubagentStop", "frontend")} <= {(e, t) for e, t, _ in sa}, sa)
     ok("派工：frontend 真的改了 index.html", "小計算機 v2" in html, html.strip()[-60:])
     ok("派工：指令完成、有回覆", m2 and seen2[-1] == "done" and m2.get("r"), (m2 or {}).get("r"))
+    pg.click("#chatX")
     pg.wait_for_timeout(2500)
     who = pg.evaluate("() => ['tester', 'frontend'].map(t => { const id = __world.live.typeMap.get(t); const c = id && __world.chars.get(id); return { type: t, id, nick: c && c.spec.nick, seat: c && c.homeSpot && c.homeSpot.name, done: id ? __world.state.agent(id).done.length : 0 }; })")
     ok("辦公室：為新的子 Agent 類型產生角色、坐進座位（生產對應工作區 Agent）", all(w["id"] and w["nick"] and w["seat"] for w in who), who)
     run.shot(pg, "新同事報到_tester_frontend")
 
-    # d-2. 直接對 tester 下指令：真滑鼠點 3D 裡的他 → 資訊卡「對他說」
+    # d-2／e. 直接對 tester、frontend 下指令：收合對話框 → 真滑鼠點 3D 裡的他 → 資訊卡「對他說」→ 打字送出 → 收合看 3D 演出
     for agent, text, label in (("tester", "再跑一次測試，只回報通過幾個。", "tester"), ("frontend", "把 index.html 的 title 也改成「小計算機 v2」。", "frontend")):
         aid = pg.evaluate("(t) => __world.live.typeMap.get(t)", agent)
         if not aid:
             ok("對 %s 下指令：辦公室裡找不到他" % agent, False)
             continue
-        pg.evaluate("(id) => { const c = __world.chars.get(id); if (__world.setView) {} }", aid)
-        xy = pg.evaluate("(id) => { const c = __world.chars.get(id); return [c._sx, c._sy + 24, innerWidth, innerHeight]; }", aid)
+        if pg.get_attribute("#chatBtn", "aria-expanded") == "true":
+            pg.click("#chatX")
+            pg.wait_for_timeout(500)
+        if pg.is_visible("#card"):
+            pg.keyboard.press("Escape")
+        xy = pg.evaluate("(id) => { const c = __world.chars.get(id); return [Math.round(c._sx), Math.round(c._sy + 24), innerWidth, innerHeight]; }", aid)
+        top = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? (e.id || e.tagName) : null; }", xy[:2])
         clicked = False
-        if xy and 0 < xy[0] < xy[2] and 0 < xy[1] < xy[3]:
+        if 0 < xy[0] < xy[2] and 0 < xy[1] < xy[3]:
             pg.mouse.click(xy[0], xy[1])
-            clicked = pg.wait_for_function("(id) => !document.getElementById('card').hidden && __world.chat.to === id", arg=aid, timeout=5000) if True else False
+            try:
+                pg.wait_for_function("(id) => !document.getElementById('card').hidden && __world.chat.to === id", arg=aid, timeout=6000)
+                clicked = True
+            except Exception:
+                clicked = False
         if not clicked:
-            # 角色不在鏡頭裡（例如後備座位在畫面外）：退一步用名牌 → 資訊卡（還是真滑鼠點畫面上的東西）
-            log("真滑鼠點 3D 的 %s 沒點到（座標 %s），改用 __world.ui.showCard 打開資訊卡" % (agent, xy))
+            log("真滑鼠點 3D 的 %s 沒點到（座標 %s，最上層 %s），改用 __world.ui.showCard 打開資訊卡" % (agent, xy, top))
             pg.evaluate("(id) => __world.ui.showCard(__world.chars.get(id))", aid)
-        ok("對 %s：點 3D 角色 → 資訊卡打開、對話框對象切成他（%s）" % (agent, "真滑鼠" if clicked else "鏡頭外，改開資訊卡"), pg.evaluate("(id) => !document.getElementById('card').hidden && __world.chat.to === id", aid), xy)
+        ok("對 %s：%s → 資訊卡打開、對話框對象切成他" % (agent, "真滑鼠點 3D 角色" if clicked else "（沒點到，改直接開資訊卡）"), clicked and pg.evaluate("(id) => !document.getElementById('card').hidden && __world.chat.to === id", aid), {"xy": xy, "top": top})
         run.shot(pg, "%s_資訊卡" % label)
         pg.click("#card [data-chat]")
-        pg.wait_for_timeout(400)
+        pg.wait_for_selector("#mcTop:not([hidden])")
         n_before = len([1 for e, t, _ in run.subagents() if e == "SubagentStart" and t == agent])
         mid = run.send(pg, text)
         to = pg.evaluate("(id) => __world.chat.msgs.get(id).to", mid)
         ok("對 %s：收件匣收到的 to＝%s（Claude 會被告知派給 subagent_type＝%s）" % (agent, to, to), to == agent, to)
-        seen, m = run.follow(pg, mid, label)
+        run.shot(pg, "%s_已送出_他的對話串" % label)
+        pg.click("#chatX")                           # 收合，讓 3D 看得到他工作
+        seen, m, phases = run.follow(pg, mid, label, watch=aid)
         n_after = len([1 for e, t, _ in run.subagents() if e == "SubagentStart" and t == agent])
-        ok("對 %s：Claude 真的派了 %s（SubagentStart 多一筆）、狀態走到完成、有回覆" % (agent, agent), n_after > n_before and seen and seen[-1] == "done" and m.get("r"), {"seen": seen, "reply": (m or {}).get("r"), "starts": [n_before, n_after]})
-        run.shot(pg, "%s_完成" % label)
+        ok("對 %s：Claude 真的派了 %s（SubagentStart 多一筆）、狀態走到完成、有回覆" % (agent, agent), n_after > n_before and seen and seen[-1] == "done" and m and m.get("r"), {"seen": seen, "reply": (m or {}).get("r"), "starts": [n_before, n_after]})
+        ok("對 %s：3D 裡他有開工（階段離開待命）而且交件後完成數增加" % agent, any(p.get("ph") not in (None, "idle") for p in phases) and phases and phases[-1].get("done", 0) >= 1, phases)
+        pg.click("#chatBtn")
+        pg.wait_for_selector("#mcTop:not([hidden])")
+        pg.wait_for_timeout(800)
+        run.shot(pg, "%s_回覆_他的對話串" % label)
     html = open(os.path.join(proj, "index.html"), encoding="utf-8").read()
     ok("frontend 指令：index.html 的 title 真的被改了", "<title>小計算機 v2</title>" in html, html.strip()[:120])
     txt = run.claude_text()

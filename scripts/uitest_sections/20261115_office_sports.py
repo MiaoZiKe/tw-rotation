@@ -213,7 +213,7 @@ def t_sports(b, base):
         cand = pg.evaluate("() => [...__world.chars.values()].filter(c => !c.spec.isCeo && !c.spec.pet && c.look.species !== 'flame' && !['data-steward', 'finance-quant', 'smc-technical', 'efficiency-planner', 'data-scraper'].includes(c.spec.id)).map(c => c.spec.id)")
         who, w2, w3 = cand[0], cand[1], cand[2]
         pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); c.busy = false; c.atDesk = false; W.fire.ignite(c, 'sporttest'); }", who)
-        _sp_adv(pg, 0.3); pg.wait_for_timeout(600)
+        pg.evaluate("() => { __world.speed = 0.05 }"); pg.wait_for_timeout(700)   # 著火的人會驚慌跑開：先把時間放到很慢，才拎得到
         xy = _sp_xy(pg, who)
         burning = pg.evaluate("(id) => __world.fire.stateOf(__world.chars.get(id)).state", who)
         ok("泳池：測試員工著火了（burning）", burning == "burning", burning)
@@ -225,7 +225,8 @@ def t_sports(b, base):
             pg.mouse.move(xy[0], sy); pg.mouse.down(); pg.wait_for_timeout(800); pg.mouse.move(xy[0] + 8, sy - 8, steps=2); pg.wait_for_timeout(200)
             grabbed = pg.evaluate("(id) => __world.chars.get(id).state", who) == "held"
             pg.mouse.move(tgt[0], tgt[1], steps=6); pg.wait_for_timeout(500); pg.mouse.up()
-        ok("泳池：用真滑鼠把燒著的員工拎起來（held）", grabbed)
+        pg.evaluate("() => { __world.speed = 1 }")
+        ok("泳池：用真滑鼠把燒著的員工拎起來（held）", grabbed, (xy, grabbed))
         seen_float = False; seen_in = False
         for i in range(24):
             _sp_adv(pg, 0.25)
@@ -310,11 +311,11 @@ def t_sports_night_perf(b, base):
         from PIL import Image as _I
         import io as _io
         im = _I.open(_io.BytesIO(shot)).convert("L"); W_, H_ = im.size
-        lamp = pg.evaluate("() => { const W = __world, q = W.sports.LAY.lamps[3], v = new W.THREE.Vector3(q[0], 2.6, q[1]).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight] }")
-        def mean(cx, cy, r=10):
+        pts = pg.evaluate("""() => { const W = __world, q = W.sports.LAY.lamps[3], pr = (x, y, z) => { const v = new W.THREE.Vector3(x, y, z).project(W.camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; }; return { lamp: pr(q[0], 0.1, q[1]), ref: pr(14.4, 0.1, 45.5) }; }""")
+        def mean(cx, cy, r=14):
             cx, cy = int(cx), int(cy); box = im.crop((max(0, cx - r), max(0, cy - r), min(W_, cx + r), min(H_, cy + r))); px = list(box.getdata()); return sum(px) / max(1, len(px))
-        near, far = mean(lamp[0], lamp[1] + 40, 30), mean(W_ * 0.5, H_ * 0.93, 30)
-        ok(f"運動場夜晚：路燈附近的畫面比遠處的暗部亮（{near:.0f} 對 {far:.0f}）", near > far + 4, (near, far))
+        near, far = mean(*pts["lamp"]), mean(*pts["ref"])
+        ok(f"運動場夜晚：路燈腳下的地面比沒有燈的網球場中央亮（{near:.0f} 對 {far:.0f}）", near > far + 15, (near, far))
         ok("運動場夜晚：水面夜晚自發光（泳池燈）、沒有主控台錯誤", pg.evaluate("() => __world.sports.water.mesh.material.uniforms.uNight.value") > 0.4 and not pg.errs, pg.errs[:3])
     finally:
         c.close()
@@ -343,7 +344,9 @@ def t_sports_night_perf(b, base):
         pg2.evaluate("() => __world.godAt(9.9, 40.2, 26)"); pg2.wait_for_timeout(2500)
         off = pg2.evaluate("() => __world.stats.calls")
         ok(f"運動場：靜態場地繪製次數增量 {on - off}（≤ +6：場地、球網、招牌、水、水花粒子；對照 ?sports=0）", on - off <= 6, (on, off))
-        ok(f"運動場：打球中再多 ≤ 4 次（球、陰影，撞球另有球組、球桿、瞄準線）：{during - on}", during - on <= 4, (on, during))
+        extra = pg.evaluate("() => __world.sports.drawObjects().length")
+        ok(f"運動場：打球中運動場自己的繪製物件共 {extra} 個（靜態 5 ＋ 球、陰影 2 ＝ 7；撞球另有球組、球桿、瞄準線 ≤ 10）", 5 < extra <= 10, extra)
+        ok(f"運動場：（參考）整個畫面打球中的總繪製次數 {during}、沒開運動場 {off}；差額含兩位同事離座進入畫面的角色", True)
     finally:
         c.close()
         if c2:
