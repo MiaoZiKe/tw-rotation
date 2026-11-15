@@ -112,6 +112,10 @@
          被關掉的那一篇點進去看到的是置中的需開通卡（qcard.js），不是什麼都沒發生。*/
     Object.assign(box('art.list', 'articles', '精選文章清單', ['#artCard'], '文章列表頁：分類分頁、標題／族群／日期篩選與文章卡片（每日次數＝造訪幾次，同一個分頁來回切不重算）'),
       { route: /^#articles([/?]|$)/, qunit: '看' }),
+    /* 2026-11-15 Andy：各頻道影片放進文章並可下載。下載算新功能 → 功能鍵 art.video.dl（CLAUDE.md 11-02）：訪客關（鈕換成「登入後可下載」）、註冊會員以上開、不設次數；
+       影片播放本身不受限。只擋畫面（mp4 是公開靜態檔）。次數若 Andy 要設再加 limBy。 */
+    { id: 'art.video.dl', name: '文章影片：下載影片', cat: 'articles', def: true, defBy: { guest: false }, kind: 'bool',
+      desc: '精選文章內嵌影片下方的「下載影片」鈕（關掉：鈕換成「登入後可下載」，影片仍可直接播放）', veil: [], mark: [], block: [] },
     Object.assign(box('art.read', 'articles', '閱讀文章（單篇）', ['#artPost'], '點進去讀一篇文章（內文、圖表、相關台股）；每日次數＝每天能讀幾篇，同一篇同一天重看不重算'),
       { route: /^#article\//, qunit: '篇' }),
     Object.assign(box('art.cat.news', 'articles', '比比快訊（單篇）', ['#artPost[data-cat="news"]'], '「比比快訊」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),

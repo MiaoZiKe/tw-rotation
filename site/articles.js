@@ -281,6 +281,10 @@
 .artbody .artvid.x .avw{aspect-ratio:auto;height:min(640px,80vh);background:transparent}
 .artbody .artvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .artbody .artvid.x iframe{position:static;height:100%}
+.artbody .artvid.mp4 .avm{display:flex;justify-content:center;background:#000;border:1px solid var(--line);border-radius:var(--r-sm,8px);overflow:hidden}
+.artbody .artvid.mp4 video{display:block;width:auto;height:auto;max-width:100%;max-height:min(78vh,720px);background:#000}
+.artbody .artvid .avdl{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid var(--accent,#3b82f6);border-radius:var(--r-sm,8px);font-weight:700;font-size:13px;color:var(--accent,#3b82f6)!important;text-decoration:none}
+.artbody .artvid .avdl.lock{border-color:var(--line);color:var(--ink-2)!important;cursor:pointer}
 .artbody .artvid .avc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-2)}.artbody .artvid .avc a{color:var(--accent,#3b82f6);text-decoration:none}
 /* 10-19 稽核 #11：文章內嵌站內 3D／2.5D 剖析圖（scene 區塊）。外框跟其他圖卡同一組 token；捲到才載入，載入前是一塊固定高度的骨架（不跳版）。 */
 .artbody .artscene{margin:var(--sp-4) 0;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel));min-width:0}
@@ -1752,6 +1756,24 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     root._sceneIO = io;
   }
 
+  /* 文章內 mp4 的下載鈕權限（功能鍵 art.video.dl）：沒權限＝鈕換成「登入後可下載」；權限晚到／換身分時重畫 */
+  function dlOk() { try { const P = window.TwPerm; return !(P && P.can) || P.can('art.video.dl'); } catch (e) { return true; } }
+  function paintDl(root) {
+    const ok = dlOk();
+    $$('a.avdl', root || document).forEach((a) => {
+      if (ok) { a.classList.remove('lock'); a.setAttribute('href', a.dataset.src || ''); if (a.dataset.dl) a.setAttribute('download', a.dataset.dl); a.textContent = '下載影片 ⬇'; a.removeAttribute('aria-disabled'); }
+      else { a.classList.add('lock'); a.removeAttribute('download'); a.setAttribute('href', '#'); a.setAttribute('aria-disabled', 'true'); a.textContent = '登入後可下載'; }
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const a = e.target && e.target.closest && e.target.closest('a.avdl.lock'); if (!a) return;
+    e.preventDefault();
+    try { window.TwAccount && TwAccount.login && TwAccount.login(); } catch (er) { /* 登入視窗開不起來就維持原狀 */ }
+  });
+  window.addEventListener('tw:perm', () => paintDl());
+  window.addEventListener('tw:account', () => paintDl());
+  new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches('.artvid.mp4') || n.querySelector('.artvid.mp4'))))) paintDl(); }).observe(document.documentElement, { childList: true, subtree: true });
+
   function blockHTML(b, bi) {
     if (!b || typeof b !== 'object') return '';
     switch (b.t) {
@@ -1770,6 +1792,20 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const cap = [b.source ? '來源：' + b.source : '', b.date || ''].filter(Boolean).join('・');
         return `<figure class="artvid ${pv}">${b.title ? `<figcaption class="avt">${esc(b.title)}</figcaption>` : ''}<div class="avw"><iframe src="${src}" title="${esc(b.title || '影片')}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
           + `<div class="avc">${cap ? `<span>${esc(cap)}</span>` : ''}<a href="${href}" target="_blank" rel="noopener">在 ${pv === 'youtube' ? 'YouTube' : 'X'} 開啟 ↗</a></div></figure>`;
+      }
+      /* 2026-11-15 Andy：「做好的影片都需要放在網站上對應的文章內，並且都具備下載功能」
+         自家 mp4：{t:'mp4', src:'media/<頻道小寫英文>/<資料夾>/<檔名>.mp4', poster?:'media/…/<檔名>.jpg|png|webp', title?, note?}
+         · 文章內直接播（controls、playsinline、preload=metadata），直式影片靠 max-height 不撐爆畫面；下方「下載影片」鈕（同網域，download 屬性有效）
+         · src／poster 只收白名單路徑，JSON 字串進不了任意網址；不符直接不畫（不留空框）
+         · 下載是功能鍵 art.video.dl（features.js）：訪客關、註冊會員以上開；沒權限＝鈕換成「登入後可下載」，點了開登入視窗，影片本身照播 */
+      case 'mp4': {
+        const src = String(b.src || ''), pst = String(b.poster || '');
+        if (!/^media\/[a-z0-9_-]{2,20}\/[\w.-]{1,80}\/[\w.-]{1,120}\.mp4$/.test(src) || src.includes('..')) return '';
+        const poster = /^media\/[a-z0-9_-]{2,20}\/[\w.-]{1,80}\/[\w.-]{1,120}\.(jpg|jpeg|png|webp)$/.test(pst) && !pst.includes('..') ? pst : '';
+        const folder = src.split('/')[2];
+        const dlName = (String(b.title || '').replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 60) || folder) + '.mp4';
+        return `<figure class="artvid mp4" data-bi="${bi}">${b.title ? `<figcaption class="avt">${esc(b.title)}</figcaption>` : ''}<div class="avm"><video controls playsinline preload="metadata" src="${esc(src)}"${poster ? ` poster="${esc(poster)}"` : ''} aria-label="${esc(b.title || '影片')}"></video></div>`
+          + `<div class="avc">${b.note ? `<span>${esc(b.note)}</span>` : '<span></span>'}<a class="avdl" href="${esc(src)}" data-src="${esc(src)}" data-dl="${esc(dlName)}" download="${esc(dlName)}">下載影片 ⬇</a></div></figure>`;
       }
       case 'table': {
         const head = Array.isArray(b.head) ? b.head : [], rows = Array.isArray(b.rows) ? b.rows : [];

@@ -6114,3 +6114,5 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 影片流程：找題材→規劃→無旁白生成→程式檢查＋animation-director／art-director 審→優化→Gemini TTS（gemini-3.8-flash-tts、Sulafat）→最後驗證→發布＋網站文章（mp4 區塊可下載）。範本：queue/20261115v_marriage（結婚登記 v7）。
 - 進行中：11/17–11/22 六支影片批次製作（總編輯）；年總工時 talk-ep01 待 Andy 決定旁白 4 處修改。
 - 禁止：整張圖慢慢放大、手繪圈、內文與留言放 1925、我／我們。
+## 2026-11-15 文章內嵌自家影片＋下載（frontend-ui）
+- 新區塊 `{t:'mp4',src,poster?,title?,note?}`（site/articles.js），功能鍵 `art.video.dl`（訪客關、註冊會員以上開、不限次，features.js＋plan_presets.js）；頻道說明 docs/marketing/channels/video_in_articles.md；驗收段落 `文章影片下載1115`。頻道④兩篇已改用新區塊。mp4 單檔硬上限 25 MiB（Cloudflare Pages），頻道規定 ≤ 20 MiB。
