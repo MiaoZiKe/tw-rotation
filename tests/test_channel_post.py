@@ -46,7 +46,8 @@ def test_channels_json三個頻道與資料夾開關_水下蝦米不接():
     q = {k: json.loads(v["quota"].read_text(encoding="utf-8")) for k, v in chs.items()}
     assert q["tech"]["live"] is True and q["caffaine"]["live"] is True
     assert not (ROOT / "docs/marketing/channels/shrimp").exists(), "Andy 11-09：「Shrimp_01010909 不用」"
-    assert all(x["per_day"] == 1 for x in q.values())
+    # 2026-11-15 Andy 同意談晴說礙放量（影片＋輪播同一天＝IG 2 則）→ healing 上限 2，其他頻道維持 1
+    assert all(x["per_day"] == (2 if k == "healing" else 1) for k, x in q.items())
     # 頻道④首篇仍在佇列
     assert (chs["healing"]["queue"] / "20261108_intro" / "1.png").exists()
 
