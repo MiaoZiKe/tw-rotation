@@ -1,5 +1,5 @@
 {
   "name": "ai-office-bridge",
-  "version": "0.1.0",
-  "description": "AI Office 接入元件：掛鉤把工作階段／子 Agent 事件（去識別：只送類別、代號與短摘要）背景送到 AI Office 收件端。獨立第三方，與 Anthropic 無隸屬關係。"
+  "version": "0.2.0",
+  "description": "AI Office 接入元件：掛鉤把工作階段／子 Agent 事件（去識別：只送類別、代號與短摘要）背景送到 AI Office 收件端；另含網站指令收件匣（預設關閉，AIO_INBOX=1 才會從網站取指令交給這個工作階段）。獨立第三方，與 Anthropic 無隸屬關係。"
 }
