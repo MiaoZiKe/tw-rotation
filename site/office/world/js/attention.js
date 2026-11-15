@@ -5,6 +5,7 @@
 //   坐著        不離座、位置不動：轉椅子（身體朝向）面向鏡頭，最多轉到座位朝向的左右各 100 度（再多身體會別著桌子），
 //               超過的部分靠頭與眼睛看過去；取消後椅子轉回原本的朝向。
 //   走路中      停下腳步轉身面向鏡頭；取消選取後從原地繼續走原本的路（不是重新規劃）。
+//               例外（11-15）：正在走去領任務或交件的人照走，只轉頭看——不然「點他→對他說」之後他會一直定在原地。
 //   開會中      只轉頭看（身體留在會議的位置，不打斷討論）。
 //   睡覺中      不叫醒（額度用完全員趴睡也是同一條規則）：只精神一振地動一下，當作「被注意到」；不轉身、不睜眼。
 //   進入操控後  朝向改由移動方向決定（pilot.js），這裡不再管；角色視角（pov.js）時也不管。
@@ -45,6 +46,10 @@ export function createAttention(W, X) {
     if (inMeeting(c)) { A.mode = 'meeting'; return; }                                        // 開會中：只轉頭
     if (c.sleeping || c.action === 'sleep' || c.inner.mode === 'sleep') { A.mode = 'sleep'; return; }   // 睡覺中：不叫醒
     if (c.state === 'sit') { A.mode = 'sit'; const seat = c._seat; if (seat) c.swivel(seat.face + clamp(angDiff(ty, seat.face), -SEAT_LIM, SEAT_LIM)); return; }
+    // 正在走去領任務（queued）或交件（delivering）的人：不停下腳步，只轉頭看你。
+    // 以前選取期間會把他定在原地，使用者「點他 → 對他說 → 送出」之後他一直被選著，走去工作／交件就卡住不動（2026-11-15 端到端實測）。
+    const job = W.state && W.state.agents.get(c.spec.id);
+    if ((c.state === 'walk' || (c._path && c._pause)) && job && (job.phase === 'queued' || job.phase === 'delivering')) { A.mode = 'job'; if (c._pause) c.pause(false); return; }
     if (c.state === 'walk' || (c._path && c._pause)) { if (!c._hop) { A.mode = 'walk'; c.pause(true); c.heading = ty; } return; }
     if (c.state === 'stand') { A.mode = 'stand'; c.pause(false); c.heading = ty; }
   };
