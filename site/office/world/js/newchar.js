@@ -225,7 +225,10 @@ function makeNew(spec, look, env) {
     // 座面方塊只在坐著（含坐下／起身的跳躍）時存在：起身落地後不清掉，它會變成擋在椅子位置的隱形障礙，
     // 從座位往椅子後方走的路徑正好穿過它 → 原地跑、walkTo 永不結束（11-14 操控卡住的根因）
     if (!c._seat && !ctl.sit && ctl.state !== 'sit' && world.boxes.length) { const i = world.boxes.findIndex(bx => bx.id === 'seat'); if (i >= 0) { world.boxes.splice(i, 1); ctl.body.ignoreH.delete('seat'); } }
-    if (c._rising) { if (ctl.state !== 'sit') { c._rising = false; ctl.stop(); } return; }
+    // 起身中：座位的「坐下」跳躍還沒完成時 standUp() 會被拒絕（回 false），以前就永遠等不到離開 'sit'，
+    // 狀態成了走路、人卻坐著不動（11-15 運動場／情緒層上線後，被欺負的人「去找你告狀」剛好撞上他坐下的瞬間才暴露）。
+    // 現在每一步都重試：坐穩了就起身，控制器已經不是坐姿或沒有座位資料就直接結束起身。
+    if (c._rising) { if (ctl.state !== 'sit' || !ctl.sit) { c._rising = false; ctl.stop(); } else if (ctl.sit.sub === 'seated') ctl.standUp(); return; }
     if (c._seat) { if (ctl.sit && ctl.sit.sub === 'seated' && !c._seated) { c._seated = true; seated(); } return; }
     c._seated = false;
     if (c._path) { if (c._pause) { ctl.stop(); ctl.faceTo(c.heading); return; } pathStep(dt); return; }
