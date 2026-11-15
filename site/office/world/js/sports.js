@@ -37,7 +37,9 @@ export function mountSports(W, X = {}) {
   // ───────── 場地、水、nav ─────────
   const B = buildSports(W); S.build = B;
   W.layout.walkAreas = [...(W.layout.walkAreas || []), { x0: 0.7, x1: 19.6, z0: 31.6, z1: 48.6, note: '員工運動場（sports_build.js）' }];
-  W.respot(); if (W.glowRebuild) W.glowRebuild(); if (W.outLightRebuild) W.outLightRebuild();
+  W.respot();   // 把運動場的佔地算進尋路；respot 會重建座位物件（以 uid 保留誰坐哪），已經在座位上的同事手上拿的是舊物件 → 換成新的，座位占用才不會對不上
+  { const byUid = new Map(W.spots.map(q => [q.uid, q])); for (const c of [...W.chars.values(), ...(W.pets || [])]) for (const k of ['spot', 'homeSpot']) { const o = c[k]; if (o && o.uid && byUid.has(o.uid) && byUid.get(o.uid) !== o) c[k] = byUid.get(o.uid); } }
+  if (W.glowRebuild) W.glowRebuild(); if (W.outLightRebuild) W.outLightRebuild();
   const water = createWater(W); S.water = water;
   const allChars = () => [...W.chars.values(), ...(W.pets || []), ...(W.extras || [])];
   const idOf = c => c.spec.id, nick = c => c.spec.nick;
