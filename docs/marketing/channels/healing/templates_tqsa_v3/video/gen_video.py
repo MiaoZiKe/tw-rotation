@@ -81,6 +81,34 @@ VIDEOS["20261116_marriage_v2"] = {
     "say": "下集：剛出社會的月薪中位數。", "src": "下集資料：主計總處薪資統計（2026 年 1–7 月）"},
   ]}
 
+# ───────── v3 素材豐富＋動畫優化（2026-11-15 Andy：「影片素材需要再豐富點」「動畫、效果等等需要優化」）─────────
+# 同一題、同旁白稿與鏡頭結構（s1–s8）＋片尾卡 s9（LOGO 動畫＋卡林巴招牌音，≥3 秒）。每鏡＝量身情境插圖＋資料圖兩層；
+# 背景紙紋／淡格線／光影視差；轉場用遮罩擦除、圓形展開、共用元素變形（s1 大數字飛到 s2 角落）；動畫手法見 video_runtime_v3.js 檔頭。
+# 片尾卡放留言關鍵字「結婚」（2026-11-15 Andy 經主控：「放吧」；plan.md 例外條款只限影片片尾卡），s9 念稿＝念出關鍵字。
+import copy as _copy
+_V3 = _copy.deepcopy(VIDEOS["20261116_marriage_v2"])
+_V3.update({"out": "video_v3.mp4", "cover": "video_v3_cover.jpg", "report": "overlap_report_video_v3.json", "runtime": "video_runtime_v3.js",
+            "cover_t": 1.9, "paper": "file://" + os.path.join(B, "assets", "paper_day.jpg"), "sfx": True})
+_sc = {s["id"]: s for s in _V3["scenes"]}
+_sc["s1"]["label"] = "全年結婚登記對數"
+_sc["s2"].update({"chip": "10 年 −29.4%", "morphFrom": "s1", "trans": "wipe", "unit": "單位：全年結婚登記對數"})
+_sc["s3"].update({"chip": "10 年 −29.4%", "trans": "wipe", "unit": "單位：全年結婚登記對數", "note": "少 43,485 對（−29.4%）"})
+_sc["s4"]["trans"] = "diag"; _sc["s5"]["trans"] = "circle"; _sc["s6"]["trans"] = "wipe"; _sc["s8"]["trans"] = "diag"
+_sc["s7"].update({"trans": "up", "opt": ["早點成家", "等一等"],
+  "recap": [["結婚登記（全年）", "147,861 → 104,376 對"], ["平均初婚年齡", "男 33.4・女 31.4 歲"], ["總生育率（2025）", "0.695"]]})
+_V3["scenes"].append({"id": "s9", "type": "outro", "dur": 3.9, "trans": "circle", "say": "想看完整資料，留言結婚。", "keyword": "結婚",
+  "slogan": "談著這一代的難，也說著晴天裡的光", "nextLine": "下一集 ▸ 剛出社會的月薪中位數", "src": "資料：內政部戶政司；內政部人口統計年刊"})
+VIDEOS["20261116_marriage_v3"] = _V3
+V3CSS = """
+.bgl{left:0;top:0;width:1080px;height:1920px}
+.grid{background-image:linear-gradient(rgba(110,106,102,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(110,106,102,.07) 2px,transparent 2px);background-size:72px 72px}
+.layer{left:0;top:0;width:1080px;height:1920px}
+.bignum{left:96px;width:888px;text-align:center;font-size:200px;line-height:220px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.chip{right:96px;top:306px;font-size:38px;line-height:44px;padding:4px 18px;border-radius:999px;background:var(--lamp);color:#fff;font-weight:700;white-space:nowrap}
+.flyer{width:1000px;text-align:center;font-weight:700;color:var(--text);white-space:nowrap}
+#logo{z-index:5}
+"""
+
 import re as _re
 def est_dur(say, rate=5.0, pause=0.35, lo=2.0):
     """沒有旁白檔時的預設時長：旁白字數（不含標點）÷ 每秒 5 字（旁白設定 4.6–5.5 字／秒的中間值）＋換氣。"""
@@ -90,7 +118,8 @@ def est_dur(say, rate=5.0, pause=0.35, lo=2.0):
 def write_narration(v):
     """旁白稿 narration.txt：每段一行「id｜文字」，給 TTS 專案用；旁白做好後產出 segments.json（id、text、start、end、audio）即可直接套。"""
     q = os.path.join(QUEUE, v["queue"]); lines = ["# %s 旁白稿（每段一行：id｜文字）。語氣照 docs/prompts/tanqing-旁白-深度報導.txt：深度報導記者、數字清楚肯定、轉折稍慢；gemini-3.8-flash-tts／Sulafat／單人；每秒約 4.6–5.5 字。" % v["queue"]]
-    lines += ["%s｜%s" % (s["id"], s["say"]) for s in v["scenes"]]
+    if v.get("narr_out", "narration.txt") is None: return
+    lines += ["%s｜%s" % (s["id"], s["say"]) for s in v["scenes"] if s.get("say")]
     open(os.path.join(q, "narration.txt"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
 
 def apply_segments(v, seg_path):
@@ -101,6 +130,7 @@ def apply_segments(v, seg_path):
     if seg_path and os.path.exists(seg_path):
         sj = json.load(open(seg_path, encoding="utf-8"))
         m = {x["id"]: x for x in sj["segments"]}
+        tail = [s for s in sc if not s.get("say")]; sc = [s for s in sc if s.get("say")]
         miss = [s["id"] for s in sc if s["id"] not in m]
         assert not miss, "segments.json 少了這些段：%s" % miss
         for s in sc:
@@ -109,6 +139,9 @@ def apply_segments(v, seg_path):
         sc.sort(key=lambda s: s["t0"]); sc[0]["t0"] = 0.0
         for a, b in zip(sc, sc[1:]): a["t1"] = b["t0"]
         sc[-1]["t1"] += 0.4
+        for s in tail:
+            s["cap"] = ""; s["t0"] = sc[-1]["t1"]; s["t1"] = s["t0"] + s["dur"]; sc.append(s)
+        v["scenes"] = sc
         if sj.get("audio"): v["audio"] = os.path.join(QUEUE, v["queue"], sj["audio"])
         v["timing"] = "narration"
     else:
@@ -117,6 +150,11 @@ def apply_segments(v, seg_path):
             s["cap"] = s.get("say", s.get("cap", ""))
             s["t0"] = round(t, 3); t += s.get("dur") or est_dur(s.get("say", "")); s["t1"] = round(t, 3)
         v["timing"] = "default"
+    fps = v.get("fps", 30); sc = v["scenes"]
+    for i, s in enumerate(sc):
+        if s["type"] == "outro":   # 片尾卡起點對齊整數幀（音效與畫面同一幀）；片尾卡至少 dur 秒（≥3 秒、LOGO 落定後停 ≥1 秒）
+            d = max(s["t1"] - s["t0"], s.get("dur") or 0); s["t0"] = round(round(s["t0"] * fps) / fps, 4); s["t1"] = round(s["t0"] + d, 4)
+            if i: sc[i - 1]["t1"] = s["t0"]
     v["dur"] = sc[-1]["t1"]
     return v
 
@@ -127,7 +165,7 @@ V2CSS = """
 .title{left:96px;width:888px;font-weight:700;letter-spacing:.02em}
 .center{text-align:center}.hint{color:var(--hint)}
 .tag{left:96px;font-size:30px;line-height:40px;padding:6px 18px;border:2.5px solid var(--lamp);border-radius:999px;color:var(--text);background:var(--face3);font-weight:700;white-space:nowrap}
-.asof{right:96px;top:70px;font-size:28px;line-height:36px;color:var(--sub);white-space:nowrap}
+.asof{right:96px;top:70px;font-size:30px;line-height:38px;color:var(--sub);white-space:nowrap}
 """
 
 def build_v2(name, seg_path=None):
@@ -141,12 +179,12 @@ def build_v2(name, seg_path=None):
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden;font-family:'Noto Sans CJK TC',sans-serif;color:var(--text)}
 .abs{position:absolute}
-#logo{left:96px;top:56px;height:64px}%s</style></head><body>
+#logo{left:96px;top:56px;height:64px}%s%s</style></head><body>
 <img id="logo" data-o="logo" class="abs" src="file://%s">
 <div id="stage"></div>
 <script>const V=%s;</script>
 <script src="file://%s"></script>
-</body></html>""" % (css, V2CSS, LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
+</body></html>""" % (css, V2CSS, V3CSS if v["runtime"].endswith("v3.js") else "", LOGO, json.dumps(v, ensure_ascii=False), os.path.join(B, v["runtime"]))
     os.makedirs(os.path.join(B, "html"), exist_ok=True)
     p = os.path.join(B, "html", name + ".html"); open(p, "w", encoding="utf-8").write(page)
     print("時間軸：", v["timing"], "總長 %.2f 秒" % v["dur"], [(s["id"], round(s["t1"] - s["t0"], 2)) for s in v["scenes"]])

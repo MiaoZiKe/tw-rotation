@@ -17,14 +17,23 @@ fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
     const Y0=E?40:220,Y1=E?1880:1500;
     if(E&&els.length){const top=Math.min(...els.map(e=>e.y)),bot=1920-Math.max(...els.map(e=>e.b));if(top>60)ws.push('頂端留白 '+Math.round(top)+'px');if(bot>60)ws.push('底端留白 '+Math.round(bot)+'px');
      els.forEach(e=>{if(e.b>1700&&!['src','foot'].includes(e.o))ws.push(e.o+' 下緣 '+Math.round(e.b)+'>1700')});ws.top=top;ws.bot=bot}
+    // v3：小字 ≥30px（看得到的文字）
+    if(E){[...document.querySelectorAll('#stage text, #stage div')].forEach(e=>{if(!e.textContent.trim()||e.children.length&&e.tagName!=='text')return;let x=e,vis=true;while(x&&x!==document.body){if(parseFloat(getComputedStyle(x).opacity)<0.02){vis=false;break}x=x.parentElement}
+     const fs=parseFloat(getComputedStyle(e).fontSize);if(vis&&fs<30&&!e.closest('[data-x]'))ws.push('小字 '+fs+'px「'+e.textContent.trim().slice(0,8)+'」')})}
     for(let i=0;i<els.length;i++){const a=els[i];if(a.x<90||a.r>990||a.y<Y0||a.b>Y1)oob.push(a.o);for(let j=i+1;j<els.length;j++){const c=els[j];if(!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push(a.o+'×'+c.o)}}return{ov,oob,ws,top:ws.top,bot:ws.bot}},!!V.edge60);
    r.ov.forEach(x=>rep.overlap.push(t.toFixed(1)+'s '+x));r.oob.forEach(x=>rep.oob.push(t.toFixed(1)+'s '+x));
    if(V.edge60){(rep.edge=rep.edge||[]).push(...r.ws.map(x=>t.toFixed(1)+'s '+x));rep.gapTopMax=Math.max(rep.gapTopMax||0,r.top);rep.gapBotMax=Math.max(rep.gapBotMax||0,r.bot)}}}
  await b.close();
  // 有旁白音檔（segments.json 的 audio）就用旁白；沒有就放靜音音軌（相容性）
- const AIN=V.audio&&fs.existsSync(V.audio)?['-i',V.audio]:['-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=44100'];
+ let AIN=V.audio&&fs.existsSync(V.audio)?['-i',V.audio]:['-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=44100'];
+ // v3：音效（video_runtime_v3.js 的 sfxEvents）＋旁白 → sfx_v3.py 合成、限幅、量片尾響度與開頭起音 → AAC，直接接進影片
+ if(V.sfx){const b2=await chromium.launch();const p2=await b2.newPage();await p2.goto('file://'+html);await p2.waitForTimeout(300);
+  const ev=await p2.evaluate(()=>window.sfxEvents());await b2.close();const evp=path.join(tmp,'sfx_events.json');fs.writeFileSync(evp,JSON.stringify(ev));
+  const ot=(V.scenes.find(x=>x.type==='outro')||{t0:V.dur}).t0,am=path.join(tmp,'audio.m4a'),base=OUT.replace(/\.mp4$/,'');
+  execFileSync('python3',[path.join(__dirname,'sfx_v3.py'),evp,String(n/V.fps),String(ot),am,path.join(out,base+'_audio.json'),V.audio&&fs.existsSync(V.audio)?V.audio:'',path.join(out,base+'_outro_sfx.mp3')],{stdio:'inherit'});
+  AIN=['-i',am]}
  execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(V.fps),'-i',path.join(tmp,'%05d.png'),...AIN,
-  '-t',String(n/V.fps),'-c:v','libx264','-pix_fmt','yuv420p','-profile:v','high','-crf','20','-r',String(V.fps),'-c:a','aac','-b:a','128k','-movflags','+faststart',path.join(out,OUT)]);
+  '-t',String(n/V.fps),'-c:v','libx264','-pix_fmt','yuv420p','-profile:v','high','-crf','20','-r',String(V.fps),...(V.sfx?['-c:a','copy']:['-c:a','aac','-b:a','128k']),'-movflags','+faststart',path.join(out,OUT)]);
  execFileSync('ffmpeg',['-y','-loglevel','error','-i',path.join(tmp,String(Math.round(CT*V.fps)).padStart(5,'0')+'.png'),'-q:v','3',path.join(out,COVER)]);
  rep.dur=n/V.fps;rep.timing=V.timing||'default';rep.scenes=(V.scenes||[]).map(x=>({id:x.id,type:x.type,t0:x.t0,t1:x.t1}));
  fs.writeFileSync(path.join(out,REP),JSON.stringify(rep,null,1));
