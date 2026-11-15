@@ -3,7 +3,7 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1336,
-      "seconds": 1.5
+      "seconds": 1.8
     },
     "official_refresh": {
       "status": "no_provisional",
@@ -21,9 +21,9 @@
       "stored": 0
     },
     "tpex.price_daily": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.1
+      "ok": true,
+      "rows": 1013,
+      "seconds": 10.1
     },
     "tape.collect": {
       "ok": true,
@@ -42,37 +42,37 @@
     "taifex.futures_minute": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "skipped": "窗內候選日都處理過或今天的檔還沒出"
     },
     "news.collect": {
       "ok": true,
-      "rows": 126,
-      "seconds": 2.7
+      "rows": 124,
+      "seconds": 2.8
     },
     "news": {
-      "stored": 21
+      "stored": 41
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 9,
+      "rows": 8,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 1
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 282,
-      "seconds": 0.9
+      "rows": 2,
+      "seconds": 0.5
     },
     "material_news": {
-      "stored": 0
+      "stored": 2
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4516,
-      "seconds": 2.3
+      "rows": 4515,
+      "seconds": 2.7
     },
     "intl_daily": {
       "stored": 0
@@ -80,15 +80,15 @@
     "macro.fred": {
       "ok": true,
       "rows": 15643,
-      "seconds": 5.1
+      "seconds": 2.3
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 22,
-      "seconds": 4.3
+      "seconds": 0.7
     },
     "macro_calendar": {
       "stored": 0
@@ -98,71 +98,39 @@
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 8
+      "rows": 7
     },
     "fut_inst": {
       "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 72
+      "rows": 63
     },
     "fut_oi": {
       "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 24
+      "rows": 21
     },
     "optivx.daily": {
       "ok": true,
       "rows": 0,
       "seconds": 0.2,
-      "skipped": "FinMind 尚無 2026-11-14～2026-11-14 的臺指選擇權資料（休市或當天還沒出）"
+      "skipped": "FinMind 尚無 2026-11-14～2026-11-15 的臺指選擇權資料（休市或當天還沒出）"
+    },
+    "margin_total_otc": {
+      "stored": 0
     },
     "tpex.margin_total_otc": {
-      "ok": false,
-      "rows": 0,
+      "ok": true,
+      "rows": 1,
       "diag": [
         {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/swagger.json",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_summary",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_margin_summary",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_trading_summary",
-          "http": 403,
-          "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-"
+          "http": 200,
+          "head": "[ {\"Date\":\"1151113\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"MarginPurchaseBalancePreviousDay\":\"19612\",\"MarginPurchase\":\"338\",\"MarginSales\":\"61\",\"CashRedemption\":\"0\",\"MarginPurchaseB"
         }
       ]
     },
@@ -171,9 +139,7 @@
     }
   },
   "errors": [],
-  "empty": [
-    "tpex.price_daily"
-  ],
+  "empty": [],
   "gaps": [],
   "rebuilt": [],
   "phase": "news",
@@ -188,9 +154,9 @@
       "2026-11-13"
     ]
   },
-  "started_at": "2026-11-14T18:00:45.951850+00:00",
-  "finished_at": "2026-11-14T18:21:24.219687+00:00",
-  "duration_seconds": 1238.3,
+  "started_at": "2026-11-15T09:15:46.300407+00:00",
+  "finished_at": "2026-11-15T09:31:17.463570+00:00",
+  "duration_seconds": 931.2,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -390,13 +356,13 @@
     },
     {
       "table": "news",
-      "rows": 12217,
+      "rows": 12258,
       "latest": "2026-11-15"
     },
     {
       "table": "broker_views",
-      "rows": 330,
-      "latest": "2026-11-14"
+      "rows": 331,
+      "latest": "2026-11-15"
     },
     {
       "table": "intl_daily",
@@ -465,8 +431,8 @@
     },
     {
       "table": "material_news",
-      "rows": 6070,
-      "latest": "2026-11-13"
+      "rows": 6072,
+      "latest": "2026-11-14"
     },
     {
       "table": "company_website",
@@ -496,7 +462,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 54,
+    "days_since_review": 55,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
