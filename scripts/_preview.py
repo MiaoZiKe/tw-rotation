@@ -553,6 +553,8 @@ def main() -> int:
         for route, tab, w in (("stock/3189", "holders", 1440), ("stock/3189", "holders", 800),
                               ("flow", None, 800), ("industry/ai_server", None, 800), ("market", None, 1440)):
             pg.set_viewport_size({"width": w, "height": 1000})
+            if route.startswith("industry/"):   # 剖析圖預設走 3D 時 2D 的字量不到（2026-11-15 AI 伺服器 2D 在 800 交疊就是這樣漏掉的）
+                pg.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
             pg.goto(f"{base}?svg=1#{route}", wait_until="networkidle"); pg.wait_for_timeout(2000)
             if tab:
                 pg.click(f'#stockTabs button[data-t="{tab}"]'); pg.wait_for_timeout(1500)

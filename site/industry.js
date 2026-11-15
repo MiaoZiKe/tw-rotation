@@ -2700,6 +2700,7 @@
        量到的一定是還沒被動過手腳的基準值。
        只動這裡：`:root` 上那組 token 一個字都沒改，非 rs 的圖行為完全不變。*/
     DG_FS_VARS.forEach(v => svg.style.removeProperty(v));
+    svg.classList.toggle('dgsq', !(k >= 0.995 || k < 0.62));   // 畫布被縮＋字級放大的狀態（個別圖用它補位移，見 diagrams.js .dgaisv）
     if (k >= 0.995 || k < 0.62) {          // 塞得下，或窄到交給置中止血 —— 兩種都退回原尺寸
       svg.style.width = w + 'px'; svg.style.minWidth = w + 'px';
       return;

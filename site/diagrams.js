@@ -1136,6 +1136,16 @@
     .dgag .trace{stroke:var(--dg-cu-lit);stroke-opacity:.8;fill:none;stroke-width:1.3}
     .dgag .pwr{stroke:var(--dg-pwr);fill:none;stroke-width:2;stroke-linecap:round}
     .dgag .fine{fill:var(--dg-ink-3)}
+    /* 2026-11-15 AI 伺服器剖析圖在 800 寬文字交疊：畫布被 fitCanvas 縮成 k 倍時字級反向放大 1/k（約 1.4 倍），
+       但座標是照 1 倍排的，於是「冷水進」壓到標題、「整櫃整櫃地買」壓到左邊那行、流程格的標題壓到說明。
+       只在 fitCanvas 加上 .dgsq（畫布真的被縮小）時才位移，1440（k≥1）一點都不動。*/
+    .dgaisv.dgsq .pt{transform:translateY(5px)}
+    .dgaisv.dgsq .xn2{transform:translateY(22px)}
+    .dgaisv.dgsq .step .sub{transform:translateY(6px)}
+    .dgaisv.dgsq .step .bg{height:48px}
+    .dgaisv.dgsq [data-chain]{transform:translateY(8px)}
+    .dgaisv.dgsq text.cap:not(.ext){transform:translateY(10px)}
+    .dgaisv.dgsq text.cap.cp2:not(.ext){transform:translateY(18px)}
     /* 發光只給主角（DECISIONS #238「暗色可發光但只給流動線與被選零件」）：
        同環節其餘 .sel 不發光、描邊細一階。兩條都要排在共用 STYLE 之後、特異性也要高過它。*/
     svg.dg.dgag [data-seg].sel .part{filter:none;stroke-width:1.6}
@@ -1222,8 +1232,8 @@
     // 進出水口：冷水從上面進、熱水從上面回（立管 ＋ 端點光點；進水那一條是全圖唯一吃光暈的光束）
     const ports = fx.beam(`M${SX + 70},38 V52`, { color: 'var(--dg-cold)', w: 3, flow: true, dots: [[SX + 70, 38]] })
       + fx.beam(`M${SX + SW - 70},52 V38`, { color: 'var(--dg-hot)', w: 3, flow: true, glow: false, dots: [[SX + SW - 70, 38]] })
-      + `<text class="fine" x="${SX + 78}" y="42">冷水進</text>`
-      + `<text class="fine" x="${SX + SW - 62}" y="42">熱水回</text>`;
+      + `<text class="fine pt" x="${SX + 78}" y="42">冷水進</text>`
+      + `<text class="fine pt" x="${SX + SW - 62}" y="42">熱水回</text>`;
     // 8 顆 GPU 模組：2 列 × 4
     const modules = [];
     for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) modules.push(gpuModule(SX + 4 + c * 104, 132 + r * 30, r * 4 + c));
@@ -1246,7 +1256,7 @@
         + [0, 1, 2, 3, 4].map(k => `<rect class="cavity" x="${x + 4}" y="${420 + k * 10}" width="16" height="6" rx="1"/>`).join('');
     }).join('');
 
-    return `<svg class="dg dgm dgag rs" viewBox="0 0 ${CW} 660" width="100%" style="display:block">${STYLE}${AG_VARS}
+    return `<svg class="dg dgm dgag dgaisv rs" viewBox="0 0 ${CW} 660" width="100%" style="display:block">${STYLE}${AG_VARS}
       <defs>${fx.glowDefs({ r: 3.5, soft: 3 })}
         <linearGradient id="agCool" gradientUnits="userSpaceOnUse" x1="${SX}" y1="0" x2="${SX + SW}" y2="0"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
         <linearGradient id="agPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-pcb)"/><stop offset="1" stop-color="var(--dg-ag-pcb-2)"/></linearGradient>
@@ -1304,7 +1314,7 @@
       </g>
       <g pointer-events="none">${racks}
         <path class="flow slow" d="M${SX + 156},436 H${SX + 262}" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none"/>
-        <text class="fine" x="${SX}" y="484">×N 機櫃 · 電力與冷卻先到位，才輪到晶片</text><text class="fine" x="${SX + 278}" y="492">整櫃整櫃地買</text>
+        <text class="fine" x="${SX}" y="484">×N 機櫃 · 電力與冷卻先到位，才輪到晶片</text><text class="fine xn2" x="${SX + 278}" y="492">整櫃整櫃地買</text>
       </g>
 
       <!-- 左欄卡片：機櫃這一側（錨點在左邊零件上） -->
@@ -1331,7 +1341,7 @@
       <!-- ★ 2026-09-26 覆蓋普查：這兩行原本從 x 244 起筆、排在「看半導體鏈」那顆鈕的右邊 —— 閱讀模式鈕變寬就壓到鈕上，
            字也伸出畫布。改排到鈕的下面、從左緣起筆，畫布加高 44。 -->
       <text class="cap" x="${RX}" y="622">示意圖，非實物比例｜托盤內的零件數量、層數與厚度比例均為示意；</text>
-      <text class="cap" x="${RX}" y="640">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
+      <text class="cap cp2" x="${RX}" y="640">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
     </svg>`;
   }
 
