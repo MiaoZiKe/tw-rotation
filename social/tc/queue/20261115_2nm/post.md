@@ -1,0 +1,16 @@
+---
+channel: tc
+status: draft
+scheduled_at: 2026-11-15T20:00+08:00
+weekday: 日
+platforms: ig, threads
+media: video
+video: tech-2nm.mp4
+images: cover.jpg
+title: 科技透明圈影片：兩奈米不是尺寸（tech-2nm v8）
+---
+# 頻道②「科技透明圈」：影片「兩奈米不是尺寸」
+
+- 2026-11-15 Andy 看完 v8：「非常好 太棒了」「這篇可以先準備發文」。待 Andy 回「核准」才改 approved。
+- 影片：ai-mp4 分支 claude/nifty-goodall-syke8a-1548 的 out/tech-2nm.v8.mp4（重新壓縮 crf 24，1548 幀、51.6 秒、音軌原樣）。
+- 留言關鍵字：2奈米／兩奈米／2nm → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-11-15-tech-2nm（dm_config post_keywords「2nm」）。
