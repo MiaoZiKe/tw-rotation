@@ -241,7 +241,7 @@ export function createFeel(W, K) {
       if (mine) { const fc = t.ext >= .62 ? 'laugh' : t.comp >= .6 ? 'fistpump' : 'happy'; face(c, m, fc, 1.8); c.emote('star', 1.4); act(c, t.comp >= .6 ? 'fist' : 'cheer', { duration: 1.4 }); affect(m, { val: .1 }, '得分了', 90); record(m, { event: 'sport', phase: 'score', mine: true, face: fc }); }
       else { const fc = t.comp >= .6 ? 'sulkf' : t.sens >= .6 ? 'worried' : 'surprised'; face(c, m, fc, 1.6); if (t.comp >= .6) { c.emote('anger', 1.2); say(c, '可惡！', 1.2, true); } else say(c, rnd(['好球！', '厲害…']), 1.2, true); affect(m, { val: -.05 * (.6 + t.comp) }, on + '得分了', 90); record(m, { event: 'sport', phase: 'score', mine: false, face: fc }); }
     } else if (kind === 'end') {
-      rapUp(m, n.oid, .2); if (n.oc) rapUp(mindOf(n.oc), id, .2);
+      rapUp(m, n.oid, .2); if (n.oc) rapUp(mindOf(n.oc), id, .1);
       if (n.win) {
         const st = t.ext >= .62 ? 'burst' : t.comp >= .6 ? 'fist' : t.ext <= .4 ? 'shy' : 'warm'; f.wonAt = W.time;
         affect(m, { val: .3 * (1 + .3 * t.opt), energy: -.04, stress: -.12 }, '贏了' + (n.oc ? '和' + on + '的比賽' : '比賽'), 200); remember(m, 'sport-win', on, '贏了和' + on + '的比賽');
@@ -289,8 +289,11 @@ export function createFeel(W, K) {
         f.detKey = c._path; f.detPi = c._pi; const p = pos(c), tg = c._path[c._pi], rad = 3 + 2.6 * fearNow;
         const sx = tg.x - p.x, sz = tg.z - p.z, sl = sx * sx + sz * sz, u = sl > 1e-9 ? clamp(((fc.x - p.x) * sx + (fc.z - p.z) * sz) / sl, 0, 1) : 0, qx = p.x + sx * u, qz = p.z + sz * u, dd = Math.hypot(qx - fc.x, qz - fc.z);
         if (dd < rad && Math.hypot(p.x - fc.x, p.z - fc.z) > 1.2) {
-          let ox = qx - fc.x, oz = qz - fc.z, L = Math.hypot(ox, oz); if (L < .05) { ox = -sz; oz = sx; L = Math.hypot(ox, oz) || 1; }
-          const w = W.nav.nearestFree(fc.x + ox / L * (rad + 1.1), fc.z + oz / L * (rad + 1.1), 3);
+          let ox = qx - fc.x, oz = qz - fc.z, L = Math.hypot(ox, oz); if (L < .05) { ox = -sz; oz = sx; L = Math.hypot(ox, oz) || 1; } ox /= L; oz /= L;
+          let w = null;     // 兩側、幾種半徑都試；火在地圖邊緣時另一側才走得通。要求走過去的兩段路都沒有被家具擋住
+          for (const r of [rad + 1.1, rad + .2, rad * .8, 3.2]) { for (const sg of [1, -1]) {
+            const q2 = W.nav.nearestFree(fc.x + ox * sg * r, fc.z + oz * sg * r, 1.5); if (!q2 || Math.hypot(q2.x - fc.x, q2.z - fc.z) < Math.min(r - .9, 2.8)) continue;
+            if (W.nav.los && !(W.nav.los(p.x, p.z, q2.x, q2.z) && W.nav.los(q2.x, q2.z, tg.x, tg.z))) continue; w = q2; break; } if (w) break; }
           if (w) { c._path.splice(c._pi, 0, { x: w.x, z: w.z }); F.stats.detours++; f.detours = (f.detours || 0) + 1; if (now >= (f.cd.detSay || 0)) { f.cd.detSay = now + 20; c.emote('sweat', 1.4); if (!m.sc) face(c, m, 'worried', 1.8); record(m, { event: 'fire-detour', fear: Math.round(fearNow * 100) / 100, face: 'worried' }); } }
         }
       }
