@@ -315,8 +315,10 @@ def _px_mobile(b, base):
         ok("手機辦公室：載入完成", got)
         m = pg.evaluate("""() => { const t = document.querySelector('.ttl').getBoundingClientRect(), b1 = document.querySelector('.aio-pjn .pjb').getBoundingClientRect(), b2 = document.querySelector('.aio-pjn .pjn').getBoundingClientRect(), q = document.getElementById('helpBtn').getBoundingClientRect();
             return { inView: t.left >= 0 && t.right <= innerWidth, h1: b1.height, w1: b1.width, h2: b2.height, qh: q.height, over: document.documentElement.scrollWidth > innerWidth + 1, fs: parseFloat(getComputedStyle(document.querySelector('.aio-pjn .pjn span')).fontSize) } }""")
-        ok("手機辦公室：左上角「← 專案名 ▾」在畫面內、← 與專案名都不小於 40px 高、字不小於 11px、沒有橫向溢出", m["inView"] and m["h1"] >= 40 and m["w1"] >= 40 and m["h2"] >= 40 and m["fs"] >= 11 and not m["over"], m)
-        ok("手機辦公室：「?」另外放、也好按（不小於 40px）", m["qh"] >= 40, m)
+        ok("手機辦公室：左上角「← 專案名 ▾」在畫面內、← 與專案名按鈕高 44px、← 寬不小於 34px、字不小於 11px、沒有橫向溢出", m["inView"] and m["h1"] >= 40 and m["w1"] >= 34 and m["h2"] >= 40 and m["fs"] >= 11 and not m["over"], m)
+        r2 = pg.evaluate("() => { const t = document.querySelector('.ttl').getBoundingClientRect(), y = id => { const e = document.getElementById(id); return e ? e.getBoundingClientRect().top : null }; return { ttlW: t.width, badge: y('aioBadge'), pw: y('pwBtn'), rw: y('rwBtn') } }")
+        ok("手機辦公室：膠囊夠窄（≤ 176px），即時標章、電力、績效總表仍同一排", r2["ttlW"] <= 176 and abs(r2["badge"] - r2["rw"]) < 3 and (r2["pw"] is None or abs(r2["pw"] - r2["rw"]) < 3), r2)
+        ok("手機辦公室：「?」另外放、也好按（不小於 34px）", m["qh"] >= 34, m)
         _px_shot(pg, "p6_手機辦公室左上角.png")
         pg.locator(".aio-pjn .pjn").tap()
         mm = pg.evaluate("() => { const e = document.querySelector('.aio-pjm'); if (!e) return null; const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, b: r.bottom, n: e.querySelectorAll('button[data-h]').length, minh: Math.min(...[...e.querySelectorAll('button,a')].map(x => x.getBoundingClientRect().height)) } }")

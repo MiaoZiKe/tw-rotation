@@ -214,7 +214,8 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
 .aio-pjm button:hover,.aio-pjm a:hover,.aio-pjm button:focus-visible,.aio-pjm a:focus-visible{background:var(--on2);outline:0}
 .aio-pjm em{font-style:normal;font-size:12px;color:var(--sub);flex:none}.aio-pjm .cur{background:var(--on2)}
 .aio-pjm .all{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;color:var(--sub);justify-content:center}
-@media (max-width:640px){.ttl.pj{height:44px}.ttl.pj .q{width:40px;height:40px;font-size:17px}.aio-pjn .pjb,.aio-pjn .pjn{min-height:44px}.aio-pjn .pjb{min-width:44px}.aio-pjn .pjn{max-width:44vw}}`;
+/* 手機：整個膠囊要夠窄（約 170px 內），頂列第一排才放得下「膠囊＋視角＋更多」、第二排放得下「即時＋電力＋績效總表」；按鈕高 44px、寬 34px（名稱字級 14px，過長以…截斷） */
+@media (max-width:640px){.ttl.pj{height:44px;padding:0 5px 0 2px;gap:0}.ttl.pj .q{width:34px;height:34px;font-size:15px}.aio-pjn .pjb,.aio-pjn .pjn{min-height:44px}.aio-pjn .pjb{min-width:34px;padding:0}.aio-pjn .pjn{max-width:80px;padding:0 3px 0 2px;gap:2px;font-size:14px}.aio-pjn .pjn i{font-size:11px}}`;
   document.head.append(css);
 
   // ───────── 頂列標章＋說明框 ─────────
