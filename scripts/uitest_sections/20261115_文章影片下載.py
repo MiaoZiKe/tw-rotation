@@ -85,6 +85,13 @@ def t_article_mp4_1115(b, base, code):
         ok(f"★ [{T}（{W}）] 訪客：下載鈕顯示「登入後可下載」、沒有 download 屬性", bool(d) and d["lock"] and "登入後" in d["t"] and d["d"] is None, d)
         pg.locator("#artPost .artvid.mp4").scroll_into_view_if_needed()
         pg.wait_for_timeout(400)
+        if W <= 640:
+            # 客服鈕（固定右下角）與下載鈕不可相交：把下載鈕捲到視窗最底，量兩者外框
+            pg.evaluate("() => { const a = document.querySelector('#artPost a.avdl'); a.scrollIntoView({block: 'end'}); window.scrollBy(0, 0); }")
+            pg.wait_for_timeout(400)
+            r = pg.evaluate("() => { const a = document.querySelector('#artPost a.avdl').getBoundingClientRect(), f = document.querySelector('.supfab'); if (!f) return null; const g = f.getBoundingClientRect(); return { hit: !(a.right <= g.left || g.right <= a.left || a.bottom <= g.top || g.bottom <= a.top), a: [a.left, a.right, a.top, a.bottom].map(Math.round), f: [g.left, g.right, g.top, g.bottom].map(Math.round) } }")
+            ok(f"★ [{T}（{W}）] 下載鈕與客服鈕不相交（捲到視窗底、客服鈕留著）", r is not None and not r["hit"], r)
+            pg.screenshot(path=f"{_AV_SHOT}/guest_{W}_fab.png")
         pg.locator("#artPost .artvid.mp4").screenshot(path=f"{_AV_SHOT}/guest_{W}.png")
         c.close()
 
@@ -103,6 +110,12 @@ def t_article_mp4_1115(b, base, code):
         ok(f"★ [{T}（{W}）] 按下載鈕真的下載：檔名＝{_AV_NAME}、大小與站內檔案一致（{size} B）", got.suggested_filename == _AV_NAME and size == real and size > 100000, (got.suggested_filename, size, real))
         pg.locator("#artPost .artvid.mp4").scroll_into_view_if_needed()
         pg.wait_for_timeout(400)
+        if W <= 640:
+            pg.evaluate("() => document.querySelector('#artPost a.avdl').scrollIntoView({block: 'end'})")
+            pg.wait_for_timeout(400)
+            r = pg.evaluate("() => { const a = document.querySelector('#artPost a.avdl').getBoundingClientRect(), f = document.querySelector('.supfab'); if (!f) return null; const g = f.getBoundingClientRect(); return !(a.right <= g.left || g.right <= a.left || a.bottom <= g.top || g.bottom <= a.top) }")
+            ok(f"★ [{T}（{W}）] 註冊會員：下載鈕與客服鈕不相交", r is False, r)
+            pg.screenshot(path=f"{_AV_SHOT}/member_{W}_fab.png")
         pg.locator("#artPost .artvid.mp4").screenshot(path=f"{_AV_SHOT}/member_{W}.png")
         c.close()
 
