@@ -4,7 +4,8 @@
 // 所以這裡的做法是：
 //   · 對話框常駐在畫面下方（像聊天軟體的輸入列）。沒選人＝對 CEO 說；點 3D 裡的 Agent 或資訊卡「對他說」＝對象切成他。
 //   · 技術上一律送進 CEO 的收件匣（POST /v1/office/main/inbox），收件匣的 `to` 欄位就是「指定給哪位 Agent」；CEO 的 Claude 取走後派給那位。
-//     畫面上每則訊息下方寫「由 CEO 轉交給 ○○」，回覆用那位 Agent 的頭像顯示在他自己的對話串，3D 裡他頭上冒短短的對話泡泡。
+//     畫面是聊天軟體的長相（2026-11-15 夜再改版）：左邊對話清單（每位對象一列）、右邊對話串（我靠右彩色氣泡、對方靠左白氣泡＋頭像）；
+//     狀態只用聊天軟體的說法（傳送中→已送達→對方輸入中…→直接看到回覆），不再寫「由 CEO 轉交給 ○○」。
 //   · 對話串依收件匣資料的 `to` 分組：每位 Agent 一串、CEO 一串，不另存任何資料（重新整理後從收件匣讀回來）。
 //
 // 網站只是「留言板」：站長在這裡送出 → 收件服務（workers/ai-office-bridge）存起來 → 站長自己的 Claude 去取走、做完、把回覆貼回來。網站與收件服務完全不呼叫任何模型。
@@ -20,14 +21,18 @@
 //   · 輸入框打字時不能觸發場景快捷鍵：pilot.js／multi.js／sports.js 都用 typing() 擋掉 INPUT／TEXTAREA，這裡再把 keydown 在輸入框就地吃掉（不往 window 冒）。
 import { hhmm } from './state.js';
 
-const ACCT_TOK = 'tw.acct.tok', LS_LIVE = 'aiOffice.live.v1', LS_ACTIVE = 'aiOffice.chat.active';
+
+const ACCT_TOK = 'tw.acct.tok', LS_LIVE = 'aiOffice.live.v1', LS_ACTIVE = 'aiOffice.chat.active', LS_WIN = 'aiOffice.chat.win';
 const MAX_TEXT = 2000, ONLINE_MS = 5 * 60e3, WIDE_PX = 1180;
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* 略 */ } };
 const short = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
-const ST = { queued: ['排隊中', 'sq'], claimed: ['已取走', 'sc'], running: ['執行中', 'sr'], done: ['完成', 'sd'], failed: ['失敗', 'sf'], canceled: ['已撤回', 'sx'], expired: ['過期（沒有 Claude 來拿）', 'sx'], stale: ['沒有回音', 'sw'] };   // 類別名加 s 前綴：單一字母的 .x 會撞到面板的關閉鈕樣式
+// 狀態用聊天軟體的說法：傳送中（排隊）→ 已送達（Claude 取走）→ 對方輸入中…（執行中，三點動畫在對方那側）→ 已回覆（不另外標，直接看到回覆）
+const ST = { queued: ['傳送中', 'sq'], claimed: ['已送達', 'sc'], running: ['已送達', 'sc'], done: ['已回覆', 'sd'], failed: ['沒做成', 'sf'], canceled: ['已撤回', 'sx'], expired: ['沒有人取走（過期）', 'sx'], stale: ['沒有回音', 'sw'] };   // 類別名加 s 前綴：單一字母的 .x 會撞到面板的關閉鈕樣式
+// 辦公室外的內建類型（沒有座位的子 Agent）也要顯示中文暱稱；跟 live.js 的 BUILTIN 同一份對照
+const BUILTIN_ZH = { 'general-purpose': '通才', Explore: '探路', Plan: '規劃', 'statusline-setup': '設定', 'claude-code-guide': '導覽', 'output-style-setup': '樣式' };
 const ACTIVE = new Set(['queued', 'claimed', 'running']);
 const ERR = { too_long: '最多 2000 字', queue_full: '排隊已滿 20 則，等 Claude 取走一些再送', rate: '送太快了，一分鐘後再試', rate_day: '今天已送 100 則，明天再送', empty: '請先輸入要說的話', bad_to: '收件對象格式不對，請重新選一位' };
 // 把回覆裡的網址變成可點的連結（先跳脫再換，避免把回覆當 HTML 執行）
@@ -39,22 +44,34 @@ const bubbleLine = r => { const t = String(r || '').replace(/https?:\/\/\S+/g, '
 export function createChat(W, X) {
   const { ui } = X, S = X.state || W.state, qs = new URLSearchParams(location.search), C = id => W.chars.get(id);
   const K = { open: false, mode: 'idle', to: 'ceo', touched: false, msgs: new Map(), rev: 0, lastSeen: null, srvNow: null, busy: false, err: '', timer: 0, inflight: false, first: true, started: new Set(), todo: new Map(), url: '', fails: 0, seen: new Set(), cardFor: null,
-    pollMs: Math.max(300, +qs.get('chat_poll') || 5000), bgMs: Math.max(300, +qs.get('chat_bg_poll') || 15000), polls: 0 };
+    pollMs: Math.max(300, +qs.get('chat_poll') || 5000),
+    // 有指令在傳送中／已送達／輸入中時，不管展開或收合一律每 2 秒讀一次（以前收合時 15 秒，等回覆等得最久）；測試用 chat_fast（或舊參數 chat_bg_poll）縮短
+    fastMs: Math.max(300, +qs.get('chat_fast') || +qs.get('chat_bg_poll') || 2000), polls: 0, view: 'list', again: false, pref: null };
   W.chat = K;
 
   // ───────── 介面骨架 ─────────
-  // 上半（展開才有）：標題列＋對話串切換列＋訊息串；下半（常駐）：一行提示＋說明＋輸入列。
+  // 展開＝聊天視窗：標題列（拖曳把手＋位置／鎖定／透明）→ 左邊對話清單、右邊對話串 → 底部輸入列；收合＝只有一行輸入列。
+  // .mc-top 用 display:contents，裡面的標題列、清單、對話串直接參與 #chatPanel 的格線（輸入列只在對話串那一欄底下，像 Teams）。
   const pn = document.createElement('section');
-  pn.className = 'mc'; pn.id = 'chatPanel'; pn.setAttribute('role', 'region'); pn.setAttribute('aria-label', '主對話框');
+  pn.className = 'mc pl'; pn.id = 'chatPanel'; pn.setAttribute('role', 'region'); pn.setAttribute('aria-label', '主對話框');
   pn.innerHTML = `<div class="mc-top" id="mcTop" hidden>
-      <div class="mc-head">
+      <div class="mc-head" id="mcHead">
+        <button class="mc-bk" id="mcBack" type="button" aria-label="回到對話清單">‹</button>
         <div class="mc-who" id="mcWho"></div>
-        <button class="btn mc-ceo" id="chatCeo" type="button" hidden>回到 CEO</button>
+        <span class="c-live" id="chatLive" role="status"></span>
+        <div class="mc-ctl" id="mcCtl">
+          <span class="mc-seg" role="group" aria-label="視窗位置"><button type="button" data-pos="left" title="靠左">左</button><button type="button" data-pos="center" title="置中">中</button><button type="button" data-pos="right" title="靠右">右</button></span>
+          <button type="button" class="mc-tool" id="mcLock" aria-pressed="false" title="鎖定視窗位置">鎖定</button>
+          <button type="button" class="mc-tool" id="mcOp" title="視窗透明度（滑鼠移上去會恢復清楚）">透明 100%</button>
+        </div>
+        <button class="mc-help" id="mcHelp" type="button" aria-label="說明" aria-expanded="false">?</button>
         <button class="mc-x" id="chatX" type="button" aria-label="收合對話框" title="收合（Esc）">﹀</button>
       </div>
-      <div class="c-live" id="chatLive" role="status"></div>
-      <div class="mc-strip" id="mcStrip" role="tablist" aria-label="對話串" hidden></div>
-      <div class="c-list" id="chatList" aria-live="polite"></div>
+      <aside class="mc-side" id="mcSide"><div class="mc-sh">對話</div><div class="mc-strip" id="mcStrip" role="tablist" aria-label="對話清單"></div></aside>
+      <div class="mc-main">
+        <p class="mc-tip" id="mcTip" hidden>訊息會先交給 CEO，由 CEO 分派給你指定的同事；這個網頁本身不呼叫任何模型。</p>
+        <div class="c-list" id="chatList" aria-live="polite"></div>
+      </div>
     </div>
     <div class="mc-dock" id="mcDock">
       <button class="mc-peek" id="chatPeek" type="button" hidden></button>
@@ -67,7 +84,7 @@ export function createChat(W, X) {
         <button class="btn on" id="chatSend" type="submit">送出</button>
       </form>
       <div class="c-row"><span id="chatCount" class="c-cnt" hidden>已輸入 0／${MAX_TEXT}</span></div>
-      <p class="c-hint" id="chatHint">Enter 送出，Shift＋Enter 換行。訊息一律由 CEO 收下，再轉交給你指定的人；這個網頁不會呼叫任何模型。</p>
+      <p class="c-hint" id="chatHint">Enter 送出，Shift＋Enter 換行</p>
     </div>`;
   $('app').append(pn);
   const btn = $('chatBtn'), tx = $('chatText');
@@ -112,7 +129,7 @@ export function createChat(W, X) {
   const threadOf = id => [...K.msgs.values()].filter(m => toOf(m) === id).sort((a, b) => a.created - b.created);
 
   async function fetchInbox(manual) {
-    if (K.inflight) return; K.inflight = true; K.polls++;
+    if (K.inflight) { K.again = true; return; } K.inflight = true; K.polls++;
     try {
       if (!tok()) { K.mode = 'nologin'; return; }
       const r = await call('?since=' + K.rev);
@@ -123,13 +140,13 @@ export function createChat(W, X) {
       else if (r.status === 403) K.mode = 'forbidden';
       else if (r.status === 0 || r.status === 429 || r.status >= 500 && r.status !== 501 && r.status !== 503) { K.fails++; if (K.mode !== 'ok' || manual) K.mode = 'neterr'; }
       else K.mode = 'noinbox';          // 404／501／503…：收件服務還沒有收件匣這條路（還沒更新或還沒開）
-    } finally { K.inflight = false; render(); schedule(); }
+    } finally { K.inflight = false; render(); schedule(); if (K.again) { K.again = false; setTimeout(() => fetchInbox(), 0); } }
   }
   function schedule() {
     clearTimeout(K.timer);
     if (!tok() || K.mode === 'auth' || K.mode === 'forbidden' || K.mode === 'noinbox') return;       // 這幾種等使用者處理，不自己一直敲
-    const need = K.open || activeCount() > 0; if (!need) return;
-    const ms = (K.open ? K.pollMs : K.bgMs) * (K.fails > 2 ? 4 : 1);
+    const act = activeCount() > 0; if (!K.open && !act) return;
+    const ms = (act ? K.fastMs : K.pollMs) * (K.fails > 2 ? 4 : 1);      // 有進行中的指令＝2 秒；只是開著看＝5 秒；其餘不輪詢
     K.timer = setTimeout(() => { if (document.hidden) { schedule(); return; } fetchInbox(); }, ms);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && (K.open || activeCount())) fetchInbox(); });
@@ -144,10 +161,74 @@ export function createChat(W, X) {
 
   // ───────── 對象（誰）：名字、頭像 ─────────
   const isAgent = id => { const c = C(id); return !!c && !c.spec.pet && !c.spec.isCeo && !c.jobless; };
-  const nickOf = id => { if (id === 'ceo') return 'CEO'; const c = C(id); return c && !c.spec.pet ? c.spec.nick : id; };
-  const fullName = id => { if (id === 'ceo') return 'CEO（分派）'; const c = C(id); return c && !c.spec.pet ? `${c.spec.nick}（${c.spec.zh}）` : id; };
-  const subOf = id => { if (id === 'ceo') return '所有訊息都先交給 CEO'; const c = C(id); return c ? `${c.spec.zh}・由 CEO 轉交` : '由 CEO 轉交'; };
+  const hasThread = id => [...K.msgs.values()].some(m => toOf(m) === id);
+  // 對象一律顯示中文暱稱：名冊上的暱稱 → 內建類型的中文名（general-purpose＝通才）→ 都沒有才顯示代號
+  const nickOf = id => { if (id === 'ceo') return 'CEO'; const c = C(id); if (c && !c.spec.pet) return c.spec.nick; const mm = W.members && W.members.get && W.members.get(id); return (mm && mm.nick) || BUILTIN_ZH[id] || id; };
+  const roleOf = id => { if (id === 'ceo') return '分派工作'; const c = C(id); return c && c.spec.zh ? c.spec.zh : (BUILTIN_ZH[id] ? '外部協助' : ''); };
   const avaOf = id => { const c = id === 'ceo' ? C('ceo') : C(id); if (c && ui.ava) { try { return ui.ava(c.spec); } catch (e) { /* 略 */ } } return '<div class="ava" style="background:#ffb057"></div>'; };
+  const knownTo = id => id === 'ceo' || isAgent(id) || hasThread(id);
+
+  // ───────── 視窗位置、鎖定、透明（記在 localStorage，重新整理後保留） ─────────
+  const OPS = [1, .7, .4];
+  function loadPref() {
+    let o = null; try { o = JSON.parse(lsGet(LS_WIN) || 'null'); } catch (e) { o = null; }
+    o = o && typeof o === 'object' ? o : {};
+    K.pref = { pos: ['left', 'center', 'right', 'free'].includes(o.pos) ? o.pos : 'left', last: ['left', 'center', 'right'].includes(o.last) ? o.last : 'left', x: +o.x || 0, y: +o.y || 0, lock: !!o.lock, op: OPS.includes(+o.op) ? +o.op : 1 };
+    if (K.pref.pos !== 'free') K.pref.last = K.pref.pos;
+  }
+  const savePref = () => lsSet(LS_WIN, JSON.stringify(K.pref));
+  const desk = () => innerWidth > 640;
+  const topLimit = () => { const b = $('bar'); const r = b ? b.getBoundingClientRect() : null; return Math.round(r && r.height ? r.bottom + 8 : 64); };       // 視窗不能蓋住頂列
+  function applyPos() {
+    const P = K.pref, eff = P.pos === 'free' ? P.last : P.pos, app = $('app');
+    for (const k of ['left', 'center', 'right']) { pn.classList.toggle({ left: 'pl', center: 'pc', right: 'pr' }[k], eff === k); app.classList.toggle({ left: 'mc-pl', center: 'mc-pc', right: 'mc-pr' }[k], eff === k); }
+    const free = P.pos === 'free' && K.open && desk();
+    pn.classList.toggle('pf', free);
+    if (free) { const r = pn.getBoundingClientRect(), w = r.width || 680, h = r.height || 480; P.x = Math.max(0, Math.min(P.x, innerWidth - w)); P.y = Math.max(topLimit(), Math.min(P.y, innerHeight - h)); pn.style.left = P.x + 'px'; pn.style.top = P.y + 'px'; }
+    else { pn.style.left = ''; pn.style.top = ''; }
+    pn.style.setProperty('--mc-op', String(P.op));
+    pn.classList.toggle('locked', P.lock);
+    const lk = $('mcLock'); lk.setAttribute('aria-pressed', String(P.lock)); lk.textContent = P.lock ? '已鎖定' : '鎖定'; lk.title = P.lock ? '按一下解除鎖定' : '鎖定視窗位置（鎖定後拖不動、也不能換位置）';
+    $('mcOp').textContent = '透明 ' + Math.round(P.op * 100) + '%';
+    for (const b of pn.querySelectorAll('[data-pos]')) { b.classList.toggle('on', P.pos === b.dataset.pos || (P.pos === 'free' && false)); b.disabled = P.lock; b.setAttribute('aria-pressed', String(P.pos === b.dataset.pos)); }
+    avoid(); measure();
+  }
+  // 展開的視窗不能壓到資訊卡／佈告欄／群組（靠左）與紀錄欄（靠右）：能放得下就把它們平移到視窗旁邊，放不下就收起來（收合的輸入列另由 CSS 抬高）
+  function avoid(final) {
+    const open = K.open && desk() && pn.getBoundingClientRect().width > 0, p = open ? pn.getBoundingClientRect() : null;
+    for (const [id, side] of [['card', 'left'], ['board', 'left'], ['grp', 'left'], ['log', 'right']]) {
+      const e = $(id); if (!e) continue; e.style[side] = ''; if (e.hidden) continue; if (!p) continue;
+      const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+      if (!(r.left < p.right && r.right > p.left && r.top < p.bottom && r.bottom > p.top)) continue;
+      if (side === 'left') {
+        if (p.right + 12 + r.width <= innerWidth - 12) e.style.left = Math.round(p.right + 12) + 'px';
+        else if (p.left - 12 - r.width >= 8) e.style.left = Math.round(p.left - 12 - r.width) + 'px';
+        else if (final) e.hidden = true;
+      } else {
+        if (p.left - 12 - r.width >= 8) e.style.right = Math.round(innerWidth - p.left + 12) + 'px';
+        else if (p.right + 12 + r.width <= innerWidth - 8) e.style.right = Math.round(innerWidth - p.right - 12 - r.width) + 'px';
+        else if (final) e.hidden = true;
+      }
+    }
+  }
+  let drag = null;
+  $('mcHead').addEventListener('pointerdown', e => {
+    if (!desk() || !K.open || K.pref.lock || e.button !== 0 || e.target.closest('button')) return;
+    const r = pn.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+    try { $('mcHead').setPointerCapture(e.pointerId); } catch (x) { /* 略 */ }
+    pn.classList.add('dragging'); e.preventDefault();
+  });
+  $('mcHead').addEventListener('pointermove', e => { if (!drag) return; K.pref.pos = 'free'; K.pref.x = e.clientX - drag.dx; K.pref.y = e.clientY - drag.dy; applyPos(); });
+  const endDrag = () => { if (!drag) return; drag = null; pn.classList.remove('dragging'); savePref(); avoid(true); };
+  $('mcHead').addEventListener('pointerup', endDrag); $('mcHead').addEventListener('pointercancel', endDrag);
+  pn.addEventListener('click', e => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.pos && !K.pref.lock) { K.pref.pos = t.dataset.pos; K.pref.last = t.dataset.pos; K.pref.x = K.pref.y = 0; savePref(); applyPos(); avoid(true); }
+    else if (t.id === 'mcLock') { K.pref.lock = !K.pref.lock; savePref(); applyPos(); }
+    else if (t.id === 'mcOp') { K.pref.op = OPS[(OPS.indexOf(K.pref.op) + 1) % OPS.length]; savePref(); applyPos(); }
+    else if (t.id === 'mcHelp') { const h = $('mcTip'); h.hidden = !h.hidden; t.setAttribute('aria-expanded', String(!h.hidden)); }
+  });
+  loadPref();
 
   // ───────── 畫面 ─────────
   function noteHtml() {
@@ -164,45 +245,67 @@ export function createChat(W, X) {
   function liveHtml() {
     if (K.mode !== 'ok') return '';
     const ref = K.srvNow || Date.now(), on = K.lastSeen != null && ref - K.lastSeen < ONLINE_MS;
-    return on ? '<i class="dot on"></i>你的 Claude 在線上' : '<i class="dot"></i>你的 Claude 目前沒開，訊息會排隊，下次開工作階段時才會被取走（最多保留 24 小時）';
+    return on ? '<i class="dot on"></i>Claude 在線' : '<i class="dot"></i><span title="訊息會排隊，下次開工作階段時才會被取走（最多保留 24 小時）">Claude 沒開，訊息會排隊</span>';
   }
-  function msgHtml(m) {
-    const [lab, cls] = ST[m.status] || [m.status, 'x'], to = toOf(m), nk = esc(nickOf(to));
+  // 時間：同一天只寫時:分，不同天加日期
+  const clock = ms => { const w = when(ms), t = when(Date.now()); return w.slice(0, 5) === t.slice(0, 5) ? w.slice(6) : w; };
+  const minute = ms => Math.floor(ms / 60000);
+  // 我這則的狀態小字（只放在我的最後一則底下；沒做成／沒人取走這類要明顯標出的，不管是不是最後一則都標）
+  function stHtml(m, last) {
+    const [lab, cls] = ST[m.status] || [m.status, 'x'];
+    if (m.status === 'done') return '';
+    if (!last && !ACTIVE.has(m.status) && m.status !== 'failed' && m.status !== 'expired' && m.status !== 'stale') return '';
+    const ic = { sq: '<i class="ic-clock"></i>', sc: '<i class="ic-tick"></i>', sf: '<i class="ic-warn">!</i>', sw: '<i class="ic-warn">!</i>', sx: '' }[cls] || '';
+    const again = ['failed', 'stale', 'expired'].includes(m.status) ? `<button class="c-again" type="button" data-again="${esc(m.id)}">重送</button>` : '';
+    return `<div class="c-stl c-st ${cls}" data-s="${esc(m.status)}">${ic}<span>${esc(lab)}</span>${again}</div>`;
+  }
+  function msgHtml(m, prev, last) {
+    const to = toOf(m), nk = esc(nickOf(to)), showTime = !prev || minute(prev.created) !== minute(m.created);
     const reply = m.reply ? linkify(m.reply) : (m.status === 'done' ? '做完了。' : '');
-    return `<article class="c-msg" data-id="${esc(m.id)}" data-st="${esc(m.status)}">
-      <div class="c-me"><header><time>${esc(when(m.created))}</time><span class="c-st ${cls}">${m.status === 'running' ? '<i class="spin"></i>' : ''}${esc(lab)}</span></header>
-        <p class="c-tx">${esc(m.text)}</p>
-        <p class="c-relay">${to === 'ceo' ? '送給 CEO' : `由 CEO 轉交給 ${nk}`}</p>
-        ${m.status === 'queued' ? `<button class="btn c-mini" type="button" data-cancel="${esc(m.id)}">撤回</button>` : ''}${m.status === 'stale' || m.status === 'expired' ? `<button class="btn c-mini" type="button" data-again="${esc(m.id)}">重送</button>` : ''}</div>
-      ${reply ? `<div class="c-rp"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><b>${nk}</b><div>${reply}</div></div></div>` : ''}</article>`;
+    const typing = m.status === 'running' ? `<div class="c-rp c-typing" aria-label="${nk} 輸入中"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><span class="c-dots"><i></i><i></i><i></i></span></div><small>${nk} 輸入中…</small></div>` : '';
+    const more = m.status === 'queued' ? `<button class="c-more" type="button" data-menu="${esc(m.id)}" aria-label="更多" aria-haspopup="menu">⋯</button><div class="c-menu" role="menu" hidden><button type="button" role="menuitem" data-cancel="${esc(m.id)}">撤回</button></div>` : '';
+    return `<article class="c-msg${showTime ? '' : ' same'}" data-id="${esc(m.id)}" data-st="${esc(m.status)}">
+      ${showTime ? `<time class="c-tm">${esc(clock(m.created))}</time>` : ''}
+      <div class="c-mine"><div class="c-me${m.status === 'canceled' ? ' gone' : ''}"><p class="c-tx">${esc(m.text)}</p>${more}</div></div>
+      ${stHtml(m, last)}
+      ${typing}
+      ${reply ? `<div class="c-rp"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><b>${nk}${m.done_at || m.updated ? `<time>${esc(clock(m.done_at || m.updated))}</time>` : ''}</b><div>${reply}</div></div></div>` : ''}</article>`;
   }
+  const unreadOf = id => threadOf(id).filter(m => (m.status === 'done' || m.status === 'failed') && !K.seen.has(seenKey(m))).length;
+  // 左邊對話清單：CEO 第一、有說過話的依最後時間、其餘同事排在後面（點一下就能開始說）
   function stripHtml() {
-    const ids = ['ceo']; const last = new Map();
+    const ids = ['ceo'], last = new Map();
     for (const m of K.msgs.values()) { const t = toOf(m); last.set(t, Math.max(last.get(t) || 0, m.created)); }
     [...last.entries()].sort((a, b) => b[1] - a[1]).forEach(([t]) => { if (t !== 'ceo' && !ids.includes(t)) ids.push(t); });
-    if (!ids.includes(K.to)) ids.push(K.to);
-    const act = {}; for (const m of K.msgs.values()) if (ACTIVE.has(m.status)) act[toOf(m)] = (act[toOf(m)] || 0) + 1;
-    return ids.length < 2 ? '' : ids.map(id => `<button class="mc-th${id === K.to ? ' on' : ''}" type="button" role="tab" aria-selected="${id === K.to}" data-th="${esc(id)}"><span class="mc-ava">${avaOf(id)}</span><span>${esc(nickOf(id))}</span>${act[id] ? `<i class="cn">${act[id]}</i>` : ''}</button>`).join('');
+    if (!ids.includes(K.to) && knownTo(K.to)) ids.push(K.to);
+    const rest = [...W.chars.keys()].filter(id => isAgent(id) && !ids.includes(id)).sort((a, b) => nickOf(a).localeCompare(nickOf(b), 'zh-Hant'));
+    const row = id => {
+      const list = threadOf(id), m = list[list.length - 1], un = id === K.to && K.open && (desk() || K.view === 'thread') ? 0 : unreadOf(id), act = list.filter(x => ACTIVE.has(x.status)).length;
+      let pv = roleOf(id), tm = '';
+      if (m) { pv = m.status === 'done' && m.reply ? short(m.reply.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 22) : m.status === 'running' ? '輸入中…' : '你：' + short(m.text, 20); tm = clock(m.created); }
+      return `<button class="mc-th${id === K.to ? ' on' : ''}" type="button" role="tab" aria-selected="${id === K.to}" data-th="${esc(id)}"><span class="mc-ava">${avaOf(id)}</span><span class="mc-tb"><span class="mc-t1"><b>${esc(nickOf(id))}</b><time>${esc(tm)}</time></span><span class="mc-t2"><span class="mc-pv">${esc(pv)}</span>${un ? `<i class="cn">${un}</i>` : act ? '<i class="mc-wait" title="進行中"></i>' : ''}</span></span></button>`;
+    };
+    return ids.map(row).join('') + (rest.length ? '<div class="mc-sh2">其他同事</div>' + rest.map(row).join('') : '');
   }
   function peekOf() {
     const list = threadOf(K.to), m = list[list.length - 1]; if (!m || K.open) return '';
     const unseen = !ACTIVE.has(m.status) && m.status !== 'canceled' && !K.seen.has(seenKey(m));
     if (!ACTIVE.has(m.status) && !unseen) return '';
     const [lab] = ST[m.status] || [m.status];
-    return m.reply ? `${nickOf(K.to)}：${short(m.reply.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 40)}` : `${lab}・${short(m.text, 26)}`;
+    return m.reply ? `${nickOf(K.to)}：${short(m.reply.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 40)}` : m.status === 'running' ? `${nickOf(K.to)} 輸入中…` : `${lab}・${short(m.text, 26)}`;
   }
-  const gtxt = e => e.textContent;
   function render() {
     // 目前對象不在了（被開除、改成寵物）→ 回到 CEO
-    if (K.to !== 'ceo' && !isAgent(K.to) && W.chars.size) K.to = 'ceo';
+    if (K.to !== 'ceo' && !knownTo(K.to) && W.chars.size) K.to = 'ceo';
     const n = activeCount(), bn = $('chatN'); bn.hidden = !n; bn.textContent = n || ''; lsSet(LS_ACTIVE, n ? '1' : null);
     btn.setAttribute('aria-label', (n ? `對話（${n} 則進行中）` : '對話') + `，目前對 ${nickOf(K.to)} 說`); btn.setAttribute('aria-expanded', String(K.open)); btn.classList.toggle('on', K.open);
     pn.classList.toggle('open', K.open); $('app').classList.toggle('mc-open', K.open); $('mcTop').hidden = !K.open;
+    pn.classList.toggle('v-list', K.view === 'list'); pn.classList.toggle('v-thread', K.view === 'thread');
     // 對象：頭像＋名字＋輸入框提示
     const who = nickOf(K.to), av = avaOf(K.to);
     if ($('mcAva').dataset.k !== K.to + av.length) { $('mcAva').innerHTML = av; $('mcAva').dataset.k = K.to + av.length; }
     $('mcNm').textContent = who;
-    tx.placeholder = K.to === 'ceo' ? '對 CEO 說…' : innerWidth <= 640 ? `對 ${who} 說…` : `對 ${who} 說…（由 CEO 轉交）`;      // 手機輸入列窄，轉交的說明留在對話串裡
+    tx.placeholder = `對 ${who} 說…`;
     // 說明與閘門（收合時也要看得到：鎖了要知道為什麼）
     const note = $('chatNote'), nh = K.touched ? noteHtml() : ''; if (note.dataset.h !== nh) { note.innerHTML = nh; note.dataset.h = nh; } note.hidden = !nh;
     // 功能閘門（features.js 的 office.cmd）：只在已經能送（連線正常）時才顯示，沒登入等情況已經有自己的說明
@@ -219,38 +322,37 @@ export function createChat(W, X) {
     if (K.open) renderThread();
   }
   function renderThread() {
-    $('mcWho').innerHTML = `<span class="mc-ava">${avaOf(K.to)}</span><span class="mc-nmx"><b>${esc(fullName(K.to))}</b><small>${esc(subOf(K.to))}</small></span>`;
-    $('chatCeo').hidden = K.to === 'ceo';
+    const sh = stripHtml(), st = $('mcStrip'); if (st.dataset.h !== sh) { st.innerHTML = sh; st.dataset.h = sh; }
+    const list = threadOf(K.to), mobList = !desk() && K.view === 'list';
+    $('mcWho').innerHTML = mobList ? '<span class="mc-nmx"><b>對話</b></span>' : `<span class="mc-ava">${avaOf(K.to)}</span><span class="mc-nmx"><b>${esc(nickOf(K.to))}</b><small>${esc(roleOf(K.to))}</small></span>`;
     const lv = liveHtml(); if ($('chatLive').dataset.h !== lv) { $('chatLive').innerHTML = lv; $('chatLive').dataset.h = lv; }
-    const sh = stripHtml(), st = $('mcStrip'); if (st.dataset.h !== sh) { st.innerHTML = sh; st.dataset.h = sh; } st.hidden = !sh;
-    const list = threadOf(K.to), box = $('chatList'), me = fullName(K.to);
-    const html = list.length ? list.map(msgHtml).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟 ${esc(me)} 說過話。${K.to === 'ceo' ? '直接在下面打字，按 Enter 送出。' : `打字後按 Enter 送出，訊息會先交給 CEO，再由 CEO 轉交給 ${esc(nickOf(K.to))}。`}</p>` : '');
+    const box = $('chatList');
+    const html = list.length ? list.map((m, i) => msgHtml(m, list[i - 1], i === list.length - 1)).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟 ${esc(nickOf(K.to))} 說過話。在下面打字，按 Enter 送出。</p>` : '');
     if (box.dataset.h !== html) { const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || box.dataset.t !== K.to; box.innerHTML = html; box.dataset.h = html; box.dataset.t = K.to; if (stick) box.scrollTop = box.scrollHeight; }
-    for (const m of list) K.seen.add(seenKey(m));
+    if (desk() || K.view === 'thread') for (const m of list) K.seen.add(seenKey(m));
   }
   function grow() { tx.style.height = 'auto'; tx.style.height = Math.min(tx.scrollHeight, 104) + 'px'; }
 
-  // 展開時：窄螢幕上其他面板讓位（寬螢幕時對話框在中間，跟左邊資訊卡、右邊紀錄不重疊，不必讓）
-  const narrow = () => innerWidth < WIDE_PX;
+  // 展開時：手機是全螢幕（先看清單、點進對話）；桌機是浮動視窗，擋到的面板由 avoid() 平移或收起
   function open(to, focus) {
     if (to) setTarget(to, true);
     touch(); K.open = true; K.err = '';
-    if (narrow()) for (const id of ['log', 'card', 'board']) { const e = $(id); if (e && !e.hidden && !e.classList.contains('mini')) e.hidden = true; }
-    const box = $('chatList'); box.dataset.h = ''; render(); fetchInbox(true);
-    if (focus !== false) setTimeout(() => { try { tx.focus({ preventScroll: true }); } catch (e) { /* 略 */ } }, 30);
+    if (!desk()) K.view = to ? 'thread' : (K.view || 'list');
+    const box = $('chatList'); box.dataset.h = ''; applyPos(); render(); applyPos(); avoid(true); fetchInbox(true);
+    if (focus !== false && (desk() || K.view === 'thread')) setTimeout(() => { try { tx.focus({ preventScroll: true }); } catch (e) { /* 略 */ } }, 30);
   }
-  function close() { K.open = false; render(); schedule(); }
+  function close() { K.open = false; render(); applyPos(); schedule(); }
   function setTarget(id, quiet) {
-    id = id || 'ceo'; if (id !== 'ceo' && !isAgent(id) && !(C(id) && C(id).spec.isCeo)) id = 'ceo'; if (C(id) && C(id).spec.isCeo) id = 'ceo';
+    id = id || 'ceo'; if (C(id) && C(id).spec.isCeo) id = 'ceo'; if (id !== 'ceo' && !knownTo(id)) id = 'ceo';
     const ch = K.to !== id; K.to = id; K.err = ''; $('chatList').dataset.h = '';
     if (ch && !quiet) { btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash'); }
     render();
   }
   K.openTo = (to) => open(to); K.close = close; K.setTarget = id => setTarget(id);
-  btn.onclick = () => { if (K.open) close(); else open(null, false); };
+  btn.onclick = () => { if (K.open) close(); else { K.view = 'list'; open(null, false); } };       // 手機按下去先看清單
   $('chatX').onclick = () => { close(); try { btn.focus(); } catch (e) { /* 略 */ } };
-  $('chatCeo').onclick = () => { setTarget('ceo'); tx.focus(); };
-  $('chatPeek').onclick = () => open(null, true);
+  $('mcBack').onclick = () => { K.view = 'list'; render(); };
+  $('chatPeek').onclick = () => { K.view = 'thread'; open(null, true); };
   // 手機虛擬鍵盤與縮放：輸入框內容高度跟著長
   tx.addEventListener('focus', () => touch());
   // 輸入框打字不得觸發場景快捷鍵：這裡就地吃掉，不讓 keydown 往 window（pilot／multi／sports 的捕捉監聽在更外層，它們各自有 typing() 擋）
@@ -272,7 +374,7 @@ export function createChat(W, X) {
     if (gt && !gt.pass) { K.busy = false; render(); return; }
     const to = K.to, r = await call('', { method: 'POST', body: JSON.stringify({ to, text }) });
     K.busy = false; if (gt) { if (r.status === 200 && r.json.message) gt.done(); else gt.cancel(); }
-    if (r.status === 200 && r.json.message) { tx.value = ''; grow(); merge([r.json.message]); K.rev = Math.max(K.rev, r.json.message.rev || 0); K.mode = 'ok'; schedule(); const box = $('chatList'); render(); box.scrollTop = box.scrollHeight; }
+    if (r.status === 200 && r.json.message) { tx.value = ''; grow(); merge([r.json.message]); K.rev = Math.max(K.rev, r.json.message.rev || 0); K.mode = 'ok'; schedule(); const box = $('chatList'); render(); box.scrollTop = box.scrollHeight; setTimeout(() => fetchInbox(), 0); }       // 送出後立刻讀一次（不等下一輪計時）：Claude 取走得快的話馬上看到「已送達」
     else if (r.status === 401) { K.mode = 'auth'; render(); }
     else if (r.status === 403) { K.mode = 'forbidden'; render(); }
     else if (r.status === 0 || r.status === -1) K.err = '連不上收件服務，訊息沒有送出，請稍後再試';
@@ -281,9 +383,19 @@ export function createChat(W, X) {
     render();
   }
   $('chatForm').addEventListener('submit', e => { e.preventDefault(); send(); });
+  // 我的訊息的小選單：滑鼠停上去出現「⋯」，觸控長按也能叫出；目前只有「撤回」（還在傳送中才有）
+  const closeMenus = except => { for (const m of pn.querySelectorAll('.c-menu')) if (m !== except) m.hidden = true; };
+  let lp = 0;
+  pn.addEventListener('pointerdown', e => {
+    const me = e.target.closest('.c-me'); if (!me || e.pointerType === 'mouse') return;
+    clearTimeout(lp); lp = setTimeout(() => { const mn = me.querySelector('.c-menu'); if (mn) { closeMenus(mn); mn.hidden = false; me.classList.add('menu'); } }, 520);
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointermove']) pn.addEventListener(ev, e => { if (ev !== 'pointermove' || Math.abs(e.movementX) + Math.abs(e.movementY) > 6) clearTimeout(lp); });
+  document.addEventListener('pointerdown', e => { if (!e.target.closest || !e.target.closest('.c-me')) { closeMenus(); for (const x of pn.querySelectorAll('.c-me.menu')) x.classList.remove('menu'); } }, true);
   pn.addEventListener('click', async e => {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.th) { setTarget(t.dataset.th, true); return; }
+    if (t.dataset.menu) { const mn = t.parentNode.querySelector('.c-menu'); closeMenus(mn); mn.hidden = !mn.hidden; return; }
+    if (t.dataset.th) { setTarget(t.dataset.th, true); K.view = 'thread'; render(); if (!desk()) setTimeout(() => { try { tx.focus({ preventScroll: true }); } catch (x) { /* 略 */ } }, 30); return; }
     if (t.id === 'chatRetry') { K.mode = 'loading'; K.fails = 0; render(); fetchInbox(true); return; }
     if (t.dataset.cancel) {
       t.disabled = true; const r = await call('/' + encodeURIComponent(t.dataset.cancel) + '/cancel', { method: 'POST', body: '{}' });
@@ -301,19 +413,20 @@ export function createChat(W, X) {
   ui.showCard = c => {
     origShow(c);
     if (c.jobless || (c.spec && c.spec.pet)) return;
-    if (K.cardFor !== c.spec.id) { K.cardFor = c.spec.id; setTarget(c.spec.id, false); }
+    if (K.cardFor !== c.spec.id) { K.cardFor = c.spec.id; setTarget(c.spec.id, false); if (K.open && !desk()) K.view = 'thread'; }
     const cardEl = $('card'), acts = [...cardEl.querySelectorAll('.acts')].pop(); if (!acts || cardEl.querySelector('[data-chat]')) return;
     const b = document.createElement('button'); b.className = 'btn on'; b.type = 'button'; b.dataset.chat = c.spec.id; b.textContent = c.spec.isCeo ? '對 CEO 說' : '對他說';
     acts.append(b);
+    if (K.open) requestAnimationFrame(() => avoid(true));          // 對話視窗開著時才跳出的資訊卡：放得下就平移到視窗旁，放不下就收起（對象已經切過去了）
   };
   try { new MutationObserver(() => { if ($('card').hidden) K.cardFor = null; }).observe($('card'), { attributes: true, attributeFilter: ['hidden'] }); } catch (e) { /* 略 */ }
   $('card').addEventListener('click', e => { const b = e.target.closest('[data-chat]'); if (!b) return; $('card').hidden = true; open(b.dataset.chat === 'ceo' || (C(b.dataset.chat) && C(b.dataset.chat).spec.isCeo) ? 'ceo' : b.dataset.chat, true); });
 
   // ───────── 量高度：讓其他底部元件（版本標記、運動場鈕、整修列、搖桿、緊急橫幅…）知道要讓出多少（--mc-h，chat.css 用） ─────────
   const root = document.documentElement;
-  const measure = () => { const h = $('mcDock').offsetHeight, b = parseFloat(getComputedStyle(pn).bottom) || 12; root.style.setProperty('--mc-h', (h ? h + b + 6 : 0) + 'px'); };      // 對話框底邊離畫面底的距離＋自己的高度＋6px 縫隙
+  const measure = () => { if (pn.classList.contains('pf')) return; const h = $('mcDock').offsetHeight, b = parseFloat(getComputedStyle(pn).bottom) || 12; root.style.setProperty('--mc-h', (h ? h + b + 6 : 0) + 'px'); };      // 對話框底邊離畫面底的距離＋自己的高度＋6px 縫隙
   try { new ResizeObserver(measure).observe($('mcDock')); } catch (e) { /* 略 */ }
-  addEventListener('resize', measure); measure();
+  addEventListener('resize', () => { applyPos(); measure(); }); applyPos(); measure();
 
   // ───────── 3D 反應：待辦小圖示、去座位工作、完成小慶祝、回覆短句泡泡 ─────────
   const who = id => { const c = C(id); return c && !c.spec.pet && !c.jobless ? c : (id === 'ceo' ? C('ceo') : null); };
