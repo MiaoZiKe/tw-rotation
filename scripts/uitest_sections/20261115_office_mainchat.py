@@ -283,7 +283,10 @@ def _ch_desktop(b, base):
         pg.keyboard.type("收合著再問一次")
         pg.keyboard.press("Enter")
         ok("收合著送出第二則：收件服務收到 to＝frontend-ui", wait_until(pg, "() => __world.chat.msgs.size === 3", 8000) and br.posts[-1]["to"] == "frontend-ui", br.posts)
-        br.set(br.msgs[-1]["id"], "done", "第二次的回覆在這裡。還有後半句")
+        pg.click("#chatBtn")
+        wait_until(pg, "() => !document.getElementById('mcTop').hidden", 4000)
+        pg.click("#chatX")
+        br.set(br.msgs[-1]["id"], "done", "第二次的回覆在這裡。還有後半句")      # 先展開看過「排隊中」再收合，之後才完成：仍要跳出「有新回覆」
         ok("收合後回覆到了：輸入列上方出現「○○：回覆第一句…」的提示（還沒看過的新回覆）", wait_until(pg, "() => { const p = document.getElementById('chatPeek'); return !p.hidden && p.textContent.includes('第二次的回覆'); }", 8000), pg.evaluate("() => document.getElementById('chatPeek').textContent"))
         pg.click("#chatPeek")
         ok("點提示：展開那位的串、提示消失（看過了）", _ch_vis(pg, "#mcTop") and _ch_target(pg)["to"] == "frontend-ui" and not _ch_vis(pg, "#chatPeek"))

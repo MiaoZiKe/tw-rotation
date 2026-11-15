@@ -99,7 +99,7 @@ export function createChat(W, X) {
   function merge(list, silent) {
     for (const m of list || []) {
       if (!m || !m.id) continue; const old = K.msgs.get(m.id); K.msgs.set(m.id, m);
-      if (silent && !ACTIVE.has(m.status)) K.seen.add(m.id);        // 載入時就已完成的舊訊息：不當成「沒看過的新回覆」
+      if (silent && !ACTIVE.has(m.status)) K.seen.add(seenKey(m));        // 載入時就已完成的舊訊息：不當成「沒看過的新回覆」
       if (old && old.status === m.status) continue;
       const ev = { queued: 'cmd_queued', claimed: 'cmd_claimed', running: 'cmd_running', done: 'cmd_done', failed: 'cmd_failed', canceled: 'cmd_gone', expired: 'cmd_gone', stale: 'cmd_gone' }[m.status];
       // 載入時就已完成的舊指令不再慶祝一次（silent）；進行中的照樣演出
@@ -108,6 +108,7 @@ export function createChat(W, X) {
   }
   const activeCount = () => [...K.msgs.values()].filter(m => ACTIVE.has(m.status)).length;
   const toOf = m => m.to || 'ceo';
+  const seenKey = m => m.id + '|' + m.status;      // 狀態變了（排隊中→完成）就算新的，收合時才會跳出「有新回覆」的提示
   const threadOf = id => [...K.msgs.values()].filter(m => toOf(m) === id).sort((a, b) => a.created - b.created);
 
   async function fetchInbox(manual) {
@@ -185,7 +186,7 @@ export function createChat(W, X) {
   }
   function peekOf() {
     const list = threadOf(K.to), m = list[list.length - 1]; if (!m || K.open) return '';
-    const unseen = !ACTIVE.has(m.status) && m.status !== 'canceled' && !K.seen.has(m.id);
+    const unseen = !ACTIVE.has(m.status) && m.status !== 'canceled' && !K.seen.has(seenKey(m));
     if (!ACTIVE.has(m.status) && !unseen) return '';
     const [lab] = ST[m.status] || [m.status];
     return m.reply ? `${nickOf(K.to)}：${short(m.reply.replace(/https?:\/\/\S+/g, '').trim() || '做完了', 40)}` : `${lab}・${short(m.text, 26)}`;
@@ -225,7 +226,7 @@ export function createChat(W, X) {
     const list = threadOf(K.to), box = $('chatList'), me = fullName(K.to);
     const html = list.length ? list.map(msgHtml).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟 ${esc(me)} 說過話。${K.to === 'ceo' ? '直接在下面打字，按 Enter 送出。' : `打字後按 Enter 送出，訊息會先交給 CEO，再由 CEO 轉交給 ${esc(nickOf(K.to))}。`}</p>` : '');
     if (box.dataset.h !== html) { const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || box.dataset.t !== K.to; box.innerHTML = html; box.dataset.h = html; box.dataset.t = K.to; if (stick) box.scrollTop = box.scrollHeight; }
-    for (const m of list) K.seen.add(m.id);
+    for (const m of list) K.seen.add(seenKey(m));
   }
   function grow() { tx.style.height = 'auto'; tx.style.height = Math.min(tx.scrollHeight, 104) + 'px'; }
 
