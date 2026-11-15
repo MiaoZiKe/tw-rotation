@@ -125,7 +125,7 @@ function makeNew(spec, look, env) {
   };
   ctl.onEvent = (e) => { if (e.type === 'land') { inner.sqV = -(e.imp * 0.85); inner.onLand(e.imp, false); } };
   const camP = new V3(0, 6, 10), slot = { A: null, L: null, R: null }, slotType = { A: '', L: '', R: '' };
-  let icon = null, iconT = 0, iconDur = 0, lod = 0, frame = (hash(spec.id || 'x') % 6), accDt = 0, react = null, loud = 0, hold = null, speakUntil = 0, curPose = null, poseT0 = 0;
+  let icon = null, iconT = 0, iconDur = 0, lod = 0, frame = (hash(spec.id || 'x') % 6), sub = frame, accDt = 0, react = null, loud = 0, hold = null, speakUntil = 0, curPose = null, poseT0 = 0;
   const c = {
     object3D: root, spec, look, inner, scale: s, radius: kind.rad * s, height: (topY + 0.06) * s, speech: null, emoteSym: null, expression: 'neutral', action: 'idle', lift: 0,
     _base: 'idle', _until: 0, _t: 0, _path: null, _pi: 0, _speed: 1.6, _resolve: null, _stuck: 0, _ghost: 0, _seat: null, _hop: null, _held: false, heading: 0, onDrop: null, sleeping: false, newModel: true,
@@ -148,9 +148,12 @@ function makeNew(spec, look, env) {
       const want = c._held || react || env.followed === c ? 0 : dist > 30 ? 2 : dist > 14 ? 1 : 0; if (want !== lod) setLod(want);
       // 2026-11-15 效能（4× 卡頓）：同一畫面幀的前幾個模擬子步（env.draw === false）只推進控制器的固定步物理，
       // 姿勢內插、腳 IK、接地投影、蒙皮與臉（ctl.render）留到要繪圖的最後一個子步一次做（量測：render 佔角色更新九成）。
-      const draw = env.draw !== false; accDt += dt; if (draw) frame++;
-      if (lod === 0 || c._path || c._held || ctl.state !== 'idle' || (draw && frame % (lod + 1) === 0)) {
-        step(Math.min(accDt, 0.066), draw); accDt = 0; if (draw) { applyPose(t); props(t); Old.tickShared(t); }
+      // 遠的、站著不動的人：物理照「子步」隔 lod+1 步推進一次（sub），畫姿勢照「畫面幀」隔 lod+1 幀一次（frame）——兩個節拍分開算。
+      // （11-15 修：原本兩者都只在繪圖幀才算，8 倍速一幀 24 個子步時，物理一次只拿到上限 0.066 秒 → 遠處的人按方向鍵幾乎走不動）
+      const draw = env.draw !== false; accDt += dt; sub++; if (draw) frame++;
+      const busy = lod === 0 || c._path || c._held || ctl.state !== 'idle', vis = draw && (busy || frame % (lod + 1) === 0);
+      if (vis || busy || sub % (lod + 1) === 0) {
+        step(Math.min(accDt, 0.066), vis); accDt = 0; if (vis) { applyPose(t); props(t); Old.tickShared(t); }
       }
       { const sv = !!c._seat && ctl.state === 'sit' && lod < 2 && root.visible; if (cushion) cushion.visible = sv && c._boost > 0 && !(c._lift > 0); if (riser) riser.visible = sv && c._lift > 0; }
       speakLip(t);
