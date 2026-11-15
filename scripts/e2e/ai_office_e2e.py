@@ -211,6 +211,9 @@ class Run:
         pg.on("pageerror", lambda e: pg.errs.append(str(e)))
         pg.goto(ORIGIN + "/office/world.html?ambient=0&q=low&pr=0.6&aio_url=%s&live_poll=2000&chat_poll=1000&chat_bg_poll=1500" % BRIDGE, wait_until="domcontentloaded")
         pg.wait_for_function("() => window.__world && __world.ready && __world.chat && __world.live", timeout=120000)
+        # 3D 模擬加速：這個容器是軟體繪圖、CPU 很忙，實測一秒只畫不到一格，模擬時間大約是真實的 1/15
+        # （走到 CEO 桌交件要兩三分鐘）。跟既有驗收段落一樣把 __world.speed 調快，只影響動畫節奏，不影響收件服務與 Claude。
+        pg.evaluate("(v) => { __world.speed = v; }", float(os.environ.get("E2E_SPEED", "8")))
         pg.wait_for_timeout(1500)
         return c, pg
 
