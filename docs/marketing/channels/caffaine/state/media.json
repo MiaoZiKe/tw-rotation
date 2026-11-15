@@ -1,0 +1,10 @@
+{
+ "@reels-test": {
+  "at": "2026-11-15T18:53:08+08:00",
+  "bytes": 2527649,
+  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__reels-test__cover.jpg",
+  "sha256": "02b33530c4f0666ac47812fadcd8b73ab670e20a7a1619b8e92553ff455eec37",
+  "src": "ffmpeg",
+  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__reels-test.mp4"
+ }
+}
