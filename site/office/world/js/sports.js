@@ -307,6 +307,8 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
   elB.addEventListener('pointerdown', e => { const b = e.target.closest('button[data-a=charge]'); if (b && S.sess && S.sess.game) { const p = humanOf(S.sess); p && S.sess.game.onSpace(p, true); e.preventDefault(); } });
   const up = e => { const b = e.target.closest && e.target.closest('button[data-a=charge]'); if (b && S.sess && S.sess.game) { const p = humanOf(S.sess); p && S.sess.game.onSpace(p, false); } };
   elB.addEventListener('pointerup', up); elB.addEventListener('pointercancel', up);
+  // 手機沒有空白鍵與滑鼠：提示換成對應的按鈕與手指說法
+  const mobileTip = t => t.replace('按空白鍵發球', '點「揮拍」發球').replace('靠近球按空白鍵揮拍・方向鍵決定落點', '靠近球點「揮拍」・搖桿決定落點').replace('按住空白鍵蓄力、放開投籃', '按住「蓄力」鈕、放開投籃').replace('滑鼠拖曳', '手指拖曳');
   function renderHud(force) {
     const s = S.sess, P = W.pilot, me = P && P.sel && P.engaged ? P.sel : (P && P.sel) || null; let key, title = '', tip = '', meter = null, btns = [];
     const mobile = matchMedia('(pointer:coarse)').matches || innerWidth <= 640;
@@ -314,12 +316,13 @@ body.sp-on .jl-hint,body.sp-on .pt-hint{display:none}`;
       if (s.kind === 'pool') { title = '游泳'; tip = water.inWater(s.me) ? (mobile ? '搖桿游動；游到缺口（南邊台階）上岸，按「結束」' : '方向鍵游動；從南邊缺口的台階上岸，Esc 結束') : '準備下水…'; btns = [['end', '結束']]; }
       else if (s.phase === 'invite') { title = `${ZH[s.kind]}：找一位同事一起打`; tip = (mobile ? '點一位同事邀請他（他會跑過來），或按「自動找同事」' : '點另一位員工邀請他（他會跑過來），或按 E／Enter 自動找閒著的同事'); btns = [['auto', '自動找同事', true]]; if (s.kind === 'basketball' || s.kind === 'billiards') btns.push(['solo', '自己練習']); btns.push(['end', '結束（Esc）']); }
       else if (s.phase === 'wait') { title = `${ZH[s.kind]}：${s.partner ? nick(s.partner) : '同事'}正在趕過來`; tip = '稍等一下，他到了就開始'; btns = [['end', '結束（Esc）']]; }
-      else if (s.game) { const h = s.game.hud(); title = h.title; tip = h.tip; meter = h.meter; btns = [['end', '結束（Esc）']]; if (mobile) { if (s.kind === 'badminton' || s.kind === 'tennis') btns.unshift(['act', '揮拍', true]); else if (s.kind === 'basketball') btns.unshift(['charge', '按住蓄力・放開投籃', true]); } if (s.game.over && s.game.winner) tip = `${s.game.winner.human ? '你' : nick(s.game.winner.c)} 贏了！`; }
+      else if (s.game) { const h = s.game.hud(); title = h.title; tip = mobile ? mobileTip(h.tip) : h.tip; meter = h.meter; btns = [['end', '結束（Esc）']]; if (mobile) { if (s.kind === 'badminton' || s.kind === 'tennis') btns.unshift(['act', '揮拍', true]); else if (s.kind === 'basketball') btns.unshift(['charge', '按住蓄力・放開投籃', true]); } if (s.game.over && s.game.winner) tip = `${s.game.winner.human ? '你' : nick(s.game.winner.c)} 贏了！`; }
       key = 's' + title + tip + (meter ? '1' : '0');
     } else if (me && !me.sportSess) {
       const v = venueAt(me); if (!v) { hud.hidden = true; hudKey = ''; return; }
       title = `${ZH[v.kind]}場`; tip = mobile ? `點「開始」${v.kind === 'pool' ? '跳進泳池' : '打' + ZH[v.kind]}` : `按 E ${v.kind === 'pool' ? '跳進泳池游泳' : '開始打' + ZH[v.kind]}`; btns = [['start', '開始', true]]; key = 'n' + v.kind;
     } else { if (!hud.hidden) { hud.hidden = true; hudKey = ''; } return; }
+    if (mobile) btns = btns.map(b => [b[0], b[1].replace('（Esc）', ''), b[2]]);
     hud.hidden = false;
     { // 主聊天室（#chatPanel，在畫面底部中間）開著時，介面往上讓開，兩者不重疊；手機則在虛擬搖桿的上方
       const cp = document.getElementById('chatPanel'), cr = cp && !cp.hidden ? cp.getBoundingClientRect() : null, lift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lift')) || 0;
