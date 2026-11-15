@@ -440,7 +440,8 @@ def _ch_mobile(b, base):
         ok("手機：沒有禁用字", not _CH_BAD_RE.search(pg.inner_text("#chatPanel")))
         pg.tap("#chatX")
         ok("手機：× 收合後回到辦公室、輸入列還在底部", not _ch_vis(pg, "#mcTop") and _ch_vis(pg, "#chatText"))
-        ok("手機：輸入列提示字不折行（單行放得下）", True)
+        ok("手機：輸入列提示字放得進一行（量字寬，不折行被切）", pg.evaluate("""() => { const t = document.getElementById('chatText'), cs = getComputedStyle(t), cv = document.createElement('canvas').getContext('2d'); cv.font = cs.fontSize + ' ' + cs.fontFamily;
+            return cv.measureText(t.placeholder).width <= t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); }"""), pg.evaluate("() => [document.getElementById('chatText').placeholder, document.getElementById('chatText').clientWidth]"))
         ok("手機：沒有主控台錯誤", not pg.errs, pg.errs[:3])
     finally:
         c.close()
