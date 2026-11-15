@@ -1,7 +1,7 @@
 {
   "note": "頻道②「科技透明圈」留言關鍵字自動回覆設定（2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」）。Worker workers/tc-dm（IG 私訊）與 scripts/tc_threads_replies.py（Threads 公開回覆）都讀這個檔；改這裡、推 main 即生效（Worker 5 分鐘內會讀到新版）。",
   "legal_reviewed": true,
-  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。2026-11-15 法遵再審：2nm 留言回覆、預設文字、廣達出處句改完可發（措辭「完整解說」、待遇數字固定附「出處：網友公開分享，非公司公告」）。",
+  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。2026-11-15 法遵再審：2nm 留言回覆、預設文字、廣達出處句改完可發（措辭「完整解說」、待遇數字固定附「出處：網友公開分享，非公司公告」）。2026-11-16 euv（曝光機）回覆文字照 2nm 已審過的同一套措辭只換標題與文章網址；tc-channel-lead 依法遵清單自查（無投資建議、估算／廠商規格有標），legal-compliance 正式複審待 CEO 派工。",
   "keywords": [
     "透明"
   ],
@@ -12,6 +12,11 @@
       "2奈米",
       "兩奈米",
       "2nm"
+    ],
+    "euv": [
+      "曝光機",
+      "EUV",
+      "極紫外光"
     ]
   },
   "legal_pending": [],
@@ -36,7 +41,8 @@
       "default": "謝謝留言！科技透明圈的整理都放在這：https://liguligu-puipui.com/",
       "20261105_quanta": "廣達碩畢待遇重點整理：\n・碩畢月薪：約 58～69K（中位約 61K）\n・整包：約 18～22 個月（含底薪，隨單位差很多）\n・工時：網友普遍回報工時長，隨單位與專案差很多\n・網友分享的面試方向：C 語言（指標、bitwise）＋ I2C／SPI／UART\n出處：網友公開分享，非公司公告；隨單位而異。\n更多整理：https://liguligu-puipui.com/",
       "2nm": "謝謝留言！「2 奈米不是尺寸」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
-      "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。"
+      "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。",
+      "euv": "謝謝留言！「曝光機：光比線還粗」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv"
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
@@ -58,6 +64,11 @@
         "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
         "收到～「2 奈米不是尺寸」整篇在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
         "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm"
+      ],
+      "euv": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
+        "收到～「曝光機：光比線還粗」整篇在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-16-tech-euv"
       ]
     }
   }

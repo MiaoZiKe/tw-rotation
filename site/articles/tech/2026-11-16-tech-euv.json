@@ -1,0 +1,261 @@
+{
+ "id": "2026-11-16-tech-euv",
+ "cat": "tech",
+ "title": "曝光機：光比線還粗，怎麼畫得出來？",
+ "subtitle": "科技透明圈：晶片上的線比畫它的光還細。極紫外光把波長縮到 13.5 奈米，代價是光要自己做、整台抽真空、全靠反射鏡。",
+ "date": "2026-11-16",
+ "updated": "2026-11-16",
+ "tags": [
+  "科技透明圈",
+  "曝光機",
+  "極紫外光",
+  "EUV",
+  "微影"
+ ],
+ "summary": "以前的曝光機用 193 奈米的光，一次只畫得出約 40 奈米的線，更細就要同一層分好幾次畫。極紫外光（EUV）波長 13.5 奈米，但空氣和玻璃都會吸掉它：光要用雷射打錫滴自己做，整台機器抽真空、只用反射鏡，約 11 次反射後到晶圓只剩約 2%（估算）。ASML 標示最細可印 13 奈米（廠商規格，非實測）；台積電 2019 年起在關鍵層使用。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "晶片上的線比畫它的光還細：浸潤式曝光用 193 奈米的光，一次只畫得出約 40 奈米（半間距）的線，光大約比線粗五倍（193÷40 推算）。",
+    "更細的線，舊做法是同一層分好幾次畫：16／14 奈米世代畫兩次，7 奈米世代要畫四次。",
+    "極紫外光（EUV）把波長縮到 13.5 奈米，代價有三個：光要自己做、整台機器抽真空、只能用反射鏡。光從光源走到晶圓，只剩約 2%（估算，非實測）。"
+   ]
+  },
+  {
+   "t": "kpi",
+   "items": [
+    {
+     "label": "上一代的光",
+     "value": "193",
+     "unit": "奈米",
+     "note": "浸潤式 ArF，ASML"
+    },
+    {
+     "label": "單次曝光能畫的線",
+     "value": "約 40",
+     "unit": "奈米",
+     "note": "半間距，業界約略值"
+    },
+    {
+     "label": "極紫外光",
+     "value": "13.5",
+     "unit": "奈米",
+     "note": "ASML、TRUMPF"
+    },
+    {
+     "label": "到晶圓剩下（估算）",
+     "value": "約 2",
+     "unit": "%",
+     "note": "0.7 的 11 次方，非實測"
+    }
+   ]
+  },
+  {
+   "t": "h",
+   "text": "光比線還粗：193 奈米的光、40 奈米的線"
+  },
+  {
+   "t": "p",
+   "text": "曝光機的工作是把光罩上的電路圖案縮小印到晶圓上。光的波長決定一次能印多細：193 奈米的浸潤式曝光，大約在 40 奈米半間距碰到物理極限（SemiEngineering、Semiwiki）。要更細，就得把同一層拆成幾張光罩、分幾次曝光再對齊，16／14 奈米世代要兩次、7 奈米世代要四次（SemiEngineering〈7nm lithography choices〉）。每多一次，就多一道工序、多一次對不準的機會。"
+  },
+  {
+   "t": "chart",
+   "kind": "hbar",
+   "title": "光的波長 vs 一次能畫的線（單位：奈米）",
+   "unit": "奈米",
+   "x": [
+    "193 奈米的光",
+    "單次能畫的線（半間距）",
+    "極紫外光"
+   ],
+   "series": [
+    {
+     "name": "奈米",
+     "type": "bar",
+     "data": [
+      193,
+      40,
+      13.5
+     ],
+     "axis": 0
+    }
+   ],
+   "highlight": [
+    2
+   ],
+   "marks": [
+    {
+     "x": "極紫外光",
+     "text": "波長縮到 13.5 奈米"
+    }
+   ],
+   "note": "40 奈米是業界約略值，不同層、不同製程的實際線寬不同。",
+   "source": "ASML 產品頁；SemiEngineering、Semiwiki（查證 2026-11-15）"
+  },
+  {
+   "t": "h",
+   "text": "極紫外光：13.5 奈米，但什麼都會吸掉它"
+  },
+  {
+   "t": "p",
+   "text": "極紫外光的波長是 13.5 奈米（ASML、TRUMPF）。問題是它幾乎會被所有材料強烈吸收，連空氣也會，所以從光源到晶圓整條光路都要在真空裡；玻璃也會吸光，所以不能用透鏡，全部改用反射鏡，連光罩都是反射式的。"
+  },
+  {
+   "t": "h",
+   "text": "光要自己做：錫滴、兩道雷射、電漿"
+  },
+  {
+   "t": "steps",
+   "title": "光源怎麼發光（廠商說明，運作為示意）",
+   "items": [
+    {
+     "label": "錫滴",
+     "text": "每秒約 5 萬顆，直徑約 20–30 微米"
+    },
+    {
+     "label": "第一道雷射",
+     "text": "預脈衝把錫滴打扁"
+    },
+    {
+     "label": "第二道雷射",
+     "text": "主脈衝把它打成電漿"
+    },
+    {
+     "label": "電漿發光",
+     "text": "發出 13.5 奈米的極紫外光，由收集鏡收起來"
+    }
+   ],
+   "note": "錫滴直徑兩家來源分別寫約 20 與約 30 微米；雷射與錫滴的數字是雷射供應商 TRUMPF 公布的約略值。"
+  },
+  {
+   "t": "h",
+   "text": "光怎麼帶到晶圓：鏡子反射十幾次"
+  },
+  {
+   "t": "p",
+   "text": "每一面反射鏡都是鉬和矽交替疊成的多層膜，大約 40 對、每對約 7 奈米厚。即使這樣，每一面在 13.5 奈米最多也只反射約七成（理論約 72%、實驗約 68–70%）。從光源到晶圓大約反射 11 次，0.7 的 11 次方約等於 2%，這是估算；其他來源依計算範圍不同給出 1% 到 12% 都有，所以這個數字只看量級。"
+  },
+  {
+   "t": "compare",
+   "title": "上一代 vs 極紫外光曝光（定性比較）",
+   "cols": [
+    {
+     "label": "193 奈米浸潤式",
+     "tone": "neutral",
+     "points": [
+      "光可以穿過透鏡",
+      "最細的層要同一層分好幾次畫"
+     ],
+     "verdict": "工序多、要多次對準"
+    },
+    {
+     "label": "13.5 奈米極紫外光",
+     "tone": "accent",
+     "points": [
+      "整台抽真空、只用反射鏡",
+      "光要用雷射打錫滴自己做"
+     ],
+     "verdict": "關鍵層可以少分幾次畫，但光源與鏡子都很難"
+    }
+   ],
+   "note": "最細的層（更先進的世代）用極紫外光也可能要分兩次畫，這裡只比方向。"
+  },
+  {
+   "t": "h",
+   "text": "結果：13 奈米（廠商規格）與台積電的使用"
+  },
+  {
+   "t": "p",
+   "text": "ASML 的 NXE:3600D 產品頁標示解析度 13 奈米（數值孔徑 0.33），這是廠商規格，不是獨立實測。機台用 4 倍縮小，光罩台和晶圓台同步反向掃描，掃完一格再移到下一格。台積電的 N7+ 在 2019 年量產，只在少數關鍵層用極紫外光（台積電新聞稿；Tom's Hardware）。"
+  },
+  {
+   "t": "h",
+   "text": "這篇沒講的、還不確定的"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "「約 2%」只有一處來源明說，其他來源給 1%–12%，取決於怎麼算；本文標估算。",
+    "電漿溫度、雷射光點大小、錫滴速度沒有可靠的公開數值，本文不寫。",
+    "不談設備價格（各報導數字不一）、不談高數值孔徑（High-NA）新機台。",
+    "影片裡的光、錫滴與鏡子是示意動畫，不是實際比例；極紫外光肉眼看不見。",
+    "下一支：印完之後，每一顆都能用嗎？來看晶圓良率。"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理，不構成投資建議。文中數字出自廠商公布、技術文章與專利，標「估算」與「廠商規格」的都不是實測。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "TWINSCAN NXE:3600D",
+   "publisher": "ASML",
+   "date": "查證日 2026-11-15",
+   "url": "https://www.asml.com/en/products/euv-lithography-systems/twinscan-nxe-3600d"
+  },
+  {
+   "title": "Flashes of light in a vacuum",
+   "publisher": "TRUMPF",
+   "date": "查證日 2026-11-15",
+   "url": "https://www.trumpf.com/en_GB/magazine/flashes-of-light-in-a-vacuum"
+  },
+  {
+   "title": "EUV lithography（光源說明）",
+   "publisher": "TRUMPF",
+   "date": "查證日 2026-11-15",
+   "url": "https://www.trumpf.com/en_CN/anwendungen/euv-lithography/"
+  },
+  {
+   "title": "7nm Lithography Choices",
+   "publisher": "SemiEngineering",
+   "date": "查證日 2026-11-15",
+   "url": "https://semiengineering.com/7nm-lithography-choices"
+  },
+  {
+   "title": "Multi-Patterning Problems Grow",
+   "publisher": "SemiEngineering",
+   "date": "查證日 2026-11-15",
+   "url": "https://semiengineering.com/multi-patterning-problems-grow"
+  },
+  {
+   "title": "SEMICON: Multiple Patterning vs EUV",
+   "publisher": "Semiwiki",
+   "date": "查證日 2026-11-15",
+   "url": "https://semiwiki.com/semiconductor-services/2607-semicon-multiple-patterning-vs-euv-round-1"
+  },
+  {
+   "title": "Multilayer mirrors enable next-generation EUV lithography",
+   "publisher": "Laser Focus World",
+   "date": "查證日 2026-11-15",
+   "url": "https://www.laserfocusworld.com/optics/article/16566714/optics-for-scanning-multilayer-mirrors-enable-nextgeneration-euv-lithography"
+  },
+  {
+   "title": "Extreme ultraviolet lithography（鏡片數、約 2%）",
+   "publisher": "Wikipedia",
+   "date": "查證日 2026-11-15",
+   "url": "https://en.wikipedia.org/wiki/Extreme_ultraviolet_lithography"
+  },
+  {
+   "title": "TSMC Starts Shipping EUV N7+ Chips",
+   "publisher": "Tom's Hardware",
+   "date": "2019",
+   "url": "https://www.tomshardware.com/news/tsmc-amd-euv-n7-7nm-process,40575.html"
+  },
+  {
+   "title": "TSMC's first EUV process reaches high-volume status",
+   "publisher": "Bits&Chips",
+   "date": "2019",
+   "url": "https://bits-chips.com/article/tsmcs-first-euv-process-reaches-high-volume-status"
+  }
+ ],
+ "confidence": "中高：波長、多重曝光、反射鏡與台積電使用為多來源一致；約 2% 為估算，13 奈米為廠商規格",
+ "status": "published",
+ "video": "tech-euv（科技透明圈每日短影片）"
+}
