@@ -260,7 +260,7 @@ def _ch_desktop(b, base):
         # 狀態推進
         mid = br.msgs[0]["id"]
         br.set(mid, "claimed")
-        ok("狀態：已取走（撤回鈕消失）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '已取走'", 8000) and not pg.query_selector("#chatList .c-msg [data-cancel]"), _ch_status(pg, 0))
+        ok("狀態：已取走（撤回鈕消失）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '已取走'", 8000) and not pg.query_selector("#chatList .c-msg [data-cancel]"), (_ch_status(pg, 0), pg.inner_html("#chatList")[:600]))
         br.set(mid, "running")
         ok("狀態：執行中（有轉圈）", wait_until(pg, "() => document.querySelector('#chatList .c-msg .c-st').textContent.trim() === '執行中' && !!document.querySelector('#chatList .c-msg .c-st .spin')", 8000), _ch_status(pg, 0))
         ph = wait_until(pg, "() => { const a = __world.state.agents.get('frontend-ui'); return a && a.phase !== 'idle' ? a.phase : null; }", 8000)
