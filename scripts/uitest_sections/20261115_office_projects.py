@@ -352,7 +352,7 @@ def _px_taskname(b, base):
         wait_until(pg, "() => [...window.__world.chars.values()].some(c => c._lab && /改圖表縮放/.test(c._lab.tag.children[0].textContent))", 10000)
         tg = _px_tags(pg)
         ok("名牌：CEO 寫「改圖表縮放 CEO」（用自己的簡稱、不再是專案名）", tg["ceo"] == "改圖表縮放 CEO", tg)
-        ok("名牌：分身用自己的簡稱，13 字以上截成 11 字加「…」：「修正營收頁面的橫向捲…　CEO（分身 2）」", tg["clones"] == ["修正營收頁面的橫向捲… CEO（分身 2）"], tg)
+        ok("名牌：分身用自己的簡稱，13 字以上截成 11 字加「…」：「修正營收頁面的橫向捲動… CEO（分身 2）」", tg["clones"] == ["修正營收頁面的橫向捲動… CEO（分身 2）"], tg)
         ok("門牌：「改圖表縮放 CEO 辦公室」", _px_sign(pg) == "改圖表縮放 CEO 辦公室", _px_sign(pg))
         pg.locator("#aioBadge").click()
         pop = pg.locator("#aioPop").inner_text()

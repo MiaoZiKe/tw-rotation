@@ -121,8 +121,8 @@ export function createLive(W, X) {
 .aio-pop .row .btn.on{background:var(--on);border-color:var(--on);color:#fff}
 .aio-pop input,.aio-pop select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:#fff;min-width:0;flex:1}
 .aio-pop label{display:block;font-size:12px;color:var(--sub);margin:6px 4px 2px}
-.aio-pop ul{list-style:none;margin:4px 0 8px;padding:0}.aio-pop li{display:flex;gap:6px;align-items:baseline;padding:5px 4px;border-bottom:1px solid var(--line);font-size:13px}
-.aio-pop li b{flex:none}.aio-pop li span{flex:1;min-width:0;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.aio-pop li em{font-style:normal;font-size:12px;color:var(--sub)}
+.aio-pop ul{list-style:none;margin:4px 0 8px;padding:0}.aio-pop li{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;padding:5px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.aio-pop li b{flex:none}.aio-pop li span{flex:1 1 7.5em;min-width:7.5em;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.aio-pop li em{font-style:normal;font-size:12px;color:var(--sub)}
 .aio-code{display:flex;gap:6px;align-items:center;background:var(--on2);border-radius:12px;padding:8px;margin:4px 0 6px}
 .aio-code code{flex:1;min-width:0;word-break:break-all;font-size:12.5px}
 .aio-pop details summary{cursor:pointer;font-size:13px;color:var(--sub);margin:4px}
