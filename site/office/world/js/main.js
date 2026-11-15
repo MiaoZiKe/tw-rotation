@@ -10,6 +10,7 @@ import { createAttention } from './attention.js';
 import { createPOV } from './pov.js';
 import { createCamHint } from './camhint.js';
 import { createDaytime } from './daytime.js';
+import { createOutline } from './outline.js';   // 指向外框（只對被指向的那一位蓋反面放大殼，outline.js）
 import { createPhysics } from './phys.js';   // 物理互動：椅子盆栽立燈被撞翻、角色撞擊反作用、同事扶起復原（phys.js）
 import { createFire } from './fire.js';       // 火焰、碰到火燒起來、焦黑與恢復（fire.js）
 import { createUI } from './ui.js';
@@ -234,7 +235,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       if (!view.last) view.last = { x: cp.x, z: cp.z };
       const mx = cp.x - view.last.x, mz = cp.z - view.last.z; view.last.x = cp.x; view.last.z = cp.z;
       view.spd = (view.spd || 0) * 0.9 + (Math.hypot(mx, mz) / Math.max(dt, 0.001)) * 0.1;      // 角色實際移動速度（平滑）：卡住原地「走路」的人不要讓鏡頭一直繞
-      if (view.detached && view.dpos && Math.hypot(cp.x - view.dpos.x, cp.z - view.dpos.z) > 0.25) { view.detached = false; view.pull = 0.9; }
+      if (!grab && view.detached && view.dpos && Math.hypot(cp.x - view.dpos.x, cp.z - view.dpos.z) > 0.25) { view.detached = false; view.pull = 0.9; }
       if (!view.detached) {
         if (view.pull > 0) {                    // 剛接回：平順拉向角色
           view.pull -= dt; const fx = cp.x - camera.position.x, fz = cp.z - camera.position.z, fl = Math.hypot(fx, fz) || 1, kk = Math.min(1, dt * 2); ahead.x += (fx / fl * AHEAD - ahead.x) * kk; ahead.z += (fz / fl * AHEAD - ahead.z) * kk;
@@ -365,11 +366,28 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   // ── 點選 ──
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const setRay = e => { const r = cv.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); return r; };
+  // 點選判定（擁有者 11-16：「我這樣距離抓不到員工」）：不再借用名牌的位置（名牌在距離 17 公尺外會被隱藏，位置跟著失效），
+  // 改成每次都自己把角色「腳底→頭頂」投影到螢幕成一條線段，游標到線段的距離 ≤ 判定半徑就算指到；
+  // 判定半徑 = max(身體實際寬度的一半, 最小命中圓)：拉到最遠也有 22 像素（手機／觸控 30），所以俯視整棟也點得到、拎得起。
+  // 多人重疊：取「離游標最近」的；差在 5 像素內就取離鏡頭近的（最上層）。
+  const _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
   function pickChar(e) {
-    const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top; let best = null, bd = 1e9;
-    for (const c of everyone) { if (c._sx < 0) continue; const k = c.scale || 1, pxPerM = cv.clientHeight / (2 * Math.tan(camera.fov * Math.PI / 360) * c._sd), rad = Math.max(18, pxPerM * 0.45 * k); const d = Math.hypot(mx - c._sx, my - (c._sy + pxPerM * 0.45 * k)); if (d < rad && d < bd) { bd = d; best = c; } }
+    const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, w = r.width, h = r.height, coarse = e.pointerType === 'touch' || e.pointerType === 'pen';
+    const minR = coarse ? 30 : 22, f = h / (2 * Math.tan(camera.fov * Math.PI / 360)); let best = null, bd = 1e9, bz = 1e9;
+    for (const c of everyone) {
+      if (c.away || !c.object3D.visible || (W.pov && W.pov.hides(c))) continue;
+      const p = c.object3D.position, k = c.scale || 1, y0 = p.y + (c.lift || 0);
+      _pa.set(p.x, y0, p.z); const dist = _pa.distanceTo(camera.position); if (dist > 400) continue;
+      _pb.set(p.x, y0 + c.height, p.z); _pa.project(camera); _pb.project(camera); if (_pa.z > 1 && _pb.z > 1) continue;      // 在鏡頭後面
+      const ax = (_pa.x + 1) / 2 * w, ay = (1 - _pa.y) / 2 * h, bx = (_pb.x + 1) / 2 * w, by = (1 - _pb.y) / 2 * h;
+      const vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy, t = L2 > 1e-6 ? Math.max(0, Math.min(1, ((mx - ax) * vx + (my - ay) * vy) / L2)) : 0, d = Math.hypot(mx - (ax + vx * t), my - (ay + vy * t));
+      const rad = Math.max(c.spec.pet ? minR * 0.7 : minR, f / dist * 0.42 * k); if (d > rad) continue;
+      if (d < bd - 5 || (d < bd + 5 && dist < bz)) { bd = d; bz = dist; best = c; }
+    }
     return best;
   }
+  const outline = createOutline(W, { camera, cv }); W.outline = outline;
+  let hoverXY = null, hoverRe = 0;
   // 拎起來：按住角色拖曳；放開後掉下來（甩得快會滾出去），再自己走回座位
   const lastTap = { t: 0, x: 0, y: 0 }; let deselT = 0;
   let down = null, grab = null; const HOLD_MS = 350; const hold = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.05), hp = new THREE.Vector3();
@@ -403,14 +421,40 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     if (down && !edit.on && !grab && !down.mode && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 && (e.buttons & 1) && !(W.pov && W.pov.on())) {
       const long = e.timeStamp - down.ts >= HOLD_MS; ringOff();
       if (pan.touches.size > 1) down.mode = 'multi';
-      else if (long && down.c) { down.mode = 'grab'; grab = down.c; controls.enabled = false; pan.pend = false; director.grabbed(grab); grab.grab(); ui.closePops(); cv.style.cursor = 'grabbing'; if (navigator.vibrate) { try { navigator.vibrate(18); } catch (er) { /* 不支援就算了 */ } } }
+      else if (long && down.c) { down.mode = 'grab'; grab = down.c; controls.enabled = false; pan.pend = false; grabBegin(e); director.grabbed(grab); grab.grab(); ui.closePops(); cv.style.cursor = 'grabbing'; if (navigator.vibrate) { try { navigator.vibrate(18); } catch (er) { /* 不支援就算了 */ } } }
       else if (long) { down.mode = 'rot'; down.lx = down.x; down.ly = down.y; pan.pend = false; controls.enabled = false; cv.style.cursor = ROT_CUR; }
       else down.mode = 'pan';
     }
     if (down && down.mode === 'rot') { rotateBy(e.clientX - down.lx, e.clientY - down.ly); down.lx = e.clientX; down.ly = e.clientY; }
-    if (grab) { setRay(e); if (ray.ray.intersectPlane(hold, hp)) grab.dragTo(hp.x, 1.05, hp.z); }
+    if (grab) { grabE = { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType }; redrag(); }
   });
-  const endGrab = () => { ringOff(); if (grab) { grab.release(); grab = null; cv.style.cursor = ''; } controls.enabled = true; };
+  // 拎著拖曳（擁有者 11-16）：員工跟著「游標在地面（拎起高度那個水平面）上的投影點」走，不是跟著螢幕方向。
+  // 以前一拎起來鏡頭還在「跟隨他」：他一動鏡頭就跟著動，游標在螢幕上沒動、地面投影點卻一直漂，結果員工會朝游標偏離螢幕中心的方向一直跑。
+  // 現在拎著的時候暫停跟隨；游標靠近畫面邊緣（40 像素內）鏡頭自動往那邊平移（越靠邊越快），每一格重算投影點，人才能一路被拖到遠處；滾輪照常縮放。
+  let grabE = null; const EDGE = 40, gdir = new THREE.Vector3(), gright = new THREE.Vector3(), gmove = new THREE.Vector3();
+  function redrag() { if (!grab || !grabE) return; camera.updateMatrixWorld(); setRay(grabE); if (ray.ray.intersectPlane(hold, hp)) grab.dragTo(hp.x, 1.05, hp.z); }
+  function grabBegin(e) {
+    grabE = { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType }; outline.set(grab); tipOff();
+    if (view.char) { view.detached = true; view.dpos = { x: grab.object3D.position.x, z: grab.object3D.position.z }; }      // 暫停鏡頭跟隨
+    view.tween = null; W.grabStat = { edgePan: 0, zoom: 0 };
+  }
+  function grabStep(dt) {
+    if (!grab || !grabE) return; const r = cv.getBoundingClientRect(), mx = grabE.clientX - r.left, my = grabE.clientY - r.top, E = grabE.pointerType === 'touch' ? 56 : EDGE;
+    const ex = mx < E ? -Math.min(1, (E - mx) / E) : mx > r.width - E ? Math.min(1, (mx - (r.width - E)) / E) : 0, ey = my < E ? Math.min(1, (E - my) / E) : my > r.height - E ? -Math.min(1, (my - (r.height - E)) / E) : 0;
+    if (!ex && !ey) return;
+    camera.getWorldDirection(gdir); gdir.y = 0; if (gdir.lengthSq() < 1e-6) return; gdir.normalize(); gright.set(-gdir.z, 0, gdir.x);
+    const dist = camera.position.distanceTo(controls.target), sp = Math.max(3, dist * 0.9) * dt;
+    gmove.set(0, 0, 0).addScaledVector(gright, ex * sp).addScaledVector(gdir, ey * sp);
+    camera.position.add(gmove); controls.target.add(gmove); view.lastUser = performance.now() / 1000; W.grabStat.edgePan += gmove.length(); redrag();
+  }
+  cv.addEventListener('wheel', e => {      // 拎著時滾輪仍可縮放（自己處理：旋轉模式下 OrbitControls 的狀態不是閒置，滾輪會被它擋掉）
+    if (!grab) return; e.preventDefault(); e.stopImmediatePropagation();
+    const off = camera.position.clone().sub(controls.target), d = Math.min(110, Math.max(3, off.length() * Math.exp(Math.max(-300, Math.min(300, e.deltaY)) * 0.0012)));
+    camera.position.copy(controls.target).addScaledVector(off.normalize(), d); W.grabStat.zoom++; redrag();
+  }, { capture: true, passive: false });
+  addEventListener('pointermove', e => { if (grab) grabE = { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType }; });   // 游標移出畫布也持續記錄（才推得動邊緣平移）
+  W.grabbing = () => grab;
+  const endGrab = () => { ringOff(); if (grab) { if (view.char === grab) view.dpos = { x: grab.object3D.position.x, z: grab.object3D.position.z }; grab.release(); grab = null; grabE = null; cv.style.cursor = ''; outline.clear(); } controls.enabled = true; };
   addEventListener('pointercancel', () => { endGrab(); down = null; });
   addEventListener('pointerup', e => {
     if (edit.drag) { editUp(e); down = null; return; }
@@ -483,7 +527,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const tipOff = () => { clearTimeout(tipT); tipKey = null; tip.hidden = true; };
   cv.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch' || edit.on || grab || (e.buttons & 7)) { if (e.buttons & 7) tipOff(); return; }
-    const c = pickChar(e); let key = null, txt = '';
+    hoverXY = { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType };     const c = pickChar(e); let key = null, txt = ''; outline.set(c && !c.away ? c : null);
     if (c && !c.away) { key = 'c:' + c.spec.id; txt = c.spec.pet ? '點一下：摸摸看' : '點一下：選取・Ctrl＋點：多選・長按：拎起'; }
     else { setRay(e); if (ray.intersectObjects(W.boardsMesh, false)[0]) { key = 'b'; txt = '點一下：打開'; } }
     cv.style.cursor = key ? 'pointer' : '';
@@ -491,7 +535,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     tipOff(); tipKey = key; if (!key) return;
     tipT = setTimeout(() => { tip.textContent = txt; tip.hidden = false; tip.style.transform = `translate(${tipXY[0] + 16}px,${tipXY[1] + 20}px)`; }, 600);
   });
-  cv.addEventListener('pointerdown', tipOff); cv.addEventListener('pointerleave', tipOff);
+  cv.addEventListener('pointerdown', tipOff); cv.addEventListener('pointerleave', () => { hoverXY = null; tipOff(); if (!grab) outline.clear(); });
   // 第一次進入的小提示（只出現一次，記在這台裝置）
   { let seen = false; try { seen = localStorage.getItem('aiOffice.hint1') === '1'; } catch (er) { /* 讀不到就當沒看過 */ }
     if (!seen && !qs.get('empty')) {
@@ -576,7 +620,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
     attn.frame();
     if (pov.driving()) pov.cam(wall);          // 角色視角：鏡頭綁在眼睛上，不走 OrbitControls
     else {
-      updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
+      grabStep(real); updateCamera(wall); const tg0 = v3c.copy(controls.target); controls.update();
       // 使用者拖曳平移（注視點被他移動）→ 暫停跟隨
       if (view.char && !view.detached && !view.tween && performance.now() < userActive && controls.target.distanceToSquared(tg0) > 1e-4) { view.detached = true; view.dpos = { x: view.char.object3D.position.x, z: view.char.object3D.position.z }; }
       clampCam();
@@ -586,6 +630,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       if (Math.abs(want - shift) > 0.002) { shift += (want - shift) * Math.min(1, wall * 6); const w = cv.clientWidth, h = cv.clientHeight; camera.setViewOffset(w, h, 0, shift * h, w, h); }
       else if (shift !== want) { shift = want; if (!want) camera.clearViewOffset(); }
     }
+    outline.frame(); if (hoverXY && !grab && now - hoverRe > 160) { hoverRe = now; const hc = pickChar(hoverXY); outline.set(hc && !hc.away ? hc : null); }   // 游標沒動、人走開（或走來）時外框也要跟著換
     fire.frame(real); phys.preRender(real); const f2 = performance.now(); renderer.render(scene, camera); const f3 = performance.now(); phys.postRender();   // 鏡頭微晃只在渲染的那一刻加上
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
     updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.outside.tick(); W.empty.frame();

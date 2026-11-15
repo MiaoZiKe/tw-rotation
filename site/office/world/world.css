@@ -136,3 +136,16 @@ button{font-family:inherit;color:inherit;cursor:pointer}
   #viewSeg button{padding:0 8px;min-width:0}
   #viewPov{display:none}                         /* 手機的「角色視角」入口在資訊卡與操控列（第一排放不下） */
 }
+
+/* 佈告欄（11-16）：照「回報進度」格式——每件事兩行（符號＋標題＋狀態／做到哪、時間、卡在誰），欄位多，面板放寬、清單不再自己再捲一層 */
+#board{width:420px;max-width:calc(100vw - 24px)}
+#board .list.bl{max-height:none;overflow:visible}
+#board .list .row.bt{flex-wrap:wrap;align-items:flex-start;row-gap:2px;cursor:pointer}
+#board .list .row.bt .sy{flex:none;width:22px;font-size:14px;line-height:1.5;text-align:center;font-style:normal}
+#board .list .row.bt span{white-space:normal;overflow:visible;line-height:1.5}
+#board .list .row.bt .st{flex:none;font-style:normal;font-size:12px;color:var(--sub);line-height:1.6;white-space:nowrap}
+#board .list .row.bt .bm{flex:1 0 100%;padding-left:30px;font-size:12px;line-height:1.5;color:var(--sub)}
+#board .list .row.bt .bm.stuck{color:#c2561b;font-weight:700}
+#board .bsum{margin:8px 0 0;font-size:12px;line-height:1.7}#board .bsum small{color:var(--sub);font-size:12px}
+#board .det{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0 0 6px 30px;font-size:12px}#board .det dt{color:var(--sub)}#board .det dd{margin:0}
+@media (max-width:640px){#board{width:auto;max-width:none;max-height:62dvh}#board .bsum{line-height:1.8}}

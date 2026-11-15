@@ -218,17 +218,36 @@ export function createUI(W, demo, api) {
     const all = owner === 'ceo' ? 1 + W.org.departments.reduce((n, q) => n + q.members.filter(live).length, 0) : people.length, leadM = owner === 'ceo' ? null : d.members.find(m => m.lead), lead = owner === 'ceo' ? 'CEO' : (leadM && live(leadM) ? leadM.nick : '無（待指派）');   // 主管被開除（或整個部門被開除）就不能還掛著他的名字
     const tasks = []; people.forEach(sp => { const p = progress(sp); p.list.forEach(x => tasks.push({ ...x, who: sp.nick, whoId: sp.id, zh: sp.zh, p })); });
     tasks.sort((a, b) => (a.t < b.t ? 1 : -1));
-    return { name: owner === 'ceo' ? 'CEO' : d.name, color: owner === 'ceo' ? '#ffb057' : d.color, all, lead, tasks, notes: demo.boards[owner] || [] };
+    return { name: owner === 'ceo' ? 'CEO' : d.name, color: owner === 'ceo' ? '#ffb057' : d.color, all, lead, tasks, people, notes: demo.boards[owner] || [] };
+  }
+  // ── 佈告欄事項的「回報進度」欄位（擁有者 11-16：「佈告欄應該 Follow 回報進度格式顯示」）──
+  // 照專案的回報格式：已完成（花多久、完成時間）、進行中（做到哪、預估還要多久與完成時間）、未完成（預計何時開始、要多久、卡在誰）。
+  // 符號：✅ 已完成｜🔄 進行中（已到收尾驗收）｜🛠️ 製作中｜⚠️ 卡住｜⬜ 未開始。
+  // 示範資料只有「狀態＋時間點」，所以花多久、做到幾 %、要多久、卡在誰都由任務資料決定性推算（同一件事每次打開都一樣），欄位一律標「預估」。
+  const BASE_MS = new Date('2026-11-13T10:30:00+08:00').getTime();
+  const parseT = t => new Date(`2026-${t.slice(0, 5)}T${t.slice(6)}:00+08:00`).getTime();
+  const stampOf = ms => { const d = new Date(ms + 8 * 3600000); return `${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
+  const fmtMin = m => { m = Math.max(1, Math.round(m)); return m < 60 ? `${m} 分鐘` : `${Math.floor(m / 60)} 小時${m % 60 ? ' ' + (m % 60) + ' 分' : ''}`; };
+  function taskInfo(x, B) {
+    const r = rng('bd' + x.whoId + x.title + x.t), tms = parseT(x.t);
+    if (x.s === 3) { const dur = 20 + Math.floor(r() * 9) * 15; return { sym: '✅', label: '已完成', dur, lines: [['花了', `${fmtMin(dur)}（預估）`], ['完成', x.t]], head: `花 ${fmtMin(dur)}（預估）・完成 ${x.t}` }; }
+    if (x.s === 2) {
+      const di = Math.max(0, x.p.list.filter(q => q.s === 2).findIndex(q => q.t === x.t)), elapsed = Math.max(1, Math.round((BASE_MS - tms) / 60000)), remain = x.p.etaMin + di * 22 + Math.floor(r() * 10), pct = Math.round(100 * elapsed / (elapsed + remain)), eta = stampOf(BASE_MS + remain * 60000), late = pct >= 65;
+      return { sym: late ? '🔄' : '🛠️', label: late ? '收尾驗收中' : '製作中', pct, remain, eta, lines: [['開始', x.t], ['做到', `約 ${pct}%（預估）`], ['已做', fmtMin(elapsed)], ['預估還要', fmtMin(remain)], ['預估完成', eta]], head: `做到約 ${pct}%（預估）・預估還要 ${fmtMin(remain)}・預估完成 ${eta}` };
+    }
+    const dur = 30 + Math.floor(r() * 7) * 15, peers = B.people.filter(q => q.id !== x.whoId), stuck = r() < 0.4, by = stuck ? (peers.length ? `${peers[Math.floor(r() * peers.length)].nick} 的交件` : '擁有者核可') : '';
+    return { sym: stuck ? '⚠️' : '⬜', label: stuck ? '卡住' : '未開始', stuck, dur, by, lines: [['預計開始', x.t], ['預估要', fmtMin(dur)], ['卡在', stuck ? `等 ${by}` : '目前沒有卡關']], head: `預計 ${x.t} 開始・預估要 ${fmtMin(dur)}・${stuck ? '卡在：等 ' + by : '沒有卡關'}` };
   }
   function renderBoard() {
-    const B = boardData(boardOwner), owner0 = boardOwner, all0 = B.all; boardTasks = B.tasks; const cnt = k => B.tasks.filter(x => x.s === k).length;
+    const B = boardData(boardOwner), owner0 = boardOwner, all0 = B.all; boardTasks = B.tasks; B.tasks.forEach(x => { x.info = taskInfo(x, B); }); const cnt = k => B.tasks.filter(x => x.s === k).length, cs = k => B.tasks.filter(x => x.info.sym === k).length;
     const rows = B.tasks.map((x, i) => ({ x, i })).filter(r => !boardF || r.x.s === boardF);
     $('board').innerHTML = `<button class="x" aria-label="關閉">×</button><h3><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${B.color}"></span>${esc(B.name)}佈告欄</h3>
       <p class="bmeta">${boardOwner === 'ceo' ? '全公司' : '部門'}人數 ${B.all} 人・主管：${esc(B.lead)}</p>
       <div class="scroll" id="boardScroll"><div class="bsec">便利貼公告</div>${B.notes.map(n => `<div class="note${n.isNew ? ' new' : ''}"><time>${esc(n.t)}</time><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div>`).join('') || '<p class="empty">目前沒有公告</p>'}
-      <div class="bsec">事項彙總（${boardOwner === 'ceo' ? 'CEO' : esc(B.name) + '成員'}）</div>
-      <div class="kpi" id="boardKpi">${[[1, 'k1', '未完成'], [2, 'k2', '進行中'], [3, 'k3', '已完成']].map(([k, c, n]) => `<button class="${c}${boardF === k ? ' on' : ''}" data-bk="${k}" aria-pressed="${boardF === k}" title="只看「${n}」的事項，再點一次看全部"><span>${n}</span><b>${cnt(k)}</b></button>`).join('')}</div>
-      <div class="list bl" id="boardList">${rows.length ? rows.map(({ x, i }) => `<div class="rowx${boardOpen === i ? ' open' : ''}"><div class="row" role="button" tabindex="0" data-br="${i}" aria-expanded="${boardOpen === i}"><i class="s${x.s}"></i><span>${esc(x.who)}：${esc(x.title)}</span><em class="st">${SN[x.s]}</em><time>${TL[x.s]} ${x.t}</time></div>${boardOpen === i ? `<dl class="det"><dt>狀態</dt><dd>${SN[x.s]}</dd><dt>${TL[x.s]}時間</dt><dd>${esc(x.t)}</dd><dt>負責人</dt><dd>${esc(x.who)}（${esc(x.whoId)}・${esc(x.zh)}）</dd>${x.s === 2 ? `<dt>預估完成</dt><dd>${esc(x.p.eta)}（約 ${x.p.etaMin} 分鐘後）</dd>` : ''}</dl>` : ''}</div>`).join('') : '<div class="empty">這個狀態目前沒有事項</div>'}</div></div>${owner0 === 'ceo' ? '' : `<div class="acts"><button class="btn dng" data-hr="firedept"${all0 ? '' : ' disabled'}>開除整個部門</button></div>`}`;
+      <div class="bsec">進度回報（${boardOwner === 'ceo' ? 'CEO' : esc(B.name) + '成員'}）</div>
+      <div class="kpi" id="boardKpi">${[[1, 'k1', '未完成', '⬜'], [2, 'k2', '進行中', '🛠️'], [3, 'k3', '已完成', '✅']].map(([k, c, n, ic]) => `<button class="${c}${boardF === k ? ' on' : ''}" data-bk="${k}" aria-pressed="${boardF === k}" title="只看「${n}」的事項，再點一次看全部"><span>${ic} ${n}</span><b>${cnt(k)}</b></button>`).join('')}</div>
+      <p class="bsum" id="boardSum">✅ 已完成 ${cs('✅')}　🔄 進行中（收尾） ${cs('🔄')}　🛠️ 製作中 ${cs('🛠️')}　⚠️ 卡住 ${cs('⚠️')}　⬜ 未開始 ${cs('⬜')}<br><small>標「預估」的欄位，是依現有任務資料推算的</small></p>
+      <div class="list bl" id="boardList">${rows.length ? rows.map(({ x, i }) => `<div class="rowx${boardOpen === i ? ' open' : ''}"><div class="row bt" role="button" tabindex="0" data-br="${i}" aria-expanded="${boardOpen === i}"><b class="sy" aria-hidden="true">${x.info.sym}</b><span>${esc(x.who)}：${esc(x.title)}</span><em class="st">${x.info.label}</em><small class="bm${x.info.stuck ? ' stuck' : ''}"><time>${TL[x.s]} ${x.t}</time>・${esc(x.info.head)}</small></div>${boardOpen === i ? `<dl class="det"><dt>狀態</dt><dd>${x.info.sym} ${x.info.label}</dd>${x.info.lines.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}<dt>負責人</dt><dd>${esc(x.who)}（${esc(x.whoId)}・${esc(x.zh)}）</dd></dl>` : ''}</div>`).join('') : '<div class="empty">這個狀態目前沒有事項</div>'}</div></div>${owner0 === 'ceo' ? '' : `<div class="acts"><button class="btn dng" data-hr="firedept"${all0 ? '' : ' disabled'}>開除整個部門</button></div>`}`;
   }
   U.showBoard = owner => {
     $('card').hidden = true; boardOwner = owner; boardF = 2; boardOpen = -1; renderBoard(); $('board').hidden = false;
@@ -236,6 +255,7 @@ export function createUI(W, demo, api) {
   $('board').onclick = e => {
     let b; { const t = e.target.closest('button,[role=button]'); if (t && e.detail) queueMicrotask(() => t.blur()); }
     if (e.target.closest('.x')) { $('board').hidden = true; return; }
+    if ((b = e.target.closest('[data-say]'))) { const o = b.dataset.say; $('board').hidden = true; if (W.chat && W.chat.openTo) W.chat.openTo(o === 'ceo' ? 'ceo' : 'dept:' + o); return; }       // 部門佈告欄的「對整個部門說」：打開該部門聊天室並選好「整個部門」
     if ((b = e.target.closest('[data-hr="firedept"]'))) { W.hr.askDept(boardOwner); return; }
     if ((b = e.target.closest('[data-bk]'))) { const k = +b.dataset.bk; boardF = boardF === k ? 0 : k; boardOpen = -1; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; if (e.detail) document.activeElement.blur(); return; }
     if ((b = e.target.closest('[data-br]'))) { const i = +b.dataset.br; boardOpen = boardOpen === i ? -1 : i; const sc = $('boardScroll').scrollTop; renderBoard(); $('boardScroll').scrollTop = sc; return; }
