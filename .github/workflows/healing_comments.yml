@@ -43,26 +43,31 @@ jobs:
           HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
           HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
           HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+          # 2026-11-16 專屬留言關鍵字：Threads 沒有私訊 API，設了 comment_keyword 的貼文改公開回覆（threads_read_replies／threads_manage_replies）
+          HEALING_THREADS_ACCESS_TOKEN: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN }}
+          HEALING_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN_AUTO }}
+          HEALING_THREADS_USER_ID: ${{ secrets.HEALING_THREADS_USER_ID }}
         run: python scripts/healing_comments.py ${{ steps.mode.outputs.dry }}
       - name: 私訊紀錄寫回 main（只有雜湊、時間、結果，沒有權杖）
         if: always() && steps.mode.outputs.dry == ''
         env:
-          F: docs/marketing/channels/healing/state/comments_dm.json
+          D: docs/marketing/channels/healing/state
         run: |
-          [ -f "$F" ] || { echo "沒有紀錄檔（等待權杖或本輪沒動）"; exit 0; }
+          FILES=""
+          for f in comments_dm.json threads_replied.json; do [ -f "$D/$f" ] && FILES="$FILES $f"; done
+          [ -n "$FILES" ] || { echo "沒有紀錄檔（等待權杖或本輪沒動）"; exit 0; }
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
           MSG="談晴說礙：留言私訊紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
-          cp "$F" "$RUNNER_TEMP/comments_dm.json"
-          git add -- "$F"
+          for f in $FILES; do cp "$D/$f" "$RUNNER_TEMP/$f"; git add -- "$D/$f"; done
           if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
           git commit -q -m "$MSG"
           for i in 1 2 3 4; do
             if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
             sleep $((2 ** i))
             git fetch -q origin main && git reset -q --hard origin/main
-            mkdir -p "$(dirname "$F")" && cp "$RUNNER_TEMP/comments_dm.json" "$F"
-            git add -- "$F"
+            mkdir -p "$D"
+            for f in $FILES; do cp "$RUNNER_TEMP/$f" "$D/$f"; git add -- "$D/$f"; done
             git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
             git commit -q -m "$MSG"
           done

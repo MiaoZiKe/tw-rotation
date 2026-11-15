@@ -136,8 +136,53 @@ Threads API 沒有私訊功能（見 `comment_dm_plan.md` 第三節），本次�
 - 頻道④發文工作流寫回 state 時若整個資料夾覆蓋，可能把本檔的紀錄蓋回舊版；即使如此，Meta 規定每則留言只能私回 1 次，不會重複送到同一人（會被記成「已私回過」）。
 - 權杖 60 天到期，續期由頻道④發文那邊的續期流程負責（`HEALING_IG_ACCESS_TOKEN_AUTO` 優先使用）。
 
+## 九、每篇專屬留言關鍵字（2026-11-16 起；照頻道② `scripts/tc_ig_dm.py` 的思路）
+
+起因：結婚登記影片（`queue/20261115v_marriage`，11-16 20:27）片尾卡與文案寫「留言「結婚」拿完整資料」，但原本程式不分關鍵字，留言的人只會收到同一則問候（而且查不到追蹤就什麼都不送），承諾兌現不了。
+
+### 怎麼設
+
+| 位置 | 填什麼 |
+|---|---|
+| 佇列 `queue/<資料夾>/meta.json` | `"comment_keyword": "結婚"`（字串或清單；只在這一篇觸發） |
+| `dm_config.json` → `keyword_replies["結婚"].dm` | 私訊全文：數字摘要＋出處＋網站文章網址 |
+| `dm_config.json` → `keyword_replies["結婚"].public` | 公開回覆 2～3 句（意思相同、措辭不同），依留言 id 的 sha256 固定輪流（防洗版） |
+| `keyword_default_public` | 內容還有「待填」時的保底句：「謝謝留言。完整數字與出處列在貼文說明欄最下方。」 |
+
+IG 貼文 id ↔ 佇列資料夾用 `state/posted.json`（鍵＝資料夾名，`ig.id`／`threads.id`）。文案寫了「留言「X」」卻沒設 → `tests/test_healing_comments_kw.py::test_佇列文案寫了留言關鍵字_就一定有設定` 會紅。
+
+### 判斷順序（IG）
+
+| 順序 | 情況 | 處理 | 結果代碼 |
+|---|---|---|---|
+| 1 | 自傷關鍵字（照舊最優先） | 送關懷訊息（1925），不送資料 | `care` |
+| 2 | 含專屬關鍵字、私訊接得通、查得到**有追蹤** | 私訊 `dm` 全文（只私訊有追蹤者：規則照舊） | `kw_dm` |
+| 3 | 含專屬關鍵字、**沒追蹤** | 不私訊；公開回覆一句（保底） | `kw_public_not_follower` |
+| 4 | 含專屬關鍵字、**查不到追蹤**（Meta 要對方先傳過訊息才查得到，多數留言者是這種） | 不私訊；公開回覆一句 | `kw_public_unknown_follow` |
+| 5 | 含專屬關鍵字、**私訊接不通**（EAA 權杖看不到連結 IG 的粉絲專頁，不查追蹤） | 公開回覆一句 | `kw_public_no_dm` |
+| 6 | 有追蹤但**私訊送出失敗** | 同一輪改公開回覆 | `kw_public_dm_failed` |
+| 7 | 同一人同一篇已回過 | 不再回 | `kw_dup` |
+| 8 | 沒有專屬關鍵字 | 照舊一般問候（有追蹤才私訊） | `dm`／`skip_*` |
+
+公開回覆用 `POST /{comment-id}/replies`（讀留言的那組權限）。防洗版：每人每篇 1 次；每輪最多 `public_max_per_run`（10）、每篇每小時最多 `public_max_per_post_hour`（30），超過的留到下一輪（不丟）。公開回覆失敗 → 下一輪重試，最多 3 輪。`keyword_public_fallback=false` 可關掉保底（只記錄、不回）。
+
+為什麼沒寫「請先追蹤再留言」：那是叫人做事的句子，而且把公開資料綁在追蹤上（頻道②法遵把追蹤門檻列為未確認風險）；保底句直接給數字摘要＋出處所在＋網址，沒追蹤的人也拿得到資料，「只私訊有追蹤者」照舊。
+
+### Threads
+
+Threads 沒有私訊 API、查不到追蹤 → 只對設了 `comment_keyword` 的貼文讀留言（`threads_read_replies`），含關鍵字就公開回覆同一份 `public` 句子（`threads_manage_replies`），每人每篇 1 次、每輪最多 `threads_reply.max_per_run`。自傷關鍵字**不自動回**，摘要＋警告提醒 CEO 依 2-7 人工處理（legal.md：第二、三級訊號不得自動回覆）。紀錄 `state/threads_replied.json`（只存雜湊）。Threads 出錯只出黃色警告、不讓工作流紅燈。
+
+### 網站文章能不能打開
+
+`site/articles.js`：談晴說礙是隱藏分頁（PRIV），清單只有站主看得到，但 `#article/<id>` **直接連結誰都打得開**（`showPost` 找不到索引就讀 `articles/healing/<id>.json`，`open:true` 不走額度）。所以私訊與公開回覆附 `https://liguligu-puipui.com/#article/2026-11-15-healing-marriage-video`。IG 留言裡的網址點不了，所以公開回覆第一句另寫「貼文說明欄最下方也列有出處」。
+
+### 空跑＝只讀能力檢查
+
+`--dry-run`（工作流手動執行 `dry_run` 打勾）會多印「能力檢查」：權杖種類、`debug_token` 權限、私訊接不接得通。不私訊、不回覆、不寫紀錄。
+
 ## 修改紀錄
 
 | 日期（台北） | 內容 |
 |---|---|
 | 2026-11-08 | 建立：輪詢讀主留言、查追蹤、Private Replies、自傷關懷訊息、空跑與上限 |
+| 2026-11-16 | 每篇專屬留言關鍵字（meta.json `comment_keyword`＋`keyword_replies`）、IG 私訊接不通／沒追蹤／查不到追蹤時公開回覆保底、Threads 公開回覆、空跑能力檢查（第九節） |
