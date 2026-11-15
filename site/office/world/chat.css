@@ -172,6 +172,7 @@
   #chatPanel.mc.open>.mc-dock{padding:6px 76px 0 10px;background:var(--bg);border-top:0}
   .c-me{max-width:88%}.c-rp{max-width:96%}
   .c-more{display:none!important}
+  #chatPanel .c-hint{display:none}       /* 手機沒有 Enter／Shift 的說明可講，也避免壓在版本標記上 */
   #app #card,#app #board,#app #grp{bottom:var(--mc-h,8px)!important}
   #app .sp-hud{bottom:calc(162px + var(--lift,0px) + var(--mc-h,0px))}
   #app .sp-go{left:12px;bottom:var(--mc-h,12px)}

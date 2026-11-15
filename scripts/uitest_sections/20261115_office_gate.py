@@ -405,6 +405,7 @@ def _og_ui(b, base):
         wait_until(pg, "() => __world.chat.mode === 'ok'", 30000)
         _og_send(pg, "徽章測試")
         wait_until(pg, "() => !document.getElementById('chatN').hidden", 30000)
+        _og_js(pg, "#chatX")          # 徽章長在收合的輸入列上；聊天室窗展開時那顆鈕藏起來（2026-11-15 夜改版），所以收合後再量
         r = pg.evaluate("() => { const e = document.getElementById('chatN'), s = getComputedStyle(e), b = e.getBoundingClientRect(); return { bw: s.borderTopWidth, mt: s.marginTop, w: Math.round(b.width), h: Math.round(b.height), t: e.textContent }; }")
         ok("徽章：沒吃到下拉三角形樣式（無邊框、無上邊距）、是 18 高的圓、數字 1", r["bw"] == "0px" and r["mt"] == "0px" and r["h"] == 18 and r["w"] >= 18 and r["t"] == "1", r)
         _og_shot(pg, "gate_6_徽章.png")
@@ -416,6 +417,7 @@ def _og_ui(b, base):
         pg.evaluate("() => document.getElementById('moreBtn').click()")
         pg.evaluate("() => document.getElementById('chatBtn').click()")
         wait_until(pg, "() => __world.chat.mode === 'ok'", 30000)
+        _og_js(pg, "#mcStrip [data-room=ceo]")        # 手機先看清單、點進對話才有輸入框
         pg.fill("#chatText", "鍵盤測試")
         _og_js(pg, "#chatSend")
         wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length === 1", 30000)
