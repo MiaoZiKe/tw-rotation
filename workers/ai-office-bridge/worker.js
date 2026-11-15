@@ -15,6 +15,12 @@
  *       Claude 端（只收接入碼，而且「不准」帶 Origin：瀏覽器拿到碼也取不走指令）
  *         POST /v1/inbox/pull  { session_id, wait?, max? }          → 取走排隊中的指令（可長輪詢，最多等 20 秒）
  *         POST /v1/inbox/ack   { id, status, reply?, session_id }   → 回報執行中／完成／失敗與回覆
+ *   · 辦公室與專案（2026-11-15：一個專案一間辦公室，規格見 docs/ai_office/plan.md 最後一節）
+ *       GET  /v1/office/<id>/projects             → 專案清單（名稱、最後活動、進行中工作階段數），入口頁用
+ *       GET  /v1/office/<id>/state?project=<雜湊>  → 只回單一專案的事件、工作階段、子 Agent、統計；不帶＝全部
+ *       GET  /v1/offices、POST /v1/offices、POST /v1/offices/<o_…>、POST /v1/offices/<o_…>/delete
+ *                                                → 登入帳號底下的辦公室清單（建立、改名、綁專案、刪除）。非站長 3 間、每間 5 位 Agent 由伺服器擋
+ *       指令收件匣：POST …/inbox 可帶 project（專案雜湊）；Claude 端 pull 帶自己的 project_hash，只取自己專案（或沒指定專案）的指令
  *
  * 為什麼用 Durable Object（SQLite）而不是 D1 或 KV：
  *   · KV 免費額度每天只有 1,000 次寫入，每個掛鉤事件都是一次寫入，一個下午就用完。
@@ -39,6 +45,12 @@ const LIMITS = {
   claim: [6, 3600],                    // 領碼每小時最多 6 次
 };
 const STALE_MS = 3 * 3600e3;
+// ── 多辦公室（2026-11-15：一個專案一間辦公室）──
+// 辦公室清單存在登入帳號底下；一間辦公室可綁定一或多個專案（project_hash）。辦公室只是「看哪些專案」的檢視，事件仍存在接入碼那一間（OFFICE）。
+const OFFICES = { adminMax: 20, memberMax: 3, memberAgents: 5, nameMax: 20, maxProjects: 10 };
+const ACTIVE_MS = 6 * 3600e3;          // 工作階段沒結束、而且 6 小時內有動靜＝進行中（跟網頁端 live.js 同一個門檻）
+const PH_RE = /^[0-9a-f]{16}$/;
+LIMITS.offices = [60, 60];
 // ── 網站指令收件匣 ──
 const INBOX = {
   maxText: 2000,                       // 一則指令最多 2000 字
@@ -119,6 +131,7 @@ export function clean(e) {
   const put = (k, v) => { if (v != null) o[k] = v; };
   put('session_id', id(e.session_id));
   put('project_name', scrub(e.project_name, 60));
+  put('task_name', scrub(e.task_name, 24));                 // 任務簡稱（Claude 自己取的 6～12 字），名牌顯示「<簡稱> CEO」
   put('project_hash', typeof e.project_hash === 'string' && /^[0-9a-f]{16}$/.test(e.project_hash) ? e.project_hash : null);
   put('cloud', bool(e.cloud));
   put('agent_id', id(e.agent_id));
@@ -158,6 +171,21 @@ export function clean(e) {
   return o;
 }
 
+/** 每間辦公室最多幾位 Agent（以「類型」計：同一類型的多個子 Agent 算同一位同事）。留下最近有動靜的 cap 種類型，其餘不回傳。
+ *  為什麼在伺服器擋：前端只是畫面，使用者清掉瀏覽器儲存或改程式就繞過了。cap 為空（站長）＝不限。 */
+export function capAgents(agents, cap) {
+  if (!cap || cap < 1) return { agents, capped: 0 };
+  const last = new Map();
+  for (const a of agents) { const t = a.agent_type || '?', v = a.ended || a.last || 0; if (!last.has(t) || last.get(t) < v) last.set(t, v); }
+  const keep = new Set([...last.entries()].sort((x, y) => y[1] - x[1]).slice(0, cap).map((e) => e[0]));
+  return { agents: agents.filter((a) => keep.has(a.agent_type || '?')), capped: Math.max(0, last.size - cap) };
+}
+/** 辦公室名稱：去控制字元、收空白、最多 20 字 */
+export function cleanOfficeName(v) {
+  if (typeof v !== 'string') return null;
+  const t = v.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return t && [...t].length <= OFFICES.nameMax ? t : null;
+}
 const tokensOf = (u) => (u ? (u.input || 0) + (u.output || 0) + (u.cache_write || 0) : null);
 
 // ───────────────────────── 對外入口：全部轉給同一個 Durable Object ─────────────────────────
@@ -188,11 +216,17 @@ export class Hub {
       'CREATE TABLE IF NOT EXISTS quota (office TEXT PRIMARY KEY, data TEXT, at INTEGER)',
       'CREATE TABLE IF NOT EXISTS rl (k TEXT PRIMARY KEY, win INTEGER NOT NULL, n INTEGER NOT NULL)',
       // 網站指令收件匣：rev 每次狀態改變就換新的（全辦公室遞增），網站用 since=rev 增量讀
-      'CREATE TABLE IF NOT EXISTS inbox (mid TEXT PRIMARY KEY, office TEXT NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL, rev INTEGER NOT NULL, to_agent TEXT NOT NULL, text TEXT NOT NULL, status TEXT NOT NULL, sid TEXT, claimed_at INTEGER, done_at INTEGER, reply TEXT)',
+      'CREATE TABLE IF NOT EXISTS inbox (mid TEXT PRIMARY KEY, office TEXT NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL, rev INTEGER NOT NULL, to_agent TEXT NOT NULL, text TEXT NOT NULL, status TEXT NOT NULL, sid TEXT, claimed_at INTEGER, done_at INTEGER, reply TEXT, ph TEXT)',
+      // 登入帳號底下的辦公室清單：owner＝帳號代號（信箱雜湊，不存信箱）；phs＝綁定的專案雜湊（JSON 陣列）；cap＝每間最多幾位 Agent（站長為空＝不限）
+      'CREATE TABLE IF NOT EXISTS offices (oid TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL, phs TEXT NOT NULL DEFAULT \'[]\', cap INTEGER, created INTEGER NOT NULL, updated INTEGER NOT NULL)',
+      'CREATE INDEX IF NOT EXISTS of_owner ON offices (owner, created)',
       'CREATE INDEX IF NOT EXISTS ib_office ON inbox (office, status, created)',
       'CREATE TABLE IF NOT EXISTS inbox_rev (office TEXT PRIMARY KEY, rev INTEGER NOT NULL)',
     ];
     for (const s of T) this.sql.exec(s);
+    // 舊資料庫的收件匣沒有 ph 欄：補上（新的指令可以指定專案；舊的指令 ph 為空＝任何專案都可以取）
+    if (!this.q('PRAGMA table_info(inbox)').some((c) => c.name === 'ph')) this.sql.exec('ALTER TABLE inbox ADD COLUMN ph TEXT');
+    try { this.sql.exec('ALTER TABLE sessions ADD COLUMN tname TEXT'); } catch { /* 已經有這欄 */ }
     this.ready = true;
   }
 
@@ -230,23 +264,30 @@ export class Hub {
     const r = this.q('SELECT office, role FROM codes WHERE hash = ? AND revoked = 0', await sha256(m[1]))[0];
     return r ? r.office : false;          // false＝帶了碼但不對
   }
-  /** 網站登入權杖 → 是不是管理者（擁有者）。用服務綁定（ACCOUNT → tw-account）問 /v1/me，結果快取 10 分鐘。 */
-  async isOwner(tok) {
-    if (typeof tok !== 'string' || tok.length < 20 || tok.length > 4000) return false;
+  /** 網站登入權杖 → { valid, admin, key }。用服務綁定（ACCOUNT → tw-account）問 /v1/me，結果快取（有效 10 分鐘、無效 1 分鐘）。
+   *  key＝信箱（小寫）的雜湊前 24 碼：辦公室清單用它當帳號代號，收件端不存信箱。 */
+  async whoAmI(tok) {
+    const none = { valid: false, admin: false, key: null };
+    if (typeof tok !== 'string' || tok.length < 20 || tok.length > 4000) return none;
     const k = await sha256(tok), c = this.sess.get(k), now = this.now();
-    if (c && c.exp > now) return c.ok;
-    let ok = false;
+    if (c && c.exp > now) return c.w;
+    let w = none;
     try {
       const init = { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: this.origins()[0] }, body: JSON.stringify({ t: tok }) };
       let r = null;
       if (this.env.ACCOUNT && this.env.ACCOUNT.fetch) r = await this.env.ACCOUNT.fetch('https://account.internal/v1/me', init);
       else if (this.env.ACCOUNT_API_URL) r = await fetch(String(this.env.ACCOUNT_API_URL).replace(/\/+$/, '') + '/v1/me', init);
-      if (r && r.ok) { const j = await r.json(); ok = !!(j && j.user && j.user.admin); }
-    } catch (e) { ok = false; }
+      if (r && r.ok) {
+        const j = await r.json(), u = j && j.user;
+        if (u && typeof u.email === 'string' && u.email) w = { valid: true, admin: !!u.admin, key: 'u_' + (await sha256(u.email.toLowerCase())).slice(0, 24) };
+        else if (u && u.admin) w = { valid: true, admin: true, key: 'u_admin' };
+      }
+    } catch (e) { w = none; }
     if (this.sess.size > 200) this.sess.clear();
-    this.sess.set(k, { ok, exp: now + (ok ? 600e3 : 60e3) });
-    return ok;
+    this.sess.set(k, { w, exp: now + (w.valid ? 600e3 : 60e3) });
+    return w;
   }
+  async isOwner(tok) { const w = await this.whoAmI(tok); return w.valid && w.admin; }
   /** 網站端寫收件匣：只認擁有者的網站登入（X-AIO-Session），而且要從白名單網站來。接入碼不算。 */
   async ownerOffice(req) {
     if (!this.originOk(req.headers.get('Origin'))) return 'origin';
@@ -284,6 +325,11 @@ export class Hub {
       if (req.method === 'POST' && p === '/v1/claim') return await this.claim(req);
       let m = /^\/v1\/office\/([A-Za-z0-9_-]{1,40})\/state$/.exec(p);
       if (req.method === 'GET' && m) return await this.read(req, m[1], url);
+      m = /^\/v1\/office\/([A-Za-z0-9_-]{1,40})\/projects$/.exec(p);
+      if (req.method === 'GET' && m) return await this.projectList(req, m[1]);
+      if (p === '/v1/offices' && (req.method === 'GET' || req.method === 'POST')) return await this.officeRoute(req, req.method === 'GET' ? 'list' : 'create', null);
+      m = /^\/v1\/offices\/(o_[A-Za-z0-9_-]{6,30})(\/delete)?$/.exec(p);
+      if (req.method === 'POST' && m) return await this.officeRoute(req, m[2] ? 'delete' : 'update', m[1]);
       m = /^\/v1\/office\/([A-Za-z0-9_-]{1,40})\/wipe$/.exec(p);
       if (req.method === 'POST' && m) return await this.wipe(req, m[1]);
       m = /^\/v1\/office\/([A-Za-z0-9_-]{1,40})\/inbox$/.exec(p);
@@ -337,9 +383,9 @@ export class Hub {
     if (e.rate_limits) this.sql.exec('INSERT INTO quota (office, data, at) VALUES (?, ?, ?) ON CONFLICT(office) DO UPDATE SET data = excluded.data, at = excluded.at', office, JSON.stringify(e.rate_limits), rcv);
     if (!sid) return;
     // 工作階段：第一次看到就建立（就算沒收到 SessionStart，例如外掛是中途才裝的）
-    this.sql.exec(`INSERT INTO sessions (office, sid, ph, pname, cloud, started, last, state) VALUES (?, ?, ?, ?, ?, ?, ?, 'idle')
-      ON CONFLICT(office, sid) DO UPDATE SET last = excluded.last, ph = COALESCE(excluded.ph, ph), pname = COALESCE(excluded.pname, pname), cloud = COALESCE(excluded.cloud, cloud)`,
-      office, sid, ph, e.project_name || null, e.cloud == null ? null : e.cloud ? 1 : 0, rcv, rcv);
+    this.sql.exec(`INSERT INTO sessions (office, sid, ph, pname, tname, cloud, started, last, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'idle')
+      ON CONFLICT(office, sid) DO UPDATE SET last = excluded.last, ph = COALESCE(excluded.ph, ph), pname = COALESCE(excluded.pname, pname), tname = COALESCE(excluded.tname, tname), cloud = COALESCE(excluded.cloud, cloud)`,
+      office, sid, ph, e.project_name || null, e.task_name || null, e.cloud == null ? null : e.cloud ? 1 : 0, rcv, rcv);
     const S = (set, ...a) => this.sql.exec(`UPDATE sessions SET ${set} WHERE office = ? AND sid = ?`, ...a, office, sid);
     const cat = e.tool_category;
     switch (e.event) {
@@ -407,15 +453,20 @@ export class Hub {
     if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
     if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const now = this.now(), since = Math.max(0, parseInt(url.searchParams.get('since') || '0', 10) || 0);
+    // 單一專案：?project=<專案雜湊>。事件、工作階段、子 Agent、統計都只回這個專案的（沒有專案雜湊的事件，例如指令狀態更新，每個專案都看得到）。
+    const pj = url.searchParams.get('project');
+    if (pj && !PH_RE.test(pj)) return this.json(req, { error: 'bad_project' }, 400);
+    const PE = pj ? ' AND (ph = ? OR ph IS NULL)' : '', PA = pj ? [pj] : [];
     const evRows = since > 0
-      ? this.q('SELECT seq, ts, rcv, data FROM events WHERE office = ? AND seq > ? ORDER BY seq LIMIT 300', office, since)
-      : this.q('SELECT seq, ts, rcv, data FROM events WHERE office = ? ORDER BY seq DESC LIMIT 60', office).reverse();
+      ? this.q('SELECT seq, ts, rcv, data FROM events WHERE office = ? AND seq > ?' + PE + ' ORDER BY seq LIMIT 300', office, since, ...PA)
+      : this.q('SELECT seq, ts, rcv, data FROM events WHERE office = ?' + PE + ' ORDER BY seq DESC LIMIT 60', office, ...PA).reverse();
     const events = evRows.map((r) => { const d = JSON.parse(r.data); delete d.usage_subagents; delete d.rate_limits; return { seq: r.seq, ts: r.ts, rcv: r.rcv, ...d }; });
-    const top = this.q('SELECT MAX(seq) AS s, MAX(rcv) AS t, COUNT(*) AS n FROM events WHERE office = ?', office)[0] || {};
-    const projects = this.q('SELECT ph AS hash, name, first, last, n AS events FROM projects WHERE office = ? ORDER BY last DESC LIMIT 30', office);
-    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ? ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3)
+    const top = this.q('SELECT MAX(seq) AS s FROM events WHERE office = ?', office)[0] || {};
+    const cnt = this.q('SELECT MAX(rcv) AS t, COUNT(*) AS n FROM events WHERE office = ?' + PE, office, ...PA)[0] || {};
+    const projects = this.projectRows(office, now);
+    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, tname AS task_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ?' + (pj ? ' AND ph = ?' : '') + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
       .map((s) => ({ ...s, cloud: s.cloud == null ? null : !!s.cloud }));
-    const agents = this.q('SELECT aid AS agent_id, sid AS session_id, ph AS project_hash, type AS agent_type, descr AS description, started, last, ended, status, tool, tool_at, summary, tokens, dur AS duration_ms FROM agents WHERE office = ? AND (ended IS NULL OR ended > ?) ORDER BY COALESCE(ended, last) DESC LIMIT 200', office, now - 86400e3)
+    let agents = this.q('SELECT aid AS agent_id, sid AS session_id, ph AS project_hash, type AS agent_type, descr AS description, started, last, ended, status, tool, tool_at, summary, tokens, dur AS duration_ms FROM agents WHERE office = ? AND (ended IS NULL OR ended > ?)' + (pj ? ' AND ph = ?' : '') + ' ORDER BY COALESCE(ended, last) DESC LIMIT 200', office, now - 86400e3, ...PA)
       .map((a) => (a.status === 'running' && now - (a.last || 0) > STALE_MS ? { ...a, status: 'unknown' } : a));
     // 各子 Agent 類型：近 7 天的真實統計（前端績效總表用；樣本不足由前端判斷並標示）
     const since7 = now - 7 * 86400e3;
@@ -424,16 +475,89 @@ export class Hub {
         SUM(CASE WHEN status = 'running' AND ? - last <= ? THEN 1 ELSE 0 END) AS running,
         AVG(CASE WHEN status IN ('done', 'failed') THEN dur END) AS avg_ms, SUM(CASE WHEN status IN ('done', 'failed') AND dur IS NOT NULL THEN 1 ELSE 0 END) AS n_dur,
         SUM(tokens) AS tokens, SUM(CASE WHEN tokens IS NOT NULL THEN 1 ELSE 0 END) AS n_tokens, MAX(COALESCE(ended, last)) AS last
-      FROM agents WHERE office = ? AND COALESCE(started, last) > ? GROUP BY type ORDER BY dispatched DESC LIMIT 100`, now, STALE_MS, office, since7)
+      FROM agents WHERE office = ? AND COALESCE(started, last) > ?${pj ? ' AND ph = ?' : ''} GROUP BY type ORDER BY dispatched DESC LIMIT 100`, now, STALE_MS, office, since7, ...PA)
       .map((t) => ({ ...t, avg_ms: t.avg_ms == null ? null : Math.round(t.avg_ms) }));
-    const ceo = this.q('SELECT COUNT(*) AS sessions, SUM(prompts) AS prompts, SUM(turns) AS turns, SUM(tokens) AS tokens FROM sessions WHERE office = ? AND last > ?', office, since7)[0] || {};
+    const ceo = this.q('SELECT COUNT(*) AS sessions, SUM(prompts) AS prompts, SUM(turns) AS turns, SUM(tokens) AS tokens FROM sessions WHERE office = ? AND last > ?' + (pj ? ' AND ph = ?' : ''), office, since7, ...PA)[0] || {};
     const qr = this.q('SELECT data, at FROM quota WHERE office = ?', office)[0];
     const ib = this.q("SELECT SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS queued, SUM(CASE WHEN status IN ('claimed', 'running') THEN 1 ELSE 0 END) AS active FROM inbox WHERE office = ?", office)[0] || {};
+    // 辦公室檢視（?view=<辦公室代號>）：非站長的辦公室每間最多 N 位 Agent，由這裡擋（站長的 cap 為空＝不限）
+    let capped = 0;
+    const view = url.searchParams.get('view');
+    if (view && /^o_[A-Za-z0-9_-]{6,30}$/.test(view)) {
+      const vo = this.q('SELECT cap FROM offices WHERE oid = ?', view)[0];
+      if (vo && vo.cap) { const c = capAgents(agents, vo.cap); agents = c.agents; capped = c.capped; }
+    }
     return this.json(req, {
-      office, now, seq: top.s || 0, since, initial: since === 0, total_events: top.n || 0, last_event_at: top.t || null,
+      office, now, seq: top.s || 0, since, initial: since === 0, total_events: cnt.n || 0, last_event_at: cnt.t || null, project: pj || null, agents_capped: capped,
       projects, sessions, agents, types, ceo, quota: qr ? { rate_limits: JSON.parse(qr.data), at: qr.at } : null, events,
       inbox: { queued: ib.queued || 0, active: ib.active || 0, rev: this.inboxRev(office) },
     });
+  }
+
+  /** 專案清單（名稱、最後活動、進行中工作階段數）。state 與 /projects 共用。 */
+  projectRows(office, now) {
+    return this.q(`SELECT p.ph AS hash, p.name, p.first, p.last, p.n AS events,
+        (SELECT COUNT(*) FROM sessions s WHERE s.office = p.office AND s.ph = p.ph AND s.ended IS NULL AND s.last > ?) AS active
+      FROM projects p WHERE p.office = ? ORDER BY p.last DESC LIMIT 30`, now - ACTIVE_MS, office);
+  }
+  // ───────── GET /v1/office/<id>/projects：只要專案清單（入口頁用，比 state 輕很多） ─────────
+  async projectList(req, office) {
+    const who = await this.readerOffice(req);
+    if (!who) {
+      if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' });
+      return this.json(req, { error: 'auth' }, 401);
+    }
+    if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
+    const now = this.now();
+    return this.json(req, { office, now, projects: this.projectRows(office, now) });
+  }
+
+  // ───────── 辦公室清單（登入帳號底下）：/v1/offices ─────────
+  officeView(r) { let phs = []; try { phs = JSON.parse(r.phs); } catch (e) { phs = []; } return { id: r.oid, name: r.name, projects: phs, agent_cap: r.cap || null, created: r.created, updated: r.updated }; }
+  cleanPhs(v) {
+    if (v == null) return [];
+    if (!Array.isArray(v) || v.length > OFFICES.maxProjects) return null;
+    const out = []; for (const h of v) { if (typeof h !== 'string' || !PH_RE.test(h)) return null; if (!out.includes(h)) out.push(h); }
+    return out;
+  }
+  async officeRoute(req, act, oid) {
+    if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+    const w = await this.whoAmI(req.headers.get('X-AIO-Session'));
+    if (!w.valid) {
+      if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' });
+      return this.json(req, { error: 'auth' }, 401);
+    }
+    if (!this.hit('ofc:' + w.key, LIMITS.offices)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
+    const max = w.admin ? OFFICES.adminMax : OFFICES.memberMax, cap = w.admin ? null : OFFICES.memberAgents;
+    const mine = () => this.q('SELECT * FROM offices WHERE owner = ? ORDER BY created, rowid', w.key);
+    if (act === 'list') return this.json(req, { offices: mine().map((r) => this.officeView(r)), limits: { max, agents: cap }, admin: w.admin });
+    const { b, err } = await this.body(req);
+    if (err) return this.json(req, { error: err }, err === 'too_large' ? 413 : 400);
+    const now = this.now();
+    if (act === 'create') {
+      const name = cleanOfficeName(b.name), phs = this.cleanPhs(b.projects);
+      if (!name) return this.json(req, { error: 'bad_name', max: OFFICES.nameMax }, 400);
+      if (!phs) return this.json(req, { error: 'bad_projects' }, 400);
+      const cur = mine();
+      if (cur.length >= max) return this.json(req, { error: 'office_limit', max }, 409);       // 非站長 3 間：由這裡擋，不是前端
+      if (cur.some((r) => r.name === name)) return this.json(req, { error: 'name_taken' }, 409);
+      const id = 'o_' + newCode().slice(4, 16).replace(/[^A-Za-z0-9]/g, 'x');
+      this.sql.exec('INSERT INTO offices (oid, owner, name, phs, cap, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?)', id, w.key, name, JSON.stringify(phs), cap, now, now);
+      return this.json(req, { ok: true, office: this.officeView(this.q('SELECT * FROM offices WHERE oid = ?', id)[0]), limits: { max, agents: cap } });
+    }
+    const row = this.q('SELECT * FROM offices WHERE oid = ? AND owner = ?', oid, w.key)[0];
+    if (!row) return this.json(req, { error: 'not_found' }, 404);       // 別人的辦公室與不存在的一律回 404，不洩漏存在與否
+    if (act === 'delete') { this.sql.exec('DELETE FROM offices WHERE oid = ?', oid); return this.json(req, { ok: true }); }
+    let name = row.name, phs = row.phs;
+    if (b.name !== undefined) {
+      name = cleanOfficeName(b.name);
+      if (!name) return this.json(req, { error: 'bad_name', max: OFFICES.nameMax }, 400);
+      if (this.q('SELECT oid FROM offices WHERE owner = ? AND name = ? AND oid <> ?', w.key, name, oid)[0]) return this.json(req, { error: 'name_taken' }, 409);
+    }
+    if (b.projects !== undefined) { const l = this.cleanPhs(b.projects); if (!l) return this.json(req, { error: 'bad_projects' }, 400); phs = JSON.stringify(l); }
+    this.sql.exec('UPDATE offices SET name = ?, phs = ?, updated = ? WHERE oid = ?', name, phs, now, oid);
+    return this.json(req, { ok: true, office: this.officeView(this.q('SELECT * FROM offices WHERE oid = ?', oid)[0]) });
   }
 
   // ───────── POST /v1/claim：擁有者本人登入網站後領接入碼（只顯示這一次） ─────────
@@ -489,7 +613,7 @@ export class Hub {
     let status = r.status;
     if (status === 'claimed' && now - r.updated > INBOX.claimedStaleMs) status = 'stale';
     if (status === 'running' && now - r.updated > INBOX.runningStaleMs) status = 'stale';
-    return { id: r.mid, to: r.to_agent, text: r.text, status, created: r.created, updated: r.updated, claimed_at: r.claimed_at, done_at: r.done_at, session_id: r.sid, reply: r.reply, rev: r.rev };
+    return { id: r.mid, to: r.to_agent, text: r.text, status, created: r.created, updated: r.updated, claimed_at: r.claimed_at, done_at: r.done_at, session_id: r.sid, reply: r.reply, rev: r.rev, project: r.ph || null };
   }
   async ownerGate(req, office) {
     const who = await this.ownerOffice(req);
@@ -511,6 +635,8 @@ export class Hub {
     if (!to) return this.json(req, { error: 'bad_to' }, 400);
     if (typeof b.text !== 'string') return this.json(req, { error: 'bad_text' }, 400);
     const text = b.text.replace(/[\u0000-\u0009\u000b-\u001f\u007f]+/g, ' ').trim();
+    if (b.project != null && !(typeof b.project === 'string' && PH_RE.test(b.project))) return this.json(req, { error: 'bad_project' }, 400);
+    const ph = b.project || null;
     if (!text) return this.json(req, { error: 'empty' }, 400);
     if (text.length > INBOX.maxText) return this.json(req, { error: 'too_long', max: INBOX.maxText }, 413);
     this.inboxHousekeep(office);
@@ -519,8 +645,8 @@ export class Hub {
     if (!this.hit('ibs:' + office, LIMITS.inboxSend)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '60' });
     if (!this.hit('ibd:' + office, LIMITS.inboxDay)) return this.json(req, { error: 'rate_day' }, 429, { 'Retry-After': '3600' });
     const mid = 'm_' + newCode().slice(4, 20), now = this.now(), rev = this.bumpRev(office);
-    this.sql.exec("INSERT INTO inbox (mid, office, created, updated, rev, to_agent, text, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued')", mid, office, now, now, rev, to, text);
-    this.sql.exec('INSERT INTO events (office, ts, rcv, kind, data) VALUES (?, ?, ?, ?, ?)', office, now, now, 'InboxUpdate', JSON.stringify({ event: 'InboxUpdate', message_id: mid, status: 'queued', to }));
+    this.sql.exec("INSERT INTO inbox (mid, office, created, updated, rev, to_agent, text, status, ph) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?)", mid, office, now, now, rev, to, text, ph);
+    this.sql.exec('INSERT INTO events (office, ts, rcv, ph, kind, data) VALUES (?, ?, ?, ?, ?, ?)', office, now, now, ph, 'InboxUpdate', JSON.stringify({ event: 'InboxUpdate', message_id: mid, status: 'queued', to }));
     for (const w of this.waiters) { clearTimeout(w.t); w.res(); }    // 叫醒正在長輪詢的待命 Claude
     this.waiters.clear();
     return this.json(req, { ok: true, message: this.viewMsg(this.q('SELECT * FROM inbox WHERE mid = ?', mid)[0]) });
@@ -532,11 +658,14 @@ export class Hub {
     if (!this.hit('ibr:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     this.inboxHousekeep(office);
     const since = Math.max(0, parseInt(url.searchParams.get('since') || '0', 10) || 0);
+    const pj = url.searchParams.get('project');
+    if (pj && !PH_RE.test(pj)) return this.json(req, { error: 'bad_project' }, 400);
+    const PE = pj ? ' AND (ph = ? OR ph IS NULL)' : '', PA = pj ? [pj] : [];
     const rows = since > 0
-      ? this.q('SELECT * FROM inbox WHERE office = ? AND rev > ? ORDER BY created, rowid LIMIT 100', office, since)
-      : this.q('SELECT * FROM inbox WHERE office = ? ORDER BY created DESC, rowid DESC LIMIT 50', office).reverse();
+      ? this.q('SELECT * FROM inbox WHERE office = ? AND rev > ?' + PE + ' ORDER BY created, rowid LIMIT 100', office, since, ...PA)
+      : this.q('SELECT * FROM inbox WHERE office = ?' + PE + ' ORDER BY created DESC, rowid DESC LIMIT 50', office, ...PA).reverse();
     // 「沒有回音」是依時間推算的，since 增量讀不會因為時間經過而回傳，所以另外附上目前所有進行中的指令
-    const open = this.q("SELECT * FROM inbox WHERE office = ? AND status IN ('queued', 'claimed', 'running') ORDER BY created, rowid LIMIT 50", office);
+    const open = this.q("SELECT * FROM inbox WHERE office = ? AND status IN ('queued', 'claimed', 'running')" + PE + ' ORDER BY created, rowid LIMIT 50', office, ...PA);
     const live = this.q("SELECT last FROM sessions WHERE office = ? AND ended IS NULL ORDER BY last DESC LIMIT 1", office)[0];
     return this.json(req, {
       office, now: this.now(), rev: this.inboxRev(office), since, messages: rows.map((r) => this.viewMsg(r)), open: open.map((r) => this.viewMsg(r)),
@@ -566,18 +695,20 @@ export class Hub {
     if (err) return this.json(req, { error: err }, 400);
     if (!this.hit('ibp:' + office, LIMITS.inboxPull)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const sid = id(b.session_id);
+    // 只取「自己這個專案」的指令（沒指定專案的指令任何專案都可以取）；Claude 端沒帶專案雜湊（舊外掛）＝只拿沒指定專案的
+    const myph = typeof b.project_hash === 'string' && PH_RE.test(b.project_hash) ? b.project_hash : null;
     const max = Math.min(INBOX.maxPull, Math.max(1, Math.round(+b.max || 1)));
     const waitMs = Math.min(INBOX.maxWaitS, Math.max(0, +b.wait || 0)) * 1000;
     const deadline = Date.now() + waitMs;                       // 真實時間（等待用），跟 this.now()（紀錄用）分開
     for (;;) {
       this.inboxHousekeep(office);
       // 同步取＋標記，中間沒有 await：同一個 Durable Object 裡不會有兩支工作階段搶到同一則
-      const rows = this.q("SELECT * FROM inbox WHERE office = ? AND status = 'queued' ORDER BY created, rowid LIMIT ?", office, max);
+      const rows = this.q("SELECT * FROM inbox WHERE office = ? AND status = 'queued' AND (ph IS NULL OR ph = ?) ORDER BY created, rowid LIMIT ?", office, myph, max);
       if (rows.length) {
         const now = this.now();
         for (const r of rows) this.inboxSet(office, r.mid, "status = 'claimed', sid = ?, claimed_at = ?", sid, now);
         const out = this.q(`SELECT * FROM inbox WHERE office = ? AND mid IN (${rows.map(() => '?').join(',')}) ORDER BY created, rowid`, office, ...rows.map((r) => r.mid));
-        return this.json(req, { ok: true, source: 'website', messages: out.map((r) => ({ id: r.mid, to: r.to_agent, text: r.text, created: r.created })) });
+        return this.json(req, { ok: true, source: 'website', messages: out.map((r) => ({ id: r.mid, to: r.to_agent, text: r.text, created: r.created, project: r.ph || null })) });
       }
       const left = deadline - Date.now();
       if (left <= 0) return this.json(req, { ok: true, source: 'website', messages: [] });

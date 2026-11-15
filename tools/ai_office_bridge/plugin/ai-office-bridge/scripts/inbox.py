@@ -104,7 +104,7 @@ def hook(event):
         p = {}
     if not isinstance(p, dict):
         return
-    code, j = call(c, "/v1/inbox/pull", {"session_id": p.get("session_id"), "wait": 0, "max": 3}, HOOK_TIMEOUT)
+    code, j = call(c, "/v1/inbox/pull", {"session_id": p.get("session_id"), "wait": 0, "max": 3, "project_hash": bridge.project_info(p.get("cwd") or os.getcwd())[1]}, HOOK_TIMEOUT)
     msgs = j.get("messages") if code == 200 and isinstance(j.get("messages"), list) else []
     if not msgs:
         return
@@ -124,6 +124,7 @@ def wait(a):
         print("待命沒有啟動：網站指令沒有開（AIO_INBOX 不是 1）或沒有收件端網址（AIO_URL）。")
         return 0
     deadline = time.time() + max(0.05, a.minutes) * 60
+    proj = bridge.project_info(os.getcwd())[1]   # 只取「自己這個專案」的指令；同一台機器上別的專案的指令不會被這裡拿走
     per = max(0.0, min(20.0, a.poll))
     back = 2
     while True:
@@ -131,7 +132,7 @@ def wait(a):
         if left <= 0:
             break
         w = min(per, max(0.0, left - 1))
-        code, j = call(c, "/v1/inbox/pull", {"session_id": a.session, "wait": w, "max": 3}, w + 10)
+        code, j = call(c, "/v1/inbox/pull", {"session_id": a.session, "wait": w, "max": 3, "project_hash": proj}, w + 10)
         if code == 200:
             back = 2
             msgs = j.get("messages") if isinstance(j.get("messages"), list) else []

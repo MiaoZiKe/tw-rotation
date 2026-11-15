@@ -111,6 +111,19 @@ try:
     j = json.loads(out or "{}")
     ok("UserPromptSubmit：以 additionalContext 附上", j.get("hookSpecificOutput", {}).get("hookEventName") == "UserPromptSubmit" and "順便看一下今天的部署" in j["hookSpecificOutput"].get("additionalContext", ""), out)
 
+    # ── 依專案取指令（2026-11-15）：Claude 端帶自己的專案雜湊，只拿自己專案或沒指定專案的指令 ──
+    sys.path.insert(0, HERE)
+    import bridge  # noqa: E402
+    mine = bridge.project_info(os.path.join(tmp, "proj-mine"))[1]
+    theirs = bridge.project_info(os.path.join(tmp, "proj-theirs"))[1]
+    os.makedirs(os.path.join(tmp, "proj-mine"), exist_ok=True)
+    mp = site("POST", "/v1/office/main/inbox", {"to": "ceo", "text": "只給我這個專案", "project": mine})[1]["message"]["id"]
+    tp = site("POST", "/v1/office/main/inbox", {"to": "ceo", "text": "只給別的專案", "project": theirs})[1]["message"]["id"]
+    rc, out, _, _ = run(["hook", "UserPromptSubmit"], {"session_id": "sess-1", "prompt": "x", "cwd": os.path.join(tmp, "proj-mine")})
+    ok("依專案取指令：自己專案的拿得到", "只給我這個專案" in out and msgs()[mp]["status"] == "claimed", out)
+    ok("依專案取指令：別的專案的拿不到、仍在排隊", "只給別的專案" not in out and msgs()[tp]["status"] == "queued", out)
+    site("POST", "/v1/office/main/inbox/%s/cancel" % tp)
+
     # ── 連不上、壞輸入 ──
     rc, out, _, dt = run(["hook", "Stop"], env={**ENV, "AIO_URL": "http://127.0.0.1:9"})
     ok("連不上：安靜 exit 0、不輸出、很快結束", rc == 0 and out == "" and dt < 4, (rc, out, dt))

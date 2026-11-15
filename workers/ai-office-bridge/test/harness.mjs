@@ -28,7 +28,7 @@ export function fakeAccount(map = { 'owner-token-0123456789abcdef': true, 'membe
       calls.push({ url, init });
       const b = JSON.parse(init.body || '{}');
       if (!(b.t in map)) return new Response('{"error":"auth"}', { status: 401 });
-      return new Response(JSON.stringify({ user: { name: 'x', email: 'x@example.com', admin: map[b.t] } }), { status: 200 });
+      return new Response(JSON.stringify({ user: { name: 'x', email: b.t + '@example.com', admin: map[b.t] } }), { status: 200 });
     },
   };
 }
