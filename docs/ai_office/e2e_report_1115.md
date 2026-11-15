@@ -70,7 +70,41 @@
 
 > 時間是台北時間。截圖都存在 scratchpad（不進 repo），路徑前綴：`/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/e2e/`。接入碼一律不記。
 
-（見下方「最後一輪紀錄」，由 run6 產生後補上）
+最後一輪：2026-11-15 20:25～20:40（台北），**33 項全部通過、0 項失敗**；整輪只開一個 `claude -p`（sonnet）工作階段，這個工作階段的費用約 0.26 美元。
+截圖資料夾：`/tmp/claude-0/-home-user-tw-rotation/93946fe2-a0f2-5914-8682-3d7a96898e8b/scratchpad/e2e/final/shots/`（下表只寫檔名）。
+
+| 時間（台北） | 步驟 | 結果 | 截圖 |
+|---|---|---|---|
+| 20:26 | 開場：示範模式，頂列「連接我的 Claude」 | ✅ | `01_開場_示範模式.png` |
+| 20:27 | Claude 沒開時對 CEO 送一則（撤回測試）→ 排隊中、提示「你的 Claude 目前沒開」 | ✅ | `02_撤回前_排隊中.png` |
+| 20:27 | 按「撤回」→ 已撤回 | ✅ | `03_撤回後.png` |
+| 20:28 | 點頂列 → 接入引導 | ✅ | `04_接入引導.png` |
+| 20:29 | 「複製接入碼」→ 收件服務發碼、進剪貼簿、畫面只顯示 `aio_xxx…（已隱藏）` | ✅ | `05_接入碼已複製_遮罩.png` |
+| 20:29 | 設定外掛、Claude 還沒開工：引導維持「等待你的 Claude 回報…」（修正 三之 1 的驗證） | ✅ | — |
+| 20:29 | 開 Claude（待命）→ 16 秒後引導顯示「已接上 ✓」、2.5 秒後自動關閉 | ✅ | `06_已接上.png` |
+| 20:29 | 關掉引導後接入碼從網頁記憶體清掉，改用登入身分觀看 | ✅ | — |
+| 20:29 | 頂列「即時」、左上辦公室名「demo-calc」、一個開著的工作階段（CEO） | ✅ | `07_辦公室_專案與CEO.png` |
+| 20:30 | 被撤回的那則一直是「已撤回」，沒被 Claude 取走 | ✅ | — |
+| 20:30～20:31 | 對 CEO：「在 README.md 最後加一行今天的日期…」→ 收件服務狀態 排隊中→已取走→執行中→完成；畫面看到 已取走（20:31:07）→執行中（20:31:18）→完成（20:31:30）；README 真的多一行 `2026-11-15`；回覆「CEO 親自處理…」 | ✅ | `08`～`11_CEO_README_*.png` |
+| 20:31～20:32 | 對 CEO：「請派 tester 跑 python3 -m unittest…同時派 frontend 把 h1 改成『小計算機 v2』」→ 收件服務收到 tester、frontend 各一組 SubagentStart／SubagentStop；h1 真的改了；回覆兩項都完成 | ✅ | `12`～`14_CEO_派兩位_*.png` |
+| 20:32 | 辦公室為 tester、frontend 生出角色（代號就是 tester、frontend），坐進後備座位，先前那件已記在資訊卡完成清單 | ✅ | `15_新同事報到_tester_frontend.png` |
+| 20:33 | 真滑鼠點 3D 的 tester → 資訊卡、對話框對象切成他 → 「對他說」 | ✅ | `16_tester_資訊卡.png` |
+| 20:34 | 對 tester：「再跑一次測試，只回報通過幾個。」→ 收件匣 `to＝tester` | ✅ | `17_tester_已送出_他的對話串.png` |
+| 20:35 | Claude 派的就是 tester（SubagentStart 1→2）；3D 裡 tester 拿文件走到 CEO 桌交件、回到待命，完成清單 1→2；回覆出現在 tester 的對話串 | ✅ | `18_tester_3D_delivering.png`、`20_tester_3D_交件後.png`、`21_tester_回覆_他的對話串.png` |
+| 20:37～20:39 | 同上，對 frontend：「把 index.html 的 title 也改成『小計算機 v2』」→ `to＝frontend`、Claude 派 frontend、title 真的改了、3D 交件、完成清單 1→2 | ✅ | `22`～`27_frontend_*.png` |
+| 20:40 | Claude 完整對話紀錄（`claude_stream.jsonl`）從頭到尾沒有出現被撤回那則的字（`SHOULD-NOT-RUN`） | ✅ | — |
+| 20:40 | 收件服務收到的事件種類：SessionStart、UserPromptSubmit、PreToolUse、PostToolUse、SubagentStart、SubagentStop、Stop、PermissionRequest、InboxUpdate，共 75 筆 | ✅ | `28_全部完成.png` |
+| 20:40 | 網站沒有 JavaScript 例外 | ✅ | — |
+
+使用者專案最後的樣子：README.md 最後一行 `2026-11-15`；index.html 的 `<title>` 與 `<h1>` 都是「小計算機 v2」。
+
+**之前幾輪抓到的東西**（同一支腳本反覆跑出來的）：
+- 第 1 輪：Claude 要跑待命指令被「需要核准」擋下、工作階段直接結束（三之 4 第一列）；接入引導在 Claude 開工前就誤報（三之 1）。
+- 第 2～3 輪：新同事代號 `x-tester`（三之 2，修完才跑第 3 輪就對了）；點角色的座標要用 main.js 的判定點。
+- 第 4～6 輪：點過的同事交件卡住（三之 3）；用「不花 Claude 額度的事件重播」重現與驗證修正。
+- 第 7 輪（上表）：全部通過。
+
+**畫面上順便看到的（不是這次的範圍，記給負責人）**：Claude 碰到需要核准的指令時頂列會多一顆「CEO 等你核准」，1280 寬時這顆把「績效總表」擠到第二列、壓在操作提示列上（`09_CEO_README_running.png` 左上）。
 
 ## 五、還不能自動化的部分
 1. **Google 登入**：本機用假會員服務代替；正式環境的「站長是誰」由會員 Worker 判斷，這段只能在線上手動驗。
