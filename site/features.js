@@ -48,7 +48,10 @@
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
     { id: 'grp', name: '族群觀測' },
     { id: 'explore', name: '選股策略' },  // 2026-10-05 新分類（docs/explore_page_spec.md）
-    { id: 'earnings', name: '財經日曆' }   // 2026-10-05（晚）新分類（site/earnings.js）
+    { id: 'earnings', name: '財經日曆' },   // 2026-10-05（晚）新分類（site/earnings.js）
+    /* 2026-11-15 新分類（Andy：AI 辦公室要像主站一樣有功能鍵＋各方案次數上限＋閘門）：項目在 site/office/world.html（不是主站頁面），
+       閘門由 site/office/world/js/gate.js 判斷，但鍵與數字一律在這裡與 plan_presets.js 宣告，管理頁「權限」「體驗」才看得到。 */
+    { id: 'office', name: 'AI 辦公室' }
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -509,6 +512,27 @@
      quota.ai → stock.ai 的上限、quota.theme → heat.detail 的上限，不另設功能。 */
   LIST.push({ id: 'stock.page', name: '個股頁（整頁）', cat: 'stocktab', def: true, kind: 'bool', route: /^#stock\//, limBy: { guest: 5, free: 20 },   // 2026-11-10 冷啟動：訪客 5 檔、註冊會員（試營運期額度）20 檔
     desc: '整個個股頁（關掉＝個股頁蓋鎖頭；設瀏覽次數＝一天能看幾檔，同一檔重複看不重算）', veil: [['#v-industry']], mark: [], block: [] });
+
+  /* ★★ 2026-11-15（Andy：「AI 辦公室要像主站一樣有功能鍵＋各方案使用次數上限＋閘門」；CLAUDE.md 11-02 規則）：辦公室頁（site/office/world.html）的使用者功能。
+     閘門在 site/office/world/js/gate.js（薄的相容層：讀同一份 features.js 與 Worker 的 /v1/perm/me、/v1/grants/*、/v1/quota/hit）；
+     計數沿用主站同一個 localStorage 鍵 tw.quota（同源），所以主站「我的額度」面板看得到辦公室用掉幾次。
+     route 刻意寫成主站永遠不會有的 #office：主站 quota.js 的「用完提示、本頁限制清單」只在 route 對得上的頁面出現，辦公室的次數不會冒到主站別頁；
+     qper:'each'＝每做一次算一次（計數在 gate.js 的動作點），主站不會用「區塊出現在畫面上」去數它。
+     目前辦公室收件匣只有站長帳號寫得進去（後端 workers/ai-office-bridge 仍只認站長），這裡是前端閘門：站長（owner）永遠不受限。
+     訪客 limBy 0＝不開放；註冊會員每日少量；體驗額度不替 Andy 預設（不在 GRANT_BAN，自動出現在「編輯：新會員體驗」）。
+     辦公室其他互動（操控角色、多選、整修、視角、播放速度、績效總表、資訊卡）是看畫面與玩 3D 場景，不送資料、不耗資源，不登記功能鍵；
+     績效總表是示範資料的唯讀檢視，等接上真實成果再評估。 */
+  LIST.push(
+    { id: 'office.cmd', name: 'AI 辦公室：下指令', cat: 'office', def: true, kind: 'bool', limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '則指令',
+      qnote: '今天的指令次數用完了，明天會恢復', route: /^#office/,
+      desc: '辦公室頂列「下指令」對話框：每成功送出一則算一次（用完：送出鈕灰掉、旁邊一行白話說明；撤回、查看回覆不算）', veil: [], mark: [], block: [] },
+    { id: 'office.connect', name: 'AI 辦公室：連接我的 Claude', cat: 'office', def: true, kind: 'bool', limBy: { guest: 0, free: 3 }, qper: 'each', qunit: '次',
+      qnote: '今天的連接次數用完了，明天會恢復', route: /^#office/,
+      desc: '辦公室「連接我的 Claude」：每產生一組接入碼（含換一組）算一次（用完：不再產生新的接入碼，已接好的連線與觀看不受影響）', veil: [], mark: [], block: [] },
+    { id: 'office.hr', name: 'AI 辦公室：開除與重新聘用', cat: 'office', def: true, kind: 'bool', limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
+      qnote: '今天的人事異動次數用完了，明天會恢復', route: /^#office/,
+      desc: '辦公室人事：每確定開除一次（單人或整個部門算一次）、每重新聘用一位算一次（用完：確認框與資訊卡旁一行白話說明，不會執行）', veil: [], mark: [], block: [] }
+  );
 
   /* ★ 2026-10-07「全站共用每日額度」（quota.all，docs/quota_plan.md、docs/plan_tiers_1007.md）：哪些功能算「研究頁」、會吃共用額度。
      清單＝方案草案裡訪客要計次的那 41 項（總覽、產業地圖首頁、事件、自選、工具類不算 —— 那些是鉤子或不是「看資料」）。

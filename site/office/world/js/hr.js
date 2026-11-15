@@ -98,6 +98,11 @@ export function createHR(W, X) {
   };
 
   // ───────── 重新聘用 ─────────
+  // 資訊卡上的「重新聘用」鈕走這裡：先問功能閘門（office.hr），次數用完就在畫面下方說白話（H.rehire 本身不設卡，程式內部呼叫不受影響）
+  H.rehireAsk = async id => {
+    if (W.gate) { const t = await W.gate.begin('office.hr'); if (!t.pass) { W.gate.say(t.note); return false; } const ok = await H.rehire(id); if (ok) t.done(); else t.cancel(); return ok; }
+    return H.rehire(id);
+  };
   H.rehire = async id => {
     const rec = H.fired.get(id), c = C(id); if (!rec || !c) return false;
     H.fired.delete(id); persist(); freeAll(id); W.emit && W.emit('rehired', id, {});
@@ -163,15 +168,29 @@ export function createHR(W, X) {
       <p class="fd-sum" id="fdSum">共 ${total} 項未完成或進行中的任務</p>
       <label class="fd-f">這些任務交給誰<select id="fireTo"><option value="ceo" selected>CEO</option>${cands.map(c => `<option value="${esc(c.spec.id)}">${esc(c.spec.nick)}・${esc(c.spec.zh)}</option>`).join('')}</select></label>
       <label class="fd-f">原因（選填）<input id="fireReason" maxlength="40" autocomplete="off"></label>
+      <p class="fd-gate" id="fdGate" role="status" hidden></p>
       <p class="fd-warn" id="fdWarn" hidden>再按一次「確定開除」才會執行。他們會搬到公司外面的無業遊民區，隨時可以重新聘用。</p>
       <div class="dlg-acts"><button class="btn" id="fireCancel">取消</button><button class="btn on" id="fireGo">開除</button></div></div>`;
     $('app').append(dlg); document.body.classList.add('dlg-open'); let armed = false;
     const go = $('fireGo'); $('fireCancel').focus();
+    // 功能閘門（features.js 的 office.hr）：今天的人事異動次數用完 → 先在框裡寫白話說明、開除鈕灰掉（不是按了才噴錯）
+    const gateNote = g => { const n = $('fdGate'); if (!n || !dlg) return; n.textContent = g.note || ''; n.hidden = !g.note || g.pass && g.via !== 'grant'; if ($('fireGo')) $('fireGo').disabled = !g.pass; };
+    if (W.gate) W.gate.load().then(() => gateNote(W.gate.peek('office.hr')));
     dlg.addEventListener('click', e => {
       if (e.target === dlg || e.target.closest('#fireCancel')) { closeDlg(); return; }
       if (e.target.closest('#fireGo')) {
         if (!armed) { armed = true; $('fdWarn').hidden = false; go.textContent = '確定開除'; go.classList.add('danger'); return; }
-        const to = $('fireTo').value, reason = $('fireReason').value; closeDlg(); H.fire(ids, { to, reason });
+        const to = $('fireTo').value, reason = $('fireReason').value;
+        if (W.gate) {
+          go.disabled = true;
+          W.gate.begin('office.hr').then(t => {
+            if (!dlg) return; go.disabled = false;
+            if (!t.pass) { armed = false; $('fdWarn').hidden = true; go.textContent = '開除'; go.classList.remove('danger'); gateNote(t); go.disabled = true; return; }
+            closeDlg(); H.fire(ids, { to, reason }); t.done();
+          });
+          return;
+        }
+        closeDlg(); H.fire(ids, { to, reason });
       }
     });
     dlg.addEventListener('change', e => { if (e.target.id === 'fireTo' && armed) { armed = false; $('fdWarn').hidden = true; go.textContent = '開除'; go.classList.remove('danger'); } });

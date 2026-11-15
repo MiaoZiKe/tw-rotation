@@ -186,7 +186,7 @@ export function createUI(W, demo, api) {
     if (e.target.closest('.x')) { $('card').hidden = true; draft = null; api.cardClosed(); return; }
     { const q = e.target.closest('[data-rwq]'); if (q) { const h = $('card').querySelector('.rwh'); if (h) { h.hidden = !h.hidden; q.setAttribute('aria-expanded', !h.hidden); } return; } }
     const c = cardChar, D = api.director(); let b;
-    if ((b = e.target.closest('[data-hr="hire"]'))) { W.hr.rehire(c.spec.id); U.hideCard(); return; }
+    if ((b = e.target.closest('[data-hr="hire"]'))) { (W.hr.rehireAsk || W.hr.rehire)(c.spec.id); U.hideCard(); return; }
     if ((b = e.target.closest('[data-k]'))) { const k = +b.dataset.k; cardF = cardF === k ? 0 : k; cardOpen = -1; renderList(); if (e.detail) b.blur(); return; }
     if ((b = e.target.closest('[data-r]'))) { const i = +b.dataset.r; cardOpen = cardOpen === i ? -1 : i; renderList(); const nb = $('cardList').querySelector(`[data-r="${i}"]`); if (nb && !e.detail) nb.focus(); return; }
     if ((b = e.target.closest('[data-a]'))) { $('card').hidden = true; api.setView(b.dataset.a); return; }

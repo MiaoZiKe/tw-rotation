@@ -55,6 +55,11 @@
      不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
    · ★ 2026-11-09（Andy：「02 05 03 04 06」五項全做）：新鍵 share.card（一鍵分享圖卡）：四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限；
      新鍵 share.card.plus（圖卡去角標、選方形／限動尺寸）：訪客、註冊會員關，Plus、Pro 開。不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
+   · ★★ 2026-11-15（Andy：「AI 辦公室要像主站一樣有功能鍵＋各方案使用次數上限＋閘門，先從下指令做起，順帶把辦公室其他使用者功能也盤點註冊」）：
+     新分類「AI 辦公室」三個新鍵：office.cmd（下指令，每成功送出一則算一次）、office.connect（連接我的 Claude，每產生一組接入碼算一次）、
+     office.hr（開除與重新聘用，每確定一次算一次）：四個方案的開關都開；每日次數 訪客 0（不開放）；註冊會員 5／3／5；Plus 30／20／50；
+     Pro 下指令 100（＝收件服務每人每日 100 則的硬上限）、其餘不設＝不限。閘門在 site/office/world/js/gate.js，只擋前端畫面；後端收件服務仍只認站長，站長（owner）不受限。
+     不在 GRANT_BAN，自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
    · ★ 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況…這功能記得也要顯在權限內 但暫不開放」）：新鍵 stock.bigsmall（個股大戶／散戶買賣推估）
      四個方案都寫 false＝暫不開放、不設次數；stock.bigsmall.live（今日即時）比照 live.tick 四個方案 false（只有站主／管理員，範本管不到）。
      Andy 要開時在 #admin/perm 把方案撥開；體驗次數不預設。
@@ -94,6 +99,9 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "office.cmd": true,
+    "office.connect": true,
+    "office.hr": true,
     "share.card": true,
     "share.card.plus": false,
     "risk.flag": true,
@@ -208,6 +216,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown.filter": 3,
     "mkt.credit": 3,
     "ov.fear": 3,
+    "office.cmd": 0,
+    "office.connect": 0,
+    "office.hr": 0,
     "share.card": 5,
     "portfolio.exposure": 3,
     "group.peerval": 3,
@@ -252,6 +263,9 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "office.cmd": true,
+    "office.connect": true,
+    "office.hr": true,
     "share.card": true,
     "share.card.plus": false,
     "risk.flag": true,
@@ -375,6 +389,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.ma": 5,
     "mkt.credit": 10,
     "ov.fear": 10,
+    "office.cmd": 5,
+    "office.connect": 3,
+    "office.hr": 5,
     "share.card": 10,
     "portfolio.exposure": 5,
     "mkt.fut": 10,
@@ -422,6 +439,9 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "office.cmd": true,
+    "office.connect": true,
+    "office.hr": true,
     "share.card": true,
     "share.card.plus": true,
     "risk.flag": true,
@@ -524,6 +544,9 @@ window.TW_PLAN_PRESETS = {
     "stock.page": 50,
     "mkt.credit": 50,
     "ov.fear": 50,
+    "office.cmd": 30,
+    "office.connect": 20,
+    "office.hr": 50,
     "share.card": 50,
     "portfolio.exposure": 50,
     "mkt.fut": 50,
@@ -564,6 +587,9 @@ window.TW_PLAN_PRESETS = {
     "ov.breadth": true,
     "ov.advdec.tiles": true,
     "ov.fear": true,
+    "office.cmd": true,
+    "office.connect": true,
+    "office.hr": true,
     "share.card": true,
     "share.card.plus": true,
     "risk.flag": true,
@@ -654,7 +680,8 @@ window.TW_PLAN_PRESETS = {
     "heat.link": true
    },
    "lims": {
-    "stock.eventstudy": 5
+    "stock.eventstudy": 5,
+    "office.cmd": 100
    },
    "meta": {
     "badge": "功能最齊",

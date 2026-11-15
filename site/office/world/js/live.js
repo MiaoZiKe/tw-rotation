@@ -272,7 +272,14 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     if (a === 'off') { L.cfg = {}; L.code = null; save(); L.revealCode = null; enterDemo(); return; }
   });
 
+  // 功能閘門（features.js 的 office.connect）：每產生一組接入碼（含換一組）算一次；用完就不再產生新的，已接好的連線與觀看不受影響。成功拿到新碼才扣次數。
   async function claim(rotate) {
+    const gt = W.gate ? await W.gate.begin('office.connect') : null;
+    if (gt && !gt.pass) { L.msg2 = gt.note; renderPop(); return; }
+    let got = false;     // 拿到新接入碼的那一刻就扣次數（enterLive 之後的連線等待很慢，不能等它）
+    try { await claimRaw(rotate, () => { got = true; if (gt) gt.done(); }); } finally { if (gt && !got) gt.cancel(); }
+  }
+  async function claimRaw(rotate, onGot) {
     const url = await resolveUrl(), t = loginTok();
     if (!url) { L.msg2 = '還不知道收件端網址：請到「進階」填寫'; renderPop(); return; }
     try {
@@ -282,7 +289,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
       if (r.status === 503) { L.msg2 = '會員登入服務還沒接上收件端，暫時不能產生接入碼'; renderPop(); return; }
       if (!r.ok) { L.msg2 = '產生失敗（' + r.status + '），請稍後再試'; renderPop(); return; }
       if (j.exists && !j.code) { L.guide.codeExists = true; L.guide.owner = 'owner'; L.msg2 = '已經產生過接入碼，但接入碼只會顯示一次、這台裝置沒有存。請按「換一組」產生新的（舊的會失效）'; L.cfg = { ...L.cfg, login: true, office: j.office || 'main' }; delete L.cfg.show; save(); enterLive(); return; }
-      L.revealCode = j.code; L.code = j.code; L.cfg = { ...L.cfg, office: j.office || 'main', login: true }; delete L.cfg.show; save();   // 領碼的一定是登入中的站長：關掉視窗後碼就清掉、觀看改用登入身分
+      L.revealCode = j.code; L.code = j.code; L.cfg = { ...L.cfg, office: j.office || 'main', login: true }; delete L.cfg.show; save(); if (onGot) onGot();   // 領碼的一定是登入中的站長：關掉視窗後碼就清掉、觀看改用登入身分
       Object.assign(L.guide, { owner: 'owner', base: null, eye: false, codeExists: true, copied: '' });
       if (L.mode === 'live') restartLive(); else enterLive();
     } catch (x) { L.msg2 = '連不上收件端，請稍後再試'; renderPop(); }

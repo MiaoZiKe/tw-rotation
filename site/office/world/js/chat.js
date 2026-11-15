@@ -43,6 +43,7 @@ export function createChat(W, X) {
     <h3 id="chatT">對 Agent 下指令</h3>
     <div class="c-live" id="chatLive" role="status"></div>
     <div class="c-note" id="chatNote" role="status" hidden></div>
+    <div class="c-note c-gate" id="chatGate" role="status" hidden></div>
     <div class="c-list" id="chatList" aria-live="polite"></div>
     <form class="c-form" id="chatForm" autocomplete="off">
       <label for="chatTo">收件對象</label><select id="chatTo"></select>
@@ -148,12 +149,15 @@ export function createChat(W, X) {
   function render() {
     syncBadge(); if (!K.open) return;
     const note = $('chatNote'), nh = noteHtml(); if (note.dataset.h !== nh) { note.innerHTML = nh; note.dataset.h = nh; } note.hidden = !nh;
+    // 功能閘門（features.js 的 office.cmd）：只在已經能送（連線正常）時才顯示，沒登入等情況已經有自己的說明
+    const gt = W.gate && K.mode === 'ok' ? W.gate.peek('office.cmd') : null, gnote = gt && gt.note ? gt.note : '', gbox = $('chatGate');
+    if (gbox.textContent !== gnote) gbox.textContent = gnote; gbox.hidden = !gnote; K.gated = !!(gt && !gt.pass);
     const lv = liveHtml(); if ($('chatLive').dataset.h !== lv) { $('chatLive').innerHTML = lv; $('chatLive').dataset.h = lv; }
     const list = [...K.msgs.values()].sort((a, b) => a.created - b.created), box = $('chatList');
     const html = list.length ? list.map(msgHtml).join('') : (K.mode === 'ok' ? '<p class="c-empty">還沒有送出過指令。選好收件對象、寫下要做的事，按「送出」。</p>' : '');
     if (box.dataset.h !== html) { const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40; box.innerHTML = html; box.dataset.h = html; if (stick) box.scrollTop = box.scrollHeight; }
     const sel = $('chatTo'); if (sel.dataset.n !== String(W.chars.size) + K.to) { sel.innerHTML = targetsHtml(); sel.dataset.n = String(W.chars.size) + K.to; }
-    const n = $('chatText').value.length, over = n > MAX_TEXT, can = K.mode === 'ok' && !K.busy && n > 0 && !over;
+    const n = $('chatText').value.length, over = n > MAX_TEXT, can = K.mode === 'ok' && !K.busy && n > 0 && !over && !K.gated;
     $('chatCount').textContent = `已輸入 ${n}／${MAX_TEXT}`; $('chatCount').classList.toggle('over', over);
     const sb = $('chatSend'); sb.disabled = !can;
     sb.textContent = K.mode === 'nologin' ? '請先登入' : K.mode === 'ok' ? (K.busy ? '送出中…' : '送出') : K.mode === 'loading' ? '連線中…' : '暫時不能送';
@@ -167,6 +171,7 @@ export function createChat(W, X) {
     const sel = $('chatTo'); sel.dataset.n = ''; render();
     K.mode = !tok() ? 'nologin' : K.mode === 'ok' ? 'ok' : 'loading';
     render(); fetchInbox(true);
+    if (W.gate) W.gate.load().then(render);
     setTimeout(() => { try { $('chatText').focus({ preventScroll: true }); } catch (e) { /* 略 */ } }, 30);
   }
   function close() { K.open = false; pn.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('on'); schedule(); }
@@ -178,8 +183,10 @@ export function createChat(W, X) {
   async function send() {
     const text = $('chatText').value.trim(); if (K.busy || !text || text.length > MAX_TEXT || K.mode !== 'ok') return;
     K.busy = true; K.err = ''; render();
+    const gt = W.gate ? await W.gate.begin('office.cmd') : null;           // 功能閘門：今天的次數用完就不送（說明由 render 顯示在對話框裡）
+    if (gt && !gt.pass) { K.busy = false; render(); return; }
     const r = await call('', { method: 'POST', body: JSON.stringify({ to: K.to, text }) });
-    K.busy = false;
+    K.busy = false; if (gt) { if (r.status === 200 && r.json.message) gt.done(); else gt.cancel(); }
     if (r.status === 200 && r.json.message) { $('chatText').value = ''; merge([r.json.message]); K.rev = Math.max(K.rev, r.json.message.rev || 0); K.mode = 'ok'; schedule(); const box = $('chatList'); render(); box.scrollTop = box.scrollHeight; }
     else if (r.status === 401) { K.mode = 'auth'; render(); }
     else if (r.status === 403) { K.mode = 'forbidden'; render(); }
