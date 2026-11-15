@@ -49,6 +49,9 @@ button{font-family:inherit;color:inherit}
 .of .acts a,.of .acts button{min-height:40px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
 .of .acts a.go2{background:var(--on);color:#fff;border:0}
 .of .acts button{border:2px solid var(--line);background:transparent}
+.of.pj .pjt{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.of.pj .pjt .sub{font-size:13px;color:var(--sub)}
+.plist{margin:0;padding:0;list-style:none;display:grid;gap:8px}.plist .of{box-shadow:none;border:2px solid var(--line)}
+#srvNote{background:#fff3d6;border-radius:12px;padding:8px 12px;color:var(--ink)}
 button.door{font:inherit;text-align:left;cursor:pointer;width:100%}
 .door.new{border:2px dashed var(--on);background:var(--on2)}
 .door.new[aria-disabled="true"]{opacity:.7;border-color:var(--line);cursor:not-allowed}
@@ -77,6 +80,7 @@ button.door{font:inherit;text-align:left;cursor:pointer;width:100%}
  #dlg{align-items:flex-end;padding:0}#dlg .box{width:100%;border-radius:24px 24px 0 0;max-height:92dvh}.hero h2{font-size:20px}.grid{grid-template-columns:1fr}}
 </style>
 <script src="../account_config.js"></script>
+<script src="projname.js"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 </head>
 <body>
@@ -99,6 +103,8 @@ button.door{font:inherit;text-align:left;cursor:pointer;width:100%}
     <button class="big" id="heroBtn" type="button">建立第一間辦公室</button>
     <p class="note" id="heroNote"></p>
   </section>
+  <p class="note" id="srvNote" role="status" hidden></p>
+  <section class="mine" id="projSec" hidden aria-labelledby="projT"><h2 id="projT">你的專案</h2><ul id="projList"></ul></section>
   <section class="mine" id="mine" hidden aria-labelledby="mineT"><h2 id="mineT">我的辦公室</h2><ul id="mineList"></ul></section>
   <div class="grid">
     <a class="door" href="world.html" id="doorDemo"><div class="row" id="rowA"></div><b>進辦公室（示範）</b><span>看大家上班、開會、交件，點角色看進度與互動；目前是示範資料</span><i class="go" style="font-style:normal">先看示範</i></a>
