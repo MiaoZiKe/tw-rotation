@@ -28,7 +28,7 @@
 
 - 結論：通過
 
-## 影片樣片（video.mp4）自審，2026-11-15 17:45（台北）
+## 影片樣片（video.mp4）自審，2026-11-15 16:55（台北）
 - 產生方式：不是 AI 生成。`templates_tqsa_v3/video/`（gen_video.py＋video_runtime.js）以 SVG 程式繪製、Playwright 逐幀截圖 720 幀、ffmpeg 編碼（H.264＋靜音 AAC，30fps，24 秒）。
 - 數字動畫終值與輪播、sources.md 一致：−29.4%、147,861、104,376、少 43,485 對、0.695、約 9.4 萬人。
 - 每一段畫面底部都有出處行；LOGO 左上；Reels 上 220／下 420px 安全區內無元素。
