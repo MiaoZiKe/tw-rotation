@@ -20,7 +20,7 @@
 #chatPanel.mc.open{--w:min(680px,calc(100vw - 24px));display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:0;height:min(520px,calc(100dvh - 98px));background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;pointer-events:auto;transition:opacity .15s}
 #chatPanel.mc.open.pr{height:min(520px,calc(100dvh - 156px))}
 #chatPanel.mc.open.pf{height:min(520px,calc(100dvh - 140px))}
-#chatPanel.mc.open:not(:hover):not(:focus-within){opacity:var(--mc-op,1)}
+#chatPanel.mc.open:not(:hover):not(:has(#chatText:focus)){opacity:var(--mc-op,1)}
 #chatPanel.mc.dragging{transition:none;user-select:none}
 .mc-head{grid-column:1/-1;grid-row:1;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--card);cursor:grab;touch-action:none}
 #chatPanel.locked .mc-head{cursor:default}

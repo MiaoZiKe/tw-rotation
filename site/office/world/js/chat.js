@@ -360,14 +360,14 @@ export function createChat(W, X) {
     const sh = stripHtml(), st = $('mcStrip'); if (st.dataset.h !== sh) { st.innerHTML = sh; st.dataset.h = sh; }
     const list = threadOf(K.to), mobList = !desk() && K.view === 'list';
     const rk = roomOfTo(K.to), isDept = rk !== 'ceo';
-    $('mcWho').innerHTML = mobList ? '<span class="mc-nmx"><b>對話</b></span>' : `<span class="mc-ava">${avaRoom(rk)}</span><span class="mc-nmx"><b>${esc(roomName(rk))}</b><small>${esc(isDept ? membersOf(rk).length + ' 位成員・可對整個部門或指定一位說' : roleOf('ceo'))}</small></span>`;
+    $('mcWho').innerHTML = mobList ? '<span class="mc-nmx"><b>對話</b></span>' : `<span class="mc-ava">${avaRoom(rk)}</span><span class="mc-nmx"><b>${esc(roomName(rk))}</b><small>${esc(isDept ? membersOf(rk).length + ' 位成員' : roleOf('ceo'))}</small></span>`;
     // 輸入框左邊的「對誰說」：只有部門聊天室才有（整個部門或某位成員）
     const sel = $('chatTo'), ops = isDept ? [...(rk === 'd:_ext' ? [] : [['dept:' + roomDept(rk), `整個部門（${membersOf(rk).length} 人）`]]), ...membersOf(rk).map(id => [id, nickOf(id) + (roleOf(id) ? '・' + roleOf(id) : '')])] : [];
     const oh = rk + '|' + ops.map(o => o.join(':')).join('|'); if (sel.dataset.h !== oh) { sel.innerHTML = ops.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join(''); sel.dataset.h = oh; }
     sel.hidden = !isDept; if (isDept) sel.value = K.to;
     const lv = liveHtml(); if ($('chatLive').dataset.h !== lv) { $('chatLive').innerHTML = lv; $('chatLive').dataset.h = lv; }
     const box = $('chatList');
-    const html = list.length ? list.map((m, i) => msgHtml(m, list[i - 1], i === list.length - 1)).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟${esc(roomName(rk))}說過話。在下面打字，按 Enter 送出。</p>` : '');
+    const html = list.length ? list.map((m, i) => msgHtml(m, list[i - 1], i === list.length - 1)).join('') : (K.mode === 'ok' ? `<p class="c-empty">還沒有跟 ${esc(roomName(rk))} 說過話。在下面打字，按 Enter 送出。</p>` : '');
     if (box.dataset.h !== html) { const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || box.dataset.t !== K.to; box.innerHTML = html; box.dataset.h = html; box.dataset.t = K.to; if (stick) box.scrollTop = box.scrollHeight; }
     if (desk() || K.view === 'thread') for (const m of list) K.seen.add(seenKey(m));
   }
