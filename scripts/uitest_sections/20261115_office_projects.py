@@ -4,6 +4,7 @@
 #      「CEO 辦公室」門牌改成「tw-rotation CEO 辦公室」；user 專案的名牌寫「雲端工作階段 CEO」
 #   ③ 左上角「← 專案名 ▾」：← 回入口並自動打開專案清單；▾ 打開下拉、點另一個專案 → 換成那個專案的角色與名牌；「?」另外放、照樣能開
 #   ④ 辦公室清單讀伺服器：建立（伺服器擋 3 間）、改名、綁定專案（進入時只列綁定的）、移除；伺服器連不上時退回暫存並寫明
+#   ⑥ 任務簡稱 task_name：名牌、資訊卡、門牌改用簡稱；沒簡稱退回專案名；13 字以上截斷；Claude 之後取好簡稱名牌即時換掉
 #   ⑤ 手機 390×844：入口專案清單、辦公室左上角「← 專案名 ▾」沒有橫向溢出、按鈕不小於 40px、字不小於 11px、下拉在畫面內；畫面沒有禁用字
 # 收件端用 page.route 模擬（https://aio.test），回應格式與 workers/ai-office-bridge/worker.js 一致（含 ?project= 過濾）。環境變數 PROJ_SHOTS 指到資料夾時順便存截圖。
 # flake8: noqa
@@ -331,10 +332,58 @@ def _px_mobile(b, base):
         c.close()
 
 
+# ───────────────────────── ⑥ 任務簡稱 task_name：名牌、資訊卡、門牌 ─────────────────────────
+#   同專案兩個工作階段各用自己的簡稱；沒簡稱退回專案名；超過 12 字「…」截斷；Claude 之後才取好簡稱，名牌會跟著換（不用重新整理）
+def _px_taskname(b, base):
+    f = _PxFake()
+    f.sessions[0]["task_name"] = "改圖表縮放"                      # 本尊（最近在動的）
+    f.sessions[1]["task_name"] = "修正營收頁面的橫向捲動問題"        # 13 字以上：要截斷
+    f.sessions[3]["task_name"] = "整理雲端筆記"                    # 專案名是 user：有簡稱就用簡稱，不顯示「雲端工作階段」
+    c = _px_ctx(b, f)
+    try:
+        pg = _px_page(c)
+        pg.goto(_px_root(base) + "/office/world.html?office=main&project=" + _PA + "&live_poll=800", wait_until="domcontentloaded")
+        got = _px_world_ready(pg)
+        ok("簡稱：辦公室載入完成", got)
+        if not got:
+            return
+        wait_until(pg, "() => (window.__world.live.clones || []).some(c => c.sid)", 30000)
+        wait_until(pg, "() => window.__world.live.data.sessions.some(s => s.task_name)", 10000)
+        wait_until(pg, "() => [...window.__world.chars.values()].some(c => c._lab && /改圖表縮放/.test(c._lab.tag.children[0].textContent))", 10000)
+        tg = _px_tags(pg)
+        ok("名牌：CEO 寫「改圖表縮放 CEO」（用自己的簡稱、不再是專案名）", tg["ceo"] == "改圖表縮放 CEO", tg)
+        ok("名牌：分身用自己的簡稱，13 字以上截成 11 字加「…」：「修正營收頁面的橫向捲…　CEO（分身 2）」", tg["clones"] == ["修正營收頁面的橫向捲… CEO（分身 2）"], tg)
+        ok("門牌：「改圖表縮放 CEO 辦公室」", _px_sign(pg) == "改圖表縮放 CEO 辦公室", _px_sign(pg))
+        pg.locator("#aioBadge").click()
+        pop = pg.locator("#aioPop").inner_text()
+        ok("資訊卡：工作階段清單也寫簡稱（本尊與分身各自的）", "改圖表縮放 CEO" in pop and "CEO（分身 2）" in pop and "tw-rotation CEO" not in pop, pop)
+        _px_shot(pg, "t1_簡稱名牌與資訊卡.png")
+        pg.keyboard.press("Escape")
+        # Claude 之後才取好簡稱：沒簡稱時退回專案名，取好後名牌即時換掉
+        f.sessions[0].pop("task_name")
+        got = wait_until(pg, "() => { const t = [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent; return t === 'tw-rotation CEO' }", 15000)
+        ok("沒有簡稱：退回專案名「tw-rotation CEO」，門牌同步", got and _px_sign(pg) == "tw-rotation CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
+        f.sessions[0]["task_name"] = "查資料庫備份"
+        got = wait_until(pg, "() => [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent === '查資料庫備份 CEO'", 15000)
+        ok("取好簡稱：名牌與門牌不用重新整理就換成「查資料庫備份」", got and _px_sign(pg) == "查資料庫備份 CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
+        ok("沒有頁面錯誤", not pg.errs, pg.errs[:2])
+        # 專案名沒意義（user）：有簡稱用簡稱；沒簡稱「雲端工作階段 CEO」
+        pg.goto(_px_root(base) + "/office/world.html?office=main&project=" + _PU + "&live_poll=800", wait_until="domcontentloaded")
+        _px_world_ready(pg)
+        wait_until(pg, "() => [...window.__world.chars.values()].some(c => c.spec.isCeo && /整理雲端筆記/.test(c._lab.tag.children[0].textContent))", 10000)
+        ok("user 專案有簡稱：名牌「整理雲端筆記 CEO」、門牌同步", _px_tags(pg)["ceo"] == "整理雲端筆記 CEO" and _px_sign(pg) == "整理雲端筆記 CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
+        f.sessions[3].pop("task_name")
+        got = wait_until(pg, "() => [...window.__world.chars.values()].find(c => c.spec.isCeo)._lab.tag.children[0].textContent === '雲端工作階段 CEO'", 15000)
+        ok("user 專案沒簡稱：退回「雲端工作階段 CEO」", got and _px_sign(pg) == "雲端工作階段 CEO 辦公室", (_px_tags(pg), _px_sign(pg)))
+    finally:
+        c.close()
+
+
 def _px_all(pg, b, base, code):
     _px_flow(b, base)
     _px_offices(b, base)
     _px_mobile(b, base)
+    _px_taskname(b, base)
 
 
 register("辦公室多專案", _px_all)

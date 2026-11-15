@@ -255,14 +255,22 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   // 說明框內容：示範時＝「連接我的 Claude」；即時＝狀態、專案、工作階段、展示模式、中斷連接
   // ───────── 專案名稱：名牌、門牌、左上角「← 專案名 ▾」 ─────────
   // 名牌文字由 main.js 的 setTag 問 W.tagName；只有 CEO 與分身加專案名，其他同事不動。
+  // 名牌用「任務簡稱」（Claude 開工時自己取的 6～12 字，外掛 set_task_name.py 送來的 task_name）：同一專案的多個工作階段各用各的簡稱；
+  // 沒有簡稱就退回專案名（projname.js 規則，專案名沒意義時是「雲端工作階段」）。超過 12 字用「…」截斷，免得名牌塞不下。
+  function taskOf(sid) { const s = sid && L.data && L.data.sessions && L.data.sessions.find(x => x.id === sid); const t = s && typeof s.task_name === 'string' ? s.task_name.replace(/\s+/g, ' ').trim() : ''; return t || null; }
+  function nameOfSid(sid) { return AP.trunc(taskOf(sid) || L.projName || '', 12); }
   W.tagName = c => {
     if (L.mode !== 'live' || !L.projName || !c || !c.spec) return null;
-    const sp = c.spec; if (!(sp.isCeo || /^ceo-clone-/.test(sp.id || ''))) return null;
-    return AP.trunc(L.projName, 12) + ' ' + sp.nick;
-  };
+    const sp = c.spec, clone = L.clones.find(x => x.ch === c);
+    if (!(sp.isCeo || clone || /^ceo-clone-/.test(sp.id || ''))) return null;
+    return nameOfSid(clone ? clone.sid : L.primary) + ' ' + sp.nick;
+  }
+  // 名牌用到的簡稱有變（換了工作階段、Claude 剛取好簡稱）就重畫；用簽名比對，沒變就不動
+  function nameSig() { return [L.primary, ...L.clones.map(x => x.sid)].map(id => id ? id + '=' + (taskOf(id) || '') : '').join('|'); }
+  function refreshNames() { const sg = nameSig(); if (sg === L._nameSig) return; L._nameSig = sg; applyProjectNames(); }
   function retitleSign() {
     if (!W.scene) return;
-    const want = L.mode === 'live' && L.projName ? AP.trunc(L.projName, 12) + ' CEO 辦公室' : 'CEO 辦公室';
+    const want = L.mode === 'live' && L.projName ? nameOfSid(L.primary) + ' CEO 辦公室' : 'CEO 辦公室';
     W.scene.traverse(o => {
       if (!(o.userData && o.userData.roomText === 'CEO 辦公室' && o.material)) return;
       if (o.userData.signNow === want) return; o.userData.signNow = want;
@@ -326,7 +334,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
         const ss = sessionsOfProject();
         if (ss.length) {
           const ci = new Map(L.clones.map((c, i) => [c.sid, i]));
-          h += `<ul aria-label="工作階段">${ss.slice(0, 8).map(s => { const who = s.id === L.primary ? 'CEO' : ci.has(s.id) ? `CEO（分身 ${ci.get(s.id) + 2}）` : 'CEO'; const st = s.ended ? '已結束' : s.flag === 'permission' ? '等你核准' : s.flag === 'question' ? '等你回答' : SESS_TEXT[s.state] || '待命中'; return `<li><b>${who}</b><span>${esc(st)}・${s.cloud ? '雲端' : s.cloud === false ? '本機' : ''}</span><em>${hhmm(s.last)}</em></li>`; }).join('')}</ul>`;
+          h += `<ul aria-label="工作階段">${ss.slice(0, 8).map(s => { const who = s.id === L.primary ? 'CEO' : ci.has(s.id) ? `CEO（分身 ${ci.get(s.id) + 2}）` : 'CEO'; const st = s.ended ? '已結束' : s.flag === 'permission' ? '等你核准' : s.flag === 'question' ? '等你回答' : SESS_TEXT[s.state] || '待命中'; return `<li><b>${esc(taskOf(s.id) ? nameOfSid(s.id) + ' ' + who : who)}</b><span>${esc(st)}・${s.cloud ? '雲端' : s.cloud === false ? '本機' : ''}</span><em>${hhmm(s.last)}</em></li>`; }).join('')}</ul>`;
           if (L.more) h += `<p>另外還有 ${L.more} 個工作階段同時開著（畫面最多放 3 位分身）。</p>`;
         }
       }
@@ -663,7 +671,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     L.data = j;
     const ps = j.projects || [];
     L.project = L.qProject || (L.cfg.project && ps.some(p => p.hash === L.cfg.project) ? L.cfg.project : (ps[0] || {}).hash || null);
-    { const pe = ps.find(p => p.hash === L.project), nm = L.project ? (pe ? AP.label(pe.name) : '這個專案') : null; if (nm !== L.projName) { L.projName = nm; applyProjectNames(); } }
+    { const pe = ps.find(p => p.hash === L.project), nm = L.project ? (pe ? AP.label(pe.name) : '這個專案') : null; if (nm !== L.projName) { L.projName = nm; L._nameSig = null; applyProjectNames(); } }
     if (first) applySnapshot(j);
     else {
       const evs = (j.events || []).filter(e => !L.seen.has(e.seq));
@@ -671,6 +679,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
       for (const e of evs) { try { applyEvent(e); } catch (x) { console.warn('即時事件處理失敗', x); } }
       syncSessions();
     }
+    refreshNames();
     applyQuota(j.quota);
     L.seq = Math.max(L.seq, j.seq || 0);
     L.status = claudeEvents(j) ? 'ok' : 'nodata';
@@ -718,7 +727,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   function enterDemo() {
     clearTimeout(L.timer); L.timer = 0;
     if (L.mode === 'live') { L.mode = 'demo'; resetState(); patchDemo(false); }
-    L.status = 'off'; L.projName = null; applyProjectNames(); render();
+    L.status = 'off'; L.projName = null; L._nameSig = null; applyProjectNames(); render();
   }
   L.enterLive = enterLive; L.enterDemo = enterDemo;
 
