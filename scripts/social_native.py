@@ -348,11 +348,20 @@ def b_inst_today(mode, w, h, ctx):
     last = vals[-1]
     s = S_(mode)
     ks = []
+    ncol_ = 4 if mode == "threads" else 2
+    colw_ = (w - 10 * (ncol_ - 1)) / ncol_ - 32      # 格寬扣掉左右內距與框線
+    fz_, uz_ = round(44 * s), round(26 * s)
+    # 2026-11-16：合計 −1,140.5 億（四位數）比格子寬 → 「億」被切、重疊檢查的 area 溢出把整張拿掉（11/16 盤後少了這張）。
+    # 依最長的一格縮字級（等寬字約 0.62 em、留 8% 餘裕），四格一起縮維持一致。
+    wid_ = max(len(sgn(last[k], 1)) for k in ("f", "t", "dl", "tot"))
+    while fz_ > round(30 * s) and wid_ * fz_ * 0.62 * 1.08 + uz_ + 8 > colw_:
+        fz_ -= 1
+        uz_ = max(round(fz_ * 26 / 44), 18)
     for lab, key in (("外資", "f"), ("投信", "t"), ("自營商", "dl"), ("合計", "tot")):
         v = last[key]
         acc = sum(x[key] for x in ytd)
         c = tone(v)
-        ks.append(f'<div class="k sub"><div class=l>{lab}</div><div class=vv style="color:{c}">{sgn(v, 1)}<u>億</u></div>'
+        ks.append(f'<div class="k sub"><div class=l>{lab}</div><div class=vv style="color:{c};font-size:{fz_}px">{sgn(v, 1)}<u style="font-size:{uz_}px">億</u></div>'
                   f'<div class=ss>年累積 <span style="color:{tone(acc)}">{sgn(acc, 0)}</span></div></div>')
     cols = "repeat(4,minmax(0,1fr))" if mode == "threads" else "repeat(2,minmax(0,1fr))"
     kh = round(150 * s) if mode == "threads" else round(150 * s) * 2 + 10

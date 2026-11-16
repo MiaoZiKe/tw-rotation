@@ -23,7 +23,7 @@ IM = {"rows": [
 
 def _tiles_from_image():
     html = NAT.b_inst_today("threads", 1080, 1200, {"jget": lambda n: IM})
-    pairs = re.findall(r"<div class=l>([^<]+)</div><div class=vv[^>]*>([^<]+)<u>億</u>", html)
+    pairs = re.findall(r"<div class=l>([^<]+)</div><div class=vv[^>]*>([^<]+)<u[^>]*>億</u>", html)
     return {lab: float(v.replace("−", "-").replace(",", "")) for lab, v in pairs}
 
 
@@ -42,3 +42,11 @@ def test_image_matches_caption_numbers():
     joined = "\n".join(reads)
     assert f"外資買超 {img['外資']:,.1f} 億" in joined
     assert f"投信買超 {img['投信']:,.1f} 億" in joined
+
+
+def test_wide_total_shrinks_font_1116():
+    """11/16 事故：合計 −1,140.5 億太寬、「億」被切，重疊檢查 area 溢出把整張拿掉 → 四位數時字級要縮。"""
+    big = {"rows": [{"d": "2026-11-16", "f": -701.9, "t": -179.6, "dl": -259.0, "tot": -1140.5, "tw": 41000.0}] * 3}
+    small = {"rows": [{"d": "2026-11-16", "f": 28.8, "t": 8.2, "dl": 6.9, "tot": 43.9, "tw": 41000.0}] * 3}
+    fs = lambda d: int(re.search(r'class=vv style="[^"]*font-size:(\d+)px', NAT.b_inst_today("threads", 1040, 1200, {"jget": lambda n: d})).group(1))
+    assert fs(big) < fs(small)

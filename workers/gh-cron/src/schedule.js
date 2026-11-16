@@ -31,6 +31,10 @@ export const SCHEDULE = [
   // 上市個股法人只能等 FinMind（證交所開放平台沒有個股法人明細），實測約 17:00～17:40 陸續上架 → 16:46～17:56 每 10 分鐘抓一次
   ...['16:16', '16:46', '16:56', '17:06', '17:16', '17:26', '17:36', '17:46', '17:56', '18:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '18:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
+  // ★ 2026-11-16 盤後主貼文保底：19:00（保底時間到）與 19:30 各直接派一輪 close（資料到齊就發、沒到齊走保底拿掉過期卡；已發過的自己跳過）。
+  //   11-16 事故：fbcb50dfff 撤回 11-09 版時，19:00 之後只剩「每日管線接力」一條路，而 19:16 那輪 inst 沒新資料就整輪跳過、沒有 social-live 被叫醒，
+  //   直到 19:23 CEO 手動派才發出。現在不靠接力，Worker 準時直接派。
+  ...['19:00', '19:30'].map((at) => ({ at, days: 'trading', workflow: S, inputs: { kind: 'close', dry_run: 'false' } })),
   ...['19:16', '19:46', '20:16', '20:46', '21:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '21:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。

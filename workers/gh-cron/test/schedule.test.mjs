@@ -87,9 +87,17 @@ test('2026-11-02 降量模式（Andy：「同意降量」）：主題文章、IG
   for (const j of SCHEDULE) assert.ok(!stopped.includes(j.workflow), `${j.at} ${j.workflow} 應該已拿掉`);
   assert.ok(!SCHEDULE.some((j) => j.workflow === 'social-live.yml' && j.inputs.kind === 'intraday'), '盤中 12:00 應該已拿掉');
   for (const day of ['2026-10-31', '2026-11-01', '2026-11-02']) {   // 週六、週日、週一（交易日）
-    for (const t of ['10:15', '10:45', '12:00', '19:00', '19:40', '19:42', '20:04', '20:32', '20:54', '20:58', '21:08', '21:22', '21:32', '21:44', '21:54', '22:04', '22:12']) {
+    for (const t of ['10:15', '10:45', '12:00', '19:40', '19:42', '20:04', '20:32', '20:54', '20:58', '21:08', '21:22', '21:32', '21:44', '21:54', '22:04', '22:12']) {
       assert.deepEqual(names(tpe(`${day} ${t}`), { enabled: { premarket: true } }), [], `${day} ${t}`);
     }
+  }
+});
+
+test('2026-11-16 盤後主貼文保底：交易日 19:00、19:30 各準時派一輪 close，週末與休市日不派', () => {
+  const want = ['social-live.yml:{"kind":"close","dry_run":"false"}'];
+  for (const t of ['19:00', '19:30']) {
+    assert.deepEqual(names(tpe(`2026-11-16 ${t}`), { enabled: { premarket: true } }), want, t);
+    assert.deepEqual(names(tpe(`2026-11-15 ${t}`), { enabled: { premarket: true } }), [], `週日 ${t}`);
   }
 });
 
