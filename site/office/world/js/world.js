@@ -45,7 +45,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
   {
     const P = new Part(); let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
     P.add(G.cyl(120, 0.2, 0.05, 48), '#c4ecb4', Lw / 2, -0.22, Ld / 2);
-    P.slab('#f1e2c3', Lw + 3, Ld + 3, 0.12, Lw / 2, -0.13, Ld / 2, 1.6);
+    if (!opts.blocks) P.slab('#f1e2c3', Lw + 3, Ld + 3, 0.12, Lw / 2, -0.13, Ld / 2, 1.6);   // 區塊辦公室（blocks.js）不鋪這片固定 40×30 的米色地：地板改由區塊依實際範圍動態生成
     P.slab('#f3dfb8', 3.0, 9, 0.06, 20.5, -0.05, Ld + 4.2, 1.2);
     for (let i = 0; i < 46; i++) {
       const a = r() * 6.283, d = 30 + r() * 34, x = Lw / 2 + Math.cos(a) * d * 1.25, z = Ld / 2 + Math.sin(a) * d * 0.95;

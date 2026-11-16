@@ -148,7 +148,7 @@ export function createFeel(W, K) {
   const pathLen = (a, b) => { const pts = W.nav.findPath({ x: a.x, z: a.z }, { x: b.x, z: b.z }); if (!pts || pts.length < 2) return null; let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z); return L; };
   const poolPlan = (c, p) => {
     if (F.cfg.noWater) return null;   // 驗收專用：關掉「跑向水源」，單獨驗原地掙扎（亂跑／跳腳／拍打／蹲下）
-    const cands = [], L = LAY && LAY.pool;
+    const cands = [], L = W.sports && LAY && LAY.pool;   // 沒開運動場（區塊辦公室）就沒有泳池可跳，只剩飲水機
     if (L) { const gx = (L.gap.x0 + L.gap.x1) / 2, ex = { x: gx, z: L.z1 + 1.1 }, d = pathLen(p, ex); if (d != null) cands.push({ kind: 'pool', ex: ex.x, ez: ex.z, ix: gx, iz: (L.z0 + L.z1) / 2, d: d + 2.6 }); }
     for (const s of W.spots) { if (s.name !== 'water') continue; const d = pathLen(p, s); if (d != null) cands.push({ kind: 'water', ex: s.x, ez: s.z, ix: s.x, iz: s.z, d }); }
     cands.sort((a, b) => a.d - b.d); return cands[0] || null;

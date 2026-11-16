@@ -48,7 +48,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   PF.boot.assets = performance.now() - PF.t0; PF.boot.assetsAt = performance.now();
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
-  const cv = $('cv'), W = createWorld(cv, layout, org, quality, { styleOf: makeStyleOf(rw, layout) }), { renderer, scene, camera } = W;
+  const cv = $('cv'), W = createWorld(cv, layout, org, quality, { styleOf: makeStyleOf(rw, layout), blocks: blocksOn }), { renderer, scene, camera } = W;
   PF.mark('world'); buildOutside(W); if (blocksOn) W.blocks = createBlocks(W, {});   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
@@ -194,7 +194,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   function godPose(target, dist) {
     // 預設俯視的注視點往前（南）挪一點，讓大門外的「無業遊民區」露出一部分（擁有者 11-14：找不到遊民區）；指定了目標（飛到某區域）就照指定的
-    const fr = !target && W.blocks ? W.blocks.framing(cv.clientWidth / Math.max(1, cv.clientHeight)) : null;   // 區塊辦公室：框住全部區塊＋運動場＋遊民區
+    const fr = !target && W.blocks ? W.blocks.framing(cv.clientWidth / Math.max(1, cv.clientHeight)) : null;   // 區塊辦公室：框住全部區塊＋遊民區
     const t = (target || (fr ? fr.t : CENTER.clone().add(v3c.set(0, 0, portrait() ? 4.5 : 4.2)))).clone(), d = dist || (fr ? fr.d : portrait() ? 84 : 58), pol = 0.62;
     return { t, p: new THREE.Vector3(t.x, t.y + d * Math.cos(pol), t.z + d * Math.sin(pol)), fov: 38 };
   }
@@ -654,5 +654,6 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   W.shadowDirty(); requestAnimationFrame(frame);
   W.refit = instant => { if (view.mode === 'god' && view.lastUser < 0 && !view.tween) setView('god', ceo, !!instant); };   // 區塊辦公室多了區塊：還沒動過鏡頭的話，重新框住全部
   W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
-  W.outside.hint(() => jumpTo('jobless')); mountSports(W, { ui, director }); window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
+  W.outside.hint(() => jumpTo('jobless')); if (!W.blocks) mountSports(W, { ui, director });   // 區塊辦公室（新專案）先不開放員工運動場（擁有者 11-16）
+   window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });

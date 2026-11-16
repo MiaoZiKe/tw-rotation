@@ -77,6 +77,13 @@ _PB_STATE = """() => { const W = window.__world, B = W.blocks;
   return { blocks: !!B, n: B ? B.count() : 0, rooms, vis, types, sports: !!(W.sports && W.sports.venues && W.sports.venues.length) || !!W.sports, jobless: !!W.outside, chars: W.chars.size } }"""
 
 
+_PB_FLOOR = """() => { const W = window.__world, B = W.blocks, T = W.THREE; const rayHit = rc => { const hs = []; W.scene.traverse(o => { if (o.isMesh && !o.isInstancedMesh && o.visible && o.geometry && o.geometry.attributes.position) { try { for (const h of rc.intersectObject(o, false)) hs.push(h); } catch (e) { /* 略 */ } } }); hs.sort((a, b) => a.distance - b.distance); const h = hs[0]; if (!h) return null; const ca = h.object.geometry.attributes.color; if (!ca) return { beige: false }; const i = h.face.a; return { beige: ca.getX(i) > ca.getY(i) + 0.02 && ca.getZ(i) < ca.getY(i) }; }; if (!B) { const rc = new T.Raycaster(), hit = (x, z) => { rc.set(new T.Vector3(x, 20, z), new T.Vector3(0, -1, 0)); const h = rayHit(rc); return !!(h && h.beige); }; return { tw: true, w: W.layout.size.w, d: W.layout.size.d, slab: hit(40.6, 15), grass: hit(44.5, 15), mid: hit(20, 15) }; }
+  const f = B.floor(), rs = W.layout.rooms; let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const r of rs) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w); z0 = Math.min(z0, r.z); z1 = Math.max(z1, r.z + r.d); }
+  const m = [f.x0 - x0, x1 - f.x1, f.z0 - z0].map(v => Math.abs(v)), fit = Math.abs(f.x0 - (x0 - 2.2)) < 0.05 && Math.abs(f.x1 - (x1 + 2.2)) < 0.05 && Math.abs(f.z0 - (z0 - 2.2)) < 0.05 && f.z1 >= z1 + 2.2 - 0.05 && f.z1 <= 30.6;
+  const rc = new T.Raycaster(), hit = (x, z) => { rc.set(new T.Vector3(x, 20, z), new T.Vector3(0, -1, 0)); const h = rayHit(rc); return !!(h && h.beige); };
+  return { f, fit, w: f.x1 - f.x0, d: f.z1 - f.z0, hitIn: hit((x0 + x1) / 2, (z0 + z1) / 2 + 1), hitFar: hit(1.0, 3.0) } }"""
+
+
 def _pb_ctx(b, srv):
     c = b.new_context(viewport={"width": 1280, "height": 800})
     cfg = _json.dumps({"url": srv.url, "login": True})
@@ -127,17 +134,21 @@ def _pb_main(b, base):
         ok("咖啡廳專案：沒有示範的部門房間、會議室、茶水間、食物區等", not bad, bad)
         ok("咖啡廳專案：沒有示範的佈告欄、沙發、會議桌、白板、冰箱、遊戲機", not any(k in s["types"] for k in ("board", "meeting_table", "whiteboard", "sofa", "fridge", "arcade", "counter", "dining", "pingpong", "bookshelf_x")) and s["types"].get("workstation") == 2 and s["types"].get("ceo_desk") == 1, s["types"])
         ok("咖啡廳專案：看得到的同事只有這 2 位 Agent，各坐自己區塊的桌子，沒有示範的 40 多位", sorted(v["id"] for v in s["vis"]) == ["data-verifier", "planner"] and all(v["sit"] and v["at"] == "seat:" + v["id"] for v in s["vis"]), s["vis"])
-        ok("咖啡廳專案：運動場與無業遊民區照在", s["sports"] and s["jobless"], s)
+        ok("咖啡廳專案：員工運動場不生成（新專案先不開放）、無業遊民區照在", (not s["sports"]) and s["jobless"], s)
         # 區塊置中、同排左右對稱
         pos = pg.evaluate("() => window.__world.layout.rooms.map(r => ({ id: r.id, cx: r.x + r.w / 2, z: r.z }))")
         ag = sorted([p for p in pos if p["id"].startswith("blk_")], key=lambda p: p["cx"])
         ok("咖啡廳專案：2 個 Agent 區塊同一排、左右對稱置中（CEO 在正下方）", len(ag) == 2 and abs((ag[0]["cx"] + ag[1]["cx"]) / 2 - 20.5) < 0.01 and ag[0]["z"] == ag[1]["z"] and ag[0]["z"] < next(p["z"] for p in pos if p["id"] == "ceo"), pos)
         # 鏡頭初始框住全部：3 個區塊、運動場、遊民區都在畫面內
         inview = pg.evaluate("""() => { const W = window.__world, cam = W.camera; cam.updateMatrixWorld(); const out = [];
-          const pts = W.layout.rooms.map(r => [r.x + r.w / 2, r.z + r.d / 2, r.id]).concat([[10, 40, 'sports'], [30, 35, 'jobless']]);
+          const pts = W.layout.rooms.map(r => [r.x + r.w / 2, r.z + r.d / 2, r.id]).concat([[30, 35, 'jobless']]);
           for (const [x, z, id] of pts) { const v = cam.position.clone().set(x, 0.3, z).project(cam); out.push({ id, ok: v.z < 1 && Math.abs(v.x) < 0.98 && Math.abs(v.y) < 0.98 }); } return out; }""")
-        ok("咖啡廳專案：鏡頭一進場就框住全部（區塊、運動場、無業遊民區都在畫面內）", all(p["ok"] for p in inview), inview)
+        ok("咖啡廳專案：鏡頭一進場就框住全部（區塊、無業遊民區都在畫面內）", all(p["ok"] for p in inview), inview)
         _pb_shot(pg, "pb1_咖啡廳規劃專案_俯瞰.png")
+        pg.wait_for_timeout(2000)   # 地板約 0.6 秒平順長到最終範圍
+        fl0 = pg.evaluate(_PB_FLOOR)
+        ok("咖啡廳專案：外圍米色地板範圍 ≈ 區塊包圍盒＋邊距（不是固定 40×30），空地沒有了", fl0["fit"] and fl0["w"] < 36 and fl0["d"] < 24, fl0)
+        ok("咖啡廳專案：區塊中心有米色鋪面、原本 40×30 之外的角落沒有", fl0["hitIn"] and not fl0["hitFar"], fl0)
 
         # ───── ② 新 Agent 即時長出新區塊（不重新整理）─────
         srv.events([_pb_ev("SubagentStart", "cf1", _PB_COFFEE, "coffee-shop", agent_id="cag-3", agent_type="menu-writer", description="撰寫菜單文案")])
@@ -152,20 +163,39 @@ def _pb_main(b, base):
         wait_until(pg, "() => window.__world.blocks.count() >= 5", 40000)
         n0 = pg.evaluate("() => window.__world.layout.rooms.filter(r => r.id.startsWith('blk_')).map(r => r.name)")
         ok("沒有派工說明的 Agent：區塊先用類型名（zz late）", any(_re.search(r"zz.late", n) for n in n0), n0)
+        pg.wait_for_timeout(1500)   # 地板約 0.6 秒平順長到新範圍
+        fl1 = pg.evaluate(_PB_FLOOR)
+        ok("加到 4 位 Agent 後：地板跟著變大（比 2 位時寬），仍貼合區塊包圍盒", fl1["fit"] and fl1["w"] > fl0["w"] + 4, [fl0["w"], fl1["w"]])
         _pb_shot(pg, "pb2_新Agent長出新區塊.png")
         # 跟 tw-rotation 示範編制同代號（inspector）的新 Agent：用自己的代號與區塊，不借用示範那位
         srv.events([_pb_ev("SubagentStart", "cf1", _PB_COFFEE, "coffee-shop", agent_id="cag-5", agent_type="inspector", description="檢查咖啡豆庫存表")])
         wait_until(pg, "() => window.__world.blocks.count() >= 6 && window.__world.chars.has('inspector') && window.__world.chars.get('inspector').state === 'sit'", 40000)
         ins = pg.evaluate("() => { const c = window.__world.chars.get('inspector'); return { zh: c.spec.zh, nick: c.spec.nick, seat: c.homeSpot && c.homeSpot.name, shown: !c.away && c.object3D.visible, room: window.__world.layout.rooms.filter(r => r.id.startsWith('blk_')).map(r => r.name) } }")
         ok("同代號（inspector）的新 Agent：用自己的名牌與區塊，不是 tw-rotation 的監察委員", ins["zh"] == "inspector" and ins["shown"] and ins["seat"] == "seat:inspector" and any("咖啡豆" in n for n in ins["room"]), ins)
+        # 再加一位（共 6 位 Agent）：地板繼續跟著擴，截圖留底
+        srv.events([_pb_ev("SubagentStart", "cf1", _PB_COFFEE, "coffee-shop", agent_id="cag-6", agent_type="tester", description="試做新菜單")])
+        wait_until(pg, "() => window.__world.blocks.count() >= 7 && window.__world.chars.has('tester') && window.__world.chars.get('tester').state === 'sit'", 40000)
+        pg.wait_for_timeout(1500)
+        fl2 = pg.evaluate(_PB_FLOOR)
+        ok("加到 6 位 Agent 後：地板再變大、仍貼合區塊包圍盒、遠角沒有米色空地", fl2["fit"] and fl2["w"] > fl1["w"] + 4 and not fl2["hitFar"], [fl1["w"], fl2["w"], fl2["f"]])
+        _pb_shot(pg, "pb2c_6位Agent.png")
 
         # ───── ③ 火焰、運動場、對話框照常 ─────
         r = pg.evaluate("""() => { const W = window.__world, e = [], F = W.fire; let burn = 0, sp = null, chat = false;
           try { const f = [...W.furn.values()].find(i => i.f.type === 'workstation'), n0 = F.furn.size; const ok = F.igniteFurn(f); burn = ok && F.furn.get(f.f.id).state === 'burning' ? 1 : 0; } catch (x) { e.push('fire:' + x.message); }
-          try { W.sports.ambientNow('basketball'); sp = { venues: W.sports.venues.length, amb: !!W.sports.amb }; } catch (x) { e.push('sports:' + x.message); }
           try { chat = !!W.chat || !!document.getElementById('chat'); } catch (x) { e.push('chat:' + x.message); }
-          return { err: e, burn, sp, chat, wet: !!(W.sports && W.sports.water), pets: [...W.pets].filter(p => !p.away).length } }""")
-        ok("區塊辦公室：存在的家具會著火（桌子燒得起來）、運動場照常開球、沒有因為缺家具而丟錯", not r["err"] and r["burn"] == 1 and r["sp"] and r["sp"]["venues"] >= 4, r)
+          return { err: e, burn, chat, wet: !!(W.sports && W.sports.water), pets: [...W.pets].filter(p => !p.away).length } }""")
+        ok("區塊辦公室：存在的家具會著火（桌子燒得起來）、沒有因為缺家具而丟錯", not r["err"] and r["burn"] == 1, r)
+        # 運動場整套不生成：沒有 W.sports、沒有「▼ 員工運動場」按鈕、區域選單沒有運動場項目；場景裡也沒有運動場物件
+        sp = pg.evaluate("""() => { const W = window.__world; const btn = document.querySelector('.sp-go'); const names = []; W.scene.traverse(o => { if (o.name && /sport|pool|court|billiard/i.test(o.name)) names.push(o.name); });
+          return { sports: !!W.sports, btn: !!btn && !btn.hidden && btn.offsetParent !== null, menu: /運動場/.test((document.getElementById('areaPop') || {}).innerHTML || ''), names, walk: W.layout.walkAreas.some(a => /運動場/.test(a.note || '')) } }""")
+        ok("新專案不開放運動場：沒有 W.sports、按鈕隱藏、區域選單沒有、尋路範圍沒有、場景沒有運動場物件", not sp["sports"] and not sp["btn"] and not sp["menu"] and not sp["walk"] and not sp["names"], sp)
+        # 被燒：只有辦公區內的飲水機當水源（CEO 區塊旁），人會跑過去潑水澆熄、不會往運動場／泳池跑
+        wt = pg.evaluate("""() => { const W = window.__world, sp = W.spots.filter(q => q.name === 'water'); return { n: sp.length, inCeo: sp.every(q => { const r = W.layout.rooms.find(x => x.id === 'ceo'); return q.x >= r.x && q.x <= r.x + r.w && q.z >= r.z && q.z <= r.z + r.d; }) } }""")
+        ok("區塊辦公室：有一台飲水機在 CEO 區塊內", wt["n"] == 1 and wt["inCeo"], wt)
+        who = pg.evaluate("() => { const W = window.__world; const c = W.chars.get('planner'); c.busy = false; c._fireImmuneUntil = 0; c.standAt(14.0, 12.0, Math.PI); W.fire.noHelpers = true; W.fire.ignite(c, 'projblk'); return c.spec.id }")
+        got = wait_until(pg, "() => { const c = window.__world.chars.get('planner'); return c._fireImmuneUntil > window.__world.time || c._wetUntil > window.__world.time }", 40000)
+        ok("被燒的人跑去辦公區內的飲水機潑水澆熄（身上濕了、不再著火）", got, who)
         pg.wait_for_timeout(2500)
         ok("咖啡廳專案：全程頁面沒有 JS 錯誤", not errs, errs[:3])
 
@@ -175,6 +205,8 @@ def _pb_main(b, base):
         s3 = pg.evaluate(_PB_STATE)
         ids = [r["id"] for r in s3["rooms"]]
         ok("tw-rotation：仍是原本完整辦公室（沒有區塊模式、部門房間與會議室都在）", got and not s3["blocks"] and all(k in ids for k in ("meeting", "video", "audit", "lobby")) and len(s3["rooms"]) >= 19, ids)
+        fl3 = pg.evaluate(_PB_FLOOR)
+        ok("tw-rotation：外圍地板仍是固定 40×30（含邊距 43×33 的米色鋪面，邊緣外才是草地）", fl3["tw"] and fl3["w"] == 40 and fl3["d"] == 30 and fl3["slab"] and not fl3["grass"], fl3)
         ok("tw-rotation：示範編制的 inspector 照樣坐自己的座位 seat:inspector", any(v["id"] == "inspector" and v["at"] == "seat:inspector" for v in s3["vis"]), s3["vis"])
         _pb_shot(pg, "pb3_tw-rotation完整辦公室.png")
     finally:

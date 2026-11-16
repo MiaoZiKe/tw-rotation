@@ -9,12 +9,14 @@
 //     · 其他專案 → blocksLayout() 把示範佈局縮成「只有 CEO 區塊」，其餘區塊由 createBlocks() 在 Agent 出現時一個一個長出來。
 //   示範模式（?demo=1／沒登入）完全不經過這裡。
 //
-// 排版（為什麼這樣排）：大門在南邊（z=30），運動場與遊民區在大門外（z≥31.6、座標寫死在 sports／outside），所以區塊都蓋在大門裡面：
+// 11-16 追加（擁有者）：「新專案都先不開放運動場」→ 區塊模式不呼叫 mountSports（沒有運動場、按鈕、選單項目、泳池），被燒改跑 CEO 區塊旁的飲水機；外圍米色鋪面依區塊範圍動態生成（見 floorTo）。
+// 排版（為什麼這樣排）：大門在南邊（z=30），遊民區在大門外（z≥31.9、座標寫死在 outside），所以區塊都蓋在大門裡面：
 //   CEO 區塊固定在大門正前方（最下面一排、置中）；Agent 區塊在它上面一排一排長，每排最多 5 個、每排各自置中——
 //   第二個 Agent 一來，同排第一個會往左挪半格，永遠是左右對稱。只有同排的區塊會被挪，CEO 不動。
-import { THREE } from './kit.js';
+import { THREE, Part } from './kit.js';
 
 export const TW_NAME = /^tw-rotation$/i;
+const FLOOR_M = 2.2, GATE_Z = 30.4, FLOOR_COLOR = '#f1e2c3';   // 外圍鋪面邊距；南緣至少鋪到大門（z=30）外一點，大門與步道才接得上
 const CX = 20.5, BW = 7.4, BD = 5.6, PX = 7.8, PER_ROW = 5, MAX_ROWS = 3, ROW0_Z = 13.2, ROW_PZ = 6.4;
 const COLORS = ['#cbb2f2', '#ffc48f', '#f7b0c6', '#a4c2f7', '#aedb9a', '#f6c177', '#f7df83', '#97dfcc', '#f4a59d', '#8ecfe6'];
 export const CAPACITY = PER_ROW * MAX_ROWS;
@@ -56,7 +58,7 @@ export function blocksLayout(base) {
     if (g.type === 'roomsign') { g.stand = true; g.z = dz + 0.5; }      // 沒有牆可以掛，改成立牌
     return g;
   });
-  return { ...base, rooms: [{ ...ceo, x: dx, z: dz, d: 8.4 }], walls: [], windows: [], furniture, spots: base.spots, walkAreas: base.walkAreas };
+  return { ...base, rooms: [{ ...ceo, x: dx, z: dz, d: 8.4 }], walls: [], windows: [], furniture: [...furniture, { id: 'blk_water', type: 'water', x: 23.2, z: 20.3, rot: 0 }], spots: base.spots, walkAreas: base.walkAreas };
 }
 
 // ───────── 區塊管理 ─────────
@@ -64,6 +66,20 @@ export function createBlocks(W, X) {
   const B = { on: true, agents: [], n: 0, log: [] }, layout = W.layout;
   const SIGN_Z = 0.6;
   if (W.floorBase) W.floorBase.visible = false;     // 示範辦公室那整片木地板拿掉：區塊直接放在外面那圈米色鋪面上，沒有區塊的地方就是空地
+
+  // ───────── 外圍米色鋪面：依區塊實際範圍動態生成（區塊模式不鋪固定 40×30 的大片空地）─────────
+  // 範圍 ＝ 所有區塊（含 CEO）的包圍盒 ＋ 邊距；南緣至少到大門外。新區塊長出來、同排重新置中時，鋪面用約 0.6 秒平順長到新範圍，不是瞬間跳。
+  const floorRect = () => { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const r of layout.rooms) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w); z0 = Math.min(z0, r.z); z1 = Math.max(z1, r.z + r.d); } return { x0: x0 - FLOOR_M, x1: x1 + FLOOR_M, z0: z0 - FLOOR_M, z1: Math.max(z1 + FLOOR_M, GATE_Z) }; };
+  const F = { mesh: null, cur: null, goal: null, busy: false };
+  const paint = r => { const P = new Part(); P.slab(FLOOR_COLOR, r.x1 - r.x0, r.z1 - r.z0, 0.12, (r.x0 + r.x1) / 2, -0.13, (r.z0 + r.z1) / 2, 1.6); const g = P.geometry(); if (F.mesh) { F.mesh.geometry.dispose(); F.mesh.geometry = g; } else { F.mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 })); F.mesh.receiveShadow = true; F.mesh.castShadow = false; W.scene.add(F.mesh); } F.cur = { ...r }; W.shadowDirty && W.shadowDirty(); };
+  B.floor = () => ({ ...(F.goal || floorRect()) });
+  async function floorTo(instant) {
+    F.goal = floorRect(); if (!F.cur || instant) { paint(F.goal); return; }
+    if (F.busy) return; F.busy = true;
+    try { const a = { ...F.cur }, t0 = W.time; for (;;) { const k = Math.min(1, (W.time - t0) / 0.6), e = k * k * (3 - 2 * k), g = F.goal, m = {}; for (const q of ['x0', 'x1', 'z0', 'z1']) m[q] = a[q] + (g[q] - a[q]) * e; paint(m); if (k >= 1) break; await W.sleep(0.02); } } finally { F.busy = false; }
+    if (JSON.stringify(F.cur) !== JSON.stringify(F.goal)) paint(F.goal);
+  }
+  floorTo(true);
 
   const posOf = i => {
     const row = Math.floor(i / PER_ROW), inRow = Math.min(PER_ROW, B.agents.length - row * PER_ROW), col = i - row * PER_ROW;
@@ -122,7 +138,7 @@ export function createBlocks(W, X) {
     if (B.agents.length >= CAPACITY) return null;
     const blk = { id: b.id, n: ++B.n, title: clip(b.title || b.nick || b.id), color: COLORS[B.n % COLORS.length], fids: [] };
     B.agents.push(blk); relayout();
-    const p = posOf(B.agents.length - 1); build(blk, p.x, p.z);
+    const p = posOf(B.agents.length - 1); build(blk, p.x, p.z); floorTo(false);   // 鋪面要等新區塊的房間登記進 layout 之後才算得到新範圍
     W.respot(); W.glowRebuild && W.glowRebuild(); rebind([]);
     const sp = W.spots.find(s => s.fid === blk.deskId && s.seat) || null;
     B.log.push('claim:' + b.id); if (W.refit) W.refit(!arrive);
@@ -144,7 +160,7 @@ export function createBlocks(W, X) {
   };
   /** 全部區塊（含 CEO）＋運動場＋遊民區的範圍，算出俯視鏡頭要看哪裡、拉多遠 */
   B.framing = aspect => {
-    let x0 = 0.7, x1 = 37.6, z0 = 31.6, z1 = 48.6;          // 運動場（0.7～19.6, 31.6～48.6）與遊民區（22.4～37.6, 31.9～38.8）
+    let x0 = 22.4, x1 = 37.6, z0 = 31.9, z1 = 38.8;          // 無業遊民區（22.4～37.6, 31.9～38.8）；新專案不開放運動場
     for (const r of layout.rooms) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w); z0 = Math.min(z0, r.z); }
     const wb = (x1 - x0) + 3, zb = (z1 - z0) + 3, dh = wb / (0.688 * Math.max(0.3, aspect)), dv = zb * 1.34;
     return { t: new THREE.Vector3((x0 + x1) / 2, 0, (z0 + z1) / 2), d: Math.max(30, Math.min(110, Math.max(dh, dv))) };
