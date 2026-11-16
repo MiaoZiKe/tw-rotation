@@ -36,6 +36,8 @@ def _pc_page(b, base, vw=1280, vh=800):
     pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text else None)
     pg.goto(base.split("/index.html")[0].rstrip("/") + _PC_URL, wait_until="domcontentloaded")
     got = wait_until(pg, "() => window.__world && window.__world.ready", 90000)
+    if got:   # 11-16：被燒的人現在會自己跑去水源、同事會拿水桶；這一段單獨驗洗色，所以關掉
+        pg.evaluate("() => { const W = __world; if (W.mind && W.mind.feel) W.mind.feel.cfg.noWater = true; W.fire.noHelpers = true; }")
     return c, pg, got
 
 
@@ -159,7 +161,7 @@ def t_office_poolcolor(b, base):
             pre = pg.evaluate(_PC_SNAP, who)
             _pc_god(pg, 3.0, 39.4, 3.5); im0 = _pc_crop(pg); im0.save(_os.path.join(_PC_SHOTS, f"{tag}_1_pre.png")); m0 = _pc_mean(im0)
             # ── 燒焦（在營火邊燒到焦黑、還沒進水）：截圖
-            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor'); }", [who, *_PC_NAT]); _pc_adv(pg, 4.6)
+            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor'); }", [who, *_PC_NAT]); _pc_adv(pg, 9.0)
             _pc_god(pg, *pg.evaluate("(id) => { const p = __world.chars.get(id).object3D.position; return [p.x, p.z] }", who), 3.5)
             im1 = _pc_crop(pg); im1.save(_os.path.join(_PC_SHOTS, f"{tag}_2_burnt.png")); m1 = _pc_mean(im1)
             s1 = _pc_st(pg, who)
@@ -228,7 +230,7 @@ def t_office_poolcolor(b, base):
             n3, bad3 = _pc_diff(pre, pg.evaluate(_PC_SNAP, who))
             ok(f"泳池洗色（{kind}）：洗乾淨之後材質顏色仍與燒前一致（{n3} 項）", not bad3 and _pc_st(pg, who)["s"] == "none", bad3[:3])
             # ── 洗過之後再燒一次：焦黑照樣疊得上去、照樣恢復（旗標沒有殘留）
-            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor4'); }", [who, *_PC_NAT]); _pc_adv(pg, 4.6)
+            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor4'); }", [who, *_PC_NAT]); _pc_adv(pg, 9.0)
             again = _pc_st(pg, who)
             ok(f"泳池洗色（{kind}）：洗過之後再燒一次，焦黑照樣疊上去（≥ 0.8）", again["soot"] >= 0.8 and again["s"] in ("burning", "smoldering"), again)
             for i in range(80):

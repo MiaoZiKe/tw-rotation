@@ -220,7 +220,7 @@ def t_sports(b, base):
 
         # ───────── 泳池：燒著的員工丟進泳池 ─────────
         pg.evaluate("() => { const W = __world; W.pilot.deselect && W.pilot.deselect(); }")
-        _sp_god(pg, 5.0, 36.2, 11)
+        _sp_god(pg, 5.0, 39.4, 11)   # 鏡頭往南移：人在畫面中上段（原本掉到左下角的對話列後面，滑鼠點不到）
         # 小燭（flame）本身就是火焰、不會被燒：挑三位不是 flame 的員工
         cand = pg.evaluate("() => [...__world.chars.values()].filter(c => !c.spec.isCeo && !c.spec.pet && c.look.species !== 'flame' && !['data-steward', 'finance-quant', 'smc-technical', 'efficiency-planner', 'data-scraper'].includes(c.spec.id)).map(c => c.spec.id)")
         who, w2, w3 = cand[0], cand[1], cand[2]

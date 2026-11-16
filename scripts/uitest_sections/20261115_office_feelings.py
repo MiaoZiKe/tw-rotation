@@ -33,6 +33,7 @@ def _fe_open(b, base, w=1280, h=800, speed=1, tod="day"):
     got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.mind && window.__world.mind.feel", 90000)
     if got:
         pg.evaluate("(k) => { __world.speed = k; }", speed)
+        pg.evaluate("() => { const W = __world; W.mind.feel.cfg.noWater = true; W.fire.noHelpers = true; }")   # 11-16：被燒的人現在會自己跑去水源、同事會拿水桶；這一段單獨驗情緒階段，所以關掉
     pg.wait_for_timeout(500)
     return c, pg, got
 

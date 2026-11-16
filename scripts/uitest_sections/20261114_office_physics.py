@@ -244,10 +244,11 @@ def t_office_physics(b, base):
             }""", who)
 
         ok("焦黑著色器：新舊角色都先補好（背景補、不卡）", pg.evaluate("() => [__T.oldChar(), __T.newChar()].every(c => (__world.fire.ensureScorch(c), c._scorchPatched))"))
+        pg.evaluate("() => { __world.mind.feel.cfg.noWater = true; __world.fire.noHelpers = true; }")   # 11-16：被燒的人現在會自己跑去水源、同事會拿水桶；這一段單獨驗「自然燒完」的火焰規格
         r7 = fire_round("old")
         ok("丟進營火（舊角色）：發出 burned 事件、進入燃燒（t=%.1f）" % (r7["tBurn"] or -1), r7["burned"] == 1 and r7["tBurn"] is not None, r7)
         ok("丟進營火（舊角色）：身上有火舌粒子、離開火源（最遠 %.1f 公尺 ≥ 2.4）" % r7["dmax"], r7["live"] >= 8 and r7["dmax"] >= 2.4, r7)
-        ok("丟進營火（舊角色）：身體焦黑 > 0（最大 %.2f ≥ 0.8）、火熄滅發出 extinguished（%.1f 秒後）" % (r7["sootMax"], (r7["tExt"] or 0) - (r7["tBurn"] or 0)), r7["sootMax"] >= 0.8 and r7["ext"] == 1 and 2.5 <= (r7["tExt"] or 0) - (r7["tBurn"] or 0) <= 9, r7)
+        ok("丟進營火（舊角色）：身體焦黑 > 0（最大 %.2f ≥ 0.8）、火熄滅發出 extinguished（%.1f 秒後）" % (r7["sootMax"], (r7["tExt"] or 0) - (r7["tBurn"] or 0)), r7["sootMax"] >= 0.8 and r7["ext"] == 1 and 7.5 <= (r7["tExt"] or 0) - (r7["tBurn"] or 0) <= 15, r7)   # 11-16：燃燒 8～12 秒，不會移開火源就熄
         ok("丟進營火（舊角色）：熄火後 30～60 秒（%.0f）內開始恢復、焦黑回到 0、發出 recovered（熄火後 %.0f 秒）" % (r7["recoverAt"] or -1, (r7["tRec"] or 0) - (r7["tExt"] or 0)),
            r7["rec"] == 1 and r7["sootEnd"] == 0 and 30 <= (r7["recoverAt"] or 0) <= 60 and 30 <= (r7["tRec"] or 0) - (r7["tExt"] or 0) <= 85, r7)
         r8 = fire_round("new")
@@ -499,6 +500,7 @@ def t_office_physics(b, base):
           for (let i = 0; i < 30 * 8; i++) { await W.advanceAsync(1 / 30, 1 / 30); soot = Math.max(soot, F.scorch(c)); if (F.stateOf(c).state === 'burning') burned = true; }
           return { soot, burned, state: F.stateOf(c).state }; }""")
         ok("營火（390）：丟進去會燒起來、焦黑 %.2f" % rf["soot"], rf["burned"] and rf["soot"] > 0.5, rf)
+        pm.evaluate("() => { __world.fire.reset(); }")   # 11-16：燃燒 8～12 秒，上一段丟進營火的人還在燒、還在跑；先熄掉再驗拎起
         held, moved, pos = real_drag(pm, "390")
         ok("真人操作（390）：按住角色被拎起、放開後被丟出", held and moved, (held, moved, pos))
         ok("手機 390：頁面沒有橫向捲動、沒有主控台錯誤", pm.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1") and not errs, errs[:3])
