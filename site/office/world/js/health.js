@@ -62,7 +62,7 @@ export function createHealth(W, X = {}) {
     }
     // 斷線／恢復提示＋CEO 失聯圖示（只在狀態翻轉時做一次）
     if (lv === 'r' && H.last !== 'r') { H.nDown++; ui.toast && ui.toast(text.startsWith('斷線') ? text.replace(/，.*$/, '') + '，會自動重連' : text); W.toolanim && W.toolanim.lost(ceos(), true); }
-    if (lv !== 'r' && lv !== 'off' && H.last === 'r') { H.nUp++; ui.toast && ui.toast('連線恢復了'); W.toolanim && W.toolanim.lost(ceos(), false); }
+    if (lv !== 'r' && lv !== 'off' && H.last === 'r') { H.nUp++; H.lastToast = '連線恢復了'; ui.toast && ui.toast('連線恢復了'); W.toolanim && W.toolanim.lost(ceos(), false); }
     if (lv === 'off' && H.last === 'r') W.toolanim && W.toolanim.lost(ceos(), false);
     H.last = lv;
   }

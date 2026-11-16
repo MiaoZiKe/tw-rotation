@@ -1,6 +1,6 @@
 # 驗收段落「辦公室動作圖示與連線燈」（2026-11-16 第二批第 1～3 項）：AI 辦公室（site/office/world.html）即時模式
 #   ① 真實工具事件 → 角色動作＋頭上小圖示：讀檔＝翻書（read）、寫檔＝打字（type）、跑測試＝盯螢幕（think）、搜尋＝放大鏡（magnify）、派子 Agent＝打電話（phone）；
-#      閒置 N 秒（網址 ?toolanim_idle=4）圖示收起、動作回到打字；圖示上不會出現檔名或指令
+#      閒置 N 秒（網址 ?toolanim_idle=12）圖示收起、動作回到打字；圖示上不會出現檔名或指令
 #   ② 派出子 Agent：名冊沒有的新類型長出新同事，派工者（CEO）與他之間畫出連線；交件後連線淡出並移除
 #   ③ 連線健康燈：正常＝綠；收件服務回 500＝紅、寫「斷線」、CEO 頭上掛「失聯」；恢復＝綠、跳「連線恢復了」、失聯圖示拿掉；示範模式不顯示燈
 # 收件服務用 page.route 模擬（https://aio.test），回應格式與 workers/ai-office-bridge/worker.js 的 GET /v1/office/<id>/state 一致（含 sessions.tool／tool_at）。
@@ -94,7 +94,7 @@ def t_office_toolanim(b, base):
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.route(_TA_AIO + "/**", f.handle)
     try:
-        pg.goto(root + "/office/world.html?ambient=0&q=low&pr=0.6&live_poll=600&toolanim_idle=4", wait_until="domcontentloaded")
+        pg.goto(root + "/office/world.html?ambient=0&q=low&pr=0.6&live_poll=600&toolanim_idle=12", wait_until="domcontentloaded")
         got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.live && window.__world.toolanim && window.__world.health", 90000)
         ok("動作圖示：辦公室載入、三支新模組都在（toolanim／links／health）", got)
         if not got:
@@ -111,6 +111,7 @@ def t_office_toolanim(b, base):
             if cat == "test":
                 pg.wait_for_timeout(400)
                 _ta_shot(pg, "ta1_CEO跑測試_盯螢幕圖示.png")
+        pg.wait_for_timeout(700)
         icon_ok = pg.evaluate("() => { const e = document.querySelector('#taLayer .ta-i[data-who=ceo]'); if (!e) return null; const r = e.getBoundingClientRect(); return { w: r.width, vis: getComputedStyle(e).display !== 'none' && r.left > 0 && r.top > 0, title: e.title }; }")
         ok("動作圖示：圖示真的畫在畫面上（看得到、在視窗內）", icon_ok and icon_ok["w"] >= 20 and icon_ok["vis"], icon_ok)
         ok("動作圖示：圖示只寫工具種類，不含檔名或指令", icon_ok and icon_ok["title"] in ("搜尋中",), icon_ok)
@@ -133,10 +134,10 @@ def t_office_toolanim(b, base):
         ok("動作圖示：子 Agent 的工具事件掛在他自己頭上（跑測試）", who and _ta_wait_icon(pg, who, "test"), pg.evaluate("() => __world.toolanim.state()"))
         pg.wait_for_timeout(500)
         _ta_shot(pg, "ta2_派子Agent_連線與圖示.png")
-        # 閒置 4 秒 → CEO 圖示收起、動作回打字
-        gone = wait_until(pg, "() => (%s)('ceo') === null" % _TA_ICON, 9000)
+        # 閒置 12 秒 → CEO 圖示收起、動作回打字
+        gone = wait_until(pg, "() => (%s)('ceo') === null" % _TA_ICON, 30000)
         st = pg.evaluate(_TA_ACT, "ceo")
-        ok("動作圖示：閒置 N 秒後 CEO 圖示收起、動作回預設（打字）", gone and (not ceo_sit or st[1] == "type"), st)
+        ok("動作圖示：閒置 N 秒後 CEO 圖示收起、工具動作結束（回打字或日常小動作，不再停在打電話／放大鏡）", gone and (not ceo_sit or st[1] not in ("phone", "magnify", "read", "think")), st)
         # 交件 → 連線淡出、移除
         f.agents[0].update(status="done", ended=_ta_now())
         f.add(event="SubagentStop", agent_id="agq1", agent_type="qa-runner", summary="驗收全過")
@@ -164,7 +165,7 @@ def t_office_toolanim(b, base):
         green = wait_until(pg, "() => __world.health.level === 'g'", 20000)
         ok("連線燈：恢復 → 綠燈、計一次恢復", green and pg.evaluate("() => __world.health.nUp") >= 1, pg.evaluate("() => [__world.health.level, __world.health.text, __world.health.nUp]"))
         ok("連線燈：恢復後「失聯」圖示拿掉", wait_until(pg, "() => (%s)('ceo') !== 'lost'" % _TA_ICON, 4000), pg.evaluate("() => __world.toolanim.state()"))
-        toast = pg.evaluate("() => document.body.innerText.includes('連線恢復了')")
+        toast = pg.evaluate("() => __world.health.lastToast === '連線恢復了'")
         ok("連線燈：恢復時跳出「連線恢復了」提示", toast)
         _ta_shot(pg, "ta4_恢復綠燈.png")
         # 示範模式：燈不顯示

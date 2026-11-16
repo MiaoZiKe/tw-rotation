@@ -90,7 +90,7 @@ export function createToolAnim(W, X = {}) {
   T.reset = () => { for (const k of [...T.cur.keys()]) T.clear(k, false); };
 
   // ───────── 每一幀：把圖示放到角色頭上；過期的收起來 ─────────
-  const v = new THREE.Vector3();
+  const v = new THREE.Vector3(), LIFT_PX = matchMedia('(max-width:640px)').matches ? 28 : 34;
   function frame() {
     requestAnimationFrame(frame);
     if (!T.cur.size) return;
@@ -100,11 +100,11 @@ export function createToolAnim(W, X = {}) {
       if (!on || (!x.sticky && now - x.at > T.idleMs)) { T.clear(k); continue; }
       const o = x.c && x.c.object3D;
       if (!o || !o.visible || !o.parent) { x.el.style.display = 'none'; continue; }
-      o.getWorldPosition(v); v.y += (x.c.height || 1.2) + (x.c.lift || 0) + 0.62;
+      o.getWorldPosition(v); v.y += (x.c.height || 1.2) + (x.c.lift || 0) + 0.1;   // 頭頂；圖示再往上推 34px，放在名牌上方，不壓名牌
       v.project(cam);
       const vis = v.z < 1 && v.x > -1.1 && v.x < 1.1 && v.y > -1.1 && v.y < 1.1;
       x.el.style.display = vis ? '' : 'none';
-      if (vis) x.el.style.transform = `translate(${(r.left + (v.x + 1) / 2 * r.width).toFixed(1)}px,${(r.top + (1 - v.y) / 2 * r.height).toFixed(1)}px)`;
+      if (vis) x.el.style.transform = `translate(${(r.left + (v.x + 1) / 2 * r.width).toFixed(1)}px,${(r.top + (1 - v.y) / 2 * r.height - LIFT_PX).toFixed(1)}px)`;
     }
   }
   requestAnimationFrame(frame);
