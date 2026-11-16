@@ -1,14 +1,14 @@
 {
- "title": "同一句話問 AI 兩次，答案為什麼不一樣？（31 秒）",
+ "title": "同一句話問 AI 兩次，答案為什麼不一樣？（52 秒）",
  "hook_type": "反差",
  "format": "video",
  "platforms": [
   "ig",
   "threads"
  ],
- "status": "draft",
+ "status": "approved",
  "publish_at": "2026-11-17T12:15+08:00",
  "video_src": "media/caffaine/20261117_two-answers",
  "keyword": "兩次",
- "note": "2026-11-17 排程。影片因旁白重配，out 檔會被換新：換好後把新 mp4 覆蓋 site/media/caffaine/20261117_two-answers/video.mp4（與 cover.jpg），再執行 scripts/channel_media.py stage --channel caffaine --folder 20261117_two-answers --video <新檔>，並把 status 改 approved。換好前保持 draft，避免發出舊音檔。文章：site/articles/caffaine/2026-11-17-two-answers.json。"
+ "note": "2026-11-16 新版旁白成片（約 50～54 秒）已換上。文章：site/articles/caffaine/2026-11-17-two-answers.json。影片本體見 site/media/caffaine/20261117_two-answers/，Reels 用的 media 分支由 scripts/channel_media.py stage 推送。"
 }
