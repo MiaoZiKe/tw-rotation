@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-11-17T04:41:13+08:00",
+  "checked_at": "2026-11-17T07:03:47+08:00",
   "today": "2026-11-17",
   "expected_price_date": "2026-11-16",
   "is_trading_day": true,
   "summary": {
-    "fail": 1,
-    "pending": 4,
-    "ok": 3,
+    "fail": 0,
+    "pending": 3,
+    "ok": 5,
     "skip": 0,
     "disabled": 0
   },
@@ -18,8 +18,9 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "social-live 今天有成功執行 1 次",
+          "why": "social-live 今天有成功執行 2 次",
           "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43961306431",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43925565941"
           ],
           "busy": false,
@@ -35,15 +36,15 @@
           "hard": false
         },
         "publish": {
-          "ok": false,
-          "why": "GitHub Pages（備援） 部署到 f39d332，還沒包含最新資料；Cloudflare 主站 部署到 f39d332，還沒包含最新資料",
+          "ok": true,
+          "why": "GitHub Pages（備援） 部署到 2966779，已包含最新資料；Cloudflare 主站 部署到 2966779，已包含最新資料",
           "evidence": [
-            "f39d332f5276b143d5582ac32884a500908be9a6",
-            "f39d332f5276b143d5582ac32884a500908be9a6"
+            "2966779736ecec810ec16964d9d42919843a9be3",
+            "2966779736ecec810ec16964d9d42919843a9be3"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": false
+          "cf_ok": true
         }
       },
       "deadline": "2026-11-17T08:40:00+08:00",
@@ -71,15 +72,15 @@
           "hard": false
         },
         "publish": {
-          "ok": false,
-          "why": "GitHub Pages（備援） 部署到 f39d332，還沒包含最新資料；Cloudflare 主站 部署到 f39d332，還沒包含最新資料",
+          "ok": true,
+          "why": "GitHub Pages（備援） 部署到 2966779，已包含最新資料；Cloudflare 主站 部署到 2966779，已包含最新資料",
           "evidence": [
-            "f39d332f5276b143d5582ac32884a500908be9a6",
-            "f39d332f5276b143d5582ac32884a500908be9a6"
+            "2966779736ecec810ec16964d9d42919843a9be3",
+            "2966779736ecec810ec16964d9d42919843a9be3"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": false
+          "cf_ok": true
         }
       },
       "deadline": "2026-11-17T21:40:00+08:00",
@@ -88,15 +89,15 @@
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券／ETF）",
-      "status": "pending",
+      "status": "ok",
       "gates": {
         "run": {
-          "ok": false,
-          "why": "daily.yml price／full 輪正在執行中（還沒跑完）",
+          "ok": true,
+          "why": "daily.yml 今天有成功的 price／full 輪 6 次",
           "evidence": [
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43942497562"
           ],
-          "busy": true,
+          "busy": false,
           "hard": false,
           "deadline": "2026-11-16 16:15:00+08:00"
         },
@@ -136,8 +137,8 @@
           "deadline": "2026-11-16 18:40:00+08:00"
         },
         "screen": {
-          "ok": false,
-          "why": "主站讀不到（HTTP Error 403: Forbidden）；備援：總覽 2026-11-16／法人 2026-11-16／三大法人頁 2026-11-16（應有 2026-11-16）",
+          "ok": true,
+          "why": "主站 403（執行環境讀不到，改依 Cloudflare 部署紀錄：已含最新資料）；備援：總覽 2026-11-16／法人 2026-11-16／三大法人頁 2026-11-16（應有 2026-11-16）",
           "evidence": [],
           "busy": false,
           "hard": false,
@@ -172,23 +173,23 @@
           "deadline": "2026-11-16 21:40:00+08:00"
         },
         "etf_screen": {
-          "ok": false,
-          "why": "主站讀不到 ETF 檔（HTTP Error 403: Forbidden）；備援：ETF 頁 2026-11-16／成分股 2026-11-16（應有 2026-11-16）",
+          "ok": true,
+          "why": "主站 403（執行環境讀不到 ETF 檔，改依 Cloudflare 部署紀錄）；備援：ETF 頁 2026-11-16／成分股 2026-11-16（應有 2026-11-16）",
           "evidence": [],
           "busy": false,
           "hard": false,
           "deadline": "2026-11-16 21:40:00+08:00"
         },
         "publish": {
-          "ok": false,
-          "why": "GitHub Pages（備援） 部署到 f39d332，還沒包含最新資料；Cloudflare 主站 部署到 f39d332，還沒包含最新資料",
+          "ok": true,
+          "why": "GitHub Pages（備援） 部署到 2966779，已包含最新資料；Cloudflare 主站 部署到 2966779，已包含最新資料",
           "evidence": [
-            "f39d332f5276b143d5582ac32884a500908be9a6",
-            "f39d332f5276b143d5582ac32884a500908be9a6"
+            "2966779736ecec810ec16964d9d42919843a9be3",
+            "2966779736ecec810ec16964d9d42919843a9be3"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": false
+          "cf_ok": true
         }
       },
       "deadline": "2026-11-16T18:40:00+08:00",
@@ -325,15 +326,15 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "fail",
+      "status": "ok",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 41 次",
+          "why": "pages.yml 今天有成功執行 40 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43949727365",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43944329178",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43942502231"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43972556119",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43970120970",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43961278705"
           ],
           "busy": false,
           "hard": false
@@ -347,24 +348,19 @@
           "deadline": "2026-11-16 18:40:00+08:00"
         },
         "publish": {
-          "ok": false,
-          "why": "GitHub Pages（備援） 部署到 f39d332，還沒包含最新資料；Cloudflare 主站 部署到 f39d332，還沒包含最新資料",
+          "ok": true,
+          "why": "GitHub Pages（備援） 部署到 2966779，已包含最新資料；Cloudflare 主站 部署到 2966779，已包含最新資料",
           "evidence": [
-            "f39d332f5276b143d5582ac32884a500908be9a6",
-            "f39d332f5276b143d5582ac32884a500908be9a6"
+            "2966779736ecec810ec16964d9d42919843a9be3",
+            "2966779736ecec810ec16964d9d42919843a9be3"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": false
+          "cf_ok": true
         }
       },
       "deadline": null,
-      "remedy": {
-        "action": "dispatch",
-        "workflow": "pages.yml",
-        "inputs": {}
-      },
-      "remedy_note": "已派出 pages.yml（今天第 2 次）"
+      "remedy": null
     }
   ],
   "errors": [],
