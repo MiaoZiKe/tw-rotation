@@ -1,7 +1,7 @@
 # 科技透明圈：每週發文安排（2026-11-10 Andy 定主軸：待遇＋科技產業鏈）
 
 > 2026-11-16 改版：Andy 選「每天科技＋待遇另發」（原話：「我還是需要每天都有科技設備、商品、產業、原理、運作等拆解介紹文章」）→ **每天 20:00 一支科技拆解影片（共 7 支）**；待遇類照舊每週 3 支，在二、四、六中午另發，那三天一天 2 支。
-> 2026-11-15：Andy 選「C：全部改成影片」，舊的圖文輪播不再發。影片製作照 ai-mp4 `docs/channels/tech-daily-playbook.md`（第九節規則、第十節敘述邏輯）與 `docs/marketing/channels/video_logic.md`；旁白由我們用 API 配（Iapetus＋說明 B，語速照 tech-2nm），Andy 不用再錄。每支成片先給 Andy 看，他回「核准」才排程（他另外說「驗證 OK 就直接發」之前都照這樣）。
+> 2026-11-15：Andy 選「C：全部改成影片」，舊的圖文輪播不再發。影片製作照 ai-mp4 `docs/channels/tech-daily-playbook.md`（第九節規則、第十節敘述邏輯）與 `docs/marketing/channels/video_logic.md`；旁白由我們用 API 配（Iapetus＋說明 B，語速照 tech-2nm），Andy 不用再錄（11-16 Andy 再確認：「以後影片內容都可以做吧 包含旁白」；ai-mp4 `docs/prompts/<slug>-旁白.txt` 檔頭一律寫「由 CEO 用 API 配音，Andy 不用錄」，見 lessons 第 32 條）。每支成片先給 Andy 看，他回「核准」才排程（他另外說「驗證 OK 就直接發」之前都照這樣）。
 
 | 星期 | 時間（台北） | 內容（全部是影片，IG Reels＋Threads） |
 |---|---|---|
@@ -21,10 +21,10 @@
 | 11/17（二）12:15 | 其他：兩份 offer 怎麼比 | v2 成片，物理效果退件改 v3 中 |
 | 11/17（二）20:00 | 晶圓良率（tech-yield，接曝光機片尾預告） | 製作中 |
 | 11/18（三）20:00 | 先進封裝：晶片太大做不好，拆小再拼回去（tech-packaging，接良率片尾預告） | research＋念稿＋script 完成，待 device-spec 與製作 |
-| 11/19（四）12:15 | 公司待遇影片（offer 片尾已預告拆一家科技廠的整包；3 家候選見 weekly/2026-11-16.md 第十節） | 等 Andy 選 |
+| 11/19（四）12:15 | 公司待遇：拆一家科技廠的整包——華碩電腦（tech-pay-asus；Andy 11-16 選「華碩電腦」；接 offer 片尾，片尾預告週六美光；留言關鍵字「華碩」） | research＋念稿＋script 完成（ai-mp4 b5f2f5f 前一個 commit 6b3e6bc），待製作；上片前 11/18 晚 MOPS 原表再核 |
 | 11/19（四）20:00 | HBM：十二層記憶體，比一張信用卡還薄（tech-hbm） | research＋念稿＋script 完成，待 device-spec 與製作 |
 | 11/20（五）20:00 | 產業鏈：伺服器到底是什麼（舊 EP.1 用新規則重做；接 HBM，片尾預告液冷） | 未開始 |
-| 11/21（六）11:00 | 新聞型待遇影片（3 則候選見 weekly/2026-11-16.md 第十節） | 等 Andy 選 |
+| 11/21（六）11:00 | 新聞型待遇：美光勞資爭議，分紅要不要寫成制度（tech-pay-micron；Andy 11-16 選「美光近期資方與勞方的爭議」；片尾預告同日 20:00 液冷；留言關鍵字「美光」） | research＋念稿＋script 完成（ai-mp4 6b3e6bc），待製作；**11/20 晚重查 11/17 調解結果、改念稿、過 legal-compliance 才配音** |
 | 11/21（六）20:00 | 液冷：一櫃伺服器一百二十千瓦，風扇吹不走（tech-cooling） | research＋念稿＋script 完成，待 device-spec 與製作 |
 | 11/22（日）20:00 | 八百伏特：AI 機櫃為什麼要把電壓拉高（tech-800v） | research＋念稿＋script 完成，待 device-spec 與製作 |
 
