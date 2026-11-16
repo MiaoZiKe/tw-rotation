@@ -169,9 +169,9 @@ def _sb_all(pg0, b, base, code):
         ok("存檔：整修模式點地板，出現換顏色的色票", hit)
         if not hit:
             return
-        sw = pg.locator("#editBar .sw:not(.on)").first
+        # 色票列會隨場景狀態重畫（元素一直換新），用 DOM 點擊同一顆色票：一樣走 #editBar 的點擊處理
         pg.wait_for_timeout(100)
-        sw.click()
+        pg.evaluate("() => document.querySelector('#editBar .sw:not(.on)').click()")
         fl = _sb_floor(pg)
         ok("存檔：點色票後本機擺設記下了地板顏色", len(fl) >= 1, fl)
         got = wait_until(pg, "() => __world.save.ups >= 1 && __world.save.status === 'saved' && /^已存檔 \\d\\d:\\d\\d$/.test(document.getElementById('saveTag').textContent)", 30000)
