@@ -13,6 +13,7 @@ import json as _json
 import re as _re
 
 _FE_QS = "?ambient=0&q=low&pr=0.6&sim=1"
+_FE_BURN_FACES = ("scared", "blank", "cough", "ouch", "effort", "cry")   # 11-16 起掙扎（ouch／cry）與熄火喘氣（effort）也算被燒的臉
 _FE_HAPPY = ["happy", "laugh", "whee", "smile", "bliss", "shy", "fistpump", "giggle", "grateful", "relieved", "smug"]
 
 
@@ -158,7 +159,7 @@ def t_fe_burn(b, base):
         pg.wait_for_timeout(300)
     ok("被燒（真滑鼠）：兩位都被拎起丟進營火", held[A] and held[B], held)
     ga, gb = _fe_get(pg, A), _fe_get(pg, B)
-    ok("被燒階段 1 驚嚇：兩位都先驚叫（A %s、B %s）" % (ga["face"], gb["face"]), ga["face"] in ("scared", "blank", "cough") and gb["face"] in ("scared", "blank", "cough"), (ga["face"], gb["face"]))
+    ok("被燒階段 1 驚嚇：兩位都先驚叫（A %s、B %s）" % (ga["face"], gb["face"]), ga["face"] in _FE_BURN_FACES and gb["face"] in _FE_BURN_FACES, (ga["face"], gb["face"]))
     _fe_shot(pg, "被燒_1驚嚇_真滑鼠.png")
     ok("被燒階段 4：兩位都知道是被「你」丟進火裡（blame）", ga["feel"]["blame"] and gb["feel"]["blame"], (ga["feel"], gb["feel"]))
     pg.evaluate("() => { __world.speed = 0.001; }")
