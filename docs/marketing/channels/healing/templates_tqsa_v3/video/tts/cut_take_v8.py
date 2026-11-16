@@ -2,6 +2,7 @@
 """v8 切段（通用版，不再寫死每篇的錨點字）：一次念完的原始旁白 → 切掉被念出的設定句與尾端雜訊 → 每鏡一段 → 成品 wav＋.cut.json（make_segments.py 接著產 segments.json）。
 1. 設定句結尾：ASR 找「直接」那個詞之後的最長靜音，念稿起點＝靜音結尾（往前留 0.2 秒，起音不切）。
 2. 每鏡分界：在念稿範圍內找所有 ≥0.12 秒的靜音；依每段字數算出預期分界時間，用動態規劃挑出依序、最接近預期、且越長越好的靜音當分界（切在靜音裡，不切字）。
+2b.（2026-11-16 修）分界只能選「靜音之後的第一個辨識字＝下一行第一個字」的那段靜音（ASR 是簡體且可能少一兩字，用簡繁小對照＋前 4 字位置比對）；比不到的靜音（逗號後）重罰，整個分界都比不到才退回舊邏輯並印警告。環境變數 BOUNDS="47.3,51.6,,60.0" 可直接指定每個分界在原始錄音的秒數（空白＝不指定），作為保底。
 3. 核對：每段範圍內的 ASR 文字印出來，人工對照念稿（數字寫法不同不算錯）。
 4. 念稿結尾：最後一個 ASR 字所在的有聲段結尾，之後的聲音（模型尾端雜訊）不收。
 5. 停頓（2026-11-16 Andy 新規，剪輯插靜音、不放慢語速）：句間實際停頓下限 MINGAP（預設 0.3 秒），原本自然停頓較長的保留到 MAXGAP（預設 0.45 秒）；narration.txt 有空行處＝段落分界，停頓固定 PARA（預設 0.7 秒）。沒有空行＝全部同一段。字幕／鏡頭時序（make_segments.py → gen_v8.py）讀的是切完後的時間點，自動跟著新停頓走。
@@ -42,8 +43,29 @@ cand = [(a / 100, b / 100) for a, b in runs_in(on0 + .3, last - .3, 12)]
 ch = [cc(t) for t in texts]; tot = sum(ch); exp = []; acc = 0
 for c in ch[:-1]: acc += c; exp.append(on0 + (last - on0) * acc / tot)
 K, M = len(exp), len(cand)
+# 簡→繁小對照（ASR 輸出簡體；只列常見字，沒列到的字退成「同字才算對」）
+S2T = dict(zip("这买内统计负担级过体户总资贷还价来为让们说话时间开关长发动经济务观点现实后场产业对车电会发联结约论题际环项报导记错须从样别两种应该钱让儿虽无节数据备选",
+               "這買內統計負擔級過體戶總資貸還價來為讓們說話時間開關長發動經濟務觀點現實後場產業對車電會發聯結約論題際環項報導記錯須從樣別兩種應該錢讓兒雖無節數據備選"))
+def norm(t): return "".join(S2T.get(c, c) for c in re.sub(r"[，。、；：？！「」（）\s\d%.]", "", t))
+def match_frac(m, k):
+    # 候選靜音 m 之後的辨識字，對下一行（第 k+1 行）開頭的符合比例；允許 ASR 少掉第一個字（要求其餘全對）
+    a_, b = cand[m]; nxt = "".join(norm(ww) for ww, s0, e0 in words if e0 > (a_ + b) / 2 + .02)[:6]   # ASR 字詞時間會漂（字起點常落在靜音裡），所以用「字結尾在靜音中點之後」當「靜音後的字」
+    ln = norm(texts[k + 1])[:4]
+    if not ln or not nxt: return 0.0
+    n0 = min(4, len(ln)); f0 = sum(1 for i in range(min(n0, len(nxt))) if nxt[i] == ln[i]) / n0
+    f1 = 0.0
+    if len(ln) >= 3: n1 = min(3, len(ln) - 1); f1 = (1.0 if all(i < len(nxt) and nxt[i] == ln[i + 1] for i in range(n1)) else 0.0) * .9
+    return max(f0, f1)
+frac = [[match_frac(m, k) for m in range(M)] for k in range(K)]
+force = [None] * K
+if os.environ.get("BOUNDS"):
+    for k, v in enumerate(os.environ["BOUNDS"].split(",")[:K]):
+        if v.strip(): force[k] = float(v)
 INF = 1e9; cost = [[INF] * M for _ in range(K)]; back = [[-1] * M for _ in range(K)]
-def c1(k, m): a, b = cand[m]; L = b - a; return abs((a + b) / 2 - exp[k]) - 1.2 * min(L, .6)
+def c1(k, m):
+    a, b = cand[m]; L = b - a
+    if force[k] is not None: return abs((a + b) / 2 - force[k]) * 10 - 1.2 * min(L, .6)
+    return abs((a + b) / 2 - exp[k]) - (3.0 if frac[k][m] >= .5 else 1.2) * min(L, .6) + 8 * (1 - frac[k][m])   # 比得到下一行開頭的靜音：越長越好（避開靜音旁邊的小氣音）
 for m in range(M): cost[0][m] = c1(0, m)
 for k in range(1, K):
     best, bi = INF, -1
@@ -53,6 +75,12 @@ for k in range(1, K):
 m = min(range(M), key=lambda j: cost[K - 1][j]); pick = [m]
 for k in range(K - 1, 0, -1): m = back[k][m]; pick.append(m)
 bounds = [cand[i] for i in reversed(pick)]
+pickm = list(reversed(pick))
+for k in range(K):
+    f = frac[k][pickm[k]]
+    if force[k] is not None: print("分界 %s：指定 %.2f 秒 → 靜音 %.2f–%.2f" % (ids[k + 1], force[k], *bounds[k]))
+    elif f < .5:
+        print("警告：分界 %s 沒有「後面第一個字＝下一行開頭」的靜音（最佳符合 %.2f，取 %.2f–%.2f，之後聽到「%s」），請人工核對或用 BOUNDS 指定" % (ids[k + 1], f, bounds[k][0], bounds[k][1], "".join(ww for ww, s0, e0 in words if e0 > sum(bounds[k]) / 2 + .02)[:6]), file=sys.stderr)
 pieces = []
 for i, sid in enumerate(ids):
     s = on0 if i == 0 else bounds[i - 1][1]; e = bounds[i][0] if i < len(bounds) else last

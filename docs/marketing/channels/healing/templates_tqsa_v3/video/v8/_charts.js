@@ -4,7 +4,7 @@
 // 強調只用：差距括號＋箭頭、淡橘底膠囊彈入、數字後方螢光底；不用手繪圈；強調元素包在 data-em 群組裡（check_v8.py 量與文字／線稿最短距離）。
 const IH=368,CT=776,CH=724;
 // v8.1（animation-director 11-16 退件：鏡內 2 秒後只剩光點不算主體動作）：每鏡 2.0 秒起每 1.0 秒一拍——狀態標籤輕跳（2.0、3.0…），強調膠囊輕跳（2.5、3.5…）；位移 ≤7px、每拍衰減落定，不縮放、不閃爍
-let _LT=0;
+let _LT=0,_ONCE=false;   // _ONCE：scene.once 開啟時，光點／亮帶只做一次就停（預設循環，其他片不受影響）
 let _BEATS=null,_TAGALL=false;   // 有旁白時＝這一鏡對準字詞起音的拍點（gen_v8.py 算好）；偶數拍跳狀態標籤、奇數拍跳強調膠囊
 function beatHop(lt,off,amp){let y=0;if(_BEATS){_BEATS.forEach((b,i)=>{if((off===-1||(i%2)===((off||0)>0?1:0))&&b<lt+.01)y+=-(amp||7)*DECAY(lt-b,6,15)});return y}for(let b=2.0+(off||0);b<lt+.01&&b<14;b+=1.0)y+=-(amp||7)*DECAY(lt-b,6,15);return y}
 const F1=(v,d)=>Number(v).toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
@@ -15,10 +15,10 @@ function bracketV(x,y0,y1,p,lab,side){if(p<=0)return'';const s=side||1,yy=y0+(y1
 function bracketH(x0,x1,y,p,lab,below){if(p<=0)return'';const xx=x0+(x1-x0)*clamp(p*1.4),dv=below?-14:14;let g=`<g data-em="1"><path d="M${x0} ${y} v${-dv} H${xx}${p>.7?' v'+dv:''}" fill="none" stroke="${LAMP}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
  const q=clamp((p-.55)/.45);if(q>0)g+=`<g opacity="${q.toFixed(2)}" transform="translate(0,${(1-q)*10})">${T((x0+x1)/2,below?y+56:y-34,lab,40,700,HINT)}</g>`;return g+'</g>'}
 function hiliteBg(x,y,w,h,p){return p<=0?'':`<rect data-em="1" x="${x}" y="${y}" width="${(w*clamp(p)).toFixed(1)}" height="${h}" rx="10" fill="${LAMP}" opacity=".26"/>`}
-const sweepBar=(x,y,w,h,lt,at)=>{if(lt<at||w<=1||window.NOGLINT)return'';const k=((lt-at)%1.3)/.7;if(k>=1)return'';const id='sw'+Math.round(x)+'_'+Math.round(y),sx=x-90+(w+180)*EO(k);   // v8.1：羽化斜向亮帶（線性漸層、兩側透明、裁在圓角內），不再用硬邊方塊
+const sweepBar=(x,y,w,h,lt,at)=>{if(lt<at||w<=1||window.NOGLINT)return'';const k=((lt-at)%(_ONCE?1e9:1.3))/.7;if(k>=1)return'';const id='sw'+Math.round(x)+'_'+Math.round(y),sx=x-90+(w+180)*EO(k);   // v8.1：羽化斜向亮帶（線性漸層、兩側透明、裁在圓角內），不再用硬邊方塊
  return `<defs><linearGradient id="${id}g" x1="0" x2="1"><stop offset="0" stop-color="#FFF4D6" stop-opacity="0"/><stop offset=".5" stop-color="#FFF4D6" stop-opacity=".75"/><stop offset="1" stop-color="#FFF4D6" stop-opacity="0"/></linearGradient><clipPath id="${id}c"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/></clipPath></defs><g clip-path="url(#${id}c)"><path d="M${(sx-50).toFixed(1)} ${y+h} L${(sx).toFixed(1)} ${y} L${(sx+70).toFixed(1)} ${y} L${(sx+20).toFixed(1)} ${y+h}Z" fill="url(#${id}g)" opacity="${Math.sin(Math.PI*k).toFixed(2)}"/></g>`};
 // v8 第三拍（審片標準：靜止段 ≤1.2 秒）：沿一條折線走一顆暖白光點，at 秒第一次、之後每 per 秒一次（不閃爍、不縮放）
-function glide(pts,lt,at,per){if(lt<at||window.NOGLINT)return'';const ph=((lt-at)%(per||1.2))/.7;if(ph>=1)return'';let L=0;const seg=[];for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);L+=d}
+function glide(pts,lt,at,per){if(lt<at||window.NOGLINT)return'';const ph=((lt-at)%(_ONCE?1e9:(per||1.2)))/.7;if(ph>=1)return'';let L=0;const seg=[];for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);L+=d}
  const at2=e=>{let r=e*L,i=0;while(i<seg.length-1&&r>seg[i]){r-=seg[i];i++}const u=seg[i]?r/seg[i]:0;return [pts[i][0]+(pts[i+1][0]-pts[i][0])*u,pts[i][1]+(pts[i+1][1]-pts[i][1])*u]};
  const a=Math.sin(Math.PI*ph);let g='';[0,1,2,3].forEach(k=>{const e=EO(Math.max(0,ph-k*.06));const [x,y]=at2(e);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${16-k*3}" fill="#FFF4D6" stroke="#F4B860" stroke-width="${k?0:2}" opacity="${(a*(1-k*.22)).toFixed(2)}"/>`});return g}   // 帶 4 節拖尾的暖白光點
 function ILLbox(s,lt,d,top,h){const f=ILL[s.ill];return box('illus',top||392,h||IH,`<rect x="0" y="0" width="888" height="${h||IH}" rx="26" fill="${FACE}"/>`+(f?f.draw(lt,h||IH,s):''),lt,d,{})}
@@ -126,12 +126,13 @@ const SCV={
   const last=c.rows.length-1,lx=40+last*(bw+gap);g+=sweepBar(lx,base-Hh*(c.rows[last].v-c.lo)/(c.hi-c.lo),bw,Hh*(c.rows[last].v-c.lo)/(c.hi-c.lo),lt,2.3);
   h+=box('chart',CT,CH,g,lt,d,{});return h},
  slope(s,lt,d){let h=head(s,lt)+ILLbox(s,lt,d);const c=s.slope,xa=190,xb=700,base=560,Hh=420,y=v=>base-Hh*(v-c.lo)/(c.hi-c.lo);let g='';
-  g+=`<line x1="${xa}" y1="${base}" x2="${xa}" y2="60" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="${xb}" y1="${base}" x2="${xb}" y2="60" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="40" y1="${base}" x2="848" y2="${base}" stroke="${LINE}" stroke-width="3"/>`;
+  g+=`<line x1="${xa}" y1="${base}" x2="${xa}" y2="${c.ems?190:60}" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="${xb}" y1="${base}" x2="${xb}" y2="${c.ems?190:60}" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="40" y1="${base}" x2="848" y2="${base}" stroke="${LINE}" stroke-width="3"/>`;
   g+=T(xa,base+50,c.a.x,34,400,SUBC)+T(xb,base+50,c.b.x,34,700,TXT)+(c.base0?T(848,36,c.base0,32,400,SUBC,'end'):'');
   const p=pr(lt,.3,.7),ya=y(c.a.v),yb=y(c.b.v),xe=xa+(xb-xa)*p,ye=ya+(yb-ya)*p;
   g+=`<g opacity="${pr(lt,0,.3)}"><circle cx="${xa}" cy="${ya}" r="20" fill="${FACE3}" stroke="${LINE}" stroke-width="4"/>${T(xa-36,ya+14,c.a.txt,44,700,TXT,'end')}</g>`;
   if(p>0)g+=`<line x1="${xa}" y1="${ya}" x2="${xe}" y2="${ye}" stroke="${LAMP}" stroke-width="12" stroke-linecap="round"/><circle cx="${xe}" cy="${ye}" r="${22*settle(lt,1.0)}" fill="${LAMP}"/>`;
   g+=`<g opacity="${pr(lt,.95,.3)}">${c.b.above?T(xb,yb-40,c.b.txt,44,700,TXT):T(xb+36,yb+14,c.b.txt,44,700,TXT,'start')}</g>`;
+  if(c.ems)c.ems.forEach((e,i)=>{g+=capsule(e.x,e.y,e.w,80,e.txt,38,SPR(lt-1.45-i*.3,.45,16))});
   if(c.em){const e=c.em;g+=e.kind==='cap'?capsule(e.x,e.y,e.w,80,e.txt,38,SPR(lt-1.45,.45,16)):bracketV(xb+e.dx,Math.min(ya,yb),Math.max(ya,yb),pr(lt,1.45,.5),e.txt,e.side||1)}
   // 第三拍：光點沿線流一次
   g+=glide([[xa,ya],[xb,yb]],lt,2.2,1.2);
@@ -187,7 +188,7 @@ const SCV={
   if(p>0){const x=cx+R*Math.sin(a),y=cy-R*Math.cos(a);g+=`<path d="M${cx} ${cy-R} A ${R} ${R} 0 ${a>Math.PI?1:0} 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${LAMP}" stroke-width="80"/>`}
   for(let i=0;i<10;i++){const b=i/10*2*Math.PI;g+=`<line x1="${cx+(R-40)*Math.sin(b)}" y1="${cy-(R-40)*Math.cos(b)}" x2="${cx+(R+40)*Math.sin(b)}" y2="${cy-(R+40)*Math.cos(b)}" stroke="${FACE3}" stroke-width="4"/>`}
   g+=`<g transform="translate(${cx},${cy+24}) scale(${settle(lt,1.0).toFixed(3)})">${T(0,0,F1(c.v*EO((lt-.1)/.9),2)+'%',70,700,TXT)}</g>`;
-  {const n=16,pts=[];for(let k=0;k<=n;k++){const b=2*Math.PI*c.v/100*k/n;pts.push([cx+R*Math.sin(b),cy-R*Math.cos(b)])}g+=glide(pts,lt,2.0,1.2)}
+  if(!c.noglide){const n=16,pts=[];for(let k=0;k<=n;k++){const b=2*Math.PI*c.v/100*k/n;pts.push([cx+R*Math.sin(b),cy-R*Math.cos(b)])}g+=glide(pts,lt,2.0,1.2)}
   c.legend.forEach((l,i)=>{const q=pr(lt,.6+i*.2,.3);g+=`<g opacity="${q}"><rect x="580" y="${150+i*110}" width="40" height="40" rx="8" fill="${i?FACE:LAMP}" stroke="${LINE}" stroke-width="2"/>${T(636,184+i*110,l[0],36,700,TXT,'start')}${T(636,228+i*110,l[1],32,400,SUBC,'start')}</g>`});
   if(c.em)g+=capsule(c.em.x,c.em.y,c.em.w,80,c.em.txt,38,SPR(lt-1.45,.45,16));
   h+=box('chart',CT,CH,g,lt,d,{});return h},
@@ -195,7 +196,8 @@ const SCV={
   c.grades.forEach((gr,i)=>{const p=pr(lt,.05+i*.15,.35);g+=`<g opacity="${p}"><rect x="${sx(gr.from)+2}" y="${y}" width="${(sx(gr.to)-sx(gr.from)-4)*Math.min(1,p*1.2)}" height="100" rx="10" fill="${gr.col}"/>${T((sx(gr.from)+sx(gr.to))/2,y+62,gr.lab,34,700,gr.dark?'#FFFFFF':TXT)}</g>`});
   c.ticks.forEach((v,i)=>g+=`<g opacity="${pr(lt,.4,.3)}">${T(sx(v),y+150,v+'%',32,400,SUBC)}</g>`);
   const p=pr(lt,.7,.7),v=c.v*p,mx=sx(v);if(p>0)g+=`<g><path d="M${mx} ${y-14} l-22 -36 h44Z" fill="${LAMP}" stroke="${LINE}" stroke-width="2.5"/><line x1="${mx}" y1="${y-14}" x2="${mx}" y2="${y+108}" stroke="${TXT}" stroke-width="5"/></g><g opacity="${pr(lt,1.3,.3)}">${T(mx,y-70,c.mark,48,700,TXT)}</g>`;
-  g+=glide([[x0,y+100],[sx(c.v),y+100]],lt,2.3,1.2);
+  if(!c.noglide)g+=glide([[x0,y+100],[sx(c.v),y+100]],lt,2.3,1.2);
+  if(c.note)g+=`<g opacity="${pr(lt,.3,.3)}">${T(444,64,c.note,32,400,SUBC)}</g>`;
   if(c.em)g+=capsule(c.em.x,c.em.y,c.em.w,80,c.em.txt,38,SPR(lt-1.7,.45,16));
   if(c.foot)g+=`<g opacity="${pr(lt,1.0,.3)}">${T(444,y+260,c.foot,34,400,SUBC)}</g>`;
   h+=box('chart',CT,CH,g,lt,d,{});return h},

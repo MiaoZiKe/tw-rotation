@@ -47,8 +47,8 @@ const ILL={
  bricks:{draw(t,h){let g=`<rect x="0" y="${h-40}" width="888" height="40" fill="#E4D3B8"/>`;
   for(let i=0;i<10;i++){const u=t-.1-i*.11,p=SPR(u,.5,16);if(u<=0)continue;const half=i===9,w=half?110*.47*2:220,row=Math.floor(i/2),col=i%2,x=(row%2?260:240)+col*230,y=h-40-38*(row+1)-(1-p)*60;
    g+=`<rect x="${x}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="34" rx="4" fill="${half?LAMP:'#B98A6A'}" stroke="${LINE}" stroke-width="2" opacity="${clamp(u*8)}" ${half?`transform="rotate(${(4*DECAY(u-.15,4,14)).toFixed(1)} ${x} ${y})"`:''}/>`}
-  g+=`<rect x="640" y="50" width="200" height="80" rx="12" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`+T(740,104,'約 9.47 年',32,700,TXT);
-  g+=T(150,104,'1 塊＝1 年',32,400,SUBC);
+  g+=`<rect x="560" y="30" width="290" height="92" rx="14" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`+T(705,92,'約 9.47 倍',48,700,TXT);
+  g+=T(30,92,'1 塊＝1 年所得',44,400,SUBC,'start');
   return g},
   sfx(t0,s,E){for(let i=0;i<10;i+=2)E(t0+.1+i*.11+.1,'tick',{g:.6});E(t0+1.2,'thump',{g:.25})}},
  // s7 信箱：信箱小旗由下往上翻起（0.4，過衝回彈）、信箱門打開一點、裡面空空的；樹影晃
@@ -61,6 +61,16 @@ const ILL={
   return g},
   sfx(t0,s,E){E(t0+.4,'click');E(t0+.9,'glide',{f0:400,f1:250,dur:.3,g:.07})}},
  // s8 里程碑：一條長路通往遠方，路邊里程碑一個個彈出（2026 → 2031 的方向），最後一個寫「?」；路上光點往前流
+ // s6b 下台階：左邊「去年同期」高台、右邊「今年」矮一階；小房子從高台跳下一階、落地彈一下就停（整支只做一次）；雲慢慢飄
+ stepdown:{draw(t,h){let g=`<rect x="0" y="0" width="888" height="${h}" rx="26" fill="#F3E2C8"/>`;
+  const cl=(t*14)%1000;g+=`<ellipse cx="${(520+cl)%1000-60}" cy="60" rx="80" ry="24" fill="#FFFDF8" opacity=".8"/>`;
+  g+=`<rect x="60" y="170" width="380" height="${h-170}" fill="#CDB896" stroke="${LINE}" stroke-width="3"/><rect x="440" y="250" width="388" height="${h-250}" fill="#B98A6A" stroke="${LINE}" stroke-width="3"/>`;
+  g+=T(250,336,'去年同期',44,700,TXT)+T(634,336,'今年',44,700,TXT);
+  g+=`<rect x="670" y="210" width="158" height="40" fill="#A67A5C" stroke="${LINE}" stroke-width="3"/>`;
+  const u=clamp((t-.5)/.9,0,1),e=u*u*(3-2*u),u2=clamp((t-1.9)/.5,0,1),e2=u2*u2*(3-2*u2),x=250+(640-250)*e+110*e2,by=170+80*e-70*Math.sin(Math.PI*e)-40*e2-30*Math.sin(Math.PI*e2),lt=t-1.4,bn=lt>0&&t<1.9?16*Math.exp(-lt*7)*Math.sin(lt*28):0,lt2=t-2.4,bn2=lt2>0?8*Math.exp(-lt2*8)*Math.sin(lt2*28):0,y=by+bn+bn2;
+  g+=`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})"><rect x="-45" y="-62" width="90" height="62" fill="#FFF4D6" stroke="${LINE}" stroke-width="4"/><path d="M-58 -62 L0 -108 L58 -62Z" fill="${LAMP}" stroke="${LINE}" stroke-width="4"/><rect x="-12" y="-36" width="24" height="36" fill="${LINE}" opacity=".8"/></g>`;
+  return g},
+  sfx(t0,s,E){E(t0+.5,'glide',{f0:700,f1:350,dur:.8,g:.08});E(t0+1.4,'thump',{g:.3});E(t0+1.9,'glide',{f0:350,f1:520,dur:.3,g:.06});E(t0+2.4,'thump',{g:.2})}},
  milestone:{draw(t,h){let g=`<rect x="0" y="0" width="888" height="${h}" rx="26" fill="#F3E6D0"/><path d="M0 ${h} L380 120 L508 120 L888 ${h}Z" fill="#D9C4A0"/><path d="M444 ${h} L444 120" stroke="#FFFDF8" stroke-width="6" stroke-dasharray="24 22"/>`;
   [[180,h-90,1],[290,h-190,.8],[360,h-250,.62],[400,h-290,.5]].forEach(([x,y,sc],i)=>{const u=t-.2-i*.22,p=SPR(u,.45,16);if(u<=0)return;g+=`<g transform="translate(${x},${y}) scale(${(sc*Math.max(.01,p)).toFixed(3)})"><path d="M-40 0 v-70 q0 -30 40 -30 q40 0 40 30 v70Z" fill="${i===3?LAMP:FACE3}" stroke="${LINE}" stroke-width="4"/></g>`});
   for(let k=0;k<6;k++){const u=((t*.5+k/6)%1);g+=`<circle cx="444" cy="${(h-u*(h-140)).toFixed(1)}" r="${(8-6*u).toFixed(1)}" fill="#FFF4D6" opacity="${(.8*(1-u)).toFixed(2)}"/>`}

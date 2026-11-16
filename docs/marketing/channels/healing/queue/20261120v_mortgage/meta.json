@@ -1,0 +1,13 @@
+{
+ "title": "買一間房，每月收入4成多先繳房貸（影片 v8，有旁白）",
+ "hook_type": "場景代入",
+ "format": "video",
+ "platforms": [
+  "ig",
+  "threads"
+ ],
+ "status": "approved",
+ "publish_at": "2026-11-20T20:27+08:00",
+ "comment_keyword": "房貸",
+ "note": "2026-11-16 總編輯：v8 產生器（templates_tqsa_v3/video/v8/）。數字照 sources.md；無旁白版經 animation-director、art-director 複審通過後才配旁白（gemini-3.8-flash-tts／Sulafat，1 次請求）；成片最後驗證見 final_check.json、video_review.md。已通過 animation-director、art-director 最終審片，2026-11-16 總編輯改 approved，11/20 20:27 發出（11/19 未滿25歲在前）。同日 12:27 發輪播。"
+}
