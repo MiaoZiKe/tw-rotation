@@ -184,6 +184,7 @@ def t_fe_burn(b, base):
     ok("被燒階段 3：兩位都恢復到「餘悸」階段", all(rec.values()), rec)
     ga, gb = _fe_get(pg, A), _fe_get(pg, B)
     ok("被燒階段 3 餘悸：敏感的 A 比樂觀的 B 更怕火（%.2f > %.2f）" % (ga["feel"]["fear"], gb["feel"]["fear"]), ga["feel"]["fear"] > gb["feel"]["fear"] + .1, (ga["feel"], gb["feel"]))
+    pg.evaluate("([a, b]) => { for (const id of [a, b]) __world.mind.mindOf(id).wary = 0; }", [A, B])   # 「戒備」心情（被丟後約 150 秒）會蓋過「還在怕火」；這裡驗的是怕火那一行，所以先讓戒備過期（11-16：掙扎變長後正好卡在邊界上）
     ma, mb = _fe_mood(pg, A), _fe_mood(pg, B)
     ok("被燒階段 3：A 的心情列寫「還在怕火（…被燒到）」＋對你的態度（%s）" % ma["text"], bool(_re.search(r"還在怕火（(剛|今天|昨天|前幾天)被燒到）・對你：", ma["text"])) or ("對你：" in ma["text"] and "怕火" in ma["text"]), ma)
     _fe_shot(pg, "被燒_3餘悸.png")
