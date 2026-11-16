@@ -37,7 +37,7 @@ function boot(W) {
 #budgetDim{position:absolute;inset:0;background:rgba(18,20,42,.46);pointer-events:none;z-index:5;opacity:0;transition:opacity .8s}
 #budgetDim.on{opacity:1}
 #budgetNote{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:11;background:rgba(30,30,52,.9);color:#fff;border-radius:14px;padding:8px 14px;font-size:13px;max-width:calc(100vw - 32px);text-align:center;line-height:1.5}
-@media (max-width:640px){#budgetBtn .tr{width:44px}#budgetBtn{font-size:11.5px;padding:0 8px;gap:5px}#budgetBtn .lb{display:none}#budgetPop{width:calc(100vw - 32px)}#budgetNote{font-size:12px;bottom:12px}}`;
+@media (max-width:640px){#budgetBtn .tr{width:44px}#budgetBtn{order:21;font-size:11.5px;padding:0 8px;gap:5px}#budgetBtn .lb{display:none}#budgetPop{width:calc(100vw - 32px)}#budgetNote{font-size:12px;bottom:12px}}`;
   document.head.append(css);
   const app = document.getElementById('app') || document.body, bar = document.getElementById('bar');
   const btn = document.createElement('button'); btn.className = 'btn'; btn.id = 'budgetBtn'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', '今日預算（點開可設定每日上限）');

@@ -56,7 +56,7 @@ function boot(W) {
   const css = document.createElement('style'); css.id = 'saveCss';
   css.textContent = `#saveTag{font-size:11.5px;color:var(--sub,#7a6f66);background:rgba(255,255,255,.72);border-radius:10px;padding:3px 8px;white-space:nowrap;line-height:1.3}
 #saveTag.ok{color:#2f7d51}#saveTag.warn{color:#a8641a}
-@media (max-width:640px){#saveTag{font-size:11px;padding:2px 6px;order:5}}`;
+@media (max-width:640px){#saveTag{font-size:11px;padding:2px 6px;order:20}}`;
   document.head.append(css);
   const tag = document.createElement('span'); tag.id = 'saveTag'; tag.setAttribute('role', 'status'); tag.setAttribute('aria-live', 'polite');
   const bar = document.getElementById('bar'); if (bar) bar.append(tag);

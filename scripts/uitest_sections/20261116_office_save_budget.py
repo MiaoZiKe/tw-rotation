@@ -110,8 +110,33 @@ def _sb_wipe_local(pg):
     pg.evaluate("() => { const keep = ['tw.acct.tok','aiOffice.live.v1','aiOffice.daytime']; const v = keep.map(k => localStorage.getItem(k)); localStorage.clear(); keep.forEach((k, i) => v[i] != null && localStorage.setItem(k, v[i])); sessionStorage.clear(); }")
 
 
+def _sb_ev(pg, expr):
+    """自動還原會重新整理一次：遇到「頁面正在換」就等一下再問"""
+    for _ in range(60):
+        try:
+            return pg.evaluate(expr)
+        except Exception as e:
+            if "destroyed" not in str(e) and "navigat" not in str(e):
+                raise
+            pg.wait_for_timeout(300)
+    return pg.evaluate(expr)
+
+
+def _sb_settle(pg):
+    """等自動還原的那次重新整理結束：存檔模組進入 saved 而且 1.2 秒內沒有再換頁"""
+    for _ in range(6):
+        pg.wait_for_timeout(1200)
+        _sb_ready(pg)
+        try:
+            if pg.evaluate("() => __world.save.status === 'saved' && !__world.save.restored"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def _sb_floor(pg):
-    return pg.evaluate("() => { try { return (JSON.parse(localStorage.getItem('aiOffice.world.layout.v1') || '{}').floor) || {} } catch (e) { return {} } }")
+    return _sb_ev(pg, "() => { try { return (JSON.parse(localStorage.getItem('aiOffice.world.layout.v1') || '{}').floor) || {} } catch (e) { return {} } }")
 
 
 def _sb_all(pg0, b, base, code):
@@ -162,11 +187,10 @@ def _sb_all(pg0, b, base, code):
         pg.reload(wait_until="domcontentloaded")
         _sb_ready(pg)
         back = wait_until(pg, "() => { try { return Object.keys(JSON.parse(localStorage.getItem('aiOffice.world.layout.v1')||'{}').floor||{}).length > 0 && __world.save.status === 'saved' } catch (e) { return false } }", 30000)
-        pg.wait_for_timeout(1500)
-        _sb_ready(pg)
+        _sb_settle(pg)
         fl2 = _sb_floor(pg)
         ok("存檔：清本機重整後，從雲端下載還原同一個地板顏色", back and fl2 == fl, (fl2, fl))
-        applied = pg.evaluate("() => JSON.stringify((__world.overrides && __world.overrides.floor) || {})")
+        applied = _sb_ev(pg, "() => JSON.stringify((__world.overrides && __world.overrides.floor) || {})")
         ok("存檔：還原後場景真的套上了（重新整理一次後 W.overrides.floor 一致）", _json.loads(applied) == fl, applied)
         _sb_shot(pg, "s2_清本機後還原.png")
         # ③ 舊版 schema 1 存檔被遷移
@@ -178,8 +202,7 @@ def _sb_all(pg0, b, base, code):
         pg.reload(wait_until="domcontentloaded")
         _sb_ready(pg)
         mig = wait_until(pg, "() => localStorage.getItem('aiOffice.game.coins') === '7'", 30000)
-        pg.wait_for_timeout(1500)
-        _sb_ready(pg)
+        _sb_settle(pg)
         fl3 = _sb_floor(pg)
         ok("遷移：舊版存檔被升級成現行鍵（aiOffice.game.coins＝7、地板顏色 #5b8def）", mig and fl3.get(room) == "#5b8def", (fl3, pg.evaluate("() => localStorage.getItem('aiOffice.game.coins')")))
         fm = pg.evaluate("async () => { const m = await import('./world/js/save.js'); return m.migrate(1, { layout: { floor: { r: '#111' } }, game: { lv: 3, nm: 'x' } }) }")
@@ -191,8 +214,7 @@ def _sb_all(pg0, b, base, code):
         pg.evaluate("() => { localStorage.setItem('aiOffice.game.note', 'old-device'); __world.save.scan(); }")
         conf = wait_until(pg, "() => __world.save.conflicts >= 1 && localStorage.getItem('aiOffice.game.coins') === '99'", 15000)
         ok("衝突：本頁的改動比另一台舊 → 收到衝突、換成比較新的那份", conf, pg.evaluate("() => ({ c: __world.save.conflicts, coins: localStorage.getItem('aiOffice.game.coins') })"))
-        pg.wait_for_timeout(1800)
-        _sb_ready(pg)
+        _sb_settle(pg)
         # ⑤ 今日預算
         bb = pg.locator("#budgetBtn")
         ok("預算：頂列有「今日預算」", bb.is_visible() and "今日預算" in bb.inner_text(), bb.inner_text() if bb.count() else None)
