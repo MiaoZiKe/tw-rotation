@@ -310,7 +310,7 @@ def test_廣達稿在佇列且是draft():
 
 def test_正式開關檔tc區塊():
     s = tc.settings(json.loads(tc.post_quota.QUOTA_FILE.read_text(encoding="utf-8")))
-    assert s["enabled"] and s["per_day"] == 1 and s["min_gap_hours"] == 12  # 2026-11-15 Andy 選「C：全部改成影片」每天 1 支，間隔 20→12 小時
+    assert s["enabled"] and s["per_day"] == 2 and s["min_gap_hours"] == 6  # 2026-11-15 Andy 選「C：全部改成影片」每天 1 支，間隔 20→12 小時
 
 
 # ---------------- 自動刪文 ----------------
