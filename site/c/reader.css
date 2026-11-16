@@ -1,0 +1,48 @@
+/* 頻道獨立閱讀站（2026-11-16 Andy：CaffAIne、談晴說礙的文章內文獨立成自己的網站，不用哩股哩股的導覽）。
+   兩站共用這支，配色與字體用 body[data-ch] 的變數分開：caffaine＝粉彩長春花藍；healing＝暖米紙底、襯線大標、棕墨字、橘色強調。 */
+:root{--bg:#f4f5ff;--card:#fff;--ink:#1f2350;--ink2:#4b507a;--acc:#5b63e8;--acc2:#e8eaff;--line:#d9dcf5;--hf:system-ui,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;--bf:var(--hf)}
+body[data-ch=healing]{--bg:#fbf5ea;--card:#fffdf8;--ink:#4a3322;--ink2:#7a604b;--acc:#e0701f;--acc2:#fbe6d2;--line:#e6d9c2;--hf:"Noto Serif TC","Songti TC","PMingLiU",Georgia,serif;--bf:system-ui,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.75 var(--bf);-webkit-text-size-adjust:100%}
+a{color:var(--acc)}
+.hd{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.hd .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.hd .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);min-width:0}
+.hd .brand img{width:36px;height:36px;flex:none}
+.hd .brand b{font:700 20px/1.2 var(--hf);white-space:nowrap}
+.hd .brand small{display:block;font-size:12px;color:var(--ink2);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd .sp{flex:1}
+.hd .btn,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;background:transparent;color:var(--acc);font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer}
+.btn.fill{background:var(--acc);color:#fff}
+main{max-width:860px;margin:0 auto;padding:20px 16px 56px}
+h1,h2,h3{font-family:var(--hf);line-height:1.35}
+.sub{color:var(--ink2);margin:0 0 16px}
+.cards{display:grid;gap:12px}
+.card{display:block;padding:16px 18px;background:var(--card);border:1px solid var(--line);border-radius:14px;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)}
+.card h3{margin:0 0 4px;font-size:18px}
+.card .m{font-size:13px;color:var(--ink2)}
+.card p{margin:6px 0 0;font-size:14px;color:var(--ink2)}
+.gate,.bn{margin:16px 0;padding:14px 16px;background:var(--acc2);border-left:4px solid var(--acc);border-radius:10px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14px}
+.bn.ok{border-left-color:#2e9c6a}
+.art h1{font-size:28px;margin:8px 0}
+.art .meta{font-size:13px;color:var(--ink2);margin-bottom:12px}
+.art .tags span{display:inline-block;margin:0 6px 6px 0;padding:2px 10px;background:var(--acc2);border-radius:999px;font-size:12px}
+.art h2{font-size:22px;margin:28px 0 8px}
+.art p{margin:10px 0}
+.art .callout{padding:12px 14px;background:var(--acc2);border-radius:10px;font-size:14px;margin:12px 0}
+.art .tw{overflow-x:auto;margin:12px 0}
+.art table{border-collapse:collapse;width:100%;font-size:14px;min-width:420px}
+.art th,.art td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.art th{background:var(--acc2)}
+.art figure{margin:14px 0}.art figure img{max-width:100%;height:auto;border-radius:10px;display:block}
+.art figcaption{font-size:13px;color:var(--ink2);margin-top:4px}
+.art .imgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.art .vid{margin:16px 0;text-align:center}
+.art .vid video{max-width:100%;max-height:min(78vh,720px);background:#000;border-radius:12px}
+.art .vid .n{font-size:13px;color:var(--ink2);margin:6px 0}
+.art ol.st{padding-left:20px}.art ol.st li{margin:8px 0}
+.back{display:inline-block;margin-bottom:8px;font-size:14px}
+.ft{max-width:860px;margin:0 auto;padding:0 16px 32px;font-size:12px;color:var(--ink2)}
+@media (max-width:640px){.art h1{font-size:24px}.hd .brand small{display:none}}
