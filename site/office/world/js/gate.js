@@ -21,8 +21,8 @@
 // 文案禁用字（辦公室頁一律不出現）：價格、NT$、付費、升級、訂閱、方案、Plus、Pro、免費、右鍵。
 
 const ACCT_TOK = 'tw.acct.tok', TQ = 'tw.quota', DEMO_K = 'tw.demo.tier';
-export const GATE_IDS = ['office.cmd', 'office.connect', 'office.hr', 'office.save', 'office.budget'];   // 2026-11-16 加 office.save（雲端存檔，save.js）、office.budget（今日預算，budget.js）
-const NAME = { 'office.cmd': '下指令', 'office.connect': '連接', 'office.hr': '人事異動', 'office.save': '雲端存檔', 'office.budget': '今日預算' };
+export const GATE_IDS = ['office.cmd', 'office.connect', 'office.hr', 'office.save', 'office.budget', 'office.liveviz'];   // 2026-11-16 第二批：office.liveviz（真實動作圖示、子 Agent 連線、連線健康燈；只有開關）   // 2026-11-16 加 office.save（雲端存檔，save.js）、office.budget（今日預算，budget.js）
+const NAME = { 'office.cmd': '下指令', 'office.connect': '連接', 'office.hr': '人事異動', 'office.save': '雲端存檔', 'office.budget': '今日預算', 'office.liveviz': '即時動作與連線燈' };
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const tpeDay = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 const unitKey = () => 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);   // 跟主站 quota.js use() 同一個格式（Worker 驗 ^[0-9A-Za-z_.-]{1,24}$）

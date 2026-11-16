@@ -85,7 +85,7 @@ ok("專案：沒有 cwd 就沒有專案名與雜湊", bridge.project_info("") ==
 ok("sanitize 用 project_info（事件裡的雜湊與取指令用的一致）", bridge.sanitize({"hook_event_name": "Stop", "cwd": _d1, "session_id": "s"}, {})["project_hash"] == _h1)
 
 # ── 工具類別 ──
-cases = [("Read", {}, "read"), ("Grep", {}, "read"), ("Edit", {}, "write"), ("WebSearch", {}, "search"), ("Bash", {"command": "python -m pytest tests -q"}, "test"),
+cases = [("Read", {}, "read"), ("Grep", {}, "search"), ("Glob", {}, "search"), ("Edit", {}, "write"), ("WebSearch", {}, "search"), ("Bash", {"command": "python -m pytest tests -q"}, "test"),
          ("Bash", {"command": "git push origin main"}, "deploy"), ("Bash", {"command": "python scripts/deploy_wait.py --branch main"}, "wait"), ("Bash", {"command": "ls"}, "other"),
          ("Agent", {}, "dispatch"), ("AskUserQuestion", {}, "ask"), ("mcp__x__y", {}, "other")]
 ok("工具類別判斷", all(bridge.tool_category(n, i) == c for n, i, c in cases), [(n, bridge.tool_category(n, i)) for n, i, c in cases])

@@ -292,6 +292,8 @@ export class Hub {
     // 舊資料庫的收件匣沒有 ph 欄：補上（新的指令可以指定專案；舊的指令 ph 為空＝任何專案都可以取）
     if (!this.q('PRAGMA table_info(inbox)').some((c) => c.name === 'ph')) this.sql.exec('ALTER TABLE inbox ADD COLUMN ph TEXT');
     try { this.sql.exec('ALTER TABLE sessions ADD COLUMN tname TEXT'); } catch { /* 已經有這欄 */ }
+    // 2026-11-16 第二批第 1 項：主工作階段（CEO）最近一次的工具類別與時間（只存類別，不存指令或檔名），網頁依它切換 CEO 的動作與頭上小圖示
+    for (const c of ['tool TEXT', 'tool_at INTEGER']) { try { this.sql.exec('ALTER TABLE sessions ADD COLUMN ' + c); } catch { /* 已經有這欄 */ } }
     this.ready = true;
   }
 
@@ -465,9 +467,9 @@ export class Hub {
     const cat = e.tool_category;
     switch (e.event) {
       case 'SessionStart': S("started = ?, ended = NULL, state = 'idle', flag = NULL", rcv); break;
-      case 'SessionEnd': S("ended = ?, state = 'ended', flag = NULL", rcv); break;
+      case 'SessionEnd': S("ended = ?, state = 'ended', flag = NULL, tool = NULL", rcv); break;
       case 'UserPromptSubmit': if (!e.prompt_is_system) S("state = 'working', flag = NULL, prompts = prompts + 1, ended = NULL"); break;
-      case 'Stop': S("state = 'idle', flag = NULL, turns = turns + 1, summary = ?, tokens = COALESCE(?, tokens)", e.summary || null, e.usage_main ?? null); break;
+      case 'Stop': S("state = 'idle', flag = NULL, tool = NULL, turns = turns + 1, summary = ?, tokens = COALESCE(?, tokens)", e.summary || null, e.usage_main ?? null); break;
       case 'StopFailure': S("state = 'error', flag = NULL"); break;
       case 'PermissionRequest': S("flag = 'permission', perm = ?", e.perm_category || 'other'); break;
       case 'Notification':
@@ -477,6 +479,7 @@ export class Hub {
       case 'PreToolUse':
         if (cat === 'ask') S("flag = 'question', state = 'working'");
         else S("flag = NULL, state = 'working', ended = NULL");
+        if (!e.agent_id && cat && cat !== 'ask') S('tool = ?, tool_at = ?', cat, rcv);   // 子 Agent 的工具記在 agents 表；這裡只記主工作階段自己的
         break;
       case 'PostToolUse': if (cat === 'answered') S('flag = NULL'); break;
     }
@@ -564,7 +567,7 @@ export class Hub {
     const top = this.q('SELECT MAX(seq) AS s FROM events WHERE office = ?', office)[0] || {};
     const cnt = this.q('SELECT MAX(rcv) AS t, COUNT(*) AS n FROM events WHERE office = ?' + PE, office, ...PA)[0] || {};
     const projects = pg.list;
-    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, tname AS task_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ?' + PS + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
+    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, tname AS task_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens, tool, tool_at FROM sessions WHERE office = ? AND last > ?' + PS + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
       .map((s) => ({ ...s, project_hash: cn(s.project_hash), cloud: s.cloud == null ? null : !!s.cloud }));
     let agents = this.q('SELECT aid AS agent_id, sid AS session_id, ph AS project_hash, type AS agent_type, descr AS description, started, last, ended, status, tool, tool_at, summary, tokens, dur AS duration_ms FROM agents WHERE office = ? AND (ended IS NULL OR ended > ?)' + PS + ' ORDER BY COALESCE(ended, last) DESC LIMIT 200', office, now - 86400e3, ...PA)
       .map((a) => ({ ...a, project_hash: cn(a.project_hash) }))

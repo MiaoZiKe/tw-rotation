@@ -32,9 +32,10 @@ EVENT = sys.argv[1] if len(sys.argv) > 1 else ""
 TIMEOUT = 2.0
 HOME = os.path.join(os.path.expanduser("~"), ".ai-office")
 
-READ = {"Read", "Glob", "Grep", "LS", "NotebookRead"}
+READ = {"Read", "LS", "NotebookRead"}
 WRITE = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
-SEARCH = {"WebSearch", "WebFetch"}
+# 2026-11-16 第二批第 1 項：Grep／Glob 改算「搜尋」（網頁上是放大鏡）；Read 才是「讀檔」（翻書）
+SEARCH = {"WebSearch", "WebFetch", "Grep", "Glob", "ToolSearch"}
 DISPATCH = {"Agent", "Task"}
 ASK = {"AskUserQuestion"}
 TEST_RE = re.compile(r"\b(pytest|unittest|node\s+--test|npm\s+(run\s+)?test|yarn\s+test|pnpm\s+test|jest|vitest|mocha|go\s+test|cargo\s+test|_uitest|_preview|playwright\s+test)\b")

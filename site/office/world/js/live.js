@@ -16,6 +16,9 @@
 //     不放進網址列（#aio=… 會被讀走後立刻清掉）。舊版存在儲存裡的碼，第一次載入時搬進記憶體並清除。
 import { hhmm } from './state.js';
 import { textTexture } from './kit.js';
+import { createToolAnim } from './toolanim.js';   // 2026-11-16 第二批第 1 項：真實工具呼叫 → 角色動作＋頭上小圖示
+import { createLinks } from './links.js';         // 第 2 項：子 Agent 與派工者之間的連線
+import { createHealth } from './health.js';       // 第 3 項：頂列連線健康燈＋自動重連
 
 const LS = 'aiOffice.live.v1', ACCT_TOK = 'tw.acct.tok';
 const POLL_MS = 15000;
@@ -530,6 +533,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     if (W.jobs && W.jobs.statusSync) W.jobs.statusSync();
     L.seq = 0; L.seen.clear(); L.primary = null; L.data = null; L.lastQuota = ''; L.more = 0; L.booted = false;
     for (const c of L.clones) c.ch.setVisible(false); L.clones.forEach(c => { c.sid = null; });
+    if (W.toolanim) W.toolanim.reset(); if (W.links) W.links.reset();
   }
 
   // ───────── 子 Agent 類型 → 同事 ─────────
@@ -647,6 +651,18 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   function startAgent(aid, type, desc, uid, tool) {
     const mid = memberFor(type);
     emit('SubagentStart', { uid, agent_id: aid, agent_type: mid || type, description: desc || typeLabel(type) + ' 的任務', ...(tool && STATE_CATS.has(tool) ? { tool_category: tool } : {}) });
+    const a = agentOf(aid), ch = agentChar(aid) || (mid && C(mid));
+    if (W.links && ch) W.links.open(aid, sessChar(a && a.session_id), () => agentChar(aid) || ch);
+  }
+  // 事件屬於哪一位角色：子 Agent＝名冊上的同事；主工作階段＝CEO（本尊）或分身
+  function agentChar(aid) { const id = aid && S.byAgentId.get(aid); return id ? C(id) : null; }
+  function sessChar(sid) { if (!sid || !L.primary || sid === L.primary) return C('ceo'); const cl = L.clones.find(x => x.sid === sid); return cl ? cl.ch : C('ceo'); }
+  function animEvent(e) {
+    const T = W.toolanim; if (!T) return;
+    const at = Date.now() - Math.max(0, ((L.data && L.data.now) || 0) - (e.rcv || 0));
+    if (e.event === 'PreToolUse' && e.tool_category === 'dispatch') { T.set(e.agent_id ? agentChar(e.agent_id) : sessChar(e.session_id), 'dispatch', at); return; }   // 派人＝打電話
+    if (e.event === 'SubagentStop') { const ch = agentChar(e.agent_id); if (ch) T.clear(ch); if (W.links) W.links.close(e.agent_id); return; }
+    T.onEvent(e, e.agent_id ? agentChar(e.agent_id) : sessChar(e.session_id), at);
   }
   function applyEvent(e) {
     if (L.seen.has(e.seq)) return; L.seen.add(e.seq);
@@ -689,6 +705,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
         break;
       case 'PreCompact': S.say('CEO 整理了一下記憶'); break;
     }
+    try { animEvent(e); } catch (x) { console.warn('動作圖示處理失敗', x); }
   }
   // 「Claude 真的送來的事件」數：只算掛鉤事件（各專案的事件數加總）。total_events 還含收件匣的 InboxUpdate——
   // 站長在對話框送出／撤回指令也會寫一筆，若拿它判斷，Claude 根本沒接上時頂列就變「即時」、接入引導就誤報「已接上」（2026-11-15 端到端實測抓到）。
@@ -705,6 +722,11 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     }
     const run = ag.filter(x => x.status === 'running');
     run.slice(0, 12).forEach(a => startAgent(a.agent_id, a.agent_type, a.description, 'as:' + a.agent_id, a.tool));
+    if (W.toolanim) {   // 連上之前就在做的事：依收件服務記的最近工具類別與時間補上圖示（已過閒置時間的不補）
+      const loc = t => Date.now() - Math.max(0, (j.now || 0) - (t || 0)), fresh = t => t && (j.now || 0) - t < W.toolanim.idleMs;
+      for (const s of sessionsOfProject()) if (!s.ended && s.tool && fresh(s.tool_at)) W.toolanim.set(sessChar(s.id), s.tool, loc(s.tool_at));
+      for (const a of run.slice(0, 12)) if (a.tool && fresh(a.tool_at)) W.toolanim.set(agentChar(a.agent_id), a.tool, loc(a.tool_at));
+    }
     for (const e of j.events) L.seen.add(e.seq);                                                    // 連上之前的事件不重演
     if (claudeEvents(j)) ui.toast(`已連上你的 Claude：${sessionsOfProject().filter(s => !s.ended).length} 個工作階段開著、${run.length} 位同事進行中`);
   }
@@ -738,7 +760,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   }
 
   // ───────── 讀取迴圈（分頁在背景時暫停） ─────────
-  function schedule(ms) { clearTimeout(L.timer); L.timer = 0; if (L.mode === 'live' && document.visibilityState !== 'hidden') L.timer = setTimeout(poll, guideFast() ? Math.min(ms, 5000) : ms); }
+  function schedule(ms) { clearTimeout(L.timer); L.timer = 0; L.nextAt = 0; if (L.mode === 'live' && document.visibilityState !== 'hidden') { const d = guideFast() ? Math.min(ms, 5000) : ms; L.nextAt = Date.now() + d; L.timer = setTimeout(poll, d); } }
   async function poll() {
     clearTimeout(L.timer); L.timer = 0;
     if (L.mode !== 'live' || L.inflight) return;
@@ -760,7 +782,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     } catch (e) { if (L.mode === 'live') { L.fails++; L.status = 'error'; L.msg = e.name === 'AbortError' ? '逾時' : String(e.message || e).slice(0, 40); } }
     finally { L.inflight = false; }
     render();
-    schedule(L.fails ? Math.min(120000, L.pollMs * 2 ** Math.min(3, L.fails)) : L.pollMs);
+    schedule(L.fails ? Math.min(120000, L.pollMs * 2 ** Math.min(5, L.fails)) : L.pollMs);   // 斷線：指數退避（×2，最多 2 分鐘）；健康燈（health.js）顯示倒數
   }
   L.poll = poll;
   document.addEventListener('visibilitychange', () => {
@@ -814,6 +836,9 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const s = rows.reduce((a, t) => ({ d: a.d + t.dispatched, ok: a.ok + (t.done || 0), f: a.f + (t.failed || 0) }), { d: 0, ok: 0, f: 0 });
     return `<div class="rw aio-rw"><b>近 7 天（真實）</b>　派工 ${s.d}・完成 ${s.ok}・失敗 ${s.f}・完成率 ${pct(s.ok, s.ok + s.f) || '<span class="na">樣本不足</span>'}</div>`;
   }
+
+  // ───────── 第二批 1～3 項：動作圖示、子 Agent 連線、連線健康燈（三支新檔，各自畫自己的圖層） ─────────
+  try { createToolAnim(W, { state: S }); createLinks(W); createHealth(W, { ui }); } catch (e) { console.warn('動作圖示／連線／健康燈載入失敗', e); }
 
   // ───────── 開場 ─────────
   if (hasCred() && !L.cfg.show) enterLive(); else render();

@@ -541,7 +541,11 @@
       qnote: '今天的雲端存檔次數用完了，先存在這台裝置，明天會恢復', route: /^#office/,
       desc: '辦公室擺設、整修與遊戲進度自動存到雲端，換裝置進場時下載合併（用完：頂列小字寫「先存在這台裝置」，本機照常保存）', veil: [], mark: [], block: [] },
     { id: 'office.budget', name: 'AI 辦公室：今日預算', cat: 'office', def: true, kind: 'bool', unlisted: true,
-      desc: '辦公室頂列「今日預算」條：今天用掉的 Token（取不到時以工具呼叫次數估算）對照自己設的每日上限，80% 提醒、超過時辦公室變暗（關閉：頂列不顯示）', veil: [], mark: [], block: [] }
+      desc: '辦公室頂列「今日預算」條：今天用掉的 Token（取不到時以工具呼叫次數估算）對照自己設的每日上限，80% 提醒、超過時辦公室變暗（關閉：頂列不顯示）', veil: [], mark: [], block: [] },
+    /* ★ 2026-11-16（Andy：第二批 10 項「全做」，第 1～3 項）：真實工具呼叫 → 角色動作與頭上小圖示、子 Agent 進場與連線、頂列連線健康燈。
+       只把收件服務已經收到的事件畫出來，不送資料、不耗資源，比照 office.overview 只有開關、不設每日次數。 */
+    { id: 'office.liveviz', name: 'AI 辦公室：即時動作、子 Agent 連線與連線燈', cat: 'office', def: true, kind: 'bool', unlisted: true,
+      desc: '辦公室即時模式：同事依 Claude 真的在用的工具換動作並在頭上顯示小圖示（讀檔、寫檔、跑測試、搜尋、派人），派出子 Agent 時畫出與派工者的連線，頂列綠黃紅燈顯示連線狀態並自動重連（關閉：不顯示圖示、連線與燈號）', veil: [], mark: [], block: [] }
   );
 
   /* ★ 2026-10-07「全站共用每日額度」（quota.all，docs/quota_plan.md、docs/plan_tiers_1007.md）：哪些功能算「研究頁」、會吃共用額度。
