@@ -51,6 +51,19 @@ const OFFICES = { adminMax: 20, memberMax: 3, memberAgents: 5, nameMax: 20, maxP
 const ACTIVE_MS = 6 * 3600e3;          // 工作階段沒結束、而且 6 小時內有動靜＝進行中（跟網頁端 live.js 同一個門檻）
 const PH_RE = /^[0-9a-f]{16}$/;
 LIMITS.offices = [60, 60];
+// ── 專案名冊（2026-11-16）：每個專案自己的員工名單＝專案 .claude/agents/ 的檔名（外掛在 SessionStart 附上）∪ 事件裡出現過的子 Agent 類型 ──
+const ROSTER = { maxFiles: 50, max: 50 };
+const AGENT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
+// 專案名稱沒有意義（雲端工作階段沒掛儲存庫時是資料夾名 user／root…）：全部歸成同一個「雲端工作階段」專案。跟前端 site/office/projname.js 的 NONAME 同一份名單
+const NONAME_RE = /^(user|users|root|home|tmp|temp|workspace|workspaces|work|mnt|opt|var|app|runner|ubuntu|admin|sandbox|project|projects|repo|repos|src|code|dev|data|claude)$/i;
+/** 專案合併鍵：同名（不分大小寫）的專案算同一個；沒意義的名稱全部算「雲端」；沒名稱的各自獨立。
+ *  為什麼在伺服器合併：舊事件是路徑雜湊、新事件是儲存庫雜湊，同一個專案會有兩個雜湊；入口、辦公室、收件匣都靠雜湊，
+ *  在這一層把別名收成一組，前端與外掛都不用改，舊連結（帶舊雜湊）也照樣進得去。 */
+export function projectKey(name, hash) {
+  const t = typeof name === 'string' ? name.replace(/\s+/g, ' ').trim() : '';
+  if (!t) return 'h:' + hash;
+  return NONAME_RE.test(t) ? 'cloud' : 'n:' + t.toLowerCase();
+}
 // ── 網站指令收件匣 ──
 const INBOX = {
   maxText: 2000,                       // 一則指令最多 2000 字
@@ -134,6 +147,10 @@ export function clean(e) {
   put('task_name', scrub(e.task_name, 24));                 // 任務簡稱（Claude 自己取的 6～12 字），名牌顯示「<簡稱> CEO」
   put('project_hash', typeof e.project_hash === 'string' && /^[0-9a-f]{16}$/.test(e.project_hash) ? e.project_hash : null);
   put('cloud', bool(e.cloud));
+  if (Array.isArray(e.agent_files)) {                        // 專案 .claude/agents/ 的檔名（去副檔名）。只收名稱格式合格的、最多 50 個，其餘丟掉
+    const f = []; for (const n of e.agent_files) { if (f.length >= ROSTER.maxFiles) break; if (typeof n === 'string' && AGENT_NAME_RE.test(n) && !f.includes(n)) f.push(n); }
+    o.agent_files = f;
+  }
   put('agent_id', id(e.agent_id));
   put('agent_type', slug(e.agent_type));
   put('subagent_type', slug(e.subagent_type));
@@ -221,6 +238,10 @@ export class Hub {
       'CREATE TABLE IF NOT EXISTS offices (oid TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL, phs TEXT NOT NULL DEFAULT \'[]\', cap INTEGER, created INTEGER NOT NULL, updated INTEGER NOT NULL)',
       'CREATE INDEX IF NOT EXISTS of_owner ON offices (owner, created)',
       'CREATE INDEX IF NOT EXISTS ib_office ON inbox (office, status, created)',
+      // 專案名冊（檔案來源）：每個專案 .claude/agents/ 的檔名；事件裡出現過的子 Agent 類型直接從 agents 表算，不重複存
+      'CREATE TABLE IF NOT EXISTS rosters (office TEXT NOT NULL, ph TEXT NOT NULL, name TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (office, ph, name))',
+      // 最近一次收件匣取指令（/v1/inbox/pull）的時間：網站用它判斷「你的 Claude 在線上（待命中）」
+      'CREATE TABLE IF NOT EXISTS pulse (office TEXT PRIMARY KEY, at INTEGER NOT NULL)',
       'CREATE TABLE IF NOT EXISTS inbox_rev (office TEXT PRIMARY KEY, rev INTEGER NOT NULL)',
     ];
     for (const s of T) this.sql.exec(s);
@@ -381,6 +402,11 @@ export class Hub {
       office, e.ts || null, rcv, e.event, sid, ph, e.agent_id || e.spawned_agent_id || null, e.agent_type || e.subagent_type || null, JSON.stringify(e));
     if (ph) this.sql.exec('INSERT INTO projects (office, ph, name, first, last, n) VALUES (?, ?, ?, ?, ?, 1) ON CONFLICT(office, ph) DO UPDATE SET name = COALESCE(excluded.name, name), last = excluded.last, n = n + 1', office, ph, e.project_name || null, rcv, rcv);
     if (e.rate_limits) this.sql.exec('INSERT INTO quota (office, data, at) VALUES (?, ?, ?) ON CONFLICT(office) DO UPDATE SET data = excluded.data, at = excluded.at', office, JSON.stringify(e.rate_limits), rcv);
+    if (ph && e.event === 'SessionStart' && Array.isArray(e.agent_files)) {
+      // 名冊以最新一次 SessionStart 為準：檔案刪了就從名冊拿掉（舊版外掛沒有 agent_files＝不動）
+      this.sql.exec('DELETE FROM rosters WHERE office = ? AND ph = ?', office, ph);
+      for (const n of e.agent_files) this.sql.exec('INSERT INTO rosters (office, ph, name, at) VALUES (?, ?, ?, ?) ON CONFLICT(office, ph, name) DO UPDATE SET at = excluded.at', office, ph, n, rcv);
+    }
     if (!sid) return;
     // 工作階段：第一次看到就建立（就算沒收到 SessionStart，例如外掛是中途才裝的）
     this.sql.exec(`INSERT INTO sessions (office, sid, ph, pname, tname, cloud, started, last, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'idle')
@@ -439,6 +465,7 @@ export class Hub {
     const old = this.now() - KEEP_DAYS * 86400e3;
     this.sql.exec('DELETE FROM agents WHERE office = ? AND COALESCE(ended, last) < ?', office, old);
     this.sql.exec('DELETE FROM sessions WHERE office = ? AND last < ?', office, old);
+    this.sql.exec('DELETE FROM rosters WHERE office = ? AND at < ?', office, old);
     this.sql.exec('DELETE FROM dispatch WHERE office = ? AND at < ?', office, this.now() - 3600e3);
     this.sql.exec('DELETE FROM rl WHERE win < ?', Math.floor(this.now() / 1000 / 3600) - 2);
   }
@@ -454,19 +481,23 @@ export class Hub {
     if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const now = this.now(), since = Math.max(0, parseInt(url.searchParams.get('since') || '0', 10) || 0);
     // 單一專案：?project=<專案雜湊>。事件、工作階段、子 Agent、統計都只回這個專案的（沒有專案雜湊的事件，例如指令狀態更新，每個專案都看得到）。
+    // 同名專案（舊路徑雜湊＋新儲存庫雜湊）算同一個：pj 展開成這個專案的所有別名雜湊，回傳時再把別名換回 pj，前端不必知道有別名。
     const pj = url.searchParams.get('project');
     if (pj && !PH_RE.test(pj)) return this.json(req, { error: 'bad_project' }, 400);
-    const PE = pj ? ' AND (ph = ? OR ph IS NULL)' : '', PA = pj ? [pj] : [];
+    const pg = this.projectGroups(office, now, pj), al = pj ? this.aliasesOf(pg, pj) : null, PA = al || [];
+    const IN = al ? '(' + al.map(() => '?').join(',') + ')' : '', PE = al ? ' AND (ph IN ' + IN + ' OR ph IS NULL)' : '', PS = al ? ' AND ph IN ' + IN : '';
+    const cn = (h) => (h && pg.canon.has(h) ? pg.canon.get(h) : h);
     const evRows = since > 0
       ? this.q('SELECT seq, ts, rcv, data FROM events WHERE office = ? AND seq > ?' + PE + ' ORDER BY seq LIMIT 300', office, since, ...PA)
       : this.q('SELECT seq, ts, rcv, data FROM events WHERE office = ?' + PE + ' ORDER BY seq DESC LIMIT 60', office, ...PA).reverse();
-    const events = evRows.map((r) => { const d = JSON.parse(r.data); delete d.usage_subagents; delete d.rate_limits; return { seq: r.seq, ts: r.ts, rcv: r.rcv, ...d }; });
+    const events = evRows.map((r) => { const d = JSON.parse(r.data); delete d.usage_subagents; delete d.rate_limits; delete d.agent_files; if (d.project_hash) d.project_hash = cn(d.project_hash); return { seq: r.seq, ts: r.ts, rcv: r.rcv, ...d }; });
     const top = this.q('SELECT MAX(seq) AS s FROM events WHERE office = ?', office)[0] || {};
     const cnt = this.q('SELECT MAX(rcv) AS t, COUNT(*) AS n FROM events WHERE office = ?' + PE, office, ...PA)[0] || {};
-    const projects = this.projectRows(office, now);
-    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, tname AS task_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ?' + (pj ? ' AND ph = ?' : '') + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
-      .map((s) => ({ ...s, cloud: s.cloud == null ? null : !!s.cloud }));
-    let agents = this.q('SELECT aid AS agent_id, sid AS session_id, ph AS project_hash, type AS agent_type, descr AS description, started, last, ended, status, tool, tool_at, summary, tokens, dur AS duration_ms FROM agents WHERE office = ? AND (ended IS NULL OR ended > ?)' + (pj ? ' AND ph = ?' : '') + ' ORDER BY COALESCE(ended, last) DESC LIMIT 200', office, now - 86400e3, ...PA)
+    const projects = pg.list;
+    const sessions = this.q('SELECT sid AS id, ph AS project_hash, pname AS project_name, tname AS task_name, cloud, started, last, ended, state, flag, perm, prompts, turns, summary, tokens FROM sessions WHERE office = ? AND last > ?' + PS + ' ORDER BY last DESC LIMIT 40', office, now - 7 * 86400e3, ...PA)
+      .map((s) => ({ ...s, project_hash: cn(s.project_hash), cloud: s.cloud == null ? null : !!s.cloud }));
+    let agents = this.q('SELECT aid AS agent_id, sid AS session_id, ph AS project_hash, type AS agent_type, descr AS description, started, last, ended, status, tool, tool_at, summary, tokens, dur AS duration_ms FROM agents WHERE office = ? AND (ended IS NULL OR ended > ?)' + PS + ' ORDER BY COALESCE(ended, last) DESC LIMIT 200', office, now - 86400e3, ...PA)
+      .map((a) => ({ ...a, project_hash: cn(a.project_hash) }))
       .map((a) => (a.status === 'running' && now - (a.last || 0) > STALE_MS ? { ...a, status: 'unknown' } : a));
     // 各子 Agent 類型：近 7 天的真實統計（前端績效總表用；樣本不足由前端判斷並標示）
     const since7 = now - 7 * 86400e3;
@@ -475,31 +506,61 @@ export class Hub {
         SUM(CASE WHEN status = 'running' AND ? - last <= ? THEN 1 ELSE 0 END) AS running,
         AVG(CASE WHEN status IN ('done', 'failed') THEN dur END) AS avg_ms, SUM(CASE WHEN status IN ('done', 'failed') AND dur IS NOT NULL THEN 1 ELSE 0 END) AS n_dur,
         SUM(tokens) AS tokens, SUM(CASE WHEN tokens IS NOT NULL THEN 1 ELSE 0 END) AS n_tokens, MAX(COALESCE(ended, last)) AS last
-      FROM agents WHERE office = ? AND COALESCE(started, last) > ?${pj ? ' AND ph = ?' : ''} GROUP BY type ORDER BY dispatched DESC LIMIT 100`, now, STALE_MS, office, since7, ...PA)
+      FROM agents WHERE office = ? AND COALESCE(started, last) > ?${PS} GROUP BY type ORDER BY dispatched DESC LIMIT 100`, now, STALE_MS, office, since7, ...PA)
       .map((t) => ({ ...t, avg_ms: t.avg_ms == null ? null : Math.round(t.avg_ms) }));
-    const ceo = this.q('SELECT COUNT(*) AS sessions, SUM(prompts) AS prompts, SUM(turns) AS turns, SUM(tokens) AS tokens FROM sessions WHERE office = ? AND last > ?' + (pj ? ' AND ph = ?' : ''), office, since7, ...PA)[0] || {};
+    const ceo = this.q('SELECT COUNT(*) AS sessions, SUM(prompts) AS prompts, SUM(turns) AS turns, SUM(tokens) AS tokens FROM sessions WHERE office = ? AND last > ?' + PS, office, since7, ...PA)[0] || {};
     const qr = this.q('SELECT data, at FROM quota WHERE office = ?', office)[0];
     const ib = this.q("SELECT SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS queued, SUM(CASE WHEN status IN ('claimed', 'running') THEN 1 ELSE 0 END) AS active FROM inbox WHERE office = ?", office)[0] || {};
     // 辦公室檢視（?view=<辦公室代號>）：非站長的辦公室每間最多 N 位 Agent，由這裡擋（站長的 cap 為空＝不限）
-    let capped = 0;
+    let capped = 0, rcap = null;
     const view = url.searchParams.get('view');
     if (view && /^o_[A-Za-z0-9_-]{6,30}$/.test(view)) {
       const vo = this.q('SELECT cap FROM offices WHERE oid = ?', view)[0];
-      if (vo && vo.cap) { const c = capAgents(agents, vo.cap); agents = c.agents; capped = c.capped; }
+      if (vo && vo.cap) { const c = capAgents(agents, vo.cap); agents = c.agents; capped = c.capped; rcap = vo.cap; }
     }
+    const roster = this.rosterOf(office, al, rcap);
     return this.json(req, {
       office, now, seq: top.s || 0, since, initial: since === 0, total_events: cnt.n || 0, last_event_at: cnt.t || null, project: pj || null, agents_capped: capped,
-      projects, sessions, agents, types, ceo, quota: qr ? { rate_limits: JSON.parse(qr.data), at: qr.at } : null, events,
-      inbox: { queued: ib.queued || 0, active: ib.active || 0, rev: this.inboxRev(office) },
+      projects, sessions, agents, types, ceo, roster, quota: qr ? { rate_limits: JSON.parse(qr.data), at: qr.at } : null, events,
+      inbox: { queued: ib.queued || 0, active: ib.active || 0, rev: this.inboxRev(office), last_pull: this.lastPull(office) },
     });
   }
 
-  /** 專案清單（名稱、最後活動、進行中工作階段數）。state 與 /projects 共用。 */
-  projectRows(office, now) {
-    return this.q(`SELECT p.ph AS hash, p.name, p.first, p.last, p.n AS events,
+  /** 專案分組（同名合併）。state 與 /projects 共用。
+   *  list＝入口要列的專案（名稱、最後活動、進行中工作階段數；同名的別名雜湊合併，aliases 列出全部雜湊）；
+   *  all＝內部用（含 hashes）；canon＝任何雜湊 → 這一組的代表雜湊。want（請求指定的雜湊）若屬於某組，那一組就以 want 當代表，舊連結因此照樣對得上。 */
+  projectGroups(office, now, want) {
+    const rows = this.q(`SELECT p.ph AS hash, p.name, p.first, p.last, p.n AS events,
         (SELECT COUNT(*) FROM sessions s WHERE s.office = p.office AND s.ph = p.ph AND s.ended IS NULL AND s.last > ?) AS active
-      FROM projects p WHERE p.office = ? ORDER BY p.last DESC LIMIT 30`, now - ACTIVE_MS, office);
+      FROM projects p WHERE p.office = ? ORDER BY p.last DESC LIMIT 200`, now - ACTIVE_MS, office);
+    const g = new Map();
+    for (const r of rows) {                                   // rows 由新到舊：每組第一筆就是最近活動的那個雜湊
+      const k = projectKey(r.name, r.hash);
+      let x = g.get(k);
+      if (!x) { x = { hash: r.hash, name: r.name, first: r.first, last: r.last, events: 0, active: 0, hashes: [] }; g.set(k, x); }
+      x.events += r.events; x.active += r.active; x.hashes.push(r.hash);
+      if (r.first != null && (x.first == null || r.first < x.first)) x.first = r.first;
+      if (!x.name && r.name) x.name = r.name;
+    }
+    const all = [...g.values()], canon = new Map();
+    for (const x of all) { if (want && x.hashes.includes(want)) x.hash = want; for (const h of x.hashes) canon.set(h, x.hash); }
+    all.sort((a, b) => (b.last || 0) - (a.last || 0));
+    return { all, canon, list: all.slice(0, 30).map(({ hashes, ...r }) => (hashes.length > 1 ? { ...r, aliases: hashes } : r)) };
   }
+  aliasesOf(pg, ph) { const x = pg.all.find((q) => q.hashes.includes(ph)); return x ? x.hashes : [ph]; }
+  /** 專案名冊：.claude/agents 檔名 ∪ 事件裡出現過的子 Agent 類型。hashes 為空＝全部專案。cap＝非站長辦公室的 Agent 上限（留最近有動靜的） */
+  rosterOf(office, hashes, cap) {
+    const IN = hashes ? ' AND ph IN (' + hashes.map(() => '?').join(',') + ')' : '', A = hashes || [], m = new Map();
+    for (const r of this.q('SELECT name, MAX(at) AS at FROM rosters WHERE office = ?' + IN + ' GROUP BY name', office, ...A)) m.set(r.name, { type: r.name, file: true, seen: false, last: r.at || 0 });
+    for (const r of this.q('SELECT type, MAX(COALESCE(ended, last)) AS at FROM agents WHERE office = ? AND type IS NOT NULL' + IN + ' GROUP BY type', office, ...A)) {
+      const x = m.get(r.type);
+      if (x) { x.seen = true; x.last = Math.max(x.last, r.at || 0); } else m.set(r.type, { type: r.type, file: false, seen: true, last: r.at || 0 });
+    }
+    let list = [...m.values()].sort((a, b) => b.last - a.last || (a.type < b.type ? -1 : 1)).slice(0, ROSTER.max);
+    if (cap && cap > 0) list = list.slice(0, cap);
+    return list;
+  }
+  lastPull(office) { const r = this.q('SELECT at FROM pulse WHERE office = ?', office)[0]; return r ? r.at : null; }
   // ───────── GET /v1/office/<id>/projects：只要專案清單（入口頁用，比 state 輕很多） ─────────
   async projectList(req, office) {
     const who = await this.readerOffice(req);
@@ -510,7 +571,7 @@ export class Hub {
     if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
     if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const now = this.now();
-    return this.json(req, { office, now, projects: this.projectRows(office, now) });
+    return this.json(req, { office, now, projects: this.projectGroups(office, now, null).list });
   }
 
   // ───────── 辦公室清單（登入帳號底下）：/v1/offices ─────────
@@ -582,7 +643,7 @@ export class Hub {
     const { b, err } = await this.body(req);
     if (err) return this.json(req, { error: err }, 400);
     if (office !== OFFICE || !(await this.isOwner(b.t))) return this.json(req, { error: 'not_owner' }, 403);
-    for (const t of ['events', 'projects', 'sessions', 'agents', 'dispatch', 'quota', 'inbox']) this.sql.exec(`DELETE FROM ${t} WHERE office = ?`, office);
+    for (const t of ['events', 'projects', 'sessions', 'agents', 'dispatch', 'quota', 'inbox', 'rosters', 'pulse']) this.sql.exec(`DELETE FROM ${t} WHERE office = ?`, office);
     return this.json(req, { ok: true });
   }
 
@@ -660,7 +721,8 @@ export class Hub {
     const since = Math.max(0, parseInt(url.searchParams.get('since') || '0', 10) || 0);
     const pj = url.searchParams.get('project');
     if (pj && !PH_RE.test(pj)) return this.json(req, { error: 'bad_project' }, 400);
-    const PE = pj ? ' AND (ph = ? OR ph IS NULL)' : '', PA = pj ? [pj] : [];
+    const al = pj ? this.aliasesOf(this.projectGroups(office, this.now(), pj), pj) : null;
+    const PE = al ? ' AND (ph IN (' + al.map(() => '?').join(',') + ') OR ph IS NULL)' : '', PA = al || [];
     const rows = since > 0
       ? this.q('SELECT * FROM inbox WHERE office = ? AND rev > ?' + PE + ' ORDER BY created, rowid LIMIT 100', office, since, ...PA)
       : this.q('SELECT * FROM inbox WHERE office = ?' + PE + ' ORDER BY created DESC, rowid DESC LIMIT 50', office, ...PA).reverse();
@@ -669,7 +731,7 @@ export class Hub {
     const live = this.q("SELECT last FROM sessions WHERE office = ? AND ended IS NULL ORDER BY last DESC LIMIT 1", office)[0];
     return this.json(req, {
       office, now: this.now(), rev: this.inboxRev(office), since, messages: rows.map((r) => this.viewMsg(r)), open: open.map((r) => this.viewMsg(r)),
-      limits: { max_text: INBOX.maxText, max_pending: INBOX.maxPending }, session_last_seen: live ? live.last : null,
+      limits: { max_text: INBOX.maxText, max_pending: INBOX.maxPending }, session_last_seen: live ? live.last : null, last_pull: this.lastPull(office),
     });
   }
 
@@ -697,13 +759,16 @@ export class Hub {
     const sid = id(b.session_id);
     // 只取「自己這個專案」的指令（沒指定專案的指令任何專案都可以取）；Claude 端沒帶專案雜湊（舊外掛）＝只拿沒指定專案的
     const myph = typeof b.project_hash === 'string' && PH_RE.test(b.project_hash) ? b.project_hash : null;
+    // 同名專案的別名雜湊（舊路徑雜湊、新儲存庫雜湊）都算「我這個專案」：網站指令帶哪個雜湊都取得到
+    const mine = myph ? this.aliasesOf(this.projectGroups(office, this.now(), myph), myph) : [];
+    this.sql.exec('INSERT INTO pulse (office, at) VALUES (?, ?) ON CONFLICT(office) DO UPDATE SET at = excluded.at', office, this.now());     // 記下「Claude 剛來取過指令」：網站拿來顯示在線上（待命中）
     const max = Math.min(INBOX.maxPull, Math.max(1, Math.round(+b.max || 1)));
     const waitMs = Math.min(INBOX.maxWaitS, Math.max(0, +b.wait || 0)) * 1000;
     const deadline = Date.now() + waitMs;                       // 真實時間（等待用），跟 this.now()（紀錄用）分開
     for (;;) {
       this.inboxHousekeep(office);
       // 同步取＋標記，中間沒有 await：同一個 Durable Object 裡不會有兩支工作階段搶到同一則
-      const rows = this.q("SELECT * FROM inbox WHERE office = ? AND status = 'queued' AND (ph IS NULL OR ph = ?) ORDER BY created, rowid LIMIT ?", office, myph, max);
+      const rows = this.q("SELECT * FROM inbox WHERE office = ? AND status = 'queued' AND (ph IS NULL" + (mine.length ? ' OR ph IN (' + mine.map(() => '?').join(',') + ')' : '') + ') ORDER BY created, rowid LIMIT ?', office, ...mine, max);
       if (rows.length) {
         const now = this.now();
         for (const r of rows) this.inboxSet(office, r.mid, "status = 'claimed', sid = ?, claimed_at = ?", sid, now);

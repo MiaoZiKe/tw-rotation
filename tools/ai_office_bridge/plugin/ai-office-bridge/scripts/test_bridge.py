@@ -58,6 +58,24 @@ for _d, _url in ((_d1, "https://github.com/someone/tw-rotation.git"), (_d2, "htt
     subprocess.run(["git", "-C", _d, "remote", "add", "origin", _url], check=True)
 _n1, _h1 = bridge.project_info(_d1)
 _n2, _h2 = bridge.project_info(_d2)
+
+# ── 專案名冊（2026-11-16）：SessionStart 附上專案 .claude/agents/*.md 的檔名（去副檔名），只送名稱 ──
+_ag = os.path.join(_d1, ".claude", "agents")
+os.makedirs(_ag)
+for _f in ("inspector.md", "my-agent.md", "bad name.md", "x.txt", "老師.md", "z" * 70 + ".md"):
+    open(os.path.join(_ag, _f), "w").write("---\nname: secret-body-text\n---\n機密內文不能出現\n")
+_ss = bridge.sanitize({"hook_event_name": "SessionStart", "session_id": "s1", "cwd": _d1}, {})
+ok("名冊：SessionStart 帶 agent_files，只有合格的檔名（去 .md、排序）", _ss["agent_files"] == ["inspector", "my-agent"], _ss.get("agent_files"))
+ok("名冊：不送檔案內容與路徑", "機密內文" not in json.dumps(_ss, ensure_ascii=False) and "secret-body-text" not in json.dumps(_ss) and _ag not in json.dumps(_ss), _ss)
+_sub = os.path.join(_d1, "deep", "er")
+os.makedirs(_sub)
+ok("名冊：在子資料夾開 Claude 也找得到專案根的名冊", bridge.sanitize({"hook_event_name": "SessionStart", "session_id": "s1", "cwd": _sub}, {})["agent_files"] == ["inspector", "my-agent"])
+_e0 = bridge.sanitize({"hook_event_name": "SessionStart", "session_id": "s1", "cwd": _d3}, {})
+ok("名冊：沒有 .claude/agents 也送空清單（收件端才清得掉舊名冊）", _e0["agent_files"] == [], _e0.get("agent_files"))
+ok("名冊：其他事件不帶 agent_files", "agent_files" not in bridge.sanitize({"hook_event_name": "Stop", "session_id": "s1", "cwd": _d1}, {}))
+for _i in range(60):
+    open(os.path.join(_ag, "many-%02d.md" % _i), "w").write("x")
+ok("名冊：最多 50 個", len(bridge.agent_files(_d1)) == 50, len(bridge.agent_files(_d1)))
 _n3, _h3 = bridge.project_info(_d3)
 ok("專案名：優先用 git 遠端的儲存庫名（不是資料夾名）", _n1 == "tw-rotation" and _n2 == "tw-rotation", (_n1, _n2))
 ok("專案雜湊：同一個儲存庫的不同複本／不同資料夾是同一個專案", _h1 == _h2 and len(_h1) == 16, (_h1, _h2))
