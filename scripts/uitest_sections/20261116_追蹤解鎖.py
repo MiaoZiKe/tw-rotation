@@ -198,6 +198,24 @@ def t_followunlock_1116(b, base, code):
         ok(f"★ [{T}（{W}）] 觀測：主站文章頁也有收藏／分享鈕並記瀏覽（ch.view.member.site）", pg.locator("#artM [data-am]").count() == 2 and sent("ch.view.member.site"), "")
         c.close()
 
+        # ── I 發文包：只有站主看得到（兩個獨立站）
+        for who, em, adm in (("站主", "andy@example.com", True), ("會員", "bob@example.com", False), ("訪客", None, False)):
+            for ch, aid in (("caffaine", _FU_C), ("healing", _FU_H)):
+                c, pg = ctx(em, W, admin=adm)
+                pg.add_init_script("try{localStorage.setItem('tw.unl.pv.' + 'x','[]')}catch(e){}")
+                open_(pg, base + "c/" + ch + "/#/" + aid, ST); pg.wait_for_timeout(2500)
+                has = pg.locator("#kit").count()
+                ok(f"★ [{T}（{W}）] 發文包（{ch}）：{who}{'看得到' if adm else '看不到'}內頁「發文包」", (has == 1) == adm, has)
+                if adm:
+                    ok(f"[{T}（{W}）] 發文包（{ch}）：站主內頁有文案、複製鈕、{'影片與封面下載' if ch == 'caffaine' else '複製鈕'}", pg.locator("#kit textarea").first.input_value() != "" and pg.locator("#kit [data-copy]").count() >= 2 and (ch != "caffaine" or pg.locator("#kit a[download]").count() >= 2), "")
+                    pg.locator("#kit [data-copy=ig]").first.scroll_into_view_if_needed(); pg.locator("#kit [data-copy=ig]").first.click(); pg.wait_for_timeout(400)
+                    ok(f"[{T}（{W}）] 發文包（{ch}）：按複製 → 鈕變「已複製」或提示手動複製", pg.locator("#kit [data-copy=ig]").first.inner_text() in ("已複製 ✓", "請按 Ctrl+C"), pg.locator("#kit [data-copy=ig]").first.inner_text())
+                    ok(f"[{T}（{W}）] 發文包（{ch}）：沒有橫向捲軸", pg.evaluate(nohs) <= 1, pg.evaluate(nohs))
+                open_(pg, base + "c/" + ch + "/#/", ST); pg.wait_for_timeout(2500)
+                n = pg.locator("#kitAll .kit1").count()
+                ok(f"★ [{T}（{W}）] 發文包總覽（{ch}）：{who}{'看到全部（含狀態）' if adm else '看不到'}", (n >= 2 and pg.locator("#kitAll .kst").count() == n) if adm else n == 0 and pg.locator("#kitAll").count() == 0, n)
+                c.close()
+
         # ── C 正式網域（沒有 TW_PREVIEW）：Worker 未上線 → 假兌換不生效；Worker 回 200 → 生效
         c, pg = ctx("bob@example.com", W, preview=False)
         open_(pg, base + "#unlock/pv-tech/" + _FU_T); pg.wait_for_timeout(1200)

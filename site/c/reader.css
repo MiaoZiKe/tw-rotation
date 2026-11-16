@@ -56,3 +56,11 @@ h1,h2,h3{font-family:var(--hf);line-height:1.35}
 .card.lk .lkc{position:absolute;right:12px;top:10px;font-size:16px}
 @media (max-width:640px){.card .th{width:72px;height:72px}}
 .card.lk .tx{padding-right:26px}
+
+.kit{margin:28px 0;padding:14px 16px;border:2px dashed var(--acc);border-radius:14px;background:var(--card)}
+.kit h2{margin:0 0 8px;font-size:18px}
+.kit1{margin:12px 0;padding-top:10px;border-top:1px solid var(--line)}
+.kit .kt{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.kit .kst{font-size:13px;color:var(--ink2)}
+.kit .kb{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.kit textarea{width:100%;font:inherit;font-size:14px;line-height:1.6;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;resize:vertical}
