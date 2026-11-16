@@ -358,7 +358,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     if (a === 'rotate') { pop.hidden = true; badge.setAttribute('aria-expanded', 'false'); openGuide(); await claim(true); return; }
     if (a === 'wipe') { if (!confirm('要刪除這間辦公室收到的所有紀錄嗎？（接入碼保留）')) return; await wipe(); return; }
     if (a === 'now') { poll(); return; }
-    if (a === 'show') { L.cfg.show = true; save(); enterDemo(); return; }
+    if (a === 'show') { L.cfg.show = true; save(); if (W.rosterHub && W.rosterHub.on) { location.assign(location.pathname + '?demo=1'); return; } enterDemo(); return; }   // 專案辦公室收起了示範同事：切到展示模式要整頁重載才會是完整的示範編制
     if (a === 'back') { delete L.cfg.show; save(); enterLive(); return; }
     if (a === 'off') { L.cfg = {}; L.code = null; save(); L.revealCode = null; enterDemo(); return; }
   });
@@ -528,7 +528,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     if (W.power && W.power.refresh) W.power.refresh(true);
     if (W.jobs && W.jobs.flagsChanged) W.jobs.flagsChanged();
     if (W.jobs && W.jobs.statusSync) W.jobs.statusSync();
-    L.seq = 0; L.seen.clear(); L.primary = null; L.data = null; L.lastQuota = ''; L.more = 0;
+    L.seq = 0; L.seen.clear(); L.primary = null; L.data = null; L.lastQuota = ''; L.more = 0; L.booted = false;
     for (const c of L.clones) c.ch.setVisible(false); L.clones.forEach(c => { c.sid = null; });
   }
 
@@ -536,11 +536,35 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   function memberFor(type) {
     if (!type) return null;
     if (L.typeMap.has(type)) return L.typeMap.get(type);
+    if (W.rosterHub && W.rosterHub.on) return rosterMember(type);
     const c = C(type);
     if (c && !c.spec.isCeo && !c.spec.pet) { L.typeMap.set(type, type); return type; }
     const id = ensureExtra(type);
     if (!id && !L.sharedNoted.has(type)) { L.sharedNoted.add(type); S.say(`座位已滿：「${short(type, 20)}」先由現有同事兼任`); }
     L.typeMap.set(type, id || type); return id || type;
+  }
+  // 專案辦公室（roster.js）：名冊裡有誰才讓誰露面。示範編制裡同代號的＝那位露面；其他＝新同事（依類型分配部門與座位、必要時加桌）。
+  // 第一次讀到名冊（L.booted 還是 false）直接就座；之後才出現的新類型＝報到演出（從大門走進來）。
+  const extraId = type => (TO_RE.test(type) && !C(type) && !L.extras.has(type) ? type : 'x-' + String(type).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40));
+  function rosterMember(type) {
+    const hub = W.rosterHub, arrive = !!L.booted, c0 = C(type);
+    if (c0 && !c0.spec.isCeo && !c0.spec.pet) { hub.reveal(type, arrive); L.typeMap.set(type, type); if (arrive) S.say(`新同事報到：${c0.spec.nick}（${short(type, 24)}）`); return type; }
+    const id = L.extras.has(type) ? L.extras.get(type) : extraId(type);
+    if (C(id)) { L.extras.set(type, id); L.typeMap.set(type, id); return id; }
+    const h = hash(type), [nick, species] = BUILTIN[type] || [short(type.replace(/[-_]+/g, ' '), 8), POOL[h % POOL.length]];
+    const c = hub.hire({ id, nick, zh: type, species, pal: h % 4, hue: 0, acc: ['badge'], accColor: '#ffd28a' }, arrive);
+    if (!c) { L.typeMap.set(type, type); return type; }
+    L.extras.set(type, id); L.typeMap.set(type, id);
+    if (arrive) { S.say(`新同事報到：${nick}（${short(type, 24)}）`); c.emote && c.emote('star', 2); }
+    return id;
+  }
+  // 名冊同步：收件端回來的名冊（.claude/agents 檔名 ∪ 出現過的子 Agent 類型）、目前的子 Agent、近 7 天出現過的類型，全部都該有一位同事
+  function syncRoster(j) {
+    const ts = new Set();
+    for (const r of j.roster || []) if (r && typeof r.type === 'string') ts.add(r.type);
+    for (const a of j.agents || []) if (a && typeof a.agent_type === 'string') ts.add(a.agent_type);
+    for (const t of j.types || []) if (t && typeof t.agent_type === 'string') ts.add(t.agent_type);
+    for (const t of [...ts].slice(0, 50)) { try { memberFor(t); } catch (x) { console.warn('名冊同步失敗', t, x); } }
   }
   function ensureExtra(type) {
     // 角色代號直接用子 Agent 類型本身（例如 tester）：對話框對他下指令時，收件匣的 to 就是這個代號，
@@ -672,6 +696,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const ps = j.projects || [];
     L.project = L.qProject || (L.cfg.project && ps.some(p => p.hash === L.cfg.project) ? L.cfg.project : (ps[0] || {}).hash || null);
     { const pe = ps.find(p => p.hash === L.project), nm = L.project ? (pe ? AP.label(pe.name) : '這個專案') : null; if (nm !== L.projName) { L.projName = nm; L._nameSig = null; applyProjectNames(); } }
+    if (W.rosterHub && W.rosterHub.on) syncRoster(j);
     if (first) applySnapshot(j);
     else {
       const evs = (j.events || []).filter(e => !L.seen.has(e.seq));
@@ -683,6 +708,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     applyQuota(j.quota);
     L.seq = Math.max(L.seq, j.seq || 0);
     L.status = claudeEvents(j) ? 'ok' : 'nodata';
+    L.booted = true;
     if (L.cfg.login && !L.code) L.msg = '';
     guideCheck(j);
   }

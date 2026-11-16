@@ -27,6 +27,7 @@ import { createChat } from './chat.js';   // 主對話框（chat.js：畫面下�
 import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
+import { rosterWanted, createRoster } from './roster.js';   // 專案名冊：進專案的辦公室只顯示 CEO＋這個專案真的有的 Agent（roster.js）
 import { mountSports } from './sports.js';   // 員工運動場（羽毛球、籃球、網球、撞球、游泳池；sports*.js）
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
@@ -301,6 +302,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   createMind(W, { state });   // 每位同事的「心」：個性、心情、記憶，把獎勵／懲罰／被丟／著火等事件轉成表情與反應（mind.js）
   createGate(W);   // 要比 chat／live／hr 先建好（它們在動作當下才問 W.gate，沒有也照常放行）
   createChat(W, { state, ui });   // 要在 live.js 載入之前：它包住 ui.showCard 加「對他說」鈕並在點到人時切換對象，live.js 切換模式時還原的是它記住的那一版
+  if (rosterWanted(qs)) { W.rosterHub = createRoster(W, { director }); W.rosterHub.boot(); W.rosterHub.petsOf('ceo'); PF.mark('roster'); }   // 專案辦公室：示範的 40 多位先收起來，名冊裡有誰才讓誰露面（live.js 的 memberFor 負責）
   import('./live.js').then(m => m.createLive(W, { state, ui, sim, rewards })).catch(e => console.warn('即時模式載入失敗，維持示範', e));   // 2026-11-14 即時模式：有接入碼就讀 AI Office 收件端的真實事件（live.js）
 
   // ── 名牌、泡泡 ──

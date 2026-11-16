@@ -284,8 +284,9 @@ export function createDirector(W, ui) {
     await goTo(c, W.findSpots('door_in')[0], { speed: 1.9 }); c.say(rnd(['早安', '大家早', '今天也加油']), 1.6); c.setAction('wave'); c.setExpression('happy', 1.5); await sleep(1.4);
     await goHome(c); c.busy = false;
   }
+  D.arrive = clockIn;   // 新同事報到演出（roster.js）：從大門外走進來、打招呼、走到座位
   D.clockOut = async (n = 6) => { const pool = [...W.chars.values()].filter(c => !c.busy && !c.away && !c.spec.isCeo); pool.sort(() => Math.random() - 0.5); const ps = pool.slice(0, n).map((c, i) => sleep(i * 0.7).then(() => clockOut(c))); await Promise.all(ps); };
-  D.clockIn = async (n = 6) => { let pool = [...W.chars.values()].filter(c => c.away); if (!pool.length) { pool = [...W.chars.values()].filter(c => !c.busy && !c.spec.isCeo).sort(() => Math.random() - 0.5).slice(0, n); pool.forEach(c => { release(c); c.away = true; c.setVisible(false); }); } const ps = pool.map((c, i) => sleep(i * 0.8).then(() => clockIn(c))); await Promise.all(ps); };
+  D.clockIn = async (n = 6) => { let pool = [...W.chars.values()].filter(c => c.away && !c.absent); if (!pool.length) { pool = [...W.chars.values()].filter(c => !c.busy && !c.spec.isCeo).sort(() => Math.random() - 0.5).slice(0, n); pool.forEach(c => { release(c); c.away = true; c.setVisible(false); }); } const ps = pool.map((c, i) => sleep(i * 0.8).then(() => clockIn(c))); await Promise.all(ps); };
 
   // 使用者把角色拎起來：中斷他手上的事；放下後自己走回座位
   D.grabbed = c => { c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.atDesk = false; release(c); if (D.meeting) D.meeting.up.delete(c); };

@@ -136,7 +136,7 @@ export function createChat(W, X) {
       if (!tok()) { K.mode = 'nologin'; return; }
       const r = await call('?since=' + K.rev);
       if (r.status === 200) {
-        K.mode = 'ok'; K.fails = 0; const j = r.json; K.srvNow = j.now || null; K.lastSeen = j.session_last_seen == null ? null : j.session_last_seen;
+        K.mode = 'ok'; K.fails = 0; const j = r.json; K.srvNow = j.now || null; K.lastSeen = j.session_last_seen == null ? null : j.session_last_seen; K.lastPull = j.last_pull == null ? null : j.last_pull;
         merge(j.messages, K.first); merge(j.open, K.first); if (j.rev != null) K.rev = j.rev; K.first = false;
       } else if (r.status === 401) K.mode = 'auth';
       else if (r.status === 403) K.mode = 'forbidden';
@@ -274,6 +274,8 @@ export function createChat(W, X) {
   function liveHtml() {
     if (K.mode !== 'ok') return '';
     const ref = K.srvNow || Date.now(), on = K.lastSeen != null && ref - K.lastSeen < ONLINE_MS;
+    // 待命中的 Claude（inbox.py wait 一直在長輪詢取指令）不一定有送工作階段事件，但收件端記得它最近一次來取指令：60 秒內來過就算在線
+    if (K.lastPull != null && ref - K.lastPull < 60e3) return '<i class="dot on"></i>你的 Claude 在線上（待命中）';
     return on ? '<i class="dot on"></i>Claude 在線' : '<i class="dot"></i><span title="訊息會排隊，下次開工作階段時才會被取走（最多保留 24 小時）">Claude 沒開，訊息會排隊</span>';
   }
   // 時間：同一天只寫時:分，不同天加日期

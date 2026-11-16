@@ -254,7 +254,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
   const _on = new THREE.Color('#ffffff'), _off = new THREE.Color('#55607a');
   W.updateScreens = dt => {
     tickScreens(dt);
-    for (let i = 0; i < screens.count; i++) { const c = W.chars.get(W.screenOwner[i]); screens.setColorAt(i, c && c.state === 'sit' && c.atDesk && !c.sleeping ? _on : _off); }   // 睡覺（額度用完）時螢幕逐台熄滅
+    for (let i = 0; i < screens.count; i++) { const c = W.chars.get((W.seatOwner && W.seatOwner.get(W.screenOwner[i])) || W.screenOwner[i]); screens.setColorAt(i, c && c.state === 'sit' && c.atDesk && !c.sleeping ? _on : _off); }   // 睡覺（額度用完）時螢幕逐台熄滅
     if (screens.instanceColor) screens.instanceColor.needsUpdate = true;
   };
 
