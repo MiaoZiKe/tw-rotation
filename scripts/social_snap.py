@@ -1279,7 +1279,10 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
             if t.get("need_nav") and not nav_ok:
                 info["why"] = "頁面上沒有這個分段（例如融券排行還沒產出）→ 跳過"
                 return None
-        if args.kind in ("close", "credit") and t.get("stale") and not args.force and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
+        # 2026-11-16：散戶多空比的未平倉總量晚出，資料日＝前一個交易日是容許的（gate.LAG1_CARDS）→ 網站的「資料未更新」標記不擋它；
+        # 卡上標題與文案照實標資料日。超過前一個交易日（card_fresh 不過）仍照舊擋。
+        _lag_ok = t["name"] in gate.LAG1_CARDS and gate.card_fresh(t["name"], DATE_ISO.get(t["name"], ""), datetime.now(gate.TPE).date().isoformat(), gate.load_holidays())
+        if args.kind in ("close", "credit") and t.get("stale") and not args.force and not _lag_ok and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
             info["why"] = "頁面標示「資料未更新」（資料日不是最近交易日）→ 不發"
             return None
         if close_mode:      # 同一張熱力圖前半已退回收盤：後半也用收盤（兩半口徑一致），不再切即時
@@ -1990,7 +1993,9 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         r = (ok.get("retail-ratio") or {}).get("read") or []
         if r:
             it = [f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r]
-            L += ["散戶多空比："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
+            _rd = DATE_ISO.get("retail-ratio") or ""
+            _lag = f"（{mmdd(_rd)}）" if _rd and _rd != data_date else ""      # 2026-11-16：未平倉總量晚出，落後一個交易日時照實標日期
+            L += [f"散戶多空比{_lag}："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
         r = (ok.get("inst-today") or {}).get("read") or []
         if r:
             nm_ = {"外資": "外資", "投信": "投信", "自營商": "自營", "三大法人合計": "合計"}

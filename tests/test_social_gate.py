@@ -165,3 +165,28 @@ def test_融資融券_當天晚上就發():
 def test_文案標題_盤後融資融券():
     txt = ss.build_text("credit", "10/22 22:05", [{"name": "credit-ratio", "ok": True, "read": {"ratio": "176.99", "chg": "-5.85"}}], "2026-10-22", "20261022")
     assert txt.splitlines()[0] == "💳 盤後融資融券"      # 2026-10-26 Andy 盤中格式套到盤後（標題不帶日期）
+
+
+# ---------- 2026-11-16：散戶多空比（未平倉總量晚出）容許落後一個交易日 ----------
+def test_盤後_散戶多空比落後一個交易日仍可發_其他卡落後仍擋():
+    d = {k: "2026-11-16" for k in CLOSE}
+    d["retail-ratio"] = "2026-11-13"                      # 11-16（週一）的前一個交易日＝11-13（週五）
+    assert g.close_gate("2026-11-16", d, H) == (True, "")
+    d["retail-ratio"] = "2026-11-12"                      # 落後兩個交易日 → 擋
+    assert g.close_gate("2026-11-16", d, H)[0] is False
+    d["retail-ratio"] = "2026-11-13"; d["fut-oi"] = "2026-11-13"      # 別張卡落後 → 擋，而且原因不含 retail-ratio
+    ok, why = g.close_gate("2026-11-16", d, H)
+    assert ok is False and "fut-oi" in why and "retail-ratio" not in why
+
+
+def test_盤後_全部卡都是舊日期不能靠散戶多空比冒充交易日():
+    d = {k: "2026-11-13" for k in CLOSE}
+    assert g.close_gate("2026-11-16", d, H)[0] is False
+
+
+def test_保底_散戶多空比前一交易日不被拿掉():
+    d = {k: "2026-11-16" for k in CLOSE}
+    d["retail-ratio"] = "2026-11-13"
+    d["inst-today"] = "2026-11-13"
+    ok, why, drop = g.close_fallback("2026-11-16", d, H, "2026-11-16", True, T("2026-11-16T19:05"))
+    assert ok and drop == ["inst-today"]

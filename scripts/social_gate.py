@@ -96,6 +96,31 @@ def closed_by_evidence(day: date, now: datetime, last_trade: str | None, live: b
     return lt < day.isoformat() and now >= datetime.combine(day, CONFIRM_T, TPE)
 
 
+# 2026-11-16 事故：散戶多空比要用 FinMind TaiwanFuturesDaily 的「全市場未平倉」，它比三大法人（fut_inst）晚出，
+# 11-16 到 19:28 還沒有當天 → 其他卡都是今天、只有 retail-ratio 停在 11-13，盤後主貼文被它擋到 19:26 保底才發。
+# 這張卡資料源本來就晚（通常 16:00～16:40 出，偶爾更晚），所以容許「前一個交易日」：卡上與文案照實標資料日，
+# 不准把舊的標成今天；超過前一個交易日（落後兩天以上）一樣擋。
+LAG1_CARDS = ("retail-ratio",)
+
+
+def prev_open(day: str, holidays: dict[str, str]) -> str:
+    """day 之前最近一個開市日（只看休市日表＋週末）。"""
+    d = date.fromisoformat(_iso(day)) - timedelta(days=1)
+    for _ in range(40):
+        if is_open_day(d, holidays):
+            return d.isoformat()
+        d -= timedelta(days=1)
+    return ""
+
+
+def card_fresh(name: str, v: str, today: str, holidays: dict[str, str]) -> bool:
+    """這張卡的資料日算不算夠新：一般卡要＝今天；LAG1_CARDS 另可＝前一個交易日。"""
+    x = _iso(v)
+    if x == today:
+        return True
+    return name in LAG1_CARDS and bool(x) and x == prev_open(today, holidays)
+
+
 def close_gate(today: str, card_dates: dict[str, str], holidays: dict[str, str],
                last_trade: str | None = None, live: bool = False, now: datetime | None = None) -> tuple[bool, str]:
     """盤後法人：每張卡的資料日都要＝今天，而且今天是交易日。card_dates＝{卡名: 資料日}（缺日期的卡＝不知道哪天，也不發）。
@@ -103,10 +128,10 @@ def close_gate(today: str, card_dates: dict[str, str], holidays: dict[str, str],
     t = _iso(today)
     if not card_dates:
         return False, "讀不到任何一張卡的資料日"
-    bad = {k: (_iso(v) or "沒有日期") for k, v in card_dates.items() if _iso(v) != t}
+    bad = {k: (_iso(v) or "沒有日期") for k, v in card_dates.items() if not card_fresh(k, v, t, holidays)}
     if t not in holidays and now is not None and closed_by_evidence(date.fromisoformat(t), now, last_trade, live):
         return False, f"今天 {t} 臨時休市（即時成交日停在 {_iso(last_trade)}，例如颱風停市）—— 不是資料缺漏"
-    ok_day, why = trading_day(t, [v for v in card_dates.values()], holidays)
+    ok_day, why = trading_day(t, [v for k, v in card_dates.items() if k not in LAG1_CARDS or _iso(v) == t], holidays)
     if not ok_day:
         if live and last_trade and _iso(last_trade) == t:
             why += "；但即時成交日是今天 → 今天有開盤，是資料還沒更新／缺漏"
@@ -145,9 +170,9 @@ def close_fallback(today: str, card_dates: dict[str, str], holidays: dict[str, s
         return False, f"{t} 是休市日（{holidays[t]}）", []
     if closed_by_evidence(date.fromisoformat(t), now, last_trade, live):
         return False, f"今天 {t} 臨時休市", []
-    good = [k for k, v in card_dates.items() if _iso(v) == t]
-    drop = [k for k, v in card_dates.items() if _iso(v) != t]
-    if not good:
+    good = [k for k, v in card_dates.items() if card_fresh(k, v, t, holidays)]
+    drop = [k for k, v in card_dates.items() if not card_fresh(k, v, t, holidays)]
+    if not [k for k, v in card_dates.items() if _iso(v) == t]:
         return False, "沒有任何一張卡是今天的資料", drop
     if not drop:
         return True, "", []
