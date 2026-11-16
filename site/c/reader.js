@@ -43,16 +43,17 @@
     if (!member()) return `<div class="bn" id="bn" data-st="guest"><span>這是「${esc(CH.name)}」的單篇分享，只能看這一篇。<b>註冊並追蹤頻道，即可看全部文章。</b></span><button class="btn fill" id="lg" type="button">登入／註冊</button></div>`;
     return `<div class="bn" id="bn" data-st="nogate"><span>已登入，但這個帳號還沒解鎖「${esc(CH.name)}」全部文章。追蹤頻道、留言關鍵字後，用私訊裡的解鎖連結打開一次，就會記在你的帳號。</span></div>`;
   };
+  const thumbOf = (d) => { for (const b of d.blocks || []) { if (b.t === 'mp4' && okUrl(b.poster)) return rel(b.poster); if (b.t === 'img' && b.items && b.items[0] && okUrl(b.items[0].src)) return rel(b.items[0].src); } return ''; };
   async function list() {
     document.title = CH.name;
-    if (!canList()) {
-      app.innerHTML = `<h1>${esc(CH.name)}</h1><p class="sub">${esc(CH.tag)}</p><div class="gate" id="gate"><span>頻道的全部文章要「註冊並追蹤頻道」才看得到；沒有註冊的人，只能從私訊連結打開那一篇。</span>${member() ? '' : '<button class="btn fill" id="lg" type="button">登入／註冊</button>'}</div>`;
-      return;
-    }
     app.innerHTML = '<p class="sub">載入中…</p>';
     let j; try { j = await getJ(DIR + 'index.json'); } catch (e) { app.innerHTML = '<p class="sub">文章清單暫時讀不到，請稍後再試。</p>'; return; }
-    const a = (j.articles || []).slice().sort((x, y) => String(y.date).localeCompare(String(x.date)));
-    app.innerHTML = `<h1>${esc(CH.name)}</h1><p class="sub">${esc(CH.tag)}　共 ${a.length} 篇</p><div class="cards" id="list">${a.map((x) => okId(x.id) ? `<a class="card" href="#/${encodeURIComponent(x.id)}" data-id="${esc(x.id)}"><h3>${esc(x.title)}</h3><div class="m">${esc(x.date)}　閱讀約 ${esc(x.reading_min || 1)} 分鐘</div>${x.summary ? `<p>${esc(x.summary)}</p>` : ''}</a>` : '').join('')}</div>`;
+    const a = (j.articles || []).filter((x) => okId(x.id)).sort((x, y) => String(y.date).localeCompare(String(x.date)));
+    const open = canList();
+    const gate = open ? '' : `<div class="gate" id="gate"><span>下面是「${esc(CH.name)}」的文章。<b>註冊並追蹤頻道</b>，用私訊裡的解鎖連結打開一次，就能看全部；沒解鎖的只能看私訊連結給你的那一篇。</span>${member() ? '' : '<button class="btn fill" id="lg" type="button">登入／註冊</button>'}</div>`;
+    app.innerHTML = `<h1>${esc(CH.name)}</h1><p class="sub">${esc(CH.tag)}　共 ${a.length} 篇</p>${gate}<div class="cards" id="list">${a.map((x) => `<a class="card${open ? '' : ' lk'}" href="${open ? '#/' + encodeURIComponent(x.id) : '#/'}" data-id="${esc(x.id)}"${open ? '' : ' data-lock="1"'}><span class="th" data-th="${esc(x.id)}"></span><span class="tx"><h3>${esc(x.title)}</h3><div class="m">${esc(x.date)}　閱讀約 ${esc(x.reading_min || 1)} 分鐘</div></span>${open ? '' : '<span class="lkc" aria-label="未解鎖">🔒</span>'}</a>`).join('')}</div>`;
+    /* 封面縮圖：每篇內文 JSON 的 mp4 封面或第一張圖；晚到就補上，不擋清單 */
+    a.forEach((x) => getJ(DIR + encodeURIComponent(x.id) + '.json').then((d) => { const u = thumbOf(d), el = app.querySelector(`.th[data-th="${CSS.escape(x.id)}"]`); if (u && el) el.style.backgroundImage = `url("${u}")`; }).catch(() => {}));
   }
   async function post(id) {
     app.innerHTML = '<p class="sub">載入中…</p>';
@@ -65,7 +66,11 @@
     const h = (location.hash || '').replace(/^#\/?/, '');
     if (h && okId(decodeURIComponent(h))) post(decodeURIComponent(h)); else list();
   }
-  document.addEventListener('click', (e) => { if (e.target && e.target.id === 'lg') login(); });
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'lg') login();
+    const k = e.target && e.target.closest && e.target.closest('a.card[data-lock]');
+    if (k) { e.preventDefault(); if (!member()) login(); else { const g = document.getElementById('gate'); if (g) g.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }   // 沒解鎖：未登入→登入視窗；已登入→捲到說明
+  });
   window.addEventListener('hashchange', route);
   /* 登入／解鎖狀態變了才重畫（兌換是非同步，會晚到）*/
   let t; const again = () => { clearTimeout(t); t = setTimeout(route, 80); };

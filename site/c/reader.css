@@ -46,3 +46,13 @@ h1,h2,h3{font-family:var(--hf);line-height:1.35}
 .back{display:inline-block;margin-bottom:8px;font-size:14px}
 .ft{max-width:860px;margin:0 auto;padding:0 16px 32px;font-size:12px;color:var(--ink2)}
 @media (max-width:640px){.art h1{font-size:24px}.hd .brand small{display:none}}
+
+.hd .brand img.lgimg{border-radius:8px}
+.hd .brand b i.ai{font-style:normal;background:var(--acc);color:#fff;padding:0 4px;border-radius:5px;margin:0 1px}
+.card{display:flex;gap:14px;align-items:flex-start;position:relative}
+.card .th{flex:none;width:96px;height:96px;border-radius:10px;background:var(--acc2) center/cover no-repeat}
+.card .tx{min-width:0;flex:1}
+.card.lk{opacity:.62}
+.card.lk .lkc{position:absolute;right:12px;top:10px;font-size:16px}
+@media (max-width:640px){.card .th{width:72px;height:72px}}
+.card.lk .tx{padding-right:26px}
