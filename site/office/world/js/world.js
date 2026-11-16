@@ -47,27 +47,30 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
     P.add(G.cyl(120, 0.2, 0.05, 48), '#c4ecb4', Lw / 2, -0.22, Ld / 2);
     if (!opts.blocks) P.slab('#f1e2c3', Lw + 3, Ld + 3, 0.12, Lw / 2, -0.13, Ld / 2, 1.6);   // 區塊辦公室（blocks.js）不鋪這片固定 40×30 的米色地：地板改由區塊依實際範圍動態生成
     P.slab('#f3dfb8', 3.0, 9, 0.06, 20.5, -0.05, Ld + 4.2, 1.2);
+    // 區塊辦公室（blocks.js）：草地上散落的樹、灌木、花叢一律不生成（擁有者 11-16「旁邊的灌木叢也拿掉」）；loop 仍照跑（亂數序列不變），只是畫進一個丟棄用的 Part（D）
+    const dump = new Part(); let nDeco = 0; const D = { add: (...a) => { if (opts.blocks) return dump.add(...a); nDeco++; return P.add(...a); } };
     for (let i = 0; i < 46; i++) {
       const a = r() * 6.283, d = 30 + r() * 34, x = Lw / 2 + Math.cos(a) * d * 1.25, z = Ld / 2 + Math.sin(a) * d * 0.95;
       if (x > -3 && x < Lw + 3 && z > -3 && z < Ld + 3) continue; if (z > Ld + 1) continue;
       const h = 1.4 + r() * 1.6, cr = 1.5 + r() * 1.3, c = [PAL.leaf, PAL.leafDark, PAL.leafLight, '#a8dba0'][i % 4];
-      P.add(G.cyl(0.28, h, 0.05, 10), PAL.woodDark, x, 0, z); P.add(G.sph(cr, 10, 7), c, x, h + cr * 0.7, z, 0, 0, 0, 1, 0.9, 1);
-      P.add(G.sph(cr * 0.7, 8, 6), shade(c, 0.15), x + cr * 0.5, h + cr * 0.4, z + cr * 0.3);
+      D.add(G.cyl(0.28, h, 0.05, 10), PAL.woodDark, x, 0, z); D.add(G.sph(cr, 10, 7), c, x, h + cr * 0.7, z, 0, 0, 0, 1, 0.9, 1);
+      D.add(G.sph(cr * 0.7, 8, 6), shade(c, 0.15), x + cr * 0.5, h + cr * 0.4, z + cr * 0.3);
     }
     for (let i = 0; i < 70; i++) {
       const side = Math.floor(r() * 4), t = r(); let x, z;
       if (side === 0) { x = t * Lw; z = -2.5 - r() * 2; } else if (side === 1) { x = t * Lw; z = Ld + 2.2 + r() * 2.5; } else if (side === 2) { x = -2.5 - r() * 2; z = t * Ld; } else { x = Lw + 2.5 + r() * 2; z = t * Ld; }
       if (Math.abs(x - 20.5) < 2.2 && z > Ld) continue;
-      if (i % 3 === 0) P.add(G.sph(0.5 + r() * 0.35, 10, 8), [PAL.leaf, PAL.leafLight][i % 2], x, 0.25, z, 0, 0, 0, 1.2, 0.8, 1);
-      else P.add(G.sph(0.13, 8, 6), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x, 0.08, z);
+      if (i % 3 === 0) D.add(G.sph(0.5 + r() * 0.35, 10, 8), [PAL.leaf, PAL.leafLight][i % 2], x, 0.25, z, 0, 0, 0, 1.2, 0.8, 1);
+      else D.add(G.sph(0.13, 8, 6), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x, 0.08, z);
     }
     // 大門外：踏石、路燈、信箱、長椅
     for (let i = 0; i < 6; i++) P.add(G.cyl(0.5, 0.05, 0.02, 16), '#fbf0da', 20.5 + (i % 2 ? 0.35 : -0.35), 0.0, Ld + 1.5 + i * 1.25);
     for (const x of [18.4, 22.6]) { P.add(G.cyl(0.07, 2.3, 0.02, 10), '#b9a48f', x, 0, Ld + 2.4); P.add(G.cyl(0.2, 0.06, 0.02, 12), '#b9a48f', x, 0, Ld + 2.4); P.add(G.sph(0.3, 12, 9), '#fff0b8', x, 2.5, Ld + 2.4); P.add(G.cyl(0.2, 0.08, 0.03, 12), '#b9a48f', x, 2.72, Ld + 2.4); }
     P.add(G.cyl(0.05, 0.9, 0.01, 8), PAL.woodDark, 23.4, 0, Ld + 1.0); P.add(G.box(0.5, 0.36, 0.34, 0.12), '#f28b82', 23.4, 1.05, Ld + 1.0); P.add(G.box(0.3, 0.05, 0.02, 0.01), '#fffaf2', 23.4, 1.08, Ld + 1.18);
     P.add(G.slab(1.8, 0.5, 0.08, 0.16), PAL.wood, 17.0, 0.4, Ld + 1.0); P.add(G.box(0.1, 0.4, 0.4, 0.04), PAL.cream, 16.3, 0.2, Ld + 1.0); P.add(G.box(0.1, 0.4, 0.4, 0.04), PAL.cream, 17.7, 0.2, Ld + 1.0); P.add(G.box(1.8, 0.4, 0.08, 0.035), PAL.wood, 17.0, 0.75, Ld + 0.78);
-    for (let i = 0; i < 26; i++) { const x = 1 + r() * (Lw - 2), z = Ld + 0.9 + r() * 0.9; if (Math.abs(x - 20.5) < 3.4) continue; P.add(G.sph(0.38 + r() * 0.2, 8, 6), [PAL.leaf, PAL.leafLight, PAL.leafDark][i % 3], x, 0.15, z, 0, 0, 0, 1.3, 0.8, 1); P.add(G.sph(0.09, 6, 5), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x + 0.15, 0.48, z + 0.1); P.add(G.sph(0.08, 6, 5), ['#fff0a8', '#ffb3c1'][i % 2], x - 0.2, 0.42, z + 0.18); }
+    for (let i = 0; i < 26; i++) { const x = 1 + r() * (Lw - 2), z = Ld + 0.9 + r() * 0.9; if (Math.abs(x - 20.5) < 3.4) continue; D.add(G.sph(0.38 + r() * 0.2, 8, 6), [PAL.leaf, PAL.leafLight, PAL.leafDark][i % 3], x, 0.15, z, 0, 0, 0, 1.3, 0.8, 1); D.add(G.sph(0.09, 6, 5), ['#ffb3c1', '#fff0a8', '#ffffff', '#ffc9a3'][i % 4], x + 0.15, 0.48, z + 0.1); D.add(G.sph(0.08, 6, 5), ['#fff0a8', '#ffb3c1'][i % 2], x - 0.2, 0.42, z + 0.18); }
     for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283 + r() * 0.3, d = 88 + r() * 16, hr = 14 + r() * 12; P.add(G.sph(hr, 14, 8), ['#b7e3a4', '#a8dba0', '#c4ecb4'][i % 3], Lw / 2 + Math.cos(a) * d, -hr * 0.45, Ld / 2 + Math.sin(a) * d, 0, 0, 0, 1.5, 0.75, 1); }
+    W.outdoorDeco = nDeco;   // 戶外樹／灌木／花叢實際生成的件數（區塊辦公室＝0；驗收用）
     const m = P.mesh(); m.castShadow = false; scene.add(m);
     const C = new Part();
     for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283 + r(), d = 70 + r() * 30, x = Lw / 2 + Math.cos(a) * d, z = Ld / 2 + Math.sin(a) * d, y = 26 + r() * 10, k = 3 + r() * 2; for (let j = 0; j < 4; j++) C.add(G.sph(k * (0.7 + r() * 0.5), 10, 7), '#ffffff', x + (j - 1.5) * k * 0.95, y + (j % 2) * k * 0.3, z + r() * 2, 0, 0, 0, 1, 0.62, 1); }

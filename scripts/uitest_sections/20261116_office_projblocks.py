@@ -144,6 +144,7 @@ def _pb_main(b, base):
           const pts = W.layout.rooms.map(r => [r.x + r.w / 2, r.z + r.d / 2, r.id]).concat([[30, 35, 'jobless']]);
           for (const [x, z, id] of pts) { const v = cam.position.clone().set(x, 0.3, z).project(cam); out.push({ id, ok: v.z < 1 && Math.abs(v.x) < 0.98 && Math.abs(v.y) < 0.98 }); } return out; }""")
         ok("咖啡廳專案：鏡頭一進場就框住全部（區塊、無業遊民區都在畫面內）", all(p["ok"] for p in inview), inview)
+        ok("咖啡廳專案：草地上沒有戶外樹叢／灌木／花叢（W.outdoorDeco＝0），無業遊民區自身的長椅與營火仍在", pg.evaluate("() => { const W = window.__world; return W.outdoorDeco === 0 && !!W.outside && W.outside.seats.length >= 4 && !!W.outside.flame }"), pg.evaluate("() => window.__world.outdoorDeco"))
         _pb_shot(pg, "pb1_咖啡廳規劃專案_俯瞰.png")
         pg.wait_for_timeout(2000)   # 地板約 0.6 秒平順長到最終範圍
         fl0 = pg.evaluate(_PB_FLOOR)
@@ -208,6 +209,7 @@ def _pb_main(b, base):
         fl3 = pg.evaluate(_PB_FLOOR)
         ok("tw-rotation：外圍地板仍是固定 40×30（含邊距 43×33 的米色鋪面，邊緣外才是草地）", fl3["tw"] and fl3["w"] == 40 and fl3["d"] == 30 and fl3["slab"] and not fl3["grass"], fl3)
         ok("tw-rotation：示範編制的 inspector 照樣坐自己的座位 seat:inspector", any(v["id"] == "inspector" and v["at"] == "seat:inspector" for v in s3["vis"]), s3["vis"])
+        ok("tw-rotation：戶外樹叢／灌木／花叢仍照常生成（W.outdoorDeco > 100）", pg.evaluate("() => window.__world.outdoorDeco") > 100, pg.evaluate("() => window.__world.outdoorDeco"))
         _pb_shot(pg, "pb3_tw-rotation完整辦公室.png")
     finally:
         c.close()
