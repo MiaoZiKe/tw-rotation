@@ -135,7 +135,7 @@ function boot(W) {
   function scan() {
     const s = sig(snapshot());
     if (s !== (P.last || meta().sig || '')) {
-      if (!P.dirty) { P.dirty = true; setMeta({ at: Date.now() }); }
+      if (!P.dirty) { P.dirty = true; setMeta({ at: Math.max(Date.now(), (meta().at || 0) + 1) }); }   // 換成雲端那份之後的新改動一定比那份新（別台裝置時鐘快也一樣）
       if (Date.now() - P.lastUp >= EVERY) upload(false);
     }
   }

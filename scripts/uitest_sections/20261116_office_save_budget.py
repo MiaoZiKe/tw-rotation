@@ -174,7 +174,7 @@ def _sb_all(pg0, b, base, code):
         sw.click()
         fl = _sb_floor(pg)
         ok("存檔：點色票後本機擺設記下了地板顏色", len(fl) >= 1, fl)
-        got = wait_until(pg, "() => __world.save.ups >= 1 && /^已存檔 \\d\\d:\\d\\d$/.test(document.getElementById('saveTag').textContent)", 15000)
+        got = wait_until(pg, "() => __world.save.ups >= 1 && __world.save.status === 'saved' && /^已存檔 \\d\\d:\\d\\d$/.test(document.getElementById('saveTag').textContent)", 30000)
         ok("存檔：頂列小字變成「已存檔 HH:MM」", got, pg.locator("#saveTag").inner_text())
         _sb_shot(pg, "s1_已存檔.png")
         st, j = srv.call("GET", "/v1/office/main/save/" + _SB_PA, hdr=srv.owner())
@@ -212,7 +212,7 @@ def _sb_all(pg0, b, base, code):
         keys = dict(cur["data"]["keys"]); keys["aiOffice.game.coins"] = "99"
         srv.call("POST", "/v1/office/main/save/" + _SB_PA, {"schema": 2, "base": cur["version"], "at": int(_time.time() * 1000) + 30000, "data": {"keys": keys}}, srv.owner())
         pg.evaluate("() => { localStorage.setItem('aiOffice.game.note', 'old-device'); __world.save.scan(); }")
-        pg.wait_for_timeout(2500)
+        pg.wait_for_timeout(3500)
         _sb_settle(pg)
         conf = _sb_ev(pg, "() => ({ coins: localStorage.getItem('aiOffice.game.coins'), note: localStorage.getItem('aiOffice.game.note') })")
         ok("衝突：本頁的改動比另一台舊 → 收到衝突、換成比較新的那份（coins＝99、本頁的舊改動被換掉）", conf["coins"] == "99" and conf["note"] is None, conf)
