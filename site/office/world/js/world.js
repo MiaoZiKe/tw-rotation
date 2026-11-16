@@ -130,7 +130,7 @@ export function createWorld(canvas, layout, org, quality, opts = {}) {
       }
       seg(cur, a1, sill - 0.05, head + 0.05, WALL);
     }
-    const m = P.mesh(); scene.add(m); W.wallMesh = m;
+    if (P.list.length) { const m = P.mesh(); scene.add(m); W.wallMesh = m; }   // 區塊辦公室（blocks.js）沒有牆：空的零件不能合併
     // 玻璃與地上的光斑（一個網格）
     const gp = [], sp = [], suv = [];
     for (const q of glass) {

@@ -127,6 +127,8 @@ export function createRoster(W, X) {
     if (!c.absent) return c;
     seat(c, pickSeat(c.spec.dept, id) || addDesk(c.spec.dept, id), arrive); R.hired.set(id, c); return c;
   };
+  /** 區塊辦公室：把收起來的示範同事從名冊拿掉（讓出代號）。只動 W.chars／W.members，場景裡的身體本來就看不見 */
+  R.purge = id => { const c = C(id); if (!c || !c.absent || c.spec.isCeo) return false; W.chars.delete(id); W.members.delete(id); R.log.push('purge:' + id); return true; };
   /** 編制外的新同事：b＝{id,nick,zh,species,pal,hue,acc,accColor}；回傳角色（座位都沒有時站著） */
   R.hire = (b, arrive) => {
     if (C(b.id)) return C(b.id);

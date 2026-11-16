@@ -27,7 +27,8 @@ import { createChat } from './chat.js';   // 主對話框（chat.js：畫面下�
 import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
-import { rosterWanted, createRoster } from './roster.js';   // 專案名冊：進專案的辦公室只顯示 CEO＋這個專案真的有的 Agent（roster.js）
+import { rosterWanted, createRoster } from './roster.js';
+import { peekProject, wantsBlocks, blocksLayout, createBlocks } from './blocks.js';   // 非 tw-rotation 的專案：場景只蓋 CEO 區塊＋每位 Agent 一個區塊（blocks.js）   // 專案名冊：進專案的辦公室只顯示 CEO＋這個專案真的有的 Agent（roster.js）
 import { mountSports } from './sports.js';   // 員工運動場（羽毛球、籃球、網球、撞球、游泳池；sports*.js）
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
@@ -41,12 +42,14 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
 
 (async function boot() {
   const PF = { t0: performance.now(), boot: {}, n: 0, sim: 0, simMax: 0, steps: 0, render: 0, post: 0, frame: 0, hist: [], mark(k) { this.boot[k] = Math.round(performance.now() - this.t0); } };   // 效能量測（極便宜）：開場各階段時間、每格模擬／繪製／其他的移動平均；window.__world.perf
-  const [layout, org, demo, meet, roster, charMod, rw] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule(), qs.get('rewards') === '0' ? null : loadRewards()]);   // 績效資料缺檔／壞檔／?rewards=0：整個獎勵層關閉，辦公室維持原樣
+  const [layout0, org, demo, meet, roster, charMod, rw] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule(), qs.get('rewards') === '0' ? null : loadRewards()]);   // 績效資料缺檔／壞檔／?rewards=0：整個獎勵層關閉，辦公室維持原樣
+  // 專案辦公室：先問收件端這個專案叫什麼；不是 tw-rotation 就把示範佈局縮成「只有 CEO 區塊」（問不到＝照舊完整辦公室）
+  const blocksOn = rosterWanted(qs) && wantsBlocks(await peekProject(qs)), layout = blocksOn ? blocksLayout(layout0) : layout0;
   PF.boot.assets = performance.now() - PF.t0; PF.boot.assetsAt = performance.now();
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality, { styleOf: makeStyleOf(rw, layout) }), { renderer, scene, camera } = W;
-  PF.mark('world'); buildOutside(W);   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
+  PF.mark('world'); buildOutside(W); if (blocksOn) W.blocks = createBlocks(W, {});   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
   function resize() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
@@ -191,7 +194,8 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   function godPose(target, dist) {
     // 預設俯視的注視點往前（南）挪一點，讓大門外的「無業遊民區」露出一部分（擁有者 11-14：找不到遊民區）；指定了目標（飛到某區域）就照指定的
-    const t = (target || CENTER.clone().add(v3c.set(0, 0, portrait() ? 4.5 : 4.2))).clone(), d = dist || (portrait() ? 84 : 58), pol = 0.62;
+    const fr = !target && W.blocks ? W.blocks.framing(cv.clientWidth / Math.max(1, cv.clientHeight)) : null;   // 區塊辦公室：框住全部區塊＋運動場＋遊民區
+    const t = (target || (fr ? fr.t : CENTER.clone().add(v3c.set(0, 0, portrait() ? 4.5 : 4.2)))).clone(), d = dist || (fr ? fr.d : portrait() ? 84 : 58), pol = 0.62;
     return { t, p: new THREE.Vector3(t.x, t.y + d * Math.cos(pol), t.z + d * Math.sin(pol)), fov: 38 };
   }
   function tweenTo(pose, sec = 0.95) { view.tween = { p0: camera.position.clone(), t0: controls.target.clone(), f0: camera.fov, pose, t: 0, sec, off: pose.p.clone().sub(pose.t) }; }
@@ -648,6 +652,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   }
   PF.boot.built = performance.now() - PF.t0; W.perf = PF;
   W.shadowDirty(); requestAnimationFrame(frame);
+  W.refit = instant => { if (view.mode === 'god' && view.lastUser < 0 && !view.tween) setView('god', ceo, !!instant); };   // 區塊辦公室多了區塊：還沒動過鏡頭的話，重新框住全部
   W.godAt = (x, z, d) => { view.mode = 'god'; view.char = null; modeControls(); ui.setViewUI('god'); W.ring.visible = false; tweenTo(godPose(new THREE.Vector3(x, 0, z), d)); };
   W.outside.hint(() => jumpTo('jobless')); mountSports(W, { ui, director }); window.__world = W; W.THREE = THREE; W.setView = setView; W.jumpTo = jumpTo; W.toggleEdit = toggleEdit;
 })().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.textContent = '載入失敗：' + e.message; });

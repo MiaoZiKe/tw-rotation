@@ -51,8 +51,9 @@ export function createUI(W, demo, api) {
   const dot = c => `<span class="dot" style="background:${c}"></span>`;
   const renderAreas = () => {
     const act = d => d.members.filter(m => !(W.hr && W.hr.isFired(m.id))).length, nJ = W.hr ? W.hr.fired.size : 0;
-    $('areaPop').innerHTML = `<h4>公共區域</h4><div class="grid c3">${order.map(id => { const r = rooms.find(q => q.id === id); return `<button class="it" data-room="${id}">${dot(r.floor)}${esc(r.name)}</button>`; }).join('')}<button class="it" data-room="jobless">${dot('#e6d8bd')}無業遊民區${nJ ? `<small>${nJ}</small>` : ''}</button></div>
-    <h4 style="margin-top:12px">部門</h4><div class="grid">${W.org.departments.map(d => `<button class="it" data-room="${d.id}">${dot(d.color)}${esc(d.name)}<small>${act(d)} 人</small></button>`).join('')}</div>`;
+    const ids = W.blocks ? rooms.map(r => r.id) : order;   // 區塊辦公室（blocks.js）：只有 CEO 與各 Agent 的區塊，沒有示範的公共區域與部門
+    $('areaPop').innerHTML = `<h4>${W.blocks ? '區塊' : '公共區域'}</h4><div class="grid c3">${ids.map(id => { const r = rooms.find(q => q.id === id); return `<button class="it" data-room="${id}">${dot(r.floor)}${esc(r.name)}</button>`; }).join('')}<button class="it" data-room="jobless">${dot('#e6d8bd')}無業遊民區${nJ ? `<small>${nJ}</small>` : ''}</button></div>
+    ${W.blocks ? '' : '<h4 style="margin-top:12px">部門</h4>'}<div class="grid">${(W.blocks ? [] : W.org.departments).map(d => `<button class="it" data-room="${d.id}">${dot(d.color)}${esc(d.name)}<small>${act(d)} 人</small></button>`).join('')}</div>`;
   };
   renderAreas(); U.renderAreas = renderAreas;
   $('areaBtn').onclick = () => togglePop('areaPop');

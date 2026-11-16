@@ -565,6 +565,7 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   function rosterMember(type) {
     const hub = W.rosterHub, arrive = !!L.booted, c0 = C(type);
     if (!W.blocks && c0 && !c0.spec.isCeo && !c0.spec.pet) { hub.reveal(type, arrive); L.typeMap.set(type, type); if (arrive) S.say(`新同事報到：${c0.spec.nick}（${short(type, 24)}）`); return type; }
+    if (W.blocks && c0 && c0.absent && !c0.spec.isCeo && !c0.spec.pet) hub.purge(type);   // 區塊辦公室：跟示範編制同代號（例如 deployer）的新同事用自己的代號，不借用示範的那位（收件匣的 to 才對得上）
     const id = L.extras.has(type) ? L.extras.get(type) : extraId(type);
     if (C(id)) { L.extras.set(type, id); L.typeMap.set(type, id); return id; }
     const h = hash(type), tn = BUILTIN[type] ? '' : nickFromData(type), [nick, species] = BUILTIN[type] || [tn || short(type.replace(/[-_]+/g, ' '), 8), POOL[h % POOL.length]];
