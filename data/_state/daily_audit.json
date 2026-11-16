@@ -1,49 +1,64 @@
 {
-  "checked_at": "2026-11-16T03:29:28+08:00",
+  "checked_at": "2026-11-16T15:19:24+08:00",
   "today": "2026-11-16",
   "expected_price_date": "2026-11-13",
   "is_trading_day": true,
   "summary": {
-    "fail": 0,
-    "pending": 4,
+    "fail": 3,
+    "pending": 2,
     "ok": 3,
     "skip": 0,
-    "disabled": 1
+    "disabled": 0
   },
   "items": [
     {
       "id": "premarket",
       "name": "盤前消息（交易日 08:40 前）",
-      "status": "pending",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
-          "why": "social-live 今天有成功執行 1 次",
+          "why": "social-live 今天有成功執行 9 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43750810523"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43819423049",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43815918744",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43796494067"
           ],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": false,
-          "why": "盤前消息日期 2026-11-13、5 則",
+          "ok": true,
+          "why": "盤前消息日期 2026-11-16、5 則",
           "evidence": [
-            "2026-11-13"
+            "2026-11-16"
           ],
           "busy": false,
           "hard": false
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
+          "why": "GitHub Pages（備援） 部署到 dd65be4，還沒包含最新資料；Cloudflare 主站 部署到 dd65be4，還沒包含最新資料",
+          "evidence": [
+            "dd65be4277499dfc5dac09834b8a301e07846260",
+            "dd65be4277499dfc5dac09834b8a301e07846260"
+          ],
+          "busy": false,
+          "hard": false,
+          "cf_ok": false
         }
       },
       "deadline": "2026-11-16T08:40:00+08:00",
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "social-live.yml",
+        "inputs": {
+          "kind": "premarket",
+          "dry_run": "false",
+          "force": "false"
+        }
+      },
+      "remedy_note": "已派出 social-live.yml（今天第 1 次）"
     },
     {
       "id": "postmarket",
@@ -51,9 +66,11 @@
       "status": "pending",
       "gates": {
         "run": {
-          "ok": false,
-          "why": "daily.yml 窗口內沒有成功的執行（找到 0 次）",
-          "evidence": [],
+          "ok": true,
+          "why": "daily.yml 今天有成功執行 1 次",
+          "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43822679387"
+          ],
           "busy": false,
           "hard": false
         },
@@ -68,10 +85,14 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
+          "why": "GitHub Pages（備援） 部署到 dd65be4，還沒包含最新資料；Cloudflare 主站 部署到 dd65be4，還沒包含最新資料",
+          "evidence": [
+            "dd65be4277499dfc5dac09834b8a301e07846260",
+            "dd65be4277499dfc5dac09834b8a301e07846260"
+          ],
+          "busy": false,
+          "hard": false,
+          "cf_ok": false
         }
       },
       "deadline": "2026-11-16T21:40:00+08:00",
@@ -80,13 +101,13 @@
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券／ETF）",
-      "status": "pending",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
-          "why": "daily.yml 今天有成功的 price／full 輪 6 次",
+          "why": "daily.yml 今天有成功的 price／full 輪 7 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43748509052"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43783383889"
           ],
           "busy": false,
           "hard": false,
@@ -173,21 +194,55 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
+          "why": "GitHub Pages（備援） 部署到 dd65be4，還沒包含最新資料；Cloudflare 主站 部署到 dd65be4，還沒包含最新資料",
+          "evidence": [
+            "dd65be4277499dfc5dac09834b8a301e07846260",
+            "dd65be4277499dfc5dac09834b8a301e07846260"
+          ],
+          "busy": false,
+          "hard": false,
+          "cf_ok": false
         }
       },
       "deadline": "2026-11-13T18:40:00+08:00",
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "daily.yml",
+        "inputs": {
+          "phase": "full"
+        }
+      },
+      "remedy_note": "本輪不派：交易日 15:00～17:30 是 price／inst 輪的時段，full 補救延到 17:30 之後"
     },
     {
       "id": "close_post",
       "name": "頻道①盤後主貼文（交易日 18:20 前）",
-      "status": "disabled",
-      "gates": {},
-      "why": "未啟用（post_quota.json 的 close 沒開，不是失敗）"
+      "status": "pending",
+      "gates": {
+        "run": {
+          "ok": false,
+          "why": "social-live 正在執行中（還沒跑完）",
+          "evidence": [],
+          "busy": false,
+          "hard": false
+        },
+        "content": {
+          "ok": false,
+          "why": "posted.json 沒有 close-2026-11-16",
+          "evidence": [],
+          "busy": false,
+          "hard": false
+        },
+        "publish": {
+          "ok": false,
+          "why": "沒有發布網址（查不到或沒發出）",
+          "evidence": [],
+          "busy": false,
+          "hard": false
+        }
+      },
+      "deadline": "2026-11-16T18:20:00+08:00",
+      "remedy": null
     },
     {
       "id": "healing",
@@ -290,15 +345,15 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "pending",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
           "why": "pages.yml 今天有成功執行 49 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43750166296",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43748273076",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43748067882"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43816131365",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43815159570",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43815139782"
           ],
           "busy": false,
           "hard": false
@@ -313,16 +368,67 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
+          "why": "GitHub Pages（備援） 部署到 dd65be4，還沒包含最新資料；Cloudflare 主站 部署到 dd65be4，還沒包含最新資料",
+          "evidence": [
+            "dd65be4277499dfc5dac09834b8a301e07846260",
+            "dd65be4277499dfc5dac09834b8a301e07846260"
+          ],
+          "busy": false,
+          "hard": false,
+          "cf_ok": false
         }
       },
       "deadline": null,
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "pages.yml",
+        "inputs": {}
+      },
+      "remedy_note": "已派出 pages.yml（今天第 1 次）"
     }
   ],
   "errors": [],
-  "remedies": {}
+  "remedies": {
+    "premarket": {
+      "date": "2026-11-16",
+      "count": 1,
+      "attempts": [
+        {
+          "at": "2026-11-16T15:19:24+08:00",
+          "workflow": "social-live.yml",
+          "inputs": {
+            "kind": "premarket",
+            "dry_run": "false",
+            "force": "false"
+          },
+          "ok": true,
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43823073438",
+          "run_id": null,
+          "run_status": null,
+          "run_conclusion": null
+        }
+      ]
+    },
+    "data": {
+      "date": "2026-11-16",
+      "count": 0,
+      "attempts": []
+    },
+    "website": {
+      "date": "2026-11-16",
+      "count": 1,
+      "attempts": [
+        {
+          "at": "2026-11-16T15:19:24+08:00",
+          "workflow": "pages.yml",
+          "inputs": {},
+          "ok": true,
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43823076559",
+          "run_id": null,
+          "run_status": null,
+          "run_conclusion": null
+        }
+      ]
+    }
+  }
 }
