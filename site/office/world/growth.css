@@ -1,0 +1,70 @@
+/* 成長系統（growth.js／growth_ui.js，2026-11-16）：資訊卡成長區塊、名牌等級、頂列今日目標、浮動訊息、每日結算卡。字級一律 ≥ 11px。 */
+/* 名牌旁的等級（左上角；績效等第章在右上角，不重疊） */
+.tag .glv{position:absolute;left:-7px;top:-8px;min-width:24px;height:16px;line-height:16px;padding:0 5px;border-radius:9px;background:#fff0e0;color:#c85f10;font:800 11px/16px "Noto Sans TC",sans-serif;font-style:normal;text-align:center;box-shadow:0 0 0 1.5px #fffaf3;white-space:nowrap}
+.tag.haslv{padding-left:11px}
+.tag .glv.tired{background:#e8e2f6;color:#5a4a8a}
+.tag .glv.up{animation:gmUp 1s ease-out 3;background:#ffd25e;color:#4a3200}
+.tag .glv.gain::after{content:attr(data-gain);position:absolute;left:50%;top:-16px;transform:translateX(-50%);font-size:11px;font-weight:800;color:#c85f10;background:#fffaf3;border-radius:8px;padding:0 5px;animation:gmGain 2.2s ease-out forwards;pointer-events:none}
+.tag .gsg{position:absolute;left:50%;top:-24px;transform:translateX(-50%);background:var(--on);color:#fff;border-radius:999px;padding:1px 9px;font:700 11px/16px "Noto Sans TC",sans-serif;font-style:normal;white-space:nowrap;box-shadow:0 2px 6px rgba(120,80,40,.25)}
+@keyframes gmUp{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+@keyframes gmGain{0%{opacity:0;transform:translate(-50%,6px)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-14px)}}
+
+/* 資訊卡的成長區塊 */
+.gm{margin:2px 0 8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:12.5px;display:flex;flex-direction:column;gap:6px}
+.gm.tired{border-color:#c9bfe8;background:#faf8ff}
+.gm-lv{display:flex;align-items:center;gap:8px}
+.gm-lv>b{font-size:15px;color:var(--on);min-width:42px}
+.gm-lv>span{font-size:12px;color:var(--sub);white-space:nowrap}
+.gm-bar{flex:1 1 auto;min-width:40px;height:8px;border-radius:5px;background:#f3e6d6;overflow:hidden}
+.gm-bar i{display:block;height:100%;width:0;border-radius:5px;background:var(--on);transition:width .3s}
+.gm-bar.sta i[data-lvl=ok]{background:#6cc08b}.gm-bar.sta i[data-lvl=warn]{background:#f0b04a}.gm-bar.sta i[data-lvl=bad]{background:#e5675b}
+.gm-bar.str i[data-lvl=ok]{background:#8fb6e8}.gm-bar.str i[data-lvl=warn]{background:#f0b04a}.gm-bar.str i[data-lvl=bad]{background:#e5675b}
+.gm-q{flex:none;width:22px;height:22px;border-radius:50%;border:0;background:var(--on2);color:var(--on);font-weight:800;font-size:12px;line-height:22px;padding:0}
+.gm-st{display:grid;grid-template-columns:auto 1fr auto auto 1fr auto;align-items:center;gap:6px}
+.gm-st label{color:var(--sub);font-size:12px}.gm-st b{min-width:22px;text-align:right;font-size:12.5px}
+.gm-state{font-size:12px;color:var(--sub);line-height:1.5}
+.gm-row{display:flex;gap:8px;align-items:flex-start;line-height:1.7}
+.gm-h{flex:none;color:var(--sub);font-size:12px;min-width:28px}
+.gm-chip{display:inline-block;border-radius:999px;padding:0 9px;margin:0 4px 2px 0;font-size:12px;line-height:20px;white-space:nowrap}
+.gm-chip.sk{background:#fff0e0;color:#8a4a10}.gm-chip.sk em{font-style:normal;color:#e08a20;letter-spacing:-1px}
+.gm-chip.tr{background:#eaf3ff;color:#2f5f9f}
+.gm-help{font-size:12px;color:var(--sub);line-height:1.65;background:#fffaf3;border-radius:10px;padding:6px 8px}
+.gm-help[hidden]{display:none}
+
+/* 頂列：今日目標 */
+#gmBtn.done{background:#e6f6ea;color:#1f6a3a}
+#gmPop{width:300px}
+.gm-goals{list-style:none;margin:0 0 6px;padding:0;display:flex;flex-direction:column;gap:5px}
+.gm-goals li{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:13px}
+.gm-goals li.ok{background:#eefaf1;border-color:#b9e2c5}
+.gm-goals .mk{flex:none;width:18px;text-align:center;color:var(--sub);font-weight:800}.gm-goals li.ok .mk{color:#2a8a4a}
+.gm-goals .tx{flex:1;min-width:0}.gm-goals em{font-style:normal;color:var(--sub);font-size:12px;white-space:nowrap}
+.gm-note{margin:6px 2px 8px;font-size:12px;color:var(--sub);line-height:1.6}
+#gmPop .acts{display:flex;gap:8px}
+
+/* 浮動訊息：晉級、目標、派工理由（疊在頂列下方、水平置中，不攔點擊，點一下收掉） */
+#gmStack{position:absolute;z-index:24;left:50%;top:112px;transform:translateX(-50%);width:min(380px,calc(100vw - 24px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.gm-msg{pointer-events:auto;background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:8px 12px;border-left:5px solid var(--on);display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.55;animation:gmIn .25s ease-out}
+.gm-msg b{font-size:14px}.gm-msg span{color:var(--sub);font-size:12px}.gm-msg span.o{font-size:12px}
+.gm-msg.up{border-left-color:#f2b705;background:#fff8e1}.gm-msg.goal{border-left-color:#3fae6a;background:#eefaf1}.gm-msg.why{border-left-color:#5b8fd6}
+@keyframes gmIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* 每日結算卡 */
+.gm-ov{position:absolute;inset:0;z-index:40;background:rgba(60,40,24,.38);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
+.gm-day{position:relative;background:var(--card);border-radius:20px;box-shadow:0 12px 40px rgba(60,40,24,.35);padding:18px 20px 16px;width:min(420px,100%);max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box}
+.gm-day .x{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;border:0;background:var(--on2);color:var(--on);font-size:16px;font-weight:800;padding:0}
+.gm-day h3{margin:0 0 10px;font-size:18px}.gm-day h3 small{font-size:12px;color:var(--sub);font-weight:600;margin-left:8px}
+.gm-day h4{margin:12px 2px 6px;font-size:12px;color:var(--sub);font-weight:600}
+.gd-big{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gd-big>div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center}
+.gd-big b{display:block;font-size:26px;line-height:1.2;color:var(--on)}.gd-big span{font-size:12px;color:var(--sub)}
+.gd-list{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:12px 0 0;font-size:13px}.gd-list dt{color:var(--sub)}.gd-list dd{margin:0;line-height:1.5}
+.gm-day .acts{display:flex;gap:8px;margin-top:14px}.gm-day .acts .btn{flex:1;justify-content:center}
+
+@media (max-width:640px){
+  body:not(.m-more) #gmBtn{display:none}
+  #gmStack{top:104px}
+  .gm-st{grid-template-columns:auto 1fr auto;row-gap:4px}
+  .gm-st label:nth-of-type(2){grid-column:1}
+}
+@media (prefers-reduced-motion:reduce){.tag .glv.up,.tag .glv.gain::after,.gm-msg{animation:none}}
