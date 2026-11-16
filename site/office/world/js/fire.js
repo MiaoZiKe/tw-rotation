@@ -193,7 +193,7 @@ export function createFire(W, opts = {}) {
     ensureScorch(c);
     const o = s || { state: 'none', scorch: 0 }; F.states.set(c.spec.id, o);
     const wasRec = o.state === 'recovering';
-    Object.assign(o, { state: 'burning', t: 0, dur: rnd(F.cfg.burnMin, F.cfg.burnMax), c, hop: 0, tok: (o.tok || 0) + 1, start: { x: posOf(c).x, z: posOf(c).z }, fled: 0, why });
+    Object.assign(o, { state: 'burning', t: 0, dur: rnd(F.cfg.burnMin, F.cfg.burnMax), c, hop: 0, tok: (o.tok || 0) + 1, start: { x: posOf(c).x, z: posOf(c).z }, fled: 0, why, wash: false, quick: false, done: false, fading: false });
     F.stats.ignited++;
     // 接管這個角色：取消正在做的事、放開操控、不讓別的流程把他叫走
     const Dr = D(); c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.atDesk = false; if (c.stop) c.stop(false);
@@ -208,11 +208,21 @@ export function createFire(W, opts = {}) {
   // cause 'pool'：身體泡過水，焦黑很快就洗掉（約 3 秒後自己走去休息區拍拍身體），不用等 30～60 秒。回傳是否真的熄了火。
   F.extinguish = (c, cause = 'pool') => {
     const o = st(c); if (!o || o.state !== 'burning') return false;
-    o.state = 'smoldering'; o.t = 0; o.recoverAt = cause === 'pool' ? 3 : rnd(F.cfg.recoverMin, F.cfg.recoverMax); o.why = cause; c.drive && c.drive(null);
+    o.state = 'smoldering'; o.t = 0; o.recoverAt = cause === 'pool' ? 0 : rnd(F.cfg.recoverMin, F.cfg.recoverMax); o.why = cause; o.wash = cause === 'pool'; c.drive && c.drive(null);
     c._sootU.value = Math.max(c._sootU.value, 0.35); c._emberU.value = 0;
     const p = posOf(c); for (let i = 0; i < 16; i++) spawn(PS, p.x + rnd(-0.2, 0.2), (c.lift || 0) + (c.height || 0.8) * rnd(0.2, 0.9), p.z + rnd(-0.2, 0.2), rnd(-0.25, 0.25), rnd(0.7, 1.4), rnd(-0.25, 0.25), rnd(0.9, 1.6), 0.15 * (c.scale || 1), 0.55 * (c.scale || 1), 4, { drag: 1.6 });
     F.stats.extinguished = (F.stats.extinguished || 0) + 1;
     W.emit && W.emit('extinguished', c.spec.id, { cause, x: p.x, z: p.z });
+    return true;
+  };
+  // 洗淨介面（2026-11-16，泳池）：身上有焦黑（冒煙愣著、走去休息區的路上、正在褪色）的人泡進水裡 → 焦黑在水裡約 2 秒內洗掉。
+  //   洗掉的只有「焦黑疊色」這一層（著色器的 uScorch / uEmber 兩個數值）；材質本身的顏色、漸層、貼圖、腮紅、配件顏色都沒碰過，洗完照原樣。
+  //   燒著的人走 F.extinguish（先熄火，再洗）。回傳是否有東西要洗。
+  F.wash = c => {
+    const o = st(c); if (!o || o.state === 'none' || !c._sootU) return false;
+    if (o.state === 'burning') return F.extinguish(c, 'pool');
+    if (c._sootU.value <= 0.002 && !o.wash) return false;
+    if (!o.wash) { o.wash = true; o.s0 = c._sootU.value; F.stats.washed = (F.stats.washed || 0) + 1; W.emit && W.emit('washed', c.spec.id, { x: posOf(c).x, z: posOf(c).z }); }
     return true;
   };
   function fleeDir(c, o, s) {
@@ -231,6 +241,11 @@ export function createFire(W, opts = {}) {
 
   function tickChar(o, h) {
     const c = o.c, id = c.spec.id, p = posOf(c); o.t += h;
+    if (o.wash && o.state !== 'burning') {   // 泡過水：焦黑與餘燼用約 2 秒洗掉（只動疊色數值，不碰材質）
+      c._sootU.value = Math.max(0, c._sootU.value - h * 0.5); c._emberU.value = 0;
+      if (o.state === 'smoldering' && c._sootU.value <= 0.002 && !c._held && c.state !== 'held' && !c.away) { c._sootU.value = 0; o.state = 'recovering'; o.t = 0; o.s0 = 0; o.quick = true; recoverJob(o); }
+      else if (o.state === 'smoldering' && c._sootU.value <= 0.002) c._sootU.value = 0;
+    }
     if (o.state === 'burning') {
       // 阻止別的流程把他叫走（落地後導演的「被丟之後」流程會自己開始走路）
       if (c._path) { c.stop(false); c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; }
@@ -260,7 +275,8 @@ export function createFire(W, opts = {}) {
       o.emitS = (o.emitS || 0) + h * F.cfg.smoke * (o.t < 12 ? 1 : 0.35); while (o.emitS >= 1) { o.emitS--; spawn(PS, p.x + rnd(-0.04, 0.04), (c.lift || 0) + (c.height || 0.8) * 0.98, p.z + rnd(-0.04, 0.04), rnd(-0.05, 0.05), rnd(0.45, 0.7), rnd(-0.05, 0.05), rnd(2.0, 3.0), 0.09 * (c.scale || 1), 0.4 * (c.scale || 1), 3, { drag: 1.0 }); }
       if (o.t >= o.recoverAt && !c._held && c.state !== 'held' && !c.away) { o.state = 'recovering'; o.t = 0; o.s0 = c._sootU.value; recoverJob(o); }
     } else if (o.state === 'recovering') {
-      if (o.fading) { const u = clamp(o.fadeT / F.cfg.fade, 0, 1); o.fadeT += h; c._sootU.value = o.s0 * (1 - u * u * (3 - 2 * u)); if (u >= 1 && !o.done) { o.done = true; c._sootU.value = 0; } }
+      if (o.fading) { const u = clamp(o.fadeT / F.cfg.fade, 0, 1); o.fadeT += h; const v = o.s0 * (1 - u * u * (3 - 2 * u)); c._sootU.value = o.wash ? Math.min(c._sootU.value, v) : v; if ((u >= 1 || (o.wash && c._sootU.value <= 0.002)) && !o.done) { o.done = true; c._sootU.value = 0; } }
+      else if (o.wash && c._sootU.value <= 0.002) { c._sootU.value = 0; }
       else if (o.t > 3 && o.t % 1 < h) { /* 還在走去休息區 */ }
     }
   }
@@ -269,14 +285,14 @@ export function createFire(W, opts = {}) {
     try {
       c.busy = true; c.script = (c.script || 0) + 1; const stk = c.script;
       // 走去休息區（沙發、懶骨頭）坐下；找不到就原地
-      const spot = W.spot && (W.spot('sofa', posOf(c), id) || W.spot('bean', posOf(c), id));
+      const spot = !o.quick && W.spot && (W.spot('sofa', posOf(c), id) || W.spot('bean', posOf(c), id));   // 泳池洗乾淨的（quick）不用再走去休息區
       if (spot && Dr) { c.setAction('idle'); const ok = await Dr.goTo(c, spot, { speed: 1.8 }); if (!alive() || c.script !== stk) return; if (!ok) { /* 沒走到：就地拍拍身體 */ } }
       if (!alive()) return;
-      c.setAction('clap'); await W.sleep(0.9); if (!alive()) return;   // 拍拍身體：把灰拍掉（舊新兩種角色都有的「拍手」姿勢）
-      o.fading = true; o.fadeT = 0; c.setAction('clap'); await W.sleep(1.4); if (!alive()) return; c.setAction('idle');
+      c.setAction(o.quick ? 'idle' : 'clap'); await W.sleep(o.quick ? 0.4 : 0.9); if (!alive()) return;   // 拍拍身體：把灰拍掉（舊新兩種角色都有的「拍手」姿勢）
+      o.fading = true; o.fadeT = o.quick ? F.cfg.fade : 0; c.setAction(o.quick ? 'idle' : 'clap'); await W.sleep(o.quick ? 0.3 : 1.4); if (!alive()) return; c.setAction('idle');
       while (alive() && !o.done) await W.sleep(0.2);
       if (!alive()) return;
-      o.state = 'none'; o.scorch = 0; c._sootU.value = 0; c._emberU.value = 0; F.stats.recovered++;
+      o.state = 'none'; o.scorch = 0; o.wash = false; o.quick = false; c._sootU.value = 0; c._emberU.value = 0; F.stats.recovered++;
       W.emit && W.emit('recovered', id, {});
       if (Dr) { await Dr.goHome(c); } if (c.script === stk) c.busy = false;
     } catch (e) { console.error('燒焦恢復流程例外', e); c.busy = false; }
@@ -323,6 +339,6 @@ export function createFire(W, opts = {}) {
     uScale.value = (rend.domElement.height) / (2 * Math.tan(cam.fov * Math.PI / 360)) * 1.0;
     upload(PA); upload(PS); F.stats.particles = PA.live + PS.live;
   };
-  F.reset = () => { for (const o of F.states.values()) { o.state = 'none'; o.tok++; if (o.c && o.c._sootU) o.c._sootU.value = 0; o.c && o.c.drive && o.c.drive(null); if (o.c) o.c.busy = false; } for (const pl of [PA, PS]) pl.p.length = 0; };
+  F.reset = () => { for (const o of F.states.values()) { o.state = 'none'; o.wash = false; o.quick = false; o.tok++; if (o.c && o.c._sootU) o.c._sootU.value = 0; o.c && o.c.drive && o.c.drive(null); if (o.c) o.c.busy = false; } for (const pl of [PA, PS]) pl.p.length = 0; };
   return F;
 }

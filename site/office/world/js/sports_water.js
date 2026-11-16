@@ -101,6 +101,7 @@ export function createWater(W) {
           st.t += h; c._floatY = (0.13 + (reduce ? 0 : 0.03 * Math.sin(W.time * 2.4 + st.ph))) * Math.min(1, st.t / 0.5);   // 浮起來的高度（模擬時間算；畫面更新時才加到位置上）
           c._wetUntil = W.time + WET_SEC; c._fireImmuneUntil = W.time + IMMUNE_SEC;
           const F = W.fire, fs = F && F.states.get(c.spec.id); if (fs && fs.state === 'burning' && F.extinguish && F.extinguish(c, 'pool')) A.stats.extinguished++;   // 水裡不會燒（含剛好在水裡被點燃）
+          if (F && F.wash && fs && fs.state !== 'none' && !fs.wash) F.wash(c);   // 身上還有焦黑（愣著冒煙、褪色途中）：泡在水裡洗掉
           const sp = Math.hypot(velOf(c).x, velOf(c).z); st.rippleT -= h; if (st.rippleT <= 0 && sp > 0.35) { st.rippleT = 0.45; A.ripple(p.x, p.z, 0.4); }
         }
       } else if ((c._wetUntil || 0) > W.time && dripT >= 0.2) {   // 身體濕：偶爾滴一滴水（落到腳邊）

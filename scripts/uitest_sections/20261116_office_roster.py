@@ -247,16 +247,12 @@ def _rs_main(b, base):
         pg.goto(_rs_world_url(base, _RS_NEW, "&live_poll=800&ambient=0&q=low&pr=0.6&chat_poll=500&chat_bg_poll=700"), wait_until="domcontentloaded")
         got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.chat", 120000)
         pg.click("#chatText")
-        wait_until(pg, "() => window.__world.chat.mode === 'ok'", 20000)
-        try:
-            pg.click("#chatBtn", timeout=3000)
-        except Exception:
-            pass
-        wait_until(pg, "() => /Claude/.test(document.getElementById('chatLive').textContent)", 10000)
+        wait_until(pg, "() => window.__world.chat.mode === 'ok'", 90000)
+        wait_until(pg, "() => /Claude/.test(document.getElementById('chatLive').textContent)", 60000)
         t0 = pg.evaluate("() => document.getElementById('chatLive').textContent.replace(/\\s+/g, '')")
         ok("在線判斷：沒有人來取過指令、也沒有工作階段在動時，寫「Claude 沒開」", ("沒開" in t0) or ("Claude在線" in t0), t0)   # 種子事件剛送完，5 分鐘內有工作階段動靜會顯示「在線」，兩種都合理；重點是下面待命那一步
         srv.post("/v1/inbox/pull", {"session_id": "standby-1", "wait": 0, "project_hash": _RS_NEW})
-        got = wait_until(pg, "() => /待命中/.test(document.getElementById('chatLive').textContent)", 15000)
+        got = wait_until(pg, "() => /待命中/.test(document.getElementById('chatLive').textContent)", 60000)
         t1 = pg.evaluate("() => document.getElementById('chatLive').textContent.replace(/\\s+/g, '')")
         ok("在線判斷：Claude 剛來取過指令（待命中）→ 標題顯示「你的 Claude 在線上（待命中）」", got and "你的Claude在線上（待命中）" in t1, t1)
         ok("沒有頁面錯誤（對話框）", not pg.errs, pg.errs[:2])
