@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="world/rewards.css">
 <link rel="stylesheet" href="world/chat.css">
 <link rel="stylesheet" href="world/gate.css">
+<link rel="stylesheet" href="world/hud.css">
 <link rel="stylesheet" href="world/workmode.css">
 <link rel="stylesheet" href="world/growth.css">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
@@ -68,6 +69,7 @@
     <div class="seg" id="viewSeg" role="group" aria-label="視角">
       <button data-v="ceo" class="on">CEO 視角</button><button data-v="god">俯瞰</button><button data-v="char" id="viewChar" hidden></button><button data-v="pov" id="viewPov" hidden>角色視角</button>
     </div>
+    <button class="btn" id="ovBtn" aria-expanded="false" aria-controls="ovPanel" aria-label="總覽與通知">總覽<b class="ov-dot" id="ovDot" hidden>0</b></button>
     <button class="btn more" id="moreBtn" aria-expanded="false" aria-label="更多選項（區域、示範、速度、整修、拖曳、時間）">更多<i></i></button>
     <button class="btn" id="areaBtn">區域<i></i></button>
     <button class="btn" id="demoBtn">示範<i></i></button>
@@ -84,6 +86,7 @@
   <aside class="panel" id="board" hidden></aside>
   <aside class="panel" id="log" hidden></aside>
   <aside class="panel" id="ledger" role="dialog" aria-label="績效總表" hidden></aside>
+  <aside class="panel" id="ovPanel" role="dialog" aria-label="總覽與通知" hidden></aside>
 
   <div id="editBar" hidden></div>
   <div id="toast" hidden></div>
@@ -95,6 +98,8 @@
 <script src="world/build.js"></script>
 <script type="module" src="world/js/main.js"></script>
 <script type="module" src="world/js/connect_link.js"></script>
+<script type="module" src="world/js/overview.js"></script>
+<script type="module" src="world/js/tour.js"></script>
 <script type="module" src="world/js/growth.js"></script>
 <script type="module" src="world/js/save.js"></script>
 <script type="module" src="world/js/budget.js"></script>

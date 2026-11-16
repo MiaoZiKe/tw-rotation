@@ -1,0 +1,61 @@
+/* 新手引導（tour.js）與總覽面板＋通知中心（overview.js）。2026-11-16。
+   手機（≤640）的改動都包在 media 裡，桌機版面不受影響。 */
+
+/* ───── 頂列的「總覽」鈕與未讀紅點 ───── */
+#ovBtn{position:relative}
+.ov-dot{position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e5462e;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--card)}
+@media (max-width:640px){ #ovBtn{order:3} }
+
+/* ───── 總覽面板 ───── */
+#ovPanel{right:12px;top:64px;width:360px;max-height:calc(100dvh - 140px);padding:14px;z-index:21}
+#ovPanel.beside{right:372px}
+#ovPanel h3{margin:0 36px 8px 0;font-size:17px}#ovPanel h3 small{margin-left:8px;font-size:12px;color:var(--sub);font-weight:600}
+.ov-tabs{display:flex;gap:6px;margin-bottom:8px}
+.ov-tabs button{flex:1;height:36px;border:1px solid var(--line);background:#fff;border-radius:999px;font-size:14px;font-weight:700;color:var(--sub);display:flex;align-items:center;justify-content:center;gap:6px}
+.ov-tabs button[aria-selected=true]{background:var(--on);border-color:var(--on);color:#fff}
+.ov-n{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e5462e;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center}
+.ov-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.ov-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:0 10px;height:32px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px}
+.ov-chip b{font-size:12px;background:var(--on2);color:var(--on);border-radius:999px;padding:0 6px;min-width:20px;text-align:center;line-height:18px}
+.ov-chip.on{background:var(--on);border-color:var(--on);color:#fff}.ov-chip.on b{background:rgba(255,255,255,.28);color:#fff}
+.ov-how{margin:0 0 6px;font-size:12px;color:var(--sub);line-height:1.5}
+.ov-list{display:flex;flex-direction:column;gap:6px;overflow:auto;border-top:1px solid var(--line);padding-top:8px}
+.ov-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;grid-template-areas:"d w s" "d t t";column-gap:8px;row-gap:2px;align-items:center;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:8px 10px;min-height:48px;width:100%}
+.ov-row:hover{border-color:var(--on)}
+.ov-row .dot{grid-area:d;width:12px;height:12px;border-radius:50%;align-self:start;margin-top:5px}
+.ov-row .who{grid-area:w;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden}
+.ov-row .who b{font-size:14px;white-space:nowrap}.ov-row .who small{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ov-row .who small.lv{color:var(--on);font-weight:700}
+.ov-row .det{grid-area:t;font-size:12px;color:var(--sub);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sta{display:inline-block;width:44px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}.sta i{display:block;height:100%;background:#6cc08b}
+.st{grid-area:s;font-style:normal;font-size:12px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.st-work{background:#e4eefb;color:#2c63ad}.st-idle{background:#eee8e2;color:#7a675b}.st-stuck{background:#fde5df;color:#b83a22}
+.st-fire{background:#e5462e;color:#fff}.st-tired{background:#ece6f8;color:#6a4cb0}.st-jobless{background:#ece8e4;color:#7a675b}
+.ov-row[data-st=fire]{border-color:#e5462e}.ov-row[data-st=stuck]{border-color:#f0b4a6}
+.ov-nt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:8px 10px;min-height:44px;width:100%;font-size:13px}
+.ov-nt.unread{background:#fff6ea;border-color:var(--on)}.ov-nt.unread span{font-weight:700}
+.ov-nt time{font-size:12px;color:var(--sub)}
+.k{font-style:normal;font-size:12px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.k-done{background:#dff3e7;color:#2b7a4b}.k-stuck{background:#fde5df;color:#b83a22}.k-fire{background:#e5462e;color:#fff}.k-level{background:#fff0cf;color:#a2680c}
+.ov-foot{display:flex;justify-content:flex-end;margin-top:8px}
+.ov-read{height:36px;box-shadow:none;border:1px solid var(--line);font-size:13px}.ov-read:disabled{opacity:.45;cursor:default}
+.ov-empty{padding:18px 8px;text-align:center;font-size:13px;color:var(--sub);line-height:1.6}
+@media (max-width:640px){
+  #ovPanel{max-height:56dvh;padding:12px;z-index:25}
+  #ovPanel.beside{right:8px!important}
+  .ov-row,.ov-nt{min-height:52px}
+}
+
+/* ───── 新手引導：聚光燈 ───── */
+#trOv{position:fixed;inset:0;z-index:90;touch-action:none}
+#trOv .tr-hole{position:fixed;box-shadow:0 0 0 100vmax rgba(38,26,18,.66);outline:3px solid var(--on);outline-offset:0;transition:left .25s,top .25s,width .25s,height .25s;pointer-events:none}
+#trOv.nohole .tr-hole{left:50%!important;top:50%!important;width:0!important;height:0!important;outline:0;box-shadow:0 0 0 100vmax rgba(38,26,18,.5)}
+.tr-card{position:fixed;background:var(--card);border-radius:var(--r);box-shadow:0 10px 32px rgba(40,24,10,.35);padding:16px 16px 14px;color:var(--ink)}
+.tr-card h3{margin:2px 0 8px;font-size:18px;padding-right:48px}
+.tr-card p{margin:0 0 10px;font-size:14px;line-height:1.65;display:flex;flex-direction:column;gap:4px}
+.tr-step{font-size:12px;color:var(--sub);font-weight:700}
+.tr-skip{position:absolute;right:10px;top:8px;border:0;background:transparent;color:var(--sub);font-size:13px;font-weight:700;height:32px;padding:0 8px;border-radius:999px;text-decoration:underline}
+.tr-dots{display:flex;gap:6px;margin:0 0 10px}.tr-dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.tr-dots i.on{background:var(--on);width:20px;border-radius:4px}.tr-dots i.past{background:#f6c79f}
+.tr-act{display:flex;gap:8px;justify-content:flex-end}.tr-act .btn{box-shadow:none;border:1px solid var(--line);height:40px;min-width:88px;justify-content:center}.tr-act .btn.on{border-color:var(--on)}
+.tr-again{margin-top:10px;width:100%;justify-content:center;box-shadow:none;border:1px solid var(--line)}
+@media (max-width:640px){ .tr-card{padding:14px 14px 12px}.tr-card h3{font-size:17px}.tr-card p{font-size:13.5px;line-height:1.55} }

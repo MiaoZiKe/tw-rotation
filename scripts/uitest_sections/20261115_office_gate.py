@@ -488,7 +488,7 @@ def _og_admin(b, base):
             const ids = [...c.querySelectorAll('input[role=switch][data-f]')].map(i => [i.dataset.f, i.checked]);
             const sels = [...c.querySelectorAll('select[data-f]')].map(s => [s.dataset.f, s.value]);
             return { h: (c.querySelector('h3') || {}).textContent || '', ids, sels, last: [...document.querySelectorAll('#pmCats .pmcat')].map(x => x.dataset.cat).pop() }; }""")
-        ok(f"{T}：#admin/perm（註冊會員範本）有「AI 辦公室」分類卡、三個開關都開", bool(d) and "AI 辦公室" in d["h"] and [x[0] for x in d["ids"]] == ["office.cmd", "office.connect", "office.hr"] and all(x[1] for x in d["ids"]), d)
+        ok(f"{T}：#admin/perm（註冊會員範本）有「AI 辦公室」分類卡、四個開關都開（含 2026-11-16 新增的 office.overview 總覽與通知）", bool(d) and "AI 辦公室" in d["h"] and [x[0] for x in d["ids"]] == ["office.cmd", "office.connect", "office.hr", "office.overview"] and all(x[1] for x in d["ids"]), d)
         ok(f"{T}：#admin/perm 三個鍵各有「每日次數」下拉（註冊會員預設 5／3／5）", bool(d) and sorted(d["sels"]) == sorted([["office.cmd", "5"], ["office.connect", "3"], ["office.hr", "5"]]), d and d["sels"])
         ad.evaluate("() => { location.hash = '#admin/grants'; }")
         wait_until(ad, "() => document.querySelectorAll('#agrList button[data-edit]').length > 0", 10000)
@@ -497,7 +497,7 @@ def _og_admin(b, base):
         keys = ad.evaluate("() => [...document.querySelectorAll('#agrFeats input[data-fk]')].map(i => i.dataset.fk)")
         ok(f"{T}：「編輯：新會員體驗」清單列得到三個鍵（不在法遵禁止清單）", all(k in keys for k in ("office.cmd", "office.connect", "office.hr")), [k for k in keys if k.startswith("office")])
         pre = ad.evaluate("""() => [...document.querySelectorAll('#agrFeats input[data-fk]')].filter(i => i.dataset.fk.startsWith('office.')).map(i => i.checked)""")
-        ok(f"{T}：體驗額度不替站長預設（三個鍵預設都沒勾）", pre == [False, False, False], pre)
+        ok(f"{T}：體驗額度不替站長預設（四個鍵預設都沒勾）", pre == [False, False, False, False], pre)
         ok(f"{T}：沒有網頁錯誤", not errs, errs[:3])
         c.close()
     finally:
