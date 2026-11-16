@@ -122,7 +122,7 @@ def t_bp_blueprint(b, base):
     pg.evaluate("() => { __world.blueprint.stepSec = 999; }")
     pg.reload(wait_until="domcontentloaded")
     wait_until(pg, "() => window.__world && window.__world.ready && window.__world.blueprint", 90000)
-    pg.wait_for_timeout(600)
+    wait_until(pg, "() => { const f = document.getElementById('bpFlow'); return f && !f.hidden; }", 20000)
     ok("B1 重新整理後進行中的流程還在（流程條出現、站數相同）", pg.evaluate("() => { const f = document.getElementById('bpFlow'); return !f.hidden && f.querySelectorAll('.bp-s').length === 4 && Number(f.dataset.step) >= %d; }" % max(st, 0)))
     s0 = pg.evaluate("() => Number(document.getElementById('bpFlow').dataset.step)")
     if s0 < 4:
