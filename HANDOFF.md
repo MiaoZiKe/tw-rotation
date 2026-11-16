@@ -7,6 +7,11 @@
 
 - 2026-11-16 頻道③ CaffAIne 第一支 Reels（AI 代理：看、做、檢查，ai-mp4 caffaine-agent-loop）：Andy 11-16 決定不發。佇列資料夾沒有推進 main、隱藏文章沒做、dm_config.json 沒動（留言私訊維持關閉）。⚠ 待清：影片已推到 `media/caffaine/20261116_agent_loop` 分支，但工作流 `clean` 只清佇列裡發過的資料夾、清不到它，這個 session 刪分支被代理擋（HTTP 403）；之後有權限的 session 執行 `git push origin --delete media/caffaine/20261116_agent_loop`（social-ops-lead）。
 
+## 2026-11-16 盤後主貼文改回 11-09 新格式、發文時間不變（social-ops-lead；Andy：「用新的 但發文是資料到齊就發（約 17:30～18:40）」）
+- 反向套用 fbcb50dfff 的格式檔：`scripts/threads_v2.py`、`scripts/threads_lint.py`（rule auto_1109）、`scripts/social_snap.py`（close_v1 備用文案＋v1_raw；19:30 等待 close_wait 沒加回、保底說明維持 19:00）、`tests/test_threads_close_1109.py`（拿掉 19:30 閘、19:41／20:11 排程、post_quota 三支）、`tests/test_social_threads_v2.py`、`tests/test_threads_auto_1104.py`。
+- 沒動：social_gate.py、social-live.yml、daily_audit（.py／.yml）、post_quota.json（c3053638f8 的 close.threads=true 保留）、test_social_close_fallback／test_social_quota_1102／test_daily_audit。
+- 這批驗了：pytest 全套＋`-k "social or threads or close or snap or quota or audit or lint or gate or publish"`（486 passed，改前 480 passed）；social-live.yml workflow_dispatch kind=close dry_run=true（分支 claude/close-format-1116）＋本機 threads_v2.build 用 11-06 盤後正式文案產文。沒動 site/**，沒跑 _preview／_uitest。
+
 ## 2026-11-15 頻道③ CaffAIne 每天兩支 Reels：12:15／21:00 兩時段＋影片放 GitHub Release（social-ops-lead；Andy：「我決定每天兩隻 Reels」）
 - caffaine 改兩時段（保底 13:43／22:27），每時段最多 1 則、整天 2 則（channels.json `slots`、post_quota `per_day` 2）；影片走 Release `channel-media`（`scripts/channel_media.py`：作者 `stage` 推 media/caffaine/<資料夾> 分支，工作流 sync 上傳、發完 3 天 clean），不進 main。驗 Reels：channel_post verify、target `@reels-test`。說明 `docs/marketing/channels/auto_post_all.md` 第 10 節。佇列沒放任何貼文。驗證：run 43705958501（@reels-test，IG REELS 容器 17975794271983309、Threads VIDEO 容器 17992662524881222 皆經 release 網址 FINISHED，未發布）；空跑 run 43705960624 綠燈。pytest 全套 2226 passed。
 

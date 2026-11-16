@@ -5,6 +5,22 @@
 > 圖的版型（亮色 HUD、色票、安全邊距）另見 `post_design_system.md`；這份管「發什麼、什麼順序、文案怎麼寫、連結放哪」。
 > 改格式要同時改程式與 `tests/test_social_caption.py`，並在這份記一行 Andy 原話。
 
+## 〇之〇、★★ 2026-11-16 盤後主貼文改回 11-09 新格式，發文時間不變（蓋掉第三之一節的主文長度與開頭）
+
+> Andy 11-16：「**用新的 但發文是資料到齊就發（約 17:30～18:40）**」。只恢復 11-09 做好、後來撤回（fbcb50dfff）的**格式**；11-09 那批的 19:30 發文時段、保底 20:00、19:41／20:11 備援排程、稽核 20:35 截止一律**不恢復**。
+
+| 項目 | 舊格式（11-02～11-16） | 現在（11-16 起） |
+|---|---|---|
+| 開頭 | 「🌙 盤後3分鐘」欄目標頭＋鉤子 | 拿掉欄目標頭；第一句＝用當天**最反差**的數字寫的問句（`threads_v2` 模板 `c_x1`～`c_x6`，3 天內不重複同一模板、不連兩天同一個；沒有反差就走一般問句） |
+| 主文 | 鉤子＋全部數據 ≤500 | **≤150 字**（標籤不算）：問句 → 1～2 行重點數字（指數、三大法人合計、期貨淨未平倉）→ 結尾一題二選一（含「還是」或明確兩個選項、以？收尾，例：「你覺得是換手還是出貨？」） |
+| 其餘數據 | 主文 | **串文第一則**（≤500）；留言照舊只放「以上為公開資料整理，非投資建議」 |
+| 標籤 | 事件型 1 個（可能含個股名） | 恰 1 個、市場／法人層級，**不含個股名**（`threads_v2.close_market_tag`） |
+| 備用文案 | 舊版 | v2 改寫失敗時發的 `social_snap.close_v1` 也是新格式；完整舊版存在 manifest `threads.v1_raw` 給 v2 當改寫來源 |
+| 時段 | 資料到齊那輪（約 17:30～18:40；19:00 後保底） | **不變** |
+| 監工 | 18:20／18:40 稽核 | **不變** |
+
+紅線不變：不預測、主文不點名個股（只講指數、法人總量、期貨）、不給時機、不放網址。檢查：`threads_lint.py` 的 `rule: auto_1109`（主文 ≤150、結尾二選一、串文最多 1 則且單則 ≤500、標籤不含個股名）。測試 `tests/test_threads_close_1109.py`。
+
 ## 〇、★★ 2026-11-02 降量模式（蓋掉下面「四個時段」與主題文章的發文範圍）
 
 > Andy 11-02：「**同意降量**」。依據 `docs/marketing/diagnosis_1102/strategy_diagnosis.md` 6-2「先停什麼（第 1 天）」：自動文一天十幾則（Threads 4～9＋IG 限動 7～21＋IG 主題文章 3），單則觀看崩到幾十；改成**每天自動最多 2 則**，手寫內容另計。
@@ -13,7 +29,7 @@
 
 | 日子 | 時間 | 平台 | 內容 |
 |---|---|---|---|
-| 交易日 | 盤後資料到齊那輪（通常 17:30～18:40；19:00 後走保底） | Threads 1 則 | 盤後主貼文（kind=close），格式照第三之一節。法人晚到走保底時，法人到了另補 1 則「法人補充」（`close-inst-<日期>`，10-29 保底規則，保留不變） |
+| 交易日 | 盤後資料到齊那輪（通常 17:30～18:40；19:00 後走保底） | Threads 1 則 | 盤後主貼文（kind=close），格式照第〇之〇節（11-16 新格式）。法人晚到走保底時，法人到了另補 1 則「法人補充」（`close-inst-<日期>`，10-29 保底規則，保留不變） |
 | 交易日 | — | — | 第 2 則名額**保留給 Andy 手寫**，不自動填 |
 | 週末／休市日 | — | — | 不自動發（手寫照發） |
 
@@ -175,6 +191,7 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
+- 2026-11-16：**盤後主貼文改回 11-09 新格式、時間不變**（Andy：「用新的 但發文是資料到齊就發（約 17:30～18:40）」）。反向套用 fbcb50dfff 的格式部分：`scripts/threads_v2.py`（c_x1～c_x6 反差鉤子、close_main_body／close_ending、close_market_tag、rule auto_1109）、`scripts/threads_lint.py`（auto_1109）、`scripts/social_snap.py`（close_v1 備用文案、v1_raw），`tests/test_threads_close_1109.py`（拿掉 19:30／排程／post_quota 三支時間與開關測試）、`tests/test_social_threads_v2.py`、`tests/test_threads_auto_1104.py`。`social_snap` 的 19:30 等待（close_wait）沒加回；social_gate、social-live.yml、daily_audit、post_quota.json 都沒動。
 - 2026-11-09 深夜：**頻道①全面暫停自動發文＋刪舊文重新開始**（Andy：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」「我們規劃好在出發」）。`post_quota.json` 的 `live.close.threads` 改 false（`_note` 記原話）→ 盤後主貼文也停，`social-live.yml` 印「降量模式：略過」成功結束；`daily_audit` 的 close_post 判「未啟用」，不紅燈、不寄信、不派補發。IG 短影片 `reels_need_review` 維持 true。刪文工具 `scripts/social_delete.py` 加：完整備份模式（全文＋圖片網址＋圖檔，commit 到 social-snaps `archive/pre_restart_1109/`）、`--keep-from-tw`（台北某日起全部保留，串文跟主文走）、三把 Threads 權杖逐把查刪除權限、每則間隔 5～10 秒、IG 試刪（第一則權限錯誤就停、改手動清單）。`social/delete_keep.json` 11-02 保留廣達／華碩的指示被 11-09 取代（舊紀錄在 history_1102）。恢復發文只能 Andy 核可新計畫後把 close.threads 改回 true。測試 `tests/test_social_quota_1102.py`、`tests/test_daily_audit.py`、`tests/test_social_delete.py`。
 - 2026-11-09：**法人補充貼文（close-inst）納入降量開關**（事故：11-06 降量模式下 20:27 多發一則 close-inst-2026-11-06 https://www.threads.com/@liguligu0818/post/DfZmspGoHQB ）。根因：補充貼文的 manifest kind 仍是 close，`social_publish.py` 查的是 live.close.threads（true）就放行；而且 11-06 主貼文只拿掉 retail-ratio，法人三張早已在主貼文裡，補充貼文等於重發。修正：`post_quota.live_kind()` 把 close＋supplement 對應到 `live.close_inst`（開關檔沒寫＝內建關），`social_publish.py`／`social_close_state.py`／`social_snap.py`（alert 與文案不再寫「稍後補」）都照它；`social_close_state` 只有被拿掉的是法人卡才進補充輪。post_quota.json 未改。測試 `tests/test_social_quota_1102.py`。
 - 2026-11-05：**專業問句開頭再修（CEO 法遵退件）**：11-04 試產「外資賣超 1,499 億的盤面裡，買超第一名是旺矽，資金為什麼選它？」開頭點名單一個股，接近個股推介（`diagnosis_1102/channel_playbook.md` 4-1 第 2 條、`docs/legal/20261101_subscription_signals.md`：不點名個股、不給時機）。拿掉所有以個股為開頭焦點的模板（買超／賣超第一名、台積電 ADR、新聞標題），「外資賣超以台積電最多…」改成「外資賣超集中度偏高、單一最大檔就占當日賣超 33%…」；「能撐多久」這類時機問法改成描述性（「和外資方向相反的買盤過去通常出現在什麼盤勢？」）。開頭只講指數、族群、法人總量、期貨、家數層級。`threads_lint.py` 自動模式加兩條：開頭含個股簡稱（資料湖 `company_info` 個股＋groups 註解＋保底名單，先遮掉「大盤」「數字」等撞字詞）即失敗、開頭含時機用語（撐多久、進場、買點…）即失敗。主題文章的主體若是公司名，lint 擋下後自動改用不點名的保底模板（照發）。
