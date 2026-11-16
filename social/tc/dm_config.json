@@ -24,6 +24,9 @@
     ],
     "yield": [
       "良率"
+    ],
+    "packaging": [
+      "封裝"
     ]
   },
   "legal_pending": [],
@@ -51,7 +54,8 @@
       "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。",
       "euv": "謝謝留言！「曝光機：光比線還粗」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
       "offer": "謝謝留言！「兩份 offer 怎麼比」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
-      "yield": "謝謝留言！「晶圓良率：晶片越大，能用的比例越低」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield"
+      "yield": "謝謝留言！「晶圓良率：晶片越大，能用的比例越低」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
+      "packaging": "謝謝留言！「先進封裝：晶片太大做不好，拆小再拼回去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging"
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
@@ -88,6 +92,11 @@
         "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
         "收到～「晶圓良率」整篇在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
         "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-17-tech-yield"
+      ],
+      "packaging": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
+        "收到～「先進封裝」整篇在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging"
       ]
     }
   }

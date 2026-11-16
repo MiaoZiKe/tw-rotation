@@ -1,0 +1,181 @@
+{
+ "id": "2026-11-18-tech-packaging",
+ "cat": "tech",
+ "title": "先進封裝：晶片太大做不好，拆小再拼回去",
+ "subtitle": "科技透明圈：一次曝光最多印約 858 平方毫米，現在最大的 AI 晶片封裝已是上限的五倍以上。做法是拆成幾顆小晶片，挑好的平放在中介層上拼回去，再整個包起來。",
+ "date": "2026-11-18",
+ "updated": "2026-11-18",
+ "tags": [
+  "科技透明圈",
+  "先進封裝",
+  "CoWoS",
+  "中介層",
+  "晶片"
+ ],
+ "summary": "一次曝光能印的最大面積約 26×33 毫米（約 858 平方毫米），晶片不可能印得比這更大，而且越大越容易被缺陷打中。所以 AI 晶片改成拆成幾顆小晶片，每顆先測過、只挑好的，平放在一片矽中介層上拼回去，旁邊圍上記憶體，再整個包起來，這就是 2.5D 先進封裝。台積電的版本叫 CoWoS；廠商公布，量產封裝面積已是單次曝光上限的五倍以上。",
+ "reading_min": 5,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/tech/20261118v_packaging/video.mp4",
+   "poster": "media/tech/20261118v_packaging/cover.jpg",
+   "title": "先進封裝：晶片太大做不好，拆小再拼回去",
+   "note": "影片 1080×1920；示意動畫，非實際比例；五倍以上、九成八為廠商公布，未經第三方實測。"
+  },
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "一次曝光最多能印約 26×33 毫米（約 858 平方毫米，台積電自己的口徑約 830），晶片不可能印得比這更大。",
+    "晶片越大越容易被缺陷打中（上一支的簡化模型估算：大晶片好的可能不到一半）。所以改成拆成幾顆小晶片，每顆先測過，只挑好的用，壞一顆只丟那一小顆。",
+    "好的小晶片平放在一片很薄的矽板（中介層）上拼回去，旁邊圍一圈記憶體，再整個包起來，這一步叫先進封裝（2.5D）。廠商公布，量產的封裝面積已是單次曝光上限的五倍以上。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "為什麼不直接裝在電路板上"
+  },
+  {
+   "t": "p",
+   "text": "運算晶片和記憶體之間要傳的資料非常多，距離越長，延遲與耗電越高。一般電路板的線太粗，排不了這麼密；中介層的線細很多，晶片與記憶體可以貼得很近，資料來回才夠快。晶片以微凸塊接到中介層，中介層再用矽穿孔（TSV）接到下方基板（WikiChip、數位時代、鉅亨號）。"
+  },
+  {
+   "t": "h",
+   "text": "2.5D 常見的三種做法"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "CoWoS-S：整片矽中介層，線最細，面積受限於曝光上限，成本高。",
+    "CoWoS-L：只在需要高密度連線的地方放局部矽橋，其餘用重分佈層，可以做到更大面積。",
+    "CoWoS-R：用有機重分佈層取代矽中介層。（以上為台積電的分類，資料來自數位時代、科技新報、SemiWiki 整理）"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "哪些公司在做（媒體報導與公司資料）"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "台積電：CoWoS（官方技術頁與多篇媒體一致）；3D 另有 SoIC。",
+    "英特爾：EMIB（矽橋嵌入基板，已量產）、EMIB-T（加矽穿孔，預計一兩年內量產）；客戶英特爾沒有公布。",
+    "三星：I-Cube（矽中介層）；規模小於 CoWoS，查不到公開客戶名單。",
+    "日月光（旗下含矽品）：FOCoS；2026/2 媒體報導預計 2026 下半年放量，承接部分 CoWoS 後段。",
+    "安靠（Amkor）：S-SWIFT 等 2.5D 方案；技術名稱來自該公司白皮書，與量產的對應查不到更多。",
+    "台灣設備廠（媒體報導）：弘塑 3131、辛耘 3583 做濕製程（清洗、蝕刻）設備；均華 6640 做晶粒挑揀、黏晶設備。這裡只列產業分工，不是推薦，也不代表各家營收貢獻。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "代價與還不確定的"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "代價：接點變多、封裝變難，晶片之間傳資料也比單一晶片多一段距離（業界共識，WikiChip、The Register）。",
+    "「五倍以上」：台積電 2026/10 法說稱已量產五倍光罩尺寸的先進封裝，2026/8 OCP 峰會稱 5.5 倍已大量生產，兩種說法並存（廠商公布，媒體轉述，原始逐字稿沒讀到）。",
+    "「良率超過九成八」：只有廠商說法（優分析、財報狗轉述），未經第三方實測；上一支的簡化模型是另一回事，不能拿來互相驗證。",
+    "更大的版本：廠商技術論壇提到 9 倍、14 倍光罩的目標，時程各報導不一，屬廠商目標，不是實測。",
+    "產能、各家客戶比例：法人口徑不一，本文不採用。",
+    "下一支：晶片往旁邊拼，記憶體往上疊，來看記憶體為什麼疊十二層（HBM）。"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理，不構成投資建議。標「廠商公布」的數字是廠商自己的說法，未經第三方實測；公司與設備廠名單來自媒體報導，僅說明產業分工。查證截至 2026/11/16。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Are Larger Reticle Sizes On The Horizon?",
+   "publisher": "SemiEngineering",
+   "date": "查證日 2026-11-16",
+   "url": "https://semiengineering.com/are-larger-reticle-sizes-on-the-horizon"
+  },
+  {
+   "title": "TSMC Super Carrier CoWoS interposer (9 reticle sizes)",
+   "publisher": "Tom's Hardware",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.tomshardware.com/tech-industry/tsmc-super-carrier-cowos-interposer-gets-bigger-enabling-massive-ai-chips-to-reach-9-reticle-sizes-with-12-hbm4-stacks"
+  },
+  {
+   "title": "台積電 OCP 峰會 CoWoS 良率",
+   "publisher": "優分析",
+   "date": "2026-08",
+   "url": "https://uanalyze.com.tw/articles/8236053186"
+  },
+  {
+   "title": "台積電 CoWoS 良率衝上 98%",
+   "publisher": "財報狗",
+   "date": "查證日 2026-11-16",
+   "url": "https://statementdog.com/news/17387"
+  },
+  {
+   "title": "Chiplet",
+   "publisher": "WikiChip",
+   "date": "查證日 2026-11-16",
+   "url": "https://en.wikichip.org/wiki/chiplet"
+  },
+  {
+   "title": "CoWoS",
+   "publisher": "WikiChip",
+   "date": "查證日 2026-11-16",
+   "url": "https://en.wikichip.org/wiki/CoWoS"
+  },
+  {
+   "title": "台積電 CoWoS 類型解釋",
+   "publisher": "數位時代",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.bnext.com.tw/article/82088/tsmc-cowos-type-explanation"
+  },
+  {
+   "title": "什麼是 CoWoS、CoPoS、CoWoP",
+   "publisher": "科技新報",
+   "date": "2025-09-08",
+   "url": "https://technews.tw/2025/09/08/what-is-cowos-copos-cowop/"
+  },
+  {
+   "title": "CoWoS 為什麼需要中介層",
+   "publisher": "鉅亨號",
+   "date": "查證日 2026-11-16",
+   "url": "https://hao.cnyes.com/post/274146"
+  },
+  {
+   "title": "Intel's EMIB-T heads for fab rollout",
+   "publisher": "Tom's Hardware",
+   "date": "查證日 2026-11-16",
+   "url": "https://tomshardware.com/tech-industry/semiconductors/intels-emib-t-heads-for-fab-rollout-this-year"
+  },
+  {
+   "title": "AI 與 CoWoS 戰爭（日月光 FOCoS）",
+   "publisher": "科技新報",
+   "date": "2026-01-12",
+   "url": "https://technews.tw/2026/01/12/ai-cowos-war/"
+  },
+  {
+   "title": "Amkor breaks ground on Arizona advanced packaging campus",
+   "publisher": "Tom's Hardware",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.tomshardware.com/tech-industry/semiconductors/amkor-breaks-ground-on-arizona-advanced-packaging-campus"
+  },
+  {
+   "title": "CoWoS 設備廠",
+   "publisher": "科技新報",
+   "date": "2024-10-18",
+   "url": "https://technews.tw/2024/10/18/cowos-equipment-factory/"
+  },
+  {
+   "title": "均華先進封裝設備",
+   "publisher": "財報狗",
+   "date": "查證日 2026-11-16",
+   "url": "https://statementdog.com/news/14448"
+  }
+ ],
+ "confidence": "中高：曝光上限、拆小晶片再拼、中介層作法為業界共識（高）；「五倍以上」與「九成八」為廠商公布、媒體轉述，未經第三方實測（中）；各家技術名稱與台灣設備廠為媒體報導（中）",
+ "status": "published",
+ "video": "tech-packaging（科技透明圈每日短影片）"
+}
