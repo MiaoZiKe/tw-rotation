@@ -27,7 +27,7 @@ const ILL={
    for(let i=0;i<lv;i++){const u=t-a-.3-i*.07,q=SPR(u,.45,16);if(u<=0)continue;const ang=i/lv*Math.PI*2,r=H*.28,cx=x+r*Math.cos(ang)*.9,cy=h-80-hh-10+r*Math.sin(ang)*.6;s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(H*.16*Math.max(.01,q)).toFixed(1)}" fill="${i%2?'#9CB38A':'#8FA078'}"/>`}return s};
   g+=grow(250,120,.1,5)+grow(620,190,.4,9);
   const lf=t-1.6;if(lf>0){const y=h-330+lf*90,x=660+30*Math.sin(lf*4);if(y<h-90)g+=`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="12" ry="7" fill="#E9B98A" transform="rotate(${(lf*120).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`}
-  g+=`<rect x="190" y="${h-70}" width="120" height="50" rx="8" fill="${FACE3}" stroke="${LINE}" stroke-width="2"/>`+T(250,h-33,'25 歲前',32,700,TXT)+`<rect x="560" y="${h-70}" width="120" height="50" rx="8" fill="${FACE3}" stroke="${LINE}" stroke-width="2"/>`+T(620,h-33,'50 後',32,700,TXT);
+  g+=`<rect x="150" y="${h-74}" width="200" height="62" rx="10" fill="${FACE3}" stroke="${LINE}" stroke-width="2"/>`+T(250,h-29,'25 歲前',44,700,TXT)+`<rect x="530" y="${h-74}" width="180" height="62" rx="10" fill="${FACE3}" stroke="${LINE}" stroke-width="2"/>`+T(620,h-29,'50 後',44,700,TXT);
   return g},
   sfx(t0,s,E){E(t0+.1,'glide',{f0:200,f1:500,dur:.4,g:.08});E(t0+.4,'glide',{f0:200,f1:600,dur:.5,g:.1});[0,1,2].forEach(i=>E(t0+.75+i*.14,'sparkle',{n:[22+i*2],g:.5}))}},
  // s4 排隊：九個人形由矮到高依序站好（左→右彈入），正中間那一位亮起、頭上小旗彈出
@@ -42,9 +42,9 @@ const ILL={
  race:{draw(t,h){let g=`<rect x="0" y="0" width="888" height="${h}" rx="26" fill="#EFE3CF"/>`;
   [0,1].forEach(i=>{const y=70+i*140;g+=`<rect x="40" y="${y}" width="808" height="110" rx="14" fill="#D9C4A0"/><line x1="60" y1="${y+55}" x2="828" y2="${y+55}" stroke="#FFFDF8" stroke-width="4" stroke-dasharray="20 18"/>`});
   g+=`<line x1="760" y1="60" x2="760" y2="330" stroke="${LINE}" stroke-width="4" stroke-dasharray="12 10"/>`;
-  [[0,.244,LAMP],[1,.318,'#B98A6A']].forEach(([i,sp,c])=>{const y=70+i*140+55,p=1-Math.exp(-Math.max(0,t-.2)*1.6),x=250+(440*sp/.318)*p*.95;
+  [[0,.244,LAMP],[1,.318,'#B98A6A']].forEach(([i,sp,c])=>{const y=70+i*140+55,run=clamp((t-.2)/2.2),p=1-Math.pow(1-run,3),x=250+(440*sp/.318)*p*.95;
    g+=`<g transform="translate(${x.toFixed(1)},${y})"><rect x="0" y="-30" width="120" height="44" rx="14" fill="${c}" stroke="${LINE}" stroke-width="3"/><rect x="24" y="-54" width="64" height="30" rx="10" fill="${c}" stroke="${LINE}" stroke-width="3"/><circle cx="26" cy="18" r="14" fill="${LINE}"/><circle cx="96" cy="18" r="14" fill="${LINE}"/></g>`;
-   for(let k=0;k<3;k++){const u=((t*1.5+k/3)%1);g+=`<circle cx="${(x-14-u*50).toFixed(1)}" cy="${(y+4-u*14).toFixed(1)}" r="${(8+u*8).toFixed(1)}" fill="#FFFDF8" opacity="${(.6*(1-u)*clamp(t-.2)).toFixed(2)}"/>`}});
+   if(run<1)for(let k=0;k<3;k++){const u=((t*1.5+k/3)%1);g+=`<circle cx="${(x-14-u*50).toFixed(1)}" cy="${(y+4-u*14).toFixed(1)}" r="${(8+u*8).toFixed(1)}" fill="#FFFDF8" opacity="${(.6*(1-u)*clamp(t-.2)*(1-run)).toFixed(2)}"/>`}});
   g+=`<rect x="52" y="86" width="190" height="44" rx="10" fill="${FACE3}" opacity=".9"/>`+T(62,120,'未滿 25 歲',32,700,HINT,'start')+`<rect x="52" y="226" width="170" height="44" rx="10" fill="${FACE3}" opacity=".9"/>`+T(62,260,'25–29 歲',32,700,TXT,'start');
   return g},
   sfx(t0,s,E){E(t0+.2,'glide',{f0:300,f1:800,dur:.6,g:.1});E(t0+.2,'click')}},
@@ -59,7 +59,7 @@ const ILL={
   sfx(t0,s,E){E(t0+.15,'glide',{f0:800,f1:400,dur:.25,g:.07});E(t0+.4,'glide',{f0:800,f1:400,dur:.25,g:.07});E(t0+1.0,'click')}},
  // s7 電梯樓層燈：樓層數字由 1 往上跳（0.2–1.2），每跳一格燈亮一下，停在「?」樓；電梯門縫透光
  elevator:{draw(t,h){let g=`<rect x="0" y="0" width="888" height="${h}" rx="26" fill="#E9DFCF"/><rect x="250" y="120" width="388" height="${h-120}" fill="#C9C3B8" stroke="${LINE}" stroke-width="4"/>`;
-  const op=8+6*Math.sin(t*1.8);g+=`<rect x="${444-op}" y="130" width="${op*2}" height="${h-130}" fill="#FFE9B8" opacity=".8"/><rect x="262" y="130" width="${182-op}" height="${h-130}" fill="#D8D2C6" stroke="${LINE}" stroke-width="2"/><rect x="${444+op}" y="130" width="${182-op}" height="${h-130}" fill="#D8D2C6" stroke="${LINE}" stroke-width="2"/>`;
+  const op=8+6*Math.sin(Math.min(t,1.4)*1.8);g+=`<rect x="${444-op}" y="130" width="${op*2}" height="${h-130}" fill="#FFE9B8" opacity=".8"/><rect x="262" y="130" width="${182-op}" height="${h-130}" fill="#D8D2C6" stroke="${LINE}" stroke-width="2"/><rect x="${444+op}" y="130" width="${182-op}" height="${h-130}" fill="#D8D2C6" stroke="${LINE}" stroke-width="2"/>`;
   g+=`<rect x="290" y="24" width="308" height="80" rx="14" fill="#3A3836"/>`;
   for(let i=0;i<5;i++){const lit=t>.2+i*.22;g+=`<circle cx="${320+i*62}" cy="64" r="20" fill="${lit?'#F4B860':'#5A5652'}"/>`+T(320+i*62,75,i===4?'?':String(i+1),i===4?32:30+2,700,lit?TXT:'#8E8A84')}
   const ar=t>1.2?-10*DECAY(t-1.2,4,12):0;g+=`<path d="M700 ${200+ar} l30 -36 l30 36Z" fill="${LAMP}" stroke="${LINE}" stroke-width="3"/><rect x="690" y="230" width="80" height="80" rx="40" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`;

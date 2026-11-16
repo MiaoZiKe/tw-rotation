@@ -151,7 +151,8 @@ def write_narration(v):
     q = os.path.join(QUEUE, v["queue"]); lines = ["# %s 旁白稿（每段一行：id｜文字）。語氣照 docs/prompts/tanqing-旁白-深度報導.txt：深度報導記者、數字清楚肯定、轉折稍慢；gemini-3.8-flash-tts／Sulafat／單人；每秒約 4.6–5.5 字。" % v["queue"]]
     if v.get("narr_out", "narration.txt") is None: return
     lines += ["%s｜%s" % (s["id"], s["say"]) for s in v["scenes"] if s.get("say")]
-    open(os.path.join(q, "narration.txt"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    sep = "\n\n" if v.get("narr_para") else "\n"   # narr_para：每鏡一段，段落空行（TTS 段落停頓 0.7 秒用）
+    open(os.path.join(q, "narration.txt"), "w", encoding="utf-8").write(sep.join(lines) + "\n")
 
 def apply_segments(v, seg_path):
     """旁白對齊：segments.json＝{"audio": "narration.wav"（選填，相對於佇列資料夾）, "segments": [{"id","text","start","end"}]}。
@@ -167,7 +168,7 @@ def apply_segments(v, seg_path):
         for s in sc:
             g = m[s["id"]]; s["t0"], s["t1"] = float(g["start"]), float(g["end"])
             if "speech_start" in g: s["voiceAt"] = round(float(g["speech_start"]) - float(g["start"]), 3)   # 這一鏡第幾秒開口（v7 片尾關鍵字對齊用）
-            s["cap"] = g.get("text") or s.get("say", "")
+            s["cap"] = s.get("capText") or g.get("text") or s.get("say", "")
         sc.sort(key=lambda s: s["t0"]); sc[0]["t0"] = 0.0
         for a, b in zip(sc, sc[1:]): a["t1"] = b["t0"]
         sc[-1]["t1"] += 0.4
@@ -179,7 +180,7 @@ def apply_segments(v, seg_path):
     else:
         t = 0.0
         for s in sc:
-            s["cap"] = s.get("say", s.get("cap", ""))
+            s["cap"] = s.get("capText") or s.get("say", s.get("cap", ""))
             s["t0"] = round(t, 3); t += s.get("dur") or est_dur(s.get("say", "")); s["t1"] = round(t, 3)
         v["timing"] = "default"
     fps = v.get("fps", 30); sc = v["scenes"]

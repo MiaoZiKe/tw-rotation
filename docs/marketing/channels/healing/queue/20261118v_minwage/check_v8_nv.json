@@ -1,5 +1,5 @@
 {
- "frames": 1668,
+ "frames": 1644,
  "static_runs_gt_1_2s": [],
  "static_max_s": 0.87,
  "emphasis": [
@@ -10,32 +10,26 @@
    "ok": true
   },
   {
-   "id": "s3",
-   "t": 16.4,
-   "min_px": 48.0,
-   "ok": true
-  },
-  {
    "id": "s4",
-   "t": 21.7,
+   "t": 20.9,
    "min_px": 55.3,
    "ok": true
   },
   {
    "id": "s5",
-   "t": 29,
+   "t": 28.2,
    "min_px": 44.0,
    "ok": true
   },
   {
    "id": "s6",
-   "t": 36.1,
+   "t": 35.3,
    "min_px": 61.0,
    "ok": true
   },
   {
    "id": "s8",
-   "t": 48,
+   "t": 47.2,
    "min_px": 21.0,
    "ok": true
   }

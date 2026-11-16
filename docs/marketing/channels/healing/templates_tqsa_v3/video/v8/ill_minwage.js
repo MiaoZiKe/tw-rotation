@@ -53,9 +53,9 @@ const ILL={
   g+=`<rect x="226" y="30" width="24" height="${h-100}" fill="#B98A6A" stroke="${LINE}" stroke-width="4"/><rect x="638" y="30" width="24" height="${h-100}" fill="#B98A6A" stroke="${LINE}" stroke-width="4"/>`;
   g+=`<circle cx="590" cy="${(h-70)/2+20}" r="12" fill="${LAMP}" stroke="${LINE}" stroke-width="3"/>`;
   const n=11,y0=h-110,y1=120;
-  for(let i=0;i<n;i++){const a=.2+i*.13,u=t-a;if(u<0)continue;const y=y0-(y0-y1)*i/(n-1),L=(i==n-1?90:44+(i%3)*8)*Math.min(1,u*8),bump=-4*DECAY(u,5,16);
-   const top=i==n-1;g+=`<line x1="226" y1="${(y+bump).toFixed(1)}" x2="${(226+L).toFixed(1)}" y2="${(y+bump).toFixed(1)}" stroke="${top?LAMP:LINE}" stroke-width="${top?8:5}" stroke-linecap="round"/>`;
-   if(top&&u>.15)g+=glow(226+90,y,50,.4*clamp((u-.15)*4))}
+  for(let i=0;i<n;i++){const a=.2+i*.13,u=t-a;if(u<0)continue;const y=y0-(y0-y1)*i/(n-1),L=(i==n-1?120:70+(i%3)*10)*Math.min(1,u*8),bump=-4*DECAY(u,5,16);
+   const top=i==n-1;g+=`<line x1="226" y1="${(y+bump).toFixed(1)}" x2="${(226+L).toFixed(1)}" y2="${(y+bump).toFixed(1)}" stroke="${top?LAMP:LINE}" stroke-width="${top?16:10}" stroke-linecap="round"/>`;if(top&&u>.15)g+=T(226+L+14,y+12,'2027',34,700,LAMP,'start');
+   if(top&&u>.15)g+=glow(226+120,y,50,.4*clamp((u-.15)*4))}
   const pk=clamp((t-1.7)*3);if(pk>0)g+=sparkle(330,y1-30,14,.3+.5*tw(t,2,3));
   const pen=Math.min(10,(t-.2)/1.4*10),py=y0-(y0-y1)*clamp((t-.2)/1.5),bounce=t<1.7?4*Math.sin(t*30):0;
   g+=`<g transform="translate(${(120).toFixed(1)},${(py+bounce).toFixed(1)}) rotate(-35)"><rect x="-10" y="-70" width="20" height="70" fill="#F4B860" stroke="${LINE}" stroke-width="3"/><path d="M-10 0 h20 l-10 22Z" fill="#E4C9A0" stroke="${LINE}" stroke-width="3"/><rect x="-10" y="-84" width="20" height="14" fill="#E36B4A" stroke="${LINE}" stroke-width="3"/></g>`;
@@ -84,7 +84,7 @@ const ILL={
  // s7 手機入帳通知：手機在桌上震兩下（0.3／0.5）、通知卡由上滑下、金額欄是「?」，金額卡片輕輕晃
  phonebank:{draw(t,h){let g=`<rect x="0" y="${h-80}" width="888" height="80" fill="#D9C4A0"/>`;
   const vib=(t>.3&&t<.42)||(t>.5&&t<.62)?Math.sin(t*160)*5:0;g+=`<g transform="translate(${(444+vib).toFixed(1)},${h-80}) rotate(-8)"><rect x="-130" y="-380" width="260" height="380" rx="34" fill="#4A4744" stroke="${LINE}" stroke-width="4"/><rect x="-112" y="-356" width="224" height="330" rx="20" fill="#F7EFE2"/>`;
-  const sl=SPR(t-.55,.55,12);g+=`<g transform="translate(0,${(-356+(1-sl)*-90).toFixed(1)})" opacity="${clamp((t-.55)*6)}"><rect x="-104" y="20" width="208" height="150" rx="16" fill="${FACE3}" stroke="${LAMP}" stroke-width="3"/>${T(0,66,'薪資入帳',32,700,TXT)}${T(0,132,'NT$ ?',36,700,HINT)}</g></g>`;
+  const sl=SPR(t-.55,.55,12);g+=`<g transform="translate(0,${(-356+(1-sl)*-90).toFixed(1)})" opacity="${clamp((t-.55)*6)}"><rect x="-104" y="20" width="208" height="150" rx="16" fill="${FACE3}" stroke="${LAMP}" stroke-width="3"/>${T(0,66,'薪資入帳',32,700,TXT)}${T(0,(132-14*Math.abs(Math.sin(Math.PI*Math.min(1,((t-1.2)%1.0)/.45)))*(t>1.2&&((t-1.2)%1.0)<.45?1:0)).toFixed(1),'NT$ ?',36,700,HINT)}</g></g>`;
   if(t>.3&&t<.7)[-1,1].forEach(s=>g+=`<path d="M${444+s*170} ${h-300} q${s*20} 30 0 60" stroke="${LAMP}" stroke-width="4" fill="none" opacity=".7"/>`);
   g+=`<rect x="120" y="${h-150}" width="160" height="70" rx="10" fill="#FFFDF8" stroke="${LINE}" stroke-width="3"/><line x1="140" y1="${h-120}" x2="250" y2="${h-120}" stroke="${LINE}" stroke-width="2" opacity=".4"/>`;
   g+=`<path d="M680 ${h-80} v-80 q0 -26 26 -26 h40 q26 0 26 26 v80" fill="#E9B98A" stroke="${LINE}" stroke-width="3"/><path d="M700 ${h-200} q8 -20 0 -40" stroke="${LINE}" stroke-width="3" fill="none" opacity="${(.2+.25*tw(t,0,2.5)).toFixed(2)}"/><path d="M730 ${h-196} q8 -20 0 -40" stroke="${LINE}" stroke-width="3" fill="none" opacity="${(.2+.25*tw(t,2,2.5)).toFixed(2)}"/>`;
