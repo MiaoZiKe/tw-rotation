@@ -65,8 +65,8 @@ function boot(W) {
     const evs = (card.evs || []).map(x => ({ d: +x[0] || 0, c: x[1] })), workD = clamp(evs.length * 1.2 + 4, 6, 40), dur = Math.max(1, card.dur || 1);
     const fail = !!card.failed, sum = short(card.summary || card.title, 16);
     const segs = [
-      { k: 'sit', d: 1.2, act: 'type', cap: `${card.nick} 在座位上，等著被派工` },
-      { k: 'walk', d: wd, path: go, cap: `${card.nick} 走去 CEO 桌前領任務` },
+      { k: 'sit', d: 1.2, act: 'type', cap: "在座位上，等著被派工" },
+      { k: 'walk', d: wd, path: go, cap: "走去 CEO 桌前領任務" },
       { k: 'stand', d: 2.6, act: 'listen', say: '收到：' + short(card.title, 14), cap: `領任務：<b>${esc(short(card.title, 24))}</b>` },
       { k: 'walk', d: wd, path: back, cap: '回座位開工' },
       { k: 'work', d: workD, evs: evs.map((x, i) => ({ at: clamp(x.d / dur, 0, 1) * workD, c: x.c, i: i + 1 })), cap: '開工' },

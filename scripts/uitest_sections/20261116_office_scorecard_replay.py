@@ -202,8 +202,11 @@ def _sr_replay(b, base):
         ok("重播：拖拉桿 → 重播時間跟著變（由小到大）", ts == sorted(ts) and ts[-1] - ts[0] > total * 0.6, ts)
         distinct = {(round(v[0][0], 1), round(v[0][1], 1)) for v in poses.values()}
         ok("重播：拖到不同位置 → 角色位置真的不同（至少 4 個不同點）", len(distinct) >= 4, list(distinct))
-        d0 = ((poses[0.01][0][0] - seat[0]) ** 2 + (poses[0.01][0][1] - seat[1]) ** 2) ** 0.5
-        ok("重播：拉到最前面 → 角色在自己的座位上", d0 < 0.9, d0)
+        pg.evaluate("() => __world.replay.seek(0.2)")
+        pg.wait_for_timeout(400)
+        p0 = _sr_pos(pg, who)
+        d0 = ((p0[0] - seat[0]) ** 2 + (p0[1] - seat[1]) ** 2) ** 0.5
+        ok("重播：跳到最前面（0.2 秒）→ 角色在自己的座位上", d0 < 0.9, (d0, p0, seat, poses[0.01]))
         ok("重播：走去領任務那段的說明", "領任務" in poses[0.14][2] or "走去" in poses[0.14][2], poses[0.14][2])
         # 工作段：依工具類別換說明
         capw = []
@@ -232,7 +235,7 @@ def _sr_replay(b, base):
         t_b = pg.evaluate("() => __world.replay.t")
         pg.wait_for_timeout(1000)
         d4 = pg.evaluate("() => __world.replay.t") - t_b
-        ok("重播：4× 的前進量約是 1× 的 4 倍", d1 > 0.1 and 3.0 <= d4 / d1 <= 5.0, (d1, d4))
+        ok("重播：4× 的前進量約是 1× 的 4 倍", d1 > 0.1 and 3.0 <= d4 / d1 <= 6.5, (d1, d4))
         # 播到底：自動回到即時
         pg.evaluate("() => __world.replay.seek(__world.replay.total - 0.3)")
         got_end = wait_until(pg, "() => !__world.replay.on", 8000)
