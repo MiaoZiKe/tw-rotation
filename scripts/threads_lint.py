@@ -500,7 +500,10 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
     if clen(rp) > 500:
         err.append("留言超過 500 字")
     ic = p.get("image_count")
-    if ic not in (0, 1):     # 11-02 Andy：主題文章只留 1 張；「主貼文也改成只放 1 張」
+    if is_close_1109(p):     # 11-16 Andy「需要使用之前的排版」：盤後主貼文恢復多張（最多 6 張）
+        if not isinstance(ic, int) or not 0 <= ic <= 6:
+            err.append(f"配圖 {ic} 張（盤後只能 0～6 張）")
+    elif ic not in (0, 1):     # 11-02 Andy：主題文章只留 1 張；「主貼文也改成只放 1 張」
         err.append(f"配圖 {ic} 張（只能 0 或 1）")
     if len(tags) != 1:
         err.append(f"主文標籤 {len(tags)} 個（要恰好 1 個）")

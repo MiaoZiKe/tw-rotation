@@ -136,7 +136,10 @@ def test_one_image_kept():
 
 def test_main_post_picks_most_representative_one():
     pick = V.pick_images
-    assert pick("close", ["a/threads_fut-oi.png", "a/threads_inst-today.png", "a/threads_margin.png"]) == ["a/threads_inst-today.png"]
+    # 11-16 Andy「需要使用之前的排版」：盤後恢復多張，照 10-28 順序，不相干的圖（margin）不放
+    assert pick("close", ["a/threads_inst-today.png", "a/threads_margin.png", "a/threads_fut-oi.png"]) == ["a/threads_fut-oi.png", "a/threads_inst-today.png"]
+    six = [f"a/threads_{k}.png" for k in ("etf-buy", "streak-trust", "streak-foreign", "inst-today", "retail-ratio", "fut-oi")]
+    assert pick("close", six) == [f"a/threads_{k}.png" for k in V.CLOSE_IMG_ORDER]
     assert pick("premarket", ["threads_news.png", "threads_tx.png", "threads_us-close.png"]) == ["threads_us-close.png"]
     assert pick("credit", ["threads_credit.png", "threads_margin.png"]) == ["threads_margin.png"]
     assert pick("intraday", []) == []

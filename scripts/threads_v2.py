@@ -614,10 +614,19 @@ IMG_IDEA = {"heat": "熱力圖：哪些族群漲最多、跌最兇", "sankey-tre
             "us-close": "美股四大指數收盤", "tx": "台指期夜盤＋台積電 ADR", "news": "今日事件與消息", "margin": "融資維持率", "credit": "融資融券增減"}
 
 
+CLOSE_IMG_ORDER = ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "etf-buy"]
+
+
 def pick_images(kind: str, imgs: list[str]) -> list[str]:
     pri = IMG_PRIORITY.get(kind, [])
+    if kind == "close":
+        # 2026-11-16 Andy：「只有這張嗎? 之前不是有很多」「需要使用之前的排版」→ 盤後恢復 11-02 以前的多張排版：
+        # 6 張照 10-28 實際發文順序（台指期未平倉→散戶多空比→三大法人→外資個股→投信個股→ETF），有幾張放幾張。
+        order = CLOSE_IMG_ORDER
+        got = [x for x in imgs if any(k in Path(x).stem for k in order)]
+        return sorted(got, key=lambda x: next(i for i, k in enumerate(order) if k in Path(x).stem))[:len(order)]
     ranked = sorted(imgs, key=lambda x: next((i for i, k in enumerate(pri) if k in Path(x).stem), 99))
-    return ranked[:1]       # 11-02 Andy「主貼文也改成只放 1 張」
+    return ranked[:1]       # 11-02 Andy「主貼文也改成只放 1 張」（盤後除外，見上）
 
 
 def idea_of(path: str) -> str:
