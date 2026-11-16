@@ -33,7 +33,7 @@ export function createJobs(W, X) {
 
   // ───────── 名牌上的狀態字 ─────────
   J.statusOf = c => {
-    if (c.sleeping) return '睡覺中';
+    if (c.sleeping) return c.napping ? '休息中' : '睡覺中';
     const id = c.spec.id;
     if (c.spec.isCeo) {
       if (S.flags.permission) return '等你核准';

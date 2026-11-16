@@ -244,7 +244,7 @@ export function createDirector(W, ui) {
     if (c.script === tok) c.busy = false;
   }
   D.routine = (id, name) => { const c = id ? C(id) : pickIdle(); if (c) return routine(c, name); };
-  function pickIdle(not) { const pool = [...W.chars.values()].filter(c => c !== not && !c.busy && !c.away && !c.jobless && !c.sleeping && !c.spec.isCeo && c.state === 'sit' && c.atDesk); return pool.length ? rnd(pool) : null; }
+  function pickIdle(not) { const pool = [...W.chars.values()].filter(c => c !== not && !c.busy && !c.away && !c.jobless && !c.sleeping && !c.napDue && !c.spec.isCeo && c.state === 'sit' && c.atDesk); return pool.length ? rnd(pool) : null; }
   D.pickIdle = pickIdle;
   let nextAmb = 3, nextWork = 0, lastT = 0;
   const MENU = ['coffee', 'coffee', 'lookup', 'lookup', 'rest', 'snack', 'water', 'board', 'play', 'play', 'chat', 'chat'];

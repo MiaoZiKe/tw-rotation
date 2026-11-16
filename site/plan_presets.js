@@ -64,6 +64,7 @@
      office.budget（今日預算條，只看不計次）：四個方案開關都開、不設次數。體驗次數不預設。
    · ★ 2026-11-16（第二批第 6、7 項）：office.blueprint（任務藍圖，每套用一次算一次）四個方案開關都開；每日次數 訪客 0（不開放）、註冊會員 5、Plus 30、Pro 不設＝不限。
      office.priority（優先度格子表，只有開關不計次）四個方案都開。體驗次數不預設。
+   · ★ 2026-11-16：office.idlesleep（閒置超過 30 分鐘回座位睡覺，被動顯示、只有開關不計次）四個方案都開。體驗次數不預設。
    · ★ 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況…這功能記得也要顯在權限內 但暫不開放」）：新鍵 stock.bigsmall（個股大戶／散戶買賣推估）
      四個方案都寫 false＝暫不開放、不設次數；stock.bigsmall.live（今日即時）比照 live.tick 四個方案 false（只有站主／管理員，範本管不到）。
      Andy 要開時在 #admin/perm 把方案撥開；體驗次數不預設。
@@ -111,6 +112,7 @@ window.TW_PLAN_PRESETS = {
     "office.budget": true,
     "office.blueprint": true,
     "office.priority": true,
+    "office.idlesleep": true,
     "office.overview": true,
     "office.liveviz": true,
     "office.scorecard": true,
@@ -288,6 +290,7 @@ window.TW_PLAN_PRESETS = {
     "office.budget": true,
     "office.blueprint": true,
     "office.priority": true,
+    "office.idlesleep": true,
     "office.overview": true,
     "office.liveviz": true,
     "office.scorecard": true,
@@ -477,6 +480,7 @@ window.TW_PLAN_PRESETS = {
     "office.budget": true,
     "office.blueprint": true,
     "office.priority": true,
+    "office.idlesleep": true,
     "office.overview": true,
     "office.liveviz": true,
     "office.scorecard": true,
@@ -638,6 +642,7 @@ window.TW_PLAN_PRESETS = {
     "office.budget": true,
     "office.blueprint": true,
     "office.priority": true,
+    "office.idlesleep": true,
     "office.overview": true,
     "office.liveviz": true,
     "office.scorecard": true,
