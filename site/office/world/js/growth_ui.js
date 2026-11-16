@@ -122,8 +122,21 @@ export function mountGrowthUI(G, W) {
   U.blocked = note => { toast(note || '這個功能目前沒有開放'); try { W.gate && W.gate.say(note); } catch (e) { /* 略 */ } };
 
   // ───────── 每日結算卡 ─────────
-  let dlg = null;
+  let dlg = null, hint = null;
+  // 台北 18:00 自動結算不再直接蓋全螢幕卡：使用者可能正在操作（對話、派工），整片遮罩會吃掉點擊。
+  // 改成角落小提示，點了才開卡；手動按「今日結算」照舊直接開。
+  const dropHint = () => { if (hint) { hint.remove(); hint = null; } };
   U.settle = (s, auto) => {
+    dropHint();
+    if (auto) {
+      hint = document.createElement('button'); hint.id = 'gmDayHint'; hint.type = 'button'; hint.className = 'gm-dayhint';
+      hint.textContent = '今日結算好了，點我看';
+      hint.addEventListener('click', () => { dropHint(); openDay(s, true); });
+      ($('app') || document.body).append(hint); G.last = { kind: 'settleHint' }; return;
+    }
+    openDay(s, false);
+  };
+  const openDay = (s, auto) => {
     if (dlg) dlg.remove(); dlg = document.createElement('div'); dlg.id = 'gmDay'; dlg.className = 'gm-ov'; dlg.setAttribute('role', 'dialog'); dlg.setAttribute('aria-modal', 'true'); dlg.setAttribute('aria-label', '今日結算');
     const none = s.done === 0 && s.failed === 0;
     dlg.innerHTML = `<div class="gm-day"><button class="x" data-gmx aria-label="關閉">×</button>
