@@ -1,4 +1,0 @@
-{
- "_note": "頻道解鎖憑證（2026-11-16）。只放碼的 sha256，不放原碼；原碼只出現在 IG 私訊連結 ?tc=碼（GitHub Secret TC_UNLOCK_CODE（scripts/tc_ig_dm.py 發私訊時才接在連結後面））。換碼＝這裡加新雜湊、Secret 換新碼，舊連結失效。",
- "tech": { "sha256": ["2ba080f2b835f1f6eebcc418932a49deafb56e2227f721f1a5b2ba0966afde24"] }
-}
