@@ -356,9 +356,11 @@ def t_bp_layout(b, base):
               const p = document.querySelector(sel), r = p.getBoundingClientRect(), W = innerWidth, H = innerHeight;
               let small = 0, ban = 0;
               for (const e of p.querySelectorAll('*')) { if (!e.childNodes.length || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue; if (parseFloat(getComputedStyle(e).fontSize) < 11) small++; }
-              return { inside: r.left >= -1 && r.right <= W + 1 && r.top >= -1 && r.bottom <= H + 1, small, text: p.innerText, docw: document.documentElement.scrollWidth <= W + 1 };
+              const cf = document.getElementById('chatForm'), cr = cf ? cf.getBoundingClientRect() : null;
+              return { inside: r.left >= -1 && r.right <= W + 1 && r.top >= -1 && r.bottom <= H + 1, clear: !cr || !cr.width || r.bottom <= cr.top + 1, small, text: p.innerText, docw: document.documentElement.scrollWidth <= W + 1 };
             }""", sel)
         ok(f"B6 {tag}：設定／藍圖／優先度三個面板都在視窗內", all(v["inside"] for v in probes.values()))
+        ok(f"B6 {tag}：面板不蓋到下方對話列", all(v["clear"] for v in probes.values()), {k: v["clear"] for k, v in probes.items()})
         ok(f"B6 {tag}：面板內字級都 ≥ 11px", all(v["small"] == 0 for v in probes.values()))
         ok(f"B6 {tag}：沒有橫向捲軸", all(v["docw"] for v in probes.values()))
         alltxt = "".join(v["text"] for v in probes.values()) + (sr["text"] if sr else "")
