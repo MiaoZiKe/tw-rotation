@@ -8,6 +8,7 @@
 // 為什麼獨立一支：不改 main.js／live.js（別人同時在改），只掛在 window.__world 上；與 director／jobs／ui 只有三個一行的銜接點（napDue、napping）。
 // 示範模式（?demo=1）：載入時替部分同事塞「假的最後工作時間」，才看得到睡著的樣子。
 import { whenWorld } from './workkit.js';
+import { THREE } from './kit.js';
 
 export const IDLE_SLEEP_MS = 30 * 60e3;   // 閒置多久就睡；要改只改這一個常數（驗收用 ?idlesleep=<分鐘> 或 W.idlesleep.ms 覆寫）
 const FEATURE = 'office.idlesleep';
@@ -31,6 +32,38 @@ whenWorld(W => {
   };
   IS.setLast = (id, ts) => { IS.last.set(id, ts); const a = S.agents.get(id); if (a && a.phase === 'idle') { a.since = 0; a.lastToolAt = 0; if (a.done) a.done.length = 0; } };   // 驗收／示範注入用：把這個人的最後工作時間設成 ts
   IS.idleMs = c => S.now() - IS.lastWork(c);
+
+  // ───────── 睡著的視覺（擁有者：要一眼看出誰在休息）─────────
+  // ① 趴桌：身體繞座位原點前傾（順序 YXZ 讓前傾跟著面向走）；② 大 Zz：兩顆輪流往上飄、白字深藍描邊（跟綠地／木桌都有對比），大小隨鏡頭距離放大，俯瞰也 ≥ 14px；
+  // ③ 淡藍色調：身上罩一團半透明的藍色光暈（不改材質，因為同款角色共用材質，改了會連醒著的人一起變色）。
+  const LEAN = 0.95, mkTex = (ch, fill) => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
+    g.font = '900 104px "Arial Black",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#1f2a7a'; g.strokeText(ch, 64, 70); g.fillStyle = fill; g.fillText(ch, 64, 70);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace || t.colorSpace; return t;
+  };
+  const zTex = [mkTex('Z', '#ffffff'), mkTex('z', '#cfe0ff')];
+  const glowTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'), r = g.createRadialGradient(32, 32, 2, 32, 32, 31); r.addColorStop(0, 'rgba(70,96,220,0.55)'); r.addColorStop(0.6, 'rgba(70,96,220,0.28)'); r.addColorStop(1, 'rgba(70,96,220,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
+  const spr = (map, order) => { const m = new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, depthTest: false }); const q = new THREE.Sprite(m); q.renderOrder = order; return q; };
+  IS.zzPx = c => { const f = c._zz; if (!f || !f.group.visible) return 0; const cam = W.camera, p = f.group.position, d = Math.max(0.5, cam.position.distanceTo(p)), h = (W.renderer && W.renderer.domElement.clientHeight) || innerHeight; return f.size / (2 * d * Math.tan((cam.fov || 40) * Math.PI / 360)) * h; };
+  function fxOn(c) {
+    if (c._zz) return; c.object3D.rotation.order = 'YXZ';
+    const group = new THREE.Group(), z1 = spr(zTex[0], 12), z2 = spr(zTex[1], 12), glow = spr(glowTex, 3); glow.material.depthTest = true;
+    group.add(z1, z2); W.scene.add(group, glow); c._zz = { group, z1, z2, glow, lean: 0, size: 1, orig: c.update };
+    const f = c._zz, o = c.update;
+    c.update = function (h, t) { o.call(c, h, t); IS.frame(c, h, t); };
+  }
+  IS.frame = (c, h, t) => {
+    const f = c._zz; if (!f) return; const nap = !!c.napping, vis = c.object3D.visible, p = c.object3D.position, cam = W.camera, dist = cam.position.distanceTo(p);
+    f.lean += ((nap ? LEAN : 0) - f.lean) * Math.min(1, h * 5); c.object3D.rotation.x = f.lean;
+    const on = (nap || f.lean > 0.02) && vis; f.group.visible = f.glow.visible = on && nap;
+    if (!on) { if (!nap && f.lean < 0.02) fxOff(c); return; }
+    const sz = Math.max(0.55, Math.min(2.4, dist * 0.06)); f.size = sz;
+    const hy = c.height * 0.62 + (c.lift || 0);
+    f.group.position.set(p.x, c.height + (c.lift || 0) + 0.1, p.z);
+    f.glow.position.set(p.x, hy, p.z); f.glow.scale.setScalar(c.height * 2.1);
+    [[f.z1, 0], [f.z2, 0.5]].forEach(([q, ph]) => { const u = ((t * 0.38) + ph) % 1; q.position.set(0.12 * sz + u * 0.45 * sz, 0.1 * sz + u * 1.25 * sz, 0); q.scale.setScalar(sz * (0.55 + 0.6 * u)); q.material.opacity = Math.min(1, u * 6) * (u > 0.72 ? (1 - u) / 0.28 : 1); });
+  };
+  function fxOff(c) { const f = c._zz; if (!f) return; c.update = f.orig; c.object3D.rotation.x = 0; W.scene.remove(f.group, f.glow); c._zz = null; }
   IS.isNapping = c => !!(c && c.napping);
 
   function wake(c, why) {
@@ -42,7 +75,7 @@ whenWorld(W => {
   }
   function nap(c) {
     c.napping = true; c.napDue = true; c.sleeping = true; IS.naps++; c.busy = true; c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1;
-    c.setAction('sleep'); c.setExpression('sleepy', 1e9); c.emote('zzz', 3.2);
+    c.setAction('sleep'); c.setExpression('sleepy', 1e9); fxOn(c);
     const f = c.spot && c.spot.seat && c.spot.seat.face, p = c.object3D.position; if (f != null && c.state === 'sit') c.faceTo(p.x + Math.sin(f), p.z + Math.cos(f));
   }
 
@@ -54,7 +87,7 @@ whenWorld(W => {
       if (c.napping) {
         if (out) continue;                                                       // 額度用完全員睡：由 power.js 負責，這裡不插手
         if (working || !on || c.action !== 'sleep' || c.state !== 'sit' || c.piloted || IS.idleMs(c) < IS.ms) { wake(c, working ? 'task' : 'other'); continue; }
-        if (!c.emoteSym) c.emote('zzz', 3.2);                                    // 頭上持續 Zz
+        fxOn(c);                                                                 // 大 Zz 與趴姿由每幀掛鉤維持
         continue;
       }
       if (out || !on || working || c.piloted || c.state === 'held' || (D.meeting && D.meeting.people.includes(c))) { c.napDue = false; continue; }

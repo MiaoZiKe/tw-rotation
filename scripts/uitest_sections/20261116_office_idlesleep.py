@@ -66,13 +66,19 @@ def t_is_main(b, base):
     ok("S1 CEO 不睡", not st["ceoNap"])
     r = pg.evaluate("""() => { const W = __world, out = [];
         for (const id of [...W.chars.values()].filter(c => c.napping).map(c => c.spec.id)) { const c = W.chars.get(id);
-          out.push({ id, act: c.action, st: W.statusOf(c), sit: c.state, desk: !!c.atDesk, zz: !!(c.emoteSym && c.emoteSym.sym === 'zzz') }); } return out; }""")
+          out.push({ id, act: c.action, st: W.statusOf(c), sit: c.state, desk: !!c.atDesk, zz: !!(c._zz && c._zz.group.visible) }); } return out; }""")
     ok("S1 睡著的人趴桌（action=sleep、坐著）", bool(r) and all(x["act"] == "sleep" and x["sit"] == "sit" and x["desk"] for x in r), r)
     ok("S1 名牌狀態字寫「休息中」", bool(r) and all(x["st"] == "休息中" for x in r), r)
-    ok("S1 頭上持續 Zz（隔幾秒再看一次還在）", bool(r) and all(x["zz"] for x in r) or (_is_adv(pg, 5) is None and pg.evaluate("() => [...__world.chars.values()].filter(c => c.napping).every(c => c.emoteSym && c.emoteSym.sym === 'zzz')")), r)
-    _is_shot(pg, "01_睡著的同事_桌機.png")
+    ok("S1 頭上持續 Zz（隔幾秒再看一次還在）", bool(r) and all(x["zz"] for x in r) or (_is_adv(pg, 5) is None and pg.evaluate("() => [...__world.chars.values()].filter(c => c.napping).every(c => c._zz && c._zz.group.visible)")), r)
+    # 俯瞰畫面（預設 god 視角）：大 Zz 的螢幕尺寸 ≥ 14px、身體前傾、藍色光暈在
+    zp = pg.evaluate("() => { const W = __world, n = [...W.chars.values()].filter(c => c.napping); return { px: n.map(c => Math.round(W.idlesleep.zzPx(c))), lean: n.map(c => +c.object3D.rotation.x.toFixed(2)), glow: n.every(c => c._zz && c._zz.glow.visible) }; }")
+    ok("S1 俯瞰畫面上 Zz 螢幕尺寸 ≥ 14px（每位睡著的人）", bool(zp["px"]) and min(zp["px"]) >= 14, zp)
+    ok("S1 趴桌：身體明顯前傾（≥ 0.4 弧度）、藍色光暈在", bool(zp["lean"]) and min(zp["lean"]) >= 0.4 and zp["glow"], zp)
+    _is_shot(pg, "01_睡著的同事_俯瞰.png")
     pg.evaluate("() => { const c = [...__world.chars.values()].find(c => c.napping); __world.setView('char', c, true); }")
     _is_adv(pg, 1.5)
+    zc = pg.evaluate("() => { const c = [...__world.chars.values()].find(c => c.napping); return Math.round(__world.idlesleep.zzPx(c)); }")
+    ok("S1 近照 Zz 螢幕尺寸 ≥ 14px", zc >= 14, zc)
     _is_shot(pg, "01b_睡著的同事_近照.png")
     pg.evaluate("() => __world.setView('god', null, true)")
 
@@ -88,10 +94,13 @@ def t_is_main(b, base):
     awake = pg.evaluate("() => [...__world.chars.values()].filter(c => !c.napping && !c.spec.isCeo && !c.spec.pet && !c.jobless).slice(0, 2).map(c => c.spec.id)")
     a29, a31 = awake[0], awake[1]
     pg.evaluate("([a, b]) => { const I = __world.idlesleep, n = __world.state.now(); I.setLast(a, n - 29 * 60e3); I.setLast(b, n - 31 * 60e3); I.check(); }", [a29, a31])
-    _is_adv(pg, 14)
-    pg.evaluate("() => __world.idlesleep.check()")
-    _is_adv(pg, 10)
-    r3 = pg.evaluate("([a, b]) => { const g = id => { const c = __world.chars.get(id); return { nap: !!c.napping, act: c.action }; }; return { a: g(a), b: g(b) }; }", [a29, a31])
+    for _ in range(5):
+        _is_adv(pg, 8)
+        pg.evaluate("() => __world.idlesleep.check()")
+        r3 = pg.evaluate("([a, b]) => { const g = id => { const c = __world.chars.get(id); return { nap: !!c.napping, act: c.action }; }; return { a: g(a), b: g(b) }; }", [a29, a31])
+        if r3["b"]["nap"]:
+            break
+        pg.wait_for_timeout(300)
     ok("S3 31 分鐘沒任務→睡著", r3["b"]["nap"] and r3["b"]["act"] == "sleep", r3)
     ok("S3 29 分鐘沒任務→沒睡", (not r3["a"]["nap"]) and r3["a"]["act"] != "sleep", r3)
 
@@ -99,10 +108,18 @@ def t_is_main(b, base):
     sid = a31
     before = pg.evaluate("(id) => __world.statusOf(__world.chars.get(id))", sid)
     pg.evaluate("(id) => __world.sim.start(id)", sid)
-    _is_adv(pg, 0.15)
-    r4 = pg.evaluate("(id) => { const c = __world.chars.get(id); return { nap: !!c.napping, act: c.action, ex: c.expression, em: c.emoteSym && c.emoteSym.sym, st: __world.statusOf(c), ph: __world.state.agents.get(id).phase }; }", sid)
+    seen = False
+    for _ in range(12):
+        _is_adv(pg, 0.05)
+        r4 = pg.evaluate("(id) => { const c = __world.chars.get(id); return { nap: !!c.napping, act: c.action, ex: c.expression, em: c.emoteSym && c.emoteSym.sym, st: __world.statusOf(c), ph: __world.state.agents.get(id).phase }; }", sid)
+        seen = seen or r4["ex"] == "surprised" or r4["em"] == "exclaim"
+        if seen:
+            break
+        pg.wait_for_timeout(100)
     ok("S4 派任務後立刻醒（napping 清掉、離開睡姿）", (not r4["nap"]) and r4["act"] != "sleep", [before, r4])
-    ok("S4 驚醒表情（驚訝臉或驚嘆號）", r4["ex"] == "surprised" or r4["em"] == "exclaim", r4)
+    ok("S4 驚醒表情（驚訝臉或驚嘆號）", seen, r4)
+    _is_adv(pg, 1.5)
+    ok("S4 醒來後身體回正、大 Zz 收掉", pg.evaluate("(id) => { const c = __world.chars.get(id); return Math.abs(c.object3D.rotation.x) < 0.05 && !(c._zz && c._zz.group.visible); }", sid))
     ok("S4 名牌不再是「休息中」", r4["st"] != "休息中" and r4["ph"] != "idle", r4)
     _is_shot(pg, "02_被派任務驚醒.png")
     pg.evaluate("(id) => __world.setView('char', __world.chars.get(id), true)", sid)
