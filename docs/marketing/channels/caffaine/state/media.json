@@ -1,1 +1,38 @@
-{}
+{
+ "20261117_made-by-ai": {
+  "at": "2026-11-17T06:49:16+08:00",
+  "bytes": 12744205,
+  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261117_made-by-ai__cover.jpg",
+  "cover_sha256": "02335b641c96c287eaecc547f6d3020e0e0384328c214fe9f29a2726ce7c3632",
+  "sha256": "69fbf676df4b9e1f93fc56ae9637157f3492e8253f8772651f9a268a53c381dd",
+  "src": "media/caffaine/20261117_made-by-ai",
+  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261117_made-by-ai.mp4"
+ },
+ "20261117_two-answers": {
+  "at": "2026-11-17T06:49:16+08:00",
+  "bytes": 13142967,
+  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261117_two-answers__cover.jpg",
+  "cover_sha256": "12136d56c6b11520fc282223af8c1fdb4112d1d0c61f453526c41704c184b978",
+  "sha256": "3453bf5d8ea46e9f282163a9c6199fd1fca7c8ef245ed1d382fc753f54c39c90",
+  "src": "media/caffaine/20261117_two-answers",
+  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261117_two-answers.mp4"
+ },
+ "20261118_same-look": {
+  "at": "2026-11-17T06:49:16+08:00",
+  "bytes": 12783231,
+  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261118_same-look__cover.jpg",
+  "cover_sha256": "0d8b58c9633b2ed2f4a6a52e2977a3550d2603a190144cf7abb81dbf6cd4b929",
+  "sha256": "f56420f0e7f084c04d13cbb64c7be150e31e8c60849e8a8e2802f24a7c50116b",
+  "src": "media/caffaine/20261118_same-look",
+  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261118_same-look.mp4"
+ },
+ "20261118_sketch-game": {
+  "at": "2026-11-17T06:49:16+08:00",
+  "bytes": 13774135,
+  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261118_sketch-game__cover.jpg",
+  "cover_sha256": "14c8b81e074163887f4e5a67abd8aa8874501b103f7b96fb332e91d85025a81e",
+  "sha256": "29422adf5247066f24c3f15535745a40cc1196ef95122629def6366374e29bb9",
+  "src": "media/caffaine/20261118_sketch-game",
+  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261118_sketch-game.mp4"
+ }
+}
