@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-13",
+ "updated": "2026-11-16",
  "days": [
+  {
+   "date": "2026-11-16",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "輝達員工聯名信要求黃仁勳回歸：否則就集體離職加入SpaceX、Terafab",
+     "url": "https://news.cnyes.com/news/id/6662876",
+     "source": "鉅亨",
+     "time": "2026-11-15T13:10:02+08:00",
+     "desc": "黃仁勳辭任輝達執行長後，內部爆發挽留行動，逾97%員工盼他留任，數百人連署要求董事會恢復其職務；馬斯克公開表態支持黃仁勳回歸；連署信稱若員工離職，SpaceX及…"
+    },
+    {
+     "cat": "科技",
+     "title": "前DeepMind與Anthropic班底 Mirendil募10億美元 Google參投 主攻AI代理自動化研發",
+     "url": "https://news.cnyes.com/news/id/6662513",
+     "source": "鉅亨",
+     "time": "2026-11-14T17:00:06+08:00",
+     "desc": "AI新創Mirendil完成10億美元A輪募資，Kleiner Perkins與Clearlake Capital共同領投；公司稱以AI代理包辦模型研發，研究員…"
+    },
+    {
+     "cat": "新聞",
+     "title": "亞資助攻資本市場躍升！2026公司治理評鑑台灣、新加坡並列亞洲第3",
+     "url": "https://news.cnyes.com/news/id/6662930",
+     "source": "鉅亨",
+     "time": "2026-11-15T13:30:03+08:00",
+     "desc": "CG Watch 2026評鑑，台灣在亞洲12個主要市場與新加坡並列第三，僅次澳洲、日本，總分較上屆增4.6分；投資人構面進步最顯著，反映強化股東權益保障、ES…"
+    },
+    {
+     "cat": "事件",
+     "title": "美國期中選舉使美台股市劇烈震盪，專家揭三大訊號台股還有機會上 5 萬點",
+     "url": "https://finance.technews.tw/2026/11/14/ai-stocks-plunge-rebound-taiwan-stock-market-50000-points-experts-reveal-3-signals/",
+     "source": "科技新報",
+     "time": "2026-11-14T10:00:53+08:00",
+     "desc": "美國期中選舉讓高速狂飆的 AI 列車急煞，造成美台股宛如坐雲霄飛車。台股 6 日刷新最大跌點紀錄、一度跌破 4"
+    },
+    {
+     "cat": "總經",
+     "title": "塔麻可吉 30 週年：曾慘賠 60 億日圓，萬代如何讓電子雞活過三個世代？",
+     "url": "https://technews.tw/2026/11/14/tamagotchi-30th-anniversary-suffered-6-billion-jpy-loss-how-bandai-kept-digital-pet-alive-three-generations/",
+     "source": "科技新報",
+     "time": "2026-11-14T11:00:55+08:00",
+     "desc": "「差點忘記餵電子雞吃飯了！」這款存在於一個掌心大的主機裡、黑白點陣造型的電子寵物，幾乎是七、八年級生共同的兒時"
+    }
+   ]
+  },
   {
    "date": "2026-11-13",
    "items": [
