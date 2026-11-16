@@ -340,10 +340,9 @@ def _credit(which):
 # ---- 三大法人買賣超
 def b_inst_today(mode, w, h, ctx):
     rows = ctx["jget"]("inst_market")["rows"]
-    vals = []
-    for r in rows:
-        rv = r.get("rev") or {}
-        vals.append(dict(d=r["d"], f=rv.get("f", r["f"]), t=rv.get("t", r["t"]), dl=rv.get("dl", r["dl"]), tot=rv.get("tot", r["tot"]), tw=r["tw"]))
+    # 2026-11-16：一律用主數字＝證交所 15:00 首次公布版（DECISIONS #363，網站四格與貼文文案 close_reads／fast_read_inst 同口徑）。
+    # 之前優先取晚間修訂版 rev → 11/13 圖寫投信 +95.4 億、文案寫 82.4 億，圖文對不上。rev 只在網站小字「晚間修訂」出現，不進貼文圖。
+    vals = [dict(d=r["d"], f=r["f"], t=r["t"], dl=r["dl"], tot=r["tot"], tw=r["tw"]) for r in rows]
     yr = vals[-1]["d"][:4]
     ytd = [v for v in vals if v["d"][:4] == yr]
     last = vals[-1]

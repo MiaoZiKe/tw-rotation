@@ -7,6 +7,10 @@
 
 - 2026-11-16 頻道③ CaffAIne 第一支 Reels（AI 代理：看、做、檢查，ai-mp4 caffaine-agent-loop）：Andy 11-16 決定不發。佇列資料夾沒有推進 main、隱藏文章沒做、dm_config.json 沒動（留言私訊維持關閉）。⚠ 待清：影片已推到 `media/caffaine/20261116_agent_loop` 分支，但工作流 `clean` 只清佇列裡發過的資料夾、清不到它，這個 session 刪分支被代理擋（HTTP 403）；之後有權限的 session 執行 `git push origin --delete media/caffaine/20261116_agent_loop`（social-ops-lead）。
 
+## 2026-11-16 盤後三大法人圖文數字對齊（social-ops-lead，維修）
+- 原因：`scripts/social_native.py` b_inst_today 優先取 inst_market.json 的晚間修訂版 rev，文案（close_reads／fast_read_inst）與網站四格用首次公布版（DECISIONS #363）。11/13：首次版投信 +82.4、合計 +439.7；晚間版投信 +95.4、合計 +452.7（外資、自營兩版相同）。
+- 修：圖改用主數字（首次公布版）。測試 `tests/test_social_inst_consistency_1116.py`。這批只驗 pytest -k "social or threads or close or snap" ＋新測試、social-live 乾跑。
+
 ## 2026-11-16 盤後主貼文改回 11-09 新格式、發文時間不變（social-ops-lead；Andy：「用新的 但發文是資料到齊就發（約 17:30～18:40）」）
 - 反向套用 fbcb50dfff 的格式檔：`scripts/threads_v2.py`、`scripts/threads_lint.py`（rule auto_1109）、`scripts/social_snap.py`（close_v1 備用文案＋v1_raw；19:30 等待 close_wait 沒加回、保底說明維持 19:00）、`tests/test_threads_close_1109.py`（拿掉 19:30 閘、19:41／20:11 排程、post_quota 三支）、`tests/test_social_threads_v2.py`、`tests/test_threads_auto_1104.py`。
 - 沒動：social_gate.py、social-live.yml、daily_audit（.py／.yml）、post_quota.json（c3053638f8 的 close.threads=true 保留）、test_social_close_fallback／test_social_quota_1102／test_daily_audit。
