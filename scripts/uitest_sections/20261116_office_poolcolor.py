@@ -57,6 +57,7 @@ def _pc_diff(a, b):
     for k, x in a.items():
         y = b.get(k)
         if y is None:
+            if any(t in (x.get("nm") or "") for t in ("phone", "doc", "cup", "prop")): continue   # 手上暫時拿的道具（圍觀打電話、搧風的文件）收起來是正常的，不是身體顏色
             bad.append((x.get("nm"), "材質不見了")); continue
         for f in ("col", "em"):
             if x[f] is None:
