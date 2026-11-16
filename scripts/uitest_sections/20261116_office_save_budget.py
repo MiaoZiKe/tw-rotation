@@ -231,14 +231,14 @@ def _sb_all(pg0, b, base, code):
         ok("預算：設定每日上限 10 萬（存在 aiOffice.game.budget，會跟著雲端存檔）", pg.evaluate("() => JSON.parse(localStorage.getItem('aiOffice.game.budget')).daily") == 100000)
         srv.events([{"event": "PreToolUse", "session_id": "s2", "project_hash": _SB_PA, "tool_category": "read"} for _ in range(2)])
         est = wait_until(pg, "() => __world.budget.used === 6000 && __world.budget.est && /估算/.test(document.getElementById('budgetBtn').textContent)", 10000)
-        w1 = _sb_ev(pg, "() => parseFloat((document.querySelector('#budgetBtn .tr i') || { style: {} }).style.width)")
+        w1 = _sb_ev(pg, "() => parseFloat((document.querySelector('#budgetBtn .tr .fl') || { style: {} }).style.width)")
         ok("預算：取不到 Token 的工作階段以工具次數推估（2 次＝6000），標「估算」，預算條 6%", est and abs(w1 - 6) < 0.6, (pg.evaluate("() => __world.budget.used"), w1))
         srv.events([{"event": "Stop", "session_id": "s1", "project_hash": _SB_PA, "usage_main": 80000}])
         warn = wait_until(pg, "() => __world.budget.level === 'warn'", 10000)
         toast = pg.locator("#toast").inner_text() if pg.locator("#toast").is_visible() else ""
         if not toast and pg.evaluate("() => (__world.budget.warned || 0) >= 1"):
             toast = "（提醒已跳過、已自動收起）%"
-        w2 = _sb_ev(pg, "() => parseFloat((document.querySelector('#budgetBtn .tr i') || { style: {} }).style.width)")
+        w2 = _sb_ev(pg, "() => parseFloat((document.querySelector('#budgetBtn .tr .fl') || { style: {} }).style.width)")
         ok("預算：用量事件進來 → 預算條變長（86%）、到 80% 跳提醒", warn and w2 > w1 and abs(w2 - 86) < 0.6 and "%" in toast, (w2, toast))
         _sb_shot(pg, "s3_預算80提醒.png")
         ok("預算：80% 時辦公室還沒變暗", not pg.evaluate("() => document.getElementById('budgetDim').classList.contains('on')"))

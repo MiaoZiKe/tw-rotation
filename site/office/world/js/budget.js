@@ -27,8 +27,8 @@ function boot(W) {
   const css = document.createElement('style'); css.id = 'budgetCss';
   css.textContent = `#budgetBtn{gap:8px;padding:0 10px;font-size:12.5px}
 #budgetBtn .tr{position:relative;width:74px;height:8px;border-radius:5px;background:rgba(0,0,0,.09);overflow:hidden;flex:none}
-#budgetBtn .tr i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;background:#35b36b;transition:width .4s}
-#budgetBtn.warn .tr i{background:#f2a93b}#budgetBtn.over .tr i{background:#c2590c}
+#budgetBtn .tr .fl{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;background:#35b36b;transition:width .4s}
+#budgetBtn.warn .tr .fl{background:#f2a93b}#budgetBtn.over .tr .fl{background:#c2590c}
 #budgetBtn .tx{white-space:nowrap;color:var(--sub,#7a6f66)}#budgetBtn .tx b{color:var(--ink,#3b302a);font-weight:700}
 #budgetPop{width:300px;font-size:13.5px;line-height:1.55}#budgetPop h4{margin:2px 4px 6px;font-size:15px}
 #budgetPop p{margin:4px 4px 8px;color:var(--sub,#7a6f66);font-size:12.5px}
@@ -36,12 +36,13 @@ function boot(W) {
 #budgetPop .row .btn{box-shadow:none;border:1px solid var(--line,#e3d9cf);height:32px;padding:0 12px}
 #budgetDim{position:absolute;inset:0;background:rgba(18,20,42,.46);pointer-events:none;z-index:5;opacity:0;transition:opacity .8s}
 #budgetDim.on{opacity:1}
-#budgetNote{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:11;background:rgba(30,30,52,.9);color:#fff;border-radius:14px;padding:8px 14px;font-size:13px;max-width:calc(100vw - 32px);text-align:center;line-height:1.5}
-@media (max-width:640px){#budgetBtn .tr{width:44px}#budgetBtn{order:21;font-size:11.5px;padding:0 8px;gap:5px}#budgetBtn .lb{display:none}#budgetPop{width:calc(100vw - 32px)}#budgetNote{font-size:12px;bottom:12px}}`;
+body.budget-over #cv{filter:brightness(.6) saturate(.7);transition:filter .8s}
+#budgetNote{position:absolute;left:50%;top:132px;transform:translateX(-50%);z-index:11;background:rgba(30,30,52,.9);color:#fff;border-radius:14px;padding:8px 14px;font-size:13px;max-width:calc(100vw - 32px);text-align:center;line-height:1.5}
+@media (max-width:640px){#budgetBtn .tr{width:44px}#budgetBtn{order:21;font-size:11.5px;padding:0 8px;gap:5px}#budgetBtn .lb{display:none}#budgetPop{width:calc(100vw - 32px)}#budgetNote{font-size:12px;top:140px}}`;
   document.head.append(css);
   const app = document.getElementById('app') || document.body, bar = document.getElementById('bar');
   const btn = document.createElement('button'); btn.className = 'btn'; btn.id = 'budgetBtn'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', '今日預算（點開可設定每日上限）');
-  btn.innerHTML = '<span class="lb">今日預算</span><span class="tr"><i></i></span><span class="tx"></span>';
+  btn.innerHTML = '<span class="lb">今日預算</span><span class="tr"><b class="fl"></b></span><span class="tx"></span>';
   const pop = document.createElement('div'); pop.className = 'pop'; pop.id = 'budgetPop'; pop.hidden = true;
   const dim = document.createElement('div'); dim.id = 'budgetDim';
   const note = document.createElement('div'); note.id = 'budgetNote'; note.hidden = true; note.setAttribute('role', 'status');
@@ -54,11 +55,11 @@ function boot(W) {
     const lim = B.daily; B.pct = lim ? B.used / lim : 0;
     B.level = !lim ? 'none' : B.pct > 1 ? 'over' : B.pct >= 0.8 ? 'warn' : 'ok';
     btn.classList.toggle('warn', B.level === 'warn'); btn.classList.toggle('over', B.level === 'over');
-    btn.querySelector('.tr i').style.width = (lim ? Math.min(100, B.pct * 100) : 0).toFixed(1) + '%';
+    btn.querySelector('.tr .fl').style.width = (lim ? Math.min(100, B.pct * 100) : 0).toFixed(1) + '%';
     const est = B.est ? '（估算）' : '';
     btn.querySelector('.tx').innerHTML = !B.ok && !B.used ? '尚未連上' : lim ? `<b>${fmtTok(B.used)}</b>／${fmtTok(lim)}${est}` : `<b>${fmtTok(B.used)}</b> Token${est}・設定上限`;
     btn.title = `今天用掉 ${Math.round(B.used).toLocaleString('zh-TW')} Token${B.est ? '（含估算：取不到 Token 的工作階段以工具呼叫次數推估）' : ''}${lim ? `，每日上限 ${Math.round(lim).toLocaleString('zh-TW')}` : ''}`;
-    dim.classList.toggle('on', B.level === 'over');
+    dim.classList.toggle('on', B.level === 'over'); document.body.classList.toggle('budget-over', B.level === 'over');
     if (B.level === 'over') { note.hidden = false; note.textContent = `今日預算用完了（${fmtTok(B.used)}／${fmtTok(lim)}），辦公室先暗下來提醒你。這不會擋你的 Claude，它照常工作。`; }
     else note.hidden = true;
     // 80% 提醒：同一天、同一專案只跳一次

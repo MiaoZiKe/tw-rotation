@@ -114,7 +114,7 @@ function boot(W) {
     if (s.length > MAX_DATA) { P.note = '存檔太大，這次只存在這台裝置'; P.status = 'local'; show(); return; }
     const g = W.gate ? W.gate.peek('office.save') : { pass: true };
     if (!g.pass) { P.status = 'out'; P.note = g.note || ''; show(); return; }
-    P.busy = true; if (!keepalive) { P.status = 'saving'; show(); }
+    P.busy = true; if (!keepalive && !P.savedAt) { P.status = 'saving'; show(); }   // 已經存過：上傳中照樣顯示上次的「已存檔 HH:MM」，不要每 20 秒閃一次
     const gt = W.gate && !keepalive ? await W.gate.begin('office.save') : null;
     if (gt && !gt.pass) { P.busy = false; P.status = 'out'; P.note = gt.note || ''; show(); return; }
     const at = meta().at || Date.now();
