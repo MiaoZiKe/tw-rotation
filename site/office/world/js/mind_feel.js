@@ -484,6 +484,7 @@ export function createFeel(W, K) {
     if (W.time < f.wetUntil) return { k: 'wet', label: '濕答答的', cause: cur.cause && /救|水/.test(cur.cause) ? cur.cause : '剛被水救了' };
     if (c.jobless) return null;
     if (f.rematch && W.time < f.rematch.until && ['calm', 'low', 'sad', 'stress', 'tired'].includes(cur.k)) return { k: 'rematch', label: '不甘心', cause: '輸給' + f.rematch.nick + '，想再來一場' };
+    if (f.fear >= .4 && ['happy', 'excited'].includes(cur.k) && cur.cause && !/怕火/.test(cur.cause)) return { k: 'afraid', label: '還在怕火', cause: when(f) + '，' + cur.cause };   // 怕得厲害時以怕火為主，短暫的開心併在原因後面
     const plain = !cur.cause || /燒|恢復|火|欺負|被你丟|被丟|撞|敲/.test(cur.cause);
     if (f.fear >= .25 && (['calm', 'tired', 'stress', 'low', 'sad'].includes(cur.k) || (f.fear >= .4 && cur.k === 'happy')) && plain) return { k: 'afraid', label: '還在怕火', cause: when(f) };
     if (f.rel <= -.45 && cur.k === 'calm' && W.time >= m.wary) return { k: 'wary', label: m.t.comp >= .55 ? '還在生氣' : '有點怕你', cause: W.time - (f.bullyAt || -999) < 900 ? '被欺負過' : '被你丟過' };
