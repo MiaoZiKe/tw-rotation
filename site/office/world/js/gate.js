@@ -21,8 +21,13 @@
 // 文案禁用字（辦公室頁一律不出現）：價格、NT$、付費、升級、訂閱、方案、Plus、Pro、免費、右鍵。
 
 const ACCT_TOK = 'tw.acct.tok', TQ = 'tw.quota', DEMO_K = 'tw.demo.tier';
+<<<<<<< HEAD
 export const GATE_IDS = ['office.cmd', 'office.connect', 'office.hr'];
 const NAME = { 'office.cmd': '下指令', 'office.connect': '連接', 'office.hr': '人事異動' };
+=======
+export const GATE_IDS = ['office.cmd', 'office.connect', 'office.hr', 'office.overview', 'office.save', 'office.budget', 'office.autoassign', 'office.scorecard', 'office.awaypack', 'office.replay', 'office.blueprint', 'office.priority'];   // 2026-11-16 加 office.save（雲端存檔，save.js）、office.budget（今日預算，budget.js）
+const NAME = { 'office.cmd': '下指令', 'office.connect': '連接', 'office.hr': '人事異動', 'office.overview': '總覽', 'office.save': '雲端存檔', 'office.budget': '今日預算', 'office.autoassign': '自動派工', 'office.scorecard': '單件成績單', 'office.awaypack': '離開成果包與提醒', 'office.replay': '任務重播', 'office.blueprint': '任務藍圖', 'office.priority': '優先度表' };
+>>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const tpeDay = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 const unitKey = () => 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);   // 跟主站 quota.js use() 同一個格式（Worker 驗 ^[0-9A-Za-z_.-]{1,24}$）

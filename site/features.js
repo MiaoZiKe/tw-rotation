@@ -533,7 +533,39 @@
       desc: '辦公室「連接我的 Claude」：每產生一組接入碼（含換一組）算一次（用完：不再產生新的接入碼，已接好的連線與觀看不受影響）', veil: [], mark: [], block: [] },
     { id: 'office.hr', name: 'AI 辦公室：開除與重新聘用', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
       qnote: '今天的人事異動次數用完了，明天會恢復', route: /^#office/,
+<<<<<<< HEAD
       desc: '辦公室人事：每確定開除一次（單人或整個部門算一次）、每重新聘用一位算一次（用完：確認框與資訊卡旁一行白話說明，不會執行）', veil: [], mark: [], block: [] }
+=======
+      desc: '辦公室人事：每確定開除一次（單人或整個部門算一次）、每重新聘用一位算一次（用完：確認框與資訊卡旁一行白話說明，不會執行）', veil: [], mark: [], block: [] },
+    /* ★ 2026-11-16（Andy：研究報告前 10 項「全做」，第 1～6 項：專長、體力壓力、個性、等級、依專長自動派工、每日結算與目標）：
+       真正要設次數的使用者操作只有「依專長自動派工」（示範／模擬模式下，每請 CEO 挑一次人並派出一件任務算一次；用完：不派工、畫面一行白話說明）。
+       專長、體力、等級、結算卡是被動顯示，不耗資源、不送資料，所以不另外設鍵。真實專案只標「建議人選」，不改 Claude 的真實派工，也不計次。
+       四個方案開關都開；每日次數 訪客 0（不開放）、註冊會員 5、Plus 30、Pro 不限。不在 GRANT_BAN，自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。 */
+    { id: 'office.autoassign', name: 'AI 辦公室：依專長自動派工', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
+      qnote: '今天的自動派工次數用完了，明天會恢復', route: /^#office/,
+      desc: '辦公室頂列「今日目標」面板的「CEO 依專長自動派工」：示範模式下每請 CEO 挑一次人並派出一件任務算一次（用完：不派工、面板旁一行白話說明；真實專案只標建議人選，不計次）', veil: [], mark: [], block: [] },
+    /* ★ 2026-11-16（Andy：研究報告前 10 項「全做」，第 9、10 項）：雲端存檔、今日預算。後端收件服務只認站長，這裡是前端閘門。
+       office.save：每成功上傳一次算一次（有改動時每 20 秒最多一次＋離開頁面補傳）；用完只是改存本機，不會丟資料。
+       office.budget：只看自己的用量、不送資料、不耗資源，比照 office.overview 只有開關、不設每日次數；絕不擋使用者的 Claude。 */
+    { id: 'office.save', name: 'AI 辦公室：雲端存檔', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 100 }, qper: 'each', qunit: '次上傳',
+      qnote: '今天的雲端存檔次數用完了，先存在這台裝置，明天會恢復', route: /^#office/,
+      desc: '辦公室擺設、整修與遊戲進度自動存到雲端，換裝置進場時下載合併（用完：頂列小字寫「先存在這台裝置」，本機照常保存）', veil: [], mark: [], block: [] },
+    { id: 'office.budget', name: 'AI 辦公室：今日預算', cat: 'office', def: true, kind: 'bool', unlisted: true,
+      desc: '辦公室頂列「今日預算」條：今天用掉的 Token（取不到時以工具呼叫次數估算）對照自己設的每日上限，80% 提醒、超過時辦公室變暗（關閉：頂列不顯示）', veil: [], mark: [], block: [] },
+    /* ★ 2026-11-16（Andy：第二批 10 項「全做」，第 1～3 項）：真實工具呼叫 → 角色動作與頭上小圖示、子 Agent 進場與連線、頂列連線健康燈。
+       只把收件服務已經收到的事件畫出來，不送資料、不耗資源，比照 office.overview 只有開關、不設每日次數。 */
+    { id: 'office.liveviz', name: 'AI 辦公室：即時動作、子 Agent 連線與連線燈', cat: 'office', def: true, kind: 'bool', unlisted: true,
+      desc: '辦公室即時模式：同事依 Claude 真的在用的工具換動作並在頭上顯示小圖示（讀檔、寫檔、跑測試、搜尋、派人），派出子 Agent 時畫出與派工者的連線，頂列綠黃紅燈顯示連線狀態並自動重連（關閉：不顯示圖示、連線與燈號）', veil: [], mark: [], block: [] },
+    /* ★ 2026-11-16（Andy：第二批 10 項「全做」，第 6、7 項）：任務藍圖（畫「需求→實作→審查→測試」流程、存範本、套用）、優先度格子表（員工 × 工作類型 0～3，自動派工會參考）。
+       office.blueprint：每套用一次藍圖算一次（示範模式真的跑流程、真實專案把流程轉成給 CEO 的指令；用完：不套用、面板一行白話說明；編輯與存範本不計次）。
+       office.priority：只是調整參數、不送資料、不耗資源，只有開關、不設次數（關閉：設定面板裡的「優先度表」鈕灰掉）。
+       壓力原因、純工作模式是被動顯示／顯示偏好，不耗資源，不另外設鍵。四個方案開關都開；任務藍圖每日次數 訪客 0（不開放）、註冊會員 5、Plus 30、Pro 不限。體驗次數由 Andy 自己設，這裡不預設。 */
+    { id: 'office.blueprint', name: 'AI 辦公室：任務藍圖', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
+      qnote: '今天的任務藍圖次數用完了，明天會恢復', route: /^#office/,
+      desc: '辦公室「設定」裡的任務藍圖：每套用一次流程算一次（示範模式真的一站一站派工；真實專案轉成給 CEO 的指令放進對話框）。用完：不套用、面板一行白話說明；編輯與儲存範本不計次', veil: [], mark: [], block: [] },
+    { id: 'office.priority', name: 'AI 辦公室：優先度格子表', cat: 'office', def: true, kind: 'bool', unlisted: true,
+      desc: '辦公室「設定」裡的優先度表：員工 × 工作類型的 0～3 優先度，自動派工與藍圖挑人會參考（關閉：設定面板裡的「優先度表」鈕灰掉）', veil: [], mark: [], block: [] }
+>>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
   );
 
   /* ★ 2026-10-07「全站共用每日額度」（quota.all，docs/quota_plan.md、docs/plan_tiers_1007.md）：哪些功能算「研究頁」、會吃共用額度。

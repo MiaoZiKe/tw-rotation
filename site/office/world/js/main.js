@@ -29,6 +29,7 @@ import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
 import { rosterWanted, createRoster } from './roster.js';
 import { peekProject, wantsBlocks, blocksLayout, createBlocks } from './blocks.js';   // 非 tw-rotation 的專案：場景只蓋 CEO 區塊＋每位 Agent 一個區塊（blocks.js）   // 專案名冊：進專案的辦公室只顯示 CEO＋這個專案真的有的 Agent（roster.js）
+import { createScenery } from './scenery.js';
 import { mountSports } from './sports.js';   // 員工運動場（羽毛球、籃球、網球、撞球、游泳池；sports*.js）
 import { FX } from '../../play/fx.js';
 import { SPECIES, canWear } from '../../play/species.js';
@@ -49,7 +50,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const coarse = matchMedia('(pointer:coarse)').matches || innerWidth < 720;
   let quality = qs.get('q') || (coarse ? 'low' : 'high'); const pinned = qs.has('q');
   const cv = $('cv'), W = createWorld(cv, layout, org, quality, { styleOf: makeStyleOf(rw, layout), blocks: blocksOn }), { renderer, scene, camera } = W;
-  PF.mark('world'); buildOutside(W); if (blocksOn) W.blocks = createBlocks(W, {});   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
+  PF.mark('world'); buildOutside(W); if (blocksOn) W.blocks = createBlocks(W, {}); W.scenery = createScenery(W);   // 外圍景觀（灌木、花、樹、湖）：依地板／運動場／遊民區的實際範圍生成，區塊長出來時往外重排   // 公司外面的無業遊民區（要在放角色之前建好，尋路才算得到）
   W.stats = { calls: 0, tris: 0, fps: 0, walks: 0, noPath: 0, interrupted: 0, quality };
   let pr = Math.min(devicePixelRatio || 1, quality === 'low' ? 1.5 : 2); if (qs.get('pr')) pr = Math.max(0.25, +qs.get('pr') || 1);   // 網址可指定解析度倍率（測試或很慢的裝置用）
   function resize() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
