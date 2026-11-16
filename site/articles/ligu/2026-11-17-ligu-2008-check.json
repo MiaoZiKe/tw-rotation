@@ -1,0 +1,192 @@
+{
+ "id": "2026-11-17-ligu-2008-check",
+ "cat": "ligu",
+ "title": "負成長、大跌，像 2008 嗎？",
+ "subtitle": "哩股哩股：日本 7–9 月年率 ▲0.1%、11 月初全球股市大跌，這像 2008 嗎？",
+ "date": "2026-11-17",
+ "updated": "2026-11-17",
+ "tags": [
+  "哩股哩股",
+  "日本GDP",
+  "2008",
+  "估值修正"
+ ],
+ "summary": "日本 7–9 月實質 GDP 年率 ▲0.1%（4 季來首次負成長），設備投資仍增加 1.6%；11 月初全球股市大跌後有人問像不像 2008。美銀策略主管 3 月就說資產走勢像 2007–08，德意志銀行研究院則認為近期更可能是估值修正。兩邊都是分析推測，目前沒有定論。查證截至 2026/11/16。",
+ "reading_min": 3,
+ "sources": [
+  {
+   "title": "〈7〜9月実質GDP年率0.1%減、4四半期ぶりマイナス〉（只看標題）",
+   "publisher": "日本經濟新聞",
+   "date": "2026-11-16",
+   "url": "https://www.nikkei.com/article/DGXZQOUA138F50T11C26A1000000/"
+  },
+  {
+   "title": "Japan's economy contracts annualised 0.1% in July-September（Investing.com 轉載，只看標題與摘要）",
+   "publisher": "路透社（Reuters）",
+   "date": "2026-11-16",
+   "url": "https://www.investing.com/news/economic-indicators/japans-economy-contracts-annualised-01-in-julyseptember-5028208"
+  },
+  {
+   "title": "Japan's economy unexpectedly shrinks in July-September as consumption falters（93.3 The Drive 轉載，只看摘要）",
+   "publisher": "路透社（Reuters）",
+   "date": "2026-11-15",
+   "url": "https://www.933thedrive.com/2026/11/15/japans-economy-unexpectedly-shrinks-in-july-september-as-consumption-falters/"
+  },
+  {
+   "title": "Japan's economy shrinks at a 0.1% annualized pace（只看摘要）",
+   "publisher": "MLQ.ai",
+   "date": "2026-11-16",
+   "url": "https://mlq.ai/news/japans-economy-shrinks-at-a-01-annualized-pace-in-the-third-quarter-as-imports-jump-and-consumers-cut-back/"
+  },
+  {
+   "title": "Markets starting to look like 2008: BofA's Hartnett（只看摘要；原報導為彭博）",
+   "publisher": "ThinkAdvisor",
+   "date": "2026-03-13",
+   "url": "https://www.thinkadvisor.com/amp/2026/03/13/markets-starting-to-look-like-2008-bofas-hartnett/"
+  },
+  {
+   "title": "Bank of America's Hartnett draws parallels to pre-crisis era（只看摘要）",
+   "publisher": "GlobeSt",
+   "date": "2026-03-16",
+   "url": "https://www.globest.com/amp/2026/03/16/bank-of-americas-hartnett-draws-parallels-to-pre-crisis-era/"
+  },
+  {
+   "title": "Stocks close out worst year since 1931; Dow drops 33.8%",
+   "publisher": "ABC News",
+   "date": "2008-12-31",
+   "url": "https://abcnews.com/Business/story?id=6559189"
+  },
+  {
+   "title": "Wall Street: Bring on '09",
+   "publisher": "CNN Money",
+   "date": "2008-12-31",
+   "url": "https://money.cnn.com/2008/12/31/markets/markets_newyork/index.htm"
+  },
+  {
+   "title": "Investors wipe $2.5T off Nasdaq as blue tsunami prompts AI fears（Tribune 轉載，只看摘要）",
+   "publisher": "路透社（Reuters）",
+   "date": "2026-11-06",
+   "url": "https://tribune.com.pk/story/2639009/investors-wipe-25t-off-nasdaq-as-blue-tsunami-prompts-ai-fears"
+  },
+  {
+   "title": "Asian shares skid after AI worries send Wall Street tumbling（AJC 版，只看摘要）",
+   "publisher": "美聯社（AP）",
+   "date": "2026-11-06",
+   "url": "https://www.ajc.com/news/2026/11/asian-benchmarks-decline-after-ai-worries-send-wall-street-tumbling/"
+  },
+  {
+   "title": "Why hasn't there been a major financial crisis in recent years?（原文未讀，只看標題與搜尋摘要）",
+   "publisher": "德意志銀行研究院（Deutsche Bank Research Institute）原文未讀",
+   "date": "2026-11-03",
+   "url": "https://www.dbresearch.com/PROD/IE-PROD/PDFVIEWER.calias?pdfViewerPdfUrl=PROD0000000000657479&rwnode=REPORT"
+  },
+  {
+   "title": "公表予定：2026 年 12 月 8 日 08:50（官方日程，預定）",
+   "publisher": "日本 e-Stat（政府統計入口）",
+   "date": "2026-12-08",
+   "url": "https://www.e-stat.go.jp/release-calendar/detail/00100409/202612080850"
+  }
+ ],
+ "confidence": "各句狀態見逐句查證表；標「原文未讀」「只看摘要」者只看到標題或摘要，內閣府與德銀原文未讀。",
+ "status": "published",
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/ligu/20261117v_2008_check/video.mp4",
+   "poster": "media/ligu/20261117v_2008_check/cover.jpg",
+   "title": "負成長、大跌，像 2008 嗎？",
+   "note": "影片 1080×1920；下方可下載。"
+  },
+  {
+   "t": "h",
+   "text": "念稿全文"
+  },
+  {
+   "t": "p",
+   "text": "日本公布，七到九月的經濟負成長。年率只差 0.1%。年率，是把這一季的變化，換算成一整年。所以這是個很小的負數。而且企業的設備投資，比上一季還多了 1.6%。十一月初全球股市大跌，這像不像 2008 年。美國銀行的策略主管，三月就說，今年的資產走勢，很像 2007 到 2008 年。不過 2008 年是銀行和房貸先出事，美股大盤全年跌了 38.5%。這次，路透和美聯社都說，導火線是市場擔心 AI 投資。德意志銀行研究院的看法不同，認為近期更可能是估值修正，不是金融危機。所以像不像，目前還沒有定論。12 月 8 日，日本預計公布二次速報，數字可能修正。想看完整對照，留言日本。"
+  },
+  {
+   "t": "h",
+   "text": "逐句查證"
+  },
+  {
+   "t": "table",
+   "head": [
+    "旁白",
+    "狀態",
+    "依據"
+   ],
+   "rows": [
+    [
+     "日本公布，七到九月的經濟負成長。年率只差 0.1%。",
+     "媒體報導（日經、路透）；內閣府原文未讀",
+     "日本經濟新聞、路透 2026/11/16（只看標題與摘要）"
+    ],
+    [
+     "年率，是把這一季的變化，換算成一整年。所以這是個很小的負數。",
+     "換算定義，非查證結論（路透標題用 annualised；MLQ 摘要說單季變動約 −0.02%）",
+     "路透、MLQ.ai 2026/11/16"
+    ],
+    [
+     "而且企業的設備投資，比上一季還多了 1.6%。",
+     "媒體報導（路透）；第二來源只有未逐篇標註的日文摘要；內閣府原文未讀",
+     "路透（93.3 The Drive 轉載）"
+    ],
+    [
+     "十一月初全球股市大跌，這像不像 2008 年。美國銀行的策略主管，三月就說，今年的資產走勢，很像 2007 到 2008 年。",
+     "分析推測（美銀 Hartnett，3 月 13 日客戶報告）；11 月初大跌為媒體報導（路透）",
+     "ThinkAdvisor 2026/3/13、GlobeSt 2026/3/16、路透 2026/11/6"
+    ],
+    [
+     "不過 2008 年是銀行和房貸先出事，美股大盤全年跌了 38.5%。這次，路透和美聯社都說，導火線是市場擔心 AI 投資。",
+     "媒體報導：2008 跌幅（ABC、CNN，價格指數）；這次導火線（路透、美聯社，只看摘要）",
+     "ABC News、CNN Money 2008/12/31；路透、美聯社 2026/11/6"
+    ],
+    [
+     "德意志銀行研究院的看法不同，認為近期更可能是估值修正，不是金融危機。",
+     "分析推測（德銀研究院）；原文未讀，只看標題與搜尋摘要，且只有一家來源",
+     "德意志銀行研究院 2026/11/3"
+    ],
+    [
+     "所以像不像，目前還沒有定論。12 月 8 日，日本預計公布二次速報，數字可能修正。",
+     "預計（官方日程：e-Stat 公表予定）；結果截至 2026/11/16 尚未確定",
+     "e-Stat 公表予定 2026/12/8"
+    ],
+    [
+     "想看完整對照，留言日本。",
+     "提問（非事實陳述）",
+     "—"
+    ]
+   ]
+  },
+  {
+   "t": "h",
+   "text": "還不知道的事"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "12/8 日本二次速報會不會修正這次的負成長（預計日程，截至 2026/11/16 尚未確定）",
+    "美銀與德銀的說法誰比較準（兩者都是分析推測）",
+    "日本內閣府速報與德銀報告原文，本輪仍未讀到",
+    "設備投資 +1.6% 的第二來源較弱"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "刻意沒放的內容"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "不預測崩盤或衰退：明年是否衰退只有機構預測，不放進本片",
+    "不給投資建議，也不放大跌的具體跌幅與台股數字",
+    "沒列相關公司：這題沒有單一公司，查證過的來源也沒有指名具體上市公司"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文整理公開資訊，不構成投資建議。查證截至 2026/11/16；數字取自日經、路透、美聯社等媒體報導與搜尋摘要，內閣府與德銀原文未讀，標「只看摘要」者請以原文為準。"
+  }
+ ]
+}
