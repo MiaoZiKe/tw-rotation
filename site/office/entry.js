@@ -36,7 +36,7 @@
       .then(function (x) { clearTimeout(tm); return x; });
   }
   function loadServer() {
-    return Promise.all([call('GET', '/v1/offices'), call('GET', '/v1/office/main/projects')]).then(function (rs) {
+    return Promise.all([call('GET', '/v1/offices'), call('GET', '/v1/office/me/projects')]).then(function (rs) {
       var o = rs[0], p = rs[1];
       SRV.loaded = true;
       SRV.projects = p.ok && Array.isArray(p.json.projects) ? p.json.projects : [];

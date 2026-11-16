@@ -561,6 +561,7 @@ export class Hub {
       if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' });
       return this.json(req, { error: 'auth' }, 401);
     }
+    if (office === 'me') office = who;   // 網址寫 me＝我自己的辦公室（會員前端不必知道自己的代號）
     if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
     if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const now = this.now(), since = Math.max(0, parseInt(url.searchParams.get('since') || '0', 10) || 0);
@@ -652,6 +653,7 @@ export class Hub {
       if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' });
       return this.json(req, { error: 'auth' }, 401);
     }
+    if (office === 'me') office = who;   // 網址寫 me＝我自己的辦公室（會員前端不必知道自己的代號）
     if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
     if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const now = this.now();
@@ -951,6 +953,7 @@ export class Hub {
       if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' });
       return this.json(req, { error: 'auth' }, 401);
     }
+    if (office === 'me') office = who;   // 網址寫 me＝我自己的辦公室（會員前端不必知道自己的代號）
     if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
     if (!this.hit('rd:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const pj = url.searchParams.get('project');
