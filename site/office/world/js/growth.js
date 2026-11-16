@@ -64,7 +64,7 @@ const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.ch
 const tpeDay = (ms = Date.now()) => new Date(ms + 8 * 3600e3).toISOString().slice(0, 10);
 export const needFor = lv => 40 + 20 * (lv - 1);                 // 從 lv 升到 lv+1 要多少經驗
 export const MAXLV = 20;
-const RATE = { sleep: 0.8, sport: 2.0, lounge: 3.0, pantry: 3.0, water: 2.0, outside: 0.8 };   // 每模擬秒恢復的體力（壓力同時降 0.7 倍）；休息的路程只有幾秒到幾十秒，所以數字比工作消耗大得多
+const RATE = { sleep: 1.5, sport: 2.0, lounge: 3.0, pantry: 3.0, water: 2.0, outside: 0.8 };   // 每模擬秒恢復的體力（壓力同時降 0.7 倍）；休息的路程只有幾秒到幾十秒，所以數字比工作消耗大得多
 const REST_ZH = { sleep: '睡覺', sport: '運動', lounge: '休息區', pantry: '茶水間', water: '飲水機', outside: '無業遊民區' };
 export const DRAIN = 0.12, STRESS_UP = 0.10;                     // 每模擬秒的工作消耗
 
@@ -201,7 +201,7 @@ export function createGrowth(W) {
 
   // ───────── 每個模擬步 ─────────
   let acc = 0, wrapN = 0;
-  const restState = new Map();    // id → { sec, gain }：一段休息累積了幾秒、恢復了多少，滿 3 秒且恢復 ≥ 6 才算「休息恢復一次」
+  const restState = new Map();    // id → { gain, day }：今天靠休息累積恢復了多少體力，滿 6 才算「休息恢復過一次」（短短一趟睡一下也要能累積，所以不看單趟）
   G.tick = h => {
     acc += h; if (acc < 0.25) return; const d = acc; acc = 0; if (!W.ready) return;
     const hr = taipeiNow().h, night = hr >= 18 || hr < 6;
@@ -219,9 +219,9 @@ export function createGrowth(W) {
       } else if (rk) {
         const rate = RATE[rk] * mod.rec(rk) * mod.recAll, before = r.sta;
         r.sta += d * rate; r.str -= d * rate * 0.7;
-        const s = restState.get(id) || { sec: 0, gain: 0 }; s.sec += d; s.gain += r.sta - before; restState.set(id, s);
-        if (s.sec >= 3 && s.gain >= 6) { const D = ensureDay(); if (!D.rested.includes(id)) { D.rested.push(id); G.dirty = true; checkGoals(); } }
-      } else { r.sta += d * 0.03; r.str -= d * 0.05; restState.delete(id); }
+        const s = restState.get(id) || { gain: 0, day: '' }; if (s.day !== ensureDay().d) { s.day = ensureDay().d; s.gain = 0; } s.gain += Math.max(0, Math.min(100, r.sta) - before); restState.set(id, s);   // 今天靠休息一共回了多少體力（睡一下、喝一杯、逛休息區都累積）
+        if (s.gain >= 6) { const D = ensureDay(); if (!D.rested.includes(id)) { D.rested.push(id); G.dirty = true; checkGoals(); } }
+      } else { r.sta += d * 0.03; r.str -= d * 0.05; }
       r.sta = clamp(r.sta, 0, 100); r.str = clamp(r.str, 0, 100); G.dirty = true;
       const m = mindOf(c); if (m) { m.energy = r.sta / 100; m.stress = r.str / 100; }       // 同步給心情層：心情列的「有點睏／壓力大」跟這裡的數字同一個來源
       // 手上沒事又很累：自己去休息，直到恢復（工作中不能休息，只會慢下來）
