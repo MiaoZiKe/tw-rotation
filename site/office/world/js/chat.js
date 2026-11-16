@@ -62,7 +62,7 @@ export function createChat(W, X) {
         <div class="mc-ctl" id="mcCtl">
           <span class="mc-seg" role="group" aria-label="視窗位置"><button type="button" data-pos="left" title="靠左">左</button><button type="button" data-pos="center" title="置中">中</button><button type="button" data-pos="right" title="靠右">右</button></span>
           <button type="button" class="mc-tool" id="mcLock" aria-pressed="false" title="鎖定視窗位置">鎖定</button>
-          <button type="button" class="mc-tool" id="mcOp" title="視窗透明度（滑鼠移上去會恢復清楚）">透明 100%</button>
+          <span class="mc-seg mc-opg" title="視窗透明度（滑鼠移上去會恢復清楚）"><button type="button" id="mcOpM" aria-label="降低透明度">−</button><span id="mcOp" aria-live="polite">透明 0%</span><button type="button" id="mcOpP" aria-label="提高透明度">＋</button></span>
         </div>
         <button class="mc-help" id="mcHelp" type="button" aria-label="說明" aria-expanded="false">?</button>
         <button class="mc-x" id="chatX" type="button" aria-label="收合對話框" title="收合（Esc）">﹀</button>
@@ -198,11 +198,11 @@ export function createChat(W, X) {
   K.actsOf = actsOf; K.clean = clean;
 
   // ───────── 視窗位置、鎖定、透明（記在 localStorage，重新整理後保留） ─────────
-  const OPS = [1, .7, .4];
+  const OP_MIN = .2, opOk = v => (v >= OP_MIN && v <= 1 ? Math.round(v * 10) / 10 : 1);   // 不透明度 0.2～1，每次加減 10%（11-16 擁有者：「透明度改成可以 + -」）
   function loadPref() {
     let o = null; try { o = JSON.parse(lsGet(LS_WIN) || 'null'); } catch (e) { o = null; }
     o = o && typeof o === 'object' ? o : {};
-    K.pref = { pos: ['left', 'center', 'right', 'free'].includes(o.pos) ? o.pos : 'left', last: ['left', 'center', 'right'].includes(o.last) ? o.last : 'left', x: +o.x || 0, y: +o.y || 0, lock: !!o.lock, op: OPS.includes(+o.op) ? +o.op : 1 };
+    K.pref = { pos: ['left', 'center', 'right', 'free'].includes(o.pos) ? o.pos : 'left', last: ['left', 'center', 'right'].includes(o.last) ? o.last : 'left', x: +o.x || 0, y: +o.y || 0, lock: !!o.lock, op: opOk(+o.op) };
     if (K.pref.pos !== 'free') K.pref.last = K.pref.pos;
   }
   const savePref = () => lsSet(LS_WIN, JSON.stringify(K.pref));
@@ -218,7 +218,7 @@ export function createChat(W, X) {
     pn.style.setProperty('--mc-op', String(P.op));
     pn.classList.toggle('locked', P.lock);
     const lk = $('mcLock'); lk.setAttribute('aria-pressed', String(P.lock)); lk.textContent = P.lock ? '已鎖定' : '鎖定'; lk.title = P.lock ? '按一下解除鎖定' : '鎖定視窗位置（鎖定後拖不動、也不能換位置）';
-    $('mcOp').textContent = '透明 ' + Math.round(P.op * 100) + '%';
+    $('mcOp').textContent = '透明 ' + Math.round((1 - P.op) * 100) + '%'; $('mcOpM').disabled = P.op >= 1; $('mcOpP').disabled = P.op <= OP_MIN;
     for (const b of pn.querySelectorAll('[data-pos]')) { b.classList.toggle('on', P.pos === b.dataset.pos || (P.pos === 'free' && false)); b.disabled = P.lock; b.setAttribute('aria-pressed', String(P.pos === b.dataset.pos)); }
     avoid(); measure();
   }
@@ -254,7 +254,7 @@ export function createChat(W, X) {
     const t = e.target.closest('button'); if (!t) return;
     if (t.dataset.pos && !K.pref.lock) { K.pref.pos = t.dataset.pos; K.pref.last = t.dataset.pos; K.pref.x = K.pref.y = 0; savePref(); applyPos(); avoid(true); }
     else if (t.id === 'mcLock') { K.pref.lock = !K.pref.lock; savePref(); applyPos(); }
-    else if (t.id === 'mcOp') { K.pref.op = OPS[(OPS.indexOf(K.pref.op) + 1) % OPS.length]; savePref(); applyPos(); }
+    else if (t.id === 'mcOpP' || t.id === 'mcOpM') { K.pref.op = opOk(K.pref.op + (t.id === 'mcOpP' ? -.1 : .1)); savePref(); applyPos(); }
     else if (t.id === 'mcHelp') { const h = $('mcTip'); h.hidden = !h.hidden; t.setAttribute('aria-expanded', String(!h.hidden)); }
   });
   loadPref();

@@ -198,3 +198,14 @@
   .mc-bar{flex-wrap:wrap}
   .mc-sel{flex:1 0 100%;max-width:none;height:40px;font-size:14px}
 }
+
+/* 11-16 擁有者回饋：長訊息讓對話串出現橫向捲軸、「沒有回音／重送」被擠成直排 */
+.c-list{overflow-x:hidden}
+.c-msg,.c-mine{min-width:0;max-width:100%}
+.c-stl{white-space:nowrap;flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+.c-stl span,.c-again{white-space:nowrap;flex:none}
+.c-tx{overflow-wrap:anywhere}
+/* 透明度 − 數值 ＋ */
+.mc-opg{align-items:center}
+.mc-opg button{width:30px;padding:0;font-size:15px}
+.mc-opg #mcOp{font-size:12.5px;font-weight:700;padding:0 4px;white-space:nowrap;min-width:62px;text-align:center}
