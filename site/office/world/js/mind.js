@@ -307,7 +307,7 @@ export function createMind(W, X = {}) {
           if (patEnd && age >= patEnd) { patEnd = 0; face(c, m, 'blank', 60); }
           if (beatEnd && age >= beatEnd) { beatEnd = 0; face(c, m, 'blank', 60); }
           if (!coughEnd && !patEnd && !beatEnd && age >= nextPat && nextCough - age > 1.9 && c.state !== 'walk') { nextPat = age + R(5.5, 8); if (FE.patDown(c, m)) patEnd = age + 1.5; }
-          if (!coughEnd && !patEnd && !beatEnd && age >= nextBeat && nextCough - age > 2.6 && c.state !== 'walk') { nextBeat = age + R(9, 13); beatEnd = age + FE.afterBeat(c, m); }
+          if (!coughEnd && !patEnd && !beatEnd && age >= nextBeat && c.state !== 'walk') { nextBeat = age + R(9, 13); beatEnd = age + FE.afterBeat(c, m); nextCough = Math.max(nextCough, beatEnd + .6); if (nextPat < beatEnd + .5) nextPat = beatEnd + .5; }
           if (m.f && W.time - m.f.comfortAt < 3 && !m.f.thankedC && !coughEnd && !patEnd && !beatEnd) { m.f.thankedC = true; face(c, m, 'grateful', 2); say(c, '謝謝你…', 1.6, true); c.emote('heart', 1.4); }
           if (age >= nextCough && !patEnd && !beatEnd && c.state !== 'walk') { nextCough = age + 3.2; coughEnd = age + 1.2; face(c, m, 'cough', 60); c.emote('smoke', 1.3); act(c, 'cough', { duration: 1.4 }, true); FE.coughPuff(c); }
           if (c.inner && c.inner.ch && c.inner.ch.face && Math.random() < .02) c.inner.ch.face.blinkNow && c.inner.ch.face.blinkNow();    // 眨眨眼

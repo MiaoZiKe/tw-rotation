@@ -151,8 +151,8 @@ export function createFeel(W, K) {
     if (f.blame) addRel(m, -.34 * (.75 + .5 * m.t.sens) * (1.2 - .5 * m.t.opt), '被丟進火裡'); dirty(m);
     const fs = fireOf(c), p = pos(c), pool = poolPlan(c, p); let style = burnStyle(m); if (pool) style = 'pool';
     f.bs = { tok: fs ? fs.tok : 0, t0: W.time, style, base: burnStyle(m), pool, lx: p.x, lz: p.z, dist: 0, ang: Math.random() * 6.28, dir: Math.random() < .5 ? 1 : -1, hopT: .25, path: null, pi: 1, pathAt: -9, gap: false, step: 0, trem: 0, tg: 0, emoT: 0, dropT: 0, emoI: 0, x0: p.x, z0: p.z, maxDisp: 0 };
-    f.bsLog = []; f.limpUntil = 0; f.beatN = 0;
-    if (fs) fs.dur = Math.max(fs.dur, pool ? Math.min(8.6, 2 + pool.d / 3.9) : { run: 4.6, pat: 4.8, hop: 4.6, duck: 5.4 }[style]);   // 掙扎要演得完（原本燒 3.2～4.8 秒）
+    f.bsLog = []; f.limpUntil = 0; f.beatN = 0; if (W.fire) W.fire.steer = F.steer;   // 接上 fire.js 的走法接管點
+    if (fs) fs.dur = Math.max(fs.dur, pool ? Math.min(9, 3 + (pool.d + 3.2) / 3.9) : { run: 4.6, pat: 4.8, hop: 4.6, duck: 5.4 }[style]);   // 掙扎要演得完（原本燒 3.2～4.8 秒）
     record(m, { event: 'burn-style', style, pool: !!pool });
   };
   const tag = (m, o) => { const b = of(m).bs; if (b) of(m).bsLog.push({ t: Math.round((W.time - b.t0) * 10) / 10, ...o }); };
@@ -175,7 +175,7 @@ export function createFeel(W, K) {
     }
     switch (b.style) {
       case 'run':   // 慌張亂跑：先原地驚叫、再繞著小圈跑、最後才逃開
-        if (t < .9) return hold(t < .35); if (t < 3) { b.ang += 4.4 * h * b.dir; const vx = Math.cos(b.ang) * 3.4, vz = Math.sin(b.ang) * 3.4; if (!W.nav.isFree(p.x + vx * .45, p.z + vz * .45)) { b.dir = -b.dir; b.ang += 1.6; return hold(false); } return go(vx, vz, false); } return flee(4);
+        if (t < .9) return hold(t < .35); if (t < 3) { b.ang += 4.4 * h * b.dir; let vx = Math.cos(b.ang) * 3.2 + ax, vz = Math.sin(b.ang) * 3.2 + az; if (!W.nav.isFree(p.x + vx * .45, p.z + vz * .45)) { b.dir = -b.dir; b.ang += 1.6; vx = ax * 2.5; vz = az * 2.5; } return go(vx, vz, false); } return flee(4);
       case 'pat':   // 拍打身上的火：站著拍、跺腳、慢慢往外挪
         if (t < .9) return hold(t < .35); if (t < 3) return go(ax * .9, az * .9, true, ax, az); return flee(3.8);
       case 'duck':  // 抱頭蹲下：原地縮著，之後才爬著逃開
@@ -292,7 +292,7 @@ export function createFeel(W, K) {
   F.onGrabSeen = (g) => {
     for (const o of people()) {
       if (o === g || !awake(o) || o.jobless || o.piloted || o.state === 'held') continue; const mo = mindOf(o); if (!mo) continue; const f = of(mo);
-      if ((f.fear < .2 && !(f.burnAt && Date.now() - f.burnAt < 6 * 3600e3 && f.fear > .05)) || dist(o, g) > 7 || W.time - f.grabAt < 40 || mo.sc) continue; f.grabAt = W.time;
+      if ((f.fear < .2 && !(f.burnAt && Date.now() - f.burnAt < 6 * 3600e3 && f.fear > .05)) || dist(o, g) > 7 || W.time - f.grabAt < 40 || (mo.sc && mo.sc.prio >= 6)) continue; f.grabAt = W.time;
       scene(o, mo, 4, 'feel-grab-nervous', sc => { sc.at(0, () => { const a = pos(g); o.lookAt({ x: a.x, y: 1, z: a.z }); face(o, mo, 'scared', 2.4); o.emote('sweat', 1.8); say(o, rnd(['…你、你要做什麼？', '別把他丟進火裡…', '拜託輕一點…']), 2, true); act(o, 'fidget', { duration: 2 }, true); }); sc.at(2.6, () => { }); sc.on_end(() => { if (!(A() && A().current() === o)) o.lookAt(null); }); K.holdCap(o, mo, sc); });
       record(mo, { event: 'grab-nervous', face: 'scared', fear: Math.round(f.fear * 100) / 100 });
     }
@@ -433,7 +433,7 @@ export function createFeel(W, K) {
     return true;
   }
   F.tickChar = (c, m, now, d) => {
-    const f = of(m); if (!awake(c) || c.jobless) { runQ(c, m); return; }
+    const f = of(m); if (W.fire && W.fire.steer !== F.steer) W.fire.steer = F.steer; if (!awake(c) || c.jobless) { runQ(c, m); return; }
     relDecay(m, d); runQ(c, m);
     if (f.fear > 0) { const tau = (500 + 1500 * m.t.sens) * (1.3 - m.t.opt); f.fear -= f.fear * (1 - Math.exp(-d / tau)); if (f.fear < .02) f.fear = 0; }
     if (now < f.wetUntil && now >= (f.cd.shiver || 0) && !m.sc && canAct(c) && c.state !== 'walk') { f.cd.shiver = now + R(6, 10); act(c, 'fidget', { duration: 2 }); face(c, m, 'worried', 2); c.emote('sweat', 1.4); }

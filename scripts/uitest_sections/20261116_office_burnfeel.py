@@ -228,7 +228,7 @@ def t_bf_burn(b, base):
     gx, gy = _bf_proj(pg, G)
     pg.mouse.move(gx, gy)
     pg.mouse.down()
-    pg.wait_for_timeout(500)
+    pg.wait_for_timeout(1000)
     near = _bf_log(pg, A, "grab-nervous")
     _bf_shot(pg, "被燒細節_7看到你拎人緊張.png")
     pg.mouse.up()
