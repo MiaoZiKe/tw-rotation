@@ -90,7 +90,7 @@ export function createMind(W, X = {}) {
     }
     return m;
   }
-  const speedMul = m => clamp(1 + .16 * Math.max(0, m.val) - .24 * Math.max(0, -m.val) - .14 * Math.max(0, .45 - m.energy), .7, 1.16);
+  const speedMul = m => clamp(1 + .16 * Math.max(0, m.val) - .24 * Math.max(0, -m.val) - .14 * Math.max(0, .45 - m.energy), .7, 1.16) * (M.feel && M.feel.limp ? M.feel.limp(m) : 1);   // 燒傷未癒：一拐一拐（0.6 倍）
   const awake = c => !c.sleeping && c.action !== 'sleep' && c.object3D.visible && !c.away;
   const meeting = c => { const d = D(), mt = d && d.meeting; return !!(mt && mt.people.includes(c)); };
   const canAct = c => !c.busy && !c.piloted && !c.sleeping && !c.jobless && !c.hrBusy && c.state !== 'held' && !meeting(c) && c.action !== 'sleep';
@@ -122,7 +122,7 @@ export function createMind(W, X = {}) {
     const bonk0 = c.bonk.bind(c); c.bonk = () => { bonk0(); emit('bonked', c.spec.id, { by: 'you' }); };
     // 拎起來快速甩出去：沒人先送 knocked 就由這裡補送
     const grab0 = c.grab.bind(c), drag0 = c.dragTo.bind(c), rel0 = c.release.bind(c); c._dhMind = [];
-    c.grab = () => { c._dhMind.length = 0; m.grabbedAt = W.time; return grab0(); };
+    c.grab = () => { c._dhMind.length = 0; m.grabbedAt = W.time; try { FE.onGrabSeen(c); } catch (e) { /* 旁人的反應出錯不影響拎起 */ } return grab0(); };
     c.dragTo = (x, y, z) => { c._dhMind.push([performance.now(), x, y, z]); if (c._dhMind.length > 8) c._dhMind.shift(); return drag0(x, y, z); };
     c.release = () => {
       const h = c._dhMind, n = h.length; let sp = 0; if (n >= 2) { const a = h[Math.max(0, n - 4)], b = h[n - 1], dt = Math.max(0.03, (b[0] - a[0]) / 1000); sp = Math.hypot(b[1] - a[1], b[2] - a[2], b[3] - a[3]) / dt; }
@@ -295,21 +295,21 @@ export function createMind(W, X = {}) {
     const c = C(id), m = mindOf(c); if (!c || !m) return; m.burned = true; m.burnedAt = W.time; FE.onBurn(c, m, d);
     affect(m, { val: -.3 * (.7 + .6 * m.t.sens), stress: .25 }, CAUSE.burned, 300); remember(m, 'burned', '', CAUSE.burned);
     scene(c, m, 9, 'burned', sc => {
-      let ph = 0, ts = W.time, nextCough = 0, coughEnd = 0, nextPat = 1e9, patEnd = 0;
-      face(c, m, 'scared', 60); c.emote('exclaim', 1.2); say(c, rnd(['燙燙燙！', '哇！好燙！']), 1.4, true); act(c, 'flail', { duration: 1.6 }, true);
-      if (c.state === 'stand' && c.newModel && c.inner && 'extFall' in c.inner) c.inner.extFall = true;   // 跳腳（舊做法的角色不跳，只亂揮手）
+      let ph = 0, ts = W.time, nextCough = 0, coughEnd = 0, nextPat = 1e9, patEnd = 0, nextBeat = 1e9, beatEnd = 0;
+      // 階段 0：著火的掙扎（依個性：亂跑繞圈／拍打／跳腳／蹲下／跑向泳池；台詞、圖示、抖動由 FE.struggle 演）→ 階段 1：熄火喘氣癱下來 → 階段 2：燒焦呆滯（咳嗽冒黑煙、拍灰、看著自己難過、哭／苦笑／跺腳）
+      face(c, m, 'scared', 90);
       sc.poll = () => {
         const age = W.time - ts;
-        if (ph === 0 && age > 1.5) {                          // 跑開
-          ph = 1; ts = W.time;
-          if (c.state === 'stand' || c.state === 'walk') { const p = pos(c), a = R(0, 6.283), f = W.nav.nearestFree(p.x + Math.cos(a) * 3.4, p.z + Math.sin(a) * 3.4, 6); const path = f && W.nav.findPath(p, f); if (path) c.walkTo(path, { speed: 3.8 }); }
-        } else if (ph === 1 && age > 1.8) { ph = 2; ts = W.time; face(c, m, 'blank', 60); nextCough = 0.6; nextPat = 2.6; FE.onPain(c, m); }   // 焦黑呆滯
+        if (ph === 0) { if (FE.struggle(c, m) === 'done' || age > 14) { ph = 1; ts = W.time; FE.onPain(c, m); FE.relief(c, m); } }
+        else if (ph === 1 && age > 2.8) { ph = 2; ts = W.time; face(c, m, 'blank', 60); nextCough = 0.6; nextPat = 2.6; nextBeat = 4.5; }   // 焦黑呆滯
         else if (ph === 2) {
           if (coughEnd && age >= coughEnd) { coughEnd = 0; face(c, m, 'blank', 60); }
           if (patEnd && age >= patEnd) { patEnd = 0; face(c, m, 'blank', 60); }
-          if (!coughEnd && !patEnd && age >= nextPat && nextCough - age > 1.9 && c.state !== 'walk') { nextPat = age + R(5.5, 8); if (FE.patDown(c, m)) patEnd = age + 1.5; }
-          if (m.f && W.time - m.f.comfortAt < 3 && !m.f.thankedC && !coughEnd && !patEnd) { m.f.thankedC = true; face(c, m, 'grateful', 2); say(c, '謝謝你…', 1.6, true); c.emote('heart', 1.4); }
-          if (age >= nextCough && !patEnd && c.state !== 'walk') { nextCough = age + 3.2; coughEnd = age + 1.2; face(c, m, 'cough', 60); c.emote('smoke', 1.3); act(c, 'cough', { duration: 1.4 }, true); }
+          if (beatEnd && age >= beatEnd) { beatEnd = 0; face(c, m, 'blank', 60); }
+          if (!coughEnd && !patEnd && !beatEnd && age >= nextPat && nextCough - age > 1.9 && c.state !== 'walk') { nextPat = age + R(5.5, 8); if (FE.patDown(c, m)) patEnd = age + 1.5; }
+          if (!coughEnd && !patEnd && !beatEnd && age >= nextBeat && nextCough - age > 2.6 && c.state !== 'walk') { nextBeat = age + R(9, 13); beatEnd = age + FE.afterBeat(c, m); }
+          if (m.f && W.time - m.f.comfortAt < 3 && !m.f.thankedC && !coughEnd && !patEnd && !beatEnd) { m.f.thankedC = true; face(c, m, 'grateful', 2); say(c, '謝謝你…', 1.6, true); c.emote('heart', 1.4); }
+          if (age >= nextCough && !patEnd && !beatEnd && c.state !== 'walk') { nextCough = age + 3.2; coughEnd = age + 1.2; face(c, m, 'cough', 60); c.emote('smoke', 1.3); act(c, 'cough', { duration: 1.4 }, true); FE.coughPuff(c); }
           if (c.inner && c.inner.ch && c.inner.ch.face && Math.random() < .02) c.inner.ch.face.blinkNow && c.inner.ch.face.blinkNow();    // 眨眨眼
           if (!m.burned || age > 40) { m.burned = false; return true; }
         }
@@ -317,7 +317,7 @@ export function createMind(W, X = {}) {
       };
       holdCap(c, m, sc);
     });
-    record(m, { event: 'burned', face: 'scared>blank>cough', action: 'flail>run>cough' });
+    record(m, { event: 'burned', face: 'scared>effort>blank>cough', action: 'flail>dizzy>cough' });
     witness(id, 'burned', d);
   }
   function recovered(id, d = {}) {
@@ -353,9 +353,10 @@ export function createMind(W, X = {}) {
           else if (kind === 'rejected' || kind === 'punish') { face(B, mb, 'worried', 2); if (rel >= .45 && t.ext >= .5) say(B, '加油，沒事的', 1.6); }
           else {                                                  // 被丟、被燒
             const care = t.sens * .6 + rel * .5 >= .45;
-            if (kind === 'knocked' && !care && t.ext >= .6 && t.sens < .5 && d.by !== 'you') { face(B, mb, 'giggle', 1.3); B.emote('dots', 1.2); }   // 只有無傷的碰撞才偷笑一下，笑完就關心
+            if (kind === 'burned') FE.crowd(B, mb, A0, i, dd);   // 被燒：圍過來關心（喊人、打電話、拿東西搧風；不嘲笑）
+            else if (kind === 'knocked' && !care && t.ext >= .6 && t.sens < .5 && d.by !== 'you') { face(B, mb, 'giggle', 1.3); B.emote('dots', 1.2); }   // 只有無傷的碰撞才偷笑一下，笑完就關心
             else { face(B, mb, 'worried', 2.4); B.emote(kind === 'burned' ? 'exclaim' : 'question', 1.6); if (care || t.ext >= .6) say(B, kind === 'burned' ? '好燙！你還好嗎？' : '沒事吧？', 1.8); }
-            if (care && !careGiven && canAct(B) && B.state !== 'held' && dd > 1.4 && !B.jobless) { careGiven = true; careWalk(B, A0); }
+            if (kind !== 'burned' && care && !careGiven && canAct(B) && B.state !== 'held' && dd > 1.4 && !B.jobless) { careGiven = true; careWalk(B, A0); }
           }
         });
         sc.at(delay + 3.2, () => { }); holdCap(B, mb, sc);

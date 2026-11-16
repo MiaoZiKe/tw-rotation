@@ -9,6 +9,7 @@
 //   ⑤ 運動事件（sport_start／sport_score／sport_end）：贏了開心、輸了不甘心想再來一場、和對手的關係變好。
 // 不羞辱原則：旁人只關心、安慰、陪著，不嘲笑、不圍觀；欺負別人的永遠只有「你」，其他同事不會。
 // 只用角色的公開介面（setExpression／setAction／emote／say／walkTo／faceTo）與 mind.js 傳進來的 scene／face／act／say。
+import { LAY } from './sports_build.js';
 const LS = 'aiOffice.mind.feel.v1';
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const rnd = a => a[Math.floor(Math.random() * a.length)], R = (a, b) => a + Math.random() * (b - a);
@@ -28,7 +29,7 @@ export function createFeel(W, K) {
     if (m.f) return m.f;
     const s = SAVED[m.id] || {}, hrs = s.at ? Math.max(0, (Date.now() - s.at) / 3600e3) : 0, t = m.t;   // 隔了幾小時：敏感的人記得久、樂觀的人忘得快
     m.f = { rel: (s.rel || 0) * Math.exp(-hrs / (40 * (.4 + t.sens))), fear: (s.fear || 0) * Math.exp(-hrs / (40 * (.4 + t.sens) * (1.3 - t.opt))), burnAt: s.burnAt || 0, rap: s.rap || {},
-      hits: [], q: [], cd: {}, mode: null, wetUntil: 0, stage: null, blame: false, fearYou: 0, rematch: null, wonAt: 0, thanksAt: 0, fearT: 0, detKey: null, detPi: -1, comfortAt: -99, ventDone: false };
+      hits: [], q: [], cd: {}, mode: null, wetUntil: 0, stage: null, blame: false, fearYou: 0, rematch: null, wonAt: 0, thanksAt: 0, fearT: 0, detKey: null, detPi: -1, comfortAt: -99, ventDone: false, bs: null, bsLog: [], limpUntil: 0, beatN: 0, grabAt: 0 };
     return m.f;
   }
   F.of = of;
@@ -127,10 +128,100 @@ export function createFeel(W, K) {
 
   // ───────── 被燒：分階段 ─────────
   const burnWho = m => m.thrownAt != null && W.time - m.thrownAt < 20;
+  // ── 著火當下的掙扎（2026-11-16，擁有者：「被燒到應該是有夠多掙扎還有情緒，燒完後也是，細節需要多點」）──
+  // 依個性挑一種掙扎：慌張亂跑（繞圈）／拍打身上的火／原地跳腳／抱頭蹲下；附近有泳池就改跑向泳池。
+  // 走法由 fire.js 每個模擬步呼叫 F.steer 取得（只有被燒的這一位會算）；表情、台詞、圖示、抖動由 F.struggle 依時間表演出（mind.js 的「被燒」場景每步呼叫）。
+  const squash = (c, v) => { const i = c.inner; if (i && typeof i.sqV === 'number') i.sqV += v; };   // 壓扁／拉長：直接推身體的彈簧（形態鍵的做法）
+  const fireOf = c => W.fire && W.fire.states.get(c.spec.id);
+  const headOf = c => { const p = pos(c); return { x: p.x, y: (c.lift || 0) + (c.height || .8) * .92, z: p.z }; };
+  const LINES = {
+    run: ['啊啊啊啊！好燙！', '救命！救命啊！', '火在追我啦！', '誰來幫幫我！'],
+    pat: ['拍掉！拍掉！', '可惡！好燙！', '快滅掉啦！', '燙死我了！'],
+    hop: ['燙燙燙燙燙！', '哇啊～好燙！', '腳底好燙！', '救命！好燙！'],
+    duck: ['嗚…不要…', '救、救命…', '好燙…好怕…', '誰…幫幫我…'],
+  };
+  const burnStyle = m => { const t = m.t; return t.sens >= .55 && t.ext < .5 ? 'duck' : t.sens >= .45 ? 'run' : t.comp >= .55 ? 'pat' : 'hop'; };
+  const poolPlan = (c, p) => {   // 附近（路程約 14 公尺內）有泳池就回傳入口（南邊缺口外）與池內目標
+    const L = LAY && LAY.pool; if (!L) return null; const gx = (L.gap.x0 + L.gap.x1) / 2, ex = { x: gx, z: L.z1 + 1.1 }, d = Math.hypot(p.x - ex.x, p.z - ex.z);
+    return d <= 12 ? { ex: ex.x, ez: ex.z, ix: gx, iz: (L.z0 + L.z1) / 2, d } : null;
+  };
   F.onBurn = (c, m, d = {}) => {
     const f = of(m); f.stage = 'shock'; f.burnAt = Date.now(); f.ventDone = false; f.thankedC = false; f.blame = burnWho(m) || d.by === 'you' || !!(c._held || c.state === 'held' || (m.grabbedAt != null && W.time - m.grabbedAt < 25));   // 被你拎著放到火上、或剛被你甩出去
     if (f.blame) { f.hits.push({ t: W.time, w: 1.2, kind: 'fire' }); f.bullyAt = W.time; }
     if (f.blame) addRel(m, -.34 * (.75 + .5 * m.t.sens) * (1.2 - .5 * m.t.opt), '被丟進火裡'); dirty(m);
+    const fs = fireOf(c), p = pos(c), pool = poolPlan(c, p); let style = burnStyle(m); if (pool) style = 'pool';
+    f.bs = { tok: fs ? fs.tok : 0, t0: W.time, style, base: burnStyle(m), pool, lx: p.x, lz: p.z, dist: 0, ang: Math.random() * 6.28, dir: Math.random() < .5 ? 1 : -1, hopT: .25, path: null, pi: 1, pathAt: -9, gap: false, step: 0, trem: 0, tg: 0, emoT: 0, dropT: 0, emoI: 0, x0: p.x, z0: p.z, maxDisp: 0 };
+    f.bsLog = []; f.limpUntil = 0; f.beatN = 0;
+    if (fs) fs.dur = Math.max(fs.dur, pool ? Math.min(8.6, 2 + pool.d / 3.9) : { run: 4.6, pat: 4.8, hop: 4.6, duck: 5.4 }[style]);   // 掙扎要演得完（原本燒 3.2～4.8 秒）
+    record(m, { event: 'burn-style', style, pool: !!pool });
+  };
+  const tag = (m, o) => { const b = of(m).bs; if (b) of(m).bsLog.push({ t: Math.round((W.time - b.t0) * 10) / 10, ...o }); };
+  // 每個模擬步由 fire.js 呼叫：回傳 {vx,vz,fx,fz,hop} 取代預設的直線逃開
+  F.steer = (c, o, h, dist) => {
+    const m = mindOf(c), f = m && m.f, b = f && f.bs; if (!b || b.tok !== o.tok) return null;
+    const t = W.time - b.t0, p = pos(c), sc = c.scale || 1, fc = W.fire.center; b.dist += Math.hypot(p.x - b.lx, p.z - b.lz); b.lx = p.x; b.lz = p.z; b.maxDisp = Math.max(b.maxDisp, Math.hypot(p.x - b.x0, p.z - b.z0));
+    let ax = p.x - fc.x, az = p.z - fc.z; const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+    const go = (vx, vz, hop, fx, fz) => { b.hopT -= h; const hp = hop && b.hopT <= 0; if (hp) { b.hopT = R(.55, .75); squash(c, 2.2); } return { vx: vx * sc, vz: vz * sc, fx: fx == null ? vx : fx, fz: fz == null ? vz : fz, hop: hp }; };
+    const hold = (hop, fx, fz) => go(0, 0, hop, fx == null ? ax : fx, fz == null ? az : fz);
+    const flee = sp => { for (const da of [0, .6, -.6, 1.2, -1.2, 1.9, -1.9]) { const cs = Math.cos(da), sn = Math.sin(da), vx = ax * cs - az * sn, vz = ax * sn + az * cs; if (W.nav.isFree(p.x + vx * .5, p.z + vz * .5)) return go(vx * sp, vz * sp, false); } return go(ax * sp, az * sp, false); };
+    if (b.pool) {                                                                       // 跑向泳池：先喊一下，再沿路徑衝到缺口、直接衝進水裡
+      if (t < .9) return hold(t < .35);
+      const P = b.pool; let tx = P.ex, tz = P.ez;
+      if (!b.gap && Math.hypot(p.x - P.ex, p.z - P.ez) < 1.2) b.gap = true;
+      if (b.gap) { tx = P.ix; tz = P.iz; }
+      else { if (t - b.pathAt > .8) { b.pathAt = t; b.path = W.nav.findPath({ x: p.x, z: p.z }, { x: P.ex, z: P.ez }); b.pi = 1; } const pts = b.path; if (pts && pts.length > 1) { while (b.pi < pts.length - 1 && Math.hypot(p.x - pts[b.pi].x, p.z - pts[b.pi].z) < .5) b.pi++; tx = pts[b.pi].x; tz = pts[b.pi].z; } }
+      let dx = tx - p.x, dz = tz - p.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl; const wob = Math.sin(t * 7) * .35;
+      return go((dx - dz * wob) * 4.2, (dz + dx * wob) * 4.2, true, dx, dz);
+    }
+    switch (b.style) {
+      case 'run':   // 慌張亂跑：先原地驚叫、再繞著小圈跑、最後才逃開
+        if (t < .9) return hold(t < .35); if (t < 3) { b.ang += 4.4 * h * b.dir; const vx = Math.cos(b.ang) * 3.4, vz = Math.sin(b.ang) * 3.4; if (!W.nav.isFree(p.x + vx * .45, p.z + vz * .45)) { b.dir = -b.dir; b.ang += 1.6; return hold(false); } return go(vx, vz, false); } return flee(4);
+      case 'pat':   // 拍打身上的火：站著拍、跺腳、慢慢往外挪
+        if (t < .9) return hold(t < .35); if (t < 3) return go(ax * .9, az * .9, true, ax, az); return flee(3.8);
+      case 'duck':  // 抱頭蹲下：原地縮著，之後才爬著逃開
+        if (t < 3) return hold(t < .35); return flee(t < 4.3 ? 2.3 : 3.4);
+      default:      // 原地跳腳：邊跳邊左右晃，之後才逃開
+        if (t < 3) { const sw = Math.sin(t * 2.6) * 1.2; return go(-az * sw, ax * sw, true, ax, az); } return flee(3.6);
+    }
+  };
+  // 掙扎的表演時間表（每步由 mind.js 的「被燒」場景呼叫）；火熄了回傳 'done'
+  F.struggle = (c, m) => {
+    const f = of(m), b = f.bs, fs = fireOf(c); if (!b) return 'done'; if (!fs || fs.state !== 'burning' || fs.tok !== b.tok) return 'done';
+    const t = W.time - b.t0, st = b.base, L = LINES[st], line = i => L[i % L.length], hp = headOf(c), FX = W.fire && W.fire.emit;
+    const beats = [[0, () => { face(c, m, 'scared', 90); c.emote('exclaim', 1.2); say(c, line(0), 1.5, true); act(c, 'flail', { duration: 1.6 }, true); squash(c, 4.5); tag(m, { k: 'scream', act: 'flail', say: line(0), face: 'scared' }); }]];
+    const mid = { run: ['flail', '救命啊啊！別追我！', 'scared'], pat: ['clap', '拍掉！拍掉！', 'ouch'], hop: ['flail', '燙燙燙燙燙！', 'ouch'], duck: ['shy', '嗚…救命…', 'cry'] }[st];
+    if (b.pool) beats.push([1, () => { face(c, m, 'scared', 90); say(c, '水！水池！', 1.5, true); act(c, 'flail', { duration: 1.6 }, true); tag(m, { k: 'to-pool', act: 'flail', say: '水！水池！', face: 'scared' }); }]);
+    else beats.push([.95, () => { face(c, m, mid[2], 90); say(c, mid[1], 1.6, true); act(c, mid[0], { duration: st === 'hop' || st === 'run' ? 1.6 : 2.2 }, true); if (st === 'duck') squash(c, -6); c.emote(st === 'pat' ? 'anger' : 'sweat', 1.4); tag(m, { k: st, act: mid[0], say: mid[1], face: mid[2] }); }]);
+    if (st === 'pat') beats.push([1.9, () => { say(c, line(1), 1.4, true); act(c, 'clap', { duration: 1.4 }, true); tag(m, { k: 'pat2', act: 'clap', say: line(1), face: 'ouch' }); }]);
+    if (st === 'duck') beats.push([1.9, () => { squash(c, -4); c.emote('cloud', 1.4); say(c, line(2), 1.5, true); tag(m, { k: 'duck2', act: 'shy', say: line(2), face: 'cry' }); }]);
+    if (st === 'run' || st === 'hop') beats.push([2.0, () => { say(c, line(1), 1.4, true); act(c, 'flail', { duration: 1.5 }, true); tag(m, { k: 'again', act: 'flail', say: line(1), face: 'scared' }); }]);
+    if (!b.pool) beats.push([3.05, () => { face(c, m, st === 'duck' ? 'cry' : 'scared', 90); say(c, '好燙！救命！', 1.6, true); act(c, st === 'duck' ? 'sob' : 'raise', { duration: 1.6 }, true); c.emote('exclaim', 1.2); tag(m, { k: 'help', act: st === 'duck' ? 'sob' : 'raise', say: '好燙！救命！', face: st === 'duck' ? 'cry' : 'scared' }); }]);
+    else beats.push([3, () => { say(c, '好燙！救命！', 1.6, true); act(c, 'raise', { duration: 1.6 }, true); tag(m, { k: 'help', act: 'raise', say: '好燙！救命！', face: 'scared' }); }]);
+    while (b.step < beats.length && t >= beats[b.step][0]) beats[b.step++][1]();
+    if (t - b.trem > .12) { b.trem = t; b.tg ^= 1; squash(c, b.tg ? 1.7 : -1.7); }                  // 身體抖動
+    if (t - b.emoT > 1.1) { b.emoT = t; c.emote(++b.emoI % 2 ? 'sweat' : 'exclaim', 1); }          // 頭上輪流冒汗滴與驚嘆
+    if (FX && t - b.dropT > .16) { b.dropT = t; FX.drop(hp.x + R(-.12, .12), hp.y, hp.z + R(-.12, .12)); }
+    return 'run';
+  };
+  // 熄火瞬間：大口喘氣、癱下來、冒白煙（回傳這一段的秒數）
+  F.relief = (c, m) => {
+    const f = of(m), FX = W.fire && W.fire.emit; f.stage = 'pain'; const p = pos(c);
+    face(c, m, 'effort', 2.8); c.emote('smoke', 1.8); say(c, rnd(['哈…哈…呼…', '呼…呼…差點…']), 2.4, true); act(c, 'dizzy', { duration: 2.8 }, true); squash(c, -7);
+    if (FX) for (let i = 0; i < 9; i++) FX.steam(p.x + R(-.2, .2), (c.lift || 0) + (c.height || .8) * R(.3, .9), p.z + R(-.2, .2));
+    for (let k = 1; k <= 4; k++) setTimeout(() => squash(c, k % 2 ? 2.4 : -2.4), k * 520 / Math.max(1, W.speed || 1));   // 一吸一吐的起伏
+    tag(m, { k: 'pant', act: 'dizzy', say: '哈…哈…呼…', face: 'effort' }); record(m, { event: 'burn-relief', face: 'effort', action: 'dizzy' }); return 2.8;
+  };
+  F.coughPuff = (c) => { const FX = W.fire && W.fire.emit; if (!FX) return; const hp = headOf(c); for (let i = 0; i < 4; i++) FX.soot(hp.x + R(-.08, .08), hp.y - .12, hp.z + R(-.08, .08)); };
+  // 燒焦期間每隔一陣子的情緒小段（看著自己身體難過／哭／苦笑自嘲／生氣跺腳／發呆）：回傳持續秒數
+  F.afterBeat = (c, m) => {
+    const f = of(m), t = m.t, n = f.beatN++; let kind, fc, ac, sy, em, dur = 3;
+    if (n === 0) { kind = 'self-look'; fc = 'sad'; ac = 'idle'; sy = rnd(['我的毛…都焦了…', '怎麼變成這樣…']); em = 'cloud'; c.lookAt(downPt(c)); setTimeout(() => { if (!(A() && A().current() === c)) c.lookAt(null); }, 3000); }
+    else if (t.sens >= .55) { kind = 'cry'; fc = 'cry'; ac = 'sob'; sy = rnd(['嗚…好痛…好髒…', '嗚嗚…']); em = 'cloud'; dur = 3.6; }
+    else if (t.opt >= .55) { kind = 'wry'; fc = 'smile'; ac = 'shake'; sy = rnd(['哈…至少變得很酥脆', '哈哈…這下省了染髮錢']); em = 'sweat'; dur = 2.6; }
+    else if (t.comp >= .55) { kind = 'stomp'; fc = 'angry'; ac = 'slam'; sy = rnd(['氣死我了！', '到底是誰設的火！']); em = 'anger'; dur = 2.2; }
+    else { kind = 'daze'; fc = 'blank'; ac = 'think'; sy = ''; em = 'dots'; dur = 3.2; }
+    face(c, m, fc, dur); if (ac !== 'idle') act(c, ac, { duration: dur }, true); c.emote(em, Math.min(dur, 2.4)); if (sy) say(c, sy, 2, true);
+    tag(m, { k: kind, act: ac, say: sy, face: fc }); record(m, { event: 'burn-beat', beat: kind, face: fc, action: ac }); return dur;
   };
   F.onPain = (c, m) => { of(m).stage = 'pain'; };
   // 疼痛與狼狽：拍身上的灰、喘氣；不同個性的臉不一樣
@@ -141,7 +232,7 @@ export function createFeel(W, K) {
     record(m, { event: 'pat-down', face: fc, action: 'clap' }); f.pats = (f.pats || 0) + 1; return true;
   };
   F.onRecovered = (c, m) => {
-    const f = of(m), t = m.t; f.stage = 'after'; f.fear = clamp(Math.max(f.fear, .45 + .45 * t.sens - .25 * t.opt), .15, 1); f.fearT = W.time; dirty(m);
+    const f = of(m), t = m.t; f.limpUntil = W.time + 30 + 50 * t.sens; later(m, 1, () => ritual(c, m), { cond: (cc, mm) => !mm.sc && canAct(cc) && !cc.away, wait: 30 }); f.stage = 'after'; f.fear = clamp(Math.max(f.fear, .45 + .45 * t.sens - .25 * t.opt), .15, 1); f.fearT = W.time; dirty(m);
     // 餘悸之後：怪不怪你
     if (f.blame) later(m, 3.2, () => resent(c, m));
     // 找好朋友訴苦（外向或敏感的人才會；悶著的人自己消化）
@@ -161,6 +252,53 @@ export function createFeel(W, K) {
     });
     record(m, { event: 'resent', style, face: { angry: 'angry', cry: 'cry', shrug: 'effort', pout: 'pout' }[style] });
   }
+  // 恢復的小儀式（2026-11-16）：走去飲水機洗乾淨、換好衣服，再回座位
+  async function ritual(c, m) {
+    const D0 = D(), f = of(m); if (!D0 || !canAct(c)) return; const spot = W.spot && W.spot('water', pos(c), c.spec.id); if (!spot) { record(m, { event: 'wash-ritual', done: false, why: 'no-spot' }); return; }
+    const tok = c.script = (c.script || 0) + 1; c.busy = true; f.mode = 'wash'; record(m, { event: 'wash-ritual-start' });
+    try {
+      c.setAction('idle'); const ok = await D0.goTo(c, spot, { speed: 1.9 }); if (c.script !== tok || !ok) return;
+      face(c, m, 'effort', 2.2); act(c, 'rub', { duration: 1.9 }, true); c.emote('note', 1.6); say(c, '洗乾淨～搓搓搓', 1.8, true); tag(m, { k: 'wash', act: 'rub', say: '洗乾淨～搓搓搓', face: 'effort' });
+      await W.sleep(2); if (c.script !== tok) return;
+      face(c, m, 'smile', 2.4); act(c, 'shake', { duration: 1.2 }, true); c.emote('star', 1.6); say(c, '換好乾淨的衣服了！', 1.8, true); tag(m, { k: 'dress', act: 'shake', say: '換好乾淨的衣服了！', face: 'smile' });
+      await W.sleep(1.8); if (c.script !== tok) return; record(m, { event: 'wash-ritual', done: true, face: 'smile', action: 'rub>shake' });
+      c.setAction('idle'); await D0.goHome(c, { speed: 2 });
+    } finally { f.mode = null; if (c.script === tok) c.busy = false; }
+  }
+  // 同事圍過來（不嘲笑）：有人大聲喊人、有人打電話叫人、有人拿東西搧風；火熄了才走到旁邊
+  F.crowd = (B, mb, A0, i, dd) => {
+    const role = ['fan', 'shout', 'phone', 'fan'][i % 4]; record(mb, { event: 'crowd-' + role, of: A0.spec.nick });
+    face(B, mb, 'worried', 3); B.emote('exclaim', 1.6);
+    if (role === 'shout') { say(B, rnd(['快來人啊！他被燒到了！', '有人受傷了！快來！']), 2, true); act(B, 'raise', { duration: 1.6 }, true); }
+    else if (role === 'phone') { say(B, '我叫人來幫忙！', 2, true); act(B, 'phone', { duration: 2.4 }, true); }
+    else { say(B, '我來幫你！', 1.8, true); act(B, 'raise', { duration: 1.2 }, true); }
+    if (!(canAct(B) || B.state === 'sit') || B.state === 'held' || B.jobless || (role === 'shout' && B.state !== 'sit' && dd < 2)) return;
+    crowdWalk(B, mb, A0, role);
+  };
+  async function crowdWalk(B, mb, A0, role) {
+    const D0 = D(); if (!D0) return; const tok = B.script = (B.script || 0) + 1; B.busy = true;
+    try {
+      for (let k = 0; k < 40; k++) { const fs = fireOf(A0); if (!fs || fs.state !== 'burning') break; await W.sleep(.3); if (B.script !== tok) return; }
+      const a = pos(A0), b = pos(B), L = Math.hypot(b.x - a.x, b.z - a.z) || 1, g = role === 'fan' ? 1.0 : 1.6, f = W.nav.nearestFree(a.x + (b.x - a.x) / L * g, a.z + (b.z - a.z) / L * g, 4); if (!f) return;
+      B.setAction('idle'); const ok = await D0.goTo(B, { x: f.x, z: f.z, face: 0 }, { speed: 2.8 }); if (B.script !== tok || !ok) return;
+      B.faceTo(pos(A0).x, pos(A0).z);
+      if (role === 'fan') { act(B, 'present', { duration: 2.6 }, true); B.emote('note', 1.8); say(B, rnd(['搧搧風…沒事了', '我幫你搧涼一點']), 2.2, true); }
+      else { act(B, 'listen', { duration: 2.2 }, true); B.emote('heart', 1.6); say(B, rnd(['還好嗎？我陪你', '別怕，沒事了']), 2.2, true); }
+      await W.sleep(1.8); if (B.script !== tok) return; emit('comforted', A0.spec.id, { by: B.spec.id }); record(mb, { event: 'crowd-care', role, of: A0.spec.nick });
+      await W.sleep(.9); if (B.script !== tok) return; B.setAction('idle'); await D0.goHome(B, { speed: 2.2 });
+    } finally { if (B.script === tok) B.busy = false; }
+  }
+  // 看到你拎人：被燒過、還怕的同事會緊張（距離 7 公尺內、同一個人 40 秒只反應一次）
+  F.onGrabSeen = (g) => {
+    for (const o of people()) {
+      if (o === g || !awake(o) || o.jobless || o.piloted || o.state === 'held') continue; const mo = mindOf(o); if (!mo) continue; const f = of(mo);
+      if ((f.fear < .2 && !(f.burnAt && Date.now() - f.burnAt < 6 * 3600e3 && f.fear > .05)) || dist(o, g) > 7 || W.time - f.grabAt < 40 || mo.sc) continue; f.grabAt = W.time;
+      scene(o, mo, 4, 'feel-grab-nervous', sc => { sc.at(0, () => { const a = pos(g); o.lookAt({ x: a.x, y: 1, z: a.z }); face(o, mo, 'scared', 2.4); o.emote('sweat', 1.8); say(o, rnd(['…你、你要做什麼？', '別把他丟進火裡…', '拜託輕一點…']), 2, true); act(o, 'fidget', { duration: 2 }, true); }); sc.at(2.6, () => { }); sc.on_end(() => { if (!(A() && A().current() === o)) o.lookAt(null); }); K.holdCap(o, mo, sc); });
+      record(mo, { event: 'grab-nervous', face: 'scared', fear: Math.round(f.fear * 100) / 100 });
+    }
+  };
+  F.limp = m => { const f = m.f; return f && (m.burned || W.time < f.limpUntil) ? .6 : 1; };
+
   function friendOf(c) {
     let best = null, bs = -9; const f = of(mindOf(c));
     for (const o of people()) {
@@ -299,6 +437,8 @@ export function createFeel(W, K) {
     relDecay(m, d); runQ(c, m);
     if (f.fear > 0) { const tau = (500 + 1500 * m.t.sens) * (1.3 - m.t.opt); f.fear -= f.fear * (1 - Math.exp(-d / tau)); if (f.fear < .02) f.fear = 0; }
     if (now < f.wetUntil && now >= (f.cd.shiver || 0) && !m.sc && canAct(c) && c.state !== 'walk') { f.cd.shiver = now + R(6, 10); act(c, 'fidget', { duration: 2 }); face(c, m, 'worried', 2); c.emote('sweat', 1.4); }
+    // 一拐一拐：燒傷未癒時走路變慢、身體一高一低
+    if (c.state === 'walk' && (m.burned || now < f.limpUntil)) { c._speed = Math.min(c._speed || 9, 1.15); if (now >= (f.cd.limp || 0)) { f.cd.limp = now + .5; squash(c, (f.limpAlt = !f.limpAlt) ? -2.6 : 1.2); } }
     // 怕火
     const fc = fireInfo(), moving = c.state === 'walk', fearNow = f.fear;
     if (fc && fearNow >= .25) {
@@ -349,7 +489,7 @@ export function createFeel(W, K) {
     if (f.rel <= -.45 && cur.k === 'calm' && W.time >= m.wary) return { k: 'wary', label: m.t.comp >= .55 ? '還在生氣' : '有點怕你', cause: W.time - (f.bullyAt || -999) < 900 ? '被欺負過' : '被你丟過' };
     return null;
   };
-  F.snapshot = m => { const f = of(m); return { rel: Math.round(f.rel * 100) / 100, att: relTxt(m), fear: Math.round(f.fear * 100) / 100, mode: f.mode, tier: f.tier || 0, stage: f.stage, wet: W.time < f.wetUntil, rematch: f.rematch && W.time < f.rematch.until ? f.rematch.nick : null, rap: { ...f.rap }, detours: f.detours || 0, pats: f.pats || 0, blame: f.blame, hits: f.hits.length, ventDone: f.ventDone }; };
+  F.snapshot = m => { const f = of(m); return { rel: Math.round(f.rel * 100) / 100, att: relTxt(m), fear: Math.round(f.fear * 100) / 100, mode: f.mode, tier: f.tier || 0, stage: f.stage, wet: W.time < f.wetUntil, rematch: f.rematch && W.time < f.rematch.until ? f.rematch.nick : null, rap: { ...f.rap }, detours: f.detours || 0, pats: f.pats || 0, blame: f.blame, hits: f.hits.length, style: f.bs && f.bs.style, base: f.bs && f.bs.base, struggle: f.bsLog.slice(), moved: f.bs ? Math.round(f.bs.dist * 100) / 100 : 0, maxDisp: f.bs ? Math.round(f.bs.maxDisp * 100) / 100 : 0, limp: m.burned || W.time < f.limpUntil,  ventDone: f.ventDone }; };
   F.scene = scene; void endScene;
   return F;
 }
