@@ -238,7 +238,8 @@ export function createGrowth(W) {
   const prevTick = W.mind && W.mind.tick; if (prevTick) { W.mind.tick = h => { prevTick(h); try { G.tick(h); } catch (e) { if (!G.err) { G.err = e; console.error('成長系統例外', e); } } }; }   // simStep 每步都會呼叫 W.mind.tick：掛在它後面，不用改 main.js
 
   // ───────── 事件：運動、被照顧、被誇獎／退件 ─────────
-  const on = (n, fn) => { if (W.on) W.on(n, fn); };
+  // phys.js 的事件匯流排把「事件物件」當第一個參數傳進來（{id,…}），mind.js 的則是（代號, 資料）：兩種長相都吃
+  const on = (n, fn) => { if (W.on) W.on(n, (a, b) => { try { if (a && typeof a === 'object') fn(a.id, a); else fn(a, b || {}); } catch (e) { console.warn('成長系統事件例外', e); } }); };
   on('sport_start', id => { sports.set(id, W.time); });
   on('sport_score', id => { if (sports.has(id)) sports.set(id, W.time); });
   on('sport_end', id => { sports.delete(id); });

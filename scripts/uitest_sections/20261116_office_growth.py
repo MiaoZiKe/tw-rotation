@@ -179,6 +179,13 @@ def t_gr_stamina(b, base):
         ok(f"{T}：很累又沒事做，自己離開座位去休息（地點：{res['kind']}）", res["away"] and res["kind"] in ("lounge", "pantry", "sport", "water", "sleep", "outside"), res)
         ok(f"{T}：休息後體力真的回升（{r0['sta']}→最高 {res['max']}）", res["max"] >= r0["sta"] + 25, res)
         ok(f"{T}：休息恢復一次，算進今日目標「休息恢復」", "frontend-ui" in res["rested"], res["rested"])
+        # 真的觸發事件：被退件／被燒壓力上升，被稱讚／獎勵壓力下降；運動事件讓他算「運動中」（兩種事件長相都要吃）
+        ev = pg.evaluate("""() => { const W = __world, G = W.growth, id = 'deployer', out = {}; G.cfg.noAutoRest = true; G.set(id, { sta: 90, str: 50 });
+            const s = () => G.get(id).str; let b = s(); W.emit('rejected', id, {}); out.rej = s() - b; b = s(); W.emit('burned', id, {}); out.burn = s() - b;
+            b = s(); W.emit('praised', id, { by: 'ceo' }); out.pra = s() - b; b = s(); W.emit('rewarded', id, { kind: 'award' }); out.rew = s() - b;
+            W.emit('sport_start', id, { kind: 'badminton' }); out.sport = G.get(id).resting; W.emit('sport_end', id, {}); out.after = G.get(id).resting; return out; }""")
+        ok(f"{T}：事件真的改壓力（退件 +10、被燒 +12、稱讚 −6、獎勵 −10；匯流排把事件物件當第一個參數也要吃）", ev["rej"] == 10 and ev["burn"] == 12 and ev["pra"] == -6 and ev["rew"] == -10, ev)
+        ok(f"{T}：運動開賽算「運動中」、結束就取消", ev["sport"] == "sport" and ev["after"] != "sport", ev)
         ok(f"{T}：沒有網頁錯誤", not pg.errs, pg.errs[:3])
     finally:
         c.close()
