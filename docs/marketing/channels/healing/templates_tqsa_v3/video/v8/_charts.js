@@ -126,7 +126,7 @@ const SCV={
   const last=c.rows.length-1,lx=40+last*(bw+gap);g+=sweepBar(lx,base-Hh*(c.rows[last].v-c.lo)/(c.hi-c.lo),bw,Hh*(c.rows[last].v-c.lo)/(c.hi-c.lo),lt,2.3);
   h+=box('chart',CT,CH,g,lt,d,{});return h},
  slope(s,lt,d){let h=head(s,lt)+ILLbox(s,lt,d);const c=s.slope,xa=190,xb=700,base=560,Hh=420,y=v=>base-Hh*(v-c.lo)/(c.hi-c.lo);let g='';
-  g+=`<line x1="${xa}" y1="${base}" x2="${xa}" y2="60" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="${xb}" y1="${base}" x2="${xb}" y2="60" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="40" y1="${base}" x2="848" y2="${base}" stroke="${LINE}" stroke-width="3"/>`;
+  g+=`<line x1="${xa}" y1="${base}" x2="${xa}" y2="${c.ems?190:60}" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="${xb}" y1="${base}" x2="${xb}" y2="${c.ems?190:60}" stroke="${LINE}" stroke-width="2" opacity=".35"/><line x1="40" y1="${base}" x2="848" y2="${base}" stroke="${LINE}" stroke-width="3"/>`;
   g+=T(xa,base+50,c.a.x,34,400,SUBC)+T(xb,base+50,c.b.x,34,700,TXT)+(c.base0?T(848,36,c.base0,32,400,SUBC,'end'):'');
   const p=pr(lt,.3,.7),ya=y(c.a.v),yb=y(c.b.v),xe=xa+(xb-xa)*p,ye=ya+(yb-ya)*p;
   g+=`<g opacity="${pr(lt,0,.3)}"><circle cx="${xa}" cy="${ya}" r="20" fill="${FACE3}" stroke="${LINE}" stroke-width="4"/>${T(xa-36,ya+14,c.a.txt,44,700,TXT,'end')}</g>`;
@@ -235,7 +235,7 @@ const SCV={
  ask(s,lt,d){let h=title(s.title,lt,{cls:'hint'})+tag(s.tag,lt,.3,306);h+=ILLbox(s,lt,d,392,500);
   let g='';s.recap.forEach((r,i)=>{const p=pr(lt,.15+i*.1,.4);g+=`<g opacity="${p}" transform="translate(${(1-p)*-40},0)"><rect x="20" y="${10+i*112}" width="848" height="92" rx="20" fill="${FACE}" stroke="${LINE}" stroke-width="2"/>${T(56,10+i*112+60,r[0],34,400,SUBC,'start')}${T(832,10+i*112+62,r[1],42,700,TXT,'end')}</g>`});
   const q=pr(lt,.65,.4,BACK),oy=s.recap.length*112+40;const cyc=!!s.btnCycle,alt=cyc&&lt>2.0?(Math.floor((lt-2.0)/.9)%2):-1,ac0=alt==0?LAMP:LINE,ac1=alt==1?LAMP:LINE,aw0=alt==0?5:3,aw1=alt==1?5:3;
-  g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+
+  if(s.opt)g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+
    `<rect x="40" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac0}" stroke-width="${aw0}"/>${T(230,oy+106,s.opt[0],40,700,TXT)}`+
    `<rect x="468" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac1}" stroke-width="${aw1}" stroke-dasharray="10 8"/>${T(658,oy+106,s.opt[1],40,700,TXT)}</g>`;
   // 第二拍：兩顆膠囊依序輕跳（位移，不縮放）
