@@ -138,7 +138,7 @@ export function createBlocks(W, X) {
     if (B.agents.length >= CAPACITY) return null;
     const blk = { id: b.id, n: ++B.n, title: clip(b.title || b.nick || b.id), color: COLORS[B.n % COLORS.length], fids: [] };
     B.agents.push(blk); relayout();
-    const p = posOf(B.agents.length - 1); build(blk, p.x, p.z); floorTo(false);   // 鋪面要等新區塊的房間登記進 layout 之後才算得到新範圍
+    const p = posOf(B.agents.length - 1); build(blk, p.x, p.z); floorTo(false); W.scenery && W.scenery.update();   // 鋪面要等新區塊的房間登記進 layout 之後才算得到新範圍
     W.respot(); W.glowRebuild && W.glowRebuild(); rebind([]);
     const sp = W.spots.find(s => s.fid === blk.deskId && s.seat) || null;
     B.log.push('claim:' + b.id); if (W.refit) W.refit(!arrive);
@@ -162,7 +162,7 @@ export function createBlocks(W, X) {
   B.framing = aspect => {
     let x0 = 22.4, x1 = 37.6, z0 = 31.9, z1 = 38.8;          // 無業遊民區（22.4～37.6, 31.9～38.8）；新專案不開放運動場
     for (const r of layout.rooms) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w); z0 = Math.min(z0, r.z); }
-    const wb = (x1 - x0) + 3, zb = (z1 - z0) + 3, dh = wb / (0.688 * Math.max(0.3, aspect)), dv = zb * 1.34;
+    const wb = (x1 - x0) + 9, zb = (z1 - z0) + 5, dh = wb / (0.688 * Math.max(0.3, aspect)), dv = zb * 1.34;
     return { t: new THREE.Vector3((x0 + x1) / 2, 0, (z0 + z1) / 2), d: Math.max(30, Math.min(110, Math.max(dh, dv))) };
   };
   B.count = () => B.agents.length + 1;
