@@ -260,9 +260,10 @@ def _sb_all(pg0, b, base, code):
         pg = _sb_page(c)
         pg.goto(url, wait_until="domcontentloaded")
         _sb_ready(pg)
+        _sb_settle(pg)   # 新裝置進場會先還原雲端存檔、重新整理一次
         wait_until(pg, "() => __world.budget.polls >= 1", 8000)
-        ov = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
-        r = pg.evaluate("() => ['saveTag','budgetBtn'].map(id => { const b = document.getElementById(id).getBoundingClientRect(); return [id, Math.round(b.left), Math.round(b.right), Math.round(b.height)] })")
+        ov = _sb_ev(pg, "() => document.documentElement.scrollWidth - innerWidth")
+        r = _sb_ev(pg, "() => ['saveTag','budgetBtn'].map(id => { const b = document.getElementById(id).getBoundingClientRect(); return [id, Math.round(b.left), Math.round(b.right), Math.round(b.height)] })")
         ok("手機：沒有橫向溢出、存檔小字與預算條都在畫面內", ov <= 0 and all(x[1] >= 0 and x[2] <= 390 for x in r), (ov, r))
         _sb_shot(pg, "s5_手機頂列.png")
         c.close()
