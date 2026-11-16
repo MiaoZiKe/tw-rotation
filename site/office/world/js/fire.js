@@ -189,7 +189,7 @@ export function createFire(W, opts = {}) {
   function ignite(c, why) {
     if (!F.on || imm(c)) return false; const s = st(c);
     if (s && s.state === 'burning') return false;
-    if (c._fireImmuneUntil && W.time < c._fireImmuneUntil) return false;   // 剛從泳池出來、身體還濕：不會著火（sports_water.js 設定）
+    // 11-16 擁有者選「2」：拿掉出水後的防火時間，濕的人碰到火一樣會燒起來（滴水只是外觀）
     ensureScorch(c);
     const o = s || { state: 'none', scorch: 0 }; F.states.set(c.spec.id, o);
     const wasRec = o.state === 'recovering';
