@@ -60,13 +60,6 @@
      office.hr（開除與重新聘用，每確定一次算一次）：四個方案的開關都開；每日次數 訪客 0（不開放）；註冊會員 5／3／5；Plus 30／20／50；
      Pro 下指令 100（＝收件服務每人每日 100 則的硬上限）、其餘不設＝不限。閘門在 site/office/world/js/gate.js，只擋前端畫面；後端收件服務仍只認站長，站長（owner）不受限。
      不在 GRANT_BAN，自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
-<<<<<<< HEAD
-=======
-   · ★ 2026-11-16（Andy：研究報告前 10 項「全做」）：office.save（雲端存檔，每成功上傳一次算一次）：四個方案開關都開；每日次數 訪客 0（不開放）、註冊會員 100、Plus 500、Pro 不設＝不限。
-     office.budget（今日預算條，只看不計次）：四個方案開關都開、不設次數。體驗次數不預設。
-   · ★ 2026-11-16（第二批第 6、7 項）：office.blueprint（任務藍圖，每套用一次算一次）四個方案開關都開；每日次數 訪客 0（不開放）、註冊會員 5、Plus 30、Pro 不設＝不限。
-     office.priority（優先度格子表，只有開關不計次）四個方案都開。體驗次數不預設。
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
    · ★ 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況…這功能記得也要顯在權限內 但暫不開放」）：新鍵 stock.bigsmall（個股大戶／散戶買賣推估）
      四個方案都寫 false＝暫不開放、不設次數；stock.bigsmall.live（今日即時）比照 live.tick 四個方案 false（只有站主／管理員，範本管不到）。
      Andy 要開時在 #admin/perm 把方案撥開；體驗次數不預設。
@@ -109,15 +102,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": true,
     "office.connect": true,
     "office.hr": true,
-<<<<<<< HEAD
-=======
-    "office.autoassign": true,
-    "office.save": true,
-    "office.budget": true,
-    "office.blueprint": true,
-    "office.priority": true,
-    "office.liveviz": true,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": true,
     "share.card.plus": false,
     "risk.flag": true,
@@ -235,12 +219,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": 0,
     "office.connect": 0,
     "office.hr": 0,
-<<<<<<< HEAD
-=======
-    "office.autoassign": 0,
-    "office.save": 0,
-    "office.blueprint": 0,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": 5,
     "portfolio.exposure": 3,
     "group.peerval": 3,
@@ -288,15 +266,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": true,
     "office.connect": true,
     "office.hr": true,
-<<<<<<< HEAD
-=======
-    "office.autoassign": true,
-    "office.save": true,
-    "office.budget": true,
-    "office.blueprint": true,
-    "office.priority": true,
-    "office.liveviz": true,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": true,
     "share.card.plus": false,
     "risk.flag": true,
@@ -423,12 +392,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": 5,
     "office.connect": 3,
     "office.hr": 5,
-<<<<<<< HEAD
-=======
-    "office.autoassign": 5,
-    "office.save": 100,
-    "office.blueprint": 5,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": 10,
     "portfolio.exposure": 5,
     "mkt.fut": 10,
@@ -479,15 +442,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": true,
     "office.connect": true,
     "office.hr": true,
-<<<<<<< HEAD
-=======
-    "office.autoassign": true,
-    "office.save": true,
-    "office.budget": true,
-    "office.blueprint": true,
-    "office.priority": true,
-    "office.liveviz": true,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": true,
     "share.card.plus": true,
     "risk.flag": true,
@@ -593,12 +547,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": 30,
     "office.connect": 20,
     "office.hr": 50,
-<<<<<<< HEAD
-=======
-    "office.autoassign": 30,
-    "office.save": 500,
-    "office.blueprint": 30,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": 50,
     "portfolio.exposure": 50,
     "mkt.fut": 50,
@@ -642,15 +590,6 @@ window.TW_PLAN_PRESETS = {
     "office.cmd": true,
     "office.connect": true,
     "office.hr": true,
-<<<<<<< HEAD
-=======
-    "office.autoassign": true,
-    "office.save": true,
-    "office.budget": true,
-    "office.blueprint": true,
-    "office.priority": true,
-    "office.liveviz": true,
->>>>>>> 085c61e34 (AI 辦公室：所有專案的戶外景觀依辦公室實際範圍生成（灌木、花叢、多種樹、湖泊、石頭、小草）)
     "share.card": true,
     "share.card.plus": true,
     "risk.flag": true,
