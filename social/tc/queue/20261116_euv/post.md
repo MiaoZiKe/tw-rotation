@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-16T20:00+08:00
 weekday: 一
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-euv.mp4
 images: cover.jpg
 title: 科技透明圈影片：曝光機：光比線還粗（tech-euv v2）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/DfzVHHmiFtv/
+ids_ig: 17994280628862849
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DfzVNaQOM3I
+ids_threads: 18109541639243512
+ids_threads_reply: 17913586035585778
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DfzVUmpm5qj
+done: ig, threads
+urls: https://www.instagram.com/reel/DfzVHHmiFtv/ https://www.threads.com/@tech_01010909/post/DfzVNaQOM3I https://www.threads.com/@tech_01010909/post/DfzVUmpm5qj
+posted_at: 2026-11-16T20:13+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「曝光機：光比線還粗」
 
