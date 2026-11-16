@@ -168,16 +168,17 @@ def _rs_main(b, base):
         # ───── ③ 兩個不同專案各自的名冊 ─────
         got = _rs_enter(pg, base, _RS_NEW)
         ok("tw-rotation（新雜湊）：辦公室載入完成", got)
-        wait_until(pg, "() => ['inspector', 'my-bot', 'code-reviewer', 'Explore'].every(k => window.__world.chars.has(k) && window.__world.chars.get(k).state === 'sit')", 60000)
+        wait_until(pg, "() => ['inspector', 'my-bot', 'code-reviewer', 'Explore'].every(k => window.__world.chars.has(k) && window.__world.chars.get(k).homeSpot)", 60000)
+        wait_until(pg, "() => ['inspector', 'my-bot', 'code-reviewer'].every(k => window.__world.chars.get(k).state === 'sit')", 60000)
         vis = pg.evaluate(_RS_VIS)
         ok("tw-rotation：名冊＝.claude/agents 檔名（inspector、my-bot、code-reviewer）∪ 出現過的子 Agent（Explore）；只有這 4 位，沒有別的專案的、也沒有示範 40 多位", vis == sorted(["inspector", "my-bot", "code-reviewer", "Explore"]), vis)
-        info = pg.evaluate("""() => { const W = window.__world, g = id => W.chars.get(id), d = id => { const c = g(id), m = W.members.get(id) || {}; return { dept: c.spec.dept, deptName: m.deptName, seat: c.spot && c.spot.name, fdept: c.spot && W.furn.get(c.spot.fid) && W.furn.get(c.spot.fid).f.dept, sit: c.state, atDesk: c.atDesk }; };
+        info = pg.evaluate("""() => { const W = window.__world, g = id => W.chars.get(id), d = id => { const c = g(id), m = W.members.get(id) || {}; return { dept: c.spec.dept, deptName: m.deptName, seat: c.homeSpot && c.homeSpot.name, fdept: c.homeSpot && W.furn.get(c.homeSpot.fid) && W.furn.get(c.homeSpot.fid).f.dept, sit: c.state, atDesk: c.atDesk }; };
             const plates = [...W.furn.values()].filter(i => i.f.type === 'workstation' && i.f.owner && i.f.owner !== 'ceo').map(i => i.spec.extras && i.spec.extras[0] && i.spec.extras[0].visible);
             return { insp: d('inspector'), bot: d('my-bot'), rev: d('code-reviewer'), exp: d('Explore'), absent: g('data-steward').absent === true && !g('data-steward').object3D.visible && g('data-steward').away === true, nShown: plates.filter(Boolean).length, nAll: plates.length, hub: !!W.rosterHub && W.rosterHub.on } }""")
         ok("同代號的示範編制照樣露面：inspector（監察委員）坐自己的座位 seat:inspector", info["insp"]["seat"] == "seat:inspector" and info["insp"]["sit"] == "sit" and info["insp"]["atDesk"], info["insp"])
-        ok("依類型自動分配部門：code-reviewer（review）→ 監察與稽核室，坐稽核室的桌子", info["rev"]["dept"] == "audit" and info["rev"]["fdept"] == "audit" and info["rev"]["sit"] == "sit", info["rev"])
+        ok("依類型自動分配部門：code-reviewer（review）→ 監察與稽核室，坐稽核室的桌子（不搶 inspector 的座位）", info["rev"]["dept"] == "audit" and info["rev"]["fdept"] == "audit" and info["rev"]["sit"] == "sit" and info["rev"]["seat"] != "seat:inspector", info["rev"])
         ok("對不上的類型放「一般」：my-bot 坐在某張空桌、部門名「一般」", info["bot"]["deptName"] == "一般" and info["bot"]["seat"] and info["bot"]["sit"] == "sit", info["bot"])
-        ok("Explore（explor）→ 產業研究部", info["exp"]["dept"] == "industry" and info["exp"]["fdept"] == "industry", info["exp"])
+        ok("Explore（explor）→ 產業研究部，家在產業研究部的桌子（他正在跑任務時會被叫去 CEO 面前，所以看家不看人在哪）", info["exp"]["dept"] == "industry" and info["exp"]["fdept"] == "industry", info["exp"])
         ok("示範同事（例如 data-steward 阿梟）整個收起來：看不見、不佔座位、標成缺席", info["absent"] and info["hub"], info)
         ok("桌上名牌：只有 4 張有人坐的桌子顯示名牌，其餘空桌不再掛示範同事的名字", info["nShown"] == 4 and info["nAll"] >= 30, (info["nShown"], info["nAll"]))
         _rs_shot(pg, "r2_tw-rotation辦公室.png")
@@ -187,7 +188,7 @@ def _rs_main(b, base):
         vis2 = pg.evaluate(_RS_VIS)
         ok("other-repo：名冊不同（deployer 是示範編制的上線、zz-agent-b 是新同事），沒有 tw-rotation 的人", got and vis2 == sorted(["deployer", "zz-agent-b"]) and "inspector" not in vis2, vis2)
         ok("兩個專案的名冊各自不同", vis != vis2)
-        ok("other-repo：同代號的 deployer 坐自己的座位", pg.evaluate("() => window.__world.chars.get('deployer').spot.name") == "seat:deployer")
+        ok("other-repo：同代號的 deployer 坐自己的座位", pg.evaluate("() => window.__world.chars.get('deployer').homeSpot.name") == "seat:deployer")
         _rs_shot(pg, "r3_other-repo辦公室.png")
 
         # 舊雜湊的連結（路徑雜湊）也進得去、看到的是同一個名冊（兩個雜湊的事件都算這個專案）
