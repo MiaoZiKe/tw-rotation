@@ -1,6 +1,112 @@
 {
- "updated": "2026-11-13",
+ "updated": "2026-11-16",
  "topics": [
+  {
+   "id": "n_ai_chip_selloff_pre_nvda",
+   "cat": "news",
+   "title": "AI 晶片股齊跌：輝達財報前市場在擔心什麼",
+   "why": "11/13 美股 AI 晶片股盤中翻黑，輝達收跌 2.01%、那斯達克 -0.91%（Motley Fool、TheStreet 11/13 數字一致），輝達財報本週公布、選擇權隱含波動約 ±6.5%（Pepperstone）。讀者會問財報前為何先賣、台股 AI 供應鏈會不會跟著震。個股單日跌幅只有單一來源者不寫進稿。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "n_anthropic_ipo",
+   "cat": "news",
+   "title": "Anthropic 啟動上市路演：AI 公司上市為何受矚目",
+   "why": "11/10 起路演，價格區間每股 70～78 美元、擬掛 Nasdaq（RTTNews、INDmoney 數字一致）；訂價與掛牌日未公布，估值各家說法不一不寫。讀者會問大型 AI 公司上市會不會吸走科技股資金。註：本站寫稿工具與這家公司有關，稿件只寫公開事實、不評好壞。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-16"
+  },
+  {
+   "id": "n_gta6_launch",
+   "cat": "news",
+   "title": "GTA 6 11/19 上市：一款遊戲為何讓市場這麼關注",
+   "why": "Take-Two 確認 GTA 6 於 11/19 推出（Yahoo Finance、週報 11/8 一致），消息曾讓股價單日漲約 6%、延期時跌 15%。讀者會問一款遊戲為何能左右一家公司股價、遊戲機與顯示卡需求有沒有連動。",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-11-16"
+  },
+  {
+   "id": "k_microvia",
+   "cat": "know",
+   "title": "雷射微孔是什麼？載板層與層怎麼打洞接通",
+   "why": "常青知識題；站內 3D 圖 ic_substrate（ABF 增層剖面）與 pcb_rigid（多層板四種孔）都切得到微孔與疊孔，讀者常問「增層」到底怎麼把上下層接起來。用 3D 圖講雷射鑽孔、電鍍填孔與疊孔對位。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/ic_substrate",
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "k_polarizer",
+   "cat": "know",
+   "title": "偏光板是什麼？面板為何要上下各貼一片",
+   "why": "常青知識題；站內 3D 圖 panel（TFT-LCD 拆成十三層）有上下兩片偏光板與液晶層，可用 3D 圖講兩片偏光板怎麼配合液晶擋光、透光，讀者會問為什麼一片面板要疊這麼多層。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "k_microbump",
+   "cat": "know",
+   "title": "微凸塊是什麼？晶片底下的銅柱為何越做越小",
+   "why": "常青知識題；站內 3D 圖 semiconductor（CoWoS-L 立體剖面）與 hbm 都畫出銅柱＋錫帽的微凸塊，可接著已上架的混合鍵合題講「為什麼要從凸塊走到無凸塊」，用 3D 圖看間距一路縮小。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/ai_adv_packaging",
+    "#industry/group/hbm"
+   ]
+  },
+  {
+   "id": "i_cpo_fiber_couple",
+   "cat": "intro",
+   "title": "CPO 光纖耦合鏈：FAU、MPO 到耦合設備怎麼接",
+   "why": "站內矽光子已拆出「光纖耦合 FAU／MPO」與「耦合與封裝設備」兩個族群頁，現有文章只講到雷射與 CPO 封裝，讀者會問光訊號最後怎麼從晶片接進光纖。講環節分工，不排受惠順序。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/siph_fiber",
+    "#industry/group/siph_equip"
+   ]
+  },
+  {
+   "id": "i_material_analysis",
+   "cat": "intro",
+   "title": "晶片檢測分析鏈：材料分析、失效分析到檢測服務",
+   "why": "站內有「檢測與材料分析」族群頁；先進製程與先進封裝越做越細，研發期要靠外部實驗室切片、找故障點，讀者常分不清材料分析（MA）與失效分析（FA）。講環節分工，不排受惠順序。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/siph_analysis"
+   ]
+  },
+  {
+   "id": "i_fab_process_tools",
+   "cat": "intro",
+   "title": "前段製程設備鏈：曝光、蝕刻到薄膜沉積怎麼分",
+   "why": "站內有「前段製程設備」與「晶圓廠設備」族群頁；既有文章講的是資本支出落在哪一段，這篇改從一片晶圓走過的製程步驟切，說明曝光、蝕刻、沉積、清洗各由哪類設備負責、台廠切在哪幾段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/fab_process_equip",
+    "#industry/group/fab_equipment"
+   ]
+  },
   {
    "id": "n_nvda_ceo_exit",
    "cat": "news",
