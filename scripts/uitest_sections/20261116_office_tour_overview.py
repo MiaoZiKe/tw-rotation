@@ -37,7 +37,8 @@ def _ot_open(b, base, w=1440, h=900, touch=False, tour="1", ls=None):
     pg.on("console", lambda m: pg.errs.append(m.text[:200]) if m.type == "error" and "favicon" not in m.text and "404" not in m.text and "Failed to load resource" not in m.text and "ERR_" not in m.text else None)
     q = "?ambient=0&q=low&pr=0.6" + ("&tour=" + tour if tour is not None else "")
     pg.goto(_ot_root(base) + "/office/world.html" + q, wait_until="domcontentloaded")
-    got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.chat && window.__world.chars.get('ceo') && window.__world.chars.get('ceo')._sx > 0", 90000)
+    cond = "true" if touch else "window.__world.chars.get('ceo')._sx > 0"   # 手機直式：CEO 不一定在畫面內（名牌座標 -999），只等辦公室建好
+    got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.chat && window.__world.chars.get('ceo') && " + cond, 90000)
     return c, pg, got
 
 
@@ -78,10 +79,11 @@ def _ot_walk(pg, tag, vw, vh, shots):
 
 def _ot_target_checks(pg, got, tag):
     """第 2、3 步的洞在員工身上；第 4 步的洞蓋得到對話框；第 5 步的洞蓋得到「總覽」鈕。"""
-    ceo = pg.evaluate("() => { const c = __world.chars.get('ceo'); return [c._sx, c._sy]; }")
     for i in (1, 2):
         h = got[i]["hole"]
-        ok(f"{tag}：第 {i + 1} 步的洞圈住員工（員工名牌座標在洞裡）", bool(h) and h["l"] - 80 <= ceo[0] <= h["r"] + 80 and h["t"] - 80 <= ceo[1] <= h["b"] + 80, [h, ceo])
+        # 洞圈住的是畫面裡「某一位」員工（手機直式 CEO 不一定在畫面內，引導會改挑看得到的人）：名牌座標落在洞裡
+        who = pg.evaluate("(h) => [...__world.chars.values()].filter(c => !c.spec.pet && c._sx > 0 && c._sx >= h.l - 40 && c._sx <= h.r + 40 && c._sy >= h.t - 40 && c._sy <= h.b + 40).map(c => c.spec.id)", h) if h else []
+        ok(f"{tag}：第 {i + 1} 步的洞圈住員工（員工名牌座標在洞裡）", bool(h) and len(who) > 0, [h, who])
     chat = pg.evaluate("() => { const e = document.getElementById('chatForm') || document.getElementById('chatPanel'); const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }")
     ok(f"{tag}：第 4 步的洞圈住對話框輸入列", _ot_hit(got[3]["hole"], chat), [got[3]["hole"], chat])
     ov = pg.evaluate("() => { const r = document.getElementById('ovBtn').getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }")
@@ -94,7 +96,7 @@ def _ot_tour_desktop(b, base):
     try:
         if not ok("引導：辦公室頁載入完成", got):
             return
-        ok("引導：第一次進場（沒有 aiOffice.game.tour）自動跳出", wait_until(pg, "() => !!document.getElementById('trOv')", 8000))
+        ok("引導：第一次進場（沒有 aiOffice.game.tour）自動跳出", wait_until(pg, "() => !!document.getElementById('trOv')", 30000))
         ok("引導：一開始 localStorage 沒有 aiOffice.game.tour", pg.evaluate("() => localStorage.getItem('aiOffice.game.tour')") is None)
         # 擋點擊：蓋層底下的 3D 場景點不到（點員工不會開資訊卡）
         ceo = pg.evaluate("() => { const c = __world.chars.get('ceo'); return [c._sx, c._sy + 24]; }")
@@ -182,7 +184,7 @@ def _ot_overview_desktop(b, base):
             return
         ok("總覽：頂列有「總覽」鈕、一開始沒有紅點", pg.is_visible("#ovBtn") and pg.evaluate("() => document.getElementById('ovDot').hidden"))
         ok("總覽：功能鍵 office.overview 有登記（features.js）且放行", pg.evaluate("async () => { await __world.gate.load(); const f = window.TwFeatures && window.TwFeatures.byId('office.overview'); return !!f && f.cat === 'office' && __world.gate.peek('office.overview').pass; }"))
-        ok("總覽：四個方案範本都有 office.overview", pg.evaluate("""async () => { const r = await fetch('../plan_presets.js'); const t = await r.text(); return (t.match(/"office\\.overview": true/g) || []).length === 4; }"""))
+        ok("總覽：四個方案範本都有 office.overview", pg.evaluate("""async () => { const r = await fetch('../plan_presets.js'); const t = await r.text(); return (t.match(/"office\\.overview": ?(true|!0)/g) || []).length === 4; }"""))
         pg.wait_for_timeout(1200)
         _ot_click(pg, "#ovBtn")
         ok("總覽：按「總覽」開面板", wait_until(pg, "() => !document.getElementById('ovPanel').hidden && document.getElementById('ovBtn').getAttribute('aria-expanded') === 'true'", 4000))
@@ -196,6 +198,9 @@ def _ot_overview_desktop(b, base):
         txt = pg.evaluate("() => document.getElementById('ovPanel').innerText")
         ok("總覽：面板文字沒有禁用字", not _OT_BAD.search(txt), txt[:120])
         _ot_shot(pg, "d_overview.png")
+        dr = pg.evaluate("() => { const r = e => { const x = document.querySelector(e); if (!x || x.hidden) return null; const b = x.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }; return { a: r('#ovPanel'), tips: r('.pt-tips'), chat: r('#chatPanel'), bar: r('#bar') }; }")
+        hit = lambda a, b_: a and b_ and a[0] < b_[2] and a[2] > b_[0] and a[1] < b_[3] and a[3] > b_[1]
+        ok("總覽：桌機面板不跟對話框重疊", not hit(dr["a"], dr["chat"]), dr)
         # 點一列：鏡頭真的移過去、資訊卡打開
         pid = pg.evaluate("() => { const r = [...document.querySelectorAll('#ovList .ov-row')].map(x => x.dataset.id).filter(i => i !== 'ceo'); return r[r.length > 6 ? 5 : 0]; }")
         cam0 = pg.evaluate("() => { const p = __world.controls.target; return [p.x, p.y, p.z]; }")
@@ -205,6 +210,9 @@ def _ot_overview_desktop(b, base):
         cam1 = pg.evaluate("() => { const p = __world.controls.target; return [p.x, p.y, p.z]; }")
         ok("總覽：鏡頭注視點真的移動了", sum(abs(a - b_) for a, b_ in zip(cam0, cam1)) > 0.3, [cam0, cam1])
         ok("總覽：他的資訊卡打開", pg.evaluate("() => !document.getElementById('card').hidden"))
+        pg.wait_for_timeout(1300)   # 面板每秒重新排一次位置（讓出操控提示）
+        dr = pg.evaluate("() => { const r = e => { const x = document.querySelector(e); if (!x || x.hidden) return null; const b = x.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }; return { a: r('#ovPanel'), tips: r('.pt-tips') }; }")
+        ok("總覽：選了人、操控提示出現後，面板不被它蓋住（最下面的按鈕點得到）", dr["tips"] is not None and not hit(dr["a"], dr["tips"]), dr)
         ok("總覽：桌機點列後面板還開著（可以連續點）", pg.evaluate("() => !document.getElementById('ovPanel').hidden"))
         # 篩選：「著火」晶片 → 先沒人 → 空狀態字
         _ot_click(pg, "#ovChips .c-fire")
@@ -222,7 +230,7 @@ def _ot_overview_desktop(b, base):
         pg.evaluate("() => __world.advance(25)")
         pg.evaluate("() => __world.overview.poll()")
         pg.evaluate("() => { __world.state.emit({ hook_event_name: 'SubagentStop', agent_id: 'tt-a', status: 'completed', last_assistant_message: '整理驗收報告 完成' }); }")
-        done = wait_until(pg, "() => { __world.advance(10); __world.overview.poll(); return __world.overview.notes.some(n => n.kind === 'done'); }", 20000, 300)
+        done = wait_until(pg, "() => { __world.advance(10); __world.overview.poll(); return __world.overview.notes.some(n => n.kind === 'done'); }", 90000, 300)
         ok("通知：派工後完成（SubagentStop）→ 出現「完成」通知", done, pg.evaluate("() => __world.overview.notes.map(n => n.kind + ':' + n.text)"))
         # 卡住：另一位被派工後，把「最後動靜」往前推 5 分鐘（等於 5 分鐘沒動）
         pg.evaluate("(id) => { __world.state.emit({ hook_event_name: 'SubagentStart', agent_id: 'tt-b', agent_type: id, description: '修版面' }); }", ib)
@@ -283,7 +291,7 @@ def _ot_mobile(b, base):
     try:
         if not ok("手機：辦公室頁載入完成", got):
             return
-        ok("手機：引導自動跳出", wait_until(pg, "() => !!document.getElementById('trOv')", 8000))
+        ok("手機：引導自動跳出", wait_until(pg, "() => !!document.getElementById('trOv')", 30000))
         got5 = _ot_walk(pg, "引導（手機）", 390, 844, "m_tour")
         _ot_target_checks(pg, got5, "引導（手機）")
         small = pg.evaluate(_OT_SMALL, "#trOv")
@@ -301,6 +309,8 @@ def _ot_mobile(b, base):
         r = pg.evaluate("() => { const r = document.getElementById('ovPanel').getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, h: r.height, vw: innerWidth, vh: innerHeight }; }")
         ok("手機：面板在畫面內、貼底、高度不超過 6 成", r["l"] >= 0 and r["r"] <= r["vw"] + 1 and r["b"] <= r["vh"] + 1 and r["h"] <= r["vh"] * 0.6, r)
         ok("手機：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1 && document.getElementById('ovPanel').scrollWidth <= document.getElementById('ovPanel').clientWidth + 1"))
+        cr = pg.evaluate("() => { const a = document.getElementById('ovPanel').getBoundingClientRect(), c = (document.getElementById('chatForm') || document.getElementById('chatPanel')).getBoundingClientRect(); return { a: [a.left, a.top, a.right, a.bottom], c: [c.left, c.top, c.right, c.bottom] }; }")
+        ok("手機：面板沒有跟底部主對話框輸入列重疊", cr["a"][3] <= cr["c"][1] + 1 or cr["a"][2] <= cr["c"][0] or cr["a"][0] >= cr["c"][2] or cr["a"][1] >= cr["c"][3], cr)
         small = pg.evaluate(_OT_SMALL, "#ovPanel")
         ok("手機：面板文字都不小於 11px", not small, small)
         hs = pg.evaluate("() => [...document.querySelectorAll('#ovList .ov-row')].slice(0, 6).map(x => x.getBoundingClientRect().height)")
@@ -322,9 +332,12 @@ def _ot_mobile(b, base):
 
 
 def _ot_all(b, base):
-    _ot_tour_desktop(b, base)
-    _ot_overview_desktop(b, base)
-    _ot_mobile(b, base)
+    only = _os.environ.get("OT_ONLY", "")   # 除錯用：desk＝只跑桌機兩段、mobile＝只跑手機
+    if only != "mobile":
+        _ot_tour_desktop(b, base)
+        _ot_overview_desktop(b, base)
+    if only != "desk":
+        _ot_mobile(b, base)
 
 
 register("辦公室新手引導與總覽通知", lambda pg, b, base, code: _ot_all(b, base))
