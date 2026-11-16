@@ -62,6 +62,7 @@
       "packaging": "謝謝留言！「先進封裝：晶片太大做不好，拆小再拼回去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
       "hbm": "謝謝留言！「HBM：十二層記憶體，比一張信用卡還薄」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm"
     },
+    "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
     "max_per_minute": 10,
     "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}",

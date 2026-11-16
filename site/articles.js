@@ -112,6 +112,7 @@
   const S = { nw: {}, tech: null, techP: null, unl: {}, hid: null, hidP: null, views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
     posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
+
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
     const nh = (location.hash || '').split('/')[0];
@@ -441,6 +442,10 @@
 .artmore .artc{padding-top:var(--sp-2);padding-bottom:var(--sp-2)}
 .artmore .artc .tt{font-size:var(--fs-body)}
 .artmore .artc .sm{display:none}
+.artchl{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;margin:var(--sp-3) 0;padding:var(--sp-3) var(--sp-4);border:1px solid var(--k,var(--line));border-left-width:4px;border-radius:var(--r-2,8px);background:var(--bg-2,transparent);font-size:var(--fs-sm,14px);line-height:1.6;color:var(--ink-1)}
+.artchl.ok{border-color:var(--ok,var(--k,var(--line)))}
+.artchl .btn{flex:none;min-height:36px;padding:6px 14px;border:1px solid var(--k,var(--line));border-radius:var(--r-2,8px);background:transparent;color:var(--ink-1);font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+@media (max-width:640px){.artchl{font-size:13px}.artchl .btn{width:100%;text-align:center}}
 .artdisc{margin:var(--sp-4) 0 0;font-size:var(--fs-min);color:var(--ink-3);line-height:1.6}
 .artend{display:flex;justify-content:center;margin-top:var(--sp-4)}
 .artend a{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 18px;border:1px solid var(--k,var(--cyan));border-radius:999px;color:var(--k,var(--cyan));text-decoration:none;font-size:var(--fs-sm);font-weight:600}
@@ -771,6 +776,47 @@
 
   /* ------------------------------------------------------------------ 資料 */
   const fetchJson = (url) => fetch(url, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
+
+  /* ===== 2026-11-16 頻道解鎖（Andy：「沒註冊只能看那篇；有註冊且有追蹤頻道可以看該頻道所有文章」）=====
+     網站查不到 IG 追蹤狀態，所以用「IG 私訊連結」當憑證：私訊只在 tc_ig_dm.py 確認追蹤後才發，連結帶 ?tc=<頻道碼>
+     （例 https://liguligu-puipui.com/?tc=XXXX#article/<id>）。本站只存碼的 sha256（articles/unlock.json），開連結時比對：
+       · 對 → 在這台裝置記 tw.chunl＝{tech:{ch:1,arts:[單篇 id…]}}（單篇一律記，頻道全開要 ch:1），並把 ?tc 從網址拿掉。
+       · 讀文章：任何人用連結都能讀那一篇；頻道全部文章＝「已登入會員」且這台裝置有 ch:1（未登入先記著，登入後自動生效）。
+     限制（誠實寫）：① 憑證是連結不是帳號，連結轉傳＝對方也解鎖（可換碼讓舊連結失效）；② 解鎖記在這台裝置，換裝置要再開一次私訊連結；
+     ③ 沒有雲端寫入（會員 Worker 要另外部署才能存帳號），所以不跨裝置。 */
+  const UNL_KEY = 'tw.chunl';
+  const unlRead = () => { try { const o = JSON.parse(localStorage.getItem(UNL_KEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
+  const unlWrite = (o) => { try { localStorage.setItem(UNL_KEY, JSON.stringify(o)); } catch (e) { /* 私密視窗：只在這次有效 */ } };
+  const unlAdd = (k, id, ch) => {
+    const o = unlRead(), e = o[k] || { ch: 0, arts: [] };
+    if (ch) e.ch = 1;
+    if (id && okId(id) && !e.arts.includes(id)) e.arts = e.arts.concat(id).slice(-200);
+    e.ts = Date.now(); o[k] = e; unlWrite(o);
+  };
+  const chUnlocked = (k) => !!(unlRead()[k] && unlRead()[k].ch);
+  const memberOn = () => { try { const u = window.TwAccount && TwAccount.user && TwAccount.user(); return !!(u && (u.email || u.name || u.admin)); } catch (e) { return false; } };
+  /* 這個頻道分頁此刻能不能給這個人看：站主永遠可；一般人＝已登入＋這台裝置有頻道憑證 */
+  const canPriv = (k) => !!PRIV[k] && (isAdminUser() || (memberOn() && chUnlocked(k)));
+  async function sha256Hex(t) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+    return [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+  /* 開站就處理一次 ?tc=：比對成功才記；不論成不成功都把 ?tc 從網址拿掉（不留在書籤與分享裡） */
+  S.unP = (async () => {
+    let tc = ''; try { tc = new URLSearchParams(location.search).get('tc') || ''; } catch (e) { /* 舊瀏覽器 */ }
+    if (!tc) return;
+    try { history.replaceState(null, '', location.pathname + (location.hash || '')); } catch (e) { /* 忽略 */ }
+    try {
+      if (!/^[\w-]{4,40}$/.test(tc) || !(window.crypto && crypto.subtle)) return;
+      const j = await fetchJson('articles/unlock.json');
+      const h = await sha256Hex(tc);
+      Object.keys(PRIV).forEach((k) => {
+        const hs = j && j[k] && Array.isArray(j[k].sha256) ? j[k].sha256 : [];
+        if (hs.includes(h)) { const m = (location.hash || '').match(/^#article\/([^/?]+)/); unlAdd(k, m ? decodeURIComponent(m[1]) : '', true); }
+      });
+      window.dispatchEvent(new Event('tw:chunl'));
+    } catch (e) { /* 讀不到就維持原狀：只能看連結那一篇 */ }
+  })();
   /* 族群欄位：[{id,name}]；只收字串、長度有上限（id 拿來比對與當 data-*，一律 esc 後才進 HTML） */
   const cleanGroups = (g) => (Array.isArray(g) ? g : []).filter((x) => x && typeof x.id === 'string' && x.id && x.id.length <= 80 && x.name)
     .map((x) => ({ id: x.id, name: String(x.name).slice(0, 40) }));
@@ -1030,7 +1076,7 @@
   function resetFilters() { const d = defRange(); S.q = ''; S.from = d.from; S.to = d.to; S.grp = new Set(); if (S.ms) S.ms.set({ selected: [] }); }
   function filtered(cat, ignoreCat) {
     const q = S.q.trim().toLowerCase();
-    const src = PRIV[cat] && !ignoreCat ? (isAdminUser() && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
+    const src = PRIV[cat] && !ignoreCat ? (canPriv(cat) && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
     return src.filter((a) => (ignoreCat || cat === 'all' || a.cat === cat)
       && (!q || String(a.title).toLowerCase().includes(q))
       && (PRIV[cat] || ((!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)))   // 頻道隱藏分頁只有站主看、篇數少，不套日期區間（影片文章常寫隔天的上片日）
@@ -1171,7 +1217,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
     paintHide(root);
     const isPre = !!NW[S.cat];
-    const card = $('#artCard', root); if (card) card.classList.toggle('pre', isPre);
+    const card = $('#artCard', root); if (card) { card.classList.toggle('pre', isPre); card.dataset.cat = S.cat; }
     const hb = $('.howbtn', card || root); if (hb) { hb.dataset.how = isPre ? NW[S.cat].how : 'artlist'; hb.dataset.ttl = isPre ? NW[S.cat].t + '怎麼看' : '精選文章怎麼看'; hb.setAttribute('aria-label', hb.dataset.ttl); }
     if (isPre) { paintPre(root); return; }
     const box = $('#artList', root), cnt = $('#artCount', root);
@@ -1314,7 +1360,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      全部分頁都被隱藏＝整個精選文章對一般人關閉，比照側欄「隱藏分頁」（navhide.js）導回 #overview。
      回 true＝已導走，呼叫端不要再往下畫。管理者永遠看得到，不導。 */
   function guardHidden() {
-    if (PRIV[S.cat] && !isAdminUser()) {
+    if (PRIV[S.cat] && !canPriv(S.cat)) {
       /* 站主直接開 #articles/tech（或重新整理）時，登入資料比頁面晚幾百毫秒才回來：有登入權杖又還沒確認身分，先等（最多 5 秒），
          等到 tw:account 再重畫；等不到或不是站主才導回。沒有權杖的訪客立刻導回。 */
       let tok = false; try { tok = !!localStorage.getItem('tw.acct.tok'); } catch (e) { /* 私密視窗 */ }
@@ -1325,7 +1371,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       }
       location.replace('#articles'); return true;   // 非站主（含預覽版訪客）一律導回全部文章
     }
-    if (canEye()) return false;
+    if (canEye() || PRIV[S.cat]) return false;   // 頻道分頁走上面的 canPriv，不歸「眼睛隱藏名單」管
     const hid = hiddenNow();
     if (!hid.has(S.cat)) return false;
     const first = TAB_KEYS.find((k) => !hid.has(k));
@@ -1337,10 +1383,10 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const tabs = $$('#artCats>button', root);
     tabs.forEach((b) => {
       const off = hid.has(b.dataset.cat);
-      const pv = !!PRIV[b.dataset.cat], me = isAdminUser();
-      b.hidden = pv ? !me : off && !adm;
+      const pv = !!PRIV[b.dataset.cat], me = isAdminUser(), mine = pv && canPriv(b.dataset.cat);
+      b.hidden = pv ? !mine : off && !adm;
       b.classList.toggle('hid', pv ? me : off && adm);
-      b.title = pv ? catT(b.dataset.cat) + '（永遠隱藏：一般人與會員看不到，文章只能用直接連結打開）' : off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
+      b.title = pv ? catT(b.dataset.cat) + (me ? '（永遠隱藏：一般人與會員看不到，文章只能用直接連結打開）' : '（已解鎖：你從私訊連結解鎖了這個頻道的全部文章）') : off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
     });
     const n = tabs.filter((b) => !b.hidden).length;
     const cats = $('#artCats', root);
@@ -1375,7 +1421,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const e = $(`.arteye[data-cat="${k}"]`, root);
     if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
   }
-  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); if (!guardHidden() && isAdminUser()) { if (PRIV[S.cat] && !S.idx && location.hash.replace(/^#/, '').split('/')[0] === 'articles') showList(S.cat); else loadTech().then(() => paintList()); } } });
+  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); if (!guardHidden() && (isAdminUser() || canPriv('tech'))) { if (PRIV[S.cat] && !S.idx && location.hash.replace(/^#/, '').split('/')[0] === 'articles') showList(S.cat); else loadTech().then(() => paintList()); } } });
+  window.addEventListener('tw:chunl', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) paintHide(r); });
   async function showList(cat) {
     css();
     const root = document.getElementById('v-articles'); if (!root) return;
@@ -1384,10 +1431,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     ensureRange();
     markSub(S.cat);
     if (!$('#artList', root)) { disposeCharts(root); skeletonList(root); }
+    await S.unP;   // ?tc= 憑證先處理完，頻道分頁才判得準
     if (guardHidden()) return;
     paintList();
     loadStats();
-    if (isAdminUser()) loadTech().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] === 'articles') paintList(); });
+    if (isAdminUser() || Object.keys(PRIV).some(canPriv)) loadTech().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] === 'articles') paintList(); });
     /* 隱藏設定不卡清單：回來了才補畫分頁列，被隱藏的分頁（一般人）導回「全部」 */
     loadHidden().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return; const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { if (!guardHidden()) paintHide(r); } });
     await Promise.all([loadIndex(), permReady()]);
@@ -2172,7 +2220,21 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
     box.addEventListener('pointerleave', () => { box.classList.remove('hov'); $$('svg.fe g.on', box).forEach((g) => g.classList.remove('on')); });
   }
+  function wireChl(root) {
+    const b = $('#artChlLogin', root);
+    if (b) b.onclick = () => { try { window.TwAccount && TwAccount.login && TwAccount.login(); } catch (e) { /* 帳號功能沒開 */ } };
+  }
+  /* 登入、解鎖狀態變了：只換提示列，不重載文章 */
+  function repaintChl() {
+    const el = document.getElementById('artChl'), d = S.curData; if (!el || !d) return;
+    const h = chBanner(d, d.cat || 'tech', { unl: true });
+    const t = document.createElement('div'); t.innerHTML = h;
+    if (t.firstElementChild) { el.replaceWith(t.firstElementChild); wireChl(document); }
+  }
+  window.addEventListener('tw:account', repaintChl);
+  window.addEventListener('tw:chunl', repaintChl);
   function hydrate(root, d) {
+    wireChl(root);
     const blocks = Array.isArray(d.blocks) ? d.blocks : [];
     $$('.artchart', root).forEach((fig) => {
       const b = blocks[+fig.dataset.bi]; const el = $('.cv', fig); if (!b || !el) return;
@@ -2205,6 +2267,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const peek = groups.length ? groups.map((g) => g.name).join('、') : (d.subtitle || '');
     return `<div class="arthd${on ? ' on' : ''}" id="artHd"><button type="button" class="arthdt" id="artHdT" aria-expanded="${on ? 'true' : 'false'}" aria-controls="artHdB"><b>${esc(parts || '導讀')}</b><small>${esc(peek)}</small></button><div class="arthdb" id="artHdB">${inner}</div></div>`;
   }
+  /* 頻道解鎖提示（只在「用連結打開的頻道單篇」出現）：訪客→註冊提示；已登入但沒憑證→怎麼解鎖；已解鎖→去看全部 */
+  function chBanner(d, cat, meta) {
+    if (!(meta && meta.unl) || !PRIV[cat] || isAdminUser()) return '';
+    const nm = esc(catT(cat));
+    if (canPriv(cat)) return `<div class="artchl ok" id="artChl" data-st="ok"><span>已解鎖「${nm}」全部文章</span><a class="btn" href="#articles/${cat}" id="artChlGo">看${nm}全部文章</a></div>`;
+    if (!memberOn()) return `<div class="artchl" id="artChl" data-st="guest"><span>這是「${nm}」的單篇分享，只能看這一篇。<b>註冊並追蹤頻道，即可看全部文章。</b></span><button type="button" class="btn" id="artChlLogin">登入／註冊</button></div>`;
+    return `<div class="artchl" id="artChl" data-st="nogate"><span>已登入，但這台裝置還沒解鎖「${nm}」全部文章。追蹤頻道、留言關鍵字後，從私訊的連結再開一次就會解鎖。</span></div>`;
+  }
   function postHTML(d, meta, acc) {
     acc = acc || access();
     const qnote = meta && meta.unl ? '' : isOpenArt(meta) ? (acc.mode === 'full' ? '' : `<span class="artqt free" title="這篇暫時開放給所有人閱讀，不佔 Plus 全文額度">${CHK_IC}限時公開・不佔額度</span>`)
@@ -2220,7 +2290,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const toc = blocks.map((b, i) => (b && b.t === 'h' && b.text ? `<button type="button" data-bi="${i}" title="${esc(b.text)}">${esc(b.text)}</button>` : '')).join('');
     const codes = [];
     blocks.forEach((b) => { if (b && b.t === 'stocks' && Array.isArray(b.items)) b.items.forEach((x) => { if (x && okCode(x.code) && !codes.some((c) => c.code === x.code)) codes.push({ code: x.code, name: x.name || '' }); }); });
-    const listHash = CATS[cat] || (PRIV[cat] && isAdminUser()) ? '#articles/' + cat : '#articles';   // 頻道分頁只有站主回得去，其他人回全部文章
+    const listHash = CATS[cat] || (PRIV[cat] && canPriv(cat)) ? '#articles/' + cat : '#articles';   // 頻道分頁只有站主回得去，其他人回全部文章
     const endK = listHash === '#articles' ? 'all' : cat;
     return `
 <div class="artpage k-${kk}">
@@ -2229,6 +2299,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
   <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${qnote}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
   <h2 class="artttl">${esc(d.title)}</h2>
+  ${chBanner(d, cat, meta)}
   ${hdHTML(d, groups)}
   <div class="artbody" id="artBody">${blocks.map(blockHTML).join('')}</div>
   ${links.length ? `<details class="artsec artfold" id="artLinks" data-fold="links"${foldOpen('links')}><summary><h4>站內相關頁面<small>${links.length}</small></h4></summary><div class="artlinks">${links.map((l) => `<a href="${esc(l.hash)}">${esc(l.label)}</a>`).join('')}</div></details>` : ''}
@@ -2252,7 +2323,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     markSub(catOf(id));
     if (changed) { disposeCharts(root); root.innerHTML = '<div class="card artpost"><div class="arterr">載入中…</div></div>'; window.scrollTo({ top: 0 }); }
     const gone = () => S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article';
-    const [idx] = await Promise.all([loadIndex(), permReady()]);
+    const [idx] = await Promise.all([loadIndex(), permReady(), S.unP]);
     if (gone()) return;
     const meta0 = idx ? idx.list.find((a) => a.id === id) : null;
     /* 隱藏分頁的文章（科技透明圈）：不在 index.json，但有直接連結就打開（不看額度、不記點閱、不列同類別）；清單裡找不到才去讀 */
@@ -2309,6 +2380,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     S.curData = d;
     hydrate(root, d);
     adminCopyBtns(root);
+    if (unl) unlAdd(unl.cat || 'tech', id, false);   // 用連結讀到的單篇，記在這台裝置（之後登入了仍看得到這篇）
     if (!unl) recordOpen(d.id, true);   // 隱藏分頁的文章不記點閱（不進統計、不進管理區報表）
     document.title = d.title + '｜精選文章';
   }

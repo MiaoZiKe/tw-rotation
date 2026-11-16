@@ -94,7 +94,7 @@ def ts(s) -> datetime | None:
 
 def content_of(d: dict, post: str, pending=None, key: str = "") -> str:
     c = d.get("contents") or {}
-    return K.text_for(c, post, c.get("default", ""), pending, key)
+    return K.with_unlock(K.text_for(c, post, c.get("default", ""), pending, key), os.environ.get("TC_UNLOCK_CODE", ""))
 
 
 def public_text(cfg: dict, post: str, cid: str = "") -> str:

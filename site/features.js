@@ -121,6 +121,10 @@
     Object.assign(box('art.cat.news', 'articles', '比比快訊（單篇）', ['#artPost[data-cat="news"]'], '「比比快訊」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
     Object.assign(box('art.cat.intro', 'articles', '比比產業鏈（單篇）', ['#artPost[data-cat="intro"]'], '「比比產業鏈」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
     Object.assign(box('art.cat.know', 'articles', '比比知識（單篇）', ['#artPost[data-cat="know"]'], '「比比知識」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
+    /* 2026-11-16 頻道解鎖（Andy：「有註冊且有追蹤頻道則可以看該頻道的所有文章」）：科技透明圈的「全部文章」清單頁。
+       單篇用連結本來就能讀，這個鍵管的是「註冊會員從私訊連結解鎖後，看頻道全部文章」。訪客預設關（也沒有解鎖路徑）；體驗額度由 Andy 在「編輯：新會員體驗」設。 */
+    Object.assign(box('art.ch.tech', 'articles', '科技透明圈全部文章（頻道清單）', ['#artCard[data-cat="tech"]'], '科技透明圈頻道的全部文章清單：註冊會員從 IG 私訊連結解鎖後可看（單篇連結不受這個鍵管）；每日次數＝每天進幾次'),
+      { route: /^#articles\/tech/, qunit: '看' }),
     // ---- 資金流向
     box('flow.rot', 'flow', '輪動時鐘＋族群資金排行', ['#flowRotCard'], '族群相對強弱四象限與成交值／法人排行（同一張卡）'),
     box('flow.sankey', 'flow', '資金分流樹（桑基）', ['#flowSankeyCard'], '大盤 → 產業鏈 → 族群的資金分流圖'),

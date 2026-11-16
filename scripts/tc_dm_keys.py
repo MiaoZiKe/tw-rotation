@@ -90,3 +90,13 @@ def text_for(table: dict | None, post: str | None, fallback, pending=None, key: 
 def cta_keywords(text: str) -> list[str]:
     """文案裡「留言「X」」的 X（交件檢查用）。"""
     return CTA_RE.findall(text or "")
+
+
+def with_unlock(text: str, code: str) -> str:
+    """私訊專用：把網站連結改成帶頻道憑證 https://liguligu-puipui.com/?tc=碼#article/…（2026-11-16 Andy：
+    追蹤＋註冊的人才能看頻道全部文章）。碼來自環境變數 TC_UNLOCK_CODE（GitHub Secret），repo 只放它的 sha256
+    （site/articles/unlock.json）。沒碼就原樣回傳＝連結只能看單篇。已帶 ?tc= 的不重複加；公開回覆（Threads／IG 留言）不要用這個。"""
+    import re
+    if not code or not re.fullmatch(r"[\w-]{4,40}", code):
+        return text
+    return re.sub(r"https://liguligu-puipui\.com/(?!\?tc=)", "https://liguligu-puipui.com/?tc=" + code, text)
