@@ -2,3 +2,5 @@
 // 正式的測試在 bridge.test.mjs 與 inbox.test.mjs；部署流程直接跑這兩支。
 import('./bridge.test.mjs');
 import('./inbox.test.mjs');
+import('./save.test.mjs');
+import('./usage.test.mjs');

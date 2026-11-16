@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '22'
       - name: 收件端測試（驗證、欄位白名單、限速、讀取、領碼、網站指令收件匣；紅了就不准部署）
-        run: node --test workers/ai-office-bridge/test/bridge.test.mjs workers/ai-office-bridge/test/inbox.test.mjs
+        run: node --test workers/ai-office-bridge/test/bridge.test.mjs workers/ai-office-bridge/test/inbox.test.mjs workers/ai-office-bridge/test/save.test.mjs workers/ai-office-bridge/test/usage.test.mjs
       - name: 外掛測試（去識別、網站指令收件匣）
         run: python3 tools/ai_office_bridge/plugin/ai-office-bridge/scripts/test_bridge.py && python3 tools/ai_office_bridge/plugin/ai-office-bridge/scripts/test_inbox.py
       - id: guard

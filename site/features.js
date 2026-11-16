@@ -533,7 +533,15 @@
       desc: '辦公室「連接我的 Claude」：每產生一組接入碼（含換一組）算一次（用完：不再產生新的接入碼，已接好的連線與觀看不受影響）', veil: [], mark: [], block: [] },
     { id: 'office.hr', name: 'AI 辦公室：開除與重新聘用', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '次',
       qnote: '今天的人事異動次數用完了，明天會恢復', route: /^#office/,
-      desc: '辦公室人事：每確定開除一次（單人或整個部門算一次）、每重新聘用一位算一次（用完：確認框與資訊卡旁一行白話說明，不會執行）', veil: [], mark: [], block: [] }
+      desc: '辦公室人事：每確定開除一次（單人或整個部門算一次）、每重新聘用一位算一次（用完：確認框與資訊卡旁一行白話說明，不會執行）', veil: [], mark: [], block: [] },
+    /* ★ 2026-11-16（Andy：研究報告前 10 項「全做」，第 9、10 項）：雲端存檔、今日預算。後端收件服務只認站長，這裡是前端閘門。
+       office.save：每成功上傳一次算一次（有改動時每 20 秒最多一次＋離開頁面補傳）；用完只是改存本機，不會丟資料。
+       office.budget：只看自己的用量、不送資料、不耗資源，比照 office.overview 只有開關、不設每日次數；絕不擋使用者的 Claude。 */
+    { id: 'office.save', name: 'AI 辦公室：雲端存檔', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 100 }, qper: 'each', qunit: '次上傳',
+      qnote: '今天的雲端存檔次數用完了，先存在這台裝置，明天會恢復', route: /^#office/,
+      desc: '辦公室擺設、整修與遊戲進度自動存到雲端，換裝置進場時下載合併（用完：頂列小字寫「先存在這台裝置」，本機照常保存）', veil: [], mark: [], block: [] },
+    { id: 'office.budget', name: 'AI 辦公室：今日預算', cat: 'office', def: true, kind: 'bool', unlisted: true,
+      desc: '辦公室頂列「今日預算」條：今天用掉的 Token（取不到時以工具呼叫次數估算）對照自己設的每日上限，80% 提醒、超過時辦公室變暗（關閉：頂列不顯示）', veil: [], mark: [], block: [] }
   );
 
   /* ★ 2026-10-07「全站共用每日額度」（quota.all，docs/quota_plan.md、docs/plan_tiers_1007.md）：哪些功能算「研究頁」、會吃共用額度。
