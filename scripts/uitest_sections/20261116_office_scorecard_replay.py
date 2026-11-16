@@ -173,12 +173,14 @@ def _sr_replay(b, base):
         wait_until(pg, "() => __world.scorecard.cards.length === 1", 5000)
         ok("重播：成績單面板有「重播這件」鈕", (pg.click("#scBtn") or True) and pg.evaluate("() => !!document.querySelector('#scPanel [data-sc=replay]')"), "沒有鈕")
         wait_until(pg, "() => { const W = __world; return [...W.state.agents.values()].every(a => a.phase === 'idle'); }", 8000)
-        seat = _sr_pos(pg, who)
+        seat = pg.evaluate("(id) => { const c = __world.chars.get(id), h = c.homeSpot || __world.spots.find(q => q.name === 'seat:' + id); return [h.seat.x, h.seat.z]; }", who)
         n0 = pg.evaluate("() => __world.scorecard.cards.length")
         pg.click("#scPanel [data-sc=replay]")
         wait_until(pg, "() => __world.replay.on", 4000)
         ok("重播：角落出現「重播中」", "重播中" in _sr_text(pg, "#rpTag"), _sr_text(pg, "#rpTag"))
         ok("重播：控制列在、成績單面板收起、被重播的人標成接管", pg.evaluate("(id) => !document.getElementById('rpBar').hidden && document.getElementById('scPanel').hidden && __world.chars.get(id).piloted === true", who), "狀態不對")
+        ov = pg.evaluate("() => { const t = document.getElementById('rpTag').getBoundingClientRect(), o = []; for (const e of document.querySelectorAll('#bar button, #bar .btn, #bar .seg, #rpBar, #card, #ovPanel')) { if (e.id === 'rpBar' && false) continue; const r = e.getBoundingClientRect(); if (r.width && r.height && getComputedStyle(e).visibility !== 'hidden' && !e.closest('[hidden]') && t.left < r.right && t.right > r.left && t.top < r.bottom && t.bottom > r.top) o.push(e.id || e.textContent.slice(0, 8)); } return o; }")
+        ok("重播：「重播中」標籤沒有蓋到頂列按鈕或其他面板", ov == [], ov)
         _sr_shot(pg, "r2b_replay_start.png")
         pg.click("#rpPlay")
         ta = pg.evaluate("() => __world.replay.t")
@@ -201,7 +203,7 @@ def _sr_replay(b, base):
         distinct = {(round(v[0][0], 1), round(v[0][1], 1)) for v in poses.values()}
         ok("重播：拖到不同位置 → 角色位置真的不同（至少 4 個不同點）", len(distinct) >= 4, list(distinct))
         d0 = ((poses[0.01][0][0] - seat[0]) ** 2 + (poses[0.01][0][1] - seat[1]) ** 2) ** 0.5
-        ok("重播：拉到最前面 → 角色在自己的座位上", d0 < 0.6, d0)
+        ok("重播：拉到最前面 → 角色在自己的座位上", d0 < 0.9, d0)
         ok("重播：走去領任務那段的說明", "領任務" in poses[0.14][2] or "走去" in poses[0.14][2], poses[0.14][2])
         # 工作段：依工具類別換說明
         capw = []

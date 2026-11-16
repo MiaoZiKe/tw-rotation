@@ -30,7 +30,7 @@ function boot(W) {
 
   // ───────── 樣式與畫面 ─────────
   const css = document.createElement('style'); css.id = 'rpCss';
-  css.textContent = `#rpTag{position:absolute;left:12px;top:64px;z-index:33;background:#e5484d;color:#fff;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  css.textContent = `#rpTag{position:absolute;right:12px;top:118px;z-index:33;background:#e5484d;color:#fff;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.25)}
 #rpTag i{width:8px;height:8px;border-radius:50%;background:#fff;animation:rpb 1s infinite}@keyframes rpb{50%{opacity:.25}}
 #rpBar{position:absolute;left:calc(50% + 130px);transform:translateX(-50%);bottom:14px;z-index:33;width:min(560px,calc(100vw - 24px));background:var(--card,#fff);border-radius:var(--r,16px);box-shadow:var(--sh,0 8px 30px rgba(0,0,0,.2));padding:10px 12px;font-size:13px;color:var(--ink,#3b302a)}
 #rpBar .rp-cap{font-size:13px;margin:0 2px 6px;line-height:1.45;min-height:1.45em;word-break:break-all}#rpBar .rp-cap b{font-weight:700}
@@ -38,7 +38,7 @@ function boot(W) {
 #rpBar .btn{box-shadow:none;border:1px solid var(--line,#e3d9cf);height:36px;min-width:52px;padding:0 10px;justify-content:center;font-size:13px;flex:none}#rpBar .btn.on{background:var(--on,#f08a24);border-color:var(--on,#f08a24);color:#fff}
 #rpBar input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--on,#f08a24)}#rpBar .rp-time{flex:none;font-variant-numeric:tabular-nums;font-size:12px;color:var(--sub,#7a6f66);min-width:5.6em;text-align:center}
 @media (max-width:1100px){#rpBar{left:50%;bottom:80px}}
-@media (max-width:640px){#rpBar{bottom:8px;padding:8px 10px}#rpBar .rp-row{flex-wrap:wrap}#rpBar input[type=range]{flex:1 1 100%;order:5}#rpBar .rp-time{order:2;flex:1}#rpTag{top:auto;bottom:138px}}`;
+@media (max-width:640px){#rpBar{bottom:8px;padding:8px 10px}#rpBar .rp-row{flex-wrap:wrap}#rpBar input[type=range]{flex:1 1 100%;order:5}#rpBar .rp-time{order:2;flex:1}#rpTag{top:auto;right:auto;left:12px;bottom:138px}}`;
   document.head.append(css);
   const app = $('app') || document.body;
   const tag = document.createElement('div'); tag.id = 'rpTag'; tag.hidden = true; tag.setAttribute('role', 'status'); tag.innerHTML = '<i></i>重播中';
@@ -106,7 +106,7 @@ function boot(W) {
       else if (R.playing && !R.walking) startWalk(s, tl.f);
       else if (!R.playing && R.walking) { c.stop(false); R.walking = false; }
     } else if (mode === 'sit') {
-      if (R.mode !== 'sit') { R.walking = false; c.sitAt(T.hs.seat); c.atDesk = true; }
+      if (R.mode !== 'sit') { R.walking = false; c.sitAt(T.hs.seat, { instant: true }); c.atDesk = true; }
       if (enter) { const act = s.k === 'work' ? (tl.ev ? TOOL_ACT[tl.ev.c] || 'type' : 'type') : s.act; c.setAction(act); c.workAt = W.time + 600; if (tl.ev && tl.ev.c === 'test') c.emote('dots', 1.4); }
     } else {
       if (enter) {
