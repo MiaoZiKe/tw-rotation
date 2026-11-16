@@ -75,7 +75,7 @@ html.wk .ov-row .who small.lv,html.wk .k-level{display:none!important}
 
 @media (max-width:640px){
   body:not(.m-more) #stBtn{display:none}
-  #bpPanel,#prPanel{bottom:78px!important;max-height:min(62dvh,calc(100dvh - 270px))!important}      /* 手機：從對話列上方往上長（頂列有四排），不蓋到下面的對話框 */
+  #bpPanel,#prPanel{width:auto!important;bottom:78px!important;max-height:min(62dvh,calc(100dvh - 270px))!important}      /* 手機：從對話列上方往上長（頂列有四排），不蓋到下面的對話框 */
   .bp-nodes li{grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"a b d" "a c d"}
   .bp-nodes li .bp-no{grid-area:a}.bp-nodes li .bp-n{grid-area:b}.bp-nodes li .bp-w{grid-area:c}.bp-nodes li .bp-m{grid-area:d}
   #bpFlow{top:auto;bottom:84px;left:8px;right:8px;max-width:none}
