@@ -1,7 +1,7 @@
 {
   "note": "頻道②「科技透明圈」留言關鍵字自動回覆設定（2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」）。Worker workers/tc-dm（IG 私訊）與 scripts/tc_threads_replies.py（Threads 公開回覆）都讀這個檔；改這裡、推 main 即生效（Worker 5 分鐘內會讀到新版）。",
   "legal_reviewed": true,
-  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。2026-11-15 法遵再審：2nm 留言回覆、預設文字、廣達出處句改完可發（措辭「完整解說」、待遇數字固定附「出處：網友公開分享，非公司公告」）。2026-11-16 euv（曝光機）回覆文字照 2nm 已審過的同一套措辭只換標題與文章網址；tc-channel-lead 依法遵清單自查（無投資建議、估算／廠商規格有標），。2026-11-16 法遵複審：euv（曝光機）貼文、留言回覆句可發。 2026-11-16 offer（兩份 offer 怎麼比）回覆文字照 euv 已審過的同一套措辭只換標題與文章網址。",
+  "legal_note": "2026-11-09 法遵審過，修改後可用；追蹤門檻屬未確認風險，依 Andy 指示保留，可用 follow_gate 關閉。2026-11-15 法遵再審：2nm 留言回覆、預設文字、廣達出處句改完可發（措辭「完整解說」、待遇數字固定附「出處：網友公開分享，非公司公告」）。2026-11-16 euv（曝光機）回覆文字照 2nm 已審過的同一套措辭只換標題與文章網址；tc-channel-lead 依法遵清單自查（無投資建議、估算／廠商規格有標），。2026-11-16 法遵複審：euv（曝光機）貼文、留言回覆句可發。 2026-11-16 offer（兩份 offer 怎麼比）回覆文字照 euv 已審過的同一套措辭只換標題與文章網址。 2026-11-17 yield（晶圓良率）回覆文字照 offer 已審過的同一套措辭只換標題與文章網址。",
   "keywords": [
     "透明"
   ],
@@ -21,6 +21,9 @@
     "offer": [
       "整包",
       "offer"
+    ],
+    "yield": [
+      "良率"
     ]
   },
   "legal_pending": [],
@@ -47,7 +50,8 @@
       "2nm": "謝謝留言！「2 奈米不是尺寸」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
       "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。",
       "euv": "謝謝留言！「曝光機：光比線還粗」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
-      "offer": "謝謝留言！「兩份 offer 怎麼比」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer"
+      "offer": "謝謝留言！「兩份 offer 怎麼比」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
+      "yield": "謝謝留言！「晶圓良率：晶片越大，能用的比例越低」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield"
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
@@ -79,6 +83,11 @@
         "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
         "收到～「兩份 offer 怎麼比」整篇在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
         "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-17-tech-offer"
+      ],
+      "yield": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
+        "收到～「晶圓良率」整篇在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-17-tech-yield"
       ]
     }
   }

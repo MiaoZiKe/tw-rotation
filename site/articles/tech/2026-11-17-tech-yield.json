@@ -1,0 +1,206 @@
+{
+ "id": "2026-11-17-tech-yield",
+ "cat": "tech",
+ "title": "晶圓良率：晶片越大，能用的比例越低",
+ "subtitle": "科技透明圈：缺陷是隨機落在晶圓上的，晶片越大越容易被打中。同樣的缺陷密度，小晶片約九成能用，大晶片可能不到一半（簡化模型估算）。",
+ "date": "2026-11-17",
+ "updated": "2026-11-17",
+ "tags": [
+  "科技透明圈",
+  "良率",
+  "晶圓",
+  "晶片",
+  "先進封裝"
+ ],
+ "summary": "晶圓表面難免有看不見的缺陷，落在哪一顆，那一顆就可能報廢；能用的比例叫良率。缺陷是隨機落下的，晶片越大被打中的機會越高。用廠商公布過的缺陷密度（每平方公分約 0.1 個，2020 年）和簡化的泊松模型估算，100 平方毫米的小晶片約 90% 能用，800 平方毫米的大晶片約 45%。這是估算，不是任何一家公司的實際良率。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/tech/20261117v_yield/video.mp4",
+   "poster": "media/tech/20261117v_yield/cover.jpg",
+   "title": "晶圓良率：晶片越大，能用的比例越低",
+   "note": "影片 1080×1920；示意動畫，非實際比例；九成、不到一半為簡化模型估算。"
+  },
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "晶片是在一片圓形矽板（晶圓）上做的，做完再切成一顆一顆。表面難免留下看不見的缺陷，落在哪一顆，那一顆就可能報廢；能用的比例叫良率。",
+    "缺陷是隨機落下的，晶片越大，被打中的機會越高。這是 AI 晶片貴的原因之一，不是唯一原因。",
+    "用簡化模型估算：同樣的缺陷密度，100 平方毫米的小晶片約 90% 能用，800 平方毫米的大晶片約 45%（估算，非實測）。各家實際的良率，廠商都沒有公布。"
+   ]
+  },
+  {
+   "t": "kpi",
+   "items": [
+    {
+     "label": "小晶片（100 mm²）能用比例",
+     "value": "約 90",
+     "unit": "%",
+     "note": "e^(−0.1×1)，簡化模型估算"
+    },
+    {
+     "label": "大晶片（800 mm²）能用比例",
+     "value": "約 45",
+     "unit": "%",
+     "note": "e^(−0.1×8)，簡化模型估算"
+    },
+    {
+     "label": "估算用的缺陷密度",
+     "value": "約 0.1",
+     "unit": "個/cm²",
+     "note": "廠商公布，5 奈米量產初期，2020"
+    },
+    {
+     "label": "面積差",
+     "value": "8",
+     "unit": "倍",
+     "note": "100 mm² 對 800 mm²"
+    }
+   ]
+  },
+  {
+   "t": "h",
+   "text": "缺陷從哪裡來，良率是什麼"
+  },
+  {
+   "t": "p",
+   "text": "晶圓表面難免留下缺陷：可能是製程中落下的一顆微粒，也可能是一段沒做好的線路（圖形缺陷）。微粒會讓線路短路或斷路，缺陷落在哪一顆晶片上，那一顆就可能報廢。一片晶圓上通過測試的晶片比例，就叫良率（WikiChip〈Yield〉、SemiEngineering）。"
+  },
+  {
+   "t": "p",
+   "text": "要注意，會讓晶片失效的缺陷才算「致命缺陷」，缺陷密度（D0）指的就是這種；不是每個缺陷都會報廢一顆晶片。"
+  },
+  {
+   "t": "h",
+   "text": "為什麼晶片越大越吃虧"
+  },
+  {
+   "t": "p",
+   "text": "缺陷是隨機落下的：每一小塊面積被打中的機率差不多，所以晶片面積越大，整顆沒被打中的機會就越低。最常用的簡化模型是泊松模型：良率 Y＝e^(−D0×A)，D0 是每平方公分的致命缺陷數，A 是晶片面積。面積在指數上，所以大晶片的良率是「指數下降」，不是慢慢變差。"
+  },
+  {
+   "t": "steps",
+   "title": "算式（簡化的泊松模型，估算）",
+   "items": [
+    {
+     "label": "缺陷密度",
+     "text": "D0＝0.1 個／平方公分（廠商公布，5 奈米量產初期，2020 年，AnandTech 報導）"
+    },
+    {
+     "label": "小晶片",
+     "text": "100 mm²＝1 cm² → Y＝e^(−0.1×1)≈90.5%"
+    },
+    {
+     "label": "大晶片",
+     "text": "800 mm²＝8 cm² → Y＝e^(−0.1×8)≈44.9%"
+    },
+    {
+     "label": "面積差",
+     "text": "大八倍，能用的比例從約九成掉到不到一半"
+    }
+   ],
+   "note": "800 mm² 接近單次曝光能印的最大面積（約 26×33 mm＝858 mm²），所以大晶片只能是長方形，不是正方形。"
+  },
+  {
+   "t": "chart",
+   "kind": "hbar",
+   "title": "同樣的缺陷密度下，能用的比例（簡化模型估算，單位：%）",
+   "unit": "%",
+   "x": [
+    "小晶片 100 mm²",
+    "大晶片 800 mm²"
+   ],
+   "series": [
+    {
+     "name": "%",
+     "type": "bar",
+     "data": [
+      90.5,
+      44.9
+     ],
+     "axis": 0
+    }
+   ],
+   "highlight": [
+    1
+   ],
+   "marks": [
+    {
+     "x": "大晶片 800 mm²",
+     "text": "可能不到一半（估算）"
+    }
+   ],
+   "note": "泊松模型假設缺陷均勻、互相獨立；實際缺陷會成群，常改用負二項式模型，大晶片的實際良率可能比這裡算的高一些，所以文中寫「可能不到一半」。",
+   "source": "WikiChip〈Yield〉；AnandTech（D0，2020）；本文估算"
+  },
+  {
+   "t": "h",
+   "text": "這篇沒講的、還不確定的"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "各家公司、各個製程「現在」的良率：截至 2026/11/17 查不到官方公布，本文不提任何一家公司的實際良率。",
+    "缺陷密度 0.1 個／平方公分只有 AnandTech 一家直接報導，而且是 2020 年的舊資料，只拿來當估算用的典型數字，不代表現在。",
+    "「九成」「不到一半」是模型估算，不是任何產線的實測；模型的假設（缺陷隨機、均勻）也只是近似。",
+    "大晶片怎麼辦？硬做一整顆，還是拆小再拼回去？下一支：先進封裝。"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理，不構成投資建議。標「估算」的數字是用簡化模型推算，不是官方公布，也不是任何產線的實測。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Yield",
+   "publisher": "WikiChip",
+   "date": "查證日 2026-11-15",
+   "url": "https://en.wikichip.org/wiki/yield"
+  },
+  {
+   "title": "TSMC Update on Defect Rates for N5",
+   "publisher": "AnandTech",
+   "date": "2020-08",
+   "url": "https://www.anandtech.com/show/16028"
+  },
+  {
+   "title": "Ultimate guide to wafer sort",
+   "publisher": "AnySilicon",
+   "date": "查證日 2026-11-15",
+   "url": "https://anysilicon.com/ultimate-guide-wafer-sort/"
+  },
+  {
+   "title": "Chiplets add more inspection and test steps",
+   "publisher": "SemiEngineering",
+   "date": "查證日 2026-11-15",
+   "url": "https://semiengineering.com/chiplets-add-more-inspection-and-test-steps/"
+  },
+  {
+   "title": "Are Larger Reticle Sizes On The Horizon?",
+   "publisher": "SemiEngineering",
+   "date": "查證日 2026-11-15",
+   "url": "https://semiengineering.com/are-larger-reticle-sizes-on-the-horizon"
+  },
+  {
+   "title": "Integrated circuit yield",
+   "publisher": "IEEE TechNav",
+   "date": "查證日 2026-11-16",
+   "url": "https://technav.ieee.org/topic/integrated-circuit-yield/"
+  },
+  {
+   "title": "良率模型參考（泊松、Murphy、Seeds、負二項式）",
+   "publisher": "yield_models.pdf",
+   "date": "查證日 2026-11-16",
+   "url": "https://fog.misty.com/perry/cod/references/yield_models.pdf"
+  }
+ ],
+ "confidence": "中高：良率定義、缺陷隨機落下、泊松模型為教科書內容（高）；缺陷密度 0.1 個／平方公分只有 AnandTech 一家直接報導且為 2020 年（中）；「九成／不到一半」為簡化模型估算，非實測",
+ "status": "published",
+ "video": "tech-yield（科技透明圈每日短影片）"
+}
