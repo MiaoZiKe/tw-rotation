@@ -564,7 +564,10 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     for (const r of j.roster || []) if (r && typeof r.type === 'string') ts.add(r.type);
     for (const a of j.agents || []) if (a && typeof a.agent_type === 'string') ts.add(a.agent_type);
     for (const t of j.types || []) if (t && typeof t.agent_type === 'string') ts.add(t.agent_type);
-    for (const t of [...ts].slice(0, 50)) { try { memberFor(t); } catch (x) { console.warn('名冊同步失敗', t, x); } }
+    // 示範編制裡同代號的先露面（各自回自己原本的座位），再安排編制外的新同事：不然新同事會先搶走他們的桌子
+    const list = [...ts].slice(0, 50), org = t => { const c = C(t); return c && !c.spec.isCeo && !c.spec.pet ? 0 : 1; };
+    list.sort((a, b) => org(a) - org(b));
+    for (const t of list) { try { memberFor(t); } catch (x) { console.warn('名冊同步失敗', t, x); } }
   }
   function ensureExtra(type) {
     // 角色代號直接用子 Agent 類型本身（例如 tester）：對話框對他下指令時，收件匣的 to 就是這個代號，
