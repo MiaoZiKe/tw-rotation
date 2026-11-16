@@ -83,6 +83,16 @@ _PB_FLOOR = """() => { const W = window.__world, B = W.blocks, T = W.THREE; cons
   const rc = new T.Raycaster(), hit = (x, z) => { rc.set(new T.Vector3(x, 20, z), new T.Vector3(0, -1, 0)); const h = rayHit(rc); return !!(h && h.beige); };
   return { f, fit, w: f.x1 - f.x0, d: f.z1 - f.z0, hitIn: hit((x0 + x1) / 2, (z0 + z1) / 2 + 1), hitFar: hit(1.0, 3.0) } }"""
 
+_PB_SCEN = """() => { const W = window.__world, S = W.scenery; if (!S) return { none: true };
+  const rd = (r, x, z) => Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1));
+  const rects = [...S.rects]; for (const r of W.layout.rooms) rects.push({ x0: r.x, x1: r.x + r.w, z0: r.z, z1: r.z + r.d, k: 'room' }); if (W.blocks) { const f = W.blocks.floor(); rects.push({ ...f, k: 'floor' }); }
+  const items = S.objs.filter(o => o.kind !== 'lake'), lakes = S.objs.filter(o => o.kind === 'lake'), kinds = {}; for (const o of items) kinds[o.kind] = (kinds[o.kind] || 0) + 1;
+  const hit = []; for (const o of items) for (const r of rects) if (rd(r, o.x, o.z) < 0.3) hit.push([o.kind, r.k, +o.x.toFixed(1), +o.z.toFixed(1)]);
+  const lk = []; for (const L of lakes) { for (let k = 0; k < 48; k++) { const a = k / 48 * 6.283, x = L.x + Math.cos(a) * L.rx, z = L.z + Math.sin(a) * L.rz; for (const r of rects) if (rd(r, x, z) < 0.3) lk.push([r.k, +x.toFixed(1), +z.toFixed(1)]); } }
+  const inLake = []; for (const o of items) for (const L of lakes) { const dx = (o.x - L.x) / L.rx, dz = (o.z - L.z) / L.rz; if (dx * dx + dz * dz < 1) inLake.push([o.kind, +o.x.toFixed(1), +o.z.toFixed(1)]); }
+  const g = S.mesh && S.mesh.geometry, tri = g ? (g.index ? g.index.count : g.attributes.position.count) / 3 : 0, m = W.scene.getObjectByName('scenery');
+  return { n: items.length, max: S.max, lakes: lakes.length, kinds, hit: hit.slice(0, 5), lk: lk.slice(0, 5), inLake: inLake.slice(0, 5), tri, mesh: !!m, deco: W.outdoorDeco, bbox: S.bbox, shadow: !!(S.mesh && S.mesh.castShadow), pick: W.pickFurn.includes(S.mesh) } }"""
+
 
 def _pb_ctx(b, srv):
     c = b.new_context(viewport={"width": 1280, "height": 800})
@@ -144,7 +154,10 @@ def _pb_main(b, base):
           const pts = W.layout.rooms.map(r => [r.x + r.w / 2, r.z + r.d / 2, r.id]).concat([[30, 35, 'jobless']]);
           for (const [x, z, id] of pts) { const v = cam.position.clone().set(x, 0.3, z).project(cam); out.push({ id, ok: v.z < 1 && Math.abs(v.x) < 0.98 && Math.abs(v.y) < 0.98 }); } return out; }""")
         ok("咖啡廳專案：鏡頭一進場就框住全部（區塊、無業遊民區都在畫面內）", all(p["ok"] for p in inview), inview)
-        ok("咖啡廳專案：草地上沒有戶外樹叢／灌木／花叢（W.outdoorDeco＝0），無業遊民區自身的長椅與營火仍在", pg.evaluate("() => { const W = window.__world; return W.outdoorDeco === 0 && !!W.outside && W.outside.seats.length >= 4 && !!W.outside.flame }"), pg.evaluate("() => window.__world.outdoorDeco"))
+        sc0 = pg.evaluate(_PB_SCEN)
+        ok("咖啡廳專案：戶外景觀有生成（W.outdoorDeco>0）、有灌木、花叢、圓冠樹、松樹、石頭，無業遊民區自身的長椅與營火仍在", (not sc0.get("none")) and sc0["deco"] > 0 and all(sc0["kinds"].get(k, 0) > 0 for k in ("bush", "flower", "tree", "pine", "rock")) and pg.evaluate("() => { const W = window.__world; return !!W.outside && W.outside.seats.length >= 4 && !!W.outside.flame }"), sc0)
+        ok("咖啡廳專案：有湖泊（2 個）、物件數 ≤ 上限、合併成單一網格（三角面 < 15 萬）、不投影、不進可點選清單", sc0["lakes"] == 2 and sc0["n"] <= sc0["max"] and sc0["mesh"] and sc0["tri"] < 150000 and not sc0["shadow"] and not sc0["pick"], sc0)
+        ok("咖啡廳專案：景觀不壓到地板鋪面、區塊、遊民區、大門步道，樹不在湖裡，湖不壓到鋪面", not sc0["hit"] and not sc0["lk"] and not sc0["inLake"], [sc0["hit"], sc0["lk"], sc0["inLake"]])
         _pb_shot(pg, "pb1_咖啡廳規劃專案_俯瞰.png")
         pg.wait_for_timeout(2000)   # 地板約 0.6 秒平順長到最終範圍
         fl0 = pg.evaluate(_PB_FLOOR)
@@ -180,6 +193,8 @@ def _pb_main(b, base):
         fl2 = pg.evaluate(_PB_FLOOR)
         ok("加到 6 位 Agent 後：地板再變大、仍貼合區塊包圍盒、遠角沒有米色空地", fl2["fit"] and fl2["w"] > fl1["w"] + 4 and not fl2["hitFar"], [fl1["w"], fl2["w"], fl2["f"]])
         _pb_shot(pg, "pb2c_6位Agent.png")
+        sc2 = pg.evaluate(_PB_SCEN)
+        ok("加到 6 位 Agent：景觀跟著往外（包圍盒變大）、仍不壓到新地板／新區塊、湖仍在、物件數 ≤ 上限", sc2["bbox"]["x0"] < sc0["bbox"]["x0"] - 2 and sc2["bbox"]["x1"] > sc0["bbox"]["x1"] + 2 and not sc2["hit"] and not sc2["lk"] and not sc2["inLake"] and sc2["lakes"] == 2 and sc2["n"] <= sc2["max"] and sc2["n"] > 30, [sc0["bbox"], sc2["bbox"], sc2])
 
         # ───── ③ 火焰、運動場、對話框照常 ─────
         r = pg.evaluate("""() => { const W = window.__world, e = [], F = W.fire; let burn = 0, sp = null, chat = false;
@@ -210,6 +225,8 @@ def _pb_main(b, base):
         ok("tw-rotation：外圍地板仍是固定 40×30（含邊距 43×33 的米色鋪面，邊緣外才是草地）", fl3["tw"] and fl3["w"] == 40 and fl3["d"] == 30 and fl3["slab"] and not fl3["grass"], fl3)
         ok("tw-rotation：示範編制的 inspector 照樣坐自己的座位 seat:inspector", any(v["id"] == "inspector" and v["at"] == "seat:inspector" for v in s3["vis"]), s3["vis"])
         ok("tw-rotation：戶外樹叢／灌木／花叢仍照常生成（W.outdoorDeco > 100）", pg.evaluate("() => window.__world.outdoorDeco") > 100, pg.evaluate("() => window.__world.outdoorDeco"))
+        sc3 = pg.evaluate(_PB_SCEN)
+        ok("tw-rotation：外圍景觀也有（灌木、花、樹、松樹、石頭）、有 2 個湖、物件數 ≤ 上限，且不壓到辦公室／運動場／遊民區／大門步道", (not sc3.get("none")) and sc3["lakes"] == 2 and all(sc3["kinds"].get(k, 0) > 0 for k in ("bush", "flower", "tree", "pine", "rock")) and sc3["n"] <= sc3["max"] and not sc3["hit"] and not sc3["lk"] and not sc3["inLake"], sc3)
         _pb_shot(pg, "pb3_tw-rotation完整辦公室.png")
     finally:
         c.close()
