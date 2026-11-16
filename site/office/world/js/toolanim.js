@@ -70,8 +70,17 @@ export function createToolAnim(W, X = {}) {
   T.clear = (c, revert = true) => {
     const k = typeof c === 'string' ? c : keyOf(c), x = k && T.cur.get(k); if (!x) return;
     T.cur.delete(k); x.el.classList.add('off'); setTimeout(() => x.el.remove(), 400);
-    if (revert && x.cat && x.cat !== 'lost' && free(x.c) && x.c.action === ACT[x.cat]) { x.c.setAction('type'); x.c.workAt = W.time + 5; }
+    if (revert && x.cat && x.cat !== 'lost' && ACT[x.cat] !== 'type') T.pend.set(k, { c: x.c, act: ACT[x.cat], until: Date.now() + 15000 });
   };
+  // 回預設：收起圖示的那一刻角色可能正在講話等一次型動作，做完會回到工具動作（例如還拿著電話），所以 15 秒內看到就改回打字
+  T.pend = new Map();
+  function revertPending() {
+    const now = Date.now();
+    for (const [k, p] of T.pend) {
+      if (T.cur.has(k) || now > p.until) { T.pend.delete(k); continue; }
+      if (free(p.c) && p.c.action === p.act) { p.c.setAction('type'); p.c.workAt = W.time + 5; T.pend.delete(k); }
+    }
+  }
   /** 失聯：在 CEO（與分身）頭上掛「失聯」；恢復時還原原本的工具圖示（還沒過期的話） */
   T.lost = (chars, on) => {
     for (const c of chars) {
@@ -93,6 +102,7 @@ export function createToolAnim(W, X = {}) {
   const v = new THREE.Vector3(), LIFT_PX = matchMedia('(max-width:640px)').matches ? 28 : 34;
   function frame() {
     requestAnimationFrame(frame);
+    if (T.pend.size) revertPending();
     if (!T.cur.size) return;
     const cam = W.camera, cv = W.renderer && W.renderer.domElement; if (!cam || !cv) return;
     const r = cv.getBoundingClientRect(), now = Date.now(), on = gateOn();
