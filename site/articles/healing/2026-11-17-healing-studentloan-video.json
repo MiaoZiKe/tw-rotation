@@ -1,0 +1,104 @@
+{
+ "id": "2026-11-17-healing-studentloan-video",
+ "cat": "healing",
+ "title": "有學貸的人：利率降到0.775%，寬限期變2年",
+ "subtitle": "談晴說礙・IG Reels／Threads 影片存檔（封面、影片、文案全文、出處）",
+ "date": "2026-11-17",
+ "updated": "2026-11-17",
+ "tags": [
+  "談晴說礙",
+  "學貸",
+  "就學貸款",
+  "畢業",
+  "第一份工作",
+  "數字裡的日子"
+ ],
+ "summary": "教育部、臺灣銀行：115 學年起（2026/8/1）學貸畢業後學生負擔利率由 1.775% 降為 0.775%，寬限期由 1 年延長為 2 年。（影片版，有旁白）",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "影片"
+  },
+  {
+   "t": "mp4",
+   "src": "media/healing/20261117v_studentloan/video.mp4",
+   "title": "有學貸的人：利率降到0.775%，寬限期變2年",
+   "note": "影片 1080×1920（IG Reels／Threads 同一支）；可下載。",
+   "poster": "media/healing/20261117v_studentloan/cover.jpg"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "教育部國教署與臺灣銀行公告：自 2026 年 8 月 1 日起，就學貸款畢業後由學生負擔的利率，由 1.775% 降為 0.775%，其中 1 個百分點由政府加碼補貼。"
+  },
+  {
+   "t": "p",
+   "text": "畢業後的還款寬限期，也由 1 年延長為 2 年，寬限期間免還本息；在職專班不適用。"
+  },
+  {
+   "t": "p",
+   "text": "符合就學貸款辦法資格者，在學期間的利息由主管機關全額負擔。"
+  },
+  {
+   "t": "p",
+   "text": "0.775% 是機動利率，會隨學貸基準利率調整，不是固定利率。已在還款的舊貸戶是否適用，各報導寫法不一，以教育部、臺灣銀行公告為準。"
+  },
+  {
+   "t": "p",
+   "text": "寬限多一年，第一份薪水，先還哪一筆？"
+  },
+  {
+   "t": "p",
+   "text": "完整數字與出處整理在下方；留言「學貸」拿完整資料。"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "排程於台北時間 2026-11-17 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "115 學年度就學貸款措施函（利率 0.775%、寬限期 2 年；在職專班不適用）",
+   "publisher": "教育部國民及學前教育署",
+   "date": "2026-07"
+  },
+  {
+   "title": "115 學年度上學期就學貸款公告（受理 2026/8/1–9/30）",
+   "publisher": "臺灣銀行（經中央社刊載）",
+   "url": "https://www.cna.com.tw/business/chinese/440064"
+  },
+  {
+   "title": "學貸利率降至 0.775%、寬限期延長 2 年",
+   "publisher": "自由時報 自由財經",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5520046"
+  },
+  {
+   "title": "學貸新制報導",
+   "publisher": "聯合報",
+   "url": "https://udn.com/news/story/7239/9655291"
+  },
+  {
+   "title": "學貸新制報導",
+   "publisher": "工商時報",
+   "date": "2026-07-28",
+   "url": "https://www.ctee.com.tw/news/20260728701822-430304"
+  }
+ ],
+ "confidence": "政策公告＋媒體一致；舊貸戶是否適用未下結論",
+ "status": "published",
+ "social": {
+  "ig": null,
+  "threads": null,
+  "queue": "20261117v_studentloan",
+  "format": "video",
+  "video": "https://liguligu-puipui.com/media/healing/20261117v_studentloan/video.mp4"
+ }
+}

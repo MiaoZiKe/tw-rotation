@@ -99,20 +99,30 @@ def _publish_record(folder, meta):
 
 
 def build_video(folder, cfg, q, meta, title, paras, tags, pid):
-    """影片貼文：封面圖（有的話）＋影片連結＋文案全文＋發布紀錄。"""
+    """影片貼文：影片（文章內直接播放＋下載鈕，mp4 區塊）＋文案全文＋發布紀錄。
+    2026-11-16（Andy 11-15「做好的影片都需要放在網站上對應的文章內，並且都具備下載功能」，docs/marketing/channels/video_in_articles.md）：
+    site/media/healing/<資料夾>/video.mp4 存在（healing_post.py --prepare 同步）就放 mp4 區塊（poster＝同資料夾 cover.jpg）；
+    還沒同步時才退回舊做法（封面圖＋影片連結）。"""
     blocks = [{"t": "h", "text": "影片"}]
     alts = cfg.get("alts") or [title]
     cov = q / "cover.jpg"
-    if cov.exists():
-        dst = IMG / f"{pid}-cover.jpg"
-        shutil.copyfile(cov, dst)
-        blocks.append({"t": "img", "items": [{"src": f"articles/healing/img/{dst.name}", "alt": alts[0], "cap": "影片封面"}],
-                       "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"})
     media = ROOT / "site/media/healing" / folder / "video.mp4"
     vurl = f"https://liguligu-puipui.com/media/healing/{folder}/video.mp4" if media.exists() else \
         f"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/queue/{folder}/video.mp4"
-    if (q / "video.mp4").exists():
-        blocks.append({"t": "links", "title": "影片檔", "items": [{"label": "觀看影片（MP4）", "url": vurl}]})
+    if media.exists():
+        b = {"t": "mp4", "src": f"media/healing/{folder}/video.mp4", "title": title,
+             "note": cfg.get("video_note") or "影片 1080×1920（IG Reels／Threads 同一支）；可下載。"}
+        if (media.parent / "cover.jpg").exists():
+            b["poster"] = f"media/healing/{folder}/cover.jpg"
+        blocks.append(b)
+    else:
+        if cov.exists():
+            dst = IMG / f"{pid}-cover.jpg"
+            shutil.copyfile(cov, dst)
+            blocks.append({"t": "img", "items": [{"src": f"articles/healing/img/{dst.name}", "alt": alts[0], "cap": "影片封面"}],
+                           "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"})
+        if (q / "video.mp4").exists():
+            blocks.append({"t": "links", "title": "影片檔", "items": [{"label": "觀看影片（MP4）", "url": vurl}]})
     blocks.append({"t": "h", "text": "文案全文"})
     for x in paras:
         blocks.append({"t": "p", "text": x})
