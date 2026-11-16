@@ -146,7 +146,7 @@ def _pb_main(b, base):
         ok("新 Agent 加入：區塊 +1（3→4），不必重新整理", got and s2["n"] == 4 and len(s2["rooms"]) == 4, s2["rooms"])
         pos2 = pg.evaluate("() => window.__world.layout.rooms.filter(r => r.id.startsWith('blk_')).map(r => ({ cx: r.x + r.w / 2, z: r.z })).sort((a, b) => a.cx - b.cx)")
         ok("新 Agent 加入：同一排的 3 個區塊重新置中、等距（原本兩個往左右挪）", len(pos2) == 3 and abs(pos2[1]["cx"] - 20.5) < 0.01 and abs((pos2[1]["cx"] - pos2[0]["cx"]) - (pos2[2]["cx"] - pos2[1]["cx"])) < 0.01, pos2)
-        ok("新 Agent 加入：舊的兩位仍坐在自己的桌子前（位置跟著區塊搬）", pg.evaluate("""() => ['planner', 'data-verifier', 'menu-writer'].every(k => { const c = window.__world.chars.get(k), s = c.homeSpot; return c.state === 'sit' && s && Math.hypot(c.object3D.position.x - s.seat.x, c.object3D.position.z - s.seat.z) < 0.6 && window.__world.spots.includes(s); })"""))
+        ok("新 Agent 加入：舊的兩位座位跟著區塊搬（家在新位置；坐著的就坐在桌前，跑任務被叫去 CEO 面前的不算）", pg.evaluate("""() => ['planner', 'data-verifier', 'menu-writer'].every(k => { const c = window.__world.chars.get(k), s = c.homeSpot; return s && window.__world.spots.includes(s) && (!(c.state === 'sit' && c.atDesk) || Math.hypot(c.object3D.position.x - s.seat.x, c.object3D.position.z - s.seat.z) < 0.6); })"""))
         # 區塊名稱後補：先沒有說明、之後才拿到
         srv.events([_pb_ev("SubagentStart", "cf1", _PB_COFFEE, "coffee-shop", agent_id="cag-4", agent_type="zz-late")])
         wait_until(pg, "() => window.__world.blocks.count() >= 5", 40000)
