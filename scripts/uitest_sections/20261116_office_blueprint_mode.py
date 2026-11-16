@@ -132,7 +132,7 @@ def t_bp_blueprint(b, base):
     pg.evaluate("() => { const B = __world.blueprint; while (B.run && B.run.step < B.run.nodes.length) B.next(true); }")
     pg.wait_for_timeout(300)
     ok("B1 全部走完→顯示「全部完成」", "全部完成" in pg.inner_text("#bpFlow"))
-    pg.click('#bpFlow [data-bf="stop"]')
+    pg.evaluate("() => { const b = document.querySelector('#bpFlow [data-bf=stop]'); if (b) b.click(); }")      # 走完 8 秒後流程條會自己收起來，所以用 evaluate 點（已經收起也算過）
     pg.wait_for_timeout(200)
     ok("B1 按「收起」→流程條消失、進行中紀錄清掉", pg.evaluate("() => document.getElementById('bpFlow').hidden && !localStorage.getItem('aiOffice.game.blueprintrun.demo')"))
     # 真實專案：只轉成給 CEO 的指令
