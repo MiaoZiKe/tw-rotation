@@ -1,26 +1,22 @@
 {
-  "updated_at": "2026-11-15T09:33:03+00:00",
-  "mode": "refresh",
+  "updated_at": "2026-11-16T08:39:10+00:00",
+  "mode": "check",
   "platforms": {
     "threads": {
       "source": "auto",
       "ok": true,
       "last_ok_at": "2026-11-15T09:33:03+00:00",
       "expires_at": "2027-01-14T09:33:03+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "check-ok",
+      "days_left": 59.0
     },
     "ig": {
       "source": "auto",
       "ok": true,
       "last_ok_at": "2026-11-15T09:33:03+00:00",
       "expires_at": "2027-01-14T09:33:03+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "check-ok",
+      "days_left": 59.0
     },
     "tc_threads": {
       "source": "original",
@@ -43,15 +39,13 @@
       "ok": true,
       "last_ok_at": "2026-11-15T09:33:03+00:00",
       "expires_at": "2027-01-14T09:33:03+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "check-ok",
+      "days_left": 59.0
     },
     "healing_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "last_ok_at": "2026-11-16T08:39:10+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@talk_01010909）",
@@ -65,15 +59,13 @@
       "ok": true,
       "last_ok_at": "2026-11-15T09:33:03+00:00",
       "expires_at": "2027-01-14T09:33:03+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "check-ok",
+      "days_left": 59.0
     },
     "tech_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "last_ok_at": "2026-11-16T08:39:10+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@tech_01010909）",
@@ -87,15 +79,13 @@
       "ok": true,
       "last_ok_at": "2026-11-15T09:33:03+00:00",
       "expires_at": "2027-01-14T09:33:03+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "status": "check-ok",
+      "days_left": 59.0
     },
     "caffaine_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "last_ok_at": "2026-11-16T08:39:10+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@caffaine.ai）",
