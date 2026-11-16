@@ -16,7 +16,7 @@ function capV8(s,op,dy){if(!s||op<=0)return'';const ls=s.split('\n').map(x=>x.re
  return `<div data-o="cap" class="abs cap" style="top:${top}px;font-size:${fs}px;line-height:${lh}px;opacity:${op.toFixed(3)};transform:translateY(${dy.toFixed(1)}px)">${ls.map(esc).join('<br>')}</div>`}
 window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.length;j++){if(t>=S[j].t0&&t<S[j].t1){i=j;break}}
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
- const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;let h=SC[sc.type](sc,l,dd,{});
+ const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;let h=SC[sc.type](sc,l,dd,{});
   if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*18)}
   if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2));return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;

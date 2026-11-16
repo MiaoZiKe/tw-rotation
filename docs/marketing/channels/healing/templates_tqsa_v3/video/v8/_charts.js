@@ -5,8 +5,8 @@
 const IH=368,CT=776,CH=724;
 // v8.1（animation-director 11-16 退件：鏡內 2 秒後只剩光點不算主體動作）：每鏡 2.0 秒起每 1.0 秒一拍——狀態標籤輕跳（2.0、3.0…），強調膠囊輕跳（2.5、3.5…）；位移 ≤7px、每拍衰減落定，不縮放、不閃爍
 let _LT=0;
-let _BEATS=null;   // 有旁白時＝這一鏡對準字詞起音的拍點（gen_v8.py 算好）；偶數拍跳狀態標籤、奇數拍跳強調膠囊
-function beatHop(lt,off,amp){let y=0;if(_BEATS){_BEATS.forEach((b,i)=>{if((i%2)===((off||0)>0?1:0)&&b<lt+.01)y+=-(amp||7)*DECAY(lt-b,6,15)});return y}for(let b=2.0+(off||0);b<lt+.01&&b<14;b+=1.0)y+=-(amp||7)*DECAY(lt-b,6,15);return y}
+let _BEATS=null,_TAGALL=false;   // 有旁白時＝這一鏡對準字詞起音的拍點（gen_v8.py 算好）；偶數拍跳狀態標籤、奇數拍跳強調膠囊
+function beatHop(lt,off,amp){let y=0;if(_BEATS){_BEATS.forEach((b,i)=>{if((off===-1||(i%2)===((off||0)>0?1:0))&&b<lt+.01)y+=-(amp||7)*DECAY(lt-b,6,15)});return y}for(let b=2.0+(off||0);b<lt+.01&&b<14;b+=1.0)y+=-(amp||7)*DECAY(lt-b,6,15);return y}
 const F1=(v,d)=>Number(v).toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
 function capsule(cx,cy,w,h,txt,fs,p,col){if(p<=0)return'';const k=Math.max(.01,p);return `<g data-em="1" opacity="${clamp((p-.1)/.85).toFixed(3)}" transform="translate(${cx},${(cy+beatHop(_LT,.5,6)).toFixed(1)}) scale(${k.toFixed(3)})"><rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="${h/2}" fill="${col||'#F6D9B8'}" stroke="#E7B07A" stroke-width="2"/>${T(0,fs*.36,txt,fs,700,HINT)}</g>`}
 // 差距括號：x 位置、上下 y、由上往下畫出；箭頭頭；中段文字在括號右側

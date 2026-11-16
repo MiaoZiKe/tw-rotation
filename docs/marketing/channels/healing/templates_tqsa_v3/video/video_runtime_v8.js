@@ -24,7 +24,7 @@ function title(lines,lt,o){o=o||{};const fs=o.fs||92,top=o.top||170,p=o.full?1:p
  return `<div data-o="title" class="abs title ${o.cls||''}" style="top:${top}px;font-size:${fs}px;line-height:${Math.round(fs*1.24)}px;opacity:${.35+.65*p};transform:translateY(${(1-p)*22}px)">${lines.map(esc).join('<br>')}</div>`}
 // 狀態標籤：蓋章（1.3→1 過衝回彈、微旋轉）
 function tag(s,lt,at,top){if(!s)return'';const k=clamp((lt-at)/.3);if(k<=0)return'';const sc=1.3-.3*BACK(k),rot=-4*(1-EO(k));
- return `<div data-o="tag" class="abs tag" style="top:${top}px;transform:translateY(${beatHop(lt,0).toFixed(1)}px) scale(${sc.toFixed(3)}) rotate(${rot.toFixed(2)}deg);transform-origin:left center;opacity:${clamp(k*3)}">${esc(s)}</div>`}
+ return `<div data-o="tag" class="abs tag" style="top:${top}px;transform:translateY(${beatHop(lt,_TAGALL?-1:0).toFixed(1)}px) scale(${sc.toFixed(3)}) rotate(${rot.toFixed(2)}deg);transform-origin:left center;opacity:${clamp(k*3)}">${esc(s)}</div>`}
 function split2(s){const m=s.length/2;let best=-1,bd=1e9;for(let i=1;i<s.length-1;i++){if(/[，、：；？！]/.test(s[i])){const d=Math.abs(i+1-m);if(d<bd&&i+1<=16&&s.length-i-1<=16){bd=d;best=i+1}}}
  if(best<0||Math.min(best,s.length-best)<s.length/4)best=Math.ceil(m);return [s.slice(0,best),s.slice(best)]}
 function capHTML(s,op,dy){if(!s||op<=0)return'';s=s.replace(/。$/,'');const one=s.length<=11;const ls=one?[s]:split2(s);const mx=Math.max(...ls.map(l=>l.length));const fs=one?76:(mx<=13?64:Math.min(64,Math.floor(880/mx)));
@@ -49,8 +49,8 @@ const DECOS=(x,k,w)=>x<=0?0:Math.exp(-k*x)*Math.cos(w*x);      // 衰減擺盪�
 const IH=368,CT=776,CH=724;
 // v8.1（animation-director 11-16 退件：鏡內 2 秒後只剩光點不算主體動作）：每鏡 2.0 秒起每 1.0 秒一拍——狀態標籤輕跳（2.0、3.0…），強調膠囊輕跳（2.5、3.5…）；位移 ≤7px、每拍衰減落定，不縮放、不閃爍
 let _LT=0;
-let _BEATS=null;   // 有旁白時＝這一鏡對準字詞起音的拍點（gen_v8.py 算好）；偶數拍跳狀態標籤、奇數拍跳強調膠囊
-function beatHop(lt,off,amp){let y=0;if(_BEATS){_BEATS.forEach((b,i)=>{if((i%2)===((off||0)>0?1:0)&&b<lt+.01)y+=-(amp||7)*DECAY(lt-b,6,15)});return y}for(let b=2.0+(off||0);b<lt+.01&&b<14;b+=1.0)y+=-(amp||7)*DECAY(lt-b,6,15);return y}
+let _BEATS=null,_TAGALL=false;   // 有旁白時＝這一鏡對準字詞起音的拍點（gen_v8.py 算好）；偶數拍跳狀態標籤、奇數拍跳強調膠囊
+function beatHop(lt,off,amp){let y=0;if(_BEATS){_BEATS.forEach((b,i)=>{if((off===-1||(i%2)===((off||0)>0?1:0))&&b<lt+.01)y+=-(amp||7)*DECAY(lt-b,6,15)});return y}for(let b=2.0+(off||0);b<lt+.01&&b<14;b+=1.0)y+=-(amp||7)*DECAY(lt-b,6,15);return y}
 const F1=(v,d)=>Number(v).toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
 function capsule(cx,cy,w,h,txt,fs,p,col){if(p<=0)return'';const k=Math.max(.01,p);return `<g data-em="1" opacity="${clamp((p-.1)/.85).toFixed(3)}" transform="translate(${cx},${(cy+beatHop(_LT,.5,6)).toFixed(1)}) scale(${k.toFixed(3)})"><rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="${h/2}" fill="${col||'#F6D9B8'}" stroke="#E7B07A" stroke-width="2"/>${T(0,fs*.36,txt,fs,700,HINT)}</g>`}
 // 差距括號：x 位置、上下 y、由上往下畫出；箭頭頭；中段文字在括號右側
@@ -375,7 +375,7 @@ function capV8(s,op,dy){if(!s||op<=0)return'';const ls=s.split('\n').map(x=>x.re
  return `<div data-o="cap" class="abs cap" style="top:${top}px;font-size:${fs}px;line-height:${lh}px;opacity:${op.toFixed(3)};transform:translateY(${dy.toFixed(1)}px)">${ls.map(esc).join('<br>')}</div>`}
 window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.length;j++){if(t>=S[j].t0&&t<S[j].t1){i=j;break}}
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
- const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;let h=SC[sc.type](sc,l,dd,{});
+ const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;let h=SC[sc.type](sc,l,dd,{});
   if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*18)}
   if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2));return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;
