@@ -141,19 +141,27 @@ export function createFeel(W, K) {
     duck: ['嗚…不要…', '救、救命…', '好燙…好怕…', '誰…幫幫我…'],
   };
   const burnStyle = m => { const t = m.t; return t.sens >= .55 && t.ext < .5 ? 'duck' : t.sens >= .45 ? 'run' : t.comp >= .55 ? 'pat' : 'hop'; };
-  const poolPlan = (c, p) => {   // 附近（路程約 14 公尺內）有泳池就回傳入口（南邊缺口外）與池內目標
-    const L = LAY && LAY.pool; if (!L) return null; const gx = (L.gap.x0 + L.gap.x1) / 2, ex = { x: gx, z: L.z1 + 1.1 }, d = Math.hypot(p.x - ex.x, p.z - ex.z);
-    return d <= 12 ? { ex: ex.x, ez: ex.z, ix: gx, iz: (L.z0 + L.z1) / 2, d } : null;
+  // 11-16 擁有者：「被燒到後他會跑去滅火」——著火時一律主動跑去「路程最近」的水源，不限距離。
+  // 水源有兩種：泳池（南邊缺口入口，衝進去跳水＝熄火＋洗焦黑）、辦公室飲水機（走到跟前潑水＝熄火，焦黑照原本流程慢慢褪）。
+  // 速度是跑步（4.2 公尺／秒）；總共最多跑 F.cfg.cap 秒（預設 20），來不及到就在原地拍打把火拍熄（最後 3 秒停下來拍）。
+  F.cfg = { cap: 20, speed: 4.2 };
+  const pathLen = (a, b) => { const pts = W.nav.findPath({ x: a.x, z: a.z }, { x: b.x, z: b.z }); if (!pts || pts.length < 2) return null; let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z); return L; };
+  const poolPlan = (c, p) => {
+    const cands = [], L = LAY && LAY.pool;
+    if (L) { const gx = (L.gap.x0 + L.gap.x1) / 2, ex = { x: gx, z: L.z1 + 1.1 }, d = pathLen(p, ex); if (d != null) cands.push({ kind: 'pool', ex: ex.x, ez: ex.z, ix: gx, iz: (L.z0 + L.z1) / 2, d: d + 2.6 }); }
+    for (const s of W.spots) { if (s.name !== 'water') continue; const d = pathLen(p, s); if (d != null) cands.push({ kind: 'water', ex: s.x, ez: s.z, ix: s.x, iz: s.z, d }); }
+    cands.sort((a, b) => a.d - b.d); return cands[0] || null;
   };
   F.onBurn = (c, m, d = {}) => {
     const f = of(m); f.stage = 'shock'; f.burnAt = Date.now(); f.ventDone = false; f.thankedC = false; f.blame = burnWho(m) || d.by === 'you' || !!(c._held || c.state === 'held' || (m.grabbedAt != null && W.time - m.grabbedAt < 25));   // 被你拎著放到火上、或剛被你甩出去
     if (f.blame) { f.hits.push({ t: W.time, w: 1.2, kind: 'fire' }); f.bullyAt = W.time; }
     if (f.blame) addRel(m, -.34 * (.75 + .5 * m.t.sens) * (1.2 - .5 * m.t.opt), '被丟進火裡'); dirty(m);
-    const fs = fireOf(c), p = pos(c), pool = poolPlan(c, p); let style = burnStyle(m); if (pool) style = 'pool';
-    f.bs = { tok: fs ? fs.tok : 0, t0: W.time, style, base: burnStyle(m), pool, lx: p.x, lz: p.z, dist: 0, ang: Math.random() * 6.28, dir: Math.random() < .5 ? 1 : -1, hopT: .25, path: null, pi: 1, pathAt: -9, gap: false, step: 0, trem: 0, tg: 0, emoT: 0, dropT: 0, emoI: 0, x0: p.x, z0: p.z, maxDisp: 0 };
+    const fs = fireOf(c), p = pos(c), pool = poolPlan(c, p); let style = burnStyle(m); if (pool) style = pool.kind;
+    f.bs = { tok: fs ? fs.tok : 0, t0: W.time, style, base: burnStyle(m), pool, lx: p.x, lz: p.z, dist: 0, ang: Math.random() * 6.28, dir: Math.random() < .5 ? 1 : -1, hopT: .25, path: null, pi: 1, pathAt: -9, gap: false, clock: 0, lineT: 2, pat: false, cap: F.cfg.cap, from: d.from || null, doused: false, step: 0, trem: 0, tg: 0, emoT: 0, dropT: 0, emoI: 0, x0: p.x, z0: p.z, maxDisp: 0 };
     f.bsLog = []; f.limpUntil = 0; f.beatN = 0; if (W.fire) W.fire.steer = F.steer;   // 接上 fire.js 的走法接管點
-    if (fs) fs.dur = Math.max(fs.dur, pool ? Math.min(9, 3 + (pool.d + 3.2) / 3.9) : { run: 4.6, pat: 4.8, hop: 4.6, duck: 5.4 }[style]);   // 掙扎要演得完（原本燒 3.2～4.8 秒）
-    record(m, { event: 'burn-style', style, pool: !!pool });
+    if (fs) fs.dur = pool ? Math.max(fs.dur, Math.min(F.cfg.cap, 1.9 + pool.d / F.cfg.speed)) : Math.max(fs.dur, { run: 4.6, pat: 4.8, hop: 4.6, duck: 5.4 }[style]);   // 角色燃燒時間 8～12 秒（不會移開火源就熄）；要跑得到水源   // 掙扎要演得完（原本燒 3.2～4.8 秒）
+    record(m, { event: 'burn-style', style, pool: !!pool, from: d.from || null });
+    if (d.from) { const src = C(d.from); if (src) { f.catchFrom = d.from; addRel(m, -.12 * (.7 + .6 * m.t.sens), '被傳到火'); } }   // 被燒著的同事碰到：之後會怪他一下，再和好
   };
   const tag = (m, o) => { const b = of(m).bs; if (b) of(m).bsLog.push({ t: Math.round((W.time - b.t0) * 10) / 10, ...o }); };
   // 每個模擬步由 fire.js 呼叫：回傳 {vx,vz,fx,fz,hop} 取代預設的直線逃開

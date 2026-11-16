@@ -515,7 +515,7 @@ export function createMind(W, X = {}) {
   sub('rewarded', (id, d) => reward(id, d)); for (const n of ['promoted', 'awarded', 'item', 'praised']) sub(n, (id, d) => reward(id, d, KIND[n]));
   sub('rejected', (id, d) => punish(id, d, 'rejected')); sub('demoted', (id, d) => punish(id, d, 'demote')); sub('bonked', (id, d) => punish(id, d, 'bonk'));
   sub('comforted', (id, d) => { const c = C(id), m = mindOf(c); if (!m) return; if (d && d.by) { FE.onComforted(c, m, d); return; } affect(m, { val: .12 }, CAUSE.comforted, 90); if (!m.sc) { scene(c, m, 3, 'comforted', sc => { sc.at(0, () => { face(c, m, 'relieved', 1.8); }).at(1.8, () => { }); holdCap(c, m, sc); }); } });
-  const poolWords = d => d && (d.cause === 'pool' || d.by === 'pool' || d.how === 'pool' || d.cause === 'splash' || d.cause === 'splashed' || d.pool);
+  const poolWords = d => d && (d.cause === 'pool' || d.cause === 'water' || d.cause === 'bucket' || d.by === 'pool' || d.how === 'pool' || d.cause === 'splash' || d.cause === 'splashed' || d.pool);
   sub('extinguished', (id, d) => { if (poolWords(d)) { const c = C(id), m = mindOf(c); if (c && m) FE.onPool(c, m, d); } });
   sub('splashed', (id, d) => { const c = C(id), m = mindOf(c); if (c && m) FE.onPool(c, m, d || {}); });
   sub('sport_start', (id, d) => FE.onSport('start', id, d)); sub('sport_score', (id, d) => FE.onSport('score', id, d)); sub('sport_end', (id, d) => FE.onSport('end', id, d));

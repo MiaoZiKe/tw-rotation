@@ -14,6 +14,8 @@
 //
 // 效能：新增繪製 = 火焰網格 1（取代舊的 1）＋ 粒子 2（火星、煙）；焦黑不增加繪製（只換著色器）。
 import { THREE } from './kit.js';
+import { footToWorld } from './nav.js';
+import { WET_SEC } from './sports_water.js';
 
 const V3 = THREE.Vector3, clamp = (x, a, b) => Math.max(a, Math.min(b, x)), rnd = (a, b) => a + Math.random() * (b - a);
 const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -39,7 +41,7 @@ if (uScorch > 0.002) {
 `;
 
 export function createFire(W, opts = {}) {
-  const F = { cfg: { range: 1.45, recoverMin: 30, recoverMax: 60, burnMin: 3.2, burnMax: 4.8, smoke: 9, fade: 7 }, states: new Map(), stats: { ignited: 0, recovered: 0, patched: 0, particles: 0 }, on: true };
+  const F = { cfg: { range: 1.45, recoverMin: 30, recoverMax: 60, burnMin: 8, burnMax: 12, smoke: 9, fade: 7, maxBurning: 4, maxFurn: 6, furnRecMin: 20, furnRecMax: 40, contact: 0.85 }, states: new Map(), stats: { ignited: 0, recovered: 0, patched: 0, particles: 0 }, on: true };
   W.fire = F; W.fireFlick = fireFlick;
   const scene = W.scene, O = W.outside, D = () => W.director, allChars = () => [...W.chars.values(), ...(W.pets || []), ...(W.extras || [])];
   const fx = O ? O.fire.x : 30.2, fz = O ? O.fire.z : 36.6;
@@ -115,7 +117,7 @@ export function createFire(W, opts = {}) {
     const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = additive ? 6 : 4; scene.add(pts);
     return { n, pos, size, col, g, pts, p: [], head: 0, live: 0 };
   };
-  const PA = mkPool(360, true), PS = mkPool(170, false);   // PA：火星、火舌（加法）；PS：灰煙、黑煙（一般）
+  const PA = mkPool(560, true), PS = mkPool(300, false);   // PA：火星、火舌（加法）；PS：灰煙、黑煙（一般）
   F.pools = { PA, PS };
   function spawn(pool, x, y, z, vx, vy, vz, life, s0, s1, type, o = {}) {
     const i = pool.head; pool.head = (pool.head + 1) % pool.n;
@@ -138,6 +140,7 @@ export function createFire(W, opts = {}) {
         case 0: { const k = 1 - u; r = 1; g = 0.45 + 0.5 * k * k; b = 0.12 + 0.35 * k * k * k; a = (u < 0.1 ? u / 0.1 : 1 - Math.pow(u, 1.5)) * (0.75 + 0.25 * Math.sin(p.age * 40 + p.sw)); break; }   // 火星：黃白 → 橘 → 暗紅
         case 1: { r = 1; g = 0.62 - 0.45 * u; b = 0.15 - 0.1 * u; a = (u < 0.15 ? u / 0.15 : 1 - u) * 0.85; break; }                                         // 火舌：橘 → 紅
         case 2: { const t = 0.62 + 0.1 * Math.sin(p.sw); r = g = b = t; a = (u < 0.2 ? u / 0.2 : 1 - u) * 0.2; break; }                                      // 灰煙
+        case 5: { r = 1; g = 0.55; b = 0.2; a = (u < 0.25 ? u / 0.25 : 1 - u) * 0.14; break; }                                                                 // 家具著火的光暈（大而淡的橘光）
         case 4: { r = g = b = 0.96; a = (u < 0.12 ? u / 0.12 : 1 - u) * 0.5; break; }                                                                       // 水蒸氣（被水澆熄的瞬間，白白的一團）
         default: { r = 0.12; g = 0.1; b = 0.11; a = (u < 0.12 ? u / 0.12 : 1 - u) * 0.62; }                                                                  // 黑煙
       }
@@ -186,33 +189,56 @@ export function createFire(W, opts = {}) {
   F.stateOf = c => st(c) || { state: 'none', scorch: 0 };
   F.scorch = c => (c._sootU ? c._sootU.value : 0);
   const posOf = c => c.object3D.position;
-  function ignite(c, why) {
+  // 濕的人（剛出泳池、被水桶或飲水機澆過）15 秒內碰到火：冒一陣白煙、「滋」一聲，不會著火；乾了以後照常會燒（11-16 擁有者）
+  const isWet = c => (c._fireImmuneUntil || 0) > W.time || !!(W.sports && W.sports.water && W.sports.water.inWater && W.sports.water.inWater(c));
+  F.isWet = isWet;
+  F.sfx = { on: (() => { try { return localStorage.getItem('aiOffice.sfx') !== '0'; } catch (e) { return true; } })(), played: 0, ctx: null,
+    sizzle() {   // 短促白噪音（高頻帶通、約 0.35 秒淡出）；系統設定「減少動態效果」或音效關閉時不響；瀏覽器還沒允許播放聲音時也不響
+      if (!F.sfx.on || reduce) return false;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false; const x = F.sfx.ctx || (F.sfx.ctx = new AC()); if (x.state !== 'running') return false;
+        const len = Math.floor(x.sampleRate * 0.35), buf = x.createBuffer(1, len, x.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+        const src = x.createBufferSource(); src.buffer = buf; const f = x.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 5200; f.Q.value = 0.8; const g = x.createGain(); g.gain.value = 0.08;
+        src.connect(f); f.connect(g); g.connect(x.destination); src.start(); F.sfx.played++; return true;
+      } catch (e) { return false; }
+    } };
+  function sizzle(c) {
+    if (W.time - (c._sizT || -9) < 1.6) return; c._sizT = W.time; F.stats.sizzled = (F.stats.sizzled || 0) + 1;
+    const p = posOf(c); for (let i = 0; i < 12; i++) spawn(PS, p.x + rnd(-0.25, 0.25), (c.lift || 0) + (c.height || 0.8) * rnd(0.1, 0.8), p.z + rnd(-0.25, 0.25), rnd(-0.3, 0.3), rnd(0.8, 1.5), rnd(-0.3, 0.3), rnd(0.9, 1.5), 0.14 * (c.scale || 1), 0.6 * (c.scale || 1), 4, { drag: 1.6 });
+    F.sfx.sizzle(); c.emote && c.emote('steam', 1.2);
+    W.emit && W.emit('sizzled', c.spec.id, { x: p.x, z: p.z });
+  }
+  const burningCount = () => { let n = 0; for (const o of F.states.values()) if (o.state === 'burning') n++; return n; };
+  function ignite(c, why, from) {
     if (!F.on || imm(c)) return false; const s = st(c);
     if (s && s.state === 'burning') return false;
-    // 11-16 擁有者選「2」：拿掉出水後的防火時間，濕的人碰到火一樣會燒起來（滴水只是外觀）
+    if (isWet(c)) { sizzle(c); return false; }
+    if (why === 'contact' && burningCount() >= F.cfg.maxBurning) return false;   // 同時著火的角色上限（傳火才受限）
     ensureScorch(c);
     const o = s || { state: 'none', scorch: 0 }; F.states.set(c.spec.id, o);
     const wasRec = o.state === 'recovering';
-    Object.assign(o, { state: 'burning', t: 0, dur: rnd(F.cfg.burnMin, F.cfg.burnMax), c, hop: 0, tok: (o.tok || 0) + 1, start: { x: posOf(c).x, z: posOf(c).z }, fled: 0, why, wash: false, quick: false, done: false, fading: false });
+    Object.assign(o, { state: 'burning', t: 0, dur: rnd(F.cfg.burnMin, F.cfg.burnMax), c, hop: 0, tok: (o.tok || 0) + 1, start: { x: posOf(c).x, z: posOf(c).z }, fled: 0, heldFor: 0, why, wash: false, quick: false, done: false, fading: false });
     F.stats.ignited++;
     // 接管這個角色：取消正在做的事、放開操控、不讓別的流程把他叫走
     const Dr = D(); c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; c.busy = true; c.atDesk = false; if (c.stop) c.stop(false);
     if (W.pilot && W.pilot.releaseIf) { try { W.pilot.releaseIf(c); } catch (e) { /* 沒被操控就算了 */ } }
     if (c.spot && c.spot.taken === c.spec.id && c.state !== 'sit') { /* 座位保留給他，之後走回去 */ }
     if (wasRec) o.scorch = c._sootU.value;
-    W.emit && W.emit('burned', c.spec.id, { x: posOf(c).x, z: posOf(c).z, why: why || 'campfire' });
+    W.emit && W.emit('burned', c.spec.id, { x: posOf(c).x, z: posOf(c).z, why: why || 'campfire', from: from || null });
+    if (F.helperFor) F.helperFor({ kind: 'char', c });
     return true;
   }
   F.ignite = ignite;
   // 熄火介面（2026-11-15，泳池）：燒著的人被水澆熄 → 立刻停止燃燒（不用等燒夠時間）、冒一團白色水蒸氣、事件 'extinguished' 附 cause。
   // cause 'pool'：身體泡過水，焦黑很快就洗掉（約 3 秒後自己走去休息區拍拍身體），不用等 30～60 秒。回傳是否真的熄了火。
-  F.extinguish = (c, cause = 'pool') => {
+  F.extinguish = (c, cause = 'pool', by) => {
     const o = st(c); if (!o || o.state !== 'burning') return false;
     o.state = 'smoldering'; o.t = 0; o.recoverAt = cause === 'pool' ? 0 : rnd(F.cfg.recoverMin, F.cfg.recoverMax); o.why = cause; o.wash = cause === 'pool'; c.drive && c.drive(null);
+    if (cause === 'water' || cause === 'bucket') { c._wetUntil = W.time + WET_SEC; c._fireImmuneUntil = W.time + WET_SEC; }   // 被飲水機的水或水桶澆熄：身上濕 15 秒（同泳池）
     c._sootU.value = Math.max(c._sootU.value, 0.35); c._emberU.value = 0;
     const p = posOf(c); for (let i = 0; i < 16; i++) spawn(PS, p.x + rnd(-0.2, 0.2), (c.lift || 0) + (c.height || 0.8) * rnd(0.2, 0.9), p.z + rnd(-0.2, 0.2), rnd(-0.25, 0.25), rnd(0.7, 1.4), rnd(-0.25, 0.25), rnd(0.9, 1.6), 0.15 * (c.scale || 1), 0.55 * (c.scale || 1), 4, { drag: 1.6 });
     F.stats.extinguished = (F.stats.extinguished || 0) + 1;
-    W.emit && W.emit('extinguished', c.spec.id, { cause, x: p.x, z: p.z });
+    W.emit && W.emit('extinguished', c.spec.id, { cause, x: p.x, z: p.z, by: by || null });
     return true;
   };
   // 洗淨介面（2026-11-16，泳池）：身上有焦黑（冒煙愣著、走去休息區的路上、正在褪色）的人泡進水裡 → 焦黑在水裡約 2 秒內洗掉。
@@ -250,6 +276,7 @@ export function createFire(W, opts = {}) {
       // 阻止別的流程把他叫走（落地後導演的「被丟之後」流程會自己開始走路）
       if (c._path) { c.stop(false); c.script = (c.script || 0) + 1; c.job = (c.job || 0) + 1; }
       const dist = Math.hypot(p.x - fx, p.z - fz);
+      if ((c._held || c.state === 'held') && (o.heldFor = (o.heldFor || 0) + h) < 14) o.t -= h;   // 被拎著時燃燒時間不倒數（放下後繼續跑去滅火；最多凍結 14 秒）
       // 驚慌跑開（落地才能跑）：離火 ≥ 2.6 公尺、而且燒夠了才停；中途小跳
       if (grounded(c)) {
         const sty = F.steer && F.steer(c, o, h, dist);   // 情緒層（mind_feel.js）接管走法：亂跑繞圈、原地跳腳、拍打、蹲下、跑向泳池（傳回 null 就走預設的直線逃開）
@@ -298,6 +325,103 @@ export function createFire(W, opts = {}) {
     } catch (e) { console.error('燒焦恢復流程例外', e); c.busy = false; }
   }
 
+
+  // ───────────────────────── 人傳火、人點燃家具、同事拿水桶去滅（11-16 擁有者追加）─────────────────────────
+  // 規則：只有「燒著的人 → 別人」「燒著的人 → 可燃家具」；家具不傳給人、家具不傳給家具（避免連鎖失控）。
+  // 家具上限同時 F.cfg.maxFurn 個著火；火焰、煙、光暈全部共用上面兩個粒子池；焦黑是一層深色半透明疊在家具外觀上（共用同一份幾何，不複製模型）。
+  const COMB = { workstation: [20, 25], ceo_desk: [20, 25], meeting_table: [20, 25], dining: [18, 24], coffee_table: [16, 22], side_table: [16, 22], bookshelf: [20, 25], cabinet: [18, 24], sofa: [18, 23], armchair: [16, 21], beanbag: [15, 19], bench: [16, 21], board: [15, 18], plant: [15, 17], plant_big: [15, 18] };
+  F.combustible = type => !!COMB[type];
+  F.furn = new Map();
+  const furnBox = new THREE.Box3();
+  const sootMat = new THREE.MeshBasicMaterial({ color: 0x1b1512, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, fog: false });
+  function furnOverlay(inst) {
+    const mat = sootMat.clone(), ov = new THREE.Mesh(inst.mesh.geometry, mat); ov.raycast = () => { }; ov.renderOrder = 3; ov.frustumCulled = false; inst.mesh.add(ov); return ov;
+  }
+  F.igniteFurn = (inst, why = 'char') => {
+    if (!F.on || !inst || !COMB[inst.f.type]) return false; const id = inst.f.id, cur = F.furn.get(id);
+    if (cur && cur.state === 'burning') return false;
+    let n = 0; for (const o of F.furn.values()) if (o.state === 'burning') n++; if (n >= F.cfg.maxFurn) return false;   // 家具同時著火上限
+    const [a, b] = COMB[inst.f.type]; furnBox.setFromObject(inst.obj); const top = Math.max(0.7, furnBox.max.y - (furnBox.min.y > 0 ? 0 : 0));
+    const o = cur || { inst, ov: null, scorch: 0 }; Object.assign(o, { state: 'burning', t: 0, dur: rnd(a, b), top, emitA: 0, emitS: 0, emitG: 0, tok: (o.tok || 0) + 1, helper: null, why });
+    if (!o.ov || !o.ov.parent) o.ov = furnOverlay(inst); F.furn.set(id, o); F.stats.furnIgnited = (F.stats.furnIgnited || 0) + 1;
+    W.emit && W.emit('furn_burned', id, { type: inst.f.type, x: inst.f.x, z: inst.f.z });
+    F.helperFor({ kind: 'furn', id }); return true;
+  };
+  F.extinguishFurn = (id, cause = 'bucket') => {
+    const o = F.furn.get(id); if (!o || o.state !== 'burning') return false;
+    o.scorch = Math.max(o.scorch, Math.min(0.85, 0.35 + 0.5 * o.t / o.dur)); o.state = 'scorched'; o.t = 0; o.recoverAt = rnd(F.cfg.furnRecMin, F.cfg.furnRecMax);
+    const f = o.inst.f; for (let i = 0; i < 14; i++) spawn(PS, f.x + rnd(-0.5, 0.5), rnd(0.3, o.top), f.z + rnd(-0.5, 0.5), rnd(-0.2, 0.2), rnd(0.7, 1.3), rnd(-0.2, 0.2), rnd(1.0, 1.7), 0.14, 0.6, 4, { drag: 1.5 });
+    F.stats.furnExtinguished = (F.stats.furnExtinguished || 0) + 1; W.emit && W.emit('furn_extinguished', id, { cause, type: f.type }); return true;
+  };
+  const furnShapes = inst => footToWorld(inst.f, inst.spec.foot || []);
+  const inShape = (sh, x, z, m) => sh.r != null ? Math.hypot(x - sh.x, z - sh.z) < sh.r + m : Math.abs(x - sh.x) < sh.w / 2 + m && Math.abs(z - sh.z) < sh.d / 2 + m;
+  function tickFurn(h) {
+    for (const [id, o] of F.furn) {
+      const f = o.inst.f;
+      if (o.state === 'burning') {
+        o.t += h; const sh = furnShapes(o.inst)[0] || { x: f.x, z: f.z, w: 0.8, d: 0.8 }, w = sh.r != null ? sh.r * 2 : sh.w, d = sh.r != null ? sh.r * 2 : sh.d, big = Math.max(w, d);
+        const pt = () => [sh.x + rnd(-0.45, 0.45) * w, sh.z + rnd(-0.45, 0.45) * d];
+        o.emitA += h * (14 + 6 * Math.min(2, big)); while (o.emitA >= 1) { o.emitA--; const [x, z] = pt(); spawn(PA, x, rnd(0.35, o.top * 0.9), z, rnd(-0.15, 0.15), rnd(0.7, 1.4), rnd(-0.15, 0.15), rnd(0.35, 0.65), rnd(0.18, 0.3), 0.04, 1, { drag: 3 }); }
+        o.emitS += h * 6; while (o.emitS >= 1) { o.emitS--; const [x, z] = pt(); spawn(PS, x, o.top * rnd(0.8, 1.05), z, rnd(-0.1, 0.1), rnd(0.5, 0.9), rnd(-0.1, 0.1), rnd(1.6, 2.6), 0.16, 0.7, 3, { drag: 1.2 }); }
+        o.emitG += h * 3; while (o.emitG >= 1) { o.emitG--; const [x, z] = pt(); spawn(PA, x, o.top * 0.6, z, 0, 0.05, 0, rnd(0.7, 1.1), Math.max(0.9, big * 0.9), Math.max(1.1, big * 1.1), 5, { drag: 2 }); }
+        o.scorch = Math.max(o.scorch, Math.min(0.85, 0.2 + 0.65 * o.t / o.dur)); o.ov.material.opacity = o.scorch * 0.8;
+        if (o.t >= o.dur) { o.state = 'scorched'; o.t = 0; o.recoverAt = rnd(F.cfg.furnRecMin, F.cfg.furnRecMax); F.stats.furnExtinguished = (F.stats.furnExtinguished || 0) + 1; W.emit && W.emit('furn_extinguished', id, { cause: 'burnt-out', type: f.type }); }
+      } else if (o.state === 'scorched') {
+        o.t += h; o.ov.material.opacity = o.scorch * 0.8;
+        o.emitS += h * 1.2; while (o.emitS >= 1) { o.emitS--; spawn(PS, f.x + rnd(-0.3, 0.3), o.top * rnd(0.8, 1), f.z + rnd(-0.3, 0.3), 0, rnd(0.4, 0.6), 0, rnd(1.6, 2.4), 0.1, 0.45, 3, { drag: 1 }); }
+        if (o.t >= o.recoverAt) { o.state = 'recovering'; o.t = 0; o.s0 = o.scorch; }
+      } else if (o.state === 'recovering') {
+        o.t += h; const u = clamp(o.t / F.cfg.fade, 0, 1); o.scorch = o.s0 * (1 - u * u * (3 - 2 * u)); o.ov.material.opacity = o.scorch * 0.8;
+        if (u >= 1) { o.state = 'none'; o.scorch = 0; o.ov.removeFromParent(); o.ov.material.dispose(); o.ov = null; F.furn.delete(id); F.stats.furnRecovered = (F.stats.furnRecovered || 0) + 1; W.emit && W.emit('furn_recovered', id, { type: f.type }); }
+      }
+    }
+  }
+  // 燒著的人 → 別人（傳火）與 → 可燃家具（點燃）
+  function spreadTick() {
+    let any = false; for (const o of F.states.values()) if (o.state === 'burning') { any = true; break; } if (!any) return;
+    const cs = allChars(), combs = [...W.furn.values()].filter(i => COMB[i.f.type] && i.obj && i.obj.visible);
+    for (const o of [...F.states.values()]) {
+      if (o.state !== 'burning') continue; const c = o.c, p = posOf(c); if (c._held || c.state === 'held') continue;
+      for (const q of cs) {
+        if (q === c || imm(q) || !q.object3D.visible || q.away || q.state === 'sit' || q.state === 'held' || q._held) continue; const s = st(q); if (s && s.state !== 'none') continue;
+        const pq = posOf(q); if (Math.abs((c.lift || 0) - (q.lift || 0)) > 1) continue; if (Math.hypot(pq.x - p.x, pq.z - p.z) < F.cfg.contact) { ignite(q, 'contact', c.spec.id); F.stats.contact = (F.stats.contact || 0) + 1; }
+      }
+      if ((c.lift || 0) < 1.2) for (const inst of combs) { const cur = F.furn.get(inst.f.id); if (cur && cur.state !== 'none') continue; if (furnShapes(inst).some(sh => inShape(sh, p.x, p.z, 0.3))) F.igniteFurn(inst, 'char'); }
+    }
+  }
+  // 同事拿水桶（桶子是個小小的藍色水桶，拿在胸前）去滅火；不羞辱：喊話、關心。每個火點最多一位，每位 12 秒內沒到就算了。
+  F.helpers = { runs: 0, active: new Set() };
+  const bucketMesh = () => { const g = new THREE.Group(), m1 = new THREE.MeshStandardMaterial({ color: 0x5aa9e6, roughness: 0.6 }), m2 = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, roughness: 0.3 }); const b = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.17, 12), m1); const w = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.01, 12), m2); w.position.y = 0.075; const h = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.008, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: 0x555a66 })); h.position.y = 0.085; g.add(b, w, h); g.name = 'bucket'; return g; };
+  const helperOk = (c, avoid) => c && !c.spec.pet && c !== avoid && c.object3D.visible && !c.away && !c.jobless && !c.sleeping && !c.piloted && !c.hrBusy && !c._held && c.state !== 'held' && !c.busy && !imm(c) && (!st(c) || st(c).state === 'none') && !F.helpers.active.has(c.spec.id);
+  F.helperFor = tgt => {
+    if (!F.on || F.noHelpers) return null; const where = tgt.kind === 'char' ? posOf(tgt.c) : F.furn.get(tgt.id).inst.f, avoid = tgt.kind === 'char' ? tgt.c : null;
+    let best = null, bd = 16; for (const q of W.chars.values()) { if (!helperOk(q, avoid)) continue; const pq = posOf(q), d = Math.hypot(pq.x - where.x, pq.z - where.z); if (d < bd) { bd = d; best = q; } }
+    if (best) bucketRun(best, tgt); return best;
+  };
+  async function bucketRun(c, tgt) {
+    const D0 = D(); if (!D0) return; const id = c.spec.id; F.helpers.active.add(id); F.helpers.runs++; const tok = c.script = (c.script || 0) + 1; c.busy = true; c.stop && c.stop(false);
+    const bk = bucketMesh(), sc = c.object3D.scale.x || 1; bk.scale.setScalar(1 / sc); bk.position.set(0, (c.height || 0.8) * 0.5 / sc, 0.32 / sc); c.object3D.add(bk); c._bucket = bk;
+    const alive = () => c.script === tok && !c._held && c.state !== 'held';
+    const tpos = () => tgt.kind === 'char' ? posOf(tgt.c) : F.furn.get(tgt.id).inst.f, still = () => tgt.kind === 'char' ? (st(tgt.c) && st(tgt.c).state === 'burning') : (F.furn.get(tgt.id) && F.furn.get(tgt.id).state === 'burning');
+    try {
+      await W.sleep(rnd(0.8, 1.6)); if (!alive()) return; c.emote('exclaim', 1.2); c.say(tgt.kind === 'char' ? '我拿水來了！撐住！' : '著火了！我去滅火！', 2); c.setAction('idle');
+      const t0 = W.time;
+      for (let k = 0; k < 8 && alive() && still() && W.time - t0 < 14; k++) {
+        const t = tpos(), a = posOf(c), d = Math.hypot(t.x - a.x, t.z - a.z); if (d < 1.7) break;
+        const g = 1.35, L = d || 1, f = W.nav.nearestFree(t.x + (a.x - t.x) / L * g, t.z + (a.z - t.z) / L * g, 3); if (!f) break;
+        await D0.goTo(c, { x: f.x, z: f.z, face: 0 }, { speed: 3.8 });
+      }
+      if (!alive() || !still()) return;
+      const t = tpos(); c.faceTo(t.x, t.z); c.setAction('pour'); c.say(tgt.kind === 'char' ? '嘩——！' : '嘩啦——！', 1.4); await W.sleep(0.7); if (!alive()) return;
+      const a = posOf(c); for (let i = 0; i < 10; i++) spawn(PS, (a.x + t.x) / 2 + rnd(-0.2, 0.2), 0.7 + rnd(0, 0.3), (a.z + t.z) / 2 + rnd(-0.2, 0.2), (t.x - a.x) * 0.6, rnd(-0.3, 0.2), (t.z - a.z) * 0.6, rnd(0.4, 0.7), 0.07, 0.05, 4, { drag: 1.0, g: -4 });
+      if (tgt.kind === 'char') { if (st(tgt.c) && st(tgt.c).state === 'burning') F.extinguish(tgt.c, 'bucket', id); } else F.extinguishFurn(tgt.id, 'bucket');
+      F.stats.bucketed = (F.stats.bucketed || 0) + 1; W.emit && W.emit('bucketed', id, { kind: tgt.kind, target: tgt.kind === 'char' ? tgt.c.spec.id : tgt.id });
+      await W.sleep(0.9); if (c.script !== tok) return; c.say(tgt.kind === 'char' ? '沒事了，火滅了' : '火滅了，沒事了', 1.8); c.emote('check', 1.2); c.setAction('idle');
+      await W.sleep(1.2);
+    } catch (e) { console.error('滅火流程例外', e); }
+    finally { F.helpers.active.delete(id); if (bk.parent) bk.removeFromParent(); c._bucket = null; if (c.script === tok) { c.busy = false; try { const Dr = D(); if (Dr && Dr.goHome) await Dr.goHome(c, { speed: 2.4 }); } catch (e) { /* 走不回去就算了 */ } } }
+  }
+
   // ───────────────────────── 每個模擬步 ─────────────────────────
   let simAcc = 0, patchT = 0, patchI = 0, candleT = 0, smokeT = 0, sparkT = 0;
   F.tick = h => {
@@ -327,6 +451,7 @@ export function createFire(W, opts = {}) {
       if ((d < rng && lift < 1.3) || (held && d < 0.9 && lift < 2)) ignite(c, 'campfire');
     }
     for (const o of F.states.values()) { if (o.state !== 'none') tickChar(o, h); }
+    spreadTick(); tickFurn(h);
     // 背景把每個角色的材質先補好焦黑著色器（不在第一次燒的瞬間才編譯）
     patchT += h; if (patchT > 0.4) { patchT = 0; const cs = allChars(); for (let n = 0; n < cs.length && n < 40; n++) { const c = cs[(patchI + n) % cs.length]; if (!c._scorchPatched && c.object3D.parent) { ensureScorch(c); patchI = (patchI + n + 1) % cs.length; break; } } }
     stepPool(PA, h); stepPool(PS, h); simAcc += h;
@@ -339,6 +464,6 @@ export function createFire(W, opts = {}) {
     uScale.value = (rend.domElement.height) / (2 * Math.tan(cam.fov * Math.PI / 360)) * 1.0;
     upload(PA); upload(PS); F.stats.particles = PA.live + PS.live;
   };
-  F.reset = () => { for (const o of F.states.values()) { o.state = 'none'; o.wash = false; o.quick = false; o.tok++; if (o.c && o.c._sootU) o.c._sootU.value = 0; o.c && o.c.drive && o.c.drive(null); if (o.c) o.c.busy = false; } for (const pl of [PA, PS]) pl.p.length = 0; };
+  F.reset = () => { for (const [id, o] of F.furn) { if (o.ov) { o.ov.removeFromParent(); o.ov.material.dispose(); } } F.furn.clear(); F.helpers.active.clear(); for (const o of F.states.values()) { o.state = 'none'; o.wash = false; o.quick = false; o.tok++; if (o.c && o.c._sootU) o.c._sootU.value = 0; o.c && o.c.drive && o.c.drive(null); if (o.c) o.c.busy = false; } for (const pl of [PA, PS]) pl.p.length = 0; };
   return F;
 }

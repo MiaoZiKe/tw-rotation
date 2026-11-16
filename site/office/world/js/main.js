@@ -292,7 +292,8 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   W.extras = [];
   W.addExtra = b => { const s = makeSpec(b), c = charMod.createCharacter(s, env); c.onDrop = q => director.dropped(q); c.busy = true; scene.add(c.object3D); addLabel(c); W.extras.push(c); everyone = [...W.chars.values(), ...W.pets, ...W.extras]; return c; };   // 場景裡的臨時角色（空狀態的迎賓員），不在編制內
   PF.mark('modules1'); const state = createState(); W.state = state;
-  W.statusOf = c => (c.jobless ? (W.hr ? W.hr.statusOf(c) : '') : (W.jobs ? W.jobs.statusOf(c) : ''));   // 名牌上的狀態字
+  const baseStatus = c => (c.jobless ? (W.hr ? W.hr.statusOf(c) : '') : (W.jobs ? W.jobs.statusOf(c) : ''));
+  W.statusOf = c => { const w = W.sports && W.sports.water && W.sports.water.isWet && W.sports.water.isWet(c) ? '濕答答' : '', b = baseStatus(c); return w && b ? w + '・' + b : w || b; };   // 名牌上的狀態字
   W.empty = createEmpty(W, { ui, state });   // 要比 jobs 早註冊：空辦公室裡派工事件先讓同事「報到」，再由派工演出接手
   const power = createPower(W, { state, ui, director, daytime }); W.power = power;
   const jobs = createJobs(W, { state, ui, director }); W.jobs = jobs;

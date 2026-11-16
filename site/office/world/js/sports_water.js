@@ -3,14 +3,14 @@
 //   · 水花與滴水：一個粒子池（Points，240 顆），重力、落到水面或地面就消失；被丟進水裡濺大水花，走出水的人身上持續滴水一陣子。
 //   · 角色：進入泳池範圍且高度低於水面（被丟進來、自己走進來都算）→ 濺水（W.emit 'splashed'）、浮起來（微微上下起伏）、
 //     燒著的人立刻熄火（呼叫 fire.js 的 F.extinguish，事件 'extinguished' 附 cause:'pool'）、走出水之後身體濕一陣子（滴水）、
-//     並且一段時間內碰到火不會著火（c._fireImmuneUntil；fire.js 的 ignite 會檢查）。
+//     並且 15 秒內碰到火不會著火、只會冒白煙＋「滋」（c._fireImmuneUntil；fire.js 的 ignite 會檢查）；濕的期間頭上有水滴圖示、名牌顯示「濕答答」。
 //   · 情緒由 mind.js 處理，這裡只送事件。時間全部用模擬時間（W.time）。
 import { THREE } from './kit.js';
 import { LAY } from './sports_build.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), rnd = (a, b) => a + Math.random() * (b - a);
 const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-export const WET_SEC = 28, IMMUNE_SEC = 45;      // 走出水後身體濕多久、多久內不會著火（模擬秒）
+export const WET_SEC = 15, IMMUNE_SEC = 15;      // 走出水後身體濕多久、多久內不會著火（模擬秒；11-16 擁有者：15 秒，兩個一致）
 
 export function createWater(W) {
   const A = { stats: { splashes: 0, entered: 0, extinguished: 0, drips: 0 }, rip: [], inside: new Map() };
@@ -104,7 +104,8 @@ export function createWater(W) {
           if (F && F.wash && fs && fs.state !== 'none' && !fs.wash) F.wash(c);   // 身上還有焦黑（愣著冒煙、褪色途中）：泡在水裡洗掉
           const sp = Math.hypot(velOf(c).x, velOf(c).z); st.rippleT -= h; if (st.rippleT <= 0 && sp > 0.35) { st.rippleT = 0.45; A.ripple(p.x, p.z, 0.4); }
         }
-      } else if ((c._wetUntil || 0) > W.time && dripT >= 0.2) {   // 身體濕：偶爾滴一滴水（落到腳邊）
+      } else if ((c._wetUntil || 0) > W.time && dripT >= 0.2) {   // 身體濕：偶爾滴一滴水（落到腳邊）；頭上掛著水滴圖示（沒有別的圖示佔著時才掛）
+        if (!c.emoteSym && !reduce) c.emote('sweat', 2.6);
         if (Math.random() < 0.7 && !held) A.drip(p.x + rnd(-0.15, 0.15), lift + (c.height || 0.8) * rnd(0.15, 0.55), p.z + rnd(-0.15, 0.15));
       }
     }
