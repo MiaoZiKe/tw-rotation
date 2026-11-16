@@ -168,7 +168,7 @@ def apply_segments(v, seg_path):
         for s in sc:
             g = m[s["id"]]; s["t0"], s["t1"] = float(g["start"]), float(g["end"])
             if "speech_start" in g: s["voiceAt"] = round(float(g["speech_start"]) - float(g["start"]), 3)   # 這一鏡第幾秒開口（v7 片尾關鍵字對齊用）
-            s["cap"] = g.get("text") or s.get("say", "")
+            s["cap"] = s.get("capText") or g.get("text") or s.get("say", "")
         sc.sort(key=lambda s: s["t0"]); sc[0]["t0"] = 0.0
         for a, b in zip(sc, sc[1:]): a["t1"] = b["t0"]
         sc[-1]["t1"] += 0.4
@@ -180,7 +180,7 @@ def apply_segments(v, seg_path):
     else:
         t = 0.0
         for s in sc:
-            s["cap"] = s.get("say", s.get("cap", ""))
+            s["cap"] = s.get("capText") or s.get("say", s.get("cap", ""))
             s["t0"] = round(t, 3); t += s.get("dur") or est_dur(s.get("say", "")); s["t1"] = round(t, 3)
         v["timing"] = "default"
     fps = v.get("fps", 30); sc = v["scenes"]

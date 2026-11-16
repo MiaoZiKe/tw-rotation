@@ -22,7 +22,7 @@ function glide(pts,lt,at,per){if(lt<at||window.NOGLINT)return'';const ph=((lt-at
  const at2=e=>{let r=e*L,i=0;while(i<seg.length-1&&r>seg[i]){r-=seg[i];i++}const u=seg[i]?r/seg[i]:0;return [pts[i][0]+(pts[i+1][0]-pts[i][0])*u,pts[i][1]+(pts[i+1][1]-pts[i][1])*u]};
  const a=Math.sin(Math.PI*ph);let g='';[0,1,2,3].forEach(k=>{const e=EO(Math.max(0,ph-k*.06));const [x,y]=at2(e);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${16-k*3}" fill="#FFF4D6" stroke="#F4B860" stroke-width="${k?0:2}" opacity="${(a*(1-k*.22)).toFixed(2)}"/>`});return g}   // 帶 4 節拖尾的暖白光點
 function ILLbox(s,lt,d,top,h){const f=ILL[s.ill];return box('illus',top||392,h||IH,`<rect x="0" y="0" width="888" height="${h||IH}" rx="26" fill="${FACE}"/>`+(f?f.draw(lt,h||IH,s):''),lt,d,{})}
-function head(s,lt,o){o=o||{};let h=title(s.title,lt,o);if(s.tag)h+=tag(s.tag,lt,s.tagAt!=null?s.tagAt:(o.tagAt==null?.15:o.tagAt),306);return h}
+function head(s,lt,o){o=o||{};if(s.tfs)o=Object.assign({fs:s.tfs},o);let h=title(s.title,lt,o);if(s.tag)h+=tag(s.tag,lt,s.tagAt!=null?s.tagAt:(o.tagAt==null?.15:o.tagAt),306);return h}
 
 // ── 鉤子專用小圖（高 232）──
 const MINI={
@@ -179,7 +179,7 @@ const SCV={
   c.ticks.forEach((v,i)=>g+=`<g opacity="${pr(lt,.05*i,.25)}"><line x1="${sx(v)}" y1="40" x2="${sx(v)}" y2="${80+c.rows.length*ST}" stroke="${LINE}" stroke-width="1.5" stroke-dasharray="4 8" opacity=".4"/>${T(sx(v),130+c.rows.length*ST,v+(c.unit!=null?c.unit:'%'),32,400,SUBC)}</g>`);
   c.rows.forEach((r,i)=>{const y=130+i*ST,p=pr(lt,.15+i*.3,.6),x=x0+(sx(r.v)-x0)*p;g+=T(0,y+14,r.lab,38,r.hi?700:400,TXT,'start')+`<line x1="${x0}" y1="${y}" x2="${x}" y2="${y}" stroke="${r.hi?LAMP:'#B98A6A'}" stroke-width="10" stroke-linecap="round"/>`;
    if(p>0)g+=`<circle cx="${x}" cy="${y}" r="${(26*settle(lt,.75+i*.3)).toFixed(1)}" fill="${r.hi?LAMP:'#B98A6A'}"/>`;g+=`<g opacity="${pr(lt,.7+i*.3,.25)}">${T(sx(r.v)+44,y+14,r.txt,42,700,TXT,'start')}</g>`});
-  c.rows.forEach((r,i)=>{g+=glide([[x0,130+i*ST],[sx(r.v),130+i*ST]],lt,2.0+i*.6,1.2)});
+  c.rows.forEach((r,i)=>{g+=glide([[x0,130+i*ST],[sx(r.v),130+i*ST]],lt,2.0+i*.6,c.once?99:1.2)});
   if(c.em){const e=c.em;g+=bracketV(e.x,130,300,pr(lt,1.45,.5),e.txt,e.side||1)}
   h+=box('chart',CT,CH,g,lt,d,{});return h},
  donut(s,lt,d){let h=head(s,lt)+ILLbox(s,lt,d);const c=s.donut,cx=300,cy=300,R=210,p=pr(lt,.1,.9),a=2*Math.PI*c.v/100*p;let g='';
@@ -232,12 +232,12 @@ const SCV={
   h+=box('chart',CT,CH,g,lt,d,{});return h},
  ask(s,lt,d){let h=title(s.title,lt,{cls:'hint'})+tag(s.tag,lt,.3,306);h+=ILLbox(s,lt,d,392,500);
   let g='';s.recap.forEach((r,i)=>{const p=pr(lt,.15+i*.1,.4);g+=`<g opacity="${p}" transform="translate(${(1-p)*-40},0)"><rect x="20" y="${10+i*112}" width="848" height="92" rx="20" fill="${FACE}" stroke="${LINE}" stroke-width="2"/>${T(56,10+i*112+60,r[0],34,400,SUBC,'start')}${T(832,10+i*112+62,r[1],42,700,TXT,'end')}</g>`});
-  const q=pr(lt,.65,.4,BACK),oy=s.recap.length*112+40;const alt=lt>2.0?(Math.floor((lt-2.0)/.9)%2):0,ac0=alt==0?LAMP:LINE,ac1=alt==1?LAMP:LINE,aw0=alt==0?5:3,aw1=alt==1?5:3;
+  const q=pr(lt,.65,.4,BACK),oy=s.recap.length*112+40;const cyc=!!s.btnCycle,alt=cyc&&lt>2.0?(Math.floor((lt-2.0)/.9)%2):-1,ac0=alt==0?LAMP:LINE,ac1=alt==1?LAMP:LINE,aw0=alt==0?5:3,aw1=alt==1?5:3;
   g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+
    `<rect x="40" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac0}" stroke-width="${aw0}"/>${T(230,oy+106,s.opt[0],40,700,TXT)}`+
    `<rect x="468" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac1}" stroke-width="${aw1}" stroke-dasharray="10 8"/>${T(658,oy+106,s.opt[1],40,700,TXT)}</g>`;
   // 第二拍：兩顆膠囊依序輕跳（位移，不縮放）
-  const j1=-10*DECAY(lt-1.5,5,14)-(lt>2.2?6*Math.max(0,Math.sin(Math.PI*((lt-2.2)%1.2)/.5))*((lt-2.2)%1.2<.5?1:0):0),j2=-10*DECAY(lt-1.75,5,14)-(lt>2.8?6*Math.max(0,Math.sin(Math.PI*((lt-2.8)%1.2)/.5))*((lt-2.8)%1.2<.5?1:0):0);g=g.replace(`<rect x="40" y="${oy+44}"`,`<rect x="40" y="${(oy+44+j1).toFixed(1)}"`).replace(`<rect x="468" y="${oy+44}"`,`<rect x="468" y="${(oy+44+j2).toFixed(1)}"`);
+  const j1=-10*DECAY(lt-1.5,5,14)-(cyc&&lt>2.2?6*Math.max(0,Math.sin(Math.PI*((lt-2.2)%1.2)/.5))*((lt-2.2)%1.2<.5?1:0):0),j2=-10*DECAY(lt-1.75,5,14)-(cyc&&lt>2.8?6*Math.max(0,Math.sin(Math.PI*((lt-2.8)%1.2)/.5))*((lt-2.8)%1.2<.5?1:0):0);g=g.replace(`<rect x="40" y="${oy+44}"`,`<rect x="40" y="${(oy+44+j1).toFixed(1)}"`).replace(`<rect x="468" y="${oy+44}"`,`<rect x="468" y="${(oy+44+j2).toFixed(1)}"`);
   h+=box('chart',908,592,g,lt,d,{});return h},
  next(s,lt,d){let h=head(s,lt,{tagAt:.25})+ILLbox(s,lt,d);const p=pr(lt,.05,.45,BACK),rows=[0,1,2,3,4];
   let g=`<g opacity="${clamp(p*1.5)}" transform="translate(0,${(1-clamp(p))*30})"><rect x="104" y="40" width="680" height="560" rx="22" fill="${FACE}" stroke="${LINE}" stroke-width="3" stroke-dasharray="12 10"/>`+
