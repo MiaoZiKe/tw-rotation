@@ -391,9 +391,22 @@ export function createChat(W, X) {
     render();
   }
   K.openTo = (to) => open(to);
-  // 對話框只能由使用者收起（右上角 ﹀、Esc、底部對話鈕）；點場景背景、拖曳鏡頭、點角色都不准收（11-16 擁有者）。
-  // 外部模組若呼叫 W.chat.close() 要明確帶 'user' 才算數，避免哪個場景事件順手把它關掉。
+  // 桌機：對話框開著時，在 3D 場景上「點一下」（按下→放開位移 <6px，不是拖曳鏡頭）就收起（11-16 擁有者：「我點擊背景後 會自動收起」）。
+  // 「鎖定」打開時不收（鎖定就是固定住）；手機是全螢幕、沒有背景可點，行為不變；點角色時角色資訊卡由場景自己的點擊處理照常開。
+  // 外部模組呼叫 W.chat.close() 仍要明確帶 'user'，避免哪個場景事件順手把它關掉。
   K.close = why => { if (why === 'user') close(); }; K.setTarget = id => setTarget(id);
+  const cvEl = document.getElementById('cv');
+  if (cvEl) {
+    let dn = null;
+    cvEl.addEventListener('pointerdown', e => { dn = e.button === 0 ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null; }, true);
+    cvEl.addEventListener('pointerup', e => {
+      const d = dn; dn = null;
+      if (!d || d.id !== e.pointerId || e.button !== 0) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) >= 6) return;
+      if (K.open && desk() && !K.pref.lock) close();
+    }, true);
+    cvEl.addEventListener('pointercancel', () => { dn = null; }, true);
+  }
   btn.onclick = () => { if (K.open) close(); else { K.view = 'list'; open(null, false); } };       // 手機按下去先看清單
   $('chatX').onclick = () => { close(); try { btn.focus(); } catch (e) { /* 略 */ } };
   $('mcBack').onclick = () => { K.view = 'list'; render(); };
