@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-11-17T02:40:53+08:00",
+  "checked_at": "2026-11-17T03:44:14+08:00",
   "today": "2026-11-17",
   "expected_price_date": "2026-11-16",
   "is_trading_day": true,
   "summary": {
-    "fail": 0,
-    "pending": 5,
+    "fail": 2,
+    "pending": 3,
     "ok": 3,
     "skip": 0,
     "disabled": 0
@@ -36,9 +36,9 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
+          "why": "pages.yml 已經在部署中超過一小時，疑似卡住",
           "evidence": [],
-          "busy": true,
+          "busy": false,
           "hard": false
         }
       },
@@ -68,9 +68,9 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
+          "why": "pages.yml 已經在部署中超過一小時，疑似卡住",
           "evidence": [],
-          "busy": true,
+          "busy": false,
           "hard": false
         }
       },
@@ -80,7 +80,7 @@
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券／ETF）",
-      "status": "pending",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
@@ -173,14 +173,21 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
+          "why": "pages.yml 已經在部署中超過一小時，疑似卡住",
           "evidence": [],
-          "busy": true,
+          "busy": false,
           "hard": false
         }
       },
       "deadline": "2026-11-16T18:40:00+08:00",
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "daily.yml",
+        "inputs": {
+          "phase": "full"
+        }
+      },
+      "remedy_note": "已派出 daily.yml（今天第 1 次）"
     },
     {
       "id": "close_post",
@@ -313,15 +320,15 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "pending",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 41 次",
+          "why": "pages.yml 今天有成功執行 39 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43923651849",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43919043417",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43899309602"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43939795986",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43937978749",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43935829902"
           ],
           "busy": false,
           "hard": false
@@ -336,14 +343,19 @@
         },
         "publish": {
           "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
+          "why": "pages.yml 已經在部署中超過一小時，疑似卡住",
           "evidence": [],
-          "busy": true,
+          "busy": false,
           "hard": false
         }
       },
       "deadline": null,
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "pages.yml",
+        "inputs": {}
+      },
+      "remedy_note": "已派出 pages.yml（今天第 1 次）"
     }
   ],
   "errors": [],
@@ -369,30 +381,33 @@
       ]
     },
     "data": {
-      "date": "2026-11-16",
-      "count": 0,
-      "attempts": []
-    },
-    "website": {
-      "date": "2026-11-16",
-      "count": 2,
+      "date": "2026-11-17",
+      "count": 1,
       "attempts": [
         {
-          "at": "2026-11-16T15:19:24+08:00",
-          "workflow": "pages.yml",
-          "inputs": {},
+          "at": "2026-11-17T03:44:14+08:00",
+          "workflow": "daily.yml",
+          "inputs": {
+            "phase": "full"
+          },
           "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43823076559",
-          "run_id": 43823076559,
-          "run_status": "completed",
-          "run_conclusion": "success"
-        },
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43942497562",
+          "run_id": null,
+          "run_status": null,
+          "run_conclusion": null
+        }
+      ]
+    },
+    "website": {
+      "date": "2026-11-17",
+      "count": 1,
+      "attempts": [
         {
-          "at": "2026-11-16T21:05:32+08:00",
+          "at": "2026-11-17T03:44:14+08:00",
           "workflow": "pages.yml",
           "inputs": {},
           "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43872584739",
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43942502231",
           "run_id": null,
           "run_status": null,
           "run_conclusion": null
