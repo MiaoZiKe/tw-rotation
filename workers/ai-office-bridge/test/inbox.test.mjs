@@ -32,7 +32,7 @@ test('寫入：只有擁有者的網站登入可以送；一般會員、接入�
   const j = await r.json();
   assert.match(j.message.id, /^m_[A-Za-z0-9_-]{16}$/);
   assert.equal(j.message.status, 'queued');
-  assert.equal((await send(h, 'ceo', 'x', site({ 'X-AIO-Session': MEMBER }))).status, 401, '一般會員');
+  assert.equal((await send(h, 'ceo', 'x', site({ 'X-AIO-Session': MEMBER }))).status, 403, '一般會員（還沒建立辦公室；建立後也只能寫自己的，見 member_inbox.test.mjs）');
   assert.equal((await send(h, 'ceo', 'x', { Origin: SITE, ...bearer(h.code) })).status, 401, '接入碼不能寫收件匣');
   assert.equal((await send(h, 'ceo', 'x', { 'X-AIO-Session': OWNER })).status, 403, '沒有 Origin（不是從網站來）');
   assert.equal((await send(h, 'ceo', 'x', site({ Origin: 'https://evil.example' }))).status, 403, '別的網站');

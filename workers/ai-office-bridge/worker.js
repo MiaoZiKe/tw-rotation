@@ -80,6 +80,8 @@ const INBOX = {
 };
 LIMITS.inboxSend = [10, 60];           // 擁有者每分鐘最多送 10 則
 LIMITS.inboxDay = [100, 86400];        // 每天最多 100 則
+LIMITS.inboxMember = [5, 60];          // 一般會員每分鐘最多 5 則（站長 10）
+LIMITS.inboxDayMember = [50, 86400];  // 一般會員每天最多 50 則
 LIMITS.inboxPull = [120, 60];          // Claude 端每分鐘最多取 120 次（掛鉤＋待命）
 LIMITS.inboxAck = [120, 60];
 const ACK_STATUS = new Set(['running', 'done', 'failed']);
@@ -360,7 +362,16 @@ export class Hub {
     if (!this.originOk(req.headers.get('Origin'))) return 'origin';
     const s = req.headers.get('X-AIO-Session');
     if (!s) return null;
-    return (await this.isOwner(s)) ? OFFICE : false;
+    return this.myOffice(await this.whoAmI(s));
+  }
+  /** 2026-11-16 開放一般會員：登入帳號 → 自己的資料辦公室代號。站長＝main；一般會員＝帳號代號（u_ 開頭，信箱雜湊），
+   *  而且要先在網站建立過至少一間辦公室（offices 表有自己的列）才算，否則回 'no_office'。沒登入／權杖無效＝false。
+   *  每個人只會解析到自己的代號，所以收件匣、狀態讀取、接入碼都天然隔開，別人的辦公室一律 403。 */
+  myOffice(w) {
+    if (!w || !w.valid) return false;
+    if (w.admin) return OFFICE;
+    if (!w.key || !/^u_[0-9a-f]{24}$/.test(w.key)) return false;
+    return this.q('SELECT oid FROM offices WHERE owner = ? LIMIT 1', w.key)[0] ? w.key : 'no_office';
   }
   /** Claude 端：只認接入碼，而且不准從瀏覽器來（帶 Origin 一律拒絕）。 */
   async claudeOffice(req) {
@@ -371,7 +382,7 @@ export class Hub {
     const c = await this.codeOffice(req);
     if (c) return c;
     const s = req.headers.get('X-AIO-Session');
-    if (s && await this.isOwner(s)) return OFFICE;
+    if (s) { const o = this.myOffice(await this.whoAmI(s)); if (o && o !== 'no_office') return o; }
     if (c === false || s) return false;
     return null;
   }
@@ -701,13 +712,16 @@ export class Hub {
     const { b, err } = await this.body(req);
     if (err) return this.json(req, { error: err }, 400);
     if (!this.env.ACCOUNT && !this.env.ACCOUNT_API_URL) return this.json(req, { error: 'no_account' }, 503);
-    if (!(await this.isOwner(b.t))) return this.json(req, { error: 'not_owner' }, 403);
-    const cur = this.q("SELECT created FROM codes WHERE office = ? AND role = 'ingest' AND revoked = 0 ORDER BY created DESC LIMIT 1", OFFICE)[0];
-    if (cur && b.rotate !== true) return this.json(req, { ok: true, office: OFFICE, exists: true, created: cur.created });
+    // 站長＝main；一般會員＝自己的資料辦公室（要先建立過辦公室）。接入碼只綁自己的代號，拿到也讀寫不到別人的。
+    const OF = this.myOffice(await this.whoAmI(b.t));
+    if (OF === 'no_office') return this.json(req, { error: 'no_office' }, 403);
+    if (!OF) return this.json(req, { error: 'not_owner' }, 403);
+    const cur = this.q("SELECT created FROM codes WHERE office = ? AND role = 'ingest' AND revoked = 0 ORDER BY created DESC LIMIT 1", OF)[0];
+    if (cur && b.rotate !== true) return this.json(req, { ok: true, office: OF, exists: true, created: cur.created });
     const code = newCode(), now = this.now();
-    this.sql.exec("UPDATE codes SET revoked = 1 WHERE office = ? AND role = 'ingest'", OFFICE);
-    this.sql.exec("INSERT INTO codes (hash, office, role, created) VALUES (?, ?, 'ingest', ?)", await sha256(code), OFFICE, now);
-    return this.json(req, { ok: true, office: OFFICE, code, created: now, rotated: !!cur });
+    this.sql.exec("UPDATE codes SET revoked = 1 WHERE office = ? AND role = 'ingest'", OF);
+    this.sql.exec("INSERT INTO codes (hash, office, role, created) VALUES (?, ?, 'ingest', ?)", await sha256(code), OF, now);
+    return this.json(req, { ok: true, office: OF, code, created: now, rotated: !!cur });
   }
 
   // ───────── POST /v1/office/<id>/wipe：擁有者刪除所有事件紀錄（接入碼保留） ─────────
@@ -749,20 +763,30 @@ export class Hub {
     if (status === 'running' && now - r.updated > INBOX.runningStaleMs) status = 'stale';
     return { id: r.mid, to: r.to_agent, text: r.text, status, created: r.created, updated: r.updated, claimed_at: r.claimed_at, done_at: r.done_at, session_id: r.sid, reply: r.reply, rev: r.rev, project: r.ph || null };
   }
+  /** 雲端存檔仍只開給站長（跟開放前一樣）：一般會員一律當作沒有權限（401）。 */
+  async adminGate(req, office) {
+    const g = await this.ownerGate(req, office);
+    if (g.deny) { if (g.deny.status === 403) { const e = (await g.deny.clone().json()).error; if (e === 'no_office') return this.json(req, { error: 'auth' }, 401); } return g.deny; }
+    if (g.member) return this.json(req, { error: 'auth' }, 401);
+    if (g.office !== office) return this.json(req, { error: 'forbidden' }, 403);
+    return null;
+  }
+  /** 回傳 { deny } 或 { office }。網址的辦公室代號可以寫 me＝「我自己的」（前端一律用 me，不必知道自己的代號）。 */
   async ownerGate(req, office) {
     const who = await this.ownerOffice(req);
-    if (who === 'origin') return this.json(req, { error: 'origin' }, 403);
+    if (who === 'origin') return { deny: this.json(req, { error: 'origin' }, 403) };
     if (!who) {
-      if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' });
-      return this.json(req, { error: 'auth' }, 401);
+      if (!this.hit('bad:' + this.ip(req), LIMITS.badAuth)) return { deny: this.json(req, { error: 'rate' }, 429, { 'Retry-After': '600' }) };
+      return { deny: this.json(req, { error: 'auth' }, 401) };
     }
-    if (who !== office) return this.json(req, { error: 'forbidden' }, 403);
-    return null;
+    if (who === 'no_office') return { deny: this.json(req, { error: 'no_office' }, 403) };
+    if (office !== 'me' && who !== office) return { deny: this.json(req, { error: 'forbidden' }, 403) };
+    return { office: who, member: who !== OFFICE };
   }
 
   // ───────── POST /v1/office/<id>/inbox：擁有者從網站送一則指令 ─────────
   async inboxSend(req, office) {
-    const deny = await this.ownerGate(req, office); if (deny) return deny;
+    const g = await this.ownerGate(req, office); if (g.deny) return g.deny; office = g.office;
     const { b, err } = await this.body(req);
     if (err) return this.json(req, { error: err }, err === 'too_large' ? 413 : 400);
     const to = typeof b.to === 'string' && TO_RE.test(b.to) ? b.to : null;
@@ -777,7 +801,8 @@ export class Hub {
     const pend = this.q("SELECT COUNT(*) AS n FROM inbox WHERE office = ? AND status = 'queued'", office)[0].n;
     if (pend >= INBOX.maxPending) return this.json(req, { error: 'queue_full', max: INBOX.maxPending }, 429);
     if (!this.hit('ibs:' + office, LIMITS.inboxSend)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '60' });
-    if (!this.hit('ibd:' + office, LIMITS.inboxDay)) return this.json(req, { error: 'rate_day' }, 429, { 'Retry-After': '3600' });
+    if (g.member && !this.hit('ibm:' + office, LIMITS.inboxMember)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '60' });
+    if (!this.hit('ibd:' + office, g.member ? LIMITS.inboxDayMember : LIMITS.inboxDay)) return this.json(req, { error: 'rate_day' }, 429, { 'Retry-After': '3600' });
     const mid = 'm_' + newCode().slice(4, 20), now = this.now(), rev = this.bumpRev(office);
     this.sql.exec("INSERT INTO inbox (mid, office, created, updated, rev, to_agent, text, status, ph) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?)", mid, office, now, now, rev, to, text, ph);
     this.sql.exec('INSERT INTO events (office, ts, rcv, ph, kind, data) VALUES (?, ?, ?, ?, ?, ?)', office, now, now, ph, 'InboxUpdate', JSON.stringify({ event: 'InboxUpdate', message_id: mid, status: 'queued', to }));
@@ -788,7 +813,7 @@ export class Hub {
 
   // ───────── GET /v1/office/<id>/inbox?since=<rev>：網站讀指令列表 ─────────
   async inboxList(req, office, url) {
-    const deny = await this.ownerGate(req, office); if (deny) return deny;
+    const g = await this.ownerGate(req, office); if (g.deny) return g.deny; office = g.office;
     if (!this.hit('ibr:' + office + ':' + this.ip(req), LIMITS.read)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     this.inboxHousekeep(office);
     const since = Math.max(0, parseInt(url.searchParams.get('since') || '0', 10) || 0);
@@ -810,7 +835,7 @@ export class Hub {
 
   // ───────── POST /v1/office/<id>/inbox/<mid>/cancel：撤回還在排隊的 ─────────
   async inboxCancel(req, office, mid) {
-    const deny = await this.ownerGate(req, office); if (deny) return deny;
+    const g = await this.ownerGate(req, office); if (g.deny) return g.deny; office = g.office;
     const r = this.q('SELECT status FROM inbox WHERE office = ? AND mid = ?', office, mid)[0];
     if (!r) return this.json(req, { error: 'not_found' }, 404);
     if (r.status !== 'queued') return this.json(req, { error: 'not_queued', status: r.status }, 409);
@@ -885,7 +910,7 @@ export class Hub {
   }
   // GET /v1/office/<id>/save/<專案>
   async saveGet(req, office, proj) {
-    const deny = await this.ownerGate(req, office); if (deny) return deny;
+    const deny = await this.adminGate(req, office); if (deny) return deny;
     if (!SAVE_PROJ_RE.test(proj)) return this.json(req, { error: 'bad_project' }, 400);
     if (!this.hit('svr:' + office, LIMITS.saveR)) return this.json(req, { error: 'rate' }, 429, { 'Retry-After': '30' });
     const r = this.q('SELECT * FROM saves WHERE office = ? AND proj = ?', office, proj)[0];
@@ -893,7 +918,7 @@ export class Hub {
   }
   // POST /v1/office/<id>/save/<專案>  { schema, base, at, data }
   async savePut(req, office, proj) {
-    const deny = await this.ownerGate(req, office); if (deny) return deny;
+    const deny = await this.adminGate(req, office); if (deny) return deny;
     if (!SAVE_PROJ_RE.test(proj)) return this.json(req, { error: 'bad_project' }, 400);
     const { b, err } = await this.body(req, SAVE.maxBody);
     if (err) return this.json(req, { error: err, max: SAVE.maxData }, err === 'too_large' ? 413 : 400);

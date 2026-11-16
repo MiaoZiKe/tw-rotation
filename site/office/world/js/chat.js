@@ -106,7 +106,7 @@ export function createChat(W, X) {
   async function call(path, opt = {}) {
     const url = await bridgeUrl(), t = tok(); if (!url) return { status: -1, json: {} };
     try {
-      const r = await fetch(url + '/v1/office/main/inbox' + path, { method: opt.method || 'GET', headers: { 'X-AIO-Session': t, ...(opt.body ? { 'Content-Type': 'application/json' } : {}) }, body: opt.body, cache: 'no-store', credentials: 'omit' });
+      const r = await fetch(url + '/v1/office/me/inbox' + path, { method: opt.method || 'GET', headers: { 'X-AIO-Session': t, ...(opt.body ? { 'Content-Type': 'application/json' } : {}) }, body: opt.body, cache: 'no-store', credentials: 'omit' });
       const j = await r.json().catch(() => ({}));
       return { status: r.status, json: j || {} };
     } catch (e) { return { status: 0, json: {} }; }
@@ -139,14 +139,14 @@ export function createChat(W, X) {
         K.mode = 'ok'; K.fails = 0; const j = r.json; K.srvNow = j.now || null; K.lastSeen = j.session_last_seen == null ? null : j.session_last_seen; K.lastPull = j.last_pull == null ? null : j.last_pull;
         merge(j.messages, K.first); merge(j.open, K.first); if (j.rev != null) K.rev = j.rev; K.first = false;
       } else if (r.status === 401) K.mode = 'auth';
-      else if (r.status === 403) K.mode = 'forbidden';
+      else if (r.status === 403) K.mode = r.json.error === 'no_office' ? 'nooffice' : 'forbidden';
       else if (r.status === 0 || r.status === 429 || r.status >= 500 && r.status !== 501 && r.status !== 503) { K.fails++; if (K.mode !== 'ok' || manual) K.mode = 'neterr'; }
       else K.mode = 'noinbox';          // 404／501／503…：收件服務還沒有收件匣這條路（還沒更新或還沒開）
     } finally { K.inflight = false; render(); schedule(); if (K.again) { K.again = false; setTimeout(() => fetchInbox(), 0); } }
   }
   function schedule() {
     clearTimeout(K.timer);
-    if (!tok() || K.mode === 'auth' || K.mode === 'forbidden' || K.mode === 'noinbox') return;       // 這幾種等使用者處理，不自己一直敲
+    if (!tok() || K.mode === 'auth' || K.mode === 'forbidden' || K.mode === 'nooffice' || K.mode === 'noinbox') return;       // 這幾種等使用者處理，不自己一直敲
     const act = activeCount() > 0; if (!K.open && !act) return;
     const ms = (act ? K.fastMs : K.pollMs) * (K.fails > 2 ? 4 : 1);      // 有進行中的指令＝2 秒；只是開著看＝5 秒；其餘不輪詢
     K.timer = setTimeout(() => { if (document.hidden) { schedule(); return; } fetchInbox(); }, ms);
@@ -263,9 +263,11 @@ export function createChat(W, X) {
   function noteHtml() {
     const home = '<a href="../index.html">網站首頁</a>';
     switch (K.mode) {
-      case 'nologin': return `<b>要用站長帳號登入才能說話。</b><br>請先到${home}用管理者的 Google 帳號登入，再回到這裡。`;
-      case 'auth': return `<b>登入已過期，或目前登入的不是站長帳號。</b><br>請到${home}重新登入站長帳號，再回到這裡。`;
-      case 'forbidden': return '<b>這個網址不能說話。</b><br>只有正式網站上的站長帳號可以使用；預覽版與其他網址不開放。';
+      // 2026-11-16 起任何建了自己辦公室的會員都能跟自己的 CEO 說話（收件端只讓你讀寫自己的辦公室；指令由你自己的 Claude 取走處理）
+      case 'nologin': return `<b>登入後就能跟你的 CEO 說話。</b><br>請先到${home}用 Google 帳號登入，再回到這裡。<br><a class="btn" id="chatLogin" href="../index.html">去登入</a>`;
+      case 'auth': return `<b>登入已過期。</b><br>請到${home}重新登入，再回到這裡。`;
+      case 'nooffice': return '<b>先建立你自己的辦公室。</b><br>建好之後，在這裡打的話會送到你自己的 CEO，由你連接的 Claude 取走處理。<br><button class="btn" id="chatRetry" type="button">建好了，再試一次</button>';
+      case 'forbidden': return '<b>這個網址不能說話。</b><br>只有正式網站可以使用；預覽版與其他網址不開放。';
       case 'noinbox': return '<b>收件匣還沒有開放。</b><br>收件服務還沒更新，或站長還沒開啟這個功能，所以現在送出的話不會被保存。開放之後這裡就能直接用；在那之前，請先在你的 Claude 裡直接交代。<br><button class="btn" id="chatRetry" type="button">再試一次</button>';
       case 'neterr': return '<b>暫時連不上收件服務。</b><br>會自動重試，也可以<button class="btn" id="chatRetry" type="button">現在再試一次</button>';
       default: return '';
@@ -434,7 +436,7 @@ export function createChat(W, X) {
     K.busy = false; if (gt) { if (r.status === 200 && r.json.message) gt.done(); else gt.cancel(); }
     if (r.status === 200 && r.json.message) { tx.value = ''; grow(); merge([r.json.message]); K.rev = Math.max(K.rev, r.json.message.rev || 0); K.mode = 'ok'; schedule(); const box = $('chatList'); render(); box.scrollTop = box.scrollHeight; setTimeout(() => fetchInbox(), 0); }       // 送出後立刻讀一次（不等下一輪計時）：Claude 取走得快的話馬上看到「已送達」
     else if (r.status === 401) { K.mode = 'auth'; render(); }
-    else if (r.status === 403) { K.mode = 'forbidden'; render(); }
+    else if (r.status === 403) { K.mode = r.json.error === 'no_office' ? 'nooffice' : 'forbidden'; render(); }
     else if (r.status === 0 || r.status === -1) K.err = '連不上收件服務，訊息沒有送出，請稍後再試';
     else if (r.status === 404 || r.status === 501 || r.status === 503) { K.mode = 'noinbox'; render(); }
     else K.err = ERR[r.json.error] || ('送出失敗（' + r.status + '），請稍後再試');

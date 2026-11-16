@@ -527,7 +527,7 @@
   LIST.push(
     { id: 'office.cmd', name: 'AI 辦公室：下指令', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 5 }, qper: 'each', qunit: '則指令',
       qnote: '今天的指令次數用完了，明天會恢復', route: /^#office/,
-      desc: '辦公室頂列「下指令」對話框：每成功送出一則算一次（用完：送出鈕灰掉、旁邊一行白話說明；撤回、查看回覆不算）', veil: [], mark: [], block: [] },
+      desc: '辦公室頂列「下指令」對話框（2026-11-16 起建了辦公室的一般會員也能用，只送進自己的辦公室）：每成功送出一則算一次（用完：送出鈕灰掉、旁邊一行白話說明；撤回、查看回覆不算）', veil: [], mark: [], block: [] },
     { id: 'office.connect', name: 'AI 辦公室：連接我的 Claude', cat: 'office', def: true, kind: 'bool', unlisted: true, limBy: { guest: 0, free: 3 }, qper: 'each', qunit: '次',
       qnote: '今天的連接次數用完了，明天會恢復', route: /^#office/,
       desc: '辦公室「連接我的 Claude」：每產生一組接入碼（含換一組）算一次（用完：不再產生新的接入碼，已接好的連線與觀看不受影響）', veil: [], mark: [], block: [] },
