@@ -97,7 +97,7 @@ export function createMind(W, X = {}) {
   const pos = c => c.object3D.position;
   const cam = () => W.camera.position;
   const dist = (a, b) => Math.hypot(pos(a).x - pos(b).x, pos(a).z - pos(b).z);
-  const record = (m, o) => { m.last = { ...o, at: W.time }; M.log.unshift({ id: m.id, ...o, at: W.time }); if (M.log.length > 80) M.log.length = 80; M.count++; };
+  const record = (m, o) => { m.last = { ...o, at: W.time }; M.log.unshift({ id: m.id, ...o, at: W.time }); if (M.log.length > 240) M.log.length = 240; M.count++; };
   const remember = (m, type, who, text) => { m.mem.unshift({ t: W.time, type, who: who || '', text: text || CAUSE[type] || type }); if (m.mem.length > 8) m.mem.length = 8; };
   const recent = (m, type, sec, who) => m.mem.some(x => x.type === type && W.time - x.t < sec && (!who || x.who === who));
 

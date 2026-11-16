@@ -236,7 +236,7 @@ export function createFeel(W, K) {
     // 餘悸之後：怪不怪你
     if (f.blame) later(m, 3.2, () => resent(c, m));
     // 找好朋友訴苦（外向或敏感的人才會；悶著的人自己消化）
-    if (t.ext >= .45 || t.sens >= .55) later(m, 6, () => vent(c, m), { cond: (cc, mm) => !mm.sc && canAct(cc) && !cc.away, wait: 50 });
+    if (t.ext >= .45 || t.sens >= .55) later(m, 6, () => vent(c, m), { cond: (cc, mm) => !mm.sc && canAct(cc) && !cc.away, wait: 110 });   // 前面還有洗乾淨的小儀式（走去飲水機），等久一點
     else record(m, { event: 'bottle-up', face: 'blank' });
   };
   function resent(c, m) {
