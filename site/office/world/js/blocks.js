@@ -25,9 +25,34 @@ const clip = (t, n = 12) => { const a = Array.from(String(t || '')); return a.le
 // ───────── 開場前先問收件端：這個專案叫什麼、目前有哪些 Agent ─────────
 // 認證與網址的取得方式跟 live.js 一致（網址 #aio= 接入碼、或登入權杖＋設定裡的收件端網址／會員 API 推出來的網址）；這裡只讀、不清掉網址上的接入碼（那是 live.js 的事）。
 function loadScript(src) { return new Promise(res => { const s = document.createElement('script'); s.src = src; s.onload = s.onerror = () => res(); setTimeout(res, 3000); document.head.append(s); }); }
+/** 一般會員的辦公室沒有專案可選（剛建好、或網址沒帶專案）時用的「佔位專案」：只用來讓場景走區塊模式；讀狀態時不帶專案（看全部），之後出現的專案自己長出區塊 */
+export const MEMBER_PH = '0000000000000000';
+const myUser = () => { try { const u = JSON.parse(localStorage.getItem('tw.acct.user') || 'null'); return u && !u.admin && !u.owner ? u : null; } catch (e) { return null; } };
+/** 一般會員（非站長）打開辦公室頁、網址沒帶專案：改成帶專案（讀自己辦公室最近的專案，沒有就用佔位）→ 場景走區塊模式，不沿用站長的整棟示範格局與部門。回傳 true＝已換網址、這一輪開場中止。 */
+export async function memberRedirect(qs) {
+  try {
+    if (/^[0-9a-f]{16}$/.test(qs.get('project') || '') || qs.get('demo') === '1' || !myUser()) return false;
+    let cfg = {}; try { cfg = JSON.parse(localStorage.getItem('aiOffice.live.v1') || 'null') || {}; } catch (e) { cfg = {}; }
+    const tok = localStorage.getItem('tw.acct.tok'); if (!tok || !cfg.login || cfg.show) return false;
+    let url = qs.get('aio_url') ? qs.get('aio_url').replace(/\/+$/, '') : cfg.url;
+    if (!url) {
+      if (!window.TW_ACCOUNT) await loadScript('../account_config.js');
+      const api = window.TW_ACCOUNT && window.TW_ACCOUNT.api; if (api && /\/\/tw-account\./.test(api)) url = api.replace('//tw-account.', '//tw-ai-office-bridge.').replace(/\/+$/, '');
+    }
+    if (!url) return false;
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000);
+    const r = await fetch(`${url}/v1/office/me/state?since=0`, { headers: { 'X-AIO-Session': tok }, cache: 'no-store', credentials: 'omit', signal: ctl.signal });
+    clearTimeout(tm);
+    let ph = MEMBER_PH;
+    if (r.ok) { const j = await r.json(), ps = j.projects || []; if (ps[0] && /^[0-9a-f]{16}$/.test(ps[0].hash || '')) ph = ps[0].hash; }
+    else if (r.status !== 401 && r.status !== 403) return false;      // 連不上：照舊，不冒險
+    const u = new URL(location.href); u.searchParams.set('project', ph); location.replace(u.toString()); return true;
+  } catch (e) { return false; }
+}
 export async function peekProject(qs) {
   try {
     const ph = qs.get('project'); if (!/^[0-9a-f]{16}$/.test(ph || '')) return null;
+    if (ph === MEMBER_PH) return { name: '我的辦公室' };
     let cfg = {}; try { cfg = JSON.parse(localStorage.getItem('aiOffice.live.v1') || 'null') || {}; } catch (e) { cfg = {}; }
     let tok = null; try { tok = localStorage.getItem('tw.acct.tok'); } catch (e) { tok = null; }
     const m = /(?:^#|&)aio=([A-Za-z0-9_-]{8,200})/.exec(location.hash || '');
@@ -40,7 +65,8 @@ export async function peekProject(qs) {
     if (!url) return null;
     const office = /^[A-Za-z0-9_-]{1,40}$/.test(qs.get('office') || '') ? qs.get('office') : (cfg.office || 'main'), view = /^o_[A-Za-z0-9_-]{6,30}$/.test(qs.get('office') || '') ? qs.get('office') : null;
     const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000);
-    const r = await fetch(`${url}/v1/office/${encodeURIComponent(office)}/state?since=0&project=${ph}${view ? '&view=' + view : ''}`, { headers: hdr, cache: 'no-store', credentials: 'omit', signal: ctl.signal });
+    let r = await fetch(`${url}/v1/office/${encodeURIComponent(office)}/state?since=0&project=${ph}${view ? '&view=' + view : ''}`, { headers: hdr, cache: 'no-store', credentials: 'omit', signal: ctl.signal });
+    if (r.status === 403 && office === 'main') r = await fetch(`${url}/v1/office/me/state?since=0&project=${ph}`, { headers: hdr, cache: 'no-store', credentials: 'omit', signal: ctl.signal });   // 一般會員網址帶 office=main：改讀自己的
     clearTimeout(tm); if (!r.ok) return null;
     const j = await r.json(), p = (j.projects || []).find(x => x.hash === ph); if (!p) return null;
     return { name: String(p.name || '') };

@@ -166,7 +166,7 @@ export function createChat(W, X) {
   const hasThread = id => [...K.msgs.values()].some(m => toOf(m) === id);
   // 部門與聊天室：聊天室代號 'ceo'｜'d:<部門代號>'（後備區 d:reserve、辦公室外的內建類型都歸 d:_ext「外部協助」）
   const live = m => !(W.hr && W.hr.isFired && W.hr.isFired(m.id));
-  const deptList = () => (W.org && W.org.departments) || [];
+  const deptList = () => (W.blocks ? [] : (W.org && W.org.departments) || []);   // 區塊辦公室（新專案、一般會員）：沒有示範的部門，只有 CEO＋自己實際有的成員（後備區那一間由 roomIds 補）
   const deptOfMember = id => { const c = C(id); if (c && c.spec.isCeo) return 'ceo'; const mm = W.members && W.members.get && W.members.get(id); return (c && c.spec.dept) || (mm && mm.dept) || ''; };
   const deptInfo = did => { const d = deptList().find(q => q.id === did); if (d) return { id: did, name: d.name, color: d.color }; if (did === 'reserve') return { id: did, name: '後備區', color: '#b9aca2' }; return { id: '_ext', name: '外部協助', color: '#b9aca2' }; };
   const roomOfTo = to => { to = to || 'ceo'; if (to === 'ceo') return 'ceo'; if (/^dept:/.test(to)) return 'd:' + to.slice(5); const dp = deptOfMember(to); if (dp === 'ceo') return 'ceo'; return 'd:' + (dp && deptInfo(dp).id !== '_ext' ? dp : '_ext'); };

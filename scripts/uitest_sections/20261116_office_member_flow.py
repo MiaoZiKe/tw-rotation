@@ -141,6 +141,12 @@ def _mf_main(b, base):
         st = pg.evaluate("() => ({ st: window.__world.live.status, total: window.__world.live.data && window.__world.live.data.total_events, gp: window.__world.chars.has('general-purpose') ? window.__world.chars.get('general-purpose').state : null, ex: window.__world.chars.has('Explore') && !window.__world.chars.get('Explore').away && window.__world.chars.get('Explore').object3D.visible })")
         ok("會員：畫面讀自己的辦公室，自己的員工（general-purpose）開始工作、狀態「即時」", got and st["st"] == "ok" and st["gp"] in ("sit", "walk"), st)
         ok("會員：看不到站長辦公室的員工與事件（隔離）", not st["ex"] and st["total"] == 2, st)
+        # 會員畫面走區塊模式：只有 CEO＋自己實際有的 Agent，沒有站長的部門與示範同事
+        dn = pg.evaluate("() => (window.__world.org.departments || []).map(d => d.name)")
+        vis = pg.evaluate("() => [...window.__world.chars.values()].filter(c => !c.away && c.object3D.visible && !c.spec.pet).map(c => c.spec.id).sort()")
+        ok("會員畫面：區塊模式（blocks）、網址帶專案", pg.evaluate("() => !!window.__world.blocks") and "project=" in pg.url, pg.url)
+        ok("會員畫面：只有 CEO＋自己的 general-purpose（沒有站長的示範同事）", vis == ["ceo", "general-purpose"], vis)
+        ok("會員畫面：場景裡沒有站長的部門名稱", len(dn) >= 5 and not [d for d in dn if d in pg.inner_text("body")], dn)
         _mf_shot(pg, "mf2_會員員工工作中.png")
         # ───── ④ 對話框送出 ─────
         pg.evaluate("() => { window.__world.live.closeGuide && window.__world.live.closeGuide(); }")
@@ -148,6 +154,8 @@ def _mf_main(b, base):
         pg.click("#chatText")
         got = wait_until(pg, "() => window.__world.chat.mode === 'ok'", 30000)
         ok("會員：對話框可以用（mode=ok）", got, pg.evaluate("() => window.__world.chat.mode"))
+        lst = pg.evaluate("() => [...document.querySelectorAll('.mc-th')].map(e => e.innerText.replace(/\\s+/g, ' ').trim())")
+        ok("會員對話框：部門清單只有 CEO 與自己的成員，沒有站長的部門", len(lst) >= 1 and not [d for d in dn if any(d in t for t in lst)], lst)
         pg.keyboard.type("幫我整理今天的待辦", delay=10)
         pg.keyboard.press("Enter")
         got = wait_until(pg, "() => document.querySelectorAll('#chatList .c-msg').length >= 1", 20000)

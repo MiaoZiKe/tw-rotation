@@ -28,7 +28,7 @@ import { createSim } from './sim.js';
 import { buildOutside } from './outside.js';
 import { createEmpty } from './empty.js';
 import { rosterWanted, createRoster } from './roster.js';
-import { peekProject, wantsBlocks, blocksLayout, createBlocks } from './blocks.js';   // 非 tw-rotation 的專案：場景只蓋 CEO 區塊＋每位 Agent 一個區塊（blocks.js）   // 專案名冊：進專案的辦公室只顯示 CEO＋這個專案真的有的 Agent（roster.js）
+import { peekProject, wantsBlocks, blocksLayout, createBlocks, memberRedirect } from './blocks.js';   // 非 tw-rotation 的專案：場景只蓋 CEO 區塊＋每位 Agent 一個區塊（blocks.js）   // 專案名冊：進專案的辦公室只顯示 CEO＋這個專案真的有的 Agent（roster.js）
 import { createScenery } from './scenery.js';
 import { mountSports } from './sports.js';   // 員工運動場（羽毛球、籃球、網球、撞球、游泳池；sports*.js）
 import { FX } from '../../play/fx.js';
@@ -43,6 +43,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
 
 (async function boot() {
   const PF = { t0: performance.now(), boot: {}, n: 0, sim: 0, simMax: 0, steps: 0, render: 0, post: 0, frame: 0, hist: [], mark(k) { this.boot[k] = Math.round(performance.now() - this.t0); } };   // 效能量測（極便宜）：開場各階段時間、每格模擬／繪製／其他的移動平均；window.__world.perf
+  if (await memberRedirect(qs)) return;   // 一般會員：換成帶專案的網址，場景走區塊模式（不沿用站長的整棟格局）
   const [layout0, org, demo, meet, roster, charMod, rw] = await Promise.all([J('world/cfg/layout.json'), J('world/cfg/org.json'), J('world/cfg/demo.json'), J('world/cfg/meeting_demo.json'), J('world/cfg/roster.json'), loadCharacterModule(), qs.get('rewards') === '0' ? null : loadRewards()]);   // 績效資料缺檔／壞檔／?rewards=0：整個獎勵層關閉，辦公室維持原樣
   // 專案辦公室：先問收件端這個專案叫什麼；不是 tw-rotation 就把示範佈局縮成「只有 CEO 區塊」（問不到＝照舊完整辦公室）
   const blocksOn = rosterWanted(qs) && wantsBlocks(await peekProject(qs)), layout = blocksOn ? blocksLayout(layout0) : layout0;

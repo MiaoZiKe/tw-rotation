@@ -79,7 +79,7 @@ export function createLive(W, X) {
   const G0 = L.guide;   // 接入引導狀態（admin===false＝已確認是一般會員，辦公室網址用 me）
   // 專案：網址的 project（專案雜湊）、office（辦公室代號）。office 以 o_ 開頭的是伺服器上的辦公室（收件端用 view 套每間 5 位 Agent 的上限）
   const AP = window.AIOProj || { label: n => (n && !/^(user|root|home|tmp)$/i.test(n) ? n : '雲端工作階段'), trunc: (t, n) => (Array.from(t).length > n ? Array.from(t).slice(0, n - 1).join('') + '…' : t) };
-  L.qProject = /^[0-9a-f]{16}$/.test(qs.get('project') || '') ? qs.get('project') : null;
+  L.qProject = /^[0-9a-f]{16}$/.test(qs.get('project') || '') && qs.get('project') !== '0000000000000000' ? qs.get('project') : null;   // 0000…＝一般會員的佔位專案（blocks.js MEMBER_PH）：不限定專案，看自己辦公室全部
   L.qOffice = /^[A-Za-z0-9_-]{1,40}$/.test(qs.get('office') || '') ? qs.get('office') : null;
   L.qView = /^o_[A-Za-z0-9_-]{6,30}$/.test(L.qOffice || '') ? L.qOffice : null;
   L.projName = null;
