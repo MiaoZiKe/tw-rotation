@@ -7,6 +7,18 @@
 
 - 2026-11-16 頻道③ CaffAIne 第一支 Reels（AI 代理：看、做、檢查，ai-mp4 caffaine-agent-loop）：Andy 11-16 決定不發。佇列資料夾沒有推進 main、隱藏文章沒做、dm_config.json 沒動（留言私訊維持關閉）。⚠ 待清：影片已推到 `media/caffaine/20261116_agent_loop` 分支，但工作流 `clean` 只清佇列裡發過的資料夾、清不到它，這個 session 刪分支被代理擋（HTTP 403）；之後有權限的 session 執行 `git push origin --delete media/caffaine/20261116_agent_loop`（social-ops-lead）。
 
+## 2026-11-17 頻道①刪除範本之前的舊文（social-ops-lead；Andy：「並且在這之前的貼文幫我自動刪除」「Thread 也是」）
+- 範本＝11-09 20:30「黃仁勳坦承對妻子不忠，輝達董事會啟動獨立調查」：Threads 18098802215553949、IG 18133464223840109，這篇與之後全部保留。
+- ✅ 備份：social-snaps `archive/before_1109_template/`（commit 2d54cb83，Threads 278＋IG 30＋圖檔 452）。
+- 清單：`social/delete/ids_1117.txt`（Threads 254，串文先主文後，逐則核對都早於範本）、`social/delete/ig_ids_1117.txt`（IG 29）、`social/delete/ig_manual_1117.md`（IG 手動刪除表）。
+- ⚠️ Threads 0 則刪掉：run 43919210625 三把權杖都 `HTTP 403 code=10 Application does not have permission for this action`（同 11-11、11-15），依規定停，未重試。要等 Andy 在 Meta 應用程式加 threads_delete 權限並重新授權權杖，之後重跑同一份 ids_1117.txt（每 24 小時 100 則，共 3 天）。
+- ⚠️ IG 試刪第一則就停：run 43919508068 `HTTP 400 code=100 Unsupported delete request`，IG 29 則交 Andy 照 ig_manual_1117.md 手動刪。
+
+## 2026-11-17 頻道①短影片排程發布（social-ops-lead；Andy：「我沒有看到LIGULIGU IG Thread 有影片 需要發布」「這類貼文保持繼續發布 Reels 和 輪波 輪替」）
+- 路徑：`social/threads/queue/` ＋ `social/ig/queue/` 的 `2026-11-17_ligu-nvda-kress.md`、`2026-11-19_ligu-power-bill.md`（status: approved、publish_at 12:15），由 threads_post.yml／ig_post.yml 每 15 分鐘的排程發出；發出後檔頭 `urls:`（貼文連結）、`comment_url`／`comment_id`（第一則留言）。
+- 11/18 輪播（像不像 2008）另派人做，走同一個佇列的 `images:`（IG 2～10 張 JPEG、Threads 多張＝輪播）。jensen 不排。
+- 未驗證：頻道① IG 權杖能不能發 Reels、能不能留言（第一次真發才知道）；影片失敗會重試 3 輪並紅燈。
+
 ## 2026-11-16 盤後三大法人圖文數字對齊（social-ops-lead，維修）
 - 原因：`scripts/social_native.py` b_inst_today 優先取 inst_market.json 的晚間修訂版 rev，文案（close_reads／fast_read_inst）與網站四格用首次公布版（DECISIONS #363）。11/13：首次版投信 +82.4、合計 +439.7；晚間版投信 +95.4、合計 +452.7（外資、自營兩版相同）。
 - 修：圖改用主數字（首次公布版）。測試 `tests/test_social_inst_consistency_1116.py`。這批只驗 pytest -k "social or threads or close or snap" ＋新測試、social-live 乾跑。
