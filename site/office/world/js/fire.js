@@ -146,7 +146,11 @@ export function createFire(W, opts = {}) {
     pool.live = live;
   }
   function upload(pool) { pool.g.attributes.position.needsUpdate = true; pool.g.attributes.aSize.needsUpdate = true; pool.g.attributes.aCol.needsUpdate = true; }
-  F.emit = { spark: (x, y, z, o) => spawn(PA, x, y, z, rnd(-0.25, 0.25), rnd(0.8, 1.7), rnd(-0.25, 0.25), rnd(0.9, 2.0), 0.07, 0.02, 0, { drag: 1.2 }), };
+  F.emit = { spark: (x, y, z, o) => spawn(PA, x, y, z, rnd(-0.25, 0.25), rnd(0.8, 1.7), rnd(-0.25, 0.25), rnd(0.9, 2.0), 0.07, 0.02, 0, { drag: 1.2 }),
+    // 情緒層用的小特效（2026-11-16）：汗滴（白點往下掉）、白色蒸氣（熄火喘氣）、黑色小煙（咳嗽吐煙）
+    drop: (x, y, z) => spawn(PS, x, y, z, rnd(-0.5, 0.5), rnd(0.5, 1.1), rnd(-0.5, 0.5), rnd(0.45, 0.7), 0.05, 0.04, 4, { drag: 0.6, g: -5 }),
+    steam: (x, y, z) => spawn(PS, x, y, z, rnd(-0.2, 0.2), rnd(0.5, 1.0), rnd(-0.2, 0.2), rnd(1.0, 1.7), 0.12, 0.5, 4, { drag: 1.5 }),
+    soot: (x, y, z) => spawn(PS, x, y, z, rnd(-0.15, 0.15), rnd(0.35, 0.7), rnd(-0.15, 0.15), rnd(1.0, 1.6), 0.08, 0.38, 3, { drag: 1.2 }) };
 
   // ───────────────────────── 材質：焦黑疊色（不改模型、不改貼圖）─────────────────────────
   // 材質有沒有被好幾位角色共用（共用的不能疊焦黑：不然一位燒焦、別人也跟著黑）
@@ -233,8 +237,10 @@ export function createFire(W, opts = {}) {
       const dist = Math.hypot(p.x - fx, p.z - fz);
       // 驚慌跑開（落地才能跑）：離火 ≥ 2.6 公尺、而且燒夠了才停；中途小跳
       if (grounded(c)) {
-        const run = fleeDir(c, o); o.hop -= h; if (o.hop <= 0 && dist < 3) { o.hop = rnd(0.55, 1.0); jumpHop(c); }
-        const sp = 3.3 * (c.scale || 1); c.drive(run.x * sp, run.z * sp, run.x, run.z);
+        const sty = F.steer && F.steer(c, o, h, dist);   // 情緒層（mind_feel.js）接管走法：亂跑繞圈、原地跳腳、拍打、蹲下、跑向泳池（傳回 null 就走預設的直線逃開）
+        if (sty) { c.drive(sty.vx, sty.vz, sty.fx, sty.fz); if (sty.hop) jumpHop(c); }
+        else { const run = fleeDir(c, o); o.hop -= h; if (o.hop <= 0 && dist < 3) { o.hop = rnd(0.55, 1.0); jumpHop(c); }
+          const sp = 3.3 * (c.scale || 1); c.drive(run.x * sp, run.z * sp, run.x, run.z); }
       }
       // 身上的火舌與煙
       o.emit = (o.emit || 0) + h * 38; while (o.emit >= 1) { o.emit--; sampleBody(c, tmp); spawn(PA, tmp.x, tmp.y, tmp.z, rnd(-0.2, 0.2), rnd(0.8, 1.5), rnd(-0.2, 0.2), rnd(0.35, 0.6), rnd(0.2, 0.3) * (c.scale || 1), 0.04, 1, { drag: 3 }); }
