@@ -293,7 +293,7 @@ export function createChat(W, X) {
   function msgHtml(m, prev, last) {
     const to = toOf(m), nk = esc(nickOf(to)), showTime = !prev || minute(prev.created) !== minute(m.created), inDept = roomOfTo(to) !== 'ceo';
     const rtx = clean(m.reply), reply = rtx ? linkify(rtx) : (m.status === 'done' ? '做完了。' : '');
-    const typing = m.status === 'running' ? `<div class="c-rp c-typing" aria-label="${nk} 輸入中"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><span class="c-dots"><i></i><i></i><i></i></span></div><small>${nk} 輸入中…</small></div>` : '';
+    const typing = m.status === 'running' ? `<div class="c-rp c-typing" aria-label="${nk} 輸入中"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><span class="c-dots"><i></i><i></i><i></i></span></div><small>${nk} 輸入中…</small><small class="c-rs" data-rs="doing">處理中</small></div>` : '';
     const more = m.status === 'queued' ? `<button class="c-more" type="button" data-menu="${esc(m.id)}" aria-label="更多" aria-haspopup="menu">⋯</button><div class="c-menu" role="menu" hidden><button type="button" role="menuitem" data-cancel="${esc(m.id)}">撤回</button></div>` : '';
     return `<article class="c-msg${showTime ? '' : ' same'}" data-id="${esc(m.id)}" data-st="${esc(m.status)}">
       ${showTime ? `<time class="c-tm">${esc(clock(m.created))}</time>` : ''}
@@ -301,7 +301,7 @@ export function createChat(W, X) {
       <div class="c-mine"><div class="c-me${m.status === 'canceled' ? ' gone' : ''}"><p class="c-tx">${esc(m.text)}</p>${more}</div></div>
       ${stHtml(m, last)}
       ${typing}
-      ${reply ? `<div class="c-rp"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><b>${nk}${m.done_at || m.updated ? `<time>${esc(clock(m.done_at || m.updated))}</time>` : ''}</b><div>${reply}</div></div></div>` : ''}</article>`;
+      ${reply ? `<div class="c-rp"><span class="c-av">${avaOf(to)}</span><div class="c-rb"><b>${nk}${m.done_at || m.updated ? `<time>${esc(clock(m.done_at || m.updated))}</time>` : ''}</b><div>${reply}</div></div>${m.status === 'done' ? '<small class="c-rs" data-rs="done">已完成</small>' : ''}</div>` : ''}</article>`;
   }
   const unreadOf = id => threadOf(id).filter(m => (m.status === 'done' || m.status === 'failed') && !K.seen.has(seenKey(m))).length;
   // 左邊對話清單：一個單位一間聊天室（CEO、每個部門）；有說過話的依最後時間排前面，其餘照部門順序

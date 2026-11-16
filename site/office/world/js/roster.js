@@ -130,13 +130,22 @@ export function createRoster(W, X) {
   /** 編制外的新同事：b＝{id,nick,zh,species,pal,hue,acc,accColor}；回傳角色（座位都沒有時站著） */
   R.hire = (b, arrive) => {
     if (C(b.id)) return C(b.id);
-    const dept = deptOf(b.zh || b.id), spec = { ...b, dept: dept || 'reserve' };
+    const dept = W.blocks ? null : deptOf(b.zh || b.id), spec = { ...b, dept: dept || 'reserve' };   // 區塊辦公室（blocks.js）：每位自己一個區塊，不分部門
     let c; try { c = W.addExtra(spec); } catch (e) { console.warn('新增同事失敗', e); return null; }
     W.extras.splice(W.extras.indexOf(c), 1); W.chars.set(b.id, c);
-    const dn = dept && (W.org.departments.find(q => q.id === dept) || {}).name;
+    const dn = W.blocks ? (b.title || b.nick) : dept && (W.org.departments.find(q => q.id === dept) || {}).name;
     W.members.set(b.id, { id: b.id, nick: b.nick, zh: b.zh, dept: dept || 'reserve', deptName: dn || '一般' });
-    seat(c, pickSeat(dept, null) || addDesk(dept, b.id), arrive); R.hired.set(b.id, c); R.log.push('hire:' + b.id + ':' + (dept || '一般'));
+    seat(c, W.blocks ? W.blocks.claim(b, arrive) : (pickSeat(dept, null) || addDesk(dept, b.id)), arrive); R.hired.set(b.id, c); R.log.push('hire:' + b.id + ':' + (dept || '一般'));
     return c;
+  };
+  /** 新同事改暱稱（名牌主名由英文類型名換成任務簡稱）：同步改角色、成員表、桌上名牌、頭頂名牌；第二行（類型名）不動 */
+  R.rename = (id, nick) => {
+    const c = C(id), m = W.members.get(id); if (!c || !nick || c.spec.nick === nick) return false;
+    c.spec.nick = nick; if (m) m.nick = nick; if (W.blocks) W.blocks.retitle(id, nick);   // 區塊辦公室：區塊的名稱跟著換成任務簡稱
+    try { if (c.spot) relabel(c.spot, c.spec); } catch (e) { /* 略 */ }
+    try { W.setTag && W.setTag(c); } catch (e) { /* 略 */ }
+    R.log.push('rename:' + id + ':' + nick);
+    return true;
   };
   return R;
 }

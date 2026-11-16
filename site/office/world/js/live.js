@@ -70,7 +70,7 @@ function loadCfg() { try { const o = JSON.parse(lsGet(LS) || 'null'); return o &
 export function createLive(W, X) {
   const { state: S, ui, sim } = X, R = X.rewards || W.rewards, qs = new URLSearchParams(location.search);
   const L = { mode: 'demo', status: 'off', cfg: loadCfg(), seq: 0, pollMs: Math.max(500, +qs.get('live_poll') || POLL_MS), polls: 0, timer: 0, inflight: false, data: null, lastOk: 0, fails: 0,
-    project: null, primary: null, clones: [], typeMap: new Map(), extras: new Map(), seen: new Set(), sharedNoted: new Set(), revealCode: null, code: null, msg: '', lastQuota: '', url: '',
+    project: null, primary: null, clones: [], typeMap: new Map(), extras: new Map(), fallbackNick: new Map(), seen: new Set(), sharedNoted: new Set(), revealCode: null, code: null, msg: '', lastQuota: '', url: '',
     guide: { open: false, step: 1, showPrompt: false, fix: false, busy: false, owner: 'unknown', eye: false, base: null, done: false, copied: '', codeExists: false, sig: '' } };
   W.live = L;
   // 專案：網址的 project（專案雜湊）、office（辦公室代號）。office 以 o_ 開頭的是伺服器上的辦公室（收件端用 view 套每間 5 位 Agent 的上限）
@@ -546,13 +546,30 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   // 專案辦公室（roster.js）：名冊裡有誰才讓誰露面。示範編制裡同代號的＝那位露面；其他＝新同事（依類型分配部門與座位、必要時加桌）。
   // 第一次讀到名冊（L.booted 還是 false）直接就座；之後才出現的新類型＝報到演出（從大門走進來）。
   const extraId = type => (TO_RE.test(type) && !C(type) && !L.extras.has(type) ? type : 'x-' + String(type).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40));
+  // 新專案的 Agent 名牌主名：優先用派工說明（或任務簡稱）的前 8 字中文，都沒有才用類型名縮短（第二行永遠留類型名）。
+  // 說明取最近一筆有中文的；英文為主的說明不拿來當名牌（那樣跟類型名一樣看不懂）。
+  const CJK = /[\u4e00-\u9fff]/;
+  function taskNick(d) {
+    d = String(d || '').replace(/\s+/g, ' ').trim(); if (!d || !CJK.test(d)) return '';
+    let seg = d.split(/[，,。；;：:（(、—\/|]/)[0].trim() || d;
+    const sp = seg.indexOf(' '); if (sp >= 4) seg = seg.slice(0, sp);
+    return seg.slice(0, 8);
+  }
+  function nickFromData(type) {
+    const ag = (L.data && L.data.agents) || [];
+    for (const a of ag) if (a && a.agent_type === type) { const n = taskNick(a.task || a.description); if (n) return n; }
+    const dp = (L.data && L.data.dispatch) || [];
+    for (const a of dp) if (a && a.type === type) { const n = taskNick(a.descr || a.description); if (n) return n; }
+    return '';
+  }
   function rosterMember(type) {
     const hub = W.rosterHub, arrive = !!L.booted, c0 = C(type);
-    if (c0 && !c0.spec.isCeo && !c0.spec.pet) { hub.reveal(type, arrive); L.typeMap.set(type, type); if (arrive) S.say(`新同事報到：${c0.spec.nick}（${short(type, 24)}）`); return type; }
+    if (!W.blocks && c0 && !c0.spec.isCeo && !c0.spec.pet) { hub.reveal(type, arrive); L.typeMap.set(type, type); if (arrive) S.say(`新同事報到：${c0.spec.nick}（${short(type, 24)}）`); return type; }
     const id = L.extras.has(type) ? L.extras.get(type) : extraId(type);
     if (C(id)) { L.extras.set(type, id); L.typeMap.set(type, id); return id; }
-    const h = hash(type), [nick, species] = BUILTIN[type] || [short(type.replace(/[-_]+/g, ' '), 8), POOL[h % POOL.length]];
-    const c = hub.hire({ id, nick, zh: type, species, pal: h % 4, hue: 0, acc: ['badge'], accColor: '#ffd28a' }, arrive);
+    const h = hash(type), tn = BUILTIN[type] ? '' : nickFromData(type), [nick, species] = BUILTIN[type] || [tn || short(type.replace(/[-_]+/g, ' '), 8), POOL[h % POOL.length]];
+    if (!BUILTIN[type] && !tn) L.fallbackNick.set(id, type);
+    const c = hub.hire({ id, nick, zh: type, species, pal: h % 4, hue: 0, acc: ['badge'], accColor: '#ffd28a', title: W.blocks ? (nickFromData(type) || nick) : undefined }, arrive);   // title：區塊辦公室的區塊名稱（任務簡稱優先，沒有才用類型名）
     if (!c) { L.typeMap.set(type, type); return type; }
     L.extras.set(type, id); L.typeMap.set(type, id);
     if (arrive) { S.say(`新同事報到：${nick}（${short(type, 24)}）`); c.emote && c.emote('star', 2); }
@@ -568,6 +585,9 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
     const list = [...ts].slice(0, 50), org = t => { const c = C(t); return c && !c.spec.isCeo && !c.spec.pet ? 0 : 1; };
     list.sort((a, b) => org(a) - org(b));
     for (const t of list) { try { memberFor(t); } catch (x) { console.warn('名冊同步失敗', t, x); } }
+    // 先用類型名報到、之後才拿到派工說明的新同事：補改成任務簡稱（只改一次；已有簡稱的不再跳來跳去）
+    if (W.blocks) for (const [t, id] of L.extras) { const n = nickFromData(t); if (n) W.blocks.retitle(id, n); }   // 區塊辦公室：之後才拿到派工說明的，區塊名稱補成任務簡稱
+    for (const [id, t] of [...L.fallbackNick]) { const n = nickFromData(t); if (n && W.rosterHub && W.rosterHub.rename && W.rosterHub.rename(id, n)) L.fallbackNick.delete(id); }
   }
   function ensureExtra(type) {
     // 角色代號直接用子 Agent 類型本身（例如 tester）：對話框對他下指令時，收件匣的 to 就是這個代號，
