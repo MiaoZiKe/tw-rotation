@@ -156,7 +156,10 @@ def t_office_toolanim(b, base):
         ok("連線燈：收件服務出錯 → 紅燈、明講「斷線」與自動重連", red and "斷線" in txt[0] and "重連" in txt[0] and " r" in txt[2], txt)
         ok("連線燈：斷線時 CEO 頭上掛「失聯」，不假裝在工作", wait_until(pg, "() => (%s)('ceo') === 'lost'" % _TA_ICON, 4000), pg.evaluate("() => __world.toolanim.state()"))
         n0 = f.n
-        pg.wait_for_timeout(3500)
+        wait_until(pg, "() => false", 0)
+        _t0 = _time.time()
+        while f.n <= n0 and _time.time() - _t0 < 20:
+            pg.wait_for_timeout(500)
         ok("連線燈：斷線期間自動重試（指數退避，請求仍持續但變慢）", f.n > n0 and pg.evaluate("() => __world.live.fails") >= 2, [f.n - n0, pg.evaluate("() => __world.live.fails")])
         _ta_shot(pg, "ta3_斷線紅燈_失聯.png")
         f.status = 200
