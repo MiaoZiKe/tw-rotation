@@ -390,7 +390,10 @@ export function createChat(W, X) {
     if (ch && !quiet) { btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash'); }
     render();
   }
-  K.openTo = (to) => open(to); K.close = close; K.setTarget = id => setTarget(id);
+  K.openTo = (to) => open(to);
+  // 對話框只能由使用者收起（右上角 ﹀、Esc、底部對話鈕）；點場景背景、拖曳鏡頭、點角色都不准收（11-16 擁有者）。
+  // 外部模組若呼叫 W.chat.close() 要明確帶 'user' 才算數，避免哪個場景事件順手把它關掉。
+  K.close = why => { if (why === 'user') close(); }; K.setTarget = id => setTarget(id);
   btn.onclick = () => { if (K.open) close(); else { K.view = 'list'; open(null, false); } };       // 手機按下去先看清單
   $('chatX').onclick = () => { close(); try { btn.focus(); } catch (e) { /* 略 */ } };
   $('mcBack').onclick = () => { K.view = 'list'; render(); };
