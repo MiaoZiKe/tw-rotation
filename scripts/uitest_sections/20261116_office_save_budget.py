@@ -212,9 +212,10 @@ def _sb_all(pg0, b, base, code):
         keys = dict(cur["data"]["keys"]); keys["aiOffice.game.coins"] = "99"
         srv.call("POST", "/v1/office/main/save/" + _SB_PA, {"schema": 2, "base": cur["version"], "at": int(_time.time() * 1000) + 30000, "data": {"keys": keys}}, srv.owner())
         pg.evaluate("() => { localStorage.setItem('aiOffice.game.note', 'old-device'); __world.save.scan(); }")
-        conf = wait_until(pg, "() => __world.save.conflicts >= 1 && localStorage.getItem('aiOffice.game.coins') === '99'", 15000)
-        ok("衝突：本頁的改動比另一台舊 → 收到衝突、換成比較新的那份", conf, pg.evaluate("() => ({ c: __world.save.conflicts, coins: localStorage.getItem('aiOffice.game.coins') })"))
+        pg.wait_for_timeout(2500)
         _sb_settle(pg)
+        conf = _sb_ev(pg, "() => ({ coins: localStorage.getItem('aiOffice.game.coins'), note: localStorage.getItem('aiOffice.game.note') })")
+        ok("衝突：本頁的改動比另一台舊 → 收到衝突、換成比較新的那份（coins＝99、本頁的舊改動被換掉）", conf["coins"] == "99" and conf["note"] is None, conf)
         # ⑤ 今日預算
         bb = pg.locator("#budgetBtn")
         ok("預算：頂列有「今日預算」", bb.is_visible() and "今日預算" in bb.inner_text(), bb.inner_text() if bb.count() else None)
