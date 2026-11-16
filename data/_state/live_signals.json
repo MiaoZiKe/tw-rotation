@@ -66,81 +66,9 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 2,
+  "rows_added": 0,
   "signal_rows_added": 0,
   "data_last": "2026-11-16",
-  "watch_top": [
-   {
-    "rank": 1,
-    "code": "3029",
-    "name": "零壹",
-    "group": "ind_資訊服務業",
-    "score": 97.3
-   },
-   {
-    "rank": 2,
-    "code": "6617",
-    "name": "共信-KY",
-    "group": "ind_生技醫療業",
-    "score": 96.8
-   },
-   {
-    "rank": 3,
-    "code": "6221",
-    "name": "晉泰",
-    "group": "ind_資訊服務業",
-    "score": 96.4
-   },
-   {
-    "rank": 4,
-    "code": "6234",
-    "name": "高僑",
-    "group": "ind_光電業",
-    "score": 94.2
-   },
-   {
-    "rank": 5,
-    "code": "2465",
-    "name": "麗臺",
-    "group": "ai_pc",
-    "score": 93.7
-   },
-   {
-    "rank": 6,
-    "code": "6108",
-    "name": "競國",
-    "group": "ind_電子零組件業",
-    "score": 93.6
-   },
-   {
-    "rank": 7,
-    "code": "6199",
-    "name": "天品",
-    "group": "ind_其他",
-    "score": 91.0
-   },
-   {
-    "rank": 8,
-    "code": "3147",
-    "name": "大綜",
-    "group": "ind_資訊服務業",
-    "score": 89.9
-   },
-   {
-    "rank": 9,
-    "code": "4105",
-    "name": "東洋",
-    "group": "ind_生技醫療業",
-    "score": 89.8
-   },
-   {
-    "rank": 10,
-    "code": "2480",
-    "name": "敦陽科",
-    "group": "ind_資訊服務業",
-    "score": 89.5
-   }
-  ],
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -152,5 +80,5 @@
    "tomorrow_candidates": []
   }
  },
- "generated": "2026-11-16T08:06Z"
+ "generated": "2026-11-16T08:20Z"
 }
