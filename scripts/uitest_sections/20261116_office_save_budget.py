@@ -116,7 +116,7 @@ def _sb_ev(pg, expr):
         try:
             return pg.evaluate(expr)
         except Exception as e:
-            if "destroyed" not in str(e) and "navigat" not in str(e):
+            if "destroyed" not in str(e) and "navigat" not in str(e) and "__world" not in str(e):
                 raise
             pg.wait_for_timeout(300)
     return pg.evaluate(expr)
