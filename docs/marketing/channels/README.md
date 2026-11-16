@@ -24,3 +24,5 @@ Andy 要求「圖片越真實越好，重點要說明來源出處」。CEO 依�
 
 ## 寫文案前先讀（四個頻道共用）
 `.claude/skills/ig-threads-copy/SKILL.md`（2026-11-15）：26 種開頭類型（依 hook_stats 成效排序）、去 AI 味檢查表、前 125 字規則、輪播 5～10 頁架構、Reels 前 3 秒腳本、交件前檢查清單。IG／Threads 貼文、Reels 腳本、輪播稿都先讀它，再套各頻道自己的規則。
+
+- **Token 預算與省用量規則**：`docs/marketing/channels/token_budget.md`（2026-11-16 Andy：保持品質、不浪費、平均分散到每週重置）。
