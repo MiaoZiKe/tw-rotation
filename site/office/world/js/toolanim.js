@@ -35,12 +35,12 @@ export function createToolAnim(W, X = {}) {
   css.textContent = `
 #taLayer{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden}
 .ta-i{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#fffaf2;border:2.5px solid var(--c);box-shadow:0 2px 6px rgba(74,58,50,.25);display:flex;align-items:center;justify-content:center;transition:opacity .35s;will-change:transform}
-.ta-i svg{width:18px;height:18px;fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ta-i.pop{animation:taPop .45s ease-out}.ta-i.off{opacity:0}
+.ta-i svg{flex:none;display:block;width:18px!important;height:18px!important;min-width:18px;max-width:none;fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ta-i.pop{animation:taPop .45s ease-out both}.ta-i.off{opacity:0}
 .ta-i.lost{background:#fff1ea}
-@keyframes taPop{0%{scale:.4}60%{scale:1.18}100%{scale:1}}
+@keyframes taPop{0%{opacity:.2}100%{opacity:1}}   /* 只淡入，不用縮放：場景暫停動畫時（例如省電）圖示也維持原尺寸 */
 @media (prefers-reduced-motion:reduce){.ta-i.pop{animation:none}}
-@media (max-width:640px){.ta-i{width:24px;height:24px;margin:-12px 0 0 -12px;border-width:2px}.ta-i svg{width:14px;height:14px}}`;
+@media (max-width:640px){.ta-i{width:24px;height:24px;margin:-12px 0 0 -12px;border-width:2px}.ta-i svg{width:14px!important;height:14px!important;min-width:14px}}`;
   document.head.append(css);
   const layer = document.createElement('div'); layer.id = 'taLayer'; layer.setAttribute('aria-hidden', 'true'); document.body.append(layer);
 
