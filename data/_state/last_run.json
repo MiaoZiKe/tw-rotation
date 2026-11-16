@@ -8,8 +8,8 @@
     },
     "inst_official": {
       "ok": true,
-      "rows": 892,
-      "date": "2026-11-13",
+      "rows": 904,
+      "date": "2026-11-16",
       "diag": [
         {
           "url": "https://openapi.twse.com.tw/v1/swagger.json",
@@ -138,13 +138,13 @@
         {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
           "http": 200,
-          "head": "[ {\"Date\":\"1151113\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"558000\",\" Foreign Investors incl"
+          "head": "[ {\"Date\":\"1151116\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"97000\",\" Foreign Investors inclu"
         },
         {
           "market": "上櫃",
-          "rows": 892,
+          "rows": 904,
           "parts": [
-            892
+            904
           ]
         }
       ]
@@ -157,7 +157,7 @@
       "rows": 6
     },
     "fut_inst": {
-      "stored": 9
+      "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
@@ -172,28 +172,28 @@
     },
     "finmind.institutional_bulk": {
       "ok": true,
-      "rows": 892,
-      "seconds": 0.1
+      "rows": 904,
+      "seconds": 0.3
     },
     "inst_daily": {
-      "stored": 0
+      "stored": 904
     },
     "institutional_codes": {
-      "requested": 16,
+      "requested": 462,
       "returned": 0
     },
     "finmind.institutional": {
       "ok": false,
       "rows": 0,
-      "seconds": 3.4
+      "seconds": 94.8
     },
     "inst_flags": {
-      "rebuild": false,
+      "rebuild": true,
       "post": true
     },
     "build_payload": {
       "ok": true,
-      "skipped": "沒有新增今天的法人"
+      "deferred": true
     }
   },
   "errors": [],
@@ -203,10 +203,58 @@
   "gaps": [],
   "rebuilt": [],
   "phase": "inst",
-  "started_at": "2026-11-16T07:18:16.040463+00:00",
-  "finished_at": "2026-11-16T07:18:41.456685+00:00",
-  "duration_seconds": 25.4,
-  "trade_date": "2026-11-13",
+  "freshness": {
+    "trade_date": "2026-11-16",
+    "tables": {
+      "inst_daily": {
+        "label": "個股三大法人",
+        "latest": "2026-11-16",
+        "rows": 904,
+        "median": 2226.0,
+        "status": "pending",
+        "reason": "thin"
+      },
+      "inst_market_daily": {
+        "label": "全市場三大法人金額",
+        "latest": "2026-11-16",
+        "rows": 1,
+        "median": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "margin_total": {
+        "label": "整體融資融券",
+        "latest": "2026-11-13",
+        "rows": 0,
+        "median": 1.0,
+        "status": "pending",
+        "reason": "behind"
+      },
+      "fut_inst": {
+        "label": "期貨三大法人",
+        "latest": "2026-11-16",
+        "rows": 9,
+        "median": 9.0,
+        "status": "ok",
+        "reason": null
+      },
+      "fut_oi": {
+        "label": "期貨全市場未平倉",
+        "latest": "2026-11-13",
+        "rows": 0,
+        "median": 3.0,
+        "status": "pending",
+        "reason": "behind"
+      }
+    },
+    "warn": [],
+    "warn_labels": []
+  },
+  "warn": [],
+  "started_at": "2026-11-16T08:18:33.354473+00:00",
+  "finished_at": "2026-11-16T08:20:23.548267+00:00",
+  "duration_seconds": 110.2,
+  "trade_date": "2026-11-16",
   "complete": true,
-  "finmind_budget_left": 487
+  "finmind_budget_left": 40
 }

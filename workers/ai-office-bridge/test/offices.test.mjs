@@ -148,3 +148,115 @@ test('指令收件匣帶專案：Claude 端只取自己專案（或沒指定專�
   await send('ceo', '給 A 之二', PA);
   assert.deepEqual(await pull({}), [], '舊外掛沒帶專案雜湊：不會拿到指定專案的指令');
 });
+
+// ───────── 2026-11-16：同名專案合併、專案名冊 ─────────
+const PA2 = 'a1a1a1a1a1a1a1a1', PU2 = 'c2c2c2c2c2c2c2c2', PU3 = 'c3c3c3c3c3c3c3c3';
+
+test('同名合併：舊路徑雜湊與新儲存庫雜湊同名 → 專案清單只列一個（最後活動取較新、進行中相加），別名列在 aliases', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 's-old', PA, 'tw-rotation'), E('SessionStart', 's-old2', PA, 'tw-rotation')]);
+  h.tick(60_000);
+  await ev(h, [E('SessionStart', 's-new', PA2, 'tw-rotation'), E('SessionStart', 's-other', PB, 'other-repo')]);
+  const j = await (await req(h, 'GET', '/v1/office/main/projects', null, as(OWNER))).json();
+  assert.equal(j.projects.length, 2, '同名只列一個');
+  const tw = j.projects.find((p) => p.name === 'tw-rotation');
+  assert.equal(tw.active, 3, '進行中相加（舊 2＋新 1）');
+  assert.equal(tw.hash, PA2, '代表雜湊＝最近活動的那個');
+  assert.deepEqual([...tw.aliases].sort(), [PA, PA2].sort());
+  assert.equal(tw.events, 3);
+  assert.ok(tw.last >= tw.first);
+  const ob = j.projects.find((p) => p.name === 'other-repo'); assert.equal(ob.aliases, undefined);
+});
+
+test('同名合併：state?project= 帶任何一個別名，兩個雜湊的事件、工作階段、子 Agent 都算；回傳的雜湊一律換成請求的那個', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 's-old', PA, 'tw-rotation'), E('SubagentStart', 's-old', PA, 'tw-rotation', { agent_id: 'ag-1', agent_type: 'inspector' })]);
+  h.tick(1000);
+  await ev(h, [E('SessionStart', 's-new', PA2, 'tw-rotation'), E('SubagentStart', 's-new', PA2, 'tw-rotation', { agent_id: 'ag-2', agent_type: 'reviewer' }), E('SessionStart', 's-b', PB, 'other-repo')]);
+  for (const want of [PA, PA2]) {
+    const s = await state(h, '?project=' + want);
+    assert.equal(s.sessions.length, 2, '兩個雜湊的工作階段都在 / ' + want);
+    assert.equal(s.agents.length, 2);
+    assert.ok(s.sessions.every((x) => x.project_hash === want), '工作階段的雜湊換成請求的');
+    assert.ok(s.agents.every((x) => x.project_hash === want));
+    assert.ok(s.events.every((x) => !x.project_hash || x.project_hash === want));
+    assert.equal(s.projects.find((p) => p.name === 'tw-rotation').hash, want, '專案清單的代表雜湊跟請求一致，前端才對得到名稱');
+    assert.equal(s.projects.length, 2);
+    assert.ok(!s.sessions.some((x) => x.id === 's-b'), '別的專案不混進來');
+  }
+  const all = await state(h);
+  assert.equal(all.projects.length, 2);
+  assert.ok(all.sessions.every((x) => all.projects.some((p) => p.hash === x.project_hash)), '不帶專案：每個工作階段的雜湊都對得到專案清單');
+});
+
+test('同名合併：沒意義的名稱（user／root／tmp…）全部歸成同一個雲端專案；沒名稱的各自獨立；大小寫不分', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 'c1', PU2, 'user'), E('SessionStart', 'c2', PU3, 'root'), E('SessionStart', 'c3', PU, 'tmp'), E('SessionStart', 'r1', PA, 'Tw-Rotation'), E('SessionStart', 'r2', PA2, 'tw-rotation'),
+    E('SessionStart', 'n1', PB, null)]);
+  const j = await (await req(h, 'GET', '/v1/office/main/projects', null, as(OWNER))).json();
+  assert.equal(j.projects.length, 3, '雲端 1＋tw-rotation 1＋沒名稱 1');
+  const cloud = j.projects.find((p) => p.aliases && p.aliases.length === 3);
+  assert.ok(cloud, '三個雲端雜湊合成一個');
+  assert.equal(cloud.active, 3);
+  assert.equal(j.projects.find((p) => p.name && p.name.toLowerCase() === 'tw-rotation').aliases.length, 2);
+});
+
+test('同名合併：收件匣指令帶哪個別名雜湊，Claude 端用任何一個別名都取得到；別的專案取不到', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 's-old', PA, 'tw-rotation'), E('SessionStart', 's-new', PA2, 'tw-rotation'), E('SessionStart', 's-b', PB, 'other-repo')]);
+  const send = (to, text, project) => req(h, 'POST', '/v1/office/main/inbox', { to, text, project }, as(OWNER));
+  assert.equal((await send('ceo', '給新雜湊', PA2)).status, 200);
+  const old = await (await req(h, 'POST', '/v1/inbox/pull', { session_id: 's-old', project_hash: PA }, bearer(h.code))).json();
+  assert.equal(old.messages.length, 1, '舊雜湊的外掛也取得到');
+  assert.equal(old.messages[0].text, '給新雜湊');
+  assert.equal((await send('ceo', '給別的專案', PB)).status, 200);
+  const none = await (await req(h, 'POST', '/v1/inbox/pull', { session_id: 's-new', project_hash: PA2 }, bearer(h.code))).json();
+  assert.equal(none.messages.length, 0, '別的專案的指令不會被取走');
+  // 網站讀指令列表：用別名也看得到同一組
+  assert.equal((await send('ceo', '給舊雜湊', PA)).status, 200);
+  const lst = await (await req(h, 'GET', '/v1/office/main/inbox?project=' + PA2, null, as(OWNER))).json();
+  assert.ok(lst.messages.some((m) => m.text === '給舊雜湊') && lst.messages.some((m) => m.text === '給新雜湊') && !lst.messages.some((m) => m.text === '給別的專案'));
+});
+
+test('專案名冊：SessionStart 帶 agent_files → state?project= 回傳 roster；事件裡出現的子 Agent 類型併進來；兩邊都有的標 file＋seen', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 's-a1', PA, 'tw-rotation', { agent_files: ['inspector', 'deployer', 'bad name', '../x', 'a'.repeat(70)] }),
+    E('SubagentStart', 's-a1', PA, 'tw-rotation', { agent_id: 'ag-1', agent_type: 'deployer' }),
+    E('SubagentStart', 's-a1', PA, 'tw-rotation', { agent_id: 'ag-2', agent_type: 'general-purpose' }),
+    E('SessionStart', 's-b1', PB, 'other-repo', { agent_files: ['zz-only-b'] })]);
+  const s = await state(h, '?project=' + PA);
+  const by = Object.fromEntries(s.roster.map((r) => [r.type, r]));
+  assert.deepEqual(Object.keys(by).sort(), ['deployer', 'general-purpose', 'inspector'], '不合格的檔名被擋、別的專案的不混進來');
+  assert.equal(by.inspector.file, true); assert.equal(by.inspector.seen, false);
+  assert.equal(by.deployer.file, true); assert.equal(by.deployer.seen, true);
+  assert.equal(by['general-purpose'].file, false); assert.equal(by['general-purpose'].seen, true);
+  const b = await state(h, '?project=' + PB);
+  assert.deepEqual(b.roster.map((r) => r.type), ['zz-only-b'], '兩個專案各自的名冊不同');
+  assert.ok(s.events.every((e) => !('agent_files' in e)), '事件串不回傳名冊內容');
+});
+
+test('專案名冊：最新一次 SessionStart 為準（刪掉的檔從名冊拿掉）、最多 50、舊版外掛沒帶 agent_files 就不動', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 's1', PA, 'tw-rotation', { agent_files: ['a-one', 'a-two'] })]);
+  await ev(h, [E('SessionStart', 's2', PA, 'tw-rotation', { agent_files: ['a-one'] })]);
+  assert.deepEqual((await state(h, '?project=' + PA)).roster.map((r) => r.type), ['a-one']);
+  await ev(h, [E('SessionStart', 's3', PA, 'tw-rotation')]);                       // 舊外掛：沒有 agent_files
+  assert.deepEqual((await state(h, '?project=' + PA)).roster.map((r) => r.type), ['a-one'], '舊外掛不清名冊');
+  await ev(h, [E('SessionStart', 's4', PA, 'tw-rotation', { agent_files: [] })]);
+  assert.deepEqual((await state(h, '?project=' + PA)).roster, [], '空清單＝清掉');
+  await ev(h, [E('SessionStart', 's5', PA, 'tw-rotation', { agent_files: Array.from({ length: 80 }, (_, i) => 'ag-' + i) })]);
+  assert.equal((await state(h, '?project=' + PA)).roster.length, 50);
+});
+
+test('專案名冊：同名合併的兩個雜湊名冊算一份；非站長辦公室依 5 位上限只回最近有動靜的', async () => {
+  const h = await setup();
+  await ev(h, [E('SessionStart', 's-old', PA, 'tw-rotation', { agent_files: ['old-only'] }), E('SessionStart', 's-new', PA2, 'tw-rotation', { agent_files: ['new-only'] })]);
+  assert.deepEqual((await state(h, '?project=' + PA)).roster.map((r) => r.type).sort(), ['new-only', 'old-only']);
+  const mk = await (await req(h, 'POST', '/v1/offices', { name: '會員辦公室' }, as(M1))).json();
+  const oid = mk.office.id;
+  await ev(h, [E('SessionStart', 's-big', PB, 'big', { agent_files: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7'] })]);
+  const capped = await (await req(h, 'GET', '/v1/office/main/state?project=' + PB + '&view=' + oid, null, as(OWNER))).json();
+  assert.equal(capped.roster.length, 5, '伺服器擋：非站長每間 5 位');
+  const full = await state(h, '?project=' + PB);
+  assert.equal(full.roster.length, 7, '站長不限');
+});

@@ -1,0 +1,14 @@
+{
+ "title": "這支影片的動畫，是我叫 AI 做的（36 秒）",
+ "hook_type": "結果先行",
+ "format": "video",
+ "platforms": [
+  "ig",
+  "threads"
+ ],
+ "status": "draft",
+ "publish_at": "2026-11-17T21:00+08:00",
+ "video_src": "media/caffaine/20261117_made-by-ai",
+ "keyword": "動畫",
+ "note": "2026-11-17 排程。影片因旁白重配，out 檔會被換新：換好後把新 mp4 覆蓋 site/media/caffaine/20261117_made-by-ai/video.mp4（與 cover.jpg），再執行 scripts/channel_media.py stage --channel caffaine --folder 20261117_made-by-ai --video <新檔>，並把 status 改 approved。換好前保持 draft，避免發出舊音檔。文章：site/articles/caffaine/2026-11-17-made-by-ai.json。"
+}

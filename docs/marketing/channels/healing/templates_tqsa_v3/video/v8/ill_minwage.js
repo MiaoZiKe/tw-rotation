@@ -47,6 +47,22 @@ const ILL={
   [[150,90],[740,120]].forEach(([x,y],i)=>g+=sparkle(x,y,12,.3+.4*tw(t,i*3,3)));
   return g},
   sfx(t0,s,E){E(t0+.7,'thump',{g:.4});E(t0+.75,'tick');E(t0+1.2,'bell',{n:[21],g:.35})}},
+ // s4 門框身高刻痕：鉛筆在門框上由下往上一格格畫出十一道刻痕（0.2–1.6，每道一個小回彈），最高那道被晴光橘框起、門板微微晃一下；旁邊小鉛筆彈跳
+ doorframe:{draw(t,h){let g=`<rect x="0" y="${h-70}" width="888" height="70" fill="#E4D3B8"/>`;
+  g+=`<rect x="250" y="40" width="388" height="${h-110}" fill="#FFFDF8" stroke="${LINE}" stroke-width="4"/><rect x="262" y="52" width="364" height="${h-134}" fill="#F3E6D0" stroke="${LINE}" stroke-width="2"/>`;
+  g+=`<rect x="226" y="30" width="24" height="${h-100}" fill="#B98A6A" stroke="${LINE}" stroke-width="4"/><rect x="638" y="30" width="24" height="${h-100}" fill="#B98A6A" stroke="${LINE}" stroke-width="4"/>`;
+  g+=`<circle cx="590" cy="${(h-70)/2+20}" r="12" fill="${LAMP}" stroke="${LINE}" stroke-width="3"/>`;
+  const n=11,y0=h-110,y1=120;
+  for(let i=0;i<n;i++){const a=.2+i*.13,u=t-a;if(u<0)continue;const y=y0-(y0-y1)*i/(n-1),L=(i==n-1?90:44+(i%3)*8)*Math.min(1,u*8),bump=-4*DECAY(u,5,16);
+   const top=i==n-1;g+=`<line x1="226" y1="${(y+bump).toFixed(1)}" x2="${(226+L).toFixed(1)}" y2="${(y+bump).toFixed(1)}" stroke="${top?LAMP:LINE}" stroke-width="${top?8:5}" stroke-linecap="round"/>`;
+   if(top&&u>.15)g+=glow(226+90,y,50,.4*clamp((u-.15)*4))}
+  const pk=clamp((t-1.7)*3);if(pk>0)g+=sparkle(330,y1-30,14,.3+.5*tw(t,2,3));
+  const pen=Math.min(10,(t-.2)/1.4*10),py=y0-(y0-y1)*clamp((t-.2)/1.5),bounce=t<1.7?4*Math.sin(t*30):0;
+  g+=`<g transform="translate(${(120).toFixed(1)},${(py+bounce).toFixed(1)}) rotate(-35)"><rect x="-10" y="-70" width="20" height="70" fill="#F4B860" stroke="${LINE}" stroke-width="3"/><path d="M-10 0 h20 l-10 22Z" fill="#E4C9A0" stroke="${LINE}" stroke-width="3"/><rect x="-10" y="-84" width="20" height="14" fill="#E36B4A" stroke="${LINE}" stroke-width="3"/></g>`;
+  g+=`<rect x="690" y="40" width="160" height="70" rx="12" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`+T(770,88,'十年',34,700,TXT);
+  const sw=t>1.7?2*DECAY(t-1.7,3,10):0;g+=`<g transform="rotate(${sw.toFixed(2)} 444 40)"></g>`;
+  return g},
+  sfx(t0,s,E){for(let i=0;i<11;i++)E(t0+.2+i*.13,'tick',{g:.5});E(t0+1.7,'bell',{n:[21],g:.4});E(t0+1.7,'sparkle',{n:[24]})}},
  // s5 制服掛架：五件制服（圍裙、廚師帽、工作背心、超商制服、安全帽）依序滑進掛架並擺盪衰減
  uniforms:{draw(t,h){let g=`<rect x="0" y="${h-50}" width="888" height="50" fill="#E4D3B8"/><line x1="40" y1="70" x2="848" y2="70" stroke="${LINE}" stroke-width="8" stroke-linecap="round"/><line x1="60" y1="70" x2="60" y2="${h-50}" stroke="${LINE}" stroke-width="6"/><line x1="828" y1="70" x2="828" y2="${h-50}" stroke="${LINE}" stroke-width="6"/>`;
   const items=[['#E9B98A','圍裙'],['#FFFDF8','廚師'],['#F4B860','背心'],['#C9D3C9','超商'],['#B98A6A','倉儲']];

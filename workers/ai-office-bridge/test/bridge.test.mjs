@@ -217,3 +217,15 @@ test('任務簡稱：存進工作階段、讀取時帶 task_name；沒帶簡稱�
   assert.equal(clean(ev('Stop', { task_name: '一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十' })).task_name.length, 24);
   assert.equal(clean(ev('Stop', { task_name: '看 https://x.y/z' })).task_name, '看 〔網址〕');
 });
+
+test('白名單：agent_files（專案員工檔名）只收格式合格的名稱、最多 50 個；不是陣列就丟掉；寫入後不出現在事件串', async () => {
+  const c = clean({ event: 'SessionStart', session_id: 'sess-1', agent_files: ['inspector', 'a b', '../x', 'x/y', 'ok.name_1', 'inspector', 5, null, '路徑中文'] });
+  assert.deepEqual(c.agent_files, ['inspector', 'ok.name_1']);
+  assert.equal(clean({ event: 'SessionStart', agent_files: Array.from({ length: 90 }, (_, i) => 'n' + i) }).agent_files.length, 50);
+  assert.equal('agent_files' in clean({ event: 'SessionStart', agent_files: 'inspector' }), false);
+  const h = await setup();
+  await post(h, '/v1/events', ev('SessionStart', { agent_files: ['inspector'] }), bearer(h.code));
+  const j = await (await get(h, '/v1/office/main/state', { Origin: SITE, 'X-AIO-Session': OWNER })).json();
+  assert.ok(j.events.every((e) => !('agent_files' in e)));
+  assert.deepEqual(j.roster.map((r) => r.type), ['inspector']);
+});

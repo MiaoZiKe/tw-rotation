@@ -66,7 +66,7 @@ function glide(pts,lt,at,per){if(lt<at||window.NOGLINT)return'';const ph=((lt-at
  const at2=e=>{let r=e*L,i=0;while(i<seg.length-1&&r>seg[i]){r-=seg[i];i++}const u=seg[i]?r/seg[i]:0;return [pts[i][0]+(pts[i+1][0]-pts[i][0])*u,pts[i][1]+(pts[i+1][1]-pts[i][1])*u]};
  const a=Math.sin(Math.PI*ph);let g='';[0,1,2,3].forEach(k=>{const e=EO(Math.max(0,ph-k*.06));const [x,y]=at2(e);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${16-k*3}" fill="#FFF4D6" stroke="#F4B860" stroke-width="${k?0:2}" opacity="${(a*(1-k*.22)).toFixed(2)}"/>`});return g}   // 帶 4 節拖尾的暖白光點
 function ILLbox(s,lt,d,top,h){const f=ILL[s.ill];return box('illus',top||392,h||IH,`<rect x="0" y="0" width="888" height="${h||IH}" rx="26" fill="${FACE}"/>`+(f?f.draw(lt,h||IH,s):''),lt,d,{})}
-function head(s,lt,o){o=o||{};let h=title(s.title,lt,o);if(s.tag)h+=tag(s.tag,lt,o.tagAt==null?.15:o.tagAt,306);return h}
+function head(s,lt,o){o=o||{};let h=title(s.title,lt,o);if(s.tag)h+=tag(s.tag,lt,s.tagAt!=null?s.tagAt:(o.tagAt==null?.15:o.tagAt),306);return h}
 
 // ── 鉤子專用小圖（高 232）──
 const MINI={
@@ -376,7 +376,7 @@ function capV8(s,op,dy){if(!s||op<=0)return'';const ls=s.split('\n').map(x=>x.re
 window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.length;j++){if(t>=S[j].t0&&t<S[j].t1){i=j;break}}
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
  const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;let h=SC[sc.type](sc,l,dd,{});
-  if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*18)}
+  if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*(sc.capDy==null?18:sc.capDy))}
   if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2));return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;
  if(i>0&&fr<TRF){const o=S[i-1];

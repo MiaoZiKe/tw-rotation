@@ -160,3 +160,22 @@ test('maskSecrets：遮各家金鑰與 Bearer，保留換行與一般文字', ()
   assert.ok(!/abcdefghijklmnop|xxxxxxxxxxxx|ZZZZZZZZ/.test(s), s);
   assert.equal(maskSecrets('一'.repeat(5000), 10).length, 10);
 });
+
+test('最近一次取指令時間：Claude 端每次 pull 都記下，state 與收件匣列表都回傳（網站用它判斷「Claude 在線上待命中」）', async () => {
+  const h = await setup();
+  const s0 = await (await req(h, 'GET', '/v1/office/main/state', null, site())).json();
+  assert.equal(s0.inbox.last_pull, null, '還沒有人取過');
+  assert.equal((await list(h)).last_pull, null);
+  await pull(h, { wait: 0 });
+  const t1 = (await (await req(h, 'GET', '/v1/office/main/state', null, site())).json()).inbox.last_pull;
+  assert.equal(t1, h.at ? h.at() : t1, '記的是伺服器時間');
+  assert.ok(typeof t1 === 'number' && t1 > 1e12);
+  h.tick(45_000);
+  assert.equal((await list(h)).last_pull, t1, '沒再取＝時間不變，網站才算得出「多久沒來」');
+  await pull(h, { wait: 0 });
+  const t2 = (await list(h)).last_pull;
+  assert.equal(t2 - t1, 45_000);
+  assert.equal((await pull(h, { wait: 0 }, site())).status, 403, '瀏覽器拿到碼也不算在線（不能 pull）');
+  assert.equal((await pull(h, { wait: 0 }, bearer('aio_wrongwrongwrongwrong'))).status, 401);
+  assert.equal((await list(h)).last_pull, t2, '被擋的請求不更新時間');
+});

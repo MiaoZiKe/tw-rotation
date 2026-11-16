@@ -185,6 +185,31 @@ def task_name(sid):
         return None
 
 
+AGENT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$")
+
+
+def agent_files(cwd):
+    """專案自己的員工名冊：專案資料夾 .claude/agents/*.md 的「檔名去副檔名」，最多 50 個。
+    隱私：只送名稱，不送檔案內容、不送路徑；名稱格式不合的（含空白、路徑字元）直接略過。
+    找法：從工作目錄往上最多 6 層找 .claude/agents（在子資料夾開 Claude 也找得到專案根），碰到使用者家目錄就停（那是全域設定，不是這個專案的）。"""
+    if not cwd:
+        return []
+    home = os.path.realpath(os.path.expanduser("~"))
+    d = os.path.realpath(cwd)
+    for _ in range(7):
+        if d == home or d == os.path.dirname(d):
+            return []
+        ad = os.path.join(d, ".claude", "agents")
+        if os.path.isdir(ad):
+            try:
+                names = sorted({f[:-3] for f in os.listdir(ad) if f.endswith(".md") and AGENT_NAME.match(f[:-3])})
+            except Exception:
+                return []
+            return names[:50]
+        d = os.path.dirname(d)
+    return []
+
+
 def sanitize(p, cfg):
     """只留白名單欄位。完整路徑改成「資料夾名＋雜湊」。回傳 None＝這筆不送。"""
     name = p.get("hook_event_name") or EVENT
@@ -200,6 +225,8 @@ def sanitize(p, cfg):
         "cloud": os.environ.get("CLAUDE_CODE_REMOTE") == "true",
         "task_name": task_name(p.get("session_id")),
     }
+    if name == "SessionStart":
+        ev["agent_files"] = agent_files(cwd)    # 即使是空清單也送：專案刪了員工檔，收件端的名冊才會跟著清掉
     for k in ("agent_id", "agent_type", "source", "reason", "permission_mode"):
         if isinstance(p.get(k), str):
             ev[k] = p[k]

@@ -68,7 +68,7 @@
   "status": "ok",
   "rows_added": 0,
   "signal_rows_added": 0,
-  "data_last": "2026-11-13",
+  "data_last": "2026-11-16",
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -80,5 +80,5 @@
    "tomorrow_candidates": []
   }
  },
- "generated": "2026-11-16T07:18Z"
+ "generated": "2026-11-16T08:20Z"
 }
