@@ -163,3 +163,21 @@ Andy 11/16 原話：「確保讀者留言之後，我們會私訊給他。若是
   | `social/*/queue/*.md` 的 `first_comment`、各頻道 `dm_config` 的 `unlock`／單篇連結產生（`scripts/tc_dm_keys.py with_unlock` 同類） | 主站單篇 | 獨立站單篇；解鎖連結仍是 `#unlock/<碼>/<id>`，主站會自動轉進獨立站 |
   | 排程文案（`healing_comments.py`、`channel_comments.py` 的公開回覆連結） | 主站單篇 | 獨立站單篇 |
   舊的主站連結不會壞（會自動轉過去）。
+
+---
+## 8. 文章觀測（只記錄，Andy 11/17）
+
+**沿用現有機制，不另起爐灶、不改 Worker**：`account.js` 的細項事件（ev2，`window.TwT` → `POST /v1/track/batch`，每分鐘／5 分鐘整包送、DNT／GPC 開著不送，管理區「流量觀測」本來就在讀它）。新檔 `site/artmetrics.js` 主站文章頁與獨立站共用。頁面一律記 `articles`（Worker 白名單內）；`TwT` 多了選填第 3 參數 `page`，因為獨立站的網址不是主站 #路由。
+
+| 事件（元件名） | 何時記 | 細項 |
+|---|---|---|
+| `ch.view.<guest／member／admin>.<dm／site>` | 打開一篇文章（dm＝從私訊解鎖連結進來；site＝站內或其他） | `<頻道代號>:<id 去年份>`（頻道代號 c＝CaffAIne、h＝談晴、t＝科技、l＝哩股；≤24 字） |
+| `ch.save.<身分>`／`ch.unsave.member`／`ch.savetry.guest` | 會員收藏／取消；訪客點收藏（只提示登入，不收藏） | 同上 |
+| `ch.share.sys.<身分>`／`ch.share.copy.<身分>` | 手機系統分享／桌機複製連結，各記一次 | 同上 |
+| `ch.play.<身分>`／`ch.dl.<身分>` | 影片每次打開文章第一次播放／點下載 | 同上 |
+
+看「哪篇最多」「訪客 vs 會員」「被收藏、轉發幾次」＝把這些元件依細項加總（管理區現有細項報表可直接看，不做新報表頁）。
+
+**隱私**：只記「身分類別（訪客／會員／站主）」與文章代號，不記 IP、不記裝置指紋、不帶任何個人或匿名識別碼（細項事件本來就不帶）；DNT／GPC 開著就完全不送；Worker 端每日上限 20000 列。收藏清單只存在該會員這台裝置的 localStorage（`tw.art.fav.<uid>`），沒有上傳。
+
+**限制與要 Andy 同意的 Worker 變更**：① 細項最長 24 字，同日同前綴的兩篇可能合併，Worker 若要精準要加 `POST /v1/articles/event {id, act, aud, src}`（id 全長、只存計數）。② 收藏「記在帳號」需要 `POST /v1/articles/fav {id, on}` 與 `/v1/me` 回傳 `favs`（跨裝置）；目前只存本機。③ 獨立站頁面瀏覽的 `viewOf` 會落到 other／overview（網址格式不同），之後 Worker 加 `c` 頁面白名單才分得開。這三項都等 Andy 同意才動 Worker。

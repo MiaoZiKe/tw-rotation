@@ -19,7 +19,7 @@ _FU_C = "2026-11-17-two-answers"
 def t_followunlock_1116(b, base, code):
     T = "追蹤解鎖1116"
     errs = []
-    state = {"mode": "404", "admin": False, "email": None, "redeemed": 0}
+    state = {"mode": "404", "admin": False, "email": None, "redeemed": 0, "posts": []}
 
     def handler(route):
         req = route.request
@@ -30,6 +30,7 @@ def t_followunlock_1116(b, base, code):
         try: body = _fu_json.loads(req.post_data or "{}")
         except Exception: body = {}
         tok = str(body.get("t") or "")
+        if path in ("/v1/track/batch", "/v1/beat"): state["posts"].append(req.post_data or "")
         email = tok[4:] if tok.startswith("tok-") else None
         out, st = {}, 200
         if path == "/v1/me":
@@ -50,7 +51,7 @@ def t_followunlock_1116(b, base, code):
         route.fulfill(status=st, body=_fu_json.dumps(out), headers=hd)
 
     def ctx(email, w, preview=True, mode="404", admin=False):
-        state.update(mode=mode, admin=admin, redeemed=0)
+        state.update(mode=mode, admin=admin, redeemed=0, posts=[])
         mob = w <= 640
         c = b.new_context(viewport={"width": w, "height": 844 if mob else 900}, **({"has_touch": True, "is_mobile": True} if mob else {}))
         init = ("window.TW_PREVIEW = { name: 'fu' };" if preview else "") + "window.TW_ACCOUNT_OVERRIDE = " + _fu_json.dumps({"api": _FU_API}) + ";try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');"
@@ -164,6 +165,37 @@ def t_followunlock_1116(b, base, code):
         ok(f"★ [{T}（{W}）] 從主站點卡片 → 同分頁開到獨立站內文", "/c/caffaine/" in pg.evaluate("() => location.pathname") and pg.evaluate("() => !!document.querySelector('.art h1')"), pg.evaluate("() => location.href"))
         open_(pg, base + "#article/" + _FU_H, ST)
         ok(f"[{T}（{W}）] 舊連結 #article/<談晴 id> 自動轉到獨立站", "/c/healing/" in pg.evaluate("() => location.pathname"), pg.evaluate("() => location.href"))
+        c.close()
+
+        # ── H 文章觀測（只記錄）：瀏覽、收藏、分享、影片播放與下載各送一筆事件（沿用 ev2 管道，不帶任何識別碼）
+        c, pg = ctx("bob@example.com", W)
+        open_(pg, base + "#unlock/pv-caffaine/" + _FU_C, ST)
+        wait_until(pg, "() => document.querySelector('.art') && document.getElementById('artM')", 12000)
+        def sent(comp):
+            pg.evaluate("() => TwAccount.flush()"); pg.wait_for_timeout(700)
+            return any(comp in x for x in state["posts"])
+        ok(f"★ [{T}（{W}）] 觀測：打開文章 → 送出「瀏覽．會員．私訊來源」事件", sent("ch.view.member.dm"), [x[:160] for x in state["posts"][:2]])
+        pg.evaluate("() => { document.querySelector('#artM [data-am=save]').scrollIntoView(); }")
+        pg.click("#artM [data-am=save]"); pg.wait_for_timeout(300)
+        ok(f"★ [{T}（{W}）] 觀測：會員點收藏 → 鈕變「已收藏」、送出 ch.save.member", "已收藏" in pg.inner_text("#artM [data-am=save]") and sent("ch.save.member"), pg.inner_text("#artM"))
+        pg.click("#artM [data-am=share]"); pg.wait_for_timeout(300)
+        ok(f"★ [{T}（{W}）] 觀測：點分享 → 送出 ch.share.copy.member（桌機複製連結）", sent("ch.share.copy.member"), "")
+        pg.evaluate("() => { const v = document.querySelector('.art video'); v.muted = true; return v.play().catch(() => v.dispatchEvent(new Event('play'))); }"); pg.wait_for_timeout(500)
+        ok(f"★ [{T}（{W}）] 觀測：播放影片 → 送出 ch.play.member", sent("ch.play.member"), "")
+        pg.evaluate("() => { const a = document.querySelector('.art .vid a[download]'); a.addEventListener('click', e => e.preventDefault()); a.click(); }"); pg.wait_for_timeout(300)
+        ok(f"★ [{T}（{W}）] 觀測：點下載 → 送出 ch.dl.member", sent("ch.dl.member"), "")
+        c.close()
+        c, pg = ctx(None, W)
+        open_(pg, base + "c/caffaine/#/" + _FU_C, ST)
+        wait_until(pg, "() => document.getElementById('artM')", 12000)
+        ok(f"[{T}（{W}）] 觀測：訪客打開 → ch.view.guest.site", sent("ch.view.guest.site"), "")
+        pg.click("#artM [data-am=save]"); pg.wait_for_timeout(900)
+        ok(f"★ [{T}（{W}）] 觀測：訪客點收藏 → 不收藏、跳登入視窗、送出 ch.savetry.guest", sent("ch.savetry.guest") and "收藏" in pg.inner_text("#artM [data-am=save]") and "已收藏" not in pg.inner_text("#artM [data-am=save]") and pg.evaluate("() => !!document.querySelector('[role=dialog], .acctdlg, #acctDlg, .tw-dlg')"), "")
+        c.close()
+        c, pg = ctx("bob@example.com", W)
+        open_(pg, base + "#article/" + _FU_T)
+        wait_until(pg, "() => document.getElementById('artM')", 12000)
+        ok(f"★ [{T}（{W}）] 觀測：主站文章頁也有收藏／分享鈕並記瀏覽（ch.view.member.site）", pg.locator("#artM [data-am]").count() == 2 and sent("ch.view.member.site"), "")
         c.close()
 
         # ── C 正式網域（沒有 TW_PREVIEW）：Worker 未上線 → 假兌換不生效；Worker 回 200 → 生效

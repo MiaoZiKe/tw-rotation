@@ -61,6 +61,7 @@
     document.title = d.title + '｜' + CH.name;
     app.innerHTML = `<article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}　閱讀約 ${esc(d.reading_min || 1)} 分鐘</div><div class="tags">${(d.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div>${banner()}${(d.blocks || []).map(block).join('')}</article>`;
     window.scrollTo(0, 0);
+    try { window.TwArtM && TwArtM.open(id, CH.id, app.querySelector('.art .meta')); } catch (e) { /* 觀測失敗不影響閱讀 */ }
   }
   function route() {
     const h = (location.hash || '').replace(/^#\/?/, '');

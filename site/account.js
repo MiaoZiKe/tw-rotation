@@ -101,7 +101,7 @@
     S.q2[k] = Math.min(50, (S.q2[k] || 0) + 1);
     counted();
   }
-  window.TwT = (comp, detail) => t2(comp, detail);
+  window.TwT = (comp, detail, page) => t2(comp, detail, page);   // page 選填：獨立站（site/c/）的網址不是主站的 #路由，要自己指定頁面（需在 VIEWS 白名單內）
   /* ---- 行銷來源與漏斗（2026-10-26，W1/W2，docs/marketing/growth_command_1026.md B-2；隱私權政策「行銷來源與使用統計」已先上線）
      · 網址帶 utm_source／utm_medium／utm_campaign／utm_content，或自動發文用的短參數 ?u=<平台>-<時段>-<yyyymmdd>（J-3，例 th-id-20261027）。
      · 「第一次來源」（first-touch）存在這台瀏覽器 localStorage（tw.src），已經有就不覆蓋；每欄只留英數與 . _ -，最長 40 字。不存 utm_term、不存 IP。

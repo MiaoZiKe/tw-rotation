@@ -32,7 +32,7 @@
 <!-- ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）：
      唯一的閘門。要在 <body> 之前跑：<html> 先掛好 live-on（只有管理者），訪客第一幀就看不到任何即時 UI，不會先閃一下。
      它讀登入快取（跟 account.js 同一份 localStorage），所以排在 viewreset.js 後面就好（viewreset 不清登入）。 -->
-<script src="livegate.js"></script><script src="unlock.js"></script><!-- 2026-11-16 追蹤解鎖：#unlock/<碼>/<文章id> 要在 app.js 路由之前改成單篇網址；兌換、已解鎖頻道清單（TwUnlock）-->
+<script src="livegate.js"></script><script src="unlock.js"></script><script src="artmetrics.js"></script><!-- 2026-11-16 追蹤解鎖：#unlock/<碼>/<文章id> 要在 app.js 路由之前改成單篇網址；兌換、已解鎖頻道清單（TwUnlock）-->
 <!-- 主題要在畫面畫出來之前就決定，不然每次開頁都會先閃一下另一個顏色。
      ★ 2026-10-18（Andy：「幫我將頁面Default 為 亮色 晚上12:00-05:00 為黑色 網頁手機版都是」，DECISIONS #360）：
      · 沒有手動選過＝自動：看瀏覽者本機時鐘，00:00～04:59 深色、其餘淺色（觀眾在台灣，本機時間＝台北時間）。

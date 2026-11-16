@@ -2360,6 +2360,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     adminCopyBtns(root);
     if (!unl) recordOpen(d.id, true);   // 隱藏分頁的文章不記點閱（不進統計、不進管理區報表）
     document.title = d.title + '｜精選文章';
+    try { window.TwArtM && TwArtM.open(id, (d.cat || catOf(id) || ''), $('.artttl', root)); } catch (e) { /* 觀測失敗不影響閱讀 */ }
   }
   /* 沒授權的單篇頁：版型跟 postHTML 的頭部一致（返回、麵包屑、分類徽章、日期、標題、相關族群），內文處換成升級提示卡。
      不放副標、摘要、標籤、區塊、站內連結、資料來源 —— 那些都是內文。Plus 額度用完時，下面列出「已解鎖的文章」讓他重讀。 */

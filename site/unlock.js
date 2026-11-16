@@ -35,6 +35,7 @@
     const m = (location.hash || '').match(/^#unlock\/([\w.~-]{3,200})(?:\/([^/?#]+))?/);
     if (!m) return;
     try { sessionStorage.setItem(PEND, m[1]); } catch (e) { /* 私密視窗：只在這次載入有效 */ window.__twUnlPend = m[1]; }
+    try { sessionStorage.setItem('tw.src.dm', '1'); } catch (e) { /* 忽略 */ }   // 文章觀測用：這一次是從私訊解鎖連結進來的
     const to = typeof window.TW_UNLOCK_ROUTE === 'function' ? window.TW_UNLOCK_ROUTE(m[2] || '') : (m[2] ? '#article/' + m[2] : '#articles');   // 獨立閱讀站（site/c/）自己決定落地路由
     try { history.replaceState(null, '', location.pathname + location.search + to); } catch (e) { location.hash = to; }
     if (live) { try { window.dispatchEvent(new HashChangeEvent('hashchange')); } catch (e) { /* 舊瀏覽器 */ } }   // 頁面已開著、只改了 # 的情況：換完網址要叫路由重走一次
