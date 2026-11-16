@@ -61,6 +61,7 @@
   #card .card-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;padding-right:38px}   /* 右側留出 × 的寬度，內容行右端的字不會被 × 蓋住 */
   #card .card-scroll>*{flex:none;order:2}
   #card .card-scroll>.hd{order:0}
+  #card .card-scroll>.acts.g3{order:1;margin:0 0 8px}   /* 動作格（含「開除」）緊接在名字下面：加了成長／績效區塊後卡片很長，開除鈕不能掉到要捲動才看得到 */
   #card .card-scroll>.acts:has([data-hr="hire"]){order:1;margin:0 0 8px}   /* 待業中的卡：「重新聘用」鈕移到名字下面，不用捲到最底下 */
   #card .x{position:absolute;right:10px;top:10px;margin:0;z-index:3}
 }

@@ -206,7 +206,9 @@ function boot(W) {
   }, true);
 
   paintBtn();
-  if (W.gate && W.gate.load) W.gate.load().then(() => { paintBtn(); if (!gateOk()) SC.close(); }).catch(() => { /* 連不到：維持顯示 */ });
+  // 還沒有人碰鈕之前不打會員伺服器（閘門驗收）；第一次碰到鈕才載入方案，沒開放就收起來
+  const gateLoad = () => { if (W.gate && W.gate.load) W.gate.load().then(() => { paintBtn(); if (!gateOk()) SC.close(); }).catch(() => { /* 連不到：維持顯示 */ }); };
+  btn.addEventListener('pointerdown', gateLoad, { once: true, capture: true }); btn.addEventListener('keydown', gateLoad, { once: true, capture: true });
 }
 
 { let n = 0; const t = setInterval(() => { const W = window.__world; if (W && W.ready && W.state && W.chars && W.ui) { clearInterval(t); try { boot(W); } catch (e) { console.error('成績單載入失敗', e); } } else if (++n > 600) clearInterval(t); }, 100); }

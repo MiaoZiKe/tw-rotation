@@ -124,7 +124,7 @@ export function createPower(W, X) {
     const showMesh = P.signShow && P.signK > 0.02; signOut.visible = signIn.visible = showMesh;
     // 手機：牌子放在頂列下方，位置會隨頂列高度變，這裡隨時對一次
     if (P.signShow) {                  // 牌子貼在頂列下方；窄螢幕時頂列下方還有鏡頭提示與時間小字，要再往下讓
-      let bt = bar.getBoundingClientRect().bottom; if (innerWidth < 1180) for (const el of [document.querySelector('.cm-hint'), document.querySelector('.dt-chip')]) if (el && el.offsetParent) bt = Math.max(bt, el.getBoundingClientRect().bottom);
+      let bt = bar.getBoundingClientRect().bottom; const sr = signEl.getBoundingClientRect(); for (const el of [document.querySelector('.cm-hint'), document.querySelector('.dt-chip')]) if (el && el.offsetParent) { const r = el.getBoundingClientRect(); if (innerWidth < 1180 || (r.left < sr.right && r.right > sr.left)) bt = Math.max(bt, r.bottom); }   // 寬螢幕：只在左右範圍真的相交時才往下讓（頂列兩排時提示列會落在牌子正上方）
       signEl.style.top = Math.round(bt + 6) + 'px';
     }
   }

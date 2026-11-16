@@ -61,7 +61,9 @@ export function buildOutside(W) {
     const n = W.hr ? W.hr.fired.size : 0; if (n !== cnt0) { cnt0 = n; O.setCount(n); }
     const t = performance.now(); if (t - hint0 < 200) return; hint0 = t;
     pj.set(O.center.x, 0.5, O.center.z).project(W.camera);
-    const off = !(pj.z < 1 && Math.abs(pj.x) < 0.8 && pj.y > -0.78 && pj.y < 1) || document.body.classList.contains('pov-on');
+    // 下緣要讓出主對話框（--mc-h）加上邊緣標示本身的位置：營火離下緣不到約 130 像素時，實際上已被對話框與浮鈕擋住，要算「看不到」
+    const mc = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mc-h')) || 0, floorY = -1 + 2 * Math.max(130, mc + 46) / Math.max(1, innerHeight);
+    const off = !(pj.z < 1 && Math.abs(pj.x) < 0.8 && pj.y > floorY && pj.y < 1) || document.body.classList.contains('pov-on');
     hint.hidden = !off || document.body.classList.contains('pov-on');
   };
   O.frame = t => { flame.scale.set(1 + Math.sin(t * 13) * 0.07, 1 + Math.sin(t * 9 + 1) * 0.16 + Math.sin(t * 23) * 0.06, 1 + Math.cos(t * 11) * 0.07); flame.rotation.y = t * 0.7; };

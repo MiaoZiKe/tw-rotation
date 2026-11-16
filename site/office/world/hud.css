@@ -4,8 +4,8 @@
 /* ───── 頂列的「總覽」鈕與未讀紅點 ───── */
 #ovBtn{position:relative}
 .ov-dot{position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e5462e;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--card)}
-/* 手機頂列排序：第二排固定留給「即時標章／連線健康／電力／績效總表」（20261115_office_projects 驗同一排）；總覽、成績單排在它們後面（第三排），不搶位 */
-@media (max-width:640px){ #ovBtn{order:11} }
+/* 手機頂列只准兩排（≤12% 畫面高）：總覽接在「更多」後面塞進第一排空位，成績單縮窄後排第二排尾；今日預算、存檔提示收進「更多」（world.css 的 m-more 規則） */
+@media (max-width:640px){ #bar #ovBtn{order:2}#bar #scBtn{order:11}#bar>.btn{padding:0 7px;font-size:12px}#bar>.btn.more{padding:0 9px} }   /* 兩排塞得下：頂列按鈕在手機統一縮窄（字仍 ≥ 12px、高 36px） */
 
 /* ───── 總覽面板 ───── */
 #ovPanel{right:12px;top:64px;width:360px;max-height:calc(100dvh - 140px);padding:14px;z-index:21}

@@ -79,7 +79,7 @@ export function createPOV(W, X) {
     if (e.pointerType === 'touch' && !e.isPrimary) return;
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
   });
-  cv.addEventListener('pointermove', e => {
+  addEventListener('pointermove', e => {      // 掛在視窗：拖曳途中滑過面板、提示卡也不斷線（放開本來就聽視窗）
     if (!drag || e.pointerId !== drag.id || P.st !== 'on' || X.isGrabbing()) return;
     const k = X.cam.sens, dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
     P.yaw = clamp(P.yaw + dx / Math.max(1, cv.clientWidth) * Math.PI * k, -YAW_LIM, YAW_LIM);        // 全寬拖曳 ＝ 180 度；右拖 ＝ 往左看（抓著畫面拖）

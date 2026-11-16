@@ -90,6 +90,9 @@ body.pt-tipsopen #log{max-height:calc(100dvh - 76px - 296px)}
 
 /* ───── 鏡頭操作：拖曳功能（移動／旋轉）與旋轉鈕 ───── */
 .cm-hint{flex-wrap:wrap;border-radius:18px}
+.cm-hint.fit{flex-wrap:nowrap}.cm-hint.fit>:not(.cm-t),.cm-hint.fit .cm-ctl>*{flex:none}.cm-hint.fit .cm-t{min-width:0;flex:0 1 auto}   /* 頂列最後一排的空位不夠寬：說明字縮短（省略號），不換行 */
+@media (min-width:641px){.cm-hint .cm-ctl{order:-1}}   /* 桌機：按鈕在左、說明字在右（說明字不接收點擊，放在畫面中央上方時不擋底下的招牌與佈告欄） */
+.cm-hint{pointer-events:none}.cm-hint button{pointer-events:auto}   /* 提示列的底色與說明字不擋點擊（底下的招牌、打卡機、角色照樣點得到）；只有按鈕本身接收點擊 */
 .cm-ctl{display:flex;align-items:center;gap:6px}
 .cm-lab{font-size:12px;color:var(--sub);white-space:nowrap}
 .cm-seg{display:flex;background:#fff;border-radius:999px;padding:2px}

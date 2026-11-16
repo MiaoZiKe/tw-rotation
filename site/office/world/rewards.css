@@ -129,4 +129,4 @@
 }
 
 /* 資訊卡加了績效區塊後會變高：桌機限高到鏡頭提示列下方，不蓋住左上角的提示（任務清單在卡內縮短） */
-@media (min-width:641px){#card{max-height:calc(100dvh - 148px)}}
+@media (min-width:641px){#card,#board{max-height:calc(100dvh - var(--mc-h,12px) - 192px)}#card{overflow-y:auto;overscroll-behavior:contain}}   /* 內容比限高長就卡片自己捲：以前往下溢出、蓋到底下的對話框，列根本點不到；上緣讓出頂列、鏡頭提示列與時間小字、下緣讓出主對話框（--mc-h） */

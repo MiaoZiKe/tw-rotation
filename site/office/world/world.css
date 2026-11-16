@@ -129,7 +129,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
   .btn.more.on{background:var(--on);color:#fff}.btn.more.on i{border-top-color:#fff}
   #bar .ttl{order:0}#viewSeg{order:1}#pwBtn{order:3}#flBadge,#bar .lk{order:4}
   #areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn{order:10}
-  body:not(.m-more) :is(#areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn){display:none}
+  body:not(.m-more) :is(#areaBtn,#demoBtn,#speedSeg,#simBtn,#editBtn,#budgetBtn,#saveTag){display:none}
   body:not(.m-more) :is(.cm-hint,.dt-chip){display:none!important}
   body:not(.m-more) .cm-hint.has-back{display:flex!important}                       /* 手動平移後「回到角色」鈕要在手機上直接點得到：收起時只露出這一顆 */
   body:not(.m-more) .cm-hint.has-back > :not(.cm-back){display:none}

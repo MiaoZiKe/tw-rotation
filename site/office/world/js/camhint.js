@@ -1,5 +1,5 @@
 // 鏡頭操作小提示（可收起，記在這台裝置）＋「回到角色」鈕（手動平移後暫停了跟隨才出現）。
-// 位置：桌機放右上角；視窗太窄（工具列會換行）或手機時，放在工具列正下方，才不會跟工具列或其他面板重疊。
+// 位置：桌機放右上角；視窗太窄、頂列換成兩排或手機時，放在工具列正下方（寬螢幕時只佔左邊約 54%），才不會跟工具列或其他面板重疊。
 const KEY = 'aiOffice.camhint';
 const $ = id => document.getElementById(id);
 export function createCamHint(view, cam) {
@@ -27,10 +27,15 @@ export function createCamHint(view, cam) {
     open = b.dataset.c === 'q'; try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (x) { /* 沒有儲存空間就只在這次有效 */ } render(); place();
   });
   function place() {
-    // 頂列右邊是鏡頭提示：頂列的項目變多（電力、等你核准…）快碰到它時，改放到頂列下方，兩者不重疊
+    // 頂列右邊是鏡頭提示：頂列的項目變多（電力、等你核准、今日預算…）快碰到它或換成兩排時，改放到頂列正下方，兩者不重疊；
+    // 寬螢幕放下面時只佔左邊約 54% 寬（超過就把說明字縮短、省略號、完整字在 title），不然會蓋住畫面中央上方的佈告欄與招牌，點不到
     const bar = $('bar'), r = bar.getBoundingClientRect(); let last = 0; for (const k of bar.children) if (k.offsetParent) last = Math.max(last, k.getBoundingClientRect().right);
-    el.style.display = ''; const hw = el.offsetWidth || 360, crowd = last > innerWidth - 12 - hw - 12, narrow = innerWidth < 1180 || coarse() || crowd;
-    if (narrow) { el.style.top = Math.round(r.bottom + 8) + 'px'; el.style.right = 'auto'; el.style.left = '12px'; } else { el.style.top = '12px'; el.style.right = '12px'; el.style.left = 'auto'; }
+    el.style.display = ''; el.style.maxWidth = ''; el.classList.remove('fit');
+    const hw = el.offsetWidth || 360, crowd = last > innerWidth - 12 - hw - 12 || r.height > 48, narrow = innerWidth < 1180 || coarse() || crowd;
+    if (narrow) {
+      el.style.top = Math.round(r.bottom + 8) + 'px'; el.style.right = 'auto'; el.style.left = '12px';
+      const cap = Math.floor(innerWidth * 0.54); if (innerWidth >= 1180 && !coarse() && hw > cap) { el.style.maxWidth = cap + 'px'; el.classList.add('fit'); const t = el.querySelector('.cm-t'); if (t) t.title = t.textContent; }
+    } else { el.style.top = '12px'; el.style.right = '12px'; el.style.left = 'auto'; }
     document.dispatchEvent(new Event('cmhint'));   // 通知時間小字（daytime.js）：提示的位置變了，它要跟著讓開
   }
   addEventListener('resize', place); place();

@@ -570,12 +570,13 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
   function rosterMember(type) {
     const hub = W.rosterHub, arrive = !!L.booted, c0 = C(type);
     if (!W.blocks && c0 && !c0.spec.isCeo && !c0.spec.pet) { hub.reveal(type, arrive); L.typeMap.set(type, type); if (arrive) S.say(`新同事報到：${c0.spec.nick}（${short(type, 24)}）`); return type; }
+    const keepNick = W.blocks && c0 && c0.absent && !c0.spec.isCeo && !c0.spec.pet && c0.spec.nick && CJK.test(c0.spec.nick) ? c0.spec.nick : '';   // 示範編制原有中文暱稱（例如 inspector）：不准被派工說明蓋掉
     if (W.blocks && c0 && c0.absent && !c0.spec.isCeo && !c0.spec.pet) hub.purge(type);   // 區塊辦公室：跟示範編制同代號（例如 deployer）的新同事用自己的代號，不借用示範的那位（收件匣的 to 才對得上）
     const id = L.extras.has(type) ? L.extras.get(type) : extraId(type);
     if (C(id)) { L.extras.set(type, id); L.typeMap.set(type, id); return id; }
-    const h = hash(type), tn = BUILTIN[type] ? '' : nickFromData(type), [nick, species] = BUILTIN[type] || [tn || short(type.replace(/[-_]+/g, ' '), 8), POOL[h % POOL.length]];
+    const h = hash(type), tn = BUILTIN[type] ? '' : (keepNick || nickFromData(type)), [nick, species] = BUILTIN[type] || [tn || short(type.replace(/[-_]+/g, ' '), 8), POOL[h % POOL.length]];
     if (!BUILTIN[type] && !tn) L.fallbackNick.set(id, type);
-    const c = hub.hire({ id, nick, zh: type, species, pal: h % 4, hue: 0, acc: ['badge'], accColor: '#ffd28a', title: W.blocks ? (nickFromData(type) || nick) : undefined }, arrive);   // title：區塊辦公室的區塊名稱（任務簡稱優先，沒有才用類型名）
+    const c = hub.hire({ id, nick, zh: type, species, pal: h % 4, hue: 0, acc: ['badge'], accColor: '#ffd28a', title: W.blocks ? (nickFromData(type) || keepNick || nick) : undefined }, arrive);   // title：區塊辦公室的區塊名稱（任務簡稱優先，沒有才用類型名）
     if (!c) { L.typeMap.set(type, type); return type; }
     L.extras.set(type, id); L.typeMap.set(type, id);
     if (arrive) { S.say(`新同事報到：${nick}（${short(type, 24)}）`); c.emote && c.emote('star', 2); }
@@ -775,13 +776,13 @@ body.aio-live :is(#demoBtn,#simBtn,#rwTip){display:none!important}
       const r = await fetch(`${url}/v1/office/${encodeURIComponent(L.cfg.office || 'main')}/state?since=${L.seq}${L.qProject ? '&project=' + L.qProject : ''}${L.qView ? '&view=' + L.qView : ''}`, { headers: hdr, cache: 'no-store', credentials: 'omit', signal: ctl.signal });
       clearTimeout(tm);
       if (L.mode !== 'live') return;
-      if (r.status === 401 || r.status === 403) { L.status = 'auth'; L.fails++; render(); L.inflight = false; schedule(60000); return; }
       if (r.status === 403 && (L.cfg.office || 'main') === 'main' && !L.meTry) { L.meTry = true; L.cfg.office = 'me'; L.timer = setTimeout(poll, 0); return; }   // 一般會員誤用 main：改用 me 再試一次
       if (L.meTry && L.cfg.office === 'me' && (r.status === 401 || r.status === 403)) { L.meTry = false; L.cfg.office = 'main'; }
+      if (r.status === 401 || r.status === 403) { L.status = 'auth'; L.fails++; render(); L.inflight = false; schedule(60000); return; }
       if (r.status === 429) throw new Error('太頻繁');
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      const j = await r.json(); L.fails = 0; L.lastOk = Date.now(); L.msg = '';
       if (L.meTry) { L.meTry = false; save(); }
+      const j = await r.json(); L.fails = 0; L.lastOk = Date.now(); L.msg = '';
       ingest(j);
     } catch (e) { if (L.mode === 'live') { L.fails++; L.status = 'error'; L.msg = e.name === 'AbortError' ? '逾時' : String(e.message || e).slice(0, 40); } }
     finally { L.inflight = false; }

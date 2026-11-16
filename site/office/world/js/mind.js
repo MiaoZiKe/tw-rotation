@@ -300,7 +300,8 @@ export function createMind(W, X = {}) {
       face(c, m, 'scared', 90);
       sc.poll = () => {
         const age = W.time - ts;
-        if (ph === 0) { if (FE.struggle(c, m) === 'done' || age > 14) { ph = 1; ts = W.time; FE.onPain(c, m); FE.relief(c, m); } }
+        if (ph === 0) { if ((FE.struggle(c, m) === 'done' && age > .8) || age > 14) {   // 至少先驚叫 0.8 秒再進入喘氣（火一下就熄、或沒有火的事件，也看得到「驚叫」那一下）
+          ph = 1; ts = W.time; FE.onPain(c, m); FE.relief(c, m); } }
         else if (ph === 1 && age > 2.8) { ph = 2; ts = W.time; face(c, m, 'blank', 60); nextCough = 0.6; nextPat = 2.6; nextBeat = 4.5; }   // 焦黑呆滯
         else if (ph === 2) {
           if (coughEnd && age >= coughEnd) { coughEnd = 0; face(c, m, 'blank', 60); }

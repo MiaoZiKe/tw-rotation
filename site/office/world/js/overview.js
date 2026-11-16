@@ -29,7 +29,9 @@ function boot(W) {
 
   // ───────── 功能閘門：總覽與通知（office.overview 只有開關，沒有次數）。關掉就把鈕藏起來 ─────────
   const gateOk = () => { try { return !W.gate || W.gate.peek('office.overview').pass; } catch (e) { return true; } };
-  if (W.gate && W.gate.load) W.gate.load().then(() => { btn.hidden = !gateOk(); if (btn.hidden) O.close(); }).catch(() => { /* 連不到：維持顯示 */ });
+  // 還沒有人碰鈕之前不打會員伺服器（閘門驗收：沒打開對話框之前不連線）；第一次碰到鈕才載入方案，沒開放就把鈕藏起來
+  const gateLoad = () => { if (W.gate && W.gate.load) W.gate.load().then(() => { btn.hidden = !gateOk(); if (btn.hidden) O.close(); }).catch(() => { /* 連不到：維持顯示 */ }); };
+  btn.addEventListener('pointerdown', gateLoad, { once: true, capture: true }); btn.addEventListener('keydown', gateLoad, { once: true, capture: true });
 
   // ───────── 讀取：每個人現在的狀態 ─────────
   const stuckMs = () => ((S.cfg && S.cfg.stuckMs && S.cfg.stuckMs[0]) || 180000);

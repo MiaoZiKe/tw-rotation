@@ -999,7 +999,7 @@ class OrbitControls extends EventDispatcher {
 
 			if ( pointers.length === 0 ) {
 
-				scope.domElement.setPointerCapture( event.pointerId );
+				try { scope.domElement.setPointerCapture( event.pointerId ); } catch ( err ) { /* 合成指標事件沒有作用中的指標：捕捉不到就算了，拖曳照常 */ }
 
 				scope.domElement.addEventListener( 'pointermove', onPointerMove );
 				scope.domElement.addEventListener( 'pointerup', onPointerUp );
@@ -1044,7 +1044,7 @@ class OrbitControls extends EventDispatcher {
 
 			if ( pointers.length === 0 ) {
 
-				scope.domElement.releasePointerCapture( event.pointerId );
+				try { scope.domElement.releasePointerCapture( event.pointerId ); } catch ( err ) { /* 沒有作用中的指標就算了 */ }
 
 				scope.domElement.removeEventListener( 'pointermove', onPointerMove );
 				scope.domElement.removeEventListener( 'pointerup', onPointerUp );
