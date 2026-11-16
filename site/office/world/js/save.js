@@ -158,7 +158,8 @@ function boot(W) {
     setInterval(scan, SCAN);
   }
   // 離開頁面：有沒傳的改動就用 keepalive 補傳一次
-  const bye = () => { if (P.dirty || sig(snapshot()) !== P.last) { if (!P.dirty) setMeta({ at: Date.now() }); upload(true); } };
+  // 只補傳「真的改過」的：本機被清空（例如清除網站資料）不算改動，不然會把雲端那份蓋成空的
+  const bye = () => { const k = snapshot(); if (P.dirty || (Object.keys(k).length && sig(k) !== P.last)) { if (!P.dirty) setMeta({ at: Date.now() }); upload(true); } };
   addEventListener('pagehide', bye);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') bye(); });
   start();

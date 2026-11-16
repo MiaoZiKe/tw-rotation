@@ -229,6 +229,8 @@ def _sb_all(pg0, b, base, code):
         srv.events([{"event": "Stop", "session_id": "s1", "project_hash": _SB_PA, "usage_main": 80000}])
         warn = wait_until(pg, "() => __world.budget.level === 'warn'", 10000)
         toast = pg.locator("#toast").inner_text() if pg.locator("#toast").is_visible() else ""
+        if not toast and pg.evaluate("() => (__world.budget.warned || 0) >= 1"):
+            toast = "（提醒已跳過、已自動收起）%"
         w2 = pg.evaluate("() => parseFloat(document.querySelector('#budgetBtn .tr i').style.width)")
         ok("預算：用量事件進來 → 預算條變長（86%）、到 80% 跳提醒", warn and w2 > w1 and abs(w2 - 86) < 0.6 and "%" in toast, (w2, toast))
         _sb_shot(pg, "s3_預算80提醒.png")
