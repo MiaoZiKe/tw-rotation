@@ -12,6 +12,8 @@
 //      小燭（火焰角色）不會被燒。卡通可愛：只有黑炭臉、頭頂冒煙，沒有任何受傷的表現。
 //   4. 事件：burned、extinguished、recovered（W.emit(型態, 角色代號, 附加欄位)），表情由情緒系統（mind.js）決定。
 //
+// 2026-11-16 追加（擁有者）：燃燒 8～12 秒不會移開火源就熄；濕的人（出水或被澆）15 秒內碰火只冒白煙＋「滋」；燒著的人會傳火給人（上限 4 位）、點燃可燃家具（上限 6 件，焦黑後自動復原）；同事拿水桶滅火。
+//
 // 效能：新增繪製 = 火焰網格 1（取代舊的 1）＋ 粒子 2（火星、煙）；焦黑不增加繪製（只換著色器）。
 import { THREE } from './kit.js';
 import { footToWorld } from './nav.js';
@@ -192,9 +194,10 @@ export function createFire(W, opts = {}) {
   // 濕的人（剛出泳池、被水桶或飲水機澆過）15 秒內碰到火：冒一陣白煙、「滋」一聲，不會著火；乾了以後照常會燒（11-16 擁有者）
   const isWet = c => (c._fireImmuneUntil || 0) > W.time || !!(W.sports && W.sports.water && W.sports.water.inWater && W.sports.water.inWater(c));
   F.isWet = isWet;
-  F.sfx = { on: (() => { try { return localStorage.getItem('aiOffice.sfx') !== '0'; } catch (e) { return true; } })(), played: 0, ctx: null,
+  F.sfx = { on: (() => { try { return localStorage.getItem('aiOffice.sfx') !== '0'; } catch (e) { return true; } })(), played: 0, requested: 0, ctx: null,
     sizzle() {   // 短促白噪音（高頻帶通、約 0.35 秒淡出）；系統設定「減少動態效果」或音效關閉時不響；瀏覽器還沒允許播放聲音時也不響
       if (!F.sfx.on || reduce) return false;
+      F.sfx.requested++;
       try {
         const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false; const x = F.sfx.ctx || (F.sfx.ctx = new AC()); if (x.state !== 'running') return false;
         const len = Math.floor(x.sampleRate * 0.35), buf = x.createBuffer(1, len, x.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
@@ -204,7 +207,7 @@ export function createFire(W, opts = {}) {
     } };
   function sizzle(c) {
     if (W.time - (c._sizT || -9) < 1.6) return; c._sizT = W.time; F.stats.sizzled = (F.stats.sizzled || 0) + 1;
-    const p = posOf(c); for (let i = 0; i < 12; i++) spawn(PS, p.x + rnd(-0.25, 0.25), (c.lift || 0) + (c.height || 0.8) * rnd(0.1, 0.8), p.z + rnd(-0.25, 0.25), rnd(-0.3, 0.3), rnd(0.8, 1.5), rnd(-0.3, 0.3), rnd(0.9, 1.5), 0.14 * (c.scale || 1), 0.6 * (c.scale || 1), 4, { drag: 1.6 });
+    const p = posOf(c); for (let i = 0; i < 20; i++) spawn(PS, p.x + rnd(-0.25, 0.25), (c.lift || 0) + (c.height || 0.8) * rnd(0.1, 0.8), p.z + rnd(-0.25, 0.25), rnd(-0.3, 0.3), rnd(0.8, 1.5), rnd(-0.3, 0.3), rnd(1.1, 1.8), 0.22 * (c.scale || 1), 0.95 * (c.scale || 1), 4, { drag: 1.6 });
     F.sfx.sizzle(); c.emote && c.emote('steam', 1.2);
     W.emit && W.emit('sizzled', c.spec.id, { x: p.x, z: p.z });
   }

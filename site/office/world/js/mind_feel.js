@@ -147,6 +147,7 @@ export function createFeel(W, K) {
   F.cfg = { cap: 20, speed: 4.2 };
   const pathLen = (a, b) => { const pts = W.nav.findPath({ x: a.x, z: a.z }, { x: b.x, z: b.z }); if (!pts || pts.length < 2) return null; let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z); return L; };
   const poolPlan = (c, p) => {
+    if (F.cfg.noWater) return null;   // 驗收專用：關掉「跑向水源」，單獨驗原地掙扎（亂跑／跳腳／拍打／蹲下）
     const cands = [], L = LAY && LAY.pool;
     if (L) { const gx = (L.gap.x0 + L.gap.x1) / 2, ex = { x: gx, z: L.z1 + 1.1 }, d = pathLen(p, ex); if (d != null) cands.push({ kind: 'pool', ex: ex.x, ez: ex.z, ix: gx, iz: (L.z0 + L.z1) / 2, d: d + 2.6 }); }
     for (const s of W.spots) { if (s.name !== 'water') continue; const d = pathLen(p, s); if (d != null) cands.push({ kind: 'water', ex: s.x, ez: s.z, ix: s.x, iz: s.z, d }); }
@@ -161,7 +162,7 @@ export function createFeel(W, K) {
     f.bsLog = []; f.limpUntil = 0; f.beatN = 0; if (W.fire) W.fire.steer = F.steer;   // 接上 fire.js 的走法接管點
     if (fs) fs.dur = pool ? Math.max(fs.dur, Math.min(F.cfg.cap, 1.9 + pool.d / F.cfg.speed)) : Math.max(fs.dur, { run: 4.6, pat: 4.8, hop: 4.6, duck: 5.4 }[style]);   // 角色燃燒時間 8～12 秒（不會移開火源就熄）；要跑得到水源   // 掙扎要演得完（原本燒 3.2～4.8 秒）
     record(m, { event: 'burn-style', style, pool: !!pool, from: d.from || null });
-    if (d.from) { const src = C(d.from); if (src) { f.catchFrom = d.from; addRel(m, -.12 * (.7 + .6 * m.t.sens), '被傳到火'); } }   // 被燒著的同事碰到：之後會怪他一下，再和好
+    if (d.from) { const src = C(d.from); if (src) f.catchFrom = d.from; }   // 被燒著的同事碰到：當下怪他一下、火滅後兩個人和好（F.struggle／F.onRecovered）
   };
   const tag = (m, o) => { const b = of(m).bs; if (b) of(m).bsLog.push({ t: Math.round((W.time - b.t0) * 10) / 10, ...o }); };
   // 每個模擬步由 fire.js 呼叫：回傳 {vx,vz,fx,fz,hop} 取代預設的直線逃開
@@ -172,14 +173,16 @@ export function createFeel(W, K) {
     const go = (vx, vz, hop, fx, fz) => { b.hopT -= h; const hp = hop && b.hopT <= 0; if (hp) { b.hopT = R(.55, .75); squash(c, 2.2); } return { vx: vx * sc, vz: vz * sc, fx: fx == null ? vx : fx, fz: fz == null ? vz : fz, hop: hp }; };
     const hold = (hop, fx, fz) => go(0, 0, hop, fx == null ? ax : fx, fz == null ? az : fz);
     const flee = sp => { for (const da of [0, .6, -.6, 1.2, -1.2, 1.9, -1.9]) { const cs = Math.cos(da), sn = Math.sin(da), vx = ax * cs - az * sn, vz = ax * sn + az * cs; if (W.nav.isFree(p.x + vx * .5, p.z + vz * .5)) return go(vx * sp, vz * sp, false); } return go(ax * sp, az * sp, false); };
-    if (b.pool) {                                                                       // 跑向泳池：先喊一下，再沿路徑衝到缺口、直接衝進水裡
-      if (t < .9) return hold(t < .35);
+    b.clock += h;
+    if (b.pool) {                                                                       // 跑向最近的水源（泳池或辦公室飲水機）：先喊一下，再沿路徑衝過去
+      if (b.clock < .9) return hold(b.clock < .35);
       const P = b.pool; let tx = P.ex, tz = P.ez;
-      if (!b.gap && Math.hypot(p.x - P.ex, p.z - P.ez) < 1.2) b.gap = true;
-      if (b.gap) { tx = P.ix; tz = P.iz; }
-      else { if (t - b.pathAt > .8) { b.pathAt = t; b.path = W.nav.findPath({ x: p.x, z: p.z }, { x: P.ex, z: P.ez }); b.pi = 1; } const pts = b.path; if (pts && pts.length > 1) { while (b.pi < pts.length - 1 && Math.hypot(p.x - pts[b.pi].x, p.z - pts[b.pi].z) < .5) b.pi++; tx = pts[b.pi].x; tz = pts[b.pi].z; } }
-      let dx = tx - p.x, dz = tz - p.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl; const wob = Math.sin(t * 7) * .35;
-      return go((dx - dz * wob) * 4.2, (dz + dx * wob) * 4.2, true, dx, dz);
+      if (b.clock > b.cap - 3 || b.pat) { b.pat = true; return hold(true); }      // 太遠、來不及：停下來原地拍打把火拍熄
+      if (P.kind === 'water' && Math.hypot(p.x - P.ex, p.z - P.ez) < .85) return hold(false);      // 到飲水機跟前（潑水在 F.struggle）
+      if (P.kind === 'pool') { if (!b.gap && Math.hypot(p.x - P.ex, p.z - P.ez) < 1.2) b.gap = true; if (b.gap) { tx = P.ix; tz = P.iz; } }
+      if (!b.gap) { if (b.clock - b.pathAt > .8) { b.pathAt = b.clock; b.path = W.nav.findPath({ x: p.x, z: p.z }, { x: P.ex, z: P.ez }); b.pi = 1; } const pts = b.path; if (pts && pts.length > 1) { while (b.pi < pts.length - 1 && Math.hypot(p.x - pts[b.pi].x, p.z - pts[b.pi].z) < .5) b.pi++; tx = pts[b.pi].x; tz = pts[b.pi].z; } }
+      let dx = tx - p.x, dz = tz - p.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl; const wob = Math.sin(b.clock * 7) * .35, sp = F.cfg.speed;
+      return go((dx - dz * wob) * sp, (dz + dx * wob) * sp, true, dx, dz);
     }
     switch (b.style) {
       case 'run':   // 慌張亂跑：先原地驚叫、再繞著小圈跑、最後才逃開
@@ -196,9 +199,18 @@ export function createFeel(W, K) {
   F.struggle = (c, m) => {
     const f = of(m), b = f.bs, fs = fireOf(c); if (!b) return 'done'; if (!fs || fs.state !== 'burning' || fs.tok !== b.tok) return 'done';
     const t = W.time - b.t0, st = b.base, L = LINES[st], line = i => L[i % L.length], hp = headOf(c), FX = W.fire && W.fire.emit;
+    if (b.pool && b.pool.kind === 'water' && !b.doused && Math.hypot(pos(c).x - b.pool.ex, pos(c).z - b.pool.ez) < .9) {    // 到辦公室飲水機：潑水澆熄（不洗焦黑）
+      b.doused = true; face(c, m, 'surprised', .9); act(c, 'pour', { duration: 1.2 }, true); say(c, '嘩——！', 1.2, true); tag(m, { k: 'douse', act: 'pour', say: '嘩——！', face: 'surprised' });
+      for (let i = 0; i < 12; i++) FX && FX.drop(hp.x + R(-.15, .15), hp.y - R(0, .5), hp.z + R(-.15, .15));
+      W.fire.extinguish(c, 'water'); return 'done';
+    }
+    if (b.pool && b.pat && !b.patSaid) { b.patSaid = true; face(c, m, 'ouch', 2); say(c, '來不及了…拍熄它！', 1.6, true); act(c, 'clap', { duration: 2.4 }, true); tag(m, { k: 'pat-out', act: 'clap', say: '拍熄它！', face: 'ouch' }); }
+    if (b.pool && b.pat && t - b.lineT > 1.2) { b.lineT = t; act(c, 'clap', { duration: 1.2 }, true); }
+    if (b.from && !b.blamed && t > 1.5) { b.blamed = true; const src = C(b.from); face(c, m, 'angry', 1.6); say(c, (src ? src.spec.nick : '你') + '！你害我著火了！', 1.8, true); tag(m, { k: 'blame-peer', act: 'flail', say: '你害我著火了！', face: 'angry' }); }
+    if (b.pool && !b.pat && t > 2.2 && t - b.lineT > 2.2) { b.lineT = t; say(c, line(b.emoI + 1), 1.4, true); act(c, 'flail', { duration: 1.4 }, true); }   // 邊跑邊喊（依個性不同的台詞）
     const beats = [[0, () => { face(c, m, 'scared', 90); c.emote('exclaim', 1.2); say(c, line(0), 1.5, true); act(c, 'flail', { duration: 1.6 }, true); squash(c, 4.5); tag(m, { k: 'scream', act: 'flail', say: line(0), face: 'scared' }); }]];
     const mid = { run: ['flail', '救命啊啊！別追我！', 'scared'], pat: ['clap', '拍掉！拍掉！', 'ouch'], hop: ['flail', '燙燙燙燙燙！', 'ouch'], duck: ['shy', '嗚…救命…', 'cry'] }[st];
-    if (b.pool) beats.push([1, () => { face(c, m, 'scared', 90); say(c, '水！水池！', 1.5, true); act(c, 'flail', { duration: 1.6 }, true); tag(m, { k: 'to-pool', act: 'flail', say: '水！水池！', face: 'scared' }); }]);
+    if (b.pool) beats.push([1, () => { const w = b.pool.kind === 'pool' ? '水！水池！' : '水！飲水機！'; face(c, m, 'scared', 90); say(c, w, 1.5, true); act(c, 'flail', { duration: 1.6 }, true); tag(m, { k: 'to-pool', act: 'flail', say: w, face: 'scared' }); }]);
     else beats.push([.95, () => { face(c, m, mid[2], 90); say(c, mid[1], 1.6, true); act(c, mid[0], { duration: st === 'hop' || st === 'run' ? 1.6 : 2.2 }, true); if (st === 'duck') squash(c, -6); c.emote(st === 'pat' ? 'anger' : 'sweat', 1.4); tag(m, { k: st, act: mid[0], say: mid[1], face: mid[2] }); }]);
     if (st === 'pat') beats.push([1.9, () => { say(c, line(1), 1.4, true); act(c, 'clap', { duration: 1.4 }, true); tag(m, { k: 'pat2', act: 'clap', say: line(1), face: 'ouch' }); }]);
     if (st === 'duck') beats.push([1.9, () => { squash(c, -4); c.emote('cloud', 1.4); say(c, line(2), 1.5, true); tag(m, { k: 'duck2', act: 'shy', say: line(2), face: 'cry' }); }]);
@@ -241,6 +253,8 @@ export function createFeel(W, K) {
   };
   F.onRecovered = (c, m) => {
     const f = of(m), t = m.t; f.limpUntil = W.time + 30 + 50 * t.sens; later(m, 1, () => ritual(c, m), { cond: (cc, mm) => !mm.sc && canAct(cc) && !cc.away, wait: 30 }); f.stage = 'after'; f.fear = clamp(Math.max(f.fear, .45 + .45 * t.sens - .25 * t.opt), .15, 1); f.fearT = W.time; dirty(m);
+    // 被燒著的同事傳到火：火滅後兩個人和好（傳火的人道歉、被傳到的人說沒關係）
+    if (f.catchFrom) { const sid = f.catchFrom; f.catchFrom = null; later(m, 2.5, () => { const src = C(sid); if (!src || !awake(src)) return; face(src, mindOf(src), 'worried', 2.4); say(src, '對不起啦…害你著火', 2, true); src.emote('sweat', 1.6); face(c, m, 'smile', 2.4); say(c, '沒關係啦，火滅了就好', 2, true); c.emote('heart', 1.4); record(m, { event: 'reconcile', with: sid }); affect(m, { val: .08 }, '和傳火的同事和好了', 120); }, { wait: 40 }); }
     // 餘悸之後：怪不怪你
     if (f.blame) later(m, 3.2, () => resent(c, m));
     // 找好朋友訴苦（外向或敏感的人才會；悶著的人自己消化）
@@ -337,6 +351,7 @@ export function createFeel(W, K) {
   // 被泳池救火（extinguished cause:'pool'／splashed）：鬆一口氣、濕答答
   F.onPool = (c, m, d = {}) => {
     const f = of(m), t = m.t, was = m.burned || f.stage === 'shock' || f.stage === 'pain'; f.wetUntil = W.time + 70 + 40 * t.sens; f.stage = 'wet'; m.burned = false;
+    const hb = d.by && d.by !== 'you' && C(d.by); if (was && hb) later(m, 4, () => { face(c, m, 'grateful', 2.2); say(c, '謝謝你拿水來！', 1.8, true); c.emote('heart', 1.4); record(m, { event: 'thank-bucket', by: d.by }); }, { wait: 30 });
     const rescue = was && (d.by === 'you' || d.rescue); if (rescue) { addRel(m, .3 * (1 + t.ext * .3), '被你救了'); f.blame = false; }
     affect(m, { val: was ? .16 : -.04, stress: was ? -.1 : .03 }, rescue ? '被你救了，濕答答的' : was ? '被水澆熄了，濕答答的' : '被水潑到，濕答答的', 160); remember(m, 'splashed', rescue ? '你' : '', '被水救了');
     scene(c, m, 9, 'feel-wet', sc => {

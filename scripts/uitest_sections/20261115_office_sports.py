@@ -224,7 +224,7 @@ def t_sports(b, base):
         # 小燭（flame）本身就是火焰、不會被燒：挑三位不是 flame 的員工
         cand = pg.evaluate("() => [...__world.chars.values()].filter(c => !c.spec.isCeo && !c.spec.pet && c.look.species !== 'flame' && !['data-steward', 'finance-quant', 'smc-technical', 'efficiency-planner', 'data-scraper'].includes(c.spec.id)).map(c => c.spec.id)")
         who, w2, w3 = cand[0], cand[1], cand[2]
-        pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); c.busy = false; c.atDesk = false; W.fire.ignite(c, 'sporttest'); }", who)
+        pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); c.busy = false; c.atDesk = false; W.mind.feel.cfg.noWater = true; W.fire.noHelpers = true; W.fire.ignite(c, 'sporttest'); }", who)   # 這一段單獨驗「被拎起來丟進水裡」：關掉他自己跑去水源與同事拿水桶
         pg.evaluate("() => { __world.speed = 0.05 }"); pg.wait_for_timeout(700)   # 著火的人會驚慌跑開：先把時間放到很慢，才拎得到
         xy = _sp_xy(pg, who)
         burning = pg.evaluate("(id) => __world.fire.stateOf(__world.chars.get(id)).state", who)
@@ -251,6 +251,7 @@ def t_sports(b, base):
         ok("泳池：丟進水裡 → 送出 splashed（from thrown、附位置）", bool(sp) and sp[0]["thrown"], sp[:1])
         ok("泳池：燒著的人立刻熄火 → extinguished（cause:'pool'）；火焰狀態不再是 burning", bool(ex) and pg.evaluate("(id) => __world.fire.stateOf(__world.chars.get(id)).state", who) != "burning", ex[:1])
         ok("泳池：濺水粒子與漣漪有產生（splashes ≥ 1）、人浮起來（高度 > 0.05）", pg.evaluate("() => __world.sports.water.stats.splashes") >= 1 and seen_float, (seen_in, seen_float))
+        pg.evaluate("() => { __world.mind.feel.cfg.noWater = false; __world.fire.noHelpers = false; }")
         # 沒著火的同事丟進泳池：濕、走出來、免疫
         pg.evaluate("([a, b]) => { const W = __world; for (const id of [a, b]) { const c = W.chars.get(id); c.busy = false; } W.chars.get(a).standAt(6.5, 39.2, Math.PI); W.chars.get(b).standAt(7.4, 39.2, Math.PI); }", [w2, w3])
         pg.evaluate("([a]) => { const W = __world; W.phys.throwChar(W.chars.get(a), 0.0, 5.0, -3.4); }", [w2])
@@ -262,18 +263,30 @@ def t_sports(b, base):
         pg.evaluate("async (id) => { const W = __world; for (let i = 0; i < 30 * 40; i++) { if (!W.sports.water.inWater(W.chars.get(id))) break; await W.advanceAsync(1 / 30); } }", w2)
         left = pg.evaluate("(id) => __spEv.some(e => e.t === 'left_pool' && e.id === id)", w2)
         ok("泳池：他自己游（走）回岸邊、走出泳池（left_pool）", left)
-        wet = pg.evaluate("(id) => { const c = __world.chars.get(id); return { wet: __world.sports.water.isWet(c) } }", w2)
-        ok("泳池：走出來之後身體濕（滴水）", wet["wet"], wet)
-        # 營火：濕的同事碰營火不著火；沒濕的對照組同時碰會著火
+        _sp_adv(pg, 0.6)
+        wet = pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); return { wet: W.sports.water.isWet(c), imm: (c._fireImmuneUntil || 0) > W.time, left: +((c._fireImmuneUntil || 0) - W.time).toFixed(2), wetLeft: +((c._wetUntil || 0) - W.time).toFixed(2), icon: c.emoteSym && c.emoteSym.sym, tag: W.statusOf(c) } }", w2)
+        ok("泳池：走出來之後身體濕（滴水）、15 秒內不會著火（免疫中，剩 %s 秒、濕剩 %s 秒，兩者一致且 ≤ 15）" % (wet["left"], wet["wetLeft"]), wet["wet"] and wet["imm"] and 0 < wet["left"] <= 15.0 and abs(wet["left"] - wet["wetLeft"]) < 0.05, wet)
+        ok("泳池：濕的期間頭上有水滴圖示（sweat）、名牌狀態字寫「濕答答」", wet["icon"] == "sweat" and "濕答答" in wet["tag"], wet)
+        # 營火：濕的同事碰營火不著火、冒白煙＋「滋」；沒濕的對照組同時碰會著火
+        pg.evaluate("() => { const W = __world; W.fire.stats.sizzled = 0; W.fire.sfx.played = 0; window.__sizz = []; W.on && W.on('sizzled', (id, d) => window.__sizz.push(id)); }")
+        steam0 = pg.evaluate("() => __world.fire.pools.PS.live")
         pg.evaluate("([a, b]) => { const W = __world, f = W.fire.center; W.chars.get(a).standAt(f.x + 0.5, f.z + 0.2, 0); W.chars.get(b).standAt(f.x - 0.5, f.z - 0.2, 0); }", [w2, w3])
         _sp_adv(pg, 1.5)
         s2 = pg.evaluate("(id) => __world.fire.stateOf(__world.chars.get(id)).state", w2); s3 = pg.evaluate("(id) => __world.fire.stateOf(__world.chars.get(id)).state", w3)
-        ok("泳池：剛出泳池、身體還濕的人碰營火一樣會著火（11-16 擁有者：拿掉出水防火）；對照組也著火", s2 != "none" and s3 != "none", (s2, s3))
-        pg.evaluate("([a, b]) => { const W = __world; W.fire.reset(); W.chars.get(a).busy = false; W.chars.get(a)._fireImmuneUntil = 0; }", [w2, w3])
-        pg.evaluate("([a]) => { const W = __world, f = W.fire.center, c = W.chars.get(a); c.standAt(f.x + 4, f.z, 0); }", [w2]); _sp_adv(pg, 0.5)
+        ok("泳池：剛出泳池、身體還濕的人碰營火不著火（對照組沒濕的同事同時碰就著火了）", s2 == "none" and s3 != "none", (s2, s3))
+        sz = pg.evaluate("() => ({ n: __world.fire.stats.sizzled, ev: (window.__sizz || []).length, ps: __world.fire.pools.PS.live })")
+        ok("泳池：濕的人碰營火冒一陣白煙（sizzled %s 次、煙粒子 %s）" % (sz["n"], sz["ps"]), sz["n"] >= 1 and sz["ps"] > steam0, (sz, steam0))
+        req = pg.evaluate("() => __world.fire.sfx.requested")
+        off = pg.evaluate("() => { const F = __world.fire, r0 = F.sfx.requested; F.sfx.on = false; F.sfx.sizzle(); const r1 = F.sfx.requested; F.sfx.on = true; return [r0, r1]; }")
+        ok("泳池：碰火那一下有「滋」的音效請求（%s 次）；音效關閉時不響（請求數不增加）" % req, req >= 1 and off[0] == off[1], (req, off))
+        # 乾了以後照常會燒：重來，等超過 15 秒再碰
+        pg.evaluate("([a, b]) => { const W = __world; W.fire.reset(); W.chars.get(a).busy = false; W.chars.get(a)._fireImmuneUntil = W.chars.get(a)._fireImmuneUntil; const f = W.fire.center; W.chars.get(a).standAt(f.x + 4, f.z, 0); }", [w2, w3])
+        _sp_adv(pg, 16.0)
+        dry = pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); return { wet: W.sports.water.isWet(c), imm: (c._fireImmuneUntil || 0) > W.time, tag: W.statusOf(c) } }", w2)
+        ok("泳池：過了 15 秒身體乾了（不再濕、名牌沒有「濕答答」）", not dry["wet"] and not dry["imm"] and "濕答答" not in dry["tag"], dry)
         pg.evaluate("([a]) => { const W = __world, f = W.fire.center, c = W.chars.get(a); c.standAt(f.x + 0.5, f.z + 0.2, 0); }", [w2]); _sp_adv(pg, 1.5)
         s2b = pg.evaluate("(id) => __world.fire.stateOf(__world.chars.get(id)).state", w2)
-        ok("泳池：熄火重來之後同一個人碰營火仍會著火", s2b != "none", s2b)
+        ok("泳池：乾了以後同一個人碰營火就會著火（證明剛才沒著火是因為濕，不是別的原因）", s2b != "none", s2b)
         ok("運動場：全程沒有主控台錯誤與運動場例外", not pg.errs and not pg.evaluate("() => __world.sports.err || 0"), (pg.errs[:3], pg.evaluate("() => __world.sports.err")))
     finally:
         c.close()
