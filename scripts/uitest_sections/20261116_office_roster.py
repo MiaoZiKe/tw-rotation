@@ -248,6 +248,10 @@ def _rs_main(b, base):
         got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.chat", 120000)
         pg.click("#chatText")
         wait_until(pg, "() => window.__world.chat.mode === 'ok'", 90000)
+        try:
+            pg.click("#chatBtn", timeout=5000)             # 展開聊天室，標題列（#chatLive）才會畫出來
+        except Exception:
+            pass
         wait_until(pg, "() => /Claude/.test(document.getElementById('chatLive').textContent)", 60000)
         t0 = pg.evaluate("() => document.getElementById('chatLive').textContent.replace(/\\s+/g, '')")
         ok("在線判斷：沒有人來取過指令、也沒有工作階段在動時，寫「Claude 沒開」", ("沒開" in t0) or ("Claude在線" in t0), t0)   # 種子事件剛送完，5 分鐘內有工作階段動靜會顯示「在線」，兩種都合理；重點是下面待命那一步
