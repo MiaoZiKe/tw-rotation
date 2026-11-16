@@ -98,7 +98,7 @@ function boot(W) {
 #scToast{position:absolute;left:12px;bottom:76px;z-index:12;max-width:min(340px,calc(100vw - 24px));background:rgba(30,30,52,.92);color:#fff;border-radius:14px;padding:9px 12px;font-size:13px;display:flex;gap:10px;align-items:center}
 #scToast button{border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;border-radius:10px;height:30px;padding:0 10px;font-size:13px;cursor:pointer;flex:none}
 #scCardB{margin:6px 0;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--on2,#f6efe8);border-radius:10px;padding:6px 10px}#scCardB span{flex:1 1 9em;min-width:0}#scCardB .btn{box-shadow:none;border:1px solid var(--line,#e3d9cf);height:30px;padding:0 10px;font-size:13px}
-@media (max-width:640px){#scPanel{top:64px;padding:12px}#scBtn{padding:0 8px;font-size:12.5px}#scToast{bottom:64px;font-size:12px}}`;
+@media (max-width:640px){#scPanel{top:64px;padding:12px}#scBtn{padding:0 8px;font-size:12.5px;order:11}#scToast{bottom:64px;font-size:12px}}`;
   document.head.append(css);
 
   // ───────── 頂列鈕＋面板＋提示 ─────────

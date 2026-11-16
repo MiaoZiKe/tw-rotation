@@ -41,6 +41,7 @@ class _ChBridge:
         self.mode, self.msgs, self.rev, self.n_get, self.n_all, self.posts, self.cancels, self.hdrs, self.claims = mode, [], 0, 0, 0, [], [], [], 0
         self.last_seen = None
         self.t_get = []
+        self.n_other = 0
 
     def view(self, m):
         return {k: m.get(k) for k in ("id", "to", "text", "status", "created", "updated", "claimed_at", "done_at", "session_id", "reply", "rev")}
@@ -60,9 +61,14 @@ class _ChBridge:
         h = {"Access-Control-Allow-Origin": "*", "Content-Type": "application/json"}
         if req.method == "OPTIONS":
             return route.fulfill(status=204, headers={"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-aio-session", "Access-Control-Allow-Methods": "GET, POST, OPTIONS"})
-        self.n_all += 1
         u = _up(req.url)
         p = u.path
+        # n_all 只算「對話框自己」的收件服務請求（領接入碼／收件匣）。同一個收件服務上還有雲端存檔（/save/）與今日預算（/usage），
+        # 它們依設計進場就會連一次（save.js、budget.js，2026-11-16 加入），不屬於「對話框還沒被碰就不打收件服務」要管的範圍，另記在 n_other。
+        if p == "/v1/claim" or "/inbox" in p:
+            self.n_all += 1
+        else:
+            self.n_other += 1
         if p == "/v1/claim":
             self.claims += 1
             return route.fulfill(status=200, body=_json.dumps({"ok": True, "office": "main", "code": _CH_CODE, "exists": True}), headers=h)
@@ -115,6 +121,10 @@ def _ch_open(b, base, br, login=True, w=1280, h=800, touch=False, extra_ls=None,
     got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.chat && window.__world.live", 90000)
     if got:
         pg.evaluate("() => { __world.speed = 8; }")
+        # 台北 18:00 後、有人做完事，成長系統會自動跳「今日結算」全螢幕卡（aria-modal，會擋住點擊）。這一段驗的是對話框，不是結算，
+        # 照 20261116_office_growth.py 的做法把結算時刻關掉，免得驗收結果依執行時間而變（晚上跑會在第 6 步「重送」被結算卡擋住）。
+        wait_until(pg, "() => window.__world.growth && window.__world.growth.ready", 15000)
+        pg.evaluate("() => { if (__world.growth) __world.growth.cfg.settleHour = 99; }")
     return c, pg, got
 
 

@@ -112,7 +112,11 @@ def _rs_page(c):
 
 
 def _rs_ready(pg):
-    return wait_until(pg, "() => window.__world && window.__world.ready && window.__world.live && window.__world.live.data", 120000)
+    ok_ = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.live && window.__world.live.data", 120000)
+    # 台北 18:00 後成長系統會自動跳「今日結算」全螢幕卡擋住點擊；這段驗名冊與收件匣標題、不是結算，關掉結算時刻（同 20261116_office_growth.py 的做法）
+    wait_until(pg, "() => window.__world && window.__world.growth && window.__world.growth.ready", 15000)
+    pg.evaluate("() => { if (window.__world && window.__world.growth) window.__world.growth.cfg.settleHour = 99; }")
+    return ok_
 
 
 _RS_VIS = "() => [...window.__world.chars.values()].filter(c => !c.away && c.object3D.visible && !c.spec.isCeo && !c.spec.pet).map(c => c.spec.id).sort()"
@@ -246,6 +250,8 @@ def _rs_main(b, base):
         # ───── ⑥ 收件匣標題：待命中算在線 ─────
         pg.goto(_rs_world_url(base, _RS_NEW, "&live_poll=800&ambient=0&q=low&pr=0.6&chat_poll=500&chat_bg_poll=700"), wait_until="domcontentloaded")
         got = wait_until(pg, "() => window.__world && window.__world.ready && window.__world.chat", 120000)
+        wait_until(pg, "() => window.__world.growth && window.__world.growth.ready", 15000)
+        pg.evaluate("() => { if (__world.growth) __world.growth.cfg.settleHour = 99; }")     # 同上：關掉晚間自動結算卡
         pg.click("#chatText")
         wait_until(pg, "() => window.__world.chat.mode === 'ok'", 90000)
         try:
