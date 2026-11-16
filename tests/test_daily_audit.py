@@ -306,13 +306,14 @@ def test_1109_close_paused_is_disabled_no_remedy():
     assert sent == []
 
 
-def test_real_quota_file_close_paused_1109():
+def test_real_quota_file_close_resumed_1116():
+    # 11-09 暫停 → 11-16 Andy：「B 同意，恢復盤後自動主貼文」→ 真開關檔 close 開著，沒發就不再是「未啟用」
     q = json.loads((ROOT / "docs" / "marketing" / "social_unit" / "post_quota.json").read_text(encoding="utf-8"))
     f = green_facts()
     f["quota"] = q
     f["snaps_posted"] = {}
     items = by_id(da.evaluate(f, HOL, {"site": SITE_OK}, at("2026-11-09T21:40:00")))
-    assert items["close_post"]["status"] == "disabled"
+    assert items["close_post"]["status"] != "disabled"
 
 
 def test_healing_approved_due_but_not_posted_is_red():

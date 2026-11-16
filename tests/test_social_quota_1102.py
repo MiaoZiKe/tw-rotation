@@ -67,14 +67,14 @@ def manifest(tmp_path, kind, t="2026-11-02T08:20:00+08:00", **extra):
 def test_真開關檔就是降量規格():
     q = json.loads(REAL.read_text(encoding="utf-8"))
     assert "同意降量" in q["note"]
-    # 2026-11-09 Andy：「重新開始…我們規劃好在出發」→ 盤後主貼文也暫停（新計畫核可前）
-    assert q["live"]["close"]["threads"] is False and q["live"]["close"]["ig_story"] is False
-    assert "規劃好在出發" in q["live"]["close"]["_note"]
+    # 11-09 暫停 → 2026-11-16 Andy：「B 同意，恢復盤後自動主貼文」→ 盤後 Threads 開、限動仍關
+    assert q["live"]["close"]["threads"] is True and q["live"]["close"]["ig_story"] is False
+    assert "恢復盤後自動主貼文" in q["live"]["close"]["_note"]
     for k in ("premarket", "intraday", "credit"):
         assert q["live"][k] == {"threads": False, "ig_story": False}, k
     assert q["queue"]["news"] == {"threads": False, "ig": False}
     assert q["queue"]["manual"] == {"threads": True, "ig": True}
-    assert not post_quota.any_on("close") and not post_quota.any_on("premarket") and not post_quota.any_on("news")
+    assert post_quota.any_on("close") and not post_quota.any_on("premarket") and not post_quota.any_on("news")
 
 
 def test_開關檔壞掉或不見就用內建降量規格(tmp_path, monkeypatch):
@@ -106,7 +106,12 @@ def test_盤前盤中融資_一個請求都不送(tmp_path, monkeypatch, kind, c
 
 
 def test_1109暫停_盤後主貼文一個請求都不送(tmp_path, monkeypatch, capsys):
-    """2026-11-09 Andy：「重新開始…我們規劃好在出發」：真開關檔 close 關 → 不送任何請求、不寫發布紀錄、以成功結束（不補發）。"""
+    """機制測試（11-09 暫停規格）：close 關 → 不送任何請求、不寫發布紀錄、以成功結束（不補發）。11-16 起真開關檔已恢復，這裡用暫存開關檔。"""
+    q = json.loads(REAL.read_text(encoding="utf-8"))
+    q["live"]["close"] = {"threads": False, "ig_story": False}
+    qp = tmp_path / "quota_off.json"
+    qp.write_text(json.dumps(q, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setenv("POST_QUOTA_FILE", str(qp))
     f = Fake(); monkeypatch.setattr(sp, "http", f)
     m = manifest(tmp_path, "close", t="2026-11-10T17:35:00+08:00", thread_posts=["串1"], reply_post="網站連結")
     assert sp.run(m, "https://x.test/b", env=ENV) == 0
@@ -154,7 +159,7 @@ def test_close_inst_開關():
     assert post_quota.live_kind({"kind": "close"}) == "close"
     assert post_quota.live_kind({}) == "intraday"
     q = json.loads(REAL.read_text(encoding="utf-8"))
-    assert not post_quota.any_on("close_inst", q) and not post_quota.any_on("close", q)      # 11-09 起 close 也暫停
+    assert not post_quota.any_on("close_inst", q) and post_quota.any_on("close", q)      # 11-16 起 close 恢復，補充貼文仍關
     assert not post_quota.any_on("close_inst", {"live": {"close": {"threads": True}}, "queue": {}})      # 不吃 close 的開關
     assert post_quota.any_on("close_inst", {"live": {"close_inst": {"threads": True}}, "queue": {}})      # Andy 說要放量才加這一格
 
