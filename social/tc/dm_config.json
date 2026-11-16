@@ -38,6 +38,7 @@
       "2nm": "謝謝留言！「2 奈米不是尺寸」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
       "_note": "鍵同 post_keywords。可以寫成清單（2～3 句輪流，用留言 id 雜湊挑）。內容裡還有「待填」就不送，改送 default（保底）。"
     },
+    "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
     "max_per_minute": 10,
     "prompt_no_gate": "謝謝留言！重點整理在下面，想看後續可以追蹤 @{handle}",

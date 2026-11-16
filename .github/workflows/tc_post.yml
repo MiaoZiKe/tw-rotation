@@ -73,6 +73,7 @@ jobs:
           TC_IG_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN }}
           TC_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TC_UNLOCK_CODE: ${{ secrets.TC_UNLOCK_CODE }}   # 2026-11-16 私訊連結帶頻道憑證（site/articles/unlock.json 只放它的 sha256）
         run: |
           args=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
