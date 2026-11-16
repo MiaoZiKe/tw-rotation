@@ -79,7 +79,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-16 12:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-16 12:43 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/Dfyhq7UF3PK/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DfyhvfakTIb"
+    }
+   ]
   }
  ],
  "sources": [
@@ -118,8 +132,8 @@
  "confidence": "官方統計＋媒體一致；降幅 29.4% 為兩年全年對數自行計算",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/p/Dfyhq7UF3PK/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DfyhvfakTIb",
   "queue": "20261116_marriage"
  }
 }
