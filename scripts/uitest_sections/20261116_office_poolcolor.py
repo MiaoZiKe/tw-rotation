@@ -15,14 +15,16 @@ import tempfile as _tf
 from PIL import Image as _Im
 
 _PC_URL = "/office/world.html?ambient=0&q=low&pr=0.5"
+_PC_NAT = (18.0, 40.5)   # 離營火與泳池都遠的地方（自然熄火與「冒煙愣著」用）
 _PC_SHOTS = _os.environ.get("TW_SHOT_DIR") or _os.path.join(_tf.gettempdir(), "office_poolcolor")
 
 _PC_SNAP = """(id) => { const c = __world.chars.get(id), out = {}; let n = 0;
   const rgb = v => v && v.isColor ? v.toArray().map(x => +x.toFixed(4)) : null;
   c.object3D.traverse(o => { if (!o.isMesh || !o.material) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-    const r = { col: rgb(m.color), em: rgb(m.emissive), ei: m.emissiveIntensity == null ? null : +m.emissiveIntensity, op: +m.opacity, map: m.map ? m.map.uuid : null, vc: !!m.vertexColors, patched: !!(m.userData && m.userData._scOwner), U: {} };
-    const U = m.userData && m.userData.U; if (U) for (const q in U) { const v = U[q] && U[q].value; if (v && v.isColor) r.U[q] = rgb(v); }
-    out[(o.name || o.type) + '#' + (n++)] = r; } });
+    const r = { nm: (o.name || o.type) + '|' + (o.userData && o.userData.prop || '') + '|' + o.visible, col: rgb(m.color), em: rgb(m.emissive), ei: m.emissiveIntensity == null ? null : +m.emissiveIntensity, op: +m.opacity, map: m.map ? m.map.uuid : null, vc: !!m.vertexColors, patched: !!(m.userData && m.userData._scOwner), U: {} };
+    const U = m.userData && m.userData.U; if (U) for (const q in U) { const v = U[q] && U[q].value; if (v && v.isColor && q !== 'uTint') r.U[q] = rgb(v); }   // uTint 要跟 uTintAmt（情緒色調，會自己淡出）一起看，下面另外比 uTintAmt
+    r.tint = U && U.uTintAmt ? +U.uTintAmt.value.toFixed(3) : null;
+    const q = m.uuid; if (!out[q]) out[q] = r; n++; } });
   return out; }"""
 
 
@@ -55,7 +57,7 @@ def _pc_diff(a, b):
     for k, x in a.items():
         y = b.get(k)
         if y is None:
-            bad.append((k, "材質不見了")); continue
+            bad.append((x.get("nm"), "材質不見了")); continue
         for f in ("col", "em"):
             if x[f] is None:
                 continue
@@ -71,6 +73,10 @@ def _pc_diff(a, b):
             n += 1
             if x[f] != y[f]:
                 bad.append((k, f, x[f], y[f]))
+        if x.get("tint") is not None:
+            n += 1
+            if y.get("tint") is None or y["tint"] > 0.02:
+                bad.append((k, "uTintAmt", x["tint"], y.get("tint")))
         for q, v in x["U"].items():
             n += 1
             w = y["U"].get(q)
@@ -89,6 +95,12 @@ def _pc_mean(im):
     px = px[len(px) // 6:]   # 上緣的名牌不算
     n = max(1, len(px))
     return [sum(p[i] for p in px) / n for i in range(3)]
+
+
+def _pc_dark(im):
+    """畫面中「焦黑」像素（三個通道都 < 115）的比例"""
+    px = list(im.get_flattened_data() if hasattr(im, "get_flattened_data") else im.getdata())
+    return sum(1 for p in px if max(p) < 115) / max(1, len(px))
 
 
 def _pc_throw(pg, who, tries=3):
@@ -146,11 +158,11 @@ def t_office_poolcolor(b, base):
             pre = pg.evaluate(_PC_SNAP, who)
             _pc_god(pg, 3.0, 39.4, 3.5); im0 = _pc_crop(pg); im0.save(_os.path.join(_PC_SHOTS, f"{tag}_1_pre.png")); m0 = _pc_mean(im0)
             # ── 燒焦（在營火邊燒到焦黑、還沒進水）：截圖
-            pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); W.fire.ignite(c, 'poolcolor'); }", who); _pc_adv(pg, 5.0)
+            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor'); }", [who, *_PC_NAT]); _pc_adv(pg, 4.6)
             _pc_god(pg, *pg.evaluate("(id) => { const p = __world.chars.get(id).object3D.position; return [p.x, p.z] }", who), 3.5)
             im1 = _pc_crop(pg); im1.save(_os.path.join(_PC_SHOTS, f"{tag}_2_burnt.png")); m1 = _pc_mean(im1)
             s1 = _pc_st(pg, who)
-            ok(f"泳池洗色（{kind}）：燒焦後焦黑疊色 ≥ 0.8、畫面明顯變暗", s1["soot"] >= 0.8 and sum(m1) < sum(m0) - 40, (s1, [round(x) for x in m0], [round(x) for x in m1]))
+            ok(f"泳池洗色（{kind}）：燒焦後焦黑疊色 ≥ 0.8、畫面明顯變暗", s1["soot"] >= 0.8 and _pc_dark(im1) > _pc_dark(im0) + 0.08, (s1, round(_pc_dark(im0), 3), round(_pc_dark(im1), 3)))
             # ── 真滑鼠丟進泳池
             inw = _pc_throw(pg, who)
             ok(f"泳池洗色（{kind}）：用真滑鼠把燒著的員工拎起丟進泳池（進水）", inw, _pc_st(pg, who))
@@ -183,7 +195,7 @@ def t_office_poolcolor(b, base):
             ok(f"泳池洗色（{kind}）：出水後畫面平均色與燒前接近（每通道差 < 20，姿勢不同的容許值）", max(abs(p - q) for p, q in zip(m0, m2)) < 20, ([round(x) for x in m0], [round(x) for x in m2]))
             # ── 自然熄火（不進泳池）
             pg.evaluate("() => { const W = __world; W.fire.reset(); W.speed = 1 }")
-            pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor2'); }", who)
+            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor2'); }", [who, *_PC_NAT])
             for i in range(80):
                 _pc_adv(pg, 2)
                 if i > 3 and _pc_st(pg, who)["s"] == "none":
@@ -194,7 +206,7 @@ def t_office_poolcolor(b, base):
             ok(f"泳池洗色（{kind}）：自然熄火的恢復路徑也還原（狀態 none、{n2} 項材質顏色差 < 0.02）", nat["s"] == "none" and nat["soot"] == 0 and not bad2, (nat, bad2[:3]))
             # ── 冒煙愣著的人（已自然燒完）走進泳池 → 被洗乾淨
             pg.evaluate("() => { const W = __world; W.fire.reset(); W.speed = 1 }")
-            pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor3'); }", who)
+            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c.busy = false; c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor3'); }", [who, *_PC_NAT])
             for i in range(40):
                 _pc_adv(pg, 0.5)
                 if _pc_st(pg, who)["s"] == "smoldering":
@@ -215,7 +227,7 @@ def t_office_poolcolor(b, base):
             n3, bad3 = _pc_diff(pre, pg.evaluate(_PC_SNAP, who))
             ok(f"泳池洗色（{kind}）：洗乾淨之後材質顏色仍與燒前一致（{n3} 項）", not bad3 and _pc_st(pg, who)["s"] == "none", bad3[:3])
             # ── 洗過之後再燒一次：焦黑照樣疊得上去、照樣恢復（旗標沒有殘留）
-            pg.evaluate("(id) => { const W = __world, c = W.chars.get(id); c.standAt(3.0, 39.4, Math.PI); c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor4'); }", who); _pc_adv(pg, 5.0)
+            pg.evaluate("([id, x, z]) => { const W = __world, c = W.chars.get(id); c.standAt(x, z, Math.PI); c._fireImmuneUntil = 0; W.fire.ignite(c, 'poolcolor4'); }", [who, *_PC_NAT]); _pc_adv(pg, 4.6)
             again = _pc_st(pg, who)
             ok(f"泳池洗色（{kind}）：洗過之後再燒一次，焦黑照樣疊上去（≥ 0.8）", again["soot"] >= 0.8 and again["s"] in ("burning", "smoldering"), again)
             for i in range(80):
