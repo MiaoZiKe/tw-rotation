@@ -133,7 +133,9 @@ function boot(W) {
 
   // 本機改動偵測：每隔 SCAN 比一次同步範圍內的內容；有變就記下「最後改動時間」，滿 EVERY 才上傳
   function scan() {
-    const s = sig(snapshot());
+    const k = snapshot(), s = sig(k);
+    if (!Object.keys(k).length && (P.last || meta().sig || '[]') !== '[]') return;   // 本機被整個清空（清除網站資料、別的分頁清掉）：不當成改動，免得把雲端那份蓋成空的
+
     if (s !== (P.last || meta().sig || '')) {
       if (!P.dirty) { P.dirty = true; setMeta({ at: Math.max(Date.now(), (meta().at || 0) + 1) }); }   // 換成雲端那份之後的新改動一定比那份新（別台裝置時鐘快也一樣）
       if (Date.now() - P.lastUp >= EVERY) upload(false);

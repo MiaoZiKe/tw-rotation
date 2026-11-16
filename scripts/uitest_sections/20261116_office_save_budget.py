@@ -219,9 +219,10 @@ def _sb_all(pg0, b, base, code):
         # ⑤ 今日預算
         bb = pg.locator("#budgetBtn")
         ok("預算：頂列有「今日預算」", bb.is_visible() and "今日預算" in bb.inner_text(), bb.inner_text() if bb.count() else None)
-        bb.click()
+        _sb_ev(pg, "() => document.getElementById('budgetBtn').click()")
+        pg.wait_for_timeout(300)
         pg.locator("#budgetIn").fill("10")
-        pg.locator("#budgetSave").click()
+        _sb_ev(pg, "() => document.getElementById('budgetSave').click()")
         ok("預算：設定每日上限 10 萬（存在 aiOffice.game.budget，會跟著雲端存檔）", pg.evaluate("() => JSON.parse(localStorage.getItem('aiOffice.game.budget')).daily") == 100000)
         srv.events([{"event": "PreToolUse", "session_id": "s2", "project_hash": _SB_PA, "tool_category": "read"} for _ in range(2)])
         est = wait_until(pg, "() => __world.budget.used === 6000 && __world.budget.est && /估算/.test(document.getElementById('budgetBtn').textContent)", 10000)
