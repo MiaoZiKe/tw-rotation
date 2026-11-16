@@ -47,7 +47,7 @@
 .gm-msg{pointer-events:auto;background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:8px 12px;border-left:5px solid var(--on);display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.55;animation:gmIn .25s ease-out}
 .gm-msg b{font-size:14px}.gm-msg span{color:var(--sub);font-size:12px}.gm-msg span.o{font-size:12px}
 .gm-msg.up{border-left-color:#f2b705;background:#fff8e1}.gm-msg.goal{border-left-color:#3fae6a;background:#eefaf1}.gm-msg.why{border-left-color:#5b8fd6}
-@keyframes gmIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes gmIn{from{transform:translateY(-6px)}to{transform:none}}
 
 /* 每日結算卡 */
 .gm-ov{position:absolute;inset:0;z-index:40;background:rgba(60,40,24,.38);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
