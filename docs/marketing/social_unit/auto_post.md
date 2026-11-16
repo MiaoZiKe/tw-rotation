@@ -191,6 +191,7 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
+- 2026-11-17：**頻道①短影片（IG Reels＋Threads 影片）走手動佇列**（Andy 11-16：「我沒有看到LIGULIGU IG Thread 有影片 需要發布」；11-17：「這類貼文保持繼續發布 Reels 和 輪波 輪替」）。`scripts/threads_post.py` 佇列檔支援 `video:`（Threads media_type=VIDEO，輪詢 status 到 FINISHED）；`scripts/ig_post.py` 的 Reels 改成正式站 mp4 優先、raw 保底，`cover:` 帶封面。兩支都支援 `first_comment:`（網址放第一則留言，留言失敗只警告不重發主文），影片檔發布前失敗保持 approved、`attempts` 加 1，下一輪（每 15 分鐘）自動重試，滿 3 輪才標 error（每次失敗工作流紅燈＋寄信）。排程：11/17 12:15 nvda-kress、11/18 12:15 輪播（另派）、11/19 12:15 power-bill；jensen 不發（新聞已舊）；之後單號日 Reels、雙號日輪播，都是 12:15。post_quota.json 沒動（queue.manual 本來就開）。測試 `tests/test_ligu_video_queue.py`。
 - 2026-11-16：盤後「三大法人買賣超」圖卡改用主數字＝證交所 15:00 首次公布版（DECISIONS #363），與文案同口徑。原本圖優先取晚間修訂版 rev，11/13 圖寫投信 +95.4／合計 +452.7 億、文案寫 82.4／439.7 億。測試 `tests/test_social_inst_consistency_1116.py`（圖卡四格＝fast_read_inst＝close_reads）。
 
 - 2026-11-16：**盤後主貼文改回 11-09 新格式、時間不變**（Andy：「用新的 但發文是資料到齊就發（約 17:30～18:40）」）。反向套用 fbcb50dfff 的格式部分：`scripts/threads_v2.py`（c_x1～c_x6 反差鉤子、close_main_body／close_ending、close_market_tag、rule auto_1109）、`scripts/threads_lint.py`（auto_1109）、`scripts/social_snap.py`（close_v1 備用文案、v1_raw），`tests/test_threads_close_1109.py`（拿掉 19:30／排程／post_quota 三支時間與開關測試）、`tests/test_social_threads_v2.py`、`tests/test_threads_auto_1104.py`。`social_snap` 的 19:30 等待（close_wait）沒加回；social_gate、social-live.yml、daily_audit、post_quota.json 都沒動。

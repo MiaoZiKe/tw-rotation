@@ -100,6 +100,9 @@ def validate(meta: dict, posts: list[str]) -> list[str]:
     for i, p in enumerate(posts, 1):
         if _tlen(p) > MAX_LEN:
             errs.append(f"第 {i} 則 {_tlen(p)} 字，超過 {MAX_LEN} 字")
+    v = str(meta.get("video") or "").strip()
+    if v and (not v.lower().endswith(".mp4") or not (ROOT / v).is_file()):
+        errs.append(f"video 要是 repo 裡的 mp4：{v!r}")
     if "{連結}" in "".join(posts) or "{link}" in "".join(posts).lower():
         errs.append("內容還有未填的 {連結} 佔位符")
     return errs
@@ -145,7 +148,59 @@ def images_of(meta: dict) -> list[str]:
     return [x for x in re.split(r"[\s,]+", str(meta.get("images") or "").strip()) if x]
 
 
-def publish_chain(posts: list[str], token: str, images: list[str] | None = None) -> list[dict]:
+SITE = "https://liguligu-puipui.com/"   # 正式站（Cloudflare Pages；mp4 回 video/mp4）
+VIDEO_ATTEMPTS = 3                      # 影片檔失敗時最多試幾輪（每 15 分鐘一輪）；用完才標 error
+
+
+def video_urls(meta: dict) -> list[str]:
+    """2026-11-16 頻道①短影片（Andy：「沒有看到 LIGULIGU IG Thread 有影片 需要發布」）：front matter
+    video: <repo 相對 mp4 路徑>；video_url: <公開網址>（選填）。候選順序：video_url → 正式站（site/ 底下的檔）→ raw。"""
+    v = str(meta.get("video") or "").strip()
+    out = []
+    u = str(meta.get("video_url") or "").strip()
+    if u.startswith("https://"):
+        out.append(u)
+    if v.startswith("site/"):
+        out.append(SITE + urllib.parse.quote(v[len("site/"):]))
+    if v:
+        out.append(RAW + urllib.parse.quote(v))
+    return list(dict.fromkeys(out))
+
+
+def wait_video(cid: str, token: str, timeout: int = 900) -> None:
+    """Threads 影片容器要轉檔：輪詢 status 到 FINISHED（每 10 秒，最多 15 分鐘）；ERROR 帶回 error_message。"""
+    waited = 0
+    while True:
+        d = _call("GET", f"/{cid}", token, {"fields": "status,error_message"})
+        st = d.get("status")
+        if st == "FINISHED":
+            return
+        if st in ("ERROR", "EXPIRED"):
+            raise PostError(f"Threads 影片處理失敗：{st} {d.get('error_message', '')}".strip())
+        if waited >= timeout:
+            raise PostError(f"Threads 影片處理逾時（{timeout} 秒）狀態={st}")
+        time.sleep(10)
+        waited += 10
+
+
+def video_container(uid: str, token: str, urls: list[str], text: str) -> str:
+    """照 video_urls 的順序建 VIDEO 容器，一條失敗換下一條；全部失敗才丟錯（列出每條原因）。"""
+    errs = []
+    for u in urls:
+        try:
+            c = _call("POST", f"/{uid}/threads", token, {"media_type": "VIDEO", "video_url": u, "text": text})["id"]
+            wait_video(c, token)
+            return c
+        except PostError as e:
+            if "190" in str(e):
+                raise
+            errs.append(f"{u}：{e}")
+            print(f"::warning::Threads 影片網址失敗，換下一條：{u}：{str(e)[:200]}")
+    raise PostError("Threads 影片所有網址都失敗：" + "；".join(errs)[:400])
+
+
+def publish_chain(posts: list[str], token: str, images: list[str] | None = None,
+                  video: list[str] | None = None) -> list[dict]:
     me = _call("GET", "/me", token, {"fields": "id,username"})
     uid = me["id"]
     out: list[dict] = []
@@ -153,7 +208,9 @@ def publish_chain(posts: list[str], token: str, images: list[str] | None = None)
     urls = [RAW + urllib.parse.quote(x) for x in (images or [])][:20]
     for i, text in enumerate(posts, 1):
         params = {"media_type": "TEXT", "text": text}
-        if i == 1 and len(urls) == 1:      # 第一則帶封面圖
+        if i == 1 and video:               # 第一則是影片貼文（容器已等到 FINISHED，下面直接發布）
+            params = {"media_type": "VIDEO", "text": text}
+        elif i == 1 and len(urls) == 1:      # 第一則帶封面圖
             params = {"media_type": "IMAGE", "image_url": urls[0], "text": text}
         elif i == 1 and len(urls) > 1:     # 多張 → 輪播
             kids = [_call("POST", f"/{uid}/threads", token, {"media_type": "IMAGE", "image_url": u, "is_carousel_item": "true"})["id"] for u in urls]
@@ -162,9 +219,12 @@ def publish_chain(posts: list[str], token: str, images: list[str] | None = None)
         if reply_to:
             params["reply_to_id"] = reply_to
         try:
-            c = _call("POST", f"/{uid}/threads", token, params)
+            if params["media_type"] == "VIDEO":
+                c = {"id": video_container(uid, token, video, text)}
+            else:
+                c = _call("POST", f"/{uid}/threads", token, params)
         except PostError as e:
-            if params["media_type"] == "TEXT" or "190" in str(e):
+            if params["media_type"] in ("TEXT", "VIDEO") or "190" in str(e):
                 raise
             print(f"::warning::封面圖上傳失敗，改發純文字（不擋整篇）：{e}")
             params = {"media_type": "TEXT", "text": text, **({"reply_to_id": reply_to} if reply_to else {})}
@@ -271,13 +331,64 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
     imgs = images_of(meta)
     posts, imgs = legacy_v2(meta, posts, imgs, now)
     posts = scrub_posts(posts, path.name)
-    res = publish_chain(posts, token, imgs)
-    rewrite_meta(path, {
+    vids = video_urls(meta)
+    res = publish_chain(posts, token, imgs, video=vids) if vids else publish_chain(posts, token, imgs)
+    upd = {
         "status": "posted",
         "posted_at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M+08:00"),
         "urls": " ".join(r["permalink"] for r in res if r["permalink"]) or "(無)",
-    })
-    return f"已發出 {len(res)} 則"
+    }
+    note = first_comment(meta, res, token)
+    if note:
+        upd.update(note)
+    rewrite_meta(path, upd)
+    return f"已發出 {len(res)} 則" + ("＋第一則留言" if note.get("comment_url") else "")
+
+
+def first_comment(meta: dict, res: list[dict], token: str) -> dict:
+    """front matter first_comment:（單行）→ 主文發出後回覆在第一則底下（2026-11-15 ig-threads-copy 第六節①：
+    影片貼文的網址放第一則留言）。不經 scrub（這是 Andy 指定的網站文章直連）。失敗只警告、不重發主文。"""
+    text = str(meta.get("first_comment") or "").strip()
+    if not text or not res:
+        return {}
+    try:
+        uid = _call("GET", "/me", token, {"fields": "id"})["id"]
+        c = _call("POST", f"/{uid}/threads", token, {"media_type": "TEXT", "text": text, "reply_to_id": res[0]["id"]})["id"]
+        time.sleep(8)
+        p = None
+        for wait in (0, 10, 20):
+            time.sleep(wait)
+            try:
+                p = _call("POST", f"/{uid}/threads_publish", token, {"creation_id": c})
+                break
+            except PostError:
+                if wait == 20:
+                    raise
+        link = ""
+        try:
+            link = _call("GET", f"/{p['id']}", token, {"fields": "permalink"}).get("permalink", "")
+        except PostError:
+            pass
+        return {"comment_url": link or p["id"]}
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::第一則留言沒發出（主文已發，不重發）：{str(e)[:200]}")
+        return {"comment_error": str(e)[:150].replace("\n", " ")}
+
+
+def fail_update(path: Path, e: Exception) -> dict:
+    """失敗寫回：一般檔照舊標 error（不重發）。影片檔（video:）在發布前失敗 → 保持 approved、attempts+1，
+    下一輪排程（每 15 分鐘）自動再試，試滿 VIDEO_ATTEMPTS 輪才標 error（工作流每次失敗都紅燈＋寄信，監工看得到）。"""
+    err = str(e)[:200].replace("\n", " ")
+    try:
+        meta, _ = parse(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        meta = {}
+    if meta.get("video") and meta.get("status") == "approved":
+        n = int(str(meta.get("attempts") or "0") or 0) + 1
+        if n < VIDEO_ATTEMPTS:
+            return {"attempts": str(n), "last_error": err}
+        return {"status": "error", "attempts": str(n), "error": err}
+    return {"status": "error", "error": err}
 
 
 def wait_for_due(files: list, wait_max_min: float) -> None:
@@ -346,7 +457,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"✗ {f.name}：{e}", file=sys.stderr)
             if not a.check:
                 try:
-                    rewrite_meta(f, {"status": "error", "error": str(e)[:200].replace("\n", " ")})
+                    rewrite_meta(f, fail_update(f, e))
                 except Exception:
                     pass
     return 1 if bad else 0

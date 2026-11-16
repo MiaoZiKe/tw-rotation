@@ -175,16 +175,49 @@ def wait_ready(cid: str, token: str, tries: int = 12) -> None:
     raise PostError(f"容器 60 秒內沒處理完：{cid}")
 
 
-def publish_reel(video: str, caption: str, token: str) -> dict:
-    """Reels：REELS 容器（影片處理較久，最多等 5 分鐘）→ media_publish。影片要先 push 到 main（raw 網址）。"""
+SITE = "https://liguligu-puipui.com/"   # 正式站（Cloudflare Pages；mp4 回 video/mp4，raw 回 octet-stream）
+VIDEO_ATTEMPTS = 3                      # 影片檔失敗時最多試幾輪（每 15 分鐘一輪）；用完才標 error
+
+
+def video_urls(video: str, meta: dict | None = None) -> list[str]:
+    """Reels 影片網址候選：video_url（選填）→ 正式站（site/ 底下的檔）→ raw。"""
+    meta = meta or {}
+    out = []
+    u = str(meta.get("video_url") or "").strip()
+    if u.startswith("https://"):
+        out.append(u)
+    if video.startswith("site/"):
+        out.append(SITE + urllib.parse.quote(video[len("site/"):]))
+    out.append(public_url(video))
+    return list(dict.fromkeys(out))
+
+
+def publish_reel(video: str, caption: str, token: str, meta: dict | None = None) -> dict:
+    """Reels：REELS 容器（影片處理較久，最多等 15 分鐘）→ media_publish。
+    2026-11-16 起照 video_urls 順序試（正式站 mp4 優先、raw 保底）；front matter cover: 有填就帶封面。"""
+    meta = meta or {}
     uid = _call("GET", "/me", token, {"fields": "user_id,username"}).get("user_id")
     if not uid:
         raise PostError("查不到 IG user_id（權杖權限或帳號類型有問題）")
-    url = public_url(video)
-    check_public(url)
-    c = _call("POST", f"/{uid}/media", token,
-              {"media_type": "REELS", "video_url": url, "caption": caption, "share_to_feed": "true"})["id"]
-    wait_ready(c, token, tries=60)
+    cover = str(meta.get("cover") or "").strip()
+    errs, c = [], None
+    for url in video_urls(video, meta):
+        try:
+            check_public(url)
+            data = {"media_type": "REELS", "video_url": url, "caption": caption, "share_to_feed": "true"}
+            if cover:
+                data["cover_url"] = public_url(cover)
+            c = _call("POST", f"/{uid}/media", token, data)["id"]
+            wait_ready(c, token, tries=180)
+            break
+        except PostError as e:
+            if "190" in str(e):
+                raise
+            errs.append(f"{url}：{e}")
+            print(f"::warning::IG 影片網址失敗，換下一條：{url}：{str(e)[:200]}")
+            c = None
+    if not c:
+        raise PostError("IG Reels 所有影片網址都失敗：" + "；".join(errs)[:400])
     mid = _call("POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
     link = ""
     try:
@@ -261,15 +294,47 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
         caption = TL.strip_urls(caption, not post_quota.is_auto_news(path.name))
         print("::notice::IG 文案有網址／導流字，已自動移除（11-03 起不放網站網址）")
     if meta.get("video"):
-        r = publish_reel(meta["video"].strip(), caption, token)
+        r = publish_reel(meta["video"].strip(), caption, token, meta)
     else:
         r = publish(images_of(meta), caption, token)
-    rewrite_meta(path, {
+    upd = {
         "status": "posted",
         "posted_at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M+08:00"),
         "urls": r["permalink"] or "(無)",
-    })
-    return "已發出"
+    }
+    upd.update(first_comment(meta, r, token))
+    rewrite_meta(path, upd)
+    return "已發出" + ("＋第一則留言" if upd.get("comment_id") else "")
+
+
+def first_comment(meta: dict, r: dict, token: str) -> dict:
+    """front matter first_comment:（單行）→ 貼文發出後留第一則留言（2026-11-15 ig-threads-copy 第六節①：
+    影片貼文網址放第一則留言）。失敗只警告（例如權杖沒有留言權限），不重發主文。"""
+    text = str(meta.get("first_comment") or "").strip()
+    if not text or not r.get("id"):
+        return {}
+    try:
+        cid = _call("POST", f"/{r['id']}/comments", token, {"message": text})["id"]
+        return {"comment_id": str(cid)}
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::IG 第一則留言沒發出（主文已發，不重發）：{str(e)[:200]}")
+        return {"comment_error": str(e)[:150].replace("\n", " ")}
+
+
+def fail_update(path: Path, e: Exception) -> dict:
+    """失敗寫回：一般檔照舊標 error。影片檔（video:）→ 保持 approved、attempts+1，下一輪（每 15 分鐘）再試，
+    試滿 VIDEO_ATTEMPTS 輪才標 error（工作流每次失敗都紅燈＋寄信，監工看得到）。"""
+    err = str(e)[:200].replace("\n", " ")
+    try:
+        meta, _ = parse(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        meta = {}
+    if meta.get("video") and meta.get("status") == "approved":
+        n = int(str(meta.get("attempts") or "0") or 0) + 1
+        if n < VIDEO_ATTEMPTS:
+            return {"attempts": str(n), "last_error": err}
+        return {"status": "error", "attempts": str(n), "error": err}
+    return {"status": "error", "error": err}
 
 
 def convert(files: list[str]) -> int:
@@ -354,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"✗ {f.name}：{e}", file=sys.stderr)
             if not a.check:
                 try:
-                    rewrite_meta(f, {"status": "error", "error": str(e)[:200].replace("\n", " ")})
+                    rewrite_meta(f, fail_update(f, e))
                 except Exception:
                     pass
     return 1 if bad else 0
