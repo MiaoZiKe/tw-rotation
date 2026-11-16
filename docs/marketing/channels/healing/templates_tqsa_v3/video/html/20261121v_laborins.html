@@ -1,0 +1,30 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--bg:#F6F1E8;--bg2:#FBF8F1;--dark:#E4DCCD;--face:#EEE7DA;--face3:#FBF8F1;--line:#6E6A66;--lamp:#D9822B;--text:#2F2D2B;--sub:#5C5753;--hint:#9C530C;--cloudtxt:#5F5B57;--glow:.42;--glow2:.6;--grain:.08}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden;font-family:'Noto Sans CJK TC',sans-serif;color:var(--text)}
+.abs{position:absolute}
+#logo{left:96px;top:56px;height:64px}
+.cap{left:96px;width:888px;text-align:center;font-weight:700;color:var(--text)}
+.src{left:96px;top:1806px;font-size:34px;line-height:44px;color:var(--sub);white-space:nowrap}
+.foot{left:96px;top:1866px;width:888px;height:8px;border-radius:4px;background:var(--lamp);opacity:.55}
+.title{left:96px;width:888px;font-weight:700;letter-spacing:.02em}
+.center{text-align:center}.hint{color:var(--hint)}
+.tag{left:96px;font-size:30px;line-height:40px;padding:6px 18px;border:2.5px solid var(--lamp);border-radius:999px;color:var(--text);background:var(--face3);font-weight:700;white-space:nowrap}
+.asof{right:96px;top:70px;font-size:30px;line-height:38px;color:var(--sub);white-space:nowrap}
+
+.bgl{left:0;top:0;width:1080px;height:1920px}
+.grid{background-image:linear-gradient(rgba(110,106,102,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(110,106,102,.07) 2px,transparent 2px);background-size:72px 72px}
+.layer{left:0;top:0;width:1080px;height:1920px}
+.bignum{left:96px;width:888px;text-align:center;font-size:200px;line-height:220px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.chip{right:96px;top:306px;font-size:38px;line-height:44px;padding:4px 18px;border-radius:999px;background:var(--lamp);color:#fff;font-weight:700;white-space:nowrap}
+.flyer{width:1000px;text-align:center;font-weight:700;color:var(--text);white-space:nowrap}
+#logo{z-index:5}
+
+.tag{font-size:32px;line-height:42px}
+.asof{font-size:32px;line-height:40px}
+</style></head><body>
+<img id="logo" data-o="logo" class="abs" src="file:///home/user/tw-rotation/docs/marketing/channels/healing/templates_tqsa_v3/src/logo_tight_晝版.png">
+<div id="stage"></div>
+<script>const V={"queue": "20261121v_laborins", "ill": "laborins", "out": "video_nv.mp4", "cover": "video_nv_cover.jpg", "report": "overlap_report_nv.json", "cover_t": 1.9, "asof": "2026/11/16", "scenes": [{"id": "s1", "type": "hook", "ill": "tank", "title": ["勞保精算", "若不撥補2031年轉負"], "ulw": 700, "big": "2031", "tag": "精算推估｜勞動部精算報告（2024）", "mini": {"type": "years", "label": "勞保基金餘額，推估轉為負值的年度", "from": 2026, "to": 2031}, "say": "勞保會倒嗎？最新精算推估，二〇三一年基金轉負。", "src": "資料：勞保局精算報告（2024，基準日 2023/12/31）", "cap": "勞保會倒嗎？最新精算推估，二〇三一年基金轉負。", "t0": 0.0, "t1": 4.35}, {"id": "s2", "type": "gantt", "ill": "ticket", "title": ["延後了3年"], "tag": "精算推估｜基準日 2023/12/31", "gantt": {"lo": 2024, "hi": 2032, "ticks": [2024, 2026, 2028, 2030, 2032], "tl": ["2024", "2026", "2028", "2030", "2032"], "step": 180, "rows": [{"lab": "前一份", "segs": [{"from": 2024, "to": 2028, "kind": "grace", "lab": "餘額為正"}]}, {"lab": "這一份", "hi": true, "segs": [{"from": 2024, "to": 2031, "kind": "grace", "lab": "餘額為正"}]}], "em": {"from": 2028, "to": 2031, "y": 460, "txt": "延後 3 年", "below": true}, "foot": "勞動部說明：政府撥補、假設調整", "footY": 590}, "say": "這比上一份報告，還晚了三年。", "src": "資料：勞保局精算報告；商周、TVBS、104 報導", "cap": "這比上一份報告，還晚了三年。", "t0": 4.35, "t1": 7.1}, {"id": "s3", "type": "hbars", "ill": "balance", "title": ["費率差很多"], "tag": "精算推估｜平衡費率 vs 現行費率", "hbars": {"label": "%，以 0 為底", "vmax": 40, "x0": 270, "w": 430, "rh": 92, "gap": 44, "rows": [{"lab": "現行費率", "v": 11, "txt": "11%"}, {"lab": "平衡（前一份）", "v": 27.83, "txt": "27.83%"}, {"lab": "平衡（這一份）", "v": 31.42, "txt": "31.42%", "hi": true}], "note": "平衡費率：長期收支打平需要的費率"}, "say": "為什麼會轉負？現在費率百分之十一，平衡費率要三十一點四二。", "src": "資料：勞保局精算報告（2024）；TVBS", "cap": "為什麼會轉負？現在費率百分之十一，平衡費率要三十一點四二。", "t0": 7.1, "t1": 12.65}, {"id": "s4", "type": "versus", "ill": "megaphone", "title": ["會倒嗎"], "tag": "說明｜勞動部長的說法", "a": {"k": "常聽到", "lines": ["勞保要倒了", "2031 破產"], "foot": "說法，不是報告用語", "fs": 56}, "b": {"k": "報告與部長", "lines": ["推估年度", "有前提"], "foot": "TVBS、商周引述", "fs": 62}, "mid": "前提：基金收益偏低、政府不再撥補", "em": "不是破產日", "emw": 270, "say": "但部長說，這是收益偏低、政府不再撥補才會發生，不是破產日。", "src": "資料：勞動部長洪申翰（TVBS、商周引述）", "cap": "但部長說，這是收益偏低、政府不再撥補才會發生，不是破產日。", "t0": 12.65, "t1": 18.0}, {"id": "s7", "type": "ask", "ill": "rocker", "title": ["數字看不到的"], "tag": "還不知道｜退休那天的制度", "recap": [["轉負年度（推估）", "2031 年"], ["平衡費率", "31.42%"], ["現行費率", "11%"]], "opt": ["早點準備", "再看看"], "say": "今天繳的保費，退休那天的制度，離現在多遠？", "src": "資料：勞保局精算報告（2024）", "cap": "今天繳的保費，退休那天的制度，離現在多遠？", "t0": 18.0, "t1": 21.95}, {"id": "s8", "type": "next", "ill": "toothbrush", "title": ["下一集"], "tag": "下集資料｜內政部《2025 人口統計年刊》", "slip": "2025 年・平均初婚年齡", "row": "男性、女性", "say": "下集：另一個時間表，平均初婚年齡。", "src": "下集資料：內政部《2025 人口統計年刊》（2026/8）", "cap": "下集：另一個時間表，平均初婚年齡。", "t0": 21.95, "t1": 25.1}, {"id": "s9", "type": "outro", "dur": 5.6, "say": "想看完整資料，留言勞保。", "keyword": "勞保", "slogan": "談著這一代的難，也說著晴天裡的光", "nextLine": "下一集 ▸ 平均初婚年齡", "src": "", "cap": "想看完整資料，留言勞保。", "t0": 25.1, "t1": 30.7}], "name": "20261121v_laborins", "runtime": "video_runtime_v8.js", "edge60": true, "sfx": true, "paper": "file:///home/user/tw-rotation/docs/marketing/channels/healing/templates_tqsa_v3/video/assets/paper_day.jpg", "voice_lufs": -16.0, "outro_lufs": -12.5, "fps": 30, "timing": "default", "dur": 30.7};</script>
+<script src="file:///home/user/tw-rotation/docs/marketing/channels/healing/templates_tqsa_v3/video/v8/ill_laborins.js"></script>
+<script src="file:///home/user/tw-rotation/docs/marketing/channels/healing/templates_tqsa_v3/video/video_runtime_v8.js"></script>
+</body></html>

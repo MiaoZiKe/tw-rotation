@@ -1,0 +1,13 @@
+{
+ "title": "月薪多少算一般？未滿25歲中位數29,825元（影片 v8，有旁白）",
+ "hook_type": "問題式",
+ "format": "video",
+ "platforms": [
+  "ig",
+  "threads"
+ ],
+ "status": "draft",
+ "publish_at": "2026-11-19T20:27+08:00",
+ "comment_keyword": "中位數",
+ "note": "2026-11-16 總編輯：v8 產生器（templates_tqsa_v3/video/v8/）。數字照 sources.md；無旁白版經 animation-director、art-director 複審通過後才配旁白（gemini-3.8-flash-tts／Sulafat，1 次請求）；成片最後驗證見 final_check.json、video_review.md。兩份審查通過且（11/17 這支）Andy 看過或到前一天 20:00 沒意見，才改 approved。同日 12:27 發輪播。"
+}
