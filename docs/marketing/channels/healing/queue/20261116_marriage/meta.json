@@ -5,7 +5,11 @@
   "ig",
   "threads"
  ],
- "status": "approved",
+ "status": "posted",
  "publish_at": "2026-11-16T12:27+08:00",
- "note": "2026-11-15 總編輯排程（影片管線完成前的輪播保底；版型同 11/11～11/15 已確認規格，授權範圍內不需逐篇等 Andy）。依 11-10 素材與頁序規則製作。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md（二源核對）；重疊與對比 overlap_report.json；審查 ai_review.md（自審，非 AI 生圖）；素材已登記 ../../素材登記.md。；2026-11-15 改 draft：同題影片 20261115v_marriage 取代 11/16 20:27 時段（每日上限 1 則）；2026-11-16 Andy「放寬」→ per_day 2：輪播恢復，排 11/16 12:27（輔），同題影片 20:27（主）"
+ "note": "2026-11-15 總編輯排程（影片管線完成前的輪播保底；版型同 11/11～11/15 已確認規格，授權範圍內不需逐篇等 Andy）。依 11-10 素材與頁序規則製作。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md（二源核對）；重疊與對比 overlap_report.json；審查 ai_review.md（自審，非 AI 生圖）；素材已登記 ../../素材登記.md。；2026-11-15 改 draft：同題影片 20261115v_marriage 取代 11/16 20:27 時段（每日上限 1 則）；2026-11-16 Andy「放寬」→ per_day 2：輪播恢復，排 11/16 12:27（輔），同題影片 20:27（主）",
+ "urls": {
+  "ig": "https://www.instagram.com/p/Dfyhq7UF3PK/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DfyhvfakTIb"
+ }
 }
