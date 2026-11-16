@@ -181,25 +181,29 @@ def _sb_all(pg0, b, base, code):
         srvfl = _json.loads(((j or {}).get("save") or {}).get("data", {}).get("keys", {}).get("aiOffice.world.layout.v1", "{}")).get("floor") if st == 200 and j.get("save") else None
         ok("存檔：收件服務那份有同一個地板顏色、版本號 ≥ 1", srvfl == fl and j["save"]["version"] >= 1, (st, srvfl, fl))
         pg.evaluate("() => __world.toggleEdit()")
-        # ② 清 localStorage 重整 → 還原
-        _sb_wipe_local(pg)
-        ok("存檔：清掉本機後擺設是空的", _sb_floor(pg) == {})
-        pg.reload(wait_until="domcontentloaded")
+        # ② 換一台裝置（全新瀏覽器、localStorage 是空的）進場 → 自動下載還原
+        #    （不在開著的頁面上清 localStorage：辦公室其他模組會立刻寫進新的 aiOffice.game.* 鍵，那是「正在玩」不是「新裝置」）
+        c.close()
+        c = _sb_ctx(b, srv)
+        pg = _sb_page(c)
+        pg.goto(url, wait_until="domcontentloaded")
         _sb_ready(pg)
         back = wait_until(pg, "() => { try { return Object.keys(JSON.parse(localStorage.getItem('aiOffice.world.layout.v1')||'{}').floor||{}).length > 0 && __world.save.status === 'saved' } catch (e) { return false } }", 30000)
         _sb_settle(pg)
         fl2 = _sb_floor(pg)
-        ok("存檔：清本機重整後，從雲端下載還原同一個地板顏色", back and fl2 == fl, (fl2, fl))
+        ok("存檔：新裝置（本機空的）進場，從雲端下載還原同一個地板顏色", back and fl2 == fl, (fl2, fl))
         applied = _sb_ev(pg, "() => JSON.stringify((__world.overrides && __world.overrides.floor) || {})")
         ok("存檔：還原後場景真的套上了（重新整理一次後 W.overrides.floor 一致）", _json.loads(applied) == fl, applied)
         _sb_shot(pg, "s2_清本機後還原.png")
         # ③ 舊版 schema 1 存檔被遷移
         room = list(fl.keys())[0]
+        c.close()
+        c = _sb_ctx(b, srv)
         cur = srv.call("GET", "/v1/office/main/save/" + _SB_PA, hdr=srv.owner())[1]["save"]
         st, j = srv.call("POST", "/v1/office/main/save/" + _SB_PA, {"schema": 1, "base": cur["version"], "at": int(_time.time() * 1000) + 5000, "data": {"layout": {"floor": {room: "#5b8def"}}, "game": {"coins": 7}}}, srv.owner())
         ok("遷移：收件服務收下 schema 1 的存檔並標 migrated", st == 200 and j.get("migrated") is True, (st, j))
-        _sb_wipe_local(pg)
-        pg.reload(wait_until="domcontentloaded")
+        pg = _sb_page(c)
+        pg.goto(url, wait_until="domcontentloaded")
         _sb_ready(pg)
         mig = wait_until(pg, "() => localStorage.getItem('aiOffice.game.coins') === '7'", 30000)
         _sb_settle(pg)
@@ -211,7 +215,8 @@ def _sb_all(pg0, b, base, code):
         cur = srv.call("GET", "/v1/office/main/save/" + _SB_PA, hdr=srv.owner())[1]["save"]
         keys = dict(cur["data"]["keys"]); keys["aiOffice.game.coins"] = "99"
         srv.call("POST", "/v1/office/main/save/" + _SB_PA, {"schema": 2, "base": cur["version"], "at": int(_time.time() * 1000) + 30000, "data": {"keys": keys}}, srv.owner())
-        pg.evaluate("() => { localStorage.setItem('aiOffice.game.note', 'old-device'); __world.save.scan(); }")
+        # 這頁的改動時間設成很久以前、版本號還停在舊的（模擬離線很久的裝置）→ 上傳必定收到 409
+        _sb_ev(pg, "() => { const m = JSON.parse(localStorage.getItem('aiOffice.save.meta.v1') || '{}'); const p = __world.save.proj; m[p] = { ...(m[p] || {}), at: 1 }; localStorage.setItem('aiOffice.save.meta.v1', JSON.stringify(m)); localStorage.setItem('aiOffice.game.note', 'old-device'); __world.save.dirty = true; __world.save.ver = 0; __world.save.flush(); }")
         pg.wait_for_timeout(3500)
         _sb_settle(pg)
         conf = _sb_ev(pg, "() => ({ coins: localStorage.getItem('aiOffice.game.coins'), note: localStorage.getItem('aiOffice.game.note') })")
@@ -226,14 +231,14 @@ def _sb_all(pg0, b, base, code):
         ok("預算：設定每日上限 10 萬（存在 aiOffice.game.budget，會跟著雲端存檔）", pg.evaluate("() => JSON.parse(localStorage.getItem('aiOffice.game.budget')).daily") == 100000)
         srv.events([{"event": "PreToolUse", "session_id": "s2", "project_hash": _SB_PA, "tool_category": "read"} for _ in range(2)])
         est = wait_until(pg, "() => __world.budget.used === 6000 && __world.budget.est && /估算/.test(document.getElementById('budgetBtn').textContent)", 10000)
-        w1 = pg.evaluate("() => parseFloat(document.querySelector('#budgetBtn .tr i').style.width)")
+        w1 = _sb_ev(pg, "() => parseFloat((document.querySelector('#budgetBtn .tr i') || { style: {} }).style.width)")
         ok("預算：取不到 Token 的工作階段以工具次數推估（2 次＝6000），標「估算」，預算條 6%", est and abs(w1 - 6) < 0.6, (pg.evaluate("() => __world.budget.used"), w1))
         srv.events([{"event": "Stop", "session_id": "s1", "project_hash": _SB_PA, "usage_main": 80000}])
         warn = wait_until(pg, "() => __world.budget.level === 'warn'", 10000)
         toast = pg.locator("#toast").inner_text() if pg.locator("#toast").is_visible() else ""
         if not toast and pg.evaluate("() => (__world.budget.warned || 0) >= 1"):
             toast = "（提醒已跳過、已自動收起）%"
-        w2 = pg.evaluate("() => parseFloat(document.querySelector('#budgetBtn .tr i').style.width)")
+        w2 = _sb_ev(pg, "() => parseFloat((document.querySelector('#budgetBtn .tr i') || { style: {} }).style.width)")
         ok("預算：用量事件進來 → 預算條變長（86%）、到 80% 跳提醒", warn and w2 > w1 and abs(w2 - 86) < 0.6 and "%" in toast, (w2, toast))
         _sb_shot(pg, "s3_預算80提醒.png")
         ok("預算：80% 時辦公室還沒變暗", not pg.evaluate("() => document.getElementById('budgetDim').classList.contains('on')"))
