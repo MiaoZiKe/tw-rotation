@@ -221,19 +221,33 @@ def t_bf_burn(b, base):
       c.standAt(fc.x - 5.5, fc.z + 0.2, 0); await W.advanceAsync(.3); const p = c.object3D.position, path = W.nav.findPath({ x: p.x, z: p.z }, { x: fc.x + 5.5, z: fc.z + 0.2 }); c.walkTo(path, { speed: 2.4 }); let mn = 99;
       for (let i = 0; i < 90; i++) { await W.advanceAsync(.25); const q = c.object3D.position; mn = Math.min(mn, Math.hypot(q.x - fc.x, q.z - fc.z)); if (c.state !== 'walk' && i > 4) break; } return mn; }""", A)
     ok("之後路過營火繞遠（最近 %.1f 公尺）並留下繞路紀錄" % out, out >= 1.9 and bool(_bf_log(pg, A, "fire-detour")), out)
-    # 看到你拎人會緊張（真滑鼠按住同事）
-    G = _bf_pick(pg, "(t) => true", skip=(A, B))
-    pg.evaluate("""([a, g]) => { const W = __world; for (const id of [a, g]) { const c = W.chars.get(id); c.script = (c.script || 0) + 1; c.stop(false); c.busy = false; } W.chars.get(g).standAt(24.5, 33.5, 0); W.chars.get(a).standAt(22.5, 33.8, 0); const f = W.mind.feel.of(W.mind.mindOf(a)); f.fear = .8; f.grabAt = -999; W.speed = 1; }""", [A, G])
+    ok("被燒細節：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    c1.close()
+
+
+def t_bf_grab(b, base):
+    c1, pg, got = _bf_open(b, base)
+    if not ok("看到你拎人：世界載入", got):
+        c1.close(); return
+    A = _bf_pick(pg, "(t) => true")
+    G = _bf_pick(pg, "(t) => true", skip=(A,))
+    pg.evaluate("() => { __world.fire.reset(); __world.phys.restoreAll(true); __world.daytime.set('day'); __world.godAt(30.2, 36.4, 26); }")
+    wait_until(pg, "() => !__world.view.tween", 20000)
+    pg.evaluate("""([a, g]) => { const W = __world; for (const id of [a, g]) { const c = W.chars.get(id); c.script = (c.script || 0) + 1; c.stop(false); c.busy = true; } W.chars.get(g).standAt(24.5, 33.5, 0); W.chars.get(a).standAt(22.5, 33.8, 0); const m = W.mind.mindOf(a), f = W.mind.feel.of(m); m.burned = false; m.sc = null; f.fear = .8; f.grabAt = -999; W.speed = 1; }""", [A, G])
     pg.wait_for_timeout(800)
     gx, gy = _bf_proj(pg, G)
     pg.mouse.move(gx, gy)
     pg.mouse.down()
-    pg.wait_for_timeout(1000)
+    pg.wait_for_timeout(800)
+    pg.mouse.move(gx + 6, gy - 4)
+    pg.wait_for_timeout(400)
     near = _bf_log(pg, A, "grab-nervous")
+    dbg = pg.evaluate("([a, g]) => { const W = __world; return [[...W.chars].filter(([k, c]) => c._held || c.state === 'held').map(x => x[0]), W.chars.get(g).state, W.mind.mindOf(g).grabbedAt, W.time, W.mind.mindOf(a).sc && W.mind.mindOf(a).sc.name, W.mind.feel.of(W.mind.mindOf(a)).grabAt]; }", [A, G])
+    print("  除錯：拎起的人 %s、G=%s、A=%s" % (dbg, G, A))
     _bf_shot(pg, "被燒細節_7看到你拎人緊張.png")
     pg.mouse.up()
-    ok("看到你拎人：被燒過的 A 會緊張（%s）" % (near and near[0].get("face")), bool(near) and near[0].get("face") == "scared", near)
-    ok("被燒細節：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    ok("看到你拎人（真滑鼠按住）：被燒過、還怕火的同事會緊張（%s）" % (near and near[0].get("face")), bool(near) and near[0].get("face") == "scared", (near, pg.evaluate("(g) => __world.chars.get(g).state", G)))
+    ok("看到你拎人：沒有主控台錯誤", not pg.errs, pg.errs[:3])
     c1.close()
 
 
@@ -270,7 +284,7 @@ def t_bf_pool(b, base):
 
 def t_bf_all(b, base):
     only = _os.environ.get("BURN_ONLY", "")
-    parts = {"burn": t_bf_burn, "pool": t_bf_pool}
+    parts = {"burn": t_bf_burn, "grab": t_bf_grab, "pool": t_bf_pool}
     for k, f in parts.items():
         if not only or k in only.split(","):
             f(b, base)
