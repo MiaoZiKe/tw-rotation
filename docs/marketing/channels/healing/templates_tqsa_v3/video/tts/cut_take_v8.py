@@ -4,17 +4,22 @@
 2. 每鏡分界：在念稿範圍內找所有 ≥0.12 秒的靜音；依每段字數算出預期分界時間，用動態規劃挑出依序、最接近預期、且越長越好的靜音當分界（切在靜音裡，不切字）。
 3. 核對：每段範圍內的 ASR 文字印出來，人工對照念稿（數字寫法不同不算錯）。
 4. 念稿結尾：最後一個 ASR 字所在的有聲段結尾，之後的聲音（模型尾端雜訊）不收。
-用法：python3 cut_take_v8.py <原始 wav> <asr.json> <佇列資料夾> <輸出 wav> [atempo] [maxgap]（環境變數 PRE_LAST＝片尾那句前的停頓秒數）"""
+5. 停頓（2026-11-16 Andy 新規，剪輯插靜音、不放慢語速）：句間實際停頓下限 MINGAP（預設 0.3 秒），原本自然停頓較長的保留到 MAXGAP（預設 0.45 秒）；narration.txt 有空行處＝段落分界，停頓固定 PARA（預設 0.7 秒）。沒有空行＝全部同一段。字幕／鏡頭時序（make_segments.py → gen_v8.py）讀的是切完後的時間點，自動跟著新停頓走。
+用法：python3 cut_take_v8.py <原始 wav> <asr.json> <佇列資料夾> <輸出 wav> [atempo] [maxgap=0.45] [mingap=0.30] [para=0.70]（環境變數 PRE_LAST＝片尾那句前的停頓秒數）"""
 import json, sys, wave, re, subprocess, os
 import numpy as np
-raw, asrp, q, out = sys.argv[1:5]; F = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0; MAXGAP = float(sys.argv[6]) if len(sys.argv) > 6 else 0.32
+raw, asrp, q, out = sys.argv[1:5]; F = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0; MAXGAP = float(sys.argv[6]) if len(sys.argv) > 6 else 0.45
+MINGAP = float(sys.argv[7]) if len(sys.argv) > 7 else 0.30; PARA = float(sys.argv[8]) if len(sys.argv) > 8 else 0.70
 LEAD = 0.2
 w = wave.open(raw); SR = w.getframerate(); x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768; w.close()
 hop = int(SR * .01); n = len(x) // hop
 rms = np.array([np.sqrt(np.mean(x[i*hop:(i+1)*hop] ** 2)) + 1e-9 for i in range(n)]); db = 20 * np.log10(rms)
 thr = max(-48.0, db.max() - 40); voiced = db > thr
 W = json.load(open(asrp)); words = [(a["w"].strip(), a["s"], a["e"]) for a in W]
-lines = [l.split("｜", 1) for l in open(os.path.join(q, "narration.txt"), encoding="utf-8") if "｜" in l and not l.startswith("#")]
+lines = []; para_after = []   # para_after[i]＝第 i 句後面有空行（段落分界）
+for l in open(os.path.join(q, "narration.txt"), encoding="utf-8"):
+    if "｜" in l and not l.startswith("#"): lines.append(l.split("｜", 1)); para_after.append(False)
+    elif not l.strip() and lines: para_after[-1] = True
 ids = [i for i, _ in lines]; texts = [t.strip() for _, t in lines]
 cc = lambda s: len(re.sub(r"[，。、；：？！「」（）\s]", "", s))
 def runs_in(t0, t1, mn=0):
@@ -62,7 +67,10 @@ def seg_audio(a, b):
 outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
 for i, p in enumerate(pieces):
     y = seg_audio(p["src_start"], p["src_end"]); st = t; t += len(y) / SR; outv.append(y)
-    g = min(p["src_gap_after"] / F, MAXGAP) if i < len(pieces) - 1 else .15
+    # g＝實際停頓目標（含前後各留的 0.09 秒底噪，下面再扣掉）：段落 PARA；句間 clamp(自然停頓, MINGAP, MAXGAP)
+    if i >= len(pieces) - 1: g = .15
+    elif para_after[i]: g = PARA
+    else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
     if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
     g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
     wo = [round(st + (a - p["src_start"]) / F, 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]   # 每個字詞在成品裡的起音時間（字幕／重拍對準旁白用）
@@ -70,7 +78,7 @@ for i, p in enumerate(pieces):
 y = np.concatenate(outv)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())
 chars = sum(ch); speech = sum(s["end"] - s["speech_start"] for s in segj); total = len(y) / SR - LEAD
-rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "chars": chars,
+rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "chars": chars,
        "dur_total": round(total, 2), "rate_incl_pauses": round(chars / total, 2), "rate_speech_only": round(chars / speech, 2), "segments": segj}
 json.dump(rep, open(out + ".cut.json", "w"), ensure_ascii=False, indent=1)
 print("設定句切掉 %.2f 秒；念稿 %d 字、%.2f 秒 → 含停頓 %.2f 字/秒、扣停頓 %.2f 字/秒" % (on0 - LEAD, chars, total, chars / total, chars / speech))

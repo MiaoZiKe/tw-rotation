@@ -7,8 +7,8 @@ N=$1; RATE=${2:-5.2}; Q=../../queue/$N
 python3 v8/gen_v8.py $N --nv > /dev/null       # 重寫 narration.txt（照最新規格）
 [ -f $Q/narration_take.wav ] || python3 tts/tts_take.py $Q $Q/narration_take.wav
 [ -f $Q/narration_take.asr.json ] || python3 tts/asr.py $Q/narration_take.wav $Q/narration_take.asr.json
-# 2026-11-16 寫稿前必做第 6 條：寧可砍事實也不加速 → 不用 atempo（倍率 1.0），句間停頓上限 0.3 秒（換氣）
-PRE_LAST=2.3 python3 tts/cut_take_v8.py $Q/narration_take.wav $Q/narration_take.asr.json $Q $Q/narration.wav 1.0 0.30
+# 2026-11-16 寫稿前必做第 6 條：寧可砍事實也不加速 → 不用 atempo（倍率 1.0），句間停頓下限 0.3／自然停頓保留到 0.45／段落（narration.txt 空行）0.7 秒（11-16 新規，插靜音）
+PRE_LAST=2.3 python3 tts/cut_take_v8.py $Q/narration_take.wav $Q/narration_take.asr.json $Q $Q/narration.wav 1.0 0.45 0.30 0.70
 python3 tts/make_segments.py $Q narration.wav
 python3 v8/gen_v8.py $N | head -1
 node render_video.js $N 2>&1 | grep -v "^留白" | tail -5
