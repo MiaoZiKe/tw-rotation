@@ -9,7 +9,7 @@
   "crosscheck": {
     "TPEX": {
       "lake_date": "2026-11-16",
-      "lake_rows": 993,
+      "lake_rows": 992,
       "official_date": "2026-11-16",
       "official_rows": 993,
       "rows_ok": true,
@@ -25,7 +25,7 @@
       "official_rows": 1332,
       "verdict": "lake_ahead"
     },
-    "at": "2026-11-16T19:28:10+08:00",
+    "at": "2026-11-16T19:49:03+08:00",
     "verdict": "ok"
   },
   "etf.exright_notice": {
