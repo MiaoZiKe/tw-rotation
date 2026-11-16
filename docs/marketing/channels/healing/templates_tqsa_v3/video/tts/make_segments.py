@@ -8,7 +8,7 @@ segs = []
 for i, s in enumerate(c["segments"]):
     prev = c["segments"][i - 1] if i else None
     st = 0.0 if i == 0 else (round(prev["end"] + .12, 3) if s["speech_start"] - prev["end"] > 1.0 else round(s["speech_start"] - .25, 3))   # 前面有長停頓（片尾）：鏡頭在上一句一結束就換，開口晚一點
-    segs.append({"id": s["id"], "text": s["text"], "start": st, "end": s["end"], "speech_start": s["speech_start"], "audio": wn})
+    segs.append({"id": s["id"], "text": s["text"], "start": st, "end": s["end"], "speech_start": s["speech_start"], "words": s.get("words", []), "audio": wn})
 json.dump({"audio": wn, "voiceLeadIn": c["voiceLeadIn"], "model": "gemini-3.8-flash-tts", "voice": "Sulafat", "atempo": c["atempo"], "rate_incl_pauses": c["rate_incl_pauses"], "rate_speech_only": c["rate_speech_only"], "preamble_cut_sec": c["preamble_cut_sec"], "segments": segs},
           open(os.path.join(q, "segments.json"), "w"), ensure_ascii=False, indent=1)
 f = lambda t: "%02d:%02d:%02d,%03d" % (t // 3600, t % 3600 // 60, int(t % 60), round((t % 1) * 1000) % 1000)

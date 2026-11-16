@@ -9,16 +9,16 @@ fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
  const V=await pg.evaluate(()=>V);const out=path.join(__dirname,'..','..','queue',V.queue||name);
  const OUT=V.out||'video.mp4',COVER=V.cover||'video_cover.jpg',REP=V.report||'overlap_report_video.json',CT=V.cover_t==null?4.6:V.cover_t;const n=Math.round(V.dur*V.fps);const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
  for(let f=0;f<n;f++){const t=f/V.fps;await pg.evaluate(t=>window.renderAt(t),t);
-  if(V.runtime&&/v[67]/.test(V.runtime)){   // v6：換鏡 5 幀逐幀記錄「舊鏡文字數／新鏡文字數」，同一幀兩邊都 >0＝前後鏡文字同框
+  if(V.runtime&&/v[678]/.test(V.runtime)){   // v6：換鏡 5 幀逐幀記錄「舊鏡文字數／新鏡文字數」，同一幀兩邊都 >0＝前後鏡文字同框
    const co=await pg.evaluate(()=>{const ls=[...document.querySelectorAll('#stage .layer[data-L]')];if(!ls.length)return null;const r={old:0,new:0};
     ls.forEach(l=>{const [x0,x1]=l.dataset.clip.split(',').map(Number);l.querySelectorAll('text,div').forEach(e=>{if(e.children.length&&e.tagName!=='text'||!e.textContent.trim())return;let x=e,vis=1;while(x&&x!==l){vis*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}if(vis<.05)return;const b=e.getBoundingClientRect();if(b.right>x0&&b.left<x1)r[l.dataset.L]++})});return r});
    if(co){(rep.transitionFrames=rep.transitionFrames||[]).push({t:+t.toFixed(3),old:co.old,new:co.new});if(co.old>0&&co.new>0)(rep.coText=rep.coText||[]).push(t.toFixed(3)+'s')}}
-  if(V.runtime&&/v[567]/.test(V.runtime)){   // v5：片尾 LOGO 圖形與四字逐幀淨空（≥24px；LOGO 框外加 22px 描邊）
+  if(V.runtime&&/v[5678]/.test(V.runtime)){   // v5：片尾 LOGO 圖形與四字逐幀淨空（≥24px；LOGO 框外加 22px 描邊）
    const gp=await pg.evaluate(()=>{const l=document.querySelector('#stage [data-chk=logo]'),cs=[...document.querySelectorAll('#stage [data-chk=char]')];if(!l||!cs.length)return null;
     const lb=l.getBoundingClientRect(),res=[];cs.forEach((c,i)=>{let x=c,vis=1;while(x&&x!==document.body){vis*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}if(vis<.3)return;const b=c.getBoundingClientRect();
      const ox=Math.min(lb.right+22,b.right)-Math.max(lb.left-22,b.left),gap=b.top-(lb.bottom+22);res.push({i,gap:+gap.toFixed(1),ox:+ox.toFixed(1)})});return res});
    if(gp)gp.forEach(r=>{(rep.logoGap=rep.logoGap||[]).push({t:+t.toFixed(3),i:r.i,gap:r.gap});rep.logoGapMin=Math.min(rep.logoGapMin==null?1e9:rep.logoGapMin,r.gap);if(r.gap<24)(rep.logoOverlap=rep.logoOverlap||[]).push(t.toFixed(3)+'s 字'+r.i+' 離雲 '+r.gap+'px')})}
-  if(V.runtime&&/v[4567]/.test(V.runtime)){   // v4：插圖面板外框尺寸與面板底板尺寸逐幀記錄（同一鏡內只准一組＝沒有縮放、沒有平移）
+  if(V.runtime&&/v[45678]/.test(V.runtime)){   // v4：插圖面板外框尺寸與面板底板尺寸逐幀記錄（同一鏡內只准一組＝沒有縮放、沒有平移）
    const q=await pg.evaluate(()=>{const e=document.querySelector('#stage [data-o=illus]');if(!e)return null;const r=e.getBoundingClientRect(),b=e.querySelector('svg g > rect'),br=b?b.getBoundingClientRect():null,g=e.querySelector('svg > g');return{o:[r.left,r.top,r.width,r.height].map(x=>+x.toFixed(2)).join(','),b:br?[br.left,br.top,br.width,br.height].map(x=>+x.toFixed(2)).join(','):'',tf:g?(g.getAttribute('transform')||''):''}});
    if(q){const sc=V.scenes.find(x=>t>=x.t0&&t<x.t1)||V.scenes[V.scenes.length-1];const m=(rep.panel=rep.panel||{});const r=(m[sc.id]=m[sc.id]||{frame:{},base:{},transform:{}});r.frame[q.o]=(r.frame[q.o]||0)+1;r.base[q.b]=(r.base[q.b]||0)+1;r.transform[q.tf||'（無）']=(r.transform[q.tf||'（無）']||0)+1}}
   await pg.screenshot({path:path.join(tmp,String(f).padStart(5,'0')+'.png')});
