@@ -85,23 +85,35 @@ pieces = []
 for i, sid in enumerate(ids):
     s = on0 if i == 0 else bounds[i - 1][1]; e = bounds[i][0] if i < len(bounds) else last
     gap = (bounds[i][1] - bounds[i][0]) if i < len(bounds) else 0
+    for kv in os.environ.get('TRIM', '').split(','):   # TRIM=s6=78.35：某句只取前半（刪掉同一段錄音裡後面的句子，不重送 TTS）
+        if '=' in kv and kv.split('=')[0] == sid: e = min(e, float(kv.split('=')[1]))
     heard = "".join(ww for ww, a, b in words if a >= s - .05 and b <= e + .1)
     pieces.append({"id": sid, "text": texts[i], "heard": heard, "src_start": round(s, 3), "src_end": round(e, 3), "src_gap_after": round(gap, 3)})
-def seg_audio(a, b):
-    y = x[int(max(0, a - .03) * SR):int((b + .06) * SR)]
+CUTS = []   # 環境變數 CUTS="40.95-42.16>0.35,..."（2026-11-17）：原始錄音裡某段句內靜音 a–b 壓成 keep 秒（從中間刪，不重送 TTS、不放慢）
+for kv in os.environ.get("CUTS", "").split(","):
+    if ">" in kv and "-" in kv:
+        ab, kp = kv.split(">"); a_, b_ = [float(v) for v in ab.split("-")]; kp = float(kp)
+        if b_ - a_ > kp: CUTS.append((a_ + kp / 2, b_ - kp / 2))
+def seg_audio(a, b, pa=.03, pb=.06):
+    y = x[int(max(0, a - pa) * SR):int((b + pb) * SR)]
     if abs(F - 1) < 1e-3: return y
     p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-", "-af", "atempo=%.4f" % F, "-f", "f32le", "-"], input=y.tobytes(), capture_output=True).stdout
     return np.frombuffer(p, np.float32)
 outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
 for i, p in enumerate(pieces):
-    y = seg_audio(p["src_start"], p["src_end"]); st = t; t += len(y) / SR; outv.append(y)
+    rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
+    if rem:
+        ed = [p["src_start"]] + [v for r_ in rem for v in r_] + [p["src_end"]]
+        y = np.concatenate([seg_audio(ed[j], ed[j + 1], .03 if j == 0 else 0, .06 if j == len(ed) - 2 else 0) for j in range(0, len(ed), 2)])
+    else: y = seg_audio(p["src_start"], p["src_end"])
+    st = t; t += len(y) / SR; outv.append(y)
     # g＝實際停頓目標（含前後各留的 0.09 秒底噪，下面再扣掉）：段落 PARA；句間 clamp(自然停頓, MINGAP, MAXGAP)
     if i >= len(pieces) - 1: g = .15
     elif para_after[i]: g = PARA
     else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
     if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
     g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
-    wo = [round(st + (a - p["src_start"]) / F, 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]   # 每個字詞在成品裡的起音時間（字幕／重拍對準旁白用）
+    wo = [round(st + (a - p["src_start"] - sum(rb - ra for ra, rb in rem if a >= ra)) / F, 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]   # 每個字詞在成品裡的起音時間（字幕／重拍對準旁白用）
     segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3)}); t += g
 y = np.concatenate(outv)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())

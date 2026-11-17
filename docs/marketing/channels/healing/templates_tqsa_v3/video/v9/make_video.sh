@@ -13,6 +13,7 @@ if [ $VOICE = 1 ]; then
   python3 v9/check_narration.py "$Q" || { echo "念稿檢查沒過，不送 TTS。改 script.json 的 say 再跑。"; exit 1; }
   [ -f "$Q/narration_take.wav" ] || python3 tts/tts_take.py "$Q" "$Q/narration_take.wav"
   [ -f "$Q/narration_take.asr.json" ] || python3 tts/asr.py "$Q/narration_take.wav" "$Q/narration_take.asr.json"
+  [ -f "$Q/cut_env.sh" ] && . "$Q/cut_env.sh"   # 每篇的 TRIM／CUTS／BOUNDS 等重切參數（2026-11-17）
   PRE_LAST=2.3 python3 tts/cut_take_v8.py "$Q/narration_take.wav" "$Q/narration_take.asr.json" "$Q" "$Q/narration.wav" 1.0 0.45 0.30 0.70
   python3 tts/make_segments.py "$Q" narration.wav
   python3 v9/autofix.py "$Q" --voice || echo "（autofix 後仍有要人看的項目，見上方與 $Q/autofix_log.json）"

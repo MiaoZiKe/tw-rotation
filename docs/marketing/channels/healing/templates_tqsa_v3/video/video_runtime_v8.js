@@ -30,7 +30,7 @@ function split2(s){const m=s.length/2;let best=-1,bd=1e9;for(let i=1;i<s.length-
 function capHTML(s,op,dy){if(!s||op<=0)return'';s=s.replace(/。$/,'');const one=s.length<=11;const ls=one?[s]:split2(s);const mx=Math.max(...ls.map(l=>l.length));const fs=one?76:(mx<=13?64:Math.min(64,Math.floor(880/mx)));
  const lh=Math.round(fs*1.28),h=ls.length*lh,top=1690-h;
  return `<div data-o="cap" class="abs cap" style="top:${top}px;font-size:${fs}px;line-height:${lh}px;opacity:${op.toFixed(3)};transform:translateY(${dy.toFixed(1)}px)">${ls.map(esc).join('<br>')}</div>`}
-function srcHTML(s,op,fs){if(op<=0)return'';const ls=String(s).split('\n'),f=fs||34,lh=44,top=1806-(ls.length-1)*lh;return `<div data-o="src" class="abs src" style="opacity:${op.toFixed(3)};top:${top}px;font-size:${f}px">${ls.map(esc).join('<br>')}</div>`}
+function srcHTML(s,op){return op<=0?'':`<div data-o="src" class="abs src" style="opacity:${op.toFixed(3)}">${esc(s)}</div>`}
 const glow=(cx,cy,r,a)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#gl)" opacity="${a.toFixed(3)}"/>`;
 const DEFS=`<defs><radialGradient id="gl"><stop offset="0" stop-color="#F2B66B" stop-opacity=".85"/><stop offset=".55" stop-color="#F2B66B" stop-opacity=".25"/><stop offset="1" stop-color="#F2B66B" stop-opacity="0"/></radialGradient>
 <radialGradient id="glw"><stop offset="0" stop-color="#FFE9B8" stop-opacity=".95"/><stop offset="1" stop-color="#FFE9B8" stop-opacity="0"/></radialGradient></defs>`;
@@ -279,11 +279,11 @@ const SCV={
  ask(s,lt,d){let h=title(s.title,lt,{cls:'hint'})+tag(s.tag,lt,.3,306);h+=ILLbox(s,lt,d,392,500);
   let g='';s.recap.forEach((r,i)=>{const p=pr(lt,.15+i*.1,.4);g+=`<g opacity="${p}" transform="translate(${(1-p)*-40},0)"><rect x="20" y="${10+i*112}" width="848" height="92" rx="20" fill="${FACE}" stroke="${LINE}" stroke-width="2"/>${T(56,10+i*112+60,r[0],34,400,SUBC,'start')}${T(832,10+i*112+62,r[1],42,700,TXT,'end')}</g>`});
   const q=pr(lt,.65,.4,BACK),oy=s.recap.length*112+40;const cyc=!!s.btnCycle,alt=cyc&&lt>2.0?(Math.floor((lt-2.0)/.9)%2):-1,ac0=alt==0?LAMP:LINE,ac1=alt==1?LAMP:LINE,aw0=alt==0?5:3,aw1=alt==1?5:3;
-  if(s.opt)g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+   // v9：預設不畫二選一按鈕，opts.opt 明確寫才畫
+  if(s.opt)g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+
    `<rect x="40" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac0}" stroke-width="${aw0}"/>${T(230,oy+106,s.opt[0],40,700,TXT)}`+
    `<rect x="468" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac1}" stroke-width="${aw1}" stroke-dasharray="10 8"/>${T(658,oy+106,s.opt[1],40,700,TXT)}</g>`;
   // 第二拍：兩顆膠囊依序輕跳（位移，不縮放）
-  if(s.opt){const j1=-10*DECAY(lt-1.5,5,14)-(cyc&&lt>2.2?6*Math.max(0,Math.sin(Math.PI*((lt-2.2)%1.2)/.5))*((lt-2.2)%1.2<.5?1:0):0),j2=-10*DECAY(lt-1.75,5,14)-(cyc&&lt>2.8?6*Math.max(0,Math.sin(Math.PI*((lt-2.8)%1.2)/.5))*((lt-2.8)%1.2<.5?1:0):0);g=g.replace(`<rect x="40" y="${oy+44}"`,`<rect x="40" y="${(oy+44+j1).toFixed(1)}"`).replace(`<rect x="468" y="${oy+44}"`,`<rect x="468" y="${(oy+44+j2).toFixed(1)}"`)}
+  const j1=-10*DECAY(lt-1.5,5,14)-(cyc&&lt>2.2?6*Math.max(0,Math.sin(Math.PI*((lt-2.2)%1.2)/.5))*((lt-2.2)%1.2<.5?1:0):0),j2=-10*DECAY(lt-1.75,5,14)-(cyc&&lt>2.8?6*Math.max(0,Math.sin(Math.PI*((lt-2.8)%1.2)/.5))*((lt-2.8)%1.2<.5?1:0):0);g=g.replace(`<rect x="40" y="${oy+44}"`,`<rect x="40" y="${(oy+44+j1).toFixed(1)}"`).replace(`<rect x="468" y="${oy+44}"`,`<rect x="468" y="${(oy+44+j2).toFixed(1)}"`);
   h+=box('chart',908,592,g,lt,d,{});return h},
  next(s,lt,d){let h=head(s,lt,{tagAt:.25})+ILLbox(s,lt,d);const p=pr(lt,.05,.45,BACK),rows=[0,1,2,3,4];
   let g=`<g opacity="${clamp(p*1.5)}" transform="translate(0,${(1-clamp(p))*30})"><rect x="104" y="40" width="680" height="560" rx="22" fill="${FACE}" stroke="${LINE}" stroke-width="3" stroke-dasharray="12 10"/>`+
@@ -362,21 +362,15 @@ const kwF=s=>s.voiceAt!=null?Math.round((s.voiceAt+.85)*30):OF.kw;
 // v8.2（CEO／美術 11-16：孤字、行首標點、關鍵詞拆行、字級 ≥64px）：字幕排版統一在這裡——
 //   旁白依標點切成片語 → 每行 ≤13 字（64px 放得下）→ 每兩行一個畫面；一鏡裡有好幾個畫面時，依字數比例跟著旁白時間換。
 //   標點只會在行尾；超過 13 字的單一片語才在中間切（不切數字念法）；單行 ≤11 字用 76px。
-// v9 斷行規則（2026-11-17 審片）：書名號《》／引號「」內不斷；頓號列舉整串 ≤13 字就不拆，更長時兩行必須在同一個畫面（不讓「求學、」跑到上一段）；二字詞不拆（年刊、求學…）；長片語改均分切而不是硬切 13 字
-const WORDS2=['年刊','求學','統計','人口','政部','初婚','結婚','登記','平均','年齡','工作','存錢','時間','勞保','房貸','薪資'];
-function inBr(p,k){const q=p.slice(0,k);return (q.match(/[《「『]/g)||[]).length>(q.match(/[》」』]/g)||[]).length}
-function capProt(c){c=c.replace(/[《「『][^》」』]*[》」』]/g,m=>m.replace(/[，、；：？！。]/g,x=>'\u0003'+'，、；：？！。'.indexOf(x)));
- return c.replace(/[^，。；：？！、\u0003]+(?:、[^，。；：？！、]+)+/g,m=>m.length<=13?m.replace(/、/g,'\u0002'):m)}
-function capRestore(t){return t.replace(/\u0002/g,'、').replace(/\u0003(\d)/g,(m,d)=>'，、；：？！。'[+d])}
-function capLines(c,bal){return capLines0(capProt(c),bal).map(capRestore)}
-function capLines0(c,bal){let ps=c.replace(/。$/,'').match(/[^，。、；：？！]+[，。、；：？！]?/g)||[];const L=[];
+function capLines(c,bal){let ps=c.replace(/。$/,'').match(/[^，。、；：？！]+[，。、；：？！]?/g)||[];const L=[];
  if(bal&&ps.length>1&&ps[0].replace(/[，。、；：？！]/g,'').length<=3){ps=[ps[0]+ps[1]].concat(ps.slice(2))}   // capBal：句首短語（不過，／但，）併入下一段，過長時對半斷
 
  const NUM=/[零〇一二兩三四五六七八九十百千萬點]/;
- ps.forEach(p0=>{let p=p0;while(p.length>13){let k=Math.ceil(p.length/Math.ceil(p.length/13));if(bal)k=Math.ceil(p.length/2);while(k>5&&((NUM.test(p[k-1])&&NUM.test(p[k]))||WORDS2.includes(p[k-1]+p[k])||/[，、；：？！。\u0003]/.test(p[k])))k--;while(k>5&&inBr(p,k))k--;if(inBr(p,k)){const m=p.slice(k).search(/[》」』]/);if(m>=0)k+=m+1}L.push({t:p.slice(0,k),glue:true});p=p.slice(k)}L.push({t:p})});
+ ps.forEach(p0=>{let p=p0;while(p.length>13){let k=bal?Math.ceil(p.length/2):13;while(k>6&&NUM.test(p[k-1])&&NUM.test(p[k]))k--;if(!bal){for(let j=k;j>=6;j--){if(/[年部府會的和與及]/.test(p[j-1])&&!/[度代齡底初末刊報期]/.test(p[j])&&!(NUM.test(p[j-1])&&NUM.test(p[j]))){k=j;break}}}   // 2026-11-17：長片語優先斷在「年／部／的…」之後，不把「人口統計年刊」這類詞拆開
+  L.push({t:p.slice(0,k),glue:true});p=p.slice(k)}L.push({t:p})});
  const lines=[];L.forEach(x=>{const last=lines[lines.length-1];if(last&&!last.full&&(last.t+x.t).length<=13&&!x.glue)last.t+=x.t;else lines.push({t:x.t});if(x.glue)lines[lines.length-1].full=true});
  return lines.map(x=>x.t)}
-function capChunks(c,bal){const L=capLines(c,bal),ch=[];for(let i=0;i<L.length;){let a=L.slice(i,i+2);if(a.length===2&&/、$/.test(a[1])&&i+2<L.length)a=[a[0]];i+=a.length;ch.push(a)}   // 行尾是頓號的行，要和下一行同畫面
+function capChunks(c,bal){const L=capLines(c,bal),ch=[];for(let i=0;i<L.length;i+=2){let a=L.slice(i,i+2);ch.push(a)}
  if(ch.length>1&&ch[ch.length-1].length===1&&ch[ch.length-1][0].replace(/[，。、；：？！]/g,'').length<=2&&ch[ch.length-2].length===2){}   // 單獨一行的短句自成一個畫面（單行不算孤字）
  return ch}
 function capAt(sc,l){const c=sc.cap||'';if(!c)return '';const ch=capChunks(c,sc.capBal);if(ch.length===1)return ch[0].join('\n');

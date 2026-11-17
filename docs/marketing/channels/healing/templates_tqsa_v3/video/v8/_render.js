@@ -5,7 +5,8 @@ function capLines(c,bal){let ps=c.replace(/。$/,'').match(/[^，。、；：？
  if(bal&&ps.length>1&&ps[0].replace(/[，。、；：？！]/g,'').length<=3){ps=[ps[0]+ps[1]].concat(ps.slice(2))}   // capBal：句首短語（不過，／但，）併入下一段，過長時對半斷
 
  const NUM=/[零〇一二兩三四五六七八九十百千萬點]/;
- ps.forEach(p0=>{let p=p0;while(p.length>13){let k=bal?Math.ceil(p.length/2):13;while(k>6&&NUM.test(p[k-1])&&NUM.test(p[k]))k--;L.push({t:p.slice(0,k),glue:true});p=p.slice(k)}L.push({t:p})});
+ ps.forEach(p0=>{let p=p0;while(p.length>13){let k=bal?Math.ceil(p.length/2):13;while(k>6&&NUM.test(p[k-1])&&NUM.test(p[k]))k--;if(!bal){for(let j=k;j>=6;j--){if(/[年部府會的和與及]/.test(p[j-1])&&!/[度代齡底初末刊報期]/.test(p[j])&&!(NUM.test(p[j-1])&&NUM.test(p[j]))){k=j;break}}}   // 2026-11-17：長片語優先斷在「年／部／的…」之後，不把「人口統計年刊」這類詞拆開
+  L.push({t:p.slice(0,k),glue:true});p=p.slice(k)}L.push({t:p})});
  const lines=[];L.forEach(x=>{const last=lines[lines.length-1];if(last&&!last.full&&(last.t+x.t).length<=13&&!x.glue)last.t+=x.t;else lines.push({t:x.t});if(x.glue)lines[lines.length-1].full=true});
  return lines.map(x=>x.t)}
 function capChunks(c,bal){const L=capLines(c,bal),ch=[];for(let i=0;i<L.length;i+=2){let a=L.slice(i,i+2);ch.push(a)}
@@ -18,7 +19,7 @@ function capV8(s,op,dy){if(!s||op<=0)return'';const ls=s.split('\n').map(x=>x.re
  return `<div data-o="cap" class="abs cap" style="top:${top}px;font-size:${fs}px;line-height:${lh}px;opacity:${op.toFixed(3)};transform:translateY(${dy.toFixed(1)}px)">${ls.map(esc).join('<br>')}</div>`}
 window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.length;j++){if(t>=S[j].t0&&t<S[j].t1){i=j;break}}
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
- const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;let h=SC[sc.type](sc,l,dd,{});
+ const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;_ONCE=!!sc.once;let h=SC[sc.type](sc,l,dd,{});
   if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*(sc.capDy==null?18:sc.capDy))}
   if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2),sc.srcFs);return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;
