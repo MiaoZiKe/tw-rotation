@@ -69,6 +69,8 @@ def call(c, path, body, timeout):
 
 
 def who(to):
+    if to.startswith("dept:"):
+        return "整個部門「%s」（由 CEO 分派給該部門的成員，不是 subagent_type）" % to[5:]
     return "CEO（由你判斷要自己做或分派給哪位 Agent）" if to == "ceo" else "Agent「%s」（請用 Agent 工具派給 subagent_type＝%s）" % (to, to)
 
 

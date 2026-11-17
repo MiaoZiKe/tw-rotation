@@ -229,3 +229,26 @@ test('白名單：agent_files（專案員工檔名）只收格式合格的名稱
   assert.ok(j.events.every((e) => !('agent_files' in e)));
   assert.deepEqual(j.roster.map((r) => r.type), ['inspector']);
 });
+
+test('工具動作（2026-11-16 第二批第 1 項）：主工作階段記最近工具類別與時間；子 Agent 的不蓋到 CEO；回合結束清掉；不存指令或檔名', async () => {
+  const h = await setup();
+  const send = (o) => post(h, '/v1/events', o, bearer(h.code));
+  await send(ev('SessionStart'));
+  await send(ev('PreToolUse', { tool_category: 'search', command: 'rm -rf /', file_path: '/home/andy/secret.py' }));
+  let s = await (await get(h, '/v1/office/main/state', bearer(h.code))).json();
+  assert.equal(s.sessions[0].tool, 'search');
+  assert.equal(s.sessions[0].tool_at, h.at());
+  assert.ok(!JSON.stringify(s).includes('rm -rf') && !JSON.stringify(s).includes('secret.py'), '指令原文與檔名不會被存下');
+  h.tick(5000);
+  await send(ev('SubagentStart', { agent_id: 'ag9', agent_type: 'tester' }));
+  await send(ev('PreToolUse', { agent_id: 'ag9', agent_type: 'tester', tool_category: 'test' }));
+  s = await (await get(h, '/v1/office/main/state', bearer(h.code))).json();
+  assert.equal(s.sessions[0].tool, 'search', '子 Agent 的工具不會蓋掉 CEO 的');
+  assert.equal(s.agents.find((x) => x.agent_id === 'ag9').tool, 'test');
+  await send(ev('PreToolUse', { tool_category: 'ask' }));
+  s = await (await get(h, '/v1/office/main/state', bearer(h.code))).json();
+  assert.equal(s.sessions[0].tool, 'search', '等使用者回答不算工具動作');
+  await send(ev('Stop', { summary: '好了' }));
+  s = await (await get(h, '/v1/office/main/state', bearer(h.code))).json();
+  assert.equal(s.sessions[0].tool, null, '回合結束：CEO 回預設');
+});
