@@ -55676,12 +55676,12 @@
     "inst@fresh2026-11-16:6661": "no_data",
     "inst@fresh2026-11-16:5348": "no_data"
   },
-  "updated_at": "2026-11-17T01:21:21.315420+00:00",
+  "updated_at": "2026-11-17T04:36:11.824323+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
-      "at": "2026-11-17T01:14:57.272158+00:00",
-      "codes": 500,
+      "at": "2026-11-17T04:32:22.853142+00:00",
+      "codes": 2352,
       "remaining": {
         "balance": 0,
         "financial": 0,
@@ -55695,7 +55695,7 @@
     },
     "plan:default": {
       "done": true,
-      "at": "2026-11-17T01:21:21.315389+00:00",
+      "at": "2026-11-17T04:36:11.824277+00:00",
       "month": "2026-11",
       "week": "w2026-47a",
       "steps": {
@@ -55727,33 +55727,33 @@
     },
     "dividend+divresult": {
       "done": true,
-      "at": "2026-11-17T01:15:02.735973+00:00",
-      "codes": 500,
+      "at": "2026-11-17T04:32:45.548546+00:00",
+      "codes": 2352,
       "remaining": {
         "dividend": 0,
         "divresult": 0
       },
       "no_data": {
-        "dividend": 0,
-        "divresult": 0
+        "dividend": 10,
+        "divresult": 18
       }
     },
     "holding+margin@2021-01-01": {
       "done": true,
-      "at": "2026-11-17T01:15:10.983377+00:00",
-      "codes": 500,
+      "at": "2026-11-17T04:33:27.332548+00:00",
+      "codes": 2352,
       "remaining": {
-        "holding": 500,
+        "holding": 2352,
         "margin": 0
       },
       "no_data": {
         "holding": 0,
-        "margin": 0
+        "margin": 10
       }
     },
     "price@2000-01-01": {
       "done": true,
-      "at": "2026-11-17T01:15:14.882039+00:00",
+      "at": "2026-11-17T04:33:31.296106+00:00",
       "codes": 445,
       "remaining": {
         "price": 0
@@ -55859,7 +55859,7 @@
     },
     "inst@market": {
       "done": true,
-      "at": "2026-11-17T01:15:52.708968+00:00",
+      "at": "2026-11-17T04:34:45.209100+00:00",
       "codes": 1989,
       "remaining": {
         "inst": 0
@@ -55870,7 +55870,7 @@
     },
     "daytrade+sbl@2025-01-01@market": {
       "done": true,
-      "at": "2026-11-17T01:16:11.307660+00:00",
+      "at": "2026-11-17T04:35:04.471849+00:00",
       "codes": 1989,
       "remaining": {
         "daytrade": 0,
@@ -55883,7 +55883,7 @@
     },
     "dividend+divresult@2009-01-01@market": {
       "done": true,
-      "at": "2026-11-17T01:16:29.881014+00:00",
+      "at": "2026-11-17T04:35:23.718068+00:00",
       "codes": 1989,
       "remaining": {
         "dividend": 0,
@@ -55932,8 +55932,8 @@
       "remaining": {
         "intraday_60m": 0
       },
-      "codes": 2041,
-      "ok": 2041,
+      "codes": 2042,
+      "ok": 2042,
       "no_data": 0,
       "per_run": 400,
       "this_run": {
@@ -55944,7 +55944,7 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-11-17T01:14:51.192850+00:00"
+      "at": "2026-11-17T04:31:59.055640+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -56049,7 +56049,7 @@
     },
     "price@2000-01-01@market": {
       "done": true,
-      "at": "2026-11-17T01:16:48.444278+00:00",
+      "at": "2026-11-17T04:35:42.996382+00:00",
       "codes": 1989,
       "remaining": {
         "price": 0
@@ -56073,7 +56073,7 @@
     },
     "price@2000-01-01@etf": {
       "done": true,
-      "at": "2026-11-17T01:17:01.213982+00:00",
+      "at": "2026-11-17T04:35:57.150353+00:00",
       "codes": 396,
       "remaining": {
         "price": 0
@@ -56097,7 +56097,7 @@
     },
     "dividend+divresult@etf2009@etf": {
       "done": true,
-      "at": "2026-11-17T01:16:52.704495+00:00",
+      "at": "2026-11-17T04:35:47.720934+00:00",
       "codes": 396,
       "remaining": {
         "dividend": 0,
@@ -56110,7 +56110,7 @@
     },
     "etfdiv@etfx2009@etf": {
       "done": true,
-      "at": "2026-11-17T01:16:56.957238+00:00",
+      "at": "2026-11-17T04:35:52.432105+00:00",
       "codes": 396,
       "remaining": {
         "etfdiv": 0
@@ -56749,8 +56749,8 @@
     },
     "inst@2012-01-01": {
       "done": true,
-      "at": "2026-11-17T01:15:20.391393+00:00",
-      "codes": 500,
+      "at": "2026-11-17T04:33:54.015479+00:00",
+      "codes": 2352,
       "remaining": {
         "inst": 0
       },
@@ -56760,17 +56760,17 @@
     },
     "balance+financial+revenue@2012-01-01": {
       "done": true,
-      "at": "2026-11-17T01:15:25.834353+00:00",
-      "codes": 500,
+      "at": "2026-11-17T04:34:16.719192+00:00",
+      "codes": 2352,
       "remaining": {
         "balance": 0,
         "financial": 0,
         "revenue": 0
       },
       "no_data": {
-        "balance": 0,
-        "financial": 0,
-        "revenue": 0
+        "balance": 5,
+        "financial": 5,
+        "revenue": 3
       }
     },
     "opt_pc": {
@@ -56787,7 +56787,7 @@
     },
     "inst@2012-01-01@pit": {
       "done": true,
-      "at": "2026-11-17T01:15:34.091284+00:00",
+      "at": "2026-11-17T04:34:25.846078+00:00",
       "codes": 789,
       "remaining": {
         "inst": 0
@@ -56985,7 +56985,7 @@
     },
     "dividend+divresult@m2026-11": {
       "done": true,
-      "at": "2026-11-17T01:17:05.108314+00:00",
+      "at": "2026-11-17T04:36:01.117458+00:00",
       "codes": 445,
       "remaining": {
         "dividend": 0,
@@ -56998,7 +56998,7 @@
     },
     "divresult@em2026-11@etf": {
       "done": true,
-      "at": "2026-11-17T01:17:09.356819+00:00",
+      "at": "2026-11-17T04:36:05.939274+00:00",
       "codes": 396,
       "remaining": {
         "divresult": 0
@@ -57509,7 +57509,7 @@
     },
     "etfdiv@w2026-47a@etf": {
       "done": true,
-      "at": "2026-11-17T01:17:13.619012+00:00",
+      "at": "2026-11-17T04:36:10.652641+00:00",
       "codes": 396,
       "remaining": {
         "etfdiv": 0
@@ -57565,7 +57565,7 @@
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-11-17T01:14:51.764097+00:00",
+    "at": "2026-11-17T04:31:59.638274+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-11-07",
     "detail": ""
   },
