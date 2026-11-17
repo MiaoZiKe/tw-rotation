@@ -99,6 +99,7 @@ export function createBlocks(W, X) {
   const F = { mesh: null, cur: null, goal: null, busy: false };
   const paint = r => { const P = new Part(); P.slab(FLOOR_COLOR, r.x1 - r.x0, r.z1 - r.z0, 0.12, (r.x0 + r.x1) / 2, -0.13, (r.z0 + r.z1) / 2, 1.6); const g = P.geometry(); if (F.mesh) { F.mesh.geometry.dispose(); F.mesh.geometry = g; } else { F.mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 })); F.mesh.receiveShadow = true; F.mesh.castShadow = false; W.scene.add(F.mesh); } F.cur = { ...r }; W.shadowDirty && W.shadowDirty(); };
   B.floor = () => ({ ...(F.goal || floorRect()) });
+  B.floorMesh = () => F.mesh;
   async function floorTo(instant) {
     F.goal = floorRect(); if (!F.cur || instant) { paint(F.goal); return; }
     if (F.busy) return; F.busy = true;

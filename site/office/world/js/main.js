@@ -5,6 +5,7 @@ import { createWorld, saveOverrides, clearOverrides } from './world.js';
 import { createDirector } from './director.js';
 import { createPilot } from './pilot.js';
 import { createMulti } from './multi.js';
+import { createFloorGuard } from './floorguard.js';
 import { createCamClear } from './camclear.js';   // 跟隨視角被路燈等擋住時，鏡頭自動繞開（新檔）   // 按住 Ctrl 多選（新檔；main 只掛鉤）
 import { createAttention } from './attention.js';
 import { createPOV } from './pov.js';
@@ -289,6 +290,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
   const pov = createPOV(W, { camera, controls, cv, view, cam, ui, charTarget: (c, o) => charTarget(c, o), restoreControls: modeControls, everyone: () => everyone, isGrabbing: () => !!grab, downChar: () => !!(down && down.c) }); W.pov = pov;
   const attn = createAttention(W, { camera, pilot, director: () => director }); W.attn = attn;
   const multi = createMulti(W, { cv, camera, ui, pilot, setView, director: () => director, pick: pickChar, isEdit: () => edit.on }); W.multi = multi;   // 多選：Ctrl＋點／框選／群組面板（multi.js；下面 pointerdown／pointerup 各有一行掛鉤）
+  W.floorGuard = createFloorGuard(W);   // 地板整片近黑時自動換成純色材質（floorguard.js）
   W.camclear = createCamClear(W, { camera, controls, view, pilot });
   const daytime = createDaytime(W, {}); W.daytime = daytime;   // 天色依台北時間連續變化
   const noPhys = qs.get('nophys') === '1';   // 網址加 nophys=1＝關掉物理與火焰（驗收量「繪製次數增量」時當對照組）
@@ -650,7 +652,7 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
       else if (shift !== want) { shift = want; if (!want) camera.clearViewOffset(); }
     }
     outline.frame(); if (hoverXY && !grab && now - hoverRe > 160) { hoverRe = now; const hc = pickChar(hoverXY); outline.set(hc && !hc.away ? hc : null); }   // 游標沒動、人走開（或走來）時外框也要跟著換
-    fire.frame(real); phys.preRender(real); const f2 = performance.now(); renderer.render(scene, camera); const f3 = performance.now(); phys.postRender();   // 鏡頭微晃只在渲染的那一刻加上
+    fire.frame(real); phys.preRender(real); const f2 = performance.now(); renderer.render(scene, camera); W.floorGuard && W.floorGuard.afterRender(); const f3 = performance.now(); phys.postRender();   // 鏡頭微晃只在渲染的那一刻加上
     W.stats.calls = renderer.info.render.calls; W.stats.tris = renderer.info.render.triangles;
     updateLabels(); pilot.frame(real, W.time); camHint.tick(); daytime.tick(); ui.tickCard(); power.frame(real); jobs.frame(real, W.time); W.outside.frame(W.time); W.outside.tick(); W.empty.frame();
     { const f4 = performance.now(), K = 0.06; PF.n++; if (PF.n === 3) PF.boot.frame3 = Math.round(f0); PF.steps = n; PF.sim += (f1 - f0 - PF.sim) * K; PF.simMax = Math.max(PF.simMax * 0.995, f1 - f0); PF.render += (f3 - f2 - PF.render) * K; PF.post += (f4 - f3 + f2 - f1 - PF.post) * K; PF.frame += (f4 - f0 - PF.frame) * K; if (PF.rec) PF.hist.push([f1 - f0, f3 - f2, f4 - f0, n]); }
