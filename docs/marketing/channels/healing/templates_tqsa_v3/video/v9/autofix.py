@@ -9,6 +9,7 @@
   字幕碰撞／字幕下緣超界（overlap／oob／edge 含 cap）→ capDy 8 → 0
   強調淨空不足（emphasis_fail）／光點亮帶閃爍 → once:true → 再不行 noglide:true
   字幕斷行不良（caption_bad：孤字、行首標點）→ capBal:true
+  文字壓文字（overlap 的 txt:「甲」×「乙」；render_video.js 任兩文字外框相交）→ 註腳含「自行計算」就併進強調字，否則 footDy +50（最多 3 次）
 其餘（同步、起音、響度、換鏡同框、插圖面板變動、片尾 LOGO）無自動旗標，直接列給人看。"""
 import os, sys, re, json, shutil, subprocess, glob
 B = os.path.dirname(os.path.abspath(__file__)); VD = os.path.join(B, ".."); sys.path.insert(0, B)
@@ -42,7 +43,8 @@ def collect(folder, voice):
             m = re.match(r"([\d.]+)s (.*)", x)
             if not m: I.append(("other", None, "%s：%s" % (kind, x))); continue
             sid = scene_at(rep, float(m.group(1))); body = m.group(2); names = set(re.split(r"×| ", body))
-            if {"tag", "title"} <= names: I.append(("tagtitle", sid, x))
+            if body.startswith("txt:"): I.append(("txtovl", sid, "文字壓文字 " + body[4:]))
+            elif {"tag", "title"} <= names: I.append(("tagtitle", sid, x))
             elif "cap" in names: I.append(("cap", sid, x))
             elif names == {"src"}: I.append(("src", sid, "%s：出處行出界" % kind))
             else: I.append(("other", sid, "%s：%s" % (kind, x)))
@@ -72,6 +74,14 @@ def fix(sc, issues):
                 p = min(cut) + 1 if cut else len(so) // 2
                 s["source"] = so[:p] + "\n" + so[p:]; o["srcFs"] = 30; done.append("%s 出處拆兩行（%s）" % (sid, d))
             else: left.append("%s %s（srcFs 與兩行都已用）" % (sid, d))
+            continue
+        if kind == "txtovl" and s is not None:   # 文字壓文字：註腳併入標籤／強調字，沒得併就把註腳下移 50px（最多 3 次）
+            dd = s.get("data", {}); ft = dd.get("foot"); em = dd.get("em")
+            if ft and isinstance(em, dict) and em.get("txt") and "自行計算" in ft:
+                em["txt"] += "（自行計算）"; dd.pop("foot"); done.append("%s 註腳併入強調字「%s」（%s）" % (sid, em["txt"], d))
+            elif ft and dd.get("footDy", 0) < 150 + 150:
+                dd["footDy"] = dd.get("footDy", 150) + 50; done.append("%s 註腳下移 footDy→%s（%s）" % (sid, dd["footDy"], d))
+            else: left.append("%s %s（沒有註腳可併入或下移，請人工改版面）" % (sid or "", d))
             continue
         if kind == "other" or s is None: left.append("%s %s" % (sid or "", d)); continue
         o = s.setdefault("opts", {})

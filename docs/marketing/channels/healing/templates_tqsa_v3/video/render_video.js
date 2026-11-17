@@ -33,6 +33,9 @@ fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
     if(E){[...document.querySelectorAll('#stage text, #stage div')].forEach(e=>{if(!e.textContent.trim()||e.children.length&&e.tagName!=='text'||e.closest('clipPath'))return;let x=e,vis=1;while(x&&x!==document.body){vis*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}
      let fs=parseFloat(getComputedStyle(e).fontSize);if(e.tagName==='text'&&e.getScreenCTM){const m=e.getScreenCTM();fs*=Math.hypot(m.a,m.b)}
      if(vis>=.9&&fs<29.5&&!e.closest('[data-x]'))ws.push('小字 '+fs.toFixed(1)+'px「'+e.textContent.trim().slice(0,8)+'」')})}
+    // v9：文字壓文字（2026-11-17 審片：註腳被標籤壓住、容器級檢查抓不到）——任兩個可見文字元素的外框相交即算重疊（外框上下各縮 12%、左右縮 2px 去掉字體留白），寫成「txt:「甲」×「乙」」
+    try{const tx=[...document.querySelectorAll('#stage text, #stage div.cap')].filter(e=>{if(!e.textContent.trim()||e.closest('clipPath')||e.closest('defs')||e.querySelector('text'))return false;let x=e,v=1;while(x&&x!==document.body){v*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}return v>=.3}).map(e=>{const q=e.getBoundingClientRect(),h=q.bottom-q.top;return{t:e.textContent.trim().slice(0,10),x:q.left+2,r:q.right-2,y:q.top+h*.12,b:q.bottom-h*.12}});
+     for(let i=0;i<tx.length;i++)for(let j=i+1;j<tx.length;j++){const a=tx[i],c=tx[j];if(a.r<=a.x||c.r<=c.x)continue;if(!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push('txt:「'+a.t+'」×「'+c.t+'」')}}catch(err){}
     for(let i=0;i<els.length;i++){const a=els[i];if(a.x<90||a.r>990||a.y<Y0||a.b>Y1)oob.push(a.o);for(let j=i+1;j<els.length;j++){const c=els[j];if(!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push(a.o+'×'+c.o)}}return{ov,oob,ws,top:ws.top,bot:ws.bot}},!!V.edge60);
    r.ov.forEach(x=>rep.overlap.push(t.toFixed(1)+'s '+x));r.oob.forEach(x=>rep.oob.push(t.toFixed(1)+'s '+x));
    if(V.edge60){(rep.edge=rep.edge||[]).push(...r.ws.map(x=>t.toFixed(1)+'s '+x));rep.gapTopMax=Math.max(rep.gapTopMax||0,r.top);rep.gapBotMax=Math.max(rep.gapBotMax||0,r.bot)}}}

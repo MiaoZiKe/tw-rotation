@@ -13,7 +13,7 @@
   "outro": { "keyword": "學貸", "next": "2027 年的最低工資" } }
 ```
 
-- `layout`：`hook`（大字＋迷你圖）、`versus`、`ask`、`next`（資料攤平到鏡上：hook＝ulw／big／mini；versus＝a／b／mid／em／emw；ask＝recap／opt；next＝slip／row）；
+- `layout`：`hook`（大字＋迷你圖）、`versus`、`ask`、`next`（資料攤平到鏡上：hook＝ulw／big／mini；versus＝a／b／mid／em／emw；ask＝recap；二選一按鈕預設不畫，要畫才在 opts 或 data 寫 opt（v9 2026-11-17）；next＝slip／row）；
   圖表 `donut／bars→hbars／vbars／dumbbell／lollipop／slope／band／gantt／stack／steps／people／tiles／split2／lanes／odometer`（資料放 `data`，轉成同名鍵；odometer→`odo`）。
 - `subject`：插圖主體，來自 `v9/illustrations/`（清單 `v9/ILLUSTRATIONS.md`）。`keywords` 依「可換標籤」順序逐一取代、`labels` 指定原字→新字、`colors` 換色。要貼近該篇文案，不准放無關通用圖。
 - `outro`：只填 `keyword`、`next`；其餘（`say`、`slogan`、`nextLine`、`dur`、`src`）可覆寫。
