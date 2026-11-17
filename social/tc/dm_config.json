@@ -31,6 +31,9 @@
     "hbm": [
       "堆疊",
       "HBM"
+    ],
+    "cooling": [
+      "液冷"
     ]
   },
   "legal_pending": [],

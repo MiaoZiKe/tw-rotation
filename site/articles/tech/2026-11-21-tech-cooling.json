@@ -1,0 +1,158 @@
+{
+ "id": "2026-11-21-tech-cooling",
+ "cat": "tech",
+ "title": "液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走",
+ "subtitle": "科技透明圈：一整櫃 AI 伺服器約吃 120 千瓦，電最後都變成熱。同體積的水能帶走的熱，大約是空氣的 3,400 多倍，所以晶片上改貼冷板，讓冷水流過去把熱搬走。",
+ "date": "2026-11-21",
+ "updated": "2026-11-21",
+ "tags": [
+  "科技透明圈",
+  "液冷",
+  "冷板",
+  "CDU",
+  "AI伺服器"
+ ],
+ "summary": "一櫃 AI 伺服器（以 NVIDIA GB200 NVL72 為例）廠商公布約吃 120 千瓦的電，電最後都變成熱，風扇已經吹不走。水比空氣能裝熱：同體積、升高 1 度，水帶走的熱大約是空氣的 3,400 多倍。所以晶片上改貼一塊銅冷板，板內有很細的水道，冷水流過吸熱，再經機櫃背後的總水管與可熱插拔的快接頭，送到 CDU（冷卻液分配裝置）把熱交給機房冷卻水，降溫後循環回來。冷板不是全包，業界說法還有一到兩成的熱要靠風扇帶走。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/tech/20261121v_cooling/video.mp4",
+   "poster": "media/tech/20261121v_cooling/cover.jpg",
+   "title": "液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走",
+   "note": "影片 1080×1920；示意動畫，非實際比例；水流與溫度顏色為示意。"
+  },
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "一整櫃 AI 伺服器（NVIDIA GB200 NVL72 為例）廠商公布約吃 120 千瓦（廠商頁面寫 120～132 千瓦），電最後都變成熱。風冷能處理的上限各家說法不一，大約幾十千瓦，所以這種機櫃改用液冷。",
+    "同樣體積、溫度升高 1 度，水能帶走的熱大約是空氣的 3,400 多倍（水體積熱容約 4.18 MJ/m³·K，空氣約 0.0012；Data Center Frontier 寫約 3,500 倍）。這是單位體積能裝的熱，不是整體散熱效率的倍數。",
+    "做法叫直接液冷（direct-to-chip）：晶片上貼冷板，冷水流過板內細水道吸熱，水不碰電子零件。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "一條迴路怎麼走"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "冷板：銅做的板子貼在 GPU 上，中間塗導熱膏；板內是很多條細水道（微通道），熱從晶片傳進銅，再傳給水。",
+    "水管與總水管：每台伺服器托盤的水管，先接到機櫃背後的總水管（分歧管）。藍色的供水管把冷水分給每一層，紅色的回水管把熱水收回來。",
+    "快接頭：托盤用可熱插拔的快接頭接上總水管，拔開時兩端的閥芯被彈簧推回關住，不漏水（NVIDIA 建議廠商 Eaton、Boyd 等產品頁說明）。",
+    "CDU（冷卻液分配裝置）：裡面有板式熱交換器，機櫃這一側的熱水與機房冷卻水各走各的，隔著金屬片傳熱，水不混；降溫後的水再用幫浦送回機櫃。機房冷卻水的熱最後由乾冷器或冷卻水塔放掉。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "哪些公司在做（媒體報導）"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "冷板與模組：奇鋐、雙鴻；雙鴻也擴及分歧管與快接頭（鉅亨、優分析、財訊等媒體報導）。",
+    "快接頭：富世達（媒體提及新切入快接頭並傳入列 NVIDIA 合格供應商，原文標為市場傳聞，科技新報、優分析）。",
+    "CDU：台達電（媒體報導自 2025 年第四季起出貨）。",
+    "熱交換器：高力（媒體報導，也供應 CDU 整合模組）。",
+    "以上整理自媒體報導，供應名單會變，只說明產業分工，不排名、不引用占比；NVIDIA 認證名單不等於所有供應商名單。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "冷板不是全包"
+  },
+  {
+   "t": "p",
+   "text": "冷板只蓋在晶片這類最燙的零件上。業界說法，冷板約帶走 80～90% 的熱，其餘 10～20%（電感、功率晶片、記憶體等沒蓋到的地方）仍要靠風扇（Data Center Frontier 引述）。"
+  },
+  {
+   "t": "p",
+   "text": "下一支：機櫃還會更耗電，電線要加粗，還是把電壓拉高？來看八百伏特。"
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理。標「廠商公布」的數字是廠商自己的說法；公司名單來自媒體報導，僅說明產業分工。查證截至 2026/11/17，發布當天（11/21）會再查一次。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "NVIDIA DGX GB200 User Guide（Hardware）",
+   "publisher": "NVIDIA",
+   "date": "查證日 2026-11-16",
+   "url": "https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html"
+  },
+  {
+   "title": "451 Research：Vertiv 液冷參考設計",
+   "publisher": "Vertiv／451 Research",
+   "date": "2024-11-04",
+   "url": "https://prod.vertiv.cn/4ad4c4/globalassets/campaigns/ai-hub/451research_reprint_vertiv_04nov2024.pdf"
+  },
+  {
+   "title": "Nvidia Blackwell efficiency",
+   "publisher": "The Register",
+   "date": "2024-03-27",
+   "url": "https://www.theregister.com/2024/03/27/nvidia_blackwell_efficiency/"
+  },
+  {
+   "title": "Data Center Cooling Effectiveness Versus Efficiency",
+   "publisher": "Upsite",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.upsite.com/blog/data-center-cooling-effectiveness-versus-efficiency/"
+  },
+  {
+   "title": "New Liquid Cooling Designs Refine Options for Data Centers",
+   "publisher": "Data Center Frontier",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.datacenterfrontier.com/special-reports/article/11427966/new-liquid-cooling-designs-refine-options-for-data-centers"
+  },
+  {
+   "title": "What is liquid cooling",
+   "publisher": "HPE",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.hpe.com/us/en/what-is/liquid-cooling.html"
+  },
+  {
+   "title": "Eaton validated for NVIDIA GB200 NVL72 recommended vendor list",
+   "publisher": "Eaton",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.eaton.com/us/en-us/markets/data-centers/ai-machine-learning/scaling-ai-with-eatons-complete-liquid-cooling-systems.html"
+  },
+  {
+   "title": "Boyd validated for NVIDIA GB200 NVL72 recommended vendor list",
+   "publisher": "Boyd",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.boydcorp.com/blog/boyd-validated-for-nvidia-gb200-nvl72-recommended-vendor-list.html"
+  },
+  {
+   "title": "輝達 GTC 大會 GB300 即將登場！奇鋐交貨量增加、富世達打入供應鏈",
+   "publisher": "科技新報",
+   "date": "2025-03-10",
+   "url": "https://finance.technews.tw/2025/03/10/gtc-gb300/"
+  },
+  {
+   "title": "AI 伺服器液冷規格升級，富世達伺服器營收占比升至 65%",
+   "publisher": "優分析",
+   "date": "查證日 2026-11-17",
+   "url": "https://uanalyze.com.tw/articles/4120458319"
+  },
+  {
+   "title": "雙鴻切入快接頭與機櫃市場、取得輝達認證",
+   "publisher": "財訊",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.moneyweekly.com.tw/_Article?AID=167952"
+  },
+  {
+   "title": "液冷散熱供應鏈（奇鋐、雙鴻、台達電、高力）",
+   "publisher": "鉅亨",
+   "date": "查證日 2026-11-17",
+   "url": "https://news.cnyes.com/news/id/6152963"
+  }
+ ],
+ "confidence": "中高：一櫃約 120 千瓦為廠商公布（高）；水對空氣約 3,400 多倍為物性計算（高）；冷板、分歧管、快接頭、CDU 的作法為廠商與業界共識（高）；冷板帶走 8～9 成為業界說法（中）；公司分工為媒體報導（中）",
+ "status": "published",
+ "video": "tech-cooling（科技透明圈每日短影片）"
+}
