@@ -1,0 +1,169 @@
+1
+00:00:00,000 --> 00:00:01,767
+把 Excel 表格貼給 AI
+Paste an Excel table to AI.
+
+2
+00:00:01,767 --> 00:00:02,867
+約十一秒
+Paste an Excel table to AI.
+
+3
+00:00:02,867 --> 00:00:05,500
+交回一個會動的圖表網頁
+In about 11 seconds: an animated chart page.
+
+4
+00:00:05,500 --> 00:00:06,200
+我貼上
+I pasted sales data copied from Excel.
+
+5
+00:00:06,200 --> 00:00:07,833
+Excel 複製的銷量表
+I pasted sales data copied from Excel.
+
+6
+00:00:07,833 --> 00:00:09,200
+請它畫折線圖
+I asked for a line chart that animates.
+
+7
+00:00:09,200 --> 00:00:10,333
+要有動畫
+I asked for a line chart that animates.
+
+8
+00:00:10,333 --> 00:00:11,233
+網頁打開
+Open the page.
+
+9
+00:00:11,233 --> 00:00:12,133
+三條線真的
+Open the page.
+
+10
+00:00:12,133 --> 00:00:14,067
+一條一條畫出來
+The three lines draw themselves in.
+
+11
+00:00:14,067 --> 00:00:15,267
+但是看三月
+But look at March: store B drops to zero.
+
+12
+00:00:15,267 --> 00:00:16,967
+門市 B 的線掉到零
+But look at March: store B drops to zero.
+
+13
+00:00:16,967 --> 00:00:19,300
+表格那格明明是空白
+That cell in the table was blank.
+
+14
+00:00:19,300 --> 00:00:20,933
+空白，不等於零
+Blank is not zero.
+
+15
+00:00:20,933 --> 00:00:22,433
+這是 AI 自己的決定
+That was AI's own call. I never said so.
+
+16
+00:00:22,433 --> 00:00:23,967
+我沒有交代
+That was AI's own call. I never said so.
+
+17
+00:00:23,967 --> 00:00:24,900
+我補一句
+I added: blank means no data.
+
+18
+00:00:24,900 --> 00:00:26,300
+空白代表沒資料
+I added: blank means no data.
+
+19
+00:00:26,300 --> 00:00:27,333
+別畫成零
+I added: blank means no data.
+
+20
+00:00:27,333 --> 00:00:28,167
+線斷開
+Don't plot zero. Break the line, label it.
+
+21
+00:00:28,167 --> 00:00:29,467
+標上無資料
+Don't plot zero. Break the line, label it.
+
+22
+00:00:29,467 --> 00:00:31,433
+改完三月那一段斷開
+Fixed: March breaks and says no data.
+
+23
+00:00:31,433 --> 00:00:32,600
+標著無資料
+Fixed: March breaks and says no data.
+
+24
+00:00:32,600 --> 00:00:34,867
+其他兩條線沒動
+The other two lines are unchanged.
+
+25
+00:00:34,867 --> 00:00:36,833
+不過我只試了兩份小表格
+But I tried only two small tables.
+
+26
+00:00:36,833 --> 00:00:37,900
+兩個模型
+But I tried only two small tables.
+
+27
+00:00:37,900 --> 00:00:39,300
+更大的表格行不行
+I used two models. Bigger tables: unknown.
+
+28
+00:00:39,300 --> 00:00:40,967
+還不知道
+I used two models. Bigger tables: unknown.
+
+29
+00:00:40,967 --> 00:00:42,300
+所以做法三步
+Three steps: paste the table.
+
+30
+00:00:42,300 --> 00:00:43,100
+貼表格
+Three steps: paste the table.
+
+31
+00:00:43,100 --> 00:00:44,500
+看圖有沒有怪點
+Check for odd points, and say so clearly.
+
+32
+00:00:44,500 --> 00:00:46,133
+有就說清楚
+Check for odd points, and say so clearly.
+
+33
+00:00:46,133 --> 00:00:47,100
+留言「圖表」
+Comment “圖表” to get the prompt.
+
+34
+00:00:47,100 --> 00:00:49,300
+拿這句貼表格的提示詞
+Comment “圖表” to get the prompt.

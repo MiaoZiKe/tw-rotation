@@ -1,0 +1,11 @@
+{
+  "title": "旅遊行程丟給 AI，變成一頁能點的行程表",
+  "format": "article",
+  "platforms": [
+    "ig",
+    "threads"
+  ],
+  "status": "draft",
+  "keyword": "行程",
+  "note": "存貨：還沒排時間、不要自動發。文章 site/articles/caffaine/2026-11-17-trip-plan.json；影片 site/media/caffaine/stock_trip-plan/。要發時再補 publish_at、改 approved、加 format=video 與 video_src。"
+}
