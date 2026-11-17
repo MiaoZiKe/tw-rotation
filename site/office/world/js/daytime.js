@@ -161,7 +161,7 @@ export function createDaytime(W, X) {
   // 額度用完（睡覺）的燈光調暗：W.dim（1＝正常，0.35＝睡覺）乘在天色的光強度上，但不低於下限（夜晚疊加時仍要看得清楚）。
   // 單獨抽出來，是因為調暗是每幀漸變，不能每次都重畫整個天空。
   const dimmed = (v, k, floor) => (k >= 1 ? v : Math.min(v, Math.max(v * k, floor)));
-  D.applyDim = () => { if (!D.cur) return; const k = W.dim == null ? 1 : W.dim; hemi.intensity = dimmed(D.cur[7], k, 0.5); sun.intensity = dimmed(D.cur[9], k, 0.2); };
+  D.applyDim = () => { if (!D.cur) return; const k = W.dim == null ? 1 : W.dim; hemi.intensity = dimmed(D.cur[7], k, 0.85); sun.intensity = dimmed(D.cur[9], k, 0.55); /* 下限 11-17 拉高（0.5／0.2→0.85／0.55）：夜晚＋睡覺＋預算超額三層疊加時曾接近全黑 */ };
   function apply(t) {
     const f = frame(t); D.cur = f;
     if (g2) { const gr = g2.createLinearGradient(0, 0, 0, cv.height); gr.addColorStop(0, '#' + f[1].getHexString()); gr.addColorStop(0.55, '#' + f[2].getHexString()); gr.addColorStop(1, '#' + f[3].getHexString()); g2.fillStyle = gr; g2.fillRect(0, 0, cv.width, cv.height); W.skyTex.needsUpdate = true; }
@@ -170,7 +170,7 @@ export function createDaytime(W, X) {
     if (W.clouds) W.clouds.material.color.copy(f[10]);
     if (W.glassMat) { W.glassMat.color.copy(f[11]); W.glassMat.opacity = f[12]; }
     if (W.patchMat) { W.patchMat.color.copy(f[13]); W.patchMat.opacity = f[14]; }
-    { const nk = Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); outU.value.setRGB(1 - 0.84 * nk, 1 - 0.74 * nk, 1 - 0.6 * nk); } if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4;
+    { const nk = Math.max(0, Math.min(1, (f[15] - 0.35) / 0.65)); outU.value.setRGB(1 - 0.66 * nk, 1 - 0.58 * nk, 1 - 0.42 * nk); /* 屋外夜色（11-17 由 0.84／0.74／0.6 放緩：原本疊上睡覺調暗後地面樹木幾乎全黑） */ } if (glow) glow.material.opacity = Math.min(1, f[15] * 0.95); if (ceil) ceil.material.opacity = f[15] * 0.4;
     { const k = Math.max(0, Math.min(1, (f[15] - 0.3) / 0.7)); outL.k = k; for (const o of [outL.spots, outL.cores]) if (o) { o.visible = k > 0.01; o.material.opacity = k * (o === outL.spots ? 1 : 1); } if (outL.fire) outL.fire.visible = k > 0.01; if (outL.fire && k <= 0.01) outL.fire.material.opacity = 0; } stars.material.opacity = f[16];
     // 太陽 6～18 點在天上；月亮 18～6 點。方向光：白天用太陽，夜晚用月亮，兩者交接的 1 小時內方向平順轉過去
     bodyDir(t, 6, sd); bodyDir(t, 18, md);

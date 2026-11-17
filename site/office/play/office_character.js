@@ -150,7 +150,7 @@ export function createCharacter(spec, env = {}) {
       // 場景可能直接改 object3D.position（瞬移），以它為準
       if (!c._held && !c._hop && Math.abs(root.position.x - ch.pos.x * s) + Math.abs(root.position.z - ch.pos.z * s) > 0.5) place(root.position.x, root.position.z);
       if (c._until && t > c._until) { c._until = 0; apply(c._base); }
-      if (c.speech && t > c.speech.until) c.speech = null; if (c.emoteSym && t > c.emoteSym.until) c.emoteSym = null;
+      if (c.speech && (t > c.speech.until || performance.now() > c.speech.w)) c.speech = null; if (c.emoteSym && t > c.emoteSym.until) c.emoteSym = null;
       if (react && t > react.until) { const r = react; react = null; r.done && r.done(); }
       if (c._held) { ch.ext.vx = ch.ext.vz = 0; }
       else if (c._hop) { ch.ext.vx = ch.ext.vz = 0; }
@@ -202,7 +202,7 @@ export function createCharacter(spec, env = {}) {
     },
     standAt(x, z, face) { c.stop(false); if (c._held) return; c._seat = null; c._hop = null; ch.mode = 'normal'; place(x, z); ch.ext.y = 0; ch.pos.y = 0; if (face != null) { c.heading = face; ch.yaw = face; } },
     faceTo(x, z) { const dx = x - ch.pos.x * s, dz = z - ch.pos.z * s; if (dx * dx + dz * dz > 1e-4) { c.heading = Math.atan2(dx, dz); if (ch.mode === 'sit') ch.yawTo = c.heading; } },
-    say(text, sec = 2.6) { c.speech = { text, until: c._t + sec }; ch.speech = { text, t: sec, talk: Math.min(sec, 0.25 + text.length * 0.16) }; },
+    say(text, sec = 2.6) { c.speech = { text, until: c._t + sec, w: performance.now() + sec * 1000 + 700 }; ch.speech = { text, t: sec, talk: Math.min(sec, 0.25 + text.length * 0.16) }; },
     // 頭上圖示：exclaim question anger sweat bulb star heart note dots zzz check（舊的文字符號也認得）
     emote(sym, sec = 2) {
       const name = ALIAS[sym] || sym; c.emoteSym = { sym: name, until: c._t + sec };

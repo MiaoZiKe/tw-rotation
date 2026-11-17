@@ -34,9 +34,9 @@ function boot(W) {
 #budgetPop p{margin:4px 4px 8px;color:var(--sub,#7a6f66);font-size:12.5px}
 #budgetPop .row{display:flex;gap:6px;align-items:center;margin:6px 4px}#budgetPop input{font:inherit;width:100px;border:1px solid var(--line,#e3d9cf);border-radius:10px;padding:5px 8px}
 #budgetPop .row .btn{box-shadow:none;border:1px solid var(--line,#e3d9cf);height:32px;padding:0 12px}
-#budgetDim{position:absolute;inset:0;background:rgba(18,20,42,.46);pointer-events:none;z-index:5;opacity:0;transition:opacity .8s}
+#budgetDim{position:absolute;inset:0;background:rgba(18,20,42,.14);pointer-events:none;z-index:5;opacity:0;transition:opacity .8s}
 #budgetDim.on{opacity:1}
-body.budget-over #cv{filter:brightness(.6) saturate(.7);transition:filter .8s}
+body.budget-over #cv{filter:brightness(.86) saturate(.8);transition:filter .8s}
 #budgetNote{position:absolute;left:50%;top:132px;transform:translateX(-50%);z-index:11;background:rgba(30,30,52,.9);color:#fff;border-radius:14px;padding:8px 14px;font-size:13px;max-width:calc(100vw - 32px);text-align:center;line-height:1.5}
 @media (max-width:640px){#budgetBtn .tr{width:44px}#budgetBtn{order:21;font-size:11.5px;padding:0 8px;gap:5px}#budgetBtn .lb{display:none}#budgetPop{width:calc(100vw - 32px)}#budgetNote{font-size:12px;top:140px}}`;
   document.head.append(css);

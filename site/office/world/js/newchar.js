@@ -138,7 +138,7 @@ function makeNew(spec, look, env) {
       // 場景直接改 object3D.position（瞬移）以它為準
       if (!c._held && ctl.state !== 'held' && !c._seat && !c._rising && Math.abs(root.position.x - b.x * s) + Math.abs(root.position.z - b.z * s) > 0.5) place(root.position.x, root.position.z);
       if (c._until && t > c._until) { c._until = 0; apply(c._base); }
-      if (c.speech && t > c.speech.until) c.speech = null; if (c.emoteSym && t > c.emoteSym.until) c.emoteSym = null;
+      if (c.speech && (t > c.speech.until || performance.now() > c.speech.w)) c.speech = null; if (c.emoteSym && t > c.emoteSym.until) c.emoteSym = null;
       if (react && t > react.until) { const r = react; react = null; r.done && r.done(); }
       drive(dt);
       c.sleeping = c.action === 'sleep';
@@ -180,7 +180,7 @@ function makeNew(spec, look, env) {
     },
     standAt(x, z, face) { c.stop(false); if (c._held) return; c._seat = null; c._rising = false; c._hop = null; world.boxes.length = 0; place(x, z); if (face != null) { c.heading = face; ctl.reset(x / s, z / s, face); } apply(c.action); },
     faceTo(x, z) { const dx = x - ctl.body.x * s, dz = z - ctl.body.z * s; if (dx * dx + dz * dz > 1e-4) { c.heading = Math.atan2(dx, dz); if (c._seat && ctl.sit) ctl.sit.box.face = c.heading; } },
-    say(text, sec = 2.6) { c.speech = { text, until: c._t + sec }; speakUntil = c._t + Math.min(sec, 0.25 + text.length * 0.16); },
+    say(text, sec = 2.6) { c.speech = { text, until: c._t + sec, w: performance.now() + sec * 1000 + 700 }; speakUntil = c._t + Math.min(sec, 0.25 + text.length * 0.16); },
     emote(sym, sec = 2) {
       const name = ALIAS[sym] || sym; c.emoteSym = { sym: name, until: c._t + sec };
       if (!icon) { icon = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false })); icon.renderOrder = 30; root.add(icon); }

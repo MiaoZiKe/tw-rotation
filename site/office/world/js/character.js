@@ -81,7 +81,7 @@ export function createCharacter(spec, env = {}) {
     update(dt, t) {
       c._t = t;
       if (c._until && t > c._until) { c._until = 0; c.action = c._base; }
-      if (c.speech && t > c.speech.until) c.speech = null;
+      if (c.speech && (t > c.speech.until || performance.now() > c.speech.w)) c.speech = null;
       if (c.emoteSym && t > c.emoteSym.until) c.emoteSym = null;
       if (c._path) step(dt);
       // 朝向平滑轉
@@ -104,7 +104,7 @@ export function createCharacter(spec, env = {}) {
     sitAt(seat) { c.stop(false); root.position.set(seat.x, 0, seat.z); c.seatY = seat.y - 0.16 * k; c.heading = seat.face; c.state = 'sit'; },
     standAt(x, z, face) { c.stop(false); root.position.set(x, 0, z); c.seatY = 0; if (face != null) c.heading = face; c.state = 'stand'; },
     faceTo(x, z) { const dx = x - root.position.x, dz = z - root.position.z; if (dx * dx + dz * dz > 1e-4) c.heading = Math.atan2(dx, dz); },
-    say(text, sec = 2.6) { c.speech = { text, until: c._t + sec }; c.setAction('talk', { duration: Math.min(sec, 2.4) }); },
+    say(text, sec = 2.6) { c.speech = { text, until: c._t + sec, w: performance.now() + sec * 1000 + 700 }; c.setAction('talk', { duration: Math.min(sec, 2.4) }); },
     emote(sym, sec = 2) { c.emoteSym = { sym, until: c._t + sec }; },
     setVisible(v) { root.visible = v; },
     dispose() { mesh.geometry.dispose(); root.removeFromParent(); }

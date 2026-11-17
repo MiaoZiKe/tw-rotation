@@ -150,7 +150,7 @@ export function createMind(W, X = {}) {
     if (force || c.expression === 'neutral' || (m.baseName && c.expression === m.baseName)) { if (n !== c.expression || force) { c._mindFace && c._mindFace(n); } m.baseName = n; }
     m.lastFace = n;
   }
-  const say = (c, text, sec = 1.8, force) => { if (force || canAct(c) || c.jobless || c.hrBusy) c.say(text, sec); };
+  const say = (c, text, sec = 1.8, force) => { if (force || canAct(c) || c.jobless || c.hrBusy) c.say(text, Math.min(sec, 3)); };
   const act = (c, name, opt = {}, force) => { if (!(force || canAct(c))) return false; c.setAction(c.newModel ? name : (OLD_ALIAS[name] || name), opt); return true; };
 
   // ───────── 場景（一段演出：依時間排好的步驟，高優先的蓋掉低優先的） ─────────

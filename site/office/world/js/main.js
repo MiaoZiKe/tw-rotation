@@ -362,12 +362,22 @@ async function loadCharacterModule() { const p = qs.get('char') || './newchar.js
         bubs.push({ L, x: Math.max(L.bw / 2 + 6, Math.min(w - L.bw / 2 - 6, x)), y: Math.max(L.bh + (w < 640 ? 100 : 60), y - th - 10), w: L.bw, h: L.bh });
       } else if (L.bon) { L.bub.style.transform = 'translate(-999px,-999px)'; L.bon = false; L.txt = ''; }
     }
-    // 泡泡互相不重疊：由下往上排，撞到就往上讓
+    // 泡泡互相不重疊（11-17 重寫）：原本「撞到就一直往上讓」，十幾個人同時開口（火災）會疊成一條幾百像素的長柱、壓在整個部門上方。
+    // 現在：由畫面下方的先排；撞到時依「位移成本」由小到大試——先左右錯開、最多往上讓兩層（每層一個泡泡高），位置離自己的角色最近的先選；
+    // 全部都撞就這一格先不顯示（說話還在，下一格位置空出來就會出現），所以不會有柱子，也不會有重疊。
     bubs.sort((a, b) => b.y - a.y);
-    for (let i = 0; i < bubs.length; i++) {
-      const a = bubs[i];
-      for (let k = 0; k < 4; k++) { let hit = false; for (let j = 0; j < i; j++) { const b = bubs[j]; if (Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 4 && a.y > b.y - b.h - 4 && a.y - a.h < b.y + 4) { a.y = b.y - b.h - 8; hit = true; } } if (!hit) break; }
-      const top = a.h + (w < 640 ? 100 : 60); if (a.y < top) { a.y = top; for (let j = 0; j < i; j++) { const b = bubs[j]; if (Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 4 && a.y > b.y - b.h - 4 && a.y - a.h < b.y + 4) a.x = a.x < b.x ? Math.max(a.w / 2 + 6, b.x - (a.w + b.w) / 2 - 8) : Math.min(w - a.w / 2 - 6, b.x + (a.w + b.w) / 2 + 8); } }
+    const top0 = w < 640 ? 100 : 60, done = [];
+    for (const a of bubs) {
+      const topY = a.h + top0, x0 = a.x, y0 = a.y, cand = [];
+      for (let row = 0; row <= 2; row++) for (let col = -3; col <= 3; col++) cand.push([Math.abs(col) * (a.w * 0.62 + 8) + row * (a.h + 8) * 1.3, row, col]);
+      cand.sort((p, q) => p[0] - q[0]); let pick = null;
+      for (const [, row, col] of cand) {
+        const x = Math.max(a.w / 2 + 6, Math.min(w - a.w / 2 - 6, x0 + col * (a.w * 0.62 + 8))), y = Math.max(topY, y0 - row * (a.h + 8));
+        let hit = false; for (const b of done) if (Math.abs(x - b.x) < (a.w + b.w) / 2 + 4 && y > b.y - b.h - 4 && y - a.h < b.y + 4) { hit = true; break; }
+        if (!hit) { pick = { x, y }; break; }
+      }
+      if (!pick) { a.L.bub.style.transform = 'translate(-999px,-999px)'; a.L.bon = false; continue; }
+      a.x = pick.x; a.y = pick.y; done.push(a);
       a.L.bub.style.transform = `translate(${Math.round(a.x)}px,${Math.round(a.y)}px) translate(-50%,-100%)`; a.L.bon = true; a.L.rect = a;
     }
   }
