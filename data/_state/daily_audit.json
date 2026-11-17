@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-18T02:41:05+08:00",
+  "checked_at": "2026-11-18T03:22:55+08:00",
   "today": "2026-11-18",
   "expected_price_date": "2026-11-17",
   "is_trading_day": true,
@@ -362,9 +362,7 @@
       "remedy": null
     }
   ],
-  "errors": [
-    "查 daily.yml run 44094794709 的步驟失敗：gh: Server Error (HTTP 502)"
-  ],
+  "errors": [],
   "remedies": {
     "data": {
       "date": "2026-11-17",
