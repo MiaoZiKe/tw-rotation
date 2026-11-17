@@ -2,7 +2,7 @@
 #   ① 複製提示詞（不含接入碼）貼到 Claude　② Claude 跳出表單時貼接入碼（沒有就自動產生、一律遮罩）　底下一行狀態，收到第一筆事件顯示「已接上」
 #   驗：沒有步驟條與下一步／上一步、兩張並排卡（手機上下排）、提示詞預設收起、兩個複製鈕真的寫進剪貼簿、接入碼自動產生且遮罩、
 #       提示詞不含 aio_、換一組真的換碼、模擬第一筆事件 → 已接上＋自動關閉＋切即時、尚未接上的醒目小點、
-#       非站長／沒登入 → ②卡「目前只開放站長使用」且無按鈕、手機 390 不重疊不溢出字不小於 11px、禁用字、無主控台錯誤。
+#       沒登入 →「請先登入」、會員沒辦公室 →「先建立你自己的辦公室」、會員有辦公室 → 領到碼並遮罩、手機 390 不重疊不溢出字不小於 11px、禁用字、無主控台錯誤。
 # 收件端、會員 API 都用 page.route 模擬（https://aio.test、https://acct.test）。
 # 環境變數 ONBOARD_SHOTS 指到資料夾時，順便存截圖。自成一格（函式名都加 _ob 前綴，不依賴別的段落）。
 # flake8: noqa
@@ -34,8 +34,9 @@ def _ob_shot(pg, name):
 class _ObFake:
     """假的收件端＋會員 API：接入碼可以被換掉；事件由測試手動加。"""
 
-    def __init__(self, admin=True):
-        self.admin, self.events, self.codes, self.claims = admin, [], [], []
+    def __init__(self, admin=True, office=True):
+        # office：一般會員是否已在入口頁建好自己的辦公室（11-16 起會員也能領碼；沒辦公室時收件端回 403 no_office）
+        self.admin, self.office, self.events, self.codes, self.claims = admin, office, [], [], []
         self.n_state = 0
 
     def add(self, **e):
@@ -68,13 +69,17 @@ class _ObFake:
         if u.path.endswith("/v1/claim"):
             b = _json.loads(req.post_data or "{}")
             self.claims.append(b)
-            if not self.admin:
+            if not b.get("t"):
                 return route.fulfill(status=403, body='{"error":"not_owner"}', headers=h)
+            if not self.admin and not self.office:
+                return route.fulfill(status=403, body='{"error":"no_office"}', headers=h)
             return route.fulfill(status=200, body=_json.dumps({"ok": True, "office": "main", "code": self.new_code(), "created": _OB_T0, "rotated": bool(b.get("rotate"))}), headers=h)
         if u.path.endswith("/state"):
             self.n_state += 1
             auth = req.headers.get("authorization", "")
-            if not self.codes or auth != "Bearer " + self.codes[-1]:
+            # 引導關掉後碼就清掉、改用登入身分（X-AIO-Session）讀，真的收件端認這個；假收件端以前沒認，手機段才會偶發一行 401
+            sess_ok = req.headers.get("x-aio-session", "") == "T" * 40
+            if not sess_ok and (not self.codes or auth != "Bearer " + self.codes[-1]):
                 return route.fulfill(status=401, body='{"error":"auth"}', headers=h)
             since = int((_pq(u.query).get("since") or ["0"])[0])
             return route.fulfill(status=200, body=_json.dumps(self.body(since)), headers=h)
@@ -177,34 +182,55 @@ def _ob_owner(b, base):
         c.close()
 
 
-# ───────────────────────── ② 非站長／沒登入：只開放站長 ─────────────────────────
+# ───────────────────────── ② 一般會員／沒登入：11-16 起「連接我的 Claude」開放給會員（commit 8a27e5717） ─────────────────────────
+#   沒登入 → 「請先登入」、沒按鈕、不領碼；會員沒辦公室 → 按複製接入碼 → 「先建立你自己的辦公室」、按鈕消失；
+#   會員有辦公室 → 按複製接入碼 → 真的領到碼、寫進剪貼簿、遮罩顯示。
 def _ob_notowner(b, base):
-    for label, admin, tok in (("一般登入使用者", False, True), ("沒登入", True, False)):
-        f = _ObFake(admin=admin)
-        c, pg, got = _ob_open(b, base, f, tok=tok)
-        try:
-            ok("非站長（%s）：載入完成" % label, got)
-            if not got:
-                continue
-            pg.click("#aioBadge")
-            ok("非站長（%s）：②卡顯示「目前只開放站長使用」" % label, wait_until(pg, "() => document.getElementById('aioC2').innerText.includes('目前只開放站長使用')", 8000), pg.inner_text("#aioC2")[:100])
-            ok("非站長（%s）：②卡沒有任何按鈕、沒有領碼請求" % label, pg.locator("#aioC2 button").count() == 0 and not f.claims, f.claims)
-            pg.click("#aioC1 [data-a=viewp]")
-            ok("非站長（%s）：①卡提示詞仍看得到、不含接入碼" % label, len(pg.inner_text("#aioPrompt")) > 300 and "aio_" not in pg.inner_text("#aioPrompt"))
-            _ob_shot(pg, "d4_非站長_%s.png" % label)
-            ok("非站長（%s）：沒有主控台錯誤" % label, not pg.errs, pg.errs[:3])
-        finally:
-            c.close()
-    # 查不到身分時的保底：按「複製接入碼」被收件端擋下（403 not_owner）→ ②卡改顯示只開放站長、按鈕消失
+    # 沒登入
     f = _ObFake(admin=False)
+    c, pg, got = _ob_open(b, base, f, tok=False)
+    try:
+        ok("會員（沒登入）：載入完成", got)
+        if got:
+            pg.click("#aioBadge")
+            ok("會員（沒登入）：②卡顯示「請先登入」", wait_until(pg, "() => document.getElementById('aioC2').innerText.includes('請先登入')", 8000), pg.inner_text("#aioC2")[:100])
+            ok("會員（沒登入）：②卡沒有任何按鈕、沒有領碼請求", pg.locator("#aioC2 button").count() == 0 and not f.claims, f.claims)
+            pg.click("#aioC1 [data-a=viewp]")
+            ok("會員（沒登入）：①卡提示詞仍看得到、不含接入碼", len(pg.inner_text("#aioPrompt")) > 300 and "aio_" not in pg.inner_text("#aioPrompt"))
+            _ob_shot(pg, "d4_會員_沒登入.png")
+            ok("會員（沒登入）：沒有主控台錯誤", not pg.errs, pg.errs[:3])
+    finally:
+        c.close()
+    # 已登入、還沒建辦公室
+    f = _ObFake(admin=False, office=False)
     c, pg, got = _ob_open(b, base, f)
     try:
+        ok("會員（沒辦公室）：載入完成", got)
         if got:
-            pg.evaluate("() => { window.TW_ACCOUNT = { api: '' }; }")
             pg.click("#aioBadge")
-            if pg.locator("#aioC2 [data-a=cpcode]").count():
-                pg.click("#aioC2 [data-a=cpcode]")
-            ok("非站長：被收件端擋下（403）→ ②卡改顯示「目前只開放站長使用」、沒有按鈕", wait_until(pg, "() => document.getElementById('aioC2').innerText.includes('目前只開放站長使用') && !document.querySelector('#aioC2 button')", 8000))
+            ok("會員（沒辦公室）：②卡有「複製接入碼」可以按（不再寫只開放站長）", wait_until(pg, "() => !!document.querySelector('#aioC2 [data-a=cpcode]')", 8000) and "只開放站長" not in pg.inner_text("#aioC2"), pg.inner_text("#aioC2")[:100])
+            pg.click("#aioC2 [data-a=cpcode]")
+            ok("會員（沒辦公室）：按下去 → ②卡改顯示「先建立你自己的辦公室」、指向入口頁、按鈕消失",
+               wait_until(pg, "() => document.getElementById('aioC2').innerText.includes('先建立你自己的辦公室') && !document.querySelector('#aioC2 button') && !!document.querySelector('#aioC2 a[href=\"index.html\"]')", 8000), pg.inner_text("#aioC2")[:120])
+            ok("會員（沒辦公室）：真的有送領碼請求、沒領到碼", len(f.claims) == 1 and not f.codes and not pg.evaluate("() => __world.live.code"), f.claims)
+            _ob_shot(pg, "d4_會員_沒辦公室.png")
+            ok("會員（沒辦公室）：沒有主控台錯誤（收件端回 403 那行資源錯誤除外）", not [e for e in pg.errs if "403" not in e], pg.errs[:3])
+    finally:
+        c.close()
+    # 已登入、有辦公室
+    f = _ObFake(admin=False, office=True)
+    c, pg, got = _ob_open(b, base, f)
+    try:
+        ok("會員（有辦公室）：載入完成", got)
+        if got:
+            pg.click("#aioBadge")
+            wait_until(pg, "() => !!document.querySelector('#aioC2 [data-a=cpcode]')", 8000)
+            pg.click("#aioC2 [data-a=cpcode]")
+            ok("會員（有辦公室）：按「複製接入碼」→ 領到碼、遮罩顯示", wait_until(pg, "() => !!document.getElementById('aioCodeMask') && document.getElementById('aioCodeMask').innerText.endsWith('（已隱藏）')", 10000) and len(f.codes) == 1)
+            ok("會員（有辦公室）：碼真的寫進剪貼簿", bool(f.codes) and wait_until(pg, "() => navigator.clipboard.readText().then(t => t === %s).catch(() => false)" % _json.dumps(f.codes[-1] if f.codes else "x"), 5000))
+            ok("會員（有辦公室）：畫面上沒有完整碼", bool(f.codes) and f.codes[-1] not in pg.inner_text("#aioGuide"))
+            _ob_shot(pg, "d4_會員_有辦公室.png")
+            ok("會員（有辦公室）：沒有主控台錯誤", not [e for e in pg.errs if "401" not in e], pg.errs[:3])
     finally:
         c.close()
 
