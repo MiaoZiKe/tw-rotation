@@ -37,6 +37,11 @@ export const SCHEDULE = [
   ...['19:00', '19:30'].map((at) => ({ at, days: 'trading', workflow: S, inputs: { kind: 'close', dry_run: 'false' } })),
   ...['19:16', '19:46', '20:16', '20:46', '21:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '21:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
+  // ★ 2026-11-17 手動排程貼文（影片 Reels／輪播，每天 12:15）保底：GitHub 的 */15 排程實測整段不觸發（11-17 12:15 那支到 12:45 監工時還沒跑），
+  //   改由這裡準時派 threads_post／ig_post；兩支都只發 status: approved 且到點的檔，沒有就空跑收工。
+  //   同一分鐘只派一筆（測試規定），所以 Threads 12:16／12:31、IG 12:17／12:32。降量開關仍由 post_quota.json 與 ig_post.py 把關（主題文章照樣略過）。
+  ...['12:16', '12:31'].map((at) => ({ at, days: 'all', workflow: 'threads_post.yml', inputs: {} })),
+  ...['12:17', '12:32'].map((at) => ({ at, days: 'all', workflow: 'ig_post.yml', inputs: {} })),
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },
 ];

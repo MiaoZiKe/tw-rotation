@@ -84,7 +84,8 @@ test('runScheduled：呼叫 GitHub 的網址、標頭、內容正確，且錯誤
 
 test('2026-11-02 降量模式（Andy：「同意降量」）：主題文章、IG 晚間發文、晚間監工、盤中一律不派', () => {
   const stopped = ['social_news.yml', 'ig_post.yml', 'ig_news_watch.yml'];
-  for (const j of SCHEDULE) assert.ok(!stopped.includes(j.workflow), `${j.at} ${j.workflow} 應該已拿掉`);
+  // 2026-11-17 例外：ig_post.yml 只准 12:17／12:32（手動核准的影片／輪播保底，不是主題文章）
+  for (const j of SCHEDULE) assert.ok(!stopped.includes(j.workflow) || (j.workflow === 'ig_post.yml' && ['12:17', '12:32'].includes(j.at)), `${j.at} ${j.workflow} 應該已拿掉`);
   assert.ok(!SCHEDULE.some((j) => j.workflow === 'social-live.yml' && j.inputs.kind === 'intraday'), '盤中 12:00 應該已拿掉');
   for (const day of ['2026-10-31', '2026-11-01', '2026-11-02']) {   // 週六、週日、週一（交易日）
     for (const t of ['10:15', '10:45', '12:00', '19:40', '19:42', '20:04', '20:32', '20:54', '20:58', '21:08', '21:22', '21:32', '21:44', '21:54', '22:04', '22:12']) {
@@ -187,4 +188,11 @@ test('2026-11-10：run 的 collect 已完成、只剩 deploy 在排隊 → 不�
   // collect 還沒完成的同一種 run 仍然讓路
   const calls2 = [];
   assert.deepEqual(await runScheduled(NOW, guardEnv, mkFetch({ in_progress: [run(22, '每日盤後管線 (price)')] }, calls2, []), { log() {}, error() {} }), []);
+});
+
+test('2026-11-17 手動排程貼文保底：每天 12:16／12:31 派 threads_post、12:17／12:32 派 ig_post（含週末）', () => {
+  for (const day of ['2026-11-17', '2026-11-22']) {
+    for (const t of ['12:16', '12:31']) assert.deepEqual(names(tpe(`${day} ${t}`)), ['threads_post.yml:{}'], `${day} ${t}`);
+    for (const t of ['12:17', '12:32']) assert.deepEqual(names(tpe(`${day} ${t}`)), ['ig_post.yml:{}'], `${day} ${t}`);
+  }
 });
