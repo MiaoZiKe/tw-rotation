@@ -27,6 +27,10 @@
     ],
     "packaging": [
       "封裝"
+    ],
+    "hbm": [
+      "堆疊",
+      "HBM"
     ]
   },
   "legal_pending": [],
@@ -55,7 +59,8 @@
       "euv": "謝謝留言！「曝光機：光比線還粗」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
       "offer": "謝謝留言！「兩份 offer 怎麼比」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
       "yield": "謝謝留言！「晶圓良率：晶片越大，能用的比例越低」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
-      "packaging": "謝謝留言！「先進封裝：晶片太大做不好，拆小再拼回去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging"
+      "packaging": "謝謝留言！「先進封裝：晶片太大做不好，拆小再拼回去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
+      "hbm": "謝謝留言！「HBM：十二層記憶體，比一張信用卡還薄」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm"
     },
     "per_user_per_day": 1,
     "max_per_minute": 10,
@@ -97,6 +102,11 @@
         "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
         "收到～「先進封裝」整篇在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
         "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging"
+      ],
+      "hbm": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm",
+        "收到～「HBM」整篇在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm"
       ]
     }
   }

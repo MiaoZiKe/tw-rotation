@@ -1,0 +1,153 @@
+{
+ "id": "2026-11-19-tech-hbm",
+ "cat": "tech",
+ "title": "HBM：十二層記憶體，比一張信用卡還薄",
+ "subtitle": "科技透明圈：AI 晶片旁邊那圈高頻寬記憶體，是把十二片 DRAM 磨薄、打孔填銅、一層一層壓合疊起來。廠商公布，十二層的 HBM3E 整疊約 720 微米，比信用卡還薄。",
+ "date": "2026-11-19",
+ "updated": "2026-11-19",
+ "tags": [
+  "科技透明圈",
+  "HBM",
+  "記憶體",
+  "矽穿孔",
+  "先進封裝"
+ ],
+ "summary": "AI 晶片算得再快，資料送不進來也沒用。HBM（高頻寬記憶體）把好幾片 DRAM 磨薄，在每一片上打幾萬個比頭髮細的矽穿孔、填銅，再一層一層對位壓合、灌膠填滿縫，疊成一疊放在晶片旁邊。廠商公布，十二層的 HBM3E 整疊約 720 微米，比 760 微米的信用卡還薄；新一代 HBM4 一疊有 2,048 條資料線，一般電腦記憶體一次走 64 條。",
+ "reading_min": 5,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/tech/20261119v_hbm/video.mp4",
+   "poster": "media/tech/20261119v_hbm/cover.jpg",
+   "title": "HBM：十二層記憶體，比一張信用卡還薄",
+   "note": "影片 1080×1920；示意動畫，非實際比例；720 微米為廠商公布，只限 HBM3E 十二層。"
+  },
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "AI 晶片要的資料太多，一般電腦記憶體一次只走 64 條資料線，不夠用。HBM 的做法是把記憶體疊起來，直接在晶片上打洞讓線垂直穿過去。",
+    "十二層的 HBM3E，整疊約 720 微米（廠商公布），比信用卡（0.76 毫米，ISO/IEC 7810）還薄；每一片 DRAM 都要磨得更薄，十二層才塞得進原本八層的高度。這句只限 HBM3E 十二層，HBM4 的十二層、十六層標準較厚，不適用。",
+    "新一代 HBM4 一疊有 2,048 條資料線（JEDEC 標準），HBM3E 是 1,024 條，兩個數字不是同一代，不能混著看。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "為什麼要疊"
+  },
+  {
+   "t": "p",
+   "text": "運算晶片和記憶體之間要傳的資料非常多。從旁邊拉線，線的數量有限，也拉不出這麼多條；改成把 DRAM 疊起來、貼在晶片旁邊的中介層上（上一支講的先進封裝），資料線就能從底下一次接出去。HBM 的「高頻寬」，意思就是一次能送很多資料（Tom's Hardware、TrendForce）。"
+  },
+  {
+   "t": "h",
+   "text": "怎麼疊：真實的製程順序"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "打孔：在還很厚的晶圓正面，蝕刻出幾萬個比頭髮細的盲孔（三星公布十二層版本超過 6 萬個，每孔約人髮的二十分之一）。",
+    "填銅：孔壁先鋪一層絕緣，再電鍍填滿銅，磨平表面，這就是矽穿孔（TSV）。",
+    "背面磨薄：把晶圓貼在臨時載板上，從背面磨薄到銅柱露出來，所以孔是先打、再磨薄（影片旁白照這個順序）。",
+    "逐層對位、熱壓接合：從最底下的基底晶片開始，一片一片放上去，對準後加熱加壓，讓上下層的微凸塊焊在一起。",
+    "填膠：層與層的縫與凸塊周圍填滿膠，把整疊包成一塊。SK 海力士用的做法叫 MR-MUF（液態膠），三星用薄膜加熱壓（TC-NCF，簡報轉述）。"
+   ]
+  },
+  {
+   "t": "p",
+   "text": "（製程順序整理自 TSV 製程公開資料與廠商新聞稿，影片為示意動畫，非實際比例。）"
+  },
+  {
+   "t": "h",
+   "text": "哪些公司在做（廠商公布與媒體報導）"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "記憶體廠：SK 海力士（十二層 HBM3E 2024/9 量產，廠商公布）、三星（十二層 3D-TSV，廠商公布）、美光。研究機構 Counterpoint 估計三家是目前 HBM 營收的主要來源，數字是估計，本文不排名、不引用占比。",
+    "台積電：以 12FFC+（12 奈米級）與 N5（5 奈米級）製造 HBM4 的基底晶片（廠商公布，Tom's Hardware）；媒體報導美光的 HBM4E 起也交給台積電做基底晶片。",
+    "鍵合設備（把 DRAM 一層一層壓合的熱壓接合機）：媒體報導 SK 海力士以韓美半導體、ASMPT 為主，三星用 SEMES、SHINKAWA（TrendForce、Asiae）。供應名單會變，這裡只列產業分工，不是推薦，也不代表各家營收貢獻。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "代價與還不確定的"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "疊越多層，任何一層壞掉整疊就壞，良率會往下掉；各家 HBM 的堆疊良率，廠商沒有公布（查不到，截至 2026/11/16）。",
+    "熱：每一層 DRAM 都在發熱，熱要穿過整疊往上散，是疊越高越難的問題之一（業界共識，示意說明）。",
+    "HBM4 的基底晶片製程：SK 海力士沒有說初期用哪一個；「客製化 HBM」（客戶在基底晶片放自己的邏輯）屬媒體報導，各家進度不一。",
+    "媒體對十二層、十六層 HBM4 的厚度說法不一（JEDEC 為 775 微米為轉述，原文件沒讀到），所以本文只講 HBM3E 十二層。",
+    "下一支：晶片和記憶體都拼好了，最後裝進伺服器，來看伺服器到底是什麼。"
+   ]
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理，不構成投資建議。標「廠商公布」的數字是廠商自己的說法；公司與設備廠名單來自媒體報導，僅說明產業分工。查證截至 2026/11/16，發布當天（11/19）會再查一次。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Industry's First 12-Layer 3D-TSV Chip Packaging Technology",
+   "publisher": "三星新聞稿",
+   "date": "2019",
+   "url": "https://news.samsung.com/us/samsung-12-layer-3d-tsv-chip-packaging-technology"
+  },
+  {
+   "title": "SK 海力士率先全球量產 12 層堆疊 HBM3E",
+   "publisher": "科技新報",
+   "date": "2024-09-26",
+   "url": "https://technews.tw/2024/09/26/sk-hynix-announces-first-global-mass-production-of-12-layer-stacked-hbm3e/"
+  },
+  {
+   "title": "SK 海力士下單 ASMPT 鍵合設備",
+   "publisher": "科技新報",
+   "date": "2024-10-04",
+   "url": "https://technews.tw/2024/10/04/sk-hynix-places-order-tc-bonders-asmpt/"
+  },
+  {
+   "title": "Preliminary HBM4 specs point to major performance uplift for GPUs",
+   "publisher": "Tom's Hardware",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.tomshardware.com/tech-industry/preliminary-hbm4-specs-point-to-major-performance-uplift-for-gpus/"
+  },
+  {
+   "title": "Breaking the memory wall: HBM basics and the rise of HBM4 in AI",
+   "publisher": "TrendForce",
+   "date": "2025-09-29",
+   "url": "https://www.trendforce.com/news/2025/09/29/news-breaking-the-memory-wall-hbm-basics-and-the-rise-of-hbm4-in-ai/"
+  },
+  {
+   "title": "HBM3E／HBM4 IC design guide",
+   "publisher": "Siemens",
+   "date": "2026-04-24",
+   "url": "https://blogs.sw.siemens.com/semiconductor-packaging/2026/04/24/hbm3e-hbm4-ic-design-guide/"
+  },
+  {
+   "title": "HBM4 and the shift to customized AI memory",
+   "publisher": "Utmel",
+   "date": "查證日 2026-11-16",
+   "url": "https://www.utmel.com/blog/news/semiconductor/hbm4-and-the-shift-to-customized-ai-memory-the-advanced-packaging-bottleneck"
+  },
+  {
+   "title": "Global HBM Market Share Q2 2026",
+   "publisher": "Counterpoint Research",
+   "date": "查證日 2026-11-16",
+   "url": "https://korea.counterpointresearch.com/global-hbm-market-share-q2-2026/"
+  },
+  {
+   "title": "HBM 供應與市占報導",
+   "publisher": "Edaily",
+   "date": "2026-09-03",
+   "url": "https://en.edaily.co.kr/news/eda202609035608/"
+  }
+ ],
+ "confidence": "中高：疊層、矽穿孔、資料線寬度為業界共識與標準（高）；720 微米、6 萬個孔為廠商公布且只限 HBM3E 十二層（中高）；公司名單、鍵合設備供應為媒體報導（中）；良率與 HBM4 底層晶片製程查不到",
+ "status": "published",
+ "video": "tech-hbm（科技透明圈每日短影片）"
+}
