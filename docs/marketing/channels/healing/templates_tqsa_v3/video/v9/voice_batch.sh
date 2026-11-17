@@ -22,7 +22,7 @@ python3 tts/asr.py "$BATCH/batch_take.wav" "$BATCH/batch_take.asr.json"
 python3 v9/voice_batch.py split "$BATCH" "${DIRS[@]}"
 for d in "${DIRS[@]}"; do
   if [ $NR = 1 ]; then
-    PRE_LAST=2.3 python3 tts/cut_take_v8.py "$d/narration_take.wav" "$d/narration_take.asr.json" "$d" "$d/narration.wav" 1.0 0.45 0.30 0.70 | head -3 && python3 tts/make_segments.py "$d" narration.wav
+    PRE_LAST=2.3 python3 tts/cut_take_v8.py "$d/narration_take.wav" "$d/narration_take.asr.json" "$d" "$d/narration.wav" 1.0 0.60 0.45 0.80 | head -3 && python3 tts/make_segments.py "$d" narration.wav
   else bash v9/make_video.sh "$d" --voice; fi
 done
 echo "批次完成：$BATCH"

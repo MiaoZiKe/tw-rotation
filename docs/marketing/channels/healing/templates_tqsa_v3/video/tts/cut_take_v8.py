@@ -6,11 +6,12 @@
 3. 核對：每段範圍內的 ASR 文字印出來，人工對照念稿（數字寫法不同不算錯）。
 4. 念稿結尾：最後一個 ASR 字所在的有聲段結尾，之後的聲音（模型尾端雜訊）不收。
 5. 停頓（2026-11-16 Andy 新規，剪輯插靜音、不放慢語速）：句間實際停頓下限 MINGAP（預設 0.3 秒），原本自然停頓較長的保留到 MAXGAP（預設 0.45 秒）；narration.txt 有空行處＝段落分界，停頓固定 PARA（預設 0.7 秒）。沒有空行＝全部同一段。字幕／鏡頭時序（make_segments.py → gen_v8.py）讀的是切完後的時間點，自動跟著新停頓走。
-用法：python3 cut_take_v8.py <原始 wav> <asr.json> <佇列資料夾> <輸出 wav> [atempo] [maxgap=0.45] [mingap=0.30] [para=0.70]（環境變數 PRE_LAST＝片尾那句前的停頓秒數）"""
+用法：python3 cut_take_v8.py <原始 wav> <asr.json> <佇列資料夾> <輸出 wav> [atempo] [maxgap=0.60] [mingap=0.45] [para=0.80]（環境變數 HOLD＝說完到換鏡留白，預設 1.0；>60 秒自動降 0.7）（環境變數 PRE_LAST＝片尾那句前的停頓秒數）"""
 import json, sys, wave, re, subprocess, os
 import numpy as np
-raw, asrp, q, out = sys.argv[1:5]; F = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0; MAXGAP = float(sys.argv[6]) if len(sys.argv) > 6 else 0.45
-MINGAP = float(sys.argv[7]) if len(sys.argv) > 7 else 0.30; PARA = float(sys.argv[8]) if len(sys.argv) > 8 else 0.70
+raw, asrp, q, out = sys.argv[1:5]; F = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0; MAXGAP = float(sys.argv[6]) if len(sys.argv) > 6 else 0.60
+MINGAP = float(sys.argv[7]) if len(sys.argv) > 7 else 0.45; PARA = float(sys.argv[8]) if len(sys.argv) > 8 else 0.80
+HOLD = float(os.environ.get("HOLD", "1.0")); PUNCT_GAP = 0.35; NUM_GAP = 0.30   # v9（2026-11-17 Andy「語速太快」）：HOLD＝說完到換鏡至少留白秒數；句內標點處自然間隙 <0.3 補到 PUNCT_GAP；數字片語前後緊貼補到 NUM_GAP
 LEAD = 0.2
 w = wave.open(raw); SR = w.getframerate(); x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768; w.close()
 hop = int(SR * .01); n = len(x) // hop
@@ -112,26 +113,55 @@ def seg_audio(a, b, pa=.03, pb=.06):
     if abs(F - 1) < 1e-3: return y
     p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-", "-af", "atempo=%.4f" % F, "-f", "f32le", "-"], input=y.tobytes(), capture_output=True).stdout
     return np.frombuffer(p, np.float32)
-outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
-for i, p in enumerate(pieces):
-    rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
-    if rem:
-        ed = [p["src_start"]] + [v for r_ in rem for v in r_] + [p["src_end"]]
-        y = np.concatenate([seg_audio(ed[j], ed[j + 1], .03 if j == 0 else 0, .06 if j == len(ed) - 2 else 0) for j in range(0, len(ed), 2)])
-    else: y = seg_audio(p["src_start"], p["src_end"])
-    st = t; t += len(y) / SR; outv.append(y)
-    # g＝實際停頓目標（含前後各留的 0.09 秒底噪，下面再扣掉）：段落 PARA；句間 clamp(自然停頓, MINGAP, MAXGAP)
-    if i >= len(pieces) - 1: g = .15
-    elif para_after[i]: g = PARA
-    else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
-    if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
-    g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
-    wo = [round(st + (a - p["src_start"] - sum(rb - ra for ra, rb in rem if a >= ra)) / F, 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]   # 每個字詞在成品裡的起音時間（字幕／重拍對準旁白用）
-    segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3)}); t += g
+# 句內補停頓點：每個 ASR 字詞的結尾若是念稿的標點位置（或數字片語邊界），且與下一個字的自然間隙不足，就在該處插靜音（不放慢）
+NUMRE = re.compile(r"百分之[零一二兩三四五六七八九十百千萬點]+|[零一二兩三四五六七八九十百千萬點]{2,}|\d[\d.,]*")
+def inserts_for(p):
+    t = p["text"]; plain = ""; punct_at = set(); num_at = set()
+    for ch_ in t:
+        if re.match(r"[，。、；：？！]", ch_): punct_at.add(len(plain))
+        elif not re.match(r"[「」（）\s]", ch_): plain += ch_
+    for m_ in NUMRE.finditer(plain):
+        if len(m_.group()) >= 2: num_at.add(m_.start()); num_at.add(m_.end())
+    ws = [(ww, a, b) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
+    tot_a = sum(len(re.sub(r"[，。、；：？！\s]", "", ww)) for ww, a, b in ws) or 1; cum = 0; out = []
+    for k, (ww, a, b) in enumerate(ws[:-1]):
+        cum += len(re.sub(r"[，。、；：？！\s]", "", ww)); pos = round(cum * len(plain) / tot_a); nat = ws[k + 1][1] - b
+        want = PUNCT_GAP if any(abs(pos - q_) <= 0 for q_ in punct_at) else (NUM_GAP if any(abs(pos - q_) <= 0 for q_ in num_at) else 0)
+        if want and nat < want and nat < .3 + 1e-9: out.append(((b + ws[k + 1][1]) / 2, want - max(nat, 0)))
+    return out
+def assemble(hold):
+    outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
+    for i, p in enumerate(pieces):
+        rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
+        ins = inserts_for(p)
+        ev = sorted([(r_[0], "cut", r_[1]) for r_ in rem] + [(q_[0], "ins", q_[1]) for q_ in ins])
+        y_parts = []; cur = p["src_start"]; first = True
+        for tt, kind, v_ in ev:
+            if tt < cur: continue
+            y_parts.append(seg_audio(cur, tt, .03 if first else 0, .0)); first = False
+            if kind == "cut": cur = v_
+            else: y_parts.append(np.zeros(int(v_ / F * SR), np.float32)); cur = tt
+        y_parts.append(seg_audio(cur, p["src_end"], .03 if first else 0, .06)); y = np.concatenate(y_parts)
+        st = t; t += len(y) / SR; outv.append(y)
+        if i >= len(pieces) - 1: g = .15
+        elif para_after[i]: g = PARA
+        else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
+        if i < len(pieces) - 1: g = max(g, hold + .3)   # 每鏡說完後畫面落定：下一鏡在下句開口前 0.25 秒換，所以間隔至少 hold＋0.3
+        if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
+        g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
+        def shift(a): return sum(v2 / F for tt, kd, v2 in ev if kd == "ins" and tt <= a and tt >= p["src_start"]) - sum(rb - ra for ra, rb in rem if a >= rb) - sum(max(0, a - ra) for ra, rb in rem if ra < a < rb)
+        wo = [round(st + (a - p["src_start"]) / F + shift(a), 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
+        segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3), "inserts": len(ins)}); t += g
+    return outv, segj, t - LEAD
+outv, segj, tl = assemble(HOLD)
+if tl > 60 and HOLD > .7: print("總長 %.1f 秒 >60：HOLD 1.0 → 0.7 重組" % tl); HOLD = .7; outv, segj, tl = assemble(HOLD)
+if tl > 60:
+    print("警告：HOLD 降到 0.7 仍 %.1f 秒 >60，建議刪（字數最多的句子，請人工決定、不自動刪）：" % tl, file=sys.stderr)
+    for i in sorted(range(len(texts)), key=lambda i: -ch[i])[:3]: print("  %s（%d 字）%s" % (ids[i], ch[i], texts[i]), file=sys.stderr)
 y = np.concatenate(outv)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())
 chars = sum(ch); speech = sum(s["end"] - s["speech_start"] for s in segj); total = len(y) / SR - LEAD
-rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "chars": chars,
+rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars,
        "dur_total": round(total, 2), "rate_incl_pauses": round(chars / total, 2), "rate_speech_only": round(chars / speech, 2), "segments": segj}
 json.dump(rep, open(out + ".cut.json", "w"), ensure_ascii=False, indent=1)
 print("設定句切掉 %.2f 秒；念稿 %d 字、%.2f 秒 → 含停頓 %.2f 字/秒、扣停頓 %.2f 字/秒" % (on0 - LEAD, chars, total, chars / total, chars / speech))

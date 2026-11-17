@@ -14,8 +14,9 @@ if [ $VOICE = 1 ]; then
   [ -f "$Q/narration_take.wav" ] || python3 tts/tts_take.py "$Q" "$Q/narration_take.wav"
   [ -f "$Q/narration_take.asr.json" ] || python3 tts/asr.py "$Q/narration_take.wav" "$Q/narration_take.asr.json"
   [ -f "$Q/cut_env.sh" ] && . "$Q/cut_env.sh"   # 每篇的 TRIM／CUTS／BOUNDS 等重切參數（2026-11-17）
-  PRE_LAST=2.3 python3 tts/cut_take_v8.py "$Q/narration_take.wav" "$Q/narration_take.asr.json" "$Q" "$Q/narration.wav" 1.0 0.45 0.30 0.70
+  PRE_LAST=${PRE_LAST:-2.3} python3 tts/cut_take_v8.py "$Q/narration_take.wav" "$Q/narration_take.asr.json" "$Q" "$Q/narration.wav" 1.0 0.60 0.45 0.80
   python3 tts/make_segments.py "$Q" narration.wav
+  python3 v9/pace_check.py "$Q" | tee "$Q/pace_check.txt"   # 語速／停頓稽核，不合格標「要人看」
   python3 v9/autofix.py "$Q" --voice || echo "（autofix 後仍有要人看的項目，見上方與 $Q/autofix_log.json）"
   python3 v8/make_sheet.py "$Q/video.mp4" "$Q/overlap_report_video.json" "$Q/video_sheet.png"
   ls -la "$Q/video.mp4" "$Q/cover.jpg" "$Q/video_sheet.png"
