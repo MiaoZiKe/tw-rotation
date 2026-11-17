@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -73,6 +74,27 @@ _SECRETS: list[str] = []
 
 class PostError(Exception):
     pass
+
+
+class ContainerError(PostError):
+    """IG／Threads 媒體容器狀態 ERROR／EXPIRED：暫時性錯誤居多，可用同一支素材重建容器重試。"""
+
+
+CONTAINER_RETRIES = 2          # 容器 ERROR 時最多再重建 2 次（共 3 次嘗試）
+CONTAINER_RETRY_WAIT = (30, 60)  # 重試前等 30～60 秒
+
+
+def with_container_retry(build, what: str = ""):
+    """build() 建容器並等到 FINISHED，回傳結果；遇 ContainerError 就重建，用盡才丟出。發布（publish）不在這裡面，不會重發。"""
+    for i in range(CONTAINER_RETRIES + 1):
+        try:
+            return build()
+        except ContainerError as e:
+            if i >= CONTAINER_RETRIES:
+                raise
+            w = random.randint(*CONTAINER_RETRY_WAIT)
+            log(f"::warning::{what}容器 ERROR（{str(e)[:80]}），{w} 秒後重建重試（第 {i + 1}/{CONTAINER_RETRIES} 次）")
+            SLEEP(w)
 
 
 def mask(v: str) -> None:
@@ -417,7 +439,7 @@ def _wait_threads(cid: str, token: str) -> None:
         if s == "FINISHED":
             return
         if s in ("ERROR", "EXPIRED"):
-            raise PostError(f"Threads 容器處理失敗（{s}）：{st.get('error_message', '')}")
+            raise ContainerError(f"Threads 容器處理失敗（{s}）：{st.get('error_message', '')}")
         SLEEP(5)
     raise PostError("Threads 容器 60 秒內沒處理完")
 
@@ -428,7 +450,7 @@ def _wait_ig(cid: str, token: str) -> None:
         if s == "FINISHED":
             return
         if s in ("ERROR", "EXPIRED"):
-            raise PostError(f"IG 容器處理失敗（{s}）")
+            raise ContainerError(f"IG 容器處理失敗（{s}）")
         SLEEP(5)
     raise PostError("IG 容器 60 秒內沒處理完")
 
@@ -443,7 +465,7 @@ def _wait_video(platform: str, cid: str, token: str) -> None:
         if s == "FINISHED":
             return
         if s in ("ERROR", "EXPIRED"):
-            raise PostError(f"{name} 影片容器處理失敗（{s}）：{st.get('error_message', '')}")
+            raise ContainerError(f"{name} 影片容器處理失敗（{s}）：{st.get('error_message', '')}")
         SLEEP(VIDEO_POLL_SEC)
     raise PostError(f"{name} 影片容器 {VIDEO_MAX_WAIT_SEC // 60} 分鐘內沒處理完")
 
@@ -459,17 +481,22 @@ def _permalink(platform: str, mid: str, token: str) -> tuple[str, str]:
 def post_ig(uid: str, urls: list[str], caption: str, token: str) -> dict:
     for u in urls:
         check_public(u)
-    if len(urls) == 1:
-        c = api("ig", "POST", f"/{uid}/media", token, {"image_url": urls[0], "caption": caption})["id"]
-    else:
-        kids = []
-        for u in urls:
-            k = api("ig", "POST", f"/{uid}/media", token, {"image_url": u, "is_carousel_item": "true"})["id"]
-            _wait_ig(k, token)
-            kids.append(k)
-        c = api("ig", "POST", f"/{uid}/media", token,
-                {"media_type": "CAROUSEL", "children": ",".join(kids), "caption": caption})["id"]
-    _wait_ig(c, token)
+
+    def build() -> str:
+        if len(urls) == 1:
+            c = api("ig", "POST", f"/{uid}/media", token, {"image_url": urls[0], "caption": caption})["id"]
+        else:
+            kids = []
+            for u in urls:
+                k = api("ig", "POST", f"/{uid}/media", token, {"image_url": u, "is_carousel_item": "true"})["id"]
+                _wait_ig(k, token)
+                kids.append(k)
+            c = api("ig", "POST", f"/{uid}/media", token,
+                    {"media_type": "CAROUSEL", "children": ",".join(kids), "caption": caption})["id"]
+        _wait_ig(c, token)
+        return c
+
+    c = with_container_retry(build, "IG ")
     mid = api("ig", "POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
     link, mtype = _permalink("ig", mid, token)
     return {"id": mid, "permalink": link, "media_type": mtype}
@@ -482,8 +509,13 @@ def post_ig_reel(uid: str, vurl: str, caption: str, token: str, cover: str = "")
     if cover:
         check_public(cover)
         params["cover_url"] = cover
-    c = api("ig", "POST", f"/{uid}/media", token, params)["id"]
-    _wait_video("ig", c, token)
+
+    def build() -> str:
+        c = api("ig", "POST", f"/{uid}/media", token, params)["id"]
+        _wait_video("ig", c, token)
+        return c
+
+    c = with_container_retry(build, "IG 影片")
     mid = api("ig", "POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
     link, mtype = _permalink("ig", mid, token)
     return {"id": mid, "permalink": link, "media_type": mtype}
@@ -504,20 +536,26 @@ def post_threads(uid: str, urls: list[str], main: str, reply: str, token: str, v
     """主文一定帶圖（1 張＝IMAGE、2 張以上＝CAROUSEL）或影片（VIDEO）；失敗不退回純文字。主文發出後再發第 1 則留言。"""
     if video:
         check_public(video)
-        params = {"media_type": "VIDEO", "video_url": video, "text": main}
-    elif len(urls) == 1:
-        params = {"media_type": "IMAGE", "image_url": urls[0], "text": main}
-    else:
-        kids = [api("threads", "POST", f"/{uid}/threads", token,
-                    {"media_type": "IMAGE", "image_url": u, "is_carousel_item": "true"})["id"] for u in urls[:20]]
-        for k in kids:
-            _wait_threads(k, token)
-        params = {"media_type": "CAROUSEL", "children": ",".join(kids), "text": main}
-    cid = api("threads", "POST", f"/{uid}/threads", token, params)["id"]
-    if video:
-        _wait_video("threads", cid, token)
-    else:
-        _wait_threads(cid, token)
+
+    def build() -> str:
+        if video:
+            params = {"media_type": "VIDEO", "video_url": video, "text": main}
+        elif len(urls) == 1:
+            params = {"media_type": "IMAGE", "image_url": urls[0], "text": main}
+        else:
+            kids = [api("threads", "POST", f"/{uid}/threads", token,
+                        {"media_type": "IMAGE", "image_url": u, "is_carousel_item": "true"})["id"] for u in urls[:20]]
+            for k in kids:
+                _wait_threads(k, token)
+            params = {"media_type": "CAROUSEL", "children": ",".join(kids), "text": main}
+        cid = api("threads", "POST", f"/{uid}/threads", token, params)["id"]
+        if video:
+            _wait_video("threads", cid, token)
+        else:
+            _wait_threads(cid, token)
+        return cid
+
+    cid = with_container_retry(build, "Threads ")
     mid = _threads_publish(uid, cid, token)
     link, mtype = _permalink("threads", mid, token)
     out = {"id": mid, "permalink": link, "media_type": mtype, "reply_permalink": "", "reply_error": "", "reply_id": ""}
@@ -698,7 +736,7 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
     tok = tokens_from(env)
     for k in ("TC_THREADS_USER_ID", "TC_IG_USER_ID", "THREADS_USER_ID", "IG_USER_ID"):
         mask((env.get(k) or "").strip())
-    res = {"alert": [], "posted": [], "skipped": [], "deferred": [], "errors": [], "ig_delete": []}
+    res = {"alert": [], "posted": [], "skipped": [], "deferred": [], "errors": [], "ig_delete": [], "bad": []}
     dirs = sorted(d for d in queue.glob("*/") if (d / "post.md").is_file()) if queue.is_dir() else []
     if only:
         dirs = [d for d in dirs if d.name == only]
@@ -712,8 +750,18 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
         errs = validate(p)
         if errs:
             if p["meta"].get("status") == "approved":
-                res["errors"].append(f"{d.name}：{'；'.join(errs)}")
-                rc = 1
+                # 逐篇處理：只標這一篇（alert→開 issue），不讓整輪失敗；其他篇照常發、輪詢不受影響。
+                # 還沒到時間的稿只警告，到了時間才出 alert。
+                try:
+                    is_due = sched(p) <= now
+                except (KeyError, ValueError):
+                    is_due = True
+                msg = f"{d.name}：{'；'.join(errs)}"
+                if is_due:
+                    res["errors"].append(msg)
+                    res["bad"].append(f"{d.name}：格式不合格，這篇不發（{'；'.join(errs)[:120]}）")
+                else:
+                    log(f"::warning::{msg}（還沒到發文時間，只警告）")
             else:
                 log(f"{d.name}（{p['meta'].get('status')}）格式提醒：{'；'.join(errs)}")
             p["invalid"] = True
@@ -730,6 +778,8 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
     need = {x for p in approved for x in p["platforms"] if x not in p["done"]}
     no_token = any(not tok[x] for x in need)
     res["alert"] = monitor(posts, history, cfg, now, no_token) if not dry_run else []
+    if not dry_run:
+        res["alert"] += res["bad"]
 
     if not approved:
         log("沒有 status: approved 的稿 → 什麼都不做")
@@ -806,8 +856,10 @@ def main(argv=None) -> int:
             p = load(d)
             errs = validate(p)
             print(("✗ " if errs else "✓ ") + f"{d.name}（{p['meta'].get('status')}）" + ("：" + "；".join(errs) if errs else ""))
-            bad += bool(errs) and p["meta"].get("status") == "approved"
-        return 1 if bad else 0
+            if errs and p["meta"].get("status") == "approved":
+                bad += 1
+                print(f"::warning::{d.name} 格式不合格（run 時只標這一篇、不讓整輪失敗）：{'；'.join(errs)[:200]}")
+        return 0
     rc, res = run(dict(os.environ), datetime.now(TAIPEI), a.dry_run, queue=Path(a.queue), only=a.post)
     for e in res["errors"]:
         log("✗ " + e)

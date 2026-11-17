@@ -659,11 +659,12 @@ def test_星期對不上擋下不發(monkeypatch, tmp_path, capsys):
     errs = tc.validate(tc.load(a))
     assert any("星期對不上" in e and "星期五" in e for e in errs)
     rc, res, api = go(monkeypatch, tmp_path, now=datetime(2026, 11, 13, 21, 0, tzinfo=TPE))
-    assert rc == 1 and res["posted"] == [] and not api.calls            # 一個 Meta API 都沒打
-    assert any("星期對不上" in e for e in res["errors"])
+    assert rc == 0 and res["posted"] == [] and not api.calls            # 一個 Meta API 都沒打；整輪不失敗
+    assert any("星期對不上" in e for e in res["errors"]) and any("星期對不上" in x for x in res["alert"])
     assert "status: approved" in (a / "post.md").read_text()          # 不改稿、不發
-    assert tc.main(["--check", "--queue", str(q)]) == 1               # --check 也擋
-    assert "星期對不上" in capsys.readouterr().out
+    assert tc.main(["--check", "--queue", str(q)]) == 0               # --check 只警告，不讓整個工作流失敗
+    out = capsys.readouterr().out
+    assert "星期對不上" in out and "::warning::" in out
 
 
 def test_缺weekday只警告不擋(monkeypatch, tmp_path, capsys):
@@ -1098,3 +1099,80 @@ def test_IG公開回覆防洗版_每分鐘3則_每篇每小時30則(monkeypatch,
     monkeypatch.setattr(tc, "api", api)
     rc, res = dm.run(dict(ENV), now + timedelta(minutes=75), False, config_path=cfgp, state_path=st, posted_path=posted)
     assert res["public"] == 3
+
+
+# ---------------- 逐篇檢查（2026-11-17 事故 1） ----------------
+
+def test_一篇壞一篇到時間_到時間的照發_整輪exit0但有alert(monkeypatch, tmp_path):
+    q = tmp_path / "q"
+    # 壞稿：已到時間、Threads 留言 > 500 字
+    bad = mkpost(q, "20261110_bad", when="2026-11-10T09:00+08:00", reply="長" * 600)
+    good = mkpost(q, "20261110_good", when="2026-11-10T20:30+08:00")
+    rc, res, api = go(monkeypatch, tmp_path)
+    assert rc == 0                                                       # 整輪不失敗
+    assert res["posted"] == ["20261110_good"] and len(api.posts("ig")) == 1
+    assert any("20261110_bad" in x and "超過" in x for x in res["alert"])  # 只標壞的那篇
+    assert not any("20261110_good" in x for x in res["alert"])
+    assert "status: posted" in (good / "post.md").read_text()
+    assert "status: approved" in (bad / "post.md").read_text()
+
+
+def test_還沒到時間的稿格式錯只警告_不alert不失敗(monkeypatch, tmp_path, capsys):
+    q = tmp_path / "q"
+    mkpost(q, "20261118_future", when="2026-11-18T12:15+08:00", reply="長" * 600)
+    good = mkpost(q, "20261110_good")
+    rc, res, api = go(monkeypatch, tmp_path)
+    assert rc == 0 and res["posted"] == ["20261110_good"] and res["alert"] == [] and res["errors"] == []
+    o = capsys.readouterr().out
+    assert "::warning::" in o and "還沒到發文時間" in o
+    assert tc.main(["--check", "--queue", str(q)]) == 0
+    assert "status: posted" in (good / "post.md").read_text()
+
+
+def test_留言私訊輪詢不受發文檢查影響_工作流不因check失敗():
+    wf = (Path(__file__).resolve().parents[1] / ".github/workflows/tc_post.yml").read_text(encoding="utf-8")
+    assert "scripts/tc_post.py --check" in wf
+    # --check 一律 exit 0，所以輪詢步驟一定會跑
+    seg = wf.split("Threads 留言關鍵字")[1].split("run:")[0]
+    assert "continue-on-error: true" in seg and "if:" not in seg
+
+
+# ---------------- 容器 ERROR 自動重試（事故 2） ----------------
+
+def test_IG影片容器ERROR一次後重建成功_用同一支影片(monkeypatch, tmp_path):
+    sleeps = []
+    monkeypatch.setattr(tc, "SLEEP", lambda s: sleeps.append(s))
+    a = mkvideo(tmp_path / "q")
+    rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(seq=("ERROR", "FINISHED")), now=VNOW)
+    assert rc == 0 and res["posted"] == ["20261115_v"] and res["errors"] == []
+    creates = [c for c in api.calls if c[0] == "ig" and c[2] == "/222/media"]
+    assert len(creates) == 2 and creates[0][4] == creates[1][4]           # 同一支影片重建
+    assert len(api.posts("ig")) == 1                                       # 只發布一次
+    assert any(30 <= x <= 60 for x in sleeps)
+    assert "status: posted" in (a / "post.md").read_text()
+
+
+def test_容器ERROR三次就標error_已發平台不重發(monkeypatch, tmp_path):
+    a = mkvideo(tmp_path / "q")
+    rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(seq=("ERROR",)), now=VNOW)
+    creates = [c for c in api.calls if c[0] == "ig" and c[2] == "/222/media"]
+    assert rc == 1 and len(creates) == 3 and api.posts("ig") == []        # 1 次 + 重試 2 次
+    assert "status: error" in (a / "post.md").read_text() and res["alert"]
+
+
+def test_IG已發成功_Threads容器ERROR三次_重跑只補Threads(monkeypatch, tmp_path):
+    a = mkvideo(tmp_path / "q")
+
+    class OnlyThreadsBad(VideoAPI):
+        def __call__(self, platform, method, path, token, params=None):
+            r = super().__call__(platform, method, path, token, params)
+            if platform == "ig" and isinstance(r, dict) and "status_code" in r:
+                return {"status_code": "FINISHED", "status": "FINISHED"}
+            return r
+
+    rc, res, api = go(monkeypatch, tmp_path, api=OnlyThreadsBad(seq=("ERROR",)), now=VNOW)
+    assert rc == 1 and len(api.posts("ig")) == 1 and api.posts("threads") == []
+    assert "done: ig" in (a / "post.md").read_text()
+    (a / "post.md").write_text((a / "post.md").read_text().replace("status: error", "status: approved"), encoding="utf-8")
+    rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(), now=VNOW + timedelta(hours=21))
+    assert rc == 0 and api.posts("ig") == [] and len(api.posts("threads")) == 2   # IG 不重發
