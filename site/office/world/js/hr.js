@@ -54,7 +54,15 @@ export function createHR(W, X) {
   // ───────── 遊民區：挑位子、走路 ─────────
   const pickStand = id => { const o = O(), free = o.stands.filter(s => !s.taken || s.taken === id); const s = rnd(free.length ? free : o.stands); s.taken = id; return s; };
   const freeAll = id => { const o = O(); [...o.stands, ...o.seats, ...o.mats].forEach(s => { if (s.taken === id) s.taken = null; }); };
-  const pathTo = (c, x, z) => { const p = pos(c), path = W.nav.findPath(p, { x, z }); return path && path.length > 1 ? path : [p, { x, z }]; };
+  // 尋路失敗時退回直線；直線若穿過營火（遊民區站位就圍在營火外圈），改成繞外圈走，不然會自己走進火裡著火（11-17 實測）
+  const aroundFire = (p, x, z) => {
+    const f = O().fire; if (!f) return [p, { x, z }];
+    const sx = x - p.x, sz = z - p.z, sl = sx * sx + sz * sz, u = sl > 1e-9 ? Math.max(0, Math.min(1, ((f.x - p.x) * sx + (f.z - p.z) * sz) / sl)) : 0;
+    if (Math.hypot(p.x + sx * u - f.x, p.z + sz * u - f.z) > 1.3) return [p, { x, z }];
+    const a0 = Math.atan2(p.z - f.z, p.x - f.x), a1 = Math.atan2(z - f.z, x - f.x); let da = a1 - a0; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+    const out = [p]; for (let k = 1; k <= 3; k++) { const a = a0 + da * k / 4; out.push({ x: f.x + Math.cos(a) * 1.8, z: f.z + Math.sin(a) * 1.8 }); } out.push({ x, z }); return out;
+  };
+  const pathTo = (c, x, z) => { const p = pos(c), path = W.nav.findPath(p, { x, z }); return path && path.length > 1 ? path : aroundFire(p, x, z); };
   async function walkTo(c, x, z, speed = 1.7) { const tok = c.lifeTok; await W.untilUnpaused(c); if (c.lifeTok !== tok) return false; const ok = await c.walkTo(pathTo(c, x, z), { speed }); return ok && c.lifeTok === tok; }
 
   // ───────── 演出：收拾 → 揮手 → 走出大門 → 無業遊民區 ─────────
