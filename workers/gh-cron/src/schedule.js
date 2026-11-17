@@ -42,6 +42,10 @@ export const SCHEDULE = [
   //   同一分鐘只派一筆（測試規定），所以 Threads 12:16／12:31、IG 12:17／12:32。降量開關仍由 post_quota.json 與 ig_post.py 把關（主題文章照樣略過）。
   ...['12:16', '12:31'].map((at) => ({ at, days: 'all', workflow: 'threads_post.yml', inputs: {} })),
   ...['12:17', '12:32'].map((at) => ({ at, days: 'all', workflow: 'ig_post.yml', inputs: {} })),
+  // ★ 2026-11-17 談晴說礙（頻道④）自動發文準時派工：GitHub 排程 11-16 晚上整段沒觸發（20:27～23:37 一輪都沒有）、
+  //   11-17 12:27 更是根本沒有對應的 cron，兩次都靠人手動補（20:43、12:43）。改由 Worker 在 12:27、20:27 準時派 healing_post（正式發），
+  //   +15、+30 分鐘各補派一次當「逾時重派」：healing_post.py 冪等（已發的跳過、publish_at 未到不發、per_day 與時段上限把關），重派無害。
+  ...['12:27', '12:42', '12:57', '20:27', '20:42', '20:57'].map((at) => ({ at, days: 'all', workflow: 'healing_post.yml', inputs: { mode: 'post', dry_run: 'false' } })),
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },
 ];

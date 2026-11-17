@@ -196,3 +196,10 @@ test('2026-11-17 手動排程貼文保底：每天 12:16／12:31 派 threads_pos
     for (const t of ['12:17', '12:32']) assert.deepEqual(names(tpe(`${day} ${t}`)), ['ig_post.yml:{}'], `${day} ${t}`);
   }
 });
+
+test('2026-11-17 談晴說礙自動發文：每天 12:27／20:27 準時派 healing_post（正式發），+15、+30 分鐘重派', () => {
+  const want = ['healing_post.yml:{"mode":"post","dry_run":"false"}'];
+  for (const day of ['2026-11-17', '2026-11-22']) {
+    for (const t of ['12:27', '12:42', '12:57', '20:27', '20:42', '20:57']) assert.deepEqual(names(tpe(`${day} ${t}`)), want, `${day} ${t}`);
+  }
+});
