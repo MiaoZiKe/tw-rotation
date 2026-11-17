@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: error
 scheduled_at: 2026-11-17T12:15+08:00
 weekday: 二
 platforms: ig, threads
@@ -9,6 +9,8 @@ video: tech-offer.mp4
 images: cover.jpg
 title: 科技透明圈影片：兩份 offer 怎麼比（tech-offer v3）
 hook_type: 反差（#2）
+done: (無)
+error: ig：IG 影片容器處理失敗（ERROR）：
 ---
 # 頻道②「科技透明圈」：影片「兩份 offer 怎麼比：月薪只是一半」
 
