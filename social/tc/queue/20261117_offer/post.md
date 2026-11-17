@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-17T12:15+08:00
 weekday: 二
 platforms: ig, threads
@@ -9,8 +9,18 @@ video: tech-offer.mp4
 images: cover.jpg
 title: 科技透明圈影片：兩份 offer 怎麼比（tech-offer v3）
 hook_type: 反差（#2）
-done: (無)
-error:
+done: (無), ig, threads
+error: 
+urls_ig: https://www.instagram.com/reel/Df1FbhjDF9G/
+ids_ig: 18376998952208549
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/Df1FhR7CTt8
+ids_threads: 18181311877441326
+ids_threads_reply: 17933069880424022
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df1FmHBDsrE
+urls: https://www.instagram.com/reel/Df1FbhjDF9G/ https://www.threads.com/@tech_01010909/post/Df1FhR7CTt8 https://www.threads.com/@tech_01010909/post/Df1FmHBDsrE
+posted_at: 2026-11-17T12:34+08:00
 ---
 # 頻道②「科技透明圈」：影片「兩份 offer 怎麼比：月薪只是一半」
 
