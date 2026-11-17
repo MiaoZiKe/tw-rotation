@@ -24,33 +24,16 @@
  "rate_speech_only": 4.0,
  "rate_incl_pauses": 3.52,
  "dur": 58.03333333333333,
- "overlap": 22,
+ "overlap": 20,
  "oob": 0,
- "edge": 1,
+ "edge": 0,
  "coText": 0,
  "panelChanged": [],
  "logoGapMin": 41.6,
  "gapTopMax": 56,
  "gapBotMax": 46,
- "static_runs_gt_1_2s": [
-  [
-   7.4,
-   1.37
-  ],
-  [
-   39.67,
-   1.23
-  ],
-  [
-   44.37,
-   1.7
-  ],
-  [
-   48.13,
-   1.57
-  ]
- ],
- "static_max_s": 1.7,
+ "static_runs_gt_1_2s": [],
+ "static_max_s": 0.87,
  "emphasis_min_px": 20.2,
  "emphasis_fail": [],
  "sync": [

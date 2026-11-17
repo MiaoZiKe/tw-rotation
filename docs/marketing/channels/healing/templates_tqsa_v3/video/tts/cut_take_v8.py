@@ -33,8 +33,25 @@ def runs_in(t0, t1, mn=0):
             i = j
         else: i += 1
     return r
+# 簡→繁小對照（ASR 輸出簡體；只列常見字，沒列到的字退成「同字才算對」）
+S2T = dict(zip("这买内统计负担级过体户总资贷还价来为让们说话时间开关长发动经济务观点现实后场产业对车电会发联结约论题际环项报导记错须从样别两种应该钱让儿虽无节数据备选",
+               "這買內統計負擔級過體戶總資貸還價來為讓們說話時間開關長發動經濟務觀點現實後場產業對車電會發聯結約論題際環項報導記錯須從樣別兩種應該錢讓兒雖無節數據備選"))
+def norm(t): return "".join(S2T.get(c, c) for c in re.sub(r"[，。、；：？！「」（）\s\d%.]", "", t))
+# 前導判定（2026-11-17 修）：切點只能在「念稿第 1 行開頭字」在 ASR 的位置之前，不准把第一行內容當前導剪掉。
+# 「直接」之後找第一個和念稿第 1 行前 4 字對得上（≥3 字，允許 ASR 同音誤辨或漏第一字）的位置 j；起點＝j 之前最後一段靜音的結尾；對不上就報錯停下（不退回舊的「最長靜音」邏輯）。
 k0 = max(i for i, (ww, s, e) in enumerate(words) if "直接" in ww)
-r = max(runs_in(words[k0][2] - .1, words[k0][2] + 2.5), key=lambda z: z[1] - z[0]); on0 = r[1] / 100
+def first_line_start():
+    ln = norm(texts[0])[:4]
+    for j in range(k0 + 1, min(len(words), k0 + 12)):
+        nx = "".join(norm(ww) for ww, s0, e0 in words[j:j + 6])[:4]
+        if len(nx) >= 3 and sum(1 for p_, q_ in zip(nx, ln) if p_ == q_) >= 3: return j
+        if len(nx) >= 3 and sum(1 for p_, q_ in zip(nx, ln[1:]) if p_ == q_) >= 3: return j
+    return None
+j0 = first_line_start()
+if j0 is None: sys.exit("前導判定失敗：「直接」之後 12 個字內找不到念稿第 1 行開頭「%s」（ASR 聽到：%s）。不切，請人工看 ASR 或用 ON0 環境變數指定起點。" % (texts[0][:6], "".join(w_[0] for w_ in words[k0:k0 + 12])))
+_sil = [z for z in runs_in(words[j0][1] - 1.5, words[j0][1] + .3, 6) if z[1] / 100 <= words[j0][1] + .3]
+on0 = float(os.environ["ON0"]) if os.environ.get("ON0") else (_sil[-1][1] / 100 - .1 if _sil else max(0.0, words[j0][1] - .1))
+if on0 > words[j0][1] + .3: sys.exit("前導判定錯誤：起點 %.2f 在第 1 行開頭字 %.2f 之後" % (on0, words[j0][1]))
 le = int((words[-1][2] - .05) * 100)
 while le < n and voiced[le]: le += 1
 last = le / 100 + .01; tail_noise = [round(i / 100, 2) for i in range(le, n) if voiced[i]]
@@ -43,10 +60,6 @@ cand = [(a / 100, b / 100) for a, b in runs_in(on0 + .3, last - .3, 12)]
 ch = [cc(t) for t in texts]; tot = sum(ch); exp = []; acc = 0
 for c in ch[:-1]: acc += c; exp.append(on0 + (last - on0) * acc / tot)
 K, M = len(exp), len(cand)
-# 簡→繁小對照（ASR 輸出簡體；只列常見字，沒列到的字退成「同字才算對」）
-S2T = dict(zip("这买内统计负担级过体户总资贷还价来为让们说话时间开关长发动经济务观点现实后场产业对车电会发联结约论题际环项报导记错须从样别两种应该钱让儿虽无节数据备选",
-               "這買內統計負擔級過體戶總資貸還價來為讓們說話時間開關長發動經濟務觀點現實後場產業對車電會發聯結約論題際環項報導記錯須從樣別兩種應該錢讓兒雖無節數據備選"))
-def norm(t): return "".join(S2T.get(c, c) for c in re.sub(r"[，。、；：？！「」（）\s\d%.]", "", t))
 def match_frac(m, k):
     # 候選靜音 m 之後的辨識字，對下一行（第 k+1 行）開頭的符合比例；允許 ASR 少掉第一個字（要求其餘全對）
     a_, b = cand[m]; nxt = "".join(norm(ww) for ww, s0, e0 in words if e0 > (a_ + b) / 2 + .02)[:6]   # ASR 字詞時間會漂（字起點常落在靜音裡），所以用「字結尾在靜音中點之後」當「靜音後的字」
