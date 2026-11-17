@@ -3,13 +3,13 @@
   "round": 0,
   "issues": [
    [
-    "tagtitle",
-    "s4",
-    "38.5s title×tag"
+    "static",
+    "s7",
+    "靜止 1.37 秒（48.40 秒起）"
    ]
   ],
   "fixed": [
-   "s4 tagAt 0.10→0.37（38.5s title×tag）"
+   "s7 tagAll（靜止 1.37 秒（48.40 秒起））"
   ],
   "manual": []
  },
