@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-11-17T16:32:12+08:00",
-  "today": "2026-11-17",
+  "checked_at": "2026-11-18T01:43:16+08:00",
+  "today": "2026-11-18",
   "expected_price_date": "2026-11-17",
   "is_trading_day": true,
   "summary": {
@@ -18,17 +18,15 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "social-live 今天有成功執行 8 次",
+          "why": "social-live 今天有成功執行 1 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44046068564",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44037775252",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44034121020"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44139317653"
           ],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": true,
+          "ok": false,
           "why": "盤前消息日期 2026-11-17、5 則",
           "evidence": [
             "2026-11-17"
@@ -44,7 +42,7 @@
           "hard": false
         }
       },
-      "deadline": "2026-11-17T08:40:00+08:00",
+      "deadline": "2026-11-18T08:40:00+08:00",
       "remedy": null
     },
     {
@@ -53,17 +51,14 @@
       "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "daily.yml 今天有成功執行 2 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44040303591",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44037464642"
-          ],
+          "ok": false,
+          "why": "daily.yml 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": true,
+          "ok": false,
           "why": "盤後消息日期 2026-11-17、5 則",
           "evidence": [
             "2026-11-17"
@@ -79,7 +74,7 @@
           "hard": false
         }
       },
-      "deadline": "2026-11-17T21:40:00+08:00",
+      "deadline": "2026-11-18T21:40:00+08:00",
       "remedy": null
     },
     {
@@ -89,9 +84,9 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "daily.yml 今天有成功的 price／full 輪 1 次",
+          "why": "daily.yml 今天有成功的 price／full 輪 5 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44040303591"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44132313859"
           ],
           "busy": false,
           "hard": false,
@@ -106,16 +101,16 @@
           "deadline": "2026-11-17 16:15:00+08:00"
         },
         "inst": {
-          "ok": false,
-          "why": "三大法人 2026-11-16（應有 2026-11-17）",
+          "ok": true,
+          "why": "三大法人 2026-11-17（應有 2026-11-17）",
           "evidence": [],
           "busy": false,
           "hard": false,
           "deadline": "2026-11-17 17:15:00+08:00"
         },
         "margin": {
-          "ok": false,
-          "why": "融資券 2026-11-16（應有 2026-11-17）",
+          "ok": true,
+          "why": "融資券 2026-11-17（應有 2026-11-17）",
           "evidence": [],
           "busy": false,
           "hard": false,
@@ -134,15 +129,15 @@
         },
         "screen": {
           "ok": false,
-          "why": "主站讀不到（HTTP Error 403: Forbidden）；備援：總覽 2026-11-17／法人 2026-11-16／三大法人頁 2026-11-17（應有 2026-11-17）",
+          "why": "主站讀不到（HTTP Error 403: Forbidden）；備援：總覽 2026-11-17／法人 2026-11-17／三大法人頁 2026-11-17（應有 2026-11-17）",
           "evidence": [],
           "busy": false,
           "hard": false,
           "deadline": "2026-11-17 18:40:00+08:00"
         },
         "etf_hold": {
-          "ok": false,
-          "why": "ETF 成分股湖內最新 2026-11-16（應有 2026-11-17）、來源連續失敗 0 天（紅線 2 天）、來源最後成功紀錄 2026-11-13",
+          "ok": true,
+          "why": "ETF 成分股湖內最新 2026-11-17（應有 2026-11-17）、來源連續失敗 0 天（紅線 2 天）、來源最後成功紀錄 2026-11-16",
           "evidence": [
             "source_health.json"
           ],
@@ -151,8 +146,8 @@
           "deadline": "2026-11-17 21:40:00+08:00"
         },
         "etf_notice": {
-          "ok": false,
-          "why": "ETF 除權息預告來源最後成功 2026-11-13、連續失敗 0 天（應有 2026-11-17，最後成功容忍到 2026-11-16）",
+          "ok": true,
+          "why": "ETF 除權息預告來源最後成功 2026-11-16、連續失敗 0 天（應有 2026-11-17，最後成功容忍到 2026-11-16）",
           "evidence": [
             "source_health.json"
           ],
@@ -170,7 +165,7 @@
         },
         "etf_screen": {
           "ok": false,
-          "why": "主站讀不到 ETF 檔（HTTP Error 403: Forbidden）；備援：ETF 頁 2026-11-17／成分股 2026-11-16（應有 2026-11-17）",
+          "why": "主站讀不到 ETF 檔（HTTP Error 403: Forbidden）；備援：ETF 頁 2026-11-17／成分股 2026-11-17（應有 2026-11-17）",
           "evidence": [],
           "busy": false,
           "hard": false,
@@ -193,18 +188,15 @@
       "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "social-live 今天有成功執行 2 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44046068564",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44037775252"
-          ],
+          "ok": false,
+          "why": "social-live 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
         "content": {
           "ok": false,
-          "why": "posted.json 沒有 close-2026-11-17",
+          "why": "posted.json 沒有 close-2026-11-18",
           "evidence": [],
           "busy": false,
           "hard": false
@@ -217,7 +209,7 @@
           "hard": false
         }
       },
-      "deadline": "2026-11-17T18:20:00+08:00",
+      "deadline": "2026-11-18T18:20:00+08:00",
       "remedy": null
     },
     {
@@ -247,7 +239,7 @@
           "hard": false
         }
       },
-      "deadline": "2026-11-17T21:40:00+08:00",
+      "deadline": "2026-11-18T21:40:00+08:00",
       "remedy": null
     },
     {
@@ -291,7 +283,7 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "權杖檔更新於 2026-11-16T08:39:10+00:00",
+          "why": "權杖檔更新於 2026-11-17T09:46:29+00:00",
           "evidence": [
             "meta_token.json"
           ],
@@ -327,15 +319,15 @@
           "ok": true,
           "why": "pages.yml 今天有成功執行 44 次",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44045115364",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44029660076",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44019320965"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44104768556",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44096315374",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44096298729"
           ],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": false,
+          "ok": true,
           "why": "價量／法人／融資券／來源健康（同每日資料關卡）",
           "evidence": [],
           "busy": false,
@@ -356,26 +348,6 @@
   ],
   "errors": [],
   "remedies": {
-    "premarket": {
-      "date": "2026-11-16",
-      "count": 1,
-      "attempts": [
-        {
-          "at": "2026-11-16T15:19:24+08:00",
-          "workflow": "social-live.yml",
-          "inputs": {
-            "kind": "premarket",
-            "dry_run": "false",
-            "force": "false"
-          },
-          "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/43823073438",
-          "run_id": null,
-          "run_status": null,
-          "run_conclusion": null
-        }
-      ]
-    },
     "data": {
       "date": "2026-11-17",
       "count": 1,
