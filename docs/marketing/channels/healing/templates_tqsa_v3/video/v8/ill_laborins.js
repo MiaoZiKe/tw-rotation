@@ -20,6 +20,7 @@ const ILL={
   const cr=pr(t,.8,.25);if(cr>0)g+=`<line x1="196" y1="182" x2="${196+142*cr}" y2="182" stroke="${LAMP}" stroke-width="7"/>`;
   const nw=SPR(t-1.0,.45,15);if(t>1.0)g+=`<g transform="translate(260,262) scale(${Math.max(.01,nw).toFixed(3)})" opacity="${clamp((nw-.1)/.85).toFixed(3)}">${T(0,10,'2031',56,700,HINT)}</g>`;
   const on=t>.6&&t<1.0?1:0;g+=`<circle cx="640" cy="${(h-90)/2+30}" r="22" fill="${on?'#F4B860':FACE}" stroke="${LINE}" stroke-width="3"/></g>`;
+  {const cy=Math.min(1,Math.max(0,(t-.35)/.4));g+=`<g opacity="${clamp(t*3)}"><rect x="740" y="${h-190}" width="130" height="56" rx="10" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>${T(805,h-150,'已撥補',30,700,TXT)}<circle cx="805" cy="${(h-300+110*cy*cy).toFixed(1)}" r="24" fill="#F4B860" stroke="${LINE}" stroke-width="3" opacity="${cy>=1?0:1}"/></g>`}
   const st=t<.55?-80*(1-EO(t/.55)):t<.8?-80*(1-(t-.55)/.25):6*DECAY(t-.8,6,18);g+=`<g transform="translate(0,${st.toFixed(1)})" opacity="${clamp(t*4)}"><rect x="400" y="${h-210}" width="100" height="50" rx="8" fill="#8A5A44" stroke="${LINE}" stroke-width="3"/><rect x="430" y="${h-290}" width="40" height="80" rx="10" fill="#B98A6A" stroke="${LINE}" stroke-width="3"/></g>`;
   return g},
   sfx(t0,s,E){E(t0+.2,'glide',{f0:700,f1:350,dur:.3,g:.07});E(t0+.8,'thump',{g:.4});E(t0+1.0,'pop')}},
@@ -47,7 +48,7 @@ const ILL={
   g+=`<path d="M60 ${yLine(60)} L${x} ${yLine(x)}" stroke="#E9DFC9" stroke-width="${(r*1.2).toFixed(1)}" opacity=".7" stroke-linecap="round"/>`;
   const sq=t>1.95?.08*DECAY(t-1.95,7,22):0;g+=`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${(1+sq).toFixed(3)},${(1-sq).toFixed(3)}) rotate(${(p*540).toFixed(0)})"><circle r="${r.toFixed(1)}" fill="#FFFDF8" stroke="${LINE}" stroke-width="3"/><path d="M${(-r*.9).toFixed(1)} ${(r*.25).toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 0 ${(r*.9).toFixed(1)} ${(r*.25).toFixed(1)} Q 0 ${(r*.7).toFixed(1)} ${(-r*.9).toFixed(1)} ${(r*.25).toFixed(1)}Z" fill="#E8E4DC" opacity=".8"/><circle cx="${(-r*.35).toFixed(1)}" cy="${(-r*.35).toFixed(1)}" r="${(r*.18).toFixed(1)}" fill="#FFFFFF"/><circle cx="${(r*.3).toFixed(1)}" cy="${(-r*.15).toFixed(1)}" r="${(r*.12).toFixed(1)}" fill="#FFFFFF"/></g><ellipse cx="${x.toFixed(1)}" cy="${(yLine(x)+4).toFixed(1)}" rx="${(r*.8).toFixed(1)}" ry="8" fill="#6E4636" opacity=".25"/>`;
   for(let i=0;i<10;i++){const u=((t*.25+i/10)%1);g+=`<circle cx="${(40+i*86+10*Math.sin(t*2+i)).toFixed(1)}" cy="${(u*(h-40)).toFixed(1)}" r="4" fill="#FFFFFF" stroke="#C9CFC2" stroke-width="1" opacity="${(.9*Math.sin(Math.PI*u)).toFixed(2)}"/>`}
-  g+=`<rect x="40" y="${h-110}" width="180" height="60" rx="10" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`+T(130,h-68,'越滾越大',32,700,TXT);
+  g+=`<rect x="30" y="${h-110}" width="200" height="60" rx="10" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`+T(130,h-68,'未提存給付',32,700,TXT);
   return g},
   sfx(t0,s,E){E(t0+.15,'glide',{f0:200,f1:120,dur:1.7,g:.1});E(t0+1.95,'thump',{g:.4})}},
  // s6 齒輪組：三個齒輪（報酬率、投保人數、物價）互相咬合轉動，0.6 中間齒輪被撥一下加速再回穩；指針跟著擺

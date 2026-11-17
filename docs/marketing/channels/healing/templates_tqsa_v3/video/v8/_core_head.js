@@ -29,7 +29,7 @@ function split2(s){const m=s.length/2;let best=-1,bd=1e9;for(let i=1;i<s.length-
 function capHTML(s,op,dy){if(!s||op<=0)return'';s=s.replace(/。$/,'');const one=s.length<=11;const ls=one?[s]:split2(s);const mx=Math.max(...ls.map(l=>l.length));const fs=one?76:(mx<=13?64:Math.min(64,Math.floor(880/mx)));
  const lh=Math.round(fs*1.28),h=ls.length*lh,top=1690-h;
  return `<div data-o="cap" class="abs cap" style="top:${top}px;font-size:${fs}px;line-height:${lh}px;opacity:${op.toFixed(3)};transform:translateY(${dy.toFixed(1)}px)">${ls.map(esc).join('<br>')}</div>`}
-function srcHTML(s,op){return op<=0?'':`<div data-o="src" class="abs src" style="opacity:${op.toFixed(3)}">${esc(s)}</div>`}
+function srcHTML(s,op,fs){if(op<=0)return'';const ls=String(s).split('\n'),f=fs||34,lh=44,top=1806-(ls.length-1)*lh;return `<div data-o="src" class="abs src" style="opacity:${op.toFixed(3)};top:${top}px;font-size:${f}px">${ls.map(esc).join('<br>')}</div>`}
 const glow=(cx,cy,r,a)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#gl)" opacity="${a.toFixed(3)}"/>`;
 const DEFS=`<defs><radialGradient id="gl"><stop offset="0" stop-color="#F2B66B" stop-opacity=".85"/><stop offset=".55" stop-color="#F2B66B" stop-opacity=".25"/><stop offset="1" stop-color="#F2B66B" stop-opacity="0"/></radialGradient>
 <radialGradient id="glw"><stop offset="0" stop-color="#FFE9B8" stop-opacity=".95"/><stop offset="1" stop-color="#FFE9B8" stop-opacity="0"/></radialGradient></defs>`;

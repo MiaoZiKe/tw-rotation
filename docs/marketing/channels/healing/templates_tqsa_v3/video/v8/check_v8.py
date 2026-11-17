@@ -9,7 +9,7 @@ from PIL import Image
 from scipy import ndimage
 B = os.path.dirname(os.path.abspath(__file__)); VD = os.path.dirname(B)
 name, outp = sys.argv[1:3]
-SP = os.path.join("/tmp/claude-0/-home-user/ce50d787-1067-5482-ab44-99dc39a48890/scratchpad", "static_" + name)
+SP = os.path.join(os.environ.get("TQSA_SCRATCH", "/tmp"), "static_" + name)
 subprocess.run(["node", os.path.join(B, "static_pass.js"), name, SP], check=True)   # v8.1：關掉光點／亮帶後再判靜止（主體有沒有動）
 fr = sorted(glob.glob(os.path.join(SP, "*.png")))
 prev = None; still = []
@@ -24,7 +24,7 @@ while i < len(still):
         runs.append((round((i - 1) / 30, 2), round((j - i + 1) / 30, 2))); i = j
     else: i += 1
 long = [r for r in runs if r[1] > 1.2]
-sd = os.path.join("/tmp/claude-0/-home-user/ce50d787-1067-5482-ab44-99dc39a48890/scratchpad", "em_" + name)
+sd = os.path.join(os.environ.get("TQSA_SCRATCH", "/tmp"), "em_" + name)
 subprocess.run(["node", os.path.join(B, "em_shots.js"), name, sd], check=True)
 em = []
 for s in json.load(open(os.path.join(sd, "shots.json"))):

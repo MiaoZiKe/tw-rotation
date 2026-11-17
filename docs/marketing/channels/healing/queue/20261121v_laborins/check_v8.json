@@ -1,0 +1,32 @@
+{
+ "frames": 1734,
+ "static_runs_gt_1_2s": [],
+ "static_max_s": 0.87,
+ "emphasis": [
+  {
+   "id": "s2",
+   "t": 7.29,
+   "min_px": 42.0,
+   "ok": true
+  },
+  {
+   "id": "s5",
+   "t": 24.71,
+   "min_px": 31.0,
+   "ok": true
+  },
+  {
+   "id": "s4",
+   "t": 40.67,
+   "min_px": 29.0,
+   "ok": true
+  },
+  {
+   "id": "s8",
+   "t": 50.65,
+   "min_px": 21.0,
+   "ok": true
+  }
+ ],
+ "emphasis_fail": []
+}

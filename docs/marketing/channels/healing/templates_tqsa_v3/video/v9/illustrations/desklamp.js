@@ -1,0 +1,10 @@
+ desklamp:{draw(t,h){let g=`<rect x="0" y="${h-110}" width="888" height="110" fill="#C9A27A"/><rect x="0" y="${h-118}" width="888" height="12" fill="#B48A60"/>`;
+  const on=t<.5?0:t<.56?1:t<.62?.2:1;if(on)g+=`<path d="M600 120 L420 ${h-110} H860Z" fill="#FFE9B8" opacity="${(.45*on).toFixed(2)}"/>`+glow(640,150,120,.5*on);
+  g+=`<path d="M760 ${h-118} h120 v-14 h-120Z" fill="${LINE}"/><line x1="820" y1="${h-130}" x2="740" y2="150" stroke="${LINE}" stroke-width="10"/><line x1="740" y1="150" x2="640" y2="110" stroke="${LINE}" stroke-width="10"/><path d="M560 110 q80 -70 140 10Z" fill="${LAMP}" stroke="${LINE}" stroke-width="3" transform="rotate(${(-3*DECAY(t-.5,4,16)).toFixed(2)} 640 110)"/>`;
+  g+=`<path d="M180 ${h-130} q130 -30 250 0 v-130 q-120 -30 -250 0Z" fill="#FFFDF8" stroke="${LINE}" stroke-width="3"/><path d="M430 ${h-130} q130 -30 250 0 v-130 q-120 -30 -250 0Z" fill="#FFFDF8" stroke="${LINE}" stroke-width="3" transform="translate(-250,0) scale(-1,1) translate(-860,0)"/>`;
+  const fp=clamp((t-1.0)/.45),fx=430-250*Math.sin(Math.PI/2*fp)*(fp<.5?1:1);if(fp>0&&fp<1)g+=`<path d="M430 ${h-130} q${(fx-430)/2} -30 ${fx-430} 0 v-130 q${-(fx-430)/2} -30 ${-(fx-430)} 0" fill="#F6EFE2" stroke="${LINE}" stroke-width="2"/>`;
+  for(let i=0;i<4;i++)g+=`<line x1="210" y1="${h-220+i*22}" x2="400" y2="${h-226+i*22}" stroke="${LINE}" stroke-width="2" opacity=".35"/>`;
+  const rl=60*(1-SPR(t-.3,.6,8)),rot=rl*4;g+=`<g transform="translate(${(600-rl).toFixed(1)},${h-126}) rotate(${rot.toFixed(1)})"><rect x="-80" y="-8" width="160" height="16" rx="6" fill="#F4B860" stroke="${LINE}" stroke-width="2"/><path d="M80 -8 l22 8 l-22 8Z" fill="#E9C9A6"/></g>`;
+  for(let i=0;i<6;i++){const u=((t*.18+i/6)%1),x=520+i*48+16*Math.sin(t+i),y=150+u*(h-280);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#FFF4D6" opacity="${(on*.8*Math.sin(Math.PI*u)).toFixed(2)}"/>`}
+  return g},
+  sfx(t0,s,E){E(t0+.5,'click');E(t0+.62,'click');E(t0+1.0,'glide',{f0:900,f1:500,dur:.3,g:.07});E(t0+.6,'tick',{g:.5})}}

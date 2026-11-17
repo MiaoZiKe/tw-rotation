@@ -1,0 +1,6 @@
+ fridge:{draw(t,h){let g=`<rect x="0" y="${h-40}" width="888" height="40" fill="#E4D3B8"/><rect x="250" y="16" width="388" height="${h-56}" rx="24" fill="#E8ECE6" stroke="${LINE}" stroke-width="4"/><line x1="250" y1="130" x2="638" y2="130" stroke="${LINE}" stroke-width="3"/><rect x="600" y="50" width="14" height="60" rx="6" fill="${LINE}"/><rect x="600" y="160" width="14" height="100" rx="6" fill="${LINE}"/>`;
+  const notes=[[300,150,'房貸',LAMP,.3,1],[450,170,'水電','#FFFDF8',.7,0],[310,40,'菜錢','#FFFDF8',.9,0],[460,40,'交通','#FFFDF8',1.1,0]];
+  notes.forEach(([x,y,l,c,a,hi])=>{const u=t-a,p=SPR(u,.45,15);if(u<=0)return;const fl=4*Math.sin(t*2.5+x);g+=`<g transform="translate(${x},${(y-(1-p)*40).toFixed(1)}) rotate(${(hi?-4:3)})" opacity="${clamp(u*6)}"><rect x="0" y="0" width="${hi?150:120}" height="${hi?110:76}" fill="${c}" stroke="${LINE}" stroke-width="3"/>${T(hi?75:60,hi?66:48,l,32,700,hi?'#FFFFFF':TXT)}<path d="M${hi?150:120} ${hi?110:76} l-18 ${(-4+fl*.4).toFixed(1)} l2 -16Z" fill="#F3EADB"/><circle cx="${hi?75:60}" cy="2" r="10" fill="#B98A6A" stroke="${LINE}" stroke-width="2"/></g>`});
+  const ld=.5+.5*tw(t,0,2);g+=`<circle cx="290" cy="${h-70}" r="8" fill="#9CC08A" opacity="${ld.toFixed(2)}"/>`;
+  return g},
+  sfx(t0,s,E){E(t0+.35,'thump',{g:.3});[.75,.95,1.15].forEach(x=>E(t0+x,'tick',{g:.6}))}}

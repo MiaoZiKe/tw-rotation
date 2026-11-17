@@ -1,0 +1,13 @@
+{
+ "title": "勞保會倒嗎？精算推估2031年轉負，前提是不撥補（影片 v8，有旁白）",
+ "hook_type": "迷思破除",
+ "format": "video",
+ "platforms": [
+  "ig",
+  "threads"
+ ],
+ "status": "approved",
+ "publish_at": "2026-11-21T20:27+08:00",
+ "comment_keyword": "勞保",
+ "note": "2026-11-16 總編輯：v8 產生器（templates_tqsa_v3/video/v8/）。數字照 sources.md；無旁白版經 animation-director、art-director 複審通過後才配旁白（gemini-3.8-flash-tts／Sulafat，1 次請求）；成片最後驗證見 final_check.json、video_review.md。兩份審查通過且（11/17 這支）Andy 看過或到前一天 20:00 沒意見，才改 approved。同日 12:27 發輪播。 2026-11-17 Andy：「全部OK」，總編輯改 approved。"
+}

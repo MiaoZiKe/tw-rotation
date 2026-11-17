@@ -33,8 +33,25 @@ def runs_in(t0, t1, mn=0):
             i = j
         else: i += 1
     return r
+# 簡→繁小對照（ASR 輸出簡體；只列常見字，沒列到的字退成「同字才算對」）
+S2T = dict(zip("这买内统计负担级过体户总资贷还价来为让们说话时间开关长发动经济务观点现实后场产业对车电会发联结约论题际环项报导记错须从样别两种应该钱让儿虽无节数据备选",
+               "這買內統計負擔級過體戶總資貸還價來為讓們說話時間開關長發動經濟務觀點現實後場產業對車電會發聯結約論題際環項報導記錯須從樣別兩種應該錢讓兒雖無節數據備選"))
+def norm(t): return "".join(S2T.get(c, c) for c in re.sub(r"[，。、；：？！「」（）\s\d%.]", "", t))
+# 前導判定（2026-11-17 修）：切點只能在「念稿第 1 行開頭字」在 ASR 的位置之前，不准把第一行內容當前導剪掉。
+# 「直接」之後找第一個和念稿第 1 行前 4 字對得上（≥3 字，允許 ASR 同音誤辨或漏第一字）的位置 j；起點＝j 之前最後一段靜音的結尾；對不上就報錯停下（不退回舊的「最長靜音」邏輯）。
 k0 = max(i for i, (ww, s, e) in enumerate(words) if "直接" in ww)
-r = max(runs_in(words[k0][2] - .1, words[k0][2] + 2.5), key=lambda z: z[1] - z[0]); on0 = r[1] / 100
+def first_line_start():
+    ln = norm(texts[0])[:4]
+    for j in range(k0 + 1, min(len(words), k0 + 12)):
+        nx = "".join(norm(ww) for ww, s0, e0 in words[j:j + 6])[:4]
+        if len(nx) >= 3 and sum(1 for p_, q_ in zip(nx, ln) if p_ == q_) >= 3: return j
+        if len(nx) >= 3 and sum(1 for p_, q_ in zip(nx, ln[1:]) if p_ == q_) >= 3: return j
+    return None
+j0 = first_line_start()
+if j0 is None: sys.exit("前導判定失敗：「直接」之後 12 個字內找不到念稿第 1 行開頭「%s」（ASR 聽到：%s）。不切，請人工看 ASR 或用 ON0 環境變數指定起點。" % (texts[0][:6], "".join(w_[0] for w_ in words[k0:k0 + 12])))
+_sil = [z for z in runs_in(words[j0][1] - 1.5, words[j0][1] + .3, 6) if z[1] / 100 <= words[j0][1] + .3]
+on0 = float(os.environ["ON0"]) if os.environ.get("ON0") else (_sil[-1][1] / 100 - .1 if _sil else max(0.0, words[j0][1] - .1))
+if on0 > words[j0][1] + .3: sys.exit("前導判定錯誤：起點 %.2f 在第 1 行開頭字 %.2f 之後" % (on0, words[j0][1]))
 le = int((words[-1][2] - .05) * 100)
 while le < n and voiced[le]: le += 1
 last = le / 100 + .01; tail_noise = [round(i / 100, 2) for i in range(le, n) if voiced[i]]
@@ -43,10 +60,6 @@ cand = [(a / 100, b / 100) for a, b in runs_in(on0 + .3, last - .3, 12)]
 ch = [cc(t) for t in texts]; tot = sum(ch); exp = []; acc = 0
 for c in ch[:-1]: acc += c; exp.append(on0 + (last - on0) * acc / tot)
 K, M = len(exp), len(cand)
-# 簡→繁小對照（ASR 輸出簡體；只列常見字，沒列到的字退成「同字才算對」）
-S2T = dict(zip("这买内统计负担级过体户总资贷还价来为让们说话时间开关长发动经济务观点现实后场产业对车电会发联结约论题际环项报导记错须从样别两种应该钱让儿虽无节数据备选",
-               "這買內統計負擔級過體戶總資貸還價來為讓們說話時間開關長發動經濟務觀點現實後場產業對車電會發聯結約論題際環項報導記錯須從樣別兩種應該錢讓兒雖無節數據備選"))
-def norm(t): return "".join(S2T.get(c, c) for c in re.sub(r"[，。、；：？！「」（）\s\d%.]", "", t))
 def match_frac(m, k):
     # 候選靜音 m 之後的辨識字，對下一行（第 k+1 行）開頭的符合比例；允許 ASR 少掉第一個字（要求其餘全對）
     a_, b = cand[m]; nxt = "".join(norm(ww) for ww, s0, e0 in words if e0 > (a_ + b) / 2 + .02)[:6]   # ASR 字詞時間會漂（字起點常落在靜音裡），所以用「字結尾在靜音中點之後」當「靜音後的字」
@@ -85,23 +98,35 @@ pieces = []
 for i, sid in enumerate(ids):
     s = on0 if i == 0 else bounds[i - 1][1]; e = bounds[i][0] if i < len(bounds) else last
     gap = (bounds[i][1] - bounds[i][0]) if i < len(bounds) else 0
+    for kv in os.environ.get('TRIM', '').split(','):   # TRIM=s6=78.35：某句只取前半（刪掉同一段錄音裡後面的句子，不重送 TTS）
+        if '=' in kv and kv.split('=')[0] == sid: e = min(e, float(kv.split('=')[1]))
     heard = "".join(ww for ww, a, b in words if a >= s - .05 and b <= e + .1)
     pieces.append({"id": sid, "text": texts[i], "heard": heard, "src_start": round(s, 3), "src_end": round(e, 3), "src_gap_after": round(gap, 3)})
-def seg_audio(a, b):
-    y = x[int(max(0, a - .03) * SR):int((b + .06) * SR)]
+CUTS = []   # 環境變數 CUTS="40.95-42.16>0.35,..."（2026-11-17）：原始錄音裡某段句內靜音 a–b 壓成 keep 秒（從中間刪，不重送 TTS、不放慢）
+for kv in os.environ.get("CUTS", "").split(","):
+    if ">" in kv and "-" in kv:
+        ab, kp = kv.split(">"); a_, b_ = [float(v) for v in ab.split("-")]; kp = float(kp)
+        if b_ - a_ > kp: CUTS.append((a_ + kp / 2, b_ - kp / 2))
+def seg_audio(a, b, pa=.03, pb=.06):
+    y = x[int(max(0, a - pa) * SR):int((b + pb) * SR)]
     if abs(F - 1) < 1e-3: return y
     p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-", "-af", "atempo=%.4f" % F, "-f", "f32le", "-"], input=y.tobytes(), capture_output=True).stdout
     return np.frombuffer(p, np.float32)
 outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
 for i, p in enumerate(pieces):
-    y = seg_audio(p["src_start"], p["src_end"]); st = t; t += len(y) / SR; outv.append(y)
+    rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
+    if rem:
+        ed = [p["src_start"]] + [v for r_ in rem for v in r_] + [p["src_end"]]
+        y = np.concatenate([seg_audio(ed[j], ed[j + 1], .03 if j == 0 else 0, .06 if j == len(ed) - 2 else 0) for j in range(0, len(ed), 2)])
+    else: y = seg_audio(p["src_start"], p["src_end"])
+    st = t; t += len(y) / SR; outv.append(y)
     # g＝實際停頓目標（含前後各留的 0.09 秒底噪，下面再扣掉）：段落 PARA；句間 clamp(自然停頓, MINGAP, MAXGAP)
     if i >= len(pieces) - 1: g = .15
     elif para_after[i]: g = PARA
     else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
     if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
     g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
-    wo = [round(st + (a - p["src_start"]) / F, 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]   # 每個字詞在成品裡的起音時間（字幕／重拍對準旁白用）
+    wo = [round(st + (a - p["src_start"] - sum(rb - ra for ra, rb in rem if a >= ra)) / F, 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]   # 每個字詞在成品裡的起音時間（字幕／重拍對準旁白用）
     segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3)}); t += g
 y = np.concatenate(outv)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())

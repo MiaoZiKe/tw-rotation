@@ -279,7 +279,7 @@ const SCV={
  ask(s,lt,d){let h=title(s.title,lt,{cls:'hint'})+tag(s.tag,lt,.3,306);h+=ILLbox(s,lt,d,392,500);
   let g='';s.recap.forEach((r,i)=>{const p=pr(lt,.15+i*.1,.4);g+=`<g opacity="${p}" transform="translate(${(1-p)*-40},0)"><rect x="20" y="${10+i*112}" width="848" height="92" rx="20" fill="${FACE}" stroke="${LINE}" stroke-width="2"/>${T(56,10+i*112+60,r[0],34,400,SUBC,'start')}${T(832,10+i*112+62,r[1],42,700,TXT,'end')}</g>`});
   const q=pr(lt,.65,.4,BACK),oy=s.recap.length*112+40;const cyc=!!s.btnCycle,alt=cyc&&lt>2.0?(Math.floor((lt-2.0)/.9)%2):-1,ac0=alt==0?LAMP:LINE,ac1=alt==1?LAMP:LINE,aw0=alt==0?5:3,aw1=alt==1?5:3;
-  g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+
+  if(s.opt)g+=`<g opacity="${clamp(q*1.5)}" transform="translate(0,${(1-clamp(q))*20})">${T(444,oy+20,'二選一',32,700,HINT)}`+
    `<rect x="40" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac0}" stroke-width="${aw0}"/>${T(230,oy+106,s.opt[0],40,700,TXT)}`+
    `<rect x="468" y="${oy+44}" width="380" height="96" rx="48" fill="${FACE3}" stroke="${ac1}" stroke-width="${aw1}" stroke-dasharray="10 8"/>${T(658,oy+106,s.opt[1],40,700,TXT)}</g>`;
   // 第二拍：兩顆膠囊依序輕跳（位移，不縮放）
@@ -366,7 +366,8 @@ function capLines(c,bal){let ps=c.replace(/。$/,'').match(/[^，。、；：？
  if(bal&&ps.length>1&&ps[0].replace(/[，。、；：？！]/g,'').length<=3){ps=[ps[0]+ps[1]].concat(ps.slice(2))}   // capBal：句首短語（不過，／但，）併入下一段，過長時對半斷
 
  const NUM=/[零〇一二兩三四五六七八九十百千萬點]/;
- ps.forEach(p0=>{let p=p0;while(p.length>13){let k=bal?Math.ceil(p.length/2):13;while(k>6&&NUM.test(p[k-1])&&NUM.test(p[k]))k--;L.push({t:p.slice(0,k),glue:true});p=p.slice(k)}L.push({t:p})});
+ ps.forEach(p0=>{let p=p0;while(p.length>13){let k=bal?Math.ceil(p.length/2):13;while(k>6&&NUM.test(p[k-1])&&NUM.test(p[k]))k--;if(!bal){for(let j=k;j>=6;j--){if(/[年部府會的和與及]/.test(p[j-1])&&!/[度代齡底初末刊報期]/.test(p[j])&&!(NUM.test(p[j-1])&&NUM.test(p[j]))){k=j;break}}}   // 2026-11-17：長片語優先斷在「年／部／的…」之後，不把「人口統計年刊」這類詞拆開
+  L.push({t:p.slice(0,k),glue:true});p=p.slice(k)}L.push({t:p})});
  const lines=[];L.forEach(x=>{const last=lines[lines.length-1];if(last&&!last.full&&(last.t+x.t).length<=13&&!x.glue)last.t+=x.t;else lines.push({t:x.t});if(x.glue)lines[lines.length-1].full=true});
  return lines.map(x=>x.t)}
 function capChunks(c,bal){const L=capLines(c,bal),ch=[];for(let i=0;i<L.length;i+=2){let a=L.slice(i,i+2);ch.push(a)}
@@ -381,7 +382,7 @@ window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.le
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
  const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;_ONCE=!!sc.once;let h=SC[sc.type](sc,l,dd,{});
   if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*(sc.capDy==null?18:sc.capDy))}
-  if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2));return h};
+  if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2),sc.srcFs);return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;
  if(i>0&&fr<TRF){const o=S[i-1];
   if(fr<=1){const e=(fr+1)/3;html+=`<div class="abs layer" data-L="old" data-clip="${(W*e).toFixed(0)},${W}" style="clip-path:inset(0 0 0 ${(W*e).toFixed(0)}px)">${strip(layer(o,t))}</div>${edge(W*e)}`}
