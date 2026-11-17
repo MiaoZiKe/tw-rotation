@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-17T20:00+08:00
 weekday: 二
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-yield.mp4
 images: cover.jpg
 title: 科技透明圈影片：晶圓良率，大晶片為什麼比較吃虧（tech-yield v4）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/Df15k0dirNN/
+ids_ig: 18044758631839311
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/Df15rCuPiLZ
+ids_threads: 18004500078043152
+ids_threads_reply: 18110404727251730
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df15yWIG9zn
+done: ig, threads
+urls: https://www.instagram.com/reel/Df15k0dirNN/ https://www.threads.com/@tech_01010909/post/Df15rCuPiLZ https://www.threads.com/@tech_01010909/post/Df15yWIG9zn
+posted_at: 2026-11-17T20:10+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「晶圓良率：晶片越大，能用的比例越低」
 
