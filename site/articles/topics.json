@@ -1,6 +1,111 @@
 {
- "updated": "2026-11-16",
+ "updated": "2026-11-17",
  "topics": [
+  {
+   "id": "n_cyber_5d_25pct",
+   "cat": "news",
+   "title": "資安族群5日漲25%：資金在押注什麼",
+   "why": "本站資料湖 11/09→11/16 資安防護族群成交值加權漲 25.32%，為全站族群第一；同期電芯、太陽能跌逾 11%。讀者會問大盤震盪時資安為何逆勢、是 AI 安全需求還是避風港資金；媒體 9 月起有「AI 帶動資安需求」「回檔時資安成避風港」兩種說法，11 月原因待撰稿查證。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/cyber_security"
+   ]
+  },
+  {
+   "id": "n_coreweave_q3_debt",
+   "cat": "news",
+   "title": "CoreWeave營收年增168%，市場為何更在意債",
+   "why": "11/10 盤後財報：Q3 營收 36.6 億美元、年增 168%，總債務約 469 億美元、積壓訂單 1,325 億美元（TechNews 11/11、外電多家摘要一致）；11/11 股價漲 24.7%、費半漲 5.7%（優分析）。讀者會問 AI 雲端是真需求還是借錢擴張。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-17"
+  },
+  {
+   "id": "n_twd_33_cbc",
+   "cat": "news",
+   "title": "新台幣四度逼近33元：央行為何不死守",
+   "why": "11/6 盤中最低 33.04、11/9 收 32.882、11/10 盤中 32.97 後央行尾盤拉回收 32.865、11/12 最低 32.994（自由時報、優分析）；楊金龍 10/28 稱「柳樹理論」不守特定價位。讀者會問台幣為何一直貶、跟外資賣台股有什麼關係。與 11/04「外資賣超與新台幣貶值」不同，本題講 33 元關卡與央行做法。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-17"
+  },
+  {
+   "id": "k_heat_pipe",
+   "cat": "know",
+   "title": "熱管是什麼？一根銅管怎麼把熱搬離晶片",
+   "why": "液冷 3D 場景（liquid_cooling）已有熱管部件與蒸氣／冷凝液流動動畫，可直接用 scene 嵌入；接續均熱片、水冷板之後補齊兩相流散熱。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#industry/group/air_cooling"
+   ]
+  },
+  {
+   "id": "k_uqd_coupler",
+   "cat": "know",
+   "title": "快接頭是什麼？液冷機櫃拔管為何不漏液",
+   "why": "液冷 3D 場景已有快接頭（UQD／盲插 UQDB）部件與成對進出水流向；漏液是液冷最被盯的品質風險，讀者會問一個接頭為何重要。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_solder_resist",
+   "cat": "know",
+   "title": "防焊層是什麼？載板表面那層膜為何要開窗",
+   "why": "IC 載板 3D 場景（ic_substrate）已有防焊層與開窗部件；接續雷射微孔、微凸塊，講載板最外層怎麼保護線路又留出焊點。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "i_cpo_test_4stage",
+   "cat": "intro",
+   "title": "CPO 測試鏈：光進光出要在哪四站把關",
+   "why": "站內 siph_cpo 鏈「測試與測試介面」環節已整理四個測試站（光子晶片、堆疊後、光引擎、光進光出＋誤碼率）；講環節分工，不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/siph_test"
+   ]
+  },
+  {
+   "id": "i_pluggable_vs_cpo",
+   "cat": "intro",
+   "title": "可插拔與 CPO 兩條路：光互連鏈怎麼分流",
+   "why": "站內 siph_cpo 鏈有「可插拔模組與線纜（對照）」環節：800G 已量產、1.6T 放量中，CPO 是潛在替代；用供應鏈圖並排兩條路的環節差在哪。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/siph_module",
+    "#industry/group/optical_module"
+   ]
+  },
+  {
+   "id": "i_pkg_inspection",
+   "cat": "intro",
+   "title": "封裝後怎麼驗：AOI、電測到分選機的檢測鏈",
+   "why": "站內半導體鏈「封裝量測自動化」環節尚未寫過：後段 AOI 外觀檢測、電測、測試分選機與測試介面各管哪一步；與「封裝製程機台鏈」分開，只講出廠前檢測。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/pkg_metrology"
+   ]
+  },
   {
    "id": "n_ai_chip_selloff_pre_nvda",
    "cat": "news",
