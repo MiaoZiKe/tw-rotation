@@ -30,7 +30,7 @@ function split2(s){const m=s.length/2;let best=-1,bd=1e9;for(let i=1;i<s.length-
 function capHTML(s,op,dy){if(!s||op<=0)return'';s=s.replace(/。$/,'');const one=s.length<=11;const ls=one?[s]:split2(s);const mx=Math.max(...ls.map(l=>l.length));const fs=one?76:(mx<=13?64:Math.min(64,Math.floor(880/mx)));
  const lh=Math.round(fs*1.28),h=ls.length*lh,top=1690-h;
  return `<div data-o="cap" class="abs cap" style="top:${top}px;font-size:${fs}px;line-height:${lh}px;opacity:${op.toFixed(3)};transform:translateY(${dy.toFixed(1)}px)">${ls.map(esc).join('<br>')}</div>`}
-function srcHTML(s,op){return op<=0?'':`<div data-o="src" class="abs src" style="opacity:${op.toFixed(3)}">${esc(s)}</div>`}
+function srcHTML(s,op,fs){if(op<=0)return'';const ls=String(s).split('\n'),f=fs||34,lh=44,top=1806-(ls.length-1)*lh;return `<div data-o="src" class="abs src" style="opacity:${op.toFixed(3)};top:${top}px;font-size:${f}px">${ls.map(esc).join('<br>')}</div>`}
 const glow=(cx,cy,r,a)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#gl)" opacity="${a.toFixed(3)}"/>`;
 const DEFS=`<defs><radialGradient id="gl"><stop offset="0" stop-color="#F2B66B" stop-opacity=".85"/><stop offset=".55" stop-color="#F2B66B" stop-opacity=".25"/><stop offset="1" stop-color="#F2B66B" stop-opacity="0"/></radialGradient>
 <radialGradient id="glw"><stop offset="0" stop-color="#FFE9B8" stop-opacity=".95"/><stop offset="1" stop-color="#FFE9B8" stop-opacity="0"/></radialGradient></defs>`;
@@ -381,7 +381,7 @@ window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.le
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
  const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;_ONCE=!!sc.once;let h=SC[sc.type](sc,l,dd,{});
   if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*(sc.capDy==null?18:sc.capDy))}
-  if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2));return h};
+  if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2),sc.srcFs);return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;
  if(i>0&&fr<TRF){const o=S[i-1];
   if(fr<=1){const e=(fr+1)/3;html+=`<div class="abs layer" data-L="old" data-clip="${(W*e).toFixed(0)},${W}" style="clip-path:inset(0 0 0 ${(W*e).toFixed(0)}px)">${strip(layer(o,t))}</div>${edge(W*e)}`}

@@ -1121,5 +1121,43 @@
    "#F4B860"
   ],
   "has_sfx": true
+ },
+ "yearwalk": {
+  "desc": "s4 年份往後：男女兩個小人沿時間軸往右走過「30 歲」虛線（腳步、地面刻度往後退），左上年曆一頁頁翻過",
+  "used_in": [
+   "firstmarriage"
+  ],
+  "labels": [
+   "30 歲",
+   "男",
+   "女"
+  ],
+  "colors": [
+   "#E4D3B8",
+   "#B98A6A",
+   "#FFFDF8",
+   "#E9B98A",
+   "#C9A27A",
+   "#F4B860"
+  ],
+  "has_sfx": true
+ },
+ "regdesk": {
+  "desc": "s5 戶政登記櫃台：號碼顯示板數字滾到 104,376 對、印章落下蓋章（紅光）、取號機吐出號碼牌、桌上文件疊",
+  "used_in": [
+   "firstmarriage"
+  ],
+  "labels": [
+   "對",
+   "結婚登記"
+  ],
+  "colors": [
+   "#C9A27A",
+   "#3A3836",
+   "#F4B860",
+   "#E36B4A",
+   "#E4D3B8"
+  ],
+  "has_sfx": true
  }
 }

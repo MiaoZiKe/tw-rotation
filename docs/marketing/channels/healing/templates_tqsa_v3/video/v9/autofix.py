@@ -5,6 +5,7 @@
 錯誤 → 旗標（每鏡 script.json scenes[].opts）：
   靜止段 >1.2 秒（check_v8）            → tagAll:true（狀態標籤跟著節拍跳）
   標籤×標題重疊（overlap：tag×title）    → tagAt +0.27（標籤晚點進，上限 0.9）
+  出處行出界（oob src）→ opts.srcFs 34→30→26 → 在；或、處拆兩行
   字幕碰撞／字幕下緣超界（overlap／oob／edge 含 cap）→ capDy 8 → 0
   強調淨空不足（emphasis_fail）／光點亮帶閃爍 → once:true → 再不行 noglide:true
   字幕斷行不良（caption_bad：孤字、行首標點）→ capBal:true
@@ -43,6 +44,7 @@ def collect(folder, voice):
             sid = scene_at(rep, float(m.group(1))); body = m.group(2); names = set(re.split(r"×| ", body))
             if {"tag", "title"} <= names: I.append(("tagtitle", sid, x))
             elif "cap" in names: I.append(("cap", sid, x))
+            elif names == {"src"}: I.append(("src", sid, "%s：出處行出界" % kind))
             else: I.append(("other", sid, "%s：%s" % (kind, x)))
     for x in rep.get("coText", []): I.append(("other", None, "換鏡文字同框 " + str(x)))
     if rep.get("panelChangedScenes"): I.append(("other", None, "插圖面板變動：%s" % rep["panelChangedScenes"]))
@@ -62,6 +64,15 @@ def fix(sc, issues):
     for kind, sid, d in issues:
         if (kind, sid) in hit: continue      # 同一鏡同一類一輪只加一次
         hit.add((kind, sid)); s = sm.get(sid)
+        if kind == "src" and s is not None:   # 出處行出界：字級 34→30→26，仍超界就在「；」「、」處拆兩行（往上長）
+            o = s.setdefault("opts", {}); cur = o.get("srcFs", 34); so = s.get("source", "")
+            if cur > 26: o["srcFs"] = 30 if cur > 30 else 26; done.append("%s srcFs %s→%s（%s）" % (sid, cur, o["srcFs"], d))
+            elif "\n" not in so:
+                cut = [m for m in (so.find("；"), so.find("、")) if m > 0]
+                p = min(cut) + 1 if cut else len(so) // 2
+                s["source"] = so[:p] + "\n" + so[p:]; o["srcFs"] = 30; done.append("%s 出處拆兩行（%s）" % (sid, d))
+            else: left.append("%s %s（srcFs 與兩行都已用）" % (sid, d))
+            continue
         if kind == "other" or s is None: left.append("%s %s" % (sid or "", d)); continue
         o = s.setdefault("opts", {})
         if kind == "static":

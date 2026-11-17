@@ -20,7 +20,7 @@ window.renderAt=function(t){const S=V.scenes;let i=S.length-1;for(let j=0;j<S.le
  const s=S[i],lt=t-s.t0,d=s.t1-s.t0,fr=Math.floor(lt*30+1e-6),W=1080;let html=bg(t);
  const layer=(sc,tt,tin)=>{const l=tt-sc.t0,dd=sc.t1-sc.t0;_LT=l;_BEATS=sc.beats||null;_TAGALL=!!sc.tagAll;let h=SC[sc.type](sc,l,dd,{});
   if(sc.type!=='outro'){const k=tin==null?1:EO((l-tin)/.12);/* v7：有旁白，字幕在開口前 0.25 秒內就要進好 */h+=capV8(capAt(sc,l),k,(1-k)*(sc.capDy==null?18:sc.capDy))}
-  if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2));return h};
+  if(sc.type!=='outro')h+=srcHTML(sc.src,tin==null?1:EO((l-tin+.04)/.2),sc.srcFs);return h};
  const edge=x=>`<div class="abs" style="left:${(x-12).toFixed(0)}px;top:0;width:24px;height:1920px;background:rgba(217,130,43,.6)"></div>`;
  if(i>0&&fr<TRF){const o=S[i-1];
   if(fr<=1){const e=(fr+1)/3;html+=`<div class="abs layer" data-L="old" data-clip="${(W*e).toFixed(0)},${W}" style="clip-path:inset(0 0 0 ${(W*e).toFixed(0)}px)">${strip(layer(o,t))}</div>${edge(W*e)}`}
