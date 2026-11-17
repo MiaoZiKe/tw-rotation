@@ -1,0 +1,5 @@
+date,fetched_at,platform,folder,post_id,posted_at,views,reach,likes,comments,replies,reposts,quotes,shares,saved,total_interactions,missing
+2026-11-18,2026-11-18T07:04:13+08:00,ig,20261117_two-answers,17913546792577358,2026-11-17T12:38:41+08:00,,,0,0,,,,,,,reach;saved;shares;total_interactions;views
+2026-11-18,2026-11-18T07:04:13+08:00,ig,20261117_made-by-ai,17999684642868150,2026-11-17T21:22:56+08:00,,,0,0,,,,,,,reach;saved;shares;total_interactions;views
+2026-11-18,2026-11-18T07:04:13+08:00,threads,20261117_made-by-ai,17910177645666497,2026-11-17T21:22:56+08:00,2,,0,,0,0,0,0,,,
+2026-11-18,2026-11-18T07:04:13+08:00,threads,20261117_two-answers,17934787566163538,2026-11-17T12:38:41+08:00,2,,0,,0,0,0,0,,,
