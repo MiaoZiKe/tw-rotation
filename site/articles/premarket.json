@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-17",
+ "updated": "2026-11-18",
  "days": [
+  {
+   "date": "2026-11-18",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "黃仁勳醜聞早有跡象，紐時去年揭黃樂關係企業疑助晶片轉運中國",
+     "url": "https://finance.technews.tw/2026/11/17/jensen-huang-scandal-early-signs-nyt-revealed-affiliated-companies-chip-transshipment-china/",
+     "source": "科技新報",
+     "time": "2026-11-17T10:10:44+08:00",
+     "desc": "輝達前執行長黃仁勳的婚外情牽扯美國國安及公司治理問題，而《紐約時報》早於去年就曾報導，新加坡資料中心公司 Me"
+    },
+    {
+     "cat": "科技",
+     "title": "AI伺服器PCB規格升級傳延後，鑽針供不應求預期面臨變數！鎢原料供應成第二大風險",
+     "url": "https://news.cnyes.com/news/id/6665448",
+     "source": "鉅亨",
+     "time": "2026-11-17T21:00:18+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "事件",
+     "title": "黃仁勳請辭風暴逢川普送暖，台股大盤力守 43,500 防線，軟體與 ASIC 族群成資金避風港",
+     "url": "https://finance.technews.tw/2026/11/17/jensen-huang-resignation-storm-trump-warmth-taiwan-stock-market-defends-43500-software-asic-capital-havens/",
+     "source": "科技新報",
+     "time": "2026-11-17T10:00:27+08:00",
+     "desc": "台股昨（16）日經歷劇烈震盪，因輝達（NVIDIA）執行長黃仁勳震撼宣布辭職消息，大盤一度重挫逾 1,500"
+    },
+    {
+     "cat": "新聞",
+     "title": "工業電腦族群／瑞祺電通(6416)前三季EPS達5.4元超越去年全年法人看好明年挑戰8元以上",
+     "url": "https://news.cnyes.com/news/id/6665449",
+     "source": "鉅亨",
+     "time": "2026-11-17T21:00:18+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "總經",
+     "title": "鴻海72億日圓收購Sony車載相機模組業務 切入日系車廠供應鏈",
+     "url": "https://news.cnyes.com/news/id/6665475",
+     "source": "鉅亨",
+     "time": "2026-11-17T22:00:07+08:00",
+     "desc": ""
+    }
+   ]
+  },
   {
    "date": "2026-11-17",
    "items": [
