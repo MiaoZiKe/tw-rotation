@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-18T20:00+08:00
 weekday: 三
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-packaging.mp4
 images: cover.jpg
 title: 科技透明圈影片：先進封裝，晶片太大做不好，拆小再拼回去（tech-packaging v3）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/Df4eatDDpp6/
+ids_ig: 18162418186506785
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/Df4eigJyKHt
+ids_threads: 18275493790306876
+ids_threads_reply: 18233431336329356
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df4ept3Gy6Z
+done: ig, threads
+urls: https://www.instagram.com/reel/Df4eatDDpp6/ https://www.threads.com/@tech_01010909/post/Df4eigJyKHt https://www.threads.com/@tech_01010909/post/Df4ept3Gy6Z
+posted_at: 2026-11-18T20:10+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「先進封裝：晶片太大做不好，拆小再拼回去」
 
