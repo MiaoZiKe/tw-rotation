@@ -1,6 +1,6 @@
 {
  "disclaimer": "研究用，不是買賣建議，不會下單。",
- "rows_added": 5,
+ "rows_added": 0,
  "data_last": "2026-11-18",
  "signals": {
   "disclaimer": "研究用，不是買賣建議，不會下單。",
@@ -31,31 +31,31 @@
    "目標權重": "80% E2 + 20% 衛星"
   },
   "BENCH_last": {
-   "date": "2026-11-18",
+   "date": "2026-11-18 00:00:00",
    "nav": 8668681.924643895,
    "plan_cum": -0.1331318075356105,
    "action": ""
   },
   "E2_last": {
-   "date": "2026-11-18",
+   "date": "2026-11-18 00:00:00",
    "nav": 6919418.424398148,
    "plan_cum": -0.3080581575601852,
    "action": "開盤賣出 4,916,485 元（目標權重 30%）"
   },
   "F2_last": {
-   "date": "2026-11-18",
+   "date": "2026-11-18 00:00:00",
    "nav": 8160637.183982734,
    "plan_cum": -0.1839362816017266,
    "action": ""
   },
   "SAT_last": {
-   "date": "2026-11-18",
+   "date": "2026-11-18 00:00:00",
    "nav": 8502787.152842289,
    "plan_cum": -0.14972128471577106,
    "action": ""
   },
   "E2SAT_last": {
-   "date": "2026-11-18",
+   "date": "2026-11-18 00:00:00",
    "nav": 7236200.141987329,
    "plan_cum": -0.2763799858012671,
    "action": "E2 開盤賣出 3,933,188 元（目標權重 30%）"
@@ -66,81 +66,9 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 2,
-  "signal_rows_added": 2,
+  "rows_added": 0,
+  "signal_rows_added": 0,
   "data_last": "2026-11-18",
-  "watch_top": [
-   {
-    "rank": 1,
-    "code": "6108",
-    "name": "競國",
-    "group": "ind_電子零組件業",
-    "score": 96.0
-   },
-   {
-    "rank": 2,
-    "code": "3029",
-    "name": "零壹",
-    "group": "ind_資訊服務業",
-    "score": 94.6
-   },
-   {
-    "rank": 3,
-    "code": "6416",
-    "name": "瑞祺電通",
-    "group": "ind_通信網路業",
-    "score": 93.4
-   },
-   {
-    "rank": 4,
-    "code": "2034",
-    "name": "允強",
-    "group": "ind_鋼鐵工業",
-    "score": 92.0
-   },
-   {
-    "rank": 5,
-    "code": "4916",
-    "name": "事欣科",
-    "group": "ems",
-    "score": 91.2
-   },
-   {
-    "rank": 6,
-    "code": "6199",
-    "name": "天品",
-    "group": "ind_其他",
-    "score": 91.1
-   },
-   {
-    "rank": 7,
-    "code": "2465",
-    "name": "麗臺",
-    "group": "ai_pc",
-    "score": 91.0
-   },
-   {
-    "rank": 8,
-    "code": "6234",
-    "name": "高僑",
-    "group": "ind_光電業",
-    "score": 90.0
-   },
-   {
-    "rank": 9,
-    "code": "2609",
-    "name": "陽明",
-    "group": "shipping_container",
-    "score": 89.8
-   },
-   {
-    "rank": 10,
-    "code": "4105",
-    "name": "東洋",
-    "group": "ind_生技醫療業",
-    "score": 89.5
-   }
-  ],
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -164,5 +92,5 @@
    ]
   }
  },
- "generated": "2026-11-18T08:10Z"
+ "generated": "2026-11-18T08:20Z"
 }
