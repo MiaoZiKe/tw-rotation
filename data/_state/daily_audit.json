@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-11-19T03:03:19+08:00",
+  "checked_at": "2026-11-19T05:38:26+08:00",
   "today": "2026-11-19",
   "expected_price_date": "2026-11-18",
   "is_trading_day": true,
   "summary": {
     "fail": 0,
-    "pending": 3,
-    "ok": 5,
+    "pending": 5,
+    "ok": 3,
     "skip": 0,
     "disabled": 0
   },
@@ -35,15 +35,11 @@
           "hard": false
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 f042e77，已包含最新資料；Cloudflare 主站 部署到 f042e77，已包含最新資料",
-          "evidence": [
-            "f042e7775981caafc2638f0e3a3441f0467b4355",
-            "f042e7775981caafc2638f0e3a3441f0467b4355"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": true
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": "2026-11-19T08:40:00+08:00",
@@ -71,15 +67,11 @@
           "hard": false
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 f042e77，已包含最新資料；Cloudflare 主站 部署到 f042e77，已包含最新資料",
-          "evidence": [
-            "f042e7775981caafc2638f0e3a3441f0467b4355",
-            "f042e7775981caafc2638f0e3a3441f0467b4355"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": true
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": "2026-11-19T21:40:00+08:00",
@@ -88,7 +80,7 @@
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券／ETF）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
           "ok": true,
@@ -136,8 +128,8 @@
           "deadline": "2026-11-18 18:40:00+08:00"
         },
         "screen": {
-          "ok": true,
-          "why": "主站 403（執行環境讀不到，改依 Cloudflare 部署紀錄：已含最新資料）；備援：總覽 2026-11-18／法人 2026-11-18／三大法人頁 2026-11-18（應有 2026-11-18）",
+          "ok": false,
+          "why": "主站讀不到（HTTP Error 403: Forbidden）；備援：總覽 2026-11-18／法人 2026-11-18／三大法人頁 2026-11-18（應有 2026-11-18）",
           "evidence": [],
           "busy": false,
           "hard": false,
@@ -172,23 +164,19 @@
           "deadline": "2026-11-18 21:40:00+08:00"
         },
         "etf_screen": {
-          "ok": true,
-          "why": "主站 403（執行環境讀不到 ETF 檔，改依 Cloudflare 部署紀錄）；備援：ETF 頁 2026-11-18／成分股 2026-11-18（應有 2026-11-18）",
+          "ok": false,
+          "why": "主站讀不到 ETF 檔（HTTP Error 403: Forbidden）；備援：ETF 頁 2026-11-18／成分股 2026-11-18（應有 2026-11-18）",
           "evidence": [],
           "busy": false,
           "hard": false,
           "deadline": "2026-11-18 21:40:00+08:00"
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 f042e77，已包含最新資料；Cloudflare 主站 部署到 f042e77，已包含最新資料",
-          "evidence": [
-            "f042e7775981caafc2638f0e3a3441f0467b4355",
-            "f042e7775981caafc2638f0e3a3441f0467b4355"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": true
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": "2026-11-18T18:40:00+08:00",
@@ -325,11 +313,11 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 46 次",
+          "why": "pages.yml 今天有成功執行 45 次",
           "evidence": [
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44357871125",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/44324980065",
@@ -347,15 +335,11 @@
           "deadline": "2026-11-18 18:40:00+08:00"
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 f042e77，已包含最新資料；Cloudflare 主站 部署到 f042e77，已包含最新資料",
-          "evidence": [
-            "f042e7775981caafc2638f0e3a3441f0467b4355",
-            "f042e7775981caafc2638f0e3a3441f0467b4355"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": true
+          "ok": false,
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": null,
