@@ -1,0 +1,156 @@
+{
+ "id": "2026-11-20-tech-server",
+ "cat": "tech",
+ "title": "AI 伺服器：一櫃約 1.4 公噸，裡面到底裝了什麼",
+ "subtitle": "科技透明圈：一櫃 AI 伺服器約 1.4 公噸、耗電一百多千瓦。以 NVIDIA GB200 NVL72 為例，裡面是 72 顆 GPU、9 層交換器、5,000 多條銅線，整櫃要一起設計。",
+ "date": "2026-11-20",
+ "updated": "2026-11-20",
+ "tags": [
+  "科技透明圈",
+  "AI伺服器",
+  "NVL72",
+  "機櫃",
+  "液冷"
+ ],
+ "summary": "AI 伺服器不是一台電腦，而是一整櫃。以 NVIDIA GB200 NVL72 為例，一櫃有 72 顆 GPU，分在 18 層運算托盤，每層 4 顆 GPU 加 2 顆 Grace CPU，另有 9 層 NVLink 交換器，用機櫃背後 5,000 多條銅線把 72 顆 GPU 串成一個網域。72 顆要像一顆一樣工作，所以整櫃要一起設計。各家規格約 1.3～1.5 公噸、耗電約 120～132 千瓦，電最後都變成熱，風扇吹不動，所以改用冷卻液。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/tech/20261120v_server/video.mp4",
+   "poster": "media/tech/20261120v_server/cover.jpg",
+   "title": "AI 伺服器：一櫃約 1.4 公噸，裡面到底裝了什麼",
+   "note": "影片 1080×1920；影片為示意動畫，非實際比例。"
+  },
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "AI 伺服器不是一台電腦，是一整櫃。以 NVIDIA GB200 NVL72 為例，一櫃約 1.3～1.5 公噸（各家規格不一，影片取約 1.4 公噸），耗電約 120～132 千瓦（影片說「一百多千瓦」）。跟小客車比重量是常識級對照，只說「約」。",
+    "一櫃有 72 顆 GPU，分在 18 層運算托盤，每層 4 顆 GPU 加 2 顆 Grace CPU（共 36 顆 CPU），另有 9 層 NVLink 交換器托盤（廠商公布）。",
+    "72 顆 GPU 要像一顆一樣工作，得不停傳資料。NVIDIA 稱機櫃背後用超過 5,000 條高效能銅纜，把每一顆 GPU 連到另外 71 顆，所以交換器、銅線、電源、冷卻管路都要跟機櫃一起設計。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "電與熱怎麼走"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "電：電源層把交流電轉成直流，再由銅排（匯流排）送到每一層托盤。",
+    "熱：電最後都變成熱。CPU、GPU、交換器用液冷，冷卻液流過晶片把熱帶出機櫃；網路與儲存模組仍是風冷（廠商公布）。下一支來看液冷怎麼把熱搬走。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "哪些公司在做（媒體報導）"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "組裝：鴻海、廣達、緯穎（NVIDIA 點名參與 GB200 NVL72 的夥伴也含緯創；各家市占是媒體估計且說法不一，這裡不引用）。",
+    "電源：台達電。",
+    "散熱：奇鋐、雙鴻。",
+    "滑軌：川湖；機殼：勤誠（2024 年報導）。",
+    "以上整理自媒體報導，供應名單會變，只說明產業分工，不排名、不引用占比。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "查不到的"
+  },
+  {
+   "t": "p",
+   "text": "各家 NVL72 的實際出貨量、毛利、市占，查不到官方完整數字（截至 2026/11/17）；GB300、Vera Rubin 等新世代機櫃的規格差異大，本篇不寫。"
+  },
+  {
+   "t": "p",
+   "text": "下一支：晶片、電源全塞進同一個櫃子，會產生大量的熱，來看液冷。"
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理。標「廠商公布」的數字是廠商自己的說法；公司名單來自媒體報導，僅說明產業分工。查證截至 2026/11/17，發布當天（11/20）會再查一次。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "NVIDIA：Understanding Your Grace-Blackwell Systems",
+   "publisher": "NVIDIA",
+   "date": "查證日 2026-11-17",
+   "url": "https://docs.nvidia.com/multi-node-nvlink-systems/multi-node-tuning-guide/system.html"
+  },
+  {
+   "title": "NVIDIA GB200 NVL72 Delivers Trillion-Parameter LLM Training and Real-Time Inference",
+   "publisher": "NVIDIA 技術部落格",
+   "date": "查證日 2026-11-17",
+   "url": "https://developer.nvidia.com/blog/nvidia-gb200-nvl72-delivers-trillion-parameter-llm-training-and-real-time-inference/"
+  },
+  {
+   "title": "NVIDIA announces liquid-cooled GB200 NVL72 system with 72 Blackwell GPUs",
+   "publisher": "DatacenterDynamics",
+   "date": "查證日 2026-11-17",
+   "url": "https://datacenterdynamics.com/en/news/nvidia-announces-liquid-cooled-gb200-nvl72-system-with-72-blackwell-gpus"
+  },
+  {
+   "title": "GB200 Hardware Architecture and Component Supply Chain",
+   "publisher": "SemiAnalysis",
+   "date": "查證日 2026-11-17",
+   "url": "https://semianalysis.substack.com/p/gb200-hardware-architecture-and-component"
+  },
+  {
+   "title": "SRS-GB200-NVL72",
+   "publisher": "Supermicro",
+   "date": "查證日 2026-11-17",
+   "url": "https://supermicro.com/en/products/system/gpu/48u/srs-gb200-nvl72"
+  },
+  {
+   "title": "HPE NVIDIA GB200 NVL72 規格",
+   "publisher": "HPE",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.hpe.com/il/en/collaterals/collateral.a50009224enw.html"
+  },
+  {
+   "title": "GB200 NVL72 deployment: 72-GPU liquid-cooled",
+   "publisher": "Introl",
+   "date": "查證日 2026-11-17",
+   "url": "https://introl.com/blog/gb200-nvl72-deployment-72-gpu-liquid-cooled"
+  },
+  {
+   "title": "NVIDIA GB200 NVL72",
+   "publisher": "Cudo Compute",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.cudocompute.com/products/nvidia-gb200-nvl72"
+  },
+  {
+   "title": "NVIDIA 夥伴名單（GB200 NVL72 組裝廠）",
+   "publisher": "數位時代",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.bnext.com.tw/article/83298/nvidia-friends-2025"
+  },
+  {
+   "title": "AI 伺服器供應鏈整理",
+   "publisher": "科技新報",
+   "date": "2025-06-09",
+   "url": "https://technews.tw/2025/06/09/chatgpt-brain/"
+  },
+  {
+   "title": "川湖：NVL72 滑軌",
+   "publisher": "自由時報",
+   "date": "查證日 2026-11-17",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5632927"
+  },
+  {
+   "title": "GB200 供應鏈（勤誠、川湖）",
+   "publisher": "科技新報",
+   "date": "2024-07-03",
+   "url": "https://technews.tw/2024/07/03/gb200-tw/"
+  }
+ ],
+ "confidence": "中高：72 GPU、18＋9 層托盤、5,000 多條銅線為廠商公布（高）；耗電與重量各家規格不一（中）；公司分工為媒體報導（中）",
+ "status": "published",
+ "video": "tech-server（科技透明圈每日短影片）"
+}

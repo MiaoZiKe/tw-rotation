@@ -1,0 +1,138 @@
+{
+ "id": "2026-11-22-tech-800v",
+ "cat": "tech",
+ "title": "八百伏特：AI 機櫃為什麼要把電壓拉高",
+ "subtitle": "科技透明圈：一百萬瓦的 AI 機櫃，用現在的五十幾伏特送電，光銅排廠商估計就要 200 公斤。電壓拉到八百伏特，電流只剩十五分之一，銅排就能做細。",
+ "date": "2026-11-22",
+ "updated": "2026-11-22",
+ "tags": [
+  "科技透明圈",
+  "800V",
+  "電源",
+  "AI伺服器",
+  "銅排"
+ ],
+ "summary": "功率等於電壓乘電流。AI 機櫃朝一百萬瓦走，用 54 伏特送電要一萬八千多安培，NVIDIA 估計光銅排就要約 200 公斤。改成 800 伏特直流，電流降到約 1,250 安培，同一條導線的發熱（電流平方乘電阻）少約 220 倍，銅排就能做細。代價是晶片核心只吃約 0.8～1.2 伏特，電壓越高，中間降壓的次數越多，而且 800 伏特的接頭與電源櫃以前沒有現成品。廠商規劃 2027 年開始改用。",
+ "reading_min": 4,
+ "blocks": [
+  {
+   "t": "mp4",
+   "src": "media/tech/20261122v_800v/video.mp4",
+   "poster": "media/tech/20261122v_800v/cover.jpg",
+   "title": "八百伏特：AI 機櫃為什麼要把電壓拉高",
+   "note": "影片 1080×1920；影片為示意動畫，非實際比例；電流與發熱倍數為算式估算。"
+  },
+  {
+   "t": "h",
+   "text": "先講結論"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "功率＝電壓×電流。要送進機櫃的功率固定，電壓低，電流就得大。",
+    "一百萬瓦（1 MW）的機櫃，用 54 伏特送電，NVIDIA 估計光銅排就要約 200 公斤（廠商估算；SemiAnalysis、Tom's Hardware 也寫約 200 公斤）。",
+    "改成 800 伏特直流，電流只剩十五分之一，銅排就能做細。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "算式（自己算的，非實測）"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "54 伏特：1,000,000 ÷ 54 ≈ 18,519 安培。",
+    "800 伏特：1,000,000 ÷ 800 ＝ 1,250 安培（官方查不到這個數字，是用 P÷V 算的）。",
+    "導線發熱與電流平方成正比（I²R）：電流差約 14.8 倍，同一條導線的發熱差約 219 倍。這是「同一條線、同樣電阻」的估算，不是整套系統的省電比例。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "代價：要多降幾次壓"
+  },
+  {
+   "t": "p",
+   "text": "晶片核心只吃約 0.8～1.2 伏特（GPU 降壓比可達 60:1），電壓越高，中間要降壓的次數越多，每降一次就要一級電源。台達電主管表示，800 伏特規格的連接器過去不存在，要全部客製化（科技新報報導，單一媒體引述）。"
+  },
+  {
+   "t": "h",
+   "text": "時程與哪些公司在做（媒體報導）"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "廠商規劃：2027 年機櫃開始全面改用 800 伏特直流（NVIDIA、SemiAnalysis；廠商目標，非實測）。",
+    "台達電：媒體報導在 GTC 2026 展出整套 800V 電源櫃，2026 年第三季提前量產（科技新報、優分析）。",
+    "光寶科：媒體報導也在做 800V 兆瓦級電源櫃，小量與大量出貨時程各報說法不一，這裡不寫時程（工商時報、科技新報）。",
+    "整套改完能省多少：NVIDIA 的目標是總持有成本最多降 30%，這是廠商目標；實際機房的數字，查不到（截至 2026/11/17）。"
+   ]
+  },
+  {
+   "t": "p",
+   "text": "下一支：晶片設計公司為什麼沒有工廠。"
+  },
+  {
+   "t": "callout",
+   "text": "本文為公開資訊整理。標「廠商估算」「廠商規劃」的是廠商自己的說法，不是實測；算式為自己計算；公司資訊來自媒體報導，僅說明產業分工。查證截至 2026/11/17，發布當天（11/22）會再查一次。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "NVIDIA 800 V HVDC Architecture Will Power the Next Generation of AI Factories",
+   "publisher": "NVIDIA 技術部落格",
+   "date": "2025-05",
+   "url": "https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/"
+  },
+  {
+   "title": "Inside the 800VDC revolution",
+   "publisher": "SemiAnalysis",
+   "date": "查證日 2026-11-17",
+   "url": "https://newsletter.semianalysis.com/p/inside-the-800vdc-revolution-part"
+  },
+  {
+   "title": "The 1 MW AI IT rack is coming and it needs 800 VDC power",
+   "publisher": "Schneider Electric",
+   "date": "2025-10-16",
+   "url": "https://blog.se.com/datacenter/2025/10/16/the-1-mw-ai-it-rack-is-coming-and-it-needs-800-vdc-power/"
+  },
+  {
+   "title": "PCIM Demo：GPU 供電",
+   "publisher": "Arrow",
+   "date": "2026-08",
+   "url": "https://www.arrow.com/en/resources/articles/2026/08/PCIM-Demo-Page-GPU.html"
+  },
+  {
+   "title": "Optimizing the 800 V to 48 V/50 V power path for AI data center servers",
+   "publisher": "Power Systems Design",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.powersystemsdesign.com/articles/optimizing-the-800-e2-80-afv-to-48-v50-e2-80-afv-power-path-for-ai-data-center-servers/22/23624"
+  },
+  {
+   "title": "Powering AI processors using a 48V FPA",
+   "publisher": "Vicor",
+   "date": "查證日 2026-11-17",
+   "url": "https://www.vicorpower.com/resource-library/articles/high-performance-computing/powering-ai-processors-using-a-48v-fpa"
+  },
+  {
+   "title": "台達電 GTC 2026 展出 800 VDC 電源方案",
+   "publisher": "科技新報",
+   "date": "2026-03-28",
+   "url": "https://technews.tw/2026/03/28/800-vdc-delta/"
+  },
+  {
+   "title": "台達電 800V 系統提前量產",
+   "publisher": "優分析",
+   "date": "查證日 2026-11-17",
+   "url": "https://uanalyze.com.tw/articles/8794749262"
+  },
+  {
+   "title": "光寶 800V 兆瓦級電源櫃",
+   "publisher": "工商時報",
+   "date": "2026-06-07",
+   "url": "https://www.ctee.com.tw/news/20260607700012-430201"
+  }
+ ],
+ "confidence": "中高：200 公斤為廠商估算，兩份獨立報導一致（中高）；電流與發熱倍數為算式（高）；2027 年改用為廠商規劃（中高）；公司動態為媒體報導（中）",
+ "status": "published",
+ "video": "tech-800v（科技透明圈每日短影片）"
+}

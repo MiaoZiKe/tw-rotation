@@ -34,6 +34,21 @@
     ],
     "cooling": [
       "液冷"
+    ],
+    "server": [
+      "伺服器"
+    ],
+    "800v": [
+      "供電"
+    ],
+    "waferflow": [
+      "流程"
+    ],
+    "etch": [
+      "蝕刻"
+    ],
+    "deposition": [
+      "沉積"
     ]
   },
   "legal_pending": [],
@@ -64,7 +79,12 @@
       "yield": "謝謝留言！「晶圓良率：晶片越大，能用的比例越低」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
       "packaging": "謝謝留言！「先進封裝：晶片太大做不好，拆小再拼回去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
       "hbm": "謝謝留言！「HBM：十二層記憶體，比一張信用卡還薄」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm",
-      "cooling": "謝謝留言！「液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling"
+      "cooling": "謝謝留言！「液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling",
+      "server": "謝謝留言！「AI 伺服器：一櫃約 1.4 公噸，裡面到底裝了什麼」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-20-tech-server",
+      "800v": "謝謝留言！「八百伏特：AI 機櫃為什麼要把電壓拉高」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-22-tech-800v",
+      "waferflow": "謝謝留言！「一片晶圓要經過哪些流程」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow",
+      "etch": "謝謝留言！「蝕刻機：把圖形刻進晶圓」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-26-tech-etch",
+      "deposition": "謝謝留言！「薄膜沉積：一層幾個原子厚的膜怎麼長上去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition"
     },
     "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
@@ -117,6 +137,31 @@
         "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling",
         "收到～「液冷」整篇在這：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling",
         "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling"
+      ],
+      "server": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-20-tech-server",
+        "收到～「伺服器」整篇在這：https://liguligu-puipui.com/#article/2026-11-20-tech-server",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-20-tech-server"
+      ],
+      "800v": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-22-tech-800v",
+        "收到～「供電」整篇在這：https://liguligu-puipui.com/#article/2026-11-22-tech-800v",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-22-tech-800v"
+      ],
+      "waferflow": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow",
+        "收到～「流程」整篇在這：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow"
+      ],
+      "etch": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-26-tech-etch",
+        "收到～「蝕刻」整篇在這：https://liguligu-puipui.com/#article/2026-11-26-tech-etch",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-26-tech-etch"
+      ],
+      "deposition": [
+        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition",
+        "收到～「沉積」整篇在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition",
+        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition"
       ]
     }
   }
