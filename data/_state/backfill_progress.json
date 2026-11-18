@@ -53110,14 +53110,109 @@
     "sbl@fresh2026-11-18:8054": true,
     "sbl@fresh2026-11-18:6925": true,
     "sbl@fresh2026-11-18:4903": true,
-    "sbl@fresh2026-11-18:1416": true
+    "sbl@fresh2026-11-18:1416": true,
+    "margin@fresh2026-11-18:6244": true,
+    "margin@fresh2026-11-18:6757": true,
+    "margin@fresh2026-11-18:2061": true,
+    "margin@fresh2026-11-18:8422": true,
+    "margin@fresh2026-11-18:2633": true,
+    "margin@fresh2026-11-18:6166": true,
+    "margin@fresh2026-11-18:3526": true,
+    "margin@fresh2026-11-18:3515": true,
+    "margin@fresh2026-11-18:2072": true,
+    "margin@fresh2026-11-18:4973": true,
+    "margin@fresh2026-11-18:6756": true,
+    "margin@fresh2026-11-18:2439": true,
+    "margin@fresh2026-11-18:8131": true,
+    "margin@fresh2026-11-18:3094": true,
+    "margin@fresh2026-11-18:6579": true,
+    "margin@fresh2026-11-18:2393": true,
+    "margin@fresh2026-11-18:1609": true,
+    "margin@fresh2026-11-18:2399": true,
+    "margin@fresh2026-11-18:2845": true,
+    "margin@fresh2026-11-18:5328": true,
+    "margin@fresh2026-11-18:2605": true,
+    "margin@fresh2026-11-18:1514": true,
+    "margin@fresh2026-11-18:8081": true,
+    "margin@fresh2026-11-18:6667": true,
+    "margin@fresh2026-11-18:2329": true,
+    "margin@fresh2026-11-18:3587": true,
+    "margin@fresh2026-11-18:3013": true,
+    "margin@fresh2026-11-18:8454": true,
+    "margin@fresh2026-11-18:4540": true,
+    "margin@fresh2026-11-18:6753": true,
+    "margin@fresh2026-11-18:6206": true,
+    "margin@fresh2026-11-18:3162": true,
+    "margin@fresh2026-11-18:8050": true,
+    "margin@fresh2026-11-18:3592": true,
+    "margin@fresh2026-11-18:6155": true,
+    "margin@fresh2026-11-18:3551": true,
+    "margin@fresh2026-11-18:3048": true,
+    "margin@fresh2026-11-18:6435": true,
+    "margin@fresh2026-11-18:6525": true,
+    "margin@fresh2026-11-18:6462": true,
+    "margin@fresh2026-11-18:7749": true,
+    "margin@fresh2026-11-18:3311": true,
+    "margin@fresh2026-11-18:2646": true,
+    "margin@fresh2026-11-18:3380": true,
+    "margin@fresh2026-11-18:2636": true,
+    "margin@fresh2026-11-18:6829": true,
+    "margin@fresh2026-11-18:3645": true,
+    "margin@fresh2026-11-18:4739": true,
+    "margin@fresh2026-11-18:6664": true,
+    "margin@fresh2026-11-18:6937": true,
+    "sbl@fresh2026-11-18:6207": true,
+    "sbl@fresh2026-11-18:4174": true,
+    "sbl@fresh2026-11-18:2498": true,
+    "sbl@fresh2026-11-18:6620": true,
+    "sbl@fresh2026-11-18:6949": true,
+    "sbl@fresh2026-11-18:2033": true,
+    "sbl@fresh2026-11-18:7788": true,
+    "sbl@fresh2026-11-18:9939": true,
+    "sbl@fresh2026-11-18:4763": true,
+    "sbl@fresh2026-11-18:2385": true,
+    "sbl@fresh2026-11-18:6957": true,
+    "sbl@fresh2026-11-18:6834": true,
+    "sbl@fresh2026-11-18:2363": true,
+    "sbl@fresh2026-11-18:6221": true,
+    "sbl@fresh2026-11-18:2466": true,
+    "sbl@fresh2026-11-18:8464": true,
+    "sbl@fresh2026-11-18:4533": true,
+    "sbl@fresh2026-11-18:6108": true,
+    "sbl@fresh2026-11-18:4566": true,
+    "sbl@fresh2026-11-18:2207": true,
+    "sbl@fresh2026-11-18:6831": true,
+    "sbl@fresh2026-11-18:1711": true,
+    "sbl@fresh2026-11-18:5904": true,
+    "sbl@fresh2026-11-18:1714": true,
+    "sbl@fresh2026-11-18:1402": true,
+    "sbl@fresh2026-11-18:2338": true,
+    "sbl@fresh2026-11-18:3219": true,
+    "sbl@fresh2026-11-18:2406": true,
+    "sbl@fresh2026-11-18:1409": true,
+    "sbl@fresh2026-11-18:6291": true,
+    "sbl@fresh2026-11-18:5386": true,
+    "sbl@fresh2026-11-18:4743": true,
+    "sbl@fresh2026-11-18:2305": true,
+    "sbl@fresh2026-11-18:5309": true,
+    "sbl@fresh2026-11-18:4720": true,
+    "sbl@fresh2026-11-18:6788": true,
+    "sbl@fresh2026-11-18:6491": true,
+    "sbl@fresh2026-11-18:6609": true,
+    "sbl@fresh2026-11-18:6782": true,
+    "sbl@fresh2026-11-18:6005": true,
+    "sbl@fresh2026-11-18:6708": true,
+    "sbl@fresh2026-11-18:2105": true,
+    "sbl@fresh2026-11-18:8213": true,
+    "sbl@fresh2026-11-18:2458": true,
+    "sbl@fresh2026-11-18:5202": true
   },
-  "updated_at": "2026-11-18T21:48:58.398374+00:00",
+  "updated_at": "2026-11-18T22:06:23.261993+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
-      "at": "2026-11-18T21:35:24.099879+00:00",
-      "codes": 500,
+      "at": "2026-11-18T22:01:07.350723+00:00",
+      "codes": 2352,
       "remaining": {
         "balance": 0,
         "financial": 0,
@@ -53131,7 +53226,7 @@
     },
     "plan:default": {
       "done": true,
-      "at": "2026-11-18T21:48:58.398334+00:00",
+      "at": "2026-11-18T22:06:23.261965+00:00",
       "month": "2026-11",
       "week": "w2026-47b",
       "steps": {
@@ -53163,33 +53258,33 @@
     },
     "dividend+divresult": {
       "done": true,
-      "at": "2026-11-18T21:35:29.945329+00:00",
-      "codes": 500,
+      "at": "2026-11-18T22:01:29.321549+00:00",
+      "codes": 2352,
       "remaining": {
         "dividend": 0,
         "divresult": 0
       },
       "no_data": {
-        "dividend": 0,
-        "divresult": 0
+        "dividend": 10,
+        "divresult": 18
       }
     },
     "holding+margin@2021-01-01": {
       "done": true,
-      "at": "2026-11-18T21:35:39.510412+00:00",
-      "codes": 500,
+      "at": "2026-11-18T22:02:05.465092+00:00",
+      "codes": 2352,
       "remaining": {
-        "holding": 500,
+        "holding": 2352,
         "margin": 0
       },
       "no_data": {
         "holding": 0,
-        "margin": 0
+        "margin": 10
       }
     },
     "price@2000-01-01": {
       "done": true,
-      "at": "2026-11-18T21:35:43.518500+00:00",
+      "at": "2026-11-18T22:02:09.253802+00:00",
       "codes": 445,
       "remaining": {
         "price": 0
@@ -53287,15 +53382,15 @@
       "latest": "2026-11-18",
       "codes": {
         "daytrade": 176,
-        "sbl": 1600,
+        "sbl": 1356,
         "margin": 1200,
         "inst": 123
       },
-      "at": "2026-11-18T21:48:58.340298+00:00"
+      "at": "2026-11-18T22:06:23.225548+00:00"
     },
     "inst@market": {
       "done": true,
-      "at": "2026-11-18T21:36:23.351272+00:00",
+      "at": "2026-11-18T22:03:19.934330+00:00",
       "codes": 1989,
       "remaining": {
         "inst": 0
@@ -53306,7 +53401,7 @@
     },
     "daytrade+sbl@2025-01-01@market": {
       "done": true,
-      "at": "2026-11-18T21:36:42.712129+00:00",
+      "at": "2026-11-18T22:03:38.415736+00:00",
       "codes": 1989,
       "remaining": {
         "daytrade": 0,
@@ -53319,7 +53414,7 @@
     },
     "dividend+divresult@2009-01-01@market": {
       "done": true,
-      "at": "2026-11-18T21:37:02.056545+00:00",
+      "at": "2026-11-18T22:03:56.880957+00:00",
       "codes": 1989,
       "remaining": {
         "dividend": 0,
@@ -53380,7 +53475,7 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-11-18T21:35:17.352134+00:00"
+      "at": "2026-11-18T22:00:44.812132+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -53485,7 +53580,7 @@
     },
     "price@2000-01-01@market": {
       "done": true,
-      "at": "2026-11-18T21:37:21.345392+00:00",
+      "at": "2026-11-18T22:04:15.476866+00:00",
       "codes": 1989,
       "remaining": {
         "price": 0
@@ -53509,7 +53604,7 @@
     },
     "price@2000-01-01@etf": {
       "done": true,
-      "at": "2026-11-18T21:37:35.190412+00:00",
+      "at": "2026-11-18T22:04:28.825915+00:00",
       "codes": 396,
       "remaining": {
         "price": 0
@@ -53533,7 +53628,7 @@
     },
     "dividend+divresult@etf2009@etf": {
       "done": true,
-      "at": "2026-11-18T21:37:25.971806+00:00",
+      "at": "2026-11-18T22:04:19.927656+00:00",
       "codes": 396,
       "remaining": {
         "dividend": 0,
@@ -53546,7 +53641,7 @@
     },
     "etfdiv@etfx2009@etf": {
       "done": true,
-      "at": "2026-11-18T21:37:30.584198+00:00",
+      "at": "2026-11-18T22:04:24.365030+00:00",
       "codes": 396,
       "remaining": {
         "etfdiv": 0
@@ -54185,8 +54280,8 @@
     },
     "inst@2012-01-01": {
       "done": true,
-      "at": "2026-11-18T21:35:49.421876+00:00",
-      "codes": 500,
+      "at": "2026-11-18T22:02:31.044803+00:00",
+      "codes": 2352,
       "remaining": {
         "inst": 0
       },
@@ -54196,17 +54291,17 @@
     },
     "balance+financial+revenue@2012-01-01": {
       "done": true,
-      "at": "2026-11-18T21:35:55.268172+00:00",
-      "codes": 500,
+      "at": "2026-11-18T22:02:52.867304+00:00",
+      "codes": 2352,
       "remaining": {
         "balance": 0,
         "financial": 0,
         "revenue": 0
       },
       "no_data": {
-        "balance": 0,
-        "financial": 0,
-        "revenue": 0
+        "balance": 5,
+        "financial": 5,
+        "revenue": 3
       }
     },
     "opt_pc": {
@@ -54223,7 +54318,7 @@
     },
     "inst@2012-01-01@pit": {
       "done": true,
-      "at": "2026-11-18T21:36:04.058338+00:00",
+      "at": "2026-11-18T22:03:01.465473+00:00",
       "codes": 789,
       "remaining": {
         "inst": 0
@@ -54421,7 +54516,7 @@
     },
     "dividend+divresult@m2026-11": {
       "done": true,
-      "at": "2026-11-18T21:37:39.200478+00:00",
+      "at": "2026-11-18T22:04:32.666240+00:00",
       "codes": 445,
       "remaining": {
         "dividend": 0,
@@ -54434,7 +54529,7 @@
     },
     "divresult@em2026-11@etf": {
       "done": true,
-      "at": "2026-11-18T21:37:43.841372+00:00",
+      "at": "2026-11-18T22:04:37.123629+00:00",
       "codes": 396,
       "remaining": {
         "divresult": 0
@@ -55044,7 +55139,7 @@
     },
     "margin@fresh2026-11-18": {
       "done": false,
-      "at": "2026-11-18T21:48:58.254194+00:00",
+      "at": "2026-11-18T22:06:23.169953+00:00",
       "codes": 1200,
       "remaining": {
         "margin": 1150
@@ -55055,7 +55150,7 @@
     },
     "inst@fresh2026-11-18": {
       "done": false,
-      "at": "2026-11-18T21:48:58.293647+00:00",
+      "at": "2026-11-18T22:06:23.195572+00:00",
       "codes": 123,
       "remaining": {
         "inst": 47
@@ -55066,7 +55161,7 @@
     },
     "daytrade@fresh2026-11-18": {
       "done": true,
-      "at": "2026-11-18T21:38:28.546993+00:00",
+      "at": "2026-11-18T22:05:25.493419+00:00",
       "codes": 176,
       "remaining": {
         "daytrade": 0
@@ -55077,10 +55172,10 @@
     },
     "sbl@fresh2026-11-18": {
       "done": false,
-      "at": "2026-11-18T21:48:58.212896+00:00",
-      "codes": 1600,
+      "at": "2026-11-18T22:06:23.139187+00:00",
+      "codes": 1356,
       "remaining": {
-        "sbl": 1143
+        "sbl": 1311
       },
       "no_data": {
         "sbl": 0
@@ -55088,7 +55183,7 @@
     },
     "etfdiv@w2026-47b@etf": {
       "done": true,
-      "at": "2026-11-18T21:37:48.530698+00:00",
+      "at": "2026-11-18T22:04:41.572554+00:00",
       "codes": 396,
       "remaining": {
         "etfdiv": 0
@@ -55100,7 +55195,7 @@
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-11-18T21:35:17.878248+00:00",
+    "at": "2026-11-18T22:00:45.351813+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-11-09",
     "detail": ""
   },
@@ -55120,6 +55215,6 @@
       "margin",
       "inst"
     ],
-    "at": "2026-11-18T21:48:58.334950+00:00"
+    "at": "2026-11-18T22:06:23.221318+00:00"
   }
 }
