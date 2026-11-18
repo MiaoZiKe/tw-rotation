@@ -19,4 +19,4 @@ hook_type: 反差（#2）
 - 開頭（反差）：晶片有大小上限，最大的 AI 晶片卻做到上限的五倍以上。
 - 內容與數字只用 ai-mp4 videos/tech-packaging/research.md 與念稿 docs/prompts/tech-packaging-旁白.txt：「五倍以上」「九成八」標廠商公布、未經第三方實測；各家技術名稱（CoWoS、EMIB、I-Cube、FOCoS、S-SWIFT）與台灣設備廠（弘塑、辛耘、均華）標媒體報導，設備廠只放出處段；不給投資建議；查證截至 2026/11/16，發布當天（11/18）要再查一次「五倍光罩量產」「良率 98%」是否有更新。
 - 留言關鍵字：封裝 → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-11-18-tech-packaging（dm_config post_keywords「packaging」）。
-- 片尾預告：下一支「HBM：記憶體為什麼疊十二層」（11/19 20:00）。
+- 片尾預告：下一支「HBM：記憶體為什麼疊十二層」（11/19 18:00）。
