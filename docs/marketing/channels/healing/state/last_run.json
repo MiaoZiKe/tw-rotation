@@ -1,22 +1,26 @@
 {
- "at": "2026-11-18T12:29:10+08:00",
+ "at": "2026-11-18T20:29:37+08:00",
  "mode": "live",
- "item": "20261118_minwage",
+ "item": "20261118v_minwage",
  "posted": {
   "ig": {
-   "id": "18134823823754512",
-   "link": "https://www.instagram.com/p/Df3pnfFoe_z/",
-   "at": "2026-11-18T12:29:10+08:00"
+   "id": "18076103336508253",
+   "link": "https://www.instagram.com/reel/Df4gjzaDiXC/",
+   "at": "2026-11-18T20:29:37+08:00",
+   "format": "video",
+   "video_via": "site"
   },
   "threads": {
-   "id": "18106701779034261",
-   "link": "https://www.threads.com/@talk_01010909/post/Df3prqVlcjp",
-   "at": "2026-11-18T12:29:10+08:00"
+   "id": "18397032523164640",
+   "link": "https://www.threads.com/@talk_01010909/post/Df4grKpBaD7",
+   "at": "2026-11-18T20:29:37+08:00",
+   "format": "video",
+   "video_via": "site"
   }
  },
  "errors": {},
  "notes": [
   "20261116v_worktime：還沒到 2026-11-23T20:27:00+08:00"
  ],
- "summary": "20261118_minwage：已發 ig https://www.instagram.com/p/Df3pnfFoe_z/；threads https://www.threads.com/@talk_01010909/post/Df3prqVlcjp"
+ "summary": "20261118v_minwage：已發 ig https://www.instagram.com/reel/Df4gjzaDiXC/；threads https://www.threads.com/@talk_01010909/post/Df4grKpBaD7"
 }
