@@ -1,6 +1,109 @@
 {
- "updated": "2026-11-17",
+ "updated": "2026-11-18",
  "topics": [
+  {
+   "id": "n_msci_1130_rebalance",
+   "cat": "news",
+   "title": "MSCI 11/30 換股：被動資金為何尾盤出手",
+   "why": "MSCI 11/12 公布半年度調整，台股標準指數增 3 刪 4，新興市場指數權重由 28.86% 升至 29.01%，11/30 收盤生效（優分析、Pocket 證券學院、工商時報 11/12～11/13）；讀者會問尾盤為何爆量、跟自己的 ETF 有沒有關係。成分名單寫進文章前要對 MSCI 官方公告。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-18"
+  },
+  {
+   "id": "n_btc_62k_liquidation",
+   "cat": "news",
+   "title": "比特幣探 6.2 萬美元：20 億美元清算怎麼來",
+   "why": "11/15 週末比特幣跌至約 6.2 萬美元、7 月以來低點，清算逾 20 億美元多為多單；現貨 ETF 自 11/5 起連 7 日淨流出約 19 億美元（Decrypt、Investinglive 11/15）。已有「跌破 7.5 萬」題，這題換槓桿清算與 ETF 資金流角度；撰稿前補中文媒體或交易所數據。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18"
+  },
+  {
+   "id": "n_us_china_trade_council",
+   "cat": "news",
+   "title": "美中貿易理事會首度開會：互降關稅降什麼",
+   "why": "11/13 美中舉行貿易理事會首次會議談關稅與農產品；9 月已宣布合計約 600 億美元非敏感商品互降關稅框架（Korea Times 9/29、經濟日報 11/13～11/14）。讀者會問這跟休戰延期差在哪、台灣出口受不受影響；目前多為轉述報導，撰稿要以商務部／USTR 一手公告為準。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18"
+  },
+  {
+   "id": "k_photoresist",
+   "cat": "know",
+   "title": "光阻是什麼？曝光前那層膜為何決定線寬",
+   "why": "站內 3D「晶圓代工：一個製程迴圈」（foundry）有塗光阻→曝光→顯影步驟，可直接嵌 3D；已有光罩、EUV 題，光阻是讀者接著會問的材料端。文章＋3D 圖：用 foundry 3D＋前段材料頁。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/foundry",
+    "#industry/group/fab_material"
+   ]
+  },
+  {
+   "id": "k_ssd_controller",
+   "cat": "know",
+   "title": "SSD 主控晶片是什麼？一顆晶片管住整片 NAND",
+   "why": "站內 3D「SSD：M.2 2280」（ssd）拆得到主控、DRAM、NAND 三種晶片，可直接嵌 3D 並點出主控；已有 SSD、3D NAND 題，主控是兩者中間沒講到的那顆。文章＋3D 圖：用 ssd 3D。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "k_color_filter",
+   "cat": "know",
+   "title": "彩色濾光片是什麼？面板的紅綠藍從哪來",
+   "why": "站內 3D「面板：TFT-LCD 拆成十三層」（panel）有彩色濾光片那一層，可直接嵌 3D；已有面板、偏光板題，濾光片是同一張圖裡還沒單獨講的層。文章＋3D 圖：用 panel 3D。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "i_bbu_backup",
+   "cat": "intro",
+   "title": "BBU 電池備援鏈：電芯、模組到機櫃電源架",
+   "why": "站內有 BBU 電池備援族群頁；既有電源鏈題主講 PSU，斷電那幾秒由誰接手的環節分工還沒單獨寫。附供應鏈圖（flow）＋2.5D power_bbu，只講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/bbu",
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "i_chassis_rail",
+   "cat": "intro",
+   "title": "伺服器機殼與滑軌鏈：鈑金、滑軌到整櫃出貨",
+   "why": "站內有機殼與滑軌族群頁；既有 AI 伺服器代工鏈只帶過機殼，這題把鈑金、滑軌、整櫃組裝三段拆開講。附供應鏈圖（flow）＋3D ai_server 機櫃，只講環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/chassis_rail",
+    "#industry/group/ai_server_odm"
+   ]
+  },
+  {
+   "id": "i_battery_material",
+   "cat": "intro",
+   "title": "電池材料鏈：正極、負極、隔離膜、電解液四塊",
+   "why": "站內有電池關鍵材料族群頁；既有電池鏈題從材料講到模組、材料只帶過，這題只拆四大材料各自做什麼、誰往下賣給電芯廠。附供應鏈圖（flow），只講環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/battery_material",
+    "#industry/group/battery_cell"
+   ]
+  },
   {
    "id": "n_cyber_5d_25pct",
    "cat": "news",
