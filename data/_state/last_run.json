@@ -2,13 +2,12 @@
   "steps": {
     "twse.price_daily": {
       "ok": true,
-      "rows": 1337,
-      "seconds": 1.8,
-      "stale": true
+      "rows": 1338,
+      "seconds": 1.5
     },
     "official_refresh": {
-      "status": "stale",
-      "official_date": "2026-11-16",
+      "status": "ready",
+      "official_date": "2026-11-17",
       "provisional_date": "2026-11-17"
     },
     "price_daily": {
@@ -16,7 +15,7 @@
     },
     "twse.market": {
       "ok": true,
-      "rows": 11,
+      "rows": 12,
       "seconds": 0.2
     },
     "market_daily": {
@@ -25,7 +24,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1015,
-      "seconds": 12.7
+      "seconds": 13.8
     },
     "tape.collect": {
       "ok": true,
@@ -35,62 +34,61 @@
     },
     "mis.index_minute": {
       "ok": true,
-      "rows": 840,
-      "seconds": 1.2
+      "rows": 364,
+      "seconds": 1.4
     },
     "index_intraday": {
-      "stored": 0
+      "stored": 836
     },
     "taifex.futures_minute": {
       "ok": true,
-      "rows": 0,
-      "seconds": 42.2,
-      "skipped": "窗內候選日都處理過或今天的檔還沒出"
+      "rows": 836,
+      "seconds": 45.5
     },
     "news.collect": {
       "ok": true,
       "rows": 137,
-      "seconds": 2.8
+      "seconds": 5.5
     },
     "news": {
-      "stored": 25
+      "stored": 85
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 6,
+      "rows": 7,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 6
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 115,
-      "seconds": 0.7
+      "rows": 94,
+      "seconds": 0.9
     },
     "material_news": {
-      "stored": 0
+      "stored": 94
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4512,
-      "seconds": 2.4
+      "rows": 4515,
+      "seconds": 1.5
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15651,
-      "seconds": 3.1
+      "rows": 15653,
+      "seconds": 4.0
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 22,
-      "seconds": 0.8
+      "seconds": 2.0
     },
     "macro_calendar": {
       "stored": 0
@@ -117,10 +115,10 @@
       "rows": 21
     },
     "optivx.daily": {
-      "ok": true,
+      "ok": false,
       "rows": 0,
-      "seconds": 0.0,
-      "skipped": "湖裡已到 2026-11-17（今天 2026-11-17），窗內已處理過，不用再抓"
+      "seconds": 0.5,
+      "error": "FinMind 回 3244 列但算不出隱含波動率（欄位或契約月份可能改了）"
     },
     "margin_total_otc": {
       "stored": 0
@@ -141,24 +139,32 @@
     }
   },
   "errors": [],
-  "empty": [],
+  "empty": [
+    "optivx.daily"
+  ],
   "gaps": [],
   "rebuilt": [],
   "phase": "news",
   "index_minute_days": {
     "FUT": [
-      "2026-11-17"
+      "2026-11-18"
     ],
     "OTC": [
-      "2026-11-17"
+      "2026-11-18"
     ],
     "TSE": [
-      "2026-11-17"
+      "2026-11-18"
     ]
   },
-  "started_at": "2026-11-17T21:13:37.648163+00:00",
-  "finished_at": "2026-11-17T21:30:19.577804+00:00",
-  "duration_seconds": 1001.9,
+  "taifex_minute_days": {
+    "FUT_N": [
+      "2026-11-17",
+      "2026-11-18"
+    ]
+  },
+  "started_at": "2026-11-18T02:56:47.889056+00:00",
+  "finished_at": "2026-11-18T03:17:01.455979+00:00",
+  "duration_seconds": 1213.6,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -209,7 +215,7 @@
     "warn_labels": []
   },
   "warn": [],
-  "finmind_budget_left": 440,
+  "finmind_budget_left": 439,
   "tables": [
     {
       "table": "price_daily",
@@ -223,7 +229,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2713005,
+      "rows": 2713482,
       "latest": "2026-11-17"
     },
     {
@@ -358,22 +364,22 @@
     },
     {
       "table": "news",
-      "rows": 12844,
+      "rows": 12929,
       "latest": "2026-11-18"
     },
     {
       "table": "broker_views",
-      "rows": 356,
-      "latest": "2026-11-17"
+      "rows": 362,
+      "latest": "2026-11-18"
     },
     {
       "table": "intl_daily",
-      "rows": 42781,
-      "latest": "2026-11-17"
+      "rows": 42783,
+      "latest": "2026-11-18"
     },
     {
       "table": "macro",
-      "rows": 15651,
+      "rows": 15653,
       "latest": "2026-11-17"
     },
     {
@@ -428,13 +434,13 @@
     },
     {
       "table": "index_intraday",
-      "rows": 333716,
+      "rows": 334916,
       "latest": "—"
     },
     {
       "table": "material_news",
-      "rows": 6191,
-      "latest": "2026-11-16"
+      "rows": 6285,
+      "latest": "2026-11-17"
     },
     {
       "table": "company_website",
@@ -448,7 +454,7 @@
     },
     {
       "table": "sbl_daily",
-      "rows": 823559,
+      "rows": 824904,
       "latest": "2026-11-17"
     },
     {
@@ -464,7 +470,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 57,
+    "days_since_review": 58,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
