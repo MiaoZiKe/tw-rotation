@@ -34,5 +34,23 @@
    "format": "video",
    "video_via": "release"
   }
+ },
+ "20261118_same-look": {
+  "ig": {
+   "id": "18093281672699750",
+   "link": "https://www.instagram.com/reel/Df4k2QQNu7g/",
+   "at": "2026-11-18T21:07:06+08:00",
+   "format": "video",
+   "video_via": "release"
+  },
+  "at": "2026-11-18T21:07:06+08:00",
+  "slot": "2026-11-18 21:00",
+  "threads": {
+   "id": "17903026167609373",
+   "link": "https://www.threads.com/@caffaine.ai/post/Df4k9wgN5Ul",
+   "at": "2026-11-18T21:07:06+08:00",
+   "format": "video",
+   "video_via": "release"
+  }
  }
 }
