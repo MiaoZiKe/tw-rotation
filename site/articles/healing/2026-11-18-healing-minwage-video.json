@@ -13,7 +13,7 @@
   "第一份工作",
   "數字裡的日子"
  ],
- "summary": "勞動部最低工資審議會 2026/9/24 決議：2027/1/1 起月薪由 29,500 元調到 30,900 元（調幅 4.75%）、時薪 196 元調到 205 元，連續第 11 年調漲，預估受惠約 261.16 萬人；十年累計月薪由 20,008 元調到 30,900 元（累計 +54.4%）；以行政院核定公告為準。（影片版，有旁白）",
+ "summary": "勞動部最低工資審議會 2026/9/24 決議：2027/1/1 起月薪由 29,500 元調到 30,900 元（調幅 4.75%）、時薪 196 元調到 205 元，連續第 11 年調漲，預估受惠約 261.16 萬人；十年累計調幅 54.4%；以行政院核定公告為準。（影片版，有旁白）",
  "reading_min": 2,
  "blocks": [
   {
@@ -41,11 +41,11 @@
   },
   {
    "t": "p",
-   "text": "勞動部估計受惠約 261.16 萬人，其中本國勞工約 219.72 萬人、移工約 41.44 萬人。"
+   "text": "勞動部估計受惠約 261.16 萬人。"
   },
   {
    "t": "p",
-   "text": "十年累計：月薪由 2016 年的 20,008 元調到 30,900 元，累計調幅 54.4%（勞動部）；一次多 1,400 元，是這 11 次調漲中金額最高的一次（對照歷年公告自行比較）。"
+   "text": "十年累計調幅 54.4%（勞動部）；一次多 1,400 元，是這 11 次調漲中金額最高的一次（對照歷年公告自行比較）。"
   },
   {
    "t": "p",
@@ -65,7 +65,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-18 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-18 20:29 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/reel/Df4gjzaDiXC/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Df4grKpBaD7"
+    }
+   ]
   }
  ],
  "sources": [
@@ -93,11 +107,6 @@
    "url": "https://www.businesstoday.com.tw/article/category/183027/post/202609240044"
   },
   {
-   "title": "最低工資審議報導（受惠人數：本國 219.72 萬、移工 41.44 萬）",
-   "publisher": "三立新聞",
-   "url": "https://www.setn.com/ampnews/1912312"
-  },
-  {
    "title": "院會報告：最低工資調整",
    "publisher": "行政院"
   }
@@ -105,8 +114,8 @@
  "confidence": "官方決議＋多家媒體一致；行政院是否已核定兩源說法不一，圖與文案寫「以行政院核定公告為準」",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/reel/Df4gjzaDiXC/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Df4grKpBaD7",
   "queue": "20261118v_minwage",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261118v_minwage/video.mp4"

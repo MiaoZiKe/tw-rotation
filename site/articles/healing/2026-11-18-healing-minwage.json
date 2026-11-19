@@ -75,7 +75,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-18 12:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-18 12:29 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/Df3pnfFoe_z/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Df3prqVlcjp"
+    }
+   ]
   }
  ],
  "sources": [
@@ -109,8 +123,8 @@
  "confidence": "官方決議＋多家媒體一致；行政院是否已核定兩源說法不一，圖與文案寫「以行政院核定公告為準」",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/p/Df3pnfFoe_z/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Df3prqVlcjp",
   "queue": "20261118_minwage"
  }
 }
