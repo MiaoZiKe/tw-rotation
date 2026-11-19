@@ -55,12 +55,38 @@
         {
           "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat",
           "http": 200,
-          "head": "ç¢æ¥­å¥,å®¶æ¸,ç¸½ç¼è¡è¡æ¸,åå¤è³åé¸è³ææç¸½è¡æ¸,åå¤è³åé¸è³æè¡æ¯ç\r \"ETF\",\"249\",\"296758780260\",\"3287765749\",\"1.11\"\r \"æ°´æ³¥å·¥æ¥­\",\"8\",\"14107198706\",\"1765012903\",\"12.51\""
+          "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"249\",\"ShareNumber\":\"296758780260\",\"ForeignMainlandAreaShare\":\"3287765749\",\"Percentage\":\"1.11\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat",
+          "cols": [
+            "IndustryCat",
+            "Numbers",
+            "ShareNumber",
+            "ForeignMainlandAreaShare",
+            "Percentage"
+          ],
+          "n": 36
         },
         {
           "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
           "http": 200,
-          "head": "æè¡,è­å¸ä»£è,è­å¸åç¨±,ç¼è¡è¡æ¸,å¤è³åé¸è³å°å¯æè³è¡æ¸,å¨é«å¤è³åé¸è³ææè¡æ¸,å¨é«å¤è³åé¸è³å°å¯æè³æ¯ç,å¨é«å¤è³åé¸è³æè¡æ¯ç,æ³ä»¤æè³"
+          "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"7547946\",\"SharesHeld\":\"1732749036\",\"AvailableInvestPer\":\"0.43\",\"SharesHeldPer\":\"99.56\",\"Upperlimit\":\"100.00\"}, {"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
+          "cols": [
+            "Rank",
+            "Code",
+            "Name",
+            "ShareNumber",
+            "AvailableShare",
+            "SharesHeld",
+            "AvailableInvestPer",
+            "SharesHeldPer",
+            "Upperlimit"
+          ],
+          "n": 20
         },
         {
           "market": "上市",
@@ -150,16 +176,16 @@
       "seconds": 0.3
     },
     "inst_daily": {
-      "stored": 380
+      "stored": 300
     },
     "institutional_codes": {
       "requested": 382,
-      "returned": 380
+      "returned": 300
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 380,
-      "seconds": 69.1
+      "rows": 300,
+      "seconds": 95.0
     },
     "inst_flags": {
       "rebuild": true,
@@ -181,7 +207,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-19",
-        "rows": 1460,
+        "rows": 1760,
         "median": 2224.0,
         "status": "pending",
         "reason": "thin"
@@ -223,10 +249,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-19T09:29:41.550921+00:00",
-  "finished_at": "2026-11-19T09:31:07.810326+00:00",
-  "duration_seconds": 86.3,
+  "started_at": "2026-11-19T09:59:33.766409+00:00",
+  "finished_at": "2026-11-19T10:01:24.904381+00:00",
+  "duration_seconds": 111.1,
   "trade_date": "2026-11-19",
   "complete": true,
-  "finmind_budget_left": 120
+  "finmind_budget_left": 0
 }
