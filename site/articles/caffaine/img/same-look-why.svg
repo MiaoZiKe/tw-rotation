@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="520" rx="18" fill="#f4f5ff"/>
+<text x="480" y="50" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">你沒指定風格時，AI 怎麼挑（想法示意）</text>
+<!-- 左：你的一句話 -->
+<rect x="36" y="120" width="250" height="250" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/>
+<text x="161" y="168" text-anchor="middle" font-size="20" fill="#4b507a">你只打了一句</text>
+<text x="161" y="222" text-anchor="middle" font-size="25" font-weight="700" fill="#1f2350">幫我做一個</text>
+<text x="161" y="256" text-anchor="middle" font-size="25" font-weight="700" fill="#1f2350">咖啡店首頁</text>
+<text x="161" y="316" text-anchor="middle" font-size="19" fill="#e8613c" font-weight="700">沒有說風格</text>
+<path d="M296 245 H336" stroke="#5b63e8" stroke-width="5" fill="none"/><path d="M336 233 L354 245 L336 257 Z" fill="#5b63e8"/>
+<!-- 中：很多可能 -->
+<rect x="360" y="120" width="300" height="250" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/>
+<text x="510" y="150" text-anchor="middle" font-size="18" fill="#4b507a">可以做的樣子有很多種</text>
+<g fill="none" stroke="#c9cdea" stroke-width="2">
+<rect x="380" y="166" width="62" height="44" rx="4"/><path d="M388 176 H420 M388 186 H410 M388 196 H416"/>
+<rect x="452" y="166" width="62" height="44" rx="4"/><path d="M460 176 H506 M460 186 H506 M460 196 H490"/>
+<rect x="524" y="166" width="62" height="44" rx="4"/><path d="M532 176 H578 M532 190 H578 M532 200 H560"/>
+<rect x="596" y="166" width="50" height="44" rx="4"/><path d="M604 176 H638 M604 188 H630"/>
+<rect x="380" y="222" width="62" height="44" rx="4"/><path d="M388 232 H434 M388 246 H434"/>
+<rect x="452" y="222" width="62" height="44" rx="4"/><path d="M460 232 H490 M460 244 H506 M460 254 H480"/>
+<rect x="524" y="222" width="62" height="44" rx="4"/><path d="M532 232 H578 M532 242 H570"/>
+<rect x="596" y="222" width="50" height="44" rx="4"/><path d="M604 232 H638 M604 246 H626"/>
+</g>
+<rect x="390" y="288" width="240" height="66" rx="10" fill="#e8eaff" stroke="#5b63e8" stroke-width="3"/>
+<g fill="#5b63e8"><rect x="402" y="300" width="84" height="8" rx="3"/><rect x="402" y="316" width="64" height="8" rx="3"/><rect x="540" y="298" width="76" height="22" rx="4" opacity=".45"/><rect x="402" y="334" width="60" height="12" rx="3" opacity=".5"/><rect x="474" y="334" width="60" height="12" rx="3" opacity=".5"/><rect x="546" y="334" width="60" height="12" rx="3" opacity=".5"/></g>
+<text x="510" y="392" text-anchor="middle" font-size="19" font-weight="700" fill="#5b63e8">最常見、最保險的那一種</text>
+<path d="M670 245 H710" stroke="#5b63e8" stroke-width="5" fill="none"/><path d="M710 233 L728 245 L710 257 Z" fill="#5b63e8"/>
+<!-- 右：結果 -->
+<rect x="734" y="120" width="190" height="250" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/>
+<text x="829" y="168" text-anchor="middle" font-size="20" fill="#4b507a">結果</text>
+<text x="829" y="222" text-anchor="middle" font-size="25" font-weight="700" fill="#1f2350">兩次都挑到</text>
+<text x="829" y="256" text-anchor="middle" font-size="25" font-weight="700" fill="#1f2350">差不多的</text>
+<text x="829" y="316" text-anchor="middle" font-size="19" fill="#e8613c" font-weight="700">兩份幾乎一樣</text>
+<rect x="36" y="440" width="888" height="52" rx="12" fill="#fff" stroke="#e8613c" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="480" y="473" text-anchor="middle" font-size="19" fill="#1f2350">分析推測：一般認為是這樣。這是示意圖，沒有測模型內部，也不代表任何比例。</text>
+</svg>

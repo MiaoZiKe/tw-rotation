@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="380" rx="18" fill="#f4f5ff"/>
+<text x="480" y="52" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">想要自己的樣子，先回答這三個問題</text>
+<g>
+<rect x="36" y="86" width="276" height="212" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="36" y="86" width="276" height="10" rx="5" fill="#5b63e8"/>
+<circle cx="76" cy="140" r="24" fill="#5b63e8"/><text x="76" y="149" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">1</text>
+<text x="112" y="150" font-size="26" font-weight="700" fill="#1f2350">參考哪裡</text>
+<text x="60" y="206" font-size="19" fill="#4b507a">例如：</text>
+<text x="60" y="240" font-size="21" fill="#1f2350">日本咖啡館的</text><text x="60" y="270" font-size="21" fill="#1f2350">手寫菜單看板</text>
+</g>
+<g>
+<rect x="342" y="86" width="276" height="212" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="342" y="86" width="276" height="10" rx="5" fill="#2e9c6a"/>
+<circle cx="382" cy="140" r="24" fill="#2e9c6a"/><text x="382" y="149" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">2</text>
+<text x="418" y="150" font-size="26" font-weight="700" fill="#1f2350">要什麼</text>
+<text x="366" y="206" font-size="19" fill="#4b507a">例如：</text>
+<text x="366" y="240" font-size="21" fill="#1f2350">米色紙底、深棕色字</text><text x="366" y="270" font-size="21" fill="#1f2350">標題用襯線字體靠左</text>
+</g>
+<g>
+<rect x="648" y="86" width="276" height="212" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="648" y="86" width="276" height="10" rx="5" fill="#e8613c"/>
+<circle cx="688" cy="140" r="24" fill="#e8613c"/><text x="688" y="149" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">3</text>
+<text x="724" y="150" font-size="26" font-weight="700" fill="#1f2350">不要什麼</text>
+<text x="672" y="206" font-size="19" fill="#4b507a">例如：</text>
+<text x="672" y="240" font-size="21" fill="#1f2350">不要漸層、不要紫色</text><text x="672" y="270" font-size="21" fill="#1f2350">不要三欄小卡片</text>
+</g>
+<rect x="36" y="316" width="888" height="38" rx="10" fill="#e8eaff"/>
+<text x="480" y="342" text-anchor="middle" font-size="19" fill="#1f2350">三句講完，AI 就不用自己猜「最常見的樣子」</text>
+</svg>

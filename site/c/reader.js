@@ -23,11 +23,15 @@
     switch (b.t) {
       case 'h': return `<h2>${esc(b.text)}</h2>`;
       case 'p': return `<p>${esc(b.text)}</p>`;
+      case 'lead': return `<p class="lead">${esc(b.text)}</p>${b.more ? `<p>${esc(b.more)}</p>` : ''}`;
+      case 'sum': return `<aside class="sum"><h2>${esc(b.title || '3 個重點')}</h2><ol>${(b.items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ol></aside>`;
+      case 'term': return `<aside class="term"><h3>${esc(b.title || '名詞解釋')}</h3><dl>${(b.items || []).map((x) => `<dt>${esc(x.k)}</dt><dd>${esc(x.v)}</dd>`).join('')}</dl></aside>`;
+      case 'prompt': return `<div class="pr"><div class="prh"><b>${esc(b.title || '提示詞')}</b><button class="btn" type="button" data-pcopy>複製這段</button></div><pre class="prt">${esc(b.text)}</pre>${b.note ? `<div class="prn">${esc(b.note)}</div>` : ''}</div>`;
       case 'callout': return `<div class="callout">${esc(b.text)}</div>`;
       case 'ul': return `<ul>${(b.items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
       case 'steps': return `${b.title ? `<h2>${esc(b.title)}</h2>` : ''}<ol class="st">${(b.items || []).map((x) => `<li><b>${esc(x.label)}</b>${x.text ? '：' + esc(x.text) : ''}</li>`).join('')}</ol>${b.note ? `<p class="n">${esc(b.note)}</p>` : ''}`;
       case 'table': return `<div class="tw"><table><thead><tr>${(b.head || []).map((x) => `<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${(b.rows || []).map((r) => `<tr>${r.map((x) => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-      case 'img': return `<div class="imgs">${(b.items || []).map((x) => okUrl(x.src) ? `<figure><img src="${esc(rel(x.src))}" alt="${esc(x.alt)}" loading="lazy">${x.cap ? `<figcaption>${esc(x.cap)}</figcaption>` : ''}</figure>` : '').join('')}</div>`;
+      case 'img': return `<div class="imgs c${Math.min((b.items || []).length, 3)}${b.wide ? ' wide' : ''}">${(b.items || []).map((x) => okUrl(x.src) ? `<figure><img src="${esc(rel(x.src))}" alt="${esc(x.alt)}" loading="lazy">${x.cap ? `<figcaption>${esc(x.cap)}</figcaption>` : ''}</figure>` : '').join('')}</div>`;
       case 'links': return `${b.title ? `<h2>${esc(b.title)}</h2>` : ''}<ul>${(b.items || []).map((x) => (/^https:\/\//.test(x.url || '') ? `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.label)}</a></li>` : '')).join('')}</ul>`;
       case 'mp4': {
         const s = okUrl(b.src); if (!s) return '';
@@ -36,6 +40,12 @@
       }
       default: return '';
     }
+  };
+  const tail = (d) => {
+    const rel2 = (d.related || []).filter((x) => okId(x.id));
+    const src = d.sources || [];
+    return (rel2.length ? `<section class="more"><h2>延伸閱讀</h2>${rel2.map((x) => `<a class="card" href="#/${encodeURIComponent(x.id)}"><span class="tx"><h3>${esc(x.title)}</h3><p>${esc(x.why || '')}</p></span></a>`).join('')}</section>` : '')
+      + (src.length ? `<section class="srcs"><h2>出處與查證</h2><ol>${src.map((x) => `<li>${esc(x.title)}<span>${esc([x.publisher, x.date].filter(Boolean).join('，'))}</span></li>`).join('')}</ol>${d.confidence ? `<p class="n">可信度：${esc(d.confidence)}</p>` : ''}</section>` : '');
   };
   const banner = () => {
     if (admin()) return '';
@@ -65,6 +75,14 @@
     app.appendChild(el);
   }
   document.addEventListener('click', (e) => {
+    const pb = e.target && e.target.closest && e.target.closest('[data-pcopy]');
+    if (pb) {
+      const t = pb.closest('.pr').querySelector('.prt').textContent;
+      const ok = () => { pb.textContent = '已複製 ✓'; setTimeout(() => { pb.textContent = '複製這段'; }, 2000); };
+      const fb = () => { try { const r = document.createRange(); r.selectNodeContents(pb.closest('.pr').querySelector('.prt')); const sl = getSelection(); sl.removeAllRanges(); sl.addRange(r); pb.textContent = '請按 Ctrl+C'; } catch (er) { /* 略 */ } };
+      try { navigator.clipboard.writeText(t).then(ok, fb); } catch (er) { fb(); }
+      return;
+    }
     const b = e.target && e.target.closest && e.target.closest('[data-copy]'); if (!b) return;
     const ta = b.closest('.kit1').querySelector('textarea'); const t = ta.value;
     try { navigator.clipboard.writeText(t).then(() => { b.dataset.done = '1'; b.textContent = '已複製 ✓'; }, () => { ta.select(); b.textContent = '請按 Ctrl+C'; }); } catch (er) { ta.select(); b.textContent = '請按 Ctrl+C'; }
@@ -85,7 +103,7 @@
     app.innerHTML = '<p class="sub">載入中…</p>';
     let d; try { d = await getJ(DIR + encodeURIComponent(id) + '.json'); } catch (e) { app.innerHTML = '<p class="sub">找不到這篇文章。</p><a class="btn" href="#/">回文章列表</a>'; return; }
     document.title = d.title + '｜' + CH.name;
-    app.innerHTML = `<article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}　閱讀約 ${esc(d.reading_min || 1)} 分鐘</div><div class="tags">${(d.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div>${banner()}${(d.blocks || []).map(block).join('')}</article>`;
+    app.innerHTML = `<article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}　閱讀約 ${esc(d.reading_min || 1)} 分鐘</div><div class="tags">${(d.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div>${banner()}${(d.blocks || []).map(block).join('')}${tail(d)}</article>`;
     window.scrollTo(0, 0);
     mountKit(id);
     try { window.TwArtM && TwArtM.open(id, CH.id, app.querySelector('.art .meta')); } catch (e) { /* 觀測失敗不影響閱讀 */ }
