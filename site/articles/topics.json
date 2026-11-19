@@ -1,6 +1,107 @@
 {
- "updated": "2026-11-18",
+ "updated": "2026-11-19",
  "topics": [
+  {
+   "id": "n_nvda_q3fy27_kress",
+   "cat": "news",
+   "title": "輝達財報後盤後漲：執行長空缺市場怎麼看",
+   "why": "11/17 盤後公布 FY2027 Q3：營收 1,158 億美元、年增 103%，資料中心 1,076 億美元；Q4 財測 1,300 億美元 ±3%、不含中國資料中心運算營收（輝達官方新聞稿、StockAnalysis 11/17）。黃仁勳 11/12 卸任後首份財報，由 Kress 暫代。讀者會問：數字翻倍，市場還在擔心什麼？接續 11/16「財報前在擔心什麼」，這篇是答案篇。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-19"
+  },
+  {
+   "id": "n_apec_sz_trilateral",
+   "cat": "news",
+   "title": "APEC 深圳川習普同桌：稀土與休戰牽動什麼",
+   "why": "中國外交部 11/16 確認 11/19 習近平、川普、普亭於深圳首次三方會晤；會前報導稀土、農產品、波音採購與投資協議仍有分歧（聯合報、TVBS 11 月，鉅亨引彭博）。讀者會問這場會對台股與供應鏈有什麼影響；會談結果撰稿前以新華社／白宮會後通報為準。",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-11-19"
+  },
+  {
+   "id": "n_ust10y_auction_weak",
+   "cat": "news",
+   "title": "美債十年期標售破 5%：外資買盤為何縮",
+   "why": "11/11 美國 10 年期公債標售 420 億美元、得標殖利率 5.02%，投標倍數 2.46 低於前次 2.77、外資得標比重下滑（InvestingLive、BabyPips、Capwolf 11/11）。與 10/27「美債殖利率貼著 5%」不同，這題專講標售需求轉弱與對股市估值的影響；倍數撰稿前對美國財政部公告。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19"
+  },
+  {
+   "id": "k_backlight",
+   "cat": "know",
+   "title": "背光模組是什麼？LCD 面板的光從哪來",
+   "why": "站內 3D「面板：TFT-LCD 拆成十三層」（panel）有 LED 燈條、導光板、反射片、擴散片、稜鏡片整組背光部件，可直接嵌 3D；已有偏光板、彩色濾光片題，背光是同一張圖底部還沒講的那一疊。文章＋3D 圖：用 panel 3D。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "k_enig_finish",
+   "cat": "know",
+   "title": "化鎳浸金是什麼？PCB 焊墊為何要鍍一層金",
+   "why": "站內 3D「PCB 硬板：多層板剖面與四種孔」（pcb_rigid）有 ENIG 表面處理與防焊開窗部件，可直接嵌 3D；已有背鑽、防焊層題，表面處理是焊點可靠度最常被問的一層。文章＋3D 圖：用 pcb_rigid 3D。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "k_crystal_pull",
+   "cat": "know",
+   "title": "長晶是什麼？一根籽晶怎麼拉出整根晶碇",
+   "why": "站內 3D「矽晶圓：從熔湯到一片鏡面」（silicon_wafer）有長晶爐、石英坩堝、熔湯、籽晶與晶碇部件，可直接嵌 3D；已有「矽晶圓是什麼」總覽，這題只講拉晶那一步（籽晶、轉速、拉速決定晶碇品質）。文章＋3D 圖：用 silicon_wafer 3D。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "i_siph_foundry",
+   "cat": "intro",
+   "title": "矽光子代工鏈：光子晶片從設計到投片",
+   "why": "站內 siph_cpo 鏈有「矽光子晶圓代工」與「IC 設計與設計服務」兩個環節；既有矽光子供應鏈題一路講到 CPO 封裝、代工只帶過，這題拆設計、PDK、投片三段。附供應鏈圖（flow），只講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/siph_foundry",
+    "#industry/group/siph_design"
+   ]
+  },
+  {
+   "id": "i_cpo_switch_system",
+   "cat": "intro",
+   "title": "CPO 交換器整機鏈：交換晶片、光引擎到機櫃",
+   "why": "站內 siph_cpo 鏈有「CPO 交換器與系統」環節；既有 800G 交換器鏈講的是可插拔整機，這題講光引擎改貼在交換晶片旁之後，整機組裝與散熱分工怎麼變。附供應鏈圖（flow）＋3D switch_wireless，只講環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/siph_switch",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "i_air_cargo_ai",
+   "cat": "intro",
+   "title": "航空貨運鏈：AI 伺服器怎麼飛到北美機房",
+   "why": "站內有航空與空運族群頁；既有航運鏈題把貨櫃、散裝、航空並列帶過，這題只拆空運：航空公司貨機、承攬業者、機場貨站到落地報關，對照 AI 伺服器整櫃出貨。附供應鏈圖（flow），只講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/airline"
+   ]
+  },
   {
    "id": "n_msci_1130_rebalance",
    "cat": "news",
