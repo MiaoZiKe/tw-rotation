@@ -1,22 +1,26 @@
 {
- "at": "2026-11-19T12:29:40+08:00",
+ "at": "2026-11-19T20:29:37+08:00",
  "mode": "live",
- "item": "20261119_young",
+ "item": "20261119v_young",
  "posted": {
   "ig": {
-   "id": "18024679418938259",
-   "link": "https://www.instagram.com/p/Df6OdBrF4jU/",
-   "at": "2026-11-19T12:29:40+08:00"
+   "id": "17970836943198637",
+   "link": "https://www.instagram.com/reel/Df7FYWIFMLQ/",
+   "at": "2026-11-19T20:29:37+08:00",
+   "format": "video",
+   "video_via": "site"
   },
   "threads": {
-   "id": "18498299407104942",
-   "link": "https://www.threads.com/@talk_01010909/post/Df6OhYxlthB",
-   "at": "2026-11-19T12:29:40+08:00"
+   "id": "17958921342270154",
+   "link": "https://www.threads.com/@talk_01010909/post/Df7FfLhqjLJ",
+   "at": "2026-11-19T20:29:37+08:00",
+   "format": "video",
+   "video_via": "site"
   }
  },
  "errors": {},
  "notes": [
   "20261116v_worktime：還沒到 2026-11-23T20:27:00+08:00"
  ],
- "summary": "20261119_young：已發 ig https://www.instagram.com/p/Df6OdBrF4jU/；threads https://www.threads.com/@talk_01010909/post/Df6OhYxlthB"
+ "summary": "20261119v_young：已發 ig https://www.instagram.com/reel/Df7FYWIFMLQ/；threads https://www.threads.com/@talk_01010909/post/Df7FfLhqjLJ"
 }
