@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-19T18:00+08:00
 weekday: 四
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-hbm.mp4
 images: cover.jpg
 title: 科技透明圈影片：HBM，十二層記憶體比一張信用卡還薄（tech-hbm v3）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/Df61rGLlGSc/
+ids_ig: 18082784426402619
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/Df61w7PuBf2
+ids_threads: 17948451378360739
+ids_threads_reply: 18154761850545701
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df611lalqi5
+done: ig, threads
+urls: https://www.instagram.com/reel/Df61rGLlGSc/ https://www.threads.com/@tech_01010909/post/Df61w7PuBf2 https://www.threads.com/@tech_01010909/post/Df611lalqi5
+posted_at: 2026-11-19T18:12+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「HBM：十二層記憶體，比一張信用卡還薄」
 
