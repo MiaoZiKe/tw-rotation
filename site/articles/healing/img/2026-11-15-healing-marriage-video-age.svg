@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" width="800" height="460" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif">
+<rect width="800" height="460" fill="#F5EDE3"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#6B4A3A">平均初婚年齡：十年各晚了 1.4 歲</text>
+<text x="40" y="82" font-size="16" fill="#6B4A3A">單位：歲（第一次結婚者的平均年齡）</text>
+<text x="40" y="150" font-size="20" font-weight="700" fill="#6B4A3A">男</text>
+<rect x="90" y="124" width="320" height="36" rx="6" fill="#D9A06F"/>
+<text x="420" y="150" font-size="20" fill="#6B4A3A">2016 年 32.0</text>
+<rect x="90" y="170" width="334" height="36" rx="6" fill="#C96F2D"/>
+<text x="434" y="196" font-size="20" font-weight="700" fill="#C96F2D">2025 年 33.4</text>
+<text x="40" y="290" font-size="20" font-weight="700" fill="#6B4A3A">女</text>
+<rect x="90" y="264" width="300" height="36" rx="6" fill="#D9A06F"/>
+<text x="400" y="290" font-size="20" fill="#6B4A3A">2016 年 30.0</text>
+<rect x="90" y="310" width="314" height="36" rx="6" fill="#C96F2D"/>
+<text x="414" y="336" font-size="20" font-weight="700" fill="#C96F2D">2025 年 31.4</text>
+<text x="40" y="400" font-size="16" fill="#6B4A3A">條形從 0 歲起算，長度與年齡成正比。</text>
+<text x="40" y="436" font-size="14" fill="#6B4A3A">出處：內政部戶口統計（2025 年數字經世界日報、自由財經引述；2016 年為媒體引述內政部資料）</text>
+</svg>

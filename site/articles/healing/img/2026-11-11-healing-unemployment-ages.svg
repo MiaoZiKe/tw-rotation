@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="520" rx="18" fill="#F5EDE3"/>
+<text x="480" y="52" text-anchor="middle" font-size="28" font-weight="700" fill="#6B4A3A">2026 年 9 月各年齡失業率：隨年齡一階一階往下</text>
+<text x="40" y="124" font-size="22" font-weight="700" fill="#6B4A3A">15–24 歲</text>
+<rect x="230" y="90" width="470" height="48" rx="8" fill="#C96F2D"/>
+<text x="714" y="124" font-size="22" font-weight="700" fill="#6B4A3A">11.59%</text>
+<text x="40" y="196" font-size="22" font-weight="700" fill="#6B4A3A">25–29 歲</text>
+<rect x="230" y="162" width="231" height="48" rx="8" fill="#C96F2D"/>
+<text x="475" y="196" font-size="22" font-weight="700" fill="#6B4A3A">5.69%</text>
+<text x="40" y="268" font-size="22" font-weight="700" fill="#6B4A3A">30–34 歲</text>
+<rect x="230" y="234" width="138" height="48" rx="8" fill="#C96F2D"/>
+<text x="382" y="268" font-size="22" font-weight="700" fill="#6B4A3A">3.40%</text>
+<text x="40" y="340" font-size="22" font-weight="700" fill="#6B4A3A">35–64 歲</text>
+<rect x="230" y="306" width="118" height="48" rx="8" fill="#B9A08C"/>
+<text x="362" y="340" font-size="22" font-weight="700" fill="#6B4A3A">各組都低於 3%</text>
+<text x="40" y="412" font-size="22" font-weight="700" fill="#6B4A3A">整體（9 月）</text>
+<rect x="230" y="378" width="136" height="48" rx="8" fill="#6B4A3A"/>
+<text x="380" y="412" font-size="22" font-weight="700" fill="#6B4A3A">3.36%</text>
+<text x="480" y="486" text-anchor="middle" font-size="16" fill="#6B4A3A">出處：行政院主計總處人力資源調查（2026 年 9 月，2026-10-23 公布，未經季節調整）；35–64 歲長度為示意</text>
+</svg>

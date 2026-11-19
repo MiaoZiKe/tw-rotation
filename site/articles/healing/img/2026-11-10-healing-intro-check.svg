@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 440" font-family="'Noto Sans TC','PingFang TC',sans-serif">
+<rect width="1000" height="440" fill="#F5EDE3"/>
+<text x="500" y="60" font-size="38" font-weight="700" fill="#6B4A3A" text-anchor="middle">一個數字，怎麼走到貼文上</text>
+<g>
+<rect x="30" y="110" width="210" height="230" rx="20" fill="#fff" stroke="#C96F2D" stroke-width="3"/>
+<text x="135" y="165" font-size="34" font-weight="700" fill="#C96F2D" text-anchor="middle">1</text>
+<text x="135" y="225" font-size="30" fill="#6B4A3A" text-anchor="middle">看到數字</text>
+<text x="135" y="275" font-size="26" fill="#6B4A3A" text-anchor="middle">新聞或報告</text>
+<rect x="290" y="110" width="210" height="230" rx="20" fill="#fff" stroke="#C96F2D" stroke-width="3"/>
+<text x="395" y="165" font-size="34" font-weight="700" fill="#C96F2D" text-anchor="middle">2</text>
+<text x="395" y="225" font-size="30" fill="#6B4A3A" text-anchor="middle">回一手來源</text>
+<text x="395" y="275" font-size="26" fill="#6B4A3A" text-anchor="middle">官方原表</text>
+<rect x="550" y="110" width="210" height="230" rx="20" fill="#fff" stroke="#C96F2D" stroke-width="3"/>
+<text x="655" y="165" font-size="34" font-weight="700" fill="#C96F2D" text-anchor="middle">3</text>
+<text x="655" y="225" font-size="30" fill="#6B4A3A" text-anchor="middle">對口徑</text>
+<text x="655" y="275" font-size="26" fill="#6B4A3A" text-anchor="middle">誰、哪段時間</text>
+<rect x="810" y="110" width="160" height="230" rx="20" fill="#6B4A3A"/>
+<text x="890" y="165" font-size="34" font-weight="700" fill="#F5EDE3" text-anchor="middle">4</text>
+<text x="890" y="225" font-size="30" fill="#F5EDE3" text-anchor="middle">標出處</text>
+<text x="890" y="275" font-size="26" fill="#F5EDE3" text-anchor="middle">才發文</text>
+</g>
+<path d="M244 225h42M504 225h42M764 225h42" stroke="#C96F2D" stroke-width="5" fill="none"/>
+<path d="M280 213l10 12-10 12M540 213l10 12-10 12M800 213l10 12-10 12" stroke="#C96F2D" stroke-width="5" fill="none"/>
+<text x="500" y="400" font-size="26" fill="#6B4A3A" text-anchor="middle">對不上口徑的數字，寧可不用</text>
+</svg>

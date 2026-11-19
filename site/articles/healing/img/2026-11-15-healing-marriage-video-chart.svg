@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 540" width="800" height="540" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif">
+<rect width="800" height="540" fill="#F5EDE3"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#6B4A3A">全年結婚登記對數：十年少了近 3 成</text>
+<text x="40" y="82" font-size="16" fill="#6B4A3A">單位：對（登記對數，不是結婚人數）</text>
+<line x1="60" y1="430" x2="740" y2="430" stroke="#6B4A3A" stroke-width="2"/>
+<rect x="110" y="150" width="150" height="280" rx="6" fill="#6B4A3A"/>
+<rect x="325" y="197" width="150" height="233" rx="6" fill="#D9A06F"/>
+<rect x="540" y="232" width="150" height="198" rx="6" fill="#C96F2D"/>
+<text x="185" y="138" font-size="22" font-weight="700" fill="#6B4A3A" text-anchor="middle">147,861</text>
+<text x="400" y="185" font-size="22" font-weight="700" fill="#6B4A3A" text-anchor="middle">123,061</text>
+<text x="615" y="220" font-size="22" font-weight="700" fill="#C96F2D" text-anchor="middle">104,376</text>
+<text x="185" y="458" font-size="18" fill="#6B4A3A" text-anchor="middle">2016 年</text>
+<text x="400" y="458" font-size="18" fill="#6B4A3A" text-anchor="middle">2024 年</text>
+<text x="615" y="458" font-size="18" fill="#6B4A3A" text-anchor="middle">2025 年</text>
+<text x="400" y="490" font-size="16" fill="#6B4A3A" text-anchor="middle">2025 比 2016 少 43,485 對（約 29.4%）；比 2024 少 15.2%</text>
+<text x="40" y="522" font-size="14" fill="#6B4A3A">出處：內政部戶政司；2016 年為臺南市政府主計處轉引內政部全國資料；降幅為自行計算</text>
+</svg>

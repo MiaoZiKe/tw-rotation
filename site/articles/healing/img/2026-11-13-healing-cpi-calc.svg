@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420" width="820" height="420" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif">
+<rect width="820" height="420" fill="#F5EDE3"/>
+<text x="40" y="56" font-size="30" font-weight="700" fill="#3B2A20">CPI 年增率，是怎麼算出來的</text>
+<text x="40" y="86" font-size="20" fill="#6B4A3A">同一籃日常花費，今年和去年同月各買一次，比差多少</text>
+<g stroke="#6B4A3A" stroke-width="2">
+<rect x="40" y="116" width="220" height="150" rx="14" fill="#FBF6EF"/>
+<rect x="300" y="116" width="220" height="150" rx="14" fill="#FBF6EF"/>
+<rect x="560" y="116" width="220" height="150" rx="14" fill="#C96F2D" stroke="#C96F2D"/>
+<path d="M266 191 H294 M286 183 L294 191 L286 199" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M526 191 H554 M546 183 L554 191 L546 199" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g text-anchor="middle">
+<text x="150" y="156" font-size="24" font-weight="700" fill="#3B2A20">1 一籃子商品</text>
+<text x="150" y="196" font-size="22" fill="#3B2A20">吃、住、行、醫藥</text>
+<text x="150" y="222" font-size="22" fill="#3B2A20">教育娛樂等花費</text>
+<text x="410" y="156" font-size="24" font-weight="700" fill="#3B2A20">2 每月比價</text>
+<text x="410" y="196" font-size="22" fill="#3B2A20">同一籃東西</text>
+<text x="410" y="222" font-size="22" fill="#3B2A20">今年 10 月多少錢</text>
+<text x="670" y="156" font-size="24" font-weight="700" fill="#FFFFFF">3 跟去年同月比</text>
+<text x="670" y="196" font-size="22" fill="#FFFFFF">貴了幾 %</text>
+<text x="670" y="222" font-size="22" fill="#FFFFFF">就是年增率</text>
+</g>
+<rect x="40" y="298" width="740" height="64" rx="12" fill="#EBDCCB"/>
+<text x="410" y="337" text-anchor="middle" font-size="22" font-weight="700" fill="#6B4A3A">10 月 CPI 年增 2.33%＝同一籃東西，比去年 10 月貴 2.33%</text>
+<text x="40" y="396" font-size="16" fill="#6B4A3A">資料：行政院主計總處　2026/10 CPI（11/5 公布）</text>
+</svg>

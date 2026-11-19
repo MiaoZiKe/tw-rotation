@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="'Noto Sans TC','PingFang TC',sans-serif">
+<rect width="1000" height="520" fill="#F5EDE3"/>
+<text x="500" y="62" font-size="38" font-weight="700" fill="#6B4A3A" text-anchor="middle">一篇貼文裡有什麼</text>
+<rect x="40" y="110" width="280" height="330" rx="22" fill="#fff" stroke="#C96F2D" stroke-width="3"/>
+<text x="180" y="170" font-size="40" font-weight="700" fill="#C96F2D" text-anchor="middle">礙</text>
+<text x="180" y="232" font-size="30" fill="#6B4A3A" text-anchor="middle">薪水</text>
+<text x="180" y="282" font-size="30" fill="#6B4A3A" text-anchor="middle">房租</text>
+<text x="180" y="332" font-size="30" fill="#6B4A3A" text-anchor="middle">催婚</text>
+<text x="180" y="400" font-size="26" fill="#6B4A3A" text-anchor="middle">說清楚，不美化</text>
+<rect x="360" y="110" width="280" height="330" rx="22" fill="#6B4A3A"/>
+<text x="500" y="170" font-size="40" font-weight="700" fill="#F5EDE3" text-anchor="middle">數字</text>
+<text x="500" y="232" font-size="30" fill="#F5EDE3" text-anchor="middle">哪個機構</text>
+<text x="500" y="282" font-size="30" fill="#F5EDE3" text-anchor="middle">哪份報告</text>
+<text x="500" y="332" font-size="30" fill="#F5EDE3" text-anchor="middle">哪一天</text>
+<text x="500" y="400" font-size="26" fill="#F5EDE3" text-anchor="middle">圖上一行出處</text>
+<rect x="680" y="110" width="280" height="330" rx="22" fill="#fff" stroke="#C96F2D" stroke-width="3"/>
+<text x="820" y="170" font-size="40" font-weight="700" fill="#C96F2D" text-anchor="middle">晴</text>
+<text x="820" y="232" font-size="30" fill="#6B4A3A" text-anchor="middle">下班的夕陽</text>
+<text x="820" y="282" font-size="30" fill="#6B4A3A" text-anchor="middle">一句辛苦了</text>
+<text x="820" y="332" font-size="30" fill="#6B4A3A" text-anchor="middle">多一點存款</text>
+<text x="820" y="400" font-size="26" fill="#6B4A3A" text-anchor="middle">還在的光</text>
+<text x="500" y="490" font-size="26" fill="#6B4A3A" text-anchor="middle">觀察者的角度：不勸、不罵、不下診斷</text>
+</svg>

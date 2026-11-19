@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="460" rx="18" fill="#F5EDE3"/>
+<text x="480" y="50" text-anchor="middle" font-size="28" font-weight="700" fill="#6B4A3A">失業率怎麼算：分母只有「勞動力」</text>
+<rect x="40" y="86" width="560" height="250" rx="16" fill="#fff" stroke="#C96F2D" stroke-width="3"/>
+<text x="64" y="122" font-size="22" font-weight="700" fill="#C96F2D">勞動力（分母）</text>
+<rect x="64" y="146" width="250" height="150" rx="12" fill="#C96F2D"/>
+<text x="189" y="206" text-anchor="middle" font-size="24" font-weight="700" fill="#fff">有工作的人</text>
+<text x="189" y="244" text-anchor="middle" font-size="18" fill="#fff">（就業者）</text>
+<rect x="330" y="146" width="250" height="150" rx="12" fill="#6B4A3A"/>
+<text x="455" y="206" text-anchor="middle" font-size="24" font-weight="700" fill="#fff">想工作也在找</text>
+<text x="455" y="244" text-anchor="middle" font-size="18" fill="#fff">（失業者，分子）</text>
+<rect x="630" y="86" width="290" height="250" rx="16" fill="#EADBC8" stroke="#B9A08C" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="775" y="122" text-anchor="middle" font-size="22" font-weight="700" fill="#6B4A3A">不在勞動力內</text>
+<text x="775" y="190" text-anchor="middle" font-size="20" fill="#6B4A3A">專心念書的學生</text>
+<text x="775" y="228" text-anchor="middle" font-size="20" fill="#6B4A3A">料理家務的人</text>
+<text x="775" y="266" text-anchor="middle" font-size="20" fill="#6B4A3A">沒有在找工作的人</text>
+<text x="480" y="384" text-anchor="middle" font-size="24" font-weight="700" fill="#6B4A3A">失業率 ＝ 失業者 ÷ 勞動力</text>
+<text x="480" y="420" text-anchor="middle" font-size="16" fill="#6B4A3A">出處：行政院主計總處人力資源調查統計定義（概念示意，區塊大小不代表實際比例）</text>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" font-family="'Noto Sans TC','PingFang TC',sans-serif">
+<rect width="720" height="340" fill="#F5EDE3"/>
+<text x="30" y="42" font-size="20" font-weight="700" fill="#6B4A3A">畢業後學生負擔的學貸利率（年利率）</text>
+<text x="30" y="96" font-size="16" fill="#6B4A3A">115 學年前</text>
+<rect x="130" y="72" width="500" height="40" rx="6" fill="#6B4A3A"/>
+<text x="620" y="99" font-size="18" font-weight="700" fill="#F5EDE3" text-anchor="end">1.775%</text>
+<text x="30" y="176" font-size="16" fill="#6B4A3A">2026/8/1 起</text>
+<rect x="130" y="152" width="218" height="40" rx="6" fill="#C96F2D"/>
+<text x="338" y="179" font-size="18" font-weight="700" fill="#F5EDE3" text-anchor="end">0.775%</text>
+<rect x="348" y="152" width="282" height="40" rx="6" fill="none" stroke="#C96F2D" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="489" y="178" font-size="16" fill="#C96F2D" text-anchor="middle">政府加碼補貼 1 個百分點</text>
+<text x="30" y="250" font-size="16" fill="#6B4A3A">算術示意：欠 20 萬元，利率差 1 個百分點，</text>
+<text x="30" y="276" font-size="16" fill="#6B4A3A">第一年約少 2,000 元利息（未含本金逐年減少的影響）。</text>
+<text x="30" y="318" font-size="14" fill="#8a6a58">資料：教育部國民及學前教育署 115 學年度就學貸款措施函、臺灣銀行公告</text>
+</svg>
