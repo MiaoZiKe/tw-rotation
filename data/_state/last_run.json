@@ -94,48 +94,6 @@
           "parts": []
         },
         {
-          "url": "https://www.tpex.org.tw/openapi/swagger.json",
-          "http": 200,
-          "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac"
-        },
-        {
-          "swagger": "https://www.tpex.org.tw/openapi/swagger.json",
-          "n_paths": 225,
-          "fund_paths": [
-            "/tpex_opfund_latest",
-            "/tpex_opfund_market_highlight",
-            "/tpex_opfund_recommended_dealer"
-          ]
-        },
-        {
-          "swagger_path": "/tpex_3insti_qfii",
-          "summary": "上櫃僑外資及陸資持股比例排行表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_qfii_industry",
-          "summary": "上櫃各類股僑外資及陸資持股比例表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_daily_trading",
-          "summary": "上櫃股票三大法人買賣明細資訊"
-        },
-        {
-          "swagger_path": "/tpex_3insti_dealer_trading",
-          "summary": "上櫃股票自營商買賣超彙總表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_summary",
-          "summary": "上櫃股票三大法人買賣金額彙總表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_trading",
-          "summary": "上櫃股票投信買賣超彙總表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_qfii_trading",
-          "summary": "上櫃股票外資及陸資買賣超彙總表"
-        },
-        {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
           "http": 200,
           "head": "[ {\"Date\":\"1151119\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1347000\",\" Foreign Investors inc"
@@ -176,16 +134,16 @@
       "seconds": 0.2
     },
     "inst_daily": {
-      "stored": 182
+      "stored": 3
     },
     "institutional_codes": {
-      "requested": 199,
-      "returned": 182
+      "requested": 17,
+      "returned": 3
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 182,
-      "seconds": 43.4
+      "rows": 3,
+      "seconds": 3.7
     },
     "inst_flags": {
       "rebuild": true,
@@ -207,7 +165,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-19",
-        "rows": 2245,
+        "rows": 2248,
         "median": 2224.0,
         "status": "ok",
         "reason": null
@@ -255,10 +213,10 @@
   "warn": [
     "margin_total"
   ],
-  "started_at": "2026-11-19T11:49:10.323569+00:00",
-  "finished_at": "2026-11-19T11:50:15.240482+00:00",
-  "duration_seconds": 64.9,
+  "started_at": "2026-11-19T12:19:11.917997+00:00",
+  "finished_at": "2026-11-19T12:20:11.209605+00:00",
+  "duration_seconds": 59.3,
   "trade_date": "2026-11-19",
   "complete": true,
-  "finmind_budget_left": 304
+  "finmind_budget_left": 486
 }
