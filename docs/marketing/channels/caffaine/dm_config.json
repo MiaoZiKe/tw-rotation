@@ -138,8 +138,9 @@
   }
  },
  "threads_reply": {
-  "enabled": false,
-  "_說明": "CaffAIne 的 Threads 公開回覆還沒接（scripts/healing_comments.py 的 threads_run 目前只跑頻道④），之後要開再說。"
+  "enabled": true,
+  "max_per_run": 10,
+  "_說明": "2026-11-19 Andy：CaffAIne 的 Threads 留言回覆同 IG 一套。Threads 沒有私訊 API，所以只做公開回覆＋文章連結（連結同 IG：主站 #article/<id>）；程式 scripts/healing_comments.py --channel caffaine 的 threads_run，紀錄 state/threads_replied.json 只存雜湊。"
  },
  "message": ""
 }

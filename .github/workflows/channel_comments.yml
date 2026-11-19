@@ -69,25 +69,32 @@ jobs:
           CAFFAINE_IG_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN || '' }}
           CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO || '' }}
           CAFFAINE_IG_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_USER_ID || '' }}
+          CAFFAINE_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_ACCESS_TOKEN || '' }}
+          CAFFAINE_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_ACCESS_TOKEN_AUTO || '' }}
+          CAFFAINE_THREADS_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_USER_ID || '' }}
         run: python scripts/healing_comments.py --channel "$CH" ${{ steps.mode.outputs.dry }}
       - name: 私訊紀錄寫回 main（只有雜湊、時間、結果，沒有權杖）
         if: always() && steps.mode.outputs.dry == ''
         run: |
           F="docs/marketing/channels/$CH/state/comments_dm.json"
-          [ -f "$F" ] || { echo "沒有紀錄檔"; exit 0; }
+          T="docs/marketing/channels/$CH/state/threads_replied.json"
+          [ -f "$F" ] || [ -f "$T" ] || { echo "沒有紀錄檔"; exit 0; }
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
           MSG="$CH：留言私訊紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
-          cp "$F" "$RUNNER_TEMP/comments_dm.json"
-          git add -- "$F"
+          cp -f "$F" "$RUNNER_TEMP/comments_dm.json" 2>/dev/null || true
+          cp -f "$T" "$RUNNER_TEMP/threads_replied.json" 2>/dev/null || true
+          git add -- "$F" "$T" 2>/dev/null || git add -- "$T" 2>/dev/null || git add -- "$F"
           if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
           git commit -q -m "$MSG"
           for i in 1 2 3 4; do
             if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
             sleep $((2 ** i))
             git fetch -q origin main && git reset -q --hard origin/main
-            mkdir -p "$(dirname "$F")" && cp "$RUNNER_TEMP/comments_dm.json" "$F"
-            git add -- "$F"
+            mkdir -p "$(dirname "$F")"
+            [ -f "$RUNNER_TEMP/comments_dm.json" ] && cp "$RUNNER_TEMP/comments_dm.json" "$F"
+            [ -f "$RUNNER_TEMP/threads_replied.json" ] && cp "$RUNNER_TEMP/threads_replied.json" "$T"
+            git add -- "$F" "$T" 2>/dev/null || git add -- "$T" 2>/dev/null || git add -- "$F"
             git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
             git commit -q -m "$MSG"
           done

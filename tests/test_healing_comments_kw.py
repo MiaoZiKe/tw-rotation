@@ -322,3 +322,38 @@ def test_CaffAIne_EAA_私訊接不通_只公開回覆連結(kw, monkeypatch):
     _, res = go(kw, fake, monkeypatch, env={"HEALING_IG_ACCESS_TOKEN": eaa})
     assert fake.sent == [] and res["counts"] == {"kw_public_no_dm": 1}
     assert len(fake.replies) == 1 and "已經私訊" not in fake.replies[0][1]
+
+
+# ---------- CaffAIne Threads（2026-11-19）：同 IG 一套，公開回覆＋主站連結 ----------
+CAFF = ROOT / "docs" / "marketing" / "channels" / "caffaine"
+
+
+def test_CaffAIne_Threads_已開啟且關鍵字連結指向主站():
+    cfg = json.loads((CAFF / "dm_config.json").read_text(encoding="utf-8"))
+    assert cfg["enabled"] and cfg["threads_reply"]["enabled"] is True
+    for kw_, rep in cfg["keyword_replies"].items():
+        assert all("https://liguligu-puipui.com/#article/" in t for t in rep["public"]), kw_
+
+
+def test_CaffAIne_Threads_公開回覆含連結_每人每篇一次(tmp_path, monkeypatch):
+    state = tmp_path / "state"
+    state.mkdir()
+    posted = state / "posted.json"
+    posted.write_text(json.dumps({"20261118_same-look": {
+        "ig": {"id": "I1", "at": "2026-11-18T21:07:06+08:00"},
+        "threads": {"id": "T1", "at": "2026-11-18T21:07:06+08:00"}}}), encoding="utf-8")
+    q = tmp_path / "queue" / "20261118_same-look"
+    q.mkdir(parents=True)
+    (q / "meta.json").write_text(json.dumps({"comment_keyword": "網頁"}, ensure_ascii=False), encoding="utf-8")
+    cfg = tmp_path / "dm_config.json"
+    cfg.write_text((CAFF / "dm_config.json").read_text(encoding="utf-8"), encoding="utf-8")
+    fake = ThFake({"T1": [r("R1", "amy", "想要 網頁 提示詞"), r("R2", "amy", "網頁"), r("R3", "bob", "好看"),
+                          r("R4", "talk_01010909", "網頁")]})
+    monkeypatch.setattr(SP, "http", fake)
+    env = {"CAFFAINE_THREADS_ACCESS_TOKEN": "THfake1234567890"}
+    for _ in range(2):
+        code, res = HC.threads_run(env=env, now=NOW, cfg_path=cfg, posted_path=posted, prefix="CAFFAINE_")
+    assert code == 0 and [x[0] for x in fake.posts] == ["R1"]
+    assert "https://liguligu-puipui.com/#article/2026-11-18-same-look" in fake.posts[0][1]
+    raw = (state / "threads_replied.json").read_text(encoding="utf-8")
+    assert "amy" not in raw and "R1" not in raw

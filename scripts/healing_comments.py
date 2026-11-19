@@ -811,6 +811,16 @@ def main(argv=None) -> int:
         code, res = run(dry_run=a.dry_run, cfg_path=c["cfg"], state_path=c["state"], posted_path=c["posted"],
                         prefix=c["prefix"])
         md = summary_md(res, c["name"])
+        # 2026-11-19 Andy：CaffAIne 的 Threads 也要有留言回覆；同 IG 一套（專屬關鍵字、公開回覆＋主站連結）
+        tcode, tres = threads_run(dry_run=a.dry_run, cfg_path=c["cfg"], state_path=c["state"].parent / THREADS_STATE_NAME,
+                                  posted_path=c["posted"], prefix=c["prefix"])
+        md += f"\n## {c['name']}：Threads 專屬關鍵字回覆\n\n- 摘要：{tres['summary']}\n" + "".join(
+            f"- 錯誤：{e}\n" for e in tres["errors"])
+        if tres["alerts"]:
+            md += f"\n### ⚠️ Threads 自傷訊號 {tres['alerts']} 則（需人工看）：未自動回覆\n"
+            res["alerts"] += tres["alerts"]
+        if tcode or tres["errors"]:
+            print(f"::warning::{c['name']} Threads 專屬關鍵字回覆有錯誤：" + SP.redact("；".join(tres["errors"]))[:300])
     else:
         code, res = run(dry_run=a.dry_run)
         md = summary_md(res)
