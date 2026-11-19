@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-11-19T12:15+08:00
 title: 頻道①短影片 AI 資料中心電費（power-bill）
 cover: site/media/ligu/20261117v_power_bill/cover.jpg
@@ -8,6 +8,9 @@ video: site/media/ligu/20261117v_power_bill/video.mp4
 first_comment: 逐句查證與來源（PJM 拍賣報告、市場監察報告）：https://liguligu-puipui.com/?u=ig-vd-20261119#article/2026-11-17-ligu-power-bill
 # 11-17 換第 4 版（砍字重配、含停頓 4.21）；Andy 11-17：「電費那支OK 可以發布」。
 # 排程照主控 11-17 指示（Andy：「這類貼文保持繼續發布 Reels 和 輪波 輪替」）：11/17 Reels、11/18 輪播、11/19 Reels，都是 12:15。
+posted_at: 2026-11-19T12:19+08:00
+urls: https://www.instagram.com/reel/Df6NSvMHz1r/
+comment_id: 17955255162050996
 ---
 AI 資料中心越蓋越多，美東電網的備用電費，四次拍賣漲成 11 倍。
 
