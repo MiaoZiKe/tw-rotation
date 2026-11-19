@@ -265,14 +265,17 @@ def test_channel_post入口真的切換頻道路徑(monkeypatch):
 
 # ---------- 留言私訊 ----------
 def test_新頻道私訊預設關閉_關著不讀權杖不連Meta(monkeypatch):
+    # 2026-11-19 頻道③ CaffAIne 已開（只做專屬關鍵字，generic_dm=false）；還關著的只剩 tech
     monkeypatch.setattr(hc.SP, "http", lambda *a, **k: (_ for _ in ()).throw(AssertionError("不准連 Meta")))
-    for code in ("tech", "caffaine"):
+    caff = json.loads(hc.channel_paths("caffaine")["cfg"].read_text(encoding="utf-8"))
+    assert caff["enabled"] is True and caff["generic_dm"] is False and caff["keyword_dm_ack"]
+    for code in ("tech",):
         c = hc.channel_paths(code)
         assert json.loads(c["cfg"].read_text(encoding="utf-8"))["enabled"] is False
         rc, res = hc.run(env=ALL_ENV, cfg_path=c["cfg"], state_path=c["state"], posted_path=c["posted"],
                          prefix=c["prefix"])
         assert rc == 0 and "enabled=false" in res["summary"]
-    assert cp.plan_comments() == []
+    assert [x["channel"] for x in cp.plan_comments()] == ["caffaine"]
 
 
 def test_私訊開了但文字空白就不送(tmp_path, monkeypatch):

@@ -75,6 +75,8 @@ DEFAULT_CFG = {
     "self_harm_keywords": [], "self_harm_exclude": [],
     "keyword_replies": {}, "keyword_default_public": "", "keyword_public_fallback": True,
     "public_max_per_run": 10, "public_max_per_post_hour": 30, "threads_reply": {},
+    "generic_dm": True,         # False＝沒設專屬關鍵字的留言不回（頻道③ CaffAIne：只做關鍵字，不發一般問候）
+    "keyword_dm_ack": "",       # 專屬關鍵字私訊成功後，公開補一句（例「已經私訊你囉～」）；空白＝不補
 }
 PLACEHOLDER = "待填"
 THREADS_STATE_NAME = "threads_replied.json"
@@ -362,7 +364,7 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
         res["mode"] = "disabled"
         res["summary"] = "dm_config.json 的 enabled=false，本輪不讀留言"
         return 0, res
-    if not str(cfg.get("message") or "").strip():
+    if cfg.get("generic_dm", True) and not str(cfg.get("message") or "").strip():
         res["errors"].append("dm_config.json 的 message 是空的：私訊內容還沒定，不私訊")
         res["summary"] = "enabled=true 但 message 空白，本輪不讀留言（請先填私訊內容）"
         return 1, res
@@ -487,6 +489,11 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
                                 res["errors"].append(f"私訊失敗，改公開回覆保底：{msg[:200]}")
                     if result:
                         sent += 1
+                        ack = str(cfg.get("keyword_dm_ack") or "").strip()
+                        if ack and result == "kw_dm" and not dry_run:   # 私訊送到了 → 公開補一句（失敗不影響私訊）
+                            err = do_public(mid, cid, ack)
+                            if err:
+                                res["errors"].append(f"私訊已送、公開補一句失敗：{err}")
                 else:
                     why = "no_dm" if not can_dm else ("not_follower" if follow is False else "unknown_follow")
                 if not result:
@@ -518,6 +525,8 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
                     wk = stats.setdefault(iso_week(now), {})
                     wk[result] = wk.get(result, 0) + 1
                 continue
+            elif not cfg.get("generic_dm", True) and not is_self_harm(c.get("text"), cfg):
+                result, follow, harm, text = "skip_generic", None, False, None
             else:
                 harm = is_self_harm(c.get("text"), cfg)
                 follow = None if harm else follows(who_id, token)

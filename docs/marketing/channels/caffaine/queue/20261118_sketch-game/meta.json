@@ -1,14 +1,15 @@
 {
- "title": "一張草圖交給 AI，不到一分鐘變成能玩的小遊戲（52 秒）",
- "hook_type": "結果先行",
- "format": "video",
- "platforms": [
-  "ig",
-  "threads"
- ],
- "status": "approved",
- "publish_at": "2026-11-18T21:00+08:00",
- "video_src": "media/caffaine/20261118_sketch-game",
- "keyword": "遊戲",
- "note": "2026-11-16 新版旁白成片（約 50～54 秒）已換上。文章：site/articles/caffaine/2026-11-18-sketch-game.json。影片本體見 site/media/caffaine/20261118_sketch-game/，Reels 用的 media 分支由 scripts/channel_media.py stage 推送。"
+  "title": "一張草圖交給 AI，不到一分鐘變成能玩的小遊戲（52 秒）",
+  "hook_type": "結果先行",
+  "format": "video",
+  "platforms": [
+    "ig",
+    "threads"
+  ],
+  "status": "approved",
+  "publish_at": "2026-11-18T21:00+08:00",
+  "video_src": "media/caffaine/20261118_sketch-game",
+  "keyword": "遊戲",
+  "note": "2026-11-16 新版旁白成片（約 50～54 秒）已換上。文章：site/articles/caffaine/2026-11-18-sketch-game.json。影片本體見 site/media/caffaine/20261118_sketch-game/，Reels 用的 media 分支由 scripts/channel_media.py stage 推送。",
+  "comment_keyword": "遊戲"
 }

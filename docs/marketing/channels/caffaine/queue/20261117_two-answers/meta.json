@@ -1,18 +1,19 @@
 {
- "title": "同一句話問 AI 兩次，答案為什麼不一樣？（52 秒）",
- "hook_type": "反差",
- "format": "video",
- "platforms": [
-  "ig",
-  "threads"
- ],
- "status": "posted",
- "publish_at": "2026-11-17T12:15+08:00",
- "video_src": "media/caffaine/20261117_two-answers",
- "keyword": "兩次",
- "note": "2026-11-16 新版旁白成片（約 50～54 秒）已換上。文章：site/articles/caffaine/2026-11-17-two-answers.json。影片本體見 site/media/caffaine/20261117_two-answers/，Reels 用的 media 分支由 scripts/channel_media.py stage 推送。",
- "urls": {
-  "ig": "https://www.instagram.com/reel/Df1F4AWh6aG/",
-  "threads": "https://www.threads.com/@caffaine.ai/post/Df1F__OKNM1"
- }
+  "title": "同一句話問 AI 兩次，答案為什麼不一樣？（52 秒）",
+  "hook_type": "反差",
+  "format": "video",
+  "platforms": [
+    "ig",
+    "threads"
+  ],
+  "status": "posted",
+  "publish_at": "2026-11-17T12:15+08:00",
+  "video_src": "media/caffaine/20261117_two-answers",
+  "keyword": "兩次",
+  "note": "2026-11-16 新版旁白成片（約 50～54 秒）已換上。文章：site/articles/caffaine/2026-11-17-two-answers.json。影片本體見 site/media/caffaine/20261117_two-answers/，Reels 用的 media 分支由 scripts/channel_media.py stage 推送。",
+  "urls": {
+    "ig": "https://www.instagram.com/reel/Df1F4AWh6aG/",
+    "threads": "https://www.threads.com/@caffaine.ai/post/Df1F__OKNM1"
+  },
+  "comment_keyword": "兩次"
 }

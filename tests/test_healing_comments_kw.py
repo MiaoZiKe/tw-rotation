@@ -277,3 +277,48 @@ def test_能力檢查_debug_token被拒改問permissions(monkeypatch):
     out = HC.probe(eaa)
     assert out["dm_available"] is False and out["scopes"] == ["instagram_manage_comments"]
     assert out["can_public_reply"] is True
+
+
+def test_CaffAIne_佇列文案的留言關鍵字都有設定():
+    """頻道③：caption 寫了「留言「X」」→ meta.json comment_keyword 含 X、dm_config 有 X 的私訊＋公開回覆，且連結是站內文章。"""
+    ch = HC.ROOT / "docs" / "marketing" / "channels" / "caffaine"
+    cfg = json.loads((ch / "dm_config.json").read_text(encoding="utf-8"))
+    assert cfg["enabled"] is True and cfg["generic_dm"] is False
+    bad = []
+    for d in sorted((ch / "queue").iterdir()):
+        cap = d / "caption.txt"
+        if not cap.is_file():
+            continue
+        for k in HC.cta_keywords(cap.read_text(encoding="utf-8")):
+            rep = (cfg.get("keyword_replies") or {}).get(k, {})
+            if k not in HC.post_keywords(d.name, ch / "queue") or not HC.ready(rep.get("public")) or not HC.ready(rep.get("dm")):
+                bad.append(f"{d.name}：{k}")
+    assert bad == [], "文案寫了留言關鍵字但沒設定：" + "、".join(bad)
+
+
+def _caff_cfg(paths):
+    cfg = json.loads((HC.ROOT / "docs/marketing/channels/caffaine/dm_config.json").read_text(encoding="utf-8"))
+    paths["cfg"].write_text(json.dumps(cfg, ensure_ascii=False), encoding="utf-8")
+    meta = paths["posted"].parent.parent / "queue" / "20261115v_marriage" / "meta.json"
+    meta.write_text(json.dumps({"comment_keyword": "動畫"}, ensure_ascii=False), encoding="utf-8")
+    return cfg
+
+
+def test_CaffAIne_IGAA_有追蹤_私訊後公開補一句(kw, monkeypatch):
+    _caff_cfg(kw)
+    fake = KwFake({"M1": [c("C1", "U1", "動畫"), c("C2", "U2", "好喜歡")]}, {"U1": True, "U2": True})
+    _, res = go(kw, fake, monkeypatch)
+    # 沒設專屬關鍵字的留言（好喜歡）不回；關鍵字留言：私訊 1 則＋公開補「已經私訊你囉～」
+    assert res["counts"].get("kw_dm") == 1 and "dm" not in res["counts"] and "skip_generic" in res["counts"]
+    assert [t for _, t in fake.replies] == ["已經私訊你囉～"]
+
+
+def test_CaffAIne_EAA_私訊接不通_只公開回覆連結(kw, monkeypatch):
+    _caff_cfg(kw)
+    fake = KwFake({"M1": [c("C1", "U1", "動畫")]}, {"U1": True})
+    eaa = "EAAfaketoken1234567890"
+    monkeypatch.setattr(HC, "me", lambda t, p=None: (HC._PAGE.__setitem__(t, {"page_id": "", "page_token": ""}),
+                                                     {"id": "17841400000000001", "username": "caffaine.ai"})[1])
+    _, res = go(kw, fake, monkeypatch, env={"HEALING_IG_ACCESS_TOKEN": eaa})
+    assert fake.sent == [] and res["counts"] == {"kw_public_no_dm": 1}
+    assert len(fake.replies) == 1 and "已經私訊" not in fake.replies[0][1]
