@@ -127,10 +127,10 @@ def test_空前綴或亂寫前綴直接拒絕():
 
 
 def test_工作流每個頻道只帶自己的Secrets():
-    for f, n in (("channel_post.yml", 6), ("channel_comments.yml", 3)):
+    for f, total in (("channel_post.yml", 12), ("channel_comments.yml", 9)):   # 留言工作流：tech IG 3＋caffaine IG 3＋caffaine Threads 3
         txt = (ROOT / ".github/workflows" / f).read_text(encoding="utf-8")
         lines = re.findall(r"^\s+([A-Z_]+): \$\{\{ matrix\.channel == '(\w+)' && secrets\.([A-Z_]+) \|\| '' \}\}", txt, re.M)
-        assert len(lines) == 2 * n, f
+        assert len(lines) == total, f
         for env_name, ch, sec in lines:
             assert env_name == sec and sec.startswith(CODES[ch]), (f, env_name, ch)
         assert "HEALING_" not in txt.split("jobs:")[1]
