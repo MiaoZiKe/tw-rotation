@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-18",
+ "updated": "2026-11-19",
  "days": [
+  {
+   "date": "2026-11-19",
+   "items": [
+    {
+     "cat": "新聞",
+     "title": "馬斯克隨團出席 APEC，發文懷疑美中能否避免修昔底德陷阱",
+     "url": "https://technews.tw/2026/11/19/musk-questions-whether-us-and-china-can-avoid-the-thucydides-trap/",
+     "source": "科技新報",
+     "time": "2026-11-19T14:20:53+08:00",
+     "desc": "美國總統川普昨天抵達中國深圳，出席今天舉行的亞太經濟合作會議（APEC）峰會，特斯拉（Tesla）暨太空探索科"
+    },
+    {
+     "cat": "科技",
+     "title": "聯想平價遊戲掌機 Legion Go Beam 產品圖曝光，拿掉觸控板、改 16:9 螢幕壓低成本",
+     "url": "https://ccc.technews.tw/2026/11/19/lenovo-legion-go-beam-leaks-as-affordable-gaming-handheld-with-fresh-design/",
+     "source": "科技新報",
+     "time": "2026-11-19T13:30:07+08:00",
+     "desc": "外媒 Windows Latest 報導聯想（Lenovo）Legion Go Beam 高解析產品圖，比 L"
+    },
+    {
+     "cat": "科技",
+     "title": "AMD 日本發文「AMD loves gamers」，遭社群註記打臉：資料中心才是真愛",
+     "url": "https://technews.tw/2026/11/19/amds-twitter-brag-that-it-loves-gamers-met-with-savage-community-note/",
+     "source": "科技新報",
+     "time": "2026-11-19T14:25:04+08:00",
+     "desc": "AMD 日本 X 帳號近日發文強調，公司最重視與玩家的互動，並直接寫下「AMD loves gamers」。原"
+    },
+    {
+     "cat": "總經",
+     "title": "台股重挫1,768失守4萬點，Fed升息壓力引爆恐慌怎麼辦?",
+     "url": "https://news.cnyes.com/news/id/6667532",
+     "source": "鉅亨",
+     "time": "2026-11-19T14:25:27+08:00",
+     "desc": "台股今重挫1,768點，收38,426點，正式跌破4萬點大關；市場受美國科技股修正、輝達財報、外資期貨空單及期指結算前後籌碼不穩影響；Fed 10月會議紀錄釋1…"
+    },
+    {
+     "cat": "事件",
+     "title": "AI資料中心帶動光纖需求 藤倉Fujikura摩洛哥工廠量產供應歐洲、中東",
+     "url": "https://news.cnyes.com/news/id/6667579",
+     "source": "鉅亨",
+     "time": "2026-11-19T15:30:04+08:00",
+     "desc": ""
+    }
+   ]
+  },
   {
    "date": "2026-11-18",
    "items": [
