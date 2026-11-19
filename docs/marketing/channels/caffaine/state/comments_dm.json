@@ -16,16 +16,10 @@
    "kw_public_no_dm": 1
   }
  },
- "rate": {
-  "mfe3551abde5e3eec": [
-   "2026-11-19T03:41:30+00:00"
-  ]
- },
+ "rate": {},
  "last_change": {
-  "at": "2026-11-19T11:41:30+08:00",
-  "counts": {
-   "kw_public_no_dm": 1
-  },
+  "at": "2026-11-19T17:32:24+08:00",
+  "counts": {},
   "alerts": 0
  }
 }
