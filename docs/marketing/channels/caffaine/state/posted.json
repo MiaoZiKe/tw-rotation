@@ -52,5 +52,23 @@
    "format": "video",
    "video_via": "release"
   }
+ },
+ "20261118_sketch-game": {
+  "ig": {
+   "id": "17890277496485903",
+   "link": "https://www.instagram.com/reel/Df7KLPdOPuY/",
+   "at": "2026-11-19T21:11:49+08:00",
+   "format": "video",
+   "video_via": "release"
+  },
+  "at": "2026-11-19T21:11:49+08:00",
+  "slot": "2026-11-19 21:00",
+  "threads": {
+   "id": "18102912242454118",
+   "link": "https://www.threads.com/@caffaine.ai/post/Df7KQ_nBjNM",
+   "at": "2026-11-19T21:11:49+08:00",
+   "format": "video",
+   "video_via": "release"
+  }
  }
 }
