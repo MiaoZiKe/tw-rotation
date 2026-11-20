@@ -61,8 +61,18 @@ for name, pre in CH.items():
     st, b = get(IGH + "/me/media", t, fields="id,timestamp,comments_count", limit=1)
     if rep("me/media（取最新一則）", st, b, t) and b.get("data"):
         mid = b["data"][0]["id"]
-        print("  最新貼文留言數：", b["data"][0].get("comments_count"))
+        cc = b["data"][0].get("comments_count") or 0
+        print("  最新貼文留言數：", cc)
         st, b = get(f"{IGH}/{mid}/comments", t, fields="id,timestamp", limit=1)
-        rep("讀留言 /{media}/comments（instagram_business_manage_comments）", st, b, t)
+        if rep("讀留言 /{media}/comments（instagram_business_manage_comments）", st, b, t):
+            got = len(b.get("data") or [])
+            if cc > 0 and got == 0:
+                # 2026-11-20：①留言數 2 但讀回 0 則，舊版只看狀態碼誤報成功。
+                # 常見原因：Meta App 在開發模式／只有 Standard Access，只回傳 App 角色（測試者）的留言。
+                print(f"  [讀不到] 貼文有 {cc} 則留言，API 回 0 則（HTTP 200 空資料）："
+                      "多半是 App 在開發模式或缺 Advanced Access，一般讀者的留言被隱藏")
+                print(f"::warning::{name}：留言數 {cc} 但讀回 0 則，留言私訊實際收不到讀者留言")
+            else:
+                print(f"  讀回留言 {got} 則（只取 1 則樣本）")
     st, b = get(IGH + "/me/conversations", t, platform="instagram", limit=1)
     rep("讀私訊對話 /me/conversations（instagram_business_manage_messages）", st, b, t)
