@@ -1,0 +1,22 @@
+{
+ "date": "2026-11-09",
+ "generated_tpe": "2026-11-09 12:56",
+ "api": "Instagram Graph API business_discovery（官方，只讀）",
+ "n_media_per_account": 25,
+ "probe_ig_login": {
+  "tried": true,
+  "host": "graph.instagram.com",
+  "me_ok": true,
+  "me_username": "liguligu0818",
+  "business_discovery_status": 400,
+  "ok": false,
+  "error": {
+   "code": 100,
+   "subcode": null,
+   "type": "IGApiException",
+   "message": "Tried accessing nonexisting field (business_discovery)"
+  }
+ },
+ "ok": false,
+ "reason": "沒有 IG_BENCH_FB_TOKEN（Facebook 登入權杖）。business_discovery 只開放給 Facebook Login 那一套，Instagram Login 權杖探測結果見 probe_ig_login"
+}

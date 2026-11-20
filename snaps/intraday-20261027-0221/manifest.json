@@ -1,0 +1,21 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-10-27T02:23:02+08:00",
+  "data_date": "2026-10-27",
+  "threads": {
+    "text": "🕛 盤中3分鐘\n🧭 盤面分析：\n・族群普跌：83 個族群 12 漲 71 跌，族群平均 -3.00%\n・成交比重增加但族群走低：CCL 銅箔基板 -3.7%、被動元件 MLCC -6.4%\n・權值族群成交比重下降：AI 伺服器組裝 -2.0%\n🎡 資金輪盤：\n・領先 CCL 銅箔基板、PCB 硬板製造；\n・落後 晶圓代工、PCB 載板\n🌳 資金分流樹：\n・流入 CCL 銅箔基板、ETF；\n・流出 AI 伺服器組裝、HPC 與網通 IC\n🔥 熱力圖：\n・漲最多 CNC 工具機 +6.0%、資安防護 +2.9%；\n・跌最多 軟板 -9.1%、電阻與被動保護 -8.8%\n#台股 #資金流向 #熱力圖 #族群輪動\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_sankey-tree.png",
+      "threads_rotation-rank.png",
+      "threads_heat.png"
+    ]
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_sankey-tree.png",
+    "story_rotation-rank.png",
+    "story_heat.png",
+    "story_outro.png"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-11-02T12:06:48+08:00",
+  "data_date": "2026-11-02",
+  "threads": {
+    "text": "AR VR XR 光學跌3.2%，玻纖布卻漲9.9%，同一個盤面活得像兩個平行宇宙！\n\n🕛 盤中3分鐘\n🧭 盤面分析：\n・族群普漲：83 個族群 61 漲 22 跌，族群平均 +0.96%\n・成交比重增加但族群走低：AI 先進封裝 -0.3%\n・漲幅逾 1% 但成交比重下降：HBM 高頻寬記憶體 +1.8%\n🎡 強弱輪動：\n・領先 晶圓代工、ETF；\n・落後 HPC 與網通 IC、電源供應器\n🌳 資金分流樹：\n・流入 ETF、HPC 與網通 IC；\n・流出 CCL 銅箔基板、NOR Flash 利基記憶體\n🔥 熱力圖：\n・漲最多 玻纖布 +9.9%、電器電纜 +4.2%；\n・跌最多 AR VR XR 光學 -3.2%、Edge AI AIoT -2.3%\n📰 新聞焦點：\n・費半崩跌7.2%、台積電ADR重挫近6%：台股最慘還沒到→還有更大的崩跌在後？\n・記憶體成「科技避風港」？：野村：AI投資擴大下，微軟、Alphabet、亞馬遜、…\n#台積電股價",
+    "images": [
+      "threads_heat.png"
+    ],
+    "thread_posts": [],
+    "reply_post": "完整盤勢見網站（新聞描述、其餘新聞、新聞焦點等）\n👉 完整熱力圖、資金分流樹都在網站，族群一個一個點得開：\nhttps://liguligu-puipui.com/?u=th-id-20261102#industry/semiconductor",
+    "v2": {
+      "kind": "intraday",
+      "hook_type": "反差",
+      "emotion": "好笑",
+      "main_post": "AR VR XR 光學跌3.2%，玻纖布卻漲9.9%，同一個盤面活得像兩個平行宇宙！\n\n🕛 盤中3分鐘\n🧭 盤面分析：\n・族群普漲：83 個族群 61 漲 22 跌，族群平均 +0.96%\n・成交比重增加但族群走低：AI 先進封裝 -0.3%\n・漲幅逾 1% 但成交比重下降：HBM 高頻寬記憶體 +1.8%\n🎡 強弱輪動：\n・領先 晶圓代工、ETF；\n・落後 HPC 與網通 IC、電源供應器\n🌳 資金分流樹：\n・流入 ETF、HPC 與網通 IC；\n・流出 CCL 銅箔基板、NOR Flash 利基記憶體\n🔥 熱力圖：\n・漲最多 玻纖布 +9.9%、電器電纜 +4.2%；\n・跌最多 AR VR XR 光學 -3.2%、Edge AI AIoT -2.3%\n📰 新聞焦點：\n・費半崩跌7.2%、台積電ADR重挫近6%：台股最慘還沒到→還有更大的崩跌在後？\n・記憶體成「科技避風港」？：野村：AI投資擴大下，微軟、Alphabet、亞馬遜、…\n#台積電股價",
+      "main_post_length": 405,
+      "thread_posts": [],
+      "reply_post": "完整盤勢見網站（新聞描述、其餘新聞、新聞焦點等）\n👉 完整熱力圖、資金分流樹都在網站，族群一個一個點得開：\nhttps://liguligu-puipui.com/?u=th-id-20261102#industry/semiconductor",
+      "image_count": 1,
+      "image_ideas": [
+        "熱力圖：哪些族群漲最多、跌最兇"
+      ],
+      "tag": "台積電股價",
+      "template": "i_f5",
+      "level": "全部規則",
+      "checklist_passed": true
+    }
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_sankey-tree.png",
+    "story_rotation-rank.png",
+    "story_heat.png"
+  ],
+  "threads_v1": {
+    "text": "🕛 盤中3分鐘\n🧭 盤面分析：\n・族群普漲：83 個族群 61 漲 22 跌，族群平均 +0.96%\n・成交比重增加但族群走低：AI 先進封裝 -0.3%\n・漲幅逾 1% 但成交比重下降：HBM 高頻寬記憶體 +1.8%\n🎡 強弱輪動：\n・領先 晶圓代工、ETF；\n・落後 HPC 與網通 IC、電源供應器\n🌳 資金分流樹：\n・流入 ETF、HPC 與網通 IC；\n・流出 CCL 銅箔基板、NOR Flash 利基記憶體\n🔥 熱力圖：\n・漲最多 玻纖布 +9.9%、電器電纜 +4.2%；\n・跌最多 AR VR XR 光學 -3.2%、Edge AI AIoT -2.3%\n#台股 #資金流向 #熱力圖 #族群輪動\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-id-20261102#industry/semiconductor",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_sankey-tree.png",
+      "threads_rotation-rank.png",
+      "threads_heat.png"
+    ],
+    "reply": "📰 新聞焦點：\n・費半崩跌7.2%、台積電ADR重挫近6%：台股最慘還沒到→還有更大的崩跌在後？\n・記憶體成「科技避風港」？：野村：AI投資擴大下，微軟、Alphabet、亞馬遜、Meta自由現金流轉弱\n・開源工具解除輝達 GPU Tensor 核心限速：RTX 20 / 30 / 40 顯卡 FP16 算力解放\n・AI 駭客掀黑色十月、恐成新常態？：全球資安產業經歷「黑色十月」（Black October）\n・年關難過？：美國周二即將舉行期中選舉，但伊朗問題懸而未決"
+  }
+}

@@ -1,0 +1,57 @@
+{
+ "date": "2026-11-09",
+ "permission": "missing_permission",
+ "meta": {
+  "search_type": "TOP",
+  "limit": 50,
+  "keywords": [
+   "台股",
+   "外資",
+   "台積電",
+   "ETF",
+   "高股息",
+   "財報",
+   "輝達",
+   "AI伺服器",
+   "美股",
+   "降息",
+   "股市",
+   "0050"
+  ],
+  "fields": {},
+  "errors": [
+   "台股：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"Amndlgi5qd6p",
+   "外資：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AY2f3zuLTjD1",
+   "台積電：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AMf6s5QehOAL",
+   "ETF：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AF2fbwH03k4l",
+   "高股息：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"A3bUvZxwNzlF",
+   "財報：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AqcuzSjewnS4",
+   "輝達：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AFipHmrPm7RY",
+   "AI伺服器：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AT_nPjRkKPdo",
+   "美股：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"A35N8Az8VpyB",
+   "降息：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AO4Vjz5v5GzT",
+   "股市：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"Aq2eWKRecBTi",
+   "0050：HTTP 403 /keyword_search：{\"error\":{\"message\":\"Application does not have permission for this action\",\"type\":\"THApiException\",\"code\":10,\"fbtrace_id\":\"AJ_Z696ey7XR"
+  ],
+  "collected_at": "2026-11-09T13:06:45+08:00"
+ },
+ "stats": {
+  "posts": 0,
+  "per_keyword": {},
+  "length": {
+   "median": null,
+   "p25": null,
+   "p75": null,
+   "buckets": {}
+  },
+  "opener": {},
+  "hour_taipei": {},
+  "media": {},
+  "with_media_ratio": null,
+  "has_url_ratio": null,
+  "unique_accounts": 0,
+  "account_post_counts": [],
+  "like_count_available": false,
+  "like_median": null
+ }
+}

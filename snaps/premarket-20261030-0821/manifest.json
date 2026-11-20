@@ -1,0 +1,96 @@
+{
+  "kind": "premarket",
+  "taken_at": "2026-10-30T08:21:51+08:00",
+  "data_date": "2026-10-30",
+  "slot_key": "premarket-2026-10-30",
+  "threads": {
+    "text": "🌅 盤前3分鐘 10/30\n📌 今日焦點：\n・美股四大指數全數收黑，費半下跌 1.4%\n・威剛前3季獲利超越過去25年總和 EPS突破百元寫歷史新頁\n・友達台中二期廠388億元賣給台積電 處分利益估185億元：友達董事會通過出售台中廠二期廠房及附屬設施予台積電，交易金額388億元，估處分利益185億元\n・91APP 訂單資訊外洩：上櫃公司 91APP（91APP*-KY）29 日召開記者會並公布資安事件的 25 天調查報告\n・日月光投控：半導體封測龍頭日月光投控表示，受惠於 LEAP（先進封裝相關業務） 快速提升\n・2027年上路：普丁稱讚馬斯克是「天才」，指俄國正就衛星系統技術與其保持聯繫\n#台股 #盤前 #美股 #台指期 #台積電\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-pm-20261030#industry/semiconductor",
+    "images": [
+      "threads_us-close.png",
+      "threads_tx.png",
+      "threads_news.png"
+    ],
+    "reply": "🧭 昨日盤面（美股 10/29）：\n・美股四大指數全數收黑，道瓊 −0.25% 表現最強、費半 −1.42% 最弱\n・費半 −1.42%，開低後震盪；連 4 紅後收黑；近 5 日 +7.3%；距 60 日高點 −12.9%\n・那斯達克 −1.38%，開低後震盪；連 3 紅後收黑；距 60 日高點 −5.1%\n・標普 −0.30%，開低走高，跌幅收斂；連 3 紅後收黑；跌破20 日線\n・台積電 ADR −1.75%，開低後震盪；連 4 紅後收黑；近 5 日 +4.7%；距 60 日高點 −11.1%；跌破季線\n・台指期夜盤 47,121，較日盤 −123 點（−0.26%）"
+  },
+  "story": [
+    "story_us-close.png",
+    "story_tx.png",
+    "story_news.png"
+  ],
+  "premarket_news": {
+    "version": 1,
+    "target_date": "2026-10-30",
+    "window": {
+      "start": "2026-10-29T08:45:00+08:00",
+      "end": "2026-10-30T08:45:00+08:00"
+    },
+    "categories": [
+      "新聞",
+      "事件",
+      "科技",
+      "總經"
+    ],
+    "items": [
+      {
+        "category": "新聞",
+        "title": "威剛前3季獲利超越過去25年總和 EPS突破百元寫歷史新頁",
+        "url": "https://news.cnyes.com/news/id/6640617",
+        "source": "鉅亨",
+        "published_at": "2026-10-29T16:22:30+08:00",
+        "coverage": {
+          "sources": 3,
+          "articles": 17
+        },
+        "summary": ""
+      },
+      {
+        "category": "科技",
+        "title": "友達台中二期廠388億元賣給台積電 處分利益估185億元",
+        "url": "https://news.cnyes.com/news/id/6640692",
+        "source": "鉅亨",
+        "published_at": "2026-10-29T18:11:28+08:00",
+        "coverage": {
+          "sources": 3,
+          "articles": 6
+        },
+        "summary": "友達董事會通過出售台中廠二期廠房及附屬設施予台積電，交易金額388億元，估處分利益185億元。&#10;另7月底通過的華亞廠出售案，因與廣達對使用規格、交付時程未達成協議，董事會決議終止。&#10;彭双浪稱將聚焦輕資產、活化資產與財務優化；今年累計新增資本支出逾240億元，另通過57億元。"
+      },
+      {
+        "category": "科技",
+        "title": "91APP 訂單資訊外洩！波及千家品牌、480 萬名消費者，承諾全面負責",
+        "url": "https://infosecu.technews.tw/2026/10/29/91app-security-incident-20261029/",
+        "source": "科技新報",
+        "published_at": "2026-10-29T18:34:46+08:00",
+        "coverage": {
+          "sources": 3,
+          "articles": 3
+        },
+        "summary": "上櫃公司 91APP（91APP*-KY）29 日召開記者會並公布資安事件的 25 天調查報告，董事長何英圻率 [&#8230;]"
+      },
+      {
+        "category": "總經",
+        "title": "日月光投控 2026 年 LEAP 營收上調至逾 40 億美元，今明資本支出與毛利率同步走揚",
+        "url": "https://finance.technews.tw/2026/10/29/ase-technology-holding-co-ltd-reported-a-record-high-third-quarter-profit-with-eps-of-nt6-13-2/",
+        "source": "科技新報",
+        "published_at": "2026-10-29T17:30:13+08:00",
+        "coverage": {
+          "sources": 2,
+          "articles": 5
+        },
+        "summary": "半導體封測龍頭日月光投控表示，受惠於 LEAP（先進封裝相關業務） 快速提升、CoWoS 全流程需求殷切，以 [&#8230;]"
+      },
+      {
+        "category": "事件",
+        "title": "2027年上路！普丁：馬斯克是天才 俄版「星鏈」正與其保持技術聯繫",
+        "url": "https://news.cnyes.com/news/id/6640273",
+        "source": "鉅亨",
+        "published_at": "2026-10-29T10:50:03+08:00",
+        "coverage": {
+          "sources": 2,
+          "articles": 3
+        },
+        "summary": "普丁稱讚馬斯克是「天才」，指俄國正就衛星系統技術與其保持聯繫&#10;俄國建造類似「星鏈」的「黎明」系統，現處起步階段，需再送衛星入軌&#10;普丁稱與美國夥伴合作可確保「黎明」與「星鏈」在軌互不干擾"
+      }
+    ]
+  }
+}

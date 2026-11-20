@@ -1,0 +1,24 @@
+{
+  "kind": "close",
+  "taken_at": "2026-10-28T17:12:56+08:00",
+  "data_date": "2026-10-28",
+  "threads": {
+    "text": "🌙 盤後3分鐘\n🧭 盤面分析：\n・加權指數漲 939 點（+2.04%）；上市櫃（含 ETF）上漲 1,460 家、下跌 722 家\n・漲停 64 家、跌停 2 家\n・成交 7,221 億，較 20 日均量量縮 25%\n・外資轉買超 159.2 億\n・投信買超 118.1 億，已連 12 日買超，累計 1,919.0 億\n・外資空單回補台指期 1,126 口，未平倉淨空單降至 84,917 口\n・小台散戶多空比 +21.66%（多方部位較多），與外資期貨淨空方向相反\n🏦 三大法人買賣超：\n・外資 +159.2億、投信 +118.1億；\n・自營 +21.6億、合計 +298.9億\n🌏 外資：\n・買超 穩懋、群聯、華邦電、國巨、南亞；\n・賣超 台積電、欣銓、聯發科、台光電、旺宏\n#台股 #法人買賣超 #外資 #投信 #台指期\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-cl-20261028#market/inst",
+    "images": [
+      "threads_fut-oi.png",
+      "threads_retail-ratio.png",
+      "threads_inst-today.png",
+      "threads_streak-foreign.png",
+      "threads_streak-trust.png",
+      "threads_etf-buy.png"
+    ]
+  },
+  "story": [
+    "story_fut-oi.png",
+    "story_retail-ratio.png",
+    "story_inst-today.png",
+    "story_streak-foreign.png",
+    "story_streak-trust.png",
+    "story_etf-buy.png"
+  ]
+}
