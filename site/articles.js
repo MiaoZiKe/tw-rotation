@@ -296,6 +296,7 @@
 .artbody .artvsplit .artvid.mp4{margin:0}
 .artbody .artvsplit .artvid.mp4 .avm{background:transparent;border:0;display:block}
 .artbody .artvsplit .artvid.mp4 video{width:100%;max-height:calc(100vh - 150px);aspect-ratio:var(--vr,9/16);object-fit:contain;border-radius:var(--r-sm,8px);background:#000}
+.artbody .artvsplit .artkpi{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 }
 /* 10-19 稽核 #11：文章內嵌站內 3D／2.5D 剖析圖（scene 區塊）。外框跟其他圖卡同一組 token；捲到才載入，載入前是一塊固定高度的骨架（不跳版）。 */
 .artbody .artscene{margin:var(--sp-4) 0;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel));min-width:0}
