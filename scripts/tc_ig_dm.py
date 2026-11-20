@@ -169,7 +169,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
     st = T.load_json(state_path, {})
     comments, users, pending, msgs = (dict(st.get(k) or {}) for k in ("comments", "users", "pending", "msgs"))
     cutoff = (now - timedelta(days=KEEP_DAYS)).isoformat()
-    for tbl in (comments, msgs):
+    for tbl in (comments, msgs, pending):
         for k in [k for k, v in tbl.items() if str(v.get("at", "")) < cutoff]:
             tbl.pop(k)
     today = now.astimezone(T.TAIPEI).strftime("%Y-%m-%d")

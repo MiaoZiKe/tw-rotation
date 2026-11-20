@@ -273,6 +273,26 @@
           + '<p>惟網際網路傳輸無法保證絕對安全。如發生個人資料外洩，將依個人資料保護法第 12 條，查明後以適當方式通知您。</p>' },
         { h: '未成年人', b: '<p>未滿十八歲者，應於法定代理人閱讀、瞭解並同意本政策及<a href="#terms">使用條款</a>後，方得使用本服務；購買付費方案應經法定代理人同意。</p>' },
         { h: '政策修改', b: '<p>本政策修改時，將於本頁公告；涉及蒐集目的變更者，將另行取得您的同意。</p>' },
+        { h: '社群自動回覆（Instagram／Threads）', b: '<p>' + esc(OP) + '經營之 Instagram、Threads 官方帳號，會讀取<b>自家貼文底下的留言</b>。若留言含該篇貼文指定的關鍵字（例如「連結」），系統會以私訊或公開回覆的方式，傳送該篇文章或整理內容的連結。</p>'
+          + ul([
+            '<b>讀取範圍</b>：僅限本帳號自家貼文底下的留言；不讀取他人貼文，也不讀取您的私人訊息（除非您主動回覆我們的私訊以領取內容）。',
+            '<b>實際保存的內容</b>：為避免對同一則留言重複回覆，只保存「留言編號與使用者編號的單向雜湊值（SHA-256，無法還原）」「處理時間」「處理結果（例如已私訊、已公開回覆、略過）」，必要時另存「是否為追蹤者」之判斷結果與每週彙總次數。<b>不保存留言全文、不保存您的帳號名稱與帳號編號原值、不保存私訊內容。</b>',
+            '<b>用途</b>：僅用於送出您要求的連結、避免重複回覆與限制發送頻率；<b>不出售、不出租、不用於廣告投放或建立個人檔案</b>，也不提供第三方（法令要求除外）。',
+            '<b>保存期間</b>：上述紀錄由程式於每次執行時自動清理，<b>超過 30 天即刪除</b>。',
+            '<b>平台規則</b>：留言與私訊本身仍由 Meta（Instagram／Threads）依其隱私政策處理；您可隨時在平台上刪除自己的留言。留言後 7 天內才能私訊、每則留言限私訊一次，為 Meta 的規定。',
+            '<b>不想被自動回覆</b>：不要在留言中輸入指定關鍵字即可；已留言者可於平台上刪除該則留言，或依下一段「資料刪除說明」申請。',
+          ]) },
+        { h: '資料刪除說明', id: 'data-deletion', b: '<p>您可隨時要求刪除我們持有的與您有關之資料，包含會員帳號資料、自選清單、使用紀錄，以及「社群自動回覆」所保存之紀錄。</p>'
+          + '<p><b>申請方式</b>：以下任一種皆可，' + esc(OP) + '將於收到後<b>十五日內</b>處理並回覆。</p>'
+          + ul([
+            '來信 ' + MAIL + '，主旨寫「資料刪除申請」。',
+            '使用右下角<b>客服表單</b>，說明要刪除的資料類型。 ' + SUPB,
+            '<b>Instagram／Threads 使用者</b>：請在信中附上您的帳號名稱、留言所在貼文與大約時間，方便我們核對。',
+          ])
+          + '<p><b>我們會刪除什麼</b>：（一）會員帳號、自選清單與使用紀錄；（二）社群自動回覆中與您留言對應之處理紀錄。社群紀錄只存單向雜湊值，我們不會、也無法由紀錄反查您的帳號；核對無法對應時，該紀錄仍會在 30 天內自動刪除。</p>'
+          + '<p><b>不在我們控制範圍內的資料</b>：您在 Instagram、Threads、Facebook 上的留言、私訊與帳號資料由 Meta 保管，請至該平台刪除或依其流程申請。若您曾授權本站應用程式存取您的 Meta 帳號，亦可於 Meta 帳號之「應用程式與網站」設定中移除授權。</p>'
+          + '<p>刪除帳號後仍保留之資料（防重複領取之信箱比對碼）與付款稅務紀錄之保存期限，請見本頁「您的權利」。</p>'
+          + '<p>本段可直接連結：<code>https://liguligu-puipui.com/#data-deletion</code></p>' },
         { h: '聯絡方式', b: '<p>隱私相關問題與權利行使，請來信 ' + MAIL + '。</p>' },
       ],
     };
@@ -859,6 +879,7 @@
     '網站性質': { i: 'info' }, '資料來源與正確性': { i: 'db' }, '不構成投資建議': { i: 'eye', k: 'warn' },
     '計算方法與回測限制': { i: 'calc' }, '第三方連結與內容': { i: 'link' }, '投資風險自負': { i: 'warn', k: 'warn' },
     '法規變動': { i: 'scale' }, '聯絡方式': { i: 'mail', k: 'cta' },
+    '社群自動回覆（Instagram／Threads）': { i: 'lock' }, '資料刪除說明': { i: 'shield' },
     '服務內容': { i: 'layers' }, '帳號註冊與登入': { i: 'user' }, '會員方案、試用與付費': { i: 'card' },
     '禁止行為': { i: 'ban', k: 'warn' }, '裝置數上限與異常使用': { i: 'device' }, '智慧財產權': { i: 'copy' },
     '服務變更與中斷': { i: 'refresh' }, '責任限制': { i: 'warn', k: 'warn' }, '條款修改': { i: 'pen' }, '準據法與管轄法院': { i: 'scale' },
@@ -903,7 +924,7 @@
       return '<section class="lgsec cta" data-k="cta">' + head + '<div class="lgctar"><div class="lgctat">' + s.b + '</div>'
         + mailA(CONTACT_EMAIL, '哩股哩股－客服', svg('mail') + '來信聯絡', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>';
     }
-    return '<section class="lgsec' + (m.k === 'warn' ? ' warn' : '') + '" data-k="' + (m.k || 'plain') + '">' + head + s.b + '</section>';
+    return '<section class="lgsec' + (m.k === 'warn' ? ' warn' : '') + '"' + (s.id ? ' id="' + s.id + '"' : '') + ' data-k="' + (m.k || 'plain') + '">' + head + s.b + '</section>';
   }
 
   /* 目錄捲動同步（scroll-spy）。
@@ -1239,14 +1260,23 @@
        'legal'    → 這一頁由本檔接手（#terms／#privacy／#disclaimer／#leave），app.js 把其他 view 關掉就好
        'redirect' → 使用者剛按了「不同意」、又想去別頁：這一次瀏覽維持在 #leave（重新整理就解除）
        null       → 不關本檔的事，照舊 */
-  const ROUTES = ['terms', 'privacy', 'privacy-promo', 'disclaimer', 'refund', 'leave'];
+  const ROUTES = ['terms', 'privacy', 'privacy-promo', 'data-deletion', 'disclaimer', 'refund', 'leave'];
   const DOC_ROUTES = ['terms', 'privacy', 'disclaimer', 'refund'];
   /* 會員功能的設定檔是非同步讀的（account.js），可能比第一次畫隱私權政策晚到：到了就重畫一次，才會出現那幾列 */
   window.addEventListener('tw:account-config', () => { if ((location.hash || '') === '#privacy') { renderDoc('privacy'); syncBanner(); } });
-  function route(head) {
+  function route(head, rest) {
     syncBanner();
+    if (head === 'privacy' && rest && rest[0] === 'data-deletion') head = 'data-deletion';   // 也接受 #privacy/data-deletion
     if (ROUTES.includes(head)) {
       if (head === 'leave') renderLeave();
+      else if (head === 'data-deletion') {      // 錨點（Meta 應用程式「資料刪除說明網址」）：畫隱私權政策並捲到「資料刪除說明」段
+        renderDoc('privacy');
+        const go = () => { const d = document.getElementById('data-deletion'); if (!d) return; d.scrollIntoView({ block: 'start' }); return d; };
+        setTimeout(() => { const d = go(); if (d) { d.classList.add('lgflash'); setTimeout(() => d.classList.remove('lgflash'), 1200); } }, 80);
+        let tries = 0;
+        const fix = () => { const d = document.getElementById('data-deletion'); if (!d || ++tries > 8) return; const r = d.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * 0.5) { go(); setTimeout(fix, 400); } };
+        setTimeout(fix, 500);
+      }
       else if (head === 'privacy-promo') {      // 錨點：畫隱私權政策、展開「意見問卷、許願與邀請碼」並捲過去
         renderDoc('privacy');
         const go = () => { const d = document.getElementById('privacy-promo'); if (!d) return; d.open = true; d.scrollIntoView({ block: 'center' }); return d; };
