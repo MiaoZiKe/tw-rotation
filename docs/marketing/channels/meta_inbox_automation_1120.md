@@ -23,7 +23,7 @@ Andy 11-20 決定用 A 方案：Meta 內建自動回覆（免費、不用送審�
 | 帳號 | 要建幾組 | 需要先連粉絲專頁 | 預估 |
 |---|---|---|---|
 | ① 哩股哩股 liguligu0818 | 1 組（備案）或 4 組（若能指定貼文，不推薦） | 不確定，先假設要 | 10 分鐘（含連專頁加 10） |
-| ② 科技透明圈 tech_01010909 | 0 組（還沒有已發貼文、沒有關鍵字） | 不確定 | 0（發文後再加） |
+| ② 科技透明圈 tech_01010909 | 7 組（已發 7 篇有專屬關鍵字） | 不確定，先假設要 | 30 分鐘 |
 | ③ CaffAIne caffaine.ai | 4 組（已發 4 篇） | 不確定，先假設要 | 20 分鐘 |
 | ④ 談晴說礙 talk_01010909 | 5 組（已發 5 個主題），另有 3 組發文後再加 | 不確定，先假設要 | 25 分鐘 |
 
@@ -65,7 +65,20 @@ Andy 11-20 決定用 A 方案：Meta 內建自動回覆（免費、不用送審�
 
 ## 4. ② 科技透明圈（tech_01010909）
 
-目前沒有任何已發貼文（state/posted.json 為空）、也沒有設定留言關鍵字（dm_config.json 只有關閉的通用訊息）。**現在建 0 組。** 發第一篇、決定關鍵字後，照第 5 節的欄位格式加一組；我們程式會公開回覆，Business Suite 公開回覆要關。
+（11-20 CEO 更正：第一版寫「0 篇」是讀錯資料夾；②的發文紀錄在 `state/tc/posted.json`、關鍵字在 `social/tc/dm_config.json` 的 `post_keywords`。）
+已發 8 篇，其中 11-14「薪資排行」沒有專屬關鍵字，不建。②另有自己的程式（`tc_ig_dm.py` 輪詢）會在留言下公開回覆，**Business Suite 公開回覆全部關掉**。
+
+| # | 自動化名稱 | 關鍵字（英文分大小寫，已列常見寫法） | 套用貼文 | 私訊內容（整段複製） |
+|---|---|---|---|---|
+| 1 | 科技-透明 | 透明 | 11-12 廣達碩畢待遇（輪播） <https://www.instagram.com/p/DfpP6kZF1eC/> | `「廣達碩畢待遇重點整理」的完整解說在這：`<br>`https://liguligu-puipui.com/` |
+| 2 | 科技-2奈米 | 2奈米、兩奈米、2nm、2NM | 11-15 2 奈米不是尺寸 <https://www.instagram.com/reel/DfwvcWCjAyo/> | `「2 奈米不是尺寸」的完整解說在這：`<br>`https://liguligu-puipui.com/#article/2026-11-15-tech-2nm` |
+| 3 | 科技-曝光機 | 曝光機、EUV、euv、極紫外光 | 11-16 曝光機：光比線還粗 <https://www.instagram.com/reel/DfzVHHmiFtv/> | `「曝光機：光比線還粗」的完整解說在這：`<br>`https://liguligu-puipui.com/#article/2026-11-16-tech-euv` |
+| 4 | 科技-整包 | 整包、offer、Offer、OFFER | 11-17 兩份 offer 怎麼比 <https://www.instagram.com/reel/Df1FbhjDF9G/> | `「兩份 offer 怎麼比」的完整解說在這：`<br>`https://liguligu-puipui.com/#article/2026-11-17-tech-offer` |
+| 5 | 科技-良率 | 良率 | 11-17 晶圓良率 <https://www.instagram.com/reel/Df15k0dirNN/> | `「晶圓良率：晶片越大，能用的比例越低」的完整解說在這：`<br>`https://liguligu-puipui.com/#article/2026-11-17-tech-yield` |
+| 6 | 科技-封裝 | 封裝 | 11-18 先進封裝 <https://www.instagram.com/reel/Df4eatDDpp6/> | `「先進封裝：晶片太大做不好，拆小再拼回去」的完整解說在這：`<br>`https://liguligu-puipui.com/#article/2026-11-18-tech-packaging` |
+| 7 | 科技-堆疊 | 堆疊、HBM、hbm | 11-19 HBM 十二層記憶體 <https://www.instagram.com/reel/Df61rGLlGSc/> | `「HBM：十二層記憶體，比一張信用卡還薄」的完整解說在這：`<br>`https://liguligu-puipui.com/#article/2026-11-19-tech-hbm` |
+
+若畫面不能指定貼文：改 1 組、關鍵字放 良率、封裝、堆疊、曝光機、2奈米（≤5），私訊放 <https://liguligu-puipui.com/#articles>。
 
 ## 5. ③ CaffAIne（caffaine.ai）
 
