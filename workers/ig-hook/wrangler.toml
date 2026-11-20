@@ -1,0 +1,25 @@
+name = "tw-ig-hook"
+main = "worker.js"
+compatibility_date = "2026-09-14"
+
+# IG 留言 Webhook ＋追蹤閘門（四個帳號共用）。說明：docs/marketing/channels/ig_hook.md。
+# Secrets（部署工作流寫入，不進 repo）：IG_APP_SECRET（Meta 應用程式密鑰，驗 X-Hub-Signature-256）、
+#   VERIFY_TOKEN（Meta 後台 Webhook 驗證碼）、SYNC_TOKEN（定時檢查查去重／看紀錄用）、
+#   IG_TOKEN_LIGU／IG_TOKEN_HEALING／IG_TOKEN_CAFFAINE／IG_TOKEN_TECH（各帳號 IGAA 權杖；缺或不是 IGAA 就略過該帳號）。
+workers_dev = true
+
+[vars]
+GRAPH = "https://graph.instagram.com/v24.0"
+ACCOUNTS = '''[
+ {"code":"ligu","config_url":"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/social/ig/dm_config.json","token_env":"IG_TOKEN_LIGU"},
+ {"code":"tech","config_url":"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/tech/dm_config.json","token_env":"IG_TOKEN_TECH"},
+ {"code":"caffaine","config_url":"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/caffaine/dm_config.json","token_env":"IG_TOKEN_CAFFAINE"},
+ {"code":"healing","config_url":"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/dm_config.json","token_env":"IG_TOKEN_HEALING"}
+]'''
+
+# KV 命名空間 id 由 .github/workflows/deploy-ig-hook.yml 在部署時找或建（tw-ig-hook）後填入。
+# KV-BEGIN
+[[kv_namespaces]]
+binding = "KV"
+id = "__IG_HOOK_KV_ID__"
+# KV-END
