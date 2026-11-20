@@ -1,6 +1,9 @@
 {
  "source": "narration_take.wav",
- "tail_noise_dropped": null,
+ "tail_noise_dropped": [
+  76.63,
+  78.31
+ ],
  "preamble_cut_sec": 34.8,
  "narration_onset_in_raw": 35.0,
  "voiceLeadIn": 0.2,
@@ -9,10 +12,10 @@
  "mingap": 0.45,
  "para_gap": 0.8,
  "hold": 1.05,
- "chars": 186,
- "dur_total": 55.34,
- "rate_incl_pauses": 3.36,
- "rate_speech_only": 4.23,
+ "chars": 176,
+ "dur_total": 51.0,
+ "rate_incl_pauses": 3.45,
+ "rate_speech_only": 4.2,
  "segments": [
   {
    "id": "s1",
@@ -281,34 +284,10 @@
    "heard": "少了幾年後的小醫新生也會跟著少所以下週一接著看",
    "start": 46.29,
    "speech_start": 46.32,
-   "end": 51.13,
+   "end": 51.14,
    "src": [
     71.57,
-    75.97
-   ],
-   "gap_after": 2.21,
-   "inserts": 1
-  },
-  {
-   "id": "s9",
-   "text": "想看完整資料，留言出生。",
-   "words": [
-    53.46,
-    53.6,
-    53.74,
-    53.86,
-    54.0,
-    54.57,
-    54.89,
-    55.09
-   ],
-   "heard": "看完整資料留言出生",
-   "start": 53.34,
-   "speech_start": 53.37,
-   "end": 55.48,
-   "src": [
-    76.63,
-    78.33
+    75.98
    ],
    "gap_after": 0.06,
    "inserts": 1

@@ -4,8 +4,8 @@
  "model": "gemini-3.8-flash-tts",
  "voice": "Sulafat",
  "atempo": 1.0,
- "rate_incl_pauses": 3.44,
- "rate_speech_only": 4.23,
+ "rate_incl_pauses": 3.55,
+ "rate_speech_only": 4.22,
  "preamble_cut_sec": 34.71,
  "segments": [
   {
@@ -201,7 +201,7 @@
    "id": "s7",
    "text": "要回答這題，得先看家庭存款，所以下一集看平均每戶存多少。",
    "start": 44.68,
-   "end": 49.92,
+   "end": 49.93,
    "speech_start": 44.93,
    "words": [
     45.01,
@@ -225,24 +225,6 @@
     49.1,
     49.26,
     49.46
-   ],
-   "audio": "narration.wav"
-  },
-  {
-   "id": "s9",
-   "text": "想看完整資料，留言租屋。",
-   "start": 50.04,
-   "end": 54.44,
-   "speech_start": 52.16,
-   "words": [
-    52.24,
-    52.4,
-    52.56,
-    52.7,
-    52.84,
-    53.43,
-    53.79,
-    54.03
    ],
    "audio": "narration.wav"
   }

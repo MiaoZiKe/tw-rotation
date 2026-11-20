@@ -4,8 +4,8 @@
  "model": "gemini-3.8-flash-tts",
  "voice": "Sulafat",
  "atempo": 1.0,
- "rate_incl_pauses": 3.36,
- "rate_speech_only": 4.23,
+ "rate_incl_pauses": 3.45,
+ "rate_speech_only": 4.2,
  "preamble_cut_sec": 34.8,
  "segments": [
   {
@@ -207,7 +207,7 @@
    "id": "s8",
    "text": "人少了，幾年後的小一新生也會跟著少，所以下週一接著看。",
    "start": 46.07,
-   "end": 51.13,
+   "end": 51.14,
    "speech_start": 46.32,
    "words": [
     46.39,
@@ -232,24 +232,6 @@
     50.6,
     50.74,
     50.84
-   ],
-   "audio": "narration.wav"
-  },
-  {
-   "id": "s9",
-   "text": "想看完整資料，留言出生。",
-   "start": 51.25,
-   "end": 55.48,
-   "speech_start": 53.37,
-   "words": [
-    53.46,
-    53.6,
-    53.74,
-    53.86,
-    54.0,
-    54.57,
-    54.89,
-    55.09
    ],
    "audio": "narration.wav"
   }

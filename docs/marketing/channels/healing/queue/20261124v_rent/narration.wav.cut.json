@@ -1,6 +1,9 @@
 {
  "source": "narration_take.wav",
- "tail_noise_dropped": null,
+ "tail_noise_dropped": [
+  74.93,
+  76.73
+ ],
  "preamble_cut_sec": 34.71,
  "narration_onset_in_raw": 34.91,
  "voiceLeadIn": 0.2,
@@ -9,10 +12,10 @@
  "mingap": 0.45,
  "para_gap": 0.8,
  "hold": 1.05,
- "chars": 187,
- "dur_total": 54.3,
- "rate_incl_pauses": 3.44,
- "rate_speech_only": 4.23,
+ "chars": 177,
+ "dur_total": 49.79,
+ "rate_incl_pauses": 3.55,
+ "rate_speech_only": 4.22,
  "segments": [
   {
    "id": "s1",
@@ -268,34 +271,10 @@
    "heard": "回答這題得先看家庭存款所以下一集看平均每戶存多少",
    "start": 44.9,
    "speech_start": 44.93,
-   "end": 49.92,
+   "end": 49.93,
    "src": [
     69.93,
-    74.51
-   ],
-   "gap_after": 2.21,
-   "inserts": 1
-  },
-  {
-   "id": "s9",
-   "text": "想看完整資料，留言租屋。",
-   "words": [
-    52.24,
-    52.4,
-    52.56,
-    52.7,
-    52.84,
-    53.43,
-    53.79,
-    54.03
-   ],
-   "heard": "看完整資料留言組屋",
-   "start": 52.13,
-   "speech_start": 52.16,
-   "end": 54.44,
-   "src": [
-    74.93,
-    76.8
+    74.52
    ],
    "gap_after": 0.06,
    "inserts": 1

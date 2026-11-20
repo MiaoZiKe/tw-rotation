@@ -18,6 +18,7 @@ hop = int(SR * .01); n = len(x) // hop
 rms = np.array([np.sqrt(np.mean(x[i*hop:(i+1)*hop] ** 2)) + 1e-9 for i in range(n)]); db = 20 * np.log10(rms)
 thr = max(-48.0, db.max() - 40); voiced = db > thr
 W = json.load(open(asrp)); words = [(a["w"].strip(), a["s"], a["e"]) for a in W]
+if os.environ.get("DROP_AFTER"): words = [w_ for w_ in words if w_[1] < float(os.environ["DROP_AFTER"])]   # 2026-11-20（規則 28）：原始錄音尾端不要的句子（例如片尾自編關鍵字）整句丟掉；切點在上一句句號之後的靜音
 lines = []; para_after = []   # para_after[i]＝第 i 句後面有空行（段落分界）
 for l in open(os.path.join(q, "narration.txt"), encoding="utf-8"):
     if "｜" in l and not l.startswith("#"): lines.append(l.split("｜", 1)); para_after.append(False)

@@ -7,4 +7,9 @@ B = os.path.dirname(os.path.abspath(__file__)); V7 = open(os.path.join(B, "..", 
 L = lambda a, b: "\n".join(V7[a - 1:b])
 hdr = "// 談晴說礙 數據短影音執行期 v8（2026-11-16 總編輯）＝v7 共用工具與片尾 LOGO（不動）＋通用鏡型（資料驅動）＋每篇量身插圖（ill_<篇>.js 註冊到 ILL）。由 v8/build_runtime.py 產生，不要手改。\n"
 out = hdr + L(15, 55).replace("<s.length/3)best=Math.ceil(m)", "<s.length/4)best=Math.ceil(m)").replace("transform:scale(${sc.toFixed(3)}) rotate(", "transform:translateY(${beatHop(lt,_TAGALL?-1:0).toFixed(1)}px) scale(${sc.toFixed(3)}) rotate(") + "\n" + L(206, 207) + "\n" + open(os.path.join(B, "_charts.js"), encoding="utf-8").read().rstrip() + "\n" + L(159, 199) + "\n};\nconst SC=SCV;\n" + L(456, 477) + "\n" + open(os.path.join(B, "_render.js"), encoding="utf-8").read() + open(os.path.join(B, "_sfx.js"), encoding="utf-8").read()
+# 規則 28：片尾卡關鍵字 "@FIXED" 顯示「留言拿完整資料」（等 Andy 固定內容）；v7 的片尾原始碼沒有這段，重建時要補
+_KW_OLD = '留言「<tspan font-size="58" font-weight="900">${esc(s.keyword)}</tspan>」拿完整資料'
+_KW_NEW = "${s.keyword==='@FIXED'?'留言拿完整資料':`" + _KW_OLD + "`}"
+assert _KW_OLD in out, "片尾關鍵字原始碼找不到"
+out = out.replace(_KW_OLD, _KW_NEW)
 open(os.path.join(B, "..", "video_runtime_v8.js"), "w", encoding="utf-8").write(out); print("video_runtime_v8.js", len(out))

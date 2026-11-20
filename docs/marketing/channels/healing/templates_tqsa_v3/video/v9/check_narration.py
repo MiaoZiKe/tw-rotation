@@ -8,7 +8,7 @@ FILL = re.compile(r"[欸嗯呃唉]|[喔哦]。?$|^(那個|就是)")
 def check(folder):
     sc = json.load(open(os.path.join(folder, "script.json"), encoding="utf-8")); lines = [(s["id"], s.get("say", "")) for s in sc["scenes"] if s.get("say")]
     ou = sc.get("outro")
-    if ou: lines.append((ou.get("id", "s9"), ou.get("say", "想看完整資料，留言%s。" % ou["keyword"])))
+    if ou and ou.get("say", "x"): lines.append((ou.get("id", "s9"), ou.get("say", "想看完整資料，留言%s。" % ou["keyword"])))
     err, warn, out = [], [], []
     for sid, t in lines:
         out.append("%s｜%s" % (sid, t))

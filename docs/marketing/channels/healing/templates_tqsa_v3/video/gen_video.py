@@ -151,6 +151,7 @@ def write_narration(v):
     q = os.path.join(QUEUE, v["queue"]); lines = ["# %s 旁白稿（每段一行：id｜文字）。語氣照 docs/prompts/tanqing-旁白-深度報導.txt：深度報導記者、數字清楚肯定、轉折稍慢；gemini-3.8-flash-tts／Sulafat／單人；每秒約 4.6–5.5 字。" % v["queue"]]
     if v.get("narr_out", "narration.txt") is None: return
     lines += ["%s｜%s" % (s["id"], s["say"]) for s in v["scenes"] if s.get("say")]
+    lines += ["# %s（無旁白，等 Andy 固定內容）" % s["id"] for s in v["scenes"] if s["type"] == "outro" and not s.get("say")]   # 規則 28：片尾不念自編關鍵字
     sep = "\n\n" if v.get("narr_para") else "\n"   # narr_para：每鏡一段，段落空行（TTS 段落停頓 0.7 秒用）
     open(os.path.join(q, "narration.txt"), "w", encoding="utf-8").write(sep.join(lines) + "\n")
 

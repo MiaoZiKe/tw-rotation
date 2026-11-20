@@ -4,8 +4,8 @@
  "model": "gemini-3.8-flash-tts",
  "voice": "Sulafat",
  "atempo": 1.0,
- "rate_incl_pauses": 3.47,
- "rate_speech_only": 4.25,
+ "rate_incl_pauses": 3.57,
+ "rate_speech_only": 4.24,
  "preamble_cut_sec": 34.79,
  "segments": [
   {
@@ -195,7 +195,7 @@
    "id": "s7",
    "text": "一個家除了錢，還有人。去年新生兒少了兩成，所以下一集看出生數。",
    "start": 43.34,
-   "end": 50.25,
+   "end": 50.21,
    "speech_start": 43.59,
    "words": [
     43.68,
@@ -220,24 +220,6 @@
     49.54,
     49.74,
     49.9
-   ],
-   "audio": "narration.wav"
-  },
-  {
-   "id": "s9",
-   "text": "想看完整資料，留言存款。",
-   "start": 50.37,
-   "end": 54.66,
-   "speech_start": 52.49,
-   "words": [
-    52.59,
-    52.73,
-    52.89,
-    53.03,
-    53.17,
-    53.76,
-    54.1,
-    54.36
    ],
    "audio": "narration.wav"
   }

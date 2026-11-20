@@ -18,12 +18,12 @@
  ],
  "start_ok": true,
  "voice_region_lufs": -16.0,
- "outro_lufs": -12.4,
+ "outro_lufs": -12.2,
  "full_lufs": -15.5,
- "true_peak_dbtp_max": -1.6,
- "rate_speech_only": 4.25,
- "rate_incl_pauses": 3.47,
- "dur": 55.96666666666667,
+ "true_peak_dbtp_max": -1.5,
+ "rate_speech_only": 4.24,
+ "rate_incl_pauses": 3.57,
+ "dur": 56.2,
  "overlap": 84,
  "oob": 0,
  "edge": 0,
@@ -102,7 +102,7 @@
   },
   {
    "id": "s7",
-   "t": 50.17,
+   "t": 50.4,
    "seg": "一個家除了錢，還有人。去年新生兒少了兩成，所以下一集看出生數。",
    "shown": "所以下一集看出生數",
    "ok": true
@@ -227,7 +227,7 @@
   },
   {
    "id": "s7",
-   "t": 48.04,
+   "t": 48.24,
    "fs": 76,
    "lines": [
     "所以下一集看出生數"

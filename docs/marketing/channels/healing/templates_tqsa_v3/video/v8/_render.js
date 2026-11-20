@@ -1,7 +1,8 @@
 // v8.2（CEO／美術 11-16：孤字、行首標點、關鍵詞拆行、字級 ≥64px）：字幕排版統一在這裡——
 //   旁白依標點切成片語 → 每行 ≤13 字（64px 放得下）→ 每兩行一個畫面；一鏡裡有好幾個畫面時，依字數比例跟著旁白時間換。
 //   標點只會在行尾；超過 13 字的單一片語才在中間切（不切數字念法）；單行 ≤11 字用 76px。
-function capLines(c,bal){let ps=c.replace(/。$/,'').match(/[^，。、；：？！]+[，。、；：？！]?/g)||[];const L=[];
+function capLines(c,bal){if(c.indexOf('\n')>=0)return c.replace(/。$/,'').split('\n');   // 2026-11-20：字幕文字含換行＝手動斷行（script.json 的 caption），每行一個畫面行、不再自動切
+ let ps=c.replace(/。$/,'').match(/[^，。、；：？！]+[，。、；：？！]?/g)||[];const L=[];
  if(bal&&ps.length>1&&ps[0].replace(/[，。、；：？！]/g,'').length<=3){ps=[ps[0]+ps[1]].concat(ps.slice(2))}   // capBal：句首短語（不過，／但，）併入下一段，過長時對半斷
 
  const NUM=/[零〇一二兩三四五六七八九十百千萬點]/;
