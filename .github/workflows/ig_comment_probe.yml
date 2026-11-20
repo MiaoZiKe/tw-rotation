@@ -1,0 +1,19 @@
+name: ig_comment_probe
+# 只能手動觸發；①哩股哩股讀留言診斷（唯讀，只印數量與錯誤碼，不印留言內容、使用者名稱、權杖）。2026-11-20。
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: scripts
+      - name: 診斷
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN_AUTO: ${{ secrets.IG_ACCESS_TOKEN_AUTO }}
+        run: python3 scripts/ig_comment_probe.py
