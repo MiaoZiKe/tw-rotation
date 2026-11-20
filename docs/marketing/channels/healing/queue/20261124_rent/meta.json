@@ -5,8 +5,7 @@
   "ig",
   "threads"
  ],
- "status": "draft",
- "await_review": true,
+ "status": "approved",
  "publish_at": "2026-11-24T12:27+08:00",
- "note": "2026-11-20 總編輯排程（下週內容做到週四）。圖已產、覆蓋檢查與對比檢查通過；art-director 獨立審圖尚未做（本棒無派工工具），審過後 status 改 approved 再推。版型同 11/11～11/22 已確認規格。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；審查 ai_review.md；選題見 ../_plan_1124.md。"
+ "note": "2026-11-20 總編輯排程（下週內容做到週四）。圖已產、覆蓋檢查與對比檢查通過；2026-11-20 獨立審查通過（見 ai_review.md、scores.md），status=approved。版型同 11/11～11/22 已確認規格。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；審查 ai_review.md；選題見 ../_plan_1124.md。"
 }
