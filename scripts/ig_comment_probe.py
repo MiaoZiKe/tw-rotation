@@ -43,9 +43,20 @@ FB = "https://graph.facebook.com/v24.0"
 for pre in ("TECH_", "CAFFAINE_", "HEALING_"):
     tk = (os.environ.get(pre + "IG_ACCESS_TOKEN_AUTO") or os.environ.get(pre + "IG_ACCESS_TOKEN") or "").strip()
     uid = (os.environ.get(pre + "IG_USER_ID") or "").strip()
-    print(f"\n#### {pre}（{'EAA' if tk.startswith('EAA') else tk[:4]}，有 IG_USER_ID={bool(uid)}）")
+    if tk and not uid:
+        try:  # 跟發文／留言程式同一套找法（粉絲專頁 → 多路徑探查）
+            import sys; sys.path.insert(0, os.path.dirname(__file__))
+            import healing_post as HP
+            pages = HP.fb_pages(tk, with_token=True)
+            uid, _ = HP.pick_ig(pages, HP.channel_account(pre))
+            if not uid:
+                ids, _ = HP.ig_choices(HP.fb_ig_candidates(tk), HP.channel_account(pre))
+                uid = ids[0] if ids else ""
+        except Exception as e:
+            print(f"  找 IG 編號失敗：{type(e).__name__}")
+    print(f"\n#### {pre}（{'EAA' if tk.startswith('EAA') else tk[:4]}，找到 IG 編號={bool(uid)}）")
     if not (tk and uid):
-        print("  缺權杖或 IG_USER_ID，略過"); continue
+        print("  缺權杖或 IG 編號，略過"); continue
     T, keep = tk, T
     st, b = get(f"{FB}/{uid}/media", fields="id,timestamp,comments_count", limit=5)
     if st != 200:
