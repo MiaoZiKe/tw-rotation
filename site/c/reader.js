@@ -16,7 +16,7 @@
   const canList = () => admin() || (member() && unlocked());
   const getJ = (u) => fetch(u, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
   const login = () => { try { window.TwAccount && TwAccount.login && TwAccount.login(); } catch (e) { /* 帳號功能沒開 */ } };
-  const app = $('#app');
+  const app = $('#app'), SC = $('#scr');   // 捲動容器：版面固定成「頁首／可捲內容／底部工具列」三段，工具列不蓋內文
 
   const block = (b) => {
     if (!b) return '';
@@ -131,7 +131,7 @@
     const pub0 = ((d.sources || [])[0] || {}).publisher, pub = pub0 && pub0.length <= 12 ? pub0 : '';   // 太長的出處名（例如整串工具版本）不放進 meta 一行
     const jumps = (bl.some((b) => b.t === 'mp4' && okUrl(b.src)) ? '<a href="#" data-jump=".vid">▶ 先看影片</a>' : '') + (bl.some((b) => b.t === 'steps' || b.t === 'prompt') ? '<a href="#" data-jump="ol.st,.pr">🔎 直接看做法</a>' : '');
     app.innerHTML = `<div class="aw"><nav class="rail" id="rail" aria-label="文章目錄"></nav><article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><div class="tags">${(d.tags || []).filter((t) => t !== CH.name).map((t) => `<span class="pill">${esc(t)}</span>`).join('')}</div><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}・閱讀約 ${esc(d.reading_min || 1)} 分鐘${pub ? '・資料：' + esc(pub) : ''}</div>${jumps ? `<div class="jump">${jumps}</div>` : ''}${banner()}${bl.map(block).join('')}${tail(d)}</article></div>`;
-    window.scrollTo(0, 0);
+    SC.scrollTo(0, 0);
     mountKit(id);
     mountToc(); fitSvgs();
     try { window.TwArtM && TwArtM.open(id, CH.id, app.querySelector('.art .meta')); } catch (e) { /* 觀測失敗不影響閱讀 */ }
@@ -162,21 +162,13 @@
     if (tick) return; tick = true;
     requestAnimationFrame(() => {
       tick = false;
-      const t = document.getElementById('topBtn'); if (t) t.hidden = window.scrollY < 500;
+      const t = document.getElementById('topBtn'); if (t) t.hidden = SC.scrollTop < 500;
       const pg = document.querySelector('.prog b'), art = app.querySelector('.art');
-      if (pg && art) { const r = art.getBoundingClientRect(), tot = r.height - innerHeight; pg.style.width = (tot > 0 ? Math.max(0, Math.min(1, -r.top / tot)) * 100 : 100) + '%'; }
-      if (secs.length) { let cur = -1; secs.forEach((h, i) => { if (h.getBoundingClientRect().top < 120) cur = i; }); document.querySelectorAll('.tocb li,.rail li').forEach((el) => el.classList.toggle('on', +el.dataset.i === cur)); }
-      /* 浮動鈕蓋到圖表（svg 圖）就整組讓位，離開再回來；手動展開目錄時不讓位 */
-      if (fabs) {
-        const w = fabs.offsetWidth, h = fabs.offsetHeight, L = 12, B = innerHeight - 12, T = B - h, R = L + w;
-        let hit = false;
-        app.querySelectorAll('figure.fs .fz img').forEach((im) => { if (hit) return; const r = im.getBoundingClientRect(); if (r.width && r.right > L - 6 && r.left < R + 6 && r.bottom > T - 6 && r.top < B + 6) hit = true; });
-        fabs.classList.toggle('yd', hit);
-        fabs.setAttribute('aria-hidden', hit ? 'true' : 'false');
-      }
+      if (pg && art) { const r = art.getBoundingClientRect(), tot = r.height - SC.clientHeight; pg.style.width = (tot > 0 ? Math.max(0, Math.min(1, -r.top / tot)) * 100 : 100) + '%'; }
+      if (secs.length) { let cur = -1; const top0 = SC.getBoundingClientRect().top; secs.forEach((h, i) => { if (h.getBoundingClientRect().top - top0 < 120) cur = i; }); document.querySelectorAll('.tocb li,.rail li').forEach((el) => el.classList.toggle('on', +el.dataset.i === cur)); }
     });
   };
-  window.addEventListener('scroll', onScroll, { passive: true });
+  SC.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
   /* SVG 圖表：依圖內最小字級算出「手機上字不小於 13px」所需的寬度，窄螢幕就橫向滑動，不縮到看不見 */
   const svgW = {};
@@ -234,7 +226,7 @@
     if (t.closest('#tocBtn')) { const s = document.getElementById('tocSheet'); s.hidden = !s.hidden; t.closest('#tocBtn').setAttribute('aria-expanded', String(!s.hidden)); return; }
     if (t.closest('#tocX')) { document.getElementById('tocSheet').hidden = true; return; }
     const a = t.closest('a[data-sec]'); if (a) { e.preventDefault(); document.getElementById('tocSheet').hidden = true; const h = document.getElementById(a.dataset.sec); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-    if (t.closest('#topBtn')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (t.closest('#topBtn')) { SC.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (t.id === 'tocSheet') t.hidden = true;
   });
   /* 分類 chip：只切顯示，不重畫；同時按下的 chip 標 aria-pressed */
