@@ -1,7 +1,7 @@
 name: healing_comments
 # 頻道④「談晴說礙」IG：讀主留言 → 檢查有沒有追蹤 → 自動私訊（Private Replies）。
 # 2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」。說明：docs/marketing/channels/healing/comment_dm.md
-# - 輪詢（不用 webhook、免架伺服器）：每 15 分鐘一輪，分鐘錯開整點。
+# - 輪詢（不用 webhook、免架伺服器）：主力是 gh-cron Worker 每 10 分鐘派一次（2026-11-20 起，xx:x4，dry_run=false）；下面的 GitHub 排程只是保底（實測 6～9 小時才跑一次）。
 # - 設定 docs/marketing/channels/healing/dm_config.json（enabled／only_followers／unknown_follow／max_per_run／文案）。
 # - 沒有權杖 → 空跑、以成功結束，摘要寫「等待權杖」。
 # - 紀錄 state/comments_dm.json 只存留言編號雜湊、時間、結果（不存留言全文與使用者名稱），寫回 main。
@@ -28,6 +28,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          # 2026-11-20 只拉程式與設定，不拉資料湖和影音圖檔（整包 2.9GB、checkout 要 100 秒以上；留言要 10 分鐘內回，工作流要輕）
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/data/
+            !/site/
+            !*.mp4
+            !*.mov
+            !*.jpg
+            !*.jpeg
+            !*.png
+            !*.webp
+            !*.gif
+            !*.parquet
+            !*.zip
+            !*.pdf
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

@@ -33,6 +33,10 @@ def test_派出去的輸入都是_workflow_認得的值():
         ["node", "-e", "import('./workers/gh-cron/src/schedule.js').then(m=>console.log(JSON.stringify(m.SCHEDULE)))"],
         capture_output=True, text=True, cwd=ROOT, check=True).stdout
     sched = json.loads(out)
+    out2 = subprocess.run(
+        ["node", "-e", "import('./workers/gh-cron/src/schedule.js').then(m=>console.log(JSON.stringify(m.INTERVAL_JOBS)))"],
+        capture_output=True, text=True, cwd=ROOT, check=True).stdout
+    sched += json.loads(out2)      # 2026-11-20 每 10 分鐘的留言派工也要查（輸入是 workflow 認得的值、workflow 真的存在）
     for j in sched:
         wf = yaml.safe_load((ROOT / ".github/workflows" / j["workflow"]).read_text(encoding="utf-8"))
         on = wf.get("on") or wf.get(True)

@@ -1131,10 +1131,12 @@ def test_還沒到時間的稿格式錯只警告_不alert不失敗(monkeypatch, 
     assert "status: posted" in (good / "post.md").read_text()
 
 
-def test_留言私訊輪詢不受發文檢查影響_工作流不因check失敗():
-    wf = (Path(__file__).resolve().parents[1] / ".github/workflows/tc_post.yml").read_text(encoding="utf-8")
-    assert "scripts/tc_post.py --check" in wf
-    # --check 一律 exit 0，所以輪詢步驟一定會跑
+def test_留言私訊輪詢獨立成tc_comments_不受發文檢查影響():
+    """2026-11-20：留言回覆從 tc_post.yml 拆到 tc_comments.yml（Worker 每 10 分鐘派）；發文工作流不再跑留言步驟，避免兩邊同時改 state/tc。"""
+    base = Path(__file__).resolve().parents[1] / ".github/workflows"
+    assert "tc_ig_dm.py" not in (base / "tc_post.yml").read_text(encoding="utf-8")
+    wf = (base / "tc_comments.yml").read_text(encoding="utf-8")
+    assert "scripts/tc_threads_replies.py" in wf and "scripts/tc_ig_dm.py" in wf
     seg = wf.split("Threads 留言關鍵字")[1].split("run:")[0]
     assert "continue-on-error: true" in seg and "if:" not in seg
 

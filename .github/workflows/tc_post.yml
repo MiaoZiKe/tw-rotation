@@ -55,29 +55,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
           case "$IN_POST" in ''|*[!A-Za-z0-9_-]*) ;; *) args="$args --post $IN_POST" ;; esac
           python scripts/tc_post.py $args
-      - name: Threads 留言關鍵字 → 公開回覆（輪詢；文案沒過法遵前只記錄）
-        id: replies
-        continue-on-error: true
-        env:
-          TC_THREADS_TOKEN: ${{ secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN }}
-          TC_THREADS_USER_ID: ${{ secrets.TECH_THREADS_USER_ID }}
-          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-        run: |
-          args=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
-          python scripts/tc_threads_replies.py $args
-      - name: IG 留言關鍵字 → 私訊 → 回「好了」查追蹤 → 送整理（輪詢版；文案沒過法遵前只記錄）
-        id: igdm
-        continue-on-error: true
-        env:
-          TC_IG_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN }}
-          TC_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          TC_UNLOCK_CODE: ${{ secrets.TC_UNLOCK_CODE }}   # 2026-11-16 私訊連結帶頻道憑證（site/articles/unlock.json 只放它的 sha256）
-        run: |
-          args=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
-          python scripts/tc_ig_dm.py $args
+      # 2026-11-20 留言關鍵字回覆（Threads 公開回覆＋IG 私訊）拆到 tc_comments.yml，由 gh-cron Worker 每 10 分鐘派；這裡只管發文。
       - name: 回寫發文結果（只 add 頻道② 的佇列與紀錄）
         if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)
         run: |

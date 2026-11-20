@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dueJobs, SCHEDULE, taipeiParts } from '../src/schedule.js';
+import { dueJobs, SCHEDULE, INTERVAL_JOBS, taipeiParts } from '../src/schedule.js';
 import { runScheduled } from '../src/index.js';
 
 // 台北 yyyy-mm-dd HH:MM → UTC 毫秒
 const tpe = (s) => Date.parse(s.replace(' ', 'T') + ':00+08:00');
-const names = (ms, opts) => dueJobs(ms, opts).map((j) => `${j.workflow}:${JSON.stringify(j.inputs)}`);
+// 既有測試只看 SCHEDULE 的派工；2026-11-20 起每 10 分鐘的留言派工（INTERVAL_JOBS）另有專屬測試，這裡濾掉
+const isInterval = (j) => INTERVAL_JOBS.some((i) => i.workflow === j.workflow);
+const allNames = (ms, opts) => dueJobs(ms, opts).map((j) => `${j.workflow}:${JSON.stringify(j.inputs)}`);
+const names = (ms, opts) => dueJobs(ms, opts).filter((j) => !isInterval(j)).map((j) => `${j.workflow}:${JSON.stringify(j.inputs)}`);
 
 test('台北時間換算：UTC 01:33 ＝ 台北 09:33', () => {
   assert.deepEqual(taipeiParts(Date.UTC(2026, 9, 21, 1, 33)), { date: '2026-10-21', hhmm: '09:33', dow: 3 });
@@ -202,4 +205,33 @@ test('2026-11-17 談晴說礙自動發文：每天 12:27／20:27 準時派 heali
   for (const day of ['2026-11-17', '2026-11-22']) {
     for (const t of ['12:27', '12:42', '12:57', '20:27', '20:42', '20:57']) assert.deepEqual(names(tpe(`${day} ${t}`)), want, `${day} ${t}`);
   }
+});
+
+test('2026-11-20 留言私訊：每 10 分鐘各派一次（含週末與休市日），四個 workflow 分鐘錯開', () => {
+  const want = {
+    '03': 'ligu_comments.yml:{"dry_run":"false"}',
+    '04': 'healing_comments.yml:{"dry_run":"false"}',
+    '05': 'channel_comments.yml:{"channel":"all","dry_run":"false"}',
+    '09': 'tc_comments.yml:{"dry_run":"false"}',
+  };
+  for (const day of ['2026-11-20', '2026-11-22', '2026-10-26']) {
+    for (const hh of ['00', '07', '12', '23']) {
+      for (const tens of ['0', '1', '2', '3', '4', '5']) {
+        for (const [u, w] of Object.entries(want)) {
+          const t = `${hh}:${tens}${+u}`;
+          const got = allNames(tpe(`${day} ${t}`));
+          assert.ok(got.includes(w), `${day} ${t} 應該派 ${w}，實際 ${got}`);
+        }
+      }
+    }
+  }
+  // 非這四個分鐘尾數不派留言工作流
+  for (const t of ['12:00', '12:01', '12:02', '12:06', '12:08', '12:13', '12:14']) {
+    assert.ok(!allNames(tpe(`2026-11-20 ${t}`)).some((n) => /_comments\.yml/.test(n)) || /[3459]$/.test(t), t);
+  }
+  assert.deepEqual(allNames(tpe('2026-11-20 12:06')), []);
+});
+
+test('留言私訊的間隔派工不跟 SCHEDULE 撞分鐘（撞了同一分鐘會派兩筆）', () => {
+  for (const j of SCHEDULE) for (const i of INTERVAL_JOBS) assert.notEqual(+j.at.slice(3) % i.every, i.offset, `${j.at} 跟 ${i.workflow} 撞分鐘`);
 });

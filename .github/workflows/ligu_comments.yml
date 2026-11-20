@@ -1,0 +1,78 @@
+name: ligu_comments
+# 頻道①「哩股哩股」IG：留言含關鍵字 → 私訊來源連結（IGAA 權杖，真私訊）；私訊失敗退回公開貼連結。
+# 2026-11-20 Andy：「當讀者在影片底下留下關鍵留言，我沒發現我這邊有主動私訊他提供連結」。程式 scripts/ligu_comments.py，設定 social/ig/dm_config.json。
+# - 主力：gh-cron Worker 每 10 分鐘派一次（xx:x3，dry_run=false）；下面的 GitHub 排程只是保底（實測 6～9 小時才跑一次）。
+# - 紀錄 social/ig/state/comments_dm.json 只存留言 id 的雜湊、時間、結果（不存留言全文、使用者名稱、權杖）。
+on:
+  schedule:
+    - cron: "13,43 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "空跑（true＝只讀留言、印出會做什麼，不私訊、不寫紀錄；false＝真的私訊）"
+        type: boolean
+        default: true
+permissions:
+  contents: write   # 把 social/ig/state/comments_dm.json 推回 main（不含權杖）
+concurrency:
+  group: ligu_comments
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/data/
+            !/site/
+            !*.mp4
+            !*.mov
+            !*.jpg
+            !*.jpeg
+            !*.png
+            !*.webp
+            !*.gif
+            !*.parquet
+            !*.zip
+            !*.pdf
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests
+      - name: 判斷空跑
+        id: mode
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+      - name: 讀留言、符合關鍵字就私訊來源連結（失敗會紅燈）
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+        run: python scripts/ligu_comments.py ${{ steps.mode.outputs.dry }}
+      - name: 私訊紀錄寫回 main（只有雜湊、時間、結果，沒有權杖）
+        if: always() && steps.mode.outputs.dry == ''
+        run: |
+          F="social/ig/state/comments_dm.json"
+          [ -f "$F" ] || { echo "沒有紀錄檔"; exit 0; }
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          MSG="①：留言私訊紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          cp "$F" "$RUNNER_TEMP/comments_dm.json"
+          git add -- "$F"
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "$MSG"
+          for i in 1 2 3 4; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            sleep $((2 ** i))
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p "$(dirname "$F")" && cp "$RUNNER_TEMP/comments_dm.json" "$F"
+            git add -- "$F"
+            git diff --staged --quiet && { echo "遠端已是同一份"; exit 0; }
+            git commit -q -m "$MSG"
+          done
+          echo "::error::推不上 main"; exit 1

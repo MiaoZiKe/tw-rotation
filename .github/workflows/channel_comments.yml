@@ -5,7 +5,7 @@ name: channel_comments
 # - 每個頻道一個 job，只帶自己前綴的 IG Secrets；紀錄 <頻道>/state/comments_dm.json 只存留言編號雜湊、時間、結果。
 on:
   schedule:
-    - cron: "11,41 * * * *"   # 每 30 分鐘（分鐘錯開整點與 healing_comments 的 7／22／37／52）
+    - cron: "11,41 * * * *"   # 保底：GitHub 排程實測 6～9 小時才跑一次；主力是 gh-cron Worker 每 10 分鐘派（2026-11-20 起，xx:x5）
   workflow_dispatch:
     inputs:
       channel:
@@ -27,6 +27,24 @@ jobs:
       count: ${{ steps.p.outputs.count }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # 2026-11-20 只拉程式與設定，不拉資料湖和影音圖檔（整包 2.9GB、checkout 要 100 秒以上；留言要 10 分鐘內回，工作流要輕）
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/data/
+            !/site/
+            !*.mp4
+            !*.mov
+            !*.jpg
+            !*.jpeg
+            !*.png
+            !*.webp
+            !*.gif
+            !*.parquet
+            !*.zip
+            !*.pdf
       - name: 哪幾個頻道開了留言私訊
         id: p
         env:
@@ -51,6 +69,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          # 2026-11-20 只拉程式與設定，不拉資料湖和影音圖檔（整包 2.9GB、checkout 要 100 秒以上；留言要 10 分鐘內回，工作流要輕）
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/data/
+            !/site/
+            !*.mp4
+            !*.mov
+            !*.jpg
+            !*.jpeg
+            !*.png
+            !*.webp
+            !*.gif
+            !*.parquet
+            !*.zip
+            !*.pdf
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
