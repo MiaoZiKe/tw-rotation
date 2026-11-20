@@ -1,13 +1,4 @@
 {
- "20261117_made-by-ai": {
-  "at": "2026-11-17T06:49:16+08:00",
-  "bytes": 12744205,
-  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261117_made-by-ai__cover.jpg",
-  "cover_sha256": "02335b641c96c287eaecc547f6d3020e0e0384328c214fe9f29a2726ce7c3632",
-  "sha256": "69fbf676df4b9e1f93fc56ae9637157f3492e8253f8772651f9a268a53c381dd",
-  "src": "media/caffaine/20261117_made-by-ai",
-  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261117_made-by-ai.mp4"
- },
  "20261118_same-look": {
   "at": "2026-11-17T06:49:16+08:00",
   "bytes": 12783231,
