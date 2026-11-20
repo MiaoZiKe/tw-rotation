@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4b507a"/></marker></defs>
+<rect width="960" height="440" rx="18" fill="#f4f5ff"/>
+<text x="480" y="48" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">你做的事、AI 做的事（流程示意）</text>
+<rect x="30" y="110" width="190" height="110" rx="14" fill="#fff" stroke="#4a5bd8" stroke-width="3"/>
+<text x="125" y="150" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2350">你：交代</text>
+<text x="125" y="182" text-anchor="middle" font-size="18" fill="#4b507a">用中文講要什麼</text>
+<rect x="275" y="110" width="190" height="110" rx="14" fill="#fff" stroke="#d9dcf5" stroke-width="3"/>
+<text x="370" y="150" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2350">AI：腳本檔</text>
+<text x="370" y="182" text-anchor="middle" font-size="18" fill="#4b507a">604 行，全是文字</text>
+<rect x="520" y="110" width="190" height="110" rx="14" fill="#fff" stroke="#d9dcf5" stroke-width="3"/>
+<text x="615" y="150" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2350">AI：畫圖程式</text>
+<text x="615" y="182" text-anchor="middle" font-size="18" fill="#4b507a">3,000 多行</text>
+<rect x="765" y="110" width="165" height="110" rx="14" fill="#fff" stroke="#d9dcf5" stroke-width="3"/>
+<text x="847" y="150" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2350">成品影片</text>
+<text x="847" y="182" text-anchor="middle" font-size="18" fill="#4b507a">約 50 秒</text>
+<path d="M220 165H270" stroke="#4b507a" stroke-width="3" marker-end="url(#a)"/>
+<path d="M465 165H515" stroke="#4b507a" stroke-width="3" marker-end="url(#a)"/>
+<path d="M710 165H760" stroke="#4b507a" stroke-width="3" marker-end="url(#a)"/>
+<rect x="520" y="300" width="410" height="90" rx="14" fill="#fff4ec" stroke="#e8613c" stroke-width="3"/>
+<text x="725" y="338" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2350">你：看成品，哪裡不對就講</text>
+<text x="725" y="368" text-anchor="middle" font-size="18" fill="#4b507a">例如「開頭看不懂」，請它退回重做</text>
+<path d="M847 225V295" stroke="#4b507a" stroke-width="3" marker-end="url(#a)"/>
+<path d="M520 345H125V225" fill="none" stroke="#e8613c" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#a)"/>
+<text x="300" y="332" text-anchor="middle" font-size="18" fill="#c2441f">不對就退回，再來一輪</text>
+</svg>

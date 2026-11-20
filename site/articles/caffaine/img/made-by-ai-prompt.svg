@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="440" rx="18" fill="#f4f5ff"/>
+<text x="480" y="48" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">一句好交代，要講清楚三件事（示意）</text>
+<rect x="36" y="90" width="280" height="290" rx="16" fill="#fff" stroke="#4a5bd8" stroke-width="3"/>
+<text x="176" y="136" text-anchor="middle" font-size="26" font-weight="700" fill="#4a5bd8">① 做什麼</text>
+<text x="176" y="184" text-anchor="middle" font-size="19" fill="#4b507a">一支 30 秒的短影片</text>
+<text x="176" y="216" text-anchor="middle" font-size="19" fill="#4b507a">主題講什麼</text>
+<text x="176" y="270" text-anchor="middle" font-size="17" fill="#8a5e00">例：AI 整理會議紀錄</text>
+<rect x="340" y="90" width="280" height="290" rx="16" fill="#fff" stroke="#2a7f8f" stroke-width="3"/>
+<text x="480" y="136" text-anchor="middle" font-size="26" font-weight="700" fill="#1f6a78">② 給誰看</text>
+<text x="480" y="184" text-anchor="middle" font-size="19" fill="#4b507a">看的人是誰</text>
+<text x="480" y="216" text-anchor="middle" font-size="19" fill="#4b507a">他需要知道什麼</text>
+<text x="480" y="270" text-anchor="middle" font-size="17" fill="#8a5e00">例：每天開會的上班族</text>
+<rect x="644" y="90" width="280" height="290" rx="16" fill="#fff" stroke="#e8613c" stroke-width="3"/>
+<text x="784" y="136" text-anchor="middle" font-size="26" font-weight="700" fill="#c2441f">③ 先確認重點</text>
+<text x="784" y="184" text-anchor="middle" font-size="19" fill="#4b507a">動工前先用一句話</text>
+<text x="784" y="216" text-anchor="middle" font-size="19" fill="#4b507a">寫出重點給你看</text>
+<text x="784" y="270" text-anchor="middle" font-size="17" fill="#8a5e00">你點頭，它才開始做</text>
+</svg>
