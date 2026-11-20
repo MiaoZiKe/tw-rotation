@@ -61,7 +61,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-20 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-20 20:30 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/reel/Df9qOGRlX8S/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Df9qVm4lPJh"
+    }
+   ]
   }
  ],
  "sources": [
@@ -104,8 +118,8 @@
  "confidence": "官方指標＋央行報告＋媒體一致；適用全體家戶中位數，非只算首購族",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/reel/Df9qOGRlX8S/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Df9qVm4lPJh",
   "queue": "20261120v_mortgage",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261120v_mortgage/video.mp4"
