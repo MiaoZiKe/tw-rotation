@@ -16,4 +16,13 @@ jobs:
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_ACCESS_TOKEN_AUTO: ${{ secrets.IG_ACCESS_TOKEN_AUTO }}
+          TECH_IG_ACCESS_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN }}
+          TECH_IG_ACCESS_TOKEN_AUTO: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO }}
+          TECH_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
+          CAFFAINE_IG_ACCESS_TOKEN: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN }}
+          CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO }}
+          CAFFAINE_IG_USER_ID: ${{ secrets.CAFFAINE_IG_USER_ID }}
+          HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
+          HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
         run: python3 scripts/ig_comment_probe.py

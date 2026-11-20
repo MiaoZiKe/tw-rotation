@@ -38,6 +38,26 @@ def show(label, st, b, key="data"):
         print(f"  [200] {label}：{key}={n if not isinstance(n, int) else n}")
 
 
+# 2026-11-20 補：EAA（Facebook 登入）權杖的頻道②③④也看一次，只比對 comments_count 與讀回則數
+FB = "https://graph.facebook.com/v24.0"
+for pre in ("TECH_", "CAFFAINE_", "HEALING_"):
+    tk = (os.environ.get(pre + "IG_ACCESS_TOKEN_AUTO") or os.environ.get(pre + "IG_ACCESS_TOKEN") or "").strip()
+    uid = (os.environ.get(pre + "IG_USER_ID") or "").strip()
+    print(f"\n#### {pre}（{'EAA' if tk.startswith('EAA') else tk[:4]}，有 IG_USER_ID={bool(uid)}）")
+    if not (tk and uid):
+        print("  缺權杖或 IG_USER_ID，略過"); continue
+    T, keep = tk, T
+    st, b = get(f"{FB}/{uid}/media", fields="id,timestamp,comments_count", limit=5)
+    if st != 200:
+        print(f"  讀貼文 [{st}] {err(b)}"); T = keep; continue
+    for m in b.get("data") or []:
+        if not m.get("comments_count"):
+            continue
+        st, c = get(f"{FB}/{m['id']}/comments", fields="id,timestamp", limit=50)
+        n = len(c.get("data") or []) if st == 200 else f"[{st}] {err(c)}"
+        print(f"  貼文 …{m['id'][-4:]} {m.get('timestamp','')[:10]} comments_count={m['comments_count']} 讀回={n}")
+    T = keep
+print()
 if not T:
     print("沒有 IG_ACCESS_TOKEN"); raise SystemExit(0)
 print("權杖類型：", "IGAA" if T.startswith("IG") else T[:3], "長度", len(T))
