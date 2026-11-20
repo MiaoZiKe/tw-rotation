@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="400" rx="18" fill="#f4f5ff"/>
+<text x="480" y="46" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">同一件事：雙十二客服排班，誰負責？</text>
+<rect x="36" y="68" width="888" height="62" rx="12" fill="#fff" stroke="#d9dcf5" stroke-width="2"/>
+<text x="56" y="94" font-size="18" fill="#4b507a">會議紀錄原文</text>
+<text x="56" y="120" font-size="22" font-weight="700" fill="#1f2350">「雙十二檔期的客服排班要在 11 月底前排好，目前還沒有指派負責人。」</text>
+<g>
+<rect x="36" y="160" width="276" height="180" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="36" y="160" width="276" height="10" rx="5" fill="#e8613c"/>
+<text x="60" y="206" font-size="20" fill="#4b507a">第一次（01:40）</text>
+<text x="60" y="256" font-size="34" font-weight="700" fill="#c2441f">行銷經理</text>
+<text x="60" y="296" font-size="19" fill="#4b507a">原文沒寫，是 AI 猜的</text>
+</g>
+<g>
+<rect x="342" y="160" width="276" height="180" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="342" y="160" width="276" height="10" rx="5" fill="#2e9c6a"/>
+<text x="366" y="206" font-size="20" fill="#4b507a">第二次（01:43）</text>
+<text x="366" y="256" font-size="34" font-weight="700" fill="#1e6544">待指派</text>
+<text x="366" y="296" font-size="19" fill="#4b507a">和原文一致</text>
+</g>
+<g>
+<rect x="648" y="160" width="276" height="180" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="648" y="160" width="276" height="10" rx="5" fill="#5b63e8"/>
+<text x="672" y="206" font-size="20" fill="#4b507a">加規定再問（01:44）</text>
+<text x="672" y="256" font-size="34" font-weight="700" fill="#2f3a9e">未指定</text>
+<text x="672" y="296" font-size="19" fill="#4b507a">照規定，沒寫就不補</text>
+</g>
+<rect x="36" y="358" width="888" height="30" rx="8" fill="#e8eaff"/>
+<text x="480" y="379" text-anchor="middle" font-size="18" fill="#1f2350">三次回答的負責人欄，節錄自 Gemini 實測（2026/11/16，台北時間）</text>
+</svg>

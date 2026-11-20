@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="380" rx="18" fill="#f4f5ff"/>
+<text x="480" y="46" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">重要的事，兩招擇一</text>
+<g>
+<rect x="36" y="76" width="432" height="240" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="36" y="76" width="432" height="10" rx="5" fill="#5b63e8"/>
+<circle cx="80" cy="130" r="24" fill="#5b63e8"/><text x="80" y="139" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">1</text>
+<text x="118" y="140" font-size="26" font-weight="700" fill="#1f2350">問兩次，對一對</text>
+<text x="64" y="190" font-size="21" fill="#1f2350">兩次一樣：可以放心用</text>
+<text x="64" y="228" font-size="21" fill="#1f2350">兩次不一樣：回原文核對</text>
+<text x="64" y="266" font-size="21" fill="#c2441f" font-weight="700">以原文為準</text>
+</g>
+<g>
+<rect x="492" y="76" width="432" height="240" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/><rect x="492" y="76" width="432" height="10" rx="5" fill="#2e9c6a"/>
+<circle cx="536" cy="130" r="24" fill="#2e9c6a"/><text x="536" y="139" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">2</text>
+<text x="574" y="140" font-size="26" font-weight="700" fill="#1f2350">先立規定</text>
+<text x="520" y="190" font-size="21" fill="#1f2350">只根據我給的資料</text>
+<text x="520" y="228" font-size="21" fill="#1f2350">沒寫的填「未指定」</text>
+<text x="520" y="266" font-size="21" fill="#1f2350">還沒決定的放「待決定」</text>
+</g>
+<rect x="36" y="332" width="888" height="30" rx="8" fill="#e8eaff"/>
+<text x="480" y="353" text-anchor="middle" font-size="18" fill="#1f2350">第二招是本次實測用的做法；兩招也可以一起用</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif">
+<rect width="960" height="380" rx="18" fill="#f4f5ff"/>
+<text x="480" y="46" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2350">AI 寫下一個字之前，像在抽籤（示意）</text>
+<text x="60" y="100" font-size="21" fill="#4b507a">已經寫出：「負責人：」</text>
+<g font-size="22" fill="#1f2350">
+<text x="60" y="160">待指派</text><rect x="200" y="140" width="420" height="26" rx="6" fill="#2e9c6a"/>
+<text x="60" y="206">行銷經理</text><rect x="200" y="186" width="360" height="26" rx="6" fill="#e8613c"/>
+<text x="60" y="252">未指定</text><rect x="200" y="232" width="200" height="26" rx="6" fill="#5b63e8"/>
+<text x="60" y="298">客服主管</text><rect x="200" y="278" width="120" height="26" rx="6" fill="#9aa0c8"/>
+</g>
+<rect x="660" y="120" width="264" height="150" rx="16" fill="#fff" stroke="#d9dcf5" stroke-width="2"/>
+<text x="792" y="162" text-anchor="middle" font-size="20" fill="#1f2350">長的比較容易被抽到</text>
+<text x="792" y="196" text-anchor="middle" font-size="20" fill="#1f2350">但短的也有機會</text>
+<text x="792" y="236" text-anchor="middle" font-size="20" font-weight="700" fill="#c2441f">丟兩次，結果不一定相同</text>
+<rect x="36" y="328" width="888" height="34" rx="10" fill="#e8eaff"/>
+<text x="480" y="351" text-anchor="middle" font-size="18" fill="#1f2350">候選字與長短只是舉例，不是任何模型的實際機率</text>
+</svg>
