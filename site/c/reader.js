@@ -30,8 +30,8 @@
       case 'callout': return `<div class="callout">${esc(b.text)}</div>`;
       case 'ul': return `<ul>${(b.items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
       case 'steps': return `${b.title ? `<h2>${esc(b.title)}</h2>` : ''}<ol class="st">${(b.items || []).map((x) => `<li><b>${esc(x.label)}</b>${x.text ? '：' + esc(x.text) : ''}</li>`).join('')}</ol>${b.note ? `<p class="n">${esc(b.note)}</p>` : ''}`;
-      case 'table': return `<div class="tw"><table><thead><tr>${(b.head || []).map((x) => `<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${(b.rows || []).map((r) => `<tr>${r.map((x) => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-      case 'img': return `<div class="imgs c${Math.min((b.items || []).length, 3)}${b.wide ? ' wide' : ''}">${(b.items || []).map((x) => okUrl(x.src) ? `<figure><img src="${esc(rel(x.src))}" alt="${esc(x.alt)}" loading="lazy">${x.cap ? `<figcaption>${esc(x.cap)}</figcaption>` : ''}</figure>` : '').join('')}</div>`;
+      case 'table': return `<div class="tw"><table><thead><tr>${(b.head || []).map((x) => `<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${(b.rows || []).map((r) => `<tr>${r.map((x, i) => `<td data-l="${esc((b.head || [])[i] || '')}">${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      case 'img': return `<div class="imgs c${Math.min((b.items || []).length, 3)}${b.wide ? ' wide' : ''}">${(b.items || []).map((x) => okUrl(x.src) ? `<figure><div class="fz"><img src="${esc(rel(x.src))}" alt="${esc(x.alt)}" loading="lazy" data-zoom="1" tabindex="0" role="button" aria-label="${esc((x.alt || '圖') + '，點一下放大')}"></div><span class="zh">點圖可放大</span>${x.cap ? `<figcaption>${esc(x.cap)}</figcaption>` : ''}</figure>` : '').join('')}</div>`;
       case 'links': return `${b.title ? `<h2>${esc(b.title)}</h2>` : ''}<ul>${(b.items || []).map((x) => (/^https:\/\//.test(x.url || '') ? `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.label)}</a></li>` : '')).join('')}</ul>`;
       case 'mp4': {
         const s = okUrl(b.src); if (!s) return '';
@@ -106,9 +106,85 @@
     app.innerHTML = `<article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}　閱讀約 ${esc(d.reading_min || 1)} 分鐘</div><div class="tags">${(d.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div>${banner()}${(d.blocks || []).map(block).join('')}${tail(d)}</article>`;
     window.scrollTo(0, 0);
     mountKit(id);
+    mountToc(); fitSvgs();
     try { window.TwArtM && TwArtM.open(id, CH.id, app.querySelector('.art .meta')); } catch (e) { /* 觀測失敗不影響閱讀 */ }
   }
+  /* ---- 手機閱讀工具：目錄抽屜、回頂端、圖片全螢幕放大（可縮放）---- */
+  let fabs = null;
+  const unmountFabs = () => { if (fabs) { fabs.remove(); fabs = null; } const s = document.getElementById('tocSheet'); if (s) s.remove(); };
+  function mountToc() {
+    unmountFabs();
+    const hh = [...app.querySelectorAll('.art > h2')];
+    hh.forEach((h, i) => { h.id = 'sec' + i; });
+    fabs = document.createElement('div'); fabs.className = 'fabs';
+    fabs.innerHTML = (hh.length ? '<button type="button" class="fab" id="tocBtn" aria-expanded="false" aria-controls="tocSheet">☰ 目錄</button>' : '') + '<button type="button" class="fab top" id="topBtn" aria-label="回到頂端" hidden>↑</button>';
+    document.body.appendChild(fabs);
+    if (hh.length) {
+      const sh = document.createElement('div'); sh.id = 'tocSheet'; sh.className = 'tocs'; sh.hidden = true;
+      sh.innerHTML = '<div class="tocb"><div class="toch"><b>目錄</b><button type="button" class="btn" id="tocX">關閉</button></div><ol>' + hh.map((h, i) => `<li><a href="#sec${i}" data-sec="sec${i}">${esc(h.textContent)}</a></li>`).join('') + '</ol></div>';
+      document.body.appendChild(sh);
+    }
+    onScroll();
+  }
+  const onScroll = () => { const t = document.getElementById('topBtn'); if (t) t.hidden = window.scrollY < 500; };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  /* SVG 圖表：依圖內最小字級算出「手機上字不小於 13px」所需的寬度，窄螢幕就橫向滑動，不縮到看不見 */
+  const svgW = {};
+  function fitSvgs() {
+    app.querySelectorAll('.fz img[src$=".svg"]').forEach((im) => {
+      const u = im.getAttribute('src');
+      (svgW[u] = svgW[u] || fetch(u).then((r) => r.text()).then((t) => {
+        const vb = (t.match(/viewBox="[\d.]+ [\d.]+ ([\d.]+) ([\d.]+)"/) || []);
+        const fs = (t.match(/font-size="([\d.]+)"/g) || []).map((x) => parseFloat(x.replace(/[^\d.]/g, ''))).filter((x) => x > 0);
+        const w = parseFloat(vb[1]) || 800, mn = fs.length ? Math.min(...fs) : 18;
+        return Math.min(Math.round(w * 13.5 / mn), 1100);
+      }).catch(() => 780)).then((w) => { im.style.setProperty('--mw', w + 'px'); const fz = im.closest('.fz'); if (w > fz.clientWidth + 4) fz.dataset.svg = '1'; });
+    });
+  }
+  let lb = null;
+  function closeLb() { if (lb) { lb.remove(); lb = null; document.documentElement.classList.remove('lbo'); } }
+  function openLb(im) {
+    closeLb();
+    lb = document.createElement('div'); lb.className = 'lb'; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-label', '圖片放大檢視');
+    const cap = im.closest('figure') && im.closest('figure').querySelector('figcaption');
+    lb.innerHTML = '<div class="lbt"><button type="button" class="btn" data-z="-">－</button><button type="button" class="btn" data-z="0">符合寬度</button><button type="button" class="btn" data-z="+">＋</button><span class="sp"></span><button type="button" class="btn fill" data-z="x">關閉</button></div><div class="lbs"><img alt=""></div><div class="lbc"></div>';
+    const g = lb.querySelector('img'); g.src = im.currentSrc || im.src; g.alt = im.alt;
+    lb.querySelector('.lbc').textContent = (cap ? cap.textContent : im.alt) + '　（兩指可縮放、單指拖曳）';
+    document.body.appendChild(lb); document.documentElement.classList.add('lbo');
+    const sc = lb.querySelector('.lbs'); let w = 0, base = 0;
+    const fit = () => { base = sc.clientWidth; return base; };
+    const setW = (nw, cx, cy) => {
+      nw = Math.max(base, Math.min(base * 5, nw)); const r = nw / (w || nw);
+      const ox = sc.scrollLeft + cx, oy = sc.scrollTop + cy; w = nw; g.style.width = w + 'px';
+      sc.scrollLeft = ox * r - cx; sc.scrollTop = oy * r - cy;
+    };
+    fit(); w = base; g.style.width = base + 'px';
+    lb.addEventListener('click', (e) => { const z = e.target.dataset && e.target.dataset.z; if (!z) return; const cx = sc.clientWidth / 2, cy = sc.clientHeight / 2;
+      if (z === 'x') closeLb(); else if (z === '0') setW(base, cx, cy); else setW(w * (z === '+' ? 1.5 : 1 / 1.5), cx, cy); });
+    sc.addEventListener('dblclick', (e) => { const r = sc.getBoundingClientRect(); setW(w > base * 1.2 ? base : base * 2.5, e.clientX - r.left, e.clientY - r.top); });
+    sc.addEventListener('wheel', (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const r = sc.getBoundingClientRect(); setW(w * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    let d0 = 0, w0 = 0;   // 兩指縮放
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    sc.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { d0 = dist(e.touches); w0 = w; } }, { passive: true });
+    sc.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && d0) { e.preventDefault(); const r = sc.getBoundingClientRect(); setW(w0 * dist(e.touches) / d0, (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left, (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top); } }, { passive: false });
+    sc.addEventListener('touchend', () => { d0 = 0; });
+    lb.querySelector('[data-z="x"]').focus();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeLb(); const s = document.getElementById('tocSheet'); if (s) s.hidden = true; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.dataset && e.target.dataset.zoom) { e.preventDefault(); openLb(e.target); }
+  });
+  document.addEventListener('click', (e) => {
+    const t = e.target; if (!t || !t.closest) return;
+    const im = t.closest('img[data-zoom]'); if (im) { openLb(im); return; }
+    if (t.closest('#tocBtn')) { const s = document.getElementById('tocSheet'); s.hidden = !s.hidden; t.closest('#tocBtn').setAttribute('aria-expanded', String(!s.hidden)); return; }
+    if (t.closest('#tocX')) { document.getElementById('tocSheet').hidden = true; return; }
+    const a = t.closest('a[data-sec]'); if (a) { e.preventDefault(); document.getElementById('tocSheet').hidden = true; const h = document.getElementById(a.dataset.sec); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (t.closest('#topBtn')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (t.id === 'tocSheet') t.hidden = true;
+  });
   function route() {
+    closeLb(); unmountFabs();
     const h = (location.hash || '').replace(/^#\/?/, '');
     if (h && okId(decodeURIComponent(h))) post(decodeURIComponent(h)); else list();
   }
