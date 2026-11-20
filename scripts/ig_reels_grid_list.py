@@ -53,11 +53,12 @@ def media_base(pfx: str, tok: str) -> str:
         return f"{IG_HOST}/me/media"
     uid = (os.environ.get(f"{pfx}IG_USER_ID") or "").strip()
     if not uid:
-        d = fetch(f"{FB_HOST}/me/accounts", {"fields": "instagram_business_account", "access_token": tok})
-        ids = [p["instagram_business_account"]["id"] for p in d.get("data", []) if p.get("instagram_business_account")]
-        if not ids:
-            raise RuntimeError("EAA 權杖看不到任何連結 IG 的粉絲專頁，也沒有設定 IG_USER_ID")
-        uid = ids[0]
+        # 跟發文同一套探查（healing_post.resolve_uid：系統用戶權杖的多路徑找 IG 編號、依 channels.json 帳號名挑）
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import healing_post as HP  # noqa: E402
+        uid = HP.resolve_uid("ig", "", tok, pfx or None)
+    if not uid:
+        raise RuntimeError("EAA 權杖找不到本帳號的 IG 編號（發文用的同一套探查也找不到）")
     return f"{FB_HOST}/{uid}/media"
 
 
