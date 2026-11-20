@@ -63,7 +63,8 @@ def test_符合關鍵字_先私訊再公開回已私訊(monkeypatch, tmp_path):
     assert code == 0 and res["sent"] == 1
     assert posts[0][0].endswith("/99/messages") and "liguligu-puipui.com" in posts[0][2]["message"]["text"]
     assert posts[1][0].endswith("/c1/replies") and posts[1][1]["message"] == "已經將「T」完整資訊給你囉～"
-    assert "dm_ok" in st.read_text()
+    rec = list(json.loads(st.read_text())["comments"].values())[0]
+    assert rec["result"] == "dm_ok" and rec["follow"] == "unknown" and rec["kind"] == "私訊＋公開回覆" and rec["kw"] == "來源"
 
 
 def test_已處理過的留言不重送(monkeypatch, tmp_path):
@@ -78,7 +79,8 @@ def test_已處理過的留言不重送(monkeypatch, tmp_path):
 def test_私訊失敗退回公開貼連結(monkeypatch, tmp_path):
     code, res, posts, st = go(monkeypatch, tmp_path, [C1], dm_fail=True)
     assert code == 0 and posts[-1][0].endswith("/c1/replies") and "liguligu-puipui.com" in posts[-1][1]["message"]
-    assert "fallback_public" in st.read_text()
+    rec = list(json.loads(st.read_text())["comments"].values())[0]
+    assert rec["result"] == "fallback_public" and "HTTP 400" in rec["dm_error"]
 
 
 def test_主題取自標題去掉頻道前綴與結尾括號():

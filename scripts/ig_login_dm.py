@@ -49,8 +49,9 @@ def in_window(comment_ts: str, now: datetime | None = None) -> bool:
 
 
 def handle_comment(token: str, uid: str, comment_id: str, comment_ts: str, *, dm_text: str, ack_text: str,
-                   fallback_text: str, enabled: bool = False, dry_run: bool = True) -> str:
-    """回傳結果代號：skipped_disabled／skipped_old／dry_run／dm_ok／dm_ok_ack_failed／fallback_public／failed。"""
+                   fallback_text: str, enabled: bool = False, dry_run: bool = True, info: dict | None = None) -> str:
+    """info（選填）：呼叫端傳入 dict，失敗原因（已截短、不含權杖）寫進 info["dm_error"]／info["public_error"]，供寫進 state 紀錄。
+    回傳結果代號：skipped_disabled／skipped_old／dry_run／dm_ok／dm_ok_ack_failed／fallback_public／failed。"""
     if not enabled:
         return "skipped_disabled"
     if not in_window(comment_ts):
@@ -62,17 +63,23 @@ def handle_comment(token: str, uid: str, comment_id: str, comment_ts: str, *, dm
         _post(f"{IG}/{uid}/messages", token, body={"recipient": {"comment_id": comment_id}, "message": {"text": dm_text}})
     except Exception as e:  # noqa: BLE001
         print("[dm] 私訊失敗，退回公開貼連結：", str(e)[:200])
+        if info is not None:
+            info["dm_error"] = str(e)[:120]
         try:
             _post(f"{IG}/{comment_id}/replies", token, params={"message": fallback_text})
             return "fallback_public"
         except Exception as e2:  # noqa: BLE001
             print("[reply] 公開回覆也失敗：", str(e2)[:200])
+            if info is not None:
+                info["public_error"] = str(e2)[:120]
             return "failed"
     try:
         _post(f"{IG}/{comment_id}/replies", token, params={"message": ack_text})
         return "dm_ok"
     except Exception as e:  # noqa: BLE001
         print("[reply] 已私訊但公開回覆失敗（不重送私訊）：", str(e)[:200])
+        if info is not None:
+            info["public_error"] = str(e)[:120]
         return "dm_ok_ack_failed"
 
 

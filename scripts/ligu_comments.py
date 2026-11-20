@@ -8,7 +8,7 @@
   2. 用 GET /{ig-user-id}/media 把「連結的短碼」對到 IG 貼文 id，再讀每篇的主留言。
   3. 留言含關鍵字、不是自己帳號、沒處理過 → scripts/ig_login_dm.handle_comment：
        先私訊來源連結 → 成功才公開回「已經將XXX完整資訊給你囉～」（XXX＝貼文主題）；私訊失敗 → 退回公開貼連結。
-  4. 每則留言最多 MAX_TRIES 輪（Meta 每則留言只准私回 1 次，成功就不再送）。
+  4. 每則留言最多 MAX_TRIES 輪；每則的結果（私訊／公開回覆／失敗原因／有沒有追蹤）都寫進紀錄檔 social/ig/state/comments_dm.json（Meta 每則留言只准私回 1 次，成功就不再送）。
 權杖只從環境變數讀（IG_ACCESS_TOKEN_AUTO 優先，其次 IG_ACCESS_TOKEN），輸出一律遮蔽；不存留言全文與使用者名稱。
 用法：python scripts/ligu_comments.py [--dry-run]
 """
@@ -171,6 +171,18 @@ def read_comments_expanded(media_id: str, token: str) -> list[dict]:
     return ((d.get("comments") or {}).get("data")) or []
 
 
+def follows(igsid: str, token: str):
+    """User Profile API：is_user_follow_business。True／False；查不到（沒傳過訊息、未同意、權限）回 None。
+    2026-11-20 Andy：只用來「記錄」，查不到或沒追蹤的人照樣給連結、不擋。"""
+    if not igsid:
+        return None
+    try:
+        v = SP.http("GET", f"{DM.IG}/{igsid}", params={"fields": "is_user_follow_business", "access_token": token}).get("is_user_follow_business")
+    except Exception:  # noqa: BLE001
+        return None
+    return v if isinstance(v, bool) else None
+
+
 def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = None, cfg_path: Path = CONFIG,
         state_path: Path = STATE, queue: Path = QUEUE) -> tuple[int, dict]:
     env = os.environ if env is None else env
@@ -237,15 +249,22 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
                 continue
             budget -= 1
             url = post["url"]
+            who = str((c.get("from") or {}).get("id") or "")
+            fol = None if dry_run else follows(who, token)      # 空跑不多打 API；只記錄、不擋
+            info: dict = {}
             r = DM.handle_comment(token, uid, cid, str(c.get("timestamp") or ""),
                                   dm_text=cfg["dm_template"].format(url=url, topic=post["topic"]),
                                   ack_text=cfg["ack_text"].format(topic=post["topic"]),
-                                  fallback_text=cfg["fallback_template"].format(url=url, topic=post["topic"]), enabled=True, dry_run=dry_run)
+                                  fallback_text=cfg["fallback_template"].format(url=url, topic=post["topic"]), enabled=True, dry_run=dry_run,
+                                  info=info)
             SP.log(f"[ligu] 留言 …{cid[-4:]} 關鍵字「{kw}」→ {r}")
             if dry_run:
                 continue
             res["sent"] += 1 if r in ("dm_ok", "dm_ok_ack_failed", "fallback_public") else 0
-            seen[h(cid)] = {"at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M"), "result": r, "tries": int(rec.get("tries", 0)) + 1}
+            seen[h(cid)] = {"at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M"), "result": r, "tries": int(rec.get("tries", 0)) + 1,
+                            "kind": {"dm_ok": "私訊＋公開回覆", "dm_ok_ack_failed": "私訊（公開回覆失敗）", "fallback_public": "公開回覆（私訊失敗）",
+                                     "failed": "都失敗", "skipped_old": "超過 7 天"}.get(r, r),
+                            "follow": {True: "yes", False: "no", None: "unknown"}[fol], "kw": kw, "post": post["file"], **info}
             if r == "failed":
                 res["errors"].append(f"留言 …{cid[-4:]} 送不出去（第 {seen[h(cid)]['tries']} 次）")
     cut = (now - timedelta(days=KEEP_DAYS)).astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M")
