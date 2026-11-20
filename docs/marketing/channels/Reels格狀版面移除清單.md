@@ -1,6 +1,6 @@
 # Reels 格狀版面移除清單
 
-> 產生時間：2026-11-20 09:50（台北）。Andy 2026-11-20：Reels 只放 Reels 分頁，不進主格狀版面。
+> 產生時間：2026-11-20 09:52（台北）。Andy 2026-11-20：Reels 只放 Reels 分頁，不進主格狀版面。
 > 新發的 Reels 已自動帶 `share_to_feed=false`；下面是**已經發出、還在格狀版面**的舊 Reels，API 無法移除，
 > 請在手機逐支點進去 →「⋯」→「從個人檔案格狀版面移除」（英文介面：**Remove from profile grid**），做完打勾。
 
@@ -18,13 +18,13 @@
 
 ## ②科技透明圈
 
-⚠️ 跳過：權杖無法讀取貼文：EAA 權杖看不到任何連結 IG 的粉絲專頁，也沒有設定 IG_USER_ID
+⚠️ 跳過：權杖無法讀取貼文：No module named 'requests'
 
 ## ③CaffAIne
 
-⚠️ 跳過：權杖無法讀取貼文：EAA 權杖看不到任何連結 IG 的粉絲專頁，也沒有設定 IG_USER_ID
+⚠️ 跳過：權杖無法讀取貼文：No module named 'requests'
 
 ## ④談晴說礙
 
-⚠️ 跳過：權杖無法讀取貼文：EAA 權杖看不到任何連結 IG 的粉絲專頁，也沒有設定 IG_USER_ID
+⚠️ 跳過：權杖無法讀取貼文：No module named 'requests'
 
