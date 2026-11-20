@@ -50,6 +50,9 @@
     "deposition": [
       "沉積"
     ],
+    "cmp": [
+      "研磨"
+    ],
     "icdesign": [
       "IC設計"
     ],
@@ -91,6 +94,7 @@
       "waferflow": "謝謝留言！「一片晶圓要經過哪些流程」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow",
       "etch": "謝謝留言！「蝕刻機：把圖形刻進晶圓」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-26-tech-etch",
       "deposition": "謝謝留言！「薄膜沉積：一層幾個原子厚的膜怎麼長上去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition",
+      "cmp": "謝謝留言！「化學機械研磨：每一層都要磨平」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-28-tech-cmp",
       "icdesign": "謝謝留言！「IC 設計：晶片公司沒有工廠，交出去的只是一張設計圖」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign",
       "foundry": "謝謝留言！「晶圓代工：超過七成二的營收，都是台積電的」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-24-tech-foundry"
     },
@@ -147,6 +151,9 @@
       ],
       "deposition": [
         "已經將「薄膜沉積：一層幾個原子厚的膜怎麼長上去」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-27-tech-deposition"
+      ],
+      "cmp": [
+        "已經將「化學機械研磨：每一層都要磨平」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-28-tech-cmp"
       ],
       "icdesign": [
         "已經將「IC 設計：晶片公司沒有工廠，交出去的只是一張設計圖」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign"
