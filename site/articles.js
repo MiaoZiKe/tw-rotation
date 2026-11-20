@@ -287,6 +287,16 @@
 .artbody .artvid .avdl{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid var(--accent,#3b82f6);border-radius:var(--r-sm,8px);font-weight:700;font-size:13px;color:var(--accent,#3b82f6)!important;text-decoration:none}
 .artbody .artvid .avdl.lock{border-color:var(--line);color:var(--ink-2)!important;cursor:pointer}
 .artbody .artvid .avc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-2)}.artbody .artvid .avc a{color:var(--accent,#3b82f6);text-decoration:none}
+/* 2026-11-20 Andy：「影片旁邊太浪費空間，影片旁邊幫我改成圖表、內文等等方式填充」→ 桌機（≥1100）直式影片：左影片（sticky）、右邊影片之後的內容照序流動。只在 JS 判定直式後才加 .artvsplit，手機／橫式／無影片不受影響。 */
+@media (min-width:1100px){
+.artbody .artvsplit{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:var(--sp-5,24px);align-items:start;margin-top:var(--sp-4)}
+.artbody .artvsplit>.avl{position:sticky;top:16px;min-width:0}
+.artbody .artvsplit>.avr{min-width:0}
+.artbody .artvsplit>.avr>:first-child{margin-top:0}
+.artbody .artvsplit .artvid.mp4{margin:0}
+.artbody .artvsplit .artvid.mp4 .avm{background:transparent;border:0;display:block}
+.artbody .artvsplit .artvid.mp4 video{width:100%;max-height:calc(100vh - 150px);aspect-ratio:var(--vr,9/16);object-fit:contain;border-radius:var(--r-sm,8px);background:#000}
+}
 /* 10-19 稽核 #11：文章內嵌站內 3D／2.5D 剖析圖（scene 區塊）。外框跟其他圖卡同一組 token；捲到才載入，載入前是一塊固定高度的骨架（不跳版）。 */
 .artbody .artscene{margin:var(--sp-4) 0;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel));min-width:0}
 .artscene .asc{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;line-height:1.4}
@@ -1821,6 +1831,24 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   window.addEventListener('tw:perm', () => paintDl());
   window.addEventListener('tw:account', () => paintDl());
   new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches('.artvid.mp4') || n.querySelector('.artvid.mp4'))))) paintDl(); }).observe(document.documentElement, { childList: true, subtree: true });
+
+  /* 桌機直式影片分欄：影片之後的兄弟節點搬到右欄（只動一次、只在 ≥1100、只對 #artBody 直屬的第一支 mp4） */
+  function vidSplit(v) {
+    try {
+      if (!v || !v.videoWidth || v.videoWidth >= v.videoHeight || !window.matchMedia('(min-width:1100px)').matches) return;
+      const fig = v.closest('figure.artvid.mp4'), body = fig && fig.parentElement;
+      if (!body || body.id !== 'artBody' || body.querySelector('.artvsplit')) return;
+      const after = []; for (let n = fig.nextSibling; n; n = n.nextSibling) after.push(n);
+      if (!after.length) return;
+      v.style.setProperty('--vr', v.videoWidth + '/' + v.videoHeight);
+      const w = document.createElement('div'); w.className = 'artvsplit';
+      const l = document.createElement('div'); l.className = 'avl';
+      const r = document.createElement('div'); r.className = 'avr';
+      body.insertBefore(w, fig); l.appendChild(fig); after.forEach((n) => r.appendChild(n)); w.append(l, r);
+    } catch (e) { /* 失敗就維持原樣 */ }
+  }
+  document.addEventListener('loadedmetadata', (e) => { if (e.target && e.target.matches && e.target.matches('.artbody .artvid.mp4 video')) vidSplit(e.target); }, true);
+  new MutationObserver((ms) => { ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) { const v = n.matches('.artvid.mp4') ? n.querySelector('video') : n.querySelector && n.querySelector('.artvid.mp4 video'); if (v && v.readyState >= 1) vidSplit(v); } })); }).observe(document.documentElement, { childList: true, subtree: true });
 
   function blockHTML(b, bi) {
     if (!b || typeof b !== 'object') return '';
