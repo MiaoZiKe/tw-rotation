@@ -505,7 +505,8 @@ def post_ig(uid: str, urls: list[str], caption: str, token: str) -> dict:
 def post_ig_reel(uid: str, vurl: str, caption: str, token: str, cover: str = "") -> dict:
     """IG Reels：建 REELS 容器（video_url＋caption，可帶 cover_url）→ 等 FINISHED → media_publish。"""
     check_public(vurl)
-    params = {"media_type": "REELS", "video_url": vurl, "caption": caption}
+    params = {"media_type": "REELS", "video_url": vurl, "caption": caption,
+              "share_to_feed": "false"}  # 2026-11-20 Andy：Reels 只進 Reels 分頁，不進主格狀版面
     if cover:
         check_public(cover)
         params["cover_url"] = cover

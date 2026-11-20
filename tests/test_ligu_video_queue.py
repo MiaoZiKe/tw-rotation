@@ -96,6 +96,7 @@ def test_ig_reels_正式站優先_封面_第一則留言(tmp_path, monkeypatch):
     assert "第一則留言" in ip.process(f, NOW, "tok")
     media = [p for m, path, p in calls if path == "/u/media"][0]
     assert media["media_type"] == "REELS" and media["video_url"].startswith(ip.SITE) and media["cover_url"].endswith("cover.jpg")
+    assert media["share_to_feed"] == "false"  # 2026-11-20 Andy：Reels 只進 Reels 分頁
     assert "ig-vd-20261117" in [p for m, path, p in calls if path == "/m1/comments"][0]["message"]
     meta, _ = ip.parse(f.read_text(encoding="utf-8"))
     assert meta["status"] == "posted" and meta["urls"] == "https://www.instagram.com/reel/abc/" and meta["comment_id"] == "k1"

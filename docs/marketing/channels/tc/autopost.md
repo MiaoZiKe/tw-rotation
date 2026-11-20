@@ -1,5 +1,7 @@
 # 頻道②「科技透明圈」自動發文（2026-11-08）
 
+> ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
+
 > Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。
 > 範本：`docs/marketing/channels/ai_intro/ops.md` 第 1～2 節（多頻道隔離設計）。本頁是實作後的操作說明。
 
@@ -80,7 +82,7 @@ social/tc/queue/20261105_quanta/
 - 上限：一天 1 篇、兩篇間隔 20 小時；超過就順延，檔頭寫 `deferred_until`，不算「沒發」。
 - 圖要先在 main 上（用 raw.githubusercontent.com 公開網址給 Meta 抓）。
 - **影片稿（2026-11-14 起）**：檔頭加 `media: video` 和 `video: <檔名>.mp4`（同資料夾）；`images` 可留空，有填就拿第 1 張 JPEG 當 IG Reels 封面（`cover_url`）。weekday 照查。
-  IG 發 Reels（`media_type=REELS`＋`video_url`＋`caption`），Threads 主文發 `media_type=VIDEO`＋`video_url`，發完照舊發第 1 則留言。
+  IG 發 Reels（`media_type=REELS`＋`video_url`＋`caption`＋`share_to_feed=false`），Threads 主文發 `media_type=VIDEO`＋`video_url`，發完照舊發第 1 則留言。
   兩邊都每 10 秒查一次容器狀態，`FINISHED` 才發布；`ERROR` 直接報錯（整篇標 error、開 issue）；5 分鐘沒好也報錯。
   回查 media_type：影片稿 IG 要 `VIDEO`／`REELS`、Threads 要 `VIDEO`；圖片稿照舊。影片一樣要先在 main 上。
 

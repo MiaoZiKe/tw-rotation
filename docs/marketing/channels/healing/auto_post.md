@@ -1,5 +1,7 @@
 # 頻道④「談晴說礙」自動發文（IG 輪播＋Threads 輪播；2026-11-15 起也能發影片：IG Reels＋Threads 影片）
 
+> ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
+
 > 2026-11-08 Andy：「開通自動發文，這部分幫我想辦法自動化」。這句是頻道④開自動發文的授權（之前寫的「Andy 決定前不開自動發文」到此為止）。
 > 跟頻道①（盤前／盤中／盤後）完全分開：不同的 Secrets、不同的開關、不同的佇列與紀錄。頻道①的 `docs/marketing/social_unit/post_quota.json` 沒有動。
 
@@ -46,7 +48,7 @@
    - `article.json` 規則同輪播（approved 前要放）；文章存檔放**封面＋影片連結＋文案全文**（`scripts/healing_article.py` 的 `build_video`；沒有 cover.jpg 就只放影片連結與文案）。
 2. 推之前跑 `python scripts/healing_post.py --prepare`：把 `video.mp4`、`cover.jpg` 同步到 `site/media/healing/<資料夾>/`，跟佇列**同一個 commit** 推 main → pages.yml 自動部署到正式站。工作流的 prepare 步驟也會補同步，有新影片就叫 pages.yml 重新部署。
 3. API 流程：
-   - IG：`POST /{ig-user-id}/media`（`media_type=REELS`、`video_url`、`caption`、`share_to_feed=true`、有封面才帶 `cover_url`）→ 每 10 秒查 `status_code`（最多 15 分鐘）到 `FINISHED` → `media_publish` → 查 `permalink`。EAA 權杖走 `graph.facebook.com/v24.0`、IGAA 走 `graph.instagram.com/v24.0`（同 `ig_host()`；EAA 沒填 USER_ID 一樣用 `fb_ig_candidates` 多路徑找編號）。
+   - IG：`POST /{ig-user-id}/media`（`media_type=REELS`、`video_url`、`caption`、`share_to_feed=false`（只進 Reels 分頁）、有封面才帶 `cover_url`）→ 每 10 秒查 `status_code`（最多 15 分鐘）到 `FINISHED` → `media_publish` → 查 `permalink`。EAA 權杖走 `graph.facebook.com/v24.0`、IGAA 走 `graph.instagram.com/v24.0`（同 `ig_host()`；EAA 沒填 USER_ID 一樣用 `fb_ig_candidates` 多路徑找編號）。
    - Threads：`POST /{threads-user-id}/threads`（`media_type=VIDEO`、`video_url`、`text`）→ 查 `status` 到 `FINISHED` → `threads_publish` → `permalink`。
    - 容器 `ERROR` 會帶回 Meta 給的原因（IG 的 `status`、Threads 的 `error_message`）。
 

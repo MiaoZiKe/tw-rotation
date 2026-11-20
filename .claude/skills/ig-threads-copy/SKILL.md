@@ -5,6 +5,8 @@ description: 任何頻道（①財經數據、②科技透明圈、③AI 工具 
 
 # IG／Threads 文案技能（開頭、去 AI 味、前 125 字、輪播、Reels）
 
+> ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
+
 > 建立：2026-11-15，企劃師。起因：Andy 貼了 Threads 貼文介紹 GitHub 專案「instagram-agent-skill」，要求「善用這些資訊變成自己的 skill」。
 > 本檔是**自行整理改寫**的，不是原專案內容。原專案我只讀得到第三方報導摘要，沒讀到 repo 本體，所以 26 種開頭的名稱、禁用詞表都是依我們自己的頻道與成效資料重新設計。授權：原專案報導稱 MIT，我們不複製其文字。
 > 主軸：每一則都先想「讀者原本的麻煩 → 這則讓他省了什麼或得到什麼」。

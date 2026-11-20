@@ -246,7 +246,7 @@ def test_EAA權杖_驗證影片走graph_facebook(box, monkeypatch):
     assert rc == 0, res
     ig = [p for p in posts if "graph.facebook.com" in p[0]]
     assert ig and ig[0][0].endswith("/1784/media") and ig[0][1]["media_type"] == "REELS"
-    assert ig[0][1]["share_to_feed"] == "true" and ig[0][1]["cover_url"].endswith("cover.jpg")
+    assert ig[0][1]["share_to_feed"] == "false" and ig[0][1]["cover_url"].endswith("cover.jpg")
     th = [p for p in posts if "graph.threads.net" in p[0]]
     assert th and th[0][1]["media_type"] == "VIDEO" and th[0][1]["video_url"].endswith("video.mp4")
     assert not any("publish" in p[0] for p in posts)                 # 驗證不發布

@@ -25,7 +25,7 @@ Andy 原話（2026-11-08）：「開通自動發文，這部分幫我想辦法�
     入口 scripts/channel_post.py、工作流 .github/workflows/channel_post.yml。不給 --channel 就是頻道④，行為不變。
   · 2026-11-15 起支援影片（plan_202611_影片為主.md T5～T7）：meta.json 加 "format": "video"（預設 carousel，舊佇列不受影響），
     資料夾放 video.mp4（1080×1920、H.264＋AAC）、可選 cover.jpg、caption.txt。
-      IG：media_type=REELS、video_url、cover_url（有 cover.jpg 才帶）、share_to_feed=true → 輪詢 status_code 到 FINISHED → media_publish。
+      IG：media_type=REELS、video_url、cover_url（有 cover.jpg 才帶）、share_to_feed=false（只進 Reels 分頁） → 輪詢 status_code 到 FINISHED → media_publish。
       Threads：media_type=VIDEO、video_url → 輪詢 status 到 FINISHED → threads_publish。EAA／IGAA 兩種 IG 權杖都走 ig_host()。
     影片網址候選（video_sources）：meta.video_url（有填才用）→ 正式站 https://liguligu-puipui.com/media/<頻道>/<資料夾>/video.mp4
     （--prepare 從佇列同步到 site/media/，pages.yml 部署；Content-Type 是 video/mp4）→ raw.githubusercontent（Content-Type 是
@@ -505,7 +505,8 @@ def wait_video(host: str, token: str, cid: str, label: str, field: str, timeout:
 
 def ig_video_container(uid: str, token: str, video_url: str, caption: str, cover: str = "", label: str = "ig 影片") -> str:
     host = ig_host(token)
-    data = {"media_type": "REELS", "video_url": video_url, "caption": caption, "share_to_feed": "true",
+    data = {"media_type": "REELS", "video_url": video_url, "caption": caption,
+            "share_to_feed": "false",  # 2026-11-20 Andy：Reels 只進 Reels 分頁，不進主格狀版面
             "access_token": token}
     if cover:
         data["cover_url"] = cover

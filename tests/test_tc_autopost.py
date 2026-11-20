@@ -765,6 +765,7 @@ def test_IG影片一直查到FINISHED才發布_每10秒(monkeypatch, tmp_path, c
     ig = [c for c in api.calls if c[0] == "ig"]
     create = next(c for c in ig if c[2] == "/222/media")
     assert create[4]["media_type"] == "REELS" and create[4]["caption"] == "IG 影片說明 #科技透明圈"
+    assert create[4]["share_to_feed"] == "false"  # 2026-11-20 Andy：Reels 只進 Reels 分頁
     assert create[4]["video_url"] == tc.RAW + "social/tc/queue/20261115_v/ep.mp4"
     assert create[4]["cover_url"] == tc.RAW + "social/tc/queue/20261115_v/cover.jpg"
     assert "image_url" not in create[4]
@@ -845,6 +846,7 @@ def test_圖片稿件行為不變_不帶影片參數_回查影片會警告(monke
     assert rc == 0
     assert not any(c[4].get("media_type") in ("REELS", "VIDEO") or "video_url" in c[4] for c in api.calls)
     assert not any("cover_url" in c[4] for c in api.calls)
+    assert not any("share_to_feed" in c[4] for c in api.calls)  # 只有 REELS 才帶
     # 圖片稿回查到 VIDEO 照舊警告
     b = mkpost(tmp_path / "q2", "20261111_b")
     monkeypatch.setattr(tc, "api", VideoAPI(seq=("FINISHED",)))

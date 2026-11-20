@@ -204,7 +204,8 @@ def publish_reel(video: str, caption: str, token: str, meta: dict | None = None)
     for url in video_urls(video, meta):
         try:
             check_public(url)
-            data = {"media_type": "REELS", "video_url": url, "caption": caption, "share_to_feed": "true"}
+            data = {"media_type": "REELS", "video_url": url, "caption": caption,
+                    "share_to_feed": "false"}  # 2026-11-20 Andy：Reels 只進 Reels 分頁，不進主格狀版面
             if cover:
                 data["cover_url"] = public_url(cover)
             c = _call("POST", f"/{uid}/media", token, data)["id"]

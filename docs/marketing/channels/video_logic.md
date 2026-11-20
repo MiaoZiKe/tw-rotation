@@ -1,5 +1,7 @@
 # 短影片內容邏輯（四個頻道共用）
 
+> ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
+
 2026-11-15 Andy：「給我製作影片的內容邏輯，從開頭 3S 內抓住讀者目光到有邏輯的介紹文章，最後吊人胃口的結尾，幫我把這邏輯提供給各頻道 談晴說礙 AI Tech，輝達那篇影片就是這樣的邏輯我覺得很棒」。
 
 範本：哩股哩股「33 年執行長，辭職即刻生效」（ai-mp4 `videos/liguligu-jensen-pro/`，23 秒、7 鏡）。

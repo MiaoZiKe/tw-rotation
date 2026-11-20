@@ -1,5 +1,7 @@
 # 多頻道自動發文（IG 輪播／Reels＋Threads 輪播／影片）總說明
 
+> ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
+
 > 2026-11-09 Andy 原話：「talk_01010909 已經好了 幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」。
 > 頻道④「談晴說礙」的管線（`docs/marketing/channels/healing/auto_post.md`）擴充成多頻道共用：同一份發文程式，每個頻道自己的佇列、紀錄、開關、權杖。
 > 2026-11-09 Andy 補一句：「Shrimp_01010909 不用 其他都幫我確認」→ **水下蝦米不接這套，繼續用 Buffer**；本管線只有 healing、tech、caffaine 三個頻道。
@@ -151,7 +153,7 @@ Andy 11-09：「Shrimp_01010909 不用」。水下蝦米繼續由 Buffer（api.b
    `python scripts/channel_media.py stage --channel caffaine --folder <資料夾名> --video <片.mp4>`
    （會自動在 `meta.json` 寫 `"video_src": "media/caffaine/<資料夾名>"`；不動工作目錄、不 force push）
 3. 把資料夾（meta.json、caption.txt、cover.jpg）commit＋push 到 main。
-4. 時段到了工作流：`sync` 上傳 Release → IG `media_type=REELS`（`video_url`、`cover_url`、`share_to_feed=true`）、Threads `media_type=VIDEO`，各自每 10 秒查一次容器、`FINISHED` 才發布（最多等 15 分鐘）→ `posted.json` 記網址。
+4. 時段到了工作流：`sync` 上傳 Release → IG `media_type=REELS`（`video_url`、`cover_url`、`share_to_feed=false`）、Threads `media_type=VIDEO`，各自每 10 秒查一次容器、`FINISHED` 才發布（最多等 15 分鐘）→ `posted.json` 記網址。
 - 也可以把 `video.mp4` 直接放進佇列資料夾（會讓 repo 變肥，不建議）；工作流一樣會先傳 Release、失敗退回 raw。
 - 輪播（`1.png…`、沒寫 `format`）照舊，行為沒變。
 

@@ -1,5 +1,7 @@
 # 自動發文格式（Auto Post）—— 以後一律照這份
 
+> ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
+
 > 2026-10-26 Andy：「盤中貼文格式都確認 OK，幫我寫進 Auto Post .md 檔案，以後 Follow 這格式」。
 > 程式：`scripts/social_snap.py`（盤中／盤後／融資融券）、`scripts/social_premarket.py`（盤前）、`scripts/social_publish.py`（發文）。
 > 圖的版型（亮色 HUD、色票、安全邊距）另見 `post_design_system.md`；這份管「發什麼、什麼順序、文案怎麼寫、連結放哪」。
