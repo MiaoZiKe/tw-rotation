@@ -1,22 +1,26 @@
 {
- "at": "2026-11-20T12:29:28+08:00",
+ "at": "2026-11-20T20:30:16+08:00",
  "mode": "live",
- "item": "20261120_mortgage",
+ "item": "20261120v_mortgage",
  "posted": {
   "ig": {
-   "id": "18116539922083982",
-   "link": "https://www.instagram.com/p/Df8zO08HNxl/",
-   "at": "2026-11-20T12:29:28+08:00"
+   "id": "18364487248222129",
+   "link": "https://www.instagram.com/reel/Df9qOGRlX8S/",
+   "at": "2026-11-20T20:30:16+08:00",
+   "format": "video",
+   "video_via": "site"
   },
   "threads": {
-   "id": "18122470355086151",
-   "link": "https://www.threads.com/@talk_01010909/post/Df8zTDDDm06",
-   "at": "2026-11-20T12:29:28+08:00"
+   "id": "18118644509027277",
+   "link": "https://www.threads.com/@talk_01010909/post/Df9qVm4lPJh",
+   "at": "2026-11-20T20:30:16+08:00",
+   "format": "video",
+   "video_via": "site"
   }
  },
  "errors": {},
  "notes": [
   "20261116v_worktime：還沒到 2026-11-23T20:27:00+08:00"
  ],
- "summary": "20261120_mortgage：已發 ig https://www.instagram.com/p/Df8zO08HNxl/；threads https://www.threads.com/@talk_01010909/post/Df8zTDDDm06"
+ "summary": "20261120v_mortgage：已發 ig https://www.instagram.com/reel/Df9qOGRlX8S/；threads https://www.threads.com/@talk_01010909/post/Df9qVm4lPJh"
 }
