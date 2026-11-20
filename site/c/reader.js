@@ -29,14 +29,15 @@
       case 'prompt': return `<div class="pr"><div class="prh"><b>${esc(b.title || '提示詞')}</b><button class="btn" type="button" data-pcopy>複製這段</button></div><pre class="prt">${esc(b.text)}</pre>${b.note ? `<div class="prn">${esc(b.note)}</div>` : ''}</div>`;
       case 'callout': return `<div class="callout">${esc(b.text)}</div>`;
       case 'ul': return `<ul>${(b.items || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
-      case 'steps': return `${b.title ? `<h2>${esc(b.title)}</h2>` : ''}<ol class="st">${(b.items || []).map((x) => `<li><b>${esc(x.label)}</b>${x.text ? '：' + esc(x.text) : ''}</li>`).join('')}</ol>${b.note ? `<p class="n">${esc(b.note)}</p>` : ''}`;
-      case 'table': return `<div class="tw"><table><thead><tr>${(b.head || []).map((x) => `<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${(b.rows || []).map((r) => `<tr>${r.map((x, i) => `<td data-l="${esc((b.head || [])[i] || '')}">${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-      case 'img': return `<div class="imgs c${Math.min((b.items || []).length, 3)}${b.wide ? ' wide' : ''}">${(b.items || []).map((x) => okUrl(x.src) ? `<figure><div class="fz"><img src="${esc(rel(x.src))}" alt="${esc(x.alt)}" loading="lazy" data-zoom="1" tabindex="0" role="button" aria-label="${esc((x.alt || '圖') + '，點一下放大')}"></div><span class="zh">點圖可放大</span>${x.cap ? `<figcaption>${esc(x.cap)}</figcaption>` : ''}</figure>` : '').join('')}</div>`;
+      case 'steps': return `${b.title ? `<h2 class="stt">${esc(b.title)}</h2>` : ''}<ol class="st">${(b.items || []).map((x) => `<li><span><b>${esc(x.label)}</b>${x.text ? '：' + esc(x.text) : ''}</span></li>`).join('')}</ol>${b.note ? `<p class="n">${esc(b.note)}</p>` : ''}`;
+      case 'table': return `<div class="tw"><table><thead><tr>${(b.head || []).map((x) => `<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${(b.rows || []).map((r) => `<tr>${r.map((x, i) => `<td data-l="${esc((b.head || [])[i] || '')}"${i && /^[\d,.\-+−%\s]+[^\d\s]{0,3}$/.test(String(x)) ? ' class="nu"' : ''}>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      case 'img': return `<div class="imgs c${Math.min((b.items || []).length, 3)}${b.wide ? ' wide' : ''}">${(b.items || []).map((x) => { if (!okUrl(x.src)) return ''; const sv = /\.svg(\?|$)/.test(x.src);
+        return `<figure class="${sv ? 'fs' : 'fj'}"><div class="fz"><img src="${esc(rel(x.src))}" alt="${esc(x.alt)}" loading="lazy" data-zoom="1" tabindex="0" role="button" aria-label="${esc((x.alt || '圖') + '，點一下放大')}">${sv ? '' : '<span class="zm" aria-hidden="true">點開放大</span>'}</div>${sv ? '<span class="zh">點圖可放大</span>' : ''}${x.cap ? `<figcaption>${esc(x.cap)}</figcaption>` : ''}</figure>`; }).join('')}</div>`;
       case 'links': return `${b.title ? `<h2>${esc(b.title)}</h2>` : ''}<ul>${(b.items || []).map((x) => (/^https:\/\//.test(x.url || '') ? `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.label)}</a></li>` : '')).join('')}</ul>`;
       case 'mp4': {
         const s = okUrl(b.src); if (!s) return '';
         const p = okUrl(b.poster);
-        return `<div class="vid"><video controls playsinline preload="metadata" src="${esc(rel(s))}"${p ? ` poster="${esc(rel(p))}"` : ''}></video>${b.note ? `<div class="n">${esc(b.note)}</div>` : ''}<a class="btn" href="${esc(rel(s))}" download>下載影片 ⬇</a></div>`;
+        return `<div class="vid"><div class="pv"><video controls playsinline preload="metadata" src="${esc(rel(s))}"${p ? ` poster="${esc(rel(p))}"` : ''}></video></div><div class="bar"><div class="acts"><button class="btn fill" type="button" data-vplay>▶ 播放</button><a class="btn" href="${esc(rel(s))}" download>下載 MP4</a></div>${b.note ? `<div class="nt">${esc(b.note)}</div>` : ''}</div></div>`;
       }
       default: return '';
     }
@@ -44,16 +45,15 @@
   const tail = (d) => {
     const rel2 = (d.related || []).filter((x) => okId(x.id));
     const src = d.sources || [];
-    return (rel2.length ? `<section class="more"><h2>延伸閱讀</h2>${rel2.map((x) => `<a class="card" href="#/${encodeURIComponent(x.id)}"><span class="tx"><h3>${esc(x.title)}</h3><p>${esc(x.why || '')}</p></span></a>`).join('')}</section>` : '')
-      + (src.length ? `<section class="srcs"><h2>出處與查證</h2><ol>${src.map((x) => `<li>${esc(x.title)}<span>${esc([x.publisher, x.date].filter(Boolean).join('，'))}</span></li>`).join('')}</ol>${d.confidence ? `<p class="n">可信度：${esc(d.confidence)}</p>` : ''}</section>` : '');
+    return (rel2.length ? `<section class="more"><h2>延伸閱讀</h2><div class="rel">${rel2.map((x) => `<a href="#/${encodeURIComponent(x.id)}"><b>${esc(x.title)}</b>${x.why ? `<span>${esc(x.why)}</span>` : ''}</a>`).join('')}</div></section>` : '')
+      + (src.length ? `<details class="srcs"><summary>出處與資料說明（${src.length}）</summary><ol>${src.map((x) => `<li>${esc(x.title)}<span>${esc([x.publisher, x.date].filter(Boolean).join('，'))}</span></li>`).join('')}</ol>${d.confidence ? `<p class="n">可信度：${esc(d.confidence)}</p>` : ''}</details>` : '');
   };
   const banner = () => {
     if (admin()) return '';
-    if (unlocked() && member()) return `<div class="bn ok" id="bn" data-st="ok"><span>已解鎖「${esc(CH.name)}」全部文章</span><a class="btn" href="#/">看全部文章</a></div>`;
+    if (unlocked() && member()) return '';   // 已解鎖：頁首「已追蹤」已經說明，不再佔文章第一屏
     if (!member()) return `<div class="bn" id="bn" data-st="guest"><span>這是「${esc(CH.name)}」的單篇分享，只能看這一篇。<b>註冊並追蹤頻道，即可看全部文章。</b></span><button class="btn fill" id="lg" type="button">登入／註冊</button></div>`;
     return `<div class="bn" id="bn" data-st="nogate"><span>已登入，但這個帳號還沒解鎖「${esc(CH.name)}」全部文章。追蹤頻道、留言關鍵字後，用私訊裡的解鎖連結打開一次，就會記在你的帳號。</span></div>`;
   };
-  const thumbOf = (d) => { for (const b of d.blocks || []) { if (b.t === 'mp4' && okUrl(b.poster)) return rel(b.poster); if (b.t === 'img' && b.items && b.items[0] && okUrl(b.items[0].src)) return rel(b.items[0].src); } return ''; };
   /* 發文包（只有站主看得到）：資料 postkit.json 由 scripts/postkit_build.py 產生；非站主連請求都不送 */
   let kitP = null;
   const kits = () => (kitP = kitP || getJ(DIR + 'postkit.json').then((j) => j.kits || []).catch(() => []));
@@ -87,47 +87,97 @@
     const ta = b.closest('.kit1').querySelector('textarea'); const t = ta.value;
     try { navigator.clipboard.writeText(t).then(() => { b.dataset.done = '1'; b.textContent = '已複製 ✓'; }, () => { ta.select(); b.textContent = '請按 Ctrl+C'; }); } catch (er) { ta.select(); b.textContent = '請按 Ctrl+C'; }
   });
+  /* 列表封面：談晴說礙＝「大數字磚」，數字取自文章標題（% > 成 > 元 > 年 > 第一個數字），小字取第二個標籤；
+     標題裡沒有數字就退回漸層＋LOGO，不自己編。CaffAIne＝品牌漸層＋杯子線稿，不放貼文圖當封面（Andy 11-20 決定）。 */
+  const bigNum = (t) => { for (const re of [/\d[\d,]*(?:\.\d+)?\s?%/, /\d[\d,]*(?:\.\d+)?\s?成/, /\d[\d,]*(?:\.\d+)?\s?元/, /\d[\d,]*(?:\.\d+)?\s?年/, /\d[\d,]*(?:\.\d+)?/]) { const m = String(t || '').match(re); if (m) return m[0].replace(/\s/g, ''); } return ''; };
+  const CUP = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 14h20v9a9 9 0 0 1-9 9h-2a9 9 0 0 1-9-9z"/><path d="M27 17h3a4 4 0 0 1 0 8h-3"/><path d="M13 6c-1 2 1 3 0 5M19 6c-1 2 1 3 0 5"/></svg>';
+  const topic = (x) => (x.tags || []).filter((t) => t !== CH.name)[0] || '';
+  const tile = (x) => {
+    if (CH.id === 'healing') { const n = bigNum(x.title); if (n) return `<div class="th"><div class="num${n.length > 5 ? ' s' : ''}">${esc(n)}${topic(x) ? `<small>${esc(topic(x))}</small>` : ''}</div></div>`; }
+    return `<div class="th g">${CUP}</div>`;
+  };
+  const cover = (x) => {
+    const n = CH.id === 'healing' ? bigNum(x.title) : '';
+    return `<div class="cv">${n ? `<div><span class="pill">${esc(topic(x) || '最新一篇')}</span><div class="bg">${esc(n)}</div></div>` : `<span class="pill">${esc(topic(x) || '最新一篇')}</span>`}${n ? '' : `<span class="ic">${CUP}</span>`}</div>`;
+  };
   async function list() {
     document.title = CH.name;
     app.innerHTML = '<p class="sub">載入中…</p>';
     let j; try { j = await getJ(DIR + 'index.json'); } catch (e) { app.innerHTML = '<p class="sub">文章清單暫時讀不到，請稍後再試。</p>'; return; }
     const a = (j.articles || []).filter((x) => okId(x.id)).sort((x, y) => String(y.date).localeCompare(String(x.date)));
     const open = canList();
-    const gate = open ? '' : `<div class="gate" id="gate"><span>下面是「${esc(CH.name)}」的文章。<b>註冊並追蹤頻道</b>，用私訊裡的解鎖連結打開一次，就能看全部；沒解鎖的只能看私訊連結給你的那一篇。</span>${member() ? '' : '<button class="btn fill" id="lg" type="button">登入／註冊</button>'}</div>`;
-    app.innerHTML = `<h1>${esc(CH.name)}</h1><p class="sub">${esc(CH.tag)}　共 ${a.length} 篇</p>${gate}<div class="cards" id="list">${a.map((x) => `<a class="card${open ? '' : ' lk'}" href="${open ? '#/' + encodeURIComponent(x.id) : '#/'}" data-id="${esc(x.id)}"${open ? '' : ' data-lock="1"'}><span class="th" data-th="${esc(x.id)}"></span><span class="tx"><h3>${esc(x.title)}</h3><div class="m">${esc(x.date)}　閱讀約 ${esc(x.reading_min || 1)} 分鐘</div></span>${open ? '' : '<span class="lkc" aria-label="未解鎖">🔒</span>'}</a>`).join('')}</div>`;
-    /* 封面縮圖：每篇內文 JSON 的 mp4 封面或第一張圖；晚到就補上，不擋清單 */
+    const mins = a.map((x) => x.reading_min).filter(Boolean);
+    const span = mins.length ? `；每篇約 ${Math.min(...mins)}${Math.min(...mins) === Math.max(...mins) ? '' : '～' + Math.max(...mins)} 分鐘` : '';
+    const gate = open ? '' : `<div class="gate" id="gate"><span>追蹤頻道，用私訊裡的解鎖連結打開一次，就能看全部文章</span>${member() ? '' : '<button class="btn fill" id="lg" type="button">登入</button>'}</div>`;
+    /* 分類 chip：用文章自己的標籤，同一個標籤出現在 2 篇以上才列（最多 5 個），數字是實際篇數 */
+    const cnt = {}; a.forEach((x) => (x.tags || []).forEach((t) => { if (t !== CH.name) cnt[t] = (cnt[t] || 0) + 1; }));
+    const tags = Object.keys(cnt).filter((t) => cnt[t] >= 2).sort((p, q) => cnt[q] - cnt[p]).slice(0, 5);
+    const lk = open ? '' : ' lk';
+    const href = (x) => (open ? '#/' + encodeURIComponent(x.id) : '#/');
+    const dat = (x) => `data-id="${esc(x.id)}" data-tags="${esc((x.tags || []).join('|'))}"${open ? '' : ' data-lock="1"'}`;
+    const f = a[0], rest = a.slice(1);
+    app.innerHTML = `<section class="hero"><div class="hi"><h1>${esc(CH.tag)}</h1><p>共 ${a.length} 篇${span}</p>${gate}</div></section><div class="lw">`
+      + `<nav class="chips" aria-label="文章分類"><button class="chip" type="button" data-chip="" aria-pressed="true">全部 ${a.length}</button>${tags.map((t) => `<button class="chip" type="button" data-chip="${esc(t)}" aria-pressed="false">${esc(t)} ${cnt[t]}</button>`).join('')}</nav>`
+      + (f ? `<a class="feat${lk}" href="${href(f)}" ${dat(f)}>${cover(f)}<div class="tx"><h2>${esc(f.title)}</h2><div class="m">${esc(f.date)}・閱讀約 ${esc(f.reading_min || 1)} 分鐘</div></div>${open ? '' : '<span class="lkc" aria-label="未解鎖">🔒</span>'}</a>` : '')
+      + (rest.length ? `<div class="lst" id="list"><h2 class="sec">更多文章</h2>${rest.map((x) => `<a class="it${lk}" href="${href(x)}" ${dat(x)}>${tile(x)}<div class="tx"><h3>${esc(x.title)}</h3>${x.summary ? `<p>${esc(x.summary)}</p>` : ''}<div class="m">${esc(x.date)}・${esc(x.reading_min || 1)} 分鐘</div></div>${open ? '' : '<span class="lkc" aria-label="未解鎖">🔒</span>'}</a>`).join('')}</div>` : '')
+      + '</div>';
     mountKitAll();
-    a.forEach((x) => getJ(DIR + encodeURIComponent(x.id) + '.json').then((d) => { const u = thumbOf(d), el = app.querySelector(`.th[data-th="${CSS.escape(x.id)}"]`); if (u && el) el.style.backgroundImage = `url("${u}")`; }).catch(() => {}));
   }
   async function post(id) {
     app.innerHTML = '<p class="sub">載入中…</p>';
-    let d; try { d = await getJ(DIR + encodeURIComponent(id) + '.json'); } catch (e) { app.innerHTML = '<p class="sub">找不到這篇文章。</p><a class="btn" href="#/">回文章列表</a>'; return; }
+    let d; try { d = await getJ(DIR + encodeURIComponent(id) + '.json'); } catch (e) { app.innerHTML = '<p class="sub">找不到這篇文章。</p><p style="padding:0 18px"><a class="btn" href="#/">回文章列表</a></p>'; return; }
     document.title = d.title + '｜' + CH.name;
-    app.innerHTML = `<article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}　閱讀約 ${esc(d.reading_min || 1)} 分鐘</div><div class="tags">${(d.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div>${banner()}${(d.blocks || []).map(block).join('')}${tail(d)}</article>`;
+    const bl = d.blocks || [];
+    const pub0 = ((d.sources || [])[0] || {}).publisher, pub = pub0 && pub0.length <= 12 ? pub0 : '';   // 太長的出處名（例如整串工具版本）不放進 meta 一行
+    const jumps = (bl.some((b) => b.t === 'mp4' && okUrl(b.src)) ? '<a href="#" data-jump=".vid">▶ 先看影片</a>' : '') + (bl.some((b) => b.t === 'steps' || b.t === 'prompt') ? '<a href="#" data-jump="ol.st,.pr">🔎 直接看做法</a>' : '');
+    app.innerHTML = `<div class="aw"><nav class="rail" id="rail" aria-label="文章目錄"></nav><article class="art"><a class="back" href="#/" id="bk">← ${canList() ? '全部文章' : esc(CH.name)}</a><div class="tags">${(d.tags || []).filter((t) => t !== CH.name).map((t) => `<span class="pill">${esc(t)}</span>`).join('')}</div><h1>${esc(d.title)}</h1><div class="meta">${esc(d.date)}・閱讀約 ${esc(d.reading_min || 1)} 分鐘${pub ? '・資料：' + esc(pub) : ''}</div>${jumps ? `<div class="jump">${jumps}</div>` : ''}${banner()}${bl.map(block).join('')}${tail(d)}</article></div>`;
     window.scrollTo(0, 0);
     mountKit(id);
     mountToc(); fitSvgs();
     try { window.TwArtM && TwArtM.open(id, CH.id, app.querySelector('.art .meta')); } catch (e) { /* 觀測失敗不影響閱讀 */ }
   }
-  /* ---- 手機閱讀工具：目錄抽屜、回頂端、圖片全螢幕放大（可縮放）---- */
-  let fabs = null;
-  const unmountFabs = () => { if (fabs) { fabs.remove(); fabs = null; } const s = document.getElementById('tocSheet'); if (s) s.remove(); };
+  /* ---- 手機閱讀工具：目錄抽屜／桌機左側欄、進度條、回頂端（蓋到圖表就讓位）、圖片全螢幕放大 ---- */
+  let fabs = null, secs = [];
+  const unmountFabs = () => { if (fabs) { fabs.remove(); fabs = null; } const s = document.getElementById('tocSheet'); if (s) s.remove(); secs = []; };
   function mountToc() {
     unmountFabs();
     const hh = [...app.querySelectorAll('.art > h2')];
     hh.forEach((h, i) => { h.id = 'sec' + i; });
+    secs = hh;
     fabs = document.createElement('div'); fabs.className = 'fabs';
     fabs.innerHTML = (hh.length ? '<button type="button" class="fab" id="tocBtn" aria-expanded="false" aria-controls="tocSheet">☰ 目錄</button>' : '') + '<button type="button" class="fab top" id="topBtn" aria-label="回到頂端" hidden>↑</button>';
     document.body.appendChild(fabs);
+    const li = (h, i) => `<li data-i="${i}"><a href="#sec${i}" data-sec="sec${i}">${esc(h.textContent)}</a></li>`;
     if (hh.length) {
       const sh = document.createElement('div'); sh.id = 'tocSheet'; sh.className = 'tocs'; sh.hidden = true;
-      sh.innerHTML = '<div class="tocb"><div class="toch"><b>目錄</b><button type="button" class="btn" id="tocX">關閉</button></div><ol>' + hh.map((h, i) => `<li><a href="#sec${i}" data-sec="sec${i}">${esc(h.textContent)}</a></li>`).join('') + '</ol></div>';
+      sh.innerHTML = '<div class="tocb"><div class="gr"></div><div class="toch"><b>目錄</b><button type="button" class="btn" id="tocX">關閉</button></div><ol>' + hh.map(li).join('') + '</ol></div>';
       document.body.appendChild(sh);
+      const rl = document.getElementById('rail'); if (rl) rl.innerHTML = '<b>本文目錄</b><ol>' + hh.map(li).join('') + '</ol>';
     }
+    /* 影片與步驟的捷徑要有錨點 */
     onScroll();
   }
-  const onScroll = () => { const t = document.getElementById('topBtn'); if (t) t.hidden = window.scrollY < 500; };
+  let tick = false;
+  const onScroll = () => {
+    if (tick) return; tick = true;
+    requestAnimationFrame(() => {
+      tick = false;
+      const t = document.getElementById('topBtn'); if (t) t.hidden = window.scrollY < 500;
+      const pg = document.querySelector('.prog b'), art = app.querySelector('.art');
+      if (pg && art) { const r = art.getBoundingClientRect(), tot = r.height - innerHeight; pg.style.width = (tot > 0 ? Math.max(0, Math.min(1, -r.top / tot)) * 100 : 100) + '%'; }
+      if (secs.length) { let cur = -1; secs.forEach((h, i) => { if (h.getBoundingClientRect().top < 120) cur = i; }); document.querySelectorAll('.tocb li,.rail li').forEach((el) => el.classList.toggle('on', +el.dataset.i === cur)); }
+      /* 浮動鈕蓋到圖表（svg 圖）就整組讓位，離開再回來；手動展開目錄時不讓位 */
+      if (fabs) {
+        const w = fabs.offsetWidth, h = fabs.offsetHeight, L = 12, B = innerHeight - 12, T = B - h, R = L + w;
+        let hit = false;
+        app.querySelectorAll('figure.fs .fz img').forEach((im) => { if (hit) return; const r = im.getBoundingClientRect(); if (r.width && r.right > L - 6 && r.left < R + 6 && r.bottom > T - 6 && r.top < B + 6) hit = true; });
+        fabs.classList.toggle('yd', hit);
+        fabs.setAttribute('aria-hidden', hit ? 'true' : 'false');
+      }
+    });
+  };
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
   /* SVG 圖表：依圖內最小字級算出「手機上字不小於 13px」所需的寬度，窄螢幕就橫向滑動，不縮到看不見 */
   const svgW = {};
   function fitSvgs() {
@@ -137,8 +187,8 @@
         const vb = (t.match(/viewBox="[\d.]+ [\d.]+ ([\d.]+) ([\d.]+)"/) || []);
         const fs = (t.match(/font-size="([\d.]+)"/g) || []).map((x) => parseFloat(x.replace(/[^\d.]/g, ''))).filter((x) => x > 0);
         const w = parseFloat(vb[1]) || 800, mn = fs.length ? Math.min(...fs) : 18;
-        return Math.min(Math.round(w * 13.5 / mn), 1100);
-      }).catch(() => 780)).then((w) => { im.style.setProperty('--mw', w + 'px'); const fz = im.closest('.fz'); if (w > fz.clientWidth + 4) fz.dataset.svg = '1'; });
+        return Math.min(Math.round(w * 12 / mn), 1100);
+      }).catch(() => 780)).then((w) => { im.style.setProperty('--mw', w + 'px'); const fz = im.closest('.fz'); if (matchMedia('(max-width:640px)').matches && w > fz.clientWidth - 2) { fz.dataset.svg = '1'; const zh = fz.parentNode.querySelector('.zh'); if (zh) zh.textContent = '← 左右滑動看全圖　點圖可放大'; } });
     });
   }
   let lb = null;
@@ -177,20 +227,48 @@
   document.addEventListener('click', (e) => {
     const t = e.target; if (!t || !t.closest) return;
     const im = t.closest('img[data-zoom]'); if (im) { openLb(im); return; }
+    const ch = t.closest('[data-chip]'); if (ch) { filt(ch.dataset.chip); return; }
+    const jp = t.closest('a[data-jump]'); if (jp) { e.preventDefault(); const el = app.querySelector(jp.dataset.jump); if (el) { const h = el.previousElementSibling; const tg = el.matches('ol.st') && h && h.classList.contains('stt') ? h : el; tg.style.scrollMarginTop = '68px'; tg.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
+    const vp = t.closest('[data-vplay]'); if (vp) { const v = vp.closest('.vid').querySelector('video'); try { v.play(); const fs = v.requestFullscreen || v.webkitRequestFullscreen; if (fs && matchMedia('(max-width:640px)').matches) fs.call(v); else if (v.webkitEnterFullscreen && matchMedia('(max-width:640px)').matches) v.webkitEnterFullscreen(); } catch (er) { /* 略 */ } return; }
+    if (t.closest('#fl')) { follow(); return; }
     if (t.closest('#tocBtn')) { const s = document.getElementById('tocSheet'); s.hidden = !s.hidden; t.closest('#tocBtn').setAttribute('aria-expanded', String(!s.hidden)); return; }
     if (t.closest('#tocX')) { document.getElementById('tocSheet').hidden = true; return; }
     const a = t.closest('a[data-sec]'); if (a) { e.preventDefault(); document.getElementById('tocSheet').hidden = true; const h = document.getElementById(a.dataset.sec); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (t.closest('#topBtn')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (t.id === 'tocSheet') t.hidden = true;
   });
+  /* 分類 chip：只切顯示，不重畫；同時按下的 chip 標 aria-pressed */
+  function filt(tag) {
+    app.querySelectorAll('[data-chip]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.chip === tag)));
+    app.querySelectorAll('a[data-tags]').forEach((a) => { a.hidden = !!tag && !a.dataset.tags.split('|').includes(tag); });
+    const l = app.querySelector('#list'); if (l) l.hidden = !l.querySelector('a:not([hidden])');
+  }
+  /* 頁首「追蹤」鈕（常駐右側，Andy 11-20 決定）：沒登入→登入視窗；已登入沒解鎖→帶到說明；已解鎖→顯示「已追蹤」 */
+  function renderFollow() {
+    const b = document.getElementById('fl'); if (!b) return;
+    if (admin()) { b.hidden = true; return; }
+    b.hidden = false;
+    const on = member() && unlocked();
+    b.textContent = on ? '已追蹤 ✓' : '追蹤';
+    b.classList.toggle('fill', !on);
+    b.setAttribute('aria-label', on ? '已追蹤 ' + CH.name : '追蹤 ' + CH.name);
+  }
+  function follow() {
+    if (!member()) { login(); return; }
+    if (unlocked()) { location.hash = '#/'; return; }
+    const g = document.getElementById('gate') || document.getElementById('bn');
+    if (g) g.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    else location.hash = '#/';
+  }
   function route() {
-    closeLb(); unmountFabs();
+    closeLb(); unmountFabs(); renderFollow();
     const h = (location.hash || '').replace(/^#\/?/, '');
+    document.body.classList.toggle('ispost', !!(h && okId(decodeURIComponent(h))));
     if (h && okId(decodeURIComponent(h))) post(decodeURIComponent(h)); else list();
   }
   document.addEventListener('click', (e) => {
     if (e.target && e.target.id === 'lg') login();
-    const k = e.target && e.target.closest && e.target.closest('a.card[data-lock]');
+    const k = e.target && e.target.closest && e.target.closest('a[data-lock]');
     if (k) { e.preventDefault(); if (!member()) login(); else { const g = document.getElementById('gate'); if (g) g.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }   // 沒解鎖：未登入→登入視窗；已登入→捲到說明
   });
   window.addEventListener('hashchange', route);
