@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-11-20T12:15+08:00
 title: 頻道①短影片 網路泡沫 vs 現在 AI（dotcom-ai）
 format: threads_v2
@@ -7,6 +7,9 @@ hook_type: #5 數據
 video: site/media/ligu/20261117v_dotcom_ai/video.mp4
 first_comment: 逐項對照與來源：https://liguligu-puipui.com/?u=th-vd-20261120#article/2026-11-17-ligu-dotcom-ai （以上為公開資料整理，非投資建議）
 # Andy 11-17：「口音OK 可以放上網站 安排發布」；11/19 之後的下一個 12:15 空檔。
+posted_at: 2026-11-20T12:18+08:00
+urls: https://www.threads.com/@liguligu0818/post/Df8x-zag83N
+comment_url: https://www.threads.com/@liguligu0818/post/Df8yEVTlKpE
 ---
 2000 年網路泡沫，那斯達克一路跌掉 78%。現在的 AI 熱潮，像不像？
 
