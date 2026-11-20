@@ -1,6 +1,111 @@
 {
- "updated": "2026-11-19",
+ "updated": "2026-11-20",
  "topics": [
+  {
+   "id": "n_saas_selloff_ai",
+   "cat": "news",
+   "title": "軟體股一天跌 4%～9%：AI 疑慮擴散了嗎",
+   "why": "11/17 道瓊跌 849 點、標普與那指連四黑，賽富時、Workday、Adobe 等軟體股跌 4%～9%；讀者會問 AI 是不是在吃掉軟體業（來源：優分析 11/17 美股收盤，撰寫時再核對第二來源）",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/saas"
+   ]
+  },
+  {
+   "id": "n_fed_dec_hike_95",
+   "cat": "news",
+   "title": "12 月升息機率 95%：Fed 為什麼這次要升",
+   "why": "11/17 期貨市場押 12 月升息機率約 95%，理事 Waller 表態支持升 1 碼、12/9 會議結束；跟前幾天的美債題不同，主軸放升息本身（來源：Axios 11/10、優分析 11/17，撰寫時再核對）",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-20"
+  },
+  {
+   "id": "n_jp_semi_advantest_11",
+   "cat": "news",
+   "title": "日股半導體單日重挫：愛德萬跌 11% 怕什麼",
+   "why": "11/16 日經跌 2.4% 失守 6 萬點，愛德萬測試跌約 11%、東京威力科創跌約 7%，兩檔占指數跌點約七成；台灣測試與設備鏈會問會不會傳過來（來源：優分析 11/16，撰寫時再核對）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/ic_test_service"
+   ]
+  },
+  {
+   "id": "i_siph_design_eic",
+   "cat": "intro",
+   "title": "矽光子 IC 設計鏈：驅動、放大晶片到設計服務",
+   "why": "光引擎裡除了光子晶片，還有驅動、放大、控制的電子晶片與 CPO 版 ASIC；站內已有 siph_design 族群（成分含設計服務廠的 CPO 合作進度），補上 CPO 系列還沒講的設計段",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/siph_design"
+   ]
+  },
+  {
+   "id": "i_cpo_pkg_3d",
+   "cat": "intro",
+   "title": "CPO 封裝鏈：光引擎怎麼和交換晶片封在一起",
+   "why": "CPO 要把光引擎與交換器晶片封進同一個基板，台積電 COUPE 之外還有封測廠的 FOPLP、後段整合路線；站內 siph_pkg 族群有各家量產時程（公司說法），講環節不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/siph_pkg"
+   ]
+  },
+  {
+   "id": "i_fab_equip_oem",
+   "cat": "intro",
+   "title": "晶圓廠設備代工鏈：整機、次系統到精密零件",
+   "why": "國際設備大廠把整機組裝、次系統模組與精密零件外包給台廠，營收跟著設備廠資本支出循環走；跟前段製程設備（曝光、蝕刻）那篇不同，這篇講幫設備廠代工的那一層",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/fab_equipment"
+   ]
+  },
+  {
+   "id": "k_rack_busbar",
+   "cat": "know",
+   "title": "機櫃銅排是什麼？一根銅條怎麼把電送進主機",
+   "why": "NVL72 式機櫃單櫃上百 kW，電源架的直流電靠背後的銅排送到每台主機；可用站內 ai_server 3D 機櫃場景切到電源層講解",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_thin_film_dep",
+   "cat": "know",
+   "title": "薄膜沉積是什麼？晶圓上一層層膜怎麼長上去",
+   "why": "製程迴圈裡沉積、曝光、蝕刻、研磨反覆跑，光阻與 CMP 已有知識題，沉積還沒講；用站內 foundry 3D（一顆電晶體與製程迴圈）講 CVD、PVD、ALD 差在哪",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_aec_cable",
+   "cat": "know",
+   "title": "主動式電纜 AEC 是什麼？機櫃短距為何不用光纖",
+   "why": "AI 機櫃內與機櫃間的短距連線，銅纜加上訊號重整晶片變成 AEC，成本與功耗介於被動銅纜和光模組之間；用站內 ai_interconnect 3D（高速連接器接點）帶到線纜端",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
   {
    "id": "n_nvda_q3fy27_kress",
    "cat": "news",
