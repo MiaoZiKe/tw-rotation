@@ -11,7 +11,7 @@ import social_publish as SP  # noqa: E402
 
 NOW = datetime(2026, 11, 20, 4, 0, tzinfo=timezone.utc)
 CFG = {"enabled": True, "keywords": ["來源", "連結"], "lookback_days": 7, "max_per_run": 20,
-       "dm_template": "來源：{url}", "ack_text": "已經私訊你囉～", "fallback_template": "連結 {url}"}
+       "dm_template": "來源：{url}", "ack_text": "已經將「{topic}」完整資訊給你囉～", "fallback_template": "連結 {url}"}
 
 
 def setup(tmp_path, comments, dm_fail=False):
@@ -62,7 +62,7 @@ def test_符合關鍵字_先私訊再公開回已私訊(monkeypatch, tmp_path):
     code, res, posts, st = go(monkeypatch, tmp_path, [C1])
     assert code == 0 and res["sent"] == 1
     assert posts[0][0].endswith("/99/messages") and "liguligu-puipui.com" in posts[0][2]["message"]["text"]
-    assert posts[1][0].endswith("/c1/replies") and posts[1][1]["message"] == "已經私訊你囉～"
+    assert posts[1][0].endswith("/c1/replies") and posts[1][1]["message"] == "已經將「T」完整資訊給你囉～"
     assert "dm_ok" in st.read_text()
 
 
@@ -79,6 +79,12 @@ def test_私訊失敗退回公開貼連結(monkeypatch, tmp_path):
     code, res, posts, st = go(monkeypatch, tmp_path, [C1], dm_fail=True)
     assert code == 0 and posts[-1][0].endswith("/c1/replies") and "liguligu-puipui.com" in posts[-1][1]["message"]
     assert "fallback_public" in st.read_text()
+
+
+def test_主題取自標題去掉頻道前綴與結尾括號():
+    assert LC.topic_of({"title": "頻道①短影片 AI 資料中心電費（power-bill）"}) == "AI 資料中心電費"
+    assert LC.topic_of({"title": "頻道①輪播 像不像 2008（日本 GDP 負成長，8 頁）"}) == "像不像 2008"
+    assert LC.topic_of({"title": "x", "topic": "指定主題"}) == "指定主題"
 
 
 def test_沒有關鍵字與自己的留言不回(monkeypatch, tmp_path):

@@ -2,11 +2,11 @@ name: tc_comments
 # 頻道②「科技透明圈」留言：Threads 關鍵字公開回覆＋IG 關鍵字私訊（EAA 權杖私訊接不通 → 公開回覆＋連結保底）。
 # 2026-11-20 Andy：「當讀者在影片底下留下關鍵留言，我沒發現我這邊有主動私訊他提供連結」。
 # 從 tc_post.yml 拆出來（原本綁在發文工作流的 15 分鐘排程後面，GitHub 排程 6～9 小時才跑一次）：
-# 主力是 gh-cron Worker 每 10 分鐘派一次（xx:x9，dry_run=false）；下面的 GitHub 排程只是保底。
+# 主力是 gh-cron Worker 每 4 小時派一次（Andy 2026-11-20：「檢查頻率改成每 4 小時一次」）（xx:x9，dry_run=false）；下面的 GitHub 排程只是保底。
 # 設定 social/tc/dm_config.json；紀錄 state/tc/（ig_dm.json、threads_replies 等，只存雜湊）。
 on:
   schedule:
-    - cron: "19,49 * * * *"
+    - cron: "19 1,5,9,13,17,21 * * *"
   workflow_dispatch:
     inputs:
       dry_run:

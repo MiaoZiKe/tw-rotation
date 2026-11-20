@@ -207,7 +207,7 @@ test('2026-11-17 談晴說礙自動發文：每天 12:27／20:27 準時派 heali
   }
 });
 
-test('2026-11-20 留言私訊：每 10 分鐘各派一次（含週末與休市日），四個 workflow 分鐘錯開', () => {
+test('2026-11-20 留言私訊：每 4 小時各派一次（台北 00／04／08／12／16／20 點，含週末與休市日），四個 workflow 分鐘錯開', () => {
   const want = {
     '03': 'ligu_comments.yml:{"dry_run":"false"}',
     '04': 'healing_comments.yml:{"dry_run":"false"}',
@@ -215,23 +215,22 @@ test('2026-11-20 留言私訊：每 10 分鐘各派一次（含週末與休市�
     '09': 'tc_comments.yml:{"dry_run":"false"}',
   };
   for (const day of ['2026-11-20', '2026-11-22', '2026-10-26']) {
-    for (const hh of ['00', '07', '12', '23']) {
-      for (const tens of ['0', '1', '2', '3', '4', '5']) {
-        for (const [u, w] of Object.entries(want)) {
-          const t = `${hh}:${tens}${+u}`;
-          const got = allNames(tpe(`${day} ${t}`));
-          assert.ok(got.includes(w), `${day} ${t} 應該派 ${w}，實際 ${got}`);
-        }
+    for (const hh of ['00', '04', '08', '12', '16', '20']) {
+      for (const [u, w] of Object.entries(want)) {
+        const got = allNames(tpe(`${day} ${hh}:${u}`));
+        assert.ok(got.includes(w), `${day} ${hh}:${u} 應該派 ${w}，實際 ${got}`);
       }
     }
+    // 其他整點（不是 4 的倍數）與其他分鐘都不派留言工作流
+    for (const t of ['01:03', '02:04', '05:05', '09:09', '13:03', '15:04', '23:09', '12:10', '12:13', '08:06']) {
+      assert.ok(!allNames(tpe(`${day} ${t}`)).some((n) => /_comments\.yml/.test(n)), `${day} ${t}`);
+    }
   }
-  // 非這四個分鐘尾數不派留言工作流
-  for (const t of ['12:00', '12:01', '12:02', '12:06', '12:08', '12:13', '12:14']) {
-    assert.ok(!allNames(tpe(`2026-11-20 ${t}`)).some((n) => /_comments\.yml/.test(n)) || /[3459]$/.test(t), t);
-  }
-  assert.deepEqual(allNames(tpe('2026-11-20 12:06')), []);
 });
 
-test('留言私訊的間隔派工不跟 SCHEDULE 撞分鐘（撞了同一分鐘會派兩筆）', () => {
-  for (const j of SCHEDULE) for (const i of INTERVAL_JOBS) assert.notEqual(+j.at.slice(3) % i.every, i.offset, `${j.at} 跟 ${i.workflow} 撞分鐘`);
+test('留言私訊的定時派工不跟 SCHEDULE 撞分鐘（撞了同一分鐘會派兩筆）', () => {
+  for (const j of SCHEDULE) for (const i of INTERVAL_JOBS) {
+    const hit = +j.at.slice(0, 2) % i.everyHours === 0 && +j.at.slice(3) === i.offset;
+    assert.ok(!hit, `${j.at} 跟 ${i.workflow} 撞分鐘`);
+  }
 });

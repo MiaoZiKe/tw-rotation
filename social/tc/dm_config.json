@@ -102,84 +102,57 @@
     "public_fallback_note": "私訊接不通（EAA 權杖看不到連結的粉絲專頁）時，改成公開回覆那則留言一句＋連結，文字用 threads_reply 的同一份；私訊一接通自動改回私訊流程。false＝接不通就安靜跳過（舊行為）。",
     "public_max_per_minute": 3,
     "public_max_per_post_hour": 30,
-    "public_limit_note": "防洗版（2026-11-15）：IG 公開回覆每輪（＝每分鐘）最多 3 則、每篇每小時最多 30 則，超過的留到下一輪。"
+    "public_limit_note": "防洗版（2026-11-15）：IG 公開回覆每輪（＝每分鐘）最多 3 則、每篇每小時最多 30 則，超過的留到下一輪。",
+    "ack_public": "已經將「{topic}」完整資訊給你囉～"
   },
   "threads_reply": {
     "enabled": true,
-    "text": "謝謝留言！整理放在這：https://liguligu-puipui.com/",
+    "text": "已經將完整資訊給你囉～整理放在這：https://liguligu-puipui.com/",
     "lookback_posts": 5,
     "max_per_run": 10,
     "texts": {
       "_note": "每篇專屬的公開回覆文字（IG 私訊接不通時的保底公開回覆也用這份）；鍵同 post_keywords。寫成 2～3 句意思相同、措辭不同的清單，依留言 id 的 sha256 固定輪流（防洗版）。還有「待填」或在 legal_pending 就改用上面的 text。",
       "2nm": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
-        "收到～「2 奈米不是尺寸」整篇在這：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-15-tech-2nm"
+        "已經將「2 奈米不是尺寸」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-15-tech-2nm"
       ],
       "euv": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
-        "收到～「曝光機：光比線還粗」整篇在這：https://liguligu-puipui.com/#article/2026-11-16-tech-euv",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-16-tech-euv"
+        "已經將「曝光機：光比線還粗」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-16-tech-euv"
       ],
       "offer": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
-        "收到～「兩份 offer 怎麼比」整篇在這：https://liguligu-puipui.com/#article/2026-11-17-tech-offer",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-17-tech-offer"
+        "已經將「兩份 offer 怎麼比」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-tech-offer"
       ],
       "yield": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
-        "收到～「晶圓良率」整篇在這：https://liguligu-puipui.com/#article/2026-11-17-tech-yield",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-17-tech-yield"
+        "已經將「晶圓良率：晶片越大，能用的比例越低」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-tech-yield"
       ],
       "packaging": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
-        "收到～「先進封裝」整篇在這：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-18-tech-packaging"
+        "已經將「先進封裝：晶片太大做不好，拆小再拼回去」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-18-tech-packaging"
       ],
       "hbm": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm",
-        "收到～「HBM」整篇在這：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-19-tech-hbm"
+        "已經將「HBM：十二層記憶體，比一張信用卡還薄」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-19-tech-hbm"
       ],
       "cooling": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling",
-        "收到～「液冷」整篇在這：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-21-tech-cooling"
+        "已經將「液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-21-tech-cooling"
       ],
       "server": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-20-tech-server",
-        "收到～「伺服器」整篇在這：https://liguligu-puipui.com/#article/2026-11-20-tech-server",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-20-tech-server"
+        "已經將「AI 伺服器：一櫃約 1.4 公噸，裡面到底裝了什麼」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-20-tech-server"
       ],
       "800v": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-22-tech-800v",
-        "收到～「供電」整篇在這：https://liguligu-puipui.com/#article/2026-11-22-tech-800v",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-22-tech-800v"
+        "已經將「八百伏特：AI 機櫃為什麼要把電壓拉高」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-22-tech-800v"
       ],
       "waferflow": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow",
-        "收到～「流程」整篇在這：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow"
+        "已經將「一片晶圓要經過哪些流程」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-25-tech-waferflow"
       ],
       "etch": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-26-tech-etch",
-        "收到～「蝕刻」整篇在這：https://liguligu-puipui.com/#article/2026-11-26-tech-etch",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-26-tech-etch"
+        "已經將「蝕刻機：把圖形刻進晶圓」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-26-tech-etch"
       ],
       "deposition": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition",
-        "收到～「沉積」整篇在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition"
+        "已經將「薄膜沉積：一層幾個原子厚的膜怎麼長上去」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-27-tech-deposition"
       ],
       "icdesign": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign",
-        "收到～「IC 設計」整篇在這：https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign"
+        "已經將「IC 設計：晶片公司沒有工廠，交出去的只是一張設計圖」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign"
       ],
       "foundry": [
-        "謝謝留言！完整解說在這：https://liguligu-puipui.com/#article/2026-11-24-tech-foundry",
-        "收到～「晶圓代工」整篇在這：https://liguligu-puipui.com/#article/2026-11-24-tech-foundry",
-        "謝謝！解說全文放這裡：https://liguligu-puipui.com/#article/2026-11-24-tech-foundry"
+        "已經將「晶圓代工：超過七成二的營收，都是台積電的」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-24-tech-foundry"
       ]
     }
   }

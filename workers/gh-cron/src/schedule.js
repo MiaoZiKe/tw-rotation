@@ -50,16 +50,17 @@ export const SCHEDULE = [
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },
 ];
 
-// ★ 2026-11-20 留言私訊／公開回覆：每 10 分鐘準時派一次（Andy：「讀者留言後 10 分鐘內要被回」）。
+// ★ 2026-11-20 留言私訊／公開回覆：每 4 小時準時派一次（Andy 2026-11-20 改：「檢查頻率改成每 4 小時一次」；原本是每 10 分鐘）。
 //   GitHub 自己的 schedule 實測 6～9 小時才跑一次（11-19 09:27Z、18:37Z、11-20 00:53Z），所以改由這裡派；各 workflow 的 GitHub 排程留著當保底。
 //   每天、含週末與休市日（讀者隨時會留言）。分鐘數（offset）刻意避開 SCHEDULE 已用的時間（個位數 3／4／5／9），同一分鐘只派一筆。
 //   四條互不相同的 concurrency 群組：ligu_comments／healing_comments／channel_comments（每頻道一組）／tc-comments，不會互相取消，也不跟發文工作流搶群組。
 //   channel_comments 目前只有頻道③ CaffAIne 開著（頻道② 留言走 tc_comments，頻道④ 走 healing_comments）。
+// everyHours：台北時間「小時 % everyHours === 0」的整點之後第 offset 分鐘派（00:0x、04:0x、08:0x、12:0x、16:0x、20:0x）。
 export const INTERVAL_JOBS = [
-  { every: 10, offset: 3, workflow: 'ligu_comments.yml', inputs: { dry_run: 'false' } },
-  { every: 10, offset: 4, workflow: 'healing_comments.yml', inputs: { dry_run: 'false' } },
-  { every: 10, offset: 5, workflow: 'channel_comments.yml', inputs: { channel: 'all', dry_run: 'false' } },
-  { every: 10, offset: 9, workflow: 'tc_comments.yml', inputs: { dry_run: 'false' } },
+  { everyHours: 4, offset: 3, workflow: 'ligu_comments.yml', inputs: { dry_run: 'false' } },
+  { everyHours: 4, offset: 4, workflow: 'healing_comments.yml', inputs: { dry_run: 'false' } },
+  { everyHours: 4, offset: 5, workflow: 'channel_comments.yml', inputs: { channel: 'all', dry_run: 'false' } },
+  { everyHours: 4, offset: 9, workflow: 'tc_comments.yml', inputs: { dry_run: 'false' } },
 ];
 
 /** 把 UTC 毫秒轉成台北的 {date:'YYYY-MM-DD', hhmm:'HH:MM', dow:0-6(0=週日)} */
@@ -86,8 +87,8 @@ export function dueJobs(scheduledTimeMs, opts = {}) {
   const enabled = opts.enabled || {};
   const { date, hhmm, dow } = taipeiParts(scheduledTimeMs);
   const trading = isTradingDay(date, dow, holidays);
-  const minute = +hhmm.slice(3);
-  const every = INTERVAL_JOBS.filter((j) => minute % j.every === j.offset)
+  const hour = +hhmm.slice(0, 2), minute = +hhmm.slice(3);
+  const every = INTERVAL_JOBS.filter((j) => hour % j.everyHours === 0 && minute === j.offset)
     .map((j) => ({ workflow: j.workflow, inputs: { ...j.inputs }, label: `${date} ${hhmm} ${j.workflow} ${JSON.stringify(j.inputs)}` }));
   return every.concat(SCHEDULE.filter((j) => {
     if (j.at !== hhmm) return false;

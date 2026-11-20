@@ -52,7 +52,8 @@ def kw(paths):
 def test_有追蹤_私訊完整資料(kw, monkeypatch):
     fake = KwFake({"M1": [c("C1", "U1", "結婚")]}, {"U1": True})
     _, res = go(kw, fake, monkeypatch)
-    assert res["counts"] == {"kw_dm": 1} and fake.replies == []
+    assert res["counts"] == {"kw_dm": 1}
+    assert [t for _, t in fake.replies] == ["已經將「10年，結婚登記少了近3成」完整資訊給你囉～"]   # 2026-11-20 私訊成功後公開補「已經將XXX完整資訊給你囉～」
     text = fake.sent[0][1]
     assert "147,861" in text and "104,376" in text and "內政部" in text and URL in text
 
@@ -146,7 +147,7 @@ def test_待填內容不送半成品(kw, monkeypatch):
     kw["set_cfg"](keyword_replies={"結婚": {"dm": "待填", "public": ["待填網址"]}})
     fake = KwFake({"M1": [c("C1", "U1", "結婚")]}, {"U1": True})
     _, res = go(kw, fake, monkeypatch)
-    assert fake.sent == [] and fake.replies[0][1] == "謝謝留言。完整數字與出處列在貼文說明欄最下方。"
+    assert fake.sent == [] and fake.replies[0][1] == "已經將這篇的完整資訊給你囉～內容在主站文章頁，貼文說明欄也有重點。"
 
 
 def test_輪流挑句_固定可重現():
@@ -308,9 +309,9 @@ def test_CaffAIne_IGAA_有追蹤_私訊後公開補一句(kw, monkeypatch):
     _caff_cfg(kw)
     fake = KwFake({"M1": [c("C1", "U1", "動畫"), c("C2", "U2", "好喜歡")]}, {"U1": True, "U2": True})
     _, res = go(kw, fake, monkeypatch)
-    # 沒設專屬關鍵字的留言（好喜歡）不回；關鍵字留言：私訊 1 則＋公開補「已經私訊你囉～」
+    # 沒設專屬關鍵字的留言（好喜歡）不回；關鍵字留言：私訊 1 則＋公開補「已經將XXX完整資訊給你囉～」
     assert res["counts"].get("kw_dm") == 1 and "dm" not in res["counts"] and "skip_generic" in res["counts"]
-    assert [t for _, t in fake.replies] == ["已經私訊你囉～"]
+    assert [t for _, t in fake.replies] == ["已經將「這支影片的動畫，是我叫 AI 做的」完整資訊給你囉～"]
 
 
 def test_CaffAIne_EAA_私訊接不通_只公開回覆連結(kw, monkeypatch):

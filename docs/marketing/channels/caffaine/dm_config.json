@@ -48,10 +48,10 @@
  ],
  "generic_dm": false,
  "_權杖說明": "目前 CaffAIne 的 IG 權杖是 EAA（Facebook 登入版），私訊接不通 → 程式自動改成『公開回覆＋文章連結』保底。Andy 之後換成 IGAA（Instagram 登入版）權杖時不用改這個檔：dm_available 會自動變 true，有追蹤者收到私訊 keyword_replies.dm，並由 keyword_dm_ack 公開補一句『已經私訊你囉～』；沒追蹤者仍走公開回覆保底。",
- "keyword_dm_ack": "已經私訊你囉～",
+ "keyword_dm_ack": "已經將「{topic}」完整資訊給你囉～",
  "_連結說明": "目前連結指向主站 https://liguligu-puipui.com/#article/<文章 id>（頻道隱藏分頁文章，直接連結訪客可開）。獨立站（site/c/caffaine/，預覽 preview/follow-unlock）進 main 後，把 dm／public 裡的『https://liguligu-puipui.com/#article/』整批換成『https://liguligu-puipui.com/c/caffaine/』＋文章 id 對應的路徑（以獨立站實際路由為準）。",
  "article_base": "https://liguligu-puipui.com/#article/",
- "keyword_default_public": "謝謝留言。這篇的提示詞整理在主站文章頁，貼文說明欄也有重點。",
+ "keyword_default_public": "已經將這篇的完整資訊給你囉～內容在主站文章頁，貼文說明欄也有重點。",
  "keyword_public_fallback": true,
  "public_max_per_run": 10,
  "public_max_per_post_hour": 30,
@@ -60,81 +60,81 @@
    "post": "20261117_made-by-ai（文章 2026-11-17-made-by-ai）",
    "dm": "「這支影片的動畫，是我叫 AI 做的」的提示詞\n・第一句（交代要什麼）：幫我做一支 30 秒的短影片，主題是（你的主題），給（看的人）看。用中文交代的每一步，都請你先寫成腳本檔，再往下做。\n・第二句（先交代重點，再動工）：動工前，先用一句話寫出這支片的重點給我確認；我說可以，你再開始做。做完如果有字卡疊在一起或看不懂的地方，列出來，修好再給我。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-made-by-ai",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-made-by-ai",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-made-by-ai（貼文說明欄也有重點）"
-   ]
+    "已經將「這支影片的動畫，是我叫 AI 做的」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-made-by-ai"
+   ],
+   "topic": "這支影片的動畫，是我叫 AI 做的"
   },
   "兩次": {
    "post": "20261117_two-answers（文章 2026-11-17-two-answers）",
    "dm": "「同一句話問 AI 兩次，答案為什麼不一樣？」的提示詞\n・第一招：問兩次，貼在第二次的最後：剛才同一份資料你已經回答過一次。請你再整理一次，然後把這次和上次不一樣的地方列出來；不一樣的地方，請回到原文找出依據，找不到就寫「原文沒寫」。\n・第二招：規定它只根據資料（實測用的原文）：下面是一份會議紀錄。請列出待辦清單，每項一行，格式：負責人｜事項｜期限。規則：只根據紀錄，沒寫負責人或期限的就寫「未指定」，不要自己補；還沒決定的事不要列進待辦，另外放在最後的「待決定」。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-two-answers",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-two-answers",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-two-answers（貼文說明欄也有重點）"
-   ]
+    "已經將「同一句話問 AI 兩次，答案為什麼不一樣？」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-two-answers"
+   ],
+   "topic": "同一句話問 AI 兩次，答案為什麼不一樣？"
   },
   "網頁": {
    "post": "20261118_same-look（文章 2026-11-18-same-look）",
    "dm": "「為什麼 AI 做的網頁，都長一個樣？」的提示詞\n・沒指定風格（實測用，做兩次）：幫我做一個咖啡店首頁。\n・加風格（實測用，做 1 次）：幫我做一個咖啡店首頁。風格參考：日本咖啡館的手寫菜單看板。米色紙底、深棕色字、標題用襯線字體並靠左，不要漸層、不要紫色，內容用左右不對稱的版面，不要三欄卡片。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-18-same-look",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-18-same-look",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-18-same-look（貼文說明欄也有重點）"
-   ]
+    "已經將「為什麼 AI 做的網頁，都長一個樣？」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-18-same-look"
+   ],
+   "topic": "為什麼 AI 做的網頁，都長一個樣？"
   },
   "遊戲": {
    "post": "20261118_sketch-game（文章 2026-11-18-sketch-game）",
    "dm": "「一張草圖交給 AI，不到一分鐘變成能玩的小遊戲」的提示詞\n・第一句（附草圖）：這是一張遊戲草圖。請照這張圖做成一個可以玩的小遊戲，只輸出一個完整的單檔 HTML（CSS 和 JavaScript 都寫在裡面，不要外部資源），不要多餘說明。\n・第二句（玩到毛病再說，實測用的原文）：我試玩了：遊戲結束的畫面上，掉落的星星畫在文字後面，把「重新開始」的字蓋住了；星星一出現也會壓在左上角的分數框上。請修好這兩點，其他不要動。一樣只輸出完整的單檔 HTML。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-18-sketch-game",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-18-sketch-game",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-18-sketch-game（貼文說明欄也有重點）"
-   ]
+    "已經將「一張草圖交給 AI，不到一分鐘變成能玩的小遊戲」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-18-sketch-game"
+   ],
+   "topic": "一張草圖交給 AI，不到一分鐘變成能玩的小遊戲"
   },
   "記帳": {
    "post": "stock_budget-app（文章 2026-11-17-budget-app）",
    "dm": "「沒寫一行程式，做出只屬於自己的記帳小工具」的提示詞\n・01-first（2026-11-17）：幫我做一個只給自己用的記帳小工具，用手機打開。可以輸入金額、選分類（餐飲、交通、娛樂、其他）、寫備註，按一下新增；畫面下方列出這個月的紀錄，並顯示每個分類的合計和本月總共花了多少；資料要存在瀏覽器裡，重新整理還在。按鈕要夠大，手機寬度 390 像素要好用。請只輸出一個完整的單檔 HTML（CSS 與 JavaScript 都寫在同一個檔裡，不要用外部套件、外部字型或網路圖片），不要多餘解釋。\n・02-fix（2026-11-17）：我用手機試了，點「刪」會直接把那筆紀錄刪掉，很容易手滑。請改成按刪除時先跳出確認，按確定才刪，其他地方都不要動。請只輸出完整的單檔 HTML。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-budget-app",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-budget-app",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-budget-app（貼文說明欄也有重點）"
-   ]
+    "已經將「沒寫一行程式，做出只屬於自己的記帳小工具」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-budget-app"
+   ],
+   "topic": "沒寫一行程式，做出只屬於自己的記帳小工具"
   },
   "圖表": {
    "post": "stock_excel-chart（文章 2026-11-17-excel-chart）",
    "dm": "「Excel 表格丟給 AI，變成會動的圖表」的提示詞\n・01-first（2026-11-17）：我有一份小表格（示意資料，CSV），是三家門市 1 到 6 月的銷售量：\n月份,門市A,門市B,門市C\n1月,120,95,80\n2月,135,102,76\n3月,150,98,91\n4月,142,115,99\n5月,168,120,105\n6月,175,131,110\n請做一個單檔 HTML 網頁，用圖表呈現這份資料，圖表要有動畫（載入時長出來），可以切換看哪一家門市。不要用外部程式庫。只輸出完整的 HTML，不要解釋。\n・02-messy（2026-11-17）：這是我直接從 Excel 複製貼上的表格（示意資料，欄位用 Tab 分隔）：\n月份\t門市A\t門市B\t門市C\n1月\t1,200\t950\t800\n2月\t1,350\t1,020\t760\n3月\t1,500\t\t910\n4月\t1,420\t1,150\t990\n5月\t1,680\t1,200\t1,050\n6月\t1,750\t1,310\t1,100\n合計\t8,900\t5,630\t5,610\n請做一個單檔 HTML 網頁，用折線圖呈現三家門市的月銷售量，載入時線條要有畫出來的動畫。不要用外部程式庫。只輸出完整的 HTML，不要解釋。\n・03-fix（2026-11-17）：門市B 在 3 月的格子是空白，代表那個月沒有資料，但圖上被畫成 0，線掉到最底。請改成：空白就不要畫成 0，那一段線斷開並標示「無資料」。其他不要動。只輸出完整的 HTML，不要解釋。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-excel-chart",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-excel-chart",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-excel-chart（貼文說明欄也有重點）"
-   ]
+    "已經將「Excel 表格丟給 AI，變成會動的圖表」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-excel-chart"
+   ],
+   "topic": "Excel 表格丟給 AI，變成會動的圖表"
   },
   "邀請": {
    "post": "stock_invite-page（文章 2026-11-17-invite-page）",
    "dm": "「一句話做出生日邀請網頁，還能收回覆」的提示詞\n・01-first（2026-11-17）：幫我做一個生日派對邀請網頁。主角小美（虛構），12 月 19 日週六下午 6 點，在示範小館（虛構地點），台北市示範路 1 號。畫面要有大標題、時間地點、還有幾天的倒數、一個「我會去／可能去／去不了」的回覆按鈕，點了之後輸入名字送出，頁面上要看到已回覆的名單。手機寬度 390 像素要好用，風格要有派對的感覺。請只輸出一個完整的單檔 HTML（CSS 與 JavaScript 都寫在同一個檔裡，不要用外部套件、外部字型或網路圖片），不要多餘解釋。\n・02-fix（2026-11-17）：我用手機試了，名單一開始就有兩位我沒輸入過的人，而且我送出的回覆，重新整理頁面就不見了。請拿掉預先放好的名單，讓回覆存在這支手機的瀏覽器裡，重新整理還在。其他地方都不要動。請只輸出完整的單檔 HTML。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-invite-page",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-invite-page",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-invite-page（貼文說明欄也有重點）"
-   ]
+    "已經將「一句話做出生日邀請網頁，還能收回覆」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-invite-page"
+   ],
+   "topic": "一句話做出生日邀請網頁，還能收回覆"
   },
   "手機": {
    "post": "stock_mobile-broken（文章 2026-11-17-mobile-broken）",
    "dm": "「叫 AI 做網站，手機打開直接爆版？一句話修好」的提示詞\n・01-first（2026-11-17）：幫我做一個咖啡店的介紹網頁，要有頂部選單、一張四欄的價目表（品名、尺寸、熱量、價格）、三個推薦商品卡片、聯絡資訊。只輸出一個完整的單檔 HTML，不要解釋。\n・02-fix（2026-11-17）：手機打開時，價目表最右邊的「價格」欄被擠到畫面外看不到。請修好，其他不要動。只輸出完整的單檔 HTML，不要解釋。\n・03-fix2（2026-11-17）：還是要往右滑才看得到價格。我不想要橫向滑動：手機寬度時，請把每個品項改成一張小卡片，品名、尺寸、熱量、價格都直接看得到；電腦寬度維持表格。其他不要動。只輸出完整的單檔 HTML，不要解釋。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-mobile-broken",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-mobile-broken",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-mobile-broken（貼文說明欄也有重點）"
-   ]
+    "已經將「叫 AI 做網站，手機打開直接爆版？一句話修好」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-mobile-broken"
+   ],
+   "topic": "叫 AI 做網站，手機打開直接爆版？一句話修好"
   },
   "小考": {
    "post": "stock_pdf-quiz（文章 2026-11-17-pdf-quiz）",
    "dm": "「一份講義丟給 AI，變成能自己測驗的小考網頁」的提示詞\n・01-first（2026-11-17）：以下是一份講義（示意內容）：\n【新進同仁訓練講義：會議紀錄三步驟】（示意講義，內容為虛構）\n一、開會前：先確認會議目的，並在會議邀請裡寫出「要做出的決定」，不要只寫主題。\n二、開會中：紀錄只寫三件事，決定了什麼、誰負責、何時完成。沒人認領的事項標註「待指派」，不可自行推測負責人。\n三、開會後：會後 24 小時內寄出紀錄，並請與會者在 48 小時內回覆是否有誤。超過期限沒回覆，視為同意。\n補充：紀錄的篇幅以一頁為限；附件另放連結，不貼在內文。\n請根據這份講義，做一個單檔 HTML 小考網頁：5 題選擇題，一次顯示一題，選完立刻顯示對或錯與一句解釋，最後顯示總分。題目只能根據講義內容。只輸出完整的 HTML，不要解釋。\n・02-fix（2026-11-17）：選完答案後，選項本身沒有顏色，看不出我選了哪個、哪個才是對的。請改成：我選的選項答對標綠色、答錯標紅色，答錯時把正確答案也標綠色。其他不要動。只輸出完整的 HTML，不要解釋。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-pdf-quiz",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-pdf-quiz",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-pdf-quiz（貼文說明欄也有重點）"
-   ]
+    "已經將「一份講義丟給 AI，變成能自己測驗的小考網頁」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-pdf-quiz"
+   ],
+   "topic": "一份講義丟給 AI，變成能自己測驗的小考網頁"
   },
   "行程": {
    "post": "stock_trip-plan（文章 2026-11-17-trip-plan）",
    "dm": "「旅遊行程丟給 AI，變成一頁能點的行程表」的提示詞\n・01-first（2026-11-17）：【台南兩天一夜行程（情境示意，自己亂排的草稿，不是真實訂位）】\n第一天（週六）\n8:30 台北車站搭高鐵，10:15 到台南站，轉搭計程車去飯店寄行李\n11:00 吃牛肉湯當早午餐（店名先不訂，現場抽）\n13:00 走去神農街，逛老街拍照、喝一杯冰\n15:30 搭公車去安平古堡，順便逛安平老街，買蜜餞\n18:30 安平晚餐吃蝦捲，搭計程車回市區\n20:30 回飯店休息，想的話再去夜市走走\n第二天（週日）\n9:00 飯店退房，行李寄櫃台\n9:30 走路去孔廟和附近咖啡店，慢慢喝一杯\n12:00 午餐吃碗粿加小吃\n14:00 去飯店領行李，計程車到台南站\n15:30 搭高鐵回台北，17:15 抵達\n\n上面是我亂排的旅遊行程草稿。請把它做成一頁手機好看的行程網頁：分第一天、第二天，每一項有時間、地點、怎麼去，用時間軸顯示；每一項可以點一下勾選已完成，重新整理後還記得；最上面顯示今天做到幾項。請只輸出一個完整的單檔 HTML（CSS 與 JavaScript 都寫在同一個檔裡，不要用外部套件、外部字型或網路圖片），不要多餘解釋。\n・02-fix（2026-11-17）：我用手機試了，最上面一打開寫「已完成 0 / 11 項」，但我勾第一項之後就變成「已完成 1 / 12 項」，總數對不上。請讓總數一打開就是正確的項目數，其他地方都不要動。請只輸出完整的單檔 HTML。\n完整整理（含實測與還不知道的事）：https://liguligu-puipui.com/#article/2026-11-17-trip-plan",
    "public": [
-    "提示詞整理在這：https://liguligu-puipui.com/#article/2026-11-17-trip-plan",
-    "完整提示詞放在這一頁：https://liguligu-puipui.com/#article/2026-11-17-trip-plan（貼文說明欄也有重點）"
-   ]
+    "已經將「旅遊行程丟給 AI，變成一頁能點的行程表」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-17-trip-plan"
+   ],
+   "topic": "旅遊行程丟給 AI，變成一頁能點的行程表"
   }
  },
  "threads_reply": {

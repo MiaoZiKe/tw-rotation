@@ -489,7 +489,9 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
                                 res["errors"].append(f"私訊失敗，改公開回覆保底：{msg[:200]}")
                     if result:
                         sent += 1
-                        ack = str(cfg.get("keyword_dm_ack") or "").strip()
+                        topic = str(((cfg.get("keyword_replies") or {}).get(kw) or {}).get("topic") or "").strip()
+                        # 2026-11-20 Andy：公開回覆改「已經將XXX完整資訊給你囉～」，XXX＝這篇主題（keyword_replies[關鍵字].topic）
+                        ack = str(cfg.get("keyword_dm_ack") or "").replace("{topic}", topic or "這篇").strip()
                         if ack and result == "kw_dm" and not dry_run:   # 私訊送到了 → 公開補一句（失敗不影響私訊）
                             err = do_public(mid, cid, ack)
                             if err:

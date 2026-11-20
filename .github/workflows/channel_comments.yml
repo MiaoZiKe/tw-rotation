@@ -5,7 +5,7 @@ name: channel_comments
 # - 每個頻道一個 job，只帶自己前綴的 IG Secrets；紀錄 <頻道>/state/comments_dm.json 只存留言編號雜湊、時間、結果。
 on:
   schedule:
-    - cron: "11,41 * * * *"   # 保底：GitHub 排程實測 6～9 小時才跑一次；主力是 gh-cron Worker 每 10 分鐘派（2026-11-20 起，xx:x5）
+    - cron: "11 1,5,9,13,17,21 * * *"   # 保底：GitHub 排程實測 6～9 小時才跑一次；主力是 gh-cron Worker 每 4 小時派（2026-11-20 起，台北 00/04/08/12/16/20 點的第 5 分）
   workflow_dispatch:
     inputs:
       channel:

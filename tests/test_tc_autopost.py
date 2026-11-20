@@ -576,7 +576,7 @@ def test_法遵審後的正式設定():
     assert c["legal_reviewed"] is True and "2026-11-09 法遵審過" in c["legal_note"]
     assert c["ig_dm"]["follow_gate"] is True
     assert "完整整理" not in blob and "FW 面談" not in blob and "網友分享的面試方向" in blob
-    assert c["threads_reply"]["text"] == "謝謝留言！整理放在這：https://liguligu-puipui.com/"   # 2026-11-15 法遵再審
+    assert c["threads_reply"]["text"] == "已經將完整資訊給你囉～整理放在這：https://liguligu-puipui.com/"   # 2026-11-20 Andy 改公開回覆措辭
     assert "僅保存去識別化的編號與時間，30 天後刪除" in (root / "docs/marketing/channels/tc/app_review/README.md").read_text(encoding="utf-8")
 
 
@@ -911,7 +911,7 @@ def test_設定_2nm專屬關鍵字與待填條目():
     assert "透明" in c["keywords"]                                              # 全域保留
     assert "2奈米" in c["post_keywords"]["2nm"]
     texts = c["threads_reply"]["texts"]["2nm"]
-    assert isinstance(texts, list) and 2 <= len(texts) <= 3                      # 防洗版：2～3 句輪流
+    assert isinstance(texts, list) and 1 <= len(texts) <= 3                      # 2026-11-20 公開回覆統一成「已經將XXX完整資訊給你囉～」，單句也行
     for t in texts + [c["ig_dm"]["contents"]["2nm"]]:
         assert "liguligu-puipui.com/#article/" in t
         for w in ("僅供參考", "未經查證", "網友回報", "網路上說", "據了解", "完整資料"):   # lessons 第 5 條；措辭改「完整解說」
@@ -1065,7 +1065,7 @@ def test_Threads回覆依留言輪流不同句(monkeypatch, tmp_path):
     cfg = json.loads(_cfg2(tmp_path, ready=True).read_text(encoding="utf-8"))
     texts = cfg["threads_reply"]["texts"]["2nm"]
     assert [s["text"] for s in sent] == [K.rotate(texts, s["reply_to_id"]) for s in sent]
-    assert len({s["text"] for s in sent}) >= 2
+    assert len({s["text"] for s in sent}) >= 1
 
 
 class ManyIGAPI(KwIGAPI):

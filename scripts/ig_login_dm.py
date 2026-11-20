@@ -1,11 +1,11 @@
-"""留言關鍵字 → 公開回「已經私訊你囉～」→ Private Reply 私訊連結（Instagram 登入版 IGAA 權杖，2026-11-17）。
+"""留言關鍵字 → 公開回「已經將XXX完整資訊給你囉～」→ Private Reply 私訊連結（Instagram 登入版 IGAA 權杖，2026-11-17）。
 
 Andy 要的流程：有人在 IG 貼文下留言關鍵字 → 帳號公開回一句 → 對留言者私訊連結。各頻道共用。
 官方依據（graph.instagram.com，不需要粉絲專頁）：
   · 私訊：POST /{ig-user-id}/messages，body {recipient:{comment_id}, message:{text}}，權限 instagram_business_manage_messages
   · 公開回覆：POST /{comment-id}/replies?message=…，權限 instagram_business_manage_comments
   · 限制：留言後 7 天內；每則留言只能私訊 1 次；之後要對方先回才能再傳（24 小時內）。
-順序（避免說了「已私訊」卻沒送到）：先私訊 → 成功才公開回「已經私訊你囉～」；私訊失敗 → 退回公開回覆貼連結。
+順序（避免說了「已私訊」卻沒送到）：先私訊 → 成功才公開回「已經將XXX完整資訊給你囉～」；私訊失敗 → 退回公開回覆貼連結。
 ★ 預設關閉：呼叫端要明確傳 enabled=True 且 dry_run=False 才會真的送；本檔沒有被任何 workflow 呼叫。
 不印權杖；不存留言內容。
 """
@@ -80,5 +80,5 @@ if __name__ == "__main__":
     # 只做空跑示範：python3 scripts/ig_login_dm.py <comment_id> <時間戳>；沒有權杖也能跑（不連網）
     cid = sys.argv[1] if len(sys.argv) > 1 else "0"
     ts = sys.argv[2] if len(sys.argv) > 2 else datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+0000")
-    print(handle_comment(os.environ.get("IG_ACCESS_TOKEN", ""), "me", cid, ts, dm_text="（連結）", ack_text="已經私訊你囉～",
+    print(handle_comment(os.environ.get("IG_ACCESS_TOKEN", ""), "me", cid, ts, dm_text="（連結）", ack_text="已經將「（主題）」完整資訊給你囉～",
                          fallback_text="（連結）", enabled=True, dry_run=True))

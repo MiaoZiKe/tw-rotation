@@ -3,11 +3,11 @@
 2026-11-20 Andy：「當讀者在影片底下留下關鍵留言，我沒發現我這邊有主動私訊他提供連結」。
 設定：social/ig/dm_config.json；紀錄：social/ig/state/comments_dm.json（只存留言 id 的雜湊、時間、結果）。
 
-流程（輪詢，由 gh-cron Worker 每 10 分鐘派 ligu_comments.yml）：
+流程（輪詢，由 gh-cron Worker 每 4 小時派 ligu_comments.yml）：
   1. 貼文來源：social/ig/queue/*.md 裡 status: posted、有 urls（IG 連結）與 first_comment（來源文章連結）、近 lookback_days 天的檔。
   2. 用 GET /{ig-user-id}/media 把「連結的短碼」對到 IG 貼文 id，再讀每篇的主留言。
   3. 留言含關鍵字、不是自己帳號、沒處理過 → scripts/ig_login_dm.handle_comment：
-       先私訊來源連結 → 成功才公開回「已經私訊你囉～」；私訊失敗 → 退回公開貼連結。
+       先私訊來源連結 → 成功才公開回「已經將XXX完整資訊給你囉～」（XXX＝貼文主題）；私訊失敗 → 退回公開貼連結。
   4. 每則留言最多 MAX_TRIES 輪（Meta 每則留言只准私回 1 次，成功就不再送）。
 權杖只從環境變數讀（IG_ACCESS_TOKEN_AUTO 優先，其次 IG_ACCESS_TOKEN），輸出一律遮蔽；不存留言全文與使用者名稱。
 用法：python scripts/ligu_comments.py [--dry-run]
@@ -37,7 +37,7 @@ KEEP_DAYS = 30
 FINAL = {"dm_ok", "dm_ok_ack_failed", "fallback_public", "skipped_old"}
 
 DEFAULT_CFG = {"enabled": False, "keywords": [], "lookback_days": 7, "max_per_run": 20, "dm_template": "",
-               "ack_text": "已經私訊你囉～", "fallback_template": ""}
+               "ack_text": "已經將「{topic}」完整資訊給你囉～", "fallback_template": ""}
 
 
 def load_json(p: Path, default):
@@ -102,6 +102,15 @@ def first_url(text: str) -> str:
     return m.group(0).rstrip("，。、）)") if m else ""
 
 
+def topic_of(fm: dict) -> str:
+    """貼文主題（公開回覆「已經將XXX完整資訊給你囉～」的 XXX）：front matter 的 topic，沒有就取 title 去掉「頻道①短影片」前綴與結尾括號。"""
+    if fm.get("topic"):
+        return fm["topic"].strip()
+    t = re.sub(r"^頻道[①②③④]\S*\s*", "", fm.get("title", "")).strip()
+    t = re.sub(r"\s*[（(][^）)]*[）)]\s*$", "", t).strip()
+    return t or "這篇"
+
+
 def queue_posts(now: datetime, lookback_days: int, queue: Path = QUEUE) -> dict:
     """{短碼: {url, title, file}}：近 lookback_days 天已發、有來源連結的貼文。"""
     out = {}
@@ -121,7 +130,7 @@ def queue_posts(now: datetime, lookback_days: int, queue: Path = QUEUE) -> dict:
         for u in re.split(r"[\s,]+", fm.get("urls", "")):
             sc = shortcode(u)
             if sc and url:
-                out[sc] = {"url": url, "title": fm.get("title", ""), "file": f.name}
+                out[sc] = {"url": url, "title": fm.get("title", ""), "topic": topic_of(fm), "file": f.name}
     return out
 
 
@@ -217,8 +226,9 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
             budget -= 1
             url = post["url"]
             r = DM.handle_comment(token, uid, cid, str(c.get("timestamp") or ""),
-                                  dm_text=cfg["dm_template"].format(url=url), ack_text=cfg["ack_text"],
-                                  fallback_text=cfg["fallback_template"].format(url=url), enabled=True, dry_run=dry_run)
+                                  dm_text=cfg["dm_template"].format(url=url, topic=post["topic"]),
+                                  ack_text=cfg["ack_text"].format(topic=post["topic"]),
+                                  fallback_text=cfg["fallback_template"].format(url=url, topic=post["topic"]), enabled=True, dry_run=dry_run)
             SP.log(f"[ligu] 留言 …{cid[-4:]} 關鍵字「{kw}」→ {r}")
             if dry_run:
                 continue
