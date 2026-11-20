@@ -1,0 +1,15 @@
+/* 2026-11-20 頻道作品專區（#v-hub）手機版：390 寬一欄；頻道分頁四顆等寬用短名；展開的影片滿版、文案在下。只限 ≤640，桌機不受影響。 */
+@media (max-width:640px){
+  :root.m4 #v-hub .hubgrid{grid-template-columns:minmax(0,1fr)}
+  :root.m4 #v-hub .hubtabs{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
+  :root.m4 #v-hub .hubtabs button{padding:6px 2px;flex-direction:column;gap:0;font-size:12px;line-height:1.3;min-height:44px;justify-content:center}
+  :root.m4 #v-hub .hubtabs .hn{display:none}
+  :root.m4 #v-hub .hubtabs .hs2{display:block;font-size:13px;white-space:nowrap}
+  :root.m4 #v-hub .hubtabs b{font-size:12px}
+  :root.m4 #v-hub .hbp{width:76px}
+  :root.m4 #v-hub .hbi h3{font-size:14px}
+  :root.m4 #v-hub .hbs{-webkit-line-clamp:2;font-size:12px}
+  :root.m4 #v-hub .hba{grid-template-columns:repeat(2,1fr)}
+  :root.m4 #v-hub .hbx{grid-template-columns:minmax(0,1fr)}
+  :root.m4 #v-hub .hbv video{max-height:62vh}
+}

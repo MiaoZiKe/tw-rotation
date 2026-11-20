@@ -5646,8 +5646,10 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261115-articles-tabs7.css">
 <link rel="stylesheet" href="m4/20261115-channel-logo.css">
 <link rel="stylesheet" href="m4/20261116-文章影片.css">
+<link rel="stylesheet" href="m4/20261120-channel-hub.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
+<link rel="stylesheet" href="hub/hub.css">
 <link rel="stylesheet" href="fit.css">
 <link rel="stylesheet" href="explore.css">
 </head>
@@ -5668,6 +5670,8 @@ h3 .howbtn.pop{font-family:inherit}
   <div class="tabswrap" id="tabsWrap">
   <button class="tabnav l" id="tabPrev" type="button" aria-label="往左看更多分頁" tabindex="-1">‹</button>
   <nav class="tabs" id="tabs">
+    <!-- 2026-11-20 Andy：「哩股哩股上方都需要各頻道影片 文案 資訊可以下載，及觀看」→ 頻道作品專區（site/hub/hub.js），放在最前面 -->
+    <button class="tab" data-view="hub">頻道作品</button>
     <button class="tab" data-view="overview">總覽</button>
     <button class="tab" data-view="flow">資金流向</button>
     <button class="tab" data-view="industry">產業地圖</button>
@@ -5760,6 +5764,8 @@ h3 .howbtn.pop{font-family:inherit}
   <div class="banner" id="banner" hidden></div>
 
   <!-- ================= 總覽 ================= -->
+  <!-- 頻道作品（#hub，2026-11-20）整頁由 site/hub/hub.js 畫，資料在 site/hub/works.json（scripts/build_channel_hub.py 產生） -->
+  <section class="view" id="v-hub"></section>
   <section class="view" id="v-overview">
     <!-- ★ 2026-09-24 總覽改版（Andy 八條，桌機 >820px）：
          ① KPI 從三張走勢圖下方搬到**上方**，六格收成四格（加權指數／成交值／漲跌家數／前五族群佔比）的緊湊橫條（≤64px）。
@@ -6295,6 +6301,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="portfolio.js"></script><!-- 2026-11-09 我的持股曝險（#portfolio）：持股只存 localStorage，不送後端 -->
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
 <script src="tc/logos.js"></script><script src="tc/tc.js"></script><!-- 2026-10-25 科技透明圈 -->
+<script src="hub/hub.js"></script><!-- 2026-11-20 頻道作品專區 -->
 <script src="channels/channels.js"></script><!-- 2026-11-04 頻道規劃（管理者限定） -->
 <script src="lab/engine.js"></script><script src="lab/kview.js"></script><script src="lab/lab.js"></script><script src="lab/replay.js"></script><script src="lab/events.js"></script><script src="lab/futures.js"></script><script src="lab/expr.js"></script><script src="lab/standard_defs.js"></script><script src="lab/custom.js"></script><script src="lab/ux.js"></script><!-- 2026-10-28 交易練習室 -->
 <script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->

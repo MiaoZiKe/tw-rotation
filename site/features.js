@@ -116,6 +116,13 @@
        影片播放本身不受限。只擋畫面（mp4 是公開靜態檔）。次數若 Andy 要設再加 limBy。 */
     { id: 'art.video.dl', name: '文章影片：下載影片', cat: 'articles', def: true, defBy: { guest: false }, kind: 'bool',
       desc: '精選文章內嵌影片下方的「下載影片」鈕（關掉：鈕換成「登入後可下載」，影片仍可直接播放）', veil: [], mark: [], block: [] },
+    /* 2026-11-20 Andy：「哩股哩股上方都需要各頻道影片 文案 資訊可以下載，及觀看」→ 頻道作品專區（#hub，site/hub/hub.js）。
+       兩個新功能都要有鍵（CLAUDE.md 11-02）：下載影片＝跟文章影片同規則（訪客關、註冊會員以上開、不設次數）；複製文案＝全方案開、不設次數。
+       影片播放與看文案本身不受限；mp4 是公開靜態檔，只擋畫面。要設次數再加 limBy。 */
+    { id: 'hub.dl', name: '頻道作品：下載影片', cat: 'articles', def: true, defBy: { guest: false }, kind: 'bool',
+      desc: '「頻道作品」專區每則作品的「下載影片」鈕（關掉：鈕換成「登入後可下載」，影片仍可直接播放）', veil: [], mark: [], block: [] },
+    { id: 'hub.copy', name: '頻道作品：複製貼文文案', cat: 'articles', def: true, kind: 'bool',
+      desc: '「頻道作品」專區每則作品的「複製文案」鈕（關掉：鈕反灰、旁邊備註；文案仍可展開閱讀）', veil: [], mark: [], block: [] },
     Object.assign(box('art.read', 'articles', '閱讀文章（單篇）', ['#artPost'], '點進去讀一篇文章（內文、圖表、相關台股）；每日次數＝每天能讀幾篇，同一篇同一天重看不重算'),
       { route: /^#article\//, qunit: '篇' }),
     Object.assign(box('art.cat.news', 'articles', '比比快訊（單篇）', ['#artPost[data-cat="news"]'], '「比比快訊」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
