@@ -192,6 +192,11 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
     for media_id, post in mm.items():
         try:
             cs = read_comments(media_id, token)
+            try:      # 診斷：貼文自己說有幾則留言（跟實際讀到的比，抓「讀得到貼文、讀不到留言」的權限問題）
+                cnt = SP.http("GET", f"{DM.IG}/{media_id}", params={"fields": "comments_count", "access_token": token}).get("comments_count")
+            except Exception as e:  # noqa: BLE001
+                cnt = "讀不到：" + SP.redact(e)[:80]
+            SP.log(f"[ligu] 貼文 …{media_id[-4:]}（{post['file']}）讀到留言 {len(cs)} 則；貼文自己的 comments_count＝{cnt}")
         except Exception as e:  # noqa: BLE001
             res["errors"].append("讀留言失敗：" + SP.redact(e)[:160])
             continue
