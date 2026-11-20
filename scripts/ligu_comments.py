@@ -165,6 +165,12 @@ def read_comments(media_id: str, token: str) -> list[dict]:
     return out
 
 
+def read_comments_expanded(media_id: str, token: str) -> list[dict]:
+    """備援：/comments 回空但貼文 comments_count>0 時，改用欄位展開 GET /{media}?fields=comments{...}（同一權限、不同路徑）。"""
+    d = SP.http("GET", f"{DM.IG}/{media_id}", params={"fields": "comments.limit(50){id,text,timestamp,username,from{id,username}}", "access_token": token})
+    return ((d.get("comments") or {}).get("data")) or []
+
+
 def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = None, cfg_path: Path = CONFIG,
         state_path: Path = STATE, queue: Path = QUEUE) -> tuple[int, dict]:
     env = os.environ if env is None else env
@@ -206,6 +212,12 @@ def run(env: dict | None = None, dry_run: bool = False, now: datetime | None = N
             except Exception as e:  # noqa: BLE001
                 cnt = "讀不到：" + SP.redact(e)[:80]
             SP.log(f"[ligu] 貼文 …{media_id[-4:]}（{post['file']}）讀到留言 {len(cs)} 則；貼文自己的 comments_count＝{cnt}")
+            if not cs and isinstance(cnt, int) and cnt > 0:
+                try:
+                    cs = read_comments_expanded(media_id, token)
+                    SP.log(f"[ligu] 改用欄位展開讀留言：{len(cs)} 則（欄位：{sorted({k for c in cs for k in c})}）")
+                except Exception as e:  # noqa: BLE001
+                    SP.log("[ligu] 欄位展開也讀不到：" + SP.redact(e)[:160])
         except Exception as e:  # noqa: BLE001
             res["errors"].append("讀留言失敗：" + SP.redact(e)[:160])
             continue
