@@ -44,9 +44,14 @@ k0 = max(i for i, (ww, s, e) in enumerate(words) if "直接" in ww)
 def first_line_start():
     ln = norm(texts[0])[:4]
     for j in range(k0 + 1, min(len(words), k0 + 12)):
+        if words[j][0].strip() in ("說", "说"): continue   # 2026-11-20：「直接說」的「說」不是念稿第一字（ASR 常把「平均」的平漏掉，變成「說均」）
         nx = "".join(norm(ww) for ww, s0, e0 in words[j:j + 6])[:4]
         if len(nx) >= 3 and sum(1 for p_, q_ in zip(nx, ln) if p_ == q_) >= 3: return j
         if len(nx) >= 3 and sum(1 for p_, q_ in zip(nx, ln[1:]) if p_ == q_) >= 3: return j
+    # 2026-11-20：念稿第 1 行以中文數字開頭（例「二十五到二十九歲」），ASR 回阿拉伯數字（「25到29歲」）時，norm 會把數字吃掉而對不上 → 退而求其次：「直接」之後第一個以數字開頭的詞
+    if texts[0][:1] in "〇一二三四五六七八九十":
+        for j in range(k0 + 1, min(len(words), k0 + 12)):
+            if re.match(r"\d", words[j][0].strip()): return j
     return None
 j0 = first_line_start()
 if j0 is None: sys.exit("前導判定失敗：「直接」之後 12 個字內找不到念稿第 1 行開頭「%s」（ASR 聽到：%s）。不切，請人工看 ASR 或用 ON0 環境變數指定起點。" % (texts[0][:6], "".join(w_[0] for w_ in words[k0:k0 + 12])))

@@ -33,7 +33,7 @@
   g+=`</g>`;
   const sl=P(OF.slog,10);if(sl>0)g+=`<g opacity="${sl}" transform="translate(${(1-sl)*-50},0)">${T(444,1180,s.slogan,44,400,SUBC)}</g>`;
   const nx=P(OF.next,12,BACK);if(nx>0)g+=`<g opacity="${clamp(nx*2)}" transform="translate(${(1-nx)*70},0)"><rect x="84" y="1214" width="720" height="88" rx="44" fill="${FACE}" stroke="${LINE}" stroke-width="2.5"/>${T(444,1274,s.nextLine,42,700,TXT)}</g>`;
-  if(s.keyword){const kw=P(KW,12,BACK);if(kw>0)g+=`<g opacity="${clamp(kw*2)}" transform="translate(444,1388) scale(${(.8+.2*kw).toFixed(3)}) translate(-444,-1388)"><rect x="104" y="1342" width="680" height="92" rx="46" fill="#C5782B"/><text x="444" y="1406" text-anchor="middle" font-family="Noto Sans CJK TC" font-weight="700" font-size="46" fill="#FFFFFF">留言「<tspan font-size="58" font-weight="900">${esc(s.keyword)}</tspan>」拿完整資料</text></g>`}
+  if(s.keyword){const kw=P(KW,12,BACK);if(kw>0)g+=`<g opacity="${clamp(kw*2)}" transform="translate(444,1388) scale(${(.8+.2*kw).toFixed(3)}) translate(-444,-1388)"><rect x="104" y="1342" width="680" height="92" rx="46" fill="#C5782B"/><text x="444" y="1406" text-anchor="middle" font-family="Noto Sans CJK TC" font-weight="700" font-size="46" fill="#FFFFFF">${s.keyword==='@FIXED'?'留言拿完整資料':`留言「<tspan font-size="58" font-weight="900">${esc(s.keyword)}</tspan>」拿完整資料`}</text></g>`}
   return box('mark',150,1540,g,lt,d,{})}
 };
 

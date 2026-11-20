@@ -9,3 +9,19 @@
 - 待推 main 的改動（都在工作區、還沒 commit）：templates_tqsa_v3/video/v8/（產生器、規格、7 份插圖、檢查程式）、video_runtime_v8.js、render_video.js（v8 檢查開關）、tts/asr.py、tts/cut_take_v8.py、tts/make_segments.py（words 欄）、scripts/healing_article.py（mp4 區塊）、dm_config.json（6 個關鍵字：學貸、時薪、中位數、房貸、勞保、初婚；工時那支關鍵字「工時」還沒加）、素材登記.md、plan_202611_影片為主.md（下集串接＋11/24 改 25–29 歲題）、7 個 v 資料夾（caption、sources、article.json、meta draft、審查檔）。影片檔只推 video.mp4／cover.jpg（≤20MiB），video_nv.mp4 不推。
 - 注意：每日上限 2 → 輪播 12:27＋影片 20:27，但 healing_post.yml 沒有 12:27 的排程（中午靠 CEO 的 12:41 保底叫醒），否則同晚資料夾名排序會先發輪播、影片 20:43 才發。工時 article 對應 site/articles/healing/2026-11-16-healing-worktime.json（主控改過的示範篇，更新前先確認）。磁碟只剩約 7GB，渲染後要刪 templates_tqsa_v3/video/tmp/<名>。
 - 2026-11-16 注意：_charts.js 的鈕輪流亮不是旗標，之後重算有 ask 鏡的片（young、mortgage、laborins、firstmarriage）會跟著亮，審片時要看。
+
+---
+# 談晴說礙 11/24～11/26 三支影片批次狀態（2026-11-20 09:06 台北，sonnet 配音剪輯渲染棒）
+
+- 新插圖 6 個已做（v9/illustrations：rentbanner、jarpair、mixempty、stepstroller、birthcards、stairs10），已登記 ILLUSTRATIONS.md＋素材登記.md；script.json 6 鏡 subject 已改指向新主體。
+- TTS 已送 1 次成功（批次 _batch_11200854，合併 562 字，163.96 秒）；原始錄音備份在 /home/user/takes_backup/docs/marketing/channels/healing/queue/。沒有再送。
+- 切回時 cut_take_v8 兩處修補（tts/cut_take_v8.py）：念稿第 1 行是中文數字、ASR 回阿拉伯數字時（二十五→25）找不到起點；ASR 把「直接說」的「說」當成念稿第 1 字（平均→說均）會把設定句尾巴留進成品。
+- 剪輯參數：mingap 0.45、para 0.8、maxgap 0.6、HOLD 1.05。三支念稿時長 54.3／54.5／55.3 秒（pace_check 合格另見各資料夾 pace_check.txt）。
+- 渲染：/tmp/render_all.sh 依序 rent → savings → births（每支約 7～9 分鐘），狀態寫 /tmp/render_all.status；做完的 video.mp4 在各資料夾。
+- 還沒做：渲染完驗證（ffprobe、ASR 第一句、重疊）、video_review.md、retro.md 補完、推 main。meta 維持 draft＋await_andy。
+
+## 2026-11-20 追加（Andy 全頻道：結尾「留言XX」改固定內容，尚未給）
+- TTS 已送，三支旁白結尾「想看完整資料，留言租屋／存款／出生。」先保留，不重送；等固定內容來再補配最後一句（只重配 s9）。
+- 片尾卡關鍵字已改成參數：script.json outro.keyword＝"@FIXED" 時顯示「留言拿完整資料」（runtime v8/_outro.js、video_runtime_v8.js 已支援）；之後改成指定內容只改這個值。
+- caption.txt 這 3 支還沒有；寫時結尾用「到留言區留言」不含關鍵字。
+- 12:20 完成：3 支 video.mp4 已渲染、驗證、寫 video_review.md／retro.md，推 main；meta 維持 draft＋await_andy。待做：animation-director／art-director 審片打分；Andy 看過才改 approved；固定結尾內容來了補配 s9。
