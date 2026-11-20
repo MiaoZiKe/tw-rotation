@@ -312,6 +312,16 @@
 .artscene .asov span{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px;border-radius:999px;background:var(--k,var(--cyan));color:#fff;font:inherit;font-size:14px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 /* 10-19 稽核 #10：副標／族群／標籤／摘要包成一組；桌機照舊攤開（切換鈕不顯示），手機預設收起（見下面 ≤640 那段） */
 .arthdt{display:none}
+.artbody .alead{font-size:17px;line-height:1.75;font-weight:700;margin:0 0 var(--sp-3)}
+.artbody .at{font-weight:700;font-size:14px;color:var(--k,var(--cyan));margin-bottom:8px}
+.artbody .asum,.artbody .aterm{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel))}
+.artbody .asum ol{margin:0;padding-left:1.4em}.artbody .asum li{margin:8px 0}
+.artbody .aterm dl{margin:0}.artbody .aterm dt{font-weight:700;margin-top:10px}.artbody .aterm dt:first-child{margin-top:0}.artbody .aterm dd{margin:2px 0 0;color:var(--ink-2)}
+.artbody .arel{margin:var(--sp-5) 0 var(--sp-3)}.artbody .arel a{display:block;margin:8px 0;padding:10px 14px;border:1px solid var(--line);border-radius:var(--r-sm,8px);text-decoration:none;color:var(--ink)}
+.artbody .arel a:hover{background:var(--row-hover)}.artbody .arel a b{display:block}.artbody .arel a span{display:block;margin-top:2px;font-size:13px;color:var(--ink-2)}
+.artbody .acover{margin:var(--sp-4) 0;text-align:center}.artbody .acover img{display:block;margin:0 auto 8px;max-width:100%;max-height:min(70vh,640px);width:auto;height:auto;border:1px solid var(--line);border-radius:var(--r-sm,8px)}
+.artbody .acover .acdl{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid var(--accent,#3b82f6);border-radius:var(--r-sm,8px);font-weight:700;font-size:13px;color:var(--accent,#3b82f6)!important;text-decoration:none}
+.artbody .acover figcaption{font-size:12.5px;color:var(--ink-2);margin-bottom:6px}
 .artbody .callout{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);border-radius:var(--r-sm,8px);
   background:color-mix(in srgb,var(--amber) 9%,var(--panel));font-weight:600}
 .artbody .tbw{overflow-x:auto;margin:var(--sp-3) 0 var(--sp-4);border:1px solid var(--line);border-radius:var(--r-sm,8px)}
@@ -1877,6 +1887,22 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && x.label && okUrl(x.url));
         if (!its.length) return '';
         return `<div class="artxl">${b.title ? `<div class="lbl">${esc(b.title)}</div>` : ''}${its.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.label)} ↗</a>`).join('')}</div>`;
+      }
+      /* 2026-11-20 科技透明圈文章補強（獨立站樣板同一組欄位；只有新文章用到，舊文章沒這些 t 不受影響）
+         lead 結論 {text, more?}｜sum 3 個重點 {title?, items[]}｜term 名詞框 {title?, items:[{k,v}]}
+         rel 延伸閱讀 {title?, items:[{id,title,why?}]}（連站內文章 #article/<id>）｜cover 原圖可下載 {src:'media/<頻道>/<資料夾>/cover.jpg', alt, title?, note?} */
+      case 'lead': return `<p class="alead">${esc(b.text)}</p>${b.more ? `<p>${esc(b.more)}</p>` : ''}`;
+      case 'sum': return Array.isArray(b.items) && b.items.length ? `<div class="asum"><div class="at">${esc(b.title || '3 個重點')}</div><ol>${b.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : '';
+      case 'term': return Array.isArray(b.items) && b.items.length ? `<div class="aterm"><div class="at">${esc(b.title || '名詞解釋')}</div><dl>${b.items.map((x) => `<dt>${esc(x.k)}</dt><dd>${esc(x.v)}</dd>`).join('')}</dl></div>` : '';
+      case 'rel': {
+        const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && okId(x.id) && x.title);
+        return its.length ? `<section class="arel"><div class="at">${esc(b.title || '延伸閱讀')}</div>${its.map((x) => `<a href="#article/${esc(x.id)}"><b>${esc(x.title)}</b>${x.why ? `<span>${esc(x.why)}</span>` : ''}</a>`).join('')}</section>` : '';
+      }
+      case 'cover': {
+        const src = String(b.src || '');
+        if (!/^media\/[a-z0-9_-]{2,20}\/[\w.-]{1,80}\/[\w.-]{1,120}\.(jpg|jpeg|png|webp)$/.test(src) || src.includes('..')) return '';
+        const nm = (String(b.title || '').replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 60) || src.split('/')[2]) + '.' + src.split('.').pop();
+        return `<figure class="acover"><img src="${esc(src)}" alt="${esc(b.alt || b.title || '影片封面')}" loading="lazy">${b.note ? `<figcaption>${esc(b.note)}</figcaption>` : ''}<a class="acdl" href="${esc(src)}" download="${esc(nm)}">下載原圖 ⬇</a></figure>`;
       }
       case 'kpi': return kpiHTML(b);
       case 'chart': return chartHTML(b, bi);
