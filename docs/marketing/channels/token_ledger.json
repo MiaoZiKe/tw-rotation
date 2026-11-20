@@ -1,0 +1,13 @@
+{
+  "_說明": "Token 管理單位每日快照（get_session 的累計 usage）。下一次減這一次＝區間用量。cache_read／output 單位 token；cost_usd 為平台估算值。",
+  "snapshots": [
+    {"at": "2026-11-20T07:18Z", "sessions": {
+      "主控":   {"cache_read": 8641244120, "cache_write": 323389992, "output": 21817976, "cost_usd": 3249.67, "context": 869280},
+      "①主":    {"cache_read": 1362996242, "cache_write": 50292866, "output": 3216438, "cost_usd": 569.82, "context": 511728},
+      "①短片":  {"cache_read": 317738727, "cache_write": 11176579, "output": 924359, "cost_usd": 140.38, "context": 509713},
+      "②科技":  {"cache_read": 3153960078, "cache_write": 266616078, "output": 8674530, "cost_usd": 1507.60, "context": 688921},
+      "③CaffAIne": {"cache_read": 1462437778, "cache_write": 53448433, "output": 4872174, "cost_usd": 471.22, "context": 465036},
+      "④談晴說礙": {"cache_read": 1499562281, "cache_write": 97615678, "output": 5935120, "cost_usd": 820.69, "context": 342306}
+    }}
+  ]
+}
