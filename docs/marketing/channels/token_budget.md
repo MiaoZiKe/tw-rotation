@@ -83,7 +83,15 @@
 - **負責**：主控（CEO）＋ `resource-auditor`；所有頻道適用。排程「Token 管理單位：每日用量檢查」每天 15:17（台北），週六週報併入週六網站週報。
 - **每日**：用 `get_session` 讀各頻道主對話 usage（不叫醒頻道、不再請各頻道跑 tally），記進 `token_ledger.json` 算 24 小時用量；列前一天最花 token 的 3 件事，可省的直接派頻道改流程。
 - **警戒**：80% 通知 Andy；95% 只做已排程發文、不開新製作；98% 全部暫停並回報進度。
-- **模型分工（Andy 11-20 再更正：「Fable 是否乾脆不要使用 畢竟他消耗更多Token」）**：**全面停用 Fable**（含子 agent、排程、任何 model 參數）。頻道總指揮與主控用 Opus 5.5，子 agent 一律 Sonnet。每次回報附一句「用了哪個模型、大約多少」。
+- **模型分工（Andy 11-20 再更正：「Fable 是否乾脆不要使用 畢竟他消耗更多Token」）**：**全面停用 Fable**（含子 agent、排程、任何 model 參數）。頻道總指揮與主控用 Opus 5.5；子 agent 依下表帶 model＋effort（Andy 11-20：「好 照這樣做 並且每個頻道都是」，取代「子 agent 一律 Sonnet」）。每次回報附一句「用了哪個模型、大約多少」。
+  - **子 agent 模型＋effort 搭配表**（詳細見 `model_effort.md`）：
+    | 工作 | model | effort |
+    |---|---|---|
+    | 寫腳本 | opus | medium |
+    | 最後審片、打分、看圖 | opus | high |
+    | 配音、剪輯、渲染、autofix | sonnet | low |
+    | 選題查證、素材規格、輪播、caption、文章 | sonnet | medium |
+    派工時一定要明寫 model 與 effort；各頻道 retro.md 記 Token 與品質變化，週檢討再調整。
   - **3D 影片分工（Andy 11-20「照這樣」，看完三模型比較片後定案）**：主角 3D 建模與運作動畫用 Opus；研究、腳本、配音、字幕、渲染、排程、文章用 Sonnet；Fable 不用。實測同題 14 秒動畫：Opus 36.7 萬、Fable 43.1 萬、Sonnet 37.0 萬 token，畫面 Fable≈Opus＞Sonnet。其他做 3D 的頻道比照。
 - **第一批改善項目**（②科技透明圈實測）：
   1. 第 1 版退件率高（11/18 五支第 1 版全退、平均修到第 3 版）→ 交件前自查三項（說明卡不空白、元素不重疊、主素材放大置中），開工先讀自家範例庫沿用核准做法。
