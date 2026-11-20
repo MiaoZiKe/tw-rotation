@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-20T20:00+08:00
 weekday: 五
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-server.mp4
 images: cover.jpg
 title: 科技透明圈影片：AI 伺服器，一櫃約 1.4 噸（tech-server v5）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/Df9n_3FFG79/
+ids_ig: 18140918560648686
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/Df9oGOAhe8A
+ids_threads: 17917579380469670
+ids_threads_reply: 17923506270240916
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df9oNTZFqF3
+done: ig, threads
+urls: https://www.instagram.com/reel/Df9n_3FFG79/ https://www.threads.com/@tech_01010909/post/Df9oGOAhe8A https://www.threads.com/@tech_01010909/post/Df9oNTZFqF3
+posted_at: 2026-11-20T20:10+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「AI 伺服器：一櫃約 1.4 公噸，裡面到底裝了什麼」
 
