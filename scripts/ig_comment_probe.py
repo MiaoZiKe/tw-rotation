@@ -54,6 +54,12 @@ for pre in ("TECH_", "CAFFAINE_", "HEALING_"):
                 uid = ids[0] if ids else ""
         except Exception as e:
             print(f"  找 IG 編號失敗：{type(e).__name__}")
+    try:
+        import healing_post as HP
+        names = sorted({x["username"] for x in HP.fb_ig_candidates(tk) if x.get("username")})
+        print(f"  這把權杖看得到的 IG 帳號（自家帳號名）：{names}")
+    except Exception as e:
+        print(f"  列帳號失敗：{type(e).__name__}")
     print(f"\n#### {pre}（{'EAA' if tk.startswith('EAA') else tk[:4]}，找到 IG 編號={bool(uid)}）")
     if not (tk and uid):
         print("  缺權杖或 IG 編號，略過"); continue
