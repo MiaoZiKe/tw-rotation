@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-21T18:00+08:00
 weekday: 六
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-cooling.mp4
 images: cover.jpg
 title: 科技透明圈影片：液冷，風扇吹不走的熱（tech-cooling v3）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/Df__YZoD2GV/
+ids_ig: 17955213036287042
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/Df__gMMKJ-s
+ids_threads: 18005727824796511
+ids_threads_reply: 18111089573215325
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df__nP-GyfB
+done: ig, threads
+urls: https://www.instagram.com/reel/Df__YZoD2GV/ https://www.threads.com/@tech_01010909/post/Df__gMMKJ-s https://www.threads.com/@tech_01010909/post/Df__nP-GyfB
+posted_at: 2026-11-21T18:13+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走」
 
