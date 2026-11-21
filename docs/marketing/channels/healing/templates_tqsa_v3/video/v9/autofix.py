@@ -89,8 +89,9 @@ def fix(sc, issues):
             if not o.get("tagAll"): o["tagAll"] = True; done.append("%s tagAll（%s）" % (sid, d))
             else: left.append("%s %s（tagAll 已開，仍靜止）" % (sid, d))
         elif kind == "tagtitle":
-            cur = o.get("tagAt", TAGAT_DEF.get(s["layout"], .15))
-            if cur < .89: o["tagAt"] = round(min(.9, cur + .27), 2); done.append("%s tagAt %.2f→%.2f（%s）" % (sid, cur, o["tagAt"], d))
+            K = "tagAtAsk" if s["layout"] == "ask" else "tagAt"   # 2026-11-22：ask 版型的標籤時間讀 tagAtAsk（runtime ask()），改 tagAt 沒效
+            cur = o.get(K, .3 if K == "tagAtAsk" else TAGAT_DEF.get(s["layout"], .15))
+            if cur < .89: o[K] = round(min(.9, cur + .27), 2); done.append("%s %s %.2f→%.2f（%s）" % (sid, K, cur, o[K], d))
             else: left.append("%s %s（tagAt 已到上限）" % (sid, d))
         elif kind == "cap":
             cur = o.get("capDy", 18)

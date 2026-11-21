@@ -83,7 +83,7 @@
    "caption": "內政部二〇二五年人口統計年刊：男性三十三點四歲，女性三十一點四歲。",
    "opts": {
     "tagAll": true,
-    "tagAt": 0.42,
+    "tagAt": 0.69,
     "capDy": 8
    }
   },
@@ -121,6 +121,9 @@
     "mid": "沒結婚的人，不在這個平均裡",
     "em": "不是全體",
     "emw": 240
+   },
+   "opts": {
+    "capDy": 8
    }
   },
   {
@@ -251,7 +254,8 @@
     ]
    },
    "opts": {
-    "tagAll": true
+    "tagAll": true,
+    "tagAtAsk": 0.9
    }
   }
  ],
@@ -259,7 +263,7 @@
   "id": "s9",
   "keyword": "初婚",
   "next": "一年工作幾個小時",
-  "dur": 5.6
+  "dur": 7.8
  },
  "narr_para": true
 }
