@@ -11,7 +11,7 @@ import json, sys, wave, re, subprocess, os
 import numpy as np
 raw, asrp, q, out = sys.argv[1:5]; F = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0; MAXGAP = float(sys.argv[6]) if len(sys.argv) > 6 else 0.60
 MINGAP = float(sys.argv[7]) if len(sys.argv) > 7 else 0.45; PARA = float(sys.argv[8]) if len(sys.argv) > 8 else 0.80
-HOLD = float(os.environ.get("HOLD", "1.0")); PUNCT_GAP = 0.35; NUM_GAP = 0.30   # v9（2026-11-17 Andy「語速太快」）：HOLD＝說完到換鏡至少留白秒數；句內標點處自然間隙 <0.3 補到 PUNCT_GAP；數字片語前後緊貼補到 NUM_GAP
+HOLD = float(os.environ.get("HOLD", "1.0")); PUNCT_GAP = 0.35   # v9（2026-11-17 Andy「語速太快」）：HOLD＝說完到換鏡至少留白秒數；句內標點處自然間隙 <0.3 補到 PUNCT_GAP；數字片語前後緊貼補到 NUM_GAP
 LEAD = 0.2
 w = wave.open(raw); SR = w.getframerate(); x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768; w.close()
 hop = int(SR * .01); n = len(x) // hop
@@ -119,21 +119,37 @@ def seg_audio(a, b, pa=.03, pb=.06):
     if abs(F - 1) < 1e-3: return y
     p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-", "-af", "atempo=%.4f" % F, "-f", "f32le", "-"], input=y.tobytes(), capture_output=True).stdout
     return np.frombuffer(p, np.float32)
-# 句內補停頓點：每個 ASR 字詞的結尾若是念稿的標點位置（或數字片語邊界），且與下一個字的自然間隙不足，就在該處插靜音（不放慢）
-NUMRE = re.compile(r"百分之[零一二兩三四五六七八九十百千萬點]+|[零一二兩三四五六七八九十百千萬點]{2,}|\d[\d.,]*")
+# 句內補停頓點（2026-11-21 規則 29 重寫）：只在「念稿逗號／句號」位置、且與 ASR 逐字對上（punct_align.py：中文數字先轉阿拉伯、difflib 逐字對）才插；對不上不插。
+# 不再有數字前後停頓（NUM_GAP 拿掉）；插點前後 30ms 的音量要 < −40 dBFS，否則不插；插點兩側 15ms 淡出淡入。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from punct_align import punct_boundaries
+QUIET_DB = -40.0; WIN = int(.03 * SR); FADE = int(.015 * SR)
+def _wdb(a, b):
+    seg = x[max(0, a):max(a + 1, b)]
+    return 20 * np.log10(np.sqrt(np.mean(seg ** 2)) + 1e-9) if len(seg) else -120.0
+def quiet_point(b, nxt):
+    """在 ASR 字詞間隙（前後各放寬 50ms，因 ASR 時間會漂）找前後 30ms 都 < −40 dBFS 的插點；取兩側都最安靜者，找不到回 None。"""
+    best = None
+    t = b - .05
+    while t <= nxt + .05:
+        i = int(t * SR); lo = _wdb(i - WIN, i); hi = _wdb(i, i + WIN); m = max(lo, hi)
+        if m < QUIET_DB and (best is None or m < best[0]): best = (m, t)
+        t += .005
+    return best[1] if best else None
+SKIPPED = {"align": 0, "loud": 0}
 def inserts_for(p):
-    t = p["text"]; plain = ""; punct_at = set(); num_at = set()
-    for ch_ in t:
-        if re.match(r"[，。、；：？！]", ch_): punct_at.add(len(plain))
-        elif not re.match(r"[「」（）\s]", ch_): plain += ch_
-    for m_ in NUMRE.finditer(plain):
-        if len(m_.group()) >= 2: num_at.add(m_.start()); num_at.add(m_.end())
     ws = [(ww, a, b) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
-    tot_a = sum(len(re.sub(r"[，。、；：？！\s]", "", ww)) for ww, a, b in ws) or 1; cum = 0; out = []
-    for k, (ww, a, b) in enumerate(ws[:-1]):
-        cum += len(re.sub(r"[，。、；：？！\s]", "", ww)); pos = round(cum * len(plain) / tot_a); nat = ws[k + 1][1] - b
-        want = PUNCT_GAP if any(abs(pos - q_) <= 0 for q_ in punct_at) else (NUM_GAP if any(abs(pos - q_) <= 0 for q_ in num_at) else 0)
-        if want and nat < want and nat < .3 + 1e-9: out.append(((b + ws[k + 1][1]) / 2, want - max(nat, 0)))
+    if len(ws) < 2: return []
+    bset = punct_boundaries(p["text"], [w_[0] for w_ in ws]); out = []
+    nP = len(re.findall(r"[，、；：]", p["text"][:-1]))
+    SKIPPED["align"] += max(0, nP - len([k for k in bset if k < len(ws) - 1]))
+    for k in sorted(bset):
+        if k >= len(ws) - 1: continue
+        nat = ws[k + 1][1] - ws[k][2]
+        if nat >= .3 + 1e-9 or nat >= PUNCT_GAP: continue
+        tq = quiet_point(ws[k][2], ws[k + 1][1])
+        if tq is None: SKIPPED["loud"] += 1; continue
+        out.append((tq, PUNCT_GAP - max(nat, 0)))
     return out
 def assemble(hold):
     outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
@@ -141,13 +157,18 @@ def assemble(hold):
         rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
         ins = inserts_for(p)
         ev = sorted([(r_[0], "cut", r_[1]) for r_ in rem] + [(q_[0], "ins", q_[1]) for q_ in ins])
-        y_parts = []; cur = p["src_start"]; first = True
+        y_parts = []; cur = p["src_start"]; first = True; fin = False
+        def _fi(a_):
+            if fin and len(a_) > FADE: a_ = a_.copy(); a_[:FADE] *= np.linspace(0, 1, FADE, dtype=np.float32)
+            return a_
         for tt, kind, v_ in ev:
             if tt < cur: continue
-            y_parts.append(seg_audio(cur, tt, .03 if first else 0, .0)); first = False
+            seg_ = _fi(seg_audio(cur, tt, .03 if first else 0, .0)); fin = False; first = False
+            if kind == "ins" and len(seg_) > FADE: seg_ = seg_.copy(); seg_[-FADE:] *= np.linspace(1, 0, FADE, dtype=np.float32)
+            y_parts.append(seg_)
             if kind == "cut": cur = v_
-            else: y_parts.append(np.zeros(int(v_ / F * SR), np.float32)); cur = tt
-        y_parts.append(seg_audio(cur, p["src_end"], .03 if first else 0, .06)); y = np.concatenate(y_parts)
+            else: y_parts.append(np.zeros(int(v_ / F * SR), np.float32)); cur = tt; fin = True
+        y_parts.append(_fi(seg_audio(cur, p["src_end"], .03 if first else 0, .06))); y = np.concatenate(y_parts)
         st = t; t += len(y) / SR; outv.append(y)
         if i >= len(pieces) - 1: g = .15
         elif para_after[i]: g = PARA
@@ -156,8 +177,9 @@ def assemble(hold):
         if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
         g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
         def shift(a): return sum(v2 / F for tt, kd, v2 in ev if kd == "ins" and tt <= a and tt >= p["src_start"]) - sum(rb - ra for ra, rb in rem if a >= rb) - sum(max(0, a - ra) for ra, rb in rem if ra < a < rb)
+        ins_at = [round(st + (tq_ - p["src_start"]) / F + shift(tq_) - v2 / F, 3) for tq_, kd, v2 in ev if kd == "ins"]
         wo = [round(st + (a - p["src_start"]) / F + shift(a), 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
-        segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3), "inserts": len(ins)}); t += g
+        segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3), "inserts": len(ins), "ins_at": ins_at}); t += g
     return outv, segj, t - LEAD
 outv, segj, tl = assemble(HOLD)
 if tl > 60 and HOLD > .7: print("總長 %.1f 秒 >60：HOLD 1.0 → 0.7 重組" % tl); HOLD = .7; outv, segj, tl = assemble(HOLD)
@@ -167,7 +189,7 @@ if tl > 60:
 y = np.concatenate(outv)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())
 chars = sum(ch); speech = sum(s["end"] - s["speech_start"] for s in segj); total = len(y) / SR - LEAD
-rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars,
+rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars, "ins_skipped": dict(SKIPPED),
        "dur_total": round(total, 2), "rate_incl_pauses": round(chars / total, 2), "rate_speech_only": round(chars / speech, 2), "segments": segj}
 json.dump(rep, open(out + ".cut.json", "w"), ensure_ascii=False, indent=1)
 print("設定句切掉 %.2f 秒；念稿 %d 字、%.2f 秒 → 含停頓 %.2f 字/秒、扣停頓 %.2f 字/秒" % (on0 - LEAD, chars, total, chars / total, chars / speech))
