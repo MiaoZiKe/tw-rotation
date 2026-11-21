@@ -3,12 +3,11 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1340,
-      "seconds": 0.8,
-      "stale": true
+      "seconds": 3.5
     },
     "official_refresh": {
-      "status": "stale",
-      "official_date": "2026-11-19",
+      "status": "ready",
+      "official_date": "2026-11-20",
       "provisional_date": "2026-11-20"
     },
     "price_daily": {
@@ -16,8 +15,8 @@
     },
     "twse.market": {
       "ok": true,
-      "rows": 14,
-      "seconds": 0.0
+      "rows": 15,
+      "seconds": 0.1
     },
     "market_daily": {
       "stored": 0
@@ -25,7 +24,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1013,
-      "seconds": 18.2
+      "seconds": 12.3
     },
     "tape.collect": {
       "ok": true,
@@ -36,7 +35,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.2
+      "seconds": 1.5
     },
     "index_intraday": {
       "stored": 0
@@ -49,48 +48,48 @@
     },
     "news.collect": {
       "ok": true,
-      "rows": 135,
-      "seconds": 2.6
+      "rows": 131,
+      "seconds": 5.1
     },
     "news": {
-      "stored": 21
+      "stored": 55
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 1,
+      "rows": 2,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 1
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 82,
-      "seconds": 0.3
+      "rows": 110,
+      "seconds": 0.5
     },
     "material_news": {
-      "stored": 0
+      "stored": 110
     },
     "macro.intl": {
       "ok": true,
       "rows": 4516,
-      "seconds": 1.2
+      "seconds": 1.3
     },
     "intl_daily": {
       "stored": 0
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15663,
-      "seconds": 3.4
+      "rows": 15665,
+      "seconds": 3.2
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 22,
-      "seconds": 1.1
+      "seconds": 0.8
     },
     "macro_calendar": {
       "stored": 0
@@ -100,27 +99,27 @@
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 9
+      "rows": 8
     },
     "fut_inst": {
       "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 81
+      "rows": 72
     },
     "fut_oi": {
       "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
-      "rows": 27
+      "rows": 24
     },
     "optivx.daily": {
       "ok": true,
       "rows": 0,
-      "seconds": 0.0,
-      "skipped": "湖裡已到 2026-11-20（今天 2026-11-20），窗內已處理過，不用再抓"
+      "seconds": 0.2,
+      "skipped": "FinMind 尚無 2026-11-21～2026-11-21 的臺指選擇權資料（休市或當天還沒出）"
     },
     "margin_total_otc": {
       "stored": 0
@@ -156,9 +155,9 @@
       "2026-11-20"
     ]
   },
-  "started_at": "2026-11-20T21:14:06.767679+00:00",
-  "finished_at": "2026-11-20T21:30:40.827703+00:00",
-  "duration_seconds": 994.1,
+  "started_at": "2026-11-21T09:42:01.618433+00:00",
+  "finished_at": "2026-11-21T09:58:35.018724+00:00",
+  "duration_seconds": 993.4,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -209,7 +208,7 @@
     "warn_labels": []
   },
   "warn": [],
-  "finmind_budget_left": 440,
+  "finmind_budget_left": 439,
   "tables": [
     {
       "table": "price_daily",
@@ -223,7 +222,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2719014,
+      "rows": 2720745,
       "latest": "2026-11-20"
     },
     {
@@ -358,13 +357,13 @@
     },
     {
       "table": "news",
-      "rows": 13721,
+      "rows": 13776,
       "latest": "2026-11-21"
     },
     {
       "table": "broker_views",
-      "rows": 387,
-      "latest": "2026-11-20"
+      "rows": 388,
+      "latest": "2026-11-21"
     },
     {
       "table": "intl_daily",
@@ -373,7 +372,7 @@
     },
     {
       "table": "macro",
-      "rows": 15663,
+      "rows": 15665,
       "latest": "2026-11-20"
     },
     {
@@ -433,8 +432,8 @@
     },
     {
       "table": "material_news",
-      "rows": 6461,
-      "latest": "2026-11-19"
+      "rows": 6571,
+      "latest": "2026-11-20"
     },
     {
       "table": "company_website",
@@ -448,7 +447,7 @@
     },
     {
       "table": "sbl_daily",
-      "rows": 829395,
+      "rows": 830514,
       "latest": "2026-11-20"
     },
     {
@@ -464,7 +463,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 60,
+    "days_since_review": 61,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
