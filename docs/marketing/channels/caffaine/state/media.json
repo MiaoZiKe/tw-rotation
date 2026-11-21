@@ -1,13 +1,4 @@
 {
- "20261118_same-look": {
-  "at": "2026-11-17T06:49:16+08:00",
-  "bytes": 12783231,
-  "cover": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261118_same-look__cover.jpg",
-  "cover_sha256": "0d8b58c9633b2ed2f4a6a52e2977a3550d2603a190144cf7abb81dbf6cd4b929",
-  "sha256": "f56420f0e7f084c04d13cbb64c7be150e31e8c60849e8a8e2802f24a7c50116b",
-  "src": "media/caffaine/20261118_same-look",
-  "video": "https://github.com/MiaoZiKe/tw-rotation/releases/download/channel-media/caffaine__20261118_same-look.mp4"
- },
  "20261118_sketch-game": {
   "at": "2026-11-17T06:49:16+08:00",
   "bytes": 13774135,
