@@ -45,8 +45,11 @@ for sgm in c["segments"]:
 if breaks: bad.append("句內斷點 %d 處：%s" % (len(breaks), "；".join(breaks)))
 if min(gaps) < .3: bad.append("句間停頓最小 %.2f <0.3" % min(gaps))
 
-if hold and min(hold) < 1.0: bad.append("換幕留白最小 %.2f <1.0" % min(hold))
-if not 45 <= tot <= 60: bad.append("片長 %.1f 不在 45～60" % tot)
+if c.get("newrule"):   # 2026-11-22 四道驗證：換幕停頓 0.6～0.8（取代「留白 ≥1.0」），句內補停頓 0
+    if any(not .5 <= g_ + .09 <= .85 for g_ in gaps): bad.append("換幕停頓不在 0.6～0.8：%s" % [round(g_ + .09, 2) for g_ in gaps])
+    if any(s_.get("inserts") for s_ in c["segments"]): bad.append("句內插了停頓")
+elif hold and min(hold) < 1.0: bad.append("換幕留白最小 %.2f <1.0" % min(hold))
+if not (38 if c.get("newrule") else 45) <= tot <= 60: bad.append("片長 %.1f 不在 45～60" % tot)   # 新規則旁白本身約 40～45 秒，成片含片尾卡另算
 if c.get("atempo", 1) != 1: bad.append("atempo=%s（不准加速）" % c["atempo"])
 print("語速：含停頓 %.2f 字/秒、不含 %.2f 字/秒；片長 %.1f 秒；句間最小停頓 %.2f；<0.3 秒短靜音 %d 個（含字與字之間的自然氣口，僅供參考）；換幕留白最小 %.2f（各鏡 %s）" % (c["rate_incl_pauses"], c["rate_speech_only"], tot, min(gaps), len(inner), min(hold) if hold else 0, hold))
 print("句內斷點：%d 處%s" % (len(breaks), "（" + "；".join(breaks) + "）" if breaks else ""))

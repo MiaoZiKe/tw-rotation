@@ -109,11 +109,17 @@ for i, sid in enumerate(ids):
         if '=' in kv and kv.split('=')[0] == sid: e = min(e, float(kv.split('=')[1]))
     heard = "".join(ww for ww, a, b in words if a >= s - .05 and b <= e + .1)
     pieces.append({"id": sid, "text": texts[i], "heard": heard, "src_start": round(s, 3), "src_end": round(e, 3), "src_gap_after": round(gap, 3)})
-CUTS = []   # 環境變數 CUTS="40.95-42.16>0.35,..."（2026-11-17）：原始錄音裡某段句內靜音 a–b 壓成 keep 秒（從中間刪，不重送 TTS、不放慢）
+if os.environ.get("OLD_GAPS") != "1":   # 2026-11-22：段首若是「小氣音＋靜音」（分界選到長靜音前半），把段首移到靜音結尾；段尾同理 → 換幕停頓才會是 SCENE_GAP，不會多出 0.3 秒
+    for p in pieces:
+        r0 = [z for z in runs_in(p["src_start"], p["src_start"] + .8, 15) if z[0] / 100 - p["src_start"] < .15]
+        if r0: p["src_start"] = round(r0[0][1] / 100 - .05, 3)
+        r1 = [z for z in runs_in(p["src_end"] - .8, p["src_end"], 15) if p["src_end"] - z[1] / 100 < .15]
+        if r1: p["src_end"] = round(r1[-1][0] / 100 + .05, 3)
+CUTS = []; CUTS_RAW = []   # 環境變數 CUTS="40.95-42.16>0.35,..."（2026-11-17）：原始錄音裡某段句內靜音 a–b 壓成 keep 秒（從中間刪，不重送 TTS、不放慢）
 for kv in os.environ.get("CUTS", "").split(","):
     if ">" in kv and "-" in kv:
         ab, kp = kv.split(">"); a_, b_ = [float(v) for v in ab.split("-")]; kp = float(kp)
-        if b_ - a_ > kp: CUTS.append((a_ + kp / 2, b_ - kp / 2))
+        if b_ - a_ > kp: CUTS.append((a_ + kp / 2, b_ - kp / 2)); CUTS_RAW.append((a_, b_))
 # ===== 2026-11-21 音訊不斷續（video_logic.md〇）：不放純 0、切點要安靜、接縫等功率交叉淡化 =====
 FADE = int(.015 * SR); FR5 = int(.005 * SR); NF5 = len(x) // FR5
 L5 = 10 * np.log10(np.mean(x[:NF5 * FR5].reshape(NF5, FR5).astype(np.float64) ** 2, axis=1) + 1e-12)   # 每 5ms 的 dBFS
@@ -193,7 +199,31 @@ def quiet_point(b, nxt):
         t += .005
     return best[1] if best else None
 SKIPPED = {"align": 0, "loud": 0}
+# ===== 2026-11-22 四道驗證（video_logic.md 最後一節；Andy：「請你務必確實檢查影片是否丟問題…請重做」）=====
+# ① 句中 0 停頓：預設不再在逗號插任何靜音（舊行為要 PUNCT_INS=1 才開）；② 句子裡原本 TTS 自己留的 ≥INNER_MAX 秒停頓（逗號處）從中間壓到 INNER_KEEP 秒；
+# ③ 換幕停頓固定 SCENE_GAP（預設 0.7，範圍 0.6～0.8），片尾那句前最多 0.8；舊的 HOLD＋0.3／PRE_LAST 2.3 拉長不再用（OLD_GAPS=1 才回舊行為）。
+NEWRULE = os.environ.get("OLD_GAPS") != "1"
+SCENE_GAP = float(os.environ.get("SCENE_GAP", "0.7")); INNER_MAX = float(os.environ.get("INNER_MAX", "0.2")); INNER_KEEP = float(os.environ.get("INNER_KEEP", "0.16")); SENT_MAX = float(os.environ.get("SENT_MAX", "0.5"))
+_thr10 = thr
+def inner_cuts(p):
+    """回傳 [(ra, rb)]：此段說話範圍內、非句號／問號／驚嘆號處、長度 ≥INNER_MAX 的無聲段（10ms 能量 < 門檻），從中間刪到剩 INNER_KEEP。"""
+    if not NEWRULE: return []
+    ws = [(ww, a, b) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
+    if len(ws) < 2: return []
+    tx = re.sub(r"[，、；：,;:]", "", p["text"]); ends = punct_boundaries(tx, [w_[0] for w_ in ws]) if re.search(r"[。？！?!]", tx[:-1]) else set()
+    out = []
+    for a10, b10 in runs_in(p["src_start"] + .15, p["src_end"] - .1, int(INNER_MAX * 100)):
+        a_, b_ = a10 / 100, b10 / 100; mid = (a_ + b_) / 2
+        if any(ra - .05 < b_ and a_ < rb + .05 for ra, rb in CUTS_RAW): continue   # 已被 CUTS 指定處理的靜音不重複切
+        k = max([i for i, w_ in enumerate(ws) if w_[1] < mid], default=0)
+        if k in ends:   # 句號後（同一鏡裡的兩句之間）保留自然停頓，只把超過 SENT_MAX 的壓到 SENT_MAX（換幕才用 0.6～0.8）
+            if b_ - a_ > SENT_MAX + .02: out.append((round(a_ + SENT_MAX / 2, 3), round(b_ - SENT_MAX / 2, 3)))
+            continue
+        out.append((round(a_ + INNER_KEEP / 2, 3), round(b_ - INNER_KEEP / 2, 3)))
+    INNER_LOG.extend([(p["id"], r_) for r_ in out]); return out
+INNER_LOG = []
 def inserts_for(p):
+    if NEWRULE and os.environ.get("PUNCT_INS") != "1": return []
     ws = [(ww, a, b) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
     if len(ws) < 2: return []
     bset = punct_boundaries(p["text"], [w_[0] for w_ in ws]); out = []
@@ -208,12 +238,13 @@ def inserts_for(p):
         out.append((tq, PUNCT_GAP - max(nat, 0)))
     return out
 def assemble(hold):
+    INNER_LOG.clear()
     outv = [np.zeros(int(LEAD * SR), np.float32)]; chunks = []; nS = [len(outv[0])]; t = LEAD; segj = []
     def push(arr, speech=False, rin=RAMP, rout=RAMP):
         if speech: chunks.append((nS[0], nS[0] + len(arr), rin, rout))
         outv.append(arr); nS[0] += len(arr)
     for i, p in enumerate(pieces):
-        rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
+        rem = sorted([(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]] + inner_cuts(p))
         ins = inserts_for(p)
         ev = sorted([(r_[0], "cut", r_[1]) for r_ in rem] + [(q_[0], "ins", q_[1]) for q_ in ins])
         cur = p["src_start"]; first = True; st = nS[0] / SR; pa_eff = .03
@@ -232,6 +263,10 @@ def assemble(hold):
         else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
         if i < len(pieces) - 1: g = max(g, hold + .3)   # 每鏡說完後畫面落定：下一鏡在下句開口前 0.25 秒換，所以間隔至少 hold＋0.3
         if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
+        if NEWRULE and i < len(pieces) - 1:
+            g = SCENE_GAP   # 片尾那句前也一樣（PRE_LAST 不再拉長）
+            for kv in os.environ.get("GAP_OVERRIDE", "").split(","):   # GAP_OVERRIDE="s4=0.4"：某鏡之後的換幕停頓另訂（鏡數 >7 時讓補停頓 ≤6 處）
+                if "=" in kv and kv.split("=")[0] == p["id"]: g = float(kv.split("=")[1])
         g = max(0, g - .09 / F); push(np.zeros(int(g * SR), np.float32))
         def shift(a): return sum(v2 / F for tt, kd, v2 in ev if kd == "ins" and tt <= a and tt >= p["src_start"]) - sum(rb - ra for ra, rb in rem if a >= rb) - sum(max(0, a - ra) for ra, rb in rem if ra < a < rb)
         ins_at = [round(st + pa_eff / F + (tq_ - p["src_start"]) / F + shift(tq_) - v2 / F, 3) for tq_, kd, v2 in ev if kd == "ins"]
@@ -256,7 +291,7 @@ if tl > 60:
 y = finish(outv, chunks)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())
 chars = sum(ch); speech = sum(s["end"] - s["speech_start"] for s in segj); total = len(y) / SR - LEAD
-rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars, "ins_skipped": dict(SKIPPED), "roomtone": {"src": ROOM_SRC, "db": ROOM_DB, "thr": ROOM_THR}, "unsafe_cuts": dict(UNSAFE),
+rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars, "ins_skipped": dict(SKIPPED), "roomtone": {"src": ROOM_SRC, "db": ROOM_DB, "thr": ROOM_THR}, "unsafe_cuts": dict(UNSAFE), "newrule": NEWRULE, "scene_gap": SCENE_GAP, "inner_cuts": [[i_, list(r_)] for i_, r_ in INNER_LOG],
        "dur_total": round(total, 2), "rate_incl_pauses": round(chars / total, 2), "rate_speech_only": round(chars / speech, 2), "segments": segj}
 json.dump(rep, open(out + ".cut.json", "w"), ensure_ascii=False, indent=1)
 print("設定句切掉 %.2f 秒；念稿 %d 字、%.2f 秒 → 含停頓 %.2f 字/秒、扣停頓 %.2f 字/秒" % (on0 - LEAD, chars, total, chars / total, chars / speech))
