@@ -1,5 +1,0 @@
-/* 精選文章分頁第 7 格起（管理者才會有：科技透明圈等頻道隱藏分頁）。≤640＋:root.m4 才吃，桌機不動。
-   7 格塞進 390 寬每格只剩約 55px，眼睛（24px）會壓到中間、點分頁中央會點到眼睛 → 7 格以上改成每格至少 64px，分頁列自己可橫向拖。 */
-@media (max-width:640px){
-  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.many7{grid-template-columns:repeat(var(--n,7),minmax(64px,1fr))!important;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
-}

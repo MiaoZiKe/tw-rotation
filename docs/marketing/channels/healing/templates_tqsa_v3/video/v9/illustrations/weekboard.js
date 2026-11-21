@@ -1,5 +1,0 @@
- weekboard:{draw(t,h){let g=`<rect x="60" y="30" width="768" height="${h-80}" rx="16" fill="#FFFDF8" stroke="${LINE}" stroke-width="5"/><rect x="0" y="${h-50}" width="888" height="50" fill="#E4D3B8"/>`;
-  const d=['一','二','三','四','五','六','日'];d.forEach((x,i)=>{const cx=100+i*102;g+=T(cx+40,84,x,32,700,i<5?TXT:SUBC);const p=i<5?SPR(t-.2-i*.18,.55,14):0;g+=`<rect x="${cx}" y="110" width="80" height="${h-220}" rx="10" fill="${FACE}" stroke="${LINE}" stroke-width="2" ${i>4?'stroke-dasharray="8 8"':''}/>`;if(p>0)g+=`<rect x="${cx}" y="${(110+(h-220)*(1-Math.min(1,p))).toFixed(1)}" width="80" height="${((h-220)*Math.min(1.02,p)).toFixed(1)}" rx="10" fill="${LAMP}" opacity=".8"/>`});
-  const rl=(1-SPR(t-1.3,.6,8))*-80;g+=`<g transform="translate(${(640+rl).toFixed(1)},${h-62}) rotate(${(rl*3).toFixed(0)})"><rect x="-60" y="-8" width="120" height="16" rx="6" fill="#4A4744"/></g>`;
-  return g},
-  sfx(t0,s,E){for(let i=0;i<5;i++)E(t0+.2+i*.18+.1,'tick',{g:.6});E(t0+1.3,'glide',{f0:500,f1:300,dur:.3,g:.05})}}

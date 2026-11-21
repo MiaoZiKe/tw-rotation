@@ -1,8 +1,0 @@
- phonebank:{draw(t,h){let g=`<rect x="0" y="${h-80}" width="888" height="80" fill="#D9C4A0"/>`;
-  const vib=(t>.3&&t<.42)||(t>.5&&t<.62)?Math.sin(t*160)*5:0;g+=`<g transform="translate(${(444+vib).toFixed(1)},${h-80}) rotate(-8)"><rect x="-130" y="-380" width="260" height="380" rx="34" fill="#4A4744" stroke="${LINE}" stroke-width="4"/><rect x="-112" y="-356" width="224" height="330" rx="20" fill="#F7EFE2"/>`;
-  const sl=SPR(t-.55,.55,12);g+=`<g transform="translate(0,${(-356+(1-sl)*-90).toFixed(1)})" opacity="${clamp((t-.55)*6)}"><rect x="-104" y="20" width="208" height="150" rx="16" fill="${FACE3}" stroke="${LAMP}" stroke-width="3"/>${T(0,66,'薪資入帳',32,700,TXT)}${T(0,(132-14*Math.abs(Math.sin(Math.PI*Math.min(1,((t-1.2)%1.0)/.45)))*(t>1.2&&((t-1.2)%1.0)<.45?1:0)).toFixed(1),'NT$ ?',36,700,HINT)}</g></g>`;
-  if(t>.3&&t<.7)[-1,1].forEach(s=>g+=`<path d="M${444+s*170} ${h-300} q${s*20} 30 0 60" stroke="${LAMP}" stroke-width="4" fill="none" opacity=".7"/>`);
-  g+=`<rect x="120" y="${h-150}" width="160" height="70" rx="10" fill="#FFFDF8" stroke="${LINE}" stroke-width="3"/><line x1="140" y1="${h-120}" x2="250" y2="${h-120}" stroke="${LINE}" stroke-width="2" opacity=".4"/>`;
-  g+=`<path d="M680 ${h-80} v-80 q0 -26 26 -26 h40 q26 0 26 26 v80" fill="#E9B98A" stroke="${LINE}" stroke-width="3"/><path d="M700 ${h-200} q8 -20 0 -40" stroke="${LINE}" stroke-width="3" fill="none" opacity="${(.2+.25*tw(t,0,2.5)).toFixed(2)}"/><path d="M730 ${h-196} q8 -20 0 -40" stroke="${LINE}" stroke-width="3" fill="none" opacity="${(.2+.25*tw(t,2,2.5)).toFixed(2)}"/>`;
-  return g},
-  sfx(t0,s,E){E(t0+.3,'tick',{g:.7});E(t0+.5,'tick',{g:.7});E(t0+.6,'glide',{f0:900,f1:600,dur:.2,g:.08})}}

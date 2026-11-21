@@ -1,7 +1,0 @@
- bookshelf:{draw(t,h){let g=`<rect x="0" y="0" width="888" height="${h}" rx="26" fill="#EFE3CF"/><rect x="60" y="${h-70}" width="768" height="24" fill="#8A5A44" stroke="${LINE}" stroke-width="3"/>`;
-  const cols=['#C9A27A','#B98A6A','#D9B48C','#9C6A50','#E0C9A6','#B98A6A','#C9D3C9','#D9B48C','#9C6A50','#C9A27A'];
-  cols.forEach((c,i)=>{const x=90+i*66,hh=200+((i*37)%60),hi=i===5,pull=hi?-60*SPR(t-.3,.5,11):0,tilt=hi?-6*SPR(t-.5,.5,9):0;
-   g+=`<g transform="translate(0,${pull.toFixed(1)}) rotate(${tilt.toFixed(1)} ${x+28} ${h-70})"><rect x="${x}" y="${h-70-hh}" width="56" height="${hh}" rx="4" fill="${hi?LAMP:c}" stroke="${LINE}" stroke-width="3"/>${hi?`<text x="${x+28}" y="${h-70-hh+30}" font-size="32" font-weight="700" fill="#FFFFFF" font-family="Noto Sans CJK TC" writing-mode="tb" text-anchor="start">年刊</text><path d="M${x+40} ${h-70-hh} q${(6*DECAY(t-.35,2,9)).toFixed(1)} 40 ${(-4+10*DECAY(t-.35,2,9)).toFixed(1)} 80" stroke="#F4D0A0" stroke-width="5" fill="none"/>`:''}</g>`});
-  g+=`<rect x="770" y="${h-150}" width="56" height="80" rx="8" fill="#C98F5E" stroke="${LINE}" stroke-width="3"/><path d="M798 ${h-150} q${(-20+3*Math.sin(t*2)).toFixed(1)} -40 -6 -76 M798 ${h-150} q${(18+3*Math.sin(t*2+1)).toFixed(1)} -40 8 -84" stroke="#7E8F6A" stroke-width="8" fill="none" stroke-linecap="round"/>`;
-  return g},
-  sfx(t0,s,E){E(t0+.3,'glide',{f0:600,f1:300,dur:.3,g:.07});E(t0+.6,'tick')}}

@@ -1,9 +1,0 @@
- overtime:{draw(t,h){let g=`<rect x="0" y="${h-60}" width="888" height="60" fill="#D9C4A0"/>`;const cx=300,cy=h/2;
-  g+=`<circle cx="${cx}" cy="${cy}" r="130" fill="${FACE3}" stroke="${LINE}" stroke-width="8"/>`;for(let i=0;i<12;i++){const a=i*Math.PI/6;g+=`<line x1="${cx+110*Math.sin(a)}" y1="${cy-110*Math.cos(a)}" x2="${cx+122*Math.sin(a)}" y2="${cy-122*Math.cos(a)}" stroke="${LINE}" stroke-width="3"/>`}
-  const hr=Math.PI+Math.PI/6*2*EO((t-.2)/1.0),a0=Math.PI;if(hr>a0+.01)g+=`<path d="M${cx} ${cy} L${cx+100*Math.sin(a0)} ${cy-100*Math.cos(a0)} A100 100 0 0 1 ${(cx+100*Math.sin(hr)).toFixed(1)} ${(cy-100*Math.cos(hr)).toFixed(1)}Z" fill="${LAMP}" opacity=".35"/>`;
-  g+=`<line x1="${cx}" y1="${cy}" x2="${(cx+70*Math.sin(hr)).toFixed(1)}" y2="${(cy-70*Math.cos(hr)).toFixed(1)}" stroke="${TXT}" stroke-width="8" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${(cx+100*Math.sin(t*4)).toFixed(1)}" y2="${(cy-100*Math.cos(t*4)).toFixed(1)}" stroke="${LAMP}" stroke-width="4"/><circle cx="${cx}" cy="${cy}" r="10" fill="${LINE}"/>`;
-  const lv=t<1.0?.3:.3+.6*clamp((t-1.0)/.4);g+=`<rect x="600" y="${h-200}" width="120" height="140" rx="14" fill="#FFFDF8" stroke="${LINE}" stroke-width="4"/><rect x="606" y="${h-66-130*lv}" width="108" height="${(130*lv).toFixed(1)}" fill="#8A5A44" opacity=".85"/><path d="M720 ${h-170} q40 0 40 40 q0 30 -40 30" fill="none" stroke="${LINE}" stroke-width="6"/>`;
-  if(t>1.0&&t<1.4)g+=`<rect x="652" y="${h-320}" width="14" height="${120}" fill="#8A5A44" opacity=".8"/><path d="M620 ${h-330} h80 v-30 h-80Z" fill="#B98A6A" stroke="${LINE}" stroke-width="3"/>`;
-  g+=`<path d="M650 ${h-210} q8 -20 0 -40" stroke="${LINE}" stroke-width="3" fill="none" opacity="${(.2+.3*tw(t,0,2.4)).toFixed(2)}"/>`;
-  return g},
-  sfx(t0,s,E){for(let i=0;i<5;i++)E(t0+.2+i*.2,'tick',{g:.5});E(t0+1.0,'glide',{f0:300,f1:500,dur:.4,g:.06})}}

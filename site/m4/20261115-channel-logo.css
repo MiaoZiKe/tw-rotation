@@ -1,5 +1,0 @@
-/* 2026-11-15 Andy：頻道分頁換上各自 LOGO（articles.js 的 .artlg）。手機分頁列規則 `>button>span{display:none}` 是用來藏分頁文字的，
-   會連 LOGO 外框一起藏掉，這裡把 LOGO 外框救回來（只限 ≤640 的 m4，桌機不受影響）。 */
-@media (max-width:640px){
-  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>span.artlg{display:inline-flex!important;order:0;flex:none}
-}

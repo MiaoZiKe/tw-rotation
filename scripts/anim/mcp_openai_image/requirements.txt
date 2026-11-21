@@ -1,3 +1,0 @@
-mcp>=1.2,<3
-openai>=1.60
-pillow>=10

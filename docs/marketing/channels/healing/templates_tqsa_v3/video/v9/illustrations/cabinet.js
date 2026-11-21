@@ -1,8 +1,0 @@
- cabinet:{draw(t,h){let g=`<rect x="0" y="${h-50}" width="888" height="50" fill="#E4D3B8"/><rect x="250" y="20" width="388" height="${h-70}" rx="14" fill="#B98A6A" stroke="${LINE}" stroke-width="4"/>`;
-  for(let i=0;i<3;i++){const y=40+i*((h-110)/3),hh=(h-110)/3-14,o=40*SPR(t-.15-i*.22,.45,12)*(i===1?1.6:1);
-   if(i===1){const up=-90*SPR(t-.9,.5,11);g+=`<g transform="translate(0,${up.toFixed(1)})"><rect x="380" y="${y-20}" width="200" height="90" rx="6" fill="${LAMP}" stroke="${LINE}" stroke-width="3"/><rect x="380" y="${y-48}" width="110" height="34" rx="6" fill="${LAMP}" stroke="${LINE}" stroke-width="3"/>${T(480,y+32,'薪資統計',32,700,'#FFFFFF')}</g>`}
-   g+=`<rect x="${(262+o).toFixed(1)}" y="${y}" width="364" height="${hh}" rx="8" fill="#D9B48C" stroke="${LINE}" stroke-width="3"/><rect x="${(410+o).toFixed(1)}" y="${y+hh/2-8}" width="70" height="16" rx="6" fill="${LINE}"/>`}
-  g+=`<rect x="680" y="${h-170}" width="150" height="120" rx="8" fill="#FFFDF8" stroke="${LINE}" stroke-width="3"/>`+T(755,h-98,'1–7 月',32,700,TXT)+`<path d="M800 ${h-170} l30 ${(14+6*Math.sin(t*3)).toFixed(1)} l-30 4Z" fill="#F3EADB" stroke="${LINE}" stroke-width="2"/>`;
-  g+=`<path d="M100 ${h-50} v-90 q0 -30 30 -30 h20 q30 0 30 30 v90" fill="#C9D3C9" stroke="${LINE}" stroke-width="3"/><path d="M140 ${h-170} q${(-24+4*Math.sin(t*2)).toFixed(1)} -40 -10 -80 M140 ${h-170} q${(24+4*Math.sin(t*2+1)).toFixed(1)} -40 10 -90" stroke="#7E8F6A" stroke-width="9" fill="none" stroke-linecap="round"/>`;
-  return g},
-  sfx(t0,s,E){[0,1,2].forEach(i=>E(t0+.15+i*.22,'tick',{g:.7}));E(t0+.9,'glide',{f0:500,f1:900,dur:.25,g:.08})}}
