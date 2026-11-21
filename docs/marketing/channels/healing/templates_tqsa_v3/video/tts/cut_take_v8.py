@@ -203,23 +203,25 @@ SKIPPED = {"align": 0, "loud": 0}
 # ① 句中 0 停頓：預設不再在逗號插任何靜音（舊行為要 PUNCT_INS=1 才開）；② 句子裡原本 TTS 自己留的 ≥INNER_MAX 秒停頓（逗號處）從中間壓到 INNER_KEEP 秒；
 # ③ 換幕停頓固定 SCENE_GAP（預設 0.7，範圍 0.6～0.8），片尾那句前最多 0.8；舊的 HOLD＋0.3／PRE_LAST 2.3 拉長不再用（OLD_GAPS=1 才回舊行為）。
 NEWRULE = os.environ.get("OLD_GAPS") != "1"
-SCENE_GAP = float(os.environ.get("SCENE_GAP", "0.7")); INNER_MAX = float(os.environ.get("INNER_MAX", "0.2")); INNER_KEEP = float(os.environ.get("INNER_KEEP", "0.16")); SENT_MAX = float(os.environ.get("SENT_MAX", "0.5"))
+SCENE_GAP = float(os.environ.get("SCENE_GAP", "0.7")); INNER_MAX = float(os.environ.get("INNER_MAX", "0.2")); INNER_KEEP = float(os.environ.get("INNER_KEEP", "0.16")); SENT_MAX = float(os.environ.get("SENT_MAX", "0.5")); COMMA_MAX = float(os.environ.get("COMMA_MAX", "0.36"))
 _thr10 = thr
 def inner_cuts(p):
-    """回傳 [(ra, rb)]：此段說話範圍內、非句號／問號／驚嘆號處、長度 ≥INNER_MAX 的無聲段（10ms 能量 < 門檻），從中間刪到剩 INNER_KEEP。"""
+    """2026-11-22 主控定義（video_logic.md「句中停頓」）：TTS 在逗號／頓號自然念出、≤0.45 秒的停頓保留；
+    逗號處 >COMMA_MAX → 壓到 COMMA_MAX；沒有標點處 ≥INNER_MAX → 壓到 INNER_KEEP；句號後 >SENT_MAX → 壓到 SENT_MAX。回傳 [(ra, rb)]（從中間刪）。"""
     if not NEWRULE: return []
     ws = [(ww, a, b) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
     if len(ws) < 2: return []
     tx = re.sub(r"[，、；：,;:]", "", p["text"]); ends = punct_boundaries(tx, [w_[0] for w_ in ws]) if re.search(r"[。？！?!]", tx[:-1]) else set()
+    allp = punct_boundaries(p["text"], [w_[0] for w_ in ws])
+    near = lambda S, mid: any(k + 1 < len(ws) and ws[k][1] - .05 <= mid <= ws[k + 1][1] + .35 for k in S)
     out = []
     for a10, b10 in runs_in(p["src_start"] + .15, p["src_end"] - .1, int(INNER_MAX * 100)):
-        a_, b_ = a10 / 100, b10 / 100; mid = (a_ + b_) / 2
+        a_, b_ = a10 / 100, b10 / 100; mid = (a_ + b_) / 2; L = b_ - a_
         if any(ra - .05 < b_ and a_ < rb + .05 for ra, rb in CUTS_RAW): continue   # 已被 CUTS 指定處理的靜音不重複切
-        k = max([i for i, w_ in enumerate(ws) if w_[1] < mid], default=0)
-        if k in ends:   # 句號後（同一鏡裡的兩句之間）保留自然停頓，只把超過 SENT_MAX 的壓到 SENT_MAX（換幕才用 0.6～0.8）
-            if b_ - a_ > SENT_MAX + .02: out.append((round(a_ + SENT_MAX / 2, 3), round(b_ - SENT_MAX / 2, 3)))
-            continue
-        out.append((round(a_ + INNER_KEEP / 2, 3), round(b_ - INNER_KEEP / 2, 3)))
+        if near(ends, mid): keep = SENT_MAX
+        elif near(allp, mid): keep = COMMA_MAX
+        else: keep = INNER_KEEP
+        if L > keep + .02: out.append((round(a_ + keep / 2, 3), round(b_ - keep / 2, 3)))
     INNER_LOG.extend([(p["id"], r_) for r_ in out]); return out
 INNER_LOG = []
 def inserts_for(p):

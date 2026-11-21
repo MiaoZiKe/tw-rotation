@@ -42,17 +42,21 @@ for t0, t1 in runs:
         ends = punct_boundaries(tx, [w_[0] for w_ in ws]) if len(ws) == len(wo) and re.search(r"[。？！?!]", tx[:-1]) else set()
         k = max([i for i in range(len(wo)) if wo[i] < mid], default=0)
         ke = [e for e in ends if e + 1 < len(wo) and wo[e] - .05 <= mid <= wo[e + 1] + .35]   # ASR 詞起點常漂進靜音，放寬 0.35 秒
+        allp = punct_boundaries(s["text"], [w_[0] for w_ in ws]) if len(ws) == len(wo) else set()
+        kc = [e for e in allp if e + 1 < len(wo) and wo[e] - .05 <= mid <= wo[e + 1] + .35]
         if ke: k = ke[0]
-        kind = "句號後" if ke else "句內"
+        elif kc: k = kc[0]
+        kind = "句號後" if ke else ("逗號" if kc and t1 - t0 <= .45 else "句內")   # 2026-11-22 定義：逗號處 TTS 自然 ≤0.45 秒不算句中停頓、不計總數
         at = "%s「%s｜%s」" % (s["id"], ws[k][0] if k < len(ws) else "", ws[k + 1][0] if k + 1 < len(ws) else "")
     pauses.append({"t0": t0, "t1": t1, "dur": round(t1 - t0, 2), "kind": kind, "at": at})
 nsent = sum(len(re.findall(r"[。？！?!]", s["text"])) or 1 for s in segs)
 for p in pauses:
     if p["kind"] == "換幕" and p["dur"] < .55: p["kind"] = "換幕短"   # 沒有補到 0.6～0.8 的換幕（GAP_OVERRIDE），不算「補停頓」那 6 處
-inner = [p for p in pauses if p["kind"] == "句內"]; scene = [p for p in pauses if p["kind"] == "換幕"]
+inner = [p for p in pauses if p["kind"] == "句內"]; scene = [p for p in pauses if p["kind"] == "換幕"]; comma = [p for p in pauses if p["kind"] == "逗號"]
+npc = len(pauses) - len(comma)   # 計入上限的停頓數（逗號自然停頓不算）
 bad = []
 if inner: bad.append("句內停頓 %d 處" % len(inner))
-if len(pauses) > nsent + 2: bad.append("停頓 %d 處 > 句數 %d＋2" % (len(pauses), nsent))
+if npc > nsent + 2: bad.append("停頓 %d 處 > 句數 %d＋2" % (npc, nsent))
 if len(scene) > 6: bad.append("換幕停頓 %d 處 >6" % len(scene))
 for p in scene:
     if not .55 <= p["dur"] <= .85: bad.append("換幕停頓 %s %.2f 秒不在 0.6～0.8" % (p["at"], p["dur"]))
@@ -64,7 +68,7 @@ for f in ("/root/.fonts/NotoSansCJKtc-Regular.otf", "/usr/share/fonts/opentype/n
     if os.path.exists(f): font_manager.fontManager.addfont(f); plt.rcParams["font.family"] = font_manager.FontProperties(fname=f).get_name(); break
 fig, ax = plt.subplots(figsize=(22, 4.5), dpi=80); tt = np.arange(n) / 100
 ax.plot(tt, np.maximum(db, -80), lw=.6, color="#555"); ax.axhline(thr, color="#999", ls=":", lw=.8)
-col = {"換幕": "#2a9d8f", "換幕短": "#8ecae6", "句號後": "#457b9d", "句內": "#e63946"}
+col = {"換幕": "#2a9d8f", "換幕短": "#8ecae6", "逗號": "#f4a261", "句號後": "#457b9d", "句內": "#e63946"}
 for p in pauses:
     ax.axvspan(p["t0"], p["t1"], color=col[p["kind"]], alpha=.35); ax.text((p["t0"] + p["t1"]) / 2, -76, "%.2f" % p["dur"], ha="center", fontsize=8)
 for s in segs: ax.text(s["speech_start"], -5, s["id"], fontsize=9, color="#222")
@@ -91,6 +95,6 @@ if "--no-sheet" not in a and os.path.exists(VID):
     res["frames"] = len(fs)
 res["pass_auto"] = not bad; res["bad"] = bad
 json.dump(res, open(os.path.join(q, "verify4.json"), "w"), ensure_ascii=False, indent=1)
-print("停頓：共 %d（換幕 %d、句號後 %d、句內 %d）／句數 %d；%s" % (len(pauses), len(scene), len(pauses) - len(scene) - len(inner), len(inner), nsent, "；".join("%s %.2f %s" % (p["kind"], p["dur"], p["at"]) for p in pauses)))
+print("停頓：計入 %d（換幕 %d、句號後 %d、句中 %d）＋逗號自然 %d（不計）／句數 %d；%s" % (npc, len(scene), npc - len(scene) - len(inner), len(inner), len(comma), nsent, "；".join("%s %.2f %s" % (p["kind"], p["dur"], p["at"]) for p in pauses)))
 if "asr_diffs" in res: print("ASR 相似度 %.3f；不一致 %d：%s" % (res["asr_ratio"], len(res["asr_diffs"]), "；".join(res["asr_diffs"])))
 print("自動檢查：" + ("合格" if not bad else "不合格 → " + "；".join(bad)))

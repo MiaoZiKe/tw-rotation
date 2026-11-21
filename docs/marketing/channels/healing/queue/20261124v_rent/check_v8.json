@@ -1,29 +1,29 @@
 {
- "frames": 1548,
+ "frames": 1400,
  "static_runs_gt_1_2s": [],
  "static_max_s": 0.87,
  "emphasis": [
   {
    "id": "s2",
-   "t": 9.17,
+   "t": 8.52,
    "min_px": 65.0,
    "ok": true
   },
   {
    "id": "s4",
-   "t": 23.79,
+   "t": 21.12,
    "min_px": 43.8,
    "ok": true
   },
   {
    "id": "s5",
-   "t": 30.37,
+   "t": 26.65,
    "min_px": 29.0,
    "ok": true
   },
   {
    "id": "s7",
-   "t": 43,
+   "t": 38.08,
    "min_px": 21.0,
    "ok": true
   }

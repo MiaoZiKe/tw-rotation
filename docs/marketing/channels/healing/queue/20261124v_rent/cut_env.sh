@@ -2,3 +2,4 @@
 export DROP_AFTER=74.45
 export PRE_LAST=0
 export HOLD=1.05
+export SCENE_GAP=0.75   # 2026-11-22 主控：換幕停頓拉到上限（量測約 0.8 秒）；逗號自然停頓保留後成品約 46.7 秒，片尾卡維持 5.6
