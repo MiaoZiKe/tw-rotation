@@ -60,7 +60,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-21 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-21 20:28 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/reel/DgAO5Z3EnOL/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DgAPANggQ6e"
+    }
+   ]
   }
  ],
  "sources": [
@@ -94,8 +108,8 @@
  "confidence": "官方精算報告經多家媒體一致；2031 年為推估年度、前提是收益偏低且政府不撥補，不是破產日",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/reel/DgAO5Z3EnOL/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DgAPANggQ6e",
   "queue": "20261121v_laborins",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261121v_laborins/video.mp4"
