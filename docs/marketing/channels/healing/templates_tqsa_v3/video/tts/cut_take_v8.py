@@ -12,7 +12,7 @@ import numpy as np
 raw, asrp, q, out = sys.argv[1:5]; F = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0; MAXGAP = float(sys.argv[6]) if len(sys.argv) > 6 else 0.60
 MINGAP = float(sys.argv[7]) if len(sys.argv) > 7 else 0.45; PARA = float(sys.argv[8]) if len(sys.argv) > 8 else 0.80
 HOLD = float(os.environ.get("HOLD", "1.0")); PUNCT_GAP = 0.35   # v9（2026-11-17 Andy「語速太快」）：HOLD＝說完到換鏡至少留白秒數；句內標點處自然間隙 <0.3 補到 PUNCT_GAP；數字片語前後緊貼補到 NUM_GAP
-LEAD = 0.2
+LEAD = 0.35   # 2026-11-21（全頻道音訊不斷續）：首字不早於 0.3 秒；片頭整段用錄音自身底噪墊，不放純 0
 w = wave.open(raw); SR = w.getframerate(); x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768; w.close()
 hop = int(SR * .01); n = len(x) // hop
 rms = np.array([np.sqrt(np.mean(x[i*hop:(i+1)*hop] ** 2)) + 1e-9 for i in range(n)]); db = 20 * np.log10(rms)
@@ -114,8 +114,64 @@ for kv in os.environ.get("CUTS", "").split(","):
     if ">" in kv and "-" in kv:
         ab, kp = kv.split(">"); a_, b_ = [float(v) for v in ab.split("-")]; kp = float(kp)
         if b_ - a_ > kp: CUTS.append((a_ + kp / 2, b_ - kp / 2))
+# ===== 2026-11-21 音訊不斷續（video_logic.md〇）：不放純 0、切點要安靜、接縫等功率交叉淡化 =====
+FADE = int(.015 * SR); FR5 = int(.005 * SR); NF5 = len(x) // FR5
+L5 = 10 * np.log10(np.mean(x[:NF5 * FR5].reshape(NF5, FR5).astype(np.float64) ** 2, axis=1) + 1e-12)   # 每 5ms 的 dBFS
+def qmax(t0, t1):
+    a_, b_ = int(max(0, t0) / .005), int(np.ceil(max(0, t1) / .005)); a_ = min(a_, NF5 - 1); b_ = min(max(b_, a_ + 1), NF5)
+    return float(L5[a_:b_].max())
+SAFE_DB = -50.0; SAFE_SEC = .03
+def snap_start(t, max_back=.1):
+    """切點（片段起點）要讓 [t, t+30ms] 都 ≤ −50 dBFS；往前（更靠近靜音）找，找不到維持原點並記一次。"""
+    k = 0
+    while k * .005 <= max_back:
+        tt = t - k * .005
+        if tt >= 0 and qmax(tt, tt + SAFE_SEC) <= SAFE_DB: return tt
+        k += 1
+    UNSAFE["start"] += 1; return t
+def snap_end(t, max_fwd=.15):
+    k = 0
+    while k * .005 <= max_fwd:
+        tt = t + k * .005
+        if qmax(tt - SAFE_SEC, tt) <= SAFE_DB: return tt
+        k += 1
+    UNSAFE["end"] += 1; return t
+UNSAFE = {"start": 0, "end": 0}
+def find_roomtone():
+    """從這份錄音自己找底噪：連續（5ms 格）−90～−50 dBFS 最長的一段（排除純 0）；沒有就放寬到 −45、−40。"""
+    for hi in (-50.0, -45.0, -40.0):
+        ok = (L5 < hi) & (L5 > -100); best = (0, 0, 0); i = 0
+        while i < NF5:
+            if ok[i]:
+                j = i
+                while j < NF5 and ok[j]: j += 1
+                if j - i > best[0]: best = (j - i, i, j)
+                i = j
+            else: i += 1
+        if best[0] >= 8: break
+    n_, i, j = best
+    if n_ < 8: sys.exit("找不到可當底噪的安靜段（錄音裡沒有 ≥40ms 的非零安靜段），請人工處理")
+    i += 2; j -= 2
+    if (j - i) * .005 > 1.0: m = (i + j) // 2; i, j = m - 100, m + 100
+    clip = x[i * FR5:j * FR5].astype(np.float32); clip = clip - clip.mean()
+    return clip, (round(i * .005, 3), round(j * .005, 3)), round(float(L5[i:j].mean()), 1), hi
+ROOM, ROOM_SRC, ROOM_DB, ROOM_THR = find_roomtone()
+def make_bed(n_):
+    """底噪墊：把 ROOM 循環鋪滿 n_ 個樣本，接縫 15ms 等功率交叉淡化。"""
+    X_ = min(FADE, len(ROOM) // 3); step = len(ROOM) - X_; bed = np.zeros(n_ + len(ROOM), np.float32)
+    th = np.linspace(0, np.pi / 2, X_, dtype=np.float32); fin_, fout_ = np.sin(th), np.cos(th); k = 0
+    while k * step < n_:
+        tile = ROOM.copy()
+        if k > 0: tile[:X_] *= fin_
+        tile[-X_:] *= fout_; bed[k * step:k * step + len(tile)] += tile; k += 1
+    return bed[:n_]
+RAMP = FADE; RAMP_IN = int(.02 * SR)   # 接縫 15ms；每段切出後 20ms 淡入
+PA_EFF = [0.03]
 def seg_audio(a, b, pa=.03, pb=.06):
-    y = x[int(max(0, a - pa) * SR):int((b + pb) * SR)]
+    a0 = a - pa; b0 = b + pb
+    if pa: a0 = snap_start(a0); PA_EFF[0] = a - a0     # 段首：切點要落在 ≤ −50 dBFS 的安靜處
+    if pb: b0 = snap_end(b0)                           # 段尾同理
+    y = x[int(max(0, a0) * SR):int(b0 * SR)]
     if abs(F - 1) < 1e-3: return y
     p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-", "-af", "atempo=%.4f" % F, "-f", "f32le", "-"], input=y.tobytes(), capture_output=True).stdout
     return np.frombuffer(p, np.float32)
@@ -123,17 +179,17 @@ def seg_audio(a, b, pa=.03, pb=.06):
 # 不再有數字前後停頓（NUM_GAP 拿掉）；插點前後 30ms 的音量要 < −40 dBFS，否則不插；插點兩側 15ms 淡出淡入。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from punct_align import punct_boundaries
-QUIET_DB = -40.0; WIN = int(.03 * SR); FADE = int(.015 * SR)
+QUIET_DB = -50.0; WIN = int(.03 * SR); FADE = int(.015 * SR)
 def _wdb(a, b):
     seg = x[max(0, a):max(a + 1, b)]
     return 20 * np.log10(np.sqrt(np.mean(seg ** 2)) + 1e-9) if len(seg) else -120.0
 def quiet_point(b, nxt):
-    """在 ASR 字詞間隙（前後各放寬 50ms，因 ASR 時間會漂）找前後 30ms 都 < −40 dBFS 的插點；取兩側都最安靜者，找不到回 None。"""
+    """在 ASR 字詞間隙（前後各放寬 50ms，因 ASR 時間會漂）找前後 30ms 都 ≤ −50 dBFS 的插點；取兩側都最安靜者，找不到回 None。"""
     best = None
     t = b - .05
     while t <= nxt + .05:
-        i = int(t * SR); lo = _wdb(i - WIN, i); hi = _wdb(i, i + WIN); m = max(lo, hi)
-        if m < QUIET_DB and (best is None or m < best[0]): best = (m, t)
+        m = max(qmax(t - .03, t), qmax(t, t + .03))
+        if m <= QUIET_DB and (best is None or m < best[0]): best = (m, t)
         t += .005
     return best[1] if best else None
 SKIPPED = {"align": 0, "loud": 0}
@@ -152,44 +208,55 @@ def inserts_for(p):
         out.append((tq, PUNCT_GAP - max(nat, 0)))
     return out
 def assemble(hold):
-    outv = [np.zeros(int(LEAD * SR), np.float32)]; t = LEAD; segj = []
+    outv = [np.zeros(int(LEAD * SR), np.float32)]; chunks = []; nS = [len(outv[0])]; t = LEAD; segj = []
+    def push(arr, speech=False, rin=RAMP, rout=RAMP):
+        if speech: chunks.append((nS[0], nS[0] + len(arr), rin, rout))
+        outv.append(arr); nS[0] += len(arr)
     for i, p in enumerate(pieces):
         rem = [(ra, rb) for ra, rb in CUTS if p["src_start"] <= ra and rb <= p["src_end"]]
         ins = inserts_for(p)
         ev = sorted([(r_[0], "cut", r_[1]) for r_ in rem] + [(q_[0], "ins", q_[1]) for q_ in ins])
-        y_parts = []; cur = p["src_start"]; first = True; fin = False
-        def _fi(a_):
-            if fin and len(a_) > FADE: a_ = a_.copy(); a_[:FADE] *= np.linspace(0, 1, FADE, dtype=np.float32)
-            return a_
+        cur = p["src_start"]; first = True; st = nS[0] / SR; pa_eff = .03
         for tt, kind, v_ in ev:
             if tt < cur: continue
-            seg_ = _fi(seg_audio(cur, tt, .03 if first else 0, .0)); fin = False; first = False
-            if kind == "ins" and len(seg_) > FADE: seg_ = seg_.copy(); seg_[-FADE:] *= np.linspace(1, 0, FADE, dtype=np.float32)
-            y_parts.append(seg_)
+            seg_ = seg_audio(cur, tt, .03 if first else 0, .0)
+            if first: pa_eff = PA_EFF[0]
+            push(seg_, True, RAMP_IN if first else RAMP, RAMP); first = False
             if kind == "cut": cur = v_
-            else: y_parts.append(np.zeros(int(v_ / F * SR), np.float32)); cur = tt; fin = True
-        y_parts.append(_fi(seg_audio(cur, p["src_end"], .03 if first else 0, .06))); y = np.concatenate(y_parts)
-        st = t; t += len(y) / SR; outv.append(y)
+            else: push(np.zeros(int(v_ / F * SR), np.float32)); cur = tt   # 停頓先留 0，最後整片換成底噪墊
+        seg_ = seg_audio(cur, p["src_end"], .03 if first else 0, .06)
+        if first: pa_eff = PA_EFF[0]
+        push(seg_, True, RAMP_IN if first else RAMP, RAMP); t = nS[0] / SR
         if i >= len(pieces) - 1: g = .15
         elif para_after[i]: g = PARA
         else: g = min(max(p["src_gap_after"] / F, MINGAP), MAXGAP)
         if i < len(pieces) - 1: g = max(g, hold + .3)   # 每鏡說完後畫面落定：下一鏡在下句開口前 0.25 秒換，所以間隔至少 hold＋0.3
         if i == len(pieces) - 2: g = max(g, float(os.environ.get("PRE_LAST", "0")))
-        g = max(0, g - .09 / F); outv.append(np.zeros(int(g * SR), np.float32))
+        g = max(0, g - .09 / F); push(np.zeros(int(g * SR), np.float32))
         def shift(a): return sum(v2 / F for tt, kd, v2 in ev if kd == "ins" and tt <= a and tt >= p["src_start"]) - sum(rb - ra for ra, rb in rem if a >= rb) - sum(max(0, a - ra) for ra, rb in rem if ra < a < rb)
-        ins_at = [round(st + (tq_ - p["src_start"]) / F + shift(tq_) - v2 / F, 3) for tq_, kd, v2 in ev if kd == "ins"]
-        wo = [round(st + (a - p["src_start"]) / F + shift(a), 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
-        segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + .03 / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3), "inserts": len(ins), "ins_at": ins_at}); t += g
-    return outv, segj, t - LEAD
-outv, segj, tl = assemble(HOLD)
-if tl > 60 and HOLD > .7: print("總長 %.1f 秒 >60：HOLD 1.0 → 0.7 重組" % tl); HOLD = .7; outv, segj, tl = assemble(HOLD)
+        ins_at = [round(st + pa_eff / F + (tq_ - p["src_start"]) / F + shift(tq_) - v2 / F, 3) for tq_, kd, v2 in ev if kd == "ins"]
+        wo = [round(st + pa_eff / F + (a - p["src_start"]) / F + shift(a), 3) for ww, a, b in words if a >= p["src_start"] - .05 and b <= p["src_end"] + .1 and ww.strip()]
+        segj.append({"id": p["id"], "text": p["text"], "words": wo, "heard": p["heard"], "start": round(st if i else 0.0, 3), "speech_start": round(st + pa_eff / F, 3), "end": round(t, 3), "src": [p["src_start"], p["src_end"]], "gap_after": round(g, 3), "inserts": len(ins), "ins_at": ins_at}); t = nS[0] / SR
+    return outv, segj, t - LEAD, chunks
+def finish(outv, chunks):
+    """純 0 的停頓／片頭換成底噪墊；每個語音段兩側做等功率交叉淡化；整片前 0.3 秒淡入。"""
+    y = np.concatenate(outv); n_ = len(y); bed = make_bed(n_); wy = np.zeros(n_, np.float32); wb = np.ones(n_, np.float32)
+    for s0, e0, rin, rout in chunks:
+        wy[s0:e0] = 1; wb[s0:e0] = 0
+        for (a_, k_, up) in ((s0, rin, True), (e0 - rout, rout, False)):
+            th = np.linspace(0, np.pi / 2, k_, dtype=np.float32); r_ = np.sin(th) if up else np.cos(th)
+            wy[a_:a_ + k_] = r_; wb[a_:a_ + k_] = np.sqrt(np.maximum(0, 1 - r_ ** 2))
+    out = y * wy + bed * wb; k_ = int(.3 * SR); out[:k_] *= np.sin(np.linspace(0, np.pi / 2, k_, dtype=np.float32))
+    return out
+outv, segj, tl, chunks = assemble(HOLD)
+if tl > 60 and HOLD > .7: print("總長 %.1f 秒 >60：HOLD 1.0 → 0.7 重組" % tl); HOLD = .7; outv, segj, tl, chunks = assemble(HOLD)
 if tl > 60:
     print("警告：HOLD 降到 0.7 仍 %.1f 秒 >60，建議刪（字數最多的句子，請人工決定、不自動刪）：" % tl, file=sys.stderr)
     for i in sorted(range(len(texts)), key=lambda i: -ch[i])[:3]: print("  %s（%d 字）%s" % (ids[i], ch[i], texts[i]), file=sys.stderr)
-y = np.concatenate(outv)
+y = finish(outv, chunks)
 with wave.open(out, "wb") as w2: w2.setnchannels(1); w2.setsampwidth(2); w2.setframerate(SR); w2.writeframes((np.clip(y, -1, 1) * 32767).astype("<i2").tobytes())
 chars = sum(ch); speech = sum(s["end"] - s["speech_start"] for s in segj); total = len(y) / SR - LEAD
-rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars, "ins_skipped": dict(SKIPPED),
+rep = {"source": os.path.basename(raw), "tail_noise_dropped": (tail_noise[0], tail_noise[-1]) if tail_noise else None, "preamble_cut_sec": round(on0 - LEAD, 3), "narration_onset_in_raw": on0, "voiceLeadIn": LEAD, "atempo": F, "maxgap": MAXGAP, "mingap": MINGAP, "para_gap": PARA, "hold": HOLD, "chars": chars, "ins_skipped": dict(SKIPPED), "roomtone": {"src": ROOM_SRC, "db": ROOM_DB, "thr": ROOM_THR}, "unsafe_cuts": dict(UNSAFE),
        "dur_total": round(total, 2), "rate_incl_pauses": round(chars / total, 2), "rate_speech_only": round(chars / speech, 2), "segments": segj}
 json.dump(rep, open(out + ".cut.json", "w"), ensure_ascii=False, indent=1)
 print("設定句切掉 %.2f 秒；念稿 %d 字、%.2f 秒 → 含停頓 %.2f 字/秒、扣停頓 %.2f 字/秒" % (on0 - LEAD, chars, total, chars / total, chars / speech))

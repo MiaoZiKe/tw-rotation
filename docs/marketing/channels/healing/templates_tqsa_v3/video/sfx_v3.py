@@ -138,7 +138,8 @@ def main():
         PRE_GAIN = 0.35; narr, vrep = prep_voice(narr, dur, float(os.environ.get("VOICE_LUFS", "-16")), ot0)
     tmp = tempfile.mkdtemp(); og = 1.0; hist = []
     for it in range(4):
-        sfx = synth(events, dur, ot0, og); sp = os.path.join(tmp, "sfx.wav"); wav(sp, sfx)
+        sfx = synth(events, dur, ot0, og); sfx = sfx + np.random.default_rng(7).normal(0, 1 / 32768, sfx.shape)   # 2026-11-21：全片 −90 dBFS 抖動（dither），避免任何地方出現連續純 0
+        sp = os.path.join(tmp, "sfx.wav"); wav(sp, sfx)
         ins = ["-i", sp] if not narr else ["-i", narr, "-i", sp]
         fc = ("[0:a]apad,atrim=0:%.4f[a]" % dur) if not narr else ("[0:a]aresample=48000,apad,atrim=0:%.4f[n];[n][1:a]amix=inputs=2:normalize=0:duration=longest,atrim=0:%.4f[a]" % (dur, dur))
         fc += ";[a]alimiter=limit=0.84:level=0:latency=1:attack=5:release=60,alimiter=limit=0.82:level=0:latency=1[o]"
