@@ -1,5 +1,5 @@
 {
- "frames": 1776,
+ "frames": 1744,
  "static_runs_gt_1_2s": [],
  "static_max_s": 0.87,
  "emphasis": [
@@ -23,7 +23,7 @@
   },
   {
    "id": "s8",
-   "t": 52.06,
+   "t": 50.99,
    "min_px": 21.0,
    "ok": true
   }
