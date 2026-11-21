@@ -110,7 +110,9 @@
     "dur": 6.0,
     "once": true,
     "tagAll": true,
-    "capBal": true
+    "capBal": true,
+    "tagAt": 0.42,
+    "capDy": 8
    },
    "caption": "前一年是\n十三萬四千八百五十六人，\n一年少了兩萬七千多人"
   },
