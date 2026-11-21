@@ -1,0 +1,2 @@
+# B 層替代方案：熱門財經串網址，一行一個（可在網址後面按 Tab 接一句「這串在講什麼」，寫稿用）。
+# 只有 reply_quota.json 的 b_others.enabled=true 時才會被寫稿與送出。說明：docs/marketing/social_unit/auto_reply.md 第五節。

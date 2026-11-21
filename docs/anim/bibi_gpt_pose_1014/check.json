@@ -1,0 +1,284 @@
+{
+ "default_idle": {
+  "area": 105806,
+  "area_ratio_vs_default": 1.0,
+  "bbox_w": 387,
+  "bbox_h": 345,
+  "cheek_areas": [
+   2733,
+   2660
+  ],
+  "cheek_ratio": 0.0258,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.644,
+    0.331,
+    510
+   ],
+   [
+    0.342,
+    0.339,
+    515
+   ]
+  ],
+  "foot_px_left": 338,
+  "foot_px_right": 552,
+  "foot_LR_ratio": 0.61
+ },
+ "side_r": {
+  "area": 78996,
+  "area_ratio_vs_default": 0.747,
+  "bbox_w": 351,
+  "bbox_h": 292,
+  "cheek_areas": [
+   2267,
+   1150
+  ],
+  "cheek_ratio": 0.0287,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.797,
+    0.389,
+    450
+   ]
+  ],
+  "foot_px_left": 407,
+  "foot_px_right": 292,
+  "foot_LR_ratio": 0.72
+ },
+ "run_A": {
+  "area": 82387,
+  "area_ratio_vs_default": 0.779,
+  "bbox_w": 361,
+  "bbox_h": 285,
+  "cheek_areas": [
+   2323,
+   1218
+  ],
+  "cheek_ratio": 0.0282,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.802,
+    0.413,
+    457
+   ]
+  ],
+  "foot_px_left": 689,
+  "foot_px_right": 801,
+  "foot_LR_ratio": 0.86
+ },
+ "run_B": {
+  "area": 70061,
+  "area_ratio_vs_default": 0.662,
+  "bbox_w": 356,
+  "bbox_h": 256,
+  "cheek_areas": [
+   2067,
+   998
+  ],
+  "cheek_ratio": 0.0295,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.808,
+    0.425,
+    400
+   ]
+  ],
+  "foot_px_left": 30,
+  "foot_px_right": 59,
+  "foot_LR_ratio": 0.51
+ },
+ "run_C": {
+  "area": 81706,
+  "area_ratio_vs_default": 0.772,
+  "bbox_w": 388,
+  "bbox_h": 290,
+  "cheek_areas": [
+   2189,
+   1182
+  ],
+  "cheek_ratio": 0.0268,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.82,
+    0.393,
+    448
+   ]
+  ],
+  "foot_px_left": 262,
+  "foot_px_right": 336,
+  "foot_LR_ratio": 0.78
+ },
+ "q34_r": {
+  "area": 88459,
+  "area_ratio_vs_default": 0.836,
+  "bbox_w": 342,
+  "bbox_h": 329,
+  "cheek_areas": [
+   3550,
+   1351
+  ],
+  "cheek_ratio": 0.0401,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.851,
+    0.33,
+    324
+   ],
+   [
+    0.584,
+    0.348,
+    464
+   ]
+  ],
+  "foot_px_left": 250,
+  "foot_px_right": 413,
+  "foot_LR_ratio": 0.61
+ },
+ "lie_front": {
+  "area": 86830,
+  "area_ratio_vs_default": 0.821,
+  "bbox_w": 416,
+  "bbox_h": 258,
+  "cheek_areas": [
+   3253,
+   3251
+  ],
+  "cheek_ratio": 0.0375,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.332,
+    0.546,
+    592
+   ],
+   [
+    0.642,
+    0.546,
+    590
+   ]
+  ],
+  "foot_px_left": 703,
+  "foot_px_right": 650,
+  "foot_LR_ratio": 0.92
+ },
+ "lie_side": {
+  "area": 79371,
+  "area_ratio_vs_default": 0.75,
+  "bbox_w": 405,
+  "bbox_h": 238,
+  "cheek_areas": [
+   2013,
+   1167
+  ],
+  "cheek_ratio": 0.0254,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.793,
+    0.478,
+    431
+   ]
+  ],
+  "foot_px_left": 70,
+  "foot_px_right": 166,
+  "foot_LR_ratio": 0.42
+ },
+ "sniff": {
+  "area": 76424,
+  "area_ratio_vs_default": 0.722,
+  "bbox_w": 376,
+  "bbox_h": 253,
+  "cheek_areas": [
+   1759,
+   1133
+  ],
+  "cheek_ratio": 0.023,
+  "eyes_rel_bbox_x_y_px": [],
+  "foot_px_left": 323,
+  "foot_px_right": 387,
+  "foot_LR_ratio": 0.83
+ },
+ "sit": {
+  "area": 81517,
+  "area_ratio_vs_default": 0.77,
+  "bbox_w": 377,
+  "bbox_h": 288,
+  "cheek_areas": [
+   1938,
+   1225
+  ],
+  "cheek_ratio": 0.0238,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.762,
+    0.36,
+    503
+   ]
+  ],
+  "foot_px_left": 41,
+  "foot_px_right": 470,
+  "foot_LR_ratio": 0.09
+ },
+ "lay": {
+  "area": 71006,
+  "area_ratio_vs_default": 0.671,
+  "bbox_w": 364,
+  "bbox_h": 240,
+  "cheek_areas": [
+   2167,
+   1036
+  ],
+  "cheek_ratio": 0.0305,
+  "eyes_rel_bbox_x_y_px": [],
+  "foot_px_left": 108,
+  "foot_px_right": 73,
+  "foot_LR_ratio": 0.68
+ },
+ "squash": {
+  "area": 92804,
+  "area_ratio_vs_default": 0.877,
+  "bbox_w": 425,
+  "bbox_h": 274,
+  "cheek_areas": [
+   3042,
+   3041
+  ],
+  "cheek_ratio": 0.0328,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.643,
+    0.407,
+    505
+   ],
+   [
+    0.345,
+    0.409,
+    509
+   ]
+  ],
+  "foot_px_left": 803,
+  "foot_px_right": 778,
+  "foot_LR_ratio": 0.97
+ },
+ "apex": {
+  "area": 79953,
+  "area_ratio_vs_default": 0.756,
+  "bbox_w": 350,
+  "bbox_h": 305,
+  "cheek_areas": [
+   2264,
+   1146
+  ],
+  "cheek_ratio": 0.0283,
+  "eyes_rel_bbox_x_y_px": [
+   [
+    0.798,
+    0.367,
+    443
+   ]
+  ],
+  "foot_px_left": 736,
+  "foot_px_right": 486,
+  "foot_LR_ratio": 0.66
+ },
+ "_說明": "area_ratio=不透明面積/default_idle 身體面積(影子已去除)；cheek=粉橘大塊元件(腮紅)；eyes=黑色圓點在 bbox 內的相對座標；foot_LR=底部粉橘(非腮紅)中軸左右像素比，側面姿勢左右比無意義"
+}

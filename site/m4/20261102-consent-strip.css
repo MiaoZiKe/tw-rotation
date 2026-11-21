@@ -1,0 +1,14 @@
+/* 2026-11-02 社群導流進站修正（docs/marketing/diagnosis_1102/landing_conversion_review.md）：
+   ① 手機（≤640）同意橫幅改成貼底細條：原本是一張 198px 高的浮卡（390×844 蓋住首屏約 23%、疊在主圖上），
+      現在只有條文一句＋「不同意｜同意並繼續」同一列，約 100px；同意機制、條款連結、兩顆鈕都還在。
+   ② 手機頂欄「剩 N 次」計數＋額度圓環＋登入圖示擠在一起時，登入圖示被推出畫面外 —— 縮小計數，讓整排放得下。
+   只在手機寬度；桌機（>640）一個字都不動。橫幅的原樣式在 site/legal.js（≤820 是浮卡），這裡用 :root 墊高權重蓋掉。
+   法律頁內嵌的橫幅（.lgban.inl）維持原樣。 */
+@media (max-width:640px){
+  :root .lgban:not(.inl){left:0;right:0;bottom:0;width:auto;transform:none;border-radius:16px 16px 0 0;border-width:1px 0 0;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:8px;box-shadow:0 -8px 24px -12px rgba(0,0,0,.35)}
+  :root .lgban:not(.inl) p{font-size:12px;line-height:1.5;margin:0}
+  :root .lgban:not(.inl) .lgbtns{flex-direction:row;gap:8px;flex-wrap:nowrap}
+  :root .lgban:not(.inl) .lgb2{flex:0 0 auto;width:auto;min-width:96px;padding:0 14px}
+  :root .lgban:not(.inl) .lgb1{flex:1 1 auto;width:auto}
+}

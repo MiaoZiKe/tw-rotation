@@ -1,0 +1,156 @@
+name: 部署台指期代理（Deno Deploy）
+
+# 為什麼要有這條（DECISIONS #281、#286）：
+# 期交所 mis.taifex.com.tw 架在 Cloudflare 後面，拒絕所有「從 Cloudflare Worker 來的請求」（上游回 520），
+# 所以 workers/quote-proxy 的 /fut 與 /futchart 全部失敗；瀏覽器直連又被期交所的 CORS 預檢擋（403）。
+# 這裡把那兩支搬到 Deno Deploy（不經 Cloudflare 出口），部署完**當場在同一輪實測期交所擋不擋它**。
+#
+# ★ CLI 參數依 `deno deploy --help`（jsr:@deno/deploy 0.0.9905，2026-10-02 在本機讀過）：
+#   非互動要帶 `--json --non-interactive`；App 不存在時 `apps get` 回結束碼 4（NOT_FOUND），
+#   這時才 `create --source local`，所以第一次部署會自動建 App、之後只部署。
+# ★ 金鑰只走 secrets.DENO_DEPLOY_TOKEN 的環境變數，CLI 自己讀，絕不 echo、不當參數傳（參數會進 log）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/taifex-deno/**"
+      - ".github/workflows/deploy-deno.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-deno
+  cancel-in-progress: false
+
+env:
+  ORG: miaozike
+  APP: tw-taifex
+  NO_COLOR: "1"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: workers/taifex-deno
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: 型別檢查
+        run: deno check main.ts
+
+      - name: 部署（App 不存在就先建）
+        id: deploy
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+        run: |
+          set +e
+          deno deploy apps get --json --non-interactive --org "$ORG" --app "$APP" > app.json 2> app.err < /dev/null
+          rc=$?
+          echo "apps get 結束碼：$rc"
+          head -c 600 app.err; echo
+          if [ "$rc" = "4" ] || ! grep -q '"' app.json; then
+            echo "App 不存在（或讀不到），先建立"
+            # region 先試 global（讀者在台灣，就近的節點）；免費方案若不給 global 再退 us
+            deno deploy create --json --non-interactive --org "$ORG" --app "$APP" \
+              --source local --runtime-mode dynamic --entrypoint main.ts --region global \
+              > create.json 2> create.err < /dev/null
+            crc=$?
+            echo "create（global）結束碼：$crc"; head -c 800 create.err; echo; head -c 800 create.json; echo
+            if [ "$crc" != "0" ]; then
+              deno deploy create --json --non-interactive --org "$ORG" --app "$APP" \
+                --source local --runtime-mode dynamic --entrypoint main.ts --region us \
+                > create.json 2> create.err < /dev/null
+              crc=$?
+              echo "create（us）結束碼：$crc"; head -c 800 create.err; echo; head -c 800 create.json; echo
+            fi
+          fi
+          deno deploy --json --non-interactive --org "$ORG" --app "$APP" --prod > deploy.json 2> deploy.err < /dev/null
+          drc=$?
+          echo "deploy 結束碼：$drc"
+          head -c 1500 deploy.err; echo
+          head -c 1500 deploy.json; echo
+          deno deploy apps get --json --non-interactive --org "$ORG" --app "$APP" > app.json 2> app.err < /dev/null
+          head -c 1500 app.json; echo
+          # 網址從 CLI 的輸出撈（deploy.json 與 apps get 都可能有）；撈不到才用新版的預設網域格式
+          URL=$(cat deploy.json app.json 2>/dev/null | grep -oE 'https://[A-Za-z0-9.-]+\.deno\.(net|dev)' | grep -v console | head -1)
+          [ -z "$URL" ] && URL="https://${APP}.${ORG}.deno.net"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Deno Deploy 部署"
+            echo "- 部署結束碼：$drc"
+            echo "- 網址：$URL"
+            echo '```'
+            head -c 1200 deploy.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $drc
+
+      - name: 實測期交所擋不擋 Deno
+        env:
+          BASE: ${{ steps.deploy.outputs.url }}
+        run: |
+          # 近月合約代號（跟 site/market3.js 的 futSymbol() 同一套：第三個星期三結算，當天起算下一個月）
+          SYM=$(python3 - <<'PY'
+          import datetime
+          d = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+          if d.hour < 6: d -= datetime.timedelta(hours=12)
+          y, m = d.year, d.month
+          first = datetime.date(y, m, 1).weekday()          # 一=0
+          third_wed = 1 + ((2 - first) % 7) + 14
+          if d.day >= third_wed:
+              m += 1
+              if m > 12: m, y = 1, y + 1
+          print('TXF' + 'ABCDEFGHIJKL'[m - 1] + str(y % 10))
+          PY
+          )
+          echo "近月：$SYM"
+          ORIGIN="https://miaozike.github.io"
+          {
+            echo "## 期交所經 Deno 的實測（$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S') 台北）"
+            echo "網址：$BASE"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          fut_ok=0
+          probe() {
+            name="$1"; path="$2"
+            code=000
+            # 剛部署完網域可能還在生效，最多等 6 輪
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -sS -o body.txt -D hdr.txt -w '%{http_code}' --max-time 20 \
+                     -H "Origin: $ORIGIN" "$BASE$path" || echo 000)
+              [ "$code" != "000" ] && [ "$code" != "404" ] && break
+              sleep 10
+            done
+            acao=$(grep -i '^access-control-allow-origin' hdr.txt | tr -d '\r' | head -1)
+            {
+              echo "### $name"
+              echo "- GET \`$path\` → **HTTP $code**　${acao:-（沒有 Access-Control-Allow-Origin）}"
+              echo '```'
+              head -c 200 body.txt
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "$name → $code"; head -c 200 body.txt; echo
+            LAST="$code"
+          }
+          probe "健康檢查" "/health"
+          probe "日盤報價 /fut?session=day" "/fut?session=day"
+          day="$LAST"
+          probe "夜盤報價 /fut?session=night" "/fut?session=night"
+          probe "日盤分時 /futchart" "/futchart?symbol=${SYM}-F"
+          probe "夜盤分時 /futchart" "/futchart?symbol=${SYM}-M"
+          if [ "$day" = "200" ]; then
+            echo "**結論：期交所經 Deno 回 200 —— 沒有被擋。**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**結論：/fut?session=day 回 $day —— 期交所擋 Deno（或 Deno 端出錯，看上面的 upstream_status）。**" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

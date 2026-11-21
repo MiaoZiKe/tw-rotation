@@ -1,0 +1,605 @@
+[
+ {
+  "docH": 2729,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 1408,
+   "h": 829
+  },
+  "clock": {
+   "x": 33,
+   "y": 232,
+   "w": 795,
+   "h": 664
+  },
+  "R": 318,
+  "discPct": 80,
+  "rank": {
+   "x": 840,
+   "y": 131,
+   "w": 568,
+   "h": 765
+  },
+  "rankGrid": {
+   "w": 315,
+   "h": 715
+  },
+  "twoCol": true,
+  "clockTop": 150,
+  "sankey": {
+   "x": 33,
+   "y": 1031,
+   "w": 1374,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 1374,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 923,
+   "w": 1408,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 530,
+   "y": 2047,
+   "w": 167,
+   "h": 28
+  },
+  "w": 1440
+ },
+ {
+  "docH": 2786,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 1248,
+   "h": 856
+  },
+  "clock": {
+   "x": 33,
+   "y": 259,
+   "w": 701,
+   "h": 664
+  },
+  "R": 318,
+  "discPct": 90.7,
+  "rank": {
+   "x": 746,
+   "y": 131,
+   "w": 501,
+   "h": 792
+  },
+  "rankGrid": {
+   "w": 286,
+   "h": 742
+  },
+  "twoCol": true,
+  "clockTop": 177,
+  "sankey": {
+   "x": 33,
+   "y": 1058,
+   "w": 1214,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 1214,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 950,
+   "w": 1248,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 450,
+   "y": 2104,
+   "w": 167,
+   "h": 28
+  },
+  "w": 1280
+ },
+ {
+  "docH": 2721,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 1068,
+   "h": 788
+  },
+  "clock": {
+   "x": 33,
+   "y": 259,
+   "w": 596,
+   "h": 596
+  },
+  "R": 284,
+  "discPct": 95.3,
+  "rank": {
+   "x": 641,
+   "y": 131,
+   "w": 426,
+   "h": 724
+  },
+  "rankGrid": {
+   "w": 211,
+   "h": 674
+  },
+  "twoCol": true,
+  "clockTop": 177,
+  "sankey": {
+   "x": 33,
+   "y": 990,
+   "w": 1034,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 1034,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 882,
+   "w": 1068,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 360,
+   "y": 2036,
+   "w": 167,
+   "h": 28
+  },
+  "w": 1100
+ },
+ {
+  "docH": 2698,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 1028,
+   "h": 765
+  },
+  "clock": {
+   "x": 33,
+   "y": 259,
+   "w": 573,
+   "h": 573
+  },
+  "R": 273,
+  "discPct": 95.3,
+  "rank": {
+   "x": 618,
+   "y": 131,
+   "w": 409,
+   "h": 701
+  },
+  "rankGrid": {
+   "w": 194,
+   "h": 651
+  },
+  "twoCol": true,
+  "clockTop": 177,
+  "sankey": {
+   "x": 33,
+   "y": 967,
+   "w": 994,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 994,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 859,
+   "w": 1028,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 340,
+   "y": 2013,
+   "w": 167,
+   "h": 28
+  },
+  "w": 1060
+ },
+ {
+  "docH": 3155,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 1008,
+   "h": 1222
+  },
+  "clock": {
+   "x": 33,
+   "y": 232,
+   "w": 974,
+   "h": 640
+  },
+  "R": 306,
+  "discPct": 62.8,
+  "rank": {
+   "x": 33,
+   "y": 924,
+   "w": 974,
+   "h": 365
+  },
+  "rankGrid": {
+   "w": 721,
+   "h": 315
+  },
+  "twoCol": false,
+  "clockTop": 150,
+  "sankey": {
+   "x": 33,
+   "y": 1424,
+   "w": 974,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 974,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 1316,
+   "w": 1008,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 330,
+   "y": 2470,
+   "w": 167,
+   "h": 28
+  },
+  "w": 1040
+ },
+ {
+  "docH": 3155,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 968,
+   "h": 1222
+  },
+  "clock": {
+   "x": 33,
+   "y": 232,
+   "w": 934,
+   "h": 640
+  },
+  "R": 306,
+  "discPct": 65.5,
+  "rank": {
+   "x": 33,
+   "y": 924,
+   "w": 934,
+   "h": 365
+  },
+  "rankGrid": {
+   "w": 681,
+   "h": 315
+  },
+  "twoCol": false,
+  "clockTop": 150,
+  "sankey": {
+   "x": 33,
+   "y": 1424,
+   "w": 934,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 934,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 1316,
+   "w": 968,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 310,
+   "y": 2470,
+   "w": 167,
+   "h": 28
+  },
+  "w": 1000
+ },
+ {
+  "docH": 3185,
+  "rotCard": {
+   "x": 16,
+   "y": 82,
+   "w": 869,
+   "h": 1222
+  },
+  "clock": {
+   "x": 33,
+   "y": 232,
+   "w": 835,
+   "h": 640
+  },
+  "R": 306,
+  "discPct": 73.3,
+  "rank": {
+   "x": 33,
+   "y": 924,
+   "w": 835,
+   "h": 365
+  },
+  "rankGrid": {
+   "w": 582,
+   "h": 315
+  },
+  "twoCol": false,
+  "clockTop": 150,
+  "sankey": {
+   "x": 33,
+   "y": 1424,
+   "w": 835,
+   "h": 884
+  },
+  "sankeyBand": {
+   "W": 835,
+   "idle": 151,
+   "leaf": 13,
+   "barH": 0
+  },
+  "sankeyCard": {
+   "x": 16,
+   "y": 1316,
+   "w": 869,
+   "h": 1007
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 261,
+   "y": 2503,
+   "w": 167,
+   "h": 28
+  },
+  "w": 901
+ },
+ {
+  "docH": 3683,
+  "rotCard": {
+   "x": 12,
+   "y": 84,
+   "w": 776,
+   "h": 1110
+  },
+  "clock": {
+   "x": 27,
+   "y": 265,
+   "w": 746,
+   "h": 440
+  },
+  "R": 185,
+  "discPct": 49.6,
+  "rank": {
+   "x": 27,
+   "y": 761,
+   "w": 746,
+   "h": 420
+  },
+  "rankGrid": {
+   "w": 493,
+   "h": 370
+  },
+  "twoCol": false,
+  "clockTop": 181,
+  "sankey": {
+   "x": 27,
+   "y": 1322,
+   "w": 746,
+   "h": 928
+  },
+  "sankeyBand": null,
+  "sankeyCard": {
+   "x": 12,
+   "y": 1206,
+   "w": 776,
+   "h": 1057
+  },
+  "charts": {
+   "instGroups": {
+    "gridTop": 8,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "conc": {
+    "gridTop": 10,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rankFlow": {
+    "gridTop": 12,
+    "legendInChart": false,
+    "axisMinFs": 12
+   },
+   "rotClock": {
+    "gridTop": null,
+    "legendInChart": false,
+    "axisMinFs": null
+   }
+  },
+  "instHtmlLegend": {
+   "x": 606,
+   "y": 2356,
+   "w": 167,
+   "h": 28
+  },
+  "w": 800
+ }
+]

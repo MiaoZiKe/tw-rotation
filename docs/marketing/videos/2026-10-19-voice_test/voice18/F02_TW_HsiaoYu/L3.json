@@ -1,0 +1,44 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+6%",
+ "pitch": "+0Hz",
+ "text": "而是一個叫扣窩斯的封裝步驟。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "而是",
+   "start": 0.097166,
+   "dur": 0.318416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一個",
+   "start": 0.427375,
+   "dur": 0.259416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "叫扣窩",
+   "start": 0.722166,
+   "dur": 0.613208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "斯的",
+   "start": 1.406125,
+   "dur": 0.353791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 1.7835,
+   "dur": 0.400958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "步驟",
+   "start": 2.231583,
+   "dur": 0.41275
+  }
+ ]
+}

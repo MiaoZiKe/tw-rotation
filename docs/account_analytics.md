@@ -1,0 +1,325 @@
+# 會員、自選清單、使用統計、線上人數 —— 規格與事件清單
+
+Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線上使用狀況，新增每頁使用功能狀況，
+更能知道哪個功能更受歡迎，新增線上人數，知道目前有誰使用，新增自選清單並且可以新增五個分頁」。
+
+- 架構與取捨：DECISIONS #270
+- 設定步驟（給 Andy）：`docs/login_setup.md`
+- 後端：`workers/account-api/worker.js`（Cloudflare Worker ＋ Durable Object SQLite）
+- 前端：`site/account.js`（登入、統計、線上人數）、`site/watchlists.js`（自選五分頁）、`site/admin.js`（管理頁 `#admin`）
+- 存取控制測試：`node --test workers/account-api/tests/account.test.mjs`（19 條，含本文件與程式白名單一致性）
+- 前端驗收：`python scripts/_uitest.py --sections 會員與自選五分頁,會員雲端路徑 --workers 1`
+
+## 1. 使用統計怎麼記
+
+- **只記次數**：每一筆是「台北日期 × 鍵 × 次數」，沒有任何識別碼、不存 IP、不存單次點擊的原始紀錄。
+- 前端先在記憶體累加，**每 60 秒隨心跳送一次**（離開分頁時用 sendBeacon 補送），一次最多 40 個鍵、每鍵最多 +50。
+- Worker 只收下面白名單裡的鍵，其他一律整批拒絕（`worker.js` 的 `VIEWS`／`EVENTS`，與 `site/account.js` 同一份，測試會比對）。
+- 瀏覽器開「請勿追蹤」（DNT）或「全球隱私控制」（GPC）→ 完全不送。
+- 彙總資料保留 **13 個月**（Durable Object 每小時的 alarm 刪掉更舊的）。
+
+## 2. 頁面瀏覽（鍵 `pv:<頁面>`）
+
+換到另一頁算一次；個股頁換一檔股票算一次；同一頁內部切換（例如切族群）不重算。管理頁本身不計。
+
+| 頁面 | 對應網址 |
+|---|---|
+| `overview` | `#overview`（也包含空網址） |
+| `flow` | `#flow` |
+| `industry` | `#industry`、`#industry/<鏈>` |
+| `heatmap` | `#heatmap`（含舊網址 `#themes`） |
+| `market` | `#market` |
+| `season` | `#season`（畫面上叫「週期統計」） |
+| `delivery` | `#delivery`（含舊網址 `#tasks`） |
+| `stock` | `#stock/<代號>` |
+| `legal` | `#terms`、`#privacy`、`#disclaimer`、`#leave` |
+| `watch` | 保留給之後若自選清單變成獨立頁（目前是面板，不會出現） |
+| `other` | 認不得的網址 |
+| `etf` | `#etf`（ETF 專區）—— 2026-10-05 Worker 起收，前端 `site/account.js` 待補 |
+| `explore` | `#explore`（選股策略）—— 同上 |
+| `earnings` | `#earnings`（財經日曆）—— 同上 |
+| `events` | 「今日事件」抽屜（`#evToggle`／`#mmEvents` 打開一次算一次；不是網址頁）—— 同上 |
+| `support` | 右下角客服面板（`#supFab` 打開一次算一次；不是網址頁）—— 同上 |
+| `pricing` | `#pricing`（訂閱方案）—— 同上 |
+| `notices` | `#notices`（公告）—— 同上 |
+| `articles` | `#articles`（精選文章列表）與 `#article/<id>`（單篇，`viewOf` 併進同一頁）—— 2026-10-16 加；子頁開啟 `sub.all／news／intro／know／post`，單篇細項 `read`＝文章標題（前 24 字）、`search_art`＝從左上搜尋點進文章 |
+
+後面七個是 2026-10-05（hourly）在 Worker 白名單補上的（`worker.js` 檔尾 `VIEWS_ADDED`），之前這些頁都記成 `other`。
+**Worker 先上、前端後上**：前端把它們加進 `site/account.js` 的 `VIEWS` 之前，`tests/account.test.mjs` 的三邊一致測試允許前端少這七個；補上之後回到完全相等（順序照 Worker 的 `VIEWS`）。
+每小時統計與前端接法見文末「每小時統計＋頁面白名單補七頁」。
+
+## 3. 功能事件（鍵 `ev:<事件>`）
+
+每一個事件都要能回答「這個功能有沒有人在用」。認法是**委派監聽**（`site/account.js` 的 `HOOKS`），
+不改每個功能自己的程式 —— 那些檔案別的 agent 正在改；代價是按鈕的選擇器改名時這裡要跟著改。
+
+| 事件 | 什麼時候算一次 | 回答的問題 |
+|---|---|---|
+| `session` | 一個瀏覽分頁第一次心跳 | 一天大約有多少次造訪 |
+| `session_login` | 同上，而且是登入狀態 | 造訪裡有多少是會員 |
+| `login` | 登入成功 | 登入流程有沒有人走完 |
+| `logout` | 按登出 | — |
+| `search` | 在頂欄搜尋框按 Enter，或點搜尋建議 | 搜尋是不是主要入口 |
+| `watch_add` | 加進任一自選頁 | 自選清單有沒有人用 |
+| `watch_remove` | 從自選頁移除 | — |
+| `watch_tab_new` | 新增一個自選分頁 | 五個分頁夠不夠、有沒有人用到第二頁 |
+| `watch_panel` | 打開自選清單面板 | 面板入口找不找得到 |
+| `stock_tab` | 個股頁下方分頁（營收／獲利／籌碼…）或手機個股分頁切換 | 個股頁哪個部分有人看 |
+| `k_period` | 切 K 線週期（`#tfSeg`） | 多週期有沒有人用 |
+| `ai_tab` | 切 AI 分析的面向（技術／籌碼／基本／消息） | AI 分析有沒有人點開細看 |
+| `open_3d` | 剖析圖切到 3D | 3D 值不值得繼續投資 |
+| `zoom` | 圖表放大視窗打開 | 放大功能有沒有人用 |
+| `how` | 打開任何一個「?」說明 | 哪些圖需要解釋（高＝圖本身不夠直覺） |
+| `theme_toggle` | 切深色／明亮 | — |
+| `events_drawer` | 打開「今日事件」 | 事件欄有沒有人看 |
+| `mtf` | 個股「四週期同看」 | — |
+| `indicators` | 打開指標設定下拉 | — |
+| `draw` | 打開畫線工具 | — |
+| `m_seg` | 手機分段導覽切換 | 手機的分段是不是被當成主要導覽 |
+| `land` | 網址帶來源（utm 或 `?u=`）進站，同一台 30 分鐘內算一次 | 哪個管道帶人進來（2026-10-26 行銷漏斗 W2） |
+| `signup` | 新會員第一次登入後，Worker 收到來源紀錄（帳號建立 15 分鐘內）；**Worker 計**，前端不送 | 各管道帶來多少註冊 |
+| `trial_start` | 同上，而且該會員拿到「新會員體驗」；**Worker 計** | 註冊後有多少人真的進入體驗 |
+| `pricing_view` | 進 `#pricing` 一次（跟頁面瀏覽 `pv:pricing` 同時算） | 有多少人看到價格 |
+| `checkout_click` | 點付費方案卡的訂閱／預約鈕 | 有多少人想買 |
+| `paid` | 第一次付款開通付費方案；**Worker 計**（`pay.js`），來源取自帳號的首次來源 | 各管道帶來多少付費 |
+
+**漏斗分來源**：以上六個事件除了全站合計（`ev:<事件>`），另寫一份細項事件（頁面 `other`、元件 `fn.<事件>`、細項＝來源名，沒來源為 `direct`），
+管理區「流量觀測」的「各來源漏斗」卡就是讀這份。
+**漏斗依功能（2026-10-27 深層連結補強）**：同樣六個事件再寫一份 `fx.<事件>`（頁面 `other`，細項＝功能碼）。功能碼＝`?u=` 第二段經 `SRC_SLOT` 轉出的詞（`diagram3d`、`etf_div`、`earnings`、`ev_fomc`…），存在 `src.c`、去掉結尾 `_yyyymmdd`；只認貼文（`m=post`），utm 來源或沒有功能碼的記 `none`。
+前端 `account.js` 的 `srcFunc` 與 Worker 的 `funcOf` 是同一條規則；`signup`／`trial_start`／`paid` 由 Worker 依帳號的首次來源寫 `fx.*`。因為 `none` 也記，「依功能」各列加總＝全站合計，註冊率分母與「依平台」一致（註冊 ÷ 進站，註冊大於進站顯示「—」，不超過 100%）。管理區漏斗卡右上角「依平台／依功能」切換。
+**來源參數**：`utm_source`／`utm_medium`／`utm_campaign`／`utm_content`，或自動發文的短參數 `?u=<平台>-<時段>-<yyyymmdd>`（例 `th-id-20261027`，平台代碼 th＝Threads、ig＝Instagram，時段 pm 盤前、id 盤中、cl 盤後、mg 融資融券）。
+首次來源存在瀏覽器 `localStorage`（`tw.src`），第一次登入後送 `/v1/me/src` 寫進帳號一欄（`users.src`，只寫一次）；DNT／GPC 開著完全不讀不存不送。
+
+要加新事件：`worker.js` 的 `EVENTS`、`site/account.js` 的 `EVENTS`（與 `HOOKS` 或呼叫 `TwTrack('名稱')`）、
+本表三處一起改；`site/admin.js` 的 `EV_NAME` 補中文名。測試會抓三邊不一致。
+
+## 4. 線上人數與「目前誰在用」
+
+- 每次載入頁面一組隨機代碼（只在記憶體，重新整理或關掉就換一組，**不跨造訪追蹤**）。不放 `sessionStorage`：重新整理時舊頁面的「離開」會比新頁面的第一次心跳晚到，同一組代碼會把新頁面剛登記的在線紀錄刪掉（驗收實測抓到）。
+- 分頁看得到時每 60 秒一次心跳；切到背景或關閉時送「離開」，Worker 立刻刪掉那一列。
+- 6 分鐘（360 秒）內有送過統計才算在線（2026-10-06 起前端每 5 分鐘送一批，原本 150 秒會讓名單忽有忽無）；超過 7 分鐘的紀錄每小時與每次心跳順手刪掉；關分頁用 beacon 帶 leave 立刻刪（「離線即刪」）。
+- 一般訪客：頂欄看到「● N 人在線」（管理者可在 `#admin` 關掉，關掉後只有管理者看得到數字）。
+- 管理者（`ADMIN_EMAILS`）：`#admin` 看得到登入者的名稱、email、在看哪一頁、最後動作時間；訪客只有人數。
+
+## 5. 自選清單
+
+- 最多 5 頁；每頁名字最多 12 字、最多 50 檔；**只存代號與清單名，不存張數、成本、損益**。
+- 未登入：`localStorage` 的 `tw.watchlists`。舊的單一清單 `tw.watch` 第一次載入時搬進第 1 頁，搬完刪掉舊鍵。
+- 登入後：雲端為準，本機快取 `tw.watchlists.u`。第一次登入把本機清單**合併**上雲（同名頁取聯集、不同名接在後面、
+  滿五頁併進同位置那頁），成功後清空本機那份；登出時刪掉雲端快取、換回本機清單（共用電腦不會留下別人的清單）。
+- 兩台裝置同時改：以版本號判斷，後到的那一邊收到 409 與雲端現況，畫面換成雲端版本並提示。
+
+## 6. 存取控制（等同 Firebase 安全規則；逐條測試在 `workers/account-api/tests/account.test.mjs`）
+
+| 規則 | 允許 | 拒絕 |
+|---|---|---|
+| R1 自選清單 | 帶自己權杖讀寫**自己那份** | 沒權杖、假權杖、改過 uid 或簽章的權杖；超過 5 頁／50 檔／代號格式錯；版本號不一致（409，不覆蓋） |
+| R2 使用統計 | 任何人（含訪客）遞增白名單內的鍵，每鍵 1～50 | 非白名單鍵、0、負數、小數、超過 50、超過 40 鍵；**沒有任何給一般人的讀取端點** |
+| R3 報表／線上名單／會員名單 | email 在 `ADMIN_EMAILS` 的已驗證帳號 | 訪客、一般會員；`ADMIN_EMAILS` 沒設時沒有任何人 |
+| R4 線上總人數 | 預設公開（只有數字）；關掉後只給管理者 | 關掉後的訪客與一般會員 |
+| R5 權杖 | HMAC 簽章有效、未過期（60 天，剩一半自動續）、使用者還在、版本號相符 | 刪除帳號後的舊權杖、過期權杖 |
+| R6 登入 | 授權碼＋PKCE（S256）＋ state ＋ nonce ＋ 同瀏覽器 cookie；return 網址在白名單 | 白名單外網址、cookie 不符（別人的回呼網址）、aud／iss／nonce 不符、email 未驗證、過期 |
+| 來源 | 白名單網站發出的 POST | 其他網站、沒有 Origin 的 POST（403） |
+
+
+## 細項事件（2026-10-05 admin-v2）
+
+跟上面的計數並存（舊計數不動），心跳多帶一個 `e2`：`[[頁面, 元件, 細項, 次數], …]`，每批最多 60 列、每列最多 +50。
+Worker 存在 `ev2(day, page, comp, detail, n)`，只有「每天的次數」，**沒有任何識別碼**，保留 13 個月。
+
+- 頁面：上面的頁面白名單（`viewOf`）。管理頁不記。
+- 元件：`^[a-z][a-z0-9_.]{0,31}$` 的固定名字。
+- 細項：族群名／股票代號／元件 id／象限名，**只取畫面上既有的選項**；不存使用者打的字（搜尋只記「有搜尋」）。
+  Worker 再擋一次：≤ 24 字、不准 `@`、控制字元與 `< > " ' \``。
+
+| 元件 | 細項 | 點位 |
+|---|---|---|
+| `view` | 股票代號 | 打開個股頁（換一檔算一次）|
+| `tab.<分頁>`、`kp.<週期>`、`ai_tab`、`mtf`、`indicators`、`draw`、`zoom`… | 個股頁＝代號；其他頁空白 | 既有 HOOKS 擴充 |
+| `how` | 卡片 id | 「?」說明 |
+| `play` | 時間軸容器 id（`rotBack`＝資金輪動）| 播放鈕 |
+| `quad` | 領先／改善／轉弱／落後 | 輪盤象限卡 |
+| `filter_chain` | 產業鏈名 | 資金輪動產業鏈下拉 |
+| `filter_group` | 族群名 | 族群下拉「勾上」 |
+| `filter_group_open`、`filter_top10`、`filter_clear` | 空 | 篩選列 |
+| `rank_bar` | 族群名 | 右側排行長條（app.js 新點位）|
+| `clock_group` | 族群名 | 輪盤族群點（app.js 新點位）|
+| `heat_tile` | 族群名 | 熱力圖方塊（app.js 新點位）|
+| `search` | 空 | 搜尋 Enter |
+
+新增點位只有 app.js 三處 canvas 點擊（`twT`），其餘都是 account.js 的委派監聽。
+查詢：`/v1/admin/stats` 回 `e2`（期間內依 page/comp/detail 加總，可帶 `page` 只看一頁）。
+會員造訪：登入狀態的 `ev:session_login` 另記 `visits(uid, day, n)`，`/v1/admin/perm/list` 回 `seen`、`visits`（近 30 天）、`expires`。
+
+### 2026-10-05 流量觀測「分頁統計」新增的事件鍵（只記次數，不記身分；前端 `site/account.js`）
+Worker 的頁面白名單（`VIEWS`）沒有 etf／explore／support／events，所以這幾頁一律記在頁面 `other` 底下、元件名帶前綴，管理區（`site/admin.js` 的 `PAGES`／`classify`）再歸回該頁。**Worker 不必改**；若之後要在 Worker 端直接分頁面，再把這四個加進 `VIEWS`。
+
+| 元件鍵 | 頁面 | 細項 | 點位 |
+|---|---|---|---|
+| `sub.<子頁>` | flow／heatmap／industry／market | 空 | 換到子頁（rotation／sankey／inst、industry／theme、chains／chain／group、市場明細頁籤） |
+| `etf.cat` | other | 類別名 | ETF 分類按鈕 `#etfCatSeg` |
+| `explore.topic` | other | 題目 | （預留，選股策略題目點選；示範資料已涵蓋，前端點位待 explore.js 補）|
+| `watch_tab_new` | watch | 空 | 自選「＋」新增分頁 |
+| `watch.chart`、`watch.kline` | watch | 空 | 自選：點走勢圖、展開圖內切 K 線週期 |
+| `support.fab`／`support.tab`／`support.faq`／`support.send`／`support.mail` | other | 分頁名／問題前 20 字 | 客服浮動鈕與面板 |
+| `events.link` | other | 空 | 事件抽屜點事件連結（`events_drawer` 本來就有，管理區用它的「來源頁」當細項）|
+| `ind` | stock | 指標名稱 | 技術指標面板勾上 |
+| `draw.tool` | stock | 工具名稱 | 畫線工具列 |
+
+### 管理區仍需 Worker 才能完整呈現的欄位（前端已先做好，預覽用示範資料；正式站目前顯示估算或「尚未提供」）
+- **開站身分**（登入／訪客的甜甜圈拆「註冊會員＋各付費方案」）：Worker 的 `ev:session_login` 沒有分會員等級。目前前端用 `plans/get`＋`perm/list` 的名單人數比例估算（標「估算」）。要精準：心跳 `session_login` 改記 `session_tier:<plan id>`，或 `/v1/admin/stats` 回 `tiers: [{id, name, n, login}]`。
+- **使用時段**（使用者分頁的每小時直條）：需要 `/v1/admin/stats` 回 `hourly: [24 個數字]`（期間內每天每小時的頁面瀏覽加總，台北時間）。沒有就顯示說明文字。
+- **即時**（期間選單）：需要 `hours: [24 個數字]`（今天每小時瀏覽）；沒有時只畫 1 根（今天）。
+- 範本刪除保護已在 `workers/account-api/worker.js` 檔尾（`plans/put` del → 409 `has_members`）；上正式站要先部署 Worker 再上前端。
+
+### 圖表選型（流量觀測頁的「？ 圖表怎麼選」）
+- 預設橫向排序長條：類別多、要比大小，長度最準。
+- 圓餅／甜甜圈：只在 ≤ 5 類且加總 100%（登入／訪客開啟比例）。
+- 散佈：只用在兩個數量的關係（個股被觀看次數 × 平均每次用幾次功能）。
+
+## 族群權限鍵對照（features.js `grpKey`）
+純小寫英數底線的 group_id 原樣 → `grp.<id>`；有大寫轉小寫；含中文的 `ind_*` 自動桶 → `grp.ind_x<FNV-1a 8 碼>`。上線後不要改算法。
+
+| group_id | 鍵 |
+|---|---|
+| ind_ETF | `grp.ind_etf` |
+| ind_半導體業 | `grp.ind_x4d6347d4` |
+| ind_光電業 | `grp.ind_xaffe9bb6` |
+| ind_電子零組件業 | `grp.ind_xb717244b` |
+| ind_化學工業 | `grp.ind_x269acfc7` |
+| ind_其他電子業 | `grp.ind_x88b93227` |
+| ind_生技醫療業 | `grp.ind_x4ceef9e8` |
+| ind_其他 | `grp.ind_xe82028fb` |
+| ind_電腦及週邊設備業 | `grp.ind_x206d5a74` |
+| ind_文化創意業 | `grp.ind_xdad9d3e5` |
+| ind_通信網路業 | `grp.ind_xdca044c4` |
+| ind_鋼鐵工業 | `grp.ind_x3737af8e` |
+| ind_汽車工業 | `grp.ind_xdc531606` |
+| ind_食品工業 | `grp.ind_x140977c9` |
+| ind_電機機械 | `grp.ind_x1b8c31ca` |
+| ind_綠能環保 | `grp.ind_xeff95aab` |
+| ind_玻璃陶瓷 | `grp.ind_x84487036` |
+| ind_建材營造 | `grp.ind_xacb9273e` |
+| ind_資訊服務業 | `grp.ind_x9dadf523` |
+| ind_紡織纖維 | `grp.ind_x060d3357` |
+| ind_金融保險 | `grp.ind_x0686a15a` |
+| ind_水泥工業 | `grp.ind_xd1d03aa6` |
+| ind_貿易百貨 | `grp.ind_x5756834b` |
+| ind_運動休閒 | `grp.ind_xd36b5780` |
+| ind_橡膠工業 | `grp.ind_xde3e5aa8` |
+| ind_居家生活 | `grp.ind_x2a747a56` |
+| ind_塑膠工業 | `grp.ind_x94a13d58` |
+| ind_電子通路業 | `grp.ind_x02e736c2` |
+| ind_數位雲端 | `grp.ind_x3c577bd7` |
+| ind_觀光餐旅 | `grp.ind_x786a931f` |
+| ind_電器電纜 | `grp.ind_xfc41fa87` |
+| ind_造紙工業 | `grp.ind_x3efb6a56` |
+| ind_油電燃氣業 | `grp.ind_xb9888cd8` |
+| ind_農業科技業 | `grp.ind_xa885935a` |
+
+## 付費範本的價格與計費週期（2026-10-05 admin-v2b）
+
+- 後端 `plans` 表多兩欄：`price`（整數新台幣，0～999999）、`period`（`month`／`year`／`once`）。舊資料庫啟動時用 `PRAGMA table_info` 判斷、`ALTER TABLE ADD COLUMN` 補欄，舊範本補成 `price=0`、`period=month`。
+- `/v1/admin/plans/put`：`price`、`period` 可省略（省略＝沿用原值，只改開關的呼叫不會把價格洗成 0）；帶了就嚴格驗證，錯誤回 `bad_price`／`bad_period`（400），不默默修正。`/v1/admin/plans/get` 每個範本都回 `price`、`period`。
+- 管理區「會員權限 → 付費會員」：選一個範本後可改「名稱」「價格（整數 NT$）」「計費週期（月／年／一次）」，範本按鈕顯示「名稱・NT$價格/週期」。名稱不寫死價格（定價範本預設「免費方案 0／基本方案 399／進階方案 799」，每月）。
+- ★ **金流以 plan id 對價、價格以後端為準。** plan id（例如 `p399`、`p799`、`p<亂數>`）建立後不變，是日後金流（訂單、Webhook）對應方案的鍵；名稱與價格可以隨時改，不影響已指定的會員。前端顯示的價格只是顯示，結帳金額一律由後端依 plan id 查 `plans.price`，不可相信前端送來的金額。
+
+## 管理區 v3：瀏覽次數上限、會員名單使用數據（2026-10-05 admin-v3）
+
+Andy 看了 admin-v2 預覽說「弄得好複雜，看了不清楚」，管理區改成三個大分頁（訪客｜註冊會員｜付費會員）＋「＋」新增付費範本，每頁兩個子分頁「觀看權限」「會員名單」。後端（`workers/account-api/worker.js` 檔尾 admin-v3 區塊，只新增、包 prototype，既有函式不動）：
+
+- **瀏覽次數上限 `plans.lims`**（JSON：`{功能鍵: 0～9999}`）。留空（沒有這個鍵）＝不限、0＝不能看、N＝每日 N 次。跟開關 `feats` 分開存。`/v1/admin/plans/put` 可帶 `lims`（省略＝沿用原值；壞值整批 `bad_lims` 400）；`plans/get`、`/v1/plans/public`、`/v1/perm/me` 都回 `lims`（`perm/me` 回的是生效範本的，過期的人退回免費會員的）。
+  前端：`perm.js` 把 0 當成「關掉」（同一個鎖頭＋「升級查看」鈕）；`quota.js` 對 N≥1 計數 —— 個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「這個瀏覽器分頁開過一次」。原本 sub-v1 的三個 `quota.*` 開關拿掉，改成 `stock.page`（整個個股頁）、`stock.ai`、`heat.detail` 的上限。
+- **在線時間 `visits.ms`**：登入者每次心跳加上距上次加時的間隔（單次最多 120 秒；超過 150 秒沒訊號＝斷線，不補中間那段）。用 `users.ob`（上次加時）而不是每個分頁各算，同一人開三個分頁不會加三倍。
+- **個人使用明細 `uev`**（uid、台北日期、頁面、元件、細項、次數）：只記登入者（訪客仍然只有不具名的 `usage`／`ev2`）；頁面瀏覽記成 `comp='_pv'`。保留 90 天、刪除帳號一起刪、只有管理者讀得到（隱私權政策第二條已加「使用紀錄（登入後）」一列）。
+- **`/v1/admin/members`**：一人一列（登入過的＋設定過的），帶 方案、付費與否、加入／到期、最後上線、累計在線、近 30 天造訪／活躍天數／頁面瀏覽、最常用的功能 Top3、最常看的股票 Top3、狀態。**`/v1/admin/member/detail`**：各分頁瀏覽、功能次數 Top 15、常看股票 Top 10、近 14 天每日（造訪、在線、瀏覽）。
+- 相容遷移：`plans.lims`、`visits.ms`、`users.ob` 用 `PRAGMA table_info` 判斷再 `ALTER TABLE ADD COLUMN`，`uev` 是新表；舊資料原封不動、重啟不報錯（`tests/v3.test.mjs`）。
+- `/v1/quota/hit` 的功能鍵放寬成任何功能鍵（原本只收 `quota.*`）。
+
+## 每小時統計＋頁面白名單補七頁（2026-10-05 hourly）
+
+Andy：流量觀測「即時」要看今天 0–24 時每小時、「使用者」分頁要看每小時的使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
+後端在 `workers/account-api/worker.js` 檔尾 hourly 區塊（只新增、包 prototype，既有函式不動），測試 `workers/account-api/tests/hourly.test.mjs`。
+
+### 怎麼記
+- 新表 `hstat(day, h, pv, sess, sess_login, mins)`：一列＝台北日期 × 小時（0–23）。**只有次數，沒有 uid／sid／IP**，跟 `usage` 同一個隱私等級，保留 13 個月（跟 `usage` 同一個切點）。
+- 跟 `usage` 吃同一份心跳、同一套驗證：心跳回 200 才記，整批被擋（400／429）的不記 → 今天各小時加總＝`rows` 裡今天的 `pv:*`／`ev:session`／`ev:session_login`。
+- `pv`＝所有 `pv:*` 加總；`sess`＝`ev:session`（開站）；`sess_login`＝`ev:session_login`（登入狀態開站）；訪客開站＝兩者相減；
+  `mins`＝那一小時收到的心跳數（不含「離開」那一跳）＝看得到的分頁在線分鐘數，平均同時在線 ≈ `mins ÷ 60`。
+- 歸到「Worker 收到心跳」的那一小時（前端每 60 秒送一次，整點前一分鐘內的動作可能算到下一小時）。部署之前沒有每小時資料（`hstat.since` 會寫從哪天開始有）。
+
+### API（擇一：沿用 `/v1/admin/stats`，不另開端點）
+請求不變：`{ t, days, page?, live? }`（`live` Worker 不看，帶不帶都一樣）。回應**原有欄位一個不動**（`from`、`to`、`rows`、`e2`、`users`、`events`、`views`），後面多三個：
+
+| 欄位 | 形狀 | 意思 |
+|---|---|---|
+| `hours` | 24 個整數 | **今天**（台北）0–23 時每小時頁面瀏覽；還沒到的小時＝0。「即時」直條直接畫這個 |
+| `hourly` | 24 個整數 | 期間 `from`～`to` 內，各「時」的頁面瀏覽加總（使用時段圖；1H／4H／6H／12H／白天／晚上由前端合併） |
+| `hstat` | 物件 | `{ today:'YYYY-MM-DD', hour:現在第幾時(0–23), since:'YYYY-MM-DD'或null, day:{pv,open,login,guest,mins}, period:{from,to,pv,open,login,guest,mins} }`，每個數列 24 格 |
+
+`hstat.day`＝今天、`hstat.period`＝期間內各「時」加總；`open` 開站、`login` 登入開站、`guest`＝`open − login`（≥ 0）、`mins` 在線分頁分鐘數。
+`views` 現在多七頁（`VIEWS_ADDED`，接在原本 11 個後面）。`page` 篩選也收這七頁。
+
+### 前端接法（`site/admin.js`、`site/account.js`）
+1. 流量觀測「即時」：`st.hours` → 24 根直條（`hstat.hour` 之後的格子可以畫成空的，不要當 0 次）；舊 Worker 沒有 `hours` 時退回原本畫法。
+2. 「使用者」分頁使用時段：`st.hourly`（期間加總）→ 既有的 `hourData(hourly, mode)`；要畫登入／訪客分色就用 `st.hstat.period.login`／`.guest`（即時用 `st.hstat.day.*`）。
+   `hstat.since` 晚於 `from` 時要註明「每小時統計從 <since> 起」，不然前幾個月會看起來像半夜沒人。
+3. 七頁真的瀏覽數：`site/account.js` 的 `VIEWS` 改成跟 Worker 一模一樣（順序也一樣）：
+   `['overview','flow','industry','heatmap','market','season','delivery','stock','legal','watch','other','etf','explore','earnings','events','support','pricing','notices']`。
+   `etf`／`explore`／`earnings`／`pricing`／`notices` 是網址頁，`viewOf` 會自動認到（`#pricing`、`#notices` 走 TwSubRoutes，但 hash 開頭一樣）；
+   `events`、`support` 是面板，要在打開抽屜／客服面板時另外 `bump('pv:events')`／`bump('pv:support')`（不會換 hash，`pv()` 抓不到）。
+   細項 `t2(...)` 的第三個參數也可以從 `'other'` 改成新頁（`etf.cat` → 頁面 `etf`）。
+4. 舊資料相容：切換之前記在 `other` 底下、元件名帶前綴（`etf.cat`、`explore.topic`、`support.*`、`events.link`）的細項**照舊**回在 `e2`（頁面仍是 `other`），
+   Worker 不搬、不合併 —— 管理區的 `classify` 兩種寫法都要認（`other`＋前綴、新頁面），加總起來才是完整期間。`pv:other` 以前的次數無法拆回各頁。
+   `claude/style-guide` 分支在本文件加的「流量觀測分頁統計」那節寫「Worker 不必改、一律記在 other」—— 合併後以本節為準：Worker 已收這七頁，前端改用新頁面鍵。
+
+### stats 起訖日（2026-10-06）
+`/v1/admin/stats` 請求多收 `from`、`to`（台北日期 `YYYY-MM-DD`，含頭含尾）；兩個都不帶＝照舊只看 `days`。
+`to` 沒帶＝今天、晚於今天＝今天；`from` 沒帶＝`to` 往前 30 天（含 `to` 共 30 天）；日期格式不對、`from` 晚於 `to`、`from` 比今天早超過 400 天 → 400 `{error:'bad_range'}`。
+回應形狀不變：`from`／`to` 是實際起訖，`rows`、`e2`、`hourly`、`hstat.period` 依起訖重算；`hours`／`hstat.day` 永遠是今天（即時用）；`users` 不受影響。程式在 `worker.js` 檔尾「起訖日區塊」，測試在 `tests/hourly.test.mjs`。
+
+
+## 頂欄「N 人在線」框的「今天」段（2026-11-06，只有站主／管理員）
+
+Andy 11-06：「只有站主看得到 今天有誰來 累積多久 主要看什麼 … 太長就改成拉Bar 形式 也需要新增訪客累積數量」。
+
+- 前端：`site/account.js` `paintToday()`（點「N 人在線」才打一支 `POST /v1/admin/online/today`）。清單固定高度 288px、框內捲動（桌機滾輪／拖捲軸，手機手指拖）；
+  測試帳用 `site/admin.js` 的 `TwAdmin.testEmails()`（SHA-256 雜湊名單，與管理區統計同一套規則）排除。端點 404（後端還沒部署）→ 寫「需要更新會員後端」，不影響上面的「目前在線」。
+- 後端（`workers/account-api/worker.js` 檔尾「今天誰來過」區塊）：
+  - `pdwell(uid, day, page, ms)`：登入會員每天每一頁的停留毫秒，加時規則同 `visits.ms`（兩次心跳相隔 ≤150 秒才算、單次最多 2 分鐘）。保留 90 天、刪帳號一起刪。
+  - `visagg(day, n)`：每天不重複裝置數（`dayvis` 只留今天與昨天，這裡永久留一天一列的數字）。**是裝置數不是人數**，含會員的裝置；只有日期與數字。
+  - 回應：`{ day, now, members:[{ name, email, ms, seen, pages:[[頁面, 毫秒]×3], by:'time'|'pv' }], guests:{ today, week, total, since } }`。
+    `by:'pv'`＝今天還沒有停留資料（例如 Worker 剛部署、只有瀏覽次數）時退而用瀏覽次數，`pages` 第二欄是次數。`week`＝近 7 天每日不重複裝置加總。
+  - 只認管理者；一般會員、訪客 403。驗收：`node --test workers/account-api/tests/today.test.mjs`。
+- 隱私：停留資料是「誰看了哪一頁多久」的個人資料，等級同 `uev`（只記登入者、只有管理者讀得到）；隱私權政策那段（個人使用明細）部署後要一併補一句「各頁停留時間」。
+
+## 會員清單表（管理區「會員權限 → 註冊會員 → 會員名單」，2026-11-07 Andy 四項＋排版）
+
+- **元件碼一律顯示中文**（`site/admin.js` 的 `compName`）：`fn.<事件>`／`fx.<事件>`＝行銷漏斗，名稱取 `EV_NAME`＋「（來源）」「（功能）」（例 `fn.land` → 帶來源進站（來源）、`fx.pricing_view` → 看訂閱方案（功能））；`sub.<子頁>`＝各頁子頁，取 `SUB_NAME`（例 `sub.sankey` → 子頁：資金分流樹、`sub.all` → 子頁：全部文章、`sub.inst` → 子頁：三大法人／族群×法人、`sub.industry` → 子頁：產業熱力圖、`sub.post` → 子頁：單篇文章）；`tab.*`、`kp.*` 與 `COMP_NAME` 舊的不變。全部對不到才顯示「其他」，原代碼只放滑過提示。**前端新增 `sub.` 子頁（`account.js subOf`）或漏斗事件時，記得同步補 `SUB_NAME`／`EV_NAME`。**「功能使用排行」長條、會員清單 Top3、單人展開明細共用同一支。
+- **方案欄可點**：小選單＝註冊會員（免費）／各付費方案／體驗方案（`grants/defs/list` 裡開著的）；選完再跳確認。方案走既有 `perm/put`（付費方案可選期限 7／14／30／365 天、不限、維持目前到期日），體驗走 `/v1/admin/grants/issue`（**後端在 `feat/member-plan-worker` 分支，尚未部署**；前端用 `{probe:true}` 探測，舊後端 404 → 體驗選項停用並寫「需要更新後端」）。
+- **測試帳**：小灰字「測試」，滑過顯示「不計入統計」；排序時一律排在最後（兩群各自依所選欄位排）。
+- **欄位**：固定欄寬＋表格外包 `.memscroll`（整頁不橫捲，只有表格自己橫向捲，「會員」欄 sticky 固定）；表頭可用滑鼠拖曳換位置（落點青色直線），順序存 `localStorage['tw.adm.memCols']`，「欄位還原」清掉；「會員」固定第一欄。手機（≤640）不開放拖曳，也隱藏「欄位還原」，維持只留重點欄位。
+- 驗收：`python scripts/_uitest.py --sections 會員清單表1107 --workers 1`（假 Worker 攔截請求；`TW_MEMTBL_SHOT=<資料夾>` 順手截圖）。
+
+## 手機與電腦、來源（2026-11-09，Andy：「多一個統計：手機 & 電腦點進去功能」）
+
+目的：重新經營社群之後，要知道訪客是用手機還是電腦、點進哪些功能、從哪裡來。**只用既有的細項事件（`ev2`），Worker 不用改、不用重新部署**；前端上線後新訪客就開始累計，之前沒有紀錄。
+
+- 前端：`site/account.js`「手機／電腦使用統計」一段（`devOf`、`refCat`、`usagePv`、`usageSession`、`usageFe`）；管理頁：`site/admin.js` 的 `usageHtml`（流量觀測頁、漏斗卡下面那張「手機和電腦」）。
+- 驗收：`python scripts/_uitest.py --sections 使用統計1109 --workers 1`（本機起真的 Worker，電腦／手機／請勿追蹤三種訪客真的操作，再開管理頁比對數字）。
+- **手機的判斷**：畫面寬度 ≤ 640，或 `html.m4`（手機版面），或 UA 是手機（Android Mobile／iPhone／iPod）。其餘算電腦（平板、桌機縮窄到 640 以下算手機，跟版面一致）。
+- **事件**（頁面 / 元件 / 細項；元件後綴 `m`＝手機、`d`＝電腦）：
+
+| 元件 | 頁面 | 細項 | 什麼時候算一次 |
+|---|---|---|---|
+| `us.pv.<m\|d>` | 路由 | 空 | 這一頁被打開（換頁一次；個股頁換一檔算一次）|
+| `us.uv.<m\|d>` | 路由 | 空 | 這個瀏覽器今天第一次打開這一頁（台北日期；靠 localStorage `tw.us` 暫存「今天看過哪幾頁」，隔天清掉）|
+| `us.ses.<m\|d>` | `other` | 空 | 一個分頁第一次載入（開站）|
+| `us.uvs.<m\|d>` | `other` | 空 | 這個瀏覽器今天第一次開站 |
+| `us.ref.<m\|d>` | `other` | 來源類別 | 每次開站一次。網址的 `utm_source`／`?u=` 平台優先（統一成 threads、instagram…），沒有才看 `document.referrer` 的網域分類：threads／instagram／facebook／youtube／x／line／ptt／google／search／other，沒有 referrer 或是本站自己＝`direct`。**不存網址、不存網域** |
+| `us.utm.<m\|d>` | `other` | `來源/活動` | 只有網址帶來源參數才記，例如 `threads/intraday_20261109` |
+| `us.fe.<m\|d>` | 當下那頁 | 事件名 | 功能點擊，沿用上面第 3 節的事件白名單（`k_period`、`stock_tab`、`open_3d`…）；登入／登出／漏斗事件不重複記 |
+
+- **不重複訪客的意思**：單日是真正的不重複瀏覽器；選多天時是「每天的不重複訪客加總」（人日），同一個人隔天再來算 2。清除瀏覽器資料、換瀏覽器會再算一次。
+- 隱私：只記次數；不存 IP；DNT／GPC 開著完全不記（`t2` 擋掉）；隱私權政策「行銷來源與使用統計」已補「裝置與來源統計」一段。管理者專用，**不設功能鍵與次數上限、不發一般公告**。
+- 已知限制：`/v1/admin/stats` 的 e2 最多回 3000 組，極冷門的細項（只出現 1 次的功能×頁面）在細項非常多的期間可能被擠掉；頁面與來源這類高次數的列不受影響。

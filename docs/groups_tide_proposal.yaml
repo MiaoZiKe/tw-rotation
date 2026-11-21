@@ -1,0 +1,745 @@
+# 板塊分類提案（tide-tw.app 顆粒度對標）—— 尚未生效，等 Andy 校訂後才搬進 groups.yaml
+#
+# 這份檔案刻意跟 pipeline/groups/groups.yaml 用同一套 schema（meta / groups / chains / benchmarks），
+# 所以 Andy 點頭之後可以整段搬過去，不需要改 loader.py 或任何前端。
+# 每一檔股票的歸類理由、confidence 與來源寫在 docs/groups_tide_proposal.md，
+# 這裡只留「為什麼這個板塊要獨立存在」的一句話。
+#
+# ★ 這份是提案，不是事實。DECISIONS #43 寫明族群成分由 Andy 校訂，所以不要直接 import。
+
+meta:
+  version: 1
+  reviewed: "2026-09-20"
+  note: >-
+    tide-tw.app 的板塊清單被網路出口代理擋住（EGRESS_BLOCKED），抓不到原始名單，
+    因此這份是用「證交所／櫃買產業別（本專案資料湖）＋ 公開財經媒體的概念股分類」重建的提案。
+    共 109 個板塊、593 檔成分股（去重）。
+
+groups:
+
+  # ---------------------------------------------------------------- 半導體（23 個板塊）
+  ip_licensing:
+    name: 矽智財 IP 授權
+    tier: upstream
+    chain: semiconductor
+    note: "把電路設計授權給別人用、按量產片數收權利金；自己不賣晶片。"
+    codes: ["3529", "6643", "6533"]
+  design_service:
+    name: 設計服務 / 客製 ASIC
+    tier: upstream
+    chain: semiconductor
+    note: "替客戶做 NRE 與委託設計、再包到量產（turnkey），收的是專案與量產抽成，不是自有晶片。"
+    codes: ["3443", "3661", "3035", "7749"]
+  soc_compute:
+    name: 運算與通訊 SoC
+    tier: upstream
+    chain: semiconductor
+    note: "自有品牌的大型系統單晶片：手機／網通／伺服器管理。營收看終端出貨量與規格升級。"
+    codes: ["2454", "2379", "5274", "2388", "3094", "6526"]
+  display_driver:
+    name: 顯示驅動 IC
+    tier: upstream
+    chain: semiconductor
+    note: "面板的驅動與觸控整合晶片（LDDI／TDDI／AMOLED DDI／T-Con），看面板出貨與規格升級。"
+    codes: ["3034", "4961", "3545", "8016", "3592", "3141"]
+  analog_power_ic:
+    name: 類比與電源管理 IC
+    tier: upstream
+    chain: semiconductor
+    note: "DC-DC、PMIC、驅動器等類比晶片，單價低但用量隨伺服器與 AI PC 放大。"
+    codes: ["6415", "8081", "6138", "6719", "2436", "6693"]
+  mcu_sensor:
+    name: MCU 與感測 IC
+    tier: upstream
+    chain: semiconductor
+    note: "微控制器、觸控、指紋、影像與音訊感測晶片，終端是消費性與工控。"
+    codes: ["4919", "5471", "6202", "3227", "2458", "6462", "6679", "6716"]
+  high_speed_io:
+    name: 高速傳輸介面 IC
+    tier: upstream
+    chain: semiconductor
+    note: "PCIe Switch、Retimer／Redriver、USB4 主控；AI 伺服器與 AI PC 的「訊號延伸」層。"
+    codes: ["5269", "4966", "6104", "3014"]
+  foundry:
+    name: 晶圓代工（矽）
+    tier: midstream
+    chain: semiconductor
+    note: "純矽製程代工，營收看產能利用率與製程節點組合。"
+    codes: ["2330", "2303", "5347", "6770"]
+  compound_rf:
+    name: 化合物半導體射頻代工
+    tier: midstream
+    chain: semiconductor
+    note: "砷化鎵（GaAs）／磷化銦（InP）代工，做手機與基地台的功率放大器與射頻元件。跟矽代工的差別是材料，不是商業模式。"
+    codes: ["3105", "8086", "4991"]
+  wide_bandgap:
+    name: 第三代半導體 SiC / GaN
+    tier: midstream
+    chain: semiconductor
+    note: "碳化矽與氮化鎵的磊晶與代工，終端是電動車、充電、伺服器高壓直流供電。"
+    codes: ["3707", "3016"]
+  power_discrete:
+    name: 功率半導體與分立元件
+    tier: midstream
+    chain: semiconductor
+    note: "MOSFET、二極體、IGBT 等分立元件，營收由電源規格與車用滲透率驅動。"
+    codes: ["2481", "8261", "5425", "3675", "6525", "6435"]
+  silicon_wafer:
+    name: 矽晶圓
+    tier: upstream
+    chain: semiconductor
+    note: "長晶、切片與拋光的矽基板；也是 SiC 基板的主要台廠來源。"
+    codes: ["6488", "5483", "6182", "3532", "8028"]
+  semi_material:
+    name: 半導體製程材料
+    tier: upstream
+    chain: semiconductor
+    note: "靶材、光阻與顯影、特殊氣體、濕式化學、石英與耗材；卡在晶圓廠前面的那一段。"
+    codes: ["1785", "4749", "4772", "5234", "8091", "4768", "1560"]
+  fab_equipment:
+    name: 前段設備與零組件
+    tier: upstream
+    chain: semiconductor
+    note: "晶圓廠前段的濕製程、薄膜與設備代工；營收驅動是客戶的資本支出，不是晶片單價。"
+    codes: ["3413", "3131", "3583", "6937", "6829", "8383", "5443"]
+  pkg_test_equipment:
+    name: 封裝與測試設備
+    tier: downstream
+    chain: semiconductor
+    note: "先進封裝的壓合、點膠、植球、翹曲控制與測試分選；CoWoS 擴產的直接受惠者。"
+    codes: ["3680", "6187", "7734", "6640", "7751", "7769"]
+  test_interface:
+    name: 測試介面（探針卡 / 測試座）
+    tier: upstream
+    chain: semiconductor
+    note: "晶圓測試與成品測試的介面耗材。景氣驅動是「測試次數與腳位數」，不是晶圓廠資本支出。"
+    codes: ["6515", "6223", "6510", "6683", "6217"]
+  osat:
+    name: 封測代工
+    tier: downstream
+    chain: semiconductor
+    note: "打線、封裝與成品測試的委外代工，營收看封裝顆數與測試工時。"
+    codes: ["3711", "6239", "2449", "3264", "6257", "2441", "8131", "2329"]
+  display_osat:
+    name: 驅動 IC 封測（金凸塊 / COF）
+    tier: downstream
+    chain: semiconductor
+    note: "面板驅動 IC 專用的金凸塊、COF 捲帶與測試；跟一般封測的客戶與循環完全不同。"
+    codes: ["6147", "8150", "3265"]
+  adv_packaging:
+    name: 先進封裝與異質整合
+    tier: downstream
+    chain: semiconductor
+    note: "晶圓級封裝、TSV、SiP 與感測器異質整合。台積電的 CoWoS 與日月光的外溢產能留在各自板塊，不在這裡重複計量。"
+    codes: ["3374", "6271", "6451", "6789"]
+  memory_dram:
+    name: 記憶體（自有產能）
+    tier: midstream
+    chain: semiconductor
+    note: "自己有晶圓產能的 DRAM／NOR／NAND 廠，營收由現貨與合約報價驅動。"
+    codes: ["2408", "2344", "2337", "3006", "5351", "2342"]
+  memory_module:
+    name: 記憶體模組與儲存
+    tier: downstream
+    chain: semiconductor
+    note: "買顆粒、做模組與 SSD；沒有自有晶圓，獲利槓桿完全綁在報價與庫存。"
+    codes: ["8299", "3260", "4967", "5289", "2451", "8271", "4973", "8088"]
+  ic_distribution:
+    name: 電子通路（IC 與資通訊）
+    tier: downstream
+    chain: semiconductor
+    note: "半導體與資通訊產品代理，賺的是週轉與帳期，不是設計。"
+    codes: ["3036", "3702", "8112", "3033", "3048", "3010", "5434", "3209", "3028", "6227", "8096", "8070", "3055", "2347"]
+  semi_facility:
+    name: 半導體廠務工程
+    tier: upstream
+    chain: semiconductor
+    note: "無塵室統包、機電與特殊氣體／化學品輸送系統。營收認列跟著建廠進度走，是資本支出鏈最早看到的一段。"
+    codes: ["2404", "6139", "6196", "5536", "6691", "6667", "3402", "6613"]
+
+  # ---------------------------------------------------------------- AI 伺服器（18 個板塊）
+  ai_server_odm:
+    name: AI 伺服器組裝 / 整機櫃
+    tier: downstream
+    chain: ai_server
+    note: "L6～L11 的板卡與整機櫃組裝，營收直接對應 GPU 機櫃出貨量。"
+    codes: ["2317", "2382", "6669", "3231", "2356", "2376", "7711", "3706", "6933"]
+  server_chassis:
+    name: 伺服器機殼與機構件
+    tier: midstream
+    chain: ai_server
+    note: "機殼、背板與機構沖壓件；看的是機櫃出貨量與單櫃用量，不看新機規格。"
+    codes: ["8210", "3693", "3013"]
+  server_rail:
+    name: 伺服器滑軌
+    tier: midstream
+    chain: ai_server
+    note: "機櫃滑軌與樞紐。AI 伺服器重量從 50kg 跳到 100kg 以上，滑軌規格與單價同步升級。"
+    codes: ["2059", "6805", "6584", "3376"]
+  thermal:
+    name: 散熱（氣冷與液冷）
+    tier: midstream
+    chain: ai_server
+    note: "均熱片、風扇、水冷板、分歧管與 CDU。刻意不拆氣冷／液冷：雙鴻的封裝級均熱片與健策的系統級水冷板已經雙向重疊，拆開會把同向的資金流切成兩半。"
+    codes: ["3017", "3324", "6230", "2421", "3653", "8996", "2486"]
+  server_power:
+    name: 伺服器電源
+    tier: midstream
+    chain: ai_server
+    note: "PSU、電源架與高壓直流供電；規格隨 GPU 功耗一路往上。"
+    codes: ["2308", "2301", "6409", "6282", "6412"]
+  bbu:
+    name: 電池備援模組 BBU
+    tier: midstream
+    chain: ai_server
+    note: "AI 機櫃斷電瞬間的備援供電模組，已從選配變成標配。"
+    codes: ["6781", "3211", "4931", "3323", "6558", "6121"]
+  switch_hw:
+    name: 高速交換器
+    tier: downstream
+    chain: ai_server
+    note: "資料中心 800G／1.6T 交換器整機與白牌代工。"
+    codes: ["2345", "3380", "6285", "6245"]
+  optical_module:
+    name: 高速光模組
+    tier: midstream
+    chain: ai_server
+    note: "800G／1.6T 光收發模組與內部的光學次組件。"
+    codes: ["4979", "3163", "4977", "6442", "6426", "3234", "7717", "6588"]
+  silicon_photonics:
+    name: 矽光子 / CPO 元件
+    tier: upstream
+    chain: ai_server
+    note: "共同封裝光學（CPO）用的雷射源、磊晶、光學耦合與封裝零件。"
+    codes: ["3081", "2455", "3450", "3363", "4908", "3491"]
+  hdi_pcb:
+    name: 高階 PCB（伺服器主板 / UBB）
+    tier: midstream
+    chain: ai_server
+    note: "高層數多層板與 UBB／OAM，料號常由 CSP 或 NVIDIA 直接指定（AVL）。"
+    codes: ["2368", "4958", "3044", "2313", "6191", "5469", "3715"]
+  ic_substrate:
+    name: IC 載板（ABF / BT）
+    tier: midstream
+    chain: ai_server
+    note: "CPU／GPU／ASIC 的封裝載板。台股三雄 ABF 與 BT 都做，硬拆成兩個板塊會得到成分幾乎一樣的兩張卡。"
+    codes: ["3037", "8046", "3189"]
+  ccl:
+    name: CCL 銅箔基板
+    tier: upstream
+    chain: ai_server
+    note: "PCB 的基礎材料，佔高階 AI 伺服器 PCB 材料成本五成以上；是這輪行情的「因」。"
+    codes: ["2383", "6274", "6213", "6672", "1303"]
+  copper_foil:
+    name: 銅箔（HVLP）
+    tier: upstream
+    chain: ai_server
+    note: "CCL 的銅面材料，高頻高速用的 HVLP 銅箔是瓶頸料。"
+    codes: ["8358"]
+  glass_fiber:
+    name: 玻纖布 / 玻纖紗
+    tier: upstream
+    chain: ai_server
+    note: "CCL 的補強材料。Low-Dk 玻纖布是 2026 年最缺的一段。"
+    codes: ["1815", "5340", "1802"]
+  flex_pcb:
+    name: 軟板與軟板材料
+    tier: midstream
+    chain: ai_server
+    note: "軟性電路板與其上游的 FCCL、PI 膜。跟硬板的客戶與循環不同（消費性為主）。"
+    codes: ["6269", "6153", "8039", "3645", "3354"]
+  glass_substrate:
+    name: 玻璃基板 / 面板級封裝
+    tier: midstream
+    chain: ai_server
+    note: "玻璃核心基板（GCS）與 TGV 玻璃穿孔，2026 是試產驗證年、2027 才談量產。"
+    codes: ["3149", "8064", "4770", "3673"]
+  connector_hs:
+    name: 高速連接器與線材
+    tier: midstream
+    chain: ai_server
+    note: "GPU 機櫃內的高速背板連接器、銅纜與線束。"
+    codes: ["3665", "3533", "3605", "6290", "8103", "6197", "3526", "3023"]
+  pcb_equipment:
+    name: PCB 與載板設備
+    tier: upstream
+    chain: ai_server
+    note: "載板與高階 PCB 的曝光、壓合、自動化與檢測設備。"
+    codes: ["2467", "6664", "6438", "3498", "3580"]
+
+  # ---------------------------------------------------------------- 一般電子（22 個板塊）
+  pc_nb:
+    name: 個人電腦與筆電品牌
+    tier: downstream
+    chain: electronics
+    note: "自有品牌 PC／NB／主機板／顯示卡，營收看消費性換機與 AI PC 滲透。"
+    codes: ["2357", "2353", "2377", "2352", "3515", "2399", "2465"]
+  ems:
+    name: EMS 電子代工
+    tier: downstream
+    chain: electronics
+    note: "消費性電子與非伺服器的代工組裝，毛利薄、看的是稼動與客戶拉貨。"
+    codes: ["2324", "4938", "2312", "4916", "2328"]
+  ipc:
+    name: 工業電腦
+    tier: downstream
+    chain: electronics
+    note: "工控主機、邊緣運算與垂直應用系統；毛利高、訂單碎、看製造業資本支出。"
+    codes: ["2395", "6414", "6166", "8050", "6579", "3088", "8114", "3022", "6206", "3479", "3577", "3005"]
+  optical_lens:
+    name: 光學鏡頭
+    tier: midstream
+    chain: electronics
+    note: "手機、車用與機器視覺鏡頭；2026 年的新敘事是 AI 眼鏡與機器人之眼。"
+    codes: ["3008", "3406", "3019", "3362", "6209", "3504", "4976"]
+  panel:
+    name: 面板
+    tier: midstream
+    chain: electronics
+    note: "TFT-LCD 面板本體。2026 年的資金故事已經是產線轉型（FOPLP、玻璃核心基板），不是面板報價。"
+    codes: ["2409", "3481", "6116"]
+  panel_component:
+    name: 面板零組件與材料
+    tier: upstream
+    chain: electronics
+    note: "背光模組、偏光板、光學膜與觸控貼合。"
+    codes: ["6176", "8215", "4960", "6278"]
+  led:
+    name: LED
+    tier: midstream
+    chain: electronics
+    note: "LED 磊晶、封裝與導線架；終端是照明、車燈、背光與 MiniLED。"
+    codes: ["3714", "2393", "6168", "3437", "3339", "4956", "3031"]
+  e_paper:
+    name: 電子紙
+    tier: midstream
+    chain: electronics
+    note: "電子紙材料、模組與閱讀器代工；彩色電子紙從電子書走向大尺寸看板與智慧零售。"
+    codes: ["8069", "6143"]
+  mlcc:
+    name: 積層陶瓷電容與晶片電阻
+    tier: upstream
+    chain: electronics
+    note: "MLCC 與晶片電阻。一台 GB200 機櫃的 MLCC 用量約 45 萬顆，是手機的 300 倍。"
+    codes: ["2327", "2492", "3026", "6173", "3624", "2478", "6127"]
+  alu_capacitor:
+    name: 鋁質電解電容
+    tier: upstream
+    chain: electronics
+    note: "電源端的大容值電容；跟 MLCC 的客戶重疊但報價循環不同。"
+    codes: ["2375", "2472", "4939", "6449", "5328", "6175"]
+  inductor:
+    name: 電感與磁性元件
+    tier: upstream
+    chain: electronics
+    note: "功率電感與 EMI 抑制元件。AI 伺服器供電模組用的 TLVR 電感是 2026 年單價漲最兇的一塊。"
+    codes: ["3357", "3236", "6155", "6284", "2428"]
+  crystal:
+    name: 石英與頻率元件
+    tier: upstream
+    chain: electronics
+    note: "石英振盪器與頻率元件，是所有數位系統的時脈來源。"
+    codes: ["3042", "2484", "3221"]
+  networking_cpe:
+    name: 網通設備（電信與消費性）
+    tier: downstream
+    chain: electronics
+    note: "寬頻 CPE、Wi-Fi 與電信端設備。跟資料中心交換器是兩個市場，不要混在一起。"
+    codes: ["3704", "5388", "4906", "3596", "2332"]
+  telecom:
+    name: 電信服務
+    tier: downstream
+    chain: electronics
+    note: "電信三雄。營收穩定、現金流是主角，估值口徑跟製造業不同。"
+    codes: ["2412", "3045", "4904"]
+  satellite:
+    name: 低軌衛星
+    tier: midstream
+    chain: electronics
+    note: "衛星地面站、天線與地面接收板。"
+    codes: ["2367", "6285", "5388"]
+  peripherals:
+    name: 電腦周邊與影音零組件
+    tier: downstream
+    chain: electronics
+    note: "鍵鼠、鏡頭模組、揚聲器與麥克風等終端零組件。"
+    codes: ["2385", "4915", "2439", "3311", "3059"]
+  casing:
+    name: 消費電子機構件 / 金屬機殼
+    tier: midstream
+    chain: electronics
+    note: "筆電與消費電子的金屬機殼與機構件。已與手機新機週期脫鉤，看 CNC 稼動。"
+    codes: ["2474", "2354", "5243"]
+  robotics:
+    name: 機器人與傳動元件
+    tier: midstream
+    chain: electronics
+    note: "滾珠螺桿、線性滑軌、減速機、伺服與控制器；人形機器人只是新增的終端，本業仍是工具機與自動化。"
+    codes: ["2049", "1590", "4576", "7750", "4583", "4585", "1597", "4540", "3162"]
+  factory_automation:
+    name: 工廠自動化與智慧倉儲
+    tier: midstream
+    chain: electronics
+    note: "AMHS 自動搬運、自動倉儲、AI 視覺與產線整合。客戶是晶圓廠與物流業。"
+    codes: ["2464", "2359", "6215", "3167", "8027", "6739"]
+  machine_tool:
+    name: 工具機
+    tier: midstream
+    chain: electronics
+    note: "整機工具機與成型機。跟傳動元件同一條鏈但循環落後一段。"
+    codes: ["4526", "1583", "1528", "6603"]
+  inspection_equipment:
+    name: 檢測與量測設備
+    tier: upstream
+    chain: electronics
+    note: "AOI、電測與量測儀器。客戶橫跨半導體、PCB 與面板。"
+    codes: ["2360", "3030", "3563", "3455", "6706"]
+  test_lab:
+    name: 材料分析與驗證服務
+    tier: upstream
+    chain: electronics
+    note: "故障分析、材料分析與電磁相容驗證。賣的是工時與實驗室產能，不是硬體。"
+    codes: ["3587", "3289", "6830", "6146"]
+
+  # ---------------------------------------------------------------- 軟體與資訊服務（5 個板塊）
+  cyber_security:
+    name: 資安
+    tier: standalone
+    chain: software
+    note: "資安監控（SOC）、託管服務與資安設備。客戶是政府與金融，合約年限長。"
+    codes: ["6690", "7765"]
+  system_integration:
+    name: 系統整合與企業 IT 服務
+    tier: standalone
+    chain: software
+    note: "企業 IT 專案、軟硬體整合與維運。營收跟企業 IT 預算走。"
+    codes: ["6214", "2480", "3029", "6112", "2453", "2471", "6221", "3147", "2468", "6148"]
+  cloud_saas:
+    name: 雲端服務與企業軟體
+    tier: standalone
+    chain: software
+    note: "公有雲代管（MSP）與訂閱制軟體。跟系統整合的差別是收入型態（經常性 vs 專案）。"
+    codes: ["6689", "6811", "6752", "5203", "6870", "8932"]
+  gaming:
+    name: 遊戲與數位內容
+    tier: standalone
+    chain: software
+    note: "線上與手機遊戲營運、娛樂機台。"
+    codes: ["3293", "6180", "5263"]
+  e_commerce:
+    name: 電商與網路平台
+    tier: standalone
+    chain: software
+    note: "線上零售與品牌電商平台。"
+    codes: ["8454", "5321"]
+
+  # ---------------------------------------------------------------- 金融（6 個板塊）
+  bank:
+    name: 銀行與銀行型金控
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    note: "獲利主體是放款利差與手續費，估值看 PB × ROE。"
+    codes: ["2891", "2892", "2880", "2886", "5880", "2884", "2890", "2887", "2801", "2834", "5876", "2812", "2845", "2838", "2836", "2897"]
+  life_insurance:
+    name: 壽險型金控
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    note: "獲利主體是壽險的利差與投資損益，對利率與匯率最敏感。"
+    codes: ["2881", "2882", "2883"]
+  securities:
+    name: 證券與期貨
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    note: "獲利跟著成交量與自營部位走，是最直接的「成交量概念股」。"
+    codes: ["2885", "2855", "6005", "6016", "6023", "5864", "6015"]
+  property_insurance:
+    name: 產險與再保
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    note: "獲利看簽單保費與賠款率，跟壽險的利率敏感度不同。"
+    codes: ["2850", "2851", "2832"]
+  leasing:
+    name: 租賃與消費金融
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    note: "中小企業融資與車貸，資產品質對景氣最敏感。"
+    codes: ["5871", "9941", "6592"]
+  bill_finance:
+    name: 票券
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    note: "短期票券承銷與保證，獲利跟短率走。"
+    codes: ["2889", "2820"]
+
+  # ---------------------------------------------------------------- 生技醫療（5 個板塊）
+  new_drug:
+    name: 新藥研發
+    tier: standalone
+    chain: healthcare
+    valuation_metric: ps
+    note: "尚未穩定獲利，股價由臨床進度與授權金驅動，PE 沒有意義。"
+    codes: ["6446", "4743", "4174", "6620", "6885", "6617", "4147", "6919", "6547"]
+  cdmo:
+    name: 委託開發製造 CDMO
+    tier: standalone
+    chain: healthcare
+    note: "替藥廠代工原料藥與製劑，營收是訂單制、可預測性比新藥高得多。"
+    codes: ["6472", "4746", "6589", "4123"]
+  pharma:
+    name: 學名藥與製藥
+    tier: standalone
+    chain: healthcare
+    note: "已上市藥品的製造與銷售，有穩定營收與獲利。"
+    codes: ["1795", "4105", "1734", "4119"]
+  medical_device:
+    name: 醫療器材
+    tier: standalone
+    chain: healthcare
+    note: "隱形眼鏡、體外診斷、放射治療設備等硬體，商業模式接近製造業。"
+    codes: ["6491", "6782", "4736", "6861", "7799", "4737"]
+  health_service:
+    name: 醫療通路與保健
+    tier: standalone
+    chain: healthcare
+    note: "藥局連鎖與保健食品，看的是門市數與消費力。"
+    codes: ["6469", "1707", "8436"]
+
+  # ---------------------------------------------------------------- 傳產與內需（23 個板塊）
+  shipping_container:
+    name: 貨櫃航運
+    tier: standalone
+    chain: traditional
+    note: "看 SCFI 運價與艙位供需。"
+    codes: ["2603", "2609", "2615"]
+  shipping_bulk:
+    name: 散裝航運
+    tier: standalone
+    chain: traditional
+    note: "看 BDI 與大宗原物料貿易量，跟貨櫃航運的循環不同步。"
+    codes: ["2606", "2605", "2637", "2617", "5608"]
+  airline:
+    name: 航空客貨運
+    tier: standalone
+    chain: traditional
+    note: "客運看載客率與票價、貨運看空運運價與油價。"
+    codes: ["2610", "2618", "2646"]
+  transport:
+    name: 陸運、物流與港埠
+    tier: standalone
+    chain: traditional
+    note: "高鐵、貨櫃集散、承攬與港埠倉儲。"
+    codes: ["2633", "2607", "2636", "5607"]
+  defense:
+    name: 國防軍工與航太
+    tier: standalone
+    chain: traditional
+    note: "看國防預算落地、標案與交機節點，不是看終端消費。"
+    codes: ["2634", "8033", "6753", "2208", "2645", "2630"]
+  steel:
+    name: 鋼鐵
+    tier: standalone
+    chain: traditional
+    note: "看鋼價、盤價與內外銷價差。"
+    codes: ["2002", "2027", "2006", "2014", "2031", "5009", "2069", "2034", "2030", "2211", "2029"]
+  petrochemical:
+    name: 塑化
+    tier: standalone
+    chain: traditional
+    note: "看輕油裂解價差，不是單一產品報價。"
+    codes: ["1301", "1303", "1326", "6505", "1314", "1312", "1304"]
+  specialty_chemical:
+    name: 特用化學與肥料
+    tier: standalone
+    chain: traditional
+    note: "電子級與工業用特化、碳素與肥料，客戶分散。"
+    codes: ["1717", "1709", "1727", "1710", "1773", "4722", "1722", "1723", "4739", "4764"]
+  cement:
+    name: 水泥
+    tier: standalone
+    chain: traditional
+    note: "看水泥報價與基建需求；台泥另有儲能與電池的第二曲線。"
+    codes: ["1101", "1102", "1103", "1110"]
+  building_material:
+    name: 建材
+    tier: standalone
+    chain: traditional
+    note: "預拌混凝土、衛浴與陶瓷建材，跟著營建景氣走。"
+    codes: ["2504", "1809", "1810"]
+  paper:
+    name: 造紙
+    tier: standalone
+    chain: traditional
+    note: "工紙看電商包裝需求與廢紙價差，文化用紙看內需。"
+    codes: ["1904", "1909", "1905", "1907"]
+  textile:
+    name: 紡織纖維
+    tier: standalone
+    chain: traditional
+    note: "上游看聚酯原料價差，下游成衣看品牌客戶拉貨。"
+    codes: ["1402", "1409", "1476", "1477", "1440", "1434"]
+  sports_leisure:
+    name: 運動休閒用品
+    tier: standalone
+    chain: traditional
+    note: "製鞋、自行車與健身器材代工，看品牌客戶庫存循環。"
+    codes: ["9904", "9910", "9921", "9914", "9802", "6890", "6768", "1736", "6670", "4536"]
+  food:
+    name: 食品飲料
+    tier: standalone
+    chain: traditional
+    note: "內需食品與飼料，看原物料成本與通路。"
+    codes: ["1216", "1210", "1215", "1229", "1231", "1737"]
+  retail:
+    name: 零售通路
+    tier: standalone
+    chain: traditional
+    note: "超商、百貨與美妝連鎖，看同店成長與客單價。"
+    codes: ["2912", "2903", "2915", "5904", "2905"]
+  restaurant:
+    name: 餐飲
+    tier: standalone
+    chain: traditional
+    note: "連鎖餐飲，看展店數與同店營收。"
+    codes: ["2727", "2753", "2723", "2729", "1259"]
+  tourism:
+    name: 觀光旅遊與飯店
+    tier: standalone
+    chain: traditional
+    note: "旅行社與飯店，看出入境人次與房價。"
+    codes: ["2731", "2707", "2739", "5706", "2745", "2748"]
+  construction:
+    name: 建設開發
+    tier: standalone
+    chain: traditional
+    valuation_metric: pb_roe
+    note: "推案與完工入帳，獲利認列有落差，估值用 PB 與在建存貨。"
+    codes: ["2542", "2548", "2520", "5534", "2501", "5522", "2540", "1808", "6177"]
+  construction_eng:
+    name: 工程營造
+    tier: standalone
+    chain: traditional
+    note: "承攬公共工程與統包，營收看在手工程與完工百分比。"
+    codes: ["2515", "2597", "9933", "2546", "2543", "5209"]
+  auto_assembly:
+    name: 整車與車輛銷售
+    tier: standalone
+    chain: traditional
+    note: "整車製造與代理銷售，看國內掛牌數與新車週期。"
+    codes: ["2207", "2201", "2206", "2204", "2227", "2247"]
+  auto_parts:
+    name: 汽車零組件
+    tier: standalone
+    chain: traditional
+    note: "AM 售後與 OEM 零件，看北美零件需求與車廠拉貨。"
+    codes: ["1319", "6605", "1536", "1563", "4551", "2233", "2236", "2231", "2241", "1522", "3346", "6279", "2497", "2228", "1521"]
+  rubber_tire:
+    name: 橡膠與輪胎
+    tier: standalone
+    chain: traditional
+    note: "看天然膠與合成膠價差、輪胎出口。"
+    codes: ["2105", "2103", "2101", "2108", "2104"]
+  consumer_goods:
+    name: 民生消費用品與包材
+    tier: standalone
+    chain: traditional
+    note: "窗簾、扣件與飲料包材等民生製造，看外銷訂單與原料成本。"
+    codes: ["8464", "9939", "9938"]
+
+  # ---------------------------------------------------------------- 基礎建設與能源（7 個板塊）
+  heavy_electric:
+    name: 重電設備
+    tier: standalone
+    chain: infrastructure
+    note: "變壓器、配電盤與開關設備，看台電強韌電網與資料中心用電。"
+    codes: ["1503", "1504", "1513", "1514", "1519"]
+  wire_cable:
+    name: 電線電纜
+    tier: standalone
+    chain: infrastructure
+    note: "電力電纜與裸銅線，看銅價與電網／資料中心佈線需求。"
+    codes: ["1605", "1609", "1608", "2061"]
+  solar:
+    name: 太陽能
+    tier: standalone
+    chain: infrastructure
+    note: "電池片、模組與系統，看躉購費率與國內設置量。"
+    codes: ["6443", "3576", "6244", "3691"]
+  wind_power:
+    name: 離岸風電
+    tier: standalone
+    chain: infrastructure
+    note: "水下基礎、塔架與樹脂材料，看離岸風電第三階段開發進度。"
+    codes: ["3708", "2072", "9958"]
+  energy_storage:
+    name: 儲能與售電
+    tier: standalone
+    chain: infrastructure
+    note: "電網級儲能、電力交易與民營電廠。"
+    codes: ["6869", "6994", "8926"]
+  gas_utility:
+    name: 天然氣與公用事業
+    tier: standalone
+    chain: infrastructure
+    note: "區域天然氣配送，獲利受管制、現金流穩定。"
+    codes: ["9908", "9926", "9931", "9937"]
+  env_recycle:
+    name: 資源循環與環保
+    tier: standalone
+    chain: infrastructure
+    note: "貴金屬與電子廢棄物回收、事業廢棄物處理、水資源。2026 年有《資源循環促進法》的政策面推力。"
+    codes: ["8390", "9955", "8422", "8473", "6894", "6944", "3551"]
+
+chains:
+  semiconductor:
+    name: 半導體
+    order: [ip_licensing, design_service, soc_compute, display_driver, analog_power_ic, mcu_sensor, high_speed_io, foundry, compound_rf, wide_bandgap, power_discrete, silicon_wafer, semi_material, fab_equipment, pkg_test_equipment, test_interface, osat, display_osat, adv_packaging, memory_dram, memory_module, ic_distribution, semi_facility]
+  ai_server:
+    name: AI 伺服器
+    order: [ai_server_odm, server_chassis, server_rail, thermal, server_power, bbu, switch_hw, optical_module, silicon_photonics, hdi_pcb, ic_substrate, ccl, copper_foil, glass_fiber, flex_pcb, glass_substrate, connector_hs, pcb_equipment]
+  electronics:
+    name: 一般電子
+    order: [pc_nb, ems, ipc, optical_lens, panel, panel_component, led, e_paper, mlcc, alu_capacitor, inductor, crystal, networking_cpe, telecom, satellite, peripherals, casing, robotics, factory_automation, machine_tool, inspection_equipment, test_lab]
+  software:
+    name: 軟體與資訊服務
+    order: [cyber_security, system_integration, cloud_saas, gaming, e_commerce]
+  financial:
+    name: 金融
+    order: [bank, life_insurance, securities, property_insurance, leasing, bill_finance]
+  healthcare:
+    name: 生技醫療
+    order: [new_drug, cdmo, pharma, medical_device, health_service]
+  traditional:
+    name: 傳產與內需
+    order: [shipping_container, shipping_bulk, airline, transport, defense, steel, petrochemical, specialty_chemical, cement, building_material, paper, textile, sports_leisure, food, retail, restaurant, tourism, construction, construction_eng, auto_assembly, auto_parts, rubber_tire, consumer_goods]
+  infrastructure:
+    name: 基礎建設與能源
+    order: [heavy_electric, wire_cable, solar, wind_power, energy_storage, gas_utility, env_recycle]
+
+# 國際對標：沿用現行 groups.yaml 的做法，只給「連動關係說得出口」的板塊。
+benchmarks:
+  foundry: "^SOX"
+  soc_compute: "^SOX"
+  memory_dram: "^SOX"
+  memory_module: "^SOX"
+  adv_packaging: "^SOX"
+  ic_substrate: "^SOX"
+  ccl: "^SOX"
+  test_interface: "^SOX"
+  ai_server_odm: "^IXIC"
+  thermal: "^IXIC"
+  optical_module: "^IXIC"
+  silicon_photonics: "^IXIC"
+  switch_hw: "^IXIC"
+  server_power: "^IXIC"
+  bbu: "^IXIC"
+  bank: "^TWII"
+  life_insurance: "^TWII"
+  securities: "^TWII"
+  shipping_container: "^TWII"
+  steel: "^TWII"

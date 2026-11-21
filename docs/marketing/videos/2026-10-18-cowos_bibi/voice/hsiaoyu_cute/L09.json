@@ -1,0 +1,116 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+15%",
+ "pitch": "+15Hz",
+ "text": "法人估計，月產能從 2025 年底約 7 萬片，到 2026 年底約 12 到 13 萬片，",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "法人",
+   "start": 0.093458,
+   "dur": 0.315208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "估計",
+   "start": 0.441291,
+   "dur": 0.456541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "月",
+   "start": 1.256541,
+   "dur": 0.173916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "產能",
+   "start": 1.463041,
+   "dur": 0.336958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "從",
+   "start": 1.843458,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2025",
+   "start": 2.191291,
+   "dur": 0.72825
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年底",
+   "start": 3.006541,
+   "dur": 0.369583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "約",
+   "start": 3.539125,
+   "dur": 0.195666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "7 萬",
+   "start": 3.767375,
+   "dur": 0.358708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "片",
+   "start": 4.213041,
+   "dur": 0.22825
+  },
+  {
+   "type": "WordBoundary",
+   "text": "到",
+   "start": 4.8,
+   "dur": 0.097833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2026",
+   "start": 5.039125,
+   "dur": 0.72825
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年底",
+   "start": 5.843458,
+   "dur": 0.336958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "約",
+   "start": 6.3,
+   "dur": 0.184791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "12",
+   "start": 6.52825,
+   "dur": 0.369583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "到",
+   "start": 6.995666,
+   "dur": 0.108708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "13 萬",
+   "start": 7.202166,
+   "dur": 0.5652499
+  },
+  {
+   "type": "WordBoundary",
+   "text": "片",
+   "start": 7.865208,
+   "dur": 0.217375
+  }
+ ]
+}

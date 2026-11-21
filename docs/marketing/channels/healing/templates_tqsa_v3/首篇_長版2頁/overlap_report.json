@@ -1,0 +1,140 @@
+{
+ "首篇_長版2頁/奶油晨光/1": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 108,
+   "T": 194,
+   "R": 970,
+   "B": 512,
+   "box": [
+    96,
+    176,
+    984,
+    516
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.6,
+  "contrast_pass": true
+ },
+ "首篇_長版2頁/奶油晨光/2": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 116,
+   "T": 190,
+   "R": 960,
+   "B": 648,
+   "box": [
+    96,
+    176,
+    984,
+    656
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.31,
+  "contrast_pass": true
+ },
+ "首篇_長版2頁/晝版/1": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 108,
+   "T": 194,
+   "R": 970,
+   "B": 512,
+   "box": [
+    96,
+    176,
+    984,
+    516
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "首篇_長版2頁/晝版/2": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 116,
+   "T": 190,
+   "R": 960,
+   "B": 648,
+   "box": [
+    96,
+    176,
+    984,
+    656
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ },
+ "首篇_長版2頁/黑白混搭/1": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 108,
+   "T": 194,
+   "R": 970,
+   "B": 512,
+   "box": [
+    96,
+    176,
+    984,
+    516
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 9.45,
+  "contrast_pass": true
+ },
+ "首篇_長版2頁/黑白混搭/2": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 116,
+   "T": 190,
+   "R": 960,
+   "B": 648,
+   "box": [
+    96,
+    176,
+    984,
+    656
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 8.86,
+  "contrast_pass": true
+ }
+}

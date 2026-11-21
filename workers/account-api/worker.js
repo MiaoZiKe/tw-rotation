@@ -1,0 +1,3593 @@
+/* account-api — 會員登入、自選清單雲端同步、使用統計、線上人數（Cloudflare Worker ＋ Durable Object）
+ *
+ * 架構與取捨寫在 DECISIONS #270，設定步驟在 docs/login_setup.md，事件清單在 docs/account_analytics.md。
+ *
+ * 為什麼是 Worker ＋ Durable Object，而不是 Firebase（摘要，細節在 DECISIONS #270）
+ * --------------------------------------------------------------------------
+ *   · Andy 公司網路：`*.workers.dev` 已經實際在用（即時報價代理 tw-quote），連得到是已知事實；
+ *     Firebase 要連 firebaseio.com（WebSocket）、apis.google.com（登入 iframe）、<專案>.firebaseapp.com，連不連得到未知。
+ *   · 前端零 SDK：全部是 fetch，不必在 site/vendor/ 放幾百 KB 的 Firebase。
+ *   · 保存期限要「真的會刪」：Durable Object 的 alarm 免費；Firebase 免費方案沒有排程函式（Cloud Functions 要 Blaze＝綁卡）。
+ *   · 「統計只能遞增、不能讀」「管理者才讀得到」由這支程式在伺服器端執行，管理者名單是 Worker Secret，不進 repo。
+ *   · 部署沿用已經設好的 CLOUDFLARE_API_TOKEN（Durable Object 跟著 Worker 一起部署，不必另外建資料庫）。
+ *
+ * 資料放哪：單一個 Durable Object（名字 'hub'）裡的 SQLite。一個站、個位數到數百人同時在線，一個實例綽綽有餘，
+ * 而且單一實例＝強一致（線上人數、清單版本號不會因為讀到舊副本而錯）。
+ *
+ * ★ 存取控制（等同 Firebase 的安全規則；每一條都有 tests/account.test.mjs 驗「允許」與「拒絕」）
+ *   R1 自選清單：只能讀寫「權杖裡那個 uid」自己的那一份 —— API 根本不收 uid 參數，沒有「讀別人」的路徑。
+ *   R2 使用統計：任何人（含訪客）只能「遞增」白名單內的計數，一次最多 +50、最多 40 項；沒有任何「讀」的端點給一般人。
+ *   R3 報表、線上名單、會員名單：只有 email 在 ADMIN_EMAILS（Worker Secret）裡的已驗證帳號讀得到。
+ *   R4 線上總人數：預設公開（只有數字），管理者可在 #admin 關掉；關掉後只回給管理者。
+ *   R5 權杖：HMAC-SHA256 簽章＋到期時間＋版本號；刪除帳號後舊權杖立即失效（查不到使用者就拒絕）。
+ *   R6 登入：OAuth 2.0 授權碼＋PKCE（S256）＋ state ＋ nonce ＋ 綁定瀏覽器的 cookie；return 網址只准白名單網域。
+ *   R7 功能權限（DECISIONS #288）：每個 email 套一個方案範本＋個別微調。
+ *      · 一般人只有 /v1/perm/me：訪客（沒權杖）拿「訪客」方案、登入者拿「自己 email」那一份 —— 同 R1，API 不收 email 參數，
+ *        沒有「讀別人」的路徑；也**沒有任何寫入端點給一般人**，所以「改自己的權限」在物理上不存在。
+ *      · 讀寫任何 email 的權限、讀寫方案範本：只有 ADMIN_EMAILS 裡的人（同 R3）。
+ *      · ⚠ 這只決定「前端要不要上鎖頭」。網站資料 JSON 是 GitHub Pages 上的公開檔，懂技術的人照樣讀得到 ——
+ *        真正保護付費內容，要讓那份資料改由這支 Worker 驗身分後才給（設計與工作量見 DECISIONS #288）。
+ *
+ * 蒐集與保存（隱私權政策照這裡寫，改這裡要一起改 site/legal.js 與 site/account.js 的告知文字）
+ *   · 會員：Google 顯示名稱、email、大頭貼網址、Google 帳號識別碼的雜湊（不存原值）、建立與最後使用時間。
+ *     保存到本人刪除，或連續 24 個月沒有使用就自動刪除。
+ *   · 自選清單：清單名稱＋股票代號。**不存張數、成本、損益**（CLAUDE.md 第 5 條）。
+ *   · 使用統計：每天每一項的「次數」而已，不含任何識別碼、不存 IP、不存單次點擊。保留 13 個月。
+ *   · 線上：一個分頁一組隨機代碼（關掉分頁就失效）＋目前在哪一頁＋（登入者）uid。離線即刪（最多 3 分鐘）。
+ *   · 功能權限：管理者替某個 email 設定的「方案代號＋各功能開關」。保存到管理者移除，或本人刪除帳號（一起刪）。
+ *     email 是管理者自己輸入的（可以先設好、對方之後才登入）；除此之外不存任何東西。
+ */
+
+/* ---------------------------------------------------------------- 可調參數 */
+const TOKEN_DAYS = 60;                 // 權杖效期；剩不到一半時 /v1/me 會換一張新的
+const ONLINE_WINDOW_MS = 150 * 1000;   // 在線時間（visits.ms）的斷線判斷：兩次心跳相隔超過這個就不補中間那段（線上名單改用 PRESENCE_WINDOW_MS）
+const PRESENCE_TTL_MS = 1920 * 1000;   // 超過這個時間的在線紀錄直接刪（「離線即刪」的上限；要大於 PRESENCE_WINDOW_MS；11-02 隨在線區間放寬為 32 分鐘）
+/* 線上名單／線上人數的門檻（2026-10-06 流量批次）：前端改成每 5 分鐘才送一批統計，門檻還是 150 秒的話，
+   兩批之間的人會從名單上消失、「目前 N 人在線」算少。改成 6 分鐘＝批次間隔 5 分鐘＋1 分鐘緩衝。
+   關分頁照舊用 beacon 帶 leave 立刻刪，所以門檻變長不會讓「已經走的人」多掛 6 分鐘。
+   ONLINE_WINDOW_MS（150 秒）仍留給「在線時間」的斷線判斷：批次裡每筆相隔 60 秒，結果跟以前一樣。*/
+/* 2026-11-02 Andy：「在線人數的計算區間，幫我放寬到最近 30 分鐘」→ 360 秒改 1800 秒（真實數字，只是「在線」的定義變成最近 30 分鐘內有動作）。
+   關分頁照舊用 beacon leave 立刻刪。 */
+const PRESENCE_WINDOW_MS = 1800 * 1000;
+const LOGIN_TTL_MS = 10 * 60 * 1000;   // 一次登入流程（從按鈕到拿到權杖）最長 10 分鐘
+const USAGE_KEEP_MONTHS = 13;          // 使用統計彙總保留 13 個月
+const USER_IDLE_DAYS = 730;            // 會員連續 24 個月沒用就刪
+const MAX_TABS = 5, MAX_CODES = 50, MAX_NAME = 12;
+const MAX_EV_KEYS = 40, MAX_EV_INC = 50;
+const RATE_PER_MIN = 240;              // 同一個 IP 每分鐘最多幾次心跳（公司 NAT 後面可能有幾十人共用一個 IP）
+const ALARM_EVERY_MS = 60 * 60 * 1000; // 每小時清一次過期資料
+/* 功能權限（R7）。功能清單本身在 site/features.js —— Worker 刻意**不**抄一份白名單：
+   前端每加一個功能就要重新部署 Worker 太重，而且這裡存的只是「管理者寫的開關」，只驗格式與上限就夠
+   （值只准 true／false／0～99 的整數，鍵只准小寫英數與 . _，最多 120 個）。*/
+/* 2026-10-05（admin-v2）：120 → 300。功能開關多了「族群」一類（grp.<族群鍵>，groups.yaml 約 117 個），
+   付費範本若把大部分族群關掉，加上原本約 50 項功能就會超過 120。300 項 × 約 30 字元 ≈ 9KB，仍在單次 16KB 的上限內。*/
+const MAX_FEAT_KEYS = 300, MAX_PLANS = 20, MAX_PERM_ROWS = 5000, MAX_PLAN_NAME = 20;
+const FEAT_RE = /^[a-z][a-z0-9_.]{1,39}$/;
+const PLAN_PERIODS = ['month', 'year', 'once'];   // 付費範本的計費週期（月／年／一次）
+const PLAN_RE = /^[a-z0-9_-]{1,20}$/;
+const EMAIL_RE = /^[^\s@<>"'(),;:\\]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+/* 內建方案：訪客（沒登入）、免費會員（登入後沒被指定方案的預設）。不能刪，可以改內容。
+   上線時兩者都是 {}（＝全部照 features.js 的預設值，現在全部開啟）—— 不能因為這次上線讓任何人突然看不到功能。*/
+const BUILTIN_PLANS = [['guest', '訪客（未登入）'], ['free', '免費會員（預設）']];
+
+/* 使用統計白名單（R2）。改這裡要一起改 site/account.js 的 EVENTS 與 docs/account_analytics.md —— 測試會比對三邊一致。*/
+export const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other'];
+export const EVENTS = [
+  'session', 'session_login', 'login', 'logout',
+  'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel',
+  'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle',
+  'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg',
+  /* 2026-10-26 行銷漏斗（W2）：進站、註冊、體驗開始、看價格、點結帳、付費。註冊／體驗／付費由 Worker 自己算（funnel 區塊），其餘由前端送 */
+  'land', 'signup', 'trial_start', 'pricing_view', 'checkout_click', 'paid',
+];
+const EV_KEYS = new Set([...VIEWS.map((v) => 'pv:' + v), ...EVENTS.map((e) => 'ev:' + e)]);
+/* 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項, 次數]。
+   · 頁面：VIEWS 白名單。元件：小寫英數與 . _（例如 rot.play、tab.revenue、filter_group）。
+   · 細項：只准族群名、股票代號、元件名、象限名 —— 前端只從「畫面上既有的選項」取值，從不送使用者輸入的文字；
+     這裡再擋一次：最長 24 字、不准 @（不可能是 email）、不准控制字元與 < > " ' ` \ 。
+   · 不帶任何識別碼：一列就是「哪天、哪頁、哪個元件、哪個細項、幾次」，跟 usage 表同一個隱私等級。*/
+export const MAX_E2 = 60, MAX_E2_INC = 50, MAX_E2_ROWS_DAY = 20000;
+const COMP_RE = /^[a-z][a-z0-9_.]{0,31}$/;
+const DETAIL_RE = /^[^\u0000-\u001f\u007f<>"'`\\@]{0,24}$/;
+
+const GOOGLE_AUTH = 'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_TOKEN = 'https://oauth2.googleapis.com/token';
+const GOOGLE_ISS = ['accounts.google.com', 'https://accounts.google.com'];
+
+/* ---------------------------------------------------------------- 小工具 */
+const enc = new TextEncoder();
+const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64uStr = (s) => b64u(enc.encode(s));
+/* 解回 UTF-8 字串：id_token 的內容是 UTF-8 JSON，直接用 atob 的結果 JSON.parse，中文名字會變亂碼（驗收抓到「Bob è¨ªå®¢」）*/
+const unb64u = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return new TextDecoder().decode(Uint8Array.from(atob(s), (c) => c.charCodeAt(0))); };
+const rand = (n = 32) => b64u(crypto.getRandomValues(new Uint8Array(n)));
+const sha256 = async (s) => b64u(await crypto.subtle.digest('SHA-256', enc.encode(s)));
+const safeEq = (a, b) => { if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+/* 台北日期（統計以台北的一天為單位；容器與 Cloudflare 都是 UTC） */
+const tpeDay = (ms) => new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10);
+const cleanName = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, MAX_NAME);
+const CODE_RE = /^[0-9A-Z]{4,6}$/;
+
+import { installPay } from './pay.js';
+import { installArticles } from './articles.js';
+import { installAlertMail } from './alertmail.js';
+import { installMarginDash } from './margindash.js';
+
+export default {
+  async fetch(req, env) {
+    /* 全部轉給同一個 Durable Object —— 單一實例＝強一致，也讓「權杖簽章金鑰」只存在一個地方。*/
+    const id = env.HUB.idFromName('hub');
+    return env.HUB.get(id).fetch(req);
+  },
+  /* 2026-10-09 cron trigger（wrangler.toml [triggers]）：每天清一次過期的「七天保證比對碼」（benefit_hash，保存 365 天）。
+     用一個外面打不到的主機名（internal.cron）把請求丟進同一個 Durable Object，那邊只做刪除過期資料這一件事。*/
+  async scheduled(ev, env) {
+    const id = env.HUB.idFromName('hub');
+    /* 2026-10-11 金流：每 10 分鐘一次的 cron（wrangler.toml）→ 補開通／定期定額對帳／到期紀錄（pay.js paySweep）；每天那一次照舊清比對碼 */
+    /* 2026-11-02 自設提醒 email：台北 18:40（UTC 10:40）週一到五，比對 digest.json（alertmail.js）*/
+    if (ev && ev.cron === '40 10 * * 1-5') { await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/alert-mail', { method: 'POST' })); return; }
+    if (ev && ev.cron && ev.cron !== '17 19 * * *') { await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/pay-sweep', { method: 'POST' })); return; }
+    await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/bill-clean', { method: 'POST' }));
+  },
+};
+
+export class Hub {
+  constructor(state, env) {
+    this.state = state; this.env = env || {};
+    this.sql = state.storage.sql;
+    this.fbIp = new Map();          // 訪客反饋：IP → [小時, 次數]（1007：訪客每 IP 每小時上限；只在記憶體）
+    this.rate = new Map();          // IP → [分鐘, 次數]（只在記憶體，不落地、不寫進資料庫）
+    this.lastClean = 0;
+    this.q('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)');
+    this.q('CREATE TABLE IF NOT EXISTS users (uid TEXT PRIMARY KEY, subh TEXT UNIQUE, email TEXT, name TEXT, pic TEXT, created INTEGER, seen INTEGER, tv INTEGER)');
+    this.q('CREATE TABLE IF NOT EXISTS lists (uid TEXT PRIMARY KEY, data TEXT, rev INTEGER, updated INTEGER)');
+    this.q('CREATE TABLE IF NOT EXISTS usage (day TEXT, k TEXT, n INTEGER, PRIMARY KEY (day, k))');
+    this.q('CREATE TABLE IF NOT EXISTS presence (sid TEXT PRIMARY KEY, uid TEXT, route TEXT, seen INTEGER)');
+    this.q('CREATE TABLE IF NOT EXISTS logins (n TEXT PRIMARY KEY, state TEXT UNIQUE, verifier TEXT, nonce TEXT, mode TEXT, ret TEXT, exp INTEGER, tok TEXT, uid TEXT)');
+    /* R7 功能權限：以 email（小寫）為鍵，不是 uid —— 管理者要能先替還沒登入過的人設好（付費後再登入）。*/
+    this.q('CREATE TABLE IF NOT EXISTS perm (email TEXT PRIMARY KEY, plan TEXT, over TEXT, updated INTEGER)');
+    this.q('CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY, name TEXT, feats TEXT, builtin INTEGER, updated INTEGER)');
+    /* 2026-10-05（admin-v2）相容遷移 —— 只加不改，舊資料原封不動：
+       ① perm.expires：付費到期日（毫秒；NULL／0＝不會到期）。過期的人自動退回「免費會員」，不刪設定（續約時改日期就好）。
+       ② ev2：細項事件（頁面＋元件＋細項）。跟 usage 一樣只有「每天的次數」，沒有誰。
+       ③ visits：會員近 30 天造訪次數（uid＋台北日期＋次數）。只記登入者，跟 users 同一個保存期限、刪帳號一起刪。
+       用 PRAGMA table_info 判斷欄位在不在：ALTER TABLE ADD COLUMN 重跑會報錯，Durable Object 每次冷啟動都會進這裡。*/
+    if (!this.q('PRAGMA table_info(perm)').some((c) => c.name === 'expires')) this.q('ALTER TABLE perm ADD COLUMN expires INTEGER');
+    /* 2026-10-05（admin-v2b）：付費範本要能調價、之後綁金流 → plans 加 price（整數 NT$）與 period（month／year／once）。
+       舊資料庫沒有這兩欄就補上（同上，用 PRAGMA 判斷，重跑不報錯）；舊列 price＝0、period＝month。
+       ★ 金流以 plan id 對價（id 建立後不變），價格一律以後端這裡為準，前端顯示的價格只是顯示。 */
+    const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+    if (!pc.includes('price')) this.q('ALTER TABLE plans ADD COLUMN price INTEGER DEFAULT 0');
+    if (!pc.includes('period')) this.q("ALTER TABLE plans ADD COLUMN period TEXT DEFAULT 'month'");
+    this.q('CREATE TABLE IF NOT EXISTS ev2 (day TEXT, page TEXT, comp TEXT, detail TEXT, n INTEGER, PRIMARY KEY (day, page, comp, detail))');
+    this.q('CREATE TABLE IF NOT EXISTS visits (uid TEXT, day TEXT, n INTEGER, PRIMARY KEY (uid, day))');
+    for (const [id, name] of BUILTIN_PLANS) if (!this.q('SELECT 1 FROM plans WHERE id = ?', id).length) this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 1, 0)', id, name, '{}');
+    /* 「付費會員」只在第一次啟動時種一份空的範本（＝全開），管理者刪掉就不會再長回來 */
+    if (!this.kv('plans_seeded')) {
+      if (!this.q('SELECT 1 FROM plans WHERE id = ?', 'paid').length) this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 0, 0)', 'paid', '付費會員', '{}');
+      this.setKv('plans_seeded', '1');
+    }
+    /* 權杖簽章金鑰：第一次啟動時隨機產生、存在這個 Durable Object 自己的儲存裡。
+       不進 repo、不是 GitHub Secret、Andy 也不用產生 —— 少一個要人記得設的東西。
+       要讓所有人強制重新登入：刪掉這一列（或換 Worker 名稱）即可。*/
+    if (!this.q('SELECT v FROM kv WHERE k = ?', 'hmac').length) this.q('INSERT INTO kv (k, v) VALUES (?, ?)', 'hmac', rand(32));
+    if (state.storage.getAlarm && state.storage.setAlarm) {
+      Promise.resolve(state.storage.getAlarm()).then((a) => { if (a == null) return state.storage.setAlarm(this.now() + ALARM_EVERY_MS); }).catch(() => {});
+    }
+  }
+
+  now() { return this.env.__now ? this.env.__now() : Date.now(); }
+  q(sql, ...args) { return this.sql.exec(sql, ...args).toArray(); }
+  kv(k) { const r = this.q('SELECT v FROM kv WHERE k = ?', k); return r.length ? r[0].v : null; }
+  setKv(k, v) { this.q('INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
+
+  origins() { return String(this.env.ALLOWED_ORIGINS || 'https://liguligu-puipui.com https://www.liguligu-puipui.com https://miaozike.github.io https://tw-rotation.pages.dev').split(/[\s,]+/).filter(Boolean); }
+  originOk(o) { return !!o && this.origins().includes(o); }
+  admins() { return String(this.env.ADMIN_EMAILS || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); }
+  isAdmin(u) { return !!u && !!u.email && this.admins().includes(String(u.email).toLowerCase()); }
+  configured() { return !!(this.env.GOOGLE_CLIENT_ID && this.env.GOOGLE_CLIENT_SECRET); }
+  publicOnline() { return this.kv('public_online') !== '0'; }
+
+  /* ---------------------------------------------------------------- 權杖（R5）*/
+  async hmac(msg) {
+    const key = await crypto.subtle.importKey('raw', enc.encode(this.kv('hmac')), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    return b64u(await crypto.subtle.sign('HMAC', key, enc.encode(msg)));
+  }
+  async sign(uid, tv) {
+    const exp = Math.floor(this.now() / 1000) + TOKEN_DAYS * 86400;
+    const body = `v1.${uid}.${exp}.${tv}`;
+    return body + '.' + (await this.hmac(body));
+  }
+  /* 回 { user, exp } 或 null。任何一項不對都是 null —— 呼叫端一律當「沒登入」。*/
+  async verify(tok) {
+    if (typeof tok !== 'string' || tok.length > 300) return null;
+    const p = tok.split('.');
+    if (p.length !== 5 || p[0] !== 'v1') return null;
+    const body = p.slice(0, 4).join('.');
+    if (!safeEq(p[4], await this.hmac(body))) return null;
+    const exp = +p[2];
+    if (!(exp > this.now() / 1000)) return null;
+    const u = this.q('SELECT * FROM users WHERE uid = ?', p[1])[0];
+    if (!u || String(u.tv) !== p[3]) return null;          // 刪除帳號（或換版本）後舊權杖立即失效
+    return { user: u, exp };
+  }
+  pubUser(u) { return { name: u.name, email: u.email, pic: u.pic, admin: this.isAdmin(u) }; }
+
+  /* ---------------------------------------------------------------- HTTP */
+  cors(req, res) {
+    const o = req.headers.get('Origin');
+    if (this.originOk(o)) { res.headers.set('Access-Control-Allow-Origin', o); res.headers.set('Vary', 'Origin'); }
+    return res;
+  }
+  json(req, obj, status = 200) {
+    return this.cors(req, new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } }));
+  }
+  page(title, body, status = 200, extra = {}) {
+    const h = new Headers({ 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'DENY', 'referrer-policy': 'no-referrer' });
+    for (const [k, v] of Object.entries(extra)) h.append(k, v);
+    return new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>`
+      + `<body style="font:16px/1.6 system-ui,sans-serif;background:#0b1220;color:#e6edf6;display:grid;place-items:center;min-height:90vh;margin:0;padding:16px">`
+      + `<main style="max-width:420px;text-align:center">${body}</main></body>`, { status, headers: h });
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    const p = url.pathname;
+    try {
+      if (req.method === 'OPTIONS') {
+        return this.cors(req, new Response(null, { status: 204, headers: { 'Access-Control-Allow-Methods': 'POST, GET', 'Access-Control-Allow-Headers': 'content-type, x-tw-guest', 'Access-Control-Max-Age': '86400' } }));
+      }
+      if (p === '/health') return this.json(req, { ok: true, service: 'tw-rotation account-api', configured: this.configured(), admins: this.admins().length > 0 });
+      if (req.method === 'GET' && p === '/auth/start') return await this.authStart(req, url);
+      if (req.method === 'GET' && p === '/auth/callback') return await this.authCallback(req, url);
+      if (req.method !== 'POST') return this.json(req, { error: 'not_found' }, 404);
+      /* 所有 POST 都要從白名單網站發出（瀏覽器一定會帶 Origin）。這擋不住有心人用 curl 偽造，
+         但擋得住「別的網站在背景偷偷替訪客打這支 API」（CSRF）。真正的權限檢查是下面每一支各自的權杖檢查。*/
+      if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+      const raw = await req.text();
+      if (raw.length > 16384) return this.json(req, { error: 'too_large' }, 413);
+      let b; try { b = JSON.parse(raw || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+      if (!b || typeof b !== 'object' || Array.isArray(b)) return this.json(req, { error: 'bad_json' }, 400);
+      switch (p) {
+        case '/auth/redeem': return await this.redeem(req, b);
+        case '/v1/beat': return await this.beat(req, b);
+        case '/v1/me': return await this.me(req, b);
+        case '/v1/lists/get': return await this.listsGet(req, b);
+        case '/v1/lists/put': return await this.listsPut(req, b);
+        case '/v1/delete': return await this.deleteMe(req, b);
+        case '/v1/admin/stats': return await this.adminStats(req, b);
+        case '/v1/admin/online': return await this.adminOnline(req, b);
+        case '/v1/admin/settings': return await this.adminSettings(req, b);
+        case '/v1/perm/me': return await this.permMe(req, b);
+        case '/v1/admin/perm/get': return await this.adminPermGet(req, b);
+        case '/v1/admin/perm/put': return await this.adminPermPut(req, b);
+        case '/v1/admin/perm/list': return await this.adminPermList(req, b);
+        case '/v1/admin/plans/get': return await this.adminPlansGet(req, b);
+        case '/v1/admin/plans/put': return await this.adminPlansPut(req, b);
+        default: return this.json(req, { error: 'not_found' }, 404);
+      }
+    } catch (e) {
+      return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+    }
+  }
+
+  /* ---------------------------------------------------------------- 登入（R6）
+     流程：網站產生一次性的 n（只有網站自己知道）→ 開小視窗 /auth/start?n=… → Google → /auth/callback
+     → Worker 用授權碼＋PKCE 換 id_token、建立權杖，存在 logins 表裡對應到 n → 網站拿 n 來 /auth/redeem 換走（只能換一次）。
+     為什麼權杖不直接 postMessage 回去：Google 的登入頁會設 COOP，小視窗的 window.opener 可能被切斷；
+     用 n 去換，不管 opener 在不在都拿得到，而且權杖從頭到尾不會出現在網址或跨視窗訊息裡。*/
+  retOk(ret) {
+    try { const u = new URL(ret); return this.originOk(u.origin) ? u : null; } catch (e) { return null; }
+  }
+  async authStart(req, url) {
+    if (!this.configured()) return this.page('尚未設定', '<h2>登入功能尚未設定</h2><p>管理者還沒有完成 Google 登入的設定（docs/login_setup.md）。</p>', 503);
+    const n = url.searchParams.get('n') || '', mode = url.searchParams.get('mode') === 'redirect' ? 'redirect' : 'popup';
+    const ret = this.retOk(url.searchParams.get('ret') || '');
+    if (!/^[A-Za-z0-9_-]{22,64}$/.test(n) || !ret) return this.page('登入失敗', '<h2>登入連結不正確</h2><p>請回到網站重新按「登入」。</p>', 400);
+    this.cleanup();
+    if (this.q('SELECT 1 FROM logins WHERE n = ?', n).length) return this.page('登入失敗', '<h2>這個登入連結已經用過</h2><p>請回到網站重新按「登入」。</p>', 400);
+    const state = rand(24), verifier = rand(48), nonce = rand(16);
+    this.q('INSERT INTO logins (n, state, verifier, nonce, mode, ret, exp) VALUES (?, ?, ?, ?, ?, ?, ?)', n, state, verifier, nonce, mode, ret.href, this.now() + LOGIN_TTL_MS);
+    const cb = new URL('/auth/callback', url.origin).href;
+    const g = new URL(this.env.GOOGLE_AUTH_URL || GOOGLE_AUTH);
+    g.search = new URLSearchParams({
+      client_id: this.env.GOOGLE_CLIENT_ID, redirect_uri: cb, response_type: 'code', scope: 'openid email profile',
+      state, nonce, code_challenge: await sha256(verifier), code_challenge_method: 'S256', prompt: 'select_account',
+    }).toString();
+    const secure = url.protocol === 'https:' ? '; Secure' : '';
+    return new Response(null, { status: 302, headers: {
+      Location: g.href, 'cache-control': 'no-store',
+      /* 綁定「同一個瀏覽器」：state 同時放在 cookie 裡，回來時兩邊要一致。
+         防的是「攻擊者把他自己那次登入的回呼網址丟給你點」（login CSRF）。*/
+      'Set-Cookie': `tw_oas=${state}; Path=/auth; HttpOnly; SameSite=Lax; Max-Age=600${secure}`,
+    } });
+  }
+  async authCallback(req, url) {
+    const fail = (msg, status = 400) => this.page('登入失敗', `<h2>登入沒有完成</h2><p>${esc(msg)}</p><p>可以關掉這個視窗，回到網站再試一次。</p>`, status,
+      { 'Set-Cookie': 'tw_oas=; Path=/auth; Max-Age=0' });
+    const state = url.searchParams.get('state') || '';
+    const row = state ? this.q('SELECT * FROM logins WHERE state = ?', state)[0] : null;
+    if (!row || row.exp < this.now() || row.tok) return fail('登入連結已過期或已經用過。');
+    const ck = (req.headers.get('Cookie') || '').split(/;\s*/).find((c) => c.startsWith('tw_oas='));
+    if (!ck || !safeEq(ck.slice(7), state)) return fail('瀏覽器驗證不符（請用同一個瀏覽器完成登入）。');
+    if (url.searchParams.get('error')) { this.q('DELETE FROM logins WHERE n = ?', row.n); return fail('你取消了登入，或 Google 拒絕了這次登入。'); }
+    const code = url.searchParams.get('code');
+    if (!code) return fail('缺少授權碼。');
+    const cb = new URL('/auth/callback', url.origin).href;
+    const r = await fetch(this.env.GOOGLE_TOKEN_URL || GOOGLE_TOKEN, {
+      method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code, client_id: this.env.GOOGLE_CLIENT_ID, client_secret: this.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: cb, grant_type: 'authorization_code', code_verifier: row.verifier }).toString(),
+    });
+    if (!r.ok) return fail('向 Google 換取登入資訊失敗（' + r.status + '）。', 502);
+    const tj = await r.json();
+    /* id_token 是直接從 Google 的 token 端點經 TLS 拿到的（不是經過瀏覽器轉交），
+       依 OpenID Connect Core 1.0 §3.1.3.7 第 6 點，這種情況可用 TLS 驗證發行者、不必再驗簽章。
+       其餘欄位照規定逐一檢查：發行者、對象、到期、nonce、email 已驗證。*/
+    let c;
+    try { c = JSON.parse(unb64u(String(tj.id_token || '').split('.')[1] || '')); } catch (e) { return fail('Google 回傳的資料格式不對。', 502); }
+    const nowS = this.now() / 1000;
+    if (!GOOGLE_ISS.includes(c.iss)) return fail('發行者不符。');
+    if (c.aud !== this.env.GOOGLE_CLIENT_ID) return fail('用戶端不符。');
+    if (!(c.exp > nowS)) return fail('登入資訊已過期。');
+    if (!c.nonce || !safeEq(String(c.nonce), row.nonce)) return fail('驗證碼不符。');
+    if (!c.sub) return fail('缺少帳號識別。');
+    if (c.email_verified !== true && c.email_verified !== 'true') return fail('這個 Google 帳號的 email 尚未驗證。');
+    /* Google 帳號識別碼（sub）不存原值，存「加上本站金鑰的雜湊」：資料庫外流時，拿不到可以跨站對應的 Google 識別碼。*/
+    const subh = await this.hmac('sub:' + c.sub);
+    const now = this.now();
+    const name = String(c.name || c.email || '').slice(0, 60), email = String(c.email || '').slice(0, 120);
+    const pic = /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com\//.test(c.picture || '') ? String(c.picture).slice(0, 400) : '';
+    let u = this.q('SELECT * FROM users WHERE subh = ?', subh)[0];
+    if (u) this.q('UPDATE users SET email = ?, name = ?, pic = ?, seen = ? WHERE uid = ?', email, name, pic, now, u.uid);
+    else { const uid = rand(12); this.q('INSERT INTO users (uid, subh, email, name, pic, created, seen, tv) VALUES (?, ?, ?, ?, ?, ?, ?, 1)', uid, subh, email, name, pic, now, now); }
+    u = this.q('SELECT * FROM users WHERE subh = ?', subh)[0];
+    const tok = await this.sign(u.uid, u.tv);
+    this.q('UPDATE logins SET tok = ?, uid = ?, exp = ? WHERE n = ?', tok, u.uid, now + 3 * 60 * 1000, row.n);
+    const clear = { 'Set-Cookie': 'tw_oas=; Path=/auth; Max-Age=0' };
+    const ret = new URL(row.ret);
+    if (row.mode === 'redirect') return new Response(null, { status: 302, headers: { Location: ret.href, 'cache-control': 'no-store', ...clear } });
+    /* 小視窗模式：通知網站「好了，可以來換了」（訊息裡只有 n，沒有權杖），然後自己關掉。
+       opener 被切斷也沒關係 —— 網站那邊本來就在輪詢 /auth/redeem。*/
+    const msg = JSON.stringify({ type: 'tw-login', n: row.n }).replace(/</g, '\\u003c');
+    /* 10-16 Andy：「登入後會一直卡住這畫面，協助自動跳主畫面」——iPhone 的 LINE／FB／IG 內建瀏覽器 window.close() 沒作用，
+       小視窗其實是同一個畫面換頁，於是一直停在這裡。改成：先 postMessage＋close；0.8 秒後頁面還在，就整頁換回網站，
+       網址帶一次性的 n（放在 # 後面，不會送到任何伺服器、也不進 Referer），網站開起來自己拿 n 去 /auth/redeem 換權杖。
+       回去的網址＝登入開始時帶來的 ret，authStart 已經用 originOk 驗過是自家網域（liguligu-puipui.com、miaozike.github.io…）。*/
+    const back = new URL(ret.href); back.hash = 'twn=' + row.n;
+    const backJs = JSON.stringify(back.href).replace(/</g, '\\u003c');
+    return this.page('登入完成', `<h2>登入完成</h2><p>正在回到網站…</p><p><a href="${esc(back.href)}" style="color:#7cc4ff">沒有自動回去的話，按這裡回到網站</a></p>`
+      + `<script>try{window.opener&&window.opener.postMessage(${msg},${JSON.stringify(ret.origin)})}catch(e){}try{window.close()}catch(e){}`
+      + `setTimeout(function(){location.replace(${backJs})},800)</script>`, 200, clear);
+  }
+  async redeem(req, b) {
+    const n = String(b.n || '');
+    if (!/^[A-Za-z0-9_-]{22,64}$/.test(n)) return this.json(req, { error: 'bad_n' }, 400);
+    const row = this.q('SELECT * FROM logins WHERE n = ?', n)[0];
+    if (!row || row.exp < this.now()) return this.json(req, { error: 'expired' }, 404);
+    if (!row.tok) return this.json(req, { pending: true });
+    this.q('DELETE FROM logins WHERE n = ?', n);          // 只能換一次
+    const v = await this.verify(row.tok);
+    if (!v) return this.json(req, { error: 'expired' }, 404);
+    return this.json(req, { tok: row.tok, user: this.pubUser(v.user) });
+  }
+
+  /* ---------------------------------------------------------------- 心跳：線上人數＋使用統計（R2、R4）*/
+  rateOk(req) {
+    const ip = req.headers.get('CF-Connecting-IP') || 'local', m = Math.floor(this.now() / 60000);
+    const r = this.rate.get(ip);
+    if (!r || r[0] !== m) { this.rate.set(ip, [m, 1]); if (this.rate.size > 5000) this.rate.clear(); return true; }
+    r[1]++;
+    return r[1] <= RATE_PER_MIN;
+  }
+  /* 把心跳帶來的計數驗過一遍：只收白名單內的鍵、正整數、單次上限。回傳乾淨的 [鍵, 數量]；有任何一項不合格就整批不收。*/
+  cleanEv(ev) {
+    if (ev == null) return [];
+    if (typeof ev !== 'object' || Array.isArray(ev)) return null;
+    const out = Object.entries(ev);
+    if (out.length > MAX_EV_KEYS) return null;
+    for (const [k, n] of out) if (!EV_KEYS.has(k) || !Number.isInteger(n) || n < 1 || n > MAX_EV_INC) return null;
+    return out;
+  }
+  /* 細項事件驗格式：整批任何一項不合格就整批不收（同 cleanEv）。回 [[頁面, 元件, 細項, 次數]…] */
+  cleanE2(e2) {
+    if (e2 == null) return [];
+    if (!Array.isArray(e2) || e2.length > MAX_E2) return null;
+    const out = [];
+    for (const r of e2) {
+      if (!Array.isArray(r) || r.length !== 4) return null;
+      const [pg, comp, det, n] = r;
+      if (!VIEWS.includes(pg) || typeof comp !== 'string' || !COMP_RE.test(comp) || typeof det !== 'string' || !DETAIL_RE.test(det)) return null;
+      if (!Number.isInteger(n) || n < 1 || n > MAX_E2_INC) return null;
+      out.push([pg, comp, det.trim(), n]);
+    }
+    return out;
+  }
+  async beat(req, b) {
+    if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+    const sid = String(b.sid || '');
+    if (!/^[A-Za-z0-9_-]{8,40}$/.test(sid)) return this.json(req, { error: 'bad_sid' }, 400);
+    const ev = this.cleanEv(b.ev);
+    if (!ev) return this.json(req, { error: 'bad_ev' }, 400);
+    const e2 = this.cleanE2(b.e2);
+    if (!e2) return this.json(req, { error: 'bad_e2' }, 400);
+    const v = b.t ? await this.verify(b.t) : null;
+    const now = this.now();
+    if (ev.length) {
+      const day = tpeDay(now);
+      for (const [k, n] of ev) this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, ?) ON CONFLICT(day, k) DO UPDATE SET n = n + excluded.n', day, k, n);
+      /* 會員造訪次數：登入狀態下「開啟網站」一次＝造訪一次（session_login 本來就是每個分頁一次）*/
+      const vis = ev.find(([k]) => k === 'ev:session_login');
+      if (vis && v) this.q('INSERT INTO visits (uid, day, n) VALUES (?, ?, ?) ON CONFLICT(uid, day) DO UPDATE SET n = n + excluded.n', v.user.uid, day, vis[1]);
+    }
+    if (e2.length) {
+      const day = tpeDay(now);
+      /* 防灌爆：一天最多 2 萬種（頁面×元件×細項）組合；超過之後「新的」組合併進「其他」，既有的照樣累加 */
+      const full = this.q('SELECT COUNT(*) AS c FROM ev2 WHERE day = ?', day)[0].c >= MAX_E2_ROWS_DAY;
+      for (const [pg, comp, det, n] of e2) {
+        const d = full && !this.q('SELECT 1 FROM ev2 WHERE day = ? AND page = ? AND comp = ? AND detail = ?', day, pg, comp, det).length ? '其他' : det;
+        this.q('INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, ?, ?, ?, ?) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + excluded.n', day, pg, comp, d, n);
+      }
+    }
+    if (b.leave) this.q('DELETE FROM presence WHERE sid = ?', sid);
+    else {
+      const route = VIEWS.includes(b.r) ? b.r : 'other';
+      this.q('INSERT INTO presence (sid, uid, route, seen) VALUES (?, ?, ?, ?) ON CONFLICT(sid) DO UPDATE SET uid = excluded.uid, route = excluded.route, seen = excluded.seen',
+        sid, v ? v.user.uid : null, route, now);
+      if (v && now - (v.user.seen || 0) > 3600 * 1000) this.q('UPDATE users SET seen = ? WHERE uid = ?', now, v.user.uid);
+    }
+    if (now - this.lastClean > 60 * 1000) this.cleanup();
+    const out = { ok: true };
+    if (this.publicOnline() || (v && this.isAdmin(v.user))) out.n = this.onlineCount();
+    return this.json(req, out);
+  }
+  onlineCount() { return this.q('SELECT COUNT(*) AS c FROM presence WHERE seen > ?', this.now() - PRESENCE_WINDOW_MS)[0].c; }
+
+  /* ---------------------------------------------------------------- 會員（R1、R5）*/
+  async auth(req, b) { return b.t ? await this.verify(b.t) : null; }
+  async me(req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const out = { user: this.pubUser(v.user) };
+    if (v.exp - this.now() / 1000 < TOKEN_DAYS * 86400 / 2) out.tok = await this.sign(v.user.uid, v.user.tv);   // 滑動續期
+    return this.json(req, out);
+  }
+  async listsGet(req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const r = this.q('SELECT data, rev FROM lists WHERE uid = ?', v.user.uid)[0];
+    return this.json(req, r ? { lists: JSON.parse(r.data), rev: r.rev } : { lists: [], rev: 0 });
+  }
+  /* 驗清單格式：最多 5 頁、名字 12 字、每頁 50 檔、代號格式。只收代號與名字 —— 多帶的欄位（張數、成本…）一律丟掉。*/
+  cleanLists(lists) {
+    if (!Array.isArray(lists) || lists.length > MAX_TABS) return null;
+    const seen = new Set(), out = [];
+    for (const t of lists) {
+      if (!t || typeof t !== 'object') return null;
+      const id = String(t.id || '');
+      if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+      seen.add(id);
+      const name = cleanName(t.name);
+      if (!name) return null;
+      if (!Array.isArray(t.codes) || t.codes.length > MAX_CODES) return null;
+      const codes = [];
+      for (const c of t.codes) { if (typeof c !== 'string' || !CODE_RE.test(c)) return null; if (!codes.includes(c)) codes.push(c); }
+      out.push({ id, name, codes });
+    }
+    return out;
+  }
+  async listsPut(req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const lists = this.cleanLists(b.lists);
+    if (!lists) return this.json(req, { error: 'bad_lists' }, 400);
+    const cur = this.q('SELECT data, rev FROM lists WHERE uid = ?', v.user.uid)[0];
+    const rev = cur ? cur.rev : 0;
+    /* 版本號不一致＝另一台裝置先改過：不覆蓋，把雲端現況還給前端（前端決定怎麼合併）。*/
+    if (b.rev !== rev) return this.json(req, { conflict: true, lists: cur ? JSON.parse(cur.data) : [], rev }, 409);
+    this.q('INSERT INTO lists (uid, data, rev, updated) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET data = excluded.data, rev = excluded.rev, updated = excluded.updated',
+      v.user.uid, JSON.stringify(lists), rev + 1, this.now());
+    return this.json(req, { ok: true, rev: rev + 1, lists });
+  }
+  /* 刪除我的資料：會員資料、自選清單、線上紀錄、進行中的登入一次刪光。
+     使用統計是「每天每一項的次數」，本來就沒有記是誰，所以沒有可刪的個人部分（隱私權政策有寫）。*/
+  async deleteMe(req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const uid = v.user.uid;
+    this.q('DELETE FROM lists WHERE uid = ?', uid);
+    this.q('DELETE FROM presence WHERE uid = ?', uid);
+    this.q('DELETE FROM logins WHERE uid = ?', uid);
+    this.q('DELETE FROM visits WHERE uid = ?', uid);
+    /* 權限設定是以 email 存的個人資料，一起刪（代價：付費會員刪帳號後再登入會回到免費預設，要請管理者重設）*/
+    if (v.user.email) this.q('DELETE FROM perm WHERE email = ?', String(v.user.email).toLowerCase());
+    this.q('DELETE FROM users WHERE uid = ?', uid);
+    return this.json(req, { ok: true, deleted: true });
+  }
+
+  /* ---------------------------------------------------------------- 管理者（R3）*/
+  async admin(req, b) { const v = await this.auth(req, b); return v && this.isAdmin(v.user) ? v : null; }
+  async adminStats(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const days = Math.max(1, Math.min(400, parseInt(b.days, 10) || 30));
+    const from = tpeDay(this.now() - (days - 1) * 86400 * 1000);
+    const rows = this.q('SELECT day, k, n FROM usage WHERE day >= ? ORDER BY day', from);
+    const total = this.q('SELECT COUNT(*) AS c FROM users')[0].c;
+    const recent = this.q('SELECT name, email, created, seen FROM users ORDER BY seen DESC LIMIT 50');
+    /* 細項事件的分組查詢（流量觀測頁）：同一個 (頁面, 元件, 細項) 期間內加總，次數多的在前，最多 3000 列。
+       b.page 有給就只回那一頁（分頁明細切換時用，少傳一點）。*/
+    const pg = VIEWS.includes(b.page) ? b.page : null;
+    const e2 = this.q(`SELECT page, comp, detail, SUM(n) AS n FROM ev2 WHERE day >= ?${pg ? ' AND page = ?' : ''} GROUP BY page, comp, detail ORDER BY n DESC LIMIT 3000`, ...(pg ? [from, pg] : [from]));
+    return this.json(req, { from, to: tpeDay(this.now()), rows, e2, users: { total, recent }, events: EVENTS, views: VIEWS });
+  }
+  async adminOnline(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const live = this.q('SELECT p.route, p.seen, u.name, u.email FROM presence p LEFT JOIN users u ON u.uid = p.uid WHERE p.seen > ? ORDER BY p.seen DESC', this.now() - PRESENCE_WINDOW_MS);
+    const users = live.filter((r) => r.email).map((r) => ({ name: r.name, email: r.email, route: r.route, seen: r.seen }));
+    return this.json(req, { total: live.length, guests: live.length - users.length, users, public_online: this.publicOnline() });
+  }
+  async adminSettings(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    if (typeof b.public_online === 'boolean') this.setKv('public_online', b.public_online ? '1' : '0');
+    return this.json(req, { public_online: this.publicOnline() });
+  }
+
+  /* ---------------------------------------------------------------- 功能權限（R7，DECISIONS #288）*/
+  /* 驗「功能開關」：只收格式對的鍵、布林或 0～99 的整數；任何一項不合格就整批不收（同 cleanEv 的原則）。*/
+  cleanFeats(f) {
+    if (f == null) return {};
+    if (typeof f !== 'object' || Array.isArray(f)) return null;
+    const ent = Object.entries(f);
+    if (ent.length > MAX_FEAT_KEYS) return null;
+    const out = {};
+    for (const [k, v] of ent) {
+      if (!FEAT_RE.test(k)) return null;
+      if (typeof v === 'boolean' || (Number.isInteger(v) && v >= 0 && v <= 99)) out[k] = v; else return null;
+    }
+    return out;
+  }
+  cleanEmail(e) {
+    const s = String(e == null ? '' : e).trim().toLowerCase();
+    return s.length <= 200 && EMAIL_RE.test(s) ? s : null;
+  }
+  plan(id) {
+    const r = this.q('SELECT id, name, feats, builtin, price, period FROM plans WHERE id = ?', id)[0];
+    return r ? { id: r.id, name: r.name, feats: JSON.parse(r.feats || '{}'), builtin: !!r.builtin,
+      price: Number.isInteger(r.price) ? r.price : 0, period: PLAN_PERIODS.includes(r.period) ? r.period : 'month' } : null;
+  }
+  /* 某個 email 實際生效的權限：方案範本 ← 個別微調（微調蓋過範本）。方案被刪掉的人自動退回「免費會員」。*/
+  effective(email) {
+    const row = email ? this.q('SELECT plan, over, updated, expires FROM perm WHERE email = ?', email)[0] : null;
+    const expires = row && row.expires ? row.expires : 0;
+    /* 到期日過了：方案退回「免費會員」、個別微調一併不生效（微調通常是付費時加開的）。設定本身保留，管理者改日期就恢復。*/
+    const expired = !!(expires && expires < this.now());
+    const p = (row && !expired && this.plan(row.plan)) || this.plan('free');
+    const over = row ? JSON.parse(row.over || '{}') : {};
+    /* plan 回「被指定的那個」（管理頁要顯示他原本是哪個範本）；實際生效的是 feats */
+    return { plan: row && this.plan(row.plan) ? row.plan : p.id, planName: p.name, over, feats: Object.assign({}, p.feats, expired ? {} : over), set: !!row, updated: row ? row.updated : 0, expires, expired };
+  }
+  async permMe(req, b) {
+    /* 刻意不看 b.email／b.plan／b.feats —— 一般人只能拿「權杖裡那個人」或「訪客」的那一份 */
+    if (!b.t) { const g = this.plan('guest'); return this.json(req, { who: 'guest', plan: g.id, planName: g.name, feats: g.feats }); }
+    const v = await this.verify(b.t);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    return this.json(req, { who: 'member', plan: e.expired ? 'free' : e.plan, planName: e.planName, feats: e.feats, expired: e.expired });
+  }
+  async adminPermGet(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    const known = this.q('SELECT name, seen FROM users WHERE lower(email) = ?', email)[0] || null;
+    return this.json(req, { email, ...this.effective(email), known: known ? { name: known.name, seen: known.seen } : null });
+  }
+  async adminPermPut(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    if (b.reset === true) { this.q('DELETE FROM perm WHERE email = ?', email); return this.json(req, { email, ...this.effective(email) }); }
+    const plan = String(b.plan || 'free');
+    /* 「訪客」方案只給沒登入的人；會員不能被指定成訪客（那是另一個語意，混用會讓「訪客預設」改一下就波及會員）*/
+    if (!PLAN_RE.test(plan) || plan === 'guest' || !this.plan(plan)) return this.json(req, { error: 'bad_plan' }, 400);
+    const over = this.cleanFeats(b.over);
+    if (!over) return this.json(req, { error: 'bad_feats' }, 400);
+    /* 到期日：沒帶＝維持原值（舊版前端不會帶，不能因為改了一個開關就把到期日清掉）；null／0＝不會到期；
+       其餘必須是 2020～2100 年之間的毫秒整數 */
+    const cur = this.q('SELECT expires FROM perm WHERE email = ?', email)[0];
+    let expires = cur ? cur.expires || 0 : 0;
+    if (b.expires !== undefined) {
+      if (b.expires === null || b.expires === 0) expires = 0;
+      else if (Number.isInteger(b.expires) && b.expires >= 1577836800000 && b.expires <= 4102444800000) expires = b.expires;
+      else return this.json(req, { error: 'bad_expires' }, 400);
+    }
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM perm')[0].c >= MAX_PERM_ROWS) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO perm (email, plan, over, updated, expires) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET plan = excluded.plan, over = excluded.over, updated = excluded.updated, expires = excluded.expires',
+      email, plan, JSON.stringify(over), this.now(), expires || null);
+    return this.json(req, { email, ...this.effective(email) });
+  }
+  async adminPermList(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const rows = this.q('SELECT email, plan, over, updated, expires FROM perm ORDER BY updated DESC LIMIT 500')
+      .map((r) => ({ email: r.email, plan: r.plan, n: Object.keys(JSON.parse(r.over || '{}')).length, updated: r.updated, expires: r.expires || 0 }));
+    /* 會員管理頁的「所有人員狀況」：最後登入（seen）、加入時間、近 30 天造訪次數（visits 表＝登入狀態下開網站的次數）*/
+    const from30 = tpeDay(this.now() - 29 * 86400 * 1000);
+    const vis = {};
+    this.q('SELECT uid, SUM(n) AS n FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r.n; });
+    const users = this.q('SELECT uid, name, email, seen, created FROM users ORDER BY seen DESC LIMIT 1000')
+      .map((u) => ({ name: u.name, email: String(u.email || '').toLowerCase(), seen: u.seen || 0, created: u.created || 0, visits: vis[u.uid] || 0 }));
+    return this.json(req, { rows, users, now: this.now() });
+  }
+  async adminPlansGet(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const used = {};
+    this.q('SELECT plan, COUNT(*) AS c FROM perm GROUP BY plan').forEach((r) => { used[r.plan] = r.c; });
+    const plans = this.q('SELECT id FROM plans ORDER BY builtin DESC, updated, id').map((r) => ({ ...this.plan(r.id), members: used[r.id] || 0 }));
+    return this.json(req, { plans });
+  }
+  async adminPlansPut(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const id = String(b.id || '');
+    if (!PLAN_RE.test(id)) return this.json(req, { error: 'bad_plan' }, 400);
+    const cur = this.plan(id);
+    if (b.del === true) {
+      if (!cur) return this.json(req, { error: 'not_found' }, 404);
+      if (cur.builtin) return this.json(req, { error: 'builtin' }, 400);
+      /* 用這個方案的人退回「免費會員」（保留各自的個別微調），不是連人一起刪 */
+      this.q('UPDATE perm SET plan = ?, updated = ? WHERE plan = ?', 'free', this.now(), id);
+      this.q('DELETE FROM plans WHERE id = ?', id);
+      return await this.adminPlansGet(req, b);
+    }
+    const name = String(b.name == null ? (cur ? cur.name : '') : b.name).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, MAX_PLAN_NAME);
+    if (!name) return this.json(req, { error: 'bad_name' }, 400);
+    const feats = this.cleanFeats(b.feats);
+    if (!feats) return this.json(req, { error: 'bad_feats' }, 400);
+    /* 價格／計費週期：沒帶就沿用原值（只改開關的呼叫不會把價格洗成 0）；帶了就嚴格驗證，不默默修正 */
+    const price = b.price === undefined ? (cur ? cur.price : 0) : b.price;
+    if (!Number.isInteger(price) || price < 0 || price > 999999) return this.json(req, { error: 'bad_price' }, 400);
+    const period = b.period === undefined ? (cur ? cur.period : 'month') : b.period;
+    if (!PLAN_PERIODS.includes(period)) return this.json(req, { error: 'bad_period' }, 400);
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM plans')[0].c >= MAX_PLANS) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO plans (id, name, feats, builtin, updated, price, period) VALUES (?, ?, ?, 0, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, feats = excluded.feats, updated = excluded.updated, price = excluded.price, period = excluded.period',
+      id, name, JSON.stringify(feats), this.now(), price, period);
+    return await this.adminPlansGet(req, b);
+  }
+
+  /* ---------------------------------------------------------------- 保存期限（每小時 alarm ＋ 心跳時順手）*/
+  cleanup() {
+    const now = this.now();
+    this.lastClean = now;
+    this.q('DELETE FROM presence WHERE seen < ?', now - PRESENCE_TTL_MS);
+    this.q('DELETE FROM logins WHERE exp < ?', now);
+    const d = new Date(now + 8 * 3600 * 1000); d.setUTCMonth(d.getUTCMonth() - USAGE_KEEP_MONTHS);
+    this.q('DELETE FROM usage WHERE day < ?', d.toISOString().slice(0, 10));
+    this.q('DELETE FROM ev2 WHERE day < ?', d.toISOString().slice(0, 10));
+    this.q('DELETE FROM visits WHERE day < ?', d.toISOString().slice(0, 10));
+    const idle = this.q('SELECT uid FROM users WHERE seen < ?', now - USER_IDLE_DAYS * 86400 * 1000);
+    for (const r of idle) { this.q('DELETE FROM lists WHERE uid = ?', r.uid); this.q('DELETE FROM visits WHERE uid = ?', r.uid); this.q('DELETE FROM users WHERE uid = ?', r.uid); }
+  }
+  async alarm() {
+    this.cleanup();
+    if (this.state.storage.setAlarm) await this.state.storage.setAlarm(this.now() + ALARM_EVERY_MS);
+  }
+}
+
+/* ============================================================================ sub-v1 區塊（2026-10-05）
+   訂閱申請、意見反饋、每日瀏覽次數、通知中心。Andy：參考 stockintelli 的訂閱頁＋右下角客服＋「之後有活動或變更要通知大家」。
+   ★ 為什麼全部寫在檔尾、用「包一層 prototype」接進來，而不是改 fetch() 的 switch：
+     同一時間另一條分支（preview/admin-v2）正在改這支檔案的 plans 表與既有函式；
+     這裡只「新增」—— 既有函式一行都沒動，兩邊合併時衝突只會落在檔尾（照順序接起來就好）。
+   資料表（第一次用到時才建；跟主表同一個 SQLite）：
+     sub_requests  訂閱申請（金流還沒串：專人開通）。uid、email、聯絡 email、方案、週期、備註、時間、狀態 new/done。
+     feedback      意見反饋。uid（訪客為空）、聯絡 email、類別、內容、當時網址、瀏覽器資訊、時間、狀態 new/handled。
+     quota_hits    每日瀏覽次數（登入者）：uid＋台北日期＋功能鍵＋看了哪一個（股票代號／題材代號）。只留 3 天。
+                   為什麼要存在伺服器：只靠 localStorage 的話，清快取就歸零 —— 登入者的計數以兩邊較大者為準。
+     notices       公告：標題、內文（純文字，前端自動連結、不收 HTML）、類型、對象、上下架時間、置頂。管理者自己刪。
+     notice_reads  登入者「讀過哪一則」（跨裝置）：email＋公告 id。公告刪掉或帳號刪除時一起刪。
+   公告對象：all 全部／guest 訪客／member 所有登入者（含付費）／paid 付費（免費會員以外的範本）／plan:<範本 id>。
+   隱私（同檔頭的保存規則）：反饋與申請保存 13 個月、刪除帳號時一併刪除；不送任何第三方；不進 repo。
+   ============================================================================ */
+const SUB_KEEP_MONTHS = 13;
+/* 1007 v2（Andy：「統計意見類別，類別需要由你幫我規劃級分類」）：兩層類別，規劃與理由在 docs/feedback_categories.md。
+   大類沿用舊鍵（bug／idea／other）讓舊資料不用搬；舊的 'pay'（付款問題）收進「帳號與付費」大類、小類＝付款與發票。
+   cat 欄存大類、新加的 sub 欄存小類（可空）。前端 support.js 的 FB_TREE 要跟這張表一致。*/
+const FB_TREE = {
+  bug: ['data', 'ui', 'func', 'slow', 'mobile'],
+  idea: ['data', 'chart', 'ux', 'watch'],
+  ask: ['calc', 'source', 'term'],
+  acct: ['login', 'plan', 'pay', 'refund'],
+  legal: ['content', 'copyright', 'privacy'],
+  other: [],
+};
+const FB_CATS = Object.keys(FB_TREE);
+const FB_LEGACY = { pay: ['acct', 'pay'] };   // 舊類別 → [大類, 小類]
+const NOTICE_KINDS = ['event', 'feature', 'maint', 'plan'];
+const NOTICE_AUD_RE = /^(all|guest|member|paid|plan:[a-z0-9_-]{1,20})$/;
+const QUOTA_K_RE = /^quota\.[a-z_]{1,24}$/;
+const QUOTA_KEY_RE = /^[0-9A-Za-z_.-]{1,24}$/;
+const MAX_FB_GUEST_IP_HOUR = 5, MAX_FB_DAY = 20, MAX_SUBREQ_DAY = 5, MAX_NOTICES = 200;
+const subClean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, n);
+
+Hub.prototype.subInit = function () {
+  if (this._subOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS sub_requests (id TEXT PRIMARY KEY, uid TEXT, email TEXT, contact TEXT, plan TEXT, period TEXT, note TEXT, created INTEGER, status TEXT)');
+  this.q('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, uid TEXT, contact TEXT, cat TEXT, body TEXT, url TEXT, ua TEXT, created INTEGER, status TEXT)');
+  // 1007 v2：小類欄。舊表沒有就補（ALTER 重跑會報錯，先看 table_info）；舊資料 sub 為 NULL，前端依 FB_LEGACY 對應
+  if (!this.q('PRAGMA table_info(feedback)').some((c) => c.name === 'sub')) this.q('ALTER TABLE feedback ADD COLUMN sub TEXT');
+  // 2026-10-09 願望清單：type 欄（'wish'＝願望清單，空＝一般意見回饋）。舊資料為 NULL
+  if (!this.q('PRAGMA table_info(feedback)').some((c) => c.name === 'type')) this.q('ALTER TABLE feedback ADD COLUMN type TEXT');
+  this.q('CREATE TABLE IF NOT EXISTS quota_hits (uid TEXT, day TEXT, k TEXT, key TEXT, PRIMARY KEY (uid, day, k, key))');
+  this.q('CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, title TEXT, body TEXT, kind TEXT, audience TEXT, t0 INTEGER, t1 INTEGER, pinned INTEGER, created INTEGER, updated INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS notice_reads (email TEXT, id TEXT, at INTEGER, PRIMARY KEY (email, id))');
+  this._subOk = true;
+};
+/* 公開的方案摘要：價格欄位由 admin-v2 加在 plans 表上（price／period／price_year）；欄位還沒有時回 null，前端寫「洽詢」。
+   不回會員名單、不回人數 —— 只有方案本身。 */
+Hub.prototype.subPlanRows = function () {
+  const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
+  return this.q('SELECT * FROM plans ORDER BY builtin DESC, updated, id').map((r) => {
+    let feats = {}; try { feats = JSON.parse(r.feats || '{}'); } catch (e) { feats = {}; }
+    return { id: r.id, name: r.name, builtin: !!r.builtin, feats, price: num(r.price), price_year: num(r.price_year), period: r.period || null };
+  });
+};
+/* 這個人是哪一種對象（公告的 audience 用）：guest／member（免費會員）／paid（其他範本，且沒過期） */
+Hub.prototype.subWho = async function (b) {
+  const v = b && b.t ? await this.verify(b.t) : null;
+  if (!v) return { v: null, tier: 'guest', plan: 'guest', email: '' };
+  const email = String(v.user.email || '').toLowerCase();
+  const e = this.effective(email);
+  const plan = e.expired ? 'free' : e.plan;
+  return { v, tier: plan === 'free' ? 'member' : 'paid', plan, email };
+};
+const subAudOk = (aud, w) => aud === 'all' || aud === w.tier || (aud === 'member' && w.tier === 'paid') || aud === 'plan:' + w.plan;
+const subNotice = (r) => ({ id: r.id, title: r.title, body: r.body, kind: r.kind, audience: r.audience, start: r.t0, end: r.t1 || 0, pinned: !!r.pinned, created: r.created, updated: r.updated });
+
+Hub.prototype.subRoutes = {
+  '/v1/plans/public': async function (req) {
+    return this.json(req, { plans: this.subPlanRows() });
+  },
+  '/v1/subscribe/request': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const plan = String(b.plan || '');
+    if (!PLAN_RE.test(plan) || plan === 'guest' || !this.plan(plan)) return this.json(req, { error: 'bad_plan' }, 400);
+    const period = b.period === 'year' || b.period === 'month' ? b.period : null;
+    if (!period) return this.json(req, { error: 'bad_period' }, 400);
+    const contact = this.cleanEmail(b.contact || v.user.email);
+    if (!contact) return this.json(req, { error: 'bad_email' }, 400);
+    const n = this.q('SELECT COUNT(*) AS c FROM sub_requests WHERE uid = ? AND created > ?', v.user.uid, this.now() - 86400 * 1000)[0].c;
+    if (n >= MAX_SUBREQ_DAY) return this.json(req, { error: 'too_many' }, 429);
+    const id = rand(9);
+    this.q('INSERT INTO sub_requests (id, uid, email, contact, plan, period, note, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v.user.uid, String(v.user.email || '').toLowerCase(), contact, plan, period, subClean(b.note, 300), this.now(), 'new');
+    return this.json(req, { ok: true, id });
+  },
+  '/v1/feedback': async function (req, b) {
+    if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+    const v = await this.auth(req, b);
+    const lg = FB_LEGACY[b.cat];
+    const cat = lg ? lg[0] : FB_CATS.includes(b.cat) ? b.cat : null;
+    const sub = lg ? lg[1] : b.sub ? String(b.sub) : '';
+    if (cat && sub && !FB_TREE[cat].includes(sub)) return this.json(req, { error: 'bad_input' }, 400);
+    const body = subClean(b.body, 2000);
+    if (!cat || body.length < 2) return this.json(req, { error: 'bad_input' }, 400);
+    let contact = '';
+    if (b.contact) { contact = this.cleanEmail(b.contact); if (!contact) return this.json(req, { error: 'bad_email' }, 400); }
+    else if (v) contact = String(v.user.email || '').toLowerCase();
+    const url = /^https?:\/\//.test(String(b.url || '')) ? subClean(b.url, 300) : '';
+    const since = this.now() - 86400 * 1000;
+    const n = v ? this.q('SELECT COUNT(*) AS c FROM feedback WHERE created > ? AND uid = ?', since, v.user.uid)[0].c
+      : this.q("SELECT COUNT(*) AS c FROM feedback WHERE created > ? AND uid = ''", since)[0].c;
+    if (n >= (v ? MAX_FB_DAY : MAX_FB_DAY * 10)) return this.json(req, { error: 'too_many' }, 429);
+    if (!v) {   // 1007：訪客不必登入就能送，但每個 IP 每小時最多 MAX_FB_GUEST_IP_HOUR 筆，擋灌水
+      const ip = req.headers.get('CF-Connecting-IP') || 'local', hr = Math.floor(this.now() / 3600000);
+      const r = this.fbIp.get(ip);
+      if (r && r[0] === hr && r[1] >= MAX_FB_GUEST_IP_HOUR) return this.json(req, { error: 'too_many' }, 429);
+      if (!r || r[0] !== hr) { this.fbIp.set(ip, [hr, 1]); if (this.fbIp.size > 5000) this.fbIp.clear(); } else r[1]++;
+    }
+    const id = rand(9);
+    const type = b.type === 'wish' ? 'wish' : '';
+    this.q('INSERT INTO feedback (id, uid, contact, cat, sub, body, url, ua, created, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v ? v.user.uid : '', contact, cat, sub, body, url, subClean(b.ua, 300), this.now(), 'new', type);
+    return this.json(req, { ok: true, id });
+  },
+  '/v1/quota/hit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const k = String(b.k || ''), key = String(b.key || '');
+    if (!QUOTA_K_RE.test(k) || (key && !QUOTA_KEY_RE.test(key))) return this.json(req, { error: 'bad_input' }, 400);
+    const day = tpeDay(this.now());
+    if (key && this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c < 500) {
+      this.q('INSERT OR IGNORE INTO quota_hits (uid, day, k, key) VALUES (?, ?, ?, ?)', v.user.uid, day, k, key);
+    }
+    const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+    return this.json(req, { day, k, n: keys.length, keys });
+  },
+  '/v1/notices': async function (req, b) {
+    const w = await this.subWho(b);
+    if (b.t && !w.v) return this.json(req, { error: 'auth' }, 401);
+    const now = this.now();
+    const rows = this.q('SELECT * FROM notices WHERE t0 <= ? AND (t1 IS NULL OR t1 = 0 OR t1 > ?) ORDER BY pinned DESC, t0 DESC LIMIT 100', now, now)
+      .filter((r) => subAudOk(r.audience, w));
+    const read = w.email ? new Set(this.q('SELECT id FROM notice_reads WHERE email = ?', w.email).map((r) => r.id)) : null;
+    return this.json(req, { who: w.tier, notices: rows.map((r) => ({ ...subNotice(r), read: read ? read.has(r.id) : null })) });
+  },
+  '/v1/notices/read': async function (req, b) {
+    const w = await this.subWho(b);
+    if (!w.v) return this.json(req, { error: 'auth' }, 401);
+    const ids = Array.isArray(b.ids) ? b.ids.filter((x) => typeof x === 'string' && /^[A-Za-z0-9_-]{4,24}$/.test(x)).slice(0, 200) : [];
+    const known = new Set(this.q('SELECT id FROM notices').map((r) => r.id));
+    for (const id of ids) if (known.has(id)) this.q('INSERT OR IGNORE INTO notice_reads (email, id, at) VALUES (?, ?, ?)', w.email, id, this.now());
+    return this.json(req, { ok: true, read: this.q('SELECT id FROM notice_reads WHERE email = ?', w.email).map((r) => r.id) });
+  },
+  '/v1/admin/notices/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const reads = {};
+    this.q('SELECT id, COUNT(*) AS c FROM notice_reads GROUP BY id').forEach((r) => { reads[r.id] = r.c; });
+    return this.json(req, { now: this.now(), notices: this.q('SELECT * FROM notices ORDER BY created DESC LIMIT 200').map((r) => ({ ...subNotice(r), reads: reads[r.id] || 0 })) });
+  },
+  '/v1/admin/notices/put': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const title = subClean(b.title, 80), body = subClean(b.body, 2000);
+    const kind = NOTICE_KINDS.includes(b.kind) ? b.kind : null;
+    const audience = NOTICE_AUD_RE.test(String(b.audience || '')) ? b.audience : null;
+    const tsOk = (x) => x === 0 || x == null || (Number.isInteger(x) && x >= 1577836800000 && x <= 4102444800000);
+    if (!title || !body || !kind || !audience || !tsOk(b.start) || !tsOk(b.end)) return this.json(req, { error: 'bad_input' }, 400);
+    const start = b.start || this.now(), end = b.end || 0;
+    if (end && end <= start) return this.json(req, { error: 'bad_range' }, 400);
+    const id = b.id ? String(b.id) : rand(9);
+    const cur = b.id ? this.q('SELECT id FROM notices WHERE id = ?', id)[0] : null;
+    if (b.id && !cur) return this.json(req, { error: 'not_found' }, 404);
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM notices')[0].c >= MAX_NOTICES) return this.json(req, { error: 'too_many' }, 400);
+    if (cur) this.q('UPDATE notices SET title = ?, body = ?, kind = ?, audience = ?, t0 = ?, t1 = ?, pinned = ?, updated = ? WHERE id = ?', title, body, kind, audience, start, end, b.pinned ? 1 : 0, this.now(), id);
+    else this.q('INSERT INTO notices (id, title, body, kind, audience, t0, t1, pinned, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, title, body, kind, audience, start, end, b.pinned ? 1 : 0, this.now(), this.now());
+    return this.json(req, { ok: true, notice: subNotice(this.q('SELECT * FROM notices WHERE id = ?', id)[0]) });
+  },
+  '/v1/admin/notices/del': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const id = String(b.id || '');
+    this.q('DELETE FROM notice_reads WHERE id = ?', id);
+    this.q('DELETE FROM notices WHERE id = ?', id);
+    return this.json(req, { ok: true });
+  },
+  '/v1/admin/feedback/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.sub, f.body, f.url, f.ua, f.created, f.status, f.type, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 2000');
+    const subs = this.q('SELECT s.id, s.email, s.contact, s.plan, s.period, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.created DESC LIMIT 300');
+    // 舊資料（cat='pay'、sub 空）在回傳時就換成新兩層，前端統計不必再認舊鍵（資料庫原樣保留，不改寫）
+    return this.json(req, { feedback: fb.map(({ uid, ...r }) => { const lg = FB_LEGACY[r.cat]; return { ...r, cat: lg ? lg[0] : r.cat, sub: lg ? lg[1] : r.sub || '', legacy: lg ? r.cat : undefined, member: !!uid }; }), requests: subs });
+  },
+  /* 1007：管理者刪除單筆反饋（垃圾訊息、測試留言）。只刪 feedback，不碰訂閱申請。*/
+  '/v1/admin/feedback/del': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.q('DELETE FROM feedback WHERE id = ?', String(b.id || ''));
+    return this.json(req, { ok: true });
+  },
+  '/v1/admin/feedback/set': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const id = String(b.id || '');
+    const isReq = b.kind === 'request';
+    const st = isReq ? (['new', 'done'].includes(b.status) ? b.status : null) : (['new', 'handled', 'eval', 'done', 'no'].includes(b.status) ? b.status : null);   // eval／done／no＝願望清單的評估中／已做／不做
+    if (!st) return this.json(req, { error: 'bad_status' }, 400);
+    this.q(isReq ? 'UPDATE sub_requests SET status = ? WHERE id = ?' : 'UPDATE feedback SET status = ? WHERE id = ?', st, id);
+    return this.json(req, { ok: true });
+  },
+};
+
+/* 接線：新路由先攔，其他照舊交給原本的 fetch（OPTIONS、GET、auth、既有 API 全部不變） */
+const subOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const p = new URL(req.url).pathname;
+  const h = req.method === 'POST' && Object.prototype.hasOwnProperty.call(this.subRoutes, p) ? this.subRoutes[p] : null;
+  if (!h) return subOrigFetch.call(this, req);
+  try {
+    this.subInit();
+    if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+    const raw = await req.text();
+    if (raw.length > (p === GRANT_PUT_PATH ? GRANT_PUT_MAX_BYTES : 16384))   // 只有體驗範本寫入（管理者專用）放寬到 256KB
+      return this.json(req, { error: 'too_large' }, 413);
+    let b; try { b = JSON.parse(raw || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return this.json(req, { error: 'bad_json' }, 400);
+    return await h.call(this, req, b);
+  } catch (e) {
+    return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+};
+/* 刪除帳號：先記下是誰（原本的 deleteMe 會把 users 那列刪掉，之後就查不到），成功後再刪本區塊的資料 */
+const subOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b);
+  const res = await subOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    this.subInit();
+    const uid = v.user.uid, email = String(v.user.email || '').toLowerCase();
+    this.q('DELETE FROM feedback WHERE uid = ?', uid);
+    this.q('DELETE FROM sub_requests WHERE uid = ?', uid);
+    this.q('DELETE FROM quota_hits WHERE uid = ?', uid);
+    if (email) this.q('DELETE FROM notice_reads WHERE email = ?', email);
+  }
+  return res;
+};
+/* 保存期限：反饋與申請 13 個月；瀏覽次數只留 3 天（只需要「今天」） */
+const subOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  subOrigCleanup.call(this);
+  this.subInit();
+  const now = this.now();
+  const d = new Date(now); d.setUTCMonth(d.getUTCMonth() - SUB_KEEP_MONTHS);
+  this.q('DELETE FROM feedback WHERE created < ?', d.getTime());
+  this.q('DELETE FROM sub_requests WHERE created < ?', d.getTime());
+  this.q('DELETE FROM quota_hits WHERE day < ?', tpeDay(now - 3 * 86400 * 1000));
+};
+/* ============================================================================ sub-v1 區塊結束 */
+
+/* ============================================================================ admin-v3 區塊（2026-10-05）
+   Andy 看了 admin-v2 預覽：「弄得好複雜，看了不清楚」→ 管理頁簡化成 訪客｜註冊會員｜付費會員 三個大分頁，
+   每頁兩個子分頁「觀看權限」「會員名單」。後端要多給三樣東西：
+     ① 每個功能的「瀏覽次數」上限（每日；留空＝不限、0＝不能看）—— plans.lims（JSON：{功能鍵: 次數}）。
+        跟 feats（開關）分開存：開關是「能不能看」，上限是「一天看幾次」，兩者獨立改、獨立驗。
+        /v1/perm/me 多回 lims（生效那個範本的；過期的人退回免費會員的）；/v1/plans/public、plans/get 也帶 lims。
+     ② 會員名單要的使用數據（只給管理者）：累計在線時間、近 30 天造訪／觀看、最常用的功能 Top3、最常看的股票 Top3、近 14 天每日活躍。
+        · 在線時間：每次心跳替「這個人」加上距上次加時的間隔，單次最多 120 秒（前端 60 秒一跳、容許漏一次）；
+          用 users.ob（上次加時時間）而不是每個分頁各算 —— 同一人開三個分頁不會變成三倍。存在 visits.ms（每人每天）。
+        · 個人使用明細：uev（uid、台北日期、頁面、元件、細項、次數）—— 只記**登入者**，訪客仍然只有不具名的 usage／ev2。
+          這是「誰看了什麼」的個人資料（隱私權政策要一起寫）：保留 90 天、刪除帳號一起刪、只有管理者讀得到。
+     ③ /v1/quota/hit 的功能鍵放寬成任何功能鍵（原本只收 quota.*）—— 每個功能都有上限之後，計數也要每個功能各記。
+   ★ 跟 sub-v1 同一個做法：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   相容遷移：plans.lims、visits.ms、users.ob 三欄用 PRAGMA 判斷再 ALTER（重跑不報錯、舊資料原封不動）；uev 新表。
+   ============================================================================ */
+const V3_UEV_KEEP_DAYS = 90;
+const V3_ONLINE_STEP_MS = 120 * 1000;     // 單次心跳最多加 2 分鐘在線時間（防灌水：關機一晚再回來不會加 8 小時）
+const V3_LIM_MAX = 9999;
+const V3_FEAT_K_RE = /^[a-z][a-z0-9_.]{1,39}$/;
+
+Hub.prototype.v3Init = function () {
+  if (this._v3Ok) return;
+  const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+  if (!pc.includes('lims')) this.q("ALTER TABLE plans ADD COLUMN lims TEXT DEFAULT '{}'");
+  const vc = this.q('PRAGMA table_info(visits)').map((c) => c.name);
+  if (!vc.includes('ms')) this.q('ALTER TABLE visits ADD COLUMN ms INTEGER DEFAULT 0');
+  const uc = this.q('PRAGMA table_info(users)').map((c) => c.name);
+  if (!uc.includes('ob')) this.q('ALTER TABLE users ADD COLUMN ob INTEGER DEFAULT 0');
+  this.q('CREATE TABLE IF NOT EXISTS uev (uid TEXT, day TEXT, page TEXT, comp TEXT, detail TEXT, n INTEGER, PRIMARY KEY (uid, day, page, comp, detail))');
+  this._v3Ok = true;
+};
+/* 上限：只收 功能鍵 → 0～9999 的整數；任何一項不合格整批不收（同 cleanFeats）。null／undefined＝{}（全部不限）*/
+Hub.prototype.v3CleanLims = function (l) {
+  if (l == null) return {};
+  if (typeof l !== 'object' || Array.isArray(l)) return null;
+  const ent = Object.entries(l);
+  if (ent.length > MAX_FEAT_KEYS) return null;
+  const out = {};
+  for (const [k, v] of ent) {
+    if (!V3_FEAT_K_RE.test(k) || !Number.isInteger(v) || v < 0 || v > V3_LIM_MAX) return null;
+    out[k] = v;
+  }
+  return out;
+};
+Hub.prototype.v3Lims = function (id) {
+  this.v3Init();
+  const r = this.q('SELECT lims FROM plans WHERE id = ?', id)[0];
+  try { return r ? JSON.parse(r.lims || '{}') || {} : {}; } catch (e) { return {}; }
+};
+/* plan()：多帶 lims —— plans/get、plans/put 的回應都經過它，前端一次拿齊 */
+const v3OrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = v3OrigPlan.call(this, id);
+  if (p) p.lims = this.v3Lims(id);
+  return p;
+};
+const v3OrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () {
+  return v3OrigPlanRows.call(this).map((p) => ({ ...p, lims: this.v3Lims(p.id) }));
+};
+/* plans/put：先驗 lims（壞的整個請求 400，不會「開關存了、上限沒存」），原本的存完再寫 lims */
+const v3OrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.v3Init();
+  let lims;
+  if (b && b.lims !== undefined && b.del !== true) {
+    lims = this.v3CleanLims(b.lims);
+    if (!lims) return this.json(req, { error: 'bad_lims' }, 400);
+  }
+  const res = await v3OrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || lims === undefined) return res;
+  this.q('UPDATE plans SET lims = ? WHERE id = ?', JSON.stringify(lims), String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* /v1/perm/me：多回 lims（生效的範本；過期退回免費會員）*/
+const v3OrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await v3OrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.lims = this.v3Lims(j.plan || 'free');
+  return this.json(req, j);
+};
+/* 心跳：原本的照跑；成功而且是登入者 → 加在線時間、記個人使用明細 */
+const v3OrigBeat = Hub.prototype.beat;
+Hub.prototype.beat = async function (req, b) {
+  const res = await v3OrigBeat.call(this, req, b);
+  if (res.status !== 200 || !b.t) return res;
+  const v = await this.verify(b.t);
+  if (!v) return res;
+  this.v3Init();
+  const now = this.now(), day = tpeDay(now), uid = v.user.uid;
+  if (!b.leave) {
+    const ob = this.q('SELECT ob FROM users WHERE uid = ?', uid)[0];
+    const gap = ob && ob.ob ? now - ob.ob : 0;
+    /* 上次加時到現在超過「離線」門檻（150 秒）＝中間斷過，這次只算重新開始，不補中間那段 */
+    const add = gap > 0 && gap <= ONLINE_WINDOW_MS ? Math.min(gap, V3_ONLINE_STEP_MS) : 0;
+    if (add) this.q('INSERT INTO visits (uid, day, n, ms) VALUES (?, ?, 0, ?) ON CONFLICT(uid, day) DO UPDATE SET ms = COALESCE(ms, 0) + excluded.ms', uid, day, add);
+    this.q('UPDATE users SET ob = ? WHERE uid = ?', now, uid);
+  }
+  const rows = [];
+  for (const [k, n] of this.cleanEv(b.ev) || []) if (k.startsWith('pv:')) rows.push([k.slice(3), '_pv', '', n]);
+  for (const r of this.cleanE2(b.e2) || []) rows.push(r);
+  for (const [pg, comp, det, n] of rows.slice(0, 80)) {
+    this.q('INSERT INTO uev (uid, day, page, comp, detail, n) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(uid, day, page, comp, detail) DO UPDATE SET n = n + excluded.n', uid, day, pg, comp, det, n);
+  }
+  return res;
+};
+/* 刪帳號：個人使用明細一起刪（visits 原本就會刪）*/
+const v3OrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b);
+  const res = await v3OrigDelete.call(this, req, b);
+  if (v && res.status === 200) { this.v3Init(); this.q('DELETE FROM uev WHERE uid = ?', v.user.uid); }
+  return res;
+};
+const v3OrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  v3OrigCleanup.call(this);
+  this.v3Init();
+  this.q('DELETE FROM uev WHERE day < ?', tpeDay(this.now() - V3_UEV_KEEP_DAYS * 86400 * 1000));
+  this.q('DELETE FROM uev WHERE uid NOT IN (SELECT uid FROM users)');
+};
+
+/* 會員名單（管理者）：設定過的（perm）＋登入過的（users）合成一人一列，帶使用數據。
+   回：{ now, members: [{ email, name, plan, planName, tier, paid, expires, expired, created, seen, st,
+        onlineMs, online30, visits30, days30, views30, topFeat:[[元件, 次數]×3], topStock:[[代號, 次數]×3] }] } */
+Hub.prototype.v3Members = function () {
+  this.v3Init();
+  const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000);
+  const plans = {}; this.q('SELECT id, name FROM plans').forEach((r) => { plans[r.id] = r.name; });
+  const users = this.q('SELECT uid, name, email, created, seen FROM users ORDER BY seen DESC LIMIT 2000');
+  const vis = {}; this.q('SELECT uid, SUM(n) AS n, SUM(COALESCE(ms, 0)) AS ms, SUM(CASE WHEN n > 0 OR ms > 0 THEN 1 ELSE 0 END) AS d FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r; });
+  const tot = {}; this.q('SELECT uid, SUM(COALESCE(ms, 0)) AS ms FROM visits GROUP BY uid').forEach((r) => { tot[r.uid] = r.ms || 0; });
+  const pv = {}; this.q("SELECT uid, SUM(n) AS n FROM uev WHERE day >= ? AND comp = '_pv' GROUP BY uid", from30).forEach((r) => { pv[r.uid] = r.n; });
+  const feat = {}, stock = {};
+  this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp ORDER BY n DESC", from30)
+    .forEach((r) => { const a = (feat[r.uid] = feat[r.uid] || []); if (a.length < 3) a.push([r.comp, r.n]); });
+  this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail ORDER BY n DESC", from30)
+    .forEach((r) => { const a = (stock[r.uid] = stock[r.uid] || []); if (a.length < 3) a.push([r.detail, r.n]); });
+  const perm = {}; this.q('SELECT email, plan, expires FROM perm').forEach((r) => { perm[r.email] = r; });
+  /* 2026-11-09 每位會員實際拿到的體驗（含手動發放）：管理區名單的「體驗到期」「體驗中」讀這裡，
+     不再靠註冊時間＋活動天數推算（Andy：給了體驗名單卻沒變）。只列出現存範本的體驗；舊前端不認得 grants 欄位就忽略。 */
+  const gr = {};
+  try {
+    this.grantInit();
+    this.q('SELECT g.uid AS uid, g.gid AS gid, g.start AS start, g.end_ AS end_, d.name AS name, d.kind AS kind FROM grants g JOIN grant_defs d ON d.id = g.gid ORDER BY g.end_ DESC')
+      .forEach((r) => { (gr[r.uid] = gr[r.uid] || []).push({ gid: r.gid, name: r.name, kind: r.kind, start: r.start, end: r.end_ }); });
+  } catch (e) { /* 體驗表壞了不影響名單本身 */ }
+  const row = (email, u) => {
+    const p = perm[email], exp = p && p.expires ? p.expires : 0, expired = !!(exp && exp < now);
+    const plan = p && plans[p.plan] ? p.plan : 'free';
+    const uid = u ? u.uid : null, vv = (uid && vis[uid]) || {};
+    return { email, name: u ? u.name : '', plan, planName: plans[plan] || plan, tier: plan === 'free' ? 'free' : 'paid', paid: plan !== 'free' && !expired,
+      expires: exp, expired, set: !!p, created: u ? u.created || 0 : 0, seen: u ? u.seen || 0 : 0,
+      st: expired ? 'exp' : (u ? 'ok' : 'new'), onlineMs: uid ? tot[uid] || 0 : 0, online30: vv.ms || 0, visits30: vv.n || 0, days30: vv.d || 0,
+      views30: uid ? pv[uid] || 0 : 0, topFeat: uid ? feat[uid] || [] : [], topStock: uid ? stock[uid] || [] : [], grants: uid ? gr[uid] || [] : [] };
+  };
+  const out = [], seen = new Set();
+  for (const u of users) { const e = String(u.email || '').toLowerCase(); if (!e || seen.has(e)) continue; seen.add(e); out.push(row(e, u)); }
+  for (const e of Object.keys(perm)) if (!seen.has(e)) { seen.add(e); out.push(row(e, null)); }
+  return { now, members: out };
+};
+/* 某一位會員的詳細使用紀錄（展開那一列用）：各分頁瀏覽、功能次數 Top 15、最常看的股票 Top 10、近 14 天每日（造訪、在線、瀏覽）*/
+Hub.prototype.v3Detail = function (email) {
+  this.v3Init();
+  const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000), from14 = tpeDay(now - 13 * 86400 * 1000);
+  const u = this.q('SELECT uid, name, created, seen FROM users WHERE lower(email) = ?', email)[0];
+  if (!u) return { email, known: false, pages: [], feats: [], stocks: [], days: [] };
+  const pages = this.q("SELECT page, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND comp = '_pv' GROUP BY page ORDER BY n DESC", u.uid, from30).map((r) => [r.page, r.n]);
+  const feats = this.q("SELECT page, comp, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY page, comp ORDER BY n DESC LIMIT 15", u.uid, from30).map((r) => [r.page, r.comp, r.n]);
+  const stocks = this.q("SELECT detail, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY detail ORDER BY n DESC LIMIT 10", u.uid, from30).map((r) => [r.detail, r.n]);
+  const vd = {}; this.q('SELECT day, n, COALESCE(ms, 0) AS ms FROM visits WHERE uid = ? AND day >= ?', u.uid, from14).forEach((r) => { vd[r.day] = r; });
+  const pd = {}; this.q("SELECT day, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND comp = '_pv' GROUP BY day", u.uid, from14).forEach((r) => { pd[r.day] = r.n; });
+  const days = [];
+  for (let i = 13; i >= 0; i--) { const d = tpeDay(now - i * 86400 * 1000); days.push({ day: d, visits: (vd[d] || {}).n || 0, ms: (vd[d] || {}).ms || 0, views: pd[d] || 0 }); }
+  return { email, known: true, name: u.name, created: u.created, seen: u.seen, pages, feats, stocks, days };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/members': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    return this.json(req, this.v3Members());
+  },
+  '/v1/admin/member/detail': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    return this.json(req, this.v3Detail(email));
+  },
+  /* 每日瀏覽次數：功能鍵放寬成任何功能鍵（含舊的 quota.*）；其餘規則同 sub-v1（要登入、同一個 key 一天只算一次、最多 500）*/
+  '/v1/quota/hit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const k = String(b.k || ''), key = String(b.key || '');
+    if (!V3_FEAT_K_RE.test(k) || (key && !QUOTA_KEY_RE.test(key))) return this.json(req, { error: 'bad_input' }, 400);
+    const day = tpeDay(this.now());
+    if (key && this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c < 500) {
+      this.q('INSERT OR IGNORE INTO quota_hits (uid, day, k, key) VALUES (?, ?, ?, ?)', v.user.uid, day, k, key);
+    }
+    const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+    return this.json(req, { day, k, n: keys.length, keys });
+  },
+});
+/* ============================================================================ admin-v3 區塊結束 */
+
+/* ============================================================================ perm-v4 區塊（2026-10-05）
+   Andy 對 #admin/perm：「付費範本頁籤要能拖曳排序、刪除」「會員名單上方加視覺化統計」。後端多三樣：
+     ① plans.sort（整數，愈小愈前面）—— 付費範本的順序。內建 guest／free 永遠在最前面（不吃 sort）。
+        plans/get、plans/put 的回應與 /v1/plans/public 都照這個順序 → 訂閱頁 #pricing 的方案卡跟著變（pricing.js 照後端順序畫）。
+        為什麼不再用 updated 排：原本「改個名字／價格」updated 會變，那個範本就跑到最後 —— 管理者沒拖它，它卻自己換位置。
+     ② /v1/admin/plans/sort { ids:[全部付費範本 id，依新順序] }：拖一次＝送一次整個順序。
+        ids 必須「正好是全部付費範本、不重複」，少一個／多一個／內建範本／不存在 → 400 bad_order，什麼都不寫（不留半套順序）。
+     ③ /v1/admin/members/stats { scope:'all' } 或 { scope:'plan', plan:<id> }：會員名單上方的圖表，伺服器端彙總，
+        前端不必逐人呼叫 member/detail。回：近 30 天最常用功能 Top 8、最常看股票 Top 8、近 14 天每日活躍人數、近 7 日活躍人數。
+        'all'＝所有登入過的人（＝註冊會員頁籤的名單）；'plan'＝被指定到該範本的人（含已過期，跟名單同一個口徑）。
+        「狀態分布」「總人數」「平均在線」由前端從同一份名單（/v1/admin/members）算 —— 圖上的數字一定跟下面的表對得上。
+   相容遷移：plans.sort 用 PRAGMA 判斷再 ALTER；第一次補欄時依「原本的順序（updated, id）」替既有付費範本補 0..n-1，
+   所以上線那一刻順序完全不變；之後新建的範本排最後（max＋1）。
+   ★ 同 sub-v1／admin-v3：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+const V4_HEAD = { guest: 0, free: 1 };
+const V4_TOP = 8;
+
+Hub.prototype.v4Init = function () {
+  if (this._v4Ok) return;
+  this.v3Init();
+  const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+  if (!pc.includes('sort')) {
+    this.q('ALTER TABLE plans ADD COLUMN sort INTEGER');
+    this.q('SELECT id FROM plans WHERE builtin = 0 ORDER BY updated, id').forEach((r, i) => this.q('UPDATE plans SET sort = ? WHERE id = ?', i, r.id));
+  }
+  this._v4Ok = true;
+};
+/* 排序：guest → free → 其他內建 → 付費（sort 小的在前；沒有 sort 的排最後、維持原順序）。每個方案多帶 sort 欄位 */
+Hub.prototype.v4Order = function (plans) {
+  this.v4Init();
+  const s = {}; this.q('SELECT id, sort FROM plans').forEach((r) => { s[r.id] = r.sort; });
+  const key = (p) => (Object.prototype.hasOwnProperty.call(V4_HEAD, p.id) ? [0, V4_HEAD[p.id]] : p.builtin ? [1, 0] : [2, Number.isInteger(s[p.id]) ? s[p.id] : 1e9]);
+  return plans.map((p, i) => [p, i]).sort((a, b) => { const x = key(a[0]), y = key(b[0]); return x[0] - y[0] || x[1] - y[1] || a[1] - b[1]; })
+    .map(([p]) => ({ ...p, sort: Number.isInteger(s[p.id]) ? s[p.id] : null }));
+};
+const v4OrigPlansGet = Hub.prototype.adminPlansGet;
+Hub.prototype.adminPlansGet = async function (req, b) {
+  const res = await v4OrigPlansGet.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.plans = this.v4Order(j.plans || []);
+  return this.json(req, j);
+};
+const v4OrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return this.v4Order(v4OrigPlanRows.call(this)); };
+/* 新建的付費範本排最後（max＋1）；改名、改價、改開關不動順序 */
+const v4OrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.v4Init();
+  const res = await v4OrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || !b || b.del === true) return res;
+  const r = this.q('SELECT builtin, sort FROM plans WHERE id = ?', String(b.id || ''))[0];
+  if (!r || r.builtin || r.sort != null) return res;
+  const mx = this.q('SELECT MAX(sort) AS m FROM plans WHERE builtin = 0')[0].m;
+  this.q('UPDATE plans SET sort = ? WHERE id = ?', mx == null ? 0 : mx + 1, String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 會員名單上方的圖表（③）。uid 範圍：'all'＝所有登入過的人；'plan'＝perm.plan 是這個範本的人（沒登入過的沒有使用紀錄，不影響彙總）*/
+Hub.prototype.v4Stats = function (scope, plan) {
+  this.v4Init();
+  const now = this.now(), d30 = tpeDay(now - 29 * 86400 * 1000), d14 = tpeDay(now - 13 * 86400 * 1000), d7 = tpeDay(now - 6 * 86400 * 1000);
+  const users = this.q('SELECT uid, email FROM users');
+  let pick = users;
+  if (scope === 'plan') {
+    const em = new Set(this.q('SELECT email FROM perm WHERE plan = ?', plan).map((r) => r.email));
+    pick = users.filter((u) => em.has(String(u.email || '').toLowerCase()));
+  }
+  const set = new Set(pick.map((u) => u.uid));
+  const feats = {}, stocks = {}, act = {};
+  this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp", d30)
+    .forEach((r) => { if (set.has(r.uid)) feats[r.comp] = (feats[r.comp] || 0) + r.n; });
+  this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail", d30)
+    .forEach((r) => { if (set.has(r.uid)) stocks[r.detail] = (stocks[r.detail] || 0) + r.n; });
+  /* 「活躍」＝那一天有開網站（visits.n）、有在線時間（visits.ms）或有任何使用紀錄（uev）—— 三者任一 */
+  const mark = (r) => { if (set.has(r.uid)) (act[r.day] = act[r.day] || new Set()).add(r.uid); };
+  this.q('SELECT uid, day FROM visits WHERE day >= ? AND (n > 0 OR COALESCE(ms, 0) > 0)', d14).forEach(mark);
+  this.q('SELECT DISTINCT uid, day FROM uev WHERE day >= ?', d14).forEach(mark);
+  const days = [], a7 = new Set();
+  for (let i = 13; i >= 0; i--) {
+    const d = tpeDay(now - i * 86400 * 1000), s = act[d] || new Set();
+    days.push({ day: d, n: s.size });
+    if (d >= d7) s.forEach((u) => a7.add(u));
+  }
+  const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, V4_TOP);
+  return { now, scope, plan: scope === 'plan' ? plan : null, n: set.size, active7: a7.size, feats: top(feats), stocks: top(stocks), days };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/plans/sort': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.v4Init();
+    const paid = new Set(this.q('SELECT id FROM plans WHERE builtin = 0').map((r) => r.id));
+    const ids = b.ids;
+    if (!Array.isArray(ids) || ids.length !== paid.size || new Set(ids).size !== ids.length
+      || !ids.every((id) => typeof id === 'string' && PLAN_RE.test(id) && paid.has(id))) return this.json(req, { error: 'bad_order' }, 400);
+    ids.forEach((id, i) => this.q('UPDATE plans SET sort = ? WHERE id = ?', i, id));
+    return await this.adminPlansGet(req, b);
+  },
+  '/v1/admin/members/stats': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const scope = b.scope == null || b.scope === 'all' ? 'all' : b.scope === 'plan' ? 'plan' : null;
+    if (!scope) return this.json(req, { error: 'bad_scope' }, 400);
+    const plan = scope === 'plan' ? String(b.plan == null ? '' : b.plan) : null;
+    if (scope === 'plan' && (!PLAN_RE.test(plan) || !this.plan(plan))) return this.json(req, { error: 'bad_plan' }, 400);
+    return this.json(req, this.v4Stats(scope, plan));
+  },
+});
+/* ============================================================================ perm-v4 區塊結束 */
+
+/* ============================================================================ hourly 區塊（2026-10-05）
+   Andy：流量觀測「即時」要看今天 0–24 時每小時的狀況、「使用者」分頁要看每小時的使用時段（1H／4H／6H／12H／白天／晚上），
+   而且 ETF、選股策略、事件、客服、財經日曆這幾頁要有真的瀏覽數。後端多兩樣：
+     ① 每小時統計 hstat：一列＝「台北日期 × 小時（0–23）」，四個次數：
+          pv          頁面瀏覽（所有 pv:* 加總）
+          sess        開站（ev:session）
+          sess_login  登入狀態下開站（ev:session_login）；訪客開站＝sess − sess_login
+          mins        心跳次數（不含「離開」那一跳）＝這一小時「看得到的分頁」在線分鐘數；平均同時在線 ≈ mins ÷ 60
+        · 跟 usage 吃同一份心跳、同一套驗證：原本的 beat 回 200 才記，整批被擋（400／429）的這裡也不記 ——
+          所以「今天各小時加總」＝usage 表的今天，兩邊對得上（tests/hourly.test.mjs 驗）。
+        · 歸到「Worker 收到心跳」的那一小時：前端 60 秒送一次，整點前一分鐘內的動作可能算到下一小時（誤差 ≤ 1 分鐘）。
+        · 只有次數：沒有 uid、沒有 sid、不存 IP —— 跟 usage 同一個隱私等級；保留期限也跟 usage 一樣（13 個月，同一個切點）。
+        · /v1/admin/stats 的回應多三個欄位（原有欄位一個不動）：
+            hours   [24]  今天（台北）0–23 時每小時頁面瀏覽；還沒到的小時＝0
+            hourly  [24]  期間 from～to 內，各「時」的頁面瀏覽加總（使用時段圖）
+            hstat   { today, hour, since, day:{pv,open,login,guest,mins}, period:{from,to,pv,open,login,guest,mins} }（各數列都是 24 格）
+          格式與前端接法寫在 docs/account_analytics.md「每小時統計」。
+     ② 頁面白名單加 etf、explore、earnings、pricing、notices（網址頁）與 events（今日事件抽屜）、support（客服面板）。
+        做法是把 VIEWS 陣列（與 EV_KEYS）在這裡補上 —— cleanEv、cleanE2、線上名單的 route、/v1/admin/stats 的 page 篩選全部讀同一份，
+        既有函式不用改一行就收得下。舊資料不動：之前記在 other 底下、元件名帶前綴（etf.cat、support.fab、events.link…）的細項照舊回在 e2 裡。
+        ★ Worker 先上、前端後上：Worker 先收得下新頁面，site/account.js 的 VIEWS 才能加（反過來＝那一分鐘的心跳整批 400、統計全丟）。
+   ★ 同 sub-v1／admin-v3／perm-v4：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+/* 2026-10-16：加 articles（精選文章 #articles、#article/<id>；Andy：「精選文章其他分頁有的功能 他也要有」）—— 同上，Worker 要比前端先收得下 */
+export const VIEWS_ADDED = ['etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices', 'articles'];
+for (const v of VIEWS_ADDED) { if (!VIEWS.includes(v)) VIEWS.push(v); EV_KEYS.add('pv:' + v); }
+
+const tpeHour = (ms) => new Date(ms + 8 * 3600 * 1000).getUTCHours();
+const hrZero = () => Array.from({ length: 24 }, () => 0);
+
+Hub.prototype.hrInit = function () {
+  if (this._hrOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS hstat (day TEXT, h INTEGER, pv INTEGER DEFAULT 0, sess INTEGER DEFAULT 0, sess_login INTEGER DEFAULT 0, mins INTEGER DEFAULT 0, PRIMARY KEY (day, h))');
+  this._hrOk = true;
+};
+/* 期間內各「時」加總（from～to 都是台北日期，含頭含尾）。回五個 24 格數列。*/
+Hub.prototype.hrSeries = function (from, to) {
+  this.hrInit();
+  const out = { pv: hrZero(), open: hrZero(), login: hrZero(), guest: hrZero(), mins: hrZero() };
+  this.q('SELECT h, SUM(pv) AS pv, SUM(sess) AS s, SUM(sess_login) AS sl, SUM(mins) AS m FROM hstat WHERE day >= ? AND day <= ? GROUP BY h', from, to).forEach((r) => {
+    if (!(r.h >= 0 && r.h < 24)) return;
+    out.pv[r.h] = r.pv || 0; out.open[r.h] = r.s || 0; out.login[r.h] = r.sl || 0; out.mins[r.h] = r.m || 0;
+  });
+  for (let h = 0; h < 24; h++) out.guest[h] = Math.max(0, out.open[h] - out.login[h]);
+  return out;
+};
+/* 心跳：原本的照跑；回 200（＝usage 已經記下）才同步累加到這一小時。統計失敗不影響心跳本身的回應。*/
+const hrOrigBeat = Hub.prototype.beat;
+Hub.prototype.beat = async function (req, b) {
+  const res = await hrOrigBeat.call(this, req, b);
+  if (res.status !== 200) return res;
+  try {
+    let pv = 0, sess = 0, sl = 0;
+    for (const [k, n] of this.cleanEv(b.ev) || []) {
+      if (k.startsWith('pv:')) pv += n; else if (k === 'ev:session') sess += n; else if (k === 'ev:session_login') sl += n;
+    }
+    const mins = b.leave ? 0 : 1;
+    if (pv || sess || sl || mins) {
+      this.hrInit();
+      const now = this.now();
+      this.q('INSERT INTO hstat (day, h, pv, sess, sess_login, mins) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(day, h) DO UPDATE SET pv = pv + excluded.pv, sess = sess + excluded.sess, sess_login = sess_login + excluded.sess_login, mins = mins + excluded.mins',
+        tpeDay(now), tpeHour(now), pv, sess, sl, mins);
+    }
+  } catch (e) { /* 每小時統計寫不進去：心跳照樣算成功（不然前端會把這批計數放回去重送，usage 就重複了）*/ }
+  return res;
+};
+/* /v1/admin/stats：原本的照跑（權限、rows、e2、users…一個不動），回 200 才在後面加 hours／hourly／hstat */
+const hrOrigStats = Hub.prototype.adminStats;
+Hub.prototype.adminStats = async function (req, b) {
+  const res = await hrOrigStats.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  const now = this.now(), today = tpeDay(now);
+  const day = this.hrSeries(today, today), per = this.hrSeries(j.from, j.to);
+  const first = this.q('SELECT MIN(day) AS d FROM hstat')[0];
+  j.hours = day.pv.slice();
+  j.hourly = per.pv.slice();
+  j.hstat = { today, hour: tpeHour(now), since: (first && first.d) || null, day, period: { from: j.from, to: j.to, ...per } };
+  return this.json(req, j);
+};
+/* 保存期限：跟 usage 同一個切點（13 個月） */
+const hrOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  hrOrigCleanup.call(this);
+  this.hrInit();
+  const d = new Date(this.now() + 8 * 3600 * 1000); d.setUTCMonth(d.getUTCMonth() - USAGE_KEEP_MONTHS);
+  this.q('DELETE FROM hstat WHERE day < ?', d.toISOString().slice(0, 10));
+};
+/* ============================================================================ hourly 區塊結束 */
+
+/* =====================================================================
+
+/* ============================================================================
+   範本刪除保護（2026-10-05，Andy：「還有有效會員的付費範本不能刪」）
+   plans/put 帶 del:true 時：這個範本若還有「有效會員」（perm.plan 指向它、而且沒到期：expires 為空或 0 或晚於現在）→ 409 {error:'has_members', n, emails}
+   不刪、不動任何資料；只剩已到期的人或 0 人才照原本流程刪（用它的人退回免費會員、個別微調保留）。
+   只在這個檔尾加區塊（prototype 包裝），不改前面的函式。
+   ============================================================================ */
+const delGuardOrig = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  if (b && b.del === true && typeof b.id === 'string' && PLAN_RE.test(b.id)) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const cur = this.plan(b.id);
+    if (cur && !cur.builtin) {
+      const now = this.now();
+      const act = this.q('SELECT email FROM perm WHERE plan = ? AND (expires IS NULL OR expires = 0 OR expires > ?) ORDER BY email', b.id, now);
+      if (act.length) return this.json(req, { error: 'has_members', n: act.length, emails: act.slice(0, 50).map((r) => r.email) }, 409);
+    }
+  }
+  return await delGuardOrig.call(this, req, b);
+};
+/* ============================================================================ 範本刪除保護區塊結束 */
+
+/* ============================================================================
+   /v1/admin/stats 起訖日（2026-10-06，Andy：「起始日期～結束日期」要讓分頁統計也跟著結束日）
+   純新增：請求多收 `from`、`to`（台北日期 YYYY-MM-DD，含頭含尾）；兩個都沒帶＝完全照舊（只看 days）。
+     · to 沒帶＝今天；to 晚於今天＝當成今天；from 沒帶＝to 往前 30 天（含 to 共 30 天）
+     · 日期格式不對、from 晚於 to、from 比今天早超過 400 天 → 400 { error:'bad_range' }（不默默修正）
+     · 回應形狀不變：from／to 變成實際起訖；rows、e2（依起訖重算）、hourly 與 hstat.period（依起訖重算）。
+       hours／hstat.day 永遠是「今天」（即時用），不受起訖影響。users 不受影響。
+   只在這個檔尾加區塊（prototype 包裝），不改前面的函式。
+   ============================================================================ */
+const rngOrigStats = Hub.prototype.adminStats;
+Hub.prototype.adminStats = async function (req, b) {
+  const has = (k) => b && b[k] !== undefined && b[k] !== null;
+  if (!has('from') && !has('to')) return await rngOrigStats.call(this, req, b);
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  const today = tpeDay(this.now());
+  const okDay = (s) => { if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; const t = Date.parse(s + 'T00:00:00Z'); return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === s; };
+  const dayN = (s) => Date.parse(s + 'T00:00:00Z') / 86400000;
+  let to = has('to') ? b.to : today;
+  if (!okDay(to) || (has('from') && !okDay(b.from))) return this.json(req, { error: 'bad_range' }, 400);
+  if (to > today) to = today;
+  const from = has('from') ? b.from : new Date(Date.parse(to + 'T00:00:00Z') - 29 * 86400000).toISOString().slice(0, 10);
+  if (from > to || dayN(today) - dayN(from) + 1 > 400) return this.json(req, { error: 'bad_range' }, 400);
+  const res = await rngOrigStats.call(this, req, { ...b, days: dayN(today) - dayN(from) + 1, page: b.page });
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.from = from; j.to = to;
+  j.rows = j.rows.filter((r) => r.day >= from && r.day <= to);
+  const pg = VIEWS.includes(b.page) ? b.page : null;
+  j.e2 = this.q(`SELECT page, comp, detail, SUM(n) AS n FROM ev2 WHERE day >= ? AND day <= ?${pg ? ' AND page = ?' : ''} GROUP BY page, comp, detail ORDER BY n DESC LIMIT 3000`, ...(pg ? [from, to, pg] : [from, to]));
+  if (j.hstat) { const per = this.hrSeries(from, to); j.hourly = per.pv.slice(); j.hstat.period = { from, to, ...per }; }
+  return this.json(req, j);
+};
+/* ============================================================================ 起訖日區塊結束 */
+
+/* ============================================================================
+   會員名單統計：依期間（2026-10-06，Andy：「上方圖表需要優化，Follow 觀測流量 分頁，並且數據請補齊全」）
+   /v1/admin/members/stats 原本固定「功能／股票＝近 30 天、每日活躍＝近 14 天」，前端的期間選單（近 7／30／90／365 天、指定起訖）接不上。
+   現在多收三個選填參數（都不帶＝原本的回應，加上期間欄位；舊前端不受影響）：
+     from、to ：台北日期（含頭含尾）。to 沒帶＝今天、晚於今天＝今天；from 沒帶＝to 往前 30 天。
+                格式不對、from 晚於 to、超過 400 天 → 400 { error:'bad_range' }（不默默修正）。
+     bin      ：'day'｜'week'｜'month'（週＝週一起算、月＝每月 1 日）。預設 day；天數超過 120 天時，day 一律改成 week（直條太細看不到）。
+   回應多了（原欄位一個不動，除非帶了 from／to：feats、stocks、days 改成該期間）：
+     from、to、bin、keepDays（個人使用明細只留 90 天，期間更長時前端要說明）、since（最早一筆個人使用紀錄的日期，沒有＝null）
+     active（期間內有活躍的不同人數）、visits（造訪次數）、ms（累計在線毫秒）、pv（頁面瀏覽）、joined（期間內新加入的人數）
+     featTotal、stockTotal（功能／股票的全部次數，前端算「占 %」用）
+     days：[{ day（區間起日）, n（該區間活躍的不同人數）, visits, pv }]，每個區間一筆，沒活動的也有（n＝0）。
+   只在檔尾加區塊（prototype 包裝＋覆蓋路由），不改前面的函式。
+   ============================================================================ */
+const v6Valid = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(Date.parse(s + 'T00:00:00Z')) && new Date(Date.parse(s + 'T00:00:00Z')).toISOString().slice(0, 10) === s;
+const v6BinOf = (day, bin) => {
+  if (bin === 'month') return day.slice(0, 7) + '-01';
+  if (bin === 'week') { const t = Date.parse(day + 'T00:00:00Z'); return new Date(t - ((new Date(t).getUTCDay() + 6) % 7) * 86400000).toISOString().slice(0, 10); }
+  return day;
+};
+Hub.prototype.v6Stats = function (scope, plan, from, to, bin) {
+  const base = this.v4Stats(scope, plan);
+  const users = this.q('SELECT uid, email, created FROM users');
+  let pick = users;
+  if (scope === 'plan') {
+    const em = new Set(this.q('SELECT email FROM perm WHERE plan = ?', plan).map((r) => r.email));
+    pick = users.filter((u) => em.has(String(u.email || '').toLowerCase()));
+  }
+  const set = new Set(pick.map((u) => u.uid));
+  const feats = {}, stocks = {}, act = {}, vis = {}, pvd = {}, who = new Set();
+  let visits = 0, ms = 0, pv = 0, featTotal = 0, stockTotal = 0;
+  this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND day <= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp", from, to)
+    .forEach((r) => { if (set.has(r.uid)) { feats[r.comp] = (feats[r.comp] || 0) + r.n; featTotal += r.n; } });
+  this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND day <= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail", from, to)
+    .forEach((r) => { if (set.has(r.uid)) { stocks[r.detail] = (stocks[r.detail] || 0) + r.n; stockTotal += r.n; } });
+  const mark = (r) => { if (!set.has(r.uid)) return; who.add(r.uid); const k = v6BinOf(r.day, bin); (act[k] = act[k] || new Set()).add(r.uid); };
+  this.q('SELECT uid, day, n, COALESCE(ms, 0) AS ms FROM visits WHERE day >= ? AND day <= ?', from, to).forEach((r) => {
+    if (!set.has(r.uid)) return;
+    visits += r.n || 0; ms += r.ms || 0; const k = v6BinOf(r.day, bin); vis[k] = (vis[k] || 0) + (r.n || 0);
+    if (r.n > 0 || r.ms > 0) mark(r);
+  });
+  this.q('SELECT DISTINCT uid, day FROM uev WHERE day >= ? AND day <= ?', from, to).forEach(mark);
+  this.q("SELECT uid, day, SUM(n) AS n FROM uev WHERE day >= ? AND day <= ? AND comp = '_pv' GROUP BY uid, day", from, to).forEach((r) => {
+    if (!set.has(r.uid)) return; pv += r.n; const k = v6BinOf(r.day, bin); pvd[k] = (pvd[k] || 0) + r.n;
+  });
+  const days = [];
+  for (let t = Date.parse(from + 'T00:00:00Z'), end = Date.parse(to + 'T00:00:00Z'); t <= end; t += 86400000) {
+    const k = v6BinOf(new Date(t).toISOString().slice(0, 10), bin);
+    if (!days.length || days[days.length - 1].day !== k) days.push({ day: k, n: (act[k] || new Set()).size, visits: vis[k] || 0, pv: pvd[k] || 0 });
+  }
+  const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, V4_TOP);
+  const joined = pick.filter((u) => u.created && tpeDay(u.created) >= from && tpeDay(u.created) <= to).length;
+  const s1 = this.q('SELECT MIN(day) AS d FROM uev')[0], s2 = this.q('SELECT MIN(day) AS d FROM visits')[0];
+  const since = [s1 && s1.d, s2 && s2.d].filter(Boolean).sort()[0] || null;
+  return { ...base, from, to, bin, keepDays: V3_UEV_KEEP_DAYS, since, active: who.size, visits, ms, pv, joined, featTotal, stockTotal, feats: top(feats), stocks: top(stocks), days };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/members/stats': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const scope = b.scope == null || b.scope === 'all' ? 'all' : b.scope === 'plan' ? 'plan' : null;
+    if (!scope) return this.json(req, { error: 'bad_scope' }, 400);
+    const plan = scope === 'plan' ? String(b.plan == null ? '' : b.plan) : null;
+    if (scope === 'plan' && (!PLAN_RE.test(plan) || !this.plan(plan))) return this.json(req, { error: 'bad_plan' }, 400);
+    const has = (k) => b[k] !== undefined && b[k] !== null;
+    const today = tpeDay(this.now()), dayN = (s) => Date.parse(s + 'T00:00:00Z') / 86400000;
+    if ((has('to') && !v6Valid(b.to)) || (has('from') && !v6Valid(b.from))) return this.json(req, { error: 'bad_range' }, 400);
+    let to = has('to') ? b.to : today; if (to > today) to = today;
+    const from = has('from') ? b.from : new Date(dayN(to) * 86400000 - 29 * 86400000).toISOString().slice(0, 10);
+    if (from > to || dayN(to) - dayN(from) + 1 > 400) return this.json(req, { error: 'bad_range' }, 400);
+    let bin = ['day', 'week', 'month'].includes(b.bin) ? b.bin : 'day';
+    if (bin === 'day' && dayN(to) - dayN(from) + 1 > 120) bin = 'week';
+    const j = this.v6Stats(scope, plan, from, to, bin);
+    /* 沒帶起訖＝舊前端：每日活躍照舊給近 14 天（{day, n}）、其餘欄位是近 30 天 */
+    if (!has('from') && !has('to')) j.days = this.v4Stats(scope, plan).days;
+    return this.json(req, j);
+  },
+});
+/* ============================================================================ 會員名單統計（依期間）區塊結束 */
+
+/* ============================================================================ 批次端點區塊（2026-10-06，Andy：「流量觀測改成批次送出，上架前做」）
+   以前前端每 60 秒打一次 /v1/beat（心跳＋這一分鐘的計數）；上架後每位使用者每分鐘一個請求，Worker 請求數跟「在線人數×分鐘」成正比。
+   改成前端把「每一分鐘的心跳」先排進佇列，每 5 分鐘、累積 30 筆事件、或頁面隱藏／關閉時，一次打包送到這裡。
+     POST /v1/track/batch  { sid, t?, now（送出當下的前端時鐘，毫秒）, leave?, items: [{ ts, r, ev, e2?, live }] }
+       · items 每一筆＝以前的一次心跳：live＝1 是「看得到的那一分鐘」（算在線分鐘、在線時間），
+         live＝0 是「只有計數」（隱藏前、湊滿 30 筆提早送的那一段，不算分鐘 —— 等同以前的「離開」那一跳）
+       · 逐筆交給原本的 beat（含 v3、hourly 兩層包裝）跑，時間換成該筆的 ts —— 所以 usage／ev2／hstat／visits／uev
+         的結果跟一筆一筆送完全一樣（tests/batch.test.mjs：10 筆單送 vs 1 批送，五張表逐列相同）
+       · 前端時鐘可能跟 Worker 差幾秒到幾分鐘：用 now 算出差值把每筆 ts 校正到 Worker 時間，再驗「不早於 24 小時、不晚於現在」；
+         不合格的那一筆丟掉（回 skipped），其他照收 —— 不因為一筆壞掉讓前端整批重送，造成重複計數
+       · 單批最多 100 筆（前端一分鐘一筆、5 分鐘一批，正常 5～6 筆）；body 上限 64KB（單筆端點是 16KB，100 筆裝不下）
+       · 速率限制整批只算一次；線上名單（presence）在整批跑完後用「現在」更新一次，leave＝1 則刪掉
+     回：{ ok, took, skipped, n?（線上人數，同 /v1/beat 的規則）}
+   ★ 舊的 /v1/beat 保留不動：瀏覽器快取裡的舊版網頁還會打它。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const BATCH_MAX = 100, BATCH_MAX_BYTES = 65536, BATCH_MAX_AGE_MS = 24 * 3600 * 1000;
+Hub.prototype.trackBatch = async function (req, b) {
+  if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+  const sid = String(b.sid || '');
+  if (!/^[A-Za-z0-9_-]{8,40}$/.test(sid)) return this.json(req, { error: 'bad_sid' }, 400);
+  if (!Array.isArray(b.items) || b.items.length > BATCH_MAX) return this.json(req, { error: 'bad_items' }, 400);
+  const now = this.now();
+  const skew = Number.isFinite(b.now) ? now - b.now : 0;
+  /* 逐筆跑原本的 beat：用一個「時間換成這筆 ts、速率限制關掉、不觸發清理」的影子物件呼叫，
+     不去改 hub 本身的屬性 —— beat 裡有 await，改 hub 本身會讓同時進來的別的請求讀到錯的時間 */
+  let took = 0, skipped = 0, last = null;
+  for (const it of b.items) {
+    const ts = it && Number.isFinite(it.ts) ? it.ts + skew : NaN;
+    if (!(ts >= now - BATCH_MAX_AGE_MS && ts <= now)) { skipped++; continue; }
+    const one = { sid, r: it.r, ev: it.ev || {}, ...(it.e2 ? { e2: it.e2 } : {}), ...(it.live ? {} : { leave: true }), ...(b.t ? { t: b.t } : {}) };
+    const ctx = Object.create(this, { now: { value: () => ts }, rateOk: { value: () => true }, lastClean: { value: Infinity, writable: true } });
+    const res = await Hub.prototype.beat.call(ctx, req, one);
+    if (res.status === 200) { took++; last = it; } else skipped++;
+  }
+  const v = b.t ? await this.verify(b.t) : null;
+  if (b.leave) this.q('DELETE FROM presence WHERE sid = ?', sid);
+  else {
+    const r = last && VIEWS.includes(last.r) ? last.r : 'other';
+    this.q('INSERT INTO presence (sid, uid, route, seen) VALUES (?, ?, ?, ?) ON CONFLICT(sid) DO UPDATE SET uid = excluded.uid, route = excluded.route, seen = excluded.seen', sid, v ? v.user.uid : null, r, now);
+  }
+  if (now - this.lastClean > 60 * 1000) this.cleanup();
+  const out = { ok: true, took, skipped };
+  if (this.publicOnline() || (v && this.isAdmin(v.user))) out.n = this.onlineCount();
+  return this.json(req, out);
+};
+/* 接線：只攔這一條路徑（body 上限放寬到 64KB），其他照舊交給前面的 fetch */
+const batchOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  if (req.method !== 'POST' || new URL(req.url).pathname !== '/v1/track/batch') return batchOrigFetch.call(this, req);
+  try {
+    if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+    const raw = await req.text();
+    if (raw.length > BATCH_MAX_BYTES) return this.json(req, { error: 'too_large' }, 413);
+    let b; try { b = JSON.parse(raw || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return this.json(req, { error: 'bad_json' }, 400);
+    return await this.trackBatch(req, b);
+  } catch (e) {
+    return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+};
+/* ============================================================================ 批次端點區塊結束 */
+
+/* ============================================================================
+   data-gw 停權區塊（2026-10-06，docs/datagw_plan.md 第三階段）
+   ----------------------------------------------------------------------------
+   付費資料閘道（workers/data-gw）偵測到異常且 AUTO_SUSPEND=1 時，經 service binding 呼叫：
+     POST /internal/suspend   標頭 X-Internal-Key: <INTERNAL_KEY>   { uid, reason }
+       → users.tv + 1（所有舊登入權杖立刻失效）＋ susp 表記一列（append-only：每次停權、解除都是新的一列，舊列不改不刪）
+   之後就算重新登入拿到新權杖，verify() 也會因為「最新一列是停權」而拒絕 —— 直到管理者解除。
+   管理者：
+     POST /v1/admin/susp/list  { t }            最近 300 列停權／解除紀錄（含 email、名字、現在是否停權中）
+     POST /v1/admin/susp/lift  { t, uid, note } 寫一列「解除」（不刪停權那列，留痕）
+     POST /v1/admin/uids       { t, uids:[] }   異常頁把 data-gw 記的 uid 換成 email／名字（最多 100 個）
+   ★ 「只能由 data-gw 呼叫」怎麼做到：
+     ① 必須帶 X-Internal-Key，跟 Worker Secret INTERNAL_KEY 等長逐字元比對；INTERNAL_KEY 沒設＝這條路徑不存在（404）。
+        這把鑰匙只設在 account-api 與 data-gw 兩支 Worker 的 Secret 裡，前端、repo、log 都沒有。
+     ② data-gw 只透過 service binding（同帳號內部呼叫，不走公網）送這支請求。
+     ③ 管理者帳號不會被停（避免規則誤傷 Andy 自己、把管理頁鎖死）。
+   同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+Hub.prototype.suspInit = function () {
+  if (this._suspInit) return;
+  this._suspInit = true;
+  this.q('CREATE TABLE IF NOT EXISTS susp (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, ts INTEGER, act TEXT, reason TEXT, by TEXT)');
+  this.q('CREATE INDEX IF NOT EXISTS susp_uid ON susp (uid, id)');
+};
+Hub.prototype.isSuspended = function (uid) {
+  this.suspInit();
+  const r = this.q('SELECT act FROM susp WHERE uid = ? ORDER BY id DESC LIMIT 1', uid)[0];
+  return !!r && r.act === 'suspend';
+};
+const suspOrigVerify = Hub.prototype.verify;
+Hub.prototype.verify = async function (tok) {
+  const v = await suspOrigVerify.call(this, tok);
+  return v && this.isSuspended(v.user.uid) ? null : v;
+};
+Hub.prototype.internalSuspend = async function (req) {
+  const key = String(this.env.INTERNAL_KEY || '');
+  if (!key) return this.json(req, { error: 'not_found' }, 404);
+  if (!safeEq(String(req.headers.get('X-Internal-Key') || ''), key)) return this.json(req, { error: 'forbidden' }, 403);
+  let b; try { b = JSON.parse((await req.text()) || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+  const uid = String((b && b.uid) || '');
+  if (!/^[A-Za-z0-9_-]{4,40}$/.test(uid)) return this.json(req, { error: 'bad_uid' }, 400);
+  const u = this.q('SELECT uid, email FROM users WHERE uid = ?', uid)[0];
+  if (!u) return this.json(req, { error: 'not_found' }, 404);
+  if (this.isAdmin(u)) return this.json(req, { error: 'admin' }, 409);
+  if (this.isSuspended(uid)) return this.json(req, { ok: true, already: true });
+  this.q('UPDATE users SET tv = tv + 1 WHERE uid = ?', uid);
+  this.q('INSERT INTO susp (uid, ts, act, reason, by) VALUES (?, ?, ?, ?, ?)', uid, this.now(), 'suspend', String(b.reason || '').slice(0, 200), 'data-gw');
+  return this.json(req, { ok: true });
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/susp/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.suspInit();
+    const rows = this.q('SELECT s.id, s.uid, s.ts, s.act, s.reason, s.by, u.email, u.name FROM susp s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.id DESC LIMIT 300');
+    return this.json(req, { rows: rows.map((r) => ({ ...r, now: this.isSuspended(r.uid) })) });
+  },
+  '/v1/admin/susp/lift': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    const uid = String(b.uid || '');
+    if (!this.isSuspended(uid)) return this.json(req, { error: 'not_suspended' }, 400);
+    this.q('INSERT INTO susp (uid, ts, act, reason, by) VALUES (?, ?, ?, ?, ?)', uid, this.now(), 'lift', String(b.note || '').slice(0, 200), String(v.user.email || ''));
+    return this.json(req, { ok: true });
+  },
+  '/v1/admin/uids': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const ids = Array.isArray(b.uids) ? b.uids.slice(0, 100).map(String) : [];
+    const out = {};
+    ids.forEach((id) => { const u = this.q('SELECT email, name FROM users WHERE uid = ?', id)[0]; if (u) out[id] = { email: u.email, name: u.name, susp: this.isSuspended(id) }; });
+    return this.json(req, { users: out });
+  },
+});
+const suspOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  if (req.method === 'POST' && new URL(req.url).pathname === '/internal/suspend') {
+    try { return await this.internalSuspend(req); } catch (e) { return this.json(req, { error: 'server' }, 500); }
+  }
+  return suspOrigFetch.call(this, req);
+};
+/* ============================================================================ data-gw 停權區塊結束 */
+
+/* ============================================================================ 會員資料匯出／還原區塊（2026-10-06，規格 docs/admin_export_spec.md）
+   為什麼：會員帳號、方案、到期日、統計全在這個 Durable Object 的 SQLite，GitHub 上沒有副本；筆電每日備份補這個缺口。
+     POST /v1/admin/export
+       · 兩種身分可以叫：① 管理者（Origin 白名單＋body.t 是 ADMIN_EMAILS 內的登入權杖）
+                          ② 備份權杖：Authorization: Bearer <BACKUP_TOKEN>（Worker Secret），不檢查 Origin（筆電排程沒有瀏覽器）
+       · 唯讀：只有 SELECT；唯一的寫入是稽核計數 usage(day, 'admin_export')
+       · 不匯出：logins（一次性登入狀態）、presence（線上名單）、kv 裡的 hmac（登入權杖簽章金鑰）與任何金鑰類的鍵
+       · 回應的「位元組」：{"v":1,"at":"…","tables":{表:{cols,rows}},"sha256":"<hex>","sig":"<hex>"}
+         被簽的內容＝原文從開頭到 ,"sha256": 之前、再補一個 }（＝JSON.stringify({v,at,tables}) 的原字串）。
+         這樣筆電端（PowerShell）不必重新序列化 JSON 就能驗簽 —— 重新序列化幾乎一定跟 JS 的輸出差幾個位元組。
+       · sig＝HMAC-SHA256(EXPORT_SIGN_KEY，沒設就用 BACKUP_TOKEN)；兩個都沒設時 sig 為空字串（import 會拒收）
+       · 同一身分每小時最多 6 次（記憶體計數，冷啟動歸零 —— 夠擋誤設的排程狂打）
+     POST /v1/admin/import?confirm=RESTORE-INTO-EMPTY-DB
+       · body＝export 的原文（上限 20MB）；sig 驗不過、confirm 不對、users 不是 0 筆 → 一律拒絕，什麼都不寫
+       · 身分同上（實務上只會用備份權杖：資料庫是空的就沒有管理者帳號能登入）
+       · 寫入：逐表先清空再寫回（kv 保留本機的 hmac 不動），全部包在一個交易裡
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const EXPORT_TABLES = ['users', 'lists', 'perm', 'plans', 'kv', 'sub_requests', 'feedback', 'notices', 'notice_reads', 'usage', 'ev2', 'uev', 'visits', 'hstat', 'quota_hits'];
+export const EXPORT_CONFIRM = 'RESTORE-INTO-EMPTY-DB';
+const EXPORT_MAX_PER_HOUR = 6, IMPORT_MAX_BYTES = 20 * 1024 * 1024;
+const EXP_KV_SECRET = /^hmac$|key|secret|token|pass/i;
+const hexOf = (buf) => Array.from(new Uint8Array(buf), (x) => x.toString(16).padStart(2, '0')).join('');
+Hub.prototype.expKey = function () { return String(this.env.EXPORT_SIGN_KEY || this.env.BACKUP_TOKEN || ''); };
+Hub.prototype.expSign = async function (content) {
+  const sha = hexOf(await crypto.subtle.digest('SHA-256', enc.encode(content)));
+  const k = this.expKey();
+  if (!k) return { sha, sig: '' };
+  const key = await crypto.subtle.importKey('raw', enc.encode(k), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return { sha, sig: hexOf(await crypto.subtle.sign('HMAC', key, enc.encode(content))) };
+};
+/* 回 { who } 或 null。帶了 Authorization 就只認備份權杖；沒帶就照管理者路由的規矩（Origin＋管理者權杖） */
+Hub.prototype.expWho = async function (req, b) {
+  const h = String(req.headers.get('Authorization') || '');
+  const bt = String(this.env.BACKUP_TOKEN || '');
+  if (h.startsWith('Bearer ')) return bt.length >= 16 && safeEq(h.slice(7).trim(), bt) ? { who: 'backup' } : null;
+  if (!this.originOk(req.headers.get('Origin'))) return null;
+  const v = b && b.t ? await this.admin(req, b) : null;
+  return v ? { who: 'admin:' + v.user.uid } : null;
+};
+Hub.prototype.expRateOk = function (who) {
+  if (!this.expHits) this.expHits = new Map();
+  const now = this.now(), arr = (this.expHits.get(who) || []).filter((t) => now - t < 3600 * 1000);
+  if (arr.length >= EXPORT_MAX_PER_HOUR) { this.expHits.set(who, arr); return false; }
+  arr.push(now); this.expHits.set(who, arr); return true;
+};
+Hub.prototype.expHas = function (t) { return this.q("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", t).length > 0; };
+/* 有些表與欄位是「第一次用到才建」（subInit／v3Init／v4Init／hrInit）；匯出與匯入前先全部建好，兩邊欄位才對得上 */
+Hub.prototype.expInit = function () { this.subInit(); this.v3Init(); this.v4Init(); this.hrInit(); };
+Hub.prototype.expDump = function () {
+  this.expInit();
+  const tables = {};
+  for (const t of EXPORT_TABLES) {
+    if (!this.expHas(t)) continue;
+    const cols = this.q(`PRAGMA table_info(${t})`).map((c) => c.name);
+    let rows = this.q(`SELECT * FROM ${t} ORDER BY rowid`).map((r) => cols.map((c) => (r[c] === undefined ? null : r[c])));
+    if (t === 'kv') rows = rows.filter((r) => !EXP_KV_SECRET.test(String(r[0])));
+    tables[t] = { cols, rows };
+  }
+  return tables;
+};
+Hub.prototype.adminExport = async function (req, b) {
+  const w = await this.expWho(req, b);
+  if (!w) return this.json(req, { error: 'forbidden' }, 403);
+  if (!this.expRateOk(w.who)) return this.json(req, { error: 'rate' }, 429);
+  const content = JSON.stringify({ v: 1, at: new Date(this.now()).toISOString(), tables: this.expDump() });
+  const { sha, sig } = await this.expSign(content);
+  this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1', tpeDay(this.now()), 'admin_export');
+  const body = content.slice(0, -1) + `,"sha256":"${sha}","sig":"${sig}"}`;
+  return this.cors(req, new Response(body, { status: 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } }));
+};
+/* 從 export 原文切出被簽的內容；格式不對回 null */
+export function expSplit(raw) {
+  const i = raw.lastIndexOf(',"sha256":"');
+  if (i < 0) return null;
+  const m = /^,"sha256":"([0-9a-f]{64})","sig":"([0-9a-f]*)"\}\s*$/.exec(raw.slice(i));
+  return m ? { content: raw.slice(0, i) + '}', sha: m[1], sig: m[2] } : null;
+}
+Hub.prototype.adminImport = async function (req, raw, url) {
+  const w = await this.expWho(req, null);
+  if (!w) return this.json(req, { error: 'forbidden' }, 403);
+  if (url.searchParams.get('confirm') !== EXPORT_CONFIRM) return this.json(req, { error: 'need_confirm', confirm: EXPORT_CONFIRM }, 400);
+  if ((this.q('SELECT COUNT(*) AS n FROM users')[0] || {}).n > 0) return this.json(req, { error: 'not_empty' }, 409);
+  const s = expSplit(raw);
+  if (!s) return this.json(req, { error: 'bad_format' }, 400);
+  const { sha, sig } = await this.expSign(s.content);
+  if (!sig || !safeEq(sha, s.sha) || !safeEq(sig, s.sig)) return this.json(req, { error: 'bad_sig' }, 400);
+  let d; try { d = JSON.parse(s.content); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+  if (!d || d.v !== 1 || !d.tables || typeof d.tables !== 'object') return this.json(req, { error: 'bad_format' }, 400);
+  this.expInit();
+  const plan = [];
+  for (const [t, x] of Object.entries(d.tables)) {
+    if (!EXPORT_TABLES.includes(t) || !this.expHas(t)) return this.json(req, { error: 'bad_table', table: t }, 400);
+    const have = this.q(`PRAGMA table_info(${t})`).map((c) => c.name);
+    if (!x || !Array.isArray(x.cols) || !Array.isArray(x.rows) || !x.cols.every((c) => have.includes(c))) return this.json(req, { error: 'bad_cols', table: t }, 400);
+    plan.push([t, x]);
+  }
+  let n = 0;
+  /* Cloudflare 的 Durable Object SQLite 不准直接下 BEGIN／COMMIT，要用 storage.transactionSync；
+     Node 的測試替身沒有它，才退回 BEGIN／COMMIT。任一列失敗 → 整批回滾，資料庫維持空的 */
+  const work = () => {
+    for (const [t, x] of plan) {
+      if (t === 'kv') this.q("DELETE FROM kv WHERE k <> 'hmac'"); else this.q(`DELETE FROM ${t}`);
+      const ins = `INSERT INTO ${t} (${x.cols.join(', ')}) VALUES (${x.cols.map(() => '?').join(', ')})`;
+      for (const r of x.rows) {
+        if (!Array.isArray(r) || r.length !== x.cols.length) throw new Error('bad_row:' + t);
+        if (t === 'kv' && EXP_KV_SECRET.test(String(r[0]))) continue;
+        this.q(ins, ...r); n++;
+      }
+    }
+  };
+  const st = this.state.storage;
+  try {
+    if (typeof st.transactionSync === 'function') st.transactionSync(work);
+    else {
+      this.q('BEGIN');
+      try { work(); this.q('COMMIT'); } catch (e) { try { this.q('ROLLBACK'); } catch (_) { /* 已回滾 */ } throw e; }
+    }
+  } catch (e) {
+    return this.json(req, { error: 'import_failed', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+  return this.json(req, { ok: true, tables: plan.length, rows: n, from: d.at });
+};
+/* 接線：只攔這兩條路徑（不走 16KB 上限、備份權杖不需要 Origin），其他照舊交給前面的 fetch */
+const expOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const url = new URL(req.url);
+  const p = url.pathname;
+  if (req.method !== 'POST' || (p !== '/v1/admin/export' && p !== '/v1/admin/import')) return expOrigFetch.call(this, req);
+  try {
+    const raw = await req.text();
+    if (raw.length > IMPORT_MAX_BYTES) return this.json(req, { error: 'too_large' }, 413);
+    if (p === '/v1/admin/import') return await this.adminImport(req, raw, url);
+    let b = {}; try { b = JSON.parse(raw || '{}'); } catch (e) { b = {}; }
+    return await this.adminExport(req, b && typeof b === 'object' ? b : {});
+  } catch (e) {
+    return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+};
+/* ============================================================================ 會員資料匯出／還原區塊結束 */
+
+/* ============================================================================ 每日額度區塊（2026-10-07，docs/quota_plan.md）
+   Andy（10-07 01:30）：「之後會分成 Plus 和更上去的 Pro。plus 目前先暫定皆可以觀看 50 次，pro 則是都不限次數」。
+   ① 範本多一欄 plans.dq（每日額度，整數 0～9999；NULL＝不限）。跟 lims（每個功能各自的次數）分開：
+      dq 是「整個網站一天能開幾個單位」（個股頁一檔、產業鏈剖析圖一張、付費分頁一個），真正扣次在付費資料閘道 workers/data-gw。
+      · plans/get、plans/public 每個範本多帶 dq；/v1/perm/me 多回 dq（生效那個範本的；過期退回免費會員的）
+      · plans/put 帶 dq：null／'' ＝不限、0～9999 整數＝每日上限；沒帶＝維持原值（只改開關的呼叫不會把額度洗掉）
+   ② Plus／Pro 兩個付費範本：wrangler.toml 的 SEED_PLANS="plus,pro" 有設才種（只種一次，kv plans_seeded_pp；管理者刪掉不會再長回來）。
+      Plus：dq 50；Pro：dq 不限。價格 0＝訂閱頁寫「價格待定」，等 Andy 定價後在 #admin/perm 的 ⚙ 改。
+      為什麼用環境變數而不是無條件種：既有的 account／v3／v4 測試假設「乾淨資料庫只有 guest／free／paid」，
+      無條件種會讓那些測試的範本順序全部改變；正式站部署時 wrangler.toml 會帶這個變數。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const DQ_MAX = 9999;
+/* 種子：[名稱, 每日額度, 自選上限]。自選：Plus 5 頁／每頁 50 檔、Pro「不限」＝硬上限 50 頁／200 檔（watch-v2 區塊）*/
+const DQ_SEEDS = { plus: ['Plus', 50, { 'watch.tabs': 5, 'watch.size': 50 }], pro: ['Pro', null, { 'watch.tabs': 50, 'watch.size': 200 }] };
+Hub.prototype.dqInit = function () {
+  if (this._dqOk) return;
+  this.v4Init();
+  if (!this.q('PRAGMA table_info(plans)').some((c) => c.name === 'dq')) this.q('ALTER TABLE plans ADD COLUMN dq INTEGER');
+  const want = String(this.env.SEED_PLANS || '').split(/[\s,]+/).filter((x) => DQ_SEEDS[x]);
+  if (want.length && !this.kv('plans_seeded_pp')) {
+    const mx = this.q('SELECT MAX(sort) AS m FROM plans WHERE builtin = 0')[0].m;
+    let n = mx == null ? 0 : mx + 1;
+    for (const id of want) {
+      if (this.q('SELECT 1 FROM plans WHERE id = ?', id).length) continue;
+      const [name, dq, feats] = DQ_SEEDS[id];
+      this.q("INSERT INTO plans (id, name, feats, builtin, updated, price, period, lims, sort, dq) VALUES (?, ?, ?, 0, ?, 0, 'month', '{}', ?, ?)", id, name, JSON.stringify(feats), this.now(), n++, dq);
+    }
+    /* 自選上限的預設改成免費會員的 1 頁／10 檔（site/features.js 的 def）之後，既有的付費範本（例如「付費會員」）若沒明寫，
+       會從 5 頁掉到 1 頁 —— 種子這一次順手替它們補上舊值 5 頁／50 檔（有明寫的不動）。*/
+    for (const r of this.q("SELECT id, feats FROM plans WHERE builtin = 0 AND id NOT IN ('plus', 'pro')")) {
+      let f = {}; try { f = JSON.parse(r.feats || '{}') || {}; } catch (e) { f = {}; }
+      let ch = false;
+      if (!Number.isInteger(f['watch.tabs'])) { f['watch.tabs'] = 5; ch = true; }
+      if (!Number.isInteger(f['watch.size'])) { f['watch.size'] = 50; ch = true; }
+      if (ch) this.q('UPDATE plans SET feats = ? WHERE id = ?', JSON.stringify(f), r.id);
+    }
+    this.setKv('plans_seeded_pp', '1');
+  }
+  this._dqOk = true;
+};
+Hub.prototype.dqOf = function (id) {
+  this.dqInit();
+  const r = this.q('SELECT dq FROM plans WHERE id = ?', id)[0];
+  return r && Number.isInteger(r.dq) ? r.dq : null;
+};
+const dqOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = dqOrigPlan.call(this, id);
+  if (p) p.dq = this.dqOf(id);
+  return p;
+};
+const dqOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return dqOrigPlanRows.call(this).map((p) => ({ ...p, dq: this.dqOf(p.id) })); };
+const dqOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await dqOrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.dq = this.dqOf(j.plan || 'free');
+  return this.json(req, j);
+};
+const dqOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.dqInit();
+  let dq;
+  if (b && b.dq !== undefined && b.del !== true) {
+    if (b.dq === null || b.dq === '') dq = null;
+    else if (Number.isInteger(b.dq) && b.dq >= 0 && b.dq <= DQ_MAX) dq = b.dq;
+    else return this.json(req, { error: 'bad_dq' }, 400);
+  }
+  const res = await dqOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || dq === undefined) return res;
+  this.q('UPDATE plans SET dq = ? WHERE id = ?', dq, String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 啟動時先把欄位與種子準備好（不能等到 plan() 才做：plans/get 是先列 id 再逐一讀，中途種進去的不會出現在第一次的清單裡）*/
+const dqOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  try { this.dqInit(); } catch (e) { /* 遷移失敗不擋其他功能：dq 一律當不限 */ }
+  return dqOrigFetch.call(this, req);
+};
+/* ============================================================================ 每日額度區塊結束 */
+
+/* ============================================================================ 自選上限區塊 watch-v2（2026-10-07，docs/quota_plan.md）
+   Andy（10-07）：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」。
+   ① 格式上限放寬成硬上限 50 頁／每頁 200 檔（Pro 的「不限」）—— 原本的 cleanLists 是 5／50。
+   ② /v1/lists/put 依這個人生效的範本檢查 watch.tabs／watch.size（前端擋得了一般人，F12 改得掉；伺服器這關才算數）：
+      · 只擋「變多」：分頁數 > max(上限, 雲端現有頁數) 或某一頁檔數 > max(上限, 雲端那一頁現有檔數) → 403 {error:'watch_limit', kind, limit, lists, rev}
+        —— 已經建好的不刪（降級的人原本 5 頁照樣留著、照樣能改名／刪／搬），只是不能再新增。
+      · 範本沒明寫時的預設＝免費會員：1 頁／10 檔（跟 site/features.js 的 def 同一組數，改一邊要改另一邊）。
+      · 管理者不限（硬上限照守）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const WATCH_HARD_TABS = 50, WATCH_HARD_CODES = 200;
+const WATCH_DEF = { 'watch.tabs': 1, 'watch.size': 10 };
+Hub.prototype.cleanLists = function (lists) {
+  if (!Array.isArray(lists) || lists.length > WATCH_HARD_TABS) return null;
+  const seen = new Set(), out = [];
+  for (const t of lists) {
+    if (!t || typeof t !== 'object') return null;
+    const id = String(t.id || '');
+    if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+    seen.add(id);
+    const name = cleanName(t.name);
+    if (!name) return null;
+    if (!Array.isArray(t.codes) || t.codes.length > WATCH_HARD_CODES) return null;
+    const codes = [];
+    for (const c of t.codes) { if (typeof c !== 'string' || !CODE_RE.test(c)) return null; if (!codes.includes(c)) codes.push(c); }
+    out.push({ id, name, codes });
+  }
+  return out;
+};
+/* 這個人的自選上限：{ tabs, size }（管理者＝硬上限）*/
+Hub.prototype.watchCaps = function (user) {
+  if (this.isAdmin(user)) return { tabs: WATCH_HARD_TABS, size: WATCH_HARD_CODES };
+  const f = this.effective(String(user.email || '').toLowerCase()).feats || {};
+  const g = (k, max) => { const v = f[k]; return Number.isInteger(v) ? Math.max(0, Math.min(max, v)) : v === false ? 0 : WATCH_DEF[k]; };
+  return { tabs: g('watch.tabs', WATCH_HARD_TABS), size: g('watch.size', WATCH_HARD_CODES) };
+};
+const watchOrigListsPut = Hub.prototype.listsPut;
+Hub.prototype.listsPut = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  const lists = this.cleanLists(b.lists);
+  if (!lists) return this.json(req, { error: 'bad_lists' }, 400);
+  const cur = this.q('SELECT data, rev FROM lists WHERE uid = ?', v.user.uid)[0];
+  let old = []; try { old = cur ? JSON.parse(cur.data) || [] : []; } catch (e) { old = []; }
+  const caps = this.watchCaps(v.user);
+  const deny = (kind, limit) => this.json(req, { error: 'watch_limit', kind, limit, lists: old, rev: cur ? cur.rev : 0 }, 403);
+  /* 版本號不對交給原本的流程回 409（先處理衝突，再談上限）*/
+  if (b.rev === (cur ? cur.rev : 0)) {
+    if (lists.length > Math.max(caps.tabs, old.length)) return deny('tabs', caps.tabs);
+    const had = new Map(old.map((t) => [t.id, (t.codes || []).length]));
+    for (const t of lists) if (t.codes.length > Math.max(caps.size, had.get(t.id) || 0)) return deny('size', caps.size);
+  }
+  return watchOrigListsPut.call(this, req, b);
+};
+/* 功能開關的整數值原本只收 0～99（cleanFeats）；每頁檔數的「不限」是 200 → 放寬到 0～9999（其他規則不變：鍵的格式、布林、壞一項整批不收）*/
+Hub.prototype.cleanFeats = function (f) {
+  if (f == null) return {};
+  if (typeof f !== 'object' || Array.isArray(f)) return null;
+  const ent = Object.entries(f);
+  if (ent.length > MAX_FEAT_KEYS) return null;
+  const out = {};
+  for (const [k, v] of ent) {
+    if (!FEAT_RE.test(k)) return null;
+    if (typeof v === 'boolean' || (Number.isInteger(v) && v >= 0 && v <= 9999)) out[k] = v; else return null;
+  }
+  return out;
+};
+/* ============================================================================ 自選上限區塊結束 */
+
+/* ============================================================================ 每日次數 quota-v2 區塊（2026-10-07，docs/quota_coverage.md）
+   /v1/quota/hit 原本只記不擋（前端自己數）。改成跟前端 site/quota.js、付費資料閘道 data-gw **同一套規則**：
+     · 鍵 'quota.all'（全站共用每日額度）＝範本的 dq；其他鍵＝範本 lims 裡那個功能的每日次數
+     · 同一天同一個單位只算一次（已經記過的照樣回 200，不算超過）
+     · 新單位而且今天已經用滿 → 不記，回 { over: true }（前端看到 over 就把那個單位拿掉、蓋卡）
+   ★ 只包一層 prototype（subRoutes 換成新函式，舊的那支照樣呼叫），既有函式一行不動。
+   ============================================================================ */
+const qv2OrigHit = Hub.prototype.subRoutes['/v1/quota/hit'];
+Hub.prototype.subRoutes['/v1/quota/hit'] = async function (req, b) {
+  const k = String((b && b.k) || ''), key = String((b && b.key) || '');
+  const v = b && b.t ? await this.verify(b.t) : null;
+  if (v && key && /^[0-9A-Za-z_.-]{1,24}$/.test(key) && /^[a-z][a-z0-9_.]{1,39}$/.test(k) && !this.isAdmin(v.user)) {
+    this.subInit();
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    const plan = e.expired ? 'free' : e.plan;
+    const lim = k === 'quota.all' ? this.dqOf(plan) : (() => { const n = this.v3Lims(plan)[k]; return Number.isInteger(n) ? n : null; })();
+    if (Number.isInteger(lim)) {
+      const day = tpeDay(this.now());
+      const had = this.q('SELECT 1 FROM quota_hits WHERE uid = ? AND day = ? AND k = ? AND key = ?', v.user.uid, day, k, key).length > 0;
+      const n = this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c;
+      if (!had && n >= lim) {
+        const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+        return this.json(req, { day, k, n: keys.length, keys, over: true, limit: lim });
+      }
+    }
+  }
+  return qv2OrigHit.call(this, req, b);
+};
+/* ============================================================================ 每日次數 quota-v2 區塊結束 */
+
+/* ============================================================================ 方案介紹欄位 plan-meta 區塊（2026-10-07，docs/plan_tiers_1007.md）
+   訂閱頁（另一條分支 claude/pricing-v2 重做中）要讀：badge（「最受歡迎」）、tagline、fit_title、fit_desc、highlights（重點條列）、price_year（年繳價）。
+   存在 plans.meta（JSON）；plans/put 帶 meta 就整份換掉（null＝清空）、沒帶＝維持原值；plan()、plans/public 攤平成同名欄位。
+   #admin/perm 的「套用建議方案」一鍵寫入（site/plan_presets.js）。字數都有上限，壞的整個請求 400（不存半套）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype。
+   ============================================================================ */
+const META_LIM = { badge: 12, tagline: 60, fit_title: 30, fit_desc: 240 };
+export function cleanPlanMeta(m) {
+  if (m == null) return {};
+  if (typeof m !== 'object' || Array.isArray(m)) return null;
+  const out = {};
+  for (const [k, n] of Object.entries(META_LIM)) {
+    const v = m[k];
+    if (v == null || v === '') continue;
+    if (typeof v !== 'string' || v.length > n || /[<>\u0000-\u001f]/.test(v)) return null;
+    out[k] = v;
+  }
+  if (m.highlights != null) {
+    if (!Array.isArray(m.highlights) || m.highlights.length > 8) return null;
+    const hs = [];
+    for (const h of m.highlights) { if (typeof h !== 'string' || !h || h.length > 40 || /[<>\u0000-\u001f]/.test(h)) return null; hs.push(h); }
+    out.highlights = hs;
+  }
+  if (m.price_year != null) {
+    if (!Number.isInteger(m.price_year) || m.price_year < 0 || m.price_year > 9999999) return null;
+    out.price_year = m.price_year;
+  }
+  return out;
+}
+Hub.prototype.metaInit = function () {
+  if (this._metaOk) return;
+  this.dqInit();
+  if (!this.q('PRAGMA table_info(plans)').some((c) => c.name === 'meta')) this.q("ALTER TABLE plans ADD COLUMN meta TEXT DEFAULT '{}'");
+  this._metaOk = true;
+};
+Hub.prototype.metaOf = function (id) {
+  this.metaInit();
+  const r = this.q('SELECT meta FROM plans WHERE id = ?', id)[0];
+  try { return r ? JSON.parse(r.meta || '{}') || {} : {}; } catch (e) { return {}; }
+};
+const metaFlat = (m) => ({ badge: m.badge || null, tagline: m.tagline || null, fit_title: m.fit_title || null, fit_desc: m.fit_desc || null,
+  highlights: Array.isArray(m.highlights) ? m.highlights : [], ...(Number.isInteger(m.price_year) ? { price_year: m.price_year } : {}) });
+const metaOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) { const p = metaOrigPlan.call(this, id); if (p) Object.assign(p, metaFlat(this.metaOf(id))); return p; };
+const metaOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return metaOrigPlanRows.call(this).map((p) => ({ ...p, ...metaFlat(this.metaOf(p.id)) })); };
+const metaOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.metaInit();
+  let meta;
+  if (b && b.meta !== undefined && b.del !== true) { meta = cleanPlanMeta(b.meta); if (!meta) return this.json(req, { error: 'bad_meta' }, 400); }
+  const res = await metaOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || meta === undefined) return res;
+  this.q('UPDATE plans SET meta = ? WHERE id = ?', JSON.stringify(meta), String(b.id));
+  /* 這一邊整份取代：pres／price_year 清掉（外層 pres 包裝若同一個請求也帶了 pres，會在這之後再寫回去，pres 勝） */
+  if (typeof this.presInit === 'function') { this.presInit(); this.q("UPDATE plans SET pres = '{}', price_year = NULL WHERE id = ?", String(b.id)); }
+  return await this.adminPlansGet(req, b);
+};
+/* 匯出／還原前先把每日額度與介紹欄位補齊（兩邊欄位才對得上，export.test 的「匯出→匯入→再匯出完全一樣」）*/
+const metaOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { metaOrigExpInit.call(this); this.dqInit(); this.metaInit(); };
+/* ============================================================================ plan-meta 區塊結束 */
+
+/* ============================================================================ 方案卡呈現區塊（pricing-v2，2026-10-07）
+   Andy：「圖一是我訂閱頁面想看到的範本，幫我做一份」—— 訂閱頁改成三張方案卡（圖示、定位句、價格、適合誰、打勾清單）
+   ＋ 月繳／年繳切換（「年繳 省 X%」由兩個價格自動算）。這些文字全部要能在管理區改，所以存在範本上，不寫死在前端。
+   新增（plans 表，相容遷移：PRAGMA 判斷再 ALTER，重跑不報錯、舊列原封不動）：
+     ① price_year INTEGER：年繳總價（整數 NT$；NULL＝沒有年繳）。原本的 price＋period 不動 ——
+        period=month 的範本：月價＝price、年價＝price_year；period=year 的舊範本：年價＝price（price_year 沒填時）。
+        ★ 金流仍以 plan id 對價、價格以後端為準（同 admin-v2b）。
+     ② pres TEXT（JSON）：卡片上的文字與樣式 —— 欄位名直接採用 docs/plan_presets_1007.json 的格式，
+        CEO 灌範本時一個欄位對一個欄位、不用轉換：
+          tagline 一句定位（≤40 字）／badge 頂端膠囊（≤12 字，例「最受歡迎」）／fit_title「適合…」（≤30）／fit_desc 說明（≤160）
+          highlights[] 打勾清單，每項「功能名・限制」（≤12 項、每項 ≤60 字）
+          icon 圖示鍵（白名單）／color 色系（白名單）／public 是否放上訂閱頁（預設 true：舊的付費範本不會突然消失）
+   API：plans/get、plans/put、/v1/plans/public 的每個範本多帶 price_year 與上面七個欄位（沒設＝空字串／[]／null／public:true）。
+        plans/put 多收 price_year（null 或 0～9999999 整數）與 pres（物件；沒帶＝不動，帶了就整份換掉、嚴格驗證，壞的整個 400）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+const PRES_ICONS = ['gift', 'bolt', 'crown', 'star', 'rocket', 'gem', 'shield', 'chart'];
+const PRES_COLORS = ['neutral', 'blue', 'violet', 'amber', 'green'];
+const PRES_LEN = { tagline: 40, badge: 12, fit_title: 30, fit_desc: 160 };
+const PRES_HL_MAX = 12, PRES_HL_LEN = 60, PRICE_YEAR_MAX = 9999999;
+const presTxt = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim();
+
+Hub.prototype.presInit = function () {
+  if (this._presOk) return;
+  this.v4Init();
+  const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+  if (!pc.includes('price_year')) this.q('ALTER TABLE plans ADD COLUMN price_year INTEGER');
+  if (!pc.includes('pres')) this.q("ALTER TABLE plans ADD COLUMN pres TEXT DEFAULT '{}'");
+  this._presOk = true;
+};
+/* 驗證管理者送來的 pres：回乾淨的物件；任何一欄不合格回 null（整個請求 400，不默默截斷或修正）*/
+Hub.prototype.presClean = function (x) {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const out = {};
+  for (const [k, n] of Object.entries(PRES_LEN)) {
+    if (x[k] == null || x[k] === '') continue;
+    if (typeof x[k] !== 'string') return null;
+    const s = presTxt(x[k]); if (s.length > n) return null;
+    if (s) out[k] = s;
+  }
+  if (x.highlights != null) {
+    if (!Array.isArray(x.highlights) || x.highlights.length > PRES_HL_MAX) return null;
+    const hl = [];
+    for (const h of x.highlights) { if (typeof h !== 'string') return null; const s = presTxt(h); if (s.length > PRES_HL_LEN) return null; if (s) hl.push(s); }
+    out.highlights = hl;
+  }
+  if (x.icon != null && x.icon !== '') { if (!PRES_ICONS.includes(x.icon)) return null; out.icon = x.icon; }
+  if (x.color != null && x.color !== '') { if (!PRES_COLORS.includes(x.color)) return null; out.color = x.color; }
+  if (x.public != null) { if (typeof x.public !== 'boolean') return null; out.public = x.public; }
+  return out;
+};
+/* 某個範本的呈現欄位（攤平，前端直接讀 p.tagline…）*/
+Hub.prototype.presOf = function (id) {
+  this.presInit();
+  const r = this.q('SELECT price_year, pres FROM plans WHERE id = ?', id)[0];
+  let o = {}; try { o = r ? JSON.parse(r.pres || '{}') || {} : {}; } catch (e) { o = {}; }
+  /* ★ 合併 quota 分支（plan-meta 區塊，欄位 meta）：「套用建議方案」（site/plan_presets.js）寫的是 plans.meta，
+     訂閱頁與管理區（pricing-v2）讀的是 pres。兩邊最後寫入者整份取代對方（見下面兩個 plans/put 包裝），
+     所以同一時間只有一邊有值；讀的時候 pres 沒填的欄位退回 meta 的同名欄位，兩種寫法都讀得到。 */
+  const m = typeof this.metaOf === 'function' ? this.metaOf(id) : {};
+  const hl = Array.isArray(o.highlights) && o.highlights.length ? o.highlights : Array.isArray(m.highlights) ? m.highlights : [];
+  return {
+    price_year: r && Number.isInteger(r.price_year) ? r.price_year : Number.isInteger(m.price_year) ? m.price_year : null,
+    tagline: o.tagline || m.tagline || '', badge: o.badge || m.badge || '', fit_title: o.fit_title || m.fit_title || '', fit_desc: o.fit_desc || m.fit_desc || '',
+    highlights: hl, icon: o.icon || null, color: o.color || null, public: o.public !== false,
+  };
+};
+const presOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = presOrigPlan.call(this, id);
+  return p ? Object.assign(p, this.presOf(id)) : p;
+};
+const presOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () {
+  this.presInit();
+  return presOrigPlanRows.call(this).map((p) => ({ ...p, ...this.presOf(p.id) }));
+};
+/* plans/put：先驗 pres／price_year（壞的整個 400），原本的存完（200）才寫這兩欄，再回最新的 plans/get */
+const presOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.presInit();
+  let pres, py;
+  if (b && b.del !== true) {
+    if (b.pres !== undefined) { pres = this.presClean(b.pres); if (!pres) return this.json(req, { error: 'bad_pres' }, 400); }
+    if (b.price_year !== undefined) {
+      py = b.price_year;
+      if (py !== null && (!Number.isInteger(py) || py < 0 || py > PRICE_YEAR_MAX)) return this.json(req, { error: 'bad_price_year' }, 400);
+    }
+  }
+  const res = await presOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || (pres === undefined && py === undefined)) return res;
+  if (pres !== undefined) this.q('UPDATE plans SET pres = ? WHERE id = ?', JSON.stringify(pres), String(b.id));
+  if (py !== undefined) this.q('UPDATE plans SET price_year = ? WHERE id = ?', py, String(b.id));
+  /* 這一邊整份取代：把 meta 欄清掉，不然 presOf 的 meta 退路會把管理者刻意清空的欄位又補回來。
+     ★ 10-07 修：只有「這次真的帶了 pres」才清 meta。以前只帶 price_year 也會清 ——
+       「套用建議方案」同一個請求送 meta＋price_year，內層剛寫好的 meta 立刻被這裡清掉，
+       訂閱頁 Plus／Pro 的定位句因此退回前端預設「進階分析與更高的每日次數」。 */
+  if (pres !== undefined) { this.metaInit(); this.q("UPDATE plans SET meta = '{}' WHERE id = ?", String(b.id)); }
+  return await this.adminPlansGet(req, b);
+};
+/* 匯出／還原：兩邊欄位要對得上（還原時檢查 cols ⊆ 現有欄位），所以先把這兩欄建好 */
+const presOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { presOrigExpInit.call(this); this.presInit(); };
+/* ============================================================================ 方案卡呈現區塊結束 */
+
+/* ============================================================================ 管理權限區塊（2026-10-07，docs/admin_only_audit.md）
+   Andy（10-07 14:50）：「任何可更改功能都只有我這帳號可以，其他帳號我沒有新增管理者情況下不行」
+                        「管理那邊需要新增一個誰擁有管理權限」。
+   ① 擁有者＝ADMIN_EMAILS（Worker Secret，沿用既有設定；email 不寫進 public repo）。永遠是管理者、不能被移除或降級。
+   ② 其他管理者＝擁有者在 #admin/admins 加的人，存在 admin_log（append-only：每次新增／移除都是新的一列，舊列不改不刪；
+      某個 email 目前是不是管理者＝它最新一列是 add 還是 del）。這張表同時就是稽核紀錄。
+   ③ 只有擁有者能新增／移除管理者（一般管理者不行）：否則任何一個被加進來的人都能再加人、甚至互相拔掉，
+      權限會在擁有者不知情的情況下擴散。代價：擁有者不在時沒人能加人 —— 對一人經營的站可以接受。
+   ④ 移除時把那個人的 users.tv + 1：舊權杖下一次請求就失效（重新登入後是一般會員）。
+      就算不換 tv，isAdmin() 每次請求都即時查這張表，所以被移除的人「下一個請求」就已經不是管理者。
+   ⑤ 伺服器端總閘：所有 POST /v1/admin/*（匯出／還原那兩條另有備份權杖規則，除外）在進到各自的處理函式之前，
+      先驗「權杖有效且是管理者」，不是就 403。各端點原本自己的檢查照留（兩道）—— 以後新增 admin 端點忘了檢查也擋得住。
+   ============================================================================ */
+const ADM_EMAIL_RE = /^[^\s@,;]{1,64}@[^\s@,;]{1,190}\.[^\s@,;]{2,24}$/;
+Hub.prototype.admInit = function () {
+  if (this._admInit) return;
+  this._admInit = true;
+  this.q('CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, act TEXT, email TEXT, by TEXT)');
+  this.q('CREATE INDEX IF NOT EXISTS admin_log_email ON admin_log (email, id)');
+};
+Hub.prototype.owners = function () { return String(this.env.ADMIN_EMAILS || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); };
+Hub.prototype.isOwner = function (u) { return !!u && !!u.email && this.owners().includes(String(u.email).toLowerCase()); };
+/* 目前的「加進來的管理者」：每個 email 取最新一列，是 add 的才算（附加入時間、加入者＝那一列）*/
+Hub.prototype.extraAdmins = function () {
+  this.admInit();
+  const rows = this.q('SELECT a.email, a.ts, a.by, a.act FROM admin_log a JOIN (SELECT email, MAX(id) AS id FROM admin_log GROUP BY email) m ON m.id = a.id ORDER BY a.id');
+  const own = this.owners();
+  return rows.filter((r) => r.act === 'add' && !own.includes(r.email)).map((r) => ({ email: r.email, added: r.ts, by: r.by }));
+};
+Hub.prototype.admins = function () { return [...new Set([...this.owners(), ...this.extraAdmins().map((r) => r.email)])]; };
+const admOrigPubUser = Hub.prototype.pubUser;
+Hub.prototype.pubUser = function (u) { return { ...admOrigPubUser.call(this, u), owner: this.isOwner(u) }; };
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/admins/list': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    this.admInit();
+    const log = this.q('SELECT id, ts, act, email, by FROM admin_log ORDER BY id DESC LIMIT 200');
+    return this.json(req, { owners: this.owners().map((email) => ({ email, owner: true })), admins: this.extraAdmins(), log, me: { email: v.user.email, owner: this.isOwner(v.user) } });
+  },
+  '/v1/admin/admins/add': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!ADM_EMAIL_RE.test(email)) return this.json(req, { error: 'bad_email' }, 400);
+    if (this.admins().includes(email)) return this.json(req, { error: 'exists' }, 409);
+    this.admInit();
+    this.q('INSERT INTO admin_log (ts, act, email, by) VALUES (?, ?, ?, ?)', this.now(), 'add', email, String(v.user.email || '').toLowerCase());
+    return this.json(req, { ok: true, admins: this.extraAdmins() });
+  },
+  '/v1/admin/admins/del': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+    const email = String(b.email || '').trim().toLowerCase();
+    if (this.owners().includes(email)) return this.json(req, { error: 'owner' }, 409);
+    if (!this.extraAdmins().some((r) => r.email === email)) return this.json(req, { error: 'not_admin' }, 404);
+    this.q('INSERT INTO admin_log (ts, act, email, by) VALUES (?, ?, ?, ?)', this.now(), 'del', email, String(v.user.email || '').toLowerCase());
+    this.q('UPDATE users SET tv = tv + 1 WHERE lower(email) = ?', email);    // 舊權杖下一次請求即失效
+    return this.json(req, { ok: true, admins: this.extraAdmins() });
+  },
+});
+const admOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const p = new URL(req.url).pathname;
+  if (req.method === 'POST' && p.startsWith('/v1/admin/') && p !== '/v1/admin/export' && p !== '/v1/admin/import') {
+    let b = {};
+    try { const raw = await req.clone().text(); if (raw.length <= (p === GRANT_PUT_PATH ? GRANT_PUT_MAX_BYTES : 16384)) b = JSON.parse(raw || '{}') || {}; } catch (e) { b = {}; }
+    if (!(b && typeof b === 'object' && !Array.isArray(b) && (await this.admin(req, b)))) {
+      if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+      return this.json(req, { error: 'forbidden' }, 403);
+    }
+  }
+  return admOrigFetch.call(this, req);
+};
+/* ============================================================================ 管理權限區塊結束 */
+
+/* 2026-10-07 15:45 Andy：「有在權限內的帳號也可以進行拖曳 但不能刪除」→ 刪除付費範本（頁籤）只限擁有者；一般管理者可以拖曳排序（plans/sort）、改內容 */
+const admOrigPlansPut2 = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  if (b && b.del === true) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+  }
+  return admOrigPlansPut2.call(this, req, b);
+};
+
+/* 2026-10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」→ 擁有者（ADMIN_EMAILS）一律豁免所有範本限制：
+   /v1/perm/me 對擁有者回「全開」（feats／lims 空＝每項照預設全開、dq null＝不限）。data-gw 換權杖時讀的也是這一份，所以付費資料閘道一起豁免；
+   每日次數（/v1/quota/hit）、自選上限（/v1/lists/put）、data-gw 裝置數與每日額度原本就對「管理者」豁免，擁有者必然是管理者。*/
+const ownOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  if (!v || !this.isOwner(v.user)) return ownOrigPermMe.call(this, req, b);
+  return this.json(req, { who: 'owner', plan: 'owner', planName: '擁有者（不受限制）', feats: {}, lims: {}, dq: null, owner: true });
+};
+
+/* 2026-10-09 Andy（手機帳號選單新增「刪除帳號」）：站主帳號（ADMIN_EMAILS）不可自刪 —— 前端已經把按鈕停用，
+   這裡在伺服器端再擋一次（繞過前端直接打 /v1/delete 也刪不掉）。理由：站主是管理區最高權限的來源，
+   刪掉 users 那一列不會讓 ADMIN_EMAILS 消失，只會留下一個「有權限、沒資料」的空殼，而且雲端自選全沒了。
+   要移交站主：改 Worker 的 ADMIN_EMAILS 設定後再刪。回 403 { error: 'owner' }（前端寫「站主帳號不可刪除」）。*/
+const ownOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  if (v && this.isOwner(v.user)) return this.json(req, { error: 'owner' }, 403);
+  return ownOrigDelete.call(this, req, b);
+};
+
+/* ============================================================================ 取消訂閱／申請退款＋七天保證防呆（2026-10-09，帳本 48）
+   Andy 07:5x：「這邊需要新增退款以及取消訂閱功能，並且需要防呆機制，他取消後就不能再享有七天免費功能」。
+   ★ 現在沒有線上金流（申請制、專人開通），所以「取消」「退款」都只是建立一筆申請，走管理區「意見反饋與訂閱申請」那條既有路徑：
+     sub_requests 多一欄 type（'subscribe' 舊資料預設／'cancel'／'refund'），管理者照舊用 /v1/admin/feedback/set 標「已處理」。
+   ★ 防呆：一個人只要申請過取消或退款，就不能再享有「七天免費試用」與「七天退款保證」（CEO 10-09 定案的實作規格）：
+     · 帳號還在：旗標存 bill_flags（以 email 為鍵，跟 perm 同一種個資；刪帳號時一起刪）
+         first_paid（第一次被設成付費方案的時間，退款七天從這天算）、trial_used、refund_used、cancel_at、refund_at
+     · 刪除帳號時：用過的保證改存 benefit_hash —— **只存「比對碼＋用過哪種保證＋時間」**：
+         比對碼＝HMAC-SHA256(信箱先去前後空白、轉小寫)，金鑰是 Worker secret TRIAL_HMAC_KEY（**不准進 repo**）。
+         同一個信箱重新註冊，算出同一個比對碼 → 旗標接得回來；資料庫外流也還原不出信箱。
+     · benefit_hash 保存 BILL_HASH_DAYS（365）天，cron trigger 每天清一次過期的（wrangler.toml [triggers]；DO alarm 每小時也順手清）。
+         天數跟 site/legal_config.js 的 HASH_RETENTION_DAYS 是同一個數字（法遵在 claude/refund-policy 新增；改一邊要改另一邊）。
+     · 沒設 TRIAL_HMAC_KEY：退回用本站的簽章金鑰（kv 裡的 hmac，一樣不在 repo），並在 /v1/billing/me 回 hk:'fallback' 提醒；設好之後換新金鑰，
+       舊比對碼就對不上了（=那些人的旗標失效），所以**上線前就要先設好**。
+   REFUND_DAYS：前端讀 site/legal_config.js 的 REFUND_DAYS 只是顯示；能不能退款**以這裡的 BILL_REFUND_DAYS 為準**。
+   ============================================================================ */
+const BILL_REFUND_DAYS = 7;     // = site/legal_config.js REFUND_DAYS（法遵分支新增前，前端也先用常數 7）
+const BILL_HASH_DAYS = 365;     // = site/legal_config.js HASH_RETENTION_DAYS
+Hub.prototype.billInit = function () {
+  if (this._billOk) return;
+  this.subInit();
+  if (!this.q('PRAGMA table_info(sub_requests)').some((c) => c.name === 'type')) this.q("ALTER TABLE sub_requests ADD COLUMN type TEXT DEFAULT 'subscribe'");
+  this.q('CREATE TABLE IF NOT EXISTS bill_flags (email TEXT PRIMARY KEY, first_paid INTEGER, trial_used INTEGER DEFAULT 0, refund_used INTEGER DEFAULT 0, cancel_at INTEGER, refund_at INTEGER, updated INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS benefit_hash (emh TEXT, kind TEXT, at INTEGER, PRIMARY KEY (emh, kind))');
+  if (!this.q('PRAGMA table_info(bill_flags)').some((c) => c.name === 'refund_req_at')) this.q('ALTER TABLE bill_flags ADD COLUMN refund_req_at INTEGER');
+  this._billOk = true;
+};
+const billNorm = (email) => String(email || '').trim().toLowerCase();
+/* 比對碼：HMAC-SHA256(正規化信箱)，hex。金鑰＝TRIAL_HMAC_KEY（Worker secret）；沒設退回本站簽章金鑰 */
+Hub.prototype.billHash = async function (email) {
+  const k = this.env.TRIAL_HMAC_KEY;
+  if (!k) return 'f:' + (await this.hmac('benefit:' + billNorm(email)));
+  const key = await crypto.subtle.importKey('raw', enc.encode(String(k)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(billNorm(email))));
+  return [...sig].map((x) => x.toString(16).padStart(2, '0')).join('');
+};
+Hub.prototype.billFlags = function (email) { this.billInit(); return this.q('SELECT * FROM bill_flags WHERE email = ?', billNorm(email))[0] || null; };
+Hub.prototype.billHashKinds = async function (email) {
+  this.billInit();
+  const emh = await this.billHash(email);
+  const since = this.now() - BILL_HASH_DAYS * 86400 * 1000;
+  return new Set(this.q('SELECT kind FROM benefit_hash WHERE emh = ? AND at >= ?', emh, since).map((r) => r.kind));
+};
+Hub.prototype.billCleanup = function () {
+  this.billInit();
+  this.q('DELETE FROM benefit_hash WHERE at < ?', this.now() - BILL_HASH_DAYS * 86400 * 1000);
+};
+/* 這個人的帳務狀態（前端選單與 #pricing 讀這一份）*/
+Hub.prototype.billState = async function (v) {
+  const email = billNorm(v.user.email);
+  const e = this.effective(email);
+  const plan = e.expired ? 'free' : e.plan;
+  const paid = plan !== 'free' && plan !== 'guest';
+  const row = this.billFlags(email);
+  const hk = await this.billHashKinds(email);           // 刪過帳號、用同一個信箱回來的人
+  /* 2026-10-27（tier_plan_1027 4-4）：沒有 first_paid 紀錄時，不能單憑 perm.updated 就當作「付過款」——
+     體驗者若被掛上非 free 方案（人工或日後自動化），會被誤判成可七天退款。後備只對「真的有已生效訂單」的人成立。 */
+  let realPaid = false;
+  if (paid && !(row && row.first_paid)) {
+    try { this.payInit(); realPaid = this.q('SELECT 1 FROM orders WHERE (uid = ? OR email = ?) AND applied = 1 LIMIT 1', v.user.uid, email).length > 0; } catch (err) { realPaid = false; }
+  }
+  const firstPaid = (row && row.first_paid) || (realPaid ? e.updated || 0 : 0);
+  const open = (t) => this.q("SELECT id, created FROM sub_requests WHERE uid = ? AND type = ? AND status = 'new' ORDER BY created DESC LIMIT 1", v.user.uid, t)[0] || null;
+  const inWindow = !!(paid && firstPaid && this.now() - firstPaid <= BILL_REFUND_DAYS * 86400 * 1000);
+  const refundUsed = !!(row && row.refund_used) || hk.has('refund');
+  /* 防呆：取消過也算用過七天保證（Andy：「他取消後就不能再享有七天免費功能」）；想退款要直接按退款，不是先取消 */
+  const trialUsed = !!(row && row.trial_used) || hk.has('trial') || refundUsed;
+  const owner = this.isOwner(v.user);
+  return {
+    plan, planName: e.planName, paid, owner,
+    periodEnd: e.expires || 0, firstPaid, refundDays: BILL_REFUND_DAYS,
+    trialUsed, refundUsed,
+    canRefund: paid && inWindow && !trialUsed && !owner,
+    refundWhy: !paid ? 'not_paid' : trialUsed ? 'used' : !inWindow ? 'window' : '',
+    cancel: open('cancel'), refund: open('refund'),
+    /* 2026-10-12 Andy：轉帳年繳卻顯示「次期不再扣款」很誤導 → 只有綠界信用卡定期定額生效中才算「會自動續扣」 */
+    autoRenew: (() => { try { return this.q("SELECT 1 FROM orders WHERE (uid = ? OR email = ?) AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active' LIMIT 1", v.user.uid, email).length > 0; } catch (e) { return false; } })(),
+    hk: this.env.TRIAL_HMAC_KEY ? 'secret' : 'fallback',
+  };
+};
+Hub.prototype.billUpsert = function (email, set) {
+  this.billInit();
+  const em = billNorm(email), now = this.now();
+  if (!this.billFlags(em)) this.q('INSERT INTO bill_flags (email, first_paid, trial_used, refund_used, updated) VALUES (?, NULL, 0, 0, ?)', em, now);
+  for (const [k, val] of Object.entries(set)) this.q(`UPDATE bill_flags SET ${k} = ?, updated = ? WHERE email = ?`, val, now, em);
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/billing/me': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    return this.json(req, await this.billState(v));
+  },
+  '/v1/subscribe/change': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const type = b.type === 'cancel' || b.type === 'refund' ? b.type : null;
+    if (!type) return this.json(req, { error: 'bad_type' }, 400);
+    if (this.isOwner(v.user)) return this.json(req, { error: 'owner' }, 403);
+    const s = await this.billState(v);
+    if (!s.paid) return this.json(req, { error: 'not_paid' }, 409);
+    if (s[type]) return this.json(req, { error: 'exists', ...s }, 409);
+    if (type === 'refund' && !s.canRefund) return this.json(req, { error: s.refundWhy === 'used' ? 'refund_used' : 'refund_window', ...s }, 409);
+    const email = billNorm(v.user.email);
+    const id = rand(9), now = this.now();
+    this.q('INSERT INTO sub_requests (id, uid, email, contact, plan, period, note, created, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v.user.uid, email, email, s.plan, 'month', subClean(b.note, 300), now, 'new', type);
+    /* 稽核 H11（2026-10-12）：申請當下只記「申請時間」，refund_used 等管理者真的退款才設 —— 否則試算會把合規的七天申請算成比例退款 */
+    this.billUpsert(email, type === 'cancel' ? { trial_used: 1, cancel_at: now } : { trial_used: 1, refund_req_at: now });
+    /* 稽核 H12：信用卡定期定額會員按「取消訂閱」→ 直接向綠界終止自動扣款（不是只留一筆申請）*/
+    let periodCancel = null;
+    if (type === 'cancel' && typeof this.payPeriodCancel === 'function') {
+      this.payInit();
+      for (const p of this.q("SELECT id FROM orders WHERE (uid = ? OR email = ?) AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active'", v.user.uid, email)) {
+        const r = await this.payPeriodCancel(p.id, 'member_cancel');
+        periodCancel = periodCancel && !periodCancel.ok ? periodCancel : r;
+      }
+      if (periodCancel && !periodCancel.ok) this.q("UPDATE sub_requests SET note = ? WHERE id = ?", subClean(`${b.note || ''}【自動終止綠界扣款失敗：${periodCancel.msg || periodCancel.error}，請管理者到綠界後台手動終止】`, 300), id);
+    }
+    return this.json(req, { ok: true, id, periodCancel, ...(await this.billState(v)) });
+  },
+});
+/* 第一次被設成付費方案：記 first_paid（退款七天從這天算）。已有就不動 —— 續訂、改方案不會讓七天重新起算。*/
+const billOrigPermPut = Hub.prototype.adminPermPut;
+Hub.prototype.adminPermPut = async function (req, b) {
+  const res = await billOrigPermPut.call(this, req, b);
+  try {
+    const plan = String((b && b.plan) || 'free');
+    const email = this.cleanEmail(b && b.email);
+    if (res.status === 200 && email && !(b && b.reset) && plan !== 'free' && plan !== 'guest') {
+      const row = this.billFlags(email);
+      if (!row || !row.first_paid) this.billUpsert(email, { first_paid: this.now() });
+    }
+  } catch (e) { /* 記不到 first_paid 不影響權限設定本身 */ }
+  return res;
+};
+/* 刪除帳號：用過的保證改存成「比對碼＋種類＋時間」，bill_flags（含信箱原文）一起刪 */
+const billOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const row = v ? this.billFlags(v.user.email) : null;
+  const res = await billOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    const kinds = [];
+    if (row && (row.trial_used || row.refund_used)) kinds.push('trial');
+    if (row && row.refund_used) kinds.push('refund');
+    if (kinds.length) {
+      const emh = await this.billHash(v.user.email);
+      for (const k of kinds) this.q('INSERT INTO benefit_hash (emh, kind, at) VALUES (?, ?, ?) ON CONFLICT(emh, kind) DO UPDATE SET at = excluded.at', emh, k, this.now());
+    }
+    this.q('DELETE FROM bill_flags WHERE email = ?', billNorm(v.user.email));
+  }
+  return res;
+};
+/* 保存期限：每小時的 alarm 順手清；另外 cron trigger 每天打一次 /cron/bill-clean（見最上面 export default 的 scheduled）*/
+const billOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () { billOrigCleanup.call(this); this.billCleanup(); };
+const billOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  /* 只接受 Worker 自己的 scheduled() 帶進來的內部請求（網址主機是 internal.cron，外面打不到這個主機名）。
+     就算被外面打到也只會「刪掉已過期的比對碼」，沒有任何讀取或寫入。*/
+  const u = new URL(req.url);
+  if (u.hostname === 'internal.cron' && u.pathname === '/cron/bill-clean') { this.billCleanup(); return new Response('ok'); }
+  return billOrigFetch.call(this, req);
+};
+/* 管理區申請列表帶上 type（舊資料是 NULL → 'subscribe'），前端用它篩選 取消／退款 */
+const billOrigFbList = Hub.prototype.subRoutes['/v1/admin/feedback/list'];
+Hub.prototype.subRoutes['/v1/admin/feedback/list'] = async function (req, b) {
+  this.billInit();
+  const res = await billOrigFbList.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  const ty = {}; this.q('SELECT id, type FROM sub_requests').forEach((r) => { ty[r.id] = r.type || 'subscribe'; });
+  j.requests = (j.requests || []).map((r) => ({ ...r, type: ty[r.id] || 'subscribe' }));
+  return this.json(req, j);
+};
+/* 備份／還原（docs/BACKUP_RUNBOOK.md）：sub_requests 多了 type 欄、兩張新表 —— 匯出前要先建好（不然空庫還原時欄位對不上）；
+   benefit_hash 也要進備份：防呆旗標是「刪帳號也不刪」的資料，還原後不能讓大家的七天保證重新歸零。*/
+const billOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { billOrigExpInit.call(this); this.billInit(); };
+for (const t of ['bill_flags', 'benefit_hash']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+/* ============================================================================ 取消訂閱／退款區塊結束 */
+
+/* ============================================================================ 體驗額度 grant 區塊（2026-10-09，docs/launch_gap_payment_1009.md 第 3 節）
+   Andy 10-09：「我部分付費功能他們看不到，兩個方式開放給他們用，但是有期限且限制次數，好比說主促 1-2 個禮拜可以看幾次，重點是得要有曝光」。
+   兩種「體驗額度」（★ 不是免費試用：不改方案、不寫 perm、不綁卡、到期不扣款、自動回原等級；法遵 docs/launch_gap_legal_1009.md 第 2 節）：
+     · welcome  新會員體驗：第一次 Google 登入（users 新建）自動發，註冊起 N 天內每功能 M 次
+     · promo    上市體驗週：活動期間 t0～t1 內登入的會員（含活動中才註冊的）每功能 M 次（per＝total 期間合計／day 每天）
+   四張表（同一個 Durable Object SQLite）：
+     grant_defs  活動／範本（管理區設定；on_=0 時已發的也一起失效）
+     grants      每人拿到的體驗（uid＋gid；welcome＝註冊時間＋N 天、promo＝活動 t0／t1）
+     grant_hits  用量（uid＋gid＋功能鍵＋台北日期＋單位；同一天同一單位只算一次，跟 quota_hits 同口徑）
+     grant_ip    同 IP 每天發 welcome 的份數（只存 IP 的 HMAC、保存 2 天）
+   剩餘次數不存欄位、讀取時算：left＝M − 用量（per='day' 只數今天）。
+   扣次規則（/v1/grants/hit，第 3-5 節）：站主／管理者放行不計 → 方案已開放而且不限次 → 放行不扣 →
+     方案有每日上限而且今天還有 → 放行不扣（先吃方案額度）→ 被鎖（或方案額度用完）→ 扣體驗（多份先扣最早到期）→ 都沒有 → {over:true}。
+   不能放進體驗的功能（法遵 2-3）：今日關注完整名單、選股完整名單、AI 分析、盤中即時、四週期同看（待查停損線）—— GRANT_BAN，後台存不進去。
+   防濫用（第 3-7 節）：grants 主鍵 (uid,gid)＋users.subh UNIQUE（一個 Google 帳號一份）；刪帳號寫 benefit_hash kind='welcome'
+     （比對碼前 Gmail 去點、去 + 後綴）；同 IP（CF-Connecting-IP 的 HMAC）每天最多發 3 份 welcome，超過照樣註冊但不送。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+/* 2026-11-02 Andy 拍板縮小：只剩「盤中即時」與「分 K」不能放進體驗額度（原話：「盤中即時、分 K 不能放；四週期同看、今日關注、選股完整名單、AI 分析（我會限制次數）」）。
+   法遵風險已告知 Andy（docs/legal/20261101_subscription_signals.md、docs/launch_gap_legal_1009.md 2-3）；mkt.cand.n、explore.list.n 是「上限類」，
+   管理區編輯器本來就不列，從黑名單移除無妨。原本的八項：mkt.cand、mkt.cand.n、explore.list、explore.list.n、stock.ai、stock.mtf、live.tick、stock.k_min。 */
+export const GRANT_BAN = ['live.tick', 'stock.k_min'];
+/* 2026-10-27 新會員體驗額度（tier_plan_1027 4-7；Andy 拍板 T-1/T-6）：Plus 等級 A 級功能、14 天、每天每項各 M 次。
+   刻意不放：今日關注、選股名單、四面向資料整理（stock.ai）、四週期同看、分 K（都在 GRANT_BAN）、自選擴充、精選全文。 */
+export const WELCOME_1027_FEATS = { 'ind.3d': 10, 'ind.rel': 10, 'ind.groups': 15, 'ind.diagram': 15, 'heat.detail': 15, 'heat.link': 10, 'flow.play': 5,
+  'flow.sankey.drill': 20, 'etf.cashflow': 10, 'etf.inc.params': 10, 'etf.inc.comp': 10, 'etf.cmp': 10, 'etf.ret.period': 5, 'stock.draw': 10, 'stock.ind': 10,
+  'stock.page': 20, 'season.groups': 20 };
+const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
+/* 2026-11-07（第二次）：體驗功能數不設業務上限 —— Andy：「為何需要限制200 我有幾個就能勾幾個 我後面如果繼續新增呢? 把這問題處理」。
+   以後 features.js 新增多少鍵，管理區就能勾多少個，不必再回來改這裡。GRANT_FEAT_GUARD 只是防濫用的安全網（防有人灌爆一列資料），
+   設在功能數量絕對到不了的量級：2000（目前 features.js 105 個鍵、可放進體驗 93 個）。只有超過它才回 too_many_feats。
+   大小：2000 項 × 最長鍵 40 字 × 999 次 ≈ 96KB JSON → 只有 /v1/admin/grants/defs/put（管理者專用）的本體上限放寬到 GRANT_PUT_MAX_BYTES 256KB，
+   其他公開端點維持 16KB。儲存：grant_defs.feats 是 Durable Object SQLite 的 TEXT 欄，Cloudflare 單一字串／單列上限 2MB，96KB 存得下（測試實測 2000 個 40 字鍵）。
+   JSON 物件的鍵本來就不會重複（JSON.parse 同名鍵只留最後一個），所以「同一個 key」只算一次。 */
+export const GRANT_FEAT_GUARD = 2000;
+export const GRANT_PUT_MAX_BYTES = 262144;
+const GRANT_PUT_PATH = '/v1/admin/grants/defs/put';
+const GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
+const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
+/* 範本沒寫這一項時的預設（＝site/features.js 的 defBy；改一邊要改另一邊）：熱力圖跳頁訪客／註冊會員預設關 */
+/* 2026-10-10：ETF 試算參數鎖、報酬比較、複利試算表三個新鍵也是 defBy 訪客／註冊會員關（體驗額度才認得它們被鎖、會扣體驗）；
+   ▶ 播放（flow.play）、週期統計族群篩選（season.groups）、今日關注（mkt.cand，本來就在 GRANT_BAN）也是 */
+const GRANT_DEF_OFF = { 'heat.link': ['guest', 'free'], 'etf.inc.params': ['guest', 'free'], 'etf.cmp': ['guest', 'free'], 'etf.inc.comp': ['guest', 'free'],
+  'flow.play': ['guest', 'free'], 'season.groups': ['guest', 'free'], 'mkt.cand': ['guest', 'free'] };
+const grantTxt = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
+/* Gmail 別名正規化（a.b+x@gmail.com ＝ ab@gmail.com）：只用在 welcome 的比對碼 */
+export const grantMailNorm = (email) => {
+  const e = String(email || '').trim().toLowerCase(), i = e.lastIndexOf('@');
+  if (i < 1) return e;
+  let u = e.slice(0, i); const d = e.slice(i + 1);
+  if (d === 'gmail.com' || d === 'googlemail.com') { u = u.split('+')[0].replace(/\./g, ''); return u + '@gmail.com'; }
+  return e;
+};
+Hub.prototype.grantInit = function () {
+  if (this._grantOk) return;
+  this.billInit();
+  this.q("CREATE TABLE IF NOT EXISTS grant_defs (id TEXT PRIMARY KEY, kind TEXT, name TEXT, feats TEXT, per TEXT DEFAULT 'total', days INTEGER, t0 INTEGER, t1 INTEGER, audience TEXT DEFAULT 'free', on_ INTEGER DEFAULT 1, updated INTEGER)");
+  this.q('CREATE TABLE IF NOT EXISTS grants (uid TEXT, gid TEXT, start INTEGER, end_ INTEGER, created INTEGER, PRIMARY KEY (uid, gid))');
+  this.q('CREATE TABLE IF NOT EXISTS grant_hits (uid TEXT, gid TEXT, k TEXT, day TEXT, key TEXT, PRIMARY KEY (uid, gid, k, day, key))');
+  this.q('CREATE TABLE IF NOT EXISTS grant_ip (iph TEXT, day TEXT, n INTEGER, PRIMARY KEY (iph, day))');
+  /* 預設兩筆範本（都是「關」）：Andy 在管理區 #admin/grants 打開就生效。參數＝docs/launch_gap_payment_1009.md 3-2 的例子
+     （welcome 7 天每項 3 次、promo 10/13～10/26 每項 5 次）；功能只放法遵 2-3「可以」、而且 site/plan_presets.js 對註冊會員有鎖或有上限的那幾項。
+     只種一次，刪掉不會長回來。*/
+  this._seededBefore1027 = !!this.kv('grants_seeded');
+  if (!this.kv('grants_seeded')) {
+    const feats = (m) => JSON.stringify({ 'ind.3d': m, 'ind.rel': m, 'stock.draw': m, 'stock.ind': m, 'etf.cashflow': m, 'heat.link': m, 'explore.filter': m });
+    const now = this.now();
+    /* 2026-10-27（Andy 拍板 tier_plan_1027 T-1）：新建資料庫的 welcome 種子就是 14 天、每天、體驗功能表（仍預設關，正式站由下面的遷移打開） */
+    if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'welcome').length) {
+      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'day', 14, NULL, NULL, 'free', 0, ?)", JSON.stringify(WELCOME_1027_FEATS), now);
+    }
+    if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'promo-launch').length) {
+      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('promo-launch', 'promo', '上市體驗週', ?, 'total', NULL, ?, ?, 'free', 0, ?)",
+        feats(5), Date.parse('2026-10-13T00:00:00+08:00'), Date.parse('2026-10-27T00:00:00+08:00') - 1, now);
+    }
+    this.setKv('grants_seeded', '1');
+  }
+  /* 2026-10-27 一次性遷移（tier_plan_1027 T-1）：已經種過種子的正式站，把 welcome 改成「14 天、每天計次、Plus 等級 A 級功能」並打開。
+     只做一次（kv 記號）；之後 Andy 在 #admin/grants 怎麼改都不會被蓋回來。新建資料庫（剛種完種子）不打開，維持原本「預設關」。 */
+  if (!this.kv('grants_t1027')) {
+    if (this._seededBefore1027) {
+      /* Andy 10-27「原有參數不可動」：只改「還是原廠種子、沒人動過」的 welcome（關著、7 天、total）；Andy 自己改過的設定一律不碰 */
+      const cur = this.q("SELECT on_, days, per FROM grant_defs WHERE id = 'welcome'")[0];
+      const f = JSON.stringify(WELCOME_1027_FEATS);
+      if (cur) { if (!cur.on_ && cur.days === 7 && cur.per === 'total') this.q("UPDATE grant_defs SET feats = ?, per = 'day', days = 14, on_ = 1, updated = ? WHERE id = 'welcome'", f, this.now()); }
+      else this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'day', 14, NULL, NULL, 'free', 1, ?)", f, this.now());
+    }
+    this.setKv('grants_t1027', '1');
+  }
+  this._grantOk = true;
+};
+const grantDefOut = (r) => {
+  let feats = {}; try { feats = JSON.parse(r.feats || '{}') || {}; } catch (e) { feats = {}; }
+  return { id: r.id, kind: r.kind, name: r.name, feats, per: r.per === 'day' ? 'day' : 'total', days: r.days || null, t0: r.t0 || null, t1: r.t1 || null,
+    audience: r.audience === 'member' ? 'member' : 'free', on: !!r.on_, updated: r.updated || 0 };
+};
+Hub.prototype.grantDefs = function () { this.grantInit(); return this.q('SELECT * FROM grant_defs ORDER BY kind DESC, id').map(grantDefOut); };
+/* 這個人目前是哪個方案（過期退回 free）—— 跟 /v1/perm/me 同一個口徑 */
+Hub.prototype.grantPlan = function (user) {
+  const e = this.effective(String(user.email || '').toLowerCase());
+  return { plan: e.expired ? 'free' : e.plan, feats: e.feats || {} };
+};
+/* 活動中的 promo 自動補發（活動中第一次打 /v1/grants/me 或 /v1/perm/me 就拿到）；welcome 不在這裡補（舊會員不該拿到） */
+Hub.prototype.grantIssuePromo = function (user) {
+  this.grantInit();
+  const now = this.now();
+  const { plan } = this.grantPlan(user);
+  for (const d of this.q("SELECT * FROM grant_defs WHERE kind = 'promo' AND on_ = 1 AND t0 <= ? AND t1 > ?", now, now)) {
+    if (d.audience !== 'member' && plan !== 'free') continue;
+    this.q('INSERT OR IGNORE INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?)', user.uid, d.id, d.t0, d.t1, now);
+  }
+};
+/* 這個人有效的體驗：[{ gid, name, kind, start, end, per, feats:{k:{max,used,left}} }]，依到期早到晚 */
+Hub.prototype.grantList = function (uid) {
+  this.grantInit();
+  const now = this.now(), day = tpeDay(now);
+  const rows = this.q('SELECT g.gid AS gid, g.start AS gstart, g.end_ AS gend, d.* FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.on_ = 1 AND g.start <= ? AND g.end_ > ? ORDER BY g.end_, g.gid', uid, now, now);
+  return rows.map((r) => {
+    const d = grantDefOut(r), per = d.per, feats = {};
+    for (const [k, m] of Object.entries(d.feats)) {
+      if (!Number.isInteger(m) || m < 1 || GRANT_BAN.includes(k)) continue;
+      const used = per === 'day'
+        ? this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE uid = ? AND gid = ? AND k = ? AND day = ?', uid, d.id, k, day)[0].c
+        : this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE uid = ? AND gid = ? AND k = ?', uid, d.id, k)[0].c;
+      feats[k] = { max: m, used, left: Math.max(0, m - used) };
+    }
+    return { gid: d.id, name: d.name, kind: d.kind, start: r.gstart, end: r.gend, per, feats };
+  });
+};
+/* 合併後每個功能的剩餘次數（/v1/perm/me 的 grants 欄）*/
+const grantLeftMap = (list) => { const o = {}; for (const g of list) for (const [k, x] of Object.entries(g.feats)) o[k] = (o[k] || 0) + x.left; return o; };
+/* 今天已經用體驗打開過的單位：{ k: [key…] }（前端重新整理後同一單位不必再按一次「繼續看」）*/
+Hub.prototype.grantToday = function (uid, list) {
+  const o = {}, gids = (list || this.grantList(uid)).map((g) => g.gid);
+  if (!gids.length) return o;
+  /* 只算目前還有效的那幾份（活動關掉、到期、換一檔新活動之後，舊活動的用量不再算「今天打開過」）*/
+  for (const r of this.q('SELECT DISTINCT k, key FROM grant_hits WHERE uid = ? AND day = ? AND gid IN (' + gids.map(() => '?').join(',') + ') LIMIT 500', uid, tpeDay(this.now()), ...gids)) (o[r.k] = o[r.k] || []).push(r.key);
+  return o;
+};
+/* 方案本身對這個功能：'open'（開放不限次）｜'quota'（有每日上限、今天還有）｜'locked'（關掉、上限 0 或今天用完）*/
+Hub.prototype.grantPlanState = function (user, k, key) {
+  const { plan, feats } = this.grantPlan(user);
+  const off = feats[k] === false || feats[k] === 0 || (feats[k] === undefined && (GRANT_DEF_OFF[k] || []).includes(plan));
+  if (off) return 'locked';
+  const lim = this.v3Lims(plan)[k];
+  if (!Number.isInteger(lim)) return 'open';
+  if (lim === 0) return 'locked';
+  const day = tpeDay(this.now());
+  if (this.q('SELECT 1 FROM quota_hits WHERE uid = ? AND day = ? AND k = ? AND key = ?', user.uid, day, k, key).length) return 'quota';
+  return this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', user.uid, day, k)[0].c < lim ? 'quota' : 'locked';
+};
+/* 新會員發 welcome（登入回呼新建 users 之後）。回傳發了沒有與原因：'ok'｜'off'｜'used'｜'ip'（測試用）*/
+Hub.prototype.grantWelcome = async function (user, req) {
+  this.grantInit();
+  const now = this.now();
+  const defs = this.q("SELECT * FROM grant_defs WHERE kind = 'welcome' AND on_ = 1");
+  const ok = defs.filter((d) => (!d.t0 || d.t0 <= now) && (!d.t1 || d.t1 > now) && Number.isInteger(d.days) && d.days >= 1);
+  if (!ok.length) return 'off';
+  /* 刪過帳號、用同一個信箱（含 Gmail 別名）回來 → 不再發 */
+  const emh = await this.billHash(grantMailNorm(user.email));
+  if (this.q("SELECT 1 FROM benefit_hash WHERE emh = ? AND kind = 'welcome' AND at >= ?", emh, now - BILL_HASH_DAYS * 86400 * 1000).length) return 'used';
+  /* 2026-10-27（tier_plan_1027 5-3 缺口）：取消或退款過的人（bill_flags 或刪帳號後留下的 trial／refund 比對碼）不能再領體驗 */
+  try {
+    const bf = this.billFlags(user.email);
+    if (bf && (bf.trial_used || bf.refund_used)) return 'used';
+    const hk = await this.billHashKinds(user.email);
+    if (hk.has('trial') || hk.has('refund')) return 'used';
+  } catch (e) { /* 查不到帳務旗標不擋註冊 */ }
+  /* 同 IP 每天最多 3 份（只存 HMAC，不存原始 IP）*/
+  const ip = req && req.headers ? req.headers.get('CF-Connecting-IP') || '' : '';
+  const day = tpeDay(now);
+  let iph = null;
+  if (ip) {
+    iph = await this.hmac('gip:' + ip);
+    const r = this.q('SELECT n FROM grant_ip WHERE iph = ? AND day = ?', iph, day)[0];
+    if (r && r.n >= GRANT_IP_DAY) return 'ip';
+  }
+  for (const d of ok) this.q('INSERT OR IGNORE INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?)', user.uid, d.id, now, now + d.days * 86400 * 1000, now);
+  if (iph) this.q('INSERT INTO grant_ip (iph, day, n) VALUES (?, ?, 1) ON CONFLICT(iph, day) DO UPDATE SET n = n + 1', iph, day);
+  return 'ok';
+};
+/* 管理區驗證：壞一項整個 400（不存半套）*/
+Hub.prototype.grantClean = function (b) {
+  const id = String(b.id || '');
+  if (!GRANT_ID_RE.test(id)) return { error: 'bad_id' };
+  const kind = b.kind === 'welcome' || b.kind === 'promo' ? b.kind : null;
+  if (!kind) return { error: 'bad_kind' };
+  const name = grantTxt(b.name, 20);
+  if (!name) return { error: 'bad_name' };
+  if (!b.feats || typeof b.feats !== 'object' || Array.isArray(b.feats)) return { error: 'bad_feats' };
+  const ent = Object.entries(b.feats);
+  if (!ent.length) return { error: 'bad_feats' };
+  if (ent.length > GRANT_FEAT_GUARD) return { error: 'too_many_feats', max: GRANT_FEAT_GUARD };   // 只有防濫用安全網會觸發；和「一個都沒勾」分開，前端才不會講錯
+  const feats = {};
+  for (const [k, m] of ent) {
+    if (!V3_FEAT_K_RE.test(k) || k.startsWith('grp.')) return { error: 'bad_feats' };
+    if (GRANT_BAN.includes(k)) return { error: 'banned', k };
+    if (!Number.isInteger(m) || m < 1 || m > GRANT_M_MAX) return { error: 'bad_m', k };
+    feats[k] = m;
+  }
+  const per = b.per === 'day' ? 'day' : b.per === 'total' || b.per == null ? 'total' : null;
+  if (!per) return { error: 'bad_per' };
+  const audience = b.audience === 'member' ? 'member' : b.audience === 'free' || b.audience == null ? 'free' : null;
+  if (!audience) return { error: 'bad_audience' };
+  const isT = (x) => Number.isInteger(x) && x >= 1577836800000 && x <= 4102444800000;
+  let days = null, t0 = null, t1 = null;
+  if (kind === 'welcome') {
+    if (!Number.isInteger(b.days) || b.days < 1 || b.days > GRANT_DAYS_MAX) return { error: 'bad_days' };
+    days = b.days;
+    if (b.t0 != null || b.t1 != null) { if (!isT(b.t0) || !isT(b.t1) || !(b.t1 > b.t0)) return { error: 'bad_time' }; t0 = b.t0; t1 = b.t1; }
+  } else {
+    if (!isT(b.t0) || !isT(b.t1) || !(b.t1 > b.t0)) return { error: 'bad_time' };
+    t0 = b.t0; t1 = b.t1;
+  }
+  return { id, kind, name, feats, per, days, t0, t1, audience, on: b.on === true };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  /* 公開：活動中的上市體驗與新會員體驗設定（總覽橫幅、訪客看到的「登入即可體驗」用；不回任何人的資料）*/
+  '/v1/grants/public': async function (req) {
+    const now = this.now();
+    const pub = (d) => ({ gid: d.id, kind: d.kind, name: d.name, feats: d.feats, per: d.per, days: d.days, t0: d.t0, t1: d.t1, audience: d.audience });
+    const defs = this.grantDefs().filter((d) => d.on);
+    return this.json(req, { now,
+      promo: defs.filter((d) => d.kind === 'promo' && d.t0 <= now && d.t1 > now).map(pub),
+      welcome: defs.filter((d) => d.kind === 'welcome' && (!d.t0 || d.t0 <= now) && (!d.t1 || d.t1 > now)).map(pub) });
+  },
+  '/v1/grants/me': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.grantIssuePromo(v.user);
+    const list = this.grantList(v.user.uid);
+    return this.json(req, { grants: list, left: grantLeftMap(list), today: this.grantToday(v.user.uid, list), now: this.now() });
+  },
+  '/v1/grants/hit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const k = String(b.k || ''), key = String(b.key || '');
+    if (!V3_FEAT_K_RE.test(k) || !QUOTA_KEY_RE.test(key)) return this.json(req, { error: 'bad_input' }, 400);
+    if (GRANT_BAN.includes(k)) return this.json(req, { error: 'banned' }, 400);
+    if (this.isAdmin(v.user)) return this.json(req, { ok: true, free: true });
+    this.grantIssuePromo(v.user);
+    const ps = this.grantPlanState(v.user, k, key);
+    if (ps !== 'locked') return this.json(req, { ok: true, plan: ps });
+    const uid = v.user.uid, day = tpeDay(this.now());
+    const list = this.grantList(uid).filter((g) => g.feats[k]);
+    const leftOf = (l) => l.reduce((s, g) => s + g.feats[k].left, 0);
+    /* 同一天、同一單位已經用體驗打開過（而且那份體驗還有效）→ 不再扣 */
+    if (list.length && this.q('SELECT 1 FROM grant_hits WHERE uid = ? AND k = ? AND day = ? AND key = ? AND gid IN (' + list.map(() => '?').join(',') + ')', uid, k, day, key, ...list.map((g) => g.gid)).length) {
+      return this.json(req, { ok: true, again: true, left: leftOf(list) });
+    }
+    const g = list.find((x) => x.feats[k].left > 0);           // grantList 已依到期早到晚排：先扣最早到期的那份
+    if (!g) return this.json(req, { over: true, left: 0 });
+    this.q('INSERT OR IGNORE INTO grant_hits (uid, gid, k, day, key) VALUES (?, ?, ?, ?, ?)', uid, g.gid, k, day, key);
+    return this.json(req, { ok: true, gid: g.gid, left: leftOf(this.grantList(uid).filter((x) => x.feats[k])) });
+  },
+  '/v1/admin/grants/defs/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const defs = this.grantDefs().map((d) => ({ ...d,
+      issued: this.q('SELECT COUNT(*) AS c FROM grants WHERE gid = ?', d.id)[0].c,
+      used: this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE gid = ?', d.id)[0].c }));
+    return this.json(req, { defs, ban: GRANT_BAN, now: this.now() });   // 11-07 起不回 max_feats：體驗功能數不設業務上限
+  },
+  '/v1/admin/grants/defs/put': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.grantInit();
+    const c = this.grantClean(b);
+    if (c.error) return this.json(req, c, 400);
+    const cur = this.q('SELECT kind FROM grant_defs WHERE id = ?', c.id)[0];
+    if (cur && cur.kind !== c.kind) return this.json(req, { error: 'kind_fixed' }, 400);
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM grant_defs')[0].c >= 50) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '
+      + 'ON CONFLICT(id) DO UPDATE SET name = excluded.name, feats = excluded.feats, per = excluded.per, days = excluded.days, t0 = excluded.t0, t1 = excluded.t1, audience = excluded.audience, on_ = excluded.on_, updated = excluded.updated',
+      c.id, c.kind, c.name, JSON.stringify(c.feats), c.per, c.days, c.t0, c.t1, c.audience, c.on ? 1 : 0, this.now());
+    /* promo 改了起訖：已發的跟著改（活動延長／提早結束對所有人一致）*/
+    if (c.kind === 'promo') this.q('UPDATE grants SET start = ?, end_ = ? WHERE gid = ?', c.t0, c.t1, c.id);
+    return await this.subRoutes['/v1/admin/grants/defs/list'].call(this, req, b);
+  },
+  '/v1/admin/grants/defs/del': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.grantInit();
+    const id = String(b.id || '');
+    if (!GRANT_ID_RE.test(id)) return this.json(req, { error: 'bad_id' }, 400);
+    this.q('DELETE FROM grant_defs WHERE id = ?', id);         // 已發的 grants／grant_hits 保留給統計；範本不在了就一律失效（grantList 用 JOIN）
+    return await this.subRoutes['/v1/admin/grants/defs/list'].call(this, req, b);
+  },
+  /* 客服：查某人的體驗與用量；可帶 extend_days（1～60）手動延長（gid 不帶＝這個人所有的體驗）*/
+  '/v1/admin/grants/user': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.grantInit();
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    const u = this.q('SELECT * FROM users WHERE lower(email) = ?', email)[0];
+    if (!u) return this.json(req, { email, known: false, grants: [], hits: [] });
+    if (b.extend_days !== undefined) {
+      if (!Number.isInteger(b.extend_days) || b.extend_days < 1 || b.extend_days > GRANT_DAYS_MAX) return this.json(req, { error: 'bad_days' }, 400);
+      const gid = b.gid == null ? null : String(b.gid);
+      if (gid !== null && !GRANT_ID_RE.test(gid)) return this.json(req, { error: 'bad_id' }, 400);
+      this.q('UPDATE grants SET end_ = end_ + ? WHERE uid = ?' + (gid ? ' AND gid = ?' : ''), b.extend_days * 86400 * 1000, u.uid, ...(gid ? [gid] : []));
+    }
+    const now = this.now();
+    const all = this.q('SELECT g.*, d.name AS dname, d.kind AS dkind, d.on_ AS don FROM grants g LEFT JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? ORDER BY g.end_ DESC', u.uid)
+      .map((r) => ({ gid: r.gid, name: r.dname || r.gid, kind: r.dkind || '', start: r.start, end: r.end_, active: !!(r.don && r.start <= now && r.end_ > now) }));
+    const live = {}; this.grantList(u.uid).forEach((g) => { live[g.gid] = g.feats; });
+    all.forEach((g) => { g.feats = live[g.gid] || null; });
+    const hits = this.q('SELECT gid, k, day, key FROM grant_hits WHERE uid = ? ORDER BY day DESC LIMIT 200', u.uid);
+    return this.json(req, { email, known: true, name: u.name, created: u.created, grants: all, hits, now });
+  },
+});
+/* 2026-11-07 管理區會員清單「方案」欄可發放體驗（Andy：點方案 → 選「體驗方案」→ 確認）。
+   以前體驗只會依註冊時間／活動期間自動發；這裡讓管理者手動發某一份已存在且開著的體驗給某位已登入過的會員：
+   · welcome：從現在起算 days 天；promo：到活動結束（t1）為止（活動已結束不能發）。
+   · 重發同一份＝刷新起訖並清掉已用次數（管理者明確要再給一次）；不碰 benefit_hash／IP 計數（那是防濫用自動發放用的）。
+   · { probe: true } 只回 ok：前端用它判斷後端有沒有這個端點（舊後端回 404 → 前端把體驗選項停用）。 */
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/grants/issue': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    if (b.probe === true) return this.json(req, { ok: true, probe: true });
+    this.grantInit();
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    const gid = String(b.gid == null ? '' : b.gid);
+    if (!GRANT_ID_RE.test(gid)) return this.json(req, { error: 'bad_id' }, 400);
+    const u = this.q('SELECT * FROM users WHERE lower(email) = ?', email)[0];
+    if (!u) return this.json(req, { error: 'no_user' }, 404);        // 還沒登入過的人沒有帳號可掛
+    const d = this.grantDefs().find((x) => x.id === gid);
+    if (!d) return this.json(req, { error: 'no_def' }, 404);
+    if (!d.on) return this.json(req, { error: 'def_off' }, 400);     // 範本關著：發了也不會生效，擋下來免得管理者以為有發
+    const now = this.now();
+    const start = now, end = d.kind === 'welcome' ? now + d.days * 86400 * 1000 : d.t1;
+    if (!(end > now)) return this.json(req, { error: 'ended' }, 400);
+    const renewed = this.q('SELECT 1 FROM grants WHERE uid = ? AND gid = ?', u.uid, gid).length > 0;     // 已有同一份＝刷新（已發人數不會增加）
+    this.q('INSERT INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT(uid, gid) DO UPDATE SET start = excluded.start, end_ = excluded.end_',
+      u.uid, gid, start, end, now);
+    this.q('DELETE FROM grant_hits WHERE uid = ? AND gid = ?', u.uid, gid);
+    return this.json(req, { ok: true, email, gid, name: d.name, start, end, renewed });
+  },
+});
+/* /v1/perm/me 多回 grants：{ 功能鍵: 剩餘次數 }（所有有效體驗合併）。前端與 data-gw 都讀這一份 */
+const grantOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await grantOrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.grants = {};
+  try {
+    const v = b && b.t ? await this.verify(b.t) : null;
+    if (v && j.who === 'member') { this.grantIssuePromo(v.user); j.grants = grantLeftMap(this.grantList(v.user.uid)); }
+  } catch (e) { /* 體驗表壞了不影響權限本身 */ }
+  return this.json(req, j);
+};
+/* 登入回呼：users 多一列＝新會員 → 試著發 welcome（防濫用不通過就不發，登入照常）*/
+const grantOrigCallback = Hub.prototype.authCallback;
+Hub.prototype.authCallback = async function (req, url) {
+  const before = this.q('SELECT COUNT(*) AS c FROM users')[0].c;
+  const res = await grantOrigCallback.call(this, req, url);
+  try {
+    if (this.q('SELECT COUNT(*) AS c FROM users')[0].c > before) {
+      const u = this.q('SELECT * FROM users ORDER BY rowid DESC LIMIT 1')[0];
+      if (u) this._lastWelcome = await this.grantWelcome(u, req);
+    }
+  } catch (e) { /* 發不出去不影響登入 */ }
+  return res;
+};
+/* 刪帳號：拿過 welcome 的人寫 benefit_hash（kind='welcome'，Gmail 正規化後的比對碼），體驗紀錄一起刪 */
+const grantOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  let had = false;
+  if (v) {
+    this.grantInit();
+    had = this.q("SELECT 1 FROM grants g LEFT JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND (d.kind = 'welcome' OR g.gid = 'welcome')", v.user.uid).length > 0;
+  }
+  const res = await grantOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    if (had) {
+      const emh = await this.billHash(grantMailNorm(v.user.email));
+      this.q("INSERT INTO benefit_hash (emh, kind, at) VALUES (?, 'welcome', ?) ON CONFLICT(emh, kind) DO UPDATE SET at = excluded.at", emh, this.now());
+    }
+    this.q('DELETE FROM grants WHERE uid = ?', v.user.uid);
+    this.q('DELETE FROM grant_hits WHERE uid = ?', v.user.uid);
+  }
+  return res;
+};
+/* 保存期限：用量保留到體驗結束後 30 天；發放紀錄 13 個月；IP 計數 2 天 */
+const grantOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  grantOrigCleanup.call(this);
+  this.grantInit();
+  const now = this.now();
+  this.q('DELETE FROM grant_hits WHERE EXISTS (SELECT 1 FROM grants g WHERE g.uid = grant_hits.uid AND g.gid = grant_hits.gid AND g.end_ < ?)', now - GRANT_HIT_KEEP_DAYS * 86400 * 1000);
+  const d = new Date(now); d.setUTCMonth(d.getUTCMonth() - GRANT_KEEP_MONTHS);
+  this.q('DELETE FROM grants WHERE end_ < ?', d.getTime());
+  this.q('DELETE FROM grant_ip WHERE day < ?', tpeDay(now - 2 * 86400 * 1000));
+};
+const grantOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { grantOrigExpInit.call(this); this.grantInit(); };
+for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+/* ============================================================================ 體驗額度區塊結束 */
+
+/* ============================================================================ 金流訂單 pay-1011（2026-10-11，docs/payment_checkout_1011.md）
+   綠界（單次／信用卡定期定額）＋銀行轉帳（預付制）、付款後多重保險開通、退款、會員訂閱清單。程式在 pay.js（wrangler 一起打包）。
+   ★ 同前面幾個區塊：包一層 prototype，既有函式一行不動；一定要在檔尾（要包住前面所有的 fetch／cleanup／deleteMe／expInit）。
+   ============================================================================ */
+installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
+installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
+installMarginDash(Hub);   // 2026-11-06 全市場信用風險（官方儀表板）人工登錄：/v1/mdash/get 公開讀、/v1/admin/mdash/put|del 管理者寫（margindash.js）
+installAlertMail(Hub, { tpeDay });    // 2026-11-02 自設提醒 email 通知（alertmail.js；cron 18:40 比對 digest.json、寫進 pay.js 的寄信佇列）
+
+/* ============================================================================ 今日造訪人數 dayvis（2026-10-17）
+   Andy 10-17：「改顯示今天造訪人數」（原本頂欄顯示「N 人在線」，剛上線人少；改成今天有幾台裝置打開過網站，數字是真的）。
+   · 前端每台瀏覽器每天一組隨機代碼 vd（localStorage tw.vd，跨日就換一組；不含帳號、不含 IP），跟著 /v1/track/batch 送。
+   · 這裡只記（台北日期, vd）一列，INSERT OR IGNORE —— 同一台一天只算一次；只留今天與昨天，其他天的列每次清掉。
+   · 回應多帶 today（今天不同 vd 的數量），跟 n（線上人數）同一條公開規則：n 有出現才帶 today（public_online 關掉時訪客兩個都看不到）。
+   · 不進匯出（EXPORT_TABLES 不加）：隨機代碼沒有保存價值。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype。
+   ============================================================================ */
+const VD_RE = /^[A-Za-z0-9]{10,32}$/;
+const dayvisOrigBatch = Hub.prototype.trackBatch;
+Hub.prototype.trackBatch = async function (req, b) {
+  const res = await dayvisOrigBatch.call(this, req, b);
+  if (res.status !== 200) return res;
+  let j; try { j = await res.clone().json(); } catch (e) { return res; }
+  if (!this.dayvisReady) { this.q('CREATE TABLE IF NOT EXISTS dayvis (day TEXT, vd TEXT, PRIMARY KEY (day, vd))'); this.dayvisReady = true; }
+  const now = this.now(), day = tpeDay(now);
+  if (!b.leave && VD_RE.test(String(b.vd || ''))) {
+    this.q('INSERT OR IGNORE INTO dayvis (day, vd) VALUES (?, ?)', day, String(b.vd));
+    if (this.dayvisDay !== day) { this.q('DELETE FROM dayvis WHERE day < ?', tpeDay(now - 86400 * 1000)); this.dayvisDay = day; }
+  }
+  if (typeof j.n !== 'number') return res;
+  j.today = this.q('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day)[0].c;
+  return this.json(req, j);
+};
+
+
+/* ============================================================================ 行銷漏斗區塊（2026-10-26，W2，docs/marketing/growth_command_1026.md B-2）
+   · 首次來源（first-touch）：前端把網址的 utm_* 或短參數 ?u= 存在瀏覽器，第一次登入後送到 /v1/me/src，這裡存進 users.src（JSON，四欄各 ≤40 字）。
+     只在「帳號還沒有來源紀錄」時寫入一次，之後不改、不保留逐次紀錄（隱私權政策「行銷來源與使用統計」）。
+   · 註冊（signup）：帳號建立 15 分鐘內第一次送來 → 算一次註冊，歸在該來源（沒來源＝direct）。舊會員第一次送來只標記「已處理」，不算註冊。
+   · 體驗開始（trial_start）：註冊當下若拿到「新會員體驗」（grants 有 welcome）才算。
+   · 付費（paid）：pay.js 第一次開通付費方案時呼叫 funnelPaid，來源取自 users.src。
+   · 計數同時寫 usage（ev:<事件>，全站合計）與 ev2（頁面 other、元件 fn.<事件>、細項＝來源；另寫 fx.<事件>、細項＝功能碼，供管理區「依功能」切換），管理區「流量觀測」的漏斗卡讀這兩處。
+   · DNT／GPC：前端根本不送，所以這裡不需要判斷。
+   ============================================================================ */
+const SRC_RE = /^[A-Za-z0-9_.-]{1,40}$/;
+Hub.prototype.funnelInit = function () {
+  if (this._funnelOk) return;
+  if (!this.q('PRAGMA table_info(users)').some((c) => c.name === 'src')) this.q('ALTER TABLE users ADD COLUMN src TEXT');
+  this._funnelOk = true;
+};
+/* 功能碼（2026-10-27 深層連結）：?u= 第二段，前端存成 src.c（例 diagram3d_20261028）；去掉結尾 _yyyymmdd 就是功能碼。
+   只認貼文（m=post），utm_campaign 是自由字串不算功能；沒有就記 none，這樣「依功能」各列加總＝全站合計，註冊率分母跟「依平台」一致。 */
+const funcOf = (j) => {
+  if (!j || j.m !== 'post' || !j.c) return 'none';
+  const f = String(j.c).replace(/_\d{8}$/, '').toLowerCase();
+  return /^[a-z0-9_]{1,24}$/.test(f) ? f : 'none';
+};
+Hub.prototype.funnelBump = function (e, src, func) {
+  const day = tpeDay(this.now()), s = SRC_RE.test(src || '') ? String(src).slice(0, 24) : 'direct', f = /^[a-z0-9_]{1,24}$/.test(func || '') ? func : 'none';
+  this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fx.' + e, f);
+  this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1', day, 'ev:' + e);
+  this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fn.' + e, s);
+};
+Hub.prototype.funnelPaid = function (uid) {
+  this.funnelInit();
+  const u = this.q('SELECT src FROM users WHERE uid = ?', uid)[0];
+  let s = 'direct', f = 'none'; try { const j = JSON.parse((u && u.src) || 'null'); if (j && j.s) { s = j.s; f = funcOf(j); } } catch (e) { /* 壞資料當 direct */ }
+  this.funnelBump('paid', s, f);
+};
+Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.funnelInit();
+  const u = this.q('SELECT uid, created, src FROM users WHERE uid = ?', v.user.uid)[0];
+  if (!u) return this.json(req, { error: 'auth' }, 401);
+  if (u.src != null) return this.json(req, { ok: true, first: false });       // 已處理過：首次來源不改
+  const o = b.src && typeof b.src === 'object' ? b.src : {}, src = {};
+  for (const k of ['s', 'm', 'c', 'x']) if (SRC_RE.test(String(o[k] || ''))) src[k] = String(o[k]);
+  const isNew = this.now() - (u.created || 0) < 15 * 60 * 1000;
+  this.q('UPDATE users SET src = ? WHERE uid = ?', isNew && src.s ? JSON.stringify(src) : '', u.uid);
+  if (!isNew) return this.json(req, { ok: true, first: false });
+  const label = src.s || 'direct', fc = src.s ? funcOf(src) : 'none';
+  this.funnelBump('signup', label, fc);
+  try {
+    this.grantInit();
+    if (this.q("SELECT 1 FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.kind = 'welcome'", u.uid).length) this.funnelBump('trial_start', label, fc);
+  } catch (e) { /* 體驗表有問題不影響註冊統計 */ }
+  return this.json(req, { ok: true, first: true });
+};
+/* ============================================================================ 行銷漏斗區塊結束 */
+
+/* ============================================================================ 自設提醒區塊 alerts（2026-10-27，Andy 拍板 T-4「自選日報＋自設提醒」，docs/marketing/tier_plan_1027.md W7）
+   為什麼要有 Worker：提醒條件跟著帳號跨裝置（跟自選清單同一種個資），而且「可以設幾條」是方案差異（新權限鍵 watch.alert：註冊 1、Plus 5、Pro 不限），
+   上限要伺服器這關才算數（前端擋得了一般人，F12 改得掉 —— 跟 watch.tabs 同一個原則）。
+   ★ 判斷「條件有沒有成立」不在這裡：事實表是靜態的 site/data/digest.json（盤後 build_payload 產出），瀏覽器載入後自己比對、發站內通知，
+     Worker 不碰資料湖、不存通知、不寄信。這裡只存「使用者自己設的條件」。
+   ★ 法遵 L-13：條件只能由使用者自己設（營收公布／法人連買連賣 N 天／收盤價高於低於 X／除息前 N 天），站方不提供任何預設的「買點／賣點」條件；
+     欄位只收下面白名單，多帶的（備註、文字）一律丟掉。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const ALERT_HARD = 200;
+const ALERT_TYPES = ['rev', 'streak', 'above', 'below', 'exdiv'];
+/* 範本沒寫 watch.alert 時的預設（site/features.js 的 defBy 同一組數，改一邊要改另一邊）；其他付費範本比照 Plus */
+/* 2026-11-02 Andy：「自設提醒條數 plus = 體驗 最多 5 條，pro 先 20 條」→ Pro 由「不限（200）」改 20；硬上限 200 仍保留（管理者與個別微調用）*/
+const ALERT_DEF = { guest: 0, free: 1, plus: 5, pro: 20 };
+const ALERT_TRIAL_CAP = 5;      // 新會員體驗期內至少可設 5 條
+Hub.prototype.alertInit = function () {
+  if (this._alOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS alerts (uid TEXT PRIMARY KEY, data TEXT, rev INTEGER, updated INTEGER)');
+  this._alOk = true;
+};
+Hub.prototype.alertCap = function (user) {
+  if (this.isAdmin(user)) return ALERT_HARD;
+  const e = this.effective(String(user.email || '').toLowerCase());
+  const v = (e.feats || {})['watch.alert'];
+  let cap;
+  if (Number.isInteger(v)) cap = Math.max(0, Math.min(ALERT_HARD, v));
+  else if (v === false) cap = 0;
+  else { const k = e.expired ? 'free' : e.plan; cap = Object.prototype.hasOwnProperty.call(ALERT_DEF, k) ? ALERT_DEF[k] : ALERT_DEF.plus; }
+  /* 新會員體驗期內（welcome 種類的體驗還沒到期）至少 5 條：取 max(原上限, 5) */
+  try { this.promoInit(); if (this.promoWelcome(user.uid)) cap = Math.max(cap, ALERT_TRIAL_CAP); } catch (err) { /* 查不到體驗就用原上限 */ }
+  return cap;
+};
+Hub.prototype.cleanAlerts = function (rules) {
+  if (!Array.isArray(rules) || rules.length > ALERT_HARD) return null;
+  const seen = new Set(), out = [];
+  for (const r of rules) {
+    if (!r || typeof r !== 'object') return null;
+    const id = String(r.id || '');
+    if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+    seen.add(id);
+    const code = String(r.code || '');
+    if (!CODE_RE.test(code) || !ALERT_TYPES.includes(r.type)) return null;
+    const o = { id, code, type: r.type, on: r.on !== false };
+    /* 2026-11-02 通知方式（跨裝置）：w＝網頁通知（預設開）、m＝email（預設關）；只收這兩個布林，其他一律丟掉 */
+    if (r.nt && typeof r.nt === 'object') o.nt = { w: r.nt.w !== false && r.nt.w !== 0, m: r.nt.m === true || r.nt.m === 1 };
+    if (r.type === 'streak') {
+      if (!Number.isInteger(r.n) || r.n < 2 || r.n > 30) return null;
+      if (!['buy', 'sell'].includes(r.side) || !['total', 'foreign', 'trust'].includes(r.who)) return null;
+      o.n = r.n; o.side = r.side; o.who = r.who;
+    } else if (r.type === 'exdiv') {
+      if (!Number.isInteger(r.n) || r.n < 1 || r.n > 30) return null;
+      o.n = r.n;
+    } else if (r.type === 'above' || r.type === 'below') {
+      if (typeof r.x !== 'number' || !isFinite(r.x) || r.x <= 0 || r.x > 1e6) return null;
+      o.x = Math.round(r.x * 100) / 100;
+    }
+    out.push(o);
+  }
+  return out;
+};
+Hub.prototype.subRoutes['/v1/alerts/get'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.alertInit();
+  const r = this.q('SELECT data, rev FROM alerts WHERE uid = ?', v.user.uid)[0];
+  return this.json(req, { alerts: r ? JSON.parse(r.data) : [], rev: r ? r.rev : 0, cap: this.alertCap(v.user) });
+};
+Hub.prototype.subRoutes['/v1/alerts/put'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.alertInit();
+  const rules = this.cleanAlerts(b.alerts);
+  if (!rules) return this.json(req, { error: 'bad_alerts' }, 400);
+  const cur = this.q('SELECT data, rev FROM alerts WHERE uid = ?', v.user.uid)[0];
+  const rev = cur ? cur.rev : 0, old = cur ? JSON.parse(cur.data) : [];
+  if (b.rev !== rev) return this.json(req, { conflict: true, alerts: old, rev }, 409);
+  /* 只擋「變多」：降級的人原本設的照樣留著、能改能刪，只是不能再新增（同 watch.tabs） */
+  const cap = this.alertCap(v.user);
+  if (rules.length > Math.max(cap, old.length)) return this.json(req, { error: 'alert_limit', limit: cap, alerts: old, rev }, 403);
+  this.q('INSERT INTO alerts (uid, data, rev, updated) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET data = excluded.data, rev = excluded.rev, updated = excluded.updated',
+    v.user.uid, JSON.stringify(rules), rev + 1, this.now());
+  return this.json(req, { ok: true, rev: rev + 1, alerts: rules, cap });
+};
+/* 刪帳號：提醒條件是個人資料，一起刪（原本的 deleteMe 會把 users 那列刪掉，所以先記 uid） */
+const alertOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await alertOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.alertInit(); this.q('DELETE FROM alerts WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+/* ============================================================================ 自設提醒區塊結束 */
+
+/* ============================================================================ 到期前問卷＋好友邀請＋活動公告 區塊（2026-11-01）
+   Andy 11-01 23:30：「快到期時打開首頁會跳出意見檢核表，填寫完再送 7 天」「新增好友邀請功能，每個人有邀請碼，另一個人使用就送 14 天 Pro 體驗
+   （Pro 體驗可以提出一個願望來幫他製作客製化功能）」「寄送通知給每個註冊會員，用訊息框出現在首頁，有驚喜煙火」。
+   一律在 worker 端驗證，前端只是畫面：
+     · 問卷：每人一份（survey 主鍵 uid）；必須目前有「新會員體驗」（grants 的 welcome 種類）還沒到期；送出才延長 7 天（把有效的 welcome 到期日 +7 天）。
+       只存 uid 與答案，不存 email／姓名；管理區看得到的只有統計與文字意見。
+     · 邀請：每人一組不可猜的 8 碼（31 字元字母表、crypto 亂數，約 8.5e11 種）；新註冊者（註冊 7 天內）用一次，得到 14 天 Pro。
+       擋：自己的碼、用過一次不能再用、非新會員、已經是付費方案、同 IP 已用過別人的碼或與邀請人同 IP、亂猜碼（每人每天 8 次）。
+       直接寫 perm 表（plan=pro＋expires），**不經 adminPermPut**，所以不會記 first_paid（不會被當成付費、不會出現退款鈕）。
+       邀請人的獎勵：Andy 沒說，先不給（待確認）。
+     · 許願：只有「靠邀請拿到 Pro 體驗、而且還沒到期」的人可以許（最多 3 個），管理區看清單。
+     · 公告：ann_seen 記誰按過「不再顯示」；跨裝置以後端為準。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+const INV_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';     // 去掉 0 O 1 I L，手抄不會抄錯
+const INV_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
+const INV_NEW_DAYS = 7, INV_PRO_DAYS = 14, INV_TRY_DAY = 8, INV_IP_KEEP_DAYS = 30, INV_IP_MAX = 3, SV_BONUS_DAYS = 7, PLUS_DAYS = 14, SV_PLUS_DAYS = 7, UPG_DAYS = 7, UPG_NEED = 5, SV_DUE_DAYS = 3, WISH_MAX = 3;
+const INV_REWARD_CAP = 3;      // 內部上限：每位邀請人最多拿 3 次獎勵（Andy 11-02 更正：3 次，不是 30）；只在後端，回應與畫面都不顯示
+const PM_KEY_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const ANN_RE = /^[a-z0-9-]{1,24}$/;
+Hub.prototype.promoInit = function () {
+  if (this._promoOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS survey (uid TEXT PRIMARY KEY, at INTEGER, stars INTEGER, useful TEXT, improve TEXT, improve_note TEXT, wish_feat TEXT, wish_note TEXT)');
+  this.q('CREATE TABLE IF NOT EXISTS invites (uid TEXT PRIMARY KEY, code TEXT UNIQUE, created INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS invite_uses (invitee TEXT PRIMARY KEY, inviter TEXT, at INTEGER, iph TEXT, pro_end INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS invite_reward (invitee TEXT PRIMARY KEY, inviter TEXT, at INTEGER, days INTEGER, kind TEXT, until INTEGER)');
+  /* 2026-11-02 Andy 改版：獎勵一律是「Plus」，邀滿 5 人升「Pro 7 天」。活動給的方案**不寫 perm**，記在 promo_tier（uid＋tier＋到期），
+     由下面包過的 effective() 疊上去：付費／人工方案優先（不動）、Pro 優先於 Plus、Pro 到期自動回 Plus。付費者拿到的獎勵記 promo_pending。 */
+  this.q('CREATE TABLE IF NOT EXISTS promo_tier (uid TEXT, tier TEXT, end_ INTEGER, PRIMARY KEY (uid, tier))');
+  this.q('CREATE TABLE IF NOT EXISTS promo_pending (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, src TEXT, tier TEXT, days INTEGER, at INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS invite_upg (inviter TEXT PRIMARY KEY, at INTEGER, days INTEGER, kind TEXT)');
+  this.q('CREATE TABLE IF NOT EXISTS invite_ip (uid TEXT PRIMARY KEY, iph TEXT, at INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS invite_try (uid TEXT, day TEXT, n INTEGER, PRIMARY KEY (uid, day))');
+  this.q('CREATE TABLE IF NOT EXISTS wishes (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, at INTEGER, feat TEXT, body TEXT, status TEXT DEFAULT \'new\')');
+  this.q('CREATE TABLE IF NOT EXISTS ann_seen (uid TEXT, aid TEXT, at INTEGER, PRIMARY KEY (uid, aid))');
+  this.grantInit();
+  this._promoOk = true;
+};
+/* 這個人還沒到期的「新會員體驗」（welcome 種類）：回 { end } 或 null；多份取最晚到期 */
+Hub.prototype.promoWelcome = function (uid) {
+  const now = this.now();
+  const r = this.q("SELECT MAX(g.end_) AS e FROM grants g LEFT JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND (d.kind = 'welcome' OR g.gid = 'welcome') AND g.start <= ? AND g.end_ > ?", uid, now, now)[0];
+  return r && r.e ? { end: r.e } : null;
+};
+Hub.prototype.promoHadWelcome = function (uid) {
+  return this.q("SELECT 1 FROM grants g LEFT JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND (d.kind = 'welcome' OR g.gid = 'welcome') LIMIT 1", uid).length > 0;
+};
+Hub.prototype.promoCode = function (uid) {
+  const r = this.q('SELECT code FROM invites WHERE uid = ?', uid)[0];
+  if (r) return r.code;
+  for (let i = 0; i < 8; i++) {
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes, (x) => INV_ALPHA[x % INV_ALPHA.length]).join('');
+    if (this.q('SELECT 1 FROM invites WHERE code = ?', code).length) continue;
+    this.q('INSERT INTO invites (uid, code, created) VALUES (?, ?, ?)', uid, code, this.now());
+    return code;
+  }
+  throw new Error('code_gen');
+};
+Hub.prototype.promoIph = async function (req) {
+  const ip = req && req.headers ? req.headers.get('CF-Connecting-IP') || '' : '';
+  return ip ? await this.hmac('inv:' + ip) : null;     // 只存 HMAC，不存原始 IP
+};
+const promoPick = (arr, maxPages) => {
+  /* [{p:'flow', subs:['flow-rotation']}]：最多 maxPages 個母分頁，子分頁不限（最多 30 個擋濫用）；壞一項整份回 null */
+  if (arr === undefined || arr === null) return [];
+  if (!Array.isArray(arr) || arr.length > maxPages) return null;
+  const seen = new Set(), out = [];
+  for (const it of arr) {
+    if (!it || typeof it !== 'object' || !PM_KEY_RE.test(String(it.p || ''))) return null;
+    if (seen.has(it.p)) continue;
+    seen.add(it.p);
+    const s = Array.isArray(it.subs) ? it.subs : [];
+    if (s.length > 30 || s.some((x) => !PM_KEY_RE.test(String(x || '')))) return null;
+    out.push({ p: it.p, subs: [...new Set(s)] });
+  }
+  return out;
+};
+const promoYmd = (ms) => new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10);      // 台北日期；到期時刻是「不含」的，所以呼叫端傳 end - 1
+const PROMO_LINK = 'https://liguligu-puipui.com/?invite=';
+/* 被邀請者「用過邀請碼」的紀錄（at、拿到的 Plus 到期）*/
+Hub.prototype.promoInviteePro = function (uid) {
+  const r = this.q('SELECT at, pro_end FROM invite_uses WHERE invitee = ?', uid)[0];
+  return r ? { at: r.at, end: r.pro_end, active: r.pro_end > this.now() } : null;
+};
+/* 蓋過活動疊加之前的原始 effective（付費／人工方案判斷一律用它）*/
+Hub.prototype.promoBaseEff = function (email) { return promoOrigEffective.call(this, email); };
+Hub.prototype.promoPaid = function (email) {
+  const e = this.promoBaseEff(email);
+  return !e.expired && e.set && e.plan !== 'free' && e.plan !== 'guest';
+};
+/* 給某人加 N 天的 tier（plus／pro）：從現有到期日或現在較晚者往後加 */
+Hub.prototype.promoAdd = function (uid, tier, days) {
+  const now = this.now(), cur = this.q('SELECT end_ FROM promo_tier WHERE uid = ? AND tier = ?', uid, tier)[0];
+  const end = Math.max(now, cur ? cur.end_ : 0) + days * 86400 * 1000;
+  this.q('INSERT INTO promo_tier (uid, tier, end_) VALUES (?, ?, ?) ON CONFLICT(uid, tier) DO UPDATE SET end_ = excluded.end_', uid, tier, end);
+  return end;
+};
+/* 發獎勵：付費／人工方案的人不動方案，改記「待用天數」；其他人加到 promo_tier */
+Hub.prototype.promoGive = function (user, tier, days, src) {
+  const email = String(user.email || '').toLowerCase();
+  if (email && this.promoPaid(email)) {
+    this.q('INSERT INTO promo_pending (uid, src, tier, days, at) VALUES (?, ?, ?, ?, ?)', user.uid, src, tier, days, this.now());
+    return { pending: true, days };
+  }
+  return { pending: false, days, end: this.promoAdd(user.uid, tier, days) };
+};
+const promoOrigEffective = Hub.prototype.effective;
+Hub.prototype.effective = function (email) {
+  const e = promoOrigEffective.call(this, email);
+  if (!email || (!e.expired && e.set && e.plan !== 'free' && e.plan !== 'guest')) return e;      // 付費／人工方案優先，不疊
+  try {
+    this.promoInit();
+    const u = this.q('SELECT uid FROM users WHERE lower(email) = ?', email)[0];
+    if (!u) return e;
+    const now = this.now(), t = this.q('SELECT tier, end_ FROM promo_tier WHERE uid = ? AND end_ > ?', u.uid, now);
+    const pro = t.find((x) => x.tier === 'pro'), plus = t.find((x) => x.tier === 'plus');
+    const pick = pro && this.plan('pro') ? ['pro', pro.end_] : plus && this.plan('plus') ? ['plus', plus.end_] : null;   // Pro 優先；Pro 到期後自動回 Plus
+    if (!pick) return e;
+    const p = this.plan(pick[0]);
+    return { plan: pick[0], planName: p.name, over: e.over, feats: Object.assign({}, p.feats, e.expired ? {} : e.over), set: true, updated: e.updated, expires: pick[1], expired: false, promo: true };
+  } catch (err) { return e; }
+};
+/* 邀請人獎勵（Andy 11-02 改版）：每成功邀請 1 人 +14 天 Plus（可累計；內部上限 INV_REWARD_CAP 次，不外露）；
+   累計成功邀請達 5 人 → 升級 Pro 7 天（只觸發一次）。付費邀請人改記待用天數、不動方案。 */
+Hub.prototype.promoRewardInviter = function (inviterUid, inviteeUid) {
+  const now = this.now();
+  const u = this.q('SELECT uid, email FROM users WHERE uid = ?', inviterUid)[0];
+  if (!u) return null;
+  const out = {};
+  if (this.q('SELECT COUNT(*) AS c FROM invite_reward WHERE inviter = ?', inviterUid)[0].c < INV_REWARD_CAP) {
+    const g = this.promoGive(u, 'plus', PLUS_DAYS, 'invite');
+    this.q('INSERT INTO invite_reward (invitee, inviter, at, days, kind, until) VALUES (?, ?, ?, ?, ?, ?)', inviteeUid, inviterUid, now, PLUS_DAYS, g.pending ? 'plus_pending' : 'plus', g.end || 0);
+    out.plus = g;
+  }
+  if (this.q('SELECT COUNT(*) AS c FROM invite_uses WHERE inviter = ?', inviterUid)[0].c >= UPG_NEED && !this.q('SELECT 1 FROM invite_upg WHERE inviter = ?', inviterUid).length) {
+    const g = this.promoGive(u, 'pro', UPG_DAYS, 'invite_upg');
+    this.q('INSERT INTO invite_upg (inviter, at, days, kind) VALUES (?, ?, ?, ?)', inviterUid, now, UPG_DAYS, g.pending ? 'pending' : 'pro');
+    out.pro = g;
+  }
+  return out;
+};
+Hub.prototype.promoRewardSums = function (uid) {
+  const d1 = this.q('SELECT COALESCE(SUM(days), 0) AS d FROM invite_reward WHERE inviter = ?', uid)[0].d + this.q('SELECT COALESCE(SUM(days), 0) AS d FROM invite_upg WHERE inviter = ?', uid)[0].d;
+  const p1 = this.q("SELECT COALESCE(SUM(days), 0) AS d FROM invite_reward WHERE inviter = ? AND kind IN ('plus_pending', 'pending')", uid)[0].d + this.q("SELECT COALESCE(SUM(days), 0) AS d FROM invite_upg WHERE inviter = ? AND kind = 'pending'", uid)[0].d;
+  return { total: d1, pending: p1 };
+};
+Hub.prototype.promoTrial = function (user) {
+  const uid = user.uid, now = this.now();
+  const w = this.promoWelcome(uid), sv = this.q('SELECT 1 FROM survey WHERE uid = ?', uid).length > 0;
+  const t = this.q('SELECT tier, end_ FROM promo_tier WHERE uid = ? AND end_ > ?', uid, now);
+  const pro = t.find((x) => x.tier === 'pro'), plus = t.find((x) => x.tier === 'plus');
+  /* until／base_until：新會員體驗截止日（問卷不再延長體驗，改送 14 天 Plus，所以兩個相同）*/
+  return { active: !!w, until: w ? promoYmd(w.end - 1) : '', base_until: w ? promoYmd(w.end - 1) : '',
+    survey_done: sv, survey_eligible: !!w && !sv && w.end - now <= SV_DUE_DAYS * 86400 * 1000,
+    plus_until: plus ? promoYmd(plus.end_ - 1) : null, pro_until: pro ? promoYmd(pro.end_ - 1) : null, end: w ? w.end : 0, now };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  /* 契約 GET /v1/me/trial（本站 API 一律 POST＋權杖放 body，所以實際是 POST）*/
+  '/v1/me/trial': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    return this.json(req, this.promoTrial(v.user));
+  },
+  '/v1/survey/submit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const uid = v.user.uid, now = this.now();
+    if (this.q('SELECT 1 FROM survey WHERE uid = ?', uid).length) return this.json(req, { error: 'done' }, 409);
+    const w = this.promoWelcome(uid);
+    if (!w) return this.json(req, { error: 'no_trial' }, 403);        // 沒有新會員體驗、或已經到期
+    if (w.end - now > SV_DUE_DAYS * 86400 * 1000) return this.json(req, { error: 'too_early' }, 403);   // 剩 ≤3 天才能填
+    const sat = b.sat;
+    if (!Number.isInteger(sat) || sat < 1 || sat > 5) return this.json(req, { error: 'bad_sat' }, 400);
+    const useful = promoPick(b.useful, 5), improve = promoPick(b.improve, 5);
+    if (!useful || !improve) return this.json(req, { error: 'bad_pick' }, 400);
+    if (!useful.length) return this.json(req, { error: 'need_useful' }, 400);
+    let want = [];
+    if (b.want !== undefined && b.want !== null) {
+      if (!Array.isArray(b.want) || b.want.length > 10) return this.json(req, { error: 'bad_want' }, 400);
+      want = b.want.map((x) => grantTxt(x, 60)).filter(Boolean);
+    }
+    this.q('INSERT INTO survey (uid, at, stars, useful, improve, improve_note, wish_feat, wish_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      uid, now, sat, JSON.stringify(useful), JSON.stringify(improve), grantTxt(b.improve_text, 200), JSON.stringify(want), grantTxt(b.want_text, 300));
+    /* 2026-11-02 Andy：填完送 7 天 Plus（取代原本「體驗延長 7 天」）；每人一份所以最多一次。付費者改記待用天數 */
+    const g = this.promoGive(v.user, 'plus', SV_PLUS_DAYS, 'survey');
+    return this.json(req, { ok: true, until: promoYmd(w.end - 1), end: w.end, plus_until: g.end ? promoYmd(g.end - 1) : null, plus_end: g.end || 0, days: SV_PLUS_DAYS, pending: g.pending });
+  },
+  '/v1/invite/me': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const uid = v.user.uid, now = this.now();
+    const code = this.promoCode(uid);
+    const iph = await this.promoIph(req);
+    if (iph) this.q('INSERT INTO invite_ip (uid, iph, at) VALUES (?, ?, ?) ON CONFLICT(uid) DO UPDATE SET iph = excluded.iph, at = excluded.at', uid, iph, now);
+    const inv = this.promoInviteePro(uid);
+    const n = this.q('SELECT COUNT(*) AS c FROM invite_uses WHERE inviter = ?', uid)[0].c, sums = this.promoRewardSums(uid);
+    return this.json(req, { code, link: PROMO_LINK + code, redeemed_count: n,
+      reward_days_total: sums.total, reward_pending_days: sums.pending,
+      next_pro_need: Math.max(0, UPG_NEED - n), pro_unlocked: n >= UPG_NEED || this.q('SELECT 1 FROM invite_upg WHERE inviter = ?', uid).length > 0,
+      /* 額外欄位：這個人自己能不能輸入別人的碼、領過沒 */
+      can_redeem: !inv && !this.promoPaid(String(v.user.email || '').toLowerCase()) && (v.user.created || 0) >= now - INV_NEW_DAYS * 86400 * 1000,
+      redeemed: inv ? { at: inv.at, plus_until: promoYmd(inv.end - 1) } : null, plus_days: PLUS_DAYS, pro_days: UPG_DAYS });
+  },
+  '/v1/invite/redeem': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const uid = v.user.uid, now = this.now(), day = tpeDay(now);
+    const code = String(b.code || '').trim().toUpperCase().replace(/[\s-]/g, '');
+    const tried = (this.q('SELECT n FROM invite_try WHERE uid = ? AND day = ?', uid, day)[0] || { n: 0 }).n;
+    if (tried >= INV_TRY_DAY) return this.json(req, { error: 'too_many' }, 429);
+    this.q('INSERT INTO invite_try (uid, day, n) VALUES (?, ?, 1) ON CONFLICT(uid, day) DO UPDATE SET n = n + 1', uid, day);
+    if (!INV_RE.test(code)) return this.json(req, { error: 'bad_code' }, 400);
+    const inv = this.q('SELECT uid FROM invites WHERE code = ?', code)[0];
+    if (!inv) return this.json(req, { error: 'bad_code' }, 400);
+    if (inv.uid === uid) return this.json(req, { error: 'self' }, 400);
+    if (this.q('SELECT 1 FROM invite_uses WHERE invitee = ?', uid).length) return this.json(req, { error: 'used' }, 409);
+    if ((v.user.created || 0) < now - INV_NEW_DAYS * 86400 * 1000) return this.json(req, { error: 'not_new' }, 403);
+    const email = String(v.user.email || '').toLowerCase();
+    if (this.promoPaid(email)) return this.json(req, { error: 'already_paid' }, 403);
+    if (!this.plan('plus')) return this.json(req, { error: 'no_plus_plan' }, 503);
+    /* 同 IP（Andy 11-02 決定 B）：同一個網路（IP 的 HMAC）30 天內最多兌換 INV_IP_MAX 次；與邀請人同 IP 只是計入、不直接擋（家人／同事共用網路）*/
+    const iph = await this.promoIph(req);
+    if (iph && this.q('SELECT COUNT(*) AS c FROM invite_uses WHERE iph = ? AND at >= ?', iph, now - INV_IP_KEEP_DAYS * 86400 * 1000)[0].c >= INV_IP_MAX) return this.json(req, { error: 'same_ip' }, 403);
+    /* 被邀請者得 14 天 Plus（不寫 perm → 不記 first_paid、不會出現退款）*/
+    const end = this.promoAdd(uid, 'plus', PLUS_DAYS);
+    this.q('INSERT INTO invite_uses (invitee, inviter, at, iph, pro_end) VALUES (?, ?, ?, ?, ?)', uid, inv.uid, now, iph, end);
+    try { this.promoRewardInviter(inv.uid, uid); } catch (err) { /* 邀請人獎勵失敗不影響被邀請者已拿到的 */ }
+    return this.json(req, { ok: true, plus_until: promoYmd(end - 1), plus_end: end, days: PLUS_DAYS });
+  },
+  /* 許願：Pro 期內（含邀滿 5 人升級的 Pro）、一人一個、可覆寫。判斷用實際生效的方案，付費 Pro 也算 */
+  '/v1/wish': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const uid = v.user.uid;
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    if (e.expired || e.plan !== 'pro') return this.json(req, { error: 'no_pro' }, 403);
+    const feat = grantTxt(b.feature, 60), body = grantTxt(b.text, 500);
+    if (!feat) return this.json(req, { error: 'bad_feature' }, 400);
+    if (body.length < 6) return this.json(req, { error: 'bad_text' }, 400);
+    const cur = this.q('SELECT id FROM wishes WHERE uid = ? ORDER BY id DESC LIMIT 1', uid)[0];
+    if (cur) this.q("UPDATE wishes SET at = ?, feat = ?, body = ?, status = 'new' WHERE id = ?", this.now(), feat, body, cur.id);
+    else this.q("INSERT INTO wishes (uid, at, feat, body, status) VALUES (?, ?, ?, ?, 'new')", uid, this.now(), feat, body);
+    return this.json(req, { ok: true, replaced: !!cur });
+  },
+  '/v1/wish/mine': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const r = this.q('SELECT at, feat, body, status FROM wishes WHERE uid = ? ORDER BY id DESC LIMIT 1', v.user.uid)[0];
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    return this.json(req, { ok: !e.expired && e.plan === 'pro', wish: r ? { at: r.at, feature: r.feat, text: r.body, status: r.status } : null });
+  },
+  '/v1/ann/dismiss': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const aid = String(b.aid || '');
+    if (!ANN_RE.test(aid)) return this.json(req, { error: 'bad_aid' }, 400);
+    this.q('INSERT OR IGNORE INTO ann_seen (uid, aid, at) VALUES (?, ?, ?)', v.user.uid, aid, this.now());
+    return this.json(req, { ok: true });
+  },
+  '/v1/ann/state': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.promoInit();
+    const aid = String(b.aid || 'launch-1101').slice(0, 24);
+    return this.json(req, { seen: this.q('SELECT 1 FROM ann_seen WHERE uid = ? AND aid = ?', v.user.uid, aid).length > 0, trial: this.promoTrial(v.user) });
+  },
+  /* 管理區（站主限定）。useful／improve 是扁平的 {key:count}：母分頁與子分頁的 key 都在裡面（子分頁 key 全站唯一）；useful_tree 是母→子的巢狀版 */
+  '/v1/admin/survey': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.promoInit();
+    const rows = this.q('SELECT s.at, s.stars, s.useful, s.improve, s.improve_note, s.wish_feat, s.wish_note, u.email AS email FROM survey s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.at DESC LIMIT 5000');
+    const sat = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, useful = {}, improve = {}, ut = {}, it = {}, texts = [], wantCount = {};
+    const tally = (flat, tree, arr) => { for (const x of arr) { flat[x.p] = (flat[x.p] || 0) + 1; const m = (tree[x.p] = tree[x.p] || { n: 0, subs: {} }); m.n++; for (const k of x.subs || []) { flat[k] = (flat[k] || 0) + 1; m.subs[k] = (m.subs[k] || 0) + 1; } } };
+    let sum = 0;
+    for (const r of rows) {
+      sat[r.stars] = (sat[r.stars] || 0) + 1; sum += r.stars;
+      try { tally(useful, ut, JSON.parse(r.useful || '[]')); tally(improve, it, JSON.parse(r.improve || '[]')); } catch (e) { /* 壞列略過 */ }
+      let want = []; try { want = JSON.parse(r.wish_feat || '[]'); } catch (e) { want = []; }
+      for (const w of want) wantCount[w] = (wantCount[w] || 0) + 1;
+      if (r.improve_note || want.length || r.wish_note) texts.push({ at: r.at, email: r.email || '', improve_text: r.improve_note || '', want: want, want_text: r.wish_note || '', sat: r.stars });
+    }
+    return this.json(req, { n: rows.length, avg: rows.length ? Math.round(sum / rows.length * 100) / 100 : 0, sat, useful, improve, useful_tree: ut, improve_tree: it, want: wantCount,
+      texts: texts.slice(0, 500), invite: { codes: this.q('SELECT COUNT(*) AS c FROM invites')[0].c, uses: this.q('SELECT COUNT(*) AS c FROM invite_uses')[0].c }, now: this.now() });
+  },
+  '/v1/admin/wishes': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.promoInit();
+    const items = this.q('SELECT w.id, w.at, w.feat, w.body, w.status, u.email, u.name FROM wishes w LEFT JOIN users u ON u.uid = w.uid ORDER BY w.at DESC LIMIT 500')
+      .map((r) => ({ id: r.id, at: r.at, email: r.email || '', name: r.name || '', text: r.body, feature: r.feat, status: r.status }));
+    return this.json(req, { items });
+  },
+  '/v1/admin/wish/status': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.promoInit();
+    const st = ['new', 'doing', 'done'].includes(b.status) ? b.status : null;
+    if (!st || !Number.isInteger(b.id)) return this.json(req, { error: 'bad_input' }, 400);
+    this.q('UPDATE wishes SET status = ? WHERE id = ?', st, b.id);
+    return this.json(req, { ok: true });
+  },
+});
+/* 管理區每位會員「邀請了幾人、因邀請延長了幾天」（Andy 11-02）：
+   · /v1/admin/invite/stats → { stats: { uid: { email, invited, reward_days } }, now }（reward_days 含待用 pending）
+   · 既有 /v1/admin/perm/list 的 users[] 每位也多 invited_count、invite_reward_days（欄位只增不改） */
+Hub.prototype.promoInviteStats = function () {
+  this.promoInit();
+  const out = {};
+  for (const r of this.q('SELECT u.uid AS uid, u.email AS email, (SELECT COUNT(*) FROM invite_uses i WHERE i.inviter = u.uid) AS invited, (SELECT COALESCE(SUM(days), 0) FROM invite_reward r WHERE r.inviter = u.uid) + (SELECT COALESCE(SUM(days), 0) FROM invite_upg g WHERE g.inviter = u.uid) AS d FROM users u')) {
+    if (r.invited || r.d) out[r.uid] = { email: String(r.email || '').toLowerCase(), invited: r.invited, reward_days: r.d };
+  }
+  return out;
+};
+Hub.prototype.subRoutes['/v1/admin/invite/stats'] = async function (req, b) {
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  return this.json(req, { stats: this.promoInviteStats(), now: this.now() });
+};
+const promoOrigPermList = Hub.prototype.adminPermList;
+Hub.prototype.adminPermList = async function (req, b) {
+  const res = await promoOrigPermList.call(this, req, b);
+  if (res.status !== 200) return res;
+  try {
+    const j = await res.clone().json(), by = {};
+    for (const v of Object.values(this.promoInviteStats())) by[v.email] = v;
+    j.users = (j.users || []).map((u) => ({ ...u, invited_count: (by[u.email] || {}).invited || 0, invite_reward_days: (by[u.email] || {}).reward_days || 0 }));
+    return this.json(req, j);
+  } catch (e) { return res; }
+};
+/* 刪帳號：問卷、邀請、許願、公告紀錄一起刪（原本的 deleteMe 會把 users 那列刪掉，所以先記 uid）*/
+const promoOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await promoOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    try {
+      this.promoInit();
+      const uid = v.user.uid;
+      for (const [t, c] of [['survey', 'uid'], ['invites', 'uid'], ['invite_ip', 'uid'], ['invite_try', 'uid'], ['wishes', 'uid'], ['ann_seen', 'uid'], ['invite_reward', 'inviter'], ['invite_upg', 'inviter'], ['promo_tier', 'uid'], ['promo_pending', 'uid']]) this.q(`DELETE FROM ${t} WHERE ${c} = ?`, uid);
+      this.q('DELETE FROM invite_uses WHERE invitee = ? OR inviter = ?', uid, uid);
+      this.q('DELETE FROM invite_reward WHERE invitee = ?', uid);
+    } catch (e) { /* 略 */ }
+  }
+  return res;
+};
+const promoOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { promoOrigExpInit.call(this); this.promoInit(); };
+for (const t of ['survey', 'invites', 'invite_uses', 'invite_reward', 'invite_upg', 'promo_tier', 'promo_pending', 'wishes', 'ann_seen']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+/* ============================================================================ 問卷／邀請／公告區塊結束 */
+
+/* ============================================================================ 「今天誰來過」區塊（2026-11-06，Andy：「只有站主看得到 今天有誰來 累積多久 主要看什麼 也需要新增訪客累積數量」）
+   前端：頂欄「N 人在線」點開的框裡多一段「今天」（site/account.js openOnline）。這裡補三樣原本沒有的資料：
+   ① pdwell（uid、台北日期、頁面、毫秒）：每位登入會員每天在每一頁停留多久。加時規則與 visits.ms 完全相同（兩次心跳相隔 ≤150 秒才算，單次最多 2 分鐘），
+      只是多記「在哪一頁」。為什麼不塞進 uev：v3Members／v3Detail 會把 uev 的非 _pv 元件當成功能次數列出，新增一個 _ms 元件會污染那兩份。
+      只記登入者、保留 90 天（同 uev）、刪帳號一起刪，隱私等級同 uev。
+   ② visagg（台北日期、不重複裝置數）：dayvis 只留今天與昨天，這裡每次心跳批次把「今天 dayvis 的列數」寫成當天一列，永久保留（只有日期＋數字），
+      才算得出「本週」「累積」。數字是「不重複裝置」（同一台一天一次），含會員的裝置，不是人數。
+   ③ POST /v1/admin/online/today（只有管理者；訪客與一般會員 403）：
+        { day, now, members:[{ name, email, ms, seen, pages:[[頁面, 毫秒]×3], by }], guests:{ today, week, total, since } }
+      members＝今天有在線時間或有瀏覽紀錄的登入者，依 ms 由多到少；by 是 'time'（pages 的第二欄是毫秒）或 'pv'（今天還沒有停留資料時退而用瀏覽次數）。
+      guests.week＝近 7 天（含今天）每日不重複裝置加總；total＝visagg 全部加總；since＝visagg 最早那天（開始統計日）。
+   ★ 只在檔尾新增、包一層 prototype，既有函式一行不動；前端在端點不存在（404）時隱藏這一段，所以 Worker 部署前後前端都不會壞。
+   ============================================================================ */
+const TD_KEEP_DAYS = 90;
+Hub.prototype.tdInit = function () {
+  if (this._tdOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS pdwell (uid TEXT, day TEXT, page TEXT, ms INTEGER DEFAULT 0, PRIMARY KEY (uid, day, page))');
+  this.q('CREATE TABLE IF NOT EXISTS visagg (day TEXT PRIMARY KEY, n INTEGER DEFAULT 0)');
+  this._tdOk = true;
+};
+const tdOrigBeat = Hub.prototype.beat;
+Hub.prototype.beat = async function (req, b) {
+  /* 要在原本的 beat 之前讀 users.ob（原本的會把它更新成現在），才算得出「這次加了多少」*/
+  let uid = null, ob = 0;
+  try {
+    const v = b && b.t && !b.leave ? await this.verify(b.t) : null;
+    if (v) { uid = v.user.uid; const r = this.q('SELECT ob FROM users WHERE uid = ?', uid)[0]; ob = r && r.ob ? r.ob : 0; }
+  } catch (e) { uid = null; }
+  const res = await tdOrigBeat.call(this, req, b);
+  if (res.status !== 200 || !uid) return res;
+  try {
+    const now = this.now(), gap = ob ? now - ob : 0;
+    const add = gap > 0 && gap <= ONLINE_WINDOW_MS ? Math.min(gap, V3_ONLINE_STEP_MS) : 0;
+    if (add) {
+      this.tdInit();
+      const page = VIEWS.includes(b.r) ? b.r : 'other';
+      this.q('INSERT INTO pdwell (uid, day, page, ms) VALUES (?, ?, ?, ?) ON CONFLICT(uid, day, page) DO UPDATE SET ms = ms + excluded.ms', uid, tpeDay(now), page, add);
+    }
+  } catch (e) { /* 寫不進去：心跳照樣算成功 */ }
+  return res;
+};
+const tdOrigBatch = Hub.prototype.trackBatch;
+Hub.prototype.trackBatch = async function (req, b) {
+  const res = await tdOrigBatch.call(this, req, b);
+  if (res.status !== 200) return res;
+  try {
+    this.tdInit();
+    const day = tpeDay(this.now());
+    if (this.dayvisReady) {
+      const c = this.q('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day)[0].c;
+      if (c) this.q('INSERT INTO visagg (day, n) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET n = excluded.n', day, c);
+    }
+  } catch (e) { /* 略 */ }
+  return res;
+};
+Hub.prototype.tdToday = function () {
+  this.tdInit(); this.v3Init();
+  const now = this.now(), day = tpeDay(now), wk = tpeDay(now - 6 * 86400 * 1000);
+  const ms = {}; this.q('SELECT uid, COALESCE(ms, 0) AS ms FROM visits WHERE day = ?', day).forEach((r) => { ms[r.uid] = r.ms; });
+  const dw = {}; this.q('SELECT uid, page, ms FROM pdwell WHERE day = ? AND ms > 0 ORDER BY ms DESC', day).forEach((r) => { (dw[r.uid] = dw[r.uid] || []).push([r.page, r.ms]); });
+  const pv = {}; this.q("SELECT uid, page, SUM(n) AS n FROM uev WHERE day = ? AND comp = '_pv' GROUP BY uid, page ORDER BY n DESC", day).forEach((r) => { (pv[r.uid] = pv[r.uid] || []).push([r.page, r.n]); });
+  const uids = new Set([...Object.keys(ms).filter((k) => ms[k] > 0), ...Object.keys(dw), ...Object.keys(pv)]);
+  const members = [];
+  for (const uid of uids) {
+    const u = this.q('SELECT name, email, ob, seen FROM users WHERE uid = ?', uid)[0];
+    if (!u || !u.email) continue;
+    const t = dw[uid] && dw[uid].length;
+    members.push({ name: u.name || '', email: u.email, ms: ms[uid] || 0, seen: Math.max(u.ob || 0, 0) || u.seen || 0,
+      pages: (t ? dw[uid] : pv[uid] || []).slice(0, 3), by: t ? 'time' : 'pv' });
+  }
+  members.sort((a, b) => b.ms - a.ms || b.seen - a.seen);
+  const g = (sql, ...a) => this.q(sql, ...a)[0] || {};
+  const guests = {
+    today: g('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day).c || 0,
+    week: g('SELECT COALESCE(SUM(n), 0) AS c FROM visagg WHERE day >= ?', wk).c || 0,
+    total: g('SELECT COALESCE(SUM(n), 0) AS c FROM visagg').c || 0,
+    since: g('SELECT MIN(day) AS d FROM visagg').d || '',
+  };
+  /* dayvis 沒表（還沒有人送過 vd）時上面 today 會丟例外，所以先確保表在 */
+  return { day, now, members, guests };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/online/today': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.dayvisReady) { this.q('CREATE TABLE IF NOT EXISTS dayvis (day TEXT, vd TEXT, PRIMARY KEY (day, vd))'); this.dayvisReady = true; }
+    return this.json(req, this.tdToday());
+  },
+});
+const tdOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await tdOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.tdInit(); this.q('DELETE FROM pdwell WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+const tdOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  tdOrigCleanup.call(this);
+  this.tdInit();
+  this.q('DELETE FROM pdwell WHERE day < ?', tpeDay(this.now() - TD_KEEP_DAYS * 86400 * 1000));
+  this.q('DELETE FROM pdwell WHERE uid NOT IN (SELECT uid FROM users)');
+};
+/* ============================================================================ 「今天誰來過」區塊結束 */
+
+/* ============================================================================ 會員通知區塊（2026-11-09）
+   Andy 11-09：「你發放的那一刻，會員伺服器幫他記一則『你獲得了○○體驗，到期 ○/○』。需要新增 只要我有更動 給他多的福祿都要跳出」
+   部署同意：「同意部署會員後端：發放體驗時通知會員」。
+   member_notices（每人一張小表：id、uid、kind、title、body、created、seen）。只有「給他更多」才寫：
+     · grants/issue 手動發放／重發體驗（kind=grant）
+     · grants/user 帶 extend_days 延長體驗（kind=grant_extend）
+     · perm/put 方案升級（free→Plus／Pro、Plus→Pro…，kind=plan_up）、同等級延長到期日或改成不到期（kind=plan_extend）、
+       同方案下個人功能開通／次數變多（kind=feat_more）
+     · 邀請獎勵：朋友用了你的邀請碼 → 你拿到的 Plus 天數／邀滿 5 人升級 Pro（kind=invite）—— 不是管理者按的，但同樣是「給他多的」
+   降級、取消、扣回、重設（reset）一律不寫。
+   端點：/v1/notices/mine（本人：未讀全部＋最近 20 則）、/v1/notices/seen（本人標已讀；ids 或 all）。刪帳號一起刪；保留 180 天。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動；寫通知失敗一律吞掉，不影響原本的發放／改方案。
+   ============================================================================ */
+const MN_KEEP_DAYS = 180, MN_MAX_PER_USER = 200, MN_RECENT = 20, MN_UNREAD_MAX = 50;
+const MN_ID_RE = /^[A-Za-z0-9_-]{4,24}$/;
+const mnMd = (ms) => { const d = new Date(ms - 1 + 8 * 3600 * 1000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); };   // 台北日期；到期時刻不含，所以減 1 毫秒
+const mnRank = (plan) => (plan === 'pro' ? 3 : plan === 'plus' ? 2 : plan && plan !== 'free' && plan !== 'guest' ? 1 : 0);   // 自訂方案視為「比免費多」
+const mnFeatScore = (v) => (v === true ? 1e9 : Number.isInteger(v) ? v : -1);   // true＝開（不限）；整數＝每日次數；false／沒有＝關
+Hub.prototype.mnInit = function () {
+  if (this._mnOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS member_notices (id TEXT PRIMARY KEY, uid TEXT, kind TEXT, title TEXT, body TEXT, created INTEGER, seen INTEGER DEFAULT 0)');
+  this.q('CREATE INDEX IF NOT EXISTS member_notices_uid ON member_notices (uid, created)');
+  this._mnOk = true;
+};
+Hub.prototype.mnAdd = function (uid, kind, title, body) {
+  try {
+    if (!uid) return null;
+    this.mnInit();
+    const id = rand(9);
+    this.q('INSERT INTO member_notices (id, uid, kind, title, body, created, seen) VALUES (?, ?, ?, ?, ?, ?, 0)', id, uid, kind, String(title).slice(0, 80), String(body || '').slice(0, 300), this.now());
+    /* 每人最多留 MN_MAX_PER_USER 則（最舊的先丟），防某個流程寫爆 */
+    this.q('DELETE FROM member_notices WHERE uid = ? AND id NOT IN (SELECT id FROM member_notices WHERE uid = ? ORDER BY created DESC LIMIT ?)', uid, uid, MN_MAX_PER_USER);
+    return id;
+  } catch (e) { return null; }
+};
+Hub.prototype.mnUidOf = function (email) {
+  const u = email ? this.q('SELECT uid FROM users WHERE lower(email) = ?', String(email).toLowerCase())[0] : null;
+  return u ? u.uid : null;
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/notices/mine': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.mnInit();
+    const uid = v.user.uid;
+    const unread = this.q('SELECT * FROM member_notices WHERE uid = ? AND seen = 0 ORDER BY created DESC LIMIT ?', uid, MN_UNREAD_MAX);
+    const recent = this.q('SELECT * FROM member_notices WHERE uid = ? ORDER BY created DESC LIMIT ?', uid, MN_RECENT);
+    const seenIds = new Set(), all = [];
+    for (const r of [...unread, ...recent]) { if (seenIds.has(r.id)) continue; seenIds.add(r.id); all.push(r); }
+    all.sort((a, c) => c.created - a.created);
+    return this.json(req, { now: this.now(), unread: unread.length,
+      notices: all.map((r) => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, created: r.created, seen: !!r.seen })) });
+  },
+  '/v1/notices/seen': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.mnInit();
+    const uid = v.user.uid, now = this.now();
+    if (b.all === true) this.q('UPDATE member_notices SET seen = ? WHERE uid = ? AND seen = 0', now, uid);
+    else {
+      const ids = Array.isArray(b.ids) ? b.ids.filter((x) => typeof x === 'string' && MN_ID_RE.test(x)).slice(0, 100) : [];
+      for (const id of ids) this.q('UPDATE member_notices SET seen = ? WHERE id = ? AND uid = ? AND seen = 0', now, id, uid);   // 只動自己的
+    }
+    return this.json(req, { ok: true, unread: this.q('SELECT COUNT(*) AS c FROM member_notices WHERE uid = ? AND seen = 0', uid)[0].c });
+  },
+});
+/* ① 手動發放／重發體驗 */
+const mnOrigIssue = Hub.prototype.subRoutes['/v1/admin/grants/issue'];
+Hub.prototype.subRoutes['/v1/admin/grants/issue'] = async function (req, b) {
+  const res = await mnOrigIssue.call(this, req, b);
+  if (res.status !== 200 || (b && b.probe === true)) return res;
+  try {
+    const j = await res.clone().json();
+    const uid = j.ok ? this.mnUidOf(j.email) : null;
+    if (uid) {
+      if (j.renewed) this.mnAdd(uid, 'grant', `你的「${j.name}」已重新起算`, `站主重新發給你「${j.name}」，次數已重置，到期 ${mnMd(j.end)}。`);
+      else this.mnAdd(uid, 'grant', `你獲得了「${j.name}」`, `站主發給你「${j.name}」，到期 ${mnMd(j.end)}。`);
+    }
+  } catch (e) { /* 寫不到通知不影響發放 */ }
+  return res;
+};
+/* ② 延長體驗天數（grants/user 帶 extend_days）*/
+const mnOrigGrantUser = Hub.prototype.subRoutes['/v1/admin/grants/user'];
+Hub.prototype.subRoutes['/v1/admin/grants/user'] = async function (req, b) {
+  const res = await mnOrigGrantUser.call(this, req, b);
+  if (res.status !== 200 || !b || b.extend_days === undefined) return res;
+  try {
+    const j = await res.clone().json();
+    const uid = j.known ? this.mnUidOf(j.email) : null;
+    const gid = b.gid == null ? null : String(b.gid);
+    const now = this.now();
+    const hit = (j.grants || []).filter((g) => (!gid || g.gid === gid) && g.end > now);
+    if (uid && hit.length) {
+      const names = hit.map((g) => `「${g.name}」`).join('、');
+      const last = Math.max(...hit.map((g) => g.end));
+      this.mnAdd(uid, 'grant_extend', hit.length === 1 ? `你的${names}延長到 ${mnMd(last)}` : `你的體驗延長了 ${b.extend_days} 天`,
+        `站主替你把${names}延長 ${b.extend_days} 天` + (hit.length === 1 ? `，到期 ${mnMd(last)}。` : `，最晚到期 ${mnMd(last)}。`));
+    }
+  } catch (e) { /* 略 */ }
+  return res;
+};
+/* ③ 改方案／延長到期／個人功能變多（perm/put）：先記改之前的生效狀態，改完再比 */
+const mnOrigPermPut = Hub.prototype.adminPermPut;
+Hub.prototype.adminPermPut = async function (req, b) {
+  const email = this.cleanEmail(b && b.email);
+  let before = null;
+  try { if (email && !(b && b.reset === true)) before = this.effective(email); } catch (e) { before = null; }
+  const res = await mnOrigPermPut.call(this, req, b);
+  if (res.status !== 200 || !before) return res;
+  try {
+    const uid = this.mnUidOf(email);
+    const after = this.effective(email);
+    if (!uid || !after || after.expired) return res;
+    const p0 = before.expired ? 'free' : before.plan, p1 = after.plan;
+    const name = after.planName || (this.plan(p1) || {}).name || p1;
+    const until = after.expires ? `，到期 ${mnMd(after.expires)}` : '，不限期';
+    if (mnRank(p1) > mnRank(p0)) {
+      this.mnAdd(uid, 'plan_up', `你的方案已升級為 ${name}`, `站主把你的方案升級為 ${name}${until}。`);
+    } else if (p1 === p0 && p1 !== 'free') {
+      const e0 = before.expired ? 0 : before.expires || 0, e1 = after.expires || 0;
+      if (e0 && !e1) this.mnAdd(uid, 'plan_extend', `你的 ${name} 改為不限期`, `站主把你的 ${name} 方案改成不會到期。`);
+      else if (e0 && e1 > e0) this.mnAdd(uid, 'plan_extend', `你的 ${name} 延長到 ${mnMd(e1)}`, `站主把你的 ${name} 方案延長到 ${mnMd(e1)}。`);
+    }
+    if (p1 === p0) {
+      const f0 = before.feats || {}, f1 = after.feats || {};
+      const more = Object.keys(f1).filter((k) => mnFeatScore(f1[k]) > mnFeatScore(f0[k]));
+      if (more.length) this.mnAdd(uid, 'feat_more', '站主替你多開了功能', `站主替你開通或加多了 ${more.length} 項功能的使用次數，重新整理就能用。`);
+    }
+  } catch (e) { /* 寫不到通知不影響改方案 */ }
+  return res;
+};
+/* ④ 邀請獎勵（朋友用了邀請碼 → 邀請人拿到 Plus 天數；邀滿 5 人升級 Pro）*/
+const mnOrigReward = Hub.prototype.promoRewardInviter;
+Hub.prototype.promoRewardInviter = function (inviterUid, inviteeUid) {
+  const out = mnOrigReward.call(this, inviterUid, inviteeUid);
+  try {
+    if (out && out.plus) this.mnAdd(inviterUid, 'invite', out.plus.pending ? `邀請獎勵：${out.plus.days} 天 Plus 已存入` : `邀請獎勵：Plus 延長到 ${mnMd(out.plus.end)}`,
+      out.plus.pending ? `你邀請的朋友加入了，${out.plus.days} 天 Plus 先存成待用天數，目前的方案到期後接著用。` : `你邀請的朋友加入了，你獲得 ${out.plus.days} 天 Plus，到期 ${mnMd(out.plus.end)}。`);
+    if (out && out.pro) this.mnAdd(inviterUid, 'invite', out.pro.pending ? `邀請獎勵：${out.pro.days} 天 Pro 已存入` : `你已升級為 Pro，到期 ${mnMd(out.pro.end)}`,
+      out.pro.pending ? `你已成功邀請 5 位朋友，${out.pro.days} 天 Pro 先存成待用天數。` : `你已成功邀請 5 位朋友，升級為 Pro ${out.pro.days} 天，到期 ${mnMd(out.pro.end)}。`);
+  } catch (e) { /* 略 */ }
+  return out;
+};
+const mnOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await mnOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.mnInit(); this.q('DELETE FROM member_notices WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+const mnOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  mnOrigCleanup.call(this);
+  try {
+    this.mnInit();
+    this.q('DELETE FROM member_notices WHERE created < ?', this.now() - MN_KEEP_DAYS * 86400 * 1000);
+    this.q('DELETE FROM member_notices WHERE uid NOT IN (SELECT uid FROM users)');
+  } catch (e) { /* 略 */ }
+};
+/* ============================================================================ 會員通知區塊結束 */

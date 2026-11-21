@@ -1,0 +1,38 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+5%",
+ "pitch": "+0Hz",
+ "text": "CoWoS 是台積電的先進封裝。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 0.097625,
+   "dur": 0.476208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "是",
+   "start": 0.585708,
+   "dur": 0.15475
+  },
+  {
+   "type": "WordBoundary",
+   "text": "台積電的",
+   "start": 0.752375,
+   "dur": 0.666666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "先進",
+   "start": 1.430958,
+   "dur": 0.309541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 1.811916,
+   "dur": 0.440458
+  }
+ ]
+}

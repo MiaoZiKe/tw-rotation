@@ -1,0 +1,91 @@
+name: channel_insights
+# 多頻道每日成效收集（2026-11-09）：② 科技透明圈（tech）、③ AI 介紹頻道（caffaine）、④ 談晴說礙（healing）。
+# 每天台北 23:23（UTC 15:23，避開整點）抓一次 IG／Threads 帳號層與已發貼文的成效，寫進
+# docs/marketing/channels/<頻道>/state/insights/（account_daily.csv、posts_daily.csv、last_run.json）。
+# - 每個頻道一個 job（matrix），只帶自己前綴的 Secrets（TECH_*／CAFFAINE_*／HEALING_*）。
+# - 權限不足（缺 instagram_manage_insights／threads_manage_insights）或還沒設權杖：不紅燈，摘要寫明缺什麼、要重新授權哪個權限。
+# - 只有未預期的程式錯誤才紅燈。
+# - 手動觸發時 inputs.channel 只跑指定頻道（step 的 if 判斷；job 層不能用 matrix）。
+# - 不碰頻道①（IG_ACCESS_TOKEN／THREADS_ACCESS_TOKEN）與發文工作流（channel_post.yml、healing_post.yml）。
+on:
+  schedule:
+    - cron: "23 15 * * *"   # 台北 23:23（每天）
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "哪個頻道（all＝全部三個）"
+        type: choice
+        options: [all, healing, tech, caffaine]
+        default: all
+
+permissions:
+  contents: write   # 只把 state/insights 推回 main（不含權杖）
+
+jobs:
+  insights:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 1   # 一個一個跑，推回 main 時不互相擋
+      matrix:
+        channel: [healing, tech, caffaine]
+    concurrency:
+      group: channel-insights-${{ matrix.channel }}
+      cancel-in-progress: false
+    env:
+      CH: ${{ matrix.channel }}
+      CH_DIR: docs/marketing/channels/${{ matrix.channel }}
+      # healing：只有 matrix.channel == 'healing' 的 job 才拿得到 HEALING_*，其他頻道這幾格是空字串
+      HEALING_IG_ACCESS_TOKEN: ${{ matrix.channel == 'healing' && secrets.HEALING_IG_ACCESS_TOKEN || '' }}
+      HEALING_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'healing' && secrets.HEALING_IG_ACCESS_TOKEN_AUTO || '' }}
+      HEALING_IG_USER_ID: ${{ matrix.channel == 'healing' && secrets.HEALING_IG_USER_ID || '' }}
+      HEALING_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'healing' && secrets.HEALING_THREADS_ACCESS_TOKEN || '' }}
+      HEALING_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'healing' && secrets.HEALING_THREADS_ACCESS_TOKEN_AUTO || '' }}
+      HEALING_THREADS_USER_ID: ${{ matrix.channel == 'healing' && secrets.HEALING_THREADS_USER_ID || '' }}
+      # tech
+      TECH_IG_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN || '' }}
+      TECH_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_IG_ACCESS_TOKEN_AUTO || '' }}
+      TECH_IG_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_IG_USER_ID || '' }}
+      TECH_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_ACCESS_TOKEN || '' }}
+      TECH_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || '' }}
+      TECH_THREADS_USER_ID: ${{ matrix.channel == 'tech' && secrets.TECH_THREADS_USER_ID || '' }}
+      # caffaine
+      CAFFAINE_IG_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN || '' }}
+      CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO || '' }}
+      CAFFAINE_IG_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_IG_USER_ID || '' }}
+      CAFFAINE_THREADS_ACCESS_TOKEN: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_ACCESS_TOKEN || '' }}
+      CAFFAINE_THREADS_ACCESS_TOKEN_AUTO: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_ACCESS_TOKEN_AUTO || '' }}
+      CAFFAINE_THREADS_USER_ID: ${{ matrix.channel == 'caffaine' && secrets.CAFFAINE_THREADS_USER_ID || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        if: ${{ github.event_name == 'schedule' || inputs.channel == 'all' || inputs.channel == matrix.channel }}
+        with:
+          python-version: "3.11"
+
+      - name: 安裝套件
+        if: ${{ github.event_name == 'schedule' || inputs.channel == 'all' || inputs.channel == matrix.channel }}
+        run: pip install -q requests pillow
+
+      - name: 抓成效（缺權限不紅燈，摘要寫明要重新授權哪個權限）
+        if: ${{ github.event_name == 'schedule' || inputs.channel == 'all' || inputs.channel == matrix.channel }}
+        run: python scripts/channel_insights.py --channel "$CH"
+
+      - name: 寫回 main（只 add 這個頻道的 state/insights，沒有權杖）
+        if: always() && ( github.event_name == 'schedule' || inputs.channel == 'all' || inputs.channel == matrix.channel )
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add -- "$CH_DIR/state/insights"
+          if git diff --staged --quiet; then
+            echo "沒有變動，跳過 commit"; exit 0
+          fi
+          git commit -q -m "$CH：成效收集 $(TZ=Asia/Taipei date '+%Y-%m-%d')"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && break
+            sleep $((i*2))
+          done

@@ -1,0 +1,12 @@
+{
+  "title": "一句話做出生日邀請網頁，還能收回覆",
+  "format": "article",
+  "platforms": [
+    "ig",
+    "threads"
+  ],
+  "status": "draft",
+  "keyword": "邀請",
+  "note": "存貨：還沒排時間、不要自動發。文章 site/articles/caffaine/2026-11-17-invite-page.json；影片 site/media/caffaine/stock_invite-page/。要發時再補 publish_at、改 approved、加 format=video 與 video_src。",
+  "comment_keyword": "邀請"
+}

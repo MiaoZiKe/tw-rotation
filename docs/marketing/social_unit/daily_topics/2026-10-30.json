@@ -1,0 +1,529 @@
+{
+  "target_date": "2026-10-30",
+  "data_date": "2026-10-29",
+  "warning": "",
+  "n": 8,
+  "track_a": {
+    "name": "A 總經",
+    "schedule": [
+      {
+        "date_et": "2026-10-28",
+        "tw_time": "10/29 02:00",
+        "kind": "fomc",
+        "title": "FOMC 利率決議",
+        "ref": "",
+        "org": "聯準會（Federal Reserve）",
+        "via": "yaml",
+        "phase": "已過公布日",
+        "confidence": "待查證"
+      },
+      {
+        "date_et": "2026-10-29",
+        "tw_time": "10/29 20:30",
+        "kind": "gdp",
+        "title": "美國 GDP",
+        "ref": "",
+        "org": "美國經濟分析局（BEA）",
+        "via": "fred",
+        "phase": "已過公布日",
+        "confidence": "待查證"
+      },
+      {
+        "date_et": "2026-10-29",
+        "tw_time": "10/29 20:30",
+        "kind": "pce",
+        "title": "美國 PCE 物價",
+        "ref": "",
+        "org": "美國經濟分析局（BEA）",
+        "via": "fred",
+        "phase": "已過公布日",
+        "confidence": "待查證"
+      },
+      {
+        "date_et": "2026-11-06",
+        "tw_time": "11/06 21:30",
+        "kind": "nfp",
+        "title": "美國非農就業",
+        "ref": "",
+        "org": "美國勞工統計局（BLS）",
+        "via": "fred",
+        "phase": "未來",
+        "confidence": "待查證"
+      }
+    ],
+    "news": [
+      {
+        "title": "歐洲央行利率按兵不動 聚焦能源通膨與拉加德繼任人選",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6641094",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "9 月景氣燈號連十紅史上最長，國發會估有望亮至年底",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/29/september-business-climate-indicator-shows-10-consecutive-red-lights-setting-new-historical-record/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "瑞薩AI晶片訂單看到明年上半年！電源產能拚翻倍，車用復甦仍靠補庫存",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6640586",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "AI投資風險藏在哪？私募信貸估值慢半拍，贖回壓力成考驗",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6640544",
+        "date": "2026-10-29",
+        "groups": [
+          "封測代工",
+          "HBM 高頻寬記憶體",
+          "3D 堆疊與 CPO 封裝",
+          "封測 / 測試"
+        ],
+        "companies": [
+          {
+            "code": "6239",
+            "name": "力成"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "IC 封裝與測試要經過哪些程序（完成一顆 IC 的後段流程）",
+          "封測廠和晶圓廠、IC 設計公司怎麼分工",
+          "半導體製程流程怎麼走（設計→製造→封裝→測試）",
+          "半導體上下游合作關係：誰供貨給誰",
+          "這個環節目前邁向哪個階段"
+        ]
+      },
+      {
+        "title": "三星獲利暴增股價卻跌逾6%！明年HBM售罄，股東回饋未加碼令市場失望",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6640546",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "范斯致函伊朗高層盼重啟和談 川普澄清非親自指示但給予肯定",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6640513",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "AI財報掀震盪！Google盤後跌一成拖累美股期貨，韓股由紅翻黑",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6640526",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "非洲首富擬投資埃及逾百億美元，海灣金援外新出路",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/29/africas-richest-man-invests-10-billion-egypt-new-gulf-aid-alternative/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      }
+    ]
+  },
+  "track_b": {
+    "name": "B 科技",
+    "news": [
+      {
+        "title": "AI衝擊就業！美國大學資工系招生雪崩 大學部生源兩年流失18.4%",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6640065",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "91APP 訂單資訊外洩！波及千家品牌、480 萬名消費者，承諾全面負責",
+        "source": "technews",
+        "url": "https://infosecu.technews.tw/2026/10/29/91app-security-incident-20261029/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "福斯汽車第三季虧損擴大至 2,100 億，中國交車量大跌四成",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/29/volkswagen-third-quarter-loss-widens-210-billion-china-deliveries-plummet-40-percent/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "政院追加預算挺台電、中油撥補案！商總許舒博：逼漲能源並不是好事",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/29/golden-merchant-award/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "韓媒：台美日韓 PHP 防火牆遭入侵，發現疑似中國駭客蹤跡",
+        "source": "technews",
+        "url": "https://infosecu.technews.tw/2026/10/29/korean-media-taiwan-us-japan-south-korea-php-firewalls-hacked-chinese-hackers-suspected/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "日月光投控 2026 年 LEAP 營收上調至逾 40 億美元，今明資本支出與毛利率同步走揚",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/29/ase-technology-holding-co-ltd-reported-a-record-high-third-quarter-profit-with-eps-of-nt6-13-2/",
+        "date": "2026-10-29",
+        "groups": [
+          "封測代工",
+          "AI 先進封裝",
+          "3D 堆疊與 CPO 封裝",
+          "封測 / 測試"
+        ],
+        "companies": [
+          {
+            "code": "3711",
+            "name": "日月光投控"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "IC 封裝與測試要經過哪些程序（完成一顆 IC 的後段流程）",
+          "封測廠和晶圓廠、IC 設計公司怎麼分工",
+          "半導體製程流程怎麼走（設計→製造→封裝→測試）",
+          "半導體上下游合作關係：誰供貨給誰",
+          "這個環節目前邁向哪個階段"
+        ]
+      },
+      {
+        "title": "MacBook Pro 新機進軍市場，2027 年全球 OLED 筆電出貨估年增逾 40%",
+        "source": "technews",
+        "url": "https://technews.tw/2026/10/29/macbook-pro-new-models-boost-oled-laptop-shipments-40-percent-growth-2027/",
+        "date": "2026-10-29",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "台達電 AI 營收占比達五成，馬來西亞新據點五年拚泰國規模",
+        "source": "technews",
+        "url": "https://technews.tw/2026/10/29/delta-electronics-ai-revenue-50-percent-malaysia-new-facility-5-years-thailand-scale/",
+        "date": "2026-10-29",
+        "groups": [
+          "電源供應器",
+          "電源"
+        ],
+        "companies": [
+          {
+            "code": "2308",
+            "name": "台達電"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "AI 伺服器電源供應的架構與供應鏈",
+          "高功率電源為什麼需求變強",
+          "為何 AI 伺服器需求強（雲端業者資本支出與模型訓練）",
+          "AI 伺服器供應鏈介紹：哪個零件由誰做",
+          "上下游合作關係：誰供貨給誰"
+        ]
+      }
+    ],
+    "lectures": [
+      {
+        "date": "2026-10-30",
+        "code": "2301",
+        "name": "光寶科",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-30",
+        "code": "4919",
+        "name": "新唐",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-30",
+        "code": "4968",
+        "name": "立積",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-30",
+        "code": "6271",
+        "name": "同欣電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-30",
+        "code": "8215",
+        "name": "明基材",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-02",
+        "code": "3006",
+        "name": "晶豪科",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-02",
+        "code": "4967",
+        "name": "十銓",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-03",
+        "code": "2344",
+        "name": "華邦電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-03",
+        "code": "3704",
+        "name": "合勤控",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-03",
+        "code": "6526",
+        "name": "達發",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-03",
+        "code": "8163",
+        "name": "達方",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-04",
+        "code": "1590",
+        "name": "亞德客-KY",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-04",
+        "code": "2412",
+        "name": "中華電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-04",
+        "code": "6269",
+        "name": "台郡",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-04",
+        "code": "6412",
+        "name": "群電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-05",
+        "code": "2458",
+        "name": "義隆",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-05",
+        "code": "3036",
+        "name": "文曄",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-05",
+        "code": "3592",
+        "name": "瑞鼎",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-05",
+        "code": "4904",
+        "name": "遠傳",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-06",
+        "code": "2474",
+        "name": "可成",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-06",
+        "code": "3545",
+        "name": "敦泰",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-06",
+        "code": "3714",
+        "name": "富采",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-06",
+        "code": "6691",
+        "name": "洋基工程",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-06",
+        "code": "6719",
+        "name": "力智",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-06",
+        "code": "8210",
+        "name": "勤誠",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      }
+    ]
+  }
+}

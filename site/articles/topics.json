@@ -1,0 +1,3595 @@
+{
+ "updated": "2026-11-20",
+ "topics": [
+  {
+   "id": "n_saas_selloff_ai",
+   "cat": "news",
+   "title": "軟體股一天跌 4%～9%：AI 疑慮擴散了嗎",
+   "why": "11/17 道瓊跌 849 點、標普與那指連四黑，賽富時、Workday、Adobe 等軟體股跌 4%～9%；讀者會問 AI 是不是在吃掉軟體業（來源：優分析 11/17 美股收盤，撰寫時再核對第二來源）",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/saas"
+   ]
+  },
+  {
+   "id": "n_fed_dec_hike_95",
+   "cat": "news",
+   "title": "12 月升息機率 95%：Fed 為什麼這次要升",
+   "why": "11/17 期貨市場押 12 月升息機率約 95%，理事 Waller 表態支持升 1 碼、12/9 會議結束；跟前幾天的美債題不同，主軸放升息本身（來源：Axios 11/10、優分析 11/17，撰寫時再核對）",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-20"
+  },
+  {
+   "id": "n_jp_semi_advantest_11",
+   "cat": "news",
+   "title": "日股半導體單日重挫：愛德萬跌 11% 怕什麼",
+   "why": "11/16 日經跌 2.4% 失守 6 萬點，愛德萬測試跌約 11%、東京威力科創跌約 7%，兩檔占指數跌點約七成；台灣測試與設備鏈會問會不會傳過來（來源：優分析 11/16，撰寫時再核對）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/ic_test_service"
+   ]
+  },
+  {
+   "id": "i_siph_design_eic",
+   "cat": "intro",
+   "title": "矽光子 IC 設計鏈：驅動、放大晶片到設計服務",
+   "why": "光引擎裡除了光子晶片，還有驅動、放大、控制的電子晶片與 CPO 版 ASIC；站內已有 siph_design 族群（成分含設計服務廠的 CPO 合作進度），補上 CPO 系列還沒講的設計段",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/siph_design"
+   ]
+  },
+  {
+   "id": "i_cpo_pkg_3d",
+   "cat": "intro",
+   "title": "CPO 封裝鏈：光引擎怎麼和交換晶片封在一起",
+   "why": "CPO 要把光引擎與交換器晶片封進同一個基板，台積電 COUPE 之外還有封測廠的 FOPLP、後段整合路線；站內 siph_pkg 族群有各家量產時程（公司說法），講環節不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/siph_pkg"
+   ]
+  },
+  {
+   "id": "i_fab_equip_oem",
+   "cat": "intro",
+   "title": "晶圓廠設備代工鏈：整機、次系統到精密零件",
+   "why": "國際設備大廠把整機組裝、次系統模組與精密零件外包給台廠，營收跟著設備廠資本支出循環走；跟前段製程設備（曝光、蝕刻）那篇不同，這篇講幫設備廠代工的那一層",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/fab_equipment"
+   ]
+  },
+  {
+   "id": "k_rack_busbar",
+   "cat": "know",
+   "title": "機櫃銅排是什麼？一根銅條怎麼把電送進主機",
+   "why": "NVL72 式機櫃單櫃上百 kW，電源架的直流電靠背後的銅排送到每台主機；可用站內 ai_server 3D 機櫃場景切到電源層講解",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_thin_film_dep",
+   "cat": "know",
+   "title": "薄膜沉積是什麼？晶圓上一層層膜怎麼長上去",
+   "why": "製程迴圈裡沉積、曝光、蝕刻、研磨反覆跑，光阻與 CMP 已有知識題，沉積還沒講；用站內 foundry 3D（一顆電晶體與製程迴圈）講 CVD、PVD、ALD 差在哪",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_aec_cable",
+   "cat": "know",
+   "title": "主動式電纜 AEC 是什麼？機櫃短距為何不用光纖",
+   "why": "AI 機櫃內與機櫃間的短距連線，銅纜加上訊號重整晶片變成 AEC，成本與功耗介於被動銅纜和光模組之間；用站內 ai_interconnect 3D（高速連接器接點）帶到線纜端",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-20",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "n_nvda_q3fy27_kress",
+   "cat": "news",
+   "title": "輝達財報後盤後漲：執行長空缺市場怎麼看",
+   "why": "11/17 盤後公布 FY2027 Q3：營收 1,158 億美元、年增 103%，資料中心 1,076 億美元；Q4 財測 1,300 億美元 ±3%、不含中國資料中心運算營收（輝達官方新聞稿、StockAnalysis 11/17）。黃仁勳 11/12 卸任後首份財報，由 Kress 暫代。讀者會問：數字翻倍，市場還在擔心什麼？接續 11/16「財報前在擔心什麼」，這篇是答案篇。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-19"
+  },
+  {
+   "id": "n_apec_sz_trilateral",
+   "cat": "news",
+   "title": "APEC 深圳川習普同桌：稀土與休戰牽動什麼",
+   "why": "中國外交部 11/16 確認 11/19 習近平、川普、普亭於深圳首次三方會晤；會前報導稀土、農產品、波音採購與投資協議仍有分歧（聯合報、TVBS 11 月，鉅亨引彭博）。讀者會問這場會對台股與供應鏈有什麼影響；會談結果撰稿前以新華社／白宮會後通報為準。",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-11-19"
+  },
+  {
+   "id": "n_ust10y_auction_weak",
+   "cat": "news",
+   "title": "美債十年期標售破 5%：外資買盤為何縮",
+   "why": "11/11 美國 10 年期公債標售 420 億美元、得標殖利率 5.02%，投標倍數 2.46 低於前次 2.77、外資得標比重下滑（InvestingLive、BabyPips、Capwolf 11/11）。與 10/27「美債殖利率貼著 5%」不同，這題專講標售需求轉弱與對股市估值的影響；倍數撰稿前對美國財政部公告。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19"
+  },
+  {
+   "id": "k_backlight",
+   "cat": "know",
+   "title": "背光模組是什麼？LCD 面板的光從哪來",
+   "why": "站內 3D「面板：TFT-LCD 拆成十三層」（panel）有 LED 燈條、導光板、反射片、擴散片、稜鏡片整組背光部件，可直接嵌 3D；已有偏光板、彩色濾光片題，背光是同一張圖底部還沒講的那一疊。文章＋3D 圖：用 panel 3D。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "k_enig_finish",
+   "cat": "know",
+   "title": "化鎳浸金是什麼？PCB 焊墊為何要鍍一層金",
+   "why": "站內 3D「PCB 硬板：多層板剖面與四種孔」（pcb_rigid）有 ENIG 表面處理與防焊開窗部件，可直接嵌 3D；已有背鑽、防焊層題，表面處理是焊點可靠度最常被問的一層。文章＋3D 圖：用 pcb_rigid 3D。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "k_crystal_pull",
+   "cat": "know",
+   "title": "長晶是什麼？一根籽晶怎麼拉出整根晶碇",
+   "why": "站內 3D「矽晶圓：從熔湯到一片鏡面」（silicon_wafer）有長晶爐、石英坩堝、熔湯、籽晶與晶碇部件，可直接嵌 3D；已有「矽晶圓是什麼」總覽，這題只講拉晶那一步（籽晶、轉速、拉速決定晶碇品質）。文章＋3D 圖：用 silicon_wafer 3D。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "i_siph_foundry",
+   "cat": "intro",
+   "title": "矽光子代工鏈：光子晶片從設計到投片",
+   "why": "站內 siph_cpo 鏈有「矽光子晶圓代工」與「IC 設計與設計服務」兩個環節；既有矽光子供應鏈題一路講到 CPO 封裝、代工只帶過，這題拆設計、PDK、投片三段。附供應鏈圖（flow），只講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/siph_foundry",
+    "#industry/group/siph_design"
+   ]
+  },
+  {
+   "id": "i_cpo_switch_system",
+   "cat": "intro",
+   "title": "CPO 交換器整機鏈：交換晶片、光引擎到機櫃",
+   "why": "站內 siph_cpo 鏈有「CPO 交換器與系統」環節；既有 800G 交換器鏈講的是可插拔整機，這題講光引擎改貼在交換晶片旁之後，整機組裝與散熱分工怎麼變。附供應鏈圖（flow）＋3D switch_wireless，只講環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/siph_switch",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "i_air_cargo_ai",
+   "cat": "intro",
+   "title": "航空貨運鏈：AI 伺服器怎麼飛到北美機房",
+   "why": "站內有航空與空運族群頁；既有航運鏈題把貨櫃、散裝、航空並列帶過，這題只拆空運：航空公司貨機、承攬業者、機場貨站到落地報關，對照 AI 伺服器整櫃出貨。附供應鏈圖（flow），只講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-19",
+   "site_links": [
+    "#industry/group/airline"
+   ]
+  },
+  {
+   "id": "n_msci_1130_rebalance",
+   "cat": "news",
+   "title": "MSCI 11/30 換股：被動資金為何尾盤出手",
+   "why": "MSCI 11/12 公布半年度調整，台股標準指數增 3 刪 4，新興市場指數權重由 28.86% 升至 29.01%，11/30 收盤生效（優分析、Pocket 證券學院、工商時報 11/12～11/13）；讀者會問尾盤為何爆量、跟自己的 ETF 有沒有關係。成分名單寫進文章前要對 MSCI 官方公告。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-18"
+  },
+  {
+   "id": "n_btc_62k_liquidation",
+   "cat": "news",
+   "title": "比特幣探 6.2 萬美元：20 億美元清算怎麼來",
+   "why": "11/15 週末比特幣跌至約 6.2 萬美元、7 月以來低點，清算逾 20 億美元多為多單；現貨 ETF 自 11/5 起連 7 日淨流出約 19 億美元（Decrypt、Investinglive 11/15）。已有「跌破 7.5 萬」題，這題換槓桿清算與 ETF 資金流角度；撰稿前補中文媒體或交易所數據。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18"
+  },
+  {
+   "id": "n_us_china_trade_council",
+   "cat": "news",
+   "title": "美中貿易理事會首度開會：互降關稅降什麼",
+   "why": "11/13 美中舉行貿易理事會首次會議談關稅與農產品；9 月已宣布合計約 600 億美元非敏感商品互降關稅框架（Korea Times 9/29、經濟日報 11/13～11/14）。讀者會問這跟休戰延期差在哪、台灣出口受不受影響；目前多為轉述報導，撰稿要以商務部／USTR 一手公告為準。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18"
+  },
+  {
+   "id": "k_photoresist",
+   "cat": "know",
+   "title": "光阻是什麼？曝光前那層膜為何決定線寬",
+   "why": "站內 3D「晶圓代工：一個製程迴圈」（foundry）有塗光阻→曝光→顯影步驟，可直接嵌 3D；已有光罩、EUV 題，光阻是讀者接著會問的材料端。文章＋3D 圖：用 foundry 3D＋前段材料頁。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/foundry",
+    "#industry/group/fab_material"
+   ]
+  },
+  {
+   "id": "k_ssd_controller",
+   "cat": "know",
+   "title": "SSD 主控晶片是什麼？一顆晶片管住整片 NAND",
+   "why": "站內 3D「SSD：M.2 2280」（ssd）拆得到主控、DRAM、NAND 三種晶片，可直接嵌 3D 並點出主控；已有 SSD、3D NAND 題，主控是兩者中間沒講到的那顆。文章＋3D 圖：用 ssd 3D。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "k_color_filter",
+   "cat": "know",
+   "title": "彩色濾光片是什麼？面板的紅綠藍從哪來",
+   "why": "站內 3D「面板：TFT-LCD 拆成十三層」（panel）有彩色濾光片那一層，可直接嵌 3D；已有面板、偏光板題，濾光片是同一張圖裡還沒單獨講的層。文章＋3D 圖：用 panel 3D。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "i_bbu_backup",
+   "cat": "intro",
+   "title": "BBU 電池備援鏈：電芯、模組到機櫃電源架",
+   "why": "站內有 BBU 電池備援族群頁；既有電源鏈題主講 PSU，斷電那幾秒由誰接手的環節分工還沒單獨寫。附供應鏈圖（flow）＋2.5D power_bbu，只講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/bbu",
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "i_chassis_rail",
+   "cat": "intro",
+   "title": "伺服器機殼與滑軌鏈：鈑金、滑軌到整櫃出貨",
+   "why": "站內有機殼與滑軌族群頁；既有 AI 伺服器代工鏈只帶過機殼，這題把鈑金、滑軌、整櫃組裝三段拆開講。附供應鏈圖（flow）＋3D ai_server 機櫃，只講環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/chassis_rail",
+    "#industry/group/ai_server_odm"
+   ]
+  },
+  {
+   "id": "i_battery_material",
+   "cat": "intro",
+   "title": "電池材料鏈：正極、負極、隔離膜、電解液四塊",
+   "why": "站內有電池關鍵材料族群頁；既有電池鏈題從材料講到模組、材料只帶過，這題只拆四大材料各自做什麼、誰往下賣給電芯廠。附供應鏈圖（flow），只講環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-18",
+   "site_links": [
+    "#industry/group/battery_material",
+    "#industry/group/battery_cell"
+   ]
+  },
+  {
+   "id": "n_cyber_5d_25pct",
+   "cat": "news",
+   "title": "資安族群5日漲25%：資金在押注什麼",
+   "why": "本站資料湖 11/09→11/16 資安防護族群成交值加權漲 25.32%，為全站族群第一；同期電芯、太陽能跌逾 11%。讀者會問大盤震盪時資安為何逆勢、是 AI 安全需求還是避風港資金；媒體 9 月起有「AI 帶動資安需求」「回檔時資安成避風港」兩種說法，11 月原因待撰稿查證。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/cyber_security"
+   ]
+  },
+  {
+   "id": "n_coreweave_q3_debt",
+   "cat": "news",
+   "title": "CoreWeave營收年增168%，市場為何更在意債",
+   "why": "11/10 盤後財報：Q3 營收 36.6 億美元、年增 168%，總債務約 469 億美元、積壓訂單 1,325 億美元（TechNews 11/11、外電多家摘要一致）；11/11 股價漲 24.7%、費半漲 5.7%（優分析）。讀者會問 AI 雲端是真需求還是借錢擴張。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-17"
+  },
+  {
+   "id": "n_twd_33_cbc",
+   "cat": "news",
+   "title": "新台幣四度逼近33元：央行為何不死守",
+   "why": "11/6 盤中最低 33.04、11/9 收 32.882、11/10 盤中 32.97 後央行尾盤拉回收 32.865、11/12 最低 32.994（自由時報、優分析）；楊金龍 10/28 稱「柳樹理論」不守特定價位。讀者會問台幣為何一直貶、跟外資賣台股有什麼關係。與 11/04「外資賣超與新台幣貶值」不同，本題講 33 元關卡與央行做法。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-17"
+  },
+  {
+   "id": "k_heat_pipe",
+   "cat": "know",
+   "title": "熱管是什麼？一根銅管怎麼把熱搬離晶片",
+   "why": "液冷 3D 場景（liquid_cooling）已有熱管部件與蒸氣／冷凝液流動動畫，可直接用 scene 嵌入；接續均熱片、水冷板之後補齊兩相流散熱。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#industry/group/air_cooling"
+   ]
+  },
+  {
+   "id": "k_uqd_coupler",
+   "cat": "know",
+   "title": "快接頭是什麼？液冷機櫃拔管為何不漏液",
+   "why": "液冷 3D 場景已有快接頭（UQD／盲插 UQDB）部件與成對進出水流向；漏液是液冷最被盯的品質風險，讀者會問一個接頭為何重要。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_solder_resist",
+   "cat": "know",
+   "title": "防焊層是什麼？載板表面那層膜為何要開窗",
+   "why": "IC 載板 3D 場景（ic_substrate）已有防焊層與開窗部件；接續雷射微孔、微凸塊，講載板最外層怎麼保護線路又留出焊點。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "i_cpo_test_4stage",
+   "cat": "intro",
+   "title": "CPO 測試鏈：光進光出要在哪四站把關",
+   "why": "站內 siph_cpo 鏈「測試與測試介面」環節已整理四個測試站（光子晶片、堆疊後、光引擎、光進光出＋誤碼率）；講環節分工，不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/siph_test"
+   ]
+  },
+  {
+   "id": "i_pluggable_vs_cpo",
+   "cat": "intro",
+   "title": "可插拔與 CPO 兩條路：光互連鏈怎麼分流",
+   "why": "站內 siph_cpo 鏈有「可插拔模組與線纜（對照）」環節：800G 已量產、1.6T 放量中，CPO 是潛在替代；用供應鏈圖並排兩條路的環節差在哪。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/siph_module",
+    "#industry/group/optical_module"
+   ]
+  },
+  {
+   "id": "i_pkg_inspection",
+   "cat": "intro",
+   "title": "封裝後怎麼驗：AOI、電測到分選機的檢測鏈",
+   "why": "站內半導體鏈「封裝量測自動化」環節尚未寫過：後段 AOI 外觀檢測、電測、測試分選機與測試介面各管哪一步；與「封裝製程機台鏈」分開，只講出廠前檢測。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-17",
+   "site_links": [
+    "#industry/group/pkg_metrology"
+   ]
+  },
+  {
+   "id": "n_ai_chip_selloff_pre_nvda",
+   "cat": "news",
+   "title": "AI 晶片股齊跌：輝達財報前市場在擔心什麼",
+   "why": "11/13 美股 AI 晶片股盤中翻黑，輝達收跌 2.01%、那斯達克 -0.91%（Motley Fool、TheStreet 11/13 數字一致），輝達財報本週公布、選擇權隱含波動約 ±6.5%（Pepperstone）。讀者會問財報前為何先賣、台股 AI 供應鏈會不會跟著震。個股單日跌幅只有單一來源者不寫進稿。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "n_anthropic_ipo",
+   "cat": "news",
+   "title": "Anthropic 啟動路演：AI 股上市為何受矚目",
+   "why": "11/10 起路演，價格區間每股 70～78 美元、擬掛 Nasdaq（RTTNews、INDmoney 數字一致）；訂價與掛牌日未公布，估值各家說法不一不寫。讀者會問大型 AI 公司上市會不會吸走科技股資金。註：本站寫稿工具與這家公司有關，稿件只寫公開事實、不評好壞。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-16"
+  },
+  {
+   "id": "n_gta6_launch",
+   "cat": "news",
+   "title": "GTA 6 本週上市：一款遊戲為何牽動股價",
+   "why": "Take-Two 確認 GTA 6 於 11/19 推出（Yahoo Finance、週報 11/8 一致），消息曾讓股價單日漲約 6%、延期時跌 15%。讀者會問一款遊戲為何能左右一家公司股價、遊戲機與顯示卡需求有沒有連動。",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-11-16"
+  },
+  {
+   "id": "k_microvia",
+   "cat": "know",
+   "title": "雷射微孔是什麼？載板層與層怎麼打洞接通",
+   "why": "常青知識題；站內 3D 圖 ic_substrate（ABF 增層剖面）與 pcb_rigid（多層板四種孔）都切得到微孔與疊孔，讀者常問「增層」到底怎麼把上下層接起來。用 3D 圖講雷射鑽孔、電鍍填孔與疊孔對位。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/ic_substrate",
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "k_polarizer",
+   "cat": "know",
+   "title": "偏光板是什麼？面板為何要上下各貼一片",
+   "why": "常青知識題；站內 3D 圖 panel（TFT-LCD 拆成十三層）有上下兩片偏光板與液晶層，可用 3D 圖講兩片偏光板怎麼配合液晶擋光、透光，讀者會問為什麼一片面板要疊這麼多層。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "k_microbump",
+   "cat": "know",
+   "title": "微凸塊是什麼？晶片底下的銅柱為何越做越小",
+   "why": "常青知識題；站內 3D 圖 semiconductor（CoWoS-L 立體剖面）與 hbm 都畫出銅柱＋錫帽的微凸塊，可接著已上架的混合鍵合題講「為什麼要從凸塊走到無凸塊」，用 3D 圖看間距一路縮小。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/ai_adv_packaging",
+    "#industry/group/hbm"
+   ]
+  },
+  {
+   "id": "i_cpo_fiber_couple",
+   "cat": "intro",
+   "title": "CPO 光纖耦合鏈：FAU、MPO 到耦合設備怎麼接",
+   "why": "站內矽光子已拆出「光纖耦合 FAU／MPO」與「耦合與封裝設備」兩個族群頁，現有文章只講到雷射與 CPO 封裝，讀者會問光訊號最後怎麼從晶片接進光纖。講環節分工，不排受惠順序。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/siph_fiber",
+    "#industry/group/siph_equip"
+   ]
+  },
+  {
+   "id": "i_material_analysis",
+   "cat": "intro",
+   "title": "晶片檢測分析鏈：材料分析、失效分析到檢測服務",
+   "why": "站內有「檢測與材料分析」族群頁；先進製程與先進封裝越做越細，研發期要靠外部實驗室切片、找故障點，讀者常分不清材料分析（MA）與失效分析（FA）。講環節分工，不排受惠順序。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/siph_analysis"
+   ]
+  },
+  {
+   "id": "i_fab_process_tools",
+   "cat": "intro",
+   "title": "前段製程設備鏈：曝光、蝕刻到薄膜沉積怎麼分",
+   "why": "站內有「前段製程設備」與「晶圓廠設備」族群頁；既有文章講的是資本支出落在哪一段，這篇改從一片晶圓走過的製程步驟切，說明曝光、蝕刻、沉積、清洗各由哪類設備負責、台廠切在哪幾段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-16",
+   "site_links": [
+    "#industry/group/fab_process_equip",
+    "#industry/group/fab_equipment"
+   ]
+  },
+  {
+   "id": "n_nvda_ceo_exit",
+   "cat": "news",
+   "title": "輝達執行長卸任：股價收跌4.34%，對手為何反漲",
+   "why": "11/12 美股開盤前傳出輝達執行長黃仁勳卸任，輝達開盤重挫後收跌 4.34%，超微、博通同日大漲，三大指數收跌約 0.4%（Yahoo Finance、Motley Fool 11/12）；台股同日尾盤也加速下跌。讀者會問換人對 AI 供應鏈訂單有沒有影響。卸任原因各家說法不一、未獲證實，寫稿只寫公司公告的事實並標明。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "n_tw_drop_1165_components",
+   "cat": "news",
+   "title": "台股跌1,165點：電子零組件類指數為何跌近6%",
+   "why": "11/12 加權指數跌 1,165 點（2.63%）收 43,091 點，結束三連漲，上市成交值重回兆元；電子零組件類指數跌 5.97%，載板、銅箔基板跌幅最重，玻璃陶瓷類反漲 5.93%（財訊快報、新浪財經 11/12）。讀者會問為什麼跌最兇的是板材。族群與個股數字來自盤後評論，寫稿要用本站資料核對。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-13",
+   "site_links": [
+    "#flow",
+    "#industry/group/ic_substrate",
+    "#industry/group/ccl"
+   ]
+  },
+  {
+   "id": "n_us_cpi_oct_hot",
+   "cat": "news",
+   "title": "美國10月CPI月增0.4%：升息機率為何衝到87%",
+   "why": "11/10 公布美國 10 月 CPI 月增 0.4%（預期 0.3%）、核心月增 0.3%（預期 0.2%），能源上漲 0.7%；兩年期公債殖利率單日升 15 個基點到 4.69%，市場估 12 月升息一碼的機率升到 87.3%（路透、Yahoo Finance 11/10）。讀者會問通膨回頭對股市代表什麼。年增率查不到可靠數字，寫稿要回美國勞工統計局原始報告補上。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-13",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rdl",
+   "cat": "know",
+   "title": "重佈線層 RDL 是什麼？晶片接點怎麼被重新拉線",
+   "why": "先進封裝裡晶片的接點太密，要靠重佈線層把訊號扇出到載板；讀者看 CoWoS、扇出型封裝時常看到 RDL 卻不知道它在哪一層。用站內 3D 場景 semiconductor（CoWoS-L 立體剖面）指出 RDL 的位置，和已有的 CoWoS-L 矽橋、SoIC 兩題分開講「拉線」本身。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_cold_plate",
+   "cat": "know",
+   "title": "水冷板是什麼？冷卻液怎麼流過晶片上方的細槽",
+   "why": "液冷機櫃裡直接貼在晶片上的是水冷板，內部是很細的流道；讀者會問「水為什麼不會碰到晶片、熱怎麼被帶走」。用站內 3D 場景 liquid_cooling（從晶片到 CDU）說明，和已有的 CDU、均熱片兩題分開，只講水冷板這一塊。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/liquid_cooling"
+   ]
+  },
+  {
+   "id": "k_back_drill",
+   "cat": "know",
+   "title": "PCB 背鑽是什麼？高速板為何要鑽掉多餘的孔銅",
+   "why": "高速訊號經過通孔時，用不到的那段孔銅會像天線一樣反射訊號，所以高階伺服器板要從背面把它鑽掉；讀者會問「多鑽一次差在哪」。用站內 3D 場景 pcb_rigid（多層板剖面與四種孔）說明，和已有的 PCB 硬板總覽題分開講背鑽。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "i_asic_service",
+   "cat": "intro",
+   "title": "客製 ASIC 鏈：規格、設計服務到投片量產怎麼接",
+   "why": "雲端業者自己開晶片規格，中間要經過矽智財授權、設計服務、晶圓代工投片與封測才變成量產晶片；站內有客製 ASIC 矽智財族群頁，可畫出各環節誰交棒給誰，只講分工不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/ip_asic",
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_hpc_network_ic",
+   "cat": "intro",
+   "title": "HPC 與網通晶片鏈：交換晶片到訊號調節晶片",
+   "why": "資料中心裡除了運算晶片，還有交換晶片、訊號調節與介面晶片負責把資料送出去；站內有 HPC 與網通 IC、高速交換器兩個族群頁，可串成晶片設計到交換器整機的供應鏈圖，和既有的 AI 網通鏈題分開，只看晶片這一段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/hpc_network_ic",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "i_cpo_light_source",
+   "cat": "intro",
+   "title": "CPO 外置光源鏈：雷射晶粒、光源模組到交換器",
+   "why": "共同封裝光學把光引擎搬到交換晶片旁邊，怕熱的雷射則拉到外面做成外置光源模組；站內矽光子頁有磊晶與雷射晶粒、外置光源、光纖耦合等分段，可畫出光從雷射一路送進交換器的環節，和既有的矽光子供應鏈總覽分開講光源這一段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-13",
+   "site_links": [
+    "#industry/group/siph_laser",
+    "#industry/group/siph_els",
+    "#industry/group/siph_fiber"
+   ]
+  },
+  {
+   "id": "n_btc_below75k_etf_outflow",
+   "cat": "news",
+   "title": "比特幣跌破7.5萬美元：ETF週流出12.8億為何",
+   "why": "比特幣 11/6 一度跌約 6% 至 75,600 美元，美國現貨比特幣 ETF 當週淨流出約 12.8 億美元，為 6 月下旬以來最大單週流出（The Block 11/7、FXStreet 11/9）；讀者會問股市重挫時比特幣算不算避險。下跌原因多為分析師詮釋，寫稿要標明。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-12"
+  },
+  {
+   "id": "n_us_china_tariff_truce_jan27",
+   "cat": "news",
+   "title": "美中關稅休戰延到明年1月，只延兩個月為何",
+   "why": "中國自 11/10 起對美國商品加徵的 24% 關稅再暫停兩個月、保留 10%，期限延至 2027-01-10；美方同日把芬太尼相關關稅由 20% 降到 10%（Reuters 11/9 等）。切入點放在「為何只延兩個月、稀土與大豆承諾尚未履行」，不寫成公告。",
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-11-12"
+  },
+  {
+   "id": "n_otc_falls_more_than_taiex",
+   "cat": "news",
+   "title": "櫃買比大盤跌更兇：中小型股為何先被賣",
+   "why": "11/6 加權指數跌 4.51% 收 39,701.64，同日櫃買指數跌 5.43% 收 304.02（三立新聞、口袋學堂 11/6）；11/9 加權反彈 1,960 點。讀者會問小型股跌更多是流動性、融資還是法人賣壓，可用本站資金流向與信用交易頁佐證。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-12",
+   "site_links": [
+    "#flow",
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "k_3d_nand",
+   "cat": "know",
+   "title": "3D NAND 是什麼？儲存晶片為何要疊到三百層",
+   "why": "SSD 裡的 NAND 已從平面改成垂直堆疊，各家比的是層數；讀者會問「層數越多差在哪」。用站內 3D 場景 ssd（切開 NAND 見疊層晶粒）說明，和已上架的 SSD、DRAM 與 NAND 兩題分開講「堆疊」本身。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "k_backside_power",
+   "cat": "know",
+   "title": "背面供電是什麼？電源線為何搬到晶圓背面",
+   "why": "台積電 A16 與英特爾 18A 都把供電網路移到晶圓背面，讀者會問「為什麼要翻到背面、好處在哪」。用站內 3D 場景 foundry（一顆電晶體與製程迴圈）當底圖，和 GAA 電晶體題分開講供電。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_lpo_module",
+   "cat": "know",
+   "title": "LPO 光模組是什麼？拿掉 DSP 為何能省電",
+   "why": "800G／1.6T 光模組出現「線性驅動（LPO）」路線，介於可插拔與 CPO 之間；讀者會問它跟 CPO 差在哪。用站內 3D 場景 switch_wireless（交換器板卡＋800G 光模組＋CPO）三者並排說明。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/optical_module",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "i_ddi_chain",
+   "cat": "intro",
+   "title": "顯示驅動 IC 鏈：晶片、覆晶薄膜到面板模組",
+   "why": "顯示驅動 IC 從設計、代工、金凸塊與覆晶薄膜封裝，到面板廠貼合成模組，環節分得很細；站內有顯示驅動 IC 與面板兩個族群頁可直接串成供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/display_driver_ic",
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "i_niche_memory",
+   "cat": "intro",
+   "title": "利基型記憶體鏈：NOR、SLC NAND 到終端裝置",
+   "why": "利基型記憶體容量小、用在車用、工控、網通與穿戴，跟 HBM／大容量 DRAM 是不同一條路；站內有 NOR Flash 利基記憶體族群頁，可畫出設計、代工、封測到模組的分段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/nor_niche_memory",
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "i_jp_tw_passive",
+   "cat": "intro",
+   "title": "台日被動元件鏈：高階規格與標準品怎麼分工",
+   "why": "被動元件的高容值、車規等高階規格與一般標準品，台日廠商的產品組合不同；站內有日本被動元件與 MLCC 兩個族群頁可對照，只講分工不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-12",
+   "site_links": [
+    "#industry/group/jp_passive",
+    "#industry/group/mlcc"
+   ]
+  },
+  {
+   "id": "n_tw_1960_rebound",
+   "cat": "news",
+   "title": "台股一天漲 1,960 點：護盤與限空令各做了什麼",
+   "why": "11/9 加權指數收 41,661.70 點、漲 1,960.06 點（+4.94%），史上第二大收盤漲點，盤中最高 42,349 點後尾盤回落近 700 點；同日國安基金與金管會限空措施齊發。讀者會問：這是真反彈還是被壓出來的？（公視、人民報 2026-11-09）",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-11",
+   "site_links": [
+    "#overview",
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "n_sox_rebound_6p9",
+   "cat": "news",
+   "title": "費半一天彈 6.9%，補回上週跌幅了嗎",
+   "why": "11/9 費半漲 6.9%、道瓊漲 1,104 點，前一週費半跌逾 12%；報導歸因油價大跌與地緣風險降溫。和已上架的「費半 8 天跌 15.7%」同一事件，這題只算這一天補回多少、不重講下跌原因。（優分析 2026-11-09、自由時報 2026-11-10）",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_short_limit_rule",
+   "cat": "news",
+   "title": "限空令是什麼？跟禁空令差在哪",
+   "why": "金管會 11/9 起推五項穩市措施，報導指盤中借券賣出委託上限由前 30 日均量 30% 降到 3%；讀者分不清借券、融券、限空、禁空。寫稿前須以金管會公告核對措施細節（目前僅一個摘要來源，信心中）。（公視 2026-11-09）",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "i_ic_distribution",
+   "cat": "intro",
+   "title": "IC 通路鏈：原廠、代理商到系統廠怎麼供貨",
+   "why": "站內已有 IC 通路族群頁，但從沒講過晶片從原廠到組裝廠中間那一段；讀者常問「代理商到底在賺什麼、為何庫存起伏比原廠大」。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/group/ic_distribution"
+   ]
+  },
+  {
+   "id": "i_leadframe_chem",
+   "cat": "intro",
+   "title": "導線架與封裝材料鏈：銅帶、蝕刻到封裝廠",
+   "why": "封測鏈、OSAT 鏈都講過封裝廠，但上游的導線架、封裝化學品還沒獨立介紹；成熟製程封裝與車用晶片都靠這一段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/group/leadframe_chem",
+    "#industry/group/osat"
+   ]
+  },
+  {
+   "id": "i_optical_sensing",
+   "cat": "intro",
+   "title": "光學感測鏈：感測晶片、模組到終端裝置",
+   "why": "手機、車用 ADAS 與機器人都要「看得到」，站內有光學感測族群頁卻沒講過環節分工；跟已上架的影像感測器、光學鏡頭題互補，不重複。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/group/optical_sensing"
+   ]
+  },
+  {
+   "id": "k_nvlink_backplane",
+   "cat": "know",
+   "title": "NVLink 銅背板是什麼？72 顆 GPU 怎麼相連",
+   "why": "文章＋3D 圖：用 three3d.js 的 ai_server 場景（#industry/ai_server，零件 ag_backplane 銅纜卡匣、ag_nvswitch）。讀者常問機櫃內為何走銅不走光、scale-up 跟 scale-out 差在哪。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-11",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_silicon_photonics",
+   "cat": "know",
+   "title": "矽光子是什麼？光怎麼在一片矽晶片上走",
+   "why": "文章＋2.5D 圖：用 themes3d.js 的 silicon_photonics 剖析圖（#heatmap/theme/silicon_photonics）。已上架的 CPO 一文講封裝位置，這題講波導、調變器、光偵測器本身怎麼做在矽上，角度不同。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-11",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/group/silicon_photonics"
+   ]
+  },
+  {
+   "id": "k_hvlp_copper",
+   "cat": "know",
+   "title": "HVLP 銅箔是什麼？高速板為何要磨平銅面",
+   "why": "文章＋2.5D 圖：用 themes3d.js 的 pcb_ccl 剖析圖（#heatmap/theme/pcb_ccl）銅箔那層。訊號越快越走銅面表層（集膚效應），讀者看到「低粗糙度銅箔」常不知道差在哪；k_pcb_ccl 講整片板，這題只講銅箔。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-11",
+   "site_links": [
+    "#heatmap/theme/pcb_ccl",
+    "#industry/group/copper_foil"
+   ]
+  },
+  {
+   "id": "n_foreign_outflow_oct",
+   "cat": "news",
+   "title": "10月外資狂賣近兆元，獲利預估為何還在上修",
+   "why": "央行 11/5 表示外資 10 月自台股淨匯出約 9,000 億元、創紀錄；IIF 同日指獲利預估仍上修但資金續減碼，台股 10 月跌 5.7%（優分析 2026-11-05；IIF 美元金額僅單一來源，成稿前須再核）",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-10",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_star50_support",
+   "cat": "news",
+   "title": "陸股科創50單日跌3.8%：官方托底為何沒擋住",
+   "why": "11/3 科創50 收盤跌 3.81%、上證指數收 3608.10 點；同日中國央行啟動第三次證券基金保險公司互換便利，並把股票回購增持再貸款利率由 1.25% 降到 1%（新浪財經、科技新報 2026-11-03）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#overview",
+    "#themes"
+   ]
+  },
+  {
+   "id": "n_memory_passive_rotation",
+   "cat": "news",
+   "title": "記憶體、被動、板材輪流漲：法人與社群吵什麼",
+   "why": "10 月下旬記憶體、被動元件、銅箔基板、PCB 四族群資金快速輪動；法人看舊世代記憶體供給被 HBM4 擠壓、預估第四季報價續漲，社群則多認為是景氣循環股的輪漲（中時旺得富 2026-10-31；單一來源，成稿須補第二來源，且報價為預估非實際）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#flow",
+    "#industry",
+    "#themes"
+   ]
+  },
+  {
+   "id": "k_soic",
+   "cat": "know",
+   "title": "SoIC 是什麼？晶片直接疊在晶片上怎麼接",
+   "why": "站內尚無 SoIC 知識題；與 k_hybrid_bond 互補（講整體堆疊架構），配圖借 CoWoS-L 3D 剖面（semiconductor）對照",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_mcu",
+   "cat": "know",
+   "title": "MCU 微控制器是什麼？一顆小晶片怎麼管一台車",
+   "why": "站內尚無 MCU 知識題；車用與工控都用，與 k_ev_arch 互補；配圖借 foundry 3D（IC 設計到代工）",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "k_ddr5_rdimm",
+   "cat": "know",
+   "title": "DDR5 記憶體模組是什麼？一條 RDIMM 上有哪些晶片",
+   "why": "站內有記憶體模組族群頁，但尚無 DDR5 模組結構題（k_dram_nand 講 DRAM 與 NAND 差別）；配圖借 hbm／ssd 3D 對照",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/semiconductor/dg/memory_module"
+   ]
+  },
+  {
+   "id": "i_analog_power",
+   "cat": "intro",
+   "title": "類比與功率 IC 鏈：電源管理、驅動到車用怎麼分",
+   "why": "站內有類比與功率 IC 族群頁，尚無鏈上環節題；講環節分工，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/analog_power_ic"
+   ]
+  },
+  {
+   "id": "i_crystal_chain",
+   "cat": "intro",
+   "title": "石英頻率元件鏈：晶體、振盪器到終端怎麼供貨",
+   "why": "站內有石英頻率控制族群頁，尚無鏈上環節題；講環節分工，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/crystal"
+   ]
+  },
+  {
+   "id": "i_pkg_equipment",
+   "cat": "intro",
+   "title": "封裝製程機台鏈：貼合、研磨到量測怎麼分",
+   "why": "站內有封裝製程機台與量測自動化族群頁，尚無鏈上環節題；講環節分工，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-10",
+   "site_links": [
+    "#industry/group/pkg_equipment"
+   ]
+  },
+  {
+   "id": "n_nsf_fund",
+   "cat": "news",
+   "title": "國安基金是什麼？台股重挫後為何被點名",
+   "why": "11/6 台股盤中最多跌 3,737 點、收盤跌 1,873 點（4.51%）收 39,701.64 點，財政部表示極端狀況下不排除召開國安基金臨時委員會；是否進場媒體報導不一、尚未確認（鉅亨網、經濟日報 11/6）",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "n_apple_memory_cost",
+   "cat": "news",
+   "title": "蘋果財報好卻股價下挫：記憶體成本吃掉毛利",
+   "why": "蘋果 11/2 公布 7～9 月營收 1,145 億美元（年增 12%），但預估 12 月季毛利率 45%～46%、低於預期，執行長稱記憶體價格前所未有，盤後一度跌 3%～4%（Fortune 11/2、財報狗 11/3）",
+   "site_links": [
+    "#themes",
+    "#industry"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "n_us_nfp_oct",
+   "cat": "news",
+   "title": "美國 10 月非農大超預期：好消息為何讓市場更緊張",
+   "why": "美國 10 月非農新增 16.5 萬人（預期約 5.9 萬人）、失業率 4.1%、時薪年增 3.1%；就業太強使利率走向成為焦點（自由時報、鉅亨網 11/6）",
+   "site_links": [
+    "#overview"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "k_nor_flash",
+   "cat": "know",
+   "title": "NOR Flash 是什麼？開機程式碼為何存在這種記憶體",
+   "why": "本站有「NOR Flash 利基記憶體」族群頁，但站內還沒有知識題講它跟 NAND 差在哪、為何車用與 IoT 都要用；配圖借 ssd 3D（NAND 對照）",
+   "site_links": [
+    "#industry/group/nor_niche_memory",
+    "#industry/semiconductor/dg/memory_module"
+   ],
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "k_display_driver_ic",
+   "cat": "know",
+   "title": "顯示驅動 IC 是什麼？一片面板怎麼被逐格點亮",
+   "why": "本站有「顯示驅動 IC」族群頁，面板鏈已寫過，但驅動 IC 本身（源極／閘極驅動、TDDI）還沒有知識題；可借面板 3D 十三層圖講它接在哪一層",
+   "site_links": [
+    "#industry/group/display_driver_ic",
+    "#industry/group/panel"
+   ],
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "k_image_sensor",
+   "cat": "know",
+   "title": "CMOS 影像感測器是什麼？一顆鏡頭後面的晶片怎麼收光",
+   "why": "本站有「光感測與元件」「光學鏡頭」族群頁，手機與車用相機都靠它，站內尚無拆解題；配圖借 apple_chain、ev_auto 2.5D 圖（站內無專屬 3D）",
+   "site_links": [
+    "#industry/group/optical_sensing",
+    "#industry/group/optical_lens"
+   ],
+   "score": 3,
+   "format_hint": "文章＋2.5D 圖",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "i_precision_parts",
+   "cat": "intro",
+   "title": "精密機構件鏈：材料、加工到終端產品怎麼分工",
+   "why": "本站有「精密機構件」族群頁但沒有產業鏈題；筆電、手機、伺服器機殼都靠它，需要一張供應鏈圖講環節",
+   "site_links": [
+    "#industry/group/precision_parts"
+   ],
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "i_env_recycle",
+   "cat": "intro",
+   "title": "資源環保鏈：廢棄物、回收再生到再利用怎麼接",
+   "why": "本站有「資源環保工業」族群頁；站內只有石化、儲能等鏈，環保回收這條還沒有，且與電池回收、半導體廢液處理相連",
+   "site_links": [
+    "#industry/group/env_recycle"
+   ],
+   "score": 2,
+   "format_hint": "貼文",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "i_wire_cable",
+   "cat": "intro",
+   "title": "電線電纜鏈：銅材、線纜廠到電網與資料中心怎麼供貨",
+   "why": "本站有「電器電纜」族群頁；重電、800V 高壓直流題都提到電纜，但電纜本身的原料到終端還沒有一張鏈圖",
+   "site_links": [
+    "#industry/group/wire_cable",
+    "#industry/group/heavy_electric"
+   ],
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-11-09"
+  },
+  {
+   "id": "n_oil_truce_hope",
+   "cat": "news",
+   "title": "油價一週重挫，戰爭降溫預期從何而來",
+   "why": "油價 11/4 單日約 -9%、收 94.62 美元；起因是伊朗調停會談與期中選舉後的預期，尚無正式停火協議（工商時報 11/6、鉅亨網）",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "keywords": [
+    "油價",
+    "伊朗",
+    "停火預期"
+   ],
+   "added": "2026-11-06"
+  },
+  {
+   "id": "n_gold_4000",
+   "cat": "news",
+   "title": "黃金單日大漲逾 3%，重回 4000 美元為哪樁",
+   "why": "金價美東 11/4 單日約 +3%、重站 4,000 美元，為 8 月以來最大單日漲幅；美元走弱與殖利率下滑（CNBC、24/7 Wall St. 11/5）",
+   "site_links": [
+    "#overview"
+   ],
+   "score": 4,
+   "format_hint": "文章",
+   "keywords": [
+    "黃金",
+    "避險",
+    "美元"
+   ],
+   "added": "2026-11-06"
+  },
+  {
+   "id": "n_thousand_stocks",
+   "cat": "news",
+   "title": "千金股退位潮：58檔剩39檔是怎麼回事",
+   "why": "台股 11/5 收 41,574.72 點、-3.2%、連六黑；千金股家數由 58 檔縮至 39 檔（經濟日報 11/6）",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 5,
+   "format_hint": "文章",
+   "keywords": [
+    "千金股",
+    "高價股",
+    "台股修正"
+   ],
+   "added": "2026-11-06"
+  },
+  {
+   "id": "k_underfill",
+   "cat": "know",
+   "title": "底部填充膠是什麼？覆晶封裝為何要灌一層膠",
+   "why": "先進封裝的凸塊間距縮小，底部填充決定熱應力下的可靠度；可借 CoWoS 2.5D 與載板 3D 剖面說明",
+   "site_links": [
+    "#heatmap/theme/cowos",
+    "#industry/group/ic_substrate"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "k_probe_card",
+   "cat": "know",
+   "title": "探針卡是什麼？晶圓測試怎麼接上每一顆晶粒",
+   "why": "晶圓與封測的測試介面，AI 晶片測試時間拉長後常被問到；可借半導體設備 2.5D 圖",
+   "site_links": [
+    "#heatmap/theme/semi_equipment",
+    "#industry/group/ic_test_service"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "k_tim",
+   "cat": "know",
+   "title": "散熱介面材料是什麼？晶片與散熱器之間那層膏",
+   "why": "單櫃功耗上看 120 kW，熱要先過介面才進散熱器；可借氣冷 3D 與液冷 3D 場景說明",
+   "site_links": [
+    "#industry/group/air_cooling",
+    "#industry/group/liquid_cooling"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "i_battery_chain",
+   "cat": "intro",
+   "title": "電池鏈：材料、電芯到模組怎麼分工",
+   "why": "站內有電芯製造與電池關鍵材料兩個族群，儲能與電動車都靠這條鏈，環節分工常被混為一談",
+   "site_links": [
+    "#industry/group/battery_cell",
+    "#industry/group/battery_material"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "i_solar_wind",
+   "cat": "intro",
+   "title": "太陽能與離岸風電鏈：設備、施工到併網怎麼分段",
+   "why": "綠電需求跟資料中心用電連動，站內有太陽能與離岸風電兩個族群，環節分工值得拆開講",
+   "site_links": [
+    "#industry/group/solar",
+    "#industry/group/wind_power"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "i_ar_vr_optics",
+   "cat": "intro",
+   "title": "AR／VR 光學鏈：顯示、光學模組到整機怎麼銜接",
+   "why": "智慧眼鏡新品話題升溫，站內有 AR VR XR 光學族群，環節分工需要一張圖講清楚",
+   "site_links": [
+    "#industry/group/ar_vr_optics"
+   ],
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-06"
+  },
+  {
+   "id": "n_midterm_dc_policy",
+   "cat": "news",
+   "title": "期中選舉與 AI 資料中心監管疑慮",
+   "why": "今周刊（11/4）、經濟日報（11/2）整理：市場擔心選後國會加強限制資料中心興建；台股 11/4 盤中一度重挫逾 1,450 點、尾盤急拉，收 42,948.91 點。選後結果與轉述來源寫稿前須再核對。",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_dow_sox_split",
+   "cat": "news",
+   "title": "道瓊大漲、費半大跌：科技與傳產分歧",
+   "why": "自由財經、MoneyDJ（11/4）：道瓊大漲約 3%、費半跌約 3.1%、台積電 ADR 收 395.75 美元為 7/29 以來新低；不同日期的費半漲跌幅易混淆，寫稿只用同一天數字。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_margin_call_mech",
+   "cat": "news",
+   "title": "台股連兩日重挫，融資斷頭疑慮是什麼",
+   "why": "台股 11/3 跌 1,612.60 點、11/4 收 42,948.91 點（今周刊、鉅亨網 11/4）；講融資維持率與斷頭的運作，不預測是否發生；最新維持率數據須另查證。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "k_photomask",
+   "cat": "know",
+   "title": "光罩是什麼？電路圖怎麼變成曝光用的底片",
+   "why": "晶圓代工 3D 場景（foundry）可看製程迴圈中曝光那一步；讀者常問電路圖如何刻到矽上。光罩是曝光的圖樣來源，與已上架 EUV 題互補。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_cmp",
+   "cat": "know",
+   "title": "CMP 化學機械研磨是什麼？晶圓為何要反覆拋光",
+   "why": "晶圓層層堆疊後每層都要磨平才能再曝光；可借 foundry 製程迴圈與 silicon_wafer 3D 場景說明拋光位置。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "k_wire_bond",
+   "cat": "know",
+   "title": "打線封裝是什麼？一根金線怎麼把晶片接出來",
+   "why": "封裝後段入門：導線架、打線、封膠怎麼把晶片包成成品；站內有導線架與化學品族群頁可連。尚無專屬 3D，以 style:2 插圖重繪。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/leadframe_chem"
+   ]
+  },
+  {
+   "id": "i_fab_material",
+   "cat": "intro",
+   "title": "前段製程材料鏈：矽晶圓、光阻到特用氣體",
+   "why": "站內有「前段製程材料」族群頁；講環節分工，不排誰受惠。須附供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/fab_material"
+   ]
+  },
+  {
+   "id": "i_semi_facility",
+   "cat": "intro",
+   "title": "半導體廠務鏈：無塵室、水氣電到化學品供應",
+   "why": "站內有「廠務工程」族群頁；晶圓廠蓋好之後誰負責無塵室與公用設施；講環節，不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/semi_facility"
+   ]
+  },
+  {
+   "id": "i_edge_ai",
+   "cat": "intro",
+   "title": "Edge AI 鏈：邊緣晶片、模組到終端裝置",
+   "why": "站內有「Edge AI AIoT」族群頁；AI 從雲端走到終端的環節分工；須附供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/edge_ai"
+   ]
+  },
+  {
+   "id": "n_fii_active_etf_sell",
+   "cat": "news",
+   "title": "外資為何先調節主動式 ETF",
+   "why": "11/3 加權指數收 43,307.54 點、單日跌 1,612.6 點，外資賣超 1,073 億元（史上第 8 大），調節前四名都是 ETF（經濟日報、鉅亨網 11/3）；讀者會問賣壓為什麼先落在 ETF。",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_fed_hold_hike_dissent",
+   "cat": "news",
+   "title": "Fed 按兵不動，為何有兩票主張升息",
+   "why": "10/28 聯準會以 10 比 2 維持利率 3.75%～4%，兩位委員主張升息 1 碼（CNN、US News 10/28）；讀者想知道利率下一步往哪走。數字寫稿前須對聯準會原文。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-04"
+  },
+  {
+   "id": "n_fii_sell_twd_weak",
+   "cat": "news",
+   "title": "外資賣超與新台幣貶值為何同時出現",
+   "why": "11/3 外資賣超 1,073 億元，新台幣同日走貶（聯合報、今周刊 11/3）；匯率數字僅單一摘要，寫稿前須用央行或第二來源查證。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "k_hbm4_base",
+   "cat": "know",
+   "title": "HBM4 基底晶粒是什麼？記憶體底下為何多一顆邏輯晶片",
+   "why": "HBM 3D 場景（hbm）可直接看堆疊與底下邏輯晶粒；與已上架 HBM 入門、TSV 角度不同，聚焦基底晶粒。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/hbm"
+   ]
+  },
+  {
+   "id": "k_hybrid_bond",
+   "cat": "know",
+   "title": "混合鍵合是什麼？晶片堆疊為何不再用銲球",
+   "why": "先進封裝下一步的接合方式，搭配 CoWoS 2.5D 剖析圖（cowos）說明堆疊位置；與 CoWoS-L 矽橋題角度不同。",
+   "score": 3,
+   "format_hint": "文章＋2.5D 圖",
+   "added": "2026-11-04",
+   "site_links": [
+    "#heatmap/theme/cowos"
+   ]
+  },
+  {
+   "id": "k_bt_vs_abf",
+   "cat": "know",
+   "title": "BT 載板與 ABF 載板差在哪？材料與用途拆開看",
+   "why": "站內有 ABF 增層 3D 場景（ic_substrate）；已有 ABF 是什麼，這題補 BT 對照，講材料與終端用途差異。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "i_hvdc_chain",
+   "cat": "intro",
+   "title": "800V 高壓直流供電鏈：電源、電纜到配電怎麼分工",
+   "why": "機櫃功耗上升帶動供電架構討論；與 AI 電源鏈（PSU 到 BBU）切入點不同，講配電環節分工，不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "i_cable_chain",
+   "cat": "intro",
+   "title": "高速線纜鏈：銅纜、主動線纜到光纖怎麼分段",
+   "why": "機櫃內外依距離換不同傳輸媒介；與連接器鏈、AI 網通鏈角度不同，聚焦線纜分段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "i_chiplet_chain",
+   "cat": "intro",
+   "title": "小晶片 Chiplet 鏈：設計、互連到封裝怎麼銜接",
+   "why": "多顆小晶片取代單顆大晶片的分工；與先進封裝鏈、IC 設計鏈相接但聚焦互連與整合環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "n_capex_delay",
+   "cat": "news",
+   "title": "微軟 Alphabet 沒再上修資本支出，AI 訂單是延後還是取消",
+   "why": "10/28 財報後，CNBC（10/29）稱微軟全年資本支出預測由 1750 億調為 1700 億美元、部分產能因晶片供應延遲到 2027 上半年，Alphabet 維持 1950～2050 億美元；讀者會問是不是不買了。單一來源、另有說法是租約會計認列，寫稿前須查財報原文；與 Alphabet 資本支出題角度不同，切入延後或取消",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "n_fed_nofwd",
+   "cat": "news",
+   "title": "聯準會不再給方向，市場靠什麼猜 12 月",
+   "why": "10/28 Fed 以 10 比 2 維持利率，CME FedWatch 顯示 12 月升息機率約 85%（CNN、Admiral Markets 10/28）；報導稱新主席除危機外不做前瞻指引，讀者會問不講了怎麼判斷。該說法與減少開會皆單一來源，須核對；只寫溝通方式改變，不重講升息成因",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_nvda_cust",
+   "cat": "news",
+   "title": "輝達 10 月跌 11.4%，客戶支出為何成了股價主軸",
+   "why": "Investing.com 分析稱輝達 10 月跌 11.4%，市場把微軟說法解讀為訂單遞延而非取消，下個觀察點是財報；數字與財報日皆單一來源，須查官方；與資本支出延後題同源，擇一先寫，不點名值得關注的個股",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-11-03",
+   "site_links": [
+    "#themes",
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "i_fhc_chain",
+   "cat": "intro",
+   "title": "金融業鏈：銀行、壽險到證券怎麼分工",
+   "why": "站內有 bank、life_fhc、securities_fhc 族群頁；金控常把三塊綁在一起，讀者分不清收入來源與景氣敏感度，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/bank",
+    "#industry/group/life_fhc",
+    "#industry/group/securities_fhc"
+   ]
+  },
+  {
+   "id": "i_ecom_logistics",
+   "cat": "intro",
+   "title": "電商物流鏈：平台、倉儲到宅配怎麼銜接",
+   "why": "站內有 ecommerce、land_transport 族群頁；一個包裹從下單到送達涉及平台與陸運宅配，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/ecommerce",
+    "#industry/group/land_transport"
+   ]
+  },
+  {
+   "id": "i_connector_ind",
+   "cat": "intro",
+   "title": "連接器鏈：工業、消費到車用怎麼分",
+   "why": "站內有 connector_ind、connector_auto 族群頁；讀者只聽過高速連接器，不知工業與車用規格差異，需附供應鏈圖，講環節不排受惠；避開已有的高速傳輸鏈",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/connector_ind",
+    "#industry/group/connector_auto"
+   ]
+  },
+  {
+   "id": "k_ai_rack",
+   "cat": "know",
+   "title": "AI 機櫃是什麼？一座 NVL72 拆開有哪幾層",
+   "why": "AI 機櫃新聞常提運算托盤與交換器，少有人拆開講層次；站內有 3D 圖 ai_server（AI 伺服器機櫃 NVL72 式），文章＋3D 圖，已上架 AI 伺服器入門可銜接，只講結構，不排受惠",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_cowos_bridge",
+   "cat": "know",
+   "title": "CoWoS-L 是什麼？矽中介層與局部矽橋差在哪",
+   "why": "站內有 3D 圖 semiconductor（CoWoS-L 先進封裝立體剖面），已上架 CoWoS 文可銜接，本題講 CoWoS-L 結構與矽橋取捨，不排受惠；文章＋3D 圖",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_vapor_chamber",
+   "cat": "know",
+   "title": "均熱片是什麼？熱怎麼從晶片攤開到散熱器",
+   "why": "散熱新聞常提均熱片與熱管卻少有人講原理；站內有 2.5D 圖 thermal（散熱與液冷：熱從晶片到機房），文章＋2.5D 圖，已上架氣冷與水冷文可銜接，只講原理，不排受惠；圖內是否含均熱片須先對照圖面",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#heatmap/theme/thermal"
+   ]
+  },
+  {
+   "id": "n_rareearth_nov10",
+   "cat": "news",
+   "title": "稀土出口管制暫停11/10到期，晶片供應鏈在擔心什麼",
+   "why": "中國暫停稀土管制的期限為 2026/11/10，只剩一週多，讀者會問到期後會怎樣、對半導體與電子供應鏈有何影響（世界新聞網、udn，日期須核對；FXStreet 10/14 提到可能延至 2027/1/10 等三種情境）；尚未查到延期或恢復管制的最新決定，發稿前須核對官方公告；與已有的美中休戰題角度不同，講稀土",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "n_fed_hawkhold",
+   "cat": "news",
+   "title": "聯準會按兵不動卻有兩票要升息，利率路徑怎麼看",
+   "why": "10/28 FOMC 維持利率不變，投票 10 比 2、兩位委員主張升息，市場押 12 月升息機率約 84%～85%（Admiral Markets、InvestingLive 10/28，利率區間與機率須對照聯準會官網與 CME FedWatch 核對）；讀者會問利率還會升嗎、對科技股與台股資金的影響；角度放決議結果，避開已有的升息成因題",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-11-02",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_aicapex_margin",
+   "cat": "news",
+   "title": "AI 燒錢吃掉利潤率，市場為何開始追問回收期",
+   "why": "美國大型科技財報季後，市場對 AI 投資能否回收的疑慮升高，被視為 10/30 台股 AI 供應鏈收黑的背景（uanalyze 10/30 彙整；Gotrade 10/23 稱 Meta 營業利益率由 40% 降至 20%，單一來源須核對財報原文）；與 Alphabet 資本支出題、AI 借錢題不同，焦點放利潤率與回收期，不點名個股",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/ai_server",
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_tsv_hbm",
+   "cat": "know",
+   "title": "TSV 矽穿孔是什麼？HBM 的十二層晶粒怎麼接通",
+   "why": "HBM 缺貨新聞常提堆疊層數，卻少有人說明層與層之間靠 TSV 垂直導通；站內有 HBM 3D 圖 hbm（堆疊記憶體與底下邏輯晶粒），已上架 HBM 文可銜接，本題只講 TSV 與微凸塊結構，不排受惠",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/hbm"
+   ]
+  },
+  {
+   "id": "k_vrm_power",
+   "cat": "know",
+   "title": "VRM 是什麼？機櫃 48V 怎麼一路降到晶片 0.8V",
+   "why": "AI 機櫃單櫃功耗拉高，電源新聞常提 800V 與 PSU；站內有 3D 圖 server_psu（PSU 拆開到晶片核心電壓），已上架 PSU 與 BBU 文可銜接，本題講逐級降壓與 VRM 結構，不排受惠",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "k_fab_loop",
+   "cat": "know",
+   "title": "製程迴圈是什麼？一片晶圓為何要重複上百道工序",
+   "why": "先進製程新聞常講層數與工序，但少有人拆開沉積、微影、蝕刻的循環；站內有 3D 圖 foundry（一顆電晶體與一個製程迴圈），已上架 IC 代工文可銜接，本題講製程迴圈，避開 GAA 結構題",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_flex_pcb",
+   "cat": "intro",
+   "title": "軟板產業鏈：基材、軟板廠到終端模組",
+   "why": "站內有 flex_pcb 與 ccl 族群頁；讀者常把軟板與硬板、載板混為一談，需附供應鏈圖，講環節分工，不排受惠；避開已有的硬板與板材鏈題",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/flex_pcb",
+    "#industry/group/ccl"
+   ]
+  },
+  {
+   "id": "i_cloud_saas",
+   "cat": "intro",
+   "title": "雲端服務鏈：機房、託管服務到企業軟體",
+   "why": "站內有 cloud_msp、saas 族群頁；雲端大廠資本支出新聞多，但雲端服務由基礎設施到軟體的分工少有人整理，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/cloud_msp",
+    "#industry/group/saas"
+   ]
+  },
+  {
+   "id": "i_telecom",
+   "cat": "intro",
+   "title": "電信服務鏈：基地台設備、電信商到用戶終端",
+   "why": "站內有 telecom、switch_wireless 族群頁；讀者想知道電信商與設備商的分工，需附供應鏈圖，講環節不排受惠，避開低軌衛星與網通鏈題",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/telecom",
+    "#industry/group/switch_wireless"
+   ]
+  },
+  {
+   "id": "n_tsmc_gm",
+   "title": "2奈米量產，台積電毛利為何先掉1.3個百分點",
+   "why": "台積電 2026-10-15 法說：Q3 毛利率 66.4%、季減約 130 基點，主因 2 奈米量產初期稀釋；Q3 EPS 29.43 元創單季新高（鉅亨網、TVBS；毛利率季減幅度以鉅亨網為主，寫稿前須以法說簡報核對）；角度放毛利結構，避開已上架的法說五個數字題",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#industry/semiconductor",
+    "#themes"
+   ],
+   "cat": "news",
+   "added": "2026-10-30"
+  },
+  {
+   "id": "n_tsmc_capex27",
+   "title": "台積電資本支出一年六百億美元，明年還會更多嗎",
+   "why": "台積電 2026-10-15 法說維持 2026 資本支出 600～640 億美元（7 月已由 520～560 億上調），並預告 2026～2028 明顯高於前三年；2027 年法人預估 650～900 億美元為單一來源估計（鉅亨網、TVBS）；角度放設備與材料需求，寫稿前須核對法說原文",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#industry/semiconductor",
+    "#flow",
+    "#overview"
+   ],
+   "cat": "news",
+   "added": "2026-10-30"
+  },
+  {
+   "id": "n_liquid_cool",
+   "title": "液冷散熱為何成AI伺服器供應鏈的討論焦點",
+   "why": "搜尋摘要顯示大摩預估散熱廠營收續創高，Vera Rubin 平台的 CPO 交換器機櫃也採液冷（經濟日報、鉅亨網；日期與數字僅單一摘要，寫稿前須另行查證）；與已上架水冷知識題角度不同，講供應鏈討論而非原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/ai_server",
+    "#themes"
+   ],
+   "cat": "news",
+   "added": "2026-10-30"
+  },
+  {
+   "id": "k_phone_struct",
+   "cat": "know",
+   "title": "智慧型手機結構是什麼？一支手機拆開有哪幾塊",
+   "why": "秋季新機出貨期，讀者常分不清主機板、鏡頭、面板、電池各自的位置；站內有 2.5D 圖 apple_chain（蘋果供應鏈：一支手機怎麼組起來），文章＋2.5D 圖，只講結構與原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/apple_chain",
+    "#industry"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "k_naphtha_cracker",
+   "cat": "know",
+   "title": "輕油裂解是什麼？一桶油怎麼變成塑膠原料",
+   "why": "油價在高檔震盪，石化新聞常提輕油裂解但少有人說明流程；站內有 2.5D 圖 petrochemical（輕油怎麼變塑膠），文章＋2.5D 圖，只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/petrochemical"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "k_defense_platform",
+   "cat": "know",
+   "title": "軍工載具是什麼？一筆國防預算拆成哪幾類裝備",
+   "why": "國防預算與無人機議題常見於新聞，但裝備分類少有人整理；站內有 2.5D 圖 defense（軍工國防：預算變成哪些載具），文章＋2.5D 圖，只講分類與原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/defense"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "i_nand_storage",
+   "cat": "intro",
+   "title": "儲存產業鏈：NAND 顆粒、主控到 SSD 模組",
+   "why": "記憶體缺貨新聞常把 DRAM 與 NAND 混談；站內有 memory_module、nor_niche_memory 族群頁與 SSD 3D 圖，需附供應鏈圖，講環節分工，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/memory_module",
+    "#industry/group/nor_niche_memory"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "i_drone_chain",
+   "cat": "intro",
+   "title": "無人機供應鏈：飛控、馬達、電池到整機",
+   "why": "國防預算與無人機題材常被討論；站內有 2.5D 圖 drone（四旋翼供應鏈）與無人機題材頁，需附供應鏈圖，講環節分工，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/drone"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "i_hdi_pcb",
+   "cat": "intro",
+   "title": "HDI 與高階 PCB 鏈：基板、鑽孔到壓合",
+   "why": "高階 PCB 吃緊的新聞多，但 HDI、硬板、載板的分工常被混談；站內有 pcb_rigid 族群頁與 PCB 3D 圖，需附供應鏈圖，講環節不排受惠；避開已上架板材鏈總覽",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "n_alphabet_capex",
+   "cat": "news",
+   "title": "Alphabet 資本支出年增一倍，AI 燒錢誰買單",
+   "why": "10/28 美股盤後 Alphabet 第三季資本支出約 514 億美元、年增約一倍、自由現金流轉負，盤後一度跌逾 10%（今周刊 10/29、Yahoo 股市 10/28，搜尋摘要轉述，微軟指引兩篇口徑不一）；讀者會問 AI 投資還要燒多久、台灣 AI 供應鏈訂單會不會跟著變；寫稿前核對原始財報",
+   "score": 5,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#industry/ai_server"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "n_mem_longterm",
+   "cat": "news",
+   "title": "記憶體廠搶簽長約，缺貨是短期還是結構",
+   "why": "傳陸廠向三星、SK 海力士洽簽最長 10 年供貨協議、美光已簽 26 份長約（中時 10/28、聯合報、自由財經，部分日期待核）；SK 海力士取消價格上限屬傳聞未獲證實；只講機制，不點個股",
+   "score": 4,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/hbm_memory"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "n_boj_yen",
+   "cat": "news",
+   "title": "日銀 10/30 決議前，日圓為何賴在 158",
+   "why": "日銀 10/29～30 開會，市場預期維持 1.25%，12 月升息機率約 75%（HK MoneyClub 10/27、聯合報引日經，單一來源須核對）；寫成日圓與套利平倉機制題，非公告預告；10/30 結果出爐可改結果版",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "k_euv",
+   "cat": "know",
+   "title": "EUV 曝光機是什麼？一道光怎麼刻出奈米線路",
+   "why": "先進製程新聞常提 EUV 曝光機，但少有人說明原理；站內有 2.5D 圖 semi_equipment（半導體設備與材料），文章＋2.5D 圖，只講原理與取捨，不排受惠；避開已有的設備材料鏈題",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/semi_equipment"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "k_leo_sat",
+   "cat": "know",
+   "title": "低軌衛星是什麼？衛星、地面站、終端怎麼接",
+   "why": "低軌衛星常被當題材，但少有人講衛星、地面站與用戶終端的分工；站內有 2.5D 圖 satellite（低軌衛星：天上與地面），文章＋2.5D 圖，只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/satellite",
+    "#industry/group/satellite"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "k_pcb_ccl",
+   "cat": "know",
+   "title": "CCL 銅箔基板是什麼？一片板子怎麼壓出來",
+   "why": "AI 板材升級讓 CCL 常被提到，但多數人不知道它是 PCB 的哪一層；站內有 2.5D 圖 pcb_ccl（高階 PCB 與 CCL），文章＋2.5D 圖，講產品結構，不排受惠；與材料鏈題角度不同",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/pcb_ccl",
+    "#industry/group/ccl"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "i_siph_chain",
+   "cat": "intro",
+   "title": "矽光子供應鏈：雷射、晶圓代工到 CPO 封裝",
+   "why": "站內有 siph_* 一組族群（磊晶雷射、外置光源、矽光子代工、3D 堆疊與 CPO 封裝、光纖耦合、測試）；講環節分工，需附供應鏈圖，不排誰受惠；避開已有的光通訊鏈與 CPO 知識文",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/siph_laser",
+    "#industry/group/siph_pkg"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "i_ems_chain",
+   "cat": "intro",
+   "title": "電子代工 EMS 鏈：從機構件、組裝到終端品牌",
+   "why": "站內有 ems、smartphone、chassis_rail、precision_parts 族群；讀者常分不清 EMS、ODM 與品牌的分工，需附供應鏈圖，講環節不排受惠；避開蘋果鏈與伺服器代工題",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/ems",
+    "#industry/group/smartphone"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "i_cpu_cxl",
+   "cat": "intro",
+   "title": "伺服器 CPU 與 CXL：AI 代理時代的運算分工",
+   "why": "站內有 cpu_agentic_ai、cxl 族群；講 CPU、加速器與記憶體擴充的環節分工，需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/cpu_agentic_ai",
+    "#industry/group/cxl"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "n_drop_846",
+   "cat": "news",
+   "title": "台股單日重挫 846 點，賣壓從哪裡來",
+   "why": "10/22 台股收 46,041.43 點、單日跌 846 點，外資 10/22 現貨賣超約 816.56 億元（優分析 10/22、玩股網整理，搜尋摘要轉述，數字寫稿前須以證交所資料核對）；角度放賣壓來源與族群，避開休市機制（已有 n_holiday_4day）",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "n_fut_short_87k",
+   "cat": "news",
+   "title": "外資期貨淨空 8.7 萬口，現貨期貨怎麼分開看",
+   "why": "10/21 外資台指期淨空單約 8.6 萬口（玩股網 10/21），udn 報導約 8.78 萬口，8 月初曾逾 9 萬口；大家想知道外資是真看空還是避險。各家口徑不同，數字須以期交所公布值為準",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "n_ma60_break",
+   "cat": "news",
+   "title": "台股跌破季線：季線是什麼、跌破通常代表什麼",
+   "why": "台股 10/6 創歷史新高後回測，10/22 收 46,041.43 點跌破季線（優分析 10/20、10/22；經濟日報 10/19）；投資人最想問跌破季線嚴不嚴重；季線價位須用本站資料自行計算，焦點限定均線概念",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "k_foplp",
+   "cat": "know",
+   "title": "面板級封裝 FOPLP 是什麼？方形大板怎麼把晶片包起來",
+   "why": "先進封裝產能吃緊，面板級封裝以方形大板取代圓形晶圓以提高面積利用率；站內有 2.5D 圖 panel_pkg（面板轉封裝），文章＋2.5D 圖，只講原理與取捨，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/panel_pkg",
+    "#themes"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "k_npu_aipc",
+   "cat": "know",
+   "title": "NPU 是什麼？AI PC 的神經網路處理器拆開看",
+   "why": "AI PC 常被提到「要有 NPU」，但多數人分不清 NPU 與 CPU、GPU 的分工；站內有 2.5D 圖 edge_ai_pc（邊緣 AI 與 AI PC），文章＋2.5D 圖，只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/edge_ai_pc",
+    "#themes"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "k_grid_transformer",
+   "cat": "know",
+   "title": "變壓器是什麼？電從電廠送到機房要變壓幾次",
+   "why": "資料中心用電量上升，電網與變壓設備常被提及；站內有 2.5D 圖 heavy_electric（重電與電網：電從電廠到機房），文章＋2.5D 圖，講電壓層級與設備分工，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/heavy_electric",
+    "#themes"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "i_cyber_security",
+   "cat": "intro",
+   "title": "資安產業鏈：端點、網路到雲端防護怎麼分工",
+   "why": "站內有資安族群頁 cyber_security；講環節分工（端點、網路、身分、雲端、服務），需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/cyber_security"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "i_green_power",
+   "cat": "intro",
+   "title": "太陽能與風電鏈：材料、設備到電廠怎麼銜接",
+   "why": "站內有 solar、wind_power 族群頁；講上游材料、中游設備與下游電廠開發的環節，需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/solar",
+    "#industry/group/wind_power"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "i_microled",
+   "cat": "intro",
+   "title": "Micro LED 顯示鏈：磊晶、巨量轉移到驅動 IC",
+   "why": "站內有 microled、display_driver_ic 族群頁；講環節分工與技術瓶頸（巨量轉移、良率），需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/microled",
+    "#industry/group/display_driver_ic"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "n_holiday_4day",
+   "cat": "news",
+   "title": "台股連休 4 天，美股油價債市發生什麼事",
+   "why": "台股 10/23 颱風休市、10/26 補假，10/27 復市（UAnalyze、聯合新聞網 10/22）；休市期間美股 10/23 道瓊 -1.2%、那斯達克 -0.2%、Brent 漲逾 3%、美 10 年債殖利率約 4.99%（AP 10/23，台股 10/22 收盤為單一來源），寫稿以本站復市資料核對",
+   "score": 4,
+   "format_hint": "貼文",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "n_ust_5pct",
+   "cat": "news",
+   "title": "美債殖利率貼著 5%，政府債務與回購怎麼牽動股市",
+   "why": "美 10 年債殖利率 10/23 約 4.99%（AP），9/24 曾達 5.11% 為 2007 年來高點（世界日報、摘要轉述）；財政部擴大長債回購至 11/4（財政部新聞稿 8/19）；角度放債務與回購，避開 Fed 升息與非農題；數字寫稿前須核日期",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "k_robot_joint",
+   "cat": "know",
+   "title": "機器人關節是什麼？減速機、馬達、感測器怎麼組成",
+   "why": "機器人題材常被討論，但少有人說明一個關節由哪些零件組成；站內有 2.5D 圖 robotics（機器人：一個關節的價值分佈），文章＋2.5D 圖，只講原理與取捨，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/robotics",
+    "#themes"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "k_ev_arch",
+   "cat": "know",
+   "title": "電動車架構是什麼？電池、電控、馬達各管什麼",
+   "why": "電動車與特斯拉動向常見於新聞，但多數人不清楚三電分工；站內有 2.5D 圖 ev_auto（車用與電動車：台廠切在哪幾塊），可銜接已上架特斯拉文；只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/ev_auto"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "k_drone_quad",
+   "cat": "know",
+   "title": "無人機是什麼？四旋翼拆開看飛控、馬達與電池",
+   "why": "國防預算與無人機議題常見於新聞；站內有 2.5D 圖 drone（無人機：四旋翼供應鏈），文章＋2.5D 圖，只講結構與原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/drone"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "i_ccl_material",
+   "cat": "intro",
+   "title": "銅箔基板上游材料鏈：銅箔、玻纖布到樹脂",
+   "why": "站內有 ccl、copper_foil、glass_fiber 族群，AI 板材升級讓上游材料被拆開討論；需附供應鏈圖，講環節不排受惠，避開已上架板材鏈總覽",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/ccl",
+    "#industry/group/copper_foil",
+    "#industry/group/glass_fiber"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "i_osat_chain",
+   "cat": "intro",
+   "title": "封裝代工 OSAT 鏈：設備、材料到封測廠",
+   "why": "站內有 osat、pkg_equipment、leadframe_chem 族群；讀者常把先進封裝與傳統封裝代工混為一談，本題講 OSAT 環節分工，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/osat",
+    "#industry/group/pkg_equipment",
+    "#industry/group/leadframe_chem"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "i_energy_storage",
+   "cat": "intro",
+   "title": "儲能產業鏈：電芯、電池系統到電力調度",
+   "why": "站內有 energy_storage、battery_cell、battery_material 族群；資料中心用電與電網穩定讓儲能被常提起，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/energy_storage",
+    "#industry/group/battery_cell",
+    "#industry/group/battery_material"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "n_fx_outflow",
+   "cat": "news",
+   "title": "外資連賣 10 天，新台幣為何跟著貶",
+   "why": "外資 10/12~10/16 合計賣超台股約 194 億美元、淨匯出約 180 億美元，同期新台幣貶 1.37%，10/21 才中止連 10 賣（央行新聞稿經中時 2026-10-20、優分析引鉅亨 2026-10-21）；美元與新台幣口徑須分開核對，寫稿時以本站外資買賣超為準。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-26",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_volume_8331",
+   "cat": "news",
+   "title": "台股單日成交 8331 億，量這麼大是好是壞",
+   "why": "10/21 台股收 46,887.77 點、漲 594.84 點，成交值約 8,331 億元（優分析引鉅亨、聯合新聞網 2026-10-21）；數字目前偏單一來源，寫稿前須核對證交所資料。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_gold_pullback",
+   "cat": "news",
+   "title": "金價從高點回落近三成，避險資產沒避險？",
+   "why": "現貨金 10/2 收約 4,140 美元、當週跌 3.4%，較 2026 年 1 月高點約 5,602 美元回落近三成（自由時報 2026-10-03、聯合新聞網）；高低點為單一來源，寫稿前須核對。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_gaa_node",
+   "cat": "know",
+   "title": "先進製程 GAA 電晶體是什麼？一顆電晶體切開看",
+   "why": "站內晶圓代工 3D 圖 foundry 可看電晶體結構（#industry/group/foundry），已上架 IC 代工文可銜接，本題講 FinFET 到 GAA 的結構差異；文章＋3D 圖。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_dram_nand",
+   "cat": "know",
+   "title": "DRAM 與 NAND 差在哪？記憶體與儲存拆開看",
+   "why": "記憶體缺貨新聞常把 DRAM、NAND、HBM 混為一談；站內有 SSD 3D 圖（ssd）與 HBM／DRAM 2.5D 圖（hbm_memory）可對照；文章＋3D 圖。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/semiconductor/dg/memory_module",
+    "#heatmap/theme/hbm_memory"
+   ]
+  },
+  {
+   "id": "k_cdu_liquid",
+   "cat": "know",
+   "title": "液冷 CDU 是什麼？冷卻液從晶片流到機櫃外",
+   "why": "站內液冷 3D 圖 liquid_cooling「從晶片到 CDU」，已有水冷原理題，本題改講零件與流向；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/liquid_cooling"
+   ]
+  },
+  {
+   "id": "i_passive_chain",
+   "cat": "intro",
+   "title": "被動元件鏈：電容、電感、電阻各管什麼",
+   "why": "站內電子零組件鏈有 MLCC、電容、電感、保護元件、日系被動等族群與多張 3D 圖；需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/mlcc",
+    "#industry/group/capacitor",
+    "#industry/group/power_inductor"
+   ]
+  },
+  {
+   "id": "i_test_chain",
+   "cat": "intro",
+   "title": "半導體測試鏈：探針卡、測試座到測試服務",
+   "why": "站內半導體鏈有 IC 測試服務族群 ic_test_service，讀者常把封裝與測試混為一談；需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/group/ic_test_service"
+   ]
+  },
+  {
+   "id": "i_optics_lens",
+   "cat": "intro",
+   "title": "光學鏡頭鏈：鏡片、模組到 AR／VR 光學",
+   "why": "站內有光學鏡頭與 AR／VR 光學族群，讀者想知道鏡頭模組與穿戴裝置光學的分工；需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/optical_lens",
+    "#industry/group/ar_vr_optics"
+   ]
+  },
+  {
+   "id": "n_trade_truce_2month",
+   "title": "美中休戰只延兩個月，供應鏈在擔心什麼",
+   "why": "原訂 11/10 到期的美中貿易休戰，據世界日報、工商時報（2026-09）報導延到 2027/1/10；稀土管制是否同步延長尚無可核對資訊（信心度中，發文前須再查）；讀者想知道短休戰期對電子供應鏈是變數還是利多。",
+   "score": 3,
+   "format_hint": "兩者",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "n_panel_price_foreign",
+   "title": "面板報價回溫，外資為何先買這一族",
+   "why": "據 uanalyze（2026-09-22）、鉅亨網（2026-09）報導外資買超面板雙虎，原因是年底備貨與陸廠同步漲價，集邦 9 月預測價格持平轉積極；10 月最新數字須用站內資金流向補近 5 日資料。",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "n_earnings_beat_but_fall",
+   "title": "財報都超標股價仍跌，市場在算什麼",
+   "why": "wistock（2026-10-19）整理 10/19-21 逾 50 家美企公布季報含 Meta、Tesla、Netflix，並提到前季微軟營收與雲端超標仍隔日大跌；讀者想知道賺錢為何還跌。數字待站內資料核對後才用。",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "k_switch_800g",
+   "cat": "know",
+   "title": "800G 交換器是什麼？板卡與光模組拆開看",
+   "why": "AI 叢集網路升級到 800G，交換器板卡、光模組與 CPO 的關係少有人講清楚；站內有網通 3D 圖 switch_wireless（交換器板卡＋800G 光模組＋CPO），文章＋3D 圖，已上架 CPO 文可銜接",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/switch_wireless"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "k_glass_substrate",
+   "cat": "know",
+   "title": "玻璃基板是什麼？為何被當成下一代封裝載板",
+   "why": "先進封裝載板材料從有機轉向玻璃的討論增加；站內有 2.5D 圖 glass_substrate（玻璃基板：下一代封裝載板），可銜接已上架 IC 載板與 CoWoS 文；只講原理與取捨，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/glass_substrate",
+    "#heatmap/theme/glass_substrate"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "k_asic_ip",
+   "cat": "know",
+   "title": "ASIC 與矽智財是什麼？一顆客製晶片的組成",
+   "why": "雲端大廠自研晶片討論度高，但 ASIC、IP、設計服務的分工常被混為一談；站內有 2.5D 圖 asic_ip（一顆客製晶片的組成）",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/asic_ip",
+    "#industry/group/ip_asic"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "i_apple_chain",
+   "cat": "intro",
+   "title": "蘋果供應鏈：一支手機怎麼組起來",
+   "why": "秋季新機出貨期，讀者常分不清鏡頭、面板、組裝、零組件各環節；站內有 2.5D 圖 apple_chain 可畫出環節分工，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "i_defense_chain",
+   "cat": "intro",
+   "title": "軍工國防鏈：預算怎麼變成載具與零組件",
+   "why": "國防預算與無人機議題常見於新聞，但環節分工少有人整理；站內有 2.5D 圖 defense（預算變成哪些載具），需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "i_petrochem_chain",
+   "cat": "intro",
+   "title": "石化塑化鏈：輕油怎麼變成塑膠",
+   "why": "油價在高檔震盪，讀者想知道石化上中下游怎麼接；站內有 2.5D 圖 petrochemical（輕油怎麼變塑膠），需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "n_fed_hike_why",
+   "cat": "news",
+   "title": "通膨回升、Fed 為何一路升息到 12 月",
+   "why": "美國 9 月 CPI 年增 3.7%（預期 3.6%、8 月 3.4%），CME 顯示 12 月再升息機率約 94%（2026-10-14 前後，來源 Investing Live、RealEstateNews）；以因果解釋為主，避開與既有 FOMC 預告題重複。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-22",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_50k_margin",
+   "cat": "news",
+   "title": "台股逼近 5 萬點：融資 3100 億代表什麼",
+   "why": "台股上週四收 49,313.44 點、50,000 點關卡在前；有分析指融資餘額超過 3,100 億元、指數本益比逾 17 倍（中央社 2026-10-11 等），大家想知道漲到這裡風險在哪。發稿前須補查本週最新數字。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_tsmc_2500",
+   "cat": "news",
+   "title": "台積電站穩 2500 元：權重股為何牽動整個大盤",
+   "why": "中央社 2026-10-11 報導台積電股價站穩 2,500 元、10/15 法說會為焦點；讀者常問為何大盤跟著台積電走。發稿前須補查最新股價與權重數字，並避開已有的法說會五個數字題。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#overview",
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_air_cooling",
+   "cat": "intro",
+   "title": "氣冷散熱鏈：風扇、鰭片到機殼風道",
+   "why": "站內已有氣冷 3D 場景與族群頁，AI 伺服器散熱常被問到「氣冷還能撐多久、何時換液冷」；講環節分工，不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/air_cooling"
+   ]
+  },
+  {
+   "id": "i_foundry_chain",
+   "cat": "intro",
+   "title": "晶圓代工鏈：矽晶圓、設備到封測怎麼銜接",
+   "why": "站內有晶圓代工 3D 與族群頁；已上架「IC 代工是什麼」，本題改講上下游環節與銜接，需附供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_connector_chain",
+   "cat": "intro",
+   "title": "高速傳輸鏈：連接器、線纜到伺服器內部走線",
+   "why": "站內有高速連接器 3D 與族群頁 ai_interconnect；AI 機櫃內部傳輸分工常被問，需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_air_cooling",
+   "cat": "know",
+   "title": "氣冷散熱是什麼？風扇拆開看熱怎麼交給空氣",
+   "why": "站內有氣冷 3D 場景 air_cooling（#industry/group/air_cooling），已有水冷知識題，本題補氣冷原理與極限；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/air_cooling"
+   ]
+  },
+  {
+   "id": "k_resistor_protect",
+   "cat": "know",
+   "title": "保護元件是什麼？四顆被動保護零件各切一半",
+   "why": "站內有被動保護 3D 場景 resistor_protect（#industry/group/resistor_protect），尚未有對應知識題；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/resistor_protect"
+   ]
+  },
+  {
+   "id": "k_motion_axis",
+   "cat": "know",
+   "title": "線性滑軌與伺服軸是什麼？一個會動的軸拆開",
+   "why": "站內有工業自動化 3D 場景 motion_axis（#industry/group/factory_automation），已有自動化產業鏈題，本題補零件原理；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/factory_automation"
+   ]
+  },
+  {
+   "id": "n_rotate_out_ai",
+   "cat": "news",
+   "title": "資金離開 AI 股後，輪去了哪裡",
+   "why": "優分析 10/18 報導外資上週在集中市場大幅賣超、資金轉向非 AI 與中小型題材；金額未互證，寫稿時以本站族群資金流向實際數字為準",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-21",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_memory_shortage_dip",
+   "cat": "news",
+   "title": "記憶體缺貨還在，股價為何先修正",
+   "why": "三大原廠稱 2026 年 HBM 產能已被預訂，但報導指市場情緒因資本支出擴張與現貨漲勢放緩轉保守；漲幅數字僅單一來源，寫稿前須查 TrendForce 原文",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#heatmap/theme/hbm_memory"
+   ]
+  },
+  {
+   "id": "n_ai_capex_credit",
+   "cat": "news",
+   "title": "AI 蓋資料中心靠借錢，市場擔心什麼",
+   "why": "報導稱美國四大雲端業者資本支出預估上調，金融時報指投資人擔心支出跑在獲利前面；金額兩邊對不上，寫稿時不寫數字，避開 OpenAI 單一事件只講融資結構",
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_capacitor",
+   "cat": "know",
+   "title": "電容器是什麼？鋁電解電容縱剖開看",
+   "why": "電源與主機板都有電容，但少有人講清楚為何要用鋁電解；3D 圖用 capacitor「電容器：鋁電解縱剖開」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/capacitor"
+   ]
+  },
+  {
+   "id": "k_inductor",
+   "cat": "know",
+   "title": "電感是什麼？電感、電阻、石英各切一半",
+   "why": "AI 伺服器電源與主機板大量使用電感，卻常與電阻、石英混為一談；3D 圖用 power_inductor「三顆各切一半」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/power_inductor"
+   ]
+  },
+  {
+   "id": "k_machine_tool",
+   "cat": "know",
+   "title": "CNC 工具機是什麼？一台立式加工機拆開看",
+   "why": "工具機是台灣傳統強項，但多數人不知道主軸、刀庫、導軌怎麼配合；3D 圖用 machine_tool「立式綜合加工機」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/machine_tool"
+   ]
+  },
+  {
+   "id": "i_wafer_chain",
+   "cat": "intro",
+   "title": "矽晶圓材料鏈：從長晶、切片到晶圓廠",
+   "why": "晶圓廠擴產先動到上游材料，讀者常分不清長晶、切磨拋與代工的分工；站內有矽晶圓族群頁與 3D 圖",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "i_wide_bandgap_chain",
+   "cat": "intro",
+   "title": "第三代半導體鏈：基板、元件到電動車電源",
+   "why": "SiC／GaN 常與電動車、電源一起被討論，但上下游環節少有人拆開；站內有第三代半導體族群頁",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/wide_bandgap"
+   ]
+  },
+  {
+   "id": "i_ic_test",
+   "cat": "intro",
+   "title": "封測產業鏈：晶圓測試、封裝到成品測試",
+   "why": "封測位在半導體鏈下游，讀者常把封裝與測試、測試介面混為一談；本站半導體產業鏈頁可對照各環節",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "n_openai_rev",
+   "cat": "news",
+   "title": "OpenAI 營收數字差 200 億，AI 股為何先跌",
+   "why": "FT 10/8 報導 OpenAI 年化營收約 500 億美元、低於先前傳的約 700 億，當日那斯達克收跌 1.25%；落差主因毛營收與淨營收算法不同（兩個來源互證）",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-20",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_oil_hormuz",
+   "cat": "news",
+   "title": "油價卡在 100 美元，通膨與科技股怎麼被牽動",
+   "why": "布蘭特原油 10/5 約 102.6 美元、一週在 100～108 美元震盪，主因荷莫茲海峽供給受阻；機構預測分歧（數字待寫稿時再核）",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_yield_high",
+   "cat": "news",
+   "title": "非農轉弱，美債殖利率為何仍在高位",
+   "why": "美國 9 月非農低於預期、升息押注退潮（約 10/2～5），但 10 年期殖利率仍高；僅摘要為證，寫稿前須再核日期與數字",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-20",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "i_panel_chain",
+   "cat": "intro",
+   "title": "面板產業鏈：從玻璃基板到模組出貨",
+   "why": "面板是台灣傳統強項，站內有面板族群頁與 TFT-LCD 十三層 3D 圖，讀者常分不清驅動 IC、背光、面板廠的分工",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "i_automation_chain",
+   "cat": "intro",
+   "title": "工業自動化鏈：滑軌、減速機到工具機",
+   "why": "工具機與自動化零組件常被一起討論，站內有工業自動化軸與 CNC 工具機 3D 圖，可畫出環節分工",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/factory_automation",
+    "#industry/group/machine_tool"
+   ]
+  },
+  {
+   "id": "i_semi_equip_chain",
+   "cat": "intro",
+   "title": "半導體設備與材料鏈：資本支出落在哪一段",
+   "why": "晶圓廠資本支出決定設備與材料需求，站內有半導體設備與材料 2.5D 圖與族群頁，適合拆成環節圖",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#heatmap/theme/semi_equipment",
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "k_pcb_rigid",
+   "cat": "know",
+   "title": "PCB 硬板是什麼？多層板剖面與四種孔",
+   "why": "高階 PCB 常被說吃緊，卻少有人解釋板子怎麼疊；3D 圖用 pcb_rigid「多層板剖面與四種孔」，可銜接已上架的 IC 載板文",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "k_connector",
+   "cat": "know",
+   "title": "高速連接器是什麼？一個接點拆開看",
+   "why": "AI 伺服器內傳輸速率拉高，連接器成為關鍵零件；3D 圖用 ai_interconnect「一個接點拆開」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_tft_panel",
+   "cat": "know",
+   "title": "面板是什麼？TFT-LCD 拆成十三層",
+   "why": "每個螢幕都有面板但少有人知道怎麼疊；3D 圖用 panel「TFT-LCD 拆成十三層」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "k_ssd",
+   "cat": "know",
+   "title": "SSD 是什麼？一片 M.2 固態硬碟拆開看",
+   "why": "網站已有 SSD 3D 剖析圖（#industry/semiconductor/dg/memory_module，切 3D）：主控、DRAM 快取、NAND 堆疊、金手指，文章用 scene 區塊嵌入",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/semiconductor/dg/memory_module",
+    "#industry/group/memory_module"
+   ]
+  },
+  {
+   "id": "k_foundry",
+   "cat": "know",
+   "title": "IC 代工是什麼？晶圓廠怎麼把設計變成晶片",
+   "why": "3D 圖用 foundry 場景「晶圓代工：一顆電晶體與一個製程迴圈」立體圖；Andy 10-19 點名的知識題",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_wafer",
+   "cat": "know",
+   "title": "矽晶圓是什麼？沙子到鏡面晶圓的路",
+   "why": "3D 圖用 silicon_wafer「從熔湯到一片鏡面（切開的長晶爐）」，是晶片的最上游材料，站內已有立體圖",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "k_sic_gan",
+   "cat": "know",
+   "title": "第三代半導體是什麼？SiC 與 GaN 差在哪",
+   "why": "3D 圖用 wide_bandgap「SiC 與 GaN 功率元件（立體剖面）」；電動車與電源常聽到但少有人講清楚",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/wide_bandgap"
+   ]
+  },
+  {
+   "id": "k_abf",
+   "cat": "know",
+   "title": "IC 載板是什麼？ABF 增層怎麼疊出來",
+   "why": "3D 圖用 ic_substrate「ABF 增層剖面（半剖立體）」，可銜接已上架的 CoWoS 與 HBM 文章",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "k_psu_bbu",
+   "cat": "know",
+   "title": "AI 伺服器電源是什麼？PSU 與 BBU 各管什麼",
+   "why": "3D 圖用 server_psu「一顆 PSU 拆開到晶片核心電壓」，2.5D 補 themes3d 的 power_bbu「伺服器電源與 BBU」",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "k_mlcc",
+   "cat": "know",
+   "title": "MLCC 是什麼？一顆積層陶瓷電容怎麼疊出來",
+   "why": "3D 圖用 mlcc「切開近角」，2D 另有 MLCC 疊層剖析；被動元件題材的入門知識",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/mlcc"
+   ]
+  },
+  {
+   "id": "n_sox_drop",
+   "cat": "news",
+   "title": "費半為什麼跌這麼兇？AI 資本支出、油價與估值",
+   "why": "Andy 10-19 點名；近期科技股回檔（10/13 台股盤中跌逾千點）、市場疑慮 AI 資本支出與通膨油價。已有「費半 8 天跌 15.7% 對照 2008」一文，這題改寫成因與台股連動，避免重複",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_musk_tesla",
+   "cat": "news",
+   "title": "特斯拉與馬斯克最新動向：Optimus、TeraFab、資本支出上修",
+   "why": "Andy 10-19 點名馬斯克電動車；搜尋到 4 月上修全年資本支出至 250 億美元以上、規劃自建晶片廠 TeraFab、Optimus 進入量產討論；已有 Roadster 供應鏈文，這題改寫整體動向與台廠環節，附發表會或財報影片",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "n_nov_earnings",
+   "cat": "news",
+   "title": "11 月後的財報行情：法說會空窗期資金往哪走",
+   "why": "Andy 10-19 點名；年底法說會與財報密集期、12 月作帳到次年財報空窗期的行情節奏，本站有族群漲跌與外資買賣超可對照",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_fomc_oct",
+   "cat": "news",
+   "title": "FOMC 10/28 前夕：外資與台股族群怎麼動",
+   "why": "FOMC 決議將於台北時間 10/29 凌晨公布，讀者會問利率前夕資金往哪個族群躲；本站有外資買賣超與族群漲跌可對照",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_cpi_tw",
+   "cat": "news",
+   "title": "台灣 9 月 CPI 年增 2.73%：誰受惠",
+   "why": "台灣 9 月 CPI 年增 2.73%、連月高於 2%，可對照本站航運、食品等族群近期表現",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_etf_flow_week",
+   "cat": "news",
+   "title": "本週 ETF 申贖：資金流進哪些成分股",
+   "why": "ETF 成分股與申購買回影響籌碼，本站有 ETF 持股資料可對照近一週增減",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "i_server_odm",
+   "cat": "intro",
+   "title": "AI 伺服器代工鏈：ODM、機殼到導軌",
+   "why": "AI 伺服器出貨帶動組裝與機構件，讀者常問代工廠與零組件廠怎麼分工",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_ic_design",
+   "cat": "intro",
+   "title": "IC 設計產業鏈：從 IP、EDA 到晶圓代工",
+   "why": "IC 設計位在半導體鏈上游，讀者常搞不清設計、代工、封測的上下游關係",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_pmic",
+   "cat": "intro",
+   "title": "電源管理 IC 鏈：PMIC 為何跟 AI 有關",
+   "why": "AI 伺服器用電量大增，電源管理晶片需求同步升高，常青產業鏈題材",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "k_gap_fill",
+   "cat": "know",
+   "title": "跳空缺口是什麼？回補機率有多高",
+   "why": "財報季個股常跳空，讀者常問缺口是否一定回補；可用本站日 K 資料統計",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rsi_basics",
+   "cat": "know",
+   "title": "RSI 是什麼？超買超賣為何常失靈",
+   "why": "RSI 是最常被問的指標之一，強勢股可長期鈍化，可用本站指標對照",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_yield_trap",
+   "cat": "know",
+   "title": "殖利率怎麼算？高殖利率可能是陷阱",
+   "why": "第四季除息潮前夕，讀者會問高殖利率是否一定划算；本站有股利資料可對照",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_tsmc_aftermath",
+   "cat": "news",
+   "title": "台積電法說後一週：族群資金流向變了嗎",
+   "why": "法說會 10/15 剛過，讀者會問資金有沒有換族群；本站有近 5 日族群漲跌與法人買賣超可對照",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_q3_season",
+   "cat": "news",
+   "title": "Q3 財報季開跑：哪些族群本週密集法說",
+   "why": "10 月下旬是第三季財報與法說高峰，可用本站族群分類整理本週場次集中在哪些環節",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_semi_vs_elec",
+   "cat": "news",
+   "title": "半導體 vs 電子零組件：近 5 日誰吸金",
+   "why": "本站族群資金流向可直接對照兩大類近 5 日漲跌與法人買賣超",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_fx_foreign",
+   "cat": "news",
+   "title": "新台幣走勢與外資：匯率動了資金跟著動？",
+   "why": "匯率與外資買賣超常被一起討論，本站有外資買賣超日資料，可與匯率對照畫圖",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_oct_week_ahead",
+   "cat": "news",
+   "title": "下週台股事件曆：法說、經濟數據一張表",
+   "why": "週日晚最常被搜尋的是下週行程；整理法說會與重要經濟數據公布日成一張表",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "i_ai_networking",
+   "cat": "intro",
+   "title": "AI 資料中心網通鏈：從晶片到線纜",
+   "why": "AI 叢集擴大讓網通需求被拆開討論，介紹交換器、網卡、線纜各環節台廠位置",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_hbm_chain",
+   "cat": "intro",
+   "title": "HBM 產業鏈：記憶體、封裝到測試",
+   "why": "HBM 是 AI 加速器瓶頸之一，本站已有記憶體與先進封裝族群，可串成上下游",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_ev_chain",
+   "cat": "intro",
+   "title": "電動車產業鏈：電池、電控到車用電子",
+   "why": "常青題：電動車供應鏈台廠分布，可用本站族群分類畫出環節",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_robot",
+   "cat": "intro",
+   "title": "機器人產業鏈：減速機、感測器到控制器",
+   "why": "機器人題材熱度常被討論，介紹核心零組件與台廠所在環節，不談個股好壞",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes"
+   ]
+  },
+  {
+   "id": "i_shipping",
+   "cat": "intro",
+   "title": "航運產業鏈：貨櫃、散裝到航空怎麼分",
+   "why": "航運常被當景氣與運價指標，說明三種航運的差別與運價指數怎麼看",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "k_etf_flow",
+   "cat": "know",
+   "title": "ETF 申購買回是什麼？為何會影響成分股",
+   "why": "ETF 資金流入流出會帶動成分股買賣，新手常不知道買賣機制",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "k_futures_oi",
+   "cat": "know",
+   "title": "期貨未平倉是什麼？外資期貨怎麼看",
+   "why": "外資期貨未平倉是常被引用的指標，需說明多空口徑與常見誤讀",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_ma_basics",
+   "cat": "know",
+   "title": "均線是什麼？5 日、20 日、60 日怎麼選",
+   "why": "技術面入門題，搭配本站 K 線圖說明各週期均線代表的持有期間",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#stock"
+   ]
+  },
+  {
+   "id": "k_eps_pe",
+   "cat": "know",
+   "title": "EPS 與股價：為什麼財報好股價卻不漲",
+   "why": "常見疑問；說明預期、評價與財報時間差，用歷史財報季的例子對照",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_turnover",
+   "cat": "know",
+   "title": "成交量與週轉率：量大一定代表熱嗎",
+   "why": "量能指標入門，區分成交量、成交值與週轉率，用本站資料畫對照圖",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_week_flow",
+   "cat": "news",
+   "title": "上週外資賣超 vs 投信買超：誰在買哪個族群",
+   "why": "週一開盤前最常被問「法人上週到底在做什麼」，本站有近 5 日外資、投信分族群資料可畫對照圖",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_oct_revenue_prev",
+   "cat": "news",
+   "title": "10 月營收公布倒數：上月創高族群看誰接棒",
+   "why": "月營收每月 10 日前公布，9 月創高的族群能否延續是下週觀察重點，可用本站營收資料畫圖",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_fed_fx",
+   "cat": "news",
+   "title": "Fed 利率決議前夕：外資買賣超與匯率對照",
+   "why": "利率決議前後外資動向常被拿來比較，可用本站法人資料對照近期匯率走勢（日期以官方行事曆為準）",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "i_edge_ai_pc",
+   "cat": "intro",
+   "title": "AI PC 產業鏈：從處理器到筆電組裝",
+   "why": "AI PC 題材已列在本站題材頁，讀者想知道各環節由誰負責",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes/edge_ai_pc"
+   ]
+  },
+  {
+   "id": "i_switch_800g",
+   "cat": "intro",
+   "title": "800G 交換器鏈：晶片、光模組到整機",
+   "why": "AI 資料中心網路升級，本站已有 800G 交換器題材，適合拆成環節圖",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes/switch_800g"
+   ]
+  },
+  {
+   "id": "i_mlcc",
+   "cat": "intro",
+   "title": "MLCC 被動元件鏈：從粉體到終端應用",
+   "why": "被動元件循環與 AI 伺服器用量常被一起討論，本站有 MLCC 題材可對照族群表現",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes/mlcc_passive"
+   ]
+  },
+  {
+   "id": "k_ex_rights_effect",
+   "cat": "know",
+   "title": "為什麼領息前股價常先漲？除息行情怎麼看",
+   "why": "第四季除息潮將至，讀者常問除息前後股價走勢；本站有除權息資料可驗證",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rrg",
+   "cat": "know",
+   "title": "RRG 輪動圖怎麼看？四個象限的意思",
+   "why": "本站資金流向頁有輪動圖，新手最常卡在象限與軌跡的讀法",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "k_margin",
+   "cat": "know",
+   "title": "融資融券是什麼？融資餘額上升代表什麼",
+   "why": "市場情緒常引用融資數字，但常被誤讀成單向訊號；本站有籌碼資料可舉例",
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rotation",
+   "cat": "know",
+   "title": "類股輪動是什麼？資金怎麼換跑道",
+   "why": "散戶最常問「錢跑去哪」，正是本站資金流向頁在回答的事",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_ai_server",
+   "cat": "intro",
+   "title": "AI 伺服器產業鏈：一座機櫃拆給你看",
+   "why": "AI 伺服器是 2026 年討論度最高的主軸，觀眾想知道台廠各在哪一層",
+   "site_links": [
+    "#industry/ai_server",
+    "#heatmap/theme/ai_server",
+    "#industry/group/ai_server_odm"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_tsmc_q3",
+   "cat": "news",
+   "title": "台積電法說會：產業鏈該看哪五個數字",
+   "why": "10/15 法說是全市場焦點，散戶想知道哪些數字會牽動上下游",
+   "site_links": [
+    "#stock/2330",
+    "#industry/semiconductor",
+    "#industry/group/ai_adv_packaging",
+    "#heatmap/theme/cowos"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_cowos",
+   "cat": "know",
+   "title": "CoWoS 是什麼？三分鐘看懂",
+   "why": "新聞天天講「CoWoS 產能被搶光」，多數人說不清它是什麼",
+   "site_links": [
+    "#heatmap/theme/cowos",
+    "#industry/group/ai_adv_packaging"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_thermal",
+   "cat": "intro",
+   "title": "散熱產業鏈：從風扇到水冷板",
+   "why": "散熱是抗跌又常上新聞的族群，氣冷液冷分工看不懂",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#industry/group/air_cooling",
+    "#heatmap/theme/thermal"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_dividend",
+   "cat": "know",
+   "title": "除權息與填息：領股利不等於賺",
+   "why": "ETF 存股族最大誤解是把配息當報酬，第四季又是除息旺季",
+   "site_links": [
+    "#etf",
+    "#season"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_nanya_dram",
+   "cat": "news",
+   "title": "南亞科法說：記憶體缺貨還會持續嗎",
+   "why": "10/12 法說稱仍嚴重缺貨，但券商看法分歧，觀眾想看兩邊說法",
+   "site_links": [
+    "#stock/2408",
+    "#heatmap/theme/hbm_memory",
+    "#industry/group/memory_module"
+   ],
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_institutional",
+   "cat": "know",
+   "title": "法人買賣超怎麼看才不誤讀",
+   "why": "新手把單日買超當訊號，教學文一再提醒要看連續性",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 5,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_cowos_chain",
+   "cat": "intro",
+   "title": "先進封裝供應鏈：誰在台積電身邊",
+   "why": "接著 CoWoS 知識文，觀眾自然會問「那上下游有誰」",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/group/ai_adv_packaging",
+    "#heatmap/theme/cowos"
+   ],
+   "score": 5,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_cpo",
+   "cat": "news",
+   "title": "CPO 商轉元年：進度到哪了",
+   "why": "CPO 被稱為今年商轉關鍵，但概念股暴增近兩百檔，觀眾想分辨真假",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/group/silicon_photonics",
+    "#industry/group/optical_module"
+   ],
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_concept",
+   "cat": "know",
+   "title": "「概念股」是誰貼的標籤？",
+   "why": "概念股清單越拉越長，觀眾想知道怎麼判斷是不是真的相關",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/ai_server"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_hvdc",
+   "cat": "news",
+   "title": "800V 高壓直流：延後傳聞怎麼看",
+   "why": "電源族群消息互相矛盾（2027 或 2028 後），觀眾需要時間軸整理",
+   "site_links": [
+    "#heatmap/theme/power_bbu",
+    "#industry/group/server_psu",
+    "#stock/2308"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_power",
+   "cat": "intro",
+   "title": "AI 電源鏈：電源供應器到電池備援",
+   "why": "AI 機櫃耗電暴增，電源與 BBU 是新的熱門環節",
+   "site_links": [
+    "#industry/group/server_psu",
+    "#industry/group/bbu",
+    "#heatmap/theme/power_bbu"
+   ],
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_pcb_ccl",
+   "cat": "intro",
+   "title": "從銅箔到載板：AI 板材鏈一次看",
+   "why": "PCB、CCL、載板常被混為一談，分層講清楚很有需求",
+   "site_links": [
+    "#industry/group/ccl",
+    "#industry/group/ic_substrate",
+    "#industry/group/pcb_rigid",
+    "#heatmap/theme/pcb_ccl"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_hbm",
+   "cat": "know",
+   "title": "HBM 跟一般記憶體差在哪？",
+   "why": "記憶體缺貨新聞多，HBM 這個名詞頻繁出現卻少有白話解釋",
+   "site_links": [
+    "#industry/group/hbm",
+    "#heatmap/theme/hbm_memory"
+   ],
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_memory",
+   "cat": "intro",
+   "title": "記憶體產業鏈：DRAM、HBM、模組",
+   "why": "記憶體循環是今年第二大話題，觀眾想知道各環節角色",
+   "site_links": [
+    "#industry/group/hbm",
+    "#industry/group/memory_module",
+    "#industry/group/nor_niche_memory",
+    "#heatmap/theme/hbm_memory"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_asic",
+   "cat": "news",
+   "title": "雲端大廠自研晶片：台廠在哪一段",
+   "why": "Google TPU 等客製晶片被法人列為今年主要題材",
+   "site_links": [
+    "#heatmap/theme/asic_ip",
+    "#industry/group/ip_asic"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_cpo",
+   "cat": "know",
+   "title": "CPO 共同封裝光學是什麼？",
+   "why": "新名詞討論度高，又有 CPO 與 LPO 路線之爭",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/group/silicon_photonics"
+   ],
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_optical",
+   "cat": "intro",
+   "title": "光通訊鏈：光模組到矽光子",
+   "why": "接 CPO 知識文，把光通訊上下游畫清楚",
+   "site_links": [
+    "#industry/group/optical_module",
+    "#industry/group/silicon_photonics",
+    "#heatmap/theme/switch_800g"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_cooling",
+   "cat": "know",
+   "title": "為什麼 AI 伺服器要改用水冷？",
+   "why": "液冷取代氣冷是散熱股最常見的敘事，原理卻少人講",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#heatmap/theme/thermal"
+   ],
+   "score": 4,
+   "format_hint": "短影片",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_csp_capex",
+   "cat": "news",
+   "title": "雲端四大廠資本支出：台廠怎麼接",
+   "why": "資本支出是 AI 鏈的源頭消息，但不等於每家都受惠",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/group/ai_server_odm"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_semi_map",
+   "cat": "intro",
+   "title": "半導體產業地圖：設計到封測",
+   "why": "新開戶族年輕化，很多人連上中下游都還不熟",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/group/foundry",
+    "#industry/group/ip_asic"
+   ],
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_pe",
+   "cat": "know",
+   "title": "本益比是什麼？為何同業差很多",
+   "why": "「貴不貴」是本站第二個問題，本益比是最常被誤用的指標",
+   "site_links": [
+    "#industry"
+   ],
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_revenue",
+   "cat": "news",
+   "title": "9 月營收出爐：哪些族群創同期新高",
+   "why": "每月 10 日前後營收公布是固定流量點，可直接連到族群資金面",
+   "site_links": [
+    "#flow",
+    "#stock/2330"
+   ],
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_etf_q4",
+   "cat": "news",
+   "title": "第四季 ETF 除息潮：資金怎麼動",
+   "why": "ETF 受益人破千萬，季配息前後的資金移動是存股族關心的事",
+   "site_links": [
+    "#etf",
+    "#season"
+   ],
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_seasonality",
+   "cat": "know",
+   "title": "台股有季節性嗎？月份效應怎麼看",
+   "why": "本站獨有季節性頁，能用資料而不是傳聞回答",
+   "site_links": [
+    "#season"
+   ],
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "k_revenue",
+   "cat": "know",
+   "title": "月營收的年增和月增怎麼看",
+   "why": "營收是散戶最常拿來判斷公司的數字，但月增常被誤讀",
+   "site_links": [
+    "#stock/2330"
+   ],
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_heavy_electric",
+   "cat": "intro",
+   "title": "重電為什麼跟 AI 扯上關係？",
+   "why": "資料中心用電帶動重電，傳產股搭上 AI 的邏輯需要解釋",
+   "site_links": [
+    "#industry/group/heavy_electric",
+    "#heatmap/theme/heavy_electric"
+   ],
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_satellite",
+   "cat": "intro",
+   "title": "低軌衛星：台廠在哪一段",
+   "why": "低軌衛星被法人列為今年五大題材之一",
+   "site_links": [
+    "#industry/group/satellite",
+    "#heatmap/theme/satellite"
+   ],
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "n_macro",
+   "cat": "news",
+   "title": "降息與匯率：外資資金怎麼進出",
+   "why": "外資動向牽動權值股，總經消息需要轉成「對台股資金面的意思」",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  },
+  {
+   "id": "i_glass",
+   "cat": "intro",
+   "title": "玻璃基板是什麼？台廠布局一覽",
+   "why": "先進封裝的下一代材料，題材熱但資訊零散",
+   "site_links": [
+    "#industry/group/glass_substrate",
+    "#heatmap/theme/glass_substrate"
+   ],
+   "score": 2,
+   "format_hint": "貼文",
+   "added": "2026-10-14"
+  }
+ ]
+}

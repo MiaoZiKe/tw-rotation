@@ -1,0 +1,1371 @@
+"""每日盤後管線。
+
+執行順序刻意固定：先抓不用額度的證交所來源（拿到當日交易日期），
+再用那個日期補上沒有日期欄位的融資券，最後才動用 FinMind 的有限額度。
+
+任何一段失敗都只記錄並繼續 —— 一個來源掛掉不該讓整天的資料都沒存到。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import logging
+import time
+from datetime import datetime, timedelta, timezone
+
+import pandas as pd
+
+from . import config, inst_bulk
+from .compute import flow
+from .groups import loader
+from .sources import exright_notice, inst_official, risk, etf_pcf, tpex_margin, finmind, macro, mis, mktfut, mops, news, optivx, taifex, tape, tdcc, tpex, twse
+from .util import freshness, http, store
+from .util.roc import is_tradable_security
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("run_daily")
+
+# empty：抓得到端點但回 0 筆的步驟。以前這種只寫 log，errors 一直是空的，
+# 網站上完全看不出來哪個來源掛了（twse.dividend / tdcc.shareholding / macro.fred
+# 就這樣靜默失敗很久）。現在分開記，前端可以把它攤在頁面頂端。
+# gaps：永久缺口（超過來源保存期、補不回來的交易日）。明列在資料狀態，但不進 errors、不亮紅燈 ——
+# 缺口是「已知且無法挽回」，不是「這一輪壞掉」；壞掉的是 empty／errors。
+RESULT: dict = {"steps": {}, "errors": [], "empty": [], "gaps": [], "rebuilt": []}
+
+
+def finmind_company_extra(info: pd.DataFrame, company: pd.DataFrame,
+                          lake: pd.DataFrame | None) -> pd.DataFrame:
+    """FinMind 總覽裡「可以補進 company_info」的列（只補證交所版本沒有的代號）。
+
+    為什麼要排除資料湖裡已經有證交所版本的代號，不能只看今天抓到的 `company`：
+    2026-10-28 晚上那輪證交所 t187ap03_L 失敗回空，`company` 是空的，於是 FinMind 的
+    3168 列全部被當成「補充」寫進去；store.append 依 code 去重保留後到的那筆，
+    上市公司的證交所產業別（例如志聖＝電子零組件業）整批被 FinMind 的大類「電子工業」蓋掉，
+    全名／上市日／網址也一起變成空值。產業別是族群離群檢查與產業分位的依據，不能被這樣降級。
+
+    證交所版本的列一定有 `industry_code`（FinMind 那支沒有這欄），以它判斷「這筆是證交所給的」。
+    上櫃／興櫃本來就只有 FinMind 來源，照舊每天刷新。
+    """
+    if info is None or info.empty:
+        return pd.DataFrame(columns=["code", "name", "market", "industry"])
+    have = set(company["code"].astype(str)) if company is not None and not company.empty else set()
+    if lake is not None and not lake.empty and "industry_code" in lake.columns:
+        have |= set(lake.loc[lake["industry_code"].notna(), "code"].astype(str))
+    extra = info[~info["code"].astype(str).isin(have)].copy()
+    extra["industry"] = extra["industry_finmind"]
+    return extra[["code", "name", "market", "industry"]]
+
+
+def step(name: str, fn, *args, **kwargs):
+    """跑一個抓取步驟，把結果與錯誤都記進 RESULT，絕不讓例外往上炸。"""
+    t0 = time.time()
+    try:
+        df = fn(*args, **kwargs)
+    except Exception as exc:  # noqa: BLE001 — 這裡就是要吃掉所有例外
+        log.exception("%s 失敗", name)
+        RESULT["errors"].append(f"{name}: {exc}")
+        RESULT["steps"][name] = {"ok": False, "rows": 0, "error": str(exc)}
+        return pd.DataFrame()
+
+    rows = 0 if df is None or df.empty else len(df)
+    RESULT["steps"][name] = {"ok": rows > 0, "rows": rows,
+                             "seconds": round(time.time() - t0, 1)}
+    # 來源函式照規矩「失敗回空、不拋例外」，所以失敗原因沒有例外可以接。
+    # 約定：來源把原因掛在回傳值的 attrs["error"]（例如 macro.fred 的「HTTP 400：api_key is not registered」），
+    # 這裡原樣寫進 steps.<名稱>.error —— 否則 last_run.json 只看得到 rows=0，分不出沒金鑰、金鑰失效還是參數錯
+    # （2026-10-06：macro.fred 就這樣空了好幾週）。字串由來源負責去掉金鑰，這裡只截長度。
+    err = (getattr(df, "attrs", None) or {}).get("error") if df is not None else None
+    if err:
+        RESULT["steps"][name]["error"] = str(err)[:500]
+    skipped = (getattr(df, "attrs", None) or {}).get("skipped") if df is not None else None
+    if rows == 0 and skipped and not err:
+        # 2026-11-06 資料維修：「這一輪本來就不用抓」（湖裡已有、窗內都處理過、資料源還沒出）不是失敗。
+        # 以前一律記 ok:false + 進 empty，監工每天誤報 8 個步驟。來源用 attrs["skipped"]=原因 宣告，
+        # 這裡記成 ok:true + skipped，不進 empty；真的失敗（有 error、或沒宣告）照舊 ok:false。
+        RESULT["steps"][name]["ok"] = True
+        RESULT["steps"][name]["skipped"] = str(skipped)[:200]
+        log.info("%s 本輪略過：%s", name, skipped)
+    elif rows == 0:
+        log.warning("%s 沒有取得資料%s", name, f"：{err}" if err else "")
+        RESULT["empty"].append(name)          # ← 不再只寫 log
+    return df if df is not None else pd.DataFrame()
+
+
+def skipped_df(reason: str) -> pd.DataFrame:
+    """空 DataFrame + 「本輪不用抓」的原因（給 step() 辨識，見上）。"""
+    df = pd.DataFrame()
+    df.attrs["skipped"] = reason
+    return df
+
+
+def _etf_notice_step() -> pd.DataFrame:
+    """ETF 除權除息預告（證交所／櫃買預告表）。不走 step()：預告表只有 ETF 已排定的才有列，
+    端點回得了資料但今天沒有 ETF 列是正常的；只有「兩支端點都沒回應」才算失敗（記進 empty，資料狀態變黃）。"""
+    t0 = time.time()
+    try:
+        df = exright_notice.fetch()
+    except Exception as exc:  # noqa: BLE001
+        log.exception("ETF 除權除息預告失敗")
+        df = pd.DataFrame()
+        df.attrs["error"] = str(exc)[:300]
+        df.attrs["raw_ok"] = False
+    rows = 0 if df.empty else len(df)
+    raw_ok = bool((getattr(df, "attrs", None) or {}).get("raw_ok"))
+    RESULT["steps"]["etf.exright_notice"] = {"ok": raw_ok, "rows": rows, "seconds": round(time.time() - t0, 1)}
+    err = (getattr(df, "attrs", None) or {}).get("error")
+    if err:
+        RESULT["steps"]["etf.exright_notice"]["error"] = str(err)[:500]
+    if not raw_ok:
+        RESULT["empty"].append("etf.exright_notice")
+    return df
+
+
+def _inst_day_codes(day: str) -> int | None:
+    """inst_daily 裡 day 這一天有幾檔（不同代號）。讀不到回 None，不拖垮管線。"""
+    try:
+        df = store.read("inst_daily", years=[int(day[:4])])
+        if df.empty:
+            return 0
+        return int(df.loc[df["date"].astype(str).str[:10] == day, "code"].astype(str).nunique())
+    except Exception:  # noqa: BLE001
+        log.warning("讀 inst_daily 計數失敗（%s）", day, exc_info=True)
+        return None
+
+
+def _inst_bulk_step() -> pd.DataFrame:
+    """整天全市場法人補抓。不走 step()：拿不到（會員等級不夠）是預期內的，
+    若記進 RESULT["empty"]，網站每一輪都會顯示「部分資料這一輪沒有更新」，變成天天的假警報。"""
+    t0 = time.time()
+    try:
+        df = inst_bulk.fill_inst_bulk()
+    except Exception as exc:  # noqa: BLE001
+        log.exception("整天全市場法人補抓失敗（改走逐檔）")
+        RESULT["steps"]["finmind.institutional_bulk"] = {"ok": False, "rows": 0, "error": str(exc)[:300]}
+        return pd.DataFrame()
+    rows = 0 if df is None or df.empty else len(df)
+    RESULT["steps"]["finmind.institutional_bulk"] = {"ok": rows > 0, "rows": rows,
+                                                     "seconds": round(time.time() - t0, 1)}
+    return df if df is not None else pd.DataFrame()
+
+
+def _tape_step() -> pd.DataFrame:
+    """盤中 5 分鐘快照（tape）的落地步驟，兩條路徑（full／inst）共用。
+
+    ★ 以前這裡兩處把 tape.collect 從 RESULT["empty"] 移掉，於是 tape 整段壞掉也不會有任何紀錄
+    （2026-11-06 稽核：10-28、10-29 miss 了好幾輪，last_run.errors 一直是空的）。
+    現在的判定只看「還有沒有可以回頭補的交易日」：
+      · pending（還在保存期內、開過市、湖裡沒收齊、KV 也沒有）→ 記進 empty，亮黃燈，下一輪會再補；
+      · gaps（已超過保存期限、補不回來）→ 寫進 RESULT["gaps"] 明列在資料狀態，不進 errors、不亮紅燈；
+      · 休市日（price_daily 沒有那天）KV 沒有是正常的，不算 pending，也不算缺口。
+    """
+    _tp = step("tape.collect", tape.collect)
+    now = tape._tpe_now()
+    gaps: list[dict] = []
+    trade: set[str] = set()
+    complete: set[str] = set()
+    try:
+        trade, complete = tape.lake_calendar(now)
+        gaps = tape.gap_report(now, trade, complete)
+    except Exception:  # noqa: BLE001 —— 缺口判斷失敗不能拖垮管線，但要留痕跡
+        log.exception("tape 缺口判斷失敗（本輪 gaps 留空）")
+    RESULT["gaps"] = gaps
+    try:
+        RESULT["rebuilt"] = tape.rebuilt_report(now)
+    except Exception:  # noqa: BLE001
+        log.exception("tape 重建紀錄讀取失敗（本輪 rebuilt 留空）")
+    gap8 = {g["date"].replace("-", "") for g in gaps}
+    miss = list(_tp.attrs.get("miss") or [])
+    pending = [d for d in miss if d in trade and d not in complete and d not in gap8]
+    if pending:
+        if "tape.collect" not in RESULT["empty"]:
+            RESULT["empty"].append("tape.collect")
+        RESULT["steps"]["tape.collect"]["dates_pending"] = pending
+    elif "tape.collect" in RESULT["empty"]:
+        RESULT["empty"].remove("tape.collect")
+    if not pending and _tp.empty and not RESULT["steps"].get("tape.collect", {}).get("error"):
+        # 沒有可補的交易日（休市日、或湖裡／KV 都已收齊）→ 不是失敗，別留 ok:false 讓監工誤報
+        RESULT["steps"]["tape.collect"]["ok"] = True
+        RESULT["steps"]["tape.collect"]["skipped"] = "沒有待補的交易日"
+    return _tp
+
+
+def save(table: str, df: pd.DataFrame) -> int:
+    if df is None or df.empty:
+        return 0
+    try:
+        n = store.append(table, df)
+        RESULT["steps"].setdefault(table, {})["stored"] = n
+        return n
+    except Exception as exc:  # noqa: BLE001
+        log.exception("寫入 %s 失敗", table)
+        RESULT["errors"].append(f"store:{table}: {exc}")
+        return 0
+
+
+INST_FIRST_SEED = config.ROOT / "pipeline" / "seeds" / "inst_market_first_seed.csv"
+
+
+def first_published_rows(df: pd.DataFrame | None, now: str | None = None, seed_path=None) -> pd.DataFrame:
+    """把這一輪抓到的全市場三大法人金額標上抓取時間，併上種子檔，之後交給 only_new_keys（先到的贏）。
+
+    種子檔 pipeline/seeds/inst_market_first_seed.csv：這張表建立前就已經被修訂版蓋掉的日子，
+    從 git 歷史（當天台北 16:00 那輪 commit 的 parquet）還原的首次公布值。
+    ★ 種子排在這一輪前面：同一天兩邊都有時以種子為準（種子是當天 16:00 抓到的，這一輪可能已是修訂版）。
+    ⚠ 首次公布版只在「當天第一輪就抓到」時才真的是 15:00 版；那天 15:30 那輪失敗、晚上才第一次抓到，存到的可能已是修訂版 ——
+    所以每列帶 fetched_at（UTC），要查證時看得出是幾點抓的。
+    """
+    now = now or pd.Timestamp.now("UTC").strftime("%Y-%m-%dT%H:%M:%SZ")
+    parts = []
+    sp = seed_path if seed_path is not None else INST_FIRST_SEED
+    if sp is not None:
+        try:
+            seed = pd.read_csv(sp, dtype={"date": str, "fetched_at": str, "src": str})
+            if not seed.empty:
+                parts.append(seed)
+        except Exception:  # noqa: BLE001 —— 種子檔讀不到不影響每日抓取
+            log.warning("讀不到首次公布版種子檔 %s", sp)
+    if df is not None and not df.empty:
+        # 只收這一輪「最新那一天」：40 天回看裡更早的日子，抓到的一定是隔天以後的修訂版，不能冒充首次公布值
+        d = df.assign(date=df["date"].astype(str))
+        d = d[d["date"] == d["date"].max()]
+        # 而且要是「台北當天」抓到的：隔天才第一次抓到（例如颱風假、或表剛建立）的那天，拿到的已是修訂版，寧可不收
+        tpe = pd.Timestamp(now).tz_convert("Asia/Taipei").strftime("%Y-%m-%d")
+        d = d[d["date"] == tpe]
+        parts.append(d.assign(fetched_at=now, src="finmind"))
+    if not parts:
+        return pd.DataFrame()
+    return pd.concat(parts, ignore_index=True).drop_duplicates("date", keep="first").reset_index(drop=True)
+
+
+def only_new_keys(table: str, df: pd.DataFrame) -> pd.DataFrame:
+    """只留下資料湖裡還沒有這組 key 的列（store.append 是後到覆蓋，這裡反過來讓先到的贏）。"""
+    if df is None or df.empty:
+        return pd.DataFrame()
+    keys = config.TABLES[table]
+    try:
+        old = store.read(table)
+    except Exception:  # noqa: BLE001
+        old = pd.DataFrame()
+    if old.empty or any(k not in old.columns for k in keys):
+        return df
+    have = set(map(tuple, old[keys].astype(str).itertuples(index=False, name=None)))
+    mask = [tuple(map(str, t)) not in have for t in df[keys].itertuples(index=False, name=None)]
+    kept = df[mask].reset_index(drop=True)
+    log.info("%s：%d 列公告中 %d 列是新的", table, len(df), len(kept))
+    return kept
+
+
+def universe(limit: int) -> list[str]:
+    """依近期成交值排序取前 N 檔，作為 FinMind 逐檔抓取的優先順序。"""
+    price = store.read("price_daily")
+    if price.empty:
+        return []
+    latest = price["date"].max()
+    recent = price[price["date"] >= _shift_days(latest, 20)]
+    if recent.empty:
+        recent = price[price["date"] == latest]
+    rank = (recent.groupby("code")["turnover"].sum()
+                  .sort_values(ascending=False))
+    return rank.head(limit).index.tolist()
+
+
+def _shift_days(iso: str, days: int) -> str:
+    try:
+        d = datetime.fromisoformat(iso).date()
+    except ValueError:
+        return iso
+    return (d - pd.Timedelta(days=days)).isoformat()
+
+
+FINMIND_RESERVE = 120      # 補法人時替後面步驟（財報續補等）留的額度
+
+
+def market_gap_codes(trade_date: str, skip: set) -> list[str]:
+    """trade_date 那天有成交的上市普通股裡，不在 skip（名單或湖裡已有法人）的代號，成交值大的排前面。
+    只收上市：上櫃的法人由櫃買 openapi 整天一次給齊，不需要逐檔。讀不到價量就回空，不影響原本名單。"""
+    try:
+        px = store.read("price_daily", years=[int(str(trade_date)[:4])])
+        if px.empty:
+            return []
+        px = px[(px["date"].astype(str) == str(trade_date)) & (px["market"] == "TWSE")]
+        px = px[px["code"].astype(str).map(is_tradable_security)]
+        px = px.assign(code=px["code"].astype(str)).sort_values("turnover", ascending=False, na_position="last")
+        return [c for c in px["code"] if c not in skip]
+    except Exception as exc:  # noqa: BLE001 —— 補洞是加分項，壞了不能拖垮原本的逐檔補抓
+        log.warning("找上市法人缺口失敗（只補名單內的）：%s", exc)
+        return []
+
+
+def fetch_institutional(codes: list[str], trade_date: str, lookback: int = 10) -> pd.DataFrame:
+    """逐檔補三大法人。額度不夠時就抓到哪算到哪，剩下的明天再補。"""
+    if not codes:
+        return pd.DataFrame()
+
+    existing = store.read("inst_daily")
+    have = set()
+    if not existing.empty:
+        have = set(existing.loc[existing["date"] == trade_date, "code"])
+
+    todo = [c for c in codes if c not in have]
+    budget = http.finmind_budget_left()
+    if budget <= 0:
+        log.warning("FinMind 額度已用盡，本輪不補法人資料")
+        return pd.DataFrame()
+
+    # 2026-11-09：名單（成交值前 N 檔＋網站用到的）補完後，額度還有剩就繼續補「那天有成交、法人還沒進湖」的其他上市股。
+    # 上市個股的法人只有 FinMind 逐檔一個來源（openapi 的 T86 回 HTML、整天全市場要 sponsor 等級），
+    # 以前名單外的要等隔天的歷史回補續補，11-09 因此只有 456 檔（近 10 日 1,145 檔）。
+    # 留一段額度給後面的財報續補等步驟（FINMIND_RESERVE），成交值大的排前面。
+    base = todo[:budget]
+    extra_room = max(0, budget - len(base) - FINMIND_RESERVE)
+    extra = market_gap_codes(trade_date, set(codes) | have)[:extra_room] if extra_room else []
+    todo = base + extra
+    log.info("補三大法人：%d 檔（額度剩 %d）", len(todo), budget)
+
+    frames = []
+    start = _shift_days(trade_date, lookback)
+    for i, code in enumerate(todo, 1):
+        df = finmind.institutional(code, start, trade_date, wait=False)
+        if not df.empty:
+            frames.append(df)
+        if i % 50 == 0:
+            log.info("  已處理 %d/%d", i, len(todo))
+    RESULT["steps"]["institutional_codes"] = {"requested": len(todo),
+                                              "returned": len(frames)}
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+def refresh_financials(codes: list[str]) -> pd.DataFrame:
+    """用剩餘額度補最新的季財報與資產負債表。每檔 2 次請求。"""
+    if not codes:
+        return pd.DataFrame()
+    budget = http.finmind_budget_left()
+    todo = codes[: max(0, min(len(codes), budget // 2))]
+    if not todo:
+        log.info("額度不足，本輪不補財報")
+        return pd.DataFrame()
+    start = _shift_days(datetime.now(timezone.utc).date().isoformat(), 400)
+    fs, bs = [], []
+    for code in todo:
+        f = finmind.financial_statements(code, start, wait=False)
+        if not f.empty:
+            fs.append(f)
+        b = finmind.balance_sheet(code, start, wait=False)
+        if not b.empty:
+            bs.append(b)
+    if bs:
+        save("balance_q", pd.concat(bs, ignore_index=True))
+    return pd.concat(fs, ignore_index=True) if fs else pd.DataFrame()
+
+
+def universe_pairs() -> list[tuple[str, str | None]]:
+    """全市場的 (代號, 市場別)。以 `company_info` 為準（它是上市＋上櫃合起來的那份）。"""
+    info = store.read("company_info")
+    if info.empty or "code" not in info.columns:
+        return []
+    info = info.dropna(subset=["code"]).drop_duplicates("code", keep="last")
+    mk = info["market"] if "market" in info.columns else pd.Series([None] * len(info))
+    pairs = [(str(c), (str(m) if pd.notna(m) else None))
+             for c, m in zip(info["code"], mk) if is_tradable_security(str(c))]
+    return pairs
+
+
+def twse_rows_on(date: str) -> int:
+    """資料湖裡那一天有幾檔**上市**。
+
+    判斷「今天的上市補過了沒」要看這個，不是看「資料湖最新日期」—— 理由見下面。
+    只讀那一年的分割檔：整張 price_daily 是好幾年的歷史，為了數一天的檔數把它全讀進來太浪費。
+    """
+    try:
+        px = store.read("price_daily", years=[int(str(date)[:4])])
+    except (TypeError, ValueError):
+        px = store.read("price_daily")
+    if px.empty or "date" not in px.columns:
+        return 0
+    same_day = px["date"].astype(str) == str(date)
+    if "market" not in px.columns:
+        return int(same_day.sum())
+    return int((same_day & (px["market"].astype(str).str.upper() == "TWSE")).sum())
+
+
+# 上市約 1,300 檔。低於這個數就當作「那天的上市還沒到齊」，要用 mis 補。
+# 800 是對著 build_payload.last_complete_date 的門檻挑的（0.6 × 約 1,324 ≈ 794），
+# 兩邊講的「到齊」要是同一個標準，不然會出現「補了還是不算到齊」的夾縫。
+MIS_FILL_MIN_TWSE = 800
+
+# 台股 13:30 收盤。留五分鐘給最後的撮合與 mis 更新。
+TPE_CLOSE_HHMM = (13, 35)
+
+
+def _tpe_now() -> datetime:
+    """台北當下時間（測試會換掉這個函式）。"""
+    return datetime.now(timezone(timedelta(hours=8)))
+
+
+def session_closed(mis_date: str) -> bool:
+    """`mis_date` 那一場已經收盤了沒。
+
+    只有「mis 說的日期就是台北的今天」才需要問這件事；比今天早的日期，那一場當然收了。
+    ★ 這裡用的是執行當下的**時鐘**，不是拿它當交易日 —— 交易日一律取自 API 回應。
+      會加這道是因為：盤中把 mis 的即時價寫成當天的日 K，那一天就被中午的價格佔住了
+      （後面幾輪看到「上市已經有 1,300 檔」就不會再補），整天的收盤價都是錯的。
+      正常排程（台北 15:30）本來就在收盤後，這道只擋「盤中手動觸發 --phase price」。
+    """
+    now = _tpe_now()
+    if str(mis_date) != now.strftime("%Y-%m-%d"):
+        return True
+    return (now.hour, now.minute) >= TPE_CLOSE_HHMM
+
+
+def _in_session() -> bool:
+    """台北現在是不是台股盤中（週一～五 09:00～13:35）。盤中時段的「回空」不當成「沒有新的」。"""
+    now = _tpe_now()
+    return now.weekday() < 5 and (9, 0) <= (now.hour, now.minute) < TPE_CLOSE_HHMM
+
+
+def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
+    """openapi 還沒給今天的上市價量時，用 mis 的即時報價把那一天補起來。
+
+    ★ 判斷依據是「那一天**上市**有幾檔」，不是「資料湖最新日期」。
+      用最新日期會踩到這個坑：上櫃（TPEX）有自己的來源、常常先寫進去，
+      資料湖的最新日期就變成今天了 —— 程式以為「今天已經有了、不用補」，
+      可是缺的其實是上市那一半，於是上市永遠補不進來、網站每天慢一天。
+      2026-09-15 實測就是這樣：上櫃 1,006 檔、上市 0 檔，
+      mis.date_check 判成 will_fill=false，前端的完整度關卡不讓日期前進，
+      整天停在 09-14（Andy：「我沒看到最新的」）。
+
+    先只問一檔拿 mis 手上的交易日，確定真的需要補才去抓全市場 ——
+    沒必要為了拿一份重複的資料去打人家的端點。
+    """
+    mis_date = mis.latest_date()
+    if not mis_date:
+        log.warning("mis 拿不到交易日，本輪不補")
+        return pd.DataFrame()
+
+    have_twse = twse_rows_on(mis_date)
+    # 報價比 openapi 給的還舊（假日、或 mis 那邊還沒換日），補了也只是重複
+    stale = bool(openapi_date and str(mis_date) < str(openapi_date))
+    closed = session_closed(mis_date)
+    will_fill = closed and (not stale) and have_twse < MIS_FILL_MIN_TWSE
+    RESULT["steps"]["mis.date_check"] = {
+        "mis_date": mis_date, "openapi_date": openapi_date,
+        "lake_latest": store.latest_date("price_daily"),
+        "twse_rows_on_mis_date": have_twse,
+        "min_needed": MIS_FILL_MIN_TWSE,
+        "session_closed": closed,
+        "will_fill": will_fill,
+    }
+    if not will_fill:
+        why = ("那一場還沒收盤" if not closed else
+               "報價比 openapi 還舊" if stale else f"上市已有 {have_twse} 檔")
+        log.info("mis 的 %s 不用補：%s", mis_date, why)
+        if closed:
+            # 2026-11-14：收盤後「不用補」（官方日收已給、或 mis 報價比官方還舊）是常態，不是失敗。
+            # 以前回空 DataFrame → step() 記成 ok:false，每晚 source_health 連續失敗 +1。
+            # 「那一場還沒收盤」（盤中手動觸發）維持回空，不宣告 skipped。
+            return skipped_df(f"mis {mis_date} 不用補：{why}")
+        return pd.DataFrame()
+
+    pairs = universe_pairs()
+    if not pairs:
+        log.warning("company_info 還沒有內容，不知道要補哪些代號")
+        return pd.DataFrame()
+    log.info("openapi 停在 %s、%s 的上市只有 %d 檔 —— 用 mis 補 %d 檔",
+             openapi_date or "（沒有）", mis_date, have_twse, len(pairs))
+    return drop_rows_already_official(mis.price_snapshot(pairs))
+
+
+def official_refresh_status(official: pd.DataFrame, lake: pd.DataFrame) -> dict:
+    """news 輪抓到的上市官方價量，是不是湖裡暫定列那一天的官方值？（2026-11-07 事故）
+
+    事故：11-06 收盤後湖裡上市是 mis 暫定列（px_source=mis，1336 檔）。11-07 05:17 台北的 news 輪
+    openapi 還停在 11-05，回 1336 列——跟湖裡 11-05 一字不差，所以 store.append 寫回去等於沒動，
+    `twse.price_daily` 卻記 ok、rows=1336，看起來像「覆蓋成功」，實際上暫定值還掛著。
+    官方 11-06 是 05:30 才看得到（交叉比對那一刻才抓到）。綠燈必須代表「真的是那一天的資料」，
+    所以這裡把「官方日期 < 暫定列日期」明寫成 stale，不准混成成功。
+
+    回傳 status：
+      empty          ：這一輪沒抓到官方列
+      no_provisional ：湖裡沒有暫定列，沒有要覆蓋的東西（官方列照常存）
+      ready          ：官方日期 ≥ 湖裡最新的暫定日 → 能覆蓋
+      stale          ：官方日期 < 湖裡最新的暫定日 → openapi 還沒出那一天，下一輪再補
+    """
+    if official is None or official.empty or "date" not in official.columns:
+        return {"status": "empty"}
+    off_date = str(official["date"].astype(str).max())[:10]
+    if lake is None or lake.empty or "px_source" not in lake.columns:
+        return {"status": "no_provisional", "official_date": off_date}
+    prov = lake[(lake["px_source"].astype(str) == "mis") & (lake["market"].astype(str) == "TWSE")]
+    if prov.empty:
+        return {"status": "no_provisional", "official_date": off_date}
+    prov_date = str(prov["date"].astype(str).max())[:10]
+    status = "ready" if off_date >= prov_date else "stale"
+    return {"status": status, "official_date": off_date, "provisional_date": prov_date}
+
+
+def drop_rows_already_official(df: pd.DataFrame) -> pd.DataFrame:
+    """mis 暫定列絕不蓋掉湖裡已經是官方值的列（2026-11-06 稽核 A 的守門）。
+
+    store.append 是「後到的為準」，mis 步驟排在 openapi／tpex 之後，所以只要同一個 (date, code)
+    湖裡已有官方列（px_source 空），mis 的暫定值就不該再進去，否則會把官方值降級成暫定值。
+    """
+    if df is None or df.empty:
+        return df
+    try:
+        d0 = str(df["date"].iloc[0])
+        cur = store.read("price_daily", years=[int(d0[:4])])
+    except Exception:  # noqa: BLE001 - 讀不到就維持原行為，不擋管線
+        return df
+    if cur is None or cur.empty:
+        return df
+    cur = cur[cur["date"].astype(str).isin(set(df["date"].astype(str)))]
+    if "px_source" in cur.columns:
+        cur = cur[cur["px_source"].isna() | (cur["px_source"].astype(str) != "mis")]
+    if cur.empty:
+        return df
+    off = set(zip(cur["date"].astype(str), cur["code"].astype(str)))
+    keep = [(str(d), str(c)) not in off for d, c in zip(df["date"], df["code"])]
+    n = len(df) - sum(keep)
+    if n:
+        log.info("mis 暫定列 %d 檔湖裡已有官方值，不覆蓋", n)
+    return df[keep].reset_index(drop=True)
+
+
+# ★ 2026-09-30：名單從「成交值前 400」擴到全市場（普通股全部＋成交值前段 ETF），邏輯搬到 pipeline/intraday60.py。
+#   以前這裡只抓前 400、而且增量起點是「整張表的最後一根」—— 資料湖只有 567 檔，約 1,400 檔的個股頁 1H／4H 永遠是空的，
+#   567 檔裡還有約 1/4 只有 2～15 根（掉出前 400 就停了）。這個常數只剩 build_payload 決定「日線給 6 年」那一批還在用。
+INTRADAY_LIMIT = 400
+
+
+def intraday_universe(limit: int | None = None) -> tuple[list[str], dict[str, str]]:
+    """要抓 60 分 K 的代號與市場別（全市場，見 intraday60.universe）；`limit` 只給測試／手動截短用。"""
+    from . import intraday60
+    codes, markets = intraday60.universe()
+    if limit:
+        codes = codes[:limit]
+    return codes, {c: markets.get(c, "") for c in codes}
+
+
+def collect_intraday_60m() -> pd.DataFrame:
+    """把 60 分 K 的**增量**抓回來：全市場名單，只要最近幾天，逐檔只留「這一檔最後一根之後」。
+
+    ★ 這一步存在的理由（DECISIONS #155）：分 K 以前完全不進資料湖，
+      `build_payload` 每次部署都從零重抓 400 檔 ×（60 分 730 天 ＋ 15 分 60 天），
+      實測部署 14 分鐘裡有 13 分 43 秒卡在那裡 —— 昨天抓過的今天再抓一次。
+      現在改成「盤後抓當天新增的那幾根、寫進資料湖」，部署只要讀。
+    ★ 2026-09-30：兩年的歷史**不在這裡補**（那會一次打爆 Yahoo），交給回補（run_backfill → intraday60.backfill，
+      每小時一輪、每輪有上限）。這裡最多只跟 Yahoo 要 intraday60.DAILY_MAX_DAYS 天。
+    """
+    from . import intraday60
+
+    df, info = intraday60.daily_increment()
+    RESULT["steps"]["intraday.since"] = {"since": info.get("lake_last"), **info}
+    if not info.get("codes"):
+        log.warning("還沒有價量資料，不知道要抓哪些代號的分 K")
+    elif df.empty and info.get("got_codes", 0) > 0 and not _in_session():
+        # 2026-11-14：Yahoo 有回資料、只是湖裡都已經有（今天稍早那輪抓過）＝本輪沒有新的，不是失敗。
+        # Yahoo 一檔都沒回（got_codes=0）或盤中時段，照舊記失敗。
+        return skipped_df(f"Yahoo 回 {info['got_codes']} 檔、都已在湖裡（湖最後一根 {info.get('lake_last')}），沒有新的 60 分 K")
+    return df
+
+
+def collect_index_intraday() -> pd.DataFrame:
+    """加權 ^TWII、櫃買 ^TWOII 的 60 分與 15 分 K，只抓資料湖最後一根之後的那段。
+
+    為什麼（2026-09-25）：總覽大盤三張圖的 1H／4H 以前在瀏覽器端即時抓 Yahoo，線上抓不到就退回日 K。
+    分 K 明天還會用到，照 DECISIONS #155 進湖、增量更新；湖是空的時候第一次會補滿 Yahoo 的保留上限
+    （60 分 730 天、15 分 60 天），所以不必另外跑回補也會自己長出來。
+    """
+    from .sources import yahoo
+
+    have = store.read("index_intraday")
+    parts = [yahoo.index_intraday_since(have, iv) for iv in ("60m", "15m")]
+    fetched = sum(int(p.attrs.get("fetched", 0)) for p in parts if p is not None)
+    parts = [p for p in parts if p is not None and not p.empty]
+    if parts:
+        return pd.concat(parts, ignore_index=True)
+    if fetched > 0 and not _in_session():
+        # 2026-11-14：Yahoo 有回資料、全都是湖裡已有的舊根＝收盤後沒有新的，不是失敗。
+        # Yahoo 完全沒回（fetched=0）或盤中時段，照舊記失敗。
+        return skipped_df(f"Yahoo 回 {fetched} 列、都已在湖裡，沒有新的 60／15 分 K")
+    return pd.DataFrame()
+
+
+def collect_index_minute() -> pd.DataFrame:
+    """加權／櫃買／台指期（日盤）的 1 分 K：證交所 mis 當日分時檔 → 資料湖 `index_intraday`（interval=1m）。
+
+    為什麼（2026-09-26）：三張大盤圖當天的分時本來就同一個來源，多日分 K 卻只有加權有（Yahoo），
+    櫃買、台指期沒有免費的歷史分 K。每天盤後把這三個檔存下來，三個指數就同一個來源自己累積。
+    交易日取自檔案內每一筆的時間（不是執行當下），重複抓由 store.append() 去重。
+    台指期夜盤（期交所 mis.taifex.com.tw）不在管線白名單，這裡不抓。
+    """
+    df = mis.index_minute_bars()
+    df = drop_days_with_taifex(df)
+    if not df.empty:
+        RESULT["index_minute_days"] = {
+            str(s): sorted({str(t)[:10] for t in g["ts"]}) for s, g in df.groupby("symbol")}
+    return df
+
+
+def drop_days_with_taifex(df: pd.DataFrame) -> pd.DataFrame:
+    """mis 的台指期 1 分 K：資料湖裡那一盤已經有期交所逐筆合成（src=taifex）的，就不寫。
+
+    為什麼：store.append() 同 key 以後到的為準，而 mis 的檔隔天清晨、週末都還留著上一個交易日 ——
+    不擋的話，每一輪都會用 mis（分鐘收盤合成、沒有真實高低）把 taifex（逐筆、真實高低）蓋回去。
+    優先順序：taifex ＞ mis（DECISIONS 待補；理由見 docs/source_whitelist_taifex_tpex.md）。
+    """
+    if df is None or df.empty or "symbol" not in df.columns:
+        return df if df is not None else pd.DataFrame()
+    if not (df["symbol"].astype(str) == "FUT").any():
+        return df
+    try:
+        have = store.read("index_intraday")
+    except Exception:  # noqa: BLE001
+        return df
+    if have.empty or "src" not in have.columns:
+        return df
+    tx = have[(have["src"].astype(str) == "taifex") & (have["symbol"].astype(str) == "FUT")]
+    if tx.empty:
+        return df
+    days = {str(t)[:10] for t in tx["ts"]}
+    hit = (df["symbol"].astype(str) == "FUT") & df["ts"].astype(str).str[:10].isin(days)
+    if hit.any():
+        log.info("mis 台指期 1 分 K：%s 已有期交所逐筆合成，不寫 mis 那 %d 根",
+                 "、".join(sorted({str(t)[:10] for t in df.loc[hit, "ts"]})), int(hit.sum()))
+    return df[~hit].reset_index(drop=True)
+
+
+def collect_taifex_minute() -> pd.DataFrame:
+    """台指期（TX 近月）1 分 K：期交所每筆成交 → 資料湖 `index_intraday`（FUT 日盤／FUT_N 夜盤，src=taifex）。
+
+    為什麼（2026-09-26，Andy：「目前沒有免費管道嗎」）：mis 分時檔只有日盤、而且只能從第一個存到的那天往後長；
+    期交所公開的逐筆（政府資料開放平臺 資料集 20668，政府資料開放授權條款－第 1 版）一次給前 30 個交易日、含夜盤。
+    增量：data/_state/taifex_ticks.json 記處理過的檔，一天只下載一次；交易日取檔內的成交日期。
+    """
+    known, official = [], {}
+    try:
+        oh = store.read("index_ohlc")
+        if not oh.empty:
+            fut = oh[oh["symbol"].astype(str) == "FUT"]
+            known = sorted({str(d)[:10].replace("-", "") for d in fut["date"]})
+            if "volume" in fut.columns:
+                official = {str(d)[:10].replace("-", ""): float(v)
+                            for d, v in zip(fut["date"], pd.to_numeric(fut["volume"], errors="coerce"))
+                            if pd.notna(v)}
+    except Exception as exc:  # noqa: BLE001 —— 讀不到日 K 只是少了核對，不能讓這步死掉
+        log.warning("讀 index_ohlc 失敗（台指期逐筆少了交易日曆與量的核對）：%s", exc)
+    df = taifex.minute_bars(known_days=known, official_vol=official)
+    if not df.empty:
+        RESULT["taifex_minute_days"] = {
+            str(s): sorted({str(t)[:10] for t in g["ts"]}) for s, g in df.groupby("symbol")}
+    return df
+
+
+def collect_futures_60m(day: str) -> pd.DataFrame:
+    """台指期近月某一天的逐筆 → 60 分 K（FUT 日盤／FUT_N 夜盤）。湖裡已有那天的日盤就不再花額度。"""
+    from .compute.intraday_bars import ticks_to_60m
+
+    have = store.read("index_intraday")
+    if not have.empty:
+        fut = have[have["symbol"].astype(str) == "FUT"]
+        if fut["ts"].astype(str).str.startswith(str(day)).any():
+            log.info("台指期 %s 的 60 分 K 已在湖裡，跳過", day)
+            return skipped_df(f"{day} 的 60 分 K 已在湖裡")
+    out = ticks_to_60m(finmind.futures_ticks(str(day)))
+    if out.empty:
+        # 逐筆在 register 等級回 400（2026-09-25 Actions 實測），改試期貨分 K；兩條都沒有就回空、記 log。
+        from .compute.intraday_bars import kbar_to_60m
+        out = kbar_to_60m(finmind.futures_kbar(str(day)), futures=True)
+    return out
+
+
+TSE_MINUTE_RECENT = 5      # 每日管線補最近幾個交易日的加權真實 1 分 K（排程延遲、FinMind 晚出時下一輪撿得回來）
+
+
+def tse_minute_todo(have: pd.DataFrame, ohlc: pd.DataFrame, limit: int) -> list[str]:
+    """加權真實 1 分 K（src=finmind）還沒進湖的交易日，新的在前。交易日取自 index_ohlc 的 TSE（回應裡的日期）。"""
+    if ohlc is None or ohlc.empty:
+        return []
+    days = sorted(ohlc.loc[ohlc["symbol"].astype(str) == "TSE", "date"].astype(str).str[:10].unique())
+    got: set[str] = set()
+    if have is not None and not have.empty and "src" in have.columns:
+        fm = have[(have["symbol"].astype(str) == "TSE") & (have["src"].astype(str) == "finmind")]
+        got = set(fm["ts"].astype(str).str[:10])
+    return [d for d in reversed(days) if d not in got][:limit]
+
+
+def collect_tse_minute() -> pd.DataFrame:
+    """加權指數的真實 1 分 K（FinMind 每 5 秒指數＋每 5 秒成交統計，兩個都是免費資料集）→ `index_intraday`（src=finmind）。
+
+    為什麼（2026-09-28，Andy：「加權指數的成交量 15min 30min 1H 都沒有確切成交量」）：
+    Yahoo 指數分 K 的量全是 0，前端只能估；mis 分時只能從開始存的那天往後長。
+    FinMind 這兩個資料集 register 等級拿得到、回得到 2005 年（實測見 docs/fixtures/index_intraday_probe.json），
+    一天 2 次額度。這裡只補最近 TSE_MINUTE_RECENT 個交易日；更早的由回補工作流（run_backfill）慢慢補。
+    """
+    todo = tse_minute_todo(store.read("index_intraday"), store.read("index_ohlc"), TSE_MINUTE_RECENT)
+    frames = []
+    for d in todo:
+        if http.finmind_budget_left() <= 20:
+            log.warning("FinMind 額度剩不多，加權 1 分 K 停在 %s", d)
+            break
+        f = finmind.tse_minute_bars(d)
+        if not f.empty:
+            frames.append(f)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+def collect_otc_60m(day: str) -> pd.DataFrame:
+    """櫃買某一天的 60 分 K：Yahoo 沒有時改用 FinMind 指數 1 分 K 聚合。湖裡已有那天就不花額度。
+
+    為什麼（2026-09-25）：Yahoo ^TWOII 分 K 回「No data found」，所以試 FinMind。代號依序試 OTC_KBAR_IDS。
+    ⚠ 2026-09-26 更正：原本這裡寫「mis_ohlc_OTC.txt 不在管線白名單」是錯的 —— 它跟加權那個檔
+    （mis.market_snapshot 早就在抓）同一台主機、同一批登記（DECISIONS #121）。櫃買的多日分 K
+    現在由 collect_index_minute() 每天存 mis 1 分 K 自己累積；這條 FinMind 路（register 等級回 400）留著當備援。
+    """
+    from .compute.intraday_bars import kbar_to_60m
+
+    have = store.read("index_intraday")
+    if not have.empty:
+        otc = have[have["symbol"].astype(str) == "OTC"]
+        if otc["ts"].astype(str).str.startswith(str(day)).any():
+            log.info("櫃買 %s 的分 K 已在湖裡，跳過", day)
+            return skipped_df(f"{day} 的分 K 已在湖裡")
+    for data_id in finmind.OTC_KBAR_IDS:
+        out = kbar_to_60m(finmind.index_kbar(str(day), data_id), symbol="OTC")
+        if not out.empty:
+            log.info("櫃買 %s 分 K 由 FinMind TaiwanStockKBar data_id=%s 取得 %d 根 60 分", day, data_id, len(out))
+            return out
+    return pd.DataFrame()
+
+
+def collect_etf_holdings() -> pd.DataFrame:
+    """ETF 簡稱表從 company_info 拿（元大、野村沒有「列出自家 ETF」的 API，要靠簡稱判斷發行商）。"""
+    ci = store.read("company_info")
+    names = {}
+    if not ci.empty and {"code", "name", "industry"} <= set(ci.columns):
+        # 上櫃 ETF（債券型、006201…）在 company_info 的 industry 是「上櫃ETF」，2026-10-07 前只收「ETF」→ 櫃買的整批漏掉
+        e = ci[ci["industry"].astype(str).isin(["ETF", "上櫃ETF"])]
+        names = dict(zip(e["code"].astype(str), e["name"].astype(str)))
+    return etf_pcf.fetch_all(names)
+
+
+def collect_etf_holdings_monthly() -> pd.DataFrame:
+    """投信投顧公會每月前十大（官網抓不到的 ETF 的第二順位來源）。湖裡已有公會最新月份就不抓。"""
+    from .sources import sitca
+    ci = store.read("company_info")
+    names = {}
+    if not ci.empty and {"code", "name", "industry"} <= set(ci.columns):
+        e = ci[ci["industry"].astype(str).isin(["ETF", "上櫃ETF"])]
+        names = dict(zip(e["code"].astype(str), e["name"].astype(str)))
+    old = store.read("etf_holdings_monthly")
+    have = set(old["ym"].astype(str)) if not old.empty and "ym" in old.columns else set()
+    return sitca.top10(names, have_yms=have)
+
+
+def _otc_margin() -> int:
+    """上櫃整體融資融券（櫃買 OpenAPI，免 FinMind 額度）→ margin_total_otc。只有最新一天，所以 price／full／news 每輪都抓、依 date 去重。
+    phase=inst（收盤後每 30 分）不抓：那一輪只為了搶法人，多一個網路請求會讓「法人還沒出就整輪不動」的判斷變複雜。
+    探測紀錄（端點、HTTP 狀態、欄位名）寫進 last_run.json 的 steps，容器連不到外網時靠它修欄位對應。"""
+    try:
+        df = tpex_margin.fetch()
+        n = save("margin_total_otc", df) if not df.empty else 0
+        RESULT["steps"]["tpex.margin_total_otc"] = {"ok": not df.empty, "rows": int(len(df)), "diag": tpex_margin.DIAG[-12:]}
+        return n or 0
+    except Exception as exc:  # noqa: BLE001
+        log.warning("上櫃信用彙總抓取失敗（不影響其他步驟）：%s", exc)
+        return 0
+
+
+def _set_gh_output(key: str, value: str) -> None:
+    """把結果交給 GitHub Actions 的後續步驟（本機跑沒有這個環境變數就略過）。"""
+    import os
+    path = os.environ.get("GITHUB_OUTPUT")
+    if path:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"{key}={value}\n")
+
+
+def _inst_rows_on(trade_date: str) -> int:
+    """資料湖 inst_daily 裡 trade_date 那天有幾列（判斷這一輪有沒有「新增今天的法人」用，2026-10-29）。讀不到回 -1。"""
+    try:
+        df = store.read("inst_daily", years=[int(trade_date[:4])])
+        if df is None or df.empty or "date" not in df.columns:
+            return 0
+        return int((df["date"].astype(str).str[:10] == trade_date).sum())
+    except Exception:  # noqa: BLE001
+        log.exception("讀 inst_daily 失敗（當作有新資料，照常重算）")
+        return -1
+
+
+def inst_rebuild_flags(n_today_before: int, n_today_after: int, n_fut: int) -> dict:
+    """phase=inst 這一輪要不要整站重算／部署、要不要派盤後貼文（2026-10-29 加速：沒新增今天的法人就不重算 24 分鐘）。
+
+    · rebuild：今天的法人列數變多了（或讀不到列數，保守照舊重算）。只有期貨／診斷檔變動 → 不重算，
+      交給下一輪有法人新資料的 inst 輪或 18:38／21:38 full 輪；這樣同一個 concurrency group 的下一輪 10 分鐘後就能跑。
+    · post：今天的法人或期貨有新列 → 派 social-live 盤後（它自己從資料湖算那幾份 JSON，不靠整站重算）。
+    """
+    unknown = n_today_before < 0 or n_today_after < 0
+    inst_new = unknown or n_today_after > n_today_before
+    return {"rebuild": bool(inst_new), "post": bool(inst_new or n_fut > 0)}
+
+
+class _Deferred(Exception):
+    """inst 輪延後整站重算（INST_DEFER_BUILD=1）時跳出 build 區塊用。"""
+
+
+def pick_inst_target_date(lake_date: str, official_date) -> str:
+    """phase=inst 的目標交易日：湖裡價量最新日 與 官方法人回應日期 取較新者（ISO 字串可直接比大小）。"""
+    o = str(official_date)[:10] if official_date is not None and str(official_date) not in ("", "nan", "NaT", "None") else ""
+    return o if o and o > lake_date else lake_date
+
+
+def _gh_output_last(key: str) -> str | None:
+    """本輪已寫進 GITHUB_OUTPUT 的某個 key 的最後一個值（同 key 多次寫入以最後為準）。"""
+    path = os.environ.get("GITHUB_OUTPUT")
+    if not path or not os.path.exists(path):
+        return None
+    val = None
+    for line in open(path, encoding="utf-8").read().splitlines():
+        if line.startswith(key + "="):
+            val = line.split("=", 1)[1]
+    return val
+
+
+def run_inst_with_tape(args) -> int:
+    """phase=inst 前先把盤中 5 分鐘快照落地（tape_5m）。
+
+    為什麼放在 inst 輪（2026-10-30）：台北 16:15～17:15 每 10 分鐘就有一輪 inst，是收盤後最密的排程；
+    tape-lake.yml 手動／排程跑會被同一個 concurrency 佇列的新 pending 擠掉（一個 group 只留一個 pending）。
+    tape 步驟是冪等的（湖裡收齊的日子不再打 Worker），inst 輪多跑只是多 1 次請求。
+    ★ inst 輪「沒有新法人」會把 inst_new 設成 false → 工作流不 commit。這裡若有新 tape 列，要把 inst_new 改回 true
+      （rebuild／post 維持 false：沒有新價量與法人，不必整站重算也不必發文），資料才會被 commit。
+    失敗只記錄，不影響 inst 本身。
+    """
+    n_tape = 0
+    try:
+        _tp = _tape_step()
+        n_tape = save("tape_5m", _tp) if not _tp.empty else 0
+    except Exception:  # noqa: BLE001
+        log.exception("inst 輪 tape 落地失敗（不影響法人）")
+    rc = run_inst_phase(args)
+    if n_tape > 0 and _gh_output_last("inst_new") == "false":
+        log.info("tape_5m 新增 %d 列，inst_new 改為 true 讓資料湖被 commit（rebuild／post 維持 false）", n_tape)
+        _set_gh_output("inst_new", "true")
+        _set_gh_output("rebuild", "false")
+        _set_gh_output("post", "false")
+    return rc
+
+
+def run_inst_phase(args) -> int:
+    """phase=inst：台北 16:15／16:45／17:15 專門搶「當天三大法人」進資料湖。
+
+    為什麼獨立一個 phase（Andy 2026-10-20：盤後法人要盡快發到 Threads／IG）：
+    法人以前要等 18:30 的 full 才抓，full 還要跑一堆這件事用不到的東西（ETF、財報、新聞…）。
+    這裡只做三件事：① 用資料湖裡最新的價量日當交易日（15:30 那輪已進湖；不用執行當下日期）；
+    ② 先用兩檔權值股探針，FinMind 還沒出當天就直接收工，不白燒 500 次額度；
+    ③ 有新列才 append 並重算前端 JSON，沒有新列就告訴 workflow「不必 commit、不必部署」。
+    一律回 0：還沒出是常態，不是失敗（失敗會讓 social-live 的 workflow_run 閘門不接）。
+    """
+    started = datetime.now(timezone.utc)
+    trade_date = store.latest_date("price_daily")
+    if not trade_date:
+        log.warning("phase=inst：資料湖沒有價量日，收工")
+        _set_gh_output("inst_new", "false")
+        return 0
+    trade_date = str(trade_date)[:10]
+    log.info("phase=inst：目標交易日 %s", trade_date)
+    codes = inst_bulk.with_site_codes(universe(args.universe))
+
+    # 官方開放資料（證交所＋櫃買，一次請求整個市場、不吃額度）優先；有最新日就不必再用 FinMind 探針
+    try:
+        off = inst_official.fetch_all()
+    except Exception:  # noqa: BLE001
+        log.exception("官方法人來源失敗，改走 FinMind")
+        off = pd.DataFrame()
+    # 2026-10-29 事故：15:30 價量輪因測試紅燈沒跑，price_daily 最新只到 10-28，這一輪就一直追 10-28（湖裡早就齊了，
+    # requested 0），官方開放資料明明已給 10-29 的上櫃法人，上市法人整天沒人去抓。
+    # 官方回應裡的日期比湖裡價量日新，就以官方日期為目標（日期仍是回應裡的，不是執行當下的）。
+    trade_date = pick_inst_target_date(trade_date, off["date"].max() if not off.empty else None)
+    RESULT["steps"]["inst_official"] = {"ok": not off.empty, "rows": int(len(off)),
+                                        "date": str(off["date"].max()) if not off.empty else None,
+                                        "diag": inst_official.DIAG[-40:]}
+    probe = [c for c in ("2330", "2317") if c in codes] or codes[:2]
+    got = not off.empty
+    for c in ([] if got else probe):
+        df = finmind.institutional(c, trade_date, trade_date, wait=False)
+        if not df.empty and (df["date"].astype(str) == trade_date).any():
+            got = True
+            break
+    # 2026-10-27 Andy：「拿到資料就要發布了 關盤後 每半小時就要確認一次，資料齊全就發布」
+    # 盤後貼文要的期貨法人未平倉／散戶多空比（fut_inst／fut_oi）以前只在 price／full 抓，15:38 那輪常還沒出 →
+    # 盤後貼文要等到 18:38 full。這裡每輪 inst 也抓（近 10 天增量、依 date 去重，重抓無害），有新列一樣重算部署。
+    n_fut = 0
+    if not args.skip_finmind:
+        try:
+            _mf = mktfut.collect((pd.Timestamp.now("UTC") - pd.Timedelta(days=10)).strftime("%Y-%m-%d"))
+            for _t, _df in _mf.items():
+                n_fut += save(_t, _df)
+                RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
+        except Exception as exc:  # noqa: BLE001
+            log.warning("phase=inst：期貨／融資抓取失敗（不影響法人）：%s", exc)
+    if not got and n_fut <= 0:
+        log.info("phase=inst：FinMind 還沒有 %s 的法人資料，下一輪再試", trade_date)
+        _set_gh_output("inst_new", "false")
+        return 0
+
+    n = n_fut
+    n_today_before = _inst_rows_on(trade_date)
+    if got:
+        # 只抓目標日那一天（lookback=0），把額度與時間留給別的步驟
+        # 先整天全市場（1 次額度），再逐檔補剩下的（fetch_institutional 會跳過湖裡已有的）
+        n += save("inst_daily", _inst_bulk_step())
+        inst = step("finmind.institutional", fetch_institutional, codes, trade_date, 0)
+        inst = inst[inst["date"].astype(str) == trade_date] if not inst.empty else inst
+        n += save("inst_daily", inst)
+    if n <= 0:
+        # 官方端點的診斷（網址／HTTP／欄位名）內容有變才寫檔並讓這輪 commit：Actions log 在容器讀不到，
+        # 端點第一次上線要靠這個檔校正 parser；沒變就照舊不 commit、不部署。
+        diag_changed = False
+        try:
+            f = config.STATE / "inst_official_diag.json"
+            cur = json.dumps(inst_official.DIAG[-40:], ensure_ascii=False, sort_keys=True, indent=1)
+            if inst_official.DIAG and (not f.exists() or f.read_text(encoding="utf-8") != cur):
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text(cur, encoding="utf-8")
+                diag_changed = True
+        except Exception:  # noqa: BLE001
+            log.exception("寫官方法人診斷檔失敗")
+        log.info("phase=inst：沒有新增列（已到齊），不重算、不部署")
+        _set_gh_output("inst_new", "true" if diag_changed else "false")
+        _set_gh_output("rebuild", "false")
+        _set_gh_output("post", "false")
+        return 0
+    flags = inst_rebuild_flags(n_today_before, _inst_rows_on(trade_date), n_fut)
+    RESULT["steps"]["inst_flags"] = flags
+    log.info("phase=inst：今天 %s 的法人列數 %s → %s、期貨新列 %d → 整站重算＝%s、派盤後貼文＝%s",
+             trade_date, n_today_before, _inst_rows_on(trade_date), n_fut, flags["rebuild"], flags["post"])
+    _set_gh_output("rebuild", "true" if flags["rebuild"] else "false")
+    _set_gh_output("post", "true" if flags["post"] else "false")
+    if not flags["rebuild"] and os.environ.get("INST_DEFER_BUILD") == "1":
+        # 沒有新增今天的法人：資料（期貨／診斷）照樣 commit，但不整站重算、不部署（交給後面有新資料的那輪或 full 輪）
+        now = datetime.now(timezone.utc)
+        RESULT.update({"phase": "inst", "started_at": started.isoformat(), "finished_at": now.isoformat(),
+                       "duration_seconds": round((now - started).total_seconds(), 1),
+                       "trade_date": trade_date, "complete": True,
+                       "finmind_budget_left": http.finmind_budget_left()})
+        RESULT["steps"]["build_payload"] = {"ok": True, "skipped": "沒有新增今天的法人"}
+        (config.STATE / "last_run.json").write_text(json.dumps(RESULT, ensure_ascii=False, indent=2))
+        _set_gh_output("inst_new", "true")
+        return 0
+
+    RESULT["phase"] = "inst"
+    fr = freshness.check()
+    if fr:
+        RESULT["freshness"], RESULT["warn"] = fr, fr.get("warn", [])
+    try:
+        if os.environ.get("INST_DEFER_BUILD") == "1":
+            # 2026-10-27 Andy：「馬上拆開，盤後貼文資料到就發」→ daily.yml 先 commit 資料湖、派盤後貼文，再另一步整站重算
+            RESULT["steps"]["build_payload"] = {"ok": True, "deferred": True}
+            raise _Deferred()
+        from .build_payload import build
+        build()
+        RESULT["steps"]["build_payload"] = {"ok": True}
+    except _Deferred:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        log.exception("產生前端資料失敗")
+        RESULT["errors"].append(f"build_payload: {exc}")
+        RESULT["steps"]["build_payload"] = {"ok": False, "error": str(exc)}
+    now = datetime.now(timezone.utc)
+    RESULT.update({"started_at": started.isoformat(), "finished_at": now.isoformat(),
+                   "duration_seconds": round((now - started).total_seconds(), 1),
+                   "trade_date": trade_date, "complete": True,
+                   "finmind_budget_left": http.finmind_budget_left()})
+    (config.STATE / "last_run.json").write_text(
+        json.dumps(RESULT, ensure_ascii=False, indent=2))
+    _set_gh_output("inst_new", "true")
+    return 0
+
+
+def _next_wave_forward_step() -> pd.DataFrame:
+    """前瞻紀錄：讀最近兩年價量與法人（只取最近 ~120 個交易日計算），回傳當日入選名單（compute.next_wave.forward_candidates）。"""
+    from .compute import next_wave
+    yrs = [datetime.now(timezone.utc).year - 1, datetime.now(timezone.utc).year]
+    price = store.read("price_daily", years=yrs)
+    inst = store.read("inst_daily", years=yrs)
+    if price is None or price.empty or inst is None or inst.empty:
+        return pd.DataFrame()
+    latest = str(price["date"].astype(str).max())
+    if int((inst["date"].astype(str) == latest).sum()) < 500:
+        log.info("前瞻紀錄：%s 三大法人未到齊，略過", latest)
+        return pd.DataFrame()
+    price = price[price["date"].astype(str) <= latest]
+    return next_wave.forward_candidates(price, inst, store.read("company_info"))
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
+    ap.add_argument("--skip-finmind", action="store_true",
+                    help="不動用 FinMind 額度（回補當天用）")
+    ap.add_argument("--universe", type=int, default=config.UNIVERSE_SIZE)
+    ap.add_argument("--phase", choices=["price", "full", "news", "inst"], default="full",
+                    help="price＝只抓當天價量（台北 15:30 那輪，其他來源那時還沒出）；"
+                         "full＝完整管線（傍晚之後那兩輪）；"
+                         "news＝只抓新聞與國際盤（週末用，價量那時本來就不會變）；"
+                         "inst＝只搶當天三大法人（台北 16:15／16:45／17:15，沒新資料就不部署）")
+    args = ap.parse_args()
+    if args.phase == "inst":
+        RESULT["phase"] = "inst"
+        return run_inst_with_tape(args)
+    light = args.phase == "price"
+    news_only = args.phase == "news"
+    RESULT["phase"] = args.phase
+
+    started = datetime.now(timezone.utc)
+    log.info("=== 每日管線開始（phase=%s）===", args.phase)
+
+    # 一次性清理：早期版本沒有濾掉權證，上萬檔非股票標的被寫進了 price_daily，
+    # 會讓「上漲/下跌家數」變成五千多家。清過就留記號，之後不再重跑。
+    marker = config.STATE / "purged_warrants.flag"
+    if not marker.exists():
+        n = store.purge("price_daily", is_tradable_security)
+        marker.write_text(f"removed={n}\nat={started.isoformat()}\n")
+        RESULT["steps"]["purge_non_equity"] = {"ok": True, "removed": n}
+        log.info("一次性清理完成，移除 %d 列非股票標的", n)
+
+    # -------------------------------------------------- 證交所（不耗額度）
+    # phase=news（週末那兩輪）整段跳過：週末價量不會變，打了也只是拿到週五的。
+    # Andy 2026-09-14：「週六日有新增也必須更新上去」—— 指的是新聞與國際盤，不是價量。
+    price = pd.DataFrame() if news_only else step("twse.price_daily", twse.price_daily)
+    trade_date = str(price["date"].iloc[0]) if not price.empty else None
+    if trade_date:
+        log.info("本輪交易日：%s", trade_date)
+    else:
+        log.error("拿不到交易日期，融資券與法人資料本輪跳過")
+
+    if news_only:
+        # ★ 2026-11-06 稽核 A：news 輪也要抓價量（openapi，不吃 FinMind 額度）。
+        #   收盤當晚 mis 補的是「暫定值」（量與值是盤中口徑，偏低 2～20%）；官方值 openapi 隔天上午就有，
+        #   但清晨 05:07、盤中 09:07／12:07 都是 news 輪、整段不抓價量，結果暫定值一路掛到隔天 15:37
+        #   （11-06 實測：台積電成交值 821 億，官方 1,018 億）。這裡抓到官方值，store.append 去重
+        #   「後到的為準」就把 px_source=mis 的暫定列換成官方列（官方列沒有 px_source → 變空值＝已正式）。
+        #   刻意不設 trade_date：它會帶動下游「法人／融資券」那些 news 輪本來不碰的步驟。
+        #   週末抓到的是週五的官方值，與湖裡相同，append 去重後不增列。
+        _np = step("twse.price_daily", twse.price_daily)
+        # ★ 2026-11-07：存檔前先判日期。openapi 還沒出暫定那一天時，這裡拿到的是前一天的舊官方值，
+        #   寫回去等於沒動，所以要明寫 stale（還沒到），不准只看 ok。覆蓋判定要在 save 之前讀湖裡的暫定列。
+        _ref = official_refresh_status(
+            _np, store.read("price_daily", years=[int(str(_np["date"].iloc[0])[:4])]) if not _np.empty else pd.DataFrame())
+        RESULT["steps"]["official_refresh"] = _ref
+        if _ref.get("status") == "stale":
+            log.warning("官方上市價量還停在 %s，湖裡暫定列是 %s：這輪覆蓋不了，下一輪 news 再補",
+                        _ref.get("official_date"), _ref.get("provisional_date"))
+            RESULT["steps"].setdefault("twse.price_daily", {})["stale"] = True
+        save("price_daily", _np)
+        if not _np.empty:
+            save("market_daily", step("twse.market", twse.market_daily))
+        save("price_daily", step("tpex.price_daily", tpex.price_daily))
+    if not news_only:
+        save("price_daily", price)
+        save("valuation_daily", step("twse.valuation", twse.valuation_daily))
+        save("index_daily", step("twse.index", twse.index_daily))
+        save("market_daily", step("twse.market", twse.market_daily))
+
+        # ---------------------------------------------- 上櫃（可失敗）
+        otc = step("tpex.price_daily", tpex.price_daily)
+        save("price_daily", otc)
+
+    # -------------------------------------------------- 當天補齊（mis，不耗額度）
+    # openapi 的日收落後一個交易日（2026-09-14 實測：收盤後一小時它還是 09-11），
+    # 所以 openapi 沒給今天的時候，用 mis 把今天補上去。開高低收是準的，
+    # 量與值是盤中口徑的暫定值（見 sources/mis.py），隔天會被 openapi 覆蓋。
+    filled = pd.DataFrame() if news_only else step("mis.price_snapshot",
+                                                   fill_today_from_mis, trade_date)
+    save("price_daily", filled)
+    if not filled.empty:
+        d = str(filled["date"].iloc[0])
+        RESULT["provisional_date"] = d
+        log.info("已用 mis 補上 %s 的 %d 檔（暫定值）", d, len(filled))
+        # 個股補了今天，大盤那格也要跟著補 —— 不然橫幅寫「資料更新到今天」、
+        # 加權指數卻還是昨天收的數字（2026-09-14 實測：橫幅 09-14、指數 46,184.85＝09-11 收）。
+        save("market_daily", step("mis.market_snapshot", mis.market_snapshot))
+
+    # -------------------------------------------------- 60 分 K（增量，進資料湖）
+    # 只在有抓價量的輪次做；news 那幾輪（盤中、週末）不必碰。
+    if not news_only:
+        save("intraday_60m", step("yahoo.intraday_60m", collect_intraday_60m))
+        # 大盤三張圖的 1H／4H：加權、櫃買的 60 分（長歷史）＋ 15 分（最近 60 天），增量進湖
+        save("index_intraday", step("yahoo.index_intraday", collect_index_intraday))
+
+    # -------------------------------------------------- 大盤三張圖的 1 分 K（mis 分時檔，不耗額度）
+    # 2026-09-26（Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源」）：三個指數同一個來源、自己累積。
+    # 15:30 那輪（phase price）就抓 —— 那時三個檔都已經收完一整盤。
+    # ★ 刻意連 news 那幾輪（週末、清晨 05:00、盤中）也抓：那時檔案裡是上一個交易日的殘留或今天的半盤，
+    #   照檔案內每一筆的時間歸日、append 依 (ts, symbol, interval) 去重，多抓只是多一次保險
+    #   （排程延遲、15:30 那輪失敗時，隔天清晨或週末那輪還撿得回來）。一輪只有三個小請求。
+    # -------------------------------------------------- 盤中 5 分鐘快照落地（Worker KV 只留約 8 天，不存就消失）
+    # 2026-10-30：研究「盤中資金占比能否提前判斷族群強弱」要累積 ≥ 60 個交易日。每一輪（含 news 輪）都回頭掃 KV 還留著、
+    # 湖裡還沒收齊的交易日，所以 15:30 那輪失敗也會被後面幾輪補回來。沒有要補的 ＝ 常態，不記進「沒回資料的來源」（避免天天黃燈）。
+    # 失敗只記錄、不擋其他步驟（step() 吃例外；save() 也吃例外）。
+    _tp = _tape_step()
+    if not _tp.empty or _tp.attrs.get("miss"):
+        RESULT["steps"]["tape.collect"].update({"dates_todo": _tp.attrs.get("todo"), "dates_miss": _tp.attrs.get("miss")})
+    save("tape_5m", _tp)
+
+    minute = step("mis.index_minute", collect_index_minute)
+    if minute.empty and news_only and "mis.index_minute" in RESULT["empty"]:
+        # 盤前檔案可能已經清空 —— 那是「還沒開盤」不是「壞了」，不記進「沒回資料的來源」
+        RESULT["empty"].remove("mis.index_minute")
+    save("index_intraday", minute)
+
+    # -------------------------------------------------- 台指期 1 分 K（期交所每筆成交，含夜盤，不耗額度）
+    # 2026-09-26：一次補回前 30 個交易日，之後每天一個檔。15:30 那輪（phase price）不抓 ——
+    # 當天的檔多半還沒出，打了只會多記一次 404。週末 news 那幾輪照抓（補週五、補失敗的輪次）。
+    # 排在 mis 後面：同 key 以後到的為準，taifex 蓋 mis（mis 那邊另外擋了不蓋回來）。
+    if not light:
+        tx = step("taifex.futures_minute", collect_taifex_minute)
+        if tx.empty and "taifex.futures_minute" in RESULT["empty"]:
+            # 窗內都處理過了（或今天的檔還沒出）是常態，不是壞掉 —— 不記進「沒回資料的來源」
+            RESULT["empty"].remove("taifex.futures_minute")
+            RESULT["steps"]["taifex.futures_minute"]["ok"] = True
+            RESULT["steps"]["taifex.futures_minute"]["skipped"] = "窗內候選日都處理過或今天的檔還沒出"
+        save("index_intraday", tx)
+
+    # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
+    # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。
+    if light:
+        # 新聞例外：它整天都在更新，而且是免費 RSS／JSON，不吃任何額度。
+        # 15:30 那輪不抓的話，事件側欄要等到 18:30 才會出現當天的新聞
+        # （Andy 2026-09-15：「事件需要同步更新今天發生的」）。
+        log.info("phase=price：抓價量與新聞，法人／融資券／財報等傍晚那輪再補")
+        news_df = step("news.collect", news.collect)
+        save("news", news_df)
+        save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        # 重大訊息盤中就會公告（減資、解散、訴訟、重大處分…），15:30 那輪就要抓 ——
+        # 它是 M4 事件面否決進場的依據，等到 18:30 才看到就太慢了。走 openapi，不吃 FinMind 額度。
+        save("material_news", step("mops.material_news", mops.material_news))
+        # 風險警示牌（P-1107-02）：處置股公告盤中就有（隔天起處置），15:30 這輪先抓；
+        # 注意股是「當日公布」，盤中只回一筆空殼（sources/risk.py 會丟掉、記成本輪略過），傍晚那輪才有名單。
+        save("risk_punish", step("risk.punish", risk.punish))
+        save("risk_notice", step("risk.notice", risk.notice))
+    elif news_only:
+        # 週末：價量不會變，但新聞、國際盤（美股週五夜盤、歐股）、總經會變。
+        # 只抓這三樣，不動 FinMind 額度、不去打那些週末本來就不更新的端點
+        # （打了只會拿到週五的資料，還會被 empty 記成「沒回資料」）。
+        log.info("phase=news：週末只更新新聞與國際盤")
+        news_df = step("news.collect", news.collect)
+        save("news", news_df)
+        save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        save("material_news", step("mops.material_news", mops.material_news))
+        save("intl_daily", step("macro.intl", macro.intl_daily))
+        save("macro", step("macro.fred", macro.macro_all))
+        # 財報日曆（2026-10-05）：FRED 統計發布的公布日程（含未來日期）。沒金鑰／失敗回空，不影響其他步驟。
+        save("macro_calendar", step("macro.fred_calendar", macro.release_calendar))
+    else:
+        if trade_date:
+            save("margin_daily", step("twse.margin", twse.margin_daily, trade_date))
+        company = step("twse.company_info", twse.company_info)
+        save("company_info", company)
+        # FinMind 總覽補上櫃 / 興櫃 / 簡稱（證交所那支只有上市）。
+        # 用 append + 去重，FinMind 的列會補上證交所沒有的代號；已有的保留證交所版本的產業別
+        info = step("finmind.stock_info", finmind.stock_info)
+        if not info.empty:
+            extra = finmind_company_extra(info, company, store.read("company_info"))
+            if not extra.empty:
+                save("company_info", extra)
+            RESULT["steps"]["finmind.stock_info"]["added"] = int(len(extra))
+        save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
+        save("financial_q", step("twse.financial", twse.financial_q))
+        save("dividend", step("twse.dividend", twse.dividend))
+        # 證交所的公告沒有除息日；只補資料湖裡還沒有的 (code, period, kind)，
+        # 已由 FinMind 回補（含除息日、發放日）的列不要被蓋掉
+        save("dividend_events", only_new_keys("dividend_events",
+                                              step("twse.dividend_events", twse.dividend_events)))
+
+        # ETF 除權除息預告（Andy 2026-11-01：「ETF 行事曆每個禮拜都要更新 到下個月」）：
+        # 交易所預告表比 FinMind 早知道下個月的除息；每天跟著跑（只打兩支端點、不耗 FinMind 額度）。
+        # 只補資料湖還沒有的 (code, period, kind, ex_date)，FinMind 之後同一期進來有發放日，不會被預告蓋掉。
+        save("etf_dividend_events", only_new_keys("etf_dividend_events", _etf_notice_step()))
+
+        # 風險警示牌（P-1107-02，2026-11-09）：交易所公布的注意股／處置股（上市＋上櫃各一支，openapi，不耗額度）。
+        # 端點只給最新一期，歷史靠每天存；同一天重跑由 (date, code, market) 去重。
+        save("risk_notice", step("risk.notice", risk.notice))
+        save("risk_punish", step("risk.punish", risk.punish))
+
+        # ---------------------------------------------- 集保（每週）
+        save("shareholding_weekly", step("tdcc.shareholding", tdcc.shareholding_weekly))
+
+        # ---------------------------------------------- ETF 成分股（各投信每日 PCF，不耗額度）
+        # 2026-10-07（Andy：「成分股怎麼可能找不到」）：投信每個營業日公告的申購買回清單＝持股明細。
+        # 放在傍晚那輪：投信約 16:00～18:00 才更新當天的 PCF。只增不改，鍵 (date, etf, code)，
+        # date 用投信回應裡的淨值日，所以同一天重跑只會去重、不會多出一天。約 2～3 分鐘、一百多個請求。
+        save("etf_holdings", step("etf_pcf.holdings", collect_etf_holdings))
+        # 2026-10-08（Andy：「所有 ETF 的成分股分頁都要有圖、有清單」）：官網抓不到的那幾檔用公會每月前十大補（月資料）。
+        # 一個月只會真的抓一次（湖裡有最新月份就跳過），十幾個 POST、不耗額度。
+        save("etf_holdings_monthly", step("sitca.etf_top10", collect_etf_holdings_monthly))
+
+        # ---------------------------------------------- 提前找下一波：前瞻紀錄（2026-11-01）
+        # 每天把當日「族群法人買超前 20%」入選名單寫進資料湖（只增不改）。當天三大法人沒到齊（< 500 檔）就不寫，
+        # 免得用殘缺資料排名；失敗只記錄，不影響其他步驟。
+        save("next_wave_forward", step("next_wave.forward_log", _next_wave_forward_step))
+
+        # ---------------------------------------------- 新聞與國際
+        news_df = step("news.collect", news.collect)
+        save("news", news_df)
+        save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        save("material_news", step("mops.material_news", mops.material_news))
+        # 董監事持股（2026-09-27，個股頁「大戶」卡的董監持股比例）：每月才換一次，但端點只給最新一個月，
+        # 每天抓一次、store.append 依 (ym, code) 去重 —— 一次約 2,000 列、不吃 FinMind 額度。
+        # 漏抓一個月就永遠補不回來（沒有歷史端點），所以放在每天都會跑的傍晚那輪。
+        save("insider_holding", step("mops.insider_holdings", mops.insider_holdings))
+        save("intl_daily", step("macro.intl", macro.intl_daily))
+        save("macro", step("macro.fred", macro.macro_all))
+        # 財報日曆（2026-10-05）：FRED 統計發布的公布日程（含未來日期）。沒金鑰／失敗回空，不影響其他步驟。
+        save("macro_calendar", step("macro.fred_calendar", macro.release_calendar))
+
+    # -------------------------------------------------- FinMind（耗額度，放最後）
+    # 大盤／櫃買／台指期的日 K（Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」）。
+    # Yahoo 的櫃買代號壞掉、台指期沒有代號，改走 FinMind；三支加起來只吃 3 次額度。
+    if not news_only and not args.skip_finmind:
+        since = (pd.Timestamp.now("UTC") - pd.Timedelta(days=40)).strftime("%Y-%m-%d")
+        save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since, wait=False))
+        save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since, wait=False))
+        # 2026-11-11：三支一律 wait=False。額度被前面幾輪吃光時 wait=True 會睡到下個整點視窗（11-11 index_ohlc 睡 2436 秒，full 拖到 90 分）；
+        #   這三支都是 40 天增量，這輪略過、下一輪補，不值得佔著寫入群組等。
+        # 全市場三大法人買賣金額官方值（2026-10-20）：一次請求拉 40 天、1 次額度；store.append 依 date 去重
+        _imk = step("finmind.market_institutional", finmind.market_institutional, since, wait=False)
+        save("inst_market_daily", _imk)
+        # 首次公布版（2026-10-25）：同一天 FinMind 會先給證交所 15:00 公布值（＝新聞數字），晚間再換成含盤後成交的修訂版。
+        # inst_market_daily 是後到覆蓋，所以另存一份「先到的贏」，網站主數字用它（口徑見 compute/inst_market.py）。
+        save("inst_market_first", only_new_keys("inst_market_first", first_published_rows(_imk)))
+    # 市場明細三張卡（融資餘額／外資期貨口數／小台多空比，2026-10-20）：近 10 天增量，7 次額度。
+    # 2026-10-21 起 news 輪也抓（原本只在 price／full）：整體市場融資（FinMind TaiwanStockTotalMarginPurchaseShortSale）
+    # 約台北 21:30～22:00 才有當天，晚上最後一輪 full（21:37）常因 GitHub 排程提早／延遲而錯過，
+    # 以前就要等到隔天傍晚 → 社群「盤後融資」那篇整天等不到資料。清晨 05:07、盤中 09:07／12:07 的 news 輪補抓；
+    # store.append 依 date 去重，重抓無害。
+    if not args.skip_finmind:
+        try:
+            _mf = mktfut.collect((pd.Timestamp.now("UTC") - pd.Timedelta(days=10)).strftime("%Y-%m-%d"))
+            for _t, _df in _mf.items():
+                save(_t, _df)
+                RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
+        except Exception as exc:  # noqa: BLE001
+            log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
+        # 2026-11-06 恐慌指數（Andy：「另外需要新增恐慌指數再右上」）：TXO 逐履約價 → 本站自算隱含波動率，湖裡最後一天的隔天起增量，1 次額度。
+        save("opt_ivx", step("optivx.daily", optivx.daily_update))
+    _otc_margin()
+
+    # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
+    if not light and not news_only and not args.skip_finmind and trade_date:
+        save("index_intraday", step("finmind.futures_60m", collect_futures_60m, trade_date))
+        save("index_intraday", step("finmind.otc_60m", collect_otc_60m, trade_date))
+        # 加權真實 1 分 K（2026-09-28）：15／30／60 分的量從這裡來（Yahoo 指數量是 0）。一天 2 次額度。
+        save("index_intraday", step("finmind.tse_minute", collect_tse_minute))
+
+    if not light and not news_only and not args.skip_finmind and trade_date:
+        # 2026-10-20：先用 1 次請求試整天全市場（成功就不必逐檔燒額度），再逐檔補剩下的。
+        #   逐檔名單 ＝ 成交值前 N 檔 ∪ 網站用到的全部個股，頁面用到的一檔都不缺。
+        # 2026-11-09：trade_date 是 openapi 的日期（T-1，當天 11-06），逐檔法人抓到它為止，當天（mis 暫定價量那天）的上市法人
+        # 整輪沒人抓 —— 只有 inst 輪（用湖裡價量最新日）顧到名單內約 456 檔。目標日改成三者最新：openapi 日、暫定價量日、湖裡價量最新日。
+        inst_day = max([d for d in (trade_date, RESULT.get("provisional_date"),
+                                    str(store.latest_date("price_daily") or "")[:10]) if d])
+        # 2026-11-13：記下「目標日有幾檔法人」前後各一次，狀態頁才分得清是這一輪補進來的、還是本來就有。
+        # 只記數字，不拿來改判定（什麼時候算 skipped 要先有證據，見 DECISIONS／HANDOFF）。
+        codes_before = _inst_day_codes(inst_day)
+        save("inst_daily", step("finmind.institutional_bulk", inst_bulk.fill_inst_bulk))
+        codes = inst_bulk.with_site_codes(universe(args.universe))
+        save("inst_daily", step("finmind.institutional",
+                                fetch_institutional, codes, inst_day))
+        codes_after = _inst_day_codes(inst_day)
+        RESULT["inst_today_codes"] = {
+            "date": inst_day,
+            "before": codes_before,
+            "after": codes_after,
+            "added": (codes_after - codes_before) if None not in (codes_after, codes_before) else None,
+        }
+        # 財報一季才變一次，每天用剩餘額度補一小批就夠（財報季會自然滾完）
+        save("financial_q", step("finmind.financial_refresh",
+                                 refresh_financials, codes[:60]))
+    else:
+        log.info("跳過 FinMind 步驟")
+
+    # -------------------------------------------------- 執行紀錄（先寫一份）
+    def _write_state(final: bool) -> None:
+        """把這一輪的結果寫進 last_run.json。
+
+        要分兩次寫，是因為 build_payload 會讀這個檔來產 meta.json（網站頂端的資料狀態）。
+        以前只在最後寫一次，build 讀到的永遠是「上一輪」的錯誤清單，狀態整整慢一輪。
+        """
+        now = datetime.now(timezone.utc)
+        RESULT.update({
+            "started_at": started.isoformat(),
+            "finished_at": now.isoformat(),
+            "duration_seconds": round((now - started).total_seconds(), 1),
+            "trade_date": trade_date,
+            "complete": final,
+        })
+        # 資料新鮮度把關：每次寫狀態都重算（只讀幾張小表），warn 非空就進 last_run.json，網站徽章會顯示
+        fr = freshness.check()
+        if fr:
+            RESULT["freshness"] = fr
+            RESULT["warn"] = fr.get("warn", [])
+            if fr.get("warn"):
+                log.warning("資料新鮮度警告（最新交易日 %s）：%s", fr.get("trade_date"),
+                            {t: fr["tables"][t] for t in fr["warn"]})
+        if final:                       # 這幾項要掃整個資料湖，只在最後算一次
+            RESULT.update({
+                "finmind_budget_left": http.finmind_budget_left(),
+                "tables": store.table_summary().to_dict("records"),
+                "groups_health": loader.health(),
+            })
+        # 來源健康紀錄（跨執行累積，跟 data/ 一起 commit）：每次寫入都更新，同一天重複寫是冪等的（見 util/source_health.py）
+        try:
+            from datetime import timedelta as _td
+            from .util import source_health as _sh
+            day = trade_date or (now + _td(hours=8)).date().isoformat()
+            hp = config.STATE / "source_health.json"
+            _sh.save(hp, _sh.update(_sh.load(hp), RESULT["steps"], day, now_iso=now.isoformat()))
+        except Exception:  # noqa: BLE001 —— 健康紀錄寫不進去不能拖垮管線，但要留痕跡
+            log.exception("來源健康紀錄寫入失敗（不影響其他步驟）")
+        (config.STATE / "last_run.json").write_text(
+            json.dumps(RESULT, ensure_ascii=False, indent=2))
+
+    _write_state(final=False)
+
+    # -------------------------------------------------- 產出前端資料
+    try:
+        from .build_payload import build
+        build()
+        RESULT["steps"]["build_payload"] = {"ok": True}
+    except Exception as exc:  # noqa: BLE001
+        log.exception("產生前端資料失敗")
+        RESULT["errors"].append(f"build_payload: {exc}")
+        RESULT["steps"]["build_payload"] = {"ok": False, "error": str(exc)}
+
+    _write_state(final=True)
+
+    ok = sum(1 for s in RESULT["steps"].values() if s.get("ok"))
+    log.info("=== 完成：%d 個步驟成功，%d 個錯誤，耗時 %.0fs ===",
+             ok, len(RESULT["errors"]), RESULT["duration_seconds"])
+
+    # 交易日拿不到行情才算真正失敗；其他來源缺漏不阻斷排程。
+    # ★ 2026-09-19：但 phase=news 本來就不抓價量（週末、盤前、台北清晨那幾輪），
+    #   trade_date 必然是 None —— 拿它判斷成敗等於「每一輪 news 都失敗」。
+    #   實測後果：Actions 的每日管線 #31、#32 連續兩輪 failure，
+    #   日誌自己寫「4 個步驟成功，0 個錯誤」卻 exit code 1，
+    #   而 daily.yml 的 deploy job 是 `needs: collect`，collect 一紅它就被 skip ——
+    #   **新聞與國際盤明明抓到了、前端資料也產好了，網站卻不會更新**。
+    #   這個洞不會在任何一道關卡出現：pytest 測不到 exit code，
+    #   _preview／_uitest 測的是前端。只有回頭看 Actions 才看得到。
+    if news_only:
+        return 1 if RESULT["errors"] else 0
+    return 0 if trade_date else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,2343 @@
+/* 題材產品圖：每個題材一張「上游 → 中游 → 下游」的等角 3D 供應鏈剖析圖。
+   版面參考 Andy 2026-09-12 給的三張圖（光通訊供應鏈剖析／PCB 是什麼／伺服器爆炸圖）：
+     一排 3D 物件由左到右說故事，物件之間用流動的彩帶接起來，
+     每個物件正下方直接寫標題＋兩行說明＋該環節的台股（代號直接可點），
+     最下面一條編號製程／產業鏈流程。
+   共用 site/diagrams.js 的 window.DG 3D 工具箱，所以題材圖跟產業鏈剖析圖是同一套立體語言。
+   每個站點帶 data-part（點了列出對應個股）與 data-seg（跟供應鏈環節同色），
+   顏色由 app.js 注入 --c（DECISIONS #48），所以「點成員 → 圖上同色亮起」全站一致。 */
+(function () {
+  'use strict';
+  const D = window.DG; if (!D) return;
+  /* ★ 2026-09-23：新零件庫要畫剖面（onXZ）與直接算螢幕座標（P3），所以多取這兩支；
+     同時**拿掉 cells** —— 它會自動加 `lit pulse`，正是 Andy 講過三次的「螢光感太重」的來源。*/
+  const { STYLE, px, py, P3, onTop, onXZ, onYZ, box: box0, cyl: cyl0, panel, wire } = D;
+  /* ★ 2026-10-03 第二輪（Andy：「安排人員設計題材圖片，需要再優化細緻度」，DECISIONS #316）：
+     十八張圖共用同一組光影 —— 主光固定在左上方（頂面最亮 f1、右面中 f2、左面最暗 f3，原本就有），這裡再補三樣：
+       · hl  頂面朝觀者的兩條前緣＋前方那根直角：一道細邊光（產品插畫的 rim light），看得出「這是有厚度的實體」
+       · ao  落地那兩條底邊：一道接觸暗線，零件才「站」在地上而不是飄著
+       · spec 圓柱側面靠左一條直向反光，金屬罐／電芯／套管才有圓的感覺
+     只包在題材圖這支檔案裡（box／cyl 換成這兩支），產業鏈剖析圖（diagrams.js）一個 px 都不動。
+     顏色全部是 token（--dg-hl／--dg-spec／--dg-ao-ln，深淺兩組值在 index.html）；線寬不跟著 fit() 的縮放變（non-scaling-stroke）。
+     太小的東西（引腳、錫球、細柱）不加，不然整張變成一堆白點。*/
+  function box(x, y, z, w, d, h, inner) {
+    let s = box0(x, y, z, w, d, h, '');
+    if (w >= 6 && d >= 6) {
+      s += `<path class="hl" d="M${P3(x, y + d, z + h)} L${P3(x + w, y + d, z + h)} L${P3(x + w, y, z + h)}${h >= 4 ? ` M${P3(x + w, y + d, z + h)} L${P3(x + w, y + d, z)}` : ''}"/>`;
+      if (h >= 3) s += `<path class="ao" d="M${P3(x, y + d, z)} L${P3(x + w, y + d, z)} L${P3(x + w, y, z)}"/>`;
+    }
+    return s + (inner ? onTop(z + h, inner) : '');
+  }
+  function cyl(x, y, z, r, h, inner) {
+    let s = cyl0(x, y, z, r, h, '');
+    if (r >= 4) {
+      const cx = px(x, y), ty = py(x, y, z + h), by = py(x, y, z), rx = r * 1.2247, ry = r * 0.7071;
+      const L = (cx - rx).toFixed(1), R = (cx + rx).toFixed(1), A = `A${rx.toFixed(1)},${ry.toFixed(1)} 0 0 0`;
+      s += `<path class="hl" d="M${L},${ty.toFixed(1)} ${A} ${R},${ty.toFixed(1)}"/>`;
+      if (h >= 4) s += `<path class="ao" d="M${L},${by.toFixed(1)} ${A} ${R},${by.toFixed(1)}"/>`;
+      // 反光條只給夠高的圓柱：晶圓、法蘭這種扁圓盤加了會變成垂在下面的一小塊亮斑
+      if (h >= 10) {
+        const sx = (cx - rx * .5).toFixed(1), k = ry * .866;
+        s += `<path class="spec" d="M${sx},${(ty + k).toFixed(1)} V${(by + k).toFixed(1)}" stroke-width="${(rx * .2).toFixed(1)}"/>`;
+      }
+    }
+    return s + (inner ? onTop(z + h, `<g transform="translate(${x},${y})">${inner}</g>`) : '');
+  }
+  // 每次輸出唯一的 clipPath id（晶圓邊緣殘缺晶粒要用）；同一頁只會有一張題材圖，但重畫時舊的 id 不能撞
+  let clipSeq = 0;
+
+  const CW = 1180, PADX = 22, GAPX = 12;
+  /* ★ 2026-09-23 批次 0923-D（Andy 原話：「題材一律統一水平」「字體圖片版面在小一點 符合正常範圍，有點太大了」）：
+     十八張題材圖**全部走水平版**（chainScene），垂直的爆炸圖版面整個退場。
+     同時把版面收一階：零件框從 122 高收到 96、說明列距 17 收到 15、站名基線往上提 36px，
+     所以 1440 一個畫面看得到的內容比改版前多，不是只有字變小。
+     ⚠ 零件建造函式一支都沒動 —— 這一輪只改版面配置。*/
+  const BAND_Y = 86;                    // 上游／中游／下游 標題列的文字基線
+  /* ★ 2026-10-03（Andy：「太大了」）：零件框 96 → 82 高、站名基線跟著上提 14px。
+     畫布改成 1:1 原尺寸之後（見 nativeWidth），1440 版面 v2 的欄寬 1140 原本把圖放大 1.16 倍（零件框螢幕上 112px），
+     只拿掉放大的話卡片只矮 12%；零件框再收一階，圖片螢幕高度＝改前的 73%，跟 Andy 要的 70～75% 對得上。*/
+  const ART_T = 104, ART_MH0 = 82;      // 零件框上緣、980 畫布時的框高：fit() 把每個零件等比縮進這個框並置中
+  /* ★ 2026-10-03 第二輪（Andy：「字體縮小了但空白版面太多…需要適當填滿旁邊空白」，DECISIONS #316）：
+     畫布不再固定 980 置中，改成**依卡寬重新排版**：畫布寬＝容器內寬（fit() 量完再畫一次），
+     欄寬跟著分、零件框跟著欄寬長高（82 → 最高 128），字級完全不動（SVG 仍是 1:1，螢幕字＝設定的 px，
+     不是把整張 SVG 等比放大 —— 那是 #306 修掉的「太大」）。
+     所以「零件框／站名／說明」的 y 不再是常數，由 geo() 依欄寬算；欄寬 178（980 畫布）時跟 #306 一模一樣。*/
+  const ART_MAX = 128;
+  const SUB_LH = 17;                    // 說明列距（13px 字）
+  function geo(W) {
+    const mh = W <= 178 ? ART_MH0 : Math.min(ART_MAX, Math.round(ART_MH0 + (W - 178) * 1.3));
+    const ART_B = ART_T + mh;
+    /* 站名基線＝框底 +20；說明第一行基線＝站名 +19。個股標籤的起點不寫死，由 chainScene 依**斷行後**的實際行數算（CY），
+       不然爆炸圖搬過來的「圖上：…」那一行會直接撞上標籤。*/
+    return { ART_MH: mh, ART_B, ART_C: (ART_T + ART_B) / 2, CAP_Y: ART_B + 20, SUB_Y0: ART_B + 39 };
+  }
+  // 畫布寬的上下限：下限 900（容器再窄就維持 900 左右滑，#226 字級守住優先），上限 2400（超寬螢幕再置中）
+  const CW_MIN = 600, CW_MAX = 2400;
+  let ctxW = 0;      // fit() 量到的容器內寬；0＝還沒量（app.js 第一次輸出字串時），就用 o.cw（980）
+  let curTid = '';   // 正在畫哪一個題材（包在 T.* 外面設定），寫進 svg 的 data-tid，fit() 才知道怎麼重畫
+  // 說明字 13px 的估寬：全形字 13px、半形字 7.3px（12px 時代是 12／6.7，等比放大）
+  const SUB_FW = 13, SUB_HW = 7.3;
+  /* 題材圖自己的字級，只在 .dg3 生效（產業鏈剖析圖不受影響）。
+     標題 16→14、站名 12.5→12；**內文維持 12px，那是字級下限（CLAUDE.md／DECISIONS #226），不准再往下**。
+     真正讓畫面變小的是上面那組版面數字，不是字級。*/
+  /* ★ 2026-10-03（Andy：「題材這邊的文字圖片大小比例再調整一下，太大了」）：
+     太大的根因不是字級，是**畫布被放大**：SVG 是 width:100%，1440 螢幕上卡片 1340px 寬、畫布 980，
+     整張圖（零件、字、膠囊、流程格）一起被放大 1.37 倍 —— 12px 的字在螢幕上是 16.4px。
+     修法：fit() 的 nativeWidth 加 max-width＝畫布寬，**畫布固定 1:1 原尺寸**（同產業鏈剖析圖 .dgm 的 984 上限），
+     整張卡高度直接變成 980/1340＝73%。字級在原尺寸下重新指定成 Andy 要的螢幕大小：
+       站名（.lbl）15px、說明（.stn .sub）13px、代號膠囊 12px（＝--dg-fs-min，不動）、
+       圖標題 16px、上中下游色帶 13px、流程格名稱 14px／副字 12px。
+     ⚠ 說明字從 12 改 13，wrapSub 的估寬（SUB_FW／SUB_HW）與列距 SUB_LH 要跟著改 —— 三個數字是同一組。*/
+  const TH_STYLE = `<style>.dg3 .capbtn{fill:var(--dg-accent-2d,#8fb2f2);cursor:pointer;text-decoration:underline} .dg3 .info{fill:var(--dg-ink-3,#8aa);font-size:14px;cursor:pointer}
+    .dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
+    .dg.dg3 .stn .sub{font-size:13px} .dg.dg3 .band text{font-size:13px}
+    .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px;fill:var(--dg-text-2)}
+    .dg3 .m-drum .part{stroke:var(--dg-accent-muted)} .dg3 .desat{filter:saturate(.9)}
+    .dg3 .hl{fill:none;stroke:var(--dg-hl);stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
+    .dg3 .ao{fill:none;stroke:var(--dg-ao-ln);stroke-width:1.2;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}
+    .dg3 .spec{fill:none;stroke:var(--dg-spec);stroke-linecap:round;pointer-events:none}
+    .dg3 .shadow.soft{fill:url(#dg3sh)}
+    .dg3 .sheen{fill:var(--dg-spec);stroke:none;pointer-events:none}
+    .dg3 .dead{fill:var(--dg-sh0);fill-opacity:.28;stroke:none}
+    .dg3 .weave{fill:none;stroke:var(--dg-weave);stroke-width:.9;stroke-opacity:.9}
+    .dg3 .weave2{fill:none;stroke:var(--dg-yarn);stroke-width:.9;stroke-opacity:.85}
+    .dg3 .bump{fill:var(--dg-sn);stroke:none;fill-opacity:.9}
+    .dg3 .cuv{fill:var(--dg-cu);stroke:none}
+    .dg3 .cul{fill:none;stroke:var(--dg-cu);stroke-width:1.3;stroke-linecap:round}
+    .dg3 .blade{stroke:var(--dg-sh0);stroke-opacity:.5;stroke-width:.5}</style>`;
+  const BANDS = ['上游：關鍵材料與設備', '中游：核心元件與製造', '下游：系統、模組與應用'];
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------------------------------------------------------------- 個股標籤（直接可點）
+  const nameOf = (c) => (window.Link && window.Link.cname[c]) || '';
+  /* ★ 2026-09-21 art-director：晶片上的字從 11.5px 升到 12px（--dg-fs-min，字級下限）。
+     字一長，**盒子與列距一定要跟著長**，不然就是 processBar 那個老毛病重演一次 ——
+     所以這三個數字（估寬的 11.5、盒高 19、列距 23）是同一組，不准只改其中一個。
+     估寬用 12.5/字：中文字在 12px 下大約就是 12px 寬，多的 0.5 是安全邊。*/
+  const CHIP_H = 21, CHIP_ROW = 25;
+  function chips(codes, x, y, maxW) {
+    let cx = x, cy = y, out = '';
+    (codes || []).forEach(code => {
+      const nm = nameOf(code), t = nm ? code + ' ' + nm : code;
+      const w = Math.round(32 + (nm ? nm.length * 12.5 : 0) + 12);
+      if (cx > x && cx + w > x + maxW) { cx = x; cy += CHIP_ROW; }
+      out += `<g class="scode" data-code="${code}"><rect x="${cx}" y="${cy}" width="${w}" height="${CHIP_H}" rx="5"/>`
+        + `<text x="${cx + 7}" y="${cy + 14.8}">${esc(t)}</text></g>`;
+      cx += w + 6;
+    });
+    return { svg: out, rows: Math.round((cy - y) / CHIP_ROW) + 1 };
+  }
+
+  /* ---------------------------------------------------------------- 說明文字斷行
+     水平版每一格只有約 177px 寬，而爆炸圖搬過來的「圖上：…」那一行有二十幾個字 ——
+     SVG 的 text 不會自動換行，所以一定要自己斷。
+     估寬：一個全形字 12px、一個半形字 6.7px（跟 .sub 的 12px 字級對應）。
+     斷點刻意避開英數字詞中間（HBM、CoWoS、800V 被切成兩半就讀不出來了）。*/
+  const isHalf = (ch) => ch.charCodeAt(0) < 0x2e80;
+  const NO_HEAD = '）」』、，。：；？！》〉·,.:;?!';   // 不准出現在行首的字
+  const NO_TAIL = '（「『《〈';                        // 不准出現在行尾的字
+  const runW = (t) => { let w = 0; for (const c of t) w += isHalf(c) ? SUB_HW : SUB_FW; return w; };
+  function wrapSub(t, maxW) {
+    const s = String(t == null ? '' : t), out = [];
+    let line = '', w = 0;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i], cw = isHalf(ch) ? SUB_HW : SUB_FW;
+      if (w + cw > maxW && line) {
+        let cut = line.length;
+        // 正要在一串英數字中間斷掉 → 往回退到這串的開頭（退太多就算了，寧可切）
+        if (isHalf(ch) && ch !== ' ') {
+          let j = line.length;
+          while (j > 0 && isHalf(line[j - 1]) && line[j - 1] !== ' ') j--;
+          if (j > 0 && line.length - j < 9) cut = j;
+        }
+        /* 禁則處理：收尾的標點不准單獨掉到下一行的行首（「（兩顆鏡 / 頭）」那種），
+           作法是把前面那一個字一起趕下去；行尾也不准留一個開頭的括號。*/
+        if (cut > 1 && NO_HEAD.indexOf(ch) >= 0) cut--;
+        while (cut > 1 && NO_TAIL.indexOf(line[cut - 1]) >= 0) cut--;
+        out.push(line.slice(0, cut).replace(/\s+$/, ''));
+        line = line.slice(cut); w = runW(line);
+      }
+      line += ch; w += cw;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [''];
+  }
+
+  /* ---------------------------------------------------------------- 手機 v2 直排版（2026-10-09）
+     Andy 手機截圖紅框 2 旁註：「垂直，塗在左邊 文字補充右邊」＋「需要線條區分」。
+     只在手機 v2（<html class="m4">，≤640）走這支：一個環節一列 —— 左邊 40% 放等角圖、右邊放環節名、重點說明、個股膠囊；
+     上游／中游／下游段標題、組裝流程也一格一列往下排；列與列、段與段之間各一條全寬 1px 分隔線（主題 line 色）。
+     桌機（>640 沒有 m4）一行都不走這裡，chainScene 原本那條水平路徑原封不動。*/
+  const isV = () => typeof matchMedia === 'function' && matchMedia('(max-width:640px)').matches
+    && typeof document !== 'undefined' && document.documentElement.classList.contains('m4');
+  const V_W0 = 360;                       // 還沒量到容器寬時的暫定畫布寬（fit() 進 DOM 後馬上依實際寬度重畫）
+  /* 分隔線：跟手機全站「大功能分隔線」同一個變數 --m4-div（claude/m4-seg 定義＝主題的 --line-2）；
+     那批還沒合併前 fallback 到 --line-2，兩邊合併後自動統一。*/
+  const V_STYLE = `<style>.dg3v .m4ln{stroke:var(--m4-div,var(--line-2));stroke-width:1;shape-rendering:crispEdges;vector-effect:non-scaling-stroke}
+    .dg3v .stn .slot{fill:transparent;stroke:none} .dg3v .stn.sel .slot{fill:color-mix(in srgb,var(--c,var(--dg-accent-2d)) 10%,transparent);stroke:none}
+    .dg.dg3v .stn .vsub{font-size:13px;fill:var(--dg-text-2,var(--dg-ink-2))}
+    .dg3v .vstep{cursor:pointer;outline:none} .dg3v .vstep.nocard{cursor:default} .dg3v .vstep .part{fill-opacity:.55}
+    .dg3v .vstep.open .part{fill-opacity:.9} .dg.dg3v .vstep .lbl{font-size:15px} .dg.dg3v .vstep .sub{font-size:12px}
+    .dg3v .vstep .vchev{font-size:18px;fill:var(--dg-text-2,var(--dg-ink-2))} .dg3v .vstep:focus-visible .part{stroke:var(--dg-accent-2d);stroke-width:2}</style>`;
+  // 通用斷行（標題 16px、站名 15px 用）：fw＝全形字寬、hw＝半形字寬
+  function wrapAt(t, maxW, fw, hw) {
+    const out = []; let line = '', w = 0;
+    for (const ch of String(t == null ? '' : t)) {
+      const cw = isHalf(ch) ? hw : fw;
+      if (w + cw > maxW && line) { out.push(line); line = ''; w = 0; }
+      line += ch; w += cw;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [''];
+  }
+  /* ★ 2026-10-09（CEO 轉派帳本 23／65：題材卡標題在 402 寬斷成「…怎麼壓出來｜的」、360 寬「…怎麼壓｜出來的」）：
+     標題斷行規則 —— ① 有「：」而且冒號後那一段一行放得下：就斷在冒號後面（前後各自再照寬度折）；
+     ② 否則照寬度折，最後一行少於 4 個字就從上一行搬字過去，不准剩一兩個字落單。 */
+  function wrapTitle(t, maxW, fw, hw) {
+    const s = String(t == null ? '' : t), k = s.indexOf('：');
+    if (k > 0 && k < s.length - 1) {
+      const a = wrapAt(s.slice(0, k + 1), maxW, fw, hw), b = wrapAt(s.slice(k + 1), maxW, fw, hw);
+      if (b.length === 1 && a.length === 1) return a.concat(b);
+    }
+    const L = wrapAt(s, maxW, fw, hw);
+    if (L.length >= 2) {
+      const last = [...L[L.length - 1]], prev = [...L[L.length - 2]];
+      const need = Math.min(4 - last.length, prev.length - 4);
+      if (last.length < 4 && need > 0) { L[L.length - 1] = prev.slice(-need).join('') + last.join(''); L[L.length - 2] = prev.slice(0, -need).join(''); }
+    }
+    return L;
+  }
+  /* 帳本 81：手機直排版的流程步驟收合狀態。預設第一步展開、其餘收起（只有一步就直接展開）；
+     使用者點過才記（tw.m4.tflow.<題材 id>＝展開中的步驟序號，逗號分隔），沒點過的題材一律回到預設。 */
+  const FLOW_LS = 'tw.m4.tflow.';
+  function flowOpen(tid, n) {
+    if (n <= 1) return new Set([0]);
+    let v = null; try { v = localStorage.getItem(FLOW_LS + tid); } catch (e) { /* 私密視窗 */ }
+    if (v == null) return new Set([0]);
+    return new Set(v.split(',').filter(x => x !== '').map(Number).filter(k => k >= 0 && k < n));
+  }
+  function flowToggle(tid, i, n) {
+    const s = flowOpen(tid, n);
+    if (s.has(i)) s.delete(i); else s.add(i);
+    try { localStorage.setItem(FLOW_LS + tid, [...s].sort((a, b) => a - b).join(',')); } catch (e) { /* 私密視窗 */ }
+  }
+  function chainSceneV(o) {
+    const st = o.stations;
+    const W = Math.max(280, Math.round(ctxW || V_W0)), PX = 2;
+    const ARTW = Math.round(W * .4), ARTH = 96, X1 = ARTW + 10, RW = W - X1 - PX;
+    const ln = (y) => `<path class="m4ln" d="M0,${Math.round(y) + .5} H${W}"/>`;
+    let y = 0, out = '';
+    // 標題吃滿寬（2026-10-09 起右上角不再有 ↻ 重設鈕：改成點背景重設，見 app.js wireThemeDiagram）
+    wrapTitle(o.title, W - 4, 16, 9).forEach(t => { y += 22; out += `<text class="ttl" x="${PX}" y="${y}">${esc(t)}</text>`; });
+    y += 22;
+    out += `<text class="cap capbtn" x="${PX}" y="${y}" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>`;
+    y += 14;
+    /* 一張環節卡（左 40% 等角圖、右欄環節名＋重點＋個股膠囊），回傳 svg 與高度 */
+    const card = (s, y0) => {
+      // 右欄：環節名（15px）→ 重點說明（13px；「圖上：…」那行是看圖說明，收進點一下的說明面板）→ 個股膠囊
+      const lbl = wrapAt(s.label, RW - 20, 15, 8.4);
+      let ty = y0 + 16, txt = '';
+      lbl.forEach((t, j) => { txt += `<text class="lbl" x="${X1}" y="${ty}">${esc(t)}</text>`; if (j < lbl.length - 1) ty += 19; });
+      txt += `<text class="info" x="${W - PX}" y="${y0 + 16}" text-anchor="end" aria-hidden="true">ⓘ</text>`;
+      const key = (s.sub || []).filter(t => !/^圖上/.test(t));
+      const subL = key.length ? wrapSub(key.join('・'), RW - 14) : [];   // 估寬偏樂觀（全形＋、・實際比 13px 寬），留 14px 安全邊
+      ty += 4;
+      subL.forEach(t => { ty += SUB_LH; txt += `<text class="sub vsub" x="${X1}" y="${ty}">${esc(t)}</text>`; });
+      const ch = chips(s.codes, X1, ty + 9, RW);
+      const textB = ty + 9 + (s.codes && s.codes.length ? ch.rows * CHIP_ROW - 4 : 0);
+      const rowH = Math.max(ARTH + 8, textB - y0 + 4);
+      const acy = y0 + rowH / 2;
+      return { h: rowH, svg: `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''} data-lbl="${esc(s.label)}" data-desc="${esc((s.sub || []).join('\n'))}">
+        <rect class="slot" x="0" y="${y0 - 4}" width="${W}" height="${rowH + 8}" rx="8"/>
+        <g class="art" data-cx="${ARTW / 2}" data-cy="${acy}" data-mw="${ARTW - 12}" data-mh="${ARTH}" data-k="${s.k || 1}"
+           transform="translate(${ARTW / 2},${acy}) scale(${Math.min(1, s.k || 1) * .6})">${s.art()}</g>${txt}${ch.svg}</g>` };
+    };
+    /* ★ 2026-10-09（帳本 81，Andy 22:0x：「不應該標題跟內容 方兩區，應該為穿差的，磊晶材料下方是對應圖片 下方標題以此類推」）：
+       流程步驟不再自成一區、環節卡也不再另成一區 —— 改成穿插：① 步驟標題 → 它的環節卡 → ② 步驟標題 → 它的環節卡 → …
+       · 卡歸哪一步：步驟的 p 指到哪個環節就歸那一步；同一個環節被好幾步指到（例如散熱的「快接管件」「CDU」都指 CDU），
+         卡只放在第一個指到它的步驟下面，後面那一步只留標題（不重複畫同一張卡）；沒有任何步驟指到的環節（例如散熱的風扇），
+         跟著環節順序排在前一個環節所屬的步驟下面（排在最前面的就歸第一步）—— 收起來可以，刪掉不行，每一張卡都進得去。
+       · 上游／中游／下游段標題併進步驟標題右邊的小字（卡的段別），不再另佔一列。
+       · 點步驟標題收合／展開那一步的卡（themes3d.js 下方 document 層的點擊處理）。預設第一步展開、其餘收起；只有一步時直接展開；
+         使用者點過之後記在 localStorage（tw.m4.tflow.<題材 id>），照全站「手動展開過的才記住」慣例。
+       只在這支手機直排版（m4，≤640）動；沒有 steps 的題材照舊走段標題＋卡清單。 */
+    const steps = o.steps || [];
+    if (steps.length) {
+      const idx = {}; st.forEach((s, i) => { idx[s.id] = i; });
+      const grp = steps.map(() => []), owner = {};
+      steps.forEach((p, i) => { if (p.p in idx && !(p.p in owner)) { owner[p.p] = i; grp[i].push(idx[p.p]); } });
+      let prevG = 0;
+      st.forEach((s, i) => { if (s.id in owner) prevG = owner[s.id]; else { owner[s.id] = prevG; grp[prevG].push(i); } });
+      grp.forEach(g => g.sort((a, b) => a - b));
+      const open = flowOpen(curTid, steps.length);
+      y += 22;
+      out += `<text class="cap vflow" x="${PX}" y="${y}">${esc(o.flowTitle || '產業鏈流程')}</text>`;
+      y += 8;
+      const BN = ['上游', '中游', '下游'];
+      steps.forEach((p, i) => {
+        const g = grp[i], has = g.length > 0, on = has && open.has(i);
+        const bands = [...new Set(g.map(k => BN[st[k].band] || ''))].filter(Boolean).join('／');
+        const HH = 46;
+        if (i) { y += 6; out += ln(y); y += 6; }
+        out += `<g class="step vstep${on ? ' open' : ''}${has ? '' : ' nocard'}" data-i="${i}" data-p="${esc(has ? st[g[0]].id : (p.p || ''))}"${(has ? st[g[0]] : st[idx[p.p]] || {}).seg ? ` data-seg="${(has ? st[g[0]] : st[idx[p.p]]).seg}"` : ''}${has ? ` role="button" tabindex="0" aria-expanded="${on}"` : ''} aria-label="${esc(`第 ${i + 1} 步 ${p.t}`)}">
+          <rect class="part f2" x="0" y="${y}" width="${W}" height="${HH}" rx="8"/>
+          <circle class="num" cx="18" cy="${y + HH / 2}" r="11"/><text class="nn" x="18" y="${y + HH / 2 + 4.5}" text-anchor="middle">${i + 1}</text>
+          <text class="lbl" x="37" y="${y + 20}">${esc(p.t)}</text>
+          <text class="sub" x="37" y="${y + 37}">${esc(p.s || '')}${has || !(p.p in owner) ? '' : `（卡在第 ${owner[p.p] + 1} 步）`}</text>
+          ${bands ? `<text class="sub vband" x="${W - (has ? 34 : 12)}" y="${y + 28}" text-anchor="end">${esc(bands)}</text>` : ''}
+          ${has ? `<text class="vchev" x="${W - 12}" y="${y + 29}" text-anchor="end" aria-hidden="true">${on ? '▾' : '›'}</text>` : ''}</g>`;
+        y += HH;
+        if (on) g.forEach((k, j) => { y += j ? 6 : 10; if (j) { out += ln(y); y += 6; } const c = card(st[k], y); out += c.svg; y += c.h; });
+      });
+    } else {
+    let lastBand = -1, first = true;
+    st.forEach((s) => {
+      if (s.band !== lastBand) {                           // 段標題（上游／中游／下游）
+        if (!first) { y += 8; out += ln(y); y += 12; } else y += 4;
+        out += `<g class="band b${s.band}"><rect x="0" y="${y}" width="${W}" height="26" rx="7"/><text x="12" y="${y + 18}">${BANDS[s.band] || ''}</text></g>`;
+        y += 26 + 6; lastBand = s.band;
+      } else { y += 6; out += ln(y); y += 6; }            // 同一段裡卡與卡之間
+      first = false;
+      const c = card(s, y); out += c.svg; y += c.h;
+    });
+    }
+    y += 10; out += ln(y);
+    let foot = '';
+    wrapAt('原創等角示意圖，非實物比例；每個環節的顏色＝族群色', W - PX * 2, 12, 6.7).forEach(t => { y += 18; foot += `<text class="cap" x="${PX}" y="${y}">${esc(t)}</text>`; });
+    const H = y + 8;
+    return `<svg class="dg dg3 dg3v" data-cw="${W}" data-v="1"${curTid ? ` data-tid="${curTid}"` : ''} viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}${V_STYLE}
+      <defs><radialGradient id="dg3sh"><stop offset="0" style="stop-color:var(--dg-drop)"/><stop offset=".55" style="stop-color:var(--dg-drop);stop-opacity:.7"/><stop offset="1" style="stop-color:var(--dg-drop);stop-opacity:0"/></radialGradient></defs>
+      ${out}${foot}</svg>`;
+  }
+
+  // ---------------------------------------------------------------- 場景外框
+  function chainScene(o) {
+    if (isV()) return chainSceneV(o);
+    const st = o.stations, n = st.length;
+    /* ★ 2026-09-23：畫布寬可以自己決定。1440 螢幕上題材頁放圖的那一欄只有 996px，
+       1180 的畫布永遠要左右滑；十八張一起收到 980，1440 下一次看完。*/
+    /* ★ 2026-10-03 第二輪：fit() 量到容器內寬（ctxW）就照它排 —— 圖吃滿卡片，不再 980 置中、兩側留大片空白。
+       還沒量（app.js 第一次插字串）時照舊用 o.cw（980），fit() 進 DOM 後馬上依實際寬度重畫一次。*/
+    const CANW = ctxW ? Math.max(CW_MIN, Math.min(CW_MAX, ctxW)) : (o.cw || CW);
+    // 欄距跟著畫布寬放一點（12 → 最多 20），1920 時五格之間的彩帶才有地方走
+    const GX = CANW > 980 ? Math.min(20, Math.round(GAPX + (CANW - 980) / 80)) : GAPX;
+    const W = Math.floor((CANW - PADX * 2 - GX * (n - 1)) / n);
+    const { ART_MH, ART_B, ART_C, CAP_Y, SUB_Y0 } = geo(W);
+    /* 每一格的說明先斷好行，行數決定個股標籤從哪裡開始（最長的那一格說了算）。
+       行數不寫死，不然搬過來的「圖上：…」會直接撞上標籤（processBar 那個老毛病）。
+       欄寬夠（1440 以上）時每一條說明都是單行，不會折。*/
+    const subs = st.map(s => (s.sub || []).reduce((a, t) => a.concat(wrapSub(t, W - 2)), []));
+    /* ★ 2026-10-08（Andy：「手機版面 題材跑掉…文字部分再想辦法隱藏，主體被看到就好」）：手機（≤640）每一格只畫零件圖、環節名稱、個股膠囊；
+       說明文字不畫在圖上（不佔高度、不會壓到別的東西），收進 data-desc，點那一格（或右上 ⓘ）從下方展開完整說明；頁首長說明也收成「說明 ›」。 */
+    const MOB = typeof matchMedia === 'function' && matchMedia('(max-width:640px)').matches;
+    const nsub = MOB ? 0 : Math.max(2, ...subs.map(a => a.length));
+    const CY = SUB_Y0 + nsub * SUB_LH - 3;
+    const slot = (i) => PADX + i * (W + GX);
+    /* ★ 2026-10-03 第二輪（Andy：「也不可以發生表格長度不一樣」）：五格一律等高、底線對齊。
+       膠囊先全部排好，取最多列的那一格當整排的高度；膠囊少的那格留白在下方（膠囊都從同一條 CY 開始）。*/
+    const chs = st.map((s, i) => chips(s.codes, slot(i), CY, W));
+    const maxRows = Math.max(1, ...chs.map(c => c.rows));
+    const slotH = CY - BAND_Y - 8 + maxRows * CHIP_ROW;
+    const body = st.map((s, i) => {
+      const x = slot(i), cx = x + W / 2;
+      const ch = chs[i];
+      const sub = MOB ? `<text class="info" x="${x + W - 4}" y="${CAP_Y}" text-anchor="end" aria-hidden="true">ⓘ</text>`
+        : subs[i].map((t, j) => `<text class="sub" x="${x}" y="${SUB_Y0 + j * SUB_LH}">${esc(t)}</text>`).join('');
+      /* 零件外面包一層 g.art 並帶上框的尺寸：fit()（SVG 進 DOM 之後）會量 bbox 再等比縮進框裡。
+         transform 先寫一個保底值，萬一 fit() 沒被呼叫也不會整排零件疊在原點。*/
+      return `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}${MOB ? ` data-lbl="${esc(s.label)}" data-desc="${esc((s.sub || []).join('\n'))}"` : ''}>
+        <rect class="slot" x="${x - 7}" y="${BAND_Y + 12}" width="${W + 14}" height="${slotH}" rx="10"/>
+        <g class="art" data-cx="${cx}" data-cy="${ART_C}" data-mw="${W - 8}" data-mh="${ART_MH}" data-k="${s.k || 1}"
+           transform="translate(${cx},${ART_B - 14}) scale(${Math.min(1, s.k || 1)})">${s.art()}</g>
+        <text class="lbl" x="${x}" y="${CAP_Y}">${esc(s.label)}</text>${sub}${ch.svg}</g>`;
+    }).join('');
+    // 物件之間的流動彩帶（參考光通訊那張圖的「上游流到下游」）：畫在零件框的中段
+    const ribbon = st.slice(0, -1).map((s, i) => {
+      const a = slot(i) + W - 4, b = slot(i + 1) + 4, m = (a + b) / 2;
+      const d = `M${a},${ART_C + 10} C${m},${ART_C + 10} ${m},${ART_C - 12} ${b},${ART_C - 12}`;
+      return `<path class="rib bg" d="${d}" fill="none"/><path class="rib flow" d="${d}" fill="none"/>`;
+    }).join('');
+    const bands = [0, 1, 2].map(b => {
+      const idx = st.map((s, i) => (s.band === b ? i : -1)).filter(i => i >= 0);
+      if (!idx.length) return '';
+      const x = slot(idx[0]) - 7, w = slot(idx[idx.length - 1]) + W + 7 - x;
+      return `<g class="band b${b}"><rect x="${x}" y="${BAND_Y - 19}" width="${w}" height="26" rx="7"/>
+        <text x="${x + 13}" y="${BAND_Y - 1}">${BANDS[b]}</text></g>`;
+    }).join('');
+    const sy = CY + maxRows * CHIP_ROW + 26;
+    const H = sy + 80;
+    const steps = (o.steps || []).length;
+    const sw = steps ? Math.floor((CANW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
+    const strip = (o.steps || []).map((s, i) => {
+      const x = PADX + i * (sw + 10);
+      // ★ 2026-10-03：名稱 14px＋副字 12px 疊兩行，格高 38 → 40（基線 17／33），兩行之間才不會貼在一起
+      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
+        <circle class="num" cx="${x + 17}" cy="${sy + 20}" r="10"/><text class="nn" x="${x + 17}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
+        <text class="lbl" x="${x + 34}" y="${sy + 17}">${esc(s.t)}</text>
+        <text class="sub" x="${x + 34}" y="${sy + 33}">${esc(s.s || '')}</text></g>`
+        // ★ 2026-09-23：改吃 --dg-accent-2d（「不屬於任何零件」的強調色）。
+        // 原本是寫死的青色色碼，在淺色主題下過亮；token 在深淺兩套各有一組值。
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
+    }).join('');
+    /* o.unit ＝ 這張圖「該怎麼讀」那一行。爆炸圖時代寫的是「由上而下」的拆解順序，
+       改成水平之後方向語意跟著換成「由左到右」，每一張各自照自己的鏈重寫（見各 T.* 的那一行）。*/
+    const unit = o.unit && !MOB ? `<text class="cap" x="${PADX}" y="64">${esc(o.unit)}</text>` : '';
+    return `<svg class="dg dg3" data-cw="${CANW}"${curTid ? ` data-tid="${curTid}"` : ''} viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}
+      <defs><radialGradient id="dg3sh"><stop offset="0" style="stop-color:var(--dg-drop)"/><stop offset=".55" style="stop-color:var(--dg-drop);stop-opacity:.7"/><stop offset="1" style="stop-color:var(--dg-drop);stop-opacity:0"/></radialGradient></defs>
+      <text class="ttl" x="${PADX}" y="24">${esc(o.title)}</text>
+      ${MOB ? `<text class="cap capbtn" x="${PADX}" y="45" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>` : `<text class="cap" x="${PADX}" y="45">${esc(o.cap)}</text>`}
+      ${unit}${bands}${ribbon}${body}
+      <text class="cap" x="${PADX}" y="${sy - 9}">${esc(o.flowTitle || '產業鏈流程')}</text>${strip}
+      <text class="cap" x="${PADX}" y="${H - 12}">原創等角示意圖，非實物比例；每個環節的顏色＝族群色</text>
+    </svg>`;
+  }
+  const S = (id, band, label, sub, codes, seg, art, k) => ({ id, band, label, sub, codes, seg, art, k });
+  /* 帳本 81：點手機直排版的步驟標題 → 收合／展開那一步的卡，整張圖照新狀態重畫（同一個寬度、選起來的環節保留）。
+     capture 階段攔下來並停止傳遞：不然 app.js wireThemeDiagram 的「點背景重設」會把它當成點到空白處。 */
+  function flowTap(e) {
+    const t = e.target, h = t && t.closest && t.closest('svg.dg3v .vstep[role=button]');
+    if (!h) return;
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault(); e.stopPropagation();
+    const svg = h.closest('svg'), root = svg.parentElement, tid = svg.dataset.tid;
+    if (!tid || typeof T[tid] !== 'function') return;
+    const n = svg.querySelectorAll('.vstep').length, i = +h.dataset.i;
+    flowToggle(tid, i, n);
+    const selN = root.querySelector('.p3.stn.sel'), sel = selN && selN.dataset.part;
+    const top = h.getBoundingClientRect().top;
+    if (!rerender(root, +svg.dataset.cw || 0)) return;
+    layout(root);
+    if (typeof root._dg3Rewire === 'function') root._dg3Rewire();
+    if (sel) { const m = root.querySelector(`.p3.stn[data-part="${sel}"]`); if (m) { m.classList.add('sel'); } }
+    // 點的那個標題留在原本的螢幕位置（收起上面一步時不讓它跳走）
+    const h2 = root.querySelector(`svg.dg3v .vstep[data-i="${i}"]`);
+    if (h2) { const d = h2.getBoundingClientRect().top - top; if (Math.abs(d) > 1) window.scrollBy(0, d); if (e.type === 'keydown') { try { h2.focus({ preventScroll: true }); } catch (er) { /* 舊瀏覽器 */ } } }   // 只有鍵盤操作才把焦點移回標題（手指點完不要留焦點外框）
+  }
+  document.addEventListener('click', flowTap, true);
+  document.addEventListener('keydown', flowTap, true);
+
+  /* 手機：點一格（或頁首「說明 ›」）從下方展開完整說明（data-desc／data-cap；只有手機版的圖才有這兩個屬性） */
+  document.addEventListener('click', (e) => {
+    const t = e.target; if (!t || !t.closest || !window.M3 || !window.M3.openSheet) return;
+    const cap = t.closest('svg.dg3 .capbtn');
+    const st = !cap && t.closest('svg.dg3 .p3.stn[data-desc]');
+    if (!cap && !st) return;
+    const head = cap ? '這張圖怎麼看' : st.dataset.lbl;
+    const lines = (cap ? cap.dataset.cap : st.dataset.desc || '').split('\n').filter(Boolean);
+    // 晚一拍開：點一格同時會選起那一格（可能換網址），換網址會把下方說明關掉
+    const html = `<div class="mshhead"><b>${esc(head)}</b></div><div class="mshbody">${lines.map((x) => `<i>${esc(x)}</i>`).join('') || '<i>（這一格沒有額外說明）</i>'}</div>`;
+    setTimeout(() => window.M3.openSheet(html, { kind: 'dg3info' }), 80);
+  }, true);   // capture：題材頁的選取處理會 stopPropagation，冒泡階段收不到
+
+  /* ★ 2026-09-23 批次 0923-D：垂直的爆炸圖版面（explodeScene／EX／EX980／BAND_TAG）在這裡整個刪掉。
+     Andy 原話：「也看到部分提才是垂直版面，題材一律統一水平」。
+     原本八張組裝型題材（AI 伺服器、電源 BBU、散熱、AI PC、機器人、無人機、衛星、車用）走垂直拆解版，
+     改成全部走上面的 chainScene；零件建造函式一支都沒動，換掉的只有版面配置與方向語意
+     （由上而下的「拆解順序」→ 由左到右的「上下游順序」，每張圖的 unit 那一行各自重寫）。
+     上中下游在水平版是靠最上面那條 band 色帶表示，所以 BAND_TAG 那組小標也一起退場。*/
+
+  /* ================================================================ 3D 物件庫
+     每個物件都畫在模型原點附近（約 ±50），放進站點時再平移縮放，
+     十八張圖共用同一批零件，立體角度、光影與厚度才會一致。 */
+  const grid2 = (x, y, w, d, n, m) => { const a = []; for (let i = 1; i < n; i++) a.push(`M${x + w * i / n},${y} V${y + d}`); for (let j = 1; j < m; j++) a.push(`M${x},${y + d * j / m} H${x + w}`); return `<path class="etch" d="${a.join(' ')}"/>`; };
+  const holes = (x, y, w, d, n, m, r) => { const a = []; for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) a.push(`<circle class="etch" cx="${(x + w * (i + .5) / n).toFixed(1)}" cy="${(y + d * (j + .5) / m).toFixed(1)}" r="${r || 2.4}"/>`); return a.join(''); };
+  const trace = (x, y, w, d, n) => { const a = []; for (let j = 0; j < n; j++) { const yy = y + d * (j + .5) / n; a.push(`M${x + 5},${yy} H${x + w * .45} M${x + w * .55},${yy} H${x + w - 5}`); } return `<path class="etch" d="${a.join(' ')}" stroke-dasharray="6 4"/>`; };
+  /* 扇葉（#316 重畫）：以前是七條細弧線，縮到 30px 就糊成一團。改成**實心的彎刀形葉片＋輪轂＋輪轂蓋**，
+     葉片前緣彎、後緣寬 —— 這是「風扇」最強的識別特徵（Andy 09-16：「看到風扇就要有扇片與輪轂」）。
+     整組仍掛 .spin（動態模式會轉、靜止模式停）。*/
+  const blades = (r, n) => {
+    n = n || 7;
+    const rh = r * .3, sw = Math.PI * 2 / n * .64, a = [];
+    const p = (rr, tt) => `${(Math.cos(tt) * rr).toFixed(1)},${(Math.sin(tt) * rr).toFixed(1)}`;
+    for (let i = 0; i < n; i++) {
+      const t = i * 2 * Math.PI / n;
+      a.push(`M${p(rh, t)} Q${p(r * .72, t + sw * .12)} ${p(r, t + sw * .5)} L${p(r * .98, t + sw)} Q${p(r * .62, t + sw * .74)} ${p(rh, t + sw * .5)}Z`);
+    }
+    return `<g class="spin"><path class="part f1 blade" d="${a.join('')}"/><circle class="part f2" r="${rh.toFixed(1)}"/>`
+      + `<circle class="etch" r="${(rh * .45).toFixed(1)}" fill="none"/></g>`;
+  };
+  /* 織紋（#316）：玻纖布是經緯「一上一下」交織的，所以畫成虛線列、相鄰兩列錯開半格 —— 一眼就是布，不是實心塑膠。
+     weaveTop 貼在頂面（模型座標）；weaveFace 貼在立面（onXZ／onYZ 的局部座標 u 沿面、v 往上）。*/
+  const weaveTop = (x, y, w, d, p) => {
+    p = p || 4; const a = [], b = [];
+    for (let j = 0, yy = y + p / 2; yy < y + d; j++, yy += p) a.push(`<path class="weave" d="M${x},${yy.toFixed(1)} H${x + w}" stroke-dasharray="${p} ${p}" stroke-dashoffset="${j % 2 ? p : 0}"/>`);
+    for (let i = 0, xx = x + p / 2; xx < x + w; i++, xx += p) b.push(`<path class="weave2" d="M${xx.toFixed(1)},${y} V${y + d}" stroke-dasharray="${p} ${p}" stroke-dashoffset="${i % 2 ? 0 : p}"/>`);
+    return a.join('') + b.join('');
+  };
+  const weaveFace = (len, v0, v1, p) => {
+    p = p || 4; const a = [];
+    for (let j = 0, v = v0 + 1.4; v < v1 - .6; j++, v += 2.4) a.push(`<path class="${j % 2 ? 'weave2' : 'weave'}" d="M1,${v.toFixed(1)} H${len - 1}" stroke-dasharray="${p} ${p * .6}" stroke-dashoffset="${j % 2 ? p * .8 : 0}"/>`);
+    return a.join('');
+  };
+  // 立面（x = x0 的那一面，沿 +y 展開）：onYZ 只回開標籤，跟 faceXZ 一樣包好收尾
+  const faceYZ = (x0, y0, inner) => onYZ(x0, y0) + inner + '</g>';
+  /* 躺著的圓柱（軸沿 x）：D.cyl 只會畫直立的，布捲、電纜這種「躺著」的東西要自己畫。
+     作法：兩個端面圓各取 36 點投到螢幕 → 取凸包當柱身（f2），靠觀者那一端（x1）畫端面（f1）＋同心捲層。
+     rings＝端面上幾圈捲層的半徑比例；最後一圈是紙管芯（畫成孔）。*/
+  const hcylX = (x0, x1, y, z, r, rings) => {
+    const ring = (x, k) => { const a = []; for (let i = 0; i < 36; i++) { const t = i * Math.PI / 18; a.push([px(x, y + Math.cos(t) * r * k), py(x, y + Math.cos(t) * r * k, z + Math.sin(t) * r * k)]); } return a; };
+    const pts = ring(x0, 1).concat(ring(x1, 1)).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    pts.forEach(p => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); });
+    pts.slice().reverse().forEach(p => { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); });
+    const hull = lo.slice(0, -1).concat(up.slice(0, -1));
+    const poly = (a, cls) => `<path class="${cls}" d="M${a.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L')}Z"/>`;
+    const rs = rings || [];
+    return poly(hull, 'part f2') + poly(ring(x1, 1), 'part f1')
+      + rs.map((k, i) => i === rs.length - 1 ? poly(ring(x1, k), 'm-hole') : poly(ring(x1, k), 'etch')).join('')
+      + `<path class="spec" d="M${P3(x0 + 2, y - r * .2, z + r * .95)} L${P3(x1 - 2, y - r * .2, z + r * .95)}" stroke-width="${(r * .25).toFixed(1)}"/>`;
+  };
+  // 一排小凸塊（C4／微凸塊）：沿模型座標一條線排開，畫在兩層之間的縫裡
+  const bumpRow = (x0, y0, x1, y1, z, n, r) => {
+    const a = [];
+    for (let i = 0; i < n; i++) { const t = n === 1 ? 0 : i / (n - 1), x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+      a.push(`<ellipse class="bump" cx="${px(x, y).toFixed(1)}" cy="${py(x, y, z).toFixed(1)}" rx="${(r || 1.4).toFixed(1)}" ry="${((r || 1.4) * .7).toFixed(1)}"/>`); }
+    return a.join('');
+  };
+  // 落地陰影：中心濃、邊緣淡出的柔影（漸層 #dg3sh 在 chainScene 的 defs），比一塊實心橢圓更像「放在桌上」
+  const pad = (w, d) => onTop(0, `<ellipse class="shadow soft" cx="2" cy="2" rx="${(w * 1.14).toFixed(1)}" ry="${(d * 1.14).toFixed(1)}"/>`);
+
+  /* ================================================================ 零件庫（2026-09-23 全題材改版）
+     改版前的問題（Andy 看 AI 伺服器那張時指出的）：五層都是同一塊格子板換五種顏色，
+     顏色拿掉就完全一樣。所以這一批的判準只有一句：
+       **讀者不點、不轉、關掉文字標籤，也要能從形狀本身認出每一格是什麼零件。**
+     每支函式上面那一行寫的就是「它靠什麼被認出來」—— 那是它存在的理由，不是裝飾。
+
+     三條共通規矩：
+       1. **不用 D.cells()**。它會自動加 `lit pulse`，那就是改版前「藍色晶片一直在呼吸」的來源
+          （Andy 講過三次「螢光感太重」）。自體發光只留給狀態燈（.ai-led）、流體流向（.flow）、
+          光纖與光束（.m-beam／.m-fib）。
+       2. 顏色一律走 --dg-* token。材料本身有顏色的（鋁、銅、金、鋼、矽、玻璃、陶瓷、樹脂、油）
+          用 mat() 換材質，其餘讓 f1/f2/f3 吃環節色 —— 右邊卡片與左邊零件的連動才不會斷。
+       3. 等角投影下一個扁平物件的螢幕寬高比上限 ＝ 0.866/0.5 ＝ 1.73；chainScene 的格子在
+          980 畫布上只有 177px 寬，所以鏈上的零件模型座標控制在 x,y ∈ ±44、z ≤ 60。 */
+
+  /* ---------------------------------------------------------------- 材質樣式表（2026-09-23）
+     為什麼需要它：等角的三個面（f1 頂／f2 右／f3 左）預設吃**環節色**，
+     那正是改版前「五層都是同一塊板換五種顏色」的根源。
+     但「鋁鰭片」「銅排」「玻璃」「陶瓷套管」「電芯」是靠**材料顏色**被認出來的 ——
+     所以這裡讓每個 .m-* 只宣告三個面的顏色，共用 .mt 那一條規則套上去。
+     ⚠ 只有「材料本身就有顏色」的東西才脫離環節色，其餘一律留給 f1/f2/f3，
+       右邊卡片與左邊零件的連動（點成員 → 圖上同色亮起）才不會斷。
+     ⚠ 值全部是 --dg-* token，深淺兩個主題各有一組，所以淺色不會整片變灰。
+     ⚠ 這段註解裡不准出現角括號（DECISIONS #231：SVG 裡的 style 會被當標記解析）。*/
+  const MAT_STYLE = `<style>
+    .dg3 .mt .f1{fill:var(--fa)} .dg3 .mt .f2{fill:var(--fb)} .dg3 .mt .f3{fill:var(--fc)}
+    .dg3 .m-al{--fa:var(--dg-alu);--fb:var(--dg-alu-2);--fc:var(--dg-alu-3)}
+    .dg3 .m-st{--fa:var(--dg-steel);--fb:var(--dg-steel-2);--fc:color-mix(in srgb,var(--dg-steel-2) 72%,var(--dg-sh0))}
+    .dg3 .m-cu{--fa:var(--dg-cu-lit);--fb:var(--dg-cu);--fc:var(--dg-cu-dim)}
+    .dg3 .m-au{--fa:var(--dg-au);--fb:color-mix(in srgb,var(--dg-au) 78%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-au) 60%,var(--dg-sh0))}
+    .dg3 .m-sn{--fa:var(--dg-sn);--fb:var(--dg-ni);--fc:color-mix(in srgb,var(--dg-ni) 70%,var(--dg-sh0))}
+    .dg3 .m-ni{--fa:var(--dg-ni);--fb:color-mix(in srgb,var(--dg-ni) 80%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-ni) 60%,var(--dg-sh0))}
+    .dg3 .m-si{--fa:var(--dg-si);--fb:var(--dg-si-2);--fc:var(--dg-die)}
+    .dg3 .m-epi{--fa:color-mix(in srgb,var(--dg-si) 64%,var(--dg-sn));--fb:var(--dg-si);--fc:var(--dg-si-2)}
+    .dg3 .m-emc{--fa:color-mix(in srgb,var(--dg-emc) 82%,var(--dg-sn));--fb:var(--dg-emc);--fc:color-mix(in srgb,var(--dg-emc) 74%,var(--dg-sh0))}
+    .dg3 .m-pcb{--fa:var(--dg-pcb);--fb:var(--dg-pcb-2);--fc:color-mix(in srgb,var(--dg-pcb-2) 72%,var(--dg-sh0))}
+    .dg3 .m-core{--fa:var(--dg-core);--fb:var(--dg-core-2);--fc:color-mix(in srgb,var(--dg-core-2) 72%,var(--dg-sh0))}
+    .dg3 .m-abf{--fa:var(--dg-abf);--fb:var(--dg-abf-2);--fc:color-mix(in srgb,var(--dg-abf-2) 74%,var(--dg-sh0))}
+    .dg3 .m-pp{--fa:var(--dg-pp);--fb:color-mix(in srgb,var(--dg-pp) 80%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-pp) 62%,var(--dg-sh0))}
+    .dg3 .m-cloth{--fa:var(--dg-yarn);--fb:var(--dg-weave);--fc:color-mix(in srgb,var(--dg-weave) 72%,var(--dg-sh0))}
+    .dg3 .m-cer{--fa:var(--dg-cer);--fb:var(--dg-cer-2);--fc:var(--dg-cer-cut)}
+    .dg3 .m-res{--fa:color-mix(in srgb,var(--dg-resin) 82%,var(--dg-sn));--fb:var(--dg-resin);--fc:color-mix(in srgb,var(--dg-resin) 70%,var(--dg-sh0))}
+    .dg3 .m-gl{--fa:var(--dg-glass);--fb:color-mix(in srgb,var(--dg-glass) 78%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-glass) 60%,var(--dg-sh0))}
+    .dg3 .m-gl .part{fill-opacity:.62}
+    .dg3 .m-fluid{--fa:var(--dg-cold);--fb:var(--dg-cold-2);--fc:var(--dg-cold-2)}
+    .dg3 .m-fluid .part{fill-opacity:.5}
+    .dg3 .m-oil{--fa:color-mix(in srgb,var(--dg-oil) 72%,var(--dg-cer));--fb:var(--dg-oil);--fc:color-mix(in srgb,var(--dg-oil) 66%,var(--dg-sh0))}
+    .dg3 .m-cell{--fa:color-mix(in srgb,var(--dg-alu) 64%,var(--dg-cu));--fb:color-mix(in srgb,var(--dg-alu-2) 60%,var(--dg-cu));--fc:color-mix(in srgb,var(--dg-alu-3) 62%,var(--dg-cu))}
+    .dg3 .m-mag{--fa:color-mix(in srgb,var(--dg-mag) 82%,var(--dg-sn));--fb:var(--dg-mag);--fc:color-mix(in srgb,var(--dg-mag) 70%,var(--dg-sh0))}
+    .dg3 .m-wick{--fa:var(--dg-wick);--fb:color-mix(in srgb,var(--dg-wick) 78%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-wick) 60%,var(--dg-sh0))}
+    .dg3 .m-sol{--fa:var(--dg-sr);--fb:var(--dg-sr-2);--fc:color-mix(in srgb,var(--dg-sr-2) 72%,var(--dg-sh0))}
+    .dg3 .m-hv{--fa:color-mix(in srgb,var(--dg-hot) 76%,var(--dg-sn));--fb:var(--dg-hot);--fc:var(--dg-hot-2)}
+    .dg3 .m-flex{--fa:var(--dg-mc-flex,color-mix(in srgb,var(--dg-steel) 58%,var(--dg-cu)));--fb:color-mix(in srgb,var(--dg-steel-2) 60%,var(--dg-cu));--fc:color-mix(in srgb,var(--dg-steel-2) 72%,var(--dg-sh0))}
+    .dg3 .m-cam{--fa:var(--dg-mc-cam,color-mix(in srgb,var(--dg-steel-2) 72%,var(--dg-el)));--fb:var(--dg-steel-2);--fc:color-mix(in srgb,var(--dg-steel-2) 66%,var(--dg-sh0))}
+    .dg3 .m-sack{--fa:var(--dg-sack);--fb:color-mix(in srgb,var(--dg-sack) 80%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-sack) 64%,var(--dg-sh0))}
+    .dg3 .m-mhi{--fa:var(--dg-metal-hi);--fb:color-mix(in srgb,var(--dg-metal-hi) 82%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-metal-hi) 66%,var(--dg-sh0))}
+    .dg3 .m-damp{--fa:color-mix(in srgb,var(--dg-tim) 84%,var(--dg-sn));--fb:var(--dg-tim);--fc:color-mix(in srgb,var(--dg-tim) 68%,var(--dg-sh0))}
+    /* 換了材質的零件不吃 --m1/2/3，所以 hover／選取時原本那一階「變亮」會失效。
+       在群組上加一點亮度（不是在 .part 上，免得蓋掉它自己的描邊與光暈）——
+       這樣「點一格 → 那一格亮起來」在材質零件上也還在，互動一個都沒掉。*/
+    .dg3 .p3:hover .mt,.dg3 .p3.sel .mt{filter:brightness(1.1)}
+    .dg3 .p3.sel-part .mt{filter:brightness(1.18)}
+    /* ---- 線、孔、光：這幾個不是「面」，所以直接給筆畫或填色 ---- */
+    .dg3 .m-hole{fill:var(--dg-sh0);fill-opacity:.5;stroke:none}
+    .dg3 .m-wind{fill:none;stroke:var(--dg-cu);stroke-width:2.4;stroke-opacity:.9}
+    .dg3 .m-ring{fill:none;stroke:var(--dg-alu-2);stroke-width:4.5;stroke-linecap:round}
+    .dg3 .m-pipe{fill:none;stroke:var(--dg-cu);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+    .dg3 .m-sheath-o{fill:none;stroke:var(--dg-cable-edge);stroke-width:8;stroke-linecap:round}
+    .dg3 .m-sheath{fill:none;stroke:var(--dg-cable);stroke-width:6;stroke-linecap:round}
+    .dg3 .m-braid{fill:none;stroke:var(--dg-alu);stroke-width:1.1;stroke-opacity:.75;stroke-dasharray:1.6 2.4}
+    .dg3 .m-tie{fill:none;stroke:var(--dg-tie);stroke-width:2;stroke-linecap:round}
+    .dg3 .m-lcd{fill:var(--dg-sig);fill-opacity:.32;stroke:none}
+    .dg3 .m-corr{fill:none;stroke:var(--dg-cable);stroke-width:7;stroke-dasharray:1.4 1.2}
+    .dg3 .m-cable{fill:none;stroke:var(--dg-resin);stroke-width:3.4;stroke-linecap:round}
+    .dg3 .m-hvcable{fill:none;stroke:var(--dg-hot);stroke-width:5;stroke-linecap:round;stroke-opacity:.9}
+    .dg3 .m-flexline{fill:none;stroke:var(--dg-cu);stroke-width:1.6;stroke-opacity:.85;stroke-dasharray:5 4}
+    .dg3 .m-fib{fill:none;stroke:var(--dg-sw-fiber);stroke-width:1.8;stroke-opacity:.85;stroke-linecap:round}
+    .dg3 .m-pull{fill:none;stroke:var(--dg-hot);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+    .dg3 .m-grating{fill:var(--dg-au);fill-opacity:.85;stroke:none}
+    .dg3 .m-eye{fill:none;stroke:var(--dg-sig);stroke-width:1.4;stroke-opacity:.9}
+    /* 光束／波束：唯一保留的「自體發光」之一。用實色低透明度，不加 filter，
+       科技與閱讀兩種模式都只是一塊半透明的錐形，不會變成電競 RGB。*/
+    .dg3 .m-beam{fill:var(--dg-sig);fill-opacity:.26;stroke:var(--dg-sig);stroke-opacity:.45;stroke-width:.8}
+  </style>`;
+
+  // 材質外衣：把一組零件包進去就換一種材料色（每個 .m-* 只定義 --fa/--fb/--fc 三個面，規則在 MAT_STYLE）
+  const mat = (c, s) => `<g class="mt ${c}">${s}</g>`;
+  // 頂面上的孔（螺栓孔、通孔、銑槽）
+  const bolt = (pts, r) => pts.map(p => `<circle class="m-hole" cx="${p[0]}" cy="${p[1]}" r="${r || 3}"/>`).join('');
+  // 一排圓柱：電芯、套管、電容、滾輪都靠「一排圓的」被認出來
+  const cylRow = (x0, y0, dx, dy, z, r, h, n, inner) => {
+    let s = '';
+    for (let i = 0; i < n; i++) s += cyl(x0 + dx * i, y0 + dy * i, z, r, h, inner || '');
+    return s;
+  };
+  // 接點陣列：載板的 pad、BGA 球墊、陣列天線的貼片（畫在頂面或立面都可以）
+  const padArr = (x, y, w, d, nx, ny, cls) => {
+    const a = [], cw = w / nx, ch = d / ny;
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++)
+      a.push(`<rect class="${cls || 'ai-au'}" x="${(x + i * cw + cw * .2).toFixed(1)}" y="${(y + j * ch + ch * .2).toFixed(1)}" width="${(cw * .6).toFixed(1)}" height="${(ch * .6).toFixed(1)}" rx="1"/>`);
+    return a.join('');
+  };
+  // 繞組／線圈：一圈一圈的銅線。看到它就知道是馬達、變壓器、音圈、電感
+  const winding = (cx, cy, rx, ry, n, dy) => {
+    const a = [];
+    for (let i = 0; i < n; i++) a.push(`<ellipse class="m-wind" cx="${cx.toFixed(1)}" cy="${(cy + i * dy).toFixed(1)}" rx="${rx}" ry="${ry}"/>`);
+    return a.join('');
+  };
+  // 垂直面（沿 x 展開）上的蝕刻：onXZ 只回開標籤，所以統一包成這支，免得有人忘了收尾
+  const faceXZ = (x0, y0, inner) => onXZ(x0, y0) + inner + '</g>';
+  // 錐狀光束／波束：從 a 點打到 b 半徑 r 的圓面上（雷射、天線波束、曝光光路共用）
+  const beam = (a, b, r) => `<path class="m-beam" d="M${P3(a[0], a[1], a[2])} L${P3(b[0] - r, b[1] - r, b[2])} L${P3(b[0] + r, b[1] + r, b[2])}Z"/>`;
+
+  /* ---------------- 材料與晶圓 ---------------- */
+  // 單晶棒切晶圓：一根帶錐頭的圓柱 ＋ 旁邊切下來的三片薄片（「還是材料」的樣子）
+  /* #316：晶棒＝帶錐肩的圓柱＋頂上細細的晶種頸；側面一條從頭到尾的軸向 notch 溝（silicon_wafer.md §3-A C5：
+     溝是整根的，不是只在一端點一個洞）；旁邊切下來的三片薄晶圓，最上面那片已經看得到晶粒格。*/
+  const dIngot = () => {
+    const sx = 19 * 1.2247 * .62;   // notch 溝畫在側面偏右（靠觀者）那一側
+    return pad(40, 24)
+      + mat('m-si', cyl(-16, -4, 0, 19, 44, '') + cyl(-16, -4, 44, 14, 5, '') + cyl(-16, -4, 49, 8, 5, '') + cyl(-16, -4, 54, 2.6, 7, ''))
+      + `<path class="ai-seam" d="M${(px(-16, -4) + sx).toFixed(1)},${(py(-16, -4, 44) + 9.4).toFixed(1)} V${(py(-16, -4, 0) + 9.4).toFixed(1)}"/>`
+      + mat('m-si', [0, 1, 2].map(i => cyl(18 + i * 3, 10 + i * 9, 2 + i * 3.4, 16, 2.4, i === 2 ? grid2(-11, -11, 22, 22, 4, 4) + '<circle class="etch" r="13.5" fill="none"/>' : '')).join(''));
+  };
+  /* 晶圓（#316 重畫）：細的晶粒格（9×9、每格 6.2）＋ 邊緣**切不完整的殘缺晶粒**（較暗，silicon_wafer.md 的第 13 項）
+     ＋ 邊緣排除環 ＋ 定位缺口 ＋ 一道斜向反光。缺口與殘缺邊是「這是晶圓不是盤子」的兩個關鍵。*/
+  const dWafer = () => {
+    const R = 32, P = 7, id = 'dg3wc' + (++clipSeq), full = [], dead = [];
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+      const x = -31.5 + i * P, y = -31.5 + j * P;
+      const cs = [[x, y], [x + 6.2, y], [x, y + 6.2], [x + 6.2, y + 6.2]].map(c => Math.hypot(c[0], c[1]));
+      const r = `x="${x}" y="${y}" width="6.2" height="6.2" rx=".5"`;
+      if (Math.max(...cs) < R - 3) full.push(`<rect class="etch" ${r} fill="none"/>`);
+      else if (Math.min(...cs) < R - 1.2) dead.push(`<rect class="dead" ${r}/>`);
+    }
+    const inner = `<defs><clipPath id="${id}"><circle r="${R - 1.2}"/></clipPath></defs><g clip-path="url(#${id})">${dead.join('')}</g>${full.join('')}`
+      + `<circle class="etch" r="${R - 2.2}" fill="none" stroke-opacity=".45"/>`
+      + `<ellipse class="sheen" cx="-4" cy="-4" rx="${R * .82}" ry="4.5" transform="rotate(-45)" opacity=".7"/>`
+      + `<path class="m-hole" d="M-3.4,${-R + .2} L0,${-R + 4.6} L3.4,${-R + .2}Z"/>`;
+    return pad(42, 26) + mat('m-si', cyl(0, 0, 0, R, 4, inner));
+  };
+  // 磊晶片：晶圓上再長幾層越縮越小的薄膜，邊緣看得到台階（磊晶＝長出來的層）
+  const dEpiWafer = () => pad(42, 26) + mat('m-si', cyl(0, 0, 0, 31, 6, ''))
+    // #316：最上面那層磊晶膜上補細晶粒格（化合物元件是在磊晶層上做出來的）＋一道反光
+    + [0, 1, 2].map(i => mat('m-epi', cyl(0, 0, 6 + i * 3, 28 - i * 5, 3, i === 2
+      ? grid2(-12, -12, 24, 24, 6, 6) + `<circle class="etch" r="17" fill="none"/><ellipse class="sheen" rx="14" ry="2.6" transform="rotate(-45)" opacity=".7"/>` : ''))).join('');
+  // 玻纖布捲 ＋ 樹脂桶：一捲帶經緯紋理的布，旁邊一個圓桶（PCB 的原料就是這兩樣）
+  /* #316 重畫：以前是一個直立圓盤＋一塊方塊，看不出是「布捲」。改成**躺著的布捲**（橫向圓柱，端面一圈圈捲層＋紙管芯），
+     從捲的下緣拉出一段攤平的布、頂面看得到經緯織紋；旁邊的樹脂桶帶桶蓋與兩道加強箍。*/
+  const dClothRoll = () => {
+    const Y = -14, Z = 14, R = 14, X0 = -44, X1 = 8;
+    const sheet = box(-30, Y + 4, 0, 38, 40, 1.6, weaveTop(-30, Y + 4, 38, 40, 4));
+    return pad(44, 27)
+      + mat('m-cloth', sheet + hcylX(X0, X1, Y, Z, R, [.78, .56, .36]))
+      + mat('m-res', cyl(28, 16, 0, 14, 30, `<circle class="etch" r="10.5" fill="none"/><circle class="m-hole" cx="6" cy="-4" r="2"/>`))
+      + [9, 22].map(z => `<path class="etch" d="M${(px(28, 16) - 14 * 1.2247).toFixed(1)},${py(28, 16, z).toFixed(1)} A${(14 * 1.2247).toFixed(1)},${(14 * .7071).toFixed(1)} 0 0 0 ${(px(28, 16) + 14 * 1.2247).toFixed(1)},${py(28, 16, z).toFixed(1)}" fill="none"/>`).join('');
+  };
+  // 玻璃板：兩片半透明薄板疊著 ＋ 表面斜向高光（透光才像玻璃，實心方塊不像）
+  const dGlassPane = () => {
+    const hl = [];
+    for (let i = 0; i < 4; i++) hl.push(`M${P3(-30 + i * 17, -22, 12)} L${P3(-14 + i * 17, 22, 12)}`);
+    return pad(44, 27)
+      + mat('m-gl', box(-40, -28, 0, 80, 56, 4, '') + box(-34, -22, 8, 68, 44, 4, ''))
+      + `<path class="ai-seam" d="${hl.join(' ')}"/>`;
+  };
+  // 電纜捲盤：兩片側板夾一捲纜 ＋ 斷面露出的銅芯 ＋ 拉出來的一段（捲盤＝電線電纜）
+  const dCableDrum = () => pad(38, 24)
+    + mat('m-st', cyl(0, 0, 0, 33, 5, '') + cyl(0, 0, 42, 33, 5, ''))
+    + mat('m-cu', cyl(0, 0, 5, 23, 37, ''))
+    + mat('m-cu', faceXZ(0, -23, `<path class="etch" d="M-16,10 H16 M-16,18 H16 M-16,26 H16 M-16,34 H16"/>`))
+    + `<path class="m-cable" d="M${P3(23, 0, 40)} C${P3(44, 10, 34)} ${P3(50, 26, 16)} ${P3(50, 34, 4)}"/>`;
+
+  /* ---------------- 設備與機台 ---------------- */
+  // 濕製程機台（★ 2026-10-07 第三批結構把關）：一台有外殼的機台 —— 底座、背板、側板、頂蓋（含頂部風扇濾網 FFU），
+  // 正面一大片觀察窗（半透明，看得到裡面兩個藥液槽與液面）；窗內一支有關節的搬運手臂（底座→上臂→肘關節→前臂→夾爪），
+  // 機台左前方伸出一座 load port 平台，上面放著一個 FOUP。順序：先畫機殼後半與內容物，最後蓋上前窗。
+  const dWetBench = () => {
+    const X = -34, Y = -24, W = 66, D = 40, H = 46;
+    return pad(42, 26)
+      + mat('m-st', box(X, Y, 0, W, D, 8, ''))
+      + mat('m-st', box(X, Y, 8, W, 2, H - 8, '') + box(X, Y, 8, 2, D, H - 8, ''))
+      + [X + 6, X + 34].map(x => mat('m-st', box(x, Y + 6, 8, 24, 22, 10, ''))
+        + mat('m-fluid', box(x + 2, Y + 8, 10, 20, 18, 7, `<path class="ai-chan" d="M${x + 5},${Y + 13} H${x + 19} M${x + 5},${Y + 20} H${x + 19}"/>`))).join('')
+      + (() => { const ay = Y + D - 8;   // 手臂放在槽的前方，從觀察窗看得到：底座→直立上臂→肘關節→水平前臂→腕關節→下垂夾爪
+        return mat('m-al', cyl(X + 30, ay, 8, 4, 5, '') + box(X + 28.5, ay - 1.5, 13, 3, 3, 18, '') + cyl(X + 30, ay, 30, 3.2, 3.4, '')
+          + box(X + 30, ay - 1.5, 30.6, 16, 3, 2.6, '') + cyl(X + 46, ay, 29.6, 2.8, 4, '') + box(X + 45, ay - 1, 20, 2, 2, 10, '')
+          + box(X + 41.5, ay - 1, 19, 9, 2, 1.6, '') + box(X + 41.5, ay - 1, 14, 1.4, 2, 5, '') + box(X + 49.1, ay - 1, 14, 1.4, 2, 5, '')); })()
+      + mat('m-st', box(X, Y, H, W, D, 3, `<rect class="m-hole" x="${X + 8}" y="${Y + 8}" width="22" height="${D - 16}" rx="1"/><rect class="m-hole" x="${X + 36}" y="${Y + 8}" width="22" height="${D - 16}" rx="1"/>`))
+      + mat('m-st', box(X + W - 2, Y, 8, 2, D, H - 8, ''))
+      + mat('m-gl', box(X, Y + D - 1.4, 8, W, 1.4, H - 8, ''))
+      + aiFace(X, Y + D, 8, `<rect class="etch" x="2" y="2" width="${W - 4}" height="${H - 12}" rx="1.5" fill="none"/><circle class="ai-led" cx="${W - 5}" cy="${H - 13}" r="1.6"/>`)
+      // load port：機台**正面**（觀察窗那一面）下方伸出的平台，晶圓盒（FOUP）坐在平台上
+      + mat('m-st', box(X + 4, Y + D, 0, 22, 14, 16, '') + box(X + 2, Y + D - 1, 16, 26, 18, 2, ''))
+      + mat('m-res', box(X + 5, Y + D + 1, 18, 20, 15, 14, '') + box(X + 10, Y + D + 5, 32, 10, 7, 2.4, ''));
+  };
+  // 雷射加工機：龍門橫樑 ＋ 雷射頭 ＋ 往下收斂的光束打在工作台上（光束就是識別特徵）
+  const dLaserTool = () => pad(40, 25)
+    + box(-40, -26, 0, 80, 52, 12, grid2(-40, -26, 80, 52, 4, 3))
+    + mat('m-al', box(-40, -6, 12, 8, 12, 42, '') + box(32, -6, 12, 8, 12, 42, '') + box(-40, -6, 54, 80, 12, 8, ''))
+    + mat('m-st', box(-8, -4, 44, 16, 8, 10, ''))
+    + beam([0, 0, 44], [0, 0, 12], 4)
+    + `<circle class="ai-led" cx="${px(0, 0).toFixed(1)}" cy="${py(0, 0, 12).toFixed(1)}" r="3"/>`;
+  // 壓合機：上下兩片厚壓板 ＋ 四根導柱 ＋ 中間一疊板材 ＋ 往下壓的箭頭（多層板是壓出來的）
+  const dPress = () => pad(40, 25)
+    + mat('m-st', box(-38, -26, 0, 76, 52, 9, ''))
+    + [[-35, -23], [29, -23], [-35, 19], [29, 19]].map(p => mat('m-st', cyl(p[0] + 3, p[1] + 3, 9, 4, 48, ''))).join('')
+    + mat('m-pcb', [0, 1, 2, 3].map(i => box(-26, -18, 11 + i * 5, 52, 36, 3.4, '')).join(''))
+    + mat('m-st', box(-38, -26, 34, 76, 52, 11, grid2(-38, -26, 76, 52, 3, 2)))
+    + `<path class="etch" d="M${px(0, -32).toFixed(1)},${(py(0, -32, 52) - 12).toFixed(1)} v12 m-5,-5 l5,5 l5,-5" fill="none"/>`;
+  // 電鍍槽（★ 2026-10-07 第三批 B）：開口的塑膠槽（四面槽壁比內容物矮），槽內藥液面；
+  // 槽口上方一根橫樑（掛架），兩側各垂下一片銅陽極，中間吊著一片待鍍的**玻璃基板**（夾具夾住上緣）；
+  // 液面上一排小氣泡表示攪拌。「開口槽＋兩側陽極＋中間吊一片板」＝電鍍。
+  const dPlateBath = () => pad(40, 25)
+    + mat('m-pp', box(-38, -24, 0, 76, 48, 4, '') + box(-38, -24, 4, 76, 3, 22, '') + box(-38, -24, 4, 3, 48, 22, ''))
+    + mat('m-fluid', box(-35, -21, 4, 70, 42, 18, `<path class="ai-chan" d="M-28,-12 H28 M-28,2 H28"/>`))
+    + mat('m-cu', box(-28, -14, 10, 4, 28, 30, '') + box(24, -14, 10, 4, 28, 30, ''))
+    + mat('m-gl', box(-2, -16, 12, 3, 32, 26, ''))
+    + mat('m-st', box(-2.5, -12, 36, 4, 4, 6, '') + box(-2.5, 8, 36, 4, 4, 6, ''))
+    + mat('m-st', box(-40, -2, 40, 80, 4, 4, ''))
+    + mat('m-pp', box(35, -24, 4, 3, 48, 22, '') + box(-38, 21, 4, 76, 3, 22, ''))
+    + [[-14, 6], [-8, -4], [10, 4], [16, -8], [14, 12]].map(q => `<circle class="etch" cx="${px(q[0], q[1]).toFixed(1)}" cy="${py(q[0], q[1], 26).toFixed(1)}" r="1.4" fill="none"/>`).join('');
+  // 晶圓載具 FOUP：方盒 ＋ 頂部吊環 ＋ 前門 ＋ 裡面一疊晶圓槽（吊環是它最好認的地方）
+  const dFoup = () => {
+    /* ★ 2026-10-07 結構把關：FOUP＝側面與背面是**圓弧外殼**（不是立方體），前面一整片平的門板（兩個鎖孔）；
+       頂上一塊明顯凸出的 OHT 夾持法蘭；兩側提把；半透明殼與門看得到裡面水平疊放的晶圓邊緣。*/
+    const wafers = [];
+    for (let i = 0; i < 6; i++) wafers.push(cyl(0, -2, 6 + i * 6.2, 19, 1.2, ''));
+    return pad(34, 24)
+      // 左側提把（背光面，先畫、讓半透明外殼蓋在上面）：立在弧面中段的「ㄇ」—— 上下兩支腳水平伸出、外端一根直立橫桿，中間鏤空
+      + mat('m-st', box(-32, -5.5, 13, 7, 3, 3, '') + box(-32, -5.5, 29, 7, 3, 3, '') + box(-35, -5.5, 13, 3, 3, 19, ''))
+      + mat('m-si', wafers.join(''))
+      + mat('m-gl', cyl(0, -4, 0, 25, 42, ''))
+      + mat('m-gl', box(-25, 16, 0, 50, 4, 42, ''))
+      + aiFace(-25, 20, 0, `<circle class="m-hole" cx="15" cy="20" r="2.6"/><circle class="m-hole" cx="35" cy="20" r="2.6"/>`)
+      + mat('m-res', box(-5, -9, 42, 10, 10, 5, '') + box(-15, -19, 47, 30, 30, 3, ''))
+      // 提把：左右弧面中段（y 置中於殼心 -4、離門板 y=16 留 8 以上間隙）的「ㄇ」字把手，兩支腳＋一根橫桿、中間鏤空；
+      // 用鋼色，跟樹脂門框區隔。左側那支在背光面，先畫、讓半透明外殼蓋在上面。
+      // 右側提把：同一個「ㄇ」，立在右側弧面中段
+      + mat('m-st', box(24, -5.5, 13, 7, 3, 3, '') + box(24, -5.5, 29, 7, 3, 3, '') + box(31, -5.5, 13, 3, 3, 19, ''));
+  };
+  // 精密零件：一片帶螺栓孔的法蘭 ＋ 波紋管 ＋ 一根軸（設備廠上游賣的就是這種東西）
+  const dPrecisionPart = () => pad(36, 23)
+    + mat('m-st', cyl(0, 0, 0, 29, 7, bolt([[-20, 0], [20, 0], [0, -20], [0, 20], [-14, -14], [14, 14]], 3.2) + `<circle class="etch" r="13" fill="none"/>`))
+    + mat('m-st', [0, 1, 2, 3, 4].map(i => cyl(0, 0, 7 + i * 6, i % 2 ? 11 : 15, 5, '')).join(''))
+    + mat('m-st', cyl(0, 0, 37, 7, 16, ''));
+  // 測試分類機：上方探針卡（一排探針往下）＋ 下方待測晶粒盤 ＋ 側邊出料軌道（封測那一段）
+  const dTestHandler = () => pad(38, 24)
+    + box(-38, -24, 0, 76, 48, 16, '')
+    + mat('m-al', box(-24, -16, 24, 44, 34, 12, grid2(-24, -16, 44, 34, 3, 2)))
+    + [[-14, -8], [0, -8], [14, -8], [-14, 6], [0, 6], [14, 6]]
+      .map(p => `<path class="ai-seam" d="M${P3(p[0], p[1], 24)} L${P3(p[0], p[1], 19)}"/>`).join('')
+    + mat('m-si', box(-20, -12, 16, 36, 26, 3, padArr(-20, -12, 36, 26, 4, 3, 'ai-seam')))
+    + mat('m-st', box(30, -6, 16, 24, 12, 4, ''));
+  // 晶圓廠：無塵室廠房 ＋ 屋頂一整排風機 ＋ 側面管線橋（資本支出最後蓋成的樣子）
+  const dFab = () => pad(42, 26)
+    + box(-42, -28, 0, 84, 56, 30, '')
+    + box(-38, -24, 30, 76, 48, 5, '')
+    + [0, 1, 2].map(i => [0, 1].map(j => cyl(-26 + i * 26, -12 + j * 24, 35, 8, 5, blades(6, 6))).join('')).join('')
+    + mat('m-st', cyl(-40, 22, 30, 4, 18, '') + box(-56, 18, 46, 18, 8, 5, ''))
+    + aiFace(-38, 28, 2, [0, 1, 2].map(i => `<rect class="ai-port" x="${14 + i * 22}" y="4" width="14" height="12" rx="1"/>`).join(''));
+
+  /* ---------------- 晶片、封裝與板 ---------------- */
+  // 裸晶盤：切割後的晶粒一顆一顆排在圓框膜上（顆粒製造＝還沒封裝的「一顆一顆」）
+  const dDieTray = () => {
+    let s = '';
+    for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
+      if (i * i + j * j <= 5) s += box(i * 13 - 5, j * 13 - 5, 4, 10, 10, 3.4, '');
+    return pad(40, 25) + mat('m-st', cyl(0, 0, 0, 36, 4, '')) + mat('m-si', s);
+  };
+  // CoWoS 封裝：中央大邏輯晶粒 ＋ 兩側各四疊 HBM ＋ 底下矽中介層 ＋ 一排錫球（見 vaPackage）
+  /* #316 重畫，由下而上（層別順序照 hbm_stack.md 區 C／semiconductor() 的 CoWoS 剖面）：
+     載板（表面走線、邊上幾顆被動元件、底下錫球）→ C4 凸塊（看得到的一排小球）→ 矽中介層（露出的邊上有 RDL 走線）
+     → 正中央邏輯晶粒（核心格）＋ 左右各 4 疊 HBM（每疊＝底下一片 base die ＋ 6 層 core die，看得出是一疊）。
+     HBM 疊的總高 ≈ 邏輯晶粒高（實物兩者都約 0.7～0.8mm，CoWoS 才能共用一片上蓋／散熱器）。*/
+  const dCowosPkg = () => {
+    const hbm = (x, y) => mat('m-emc', box(x, y, 9.4, 9, 18, 1.6, '')) + mat('m-si', aiPile(x, y, 11.4, 9, 18, 6, 1.3, .5));
+    return pad(44, 27)
+      + mat('m-pcb', box(-42, -28, 0, 84, 56, 5, trace(-42, -28, 84, 56, 4)))
+      + aiBalls(-34, 27, 34, 27, 9)
+      + mat('m-cer', [[-41, -27], [-41, 22], [36, -27], [-30, 24.5], [26, 24.5]].map(p => box(p[0], p[1], 5, 4, 2.4, 1.8, '')).join(''))
+      + bumpRow(-34, 23.4, 34, 23.4, 5.8, 14, 1.2) + bumpRow(36.4, -21, 36.4, 21, 5.8, 9, 1.2)
+      + mat('m-si', box(-36, -23, 6.6, 72, 46, 2.8, `<path class="cul" d="M-9,-19 H-30 M-9,19 H-30 M9,-19 H30 M9,19 H30" stroke-width=".6"/>`))
+      + mat('m-emc', box(-11, -16, 9.4, 22, 32, 1.4, ''))
+      + mat('m-si', box(-10.5, -15.5, 10.8, 21, 31, 9.6, grid2(-10.5, -15.5, 21, 31, 3, 4) + `<rect class="sheen" x="-9" y="-14" width="6" height="28" rx="1" opacity=".5"/>`))
+      + [[-33, -21], [-22, -21], [-33, 2], [-22, 2], [13, -21], [24, -21], [13, 2], [24, 2]].map(p => hbm(p[0], p[1])).join('');
+  };
+  // 封裝成品：載板 ＋ 金屬上蓋 ＋ 底部整排錫球（有上蓋＝封裝好了，跟裸露的封裝分得開）
+  const dSubstrateBga = () => pad(44, 27)
+    + mat('m-pcb', box(-40, -28, 0, 80, 56, 6, ''))
+    + aiBalls(-32, 27, 32, 27, 9) + aiBalls(38, -20, 38, 20, 7)
+    // #316：上蓋周圍一圈去耦電容（載板上真的有，封裝成品的辨識點之一）＋ 上蓋頂面一道反光
+    + mat('m-cer', [-30, -18, -6, 6, 18].map(x => box(x, -26.6, 6, 4, 2.4, 1.8, '')).join('') + [-16, -4, 8].map(y => box(35, y, 6, 2.4, 4, 1.8, '')).join(''))
+    + mat('m-al', box(-34, -22, 6, 68, 44, 10, `<rect class="sheen" x="-30" y="-18" width="10" height="36" rx="2" opacity=".6"/>`))
+    + mat('m-au', onTop(6, aiGold(-32, 24, 60, 5, 10)));
+  // 控制 IC：方形黑體 ＋ 四邊露出的引腳 ＋ 第一腳圓點（QFN 的樣子）
+  const dQfnChip = () => {
+    const pins = [];
+    for (let i = 0; i < 5; i++) {
+      pins.push(box(-22 + i * 10, -30, 1, 7, 4, 4, ''), box(-22 + i * 10, 26, 1, 7, 4, 4, ''),
+        box(-30, -22 + i * 10, 1, 4, 7, 4, ''), box(26, -22 + i * 10, 1, 4, 7, 4, ''));
+    }
+    return pad(36, 23)
+      + mat('m-emc', box(-26, -26, 0, 52, 52, 12, `<circle class="ai-seam" cx="-18" cy="-18" r="4" fill="none"/>`))
+      + mat('m-sn', pins.join(''));
+  };
+  // HBM 堆疊：一疊薄晶粒（層與層之間留得出接縫）＋ 貫穿的 TSV 銅柱 ＋ 底下邏輯基底
+  /* #316 重畫（hbm_stack.md 區 A 的層別）：中介層 → 對外凸塊 → 最底下 base die（邏輯，顏色較深）
+     → 8 層 core die（同色同厚）→ 每兩層之間一排微凸塊 → 正面切開看得到貫穿每一層的 TSV 銅柱。
+     以前的 TSV 是三條畫在整疊「前面」的線，看起來像插在外面的棍子；改成畫在切開的那一面上（剖面語言）。*/
+  const dHbmStack = () => {
+    const X = -24, Y = -18, W = 48, D = 36, T = 2.6, G = 1.1, Z0 = 9.4;
+    let s = pad(36, 23)
+      + mat('m-pcb', box(-30, -24, 0, 60, 48, 5, ''))
+      + bumpRow(X + 2, Y + D + .6, X + W - 2, Y + D + .6, 5.8, 12, 1.1)
+      + mat('m-emc', box(X - 1, Y - 1, 6.6, W + 2, D + 2, 2.8, ''));
+    for (let i = 0; i < 8; i++) s += mat('m-si', box(X, Y, Z0 + i * (T + G), W, D, T, ''));
+    const top = Z0 + 7 * (T + G) + T;
+    // 切開面＝右前方那一面（x = X+W，沿 +y）：TSV 是貫穿的銅柱，微凸塊夾在每兩層之間
+    let cut = '';
+    [7, 15, 23, 31].forEach(u => {
+      cut += `<rect class="cuv" x="${u - .9}" y="${Z0 - 2.6}" width="1.8" height="${(top - Z0 + 2.6).toFixed(1)}"/>`;
+      for (let i = 0; i < 8; i++) cut += `<ellipse class="bump" cx="${u}" cy="${(Z0 + i * (T + G) - G / 2).toFixed(2)}" rx="1.5" ry=".55"/>`;
+    });
+    return s + faceYZ(X + W, Y, cut);
+  };
+  // 記憶體模組：一條長板 ＋ 一排顆粒 ＋ 板緣金手指（長條加金手指＝插進插槽的模組）
+  /* #316 重畫：板子改薄（實物 DIMM 是 1.3mm 厚的長條板，以前 12 厚像一塊磚），顆粒、標籤、金手指全部搬到
+     **看得到的正面**（以前畫在背面再蓋上來，前後關係是錯的）。顆粒 4 → 8 顆（左右各 4）＋ 中間一顆小的暫存器 RCD，
+     板緣一整排金手指＋偏一邊的防呆缺口（缺口不在正中央＝插反插不進去，這是 DIMM 的識別特徵）。*/
+  const dDimm = () => {
+    const FY = 2;   // 正面（y = 2 那一面）
+    return pad(44, 20)
+      + mat('m-pcb', box(-44, -2, 0, 88, 4, 30, ''))
+      + mat('m-emc', [0, 1, 2, 3, 5, 6, 7, 8].map(i => box(-41.5 + i * 9.3, FY, 9, 7.8, 1.6, 12, '')).join('') + box(-3.4, FY, 12, 6.8, 1.6, 6, ''))
+      + mat('m-res', box(-34, FY, 23, 26, .6, 4.5, ''))
+      + mat('m-au', faceXZ(-44, FY, aiGold(3, .8, 46, 6, 15) + aiGold(53, .8, 32, 6, 10)))
+      + faceXZ(-44, FY, `<rect class="m-hole" x="49.4" y="-.2" width="3.2" height="4.4" rx=".8"/>`);
+  };
+  // CCL 銅箔基板：上下兩片銅箔夾著膠片的三明治，側邊看得出三層（單層板畫不出這個剖面）
+  /* #316 重畫：銅箔／含浸樹脂的玻纖布（介電層）／銅箔，**上層銅箔往上掀開**（爆炸一格）——
+     中間那層頂面與兩個側面都看得到玻纖織紋（pcb_stackup.md：玻纖布要「看得出經緯兩個方向」、不是實心），
+     兩片銅箔頂面有斜向反光；四根細虛線說明「這片是壓回去的」。層別順序 Cu／介電／Cu 不變。*/
+  const dCcl = () => {
+    const X = -40, Y = -28, W = 80, D = 56;
+    const lift = 24, foil = `<path class="sheen" d="M-34,-24 L-18,-24 L-30,24 L-40,24 L-40,-4Z" opacity=".55"/><path class="sheen" d="M-6,-28 L2,-28 L-10,28 L-18,28Z" opacity=".35"/>`;
+    return pad(44, 27)
+      + mat('m-cu', box(X, Y, 0, W, D, 2.6, ''))
+      + mat('m-pp', box(X, Y, 2.6, W, D, 10, weaveTop(X + 1, Y + 1, W - 2, D - 2, 4)))
+      + mat('m-pp', faceXZ(X, Y + D, weaveFace(W, 2.6, 12.6, 4)))
+      + mat('m-pp', faceYZ(X + W, Y, weaveFace(D, 2.6, 12.6, 4)))
+      + [[X, Y + D], [X + W, Y + D], [X + W, Y]].map(p => `<path class="ai-seam" stroke-dasharray="2 2" d="M${P3(p[0], p[1], 12.8)} L${P3(p[0], p[1], 12.6 + lift)}"/>`).join('')
+      + mat('m-cu', box(X, Y, 12.6 + lift, W, D, 2.2, foil));
+  };
+  // ABF 載板：厚核心層 ＋ 往上兩階增層 ＋ 頂面晶片接點陣列 ＋ 貫穿核心的銅柱
+  /* #316 結構修正＋重畫（abf_substrate.md §2、§4）：載板是**以 core 為中心、上下對稱長出來**的 ——
+     以前畫成「core 在最底、上面兩階增層」，那是錯的（少了下半邊，而且不對稱＝會翹曲，跟右邊在講的事自相矛盾）。
+     現在由下而上：BGA 錫球 → 下增層 ×3 → core（全圖最厚、唯一有織紋）→ 上增層 ×3 → 頂面 bump pad 陣列。
+     右前方那一面當剖面：core 裡兩根鍍銅貫孔（PTH），每一層增層一個朝 core 收窄的錐形微孔（上下兩側都朝 core）。
+     上表面才有 bump pad、下表面才有錫球，兩者不對調。*/
+  const dAbfSub = () => {
+    const X = -38, Y = -26, W = 76, D = 52, L = 2.4, C0 = 3 * L, C1 = C0 + 10, TOP = C1 + 3 * L;
+    let s = pad(42, 26);
+    for (let i = 0; i < 3; i++) s += mat('m-abf', box(X, Y, i * L, W, D, L, ''));
+    s += mat('m-core', box(X, Y, C0, W, D, 10, ''));
+    for (let i = 0; i < 3; i++) s += mat('m-abf', box(X, Y, C1 + i * L, W, D, L, ''));
+    s += mat('m-au', onTop(TOP, padArr(-26, -16, 52, 32, 8, 5))) + aiBalls(-30, 25, 30, 25, 8) + aiBalls(37, -18, 37, 18, 6);
+    // 剖面（x = X+W 那一面，沿 +y）：織紋只在 core；增層之間一條銅線；微孔是梯形、窄的那頭朝 core
+    let cut = weaveFace(D, C0, C1, 3.4);
+    for (let i = 0; i <= 6; i++) { const v = i < 3 ? (i + 1) * L : C1 + (i - 3) * L; if (i !== 3) cut += `<path class="cul" d="M2,${v} H${D - 2}" stroke-width=".7"/>`; }
+    [14, 38].forEach(u => { cut += `<rect class="cuv" x="${u - 1.6}" y="${C0}" width="3.2" height="10"/><rect class="m-hole" x="${u - .8}" y="${C0}" width="1.6" height="10"/>`; });
+    [8, 26, 44].forEach((u, k) => {
+      for (let i = 0; i < 3; i++) {
+        const lo = C1 + i * L, hi = lo + L, dl = 1.0, dh = 1.8, uu = u + (i % 2) * 2;
+        cut += `<path class="cuv" d="M${uu - dl},${lo} L${uu + dl},${lo} L${uu + dh},${hi} L${uu - dh},${hi}Z"/>`;
+        const blo = C0 - (i + 1) * L, bhi = blo + L;
+        cut += `<path class="cuv" d="M${uu - dh},${blo} L${uu + dh},${blo} L${uu + dl},${bhi} L${uu - dl},${bhi}Z"/>`;
+      }
+    });
+    return s + faceYZ(X + W, Y, cut);
+  };
+  // TGV 玻璃通孔：玻璃板打滿貫穿孔，其中幾個孔壁已經鍍上銅（玻璃基板的門檻就在這）
+  const dTgvPane = () => pad(44, 27)
+    + mat('m-gl', box(-40, -28, 0, 80, 56, 10, holes(-40, -28, 80, 56, 7, 5, 2.6)))
+    + [[-24, -16], [-4, 0], [18, 12], [6, -18]].map(p => mat('m-cu', cyl(p[0], p[1], 0, 3.4, 10, ''))).join('');
+  // 軟板 FPC（★ 2026-10-07 第三批 B）：一條彎折的薄帶（銅走線看得到）；左端插進 ZIF 連接器，
+  // **右端是裸露的金手指**（一排鍍金接點＋背後一片補強板）—— 軟板最常見的樣子就是「一端金手指」。
+  const dFpc = () => {
+    const P = [[-36, 0, 6], [-18, 0, 6], [-2, 0, 22], [16, 0, 22], [28, 0, 8], [44, 0, 8]];
+    const up = P.map(p => P3(p[0], p[1] - 9, p[2])).join('L');
+    const dn = P.slice().reverse().map(p => P3(p[0], p[1] + 9, p[2])).join('L');
+    return pad(38, 22)
+      + mat('m-emc', box(-50, -13, 2, 14, 26, 6, '') + box(-50, -13, 8, 4, 26, 2, ''))
+      + `<path class="part f2" d="M${up}L${dn}Z"/>`
+      + [-5, -1.7, 1.7, 5].map(dy => `<path class="m-flexline" style="stroke-dasharray:none;stroke-width:.9" d="M${P.slice(0, 5).map(p => P3(p[0], p[1] + dy, p[2] + .6)).join('L')}"/>`).join('')
+      + mat('m-pp', box(30, -9, 6, 14, 18, 2, ''))
+      + onTop(8.2, [0, 1, 2, 3, 4, 5].map(i => `<rect class="ai-au" x="33" y="${(-8 + i * 2.8).toFixed(1)}" width="10" height="1.7" rx=".4"/>`).join(''));
+  };
+  // 手機主機板：板子 ＋ 開蓋的屏蔽罩 ＋ 接出去的軟板（屏蔽罩＋軟板＝手機板，不是伺服器板）
+  const dSlpBoard = () => pad(42, 26)
+    + mat('m-pcb', box(-38, -26, 0, 76, 52, 5, trace(-38, -26, 76, 52, 4)))
+    + mat('m-al', box(-32, -20, 5, 34, 26, 8, grid2(-32, -20, 34, 26, 2, 2)))
+    + mat('m-emc', box(4, -20, 5, 24, 20, 7, '') + box(4, 4, 5, 24, 14, 5, ''))
+    + mat('m-al', box(-32, 8, 5, 30, 12, 4, ''))
+    + `<path class="m-flexline" d="M${P3(28, 10, 6)} L${P3(46, 10, 6)} L${P3(54, 10, 16)}"/>`;
+
+  /* ---------------- 設計、IP 與高速介面 ---------------- */
+  /* 矽智財（★ 2026-10-07 第三批 B）：一顆晶粒俯視，上面已經擺好幾塊現成的硬核（hard macro）——
+     左上 4 顆 CPU 核（2×2，每顆有自己的格線）、右上一大塊 SRAM（細密格線）、下緣一條高速介面 PHY（一排凸塊）；
+     右下留一個虛線空位，**一塊 IP 正從上方往下放進去**（箭頭）。「整顆晶片＝把買來的 IP 拼進去」。*/
+  const dIpBlocks = () => {
+    const blk = (x, y, w, d, h, inner, m) => mat(m || 'm-si', box(x, y, 0, w, d, h, inner));
+    const cores = [[-34, -26], [-19, -26], [-34, -11], [-19, -11]].map(q => blk(q[0], q[1], 13, 13, 9.4, grid2(q[0], q[1], 13, 13, 2, 2), 'm-emc')).join('');
+    return pad(40, 25)
+      + mat('m-si', box(-38, -30, 0, 76, 60, 7, ''))
+      + `<g transform="translate(0,${(py(0, 0, 7) - py(0, 0, 0)).toFixed(1)})">`
+      + cores
+      + blk(0, -26, 34, 26, 9.4, grid2(0, -26, 34, 26, 8, 6), 'm-al')
+      + blk(-34, 18, 68, 8, 9, bumpRow(0, 0, 0, 0, 0, 0) + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => `<circle class="ai-au" cx="${-31 + i * 6.8}" cy="22" r="1.6"/>`).join(''), 'm-cu')
+      + onTop(7.2, `<rect class="etch" x="6" y="2" width="28" height="13" rx="1" fill="none" stroke-dasharray="3 2"/>`)
+      + '</g>'
+      + mat('m-ni', box(6, 2, 40, 28, 13, 4, grid2(6, 2, 28, 13, 4, 2)))
+      + `<path class="m-pull" style="stroke-width:1.6" d="M${P3(20, 8, 38)} L${P3(20, 8, 17)} M${P3(17, 8, 20)} L${P3(20, 8, 17)} L${P3(23, 8, 20)}"/>`;
+  };
+  // 晶片佈局圖：一塊晶片上劃分出大小不一的功能區 ＋ 四邊一圈 I/O（設計服務交出去的東西）
+  const dFloorplan = () => {
+    const io = [];
+    for (let i = 0; i < 6; i++) io.push(`<rect class="ai-au" x="${-34 + i * 12}" y="-31" width="8" height="3" rx="1"/><rect class="ai-au" x="${-34 + i * 12}" y="28" width="8" height="3" rx="1"/>`);
+    return pad(42, 26)
+      + mat('m-si', box(-38, -28, 0, 76, 56, 6, ''))
+      + [[-32, -22, 28, 22], [2, -22, 30, 16], [-32, 4, 20, 20], [-8, -2, 18, 26], [14, -2, 20, 12], [14, 12, 20, 12]]
+        .map(r => box(r[0], r[1], 6, r[2], r[3], 4, grid2(r[0], r[1], r[2], r[3], 2, 2))).join('')
+      + mat('m-au', onTop(6, io.join('')));
+  };
+  // 高速介面：晶片邊緣拉出四對成雙的差動走線 ＋ 一個眼圖（「成對」是 SerDes 的識別特徵）
+  const dSerdes = () => {
+    const a = [];
+    for (let i = 0; i < 4; i++) { const y = -14 + i * 9; a.push(`M-4,${y} H32 M-4,${y + 3} H32`); }
+    return pad(40, 25)
+      + mat('m-pcb', box(-38, -26, 0, 76, 52, 5, ''))
+      + mat('m-emc', box(-32, -16, 5, 26, 30, 10, grid2(-32, -16, 26, 30, 2, 2)))
+      + mat('m-cu', onTop(5, `<path class="etch" d="${a.join(' ')}"/>`))
+      + `<path class="m-eye" d="M${px(22, 22).toFixed(1)},${py(22, 22, 26).toFixed(1)} q9,-11 18,0 q-9,11 -18,0Z"/>`;
+  };
+
+  /* ---------------- 光通訊 ---------------- */
+  // 雷射二極體：TO 金屬罐 ＋ 三根接腳 ＋ 前方發散的光束（會發光的那一顆）
+  const dLaserDiode = () => pad(32, 21)
+    + mat('m-st', cyl(0, 0, 6, 18, 4, '') + cyl(0, 0, 10, 14, 20, `<circle class="etch" r="8" fill="none"/>`))
+    + mat('m-st', [-8, 0, 8].map(x => cyl(x, 0, -14, 2.2, 20, '')).join(''))
+    + beam([0, 0, 30], [0, -40, 44], 13)
+    + `<circle class="ai-led" cx="${px(0, 0).toFixed(1)}" cy="${py(0, 0, 30).toFixed(1)}" r="3.4"/>`;
+  // 光引擎：晶片上蛇行的光波導 ＋ 兩端光柵耦合器 ＋ 側面接出去的光纖（波導＝矽光子）
+  const dPhotonicDie = () => pad(40, 25)
+    + mat('m-si', box(-36, -26, 0, 72, 52, 7, ''))
+    + mat('m-si', onTop(7, `<path class="ai-chan" d="M-30,-20 H10 q10,0 10,10 t-10,10 H-30 q-10,0 -10,10 t10,10 H26"/>`
+      + `<circle class="m-grating" cx="-30" cy="-20" r="4"/><circle class="m-grating" cx="26" cy="20" r="4"/>`))
+    + `<path class="m-fib" d="M${P3(36, 20, 7)} L${P3(58, 30, 12)} L${P3(76, 30, 6)}"/>`
+    + `<path class="m-fib" d="M${P3(36, 14, 7)} L${P3(58, 24, 16)} L${P3(76, 24, 10)}"/>`;
+  // 光收發模組（★ 2026-10-07 第三批結構把關）：OSFP 長方鋁殼，頂上一整排縱向鰭片；
+  // **前端（+x，光口那一端）**：殼口一個雙工 LC 插座，插著一顆 LC 雙芯接頭（方頭＋卡榫＋尾套），光纖從接頭尾套拉出去；
+  // 拉環也在前端（實物是從面板那一側拉出）；**後端（−x）**：插進交換器的那一端，PCB 舌片上一排金手指。
+  const dOsfp = () => pad(42, 24)
+    + mat('m-al', box(-40, -13, 0, 72, 26, 12, ''))
+    + mat('m-al', [0, 1, 2, 3, 4, 5].map(i => box(-36, -11.5 + i * 4.4, 12, 62, 1.4, 5, '')).join(''))
+    + mat('m-pcb', box(-50, -8, 4, 10, 16, 2, [0, 1, 2, 3, 4].map(k => `<rect class="ai-au" x="-49" y="${(-7 + k * 2.9).toFixed(1)}" width="7" height="1.8" rx=".4"/>`).join('')))
+    + mat('m-st', box(32, -10, 1, 4, 20, 10, ''))
+    + faceYZ(36, -10, `<rect class="m-hole" x="3" y="3" width="5.5" height="5" rx=".8"/><rect class="m-hole" x="11.5" y="3" width="5.5" height="5" rx=".8"/>`)
+    + mat('m-res', box(36, -7, 2, 7, 14, 7, '') + box(43, -5, 3, 6, 10, 5, ''))
+    + mat('m-res', box(37, -3, 9, 4, 6, 1.6, ''))
+    + `<path class="m-fib" style="stroke-width:2.6" d="M${P3(49, -2, 5.5)} C${P3(60, -2, 6)} ${P3(66, -10, 6)} ${P3(74, -18, 4)}"/>`
+    + `<path class="m-fib" style="stroke-width:2.6" d="M${P3(49, 2, 5.5)} C${P3(62, 2, 6)} ${P3(70, -6, 5)} ${P3(78, -12, 3)}"/>`
+    + `<path class="m-pull" d="M${P3(32, -12, 11)} L${P3(52, -12, 13)} L${P3(52, 12, 13)} L${P3(32, 12, 11)}"/>`;
+  // 交換器整機（★ 2026-10-07）：1U 機箱掀蓋看內部 —— 前面板一整排 OSFP 光模組槽（上下兩排、每格是方口籠子），
+  // 箱內主板正中一顆大交換晶片戴著鰭片散熱蓋，後段一排風扇。「一排光口＋中間帶散熱蓋大晶片」＝交換器。
+  const dSwitch1U = () => {
+    const ports = [];
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 12; i++)
+      ports.push(`<rect class="ai-port" x="${(3 + i * 7.3).toFixed(1)}" y="${2 + r * 5.6}" width="6" height="4.4" rx=".6"/>`);
+    return pad(46, 28)
+      + mat('m-st', box(-44, -30, 0, 88, 60, 2, ''))
+      + mat('m-pcb', box(-41, -27, 2, 82, 50, 1.4, trace(-41, -27, 82, 50, 5)))
+      + mat('m-st', box(-44, -30, 2, 2, 56, 11, '') + box(-44, -30, 2, 88, 2, 11, ''))
+      + [-30, -15, 0, 15, 30].map(x => mat('m-st', box(x - 6.5, -27, 3.4, 13, 8, 9, '')) + onTop(12.4, `<g transform="translate(${x},-23)">${blades(5.2, 5)}</g>`)).join('')
+      + mat('m-si', box(-14, -10, 3.4, 26, 22, 2.2, ''))
+      + mat('m-al', aiFins(-14, -10, 5.6, 26, 22, 7.4, 8, 1.4))
+      + mat('m-st', box(-44, 26, 2, 88, 4, 11, ''))
+      + aiFace(-44, 30, 2, ports.join('') + '<circle class="ai-led" cx="1.8" cy="9" r="1"/>')
+      + mat('m-st', box(42, -30, 2, 2, 56, 11, ''));
+  };
+  // 交換器：1U 機箱 ＋ 前面板兩排埠 ＋ 插上去的光纖（一整排埠＝網通，不是又一台伺服器）
+  const dSwitchBox = () => {
+    const ports = [];
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 10; i++)
+      ports.push(`<rect class="ai-port" x="${(5 + i * 6.6).toFixed(1)}" y="${3 + r * 7}" width="5" height="5" rx=".8"/>`);
+    ports.push('<circle class="ai-led" cx="71" cy="9" r="2.4"/>');
+    return pad(42, 25)
+      + box(-42, -20, 0, 84, 40, 5, '')
+      + box(-42, -20, 5, 84, 40, 18, grid2(-42, -20, 84, 40, 5, 2))
+      + aiFace(-42, 20, 5, ports.join(''))
+      + [0, 1, 2].map(i => `<path class="m-fib" d="M${px(-30 + i * 16, 20).toFixed(1)},${py(-30 + i * 16, 20, 12).toFixed(1)} c-6,16 -18,20 -30,${26 + i * 6}"/>`).join('');
+  };
+  // 波束錐：從 a 打到 b，底面在螢幕上橫向展開（beam() 的兩個端點沿 (1,1) 方向，往正上方打時會退化成一條線）
+  const cone = (a, b, r) => `<path class="m-beam" d="M${P3(a[0], a[1], a[2])} L${P3(b[0] - r, b[1] + r, b[2])} L${P3(b[0] + r, b[1] - r, b[2])}Z"/>`;
+  /* 相位陣列天線（★ 2026-10-07 第三批 B）：鋁框裡一片天線板，表面 6×6 規則貼片（每片一樣大、等間距）；
+     板子下面一層是波束成形晶片板（側邊看得到一排小 IC）；上方一道**偏一邊**的波束錐 —— 電子掃描（不用轉盤）是相位陣列的重點。*/
+  const dPhaseArray = () => pad(40, 26)
+    + mat('m-al', box(-38, -30, 0, 76, 60, 6, ''))
+    + mat('m-pcb', box(-35, -27, 6, 70, 54, 2, ''))
+    + [0, 1, 2, 3, 4].map(i => mat('m-emc', box(-30 + i * 13, 26, 1.5, 8, 4, 3.4, ''))).join('')
+    + mat('m-au', onTop(8, padArr(-33, -25, 66, 50, 6, 6)))
+    + cone([0, 0, 9], [18, -18, 60], 18);
+  // 用戶終端 CPE：一片方形平板天線 ＋ 斜撐底座 ＋ 一條電源線（家裡那一台）
+  const dCpe = () => pad(34, 22)
+    + mat('m-res', panel(-28, -4, 24, 56, 42, 6, grid2(0, 0, 56, 42, 5, 4)))
+    + mat('m-st', box(-6, -2, 0, 12, 22, 26, '') + box(-20, 12, 0, 40, 10, 5, ''))
+    + wire([[20, 17, 3], [46, 28, 3]], 'flow slow', 'var(--dg-pwr)', 2)
+    + cone([0, -4, 50], [0, -30, 80], 18)
+    // 旁邊那台是家用路由（sub 寫的就是「終端設備與家用路由」）：單一片天線又瘦又高，
+    // fit() 縮完只剩 72px 寬，右邊留一大片白；補上這台才填得滿，語意也對得上。
+    + aiShift(112, mat('m-res', box(-18, -14, 0, 36, 28, 16, ''))
+      + aiFace(-18, 14, 0, `<rect class="ai-port" x="4" y="3" width="8" height="5" rx="1"/><rect class="ai-port" x="15" y="3" width="8" height="5" rx="1"/><circle class="ai-led" cx="27" cy="6" r="2"/>`)
+      + mat('m-st', cyl(-12, -14, 16, 2, 20, '') + cyl(12, -14, 16, 2, 20, '')));
+  // 衛星本體：方形艙體 ＋ 兩片展開的太陽翼 ＋ 底下碟型天線與打向地面的波束（太陽翼＝衛星）
+  const dSatellite = () => pad(34, 22)
+    + box(-16, -16, 30, 32, 32, 24, grid2(-16, -16, 32, 32, 2, 2))
+    + mat('m-sol', panel(-62, -7, 38, 44, 16, 3, grid2(0, 0, 44, 16, 5, 2)) + panel(18, -7, 38, 44, 16, 3, grid2(0, 0, 44, 16, 5, 2)))
+    + mat('m-al', cyl(0, 0, 22, 13, 8, `<circle class="etch" r="7" fill="none"/>`) + cyl(0, 0, 18, 4, 6, ''))
+    + cone([0, 0, 18], [0, 0, -30], 20);
+
+  // 射頻模組：掀開一半的金屬屏蔽罩 ＋ 裡面的功率放大器與濾波器 ＋ 同軸接頭（屏蔽罩＝射頻）
+  const dRfModule = () => pad(38, 24)
+    + mat('m-pcb', box(-36, -24, 0, 72, 48, 5, trace(-36, -24, 72, 48, 3)))
+    + mat('m-emc', box(-28, -16, 5, 20, 16, 8, '') + box(-4, -16, 5, 14, 12, 6, ''))
+    + mat('m-cer', cylRow(-24, 8, 13, 0, 5, 5, 12, 3, `<circle class="etch" r="3" fill="none"/>`))
+    + mat('m-al', box(4, -20, 5, 30, 36, 12, grid2(4, -20, 30, 36, 2, 2)))
+    + mat('m-st', cyl(36, 0, 5, 5, 12, '') + cyl(36, 0, 17, 3, 6, ''));
+
+  /* ---------------- 電源、散熱與重電 ---------------- */
+  // 電源管理板：小板 ＋ 控制 IC ＋ 一排電感方塊 ＋ 三顆電解電容（電感＋電容＝電源級）
+  const dPmicBoard = () => pad(40, 25)
+    + mat('m-pcb', box(-38, -22, 0, 76, 44, 5, trace(-38, -22, 76, 44, 3)))
+    + mat('m-emc', box(-32, -16, 5, 22, 22, 8, `<circle class="ai-seam" cx="-28" cy="-12" r="3" fill="none"/>`))
+    + mat('m-mag', [0, 1, 2, 3].map(i => box(-4 + i * 11, -18, 5, 8, 14, 9, '')).join(''))
+    + mat('m-al', cylRow(0, 10, 14, 0, 5, 6, 14, 3, `<path class="etch" d="M-4,0 H4"/>`))
+    + wire([[-38, 14, 8], [-58, 14, 8]], 'flow', 'var(--dg-pwr)', 2.4);
+  // PSU 電源模組：1U 長盒 ＋ 前面板風扇口與把手 ＋ 內部鰭片與銅排 ＋ 後端金手指
+  const dPsuModule = () => pad(44, 25)
+    + box(-46, -16, 0, 92, 32, 20, '')
+    + mat('m-al', aiFins(-40, -12, 20, 38, 24, 9, 12))
+    + mat('m-cu', box(6, -12, 20, 26, 24, 7, ''))
+    + aiFace(-46, 16, 0, `<circle class="ai-vent" cx="18" cy="11" r="9"/><path class="ai-vent" d="M9,11 H27 M18,2 V20"/>`
+      + `<rect class="ai-port" x="40" y="5" width="30" height="5" rx="1.4"/><circle class="ai-led" cx="78" cy="8" r="2.4"/>`)
+    + mat('m-au', faceXZ(-46, -16, aiGold(20, 1, 52, 5, 10)));
+  // BBU 電池模組（★ 2026-10-07 第三批 B）：一個可熱抽換的鋼殼抽屜 —— 上蓋掀開看得到兩排圓柱電芯（頂端看得到正極凸點）
+  // ＋鎳片串接；正面面板一支拉把、狀態燈；背面一組電源接頭（銅端子）。「抽屜殼＋拉把＋一排電芯」＝BBU，不是散裝電池。
+  const dBbuPack = () => pad(42, 25)
+    + mat('m-st', box(-42, -20, 0, 84, 40, 3, '') + box(-42, -20, 3, 84, 2, 18, '') + box(-42, -20, 3, 2, 40, 18, ''))
+    + mat('m-cell', cylRow(-32, -11, 13, 0, 3, 5.6, 16, 6, `<circle class="part f2" r="2"/>`)
+      + cylRow(-32, 3, 13, 0, 3, 5.6, 16, 6, `<circle class="part f2" r="2"/>`))
+    + mat('m-ni', box(-36, -13, 19, 72, 4, 1.2, '') + box(-36, 1, 19, 72, 4, 1.2, ''))
+    + mat('m-st', box(40, -20, 3, 2, 40, 18, '') + box(-42, 18, 3, 84, 2, 18, ''))
+    + aiFace(-42, 20, 3, `<rect class="ai-vent" x="6" y="4" width="40" height="3" rx="1"/><rect class="ai-vent" x="6" y="10" width="40" height="3" rx="1"/><circle class="ai-led" cx="60" cy="12" r="1.8"/><circle class="ai-led" cx="66" cy="12" r="1.8"/>`)
+    + `<path class="m-pull" d="M${P3(-30, 20, 14)} L${P3(-30, 28, 14)} L${P3(-10, 28, 14)} L${P3(-10, 20, 14)}"/>`
+    + mat('m-cu', box(-6, -26, 6, 4, 6, 10, '') + box(4, -26, 6, 4, 6, 10, ''));
+  // 銅匯流排（★ 2026-10-07 第三批 B）：絕緣底座上兩條厚銅排（正／負，扁而厚，一排螺栓孔），
+  // 中間用絕緣支撐塊隔開；一端一顆壓接銅端子（圓頭＋孔）接粗電纜 —— 「扁厚銅排＋螺栓孔＋端子」＝母線。
+  const dBusbar = () => pad(42, 25)
+    + mat('m-res', box(-44, -18, 0, 88, 36, 4, ''))
+    + mat('m-res', [-30, 0, 30].map(x => box(x - 4, -16, 4, 8, 32, 6, '')).join(''))
+    + mat('m-cu', box(-44, -14, 10, 88, 10, 5, bolt([[-34, -9], [-12, -9], [12, -9], [34, -9]], 2.2))
+      + box(-44, 4, 10, 88, 10, 5, bolt([[-34, 9], [-12, 9], [12, 9], [34, 9]], 2.2)))
+    + mat('m-cu', box(44, 5, 13, 10, 8, 2.4, '') + cyl(54, 9, 13, 4, 2.4, `<circle class="m-hole" r="1.6"/>`))
+    + `<path class="m-sheath-o" d="M${P3(58, 9, 14)} L${P3(72, 9, 14)}"/><path class="m-sheath" style="stroke:var(--dg-hot)" d="M${P3(58, 9, 14)} L${P3(72, 9, 14)}"/>`;
+  // 供電機櫃：機櫃 ＋ 一層層電源架 ＋ 背面垂直貫穿的兩條銅匯流排（電從側邊垂直送上去）
+  const dPowerRack = () => {
+    let s = pad(34, 22) + box(-28, -22, 0, 56, 44, 5, '') + box(-28, -22, 5, 6, 44, 76, '') + box(-28, -22, 5, 56, 5, 76, '');
+    for (let i = 0; i < 5; i++) {
+      const z = 9 + i * 14;
+      s += box(-20, -16, z, 46, 32, 10, '')
+        + aiFace(-20, 20, z, `<circle class="ai-vent" cx="10" cy="5" r="3.4"/><rect class="ai-port" x="20" y="3" width="16" height="4" rx="1"/><circle class="ai-led" cx="41" cy="5" r="2"/>`);
+    }
+    s += mat('m-cu', box(24, -20, 6, 5, 10, 74, '') + box(24, -6, 6, 5, 10, 74, '')) + box(-28, -22, 81, 56, 44, 5, '');
+    /* 右邊再擺一座「被供電的」IT 機櫃：一座櫃子又高又窄，fit() 會被高度綁住，
+       縮完只剩 85px 寬、右邊留一大片白。兩座並排才填得滿，也才看得出來「電是送給整排機櫃的」。*/
+    return s + aiShift(150, dRack());
+  };
+  // 均熱片與熱管：扁平均熱板（切開露出毛細結構）＋ 兩根彎折出去的銅熱管（彎管＝熱管）
+  const dVaporChamber = () => {
+    const wick = [];
+    for (let i = 0; i < 7; i++) wick.push(`M-36,${-22 + i * 7} H36`);
+    return pad(42, 26)
+      + mat('m-cu', box(-40, -26, 0, 80, 52, 4, '') + box(-40, -26, 8, 80, 52, 4, ''))
+      + mat('m-wick', box(-38, -24, 4, 76, 48, 4, `<path class="etch" d="${wick.join(' ')}" stroke-dasharray="3 3"/>`))
+      + [0, 1].map(i => `<path class="m-pipe" d="M${P3(-34, -14 + i * 26, 14)} L${P3(20, -14 + i * 26, 14)} L${P3(42, -14 + i * 26, 30)} L${P3(60, -14 + i * 26, 30)}"/>`).join('');
+  };
+  // 風扇模組：方形扇框 ＋ 四角螺栓孔 ＋ 中央輪轂與扇葉 ＋ 旁邊一組鰭片（框＋輪轂＝風扇）
+  const dFanMod = () => pad(38, 24)
+    + mat('m-al', box(-30, -30, 0, 60, 60, 14, bolt([[-24, -24], [24, -24], [-24, 24], [24, 24]], 3.4)
+      + `<circle class="m-hole" cx="0" cy="0" r="24"/>`))
+    + mat('m-al', cyl(0, 0, 6, 9, 10, `<circle class="etch" r="5" fill="none"/>`))
+    + onTop(13, blades(22, 7))
+    + mat('m-al', aiShift(78, aiFins(-26, -22, 0, 52, 44, 24, 11)));
+  // 薄型散熱模組：離心風扇（蝸殼加側向出風口）＋ 扁熱管 ＋ 薄鰭片（跟軸流風扇分得開）
+  const dThinCool = () => pad(40, 24)
+    + mat('m-al', cyl(-18, 0, 0, 23, 9, `<circle class="etch" r="16" fill="none"/>`))
+    + onTop(9, `<g transform="translate(${px(-18, 0).toFixed(1)},${py(-18, 0, 0).toFixed(1)})">${blades(15, 11)}</g>`)
+    + mat('m-al', box(-4, -10, 0, 8, 20, 9, ''))
+    + mat('m-al', aiFins(6, -12, 0, 30, 24, 10, 10))
+    + mat('m-cu', box(-20, -4, 9, 54, 8, 3, ''));
+  // 水冷板：表面蛇行流道 ＋ 兩顆快接頭（藍進橘出，語意色在兩個主題都固定）
+  // #316：底板改銅（貼晶片吸熱的那面本來就是銅）、四角固定螺絲孔；上蓋仍吃環節色，表面看得到蛇行流道
+  const dColdPlate = () => pad(42, 26)
+    + mat('m-cu', box(-40, -30, 0, 80, 60, 5, bolt([[-35, -25], [35, -25], [-35, 25], [35, 25]], 2.2)))
+    + box(-36, -26, 5, 72, 52, 9, aiSerpent(-36, -26, 72, 52, 5))
+    + mat('m-st', cyl(-22, -30, 14, 7, 13, '') + cyl(24, -30, 14, 7, 13, '') + cyl(-22, -30, 12, 9, 3, '') + cyl(24, -30, 12, 9, 3, ''))
+    + wire([[-22, -30, 27], [-22, -62, 31]], 'flow', 'var(--dg-cold)', 2.8)
+    + wire([[24, -62, 31], [24, -30, 27]], 'flow rev', 'var(--dg-hot)', 2.8);
+  // CDU：幫浦 ＋ 板式熱交換器鰭片 ＋ 下方一整排快接頭的分歧管（分歧管排是它的識別特徵）
+  const dCdu = () => pad(38, 24)
+    + box(-36, -24, 0, 72, 48, 18, '')
+    + mat('m-st', cyl(-20, -6, 18, 12, 16, `<circle class="etch" r="6" fill="none"/>`) + cyl(-20, -6, 34, 6, 6, ''))
+    + mat('m-al', aiFins(6, -16, 18, 26, 30, 18, 10))
+    + mat('m-st', box(-36, 24, 22, 72, 5, 7, ''))
+    + [0, 1, 2, 3].map(i => mat('m-st', cyl(-26 + i * 18, 26, 29, 4, 7, ''))).join('')
+    + wire([[-36, 18, 9], [-60, 18, 9]], 'flow', 'var(--dg-cold)', 2.6)
+    + wire([[60, -16, 9], [36, -16, 9]], 'flow rev', 'var(--dg-hot)', 2.6);
+  // 液冷機櫃：機櫃 ＋ 側邊兩根垂直分歧管 ＋ 每一層接出去的進回水軟管（有水管＝液冷）
+  const dLiquidRack = () => {
+    let s = pad(34, 22) + box(-28, -22, 0, 58, 44, 5, '') + box(-28, -22, 5, 6, 44, 78, '') + box(-28, -22, 5, 58, 5, 78, '');
+    for (let i = 0; i < 5; i++) {
+      const z = 9 + i * 14;
+      s += box(-20, -16, z, 48, 32, 10, '')
+        + aiFace(-20, 20, z, `<rect class="ai-port" x="6" y="3" width="26" height="4" rx="1"/><circle class="ai-led" cx="41" cy="5" r="2"/>`)
+        + wire([[28, -14, z + 5], [38, -14, z + 5]], 'flow', 'var(--dg-cold)', 1.8)
+        + wire([[38, 2, z + 5], [28, 2, z + 5]], 'flow rev', 'var(--dg-hot)', 1.8);
+    }
+    s += mat('m-st', cyl(38, -14, 5, 5, 78, '') + cyl(38, 2, 5, 5, 78, '')) + box(-28, -22, 83, 58, 44, 5, '');
+    // 旁邊擺一台 CDU：語意上本來就是一組（水由 CDU 送進機櫃），版面上也補掉右邊那片白
+    return s + aiShift(160, dCdu());
+  };
+  // 變壓器：油箱 ＋ 兩側散熱片 ＋ 頂上三根陶瓷套管（三根套管一眼就是變壓器）
+  /* 油浸式變壓器（★ 2026-10-07 第三批結構把關）：油箱＋頂上三支瓷套管（傘裙），**正面一整排片狀散熱器**
+     （一片一片立著的薄鋼板，上下各一根集油管把它們接回油箱）——片狀散熱器是電力變壓器最大的外觀特徵；
+     側面再一組較小的散熱片、頂上一個儲油櫃（躺著的圓筒）。*/
+  const dTransformer = () => pad(38, 26)
+    + mat('m-oil', box(-28, -24, 0, 56, 40, 40, grid2(-28, -24, 56, 40, 2, 2)))
+    + mat('m-st', hcylX(-26, 22, -20, 50, 5, [0.6]) + box(-20, -22, 40, 3, 3, 6, '') + box(14, -22, 40, 3, 3, 6, ''))
+    + mat('m-st', hcylX(-24, 24, 22, 36, 2, []) + hcylX(-24, 24, 22, 7, 2, []))
+    + mat('m-st', [0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => box(-24 + i * 5.6, 17, 4, 1.4, 14, 34, '')).join(''))
+    + mat('m-st', aiFins(28, -18, 6, 8, 28, 28, 4, 1.2))
+    + mat('m-cer', [-14, 0, 14].map(x => cyl(x, -4, 40, 5, 9, '') + cyl(x, -4, 49, 7, 2, '') + cyl(x, -4, 52, 6, 2, '') + cyl(x, -4, 55, 5, 4, '')).join(''));
+  // 開關配電盤：三個並排的櫃體 ＋ 面板儀表與操作把手 ＋ 頂部銅母線槽（一排櫃＋把手＝配電盤）
+  const dSwitchgear = () => {
+    let s = pad(40, 24) + box(-42, -18, 0, 84, 36, 5, '');
+    for (let i = 0; i < 3; i++) {
+      const x = -42 + i * 28;
+      s += box(x, -18, 5, 27, 36, 46, '')
+        + aiFace(x, 18, 5, `<circle class="ai-vent" cx="8" cy="34" r="5"/><rect class="ai-port" x="15" y="30" width="8" height="8" rx="1"/>`
+          + `<rect class="ai-port" x="6" y="16" width="16" height="6" rx="1"/><circle class="ai-led" cx="19" cy="41" r="2"/><path class="ai-vent" d="M6,8 h16"/>`);
+    }
+    return s + mat('m-cu', box(-42, -20, 51, 84, 8, 6, '')) + wire([[42, -16, 54], [64, -16, 54]], 'flow', 'var(--dg-pwr)', 2.4);
+  };
+  // 大型馬達：帶散熱筋的圓柱機殼 ＋ 前端端蓋與伸出的軸 ＋ 上方接線盒 ＋ 底座（接線盒＋底座＝重電）
+  const dBigMotor = () => {
+    /* ★ 2026-10-07 重畫：大型感應馬達是**躺著**的——圓柱機殼外一圈軸向散熱筋、底下兩支地腳、
+       上方一個接線盒、前端出軸、後端風扇罩。改前立著放，像一個桶子。*/
+    const ribs = [];
+    for (let i = 0; i < 9; i++) { const t = -1.1 + i * .27, y = Math.cos(t) * 16, z = 20 + Math.sin(t) * 16;
+      ribs.push(`<path class="ai-seam" d="M${P3(-24, y, z)} L${P3(18, y, z)}"/>`); }
+    return pad(40, 22)
+      + mat('m-st', box(-22, -14, 0, 8, 28, 6, '') + box(8, -14, 0, 8, 28, 6, ''))
+      + mat('m-al', hcylX(-30, -24, 0, 20, 14, [0.7]))
+      + mat('m-al', hcylX(-24, 20, 0, 20, 17, [0.4]))
+      + ribs.join('')
+      + mat('m-al', box(-8, -7, 35, 16, 14, 9, '') + box(-6, -9, 38, 6, 2, 4, ''))
+      + mat('m-st', hcylX(20, 24, 0, 20, 8, []) + hcylX(24, 36, 0, 20, 3.2, []));
+  };
+  // 機電統包／變電站：一排戶外機櫃 ＋ 儲能櫃 ＋ 架空管線橋（工程現場的樣子）
+  const dSubstation = () => pad(42, 26)
+    + box(-44, -26, 0, 88, 52, 5, '')
+    + [0, 1, 2].map(i => box(-40 + i * 27, -20, 5, 24, 24, 28, grid2(-40 + i * 27, -20, 24, 24, 1, 2))
+      + aiFace(-40 + i * 27, 4, 5, `<rect class="ai-port" x="5" y="16" width="14" height="6" rx="1"/><circle class="ai-led" cx="18" cy="7" r="2"/>`)).join('')
+    + mat('m-st', box(4, 10, 5, 40, 14, 22, grid2(4, 10, 40, 14, 3, 1)))
+    + aiFace(4, 24, 5, `<rect class="ai-port" x="5" y="12" width="12" height="5" rx="1"/><rect class="ai-port" x="21" y="12" width="12" height="5" rx="1"/><circle class="ai-led" cx="30" cy="4" r="2"/>`)
+    + mat('m-st', cyl(-38, -24, 33, 3, 15, '') + cyl(34, -24, 33, 3, 15, '') + box(-38, -26, 48, 72, 5, 4, ''))
+    + wire([[-44, 16, 20], [-64, 16, 20]], 'flow', 'var(--dg-pwr)', 2.6);
+  // 機櫃（通用）：兩根立柱 ＋ 一層層托盤 ＋ 每層把手與一顆狀態燈（看得出是很多台疊起來）
+  const dRack = () => {
+    const RX = -28, RY = -22, RW = 56, RD = 44;
+    let s = pad(32, 21) + box(RX, RY, 0, RW, RD, 6, '') + box(RX, RY, 6, 6, RD, 78, '')
+      + box(RX + RW - 6, RY, 6, 6, RD, 78, '') + box(RX, RY, 6, RW, 5, 78, '');
+    /* #316：每一層刀鋒（1U／2U 伺服器）前面板＝左右兩支把手耳＋中間一整片進風孔＋一顆狀態燈；
+       最上面一層換成 ToR 交換器（一排埠），立柱前緣一排 U 孔 —— 看得出是「很多台疊起來、頂上一台網通」。*/
+    const vent = (w) => { const a = []; for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) a.push(`<circle class="ai-vent" cx="${(8 + i * (w - 18) / 8).toFixed(1)}" cy="${2.4 + j * 3.2}" r=".9"/>`); return a.join(''); };
+    for (let i = 0; i < 6; i++) {
+      const z = 10 + i * 12, top = i === 5;
+      s += box(RX + 6, RY + 5, z, RW - 12, RD - 9, 8, '')
+        + aiFace(RX + 6, RY + RD - 4, z, `<rect class="ai-port" x="1" y="1" width="3" height="6" rx=".6"/><rect class="ai-port" x="${RW - 16}" y="1" width="3" height="6" rx=".6"/>`
+          + (top ? [0, 1, 2, 3, 4, 5, 6].map(k => `<rect class="ai-port" x="${7 + k * 3.8}" y="2.4" width="2.8" height="3" rx=".4"/>`).join('') : vent(RW - 12))
+          + `<circle class="ai-led" cx="${RW - 21}" cy="5.6" r="1.3"/>`);
+    }
+    s += aiFace(RX + RW - 6, RY + RD, 6, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(k => `<rect class="ai-port" x="1.6" y="${3 + k * 6.3}" width="2" height="1.6"/>`).join(''));
+    return s + box(RX, RY, 84, RW, RD, 6, '');
+  };
+
+  // 機櫃＋筆電並排：用在「伺服器與 PC」那一格。單獨一座機櫃又瘦又高，
+  // 縮到格子裡只剩 78px 寬、兩邊各留一大塊白；並排才填得滿，也才對得上那一格的標題。
+  // ⚠ aiShift 只往右推，整組的重心會偏右 —— 不往左搬回一半，最後一格會頂出畫布右緣
+  //   （2026-09-23 實測：右邊溢出 80px）。外面那層 aiShift 就是在做這件事。
+  const dRackPc = () => aiShift(-73, dRack() + aiShift(124, dLaptop()));
+
+  /* ---------------- 機械、機器人與載具 ---------------- */
+  // 諧波減速機：外圈剛輪齒 ＋ 薄壁柔輪杯 ＋ 中間橢圓波產生器（橢圓凸輪是它獨有的）
+  /* ★ 2026-10-07 重畫（Andy：「這種圖片都不符合正常圖片……避免發生奇怪的組合樣式」）：
+     舊版是扁圓盤＋橢圓凸輪＋疊柱＋彈簧，一眼看不出是什麼。改照產品外觀：
+     諧波減速機＝圓柱外殼（外圈一圈固定螺孔）＋ 中央輸出法蘭（螺孔）＋ 中心通孔；
+     伺服馬達＝躺著的圓柱機身 ＋ 前端方形法蘭（四角螺孔）＋ 出軸 ＋ 後端編碼器蓋與出線。*/
+  const dHarmonic = () => {
+    const ring = (r, n, rr) => Array.from({ length: n }, (_, i) => { const t = i * 2 * Math.PI / n; return `<circle class="m-hole" cx="${(Math.cos(t) * r).toFixed(1)}" cy="${(Math.sin(t) * r).toFixed(1)}" r="${rr}"/>`; }).join('');
+    return pad(34, 22)
+      + mat('m-al', cyl(0, 0, 0, 30, 14, ring(26, 12, 1.6)))
+      + mat('m-st', cyl(0, 0, 14, 18, 6, ring(12, 8, 1.6) + `<circle class="m-hole" r="5"/>`));
+  };
+  const dServoMotor = () => {
+    /* ★ 2026-10-07 結構把關第二輪：前一版只動了幾個數字，畫面跟改前分不出來，這次照實物比例重畫：
+       · 機身圓柱、方形法蘭、輸出軸**同一條中心線**（y=0、z=Z），軸從法蘭正中央沿機身軸向水平伸出，
+         法蘭面上加一圈定位凸台（pilot）圍住軸根部；等角投影裡「水平沿 x 軸」本來就畫成往右下 30°，不是斜上。
+       · 後端編碼器蓋明顯比機身細（r 9 對 13）且短，蓋頂一個小方形出線接頭（不同材質），電纜從接頭側面拉出。*/
+    const Z = 15;
+    return pad(38, 20)
+      + mat('m-res', hcylX(-31, -22, 0, Z, 9, [0.55]))
+      + mat('m-st', box(-29.5, -3.5, Z + 8, 6, 7, 5, ''))
+      + `<path class="m-cable" d="M${P3(-29.5, 0, Z + 10.5)} C${P3(-36, 0, Z + 11)} ${P3(-40, -6, Z + 6)} ${P3(-44, -12, Z + 2)}"/>`
+      + mat('m-al', hcylX(-22, 12, 0, Z, 13, []))
+      + mat('m-al', box(12, -15, Z - 15, 6, 30, 30, '') + faceYZ(18, -15, bolt([[4, 4], [26, 4], [4, 26], [26, 26]], 1.8)))
+      + mat('m-al', hcylX(18, 20.5, 0, Z, 6.5, []))
+      + mat('m-st', hcylX(20.5, 34, 0, Z, 3.2, []));
+  };
+  // 驅動器：兩側鰭片的外殼 ＋ 面板狀態燈與通訊埠 ＋ 底下一排螺絲端子（端子排＝工業驅動器）
+  const dDriver = () => {
+    /* ★ 2026-10-07 重畫（CEO＋結構把關）：工業伺服驅動器＝立著的窄長盒，高:寬:深≈3:1:2。
+       窄的那一面是正面：上方 LCD 小窗、下面一排狀態燈、最底下一條凸出的螺絲端子台（馬達三相線與電源從這裡接）；
+       側面 7 片凸出的垂直散熱鰭片（功率元件的熱從這裡散）。不畫方格陣列。*/
+    const fins = [], scr = [], leds = [];
+    for (let i = 0; i < 7; i++) fins.push(box(9, -15 + i * 5, 6, 7, 1.6, 44, ''));
+    for (let i = 0; i < 4; i++) scr.push(`<circle class="m-hole" cx="${px(-6 + i * 4, 23).toFixed(1)}" cy="${py(-6 + i * 4, 23, 12).toFixed(1)}" r="1.3"/>`);
+    for (let i = 0; i < 4; i++) leds.push(`<circle class="ai-led" cx="${3.5 + i * 3.6}" cy="31" r="1.5"/>`);
+    return pad(26, 24)
+      + mat('m-st', box(-11, -18, 0, 22, 36, 3, ''))
+      + `<g class="desat">` + box(-9, -18, 3, 18, 36, 54, '') + '</g>'
+      + aiFace(-9, 18, 3, `<rect class="m-hole" x="2" y="35" width="14" height="13" rx="1"/><rect class="m-lcd" x="3.2" y="36.2" width="11.6" height="10.6" rx=".6"/>` + leds.join(''))
+      + mat('m-al', fins.join(''))
+      + mat('m-res', box(-8, 18, 3, 16, 6, 9, ''))
+      + scr.join('');
+  };
+  // 視覺與力覺：雙目相機（兩顆鏡頭）＋ 底下一圈帶螺栓孔的力覺感測環（雙鏡頭＋環）
+  const dVisionSensor = () => {
+    /* ★ 2026-10-07 重畫（CEO＋結構把關）：雙目相機與力覺感測器**分開畫**，不用細柱串在一起。
+       左：橫條雙目相機坐在兩支小腳座上，正面左右兩顆鏡頭夾一個紅外線投射器；
+       右：六軸力覺感測器＝扁圓柱，上下兩片法蘭（螺孔），中間細一圈留縫，側面一個出線接頭。*/
+    const lens = (u) => `<circle class="part f2" cx="${u}" cy="7" r="5.6"/><circle class="m-hole" cx="${u}" cy="7" r="3.9"/>`
+      + `<circle class="etch" cx="${u}" cy="7" r="2.2" fill="none"/><circle class="sheen" cx="${u - 1.4}" cy="8.6" r="1"/>`;
+    const fl = bolt([[-9, 0], [9, 0], [0, -9], [0, 9]], 1.6);
+    return pad(40, 20)
+      + mat('m-st', box(-40, -6, 0, 5, 10, 5, '') + box(-12, -6, 0, 5, 10, 5, ''))
+      + mat('m-cam', box(-46, -6, 5, 46, 12, 14, ''))
+      + aiFace(-46, 6, 5, lens(8) + lens(38) + `<rect class="m-hole" x="18" y="4.5" width="8" height="4.5" rx="1"/><circle class="ai-led" cx="29.5" cy="7" r="1.2"/>`)
+      + mat('m-st', cyl(26, 0, 0, 14, 7, fl) + cyl(26, 0, 7, 11.5, 4, '') + cyl(26, 0, 11, 14, 7, fl + `<circle class="m-hole" r="4"/>`))
+      + mat('m-res', box(39, -3, 6, 6, 6, 5, ''));
+  };
+  // 六軸手臂：底座 ＋ 兩節臂 ＋ 關節圓柱 ＋ 末端夾爪（關節圓柱＋夾爪＝手臂）
+  const dRobotArm = () => pad(32, 21)
+    + mat('m-st', cyl(-22, 10, 0, 18, 9, ''))
+    + cyl(-22, 10, 9, 13, 15, '')
+    + box(-27, 4, 24, 12, 12, 32, '')
+    + cyl(-21, 10, 56, 9, 10, '')
+    + box(-21, 5, 58, 44, 11, 11, grid2(-21, 5, 44, 11, 4, 1))
+    + cyl(21, 10, 52, 8, 8, '')
+    + mat('m-st', box(19, 6, 38, 8, 9, 14, '') + box(15, 5, 30, 6, 4, 9, '') + box(15, 13, 30, 6, 4, 9, ''));
+  // 兩葉螺旋槳（★ 2026-10-07）：一片葉從輪轂往外——葉根窄、約 1/3 處最寬、葉尖收圓；另一片是同一片轉 180°（點對稱），
+  // 不是兩片不一樣的葉子。r＝葉尖半徑。
+  const PROP2 = (r) => {
+    const one = `M${(r * .12).toFixed(1)},${(-r * .05).toFixed(1)} C${(r * .3).toFixed(1)},${(-r * .2).toFixed(1)} ${(r * .7).toFixed(1)},${(-r * .16).toFixed(1)} ${(r * .96).toFixed(1)},${(-r * .06).toFixed(1)}`
+      + ` Q${(r * 1.02).toFixed(1)},0 ${(r * .96).toFixed(1)},${(r * .04).toFixed(1)} C${(r * .7).toFixed(1)},${(r * .1).toFixed(1)} ${(r * .3).toFixed(1)},${(r * .08).toFixed(1)} ${(r * .12).toFixed(1)},${(r * .05).toFixed(1)}Z`;
+    return `<path class="part f1" d="${one}"/><path class="part f1" d="${one}" transform="rotate(180)"/><circle class="part f2" r="${(r * .13).toFixed(1)}"/>`;
+  };
+  // 無刷馬達＋螺旋槳：外轉子杯 ＋ 露出的定子繞組 ＋ 上面兩葉槳（槳＝無人機動力）
+  const dPropMotor = () => pad(34, 22)
+    + mat('m-al', cyl(0, 0, 0, 6, 8, ''))
+    + winding(px(0, 0), py(0, 0, 10), 14, 8, 3, -4)
+    + mat('m-al', cyl(0, 0, 14, 17, 13, `<circle class="etch" r="10" fill="none"/>` + bolt([[-9, 0], [9, 0]], 2.4)))
+    + onTop(29, PROP2(40))
+    + mat('m-st', cyl(0, 0, 27, 3.4, 7, ''))
+    + `<path class="m-cable" d="M${P3(6, 10, 3)} L${P3(14, 20, 1)}"/>`;
+  const dFlyover = () => {
+    /* ★ 2026-10-07 結構把關：交換器的高速線材（DAC／飛越線）＝圓截面編織外皮的粗線（兩條並排），
+       兩端是 QSFP／OSFP 那種**扁長方形金屬插頭**（寬約線的 2～3 倍）：前端頂面一排金手指、後端一條拉環。*/
+    const run = (dy) => `M${P3(-24, dy, 6)} C${P3(-8, dy, 26)} ${P3(8, dy, 26)} ${P3(24, dy, 6)}`;
+    const cable = [-3.6, 3.6].map(dy => `<path class="m-sheath-o" d="${run(dy)}"/><path class="m-sheath" d="${run(dy)}"/><path class="m-braid" d="${run(dy)}"/>`).join('');
+    const plug = (x0, dir) => {
+      const fx = dir < 0 ? x0 : x0 + 22 - 6;        // 金手指在插頭朝外那一端
+      const tx = dir < 0 ? x0 + 22 : x0;             // 拉環在接線那一端
+      return mat('m-st', box(x0, -10, 0, 22, 20, 7, ''))
+        + onTop(7, [0, 1, 2, 3, 4, 5].map(i => `<rect class="ai-au" x="${fx + .5}" y="${-8 + i * 2.8}" width="5" height="1.6" rx=".4"/>`).join(''))
+        + `<path class="m-pull" d="M${P3(tx, -6, 5)} L${P3(tx - dir * 8, -6, 8)} L${P3(tx - dir * 8, 6, 8)} L${P3(tx, 6, 5)}"/>`;
+    };
+    return pad(40, 18) + plug(-46, -1) + cable + plug(24, 1);
+  };
+  const dDroneHarness = () => {
+    /* ★ 2026-10-07 結構把關：無人機線束跟交換器飛越線**分開造型**——四條不同顏色的細線，
+       中段套一截波紋管、兩道束帶；左端一個 XT60 電源接頭（較大），右端分岔接三個小 JST 塑膠接頭。*/
+    const cols = ['var(--dg-hot)', 'var(--dg-sh0)', 'var(--dg-au)', 'var(--dg-sig)'];
+    const w = cols.map((c, i) => { const y = -4.5 + i * 3;
+      return `<path d="M${P3(-26, y * .5, 9)} C${P3(-12, y, 14)} ${P3(4, y, 14)} ${P3(14, y, 10)}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>`; }).join('');
+    const br = [-14, 0, 14].map((y, i) => `<path d="M${P3(14, -1 + i, 10)} C${P3(22, y * .5, 10)} ${P3(26, y, 8)} ${P3(32, y, 6)}" fill="none" stroke="${cols[i]}" stroke-width="1.6" stroke-linecap="round"/>`).join('');
+    const sleeve = `<path class="m-sheath-o" d="M${P3(-14, 0, 13)} L${P3(4, 0, 13)}" style="stroke-width:9"/><path class="m-corr" d="M${P3(-14, 0, 13)} L${P3(4, 0, 13)}"/>`;
+    const tie = (x) => `<path class="m-tie" d="M${P3(x, -5, 13)} L${P3(x, 5, 13)}"/>`;
+    return pad(40, 20)
+      + mat('m-au', box(-40, -7, 4, 14, 14, 9, ''))
+      + faceYZ(-26, -7, `<rect class="m-hole" x="3" y="2.5" width="3.4" height="4" rx="1"/><rect class="m-hole" x="7.6" y="2.5" width="3.4" height="4" rx="1"/>`)
+      + w + sleeve + tie(-15) + tie(5) + br
+      + [-14, 0, 14].map(y => mat('m-res', box(32, y - 3.5, 2, 8, 7, 6, ''))).join('');
+  };
+  // 飛控板：小方板 ＋ 中央 IMU ＋ 四角減震柱 ＋ 外接 GPS 天線（減震柱是飛控的識別特徵）
+  const dFlightCtrl = () => pad(36, 23)
+    + [[-22, -22], [16, -22], [-22, 16], [16, 16]].map(p => mat('m-damp', cyl(p[0] + 3, p[1] + 3, 0, 5, 8, ''))).join('')
+    + mat('m-pcb', box(-26, -26, 8, 52, 52, 4, trace(-26, -26, 52, 52, 4)))
+    + mat('m-emc', box(-9, -9, 12, 18, 18, 7, `<circle class="ai-seam" cx="-5" cy="-5" r="2.6" fill="none"/>`))
+    + mat('m-res', box(16, 16, 12, 18, 18, 4, '') + cyl(25, 25, 16, 3, 10, ''))
+    + `<circle class="ai-led" cx="${px(-18, 18).toFixed(1)}" cy="${py(-18, 18, 12).toFixed(1)}" r="2.4"/>`;
+  // 三軸雲台（★ 2026-10-07 第三批結構把關）：頂上減震安裝板 → 航向（yaw）扁圓盤馬達 → L 形支架往左再往下 →
+  // 側面一顆橫擺的扁圓盤馬達（roll／pitch）→ 末端相機機身，正面一支明顯的鏡頭（同心鏡片圈）。
+  // 「2～3 顆扁圓盤馬達串在 L 形支架上＋末端有鏡頭」就是雲台，跟固定相機分得開。
+  const dGimbal = () => pad(30, 20)
+    + mat('m-al', box(-14, -14, 62, 28, 28, 3, bolt([[-10, -10], [10, -10], [-10, 10], [10, 10]], 2)))
+    + [[-10, -10], [10, -10], [-10, 10], [10, 10]].map(q => mat('m-damp', cyl(q[0], q[1], 58, 2.6, 4, ''))).join('')
+    // 偏航（yaw）馬達：頂部一顆扁圓盤，盤面兩圈同心＋螺絲
+    + mat('m-st', cyl(0, 0, 50, 11, 7, `<circle class="etch" r="7" fill="none"/><circle class="etch" r="3" fill="none"/>` + bolt([[-5, 0], [5, 0]], 1.2)))
+    + mat('m-mhi', box(-30, -3, 44, 34, 6, 6, '') + box(-30, -3, 18, 6, 6, 26, ''))
+    + mat('m-st', hcylX(-24, -17, 0, 26, 10, [0.6, 0.2]))
+    + mat('m-cam', box(-17, -11, 14, 24, 22, 22, ''))
+    // 俯仰（pitch）馬達：相機正側面（+y 面）貼一顆扁圓盤，軸沿 y
+    + mat('m-st', faceXZ(-17, 11, `<circle class="part f2" cx="12" cy="25" r="8.5"/><circle class="part f1" cx="12.6" cy="25.4" r="7"/><circle class="etch" cx="12.6" cy="25.4" r="3.4" fill="none"/><circle class="m-hole" cx="12.6" cy="25.4" r="1.2"/>`))
+    + mat('m-st', hcylX(7, 15, 0, 25, 9, [0.85]))
+    + mat('m-gl', hcylX(15, 18, 0, 25, 7.5, [0.7, 0.4]))
+    + `<circle class="ai-led" cx="${px(-6, -11).toFixed(1)}" cy="${py(-6, -11, 32).toFixed(1)}" r="1.8"/>`;
+  // 四旋翼：中央機身 ＋ 四支機臂 ＋ 四組槳 ＋ 底下吊掛的酬載（四臂對稱＝無人機）
+  const dDrone = () => pad(40, 26)
+    + box(-13, -13, 14, 26, 26, 12, grid2(-13, -13, 26, 26, 2, 2))
+    + mat('m-al', box(11, -4, 18, 26, 8, 4, '') + box(-37, -4, 18, 26, 8, 4, '') + box(-4, 11, 18, 8, 26, 4, '') + box(-4, -37, 18, 8, 26, 4, ''))
+    + [[36, 0], [-36, 0], [0, 36], [0, -36]].map(p => mat('m-al', cyl(p[0], p[1], 22, 5, 7, ''))
+      + onTop(29, `<g transform="translate(${p[0]},${p[1]})">${PROP2(20)}</g>`)).join('')
+    + cyl(0, 0, 4, 7, 10, `<circle class="etch" r="4" fill="none"/>`)
+    + mat('m-st', box(-16, -4, 8, 6, 8, 6, '') + box(10, -4, 8, 6, 8, 6, ''));
+  // 強固型電腦：無風扇鰭片機殼 ＋ 兩側把手 ＋ 面板上一排圓形軍規連接器（鰭片殼＋圓接頭）
+  const dRuggedPc = () => {
+    const io = [];
+    for (let i = 0; i < 3; i++) io.push(`<circle class="ai-port" cx="${14 + i * 20}" cy="12" r="6"/><circle class="ai-vent" cx="${14 + i * 20}" cy="12" r="3.4"/>`);
+    io.push('<circle class="ai-led" cx="62" cy="24" r="2.4"/>');
+    return pad(38, 24)
+      + box(-34, -20, 0, 68, 40, 26, '')
+      + mat('m-al', aiFins(-34, -20, 26, 68, 40, 9, 13))
+      + mat('m-st', box(-40, -6, 8, 6, 12, 5, '') + box(34, -6, 8, 6, 12, 5, ''))
+      + aiFace(-34, 20, 0, io.join(''));
+  };
+  // 軍規圓形連接器：圓殼 ＋ 外圈卡榫齒環 ＋ 裡面的插針陣列（卡榫齒環＝軍規，民用接頭沒有）
+  const dMilConnector = () => {
+    const kn = [];
+    for (let i = 0; i < 18; i++) { const t = i * Math.PI / 9; kn.push(`M${(Math.cos(t) * 19).toFixed(1)},${(Math.sin(t) * 19).toFixed(1)} L${(Math.cos(t) * 24).toFixed(1)},${(Math.sin(t) * 24).toFixed(1)}`); }
+    const pins = [[0, 0], [-9, 0], [9, 0], [0, -9], [0, 9], [-7, -7], [7, 7], [7, -7], [-7, 7]]
+      .map(p => `<circle class="ai-au" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`).join('');
+    return pad(30, 20)
+      + mat('m-st', cyl(0, 0, 0, 19, 22, '') + cyl(0, 0, 22, 24, 8, `<path class="etch" d="${kn.join(' ')}"/>`))
+      + mat('m-res', cyl(0, 0, 30, 16, 4, ''))
+      + mat('m-au', onTop(34, pins))
+      + `<path class="m-cable" d="M${P3(0, 0, 0)} L${P3(0, 26, -4)}"/>`;
+  };
+  // 軍機：機身 ＋ 後掠主翼 ＋ 垂尾 ＋ 座艙罩（後掠翼跟客機的平直翼分得開）
+  const dPlane = () => pad(42, 25)
+    + box(-40, -5, 16, 80, 10, 10, '')
+    + `<path class="part f1" d="M${P3(-6, -40, 20)} L${P3(14, -6, 20)} L${P3(14, 6, 20)} L${P3(-6, 40, 20)} L${P3(-18, 40, 20)} L${P3(2, 6, 20)} L${P3(2, -6, 20)} L${P3(-18, -40, 20)}Z"/>`
+    + `<path class="part f1" d="M${P3(-38, -16, 20)} L${P3(-28, -5, 20)} L${P3(-28, 5, 20)} L${P3(-38, 16, 20)}Z"/>`
+    + panel(-40, -2, 26, 16, 16, 4, '')
+    + mat('m-st', cyl(40, 0, 21, 5, 6, `<circle class="etch" r="3" fill="none"/>`))
+    + mat('m-gl', box(22, -4, 26, 14, 8, 5, ''));
+  // 艦艇：修長船體 ＋ 上層建築 ＋ 桅杆 ＋ 側面貼的相位陣列雷達板（雷達板＝軍艦不是貨船）
+  const dShip = () => pad(46, 24)
+    + box(-44, -10, 0, 82, 20, 13, '')
+    + `<path class="part f1" d="M${P3(-44, -10, 13)} L${P3(38, -10, 13)} L${P3(46, 0, 13)} L${P3(38, 10, 13)} L${P3(-44, 10, 13)}Z"/>`
+    + box(-16, -8, 13, 32, 16, 17, grid2(-16, -8, 32, 16, 3, 1))
+    + mat('m-al', panel(-14, -9, 17, 14, 10, 2, grid2(0, 0, 14, 10, 3, 2)))
+    + mat('m-st', box(-4, -3, 30, 6, 6, 18, '') + box(-10, -3, 44, 18, 6, 3, ''))
+    + mat('m-st', box(26, -4, 13, 10, 8, 7, '') + cyl(31, 0, 20, 2.4, 13, ''));
+  // 滑板底盤（★ 2026-10-07 第三批 B）：車頭朝 +y。底盤框中間鋪滿一大片電池包（看得到一格一格的模組），
+  // 前後軸各一顆驅動馬達（橫躺的圓柱，軸沿 x）＋半軸，四個直立輪胎（輪胎是橫躺圓柱、看得到輪框）。
+  // 「平板電池＋四輪＋前後馬達」＝電動車滑板底盤，不會被看成一張桌子。
+  const dEvChassis = () => {
+    let cells = '';
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) cells += box(-17 + i * 11.6, -22 + j * 11, 8, 10, 9.4, 5, '');
+    const wheel = (x, y) => mat('m-res', hcylX(x < 0 ? x - 6 : x, x < 0 ? x : x + 6, y, 11, 11, [0.62, 0.22]));
+    return pad(40, 34)
+      + wheel(-24, -30) + wheel(-24, 30)
+      + mat('m-st', box(-20, -40, 6, 40, 80, 3, '') )
+      + mat('m-al', box(-19, -24, 6, 38, 48, 2, ''))
+      + mat('m-cell', cells)
+      + mat('m-st', hcylX(-10, 10, -32, 11, 6, [0.5]) + hcylX(-10, 10, 32, 11, 6, [0.5]))
+      + mat('m-st', hcylX(-24, -10, -32, 11, 1.6, []) + hcylX(10, 24, -32, 11, 1.6, []) + hcylX(-24, -10, 32, 11, 1.6, []) + hcylX(10, 24, 32, 11, 1.6, []))
+      + wheel(24, -30) + wheel(24, 30)
+      + wire([[0, -24, 12], [0, -30, 14]], 'flow', 'var(--dg-pwr)', 2);
+  };
+  // 逆變器／車載充電器：鋁壓鑄外殼與鰭片 ＋ 三顆功率模組 ＋ 直流母線電容 ＋ 三相出線
+  const dInverter = () => pad(40, 25)
+    + mat('m-al', box(-38, -24, 0, 76, 48, 10, '') + aiFins(-38, -26, 10, 76, 5, 8, 12))
+    + mat('m-emc', [0, 1, 2].map(i => box(-28 + i * 20, -10, 10, 16, 20, 8, grid2(-28 + i * 20, -10, 16, 20, 1, 2))).join(''))
+    + mat('m-al', cylRow(-18, 14, 20, 0, 10, 8, 15, 2, `<path class="etch" d="M-5,0 H5"/>`))
+    + mat('m-cu', box(-40, -22, 10, 6, 14, 6, ''))
+    + [0, 1, 2].map(i => wire([[38, -14 + i * 12, 14], [60, -14 + i * 12, 14]], 'flow', 'var(--dg-pwr)', 2.6)).join('');
+  // 高壓線束與充電槍（★ 2026-10-07 第三批 B）：充電槍＝**手槍式握把**＋前端圓形槍頭（端面一圈大小不一的插孔，
+  // 下方兩個大孔是直流快充）；握把底下拉出一條橘色高壓纜，另一端是兩顆環狀銅端子。
+  const dHvHarness = () => {
+    const holes2 = [[6, 22, 2.2], [12, 25, 2.2], [18, 22, 2.2], [9, 15, 2], [15, 15, 2], [8, 6.5, 3.4], [16, 6.5, 3.4]];
+    return pad(38, 22)
+      + `<path class="m-hvcable" style="stroke-width:6" d="M${P3(-30, 0, 4)} C${P3(-30, 0, -6)} ${P3(0, 10, 0)} ${P3(30, 12, 2)}"/>`
+      + mat('m-cu', cyl(32, 8, 0, 4.6, 2.4, `<circle class="m-hole" r="2"/>`) + cyl(38, 16, 0, 4.6, 2.4, `<circle class="m-hole" r="2"/>`))
+      + mat('m-hv', box(-34, -4, 4, 9, 8, 24, ''))
+      + mat('m-hv', box(-34, -4, 28, 26, 8, 6, ''))
+      + mat('m-res', box(-26, -3, 18, 3, 6, 8, ''))
+      + mat('m-hv', hcylX(-12, 6, 0, 30, 12, [0.82]))
+      + faceYZ(6, -12, holes2.map(h => `<circle class="m-hole" cx="${h[0]}" cy="${h[1] + 18}" r="${h[2]}"/>`).join(''));
+  };
+  // 沖壓結構件（★ 2026-10-07 第三批 B）：一支「帽型斷面」鈑金樑 —— 兩側平的翻邊、兩道斜壁、頂面一條凸起，
+  // 翻邊上一排點焊痕、頂面兩個安裝孔與一道加強筋。帽型斷面＋點焊＝車身沖壓件（不是實心塊）。
+  const dStamping = () => {
+    const spot = (y) => [0, 1, 2, 3, 4].map(i => `<circle class="ai-seam" cx="${-32 + i * 16}" cy="${y}" r="1.8" fill="none"/>`).join('');
+    return pad(40, 24)
+      + mat('m-st', box(-40, -24, 0, 80, 8, 2, spot(-20)) + box(-40, 16, 0, 80, 8, 2, spot(20)))
+      + mat('m-st', box(-40, -16, 0, 80, 2, 16, '') + box(-40, -16, 16, 80, 32, 2, bolt([[-26, 0], [26, 0]], 4) + `<path class="etch" d="M-14,0 H14"/>`) + box(-40, 14, 0, 80, 2, 16, ''));
+  };
+  // 車規 MCU 與感測器：一顆貼散熱片的 MCU ＋ 一顆圓柱感測器 ＋ 一個短接頭（車上那三樣）
+  const dMcuSensor = () => pad(38, 24)
+    + mat('m-pcb', box(-36, -22, 0, 72, 44, 5, trace(-36, -22, 72, 44, 3)))
+    + mat('m-emc', box(-30, -14, 5, 26, 26, 8, ''))
+    + mat('m-al', box(-28, -12, 13, 22, 22, 3, grid2(-28, -12, 22, 22, 3, 3)))
+    + mat('m-st', cyl(12, -8, 5, 9, 15, `<circle class="etch" r="5" fill="none"/>`))
+    + mat('m-res', box(6, 8, 5, 22, 12, 9, padArr(6, 8, 22, 12, 3, 1, 'ai-port')));
+  // 手機鏡頭模組（★ 2026-10-07 第三批 B）：小 PCB 底板上一個方形金屬外殼的音圈馬達（VCM），
+  // 頂面中央凸出一支圓鏡筒（看得到同心的鏡片圈與最外層玻璃），底板一側拉出一條軟板、末端 BTB 連接器。
+  // 「方殼＋中央圓鏡筒＋軟板尾巴」就是手機相機模組。
+  const dLensModule = () => pad(34, 22)
+    + mat('m-pcb', box(-20, -20, 0, 40, 40, 3, ''))
+    + `<path class="part f2" d="M${P3(20, -6, 1.5)} L${P3(40, -6, 1.5)} L${P3(40, 6, 1.5)} L${P3(20, 6, 1.5)}Z"/>`
+    + mat('m-emc', box(36, -8, 1.5, 10, 16, 4, padArr(36, -8, 10, 16, 1, 4, 'ai-au')))
+    + mat('m-st', box(-18, -18, 3, 36, 36, 20, bolt([[-14, -14], [14, -14], [-14, 14], [14, 14]], 1.2)))
+    + mat('m-res', cyl(0, 0, 23, 12, 7, ''))
+    + mat('m-res', cyl(0, 0, 30, 10, 4, ''))
+    + mat('m-gl', cyl(0, 0, 34, 7.5, 1.6, `<circle class="etch" r="5" fill="none"/><circle class="etch" r="2.4" fill="none"/>`));
+  // 手機整機：機身 ＋ 掀起來的玻璃背蓋 ＋ 露出的電池與主機板 ＋ 三鏡頭（爆開＝組裝那一段）
+  const dPhone = () => pad(28, 32)
+    + mat('m-al', box(-19, -38, 0, 38, 76, 5, ''))
+    + mat('m-cell', box(-15, -6, 5, 30, 30, 7, `<path class="etch" d="M-12,2 H12 M-12,12 H12 M-12,22 H12"/>`))
+    + mat('m-pcb', box(-15, -34, 5, 30, 24, 4, trace(-15, -34, 30, 24, 2)))
+    + `<path class="ai-seam" d="M${P3(-19, -38, 12)} L${P3(-19, -38, 22)} M${P3(19, 38, 12)} L${P3(19, 38, 22)}"/>`
+    + mat('m-gl', box(-19, -38, 22, 38, 76, 3, ''))
+    + mat('m-gl', [0, 1, 2].map(i => cyl(-8 + (i % 2) * 11, -28 + Math.floor(i / 2) * 11, 25, 4.4, 3, '')).join(''));
+  // 筆電：掀開的螢幕 ＋ 鍵盤面與觸控板（掀開的角度是筆電最好認的輪廓）
+  const dLaptop = () => {
+    const keys = [];
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 4; j++) keys.push(`<rect class="ai-vent" x="${-23 + i * 5.2}" y="${-15 + j * 5.6}" width="4" height="4.4" rx=".6"/>`);
+    return pad(42, 26)
+      + box(-38, -22, 0, 76, 48, 5, '')
+      + onTop(5, `<rect class="ai-port" x="-24" y="-16" width="48" height="24" rx="1.4"/>` + keys.join('')
+        + `<rect class="ai-port" x="-10" y="12" width="20" height="10" rx="1.4"/>`)
+      + panel(-38, -22, 5, 76, 44, 4, grid2(0, 0, 76, 44, 1, 1));
+  };
+  // CNC 中框：金屬框 ＋ 銑出來的兩個凹槽與螺絲柱 ＋ 側邊天線斷點（凹槽＋斷點＝中框）
+  const dCncCase = () => pad(34, 30)
+    + mat('m-al', box(-22, -40, 0, 44, 80, 12, ''))
+    + mat('m-al', onTop(12, `<rect class="m-hole" x="-17" y="-35" width="34" height="30" rx="3"/><rect class="m-hole" x="-17" y="2" width="34" height="32" rx="3"/>`
+      + bolt([[-19, -37], [19, -37], [-19, 37], [19, 37], [-19, -1], [19, -1]], 2.4)))
+    + [-24, 4].map(y => `<path class="ai-seam" d="M${P3(22, y, 0)} L${P3(22, y, 12)} M${P3(22, y + 8, 0)} L${P3(22, y + 8, 12)}"/>`).join('');
+  // 主機板：板 ＋ 兩條記憶體插槽 ＋ 供電電感 ＋ 一條 M.2 插槽（插槽＝主機板，不是模組板）
+  const dMainboard = () => pad(44, 27)
+    + mat('m-pcb', box(-42, -28, 0, 84, 56, 5, trace(-42, -28, 84, 56, 5)))
+    + mat('m-res', box(-36, -22, 5, 8, 42, 7, '') + box(-24, -22, 5, 8, 42, 7, ''))
+    + mat('m-emc', box(-8, -20, 5, 24, 24, 9, grid2(-8, -20, 24, 24, 2, 2)))
+    + mat('m-mag', [0, 1, 2, 3].map(i => box(20, -20 + i * 8, 5, 12, 6, 7, '')).join(''))
+    + mat('m-au', onTop(5, aiGold(-14, 12, 34, 7, 8)))
+    + mat('m-st', box(-38, 18, 5, 16, 8, 3, ''));
+  // 端側 SoC：掀蓋露出分區大小不同的 CPU／GPU／NPU ＋ 底部錫球（三塊不等大＝異質運算）
+  const dSocNpu = () => pad(40, 25)
+    + mat('m-pcb', box(-34, -26, 0, 68, 52, 5, ''))
+    + aiBalls(-26, 25, 26, 25, 8)
+    + mat('m-si', box(-28, -21, 5, 56, 42, 5, ''))
+    + [[-26, -19, 22, 18], [-26, 2, 22, 16], [0, -19, 26, 24], [0, 8, 26, 10]]
+      .map(r => box(r[0], r[1], 10, r[2], r[3], 6, grid2(r[0], r[1], r[2], r[3], 2, 2))).join('')
+    + mat('m-emc', box(-32, -23, 14, 6, 46, 4, ''));
+  // 端側記憶體與儲存：一顆 LPDDR 疊在基板上（PoP）＋ 一條 M.2 固態硬碟（疊起來＝端側省面積）
+  const dMemSsd = () => pad(42, 25)
+    + mat('m-pcb', box(-42, -20, 0, 44, 40, 5, ''))
+    + mat('m-emc', box(-36, -14, 5, 32, 28, 8, '') + box(-33, -11, 13, 26, 22, 7, grid2(-33, -11, 26, 22, 2, 2)))
+    + aiBalls(-36, 15, -4, 15, 6)
+    + mat('m-pcb', box(6, -10, 0, 36, 20, 4, ''))
+    + mat('m-emc', box(12, -7, 4, 12, 14, 6, '') + box(28, -7, 4, 10, 14, 5, ''))
+    + mat('m-au', onTop(4, aiGold(7, -8, 5, 16, 2)));
+
+  /* ---------------- 2026-10-07 新增四題材的零件（交換器／MLCC／面板轉封裝／石化） ---------------- */
+  // MLCC 成品：中段陶瓷本體 ＋ 兩端金屬端電極（兩端銀色帽＝MLCC）；頂面虛線＝內部左右交錯的鎳電極
+  const dMlcc = () => pad(36, 18)
+    + mat('m-st', box(-34, -13, 0, 10, 26, 18, ''))
+    + mat('m-res', box(-24, -13, 0, 48, 26, 18, `<path class="etch" d="M-22,-8 H18 M-18,-3 H22 M-22,2 H18 M-18,7 H22" stroke-dasharray="3 2"/>`))
+    + mat('m-st', box(24, -13, 0, 10, 26, 18, ''));
+  // 晶片電阻：白色氧化鋁基板 ＋ 頂面黑色電阻保護層（印著阻值碼）＋ 兩端電極（比 MLCC 扁很多）
+  const dChipRes = () => pad(36, 20)
+    + mat('m-res', box(-30, -15, 0, 60, 30, 5, ''))
+    + mat('m-emc', box(-20, -13, 5, 40, 26, 2, `<path class="etch" d="M-12,0 H12"/>`))
+    + mat('m-st', box(-34, -15, 0, 8, 30, 7, '') + box(26, -15, 0, 8, 30, 7, ''));
+  // 鋁質電解電容：直立圓柱 ＋ 頂面防爆十字刻痕 ＋ 底部兩支引腳（十字刻痕＝電解電容）
+  const dAlCap = () => pad(26, 18)
+    + `<path class="m-cable" d="M${P3(-6, 0, 0)} L${P3(-6, 0, -16)} M${P3(6, 0, 0)} L${P3(6, 0, -16)}"/>`
+    + mat('m-al', cyl(0, 0, 0, 16, 36, `<path class="etch" d="M-10,0 H10 M0,-10 V10"/>`));
+  // 捲帶料盤：躺著的料盤（MLCC 出貨給 SMT 的樣子）
+  const dTapeReel = () => pad(36, 22) + mat('m-res', hcylX(-6, 6, 0, 24, 24, [0.9, 0.35]));
+  // 交換器晶片：基板 ＋ 錫球 ＋ 補強框 ＋ 中央裸晶（一顆大覆晶封裝＝ASIC）
+  const dSwitchAsic = () => pad(40, 25)
+    + mat('m-pcb', box(-34, -26, 0, 68, 52, 5, ''))
+    + aiBalls(-26, 25, 26, 25, 8)
+    + mat('m-al', box(-26, -19, 5, 52, 38, 4, ''))
+    + mat('m-si', box(-12, -10, 9, 24, 20, 3, grid2(-12, -10, 24, 20, 3, 3)));
+  // 多層主板（MLB）：側面看得到一疊很多層 ＋ 頂面通孔（層數＝交換器板的門檻）
+  const dMlb = () => pad(44, 26)
+    + mat('m-pcb', [0, 1, 2, 3, 4, 5].map(i => box(-42, -26, i * 3, 84, 52, 3, i === 5 ? holes(-42, -26, 84, 52, 8, 4, 2) : '')).join(''));
+  // TFT-LCD 面板：背板 ＋ TFT 玻璃 ＋ 液晶層 ＋ 彩色濾光片玻璃（頂面是子像素格）
+  const dLcdPanel = () => pad(44, 28)
+    + mat('m-st', box(-42, -28, 0, 84, 56, 4, ''))
+    + mat('m-gl', box(-40, -26, 4, 80, 52, 3, ''))
+    + mat('m-res', box(-40, -26, 7, 80, 52, 2, ''))
+    + mat('m-gl', box(-40, -26, 9, 80, 52, 3, grid2(-40, -26, 80, 52, 12, 6)));
+  // FOPLP：一大片方形面板載板上排滿晶粒（方形＝面板級，圓的才是晶圓級）
+  const dFoPanel = () => {
+    const dies = [];
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) dies.push(box(-38 + i * 15.5, -26 + j * 13.5, 4, 10, 9, 3, ''));
+    return pad(44, 28) + mat('m-gl', box(-42, -30, 0, 84, 60, 4, '')) + mat('m-si', dies.join(''));
+  };
+  // 原料儲槽：兩座圓柱儲槽（儲槽＝原油／輕油進料端）
+  const dTankFarm = () => pad(42, 24)
+    + mat('m-st', cyl(-18, 0, 0, 16, 22, `<circle class="etch" r="10" fill="none"/>`))
+    + mat('m-st', cyl(20, 6, 0, 13, 18, `<circle class="etch" r="8" fill="none"/>`));
+  // 裂解爐＋分餾塔（★ 2026-10-07 第三批結構把關）：左邊一座箱型裂解爐（爐體側面看得到一排燃燒器觀火孔、
+  // 爐頂收斂成對流段，上面一根細高煙囪）；右邊一根**高瘦**分餾塔（高徑比 > 6），塔身三層環形平台＋爬梯，
+  // 爐出口的轉油線接到塔底、塔頂一條回流管彎下來 —— 「箱型爐＋煙囪」「高瘦塔＋平台管線」是石化廠最好認的兩樣。
+  const dCracker = () => {
+    const tx = 22, ty = 6, tr = 6.5, th = 78;
+    const plat = (z) => cyl(tx, ty, z, tr + 2.2, .8, '');
+    return pad(40, 24)
+      + mat('m-cer', box(-44, -16, 0, 36, 30, 32, ''))
+      + mat('m-cer', faceXZ(-44, 14, [0, 1, 2, 3, 4].map(i => `<rect class="m-hole" x="${4 + i * 6.6}" y="5" width="3" height="4" rx="1"/>`).join('')
+        + `<path class="etch" d="M2,14 H34 M2,22 H34"/>`))
+      + mat('m-st', box(-36, -9, 32, 20, 16, 10, ''))
+      + mat('m-st', cyl(-26, -1, 42, 3.4, 32, '') + cyl(-26, -1, 74, 4.2, 2, ''))
+      + `<path class="m-pipe" d="M${P3(-10, 4, 10)} L${P3(tx - tr, ty, 10)}"/>`
+      // 塔身分段畫、每段之間夾一圈平台：平台被上一段塔身蓋住後半圈，看起來才是「圍在塔外的環形走道」而不是一疊盤子
+      + mat('m-st', [[0, 22], [22, 44], [44, 64], [64, th]].map((g, i) => (i ? plat(g[0]) : '') + cyl(tx, ty, g[0] + (i ? .8 : 0), tr, g[1] - g[0] - (i ? .8 : 0), '')).join(''))
+      + `<path class="etch" d="M${P3(tx + tr * .7, ty + tr * .7, 2)} L${P3(tx + tr * .7, ty + tr * .7, th - 4)}" stroke-dasharray="1.6 1.6"/>`
+      + `<path class="m-pipe" style="stroke-width:3" d="M${P3(tx, ty, th + 2)} L${P3(tx, ty, th + 6)} L${P3(tx - 16, ty, th + 6)} L${P3(tx - 16, ty, 30)}"/>`
+      + mat('m-st', cyl(tx, ty, th, tr * .7, 3, ''));
+  };
+  // 塑膠粒（★ 2026-10-07）：太空包（FIBC）＝白色編織軟袋，袋身微鼓、四角各一條吊帶、頂部袋口束起綁一道，
+  // 旁邊灑出的顆粒。軟袋用編織紋＋圓角側邊表現「軟」，不是一塊硬方塊。
+  const dPellets = () => {
+    const bx = -30, by = -16, w = 32, d = 32, h = 28;
+    const loop = (x, y) => { const x2 = x + (x < bx + w / 2 ? 8 : -8); return `<path class="m-tie" style="stroke-width:2.6" d="M${P3(x, y, h)} C${P3(x, y, h + 10)} ${P3(x2, y, h + 10)} ${P3(x2, y, h)}"/>`; };
+    return pad(40, 24)
+      + mat('m-sack', box(bx, by, 0, w, d, h, weaveTop(bx, by, w, d, 6)))
+      + mat('m-sack', faceXZ(bx, by + d, weaveFace(w, 0, h, 6)))
+      + mat('m-sack', faceYZ(bx + w, by, weaveFace(d, 0, h, 6)))
+      + mat('m-sack', cyl(bx + w / 2, by + d / 2, h, 9, 3, '') + cyl(bx + w / 2, by + d / 2, h + 3, 5, 9, ''))
+      + mat('m-st', cyl(bx + w / 2, by + d / 2, h + 7, 5.2, 1.4, ''))
+      + loop(bx + 2, by + 2) + loop(bx + w - 2, by + 2) + loop(bx + 2, by + d - 2) + loop(bx + w - 2, by + d - 2)
+      + mat('m-al', [[14, -8], [22, 2], [12, 10], [26, -10], [30, 10], [18, 18]].map(p => cyl(p[0], p[1], 0, 3.5, 3, '')).join(''));
+  };
+  // 化學品桶（★ 2026-10-07：CEO「化學品桶比例過大」）：改成棧板上四只 55 加侖鋼桶，桶身兩道滾箍、桶蓋兩個注口——
+  // 有棧板當尺度參考，桶子才不會被 fit() 放大成兩座儲槽
+  const dDrums = () => {
+    const d = (x, y) => cyl(x, y, 5, 8.5, 22, `<circle class="m-hole" cx="-3.4" cy="-2" r="1.3"/><circle class="m-hole" cx="3.6" cy="2.4" r="1"/>`)
+      + [11.5, 19.5].map(z => { const cx = px(x, y), cy = py(x, y, z), rx = 8.5 * 1.2247, ry = 8.5 * .7071;
+        return `<path class="ai-seam" d="M${(cx - rx).toFixed(1)},${cy.toFixed(1)} A${rx.toFixed(1)},${ry.toFixed(1)} 0 0 0 ${(cx + rx).toFixed(1)},${cy.toFixed(1)}"/>`; }).join('');
+    return pad(38, 22)
+      + mat('m-res', box(-24, -22, 0, 48, 44, 5, ''))
+      + `<g class="m-drum">` + mat('m-st', d(-10, -10) + d(10, -10) + d(-10, 10) + d(10, 10)) + '</g>';
+  };
+  // 聚酯紗：兩捆躺著的紗捲（PTA → 聚酯 → 紡絲）
+  const dYarn = () => pad(40, 24) + mat('m-res', hcylX(-26, 4, -10, 12, 12, [0.75, 0.3]) + hcylX(-6, 24, 14, 12, 12, [0.75, 0.3]));
+
+  /* ================================================================ 十八個題材 */
+  const T = {};
+
+  T.cowos = () => chainScene({
+    title: 'CoWoS 先進封裝：一顆 AI 加速器怎麼做出來',
+    cap: '設計定案 → 投片 → 中介層上把邏輯晶粒與 HBM 拼起來 → 封測上蓋 → 裝到載板與主機板。台廠在每一段都有位置。',
+    cw: 980,
+    stations: [
+      S('equip', 0, '設備與材料', ['暫時鍵合、電鍍、載具', '擴產先反映在這', '圖：機殼觀察窗＋槽體＋手臂'], ['3680', '6187', '3583', '3131'], 'adv_pkg', dWetBench),
+      S('design', 0, 'IC 設計與 IP', ['GPU / ASIC 規格定案', '矽智財與設計服務', '圖：晶片功能區佈局'], ['3443', '3661', '3529'], 'ip_eda', dFloorplan, 1.35),
+      S('foundry', 1, '晶圓代工', ['3nm / 2nm 邏輯晶粒', 'HBM 基底也在這', '圖：晶圓＋定位缺口'], ['2330'], 'foundry', dWafer, 1.4),
+      S('stack', 1, '中介層與 HBM', ['CoWoS：TSV、微凸塊', '一顆 GPU 旁 4–8 顆', '圖：大晶粒＋八疊 HBM'], ['2330', '3711', '2408'], 'adv_pkg', dCowosPkg, 1.3),
+      S('pkg', 2, '載板封測出貨', ['ABF 載板、上蓋、燒機', '接到加速卡主機板', '圖：金屬上蓋＋錫球'], ['3037', '8046', '6239', '3711'], 'abf_pcb', dSubstrateBga, 1.3),
+    ],
+    steps: [{ p: 'design', t: '設計定案', s: 'IP / EDA' }, { p: 'foundry', t: '投片', s: '晶圓製造' }, { p: 'stack', t: '中介層堆疊', s: 'CoWoS' },
+    { p: 'pkg', t: '封測上蓋', s: 'OSAT' }, { p: 'pkg', t: '上板', s: '載板 → PCB' }],
+  });
+
+  T.hbm_memory = () => chainScene({
+    title: 'HBM 與記憶體：從一顆 DRAM 到一條模組',
+    cap: 'DRAM 顆粒疊起來用 TSV 打穿變成 HBM；台廠主力在利基型記憶體、控制 IC、模組與封測這幾段。',
+    cw: 980,
+    stations: [
+      S('dram', 0, 'DRAM 顆粒', ['利基型 DRAM 與 NOR', '報價循環是股價主軸', '圖：切好的裸晶排在框上'], ['2408', '2344', '3006', '2337'], 'hbm', dDieTray, 1.4),
+      S('stackp', 1, 'TSV 堆疊封裝', ['8–12 層疊起來打通孔', '良率由封測把關', '圖：一疊薄晶粒＋銅柱'], ['2330', '6239', '3711'], 'adv_pkg', dHbmStack, 1.15),
+      S('ctrl', 1, '控制 IC 與韌體', ['NAND 控制器與介面', '決定模組規格上限', '圖：四邊出腳的小封裝'], ['8299', '6526'], 'ic_design', dQfnChip, 1.3),
+      S('module', 2, '模組與儲存', ['DIMM、SSD、工控記憶體', '出海量最大的一段', '圖：長條板＋金手指'], ['4967', '3260', '5289'], 'hbm', dDimm, 1.25),
+      S('server', 2, 'AI 伺服器與 PC', ['模型越大吃越多記憶體', '終端拉貨才是源頭', '圖：機櫃＋端側筆電'], ['6669', '2382'], 'assembly', dRackPc, 0.72),
+    ],
+    steps: [{ p: 'dram', t: '顆粒製造', s: '2408 / 2344' }, { p: 'stackp', t: '堆疊封裝', s: 'TSV' }, { p: 'ctrl', t: '控制 IC', s: '8299' },
+    { p: 'module', t: '模組組裝', s: '4967 / 3260' }, { p: 'server', t: '終端出貨', s: '伺服器 / PC' }],
+  });
+
+  T.pcb_ccl = () => chainScene({
+    title: '高階 PCB 與 CCL：一片板子是怎麼壓出來的',
+    cap: 'PCB 是元件之間的「道路系統」。玻纖布＋樹脂＋銅箔壓成 CCL，再蝕刻、鑽孔、電鍍、壓合成多層板與載板。',
+    cw: 980,
+    stations: [
+      S('glass', 0, '玻纖布與樹脂', ['板材的骨架與黏著', '決定尺寸穩定度', '圖：布捲＋樹脂桶'], ['1815', '1303'], 'ccl', dClothRoll, 1.15),
+      S('ccl', 0, 'CCL 銅箔基板', ['樹脂含浸玻纖壓銅箔', '高速低損耗是主戰場', '圖：銅／膠片／銅三明治'], ['2383', '6274', '6213'], 'ccl', dCcl, 1.3),
+      S('press', 1, '蝕刻鑽孔壓合', ['層數＝難度', 'AI 板要 20 層以上', '圖：壓板＋導柱＋板疊'], ['3044', '2313', '5469'], 'abf_pcb', dPress),
+      S('abf', 1, 'ABF 載板', ['晶片直接坐上去那層', '台廠寡占、看擴產', '圖：核心層＋上下對稱增層'], ['3037', '8046', '3189'], 'abf_pcb', dAbfSub, 1.3),
+      S('fpc', 2, '軟板與終端', ['FPC、軟硬結合板', '伺服器、手機、車用', '圖：彎折薄帶＋一端金手指'], ['6269', '2368'], 'assembly', dFpc, 1.4),
+    ],
+    steps: [{ p: 'ccl', t: '覆銅板', s: 'CCL 板材' }, { p: 'press', t: '蝕刻', s: '做出線路' }, { p: 'press', t: '鑽孔', s: '微孔加工' },
+    { p: 'abf', t: '電鍍', s: '孔壁導通' }, { p: 'abf', t: '壓合', s: '多層疊起' }],
+    flowTitle: 'PCB 製作流程',
+  });
+
+  T.glass_substrate = () => chainScene({
+    title: '玻璃基板：下一代封裝載板',
+    cap: '玻璃比有機載板更平整、翹曲更小、可做更大尺寸。難的是在玻璃上打出 TGV 通孔並把孔壁鍍上銅。',
+    cw: 980,
+    stations: [
+      S('material', 0, '玻璃與材料', ['玻璃核心、乾膜、銅箔', '目前多半仰賴進口', '圖：兩片透光薄板'], ['4770', '1303', '2383'], 'ccl', dGlassPane, 1.3),
+      S('laser', 0, '雷射加工設備', ['打孔設備與治具', '最先吃到訂單那段', '圖：龍門＋往下的光束'], ['6187', '3413', '3680'], 'adv_pkg', dLaserTool),
+      S('tgv', 1, 'TGV 玻璃通孔', ['雷射打孔＋蝕刻擴孔', '孔徑與側壁是門檻', '圖：打滿孔、孔壁鍍銅'], ['6187', '3680'], 'adv_pkg', dTgvPane, 1.3),
+      S('plating', 1, '金屬化與 RDL', ['孔壁鍍銅、重佈線層', '濕製程設備受惠', '圖：開口槽＋銅陽極＋吊著的玻璃板'], ['3131', '3583'], 'adv_pkg', dPlateBath, 1.2),
+      S('pkg', 2, '載板與先進封裝', ['玻璃載板放晶粒', '放量等製程成熟', '圖：上蓋封裝＋錫球'], ['3037', '8046', '6271'], 'abf_pcb', dSubstrateBga, 1.3),
+    ],
+    steps: [{ p: 'material', t: '玻璃備料', s: '4770 / 1303' }, { p: 'laser', t: '雷射打孔', s: '6187 / 3413' }, { p: 'tgv', t: 'TGV 成孔', s: '蝕刻擴孔' },
+    { p: 'plating', t: '電鍍 RDL', s: '3131 / 3583' }, { p: 'pkg', t: '晶片貼裝', s: '2330 / 3711' }],
+  });
+
+  T.asic_ip = () => chainScene({
+    title: 'ASIC 與矽智財：一顆客製晶片的組成',
+    cap: '客戶出規格，設計服務廠把各家 IP（運算核、高速介面、記憶體控制、類比）拼成一顆 SoC，再交給晶圓代工投片。',
+    cw: 980,
+    stations: [
+      S('ip', 0, '矽智財授權', ['RISC-V 核、記憶體 IP', '收授權金＋權利金', '圖：晶粒上拼好的 IP 硬核＋正放進去的一塊'], ['3529', '6643'], 'ip_eda', dIpBlocks, 1.3),
+      S('phy', 0, '高速介面 IP', ['SerDes / PCIe / UCIe', 'chiplet 能不能拼靠它', '圖：成對差動線＋眼圖'], ['4966', '6104', '6415'], 'ip_eda', dSerdes, 1.4),
+      S('service', 1, '設計服務 NRE', ['從規格到量產一條龍', '認列跟著專案走', '圖：晶片功能區佈局'], ['3443', '3661'], 'ip_eda', dFloorplan, 1.35),
+      S('foundry', 1, '投片：晶圓代工', ['設計定案後的夥伴', '先進製程排隊', '圖：晶圓＋定位缺口'], ['2330'], 'foundry', dWafer, 1.4),
+      S('client', 2, '封測與客戶量產', ['封測、模組與出貨', 'CSP 自研晶片是主力', '圖：探針卡＋晶粒盤'], ['3711', '8299', '5269'], 'osat_test', dTestHandler, 1.25),
+    ],
+    steps: [{ p: 'ip', t: 'IP 授權', s: '3529 / 6643' }, { p: 'service', t: '設計服務', s: '3443 / 3661' }, { p: 'foundry', t: '投片', s: '2330' },
+    { p: 'client', t: '封測', s: '3711' }, { p: 'client', t: '客戶量產', s: 'CSP / 網通' }],
+  });
+
+
+  /* ================================================================ AI 伺服器專用零件庫（2026-09-23）
+     Andy：「題材分頁 每個題材的圖都需要優化的更細緻點，只需要提供圖片給讀者閱讀即可」。
+     「只需要提供圖片給讀者閱讀」＝ 讀者不點、不滑、不轉，光看圖就要認得出每一層是什麼零件。
+     改版前的五層是同一塊格子板換五種顏色（藍／粉／灰／黃／紫），顏色一拿掉就全部一樣 ——
+     所以這一輪的判準是**形狀要帶出那個零件真正的識別特徵**，不是把面數畫多。
+
+     五層各自靠什麼被認出來（這就是每支函式存在的理由）：
+       1 vaPackage  中央一顆最大最厚的邏輯晶粒 ＋ 兩側各四疊 HBM（層與層之間看得到接縫）
+                    ＋ 底下薄薄一片矽中介層 ＋ 載板底面一排錫球 → 這是「一顆封裝」不是一塊板子
+       2 vaPcbStack 板材一層一層往內縮的階梯剖面（多層壓合）＋ 表面銅走線 ＋ 板緣一排金手指
+                    ＋ 右側屏蔽連接器籠 → 這是「一疊板材與連接」不是一塊單層 PCB
+       3 vaPowerCool 左：電源模組（一排直立散熱鰭片 ＋ 銅匯流排）
+                     右：液冷板（表面蛇行流道 ＋ 兩顆進出水快接頭，藍進橘出）→ 兩件事並置
+       4 vaTray      抽屜狀：前面板有把手與一整排散熱開孔，裡面看得到並排的 GPU 模組（帶鰭片）與風扇
+       5 vaRackPair  左：運算機櫃（一格一格托盤堆疊、每格有把手與狀態燈）
+                     右：網通機櫃（ToR 交換器一排埠 ＋ 垂下來的光纖束）
+
+     等角投影的兩條硬限制，寫在這裡免得下次有人重踩：
+       · 一個扁平物件的螢幕寬高比上限 ＝ 0.866/0.5 ＝ 1.73。框開到 2.6:1，零件只會佔一半寬。
+       · 想把兩個物件「並排」而不長高，要往 (+Δx, −Δy) 擺 —— 那等於純水平位移，
+         所以這裡直接用 aiShift() 做螢幕座標的水平平移，比算模型座標好讀也不會算錯。
+     色碼：一律 --dg-* token（AI_STYLE）。只有「材料本身就有顏色」的東西才脫離環節色
+     （金手指＝金、匯流排＝銅、錫球＝錫、冷卻水藍進橘出），其餘讓 f1/f2/f3 吃環節色，
+     右邊卡片與左邊零件的連動才不會斷。 */
+  /* ★ 2026-09-23：AI_STYLE 與 MAT_STYLE 現在由兩種場景**無條件**注入。
+     踩過的坑：新零件庫在鏈圖裡也用 .ai-au／.ai-port／.ai-led／.ai-seam，
+     但那幾條規則只在 AI_STYLE 裡，而 AI_STYLE 原本只靠 o.style 傳給爆炸圖 ——
+     結果鏈圖上的金手指、埠、狀態燈會變成沒有樣式的黑色實心。
+     T.ai_server 仍然會再傳一次 o.style，重覆一份規則沒有副作用，所以那張圖一個字都不必動。*/
+  const AI_STYLE = `<style>
+    .dg3 .ai-au{fill:var(--dg-au);stroke:color-mix(in srgb,var(--dg-au) 55%,var(--dg-sh0));stroke-width:.4}
+    .dg3 .ai-cu .f1{fill:color-mix(in srgb,var(--dg-cu) 80%,var(--dg-sn))}
+    .dg3 .ai-cu .f2{fill:var(--dg-cu)}
+    .dg3 .ai-cu .f3{fill:color-mix(in srgb,var(--dg-cu) 72%,var(--dg-sh0))}
+    .dg3 .ai-ball{fill:var(--dg-sn);fill-opacity:.85;stroke:none}
+    .dg3 .ai-port{fill:var(--dg-sh0);fill-opacity:.55;stroke:var(--dg-sn);stroke-opacity:.3;stroke-width:.6}
+    .dg3 .ai-vent{fill:none;stroke:var(--dg-sh0);stroke-opacity:.5;stroke-width:1.1}
+    .dg3 .ai-led{fill:var(--dg-cold);fill-opacity:.9;stroke:none}
+    .dg3 .ai-chan{fill:none;stroke:var(--dg-cold);stroke-opacity:.8;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .dg3 .ai-seam{fill:none;stroke:var(--dg-sh0);stroke-opacity:.45;stroke-width:.7}
+  </style>`;
+
+  // 純螢幕水平位移：等角裡把第二個物件擺到右邊又不讓整體長高，用這支最穩（理由見上面那段）
+  const aiShift = (dx, inner) => `<g transform="translate(${dx},0)">${inner}</g>`;
+  // 一排錫球（BGA）：封裝底下才有這一圈，是「這是封裝」的第一眼特徵
+  const aiBalls = (x0, y0, x1, y1, n) => {
+    const a = [];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0 : i / (n - 1), x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+      a.push(`<ellipse class="ai-ball" cx="${px(x, y).toFixed(1)}" cy="${py(x, y, -3).toFixed(1)}" rx="4" ry="2.7"/>`);
+    }
+    return a.join('');
+  };
+  // 一疊薄片：HBM 就是靠「看得出是一疊」被認出來的，所以層與層之間一定要留得出接縫
+  const aiPile = (x, y, z, w, d, n, t, gap) => {
+    let s = ''; gap = gap == null ? 1.2 : gap;
+    for (let i = 0; i < n; i++) s += box(x, y, z + i * (t + gap), w, d, t, '');
+    return s;
+  };
+  // 散熱鰭片：一排立起來的薄板。看到鰭片就知道這是散熱件（電源模組、GPU 模組共用）
+  const aiFins = (x, y, z, w, d, h, n, th) => {
+    let s = ''; th = th || 2.4;
+    const step = (w - th) / Math.max(1, n - 1);
+    for (let i = 0; i < n; i++) s += box(x + i * step, y, z, th, d, h, '');
+    return s;
+  };
+  /* 金手指：板緣一排金色細條（畫在頂面，所以用模型座標）。
+     n 條沿著 x 排開、每條往 y 方向延伸 d —— 方向要跟板緣垂直，
+     排錯方向就變成「貼在板子中間的一塊黃斑」（2026-09-23 第一版踩過）。*/
+  const aiGold = (x, y, w, d, n) => {
+    const a = [], step = w / n;
+    for (let i = 0; i < n; i++)
+      a.push(`<rect class="ai-au" x="${(x + i * step + step * .22).toFixed(1)}" y="${y}" width="${(step * .56).toFixed(1)}" height="${d}" rx="1"/>`);
+    return a.join('');
+  };
+  // 蛇行流道：水冷板的識別特徵（進水 → 在板內繞一圈 → 出水）
+  const aiSerpent = (x, y, w, d, n) => {
+    const step = d / n, a = [];
+    for (let i = 0; i < n; i++) {
+      const yy = (y + step * (i + .5)).toFixed(1);
+      a.push(`M${x + 5},${yy} H${(x + w - 5).toFixed(1)}`);
+      if (i < n - 1) a.push(`M${(i % 2 ? x + 5 : x + w - 5).toFixed(1)},${yy} V${(y + step * (i + 1.5)).toFixed(1)}`);
+    }
+    return `<path class="ai-chan" d="${a.join(' ')}"/>`;
+  };
+  /* 垂直面上的開孔陣列（托盤前面板的散熱孔、交換器的埠、托盤把手旁的狀態燈）。
+     y=y0 的那個立面，局部座標 (u, v)：u 沿 +x、v 是從 z0 往上量的高度。
+     ⚠ z0 不能省：交換器裝在機櫃上段，從地面量的話埠會畫到櫃子底下（2026-09-23 第一版就是這樣）。
+     ⚠ 這個矩陣的行列式是負的（鏡射），所以不要把文字放進來。*/
+  const aiFace = (x0, y0, z0, inner) => `<g transform="translate(${px(x0, y0).toFixed(1)},${py(x0, y0, z0 || 0).toFixed(1)}) matrix(0.866,0.5,0,-1,0,0)">${inner}</g>`;
+
+  // ---- 第 1 層：GPU / ASIC 與封裝 ----------------------------------------
+  function vaPackage() {
+    // 載板：最底最大、表面走線，邊緣露出一圈 —— 晶片是「坐在」載板上，不是跟它同一塊
+    return pad(80, 48)
+      + box(-76, -48, 0, 152, 96, 6, trace(-76, -48, 152, 96, 5))
+      + aiBalls(-64, 46, 64, 46, 12) + aiBalls(74, -38, 74, 38, 8)   // 底面兩排錫球
+      // 矽中介層：比載板小一圈、薄很多；CoWoS 的關鍵就是這一片把晶粒和 HBM 接在一起
+      + box(-62, -39, 6, 124, 78, 4, '')
+      // 邏輯晶粒：正中央最大最厚的一塊，一眼過去的主角
+      + box(-19, -27, 10, 38, 54, 16, grid2(-19, -27, 38, 54, 3, 4))
+      // 左右各四疊 HBM（2 欄 × 2 列），每疊四片 → 看得出來是「一疊」而不是一塊方糖
+      + [[-57, -35], [-38, -35], [-57, 3], [-38, 3], [23, -35], [42, -35], [23, 3], [42, 3]]
+        .map(([x, y]) => box(x, y, 10, 16, 32, 1.6, '') + aiPile(x, y, 12, 16, 32, 7, 1.5, .5)).join('');
+  }
+
+  // ---- 第 2 層：板材、載板與連接 ------------------------------------------
+  function vaPcbStack() {
+    // 五片板材一層一層往內縮：階梯狀的邊緣就是「多層壓合」的剖面感（單層板畫不出這個）
+    let s = pad(74, 46);
+    for (let i = 0; i < 5; i++) {
+      const x = -68 + i * 5, y = -44 + i * 3.5, w = 136 - i * 10, d = 88 - i * 7, z = i * 4.6;
+      s += box(x, y, z, w, d, 3.4, i === 4 ? trace(x, y, w, d, 4) : '');
+    }
+    const tx = -48, ty = -30, tz = 4 * 4.6 + 3.4;   // 最上面那片的頂面
+    return s
+      // 板緣一排金手指：連接器插進去的地方，PCB 圖少了它就只是一塊板子
+      + onTop(tz, aiGold(tx + 40, ty + 44, 50, 14, 9))
+      // 屏蔽連接器籠：靠近觀者那一角的方盒 ＋ 三個往外凸的埠口（QSFP 籠就是長這樣）
+      + box(tx + 60, ty + 4, tz, 32, 32, 18, '')
+      + [4, 14, 24].map(dy => box(tx + 92, ty + dy, tz + 5, 5, 7, 10, '')).join('')
+      // 貫穿導通孔：三條穿過整疊的虛線，說明「層跟層之間是通的」
+      + [[-20, -8], [8, 6], [30, -18]].map(([x, y]) => wire([[x, y, 0], [x, y, tz + 2]], 'etch', 'var(--dg-cu)', 1.3)).join('');
+  }
+
+  // ---- 第 3 層：電源與散熱（兩件事並置，不是一塊板） -------------------------
+  function vaPowerCool() {
+    // 左：電源模組 —— 底下是模組本體，上面一排直立鰭片，左邊拉出一條銅匯流排
+    const psu = box(-56, -28, 0, 68, 56, 15, '')
+      + aiFins(-51, -23, 15, 58, 46, 24, 10)
+      + `<g class="ai-cu">${box(-82, -12, 4, 28, 22, 8, '')}</g>`
+      + box(-56, 22, 0, 68, 6, 15, holes(-56, 22, 68, 6, 6, 1, 1.8));
+    // 右：液冷板 —— 表面蛇行流道 ＋ 兩顆快接頭，藍色進水、橘色出水（語意色，兩個主題都固定）
+    const cold = box(-42, -34, 0, 88, 68, 6, '')
+      + box(-38, -30, 6, 80, 60, 11, aiSerpent(-38, -30, 80, 60, 5))
+      + cyl(-24, -34, 17, 8, 15, '') + cyl(26, -34, 17, 8, 15, '')
+      + cyl(-24, -34, 15, 10, 3, '') + cyl(26, -34, 15, 10, 3, '')   // 快接頭的套環，少了它只是兩根柱子
+      + wire([[-24, -34, 32], [-24, -76, 36]], 'flow', 'var(--dg-cold)', 2.8)
+      + wire([[26, -76, 36], [26, -34, 32]], 'flow rev', 'var(--dg-hot)', 2.8);
+    return pad(78, 46) + psu + aiShift(104, cold);
+  }
+
+  // ---- 第 4 層：GPU 運算托盤（抽屜） ----------------------------------------
+  function vaTray() {
+    const X0 = -94, Y0 = -38, W = 188, D = 78;
+    let s = pad(88, 46) + box(X0, Y0, 0, W, D, 5, '')                 // 托盤底板
+      + box(X0, Y0, 5, 5, D, 13, '') + box(X0 + W - 5, Y0, 5, 5, D, 13, '')   // 左右側牆
+      + box(X0, Y0, 5, W, 5, 13, '');                                  // 後牆
+    // 前面板：比側牆高，上面有兩支把手與一整排散熱開孔 —— 這是「抽屜」最強的識別特徵
+    const FY = Y0 + D - 6;
+    s += box(X0, FY, 0, W, 6, 26, '')
+      + box(X0 + 14, FY + 6, 8, 26, 4, 5, '') + box(X0 + W - 40, FY + 6, 8, 26, 4, 5, '')
+      + aiFace(X0, FY + 6, 0, (() => {
+        const a = [];
+        for (let i = 0; i < 22; i++) for (let j = 0; j < 3; j++)
+          a.push(`<circle class="ai-vent" cx="${(10 + i * 7.8).toFixed(1)}" cy="${(6 + j * 6).toFixed(1)}" r="2"/>`);
+        // 狀態燈：一顆就夠，不需要整排在閃
+        a.push(`<circle class="ai-led" cx="${(W - 12).toFixed(1)}" cy="20" r="2.6"/>`);
+        return a.join('');
+      })());
+    // 裡面：四塊並排的 GPU 模組（每塊底下是基板、上面是鰭片），前緣三顆風扇
+    for (let i = 0; i < 4; i++) {
+      const x = X0 + 12 + i * 42;
+      s += box(x, Y0 + 10, 5, 34, 40, 4, '') + aiFins(x + 3, Y0 + 13, 9, 28, 34, 15, 6);
+    }
+    for (let i = 0; i < 3; i++) {
+      const x = X0 + 28 + i * 56;
+      s += cyl(x, Y0 + 60, 5, 13, 11, blades(11, 7)) ;
+    }
+    return s;
+  }
+
+  // ---- 第 5 層：整機櫃與網通 ----------------------------------------------
+  function vaRackPair() {
+    // 左：運算機櫃 —— 一格一格的托盤堆疊，每格前面有把手與一顆狀態燈（看得出是「很多台疊起來」）
+    const RX = -48, RY = -28, RW = 96, RD = 56;
+    let rack = box(RX, RY, 0, RW, RD, 7, '')                       // 底座
+      + box(RX, RY, 7, 7, RD, 96, '') + box(RX + RW - 7, RY, 7, 7, RD, 96, '')   // 兩側立柱
+      + box(RX, RY, 7, RW, 6, 96, '');                              // 背板
+    for (let i = 0; i < 6; i++) {
+      const z = 11 + i * 14, fy = RY + RD - 5;
+      rack += box(RX + 7, RY + 6, z, RW - 14, RD - 11, 10, '')
+        + box(RX + 18, fy, z + 3, 18, 4, 4, '') + box(RX + RW - 36, fy, z + 3, 18, 4, 4, '')
+        + aiFace(RX + 7, fy, z, `<circle class="ai-led" cx="${RW - 26}" cy="5" r="2.4"/>`);
+    }
+    rack += box(RX, RY, 103, RW, RD, 7, '');                        // 頂蓋
+    // 右：網通機櫃 —— ToR 交換器一整排埠，底下垂下來一束光纖（「網通」的識別特徵）
+    const SX = -34, SY = -24, SW = 70, SD = 48;
+    let net = box(SX, SY, 0, SW, SD, 7, '')
+      + box(SX, SY, 7, 6, SD, 82, '') + box(SX + SW - 6, SY, 7, 6, SD, 82, '')
+      + box(SX, SY, 7, SW, 5, 82, '');
+    // 交換器本體擺在上段：前面板一整排埠
+    const swz = 58, fy = SY + SD - 4;
+    net += box(SX + 6, SY + 5, swz, SW - 12, SD - 9, 13, '')
+      + aiFace(SX + 6, fy, swz, (() => {
+        const a = [];
+        // 兩排埠：ToR 交換器的前面板就是一整排 QSFP，這是「網通」而不是「又一台伺服器」的識別特徵
+        for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++)
+          a.push(`<rect class="ai-port" x="${(5 + i * 5.8).toFixed(1)}" y="${3 + r * 5}" width="4.2" height="3.6" rx=".8"/>`);
+        return a.join('');
+      })());
+    // 光纖束：從交換器前面板垂下來再繞到左邊的運算機櫃（兩櫃之間是連著的）
+    // 光纖束：從交換器前面板垂下來、往左拉回運算機櫃。
+    // 終點要真的落在左櫃身上，停在半空中會看起來像「線斷掉」而不是「兩櫃之間連著」。
+    net += [0, 1, 2, 3].map(i => {
+      const sx = px(SX + 10 + i * 9, fy), sy0 = py(SX + 10 + i * 9, fy, swz + 2);
+      return `<path class="ai-fib" d="M${sx.toFixed(1)},${sy0.toFixed(1)} C${(sx - 20).toFixed(1)},${(sy0 + 30).toFixed(1)} ${(sx - 86 - i * 5).toFixed(1)},${(sy0 + 26).toFixed(1)} ${(sx - 128 - i * 6).toFixed(1)},${(sy0 + 66 + i * 5).toFixed(1)}" fill="none" stroke="var(--dg-opt,var(--dg-cold))" stroke-width="1.7" stroke-opacity=".75"/>`;
+    }).join('');
+    // 下半部是配線盤：一格一格、每格前面板一排埠（空白層板看起來只是「架子」，不是網通設備）
+    for (let i = 0; i < 3; i++) {
+      const z = 12 + i * 13;
+      net += box(SX + 6, SY + 5, z, SW - 12, SD - 9, 8, '')
+        + aiFace(SX + 6, fy, z, (() => {
+          const a = [];
+          for (let k = 0; k < 10; k++) a.push(`<rect class="ai-port" x="${(4 + k * 5.4).toFixed(1)}" y="2.4" width="3.6" height="3.4" rx=".8"/>`);
+          return a.join('');
+        })());
+    }
+    net += box(SX, SY, 89, SW, SD, 6, '');   // 頂蓋：少了它上面是開口，看起來像半成品
+    return pad(80, 46) + rack + aiShift(196, net);
+  }
+
+  /* AI 伺服器：2026-09-23 改版。零件全部換成上面那套專用件（識別特徵見 vaPackage 上方那段），
+     版面用 o.ex 自己覆寫（框更寬、卡片等高），其他七張爆炸圖一個像素都沒動。
+     每一層第三行 sub 是新加的「看圖看什麼」—— 圖是主角，那一行是圖的使用說明。*/
+  T.ai_server = () => chainScene({
+    title: 'AI 伺服器：從一顆晶片到一座機櫃',
+    cap: '晶片與封裝是成本主體，往下是板材與載板，再往下是電源與散熱，最後由 ODM 組成托盤與整機櫃交給雲端業者。',
+    unit: '由左到右＝從一顆晶片到一座機櫃：晶片與封裝在最左，往右一路上板、加電源散熱，最後組成托盤與整機櫃',
+    flowTitle: '組裝流程',
+    cw: 980,
+    stations: [
+      S('chip', 0, 'GPU / ASIC 與封裝', ['邏輯晶粒＋HBM＋CoWoS', '整櫃成本的最大塊',
+        '圖上：中央大晶粒、兩側各四疊 HBM、底下矽中介層與一排錫球'], ['2330', '3661', '3711'], 'foundry', vaPackage),
+      S('board', 0, '板材、載板與連接', ['高層數低損耗 PCB', 'CCL、載板與連接器',
+        '圖上：板材一層層往內縮的壓合階梯、表面銅走線、板緣金手指與連接器籠'], ['2383', '3037', '2368', '3665'], 'abf_pcb', vaPcbStack),
+      S('power', 1, '電源與散熱', ['800V HVDC、BBU', '水冷板、CDU、風扇',
+        '圖上：左邊電源模組帶鰭片與銅匯流排，右邊水冷板走蛇行流道，藍進橘出'], ['2308', '6409', '3017', '3324'], 'thermal', vaPowerCool),
+      S('tray', 1, 'GPU 運算托盤', ['ODM 板卡與托盤組裝', '出貨量能見度最高',
+        '圖上：抽屜狀機構，前面板有把手與散熱開孔，裡面四塊 GPU 模組與三顆風扇'], ['2382', '6669', '3231', '2356'], 'assembly', vaTray),
+      S('rack', 2, '整機櫃與網通', ['整櫃交付、ToR 交換器', '終端是雲端業者',
+        '圖上：左櫃是一格格托盤堆疊，右櫃是 ToR 交換器的埠排與垂下來的光纖束'], ['2317', '2345', '5388'], 'switch', vaRackPair),
+    ],
+    steps: [{ p: 'chip', t: '晶片與封裝', s: '2330 / 3711' }, { p: 'board', t: '上板', s: '3037 / 2383' }, { p: 'power', t: '電源散熱', s: '2308 / 3017' },
+    { p: 'tray', t: '托盤組裝', s: '2382 / 6669' }, { p: 'rack', t: '整櫃交付', s: '資料中心' }],
+  });
+  T.power_bbu = () => chainScene({
+    title: '伺服器電源與 BBU：機櫃的心臟',
+    cap: '單櫃功耗從十幾 kW 跳到上百 kW，電源模組數量、電壓規格（800V HVDC）與備援電池全部跟著改版。',
+    unit: '由左到右＝電怎麼一路送進機櫃：從控制 IC 到電源模組、備援電池、匯流排，最後是整櫃供電架構',
+    flowTitle: '供電流程',
+    cw: 980,
+    stations: [
+      S('pmic', 0, '電源管理 IC', ['數位電源控制與轉換', '效率每個百分點都算',
+        '圖上：小板上一顆控制 IC、一排電感方塊與三顆電解電容'], ['6415', '3529', '6533'], 'ic_design', dPmicBoard),
+      S('psu', 1, 'PSU 電源模組', ['伺服器電源供應器', 'AI 機櫃用量倍增',
+        '圖上：1U 長盒，前面板風扇口與把手，內部鰭片與銅排，後端金手指'], ['2308', '6409', '6412'], 'power', dPsuModule),
+      S('bbu', 1, 'BBU 備援電池', ['掉電時撐住不當機', '模組化可熱抽換',
+        '圖上：可抽換的鋼殼抽屜，裡面兩排圓柱電芯、正面拉把與狀態燈、背面電源端子'], ['3211', '2489'], 'power', dBbuPack),
+      S('busbar', 2, '匯流排與機構件', ['高壓直流送電到每層', '滑軌、連接器與通路',
+        '圖上：絕緣座上兩條帶螺栓孔的厚銅排，一端壓接端子接電纜'], ['2059', '3033', '3023'], 'power', dBusbar),
+      S('rack', 2, '機櫃與資料中心', ['整櫃供電架構改版', '電力是擴機房的瓶頸',
+        '圖上：機櫃裡一層層電源架，背面兩條銅匯流排垂直貫穿'], ['2382', '6669'], 'assembly', dPowerRack),
+    ],
+    steps: [{ p: 'pmic', t: '電源 IC', s: '6415 / 3529' }, { p: 'psu', t: 'PSU 模組', s: '2308 / 6409' }, { p: 'bbu', t: 'BBU', s: '3211' },
+    { p: 'busbar', t: '匯流與機構', s: '2059 / 3023' }, { p: 'rack', t: '機櫃整合', s: '2382 / 6669' }],
+  });
+
+  T.thermal = () => chainScene({
+    title: '散熱與液冷：熱從晶片怎麼被帶出機房',
+    cap: '單顆 GPU 破千瓦，風冷已經不夠。價值一路從均熱片、風扇往水冷板、快接頭與機櫃 CDU 移動。',
+    unit: '由左到右＝熱怎麼一路被帶走：從貼著晶片的均熱片與風扇，到水冷板、CDU，最後進機房冷卻水',
+    flowTitle: '散熱路徑',
+    cw: 980,
+    stations: [
+      S('vc', 0, '均熱片與熱管', ['VC 均熱板、熱管', '風冷世代的主力',
+        '圖上：扁平均熱板切開露出毛細結構，兩根銅熱管彎折出去'], ['3653', '6230', '3013'], 'thermal', dVaporChamber),
+      S('fan', 0, '風扇與散熱模組', ['前端進氣與機櫃風牆', '風冷仍是多數機種',
+        '圖上：方形扇框、四角螺栓孔、中央輪轂與七片扇葉，旁邊一組鰭片'], ['2421', '6230'], 'thermal', dFanMod),
+      S('plate', 1, '水冷板 Cold Plate', ['直接貼晶片帶走熱', 'AI 機櫃逐步標配',
+        '圖上：板面蛇行流道，兩顆快接頭一藍一橘（進水／出水）'], ['3017', '3324'], 'thermal', dColdPlate),
+      S('cdu', 1, 'CDU 與快接頭', ['幫浦、熱交換、分歧管', '漏液是最大風險',
+        '圖上：櫃內一顆幫浦、一組熱交換鰭片，下方一排快接頭的分歧管'], ['8996', '2308', '6122'], 'thermal', dCdu),
+      S('rack', 2, 'AI 機櫃與機房', ['整櫃液冷與冷卻水', '功耗越高越往這走',
+        '圖上：機櫃側邊兩根垂直分歧管，每一層都接出進回水軟管'], ['6669', '2382'], 'assembly', dLiquidRack),
+    ],
+    steps: [{ p: 'vc', t: '均熱片', s: '3653 / 6230' }, { p: 'plate', t: '水冷板', s: '3017 / 3324' }, { p: 'cdu', t: '快接管件', s: '8996' },
+    { p: 'cdu', t: 'CDU', s: '8996 / 2308' }, { p: 'rack', t: '機房冷卻', s: '資料中心' }],
+  });
+
+  T.silicon_photonics = () => chainScene({
+    title: '矽光子與 CPO：電變成光，再送進機房',
+    cap: '上游是化合物磊晶與雷射二極體，中游把光引擎做進交換晶片旁邊（CPO），下游是光收發模組與交換器。',
+    cw: 980,
+    stations: [
+      S('epi', 0, '化合物磊晶', ['砷化鎵、磷化銦基板', '高頻元件的底材', '圖：晶圓上長出的薄膜台階'], ['2455', '8086'], 'optical', dEpiWafer, 1.35),
+      S('ld', 0, '雷射二極體 LD', ['把電訊號轉成光', '光纖通訊的心臟', '圖：金屬罐＋三腳＋光束'], ['3081', '8086'], 'optical', dLaserDiode, 1.15),
+      S('engine', 1, '光引擎／矽光子', ['調變器與光波導', 'CPO 封到 ASIC 旁', '圖：蛇行波導＋光柵'], ['2330', '4966'], 'optical', dPhotonicDie, 1.3),
+      S('module', 1, '光收發模組', ['800G–1.6T 模組', '台廠營收主力', '圖：鋁殼＋LC 接頭拉出光纖'], ['4979', '4977', '3163', '6442'], 'optical', dOsfp, 1.25),
+      S('dc', 2, '交換器與機房', ['交換晶片與叢集網路', '需求來自訓練流量', '圖：一整排埠＋光纖'], ['2345', '5388'], 'switch', dSwitchBox, 1.2),
+    ],
+    steps: [{ p: 'epi', t: '磊晶材料', s: '2455 / 8086' }, { p: 'ld', t: '雷射元件', s: '3081' }, { p: 'engine', t: '光引擎', s: '2330' },
+    { p: 'module', t: '模組組裝', s: '4979 / 4977' }, { p: 'dc', t: '交換器', s: '2345' }],
+  });
+
+  T.semi_equipment = () => chainScene({
+    title: '半導體設備與材料：資本支出落在哪裡',
+    cap: '晶圓廠的資本支出會依序流向材料、設備零件、製程機台與載具。台廠多半切在濕製程、零件與耗材這幾段。',
+    cw: 980,
+    stations: [
+      S('wafer', 0, '矽晶圓與材料', ['矽晶圓、靶材、化學品', '耗材跟著產能走', '圖：單晶棒切成薄片'], ['6182', '1785', '4763', '6165'], 'foundry', dIngot, 1.1),
+      S('parts', 0, '設備零件模組', ['機台零件與精密加工', '設備廠的上游', '圖：法蘭＋波紋管＋軸'], ['3413', '6187'], 'foundry', dPrecisionPart, 1.25),
+      S('wet', 1, '濕製程與清洗', ['清洗、蝕刻、電鍍機台', '台廠最有位置那段', '圖：機殼觀察窗＋槽體＋手臂'], ['3131', '3583'], 'foundry', dWetBench),
+      S('pod', 1, '晶圓載具 FOUP', ['光罩盒與傳載具', '先進製程才用得到', '圖：圓弧外殼內疊晶圓＋平門板＋頂部夾持法蘭'], ['3680'], 'foundry', dFoup, 1.2),
+      S('fab', 2, '晶圓廠資本支出', ['擴產與製程升級', '訂單能見度的源頭', '圖：廠房＋屋頂風機'], ['2330', '3711', '5434'], 'foundry', dFab, 1.1),
+    ],
+    steps: [{ p: 'wafer', t: '材料備料', s: '6182 / 1785' }, { p: 'parts', t: '設備零件', s: '3413' }, { p: 'wet', t: '製程機台', s: '3131 / 3583' },
+    { p: 'pod', t: '載具搬運', s: '3680' }, { p: 'fab', t: '晶圓廠量產', s: '2330' }],
+  });
+
+  T.apple_chain = () => chainScene({
+    title: '蘋果供應鏈：一支手機是怎麼組起來的',
+    cap: '晶片與鏡頭是最上游，中間是板材、軟板與機殼結構件，最後由 EMS 整機組裝出貨。規格年年改，量體看終端銷售。',
+    cw: 980,
+    stations: [
+      S('soc', 0, 'SoC 與晶片', ['A / M 系列獨家代工', '射頻與電源 IC 也在這', '圖：分區的運算核＋錫球'], ['2330', '2454'], 'foundry', dSocNpu, 1.4),
+      S('lens', 0, '光學鏡頭模組', ['鏡頭、潛望式模組', '規格升級帶動單價', '圖：方形音圈馬達殼＋圓鏡筒＋軟板'], ['3008', '3406'], 'assembly', dLensModule, 1.25),
+      S('board', 1, '板材軟板載板', ['SLP 主機板、FPC', '封裝載板也在這', '圖：屏蔽罩＋接出的軟板'], ['3037', '6269'], 'abf_pcb', dSlpBoard, 1.35),
+      S('case', 1, '機殼與結構件', ['CNC 機殼與中框', '單價高、良率關鍵', '圖：銑削凹槽＋天線斷點'], ['2474'], 'assembly', dCncCase, 1.4),
+      S('ems', 2, '整機組裝出貨', ['EMS 組裝與品牌出貨', '量體最大、毛利最薄', '圖：掀開背蓋＋電池主板'], ['2317', '4938', '3231', '2382'], 'assembly', dPhone, 1.3),
+    ],
+    steps: [{ p: 'soc', t: '晶片', s: '2330 / 2454' }, { p: 'lens', t: '零組件', s: '3008 / 3406' }, { p: 'board', t: '模組', s: '3037 / 6269' },
+    { p: 'ems', t: '整機組裝', s: '2317 / 4938' }, { p: 'ems', t: '品牌出貨', s: '終端銷售' }],
+  });
+
+  T.edge_ai_pc = () => chainScene({
+    title: '邊緣 AI 與 AI PC：算力搬到裝置端',
+    cap: '端側推論靠 SoC 裡的 NPU，吃記憶體容量也吃散熱。台廠的位置在 ODM 板卡組裝、散熱電源與品牌整機。',
+    unit: '由左到右＝算力怎麼裝進一台機器：從 SoC 與記憶體，往右到板卡組裝、散熱電源，最後是品牌整機',
+    flowTitle: '組裝流程',
+    cw: 980,
+    stations: [
+      S('soc', 0, 'SoC 與 NPU', ['端側推論算力', '定義了什麼叫 AI PC',
+        '圖上：掀蓋露出大小不同的 CPU／GPU／NPU 分區，底下一排錫球'], ['2454', '6533'], 'ic_design', dSocNpu),
+      S('mem', 0, '記憶體與儲存', ['端側模型吃容量', 'DRAM / SSD 同步升級',
+        '圖上：LPDDR 疊在基板上（PoP），旁邊一條 M.2 固態硬碟'], ['4967', '3260', '8299'], 'hbm', dMemSsd),
+      S('board', 1, '板卡與 ODM 組裝', ['主機板設計與代工', '出貨量最大的一段',
+        '圖上：主機板上兩條記憶體插槽、一條 M.2 插槽與供電電感'], ['2324', '2382', '3231', '2356'], 'assembly', dMainboard),
+      S('power', 1, '電源與散熱模組', ['薄型化＋散熱的難題', '續航與電源管理',
+        '圖上：離心風扇（側向出風）＋扁熱管＋薄鰭片，跟機櫃的軸流風扇不同'], ['2301', '2308'], 'thermal', dThinCool),
+      S('brand', 2, '品牌整機與邊緣機台', ['品牌定義規格吃毛利', '工控與邊緣伺服器',
+        '圖上：掀開螢幕的筆電，看得到鍵盤陣列與觸控板'], ['2357', '2353', '2377', '3005'], 'assembly', dLaptop),
+    ],
+    steps: [{ p: 'soc', t: 'SoC / NPU', s: '2454' }, { p: 'mem', t: '記憶體', s: '4967 / 8299' }, { p: 'board', t: '板卡組裝', s: '2324 / 2382' },
+    { p: 'power', t: '散熱電源', s: '2301' }, { p: 'brand', t: '品牌出貨', s: '2357 / 2353' }],
+  });
+
+  T.robotics = () => chainScene({
+    title: '機器人：一個關節的價值分佈',
+    cap: '一個關節 ＝ 減速機 ＋ 伺服馬達 ＋ 編碼器 ＋ 驅動器。人形機器人的關節數是工業手臂的好幾倍，量起來零組件先受惠。',
+    unit: '由左到右＝一個關節怎麼組起來：從減速機與伺服馬達，往右到控制驅動、視覺感測，最後是整機組裝',
+    flowTitle: '關節組裝流程',
+    cw: 980,
+    stations: [
+      S('reducer', 0, '減速機與傳動', ['諧波／行星減速機', '精度決定重複定位',
+        '圖上：圓柱外殼一圈固定螺孔，中央是輸出法蘭與中空通孔'], ['2049', '4583', '1590'], null, dHarmonic),
+      S('motor', 0, '伺服馬達', ['扭力密度與散熱', '大廠自製比例高',
+        '圖上：圓柱機身，前端方形法蘭正中央伸出輸出軸，後端較細的編碼器蓋與出線接頭'], ['1503', '1504'], 'power', dServoMotor),
+      S('ctrl', 1, '控制器與驅動', ['運動控制與驅動器', '加上 AI 推論晶片',
+        '圖上：立式窄長驅動器，正面液晶小窗與一排燈、底下螺絲端子台，側面垂直鰭片'], ['2464', '6215'], 'ic_design', dDriver),
+      S('vision', 1, '視覺與感測', ['相機模組、力覺感測', '抓取能力的關鍵',
+        '圖上：左邊橫條雙目相機（兩顆鏡頭），右邊扁圓的六軸力覺感測器'], ['3059', '2359'], 'ic_design', dVisionSensor),
+      S('maker', 2, '整機與代工組裝', ['人形機器人整機代工', '線束連接器一起吃',
+        '圖上：底座、兩節臂與關節圓柱，末端是兩指夾爪'], ['2317', '3665'], 'assembly', dRobotArm),
+    ],
+    steps: [{ p: 'reducer', t: '零組件', s: '2049 / 1590' }, { p: 'motor', t: '馬達', s: '1503 / 1504' }, { p: 'ctrl', t: '控制器', s: '2464 / 6215' },
+    { p: 'vision', t: '感測整合', s: '3059 / 2359' }, { p: 'maker', t: '整機組裝', s: '2317' }],
+  });
+
+  T.drone = () => chainScene({
+    title: '無人機：一架四旋翼的供應鏈',
+    cap: '馬達與螺旋槳決定推力，飛控與導航決定能不能自己飛，光電酬載決定它拿來做什麼。台廠以零組件與整機認證為主。',
+    unit: '由左到右＝一架四旋翼怎麼組起來：從馬達螺旋槳與線束，往右到飛控導航、光電酬載，最後是整機交付',
+    flowTitle: '整機組裝流程',
+    cw: 980,
+    stations: [
+      S('motor', 0, '無刷馬達與螺旋槳', ['推力與續航的核心', '四顆同步調速',
+        '圖上：外轉子杯下方露出定子繞組，上面是兩葉槳與固定螺栓'], ['8033', '2231'], 'power', dPropMotor),
+      S('conn', 0, '連接器與線束', ['軍規連接器與線材', '可靠度的隱形門檻',
+        '圖上：四色細線套波紋管紮成一束，左端電源接頭，右端分岔接三個小接頭'], ['3023', '3675'], null, dDroneHarness),
+      S('fc', 1, '飛控與導航', ['飛控板、IMU、定位', '抗干擾是軍規重點',
+        '圖上：板子四角的減震柱、中央 IMU，右上角那塊是 GPS 天線'], ['6237', '2367'], 'ic_design', dFlightCtrl),
+      S('payload', 1, '光電酬載與雲台', ['相機、紅外線、測距', '決定任務型態',
+        '圖上：三顆扁圓盤馬達串在 L 形支架上，末端是相機與鏡頭'], ['3059', '2634'], 'ic_design', dGimbal),
+      S('maker', 2, '整機與軍民用標案', ['國家隊整機廠', '認證與交期是門檻',
+        '圖上：四支機臂對稱張開、四組槳，機腹吊掛酬載'], ['2634', '3402', '8033'], 'assembly', dDrone),
+    ],
+    steps: [{ p: 'conn', t: '零組件', s: '2231 / 3023' }, { p: 'motor', t: '動力系統', s: '8033' }, { p: 'fc', t: '飛控導航', s: '6237 / 2367' },
+    { p: 'payload', t: '酬載整合', s: '3059' }, { p: 'maker', t: '整機交付', s: '2634 / 3402' }],
+  });
+
+  T.satellite = () => chainScene({
+    title: '低軌衛星：天上與地面各拿到什麼',
+    cap: '衛星本體幾乎都是國外業者。台廠的錢主要在地面段：射頻元件、相位陣列天線、用戶終端與網通設備。',
+    unit: '由左到右＝訊號怎麼從元件走到地面：從化合物磊晶與射頻元件，往右到天線陣列、用戶終端，最後是營運商',
+    flowTitle: '訊號落地流程',
+    cw: 980,
+    stations: [
+      S('epi', 0, '化合物半導體', ['砷化鎵磊晶與晶片', '高頻元件的底材',
+        '圖上：晶圓上再長出幾層越縮越小的薄膜，邊緣看得到台階'], ['2455', '8086'], 'optical', dEpiWafer),
+      S('rf', 0, '射頻元件與模組', ['功率放大、濾波、混頻', '規格門檻高',
+        '圖上：掀開一半的金屬屏蔽罩，裡面是功率放大器與三顆濾波器'], ['3491', '2314'], 'optical', dRfModule),
+      S('ant', 1, '天線與相位陣列', ['波束成形與饋源', '地面站與終端都要',
+        '圖上：鋁框裡 6×6 規則貼片，下層一排波束成形晶片，上方一道偏一邊的波束'], ['3491', '2314'], 'switch', dPhaseArray),
+      S('cpe', 1, '用戶終端 CPE', ['終端設備與家用路由', '出海量最大的一段',
+        '圖上：一片方形平板天線架在斜撐底座上，拉一條電源線'], ['6285', '4906', '5388', '3704'], 'switch', dCpe),
+      S('op', 2, '衛星與電信營運', ['星系營運與網通回傳', '台廠賣零組件給它',
+        '圖上：本體兩側展開太陽翼，底下是碟型天線與打向地面的波束'], ['2345', '6143'], 'switch', dSatellite),
+    ],
+    steps: [{ p: 'epi', t: '磊晶材料', s: '2455 / 8086' }, { p: 'rf', t: '射頻元件', s: '3491' }, { p: 'ant', t: '天線模組', s: '3491 / 2314' },
+    { p: 'cpe', t: '終端設備', s: '6285 / 4906' }, { p: 'op', t: '營運商', s: '海外客戶' }],
+  });
+
+  T.ev_auto = () => chainScene({
+    title: '車用與電動車：台廠切在哪幾塊',
+    cap: '滑板底盤裡是電池包，前後軸各一顆馬達，中間是電控與車載充電器。台廠強項在電源、線束連接器與金屬結構件。',
+    unit: '由左到右＝一台車怎麼組起來：從結構件與車用電子，往右到電源電控、高壓線束，最後是整車出貨',
+    flowTitle: '整車組裝流程',
+    cw: 980,
+    stations: [
+      S('metal', 0, '金屬與結構件', ['沖壓件、車燈、扣件', '毛利穩、看車廠拉貨',
+        '圖上：帽型斷面鈑金樑，兩側翻邊那排小圈是點焊、頂面兩個安裝孔'], ['1536', '2228', '1319', '6605'], 'assembly', dStamping),
+      S('sensor', 0, '車用電子與感測', ['胎壓、感測器、MCU', '車規認證是門檻',
+        '圖上：貼散熱片的車規 MCU、一顆圓柱感測器與一個短接頭'], ['2231', '6533'], 'ic_design', dMcuSensor),
+      S('power', 1, '電源電控與 OBC', ['逆變器、車載充電器', '台廠最有位置的一段',
+        '圖上：鋁壓鑄殼與鰭片、三顆功率模組、兩顆直流母線電容、三相出線'], ['2308', '6409'], 'power', dInverter),
+      S('harness', 1, '線束與連接器', ['高壓線束、充電槍', '電動化帶動單車用量',
+        '圖上：手槍式握把的充電槍，槍頭端面一圈插孔，橘色高壓纜拉到環狀銅端子'], ['3665', '3023', '2059'], 'power', dHvHarness),
+      S('oem', 2, '整車與車廠', ['系統整合與代工', '終端是國外品牌',
+        '圖上：滑板底盤，中間鋪滿電池模組，前後軸各一顆驅動馬達與四個輪胎'], ['2317'], 'assembly', dEvChassis),
+    ],
+    steps: [{ p: 'metal', t: '結構件', s: '1536 / 2228' }, { p: 'sensor', t: '車用電子', s: '2231' }, { p: 'power', t: '電源電控', s: '2308 / 6409' },
+    { p: 'harness', t: '線束整合', s: '3665 / 3023' }, { p: 'oem', t: '整車出貨', s: '國外車廠' }],
+  });
+
+  T.defense = () => chainScene({
+    title: '軍工國防：預算最後變成哪些載具',
+    cap: '國防預算最後變成船、飛機與無人載具，再加上雷達電戰與軍規零組件。訂單期長、認列慢，看的是能見度不是單季。',
+    cw: 980,
+    stations: [
+      S('parts', 0, '軍規零組件', ['氣動元件與精密件', '認證期長、黏著度高', '圖：圓接頭＋卡榫齒環'], ['2231', '1590'], null, dMilConnector, 1.35),
+      S('rugged', 0, '強固型電腦電戰', ['軍規電腦與雷達', '毛利高於商規', '圖：鰭片機殼＋圓形接頭'], ['3005'], 'ic_design', dRuggedPc, 1.2),
+      S('aero', 1, '航太結構與 MRO', ['機體結構、葉片、維修', '長約帶來穩定現金流', '圖：後掠翼＋座艙罩'], ['2634'], 'assembly', dPlane, 1.2),
+      S('uav', 1, '軍用無人機', ['偵蒐與攻擊型整機', '國家隊標案', '圖：四臂對稱＋酬載'], ['8033', '3402'], 'assembly', dDrone, 1.25),
+      S('ship', 2, '艦艇與國防標案', ['海軍艦艇與商船', '交期長、能見度高', '圖：艦橋側面的雷達板'], ['2208', '5871'], 'assembly', dShip, 1.25),
+    ],
+    steps: [{ p: 'parts', t: '軍規零件', s: '2231 / 1590' }, { p: 'rugged', t: '次系統', s: '3005' }, { p: 'aero', t: '結構整合', s: '2634' },
+    { p: 'uav', t: '整機交付', s: '8033 / 3402' }, { p: 'ship', t: '維修 MRO', s: '長約' }],
+  });
+
+  T.heavy_electric = () => chainScene({
+    title: '重電與電網：電從電廠送到機房',
+    cap: '變壓器 → 開關配電盤 → 電纜匯流 → 使用端，旁邊再掛儲能。AI 資料中心的用電讓這條老產業的交期與報價一起上來。',
+    cw: 980,
+    stations: [
+      S('cable', 0, '銅材與電線電纜', ['銅價連動的基本盤', '電網擴建先拉貨', '圖：捲盤＋斷面銅芯'], ['1609', '1618'], null, dCableDrum, 1.1),
+      S('transformer', 1, '變壓器', ['交期最長、報價最硬', '台電與機房搶產能', '圖：油箱＋套管＋片狀散熱器'], ['1519', '1513'], 'power', dTransformer, 1.15),
+      S('switchgear', 1, '開關與配電盤', ['GIS、開關箱、配電', '跟著變壓器一起出貨', '圖：三櫃並排＋操作把手'], ['1514', '1503'], 'power', dSwitchgear),
+      S('motor', 1, '馬達與重電設備', ['大型馬達與發電機', '工業需求的溫度計', '圖：臥式機殼散熱筋＋地腳＋接線盒＋出軸'], ['1504'], 'power', dBigMotor, 1.1),
+      S('epc', 2, '統包工程與需求端', ['機電統包與儲能', '資料中心與電廠', '圖：戶外機櫃＋管線橋'], ['2404', '3576', '1519'], 'assembly', dSubstation),
+    ],
+    steps: [{ p: 'cable', t: '銅材電纜', s: '1609 / 1618' }, { p: 'transformer', t: '變壓器', s: '1519 / 1513' }, { p: 'switchgear', t: '開關配電', s: '1514 / 1503' },
+    { p: 'motor', t: '設備整合', s: '1504' }, { p: 'epc', t: '統包交付', s: '2404 / 台電' }],
+  });
+
+  /* ★ 2026-10-07 補四張（Andy：「題材為何高速交換器沒有 2D 圖片」）。
+     零件與公司對應依 docs/diagram_specs/switch_board.md／mlcc_stack.md／panel_stack.md／naphtha_cracker.md 的 §6 查證表；
+     公司一律取自 themes.yaml 該題材 codes 或 groups.yaml 同族群，查不到供應關係的不連。*/
+  T.switch_800g = () => chainScene({
+    title: '高速交換器 800G／1.6T：一台交換器裡有什麼',
+    cap: '一顆 51.2T／102.4T 交換晶片，坐在 38–48 層的主板上；前面板插滿光模組，訊號太快時改走飛越線繞開 PCB。',
+    unit: '由左到右＝板材 → 主板 → 晶片與整機 → 前面板光模組與高速線材',
+    cw: 980,
+    stations: [
+      S('ccl', 0, '超低損耗 CCL', ['M8 等級板材、HVLP 銅箔', '速率越高 Df 要越低', '圖：多層銅箔基板疊構'], ['2383', '6274', '6213'], 'ccl', dCcl, 1.3),
+      S('mlb', 1, '高層數主板 MLB', ['800G 需 38–48 層', '背鑽與阻抗控制', '圖：一疊多層板＋通孔'], ['2368', '4958', '3044'], 'hdi_pcb', dMlb, 1.2),
+      S('box', 1, '交換晶片與整機', ['ASIC 多為外商', '台廠做白牌整機設計', '圖：1U 機箱＋光模組槽＋散熱蓋晶片'], ['2345'], 'switch', dSwitch1U, 1.05),
+      S('optic', 2, '可插拔光模組', ['前面板 64 埠 OSFP', '1.6T 往 CPO 演進', '圖：OSFP＋前端 LC 光纖'], ['4979', '3163'], 'optical', dOsfp, 1.1),
+      S('cable', 2, '高速線材與連接器', ['飛越線與 I/O 連接器', '繞開 PCB 的訊號損耗', '圖：兩條編織線＋兩端扁平插頭（金手指＋拉環）'], ['3665'], 'connector', dFlyover, 1.1),
+    ],
+    steps: [{ p: 'ccl', t: '板材', s: '2383 / 6274' }, { p: 'mlb', t: '主板壓合', s: '2368 / 4958' }, { p: 'box', t: '晶片上板', s: 'ASIC＋VRM' },
+    { p: 'box', t: '整機組裝', s: '2345' }, { p: 'optic', t: '插光模組', s: '4979 / 3163' }],
+    flowTitle: '交換器組成流程',
+  });
+
+  T.mlcc_passive = () => chainScene({
+    title: '被動元件／MLCC：一顆積層陶瓷電容怎麼做出來',
+    cap: '陶瓷粉做成薄膜、印上鎳電極、交錯疊幾百層 → 燒結 → 兩端做端電極並鍍鎳錫 → 捲帶出貨給 SMT。',
+    unit: '由左到右＝MLCC 本體 → 其他被動元件（晶片電阻、鋁電解電容）→ 捲帶出貨（原料粉體多為日系，不畫成格）',
+    cw: 980,
+    stations: [
+      S('mlcc', 1, 'MLCC 疊層燒結', ['數百層交錯疊壓', '端電極銅＋鍍鎳錫', '圖：陶瓷本體＋兩端電極'], ['2327', '2492', '3026', '6173'], 'passive_comp', dMlcc, 1.3),
+      S('resistor', 1, '晶片電阻', ['氧化鋁基板印電阻膜', '雷射修阻值', '圖：扁平黑色本體＋兩端電極'], ['2327'], 'passive_comp', dChipRes, 1.3),
+      S('alcap', 1, '鋁質電解電容', ['大容量、耐漣波', '電源與伺服器用', '圖：圓柱＋十字防爆痕'], ['2375'], 'passive_comp', dAlCap, 1.1),
+      S('reel', 2, '捲帶出貨上板', ['料盤送 SMT 貼片', 'AI 伺服器用量倍增', '圖：捲帶料盤'], ['2327', '2492'], 'passive_comp', dTapeReel, 1.1),
+    ],
+    steps: [{ p: 'mlcc', t: '流延成膜', s: '鈦酸鋇介電膜' }, { p: 'mlcc', t: '印刷疊層', s: '鎳內電極' }, { p: 'mlcc', t: '燒結', s: '還原氣氛' },
+    { p: 'mlcc', t: '端電極電鍍', s: '銅／鎳／錫' }, { p: 'reel', t: '測試捲帶', s: '出貨' }],
+    flowTitle: 'MLCC 製程',
+  });
+
+  T.panel_pkg = () => chainScene({
+    title: '面板轉封裝：LCD 產線改做面板級封裝',
+    cap: '面板廠把折舊完的舊世代 LCD 線改做 FOPLP（方形大面板上排晶粒做 RDL），或與康寧合作做玻璃核心基板。',
+    unit: '由左到右＝面板本業 → 產線轉型兩條路',
+    cw: 980,
+    stations: [
+      S('lcd', 0, 'TFT-LCD 面板本業', ['TFT 玻璃＋液晶＋彩濾', '報價循環仍是基本盤', '圖：玻璃疊層＋子像素格'], ['2409', '3481', '6116'], null, dLcdPanel, 1.2),
+      S('foplp', 1, 'FOPLP 面板級封裝', ['群創舊產線轉做', 'Chip First／Chip Last', '圖：方形面板排滿晶粒'], ['3481'], 'adv_pkg', dFoPanel, 1.2),
+      S('gcs', 2, '玻璃核心基板 GCS', ['友達出 TGV／RDL 製程', '康寧出半導體級玻璃', '圖：玻璃打孔＋孔壁鍍銅'], ['2409'], 'adv_pkg', dTgvPane, 1.3),
+    ],
+    steps: [{ p: 'lcd', t: '舊世代產線', s: '3.5 代廠' }, { p: 'foplp', t: '晶粒排上面板', s: '3481' }, { p: 'foplp', t: '做 RDL', s: '線寬 2µm 級' },
+    { p: 'gcs', t: '玻璃打孔鍍銅', s: '2409' }],
+    flowTitle: '產線轉型流程',
+  });
+
+  T.petrochemical = () => chainScene({
+    title: '石化／塑化：輕油怎麼變成塑膠與纖維',
+    cap: '輕油進裂解爐斷成乙烯、丙烯、丁二烯與芳香烴，再做成 PE／PP／PVC 與 PTA、乙二醇。獲利看的是裂解價差。',
+    unit: '由左到右＝原料 → 裂解 → 烯烴下游 → 芳香烴與聚酯下游',
+    cw: 980,
+    stations: [
+      S('feed', 0, '原油與輕油', ['煉油產出石油腦', '原料成本看油價', '圖：原料儲槽'], ['6505'], null, dTankFarm, 1.1),
+      S('cracker', 1, '輕油裂解', ['750–900°C 裂解爐', '產乙烯丙烯丁二烯', '圖：爐體煙囪＋分餾塔'], ['6505'], null, dCracker, 0.9),
+      S('olefin', 2, 'PE／PP／PVC', ['烯烴聚合成塑膠粒', '台塑主力產品', '圖：太空包＋塑膠粒'], ['1301'], null, dPellets, 1.1),
+      S('arom', 2, 'PTA／SM／ABS', ['芳香烴與苯乙烯系', '台化主力產品', '圖：棧板上的化學品鋼桶'], ['1326'], null, dDrums, 0.85),
+      S('eg', 2, '乙二醇與聚酯', ['EG＋PTA 做聚酯', '南亞另有電子材料', '圖：聚酯紗捲'], ['1303'], null, dYarn, 1.1),
+    ],
+    steps: [{ p: 'feed', t: '輕油進料', s: '6505' }, { p: 'cracker', t: '裂解分餾', s: '烯烴／芳香烴' }, { p: 'olefin', t: '聚合', s: '1301' },
+    { p: 'arom', t: '芳香烴下游', s: '1326' }, { p: 'eg', t: '聚酯原料', s: '1303' }],
+    flowTitle: '石化流程',
+  });
+
+  /* 零件的尺寸差很多（機櫃比晶片高一倍以上），字串階段量不到 bbox，
+     所以 SVG 進 DOM 之後再量一次，把每個零件等比縮進自己那一格的框裡並置中。
+     ★ 2026-09-23 批次 0923-D：爆炸圖退場之後，這支改成十八張水平圖共用。
+     Andy 要的「圖片小一點」就是靠這個框（96px 高、約 170px 寬）保證的 ——
+     不是靠每張圖各自手調倍率，那種做法十八張就有十八套數字，下次又會跑掉。
+     data-k 是作者原本給的相對倍率，這裡只准把零件**縮小**（clamp 到 1 以下）：
+     框本來就已經被填滿，再放大只會撞到隔壁那一格。*/
+  /* ★ 2026-10-03 第二輪（DECISIONS #316）：fit(root, rewire)
+       1. 量容器內寬 → 跟畫布寬不一樣就依這個寬度**重畫一次**（chainScene 依寬度重新分欄、零件框長高；字級不動）。
+          app.js 插進來的第一版是 980，fit() 在 wireThemeDiagram 之前跑，所以第一次重畫不必重新接事件。
+       2. 之後視窗／側欄改變容器寬（ResizeObserver，120ms 去抖動）也重畫；重畫會換掉節點，
+          所以呼叫 rewire（app.js 傳進來的 wireThemeDiagram）重新接點擊與 --c，原本選起來的那一格再點回去。
+       3. 只在容器寬 ≥ 900 時跟著寬度走；更窄（手機、800 視窗）維持 980 原尺寸左右滑（#226）。
+       ⚠ 變寬要差 24px 以上才重畫、變窄一律重畫：頁面捲軸出現／消失會讓容器差 15px，
+         不擋的話「變窄 → 卡變高 → 捲軸出現 → 變窄……」會來回重畫。*/
+  const GROW_MIN = 24;
+  function availW(root) {
+    const cs = getComputedStyle(root);
+    return Math.floor(root.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0));
+  }
+  // 0＝容器比下限窄（或還看不到），照舊用作者寫的 o.cw（980）
+  const wantW = (root) => { const a = availW(root); if (isV()) return a > 0 ? a : 0; return a >= CW_MIN ? Math.min(CW_MAX, a) : 0; };
+  // 這一次應該畫多寬：直排版（手機 v2）＝容器寬（量不到就暫定 V_W0）；其他＝原本的規則（下限 CW_MIN、量不到用 980）
+  const wantCanvas = (w) => (isV() ? (w || V_W0) : (w ? Math.max(CW_MIN, w) : 980));
+  function rerender(root, w) {
+    const svg = root.querySelector('svg.dg3'), tid = svg && svg.dataset.tid;
+    if (!tid || typeof T[tid] !== 'function') return false;
+    ctxW = w;
+    let html;
+    try { html = T[tid](); } finally { ctxW = 0; }
+    root.innerHTML = html;
+    return true;
+  }
+  function refit(root) {
+    if (!root.isConnected) { if (root._dg3ro) root._dg3ro.disconnect(); root._dg3ro = null; return; }
+    const svg = root.querySelector('svg.dg3'); if (!svg) return;
+    const w = wantW(root), cur = +svg.dataset.cw || 0, want = wantCanvas(w);
+    // 直排版跟水平版互換（跨過 640）一定重畫；同一種版面才套「變寬差 24px 以上才重畫」
+    if ((svg.dataset.v === '1') === isV() && (want === cur || (want > cur && want - cur < GROW_MIN))) return;
+    const selN = root.querySelector('.p3.stn.sel');
+    const sel = selN && selN.dataset.part;
+    if (!rerender(root, w)) return;
+    layout(root);
+    if (typeof root._dg3Rewire === 'function') root._dg3Rewire();
+    if (sel) {
+      const n = root.querySelector(`.p3.stn[data-part="${sel}"]`);
+      if (n) n.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+  }
+  function watch(root) {
+    if (root._dg3ro || typeof ResizeObserver === 'undefined') return;
+    let t = 0, lastW = root.clientWidth;
+    root._dg3ro = new ResizeObserver(() => {
+      if (root.clientWidth === lastW) return;       // 只看寬度；重畫讓高度變了不算
+      lastW = root.clientWidth;
+      clearTimeout(t); t = setTimeout(() => refit(root), 120);
+    });
+    root._dg3ro.observe(root);
+  }
+  function fit(root, rewire) {
+    if (!root) return;
+    if (typeof rewire === 'function') root._dg3Rewire = rewire;
+    const svg = root.querySelector('svg.dg3');
+    if (svg) {
+      const w = wantW(root), want = wantCanvas(w);
+      if (want !== (+svg.dataset.cw || 0) || (svg.dataset.v === '1') !== isV()) rerender(root, w);
+    }
+    layout(root);
+    watch(root);
+  }
+  function layout(root, n) {
+    nativeWidth(root);
+    let retry = false;
+    root.querySelectorAll('.p3.stn > g.art').forEach(art => {
+      const cx = +art.dataset.cx, cy = +art.dataset.cy;
+      const mh = +art.dataset.mh, mw = +art.dataset.mw;
+      if (!mh || !mw) return;
+      const hint = Math.max(.5, Math.min(1, +art.dataset.k || 1));
+      let bb;
+      try { bb = art.getBBox(); } catch (e) { bb = null; }
+      /* 2026-10-08（Andy 手機截圖：零件圖壓在標題和環節名上）：圖還沒顯示出來（換題材那一刻、在收起來的分頁裡）量不到大小，
+         以前就直接放棄、零件停在保底位置 —— 正好蓋在標題與環節名上。改成等看得到了再排一次。 */
+      if (!bb || !bb.height || !bb.width) { retry = true; return; }
+      // 上限 1.7 → 2.4：畫布變寬之後框最高 128px、寬到約 290px，零件要能跟著放大，不然框長高了圖還是小小一顆
+      const k = Math.max(.3, Math.min(2.4, Math.min(mh / bb.height, mw / bb.width))) * hint;
+      const tx = cx - (bb.x + bb.width / 2) * k;
+      const ty = cy - (bb.y + bb.height / 2) * k;
+      art.setAttribute('transform', `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(3)})`);
+    });
+    if (retry && (n || 0) < 20 && root.isConnected) setTimeout(() => layout(root, (n || 0) + 1), 250);
+  }
+
+  /* ---------------------------------------------------------------- 原尺寸（native）
+     ★ 2026-09-21 art-director，量出來的事實：
+       題材圖的 viewBox 寬是 CW＝1180，而它掛的那張卡在 1440 螢幕上是 1344px（放大 1.139 倍），
+       在 **800px 螢幕上只剩 940px（壓成 0.797 倍）** —— 12px 的字被壓成 9.56px，
+       整張圖 44～57 個文字節點全部低於下限。**這跟字級無關，字級怎麼調都沒用**
+       （產業鏈剖析圖 2026-09-21 已經踩過同一個坑，DECISIONS #226）。
+     修法跟那邊一模一樣：圖維持原尺寸、欄位不夠寬就左右滑。
+     為什麼寫在這裡而不是 app.js：`fit()` 本來就是「SVG 進 DOM 之後再量一次」的那支，
+     app.js 插完圖一定會呼叫它 —— 這一批不動 app.js。
+     ⚠ 代價寫清楚：800px 一次看得到 940/1180＝80%，390px 只看得到 33%，要左右滑。
+     這是 #226 已經拍板的取捨（字級守住優先），不是新的決定。*/
+  function nativeWidth(root) {
+    const svg = root && root.querySelector('svg');
+    if (!svg) return;
+    root.style.overflowX = 'auto';
+    root.style.overflowY = 'hidden';
+    // 每張圖的畫布寬可能不一樣（AI 伺服器收到 980），沒寫 data-cw 的就是預設 1180
+    const cw = (+svg.dataset.cw || CW) + 'px';
+    svg.style.minWidth = cw;
+    /* ★ 2026-10-03（Andy：「太大了」）：另一邊也擋住 —— 欄位比畫布寬時不再放大，固定原尺寸置中。
+       1440 螢幕的卡片 1340px，不擋的話整張圖放大 1.37 倍（字 12px → 16.4px、零件框 96 → 131px）。
+       跟產業鏈剖析圖 `.dgwrap svg.dgm{max-width:984px}` 同一個道理（index.html 那段註解有實測）。*/
+    svg.style.maxWidth = cw;
+    svg.style.width = cw;
+    svg.style.marginInline = 'auto';
+  }
+
+  // 每一支 T.* 外面包一層：畫的時候把題材 id 記在 curTid，chainScene 寫進 svg 的 data-tid，fit() 才知道怎麼重畫
+  Object.keys(T).forEach(k => {
+    const f = T[k];
+    T[k] = () => { const prev = curTid; curTid = k; try { return f(); } finally { curTid = prev; } };
+  });
+  window.ThemeDiagrams = T;
+  window.ThemeDiagrams.fit = fit;
+})();

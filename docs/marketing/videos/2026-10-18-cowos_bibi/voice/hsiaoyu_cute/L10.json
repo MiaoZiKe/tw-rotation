@@ -1,0 +1,50 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+15%",
+ "pitch": "+15Hz",
+ "text": "2027 年底可能到 18 萬片左右。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "2027",
+   "start": 0.093458,
+   "dur": 0.75
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年底",
+   "start": 0.897833,
+   "dur": 0.380416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "可能",
+   "start": 1.397833,
+   "dur": 0.293458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "到",
+   "start": 1.756541,
+   "dur": 0.130416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "18 萬",
+   "start": 1.984791,
+   "dur": 0.5435
+  },
+  {
+   "type": "WordBoundary",
+   "text": "片",
+   "start": 2.615208,
+   "dur": 0.173916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "左右",
+   "start": 2.789125,
+   "dur": 0.467375
+  }
+ ]
+}

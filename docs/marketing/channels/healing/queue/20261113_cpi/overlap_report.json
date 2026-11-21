@@ -1,0 +1,71 @@
+{
+ "20261113_cpi/1": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 126,
+   "T": 216,
+   "R": 972,
+   "B": 806,
+   "box": [
+    96,
+    180,
+    984,
+    940
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261113_cpi/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 179,
+   "T": 191,
+   "R": 888,
+   "B": 685,
+   "box": [
+    96,
+    180,
+    984,
+    700
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261113_cpi/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 150,
+   "T": 210,
+   "R": 930,
+   "B": 607,
+   "box": [
+    96,
+    180,
+    984,
+    700
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ }
+}

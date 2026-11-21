@@ -1,0 +1,120 @@
+{
+ "id": "2026-11-19-healing-young",
+ "cat": "healing",
+ "title": "未滿25歲，月薪中位數29,825元",
+ "subtitle": "談晴說礙・IG／Threads 貼文存檔（圖、文案全文、出處）",
+ "date": "2026-11-19",
+ "updated": "2026-11-19",
+ "tags": [
+  "談晴說礙",
+  "薪水",
+  "中位數",
+  "新鮮人",
+  "第一份工作",
+  "數字裡的日子"
+ ],
+ "summary": "主計總處薪資統計：2026 年 1–7 月未滿 25 歲受僱員工經常性薪資中位數 29,825 元（年增 2.44%），25–29 歲 36,312 元、30–39 歲 40,171 元、50–64 歲 44,019 元。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "貼文圖（3 張）"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-19-healing-young-1.jpg",
+     "alt": "封面：未滿25歲，月薪中位數29,825元",
+     "cap": "1／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-19-healing-young-2.jpg",
+     "alt": "第 2 頁：資料從哪來與各年齡經常性薪資中位數",
+     "cap": "2／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-19-healing-young-3.jpg",
+     "alt": "第 3 頁：數字背後（年增率）",
+     "cap": "3／3"
+    }
+   ],
+   "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "主計總處薪資統計：2026 年 1–7 月，未滿 25 歲受僱員工的經常性薪資中位數是 29,825 元，年增 2.44%，還沒到 3 萬元。"
+  },
+  {
+   "t": "p",
+   "text": "同一份統計，25–29 歲是 36,312 元（年增 3.18%）、30–39 歲 40,171 元，最高的是 50–64 歲的 44,019 元，比未滿 25 歲多 14,194 元。"
+  },
+  {
+   "t": "p",
+   "text": "中位數是把所有人由低到高排隊、站在正中間那個人的薪水，比平均數更接近多數人的日常。"
+  },
+  {
+   "t": "p",
+   "text": "經常性薪資不含加班費與獎金；年齡分組的數字是 1–7 月累計，和單月全體中位數（7 月 39,629 元）口徑不同，不能直接比。"
+  },
+  {
+   "t": "p",
+   "text": "報導沒有列出 40–49 歲的數字，所以圖中略過，不是漏畫。"
+  },
+  {
+   "t": "p",
+   "text": "第一份薪水，落在哪一級？"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "已於台北時間 2026-11-19 12:29 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/Df6OdBrF4jU/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Df6OhYxlthB"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "受僱員工經常性薪資中位數（按年齡，2026 年 1–7 月）",
+   "publisher": "行政院主計總處（經聯合報刊載）",
+   "date": "2026-09-19",
+   "url": "https://money.udn.com/money/story/10869/9763961"
+  },
+  {
+   "title": "各年齡薪資中位數報導",
+   "publisher": "風傳媒",
+   "url": "https://www.storm.mg/lifestyle/11166170"
+  },
+  {
+   "title": "薪資中位數隨年齡增加（轉載聯合報）",
+   "publisher": "104 職場力",
+   "url": "https://blog.104.com.tw/median-salary-increases-with-age/"
+  }
+ ],
+ "confidence": "官方統計經兩家以上媒體一致；40–49 歲報導未列出，圖中略過並註明",
+ "status": "published",
+ "social": {
+  "ig": "https://www.instagram.com/p/Df6OdBrF4jU/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Df6OhYxlthB",
+  "queue": "20261119_young"
+ }
+}

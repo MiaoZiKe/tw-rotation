@@ -1,0 +1,42 @@
+{
+ "slug": "unemployment",
+ "date": "2026-11-11",
+ "summary": "主計總處：9 月失業率 3.36%，26 年同月最低；15–24 歲 11.59%，隨年齡一階一階往下。",
+ "alts": [
+  "封面：失業率26年同月最低，15-24歲仍逾11%",
+  "第 2 頁：資料從哪來與各年齡失業率",
+  "第 3 頁：數字背後"
+ ],
+ "sources": [
+  {
+   "title": "人力資源調查統計（2026 年 9 月；9 月失業率 3.36% 為未經季節調整，季調後 3.33%）",
+   "publisher": "行政院主計總處",
+   "date": "2026-10-23"
+  },
+  {
+   "title": "Taiwan's September jobless rate lowest for the month in 26 years",
+   "publisher": "中央社 Focus Taiwan",
+   "date": "2026-10-23",
+   "url": "https://focustaiwan.tw/business/202610230014"
+  },
+  {
+   "title": "9月失業率 3.36% 26年同月最低",
+   "publisher": "自由時報 自由財經",
+   "date": "2026-10-23",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5616537"
+  },
+  {
+   "title": "9月失業率報導",
+   "publisher": "中國時報",
+   "date": "2026-10-23",
+   "url": "https://www.chinatimes.com/realtimenews/20261023003346-260410"
+  },
+  {
+   "title": "9月失業率報導",
+   "publisher": "經濟日報",
+   "date": "2026-10-23",
+   "url": "https://money.udn.com/money/story/10869/9833808"
+  }
+ ],
+ "confidence": "官方統計＋4 家媒體一致"
+}

@@ -1,0 +1,130 @@
+{
+ "id": "2026-11-17-healing-studentloan",
+ "cat": "healing",
+ "title": "115學年起學貸利率0.775%、寬限期2年",
+ "subtitle": "談晴說礙・IG／Threads 貼文存檔（圖、文案全文、出處）",
+ "date": "2026-11-17",
+ "updated": "2026-11-17",
+ "tags": [
+  "談晴說礙",
+  "學貸",
+  "就學貸款",
+  "畢業",
+  "第一份工作",
+  "數字裡的日子"
+ ],
+ "summary": "教育部、臺灣銀行：115 學年起（2026/8/1）學貸畢業後學生負擔利率由 1.775% 降為 0.775%，寬限期由 1 年延長為 2 年。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "貼文圖（3 張）"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-17-healing-studentloan-1.jpg",
+     "alt": "封面：115學年起學貸利率0.775%、寬限期2年",
+     "cap": "1／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-17-healing-studentloan-2.jpg",
+     "alt": "第 2 頁：資料從哪來與利率、寬限期變化",
+     "cap": "2／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-17-healing-studentloan-3.jpg",
+     "alt": "第 3 頁：數字背後",
+     "cap": "3／3"
+    }
+   ],
+   "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "教育部國教署與臺灣銀行公告，自 2026 年 8 月 1 日起，就學貸款在畢業開始還款後，學生負擔的利率由 1.775% 降為 0.775%，其中 1 個百分點由政府加碼補貼。"
+  },
+  {
+   "t": "p",
+   "text": "畢業（含休退學、服義務役、教育實習）後的還款寬限期，也由 1 年延長為 2 年，寬限期間免還本息；在職專班不適用。"
+  },
+  {
+   "t": "p",
+   "text": "符合《高級中等以上學校學生就學貸款辦法》資格者，在學期間的利息由政府全額負擔；家庭年所得 120 萬元以下為主要資格門檻。"
+  },
+  {
+   "t": "p",
+   "text": "學貸常是很多人出社會後的第一筆負債；寬限期多一年，代表第一份工作的前兩年，不必同時還學貸本息。"
+  },
+  {
+   "t": "p",
+   "text": "0.775% 是機動利率，會隨學貸基準利率調整，不是固定利率。已在還款的舊貸戶是否適用，各報導寫法不一，以教育部、臺灣銀行公告為準。"
+  },
+  {
+   "t": "p",
+   "text": "第一份薪水，先還哪一筆？"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "已於台北時間 2026-11-17 12:43 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/Df1Ge69lEsj/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/Df1Gi8jlAAg"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "115 學年度就學貸款措施函（利率 0.775%、寬限期 2 年；在職專班不適用）",
+   "publisher": "教育部國民及學前教育署",
+   "date": "2026-07"
+  },
+  {
+   "title": "115 學年度上學期就學貸款公告（受理 2026/8/1–9/30）",
+   "publisher": "臺灣銀行（經中央社刊載）",
+   "url": "https://www.cna.com.tw/business/chinese/440064"
+  },
+  {
+   "title": "學貸利率降至 0.775%、寬限期延長 2 年",
+   "publisher": "自由時報 自由財經",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5520046"
+  },
+  {
+   "title": "學貸新制報導",
+   "publisher": "聯合報",
+   "url": "https://udn.com/news/story/7239/9655291"
+  },
+  {
+   "title": "學貸新制報導",
+   "publisher": "工商時報",
+   "date": "2026-07-28",
+   "url": "https://www.ctee.com.tw/news/20260728701822-430304"
+  }
+ ],
+ "confidence": "政策公告＋媒體一致；舊貸戶是否適用未下結論",
+ "status": "published",
+ "social": {
+  "ig": "https://www.instagram.com/p/Df1Ge69lEsj/",
+  "threads": "https://www.threads.com/@talk_01010909/post/Df1Gi8jlAAg",
+  "queue": "20261117_studentloan"
+ }
+}

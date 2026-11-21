@@ -1,0 +1,37 @@
+/* 2026-10-20 市場明細「期貨籌碼」（site/futpages.js）手機版；只在 ≤640，桌機不受影響
+   準則：第一屏＝商品分段開關＋期間鈕＋數字卡＋主圖；並排改上下（順序 數字卡→圖→自動解讀→明細表，順序在 futpages.js 的 ≤900 規則） */
+@media (max-width:640px){
+  .fp-bar{gap:8px}
+  .fp-prod{display:grid!important;grid-template-columns:1fr 1fr;flex:1 1 calc(100% - 40px);min-width:0;width:auto!important;max-width:none!important}
+  .fp-prod button{min-width:0;white-space:normal;line-height:1.25;font-size:12.5px;padding:6px 4px;text-align:center}
+  .fp-bar .fp-right{flex-basis:100%;justify-content:space-between;flex-wrap:nowrap;min-width:0}
+  .fp-rng{font-size:11.5px;white-space:normal}
+  .fp-per{max-width:100%;overflow-x:auto;flex:0 1 auto}
+  .fp-chart{height:230px}
+  .fp-big3 .v{font-size:18px}
+  .fp-top .bignum{font-size:30px}
+  .fp-top .sum{flex-basis:100%;font-size:13px}
+  .fp-top .stats .v{font-size:16px}
+  html body .fp-tw{max-height:300px}
+  .fp-pane{gap:10px}
+  .fp-auto li{font-size:13px}
+  html body .fp-card{min-width:0;max-width:100%}
+}
+@media (max-width:640px){
+  /* 市場明細頁籤增到五顆：等分五欄，名稱才不被截 */
+  html.m4 #mktSeg2{display:grid!important;grid-template-columns:repeat(5,1fr);gap:0 2px}
+  html.m4 #mktSeg2 button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;padding-left:2px;padding-right:2px}
+}
+@media (max-width:640px){
+  /* 信用交易：數字卡 2×2、圖一次一張（分段「維持率｜融資餘額」）、說明全在「?」 */
+  .mf-bar{gap:8px}.mf-tab{flex:1 1 auto}.mf-bar .mf-ctl{margin-left:0;flex-basis:100%}
+  .mf-tiles{grid-template-columns:1fr 1fr!important}.mf-top{gap:8px}.mf-bn{font-size:24px}
+  .mf-ch{height:230px!important}
+}
+@media (max-width:640px){
+  /* 七顆期間鈕等分一整列，不再被截掉「全部」 */
+  .fp-per,#mfDays{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr));width:100%!important;max-width:100%!important;overflow:visible!important}
+  .fp-per button,#mfDays button{padding:6px 0!important;min-width:0;text-align:center}
+  .fp-bar .fp-right{flex-wrap:wrap}.fp-per{flex:1 1 100%}
+  .mf-tile{padding:6px 8px}.mf-v{font-size:16px}
+}

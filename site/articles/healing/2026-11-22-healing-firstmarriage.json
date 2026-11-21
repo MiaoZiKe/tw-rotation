@@ -1,0 +1,97 @@
+{
+ "id": "2026-11-22-healing-firstmarriage",
+ "cat": "healing",
+ "title": "平均初婚年齡：男33.4歲、女31.4歲",
+ "subtitle": "談晴說礙・IG／Threads 貼文存檔（圖、文案全文、出處）",
+ "date": "2026-11-22",
+ "updated": "2026-11-22",
+ "tags": [
+  "談晴說礙",
+  "結婚",
+  "晚婚",
+  "初婚年齡",
+  "數字裡的日子"
+ ],
+ "summary": "內政部《2025 人口統計年刊》（2026/8）：2025 年男性平均初婚年齡 33.4 歲、女性 31.4 歲，都超過 30 歲；同年全國結婚登記 104,376 對。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "貼文圖（3 張）"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-22-healing-firstmarriage-1.jpg",
+     "alt": "封面：平均初婚年齡：男33.4歲、女31.4歲",
+     "cap": "1／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-22-healing-firstmarriage-2.jpg",
+     "alt": "第 2 頁：資料從哪來與男女平均初婚年齡",
+     "cap": "2／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-22-healing-firstmarriage-3.jpg",
+     "alt": "第 3 頁：數字背後",
+     "cap": "3／3"
+    }
+   ],
+   "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "內政部 2026 年 8 月出版的《2025 人口統計年刊》：2025 年，男性平均初婚年齡 33.4 歲，女性 31.4 歲，兩個都超過 30 歲。"
+  },
+  {
+   "t": "p",
+   "text": "初婚年齡只算「當年第一次結婚的人」，沒有結婚的人不在這個平均裡；同一年，全國結婚登記是 104,376 對。"
+  },
+  {
+   "t": "p",
+   "text": "20 多歲到 30 出頭，是求學、第一份工作、存第一筆錢的時候；結婚的時間點，也落在這之後。"
+  },
+  {
+   "t": "p",
+   "text": "幾歲成家，誰的時間表？"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "排程於台北時間 2026-11-22 12:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "2025 人口統計年刊（平均初婚年齡）",
+   "publisher": "內政部（經世界日報刊載）",
+   "date": "2026-08",
+   "url": "https://www.worldjournal.com/wj/story/121221/9762723"
+  },
+  {
+   "title": "2025 年全年結婚登記統計（104,376 對）",
+   "publisher": "內政部戶政司",
+   "date": "2025 年全年資料"
+  },
+  {
+   "title": "結婚登記與初婚年齡報導",
+   "publisher": "自由時報 自由財經",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5393039"
+  }
+ ],
+ "confidence": "官方年刊經兩家媒體一致；2024 年與 2016 年數字來源不足或不一致，未採用",
+ "status": "published",
+ "social": {
+  "ig": null,
+  "threads": null,
+  "queue": "20261122_firstmarriage"
+ }
+}

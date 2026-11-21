@@ -1,0 +1,10 @@
+{
+ "batch": "../_batch_11200857",
+ "split_index": 0,
+ "split_range_in_batch": [
+  34.95,
+  77.14
+ ],
+ "align_confidence_mean": 0.925,
+ "note": "同批一次 TTS，v9/voice_batch.py 依行切回"
+}

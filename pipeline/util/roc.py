@@ -1,0 +1,214 @@
+"""民國日期與證交所數值格式的轉換。
+
+證交所 OpenAPI 有三個一致的坑，這裡集中處理：
+1. 日期是民國格式，而且有兩種寫法：`1150909` 與 `115年09月10日`
+2. 所有欄位（含數字）都是字串，且千分位有逗號、空值是 "--" 或 "" 或 "N/A"
+3. 金額單位多為新台幣「千元」
+"""
+from __future__ import annotations
+
+import math
+import re
+from datetime import date
+
+_ROC_COMPACT = re.compile(r"^(\d{3})(\d{2})(\d{2})$")
+_ROC_CJK = re.compile(r"^(\d{2,3})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$")
+_ROC_SLASH = re.compile(r"^(\d{2,3})/(\d{1,2})/(\d{1,2})$")
+_AD_DASH = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+_AD_COMPACT = re.compile(r"^(\d{4})(\d{2})(\d{2})$")
+
+# 空值的各種寫法，實測都出現過
+_NULLS = {"", "--", "-", "N/A", "n/a", "null", "None", "不適用", "無", "---"}
+
+
+def roc_to_date(value: str | None) -> date | None:
+    """把證交所各種日期寫法轉成 datetime.date；無法解析回 None。"""
+    if value is None:
+        return None
+    s = str(value).strip().replace(" ", "")
+    if s in _NULLS:
+        return None
+
+    for pat, roc in ((_ROC_COMPACT, True), (_ROC_CJK, True), (_ROC_SLASH, True),
+                     (_AD_DASH, False), (_AD_COMPACT, False)):
+        m = pat.match(s)
+        if not m:
+            continue
+        y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if roc:
+            # 民國年一定小於 1911；若已經是西元（例如 TDCC 的 20260904）就不加
+            y += 1911
+        try:
+            return date(y, mo, d)
+        except ValueError:
+            return None
+    return None
+
+
+def roc_to_iso(value: str | None) -> str | None:
+    d = roc_to_date(value)
+    return d.isoformat() if d else None
+
+
+def roc_ym_to_iso(value: str | None) -> str | None:
+    """民國年月 `11507` -> `2026-07`。"""
+    if value is None:
+        return None
+    s = str(value).strip()
+    if s in _NULLS or not s.isdigit() or len(s) not in (5, 6):
+        return None
+    y, m = int(s[:-2]) + 1911, int(s[-2:])
+    if not 1 <= m <= 12:
+        return None
+    return f"{y:04d}-{m:02d}"
+
+
+def to_float(value, *, thousand_scale: bool = False) -> float | None:
+    """證交所數字字串 -> float。
+
+    thousand_scale=True 時把「千元」換算成「元」。
+    """
+    if value is None:
+        return None
+    s = str(value).strip().replace(",", "").replace("%", "")
+    if s in _NULLS:
+        return None
+    # 有些欄位用全形加減號，或用括號表示負數
+    s = s.replace("＋", "+").replace("－", "-").replace("−", "-")
+    if s.startswith("(") and s.endswith(")"):
+        s = "-" + s[1:-1]
+    if s in ("+", "-", "X", "x"):
+        return None
+    try:
+        v = float(s)
+    except ValueError:
+        return None
+    return v * 1000.0 if thousand_scale else v
+
+
+def to_int(value) -> int | None:
+    v = to_float(value)
+    return int(v) if v is not None else None
+
+
+def clean_code(value) -> str | None:
+    """股票代號正規化：去空白、去 BOM、保留原始零開頭（如 0050）。"""
+    if value is None:
+        return None
+    s = str(value).strip().strip("﻿").strip('"')
+    return s or None
+
+
+def is_common_stock(code: str | None) -> bool:
+    """判斷是否為一般上市櫃普通股（4 位數字），排除權證、ETF、特別股、存託憑證。"""
+    if not code:
+        return False
+    return len(code) == 4 and code.isdigit() and not code.startswith("0")
+
+
+def is_tradable_security(code: str | None) -> bool:
+    """只保留普通股與 ETF，濾掉權證、可轉債、存託憑證等。
+
+    為什麼需要這層：櫃買那支端點一次會回一萬多列，其中絕大多數是權證
+    （台股權證數量遠多於股票）。不濾掉的話，「上漲/下跌家數」會變成
+    五千多家這種明顯不合理的數字，資料湖也會被灌進大量用不到的列。
+
+    台股代號規則：
+      普通股  4 碼純數字            2330、1101
+      ETF     00 開頭、4-6 碼        0050、00878、00631L、00981A
+      權證    6 碼，03xxxx-09xxxx    030123、088456
+      特別股  4 碼數字 + 字母        2881A
+      TDR/KY  多為 4 碼數字，保留
+    """
+    if not code:
+        return False
+    if is_etf(code):
+        return True
+    return len(code) == 4 and code.isdigit()
+
+
+def is_etf(code: str | None) -> bool:
+    """台股 ETF 代號一律以 00 開頭，長度 4–6：0050、00878、00631L（正2）、00981A（主動式）。"""
+    if not code:
+        return False
+    return code.startswith("00") and 4 <= len(code) <= 6
+
+
+# 上市與上櫃各自維護一套產業別名稱，同一個產業會有兩種寫法（上櫃習慣加「類」）。
+# 不統一的話「其他電子業」與「其他電子類」會變成兩個族群頁，熱力圖也會多出重複板塊。
+_INDUSTRY_ALIAS = {
+    "上櫃ETF": "ETF",
+    "上櫃指數股票型基金(ETF)": "ETF",
+    "指數投資證券(ETN)": "ETN",
+    "其他電子類": "其他電子業",
+    "數位雲端類": "數位雲端",
+    "居家生活類": "居家生活",
+    "綠能環保類": "綠能環保",
+    "運動休閒類": "運動休閒",
+    "農業科技": "農業科技業",
+    "金融業": "金融保險",
+    "觀光事業": "觀光餐旅",
+}
+# 這些不是產業別（大盤、指數、殘留代號），一律歸到「其他」
+_INDUSTRY_JUNK = {"", "nan", "none", "null", "index", "大盤", "所有證券"}
+
+
+def norm_industry(name: object) -> str:
+    """把上市／上櫃兩套法定產業別名稱統一成同一個 key。
+
+    回傳值會被當成 fallback 族群的 id（`ind_<回傳值>`），所以 `compute/flow.py`
+    與 `build_payload.py` 兩邊都必須呼叫這支，否則熱力圖的族群 id 會跟個股頁對不上。
+    """
+    s = "" if name is None else str(name).strip()
+    if s.lower() in _INDUSTRY_JUNK or s.isdigit():
+        return "其他"
+    return _INDUSTRY_ALIAS.get(s, s)
+
+
+# ---------------------------------------------------------------- 漲跌停價（2026-10-05）
+# Andy 拿券商 App 對漲停名單對不起來：舊版用「漲幅 ≥ 9.5%」判漲停，
+#   · 期街口布蘭特正2（ETF，沒有 10% 限制）+11.33% 被列進漲停；
+#   · 漲停價要照升降單位（tick）向下取整，低價股鎖漲停時漲幅常是 9.8x%，門檻一挪就漏或多。
+# 證交所的定義是「價格＝漲停價」，所以這裡直接把漲停價算出來比對，不再用百分比門檻。
+# 升降單位（普通股，上市上櫃同一套）：<10 0.01｜10~50 0.05｜50~100 0.1｜100~500 0.5｜500~1000 1｜≥1000 5
+_TICKS = ((10, 0.01), (50, 0.05), (100, 0.1), (500, 0.5), (1000, 1.0))
+
+
+def tw_tick(price: float) -> float:
+    """普通股在這個價位的升降單位。"""
+    for hi, t in _TICKS:
+        if price < hi:
+            return t
+    return 5.0
+
+
+def limit_up_price(prev: float) -> float:
+    """漲停價＝昨收 × 1.1，依「漲停價所在價位」的 tick **向下**取整（證交所規則：不得超過 10%）。
+
+    ⚠ 浮點：49.5×1.1 算出 54.45000000000001，直接 floor 會對、但 50×1.1=55.00000000000001 / 0.1
+      這種剛好落在 tick 上的要加一點 epsilon 才不會被 floor 掉一格。"""
+    raw = prev * 1.1
+    t = tw_tick(raw)
+    v = math.floor(raw / t + 1e-6) * t
+    # 跨價位邊界：例如昨收 9.1 → 10.01，落在 10~50 那段（0.05）→ 10.0；若取整後掉回下一段就用那段的 tick 再算一次
+    if tw_tick(v) != t:
+        t = tw_tick(v)
+        v = math.floor(raw / t + 1e-6) * t
+    return round(v, 2)
+
+
+def limit_down_price(prev: float) -> float:
+    """跌停價＝昨收 × 0.9，依 tick **向上**取整（跌幅不得超過 10%）。"""
+    raw = prev * 0.9
+    t = tw_tick(raw)
+    v = math.ceil(raw / t - 1e-6) * t
+    if tw_tick(v) != t:
+        t = tw_tick(v)
+        v = math.ceil(raw / t - 1e-6) * t
+    return round(v, 2)
+
+
+def is_common_stock(code: str | None) -> bool:
+    """普通股：4 碼純數字、不是 0 開頭（0 開頭的 4 碼是 ETF，如 0050）。
+    漲跌停只認普通股 —— ETF／ETN／槓桿反向／權證有的沒有 10% 限制、有的不是個股，Andy：「通常不是個股」。"""
+    return bool(code) and len(code) == 4 and code.isdigit() and not code.startswith("0")

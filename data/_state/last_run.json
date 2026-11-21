@@ -1,0 +1,494 @@
+{
+  "steps": {
+    "twse.price_daily": {
+      "ok": true,
+      "rows": 1340,
+      "seconds": 1.9
+    },
+    "official_refresh": {
+      "status": "no_provisional",
+      "official_date": "2026-11-20"
+    },
+    "price_daily": {
+      "stored": 0
+    },
+    "twse.market": {
+      "ok": true,
+      "rows": 15,
+      "seconds": 0.2
+    },
+    "market_daily": {
+      "stored": 0
+    },
+    "tpex.price_daily": {
+      "ok": true,
+      "rows": 1013,
+      "seconds": 8.8
+    },
+    "tape.collect": {
+      "ok": true,
+      "rows": 0,
+      "seconds": 0.1,
+      "skipped": "沒有待補的交易日"
+    },
+    "mis.index_minute": {
+      "ok": true,
+      "rows": 840,
+      "seconds": 1.9
+    },
+    "index_intraday": {
+      "stored": 0
+    },
+    "taifex.futures_minute": {
+      "ok": true,
+      "rows": 0,
+      "seconds": 0.1,
+      "skipped": "窗內候選日都處理過或今天的檔還沒出"
+    },
+    "news.collect": {
+      "ok": true,
+      "rows": 128,
+      "seconds": 4.4
+    },
+    "news": {
+      "stored": 27
+    },
+    "news.broker_views": {
+      "ok": true,
+      "rows": 2,
+      "seconds": 0.0
+    },
+    "broker_views": {
+      "stored": 0
+    },
+    "mops.material_news": {
+      "ok": true,
+      "rows": 110,
+      "seconds": 0.9
+    },
+    "material_news": {
+      "stored": 0
+    },
+    "macro.intl": {
+      "ok": true,
+      "rows": 4516,
+      "seconds": 1.9
+    },
+    "intl_daily": {
+      "stored": 0
+    },
+    "macro.fred": {
+      "ok": true,
+      "rows": 15667,
+      "seconds": 3.3
+    },
+    "macro": {
+      "stored": 2
+    },
+    "macro.fred_calendar": {
+      "ok": true,
+      "rows": 22,
+      "seconds": 0.7
+    },
+    "macro_calendar": {
+      "stored": 0
+    },
+    "margin_total": {
+      "stored": 0
+    },
+    "mktfut.margin_total": {
+      "ok": true,
+      "rows": 8
+    },
+    "fut_inst": {
+      "stored": 0
+    },
+    "mktfut.fut_inst": {
+      "ok": true,
+      "rows": 72
+    },
+    "fut_oi": {
+      "stored": 0
+    },
+    "mktfut.fut_oi": {
+      "ok": true,
+      "rows": 24
+    },
+    "optivx.daily": {
+      "ok": true,
+      "rows": 0,
+      "seconds": 0.2,
+      "skipped": "FinMind 尚無 2026-11-21～2026-11-21 的臺指選擇權資料（休市或當天還沒出）"
+    },
+    "margin_total_otc": {
+      "stored": 0
+    },
+    "tpex.margin_total_otc": {
+      "ok": true,
+      "rows": 1,
+      "diag": [
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
+          "http": 200,
+          "head": "[ {\"Date\":\"1151120\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"MarginPurchaseBalancePreviousDay\":\"20165\",\"MarginPurchase\":\"51\",\"MarginSales\":\"5071\",\"CashRedemption\":\"0\",\"MarginPurchase"
+        }
+      ]
+    },
+    "build_payload": {
+      "ok": true
+    }
+  },
+  "errors": [],
+  "empty": [],
+  "gaps": [],
+  "rebuilt": [],
+  "phase": "news",
+  "index_minute_days": {
+    "FUT": [
+      "2026-11-20"
+    ],
+    "OTC": [
+      "2026-11-20"
+    ],
+    "TSE": [
+      "2026-11-20"
+    ]
+  },
+  "started_at": "2026-11-21T19:11:15.471516+00:00",
+  "finished_at": "2026-11-21T19:32:58.190033+00:00",
+  "duration_seconds": 1302.7,
+  "trade_date": null,
+  "complete": true,
+  "freshness": {
+    "trade_date": "2026-11-20",
+    "tables": {
+      "inst_daily": {
+        "label": "個股三大法人",
+        "latest": "2026-11-20",
+        "rows": 2251,
+        "median": 2224.0,
+        "status": "ok",
+        "reason": null
+      },
+      "inst_market_daily": {
+        "label": "全市場三大法人金額",
+        "latest": "2026-11-20",
+        "rows": 1,
+        "median": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "margin_total": {
+        "label": "整體融資融券",
+        "latest": "2026-11-20",
+        "rows": 1,
+        "median": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "fut_inst": {
+        "label": "期貨三大法人",
+        "latest": "2026-11-20",
+        "rows": 9,
+        "median": 9.0,
+        "status": "ok",
+        "reason": null
+      },
+      "fut_oi": {
+        "label": "期貨全市場未平倉",
+        "latest": "2026-11-20",
+        "rows": 3,
+        "median": 3.0,
+        "status": "ok",
+        "reason": null
+      }
+    },
+    "warn": [],
+    "warn_labels": []
+  },
+  "warn": [],
+  "finmind_budget_left": 439,
+  "tables": [
+    {
+      "table": "price_daily",
+      "rows": 10038411,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "valuation_daily",
+      "rows": 50939,
+      "latest": "2026-11-19"
+    },
+    {
+      "table": "margin_daily",
+      "rows": 2720745,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "margin_total",
+      "rows": 1427,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "margin_total_otc",
+      "rows": 11,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "fut_inst",
+      "rows": 12153,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "fut_oi",
+      "rows": 3417,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "opt_pc",
+      "rows": 4542,
+      "latest": "2026-10-30"
+    },
+    {
+      "table": "opt_ivx",
+      "rows": 937,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "index_daily",
+      "rows": 12573,
+      "latest": "2026-11-19"
+    },
+    {
+      "table": "market_daily",
+      "rows": 54,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "inst_daily",
+      "rows": 5524814,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "inst_market_daily",
+      "rows": 1427,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "inst_market_first",
+      "rows": 20,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "paper/ledger",
+      "rows": 129,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "paper/satellite",
+      "rows": 15,
+      "latest": "2026-11-10"
+    },
+    {
+      "table": "paper/e2sat_holdings",
+      "rows": 178,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "paper/swing_signals",
+      "rows": 50,
+      "latest": "2026-11-19"
+    },
+    {
+      "table": "paper/swing_holdings",
+      "rows": 22,
+      "latest": "2026-11-05"
+    },
+    {
+      "table": "paper/swing_watch",
+      "rows": 318,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "risk_notice",
+      "rows": 268,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "risk_punish",
+      "rows": 40,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "revenue_monthly",
+      "rows": 301402,
+      "latest": "2026-10"
+    },
+    {
+      "table": "financial_q",
+      "rows": 99167,
+      "latest": "—"
+    },
+    {
+      "table": "balance_q",
+      "rows": 95770,
+      "latest": "—"
+    },
+    {
+      "table": "dividend",
+      "rows": 1223,
+      "latest": "—"
+    },
+    {
+      "table": "shareholding_weekly",
+      "rows": 764337,
+      "latest": "2026-11-13"
+    },
+    {
+      "table": "company_info",
+      "rows": 3187,
+      "latest": "—"
+    },
+    {
+      "table": "nonmgr_salary",
+      "rows": 0,
+      "latest": "—"
+    },
+    {
+      "table": "news",
+      "rows": 13803,
+      "latest": "2026-11-22"
+    },
+    {
+      "table": "broker_views",
+      "rows": 388,
+      "latest": "2026-11-21"
+    },
+    {
+      "table": "intl_daily",
+      "rows": 42808,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "macro",
+      "rows": 15667,
+      "latest": "2026-11-21"
+    },
+    {
+      "table": "macro_calendar",
+      "rows": 27,
+      "latest": "2026-12-23"
+    },
+    {
+      "table": "dividend_events",
+      "rows": 26146,
+      "latest": "—"
+    },
+    {
+      "table": "dividend_results",
+      "rows": 26776,
+      "latest": "2026-10-29"
+    },
+    {
+      "table": "next_wave_forward",
+      "rows": 156,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "etf_dividend_events",
+      "rows": 4515,
+      "latest": "—"
+    },
+    {
+      "table": "etf_holdings",
+      "rows": 837444,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "etf_holdings_monthly",
+      "rows": 9115,
+      "latest": "2026-10-31"
+    },
+    {
+      "table": "index_ohlc",
+      "rows": 20979,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "intraday_60m",
+      "rows": 7636112,
+      "latest": "—"
+    },
+    {
+      "table": "tape_5m",
+      "rows": 429840,
+      "latest": "—"
+    },
+    {
+      "table": "index_intraday",
+      "rows": 350217,
+      "latest": "—"
+    },
+    {
+      "table": "material_news",
+      "rows": 6571,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "company_website",
+      "rows": 894,
+      "latest": "—"
+    },
+    {
+      "table": "daytrade_daily",
+      "rows": 756844,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "sbl_daily",
+      "rows": 830514,
+      "latest": "2026-11-20"
+    },
+    {
+      "table": "insider_holding",
+      "rows": 5941,
+      "latest": "2026-10"
+    },
+    {
+      "table": "bigsmall_daily",
+      "rows": 0,
+      "latest": "—"
+    }
+  ],
+  "groups_health": {
+    "reviewed": "2026-09-21",
+    "days_since_review": 61,
+    "is_stale": false,
+    "group_count": 95,
+    "code_count": 444,
+    "multi_group_codes": {
+      "2317": 2,
+      "2354": 2,
+      "2467": 2,
+      "2486": 2,
+      "3008": 2,
+      "3017": 2,
+      "3211": 2,
+      "3324": 2,
+      "3653": 2,
+      "3711": 2,
+      "4938": 2,
+      "5269": 2,
+      "5289": 2,
+      "5351": 2,
+      "5388": 2,
+      "6121": 2,
+      "6223": 2,
+      "6239": 2,
+      "6285": 2,
+      "6789": 2,
+      "6805": 2
+    },
+    "empty_groups": []
+  }
+}

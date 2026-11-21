@@ -1,0 +1,407 @@
+{
+  "file": "leaf_bite",
+  "revision": "natural3",
+  "total_ms": 1200,
+  "contact_ms": 300,
+  "events_ms": {},
+  "tracks": [
+    {
+      "playback_frame": 1,
+      "source_frame": 1,
+      "start_ms": 0,
+      "duration_ms": 60,
+      "mouth_160": [
+        114.22,
+        91.56
+      ],
+      "nose_160": [
+        114.69,
+        88.28
+      ],
+      "body160": [
+        79.53,
+        102.81,
+        58.59,
+        38.44,
+        0
+      ],
+      "support_160": 144
+    },
+    {
+      "playback_frame": 2,
+      "source_frame": 2,
+      "start_ms": 60,
+      "duration_ms": 50,
+      "mouth_160": [
+        116.09,
+        92.97
+      ],
+      "nose_160": [
+        116.56,
+        90.62
+      ],
+      "body160": [
+        82.34,
+        102.81,
+        58.12,
+        38.44,
+        0
+      ],
+      "support_160": 143
+    },
+    {
+      "playback_frame": 3,
+      "source_frame": 3,
+      "start_ms": 110,
+      "duration_ms": 50,
+      "mouth_160": [
+        112.34,
+        108.91
+      ],
+      "nose_160": [
+        112.81,
+        106.09
+      ],
+      "body160": [
+        81.41,
+        110.78,
+        57.66,
+        34.69,
+        0
+      ],
+      "support_160": 144
+    },
+    {
+      "playback_frame": 4,
+      "source_frame": 4,
+      "start_ms": 160,
+      "duration_ms": 60,
+      "mouth_160": [
+        114.22,
+        117.81
+      ],
+      "nose_160": [
+        114.69,
+        115.94
+      ],
+      "body160": [
+        83.28,
+        114.53,
+        57.66,
+        30.94,
+        0
+      ],
+      "support_160": 144
+    },
+    {
+      "playback_frame": 5,
+      "source_frame": 5,
+      "start_ms": 220,
+      "duration_ms": 80,
+      "mouth_160": [
+        119.38,
+        99.06
+      ],
+      "nose_160": [
+        119.84,
+        93.91
+      ],
+      "body160": [
+        80.94,
+        108.44,
+        59.06,
+        36.09,
+        0
+      ],
+      "support_160": 138
+    },
+    {
+      "playback_frame": 6,
+      "source_frame": 6,
+      "start_ms": 300,
+      "duration_ms": 70,
+      "mouth_160": [
+        117.03,
+        98.59
+      ],
+      "nose_160": [
+        117.5,
+        95.31
+      ],
+      "body160": [
+        80.94,
+        108.44,
+        59.06,
+        36.56,
+        0
+      ],
+      "support_160": 138
+    },
+    {
+      "playback_frame": 7,
+      "source_frame": 7,
+      "start_ms": 370,
+      "duration_ms": 20,
+      "mouth_160": [
+        115.16,
+        101.41
+      ],
+      "nose_160": [
+        118.44,
+        96.25
+      ],
+      "body160": [
+        82.34,
+        109.38,
+        58.12,
+        35.62,
+        0
+      ],
+      "support_160": 138
+    },
+    {
+      "playback_frame": 8,
+      "source_frame": 8,
+      "start_ms": 390,
+      "duration_ms": 60,
+      "mouth_160": [
+        113.28,
+        100.47
+      ],
+      "nose_160": [
+        113.75,
+        97.19
+      ],
+      "body160": [
+        82.81,
+        110.31,
+        58.12,
+        35.16,
+        0
+      ],
+      "support_160": 137
+    },
+    {
+      "playback_frame": 9,
+      "source_frame": 9,
+      "start_ms": 450,
+      "duration_ms": 100,
+      "mouth_160": [
+        119.38,
+        87.81
+      ],
+      "nose_160": [
+        119.84,
+        82.66
+      ],
+      "body160": [
+        80.94,
+        100.47,
+        59.06,
+        34.22,
+        0
+      ],
+      "support_160": 130
+    },
+    {
+      "playback_frame": 10,
+      "source_frame": 10,
+      "start_ms": 550,
+      "duration_ms": 60,
+      "mouth_160": [
+        117.5,
+        87.81
+      ],
+      "nose_160": [
+        117.97,
+        84.06
+      ],
+      "body160": [
+        81.41,
+        99.53,
+        59.53,
+        34.22,
+        0
+      ],
+      "support_160": 129
+    },
+    {
+      "playback_frame": 11,
+      "source_frame": 9,
+      "start_ms": 610,
+      "duration_ms": 100,
+      "mouth_160": [
+        119.38,
+        87.81
+      ],
+      "nose_160": [
+        119.84,
+        82.66
+      ],
+      "body160": [
+        80.94,
+        100.47,
+        59.06,
+        34.22,
+        0
+      ],
+      "support_160": 130
+    },
+    {
+      "playback_frame": 12,
+      "source_frame": 10,
+      "start_ms": 710,
+      "duration_ms": 60,
+      "mouth_160": [
+        117.5,
+        87.81
+      ],
+      "nose_160": [
+        117.97,
+        84.06
+      ],
+      "body160": [
+        81.41,
+        99.53,
+        59.53,
+        34.22,
+        0
+      ],
+      "support_160": 129
+    },
+    {
+      "playback_frame": 13,
+      "source_frame": 11,
+      "start_ms": 770,
+      "duration_ms": 80,
+      "mouth_160": [
+        114.69,
+        91.09
+      ],
+      "nose_160": [
+        115.16,
+        85.94
+      ],
+      "body160": [
+        80.47,
+        102.34,
+        59.06,
+        34.22,
+        0
+      ],
+      "support_160": 130
+    },
+    {
+      "playback_frame": 14,
+      "source_frame": 12,
+      "start_ms": 850,
+      "duration_ms": 60,
+      "mouth_160": [
+        114.69,
+        92.5
+      ],
+      "nose_160": [
+        115.16,
+        88.75
+      ],
+      "body160": [
+        81.41,
+        103.28,
+        59.06,
+        33.75,
+        0
+      ],
+      "support_160": 129
+    },
+    {
+      "playback_frame": 15,
+      "source_frame": 13,
+      "start_ms": 910,
+      "duration_ms": 70,
+      "mouth_160": [
+        117.03,
+        73.28
+      ],
+      "nose_160": [
+        117.5,
+        70.0
+      ],
+      "body160": [
+        80.47,
+        88.28,
+        58.59,
+        37.03,
+        0
+      ],
+      "support_160": 128
+    },
+    {
+      "playback_frame": 16,
+      "source_frame": 14,
+      "start_ms": 980,
+      "duration_ms": 90,
+      "mouth_160": [
+        119.38,
+        71.88
+      ],
+      "nose_160": [
+        119.84,
+        68.12
+      ],
+      "body160": [
+        81.88,
+        88.28,
+        58.12,
+        37.5,
+        0
+      ],
+      "support_160": 126
+    },
+    {
+      "playback_frame": 17,
+      "source_frame": 15,
+      "start_ms": 1070,
+      "duration_ms": 20,
+      "mouth_160": [
+        110.94,
+        74.69
+      ],
+      "nose_160": [
+        111.41,
+        71.41
+      ],
+      "body160": [
+        79.53,
+        91.56,
+        57.66,
+        37.03,
+        0
+      ],
+      "support_160": 127
+    },
+    {
+      "playback_frame": 18,
+      "source_frame": 16,
+      "start_ms": 1090,
+      "duration_ms": 110,
+      "mouth_160": [
+        109.06,
+        73.75
+      ],
+      "nose_160": [
+        109.53,
+        70.47
+      ],
+      "body160": [
+        79.06,
+        90.16,
+        57.66,
+        37.5,
+        0
+      ],
+      "support_160": 128
+    }
+  ],
+  "measurement_note": "每來源格嘴鼻人工量約±3來源像素，身體橢圓為人工形體近似。此來源為reset後重新生成新圖，非被退件笑吐舌版。",
+  "ground_y_160": 155
+}

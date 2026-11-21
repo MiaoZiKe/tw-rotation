@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>手機版 v3 原型</title>
+<!-- 原型：用站上的樣式表（抽自 site/index.html 的 <style>）當底，
+     下面 proto.css 只寫手機這一版新增的東西，全部 p- 開頭，不碰站上既有的 class。 -->
+<link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="proto.css">
+<script src="../site/vendor/echarts.min.js"></script>
+</head>
+<body class="p-body">
+<header class="p-top">
+  <span class="p-logo">TW</span><b class="p-title">台股資金輪動</b>
+  <span class="p-sp"></span>
+  <button class="p-ic" type="button" aria-label="搜尋個股" data-soon="搜尋">⌕</button>
+  <button class="p-ic" type="button" aria-label="更多：主題、今日事件、設定" data-soon="更多">⋯</button>
+</header>
+
+<main id="pMain"></main>
+
+<nav class="p-nav" id="pNav">
+  <button type="button" data-go="ov"><i>◎</i>總覽</button>
+  <button type="button" data-go="flow"><i>⇄</i>資金流向</button>
+  <button type="button" data-go="dg"><i>▦</i>產業</button>
+  <button type="button" data-go="heat"><i>▤</i>熱力圖</button>
+  <button type="button" data-go="more"><i>≡</i>更多</button>
+</nav>
+
+<div class="p-scrim" id="pScrim" hidden></div>
+<div class="p-pop" id="pPop" role="dialog" aria-modal="false" hidden></div>
+<div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" hidden><div class="p-grab"></div><div class="p-sheetbody"></div></div>
+
+<script src="../site/diagrams.js"></script>
+<script src="../site/dg/pcb_rigid.js"></script>
+<script src="../site/dg/ic_substrate.js"></script>
+<script src="../site/dg/ai_adv_packaging.js"></script>
+<script src="../site/dg/liquid_cooling.js"></script>
+<script src="../site/dg/server_psu.js"></script>
+<script src="../site/dg/foundry.js"></script>
+<script src="../site/dg/silicon_wafer.js"></script>
+<script src="../site/dg/hbm.js"></script>
+<script src="../site/three3d.js"></script>
+<script src="proto.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+name: tc_comments
+# 頻道②「科技透明圈」留言：Threads 關鍵字公開回覆＋IG 關鍵字私訊（EAA 權杖私訊接不通 → 公開回覆＋連結保底）。
+# 2026-11-20 Andy：「當讀者在影片底下留下關鍵留言，我沒發現我這邊有主動私訊他提供連結」。
+# 從 tc_post.yml 拆出來（原本綁在發文工作流的 15 分鐘排程後面，GitHub 排程 6～9 小時才跑一次）：
+# 主力是 gh-cron Worker 每 4 小時派一次（Andy 2026-11-20：「檢查頻率改成每 4 小時一次」）（xx:x9，dry_run=false）；下面的 GitHub 排程只是保底。
+# 設定 social/tc/dm_config.json；紀錄 state/tc/（ig_dm.json、threads_replies 等，只存雜湊）。
+on:
+  schedule:
+    - cron: "19 1,5,9,13,17,21 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "空跑（true＝只讀留言、印出會做什麼，不回、不寫紀錄；false＝真的回）"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: tc-comments
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/data/
+            !/site/
+            !*.mp4
+            !*.mov
+            !*.jpg
+            !*.jpeg
+            !*.png
+            !*.webp
+            !*.gif
+            !*.parquet
+            !*.zip
+            !*.pdf
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests
+      - name: Threads 留言關鍵字 → 公開回覆（輪詢；文案沒過法遵前只記錄）
+        id: replies
+        continue-on-error: true
+        env:
+          TC_THREADS_TOKEN: ${{ secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN }}
+          TC_THREADS_USER_ID: ${{ secrets.TECH_THREADS_USER_ID }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
+          python scripts/tc_threads_replies.py $args
+      - name: IG 留言關鍵字 → 私訊（接不通就公開回覆＋連結）
+        id: igdm
+        continue-on-error: true
+        env:
+          TC_IG_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN }}
+          TC_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TC_UNLOCK_CODE: ${{ secrets.TC_UNLOCK_CODE }}   # 私訊連結帶頻道憑證（site/articles/unlock.json 只放它的 sha256）
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
+          python scripts/tc_ig_dm.py $args
+      - name: 回寫留言紀錄（只 add state/tc）
+        if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add state/tc 2>/dev/null || true
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -q -m "頻道② 留言回覆紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4 5; do
+            git pull -q --rebase --autostash origin main && git push -q origin HEAD:main && { echo "推送成功"; exit 0; }
+            sleep $((i*3))
+          done
+          echo "::warning::留言紀錄推不上 main"
+      - name: 兩步都失敗才紅燈（單一步驟小狀況只在上面警告）
+        if: steps.replies.outcome == 'failure' && steps.igdm.outcome == 'failure'
+        run: exit 1

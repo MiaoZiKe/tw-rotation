@@ -1,0 +1,39 @@
+{
+ "slot": "wk2",
+ "date": "2026-11-01",
+ "run_at": "2026-11-01T19:02+08:00",
+ "posted": [
+  {
+   "file": "2026-11-01_news-wk2-1.md",
+   "publish_at": "2026-11-01T19:30+08:00",
+   "publish_at_ig": "2026-11-01T20:50+08:00",
+   "title": "三大法人 是哪三類？",
+   "topic_category": "台股",
+   "content_type": "台股知識",
+   "layout": "D-知識卡(實景)",
+   "style": "常備文庫",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "0",
+   "news_ids": "",
+   "u_code": "newswk21",
+   "evergreen": "true",
+   "topic_id": "three_inst",
+   "has_photo": "true",
+   "photo_kind": "類別",
+   "photo": "_category/金融/photo_2.jpg",
+   "numcard": "hero_top／重疊 0 筆",
+   "format": "threads_v2",
+   "hook_type": "冷知識",
+   "emotion": "吐槽",
+   "hook_id": "a_k2",
+   "tag": "三大法人",
+   "lint": "pass"
+  }
+ ],
+ "skipped": [],
+ "evergreen": [
+  "three_inst"
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}

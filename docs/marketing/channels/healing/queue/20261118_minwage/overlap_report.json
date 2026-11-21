@@ -1,0 +1,71 @@
+{
+ "20261118_minwage/1": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 126,
+   "T": 272,
+   "R": 954,
+   "B": 836,
+   "box": [
+    96,
+    180,
+    984,
+    940
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 4.69,
+  "contrast_pass": true
+ },
+ "20261118_minwage/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 136,
+   "T": 211,
+   "R": 956,
+   "B": 685,
+   "box": [
+    96,
+    180,
+    984,
+    700
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261118_minwage/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 166,
+   "T": 183,
+   "R": 947,
+   "B": 737,
+   "box": [
+    96,
+    180,
+    984,
+    740
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 5.02,
+  "contrast_pass": true
+ }
+}

@@ -1,0 +1,640 @@
+{
+ "updated": "2026-10-20",
+ "articles": [
+  {
+   "id": "2026-10-20-know-concept",
+   "cat": "know",
+   "title": "題材標籤誰貼的？同題材漲幅差到 90 點",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-know-3",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-intro-ai-networking",
+   "cat": "intro",
+   "title": "AI 網通鏈 5 個環節：從晶片到線纜",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-intro-3",
+   "groups": [
+    {
+     "id": "switch_wireless",
+     "name": "高速交換器與無線網路"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    },
+    {
+     "id": "silicon_photonics",
+     "name": "矽光子與 CPO"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-know-dividend",
+   "cat": "know",
+   "title": "除息後 20 天只填 51%：領股利不等於賺",
+   "date": "2026-10-20",
+   "topic": "k_dividend",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-know-rotation",
+   "cat": "know",
+   "title": "類股輪動是什麼？20 日內族群漲跌差 43 點",
+   "date": "2026-10-20",
+   "topic": "k_rotation",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-intro-thermal",
+   "cat": "intro",
+   "title": "散熱產業鏈：從風扇到水冷板，功耗 2 年翻倍",
+   "date": "2026-10-20",
+   "topic": "i_thermal",
+   "groups": [
+    {
+     "id": "liquid_cooling",
+     "name": "液冷散熱"
+    },
+    {
+     "id": "air_cooling",
+     "name": "氣冷與核心組件"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-news-nov-earnings-gap",
+   "cat": "news",
+   "title": "11 月個股 14 年只 6 年漲，資金往哪走",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-news-3",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-intro-cowos-chain",
+   "cat": "intro",
+   "title": "誰在台積電身邊：封裝 6 環節營收年增 25～60%",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-intro-1",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "osat",
+     "name": "封測代工"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-news-tesla-capex-optimus",
+   "cat": "news",
+   "title": "特斯拉資本支出上修到 250 億美元，近去年三倍",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-news-2",
+   "groups": [
+    {
+     "id": "robotics",
+     "name": "機器人"
+    },
+    {
+     "id": "ev_auto",
+     "name": "車用 / 電動車"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-news-fomc-oct",
+   "cat": "news",
+   "title": "FOMC 前夕：外資 5 日賣晶圓代工 38 萬張",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-news-1",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "bank",
+     "name": "銀行金融"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-17-news-tesla",
+   "cat": "news",
+   "title": "Roadster 發表隔日：5 車用族群 3 贏大盤",
+   "date": "2026-10-17",
+   "topic": "c-news-mvc9ibft",
+   "groups": [
+    {
+     "id": "connector_auto",
+     "name": "車用連接器"
+    },
+    {
+     "id": "wide_bandgap",
+     "name": "第三代半導體"
+    },
+    {
+     "id": "battery_cell",
+     "name": "電芯製造與電池模組"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-16-news-tsmc-q3-call",
+   "cat": "news",
+   "title": "台積電法說會5個數字：毛利率66.4%小降",
+   "date": "2026-10-16",
+   "topic": "n_tsmc_q3",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "fab_process_equip",
+     "name": "前段製程設備"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-mlcc",
+   "cat": "know",
+   "title": "MLCC 是什麼？AI 伺服器單台吃 1.5 萬顆",
+   "date": "2026-10-19",
+   "topic": "k_mlcc",
+   "groups": [
+    {
+     "id": "mlcc",
+     "name": "被動元件 MLCC"
+    },
+    {
+     "id": "jp_passive",
+     "name": "日本被動元件"
+    },
+    {
+     "id": "capacitor",
+     "name": "電容器"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-17-know-cpo",
+   "cat": "know",
+   "title": "一張圖看懂 CPO：每位元功耗剩可插拔約 3 成",
+   "date": "2026-10-17",
+   "topic": "k_cpo",
+   "groups": [
+    {
+     "id": "silicon_photonics",
+     "name": "矽光子與 CPO"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    },
+    {
+     "id": "switch_wireless",
+     "name": "高速交換器與無線網路"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-wafer",
+   "cat": "know",
+   "title": "矽晶圓是什麼？12 吋面積是 6 吋的 4 倍",
+   "date": "2026-10-19",
+   "topic": "k_wafer",
+   "groups": [
+    {
+     "id": "silicon_wafer",
+     "name": "矽晶圓"
+    },
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-sic-gan",
+   "cat": "know",
+   "title": "第三代半導體是什麼？SiC 帶隙是矽的 2.9 倍",
+   "date": "2026-10-19",
+   "topic": "k_sic_gan",
+   "groups": [
+    {
+     "id": "wide_bandgap",
+     "name": "第三代半導體"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-17-know-hbm",
+   "cat": "know",
+   "title": "一張圖看懂 HBM：頻寬是 DDR5 的 40 倍",
+   "date": "2026-10-17",
+   "topic": "k_hbm",
+   "groups": [
+    {
+     "id": "hbm",
+     "name": "HBM 高頻寬記憶體"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "memory_module",
+     "name": "記憶體模組"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-14-know-cowos",
+   "cat": "know",
+   "title": "CoWoS 產能預估 2 年最高擴 3.7 倍仍不夠",
+   "date": "2026-10-14",
+   "topic": "k_cowos",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "pkg_equipment",
+     "name": "封裝製程機台"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-abf",
+   "cat": "know",
+   "title": "IC 載板是什麼？賣方估 2028 缺口最高 51%",
+   "date": "2026-10-19",
+   "topic": "k_abf",
+   "groups": [
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-psu-bbu",
+   "cat": "know",
+   "title": "機櫃 120 kW：PSU 與 BBU 各管什麼",
+   "date": "2026-10-19",
+   "topic": "k_psu_bbu",
+   "groups": [
+    {
+     "id": "server_psu",
+     "name": "電源供應器"
+    },
+    {
+     "id": "bbu",
+     "name": "BBU 電池備援"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-foundry",
+   "cat": "know",
+   "title": "IC 代工是什麼？全球前十大產值 7 成在一家",
+   "date": "2026-10-19",
+   "topic": "k_foundry",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "silicon_wafer",
+     "name": "矽晶圓"
+    },
+    {
+     "id": "fab_process_equip",
+     "name": "前段製程設備"
+    }
+   ],
+   "reading_min": 4,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-ssd",
+   "cat": "know",
+   "title": "SSD 拆開看：小板讀取比硬碟快 35 倍",
+   "date": "2026-10-19",
+   "topic": "k_ssd",
+   "groups": [
+    {
+     "id": "memory_module",
+     "name": "記憶體模組"
+    },
+    {
+     "id": "nor_niche_memory",
+     "name": "NOR Flash 利基記憶體"
+    },
+    {
+     "id": "osat",
+     "name": "封測代工"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-institutional",
+   "cat": "know",
+   "title": "外資買超當天大盤漲 83%，隔天只剩 56%",
+   "date": "2026-10-19",
+   "topic": "k_institutional",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-intro-ai-networking",
+   "cat": "intro",
+   "title": "AI 網通鏈：從 2 公尺銅纜到 100 公尺光纖",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-intro-3",
+   "groups": [
+    {
+     "id": "switch_wireless",
+     "name": "高速交換器與無線網路"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    },
+    {
+     "id": "ai_interconnect",
+     "name": "AI 互連元件"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-dividend",
+   "cat": "know",
+   "title": "除息後 60 天僅 63% 填息：領股利不等於賺",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-know-1",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-intro-cowos-chain",
+   "cat": "intro",
+   "title": "12～14 萬片的先進封裝，誰在台積電身邊",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-intro-1",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "osat",
+     "name": "封測代工"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-intro-thermal",
+   "cat": "intro",
+   "title": "散熱產業鏈：單櫃功耗 3 倍，風扇換水冷板",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-intro-2",
+   "groups": [
+    {
+     "id": "liquid_cooling",
+     "name": "液冷散熱"
+    },
+    {
+     "id": "air_cooling",
+     "name": "氣冷與核心組件"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-news-week-flow",
+   "cat": "news",
+   "title": "外資賣超60萬張、投信買超27萬張：誰買哪族群",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-news-3",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    }
+   ],
+   "reading_min": 2,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-news-tsmc-aftermath",
+   "cat": "news",
+   "title": "台積電法說隔天：大盤彈0.3%，PCB硬板漲6.1%",
+   "date": "2026-10-19",
+   "topic": "n_tsmc_aftermath",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    }
+   ],
+   "reading_min": 2,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-news-nanya-dram",
+   "cat": "news",
+   "title": "南亞科法說毛利率 85.7%，缺貨還會持續嗎",
+   "date": "2026-10-19",
+   "topic": "n_nanya_dram",
+   "groups": [
+    {
+     "id": "hbm",
+     "name": "HBM 高頻寬記憶體"
+    },
+    {
+     "id": "memory_module",
+     "name": "記憶體模組"
+    },
+    {
+     "id": "nor_niche_memory",
+     "name": "NOR Flash 利基記憶體"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-17-news-sox",
+   "cat": "news",
+   "title": "費半 8 天跌 15.7%：跟 2008 年差在哪 4 個數字",
+   "date": "2026-10-17",
+   "topic": "c-news-mvcfjf3u",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "hpc_network_ic",
+     "name": "HPC 與網通 IC"
+    },
+    {
+     "id": "ip_asic",
+     "name": "客製 ASIC 矽智財"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-14-news-tsmc-sep-revenue",
+   "cat": "news",
+   "title": "台積電9月營收5,119億元，第三季營收創單季新高",
+   "subtitle": "第三季新台幣營收約 1.49 兆元，按財測假設匯率換算已高於財測上緣；10 月 15 日法說會公布完整財報。",
+   "date": "2026-10-08",
+   "tags": [
+    "台積電",
+    "月營收",
+    "晶圓代工",
+    "法說會",
+    "先進封裝",
+    "資本支出"
+   ],
+   "summary": "台積電 10 月 8 日公告 9 月營收 5,118.57 億元，年增 54.6%；第三季合計 1 兆 4,942 億元，季增 17.6% 創單季新高，按七月法說匯率假設換算已高於財測上緣。毛利率與美元營收待 10 月 15 日法說會公布。",
+   "reading_min": 3,
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "fab_process_equip",
+     "name": "前段製程設備"
+    },
+    {
+     "id": "fab_equipment",
+     "name": "晶圓廠設備"
+    },
+    {
+     "id": "pkg_equipment",
+     "name": "封裝製程機台"
+    },
+    {
+     "id": "fab_material",
+     "name": "前段製程材料"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-14-intro-ai-server",
+   "cat": "intro",
+   "title": "AI 伺服器一櫃 120 kW，是氣冷機櫃的 3 倍",
+   "date": "2026-10-14",
+   "topic": "i_ai_server",
+   "groups": [
+    {
+     "id": "ai_server_odm",
+     "name": "AI 伺服器組裝"
+    },
+    {
+     "id": "liquid_cooling",
+     "name": "液冷散熱"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  }
+ ]
+}

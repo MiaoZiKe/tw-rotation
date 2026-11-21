@@ -1,0 +1,498 @@
+{
+  "source_filename": "source_sheet.png",
+  "source_grid_offset": [
+    0,
+    0
+  ],
+  "source_cell_padding": [
+    40,
+    30
+  ],
+  "isolate_main_character": true,
+  "remove_magenta_fringe": true,
+  "total_ms": 2600,
+  "contact_frame": 6,
+  "contact_ms": 600,
+  "sequence": [
+    1,
+    2,
+    3,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "durations_ms": [
+    110,
+    110,
+    120,
+    130,
+    130,
+    160,
+    180,
+    180,
+    230,
+    230,
+    190,
+    190,
+    180,
+    180,
+    160,
+    120
+  ],
+  "anchors": [
+    {
+      "frame": 1,
+      "name": "mouth",
+      "source_cell_xy": [
+        263,
+        243
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 1,
+      "name": "nose",
+      "source_cell_xy": [
+        263,
+        232
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 2,
+      "name": "mouth",
+      "source_cell_xy": [
+        262,
+        279
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 2,
+      "name": "nose",
+      "source_cell_xy": [
+        262,
+        269
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 3,
+      "name": "mouth",
+      "source_cell_xy": [
+        256,
+        250
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 3,
+      "name": "nose",
+      "source_cell_xy": [
+        256,
+        240
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 4,
+      "name": "mouth",
+      "source_cell_xy": [
+        248,
+        252
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 4,
+      "name": "nose",
+      "source_cell_xy": [
+        248,
+        242
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 5,
+      "name": "mouth",
+      "source_cell_xy": [
+        259,
+        263
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 5,
+      "name": "nose",
+      "source_cell_xy": [
+        259,
+        252
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 6,
+      "name": "mouth",
+      "source_cell_xy": [
+        260,
+        269
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 6,
+      "name": "nose",
+      "source_cell_xy": [
+        260,
+        256
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 7,
+      "name": "mouth",
+      "source_cell_xy": [
+        248,
+        277
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 7,
+      "name": "nose",
+      "source_cell_xy": [
+        248,
+        264
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 8,
+      "name": "mouth",
+      "source_cell_xy": [
+        243,
+        277
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 8,
+      "name": "nose",
+      "source_cell_xy": [
+        243,
+        267
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 9,
+      "name": "mouth",
+      "source_cell_xy": [
+        256,
+        246
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 9,
+      "name": "nose",
+      "source_cell_xy": [
+        256,
+        234
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 10,
+      "name": "mouth",
+      "source_cell_xy": [
+        264,
+        254
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 10,
+      "name": "nose",
+      "source_cell_xy": [
+        264,
+        241
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 11,
+      "name": "mouth",
+      "source_cell_xy": [
+        251,
+        258
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 11,
+      "name": "nose",
+      "source_cell_xy": [
+        251,
+        247
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 12,
+      "name": "mouth",
+      "source_cell_xy": [
+        222,
+        267
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 12,
+      "name": "nose",
+      "source_cell_xy": [
+        222,
+        255
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 13,
+      "name": "mouth",
+      "source_cell_xy": [
+        283,
+        236
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 13,
+      "name": "nose",
+      "source_cell_xy": [
+        283,
+        226
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 14,
+      "name": "mouth",
+      "source_cell_xy": [
+        272,
+        254
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 14,
+      "name": "nose",
+      "source_cell_xy": [
+        272,
+        246
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 15,
+      "name": "mouth",
+      "source_cell_xy": [
+        268,
+        207
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 15,
+      "name": "nose",
+      "source_cell_xy": [
+        268,
+        196
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 16,
+      "name": "mouth",
+      "source_cell_xy": [
+        255,
+        198
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    },
+    {
+      "frame": 16,
+      "name": "nose",
+      "source_cell_xy": [
+        255,
+        187
+      ],
+      "measurement": "本輪新原圖逐格人工量，6/9/14放大確認，約±3來源像素；已加共同padding(40,30)"
+    }
+  ],
+  "body_source": [
+    [
+      203,
+      240,
+      119,
+      79,
+      0
+    ],
+    [
+      208,
+      254,
+      117,
+      70,
+      8
+    ],
+    [
+      205,
+      245,
+      117,
+      78,
+      8
+    ],
+    [
+      204,
+      249,
+      119,
+      76,
+      10
+    ],
+    [
+      207,
+      251,
+      120,
+      79,
+      15
+    ],
+    [
+      211,
+      255,
+      121,
+      78,
+      30
+    ],
+    [
+      203,
+      260,
+      122,
+      76,
+      40
+    ],
+    [
+      205,
+      262,
+      122,
+      73,
+      50
+    ],
+    [
+      204,
+      238,
+      126,
+      74,
+      60
+    ],
+    [
+      212,
+      242,
+      123,
+      73,
+      55
+    ],
+    [
+      204,
+      249,
+      120,
+      73,
+      40
+    ],
+    [
+      201,
+      252,
+      120,
+      69,
+      20
+    ],
+    [
+      209,
+      221,
+      122,
+      67,
+      12
+    ],
+    [
+      206,
+      234,
+      122,
+      67,
+      10
+    ],
+    [
+      203,
+      218,
+      118,
+      75,
+      0
+    ],
+    [
+      204,
+      214,
+      117,
+      75,
+      0
+    ]
+  ],
+  "events_ms": {
+    "line_appears": 220,
+    "paw_blocked": 340,
+    "tilt_starts": 600,
+    "side_contact": 940,
+    "side_lie": 1120,
+    "struggle": 1350,
+    "first_loosen": 1580,
+    "second_loosen": 1770,
+    "paw_free": 1960,
+    "body_free": 2140,
+    "stand_up": 2320,
+    "restored": 2480
+  },
+  "measurement_note": "嘴鼻逐格人工定位約±3來源像素；body橢圓和角度為人工形體近似。PNG已內建附身紫線，不可再疊身上SVG圈；程式尾線是否銜接仍待網站動態驗收。",
+  "visual_review": {
+    "status": "已看本輪原始16格與放大接觸格，洋紅/深/淺三底全16格已檢；未完成瀏覽器動態審片",
+    "line": "主角色及連接紫線同連通區保留；游離動作線/鄰格碎片去除。來源線底有鮮洋紅色雜邊，僅移除高飽和洋紅像素，不改紫線與橘粉腮紅。",
+    "geometry": "全格同padding與聯集裁切，不逐格對腳底；側跌高度保留",
+    "limitation": "來源第4格紫線突然變短，播放槽4改重播來源3，保留來源全16 PNG；原圖不改。瀏覽器動態尚待驗收。",
+    "sequence_fix": "播放1,2,3,3,5…16；時長與共同位置不變，總2600ms"
+  },
+  "source_support_160": [
+    134,
+    134,
+    134,
+    133,
+    132,
+    131,
+    132,
+    130,
+    121,
+    123,
+    122,
+    121,
+    115,
+    113,
+    116,
+    116
+  ],
+  "ground_y_160": 155,
+  "support_measurement": "160解碼alpha>=128、排紫線/洋紅、最大主體連通區、底列至少3實體像素；0起算。未在bitmap或raw錨點加入dy，由引擎統一補償。 未播放來源第4格另由保留512PNG縮160量得133，播放第4槽仍依sequence用來源3=134。"
+}

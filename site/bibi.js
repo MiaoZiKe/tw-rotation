@@ -1,0 +1,2821 @@
+/* ============================================================================
+   比比（右下角客服鈕的天竺鼠）：情境待機＋環狀互動選單（2026-10-11）
+   ----------------------------------------------------------------------------
+   Andy 10-11：「將右下方的GIF圖多點變化，會依據不同分頁，不同功能，漲跌，白天晚上，假日平日國定假日等情境下去變化…
+     目的是讓比比看起來更像真的在陪伴你。並且最好是有新增互動效果，例如可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈…
+     互動紐的形式像圖一這樣游標移動過去，會出現其他互動小圈(上方都會有簡單的物件圖)，點擊後出現對應動作」
+   圖一：比比在中間，周圍一圈小圓圈。
+
+   這支只接手 support.js 建好的 #supFab（不重做按鈕）：
+     ① 待機：只有一款＝第一版客服鈕那支 8 格跳躍 GIF（idle_hop，一直循環；Andy 10-12）。情境（國定假日 → 週末 → 深夜 → 盤中漲跌 → 分頁）
+        只決定泡泡說明句，不換圖；換頁／每 5 分鐘／盤中報價更新時重算說明句。
+     ② 環狀選單：桌機滑鼠移到比比上展開；手機（html.m4／≤640，或沒有滑鼠的裝置）點一下展開、點空白收起。
+        以比比當下位置為圓心、只排一層（角落＝扇形弧、畫面中間＝一整圈），每頁 5 格、最後一格「下一頁 ›」（10-11 晚 Andy）。
+     ③ 點小圈：球／草／摸摸／轉圈／爆米花跑「動作編排」腳本（比比整顆離開原位、道具照物理走，見下面「動作編排引擎」）；
+        其他動作換圖＋小特效。播完回情境待機；播的時候其他小圈冷卻（連點不爆）。
+        點比比本體：桌機照舊打開客服面板（既有行為、既有驗收不變）；手機第一下是展開環，環裡的「問比比」才開客服。
+     ④ 互動次數記在這台裝置（localStorage tw.bibi.n，不送伺服器），比比偶爾回一句「今天第 3 次摸我了～」。
+   客服鈕被關掉（html.fab-off）、管理區（fab.hidden）、被抽屜蓋住（supaway）時，環與提示泡泡一律不出現。
+   素材：site/brand/bibi/<名稱>.webp（160px 動態 WebP，scripts/anim/bibi_site.py 產生，用到才載）。
+   ★ 動畫單位新素材到了：跑 bibi_site.py 轉檔 → 改下面 ACTS 的 file／PART。待機不准再加情境款（DECISIONS #357）。
+   ============================================================================ */
+(function () {
+  'use strict';
+
+  /* ---------- 素材對照表（MAP）：情境／動作 → 檔名（site/brand/bibi/<file>.webp） ----------
+     want＝動畫單位正在做的專屬素材；到了就把 file 改成 want（MS 也補上它的總長，bibi_site.py 最後一行會印）。 */
+  const MS = {   // 每組一輪的毫秒數；bibi_site.py 最後一行印的就是這張表
+    // 待機（唯一一款，循環）：第一版客服鈕的 8 格跳躍 GIF（bibi_site.py idle_hop）
+    idle_hop: 800,
+    leaf_bite: 1200, bubble_react: 1000, plane_react: 1200, yarn_tumble: 2600,
+    sleep_loop: 1360,                     // 點「睡覺」之後一直睡（互動，不是待機；10-12 四腳版：趴著蓋被子，8 格循環）
+    // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
+    // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
+    wake_once: 1630, selfie: 2000,        // wake_once／selfie：10-12 四腳版
+    hit: 650, cry: 1800,                  // 打他（播一次，最後一格＝cry 第 1 格）／哭哭（循環一輪）：10-12 四腳版
+    eat_q: 1900, spin_q: 1600, dizzy: 1420,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
+    /* 10-12 四腳版第 6～8 組＋丟東西互動（動畫單位 0ff4ddd，docs/anim/bibi_<名>/storyboard.md）：全部四腳著地、沒有手 */
+    run_r: 560, run_l: 560, run_start_r: 340, run_stop_r: 850,   // 四腳對角小跑（循環）／起跑／煞車
+    ball_catch: 1560, ball_catch_l: 1560,  // 撲出去用身體壓住球、彈起、用鼻子推（素材裡畫了球，最後一格＝Default＋球在旁邊）
+    pet_q: 1680,                           // 摸摸：趴低瞇眼往右上蹭（不畫手）
+    highfive: 1190,                        // 碰鼻子：往前伸頭、第 4 格（270ms）鼻子碰到
+    dance: 2400, hug: 2200,                // 跳舞＝爆米花連跳＋左右扭／抱抱＝蹭過來貼貼
+    receive: 1180,                         // 低頭嗅一嗅（東西在右前方地上）
+    popcorn: 2000,                         // 爆米花：垂直彈起、落地連彈越來越小
+    sniff_eat: 870, hop_reach: 810, pounce: 1120, tangle: 880, look_up: 640,   // 撒零食／吹泡泡＋落葉／羽毛棒／毛線球／紙飛機（look_up 循環）
+  };
+  // 160px最終素材逐格錨點，durations/mouth/nose/body同索引。空陣列代表待量測，不能宣稱已校準。
+  // body每格格式：{cx,cy,angle,rx,ry,shoulder:[x,y],belly:[x,y],hip:[x,y]}。
+  const REACTION_META = {
+  "leaf_bite": {
+    "duration": 1200,
+    "contact": 300,
+    "durations": [
+      60,
+      50,
+      50,
+      60,
+      80,
+      70,
+      20,
+      60,
+      100,
+      60,
+      100,
+      60,
+      80,
+      60,
+      70,
+      90,
+      20,
+      110
+    ],
+    "mouth": [
+      [
+        114.22,
+        91.56
+      ],
+      [
+        116.09,
+        92.97
+      ],
+      [
+        112.34,
+        108.91
+      ],
+      [
+        114.22,
+        117.81
+      ],
+      [
+        119.38,
+        99.06
+      ],
+      [
+        117.03,
+        98.59
+      ],
+      [
+        115.16,
+        101.41
+      ],
+      [
+        113.28,
+        100.47
+      ],
+      [
+        119.38,
+        87.81
+      ],
+      [
+        117.5,
+        87.81
+      ],
+      [
+        119.38,
+        87.81
+      ],
+      [
+        117.5,
+        87.81
+      ],
+      [
+        114.69,
+        91.09
+      ],
+      [
+        114.69,
+        92.5
+      ],
+      [
+        117.03,
+        73.28
+      ],
+      [
+        119.38,
+        71.88
+      ],
+      [
+        110.94,
+        74.69
+      ],
+      [
+        109.06,
+        73.75
+      ]
+    ],
+    "nose": [
+      [
+        114.69,
+        88.28
+      ],
+      [
+        116.56,
+        90.62
+      ],
+      [
+        112.81,
+        106.09
+      ],
+      [
+        114.69,
+        115.94
+      ],
+      [
+        119.84,
+        93.91
+      ],
+      [
+        117.5,
+        95.31
+      ],
+      [
+        118.44,
+        96.25
+      ],
+      [
+        113.75,
+        97.19
+      ],
+      [
+        119.84,
+        82.66
+      ],
+      [
+        117.97,
+        84.06
+      ],
+      [
+        119.84,
+        82.66
+      ],
+      [
+        117.97,
+        84.06
+      ],
+      [
+        115.16,
+        85.94
+      ],
+      [
+        115.16,
+        88.75
+      ],
+      [
+        117.5,
+        70.0
+      ],
+      [
+        119.84,
+        68.12
+      ],
+      [
+        111.41,
+        71.41
+      ],
+      [
+        109.53,
+        70.47
+      ]
+    ],
+    "body": [
+      {
+        "cx": 79.53,
+        "cy": 102.81,
+        "rx": 58.59,
+        "ry": 38.44,
+        "angle": 0
+      },
+      {
+        "cx": 82.34,
+        "cy": 102.81,
+        "rx": 58.12,
+        "ry": 38.44,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 110.78,
+        "rx": 57.66,
+        "ry": 34.69,
+        "angle": 0
+      },
+      {
+        "cx": 83.28,
+        "cy": 114.53,
+        "rx": 57.66,
+        "ry": 30.94,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 108.44,
+        "rx": 59.06,
+        "ry": 36.09,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 108.44,
+        "rx": 59.06,
+        "ry": 36.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.34,
+        "cy": 109.38,
+        "rx": 58.12,
+        "ry": 35.62,
+        "angle": 0
+      },
+      {
+        "cx": 82.81,
+        "cy": 110.31,
+        "rx": 58.12,
+        "ry": 35.16,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 100.47,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 99.53,
+        "rx": 59.53,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 100.47,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 99.53,
+        "rx": 59.53,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 80.47,
+        "cy": 102.34,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 103.28,
+        "rx": 59.06,
+        "ry": 33.75,
+        "angle": 0
+      },
+      {
+        "cx": 80.47,
+        "cy": 88.28,
+        "rx": 58.59,
+        "ry": 37.03,
+        "angle": 0
+      },
+      {
+        "cx": 81.88,
+        "cy": 88.28,
+        "rx": 58.12,
+        "ry": 37.5,
+        "angle": 0
+      },
+      {
+        "cx": 79.53,
+        "cy": 91.56,
+        "rx": 57.66,
+        "ry": 37.03,
+        "angle": 0
+      },
+      {
+        "cx": 79.06,
+        "cy": 90.16,
+        "rx": 57.66,
+        "ry": 37.5,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "tip": [
+      0.72,
+      0.03
+    ],
+    "release": 850,
+    "support": [
+      144,
+      143,
+      144,
+      144,
+      138,
+      138,
+      138,
+      137,
+      130,
+      129,
+      130,
+      129,
+      130,
+      129,
+      128,
+      126,
+      127,
+      128
+    ],
+    "groundY": 155
+  },
+  "bubble_react": {
+    "duration": 1000,
+    "contact": 200,
+    "durations": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      50,
+      100,
+      100,
+      80,
+      80,
+      70,
+      70,
+      60,
+      60,
+      60,
+      70
+    ],
+    "mouth": [
+      [
+        105.03,
+        78.07
+      ],
+      [
+        111.02,
+        75.07
+      ],
+      [
+        101.61,
+        87.5
+      ],
+      [
+        115.3,
+        87.5
+      ],
+      [
+        133.7,
+        71.22
+      ],
+      [
+        132.42,
+        68.65
+      ],
+      [
+        50.69,
+        93.92
+      ],
+      [
+        89.63,
+        90.92
+      ],
+      [
+        114.88,
+        78.07
+      ],
+      [
+        115.3,
+        74.22
+      ],
+      [
+        104.61,
+        79.79
+      ],
+      [
+        105.46,
+        69.08
+      ],
+      [
+        117.44,
+        81.93
+      ],
+      [
+        113.59,
+        54.51
+      ],
+      [
+        105.46,
+        72.08
+      ],
+      [
+        94.34,
+        75.07
+      ]
+    ],
+    "nose": [
+      [
+        105.46,
+        73.79
+      ],
+      [
+        111.02,
+        71.22
+      ],
+      [
+        101.61,
+        83.64
+      ],
+      [
+        115.3,
+        83.64
+      ],
+      [
+        133.7,
+        66.93
+      ],
+      [
+        132.42,
+        63.94
+      ],
+      [
+        50.69,
+        89.21
+      ],
+      [
+        89.63,
+        87.5
+      ],
+      [
+        115.3,
+        73.79
+      ],
+      [
+        115.73,
+        70.36
+      ],
+      [
+        105.03,
+        76.36
+      ],
+      [
+        105.89,
+        64.79
+      ],
+      [
+        117.87,
+        78.93
+      ],
+      [
+        114.02,
+        49.37
+      ],
+      [
+        105.89,
+        68.22
+      ],
+      [
+        94.34,
+        70.79
+      ]
+    ],
+    "body": [
+      {
+        "cx": 75.93,
+        "cy": 99.92,
+        "rx": 53.49,
+        "ry": 35.13,
+        "angle": 0
+      },
+      {
+        "cx": 79.79,
+        "cy": 99.06,
+        "rx": 53.06,
+        "ry": 34.7,
+        "angle": -5
+      },
+      {
+        "cx": 75.93,
+        "cy": 103.35,
+        "rx": 51.78,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.35,
+        "cy": 104.63,
+        "rx": 54.77,
+        "ry": 29.99,
+        "angle": -10
+      },
+      {
+        "cx": 84.49,
+        "cy": 100.78,
+        "rx": 56.91,
+        "ry": 32.56,
+        "angle": -15
+      },
+      {
+        "cx": 84.49,
+        "cy": 99.92,
+        "rx": 56.49,
+        "ry": 32.98,
+        "angle": -15
+      },
+      {
+        "cx": 74.65,
+        "cy": 104.63,
+        "rx": 49.21,
+        "ry": 31.27,
+        "angle": 0
+      },
+      {
+        "cx": 75.51,
+        "cy": 105.49,
+        "rx": 48.36,
+        "ry": 30.84,
+        "angle": 0
+      },
+      {
+        "cx": 76.79,
+        "cy": 96.49,
+        "rx": 53.06,
+        "ry": 31.27,
+        "angle": 0
+      },
+      {
+        "cx": 81.5,
+        "cy": 96.49,
+        "rx": 52.21,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 75.51,
+        "cy": 100.35,
+        "rx": 50.92,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 78.5,
+        "cy": 95.21,
+        "rx": 53.06,
+        "ry": 32.56,
+        "angle": -5
+      },
+      {
+        "cx": 78.93,
+        "cy": 89.21,
+        "rx": 54.35,
+        "ry": 29.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.78,
+        "cy": 81.07,
+        "rx": 53.92,
+        "ry": 32.56,
+        "angle": -15
+      },
+      {
+        "cx": 78.07,
+        "cy": 86.21,
+        "rx": 50.92,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 76.36,
+        "cy": 86.64,
+        "rx": 51.78,
+        "ry": 32.13,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "curious": 450,
+    "support": [
+      135,
+      135,
+      136,
+      135,
+      132,
+      132,
+      131,
+      132,
+      126,
+      126,
+      128,
+      129,
+      119,
+      119,
+      120,
+      118
+    ],
+    "groundY": 155
+  },
+  "plane_react": {
+    "duration": 1200,
+    "contact": 200,
+    "durations": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      70,
+      180,
+      120,
+      70,
+      80,
+      90,
+      90,
+      80,
+      80,
+      70,
+      70
+    ],
+    "mouth": [
+      [
+        89.02,
+        85.48
+      ],
+      [
+        90.37,
+        81.87
+      ],
+      [
+        102.55,
+        85.93
+      ],
+      [
+        111.12,
+        93.14
+      ],
+      [
+        128.7,
+        71.96
+      ],
+      [
+        112.02,
+        80.97
+      ],
+      [
+        97.59,
+        77.82
+      ],
+      [
+        89.02,
+        80.97
+      ],
+      [
+        96.69,
+        75.11
+      ],
+      [
+        106.16,
+        106.2
+      ],
+      [
+        102.1,
+        117.47
+      ],
+      [
+        111.57,
+        108.46
+      ],
+      [
+        107.51,
+        96.29
+      ],
+      [
+        109.31,
+        103.95
+      ],
+      [
+        93.08,
+        60.24
+      ],
+      [
+        90.82,
+        60.24
+      ]
+    ],
+    "nose": [
+      [
+        89.02,
+        82.77
+      ],
+      [
+        90.37,
+        79.17
+      ],
+      [
+        102.55,
+        83.22
+      ],
+      [
+        111.12,
+        90.43
+      ],
+      [
+        128.7,
+        69.25
+      ],
+      [
+        112.02,
+        77.82
+      ],
+      [
+        97.59,
+        75.11
+      ],
+      [
+        89.02,
+        78.27
+      ],
+      [
+        96.69,
+        72.41
+      ],
+      [
+        106.16,
+        103.5
+      ],
+      [
+        102.1,
+        114.77
+      ],
+      [
+        111.57,
+        105.75
+      ],
+      [
+        107.51,
+        93.59
+      ],
+      [
+        109.31,
+        101.25
+      ],
+      [
+        93.08,
+        57.54
+      ],
+      [
+        90.82,
+        57.54
+      ]
+    ],
+    "body": [
+      {
+        "cx": 69.63,
+        "cy": 107.56,
+        "rx": 50.06,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 107.11,
+        "rx": 50.51,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 77.75,
+        "cy": 108.01,
+        "rx": 51.86,
+        "ry": 34.25,
+        "angle": 0
+      },
+      {
+        "cx": 83.61,
+        "cy": 109.81,
+        "rx": 52.76,
+        "ry": 33.35,
+        "angle": -5
+      },
+      {
+        "cx": 89.02,
+        "cy": 108.91,
+        "rx": 56.82,
+        "ry": 33.8,
+        "angle": -15
+      },
+      {
+        "cx": 79.55,
+        "cy": 111.16,
+        "rx": 54.56,
+        "ry": 32.89,
+        "angle": -8
+      },
+      {
+        "cx": 75.49,
+        "cy": 109.81,
+        "rx": 50.96,
+        "ry": 33.35,
+        "angle": 0
+      },
+      {
+        "cx": 69.18,
+        "cy": 109.81,
+        "rx": 50.96,
+        "ry": 33.35,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 99.9,
+        "rx": 51.86,
+        "ry": 32.44,
+        "angle": 0
+      },
+      {
+        "cx": 74.14,
+        "cy": 99.9,
+        "rx": 53.66,
+        "ry": 34.25,
+        "angle": 10
+      },
+      {
+        "cx": 74.59,
+        "cy": 105.75,
+        "rx": 53.66,
+        "ry": 32.89,
+        "angle": 12
+      },
+      {
+        "cx": 80.9,
+        "cy": 104.4,
+        "rx": 55.47,
+        "ry": 32.44,
+        "angle": 8
+      },
+      {
+        "cx": 72.33,
+        "cy": 88.63,
+        "rx": 54.11,
+        "ry": 33.8,
+        "angle": 8
+      },
+      {
+        "cx": 77.75,
+        "cy": 92.69,
+        "rx": 53.66,
+        "ry": 32.44,
+        "angle": 8
+      },
+      {
+        "cx": 71.43,
+        "cy": 80.52,
+        "rx": 51.86,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 80.52,
+        "rx": 50.96,
+        "ry": 34.7,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "tip": [
+      0.99,
+      0.01
+    ],
+    "sniff": 570,
+    "support": [
+      138,
+      138,
+      138,
+      139,
+      132,
+      134,
+      133,
+      134,
+      126,
+      126,
+      127,
+      126,
+      121,
+      118,
+      118,
+      119
+    ],
+    "groundY": 155
+  },
+  "yarn_tumble": {
+    "duration": 2600,
+    "contact": 600,
+    "durations": [
+      110,
+      110,
+      120,
+      130,
+      130,
+      160,
+      180,
+      180,
+      230,
+      230,
+      190,
+      190,
+      180,
+      180,
+      160,
+      120
+    ],
+    "mouth": [
+      [
+        102.05,
+        100.81
+      ],
+      [
+        101.63,
+        116.09
+      ],
+      [
+        99.08,
+        103.78
+      ],
+      [
+        99.08,
+        103.78
+      ],
+      [
+        100.36,
+        109.3
+      ],
+      [
+        100.78,
+        111.85
+      ],
+      [
+        95.69,
+        115.24
+      ],
+      [
+        93.57,
+        115.24
+      ],
+      [
+        99.08,
+        102.08
+      ],
+      [
+        102.48,
+        105.48
+      ],
+      [
+        96.96,
+        107.18
+      ],
+      [
+        84.67,
+        111.0
+      ],
+      [
+        110.54,
+        97.83
+      ],
+      [
+        105.87,
+        105.48
+      ],
+      [
+        104.17,
+        85.52
+      ],
+      [
+        98.66,
+        81.7
+      ]
+    ],
+    "nose": [
+      [
+        102.05,
+        96.14
+      ],
+      [
+        101.63,
+        111.85
+      ],
+      [
+        99.08,
+        99.53
+      ],
+      [
+        99.08,
+        99.53
+      ],
+      [
+        100.36,
+        104.63
+      ],
+      [
+        100.78,
+        106.33
+      ],
+      [
+        95.69,
+        109.72
+      ],
+      [
+        93.57,
+        111.0
+      ],
+      [
+        99.08,
+        96.98
+      ],
+      [
+        102.48,
+        99.96
+      ],
+      [
+        96.96,
+        102.5
+      ],
+      [
+        84.67,
+        105.9
+      ],
+      [
+        110.54,
+        93.59
+      ],
+      [
+        105.87,
+        102.08
+      ],
+      [
+        104.17,
+        80.85
+      ],
+      [
+        98.66,
+        77.03
+      ]
+    ],
+    "body": [
+      {
+        "cx": 76.61,
+        "cy": 99.53,
+        "rx": 50.47,
+        "ry": 33.54,
+        "angle": 0
+      },
+      {
+        "cx": 78.73,
+        "cy": 105.48,
+        "rx": 49.62,
+        "ry": 29.72,
+        "angle": 8
+      },
+      {
+        "cx": 77.46,
+        "cy": 101.66,
+        "rx": 49.62,
+        "ry": 33.12,
+        "angle": 8
+      },
+      {
+        "cx": 77.46,
+        "cy": 101.66,
+        "rx": 49.62,
+        "ry": 33.12,
+        "angle": 8
+      },
+      {
+        "cx": 78.3,
+        "cy": 104.2,
+        "rx": 50.89,
+        "ry": 33.54,
+        "angle": 15
+      },
+      {
+        "cx": 80.0,
+        "cy": 105.9,
+        "rx": 51.32,
+        "ry": 33.12,
+        "angle": 30
+      },
+      {
+        "cx": 76.61,
+        "cy": 108.02,
+        "rx": 51.74,
+        "ry": 32.27,
+        "angle": 40
+      },
+      {
+        "cx": 77.46,
+        "cy": 108.87,
+        "rx": 51.74,
+        "ry": 31.0,
+        "angle": 50
+      },
+      {
+        "cx": 77.03,
+        "cy": 98.68,
+        "rx": 53.44,
+        "ry": 31.42,
+        "angle": 60
+      },
+      {
+        "cx": 80.42,
+        "cy": 100.38,
+        "rx": 52.17,
+        "ry": 31.0,
+        "angle": 55
+      },
+      {
+        "cx": 77.03,
+        "cy": 103.35,
+        "rx": 50.89,
+        "ry": 31.0,
+        "angle": 40
+      },
+      {
+        "cx": 75.76,
+        "cy": 104.63,
+        "rx": 50.89,
+        "ry": 29.3,
+        "angle": 20
+      },
+      {
+        "cx": 79.15,
+        "cy": 91.46,
+        "rx": 51.74,
+        "ry": 28.45,
+        "angle": 12
+      },
+      {
+        "cx": 77.88,
+        "cy": 96.98,
+        "rx": 51.74,
+        "ry": 28.45,
+        "angle": 10
+      },
+      {
+        "cx": 76.61,
+        "cy": 90.19,
+        "rx": 50.04,
+        "ry": 31.85,
+        "angle": 0
+      },
+      {
+        "cx": 77.03,
+        "cy": 88.49,
+        "rx": 49.62,
+        "ry": 31.85,
+        "angle": 0
+      }
+    ],
+    "events": {
+      "line_appears": 220,
+      "paw_blocked": 340,
+      "tilt_starts": 600,
+      "side_contact": 940,
+      "side_lie": 1120,
+      "struggle": 1350,
+      "first_loosen": 1580,
+      "second_loosen": 1770,
+      "paw_free": 1960,
+      "body_free": 2140,
+      "stand_up": 2320,
+      "restored": 2480
+    },
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "embeddedThread": true,
+    "tail": [
+      null,
+      null,
+      [
+        9.67,
+        128.5
+      ],
+      [
+        9.67,
+        128.5
+      ],
+      [
+        31.62,
+        88.62
+      ],
+      [
+        28.67,
+        90.17
+      ],
+      [
+        17.63,
+        104.32
+      ],
+      [
+        14.6,
+        103.8
+      ],
+      [
+        50.64,
+        93.14
+      ],
+      [
+        42.0,
+        91.0
+      ],
+      [
+        14.8,
+        118.4
+      ],
+      [
+        12.83,
+        119.0
+      ],
+      [
+        58.71,
+        99.86
+      ],
+      [
+        111.67,
+        111.67
+      ],
+      null,
+      null
+    ],
+    "support": [
+      134,
+      134,
+      134,
+      134,
+      132,
+      131,
+      132,
+      130,
+      121,
+      123,
+      122,
+      121,
+      115,
+      113,
+      116,
+      116
+    ],
+    "groundY": 155
+  }
+};
+  /* 分頁（hash 第一段）→ 情境鍵＋泡泡說明句（10-12 起只換說明句，不換圖） */
+  const PAGES = [
+    [['overview', ''], 'overview', '歡迎回來！比比陪你看今天的盤勢'],
+    [['flow'], 'flow', '比比在追錢往哪個族群跑'],
+    [['heatmap', 'industry', 'heat'], 'industry', '比比拿放大鏡看產業細節'],
+    [['themes'], 'themes', '這個題材好熱，比比也燒起來了'],
+    [['stock'], 'stock', '比比幫你按計算機算這一檔'],
+    [['etf'], 'etf', '存 ETF 像存錢筒，一點一點變多'],
+    [['season'], 'season', '比比翻日曆看季節規律'],
+    [['earnings', 'calendar'], 'season', '財報日子比比幫你記著'],
+    [['explore'], 'explore', '比比想到選股好點子了！'],
+    [['market'], 'market', '比比幫你盯著盤中時間'],
+    [['watch'], 'watch', '你的自選股比比幫你收好了'],
+    [['news', 'event', 'events', 'delivery'], 'news', '比比在看今天的財經消息'],
+  ];
+  /* 環狀選單的 18 個小圈（「問比比」最內層，由內往外排；10-12 加玩具六件組）。fx＝點了冒什麼小特效；say＝回應（隨機一句）；cnt＝第 N 次的回應 */
+  /* once：素材是播一次的專屬動作（播一輪＝MS 毫秒就回待機）；沒有 once 的是現有素材代替（循環素材，播兩輪） */
+  const ACTS = [
+    { id: 'ask', name: '問比比', ask: true },
+    { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
+    { id: 'pet', name: '摸摸頭', file: 'pet_q', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
+    { id: 'grass', name: '餵牧草', file: 'eat_q', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
+    { id: 'ball', name: '玩球', file: 'ball_catch', once: true, fx: 'ball', say: ['接到了！', '再丟一次！'], cnt: (n) => `今天陪我玩了 ${n} 次球！` },
+    /* 玩具六件組（Andy 10-12：「我很喜歡丟球的互動效果，希望能多點這樣的」）：腳本在下面「玩具六件組」；file＝減少動態偏好時只換的那張圖 */
+    { id: 'snack', name: '撒零食', file: 'sniff_eat', once: true, fx: 'star', say: ['吃光光了！', '每一顆都好香～'], cnt: (n) => `今天撒了 ${n} 次零食，比比圓滾滾` },
+    { id: 'bubble', name: '吹泡泡', file: 'hop_reach', once: true, fx: 'star', say: ['泡泡全部戳破了！', '啵啵啵～好好玩'], cnt: (n) => `今天吹了 ${n} 次泡泡！` },
+    { id: 'feather', name: '羽毛棒', file: 'pounce', once: true, fx: 'star', say: ['抓到羽毛了！', '再晃一次嘛～'], cnt: (n) => `今天玩了 ${n} 次羽毛棒！` },
+    { id: 'yarn', name: '毛線球', file: 'tangle', once: true, fx: 'star', say: ['掙脫了！比比最強', '毛線好難纏…'], cnt: (n) => `今天被毛線纏了 ${n} 次…` },
+    { id: 'plane', name: '紙飛機', file: 'look_up', fx: 'star', say: ['飛機飛好遠！', '再射一架嘛～'], cnt: (n) => `今天看了 ${n} 架紙飛機！` },
+    { id: 'leaf', name: '落葉', file: 'hop_reach', once: true, fx: 'star', say: ['撲到葉子了！', '秋天好好玩～'], cnt: (n) => `今天撲了 ${n} 次落葉！` },
+    { id: 'spin', name: '轉圈圈', file: 'spin_q', once: true, fx: 'star', say: ['轉轉轉～頭好暈', '咕嚕咕嚕…眼睛在轉圈'], cnt: (n) => `今天轉了 ${n} 圈，頭好暈～` },
+    { id: 'hit', name: '打他', file: 'hit', once: true, fx: 'star', say: ['嗚嗚…好痛', '哇——比比哭哭了'], cnt: (n) => `今天被打了 ${n} 次…嗚嗚` },
+    /* 擊掌 → 碰鼻子（10-12 四腳版：天竺鼠不擊掌，往前伸頭用鼻子碰一下） */
+    { id: 'five', name: '碰鼻子', file: 'highfive', once: true, fx: 'heart', say: ['啵！碰鼻子～', '鼻子碰鼻子，今天也一起加油'], cnt: (n) => `今天第 ${n} 次碰鼻子，默契 100！` },
+    { id: 'dance', name: '聽音樂', file: 'dance', once: true, fx: 'note', say: ['這首好喜歡～', '跟著節奏晃一晃！'], cnt: (n) => `今天聽了 ${n} 次音樂！` },
+    { id: 'hug', name: '蹭蹭', file: 'hug', once: true, fx: 'heart', say: ['蹭蹭～貼貼～比比陪著你', '暖暖的'], cnt: (n) => `今天第 ${n} 次蹭蹭，好幸福` },
+    { id: 'sleep', name: '睡覺', file: 'sleep_loop', fx: 'z', sleep: true, say: ['比比去睡一下，Zzz…'], wake: { name: '叫醒', file: 'wake_once', once: true, fx: 'star', say: ['醒來了！繼續陪你看盤'] } },
+    { id: 'selfie', name: '拍照比耶', file: 'selfie', once: true, fx: 'flash', say: ['咔嚓！比耶～', '拍得可愛嗎？'], cnt: (n) => `今天拍了 ${n} 張，比比是網美` },
+  ];
+  /* 素材對照（was＝10-11 G1／G2 交件前用的替代素材，留著是為了萬一新素材要退回時知道原本是哪一組） */
+  /* 小圈上的物件圖：動畫單位 10-11 交的 10 個圖示（docs/anim/bibi_icons → brand/bibi/icons/*.webp，奶油白圓底＋粗描邊，深淺主題都清楚）。
+     沒列在這裡的（叫醒）用下面的線條圖示，外框照圖示同款畫。 */
+  const ICON_IMG = { ask: 'chat', popcorn: 'popcorn', hit: 'hammer', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera',
+    /* 玩具六件組（10-12）：動畫單位的 *_icon96.png 放進同款奶油圓底（bibi_site.py icons） */
+    snack: 'carrot', bubble: 'bubble', feather: 'feather', yarn: 'yarn', plane: 'plane', leaf: 'leaf' };
+  const SVG = {
+    ask: '<path d="M5 5.5h14a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 19 17.5h-6l-4.2 3.3v-3.3H5A2.5 2.5 0 0 1 2.5 15V8A2.5 2.5 0 0 1 5 5.5z" fill="#7cc4ff" fill-opacity=".35" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 9.6a2 2 0 1 1 2.6 1.9c-.5.2-.6.5-.6 1v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="14.9" r=".95" fill="currentColor"/>',
+    pet: '<ellipse cx="12" cy="15" rx="5" ry="4.2" fill="#ffb3c4" stroke="currentColor" stroke-width="1.5"/><circle cx="6.4" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/>',
+    grass: '<path d="M4 20.5h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 20.5C6.6 15 5 12 3.5 10.5c3 .8 5 3.6 5.4 7.4M12 20.5c-.2-6 .3-10 1.6-14 1 4.3.8 9.2-.4 14M17 20.5c.3-4 2-7 3.8-8.6-.4 3.6-1.4 6.4-2.6 8.6" fill="#6cc46a" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
+    ball: '<circle cx="12" cy="12" r="8.2" fill="#ffad5c" stroke="currentColor" stroke-width="1.6"/><path d="M4.3 9.6c4.6 1.6 10.8 1.6 15.4 0M4.3 14.4c4.6-1.6 10.8-1.6 15.4 0M12 3.8c-2.6 5-2.6 11.4 0 16.4" fill="none" stroke="currentColor" stroke-width="1.3"/>',
+    spin: '<path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="#b28cff" stroke-width="2.4" stroke-linecap="round"/><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M17.6 3.2l-.4 4.2-4.1-.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/>',
+    five: '<path d="M8 20.5c-2.2-1.4-3.6-3.6-3.6-6.4V9.5a1.4 1.4 0 0 1 2.8 0v3M7.2 12V5.6a1.4 1.4 0 0 1 2.8 0v6M10 11.5V4.4a1.4 1.4 0 0 1 2.8 0v7.1M12.8 11.6V5.6a1.4 1.4 0 0 1 2.8 0v8.2c0 3.7-2.4 6.7-6 6.7" fill="#ffd36b" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/><path d="M18.5 4.5l1.6-1.6M19.5 8.4h2.2M17.8 1.8v0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    dance: '<path d="M9 17.5V6.2l10-2.2v11.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><ellipse cx="6.8" cy="17.6" rx="2.6" ry="2.1" fill="#ff8fd1" stroke="currentColor" stroke-width="1.4"/><ellipse cx="16.8" cy="15.4" rx="2.6" ry="2.1" fill="#ff8fd1" stroke="currentColor" stroke-width="1.4"/><path d="M9 9.6l10-2.2" stroke="currentColor" stroke-width="1.7"/>',
+    hug: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" fill="#ff7a93" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.6 10.2c.3-.9 1-1.4 1.9-1.4" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>',
+    sleep: '<path d="M15.5 18.6A7.6 7.6 0 0 1 9.2 5.1a7.6 7.6 0 1 0 9.6 10.7 7.6 7.6 0 0 1-3.3 2.8z" fill="#ffe08a" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14.6 4.2h3.6l-3.6 4h3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
+    popcorn: '<g fill="#fff3c4" stroke="currentColor" stroke-width="1.2"><circle cx="7.6" cy="9.4" r="2.5"/><circle cx="16.4" cy="9.4" r="2.5"/><circle cx="12" cy="7.6" r="2.9"/><circle cx="9.6" cy="5.2" r="2.1"/><circle cx="14.5" cy="5.3" r="2.1"/></g><path d="M5.6 10.8h12.8l-1.7 10a1.5 1.5 0 0 1-1.5 1.3H8.8a1.5 1.5 0 0 1-1.5-1.3z" fill="#fff"/><path d="M9.3 10.8l.8 11.3M14.7 10.8l-.8 11.3" stroke="#ec5a4c" stroke-width="2.3"/><path d="M5.6 10.8h12.8l-1.7 10a1.5 1.5 0 0 1-1.5 1.3H8.8a1.5 1.5 0 0 1-1.5-1.3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+    wake: '<circle cx="12" cy="12" r="4.4" fill="#ffc94d" stroke="currentColor" stroke-width="1.5"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    selfie: '<rect x="3" y="7" width="18" height="12.5" rx="2.6" fill="#8fd3ff" fill-opacity=".45" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 7l1.4-2.4h4.4L15.6 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="#fff" fill-opacity=".6" stroke="currentColor" stroke-width="1.6"/><circle cx="17.6" cy="9.8" r=".9" fill="currentColor"/>',
+  };
+  /* 小特效粒子（不用表情符號：深淺主題都用同一組有底色的 SVG） */
+  const FX = {
+    heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" fill="#ff6f8e"/></svg>',
+    grass: '<svg viewBox="0 0 24 24"><path d="M6 20c1-6 4-11 10-15-3 5-4.5 10-5 15z" fill="#5fbf5a"/></svg>',
+    ball: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#ffa54d" stroke="#7a3d00" stroke-width="1.2"/><path d="M3.6 9.6c5 1.7 11.8 1.7 16.8 0M12 3c-2.8 5.6-2.8 12.4 0 18" fill="none" stroke="#7a3d00" stroke-width="1.1"/></svg>',
+    star: '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.7 6.2 6.8.6-5.1 4.5 1.5 6.6L12 17l-5.9 3.4 1.5-6.6-5.1-4.5 6.8-.6z" fill="#ffd23f" stroke="#a87700" stroke-width=".8"/></svg>',
+    note: '<svg viewBox="0 0 24 24"><path d="M10 17V5l9-2v11" fill="none" stroke="#c15fd6" stroke-width="2.2"/><circle cx="7.5" cy="17.5" r="3" fill="#c15fd6"/><circle cx="16.5" cy="15" r="3" fill="#c15fd6"/></svg>',
+    z: '<svg viewBox="0 0 24 24"><path d="M6 6h11L7 18h11" fill="none" stroke="#7aa7ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    bub: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#bfe6ff" fill-opacity=".5" stroke="#3d9bd6" stroke-width="2"/></svg>',
+    crumb: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#e9a65a" stroke="#7a4a1a" stroke-width="1.4"/></svg>',
+    flash: '<svg viewBox="0 0 24 24"><path d="M12 1l2.2 8.8L23 12l-8.8 2.2L12 23l-2.2-8.8L1 12l8.8-2.2z" fill="#fff6b0" stroke="#e0b400" stroke-width=".8"/></svg>',
+  };
+
+  const SLEEP_FILE = 'sleep_loop';   // 點「睡覺」之後一直播的睡覺循環（直到點「叫醒」）
+  const NLS = 'tw.bibi.n';       // 互動次數（這台裝置；viewreset 的 KEEP_PREFIX 有 tw.bibi.）
+  const IDLE_EVERY = 5 * 60 * 1000;
+  const html = document.documentElement;
+  const isMob = () => html.classList.contains('m4') || window.innerWidth <= 640;
+  const tapMode = () => isMob() || !(window.matchMedia && matchMedia('(hover: hover)').matches);
+  const reduce = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const fabOff = () => html.classList.contains('fab-off');
+  const $ = (id) => document.getElementById(id);
+  /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
+  const AV = '1016natural4';
+  const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
+  const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
+
+  /* ---------- 樣式 ---------- */
+  const CSS = `
+/* 比比圖：一律用同一個裁切框的 160px 素材（腳底同一高度），顯示得比按鈕大一點、往上長，換動作時大小位置不跳 */
+.supfab.supgifonly .supgif.bibiimg{position:absolute;width:104px;height:104px;left:calc(50% - 52px);bottom:-3px;max-width:none;transform:none;transition:none;pointer-events:none}
+.supfab.supgifonly:hover .supgif.bibiimg{transform:none}
+.supfab.supgifonly .supgif.bibiimg.bibiback{opacity:0}
+@media (max-width:820px){.supfab.supgifonly .supgif.bibiimg{width:84px;height:84px;left:calc(50% - 42px);bottom:-2px}}
+.supfab.bibispin .supgif.bibiimg{animation:bibispin .9s cubic-bezier(.45,.05,.4,1) 2!important;transform-origin:50% 72%!important}
+@keyframes bibispin{from{transform:scale(var(--bs,1)) rotate(0)}to{transform:scale(var(--bs,1)) rotate(360deg)}}
+/* 環：以比比中心為圓心（left/top＝圓心座標、寬高 0）；底下一塊透明圓盤讓滑鼠在圈裡移動不會收起（在客服鈕底下一層） */
+.bibiring{position:fixed;left:0;top:0;width:0;height:0;z-index:1199;pointer-events:none}
+.bibiring[hidden]{display:none}
+.bibiring .bzone{position:absolute;border-radius:50%;pointer-events:auto;background:radial-gradient(closest-side,color-mix(in srgb,var(--panel-2) 86%,transparent) 0,color-mix(in srgb,var(--panel-2) 74%,transparent) 82%,transparent 100%);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;transition:opacity .25s}
+.bibiring.on .bzone{opacity:1}
+.bibiring .btrack{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none;opacity:0;transition:opacity .3s}
+.bibiring .btrack path{fill:none;stroke:color-mix(in srgb,var(--cyan) 60%,transparent);stroke-width:2;stroke-dasharray:5 5}
+.bibiring.on .btrack{opacity:1}
+/* 環打開時比比放大一點（走到正中間當主角） */
+.supfab.bibiopen{--bs:1.12}
+.supfab.bibiopen .supgif.bibiimg{transform:scale(var(--bs));transform-origin:50% 92%;transition:opacity .35s ease,transform .28s}
+.bibiring .bopt{position:absolute;left:0;top:0;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;pointer-events:auto;cursor:pointer;padding:0;display:grid;place-items:center;
+  background:var(--panel-2);color:var(--ink);border:1.5px solid var(--line-2);box-shadow:0 6px 16px -6px rgba(0,0,0,.45);
+  transform:translate(0,0) scale(.3);opacity:0;transition:transform .32s cubic-bezier(.3,1.5,.5,1),opacity .2s,border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
+.bibiring.on .bopt{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
+.bibiring .bopt svg{width:26px;height:26px;display:block;pointer-events:none}
+.bibiring .bopt img{width:100%;height:100%;display:block;pointer-events:none;border-radius:50%}
+/* 有動畫單位圖示的小圈：圖示自己就是圓底＋描邊，按鈕不再加底色與框（只留陰影）；叫醒（線條圖示）用同款奶油底＋深描邊 */
+.bibiring .bopt.bpic{background:none;border:0}
+.bibiring .bopt.bpic:hover,.bibiring .bopt.bpic:focus-visible{background:none;box-shadow:0 0 0 3px var(--cyan),0 6px 16px -6px rgba(0,0,0,.45)}
+.bibiring .bopt.bsvg2{background:#fdf5e9;border:2.5px solid #1a0907;color:#1a0907}
+/* 爆米花圖示（動畫單位 popcorn_icon）本身沒有圓底：補上跟其他圖示同款的奶油圓底＋深描邊 */
+.bibiring .bopt.bpic[data-act=popcorn]{background:#fdf5e9;border:2.5px solid #1a0907}
+.bibiring .bopt.bpic[data-act=popcorn] img{padding:5px;box-sizing:border-box;border-radius:0}
+.bibiring .bopt:hover,.bibiring .bopt:focus-visible{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 16%,var(--panel-2));transform:translate(var(--x),var(--y)) scale(1.13);outline:none}
+.bibiring .bopt.bask{border-color:var(--cyan)}
+.bibiring.cool .bopt:not(.bask){opacity:.45;cursor:default}
+.bibiring.cool .bopt:not(.bask):hover{transform:translate(var(--x),var(--y)) scale(1)}
+.bibitip{position:fixed;z-index:1202;max-width:220px;padding:7px 11px;border-radius:12px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);
+  font-size:13px;line-height:1.45;box-shadow:0 10px 24px -10px rgba(0,0,0,.55);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s;white-space:normal}
+.bibitip.on{opacity:1;transform:none}
+.bibitip[hidden]{display:none}
+.bibifx{position:fixed;z-index:1202;width:20px;height:20px;margin:-10px 0 0 -10px;pointer-events:none;animation:bibifx 1.15s ease-out forwards}
+.bibifx svg{width:100%;height:100%;display:block}
+@keyframes bibifx{0%{transform:translate(0,0) scale(.4) rotate(0);opacity:0}15%{opacity:1}100%{transform:translate(var(--fx),var(--fy)) scale(1) rotate(var(--fr));opacity:0}}
+.bibiflash{position:fixed;z-index:1203;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,#fff,rgba(255,255,255,0));animation:bibiflash .5s ease-out forwards}
+@keyframes bibiflash{0%{opacity:0}20%{opacity:.95}100%{opacity:0}}
+html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #bibiStage{display:none!important}
+/* ---------- 動作編排（10-11 晚）：比比整顆可以離開右下角 ----------
+   #supFab 本身不動（拖曳記位、避讓判斷都量它）；動的是裡面包著兩張圖的 .bibiwrap（位移）與 .bibibody（擠壓伸展／傾斜），
+   都在 position:fixed 的鈕裡面，用 transform 位移 → 不撐出捲軸、不擋點擊（pointer-events:none）。
+   道具（球、草、手、星星…）放在 #bibiStage：fixed 蓋整個視窗、overflow:hidden（道具飛到哪都不會撐出捲軸，手機也留在 390 內）。 */
+.supfab .bibiwrap,.supfab .bibibody{position:absolute;inset:0;pointer-events:none;display:block}
+.supfab .bibiwrap{will-change:transform}
+.supfab .bibibody{transform-origin:50% 96%}
+.supfab .bibihop{position:absolute;inset:0;pointer-events:none;display:block;transform-origin:50% 96%}
+.supfab.bibirun{pointer-events:none}
+.supfab.bibiinteracting .bibihop,.supfab.bibiinteracting .bibiimg{animation:none!important;transition:none!important}
+.supfab .bibiimg.bibiback{visibility:hidden!important}
+.supfab.bibiinteracting .bibiimg:not(.bibiback){opacity:1!important}
+.supfab.bibirun .supgif.bibiimg,.supfab.bibiquick .supgif.bibiimg{transition:none}   /* 動作中、跳一下（Default↔jump）直接切格：交叉淡化會看到兩隻半透明疊在一起 */
+#bibiStage{position:fixed;left:0;top:0;width:100vw;height:100vh;overflow:hidden;pointer-events:none;z-index:1201}
+#bibiStage>*{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
+#bibiStage svg{display:block;width:100%;height:100%;overflow:visible}
+#bibiStage .bshadow{border-radius:50%;background:radial-gradient(closest-side,rgba(20,10,5,.32),rgba(20,10,5,0))}
+#bibiStage .bchew{font-size:12px;font-weight:800;line-height:1;padding:3px 7px;border-radius:999px;background:#fdf5e9;color:#5a3a12;border:1.5px solid #2b1611;white-space:nowrap;opacity:0;animation:bibichew .9s ease-out forwards}
+@keyframes bibichew{0%{opacity:0;transform:translate(var(--x),var(--y)) scale(.6)}20%{opacity:1;transform:translate(var(--x),calc(var(--y) - 6px)) scale(1.05)}100%{opacity:0;transform:translate(var(--x),calc(var(--y) - 26px)) scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  .bibiring .bopt{transition:opacity .15s,border-color .15s;transition-delay:0s!important}
+  .bibiring .bopt,.bibiring.on .bopt{transform:translate(var(--x),var(--y)) scale(1)}
+  .bibifx{animation-duration:.8s}
+}`;
+
+  /* ---------- 小工具 ---------- */
+  function tpe() {   // 台北時間的年月日時分（不靠使用者電腦時區）
+    const d = T.now ? new Date(T.now) : new Date();
+    const t = new Date(d.getTime() + 8 * 3600 * 1000);
+    const ymd = t.toISOString().slice(0, 10);
+    return { ymd, dow: t.getUTCDay(), hm: t.getUTCHours() * 60 + t.getUTCMinutes() };
+  }
+  let HOL = null;
+  function loadHol() {
+    if (HOL) return Promise.resolve(HOL);
+    const p = window.CalGrid && window.CalGrid.load ? window.CalGrid.load() : fetch('tw_holidays.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.days) || {});
+    return p.then((d) => { HOL = d || {}; return HOL; }).catch(() => { HOL = {}; return HOL; });
+  }
+  /* 盤中加權漲跌幅：即時層（live.js）有抓到加權（t00）才用；沒有就不判斷漲跌（不拿昨天的收盤冒充今天） */
+  function idxPct() {
+    if (T.pct !== undefined) return T.pct;
+    const L = window.Live, q = L && L.quotes && L.quotes.t00;
+    return q && q.chgPct != null && isFinite(q.chgPct) ? +q.chgPct : null;
+  }
+  function pageOf() {
+    const h = (location.hash || '').replace(/^#/, ''), parts = h.split('/'), head = parts[0] || '';
+    /* 子分頁比母分頁更準的幾個（#flow 預設會轉到 #flow/rotation、#themes 會轉到 #heatmap/theme） */
+    const sub = head + '/' + (parts[1] || '');
+    if (sub === 'flow/rotation') return ['rotation', '比比在看族群輪動，錢一圈一圈長大'];
+    if (sub === 'heatmap/theme') return ['themes', '這個題材好熱，比比也燒起來了'];
+    if (sub === 'etf/cal') return ['season', 'ETF 配息日子比比幫你記著'];
+    if (sub === 'etf/inc') return ['stock', '比比幫你按計算機試算存股'];
+    if (sub === 'explore/news') return ['news', '比比在看今天的財經消息'];
+    for (const [heads, key, say] of PAGES) if (heads.indexOf(head) >= 0) return [key, say];
+    return ['other', '比比在這裡陪你，有問題可以問我'];
+  }
+  const pf = (p) => Math.abs(p).toFixed(Math.abs(p) >= 10 ? 1 : 2).replace(/\.?0+$/, '') ;
+  /** 情境待機：回 { key, file, say }，優先序 國定假日 → 週末 → 深夜 → 盤中漲跌 → 分頁 */
+  function idle() {
+    const r = idle0();
+    /* Andy 10-12：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態」＋「是這張喔」（9 格跳躍分格圖）
+       → 待機只有一款：第一版客服鈕那支 8 格跳躍 GIF（idle_hop）一直循環。深夜／國定假日／大跌／週末／聖誕／各分頁都不換圖，只換泡泡說明句。
+       系統開「減少動態」＝同一支 GIF 的第 1 格靜態圖。 */
+    r.file = reduce() ? IDLE_STILL : IDLE_HOP;
+    return r;
+  }
+  function idle0() {
+    const t = tpe(), hol = T.hol || HOL || {};
+    if (hol[t.ymd]) return { key: 'holiday', say: `今天${String(hol[t.ymd]).replace(/（.*$/, '')}，台股休市，比比也放假一天～` };
+    if (t.dow === 0 || t.dow === 6) return { key: 'weekend', say: '週末不開盤，比比喝杯珍奶放鬆一下～' };
+    if (t.hm >= 23 * 60 || t.hm < 6 * 60) return { key: 'night', say: '深夜了，比比想睡覺…你也早點休息' };
+    if (t.hm >= 9 * 60 && t.hm <= 13 * 60 + 30) {
+      const p = idxPct();
+      if (p != null && p !== 0) {
+        if (p >= 1) return { key: 'up2', say: `今天大盤漲 ${pf(p)}%，比比好開心！` };
+        if (p > 0) return { key: 'up', say: `大盤小漲 ${pf(p)}%，比比偷偷得意～` };
+        if (p <= -1) return { key: 'down2', say: `大盤跌 ${pf(p)}%，先深呼吸，比比陪著你` };
+        return { key: 'down', say: `大盤小跌 ${pf(p)}%，沒關係，比比陪你` };
+      }
+    }
+    if (/-12-2[45]$/.test(t.ymd)) return { key: 'xmas', say: '聖誕快樂！比比戴上聖誕帽陪你看盤～' };
+    const [k, say] = pageOf();
+    return { key: k, say };
+  }
+
+  /* ---------- 互動次數（只存這台裝置） ---------- */
+  function counts() {
+    const today = tpe().ymd;
+    let o = null; try { o = JSON.parse(localStorage.getItem(NLS) || 'null'); } catch (e) { o = null; }
+    if (!o || typeof o !== 'object') o = { d: today, c: {}, all: 0 };
+    if (o.d !== today) { o.d = today; o.c = {}; }
+    return o;
+  }
+  function bump(id) {
+    const o = counts(); o.c[id] = (o.c[id] || 0) + 1; o.all = (o.all || 0) + 1;
+    try { localStorage.setItem(NLS, JSON.stringify(o)); } catch (e) { /* 私密視窗：只是不記，照樣互動 */ }
+    return o.c[id];
+  }
+
+  /* ---------- 圖層：兩張 img 交叉淡入淡出 ---------- */
+  let fab = null, imgs = [], front = 0, shown = '', want = '', mode = 'idle', idleNow = null, actTimer = 0, sleeping = false, sayTimer = 0, sayRaf = 0;
+  let replay = 0, showTok = 0, hopEl = null, flipNow = 1;
+  /** 素材左右翻面（f＝-1：臉朝左）。四腳版只畫了臉朝右的（嗅、撲、吃零食、碰鼻子…），比比在右下角、東西都在左邊 → 鏡像。
+      翻的是 .bibihop 這層（跟 .bibibody 的擠壓伸展分開，驗收量身體比例照舊只看 .bibibody）。只鏡像、不改身體比例。 */
+  function face(f) {
+    flipNow = f < 0 ? -1 : 1;
+    if (hopEl) hopEl.style.transform = flipNow < 0 ? 'scaleX(-1)' : '';
+  }
+  /** once＝播一次的專屬動作：網址加 #n 讓瀏覽器從第一格重播（同一個檔、同一份快取；10-11 實測換 #片段 會重播、換新 <img> 不會）
+      flip＝-1 換上這張圖的同一刻翻成臉朝左（先翻再換會看到舊圖鏡像一格）。 */
+  function show(file, once, flip) {
+    if (!fab) return;
+    want = file;
+    if (file === shown && !once) { face(flip || 1); return; }
+    const back = imgs[1 - front], url = src(file) + (once ? '#r' + (++replay) : ''), tok = ++showTok;
+    let done = false;
+    const swap = () => {
+      /* 只認最後一次 show()，而且只換一次（load 與保險計時器都可能叫到；換兩次 front 會翻回舊圖） */
+      if (done || tok !== showTok || want !== file || imgs[1 - front] !== back) return;
+      done = true;
+      back.classList.remove('bibiback'); imgs[front].classList.add('bibiback');
+      front = 1 - front; shown = file; fab.dataset.bibi = file; face(flip || 1);
+    };
+    if (back.getAttribute('src') === url && back.complete && back.naturalWidth) { swap(); return; }
+    back.onload = swap; back.onerror = () => { if (want === file) { shown = ''; } };
+    back.setAttribute('src', url);
+    if (once) setTimeout(() => { if (want === file && shown !== file && back.complete && back.naturalWidth) swap(); }, 400);   // 只換 #片段 時有的瀏覽器不再發 load
+  }
+  function applyIdle() {
+    if (!fab) return;
+    idleNow = idle();
+    fab.dataset.bibiIdle = idleNow.key;
+    if (mode !== 'idle') return;
+    const f = idleFile();
+    show(f);
+    hopSched();
+  }
+  /* ---------- 待機 ----------
+     Andy 10-12：待機只用第一版跳躍 GIF（site/brand/src/support_anim_1009.gif → bibi_site.py idle_hop，160px 透明動態 WebP、無限循環）。
+     jump（圖二）與 default_idle（圖三）10-12 起都不再用在待機。 */
+  const IDLE_HOP = 'idle_hop', IDLE_STILL = 'idle_hop_still';
+  function hopSched() { /* 待機素材本身循環，不必排程（留著給舊呼叫點） */ }
+
+  /* ---------- 提示泡泡 ---------- */
+  let tip = null;
+  function tipText() { return sleeping ? '比比睡著了…點「叫醒」叫他起來' : (idleNow ? idleNow.say : ''); }
+  function say(text, ms) {
+    if (!tip || !fab || fabOff() || fab.hidden) return;
+    tip.textContent = text; tip.hidden = false;
+    placeTip();
+    cancelAnimationFrame(sayRaf); sayRaf = requestAnimationFrame(() => { sayRaf = 0; tip.classList.add('on'); });
+    clearTimeout(sayTimer);
+    if (ms) sayTimer = setTimeout(() => { if (ring && ring.classList.contains('on') || hoverFab) { tip.textContent = tipText(); placeTip(); } else hideTip(); }, ms);
+  }
+  function hideTip() { cancelAnimationFrame(sayRaf); sayRaf = 0; if (!tip) return; tip.classList.remove('on'); clearTimeout(sayTimer); sayTimer = setTimeout(() => { if (!tip.classList.contains('on')) tip.hidden = true; }, 200); }
+  function placeTip() {
+    if (!tip || tip.hidden) return;
+    /* 比比跑出去時泡泡只跟著他左右走（不跟著上下彈，不然字會抖）；摸摸頭時手在頭上 → 泡泡放到比比靠畫面內側的旁邊 */
+    const c0 = center(), c = { x: c0.x + OFF.x, y: c0.y }, w = tip.offsetWidth, h = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+    let left = c.x - w / 2, top = c.y - 46 - h - 8;
+    if (run && run.act && run.tipSide) {
+      const sd = c.x > vw / 2 ? -1 : 1, half = (window.innerWidth <= 820 ? 84 : 104) * 0.5;
+      left = sd < 0 ? c.x - half - 6 - w : c.x + half + 6; top = c.y - h - 4;
+    } else if (ring && ring.classList.contains('on')) {
+      /* 環開著：泡泡放在所有小圈的上緣之上（放不下就放下緣之下），水平對齊小圈群的中間 */
+      const bs = [...ring.querySelectorAll('.bopt')].map((b) => ({ x: c.x + parseFloat(b.style.getPropertyValue('--x')), y: c.y + parseFloat(b.style.getPropertyValue('--y')) }));
+      const half = OPT() / 2, minY = Math.min(c.y - 46, ...bs.map((q) => q.y - half)), maxY = Math.max(c.y + 46, ...bs.map((q) => q.y + half));
+      const mx = bs.reduce((t, q) => t + q.x, c.x) / (bs.length + 1);
+      left = mx - w / 2; top = minY - h - 8;
+      if (top < 8) top = maxY + 8;
+    } else if (top < 8) top = c.y + 46 + 8;
+    left = Math.max(8, Math.min(vw - w - 8, left)); top = Math.max(8, Math.min(vh - h - 8, top));
+    tip.style.left = Math.round(left) + 'px'; tip.style.top = Math.round(top) + 'px';
+  }
+
+  /* ---------- 環 ---------- */
+  /* 10-11 深夜 Andy 看了線上版：「互動按鈕改成原本那樣」（選擇題確認＝全部小圈一次攤開，回到第一版：分層扇形一次全部顯示、拿掉「下一頁」）。
+     以比比當下位置為圓心，每一層半徑算出「整顆小圈都在視窗內」的角度範圍，由內往外一層層排，直到全部放完；
+     比比在右下角＝往左上的扇形；被拖到左邊／上方自動往右／往下翻；在畫面中間＝一整圈。「問比比」排第一個＝最內層（離比比最近）。 */
+  let openWH = '', ring = null, hoverFab = false, openT = 0, closeT = 0, openedAt = 0, ringMaxR = 0, ringSayTimer = 0;
+  const OPT = () => (isMob() ? 40 : 44);   // 手機 40px（Andy 規則 ≥40、≥32 觸控下限）；桌機 44px
+  function center() {
+    const r = fab.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+  function topLim() {
+    const tb = document.querySelector('header.topbar');
+    if (tb && tb.getClientRects().length) { const cs = getComputedStyle(tb), r = tb.getBoundingClientRect(); if ((cs.position === 'fixed' || cs.position === 'sticky') && r.bottom > 0) return r.bottom + 6; }
+    return 8;
+  }
+  function buildRing() {
+    ring = document.createElement('div'); ring.id = 'bibiRing'; ring.className = 'bibiring'; ring.hidden = true;
+    ring.setAttribute('role', 'menu'); ring.setAttribute('aria-label', '跟比比玩');
+    ring.innerHTML = '<div class="bzone"></div><svg class="btrack" aria-hidden="true"></svg>'
+      + ACTS.map((a) => `<button type="button" class="bopt${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ' bsvg2'}" role="menuitem" data-act="${a.id}">${iconOf(a.id)}</button>`).join('');
+    document.body.appendChild(ring);
+    ring.querySelectorAll('.bopt[data-act]').forEach((b) => { const a = ACTS.find((x) => x.id === b.dataset.act); b.title = a.name; b.setAttribute('aria-label', a.name); });
+    ring.addEventListener('click', (e) => {
+      const b = e.target.closest('.bopt');
+      if (!b) { if (tapMode()) { closeRing(); stopRun('tap'); } return; }    // 手機：點圈內空白＝收起
+      e.stopPropagation();
+      act(b.dataset.act, b);
+    });
+    ring.addEventListener('pointerover', (e) => {
+      if (e.pointerType === 'touch') return;
+      const b = e.target.closest('.bopt'); if (!b) return;
+      if (Date.now() - openedAt < 450) return;   // 小圈剛彈到游標底下的那一下不算「指到」，泡泡先講心情
+      if (mode === 'idle' || b.classList.contains('bask')) say(b.getAttribute('aria-label'));
+    });
+  }
+  function iconOf(id) {
+    if (ICON_IMG[id]) return `<img src="brand/bibi/icons/${ICON_IMG[id]}.webp?v=${AV}" alt="" draggable="false">`;
+    return `<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[id] || ''}</svg>`;
+  }
+  function syncSleepBtn() {
+    if (!ring) return;
+    const b = ring.querySelector('.bopt[data-act="sleep"]'); if (!b) return;
+    const name = sleeping ? '叫醒' : '睡覺';
+    b.title = name; b.setAttribute('aria-label', name); b.innerHTML = iconOf(sleeping ? 'wake' : 'sleep'); b.dataset.state = sleeping ? 'wake' : 'sleep';
+    b.classList.toggle('bpic', !!ICON_IMG[sleeping ? 'wake' : 'sleep']); b.classList.toggle('bsvg2', !ICON_IMG[sleeping ? 'wake' : 'sleep']);
+  }
+  function canRing() {
+    return fab && !fab.hidden && !fabOff() && !fab.classList.contains('supaway') && !fab.classList.contains('supdrag') && ($('supPanel') || {}).hidden !== false && !blockerOpen();
+  }
+  /** 分層扇形：由內往外，每一層找「整顆小圈都在視窗內」最長的一段連續角度，能放幾個放幾個，放滿全部為止。
+      回傳 { pts:[{x,y}]（相對圓心，順序＝ACTS 順序）, arcs（每層虛線軌道）, maxR } */
+  function layout(cx, cy) {
+    const mob = isMob(), S = OPT(), gap = mob ? 6 : 8, step = S + gap;
+    const radii = mob ? [76, 124, 172, 220, 268, 316, 364] : [84, 136, 188, 240, 292, 344, 396];   // 18 顆（10-12 玩具六件組）放不下就再往外一層
+    const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight, pad = 6;
+    const L = pad, Rr = vw - pad, Tt = Math.max(pad, topLim()), B = vh - pad;
+    const fits = (r, d) => { const t = d * Math.PI / 180, x = cx + r * Math.cos(t), y = cy + r * Math.sin(t); return x - S / 2 >= L && x + S / 2 <= Rr && y - S / 2 >= Tt && y + S / 2 <= B; };
+    const out = [], arcs = []; let left = ACTS.length, maxR = 0;
+    for (const r of radii) {
+      if (!left) break;
+      const ok = []; for (let d = 0; d < 360; d++) ok.push(fits(r, d));
+      let n, angs = [];
+      if (ok.every(Boolean)) {
+        n = Math.min(left, Math.floor(2 * Math.PI * r / step));
+        for (let i = 0; i < n; i++) angs.push(-90 + i * 360 / n);
+        arcs.push({ r, full: true });
+      } else {
+        let best = { len: 0, st: 0 };
+        for (let st = 0; st < 360; st++) {
+          if (!ok[st] || ok[(st + 359) % 360]) continue;
+          let len = 0; while (len < 360 && ok[(st + len) % 360]) len++;
+          if (len > best.len) best = { len, st };
+        }
+        if (best.len < 2) continue;
+        const span = best.len - 1, stepDeg = step / r * 180 / Math.PI;
+        const cap = Math.floor(span / stepDeg) + 1;
+        n = Math.min(left, cap); if (n < 1) continue;
+        const tot = (n - 1) * stepDeg, mid = best.st + span / 2;
+        for (let i = 0; i < n; i++) angs.push(mid - tot / 2 + i * stepDeg);
+        arcs.push({ r, a0: mid - tot / 2 - stepDeg * 0.45, a1: mid + tot / 2 + stepDeg * 0.45 });
+      }
+      angs.forEach((d) => { const t = d * Math.PI / 180; out.push({ x: Math.round(Math.cos(t) * r), y: Math.round(Math.sin(t) * r), r }); });
+      left -= n; maxR = r;
+    }
+    return { pts: out, arcs, maxR };
+  }
+  function arcPath(a) {
+    if (a.full) return `M ${a.r} 0 A ${a.r} ${a.r} 0 1 1 ${-a.r} 0 A ${a.r} ${a.r} 0 1 1 ${a.r} 0`;
+    const p = (d) => { const t = d * Math.PI / 180; return `${(Math.cos(t) * a.r).toFixed(1)} ${(Math.sin(t) * a.r).toFixed(1)}`; };
+    return `M ${p(a.a0)} A ${a.r} ${a.r} 0 ${a.a1 - a.a0 > 180 ? 1 : 0} 1 ${p(a.a1)}`;
+  }
+  function openRing() {
+    clearTimeout(closeT); clearTimeout(openT);
+    if (!canRing() || (ring && ring.classList.contains('on')) || (run && run.act)) return;   // 比比跑出去玩的時候不開環（圓心是空的）
+    stopFidget(); preload();
+    if (!ring) buildRing();
+    const r = fab.getBoundingClientRect(), X = r.left + r.width / 2, Y = r.top + r.height / 2;
+    const L = layout(X, Y);
+    fab.classList.add('bibiopen');
+    ring.style.left = Math.round(X) + 'px'; ring.style.top = Math.round(Y) + 'px';
+    const zone = L.maxR + OPT() / 2 + 14;
+    ring.querySelector('.bzone').style.cssText = `left:${-zone}px;top:${-zone}px;width:${zone * 2}px;height:${zone * 2}px`;
+    ring.querySelector('.btrack').innerHTML = L.arcs.map((a) => `<path d="${arcPath(a)}"/>`).join('');
+    ringMaxR = L.maxR;
+    openedAt = Date.now(); openWH = innerWidth + 'x' + innerHeight;
+    ring.querySelectorAll('.bopt').forEach((b, i) => {
+      const q = L.pts[i] || { x: 0, y: -L.maxR };
+      b.style.setProperty('--x', q.x + 'px'); b.style.setProperty('--y', q.y + 'px');
+      b.style.transitionDelay = reduce() ? '0ms' : (i * 24) + 'ms';
+      b.style.width = b.style.height = OPT() + 'px'; b.style.margin = `${-OPT() / 2}px 0 0 ${-OPT() / 2}px`;
+    });
+    syncSleepBtn();
+    ring.hidden = false; fab.dataset.ring = '1';
+    void ring.offsetWidth;
+    ring.classList.add('on');
+    watchOn();
+    ring.classList.toggle('cool', mode === 'act');
+    clearTimeout(ringSayTimer); ringSayTimer = setTimeout(() => { if (ringOpen() && mode === 'idle') say(tapMode() ? (tipText() + '（點小圈跟比比玩）') : tipText()); }, reduce() ? 0 : 200);
+  }
+  function closeRing(instant) {
+    clearTimeout(openT); clearTimeout(closeT); clearTimeout(ringSayTimer);
+    if (!fab) return;
+    delete fab.dataset.ring;
+    fab.classList.remove('bibiopen');
+    if (ring) { ring.classList.remove('on'); setTimeout(() => { if (ring && !ring.classList.contains('on')) ring.hidden = true; }, 260); }
+    hideTip(); setTimeout(hopSched, 0);
+  }
+  const ringOpen = () => !!(ring && ring.classList.contains('on'));
+  /* 環開著（或比比跑出去玩）時，任何抽屜／選單／彈窗打開就收環、叫比比回來（手機單位 10-11 實測：環開著點 #m4Burger 開左側抽屜，環沒收）。
+     supaway 只管「蓋到鈕的位置」，左側抽屜沒蓋到右下角的鈕，所以要自己看。只在環開著／動作中才觀察（平常不掛，省效能）。 */
+  const BLOCK_SEL = '#m4Drawer, #acctMenu, [role="dialog"], [aria-modal="true"], .msheet, dialog[open]';
+  function blockerOpen() {
+    for (const el of document.querySelectorAll(BLOCK_SEL)) {
+      if (el.closest('#supPanel, #twTour, #bibiRing, #bibiTip, #bibiStage') || el.hidden || el.closest('[hidden]')) continue;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
+      const r = el.getBoundingClientRect(); if (r.width > 0 && r.height > 0) return el.id || el.className || el.tagName;
+    }
+    return '';
+  }
+  let blockMo = null, blockT = 0;
+  function watchOn() {
+    if (blockMo || !window.MutationObserver) return;
+    blockMo = new MutationObserver(() => {
+      if (blockT) return;
+      blockT = setTimeout(() => { blockT = 0; if (!ringOpen() && !(run && run.act)) { watchOff(); return; } if (blockerOpen()) { stopRun('drawer'); closeRing(true); } }, 30);
+    });
+    blockMo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class', 'open', 'aria-hidden', 'aria-modal'] });
+  }
+  function watchOff() { if (blockMo) { blockMo.disconnect(); blockMo = null; } clearTimeout(blockT); blockT = 0; }
+
+  /* ---------- 動作 ---------- */
+  let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0, pendingAct = 0, waitingAct = false;
+  async function act(id, btn) {
+    const a0 = ACTS.find((x) => x.id === id); if (!a0) return;
+    if (a0.ask) { stopRun('ask'); pendingAct++; waitingAct = false; closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
+    if (mode === 'act') return;                       // 冷卻：上一個動作還沒播完
+    stopFidget(); freezeIdle();
+    const request = ++pendingAct;
+    mode = 'loading';
+    waitingAct = false;
+    if (!reduce() && !assetsReady) {
+      waitingAct = true;
+      say('比比準備玩具中…', 15000);
+      const ready = await preload();
+      if (request !== pendingAct || mode === 'act') return;
+      waitingAct = false;
+      if (!ready) { finishAct(); say('玩具還沒載好，再試一次吧', 2500); return; }
+    }
+    /* 打他：不准連打（Andy：「點太多次時加冷卻」）—— 每次打完至少隔 4 秒；一分鐘內第 3 次起隔 15 秒 */
+    if (a0.id === 'hit' && Date.now() < hitUntil) { finishAct(); say('比比還在痛…等一下再玩嘛', 1800); return; }
+    if (a0.id === 'hit') {
+      const now = Date.now(); hitLog = hitLog.filter((t) => now - t < 60000); hitLog.push(now);
+      hitUntil = now + 4500 + (hitLog.length >= 3 ? 15000 : 4000);   // 4.5 秒＝整段（飛＋敲＋哭）的長度
+    }
+    const br = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+    actFrom = br && br.width ? { x: br.left + br.width / 2, y: br.top + br.height / 2, w: br.width } : null;   // 道具從被點的那顆小圈飛出來
+    stopFidget();
+    let a = a0;
+    if (a0.sleep && sleeping) a = Object.assign({ id: 'wake' }, a0.wake);
+    const n = bump(a0.id === 'sleep' ? (sleeping ? 'wake' : 'sleep') : a0.id);
+    const serial = ++actSerial;
+    mode = 'act'; fab.dataset.bibiAct = a.id === 'wake' ? 'wake' : a0.id;
+    /* 有編排腳本的（球／草／摸摸／轉圈）：比比要離開原位、道具要空間 → 環先收起（這一下不算打斷），泡泡跟著比比走 */
+    if (CHOREO[a.id] && !reduce()) {
+      if (ringOpen()) closeRing(true);
+      let line0 = a.say[Math.floor(Math.random() * a.say.length)];
+      if (a.cnt && (n === 3 || n % 5 === 0)) line0 = a.cnt(n);
+      playChoreo(a, line0);
+      setTimeout(() => { if (serial === actSerial && run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit', 'snack', 'bubble', 'feather', 'yarn', 'plane', 'leaf', 'five'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
+      return;
+    }
+    if (ring) ring.classList.add('cool');
+    show(a.file, !!a.once);
+    { const f = a.file; const go = () => {
+      if (mode !== 'act' || serial !== actSerial) return;
+      if (shown === f) {
+        // 拍照新版中段定格觸發快門；取消時沿用 actFxTimer 清除。
+        actFxTimer = setTimeout(() => { if (mode === 'act' && serial === actSerial) burst(a.fx); }, a.id === 'selfie' ? 1170 : 0);
+      } else actFxTimer = setTimeout(go, 40);
+    }; go(); }
+    let line = a.say[Math.floor(Math.random() * a.say.length)];
+    if (a.cnt && (n === 3 || n % 5 === 0)) line = a.cnt(n);
+    say(line, 2600);
+    const dur = a.once ? (MS[a.file] || 2500) + 150 : Math.max(1800, Math.min(3200, (MS[a.file] || 1200) * 2));
+    clearTimeout(actTimer);
+    actTimer = setTimeout(() => {
+      mode = 'idle'; delete fab.dataset.bibiAct; fab.classList.remove('bibispin', 'bibiinteracting');
+      if (a0.sleep) { sleeping = a.id !== 'wake'; fab.dataset.bibiSleep = sleeping ? '1' : ''; syncSleepBtn(); }
+      if (ring) ring.classList.remove('cool');
+      applyIdle(); schedFidget();
+    }, dur);
+  }
+  function burst(kind) {
+    if (!kind || !FX[kind] && kind !== 'flash') return;
+    const c = center(), n = reduce() ? 2 : (kind === 'flash' ? 4 : 7);
+    if (kind === 'flash') {
+      const f = document.createElement('div'); f.className = 'bibiflash'; f.style.left = c.x + 'px'; f.style.top = (c.y - 10) + 'px';
+      document.body.appendChild(f); setTimeout(() => f.remove(), 600);
+    }
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('div'); s.className = 'bibifx';
+      s.innerHTML = FX[kind] || FX.star;
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1, dist = (reduce() ? 30 : 46) + Math.random() * 34;
+      s.style.left = (c.x + (Math.random() - 0.5) * 24) + 'px'; s.style.top = (c.y - 18) + 'px';
+      s.style.setProperty('--fx', Math.round(Math.cos(ang) * dist) + 'px');
+      s.style.setProperty('--fy', Math.round(Math.sin(ang) * dist - (kind === 'z' ? 20 : 0)) + 'px');
+      s.style.setProperty('--fr', Math.round((Math.random() - 0.5) * 120) + 'deg');
+      s.style.animationDelay = (i * 70) + 'ms';
+      document.body.appendChild(s); setTimeout(() => s.remove(), 1400 + i * 70);
+    }
+  }
+
+  /* ======================================================================================
+     動作編排引擎（10-11 晚）
+     Andy：「動畫效果太差了，需要是點擊互動按鈕，他會有對應動作，不是基於原本的GIF 加點東西上去。
+            例如我點球，他會跟著球跑，我點草，他會有吃草畫面等等」＋「動作要在豐富生動一點」。
+     → 每個互動是一段腳本（async 函式）：比比整顆離開原位（.bibiwrap 位移＋.bibibody 擠壓伸展／傾斜），
+       道具（球／草／手／暈眩螺旋）在 #bibiStage 上照物理走（拋物線、反彈遞減、旋轉、減速、影子）。
+     規則：開始前比比一定在原位（位移 0）；腳本結束、或中途被打斷（換頁、手機點空白收環、Esc、關客服、被抽屜蓋住、
+       視窗變大小、分頁切到背景）→ 立刻回原位、道具清掉、回情境待機。打斷靠 runTok：每一格都檢查自己還是不是最新的那一次。
+     減少動態偏好：不跑腳本，退回「換圖＋兩顆小特效」（只保留最小動作），待機小動作也不做。
+     ====================================================================================== */
+  /* 零件對照（MAP）：動畫單位的專屬零件到了，把右邊換成新檔名就好（先 bibi_site.py 轉 160px、MS 補總長），機制不用改。
+     10-12 起全部是四腳版（Andy：「比比是天竺鼠，他是4隻腳的…不可以因為配合互動就改變身體原有設定」；動畫單位 8f5c472＋0ff4ddd）。
+     只畫了臉朝右的素材（receive／sniff_eat／pounce／highfive／ball_catch／run_start_r／run_stop_r）要往左時用 show(…, -1) 鏡像。
+     ⚠ 待機只用 idle_hop（Andy 10-12），不用骨架的 happy_hop、也不用 jump／default_idle。 */
+  const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
+    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_q', pet: 'pet_q', spin: 'spin_q', dizzy: 'dizzy', popcorn: 'popcorn',   // eat／spin：10-12 四腳版（跑圈後沿用四腳螺旋眼dizzy，不播放spin_q位移）
+    receive: 'receive',                             // 低頭嗅一嗅（玩球：球滾到腳邊時）
+    hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）
+    nose: 'highfive',                               // 碰鼻子（擊掌改的）
+    // 專屬接觸反應使用獨立映射；缺圖才沿用保守四腳圖，readyParts明示實際載入狀態。
+    leaf_bite: 'leaf_bite', bubble_react: 'bubble_react', plane_react: 'plane_react', yarn_tumble: 'yarn_tumble',
+    snack_eat: 'sniff_eat', hop: 'hop_reach', pounce: 'pounce', tangle: 'tangle', look: 'look_up',
+  };
+  /* 網頁自己畫的小東西只剩：影子、摸摸頭的愛心圈、星星（道具一律用動畫單位的 PNG，見 pic()） */
+  const PROP_SVG = {
+    shadow: () => '',
+    star: () => FX.star,
+    heart: () => FX.heart,
+  };
+  const E = {
+    inOut: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2),
+    out: (k) => 1 - Math.pow(1 - k, 3),
+    in: (k) => k * k * k,
+    damp: (k, f) => Math.max(-0.12, Math.exp(-5 * k) * Math.cos(f * Math.PI * k)),   // 回彈：越來越小的來回（反向最多 0.12：回彈時身體只微微拉高，天竺鼠不會「站起來」）
+  };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const ABORT = { abort: true };
+  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, fidgetT = 0, noFidget = true, tipFollow = false, lastStop = '';
+  const OFF = { x: 0, y: 0 };
+  /** 比比的位移（相對原位）＋身體的擠壓伸展：sx/sy 縮放、sk 傾斜（正＝上半身往左）、r 旋轉 */
+  function pose(x, y, o) {
+    o = o || {}; OFF.x = x; OFF.y = y;
+    if (!wrapEl) return;
+    wrapEl.style.transform = (x || y) ? `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)` : '';
+    const sx = o.sx == null ? 1 : o.sx, sy = o.sy == null ? 1 : o.sy, sk = o.sk || 0, r = o.r || 0;
+    bodyEl.style.transform = (sx !== 1 || sy !== 1 || sk || r) ? `rotate(${r.toFixed(2)}deg) skewX(${sk.toFixed(2)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})` : '';
+  }
+  /** 一段 ms 毫秒的補間：每格叫 fn(k∈0..1, 經過毫秒)。被打斷（runTok 換了）就丟 ABORT，腳本整段停下。 */
+  const activeTweens = new Set();
+  function cancelTweens() {
+    for (const task of activeTweens) { cancelAnimationFrame(task.id); task.reject(ABORT); }
+    activeTweens.clear();
+  }
+  function tween(ms, fn) {
+    const tok = runTok;
+    return new Promise((res, rej) => {
+      const t0 = performance.now(), task = {id:0,reject:rej}; activeTweens.add(task);
+      const finish = err => { activeTweens.delete(task); err ? rej(err) : res(); };
+      const step = now => {
+        if (tok !== runTok) { finish(ABORT); return; }
+        const el = Math.max(0,now-t0), k = ms > 0 ? Math.min(1,el/ms) : 1;
+        try { fn(k,el); } catch(e) { finish(e); return; }
+        if (tipFollow && tip && !tip.hidden) placeTip();
+        if (k >= 1) finish(); else task.id = requestAnimationFrame(step);
+      };
+      step(t0); // 起步當下執行，每條並行補間各自追蹤，不漏背景RAF。
+    });
+  }
+  const wait = (ms) => tween(ms, () => {});
+  /** 同時跑的那一段（不馬上 await）：被打斷時它也會丟 ABORT，先掛一個空的 catch，免得變成「沒人接的 Promise 錯誤」 */
+  const par = (p) => { p.catch(() => {}); return p; };
+  function ensureStage() {
+    if (stage && stage.isConnected) return stage;
+    stage = document.createElement('div'); stage.id = 'bibiStage'; stage.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(stage); return stage;
+  }
+  function clearStage() { if (stage) stage.innerHTML = ''; document.querySelectorAll('.bibi-back-thread').forEach(el => el.remove()); }
+  /** 道具：寬 w 高 h，用 at() 以「中心點」擺位置 */
+  function prop(kind, w, h) {
+    const el = document.createElement('div'); el.className = 'bp bp-' + kind + (kind === 'shadow' ? ' bshadow' : '');
+    el.style.width = w + 'px'; el.style.height = h + 'px'; el._w = w; el._h = h; el.style.opacity = '0';   // 第一次 at() 擺好位置才出現（不然會在左上角閃一格）
+    el.innerHTML = PROP_SVG[kind] ? PROP_SVG[kind]() : '';
+    ensureStage().appendChild(el); return el;
+  }
+  function at(el, cx, cy, extra, op) {
+    el.style.transform = `translate(${(cx - el._w / 2).toFixed(1)}px,${(cy - el._h / 2).toFixed(1)}px)${extra || ''}`;
+    if (op != null) el.style.opacity = String(op);
+  }
+  /** 小粒子（愛心／草屑／星星）從 (x,y) 噴出 */
+  function burstAt(kind, x, y, n, spread) {
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('div'); s.className = 'bibifx';
+      s.innerHTML = FX[kind] || FX.star;
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * (spread || 1.1), dist = 26 + Math.random() * 30;
+      s.style.left = (x + (Math.random() - 0.5) * 16) + 'px'; s.style.top = y + 'px';
+      s.style.setProperty('--fx', Math.round(Math.cos(ang) * dist) + 'px');
+      s.style.setProperty('--fy', Math.round(Math.sin(ang) * dist) + 'px');
+      s.style.setProperty('--fr', Math.round((Math.random() - 0.5) * 140) + 'deg');
+      s.style.animationDelay = (i * 60) + 'ms';
+      document.body.appendChild(s); setTimeout(() => s.remove(), 1300 + i * 60);
+    }
+  }
+  /** 量比比在原位的幾何（量 #supFab，不量圖：圖可能正在放大或位移）：s＝圖寬、foot＝腳底、top＝圖頂、dir＝往哪一側空間大 */
+  function geo() {
+    const fr = fab.getBoundingClientRect(), small = window.innerWidth <= 820, s = small ? 84 : 104;
+    const bottom = fr.bottom + (small ? 2 : 3), vw = document.documentElement.clientWidth || window.innerWidth;
+    const cx = fr.left + fr.width / 2;
+    return { cx, s, foot: bottom - s * 0.05, top: bottom - s, vw, vh: window.innerHeight, mob: isMob(), dir: cx > vw / 2 ? -1 : 1 };
+  }
+  let preloaded = null, assetsReady = false;
+  const optionalParts = new Set(['leaf_bite','bubble_react','plane_react','yarn_tumble']), readyParts = new Set();
+  const reactionFile = (name,fallback) => readyParts.has(name) ? PART[name] : fallback;
+  function freezeIdle() {
+    fab.classList.add('bibiinteracting'); fab.classList.remove('bibispin');
+    ++showTok; want = shown = IDLE_STILL; fab.dataset.bibi = IDLE_STILL;
+    imgs.forEach((img,i) => { img.onload = img.onerror = null; img.setAttribute('src',src(IDLE_STILL)); img.classList.toggle('bibiback',i !== front); });
+    pose(0,0); face(1);
+  }
+  const PROP_FILES = ['ball', 'grass', 'hammer', 'seed', 'carrot', 'bubble', 'feather', 'yarn_ball', 'plane', 'leaf', 'petal'];
+  function preload() {
+    if (preloaded) return preloaded;
+    const urls = Object.keys(MS).filter((f) => f !== IDLE_HOP).map(src)
+      .concat(PROP_FILES.map((f) => `brand/bibi/props/${f}.png?v=${AV}`), `brand/bibi/props/pop_burst.webp?v=${AV}`);
+    preloaded = Promise.all(urls.map((url) => new Promise((resolve) => {
+      const image = new Image(); let done = false;
+      const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); image.onload = image.onerror = null; resolve(ok); };
+      const timer = setTimeout(() => finish(false), 15000);
+      image.onload = () => { readyParts.add(url.split('/').pop().split('.')[0]); finish(true); }; image.onerror = () => finish(false); image.src = url;
+    }))).then((loaded) => { assetsReady = loaded.every((ok,i) => ok || optionalParts.has(urls[i].split('/').pop().split('.')[0])); if (!assetsReady) preloaded = null; return assetsReady; });
+    return preloaded;
+  }
+  function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || IDLE_HOP); }
+
+  /* ---------- 座標換算 ----------
+     sc()＝素材庫場景座標（比比中心 x=248、網站圖的裁切框左上 (28,52)、寬 440）→ 螢幕座標。
+     A()＝網站 160px 素材上的一點（比比在原位）→ { dx：相對比比中心的水平位移, y：螢幕 y }；f＝-1 表示素材鏡像（臉朝左）。
+     Q()＝動畫單位 storyboard 寫的「512 原版座標」（四腳版骨架尺寸，例如碰鼻子的 x 440, y 330）→ 先照 bibi_site.py 的 RIG_FIT 縮 0.745、再裁切 → 同上。 */
+  const sc = (g, X, Y) => ({ x: g.cx + (X - 248) * g.s / 440, y: g.top + (Y - 52) * g.s / 440 });
+  const A = (g, ax, ay, f) => ({ dx: (f || 1) * (ax - 80) * g.s / 160, y: g.top + ay * g.s / 160 });
+  const Q = (g, X, Y, f) => A(g, (247.5 + (X - 248) * 0.745 - 28) * 160 / 440, (481 + (Y - 488) * 0.745 - 52) * 160 / 440, f);
+  const reactionDuration = name => {
+    const m = REACTION_META[name]; return m.durations.length ? m.durations.reduce((sum,ms) => sum + ms,0) : m.duration;
+  };
+  function reactionFrame(name,elapsed) {
+    const ds = REACTION_META[name].durations; let i=0,end=ds[0] || Infinity;
+    while (i < ds.length-1 && elapsed >= end) end += ds[++i]; return i;
+  }
+  // 非跳躍反應保留raw量點，以支撐底同步平移角色、嘴鼻與線尾；不裁切原圖的鬆線。
+  function reactionGround(g,name,elapsed) {
+    const meta=REACTION_META[name],support=meta.support?.[reactionFrame(name,elapsed)];
+    return readyParts.has(name) && Number.isFinite(support) ? (meta.groundY-support)*g.s/160 : 0;
+  }
+  function reactionAnchor(g,name,kind,elapsed,facing) {
+    const m = REACTION_META[name], point = (readyParts.has(name) && m[kind][reactionFrame(name,elapsed)]) || m.fallback[kind];
+    const anchor=A(g,point[0],point[1],facing); anchor.y+=reactionGround(g,name,elapsed); return anchor;
+  }
+  function reactionBody(g,name,elapsed,facing) {
+    const raw = (readyParts.has(name) && REACTION_META[name].body[reactionFrame(name,elapsed)]) || {};
+    const center = A(g,raw.cx ?? 80,raw.cy ?? 103,facing), unit=g.s/160, angle=(raw.angle || 0)*facing*Math.PI/180,groundOffset=reactionGround(g,name,elapsed); center.y+=groundOffset;
+    const anchors = ['shoulder','belly','hip'].map((kind,i) => {
+      if(raw[kind]) { const p=A(g,raw[kind][0],raw[kind][1],facing); return {x:p.dx,y:p.y+groundOffset}; }
+      const dy=(i-1)*g.s*.1; return {x:center.dx-Math.sin(angle)*dy,y:center.y+Math.cos(angle)*dy};
+    });
+    return {x:center.dx,y:center.y,angle,rx:(raw.rx ?? 57.6)*unit,ry:(raw.ry ?? 25.6)*unit,anchors};
+  }
+  // 以PNG尖端錨定，旋轉或鏡像後仍對齊嘴緣／鼻尖，非圖片中心貼臉。
+  function atTip(el,x,y,tip,angle,flip) {
+    const rad=angle*Math.PI/180,dx=(tip[0]-.5)*el._w*(flip || 1),dy=(tip[1]-.5)*el._h;
+    const ox=dx*Math.cos(rad)-dy*Math.sin(rad),oy=dx*Math.sin(rad)+dy*Math.cos(rad);
+    at(el,x-ox,y-oy,` rotate(${angle.toFixed(2)}deg) scaleX(${flip || 1})`,1);
+  }
+  /** 道具圖（動畫單位的正式 PNG：brand/bibi/props/<file>.png，bibi_site.py props 裁到東西本身、長邊 128px）。
+      cls＝驗收找它用的 class（bp-<cls>）、w×h 是螢幕尺寸、flip＝左右鏡像。第一次 at() 擺好位置才出現（不然會在左上角閃一格）。 */
+  function pic(cls, file, w, h, flip) {
+    const el = document.createElement('div'); el.className = 'bp bp-' + cls;
+    el.style.width = Math.round(w) + 'px'; el.style.height = Math.round(h) + 'px'; el._w = w; el._h = h; el.style.opacity = '0';
+    el.innerHTML = `<img src="brand/bibi/props/${file}.png?v=${AV}" alt="" draggable="false" style="width:100%;height:100%;display:block${flip ? ';transform:scaleX(-1)' : ''}">`;
+    ensureStage().appendChild(el); return el;
+  }
+  const propPic = (kind, w, h) => pic(kind, kind, w, h);
+  /** 泡泡戳破（動畫單位 pop_burst：3 格 60／70／90ms、播一次）：d＝泡泡的直徑；整張畫布寬＝泡泡寬 ×512/420。#n 讓每一次都從第一格播 */
+  let popN = 0;
+  function popBurst(x, y, d) {
+    const w = d * 512 / 420, el = document.createElement('div'); el.className = 'bp bp-pop';
+    el.style.width = el.style.height = Math.round(w) + 'px'; el._w = el._h = w;
+    el.innerHTML = `<img src="brand/bibi/props/pop_burst.webp?v=${AV}#p${++popN}" alt="" draggable="false" style="width:100%;height:100%;display:block">`;
+    ensureStage().appendChild(el); at(el, x, y, '', 1);
+    setTimeout(() => el.remove(), 300);
+  }
+  /** 從哪裡飛出來：被點的小圈中心；用程式叫的（Bibi.act）沒有小圈 → 比比左上方 */
+  function srcPoint(g) {
+    if (actFrom && actFrom.w) return { x: actFrom.x, y: actFrom.y };
+    return { x: clamp(g.cx + g.dir * 150, 20, g.vw - 20), y: Math.max(20, g.top - 110) };
+  }
+
+  /* ---------- 腳本：玩球（10-12 四腳版） ----------
+     球（ball_prop.png）從被點的小圈飛出、落地彈兩下滾到比比腳邊 → 比比低頭嗅一嗅（receive，臉朝球；第 6 格「湊近邁一步」正好把球頂出去）
+     → 球往空間大的那一側滾（拋物線、落地反彈遞減、邊滾邊轉、越滾越慢、影子）→ 比比四腳小跑追（run_l／run_r）
+     → 追上播撲球（ball_catch／ball_catch_l：撲出去用身體壓住、彈起、用鼻子推；球畫在素材裡）→ 起跑＋跑回家＋煞車。
+     球的大小、落點都對準素材裡那顆球（160px 素材的 (135,145)、直徑約 17px），網頁的球跟素材換手時不會跳。 */
+  async function ballScript(g) {
+    const dir = g.dir, cx = g.cx, R = Math.max(5, g.s * 0.055);
+    const BALL = A(g, 135, 145), catchDx = BALL.dx;          // 撲球素材裡那顆球：比比右前方 0.34 個圖寬（_l 鏡像）
+    const D = clamp(dir < 0 ? cx - 34 - R : g.vw - 34 - R - cx, 110, g.mob ? 240 : 560);
+    const NOSE = Q(g, 440, 450, dir);                         // receive storyboard：東西放在比比右前方地上（x 440, y 450）
+    const bx0 = cx + NOSE.dx, bx1 = cx + dir * D, ground = BALL.y + R;
+    const H = g.mob ? [44, 22, 10, 4] : [60, 30, 14, 5], Tb = g.mob ? 1450 : 1800, lag = 360, T = Tb + 240;
+    const segs = H.map(Math.sqrt), sum = segs.reduce((a, b) => a + b, 0), TB = Tb * 0.8;
+    const sh = prop('shadow', R * 2.4, 6), ball = propPic('ball', R * 2, R * 2);
+    sh.style.opacity = '0';
+    const S = srcPoint(g), L = cx + dir * Math.min(g.s * 1.5, Math.abs(S.x - cx) * 0.8 + g.s * 0.4);
+    at(ball, S.x, S.y, '', 0);
+    await tween(420, (u) => {                                  // 弧線飛到地上
+      const e = E.in(u), x = S.x + (L - S.x) * u, y = S.y + (ground - R - S.y) * e - 50 * Math.sin(Math.PI * u) * (1 - u);
+      at(ball, x, y, ` rotate(${(-dir * 360 * u).toFixed(1)}deg)`, Math.min(1, u * 5));
+      const q = clamp(1 - (ground - R - y) / 120, 0, 1); at(sh, x, ground + 1, ` scale(${(0.4 + 0.6 * q).toFixed(2)})`, (0.5 * q).toFixed(2));
+      pose(0, 0, { sk: -dir * 3 * u });                        // 0.2 秒內就在動：看過去
+    });
+    cue('哇！是球～');
+    let sniff = false;
+    await tween(700, (u, t) => {                               // 落地彈兩下、一路滾到腳邊、越滾越慢；滾到一半比比低頭去嗅
+      if (!sniff && t >= 300) { sniff = true; show(PART.receive, true, dir); }
+      const x = L + (bx0 - L) * E.out(u), hb = u < 0.5 ? 12 * Math.abs(Math.sin(u * 2 * Math.PI)) * (1 - u * 1.6) : 0;
+      at(ball, x, ground - R - hb, ` rotate(${((x - L) / R * 180 / Math.PI).toFixed(1)}deg)` + (hb < 1 && u < 0.5 ? ' scale(1.1,.88)' : ''), 1);
+      at(sh, x, ground + 1, ` scale(${(1 - 0.03 * hb).toFixed(2)})`, 0.55);
+      pose(0, 0, { sk: -dir * 3 * (1 - u) });
+    });
+    const ballAt = (t) => {
+      const tt = clamp(t, 0, Tb); let acc = 0, h = 0, land = false;
+      for (let i = 0; i < H.length; i++) { const d = segs[i] / sum * TB; if (tt < acc + d) { const u = (tt - acc) / d; h = H[i] * 4 * u * (1 - u); land = (u < 0.07 || u > 0.93) && i > 0; break; } acc += d; }
+      const x = bx0 + (bx1 - bx0) * E.out(tt / Tb);
+      return { x, h, land, rot: (x - bx0) / R * 180 / Math.PI };
+    };
+    const drawBall = (b) => {
+      at(ball, b.x, ground - R - b.h, ` rotate(${b.rot.toFixed(1)}deg)` + (b.land ? ' scale(1.12,.86)' : ''), 1);
+      const q = clamp(b.h / H[0], 0, 1); at(sh, b.x, ground + 1, ` scale(${(1 - 0.55 * q).toFixed(3)})`, (1 - 0.6 * q).toFixed(2));
+    };
+    // 1. 嗅完湊近一步（receive 第 6 格）＝用鼻子把球頂出去；球滾走，比比愣一下再追；跑步一路上下彈、往前傾，速度照球一起減
+    const Db = (bx1 - cx) - dir * catchDx;                     // 追到時：球正好在撲球素材裡那顆球的位置
+    let ran = false;
+    await tween(T, (k, t) => {
+      drawBall(ballAt(t));
+      if (t < lag) { const u = t / lag; pose(dir * 4 * Math.sin(Math.PI * Math.min(1, u * 2)), 0, {}); return; }
+      if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
+      const u = (t - lag) / (T - lag), p = Db * u;
+      const sp = Math.sin(Math.PI * u);
+      pose(p, bobY(g, t - lag), { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
+    });
+    // 2. 撲到：網頁的球交給素材（同一個位置、同一個大小），播撲球（身體壓住球、彈起、用鼻子推）
+    const bxEnd = ballAt(Tb).x;
+    cue();
+    show(dir < 0 ? PART.ball_catch_l : PART.ball_catch, true);
+    burstAt('star', bxEnd, ground - R * 2 - 8, 5, 1.6);
+    await tween(90, (k) => { const d = E.damp(k, 3); pose(Db, 0, { sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); ball.style.opacity = sh.style.opacity = (1 - k).toFixed(2); });
+    ball.style.opacity = sh.style.opacity = '0';
+    await wait(Math.max(300, (MS[dir < 0 ? PART.ball_catch_l : PART.ball_catch] || 1560) - 90));
+    // 3. 跑回原位：球留在原地（素材最後一格球停在比比旁邊 → 網頁的球接手，放在同一個位置）；起跑 → 跑 → 到位煞車
+    at(ball, bxEnd, ground - R, '', 1); at(sh, bxEnd, ground + 1, '', 0.55);
+    const back = dir < 0;
+    // 取消起跑加速前奏，立即固定速度跑。
+    show(dir < 0 ? PART.run_r : PART.run_l);
+    const Tr = clamp(Math.abs(Db) / (g.mob ? 260 : 340) * 1000, 650, 1900), x0 = Db;
+    await tween(Tr, (k, t) => {
+      const sp = Math.sin(Math.PI * k);
+      pose(x0 * (1 - k), bobY(g, t), { sk: dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
+      if (k > 0.6) ball.style.opacity = sh.style.opacity = ((1 - k) / 0.4).toFixed(2);   // 跑遠了，球淡掉
+    });
+    ball.remove(); sh.remove();
+    if (back && PART.run_stop_r) {
+      show(PART.run_stop_r, true);
+      await tween(MS[PART.run_stop_r] || 850, (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: dir * 6 * d, sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); });
+    } else {
+      show(IDLE_STILL);
+      await tween(380, (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: dir * 8 * d, sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
+    }
+  }
+
+  /* ---------- 腳本：碰鼻子（10-12 擊掌改的；天竺鼠不擊掌） ----------
+     highfive 四腳版：往前伸頭、第 4 格（270ms）鼻子輕碰 → 冒小愛心。storyboard：網頁的東西在比比右前方約 (x 440, y 330)。
+     不畫手（Andy 10-11「伸出去的手太奇怪了」）：從被點的小圈飄過來一顆小愛心停在鼻子前，鼻子碰到那一刻「啵」一下散成小愛心。
+     比比臉朝畫面內側（右下角＝鏡像朝左）。 */
+  async function noseScript(g) {
+    const f = g.dir, P = A(g, 123, 108, f), S = srcPoint(g), tx = g.cx + P.dx, ty = P.y;   // 1015 第4格實際鼻尖，維持270ms接觸
+    const ht = prop('heart', g.mob ? 14 : 16, g.mob ? 14 : 16);
+    at(ht, S.x, S.y, '', 0);
+    let go = false;
+    await tween(420, (u, t) => {                               // 愛心飄過來；素材第 4 格（270ms）要剛好在愛心停下那一刻 → 第 150ms 開始播
+      if (!go && t >= 150) { go = true; show(PART.nose, true, f); }
+      const e = E.inOut(u);
+      at(ht, S.x + (tx - S.x) * e, S.y + (ty - S.y) * e - 36 * Math.sin(Math.PI * u), ` scale(${(0.6 + 0.4 * e).toFixed(2)})`, Math.min(1, u * 5));
+      pose(0, 0, { sk: -f * 3 * Math.min(1, u * 3) });          // 0.2 秒內就在動：往前探
+    });
+    run.phase = 'boop';
+    await tween(120, (u) => { at(ht, tx, ty, ` scale(${(1 + 0.5 * u).toFixed(2)})`, (1 - u).toFixed(2)); pose(0, 0, { sk: -f * 3 * (1 - u) }); });
+    ht.remove();
+    burstAt('heart', tx, ty, 4, 1.6);
+    cue();
+    await wait(Math.max(0, (MS[PART.nose] || 1190) - 270 - 120));
+  }
+
+  /* ---------- 腳本：餵牧草（10-12 四腳版） ----------
+     動畫單位四腳版 eat_q（bibi_eat_grass，16 格）：素材裡已經畫了地上的牧草，比比側面低頭吃、最後回 Default。
+     → 網頁只負責「草從小圈飛過去、落在比比面前的地上」那一段（飛的那把用 props/grass.webp），落地那一刻收掉、播 eat_q；
+       不再播 receive_grass（站起來用手接），吃的時候也不疊網頁的草（素材裡有）。
+     落點＝素材裡那把草的位置：160px 素材的 x≈38（比比臉朝左）、貼地 → 螢幕上 比比中心往左 0.26 個圖寬、腳底。 */
+  async function grassScript(g) {
+    const S = srcPoint(g), P = { x: g.cx - g.s * 0.26, y: g.foot - g.s * 0.03 };
+    const w = g.s * 0.12, h = w * 128 / 60, el = propPic('grass', w, h);
+    at(el, S.x, S.y, '', 0);
+    const lift = Math.max(50, Math.abs(S.x - P.x) * 0.35);
+    await tween(520, (u) => {                                  // 弧線飛過來，邊飛邊轉成橫躺
+      const e = E.inOut(u);
+      at(el, S.x + (P.x - S.x) * e, S.y + (P.y - S.y) * e - lift * Math.sin(Math.PI * u), ` rotate(${(84 * e).toFixed(1)}deg)`, Math.min(1, u * 5));
+      pose(0, 0, { sk: 4 * u, sy: 1 - 0.03 * u });             // 看到草、往前（左）湊，四腳不離地
+    });
+    await tween(110, (u) => { at(el, P.x, P.y - 6 * Math.sin(Math.PI * u), ' rotate(84deg)', 1); pose(0, 0, { sk: 4 * (1 - u), sy: 0.97 + 0.03 * u }); });
+    el.remove();                                               // 素材裡的草接手
+    show(PART.eat, true);
+    cue();
+    await tween(MS[PART.eat] || 1900, (k, t) => {
+      if (t > 200 && t < 1250 && Math.floor(t / 260) !== Math.floor((t - 17) / 260)) burstAt('grass', P.x + g.s * 0.08, P.y - g.s * 0.12, 1, 1.4);
+    });
+  }
+  function floatText(text, x, y) {
+    const c = document.createElement('div'); c.className = 'bchew'; c.textContent = text;
+    c.style.setProperty('--x', Math.round(x - 18) + 'px'); c.style.setProperty('--y', Math.round(y) + 'px');
+    ensureStage().appendChild(c); setTimeout(() => c.remove(), 950);
+  }
+
+  /* ---------- 腳本：摸摸頭 ----------
+     Andy 10-11 深夜：「伸出去的手太奇怪了」→ 不畫手（hand_prop.png 不用）：比比趴低瞇眼往上蹭（10-12 四腳版 pet_q），頭上冒一圈愛心（一顆一顆彈出來、慢慢繞、最後飄走），身體跟著一縮一縮。 */
+  async function petScript(g) {
+    show(PART.pet, true);
+    const hx = g.cx, hy = g.top + g.s * 0.22, n = 6, hearts = [];
+    for (let i = 0; i < n; i++) hearts.push(prop('heart', 15, 15));
+    const T = Math.max(1500, MS[PART.pet] || 1680);
+    await tween(T, (k, t) => {
+      const rx = g.s * 0.42, ry = g.s * 0.13;
+      hearts.forEach((h, i) => {
+        const born = i * 90, age = t - born;
+        if (age < 0) { h.style.opacity = '0'; return; }
+        const a = -Math.PI / 2 + i * 2 * Math.PI / n + t / 900, pop = Math.min(1, age / 200), out = k > 0.82 ? (k - 0.82) / 0.18 : 0;
+        const sc0 = pop < 1 ? 0.4 + 0.8 * E.out(pop) : 1 + 0.08 * Math.sin(t / 120 + i);
+        at(h, hx + Math.cos(a) * rx, hy + Math.sin(a) * ry - 26 * out, ` scale(${sc0.toFixed(2)})`, (1 - out).toFixed(2));
+      });
+      const c = Math.max(0, Math.sin(t / 290 * Math.PI));     // 每 0.58 秒享受地縮一下
+      pose(0, 0, { sy: 1 - 0.06 * c, sx: 1 + 0.04 * c });
+    });
+  }
+
+  /* ---------- 腳本：轉圈圈（10-12 四腳版） ----------
+     run素材只負責四腳步態；外層按弧長等速跑淺透視地面跑道。
+     舊spin_q自帶另一次跑動及大幅垂直位移，不再疊加當尾巴。 */
+  async function spinScript(g) {
+    const room=g.dir<0 ? g.cx-g.s/2-8 : g.vw-g.cx-g.s/2-8;
+    const rx=Math.max(8,Math.min(g.mob?90:165,room/2)),ry=g.mob?4:6;
+    const points=[{a:0,len:0}]; let total=0;
+    for(let i=1;i<=720;i++) {
+      const a=i*2*Math.PI/720,prev=points[i-1].a;
+      total+=Math.hypot(rx*(Math.cos(a)-Math.cos(prev)),ry*(Math.sin(a)-Math.sin(prev))); points.push({a,len:total});
+    }
+    let index=1,facing=0; run.phase='lap'; cue('跑操場一圈！');
+    await tween(total/(g.mob?200:260)*1000,k => {
+      const distance=total*k; while(index<points.length-1 && points[index].len<distance) index++;
+      const p=points[index-1],q=points[index],a=p.a+(q.a-p.a)*(distance-p.len)/(q.len-p.len);
+      const f=g.dir*Math.sin(a+.001)<0?-1:1;
+      if(f!==facing) { show(f<0?PART.run_l:PART.run_r); facing=f; }
+      pose(g.dir*rx*(1-Math.cos(a)),-ry*Math.sin(a));
+    });
+    pose(0,0); run.phase='dizzy'; show(PART.dizzy,true); cue('呼…頭好暈！');
+    await tween(700,k => pose(0,0,{r:3*Math.sin(k*Math.PI*5)*(1-k)}));
+  }
+
+  /* ---------- 腳本：天竺鼠爆米花跳：影格自帶不規則跳躍，禁止網頁重複疊加垂直跳 ---------- */
+  async function popcornScript(g) {
+    // 新版影格已畫出蹬地、扭身、落地與第二次短跳；網頁只加地面方向的短位移。
+    show(PART.popcorn, true); cue('開心到停不下來！');
+    const T = MS[PART.popcorn] || 2000, d = g.dir * (g.mob ? 15 : 22);
+    await tween(T, (k) => {
+      const x = k < 0.18 ? d * E.out(k / 0.18)
+        : k < 0.7 ? d : d * (1 - E.inOut((k - 0.7) / 0.3));
+      pose(bx(g, x), 0);
+    });
+  }
+
+  /* ---------- 腳本：打他 → 哭哭（Andy 10-11 深夜：「需要新增打他互動，並且他會哭哭」） ----------
+     玩具槌（動畫單位 hammer_prop）從被點的小圈飛過去、在頭上輕敲一下 → 播 hit（被敲：壓扁、頭上冒包＋星星、含淚；
+     最後一格是 Default，所以只播前 5 格 630ms）→ 循環播 cry 約 3.5 秒（素材自己抽泣、噴淚）→ 回待機。
+     包、星星、眼淚都畫在素材裡，網頁只負責槌子飛過去、敲下去那一下和「嗚嗚」字。 */
+  async function hitScript(g) {
+    const S = srcPoint(g), head = sc(g, 248, 236);
+    const w = g.mob ? 34 : 42, hm = propPic('hammer', w, w * 128 / 120);
+    hm.style.transformOrigin = '82% 88%';                      // 繞著握把尾端揮
+    at(hm, S.x, S.y, ' rotate(-200deg)', 0);
+    const top = { x: head.x + g.s * 0.2, y: head.y - g.s * 0.3 };
+    await tween(300, (u) => {                                  // 從小圈飛過去（邊飛邊轉、舉高）
+      const e = E.inOut(u);
+      at(hm, S.x + (top.x - S.x) * e, S.y + (top.y - S.y) * e - 40 * Math.sin(Math.PI * u), ` rotate(${(-200 * (1 - e) - 30).toFixed(1)}deg)`, Math.min(1, u * 5));
+      pose(0, 0, { sy: 1 - 0.03 * u });                        // 比比縮一下（知道要被敲了）
+    });
+    await tween(100, (u) => at(hm, top.x, top.y + 10 * E.in(u), ` rotate(${(-30 + 60 * E.in(u)).toFixed(1)}deg)`));   // 咚！
+    show(PART.hit, true);                                      // 被敲：素材第 1 格就是壓扁＋衝擊線
+    burstAt('star', head.x, head.y - 8, 3, 2.2);
+    const HIT_MS = MS[PART.hit] || 650;                        // 10-12 四腳版 hit 6 格整段播完（最後一格＝cry 第 1 格，直接接哭）
+    await tween(HIT_MS, (u) => {                               // 槌子彈開淡出
+      at(hm, top.x + 24 * u, top.y + 10 - 34 * Math.sin(Math.PI * Math.min(1, u * 1.6)), ` rotate(${(30 - 70 * u).toFixed(1)}deg)`, Math.max(0, 1 - u * 2.2).toFixed(2));
+      pose(0, 0, { sy: 1 - 0.03 * (1 - u) });
+    });
+    hm.remove();
+    cue();
+    show(PART.cry);                                            // 哭哭：循環素材（抽噎、噴淚）
+    let said = 0;
+    await tween(3500, (u, t) => {
+      if (!said && t > 200) { said = 1; floatText('嗚嗚', g.cx, g.top + g.s * 0.02); }          // 頭頂上方（說明泡泡在旁邊，不會疊到）
+      if (said === 1 && t > 1700) { said = 2; floatText('嗚嗚', g.cx, g.top); }
+    });
+  }
+  /* ======================================================================================
+     玩具六件組（Andy 10-12：「我很喜歡丟球的互動效果，希望能多點這樣的」）
+     照「玩球」的做法：道具從被點的小圈飛出、有物理（落地、反彈、滾動、飄、晃），比比真的在畫面上移動去追，最後回原位。
+     10-12 第 8 組到貨（動畫單位 0ff4ddd）：道具一律換成正式 PNG（seed／carrot／bubble／feather／yarn／plane／leaf／petal），
+     比比的動作照各組 storyboard.md 接：
+       撒零食＝跑過去（run_l／run_r）→ sniff_eat（第 1～2 格嘴前畫了一顆，網頁那顆收掉）
+       吹泡泡＝泡泡表面碰鼻 → pop_burst → 受驚眨眼 → 好奇
+       羽毛棒＝羽毛在比比前方地面附近晃 → pounce（第 5 格撲出去、第 6 格壓到）；第一下被抽走、第二下抓到
+       毛線球＝身體前後分層纏線 → 受阻 → 側跌 → 掙扎 → 逐環收回線球
+       紙飛機＝追視 → 機尖碰鼻 → 縮頭 → 嗅聞
+       落葉＝張嘴 → 葉尖貼口閉咬 → 小咀嚼 → 鬆口，葉子不套零食
+     ⚠ 比比是四隻腳的天竺鼠：全程不准做縱向拉長（站起來）的變形，跳只用位移（pose 的 y），身體只准壓扁／微傾。
+     ⚠ 位置一律夾在視窗內（bx()）；道具都在 #bibiStage（fixed、overflow:hidden）→ 不撐捲軸，手機留在 390 內。
+     ====================================================================================== */
+  /** 一條線（毛線、羽毛棒的繩子）：蓋整個視窗的 SVG，path 由腳本每格改 d（這兩條線動畫單位說「維持網頁 SVG」） */
+  function threadLayer(kind, color, width, behind) {
+    const el = document.createElement('div'); el.className = 'bp bp-' + kind;
+    el.style.width = '100%'; el.style.height = '100%';
+    el.innerHTML = `<svg width="100%" height="100%" aria-hidden="true"><path d="" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    if (behind) { el.classList.add('bibi-back-thread'); Object.assign(el.style,{position:'fixed',left:'0',top:'0',zIndex:'1199',pointerEvents:'none'}); document.body.appendChild(el); }
+    else ensureStage().appendChild(el); el._p = el.querySelector('path'); return el;
+  }
+  /** 背景動畫（泡泡飄、葉子落、羽毛晃）：跟比比的動作同時跑；回傳停止函式。被打斷時照樣丟 ABORT 收掉。 */
+  function loopBg(fn) {
+    const st = { on: true }, STOP = { stop: true };
+    par(tween(60000, (k, t) => { if (!st.on) throw STOP; fn(t); }));
+    return () => { st.on = false; };
+  }
+  /** 比比位移夾在視窗內（整顆圖都在畫面裡） */
+  const bx = (g, x) => clamp(x, g.s / 2 + 4 - g.cx, g.vw - g.s / 2 - 4 - g.cx);
+  const bobY = () => 0; // run素材自帶起伏，外層不重複跳。
+  /** 從x0以固定水平像素速度跑到x1，回傳實際到的位置。 */
+  async function runTo(g, x0, x1, speed) {
+    x1 = bx(g, x1);
+    const d = x1 - x0;
+    if (Math.abs(d) < 3) { pose(x1, 0); return x1; }
+    show(d < 0 ? PART.run_l : PART.run_r);
+    const T = Math.abs(d) / (speed || (g.mob ? 260 : 340)) * 1000;
+    await tween(T,k => pose(x0+d*k,0));
+    return x1;
+  }
+  /** 跑回原位：往右跑回家有煞車素材（run_stop_r），往左就急停回彈 */
+  async function goHome(g, x) {
+    if (Math.abs(x) >= 3) {
+      await runTo(g, x, 0);
+      if (x < 0 && PART.run_stop_r) {
+        show(PART.run_stop_r, true);
+        await tween(Math.min(700, MS[PART.run_stop_r] || 700), (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: -6 * d, sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); });
+      }
+    }
+    show(IDLE_STILL);
+    await tween(300, (k) => { const d = E.damp(k, 3); pose(0, 0, { sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
+  }
+  /** 往上撲（hop_reach：蹲 0～90 → 起跳 90～160 → 最高點、鼻子碰到 160～260 → 往下 260～330 → 落地壓扁 330～410）：
+      素材自己在框裡跳，網頁再整顆往上送 H（只有位移，身體不拉長）、往旁邊挪到 x1；鼻子碰到那一刻（190ms）叫 onTouch。 */
+  async function hopReach(g, x0, x1, H, onTouch, face) {
+    x1 = bx(g, x1);
+    show(PART.hop, true, face || 1);
+    const dx = x1 - x0, duration = MS[PART.hop] || 810; let touched = false, follow = null;
+    await tween(duration, (k, elapsed) => {
+      const t = elapsed * 410 / duration;
+      const up = t < 90 ? 0 : t < 190 ? Math.sin(Math.PI / 2 * (t - 90) / 100) : t < 330 ? Math.cos(Math.PI / 2 * (t - 190) / 140) : 0;
+      pose(x0 + dx * E.inOut(Math.min(1, t / 190)), -H * up);
+      if (!touched && t >= 190) { touched = true; if (onTouch) follow = onTouch(); }
+      if (typeof follow === 'function') follow();
+    });
+    pose(x1, 0);
+    return x1;
+  }
+  /* sniff_eat 第 1 格：嘴前那顆零食的位置（臉朝右；臉朝左就鏡像）。storyboard 的瓜子在 512 原版座標約 (370, 454) */
+  const mouthOf = (g) => Q(g, 370, 454);
+  /** 跑到東西旁邊（嘴巴對準它）→ 低頭嗅、咬住、嚼（sniff_eat）。el 在第 1 格就收掉（素材嘴前畫了一顆）。full＝播完整段（含最後的 Default 格） */
+  async function eatAt(g, x, tx, ty, el, full, phase) {
+    const M = mouthOf(g), face = tx < g.cx + x ? -1 : 1;
+    x = await runTo(g, x, tx - g.cx - face * M.dx);
+    if (run) run.phase = phase || 'eat';
+    show(PART.snack_eat, true, face);
+    let crumb = false;
+    await tween(full ? (MS[PART.snack_eat] || 870) : 480, (k, t) => {
+      if (el) { if (t < 90) el.style.opacity = (1 - t / 90).toFixed(2); else if (el.isConnected) el.remove(); }
+      if (!crumb && t >= 150) { crumb = true; burstAt('crumb', tx, ty - 4, 3, 1.6); }
+      pose(x, 0);
+    });
+    return x;
+  }
+
+  /* ---------- 撒零食：一次撒 4～6 顆（瓜子＋紅蘿蔔丁）、落在比比附近不同位置；比比跑過去一顆一顆低頭吃，吃完才回原位 ---------- */
+  async function snackScript(g) {
+    const dir = g.dir, S = srcPoint(g), ground = g.foot, n = 4 + Math.floor(Math.random() * 3);
+    const span = g.mob ? 190 : 320;
+    const P = [];
+    for (let i = 0; i < n; i++) {
+      const seed = i % 2 === 0, w = g.s * (seed ? 0.085 : 0.1), h = seed ? w * 128 / 89 : w;
+      const x = clamp(g.cx + dir * (g.s * 0.5 + span * (i + 0.5) / n) + (Math.random() - 0.5) * 18, 14, g.vw - 14);
+      const el = pic('snack', seed ? 'seed' : 'carrot', w, h);
+      at(el, S.x, S.y, '', 0);
+      const rot = seed ? 70 + (Math.random() - 0.5) * 30 : (Math.random() - 0.5) * 50;   // 瓜子躺在地上
+      P.push({ el, x, y: ground - Math.min(w, h) / 2, rot, d: i * 80 });
+    }
+    const FLY = 480, T = FLY + 80 * (n - 1) + 160;
+    await tween(T, (k, t) => {                                   // 一顆一顆撒出去：弧線、落地小彈一下
+      P.forEach((p) => {
+        const u = clamp((t - p.d) / FLY, 0, 1), v = clamp((t - p.d - FLY) / 160, 0, 1);
+        if (t < p.d) return;
+        const x = S.x + (p.x - S.x) * E.out(u), lift = 60 + Math.abs(S.x - p.x) * 0.25;
+        const y = u < 1 ? S.y + (p.y - S.y) * E.in(u) - lift * Math.sin(Math.PI * u) : p.y - 8 * Math.sin(Math.PI * v);
+        at(p.el, x, y, ` rotate(${(p.rot * u).toFixed(1)}deg)`, Math.min(1, u * 6));
+      });
+      pose(0, 0, { sk: -dir * 3 * Math.min(1, t / 300) });     // 0.2 秒內就在動：看過去
+    });
+    cue('哇！好多零食～');
+    let x = 0;
+    P.sort((a, b) => Math.abs(a.x - g.cx) - Math.abs(b.x - g.cx));
+    for (let i = 0; i < P.length; i++) x = await eatAt(g, x, P[i].x, P[i].y, P[i].el, i === P.length - 1, 'eat' + (i + 1));
+    floatText('好飽～', g.cx + x, g.top);
+    await goHome(g, x);
+  }
+
+  /* ---------- 吹泡泡：3～5 顆從小圈吹出來、慢慢往上飄、左右晃；比比追到底下往上撲（hop_reach）用鼻子頂破，破掉播 pop_burst ---------- */
+  async function bubbleScript(g) {
+    const S=srcPoint(g),R=g.mob?13:16,face=g.dir,meta=REACTION_META.bubble_react;
+    const nose=reactionAnchor(g,'bubble_react','nose',meta.contact,face),x=bx(g,face*(g.mob?85:140));
+    const target={x:g.cx+x+nose.dx+face*R,y:nose.y},bubble=pic('bubble','bubble',R*2,R*2);
+    show(PART.look,true,face); run.phase='bubble-approach';
+    await tween(480,k => { at(bubble,S.x+(target.x-S.x)*k,S.y+(target.y-S.y)*k-14*Math.sin(Math.PI*k),'',k); pose(0,0); });
+    await runTo(g,0,x);
+    const file=reactionFile('bubble_react',PART.nose),duration=readyParts.has('bubble_react')?reactionDuration('bubble_react'):MS[file];
+    show(file,true,face); let touched=false;
+    await tween(duration,(k,t) => {
+      pose(x,reactionGround(g,'bubble_react',t));
+      if(!touched && t>=meta.contact) { touched=true; bubble.remove(); popBurst(target.x,target.y,R*2); run.phase='bubble-startle'; cue('啵！嚇一跳…咦，泡泡呢？'); }
+      if(t>=meta.curious) run.phase='bubble-curious';
+    });
+    await goHome(g,x);
+  }
+
+  /* ---------- 羽毛棒：羽毛（繩子連著被點的小圈）在比比前方地面附近晃；比比撲（pounce）——第一下被抽走、第二下撲到壓住 ---------- */
+  async function featherScript(g) {
+    const f = g.dir, S = srcPoint(g), w = g.s * (g.mob ? 0.42 : 0.38), h = w * 117 / 128, step = g.mob ? 34 : 48;
+    const string = threadLayer('string', '#2b1611', 1.6), fe = pic('feather', 'feather', w, h, f < 0);
+    fe.style.transformOrigin = f < 0 ? '0 0' : '100% 0';        // 繞著棒子尾端（綁繩子那頭）晃；臉朝左＝道具鏡像，棒子尾端在左上
+    const P0 = Q(g, 470, 440, f);                                // pounce storyboard：羽毛在比比右前方地面附近（x 470, y 440）
+    const F = { x: g.cx + P0.dx, y: P0.y, sw: 1 };
+    const tipOf = (px, py) => ({ x: px + f * w * 0.88, y: py - h * 0.88 });   // 羽毛（左下）在 (px,py) 時，棒子尾端（右上）在哪
+    const drawF = (px, py, rot, op) => {
+      const tp = tipOf(px, py);
+      fe.style.transform = `translate(${(f < 0 ? tp.x : tp.x - w).toFixed(1)}px,${tp.y.toFixed(1)}px) rotate(${rot.toFixed(1)}deg)`;
+      fe.style.opacity = String(op);
+      string._p.setAttribute('d', `M ${S.x.toFixed(1)} ${S.y.toFixed(1)} Q ${((S.x + tp.x) / 2).toFixed(1)} ${(Math.max(S.y, tp.y) + 30).toFixed(1)} ${tp.x.toFixed(1)} ${tp.y.toFixed(1)}`);
+      string.style.opacity = String(op);
+    };
+    const t0 = performance.now(), from = { x: S.x - f * w * 0.88, y: S.y + h * 0.88 };
+    drawF(from.x, from.y, 0, 0);
+    await tween(420, (k) => { const e = E.out(k); drawF(from.x + (F.x - from.x) * e, from.y + (F.y - from.y) * e, 0, Math.min(1, k * 5)); pose(0, 0, { sk: -f * 3 * k }); });
+    let held = null;                                             // 撲到之後羽毛壓在比比前腳下
+    const stop = loopBg(() => {                                  // 左右晃（繞棒子尾端的鐘擺）
+      if (held) { const q = held(); drawF(q.x, q.y, 0, 1); return; }
+      const t = (performance.now() - t0) / 1000, a = Math.sin(t * 6.2) * F.sw;
+      drawF(F.x + 8 * a, F.y - 2 * Math.abs(a), -f * a * 14, 1);
+    });
+    cue('羽毛！比比盯上了…');
+    let x = 0;
+    for (let i = 0; i < 2; i++) {
+      const last = i === 1, x0 = x, x1 = bx(g, x + f * step);
+      run.phase = 'pounce' + (i + 1);
+      show(PART.pounce, true, f);
+      let yank = false, got = false;
+      await tween(last ? (MS[PART.pounce] || 1120) - 400 : 720, (k, t) => {
+        // 第 1～4 格蹲低扭屁股（0～310ms，原地）；第 5 格撲出去（310～380，往前、微微離地）；第 6 格壓到（380～470）
+        const u = clamp((t - 300) / 170, 0, 1);
+        pose(x0 + (x1 - x0) * E.out(u), t > 300 && t < 420 ? -10 * Math.sin(Math.PI * (t - 300) / 120) : 0);
+        if (!last && !yank && t >= 280) {                         // 第一下：羽毛在撲到前一刻被抽走（往前兩步）
+          yank = true; const fx0 = F.x, fx1 = clamp(F.x + f * step * 2, 24, g.vw - 24);
+          F.sw = 1.6; par(tween(220, (k2) => { F.x = fx0 + (fx1 - fx0) * E.out(k2); }));
+        }
+        if (last && !got && t >= 380) {                           // 第二下：壓住了
+          got = true; held = () => ({ x: g.cx + OFF.x + P0.dx * 0.8, y: P0.y });
+          burstAt('star', F.x, F.y - 6, 4, 1.8); cue('抓到了！');
+        }
+      });
+      x = x1; F.sw = 1;
+    }
+    run.phase = 'got';
+    await wait(400);
+    held = null; stop();
+    const hx = g.cx + x + P0.dx * 0.8, hy = P0.y;
+    par(tween(500, (k) => drawF(hx + (from.x - hx) * E.in(k), hy + (from.y - hy) * E.in(k), 0, 1 - k)));   // 收回小圈那邊
+    await goHome(g, x);
+  }
+
+  /* ---------- 毛線球：追球 → 前後分層纏身 → 受阻側跌 → 掙扎鬆脫 → 回位 ---------- */
+  async function yarnScript(g) {
+    const dir=g.dir,S=srcPoint(g),R=g.s*.09,x=bx(g,dir*(g.mob?110:200));
+    const ball=pic('yarn','yarn_ball',R*2,R*2),frontLine=threadLayer('thread-front','#a77bd6',2.2),backLine=threadLayer('thread-back','#9470c4',2.2,true),ground=g.foot-R;
+    show(PART.look,true,dir); run.phase='yarn-roll';
+    await tween(500,k => at(ball,S.x+(g.cx+x+dir*g.s*.5-S.x)*k,S.y+(ground-S.y)*k,` rotate(${dir*360*k}deg)`,k));
+    await runTo(g,0,x);
+    const file=reactionFile('yarn_tumble',PART.tangle),duration=readyParts.has('yarn_tumble')?reactionDuration('yarn_tumble'):2600;
+    show(file,true,dir); cue('哎呀，毛線纏住了！');
+    const meta=REACTION_META.yarn_tumble,embedded=readyParts.has('yarn_tumble') && meta.embeddedThread;
+    if(embedded) frontLine.classList.add('bp-yarn-tail');
+    await tween(duration,(k,elapsed) => {
+      const fallback=!readyParts.has('yarn_tumble'),tilt=k<.25?0:k<.45?(k-.25)/.2:k<.72?1:(1-k)/.28;
+      const fallbackAngle=dir*22*tilt+(k>.45 && k<.75?3*Math.sin(k*55):0);
+      pose(x,reactionGround(g,'yarn_tumble',elapsed),fallback?{r:fallbackAngle}:{});
+      const events=meta.events;
+      run.phase=elapsed<events.paw_blocked?'yarn-wrap':elapsed<events.tilt_starts?'yarn-blocked':elapsed<events.side_lie?'yarn-fall':elapsed<events.first_loosen?'yarn-struggle':'yarn-release';
+      const body=reactionBody(g,'yarn_tumble',elapsed,dir),angle=fallback?fallbackAngle*Math.PI/180:body.angle;
+      const ballX=g.cx+x+dir*g.s*.58+dir*k*15; let front='',back='';
+      if(embedded) {
+        const tail=meta.tail[reactionFrame('yarn_tumble',elapsed)];
+        const release=clamp((elapsed-events.body_free)/(events.restored-events.body_free),0,1);
+        if(tail && elapsed>=events.line_appears && release<1) {
+          const anchor=A(g,tail[0],tail[1],dir),startX=g.cx+x+anchor.dx,startY=anchor.y+reactionGround(g,'yarn_tumble',elapsed);
+          const tx=startX+(ballX-startX)*release,ty=startY+(ground-startY)*release;
+          front=`M ${tx.toFixed(2)} ${ty.toFixed(2)} Q ${((tx+ballX)/2).toFixed(2)} ${(Math.max(ty,ground)+5*(1-release)).toFixed(2)} ${ballX.toFixed(2)} ${ground.toFixed(2)}`;
+        }
+        frontLine._p.setAttribute('d',front); backLine._p.setAttribute('d','');
+        frontLine.style.opacity='1';backLine.style.opacity='0';
+        at(ball,ballX,ground,` rotate(${dir*k*120}deg)`,1);return;
+      }
+      const arc=(cx,cy,rx,ry,start,end) => {
+        if(end<=start || rx<.05) return ''; const points=[];
+        for(let step=0;step<=18;step++) {
+          const a=start+(end-start)*step/18,ax=rx*Math.cos(a),ay=ry*Math.sin(a);
+          points.push(`${(cx+ax*Math.cos(angle)-ay*Math.sin(angle)).toFixed(2)} ${(cy+ax*Math.sin(angle)+ay*Math.cos(angle)).toFixed(2)}`);
+        }
+        return 'M '+points.join(' L ')+' ';
+      };
+      for(let i=0;i<3;i++) {
+        // 逐環減少有效弧長、縮小半徑並收回球，解纏不使用淡出替代。
+        const unwind=clamp((k-(.72+i*.06))/.16,0,1),remain=1-unwind,anchor=body.anchors[i],cx0=g.cx+x+anchor.x;
+        const cx=cx0+(ballX-cx0)*unwind,cy=anchor.y+(ground-anchor.y)*unwind,rx=body.rx*remain,ry=body.ry*remain,end=Math.PI*2*remain;
+        front+=arc(cx,cy,rx,ry,0,Math.min(Math.PI,end)); back+=arc(cx,cy,rx,ry,Math.PI,end);
+        if(unwind>0 && unwind<1) {
+          const ax=rx*Math.cos(end),ay=ry*Math.sin(end);
+          front+=`M ${(cx+ax*Math.cos(angle)-ay*Math.sin(angle)).toFixed(2)} ${(cy+ax*Math.sin(angle)+ay*Math.cos(angle)).toFixed(2)} L ${ballX.toFixed(2)} ${ground.toFixed(2)} `;
+        }
+      }
+      frontLine._p.setAttribute('d',front); backLine._p.setAttribute('d',back);
+      frontLine.style.opacity=backLine.style.opacity=String(Math.min(1,k/.15)); at(ball,ballX,ground,` rotate(${dir*k*120}deg)`,1);
+    });
+    frontLine.remove(); backLine.remove(); ball.remove(); await goHome(g,x);
+  }
+
+  /* ---------- 紙飛機：追視飛行 → 機尖碰鼻 → 縮頭 → 嗅聞 ---------- */
+  async function planeScript(g) {
+    const dir = g.dir, S = srcPoint(g), pw = g.mob ? 34 : 42, ph = pw * 81 / 128, ground = g.foot - ph / 2;
+    const R1 = g.mob ? 120 : 180, R2 = g.mob ? 64 : 90, tl = topLim();
+    const C = { x: clamp(g.cx + dir * R1 * 0.95, R1 + pw, g.vw - R1 - pw), y: clamp(g.top - R2 - 24, tl + R2 + ph, g.vh - R2 - ph - 10) };
+    const pl = pic('plane', 'plane', pw, ph);
+    const Lx = clamp(g.cx + dir * (g.mob ? 170 : 280), pw, g.vw - pw);
+    const a0 = Math.atan2((S.y - C.y) / R2, (S.x - C.x) / R1);   // 小圈在橢圓上對應的角度＝從最靠近小圈的那一點切進去
+    const ell = (a) => ({ x: C.x + R1 * Math.cos(a), y: C.y + R2 * Math.sin(a) });
+    const E0 = ell(a0), spinDir = dir < 0 ? -1 : 1;
+    let prev = { x: S.x, y: S.y };
+    const place = (p) => {                                      // 機頭朝飛行方向（PNG 機頭朝右；往左飛就鏡像，不會整架倒過來）
+      if (Math.hypot(p.x - prev.x, p.y - prev.y) > 0.3) pl._ang = Math.atan2(p.y - prev.y, p.x - prev.x) * 180 / Math.PI;
+      const a = pl._ang || 0, left = Math.abs(a) > 90;
+      at(pl, p.x, p.y, left ? ` rotate(${(a - 180 * Math.sign(a)).toFixed(1)}deg) scaleX(-1)` : ` rotate(${a.toFixed(1)}deg)`, 1); prev = p;
+    };
+    let x = 0;
+    const look = (p) => {                                        // 抬頭跟著看：身體往飛機那邊微微歪（只旋轉，不拉長）
+      const rel = clamp((p.x - (g.cx + x)) / (g.mob ? 160 : 260), -1, 1);
+      pose(x, 0, { r: 5 * rel, sk: -3 * rel });
+    };
+    at(pl, S.x, S.y, '', 0);
+    run.phase = 'look';
+    show(PART.look);                                             // 抬頭循環（眼睛左上 → 上 → 右上 → 上）
+    await tween(420, (k) => { const e = E.inOut(k); place({ x: S.x + (E0.x - S.x) * e, y: S.y + (E0.y - S.y) * e - 30 * Math.sin(Math.PI * k) }); look(prev); });
+    cue('紙飛機！飛好高～');
+    const LOOP = g.mob ? 2000 : 2400;
+    await tween(LOOP, (k, t) => {                                // 繞一整圈
+      const a = a0 + spinDir * 2 * Math.PI * E.inOut(k);
+      place(ell(a));
+      x = 4 * Math.sin(t / 260);                                 // 跟著小步原地轉
+      look(prev);
+    });
+    const Ls = { x: prev.x, y: prev.y };
+    await tween(900, (k) => {                                    // 往下滑翔、落地
+      const e = E.in(k), px = Ls.x + (Lx - Ls.x) * E.out(k), py = Ls.y + (ground - Ls.y) * e - 24 * Math.sin(Math.PI * k);
+      place({ x: px, y: py }); look(prev);
+    });
+    const land = Lx + dir * 14;
+    await tween(220, (k) => { place({ x: Lx + dir * 14 * E.out(k), y: ground }); });   // 落地滑一下
+    const face=land<g.cx+x?-1:1,meta=REACTION_META.plane_react,nose=reactionAnchor(g,'plane_react','nose',meta.contact,face);
+    x=await runTo(g,x,land-g.cx-nose.dx); run.phase='plane-nose';
+    const file=reactionFile('plane_react',PART.receive),duration=readyParts.has('plane_react')?reactionDuration('plane_react'):MS[file];
+    show(file,true,face);
+    await tween(duration,(k,t) => {
+      pose(x,reactionGround(g,'plane_react',t)); const point=reactionAnchor(g,'plane_react','nose',Math.min(t,meta.contact),face),meetX=g.cx+x+point.dx;
+      if(t<meta.contact) atTip(pl,meetX+face*12*(1-t/meta.contact),ground+(point.y-ground)*t/meta.contact,meta.tip,0,-face);
+      else { const after=t-meta.contact; run.phase=t<meta.sniff?'plane-recoil':'plane-sniff'; atTip(pl,meetX+face*7*Math.min(1,after/200),point.y+(ground-point.y)*Math.min(1,after/350),meta.tip,0,-face); }
+    });
+    cue('嗅嗅…是紙做的！');
+    await tween(280, (k) => { pl.style.opacity = (1 - k).toFixed(2); });
+    pl.remove();
+    await goHome(g, x);
+  }
+
+  /* ---------- 落葉：葉尖碰口，張嘴 → 閉咬 → 小咀嚼 → 鬆口落地 ---------- */
+  async function leafScript(g) {
+    const face=g.dir,meta=REACTION_META.leaf_bite,x=bx(g,face*(g.mob?80:130)),mouth=reactionAnchor(g,'leaf_bite','mouth',meta.contact,face),lw=g.mob?18:22;
+    const leaf=pic('leaf','leaf',lw,lw*128/83),target={x:g.cx+x+mouth.dx,y:mouth.y},from=srcPoint(g),angle=face<0?70:-110;
+    show(PART.look,true,face); run.phase='leaf-drift';
+    await tween(650,k => { atTip(leaf,from.x+(target.x+face*8-from.x)*k+10*Math.sin(Math.PI*2*k),from.y+(target.y-from.y)*k,meta.tip,angle); leaf.style.opacity=String(k); pose(0,0); });
+    await runTo(g,0,x);
+    const file=reactionFile('leaf_bite',PART.receive),duration=readyParts.has('leaf_bite')?reactionDuration('leaf_bite'):MS[file]; show(file,true,face);
+    await tween(duration,(k,t) => {
+      pose(x,reactionGround(g,'leaf_bite',t)); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<meta.release?'leaf-chew':'leaf-release';
+      const point=reactionAnchor(g,'leaf_bite','mouth',t,face),release=clamp((t-meta.release)/(duration-meta.release),0,1),gap=t<meta.contact?face*8*(1-t/meta.contact):0;
+      atTip(leaf,g.cx+x+point.dx+gap+face*release*12,point.y+(g.foot-5-point.y)*release,meta.tip,angle+release*45);
+    });
+    cue('咬一下，葉子沙沙響～'); await tween(220,k => {leaf.style.opacity=String(1-k);}); leaf.remove(); await goHome(g,x);
+  }
+
+  const CHOREO = { snack: snackScript, bubble: bubbleScript, feather: featherScript, yarn: yarnScript, plane: planeScript, leaf: leafScript, ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript, five: noseScript };
+
+  /* ---------- 待機小動作：眨眼／伸懶腰／跳一下（只動 transform）----------
+     10-12 起預設不自動跑：待機本身就是一直跳的 GIF，再疊小動作會亂；「東張西望」會換圖（tilt），違反「待機一律 idle_hop」，拿掉。
+     只留給 Bibi.test({ fidget: true }) 驗收用。 */
+  const FIDGET = {
+    blink: async () => { for (let i = 0; i < 2; i++) await tween(240, (k) => { const c = Math.sin(Math.PI * k); pose(0, 0, { sy: 1 - 0.07 * c, sx: 1 + 0.03 * c }); }); },
+    stretch: async () => {                       // 天竺鼠伸懶腰＝身體往前後拉長、壓低（四隻腳著地，不站起來）
+      await tween(320, (k) => pose(0, 0, { sx: 1 + 0.03 * E.out(k), sy: 1 - 0.03 * E.out(k) }));
+      await tween(520, (k) => { const e = E.out(k); pose(0, 0, { sx: 1.03 + 0.09 * e, sy: 0.97 - 0.05 * e, sk: -3 * e }); });
+      await wait(320);
+      await tween(420, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1 + 0.12 * d, sy: 1 - 0.08 * d, sk: -3 * (1 - k) }); });
+    },
+    hop: async (g) => {
+      const J = g.mob ? 14 : 18;
+      await tween(150, (k) => pose(0, 0, { sx: 1 + 0.08 * k, sy: 1 - 0.12 * k }));
+      await tween(230, (k) => pose(0, -J * E.out(k), { sx: 1.08 - 0.1 * k, sy: 0.88 + 0.14 * k }));   // 彈跳時只微微拉長（≤1.02），不站起來
+      await tween(210, (k) => pose(0, -J * (1 - E.in(k)), { sx: 0.98 + 0.02 * k, sy: 1.02 }));
+      await tween(300, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1 + 0.1 * d, sy: 1 - 0.14 * d }); });
+    },
+  };
+  function startRun(id, isAct) {
+    runTok++; cancelTweens(); clearStage();
+    run = { id, act: !!isAct }; fab.dataset.bibiRun = id;
+    if (isAct) fab.classList.add('bibirun');   // 動作中鈕本身不接點擊（比比不在那裡）；待機小動作不擋，滑鼠移過去照樣開環
+    ensureStage(); pose(0, 0); face(1);
+  }
+  function endRun() {
+    runTok++; cancelTweens(); ++showTok; watchOff();
+    run = null; tipFollow = false; setTimeout(hopSched, 0);
+    if (fab) { fab.classList.remove('bibirun'); delete fab.dataset.bibiRun; }
+    pose(0, 0); face(1); clearStage();
+  }
+  function finishAct() {
+    mode = 'idle'; if (fab) {delete fab.dataset.bibiAct; fab.classList.remove('bibiinteracting');}
+    if (ring) ring.classList.remove('cool');
+    applyIdle(); schedFidget();
+  }
+  /** 打斷：立刻回原位、道具清掉。動作被打斷＝回情境待機；小動作被打斷＝只回原位（東張西望換過圖就換回來） */
+  function stopRun(why) {
+    pendingAct++;   // 包含仍在等首次載圖的動作：Esc／換頁／停止後不可偷偷啟動
+    waitingAct = false; clearTimeout(ringSayTimer);
+    if (!run) {
+      if (mode !== 'act' && mode !== 'loading') return false;
+      lastStop = why || ''; actSerial++;
+      clearTimeout(actTimer); clearTimeout(actFxTimer);
+      document.querySelectorAll('.bibifx,.bibiflash').forEach((el) => el.remove());
+      runTok++; cancelTweens(); watchOff(); pose(0,0); face(1); clearStage(); hideTip(); finishAct(); return true;
+    }
+    actSerial++; clearTimeout(actFxTimer);
+    const wasAct = run.act; lastStop = why || '';
+    runTok++; cancelTweens(); clearTimeout(actTimer);
+    endRun(); hideTip(); document.querySelectorAll('.bibifx,.bibiflash').forEach(el => el.remove());
+    if (wasAct) finishAct(); else if (want !== idleFile()) applyIdle();
+    return true;
+  }
+  const stopFidget = () => { if (run && !run.act) stopRun('fidget'); };
+  /** 腳本在「對的那一刻」叫 cue() 說這個動作的台詞（例如接到球才說「接到了！」）；cue('…') 說指定的一句 */
+  function cue(text) {
+    if (!run || !run.act) return;
+    if (text) { say(text, 1800); return; }
+    if (run.line && !run.said) { run.said = true; say(run.line, 2600); }
+  }
+  function playChoreo(a, line) {
+    clearTimeout(fidgetT); stopFidget(); preload();
+    const g = geo();                      // 量原位（鈕本身不會動，只有裡面的圖層在動）
+    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin', 'leaf'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
+    const tok = runTok;
+    CHOREO[a.id](g).then(() => { if (tok === runTok) { if (!run.said) cue(); endRun(); finishAct(); } },
+      (e) => { if (e !== ABORT && tok === runTok) { endRun(); finishAct(); if (window.console) console.warn('bibi', e); } });
+  }
+  function schedFidget() {
+    clearTimeout(fidgetT);
+    if (noFidget || reduce()) return;
+    fidgetT = setTimeout(() => doFidget(), 20000 + Math.random() * 20000);
+  }
+  function doFidget(kind) {
+    const p = $('supPanel');
+    if (!fab || run || mode !== 'idle' || sleeping || ringOpen() || hoverFab || document.hidden || !canRing() || (p && !p.hidden) || reduce()) { schedFidget(); return false; }
+    const ks = Object.keys(FIDGET); kind = FIDGET[kind] ? kind : ks[Math.floor(Math.random() * ks.length)];
+    const g = geo();
+    startRun('f_' + kind, false);
+    const tok = runTok;
+    FIDGET[kind](g).then(() => { if (tok === runTok) { endRun(); if (want !== idleFile()) applyIdle(); } schedFidget(); },
+      (e) => { if (e !== ABORT && tok === runTok) endRun(); schedFidget(); });
+    return kind;
+  }
+
+  /* ---------- 接上 #supFab ---------- */
+  function attach() {
+    fab = $('supFab'); if (!fab || fab.dataset.bibiOn) return !!fab;
+    fab.dataset.bibiOn = '1';
+    const a = fab.querySelector('img.supgif');
+    if (!a) return false;
+    a.classList.add('bibiimg'); a.removeAttribute('width'); a.removeAttribute('height');
+    const b = a.cloneNode(false); b.classList.add('bibiback'); b.removeAttribute('src');
+    /* 兩張圖包進「位移層 .bibiwrap ＞ 身體層 .bibibody」：動作編排只動這兩層的 transform，鈕本身（拖曳、避讓量的是它）不動 */
+    wrapEl = document.createElement('span'); wrapEl.className = 'bibiwrap'; wrapEl.setAttribute('aria-hidden', 'true');
+    bodyEl = document.createElement('span'); bodyEl.className = 'bibibody';
+    hopEl = document.createElement('span'); hopEl.className = 'bibihop';   // 待機「開心的跳」的 CSS 動畫掛在這層（跟編排的 transform 分開，互不覆蓋）
+    hopEl.appendChild(bodyEl); wrapEl.appendChild(hopEl); a.before(wrapEl); bodyEl.appendChild(a); bodyEl.appendChild(b);
+    imgs = [a, b]; front = 0;
+    const stillCache = new Image(); stillCache.src = src(IDLE_STILL);
+    shown = '';   // 開場那張（support.js 的 wave.webp，沒有版本戳）一律換成帶版本戳的待機圖
+    fab.title = '';   // 改用自己的提示泡泡（說比比現在在幹嘛）；讀屏仍讀 aria-label「客服：比比・問題小助手」
+    tip = document.createElement('div'); tip.id = 'bibiTip'; tip.className = 'bibitip'; tip.hidden = true; tip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tip);
+
+    /* 桌機：滑鼠移到比比上 → 展開環；離開比比與環 → 收起 */
+    fab.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch' || tapMode()) return;
+      hoverFab = true; clearTimeout(closeT);
+      if (!ringOpen()) { say(tipText()); openT = setTimeout(openRing, 140); }
+    });
+    fab.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') hoverFab = false; });
+    document.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch' || tapMode()) return;
+      if (fab.classList.contains('supdrag')) { if (ringOpen()) closeRing(true); return; }
+      if (!ringOpen() && !openT) return;
+      const inside = e.target && e.target.closest && (e.target.closest('#supFab') || e.target.closest('#bibiRing'));
+      if (inside) { clearTimeout(closeT); closeT = 0; return; }
+      if (!closeT) closeT = setTimeout(() => { closeT = 0; if (!ringOpen()) { clearTimeout(openT); openT = 0; hideTip(); return; } closeRing(); }, 320);
+    }, { passive: true });
+    /* 點比比本體：桌機照舊開客服（先把環收掉、比比走回原位）；手機第一下展開環、再點一下收起 */
+    document.addEventListener('click', (e) => {
+      const t = e.target; if (!t || !t.closest || !t.closest('#supFab')) return;
+      if (tapMode()) {
+        const p = $('supPanel');
+        if (p && !p.hidden) return;               // 客服面板開著：照舊交給 support.js（收起面板）
+        e.stopImmediatePropagation(); e.preventDefault();
+        if (ringOpen()) closeRing(); else openRing();
+        return;
+      }
+      clearTimeout(openT); openT = 0;
+      if (ringOpen()) closeRing(true); else hideTip();
+    }, true);
+    /* 點別的地方收起（手機最常用；桌機滑鼠離開本來就會收） */
+    document.addEventListener('pointerdown', (e) => {
+      const t = e.target;
+      if (t && t.closest && (t.closest('#supFab') || t.closest('#bibiRing'))) return;
+      /* 手機點空白＝收環；比比正在外面玩也一起叫回原位（桌機滑鼠點頁面不打斷，等他玩完） */
+      if ((run || waitingAct) && (tapMode() || e.pointerType === 'touch')) stopRun('tap');
+      if (!ringOpen()) return;
+      closeRing();
+    }, true);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { stopRun('esc'); if (ringOpen()) closeRing(true); } });
+    window.addEventListener('hashchange', () => { stopRun('page'); closeRing(true); setTimeout(applyIdle, 0); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopRun('hidden'); else hopSched(); });
+    /* 視窗真的變大小才收（手機好幾支會自己派假的 resize 叫圖表重排，例如 mobile3.js 換指數卡；那種不算） */
+    let runWH = innerWidth + 'x' + innerHeight;
+    window.addEventListener('resize', () => {
+      const wh = innerWidth + 'x' + innerHeight;
+      if (ringOpen() && openWH !== wh) closeRing(true);
+      if (run && runWH !== wh) stopRun('resize');   // 視窗真的變大小：跑出去的位置算的是舊視窗，叫回原位
+      runWH = wh;
+    });
+    window.addEventListener('tw:quotes', () => { const t = tpe(); if (t.hm >= 540 && t.hm <= 810) applyIdle(); });
+    /* 客服關掉／被抽屜蓋住／進管理區：環一起收 */
+    try {
+      new MutationObserver(() => { if (ringOpen() && !canRing() && !($('supPanel') || {}).hidden === false) closeRing(true); if (fabOff()) { stopRun('off'); closeRing(true); hideTip(); } })
+        .observe(html, { attributes: true, attributeFilter: ['class'] });
+      new MutationObserver(() => { if (!fab) return; if (fab.hidden || fab.classList.contains('supaway')) { stopRun('away'); if (ringOpen()) closeRing(true); } })
+        .observe(fab, { attributes: true, attributeFilter: ['class', 'hidden'] });
+    } catch (e) { /* 舊瀏覽器：靠點擊與換頁收起 */ }
+    applyIdle();
+    loadHol().then(applyIdle);
+    setInterval(applyIdle, IDLE_EVERY);
+    schedFidget();
+    return true;
+  }
+
+  function boot() {
+    const s = document.createElement('style'); s.id = 'bibiCss'; s.textContent = CSS; document.head.appendChild(s);
+    if (attach()) return;
+    /* support.js 在 DOMContentLoaded 才建 #supFab：等它出現 */
+    let n = 0; const iv = setInterval(() => { if (attach() || ++n > 80) clearInterval(iv); }, 100);
+  }
+  /* 驗收用：注入假時間／假漲跌／假休市表、直接播某個動作、讀目前狀態 */
+  window.Bibi = {
+    MAP: { ACTS, MS, REACTIONS: REACTION_META, IDLE: IDLE_HOP, STILL: IDLE_STILL },
+    state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, loading: waitingAct, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
+      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0, tweens: activeTweens.size, readyParts: Array.from(readyParts).filter(f => optionalParts.has(f)),
+      src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/[?#].*$/, '') : '', flip: flipNow,
+      tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
+    test: (o) => { o = o || {}; if ('now' in o) T.now = o.now; if ('pct' in o) T.pct = o.pct; if ('hol' in o) T.hol = o.hol;
+      if ('fidget' in o) { noFidget = !o.fidget; if (noFidget) { clearTimeout(fidgetT); stopFidget(); } else schedFidget(); } applyIdle(); return idleNow; },
+    fidget: (k) => doFidget(k), stop: (why) => stopRun(why || 'api'), PART, BASE: IDLE_HOP,
+    reset: () => { T.now = null; T.pct = undefined; T.hol = null; applyIdle(); },
+    idle: () => idle(), open: openRing, close: closeRing, act,
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();

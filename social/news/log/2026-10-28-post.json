@@ -1,0 +1,84 @@
+{
+ "slot": "post",
+ "date": "2026-10-28",
+ "run_at": "2026-10-28T17:28+08:00",
+ "posted": [
+  {
+   "file": "2026-10-28_news-post-1.md",
+   "publish_at": "2026-10-28T17:44+08:00",
+   "title": "台股收盤加權47,035.58點",
+   "topic_category": "台股",
+   "content_type": "盤勢數字",
+   "layout": "D-無圖大數字",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "11.4",
+   "news_ids": "udn-8347f7396da6df1f,udn-81a155d1bf870e84,udn-b57de81a0b3d005e,udn-769ca902b0084fa2,cnyes-6639442",
+   "u_code": "newspost1"
+  },
+  {
+   "file": "2026-10-28_news-post-2.md",
+   "publish_at": "2026-10-28T17:49+08:00",
+   "title": "是方第3季財報EPS 4.31元",
+   "topic_category": "財報",
+   "content_type": "財報數字",
+   "layout": "D-無圖大數字",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "5.4",
+   "news_ids": "udn-eb974494ef601ffb",
+   "u_code": "newspost2"
+  },
+  {
+   "file": "2026-10-28_news-post-3.md",
+   "publish_at": "2026-10-28T17:54+08:00",
+   "title": "台光電第3季財報EPS 40.46元",
+   "topic_category": "財報",
+   "content_type": "財報數字",
+   "layout": "D-無圖大數字",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "5.4",
+   "news_ids": "udn-f153fd350b4ad046",
+   "u_code": "newspost3"
+  }
+ ],
+ "skipped": [
+  {
+   "title": "資金大輪動AI遭拋售！？台股底部量縮，留意三大關鍵AI供應鏈買點！",
+   "why": "沒有與前期的比較數字（季增／年增／前高）"
+  },
+  {
+   "title": "CoreWeave債券殖利率飆15%！黃仁勳稱不必兜底 克雷默嗆：有信心就買下債券",
+   "why": "圖卡資訊列不足 2 列（與主旨相關的數字太少）"
+  },
+  {
+   "title": "大借貸時代來臨 全台個人放款餘額達22.9兆元創史上新高",
+   "why": "找不到主體（公司／機構／指數）"
+  },
+  {
+   "title": "價格戰改寫AI格局！陸模型全球調用量前五、連霸26周　專家：別高興太早 不等於生態領先",
+   "why": "找不到主體（公司／機構／指數）"
+  },
+  {
+   "title": "房貸信貸雙貸族突破43萬人創新高 平均背650萬房貸及130萬信貸",
+   "why": "找不到主體（公司／機構／指數）"
+  },
+  {
+   "title": "Anthropic 算力布局點火 ASIC！聯發科甩連5跌強彈逾6% 創意、智原漲停",
+   "why": "沒有可當主旨的關鍵數字"
+  },
+  {
+   "title": "台股開高收復季線 突破47K 法人：美股續彈助攻，台股迎技術性反彈",
+   "why": "圖卡資訊列不足 2 列（與主旨相關的數字太少）"
+  },
+  {
+   "title": "台股跳空開高！個股成交第一00406A 零股前五大這三檔個股入列",
+   "why": "沒有可當主旨的關鍵數字"
+  }
+ ],
+ "overlap": "重疊檢查：程式 3 張 0 筆（有重疊的不排程）"
+}

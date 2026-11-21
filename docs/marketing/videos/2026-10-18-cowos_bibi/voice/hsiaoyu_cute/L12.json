@@ -1,0 +1,38 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+15%",
+ "pitch": "+15Hz",
+ "text": "台灣的供應鏈分好幾段：",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "台灣的",
+   "start": 0.093458,
+   "dur": 0.456541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "供應鏈",
+   "start": 0.560875,
+   "dur": 0.576083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "分",
+   "start": 1.180416,
+   "dur": 0.217375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "好幾",
+   "start": 1.452166,
+   "dur": 0.380416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "段",
+   "start": 1.908708,
+   "dur": 0.173916
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+[
+ {
+  "id": "N",
+  "name": "①灰藍夜（現行）",
+  "bg": "#3B4553",
+  "card": "#46515F",
+  "text": "#EEF2F6",
+  "sub": "#C3CCD6",
+  "hint": "#E2CB98",
+  "line": "#9AA5B3",
+  "lamp": "#F2D88E",
+  "vig": ".16",
+  "glow": ".18"
+ },
+ {
+  "id": "D",
+  "name": "②深夜黑藍（原版）",
+  "bg": "#1C2128",
+  "card": "#232A33",
+  "text": "#C9D1DA",
+  "sub": "#8E99A6",
+  "hint": "#B9A27A",
+  "line": "#6B7683",
+  "lamp": "#E8C97A",
+  "vig": ".28",
+  "glow": ".18"
+ },
+ {
+  "id": "M",
+  "name": "③末班車暗藍",
+  "bg": "#323C4C",
+  "card": "#3D4859",
+  "text": "#ECF0F5",
+  "sub": "#BFC9D5",
+  "hint": "#E6D49A",
+  "line": "#94A0B2",
+  "lamp": "#F0DC96",
+  "vig": ".18",
+  "glow": ".16"
+ },
+ {
+  "id": "V",
+  "name": "④霧紫灰（黃昏）",
+  "bg": "#4A4454",
+  "card": "#554E60",
+  "text": "#F3EFF5",
+  "sub": "#D0C7D6",
+  "hint": "#E9CF9E",
+  "line": "#ABA0B5",
+  "lamp": "#F2D88E",
+  "vig": ".16",
+  "glow": ".18"
+ },
+ {
+  "id": "C",
+  "name": "⑤水泥暖灰",
+  "bg": "#56524D",
+  "card": "#615C56",
+  "text": "#F4F1EC",
+  "sub": "#D6D0C8",
+  "hint": "#EBD29E",
+  "line": "#B0A89E",
+  "lamp": "#F2D88E",
+  "vig": ".16",
+  "glow": ".18"
+ },
+ {
+  "id": "F",
+  "name": "⑥日光燈灰綠白",
+  "bg": "#E3E7E1",
+  "card": "#F1F3EE",
+  "text": "#2A302C",
+  "sub": "#4F574F",
+  "hint": "#6B5B30",
+  "line": "#6A746D",
+  "lamp": "#C9B97A",
+  "vig": ".10",
+  "glow": ".22"
+ },
+ {
+  "id": "R",
+  "name": "⑦陰天淺灰藍",
+  "bg": "#D3D9E0",
+  "card": "#E4E8EC",
+  "text": "#232C36",
+  "sub": "#46505B",
+  "hint": "#6A5A2E",
+  "line": "#6C7884",
+  "lamp": "#C9B97A",
+  "vig": ".10",
+  "glow": ".22"
+ }
+]

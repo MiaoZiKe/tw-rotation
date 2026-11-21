@@ -1,0 +1,12 @@
+{
+ "說明": "LOGO 參數。mode=text 先用純文字字標；簡約 LOGO 完成後改成 mode=image，填 image 路徑（相對於 src/）與高度，重跑 gen.py 即可，版面座標不用動。",
+ "mode": "text",
+ "text": "談晴說礙",
+ "sun_char": "晴",
+ "cloud_char": "礙",
+ "size": 32,
+ "letter_spacing": "0.34em",
+ "image_night": "",
+ "image_day": "",
+ "image_height": 44
+}

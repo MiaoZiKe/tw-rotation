@@ -1,0 +1,12 @@
+/* 科技透明圈：公司排行搜尋框＋公司卡排序鈕（Andy 10-31）。手機 ≤640 搜尋全寬一列、排序鈕可橫向捲動 */
+#v-tc .tc-srch{position:relative;display:flex;align-items:center;max-width:320px;margin:0 0 var(--sp-2)}
+#v-tc .tc-srch input{width:100%;box-sizing:border-box;padding:7px 34px 7px 12px;font-size:14px;color:var(--ink);background:var(--bg-2,transparent);border:1px solid var(--line);border-radius:var(--r-sm)}
+#v-tc .tc-sortbar{display:flex;align-items:center;gap:var(--sp-2);margin:0 0 var(--sp-3)}
+#v-tc .tc-sortbar .seg{flex-wrap:nowrap}
+#v-tc .tc-cof{flex-wrap:wrap}
+@media (max-width:640px){
+  #v-tc .tc-srch{max-width:none;width:100%}
+  #v-tc .tc-sortbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  #v-tc .tc-sortbar .seg{flex:0 0 auto}
+  #v-tc .tc-sortbar .seg button{white-space:nowrap}
+}

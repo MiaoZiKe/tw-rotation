@@ -1,0 +1,81 @@
+name: 管線測試（push 即跑）
+
+# 2026-11-09：每日關卡（daily.yml「跑指標庫測試」）曾三次被無關測試擋死整條盤後資料。
+# 現在改成「動到 tests／pipeline／scripts／requirements 就在 push 當下跑同一份白名單」：
+# 紅了當場開 issue，不要等到 15:30 抓資料時才發現。清單來源與 daily.yml 同一支 scripts/daily_test_list.py。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/**"
+      - "pipeline/**"
+      - "scripts/**"
+      - "requirements.txt"
+      - "pytest.ini"
+      - ".github/workflows/daily.yml"
+      - ".github/workflows/tests-on-push.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: tests-on-push-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pipeline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      - name: 跑每日關卡同一份白名單（不含 realdata）
+        id: pytest
+        continue-on-error: true
+        run: |
+          FILES=$(python scripts/daily_test_list.py)
+          echo "選中 $(echo $FILES | wc -w) 個測試檔"
+          set +e
+          python -m pytest $FILES -q -m "not realdata" 2>&1 | tee /tmp/pytest.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: 紅了開／更新 issue，綠了關掉
+        if: always()
+        run: |
+          TITLE="⚠️ 每日管線測試紅了（會擋 15:30 抓資料）"
+          OPEN=$(gh issue list -R "$REPO" --state open --search "in:title $TITLE" --json number -q '.[0].number')
+          if [ "${{ steps.pytest.outcome }}" = "success" ]; then
+            [ -n "$OPEN" ] && gh issue close "$OPEN" -R "$REPO" -c "白名單測試全綠（${{ github.sha }}），自動關閉。" || true
+          else
+            BODY="push \`${{ github.sha }}\` 後，每日關卡的白名單測試紅了；不修的話 daily.yml 會停在「跑指標庫測試」、不抓資料。
+
+          \`\`\`
+          $(tail -40 /tmp/pytest.txt 2>/dev/null)
+          \`\`\`
+          這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            if [ -n "$OPEN" ]; then
+              gh issue comment "$OPEN" -R "$REPO" --body "$BODY" || echo "::warning::留言失敗"
+            else
+              gh issue create -R "$REPO" --title "$TITLE" --body "$BODY" || echo "::warning::開 issue 失敗"
+            fi
+          fi
+
+      - name: 標紅
+        if: steps.pytest.outcome == 'failure'
+        run: |
+          echo "::error::每日管線白名單測試紅了，看 issue 與上一步輸出"
+          exit 1

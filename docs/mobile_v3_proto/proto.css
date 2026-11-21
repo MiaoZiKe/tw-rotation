@@ -1,0 +1,196 @@
+/* ============================================================================
+   手機版 v3 原型的樣式（docs/mobile_v3_spec.md）。
+   只寫手機新增的元件，一律 p- 開頭；顏色全部吃站上的 token（--rise 紅漲、--fall 綠跌）。
+   字級下限 12px；可點的東西 ≥ 44px（密集晶片 36px）。
+   ============================================================================ */
+:root{ --p-top:52px; --p-nav:58px; --st-imp:var(--cyan); --st-lead:var(--rise); --st-weak:var(--amber); --st-lag:var(--fall); }
+html,body.p-body{margin:0;padding:0;background:var(--bg);color:var(--ink);overflow-x:hidden}
+body.p-body{font-size:14px;line-height:1.5;padding-bottom:calc(var(--p-nav) + env(safe-area-inset-bottom))}
+.p-body button{font:inherit;color:inherit}
+
+/* ---- 頂欄：52px，一列放得下（logo／站名／搜尋／更多）---- */
+.p-top{position:sticky;top:0;z-index:40;height:var(--p-top);display:flex;align-items:center;gap:8px;
+  padding:0 12px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.p-logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font:700 13px var(--mono);
+  background:linear-gradient(135deg,var(--cyan),var(--violet));color:#07101f}
+.p-title{font-size:16px;white-space:nowrap}
+.p-sp{flex:1}
+.p-ic{width:44px;height:44px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel);font-size:18px}
+
+/* ---- 底部導覽：一列五顆、58px（現行兩列七顆 102px）---- */
+.p-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;height:calc(var(--p-nav) + env(safe-area-inset-bottom));
+  display:grid;grid-template-columns:repeat(5,1fr);background:var(--bg-2);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+.p-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;font-size:12px;color:var(--ink-3);min-height:44px}
+.p-nav button i{font-style:normal;font-size:18px;line-height:1}
+.p-nav button.on{color:var(--cyan)}
+.p-nav button.on i{text-shadow:0 0 12px color-mix(in srgb,var(--cyan) 60%,transparent)}
+
+main#pMain{padding:8px 12px 16px}
+
+/* ---- 兩層導覽：步驟（四格一列）＋ 分段（膠囊）---- */
+.p-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:0 0 6px}
+.p-steps button{min-height:44px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 2px;line-height:1.2}
+.p-steps button b{font-size:13px;white-space:nowrap}
+.p-steps button em{font-style:normal;font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.p-steps button.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));box-shadow:var(--glow)}
+.p-steps button.on em{color:var(--cyan)}
+.p-segs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px;padding:1px}
+.p-segs::-webkit-scrollbar{display:none}
+.p-segs button{flex:0 0 auto;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line-2);
+  background:transparent;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.p-segs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+
+/* ---- 卡片 ---- */
+.p-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px 12px}
+.p-card + .p-card{margin-top:10px}
+.p-head{display:flex;align-items:center;gap:8px;min-height:36px}
+.p-head h3{margin:0;font-size:16px;white-space:nowrap}
+.p-head small{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.p-head .p-sp{flex:1}
+/* 「?」：32px 的圓，觸控範圍用 ::after 撐到 44px（不佔版面）*/
+.p-q{position:relative;flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--line-2);
+  background:var(--panel-2);font:700 15px var(--mono);color:var(--ink-2);display:grid;place-items:center;padding:0}
+.p-q::after{content:'';position:absolute;inset:-6px}
+.p-q.on{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
+.p-btn{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);font-size:13px;white-space:nowrap}
+.p-btn.on{border-color:var(--cyan);color:var(--cyan)}
+.p-seg2{display:inline-flex;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;flex:0 0 auto}
+.p-seg2 button{min-height:36px;padding:0 12px;border:0;background:transparent;font-size:13px;color:var(--ink-2)}
+.p-seg2 button.on{background:var(--cyan);color:#06101e;font-weight:700}
+.p-more{display:block;width:100%;min-height:44px;margin-top:8px;border-radius:12px;border:1px dashed var(--line-2);
+  background:transparent;color:var(--ink-2);font-size:13px}
+.p-next{display:block;width:100%;min-height:44px;margin-top:10px;border-radius:12px;border:1px solid var(--cyan);
+  background:color-mix(in srgb,var(--cyan) 8%,transparent);color:var(--ink);font-weight:700}
+.p-todo{padding:18px 12px;border:1px dashed var(--line-2);border-radius:12px;color:var(--ink-3);font-size:13px;text-align:center}
+
+/* ---- 說明氣泡（?）與底部抽屜：點背景關閉 ---- */
+.p-scrim{position:fixed;inset:0;z-index:60;background:rgba(3,6,14,.45)}
+.p-scrim.clear{background:transparent}
+.p-pop{position:fixed;z-index:61;left:12px;right:12px;max-height:52vh;overflow:auto;background:var(--panel-2);
+  border:1px solid var(--line-2);border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.65;color:var(--ink-2);
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.8)}
+.p-pop b{color:var(--ink)}
+.p-pop ul{margin:6px 0 0;padding-left:18px}
+.p-pop li+li{margin-top:4px}
+.p-pop .p-popfoot{margin-top:8px;font-size:12px;color:var(--ink-3)}
+.p-sheet{position:fixed;z-index:61;left:0;right:0;bottom:0;max-height:46vh;overflow:auto;background:var(--panel-2);
+  border-top:1px solid var(--line-2);border-radius:18px 18px 0 0;padding:6px 14px calc(14px + env(safe-area-inset-bottom));
+  box-shadow:0 -18px 40px -12px rgba(0,0,0,.8)}
+.p-grab{width:40px;height:4px;border-radius:2px;background:var(--line-2);margin:4px auto 8px}
+.p-shhead{display:flex;align-items:center;gap:8px}
+.p-shhead .no{font:700 13px var(--mono);min-width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:var(--c,var(--cyan));color:#07101f}
+.p-shhead b{font-size:16px}
+.p-shbody{margin-top:8px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
+.p-shbody i{display:block;font-style:normal}
+.p-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.p-chips a,.p-chips span{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);display:inline-flex;align-items:center;
+  font-size:13px;color:var(--ink);text-decoration:none;background:var(--panel)}
+.p-chips span.none{color:var(--ink-3);border-style:dashed}
+.p-shnav{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;margin-top:12px;gap:8px}
+.p-shnav button{height:44px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel);font-size:18px}
+.p-shnav span{text-align:center;font:600 13px var(--mono);color:var(--ink-3)}
+
+/* ---- 足跡輪盤（新雷達長相）---- */
+.p-radar{position:relative;margin:4px auto 0}
+.p-radar svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.p-radar .qb{position:absolute;min-height:30px;padding:0 10px;border-radius:999px;border:1.2px solid var(--c);
+  background:color-mix(in srgb,var(--bg) 70%,var(--panel));color:var(--c);font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.p-radar .qb b{color:var(--ink);font-family:var(--mono);font-size:14px}
+.p-radar .qb.on{background:color-mix(in srgb,var(--c) 28%,var(--panel));color:var(--ink)}
+.p-radar .qb::after{content:'';position:absolute;inset:-7px -2px}
+.rscan{transform-origin:center;animation:rspin 6s linear infinite}
+@keyframes rspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .rscan{animation:none;display:none} }
+.p-focus{display:grid;grid-template-columns:auto 1fr auto;gap:0 10px;align-items:center;margin-top:4px;
+  padding:4px 10px 6px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
+.p-focus .nm{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;min-width:0}
+.p-focus .nm i{width:10px;height:10px;border-radius:50%;background:var(--c);flex:0 0 auto}
+.p-focus .st{font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+.p-focus .nums{grid-column:1/-1;display:flex;gap:14px;font:600 13px var(--mono);color:var(--ink-2)}
+.p-focus .nums em{font-style:normal;font-family:inherit;color:var(--ink-3);font-weight:400;margin-right:3px;font-size:12px}
+.p-focus a{font-size:13px;color:var(--cyan);text-decoration:none;min-height:36px;display:inline-flex;align-items:center}
+.up{color:var(--rise)} .dn{color:var(--fall)} .fl{color:var(--flat)}
+
+/* ---- 排行長條（HTML，不是圖表庫：點一下就要有反應、字不能縮）---- */
+.p-rank{list-style:none;margin:6px 0 0;padding:0}
+.p-rank li{position:relative;display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;min-height:36px;
+  padding:0 6px;border-radius:8px;cursor:pointer}
+.p-rank li .bar{position:absolute;left:28px;top:6px;bottom:6px;border-radius:0 4px 4px 0;background:color-mix(in srgb,var(--c,var(--cyan)) 22%,transparent);z-index:0}
+.p-rank li > *{position:relative;z-index:1}
+.p-rank li .r{font:600 12px var(--mono);color:var(--ink-3);text-align:right}
+.p-rank li .n{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-rank li .v{font:600 13px var(--mono);white-space:nowrap}
+.p-rank li .v small{font-size:12px;margin-left:6px}
+.p-rank li.on{outline:1.5px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+.p-rank li.off{opacity:.55}
+
+/* 左右可捲的列：邊緣淡出 ＋ 位置指示 */
+.p-hsc{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.p-hsc.end{-webkit-mask-image:none;mask-image:none}
+.p-pos{display:flex;justify-content:center;gap:6px;align-items:center;margin-top:4px;font-size:12px;color:var(--ink-3)}
+.p-pos i{width:6px;height:6px;border-radius:50%;background:var(--line-2)}
+.p-pos i.on{background:var(--cyan);width:16px;border-radius:3px}
+
+/* ---- 大盤合併圖 ---- */
+.p-idxnum{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:4px}
+.p-idxnum .px{font:700 28px var(--mono);letter-spacing:-.5px}
+.p-idxnum .chg{font:700 15px var(--mono)}
+.p-idxnum .dt{font-size:12px;color:var(--ink-3);margin-left:auto}
+.p-ohlc{display:flex;gap:12px;font:13px var(--mono);color:var(--ink-3);flex-wrap:wrap}
+.p-ohlc b{font-weight:600;color:var(--ink-2)}
+.p-chart{width:100%;touch-action:pan-y}
+
+/* ---- 資金去向（鑽取長條）---- */
+.p-drill .lv{margin-left:12px;border-left:2px solid var(--line-2);padding-left:6px}
+
+/* ---- 剖析圖（手機：只留編號）---- */
+.p-dgbar{display:flex;gap:6px;align-items:center;margin:6px 0}
+.p-dgpick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}
+.p-dgpick::-webkit-scrollbar{display:none}
+.p-dgpick button{flex:0 0 auto;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-size:13px;white-space:nowrap}
+.p-dgpick button.on{border-color:var(--cyan);color:var(--cyan);background:color-mix(in srgb,var(--cyan) 10%,var(--panel))}
+.p-dgstage{position:relative;border-radius:14px;background:var(--dg-bg,var(--bg-2));border:1px solid var(--line);overflow:hidden}
+.p-dgscroll{position:relative;overflow:auto;-webkit-overflow-scrolling:touch}
+.p-dgscroll.fit{overflow:hidden}
+/* 站上 externalize() 會替 svg 寫死原寸寬；手機「整張」模式把它蓋回 100% */
+.p-dgscroll.fit .dgcanvas svg{width:100% !important;min-width:0 !important;height:auto}
+.p-dgscroll .dgwrap{margin:0 !important;max-width:none !important}
+.p-dgscroll .dgcards,.p-dgscroll .dglead,.p-dgscroll .dghead{display:none !important}   /* ★ 不留字卡 */
+.p-dgscroll .dggrid{display:block !important}
+.p-dgscroll .dgcanvas{overflow:visible !important}
+.p-dgscroll g.anc{opacity:0}                              /* 圖上原本的編號圓點改由上面那一層 HTML 鈕接手 */
+.p-numlayer{position:absolute;left:0;top:0;pointer-events:none}
+.p-num{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;pointer-events:auto;
+  border:2px solid var(--c,var(--cyan));background:color-mix(in srgb,var(--bg) 80%,var(--panel));color:var(--ink);
+  font:700 12px var(--mono);display:grid;place-items:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.p-num::after{content:'';position:absolute;inset:-8px;border-radius:50%}
+.p-num.on{background:var(--c,var(--cyan));color:#07101f;transform:scale(1.18);z-index:2;box-shadow:0 0 0 4px color-mix(in srgb,var(--c,var(--cyan)) 35%,transparent)}
+.p-dghint{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;color:var(--ink-3)}
+.p-3d{position:relative;min-height:340px}
+/* 3D：卡片清單收掉，只留畫布上的編號圓點，點了開抽屜 */
+.p-3d .dgstage-b,.p-3d .lbl3d{display:none !important}
+.p-3d .lead3d{pointer-events:none}
+.p-3d .lead3d .ld-no{pointer-events:auto;cursor:pointer}
+.p-3d .lead3d .ld-no circle{r:13px}
+.p-3d .lead3d .ld-no.on circle{stroke:#fff;stroke-width:3}
+.p-3d .lead3d .ld-no text{font-size:12px}
+
+.p-3d .lead3d .ld-no{display:none !important}              /* 站上的編號圓點會互相疊住，改由 .p-num3 接手 */
+.p-3d .p-num3{z-index:3}
+.p-head h3{overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+/* 大盤：開高低昨收四格小磚（標籤在上、數字在下），360 寬也排得進一列 */
+#pIdxOhlc{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:4px 0 2px}
+#pIdxOhlc span{display:flex;flex-direction:column;font-size:12px;line-height:1.3;color:var(--ink-3);min-width:0}
+#pIdxOhlc b{font:600 12.5px var(--mono);color:var(--ink-2);white-space:nowrap}
+#pIdxOhlc b.up{color:var(--rise)} #pIdxOhlc b.dn{color:var(--fall)}
+#pIdxDt{font-family:var(--mono)}
+/* 放大模式：站上 .dgwrap 是 overflow:hidden＋container-type:inline-size（寬度不跟內容走），
+   不蓋掉的話原寸 SVG 被裁掉、捲動容器量不到它的寬度（原型第二輪就是這樣紅的）*/
+.p-dgscroll:not(.fit) .dgwrap{overflow:visible !important;width:max-content !important;container-type:normal !important}
+.p-dgscroll:not(.fit) .dgcanvas{max-width:none !important}

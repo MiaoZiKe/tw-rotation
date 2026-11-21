@@ -1,0 +1,717 @@
+{
+ "token_set": true,
+ "day": "2026-09-24",
+ "finmind": [
+  {
+   "dataset": "TaiwanStockEvery5SecondsIndex",
+   "day": "2026-09-24",
+   "data_id": null,
+   "error": {
+    "dataset": "TaiwanStockEvery5SecondsIndex",
+    "data_id": null,
+    "status": 400,
+    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+   },
+   "n": 0
+  },
+  {
+   "dataset": "TaiwanStockEvery5SecondsIndex",
+   "day": "2024-09-24",
+   "data_id": null,
+   "error": {
+    "dataset": "TaiwanStockEvery5SecondsIndex",
+    "data_id": null,
+    "status": 400,
+    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+   },
+   "n": 0
+  },
+  {
+   "dataset": "TaiwanVariousIndicators5Seconds",
+   "day": "2026-09-24",
+   "data_id": null,
+   "error": {
+    "dataset": "TaiwanStockEvery5SecondsIndex",
+    "data_id": null,
+    "status": 400,
+    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+   },
+   "n": 3241,
+   "columns": [
+    "TAIEX",
+    "date"
+   ],
+   "head": [
+    {
+     "date": "2026-09-24 09:00:00",
+     "TAIEX": 48157.29
+    },
+    {
+     "date": "2026-09-24 09:00:05",
+     "TAIEX": 48075.39
+    },
+    {
+     "date": "2026-09-24 09:00:10",
+     "TAIEX": 47904.05
+    },
+    {
+     "date": "2026-09-24 09:00:15",
+     "TAIEX": 47832.48
+    },
+    {
+     "date": "2026-09-24 09:00:20",
+     "TAIEX": 47824.33
+    }
+   ],
+   "tail": [
+    {
+     "date": "2026-09-24 13:29:40",
+     "TAIEX": 48038.27
+    },
+    {
+     "date": "2026-09-24 13:29:45",
+     "TAIEX": 48038.27
+    },
+    {
+     "date": "2026-09-24 13:29:50",
+     "TAIEX": 48038.27
+    },
+    {
+     "date": "2026-09-24 13:29:55",
+     "TAIEX": 48038.27
+    },
+    {
+     "date": "2026-09-24 13:30:00",
+     "TAIEX": 48024.6
+    }
+   ],
+   "otc_hits_n": 0,
+   "otc_hits_head": [],
+   "otc_hits_tail": []
+  },
+  {
+   "dataset": "TaiwanVariousIndicators5Seconds",
+   "day": "2024-09-24",
+   "data_id": null,
+   "error": {
+    "dataset": "TaiwanStockEvery5SecondsIndex",
+    "data_id": null,
+    "status": 400,
+    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+   },
+   "n": 3241,
+   "columns": [
+    "TAIEX",
+    "date"
+   ],
+   "head": [
+    {
+     "date": "2024-09-24 09:00:00",
+     "TAIEX": 22285.53
+    },
+    {
+     "date": "2024-09-24 09:00:05",
+     "TAIEX": 22273.79
+    },
+    {
+     "date": "2024-09-24 09:00:10",
+     "TAIEX": 22264.21
+    },
+    {
+     "date": "2024-09-24 09:00:15",
+     "TAIEX": 22264.02
+    },
+    {
+     "date": "2024-09-24 09:00:20",
+     "TAIEX": 22252.29
+    }
+   ],
+   "tail": [
+    {
+     "date": "2024-09-24 13:29:40",
+     "TAIEX": 22383.71
+    },
+    {
+     "date": "2024-09-24 13:29:45",
+     "TAIEX": 22383.71
+    },
+    {
+     "date": "2024-09-24 13:29:50",
+     "TAIEX": 22383.71
+    },
+    {
+     "date": "2024-09-24 13:29:55",
+     "TAIEX": 22383.71
+    },
+    {
+     "date": "2024-09-24 13:30:00",
+     "TAIEX": 22431.78
+    }
+   ],
+   "otc_hits_n": 0,
+   "otc_hits_head": [],
+   "otc_hits_tail": []
+  },
+  {
+   "dataset": "TaiwanStockStatisticsOfOrderBookAndTrade",
+   "day": "2026-09-24",
+   "data_id": null,
+   "error": {
+    "dataset": "TaiwanStockEvery5SecondsIndex",
+    "data_id": null,
+    "status": 400,
+    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+   },
+   "n": 3241,
+   "columns": [
+    "Time",
+    "TotalBuyOrder",
+    "TotalBuyVolume",
+    "TotalDealMoney",
+    "TotalDealOrder",
+    "TotalDealVolume",
+    "TotalSellOrder",
+    "TotalSellVolume",
+    "date"
+   ],
+   "head": [
+    {
+     "Time": "09:00:00",
+     "TotalBuyOrder": 461718,
+     "TotalBuyVolume": 5585729,
+     "TotalSellOrder": 469152,
+     "TotalSellVolume": 2025399,
+     "TotalDealOrder": 0,
+     "TotalDealVolume": 0,
+     "TotalDealMoney": 0,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "09:00:05",
+     "TotalBuyOrder": 472860,
+     "TotalBuyVolume": 5769874,
+     "TotalSellOrder": 478495,
+     "TotalSellVolume": 2232044,
+     "TotalDealOrder": 22075,
+     "TotalDealVolume": 62310,
+     "TotalDealMoney": 9460,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "09:00:10",
+     "TotalBuyOrder": 483753,
+     "TotalBuyVolume": 5901132,
+     "TotalSellOrder": 488218,
+     "TotalSellVolume": 2393315,
+     "TotalDealOrder": 32697,
+     "TotalDealVolume": 105212,
+     "TotalDealMoney": 18810,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "09:00:15",
+     "TotalBuyOrder": 498658,
+     "TotalBuyVolume": 6522691,
+     "TotalSellOrder": 502359,
+     "TotalSellVolume": 2875822,
+     "TotalDealOrder": 45543,
+     "TotalDealVolume": 145894,
+     "TotalDealMoney": 23081,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "09:00:20",
+     "TotalBuyOrder": 512540,
+     "TotalBuyVolume": 6675238,
+     "TotalSellOrder": 515016,
+     "TotalSellVolume": 3044261,
+     "TotalDealOrder": 54523,
+     "TotalDealVolume": 170501,
+     "TotalDealMoney": 27040,
+     "date": "2026-09-24"
+    }
+   ],
+   "tail": [
+    {
+     "Time": "13:29:40",
+     "TotalBuyOrder": 19980904,
+     "TotalBuyVolume": 22527289,
+     "TotalSellOrder": 22852888,
+     "TotalSellVolume": 12415431,
+     "TotalDealOrder": 2208682,
+     "TotalDealVolume": 8216715,
+     "TotalDealMoney": 690679,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "13:29:45",
+     "TotalBuyOrder": 19984814,
+     "TotalBuyVolume": 22547095,
+     "TotalSellOrder": 22855850,
+     "TotalSellVolume": 12424581,
+     "TotalDealOrder": 2208682,
+     "TotalDealVolume": 8216715,
+     "TotalDealMoney": 690679,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "13:29:50",
+     "TotalBuyOrder": 19988002,
+     "TotalBuyVolume": 22558252,
+     "TotalSellOrder": 22857967,
+     "TotalSellVolume": 12447358,
+     "TotalDealOrder": 2208682,
+     "TotalDealVolume": 8216715,
+     "TotalDealMoney": 690679,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "13:29:55",
+     "TotalBuyOrder": 19991710,
+     "TotalBuyVolume": 22575100,
+     "TotalSellOrder": 22860707,
+     "TotalSellVolume": 12453126,
+     "TotalDealOrder": 2208682,
+     "TotalDealVolume": 8216715,
+     "TotalDealMoney": 690679,
+     "date": "2026-09-24"
+    },
+    {
+     "Time": "13:30:00",
+     "TotalBuyOrder": 19998022,
+     "TotalBuyVolume": 22518620,
+     "TotalSellOrder": 22865859,
+     "TotalSellVolume": 12496407,
+     "TotalDealOrder": 2291091,
+     "TotalDealVolume": 8516600,
+     "TotalDealMoney": 736623,
+     "date": "2026-09-24"
+    }
+   ],
+   "otc_hits_n": 0,
+   "otc_hits_head": [],
+   "otc_hits_tail": []
+  },
+  {
+   "dataset": "TaiwanStockStatisticsOfOrderBookAndTrade",
+   "day": "2024-09-24",
+   "data_id": null,
+   "error": {
+    "dataset": "TaiwanStockEvery5SecondsIndex",
+    "data_id": null,
+    "status": 400,
+    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+   },
+   "n": 3241,
+   "columns": [
+    "Time",
+    "TotalBuyOrder",
+    "TotalBuyVolume",
+    "TotalDealMoney",
+    "TotalDealOrder",
+    "TotalDealVolume",
+    "TotalSellOrder",
+    "TotalSellVolume",
+    "date"
+   ],
+   "head": [
+    {
+     "Time": "09:00:00",
+     "TotalBuyOrder": 368787,
+     "TotalBuyVolume": 5423740,
+     "TotalSellOrder": 382179,
+     "TotalSellVolume": 1762159,
+     "TotalDealOrder": 0,
+     "TotalDealVolume": 0,
+     "TotalDealMoney": 0,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "09:00:05",
+     "TotalBuyOrder": 374144,
+     "TotalBuyVolume": 5523413,
+     "TotalSellOrder": 386121,
+     "TotalSellVolume": 1951434,
+     "TotalDealOrder": 9415,
+     "TotalDealVolume": 32535,
+     "TotalDealMoney": 3211,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "09:00:10",
+     "TotalBuyOrder": 380187,
+     "TotalBuyVolume": 5590165,
+     "TotalSellOrder": 390006,
+     "TotalSellVolume": 2062380,
+     "TotalDealOrder": 18102,
+     "TotalDealVolume": 53993,
+     "TotalDealMoney": 4953,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "09:00:15",
+     "TotalBuyOrder": 389462,
+     "TotalBuyVolume": 6709192,
+     "TotalSellOrder": 397450,
+     "TotalSellVolume": 2708221,
+     "TotalDealOrder": 25430,
+     "TotalDealVolume": 72753,
+     "TotalDealMoney": 6344,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "09:00:20",
+     "TotalBuyOrder": 396340,
+     "TotalBuyVolume": 6881837,
+     "TotalSellOrder": 403614,
+     "TotalSellVolume": 2906998,
+     "TotalDealOrder": 32478,
+     "TotalDealVolume": 88363,
+     "TotalDealMoney": 7588,
+     "date": "2024-09-24"
+    }
+   ],
+   "tail": [
+    {
+     "Time": "13:29:40",
+     "TotalBuyOrder": 13316418,
+     "TotalBuyVolume": 23578244,
+     "TotalSellOrder": 17027362,
+     "TotalSellVolume": 12077749,
+     "TotalDealOrder": 1842864,
+     "TotalDealVolume": 7457185,
+     "TotalDealMoney": 311245,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "13:29:45",
+     "TotalBuyOrder": 13319340,
+     "TotalBuyVolume": 23635207,
+     "TotalSellOrder": 17029070,
+     "TotalSellVolume": 12084239,
+     "TotalDealOrder": 1842864,
+     "TotalDealVolume": 7457185,
+     "TotalDealMoney": 311245,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "13:29:50",
+     "TotalBuyOrder": 13323258,
+     "TotalBuyVolume": 23456095,
+     "TotalSellOrder": 17031130,
+     "TotalSellVolume": 11938400,
+     "TotalDealOrder": 1842864,
+     "TotalDealVolume": 7457185,
+     "TotalDealMoney": 311245,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "13:29:55",
+     "TotalBuyOrder": 13327719,
+     "TotalBuyVolume": 23443235,
+     "TotalSellOrder": 17034260,
+     "TotalSellVolume": 11935604,
+     "TotalDealOrder": 1842864,
+     "TotalDealVolume": 7457185,
+     "TotalDealMoney": 311245,
+     "date": "2024-09-24"
+    },
+    {
+     "Time": "13:30:00",
+     "TotalBuyOrder": 13335316,
+     "TotalBuyVolume": 23462284,
+     "TotalSellOrder": 17040177,
+     "TotalSellVolume": 11950648,
+     "TotalDealOrder": 1910510,
+     "TotalDealVolume": 7807287,
+     "TotalDealMoney": 344837,
+     "date": "2024-09-24"
+    }
+   ],
+   "otc_hits_n": 0,
+   "otc_hits_head": [],
+   "otc_hits_tail": []
+  }
+ ],
+ "yahoo": [
+  {
+   "symbol": "IX0043.TWO",
+   "interval": "60m",
+   "period": "730d",
+   "n": 3639,
+   "first": "2023-09-25 09:00:00+08:00",
+   "last": "2026-09-24 13:00:00+08:00",
+   "days": 728,
+   "vol_pos_ratio": 0.0,
+   "tail": [
+    {
+     "Datetime": "2026-09-24T02:00:00.000Z",
+     "Adj Close": 412.5299987793,
+     "Close": 412.5299987793,
+     "High": 413.1199951172,
+     "Low": 411.2900085449,
+     "Open": 412.9200134277,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T03:00:00.000Z",
+     "Adj Close": 411.9100036621,
+     "Close": 411.9100036621,
+     "High": 412.7900085449,
+     "Low": 411.799987793,
+     "Open": 412.6499938965,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T04:00:00.000Z",
+     "Adj Close": 411.3999938965,
+     "Close": 411.3999938965,
+     "High": 411.9899902344,
+     "Low": 410.6400146484,
+     "Open": 411.9299926758,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T05:00:00.000Z",
+     "Adj Close": 412.5299987793,
+     "Close": 412.5299987793,
+     "High": 412.7099914551,
+     "Low": 411.2600097656,
+     "Open": 411.4100036621,
+     "Volume": 0
+    }
+   ]
+  },
+  {
+   "symbol": "IX0043.TWO",
+   "interval": "15m",
+   "period": "60d",
+   "n": 1062,
+   "first": "2026-07-03 09:00:00+08:00",
+   "last": "2026-09-24 13:15:00+08:00",
+   "days": 59,
+   "vol_pos_ratio": 0.0,
+   "tail": [
+    {
+     "Datetime": "2026-09-24T04:30:00.000Z",
+     "Adj Close": 410.9599914551,
+     "Close": 410.9599914551,
+     "High": 411.2699890137,
+     "Low": 410.9400024414,
+     "Open": 411.0100097656,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T04:45:00.000Z",
+     "Adj Close": 411.3999938965,
+     "Close": 411.3999938965,
+     "High": 411.4599914551,
+     "Low": 410.799987793,
+     "Open": 410.9599914551,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T05:00:00.000Z",
+     "Adj Close": 412.1199951172,
+     "Close": 412.1199951172,
+     "High": 412.2699890137,
+     "Low": 411.2600097656,
+     "Open": 411.4100036621,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T05:15:00.000Z",
+     "Adj Close": 412.5299987793,
+     "Close": 412.5299987793,
+     "High": 412.7099914551,
+     "Low": 412.049987793,
+     "Open": 412.1700134277,
+     "Volume": 0
+    }
+   ]
+  },
+  {
+   "symbol": "IX0043.TWO",
+   "interval": "1d",
+   "period": "1mo",
+   "n": 1,
+   "first": "2026-09-24 00:00:00",
+   "last": "2026-09-24 00:00:00",
+   "days": 1,
+   "vol_pos_ratio": 0.0,
+   "tail": [
+    {
+     "Date": "2026-09-24T00:00:00.000",
+     "Adj Close": 412.9899902344,
+     "Close": 412.9899902344,
+     "High": 413.6099853516,
+     "Low": 410.6400146484,
+     "Open": 413.2200012207,
+     "Volume": 0
+    }
+   ]
+  },
+  {
+   "symbol": "^TWOII",
+   "interval": "60m",
+   "period": "730d",
+   "n": 0
+  },
+  {
+   "symbol": "^TWOII",
+   "interval": "15m",
+   "period": "60d",
+   "n": 0
+  },
+  {
+   "symbol": "^TWOII",
+   "interval": "1d",
+   "period": "1mo",
+   "n": 0
+  },
+  {
+   "symbol": "^TWII",
+   "interval": "60m",
+   "period": "730d",
+   "n": 3628,
+   "first": "2023-09-25 09:00:00+08:00",
+   "last": "2026-09-24 13:00:00+08:00",
+   "days": 726,
+   "vol_pos_ratio": 0.0,
+   "tail": [
+    {
+     "Datetime": "2026-09-24T02:00:00.000Z",
+     "Adj Close": 48050.80078125,
+     "Close": 48050.80078125,
+     "High": 48055.640625,
+     "Low": 47851.609375,
+     "Open": 48021.0703125,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T03:00:00.000Z",
+     "Adj Close": 47967.87109375,
+     "Close": 47967.87109375,
+     "High": 48095.23046875,
+     "Low": 47919.3515625,
+     "Open": 48051.390625,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T04:00:00.000Z",
+     "Adj Close": 47963.5,
+     "Close": 47963.5,
+     "High": 47979.80859375,
+     "Low": 47858.671875,
+     "Open": 47968.578125,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T05:00:00.000Z",
+     "Adj Close": 48038.26953125,
+     "Close": 48038.26953125,
+     "High": 48117.5390625,
+     "Low": 47954.6484375,
+     "Open": 47964.671875,
+     "Volume": 0
+    }
+   ]
+  },
+  {
+   "symbol": "^TWII",
+   "interval": "15m",
+   "period": "60d",
+   "n": 1062,
+   "first": "2026-07-03 09:00:00+08:00",
+   "last": "2026-09-24 13:15:00+08:00",
+   "days": 59,
+   "vol_pos_ratio": 0.0,
+   "tail": [
+    {
+     "Datetime": "2026-09-24T04:30:00.000Z",
+     "Adj Close": 47911.6796875,
+     "Close": 47911.6796875,
+     "High": 47979.80859375,
+     "Low": 47889.69140625,
+     "Open": 47890.80859375,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T04:45:00.000Z",
+     "Adj Close": 47963.5,
+     "Close": 47963.5,
+     "High": 47964.859375,
+     "Low": 47890.16015625,
+     "Open": 47911.73828125,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T05:00:00.000Z",
+     "Adj Close": 47995.3203125,
+     "Close": 47995.3203125,
+     "High": 48048.4296875,
+     "Low": 47954.6484375,
+     "Open": 47964.671875,
+     "Volume": 0
+    },
+    {
+     "Datetime": "2026-09-24T05:15:00.000Z",
+     "Adj Close": 48038.26953125,
+     "Close": 48038.26953125,
+     "High": 48117.5390625,
+     "Low": 47991.9296875,
+     "Open": 47994.94140625,
+     "Volume": 0
+    }
+   ]
+  },
+  {
+   "symbol": "^TWII",
+   "interval": "1d",
+   "period": "1mo",
+   "n": 24,
+   "first": "2026-08-24 00:00:00",
+   "last": "2026-09-24 00:00:00",
+   "days": 24,
+   "vol_pos_ratio": 1.0,
+   "tail": [
+    {
+     "Date": "2026-09-21T00:00:00.000",
+     "Adj Close": 47718.83984375,
+     "Close": 47718.83984375,
+     "High": 47750.98046875,
+     "Low": 47207.30078125,
+     "Open": 47207.30078125,
+     "Volume": 4475500
+    },
+    {
+     "Date": "2026-09-22T00:00:00.000",
+     "Adj Close": 47800.171875,
+     "Close": 47800.171875,
+     "High": 48601.53125,
+     "Low": 47800.171875,
+     "Open": 47981.0390625,
+     "Volume": 5924900
+    },
+    {
+     "Date": "2026-09-23T00:00:00.000",
+     "Adj Close": 48157.2890625,
+     "Close": 48157.2890625,
+     "High": 48341.55859375,
+     "Low": 47894.76953125,
+     "Open": 47894.76953125,
+     "Volume": 4866300
+    },
+    {
+     "Date": "2026-09-24T00:00:00.000",
+     "Adj Close": 48024.6015625,
+     "Close": 48024.6015625,
+     "High": 48117.5390625,
+     "Low": 47754.71875,
+     "Open": 48075.390625,
+     "Volume": 3540900
+    }
+   ]
+  }
+ ]
+}

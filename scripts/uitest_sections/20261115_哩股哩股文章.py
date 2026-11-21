@@ -1,0 +1,114 @@
+# 驗收段落「哩股哩股文章1115」（site/articles.js 的 PRIV 頻道隱藏分頁、site/articles/ligu/）
+# 這支由 _uitest.py 用 exec 載入它自己的全域命名空間：ok()、wait_until()… 直接可用，不要 import _uitest。
+# 不要在這裡寫三引號模組說明（會蓋掉 _uitest 的 __doc__）。
+# flake8: noqa
+# Andy 11-15：「影片的內容需要有內容存在……Tech 頻道的文章，且不可以顯示出來，意思是他是隱藏狀態」。
+# 四件事都真的操作：① 訪客／一般會員看不到「哩股哩股」分頁、直接打 #articles/ligu 被導回；② 「全部文章」列表、搜尋、側欄都不列這篇；
+# ③ 站主看得到分頁（變淡＋刪除線、沒有眼睛）、點進去看到那一篇；④ 任何人用直接連結 #article/<id> 打得開全文與出處，找不到的 id 顯示找不到。1440 與 390。
+import json as _tc_json
+import re as _tc_re
+
+_LG_API = "https://acct1116.example.test"
+_LG_ID = "2026-11-16-ligu-nvda-kress"
+_LG_TITLE = "一個簽名、三個頭銜"
+
+
+def t_ligu_articles_1115(b, base, code):
+    T = "哩股哩股文章1115"
+    errs = []
+
+    def handler(route):
+        req = route.request
+        path = _tc_re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try: body = _tc_json.loads(req.post_data or "{}")
+        except Exception: body = {}
+        tok = str(body.get("t") or "")
+        email = tok[4:] if tok.startswith("tok-") else None
+        out = {}
+        if path == "/v1/me":
+            out = {"user": {"email": email, "name": email.split("@")[0], "admin": email == "andy@example.com"}} if email else {"error": "auth"}
+        elif path == "/v1/perm/me":
+            out = {"who": "member" if email else "guest", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {}}
+        elif path == "/v1/plans/public":
+            out = {"plans": []}
+        elif path in ("/v1/beat", "/v1/track/batch"):
+            out = {"ok": True, "n": 1}
+        elif path == "/v1/articles/tabs":
+            out = {"hidden": []}
+        route.fulfill(status=200 if out.get("error") != "auth" else 401, body=_tc_json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    def ctx(email, w):
+        mob = w <= 640
+        c = b.new_context(viewport={"width": w, "height": 844 if mob else 900}, **({"has_touch": True, "is_mobile": True} if mob else {}))
+        init = "window.TW_ACCOUNT_OVERRIDE = " + _tc_json.dumps({"api": _LG_API}) + ";try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');"
+        init += ("localStorage.setItem('tw.acct.tok'," + _tc_json.dumps("tok-" + email) + ");" if email else "localStorage.removeItem('tw.acct.tok');") + "}catch(e){}"
+        c.add_init_script(init)
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        c.route(_LG_API + "/**", handler)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"{w}:{e}"))
+        return c, pg
+
+    def open_(pg, hash_):
+        pg.goto(base + hash_, wait_until="domcontentloaded")
+        ag = pg.get_by_role("button", name="同意並繼續")
+        if ag.count():
+            try: ag.first.click(timeout=1500)
+            except Exception: pass
+        wait_until(pg, "() => !!document.querySelector('#artCats>button[data-cat=all]') || !!document.querySelector('#artPost')", 20000)
+        pg.wait_for_timeout(1500)
+
+    vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length).map(b => b.dataset.cat)"
+    cards = "() => [...document.querySelectorAll('#artList .artc')].map(a => a.dataset.id + '|' + a.dataset.cat)"
+    for W in (1440, 390):
+        # ── 訪客與一般會員：看不到分頁、全部文章不列、搜尋搜不到、直接打分頁被導回
+        for who, mail in (("訪客", None), ("一般會員", "bob@example.com")):
+            c, pg = ctx(mail, W)
+            open_(pg, "#articles")
+            ok(f"★ [{T}（{W}）] {who}：分頁列沒有「哩股哩股」", "ligu" not in pg.evaluate(vis), pg.evaluate(vis))
+            ok(f"[{T}（{W}）] {who}：分頁按鈕雖在 DOM 但是 hidden（不佔位）", pg.evaluate("() => { const b = document.querySelector('#artCats>button[data-cat=ligu]'); return !b || b.hidden || b.getClientRects().length === 0; }"))
+            lst = pg.evaluate(cards)
+            ok(f"★ [{T}（{W}）] {who}：「全部文章」列表沒有這篇、沒有任何 ligu 卡片（共 {len(lst)} 篇）", not any(_LG_ID in x or x.endswith("|ligu") for x in lst), lst[:5])
+            vt = pg.evaluate("() => [...document.querySelectorAll('#artList, #artSide, #artCats>button:not([hidden])')].map(e => e.textContent).join(' ')")
+            ok(f"[{T}（{W}）] {who}：列表、側欄、分頁列的文字都不含「哩股哩股」「兩奈米」", "兩奈米" not in vt and "哩股哩股" not in vt, "")
+            q = pg.locator("#artQ"); q.fill("兩奈米"); pg.wait_for_timeout(500)
+            ok(f"★ [{T}（{W}）] {who}：搜尋「兩奈米」→ 0 篇", pg.locator("#artList .artc").count() == 0 and pg.evaluate("() => document.getElementById('artCount').dataset.n") == "0", pg.evaluate("() => document.getElementById('artCount').textContent"))
+            pg.goto(base + "#articles/ligu", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+            ok(f"★ [{T}（{W}）] {who}：直接打 #articles/ligu → 導回 #articles、亮起的是「全部」", pg.evaluate("() => location.hash") == "#articles" and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "all", pg.evaluate("() => location.hash"))
+            # 直接連結：誰都打得開
+            open_(pg, "#article/" + _LG_ID)
+            wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 15000)
+            ok(f"★ [{T}（{W}）] {who}：直接連結 #article/{_LG_ID} 打得開，標題含「{_LG_TITLE}」", _LG_TITLE in (pg.inner_text("#artPost .artttl") if pg.locator("#artPost .artttl").count() else ""), pg.inner_text("#artPost")[:80])
+            body = pg.inner_text("#artBody")
+            ok(f"[{T}（{W}）] {who}：內文有「不構成投資建議」與「查證截至」、有逐句查證表、沒有升級鎖定卡", "不構成投資建議" in body and "查證截至" in body and pg.locator(".artpost table").count() >= 1 and pg.locator(".artpost .lockcard, .artpost .artlock, #artQuota:visible").count() == 0, [pg.locator(".artpost table").count()])
+            pg.evaluate("() => document.querySelectorAll('details.artfold').forEach(d => d.open = true)")
+            ok(f"★ [{T}（{W}）] {who}：出處清單 ≥ 5 筆、每筆有連結與日期", pg.locator(".artsrc li").count() >= 5 and pg.locator(".artsrc li a[href^='http']").count() >= 5 and all(_tc_re.search(r"20\d\d", t) for t in pg.locator(".artsrc li").all_inner_texts()), pg.locator(".artsrc li").count())
+            ok(f"[{T}（{W}）] {who}：文章裡沒有「投資建議」以外的買賣字眼（買進／賣出／目標價）", not _tc_re.search(r"買進|賣出|目標價|推薦", body))
+            ok(f"[{T}（{W}）] {who}：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
+            pg.locator("#artBack").click(); pg.wait_for_timeout(800)
+            ok(f"[{T}（{W}）] {who}：「← 返回」回到文章清單，且清單仍不列這篇", pg.evaluate("() => location.hash").startswith("#articles") and not any(_LG_ID in x for x in pg.evaluate(cards)), pg.evaluate("() => location.hash"))
+            open_(pg, "#article/2026-11-16-ligu-not-exist")
+            ok(f"[{T}（{W}）] {who}：不存在的 id → 顯示「暫時讀不到」", pg.locator("#artErr").count() == 1, "")
+            c.close()
+
+        # ── 站主：分頁在、變淡＋刪除線、沒有眼睛、點進去看到那篇；全部文章仍不列
+        c, pg = ctx("andy@example.com", W)
+        open_(pg, "#articles")
+        wait_until(pg, "() => [...document.querySelectorAll('#artCats>button')].some(b => b.dataset.cat === 'ligu' && b.getClientRects().length)", 10000)
+        ok(f"★ [{T}（{W}）] 站主：分頁列多一格「哩股哩股」（在消息分頁之後；右邊可能還有其他頻道）", "ligu" in pg.evaluate(vis) and pg.evaluate(vis).index("ligu") > pg.evaluate(vis).index("postmarket"), pg.evaluate(vis))
+        st = pg.evaluate("""() => { const t = document.querySelector('#artCats>button[data-cat=ligu]'), s = t.querySelector(':scope > span:not(.arteye)'), e = t.querySelector('.arteye');
+            return { hid: t.classList.contains('hid'), op: parseFloat(getComputedStyle(t).opacity), line: getComputedStyle(s).textDecorationLine, eye: e ? e.getClientRects().length : 0, title: t.title }; }""")
+        ok(f"★ [{T}（{W}）] 站主：分頁變淡（opacity<0.8）、文字刪除線、沒有眼睛（不能被打開成公開）", st["hid"] and st["op"] < 0.8 and "line-through" in st["line"] and st["eye"] == 0, st)
+        ok(f"[{T}（{W}）] 站主：全部文章列表仍不列這篇", not any(_LG_ID in x for x in pg.evaluate(cards)), pg.evaluate(cards)[:3])
+        pg.locator("#artCats>button[data-cat=ligu]").scroll_into_view_if_needed()
+        pg.click("#artCats>button[data-cat=ligu]"); pg.wait_for_timeout(1200)
+        ok(f"★ [{T}（{W}）] 站主：點分頁 → #articles/ligu、亮起、清單只有這一篇", pg.evaluate("() => location.hash") == "#articles/ligu" and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "ligu" and pg.evaluate(cards) == [_LG_ID + "|ligu"], [pg.evaluate("() => location.hash"), pg.evaluate(cards)])
+        pg.click(f"#artList .artc[data-id='{_LG_ID}']"); pg.wait_for_timeout(1500)
+        ok(f"★ [{T}（{W}）] 站主：點卡片 → 打開全文 #article/{_LG_ID}", pg.evaluate("() => location.hash") == "#article/" + _LG_ID and _LG_TITLE in pg.inner_text("#artPost .artttl"), pg.evaluate("() => location.hash"))
+        ok(f"[{T}（{W}）] 站主：文章沒有「全文額度」字樣（不佔額度）", "全文額度" not in pg.inner_text("#artPost"))
+        c.close()
+    ok(f"{T}：全程沒有頁面例外", not errs, errs[:3])
+
+
+register("哩股哩股文章1115", lambda pg, b, base, code: t_ligu_articles_1115(b, base, code))

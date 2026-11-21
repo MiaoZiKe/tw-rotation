@@ -1,0 +1,94 @@
+# 新聞圖卡 AI 背景（Andy 2026-10-28：「並且需要搭配 AI 生圖」，來源「Pollinations、SD-Turbo 搭配使用」）
+# 手動觸發；每個主題各用 Pollinations 與 SD-Turbo 產 1 張，commit 到 ai-image-trial 分支 news/<日期>/。不進 main。
+name: 新聞 AI 背景
+on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: "資料夾日期，例如 20261028"
+        default: "20261028"
+      keys:
+        description: "要產的主題代號（逗號分隔，空白＝全部）"
+        default: ""
+permissions:
+  contents: write
+concurrency:
+  group: ai-image-trial
+  cancel-in-progress: false
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DAY: ${{ github.event.inputs.day }}
+      KEYS: ${{ github.event.inputs.keys }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+      - name: 準備 prompt
+        run: |
+          pip install -q requests pillow
+          mkdir -p out/pollinations out/sdturbo
+          cat > prompts.py <<'PY'
+          import os
+          TAIL = ", bright sunny daytime, bright airy colors, no text, no letters, no logo, no signage, no real landmark buildings, no close-up human faces, photorealistic, clean composition, subject in the upper area"
+          P = {
+           "fab": "wide interior of a bright modern semiconductor wafer fabrication cleanroom, silver automated wafer transport rails, glowing white light, engineers far away in white suits" + TAIL,
+           "memory": "macro photograph of a stack of silicon memory chips and a large wafer on a bright white lab bench, soft blue reflections, shallow depth of field" + TAIL,
+           "fed": "generic fictional neoclassical government building with white stone columns under blue sky, symmetrical, wide angle, no flags" + TAIL,
+           "datacenter": "bright modern data center aisle with rows of white server racks and soft blue indicator lights, perspective view" + TAIL,
+           "trading": "bright daytime trading floor desk beside big windows, several monitors showing only abstract line charts, plants, natural sunlight" + TAIL,
+           "city": "generic fictional modern financial district with glass office towers seen from a distance, blue sky and soft clouds, aerial view" + TAIL,
+           "packaging": "bright electronics assembly line, robotic arm placing a small chip on a green circuit board, clean white factory, shallow depth of field" + TAIL,
+          }
+          want = [k for k in os.environ.get("KEYS", "").replace(" ", "").split(",") if k]
+          if want: P = {k: v for k, v in P.items() if k in want}
+          PY
+      - name: Pollinations（免金鑰，1 張／45 秒）
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import requests, time, urllib.parse, os, json
+          from prompts import P
+          d="out/pollinations"; log=[]
+          for i,(k,p) in enumerate(P.items()):
+              if i: time.sleep(50)
+              url="https://image.pollinations.ai/prompt/"+urllib.parse.quote(p)+"?width=1080&height=1080&nologo=true&model=flux&seed=11"
+              t=time.time()
+              for attempt in range(3):
+                  try:
+                      r=requests.get(url,timeout=180); ok=r.ok and r.headers.get("content-type","").startswith("image")
+                      if ok: open(f"{d}/{k}.jpg","wb").write(r.content); break
+                      time.sleep(50)
+                  except Exception as e: ok=False; time.sleep(30)
+              log.append({"img":k,"ok":ok,"sec":round(time.time()-t,1)})
+          json.dump(log,open(f"{d}/log.json","w"),ensure_ascii=False,indent=1); print(log)
+          PY
+      - name: SD-Turbo（CPU，開源）
+        continue-on-error: true
+        run: |
+          pip install -q --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -q diffusers transformers accelerate
+          python - <<'PY'
+          import time, os, json, torch
+          from diffusers import AutoPipelineForText2Image
+          from prompts import P
+          d="out/sdturbo"; log=[]
+          pipe=AutoPipelineForText2Image.from_pretrained("stabilityai/sd-turbo",torch_dtype=torch.float32)
+          for k,p in P.items():
+              t=time.time()
+              try:
+                  img=pipe(prompt=p,num_inference_steps=4,guidance_scale=0.0,width=768,height=512,generator=torch.Generator().manual_seed(11)).images[0]
+                  img.save(f"{d}/{k}.png"); log.append({"img":k,"ok":True,"sec":round(time.time()-t,1)})
+              except Exception as e: log.append({"img":k,"ok":False,"err":str(e)[:300]})
+          json.dump(log,open(f"{d}/log.json","w"),ensure_ascii=False,indent=1); print(log)
+          PY
+      - name: 推到 ai-image-trial 分支
+        if: always()
+        run: |
+          mkdir -p /tmp/o && cp -r out/. /tmp/o/ && cp prompts.py /tmp/o/ && cd repo
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin ai-image-trial && git checkout ai-image-trial
+          mkdir -p news/$DAY && cp -r /tmp/o/. news/$DAY/
+          git add news && git commit -qm "新聞 AI 背景 $DAY ${GITHUB_RUN_ID}" && git push origin ai-image-trial

@@ -1,0 +1,94 @@
+name: ETF 成分股來源探測
+
+# 只手動觸發。Claude 容器出口被擋，投信官網的 PCF／持股明細端點只有 Actions 打得到；
+# 這支不寫資料湖、不動 main。2026-10-07 起 log 另推到 probe-log/<run id> 分支（只含 probe.log）：
+# Claude 容器讀不到 Actions 的 log（log 放在 blob 主機，gh 只能連 api.github.com），不推出來就看不到探測結果。
+# 看完就把那個分支刪掉（git push origin --delete probe-log/<run id>）。
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "requests＝直接打網址；browser＝真瀏覽器開頁、記下回傳成分股的 XHR；selftest＝跑 pipeline/sources/etf_pcf.py 實抓（不寫湖）"
+        type: choice
+        options: [requests, browser, selftest, cert, bond, sitca, sitca_selftest, pytest, cover, dates, pcfdate]
+        default: requests
+      extra:
+        description: "額外要探測的網址（空白分隔；開頭加 --only-extra 只跑這些）"
+        type: string
+        default: ""
+      keys:
+        description: "browser 模式：回應裡要找的關鍵字（逗號分隔，空白＝2330,台積電,2317,鴻海；海外股或債券型 ETF 換成 NVIDIA,Apple…）"
+        type: string
+        default: ""
+      all_links:
+        description: "browser 模式：印出頁面上所有連結（找 ETF 專區入口用）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # 只為了推 probe-log/<run id> 分支
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pandas openpyxl xlrd
+      - name: 安裝瀏覽器
+        if: inputs.mode == 'browser'
+        run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: 探測（真瀏覽器）
+        if: inputs.mode == 'browser'
+        env:
+          EXTRA: ${{ inputs.extra }}
+          PROBE_KEYS: ${{ inputs.keys }}
+          PROBE_ALL_LINKS: ${{ inputs.all_links && '1' || '' }}
+        run: python scripts/probe_etf_pcf_browser.py $EXTRA 2>&1 | tee -a /tmp/probe.log
+      - name: 實抓自我測試（不寫湖、不 commit）
+        if: inputs.mode == 'selftest'
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: pip install -q -r requirements.txt && python -m pipeline.sources.etf_pcf $EXTRA 2>&1 | tee -a /tmp/probe.log
+      - name: 憑證鏈／條款探測（大華銀中繼憑證、玩股網與口袋的 robots 與條款）
+        if: inputs.mode == 'cert'
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: pip install -q certifi && UOB_ONLY=$(echo "$EXTRA" | grep -q -- --uob && echo 1) python scripts/probe_etf_pcf_cert.py $(echo "$EXTRA" | sed "s/--uob//") 2>&1 | tee -a /tmp/probe.log
+      - name: 債券型持股原始回應（已接上 8 家）
+        if: inputs.mode == 'bond'
+        run: pip install -q -r requirements.txt && python scripts/probe_etf_bond.py ${{ inputs.extra }} 2>&1 | tee -a /tmp/probe.log
+      - name: 投信投顧公會（SITCA）統計頁：列下拉選單、送一次表單、印回應表格
+        if: inputs.mode == 'sitca'
+        run: python scripts/probe_sitca.py ${{ inputs.extra }} 2>&1 | tee -a /tmp/probe.log
+      - name: 公會前十大實抓自我測試（pipeline/sources/sitca.py，不寫湖）
+        if: inputs.mode == 'sitca_selftest'
+        run: pip install -q -r requirements.txt && python -m pipeline.sources.sitca 2>&1 | tee -a /tmp/probe.log
+      - name: 在 Actions 上跑 pytest（每日管線的「跑指標庫測試」只回 exit 1，容器讀不到 log；這裡把結果推到 probe-log）
+        if: inputs.mode == 'pytest'
+        run: pip install -q -r requirements.txt && (python -m pytest tests/ -q -x --durations=15 ${{ inputs.extra }} 2>&1 | tail -150 | tee -a /tmp/probe.log)
+      - name: 成分股全覆蓋自我測試（官網每日＋公會月資料＋人工整理 → 逐檔有沒有表格；產出 etf_holdings.json）
+        if: inputs.mode == 'cover'
+        run: pip install -q -r requirements.txt && python scripts/etf_cover_selftest.py 2>&1 | grep -vE "^INFO (公會前十大 [0-9]+ A|ETF PCF .* (GET|POST))" | tee -a /tmp/probe.log
+      - name: 台新／凱基／華南永昌 PCF 回應裡的日期欄位（找淨值日，不要用下一個營業日）
+        if: inputs.mode == 'dates'
+        run: pip install -q -r requirements.txt && python scripts/probe_etf_dates.py 2>&1 | tee -a /tmp/probe.log
+      - name: 各投信 PCF 帶指定日期會不會回那一天（extra＝目標日，預設 2026-11-06）
+        if: inputs.mode == 'pcfdate'
+        run: pip install -q -r requirements.txt && python scripts/probe_etf_pcf_dates2.py ${{ inputs.extra }} 2>&1 | tee -a /tmp/probe.log
+      - name: 探測
+        if: inputs.mode == 'requests'
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: python scripts/probe_etf_pcf.py $EXTRA 2>&1 | tee -a /tmp/probe.log
+      - name: 把 log 推到 probe-log/<run id>
+        if: always()
+        run: |
+          mkdir /tmp/out && cd /tmp/out && git init -q && cp /tmp/probe.log .
+          git config user.name probe-bot && git config user.email probe@users.noreply.github.com
+          # cover 模式另外帶出 etf_holdings.json（本機拿去跑 _uitest 的真資料；只在 probe-log 分支，不進 main）
+          if [ -f /tmp/etf_holdings.json ]; then cp /tmp/etf_holdings.json .; fi
+          git add -A && git commit -qm "probe log ${{ github.run_id }}"
+          git push -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:refs/heads/probe-log/${{ github.run_id }}

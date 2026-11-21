@@ -1,0 +1,576 @@
+/* ==================================================================================
+   版面 v2 結構搬到設計 v4（2026-10-02，分支 claude/layout-v2-on-v4，DECISIONS #291）
+
+   Andy 原話：「把分支 claude/elegant-pasteur-ggwgnb（V2）的『版面結構』搬到目前的 main（設計 v4）上。
+   只做排版，不改配色、不改功能。」要搬的五樣：
+     1. 可收合的左側導覽列（≥821px；收起來只剩圖示，狀態存 localStorage）
+     2. 頁首：分組小標＋頁名＋一句「這頁回答什麼」
+     3. 頁內錨點導覽：「本頁功能 01 02 03…」膠囊列（從卡片標題自動產生、點了捲過去、捲動時亮起目前那一節）
+     4. 今日事件側滑抽屜：v4 已是浮層，這裡只把它的上緣／遮罩改成配合左側導覽
+     5. 手機：頂欄顯示目前頁名；底部分頁列改線條圖示，高度不准增加
+
+   ★ 四條規矩（跟 V2 的 ui2.css 不同的地方都是因為這四條）：
+     · **一個色值都不寫**。顏色、圓角、字級一律吃 theme4.css 的變數（--t4-accent／--t4-accent-solid／--ink-*／
+       --line／--r-*／--fs-*），所以三套主題 × 深淺六組自動跟著換。V2 的色票（第 1、2 段）一行都沒帶過來。
+       唯一出現的「black」是線條圖示的遮罩（mask 只看透明度，畫出來的顏色是 currentColor）。
+     · **DOM 一個都不搬**：導覽就是原本的 .topbar／#tabs／.tab，用 CSS grid 重新排位置；
+       分組標題、圖示全部用偽元素畫 —— 手機版（mobile3.js）會往 #tabs 塞「更多」、驗收腳本會數 .tab，
+       往裡面插節點會撞到它們。所有 id、data-* 照舊。
+     · **整支掛在 :root.l4 底下**：<head> 那段小 script 一定會掛 l4（畫面畫出來前就掛，不閃）。
+       要退回舊版頂欄，拿掉那一個 class 就好。
+     · 版面大改只做桌機（≥821px）；手機（≤640px，body.m3on）只換頂欄文字與底部圖示，高度一個 px 都不加。
+       641～820（桌機縮半邊）完全不碰。
+   ================================================================================== */
+
+/* ---------------- 線條圖示（24×24、stroke 1.8）：mask 畫，顏色跟著 currentColor ---------------- */
+:root.l4,:root.l4m{
+  --l4-ic-overview:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='9' rx='1.6'/%3E%3Crect x='14' y='3' width='7' height='5' rx='1.6'/%3E%3Crect x='14' y='12' width='7' height='9' rx='1.6'/%3E%3Crect x='3' y='16' width='7' height='5' rx='1.6'/%3E%3C/svg%3E");
+  --l4-ic-flow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.5 12a8.5 8.5 0 0 1-14.8 5.7'/%3E%3Cpath d='M3.5 12A8.5 8.5 0 0 1 18.3 6.3'/%3E%3Cpath d='M18.6 2.6v3.9h-3.9'/%3E%3Cpath d='M5.4 21.4v-3.9h3.9'/%3E%3C/svg%3E");
+  --l4-ic-heatmap:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2.2'/%3E%3Cpath d='M12 3v18M3 13h9M12 9h9M16.5 9v12'/%3E%3C/svg%3E");
+  --l4-ic-industry:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6' r='2.6'/%3E%3Ccircle cx='18' cy='6' r='2.6'/%3E%3Ccircle cx='12' cy='18' r='2.6'/%3E%3Cpath d='M7.2 8.4l3.6 7.2M16.8 8.4l-3.6 7.2M8.6 6h6.8'/%3E%3C/svg%3E");
+  --l4-ic-market:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6h11.5M9 12h11.5M9 18h11.5'/%3E%3Ccircle cx='4.5' cy='6' r='1.1'/%3E%3Ccircle cx='4.5' cy='12' r='1.1'/%3E%3Ccircle cx='4.5' cy='18' r='1.1'/%3E%3C/svg%3E");
+  --l4-ic-season:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='16' rx='2.4'/%3E%3Cpath d='M3.5 9.5h17M8 2.5v4M16 2.5v4'/%3E%3Cpath d='M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2'/%3E%3C/svg%3E");
+  --l4-ic-etf:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-9-9v9z'/%3E%3Cpath d='M15 3.5A9 9 0 0 1 20.5 9H15z'/%3E%3C/svg%3E");
+  --l4-ic-watch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.6l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z'/%3E%3C/svg%3E");
+  --l4-ic-delivery:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='17' height='17' rx='3.2'/%3E%3Cpath d='M8 12.2l2.9 2.9L16.2 9'/%3E%3C/svg%3E");
+  --l4-ic-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
+  --l4-ic-bell:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9a6 6 0 1 1 12 0c0 6.5 2.6 8.3 2.6 8.3H3.4S6 15.5 6 9z'/%3E%3Cpath d='M10 20.5a2.1 2.1 0 0 0 4 0'/%3E%3C/svg%3E");
+  --l4-ic-palette:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z'/%3E%3Ccircle cx='7.5' cy='11.5' r='1'/%3E%3Ccircle cx='10' cy='7.5' r='1'/%3E%3Ccircle cx='14.5' cy='7.5' r='1'/%3E%3C/svg%3E");
+  /* 2026-10-03 第三批：收合鈕（側欄圖示，像 lucide panel-left）、帳號卡的訪客頭像、淺色／深色切換
+     （第四批：收合鈕改雙箭頭 --l4-ic-chevs；帳號卡與淺色／深色拿掉，panel／user／sun／moon 這幾個變數留著沒人用也無妨） */
+  --l4-ic-chevs:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m11 17-5-5 5-5'/%3E%3Cpath d='m18 17-5-5 5-5'/%3E%3C/svg%3E");
+  --l4-ic-panel:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2.5'/%3E%3Cpath d='M9 3v18'/%3E%3C/svg%3E");
+  --l4-ic-user:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7'/%3E%3C/svg%3E");
+  --l4-ic-sun:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+  --l4-ic-moon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'/%3E%3C/svg%3E");
+  --l4-ic-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E");
+  --l4-ic-more:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='1.8'/%3E%3Ccircle cx='17' cy='17' r='3.5'/%3E%3C/svg%3E");
+  /* 導覽寬：展開 224（最長的頁名四個字＋分組標題「錢往哪裡跑」五個字，量過放得下）、收合 72（圖示 21＋左右各 ~25） */
+  --l4-nav-w:224px;
+}
+:root.l4.l4-mini{--l4-nav-w:72px}
+/* 頁首、跳轉列、導覽底部那一列：桌機以外一律不出現（手機有自己的分段列＝本頁功能，以及一屏看完的高度預算） */
+#l4Head,#l4Jump,.l4foot{display:none}
+.brand .l4pt{display:none}
+
+/* =============================== 1. 左側導覽（≥821px） ===============================
+   舊版：頂欄一排「品牌｜7 顆分頁｜搜尋｜自選｜事件｜外觀｜☀」，1440 以下分頁要靠左右箭頭捲。
+   新版：同一條 .topbar 轉成左側固定欄，用 grid 重新排既有子元素（DOM 順序沒動）：
+     品牌 → 搜尋 → 依用途分組的頁面 → 自選／登入 → 事件 → 外觀｜明暗 → 收合
+   body 讓出導覽寬度（padding-left），主內容寬度＝視窗 − 導覽。 */
+@media (min-width:641px){   /* ★ 2026-10-09 縮放混合版：821 → 641（>640 一律電腦版） */
+  :root.l4 body{padding-left:var(--l4-nav-w)}
+  /* ★ `.topbar` 這個盒子本身只有「頂端那一條」高（--l4-bar-h ＝ 跳轉列高 49px），左欄的其餘部分是 grid 列溢出盒子往下長、
+     整條左欄的底色與右框線畫在 ::before（fixed、從上到下）。為什麼不直接把 .topbar 撐滿整個視窗高：
+     industry.js 的指標面板（#cfgPop，trackPop）用「.topbar 的下緣」判斷「按鈕是不是被捲到頂欄底下了」——
+     .topbar 一撐滿，下緣＝視窗底，面板一打開就被當成「按鈕被蓋住」而自己關掉（_uitest「設定面板」5 條紅抓到的）。
+     那支不是這一批能改的檔，所以讓 .topbar 的盒子維持「頂端被蓋住的那一條」的意義：下緣＝跳轉列下緣，
+     按鈕捲進跳轉列底下才關 —— 跟原本「捲進頂欄底下才關」是同一件事。
+     中間頁面清單那一列的高度（--l4-tabs-h）由 layout4.js 量「視窗高 − 其他列」寫進來；JS 還沒跑之前先用估計值。
+     backdrop-filter 一定要關：它會讓 .topbar 變成 fixed 子孫的定位基準，::before 就只剩 49px 高。 */
+  :root.l4 .topbar{position:fixed;left:0;top:0;bottom:auto;width:var(--l4-nav-w);height:var(--l4-bar-h,49px);z-index:40;
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:auto auto auto var(--l4-tabs-h,calc(100vh - 260px));align-content:start;
+    grid-template-areas:"brand brand" "search search" "ev ev" "tabs tabs";
+    align-items:stretch;gap:0;padding:var(--sp-4) var(--sp-3) var(--sp-3);
+    border:0;background:transparent;overflow:visible;-webkit-backdrop-filter:none;backdrop-filter:none}
+  :root.l4 .topbar::before{content:"";position:fixed;left:0;top:0;bottom:0;width:var(--l4-nav-w);z-index:-1;pointer-events:none;
+    box-sizing:border-box;background:var(--t4-topbar,var(--topbar));border-right:1px solid var(--t4-card-edge,var(--line))}
+  :root.l4 .topbar>.brand{grid-area:brand;padding:0 var(--sp-1) var(--sp-4);min-width:0}
+  :root.l4 .topbar>.brand>div:not(.logo){min-width:0}
+  :root.l4 .topbar>.brand small{white-space:normal;line-height:1.3}
+  :root.l4 .topbar>.search{grid-area:search;margin:0 0 var(--sp-3)}
+  :root.l4 .topbar>.tabswrap{grid-area:tabs}
+  :root.l4 .topbar>#evToggle{grid-area:ev}
+  /* 2026-10-03 第三批：「★ 自選｜登入」那一列（.acctbar）、☀ 鈕（#themeBtn）在電腦版藏起來 —— 不刪：
+     自選在導覽「專案」組、登入鈕（#acctBtn）被 layout4.js 搬進帳號卡、☀ 由「淺色｜深色」取代（按它其實是去按 #themeBtn）。
+     ≤820 不掛 l4，頂欄照舊用這幾顆。 */
+  :root.l4 .topbar>.acctbar,:root.l4 .topbar>#themeBtn{display:none!important}
+
+  /* 搜尋：吃滿導覽寬；放大鏡從文字 ⌕ 換線條圖示（各平台字型畫出來大小不一） */
+  :root.l4 .topbar .search input{width:100%;height:36px}
+  :root.l4 .topbar .search::before{content:"";pointer-events:none;top:50%;left:11px;width:16px;height:16px;transform:translateY(-50%);
+    background:var(--ink-3);-webkit-mask:var(--l4-ic-search) center/contain no-repeat;mask:var(--l4-ic-search) center/contain no-repeat;z-index:1}
+  /* 搜尋下拉：原本貼齊輸入框「右緣」往左長（搜尋框在頂欄最右邊）；搬到左欄之後改成貼左緣往右長，蓋在內容上，
+     寬度沿用 440（DECISIONS #282 量過：固定欄寬的一列約 430px），上限＝視窗扣掉導覽與右邊留白。 */
+  :root.l4 .topbar .sugg{left:0;right:auto;top:42px;width:440px;max-width:calc(100vw - var(--l4-nav-w) - 24px);z-index:5}
+
+  /* 頁面清單：直向；導覽太矮時只有這一段自己捲（品牌、搜尋、底部工具永遠看得到） */
+  :root.l4 .tabswrap{display:block;min-height:0;overflow-y:auto;overflow-x:hidden;margin:0 calc(-1 * var(--sp-1));padding:0 var(--sp-1);scrollbar-width:thin}
+  :root.l4 .tabswrap .tabnav{display:none!important}
+  :root.l4 .tabs{display:flex;flex-direction:column;gap:2px;overflow:visible;padding:0 0 var(--sp-3);
+    -webkit-mask-image:none!important;mask-image:none!important}
+  :root.l4 .tab{position:relative;display:flex;align-items:center;gap:var(--sp-3);width:100%;text-align:left;
+    padding:var(--sp-2) var(--sp-3);font-size:var(--fs-body);border-radius:var(--r-md);white-space:nowrap}
+  /* 圖示（::after 用 order 排到字前面；::before 留給分組標題） */
+  :root.l4 .tab::after{content:"";order:-1;flex:none;width:19px;height:19px;background:currentColor;opacity:.85;
+    -webkit-mask:var(--l4-ic,none) center/contain no-repeat;mask:var(--l4-ic,none) center/contain no-repeat}
+  :root.l4 .tab.on::after{opacity:1}
+  :root.l4 .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
+  :root.l4 .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
+  :root.l4 .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
+  :root.l4 .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
+  :root.l4 .tab[data-view="market"]{--l4-ic:var(--l4-ic-market)}
+  /* 選股探索：放大鏡裡一個小圓點（「在一堆泡泡裡找答案」） */
+  :root.l4 .tab[data-view="explore"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m20 20-4.6-4.6'/%3E%3Ccircle cx='10.5' cy='10.5' r='1.6' fill='black'/%3E%3C/svg%3E")}
+  :root.l4 .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
+  :root.l4 .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
+  :root.l4 .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
+
+  /* ---- 分組（Andy 指定的順序）：今日市場／錢往哪裡跑／族群與個股／歷史規律／專案 ----
+     DOM 順序是 總覽／資金流向／產業地圖／熱力圖／市場明細／週期統計／自選（手機底部列靠這個順序，不能動），
+     畫面上用 order 把熱力圖提到資金流向下面：
+       今日市場：總覽 ｜ 錢往哪裡跑：資金流向、熱力圖 ｜ 族群與個股：產業地圖、市場明細（個股頁也亮這組）
+       歷史規律：週期統計 ｜ 專案：自選
+     「自選」放「專案」：DECISIONS #274 規定它是導覽最後一格（取代交付清單），而 Andy 這次給的五組裡最後一組是「專案」。
+     標題是每組第一顆的 ::before（絕對定位在按鈕上方、pointer-events:none —— 點不到、不佔 .tab 的數量）。 */
+  :root.l4 .tab[data-view="overview"]{order:1}
+  /* 2026-10-05 財報日曆：DOM 在最後一顆（手機底部列的 nth-child 不能被打亂），用 order 排到總覽正下方（同 order 1、DOM 較後 → 緊接總覽） */
+  :root.l4 .tab[data-view="earnings"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='2'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3Cpath d='M8 14h2M14 14h2M8 17.2h2' stroke-width='2'/%3E%3C/svg%3E")}
+  /* 2026-10-14 精選文章（Andy 截圖標在總覽與財經日曆之間）：同 order 1、DOM 在財經日曆前面 → 總覽、精選文章、財經日曆。圖示＝打開的書頁 */
+  :root.l4 .tab[data-view="articles"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4.5h6a2 2 0 0 1 2 2V20a1.6 1.6 0 0 0-1.6-1.6H4z'/%3E%3Cpath d='M20 4.5h-6a2 2 0 0 0-2 2V20a1.6 1.6 0 0 1 1.6-1.6H20z'/%3E%3Cpath d='M6.5 8.5h3M6.5 11.5h3M14.5 8.5h3M14.5 11.5h3'/%3E%3C/svg%3E")}
+  /* 2026-10-25 科技透明圈：同「今日市場」組、order 1，圖示＝兩個人 */
+  :root.l4 .tab[data-view="tc"]{order:4;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M17 14c2.5 0 4.5 2 4.5 4.5'/%3E%3C/svg%3E")}
+  /* 2026-10-28 交易練習室：歷史規律組，圖示＝折線上升＋箭頭 */
+  :root.l4 .tab[data-view="lab"]{order:6;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 17l5-6 4 3 8-9'/%3E%3Cpath d='M15 5h5v5'/%3E%3C/svg%3E")}
+  /* 2026-11-04 頻道規劃（只給管理者）：專案組，圖示＝對話框 */
+  :root.l4 .tab[data-view="channels"]{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16v11H10l-4 4v-4H4z'/%3E%3Cpath d='M8 9h8M8 12h5'/%3E%3C/svg%3E")}
+  :root.l4 .tab[data-view="flow"]{order:2}
+  :root.l4 .tab[data-view="heatmap"]{order:3}
+  /* 2026-10-30 流向驗證：資金流水組，緊接熱力圖（同 order 3、DOM 較後）；圖示＝折線＋勾 */
+  :root.l4 .tab[data-view="flowcheck"]{order:3;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M7 15l4-5 3 3 5-7'/%3E%3Cpath d='m15 18 2 2 4-4'/%3E%3C/svg%3E")}
+  :root.l4m .tab[data-view="flowcheck"],:root.l4m body.m3on .tab[data-view="flowcheck"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M7 15l4-5 3 3 5-7'/%3E%3Cpath d='m15 18 2 2 4-4'/%3E%3C/svg%3E")}
+  :root.l4 .tab[data-view="industry"]{order:4}
+  :root.l4 .tab[data-view="market"]{order:5}
+  :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
+  :root.l4 .tab[data-view="season"]{order:6}
+  :root.l4 .tab[data-view="etf"]{order:5;--l4-ic:var(--l4-ic-etf)}
+  :root.l4 .tab[data-view="watch"]{order:7}
+  /* 2026-11-09 我的持股：專案組、自選正下方（同 order 7、DOM 較後 → 緊接自選）；圖示＝切一塊的圓餅 */
+  :root.l4 .tab[data-view="portfolio"]{order:7;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9h-9z'/%3E%3Cpath d='M15 3.6A9 9 0 0 1 20.4 9H15z'/%3E%3C/svg%3E")}
+  :root.l4 .tab[data-view="delivery"]{order:8}
+  :root.l4 .tabs>:not(.tab){order:9}
+  :root.l4 .tab[data-view="overview"],:root.l4 .tab[data-view="flow"],:root.l4 .tab[data-view="industry"],
+  :root.l4 .tab[data-view="season"],:root.l4 .tab[data-view="watch"]{margin-top:28px}
+  :root.l4 .tab[data-view="overview"]{margin-top:20px}
+  :root.l4 .tab[data-view="overview"]::before,:root.l4 .tab[data-view="flow"]::before,:root.l4 .tab[data-view="industry"]::before,
+  :root.l4 .tab[data-view="season"]::before,:root.l4 .tab[data-view="watch"]::before{
+    position:absolute;left:var(--sp-3);top:-21px;font-size:var(--fs-min);font-weight:600;letter-spacing:.12em;
+    color:var(--ink-3);pointer-events:none;white-space:nowrap;line-height:16px}
+  :root.l4 .tab[data-view="overview"]::before{content:"今日市場"}
+  /* 2026-10-03（Andy：「側欄分組名『錢往哪裡跑』改成『資金流水』」） */
+  :root.l4 .tab[data-view="flow"]::before{content:"資金流水"}
+  :root.l4 .tab[data-view="industry"]::before{content:"族群與個股"}
+  :root.l4 .tab[data-view="season"]::before{content:"歷史規律"}
+  :root.l4 .tab[data-view="watch"]::before{content:"專案"}
+
+  /* ---- 收合鈕：騎在側欄與內容之間的分隔線上（第四批，Andy：「圖案換個圖案，畫在線上」） ----
+     24px 圓鈕，中心＝分隔線（左欄右緣 --l4-nav-w），垂直在 logo 那一列；展開時 «、收合時 »（同一張圖轉 180°）。
+     .topbar 是 position:fixed，所以 absolute 的定位基準就是它（盒子只有頂端 49px 高，鈕在那一條裡面）。
+     z-index 比頁首（35）高：鈕有一半伸進內容區，頁首黏在頂端時不能蓋住它。收合／展開的寬度變化跟著 --l4-nav-w 走，鈕永遠在線上。 */
+  :root.l4 .topbar>#l4NavBtn{position:absolute;z-index:2;left:calc(var(--l4-nav-w) - 12px);top:calc(var(--sp-4) + 10px);
+    display:inline-grid;place-items:center;width:24px;height:24px;margin:0;padding:0;box-sizing:border-box;
+    border:1px solid var(--t4-card-edge,var(--line-2));border-radius:50%;background:var(--t4-topbar,var(--panel));color:var(--ink-3);cursor:pointer;
+    box-shadow:0 1px 4px color-mix(in srgb,var(--ink) 14%,transparent)}
+  :root.l4 .topbar>#l4NavBtn:hover,:root.l4 .topbar>#l4NavBtn:focus-visible{color:var(--t4-accent-solid,var(--cyan));border-color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 #l4NavBtn .ic{width:14px;height:14px;background:currentColor;transition:transform .2s ease;
+    -webkit-mask:var(--l4-ic-chevs) center/contain no-repeat;mask:var(--l4-ic-chevs) center/contain no-repeat}
+  :root.l4.l4-mini #l4NavBtn .ic{transform:rotate(180deg)}
+  :root.l4.l4-mini .topbar>#l4NavBtn{top:calc(var(--sp-4) + 3px)}   /* 收合時 logo 置中、沒有站名那一行，logo 中心高一點 */
+  /* 站名不要伸到鈕底下（鈕的左半邊在左欄裡） */
+  :root.l4 .topbar>.brand{padding-right:14px}
+
+  /* ---- 事件：導覽最上面一格（Andy：「事件移到最上方選項」），長得跟頁面那幾格一樣，右邊保留數字徽章 ---- */
+  :root.l4 .topbar>#evToggle{display:flex;align-items:center;gap:var(--sp-3);width:100%;height:auto;margin:0 0 var(--sp-2);
+    padding:var(--sp-2) var(--sp-3);border:0;border-radius:var(--r-md);background:transparent;box-shadow:none;
+    color:var(--ink-2);font-size:var(--fs-body);text-align:left;white-space:nowrap}
+  :root.l4 .topbar>#evToggle:hover,:root.l4 .topbar>#evToggle[aria-expanded="true"]{background:var(--panel-2);color:var(--ink)}
+  :root.l4 #evToggle::before{content:"";flex:none;width:19px;height:19px;background:currentColor;opacity:.85;
+    -webkit-mask:var(--l4-ic-bell) center/contain no-repeat;mask:var(--l4-ic-bell) center/contain no-repeat}
+  :root.l4 #evToggle .n{margin-left:auto}
+
+  /* ---- 第三批的帳號卡（#l4Acct）與「淺色｜深色」二段式（#l4Mode）：第四批拿掉（Andy：「登入功能不見了」「明暗用原來的圖示即可，並且都放在右上」），
+     登入、☀、外觀三顆搬到頁首右上角，樣式見第 3 段 #l4Tools。 ---- */
+  :root.l4 .topbar>.morebtn,:root.l4 .topbar>.morepop{display:none!important}
+
+  /* ---- 子分頁（2026-10-03，Andy：資金流向拆三格、熱力圖拆產業／題材）：父頁下面的縮排子項 ----
+     layout4.js 插在 #tabs 裡、父頁按鈕後面（class l4subtab，不是 .tab）；order 跟父頁一樣，同 order 時照 DOM 順序 → 緊跟在父頁下面。
+     左邊一條細線對齊父頁圖示中心，像樹狀目錄；目前那格＝主色淡底＋主色字＋主色線（跟分頁「實心反白」區分：這是「在哪一段」）。 */
+  :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
+  :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
+  :root.l4 .tabs>.l4subtab[data-parent="etf"]{order:5}   /* v9：ETF 三個子項（配息行事曆／ETF 總覽／現金流試算），跟在 ETF 下面 */
+  /* 2026-10-10（Andy：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」）：同 order 5，照 DOM 緊跟在各自父頁下面 */
+  :root.l4 .tabs>.l4subtab:is([data-parent="market"],[data-parent="explore"]){order:5}
+  :root.l4 .tabs>.l4subtab[data-parent="admin"]{order:8}   /* 管理區三個子項（layout4.js syncPerm），跟在「管理區」下面 */
+  :root.l4 .tabs:not([data-cs~="admin"])>.tab.l4perm.l4hassub.on{background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
+  :root.l4 .tab.l4perm{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}   /* 會員權限（只有管理者有這一格，layout4.js syncPerm）緊跟在「自選」下面 */
+  :root.l4 .l4subtab{position:relative;display:flex;align-items:center;gap:8px;width:100%;min-width:0;margin:0;padding:5px var(--sp-3) 5px 34px;
+    border:0;border-radius:var(--r-md);background:transparent;color:var(--ink-3);font-size:var(--fs-sm);line-height:20px;text-align:left;
+    white-space:nowrap;cursor:pointer}
+  :root.l4 .l4subtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* 第四批：每個子項自己的圖示（16px，主項目是 19px —— 小一號表示「在父頁底下」） */
+  :root.l4 .l4subtab .ic{flex:none;width:16px;height:16px;opacity:.85}
+  :root.l4 .l4subtab.on .ic{opacity:1}
+  :root.l4 .l4subtab .sh{display:none}
+  :root.l4 .l4subtab::before{content:"";position:absolute;left:21px;top:0;bottom:0;width:1px;background:var(--t4-card-edge,var(--line))}
+  :root.l4 .l4subtab:hover{background:var(--panel-2);color:var(--ink)}
+  :root.l4 .l4subtab.on{color:var(--t4-accent-solid,var(--cyan));font-weight:700;
+    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
+  :root.l4 .l4subtab.on::before{left:20px;width:3px;border-radius:2px;background:var(--t4-accent-solid,var(--cyan))}
+  /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
+  /* 2026-10-06：子項收著時目前那格看不到，母分頁恢復實心反白（只在 .tabs 沒有 data-cs 收合時才讓位給子項） */
+  :root.l4[data-l4sub^="flow-"] .tabs:not([data-cs~="flow"])>.tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tabs:not([data-cs~="heatmap"])>.tab[data-view="heatmap"].on,
+  :root.l4[data-l4sub^="etf-"] .tabs:not([data-cs~="etf"])>.tab[data-view="etf"].on,
+  :root.l4[data-l4sub^="mkt-"] .tabs:not([data-cs~="market"])>.tab[data-view="market"].on,:root.l4[data-l4sub^="xp-"] .tabs:not([data-cs~="explore"])>.tab[data-view="explore"].on{
+    background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
+
+  /* 子分頁只顯示自己的卡（<html data-l4sub> 由 app.js route() 掛；藏起來的卡由 whenNear 等露出來才畫）。
+     #v-flow：①資金輪動＝#flowRotCard ②資金去向＝#flowSankeyCard ③族群×法人＋資金集中度＝包著兩張卡的那一格 grid
+     #v-heatmap：產業＝#indHeat（全市場 treemap）  題材＝#themeMapCard＋#themeDetail */
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-rotation"]) #flowRotCard,
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-sankey"]) #flowSankeyCard,
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-inst"]) #v-flow>:has(>#flowInstCard),
+  :root.l4[data-l4sub="heat-industry"] #themeMapCard,:root.l4[data-l4sub="heat-industry"] #themeDetail,
+  :root.l4[data-l4sub="heat-theme"] #indHeat{display:none!important}
+  /* 2026-10-10：市場明細／選股策略的頁內分頁改由側欄子項切換（同 ETF 的 :root.l4 #v-etf .etfsub）。只藏「有子項亮著」時那一排 ——
+     data-l4sub 由 app.js route() 只在電腦版（html.l4）掛，手機（html.m4）頁內分頁照舊。 */
+  :root.l4[data-l4sub^="mkt-"] #v-market #mktSeg2,:root.l4[data-l4sub^="xp-"] #v-explore #slChips{display:none!important}
+
+  /* =============================== 2. 收合成圖示列（72px） =============================== */
+  :root.l4.l4-mini .topbar{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto var(--l4-tabs-h,calc(100vh - 260px));
+    grid-template-areas:"brand" "search" "ev" "tabs";padding:var(--sp-4) var(--sp-2) var(--sp-3)}
+  /* 收合鈕：第四批起照樣騎在分隔線上（left 跟著 --l4-nav-w＝72 走），不再擠到 logo 正下方 */
+  :root.l4.l4-mini .topbar>.brand{justify-content:center;padding:0 0 var(--sp-2)}
+  /* 收合時站名與版號收掉；「有新資料 ↻」（#freshBtn）出現時照樣看得到（部署過要重新整理的唯一入口，不准藏） */
+  :root.l4.l4-mini .topbar>.brand>div:not(.logo){display:none}
+  :root.l4.l4-mini .topbar>.brand:has(#freshBtn:not([hidden])){flex-direction:column}
+  :root.l4.l4-mini .topbar>.brand:has(#freshBtn:not([hidden]))>div:not(.logo){display:block;text-align:center}
+  :root.l4.l4-mini .topbar>.brand b,:root.l4.l4-mini .topbar>.brand #buildver{display:none}
+  :root.l4.l4-mini .topbar>.brand #freshBtn{white-space:normal;font-size:var(--fs-min)}
+  /* 搜尋收成一顆放大鏡；點進去（focus）才展開成 300px 的輸入框，蓋在內容上 */
+  :root.l4.l4-mini .topbar .search input{padding:0;color:transparent;cursor:pointer}
+  :root.l4.l4-mini .topbar .search input::placeholder{color:transparent}
+  :root.l4.l4-mini .topbar .search::before{left:50%;transform:translate(-50%,-50%)}
+  :root.l4.l4-mini .topbar .search:focus-within input{position:relative;z-index:3;width:300px;padding-left:34px;color:var(--ink);cursor:text}
+  :root.l4.l4-mini .topbar .search:focus-within::before{left:11px;transform:translateY(-50%);z-index:4}
+  :root.l4.l4-mini .tab{font-size:0;justify-content:center;padding:10px 0;gap:0}
+  :root.l4.l4-mini .tab::after{width:21px;height:21px}
+  :root.l4.l4-mini .tab::before{content:""!important;left:14px;right:14px;top:-13px;height:1px;background:var(--t4-card-edge,var(--line))}
+  :root.l4.l4-mini .tab[data-view]{margin-top:2px}
+  :root.l4.l4-mini .tab[data-view="flow"],:root.l4.l4-mini .tab[data-view="industry"],
+  :root.l4.l4-mini .tab[data-view="season"],:root.l4.l4-mini .tab[data-view="watch"]{margin-top:26px}
+  :root.l4.l4-mini .tab[data-view="overview"]{margin-top:6px}
+  :root.l4.l4-mini .tab[data-view="overview"]::before{display:none}
+  /* 事件：只剩鈴鐺，顆數放在鈴鐺正下方（掛在角落會蓋到上面那顆鈕；1123 這種四位數也放得下 56px） */
+  :root.l4.l4-mini .topbar>#evToggle{flex-direction:column;justify-content:center;gap:2px;padding:6px 0;font-size:0}
+  :root.l4.l4-mini #evToggle::before{width:21px;height:21px}
+  :root.l4.l4-mini #evToggle .n{margin:0;font-size:var(--fs-min);padding:0 5px;line-height:16px}
+  /* 子分頁：收合時只剩圖示（第四批取代第三批的兩字短名；滑鼠提示是 title），不畫樹狀線 */
+  :root.l4.l4-mini .l4subtab{justify-content:center;gap:0;padding:6px 0}
+  :root.l4.l4-mini .l4subtab .lbl{display:none}
+  :root.l4.l4-mini .l4subtab .ic{width:17px;height:17px}
+  :root.l4.l4-mini .l4subtab::before{display:none}
+  /* ★ 2026-10-10（同步稽核 7-1）：被方案鎖住的子分頁（perm.js 依 features.js sub 掛 data-plkb="mark"）—— 字右邊一顆小 🔒（靠右對齊，不擠字）；
+     收成圖示列時縮成圖示右上角的小鎖。照樣點得進去（mark 不攔點擊），進去看到的是那一頁原本的鎖法（反灰備註／需開通卡）。 */
+  :root.l4 .l4subtab[data-plkb]::after{content:"🔒"!important;flex:none;margin-left:auto!important;font-size:11px!important;opacity:.75!important;line-height:1}
+  :root.l4.l4-mini .l4subtab[data-plkb]::after{position:absolute;top:1px;right:6px;margin:0!important;font-size:9px!important}
+
+  /* =============================== 4. 今日事件抽屜（v4 的浮層，只改上緣與遮罩範圍） ===============================
+     v4 的抽屜從頂欄下緣（top:58px）滑出、遮罩也從那裡開始蓋 —— 理由是「頂欄的『事件』鈕照樣按得到」（DECISIONS #271）。
+     頂欄變成左欄之後，上面已經沒有頂欄：抽屜改成整個視窗高；遮罩從左欄右緣開始蓋，左欄（含「事件」鈕）照樣按得到。
+     開關、點背景關、Esc、換頁自動收、每次打開回到預設 —— 全部是 app.js 原本的 setSide()，這裡一行都沒碰。 */
+  :root.l4 aside#side{top:0}
+  :root.l4 .sideback{top:0;left:var(--l4-nav-w)}
+
+  /* 主內容最低高度：原本扣掉頂欄 58px，現在沒有頂欄了 */
+  :root.l4 .layout{min-height:100vh}
+}
+
+/* =============================== 3. 頁首＋「本頁功能」跳轉列（≥641px；手機版在第 5 段） ===============================
+   layout4.js 產生兩塊，放在 <main> 外面、#layout 前面（body 的直接子元素 —— sticky 才黏得住整頁；
+   它們跟導覽一樣是「導覽」不是內容）。
+   高度刻意壓低（v4 的痛點是「間隔太大導致圖被壓縮」）：小標一行＋「頁名｜一句話」同一行，約 64px；
+   跳轉列 48px，捲下去之後只剩它黏在最上面。
+   641～820（桌機縮半邊、平板直放）也用這一套：那個寬度的頁面跟桌機一樣是整頁卡片（沒有手機的分段導覽），
+   只是頂欄還在 —— 跳轉列改黏在頂欄（58px）底下。 */
+@media (min-width:641px){
+  /* 所有 scrollIntoView（app 自己的也算）都要讓出跳轉列，不然捲過去的標題會被它蓋住 */
+  :root.l4{scroll-padding-top:60px}
+  /* ★ 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
+     頁首只剩「頁名＋台北現在時間」一行，高度＝--l4-bar-h（49px），黏在視窗最上面 —— 頂替原本「本頁功能」跳轉列的位置，
+     所以 .topbar 盒子的高度（＝頂端被蓋住的那一條，industry.js 的 trackPop 拿它判斷按鈕有沒有被蓋住）跟以前是同一件事。
+     時間的字由 ::before 讀 data-t 畫（layout4.js 每秒寫屬性、不寫文字節點，理由見 tick()）。 */
+  :root.l4 #l4Head{display:flex;align-items:center;gap:var(--sp-4);position:sticky;top:0;z-index:35;box-sizing:border-box;
+    height:var(--l4-bar-h,49px);padding:0 var(--sp-4);background:var(--t4-topbar,var(--topbar));
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid transparent}
+  :root.l4 #l4Head.stuck{border-bottom-color:var(--t4-card-edge,var(--line))}
+  :root.l4 #l4Head[hidden]{display:none}
+  /* ★ 2026-10-07（Andy 截圖選股策略頁首大標上半截被切）：h1 有 overflow:hidden（為了 text-overflow 省略號），
+     行高用 --lh-tight 時中文字形的上緣超出行框，就被自己的 overflow 剪掉。行高改 1.4 並補 2px 上下內距，省略號照樣有效。*/
+  :root.l4 #l4Head h1{flex:0 1 auto;min-width:0;margin:0;font-size:var(--fs-h2);line-height:1.4;padding:2px 0;font-weight:var(--t4-h-w,700);
+    letter-spacing:var(--t4-h-ls,.02em);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.l4 #l4Head h1 .sub1{font-weight:500;color:var(--ink-3);font-size:var(--fs-h3);margin-left:var(--sp-2)}
+  :root.l4 #l4Head .l4clock{flex:none;margin-left:auto;font-family:var(--mono);font-size:var(--fs-sm);color:var(--ink-2);
+    font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:.02em}
+  :root.l4 #l4Head .l4clock::before{content:attr(data-t)}
+  /* ---- 頁首右上角（第四批，Andy：「明暗用原來的圖示即可，並且都放在右上」「這個登入功能不見了」） ----
+     順序：時間｜☀／🌙（#themeBtn 本人，字由 app.js 寫）｜外觀調色盤（#t4Btn）｜線上人數（#acctOnline）｜登入（#acctBtn 或 #l4Login）。
+     三顆方鈕同高 34px；登入是主色外框的膠囊（未登入）／頭像＋名字＋▾（已登入）。這些按鈕搬出 .acctbar 之後，account.js 那幾條
+     `.acctbar .abtn` 樣式就吃不到了，所以這裡自己寫一份（只用 v4 變數）。 */
+  :root.l4 #l4Head .l4tools{flex:none;display:flex;align-items:center;gap:6px;margin-left:0}
+  :root.l4 #l4Tools>#themeBtn,:root.l4 #l4Tools>#t4Btn{display:inline-grid;place-items:center;width:34px;height:34px;margin:0;padding:0;
+    box-sizing:border-box;border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));
+    color:var(--ink-2);font-size:16px;line-height:1;cursor:pointer;box-shadow:none}
+  /* ★ 2026-10-06 Andy：「間隔太大，圖示需要置中方框中」。通知鈴（#ntBell，notices.js 放在 #l4Tools「前面」當兄弟）原本吃
+     頁首的 gap 16＋工具列 margin-left 8＝24px，比其他鈕之間的 6px 寬四倍；而且它是 34×32、圓角 9、底色 panel-2，跟另外兩顆 34×34 方鈕不一樣。
+     這裡讓它長得跟那兩顆一樣（34×34、同邊框／圓角／底色、圖示 17px 正中），並用負的 margin-right 把到工具列的距離收成 6px。
+     時間到第一顆＝頁首 gap 16；三顆之間＝6。 */
+  :root.l4 #l4Head>#ntBell{display:inline-grid;place-items:center;width:34px;height:34px;margin:0 -10px 0 0;padding:0;box-sizing:border-box;
+    border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));color:var(--ink-2);box-shadow:none}
+  :root.l4 #l4Head>#ntBell:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 #l4Head>#ntBell svg{display:block;width:17px;height:17px}
+  :root.l4 #l4Tools>#themeBtn:hover,:root.l4 #l4Tools>#t4Btn:hover,:root.l4 #l4Tools>#t4Btn[aria-expanded="true"]{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 #l4Tools>#t4Btn{font-size:0}
+  :root.l4 #l4Tools>#t4Btn::before{content:"";width:17px;height:17px;background:currentColor;
+    -webkit-mask:var(--l4-ic-palette) center/contain no-repeat;mask:var(--l4-ic-palette) center/contain no-repeat}
+  :root.l4 #l4Tools>#acctOnline:not([hidden]){display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 4px;margin:0;border:0;background:none;
+    color:var(--ink-2);font-size:var(--fs-sm);white-space:nowrap;cursor:default}
+  :root.l4 #l4Tools>#acctOnline i{width:8px;height:8px;border-radius:50%;background:var(--t4-accent-solid,var(--cyan));
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 20%,transparent)}
+  :root.l4 #l4Tools>#acctBtn,:root.l4 #l4Tools>#l4Login{display:inline-flex;align-items:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;
+    border:1px solid var(--t4-accent-solid,var(--cyan));border-radius:var(--r-sm);background:transparent;color:var(--t4-accent-solid,var(--cyan));
+    font-size:var(--fs-sm);font-weight:700;white-space:nowrap;cursor:pointer}
+  :root.l4 #l4Tools>#acctBtn:hover,:root.l4 #l4Tools>#l4Login:hover{background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
+  /* 已登入：頭像＋名字＋▾（account.js 畫的），外框改成一般控制項的顏色 */
+  :root.l4 #l4Tools>#acctBtn.ame{padding:0 10px 0 4px;border-color:var(--t4-ctl-edge,var(--line-2));background:var(--t4-ctl,var(--panel));color:var(--ink-2);font-weight:400}
+  :root.l4 #l4Tools>#acctBtn.ame:hover{border-color:var(--t4-accent-solid,var(--cyan));color:var(--ink)}
+  :root.l4 #l4Tools>#acctBtn img,:root.l4 #l4Tools>#acctBtn .ini{width:26px;height:26px;flex:none;border-radius:50%;object-fit:cover}
+  :root.l4 #l4Tools>#acctBtn .ini{display:inline-grid;place-items:center;background:var(--t4-accent);color:var(--on-accent);font-size:var(--fs-sm);font-weight:700}
+  :root.l4 #l4Tools>#acctBtn .anm{max-width:8em;overflow:hidden;text-overflow:ellipsis;color:var(--ink);font-weight:700}
+  /* 會員功能沒開時「登入」的說明（#l4Login 按了才出現；位置由 layout4.js 對齊按鈕右緣） */
+  .l4logintip{position:fixed;z-index:1250;width:272px;padding:12px 14px;border-radius:var(--r-md,12px);background:var(--panel);color:var(--ink);
+    border:1px solid var(--t4-card-edge,var(--line-2));box-shadow:0 12px 40px var(--drop);font-size:var(--fs-sm);line-height:1.55}
+  .l4logintip[hidden]{display:none}
+  .l4logintip b{display:block;margin-bottom:4px}
+  .l4logintip p{margin:4px 0 0;color:var(--ink-2)}
+  /* 「本頁功能」跳轉列：Andy 要拿掉。只藏不刪 —— layout4.js 照樣產生、照樣掃卡片（之後要接回來改這一行就好） */
+  :root.l4 #l4Jump{display:none!important}
+
+  :root.l4 #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:0;z-index:35;
+    padding:var(--sp-2) var(--sp-4);background:var(--t4-topbar,var(--topbar));
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid transparent}
+  :root.l4 #l4Jump.stuck{border-bottom-color:var(--t4-card-edge,var(--line))}
+  :root.l4 #l4Jump[hidden]{display:none}
+  :root.l4 #l4Jump .lbl{flex:none;font-size:var(--fs-min);font-weight:700;letter-spacing:.1em;color:var(--ink-3)}
+  :root.l4 #l4Jump .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto;padding-right:28px;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+  :root.l4 #l4Jump .chips::-webkit-scrollbar{display:none}
+  :root.l4 #l4Jump button{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 var(--sp-3);
+    border-radius:var(--r-sm);border:1px solid var(--t4-ctl-edge,var(--line-2));background:var(--t4-ctl,var(--panel));color:var(--ink-2);
+    font-size:var(--fs-sm);cursor:pointer;white-space:nowrap}
+  :root.l4 #l4Jump button i{font-style:normal;font-family:var(--mono);font-size:var(--fs-min);color:var(--ink-3)}
+  :root.l4 #l4Jump button:hover{border-color:var(--t4-accent-solid,var(--cyan));color:var(--ink)}
+  /* 亮起＝主題主色的淡底＋主色字（跟分段鈕的實心反白區分開：這一列是「你在哪」，不是「你選了什麼」） */
+  :root.l4 #l4Jump button.on{border-color:var(--t4-accent-solid,var(--cyan));color:var(--t4-accent-solid,var(--cyan));font-weight:700;
+    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
+  :root.l4 #l4Jump button.on i{color:inherit}
+  /* 跳過去的那張卡閃一下主色外框，知道「是這張」 */
+  :root.l4 .card.l4-hit{animation:l4hit 1.2s ease}
+  /* 頁首已經寫了頁名，主內容上緣不必再留 12px */
+  :root.l4 main{padding-top:var(--sp-1)}
+}
+@keyframes l4hit{0%,35%{box-shadow:0 0 0 2px var(--t4-accent-solid,var(--cyan))}100%{box-shadow:var(--t4-card-sh,none)}}
+@media (prefers-reduced-motion:reduce){ :root.l4 .card.l4-hit{animation:none} }
+
+/* ★★ 2026-10-03 手機版暫停（Andy：「手機版先停擺，等電腦版 OK 之後再做。電腦版要先上線」）：
+   下面 4b（641～820）與 5（≤640）兩段原本掛在 :root.l4 底下，現在改掛 :root.l4m —— 一個**目前沒有任何程式會掛上去**的旗標 class，
+   所以這兩段全部不生效，≤820 的畫面跟 main 一模一樣。程式留著，以後要接回來：layout4.js 的 MOBILE 旗標改 true（它會在 ≤820 掛 l4m），
+   並把 <head> 那段小 script 的 820 門檻一起改掉。
+   ⚠ l4 本身也只在 >820 才掛（<head> 小 script ＋ layout4.js 的 resize），所以第 3 段雖然寫 min-width:641，實際只在桌機生效。 */
+/* =============================== 4b. 641～820（桌機縮半邊、平板） ===============================
+   判斷（Andy 讓我挑「左側圖示列」或「手機版底部分頁列」）：選**底部分頁列，改成一列七顆線條圖示**。理由：
+     · 這個寬度最常見的是平板直放（觸控），拇指搆得到底部、搆不到左上角；電腦縮半邊時底部一列也一樣好按。
+     · 七頁一列放得下（641 ÷ 7 ＝ 91px／顆，最長的「資金流向」四個字 48px），不用像手機那樣把三頁收進「更多」。
+     · 高度從兩列 102px 降到一列 58px，多出來的 44px 還給內容；左側圖示列則會再吃掉 72px 寬（641 只剩 569）。
+     · 頂欄（品牌、搜尋、自選、⋯ 清單裡的事件與明暗）原封不動 —— ≤820 的「⋯」入口、外觀鈕收進清單（theme4.css）都照舊，
+       舊的驗收（今日事件從「⋯」開）也照舊。
+   頁首、跳轉列見第 3 段（跳轉列黏在頂欄 58px 底下）；事件抽屜跟手機一樣改滿高。 */
+@media (min-width:641px) and (max-width:820px){
+  :root.l4m{scroll-padding-top:114px}
+  :root.l4m #l4Jump{top:58px}
+  :root.l4m .tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;flex-wrap:nowrap;
+    padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
+  :root.l4m .tab{flex:none;min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;background:none;box-shadow:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--fs-min);line-height:1.2;
+    color:var(--ink-3);font-weight:600;white-space:nowrap}
+  :root.l4m .tab::before{content:"";flex:none;width:22px;height:22px;background-color:currentColor;
+    -webkit-mask:var(--l4-ic,none) center/22px 22px no-repeat;mask:var(--l4-ic,none) center/22px 22px no-repeat}
+  :root.l4m .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
+  :root.l4m .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
+  :root.l4m .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
+  :root.l4m .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
+  :root.l4m .tab[data-view="market"]{--l4-ic:var(--l4-ic-market)}
+  :root.l4m .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
+  :root.l4m .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
+  :root.l4m .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
+  :root.l4m .tab[data-view="portfolio"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9h-9z'/%3E%3Cpath d='M15 3.6A9 9 0 0 1 20.4 9H15z'/%3E%3C/svg%3E")}
+  :root.l4m .tab:hover{background:none;color:var(--ink)}
+  :root.l4m .tab.on{color:var(--t4-accent-solid,var(--cyan));box-shadow:none;
+    background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
+  /* 事件抽屜：滿高（蓋過頂欄），遮罩也從頂端起 */
+  :root.l4m aside#side,:root.l4m .sideback{top:0}
+}
+
+/* =============================== 5. 手機（≤640px，body.m3on） ===============================
+   手機有自己一套結構（mobile3.js：頂欄 52、主軸動線、分段列、底部五顆 58px），每一頁都算過「一屏看完」的高度預算：
+     · 頂欄：站名的位置改寫「分組＋目前頁名」（layout4.js 產生 .l4pt），一看就知道自己在哪；logo 不動，高度不變
+     · 底部五顆：文字符號（◎ ⇄ ▦ ▤ ≡）換成跟桌機同一套線條圖示；按鈕高度 58 不變（圖示 22 ＋ 字 14 ＋ 間距 2 ＝ 38，原本 18 ＋ 14 ＋ 2）
+     · 頁首（第二批，Andy「手機版本一併處理」）：壓成**一行**（分組小標｜頁名｜說明，說明超出就省略），約 34px；
+       主內容上緣從 14 收到 6，所以實際只多 26px —— 量過：總覽輪盤（加兩檔觀察）底 730 → 756，預算 786 仍有 30px。
+       個股頁不放：那一頁的頁首就是券商式報價列（#mbHead，◀ 名稱／代號／市場別 ▶，sticky），再疊一條會把 K 線推出第一屏
+       （量過只剩 37px 餘裕，「手機個股券商式」的「K 線圖＋報價列在同一屏」會紅），而且頂欄已經寫了「族群與個股｜股名 代號」。
+     · 「本頁功能」：手機每一頁幾乎都已經有分段列（.mspine 第一層四步、.mpager 第二層分段 —— 一屏一段，換段用點的），
+       那兩排就是手機的「本頁功能」，不另外做第二排：統一成跟桌機跳轉列同一種膠囊（亮起＝主色淡底＋主色字），
+       分段列改 sticky 黏在頂欄（總覽是黏在四步列）底下。沒有分段列、又有兩張以上卡片的頁面（例如市場明細）才出 #l4Jump。
+     · 今日事件抽屜：從右側滑出、滿高（蓋過頂欄與底部導覽），遮罩也從頂端起；開關仍是 app.js 的 setSide()（遮罩／Esc／× 都關）。 */
+
+@media (max-width:640px){
+  :root.l4m body.m3on .brand>div:not(.logo)>b{display:none}
+  :root.l4m body.m3on .brand .l4pt{display:flex;flex-direction:column;font-size:16px;font-weight:700;line-height:1.15;color:var(--ink);
+    letter-spacing:.02em;white-space:nowrap;max-width:52vw;overflow:hidden;text-overflow:ellipsis}
+  :root.l4m body.m3on .brand .l4pt>span{overflow:hidden;text-overflow:ellipsis}
+  :root.l4m body.m3on .brand .l4pt i{font-style:normal;font-size:var(--fs-min);font-weight:700;letter-spacing:.12em;color:var(--t4-accent-solid,var(--cyan));margin-bottom:2px}
+  /* 「有新資料 ↻」出現時頂欄要擠三行 —— 把分組小標讓出來，頁名＋那顆鈕兩行剛好 */
+  :root.l4m body.m3on .brand:has(#freshBtn:not([hidden])) .l4pt i{display:none}
+  /* 底部導覽：圖示改遮罩；選中那顆加一顆主色淡底膠囊（遮罩只能畫單色，所以膠囊畫在按鈕自己的背景上，對準圖示） */
+  :root.l4m body.m3on .tab::before,:root.l4m body.m3on .mtabmore::before{content:""!important;width:22px;height:22px;font-size:0;
+    background-color:currentColor;text-shadow:none;
+    -webkit-mask:var(--l4-ic,var(--l4-ic-more)) center/22px 22px no-repeat;mask:var(--l4-ic,var(--l4-ic-more)) center/22px 22px no-repeat}
+  :root.l4m body.m3on .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
+  :root.l4m body.m3on .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
+  :root.l4m body.m3on .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
+  :root.l4m body.m3on .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
+  :root.l4m body.m3on .mtabmore{--l4-ic:var(--l4-ic-more)}
+  :root.l4m body.m3on .tab.on,:root.l4m body.m3on .mtabmore.on{color:var(--t4-accent-solid,var(--cyan));
+    background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
+  :root.l4m body.m3on .tab.on::before,:root.l4m body.m3on .mtabmore.on::before{text-shadow:none}
+
+  /* ---- 頁首：一行 ---- */
+  :root.l4m body.m3on #l4Head{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;padding:var(--sp-2) 14px 2px}
+  :root.l4m body.m3on #l4Head[hidden],:root.l4m body.m3on.mbon #l4Head{display:none}
+  :root.l4m body.m3on #l4Head .eyebrow{flex:none;font-size:var(--fs-min);font-weight:700;letter-spacing:.1em;line-height:24px;
+    color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4m body.m3on #l4Head .ttl{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;flex:1 1 auto}
+  :root.l4m body.m3on #l4Head h1{flex:none;margin:0;font-size:17px;line-height:24px;font-weight:var(--t4-h-w,700);color:var(--ink);white-space:nowrap}
+  :root.l4m body.m3on #l4Head h1 .sub1{display:none}
+  :root.l4m body.m3on #l4Head p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--fs-min);line-height:24px;color:var(--ink-3);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.l4m body.m3on:not(.mbon) main{padding-top:6px}
+
+  /* ---- 本頁功能：沒有分段列的頁面才出現的跳轉列（黏在頂欄 52px 底下、可橫向滑） ---- */
+  /* 手機不設 scroll-padding：既有的捲動（總覽卡片的 scroll-margin-top 124、按鈕普查的置中捲動）都是照「沒有 padding」算的；跳轉列自己的捲動由 layout4.js 算位移 */
+  :root.l4m{scroll-padding-top:0}
+  :root.l4m body.m3on #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:52px;z-index:30;
+    padding:6px 14px;background:var(--bg);box-shadow:0 8px 12px -10px var(--drop)}
+  :root.l4m body.m3on #l4Jump[hidden]{display:none}
+  :root.l4m body.m3on #l4Jump .lbl{display:none}
+  :root.l4m body.m3on #l4Jump .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto;
+    -webkit-overflow-scrolling:touch}
+  :root.l4m body.m3on #l4Jump .chips::-webkit-scrollbar{display:none}
+
+  /* ---- 分段膠囊統一：.mspine（第一層四步）、.mpager（第二層分段）、#l4Jump 同一種樣子 ----
+     沒選＝控制項底＋細框；選中＝主色淡底＋主色字＋主色框（取代原本 .mpager 的整塊反白、.mspine 的發光）。 */
+  :root.l4m body.m3on #l4Jump button,:root.l4m body.m3on .mpager>button{flex:none;display:inline-flex;align-items:center;gap:6px;
+    min-height:36px;padding:0 14px;border-radius:var(--r-sm);border:1px solid var(--t4-ctl-edge,var(--line-2));
+    background:var(--t4-ctl,var(--panel));color:var(--ink-2);font-size:13px;white-space:nowrap;box-shadow:none}
+  :root.l4m body.m3on #l4Jump button i{font-style:normal;font-family:var(--mono);font-size:var(--fs-min);color:var(--ink-3)}
+  :root.l4m body.m3on #l4Jump button.on,:root.l4m body.m3on .mpager>button.on,:root.l4m body.m3on .mspine>button.on{
+    border-color:var(--t4-accent-solid,var(--cyan));color:var(--t4-accent-solid,var(--cyan));font-weight:700;box-shadow:none;
+    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,var(--t4-ctl,var(--panel)))}
+  :root.l4m body.m3on #l4Jump button.on i,:root.l4m body.m3on .mspine>button.on em,:root.l4m body.m3on .mspine>button.on b{color:inherit}
+  :root.l4m body.m3on .mspine>button{background:var(--t4-ctl,var(--panel));border-color:var(--t4-ctl-edge,var(--line-2));box-shadow:none}
+  /* 分段列黏在頂欄底下（總覽有四步列：黏在四步列底下，四步列高度由 layout4.js 量進 --l4-spine-h）。
+     z-index 5：要蓋過捲上來的卡片內容，但要讓總覽輪盤的點旁說明框（#mOvPop，z 6）蓋得過它。 */
+  :root.l4m body.m3on .view.on>.mpager{position:sticky;top:52px;z-index:5;background:var(--bg);
+    margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px;box-shadow:0 8px 12px -10px var(--drop)}
+  :root.l4m body.m3on .view.on:has(>.mspine)>.mpager{top:calc(52px + var(--l4-spine-h,56px))}
+
+  /* ---- 今日事件抽屜：滿高 ---- */
+  :root.l4m body.m3on aside#side,:root.l4m body.m3on .sideback{top:0}
+  :root.l4m body.m3on aside#side{z-index:50}
+  :root.l4m body.m3on .sideback{z-index:49}
+}
+
+/* ---- 側欄收展（2026-10-05，Andy：「這邊點選可以收展」）—— layout4.js buildFold() ----
+   群組標題從 .tab::before（點不到）換成真的按鈕 .l4grp：有 .l4g 時把 ::before 的字與 28px 上距拿掉，改由 .l4grp 自己佔
+   （6px 上距＋20px 高 ≈ 原本 28px，側欄總高不變，不晃）。收合成圖示列（l4-mini）時 .l4grp 藏起來、收合不作用，回到原本的分隔線。 */
+@media (min-width:641px){   /* ★ 2026-10-09 縮放混合版：821 → 641 */
+  :root.l4.l4g:not(.l4-mini) .tab[data-view]{margin-top:0}
+  :root.l4.l4g:not(.l4-mini) .tab[data-view]::before{content:none}
+  :root.l4 .tabs>.l4grp{display:none}
+  :root.l4.l4g:not(.l4-mini) .tabs>.l4grp{display:flex;align-items:center;gap:6px;width:100%;height:20px;margin:6px 0 0;padding:0 var(--sp-3);
+    border:0;border-radius:var(--r-sm,6px);background:transparent;color:var(--ink-3);font-size:var(--fs-min);font-weight:600;letter-spacing:.12em;
+    line-height:16px;text-align:left;white-space:nowrap;cursor:pointer}
+  :root.l4.l4g:not(.l4-mini) .tabs>.l4grp:hover,:root.l4.l4g:not(.l4-mini) .tabs>.l4grp:focus-visible{color:var(--ink);background:var(--panel-2)}
+  :root.l4 .tabs>.l4grp[data-g="today"]{order:1;margin-top:0}
+  :root.l4 .tabs>.l4grp[data-g="money"]{order:2}
+  :root.l4 .tabs>.l4grp[data-g="stock"]{order:4}
+  :root.l4 .tabs>.l4grp[data-g="hist"]{order:6}
+  :root.l4 .tabs>.l4grp[data-g="proj"]{order:7}
+  /* ▾ 展開／▸ 收起：同一個三角形轉 90°（不換字，寬度不變） */
+  :root.l4 .l4grp .car,:root.l4 .l4car::before{content:"";flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:5px solid currentColor;transition:transform .15s ease}
+  :root.l4 .l4grp[aria-expanded="false"] .car,:root.l4 .l4car[aria-expanded="false"]::before{transform:rotate(-90deg)}
+  :root.l4 .l4grp .dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 .l4grp.here .dot{display:inline-block}
+  /* 大項右邊的子項箭頭：點擊區 22px，比三角形大很多，好點 */
+  :root.l4 .tab>.l4car{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;margin:-4px -6px -4px auto;border-radius:4px;opacity:.7;cursor:pointer}
+  :root.l4 .tab>.l4car:hover{opacity:1;background:color-mix(in srgb,currentColor 12%,transparent)}
+  :root.l4.l4-mini .tab>.l4car{display:none}
+  /* 收起：群組裡除了「目前所在頁」以外的格子都藏（目前那格照樣看得到） */
+  /* 2026-10-06（Andy：「收合後應該只會出現母分頁」）：拿掉 :not(.on)，收起就整組全藏、只剩群組標題（目前頁由標題的點提示）。
+     根因修正：財經日曆加進今日市場時這裡漏列（它從來不會被收），ETF 改到族群與個股。 */
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"],.tab[data-view="articles"],.tab[data-view="tc"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>.l4subtab[data-parent="articles"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="articles"]>.l4subtab[data-parent="articles"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"],.tab[data-view="flowcheck"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>:is(.tab[data-view="season"],.tab[data-view="lab"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="portfolio"],.tab[data-view="delivery"],.tab[data-view="channels"],.tab.l4perm),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="etf"]>.l4subtab[data-parent="etf"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="market"]>.l4subtab[data-parent="market"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="explore"]>.l4subtab[data-parent="explore"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>.l4subtab:is([data-parent="market"],[data-parent="explore"],[data-parent="etf"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="admin"]>.l4subtab[data-parent="admin"]{display:none}
+}
+
+/* =============================== 6. 641～820 也是完整電腦版（2026-10-09 縮放混合版） ===============================
+   Andy 10-09：「剛剛手機版本發現嚴重BUG，不能有縮放功能，版面就固定這麼大，不會出現這樣縮放後的 BUG」。
+   以前 641～820 掛不到 l4，吃的是 index.html 一堆 @media (max-width:820px) 的「舊手機頂欄＋底部分頁格子」，
+   分頁長到 10 顆後格子折成三列、蓋掉半個畫面；電腦 Chrome 縮窄視窗或 Ctrl+放大到這個寬度就變成「混合版」。
+   現在 >640 一律掛 l4（index.html 開頭那行與 layout4.js 的 DESK 都改成 640），第 1 段左側導覽從 641 起生效；
+   這一段只把那些 ≤820 規則裡「導覽外框」的部分（底部固定、兩列四顆、讓開底部的 150px）蓋回電腦版的值，
+   值逐一對過 821px 的實際算出值。內容（卡片、圖、字級）照舊吃 ≤820 那批窄版規則 —— 那是電腦版本身的窄版排法。
+   ≥821 一條都不吃（像素比對：桌機守門1008）；≤640 不掛 l4，一條都不吃。 */
+@media (min-width:641px) and (max-width:820px){
+  :root.l4 .tabs{position:static;z-index:auto;background:transparent;border-top:0;-webkit-backdrop-filter:none;backdrop-filter:none;
+    flex:1 1 0%;flex-wrap:nowrap;justify-content:normal}
+  :root.l4 .tab,:root.l4 .tab:nth-child(n+5){flex:0 1 auto;min-height:auto;line-height:normal}
+  :root.l4:not(.l4-mini) .tab{justify-content:normal}
+  :root.l4 #evToggle,:root.l4 #themeBtn,:root.l4 #t4Btn{min-height:auto}
+  :root.l4 .topbar .search input,:root.l4 .topbar .sugg{border-radius:6px}
+  :root.l4 .topbar .search input{padding-left:34px}
+  :root.l4 #freshBtn{padding-left:8px;padding-right:8px}
+  :root.l4 main{padding-bottom:40px}
+  :root.l4 .topbar,:root.l4 #l4Head{font-size:14px}   /* ≤820 的 body 15px 會被導覽繼承；導覽字級對齊 821 */
+}
+/* 641～719：頁首一行放不下「頁名＋導覽＋時鐘＋右邊四顆」（641 量到缺 59px，頁名被擠成 0 寬）。
+   時鐘讓位（頁名比時間重要），右邊那組自己靠右。 */
+@media (min-width:641px) and (max-width:719px){
+  :root.l4 #l4Head .l4clock{display:none}
+  :root.l4 #l4Head #l4Tools{margin-left:auto}
+}

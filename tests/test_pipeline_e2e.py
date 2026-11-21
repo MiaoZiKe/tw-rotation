@@ -1,0 +1,563 @@
+"""端到端煙霧測試：用合成資料把「資料湖 → 計算 → 前端 JSON」整條跑一次。
+
+這條測試的價值在於，開發環境連不到證交所（企業 egress 政策），
+真實 API 只有在 GitHub Actions 上才打得到。所以本機能驗證的是
+「拿到符合契約的資料後，後面每一步都不會爆」—— 而那正是最容易寫壞的部分。
+"""
+from __future__ import annotations
+
+import importlib
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+CODES = {
+    "2330": "foundry", "2303": "foundry", "3711": "osat", "2311": "osat",
+    # 2026-09-21 上午：族群換成 tide 的 110 板塊，這裡的 id 跟著改。
+    # 2026-09-21 下午：壽險型金控依資金流證據拆成手寫板塊 life_fhc
+    #   （富邦金×國泰金殘差相關 +0.74、對銀行只有 +0.34，見 docs/tide_deviations.md），
+    #   所以 2881/2882 不再落到自動桶。
+    # ★ 但這個測試原本**同時守兩件事**：①金控不准用 PE ②自動桶吃得到 ind_display 的口徑。
+    #   只把 id 改掉的話第②條就沒人守了，所以補一檔沒有被手寫板塊收走的金融股
+    #   （2889 國票金，機器確認過它不屬於任何手寫板塊）當自動桶的樣本。
+    "2317": "ai_server_odm", "2382": "ai_server_odm", "3017": "liquid_cooling",
+    "2881": "life_fhc", "2882": "life_fhc", "2889": "ind_金融保險",
+    "2603": "shipping_container",
+}
+
+# ★ 科技股 vs 傳產只寫這一份。
+# 2026-09-21 踩到：CODES 把 3017 從 server_thermal 改成 liquid_cooling，
+# 但下面 _synth() 的漂移判斷還寫著 server_thermal，於是 3017 被當成傳產給了負漂移，
+# 測試紅了卻和真正要守的事（強弱排序）無關。兩份名單必須是同一份。
+TECH_GROUPS = {"foundry", "osat", "ai_server_odm", "liquid_cooling", "air_cooling"}
+# 反過來的那一份給 test_relative_strength_beats_market 用
+LAGGARD_GROUPS = {"life_fhc", "ind_金融保險", "shipping_container"}
+
+
+@pytest.fixture()
+def lake(tmp_path, monkeypatch):
+    """把資料湖與網站輸出都導到暫存目錄。"""
+    from pipeline import config
+    data, site = tmp_path / "data", tmp_path / "site"
+    (data / "_state").mkdir(parents=True)
+    site.mkdir(parents=True)
+
+    monkeypatch.setattr(config, "DATA", data)
+    monkeypatch.setattr(config, "SITE_DATA", site)
+    monkeypatch.setattr(config, "STATE", data / "_state")
+    monkeypatch.setenv("SKIP_INTRADAY", "1")     # 測試環境不打 Yahoo
+
+    from pipeline.util import store
+    importlib.reload(store)
+    monkeypatch.setattr(store.config, "DATA", data)
+    return store, site
+
+
+def _synth(days: int = 300, seed: int = 7):
+    """造一段 11 檔股票、300 個交易日的行情，族群之間刻意給不同的走勢。"""
+    rng = np.random.default_rng(seed)
+    dates = pd.bdate_range("2025-06-02", periods=days).strftime("%Y-%m-%d").tolist()
+
+    price_rows, inst_rows, val_rows, margin_rows = [], [], [], []
+    for i, (code, group) in enumerate(CODES.items()):
+        # 科技股給正漂移、傳產給負漂移，且訊號要明顯大於雜訊，
+        # 否則 20 日 RS 排序會被隨機波動主導，測試本身就變得不可靠
+        drift = 0.004 if group in TECH_GROUPS else -0.004
+        steps = rng.normal(drift, 0.008, days)
+        close = 100 * (1 + i * 0.3) * np.exp(np.cumsum(steps))
+        prev = np.concatenate([[close[0]], close[:-1]])
+        high = close * (1 + np.abs(rng.normal(0, 0.01, days)))
+        low = close * (1 - np.abs(rng.normal(0, 0.01, days)))
+        vol = rng.integers(5_000_000, 80_000_000, days)
+
+        for j, d in enumerate(dates):
+            price_rows.append({
+                "date": d, "code": code, "name": f"股{code}", "market": "TWSE",
+                "open": float(prev[j]), "high": float(high[j]),
+                "low": float(low[j]), "close": float(close[j]),
+                "change": float(close[j] - prev[j]),
+                "volume": int(vol[j]),
+                "turnover": float(vol[j] * close[j]),
+                "transactions": int(vol[j] / 1000),
+            })
+            inst_rows.append({
+                "date": d, "code": code,
+                "foreign": float(rng.normal(0, 3e6)),
+                "foreign_dealer": 0.0,
+                "foreign_total": float(rng.normal(0, 3e6)),
+                "trust": float(rng.normal(5e5 if drift > 0 else -5e5, 8e5)),
+                "dealer_self": 0.0, "dealer_hedge": 0.0,
+                "dealer": float(rng.normal(0, 5e5)),
+                "inst_total": float(rng.normal(0, 4e6)),
+            })
+            margin_rows.append({
+                "date": d, "code": code,
+                "margin_balance": int(rng.integers(1000, 50000)),
+                "margin_change": int(rng.integers(-2000, 2000)),
+                "short_balance": int(rng.integers(0, 5000)),
+                "short_change": int(rng.integers(-500, 500)),
+            })
+
+        val_rows.append({
+            "date": dates[-1], "code": code,
+            "pe": float(rng.uniform(8, 40)),
+            "pb": float(rng.uniform(0.8, 6)),
+            "dividend_yield": float(rng.uniform(0.5, 6)),
+        })
+
+    market_rows = []
+    taiex = 20000 * np.exp(np.cumsum(rng.normal(0.0006, 0.012, days)))
+    for j, d in enumerate(dates):
+        market_rows.append({
+            "date": d, "volume": int(rng.integers(4e9, 9e9)),
+            "turnover": float(rng.uniform(3e11, 6e11)),
+            "transactions": int(rng.integers(1e6, 3e6)),
+            "taiex": float(taiex[j]),
+            "change": float(taiex[j] - (taiex[j - 1] if j else taiex[0])),
+        })
+
+    company = pd.DataFrame([
+        {"code": c, "name": f"股{c}", "market": "TWSE",
+         # 2026-09-21：2881/2882 的產業別要給「金融保險」才驗得到金控的估值口徑。
+         # 它們落到自動桶 `ind_金融保險`，而自動桶的口徑是由
+         # groups.yaml 的 meta.ind_display 指定的（pb_roe）—— 給「其他」就繞過這條路徑，
+         # 測試會通過但實際上什麼都沒守到。
+         "industry": ("半導體業" if g in ("foundry", "osat")
+                      else "金融保險" if c in ("2881", "2882", "2889") else "其他"),
+         "industry_code": "24"}
+        for c, g in CODES.items()
+    ])
+
+    return (pd.DataFrame(price_rows), pd.DataFrame(inst_rows),
+            pd.DataFrame(val_rows), pd.DataFrame(margin_rows),
+            pd.DataFrame(market_rows), company)
+
+
+@pytest.fixture()
+def populated(lake):
+    store, site = lake
+    price, inst, val, margin, market, company = _synth()
+    store.append("price_daily", price)
+    store.append("inst_daily", inst)
+    store.append("valuation_daily", val)
+    store.append("margin_daily", margin)
+    store.append("market_daily", market)
+    store.append("company_info", company)
+    return store, site, price.copy()
+
+
+# ------------------------------------------------------------------ 族群對照表
+
+def test_groups_yaml_is_valid():
+    from pipeline.groups import loader
+    cfg = loader.load()
+    assert cfg.get("groups"), "groups.yaml 沒有任何族群"
+
+    m = loader.membership(cfg)
+    assert not m.empty
+    bad = [c for c in m["code"] if not (c.isdigit() and len(c) == 4)]
+    assert not bad, f"這些代號格式不對：{bad[:10]}"
+
+    # chains 裡引用的族群一定要真的存在，否則畫關聯圖時會缺角
+    gids = set(cfg["groups"])
+    for chain, spec in (cfg.get("chains") or {}).items():
+        missing = [g for g in spec.get("order", []) if g not in gids]
+        assert not missing, f"chain {chain} 引用了不存在的族群：{missing}"
+
+    for gid in (cfg.get("benchmarks") or {}):
+        assert gid in gids, f"benchmarks 引用了不存在的族群：{gid}"
+
+
+def test_groups_health_reports_staleness():
+    from pipeline.groups import loader
+    h = loader.health()
+    assert h["group_count"] > 0 and h["code_count"] > 0
+    assert not h["empty_groups"], f"有空的族群：{h['empty_groups']}"
+    assert "is_stale" in h
+
+
+# ------------------------------------------------------------------ M1
+
+def test_group_daily_aggregates(populated):
+    from pipeline.compute import flow
+    store, _, price = populated
+    company = store.read("company_info")
+    inst = store.read("inst_daily")
+    margin = store.read("margin_daily")
+
+    g = flow.group_daily(price, company, inst, margin)
+    assert not g.empty
+
+    latest = g["date"].max()
+    today = g[g["date"] == latest]
+    total_share = today["turnover_share"].sum()
+    assert abs(total_share - 100) < 0.01, f"族群成交值佔比應加總為 100，實得 {total_share}"
+    assert (today["constituents"] > 0).all()
+
+    # 多族群股（2317 同屬 AI 伺服器與手機供應鏈）的量能必須被拆分，
+    # 不能兩邊各算一次完整金額
+    day_price = price[price["date"] == latest]
+    market_turnover = float(day_price["turnover"].sum())
+    grouped_turnover = float(today["turnover"].sum())
+    assert grouped_turnover <= market_turnover * 1.001, \
+        f"族群加總 {grouped_turnover:.0f} 超過市場總量 {market_turnover:.0f}，量能被重複計算"
+
+
+def test_rotation_radar_ranks(populated):
+    from pipeline.compute import flow
+    store, _, price = populated
+    g = flow.group_daily(price, store.read("company_info"))
+    r = flow.rotation_radar(g)
+    assert not r.empty
+    assert r["rotation"].is_monotonic_decreasing, "輪動雷達必須由強到弱排序"
+    assert len(r) == r["group_id"].nunique(), "每個族群只能出現一次"
+
+
+def test_concentration_bounds(populated):
+    from pipeline.compute import flow
+    store, _, price = populated
+    g = flow.group_daily(price, store.read("company_info"))
+    c = flow.concentration(g, top_n=3)
+    assert not c.empty
+    assert c["top_share"].between(0, 100.01).all()
+
+
+def test_relative_strength_beats_market(populated):
+    from pipeline.compute import flow
+    store, _, price = populated
+    g = flow.group_daily(price, store.read("company_info"))
+    rs = flow.relative_strength(g, store.read("market_daily"))
+    assert not rs.empty
+    assert rs["rs"].is_monotonic_decreasing
+
+    # 合成資料裡科技股是正漂移、傳產是負漂移，
+    # 所以每個傳產族群都必須排在所有科技族群後面
+    order = rs["group_id"].tolist()
+    laggards = LAGGARD_GROUPS
+    tech_positions = [i for i, g in enumerate(order) if g not in laggards]
+    lag_positions = [i for i, g in enumerate(order) if g in laggards]
+    assert lag_positions, "測試資料應包含傳產族群"
+    assert max(tech_positions) < min(lag_positions), \
+        f"強弱排序不符預期：{order}"
+
+
+def test_trust_streak(populated):
+    from pipeline.compute import flow
+    store, _, _ = populated
+    s = flow.trust_streak(store.read("inst_daily"), min_days=1)
+    if not s.empty:
+        assert (s["streak_days"] >= 1).all()
+        assert s["streak_days"].is_monotonic_decreasing
+
+
+def test_trust_streak_sell_side():
+    """2026-09-24：連續賣超（總覽四象限的左半邊）。用手刻的淨額序列驗口徑，不靠隨機測試資料：
+    賣超的累計要是負的、`last` 是最近一天的淨額，而且中間夾一天買超就要斷掉。"""
+    import pandas as pd
+    from pipeline.compute import flow
+    df = pd.DataFrame({
+        "code": ["A"] * 5 + ["B"] * 3,
+        "date": list(pd.date_range("2026-09-14", periods=5)) + list(pd.date_range("2026-09-16", periods=3)),
+        "trust": [-5, 3, -2, -4, -6, 1, 2, 7],
+    })
+    sell = flow.trust_streak(df, min_days=2, who="trust", side="sell")
+    assert list(sell["code"]) == ["A"]                   # B 一直在買，不會出現在賣超
+    a = sell.iloc[0]
+    assert a["streak_days"] == 3                         # -2,-4,-6；前面那天 +3 把它斷開
+    assert a["accumulated"] == -12 and a["last"] == -6
+    buy = flow.trust_streak(df, min_days=2, who="trust", side="buy")
+    assert list(buy["code"]) == ["B"] and buy.iloc[0]["last"] == 7
+
+
+# ------------------------------------------------------------------ 前端輸出
+
+def test_build_payload_end_to_end(populated):
+    from pipeline import build_payload
+    _, site, _ = populated
+    build_payload.build()
+
+    expected = ["meta", "market_heat", "groups_today", "rotation",
+                "concentration", "relative_strength", "seasonality",
+                "candidates", "news", "intl", "trust_streak"]
+    for name in expected:
+        f = site / f"{name}.json"
+        assert f.exists(), f"缺少 {name}.json"
+        json.loads(f.read_text(encoding="utf-8"))   # 必須是合法 JSON
+
+    meta = json.loads((site / "meta.json").read_text(encoding="utf-8"))
+    assert meta["status"] == "ok"
+    assert meta["history_days"] == 300
+
+    heat = json.loads((site / "market_heat.json").read_text(encoding="utf-8"))
+    assert heat["advancers"] + heat["decliners"] + heat["unchanged"] == len(CODES)
+
+    cands = json.loads((site / "candidates.json").read_text(encoding="utf-8"))
+    assert cands, "候選股清單不該是空的"
+    assert all(0 <= c["tech_score"] <= 100 for c in cands)
+    # 排序：A → B → 無等級，同等級內依綜合分由高到低（Andy #35 之後改用綜合分）
+    rank = {"A": 0, "B": 1, None: 2}
+    keys = [(rank[c["grade"]], -(c.get("score_all") or c["tech_score"])) for c in cands]
+    assert keys == sorted(keys), "候選股必須先依等級再依綜合分排序"
+    assert all(c["verdict"] for c in cands)
+    assert all(c["stop"] is not None and c["tp1"] is not None for c in cands)
+
+    # 四個面向的分數與「為何選它」（Andy #35）
+    for c in cands:
+        assert c["score_tech"] is not None and 0 <= c["score_tech"] <= 100
+        assert c["score_all"] is not None and 0 <= c["score_all"] <= 100
+        for k in ("score_chip", "score_fund"):
+            assert c[k] is None or 0 <= c[k] <= 100, f"{c['code']} 的 {k} 超出 0–100"
+        why = c["why"]
+        assert set(why) == {"all", "chip", "tech", "fund"}
+        assert why["all"]["pros"], f"{c['code']} 說不出被選上的理由"
+        for facet in why.values():
+            assert isinstance(facet["pros"], list) and isinstance(facet["cons"], list)
+            assert all(isinstance(t, str) and t for t in facet["pros"] + facet["cons"])
+
+    # 個股頁：每檔候選都要有，且結構完整
+    stock_dir = site / "stock"
+    assert stock_dir.exists()
+    for c in cands:
+        pg = json.loads((stock_dir / f"{c['code']}.json").read_text(encoding="utf-8"))
+        assert pg["meta"]["code"] == c["code"] and pg["meta"]["name"]
+        # 日線是 [date, o, h, l, c, v]；指標與週／月線由前端 chart.js 的 KInd 現算，
+        # 不再重複寫進 JSON（決策見 DECISIONS #52）
+        assert len(pg["daily"]) >= 60 and len(pg["daily"][0]) == 6
+        assert pg["meta"]["tier"] in ("full", "daily")
+        assert pg["verdict"]["verdict"] and isinstance(pg["verdict"]["demand"], list)
+        assert isinstance(pg["inst"], list)
+
+    # 全市場索引：每一檔可交易證券都要在 stocks.json 裡，而且都有對應的個股頁檔案，
+    # 否則前端搜尋到的代號會連到空頁（Andy 2026-09-12 回報的 #stock/2308 問題）
+    index = json.loads((site / "stocks.json").read_text(encoding="utf-8"))
+    assert index, "stocks.json 不能是空的"
+    assert all(r["code"] and r["name"] and r["tier"] in ("full", "daily", "thin") for r in index)
+    assert all(r["group_id"] for r in index), "每一檔都要掛得到族群（沒題材的用法定產業別）"
+    assert {c["code"] for c in cands} <= {r["code"] for r in index}
+    for r in index:
+        assert (stock_dir / f"{r['code']}.json").exists(), f"{r['code']} 在索引裡卻沒有個股頁"
+    # 漲跌家數分佈（2026-09-26 分上市／上櫃／全部）：每列帶管線算的級距 `ud`，
+    # updown.json 的 all.n ＝ 有級距的列數，而且每一級 全部 ＝ 上市 ＋ 上櫃 ＋ 市場別不明
+    from pipeline.compute import flow
+    assert all("ud" in r for r in index)
+    assert all(r["ud"] == flow.updown_bin(r["chg_pct"]) for r in index)
+    ud = json.loads((site / "updown.json").read_text(encoding="utf-8"))
+    assert ud["check"]["ok"] and ud["all"]["n"] == sum(1 for r in index if r["ud"] is not None) > 0
+    for i in range(11):
+        assert ud["all"]["counts"][i] == ud["twse"]["counts"][i] + ud["tpex"]["counts"][i] + ud["other"]["counts"][i]
+    assert ud["twse"]["n"] == sum(1 for r in index if r["ud"] is not None and r["market"] == "TWSE")
+
+    # 族群下鑽：每個族群都有成分股明細，成交值由大到小
+    gd = json.loads((site / "groups_detail.json").read_text(encoding="utf-8"))
+    assert "foundry" in gd and gd["foundry"]["members"]
+    tv = [m["turnover"] or 0 for m in gd["foundry"]["members"]]
+    assert tv == sorted(tv, reverse=True)
+    assert all(m["name"] and m["name"] != m["code"] for m in gd["foundry"]["members"])
+
+    # 市場寬度
+    b = heat["breadth"]
+    assert b["n"] > 0 and 0 <= b["pct_above_ma20"] <= 100
+
+    # ---- v3 產物
+    for name in ("seasonality_v3", "flow_v3", "themes", "industry_map"):
+        assert (site / f"{name}.json").exists(), f"缺少 {name}.json"
+    s3 = json.loads((site / "seasonality_v3.json").read_text(encoding="utf-8"))
+    assert "all" in s3["periods"] and s3["periods"]["all"]["cells"]
+    cell = s3["periods"]["all"]["cells"][0]
+    assert {"group_id", "month", "samples", "avg_return", "win_rate", "avg_excess"} <= set(cell)
+    f3 = json.loads((site / "flow_v3.json").read_text(encoding="utf-8"))
+    assert f3["rrg"]["points"] and all(p["quadrant"] in ("leading", "weakening", "lagging", "improving")
+                                       for p in f3["rrg"]["points"])
+    # 前端有 5／10／20 日三顆軌跡鈕；只存 10 天的話按 20 日等於沒反應
+    assert f3["rrg"]["trail_days"] >= 20, f"RRG 軌跡只存了 {f3['rrg']['trail_days']} 天，前端 20 日鈕會沒反應"
+    # 資金流向頁的期間切換與名次趨勢
+    assert f3["periods"] and {"w0", "q"} <= {p["key"] for p in f3["periods"]}
+    p0 = f3["periods"][0]
+    assert {"label", "from", "to", "days", "groups"} <= set(p0)
+    assert p0["groups"] and {"group_id", "share", "rank", "ret"} <= set(p0["groups"][0])
+    assert f3["bump"]["weeks"] and f3["bump"]["series"]
+    assert f3["sankey"]["nodes"] and f3["sankey"]["links"]
+    assert f3["share"]["dates"] and f3["share"]["series"]
+    im = json.loads((site / "industry_map.json").read_text(encoding="utf-8"))
+    assert im["chains"] and any(g["members"] for c in im["chains"] for g in c["groups"])
+    pg = json.loads((stock_dir / f"{cands[0]['code']}.json").read_text(encoding="utf-8"))
+    assert pg["version"] == 3 and len(pg["daily"]) >= 60
+    assert "1d" in pg["mtf"]["tf"] and pg["mtf"]["summary"]["headline"]
+    for key in ("revenue", "profit", "dividends", "margin", "holders", "inst_v3", "basics", "pe_history", "intraday"):
+        assert key in pg, f"個股頁缺 {key}"
+
+
+def test_payload_has_no_nan_literals(populated):
+    """JSON 裡不能出現 NaN / Infinity —— 那不是合法 JSON，前端 fetch 會直接掛掉。"""
+    from pipeline import build_payload
+    _, site, _ = populated
+    build_payload.build()
+    # ★ 2026-09-20：原本是對整份原始文字做 `"NaN" not in raw`，
+    #   但當時的 tasks.json（2026-09-25 起已不再產出）是**散文**（任務板的說明文字），裡面正好在講 2026-09-20
+    #   那個「代表股顯示 nan」的 bug —— 於是這條護欄把一段正確的說明判成了壞資料。
+    #   要擋的是「JSON 裡出現 NaN／Infinity 這種非法字面值」，不是「文字裡提到 NaN」。
+    #   嚴格模式的 json.loads 本來就會抓到真的字面值（parse_constant 會被呼叫），
+    #   所以拿掉字串掃描、只留嚴格解析，判準反而更準確而不是更鬆。
+    for f in list(site.glob("*.json")) + list((site / "stock").glob("*.json")):
+        raw = f.read_text(encoding="utf-8")
+        json.loads(raw, parse_constant=lambda c: (_ for _ in ()).throw(
+            ValueError(f"{f.name} 含有非法字面值 {c}")))
+
+
+def test_payload_does_not_ship_tasks_json(populated):
+    """部署產物裡不准有 tasks.json；交付清單不准含金鑰／token／Secrets 字樣。
+
+    2026-09-25（R6 審查追補）：前端早就把 `#tasks` 導到交付清單，但管線仍照寫 tasks.json、
+    Pages 照樣部署 —— `…/data/tasks.json` 直接打得開，內容是內部作業文字（金鑰／token 流程）。
+    這條同時守「上一輪殘留的舊檔會被清掉」：先放一份假的，build 完它必須消失。
+    """
+    from pipeline import build_payload
+    _, site, _ = populated
+    (site / "tasks.json").write_text('{"tasks": []}', encoding="utf-8")
+    build_payload.build()
+    assert not (site / "tasks.json").exists(), "build_payload 仍留下 site/data/tasks.json"
+    raw = (site / "delivery.json").read_text(encoding="utf-8")
+    hits = [w for w in ("token", "Token", "TOKEN", "金鑰", "Secrets", "secret") if w in raw]
+    assert not hits, f"delivery.json 含內部作業字樣：{hits}"
+
+
+def test_seasonality_suppresses_thin_samples(populated):
+    """樣本數不足 3 的月份必須留白，不能給出看似有效的平均值。"""
+    from pipeline import build_payload
+    store, _, price = populated
+    s = build_payload.seasonality(price, store.read("company_info"))
+    assert not s.empty
+    thin = s[s["samples"] < 3]
+    if not thin.empty:
+        assert thin["avg_return"].isna().all(), "樣本不足時不該給平均報酬"
+    assert s["win_rate"].dropna().between(0, 100).all()
+
+
+def test_build_payload_survives_empty_lake(lake):
+    """資料湖全空時（第一天上線）不能整個爆掉。"""
+    from pipeline import build_payload
+    _, site = lake
+    build_payload.build()
+    meta = json.loads((site / "meta.json").read_text(encoding="utf-8"))
+    assert meta["status"] == "empty"
+
+
+# ------------------------------------------------------------------ M2 端到端
+
+def _seed_fundamentals(store):
+    """幫合成的 10 檔補四季財報、資產負債表、24 個月營收、帶分類的新聞。"""
+    fq, bq, rv = [], [], []
+    for i, code in enumerate(CODES):
+        eps_base = 2.0 + i
+        for j, (y, q) in enumerate([(2025, 3), (2025, 4), (2026, 1), (2026, 2)]):
+            fq.append({"year": y, "quarter": q, "code": code,
+                       "period_end": f"{y}-{q*3:02d}-30", "announce_date": "2026-08-14",
+                       "revenue": 1e9 * (1 + j * .05), "gross_profit": 4e8,
+                       "operating_income": 3e8, "net_income": 2.5e8, "eps": eps_base + j * .1})
+            bq.append({"year": y, "quarter": q, "code": code,
+                       "period_end": f"{y}-{q*3:02d}-30", "announce_date": "2026-08-14",
+                       "ordinary_share": 1e10, "shares": 1e9, "equity_parent": 5e10,
+                       "total_assets": 1e11, "bps": 50.0})
+        y, m = 2024, 9
+        for k in range(24):
+            rv.append({"ym": f"{y}-{m:02d}", "code": code, "revenue": 3e8 * (1 + k * .02),
+                       "announce_date": "2026-09-10"})
+            m += 1
+            if m > 12:
+                m = 1; y += 1
+    store.append("financial_q", pd.DataFrame(fq))
+    store.append("balance_q", pd.DataFrame(bq))
+    store.append("revenue_monthly", pd.DataFrame(rv))
+    store.append("news", pd.DataFrame([
+        {"news_id": "n1", "source": "cnyes", "category": "科技", "date": "2026-07-24",
+         "published_at": "2026-07-24T10:00:00+00:00",
+         "title": "高盛調升台積電目標價至 1,500 元", "summary": "", "url": "u",
+         "codes": "2330", "keywords": "晶圓代工"},
+        {"news_id": "n2", "source": "cnyes", "category": "總經", "date": "2026-07-24",
+         "published_at": "2026-07-24T09:00:00+00:00",
+         "title": "Fed 會議紀要", "summary": "", "url": "u", "codes": "", "keywords": ""},
+    ]))
+    from pipeline.sources import news as news_mod
+    store.append("broker_views", news_mod.extract_broker_views(store.read("news")))
+
+
+def test_fundamental_payload_end_to_end(populated):
+    from pipeline import build_payload
+    store, site, price = populated
+    _seed_fundamentals(store)
+    build_payload.build()
+
+    fund = json.loads((site / "fundamental.json").read_text(encoding="utf-8"))
+    assert len(fund) == len(CODES)
+    by = {f["code"]: f for f in fund}
+    t = by["2330"]
+    assert t["ttm_complete"] is True
+    assert abs(t["ttm_eps"] - (2.0 + 2.1 + 2.2 + 2.3)) < 1e-6      # 四季相加
+    assert t["pe"] is not None and t["pe"] > 0
+    assert t["pb"] is not None
+    assert t["metric"] == "pe"
+    assert t["rev_streak"] >= 12                                    # 每月成長
+    assert t["momentum_score"] is not None
+    assert t["name"] == "股2330"                                     # 簡稱來自 company_info
+
+    # 金融族群走 PB+ROE 口徑，即使有 EPS
+    f = by["2881"]
+    assert f["metric"] == "pb_roe"
+    assert f["metric_value"] == f["pb"]
+
+    gv = json.loads((site / "group_valuation.json").read_text(encoding="utf-8"))
+    # ★ 守的不變式沒變：**金控股不准用本益比跟同業比**（保險的 EPS 會被評價損益扭曲）。
+    # 變的只是它現在落在哪一格 —— tide 的「銀行金融」只收銀行，壽險型金控落到
+    # 自動桶 ind_金融保險，所以這條同時在守「自動桶也吃得到 meta.ind_display 的口徑」。
+    # 變的只是它現在落在哪一格 —— 壽險金控已拆成手寫板塊 life_fhc，
+    # 自動桶那條由 2889 國票金守著。**兩條路徑都要走 pb_roe，缺一不可。**
+    assert any(g["group_id"] == "life_fhc" and g["metric"] == "pb_roe" for g in gv), (
+        "壽險金控（手寫板塊）要走 PB+ROE —— 口徑寫在 groups.yaml 的 groups.life_fhc.valuation_metric")
+    assert any(g["group_id"] == "ind_金融保險" and g["metric"] == "pb_roe" for g in gv), (
+        "沒被手寫板塊收走的金融股落到自動桶之後仍然要走 PB+ROE —— "
+        "口徑由 groups.yaml 的 meta.ind_display 指定，fundamental.group_valuation() 要讀它")
+
+    bv = json.loads((site / "broker_views.json").read_text(encoding="utf-8"))
+    assert bv and bv[0]["code"] == "2330" and bv[0]["target_price"] == 1500
+    assert bv[0]["name"] == "股2330"
+
+    news = json.loads((site / "news.json").read_text(encoding="utf-8"))
+    assert {n["category"] for n in news} >= {"科技", "總經"}
+
+    cands = json.loads((site / "candidates.json").read_text(encoding="utf-8"))
+    assert all(c["name"] and c["name"] != c["code"] for c in cands), "候選股必須有簡稱"
+    assert any(c.get("momentum_score") is not None for c in cands)
+
+
+def test_index_drops_stale_change_for_codes_not_traded_today(lake):
+    """2026-11-06 資料稽核：今天沒有成交列的代號（已下市、停牌）不可以把「它自己最後一天」的漲跌幅
+    帶進 stocks.json —— 那會被算進今天的漲跌家數（線上 updown.json all.n 2583，官方同口徑 2332）。
+    收盤照留（搜尋要看得到），漲跌幅、成交值、級距一律空。"""
+    from pipeline import build_payload
+    store, site = lake
+    price, inst, val, margin, market, company = _synth()
+    gone = list(CODES)[-1]                                   # 假裝它最後 20 個交易日已經下市
+    last20 = sorted(price["date"].unique())[-20:]
+    price = price[~((price["code"] == gone) & price["date"].isin(last20))]
+    store.append("price_daily", price)
+    store.append("inst_daily", inst)
+    store.append("valuation_daily", val)
+    store.append("margin_daily", margin)
+    store.append("market_daily", market)
+    store.append("company_info", company)
+    build_payload.build()
+
+    index = json.loads((site / "stocks.json").read_text(encoding="utf-8"))
+    row = next(r for r in index if r["code"] == gone)
+    assert row["chg_pct"] is None and row["ud"] is None and row["turnover"] is None
+    assert row["close"] is not None, "收盤要留著給搜尋看"
+    traded = [r for r in index if r["code"] != gone]
+    assert all(r["chg_pct"] is not None for r in traded)
+    ud = json.loads((site / "updown.json").read_text(encoding="utf-8"))
+    assert ud["all"]["n"] == len(traded)

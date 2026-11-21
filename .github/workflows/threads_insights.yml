@@ -1,0 +1,49 @@
+name: Threads 洞察追蹤
+
+# 每小時把自己最近貼文與回覆的瀏覽／讚／回覆／轉發／引用記進 social/threads/insights/metrics.csv。
+# 金鑰只用 GitHub Secret THREADS_ACCESS_TOKEN；需有 threads_manage_insights 權限。
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: social-threads-insights
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 抓洞察
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
+        run: python scripts/threads_insights.py
+
+      - name: 寫回紀錄（只 add insights 資料夾）
+        if: always()
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add social/threads/insights
+          if git diff --staged --quiet; then
+            echo "沒有變動，跳過 commit"
+            exit 0
+          fi
+          git commit -m "Threads 洞察 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && break
+            sleep $((i*2))
+          done

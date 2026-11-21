@@ -1,0 +1,35 @@
+{
+ "slot": "wk1",
+ "date": "2026-10-31",
+ "run_at": "2026-10-31T10:17+08:00",
+ "posted": [
+  {
+   "file": "2026-10-31_news-wk1-1.md",
+   "publish_at": "2026-10-31T10:30+08:00",
+   "title": "光寶科EPS 8.08元",
+   "topic_category": "財報",
+   "content_type": "財報數字",
+   "layout": "D-實景(公司)",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "5.4",
+   "news_ids": "udn-8c6911fbdbd26a9e",
+   "u_code": "newswk11",
+   "has_photo": "true",
+   "photo_kind": "總部/廠房",
+   "photo": "liteon/photo_1.jpg"
+  }
+ ],
+ "skipped": [
+  {
+   "title": "日系車在中國大退潮 產量剩高峰不到4成、豐田銷量也掉25%",
+   "why": "沒有可當主旨的關鍵數字"
+  },
+  {
+   "title": "商發署：今年培育2萬人次運用AI技術已達標 瞄準AI普及率達過半",
+   "why": "找不到主體（公司／機構／指數）"
+  }
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}

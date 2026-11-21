@@ -1,0 +1,50 @@
+{
+ "id": "2026-10-20-news-tesla-capex-optimus",
+ "title": "特斯拉資本支出上修到 250 億美元，近去年三倍",
+ "cat": "news",
+ "date": "2026-10-20",
+ "score": 82,
+ "rubric": {
+  "A": 15,
+  "B": 8,
+  "C": 5,
+  "D": 10,
+  "E": 10,
+  "F": 10,
+  "G": 9,
+  "H": 8,
+  "I": 7
+ },
+ "deductions": [
+  "影片為轉載且上傳者未查證",
+  "TeraFab 僅單一來源未寫數字"
+ ],
+ "blocks": [
+  "h",
+  "ul",
+  "chart",
+  "h",
+  "chart",
+  "p",
+  "video",
+  "h",
+  "chart",
+  "chart",
+  "p",
+  "ul",
+  "callout"
+ ],
+ "charts": 4,
+ "own_data_charts": 2,
+ "video": true,
+ "scene": false,
+ "words": 384,
+ "sources": [
+  "techcrunch.com 2026-04-22",
+  "money.udn.com 2026-04",
+  "nasdaq.com 2026-07-07",
+  "youtube 2026-07-22"
+ ],
+ "reviewer": "CEO 排程",
+ "reworked_from": null
+}

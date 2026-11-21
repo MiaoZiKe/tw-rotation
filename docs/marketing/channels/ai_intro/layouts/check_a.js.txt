@@ -1,0 +1,9 @@
+()=>{const els=[...document.querySelectorAll('[data-o]')].map(e=>{const r=e.getBoundingClientRect();return {o:e.dataset.o,inn:e.dataset.in||'',x:r.left,y:r.top,w:r.right,h:r.bottom}});
+const ov=[],gap=[];for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++){const a=els[i],b=els[j];
+if(a.inn===b.o||b.inn===a.o)continue;
+const gx=Math.max(a.x-b.w,b.x-a.w),gy=Math.max(a.y-b.h,b.y-a.h),g=Math.max(gx,gy);
+if(g<0)ov.push(a.o+'×'+b.o);else if(g<24)gap.push(a.o+'×'+b.o+' '+Math.round(g)+'px')}
+const W=document.body.clientWidth,H=document.body.clientHeight;
+const oob=els.filter(e=>e.x<0||e.y<0||e.w>W||e.h>H).map(e=>e.o);
+const minDisc=Math.min(...[...document.querySelectorAll('.disc')].map(e=>parseFloat(getComputedStyle(e).fontSize)));
+return {n:els.length,overlap:ov,gap24:gap,oob,discFont:minDisc}}

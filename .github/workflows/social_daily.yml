@@ -1,0 +1,59 @@
+name: 每日盤前貼文草稿
+
+# 週一到週五台北 07:40（UTC 前一天 23:40，所以星期是 0-4）：用資料湖產「盤前」草稿，寫進 Threads 發文佇列。
+# ★ 只產 status: draft，永遠不會自動核准、不會自動發（Andy 2026-10-26：盤前先核准再發）。
+#   核准＝把檔案的 status 改成 approved；時間預設 08:00，可改。
+# 05:07 那輪新聞管線（美股收盤、夜盤、新聞）要先跑完；跑不完時草稿的 notes 會警告。
+on:
+  schedule:
+    - cron: "41 23 * * 0-4"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "目標日期 YYYY-MM-DD（留空＝今天，台北）"
+        type: string
+        default: ""
+
+concurrency:
+  group: social-post
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  pre:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝相依套件
+        run: pip install pandas pyarrow
+      - name: 產出盤前草稿
+        env:
+          IN_DATE: ${{ inputs.date }}
+        run: |
+          if [ -n "$IN_DATE" ]; then
+            python scripts/social_daily.py pre --date "$IN_DATE"
+          else
+            python scripts/social_daily.py pre
+          fi
+      - name: 回寫草稿（只 add queue）
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add social/threads/queue
+          if git diff --staged --quiet; then
+            echo "沒有變動，跳過 commit"
+            exit 0
+          fi
+          git commit -m "盤前草稿 $(TZ=Asia/Taipei date '+%Y-%m-%d')"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && break
+            sleep $((i*2))
+          done

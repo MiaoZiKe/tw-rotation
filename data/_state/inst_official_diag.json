@@ -1,0 +1,138 @@
+[
+ {
+  "head": "{\"swagger\":\"2.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u81fa\\u7063\\u8b49\\u5238\\u4ea4\\u6613\\u6240\\u670d\\u52d9API\\uff0c\\u6b61\\u8fce\\u5404\\u4f4d\\u4ecb\\u63a5\\u4f7f\\u7528\\u3002<br><br>[\\u4f",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/swagger.json"
+ },
+ {
+  "fund_paths": [
+   "/fund/MI_QFIIS_cat",
+   "/fund/MI_QFIIS_sort_20"
+  ],
+  "n_paths": 143,
+  "swagger": "https://openapi.twse.com.tw/v1/swagger.json"
+ },
+ {
+  "summary": "集中市場外資及陸資投資類股持股比率表",
+  "swagger_path": "/fund/MI_QFIIS_cat"
+ },
+ {
+  "summary": "集中市場外資及陸資持股前 20 名彙總表",
+  "swagger_path": "/fund/MI_QFIIS_sort_20"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/T86"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT38U"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT43U"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
+ },
+ {
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"249\",\"ShareNumber\":\"298683780260\",\"ForeignMainlandAreaShare\":\"3074247938\",\"Percentage\":\"1.03\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
+ },
+ {
+  "cols": [
+   "IndustryCat",
+   "Numbers",
+   "ShareNumber",
+   "ForeignMainlandAreaShare",
+   "Percentage"
+  ],
+  "n": 36,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
+ },
+ {
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"7488946\",\"SharesHeld\":\"1732808036\",\"AvailableInvestPer\":\"0.43\",\"SharesHeldPer\":\"99.56\",\"Upperlimit\":\"100.00\"}, {",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
+ },
+ {
+  "cols": [
+   "Rank",
+   "Code",
+   "Name",
+   "ShareNumber",
+   "AvailableShare",
+   "SharesHeld",
+   "AvailableInvestPer",
+   "SharesHeldPer",
+   "Upperlimit"
+  ],
+  "n": 20,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
+ },
+ {
+  "market": "上市",
+  "parts": [],
+  "rows": 0
+ },
+ {
+  "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/swagger.json"
+ },
+ {
+  "fund_paths": [
+   "/tpex_opfund_latest",
+   "/tpex_opfund_market_highlight",
+   "/tpex_opfund_recommended_dealer"
+  ],
+  "n_paths": 225,
+  "swagger": "https://www.tpex.org.tw/openapi/swagger.json"
+ },
+ {
+  "summary": "上櫃僑外資及陸資持股比例排行表",
+  "swagger_path": "/tpex_3insti_qfii"
+ },
+ {
+  "summary": "上櫃各類股僑外資及陸資持股比例表",
+  "swagger_path": "/tpex_3insti_qfii_industry"
+ },
+ {
+  "summary": "上櫃股票三大法人買賣明細資訊",
+  "swagger_path": "/tpex_3insti_daily_trading"
+ },
+ {
+  "summary": "上櫃股票自營商買賣超彙總表",
+  "swagger_path": "/tpex_3insti_dealer_trading"
+ },
+ {
+  "summary": "上櫃股票三大法人買賣金額彙總表",
+  "swagger_path": "/tpex_3insti_summary"
+ },
+ {
+  "summary": "上櫃股票投信買賣超彙總表",
+  "swagger_path": "/tpex_3insti_trading"
+ },
+ {
+  "summary": "上櫃股票外資及陸資買賣超彙總表",
+  "swagger_path": "/tpex_3insti_qfii_trading"
+ },
+ {
+  "head": "[ {\"Date\":\"1151120\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"3077000\",\" Foreign Investors inc",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
+ },
+ {
+  "market": "上櫃",
+  "parts": [
+   924
+  ],
+  "rows": 924
+ }
+]

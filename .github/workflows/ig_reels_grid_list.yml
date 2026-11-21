@@ -1,0 +1,45 @@
+name: IG 舊 Reels 格狀版面移除清單
+# Andy 2026-11-20：列出各 IG 帳號已發佈的 Reels（只讀），產生 docs/marketing/channels/Reels格狀版面移除清單.md 並 commit。
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: ig-reels-grid-list
+  cancel-in-progress: false
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+            docs/marketing/channels
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests pyyaml
+      - name: 抓各帳號 Reels（只讀）
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN_AUTO: ${{ secrets.IG_ACCESS_TOKEN_AUTO }}
+          TECH_IG_ACCESS_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN }}
+          TECH_IG_ACCESS_TOKEN_AUTO: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO }}
+          TECH_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
+          CAFFAINE_IG_ACCESS_TOKEN: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN }}
+          CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO }}
+          CAFFAINE_IG_USER_ID: ${{ secrets.CAFFAINE_IG_USER_ID }}
+          HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
+          HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+        run: python scripts/ig_reels_grid_list.py | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: commit 清單
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "docs/marketing/channels/Reels格狀版面移除清單.md"
+          git diff --cached --quiet && exit 0
+          git commit -m "Reels 格狀版面移除清單 $(TZ=Asia/Taipei date +%F)"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done

@@ -1,0 +1,50 @@
+{
+ "voice": "en-US-AndrewMultilingualNeural",
+ "rate": "+6%",
+ "pitch": "+0Hz",
+ "text": "今天花一分鐘，帶你搞懂它！",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "今天",
+   "start": 0.094333,
+   "dur": 0.424541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "花",
+   "start": 0.518875,
+   "dur": 0.21225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一分鐘",
+   "start": 0.731125,
+   "dur": 0.719333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "帶",
+   "start": 1.792458,
+   "dur": 0.21225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "你",
+   "start": 2.0165,
+   "dur": 0.1415
+  },
+  {
+   "type": "WordBoundary",
+   "text": "搞懂",
+   "start": 2.158,
+   "dur": 0.389166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "它",
+   "start": 2.547166,
+   "dur": 0.342
+  }
+ ]
+}

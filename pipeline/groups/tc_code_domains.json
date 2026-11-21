@@ -1,0 +1,437 @@
+{
+ "_說明": "代號補強：科技透明圈有台股代號、但 data/logos/<代號>.png 低解析／空白／錯圖的公司。鍵＝官網網域（網域對照見 site/tc/logos.js），走 tc_logos 同一套取圖（Wikimedia 優先），輸出併入 tc_logos.json。",
+ "codes": [
+  {
+   "code": "4958",
+   "domain": "zdtco.com",
+   "names": [
+    "臻鼎"
+   ],
+   "en": "Zhen Ding Technology",
+   "why": "代號圖原圖 40px 低解析"
+  },
+  {
+   "code": "3037",
+   "domain": "unimicron.com",
+   "names": [
+    "欣興"
+   ],
+   "en": "Unimicron Technology",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "3189",
+   "domain": "kinsus.com.tw",
+   "names": [
+    "景碩"
+   ],
+   "en": "Kinsus Interconnect Technology",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "1785",
+   "domain": "solartech.com.tw",
+   "names": [
+    "光洋應材"
+   ],
+   "en": "Solar Applied Materials Technology",
+   "why": "目視判定：照片或圖形太小"
+  },
+  {
+   "code": "2108",
+   "domain": "nantex.com.tw",
+   "names": [
+    "南帝化工"
+   ],
+   "en": "Nantex Industry",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "1717",
+   "domain": "eternal-group.com",
+   "names": [
+    "長興材料"
+   ],
+   "en": "Eternal Materials",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "2317",
+   "domain": "foxconn.com",
+   "names": [
+    "鴻海"
+   ],
+   "en": "",
+   "why": "代號圖原圖 64px 低解析"
+  },
+  {
+   "code": "2308",
+   "domain": "deltaww.com",
+   "names": [
+    "台達電"
+   ],
+   "en": "Delta Electronics",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "2385",
+   "domain": "chicony.com",
+   "names": [
+    "群光"
+   ],
+   "en": "Chicony Electronics",
+   "why": "目視判定：照片或圖形太小"
+  },
+  {
+   "code": "4938",
+   "domain": "pegatroncorp.com",
+   "names": [
+    "和碩"
+   ],
+   "en": "Pegatron",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "2301",
+   "domain": "liteon.com",
+   "names": [
+    "光寶"
+   ],
+   "en": "Lite-On Technology",
+   "why": "代號圖原圖 64px 低解析"
+  },
+  {
+   "code": "2356",
+   "domain": "inventec.com",
+   "names": [
+    "英業達"
+   ],
+   "en": "Inventec",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "2376",
+   "domain": "gigabyte.com",
+   "names": [
+    "技嘉"
+   ],
+   "en": "Gigabyte Technology",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "6669",
+   "domain": "wiwynn.com",
+   "names": [
+    "緯穎"
+   ],
+   "en": "Wiwynn",
+   "why": "目視判定：照片或圖形太小"
+  },
+  {
+   "code": "3231",
+   "domain": "wistron.com",
+   "names": [
+    "緯創"
+   ],
+   "en": "Wistron",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "2352",
+   "domain": "benq.com",
+   "names": [
+    "明基"
+   ],
+   "en": "BenQ",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "4704",
+   "domain": "trendmicro.com",
+   "names": [
+    "趨勢科技"
+   ],
+   "en": "Trend Micro",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "8069",
+   "domain": "eink.com",
+   "names": [
+    "元太"
+   ],
+   "en": "E Ink Holdings",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "3558",
+   "domain": "senaonetworks.com",
+   "names": [
+    "神準"
+   ],
+   "en": "Senao Networks",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "3017",
+   "domain": "avc.co",
+   "names": [
+    "奇鋐"
+   ],
+   "en": "Asia Vital Components",
+   "why": "代號圖原圖 16px 低解析"
+  },
+  {
+   "code": "3707",
+   "domain": "episil.com",
+   "names": [
+    "漢磊"
+   ],
+   "en": "Episil Technologies",
+   "why": "代號圖原圖 64px 低解析"
+  },
+  {
+   "code": "2344",
+   "domain": "winbond.com",
+   "names": [
+    "華邦電"
+   ],
+   "en": "Winbond Electronics",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "2303",
+   "domain": "umc.com",
+   "names": [
+    "聯電"
+   ],
+   "en": "United Microelectronics Corporation",
+   "why": "代號圖原圖 16px 低解析"
+  },
+  {
+   "code": "5347",
+   "domain": "vis.com.tw",
+   "names": [
+    "世界先進"
+   ],
+   "en": "Vanguard International Semiconductor",
+   "why": "代號圖原圖 64px 低解析"
+  },
+  {
+   "code": "6770",
+   "domain": "powerchip.com",
+   "names": [
+    "力積電"
+   ],
+   "en": "Powerchip Semiconductor Manufacturing Corporation",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "2452",
+   "domain": "cyntec.com",
+   "names": [
+    "乾坤科技"
+   ],
+   "en": "Cyntec",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "4931",
+   "domain": "stl-tech.com",
+   "names": [
+    "新盛力科技"
+   ],
+   "en": "Simplo Technology",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "2258",
+   "domain": "foxtronev.com",
+   "names": [
+    "鴻華先進"
+   ],
+   "en": "Foxtron Vehicle Technologies",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "3374",
+   "domain": "xintec.com.tw",
+   "names": [
+    "精材"
+   ],
+   "en": "Xintec",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "6683",
+   "domain": "ksmt.com.tw",
+   "names": [
+    "雍智"
+   ],
+   "en": "KSMT",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "6515",
+   "domain": "winwayglobal.com",
+   "names": [
+    "穎崴"
+   ],
+   "en": "WinWay Technology",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "2409",
+   "domain": "auo.com",
+   "names": [
+    "友達"
+   ],
+   "en": "AU Optronics",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "3481",
+   "domain": "innolux.com",
+   "names": [
+    "群創"
+   ],
+   "en": "Innolux",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "3008",
+   "domain": "largan.com.tw",
+   "names": [
+    "大立光"
+   ],
+   "en": "Largan Precision",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "3592",
+   "domain": "rad-ic.com",
+   "names": [
+    "瑞鼎"
+   ],
+   "en": "Raydium Semiconductor",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "6286",
+   "domain": "richtek.com",
+   "names": [
+    "立錡"
+   ],
+   "en": "Richtek Technology",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "3014",
+   "domain": "ite.com.tw",
+   "names": [
+    "聯陽(ITE)"
+   ],
+   "en": "ITE Tech",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "4961",
+   "domain": "fitipower.com",
+   "names": [
+    "天鈺"
+   ],
+   "en": "Fitipower Integrated Technology",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "5274",
+   "domain": "aspeedtech.com",
+   "names": [
+    "信驊"
+   ],
+   "en": "ASPEED Technology",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "6526",
+   "domain": "airoha.com",
+   "names": [
+    "達發"
+   ],
+   "en": "Airoha Technology",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "2458",
+   "domain": "emc.com.tw",
+   "names": [
+    "義隆"
+   ],
+   "en": "Elan Microelectronics",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "3443",
+   "domain": "guc-asic.com",
+   "names": [
+    "創意"
+   ],
+   "en": "Global Unichip",
+   "why": "代號圖原圖 48px 低解析"
+  },
+  {
+   "code": "3661",
+   "domain": "alchip.com",
+   "names": [
+    "世芯-KY"
+   ],
+   "en": "Alchip Technologies",
+   "why": "代號圖原圖 70px 低解析"
+  },
+  {
+   "code": "6129",
+   "domain": "princeton.com.tw",
+   "names": [
+    "普誠"
+   ],
+   "en": "Princeton Technology",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "3530",
+   "domain": "soinc.com.tw",
+   "names": [
+    "晶相光電"
+   ],
+   "en": "Silicon Optronics",
+   "why": "無圖／失敗"
+  },
+  {
+   "code": "6531",
+   "domain": "apmemory.com",
+   "names": [
+    "愛普"
+   ],
+   "en": "AP Memory Technology",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "3545",
+   "domain": "focaltech-electronics.com",
+   "names": [
+    "敦泰"
+   ],
+   "en": "FocalTech Systems",
+   "why": "代號圖原圖 32px 低解析"
+  },
+  {
+   "code": "5471",
+   "domain": "sonix.com.tw",
+   "names": [
+    "松翰"
+   ],
+   "en": "Sonix Technology",
+   "why": "代號圖原圖 64px 低解析"
+  }
+ ]
+}

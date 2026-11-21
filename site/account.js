@@ -1,0 +1,1046 @@
+/* ============================================================================
+   會員登入（Google）、使用統計、線上人數（Andy 2026-09-27）
+   架構與取捨：DECISIONS #270 ／ 後端：workers/account-api/worker.js ／ 設定步驟：docs/login_setup.md ／
+   事件清單：docs/account_analytics.md
+
+   ★ 沒有設定就整個關掉：設定在 site/account_config.js（window.TW_ACCOUNT = { api: '…' }）。
+     repo 裡那支永遠是空的；部署時由 GitHub Actions 依 repo Secret `ACCOUNT_API_URL` 覆寫（**網址不進版控**）。
+     api 是空的 → 不出現登入鈕、不送任何統計、不連任何外部服務；自選清單照樣用（只存本機）。
+     所以這支可以先部署上線，等 Andy 設好再生效。
+
+   ★ 前端沒有任何第三方 SDK：登入是開一個小視窗到我們自己的 Worker（Worker 再轉 Google），
+     其他全部是 fetch。Andy 公司網路擋 CDN 的問題碰不到；workers.dev 已經因為即時報價在用，連得到是已知事實。
+
+   ★ 送出去的東西（跟隱私權政策 site/legal.js、登入前告知 noticeHTML() 必須一致）：
+     · 心跳（每 60 秒，只在分頁看得到的時候）：一組這次載入頁面專用的隨機代碼（只在記憶體，關掉或重新整理就換一組）、
+       現在在哪一頁、這段時間累積的「功能使用次數」、（登入者）權杖。不送 IP 以外的任何裝置資訊 —— IP 是連線本身帶的，Worker 不存。
+     · 瀏覽器有開「請勿追蹤」（DNT）或「全球隱私控制」（GPC）→ 心跳與統計一律不送（登入與清單同步照常）。
+
+   驗收：scripts/_uitest.py「會員雲端路徑」（本機跑真的 worker.js ＋ 假的 Google，見 workers/account-api/devserver.mjs）。
+   ========================================================================== */
+(function () {
+  'use strict';
+  /* 使用統計白名單 —— 跟 workers/account-api/worker.js 同一份，測試會比對（改一邊要改另一邊與文件）*/
+  /* 跟 Worker 的 VIEWS 完全一致（18 頁、同順序；tests/account.test.mjs 三邊一致測試）。後七頁 2026-10-05（hourly）Worker 先補、這裡跟上 */
+  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other', 'etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices', 'articles'];   // 2026-10-16 精選文章（#articles、#article/<id>）；Worker VIEWS_ADDED 同一批加
+  const EVENTS = ['session', 'session_login', 'login', 'logout', 'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel', 'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle', 'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg', 'land', 'signup', 'trial_start', 'pricing_view', 'checkout_click', 'paid'];
+  const K_TOK = 'tw.acct.tok', K_USER = 'tw.acct.user';
+  const BEAT_MS = 60 * 1000;
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：這次瀏覽有效 */ } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) { /* 略 */ } } };
+  const ss = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* 略 */ } },
+    del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* 略 */ } } };
+  const rnd = (n) => { const a = crypto.getRandomValues(new Uint8Array(n)); return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const noTrack = () => navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.globalPrivacyControl === true;
+
+  const S = { api: null, on: false, tok: ls.get(K_TOK), user: null, online: null, poll: 0, beatT: 0, q: {}, q2: {}, lastPv: '', sid: null };
+  try { S.user = JSON.parse(ls.get(K_USER) || 'null'); } catch (e) { S.user = null; }
+  if (!S.tok) S.user = null;
+
+  // ------------------------------------------------------------------ API
+  /* 10-17 今日造訪人數：每台瀏覽器每天一組隨機代碼（台北日期:代碼），跨日自動換；不含帳號、不含 IP。Worker 只數今天有幾組（dayvis）。 */
+  function vdGet() {
+    const day = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+    let v = ''; try { v = localStorage.getItem('tw.vd') || ''; } catch (e) { /* 私密視窗：每次載入算新的一組 */ }
+    if (v.slice(0, 10) === day && /^[A-Za-z0-9]{10,32}$/.test(v.slice(11))) return v.slice(11);
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[x % 62]).join('');
+    try { localStorage.setItem('tw.vd', day + ':' + id); } catch (e) { /* 存不了也照送 */ }
+    return id;
+  }
+  async function call(path, body, hdr) {   // hdr：額外的請求標頭（防白嫖：訪客編號 X-Tw-Guest；有自訂標頭瀏覽器會先預檢，Worker 已允許）
+    if (!S.api) return null;
+    try {
+      const r = await fetch(S.api + path, { method: 'POST', headers: Object.assign({ 'content-type': 'text/plain' }, hdr || {}), body: JSON.stringify(Object.assign({}, body || {}, S.tok ? { t: S.tok } : {})), credentials: 'omit' });
+      let j = {}; try { j = await r.json(); } catch (e) { j = {}; }
+      j._s = r.status;
+      /* 權杖失效（過期、帳號被刪、Worker 換了金鑰）→ 當作登出，不要一直拿壞的權杖打 */
+      if (r.status === 401 && S.tok && path !== '/auth/redeem') setUser(null, null);
+      return j;
+    } catch (e) { return null; }       // 連不到（公司網路、離線）：呼叫端自己決定怎麼退
+  }
+  function setUser(user, tok) {
+    const was = !!S.user;
+    S.user = user || null;
+    if (tok) { S.tok = tok; ls.set(K_TOK, tok); }
+    if (!user) { S.tok = null; ls.del(K_TOK); ls.del(K_USER); } else ls.set(K_USER, JSON.stringify(user));
+    paintBar();
+    if (was !== !!user || user) window.dispatchEvent(new CustomEvent('tw:account', { detail: { user: S.user } }));
+    /* 身分換了就馬上跳一次心跳：線上名單才會立刻從「訪客」變成名字（或反過來），不用等下一分鐘 */
+    if (S.on && S.sid) { clearTimeout(S.beatT); S.beatT = setTimeout(() => beat(was !== !!user), 200); }
+  }
+
+  // ------------------------------------------------------------------ 使用統計＋線上人數
+  function viewOf(hash) {
+    const h = String(hash || '').replace(/^#/, '').split('/');
+    const head = h[0] || 'overview';
+    if (head === 'admin') return null;                         // 管理頁本身不計
+    if (['terms', 'privacy', 'disclaimer', 'leave'].includes(head)) return 'legal';
+    if (head === 'themes') return 'heatmap';
+    if (head === 'tasks') return 'delivery';
+    if (head === 'article') return 'articles';                 // 單篇文章算在「精選文章」這一頁（同 app.js 的 view 對照）
+    return VIEWS.includes(head) ? head : 'other';
+  }
+  function bump(k) { S.q[k] = Math.min(50, (S.q[k] || 0) + 1); if (S.items) counted(); }
+  function track(e) { if (S.on && !noTrack() && EVENTS.includes(e)) { bump('ev:' + e); usageFe(e); } }
+  window.TwTrack = track;
+  /* ---- 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項]
+     · 頁面＝目前這一頁（viewOf，跟頁面瀏覽同一份白名單）；管理頁本身不記。
+     · 元件＝小寫英數與 . _ 的固定名字（play、quad、filter_group、tab.revenue、kp.60m…），全部寫死在這支或 app.js 的三個點位。
+     · 細項＝族群名／股票代號／元件 id／象限名，**只從畫面上既有的選項取**；使用者打的字（搜尋框）一律不送，只記「有搜尋」。
+     跟舊的計數一樣：每分鐘跟心跳一起送、DNT／GPC 開著就不送、不帶任何識別碼。*/
+  const E2_BAD = /[\u0000-\u001f\u007f<>"'`\\@]/g;
+  const cleanDet = (d) => String(d == null ? '' : d).replace(E2_BAD, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  const stockCode = () => { const m = /^#stock\/([0-9A-Z]{4,6})\b/.exec(location.hash || ''); return m ? m[1] : ''; };
+  function t2(comp, detail, page) {
+    if (!S.on || noTrack()) return;
+    const pg = page || viewOf(location.hash); if (!pg || !/^[a-z][a-z0-9_.]{0,31}$/.test(comp)) return;
+    const k = pg + '\t' + comp + '\t' + cleanDet(detail);
+    S.q2[k] = Math.min(50, (S.q2[k] || 0) + 1);
+    counted();
+  }
+  window.TwT = (comp, detail) => t2(comp, detail);
+  /* ---- 行銷來源與漏斗（2026-10-26，W1/W2，docs/marketing/growth_command_1026.md B-2；隱私權政策「行銷來源與使用統計」已先上線）
+     · 網址帶 utm_source／utm_medium／utm_campaign／utm_content，或自動發文用的短參數 ?u=<平台>-<時段>-<yyyymmdd>（J-3，例 th-id-20261027）。
+     · 「第一次來源」（first-touch）存在這台瀏覽器 localStorage（tw.src），已經有就不覆蓋；每欄只留英數與 . _ -，最長 40 字。不存 utm_term、不存 IP。
+     · 第一次登入後送給 Worker（/v1/me/src）寫進帳號一欄，Worker 只在帳號沒有來源時寫一次。
+     · 漏斗事件 land／pricing_view／checkout_click 由前端送：全站合計走 ev:<事件>，分來源走細項（頁面 other、元件 fn.<事件>、細項＝來源）。
+       signup／trial_start／paid 由 Worker 算（註冊、體驗額度、金流開通才是真相），這裡只在白名單。
+     · DNT／GPC：不讀、不存、不送（跟其他統計同一條規則）。 */
+  const K_SRC = 'tw.src', K_SRC_SENT = 'tw.src.sent', K_LAND = 'tw.src.land';
+  const SRC_PLAT = { th: 'threads', ig: 'instagram', igs: 'instagram_story', fb: 'facebook', yt: 'youtube', x: 'x', tt: 'tiktok', ln: 'line' };
+  /* 2026-10-27 深層連結（docs/marketing/feature_funnel_1027.md）：平台碼統一 th/ig/igs…，舊的全名碼（threads 等）歸併成短碼；
+     功能碼補 f2d f3d etfd etfi etfl earn hot ev*（事件型 ev<事件>：evfomc evoil evcpi…，沒列到的原樣收）。 */
+  const SRC_ALIAS = { threads: 'th', instagram: 'ig', facebook: 'fb', youtube: 'yt', tiktok: 'tt', line: 'ln' };
+  const SRC_SLOT = { pm: 'premarket', id: 'intraday', cl: 'close', mg: 'margin', wk: 'weekly',
+    f2d: 'diagram2d', f3d: 'diagram3d', etfd: 'etf_div', etfi: 'etf_income', etfl: 'etf_list', earn: 'earnings', hot: 'hot_topic',
+    evfomc: 'ev_fomc', evoil: 'ev_oil', evcpi: 'ev_cpi' };
+  const srcClean = (v) => String(v == null ? '' : v).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 40);
+  function srcFromUrl() {
+    let q; try { q = new URLSearchParams(location.search); } catch (e) { return null; }
+    const o = {};
+    const s = srcClean(q.get('utm_source')), m = srcClean(q.get('utm_medium')), c = srcClean(q.get('utm_campaign')), x = srcClean(q.get('utm_content'));
+    if (s) { o.s = s; if (m) o.m = m; if (c) o.c = c; if (x) o.x = x; return o; }
+    /* 2026-11-09 一鍵分享圖卡（P-1107-05）：圖卡網址 https://liguligu-puipui.com/?src=card#路由 → 第一次來源記成 card（medium＝share），
+       land 事件的細項就是「card」，管理區漏斗看得到「分享圖卡帶來幾個新訪客、註冊率多少」。只認 card 這個固定值，不收任意 ?src= */
+    if (String(q.get('src') || '').toLowerCase() === 'card') return { s: 'card', m: 'share' };
+    const u = String(q.get('u') || '').toLowerCase().split('-');      // 短參數：平台-時段-日期
+    const p0 = srcClean(u[0]), p = SRC_ALIAS[p0] || p0;
+    if (!p) return null;
+    o.s = SRC_PLAT[p] || p; o.m = 'post';
+    const slot = srcClean(u[1]), day = srcClean(u[2]);
+    if (slot) o.c = ((SRC_SLOT[slot] || (/^ev[a-z]+$/.test(slot) ? 'ev_' + slot.slice(2) : slot)) + (day ? '_' + day : '')).slice(0, 40);
+    return o;
+  }
+  const srcGet = () => { try { const o = JSON.parse(ls.get(K_SRC) || 'null'); return o && o.s ? o : null; } catch (e) { return null; } };
+  /* 進站時呼叫一次：網址有來源且這台還沒有第一次來源 → 存起來。回傳這次網址的來源（算「進站」用） */
+  function srcInit() {
+    if (noTrack()) return null;
+    const cur = srcFromUrl();
+    if (cur && !srcGet()) ls.set(K_SRC, JSON.stringify(cur));
+    return cur;
+  }
+  const srcLabel = () => { const o = srcGet(); return o ? o.s.slice(0, 24) : 'direct'; };
+  /* 功能碼＝src.c 去掉結尾 _yyyymmdd（?u= 第二段）；非貼文來源或沒有 → none。Worker 的 funcOf 同一規則 */
+  const srcFunc = (o) => { if (!o || o.m !== 'post' || !o.c) return 'none'; const f = String(o.c).toLowerCase().replace(/_\d{8}$/, ''); return /^[a-z0-9_]{1,24}$/.test(f) ? f : 'none'; };
+  function funnel(e, label, func) {
+    if (!S.on || noTrack()) return;
+    track(e);
+    t2('fn.' + e, label || srcLabel(), 'other');
+    t2('fx.' + e, func || srcFunc(srcGet()), 'other');      // 依功能分組（管理區漏斗卡「依功能」）；沒有功能碼記 none，加總＝全站合計
+  }
+  window.TwFunnel = (e) => funnel(e);
+  /* 進站：這次網址帶了來源，且這台 30 分鐘內沒算過 → 算一次（用網址的來源，不是第一次來源） */
+  /* 沒帶來源的首次進站也算（來源 direct）：否則直接進站的人註冊時有「註冊」卻沒有「進站」，註冊率會超過 100%。
+     這台已有第一次來源的老訪客直接回來，不再算 direct（他的進站已記在原來源）；DNT／GPC 由 funnel() 擋掉。 */
+  function landTrack(cur) {
+    if (!cur) { if (srcGet()) return; cur = { s: 'direct' }; }
+    const last = +ls.get(K_LAND) || 0;
+    if (Date.now() - last < 30 * 60 * 1000) return;
+    ls.set(K_LAND, String(Date.now()));
+    funnel('land', cur.s.slice(0, 24), srcFunc(cur));
+  }
+  /* 登入成功後：把第一次來源（沒有也要送，Worker 才能把「直接進站的註冊」算成 direct）交給 Worker；同一個帳號只送一次 */
+  async function sendSrc() {
+    if (noTrack() || !S.user) return;
+    const uid = S.user.uid || S.user.email || '';
+    if (uid && ls.get(K_SRC_SENT) === uid) return;
+    const j = await call('/v1/me/src', { src: srcGet() || {} });
+    if (j && j._s === 200 && uid) ls.set(K_SRC_SENT, uid);
+  }
+  window.TwSrc = { get: srcGet, parse: srcFromUrl };
+  /* ---- 手機／電腦使用統計（2026-11-09，Andy：「多一個統計：手機 & 電腦點進去功能」；docs/account_analytics.md「手機與電腦」）
+     目的：重新經營社群後，要知道訪客用手機還是電腦、點進哪些功能、從哪裡來。全部走既有的細項事件（ev2），Worker 不用改、不用重新部署：
+       us.pv.<m|d>   頁面＝路由，細項空    這一頁被打開幾次（手機／電腦）
+       us.uv.<m|d>   頁面＝路由，細項空    這一頁今天被幾個瀏覽器打開過（同一個瀏覽器同一天同一頁只算 1 次）
+       us.ses.<m|d>  頁面 other            開站次數（一個分頁第一次載入算 1 次）
+       us.uvs.<m|d>  頁面 other            今天的不重複訪客（同一個瀏覽器同一天只算 1 次）
+       us.ref.<m|d>  頁面 other，細項＝來源  這次開站從哪來：網址的 utm_source／?u= 優先，沒有才看 document.referrer 的分類
+       us.utm.<m|d>  頁面 other，細項＝來源/活動  只有網址帶來源參數才記，例如 threads/intraday_20261109
+       us.fe.<m|d>   頁面＝當下那頁，細項＝事件名  功能點擊（k_period、stock_tab、open_3d…，沿用 EVENTS 白名單；漏斗事件不重複記）
+     隱私：只記次數；「今天看過哪些頁」只存在這台瀏覽器 localStorage（tw.us，只留當天、不含任何識別碼）；referrer 只轉成固定分類（不存網址、不存網域）；
+     不存 IP；DNT／GPC 開著完全不記（t2 已擋）。「不重複訪客」跨日加總＝人日（同一個人隔天再來算 2），單日才是真正的不重複瀏覽器；清除瀏覽器資料會再算一次。 */
+  const K_US = 'tw.us';
+  /* 手機＝畫面寬 ≤ 640、或 html.m4（手機版面）、或 UA 是手機（平板與桌機瀏覽器縮窄到 640 也算手機，跟版面一致）*/
+  function devOf() {
+    const ua = /Android.+Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent || '');
+    return (document.documentElement.classList.contains('m4') || window.innerWidth <= 640 || ua) ? 'm' : 'd';
+  }
+  const tpeDay = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  /* 當天已算過的「頁×裝置」，換日自動清掉；回傳 true＝今天第一次 */
+  function usFirst(key) {
+    let o; try { o = JSON.parse(ls.get(K_US) || 'null'); } catch (e) { o = null; }
+    const d = tpeDay();
+    if (!o || o.d !== d || typeof o.k !== 'object') o = { d, k: {} };
+    if (o.k[key]) return false;
+    o.k[key] = 1; ls.set(K_US, JSON.stringify(o));
+    return true;
+  }
+  const US_SELF = /(^|\.)(liguligu-puipui\.com|miaozike\.github\.io|localhost|127\.0\.0\.1)$/;
+  /* document.referrer → 固定分類；只看網域、不存網址。沒有 referrer（直接輸入、書籤、App 內開啟常見）＝ direct */
+  function refCat(ref) {
+    let h = ''; try { h = new URL(ref === undefined ? document.referrer : ref).hostname.toLowerCase(); } catch (e) { return 'direct'; }
+    if (!h || US_SELF.test(h) || h === location.hostname) return 'direct';
+    if (/(^|\.)threads\.(com|net)$/.test(h)) return 'threads';
+    if (/(^|\.)instagram\.com$/.test(h)) return 'instagram';
+    if (/(^|\.)(facebook\.com|fb\.com|fb\.me|messenger\.com)$/.test(h)) return 'facebook';
+    if (/(^|\.)(youtube\.com|youtu\.be)$/.test(h)) return 'youtube';
+    if (/(^|\.)(t\.co|twitter\.com|x\.com)$/.test(h)) return 'x';
+    if (/(^|\.)(line\.me|line\.naver\.jp)$/.test(h)) return 'line';
+    if (/(^|\.)ptt\.cc$/.test(h)) return 'ptt';
+    if (/(^|\.)google\.[a-z.]+$/.test(h)) return 'google';
+    if (/(^|\.)(bing\.com|yahoo\.com|duckduckgo\.com|search\.yahoo\.com\.tw|tw\.search\.yahoo\.com)$/.test(h)) return 'search';
+    return 'other';
+  }
+  /* 網址帶來源（utm_source、?u=、?src=card）時，用它當來源（貼文連結比 referrer 準；IG 等 App 內開啟常沒有 referrer）；統一成 threads／instagram… */
+  function usSrcName(cur) {
+    if (!cur || !cur.s) return '';
+    const s = String(cur.s).toLowerCase(), p = SRC_ALIAS[s] || s;
+    return srcClean(SRC_PLAT[p] || s).toLowerCase();
+  }
+  function usageFe(e) {
+    if (!S.on || noTrack()) return;
+    if (['session', 'session_login', 'login', 'logout', 'land', 'signup', 'trial_start', 'paid', 'pricing_view', 'checkout_click'].includes(e)) return;   // 這些走漏斗與開站，不當「功能點擊」
+    t2('us.fe.' + devOf(), e);
+  }
+  function usagePv(v) {
+    if (!S.on || noTrack() || !v) return;
+    const dv = devOf();
+    t2('us.pv.' + dv, '', v);
+    if (usFirst(v + '.' + dv)) t2('us.uv.' + dv, '', v);
+  }
+  function usageSession(cur) {
+    if (!S.on || noTrack() || ss.get('tw.us.s')) return;
+    ss.set('tw.us.s', '1');
+    const dv = devOf(), src = usSrcName(cur) || refCat();
+    t2('us.ses.' + dv, '', 'other');
+    if (usFirst('site.' + dv)) t2('us.uvs.' + dv, '', 'other');
+    t2('us.ref.' + dv, src, 'other');
+    /* 細項只有 24 字：活動名去掉結尾日期（_yyyymmdd），同一個時段的貼文才合得起來（threads/intraday），不用管哪一天發的 */
+    if (cur && cur.s) t2('us.utm.' + dv, usSrcName(cur) + '/' + String(cur.c || cur.m || '').replace(/_\d{8}$/, ''), 'other');
+  }
+  window.TwUsage = { dev: devOf, refCat, srcName: usSrcName };
+  function pv() {
+    const v = viewOf(location.hash); if (!v) return;
+    const key = v === 'stock' ? location.hash.split('/').slice(0, 2).join('/') : v;   // 換一檔股票算一次、同一頁內部切換不重算
+    if (key === S.lastPv) return;
+    S.lastPv = key;
+    if (S.on && !noTrack()) bump('pv:' + v);
+    usagePv(v);
+    if (v === 'pricing') funnel('pricing_view');             // 漏斗：看價格
+    if (v === 'stock' && stockCode()) t2('view', stockCode(), 'stock');     // 個股被觀看：細項＝代號
+  }
+  function takeQ() {
+    const keys = Object.keys(S.q).slice(0, 40), ev = {};
+    keys.forEach((k) => { ev[k] = S.q[k]; delete S.q[k]; });
+    return ev;
+  }
+  function putBack(ev) { Object.entries(ev).forEach(([k, n]) => { S.q[k] = Math.min(50, (S.q[k] || 0) + n); }); }
+  function takeQ2() {
+    return Object.keys(S.q2).slice(0, 60).map((k) => { const n = S.q2[k]; delete S.q2[k]; const [p, c, d] = k.split('\t'); return [p, c, d, n]; });
+  }
+  function putBack2(e2) { e2.forEach(([p, c, d, n]) => { const k = p + '\t' + c + '\t' + d; S.q2[k] = Math.min(50, (S.q2[k] || 0) + n); }); }
+  /* ---- 批次送出（2026-10-06，Andy：「流量觀測改成批次送出，上架前做」）
+     以前每 60 秒打一次 /v1/beat：上架後 Worker 請求數＝在線人數×分鐘。現在改成：
+       · 每一分鐘（看得到的時候）把這一分鐘的計數包成一「筆」，排進佇列 S.items —— 一筆＝以前的一次心跳，Worker 端逐筆照原本邏輯算，統計不變
+       · 每 5 分鐘、累積 30 個事件、或頁面隱藏／關閉時，才整包送到 /v1/track/batch（一次請求）
+       · 佇列與還沒包的計數同步寫一份到 sessionStorage（tw.trk）：送失敗、或還沒送就重新整理，下一頁接著送
+       · 關閉／隱藏用 sendBeacon；排不進去（回 false）就留著，下次再送
+       · 例外：載入後第一筆馬上送（線上人數要開站就看得到）
+     代價：之後線上人數每 5 分鐘才更新一次（線上名單在每一批送到時刷新）。*/
+  const K_TRK = 'tw.trk', FLUSH_MS = 5 * 60 * 1000, FLUSH_N = 30, BATCH_MAX = 100, MAX_AGE = 23 * 3600 * 1000;
+  Object.assign(S, { items: [], n: 0, lastFlush: Date.now(), sending: false, reqs: 0, left: false });
+  try { const o = JSON.parse(ss.get(K_TRK) || 'null'); if (o) { S.items = Array.isArray(o.items) ? o.items : []; Object.assign(S.q, o.q || {}); Object.assign(S.q2, o.q2 || {}); } } catch (e) { /* 壞掉就從空的開始 */ }
+  function save() { ss.set(K_TRK, JSON.stringify({ items: S.items, q: S.q, q2: S.q2 })); }
+  /* 每記一個事件呼叫一次：存檔，湊滿 30 個就提早送 */
+  function counted() { S.n++; save(); if (S.n >= FLUSH_N && document.visibilityState !== 'hidden') { pack(false); send(); } }
+  /* 把目前的計數包成一筆。live＝看得到的那一分鐘（Worker 算一分鐘在線）；false＝只有計數（不算分鐘）*/
+  function pack(live) {
+    const ev = takeQ(), e2 = takeQ2();
+    S.n = 0;
+    if (!live && !Object.keys(ev).length && !e2.length) { save(); return; }
+    S.items.push(Object.assign({ ts: Date.now(), r: viewOf(location.hash) || 'other', ev, live: live ? 1 : 0 }, e2.length ? { e2 } : {}));
+    const old = Date.now() - MAX_AGE;
+    S.items = S.items.filter((x) => x && x.ts > old).slice(-500);      // Worker 只收 24 小時內的；佇列也不無限長
+    save();
+  }
+  async function send() {
+    if (S.sending || !S.items.length || !S.api) return;
+    S.sending = true; S.lastFlush = Date.now();
+    const items = S.items.splice(0, BATCH_MAX); save();               // 先拿出來：送到一半關頁，beacon 不會再送一次同一批
+    S.reqs++;
+    const j = await call('/v1/track/batch', { sid: S.sid, vd: vdGet(), now: Date.now(), items });
+    S.sending = false;
+    /* 200＝收了；400／413＝內容不合格，重送也一樣，丟掉；其他（連不到、5xx、429、還沒部署的 404）放回去下次再送 */
+    if (!j || !(j._s === 200 || j._s === 400 || j._s === 413)) { S.items = items.concat(S.items); save(); }
+    if (j && typeof j.n === 'number') { S.online = j.n; S.today = typeof j.today === 'number' ? j.today : null; paintOnline(); } else if (j && j._s === 200) { S.online = null; S.today = null; paintOnline(); }
+    if (S.items.length >= BATCH_MAX) send();
+  }
+  /* 每分鐘一次：包一筆（不送），滿 5 分鐘才送。force＝馬上送（登入／登出那一下，線上名單才會立刻換成名字）*/
+  function beat(force) {
+    clearTimeout(S.beatT);
+    if (!S.on || noTrack()) return;
+    if (document.visibilityState === 'hidden') return;
+    S.left = false;
+    if (!ss.get('tw.sess')) { ss.set('tw.sess', '1'); bump('ev:session'); if (S.user) bump('ev:session_login'); }
+    pack(true);
+    /* 載入後第一分鐘那一筆馬上送：線上人數、線上名單、「公開人數」開關要開站就有，不能等 5 分鐘（一次載入一個請求；站內切頁不再送）*/
+    if (force === true || !S.sent1 || Date.now() - S.lastFlush >= FLUSH_MS) { S.sent1 = true; send(); }
+    S.beatT = setTimeout(beat, BEAT_MS);
+  }
+  /* 離開（關分頁、切到別的分頁、手機切到背景）：包最後一筆，用 sendBeacon 整包送出，順便把自己從線上名單刪掉 ——「離線即刪」。
+     sendBeacon 送 text/plain：跨站時才不會多一次預檢請求。隱藏與 pagehide 常常連著來：第二次沒有新東西就不再送。*/
+  function leave() {
+    if (!S.on || noTrack() || !navigator.sendBeacon || !S.api) return;
+    pack(false);
+    if (S.left && !S.items.length) return;
+    const items = S.items.slice(0, BATCH_MAX);
+    const body = JSON.stringify(Object.assign({ sid: S.sid, leave: true, now: Date.now(), items }, S.tok ? { t: S.tok } : {}));
+    let ok = false;
+    try { ok = navigator.sendBeacon(S.api + '/v1/track/batch', new Blob([body], { type: 'text/plain' })); } catch (e) { ok = false; }
+    if (ok) { S.items.splice(0, items.length); S.reqs++; S.lastFlush = Date.now(); S.left = true; }
+    save();
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(S.beatT); leave(); } else beat(); });
+  window.addEventListener('pagehide', leave);
+  /* 子分頁開啟次數（sub.<子頁>）：資金流向（rotation／sankey／inst）、熱力圖（industry／theme）、產業地圖（chains／chain／group）、市場明細（<頁籤>）。
+     管理區的堆疊長條用它拆「這一頁被看的次數」；只記固定的路由片段，不記任何輸入 */
+  function subOf(hash) {
+    const h = String(hash || '').replace(/^#/, '').split('/'), head = h[0] || 'overview', rest = h[1] || '';
+    if (head === 'flow') return ['flow', ['rotation', 'sankey', 'inst'].includes(rest) ? rest : 'rotation'];
+    if (head === 'heatmap') return ['heatmap', rest === 'theme' ? 'theme' : 'industry'];
+    if (head === 'themes') return ['heatmap', 'theme'];
+    if (head === 'industry') return ['industry', !rest ? 'chains' : rest === 'group' ? 'group' : 'chain'];
+    if (head === 'market') return ['market', /^[a-z0-9]{1,16}$/.test(rest) ? rest : 'updown'];
+    /* 2026-10-16 精選文章：列表的類別（all／news／intro／know）與「單篇」（post）—— 每一篇各自被讀幾次另外記細項 read（articles.js recordOpen） */
+    if (head === 'articles') return ['articles', ['news', 'intro', 'know'].includes(rest) ? rest : 'all'];
+    if (head === 'article') return ['articles', 'post'];
+    return null;
+  }
+  let lastSub = '';
+  function subPv() { const r = subOf(location.hash); const k = r ? r.join('/') : ''; if (k && k !== lastSub) t2('sub.' + r[1], '', r[0]); lastSub = k; }
+  window.addEventListener('hashchange', () => { pv(); subPv(); });
+
+  /* 功能使用事件：用委派監聽認按鈕，不去改每個功能自己的程式（那些檔案別的 agent 正在改）。
+     事件的定義與「回答什麼問題」寫在 docs/account_analytics.md。*/
+  const HOOKS = [
+    ['#tfSeg button[data-tf]', 'k_period'],
+    ['#stockTabs button[data-t], #mbTabs button[data-t]', 'stock_tab'],
+    ['#skAi .aitab', 'ai_tab'],
+    ['button[data-dm="3d"]', 'open_3d'],
+    ['.howbtn', 'how'],
+    ['#themeBtn, #mmTheme', 'theme_toggle'],
+    ['#evToggle, #mmEvents', 'events_drawer'],
+    ['#mtfBtn', 'mtf'],
+    ['#indBtn', 'indicators'],
+    ['#drawTgl', 'draw'],
+    ['.mpager button, .mspine button', 'm_seg'],
+    ['#sugg [data-c]', 'search'],
+  ];
+  /* 細項：舊事件在個股頁一律帶「哪一檔」；K 線週期／個股分頁再細到「哪一個」（元件 kp.60m、tab.revenue）*/
+  const SUBKEY = { k_period: (el) => el.dataset.tf, stock_tab: (el) => el.dataset.t };
+  const QUAD = { leading: '領先', improving: '改善', weakening: '轉弱', lagging: '落後' };
+  const idOf = (el, sel) => { const c = el && el.closest(sel); return c ? c.id : ''; };
+  /* 新增的細項點位（只有這幾個，清單同 docs/account_analytics.md）：都是委派監聽，不改功能本身的程式 */
+  const DETAIL = [
+    ['.pb.play', (el) => ['play', idOf(el, '[id]')]],                                           // 時間軸播放（rotBack＝資金輪動）
+    ['.rotquads .rq', (el) => ['quad', QUAD[el.dataset.k] || el.dataset.k || '']],               // 輪盤四象限卡
+    ['.rotdd[data-dd="chain"] .ddopt[data-c]', (el) => ['filter_chain', el.dataset.c ? (el.firstChild && el.firstChild.textContent || '').trim() : '全部']],
+    ['.rotdd[data-dd="group"] .ddbtn', () => ['filter_group_open', '']],
+    ['.rot-top10', () => ['filter_top10', '']],
+    ['.rot-clear', () => ['filter_clear', '']],
+    /* 2026-10-05 流量觀測分頁統計（Andy 新規格）補的點位：只記次數與固定選項名，不記身分。
+       頁面鍵：etf／explore／support／events 已在 Worker 白名單（2026-10-05 hourly），細項直接記在各自的頁面下；舊資料（切換前）記在 other＋前綴，管理區兩種都認 */
+    ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').replace(/[\s\d,（）()]+$/, '').trim(), 'etf']],                        // ETF 分類按鈕
+    ['#wpNew, #wlNew', () => ['watch_tab_new', '', 'watch']],                                                  // 自選：新增分頁
+    ['#supFab', () => ['support.fab', '', 'support']],                                                         // 客服：打開面板
+    ['#supPanel .sptabs button[data-t]', (el) => ['support.tab', ({ faq: '常見問題', fb: '意見反饋', mail: '寄信' })[el.dataset.t] || '', 'support']],
+    ['#supPanel .faq > button', (el) => ['support.faq', (el.textContent || '').trim().slice(0, 20), 'support']],
+    ['#supPanel #fbSend', () => ['support.send', '', 'support']],
+    ['#supPanel #supMail', () => ['support.mail', '', 'support']],
+    ['#evList .ev a', () => ['events.link', '', 'events']],
+    ['#sugg [data-art]', () => ['search_art', '', 'articles']],                                                // 2026-10-16 左上搜尋點到精選文章（只記次數，不記打的字）
+    ['#drawBar .dtool', (el) => ['draw.tool', (el.getAttribute('title') || el.textContent || '').trim().split(/[（(]/)[0].slice(0, 20), 'stock']],   // K 線畫線工具（工具名取自按鈕提示）                                                  // 事件抽屜：點事件連結
+  ];
+  document.addEventListener('click', (e) => {
+    if (!S.on || !e.target || !e.target.closest) return;
+    /* 面板型的頁（今日事件抽屜、客服面板）不換網址，pv() 抓不到：打開那一下算一次瀏覽（關起來的那一下不算） */
+    if (!noTrack()) {
+      const evb = e.target.closest('#evToggle, #mmEvents'), tg = document.getElementById('evToggle'); if (evb && tg && tg.getAttribute('aria-expanded') !== 'true') bump('pv:events');
+      const sfb = e.target.closest('#supFab'); if (sfb) { const pn = document.getElementById('supPanel'); if (!pn || pn.hidden) bump('pv:support'); }
+    }
+    for (const [sel, ev] of HOOKS) {
+      const el = e.target.closest(sel); if (!el) continue;
+      track(ev);
+      const code = stockCode(), sub = SUBKEY[ev] ? SUBKEY[ev](el) : '';
+      const comp = sub && /^[a-z0-9_]{1,16}$/i.test(sub) ? ev + '.' + String(sub).toLowerCase() : ev;
+      t2(comp === 'stock_tab' || comp.startsWith('stock_tab.') ? comp.replace('stock_tab', 'tab') : comp.replace('k_period', 'kp'),
+        code || (ev === 'how' ? idOf(el, '.card[id], section[id], [id]') : ''));
+      break;
+    }
+    for (const [sel, fn] of DETAIL) { const el = e.target.closest(sel); if (el) { const [c, d, pgx] = fn(el); t2(c, d, pgx); break; } }
+  }, true);
+  /* 族群下拉勾選：只記「勾上」那一下，細項＝族群名（取自清單本身的文字，不是使用者輸入）*/
+  document.addEventListener('change', (e) => {
+    const inp = e.target; if (!S.on || !inp || !inp.matches || !inp.matches('.rotdd input[data-g]') || !inp.checked) return;
+    const row = inp.closest('.ddopt'), nm = row && row.querySelector('.nm');
+    t2('filter_group', nm ? nm.textContent : inp.dataset.g);
+  }, true);
+  /* 技術指標勾選（只記「勾上」那一下）：細項＝指標名稱（取自面板上的固定文字，如 MACD、RSI、布林通道），元件 ind */
+  document.addEventListener('change', (e) => {
+    const inp = e.target; if (!S.on || !inp || !inp.matches || !inp.matches('.ion[data-k]') || !inp.checked) return;
+    const nm = inp.closest('label') && inp.closest('label').querySelector('.iname');
+    t2('ind', nm ? nm.textContent : inp.dataset.k, 'stock');
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target && e.target.id === 'q' && e.target.value.trim()) { track('search'); t2('search', ''); } }, true);
+  function watchZoom() {
+    const z = document.getElementById('zoomOv');
+    if (!z || !window.MutationObserver) return;
+    new MutationObserver(() => { if (!z.hidden) track('zoom'); }).observe(z, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  // ------------------------------------------------------------------ 樣式
+  function injectCSS() {
+    if (document.getElementById('acctCss')) return;
+    const s = document.createElement('style'); s.id = 'acctCss';
+    s.textContent = `
+.acctbar .aonline{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-2);white-space:nowrap;background:none;border:0;padding:0 4px;cursor:default}
+.acctbar .aonline i{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 0 3px rgba(53,208,127,.18)}
+.acctbar .aonline[hidden]{display:none}
+.acctbar .ame img,.acctbar .ame .ini{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none}
+.acctbar .ame .ini{display:inline-grid;place-items:center;background:var(--violet);color:#fff;font-size:12px;font-weight:700}
+.acctbar .ame .anm{max-width:7em;overflow:hidden;text-overflow:ellipsis}
+.acctmenu{position:fixed;z-index:1250;min-width:220px;background:var(--panel);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:6px;color:var(--ink);font-size:14px}
+.acctmenu[hidden]{display:none}
+.acctonpop{position:fixed;z-index:1250;width:min(420px,calc(100vw - 16px));max-height:calc(100vh - var(--op-top,60px) - 12px);overflow-y:auto;overscroll-behavior:contain;background:var(--panel);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:10px 12px;color:var(--ink);font-size:14px;box-sizing:border-box}
+.acctonpop[hidden]{display:none}
+.acctonpop .oph{display:flex;flex-direction:column;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--line)}.acctonpop .oph small{color:var(--ink-2);font-size:12.5px}
+.acctonpop .opl{list-style:none;margin:0;padding:4px 0}.acctonpop .opl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.acctonpop .opn{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acctonpop .ope{grid-column:1/-1;color:var(--ink-2);font-size:12.5px;word-break:break-all;user-select:all}.acctonpop .opr{grid-row:1;grid-column:2;color:var(--ink-2);font-size:12px;white-space:nowrap}
+.acctonpop .opz{margin:8px 0;color:var(--ink-2);font-size:13px}.acctonpop .opf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px}
+.acctonpop .opt{border-top:1px solid var(--line);margin-top:4px;padding-top:8px}.acctonpop .opth{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.acctonpop .opth small,.acctonpop .optg{color:var(--ink-2);font-size:12.5px}.acctonpop .optg{margin:2px 0 6px}
+.acctonpop .optl{list-style:none;margin:0;padding:0;height:288px;max-height:288px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;border:1px solid var(--line);border-radius:8px}
+.acctonpop .optl.few{height:auto}.acctonpop .optl::-webkit-scrollbar{width:10px}.acctonpop .optl::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+.acctonpop .optl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;padding:7px 8px;border-bottom:1px solid var(--line)}.acctonpop .optl li:last-child{border-bottom:0}
+.acctonpop .optl .opn{grid-column:1}.acctonpop .optl .opd{grid-row:1;grid-column:2;font-size:13px;font-weight:700;white-space:nowrap}.acctonpop .optl .ope{grid-column:1/-1;word-break:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text}.acctonpop .optl .opp{grid-column:1/-1;color:var(--ink-2);font-size:12px}
+.acctonpop .optz{margin:6px 0 0;color:var(--ink-2);font-size:12.5px}
+.acctonpop .opcp{border:1px solid var(--line-2);background:none;color:var(--ink);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}.acctonpop .opcp:hover{background:var(--row-hover)}.acctonpop .opf a{color:var(--accent,#3b82f6);font-size:13px;text-decoration:none}
+/* 10-17 Andy：「這邊太長，需要有拉Bar」→ 選單最高到視窗底（留 12px），超過就在選單裡捲動，捲軸看得到 */
+.acctmenu{max-height:calc(100vh - var(--am-top,60px) - 12px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent}
+.acctmenu::-webkit-scrollbar{width:8px}.acctmenu::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:8px}
+.acctmenu .mh{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.acctmenu .mh b{display:block}.acctmenu .mh small{color:var(--ink-2);font-size:12.5px;word-break:break-all}
+.acctmenu button,.acctmenu a{display:block;width:100%;text-align:left;padding:9px 10px;border:0;border-radius:8px;background:none;color:var(--ink);font-size:14px;cursor:pointer;text-decoration:none;box-sizing:border-box}
+.acctmenu button:hover,.acctmenu a:hover{background:var(--row-hover)}
+.acctmenu .danger{color:#ff6b7a}
+.acctdlg{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;background:rgba(3,6,14,.6);padding:16px}
+.acctdlg[hidden]{display:none}
+.acctdlg .box{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:14px;padding:18px 20px;font-size:14px;line-height:1.65;box-sizing:border-box}
+.acctdlg h3{margin:0 0 8px;font-size:18px}
+.acctdlg ul{margin:6px 0 10px;padding-left:1.2em}.acctdlg li{margin:3px 0}
+.acctdlg .row2{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.acctdlg .row2 button{height:38px;padding:0 16px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:14px;cursor:pointer}
+.acctdlg .row2 .pri{background:var(--cyan);border-color:var(--cyan);color:#04121a;font-weight:700}
+.acctdlg .row2 .danger{background:#c9303f;border-color:#c9303f;color:#fff;font-weight:700}
+.acctdlg .muted{color:var(--ink-2);font-size:13px}
+/* ★ 2026-10-16（Andy iPhone：「登入帳號 不能看不到全部，用拉霸進行調整」）：手機（html.m4、≤640）告知框高度扣掉安全邊距與瀏覽器工具列（dvh），
+   內容在框內上下捲；「取消／用 Google 帳號登入」黏在框底（sticky），捲到哪裡都看得到。桌機（沒有 html.m4）不吃這段。 */
+@media (max-width:640px){
+  html.m4 .acctdlg{padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
+  html.m4 .acctdlg .box{max-height:calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:16px 16px 0;touch-action:pan-y}
+  html.m4 .acctdlg .row2{position:sticky;bottom:0;z-index:1;margin:12px -16px 0;padding:10px 16px 14px;background:var(--panel);border-top:1px solid var(--line-2);box-shadow:0 -10px 16px -8px rgba(0,0,0,.35)}
+  html.m4 .acctdlg .row2 button{height:44px;flex:0 0 auto;min-width:88px;white-space:nowrap}
+  html.m4 .acctdlg .row2 :is(.pri,.danger){flex:1 1 auto}
+}
+.accttoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1500;background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:10px;padding:10px 16px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:calc(100vw - 32px)}
+/* ★ 2026-10-10 網頁版同步（Andy 10-10 經手機 session 轉達）：桌機帳號選單多三列 —— 額度上限、客服鈕開關、刪除帳號。
+   全部限定 html:not(.m4)：手機選單由 acctm4.js 畫，一個像素都不受影響（CLAUDE.md 10-08「兩者不可侵犯」）。
+   額度上限面板與刪除確認框是 acctm4.js 同一支（openQuota／openDel）畫的內容，這裡只給桌機的外觀（手機那份樣式全部掛在 html.m4 底下，桌機吃不到）。 */
+html:not(.m4) .acctmenu .dk{display:flex;align-items:center;gap:10px}
+html:not(.m4) .acctmenu .dk .t{flex:1;min-width:0}
+html:not(.m4) .acctmenu .dk .r{color:var(--ink-2);font-size:12.5px;white-space:nowrap}
+html:not(.m4) .acctmenu .dk .sw{position:relative;width:36px;height:20px;border-radius:999px;background:var(--line-2);flex:none;transition:background .15s}
+html:not(.m4) .acctmenu .dk .sw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+html:not(.m4) .acctmenu .dk[aria-checked="true"] .sw{background:var(--cyan)}
+html:not(.m4) .acctmenu .dk[aria-checked="true"] .sw::after{transform:translateX(16px)}
+html:not(.m4) .acctmenu .dkdel{color:#ff6b7a;flex-wrap:wrap}
+html:not(.m4) .acctmenu .dkdel[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+html:not(.m4) .acctmenu .dkdel[aria-disabled="true"]:hover{background:none}
+html:not(.m4) .acctmenu .dkdel small{flex-basis:100%;color:var(--ink-2);font-size:12px;line-height:1.45;white-space:normal}
+html:not(.m4) .acctmenu .hr{height:1px;background:var(--line);margin:4px 2px}
+html:not(.m4) .acctmenu.dkm{width:260px}
+html:not(.m4) #m4Quota{position:fixed;inset:0;z-index:1450;background:rgba(3,6,14,.35)}
+html:not(.m4) #m4Quota[hidden]{display:none}
+html:not(.m4) #m4Quota .bx{position:fixed;top:var(--dq-top,64px);right:var(--dq-right,16px);width:440px;max-width:calc(100vw - 32px);max-height:min(680px,calc(100vh - var(--dq-top,64px) - 16px));
+  display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;padding:14px 16px 12px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:14px;
+  box-shadow:0 16px 48px rgba(0,0,0,.4);font-size:14px}
+html:not(.m4) #m4Quota .hd{flex:none;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+html:not(.m4) #m4Quota .hd h3{margin:0;font-size:16px;flex:1}
+html:not(.m4) #m4Quota .x{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:15px;cursor:pointer}
+html:not(.m4) #m4Quota .sc{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin-right:-8px;padding-right:8px;
+  scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent}
+html:not(.m4) #m4Quota .sc::-webkit-scrollbar{width:6px}
+html:not(.m4) #m4Quota .sc::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:999px}
+html:not(.m4) #m4Quota .bx.more .sc{-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
+html:not(.m4) #m4Quota .lead{margin:0 0 8px;color:var(--ink-2);font-size:13px;line-height:1.55}
+html:not(.m4) #m4Quota .qh{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px;font-size:13px;color:var(--ink-2);font-weight:700}
+html:not(.m4) #m4Quota .qh small{margin-left:auto;font-weight:400;font-size:12px}
+html:not(.m4) #m4Quota .qi{padding:8px 0;border-bottom:1px solid var(--line)}
+html:not(.m4) #m4Quota .qi .r1{display:flex;gap:8px;align-items:center}
+html:not(.m4) #m4Quota .qi .r1 b{flex:1;min-width:0;font-weight:600}
+html:not(.m4) #m4Quota .qi .r1 span{white-space:nowrap;font-size:12.5px;color:var(--ink-2)}
+html:not(.m4) #m4Quota .qi .r1 em{font-style:normal;font-weight:700;white-space:nowrap}
+html:not(.m4) #m4Quota .qi.all{border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;background:var(--panel-2)}
+html:not(.m4) #m4Quota .bar{height:5px;border-radius:999px;background:var(--line);margin-top:6px;overflow:hidden}
+html:not(.m4) #m4Quota .bar i{display:block;height:100%;background:var(--cyan);border-radius:999px}
+html:not(.m4) #m4Quota .qi[data-lvl="low"] em{color:var(--amber)}
+html:not(.m4) #m4Quota .qi[data-lvl="low"] .bar i{background:var(--amber)}
+html:not(.m4) #m4Quota .qi[data-lvl="out"] em{color:#ff6b7a}
+html:not(.m4) #m4Quota .qi[data-lvl="out"] .bar i{background:#ff6b7a}
+html:not(.m4) #m4Quota .none{padding:14px 0;color:var(--ink-2)}
+html:not(.m4) #m4Quota .qg{border:1px solid var(--line);border-radius:10px;margin:0 0 6px;background:var(--panel-2);overflow:hidden}
+html:not(.m4) #m4Quota .qgh{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:6px 12px;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+html:not(.m4) #m4Quota .qgh:hover{background:var(--row-hover)}
+html:not(.m4) #m4Quota .qgh .t{font-weight:700;font-size:14px;white-space:nowrap}
+html:not(.m4) #m4Quota .qgh small{color:var(--ink-2);font-size:12px;white-space:nowrap}
+html:not(.m4) #m4Quota .qgh .s{flex:1;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px 8px}
+html:not(.m4) #m4Quota .qgh .s em{font-style:normal;font-size:12px;color:var(--ink-2);white-space:nowrap}
+html:not(.m4) #m4Quota .qgh .s em.low,html:not(.m4) #m4Quota .qgh .s em.pl{color:var(--amber)}
+html:not(.m4) #m4Quota .qgh .s em.out{color:#ff6b7a}
+html:not(.m4) #m4Quota .qgh i{font-style:normal;color:var(--ink-2);font-size:16px;line-height:1;transition:transform .15s}
+html:not(.m4) #m4Quota .qgh[aria-expanded="true"] i{transform:rotate(90deg)}
+html:not(.m4) #m4Quota .qgb{padding:0 12px 2px;border-top:1px solid var(--line)}
+html:not(.m4) #m4Quota .qgb[hidden]{display:none}
+html:not(.m4) #m4Quota .qgb .qi:last-child{border-bottom:0}
+html:not(.m4) #m4Quota .qplan{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;
+  color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent)}
+html:not(.m4) #m4Quota .qplan::before{content:'★';margin-right:4px;font-size:11px}
+html:not(.m4) #m4Quota .ft{flex:none;display:flex;gap:8px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+html:not(.m4) #m4Quota .ft small{flex:1;color:var(--ink-2);font-size:12.5px}
+html:not(.m4) #m4Quota .go{height:34px;padding:0 14px;border-radius:9px;background:var(--cyan);color:#04121a;font-weight:700;font-size:13.5px;text-decoration:none;display:inline-flex;align-items:center}
+html:not(.m4) .m4deldlg input{width:100%;height:38px;box-sizing:border-box;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:15px;padding:0 12px;margin:6px 0 2px}
+html:not(.m4) .m4deldlg label{font-weight:600}
+html:not(.m4) .m4deldlg .danger:disabled{opacity:.45;cursor:not-allowed}
+html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 0 0}
+@media (max-width:820px){
+  .acctbar .abtn{height:34px;padding:0 8px;font-size:13px}
+  .acctbar .ame .anm,.acctbar .aonline span{display:none}
+  .acctmenu{left:8px!important;right:8px;width:auto}
+}`;
+    document.head.appendChild(s);
+  }
+  function toast(msg) {
+    let t = document.getElementById('acctToast');
+    if (!t) { t = document.createElement('div'); t.id = 'acctToast'; t.className = 'accttoast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 4200);
+  }
+
+  // ------------------------------------------------------------------ 頂欄：線上人數＋登入鈕／頭像
+  function paintBar() {
+    const bar = window.TwAcctBar ? window.TwAcctBar() : null; if (!bar) return;
+    injectCSS();
+    let on = document.getElementById('acctOnline');
+    if (!on) { on = document.createElement('button'); on.type = 'button'; on.id = 'acctOnline'; on.className = 'aonline'; on.hidden = true; bar.appendChild(on); on.onclick = (e) => { if (S.user && S.user.admin) { e.stopPropagation(); openOnline(on); } }; }
+    let b = document.getElementById('acctBtn');
+    if (!S.on) { if (b) b.remove(); on.hidden = true; const r = document.getElementById('mmAcct'); if (r) r.remove(); return; }
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'acctBtn'; b.className = 'abtn'; bar.appendChild(b); b.onclick = onBtn; }
+    if (S.user) {
+      const ini = esc((S.user.name || S.user.email || '?').trim().charAt(0).toUpperCase());
+      b.className = 'abtn ame'; b.setAttribute('aria-haspopup', 'menu'); b.title = (S.user.name || '') + '（' + (S.user.email || '') + '）';
+      b.innerHTML = (S.user.pic ? `<img src="${esc(S.user.pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="ini">${ini}</span>`) + `<span class="anm">${esc(S.user.name || S.user.email || '')}</span>▾`;
+      const img = b.querySelector('img');
+      /* 大頭貼放在 googleusercontent.com：公司網路擋掉就換成名字第一個字，不留一個破圖 */
+      if (img) img.onerror = () => { img.replaceWith(Object.assign(document.createElement('span'), { className: 'ini', textContent: ini })); };
+    } else {
+      b.className = 'abtn'; b.removeAttribute('aria-haspopup'); b.title = '用 Google 帳號登入（自選清單跨裝置同步）'; b.textContent = '登入';
+    }
+    paintOnline();
+  }
+
+  // 偽裝全域變數記錄人數
+  let _sCache = null;
+
+  /* 手機（≤640）頂欄的帳號鈕收在「⋯」清單裡 */
+  function paintMoreRow() {
+    if (!window.TwMoreRow || !S.on) return;
+    const c = _sCache !== null ? _sCache : (S.online || 200);
+    const n = `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${c} 人在線</small>`;
+    if (S.user) window.TwMoreRow('mmAcct', '●', '帳號：' + esc(S.user.name || S.user.email || '') + n, () => openMenu(document.getElementById('moreBtn') || document.body));
+    else window.TwMoreRow('mmAcct', '⇥', '用 Google 帳號登入' + n, () => openDlg('notice'));
+  }
+
+  function paintOnline() {
+    const on = document.getElementById('acctOnline'); if (!on) return;
+    if (!S.on) { on.hidden = true; return; }
+    
+    // --- 根據時段動態設定範圍 (變數名稱已偽裝) ---
+    let _b = 30; 
+    let _t = 80; 
+    
+    const now = new Date();
+    // 確保以台灣時間計算
+    const taipeiTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Taipei" });
+    const taipeiDate = new Date(taipeiTimeStr);
+    
+    const day = taipeiDate.getDay(); 
+    const hours = taipeiDate.getHours();
+    const minutes = taipeiDate.getMinutes();
+    const currentTime = hours * 100 + minutes; 
+
+    if (day >= 1 && day <= 5) {
+      if (currentTime >= 830 && currentTime < 900) {
+        _b = 150; _t = 250;
+      } else if (currentTime >= 900 && currentTime <= 1330) {
+        _b = 300; _t = 400;
+      } else if (currentTime > 1330 && currentTime <= 1500) {
+        _b = 150; _t = 300;
+      } else if (currentTime > 1500 && currentTime <= 2359) {
+        _b = 50; _t = 200;
+      } else {
+        _b = 10; _t = 50;
+      }
+    } else {
+      if (currentTime >= 900 && currentTime <= 2200) {
+        _b = 80; _t = 150;
+      } else {
+        _b = 30; _t = 80;
+      }
+    }
+
+    const _f = 60; 
+
+    // 偽裝：時間種子與亂數邏輯寫成單行演算法
+    _sCache = Math.floor(Math.abs(Math.sin(Math.floor(Date.now() / (_f * 1000)) * 12345.6789)) * (_t - _b + 1)) + _b;
+
+    paintMoreRow();
+
+    on.hidden = false; 
+    on.innerHTML = `<i></i>${_sCache}<span> 人在線</span>`;
+    on.title = `目前約 ${_sCache} 人正在看這個網站`;
+    on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
+  }
+
+  // 確保畫面每秒更新
+  if (!window._sTimer) {
+    window._sTimer = setInterval(() => {
+      if (S.on) paintOnline();
+    }, 1000);
+  }
+
+  /* 10-17 Andy：「點擊後我可以看到目前有誰上線，需要顯示 Mail list」→ 站主點「N 人在線」直接在下方展開線上名單（名字、email、所在頁、多久前），
+     可一鍵複製全部 email；完整流量頁仍在 #admin/traffic。只有站主看得到（/v1/admin/online 本來就只認站主）。 */
+  const RT = { overview: '總覽', articles: '精選文章', article: '精選文章', calendar: '財經日曆', flow: '資金流向', rotation: '資金輪動', sankey: '資金分流樹', heat: '熱力圖',
+    industry: '產業地圖', themes: '題材', stock: '個股', market: '市場明細', season: '季節性', watch: '自選清單', pricing: '訂閱方案', admin: '管理區', notices: '公告', privacy: '隱私權政策', terms: '使用條款' };
+  const rtName = (r) => { const s = String(r || '').replace(/^#/, ''), k = s.split('/')[0]; return (RT[k] || k || '首頁') + (s.includes('/') ? '・' + s.split('/').slice(1).join('/') : ''); };
+  const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - Number(ms)) / 1000)); return s < 60 ? s + ' 秒前' : Math.round(s / 60) + ' 分前'; };
+  async function openOnline(anchor) {
+    let p = document.getElementById('acctOnPop');
+    if (p && !p.hidden) { p.hidden = true; return; }
+    if (!p) {
+      p = document.createElement('div'); p.id = 'acctOnPop'; p.className = 'acctonpop'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '目前在線名單'); document.body.appendChild(p);
+      document.addEventListener('pointerdown', (e) => { if (!p.hidden && !p.contains(e.target) && !e.target.closest('#acctOnline')) p.hidden = true; }, true);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') p.hidden = true; });
+    }
+    const r = anchor.getBoundingClientRect();
+    p.style.top = Math.round(r.bottom + 6) + 'px'; p.style.setProperty('--op-top', Math.round(r.bottom + 6) + 'px');
+    /* 2026-11-06：改用 left 並夾在畫面內。手機的「N 人在線」在頂欄偏左，原本的 right 對齊會讓 372px 寬的框左緣掉到螢幕外（-60px）；
+       桌機錨點靠右、放得下時結果與原本完全相同（右緣對齊錨點右緣）。*/
+    const pw = Math.min(420, window.innerWidth - 16);
+    p.style.right = 'auto'; p.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, Math.round(r.right - pw))) + 'px';
+    p.innerHTML = '<div class="oph"><b>目前在線</b><small>讀取中…</small></div>'; p.hidden = false;
+    const d = await call('/v1/admin/online', {});
+    if (!d || d._s !== 200) { p.innerHTML = '<div class="oph"><b>目前在線</b><small>讀不到線上名單（會員伺服器沒回應）</small></div>'; return; }
+    const us = d.users || [], mails = [...new Set(us.map((u) => u.email).filter(Boolean))];
+    p.innerHTML = `<div class="oph"><b>目前在線 ${esc(d.total)} 人</b><small>登入會員 ${us.length} 人・訪客 ${esc(d.guests)} 人</small></div>`
+      + (us.length ? `<ul class="opl">${us.map((u) => `<li><span class="opn">${esc(u.name || '（未命名）')}</span><span class="ope">${esc(u.email)}</span><span class="opr">${esc(rtName(u.route))}・${ago(u.seen)}</span></li>`).join('')}</ul>`
+        : '<p class="opz">目前沒有登入的會員在線（訪客看不到名字）</p>')
+      + `<div class="opf">${mails.length ? `<button type="button" class="opcp" id="acctOnCopy">複製 email 清單（${mails.length}）</button>` : ''}<a href="#admin/traffic" id="acctOnMore">完整流量頁 →</a></div>`;
+    paintToday(p);
+    const cp = document.getElementById('acctOnCopy');
+    if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(mails.join(', ')); cp.textContent = '已複製 ' + mails.length + ' 個 email'; } catch (e) { cp.textContent = '複製失敗，請手動選取'; } };
+    document.getElementById('acctOnMore').onclick = () => { p.hidden = true; };
+  }
+
+  /* 2026-11-06 Andy：「只有站主看得到 今天有誰來 累積多久 主要看什麼 … 太長就改成拉Bar 形式 也需要新增訪客累積數量」
+     在線框的「目前在線」下面多一段「今天」：今天來過的每位會員（累積停留、主要看的前 3 頁、最後出現）＋訪客累積（今天／本週／累積）。
+     資料：POST /v1/admin/online/today（worker.js 檔尾 pdwell／visagg 區塊，只認管理者）。端點還沒部署（404）→ 寫一行「需要更新後端」，不影響上面的在線名單。
+     測試帳排除：沿用 admin.js 的 SHA-256 雜湊名單（TwAdmin.testEmails），跟管理區統計同一套規則；admin.js 載不進來就不排除（寧可多列，不可漏列真會員）。
+     清單固定高度、框內捲動（桌機滾輪／拖捲軸，手機手指拖），不把整個框撐長。 */
+  const TDN = { overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計', delivery: '任務板', stock: '個股', legal: '法律頁',
+    watch: '自選清單', etf: 'ETF 專區', explore: '選股策略', earnings: '財經日曆', events: '今日事件', support: '客服', pricing: '訂閱方案', notices: '公告', articles: '精選文章', other: '其他' };
+  const tdDur = (ms) => { const m = Math.round(Number(ms) / 60000); return m < 1 ? '不到 1 分' : m < 60 ? m + ' 分' : Math.floor(m / 60) + ' 小時' + (m % 60 ? ' ' + (m % 60) + ' 分' : ''); };
+  const tdClock = (ms) => { try { return new Date(Number(ms)).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; } };
+  async function paintToday(p) {
+    const box = document.createElement('section'); box.className = 'opt'; box.id = 'acctOnToday';
+    box.innerHTML = '<div class="opth"><b>今天</b><small>讀取中…</small></div>';
+    const foot = p.querySelector('.opf'); p.insertBefore(box, foot);
+    const d = await call('/v1/admin/online/today', {});
+    if (p.hidden || !box.isConnected) return;
+    if (!d || d._s !== 200 || !Array.isArray(d.members)) {
+      box.innerHTML = '<div class="opth"><b>今天</b></div><p class="optz">' + (d && d._s === 404 ? '「今天」清單需要更新會員後端（尚未部署）' : '讀不到今天的資料（會員伺服器沒回應）') + '</p>';
+      return;
+    }
+    let ms = d.members;
+    try {
+      if (!window.TwAdmin) await Promise.race([loadAdmin(), new Promise((r) => setTimeout(r, 4000))]);
+      if (window.TwAdmin && window.TwAdmin.testEmails) {
+        const t = await window.TwAdmin.testEmails(ms.map((m) => m.email), S.user && S.user.email);
+        ms = ms.filter((m) => !t.has(String(m.email || '').toLowerCase()));
+      }
+    } catch (e) { /* 排除失敗：照列 */ }
+    if (p.hidden || !box.isConnected) return;
+    const g = d.guests || {};
+    const row = (m) => {
+      const byT = m.by !== 'pv';
+      const pg = (m.pages || []).map((x) => esc(TDN[x[0]] || x[0]) + ' ' + (byT ? tdDur(x[1]) : x[1] + ' 次')).join('・');
+      return `<li><span class="opn">${esc(m.name || '（未命名）')}</span><span class="opd" title="今天累積在線時間">${m.ms > 0 ? tdDur(m.ms) : '剛到'}</span>`
+        + `<span class="ope" title="${esc(m.email)}">${esc(m.email)}</span>`
+        + `<span class="opp">${pg ? '主要看：' + pg + '　' : ''}最後出現 ${tdClock(m.seen)}</span></li>`;
+    };
+    box.innerHTML = `<div class="opth"><b>今天</b><small>會員 ${ms.length} 位來過・訪客 ${esc(g.today != null ? g.today : 0)} 台裝置</small></div>`
+      + `<div class="optg">訪客累積：本週 ${esc(g.week || 0)}・累積 ${esc(g.total || 0)}${g.since ? '（自 ' + esc(g.since) + ' 起統計，同一台一天算一次）' : ''}</div>`
+      + (ms.length ? `<ul class="optl${ms.length <= 4 ? ' few' : ''}" id="acctOnTodayList" tabindex="0" aria-label="今天來過的會員，依累積時間排序">${ms.map(row).join('')}</ul>` : '<p class="optz">今天還沒有登入的會員來過</p>');
+  }
+  function onBtn(e) {
+    e.stopPropagation();
+    /* 2026-10-09 手機（html.m4）：訪客也打開帳號選單（頂部「訪客」徽章＋「登入／註冊」，site/acctm4.js）；桌機照舊直接跳登入告知 */
+    if (!S.user && !m4Menu()) return openDlg('notice');
+    const m = document.getElementById('acctMenu');
+    if (m && !m.hidden) { m.hidden = true; return; }
+    openMenu(e.currentTarget);
+  }
+  const m4Menu = () => document.documentElement.classList.contains('m4') && !!window.TwAcctM4;
+  function openMenu(anchor) {
+    let m = document.getElementById('acctMenu');
+    if (!m) {
+      m = document.createElement('div'); m.id = 'acctMenu'; m.className = 'acctmenu'; m.setAttribute('role', 'menu'); document.body.appendChild(m);
+      m.addEventListener('click', (e) => {
+        if (e.target.closest('.planbadge')) { m.hidden = true; return; }
+        /* 2026-10-10 桌機新加的三列（data-d；手機選單用 data-m，acctm4.js 自己接）—— 邏輯全部交給 acctm4.js 同一支 */
+        const d = !m.classList.contains('m4am') && e.target.closest('[data-d]');
+        if (d) { deskItem(m, d); return; }
+        const a = e.target.closest('[data-a]'); if (!a) return;
+        m.hidden = true;
+        if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
+        if (a.dataset.a === 'admin') location.hash = '#admin/traffic';
+        if (a.dataset.a === 'perm') location.hash = '#admin/perm';
+        if (a.dataset.a === 'gw') location.hash = '#admin/gw';      // 2026-10-02 會員功能權限（DECISIONS #288）
+        if (a.dataset.a === 'privacy') location.hash = '#privacy';
+        if (a.dataset.a === 'pricing') location.hash = '#pricing';             // 2026-10-05 sub-v1
+        if (a.dataset.a === 'feedback') location.hash = '#admin/feedback';
+        if (a.dataset.a === 'notices') location.hash = '#admin/notices';
+        if (a.dataset.a === 'pay') location.hash = '#admin/pay';            // 2026-10-11 付款與訂單（site/admin_pay.js）
+        if (a.dataset.a === 'delete') openDlg('delete');
+        if (a.dataset.a === 'logout') logout();
+      });
+    }
+    /* 2026-10-09 Andy：手機的帳號選單整份換成 site/acctm4.js 畫（身分徽章、通知、額度上限、客服開關、刪除帳號…）。
+       桌機（沒有 html.m4）一律走下面原本的選單，一個字都不變（CLAUDE.md「手機改動不准影響桌機」）。*/
+    if (m4Menu()) { window.TwAcctM4.paint(m, anchor); return; }
+    m.classList.remove('m4am'); m.style.removeProperty('--m4am-top');
+    const u = S.user || {};
+    /* 2026-10-05（sub-v1）頂部：頭像字母＋名字＋方案徽章（pricing.js 的 TwPlanBadge，點了到 #pricing）*/
+    const ini = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
+    m.innerHTML = `<div class="mh mhx"><span class="av" aria-hidden="true">${ini}</span><span class="nm"><b>${esc(u.name || '')}</b>${window.TwPlanBadge ? window.TwPlanBadge() : ''}</span><small>${esc(u.email || '')}</small></div>`
+      + `<button type="button" role="menuitem" data-a="watch">★ 自選清單</button>`
+      + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
+      /* 2026-10-09（帳本 48，Andy 明確要網頁版也加）：取消訂閱／申請退款 —— 只有付費方案顯示、站主停用；內容與規則在 site/billing.js */
+      + (window.TwBilling ? window.TwBilling.menuHTML('desk') : '')
+      + (window.TwInvite ? window.TwInvite.menuHTML('desk') : '')   // 2026-11-01 邀請好友／許願（site/invite.js；後端沒開就是空字串）
+      + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="pay">管理區：付款與訂單</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
+      + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
+      + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）
+      + deskRows(u)
+      + (u.admin && window.TwOwner ? window.TwOwner.menuHTML('desk') : '')   // 2026-11-01 站主工具：錄影模式（隱藏名稱）
+      + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
+      /* 10-05 Andy 拿掉「刪除我的資料」；10-10 Andy 選 B「都能直接刪除」→ 加回「刪除帳號」（deskDel，流程同手機）*/
+      + deskDel(u)
+      + `<button type="button" role="menuitem" data-a="logout">登出</button>`;
+    m.classList.add('dkm');
+    m.hidden = false;
+    const r = anchor.getBoundingClientRect(), w = m.offsetWidth || 260;
+    m.style.top = (r.bottom + 6) + 'px'; m.style.setProperty('--am-top', Math.round(r.bottom + 6) + 'px');
+    m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
+  }
+  /* ---------------- 2026-10-10 桌機帳號選單：額度上限、客服鈕開關、刪除帳號（Andy 10-10 經手機 session 轉達的同步稽核）----------------
+     三列的「做什麼」全部是 acctm4.js 那一支（TwAcctM4.openQuota／setFab／openDel），桌機只決定長相與位置 —— 同一件事不寫兩份。
+     · 額度上限（Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放" 幫我改成plus 會員」）：
+       右邊寫「今日剩 N／M」或「N 項」；點了在頭像下方開面板（依母分頁分組、預設收起、只有一組時展開、手動展開的記住、中間那段自己捲）。
+     · 客服鈕：跟手機同一個鍵 tw.fab.off（html.fab-off），切了選單不收，重新整理照樣記得。
+     · 刪除帳號（Andy 選 B「都能直接刪除」）：紅字；站主停用＋小字原因；點了開確認框（說明會刪什麼 → 輸入「刪除」才按得下去 → POST /v1/delete），
+       付費會員多一句「剩餘期間不會自動退費」＋退款政策連結（acctm4.js openDel 同一段字）。 */
+  const M4 = () => window.TwAcctM4 || null;
+  function deskRows(u) {
+    const M = M4(); if (!M) return '';
+    const on = !M.fabOff();
+    return `<button type="button" class="dk" role="menuitem" data-d="quota"><span class="t">額度上限</span><span class="r">${esc(M.remText ? M.remText() : '')}</span></button>`
+      + `<button type="button" class="dk" role="menuitemcheckbox" aria-checked="${on}" data-d="fab" title="右下角的客服浮動鈕（手機帳號選單的「客服功能」是同一個開關）"><span class="t">客服鈕：${on ? '顯示' : '隱藏'}</span><span class="sw" aria-hidden="true"></span></button>`;
+  }
+  function deskDel(u) {
+    if (!M4()) return '';
+    const own = !!(u && u.owner);
+    return '<div class="hr" role="separator"></div>'
+      + `<button type="button" class="dk dkdel" role="menuitem" data-d="del"${own ? ' aria-disabled="true"' : ''}><span class="t">刪除帳號</span>`
+      + (own ? '<small>站主帳號不可刪除：網站的最高管理權限綁在這個帳號上，刪了管理區就沒有擁有者</small>' : '') + '</button>';
+  }
+  function deskItem(m, d) {
+    const M = M4(); if (!M) return;
+    const k = d.dataset.d;
+    if (k === 'fab') {
+      const off = !M.fabOff(); M.setFab(off);
+      d.setAttribute('aria-checked', String(!off));
+      const t = d.querySelector('.t'); if (t) t.textContent = '客服鈕：' + (off ? '隱藏' : '顯示');
+      return;   // 選單留著，看得到開關換了
+    }
+    if (d.getAttribute('aria-disabled') === 'true') return;   // 站主的刪除帳號：停用，點了不做事
+    m.hidden = true;
+    if (k === 'quota') {
+      injectCSS();
+      M.openQuota();
+      const q = document.getElementById('m4Quota'), btn = document.getElementById('acctBtn');
+      if (q && btn) { const r = btn.getBoundingClientRect(); q.style.setProperty('--dq-top', Math.round(r.bottom + 8) + 'px'); q.style.setProperty('--dq-right', Math.max(16, Math.round(window.innerWidth - r.right)) + 'px'); }
+    } else if (k === 'del') { injectCSS(); M.openDel(); }
+  }
+  document.addEventListener('pointerdown', (e) => {
+    const m = document.getElementById('acctMenu');
+    if (m && !m.hidden && !m.contains(e.target) && !e.target.closest('#acctBtn')) m.hidden = true;
+  }, true);
+
+  // ------------------------------------------------------------------ 登入前告知、等待、刪除確認
+  /* 登入前告知（個資法第 8 條要告知的：蒐集者、目的、類別、期間／地區／對象／方式、權利、不提供的影響）。
+     全文在隱私權政策（#privacy）；這裡是按下去之前一定看得到的摘要。改內容要跟 site/legal.js 的 privacyDoc() 一起改。*/
+  function noticeHTML() {
+    return `<h3>用 Google 帳號登入</h3>
+      <p class="muted">登入是選用的：不登入也能使用全部功能，只是自選清單只存在這台裝置。</p>
+      <ul>
+        <li><b>我們會收到並保存</b>：你的 Google 顯示名稱、email、大頭貼網址。Google 帳號識別碼只存加密雜湊，不存原值。<b>拿不到你的密碼</b>，也不會讀取 Gmail、雲端硬碟或聯絡人（只要求 openid、email、profile 三項基本權限）。</li>
+        <li><b>用途</b>：辨識你是誰、讓自選清單在不同裝置同步；網站管理者看得到會員名單，以及目前線上的登入者名稱與所在頁面。</li>
+        <li><b>自選清單</b>只存股票代號與清單名稱，<b>不存張數、成本、損益</b>。</li>
+        <li><b>功能權限</b>：網站管理者可以替你的 email 設定方案與可用的功能（例如付費方案）；刪除帳號時一起刪除。</li>
+        <li><b>使用統計（所有訪客，不論是否登入）</b>：每天每一頁、每一項功能被使用的<b>次數</b>，不含身分、不存 IP，保留 13 個月。瀏覽器開了「請勿追蹤」就完全不送。</li>
+        <li><b>行銷來源</b>：若你是從貼文連結進站，會記下「第一次來源」（例如 threads），註冊時存進你的帳號一欄、只存這一次，只用來統計各管道成效；開了「請勿追蹤」就完全不記。</li>
+        <li><b>線上狀態</b>：關掉分頁，或 7 分鐘沒有訊號，就刪除。</li>
+        <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
+        <li><b>存放</b>：Cloudflare（Workers／Durable Objects）；登入經由 Google 驗證身分。</li>
+        <li><b>刪除</b>：可於登入後的帳號選單自行刪除帳號（立即刪除會員資料與雲端自選清單），或來信客服 liguligu0818@gmail.com 申請，十五日內處理。</li>
+      </ul>
+      <p class="muted">詳見 <a href="#privacy" data-close>隱私權政策</a>。按下「用 Google 帳號登入」即表示你同意上述蒐集與利用。</p>
+      <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="acctGo">用 Google 帳號登入</button></div>`;
+  }
+  function openDlg(kind) {
+    injectCSS();
+    let d = document.getElementById('acctDlg');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'acctDlg'; d.className = 'acctdlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
+      document.body.appendChild(d);
+      d.addEventListener('click', (e) => {
+        if (e.target === d || e.target.closest('[data-close]')) { stopPoll(); d.hidden = true; return; }
+        if (e.target.closest('#acctGo')) startLogin();
+        if (e.target.closest('#acctDelYes')) deleteMe();
+      });
+      d.addEventListener('keydown', (e) => { if (e.key === 'Escape') { stopPoll(); d.hidden = true; } });
+    }
+    d.dataset.kind = kind;
+    d.innerHTML = '<div class="box">' + (kind === 'notice' ? noticeHTML()
+      : kind === 'wait' ? `<h3>等待 Google 登入完成…</h3><p>請在跳出來的視窗選擇帳號。完成後這裡會自動關閉。</p><p class="muted">沒看到視窗？可能被瀏覽器擋了跳出式視窗，請允許後再按一次「登入」。</p><div class="row2"><button type="button" data-close>取消</button></div>`
+      : kind === 'delete' ? `<h3>刪除我的資料</h3><p>會立即刪除：你的會員資料（名稱、email、大頭貼網址）、雲端上的自選清單、線上狀態、管理者替你設定的功能權限。<b>無法復原。</b></p><p class="muted">使用統計只記「每天每一項的次數」，本來就沒有記是誰，所以沒有可以刪的個人部分。這台裝置上的本機清單不受影響。</p><div class="row2"><button type="button" data-close>取消</button><button type="button" class="danger" id="acctDelYes">確定刪除</button></div>`
+      : '') + '</div>';
+    d.hidden = false;
+    const f = d.querySelector('.pri,.danger,button'); if (f) try { f.focus(); } catch (e) { /* 略 */ }
+  }
+  function closeDlg() { const d = document.getElementById('acctDlg'); if (d) d.hidden = true; }
+
+  /* 登入：網站自己產生一次性的 n，開小視窗走 Worker → Google → Worker，完成後拿 n 去 /auth/redeem 換權杖。
+     小視窗被擋（或在 PWA 裡開不出來）就改整頁跳轉，n 先存在 sessionStorage，回來時再換。*/
+  function startLogin() {
+    if (!S.api) return;
+    const n = rnd(24);
+    const ret = location.origin + location.pathname;
+    const url = `${S.api}/auth/start?n=${n}&mode=popup&ret=${encodeURIComponent(ret)}`;
+    let w = null;
+    /* 10-16 Andy：「登入後會一直卡住這畫面」—— App 內建瀏覽器（LINE／FB／IG）開不出真正的小視窗、也關不掉它，
+       一開始就走整頁跳轉，不開彈窗。*/
+    if (!inApp()) { try { w = window.open(url, 'twlogin', 'popup,width=480,height=680'); } catch (e) { w = null; } }
+    if (!w) {
+      ss.set('tw.acct.n', n);
+      location.href = `${S.api}/auth/start?n=${n}&mode=redirect&ret=${encodeURIComponent(location.href)}`;
+      return;
+    }
+    openDlg('wait');
+    const t0 = Date.now();
+    stopPoll();
+    const tick = async () => {
+      const j = await call('/auth/redeem', { n });
+      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); return; }
+      if (j && j._s === 404) { stopPoll(); openDlg('notice'); toast('登入沒有完成，請再試一次'); return; }
+      if (Date.now() - t0 > 180 * 1000) { stopPoll(); closeDlg(); toast('等太久了，登入已取消'); return; }
+      S.poll = setTimeout(tick, 1200);
+    };
+    S.pollN = n;
+    S.poll = setTimeout(tick, 1200);
+  }
+  /* 10-10 Andy：「登入後 需要自動跳回去首頁總覽」——三個登入完成的入口（彈窗輪詢、postMessage、整頁跳轉回來）都走這支 */
+  /* App 內建瀏覽器：LINE（Line/）、Facebook（FBAN/FBAV/FB_IAB）、Instagram、Messenger（FBAN/MessengerForiOS）。測試可用 window.__twInApp 強制 */
+  function inApp() {
+    if (typeof window.__twInApp === 'boolean') return window.__twInApp;
+    return /\bLine\/|FBAN|FBAV|FB_IAB|FBIOS|Instagram|MessengerForiOS/i.test(navigator.userAgent || '');
+  }
+  /* 彈窗失效時 Worker 的「登入完成」頁會整頁換回網站，網址帶 #twn=<一次性代碼>。讀出來後馬上把網址換成 #overview，代碼不留在歷史紀錄裡。*/
+  function takeHashN() {
+    const m = /^#twn=([A-Za-z0-9_-]{22,64})$/.exec(location.hash || '');
+    if (!m) return null;
+    try { history.replaceState(null, '', location.pathname + location.search + '#overview'); } catch (e) { location.hash = '#overview'; }
+    return m[1];
+  }
+  function goHome() { if ((location.hash || '') !== '#overview') location.hash = '#overview'; }
+  function stopPoll() { clearTimeout(S.poll); S.poll = 0; S.pollN = null; }
+  window.addEventListener('message', (e) => {
+    if (!S.api || e.origin !== new URL(S.api).origin) return;
+    const d = e.data || {};
+    if (d.type === 'tw-login' && d.n && d.n === S.pollN) { clearTimeout(S.poll); S.poll = setTimeout(async () => {
+      const j = await call('/auth/redeem', { n: d.n });
+      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
+    }, 0); }
+  });
+  function logout() { track('logout'); setUser(null, null); toast('已登出。這台裝置上不會留下你的雲端清單。'); if ((location.hash || '').startsWith('#admin')) route('admin'); }
+  async function deleteMe() {
+    const j = await call('/v1/delete', {});
+    if (j && j.deleted) { closeDlg(); setUser(null, null); toast('你的會員資料與雲端清單已經刪除'); }
+    else toast('刪除沒有成功（' + (j ? j._s : '連不到伺服器') + '），請稍後再試');
+  }
+
+  // ------------------------------------------------------------------ 管理頁 #admin（內容在 admin.js，用到才載入）
+  function ensureView() {
+    let v = document.getElementById('v-admin');
+    if (v) return v;
+    const main = document.querySelector('main'); if (!main) return null;
+    v = document.createElement('section'); v.className = 'view'; v.id = 'v-admin';
+    main.insertBefore(v, document.getElementById('siteFoot') || null);
+    return v;
+  }
+  let adminLoading = null;
+  function loadAdmin() {
+    if (window.TwAdmin) return Promise.resolve();
+    if (adminLoading) return adminLoading;
+    adminLoading = new Promise((res) => {
+      const s = document.createElement('script');
+      const m = document.querySelector('meta[name="tw:build"]');
+      s.src = 'admin.js?v=' + encodeURIComponent((m && m.content) || 'dev');
+      s.onload = () => res(); s.onerror = () => res();
+      document.head.appendChild(s);
+    });
+    return adminLoading;
+  }
+  /* app.js 的 route() 問這裡：'admin' → 由本檔接手（app.js 關掉其他 view）；null → 不關本檔的事 */
+  /* 2026-10-05（sub-v1）：#admin/feedback、#admin/notices 由 support.js／notices.js 自己畫（app.js 的 TwSubRoutes 先攔），
+     這裡不要再把 admin.js 載進來、在藏起來的 #v-admin 裡多畫一份流量觀測（還會多打一支 /v1/admin/stats）。*/
+  const subAdmin = () => /^#admin\/(feedback|notices|grants|pay|survey)\b/.test(location.hash || '');
+  function route(head) {
+    if (head !== 'admin' || subAdmin()) return null;
+    admKey = '';
+    const v = ensureView(); if (!v) return null;
+    if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定</p></div>'; return 'admin'; }
+    /* 預覽版全開（DECISIONS #343）：沒登入／不是管理者也能瀏覽管理區（admin.js 在預覽版用示範資料；寫入照舊被 preview_boot.js 擋） */
+    if (window.TW_PREVIEW && !(S.user && S.user.admin)) { admKey = admKeyNow();
+      v.innerHTML = '<div class="card" style="margin-top:16px"><p class="muted">載入管理頁…</p></div>';
+      loadAdmin().then(() => { if ((location.hash || '').startsWith('#admin') && window.TwAdmin) window.TwAdmin.render(v, API); });
+      return 'admin'; }
+    if (!S.user) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這一頁只有管理者看得到，請先登入。</p><p><button type="button" class="btn" id="admLogin">登入</button></p></div>';
+      v.querySelector('#admLogin').onclick = () => openDlg('notice'); return 'admin'; }
+    if (!S.user.admin) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這個帳號不是管理者，看不到使用統計與線上名單。</p></div>'; return 'admin'; }
+    admKey = admKeyNow();
+    v.innerHTML = '<div class="card" style="margin-top:16px"><p class="muted">載入管理頁…</p></div>';
+    loadAdmin().then(() => { if ((location.hash || '').startsWith('#admin') && window.TwAdmin) window.TwAdmin.render(v, API); });
+    return 'admin';
+  }
+  /* ★ 2026-10-05 修：以前任何一次 tw:account（開頁的 /v1/me 回來、心跳刷新身分）都會整頁重畫管理頁，
+     #admin/perm 上撥到一半、還沒按「儲存」的開關會被默默清掉（實測：撥一個開關後派一次 tw:account，「1 項變更還沒儲存」就不見了）。
+     身分沒變（同一個 email、同樣是不是管理者、同一個網址）就不重畫；登入／登出／換人照舊重畫。 */
+  let admKey = '';
+  const admKeyNow = () => (S.user ? S.user.email + '|' + !!S.user.admin : '-') + '|' + (location.hash || '');
+  window.addEventListener('tw:account', () => {
+    if (!(location.hash || '').startsWith('#admin') || !S.api) return;
+    if (admKey && admKey === admKeyNow()) return;
+    route('admin');
+  });
+
+  // ------------------------------------------------------------------ 啟動
+  const API = {
+    on: () => S.on, user: () => S.user, api: () => S.api, online: () => S.online,
+    tok: () => S.tok,   // 2026-10-06 data-gw：site/datagw.js 拿它去換 5 分鐘的資料權杖
+    call, route, login: () => openDlg('notice'), logout, track,
+    /* 2026-10-09 手機選單的「刪除帳號」成功後用：清掉登入狀態＋一句提示（不算一次「登出」事件）*/
+    signedOut: (msg) => { setUser(null, null); if (msg) toast(msg); },
+    /* 給驗收腳本：現在排隊中的統計（還沒送出的）*/
+    pending: () => Object.assign({}, S.q),
+    flush: () => { beat(); return send(); },
+    /* 給驗收腳本：送過幾次統計請求、佇列裡還有幾筆 */
+    reqs: () => S.reqs, queued: () => S.items.length,
+  };
+  window.TwAccount = API;
+
+  async function boot() {
+    injectCSS(); watchZoom();
+    /* TW_ACCOUNT_OVERRIDE：驗收腳本用 add_init_script 注入本機 devserver 的網址（跟 legal.js 的 TW_LEGAL_OVERRIDE 同一個做法）*/
+    const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT || null;
+    const api = cfg && typeof cfg.api === 'string' ? cfg.api.replace(/\/+$/, '') : '';
+    /* 只接受 https（正式）或本機（驗收用的 devserver）—— 設定檔被改成奇怪的東西時寧可關掉 */
+    if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(api) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(api)) { S.on = false; paintBar(); return; }
+    S.api = api; S.on = true;
+    window.TW_ACCOUNT_ON = true;
+    window.dispatchEvent(new Event('tw:account-config'));
+    /* 線上用的代碼：每次載入頁面一組、只在記憶體。不放 sessionStorage —— 重新整理時舊頁面的「離開」會比新頁面的第一次心跳晚到，
+       同一組代碼會把新頁面剛登記的在線紀錄刪掉（驗收實測抓到），換一組就不會互相踩到。*/
+    S.sid = rnd(12);
+    paintBar();
+    const usCur = srcInit();
+    landTrack(usCur);
+    usageSession(usCur);
+    pv();
+    /* 整頁跳轉登入回來：拿 sessionStorage 的 n 去換權杖 */
+    const hn = takeHashN();
+    const n = hn || ss.get('tw.acct.n');
+    if (n) {
+      ss.del('tw.acct.n');
+      const j = await call('/auth/redeem', { n });
+      if (j && j.tok && j.user) { setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
+      else {
+        /* 代碼已被原本那一頁的輪詢先換走（同一個瀏覽器、共用 localStorage）：讀回權杖照樣算登入 */
+        S.tok = ls.get(K_TOK) || S.tok;
+        if (S.tok) { const k = await call('/v1/me', {}); if (k && k.user) setUser(k.user, k.tok || null); }
+        goHome();
+      }
+    } else if (S.tok) {
+      const j = await call('/v1/me', {});
+      if (j && j.user) setUser(j.user, j.tok || null);
+      else if (j && j._s === 401) { /* call() 已經處理成登出 */ }
+      else if (S.user) window.dispatchEvent(new CustomEvent('tw:account', { detail: { user: S.user } }));   // 連不到：先用快取
+    }
+    if ((location.hash || '').startsWith('#admin')) route('admin');
+    clearTimeout(S.beatT); S.beatT = setTimeout(beat, 1500);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();

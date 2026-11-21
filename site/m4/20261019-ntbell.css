@@ -1,0 +1,8 @@
+/* 10-19 通知鈴搬進手機頂欄（#m4Tools，mobile4.js TOOLS 清單）：以前鈴鐺只在 .acctbar，手機把 .acctbar 藏掉 → 手機看不到通知。
+   尺寸跟旁邊的搜尋／明暗鈕一樣 40×40；頂欄有「限制：剩 X 次」那行字時跟著收成 36 寬（同 mobile4.css 第 19 節）。只在 ≤640 生效。 */
+@media (max-width:640px){
+  :root.m4 .m4tools #ntBell{width:40px;height:40px;border-radius:10px;background:var(--panel)}
+  :root.m4 .m4tools #ntBell svg{width:19px;height:19px}
+  :root.m4 .m4tools #ntBell .dot{top:-4px;right:-4px}
+  :root.m4 .m4tools:has(>.twqp:not([hidden])) #ntBell{width:36px!important;min-width:36px!important}
+}

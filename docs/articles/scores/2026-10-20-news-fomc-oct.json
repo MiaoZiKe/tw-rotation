@@ -1,0 +1,51 @@
+{
+ "id": "2026-10-20-news-fomc-oct",
+ "title": "FOMC 前夕：外資 5 日賣晶圓代工 38 萬張",
+ "cat": "news",
+ "date": "2026-10-20",
+ "score": 80,
+ "rubric": {
+  "A": 15,
+  "B": 10,
+  "C": 5,
+  "D": 10,
+  "E": 10,
+  "F": 8,
+  "G": 10,
+  "H": 8,
+  "I": 4
+ },
+ "deductions": [
+  "無影片",
+  "10% 機率類數字未上圖",
+  "台北時間 10/29 02:00 為換算值",
+  "畫面僅本機預覽"
+ ],
+ "blocks": [
+  "h",
+  "ul",
+  "chart",
+  "h",
+  "p",
+  "chart",
+  "h",
+  "chart",
+  "chart",
+  "h",
+  "steps",
+  "callout"
+ ],
+ "charts": 4,
+ "own_data_charts": 4,
+ "video": false,
+ "scene": false,
+ "words": 251,
+ "sources": [
+  "udn.com 2026-10",
+  "simianx.ai 2026-09-16",
+  "technews.tw 2026-09-17",
+  "tradingeconomics.com 2026-10-16"
+ ],
+ "reviewer": "CEO 排程",
+ "reworked_from": null
+}

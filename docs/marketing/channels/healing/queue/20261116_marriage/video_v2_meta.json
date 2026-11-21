@@ -1,0 +1,11 @@
+{
+ "title": "10年，結婚登記少了近3成（影片樣片 v2，26.4 秒、8 鏡，1080×1920）",
+ "platforms": ["ig_reels", "threads_video"],
+ "status": "draft",
+ "publish_at": null,
+ "file": "video_v2.mp4",
+ "cover": "video_v2_cover.jpg",
+ "caption": "caption.txt",
+ "narration": "narration.txt",
+ "note": "2026-11-15 v2：照 docs/marketing/channels/video_logic.md 三段結構（s1 鉤子 0–2.75 秒 → s2–s6 講清楚 → s7–s8 吊胃口＋下集）＋Andy「步調再快點」「上下不留大片空白」。目前無旁白（靜音音軌），字幕＝旁白稿；TTS 旁白做好後放 segments.json＋narration.wav 到本資料夾，重跑 gen_video.py＋render_video.js 即自動對齊。重疊與上下留白檢查：overlap_report_video_v2.json。不排程，等 Andy 確認樣片＋TTS 旁白就緒。"
+}

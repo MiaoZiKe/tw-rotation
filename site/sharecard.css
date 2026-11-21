@@ -1,0 +1,21 @@
+/* 一鍵分享圖卡（site/sharecard.js）：標題列的小鈕＋產生圖卡的視窗。手機（≤640）的差異在 m4/20261109-sharecard.css */
+.scBtn{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;flex:0 0 auto;margin-left:auto}
+.scBtn svg{flex:0 0 auto}
+#ovFlowHead .scBtn,#ovRotHead .scBtn{margin-left:10px}
+.fz-hd .scBtn{margin-left:8px}
+.gplive .scBtn{margin-left:0}
+.scDlg{position:fixed;inset:0;z-index:2000;background:rgba(7,11,22,.62);display:flex;align-items:center;justify-content:center;padding:16px}
+.scBox{background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:14px;width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:14px 16px 16px;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+.scHd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:16px}
+.scX{background:none;border:0;color:var(--ink-2);font-size:18px;min-width:36px;min-height:36px;cursor:pointer;border-radius:8px}
+.scX:hover{background:var(--panel-2)}
+.scSz{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.scSz button{flex:1 1 110px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);border-radius:8px;cursor:pointer;font-size:13px;min-height:44px}
+.scSz button small{font-size:11px;color:var(--ink-3)}
+.scSz button.on{border-color:var(--accent,var(--amber));box-shadow:0 0 0 1px var(--accent,var(--amber)) inset}
+.scSz button:disabled{opacity:.5;cursor:not-allowed}
+.scPrev{display:flex;align-items:center;justify-content:center;min-height:120px;background:var(--panel-2);border-radius:10px;padding:8px}
+.scCv{max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.25)}
+.scNote{font-size:12px;margin:8px 0 10px}
+.scAct{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.scGo{min-height:40px}

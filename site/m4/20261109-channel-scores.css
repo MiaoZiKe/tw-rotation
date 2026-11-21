@@ -1,0 +1,40 @@
+/* 貼文成績表（#channels/scores，2026-11-09，只給管理者）：前綴 chs-；手機規則全包在 @media (max-width:640px)，不動共用元件 */
+#v-channels .chn-grid[data-sub="scores"]{grid-template-columns:minmax(0,1fr)}
+#v-channels .chs-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3)}
+#v-channels .chs-card{display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-3) var(--sp-4);border:1px solid var(--line-2);border-top:3px solid var(--cyan);border-radius:var(--r-sm);background:var(--panel);min-width:0}
+#v-channels .chs-card[data-k="lw"]{border-top-color:var(--violet)}
+#v-channels .chs-card[data-k="tp"]{border-top-color:var(--lime)}
+#v-channels .chs-card .l{font-size:var(--fs-sm);color:var(--ink-3)}
+#v-channels .chs-card b{font:700 28px/1.1 var(--mono,monospace);color:var(--ink)}
+#v-channels .chs-card em{font-style:normal;font-size:var(--fs-sm);color:var(--ink-2)}
+#v-channels .chs-card em.up{color:var(--cyan)}#v-channels .chs-card em.dn{color:var(--amber)}
+#v-channels .chs-n{margin-left:auto;font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap}
+#v-channels .chs-seg{margin-bottom:var(--sp-3)}
+#v-channels .chs-t td{vertical-align:middle}
+#v-channels .chs-t td.chs-ti{min-width:180px;color:var(--ink);font-weight:600}
+#v-channels .chs-t td.chs-cm{min-width:200px}
+#v-channels .chs-cv{width:40px;height:40px;object-fit:cover;border-radius:6px;margin-right:var(--sp-2);vertical-align:middle}
+#v-channels .chs-sc{white-space:nowrap!important}
+#v-channels .chs-sc b{font:700 16px var(--mono,monospace);color:var(--ink);margin-right:var(--sp-2)}
+#v-channels .chs-bar{display:inline-block;vertical-align:middle;width:56px;height:8px;border-radius:3px;background:var(--panel-3);overflow:hidden;margin-right:var(--sp-2)}
+#v-channels .chs-bar s{display:block;height:100%;background:linear-gradient(90deg,color-mix(in srgb,var(--cyan) 45%,transparent),var(--cyan));text-decoration:none}
+#v-channels .chs-bar.ok s{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}
+#v-channels .chs-bar.bad s{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}
+#v-channels .chs-tag{display:inline-block;font-style:normal;font-size:var(--fs-min);font-weight:700;padding:1px 8px;border-radius:var(--r-pill);vertical-align:middle}
+#v-channels .chs-tag.ok{background:var(--fall);color:var(--ontop,#001018)}
+#v-channels .chs-tag.bad{background:var(--rise);color:#fff}
+#v-channels .chs-rule{margin-top:2px;font-size:var(--fs-sm);color:var(--cyan)}
+#v-channels .chs-rule.todo{color:var(--amber)}
+#v-channels .chs-dim{color:var(--ink-3);font-size:var(--fs-sm)}
+#v-channels .chs-lk a{color:var(--cyan);margin-right:var(--sp-2);white-space:nowrap}
+@media (max-width:640px){
+  #v-channels .chs-cards{gap:var(--sp-2);margin-bottom:var(--sp-2)}
+  #v-channels .chs-card{padding:var(--sp-2);gap:2px}
+  #v-channels .chs-card .l{font-size:var(--fs-min)}
+  #v-channels .chs-card b{font-size:22px}
+  #v-channels .chs-card em{font-size:var(--fs-min)}
+  #v-channels .chs-seg{display:flex;overflow-x:auto;margin-bottom:var(--sp-2)}
+  #v-channels .chs-seg button{flex:none;min-height:40px}
+  #v-channels .chs-t td.chs-ti,#v-channels .chs-t td.chs-cm{min-width:0}
+  #v-channels .chs-sc{white-space:normal!important}
+}

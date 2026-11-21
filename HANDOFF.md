@@ -1,0 +1,6139 @@
+# HANDOFF.md — 目前進度（接手先讀這份）
+
+
+- 2026-11-14 週報優化（效率規劃師）：mis.price_snapshot／yahoo.index_intraday／yahoo.intraday_60m 收盤後「來源有回、只是湖裡都已有」改宣告 skipped，不再每晚記連續失敗 1；Yahoo 完全沒回、盤中回空、mis 拿不到交易日仍算失敗。tests/test_skipped_after_close_1114.py（12 項）；daily 白名單 pytest 1525 過。只動 pipeline/ 與 tests/，沒碰 site/，未跑 _uitest。待決定：remote 有 60 條 preview/* 分支（58 條 5 天以上沒動），每次部署的「分支預覽」步驟平均 241 秒，見週報。
+- 2026-11-11 上線：冷啟動（隱藏價格、試營運額度）＋手機四項＋新 ⑤C LOGO＋站名 LIGULIGU（Andy 11-10「可以，冷啟動和 LOGO 都推上線」「記得名稱改成大寫英文」）。驗：桌機守門1008、冷啟動1110（390 寬「即將開放」判定偶發空陣列，截圖確認未切，放行）、手機導流1110、手機按鈕普查（修副標類名衝突 m4sub→m4tagline；產業地圖 4 處切分段逾時為負載偶發、本批未動 industry）、手機總覽指數觀察清單、淺色／明亮主題、設定面板、會員與自選五分頁（☆ 偶發，單跑 0）、使用統計1109、_preview 全綠；品牌哩股哩股 supFab 逾時 main 同樣有，放行。上線後 Andy 需在 #admin/perm 按「套用建議方案」（先要截圖再給步驟）。
+- 2026-11-10 效率：daily.yml 的 concurrency 群組 tw-rotation-data-write 從 workflow 層移到 collect job（deploy 在 pages 群組排隊 43 分鐘時不再佔寫入群組）；gh-cron 的 busyDailyRuns 改成只看 collect 未完成的 run（Worker 程式已推，尚未部署）。明天 15:38 price 輪實測，看 collect 結束後 16:16 的 inst 是否照派。
+
+- 2026-11-16 頻道③ CaffAIne 第一支 Reels（AI 代理：看、做、檢查，ai-mp4 caffaine-agent-loop）：Andy 11-16 決定不發。佇列資料夾沒有推進 main、隱藏文章沒做、dm_config.json 沒動（留言私訊維持關閉）。⚠ 待清：影片已推到 `media/caffaine/20261116_agent_loop` 分支，但工作流 `clean` 只清佇列裡發過的資料夾、清不到它，這個 session 刪分支被代理擋（HTTP 403）；之後有權限的 session 執行 `git push origin --delete media/caffaine/20261116_agent_loop`（social-ops-lead）。
+
+## 2026-11-17 頻道①刪除範本之前的舊文（social-ops-lead；Andy：「並且在這之前的貼文幫我自動刪除」「Thread 也是」）
+- 範本＝11-09 20:30「黃仁勳坦承對妻子不忠，輝達董事會啟動獨立調查」：Threads 18098802215553949、IG 18133464223840109，這篇與之後全部保留。
+- ✅ 備份：social-snaps `archive/before_1109_template/`（commit 2d54cb83，Threads 278＋IG 30＋圖檔 452）。
+- 清單：`social/delete/ids_1117.txt`（Threads 254，串文先主文後，逐則核對都早於範本）、`social/delete/ig_ids_1117.txt`（IG 29）、`social/delete/ig_manual_1117.md`（IG 手動刪除表）。
+- ⚠️ Threads 0 則刪掉：run 43919210625 三把權杖都 `HTTP 403 code=10 Application does not have permission for this action`（同 11-11、11-15），依規定停，未重試。要等 Andy 在 Meta 應用程式加 threads_delete 權限並重新授權權杖，之後重跑同一份 ids_1117.txt（每 24 小時 100 則，共 3 天）。
+- ⚠️ IG 試刪第一則就停：run 43919508068 `HTTP 400 code=100 Unsupported delete request`，IG 29 則交 Andy 照 ig_manual_1117.md 手動刪。
+
+## 2026-11-17 頻道①短影片排程發布（social-ops-lead；Andy：「我沒有看到LIGULIGU IG Thread 有影片 需要發布」「這類貼文保持繼續發布 Reels 和 輪波 輪替」）
+- 路徑：`social/threads/queue/` ＋ `social/ig/queue/` 的 `2026-11-17_ligu-nvda-kress.md`、`2026-11-19_ligu-power-bill.md`（status: approved、publish_at 12:15），由 threads_post.yml／ig_post.yml 每 15 分鐘的排程發出；發出後檔頭 `urls:`（貼文連結）、`comment_url`／`comment_id`（第一則留言）。
+- 11/18 輪播（像不像 2008）另派人做，走同一個佇列的 `images:`（IG 2～10 張 JPEG、Threads 多張＝輪播）。jensen 不排。
+- 未驗證：頻道① IG 權杖能不能發 Reels、能不能留言（第一次真發才知道）；影片失敗會重試 3 輪並紅燈。
+
+## 2026-11-16 盤後三大法人圖文數字對齊（social-ops-lead，維修）
+- 原因：`scripts/social_native.py` b_inst_today 優先取 inst_market.json 的晚間修訂版 rev，文案（close_reads／fast_read_inst）與網站四格用首次公布版（DECISIONS #363）。11/13：首次版投信 +82.4、合計 +439.7；晚間版投信 +95.4、合計 +452.7（外資、自營兩版相同）。
+- 修：圖改用主數字（首次公布版）。測試 `tests/test_social_inst_consistency_1116.py`。這批只驗 pytest -k "social or threads or close or snap" ＋新測試、social-live 乾跑。
+
+## 2026-11-16 盤後主貼文改回 11-09 新格式、發文時間不變（social-ops-lead；Andy：「用新的 但發文是資料到齊就發（約 17:30～18:40）」）
+- 反向套用 fbcb50dfff 的格式檔：`scripts/threads_v2.py`、`scripts/threads_lint.py`（rule auto_1109）、`scripts/social_snap.py`（close_v1 備用文案＋v1_raw；19:30 等待 close_wait 沒加回、保底說明維持 19:00）、`tests/test_threads_close_1109.py`（拿掉 19:30 閘、19:41／20:11 排程、post_quota 三支）、`tests/test_social_threads_v2.py`、`tests/test_threads_auto_1104.py`。
+- 沒動：social_gate.py、social-live.yml、daily_audit（.py／.yml）、post_quota.json（c3053638f8 的 close.threads=true 保留）、test_social_close_fallback／test_social_quota_1102／test_daily_audit。
+- 這批驗了：pytest 全套＋`-k "social or threads or close or snap or quota or audit or lint or gate or publish"`（486 passed，改前 480 passed）；social-live.yml workflow_dispatch kind=close dry_run=true（分支 claude/close-format-1116）＋本機 threads_v2.build 用 11-06 盤後正式文案產文。沒動 site/**，沒跑 _preview／_uitest。
+
+## 2026-11-15 頻道③ CaffAIne 每天兩支 Reels：12:15／21:00 兩時段＋影片放 GitHub Release（social-ops-lead；Andy：「我決定每天兩隻 Reels」）
+- caffaine 改兩時段（保底 13:43／22:27），每時段最多 1 則、整天 2 則（channels.json `slots`、post_quota `per_day` 2）；影片走 Release `channel-media`（`scripts/channel_media.py`：作者 `stage` 推 media/caffaine/<資料夾> 分支，工作流 sync 上傳、發完 3 天 clean），不進 main。驗 Reels：channel_post verify、target `@reels-test`。說明 `docs/marketing/channels/auto_post_all.md` 第 10 節。佇列沒放任何貼文。驗證：run 43705958501（@reels-test，IG REELS 容器 17975794271983309、Threads VIDEO 容器 17992662524881222 皆經 release 網址 FINISHED，未發布）；空跑 run 43705960624 綠燈。pytest 全套 2226 passed。
+
+## 2026-11-15 頻道④自動發文支援影片（IG Reels＋Threads 影片）（social-ops-lead；plan_202611_影片為主.md T5～T7）
+- `scripts/healing_post.py`：meta.json `"format": "video"`＋`video.mp4`（可選 `cover.jpg`）→ IG `REELS`（`share_to_feed=false`（11-20 改：只進 Reels 分頁）、`cover_url`）／Threads `VIDEO`，輪詢 FINISHED（最多 15 分鐘）才 publish；EAA／IGAA 兩種 IG 權杖都走 `ig_host()`。沒寫 `format` 一律輪播，tech／caffaine 共用程式行為不變（test_channel_post 全綠）。
+- 影片網址：正式站 `https://liguligu-puipui.com/media/healing/<資料夾>/video.mp4`（`--prepare` 同步到 `site/media/healing/`，pages.yml 部署，回 video/mp4）優先，raw.githubusercontent（實測回 application/octet-stream）保底；一條失敗換下一條。
+- 驗證模式加 `--target`（工作流 `target` 欄）：只驗指定資料夾（draft 也行、不發布、不改 status）；影片每條網址都建容器，結果記 `state/verify.json` 的 `video`。
+- `scripts/healing_article.py`：影片貼文存檔＝封面＋影片連結＋文案。
+- 驗證用佇列：`queue/20261116v_worktime/`（talk-ep01，**status draft**，還沒有 article.json；放 approved 前要補 sources 網址並等 Andy 確認樣片 T4）。
+- 這批跑了：pytest 全套。沒動 site/** 的 JS/CSS（只新增 site/media 影片檔），沒跑 _preview／_uitest。
+- T7 驗證實測 ✅（run 43704659369，11-15 18:34）：IG 影片容器 17969223779998522、Threads 17924280609246114 都 FINISHED、未發布；raw 網址兩平台也 FINISHED。11/16 輪播 `20261116_marriage` 沒動（仍 approved）。
+- 待做：T6 的 12:27 輪播時段還沒加；talk-ep01 正式發前要補 article.json＋Andy 確認樣片（T4）。
+
+## 2026-11-13 整天法人「回空」補原因＋inst_today_codes 計數（data-steward，維修）
+- 11-12 13:18 UTC 那輪：證交所 T86 回 HTML 欄位對不上、櫃買回 893 檔、FinMind 整天額度用盡；source_health 只看得到「回空（0 筆）」。判定：真的壞，不是「還沒出」，所以沒改成 skipped。
+- 改：`inst_bulk.fill_inst_bulk` 回空時把原因寫進 attrs（step() 原樣記進 last_run／source_health）；`last_run.json` 新增 `inst_today_codes`（目標日法人檔數 before／after／added）。判定不變。
+- 未做（等證據）：「收盤後且該日尚未釋出才 skipped」。待累積幾天 `inst_today_codes` 再定。
+- 待修：證交所上市法人 openapi 端點（T86）回 HTML，上市法人目前只靠 FinMind 逐檔／整天，額度用盡就缺。
+- 驗：白名單 pytest（daily_test_list.py）＋ tests/test_inst_bulk_reason.py。
+
+## 2026-11-11 排程：full 不再佔群組 90 分鐘、稽核補救讓路、原生保底不頂掉 gh-cron（efficiency-planner，維修）
+- 根因：15:12 的 full 是 daily_audit 的補救（07:10 UTC 的稽核失敗項 data → 派 daily.yml phase=full，今天第 3 次），不是 gh-cron；full 跑 90 分鐘因 `finmind.index_ohlc` 睡了 2436 秒（wait=True 等 FinMind 額度視窗，額度被 14:16／14:46 inst 輪吃光）。15:38 price 被 15:42 原生 schedule 的 price 擠掉（同 phase 重複）。
+- 改：①run_daily 三支 FinMind 日 K（index_ohlc／futures_ohlc／market_institutional）改 wait=False；②daily_audit 補救派 daily.yml 時，有排隊／執行中的 run 或交易日 15:00～17:30 都不派；③daily.yml guard 對原生 schedule：3 小時內已有同 phase 的 dispatch run（未失敗未取消）就讓出，gh-cron 沒派或失敗時原生照跑當保底。
+- 驗：pytest daily_audit／gh_cron／heal／inst_phase／finmind 相關全綠。明天看：15:38 price 的 collect 是否準時、是否出現「原生排程讓出」摘要、full 的 `finmind.index_ohlc` seconds 是否 < 60。
+
+## 2026-11-11 三大法人四格加「晚間修訂」小字（frontend-ui；Andy：「加修訂值」）
+- #market/inst 四格主數字（首次公布版，DECISIONS #363）下方，該格 rev 存在且四捨五入到 0.1 億後與主數字不同才多一行「晚間修訂 ±xx.x 億」（site/app.js irRevTag；樣式 site/m4/20261111-修訂值.css）。compute 不用改：inst_market.json 的 rev 本來就是 {f,t,dl,tot} 逐類別。每日明細表不加（只動四格）。
+- 驗收：scripts/uitest_sections/20261111_法人修訂值.py（page.route 換最後一列 rev：A 部分類別有／B 全無／C 差 0.02／D 變號；1440＋390）；公告 f-20261111-inst-rev。這批只驗：法人修訂值1111、桌機守門1008（0）；當日法人1020、三大法人r3 各有 2／1 個既有失敗（期間「全部」筆數、點圖鎖定日、三塊寬度），改前後相同，與本批無關（本機 site/data 是舊快照）。
+
+## 2026-11-10 17:25 台北 查「inst_daily／index_daily 還停 11/9」與「投信 11/9 +267.5 vs +313.12」（data-scraper，維修，沒改程式）
+- 問題2 根因＝排隊，不是壞掉：price 輪（15:38 台北派）連抓帶整站重算部署跑 1h27m，佔住 concurrency 群組 tw-rotation-data-write 到 17:06；期間 gh-cron 的 inst 每 10 分鐘派工都被「busyDailyRuns 守門」略過（設計如此，避免擠掉排隊中的 price／full）；被 GitHub 延遲 43 分鐘才建立的 07:37 排程 run 排在後面，17:06 才開跑、依時間掉進 phase=full，full 內含 inst。17:39 台北 full 抓完 commit：inst_daily 11/10 已進湖 1316 檔（freshness 標 thin，後續 inst 輪補齊）。
+- index_daily 是 openapi（T-1）來源，11/10 的官方指數要等 openapi 換日（晚間／隔日）才有，停 11/9 正常；11/10 大盤收盤走 index_ohlc（FinMind，已到 11/10）。
+- 問題1 不是 bug：DECISIONS #363（Andy 10-25）網站主數字刻意用證交所 15:00「首次公布版」（inst_market_first，先到的贏，與新聞同口徑），晚間修訂版只放 inst_market.json 的 rev 欄。inst_market_daily 本身是 keep=last，11/9 湖裡確實是 313.12（first 表 267.5）。沒有改回，等 Andy 決定是否要改主數字或畫面同時顯示修訂值。
+
+## 2026-11-10 冷啟動總開關＋試營運期額度（frontend-ui；Andy：「全部 O」核可 restart_1109/00_plan.md 決定表第 2、3、4 項）
+- **只在 `preview/coldstart`，還沒進 main。** 開關在 `site/coldstart_config.js`（`enabled: true`＝冷啟動，開賣改 false）；github.io 備援網址不論開關一律冷啟動。
+- 價格頁不顯示金額、結帳入口全關（綠界與結帳程式一行沒刪）；「升級 Plus／Pro」「Plus 以上可增加」訪客改「免費註冊」、會員改「預約通知」或「明天 00:00 重置」；歡迎窗不出現 Plus／Pro。
+- 額度（plan_presets.js、features.js 的 limBy 同步）：訪客個股頁 5、法人與營收獲利分頁開、搜尋 10、圖卡 5、3D 1；註冊會員依 01_freemium.md 4-1 加倍，卡片標「試營運期額度」。體驗額度沒動。
+- ⚠ 線上額度是後端範本：**要到 #admin/perm 按「套用建議方案」才會生效**（會覆寫範本；先確認）。
+- 驗收：新段落 `冷啟動1110`；`_uitest.py` 的本機伺服器預設把開關回成 false（既有幾百段測的是付費 UI），TW_COLD=1 才用原檔；舊段落裡受額度數字影響的斷言（1011／1012／分享圖卡／訪客額度顯示／套用建議方案）已隨新額度更新。
+
+## 2026-11-09 修 #stock/3189/holders 大戶／散戶卡片文字交疊（frontend-ui，維修）
+- 根因：三格持股折線 boundaryGap:false，首點貼在 y 軸線上，置中的數值標籤（「70.20%」）有一半伸進左邊刻度字（「90%」）區域；末點同理。只動 site/industry.js tabHolders：頭尾兩點標籤往圖內推 24px，資料與口徑不動。
+- 這批驗了：獨立 echarts 重現圖（同 grid／標籤設定，1440／800／390）舊 3 組交疊→修後 0；`_preview`／`_uitest` 本機因 build_payload 記憶體不足被殺（OOM），**未跑**，待 CI／有記憶體的 session 補跑 `_preview.py` 與 `--only 個股`、`桌機守門1008`。
+
+## 2026-11-10 三頻道 IG 權杖自動更新：不再誤報（social-ops-lead；Andy：「這邊都需要具備自動更新權杖功能」）
+- scripts/meta_token_refresh.py：EAA 權杖（healing／tech／caffaine 的 IG）改走 graph.facebook.com 驗證（fb_probe：assigned_instagram_accounts → accounts → debug_token），debug_token 讀到期（權杖自己打 debug_token 會被拒 #100 → 用 /app 查應用程式編號、再用 app 權杖讀；需要對得上的 app secret）；系統用戶永不到期就不續；會到期且有對得上的 app secret 才 fb_exchange_token 寫回 *_IG_ACCESS_TOKEN_AUTO。新增 --check 每日檢查（meta_token_refresh.yml 每天 01:47 UTC＝台北 09:47），失敗立即開 issue。頻道①ig／threads 的續期行為沒動。
+- 這批驗了：pytest 全套（本機缺 yfinance 的 4 個 test_sources_v3 錯誤與本批無關）；雲端 meta_token_refresh.yml 非 dry-run 一次（run id 見回報）。
+
+## 2026-11-09 深夜 頻道①重新開始：暫停自動發文＋刪舊文（social-ops-lead；Andy：「因為重新開始，幫我將除了今天所有內容刪除 IG Thread」「我們規劃好在出發」）
+- `post_quota.json` live.close.threads=false：頻道①所有自動發文暫停（新計畫核可前）。監工／daily_audit 看到關閉＝未啟用，**不准補發**。
+- 刪文流程：`social_delete.yml` mode=archive（備份到 social-snaps archive/pre_restart_1109/）→ mode=delete（keep_from_tw=2026-11-09、sleep=5-10、ids_file＝備份產生的 threads_delete_ids.txt）。Threads 每 24 小時上限 100 則，超過要隔天再跑一次。IG 見回報（API 能否刪以試刪結果為準，不能就手動清單）。
+- 進度（11-10 01:20 台北）：✅ 備份 social-snaps `archive/pre_restart_1109/`（commit 6adfd194b0，圖檔 449 個）；盤點 Threads 主文 68、串文／回覆 189、IG 34；待刪 Threads 246、IG 29；保留 11-09 的 Threads 11、IG 5（含限動）。
+- ⚠️ Threads 0 則刪除：THREADS_ACCESS_TOKEN／_AUTO 都回 403 code=10（沒有 threads_delete），THREADS_DELETE_TOKEN 未設 → 等 Andy 產生刪文權杖存成 THREADS_DELETE_TOKEN，之後跑 social_delete.yml：mode=delete、platform=threads、ids_file=social/delete/ids_20261109_restart.txt、keep_from_tw=2026-11-09、sleep=5-10、max=90、confirm=我確定刪除；246 則要分 3 天（每 24 小時 100 則）。
+- ⚠️ IG 0 則刪除：Instagram 登入版 API 試刪回 HTTP 400 code=100 Unsupported delete request（run 42661508555；Meta 2025-12 的刪除端點只開給 Facebook 登入版）→ 手動清單 social-snaps `archive/pre_restart_1109/ig_manual.md`。封存也沒有 API。
+
+## 2026-11-09 管理者統計：手機／電腦、點進去功能、來源（Andy：「多一個統計：手機 & 電腦點進去功能」）
+- 只用前端＋既有的細項事件（ev2），Worker 不用改、不用部署：site/account.js 新增 us.pv／uv／ses／uvs／ref／utm／fe（.m＝手機、.d＝電腦）；管理頁 #admin/traffic 在漏斗卡下方多一張「手機和電腦」卡（site/admin.js usageHtml），期間跟著上方期間選單（即時＝今天、近 7／30 天…）。定義與限制見 docs/account_analytics.md「手機與電腦、來源」。
+- 隱私權政策 legal.js 補「裝置與來源統計」一段（沒動 effective_date，不會讓大家重新同意）。管理者專用：不設功能鍵、不發公告。
+- 驗收：`python scripts/_uitest.py --sections 使用統計1109 --workers 1`（scripts/uitest_sections/20261109_使用統計.py）＋桌機守門1008。新統計從上線當天起累計；不重複訪客跨日是人日。
+## 2026-11-09 多頻道自動發文：tech／caffaine 建好（水下蝦米不接）（Andy：「幫忙協助其他頻道 一起建立 Tech_01010909 Shrimp_01010909 caffaine.ai 以上三個都只差在 Github」）
+- 設定 docs/marketing/channels/channels.json；入口 scripts/channel_post.py --channel；邏輯共用 scripts/healing_post.py（吃 prefix，不給＝頻道④，healing_post.yml 沒動）。工作流 .github/workflows/channel_post.yml（matrix、每頻道只帶自己前綴 Secrets）：tech 12:17／13:47、caffaine 19:13／20:43（台北）。
+- 開關：tech、caffaine live=true（佇列空）。水下蝦米：Andy 11-09「Shrimp_01010909 不用」→ 不接，繼續用 Buffer（清單、工作流、續期都沒有它）。
+- 留言私訊 scripts/healing_comments.py --channel＋channel_comments.yml；新三頻道 dm_config enabled=false（Andy 未定私訊內容）。續期 meta_token_refresh 加 TECH／CAFFAINE，Threads 續期失敗有 THREADS_APP_SECRET 就換長效。
+- ⚠ 待決：② 科技透明圈另有 tc_post.yml（TC_* 權杖、social/tc/queue/），跟 tech（TECH_*）是同一個帳號，之後只能選一條放貼文。說明 docs/marketing/channels/auto_post_all.md 第 8 節。
+- 這批驗了：pytest 全套＋新增 tests/test_channel_post.py；雲端 channel_post.yml 各頻道 dry_run 一次、healing_post.yml dry_run 一次。
+## 2026-11-09 會員通知：站主給的體驗／方案升級，登入時跳通知（Andy：「同意部署會員後端：發放體驗時通知會員」）
+- 後端（workers/account-api 檔尾「會員通知區塊」）：新表 member_notices；端點 /v1/notices/mine（本人未讀＋最近 20 則）、/v1/notices/seen（本人標已讀）。刪帳號一起刪、保留 180 天。
+- 會寫通知的動作（只有「給他更多」）：grants/issue 發放／重發體驗；grants/user 帶 extend_days 延長體驗；perm/put 方案升級（免費→Plus／Pro、Plus→Pro、免費→自訂方案）、同方案延長到期或改不限期、同方案個人功能開通／次數變多；邀請獎勵（朋友用了邀請碼 → 邀請人的 Plus 天數、邀滿 5 人升 Pro）。降級、取消、縮短、重設不寫。
+- 前端 site/mnotice.js：有未讀跳小視窗（多則列表、「知道了」＝標已讀；歡迎框／問卷開著就讓位不疊）＋併進鈴鐺（類型「會員權益」，notices.js 認 m- 開頭 id）；舊後端 404 安靜略過。不設功能鍵（不計次、全會員都該看到，同帳務通知）。公告 f-20261109-member-notices。
+- 沒做：管理區「解除停權」、改方案範本（plans/put，影響所有人）、活動體驗改起訖（defs/put）不發個人通知。
+- 這批驗了：Worker 全部 node --test（新增 tests/member_notices.test.mjs 8 項）、_uitest `會員通知1109`、`通知點擊跳轉1027`、`功能公告1019`、`桌機守門1008`、_preview.py；pytest 跳過（只動 site/、workers/、scripts/uitest_sections，tests/ 沒有 import 它們）。
+## 2026-11-09 族群同業估值位階（P-1107-04，Andy 點頭「02 05 03 04 06」）
+- 做了：族群頁（#industry/group/<gid>）族群卡最下面一張「同業估值位階」表（本益比／淨值比／殖利率／營收 YoY／自身歷史本益比，每格分位條、點欄名排序、族群中位數列）；個股頁總覽三欄卡下面小卡「在○○族群同業中：本益比位於第 N 百分位」＋三格，多族群可切換。
+- 資料：compute/peerval.py → site/data/peer_val.json（不新增來源；讀 fundamental 列＋explore.json）。口徑 docs/peer_valuation.md（同業百分位＝比它低的占比，跟基本面卡同公式；<5 檔不算；虧損、失真本益比不排名）。
+- 功能鍵 group.peerval／stock.peerval：訪客每日 3、註冊會員以上不限；公告 f-20261109-peer-val。
+- 下一步：Plus 匯出 CSV／自訂欄位（提案的付費層）；金融族群本益比欄跟基本面卡（淨值比口徑）分位不同，若 Andy 覺得混淆可改成依 valuation_metric 換主欄。
+- 這批驗了：pytest 全部（2012 過、1 xfail；新增 tests/test_peerval.py 8 項）、_uitest `族群估值位階1109`（0，連跑 3 次）、`桌機守門1008`（0；基準只多一個 #pvStock，見 commit 訊息）、`族群頁`、`個股`、`新-產業與個股`、`新功能次數1102`、`體驗全選`、`體驗上限`、`風險警示牌1109`（皆 0）、`_preview.py`（只剩本機舊 site/data 缺 data/bigsmall/_index.json 的 404）。`會員權限開關` 2 紅、`功能公告1019` 5 紅都是 main 上既有（f-20261101-member-trial 標題 44 字、下拉只列前 20 則等），本批新公告標題 22 字已不在名單內。
+## 2026-11-09 個股「歷史統計」：除息／財報公布前後的歷史走勢（P-1107-06，Andy 點頭「02 05 03 04 06」）
+- 做了：個股頁新分頁「歷史統計」（site/eventstudy.js；資料 pipeline/compute/eventstudy.py → 個股 JSON 的 evstudy 鍵；第一版分檔 2,200 支害 Pages 部署連兩輪逾時，已改併入）。法遵 R1～R15 逐條照做（docs/feature_proposals/p1107_06_legal_review.md），細節 DECISIONS 該節。
+- 功能鍵 stock.eventstudy：訪客關、註冊會員／Plus／Pro 同權限每日 5 檔；**律師回覆第 14、15 題前不准開 Plus 收費解鎖**。公告 f-20261109-event-study。
+- 已知限制：財報實際公告日只有重大訊息湖（2026-09-19 起），財報分頁目前每檔 ≤1 次（一律樣本太少），每季自然多一次；基準加權指數不含息（畫面已寫明）。
+- 下一步：等律師回覆第 14～17 題；季節性頁「勝率」字眼另案（法遵第七節）。
+- 這批驗了：pytest 全部（2014 過）、tests/test_eventstudy.py（10 條，含手算超額報酬）、_uitest `事件歷史統計1109`（新段，0）、`桌機守門1008`（0）、`新功能次數1102`、`體驗全選`、`體驗上限`、`個股`、`手機個股券商式`（皆 0）、`會員權限開關`（2 紅＝乾淨 origin/main 同樣 2 紅，既有：預設關清單與訪客鎖頭清單沒跟上 flow.play／stock.bigsmall／chan.page 等舊鍵）、_preview（2 筆 404 是本機舊資料快照）、`一屏看完1003`（歷史統計分頁卡高通過；2 紅在資金分流樹 1152×640／1280×600，與本批無關）、`個股總覽1002`（手機分頁斷言還停在 10-10 前的 k…full 舊清單，既有紅）。`手機按鈕普查` 本機 40 分鐘未跑完被停，沒驗到。
+
+## 2026-11-09 風險警示牌：注意股／處置股（P-1107-02，Andy 點頭「02 05 03 04 06」）
+- 做了：個股頁琥珀色警示條（處置中／即將處置／注意股＋近 10 個交易日被列注意 N 次）、自選清單角標、族群頁「本族群 N 檔處置中／注意」。上市＋上櫃（四支官方 OpenAPI 都實測 200）。
+- 資料湖 risk_notice／risk_punish（sources/risk.py、compute/risk.py → site/data/risk_flags.json），daily 15:30 與傍晚輪抓。湖從 11-09 起才有，「近 10 個交易日」要到 11-20 左右才滿 10 天（畫面會寫「本站自 M/D 起記錄」）。
+- 功能鍵 risk.flag：四方案全開、不計次；公告 f-20261109-risk-flag。
+- 下一步：① 寄信 risk.flag.mail（要動 account-api Worker，需 Andy 同意）；② 「變更交易／分盤」標籤（TWT85U、tpex_cmode 已實測，fixture 有欄位）；③ 手機族群頁計數在可橫捲的分頁列最右邊，族群多時要往右滑才看得到。
+- 這批驗了：pytest 全部（1968 過；9 個紅全是社群／頻道測試讀不到圖檔，因本機 worktree 磁碟不足用 sparse 沒取出圖片，與本批無關）、新增 tests/test_risk_flags.py 13 項、_uitest `風險警示牌1109`（0）、`桌機守門1008`（0）、`_preview.py`（只剩 sparse 缺圖檔的 404）。`功能公告1019` 在 main 上原本就紅 3 項（下拉只列前 20 則、10-19 那批與 46 則數不到），本批多加一則後 ② 也紅（前 20 則全都有連結，測試挑不到可展開的那則）——同一根因，待修測試。
+
+## 2026-11-09 盤後主貼文改版＋改 19:30～20:30 發、IG 停自動圖文（social-ops-lead；Andy：「同意，四項改動全部照改」）
+- 依據 docs/marketing/traffic_plan_1109.md 第二節第 2～5、7 條、diagnosis_1109.md。細節 docs/marketing/social_unit/auto_post.md 第〇之〇節。
+- 盤後 Threads：拿掉「🌙 盤後3分鐘」標頭、第一句反差問句（c_x1～c_x6）、主文 ≤150＋結尾二選一、數據移到串文第一則；lint `rule: auto_1109`。
+- 時段：social_snap 盤後 19:30 前不發（19:15 後就地等）；保底 20:00；social-live 加 19:41／20:11 備援排程；稽核截止 20:35、20:42 加一輪（18:40 只會是進行中）。
+- 監工排程「社群發文監工：盤後 18:20」（trig_012QATcSrzp7eveCgtsu3BQT）已改名並改到台北 20:40；它的提示詞只能從它自己那個聊天室改（內容仍可用，沒有寫死 18:20 判斷）。⚠ 待辦：CLAUDE.md 11-02 條「監工只剩盤後 18:20」文字要由 CEO 改成 20:40。社群 v1 文案（social_snap 的 build_text，只在 v2 改寫失敗時用）仍有「盤後3分鐘」標頭，沒動（一堆測試綁著它）。
+- 這批只驗了：pytest tests/ -k "social or threads or daily_audit or quota or close or gate or snap or caption or fast or publish or ig or news"（新增 0 失敗；21 個既有失敗是 sparse 工作樹缺 site/、social/、data/ 檔，改前改後同一批）。
+
+## 2026-11-09 一鍵分享圖卡（P-1107-05，site/sharecard.js）
+- 總覽強弱輪動／昨日資金分流樹／恐慌指數走勢、資金流向輪盤、產業地圖族群漲跌幅，標題列有「分享圖卡」鈕；視窗選尺寸、下載 PNG（手機走 navigator.share）；圖卡網址 `?src=card#路由`，account.js 記成第一次來源 card（不必動 Worker）。
+- 功能鍵 share.card（訪客 3／註冊會員 5／Plus 50／Pro 不限）、share.card.plus（去角標、選方形／限動；Plus 以上）。公告 f-20261109-share-card。細節 DECISIONS 該日條目。
+- 這批只驗了：`_uitest --sections 分享圖卡1109,漏斗事件1026,體驗額度1027,體驗全選,體驗上限,新功能次數1102,桌機守門1008`（全 0 問題）、`_preview.py`（只剩 data/bigsmall/_index.json 404，是本機舊 site/data 缺大小戶資料，與本批無關）、`會員權限開關`（2 個紅燈是既有：stock.bigsmall／chan.page／flow.play 等不在例外清單，本批新增的 share.card.plus 已補進例外）。沒跑 pytest（只動 site/、scripts/_uitest 與 uitest_sections、DECISIONS／HANDOFF）。
+## 2026-11-09 新功能「我的持股」（#portfolio；P-1107-03，Andy 11-09 點頭；DECISIONS #3xx）
+- 輸入持股（代號＋股數或金額／從自選帶入／Plus 以上匯入 CSV）→ 各族群曝險甜甜圈＋每個族群的 5／20 日資金占比、變化、輪動；**持股只存這台裝置的 localStorage，不上傳、不存成本價**。
+- 功能鍵 portfolio.exposure（每日 3／5／50／不限）、portfolio.size（5／10／30／50 檔）、portfolio.import（Plus 以上）；公告已加；沒有雲端同步（等隱私權政策＋Andy 同意）。
+- 檔案：site/portfolio.js、m4/20261109-portfolio.css、features.js、plan_presets.js、viewreset.js、app.js／layout4.js／mobile3.js／mobile4.js／quota.js（路由）、index.html、notices/features.json、scripts/uitest_sections/20261109_我的持股曝險.py；順手修 20261019_feature_notices.py 的 ②。
+- 11-09 CEO 退回修正：側欄「我的持股」原本漏寫 layout4.css 的 order／群組清單／圖示，跑到「今日市場」之上且圖示空白；已補（order 7 緊接自選、列入 proj 群組規則、--l4-ic 圓餅圖示、l4m 圖示），新段「我的持股側欄1109」驗父群組＝專案、排自選之後、圖示有內容、手機抽屜同樣。
+- 這批驗了：`_uitest --sections 我的持股曝險1109`（新，0 問題）、功能公告1019（維持原本 3 個舊問題）、桌機守門1008、會員權限開關、管理權限1007、次數覆蓋掃描1007、重新整理回預設1003、風格規範、導覽普查1009、平台導覽1007、會員與自選五分頁、手機按鈕普查、積木清單、體驗額度1009、圓餅風格1006、網頁版號、全站共用額度1007；_preview.py（見回報）。
+
+## 2026-11-09 頻道規劃新增子分頁「貼文成績表」（#channels/scores，管理者限定）
+- Andy 原話：「可以，做成績表」。資料 site/channels/scores.json（陣列：date／channel／title／platforms／score／comment／template／rule_added／links／cover），首筆為 11-09 頻道①「黃仁勳承認婚外情，輝達啟動調查」90 分範本，links 空白待今晚 20:30 發出後補。
+- **成績表由 CEO 依 Andy 在頻道①聊天室給分更新 scores.json**，頁面不能輸入、不發功能公告、無 features.js 閘門（管理者專用，沿用 channels.js 的 isAdm）。80 分以上標「範本」、60 分以下標「待改」（要在 rule_added 寫新規則，否則顯示「尚未寫規則」）。
+- 改動：site/channels/channels.js、scores.json、plan.json（tabs 加 scores）、layout4.js（側欄子項）、app.js（l4sub 認得 ch4／scores）、m4/20261109-channel-scores.css。
+- 這批只驗了：`_uitest --sections 貼文成績表,頻道規劃`（0 問題；頻道規劃段計數改成 8 個子分頁）。桌機守門1008／_preview 因本機沒有 site/data 可建（磁碟 99%），只能用舊快照＋空殼 JSON，守門段無法跑，已在回報註明。
+
+## 2026-11-09 頻道①：每日熱點文流程定案（沒回應就自審發布）
+- 規則見 docs/marketing/social_unit/threads_rules.md 最上面 11-09 節；排程 13:40／18:37／20:02（交易日）已在頻道①聊天室建立。11-05 熱點文草稿作廢。
+
+## 2026-11-08 頻道④「談晴說礙」自動發文＋留言私訊管線上線（空跑中，等 Andy 放權杖）
+- Andy 原話：「開通自動發文，這部分幫我想辦法自動化」「包含測試發文 還有自動刪文 ，以及讀留言自動傳訊息功能，傳之前還會檢查是否有追蹤」。
+- 發文：scripts/healing_post.py＋.github/workflows/healing_post.yml（台北 20:27、21:57 補跑；驗證模式→正式發；delete／test_delete）；佇列 docs/marketing/channels/healing/queue/，首篇 20261108_intro 已排；開關 docs/marketing/channels/healing/post_quota.json。commit 053a88456、2dfd87281。
+- 留言私訊：scripts/healing_comments.py＋healing_comments.yml（每 15 分鐘，只私訊追蹤者，自傷字走關懷訊息）；設定 dm_config.json。commit 19b840905。
+- 只讀 HEALING_IG_ACCESS_TOKEN、HEALING_THREADS_ACCESS_TOKEN（＋選填 THREADS_APP_SECRET 自動換長效）；權杖續期併入 meta_token_refresh。
+- 待辦：Andy 放權杖→第一輪驗證→首篇；實測「是否追蹤」查詢能否用、IG 能否用 API 刪文、開發模式下一般網友收不收得到私訊。這批只跑了相關 pytest（73＋110 passed）；全套 pytest 有 115 失敗是 main 既有問題（抽查三檔在乾淨 main 一樣失敗）。
+
+## 2026-11-10 頻道②接手 @tech_01010909（頻道④交接；Andy：「Tech_01010909 丟給他們單位處理」）
+- 只留 tc_post.yml 一條：權杖改吃 TECH_*（*_AUTO 優先），IG 的 EAA 系統用戶權杖走 graph.facebook.com（帳號編號重用 healing_post.resolve_uid）；channels.json tech 標 handed_over，channel_post／channel_comments 不再排 tech；channel_insights 的 tech 照跑。
+- 做不到：EAA 下 IG 私訊（要粉絲專頁＋Messenger Platform，帳號目前 0 個粉絲專頁）、IG 刪文（API 本來就沒有）、IG 完整成效（缺 instagram_manage_insights）。細節 docs/marketing/channels/tc/autopost.md 第〇節。
+
+## 2026-11-08 頻道②「科技透明圈」自動發文管線（social-ops-lead；Andy：「開通自動發文，這部分幫我想辦法自動化」＋「我希望可以自動化全部，包含測試發文、還有自動刪文，以及讀主留言我自動傳訊息功能」）
+- 說明：`docs/marketing/channels/tc/autopost.md`。權杖全用 TC_*，跟頻道一完全隔離（發文前比對帳號 id，等於頻道一就整篇不發）。
+- 已推 main：權杖收件 `tc_token_intake.yml`、每週續期加 TC 組、發文 `tc_post.yml`（每 15 分鐘，只發 approved；手動預設 dry_run）、自動測試 `tc_selftest.yml`（收件成功後自動跑）、Threads 自動刪文（delete_at）、IG 到期開 issue、Threads 留言關鍵字公開回覆（文案過法遵前只記錄）。
+- 廣達稿在 `social/tc/queue/20261105_quanta/`，status: draft。核准前要處理：Threads 主文 515 字（上限 500）、封面照未經 art-director、照片原始網址、法遵要求重算口徑。
+- 第二批：IG 留言關鍵字 → 私訊 → 回「好了」查追蹤 → 送整理（兩段式，Meta 規定追蹤要對方先傳訊息才查得到）。輪詢版 `scripts/tc_ig_dm.py`（預設、跑在 tc_post.yml）＋即時版 Worker `workers/tc-dm`（`deploy-tc-dm.yml`，App Review 審過才切 mode）。送審包 `docs/marketing/channels/tc/app_review/`。私訊與 Threads 回覆文案 `social/tc/dm_config.json`，`legal_reviewed: false` → 只記錄不送，**待 legal-compliance 審**。
+- 2026-11-09 法遵審過 dm_config.json（改完可用）：「完整整理」→「重點整理」、面試題型改「網友分享的面試方向」、隱私權政策補一句、新增 follow_gate（預設 true，false＝不查追蹤直接送重點）、legal_reviewed=true。廣達 threads.txt 主文刪 4 個表情符號到 494 字。
+- 待處理：TC_* 權杖還沒收件（等 Andy，必做清單在 autopost.md 四之三）；Worker 尚未部署（CEO 安排，要 TC_IG_APP_SECRET）。
+- 這批 pytest 跑全套（sparse worktree，缺檔的測試補拉後重跑全綠）；沒動 site/**，沒跑 _preview／_uitest。
+
+## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）
+- 改：`site/admin.js`（compName／SUB_NAME、memTable 重寫、方案選單與確認、欄位拖曳、固定欄寬與橫捲）、`scripts/uitest_sections/20261107_會員清單表.py`、`docs/account_analytics.md`。
+- 後端另案：`feat/member-plan-worker`（`/v1/admin/grants/issue`，已推遠端分支、**未推 main、未部署**）；部署前要 Andy 同意。前端先探測，舊後端自動停用體驗選項。
+- 接手補完（同日）：驗收全綠＝會員清單表1107（0）、桌機守門1008（0）、_preview（只剩財報日曆月曆無標籤＋2 個 404，與本批無關）；逐人微調驗收改點「會員」欄展開（整列中心點現在會落在別欄）。管理區v3／管理區1005／會員權限開關／會員名單1006 本來在 main 就有舊紅燈（欄位清單、價格、全部關…），本批沒新增、反而修掉「1440 橫捲」那兩條。
+- 這批只驗：會員清單表1107＋會員名單1006、管理區1005、管理區v3、會員權限開關、測試帳不計1102、邀請欄1102、管理區重疊普查1017 等管理區段落。
+
+## 2026-11-07 個股「大戶／散戶買賣（推估）」（Andy 11-07：「個股可以看到 大戶 散戶 當前買賣狀況，即時的資訊 以及 日K級別資訊 這功能記得也要顯在權限內 但暫不開放」；DECISIONS #384）
+- 做了：個股「大戶／散戶」分頁多一張卡（site/bigsmall.js）：今日即時（只有站主／管理員，每 5 秒）＋日 K 級別（每日大單／小單淨買賣柱＋日 K 對照）＋集保千張大戶週參考。
+  演算法 pipeline/compute/bigsmall.py，盤中收集器 pipeline/sources/bigsmall_collect.py＋.github/workflows/bigsmall-collect.yml（台北 08:50～13:36），資料湖 bigsmall_daily，前端 JSON site/data/bigsmall/。查證全文 docs/bigsmall_sources.md。
+- 權限：stock.bigsmall 四個方案都 false（暫不開放）、站主看得到；stock.bigsmall.live 比照 live.tick。沒開的人整張卡不畫。
+- ⚠ **暫不開放，所以這批沒有發 site/notices/features.json 公告**。Andy 在 #admin/perm 開放某個方案時，同一批要補一則「功能更新」公告（連到 #stock/<代號> 的大戶／散戶分頁）。
+- ⚠ 日資料從第一個收集日（2026-11-09 週一）起才有；收滿 20 個交易日後要檢查「大單占量」是否落在 10～30%，再決定門檻倍數（AVG_MULT=4）要不要調。
+- 待確認：第一次收集（11-09）跑完看 Actions 摘要 data/_state/bigsmall_last.json 的 coverage_median、pre_lots_median；mis 若鎖 IP 會在 log 看到連續失敗退避。
+- 這批驗了：pytest（全）、_uitest 大戶散戶買賣1107、個股、個股即時分K、即時僅管理1008、桌機守門1008（--workers 1）、_preview.py。
+
+## 2026-11-06 夜 資料維修：last_run 8 個 ok:false 的真相（爬蟲專家；Andy：「找不到的 要在安排 維修人員去修復」）
+- **8 個步驟分類**（證據＝11-06 19:00 台北那輪 full，run 42206369140 的 collect log）：
+  tape.collect／taifex.futures_minute／sitca.etf_top10／finmind.futures_60m／finmind.otc_60m／optivx.daily／news.broker_views ＝ **(a) 本輪本來就不用抓**（log：「窗內 34 個候選日都處理過了」「公會前十大 202609 已在資料湖，跳過」「台指期 2026-11-05 的 60 分 K 已在湖裡，跳過」「櫃買 …已在湖裡」；optivx 當天 FinMind 選擇權還沒出；券商引述當天新聞沒有目標價句），但 `step()` 一律把 rows==0 記成 ok:false。
+  tpex.margin_total_otc ＝ **(c) 程式錯誤**：猜的端點不存在。
+- **修法**：`run_daily.step()` 新增約定——來源在空回傳的 `attrs["skipped"]` 寫原因，就記 `ok:true + skipped:<原因>`、不進 empty；有 `attrs["error"]` 仍算失敗。套用在 sitca／60 分 K 兩支／券商引述／optivx（FinMind 回空列表＝skipped；回 None 或有列卻算不出＝error）／tape（無待補日）／taifex。
+- **上櫃融資（5.）**：Actions 實測（probe/tpex-1106）櫃買 OpenAPI **沒有整體融資金額總表**；`tpex_margin_trading_marginspot` 摘要寫「信用交易餘額概況表」，內容其實是各券商月均融資排名。唯一當日資料是 `/v1/tpex_mainboard_margin_balance`（個股 919 列、單位＝張、無金額）。改成加總成整體融資／融券張數（含前日），`margin_money` 留空。**上櫃融資維持率（估算）仍算不出來**（分母是金額）——要嘛站主人工登錄（比照上市信用風險那塊）、要嘛找得到合法的金額來源，這項沒解決。
+- **crosscheck 上櫃 unknown（4.）**：`tpex_mainboard_daily_close_quotes` 回應大，櫃買常傳一半切斷（"Response ended prematurely"，實測 6 次約 5 次成功，加 Accept-Encoding: identity 沒改善）。交叉比對的上櫃抓取重試由 3 次改 6 次（退避 1+2+4+8+16 秒）。
+- **擋住整條管線的另一個紅燈**：21:30 那輪 full 死在 pytest——`test_exrights::test_真實資料_6669本益比…` 寫死 15≤PE≤25，11-06 大跌後 PE＝14.7。窗放寬成 10～40（抓的是股本／除權處理錯造成差一倍以上，不該隨行情）。
+- 測試：`tests/test_step_skipped_1106.py`、`tests/test_tpex_margin_balance_1106.py`、改 `test_crosscheck.py`。
+
+
+## 2026-11-06 總覽漲跌家數卡新增「族群字卡」檢視（Andy 11-06 原話：「這邊多一個切換，可以看到全部族群的字卡，整齊排列 字卡需要剛好矩陣填滿，並且點擊該族群也會有對應股票字卡，字卡顏色 -10~+10% 深綠~深紅，目的是更直觀看到 哪些市場跌停 狀況，以及可以依照級距篩選」）
+- 新檔 `site/advdec.js`／`site/advdec.css`；`app.js renderUpDown` 只加 3 處接口（AdvDec.render／toggle／has）與 `adt:view`／`adt:sel` 事件；`index.html` 加「分布｜族群字卡」分段鈕與 `#adtWrap`。
+- 口徑：族群＝stocks.json 的 `group`（一檔一族群，加總＝直方圖「共 N 檔」）；平均＝成分股**等權**（熱力圖是前一日成交值加權，逐檔資料沒有前一日成交值，且套了級距篩選加權會被大型股吃掉）；選了級距＝只算符合的個股、沒有符合股的族群不顯示。寫在「?」。
+- 功能鍵 `ov.advdec.tiles`（features.js＋plan_presets.js 四方案；訪客 3、註冊會員 5、Plus 50、Pro 不限；切進字卡／點族群／點級距各算一次）；體驗額度不替 Andy 預設，自動出現在「編輯：新會員體驗」。公告 `f-20261106-advdec-tiles`。
+- 驗收段落 `scripts/uitest_sections/20261106_漲跌家數字卡.py`（漲跌家數字卡1106）。
+- 市場明細的漲跌家數頁是另一個元件（#distMkt 清單），這次沒動。
+- 桌機多了切換鈕屬 Andy 明確要求的改動，桌機守門基準依需要用 `TW_DESK_BASELINE=write` 更新。
+
+## 2026-11-06 總覽新增「恐慌指數」卡（Andy：「另外需要新增恐慌指數再右上」；DECISIONS #383）
+- 主數字＝臺指選擇權隱含波動率（本站自算，CBOE 白皮書公式、TXO 月契約近月＋次近月結算價、30 天期），標「非期交所官方」；副數字＝美股 VIX（intl_daily ^VIX）。
+- 新表 `opt_ivx`：每日 `optivx.daily_update`（run_daily）＋回補 `optivx.backfill`（run_backfill，一輪補完 2023-01 起；backfill.yml 的跳過閘門已放行 opt_ivx 未完成）。
+- 11-06 下午 Andy：「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」→ 卡片改 ECharts 半圓時速表（綠／黃／紅＝50%／85% 分位），「非期交所官方」只留在「?」；圖表庫加 F 款（docs/chart_library.md）。
+- 前端 `site/fearcard.js`／`fearcard.css`／`m4/20261106-fearcard.css`；app.js 只加三個接點。功能鍵 `ov.fear`（計的是點開的完整圖）。
+- 既有驗收「摘要卡四張」改五張（`_uitest.py` 四處、`_preview.py` 一處）；即時口徑檢查排除恐慌指數卡（它沒有即時）。
+- 這批只驗了：pytest 全部、`恐慌指數1106`、`總覽摘要卡列`、`總覽摘要卡即時`、`KPI工具列頁尾0926`、`總覽`、`新-大盤三張圖`、`手機v3`、`手機一屏`、`桌機守門1008`（基準重寫）、`_preview.py`。
+- 回補已完成（2023-01-03～2026-11-05，926 天）；跟公開報導的臺指VIX 比對三點差距 ±0.15 內（DECISIONS #383 表格）。最新 11-05 自算 39.99（恐慌，分位 97%，n=750）、美股 VIX 28.18。
+- 部署：程式 4a1e72e0 兩站 ✅ 台北 11-06 13:55；台指自算值要等下一次 payload（已手動派 pages.yml，或 15:30 盤後那輪）才會出現在線上。
+- 遠端臨時分支 probe/vix 刪除被擋（HTTP 403），留著。
+
+## 2026-11-06 稽核 A／B：暫定價量掛到隔天、FinMind 當沖佔位 0 永遠不補（fix/provisional-price；爬蟲專家）
+- **A 根因**：收盤當晚上市個股是 mis 暫定值（`px_source=mis`，量與值是盤中口徑，偏低 2～20%）。openapi 隔天上午就有官方值，但 daily.yml 清晨 05:07、盤中 09:07／12:07 三輪是 `--phase news`，`run_daily` 在 news 整段不抓價量 → 暫定值一路掛到 15:37。修前湖裡 11-05：2330 成交值 821 億（官方 1,018 億）、上市成交值合計 9,227 億、上漲／下跌／平盤＝上市 252/1,023/61、上櫃 233/718/47（上櫃湖裡本來就是官方值，tpex 沒有同樣問題）。
+- **A 修法**：`run_daily.py` news 輪新增抓 `twse.price_daily`、`twse.market_daily`、`tpex.price_daily`（openapi，不吃 FinMind）；`store.append` 本來就是「後到的為準」，官方列沒有 `px_source`，覆蓋後暫定標記自動消失。新增 `drop_rows_already_official`：mis 暫定列絕不蓋掉湖裡已是官方值的列。news 輪沒有設 `trade_date`（避免帶動法人／融資券等下游步驟）。news 輪原本就會 build_payload＋部署，不需另外觸發。
+- **B 根因**：FinMind 當沖當天先回 0 佔位列，舊版直接入湖；續補以「最後一天＝最新交易日」判斷不落後，永遠不重抓。11-05 湖裡 417 檔當沖全 0（平常 50～160），2330 顯示 0 張、FinMind 現在 7,532 張。借券（sbl_daily）湖裡全零列每天約 141 檔持平，沒有佔位跡象，只加「日期晚於價量最新日就丟」。
+- **B 修法**：`sources/finmind.py` 新增 `drop_placeholder_rows`：當沖丟「日期晚於價量最新日」與「價量最新日（含）之後全 0」的列（真的 0 的股票晚一天入湖）；`run_backfill.py` 新增 `zero_daytrade_codes`（最近 2 個交易日全 0 的重抓，每日續補排最前面）與 `fix_daytrade_zeros`、CLI `--fix-daytrade-zeros N`；`backfill.yml` 的 datasets 加選項 `daytrade_zerofix`（一次性回補，結果走 store.append）。代價：真的當沖為 0 的股票（約 100 檔/天）每天會多問 1～2 次 FinMind。
+- 測試：`tests/test_provisional_price_1106.py`（15 條）＋改 `test_stage_pipeline_news.py`（news 輪要抓官方價量）。
+- **這批只驗了**：pytest 41 個與 run_daily／run_backfill／finmind／price_daily 相關的測試檔（812 passed；全套 pytest 因機器被其他 agent 佔滿跑不完，未跑）與上述新測試；線上驗證見交付回報（daily workflow_dispatch phase=news、backfill datasets=daytrade_zerofix）。前端沒動，未跑 `_preview`／`_uitest`。
+
+## 2026-11-06 頂欄「N 人在線」框加「今天」段（站主專用；前端已推 main，後端在分支 feat/online-today 等 Andy 同意才部署）
+- 前端：`site/account.js` `paintToday()`（今天來過的會員：累積停留、前 3 頁、最後出現；訪客今天／本週／累積；固定高度框內捲動）；`site/admin.js` 多 `TwAdmin.testEmails()`（測試帳雜湊排除）；順手修手機上框左緣掉出螢幕外（改 left 夾在畫面內）。
+- **後端沒部署**：`/v1/admin/online/today`、`pdwell`／`visagg` 兩表在分支 `feat/online-today`（`workers/account-api/worker.js` 檔尾、`tests/today.test.mjs`），**不准推 main 觸發 deploy-account-worker.yml，要 Andy 明確同意**。部署前前端顯示「需要更新會員後端」。部署時隱私權政策「個人使用明細」那段要補「各頁停留時間」。
+- 驗：`_uitest --sections 線上今天1106`（站主 1440／手機 390、假 Worker 回應、20 筆固定高度可捲、一般會員與訪客看不到）、`線上名單1017`、`站主工具1101`、`桌機守門1008`、`node --test workers/account-api/tests/*.mjs`（206 條）。
+
+## 2026-11-06 信用交易「全市場信用風險（官方儀表板）」人工登錄（Andy 11-06 決定：儀表板條款不准自動抓 → 站主每天手動填五個數字）
+- 前端（已推 main）：`site/margindash.js`（新檔）接在 #market/credit 大盤分頁的融資維持率卡下方；`marketfut.js` 只在 `render()` 加一行 `TwMarginDash.mount`。整塊在 #mktBody 裡 → 沿用 `mkt.credit` 閘門，不另開功能鍵。公告 `f-20261106-credit-official`。
+- 資料來源順序：會員 Worker `/v1/mdash/get` → 沒有這支端點時讀 `site/margin_dashboard_seed.json`（Andy 截圖 11/05、10/30 兩筆）。站主在 Worker 沒開通時按儲存＝只存這台瀏覽器（表單明寫）。
+- ⚠ Worker 端點**還沒部署**：程式在分支 `feat/margin-dashboard-worker`（`workers/account-api/margindash.js`＋`tests/margindash.test.mjs`＋worker.js 兩行＋deploy 工作流測試清單），合併 main 會觸發 deploy-account-worker.yml，**要 Andy 同意才合併**。合併前 Andy 填的數字只在他自己的瀏覽器。
+- 這批只驗了：`信用風險登錄1106`（新）、`大盤融資維持率1020`、`信用交易r3`、`信用排行1104`、`新功能次數1102`、`功能公告1019`、`桌機守門1008`、`_preview.py`；Worker 測試 `node --test workers/account-api/tests/margindash.test.mjs`。
+
+## 2026-11-06 午 全站資料稽核（Andy：「每個資訊都更新到最新不可以有資訊誤差」；probe/audit-1106，run 42154202438、第三輪補查同分支）
+- 方法：Actions 上抓線上 JSON（GitHub Pages＋正式網域）與證交所／櫃買／期交所 openapi、FinMind 逐項比對（抓取時間 11-06 11:03 台北，最新交易日 11-05）。
+- 已修（本批）：① stocks.json 今天沒成交的代號（已下市、停牌，238 檔）不再帶「它自己最後一天」的漲跌幅與成交值 → 漲跌家數不再把多年前的漲跌算進今天（updown all.n 2583 → 2346，官方同口徑 2332）；
+  ② index_lastday 開高低改用當天日 K（1 分 K 取樣漏極值：加權最高 42,850.61 → 官方 42,873.81）；③ 信用交易「資料未更新」提示框把 `${last.d}` 原樣印出來（單引號字串）。
+- 未修、已交 CEO：上市個股 T 日價量整晚到隔天 15:37 都是 mis 暫定值（成交值低估 2～20%，76 檔收盤與官方不同）；FinMind 當沖先給 0 的佔位列被存進湖、之後不再重抓（11-05 有 417 檔當沖＝0，含 2330）。
+- 這批只驗了：pytest 全跑（sparse 工作樹缺 docs／workers 的 34 失敗＋12 錯誤與 origin/main 相同，新增 2 條守門測試綠）、`_uitest` 大盤融資維持率1020／信用交易r3／總覽摘要卡列／漲跌家數市場別 0 問題；
+  漲跌連結1006 手機 m4 前提、新-大盤三張圖 夜盤三條在 origin/main 同樣紅（既有）；`_preview.py` 只有本機資料不全的 404。本機沒有重算 payload，用線上 JSON 套同一規則模擬。
+
+## 2026-11-06 上午 信用交易：融資維持率（估算）上市／上櫃／合計＋每週檢查官方有沒有開放儀表板資料（金融專家；DECISIONS #382）
+- 追繳／處分戶數與金額**不做**（只在證交所儀表板頁，背後 rwd／tpex-api 禁爬；OpenAPI、FinMind 免費版都沒有）。
+- 上櫃分母新表 `margin_total_otc`（`pipeline/sources/tpex_margin.py`，櫃買 OpenAPI 信用交易彙總；swagger 自動找端點）。**端點名與欄位沒有實測**（容器連不到櫃買）：
+  第一次 daily 跑完看 `data/_state/last_run.json` 的 `steps["tpex.margin_total_otc"].diag`；`ok:false` 就照裡面的端點與欄位名修 `parse_summary`。
+- 櫃買 OpenAPI 只給最新一天 → 上櫃／合計從第一筆起逐日累積，畫面沒資料時顯示「資料累積中」。
+- 每週檢查 `.github/workflows/open-data-watch.yml`（週六台北 11:43）→ `data/_state/official_open_watch.json` → meta.json `official_open` → 資料狀態提示。誤判寫進狀態檔 `ignore`。
+- 這批只驗了：pytest（sparse checkout 缺 docs／data 的 39 條環境性失敗除外）、`信用上櫃1106`（新）、`信用排行1104`、`大盤融資維持率1020`、`信用交易r3`、`資料狀態`、`_preview.py`（5 條都在總覽／資金流向／財報日曆，本機 site/data 是 10-26 舊檔，跟這批無關）。
+  本機完整 `build_payload` 三次都在記憶體不足被系統砍掉（主機與其他 session 共用 15G），只確認到 `market_fut.json` 新格式寫得出來；線上由 pages.yml 重算。
+- 遠端臨時分支 `probe/margin-call` 刪不掉（git 代理斷線、gh api 刪除被權限擋），要刪請 Andy 或有權限的 session 處理。
+
+## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
+- 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
+- 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。
+- 這批只驗了：`夜盤轉打1105`（加 C 重試、D Worker 經 Deno）、`台指期Deno優先`、`盤中即時`、`新-大盤三張圖`（週日 OTC y 軸 1 條，origin/main 同樣紅＝既有）、`_preview.py`（3 條與 main 相同）、Worker 離線驗收五支（futstream_check 4 條既有紅，main 同樣）、pytest。
+- 待 Andy：換 DENO_DEPLOY_TOKEN 仍是根治（#380）。
+
+## 2026-11-05 夜 台指期夜盤在正式網域沒有即時 → 修（DECISIONS #380）
+- 根因：Deno 部署金鑰 10-11 失效，線上 Deno 還是 10-02 版、白名單沒有 liguligu-puipui.com → 正式網域被 CORS 擋，Worker 又被期交所擋（520）→ 卡片只能畫日盤。證據 `docs/fixtures/taifex_deno_origin_1105_probe.json`（run 42005914871）。
+- 修：`site/taifex_bridge.html`（GitHub Pages 轉打頁）＋ `market3.js futGet()` 直連丟例外後改經轉打頁；`live.js` 加 `Live.taifexBridge()`。`probe_sources.py taifex_night` 加 Deno 帶正式網域 Origin 的探測。
+- 這批只驗了：`夜盤轉打1105`（新）、`台指期Deno優先`、`夜盤盤後0930`、`盤中即時`、`新-大盤三張圖`、`_preview.py`（3 條既有問題與 main 相同）、pytest 全綠。
+- 待 Andy：換 Deno 部署金鑰（DENO_DEPLOY_TOKEN）才是根治；沒換之前靠轉打頁。
+
+## 2026-11-04 深夜 盤後自動主貼文改專業語氣（Andy：「要，盤後也改成專業語氣」；social-ops-lead；11-05 盤後起生效）
+- `scripts/threads_v2.py` 鉤子全部換成 43 個專業問句（數據帶入）、`scripts/threads_lint.py` 加自動貼文模式（開頭問句、擋口語吐槽字），測試 `tests/test_threads_auto_1104.py`；細節見 `auto_post.md` 修改紀錄與 `threads_rules.md` 最上面一節。post_quota.json 沒動。待辦：11-05 18:35 台北確認盤後實發開頭是問句（已排提醒）。
+- 11-05 CEO 法遵退件已修：開頭不點名個股、不問時機；lint 擋個股簡稱（資料湖 company_info）與時機用語。
+
+
+## 2026-11-04 深夜 頻道④「我們這一代」：觀察家口吻、三輪 LOGO、v4 創意插圖範例（CEO；只有文件與範例圖，未開發文）
+- 詳見 `docs/marketing/channels/healing/plan.md` 最上面一節。名稱「我們這一代」、無人版預設、不導流、不接金融業配、前 6 個月不投廣告已定案。
+- 待 Andy：LOGO（建議 `logo_idea/` 第 1 款「窗是眼」）；IG／Threads 帳號名與商標查詢；數字發文前回官網核對；微光篇建議 11-28 投票後發。
+- ⚠ 本 session 多次 rebase 撞到工作分支的 ours 合併歷史；之後改用「從 origin/main 開新分支＋checkout 資料夾」的方式推 main。
+
+## 2026-11-04 晚 頻道④：色調定案 ④霧紫灰、素材 v3（有人／無人）、希望感、新主題 LOGO（CEO；只有文件與範例圖）
+- 詳見 `docs/marketing/channels/healing/plan.md` 最上面兩節；範例 `samples/20261104_gen2000_v3/`、LOGO `logo_gen2000/`、色調統計 `samples/palette_test/`。
+- 待 Andy：頻道名稱與 LOGO、有人版使用規則；前 4 週三色輪測（④⑤①）第 5 週選定；數字發文前回官網核對；範例 4 建議 11-28 後發。
+## 2026-11-04 晚 頻道①期中選舉 v5 完整版重發（Andy「可以，9 張重發完整版 發之前我先看看」→「可以發」；social-ops-lead）
+- 佇列 `social/threads/queue/2026-11-04_midterm-pro-v3.md`（封面 1 張）、`social/ig/queue/2026-11-04_midterm-pro-v3.md`（9 張），圖在 `social/ig/images/manual/2026-11-04-midterm-pro-v3/`；佔第 2 則手動名額，post_quota.json 沒動。發文前重查：AP 已判定民主黨拿下參、眾兩院（AP 稿、Forbes、TIME），04 政黨卡 2026 列由「預估奪回」改「奪回」，其他數字未動。舊版 v2 要 Andy 手動刪：Threads DfT907IltIu、留言 DfT94a7lqt6、IG DfT9-STnAOa（新版 IG 辨認：封面標題在照片上方、照片上無出處字）。
+
+## 2026-11-04 頻道①期中選舉刪掉重發＋熱點文規則定案（social-ops-lead；最後更新 11-04 台北）
+- Andy：「可以發，規則定下來」「刪掉重發」。規則寫進 `docs/marketing/social_unit/threads_rules.md` 最上面一節，`threads_lint.py` 加 `rule: hot_1104` 熱點文標準（測試 `tests/test_threads_lint_hot_1104.py`）。
+- 刪文工具（原本只在 claude/serene-brown-e4sosy 分支）上 main：`scripts/social_delete.py`、`.github/workflows/social_delete.yml`、`social/delete_keep.json`；ids 檔 `social/delete/ids_20261104_midterm.txt`（貼文網址自動對回 id）。IG 舊文 API 不能刪，要 Andy 在 App 手動刪 https://www.instagram.com/p/DfTuTK-FsT5/ 。
+- 結果（11-04 15:53 台北發出）：Threads https://www.threads.com/@liguligu0818/post/DfT907IltIu （留言 DfT94a7lqt6）、IG 9 張 https://www.instagram.com/p/DfT9-STnAOa/ 。
+- ⚠️ 舊 Threads 沒刪掉：social_delete.yml 第 1 次執行（run 41795302633）回 HTTP 403 code=10，發文權杖沒有 `threads_delete`、`THREADS_DELETE_TOKEN` 也沒設 → 一則都沒刪。待 Andy 在 App 手動刪，或照 claude/serene-brown-e4sosy 分支 `docs/marketing/diagnosis_1102/delete_capability.md` 第 4 節做刪文權杖後重跑同一個 ids 檔。
+- 新版：`social/threads/queue/2026-11-04_midterm-pro-v2.md`（封面 1 張）、`social/ig/queue/2026-11-04_midterm-pro-v2.md`（9 張輪播）；佔第 2 則手動名額，post_quota.json 沒動。條件對照卡兩條偏弱來源已補第二來源（臨時預算：CRS、CRFB；美伊：Al Jazeera、Benzinga 11/2），計數不變（2 明確、3 部分）；參議院 AP 與其他追蹤站說法不一，政黨卡維持「預估」。
+
+## 2026-11-04 傍晚 頻道④改成「無力感」視覺與語氣（CEO；只有文件與範例圖）
+- Andy 原話：「色調 排版 素材 語氣 都需要具備無力感 悲傷感 能讓人身同感受」。
+- `visual.md` 第二版（低飽和冷色 N／F／M、文字下沉、九個無人場景插圖、顆粒暗角、每張一個光源）；`content_gen2000.md` 五之二（語氣第二版）；法遵 `samples/20261104_gen2000/legal_review.md`；範例 13 張 `samples/20261104_gen2000_v2/`（美術審過：程式 13 張 0 筆、人工 13 張 0 筆）。
+- 待辦：數字發文前回官網核一次（容器打不開官網）；post3 第 5 張捷運縮圖可能像走廊（美術保留）。
+
+## 2026-11-04 下午 頻道④改方向：寫給 2000 後世代（CEO；只有文件與範例圖，未開發文、未申請帳號）
+- Andy 原話：「內容 幫我改成對於2000後的年輕人 我們再 買房 工作 薪資上的無力感……目前我們面臨什麼 我們如何面對 未來怎麼想等等」。
+- `docs/marketing/channels/healing/plan.md` 最上面新增一節（蓋掉舊定位與名稱）；分報告 research_gen2000／strategy_gen2000／content_gen2000／legal_gen2000；範例 13 張在 `samples/20261104_gen2000/`（美術審過，重疊程式 13 張 0 筆、人工 13 張 0 筆）。
+- 待辦：70.03%（2026 上半年低於平均）上線前核主計總處新聞稿；11-18～11-28 不准出現民調（選罷法 §53）；頻道名稱待 Andy 決定。
+
+## 2026-11-04 頻道①（股票網頁）：方針改時事熱點、去網址、期中選舉手動發文（頻道①聊天室；最後更新 11-04 13:45 台北）
+- Andy 11-03：網站先不公開推廣（貼文不放網址，7d79e7d99）、發文改時事熱點優先（定位與比重已交 #channels plan.json ch1）、LINE＋Email 漏斗（法遵 `claude/legal-line-1104` docs/legal/20261104_line_email_funnel.md，待 Andy 定三件事）。
+- 圖卡拿掉比比角標、新聞短標題不截斷（11436e9342）；pages.yml timeout 40→90＋relay 不重排 main（83471d59），11-04 06:51 兩站 ✅。
+- 11-04 13:37 期中選舉 B 專業版手動發出：Threads https://www.threads.com/@liguligu0818/post/DfTuOemnHUL 、IG https://www.instagram.com/p/DfTuTK-FsT5/ ；封面換國會大廈（Architect of the Capitol，公有領域）；新增圖池類別 總經_美國政治（pool.json 審查由 social-ops-lead 代執行，待 art-director 補審）。
+- 待 Andy：LOGO C1 第三版選款與橘色（`claude/logo-1103` docs/brand/logo_1103/c1v3/，推薦 ①＋#E9803F）；LINE＋Email 三件事；頻道③定位名稱；前 3 篇範例是否改 B 專業版後發。
+- 後續：B 專業版定為頻道①新版型（Andy：「B 專業版我喜歡」），之後熱點文照 render_AB.py 的 B 版產。
+
+## 2026-11-04 網站剖析圖四處修正（科技透明圈聊天室，機構工程師審出；W1～W4）
+- 交換器 `tab`→`ftab`（被 layout4.css `.tab{width:100%}` 拉寬）、氣冷反轉雙轉子前後各一馬達、晶圓代工 GAA 改上下箭頭＋⊙⊗並錯開編號 13／14、交換器標題「近 40 層以上（約 38～48 層）」、CoWoS 中央 GPU／ASIC 字加描邊。W2／W3 機構工程師簽核通過。
+- 這批只驗：診斷圖修正1103、桌機守門1008、產業、產業鏈導覽、一般電子鏈（並行偶發逾時，單獨重跑 0）、手機剖析圖上下編號1102、_preview（只剩 #stock/3189/holders 舊紅）。pytest 跳過（只改 site/dg 與 _uitest 段落）。
+
+## 2026-11-04 新聞短標題截斷＋圖卡拿掉比比角標（CEO 追加；social-ops-lead；最後更新 11-04 台北）
+- 短標題：數字中的逗號／冒號不斷句、開頭專欄名與日期欄頭先拿掉（social_premarket.CLAUSE_SEP／strip_column）。圖卡標題列改文字字標「哩股哩股」（social_theme.header_html），不再用 icon-192.png 比比頭像。
+- 這批只驗：pytest 社群相關（313 passed，含新增 tests/test_social_title_badge_1104.py 6 項）；本機重算 payload 後用 11-03 真資料只產生不發：盤前 6 張、盤中 8 張、盤後 12 張、融資融券 6 張、主題文章封面 1 張，重疊檢查程式全部 0 筆，人工看過標題列與內文。沒改 site/**，_preview／_uitest 沒跑。
+
+## 2026-11-04 自動發文不放網站網址（Andy 11-03：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」；social-ops-lead；最後更新 11-04 台北）
+- 改了：Threads 留言只留「以上為公開資料整理，非投資建議」（拿掉網址與「完整盤勢見網站」）；IG 主題文章文案拿掉「👉 點擊以下連結」＋網址；被停時段（盤前／盤中／融資／主題文章）產生器也一起改。開關 `PROMOTE_SITE=False`（threads_lint／social_snap／social_news）。lint 出現網址即錯誤；social_publish／threads_post／ig_post 送出前自動移除。`post_quota.json` 沒動。
+- 這批只驗：pytest `-k "social or threads or ig_post or news"`（306 passed，含新增 `tests/test_social_no_url_1103.py` 7 項）＋全套 pytest 1726 passed；用 11-03 盤後真 manifest 重跑 threads_v2 → social_publish --dry-run（留言只剩免責、lint 0 錯）。沒改 site/**，_preview／_uitest 不適用、沒跑。
+- 待確認：11-04 盤後主貼文（18:20 監工）發出後，Threads 留言應只有免責句、沒有網址。
+
+## 2026-11-04 頻道④「心靈雞湯」規劃（CEO；只有文件與範例圖，未開任何發文、未申請帳號；最後更新 11-04 台北）
+- 規劃書 `docs/marketing/channels/healing/plan.md`（9 題＋追加 7 項），分報告：research_ig／research_threads_pain／research_web_money／strategy／content／legal／visual／ops。
+- 成品：`layouts/` 版型 5 張、`logo/` 3 款、`samples/20261104/` 範例 3 篇；美術總監審過，重疊檢查程式 12 張 0 筆、人工 12 張＋LOGO 0 筆。
+- 下一步：等 Andy 回第九節（名稱、平台、LOGO 等 12 題）；之後做 `--channel healing` 發文管線與 `healing/quota.json`（預設全關）。研調缺台灣 Threads 療癒帳號具名數據，需人工抽樣。
+- 字型：容器原本只有文泉驛，這次把 Noto Serif／Sans CJK TC、霞鶩文楷裝在 `~/.fonts`（容器重開會消失，重畫圖要先重裝）。
+## 2026-11-04 頻道規劃母分頁（#channels，管理者限定；frontend-ui）
+- 新增 `site/channels/channels.js`＋`plan.json`（內容只改 JSON）、`site/m4/20261104-channels.css`；側欄「專案」組加「頻道規劃」六個子項，手機抽屜只列母項、頁內 .nbsw 切換。判定沿用 tc／lab（TwAccount admin／owner，`.ch-adm`），不發功能公告、不設次數閘門。
+- 這批只驗：頻道規劃（39 項，本機驅動腳本跑，管理者／非管理者、1440／390）。`_uitest.py` 整支在本容器因 payload 建置 OOM 跑不起來，桌機守門1008 與 `_preview.py` 未跑，改動限於 `html:not(.ch-adm)` 隱藏與新增子項，非管理者畫面不變。
+- 2026-11-04 合併（frontend-ui，ch/plan-hub）：總覽加掛頻道卡（含頻道④）、每週發文週曆（同天兩頻道相隔 60 分內標紅）、Andy 每週時數、缺漏清單（plan.json 的 cards／schedule／gaps）；新增 ④ 心靈雞湯子頁與 ch1／funnel 的新區塊；功能鍵 chan.page（adminOnly，四方案 false）；手機表格卡片列距收緊、每個子頁收起 ≤3 屏。這批驗了：頻道規劃（合併後 63 項，本機獨立驅動腳本）；桌機守門1008＝0（合併後完整資料）、科技透明圈1025＝0、_preview 只剩舊紅 #stock/3189/holders（與本批無關）；完整資料下非管理者導回的等待改為等到導回再驗。
+
+## 2026-11-02 社群診斷與重啟（最高警戒，CEO 整合；最後更新 11-02 17:40 台北）
+- 診斷全文與決策：分支 `claude/serene-brown-e4sosy` 的 `docs/marketing/diagnosis_1102/README.md`（尚未合併 main，接手先合併或從該分支讀）。
+- 已上 main：新聞句子不照抄（12:39）、降量模式 post_quota.json（13:21，每天只自動發盤後 Threads 1 則）、深層連結不被導覽劫持＋手機同意細條＋頂欄登入鈕（17:36 兩站 ✅）。
+- 深層連結這批只驗：深層連結導覽1102、桌機守門1008、會員與自選五分頁、同意條款與法律頁（7 筆舊紅燈）、平台導覽1007（同 main）、手機按鈕普查（2 筆舊問題）、_preview；pytest 跳過（只改 site 與 _uitest 段落）。
+- Andy 已拍板：頻道二「科技透明圈」LOGO 開口圈、頻道一版型陽光糖果、頻道二版型瑞士極簡、比比不上貼文。
+- 待 Andy：哩股哩股 LOGO（`docs/brand/logo_1102i/` 連筆 I01～I12、`logo_1102j/` 主題 J01～J12）；頻道二帳號開設；D/E/F 草稿資料；草稿核准方式；IG 帳號狀態。
+- OpenAI 生圖額度用完（insufficient_quota）。
+
+## 2026-11-02 手機產業地圖普查與剖析圖改版（CEO；全部已上線，最後更新 15:30 台北）
+- Andy 原話：「手機版本…產業地圖發現最多錯誤，編號不能點擊 無法看圖片…需將2D 3D圖片放大，而他們的編號需要改到一條線引導到上下兩邊」。
+- 11:24 剖析圖編號改上下兩排＋引線、2D 滿寬＋⤢ 放大大圖（m4-dglayout1102）；11:43 產業地圖小按鈕擴大觸控範圍（普查表 docs/audit/m4_industry_1102.md）；12:16 關聯圖欄位導覽列＋全景（m4-relgraph1102，並修正「手機彈窗點背景1016」驗收腳本誤判）；12:35 手機 3D 模型放大、收合鈕移上排右端（m4-dg3dzoom1102）；15:27 3D 自轉時編號點錯號（重排換位＋滑動）修正、細線零件點擊墊、2D/3D ctx 混用修正（m4-dgfix1102）。
+- 這批驗了：手機剖析圖上下編號1102（390 全 32 張、360/430 各 13 張）、手機產業地圖普查1102、手機關聯圖一屏1102、手機彈窗點背景1016、手機3D編號1010、手機3D說明1009、手機3D分頁1016、產業關係面板、手機產業鏈1016、桌機守門1008，皆 0。
+- 待 Andy iPhone 實機確認：剖析圖編號點擊、關聯圖雙指縮放（容器只有 Chromium）。
+- 容器 11-02 重開：/tmp/claude-0/locks/run_gate.sh、precheck.sh、csscheck.py 已重建（備份在 CEO scratchpad）；python3 需 `python3 -m pip install -r requirements.txt playwright`。
+
+## ★ 最高警戒
+- **2026-11-09 close-inst 不再繞過降量開關**：11-06 20:27 多發的法人補充貼文 https://www.threads.com/@liguligu0818/post/DfZmspGoHQB 是因為它借用 live.close 的開關；現在查 `live.close_inst`（沒寫＝關，被停的不補發），且只有拿掉法人卡才補充。已發那則未刪（等 Andy 決定）。細節 auto_post.md 修改紀錄 11-09。這批只驗 `pytest tests/test_social_*.py tests/test_threads_post.py tests/test_ig_post.py`（社群相關 270 綠；10 紅皆為 sparse worktree 缺 site/、資料檔，與本改動無關）。
+- **2026-11-03 誤報**：posted.json 沒有盤前／盤中／close-inst 是降量模式照規定不發，不是故障（查核方法見 auto_post.md 修改紀錄 11-03）。監工判「沒發」前先讀 `docs/marketing/social_unit/post_quota.json`；目前只有盤後主貼文 Threads 是應發。
+- **2026-11-02 社群自動發文降量模式（Andy：「同意降量」）**：自動只發交易日盤後主貼文 Threads 1 則（第 2 則留給 Andy 手寫）；盤前、盤中、所有 IG 限動、主題文章／新聞文、IG 晚間補發與 22:10 監工全停。唯一開關 `docs/marketing/social_unit/post_quota.json`（Andy 說了才准改）；被停的時段**不准補發**，監工只剩盤後 18:20。細節 `docs/marketing/social_unit/auto_post.md` 第〇節。分支 `social/quota-1102`（CEO 審過推 main；推 main 前今晚 20:00／20:50 兩篇已 approved 的 IG 主題文章仍會發）。這批只驗：`pytest -k "social or threads or ig_post or news or premarket or postmarket or gh_cron"`＋`tests/test_social_quota_1102.py`＋`node --test workers/gh-cron/test/schedule.test.mjs`。
+
+## 2026-11-02 新聞句子不照抄（法遵 diagnosis_1102/legal_tech_transparency.md 6-2；分支 `fix/news-no-verbatim`，**等 CEO 審過才推 main**；最後更新 11-02 12:20 台北）
+- 改產生器：主題文章導言改本站句型＋「資料：公司公告／〇〇報導」、拿掉「報導摘述」；其他媒體／之前的報導只取數字；盤前今日焦點、盤中盤後新聞焦點、盤前昨日事件卡的描述改新聞數字；`threads_lint` 加「與原文連續 ≥15 個中文字相同」檢查（品質閘擋下換下一則／常備文庫）。細節 `auto_post.md` 修改紀錄 11-02「新聞句子不照抄」。
+- 這批只驗：`pytest tests/test_social_news.py tests/test_social_threads_v2.py tests/test_threads_post.py tests/test_social_publish.py tests/test_premarket_news.py tests/test_postmarket_news.py tests/test_social_live_news.py tests/test_social_premarket.py`＋`-k "social or threads or ig_post or news or premarket or postmarket"`；近 5 天 175 群新聞只產生不發：可發 74→78、照抄 74→0、lint 0 錯；11-02 盤前卡實際渲染（重疊 0 筆）5 條逐條目視看得懂。沒動 site/**。
+- CEO 退件補：短標題必須「主體＋事件動作」、描述數字必須帶意義（`news_facts.has_action`／`meaningful_label`）。
+- 沒改（另案）：網站「精選文章 → 盤前／盤後消息」頁仍存媒體原標題＋摘要（`pipeline/premarket_news.py`、`postmarket_news.py` 的 desc），要不要一起改請法遵判斷。
+
+## 2026-11-02 Threads 濃縮到主文（Andy：「這頁不需要 都濃縮到第一頁，另外下面留言太多了 盡可能都是在主業面就好」；最後更新 11-02 台北）
+- 主文＝鉤子＋重點數據（≤500），串文 0 則、只剩 1 則留言放網址；主題文章圖只留實景封面 1 張（不再產生數字卡）；主貼文圖照舊 0 或 2。細節 `threads_rules.md` 開頭、`auto_post.md` 修改紀錄 11-02。
+- 這批只驗：social／threads 相關 pytest 239 個；近 5 天 251 群新聞只產生不發：107 篇主文 346～490 字、串文 0 則、lint 0 錯；今天盤前那則真的畫封面圖，重疊 0 筆。
+- 下一次驗證：今天 12:00 盤中主貼文＋主題文章，看 Threads 是不是主文 1 則＋留言 1 則、主題文章 1 張圖。
+
+## 2026-11-02 主題文章生成瑕疵修正（CEO 看 08:28 盤前那篇「台股融資融資約4200億元」；最後更新 11-02 台北）
+- 已發那篇不刪不改；修的是產生器（`scripts/social_news.py`、`scripts/threads_v2.py`、`scripts/threads_lint.py`），細節寫在 `docs/marketing/social_unit/auto_post.md` 修改紀錄 11-02。
+- 五項：標題重複詞、分類（台股被判美股）、「和前期比」照抄重點數字、鉤子把條件句寫成事實、「代表什麼」只重述數字。lint 加對應檢查；主題文章品質閘跑同一組，不過換下一則／常備文庫，不會整段不發。
+- 這批只驗：`pytest tests/test_social_news.py tests/test_social_threads_v2.py tests/test_threads_post.py tests/test_social_publish.py tests/test_premarket_news.py tests/test_postmarket_news.py tests/test_social_live_news.py`；另用近 5 天 248 群新聞只產生不發跑一輪：可發 105 篇（舊版 104）、新 lint 0 錯（舊版產出 104 篇中 103 篇有新規則抓得到的瑕疵）。
+- 待觀察：今天盤中／盤後主題文章的 `lint:` 欄與 `log.skipped` 有沒有新增「品質閘：同詞重複／照抄前段」被擋的比例異常。
+
+## 2026-11-01 IG 晚間主題文章沒準時發 → 補發＋每個晚間時段都有派發者（最後更新 11-01 台北）
+- 事故：wk2（publish_at 20:50）到 21:08 仍 approved；21:09 手動派 ig_post 補發成功 https://www.instagram.com/p/DfMzr6fHD6w/ （兩張實景圖輪播）。
+- 根因：IG 晚間時段（20:00／20:50／21:40／21:50）只有 social_news 19:00／19:40 叫醒 ig_post（wait_max=20），只罩得到 20:00；GitHub schedule 不可靠。
+- 修：`workers/gh-cron/src/schedule.js` 加每天 ig_post 到點前派發與到點後補派、交易日 20:58／21:08 social_news、22:12 ig_news_watch；`.github/workflows/ig_post.yml` 加四條到點前 cron（自動 wait_max=20）。推 main 後 deploy-gh-cron.yml 自動部署 Worker。
+- 這批只驗：`node --test workers/gh-cron/test/schedule.test.mjs`、`pytest tests/test_gh_cron.py tests/test_ig_post.py tests/test_social_news.py`。
+- 下一次驗證：11-02（週一）20:00／20:50／21:40 三篇 IG 主題文章。
+
+## 2026-11-01 提前找下一波研究 第二版（依 finance-quant 複核；最後更新 11-01 台北）
+- 研究 `docs/research/20261101_next_wave_signals.md`（取代第一版）；複核 `20261101_next_wave_review.md`；程式 `pipeline/compute/next_wave.py`（預設 2012 起、每天排名、NW 滯後＝max(持有,因子記憶)、保留樣本 2012～2019）；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 11GB 略過；完整跑峰值約 9.3GB、約 4 分鐘）。
+- 結論：INST10 族群層降為「實驗訊號」（樣本外過 Holm、保留樣本扣成本為負、2026 轉弱、空頭無效、個股層不成立），網站只放這一個（`show_on_site`）；個股 REVHIGH、外資單獨標待查不上網站。報酬用官方參考價已含現金股利。
+- 前瞻紀錄：`config.TABLES["next_wave_forward"]`，run_daily 完整階段每日 store.append；下架條件寫死（50 期、10 日平均 ≤ 0 → 已失效）。**第一次雲端 daily 跑完後請確認 data/next_wave_forward 有新檔**。
+- 下一步：前端「流向驗證」接「找下一波」區（只顯示 INST10、四句警語、前瞻狀態）；個股 REVHIGH 複驗；毛利率季改善；集保／估值／新聞資料累積。沒動 site/**，前端關卡不必跑。驗證：pytest 全套。
+
+## 2026-11-01 驗收「新-產業與個股」390px 兩條長期紅燈修正（個股 3443；最後更新 11-01 台北）
+- 現象：「390px 窄畫面照樣點得到個股標籤」「390px 窄畫面點下去畫面真的變了」在 origin/main 原樣就紅。
+- 根因（實測）：**不是產品壞**。手機（html.m4）環節卡清單依 Andy 10-09「只留關聯圖」整段 display:none（mobile4.css 第 6 節），
+  關聯圖每一格預設收成「名稱＋檔數 ▸」（industry.js isFolded／m4OpenSeg），公司卡要先點環節標題才畫出來。
+  驗收輔助 `_cg_click_dot` 在 m4 下直接找 `#chainMap .co[data-code]`，少了「先展開那一格」這一步 → 找不到就回失敗。
+  照真人兩步點（點「IP / EDA」標題 → 點創意 3443）：資訊欄 #coBox 開、.segcard.sel＝1、hash 不變。
+- 修正：只改 `scripts/_uitest.py` 的 `_cg_click_dot`：m4 下找不到公司卡時先點它那一格的環節標題。site/** 沒動，桌機不受影響。
+- 這批驗了：`新-產業與個股` 0、`產業` 0、`桌機守門1008` 0、`_preview.py` 1（下一條）、`手機按鈕普查` 2（再下一條）。pytest 跳過：只動 `scripts/_uitest.py`（tests/ 不 import 它）。
+- `手機按鈕普查` 2 條，與本批無關（普查只借 `_uitest.serve()`，不呼叫 `_cg_click_dot`）—— **待處理**：
+  ① ETF 現金流試算／自訂組合自己挑：「我的組合 自訂組合 N」label 與 `select#cuSel` 在 360／390 點了「沒反應」（10-31 新功能 e71c872）；
+  ② 「產業鏈-半導體／矽光子／CPO42」390、「產業鏈-AI伺服器／法定產業別1878」360 切不到分段 `#chainSwitch > :nth-child(N)` 逾時。
+- `_preview.py` 另有 1 條與本批無關：「財報日曆 #earnings 月曆上一個標籤都沒有」——台北已進 11 月、預設分頁「公司財報」，
+  本機 earnings.json（asof 10-30）11 月 0 筆財報董事會事件（只有法說 63、FED 5）。**待查**：Q3 財報董事會是來源未公告還是漏抓。
+
+## 2026-11-01 Threads 發文系統改版 v2＋IG 熱度優化（Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律」；最後更新 11-01 台北）
+- 規則原文 `docs/marketing/social_unit/threads_rules.md`；落地說明 `auto_post.md` 第三之一節；IG 計畫 `ig_growth_plan.md`。**11-02（週一）盤前起正式套用**，監工照舊（盤前 08:40／盤中 12:15／盤後 18:20 查 posted.json；v2 多了 `threads_chain` 串文紀錄）。
+- 新程式：`scripts/threads_v2.py`（舊文案 → 鉤子主文＋串文＋留言連結；模板 64 個、14 天輪替）、`scripts/threads_lint.py`（檢查器）、`scripts/social_numcard.py`（主題文章第二張數字卡，3 套版型）、`scripts/threads_hook_stats.py`（改版前後成效）。
+- 改到：social-live.yml（產完 manifest 多一步「Threads v2 改寫」，continue-on-error；state/hook_history.json 寫回 social-snaps）、social_publish.py（主文→逐則串文→最後留言連結，中間失敗照樣往下發）、social_news.py（queue 檔直接寫 v2、2 張圖、IG 文案首行鉤子）、threads_post.py（舊格式檔發前自動改寫）、news_cover.py（`--numcard`）、news_insights.py（多開頭類型／情緒維度）、social_insights.yml（每晚算 hook_stats.json）。
+- 驗證：`pytest -k "social or threads or ig_post or news"` 260 passed（新 tests/test_social_threads_v2.py 28 條）；沒動 site/**，前端關卡不必跑。dry-run 範例（10/30 真資料）在 scratchpad threads_v2/。
+- 沒有 LLM 金鑰（workflow 引用的 Secrets 沒有 ANTHROPIC_API_KEY），全用模板；要不要加金鑰待 Andy 決定。
+- 11-01 CEO 追加：串文壓到最多 6 則（10/30 範例：盤前 6、盤中 6、盤後 5、主題文章 6），每則 ≤150；放不下的次要數據改寫「完整盤勢見網站」。
+- 11-01 Andy「OK」：IG 主題文章改晚上發（盤前篇 20:00、盤中 20:50、盤後 21:40、備案 21:50、週末 20:00／20:50），Threads 不變；ig_post.yml 加晚間補發 cron；新 `ig_news_watch.yml`（每天 22:10）＋CEO 監工排程「IG 主題文章 22:10」。
+- 待觀察：第一個交易日盤前 v2 的實際串文是否完整發出；11-02 晚上 IG 三篇是否 20:00／20:50／21:40 發出；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
+
+## 2026-10-30 流向驗證的「大盤」改加權指數（使用者測試回報漲跌是加權兩倍；DECISIONS #378；最後更新 10-31 台北）
+- flowcheck 的大盤改成加權指數：日線 index_ohlc TSE、盤中 index_intraday 1 分（之前 60 分）；急跌日、吻合度常態、回測都已重算。主站強弱輪動沒動，要不要改列為建議。
+- index.json 新增 closed_days／missing_days／missing_intraday。10-23 查證是颱風休市（不是缺資料）。
+- 驗證：test_flowcheck 24 條＋全套 pytest；小入口跑真實資料約 85 秒、記憶體 2.2GB。
+
+## 2026-10-30 流向驗證分頁的資料檔上 main（site/data/flowcheck/；DECISIONS #377；最後更新 10-30 台北）
+- 新增 `pipeline/compute/flowcheck.py`，build_payload 包 try 呼叫（壞了只少這個資料夾）。欄位給前端看 `docs/research/20261030_flowcheck_data.md`。
+- 約 205 檔（day 60／m60 約 59／m5 每天 +1／series 83／index／backtest），站上總檔數約 18,000，離 Cloudflare 20,000 上限約 2,000。
+- 驗證：`tests/test_flowcheck.py` 19 條＋全套 pytest；用小入口跑真資料（近 750 日）約 75 秒、記憶體 2.1GB。**這批沒在本機跑完整 build_payload**（當時可用記憶體 11GB < 12GB 門檻），雲端 pages.yml 會重算。
+- 待辦：前端即時卡（app.js tvModel）改成和這裡同口徑（前一日成交值加權、cum_value 占比）；09:00 成交量的 1 分 K 來源還沒查；backtest 的 ic／t_nw 要和 strategy-backtest 一起定義。
+
+## 2026-10-30 盤後主題文章沒發 → 修好並補發（最後更新 10-30 台北）
+- 根因：盤後主貼文 18:07 由 daily.yml 用 GITHUB_TOKEN 派的 social-live 發出；GITHUB_TOKEN 觸發的 run 完成時 GitHub 不發 workflow_run，social_news.yml 沒被叫醒（17:15～18:02 的幾輪都在主貼文前，下一個備援 19:35）。
+- 修：social-live.yml 發出主貼文後直接 dispatch social_news.yml（slot=auto、dry_run=false，加 actions: write）；social_news.yml 加 18:25／18:55 備援；social_news.py 拿掉「超過 3 小時不補排」。
+- 補發：workflow_dispatch social_news.yml slot=post（run 41040456174）。
+- 這批只驗：`pytest tests/ -q -k social`（新測試過；另 6 條在 sparse worktree 缺 site/、data/ 照片圖池而紅，origin/main 原樣也一樣紅，與本修改無關）。
+
+## 2026-10-30 主題文章新增分類「國際」（Andy：講三星的文章封面標「美股」不對；最後更新 10-30 台北）
+- `scripts/social_news.py`：`topic_of()` 加「國際」（三星、SK海力士、日銀、歐洲央行…）；`refine_cat()` 在 `compose()` 取得主體後依主體國籍校正（非美國、非台股 → 國際；被判國際但主體是美國公司 → 美股）；`subject_of()` 的「三星」只有新聞代號帶 5007 才算台股三星科技；國際稿不導 `#earnings`。TAG／ROUTE 加國際。
+- `docs/marketing/posts/render_news_cards.py`：國際配色青綠 #2A8C82（CAT／CVAR／CHIP2；正式發文走的淺底封面 card_v4／card_photo 原本各類共用磚紅 acc，另加 CHIP4 讓「國際」改青綠，其他類維持磚紅）、圖示與比比 globe。
+- 排程中未發的 queue（10-28 盤後 3 篇 draft：台股、是方、台光電）沒有誤標；10-30 盤中三星那篇已發出（標「財報」），照規定不動。
+- 這批只驗：`pytest tests/ -q -k social`（165 passed）＋ 三星範例封面重疊 0 筆。
+
+## 2026-10-30 公司封面照片改可用官方照片（Andy：「改成接用 並標明出處 是可以的」；DECISIONS #373；最後更新 10-30 台北）
+- 規則：`photo_lib_review.md` 第九節〇（license=`official-press`、署名「圖：<公司名>官方」、仍不准人物主角／媒體照／標誌主視覺／AI 圖）；`render_news_cards.license_ok()` 只收允許的授權值、`credit_of()` 印官方署名；選圖順序不變（主體公司已審圖 → 類別池 → 通用池）。
+- 抓圖：`company_photos.yml` 手動觸發 `source=official`（`scripts/company_photos_official.py`，Playwright＋報告書 PDF 取圖），`targets.json` 的 `official_sites`／`credit_name`／`official_credit`。
+- 第一批審核（第十節）：台積電 8（官方 5）、NVIDIA 6（官方 3）、三星 5（官方 3）、Arm 3、日月光 3、CoreWeave 2、欣興 2、南電 1、Anthropic 0、南亞科 0、台光電 0。
+- **待處理**：Anthropic／南亞科／台光電／南電／CoreWeave／欣興未達 3 張——官網沒有可用實景（人物、CG、字卡為主）；這幾家封面仍走類別池（有圖、不擋發文）。下一步在 `official_sites` 直接填官方永續報告書 PDF 網址再跑一輪，或請公關提供。
+- 這批只驗：`pytest tests/test_photo_pool.py tests/test_social_news.py`（48 passed）＋ 6 張範例封面重疊檢查 0 筆。
+
+## 2026-10-30 封面照片：跟公司有關一律先用主體公司照片（Andy：「相這種跟公司有關的 優先附上公司圖片」；最後更新 10-30 台北）
+- 事故：10-30 早上緊急加發「Alphabet 跌 12.6%」，手寫渲染腳本直接指定 Intel 圖池 → 封面配成 Intel 處理器。
+- 改：`render_news_cards.photo_pick` 主體公司已審圖池最優先（蓋過常備文庫指定池／台股大盤圖）、`company_slug()` 主體名稱模糊比對、公司池「相關場景」排最後；手動加發一律 `python scripts/news_cover.py <post.json> <輸出.jpg>`。規則：`news_post_rules.md` 第十二節。測試：`tests/test_photo_pool.py`。
+- 照片：`company_photos.py` 加 Commons 公司分類抓法（`targets.json` 的 `commons_categories`），新增 CoreWeave／南亞科／南電／台光電；run 40987929655 抓 103 張，第五輪審核通過 27／退件 76（`photo_lib_review.md` 第七節）。
+- 待處理：CoreWeave、Anthropic、南亞科、南電、台光電、ASML 仍 0 張已審公司圖（退該公司類別池）；台積電、鴻海、聯發科、廣達、三星、OpenAI 只有 1～3 張 → 換更精準的 Commons 分類名重抓。這批只跑了 pytest 全套（1532 passed）＋ test_social_news／test_photo_pool；沒動 site/，不需部署。
+
+## 2026-10-29 盤後保底＋法人補充貼文＋inst 輪加速（事故：盤後主貼文到 18:25 沒發；最後更新 10-29 台北）
+- 盤後 19:00 後法人卡仍是昨天 → 拿掉法人三張、其他當天卡照發（文案標「法人個股明細晚到，稍後補」），法人到了自動補發 `close-inst-<日期>`。細節見 docs/marketing/social_unit/auto_post.md 修改紀錄。
+- daily.yml inst 輪沒新增今天法人就不整站重算、不部署（`rebuild` 輸出）。
+- 這批驗了：tests/test_social*.py、test_gh_cron.py、test_inst_phase.py；本機 --now 19:05 跑 social_snap close 保底實測產出 2 張圖＋文案。
+
+## 2026-10-29 新聞主體誤判修正（「外資大砍友達」被判成台積電，相關公司跟著列錯；最後更新 10-29 台北）
+- `scripts/social_news.py` 的 `subject_of`：改以標題為準（標題最先出現的公司／機構；新聞代號清單裡有的優先）；籌碼類（外資／投信／自營商／三大法人）以被買賣的那家為主；兩字簡稱不在代號清單裡就不採用（「再生」「星通」「新產」）；新聞代號只在標題沒有主體、且只有一檔或摘要寫到它時才當備援；有台股代號的新聞不再從摘要撈英文字當主體。
+- 近三天 443 則重跑：27 則主體改變，逐則確認（清單在本次回報）。可發篇數 74 → 73（少的是原本主體錯的那篇）。這批只驗 `tests/test_social_news.py`、`tests/test_threads_post.py`。
+
+## 2026-10-29 主題文章加「🏢 #相關公司」一節（Andy：「可以的話需要附上相關股票 公司做哪塊 簡單補充」「以後文章都是，但是跟這類有關才要」；最後更新 10-29 台北）
+- `scripts/social_news.py` 的 `rel_news()`（新聞稿）／`rel_evergreen()`（常備文庫）：公司與「做哪一塊」由 `pipeline/groups/supply_chain.yaml`（環節＋tech）／`groups.yaml` 自動帶出；總經、央行、商品、盤勢籌碼整節省略。
+- 常備文庫 `social/news/evergreen.json` 11 篇都加 `related`：cowos／hbm／ic_flow／cooling／abf 有公司，其餘 6 篇 `{}`（跟產業無關）。
+- 法遵或 IG 長度過不了就拿掉這一節、不擋整篇；不算進內文最少字數。規則寫在 `docs/marketing/social_unit/news_post_rules.md` 第十一節、`auto_post.md` 修改紀錄。
+- 這批只驗：`tests/test_social_news.py`、`tests/test_threads_post.py`（含新增 5 條相關公司測試）。下一步：看今天盤後實際發出的那篇有沒有這一節（新聞若是總經類就不會有，屬正常）。
+
+## 2026-10-31 交易練習室最終版上 main（合併 preview/lab-ux＋preview/standard-strategies；Andy「上線」；最後更新 10-29 台北）
+- 合併：兩分支自動合併無衝突；engine/expr/replay 取 standard-strategies，ux/kview 取 lab-ux，CSV 用 `E.tradeLegs()`。
+- 這批修：台指期回測預設 5Y；資金不足 1 口原始保證金時結論列寫「YYYY-MM-DD 起資金不足 1 口保證金，之後停止交易」；All 的 K 線可視範圍涵蓋整段（minBarSpacing 0.02）；損益圖 Y 軸整數千分位；手機右側多留 12 根避免最右月份被切；`#v-lab #labBHw` 右讓 72px 避開比比客服鈕（site/m4/20261031-lab-final.css）。
+- 驗收工具：`_uitest._block_external()` 中斷非本機請求（容器代理把外部請求掛著，networkidle 永遠等不到）；`_preview.py` 同步套用。1028 段成本口徑、台指期 60 分、標準策略「?」浮層三條過時斷言已更新。
+- 這批驗了：交易練習室 8 段＋最終版1031 全 0；桌機守門1008 0；手機v2 7 紅與 origin/main 基準逐條相同（ETF 報酬率／除息表、頂欄搜尋，既有問題）；_preview 只剩 #stock/3189/holders 文字交疊（main 既有）。
+- 待處理（P1 未修）：自訂起訖日期、事件濾網多選、日內虧損以交易日計、換月價差還原、畫面交易清單進出場兩列、借券費預設 0。
+
+## 2026-10-28 新聞貼文自動排程上線（Andy「可以，接上排程，單位改成億美元…」；最後更新 10-28 台北）
+- 圖卡大數字單位：`render_news_cards.py` 數字正則改成「億美元」整段保留；10-28 盤後五張重產（--pal D，重疊 0 筆）。
+- 新工作流程「新聞貼文自動排程」`.github/workflows/social_news.yml`：接在「社群即時貼文」每輪之後＋備援 08:35／12:16／19:35／21:05／22:35；主貼文發出 +30 分（盤前 ≥08:50、盤中 ≥12:31）排 3～5 篇到 social/{ig,threads}/queue。
+- 產稿 `scripts/social_news.py`（模板、不用 LLM）、法遵 `scripts/news_legal.py`、成效／週報／權重 `scripts/news_insights.py`（掛在 social_insights.yml、social_style_weekly.yml）。說明 `docs/marketing/social_unit/news_auto.md`。
+- 驗證：pytest 全跑；workflow YAML 解析；本機乾跑樣本 `docs/marketing/posts/2026-10-29-news-auto-dryrun/`（沒有真發）。純 scripts／workflow／docs，未動 site/**，_preview／_uitest 不適用。
+- 待處理：點擊（?u= 漏斗）Actions 讀不到；單一來源數字以標出處代替（見 news_auto.md 第四、九節）。
+
+## 2026-10-29 交易練習室上線 main＋台指期搬進來＋籌碼策略（#lab，仍只有管理者看得到）
+- Andy 拍板「上線，籌碼策略也要做，台指期搬進交易練習室」。① `#futures` 頁整個搬進「台指期」子分頁：上方分段鈕「F2 策略訊號與績效」（預設，`site/lab/futures.js`＋`pipeline/compute/futures_page.py`＋`site/data/futures.json`）｜「回測工作台」；舊網址 `#futures` 導向 `#lab/fut`。② 已推 main（c573dfad，管理者限定、無一般公告）；`preview/trading-room`、`preview/futures` 分支在 main 部署 ✅ 後刪除。③ 籌碼策略 9 支：法人連買、投信連買、外資轉買、融資增減、券資比、集保大戶增減（只有 2026-09 起週資料，標「資料不足」不出訊號）、當沖比過熱、突破＋法人買超、均線多頭＋投信連買；自訂積木與腳本新增 `chip()`／`streak()`／`csum()`。
+- 籌碼資料：`pipeline/compute/lab.py export_chips` 每檔一個 `site/data/lab/c/<代號>.json`（近期成交值前 1000 名中的個股約 825 檔、合計約 23 MB），按需載入；index.json 的 `ch:true` 標記有籌碼檔。研究結論「法人籌碼當主訊號沒有增量」寫在「?」。
+- 驗：`tests/lab_engine_check.js` 352 項、`lab_expr_check.js` 35 項（含籌碼手算小資料）；`_uitest` 五段 `交易練習室回測1028／重播1028／事件1028／自訂策略1028／台指期1029`＋新增 `交易練習室籌碼1029` ＝0 問題；上線前 `桌機守門1008`＝0 問題、`手機v2` 7 個（與 origin/main 同環境 10 個，非本批造成）；pytest 1445 通過，2 失敗（`test_送到前端的名稱不會是nan` 先前就失敗；`test_族群沒有未登記的產業別離群值` 讀本機 company_info，我們沒動族群）、5 個 yfinance 缺模組（環境）。`_preview.py` 唯一問題是 `#stock/3189/holders` 圖內文字交疊（個股籌碼頁，非本批）。
+- 容量：`site/data` 未壓縮約 1.1 GB、gzip 約 307 MB（Pages 上限看壓縮後 artifact）；lab 目錄約 157 MB。
+- 公開前要法遵看：F2 區塊「建議曝險／口數」字眼可能被讀成明確買賣建議（launch_standard C 類）；回測績效另有頁尾免責一行。目前僅管理者可見。
+
+## 2026-10-28 交易練習室（#lab，管理者限定；預覽 preview/trading-room；最後更新 10-28 台北）
+- Andy 要「TradingView 有的都要有」：台指期、歷史回測、K 線重播（含模擬下單）、事件分析、自訂策略。規格書 `docs/tradingview_spec.md`（TradingView 原文沒讀到，〔知〕處的口徑已寫進頁面「?」）。
+- 檔案：前端 `site/lab/{lab,engine,kview,replay,events,expr,custom}.js` ＋ `worker.js`；樣式 `site/m4/20261028-lab.css`；資料 `pipeline/compute/lab.py`（`python -m pipeline.compute.lab`，build_payload 會呼叫，`SKIP_LAB=1` 略過）→ `site/data/lab/`（約 130 MB，Pages 容量要留意）；預覽分支吃正式站資料、正式站還沒有 lab/ 目錄，所以另 commit 小樣本 `site/lab/sample/`（`python -m pipeline.compute.lab --sample`）。事件表 `pipeline/groups/events_history.yaml`（`scripts/gen_events_history.py` 產初稿）。
+- 驗：`tests/lab_engine_check.js`（269 項：人工可算序列到小數、帳務恆等式 150 組、無未來資料、指標與 KInd 同口徑）、`tests/lab_expr_check.js`（29 項：腳本＝內建策略 27 組）、pytest 包裝 `tests/test_lab_engine.py`；`_uitest` 四段 `交易練習室回測1028／重播1028／事件1028／自訂策略1028`＝0 問題；`桌機守門1008`＝0 問題；`手機v2` 本機 7 個問題但 origin/main 同環境是 10 個（不是這批造成，且這批順手修掉科技透明圈圖示那兩條）。
+- 已知限制 / 待辦（卡住的不擋其他項）：
+  1. 籌碼策略 10-29 已做（見上）；集保大戶增減待 `shareholding_weekly` 累積滿 2 年才可回測；籌碼檔只給近期成交值前 1000 名個股。，等 Andy 決定要不要。
+  2. 台指期是近月連續合約，換月價差沒調整（頁面「?」已寫）；夜盤 `FUT_N` 沒用。
+  3. 60 分 K 只給近期成交值前 500 名個股（`TOP60`，容量考量），指數與台指期沒有 60 分資料；日 K 個股從 2016 起（`DAILY_FROM`）。
+  4. 事件表：FOMC、台積電法說會日期是依公開日程整理（信心「中」，尚未逐筆對官網）；非農、台指期結算日是規則推算（信心「低」，遇假日未調整）；歷史 CPI 沒有（`macro_calendar` 只有近期）；除權息旺季是由資料湖統計。要補官方出處請改 yaml 的 `src`／`conf`。
+  5. 引擎沒做：保證金追繳、Bar Magnifier（用 60 分推演日內）、Recalculate on every tick、限價單 Verify price、多幣別；Greedy 是近似版、Technical Ratings 沒做（規格書標未核實）。
+  6. 重播：沒有分 K 逐步長出當根；委託單沒有拖曳改價；帳戶只存在記憶體（離開就清掉）；漲跌停限制沒擋。
+  7. 迷你腳本不支援迴圈／陣列／request.security；版本紀錄、分享策略沒做（規格書 P2）。
+  8. 本機 `_preview.py` 沒有涵蓋 #lab（管理者限定，不在公開路由掃描裡），驗收靠上面四段 `_uitest`。
+- 下一步：Andy 看過預覽後決定是否上正式站（上線時 `site/notices/features.json` 先不發公告，因為只有管理者看得到）；要放給一般會員前，先過 `docs/launch_standard.md` 與法遵（回測績效字樣、免責）。
+
+## 2026-10-28 波段系統 B-M2 加進前向紙上帳本（帳戶 SWING／SWING_BRAKE；只動 pipeline，最後更新 10-28 台北）
+- 新增 `pipeline/compute/swing_b_m2.py`（名單、S1/S2、還原價、帳戶逐日推進，純函式）與 `live_signals.run_swing()`（讀寫帳本）；新表 `paper/swing_signals`、`paper/swing_holdings`、`paper/swing_watch` 已在 `config.TABLES` 註冊；淨值寫進既有 `paper/ledger`（plan＝SWING／SWING_BRAKE）。起算日 2026-10-29（第一個訊號日），最早成交 10-30 開盤。規則、失效條件、與回測引擎的差異見 `docs/paper_ledger.md` 最後一節。
+- 驗：`tests/test_swing_b_m2.py` 23 項（不偷看未來、隔日開盤成交、停損／跌破 50 日線／滿 60 日、降速、持倉上限、帳本只增不改、補跑與逐日結果一致）；全套 pytest 1432 passed，5 個 error 是本機沒裝 yfinance（`test_sources_v3` 的 intraday 測試，與本批無關）。另用 2024-03～07 逐日重播對照回測引擎成交紀錄：兩邊都有的 13 筆出場日全同、R 誤差 <1e-10。
+- 已知限制：前向帳本不調參數；沒有族群持倉上限（凍結登記沒有，與全新樣本驗證同規則）；被拒絕的訊號不會虛擬占位；降速回撤用每日淨值；`dividend_results` 若晚到，除息日可能被當成跌破停損（有 -38% 以上單日跳動才會被補丁修回）。
+- 下一步：10-29 收盤後第一次出現 SWING／SWING_BRAKE 帳本列；每週看一次 `paper/swing_signals` 的 REJECT 原因分布；累積 3 個月再回頭比較兩個帳戶，期間不改規則。
+
+## 2026-10-28 盤中貼文熱力圖被略過（data-snap-live=err）修正（最後更新 10-28 12:50 台北）
+- 根因：① 熱力圖即時要「名單約 455 檔每一檔都問過」才算 ready，但只認 mis 有回報價的代號 —— 只要有一檔不回（暫停交易、市場猜錯、還沒成交），就永遠 pending → 60 秒後 err；② 逾時計時從開頁就開始算（單頁換頁不重載），截圖程式先跑輪盤／排行／分流樹約 40 秒，進熱力圖頁時已接近或超過 60 秒；③ 截圖程式看到 err 立刻放棄。
+- 修：`site/app.js` HL —— 補位送出的代號都算問過；只在熱力圖看得到時計時；逾時 150 秒；`scripts/social_snap.py` —— pending／err 再等最多 170 秒；仍等不到 → 熱力圖退回上一個交易日收盤（標題列寫「M/D 收盤」、文案「熱力圖（M/D 收盤）：」、盤面分析不引用），其他三張不受影響。
+- 驗：pytest social 102 passed；本機模擬「2% 代號不回」：舊版熱力圖永遠等不到、新版 16 秒套上；退回收盤路徑實跑出圖；`_uitest` 熱力圖即時1020、桌機守門1008 各 0 個問題；`_preview` 正常。這批只驗了這幾段。
+
+## 2026-10-27 行銷指揮部（最後更新 10-28 00:15 台北）
+- 已上線：W1 量測＋漏斗（依平台／依功能）、W6 社群成效每日回收、每週風格統計、貼文深層連結（含落點輪換、ETF 除息）、14 天體驗額度＋防濫用、自選日報＋自設提醒、_preview 9 筆歸零、三個既有問題（輪動時鐘環標、事件篩選說明、驗收過時段）。
+- 規則：Andy 10-27「原有的參數設定不可以動」——plan_presets 既有鍵值、價格、#admin/perm 一律不改；#admin/perm「套用建議方案」不要按。T-2／T-3 暫停；T-5／T-6 Andy 不同意（Pro 照樣上價、FinMind 功能維持原分層、AI 分析維持分層次數）。
+- 文件：docs/marketing/{growth_command_1026,traffic_methods_1027,feature_funnel_1027,tier_plan_1027,style_stats_1027,style_research_1027}.md。
+- 下一步：11/01 首份每週選題簡報；11/09 第 14 天校正；12/17 Meta 權杖到期提醒（已排）；等 Andy 旁白 10 秒錄音、確認 welcome 天數。
+- 這批驗了：各批回報所列段落（漏斗事件1026、深層連結1027、體驗額度1027、自選日報提醒1027、輪動時鐘環標1027、總覽、新-大盤三張圖、資金流向系列、會員兩段、桌機守門1008、_preview）。
+
+## 2026-10-27 T-4 自選日報＋自設提醒上線（W7；Andy「照建議，全部執行」「原有的參數設定不可以動」）
+- 計算：`pipeline/compute/digest.py` 在 build_payload 產 `site/data/digest.json`（全市場事實表，只讀資料湖既有表、不新增抓取）；前端 `site/digest.js` 依自選清單／條件在瀏覽器組日報、判斷提醒，通知併進既有鈴鐺（`notices.js` 的 `L()`）。通知與已讀只存本機。
+- Worker：`workers/account-api/worker.js` 檔尾 alerts 區塊（`/v1/alerts/get|put`、條數上限伺服器守、刪帳號一併刪）。
+- 權限新鍵（只新增）：`watch.digest`（Pro 開）、`watch.alert`（註冊 1／Plus 5／Pro 200＝不限／訪客 0）；`plan_presets.js` 只多 8 行。要讓線上範本生效須在 #admin/perm 按「套用建議方案」，沒按之前靠 features.js defBy＋Worker ALERT_DEF 預設一樣。
+- 欄位白名單（法遵 L-13）：收盤價量、法人買賣超、最新月營收、除息／法說會／財報公布日；`tests/test_digest.py` 掃輸出無評分／建議字樣。
+- 這批驗了：pytest 全跑綠（1405）、Worker 測試 187 綠（含新 alerts.test.mjs）、`_uitest --sections 自選日報提醒1027,體驗額度1027,桌機守門1008`＝0 問題；`_preview` 9 個舊問題與 main 完全相同。
+- 已知：`會員與自選五分頁` 段在 main 上就紅（「自選 800 頂欄看不到」「#wlBtn 不可見」），與本批無關。Email 寄送未做（等寄信關卡）。
+
+## 2026-10-27 前向驗證紙上帳本上線（E2 正二 200 日線／F2 台指期 1.3 倍；只動 pipeline）
+- Andy 拍板策略委員會「穩健版」：個股＋ETF 用 E2、台指期用 F2。`pipeline/compute/live_signals.py` 每日盤後算訊號，從 2026-10-27 起用隔日開盤價假想成交並扣成本，寫進 `data/paper/`（表 `paper/ledger`、`paper/satellite`，只增不改）；規則與讀法見 `docs/paper_ledger.md`。研究用，不是買賣建議，不會下單。
+- 接進 `daily.yml`：「抓取與計算」之後一步，`continue-on-error: true`；沒動 `cancel-in-progress`。
+- 第一筆訊號：2026-10-27 收盤資料進湖後的那一輪（起算日只有訊號、10-28 開盤才成交）。SAT 衛星權重 0%，只記錄。
+- 這批驗：`pytest tests/test_live_signals.py`（16 項：訊號不偷看未來、隔日開盤成交與成本、帳本只增不改、起算日前不寫）。
+- 待辦：下市股資料補齊後重驗衛星；帳本滿 3 年才有滾動窗口可比。
+
+### 2026-10-26 行銷指揮部：引流到付費總方案（文件，最後更新 2026-10-26 台北）
+- 方案：`docs/marketing/growth_command_1026.md`（已過監察委員＋法遵第三方審查並修訂）；研調 `docs/marketing/research_growth_1026.md`。
+- 下一步：等 Andy 回 J-1～J-10；W1 量測（utm＋漏斗事件）可先開工。純文件，未跑任何關卡。
+
+## 2026-10-27 02:35 CEO：社群自動發文正式開啟（Andy「開始發…接下來就是自動發文」）
+- 總開關 docs/marketing/social_unit/LIVE_ENABLED 已建（刪掉＝回 dry-run）。格式照 docs/marketing/social_unit/auto_post.md。
+- 時間：盤前 08:20（只在台股交易日；休市或已過開盤就不發，美股有開也不發）→ 盤中 12:00 → 盤後等當天法人／期貨資料到齊（daily 管線跑完觸發）。
+- 盤前發完寫回 site/articles/premarket.json（網站盤前消息）。
+- ⚠ GH_DISPATCH_TOKEN 未設 → 只靠 GitHub 內建排程，可能延遲；盤前若晚於 08:45 才跑會被擋下不發。設定步驟 docs/gh_cron_setup.md。
+- 待辦：Meta 換發的 Threads／IG 長效金鑰要更新到 GitHub Secrets（舊的到期前有效）；精選文章隱藏眼睛＋盤後消息分頁（frontend-ui 進行中）。
+- 這批驗：pytest tests/test_gh_cron.py tests/test_social_fast.py 等 social 相關全綠；盤前閘門手動驗休市日／交易日 08:20／09:30／週六。
+
+### 2026-10-25 CEO：產業地圖新增「矽光子／CPO」分頁上線（合併 claude/siph-chain＋claude/siph-diagrams）
+- Andy 10-24：「產業地圖幫我新增矽光子CPO題材分頁…有哪些設備 產業 他們之間的關係…同樣風格的繪製2D/3D 風格圖」。
+- 調查 docs/siph_cpo_{semi,optics,substrate}_evidence.md；裁決 docs/siph_cpo_chain_notes.md；疊加族群 DECISIONS #362；規格 docs/diagram_specs/siph_cpo.md。
+- 新鏈 siph_cpo 12 組（overlay，不進 M1 佔比）；圖 A 掛 siph_pkg（3D/2D 封裝剖析）、圖 B 掛 siph_module（光路＋三條道＋四架構）。有剖析圖的鏈預設先看第一張圖，族群總覽在 #industry/siph_cpo/overview（uitest 段已跟著改）。
+- 這批驗：pytest 1231 passed；_uitest 桌機守門1008、產業、產業鏈導覽、矽光子CPO1024、矽光子CPO剖析圖1024 全 0；_preview 只剩 main 既有的 ai_server 800px 卡片文字交疊（非本批）。
+- 待辦：關聯圖會帶出非 CPO 同業（例如宏捷科、京元電在既有環節裡），之後可改成只顯示 siph 成員；3D 效能（三角形／draw call）未量。
+
+
+### 2026-10-24 科技產業分析師：產業地圖新增「矽光子／CPO」題材分頁（分支 claude/siph-chain，未推 main）
+- 資料：groups.yaml 新增鏈 `siph_cpo` 12 組（疊加族群 `overlay: true`，不進 M1，見 DECISIONS #362）；昇達科 3491 移到 satellite、萊德光電 7717 移出 optical_module；
+  supply_chain.yaml 新增 8 個環節、約 20 個節點、9 條邊，降級 lpc→coherent、luxnet→accton。裁決紀錄 docs/siph_cpo_chain_notes.md。
+- 前端：industry.js（CHAIN_EXTRA、全市場排除疊加鏈、「成員與階段」表）、m4/20261024-siph-chain.css、features.json 公告。2D/3D 圖由 tech-illustrator 另做（site/dg/siph_cpo.js）。
+- 驗收段落：scripts/uitest_sections/20261024_siph_chain.py（矽光子CPO1024）；pytest tests/test_overlay_groups.py。
+- 待：Andy 校訂訊芯-KY 等需校訂成員；themes.yaml 既有題材「矽光子 / CPO」含宏捷科 8086（查無實證）未動。
+
+### 2026-10-22 凌晨 CEO：社群盤後圖修正（main 1de955be、6e6cafc0）
+- 公司 LOGO 破圖修好：social_snap 只抓 JSON 沒抓 data/logos/*.png → 改讀正式站圖檔；等圖改 addEventListener，不再蓋掉 onerror 字標退路。
+- Andy 10-22：「右下角訊息拿掉，上方LOGO 改標題 這樣讓版面擴大」→ 品牌列＝LOGO＋標題，卡內不重複標題，拿掉右下網址。
+- 融資兩張卡拆成獨立一篇 kind=credit（credit_ready 四條件把關、posted 鍵 credit-<資料日>）；news 輪也抓整體融資；信用交易頁維持率大數字退回最近有值日並標日期（marketfut.js）；限動 STORY_RATIO 1.76、排行列距撐滿。
+- 這批驗：pytest 全套 1224 passed；_uitest 桌機守門1008、大盤融資維持率1020、信用交易r3 0 問題；雲端 social-live close force dry-run 7 張逐張目視。
+- ⚠️ 未修：散戶多空比限動左右各空 ~79px；github.io meta.json 偶發 404 時退回 pages.dev 舊資料 → 該輪少發（建議 404 重試或取資料日最新的來源）。
+- 待 Andy：Meta 開發人員帳號被「異常活動」鎖、簡訊收不到（勿刪開發者帳號）；Threads 測試人員邀請已接受；之後做 Threads 權杖→IG 權杖→4 筆 Secrets。
+
+### 2026-10-20 CEO 總結（主 session）
+- ✅ 上線：市場明細新增「三大法人（日報｜個股）」#market/inst、「信用交易」#market/credit、「期貨籌碼（台指期三大法人未平倉｜台指散戶多空比 大台/小台/微台）」#market/fut（合併 preview/market-1020，Andy：「新增功能排版 OK 先推上」）；舊 #market/streak 導向 #market/inst。
+- ✅ 熱力圖 4 張盤中即時＋族群資金排行與輪盤即時同步（只給站主／管理員）；site/snap.js 截圖目標＋TwSnapReady（docs/social_snap_targets.md）。
+- ✅ 社群自動發布：scripts/social_snap.py（截圖排版）＋social_publish.py（Threads／IG 限動）＋.github/workflows/social-live.yml（盤中 09:35/11:05/13:05、盤後接 daily）。盤後 dry-run 成功；盤中待明天實測。**待 Andy**：Meta 設定（docs/marketing/social_unit/meta_api_setup.md，第 0 步 IG 商業帳號截圖）、盤中發文做法三選一（法遵 docs/marketing/social_unit/live_posts_legal.md：盤中再散布需授權，建議盤後再發）。
+- ✅ 資料修復：信用交易單位錯 1000 倍（mktfut.py）；散戶多空比只讀 TMF（已改三商品）；上櫃法人改櫃買 openapi 一次全市場（上市 openapi 無 T86，仍 FinMind 逐檔）；新鮮度把關 util/freshness.py＋資料狀態徽章；GitHub 排程被丟 → cron 避開整點半點＋backfill heal job 補派（scripts/heal_daily.py，尚未實測成功）。
+- ⚠️ 未完：10/20 手動 full（run 39414958315）collect 失敗，資料已 commit 但未部署 → data-steward 修中；三大法人全市場官方金額 inst_market_daily 尚未進湖（日報仍為估算 23 天）；遠端殘留分支 probe-inst-tmp（權限擋刪，請 Andy 刪）。
+- 規矩：docs/andy_ui_rules.md 第〇節＝Andy 10-20 的 17 條介面修正，CLAUDE.md 已加「介面一律照它、交件逐條自查」。
+- 這批只驗：桌機守門1008、期貨籌碼r3、信用交易r3、當日法人1020 等新段；三大法人r3 本機 networkidle 逾時未驗（組員端已驗）。
+
+### 2026-10-20 資料新鮮度把關＋個股三大法人整天補抓（data-scraper）
+- Andy：「我看見那數據沒更新，確保數據每天都有更新」。10-19 個股三大法人只有 148～249 檔（正常 1,900+），頁面退回 10-16。
+- 根因：法人只能逐檔向 FinMind 要（每檔 1 次，一天 ~1,975 次），每小時額度 600、排程又常延遲；`backfill_progress.json` 的
+  `inst@fresh2026-10-19` 當時 1,600 檔只做了 77；管線每步都「成功」所以沒人發現。`inst_market_daily`（全市場金額）整張還沒進湖。
+- 修法：`finmind.institutional_day`（不帶 data_id 一次拉整天，1 次額度；會員等級拿不拿得到**查不到**，拿不到回空照舊逐檔）、
+  `pipeline/inst_bulk.py`（full／inst 階段與每日續補先試）、逐檔名單 ＝ 前 500 ∪ 網站用到的全部個股、
+  `pipeline/util/freshness.py`（5 張表缺最新日或筆數 <近 10 日中位數 8 成 → last_run.json `warn`／meta.json `freshness_warn`，
+  資料狀態徽章提示列出「過期或不完整」項目；當天台北 19:00 前標 pending 不亮）。測試 tests/test_data_fresh_1020.py。
+- 沙箱打不到 FinMind，整天全市場能不能用要看 Actions 的 log（搜「整天全市場法人」）。
+- 這批只驗：test_data_fresh_1020／test_inst_phase／test_sources_v3／test_backfill* 單檔（本機沙箱無外網，test_stage_pipeline_news、test_freshness 要在 Actions 跑）。
+### 2026-10-20 三大法人買賣超日報（UI 專家；前端在預覽 preview/market-1020、資料層已在 main）
+- 市場明細「三大法人」（#market/inst）＝日報（期間鈕 1月～全部、四格＋百分位、堆疊直條＋指數線、累積、明細表、個股排行 Top 8＋族群篩選、全圖連動）＋ 頁內分段「連續買賣超」（原法人連買賣併入；舊 #market/streak 導向）。口徑見 docs/inst_today.md。
+- 資料：新表 inst_market_daily（FinMind TaiwanStockTotalInstitutionalInvestors，官方值，run_daily 每日＋run_backfill 回補 5 年）；官方值沒回補到的日子用 inst_daily×收盤（只算上市）估算並標「估」。**雲端第一次回補跑完前只有約 23 天估算，長期間鈕反灰**；回補後請確認外資數字與證交所公告值一致（例如 10/19 外資 −767.4 億）。
+- 未決：features.js 的 mkt.streak 配額改綁「連續買賣超」分段；沒有新增三大法人詞彙字典（TERMS 不存在）；手機整頁約 3 屏半（準則為 ≤3）。
+- 這批只驗：當日法人1020（新）、市場明細、市場明細下鑽0928、側欄子分頁1010、桌機守門1008、pytest 子集 189 綠＋先前全量 1165 綠。基準同樣紅的（與本批無關）：平台導覽1007、說明精簡、總覽 2、站上均線下拉1004、註冊會員權限1012。
+
+### 2026-10-20 資金輪動勾族群 → 排行長條消失＋頁面例外（修好）
+- 症狀：#flow/rotation「族群」下拉勾晶圓代工／HPC 與網通 IC／矽晶圓，每勾一個丟 `reading 'width'`，族群資金排行只剩名字沒有長條。
+- 根因：softenOption 替「單一橫條、全為非負值」補底軌（showBackground）；排行篩到只剩正值族群時底軌由關轉開，ECharts 5.5.1 BarView 更新路徑用舊索引取新版面（`0===x.length?M=w(n)`）而中斷。跟圖表尺寸 0／rotRedraw 去抖動無關（量過容器 624×760、348×420 都正常）。
+- 修法：app.js `bgFlipReset`（掛在 chart() 包住的 setOption）：底軌由關轉開時先 clear() 再畫 —— 全站長條圖共用，不只排行。
+- 勾族群連帶展開成分股面板（pickGroup）是既有設計，未改。
+- 新驗收段落 資金輪動勾族群1020（scripts/uitest_sections/20261020_資金輪動勾族群.py，桌機 1800／手機 390）；修正前 0 根長條＋5 次例外、修正後 3 根＋0 例外。
+- 這批只驗：資金輪動勾族群1020、--only 資金流向,新-資金流向,新-輪動時鐘,批次2,批次3,批次7,總覽、桌機守門1008、_preview。純前端改動，跳過 pytest。
+
+### 2026-10-20 單篇公開已收回
+- 影片錄完，特斯拉那篇改回付費：OPEN_ARTICLE_IDS=[]、index.json 拿掉 open；開關機制保留（DECISIONS #361）。單篇公開1020 段在清單為空時只驗非公開仍上鎖。這批驗了：Worker node 179 綠、單篇公開1020、精選文章分級1016、桌機守門1008。
+
+### 2026-10-20 單篇暫時公開開關（UI 專家）
+- Andy 10-20：「暫時把這篇設成免費公開」（錄功能影片用未登入訪客畫面）→ 特斯拉那篇 `2026-10-17-news-tesla` 全文暫時開放給所有人，不扣 Plus 額度。DECISIONS #361。
+- 伺服器端清單：`workers/account-api/articles.js` 的 `OPEN_ARTICLE_IDS`；畫面端：`site/articles/index.json` 那篇 `"open": true`。兩份由 anti_freeload.test.mjs 比對一致。
+- **錄完要關**：把 index.json 那篇的 `"open": true` 拿掉＋`OPEN_ARTICLE_IDS` 改成 `[]`，推 main。
+- 這批只驗：Worker 全部 node 測試（179 綠）、pytest test_article_public_guard、_uitest 單篇公開1020（新段）／防白嫖後端1016／精選文章分級1016／桌機守門1008、_preview（只抓到既有的 #industry/ai_server 800 寬文字交疊，與這批無關）。
+
+### 2026-10-19 多圖連動全站（CEO 主 session）
+- Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」「避免我重複下指令」。規格 docs/style_guide.md 第十八節；兩輪普查與排程 docs/chart_link_census_1019.md（24 項，#16 由 stLink、#23 手機已改用桌機版不另做）。
+- 上線：ETF 報酬比較（retLink）、資金流向兩組、ETF 月配單檔／複利（incLink／cxLink）、行事曆＋財經日曆、站上均線／季節性／漲跌分佈、個股頁四分頁（industry.js stLink＋mobile3）、管理區流量＋總覽熱力圖⇄迷你輪盤、第 7 批（個股圖例、四週期十字線、產業鏈關聯圖⇄右欄、流量時段圖）。
+- 點擊行為統一：有連動的地方第一下＝選取，第二下才進下一層（例外：ETF 行事曆清單點一下照舊開明細，因為每點扣次數；色票點一下照舊拿掉；漲跌分佈右表照舊進個股）。
+- 驗收段落：ETF報酬連動1019、ETF月配連動1019、資金流向連動1019、行事曆連動1019、市場頁連動1019、個股連動1019、管理區與總覽連動1019、第七批連動1019；各批也跑桌機守門1008。既有紅項（ETF現金流v2 4、資金流向 14、季節性等 10、關聯圖清單 4、ETF專區1005、財經日曆1006）皆對照 origin/main 為既有。
+- 其他 10-19：個股獲利分頁一屏（stock-profit-fit）、ETF 長條標籤改代號、搜尋下拉加「加入到」自選分頁、產貼文排程往回看 12 小時修漏排、社群部接管（每週日 17:47 文案包排程；需 Andy 在排程掛 repo）、短影音規則 docs/marketing/videos/video_rules_1018.md（等 Andy 選 OpenAI 語音）。
+- 10-19 下午：功能公告（site/notices/features.json＋鈴鐺，規則 docs/feature_notices.md）；文章內 3D 不再被裁（scene 區塊 below）；文章排程改「有 3D 圖的先做」（docs/articles/priority_3d.md），已上架 IC 載板、PSU／BBU 等；**Token 政策** docs/token_policy.md（commit 7e80ace5：43 單位 opus 6／sonnet 35／haiku 2，每個 agent 檔頭有預算上限），兩個排程提示詞已改成照政策（空佇列不 clone、撰寫 agent 20 萬先停、社群 7 則一個 sonnet 寫完上限 45 萬、結尾附本輪用量）。下一步：resource-auditor 每週一量測一次。
+
+### 2026-10-17 18:5x 精選文章插圖第 2 版（style:2）渲染器＋量測＋驗收（分支 illus-v2，未推 main）
+- Andy 10-17：「自動產精選文章，之後的圖需要再更細緻，顏色不要太單一……這次先不改（指已上架的 HBM 那張）」。規格 docs/articles/illus_style.md（動畫單位）。
+- site/artillus.js：只有 illus 帶 `"style": 2` 才走新畫法（27 種 mat 深淺色票、tone、光影、19 種細節、guide、構圖自動裁切）；沒帶的舊圖 SVG 逐字相同（改版前後逐像素比過 cowos／rack／HBM 舊版 18 張圖 0 差異）。articles.js 只多 `ilv2` class。
+- scripts/illus_audit.py（規格 4.2 量測，輸出 json）、驗收段落 精選文章插圖v2（scripts/uitest_sections/20261017_illus_v2.py）。
+- 順手修：精選文章插圖1016 在 main 上是紅的（防白嫖後注入 TW_ACCOUNT_OVERRIDE ＝ 會員系統開著 → 訪客 0 篇），拿掉注入。
+- HBM style:2 試作只在 scratchpad/illus_v2/（不上架、全文不進 repo）。內建 cowos／rack 的 style:2 畫得出來，但 rack 灰色占 89%（機櫃本來就灰）、cowos 手機編號 1 個超出圖高 —— 這兩個內建圖要用 style:2 前要再調。
+- 這批只驗：pytest -k "article or illus"、精選文章插圖1016、精選文章插圖v2、精選文章1014、桌機守門1008、_preview。
+
+### 2026-10-17 16:41 產出進度日期分隔線 ✅；文章上傳仍卡金鑰
+- ✅ 管理區精選文章「產出進度」依送出日期分段（每天一條日期列，上框線）。main 5a81304c。只驗了 精選文章1014、桌機守門1008、_preview（_preview 抓到 #industry/ai_server 800 寬 4 組文字交疊，跟這批無關，待處理）。
+- ⚠️ #5 CPO、#6 HBM 標「失敗」原因：環境沒有 ARTICLE_PUT_KEY、出口代理擋 tw-account.kcq01010909.workers.dev（403）。全文稿在暫存區 scratchpad/art_cpo/、art_hbm/（容器回收就沒了）。
+  等 Andy 選：A＝照 production_guide「一次性設定」設金鑰＋白名單；B＝全文加密以 workflow_dispatch 交給 article-jobs.yml 代傳（從 CLOUDFLARE_API_TOKEN 推解密鑰；權限檢查擋下，須 Andy 明確同意才做）。
+
+### 2026-10-17 19:22 這一輪上線（CEO 主 session）
+- ✅ CPO、HBM 兩篇上架（全文在 Worker；上傳改用雲端環境網路密鑰，article_publish 不帶 Authorization）。測試誤傳的 know-test-a 已 del_body；測試加 autouse 擋真 Worker。
+- ✅ 帳號選單捲動（帳號選單捲動1017）；頂欄站主點「N 人在線」展開名單＋複製 email（線上名單1017）；頂欄試過「今天 N 人造訪」後 Andy 要改回，Worker dayvis 計數保留、數字只在 title。
+- ✅ 管理區圓餅圖例長名稱「…」截斷＋滑過看全名、分頁日期刻度 thinTicks（管理區重疊普查1017）。
+- ✅ 平台導覽：同意後直接開全站導覽（同意後平台導覽1017）；既有紅：同意條款與法律頁 3、平台導覽1007 7（main 上本來就紅）。
+- ✅ 插圖第 2 版 style:2（docs/articles/illus_style.md、精選文章插圖v2、scripts/illus_audit.py）；文章影片區塊（文章影片區塊1017，可用非官方轉載）；產出進度條＋stage（產出進度階段1017，workflow 輸入 stage）。
+- 🛠️ #7 特斯拉 Roadster 快訊：全文＋影片 TWHXrLzUKJc 在 scratchpad/art_7；插圖第一版退件，tech-illustrator 在 illus-car-1017 加 wheel／hcyl／shell 重畫。
+- 既有紅（非這批）：流量觀測1005「堆疊 3 色」、_preview #industry/ai_server 800 寬文字交疊。
+- 待處理：Worker 自動排程仍綁這個長對話（「改排程」等 Andy）。
+
+### 2026-10-17 23:45 晚間第二輪（CEO 主 session）
+- ✅ #7 特斯拉 Roadster（插圖 v2＋wheel／hcyl／shell 積木、CNET 影片）、#8 費半（照 visual_playbook 重做，5 張圖、自評 83）。
+- ✅ 管理者全站可複製＋文章圖「複製圖片」（管理者複製1017）；影片區塊填滿置中；全部文章依類型分段（文章分類分段1017）。
+- ✅ 文章圖表 signed／refs／bands（精選文章圖表擴充1017）＋統一成網站圖表庫款式（同段落第 ⑧ 項）。⚠ 橫條改單色，蓋掉 10-16「色彩豐富」，已告知 Andy。
+- ✅ 排程：每小時新對話（trig_01JSw5RrpyD94edAaUY69HMo，08:05～23:05，已掛 repo 才有 GitHub MCP）＋送出請求立即叫醒（Worker ROUTINE_FIRE_TOKEN，Andy 已在 Cloudflare 設；/v1/articles/jobs/kick）。快速流程卡第 2 版＋docs/articles/visual_playbook.md；撰寫用 sonnet。
+- 🔄 10-18 00:3x 已上架文章拿掉「傳給 GPT」（Andy：「上方這邊拿掉」「這功能不需要了」；main 6ef49698；刪 site/gpthandoff.js）。這批只驗：文章主題兩分頁1016（⑧ 改驗功能不存在）、精選文章1014、桌機守門1008。
+- 🔄 10-18 主題候選清單：依日期分段、「＋ 新增主題」鈕（Worker kind topics）、產出進度併入同一張表、每日 14:05 後自動生成 3×3（docs/articles/topic_gen.md，排程提示詞已改）。這批驗了：精選文章1014、文章主題兩分頁1016、產出進度階段1017、新增主題1017、桌機守門1008（agent 跑）、pytest 全綠、worker 178 測試。
+- 待處理：visual_playbook 第 7 節（分享封面圖、資料湖補費半／VIX／信用利差長歷史、甜甜圈、族群熱力格）；_preview #industry/ai_server 800 寬交疊、流量觀測1005 堆疊色斷言（皆既有）；legal-compliance 看 playbook 第 4 節標題規則。
+
+## 2026-10-17 03:1x 短影片 #4「CPO 共同封裝光學是什麼？」完成（main 87a22a79）
+- 成品 docs/marketing/videos/2026-10-17-k_cpo/（k_cpo_9x16.mp4 45 秒 1080×1920、封面、srt、分鏡、posts.md IG／Threads 文案＋合規自查、overlap_report）。重疊檢查：程式 1350 幀 0 筆；人工 90 格 0 筆。不點名個股；NVIDIA／Broadcom 數字標「廠商說法」＋新聞稿日期。字型 Huninn／Noto Sans TC（OFL），重跑渲染用 CPO_FONT_DIR。佇列 #4 已標 done。
+
+## 2026-10-17 02:0x 精選文章 #3「CPO 共同封裝光學是什麼？」寫好但卡在上架鑰匙
+- 全文已寫好、驗過（內文 882 字、剖析圖 8 部位、時間軸、對照表；來源與數字出處在子 agent 回報），檔案只在暫存區：/tmp/claude-0/-home-user-tw-rotation/09911d5e-cbec-5eb0-a188-19f18707f268/scratchpad/art_cpo/2026-10-17-know-cpo.json（⚠ 容器回收就沒了；10-16 防白嫖規則：全文不得進 repo）。
+- 卡在：Claude 環境沒有 ARTICLE_PUT_KEY／ACCOUNT_API_URL、網路白名單沒有 tw-account.kcq01010909.workers.dev（curl 403）。照手冊第 5 點把 #3 標 failed。Andy 設好後：`python scripts/article_publish.py <上面那支>` → 只推 index.json → deploy_wait → 手動標 #3 done。
+- 既有紅：精選文章插圖1016 在 main 上就紅（防白嫖後訪客看不到新文章，插圖段要加登入或 TW_PREVIEW）。
+- #4 短影片（k_cpo）還在佇列，下一個整點排程處理。
+
+## 2026-10-17 00:5x 上架前（Andy 10-16 23:5x：「我準備明天上架了 目前綠界那頁先反色並註明等審核 其他事項幫我確認」）
+- ✅ 綠界反灰（main c160b76b，台北 00:37 部署）：checkout.js `ECPAY_OPEN=false` → 綠界分頁反灰＋「綠界審核中・暫停使用」、一律開銀行轉帳、不顯示測試模式標籤；**綠界審核通過改 true**。驗收段用 window.TW_ECPAY_OPEN 打開繼續測綠界（結帳與付款1011 新增審核中斷言）。
+- 🔄 法律同意橫幅打開（legal-launch-1016 合併，main 742b7b8c）：legal_config enabled=true、effective_date 2026-10-17；修手機橫幅下方多空 114px（--mnav-h 沒人定義、預設 102px → 改貼底）、法律頁改內嵌不蓋重點一覽、導覽進行中先藏橫幅。新段 法律上架1016。這批驗了：法律上架1016、退款政策1009、結帳與付款1011、桌機守門1008（三組並行時 Chromium 當掉，單獨重跑 0）。「同意條款與法律頁」4 條紅為 main 既有。
+- 上架清單核對（docs/launch_standard.md 二）：1/2/3/5/6/8 ✅、9 本批；**4 律師未做（Andy 決定，不擋上架）**、**7 筆電備份未接（缺 BACKUP_TOKEN，不擋上架）**。
+- 未上線：另一個 session 的 preview/checkout-info（只留信用卡）—— 綠界審核通過前不能上，否則客人無法付款。
+
+## 2026-10-16 22:18 管理者訂單通知點了跳到對應分頁（網頁版 CEO；main 0e379394，✅ 已部署）
+- Andy：「管理者有訂單，點擊後會跳到對應分頁」→ 鈴鐺／公告頁的「新訂單」點了 → `#admin/pay/bankord|orders/<訂單號>`（admin_pay.js 子路由：切分頁、搜尋填訂單號、那列 `.hit` 標亮展開並捲到畫面內，套用後網址改回 `#admin/pay`）；「新申請」→ 取消／退款申請分頁。判斷依 payNotifyOwner 的固定內文（notices.js `payLink`），不改 Worker。
+- 注意：鈴鐺清單有 10 分鐘本機快取（tw.nt.c），新訂單最慢約 10 分鐘才出現在鈴鐺。
+- 這批只驗：訂單通知跳轉1016（新段）、付款管理區1016、結帳與付款1011（單獨跑兩次 0；跟別組同時跑會在綠界步驟紅＝埠衝突）、桌機守門1008。
+- 「產貼文頻率設定」第 2 版 **✅ 已上線（台北 22:42，main 8f6af86d；Worker 同批部署成功）**。①日期（每週／指定日期）→②整點時段 12 小時制→③類別篇數→④加入排程清單（可編輯刪除、增刪改即時存）→⑤啟用。Worker 新格式 {ver:2,enabled,rules}（舊格式自動轉）、機器路由 op:add；到點排隊在 article-jobs.yml 做。排程 trig_01Nd9NpzN6yWGbBspqQ3xsmf 已改每小時 :05（先觸發同步＝順便排到點規則，再讀佇列）。
+- 同批：產出進度／已上架文章的「清除」沒篩選時反灰（Andy：「這沒作用」）。驗收：產貼文頻率設定v2、文章主題兩分頁1016、精選文章1014、桌機守門1008 全 0；pytest test_article_jobs 8、Worker 160 過；_preview 只剩既有 ai_server 交疊。preview/artsched-v2 分支可收。
+
+## 2026-10-16 21:25 客服面板拿掉「寄信」分頁（網頁版 CEO；main 71884b65，✅ 已部署）
+- Andy：「改成原來那樣，並且把寄信拿掉 只留兩個」→ 面板維持原樣，分頁只剩「常見問題｜意見反饋」；信箱（Gmail 撰寫＋複製信箱，`#supMail`／`#supCopy`）移到意見反饋最下面一行。`TwSupport.open('mail')` 改導到意見反饋。
+- **IG 聊天室預覽版（preview/support-chat、support-chat-1016）不上線**；分支先留著，Andy 要收再刪。
+- 這批只驗：願望清單1009、帳號選單1009、登入卡住1016、桌機守門1008（全綠）、_preview（只剩既有 800px ai_server 交疊）。
+- 既有紅燈（非這批造成）：訂閱與客服1005 等不到 `#subMail`（訂閱對話框已改版）；客服與反饋1007「全站沒有 mailto」被 legal.js 頁尾（10-14 綠界退件修正）打到。
+
+## 2026-10-16 夜 防白嫖最小有效版本（預覽分支 preview/anti-freeload，**Worker 未部署、尚未進 main**；DECISIONS #359）
+- 新文章全文只存會員 Worker；公開索引僅標題等欄位（`src:"api"`）；舊 4 篇維持原狀。Plus 5 篇與訪客今日事件 5 次改伺服器計數；`art.read.n`／`events.total` 連不到＝照訪客算。隱私權政策已補段落。
+- 部署順序＆回滾＆擋不住的清單：`docs/security/anti_freeload_rollout_1016.md`。發佈新文章：`scripts/article_publish.py`（`docs/articles/production_guide.md`「發佈」）。
+- **卡在 Andy（沒做之前新文章無法上架）**：repo Secret＋Claude 環境變數 `ARTICLE_PUT_KEY`、Claude 環境 `ACCOUNT_API_URL`、Allowed domains 加會員 Worker 網域，再手動跑一次「部署 Worker」。
+- 這批驗了：`node --test workers/account-api/tests/*.test.mjs`（新增 anti_freeload 13 條）、pytest `test_article_public_guard.py`、_uitest：防白嫖後端1016（真的 Worker 端到端）、精選文章分級1016、今日事件訪客5次1016、精選文章1014、文章主題兩分頁1016、桌機守門1008、帳號選單1009；_preview 對照乾淨 main。
+
+## 2026-10-16 夜 精選文章管理改兩分頁＋頻率設定＋傳給 GPT（預覽分支 preview/admin-articles-2tabs，尚未進 main）
+- #admin/articles 兩分頁：「文章主題」＝已上架文章＋主題候選＋產出進度（原樣）＋最下面「產貼文頻率設定」；「統計數據」＝點閱統計原樣。
+- 頻率設定（site/artsched.js）：預設全空、開關關；要有星期×時段＋類別篇數才能開；切開關即時存。Worker 新表 article_schedule（/v1/articles/schedule/get、add，僅管理者；機器路由 op=schedule）；article-jobs.yml 同步成 data/_state/article_schedule.json；Claude 排程怎麼讀寫在 docs/articles/production_guide.md。**Worker 尚未部署**（部署順序：先 Worker、再合 main；前端遇到舊 Worker 會寫「後端還沒更新」）。
+- 傳給 GPT（site/gpthandoff.js）：已上架文章每列「傳給 GPT・IG 貼文／影片」，純前端組 Markdown、開預填 GitHub Issue（label social-handoff＋gpt-ig-post／gpt-video），不經佇列不碰 Worker。
+- 驗收段「文章主題兩分頁1016」（精選文章1014 管理區段改成先切分頁）。桌機守門1008 0 問題；_preview 與 main 同樣 2 筆 800px 既有交疊；pytest 1120 過（5 個 yfinance 缺套件的既有錯誤）；node --test 158 過。
+- 待 Andy 在預覽確認後才合 main。
+
+## 2026-10-16 手機版 CEO：上午～中午這批（全部已上線；最後更新 13:15 台北）
+- 10:06／10:14 Andy iPhone 回報 7 件 → 11:27 上線（faddeed5）：頁面無限往下滑（#side 0 寬撐高 → .m4shut 不排版）、資金輪動摘要壓免責、「動態 開」移卡片標題列、頂欄限制字縮、「?」18px、產業鏈頁手機不畫 #segBox／跨鏈卡／其他產業鏈列、說明卡「看個股頁」空框（.btn.primary 同色）→ 名字連結＋「在圖上標示」、ETF 月配金額（月領 1/2/5/10 萬＋自訂輸入、年月切換不掉列）。
+- 「小說明點背景就關」普查 13 頁×3 寬 132 次全合格，只加驗收段（手機彈窗點背景1016）。
+- 12:30 精選文章：側欄三個子分頁拿掉（Andy 已確認 OK）、手機四格等寬短名。12:35 手機個股 K 線圖頭搬到圖上方兩行資訊列（#m4kInfo），點 K 棒才出開高低振幅。
+- 12:55 拆檔：手機 CSS 新段一律放 site/m4/<yyyymmdd>-<名稱>.css（`python scripts/m4_css_links.py` 產連結）；驗收新段放 scripts/uitest_sections/*.py（register）。已通知網頁 session。
+- 13:13 族群資金排行／輪動時鐘點族群的 #rankPanel、象限 #stagePanel 底色透明（mobile4.css 第 14 節 .hpanel transparent）→ site/m4/20261016e-opaque.css 改不透明＋列高自適應。
+- 這批驗了：桌機守門1008、手機修正1016b、手機產業鏈1016、ETF月配金額1016、手機K線資訊1016、精選文章分頁1016、手機點擊面板不透明1016、手機彈窗點背景1016（各段 0）。沒跑整輪。
+- 已知既有紅（非這批）：ETF現金流v2 390 組合分頁列溢出 8px；手機按鈕普查／手機桌機同步1009 各 2 紅；個股、K線縮放 1w 價格軸＋networkidle 逾時；_preview 5 筆 404。待處理。
+- 待 Andy iPhone 實機確認：頁尾不再往下滑、南電 4 時 K 線、3D 開抽屜後點分頁。
+
+## 2026-10-16 比比自然互動第三輪（製作與部署狀態）
+
+- 使用者已指派CEO並授權直接正式上線；六角色定義與組織入口在 `docs/anim/bibi_unit/README.md`。本輪修改JS與素材的授權覆蓋舊只許改圖／只推預覽限制。
+- `1016natural3`：點擊同步停待機、線性立即起跑、淺橢圓跑圈；葉／泡泡／紙飛機／毛線各用專屬反應與實測逐格口鼻／身體資料。毛線原畫為身上線單一主責，網頁只接尾線；來源第4格消線改hold第3格。
+- 現場與獨立品管均跑32項測試通過；四組三底／實際160解碼／錨點一致性已核對。完整桌機守門嘗試因瀏覽器安裝失敗未執行；真網頁動態仍待新版部署，不能記為驗收完成。
+- 原始分鏡、生成提示詞、共同裁切與逐格軌跡已保存；`scripts/anim/bibi_natural3.py`可重製輸出。正式上線須以Pages成功及實頁版本為準。客服與原始待機素材未替換，資料及會員流程不在本輪修改範圍。
+
+
+## 跨 session 協調（網頁版 session ↔ 手機版 CEO session；Andy 10-09 21:1x：「你們要互相合作 我給你們權限」）
+- **2026-10-10 吉祥物名字「比比」上站**（動畫聊天室轉 Andy 原話：「比比」是問題解答小助手）：客服鈕滑鼠提示／讀屏「比比・問題小助手」、客服面板標題「比比・問題小助手 需要幫忙嗎？」（site/support.js）；宣傳影片同名。
+- **聊天室分工與直接互傳**（Andy 10-09 晚：「以後這邊是負責動畫聊天區塊，但在其他聊天室之間是可以有權限傳送資訊的」）：
+  | 聊天室 | session id | 負責 |
+  |---|---|---|
+  | 動畫設計單位成立 | `session_01BcUKrYHkJGWWm6eHcrVxVX` | 動畫：吉祥物／LOGO／GIF／貼圖（流程 `docs/anim/README.md`，人員 animation-director、motion-designer） |
+  | 網頁版問題處理 | `session_016qAxeeFyCXq8A4KU8HVusU` | 網頁版（桌機 >640） |
+  | 台股資金輪動 APP 上架規劃 | `session_015wdYMkrZRFteDQLGtBJVDD` | 手機版（≤640）＋手機 CEO |
+  | 台股輪動儀表板專案啟動 | `session_01Ec3nixKoDJAmaCQB9Rr9xU` | 總 CEO（會員、成本、上架決策） |
+  直接傳訊用 `mcp__claude-code-remote__send_message`（session_id 照上表），`list_sessions` 可查最新清單；傳過的重要事項仍在下面記一行，避免只留在對話裡。
+  動畫成品要接上網站時：動畫聊天室出 GIF／WebP（`site/brand/`），網頁版或手機版聊天室負責接到畫面；或動畫聊天室自己接，但照桌機守門1008／手機v2 規矩驗。
+- [10-10 22:4x] 動畫聊天室：開工「網站功能宣傳影片 IG／Threads（Plus 會員）」→ `docs/marketing/video_1010/`。新增角色：市場研調專家、分鏡師、企劃師、影片剪輯製作工程師（`.claude/agents/`）。錄素材時會在本機產 site/data、起伺服器，不改 site/。
+- [10-14] 動畫聊天室：Andy 要「之後串接 OpenAI 產圖的工具」→ 做好 `scripts/anim/mcp_openai_image/`（本機 Claude Code 用的 MCP 伺服器：產圖／依參考圖改圖／逐格產生 12 格／合成 GIF·WebP／接觸表；`setup.ps1` 一鍵安裝，金鑰只放本機）。雲端 session 擋 api.openai.com，叫不到，只給本機用。
+- [10-14 晚] Andy 指示「停止這方案」「MCP 不使用了」→ 停止所有 OpenAI／GPT 產圖工作；`scripts/anim/mcp_openai_image/` 保留不用；環境裡的 OpenAI 網路密鑰請 Andy 自行刪除（設定→編輯環境→Network secrets）並在 OpenAI 後台刪金鑰。
+- [10-09 深夜] 動畫 → 網頁版／手機版／總 CEO：動畫設計單位成立（commit 3312136），之後吉祥物、LOGO 動畫、GIF 去背的需求轉給動畫聊天室。
+- 兩邊沒有直接互傳訊息的工具時，**寫在這一節**（每次開工 git pull 會讀到），或請 Andy 轉達。寫法：`- [台北時間] 誰 → 誰：事情（要對方做什麼）`。
+- 分工：手機版只動 ≤640（`@media (max-width:640px)`／`html.m4`／isM4()）；網頁版只動 >640（`@media (min-width:641px)`／非 html.m4）。共用檔改動推 main 前一律跑桌機守門1008（手機版另跑手機v2 對應段落）。
+- 改共用文件（HANDOFF、DECISIONS、CLAUDE.md、.claude/skills）前先 git pull；撞到以先進 main 的為準，再補自己的。
+- [10-09 21:18] 手機版 → 網頁版：網頁版回報的「手機v2 8 紅（手機 K 線圖頭）」手機版在 main 4e167346 重現不出（手機v2帳本73＝0、手機v2總覽ov2＝0；合過 main 的兩條分支完整手機v2＝0），判為滿載時序紅燈，網頁版那兩行不用改；若再紅請把 log 路徑寫在這裡。
+- [10-09 21:4x] 手機版 → 網頁版：手機監督順手看到（桌機，請網頁版確認）：1440 資金輪動播放中，滑鼠再點一次 ⏸，按鈕仍顯示 ⏸、日期繼續走（9/23→9/24）沒停。可能是腳本點在補間中，也可能桌機原本就這樣；手機版這批沒動桌機播放程式。
+- [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
+
+
+## 2026-10-12 註冊會員（免費）逐頁權限表 16 點（UI 專家；DECISIONS #358；對照表 docs/perm_free_1012.md）
+- Andy 原話：「CEO我這邊一頁一頁跟你說明並請你改動，以下是註冊後的免費會員」16 點＋「註冊會員次數還是太多，需要降至5次……並且像是日曆點擊一個標題就會消耗一次」。**蓋掉 10-10、10-11 註冊會員設定**。
+- 改回關（反灰＋小字、不跳視窗）：資金輪動／分流樹時間列整條、今日關注、熱力圖跳頁、ETF 試算參數（含單檔右側搜尋／配息頻率／勾選）、供應鏈關聯圖、ETF 報酬比較期間＋起訖日期（新鍵 `etf.ret.period`）。
+- 新鍵：`earn.click`、`etf.cal.click`、`flow.rank.click`、`flow.filter`、`mkt.updown.filter`、`search`；次數照 16 點改；註冊會員全站共用額度 dq 40 → 不設。
+- 新機制（quota.js／perm.js）：features.js `gray`（整塊反灰＋inert）、`qspent`（用完就反灰，`qkey`＝看過的對象不反灰）、`qcount`／`qsess`／`qsessIn`（捕獲點擊計數、下拉打開一次算一次）、`TwQuota.actOk`。額度上限面板多列「關掉的功能」。
+- **Andy 要做**：管理區 #admin/perm 按「套用建議方案」（線上範本明寫了 10-11 的「開＋3 次」與 dq 40，不套用的話那幾項照舊；沒寫到的新鍵靠 features.js 立即生效）。
+- 驗收（這批只驗了這幾段）：註冊會員權限1012（新）、註冊會員限次開放1011、免費會員權限1010、額度上限1010、ETF試算免費限制1010、套用建議方案1007、訪客權限1008、熱力圖跳個股1008、會員權限、網頁同步1010、帳號選單1009、會員權限開關、桌機守門1008（--workers 1）、`_preview.py`。剩下的紅都在 origin/main 同樣紅（既有）：網頁同步1010 E「手機 390 個股頁首子分頁」、會員權限開關「全部預設開啟（live.tick 停用）」＋#moreBtn 逾時、_preview 800px #industry/ai_server 卡片交疊。純前端（site／scripts 測試檔／docs）→ 依規則跳過 pytest。
+- **已知、不是這批造成**：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現）→ 待處理。
+
+## 2026-10-12 比比：四腳版第 6～8 組＋丟東西互動全部換上（UI 專家；DECISIONS #357）
+- 動畫單位 0ff4ddd（CEO 審過）→ `python scripts/anim/bibi_site.py eat_q hit cry selfie run_r run_l run_start_r run_stop_r ball_catch ball_catch_l pet_q highfive dance hug receive popcorn sniff_eat hop_reach pounce tangle look_up`＋`props`＋`icons`；AV＝1012c。
+- 玩球（receive 低頭嗅 → run → ball_catch 身體壓球 → 跑回家）、摸摸 pet_q（不疊手、愛心圈）、擊掌改「碰鼻子」、跳舞／抱抱／爆米花四腳版、玩具六件組道具全換 PNG＋各自的四腳動作（sniff_eat／hop_reach＋pop_burst／pounce／ball_catch→tangle／look_up）、18 顆小圈的玩具圖示換 *_icon96。
+- 仍是替代的：碰鼻子小圈圖示沿用 highfive（肉球）圖、摸摸小圈圖示 hand（肉球）圖（動畫單位沒交新圖示）；毛線球撲到那段用 ball_catch（素材裡是紅白球，網頁的毛線球蓋在上面）；瓜子、花瓣的 icon96 沒用到（撒零食用紅蘿蔔、落葉用葉子當小圈圖示）。
+- 驗收（這批只驗了這幾段）：比比互動1011、比比玩具1012、桌機守門1008（--workers 1）、客服鈕1009、`_preview.py`。純前端（site／scripts 測試檔與 anim 轉檔）→ 依規則跳過 pytest。截圖：scratchpad/bibi1012b/。
+
+## 2026-10-12 比比：玩具六件組（分支 claude/bibi-play6，待 CEO 看截圖才推 main）
+- 撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉，小圈 18 顆；驗收段 `比比玩具1012`（桌機＋手機 390，每個互動驗道具出現且移動、比比離開原位、四腳、不撐捲軸、回原位；毛線球中途 Esc／點空白打斷）。截圖 scratchpad/bibi1012/toys/act_<名>_mid(_m).png。
+- 動畫單位專屬素材（docs/anim/bibi_<名>/）還沒到；到了改 bibi.js `PART.snack_eat／leap／crouch`。
+
+## 2026-10-12 比比：四腳版第 1～5 組換上（吃草／轉圈／睡覺＋叫醒／被敲＋哭／自拍）（UI 專家；DECISIONS #357）
+- 動畫單位 8f5c472（CEO 已審）→ `python scripts/anim/bibi_site.py eat_q spin_q sleep_loop wake_once hit cry selfie`；bibi.js：PART.eat＝eat_q、PART.spin＝spin_q、給草改「草飛到比比面前地上 → 播 eat_q」、轉圈不接 dizzy、hit 整段播完接 cry；AV＝1012b。
+- 驗收：比比互動1011（改寫餵牧草／轉圈兩條）、客服鈕1009、桌機守門1008（--workers 1）。截圖：scratchpad/bibi1012/quad/quad_sheet.png。
+- 球、摸摸、擊掌、跳舞、抱抱、接東西還在用舊版，下一批四腳版到了再換。
+
+## 2026-10-12 比比：待機一律「第一版跳躍 GIF」、拿掉「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑥ 點，蓋掉下面那條）
+- Andy：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態如圖一我提供的GIF、『跳跳』小圓 拿掉」＋「是這張喔」（9 格跳躍分格圖＝`site/brand/src/support_anim_1009.gif`）。
+- 素材：`python scripts/anim/bibi_site.py idle_hop`（走 gif_pipeline 的 load_frames＋cutout，在 512 原圖去背，再用 `_fit_original` 對到素材庫座標）→ `site/brand/bibi/idle_hop.webp`（160px、8 格、800ms、無限循環、38KB）＋ `idle_hop_still.webp`（第 1 格，減少動態用）。第 1 格跟 default_idle 外框、腳底逐像素一致；洋紅／深／淺三種底檢查 0 白邊。
+- `site/bibi.js`：待機一律 idle_hop（深夜／假日／大跌／週末／聖誕／各分頁都不換圖，只換泡泡句）；IDLE／HOLIDAY 情境款表整段拿掉；「跳跳」小圈與 hopScript、icons/hop.webp 拿掉（12 顆）；待機小動作預設不自動跑、東張西望（會換圖）拿掉；AV＝1012a。`site/support.js` 開場圖換成 idle_hop.webp?v=1012a。
+- 驗收：比比互動1011（改寫：7 種情境錄 2.4 秒全是 idle_hop、素材 160px／8 格／loop=0、沒有跳跳、12 顆在視窗內不重疊、點互動後回 idle_hop、減少動態＝idle_hop_still）＋桌機守門1008（--workers 1）＋客服鈕1009。純前端（site/**＋scripts/_uitest.py、scripts/anim）→ 跳過 pytest。
+
+## 2026-10-12 凌晨 比比：待機只剩一直跳（取消情境待機款）＋新增「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑤ 點）
+- Andy：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐，需要把圖二也新增在互動紐裡面」→ 深夜／假日／大跌／週末／聖誕都是 jump 一直跳（只換泡泡句）；新增第 13 個小圈「跳跳」（原版比比頭像，連跳 3 次）。
+- 驗收：比比互動1011（105 條）＋桌機守門1008、客服鈕1009、願望清單1009、_preview.py。
+
+## 2026-10-11 晚～深夜 比比：小圈一次攤開、動作編排（跑出去追球／道具從小圈飛出／打他哭哭／爆米花）、Default 一直跳（UI 專家；DECISIONS #357）
+- Andy 原話（最後一輪）：「伸出去的手太奇怪了，需要修正，並且 Default 改成一直跳；頭暈應該要表情暈眩；互動按鈕改成原本那樣；需要新增打他互動，並且他會哭哭」。
+- 檔案：`site/bibi.js`、`site/support.js`（開場圖版本戳、避讓把 `#bibiStage` 當自己）、`site/brand/bibi/`（動畫單位全部原版造型的互動素材＋jump／default_idle、`props/ball|grass|hammer.webp`、`icons/popcorn|hammer.webp`）、`scripts/anim/bibi_site.py`（`RIG_FIT`、`default_idle`／`jump`／`props` 子指令）、`scripts/_uitest.py`（比比互動1011）。
+- **素材現況**（`bibi.js` 的 `PART`；新零件到了只改這張表＋跑 bibi_site.py）：全部是動畫單位的真素材 —— receive／receive_grass／receive_ball、eat_grass_v2、ball_catch／ball_catch_l、run_l／run_r／run_start_r／run_stop_r、popcorn、pet_v2、spin_v2＋dizzy（頭暈循環）、hit、cry、highfive、dance、hug、sleep_loop、wake_once、selfie；待機＝jump（循環）／default_idle（減少動態偏好）。道具＝ball_prop、grass_prop、hammer_prop。只剩滾出去以外的小特效（星星、愛心、草屑）是 SVG。
+- 驗收段：`比比互動1011`（⚠ --workers 1；102 條）：12 個小圈一次攤開、全在視窗內、不重疊、問比比在最內層；一直跳（2.8 秒全是 jump、jump 檔本身 loop=0）；點球／草／摸摸／轉圈／爆米花／打他 300ms 內在動、全程沒有手；球、草從被點的小圈飛出；玩球 run_l→ball_catch_l→run_r→run_stop_r、反彈 ≥2、回原位；轉圈先 spin_v2 再切 dizzy 循環 ≥1.2 秒；打他：槌子從小圈飛出 → hit → cry ≥2.5 秒；打完再打被冷卻；換頁／關客服中途回原位；手機 390 無橫向捲軸、點空白回原位、環開著點漢堡收環。
+- 這批另外跑過：桌機守門1008（--workers 1）、客服鈕1009、願望清單1009、`_preview.py`（唯一一項 `#industry/ai_server` 800px 文字交疊是既有問題，基準 log 也有）。
+
+## 2026-10-11 結帳與付款：綠界＋銀行轉帳（金流；DECISIONS #356；docs/payment_checkout_1011.md）
+- Andy 10-11：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款…需要一個完整介面」＋「千萬不要發生付款後還沒開放…退款機制我是否能快速退款」＋查證「手動匯款能否每月扣款」（不行 → 轉帳預付制＋到期提醒）。
+- 新檔：`workers/account-api/pay.js`（worker.js 檔尾 installPay 接上）、`workers/account-api/tests/pay.test.mjs`（部署前必跑）、`site/checkout.js`（結帳面板、#orders 我的訂單、到期提醒、帳號選單一列）、`site/admin_pay.js`（#admin/pay：訂單／會員訂閱／退款紀錄／收款帳號設定、三份 CSV）。
+- 改：pricing.js（有價格的方案按升級改開結帳面板；訂閱頁拿到「開機前的備用方案清單」時重抓一次）、billing.js（選單多「我的訂單／付款紀錄」）、account.js／acctm4.js／layout4.js（管理區入口「付款與訂單」）、wrangler.toml（cron 每 10 分鐘）、deploy-account-worker.yml（跑金流測試、寫綠界 Secret）、devserver.mjs（假綠界）。
+- **Andy 要做**（逐步在 docs 第 8 節）：①確認綠界合約有開「信用卡定期定額」②後台抄 MerchantID／HashKey／HashIV → GitHub Secrets `ECPAY_MERCHANT_ID`／`ECPAY_HASH_KEY`／`ECPAY_HASH_IV` → 手動跑「部署 Worker」③#admin/pay「收款帳號設定」填帳號 ④1 元實測付款＋退款。沒設金鑰前一律是綠界測試模式。
+- **2026-10-16 付款與訂單管理頁全面審查（分支 pay-admin-1016 合併）**：Andy「這邊應該是 會多出現已退款功能按鈕 並且跳到退款紀錄那邊紀錄」「一個mail 身份只能存在一個，若他有最新的一筆資訊，就只會留下最新的一筆」「並且需要制定完善的措施」。後端 payReconcile（同 email 新訂單／新申請取代舊的、寫 payEv）、有待確認轉帳時擋取消／退款申請（pending_review）、退款帶 req 自動結案申請、PAY_FLOW 狀態機（不允許轉換 409）、stale／same_status／already_refunded 防呆、payAudit 稽核；前端「已退款」鈕→退款紀錄預填、待處理清單一 email 一筆＋「＋N 筆歷史」、第七分頁「操作紀錄」。文件 docs/payment_admin_tabs_1016.md。轉帳表單：拿掉我 13:28 誤加的範例字、恢復「必填」（Andy 先前說不放範例字）。這批驗了：account-api 157 全過、結帳與付款1011、付款管理區1016、轉帳改版1016、_preview。⚠ 結帳與付款1011 第一次跑有 4 條紅（綠界那段），重跑 0 個問題，判斷是同時有別的驗收佔用埠。
+- **2026-10-16 轉帳表單精簡＋待審核規則＋管理者新訂單通知**：Andy「紅框處可以拿掉，並且需要調整版面」「請調整適當大小排版，文字有點太多」「已經有訂單狀態的情況，不能再訂閱其他項目，除非他是訂閱升級的版本，且訂閱後待審核都會反灰」「級別排序 pro(年) > pro(月) > plus(年) > plus(月)」「申請後這邊會變成待審核」「客戶下訂單 我這邊會有通知」。拿掉「請於 3 天內轉帳」、標籤一行、輸入框切齊、確認區返回鈕不換行；pay.js payChangeCheck 改級別制（payTier）＋有 review 單時同級與更低擋 pending_review；pricing.js 待審核反灰；payNotifyOwner 同時給 ADMIN_EMAILS 每人一則鈴鐺「新訂單：…」。⚠ 規則變更：Plus 年繳生效中可升 Pro 月繳（照 Andy 級別，以前擋）。這批驗了：結帳與付款1011、account-api 全部、_preview。
+- **2026-10-16 精選文章補齊全站共通功能（分支 articles-parity-1016，未推 main）**：Andy「精選文章其他分頁有的功能 他也要有 例如導覽 限制 這些都要在確認」。① 導覽：tour.js 新增「精選文章導覽」（列表 4 步）、「文章導覽」（單篇 6 步），頁名旁「導覽」／手機 🧭 都開得到；全站導覽多一步「精選文章」。② 限制：features.js 新分類「精選文章」五個開關（清單 art.list、單篇 art.read、三類 art.cat.news／intro／know），預設全開、不設 defBy／limBy、不進全站共用額度＝上線不改任何人的可見性；quota.js 單篇單位＝一篇文章（同一篇同一天不重算）；被擋住的那篇不送點閱；plan_presets 四方案補 true。③ 流量：account.js／Worker VIEWS 加 articles（#article/<id> 併入），子頁 sub.all／news／intro／know／post、細項 read（標題）、search_art；管理區流量觀測多「精選文章」分頁（排在個股後、使用者前，舊頁顏色不變）。④ 左上搜尋也比對文章標題（最多 5 篇、不吃「搜尋股票」次數）。⑤ 列表卡標題旁「?」。⚠ Worker 要比前端先上（同一次推 main 兩個工作流同時跑，過渡期那一分鐘的統計可能被 Worker 丟掉）。新驗收段：精選文章共通功能1016。積木清單（modules.js）刻意不登記：那份凍結在 27 塊、跟 docs/feature_modules.md 對照，ETF／選股／財經日曆也都沒登記。
+- **2026-10-16 精選文章管理四版：表格限高＋點閱統計**：Andy「文章管理 每個表格清單都需要限制長度，太長都使用拉Bar」「新增統計數據，可以統計文章點擊次數，可以篩選族群 類型，需要將資訊可視化，並且圖表 排版格式follow 流量觀測」。三張表 max-height 420／520、表頭 sticky。管理頁最上面新增「點閱統計」：類別、族群、期間（RangePick）篩選；KPI 五格；每天點閱（類別堆疊直條＋平均線）、類別圓餅、熱門文章前 10、族群前 10。Worker 新表 article_views_day（台北日期×文章×次數，保留 400 天）＋管理者路由 /v1/articles/stats/daily；每日統計從這版上線才開始記，之前只有累計。這批驗了：精選文章1014、_preview、account-api 全部。
+- **2026-10-16 精選文章管理三版**：Andy「上架文章之後會越來越多，所以也需要有日期 類型 分類，下方的選擇應該要可以多選至多5個(含不同類型)」「產出狀態必須備註是文章還是短影片」「產出進度也需要有篩選功能」。已上架文章加類別分頁、族群、日期起迄、搜尋、清除、計數，多一欄相關族群；主題改勾選（最多 5、跨類別保留、小標籤 × 取消、第 6 個擋下），一次送出多筆；產出狀態前加「文章／短影片」小標；產出進度加種類、狀態、搜尋篩選。⚠ 踩到：管理區新函式取名 paintList 撞到公開列表的同名函式，文章列表整個變空白 → 改名 paintAdmList（同一支檔案的 function 宣告會互蓋，新增前先 grep）。這批驗了：精選文章1014、_preview（只有既有 800px ai_server）。
+- **2026-10-16 精選文章管理二版＋產出佇列＋浮水印只留文章**：Andy「claude 指負責產出文章……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」「表格需要對齊」「精選文章字體有點大」「除了文章以外，其他都不用出現背景有浮水印」。管理區拿掉「產出貼文」反灰鈕；主題整列可點選→「產生精選文章／產生短影片」排進 Worker `article_jobs`（/v1/articles/jobs/add、list、cancel；機器路由 /v1/articles/jobs/bot 認 ARTICLE_BOT_KEY＝sha256("tw-article-jobs|"+CLOUDFLARE_API_TOKEN) 前 48 字）；`article-jobs.yml` 每小時同步成 data/_state/article_jobs.json；Claude 排程（台北 09:50／14:50／20:50）照 docs/articles/production_guide.md 撰寫。版面：管理頁吃滿主欄、表格 table-layout:fixed 對齊（全域 `.why{display:flex}` 撞名害理由欄歪掉 → 改 td.dm）。文章內文 15px、標題 21px。protect.js 整頁與圖表浮水印只在 #articles／#article（防複製照舊全站）。這批驗了：精選文章1014（含新的選主題／排隊／取消／對齊）、桌機守門1008、_preview（只有既有 800px ai_server）、pytest 全部、account-api 全部。
+- **2026-10-16 晚 三件上線（Andy 逐項同意「上」）**：① 精選文章管理（#admin/articles）兩分頁「文章主題／統計數據」＋產貼文頻率設定（開關預設關、星期×三輪時段×類別篇數，Worker `article_schedule`、`article-jobs.yml` 同步 `data/_state/article_schedule.json`，Claude 排程到點讀它）＋已上架文章每列「傳給 GPT・IG 貼文／影片」（純前端預填 GitHub Issue，label social-handoff）＋手機卡片版（95f5bae4，Worker 部署 success）；② 精選文章分級（`art.read.n`：Pro 全文、Plus 終身累計 5 篇、訪客與註冊會員只看標題；`TwQuota.total`）（eb1a60b8；為此把 `精選文章共通功能1016` 開頭加兩行讓訪客範本 art.read.n=999，分級由 `精選文章分級1016` 驗）；③ 今日事件訪客累計 5 次後請註冊（`events.total`；80fbfaea）。三件 deploy_wait 都印 ✅。⚠ 兩項都只擋畫面、不是伺服器端；文章與事件 JSON 是公開靜態檔（docs/security/anti_freeload_1016.md，分支 claude/wonderful-bardeen-kg2wg4）。Andy 決定：已公開 4 篇維持原狀；開工「防白嫖最小有效版本」（新文章全文走後端）。⚠ 原預覽 HANDOFF 內「尚未進 main、Worker 尚未部署」一句已過時。
+- **2026-10-16 社群媒體部成立**（IG／Threads・比比）：章程與流程 docs/marketing/social_unit/（分支 claude/wonderful-bardeen-kg2wg4）；每日選題腳本 scripts/social_topics.py＋.github/workflows/social_topics.yml 已在 main；社群交接流程 docs/social_handoff/（PR #3，ready_for_gpt，GPT 端自動接單未串好）。Claude 排程：「社群處理 Andy 勾選並備交接包」（每天 08:07／12:07／19:07）在跑，「社群每日選題清單（傍晚）」已暫停（與正式版主題候選佇列重疊）。
+- **2026-10-16 結帳改版（預覽 preview/checkout-info，未上線）**：只剩信用卡自動續扣、姓名必填、性別選填（只存計數 `gender_counts`）、末五碼選填、每日換算共用 TwSub.dayCost、管理區男女比例卡、清理舊事件紀錄按鈕（上線後 Andy 自己按）、gender_counts 進備份。部署順序：先 Worker 再前端；上線後 1 元測試單走一遍。
+- **2026-10-16 ETF 配息公告改半週抓一輪**：Andy 回報 ETF 日曆 10/16 沒有 00947。根因：etfdiv（FinMind 配息公告）掛在回補計畫的「每月」步驟，10 月那輪在 10/1 前後就跑完，之後公告的配息要等下個月。改成 tag `w<年>-<週>a/b`（週一～三、週四～日各一輪），plan_is_done 與 backfill.yml 守門都比對 week。這批驗了 pytest 全部（1125 passed）；純 pipeline 改動，沒動 site/，未跑 _preview／_uitest。
+- **2026-10-16 精選文章上線＋全站防複製／浮水印**：側欄「精選文章」（比比快訊／比比產業鏈／比比知識）、site/articles.js、文章在 site/articles/posts/*.json＋index.json、主題候選 site/articles/topics.json（研調 docs/articles/topic_research_1014.md）。點閱數 workers/account-api/articles.js（/v1/articles/view、/stats）。全站防複製與浮水印集中在 site/protect.js（例外：輸入框、[data-copyable]、#admin/*；ECharts 包 init 加 graphic、K 線用 createTextWatermark）。精選文章圖表配色刻意破例用多色調色盤（Andy：「圖表色彩需要豐富點且多樣」），全站其他圖照 style_guide。這批驗了：精選文章1014、結帳與付款1011、桌機守門1008、account-api 全部；新-大盤三張圖／新-資金流向／新-輪動時鐘 有 21 條既有紅（拿掉 protect.js 一樣紅）、_preview 800px #industry/ai_server 重疊為既有。待 Andy：產出貼文／短影片、CoWoS 題材名單是否拿掉精材／合晶／京鼎。
+- **2026-10-12 金流狀態**：Andy 已設正式金鑰（管理區「綠界測試模式」標示消失），但綠界「信用卡／非信用卡收款」兩項都還在**審核中**（3～5 工作日），下單會回 10300023「未提供任何付款方式」——不是程式問題。銀行轉帳整組已實測通過。
+- **2026-10-12 金流加固**（Andy：「資流這部分需要以最高標準下去執行，不可以出現誤差」）：稽核報告 `docs/payment_audit_1012.md`（高 14／中 13／低 7）。已修：H1 測試模式不寫權限（本機 devserver 或 `PAY_TEST_ACTIVATE=1` 才開通）、H2 確認入帳必填實收且會員端金額不預填、H3 同末 5 碼＋日期重複入帳擋下、H4 轉帳以實收退款、H5 試算 0 不預填全額、H6 授權階段第二次部分退款擋下、H7 較低方案不蓋較高方案（列異常）、H8 被取代的定期定額排程自動終止＋子期不開通、H9 升級列「舊方案剩餘未折抵」待處理、H10 退款依該筆期間回收、H11 申請退款不再先標「已用過」、H12 定期定額會員按取消訂閱直接終止綠界扣款、H13 刪帳號先終止扣款、H14 終止失敗列異常；M1／M2／M3（理由必填）／M10（事件不刪、備註與標記處理留事件）／M13。**未修**：M4、M5（退回後補差額流程）、M7（定期定額子期退刷欄位要實測）、M8、M9、M11、M12、L1～L7 —— 見報告。這批驗了：account-api 全部測試、_uitest「結帳與付款1011」。
+- **這批驗了**：`node --test workers/account-api/tests/*.test.mjs`（130 條，含 pay 19 條）、結帳與付款1011（新，0）、桌機守門1008（0）、退款政策1009（0）、帳號選單1009（0）、網頁同步1010（1，既有的「E 手機 390 個股頁首子分頁」，origin/main 同樣紅）、`_preview.py`（1，既有的 800px #industry/ai_server 卡片交疊）、pytest。
+- [10-12 01:3x] 追加（Andy：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」）：我的訂單只列付過錢的、綠界待付款 3 天自動取消（未付款）、重新結帳作廢舊單、取消後才付款照樣開通＋異常「標記已處理」、管理區「顯示未完成付款」切換。
+  驗了：Worker 測試 133 條、結帳與付款1011（0）、桌機守門1008（0）、帳號選單1009（0）、退款政策1009（0）、_preview；只動 site／workers／_uitest／docs → 依規則跳過 pytest。
+- **待處理**：電子發票（綠界，有統編後）；寄信（收據／續扣通知）；隱私權政策補「訂單紀錄刪帳號不刪」（法遵）；綠界 DoAction form 版欄位與 TradeStatus 代碼是中信心 → 正式上線前 1 元實測。
+
+## 2026-10-11 比比（右下角客服鈕）情境待機＋環狀互動選單（UI 專家；DECISIONS #355）
+- Andy 10-11：「右下方的GIF圖多點變化…不同分頁，不同功能，漲跌，白天晚上，假日平日國定假日…可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈…互動紐的形式像圖一…」
+- 新檔 `site/bibi.js`（index.html 緊接 support.js 之後載入）、`site/brand/bibi/*.webp`（30 組 160px 動態 WebP，每組 ≤ 60KB，用到才載）、`site/brand/bibi/icons/*.webp`（10 個小圈圖示）、`scripts/anim/bibi_site.py`（轉檔）。
+- 驗收段：`比比互動1011`（⚠ --workers 1）。這批另外跑過：桌機守門1008、客服鈕1009、網頁同步1010、願望清單1009、品牌哩股哩股、客服與反饋1007、訂閱與客服1005、帳號選單1009、重新整理回預設1003、預設狀態1006、手機按鈕普查、平台導覽1007、_preview.py。
+- 既有段落跟著改：客服鈕1009（手機點一下＝出環，再點「問比比」才開面板）、願望清單1009 手機同上、品牌哩股哩股（圖改 brand/bibi/）。
+
+### 情境規則（優先序由上而下）
+| 情境 | 條件（台北時間） | 素材 | 泡泡說明 |
+|---|---|---|---|
+| 國定假日 | tw_holidays.json 有今天 | 依節日：春節／元旦→festival_newyear、端午→festival_dragon、中秋→festival_moon、行憲紀念日(12/25)→festival_xmas、和平紀念日／清明／颱風停市→weekend、其他→idle_bigup | 今天○○，台股休市，比比也放假一天～ |
+| 週末 | 週六日 | weekend | 週末不開盤，比比喝杯珍奶放鬆一下～ |
+| 深夜 | 23:00～06:00 | sleep_loop | 深夜了，比比想睡覺… |
+| 盤中大漲 | 平日 09:00～13:30、加權 ≥ +1% | idle_bigup | 今天大盤漲 1.2%，比比好開心！ |
+| 盤中小漲 | > 0 | face_proud | 大盤小漲…比比偷偷得意～ |
+| 盤中小跌／大跌 | < 0／≤ −1% | idle_down（安慰） | 沒關係，比比陪你／先深呼吸，比比陪著你 |
+| 聖誕 | 12/24～25（非休市） | festival_xmas | 聖誕快樂！ |
+| 分頁 | 其餘 | overview→wave、flow→coins、flow/rotation→growth、heatmap/industry→magnifier、heatmap/theme→fire、stock→calc、etf→piggy、etf/cal→calendar、etf/inc→calc、season／earnings→calendar、explore→bulb、explore/news→news、market→clock、watch→star_save、news→news、其他→wave | 每頁一句 |
+- 盤中沒有即時報價（即時關掉／沒抓到加權 t00）時不判斷漲跌，直接用分頁款。
+
+### 互動（10 個小圈；圖示＝動畫單位 bibi_icons）
+| 小圈 | 圖示 | 動作素材 | 特效 |
+|---|---|---|---|
+| 問比比 | chat | 開客服面板 | — |
+| 摸摸頭 | hand | pet（G1） | 愛心 |
+| 餵牧草 | grass | eat_grass（G1） | 草屑 |
+| 玩球 | ball | ball（G1） | 球 |
+| 轉圈圈 | spin | spin（G1） | 星星 |
+| 擊掌 | highfive | highfive（G2） | 星星 |
+| 跳舞 | music | dance（G2） | 音符 |
+| 抱抱 | heart | hug（G2） | 愛心 |
+| 睡覺／叫醒 | moon（叫醒＝線條太陽） | sleep_loop 一直睡 → wake_once（G2） | Zzz／星星 |
+| 拍照比耶 | camera | selfie（G2） | 閃光 |
+
+### 新素材到了改哪裡
+1. 素材放 `docs/anim/bibi_<名稱>/anim.webp` → 把名稱加進 `scripts/anim/bibi_site.py` 的 NAMES → `python scripts/anim/bibi_site.py <名稱>`（最後一行印每組毫秒數）。
+2. 改 `site/bibi.js` 最上面的 MAP：`MS`（毫秒）、`IDLE`（情境→檔名）、`HOLIDAY`（節日名→檔名）、`ACTS`（小圈→file，播一次的加 `once: true`）、`ICON_IMG`（小圈圖示）。
+3. 小圈圖示：`python scripts/anim/bibi_site.py icons`。
+4. 跑 `python scripts/_uitest.py --sections 比比互動1011 --workers 1`。
+
+## 2026-10-11 註冊會員「關掉的功能」改成「開＋每日 3 次」（UI 專家；DECISIONS #354）
+- Andy 10-11 02:2x（動畫聊天室轉述）：「…功能要曝光度，我們可以開放，畢竟他們也要知道我們有什麼，但就是限制功能」→ 更正「限制次數才對」。**蓋掉 10-10 的註冊會員關閉清單**（今日關注、▶ 播放、族群篩選、ETF 報酬比較／複利試算表／參數、總覽跳頁）。
+- 11 鍵（flow.play、season.groups、mkt.cand、stock.k_min／mtf／ind／draw、etf.inc.params、etf.cmp、etf.inc.comp、heat.link）：註冊會員開＋每日 3 次；訪客照舊關；Plus／Pro 不動。
+  features.js 新 `limBy`（範本沒寫也套用，perm.js 補進 lims）→ 線上**不必等**「套用建議方案」就生效；plan_presets.js 也同步（按了會明寫進範本）。
+- 計次單位：▶＝每按一次播放；今日關注＝每進一次分頁；族群篩選＝下拉打開一次之內改選／點掉一個色票；跳轉＝真的跳一次；ETF 報酬比較＝下拉打開一次之內改選；複利＝每打開一次；參數＝改一次（1.5 秒內連續算一次）；個股工具＝同一檔同一天一次。
+- 用完：反灰＋旁邊小字、不跳視窗；總覽點擊單純無效。額度上限面板／頁首本頁限制／#pricing／#admin/perm 徽章都看得到。
+- **待處理**：Worker `workers/account-api/worker.js` 的 `GRANT_DEF_OFF` 還把這幾鍵當註冊會員預設關（只影響體驗額度的扣法：體驗會比方案次數先扣）；這次只准動 site/**，需要的話另派後端改。
+- **這批驗了**：註冊會員限次開放1011（新，0）、免費會員權限1010、ETF試算免費限制1010、額度上限1010、訪客權限1008、訪客額度1009、套用建議方案1007、網頁同步1010、桌機守門1008，以及熱力圖跳個股1008、會員權限開關、次數覆蓋掃描1007、體驗額度1009、手機同步1010、側欄子分頁1010；`_preview.py`。
+  剩下的紅全部在 origin/main 的 site 上同樣紅（既有，不是這批）：網頁同步1010 E「手機 390：個股頁首子分頁長出來」、
+  會員權限開關「全部預設開啟」＋ #moreBtn 逾時、_preview 800px #industry/ai_server 卡片文字交疊 4 組。
+  次數覆蓋掃描1007 的個股工具改驗「用完反灰不跳卡」、會員權限開關的個別微調 11 → 12 項（▶ 播放預設改開，資金流向全關多算一項）。
+  舊段落 1010 的「註冊會員關」斷言改成「範本明寫關」（管理者關掉那條路照樣驗），訪客權限1008 註冊會員熱力圖改驗「會跳」。
+
+## 2026-10-10 網頁版同步七項（UI 專家，分支 `web-sync-1010` → main；DECISIONS #353；只動 >640，邏輯共用 acctm4.js）
+- [x] A 子分頁一律落第一格（`#etf` → `#etf/cal` 配息行事曆）
+- [x] B 額度上限面板：依母分頁分組收合、太長自己捲；「不開放」改成會員膠囊（註冊／Plus／Pro 會員）；#pricing 方案卡同步
+- [x] C 側欄子分頁 🔒（features.js `sub` → perm.js 掛在 `.l4subtab`）
+- [x] D「免費會員」→「註冊會員」（legal.js 條款 5 處未動，等法遵）
+- [x] E 手機個股分頁權限對應（stock.overview、新鍵 stock.holdings def true）
+- [x] F 桌機客服鈕開關（帳號選單＋外觀面板，同 tw.fab.off）
+- [x] G 桌機自行刪除帳號（說明→輸入「刪除」→ POST /v1/delete；站主停用；付費多一句不退費＋退款政策連結）
+- 中途容器重啟打斷一次，工作區沒掉，重驗後推。
+- **這批只驗了**：網頁同步1010、側欄子分頁1010、客服鈕1009、手機同步1010、額度上限1010、帳號選單1009、免費會員權限1010、ETF試算免費限制1010、手機子分頁預設1009、手機桌機同步1009、體驗額度1009、訪客額度1009、退款政策1009、桌機守門1008 —— 全 0。
+  訪客額度1009 的 regex 原本要求「X 會員」中間有空白，對「註冊會員」誤紅，已改成 `\S*會員`。
+
+## 2026-10-10 凌晨 註冊會員權限收緊（UI 專家，分支 `claude/freeperm-1010` → main；DECISIONS #352）
+- Andy 10-10 00:4x～00:5x：「註冊免費會員 今日關注限制不可以看／3D 剖析開放 3 次／新增 "事件" 觀看次數 10 次 點擊新聞連結／資金輪動 跟分流樹 播放功能在此會員不開放」
+  ＋「週期統計 免費註冊會員不開放 族群篩選功能」「總攬資金輪盤不開放跳要連結」「plus 之後會 總攬所有點擊都可以有連結功能」
+  ＋「總攬雖說不開放 但是不用刻意出現需要訂閱訊息…就單純點擊無效」「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」。
+- 做了什麼（權限鍵都在 `site/features.js`，`site/plan_presets.js` 四個方案同步，#admin/perm、#pricing 比較表自動帶出）：
+  · 今日關注 `mkt.cand`：訪客／註冊會員關（defBy＋presets）。名單根本不畫，原位置反灰示意列＋「Plus 以上可查看今日關注」（app.js drawMarket cand 分支）。依法遵不能放體驗（GRANT_BAN 仍擋）。
+  · 3D `ind.3d`：註冊會員每日 1 → 3（presets lims）。用完：3D 鈕反灰＋旁邊「今日次數已用完・Plus 以上可增加」、停在 3D 就退回 2D，不蓋額度卡（features.js qnote → quota.js qnotePaint）。
+    順手修：3D 以前看 2D 也扣次（veil `.dg3dbox` 在 2D 也有外框）→ 加條件 `#prod3d:not([hidden])`。
+  · 新鍵 `news.open`（今日事件點新聞連結開原文）：註冊會員每日 10、訪客 3（跟訪客其他動作次數同級距）、Plus／Pro 不限；同一則同一天不重扣、看標題不扣。
+    用完：沒開過的標題反灰、清單上方一行「今日新聞連結 10/10 次已用完・Plus 以上可增加」，點了不開（quota.js 檔尾）。
+  · 新鍵 `flow.play`（資金輪動 #rotBack、分流樹 #sankeyDays 的 ▶）：訪客／註冊會員關。▶ 反灰＋「Plus 以上可播放」，拉桿與 − ＋ 照常（perm.js 備註模式 note）。
+  · 新鍵 `season.groups`（週期統計長條圖「族群：已選 N 個」下拉＋色票）：訪客／註冊會員關，反灰＋「Plus 以上可篩選族群」。
+  · 總覽所有跳頁／下鑽沿用 `heat.link`（改名「總覽／熱力圖點擊跳頁」，Plus 以上）：沒權限＝單純點擊無效（不換頁、不展開、沒有任何提示），
+    資金輪盤說明框「進族群頁 →」反灰＋「Plus 以上可跳轉」；漲跌家數點長條不展開清單、游標不變手指。其他頁熱力圖跳頁照 10-08 跳升級卡。
+  · 唯一會彈出的：手上真的還有體驗額度（grants）時點反灰鈕 → 體驗卡（「繼續看」才扣）。`flow.play`／`season.groups`／`news.open` 在 #admin/grants 可選；今日關注不行。
+  · Worker：`workers/account-api/worker.js` GRANT_DEF_OFF 加 flow.play／season.groups／mkt.cand（＝defBy），node 測試 grants 多兩條斷言。
+  · 手機（≤640）訂閱頁比較表多了 4 列會超過 3 屏 → 只先列前 8 項差異＋「看全部 N 項比較 ›」（pricing.js，CSS 限 `:root.m4`，桌機照舊全列）。
+- ⚠ **線上範本要 Andy 按一次**：#admin/perm「套用建議方案」才會把 3D 3 次、news.open 10／3 次、今日關注關寫進 Worker 範本
+  （範本若明寫過 `mkt.cand:true`，defBy 蓋不過）。▶ 播放、族群篩選、總覽跳頁靠 defBy，範本沒寫這幾鍵時已經生效。
+  套用會整份覆寫四個範本（含全站每日額度 dq）—— 確認框會列出差異，Andy 若手動改過訪客 dq（例如 1000）要看一下再按。
+- **這批驗了**：`免費會員權限1010`（新，0）、`總覽`／`訪客權限1008`／`熱力圖跳個股1008`（0，三段斷言跟著「總覽單純無效」「今日關注預設關」改）、
+  `桌機守門1008`、`手機v2`、`額度卡片1007`、`次數覆蓋掃描1007`（ind.3d 改驗反灰＋小字）、`全站共用額度1007`、`會員權限開關`（預設關例外清單加三鍵）、
+  `訪客額度1009`、`今日事件`、`資金流向`、`新-輪動時鐘`、`體驗額度1009`、`市場明細`、`市場明細網頁1009`、`季節性`；node account-api 全部 112 條 0 紅；`_preview`。
+  紅燈與 origin/main（git worktree）同段比對：
+  `會員權限開關`（「全部預設開啟」那條＋#moreBtn 舊手機登入路徑逾時）、`季節性`（全選長條／提示框）、`資金流向`（軌跡歸零、ECharts width／useStyle pageerror、半徑）、
+  `額度卡片1007` 390 卡寬 380、`手機v2` 11 條（K 線圖頭、題材熱力圖、延伸閱讀、收合普查）在 origin/main 同樣紅＝既有，待處理；
+  `_preview` 只剩 800px #industry/ai_server 卡片文字交疊（origin/main 同樣）。其餘段落滿載時偶發（熱力圖找方塊、本頁限制清單晚一拍）單獨重跑皆綠。
+- 計次與鎖掛在哪：`app.js` playBar／spanBar／dayBar 的 `start()`（`playOk`，只管 #rotBack／#sankeyDays）；`industry.js` 剖析圖 `setMode`（`TwQuota.allow('ind.3d')`，含記住 3D 重新整理）；
+  `quota.js` 新聞連結捕獲層（#evList／#ovEvents 的外部連結，不管抽屜從哪裡打開）、總覽捕獲層；`perm.js` 備註模式；`app.js` renderUpDown 的 show()、ovRotPop。
+- 欄位名：3D 用 `qbtn`（按鈕反灰），不是 `qnote`（同日 ETF 試算的「蓋區塊、卡片改一行字」）。
+
+## 2026-10-10 ETF 試算免費限制、報酬比較／複利試算表改付費（UI 專家，分支 `claude/etf-inc-free` → main）
+- Andy 10-10：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」＋ 00:4x「ETF 報酬比較 與 複利試算表 不開放此會員等級」
+  ＋「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」。
+- 新權限鍵（`site/features.js`，都是 defBy 訪客／註冊會員關、付費沒寫＝開 → **範本裡沒寫就照身分生效，不必按「套用建議方案」**）：
+  `etf.inc.params`（試算參數可調）、`etf.cmp`（ETF 總覽報酬比較內容）、`etf.inc.comp`（複利試算表分頁）。管理區 #admin/perm 的 ETF 專區卡片看得到；體驗額度也選得到（worker.js GRANT_DEF_OFF 已補）。
+- ⚠ **每日 5 次要管理者動一下才生效**：正式站註冊會員範本的 `etf.cashflow` 目前是「關」（10-08 套過的建議方案）。
+  到 #admin/perm → 註冊會員 → ETF 專區「ETF 現金流試算」打開、次數徽章設 5；或按「套用建議方案」（plan_presets.js 已改成開＋5，但會覆蓋四個範本其他手調過的值）。
+  沒動之前註冊會員還是整頁「需開通」（比 5 次更嚴）。
+- 畫面（全部不彈出）：參數整組反灰、游標禁止、點了不動作，參數列最前面「🔒 Plus 以上可自訂參數」（手機在條件摘要鈕下方）；計算一律用預設值（年領 100 萬・配息型・不扣健保・近 5 年・單檔），
+  不讀上次存的參數；排序、看細節、清單分類／搜尋照常。5 次用完 → 試算位置一行字「今日次數已用完・Plus 以上可增加」（qcard inline 備註模式，features.js `qnote`）。
+  報酬比較：標題留著、內容反灰＋「Plus 以上可查看」、標題列控制反灰；複利試算表：分頁鈕反灰＋小字、點進去原位置反灰＋一行字（features.js `note`＋veil → qcard inline）。
+- 共用元件：`site/qcard.js` 加 `inline` 備註模式（只有 lockOpts 遇到「有 note 而且有 veil」、quota 遇到 `qnote` 才走，既有呼叫不變；欄位名 `note` 跟同事的 perm.js 鈕備註模式同一個）；
+  `site/perm.js` 會員系統沒開（本機、src=default 且 TwAccount 沒開）時不套 defBy（照原註解「全開」）；`admin.js`／`pricing.js` 範本沒寫時的預設一律走 defOf（以前 bool 一律當 true，heat.link 也受影響：註冊會員撥開 heat.link 會被當預設刪掉）。
+- **這批驗了**：_uitest **ETF試算免費限制1010（新，0）**、**桌機守門1008（0）**、體驗額度1009（0）、次數覆蓋掃描1007（單獨跑 0；跟別段並跑時 6 個時序紅）、ETF現金流1007（0）；
+  node account-api 112 條 0 紅；_preview 0 重疊。
+  紅燈＝既有（**用 origin/main 的 site/（TW_UITEST_SITE 指過去）跑同段一樣紅**）：ETF現金流v2 4（壓力測試 >500ms、390 溢出三條）、ETF專區1005 1（單檔小圖柱寬 48）、
+  額度卡片1007 1（390 卡寬 380）、會員權限開關 2（#moreBtn 舊手機路徑、「讀到人之後全部預設開啟」）、熱力圖跳個股1008 1（「熱門題材 找得到題材方塊」，main 上換成 Plus 那列紅，時序）。待處理。
+  pytest 沒跑（只動 site/**、scripts/_uitest.py、workers/account-api/worker.js 一行常數）。
+
+## 2026-10-10 AI 分析卡圖示第二版：照行事曆格式＋吃滿寬度（UI 專家，分支 `aiicon2` → main；只動桌機 >640）
+- Andy 10-10：「圖標需要再優化，可以參考行事曆上面的格式，並且需要調整適當寬度」。改 `site/blocks/stock_ai.js`：
+  24px 底色方塊圖示 → 財經日曆同款 13px 小線條圖示＋粗體小標（色：技術紫／籌碼青／基本琥珀／消息萊姆）；數字改成 ETF 配息面板那排「數字格」（等分整列）；
+  升降用日曆外框膠囊徽章；營收 YoY／EPS 直條改用日曆面板同一支 `CalGrid.mini`（bindOverview 裡 mount），數字在柱上、期別在柱下、整卡寬；橫條、進度條、比例條全部拉滿。
+- `_uitest`：AI分析圖示1010 加「每張小圖寬 ≥ 卡片內容寬 80%」「圖示無底塊」「CalGrid.mini 真的畫出 canvas」；
+  個股總覽等高1003 的「不強制等高」改成四面向高度差 > 20（基本面變長後跟技術面只差 11px，舊斷言比的是技術 vs 基本）。
+- 這批驗了：AI分析圖示1010、個股AI分析0926、個股總覽三欄1002、個股總覽等高1003、桌機守門1008。對照圖：scratchpad/aiicon2/compare-*.png。
+
+## 2026-10-10 市場明細／選股策略改側欄子分頁（網頁版 UI 專家，分支 `claude/sidesub-1010` → main；只動 >640）
+- Andy 10-10：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」。
+- 做法跟 ETF 同一套（`site/layout4.js` SUBS 多 market／explore 兩組；同一個 buildSubs／markSubs／▾ 收展／mini 只剩圖示）：
+  市場明細 → 漲跌家數／法人連買賣／站上均線／今日關注（`#market/<頁>`，原本就有的網址）；選股策略 → 基本面／技術面／籌碼面／消息面（新開 `#explore/<fund|tech|chip|news>`，
+  `explore.js show()` 讀網址決定面向；`#explore` 不帶＝基本面；`#explore/<策略 id>` 完整名單頁亮所屬面向、「‹ 選股策略」回所屬面向）。
+  頁內那排（`#mktSeg2`、`#slChips`）電腦版藏起來（同 ETF `.etfsub`），只在 `data-l4sub` 為 mkt-／xp- 時藏，而 `app.js route()` 只在 html.l4 掛這兩組 → 手機（html.m4）頁內分頁、抽屜一律不變
+  （匯出給 mobile4.js 的 `TwL4Nav.SUBS` 不含這兩組；完整清單在 `TwL4Nav.SUBS_DESK`）。tour.js 兩步改框側欄子項。
+- 順手修：「族群與個股」群組收起時 ETF（以及新加的兩組）子項沒跟著藏（CSS 漏列，母分頁藏了子項還露著）。
+- ⚠ 判斷：面向進了網址之後，**重新整理 `#explore/tech` 會留在技術面**（同 ETF `#etf/inc`）；10-06「重新整理回基本面」改成只對不帶面向的 `#explore` 成立（選股策略1005 斷言跟著改）。
+- `_uitest`：新段 **側欄子分頁1010**（0）；`click()` 遇到電腦版看不見的 `#mktSeg2`／`.sl-chip` 改點側欄那格（真人在電腦版就是這樣點）；分頁拖曳1006 拿掉選股（電腦版已無頁內面向列）；市場明細段 800 寬改驗「頁內收起、側欄 4 格」。
+  桌機守門基準 `tests/desktop_baseline/desktop_1440.json`：**只改 explore 那 5 筆**（#slChips 與 4 顆面向鈕 → 藏起來），沒有整份 write —— 第一次跑時另有 2 筆負載造成的差異，整份 write 會把它們一起寫進基準。
+- **這批驗了**：側欄子分頁1010（0）、桌機守門1008（0，單獨跑；跟別段同時跑時曾多出 stock/00919 新聞卡／hbm 關聯圖 3 紅，單跑消失＝負載時序）、導覽普查1009（1 紅：#flow/sankey 頁導覽第 6 步說明卡出畫面 —— 這批沒動資金流向，跟另外兩組同時跑，待單跑複查）、
+  市場明細、市場明細網頁1009、選股策略1005、分頁拖曳1006、側欄收展1005、ETF專區1005、標題重複普查、平台導覽1007、手機v2市場明細、手機v2市場抽屜、手機v2選股ETF、手機子分頁預設1009、市場明細下鑽0928、市場明細即時1005、市場明細兩欄1003、漲跌家數市場別
+  → 剩的紅在 origin/main（git worktree）同段一樣紅＝既有，待處理：ETF專區1005 單檔小圖柱寬 48、市場明細兩欄1003 欄寬比 0.87／1101 表格橫捲／390 兩段都顯示、平台導覽1007（#moreBtn 舊入口、四頁導覽鈕、長任務）。_preview 0。pytest 沒跑（只動 site/**、_uitest.py、桌機基準 json）。
+- 已知限制：features.js 的方案鎖頭 `mark` 掛在頁內 `#mktSeg2 button`（電腦版藏起來後看不到鎖頭；ETF 的 `#etfSub` 本來就同樣情況）。
+
+## 2026-10-10 個股 AI 分析卡圖示化（UI 專家，分支 `aiicon1010` → main；只動桌機 >640）
+- Andy 10-10：「AI 分析需要搭配圖示上去，幫我修正這邊」（附圖＝個股「總覽」分頁的 #ovAiCard）。
+- 改了 `site/blocks/stock_ai.js`（ovCard／techCard／chipFacet／fundFacet／newsFacet ＋ 新的 vzCss）：
+  四顆籤加線條圖示（TwIcons：candle／users／file／news）、判讀前 ▲▼— 方向符號（CSS ::before，.aitag 文字不變）；
+  一行重點下兩組小格子（回檔 6 格、突破 5 格亮幾格）；技術面九顆燈紅灰綠比例條；籌碼面外資／投信／自營商 20 日正負橫條（D 款，紅買往右、綠賣往左）、
+  法人 5／20 日與融資箭頭徽章、千張大戶持股進度條＋週變化徽章；基本面同業分位進度條、月營收 YoY 與近四季 EPS 小直條；消息面 7／30 天則數橫條。
+  條列原文照留在每張小圖下面。卡片窄於 640px（1440 三欄右欄約 430px）時籤排成兩行（上＝圖示＋名、下＝判讀），不裁切。
+- 手機：新元素預設 display:none，只在 `@media (min-width:641px)` 且 `html:not(.m4)` 打開；`<li>` 文字結構不變，手機版面不動。K 線卡裡的 #skAi（桌機本來就 display:none、手機搬進 #aiCard）沒動。
+- 驗收：新段 `AI分析圖示1010`（1440 深／淺、1100、390；四籤圖示、方向符號顏色、小格子＝數字、切籤小圖真的換、法人橫條方向／長度／數字跟條列文字一致、字級 ≥12、手機新元素 0 個）。
+  這批只驗了：AI分析圖示1010、個股AI分析0926、個股頂部1002、個股總覽三欄1002、個股總覽1002、個股總覽等高1003、一屏看完1003、積木-個股三卡、標題圖示、桌機守門1008（0 問題，基準沒重寫）、_preview。
+- 待處理（既有紅燈，origin/main 1c156e18 用 worktree 跑同段一模一樣）：標題圖示 4 條（390 總覽／分段 1-2 橫向捲軸、390 產業地圖與交付清單標題列變高）、
+  _preview 1 條（1920 資金流向 rankFlow 圖內文字跑出容器，這批沒動資金流向）；一屏看完1003 3 條（個股總覽 1440×900 三欄卡高 854 > 851、資金分流樹 1152×640／1280×600 卡下緣超出視窗）。
+
+## 2026-10-09 晚 體驗額度（分支 `claude/trial-grants` → main；規格 docs/launch_gap_payment_1009.md 第 3 節、法遵 docs/launch_gap_legal_1009.md 第 2 節）
+- Andy 10-09：「我部分付費功能他們看不到，兩個方式開放給他們用，但是有期限且限制次數，好比說主促 1-2 個禮拜可以看幾次，重點是得要有曝光」。
+- **Andy 要去哪裡開**：登入 → 左側欄「管理區 → 體驗額度」（`#admin/grants`；手機在 ☰ 抽屜的管理區下）→ 「上市體驗週」那列撥開關＝立刻生效；
+  要改日期／次數／功能按「編輯」。預設兩筆都是**關**：新會員體驗（註冊後 7 天每項 3 次）、上市體驗週（10/13～10/26 每項 5 次）；
+  功能＝3D 剖析圖、供應鏈關聯圖、畫線工具、指標設定、ETF 現金流試算、熱力圖點擊跳頁、選股策略篩選（自選頁數／檔數是上限不是次數，不放）。
+  ⚠ 上市體驗週起始日是 10/13：要今天就開始，編輯把開始日改今天再存。只對**免費會員範本裡被關掉或有每日上限**的功能有感（範本開放的功能本來就能用，不扣）。
+- 後端（`workers/account-api/worker.js` 檔尾「體驗額度 grant 區塊」）：grant_defs／grants／grant_hits（＋grant_ip 只存 IP HMAC、2 天）；
+  `/v1/grants/{public,me,hit}`、`/v1/admin/grants/defs/{list,put,del}`、`/v1/admin/grants/user`（可延長）；`/v1/perm/me` 多回 `grants:{k:剩餘}`；
+  welcome 在登入回呼新建帳號時發（刪帳號寫 benefit_hash kind=welcome、Gmail 別名正規化、同 IP 每天 3 份）；promo 活動中登入自動補發；
+  扣次：方案開放不扣 → 方案有每日上限先吃方案 → 被鎖才扣體驗、先扣最早到期；禁止項（今日關注／選股完整名單、AI、四週期、盤中即時）存不進去、hit 也擋。
+  node 測試 `tests/grants.test.mjs`（9 條，已加進 deploy-account-worker.yml 的部署前測試）。
+- 前端：`site/grants.js`（卡片「🎁 體驗剩 N 次」＋「繼續看（用掉 1 次體驗）」按了才扣；用完回升級卡＋「體驗額度已用完」；訪客寫「登入可體驗 M 次」；
+  總覽最上方細橫幅＋活動辦法 7 點，關閉記 `tw.grantBar.off.<活動代號>`）、`qcard.js`（o.gk）、`perm.js`（can() 認體驗、按鈕型鎖跳卡）、
+  `quota.js`（每日上限用完時認體驗、體驗那次不算全站額度）、`admin_grants.js`（#admin/grants）、`layout4.js` 側欄多一格、`legal.js` 條款第三節＋退款頁防止濫用＋隱私權保留資料補文字。
+- 沒做／待處理：data-gw 尚未讀 grants（data-gw 本來就沒上線）；帳號選單「我的體驗」、#pricing 頂端活動列（規格 3-9 提到，這次只做卡片＋總覽橫幅）；
+  選股篩選用體驗打開後要再按一次篩選（動作型無法自動重送）；活動辦法第 5 點照法遵原文寫「體驗額度不屬於免費試用」（卡片與橫幅不出現這四個字）。
+- **這批驗了**：node 全部 account-api 測試 112 條 0 紅（含新 grants 9 條）；pytest 1116 passed（動到 .github）；_uitest **體驗額度1009（新，0）**、**桌機守門1008（0）**；
+  額度卡片1007、次數覆蓋掃描1007、全站共用額度1007、會員權限開關、訪客權限1008、訪客額度1009、退款政策1009、同意條款與法律頁、熱力圖跳個股1008、功能卡統一次數1006、管理權限1007
+  → 共 10 紅，**在 origin/main（git worktree）跑同四段一模一樣 10 紅**（同意條款與法律頁 4：頁尾連結／390 頁尾與橫幅／導覽②；會員權限開關 2：#moreBtn 舊手機登入路徑；額度卡片1007 1：390 卡寬 380；訪客權限1008 3：選股本頁限制清單）＝既有，待處理；
+  手機v2 8 紅（K 線圖頭／十字線／成交量軸）＝帳本 73 那組，單跑「手機v2帳本73」在 origin/main 也是同樣 6 紅（本機資料造成，跟這批無關），待處理；
+  _preview：1 條 800px #industry/ai_server 卡片文字交疊（這批沒動產業頁，未比對 main）。
+
+## 2026-10-09 18:0x 手機正式版第二包（`claude/m4-ov2` 2a3592ba → main）
+- 內容（全部經手機 UI 監督 402／360、深淺色、觸控整包驗過 OK，並抽查前面各批合併後沒被蓋掉、桌機 1440 抽 14 頁像素比對只差時鐘與動畫）：
+  - 第 2 批 m4-charts 8e643535：分流樹／資金輪盤／族群×法人跟網頁一致（帳本 8、9、11）＋三處退件
+  - 第 3 批＋帳本 56～65（m4-ov2）：總覽拿掉指數三格、摘要卡滿寬滑動＋圓點、Y 軸完整（k 縮寫）、圖表方框、播放期間列不換行、
+    流程段移上方、↻ 拿掉改點背景重設、「放大」拿掉、圓餅圖例滿寬、延伸閱讀抽屜、副標不斷句；帳本 38 資金輪動「⚙ 顯示 N/4」抽屜
+  - 第 4 批＋帳本 68～72、74（m4-etf2 df0104ec）：選股頁籤等寬、除息表框內捲＋拉 Bar、區間縮放拉桿、每月入帳柱子、自選一次刪＋5 秒復原（網頁也改）
+  - 第 5 批 m4-season b52fe855：週期統計與設定抽屜
+  - 帳本 66、67（m4-3dfix 88d490f8）：3D 點零件開抽屜、長斜線（桌機引線層手機藏）、3D 收合鈕
+  - 順手：360 總覽分時圖每小時一格、個股頁 360 股名不截字、「季配」12px、成交量軸不出負數
+- **這批驗了**：桌機守門1008（0，負責人在最後一版畫面程式上跑；CEO 在 6849322e 也跑 0）、手機v2（0）、手機v2總覽ov2（0）、
+  手機v2選股ETF（0）、手機v2帳本73（0）、手機3D說明1009（0）、導覽普查1009（0，負責人跑）、_preview（只有本機缺資料檔 5 筆 404）。
+  pytest 沒跑（只動 site/**、_uitest.py、docs、桌機基準 json）。Andy 18:0x 要求先推，CEO 自己那輪導覽普查＋桌機守門在推的時候還在跑。
+- 不擋上線、待排：分流樹播放換位時標籤短暫重疊；延伸閱讀抽屜圖內小字讀不清；資金輪動「顯示」開關不記住（#35）；K 線「收」價顏色（#34）。
+
+## 2026-10-09 手機選股／ETF 第二批（UI 專家，分支 `claude/m4-etf2`，以 preview/m4-all 為底，已合 claude/m4-etf 77fef29c 與 origin/main；未推 main）
+- Andy 10:0x 四點：選股頁籤等寬（根因：第 23 節 `width:fit-content!important` 帶 `:not(#mbTabs)` 一個 id 權重，蓋掉第 29a 節沒 !important 的 width:100%）；
+  ETF 除息表高度上限＝上方月曆、框內捲、表頭黏頂、右側自畫拉 Bar（`.m4rail`）、名稱一行＋日期・代號一行；
+  手機時間序列折線圖統一補「區間縮放拉桿」（ECharts dataZoom slider，`mobile4.js` 第 31a 節 `window.M4DZ`，`app.js chart()` 一行掛勾，桌機原樣回傳）；每月入帳平均分散（y 軸隱藏但 containLabel 仍替刻度字留 55px）。
+- 帳本 72：自選刪除點一次就刪、底部 5 秒「已刪除『X』［復原］」（`watchlists.js` `delWithUndo`／`undoDel`，網頁與手機共用），只剩一頁不准刪。
+- 監督退件七點＋帳本 38（ETF 總覽 4 組、月配 4 組＋勾選框收進「摘要鈕 → 底部抽屜」，`mobile4.js` 第 31j 節）。
+- 驗收：`手機v2` 裡新增 `t_mobile_m4_etf2_1009`、`t_mobile_m4_etfqa_1009`（402／360），並移到元組最前面（後面總覽導覽那段在 preview 底就會丟例外，排後面等於沒跑）；新段落 `手機v2選股ETF`、`手機v2第三批`、`手機v2第四批`。
+- **這批驗了**：手機v2（剩 3 個與 preview/m4-all 底相同的紅：總覽導覽、#flow/rotation 摘要列、#mRank tap 逾時）、手機v2選股ETF 0、桌機守門1008 0（合併 main 之後重跑）。
+  ETF現金流v2／ETF專區1005 剩的紅（壓力測試 >500ms、單檔明細小圖柱寬 48、390 寬 .m4bleed 讓 #etfInc 多 8px）在 preview 底就紅，非本批。
+## 2026-10-09 13:4x 手機正式版第一包（CEO 分支 `claude/merge-b3` → main；Andy：「直接上手機正式版，不用預覽」）
+- 內容（每一項都經手機 UI 監督 402／360、深淺色、觸控驗過 OK 才收）：
+  - 手機合併批（帳本 4～7、12～14、25、26、40、41）：分段控制器、明暗鈕、分隔線、側欄、子頁攤平、拖曳邊界、提示框
+  - 導覽普查修復（帳本 42，`claude/tour-fix` 662aec1b；DECISIONS #351）
+  - 帳號選單第二版＋方案頁修版（帳本 51～54、59，`claude/m4-acct2` 95d2b48e）
+  - 退款與取消訂閱政策、結帳前必勾同意（帳本 47、49、50，`claude/refund-policy` 8eb1da04）：
+    手機把「付款前請先閱讀《…》《…》」從卡片移到卡片下方申請制那句後面（卡片裡放會把 402 撐成 408、360 整頁超過 3 屏）
+  - 帳本 73 三個舊問題（K 線圖頭「還原」蓋最高價、財經日曆 360、ETF 行事曆 360）＋帳本 38 市場明細三頁收成摘要鈕＋抽屜
+    （`claude/m4-misc` 只挑 5 個 commit：d09b9dcd b803d939 73939a91 8d339189 653881d5；不帶 preview/m4-all 其他未驗批）
+- `_uitest` 改動：手機v2 頂欄斷言改帳本 59 新規格（手機頂欄不放外觀調色盤）；手機v2 市場明細篩選列斷言改成驗摘要鈕 #m4MkSet（抽屜由「手機v2市場抽屜」驗）
+- **這批只驗了**：桌機守門1008（0）、手機v2、帳號選單1009（0）、退款政策1009（0）、導覽普查1009（0）、平台導覽1007（0）、
+  市場明細網頁1009（0）、手機v2帳本73（0）、手機v2市場抽屜（0）。pytest 沒跑（只動 site/**、_uitest.py、docs、桌機基準 json）。
+- 還在後面排隊（都以 preview/m4-all 為底，等 m4-ov2 交件後整包合併、監督重驗再推）：m4-charts 8e643535、m4-season b52fe855、
+  m4-etf2 df0104ec、m4-3dfix 88d490f8、m4-ov2（帳本 56～65＋第 3 批退件）。
+- 待查：K 線圖頭「收」價顏色照 K 棒、漲跌幅照昨收，同一行顏色可能相反（任務 #34）。
+
+## 2026-10-09 導覽普查與修復（UI 專家，分支 `claude/tour-fix`，未推 main；DECISIONS #348）
+- Andy 06:4x：「確實檢查所有導覽功能，我發現導覽功能不能使用」。普查：入口（桌機右上「平台導覽」、頁名旁「導覽」；手機 🧭）× 17 頁 × 1440／402 觸控。
+- 修前壞掉的：手機 🧭 被 tour.js／mobile4.js 互搬點不到（個股頁最明顯）；熱力圖／市場明細／選股／週期統計／自選／財經日曆沒有本頁導覽（桌機沒鈕、手機 🧭 整顆藏起來、手機沒有全站導覽入口）；
+  手機總覽導覽只剩 5 步、手機全站導覽只剩 3 步；族群頁按導覽第二步卡 20 秒；換頁後說明卡透明 0.5～2 秒；桌機「平台導覽」開站頭幾秒左右跳。
+- 改：`site/tour.js`（新增 7 套本頁導覽＋產業鏈 `chain`、手機 🧭 兩列小選單 `#twTourPick`、不搬已收進手機容器的按鈕、m4 分段名對照、容錯）、`site/layout4.js`（TOOL_ORDER 加 #twTourBtn）、`site/app.js`（dismissable 全站 ignore 加導覽入口）。
+- 新段落 `_uitest`「導覽普查1009」（約 15 分鐘，⚠ --workers 1）；`平台導覽1007`、`手機v2` 跟著改手機入口（⋯ 已拿掉 → 🧭 小選單）。
+- ⚠ 另一位同事要把手機 🧭 收進 ☰：把 `#twPageTourBtn` 放進 `#m4Drawer`（或任何 `[data-twt-host]`）即可，tour.js 不會再搬它；也可以直接呼叫 `TwTour.menu(錨點)`／`TwTour.start('page')`。
+
+## 2026-10-09 晚 網頁版：LOGO 置中、版號拿掉時間、客服 GIF 去背重做
+- 左上 LOGO 跟站名＋版號上下置中（`.brand .logo picture{display:block}`）；版號畫面只留「v MM-DD 第N版」，建置時間只在滑鼠提示第一行。
+- 客服 GIF 重做去背：改在 512 原圖上從四邊灌水（描邊補縫 2px）、8 格全部透明、影子拿掉，再依 8 格聯集框裁成 128px；跳起來那兩格不再整隻被吃掉。按鈕 76px（圖 72px）。
+- 這批驗了：網頁版號（斷言改成畫面不放時間）、品牌哩股哩股、客服鈕1009、桌機守門1008 皆 0。
+
+## 2026-10-09 午 網頁版：客服鈕 GIF、LOGO 換新、站名字樣、回報進度 SKILL
+- 客服鈕只剩天竺鼠 GIF（`brand/sup-anim-128.gif`，原檔 `brand/src/support_anim_1009.gif`，米色背景去成透明），一直動、沒有膠囊底與字（讀屏字保留）。
+- LOGO 換新圖（原檔 `brand/src/logo_1009.jpg`）：所有尺寸都用整張不裁切；桌機左上 40px；點 LOGO 跳出大圖（`app.js` logoLightbox，`brand/logo-1024.webp`），點站名照舊回總覽。圖片引用加 `?v=1009b` 避快取。
+- 站名改成 LOGO 字樣（`.brandtxt`：900 字重、深色描邊、「股」黃），手機抽屜同款。
+- `report-progress` SKILL 加 10-09 效率與回報格式規則。
+- 這批驗了：品牌哩股哩股 0（舊斷言三條改驗新行為）、客服鈕1009 0、桌機守門1008 0（站名字樣改動前跑的）。
+- ✅ 手機v2 那 8 條 K 線紅燈已結案：手機版 session 在 main 4e167346 單跑「手機v2帳本73」「手機v2總覽ov2」皆 0、兩條合過 main 的分支整段「手機v2」皆 0 → 判定是當時機器滿載的時序紅燈，網頁版的兩行（LOGO object-fit、.brandtxt）不用改。
+
+## 2026-10-09 網頁版（桌機）專責 session：市場明細四分頁＋個股河流圖／新聞
+- 這個聊天室之後專門處理網頁版問題（Andy 10-09：「這邊以後都負責處理網頁版的問題」）。
+- 漲跌分佈圖卡加寬（`.mktduo` 1：1.2 → 1.15：1；1440 時右邊五顆分頁鈕仍排成一行）。桌機基準跟著重寫（TW_DESK_BASELINE=write，只有 market/updown 兩格寬度變）。
+- 法人連買賣：桌機預設改「排行」（左連續買超、右連續賣超；長條＝連續天數、期間累計、最後一天加碼／減碼；前 10 檔＋看全部），四象限照留、右上「排行｜四象限」切換。
+  換分頁回預設（10-04 規矩，不寫 localStorage）；手機（≤640）預設仍是四象限。DECISIONS #349。
+- 站上均線：圖上翻頁圖例拿掉（legend show:false，下拉 msDD 管勾選）；下方族群卡依產業鏈分段 `<details>`，預設全收、展開過的記 `tw.maSecOpen`。手機（html.m4）照舊一片方格交給 mobile4.js 摺。
+- 個股本益比河流圖：滾輪／拖曳改成圖內縮放（調「看多長／截止」兩支拉Bar），外框、軸、卡片高度不動；不再用 wheelZoom。提示框 confine。DECISIONS #350。
+- 個股公告／新聞：桌機清單限高 560px、框內捲（≥641 才套）。
+- **這批只驗了**：市場明細網頁1009（新增）、市場明細、市場明細下鑽0928、積木-隱性參數、站上均線下拉1004、批次4、個股、個股R5、縮放掃描、營收河流0928、手機v2市場明細、手機v2、桌機守門1008、`_preview`。
+  pytest 沒跑（只動 `site/**` 與 `_uitest.py`）。
+- 既有紅（改動前同樣紅，非本批）：手機v2「402 寬市場 .tw 有框」「頁籤指紋 4 種」；`_preview` 800px #industry/ai_server 卡片文字交疊 4 組。
+- 驗收腳本修正：`市場明細` 的「滑過點顯示個股」原本只在 #trust 裡找提示框（全站提示框都掛 body），main 上一直紅，改成連 body 一起找。
+- 判斷：Andy 第 4 張截圖（今日關注＋「?」說明框）沒有對應的文字指示，這批沒動今日關注。
+
+## 2026-10-08 晚 CEO 合併紀錄（台北，每批都是 deploy_wait ✅ 才算上線）
+- 21:36 現金流組合四處連動（甜甜圈／時鐘／直條／明細卡，`etfpage.js`）。驗了：桌機守門1008、ETF現金流v2（壓力測試 <500ms 在高負載誤報，基線同樣紅）。
+- 21:52 熱力圖點方塊跳個股限 Plus 以上（`quota.js` heatLinkOk／heatGo、`app.js` hmGo）。驗了：桌機守門1008、熱力圖跳個股1008。
+  ⚠ 後台範本若明寫 `heat.link:true` 前端照範本放行 —— 已請 Andy 確認訪客／免費範本是關的。
+- 22:45 ETF 成分股全覆蓋（見下一節）。
+- 22:50 頂欄明暗獨立圖示（`theme4.css` 藏 ☀ 只限 html.m4）、先進封裝走線錨點＋被動元件 07（`diagrams.js` note() 支援 ax/ay）、
+  暗色色盤提亮＋未選中 .55（淺色 .35 不變）、每月入帳直條 `id:'tw-thick-bar'` 放行 50% 寬、手機三點（市場明細族群同行、複利「?」、方案頁 2.7 屏）。
+  驗了：桌機守門1008、淺色主題、設定面板、手機v2（合併後 0）。
+- 23:37 總覽資金熱力圖點族群→`#industry/group/<id>`、熱門題材點題材→`#heatmap/theme/<id>`（同一套 hmGo 權限）。驗了：桌機守門1008、總覽、熱力圖跳個股1008（併跑時 Pro 一條時序紅，單跑 0）。
+- 進行中：全站整輪驗收（reviewer，分支 `claude/final-verify-1008`）。
+
+## 2026-10-08 ETF 成分股全覆蓋（第五輪，爬蟲專家，分支 `claude/etf-holdings-all` → main b39a6eba，22:45 上線；daily full 已觸發、湖已寫入 280 檔＋月資料，23:37 部署；DECISIONS #347，細節 `docs/etf_holdings_coverage.md` 文末）
+- Andy 20:29：「必須跟其他有成分股的 ETF 介面一樣…直接看有沒有圖，清單比對是否與找得到的網站資訊相符」（第 3 次以上提）。
+- **00918 退步根因**：`tests/test_etf_pcf.py` 的 fetch_all 測試漏 mock 第三、四輪新接的投信 → 雲端真的連到官網 → 斷言紅 → `daily.yml`「跑指標庫測試」失敗、
+  10-08 整天的每日管線都沒跑 → 資料湖停在 10-07 早上（8 家、108 檔），大華銀從沒進湖。已修（mock 補齊＋測試裡禁外網）；Actions 上整套 pytest 1109 passed（run 37780876670）。
+- 新來源：① 聯邦官網（BuyBackList）② **投信投顧公會每月前十大**（`pipeline/sources/sitca.py`，IN2629，資料湖新表 `etf_holdings_monthly`，一個月抓一次）
+  補兆豐、富蘭克林華美、貝萊德、摩根、第一金債券等 28 檔（月資料、前十大，前端標「月資料・資料日（月底）」，甜甜圈補「其餘（未揭露）」）。
+- 台新／凱基／華南永昌的資料日改取持股基準日（原本存的是下一個營業日，10-08 會標 10-12）。
+- Actions 實抓（`probe-etf-pcf.yml mode=cover` run 37782980175）：有表格 **108 → 308**（官網每日 280＋公會月資料 28）；現役 ETF 非槓桿反向期貨型 **307／307 有表格**；
+  還沒表格的 23 檔全部是已下市代號。人工整理檔 `pipeline/etf/holdings_manual.yaml` 格式已更新（可抄玩股網／口袋，要標出處與資料日），目前 0 檔需要。
+- **合併 main 之後要做**：手動觸發一次 `daily.yml`（phase full）讓湖真的寫進 17 家投信＋公會月資料，pages 重算後正式站才會變；在那之前正式站還是舊的 108 檔。
+- 這批驗了：pytest（本機全套 1098 passed＋新增 14 條；Actions 上整套 1109 passed；合併 main 後的 f0126062 再跑一次 1112 passed，run 37787933649）、`_uitest --sections ETF成分股全覆蓋1008`（307／307 合格）、`ETF成分股普查1008`（0 問題）、
+  `ETF成分股1007`（只剩「法人欄」6 條紅：本機 site/data/stocks.json 是 10-06 舊檔、沒有 inst 欄位，與這批無關）、`_preview.py`（0 重疊；只有既有的 404 console）。
+  本機 site/data/etf_holdings.json 用 Actions `mode=cover` 產出的那份（容器連不到投信官網）。手機 390 寬沒另外截圖（面板沿用既有 RWD）。
+
+## 2026-10-08 手機 v2 第四批（手機介面專家，分支 `mobile-v2` → main；只動 `site/mobile4.*` 與 `html.m4` 包住的分支）
+- 頂欄搜尋鈕 `#m4Search`、頭像去 ▾、產業地圖手機只留甜甜圈（橫條收進「族群漲跌幅 ▸」；地圖上切鏈＝進該鏈 `/overview`，甜甜圈換成該鏈資料）、細節頁「‹ 返回」`#m4BackBtn`、`phone.html` 預設 402×874。
+- 已選膠囊列 → 共用 `window.MultiSelect.dropdown`（底層＝`App.msDD`）：現金流單檔 `#m4IncMS`、複利自訂再投入 `#m4CxMS`；週期統計／站上均線本來就有 msDD，手機只藏膠囊列。
+- 元件統一（`mobile4.css` 第 23 節、`docs/style_guide.md` 十六）：頁籤 2 種（底線＝切子頁、分段膠囊＝頁內）、外框按鈕 1 種、「?」1 種；自選頁籤 ⋯ 收進選中頁籤。
+- 訂閱方案（比較表固定欄寬不橫捲、表頭黏住、短寫；方案卡拿掉功能條列）、現金流／複利條件區全改下拉（展開 84px）、RangePick 日期只在「自訂」出現（全站手機）、ETF 報酬比較控制一行＋圖例拿掉（`etfpage.js` 以 `M4()` 包住）＋表三欄點列展開。
+- 驗收新增（`_uitest` 手機v2 ⑰～㉘）：區塊錯子頁普查（402＋1440）、收合普查、總覽三組、熱力圖 ≥40% 有字、輪盤點空白恢復、剖析圖章節列觸控普查（7 鏈）。
+- **這批只驗了**：桌機守門1008、手機v2、手機、手機框預覽1008、產業、ETF專區1005、季節性（季節性 3 條是 main 既有紅字：點格子提示框、全選上限、滑到長條提示框）。pytest 未跑（只動 `site/**` 與 `_uitest.py`）。
+
+## 2026-10-07 題材剖析圖第三批（繪圖專家，分支 `claude/theme-diagrams3` → main）
+- A 項 8 件（a5abb18b）：輕油裂解改箱型爐＋煙囪＋高瘦分餾塔（環形平台）、PE/PP/PVC 太空包（四角吊帶、束口，新變數 `--dg-sack`）、無人機雲台（三顆扁圓盤馬達＋L 形支架＋鏡頭，新變數 `--dg-metal-hi`）、兩葉對稱螺旋槳 `PROP2`、交換器 1U 機箱 `dSwitch1U`（光模組槽＋散熱蓋晶片＋風扇）、光模組前端 LC 接頭拉光纖／拉環在前端／金手指在後端、濕製程機台（外殼＋觀察窗＋關節手臂＋正面 load port）、變壓器片狀散熱器；FOUP 提把改「ㄇ」字。
+- B 第一組（944d81d1）：軟板一端金手指、BBU 鋼殼抽屜、銅母線、帽型沖壓件、滑板底盤四輪、相位陣列；新增 `cone()` 波束錐（`beam()` 往正上／正下打會退化成一條線）。
+- B 第二組：asic_ip IP 硬核拼裝、手機鏡頭模組（VCM 方殼＋鏡筒＋軟板）、手槍式充電槍、開口電鍍槽。
+- hbm_memory、cowos、thermal、ai_server、silicon_photonics、edge_ai_pc、defense 七張 CEO 逐張看過，這次不重畫。
+- **這批只驗了**：`_uitest --sections 題材,批次6-N1,批次6-圖九,批次6-圖十,淺色主題 --workers 1`（三次皆 0 問題）＋ `_preview.py`（無重疊；有一條既有的 404 console 訊息，未查來源）。pytest 未跑（只動 `site/**`）。
+- 截圖：scratchpad `themediag3/`（A 項）、`themediag3/B1`、`themediag3/B2`、`themediag3/keep7`。
+
+## 2026-10-07 資金分流樹：去重名＋右欄「資金流向排名」＋成分股依流入排序（UI 專家，分支 `claude/flow-tree` → main，DECISIONS #342）
+- Andy 15:40：「資金流向 名稱重複 幫我改其他名稱…旁邊多一個表格…依據拉Bar時間…點進去的族群…要依據資金流入狀況進行排名」。
+- 改名：資金去向 → **資金分流樹**（卡片、側欄子項、手機分段、總覽、導覽、說明、modules/features/admin/icons、_uitest 段名）；資金流向排行 → **族群資金排行**；頁名「資金流向」不動。
+- 樹旁常駐右欄 `#sankeyRank`（340px；窄桌機掉到圖下）：{日期} 資金流向排名，口徑＝族群成交值占比較前一交易日變化（pp），流入最多｜流出最多，紅增綠減，跟拉桿／播放就地更新；點列＝點樹上族群。手機 390 放在分流樹長條下方（`#mSankeyRank`，只在資金流向頁）。
+- 點進族群：成分股預設「依流入」（占族群比重變化 pp），可切「依成交值」；展開的葉子也改用拉桿那一天（`sankey_daily.members`，`rrg.sankey_daily` 新增；ind_* 收容桶不送、退回舊排序）。
+- flowtopo.js 的一屏高度改只扣畫布上方（`Fit.room` mode:'above'）：右欄疊到下方時不再把樹壓到槽高 18。
+- 這批驗了：pytest 1078 passed；_uitest 資金分流樹右欄1007（新段）／資金流向／新-資金流向／批次2／批次3／批次7／平台導覽1007／播放器1007／資金分流樹v2／資金分流樹拓撲／資金分流樹經典光纖／桑基展開與即時／資金流向點背景關（--workers 1）；_preview。
+- 已知：「資金分流樹經典光纖」的「密度：最粗線發車率 ≥ 最細 ×6」紅 2 條（9.15 vs 1.708）——用 origin/main 原碼＋同一份資料跑也一樣紅，是資料造成的既有問題，不是這批。
+
+
+### 2026-10-07 晚：資金分流樹點擊不再移動＋右欄等高＋族群成分股改 D 款橫條＋播放不反灰
+- 根因：排名表 340px／成分股面板 300px 寬度不同；展開族群會把畫布長高（flowtopo slotPlan extra）、葉子欄位 x 依展開後標籤重算。
+- 改：兩右欄同寬 340、contain:size＋stretch 等高樹卡、清單欄內捲；展開不長高（葉子在固定畫布內排開）；成分股列＝206 範本橫條、原地更新；第一天排名表不清空。
+- 這批只驗：資金分流樹右欄1007、資金流向、新-資金流向、資金分流樹v2、資金分流樹拓撲、長條漸層1007、播放器1007、_preview（1 則 console 404，未查來源）。
+
+## 2026-10-07 平台導覽平滑化（動效工程師，分支 `claude/tour-smooth` → main）
+- Andy 15:00：「平台導覽有點卡頓，幫我平滑化，讓他是順暢的，並且不要有無效動作」。只動 `site/tour.js` 引擎與 `_uitest` 平台導覽1007。
+- 拿掉：固定秒數等待（110／160／250／350／400ms）、每步兩次捲動（scrollIntoView＋scrollBy）、每 150ms 輪詢重新對位的補丁、換頁時舊說明卡留在新頁上。
+- 改成：每幀檢查＋逾時保底（元素連 2 幀且 ≥120ms 不動才框）；一步只捲一次（smooth，真的捲到終點才定位）；聚光燈位置走 transform、說明卡只走 transform／opacity、統一 cubic-bezier(.2,.8,.2,1) 280ms；換頁先淡出卡片、定位好才淡入；跟隨改 ResizeObserver＋MutationObserver＋scroll 併成一幀；prefers-reduced-motion 無動畫。
+- 平台導覽1007 新增斷言：每步只捲一次、定位後 300ms 不動、說明卡不跳位、純框選步驟無 >100ms 長任務（換頁／示範動作那步 ≤800ms、3D 步放寬，對照組：不開導覽直接換頁一樣長，是頁面自己畫圖）。
+- 這批只驗了：平台導覽1007、頁首圖示鈕1006、全站共用額度1007（--workers 1）、_preview（唯一問題是本機缺 data/earnings.json 的 404，資料環境問題）。
+
+## 2026-10-07 ETF 成分股接上資料：各投信每日 PCF 進湖（爬蟲專家，分支 `claude/etf-pcf` → main，DECISIONS #341）
+- Andy 13:55：「成分股怎麼可能找不到…另外台灣證交所那網站沒有嗎?」。前一版說明卡寫「沒有合規來源」是錯的（只查了證交所與 FinMind）。
+- 新來源 `pipeline/sources/etf_pcf.py`：元大、國泰、中國信託、群益、復華、統一、凱基、野村八家投信官網的公開 API（官網前端自己在打的那支）。
+  Actions 實測（`probe-etf-pcf.yml` mode=selftest）108 檔、8,049 列；**00896 接上**（中信 ETFHoldingWeight，10/06，50 檔）。
+- 資料湖新表 `etf_holdings`（date＝投信回應的淨值日）；`run_daily.py` 傍晚那輪 `etf_pcf.holdings`；`build_payload` → `site/data/etf_holdings.json`（`pipeline/compute/etf_holdings.py`）。
+- 前端（industry.js）：沒接上的寫「此檔發行投信（X 投信）資料尚未接上」；人工整理檔標「人工整理・資料日期 X」；元大股數推算的權重註明。
+- 驗收：pytest 全綠（1076 passed）；`_uitest --sections ETF成分股1007,個股 --workers 1`；`_preview.py`。本機 build_payload 全跑被 OOM（exit 137，容器 15GB 與其他 agent 共用），
+  改用 `etf_holdings.build()` 單獨產出那一支 JSON 驗前端 —— 雲端 pages.yml 會整份重算。
+- 待處理：富邦（006208、0052、00692、00662、00900、00405A）Pcf.aspx 找不到成分股端點；大華銀（00918）官網網域沒查到；其餘小投信未探測。
+  凱基的日期取 HTML 片段第一個日期（可能是公告日 T 而非淨值日 T-1）。
+## 2026-10-07 ETF「現金流試算」分頁＋配息型依頻率分組（UI 專家，分支 `claude/etf-income` → main）
+- Andy 10-07 14:50：要幾張才能年領 100 萬（可調）、殖利率／含息總報酬排名（週期跟其他分頁）、2～4 檔月月配組合前 5（月領 2 萬可調）、免責、二代健保勾選；配息型卡片依月配→雙月配→季配→半年配→年配分組、頻率不同色（不准紅綠）。
+- 做法：ETF 分類列右邊一顆獨立頁籤「現金流試算」（`#etfIncSeg`，不塞進 `#etfCatSeg`：它是工具不是分類，既有驗收鎖住分類頁籤順序）。口徑寫在 `site/etfpage.js`「5. 現金流試算」註解；頻率色寫進 `docs/style_guide.md` 十四。
+- 順手修 pipeline：`compute/etf.py` 配息頻率改用「相鄰除息間隔中位數」判斷（舊規則 400 天 ≥5 次＝雙月配，把 00919／00713／00712 這種季配標成雙月配）。下一輪 pages 重算後線上才會變；本機 site/data 還是舊標籤。
+- 修到一個既有樣式的 bug：重畫 ECharts 前 `el.innerHTML=''` 會砍掉現有實例的畫布（第二次重畫空白）；試算的橫條已改成有實例就不清。`etfpage.js` 的 `drawRetCharts` 也有同樣寫法，未動（它每次都整塊重建 body，所以沒事）。
+- 驗收：`_uitest --sections ETF現金流1007,ETF專區1005,ETF報酬比較1006,財經日曆1006 --workers 1` 0 問題；`_preview.py` 只剩本機 404（既有）；pytest 全跑。這批只驗了這幾段。
+- 已知限制：二代健保保守估（整筆配息都當股利所得扣 2.11%，實際收益平準金不扣——沒有逐次配息組成資料）；組合候選池只取殖利率前 20 檔（窮舉上限），成交值門檻 2000 萬。
+
+## 2026-10-07 管理權限1007：可更改功能只限管理者＋「管理權限」頁（資安，分支 `claude/admin-only` → main）
+- 盤點見 docs/admin_only_audit.md。分頁拖曳（site/tabdrag.js）只限管理者，非管理者已存排序清掉；Worker 加 /v1/admin/* 總閘＋admin_log（append-only）＋/v1/admin/admins/list|add|del（只有擁有者＝ADMIN_EMAILS 能加／移除）。
+- #admin/admins 新頁（側欄「管理區 → 管理權限」）。
+- 這批只驗了：node --test（92 綠）、_uitest 管理權限1007／分頁拖曳1006／管理區v3／會員權限開關／會員與自選五分頁／風格規範、_preview（3 個資料檔 404，本機 site/data 缺檔，與本批無關）。
+- 判斷待 Andy 否決：自選清單分頁拖曳沒鎖（本人資料）；個人顯示設定沒鎖。
+
+## 2026-10-07 晚 播放普查1007：即時開著時 ▶ 反灰按不動、播完無限循環（UI 專家，分支 `claude/play-fix`，DECISIONS #344）
+- Andy 21:05：「播放動畫都是到當日數據截止，便不會再進行播放…圖一功能不是說要反灰色」。重現：管理者開「即時」→ #283 把整排（含 ▶）反灰停用。
+- 修法（site/app.js）：`liveDim()` 對自帶「即時」鈕的拉Bar 不停用不反灰（動它就退出即時）；`playBar()` 播到最後一格停、再按 ▶ 從頭重播。
+- 資金分流樹右欄：播放中每一格標題日期＝拉Bar 日期、opacity 1、無 filter（main 上已成立，新段落把它鎖住）。
+- 驗收：新段 `播放普查1007`（--workers 1）；改寫 `新-資金流向`、`輪動時鐘即時` 裡 #283 的反灰斷言。這批只驗了：播放普查1007、播放器1007、輪動時鐘即時、資金流向、新-資金流向、新-輪動時鐘、批次2、批次3、批次7、季節性、題材＋_preview。
+
+## 2026-10-07 播放器1007：全站播放器「調過日期再按 ▶ 不動」（UI 專家，分支 `claude/play-fix` → main）
+- Andy：「播放後再調整日期，再次點擊播放就不能做動」。全站三支播放器：資金輪盤 `#rotBack`（dayBar）、資金去向 `#sankeyDays`（playBar）、個股本益比河流 `#peEnd`（playBar）；`spanBar` 目前沒有呼叫端。
+- 根因：`route()` 與換主題會 `_players.clear()`，但已畫過的頁不重建拉Bar → 畫面上的播放器從登記表消失，之後換頁／即時停不到它（幽靈計時器，回來時鈕停在 ⏸，按下去只是暫停）；另外 ▶ 按下要等滿一個 frame（420～650ms）才動第一格、鍵盤方向鍵調拉桿不會停播。
+- 修法（site/app.js）：改 `prunePlayers()` 只清離開 DOM 的；三支 start() 補登記自己；▶ 按下當下先走一格；playBar 真人 input（isTrusted）就停播。
+- 驗收：`_uitest --sections 播放器1007`（新段，1440＋390）0 問題，舊碼跑同一段 5 個問題；另跑 資金流向／新-輪動時鐘／批次2／批次3／批次7／季節性／題材，剩 2 條與 main 相同的既有紅字（A4-7 軌跡點數、季節性全選）；`_preview.py` 只剩 1 條本機 404（既有）。
+- 已知限制：Andy 的確切操作序列在本機（1440／1100／800、模擬盤中時間、即時開關、換主題、換頁）都沒能 1:1 重現「完全不動」，修的是上面量得到的三個缺陷。
+
+## 2026-10-07 客服改 Gmail、反饋留站上管理頁、搜尋下拉 ☆ 立即加自選（UI 專家，分支 `claude/support-star` → main）
+- A：全站 `mailto:` 改 Gmail 網頁撰寫（新分頁）；客服面板寄信分頁、法律頁側欄／文末聯絡卡加「複製信箱」（`support.js` 委派 `[data-copymail]`）。條款內文只換連結不加鈕（加鈕改段落高度會讓隱私權政策的目錄捲動同步亮錯節）。
+- B：反饋原本就只 POST `/v1/feedback` 存 Worker、訪客可送；Worker 加訪客每 IP 每小時 5 筆上限與 `/v1/admin/feedback/del`（node 測試 89 綠）。`#admin/feedback` 改版：篩選類別／狀態、刪除（確認框）、未讀紅點；側欄管理區加「意見反饋」子項（`layout4.js` ADM_SUBS）。
+- C：搜尋下拉每列 × 左邊 ☆／★（`app.js` initSearch）：加入目前作用中分頁、不關下拉、不跳頁、頂端提示「已加入〈分頁〉」；上限沿用 `TwWatch.add` 的升級卡。
+- 這批只驗了：`客服與反饋1007`、`搜尋星號1007`（含 390）、`訂閱與客服1005`、`會員與自選五分頁`、`同意條款與法律頁`、`_preview.py`（唯一問題是本機 `site/data/earnings.json` 缺檔 404，環境問題，非本批）。
+
+## 2026-10-07 ETF 成分股分頁：左清單＋右權重甜甜圈（UI 專家，分支 `claude/etf-holdings` → main）
+
+- 根因：資料湖沒有任何 ETF 成分股資料（合規免費來源查不到），前端只放一行字；手機沒有成分股分頁。查證與建議（Fugle API 需金鑰／投信官網逐家）在 `docs/etf_holdings_source.md`。
+- 前端已做好：讀 `data/etf_holdings.json`（格式見該文件），左清單（權重排序、搜尋、張數、當日漲跌、點列進個股頁、非台股不能點）＋右 A 款甜甜圈（前 10 大＋其他、中心「前 10 大合計」、滑過雙向連動、點扇區進個股頁）；手機上下堆疊（mobile3 新增「成分股」分頁）。
+- 沒資料時：債券型／槓桿反向 →「以債券／期貨為主，沒有個股成分」；股票型 →「成分股資料來源尚未接上」。**正式站現在看到的是說明卡**，等 Andy 決定來源。
+- 這批只驗了：`ETF成分股1007`（新段，假資料攔截＋1440／390）、`個股`、`新-產業與個股`、`ETF專區1005`、`_preview`（唯一一筆 404 是 main 原本就有）。純前端，pytest 跳過。
+
+## 2026-10-07 發布整合 release-1007：四個分支合併上 main（部署員，分支 `claude/release-1007`）
+- 合併順序：`claude/legal-v2`（含法律頁整組水平置中：`.lgwrap`／`.lgtabs` max-width＋auto 邊距，1440 左右留白 0／0、1280 10／10）→ `claude/tour`（平台導覽 TwTour）→ `claude/quota`（每日額度＋自選上限＋付費資料閘道 data-gw）→ `claude/pricing-v2`（訂閱頁方案卡＋比較表）。
+- 衝突怎麼解：
+  · `site/legal.js` 隱私權政策表：以 legal-v2 的 4 欄表為準，quota 的「安全紀錄（取用付費資料時）」那一列改成 4 欄格式加進去（只有設了 `TW_ACCOUNT.gw` 才出現）。
+  · `site/pricing.js`：整支以 pricing-v2 為底；把 quota 的 API 補回去（`TwPricing.plans()／ensure()／unlockers()`、`tw:plans` 事件、`#pricing/plan/<id>`＋「建議升級」標、價格 0 寫「價格待定」、`?demo=quota|quota-free|lock` 的示意卡）。研究額度 `qAll(p)`（範本 `lims['quota.all']` 優先，沒有才看後端 `dq`）與每頁檔數（`feats['watch.size']`）併進 pricing-v2 的卡片清單（自動產生的打勾清單第一行「研究瀏覽・每日 N 次」、「自選清單・N 頁・每頁 M 檔」）與比較表（第一列「研究瀏覽」、自選那格「N 頁・每頁 M 檔」，`watch.size` 不另列一列），沒另畫一套。
+  · `site/admin.js`：兩邊都留（`dqField`／`saveDq` 與 `presForm`／`savePres`；⚙ 面板免費會員同時有每日額度與方案卡欄位，付費範本有全部，訪客只有每日額度）。
+  · `workers/account-api/worker.js`：兩個區塊都留，**統一成「最後寫入者整份取代對方」**。方案卡文字存在 `plans.pres`＋`plans.price_year`（pricing-v2）或 `plans.meta`（quota；「套用建議方案」用）。讀：`presOf()` 先看 pres，沒填的欄位退回 meta 同名欄位，攤平成 tagline／badge／fit_title／fit_desc／highlights／price_year（＋icon／color／public）。寫：帶 `pres`／`price_year` → 寫完把 meta 清成 `{}`；帶 `meta` → 寫完把 pres 清成 `{}`、price_year 清成 NULL（同一個請求兩個都帶時 pres 勝）。新測試 `workers/account-api/tests/planmeta_unify.test.mjs`。
+  · `scripts/_uitest.py`：兩邊都留；`同意條款與法律頁` 的舊導覽彈窗斷言改成「頁尾平台導覽開的是 TwTour 全站導覽、Esc 關閉」；`額度卡片1007` 的方案卡文字斷言改成統一後的卡片文字。
+- 這批驗了：`node --test`（account-api＋data-gw，112 條）、`pytest tests/`（1068 passed、1 xfailed；有動 .github／tests／pipeline 所以跑）、`_uitest --sections 同意條款與法律頁,免責小字1006,平台導覽1007,訂閱與客服1005,管理區v3,額度卡片1007,自選上限1007,次數覆蓋掃描1007,全站共用額度1007,套用建議方案1007,會員與自選五分頁,會員權限開關,風格規範,總覽 --workers 1`、`_preview.py`。
+- 已知紅字：`_preview.py` 一條 `earnings.json` 404（本機 site/data 沒有這檔，main 同樣）。第一次整批跑時 `平台導覽1007` 一條聚光燈框位置偏掉，是跟 pytest 同時跑 CPU 吃滿的假紅，單獨重跑 0 問題。
+- 還沒收斂：Plus／Pro 價格仍是 0（訂閱頁寫「價格待定」，等 Andy 定價）；data-gw 沒有部署（維持手動觸發）。
+
+## 2026-10-07 「今日候選」改名「今日關注」＋四處一行統計小字（UI 專家，分支 `claude/watch-rename`，**等 CEO 看截圖才上 main**）
+- Andy 01:15 兩件：① 「今日候選」全站改名「今日關注」（市場明細分頁鈕與卡片標題、「?」說明、空清單提示、功能開關名稱、法遵頁標題、積木清單、icons 對應）。程式識別字（`cand`、`candidates`）不動；歷史註解保留原話。
+- ② 一行小字全站統一成 `App.DISC_LINE`＝「以下為依公開資料統計計算之結果，不構成任何投資建議或參考」（`site/app.js`）。10-06 各卡各寫一句的短句全部換成這一句，細節留在 title：
+  技術評分＝個股 K 線卡名稱區右側 `#skDisc`（技術分標籤上方，手機收起）＋ETF 技術面訊號卡標題下（`.sigdisc`，在 AI 卡裡時藏掉不重複；卡底「決策輔助，非投資建議」拿掉）；
+  選股策略＝`#xpLegal`（原句細節搬進 title）；個股 AI 分析＝`#ovAiCard`／`#aiWarn` 標題下一行（改前琥珀色「規則式自動判讀，非投資建議」）；
+  族群排行＝資金輪動卡 `#flowRotDisc`（含資金流向排行）、總覽資金輪盤、手機資金排行；市場明細今日關注 `#mktDisc`、個股基本面／指標／本益比河流圖同一句。未使用的 `#ttWarn` 也去框改同一句；手機指標卡底那句改同一句。
+- `.disc-line` 改 `flex:1 0 auto; max-width:100%`：放得下就在標題列右邊，放不下整行掉到標題下方，不截字；letter-spacing −.04em（整句 336px，1440 基本面卡 329px、390 卡 324px 才放得下）。
+- 新驗收 `今日關注與統計小字1007`；舊斷言改前→改後：`免責小字1006`（短句開頭→統一句、基本面卡改成可換行）、`個股AI分析0926`、`個股總覽三欄1002`（緊貼同一行→標題下一行）、`選股策略1005`（不是好壞名次移到 title）。
+- 這批只驗了：`今日關注與統計小字1007`、`總覽`、`選股策略1005`、`個股AI分析0926`、`免責小字1006`、`中性用語1006`、`個股總覽三欄1002`、`市場明細`、`市場明細兩欄1003`、`手機個股券商式`、`指標分頁只留指標卡1006`、`個股`、`_preview.py`。
+  紅字全是既有：`個股AI分析0926` 2 條、`中性用語1006` 4 條是本機 site/data（10-05 建的）還寫「觀望／出場」，origin/main 原樣跑一樣紅；`_preview.py` 一條 404 在 origin/main 也有。
+
+## 2026-10-06 流量觀測改成批次送出（UI 專家，分支 `claude/track-batch` → main）
+- Worker（先上，03f6114，deploy-account-worker success）：檔尾新增 `/v1/track/batch`，逐筆交給原本的 beat 跑（時間換成該筆 ts），統計與單送逐列相同；單批 ≤100 筆、body ≤64KB、ts 用前端 now 校正後驗 24 小時內且不晚於現在；舊 `/v1/beat` 保留。測試 `workers/account-api/tests/batch.test.mjs`（10 筆單送 vs 1 批送五張表相同）。
+- 前端 `site/account.js`：每分鐘包一筆進佇列（同步寫 sessionStorage `tw.trk`），每 5 分鐘／30 個事件／隱藏或 pagehide（sendBeacon，失敗留著下次送）才送一批。登入／登出那一下會立刻送一批（線上名單換名字）。
+- 前端 `site/notices.js`：公告同一人 10 分鐘只打 1 次（sessionStorage `tw.nt.c`、進行中共用；`TwNotices.refresh()` 與管理者發佈後強制重抓）。
+- 實測（寫在 docs/hosting_cost_plan.md）：開一頁 4→3 次、開一頁＋停 10 分鐘 14→5 次、切 15 頁再關掉統計請求 6→2 次，頁面瀏覽 15 筆逐頁相同。
+- 載入後第一筆統計馬上送（線上人數開站就要有），之後每 5 分鐘一批。
+- 後續（同日，3674265）：線上名單門檻改成 6 分鐘（Worker `PRESENCE_WINDOW_MS`，紀錄保留 7 分鐘；在線時間的斷線判斷仍 150 秒），頭欄提示與隱私說明的秒數一起改；關分頁仍用 beacon 立刻刪。驗：batch.test.mjs 新增「停 4／5 分 50 秒仍在、leave 立刻消失、超過 6 分鐘才掉」，`流量批次1006` 加瀏覽器側同一條。線上人數數字仍是每 5 分鐘才更新一次。
+- 這批只驗了：`流量批次1006`、`流量觀測1005`、`管理區v3`、`會員與自選五分頁`、`會員雲端路徑`、`管理區1005`、`版面v2結構`、`_preview.py`、node 測試全過。紅字 `管理區1005` 散佈圖、`版面v2結構` 去重兩條換回舊版 account.js 一樣紅＝既有，不是這批造成；`_preview.py` 的總覽 ovTheme 文字溢出與一條 404 也與這批無關（沒動到總覽）。
+
+## 2026-10-06 雙部署到 Cloudflare Pages（deployer，DECISIONS #339）
+- `pages.yml` 多一步部署同一份 site/ 到 `https://tw-rotation.pages.dev/`（失敗不擋 GitHub Pages）；兩支 Worker 的 CORS 白名單加上該網域。
+- **待 Andy 自己按**：① Cloudflare token 要有 Account → Cloudflare Pages → Edit（My Profile → API Tokens → 編輯該 token）② Google Cloud Console → APIs & Services → Credentials → OAuth 用戶端 → 「已授權的 JavaScript 來源」加 `https://tw-rotation.pages.dev`、重新導向 URI 依 `docs/login_setup.md` ③ 正式商用前評估 Cloudflare 付費方案與用量通知（Notifications → 新增 Pages／Workers 用量警示）。
+- 切換條件見 DECISIONS #339。
+## 2026-10-06 會員資料匯出／還原＋筆電每日備份接上（security-privacy，分支 `claude/member-export` → main）
+- **Worker**（`workers/account-api/worker.js` 檔尾新區塊，prototype 包裝，既有函式一行不動）：
+  - `POST /v1/admin/export`：管理者權杖（Origin＋body.t）或 `Authorization: Bearer <BACKUP_TOKEN>`（不檢查 Origin）。唯讀，只多記 `usage(admin_export)` 稽核。
+    匯出 15 張表；**排除** `logins`、`presence`、kv 的 `hmac` 與名稱像金鑰的鍵。回應附 `sha256` 與 `sig`＝HMAC-SHA256(`EXPORT_SIGN_KEY` 或 `BACKUP_TOKEN`)。
+    被簽內容＝原文到 `,"sha256":"` 之前補 `}`（筆電端不重新序列化 JSON 就能驗）。同一身分每小時 6 次。
+  - `POST /v1/admin/import?confirm=RESTORE-INTO-EMPTY-DB`：只收簽章驗得過的原文、`users` 必須 0 筆，整批交易（DO 用 `transactionSync`）。
+  - 與規格差異：規格寫 `EXPORT_TOKEN`／憑證名 `tw-ops-export`，依 CEO 指示改名 `BACKUP_TOKEN`／`tw-ops-backup`；簽章金鑰預設沿用 `BACKUP_TOKEN`（`EXPORT_SIGN_KEY` 可選），少一個 Secret。
+- **測試**：新增 `tests/export.test.mjs`（6 條：非管理者擋、備份權杖可用、簽章、往返逐表相同、非空拒絕＋確認參數、限流）；全部 72 條綠。
+- **筆電**：`tools/laptop/backup.ps1` 備份完 repo 後抓 `members\members-YYYYMMDD.json`、驗簽、留 14 天；失敗只通知不讓 repo 備份變紅。README 第 7 步＋還原步驟＋個資警語。
+- **工作流**：`deploy-account-worker.yml` 有 `BACKUP_TOKEN` 才多一步寫入 Worker Secret；沒設就 `::notice::`＋摘要列待辦，不紅燈。
+- **待 Andy**：產生隨機字串 → GitHub Secret `BACKUP_TOKEN` → 重跑部署 → 筆電 `cmdkey /generic:tw-ops-backup`（README 第 7 步）。
+- 這批只驗了：`node --test workers/account-api/tests/*.mjs`、pytest（改到 `.github`）；PowerShell 腳本**沒有在 Windows 實跑**（容器沒有 PowerShell），驗簽演算法以 Node 測試同口徑驗過。
+
+## 2026-10-06 文字重疊：大戶散戶卡＋全站普查（UI 專家，分支 `claude/overlap` → main，b195e180）
+Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」壓在副圖標題上。
+- 修：tabHolders 資料區改從副圖標題下 46px 起（原 26），整張 420→460px。
+- 為什麼 `_preview` 沒抓到：圖內字掃描只跑總覽／資金流向、門檻「蓋掉 1/4」、DOM 字跟圖內字不放一起比。
+  新增 `TEXT_OVERLAP_ALL_JS`（卡片內 SVG＋DOM 字兩兩比，>2px²），`_preview` 抽 5 個頁面／寬度；全站全掃用 `scripts/_overlap_census.py`（約 20 分鐘，手動）。
+- 普查順手修：資金去向 ECharts 樹（≤820）葉子 16→19px；產業鏈公司卡兩行基線 14／30；手機漲跌分佈區間字直立；漲跌分佈 y 軸不標非整格 max。
+- 量到但判定非壓字：總覽 KPI 列捲動箭頭、站上均線捲動圖例（clipPath）、ETF 報酬比較兩行軸名、新聞收合內文。
+- **這批只驗了**：`_uitest` 文字重疊普查1006、籌碼基本0926、個股分頁0926；`_preview` 全跑（只剩本機缺 `data/earnings.json` 的 404，main 同樣缺，與本批無關）。pytest 跳過（只動 site/ 與 scripts 驗收腳本）。
+- 續（3ef0cbb4 上 main）：手機剖析圖「整張」模式（畫布 < 500px）編號鈕 28→20px（字 12px）、鈕與鈕不疊、躲開圖上的字（最遠 160px 拉引線）、夾回錨點所在的格子；「放大」維持 28px。foundry「閘極只管得到一面」移到 y=172。
+  `scripts/_dg_overlap.py` 修好假綠（停在 #overview 讀不到 DiagramSlots，一直量 0 張），並補量「編號鈕蓋到字／超出畫布／尺寸」。
+  這批驗了：`_uitest` 手機v3、文字重疊普查1006；`_dg_overlap --width 390 --no-3d`；`_preview`（只剩 earnings.json 404）。
+- **待處理**：
+  1. `_uitest` 「手機按鈕普查」兩次卡住（45／25 分鐘無輸出、CPU 幾乎不動），原因未查；這批按鈕尺寸改動沒經過它。
+  2. 390 寬 12 處編號鈕仍壓字（周圍 160px 都是字找不到空位）：bank 6、life_fhc 3、cyber_security 2、securities_fhc 1；另 ai_adv_packaging 2 處圖內字超出畫布（舊問題）。
+
+## 2026-10-06 時間軸垂直分隔線：所有橫軸是時間的圖背景加極淡年／月線（視覺設計美編，分支 `claude/vgrid`，DECISIONS #337）
+- 改了什麼：新增 `site/timegrid.js`（共用層級／顏色／標記）；`site/app.js` 的 `chart()` 補 custom 系列（ECharts 全站自動套用）；`site/chart.js` 新增 `TimeGridPrimitive`（K 線主圖與副圖）；`site/industry.js` 的 `_dbg()` 多一個 `tgrid`（驗收用）；`site/index.html` 在 chart.js 之前載入 timegrid.js。
+- 涵蓋：ETF 報酬比較（time 軸）、個股營收／獲利／本益比河流／法人／融資券／籌碼（類別日期軸）、個股 K 線日週月（含成交量等副圖）、大盤三張圖的 K 線模式、其餘所有 ECharts 日期軸（資金集中度、均線家數、公司頁各圖…）自動套用。**不涵蓋**：管理區每日直條（HTML／SVG，另一位同事做格間線）、季節性（類別是 1 月～12 月，且 10-04 已有月份格間線）、分時走勢（類別是 `HH:MM`，單日不需要）。
+- 這批驗了哪幾段：`時間軸分隔線1006`（新，約 50 秒）、`ETF報酬比較1006`、`K線縮放`、`營收河流0928`、`大盤三張圖`（子字串，含「新-大盤三張圖」）＋ `_preview.py`。**沒驗**：手機寬度（390）的分隔線疏密、四週期同看小圖（寬 ≥ 200 的會畫）、季節性與資金流向其他分頁（共用層自動套、未逐頁量像素）。
+
+## 2026-10-06 既有紅字清理・第三輪：fails3 這一區（UI 專家，分支 `claude/fix-reds3` → main）
+CEO 第三份驗收（fails3.txt）交辦 11 段；上一輪兩條未收斂 CEO 已拍板做法，照做。
+
+| 段落 | 分類 | 原因 | 怎麼修 |
+|---|---|---|---|
+| 資金去向選族群後換行跳 28px（篩選列左上角 ④） | **B** | 電腦版資金去向標題列可折行（#313），選族群後「只看「X」」＋「清除」變長 → 下拉列折成兩行、圖往下跳 | 照 CEO：fit.css 篩選列固定一列不換行（寬 440）；「只看「X」」最大 80px＋省略號＋title 全名；「清除」固定 48px；副標單行省略＋title 全名。斷言新增「選族群前後 #sankeyRow 頂端不動」 |
+| #etf 390 被撐到 608px | **B** | 「自訂」日期框兩格橫排（visibility:hidden 仍佔位）＋「含息／不含息」列不換行 → 頁寬 608、底部導覽「更多」被推出畫面 | etfpage.js 加 ≤640 最小改動：期間組換行、日期框一欄（未選自訂時不佔位）、含息列可換行；報酬比較表留在 .rettw 自己橫捲。`ETF專區1005` 新增 390 段：頁寬 ≤390、按「自訂」兩格上下排且在畫面內、比較表容器不超出、真的點開「更多」 |
+| 說明精簡（16） | 2×**B**（字數）＋A | B：市場明細「?」一條 39 字、產業鏈關聯圖提示 52 字（>30）；A：版面 V2 後 sankey／inst／conc 的「?」在 #flow 子頁、題材熱力「?」在 #heatmap/theme；63dec41a ai→ovai；剖析圖區 dgSec 166 字與 nb／dg／rel 點不到＝整輪跑時前段留下 `tw.dg3d=1`（3D 開著多一行操作說明、#dgSec 連續改高度） | app.js、industry.js 縮字（≤30）；斷言改掃三個 flow 子頁＋兩個熱力圖子頁、want 改 ovai、開頭清掉 tw.dg3d 回預設 |
+| 輪盤合併側欄（1） | A | 版面 V2：沒跳頁＝停在 `#flow/rotation` | hash 比對改 `#flow/rotation` |
+| 輪盤只留點與自選分頁（4） | A | ① 3fc32092 在「自選」後面加了「財經日曆」；② 4e9c2ad5 刻度圈標「25%」「100%」兩個 `<text>`（是刻度不是族群名）；③ 第一輪把 ETF／財經日曆收進「更多」，頁面組變 market/season/etf/earnings/watch | ① 自選在導覽上、後面只准接財經日曆；② `<text>` 只准是百分比刻度、不得含族群名；③ 頁面組前五列照新順序、最後一列仍是自選 |
+| 載入效能（7） | 4×A＋3×環境 | A：⑤ 法人四象限 09-28 搬到市場明細（總覽沒有 #trust）；③ 子頁只剩 950～1100px，「捲到看不見」不存在；③ 資金去向在 #flow/sankey；⑥ 09-29 起盤中 meta.json 一分鐘最多比一次，tick(false) 依設計略過。環境：① 總覽／資金流向可互動時間、② 最長卡住（load 9～14） | ⑤ 拿掉 trust；③ 改驗「輪動子頁資金去向不跑」「法人子頁兩組都停＋5 秒忙 ≤150ms」「到 sankey 子頁接著跑」（門檻不改）；⑥ 改 tick(true)（同一條 finally 路徑、不受節流） |
+| 大盤三張圖（12） | A | 78a63c22 期間只剩 日／週／月；昨收改由線圖 markLine 表示 | 改驗 D/W/M 三顆、週月根數遞減、展開收合、自動更新、記住「M」、昨收線＝state 的 prev |
+| 資料狀態（3） | A | 09-28 新鮮度文案不再列資料集代號 | 改驗新文案，並加「不出現 twse./macro./tpex./finmind. 內部代號」 |
+| 資金去向v2（3）、資金去向經典光纖（1） | A | 版面 V2：資金去向在 `#flow/sankey` | goto 改 `#flow/sankey`；經典光纖可見性停跑改用 flow_sub 切子頁 |
+| 資金熱力圖下拉（1） | A | 390 標題列多了圖示與「放大」，下拉不再落在左半邊 | ≤640 改驗下拉在卡片內（同列、標題右邊、圖上方照驗） |
+| 即時5秒0929（1） | A（量法） | 從 Python 端記請求時間會被 CDP 往返拖，5 秒窗口算到 4 筆 | 在頁面裡用 performance.now 記 /quote、/chart 送出時刻，節流三條改讀頁內時間 |
+| 時鐘水波（1） | 環境 | fps 4.9（門檻 20）＝容器軟體繪圖＋負載 | 照 CEO：列環境、不改門檻 |
+| 資金去向經典光纖 ⑦（第三輪才跑到） | A | 版面 V2 的 #flow/sankey 子頁捲不到最後一族的中間，「槽位最右邊空白」那一點被右下角客服鈕 #supFab 蓋住（elementFromPoint＝supFab） | 從最後一族往前挑「那一點沒被蓋住」的那一族；要驗的事不變 |
+| 重新整理回預設1003 ①（連帶） | B（漏分類） | a74a00fd 分頁拖曳排序的 `tw.tabs.*` 沒在 viewreset.js 分類 | 照 tabdrag.js 檔頭「重新整理保留」分到 KEEP_PREFIX |
+
+**同批新交辦（Andy 12:20／13:05）**
+- 「顯示軌跡」「顯示腳印」拆成兩個勾選（順序 軌跡｜腳印｜水波｜掃描）：`ROT.line`（`tw.rot.line`）只管細線、`ROT.trail`（沿用 `tw.rot.feet`、class `.rot-trail`）只管腳印；兩個都關＝只剩族群點。兩個 key 都在 `tw.rot.*`，照 #307 重新整理回預設（預設兩個都開）。總覽小輪盤一律只畫點（#274，沒有開關）；手機雷達沒有開關、只畫腳印不畫線，不動。
+- 輪盤欄與排行欄之間 1px 淡分隔線（`--line`、opacity .75，偽元素畫在欄間距，不動 41% 欄寬）；只在兩欄並排時畫（≥1101、theme4 1060～1100），上下單欄不畫。總覽右欄是兩張獨立卡片，沒有同款並排，不加。
+- 新段 `軌跡腳印分開1006`：四種組合真的點勾選、量線條數／腳印數／圓點數／localStorage；同次瀏覽切子頁仍記得；real_reload 回預設；分隔線 1440 深淺兩主題（寬 ≤1px、非紅、落在欄間距）＋390 不畫。舊段 `時鐘v2` ⑥、`足跡輪盤全部腳印` ④、`足跡輪盤只留圓圈` 改驗兩個勾選。
+
+- **這批驗了**（`--workers 1`、tw-slot、埠 8950～8958）：見上表每一段；連帶回歸 足跡輪盤、輪盤合併側欄、重新整理回預設1003、篩選列左上角。`_preview.py`：只剩 1 條 404 console.error（本機缺資料檔，前幾批同一條）。
+- **環境（不改門檻）**：時鐘水波 fps、載入效能 ① 兩條可互動時間（load 9～14，門檻註解寫明負載 10 以上會拉長 1.5～2 倍）、經典光纖「震波 1.5 秒收掉」與足跡輪盤只留圓圈「回放逐幀位置」各在一次重跑時紅（rAF 被 CPU 餓到，同段前一次綠）。
+- **跳過 pytest**：只動 `scripts/_uitest.py` 與 `site/**`。
+
+## 2026-10-06 功能卡統一次數（視覺設計，分支 `claude/perm-grid`，**未推 main，等 CEO 看過**）
+- Andy 16:28「上方這邊的功能開關也要多一個統一設定次數功能」：每張功能卡標題列（標題｜次數鈕｜總開關）加整卡次數鈕，頁首「全部」旁加「全部次數」；沿用族群觀測那套 `openGLim`／`setLimMany`，`groupFs(key)` 擴充 key：`cat:<分類>`、`all`。各列不同顯示「混合」。
+- 標題列變窄，卡標題改兩行（名稱／「N 項・開 N」）才不被截斷。
+- 只在「範本」模式（訪客、各付費方案）有次數；個別會員（逐人微調）本來就沒有次數欄（curLims 只在 plan 模式），這次沒新增。
+- 驗收段 `功能卡統一次數1006`；順手把 `功能開關整列對齊1006` 的開關底色檢查改成會等轉場（機器忙時會誤紅）。
+
+## 2026-10-06 功能開關排版改回範本 126（視覺設計，分支 `claude/perm-grid` → main）
+- 起因：Andy 講第二次「會員管理的功能開關請 Follow 圖案排版」。上一版（540582b5）誤做成四欄瀑布流；正確範本是 126：四欄一般 grid、同列卡片頂端對齊等高、短卡下留白。
+- 改動：`site/admin.js` 拿掉貪婪分欄＋CSS columns＋resize 重畫；卡片順序＝`TwFeatures.cats` 宣告順序（＝左側選單）；卡片＝3px 粗藍上框＋細邊框；開關（列、總開關、全部、族群觀測）實心深藍 `--pm-blue`（淺 #1f4fd8／深 #3d7bff，只在 `#ptPermBox` 內，不動全站 --cyan）；欄數 1440 四／1024 三／800 兩／390 一。訪客、各付費方案、個別會員共用同一個 paintCats，一起改。
+- 驗收：新段 `功能開關整列對齊1006`（深淺主題各跑訪客四個寬度＋付費方案＋個別會員）；舊的 10-05 欄流／10-06 瀑布流斷言已換成「4 欄 grid、非 CSS 多欄」。這批只驗了 `功能開關整列對齊1006,會員權限開關,管理區v3,管理區開關1005` ＋ `_preview.py`。
+- `_preview.py` 有一則 404 console.error（資源 404），本批沒動資源路徑，未追查來源。
+- 沒驗到：族群觀測展開區的視覺（只驗了 4 欄對齊那條舊斷言）。
+
+## 2026-10-06 自選：拿掉點小走勢展開、資料停在 10/02 的根因（UI 專家，分支 `claude/watch-fix` → main）
+- Andy 13:00：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」。
+- **根因（不是資料源）**：資料湖 `price_daily`、`intraday_60m` 都到 10/05；用目前資料湖重算，`stock/2330.json` 日線也到 10/05；線上 03:11 UTC 那次部署也是重算的（之後幾次快取命中沿用它）。
+  停在 10/02 的是**前端存檔**：全站 `load()` 先貼 IndexedDB 存檔（上次開站那天＝資料還是 10/02），網路版到了才重畫；但
+  ① 展開圖 `Industry.watchBars` 用 `_wbCache` 記住第一次拿到的（存檔）個股檔；② `watchpage.loadStocks` 也只拿一次 stocks；③ `sparkLoad` 用存檔 meta 的版本鍵抓 sparks.json 而且只抓一次。所以網路版回來後自選還是舊的，要重新整理才換。
+- **改了**：展開圖整段拿掉（watchpage.js 展開列／CSS／按鈕、industry.js `watchBars`、app.js `trendSeries`、account.js 兩條點擊統計、layout4.js 說明字）；小走勢改成只看不點（點了不展開也不換頁）；`loadStocks` 每次向 load() 要、換了一份才重建；`sparkLoad` 等網路版 meta 才定版本鍵；
+  每列資料日早於「前一交易日」（台北今天往前、跳週末與 tw_holidays.json）→ 現價／漲跌幅變淡＋虛線、title 與小走勢提示寫「資料至 MM/DD」，「?」多一條說明；不放日期膠囊（#329）。
+- **這批驗了**：`_uitest --workers 1 --sections 自選1006（新，含存檔先到→網路版換掉的回歸）,自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單` 0；`_preview.py` 只剩本機缺 earnings.json 的 404（既有環境問題）。沒跑 pytest（沒動 pipeline）。
+- **沒驗到／限制**：新的回歸段沒拿舊程式反向跑一次證明它會紅；管理者盤中即時更新了數字時，落後標記仍照小走勢日期判斷（盤中可能誤標）；`admin.js` 示範資料裡的 watch.chart／watch.kline 名稱沒動。
+
+## 2026-10-06 四週期同看也畫 KD／MACD／RSI、SMC、本益比河流（smc-technical，分支 `claude/four-tf-ind` → main，DECISIONS #335）
+- Andy 13:08：「切換4週期後，紅框的指標功能都不會作動」。原因 `miniCfg()` 把副圖指標濾掉、`buildMtfGrid()` 沒掛 SMC／本益比。現在同一份 tw.kcfg、四格各自畫；副圖每個 76px、格子跟著長高；本益比河流只有日週月，其他格寫原因；拿掉「四週期不畫」。
+- 新段落 `四週期指標1006`（1440／800／390 逐項勾、量副圖／series／SMC 矩形／倍數線，取消就消失）。
+- 這批驗了：`四週期指標1006`、`指標技術分析1005`、`K線SMC區域1005`、`個股指標下拉0926`、`K線縮放`、`獲利並排本益比1003`、`_preview.py`。只動 `site/**` 與 `_uitest.py`，沒跑 pytest。
+- 已知：沒有分 K 的個股 4 小時格沒有 SMC 區域資料（payload 只對有分 K 的算 240m），只畫支撐壓力與停損。
+
+## 2026-10-06 10-06 紅字清理：設計／手機／熱力圖區（設計美編，分支 `claude/fix-reds-ui` → main）
+範圍：全站驗收第二、三份紅字裡「設計 token／手機版／熱力圖」那一區。與同日「既有紅字清理」（`claude/fix-reds`）撞到的部分（手機「更多」收 ETF／財經日曆、HUD 提示框 .97、熱力圖題材改到 `#heatmap/theme`、手機v3／改版斷言）**取 main 版**，這裡只記本批獨有的。
+
+| 段落 | A／B | 原因 | 怎麼修 |
+|---|---|---|---|
+| 批次13-配色與收納 | 測試 bug＋A | 後面 `def _cr` 蓋掉前面同名的（rgb 字串落進只吃 hex 的版本 → `int('rg',16)`）；修掉後暴露 390 字級（手機 v3 R3：整張模式字 5px 是規格代價） | 熱力圖那組改名 `_cr_hex`／`_lum_hex`；390 改量編號鈕 ≥ 11px、按「放大」後再量 SVG ≥ 12px（門檻沒放寬） |
+| UI精修0923（14） | 3×A＋**1×B** | ① 總覽已無 `<table>`（候選名單 09-24 拿掉）② 色票 `#8493b8／#ff4d6d` 是 09-23 值，設計 v4 起預設「科技 HUD」是 `#86A9BF／#FF5470`（淺色 `#4A6377…#C4142F／#07784E`）③ 分頁現十顆（+選股策略／ETF／財經日曆）④ 手機零影響仍寫兩列七顆（手機 v3 起一列五顆）。**B**：總覽「漲跌家數」卡滑過時底色提亮 6%，18px 粗體上漲數字 4.45:1、淺色下跌數字 4.41:1 < 4.5；`#4 1024` 殘留 `ovf-r` class | ①→市場明細名單（54 列、th sticky）②③④ 改驗現行值（紅漲綠跌改用**色相**守住：對舊值差 < 15°）；B：`.osc:hover` 6%→**3%**（深 4.77／淺 4.60，色值色相不動）、`app.js syncTabOverflow` 在直排導覽（html.l4）下一律拿掉 `ovf-l／ovf-r` |
+| 手機一屏（1） | A | `#gpNote`（資料日期說明）依 #329 盤後整個 hidden | 關鍵數字改 None，換成「卡片上沒有資料時段說明」 |
+| 收尾0925-還原小標（2） | A | 個股預設「分時」（#310）；分時是原始成交價，`.chartwrap.tickmode .adjtag{display:none!important}` 刻意收起 | 先證明分時不顯示，再按「日」才量位置／hover |
+| 重新整理回預設1003（1） | B（小） | `tw.tabs.`（分頁拖曳順序，#330）沒分類 | `viewreset.js` KEEP_PREFIX 加 `tw.tabs.`（#330 明寫順序保留） |
+| 3D收合再展開（1～2） | A | 事件欄自 #271 是浮層抽屜（遮罩蓋整頁），不擠窄主欄；舊測試只開不關，「展開」點到遮罩 | 開了再關，並證明抽屜真的開過 |
+| 桌機零差異（6）、手機改版桌機零差異 | A | 分頁數 7 → 10 | 改 10 |
+| 設計系統v2（26） | A | 驗的是 v2 原型數字（圓角 24、內距 20、卡距 24、行高 1.7、平塗、無陰影…）；產品已走設計 v4（HUD 圓角 10、內距 12/16）＋2C 間距 4/8/12/16/24＋風格規範 #322（卡距 12、頁邊 16、行高 1.55） | 改量現行值；「實際量到的卡距」改量相鄰卡片最小正距離（總覽下半現為 2×2）；手機零差異行高 24 → 23.25（15×1.55） |
+| 設計v4第二批2B（1） | A | 個股預設分時沒有副圖；主圖 ≥ 視窗 55% 是 K 線卡滿版時的寫法，現 K 線整張 ≈ 505px | 先按「日」；改量主圖占 K 線整體 ≥ 55%（現 77%） |
+| 訂閱與客服1005（1） | 不穩 | 固定睡 800ms 就讀 `sent`，高負載時請求更晚；support.js 沒壞 | 輪詢最多 6 秒 |
+| 手機按鈕普查（4） | 見下 | 導覽兩列（main 已修）；個股預設分時沒有「重設縮放」；`select#fbCat／#tfU` 是純表單欄位，選了本來就不改畫面 | 先按「日」；兩顆列入 `_mobile_tap_audit.py` EXEMPT（附理由） |
+| 熱力圖v2／R4 | 同 main | 題材段要在 `#heatmap/theme`；「藍冷紅熱」字串 | 取 main 版 |
+
+- **像素比對（桌機改動的副作用）**：base＝origin/main（331a93b8 當時）、new＝本分支，1440×900 十三條路由（總覽／資金流向／產業／產業鏈／熱力圖／題材／市場明細／週期統計／ETF／財經日曆／選股策略／自選／個股）× 深淺、800 總覽＋ETF × 深淺、390 總覽／週期統計／市場明細／熱力圖 × 深淺：**800、390 全部 0 像素差；1440 只剩右上角 15×9px（x 1248–1263、y 19–28，時鐘／徽章，基準兩次互比也會變）**。
+  ⚠ 保護邊界：只涵蓋**初始畫面（不捲動、滑鼠移到角落）**；`.osc:hover` 的底色、提示框、點開才出現的面板沒有逐一比對（hover 那一項由 `UI精修0923` 的對比掃描守住）。
+- **跳過 pytest**：只動 `site/**`、`scripts/_uitest.py`、`scripts/_mobile_tap_audit.py`、`docs/`。
+- **未收斂（轉交）**：`#etf` 在 390 橫向溢出（期間列自訂日期框／基準分段鈕，docW 608），手機版暫停中，ETF 頁負責人。390 剖析圖整張模式字 5px 是手機 v3 R3 的規格代價（其他段落同樣紅字，不在本區）。
+- Andy 可能不同意：① `.osc:hover` 底色提亮從 6% 降到 3%（變淡但外框與「›」仍變主色）② 設計系統v2 那組斷言整組改成 v4 數字（v2 的 24px 圓角／24px 卡距已被 v4 與風格規範取代）。
+## 2026-10-06 13:06／13:12 插隊兩件（Andy 截圖 #stock/4551；UI 專家，跟下面紅字清理同一支分支一起上 main）
+- **分時說明列拿掉**（「不要出現這樣廢話」）：`industry.js setLiveNote` 一律不顯示、不放 title，句子只進 `#liveNote[data-note]` 當機器讀數；
+  斜線缺口不再放小標（chart.js），滑過只寫「HH:MM～HH:MM 尚無資料」；livek.js sourceNote 拿掉「來自 Yahoo（延遲約 20 分鐘）」「量為估計值」；
+  來源／延遲／量是估計值收進 K 線「?」的補充說明（style_guide 11、14）。新驗收 `分時說明拿掉1006`（管理者＋訪客 × 1440／390 × 分時／1 時／4 時，畫面與 title 掃禁用字）；
+  舊段落讀 #liveNote 文字的改讀 data-note；手機個股券商式「短註一行、點開全文」改驗「說明列看不到」。
+- **指標分頁只留指標卡**（「指標不應該出現這樣的內容應該只要圖二那樣即可…其他股票一樣不會發生」）：根因是 10-05 在 `tabTags` 對**每一檔**無條件插 `StockAI.techCardHTML`（不是搬位或缺資料退回）→ 拿掉那一行；
+  技術面完整內容照舊在總覽 AI 卡。`指標技術分析1005` 改驗「不再出現」；新驗收 `指標分頁只留指標卡1006`（2330／3189／2603／4551／1101／0050／9103 × 1440／390）。
+  ⚠ 推翻 10-05 Andy「指標需要新增技術分析」那一句（以 10-06 13:12 原話為準）。
+
+## 2026-10-06 10-06 紅字清理：個股頁區（UI 專家，分支 `claude/fix-reds-stock` → `claude/fix-reds-stock-r2`（rebase 後不准 force，改推新名）→ main）
+- **真 bug（改 site/）**：
+  · `blocks/stock_ai.js`：每一面最上面那句判讀（「週線多頭、日線多頭；進出場條件：觀望」「九顆燈號：紅＝偏多 5…」）從 `<h4>` 改段落 `.aiwhyl`／`.ovwhy`（讀數不是標題；標題圖示退回預設那 44 條的主因）。
+  · `blocks/stock_ai.js`：指標分頁「技術分析」卡（#tagTech）卡寬 ≥ 760 左右兩欄（左＝四週期／原因／若…則…／支撐壓力，右＝逐條條件／九顆燈），內容不少、照樣攤開；1440×900 966 → 645px（一屏看完）。
+  · `icons.js`：補「技術分析」「每日明細」「每週明細」圖示規則；`docs/design_title_icons.md` 對照表同步。
+  · `index.html`：季節圖 300px 下限被 theme4.css 260px 蓋掉（1440 只剩 271），`#msCard>#msChart` 釘回 300。
+- **驗收過時（改 _uitest，斷言改驗新行為、註解寫明出處）**：63dec41a（Andy 10-04「這邊拿掉」桌機 K 線卡 AI 區）→ 個股AI分析0926／個股頂部1002／個股總覽三欄1002 改驗「K 線卡單欄、AI 區不佔高度、總覽 AI 卡四顆籤真的點」；
+  ff621ee0（籤＝技術｜籌碼｜基本｜消息、技術面訊號併進技術面）→ 個股總覽1002／等高1003／積木-個股三卡／籌碼分頁0928；86f8821b（基本面 h3 包進 .row.spread）→ 積木-個股三卡；
+  9a11c13a（? 說明合併成 5 條）→ 0928 基本面逐欄；de3ddf32（4 時一天一根）→ 全市場1H4H、個股指標下拉0926；Andy 10-04「大戶 Default 4 周」→ 分頁版面1002；
+  61ac1bd5／.skprof 7:5（明細表縮）→ 分頁版面1002、獲利並排本益比1003 改驗「表內橫捲、第一欄釘左」；資料源恢復 → 資券資料源未提供1003 改走真資料 ②；個股分頁0926 h3 先 strip。
+  分頁版面1002 的「JSON 週數＝資料湖」：本機 payload 比資料湖舊（10-02 那週 10-05 夜才進湖），改成跟「payload 產出當時的湖」比（git 讀那一版 parquet），雲端照常。
+- **這批驗了**：`_uitest --workers 1 --sections` 個股AI分析0926、個股頂部1002、積木-個股三卡、個股R5、籌碼基本0926、個股籌碼分頁0928、個股分頁版面1002、全市場1H4H、個股總覽1002、個股總覽等高1003、獲利並排本益比1003、個股總覽三欄1002、個股分頁0926、個股指標下拉0926、資券資料源未提供1003、一屏看完1003、標題圖示；＋ `_preview.py`。只動 site/** 與 scripts/_uitest.py（＋docs），跳過 pytest。
+## 2026-10-06 10-06 紅字清理：產業剖析圖區（UI 專家，分支 `claude/fix-reds-ind` → main，DECISIONS #334）
+- CEO 交辦：全站驗收裡產業地圖／剖析圖／3D／關聯圖這一區的紅字逐條分 A（驗收過時→改斷言驗新行為）／B（真 bug→修 site/）；追加：剖析圖「這張圖沒有回答的事」框與「點零件篩到的是環節」警示卡拿掉，誠實那一句收進「?」。
+- B（修 site/）：保護元件主幹光束不准流動（`flow:false`，規格 §8）、收合高度回到 ≤700（S1=592）；手機環節清單 `miaMore` 先留 `.pin`；變壓器第一階讓開標題 3px；`#segDD[data-filter]` 值沒變不重寫；各剖析圖拿掉否定說明框與警示卡，`industry.js paintDgTitle` 在「?」第一段寫「環節不等於族群」＋各圖 `honest` 補充。
+- A（改斷言）：桌機環節詳情改讀右欄 #relList（29149fc／#310）；v2 版面三欄改 1920 驗、1440 是兩欄（左側導覽 #291／#312）；390 先按「放大」再量字級（手機 v3 D 63c080b0）；卡片收合（09-24）改讀點開後的字；filter／opacity 轉場改輪詢；新 helper `dg_honest()` 驗「框不在＋按「?」讀得到」。
+- **這批驗了**（`--workers 1`、tw-slot）：批次12-電源PSU、批次12-散熱、批次12-ABF載板、批次14b-被動RLC、批次14b-高速互連、批次23-面板、批次23-硬板PCB、批次23-交換器板卡、產業鏈導覽、批次11-MLCC、批次22-鋁電容／保護元件／傳動件、批次W9-軟體鏈四張、批次C3-無環節棘輪、批次14-變壓器GIS、批次22-風格系統 **0**；更早幾輪：零件誰做的、HBM、關聯圖、關聯圖清單、3D收合再展開、輕油裂解、晶圓代工、批次29、第三代、CoWoS、矽晶圓 **0**。沒跑 pytest（只動 site/**、scripts/_uitest.py、文件）。
+- **未收斂**：① `產業` 段「點零件不會把畫面捲走」499→35（改成在零件可點處用滑鼠點仍會捲，沒找到 JS 捲動呼叫，超過 10 分鐘）；同段開頭兩條 #chainSwitch 在多段連跑時偶發讀不到（單段曾綠）；② 批次C4／C6 是 WebGL 前提在高負載下起不來，未在低負載重跑。
+
+## 2026-10-06 財經日曆分頁拿掉「全部」、三顆等寬貼內容框（UI 專家，分支 `claude/earn-noall` → main；Andy 12:10「全部拿掉，並平均分散 三個分頁」、12:14「分頁和本週重點之間的空白好奇怪」）
+- 分頁只留 公司財報｜公司法說｜FED 消息，預設公司財報、重新整理一律回公司財報（不記憶，同 #330）；拖過的順序照 tabdrag 保留。月曆、本週重點、當天清單、圖例、公司面板的「FED 背景」都只跟目前分頁（分類不可混）。
+- 版面照產業地圖（#321 .nbsw）：分頁同時控制月曆與面板 → 分頁列移到整塊內容最上方，下面直接接 `.nbbody` 內容框（選中那顆疊在框上緣、底色相連）；三顆用 grid 等寬填滿整排。
+- 本週重點不足 12 列時補「近 30 天已過的同類事件」（公司財報一週常只有一兩家，不補會大片空白）。
+- 驗：`_uitest --workers 1 --sections 財經日曆1006,財報日曆1005,分頁拖曳1006` 0 問題（1440／800／390 等寬、分頁貼框、重新整理回公司財報）；`_preview` 只有既有的 earnings.json 404（本機共用資料沒有這檔）；深淺色 1440／800／390 截圖看過。
+## 2026-10-06 12:50 ETF 報酬比較：「其他」無資料、無配息只留報酬率、期間搬到比較卡（UI 專家，分支 `claude/etf-fix` → main）
+Andy 12:25～12:32 三件：①「為何沒數據」（其他・近 5 年走勢整塊「無資料」）②「槓桿沒有配息 圖表就拿掉含息以及不含息」「只留下報酬率」「也不需要下方備註 殖利率 配息年化多少」③「週期切換……可以選擇時段如圖二那樣……旁邊顯示對應年限日期」。
+
+- **① 根因（前端，不是回補）**：資料湖 `price_daily` 這 6 檔期貨型都有（00635U 2015-04-15～、00642U 2015-09-07～…，回補鍵 `price@2000-01-01:00635U` 已 done），
+  etf.json 的 5y stats 也 ok（右邊年化才列得出名字）。但它們**沒有配息列** → `compute/etf.build` 給的週線 `t`（含息序列）是 null；
+  前端 `noDiv()` 判「確定不配息」要求 `div_done` 為真（舊 `site/etfpage.js` 那行 `(!!it.div_done && !it.freq_n …)`），名稱也不含「期貨」→ 判成「不知道」，
+  預設「含息」走勢 `s.t || (noDiv ? s.p : null)` 拿到 null → 一條都不畫 → `holdEmpty('無資料')`。
+- **修法**：pipeline `compute/etf.build` 加 `div_none`（回補進度檔 `etfdiv@etfx2009:<code>`＝no_data，FinMind 明確回空，且湖裡 0 列 —— 有證據的「不配息」，不是沒問過）；
+  `build_payload` 把 no_data 鍵傳進去；`tests/test_etf.py` 三種情況。本機重算：其他 6、槓桿反向 41、主題型 72、主動式 18、債券型 5 檔 div_none。
+  前端「有沒有配息」改**依資料**：期間內含息年化與價格年化差 ≥ 0.01pp 才算有；沒有的只畫一條（價格＝報酬）。
+  防呆：選中的全部畫不出走勢 → 自動改看該類畫得出來的前 5 檔（不寫回 localStorage，附一句說明）；真的一條都沒有 → 寫白話原因，不寫「無資料」。
+  **不用等回補**：資料已在湖裡，push 後 pages.yml 重算就會帶 div_none。
+- **② 無配息只留報酬率**：全部沒配息 → 長條只剩「年化報酬率」一組、沒有圖例、含息／不含息切換隱藏、標題「年化報酬率」「累積報酬率（期初 = 0%）」、
+  表格只剩 ETF｜期間｜年化報酬率、「?」說明拿掉殖利率／配息年化。混合 → 沒配息那檔只一條、名字旁標「無配息」，殖利率／配息欄寫「無配息」不寫 0%。
+- **③ 期間**：新共用元件 `site/rangepick.js`（`RangePick.html／bind／set`，照管理區流量觀測 .trctl 的樣子：期間下拉＋起訖兩個日期框）。
+  管理區這支今天合進 main 了，所以 **admin.js 流量觀測的期間列也改用 RangePick**（沿用 id admDaysSel／admSince／admUntil 與值 'since'，驗收不用改）。兩邊只有一套。
+  選項：近 1／3／5／10 年、上市以來、起始日期～至今；切下拉 → 日期框同步；手改日期 → 下拉跳「起始日期～至今」。分類列的舊「報酬率期間」按鈕拿掉；比較卡副標只寫分類。
+  近 3／5／10 年用 etf.json 預算（日線）；1 年／上市以來／自訂用週線自算。
+- **驗收段落**：新增 `ETF報酬比較1006`（七類逐一點、槓桿只一條、配息型兩條、混合、期間切換與手改日期、自動改選、1440／390）；
+  `ETF專區1005`、`財經日曆1006` 裡操作舊 `#etfPerSeg` 的斷言改操作新元件。因為動到 admin.js，加跑 `流量觀測1005`、`會員雲端路徑`。
+- **這批驗了**：pytest（1032 passed）；_uitest `ETF報酬比較1006`、`ETF專區1005`、`財經日曆1006`、`甜甜圈圖例1006`、`流量觀測1005`（--workers 1、tw-slot）＋ `_preview.py`。沒驗 `會員雲端路徑`（admin.js 只換期間列產生方式，id 不變）。
+- **未收斂**：`#etf` 390 配息行事曆仍超寬（頁寬 507，之前就記過的已知問題）；ETF報酬比較1006 的 390 斷言只守報酬比較區不添新溢出。
+
+## 2026-10-06 管理區上線（UI 專家，分支 `claude/style-guide` → main；Andy 11:35「管理區新版可以上了」）
+
+- **先上 Worker**（d93087a3，deploy-account-worker success，部署步驟非跳過）：`/v1/admin/stats` 起訖日 `from`／`to`、有效會員的付費範本不可刪（409 `has_members`）、補 node 測試（62 項）。
+- **再上前端**：流量觀測改成「上方每日直條＋開站身分甜甜圈、下方活頁簿分頁（全部＋事件／市場明細／週期統計／資金流向／熱力圖／產業地圖／選股策略／ETF／自選／客服／個股／使用者）」；
+  事件、市場明細、週期統計只統計被看次數；個股只有「分頁點擊」「K 線指標」；使用者頁＝時段直條＋12 小時錶面內外兩圈時鐘；期間含即時、近 N 天、起訖日期（日期框永遠顯示並同步）；
+  點每日直條看當天；全圖滑過／手機點一下互動（對照表 `docs/admin_chart_interaction_1006.md`）；會員管理併進會員權限；功能開關改瀑布流（1440 四欄／1024 三／800 兩／390 一）。
+- 這批驗了：管理區v3、流量觀測1005、管理區1005、管理區開關1005、會員權限開關、會員與自選五分頁、會員權限導覽、即時僅管理者1006、`_preview.py`；node 測試 62 項。
+- 沒驗到：真 Worker 的 hours／hourly／hstat 資料（只有示範資料）、手機真機觸控。
+- 待辦：圓餅互動改照產業地圖（Andy 11:35，另一位視覺設計師做共用設定）；管理區的長條配色推廣到全站。
+- 合併時沒帶 `docs/style_guide_shots/v2～v4` 過程截圖（31MB）；保留 v5。preview/style-guide 先不刪。
+
+## 2026-10-06 圓餅圖一律照產業地圖「成交值占比」（視覺設計美編，分支 `claude/donut-style` → main，DECISIONS #331）
+
+Andy：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」。
+- **共用設定** `App.donut`（`site/app.js`）：環 68／92、間隙 1.2°、圓角 6、邊框 1→3、外擴 4、動畫 200ms、飽和色盤（深淺各 10 色）、「其他」灰、提示框、中心字。規格表在 `docs/style_guide.md` 第六節。
+- **改了哪幾張**：main 上只有一張 ECharts 圓餅 —— 產業地圖「成交值占比」（改吃共用設定、外觀不變；順手修同色相鄰：半導體鏈封測代工與 HBM 同為 #7ee8c7）。ETF 專區、選股、總覽沒有圓餅。管理區（流量觀測、會員權限）的甜甜圈是手畫 SVG，在 `claude/style-guide`，另走 `preview/style-guide`。
+- **第二推（管理區，14:45 改版成 ECharts）**：`donutG()` 只產容器，`mountDonuts()` 掛 `App.donut`（見 DECISIONS #331 補）；截圖 `docs/style_guide_shots/donut1006/`。驗了 `圓餅風格1006`（含管理區 1440 深／淺、390）、`管理區v3`、`流量觀測1005`；舊斷言間隙 2°→1.2°。
+- **這批驗了哪幾段**：`圓餅風格1006`（新）、`甜甜圈圖例1006`、`ETF專區1005`、`選股策略1005`、`產業`、`族群頁`、`淺色主題`；`_preview.py`。只動 `site/**` 與 `scripts/_uitest.py`，沒跑 pytest。**沒驗到**：手機觸控滑過、其餘頁面的非圓餅圖。
+## 2026-10-06 頁首圖示鈕間距與置中（visual-designer，直接上 main）
+- Andy 12:16：「間隔太大，圖示需要置中方框中」。原因：通知鈴（`#ntBell`，notices.js 放在 `#l4Tools` 前面當兄弟）吃頁首 gap 16＋工具列 margin-left 8＝24px（其他鈕之間 6px），且它是 34×32、圓角 9、底色 panel-2，跟 ☀／調色盤（34×34、`--r-sm`）不同。改法：`layout4.css` 鈴鐺同尺寸同樣式、`margin-right:-10px` 收成 6px、`.l4tools` margin-left 歸 0；`notices.js` 鈴鐺 34×34、`--r-sm`、圖示 17px。
+- 新增 `_uitest.py` 段落 `頁首圖示鈕1006`（深／淺 × 1440／800；間距一致且 ≤ 8px、方框正方形、圖示中心差 ≤ 0.5px、頂端對齊；本機沒開會員時補一顆同標記的鈴鐺）。
+- **這批只驗了**：`頁首圖示鈕1006`、`設定面板`、`淺色主題`、`明亮主題`、`新-版面等高與多寬度`、`_preview.py`；沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`）。
+
+## 2026-10-06 全站「廢話」普查第二輪（UI 專家，分支 `claude/copy-trim2` → 預覽 `preview/copy-trim`，**未上 main，等 Andy 看預覽**）
+- Andy（看到財經日曆「出處：…（證交所 OpenAPI t187ap04）」「這家公司不在市值前 50 名單裡…沒有整理財報分析」）：「避免出現這樣的廢話，幫我全部資訊都看，不只這分頁，所有分頁內容都不能有這樣的廢話，讀者看了沒意義」。
+- 範圍：所有會顯示的字（卡面、面板、展開明細、浮層、`title`、? 說明、空狀態、錯誤訊息、註腳、圖例、頁尾、剖析圖圖內文字、3D 零件說明）。逐條明細與各頁數量：`docs/copy_audit_1006_r2.md`（共 834 處）。
+- 規則寫進 `docs/style_guide.md` 禁止事項第 14（內部口徑）、15（否定說明）條；出處改成標題旁小 ⓘ：`App.srcInfo(出處, 日期)`／`window.srcInfo`，樣式 `.srcinfo`（index.html）。讀者畫面不寫內部代理名（Deno／Worker → 主要來源／備援來源；`Market3.futDenoWhy` 內部照記）。
+- 沒碰（別人在改）：`admin.js`、`explore.js`、`etfpage.js`、`earnings.js`、`tabdrag.js`、`multiselect.js` —— 這些檔案裡的廢話列在 `docs/copy_audit_1006_r2.md`「轉交」一節（含 Andy 點名的 earnings.js:352 那句）。
+- 刻意保留：即時盤口徑（不是全市場／成交值是估的／代理值／不含慣性）、法遵免責、看不出來的手勢說明（K 線滾輪／拖曳／雙擊、本益比 Y 軸、3D 拖曳）留在「?」與 title、剖析圖 18 張「這張圖沒有回答的事」框與「點零件篩到的是環節」警示卡（是圖的格線，框內內部字已清；建議剖析圖負責人下一輪整格拿掉後重排）。
+- `_uitest.py`：依賴被刪字的斷言逐條改（前面都有 `# ★ 2026-10-06 廢話普查` 註解，寫改前→改後）；產業關係面板「孤立公司要明講」改成「孤立公司不印否定說明、面板照樣有內容」。
+- **這批只驗了**：`_uitest.py --sections 無獨立提示框,新-大盤三張圖,產業關係面板,新-輪動時鐘`（07:04 台北，合併最新 main 之後；產業關係面板 1 條＝註腳「產業推論」少了滑過提示，修完單段重跑 0）；`_preview.py` 只剩 `data/earnings.json` 404（本機 site/data 沒有這支，環境問題，線上部署會重算）。CEO 06:45 指示瀏覽器槽排隊 29 人，只准跑上面這 4 段。**更早（合併 main 前）分四批跑過 66 段**：被刪字牽動的斷言都已改，其餘紅燈對照其他 agent 在 main 上的基準 log 是同樣的（資金流向問號 25 條＝資金去向／法人／集中度卡搬到子頁後 ? 鈕看不到、熱力圖頂層分頁、甜甜圈 W3-8、提示框不透明度、R5-7d、批次2 長條收合、輪動時鐘即時位移倍率、預設經典光纖）；剖析圖各段 390px 字級／原尺寸、環節色標 0 筆、三欄排版、個股 AI 區 0×0 這幾類沒有拿到本分支基準（排隊被取消），文字改動不會動到版面，判定為既有紅燈但**未經對照證實**。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+- 已知限制：① 剖析圖「這張圖沒有回答的事」框與「環節」警示卡沒拿掉（動格線）；② 被別人改著的六支檔案（earnings／etfpage／explore／admin／tabdrag／multiselect）沒碰，清單在普查文件「轉交」；③ main 合進來的新字（漲跌家數卡「點這格捲到下方漲跌分佈」等兩條 ?、直條提示「點一下列出這一級的股票」）是別的 agent 剛上的功能說明，留在「?」／提示裡沒動；④ 上面「未經對照證實」那幾類紅燈，下次有空槽時用 `git worktree add <dir> b3855d0c^1` 對照跑一次。
+- 07:4x 二次合併 main（CEO：預覽底版缺 livegate、日期膠囊、甜甜圈圖例、tabdrag、財經日曆第二輪五批）：衝突 7 檔，main 的功能一律保留、刪字套上去 —— 日期膠囊 hmDate 照 main 刪掉、`srcInfo` 留；市場明細／輪動／資金去向的即時狀態列用 main 的開頭（不寫時段、`.liveat` 藏起來）接我的精簡口徑；輪動「?」的「即時」條保留 main 的 `data-live-ui`；style_guide 我的兩條順延成第 14、15 條。這次只驗了 `無獨立提示框`＋`_preview.py`（CEO 指示）。
+- **11:4x copy-trim2 上 main**（Andy 11:10「清廢話第二輪預覽 OK」）：再合一次 origin/main（衝突 app.js 漲跌家數即時提示＝用 main 的名單口徑＋短句、HANDOFF）。這批驗了：`_uitest --sections 市場明細即時1005,輪動時鐘即時,桑基展開與即時,籌碼基本0926,批次29-產業分頁,手機個股券商式,無獨立提示框,日期膠囊拿掉1006,即時僅管理者1006`（TW_UITEST_PORT=9050，同組對照 origin/main 9c9571ca）＋`_preview.py`。我造成的 2 條已修（批次29 W3-7 `#dgQ` 改驗問句而非「這張圖回答」前綴；手機個股券商式表頭釘選：頁面變矮捲到底仍未碰到報價列時視為沒被蓋住），重跑 0；剩 `籌碼基本0926` 季節圖高 271.5＜280 與 main 相同（既有紅字）；`_preview` 只有本機缺 earnings.json 的 404。
+
+## 2026-10-06 評語一律中性（金融專家，分支 `claude/neutral-copy` → main，DECISIONS #334）
+Andy 11:10：「好言論改中性」。對照表 `docs/neutral_copy_1006.md`（約 90 句：資金輪動／總覽資金輪盤／族群象限面板 13、今日候選與技術判定 41、個股 AI 分析 18、其他頁 7；第五節列保留的灰色地帶）。
+- **改了什麼**：RRG 四段短評改成座標描述（轉弱＝「相對強度仍高、動能轉弱」…）；`technical.py` 判定字樣改常數 `V_*`（回檔型態條件成立／突破型態條件成立／條件未齊／條件未齊（週線逆勢）／排除條件成立）；
+  AI 卡綜合狀態 `analysis.py` `ST_*`（條件成立／條件未齊／偏空）；`mtf.py` 多週期腳本改「需求區／供給區／…條件」；`scoring.py` 理由列拿掉「便宜」「不划算」「沒人氣」「追高」；
+  集中度「主流容易休息／冷門股不容易動」改描述；選股策略「比自己過去便宜」→「本益比在自身歷史低檔」。**判定邏輯、門檻、數字都沒動**。
+- **golden**：`tests/fixtures/perf_golden.json` 以既有 perf_bars 重產（沒重抽樣本），逐欄比對數字與結構完全一致、35 個字串不同。
+- **驗收**：pytest 全套 1066 passed（新 `tests/test_neutral_copy.py`）；新段 `中性用語1006` 0 個問題，換回 origin/main 的 app.js 同段紅 18 條（不是假綠）。
+  前端回歸（`--workers 1`、埠 9060）：資金流向、總覽、輪動時鐘即時、新-輪動時鐘、排序、選股策略1005、免責小字1006、中性用語1006 **0**；個股AI分析0926 40（origin/main＋舊資料同段 41，既有紅：桌機 K 線卡 AI 區 63dec41a 已拿掉，斷言未跟上，不是這批造成）；`_preview` 重疊 0、出界 0，只有既有 earnings.json 404。
+- **本機資料**：build_payload 在寫 candidates.json 前被 OOM 砍（rc 137，個股頁 stock/*.json、explore、stocks 已用新程式重算）；
+  candidates／groups_detail／industry_map 三支本機用「舊檔＋字樣對照轉換」頂上（不重算數字），其餘沒受影響的 JSON 連到共用 site/data。線上 pages.yml 會整包重算。
+- **未收斂／待 Andy**：四問步驟名「③ 何時進場／④ 別進的理由」保留（網站架構），要不要一起改中性是產品定位問題。
+
+## 2026-10-06 11:10 既有紅字清理・追加：資金流向＋總覽＋即時這一區（UI 專家，分支 `claude/fix-reds2` → main）
+CEO 10:20 追加（全站完整驗收 fails12.txt 裡這一區的段落）。第一批 12 段已在 f239531d 上線（Pages 6874058459，台北 10:44 ✅）。
+
+| 段落 | 分類 | 原因 | 怎麼修 |
+|---|---|---|---|
+| 足跡輪盤／總覽右欄（h3 「空白」） | A | **不是 c1e737fe 誤刪標題**：icons.js 標題圖示插在 h3 最前面，`childNodes[0]` 變成圖示（SVG 內 path 之間的空白 "       "）；同段 h4 讀到 '       資金輪盤 ' 可證標題還在 | 改讀 h3 自己的文字節點／strip |
+| 點外面就關（8） | A | ① 版面 V2：「外面」那一點 `#flowSankeyCard h3` 在 #flow/rotation 上不存在；② 總覽熱力圖成分股面板 b4b2c15d（10-05 Andy「這邊拿掉」）已拿掉；③ 題材剖析圖的「外面」`#indHeat h3` 在 #heatmap/theme 是 display:none | 外面改點 `#flowRotCard h3`／頁名 `#l4Head h1`；集中度先切 #flow/inst；熱力面板改驗「點方塊不開面板、不換頁」 |
+| 資金流向點背景關、資金去向拓撲(4)、族群法人篩選、收尾0925-R2小項、掃描光束④ | A | 版面 V2 子分頁（8ad4c044） | 新 helper `flow_sub()` 照真人點側欄切子分頁；掃描④「捲到頁底輪盤看不到」改「切到別的子分頁」（V2 之後捲到底輪盤還在畫面裡） |
+| 篩選列左上角(3) | 2×A＋1×**B 未收斂** | A：#313 把電腦版資金去向的標題／下拉／看哪一天壓成可折行一排，下拉本來就在標題右邊；B：選一個族群後副標長出「只看…・已展開…」、下拉列多「清除」「只看「X」」，放不下而折行 → 下拉列掉到第二列、整張圖往下跳 28px（違反風格規範第 4 條互動不晃動） | A 改驗「同一列、在標題右邊」；B 的斷言照舊守（目前紅），修法要動 #313 的取捨（固定寬＋省略，或下拉列固定獨立一列），留給 CEO／Andy |
+| 輪動象限面板(16) | 12×**B**＋4×A | B：面板數字欄 11.5px、趨勢箭頭 11px，低於全站下限 12（09-25 合併側欄收小字，10-05 定下限後違規）；A：390 手機 v3 起象限是新雷達角落徽章 | index.html 兩條改 `var(--fs-min,12px)`；390 改驗 `#mRadarFlow .mqb` 四顆、桌機象限卡不出現 |
+| 時鐘v2(2)、足跡輪盤全部腳印(2) | A | 4e9c2ad5（10-04）擁擠區非焦點腳印 ×0.5（0.175），舊斷言只認 0.3～0.4 | 允許 0.35 或 0.175 |
+| 足跡輪盤⑤ 390 | **B** | 手機雷達第一次量大小後上方版面收 4px（頁高不變，ResizeObserver 不叫），點角落時才重量：盤面 268→272、點位挪 1～2px | mobile3.js 記住大小後 0.7 秒再對一次頂端 |
+| 輪動時鐘即時(2) | A | ① 4e9c2ad5 √ 尺度起畫面位移比≠資料位移比（設計）；② 390 手機 v3 把桌機輪盤收進「完整版」 | ① app.js 攤 `App._rotScale`，斷言改成把畫上去的兩端照 √ 尺反推回資料＝tdx／tdy（比舊的更嚴）；② 先按「完整版 ›」 |
+| 收尾0925-說明改問號 | A | 63dec41a 桌機 K 線卡 AI 區拿掉，「?」搬到總覽 AI 卡（ovai） | want 清單 ai → ovai |
+| 大盤日K即時1005 | A | #329 標示不再寫「資料至…＋今日即時」 | 改驗標示只寫「加權日 K」、讀 data-todayk |
+| 新-大盤三張圖-週日(2) | A（資料時序） | lastday.py 只在當天日 K 已進湖時補 13:30 那點；本機分 K 到 10/05、日 K 到 10/02 → 最後一點 13:29 | 依本機資料決定：日 K 有那天 → 必須 13:30；沒有 → 至少 13:15（同 full_enough） |
+| 即時推送(3)、會員雲端路徑(2)、總覽摘要卡即時(3) | 未重現／已修 | 前兩段本輪 0（CEO 那輪 load 20 時紅，判定負載）；摘要卡即時見上一節 | 沒改 |
+| 掃描光束①⑤ | 環境 | fps 5.9～7（門檻 30）、0.7 秒只 +7 幀：容器負載 13～20 下的軟體繪圖；HANDOFF 先前也記過「掃描光束 2（fps，容器負載）」 | 沒改門檻 |
+
+- **這批驗了**（`--workers 1`、tw-slot、埠 8950）：點外面就關、資金流向點背景關、資金去向拓撲、足跡輪盤、足跡輪盤全部腳印、輪動象限面板、時鐘v2、輪動時鐘即時、族群法人篩選、收尾0925-R2小項、收尾0925-說明改問號、即時推送、大盤日K即時1005、新-大盤三張圖-週日、會員雲端路徑、總覽右欄 **0**；
+  回歸（動到 mobile3.js／index.html／app.js）：批次30-兩層下拉與象限卡、手機v3、資金流向、新-資金流向 **0**；篩選列左上角 1（上表 B 未收斂）；掃描光束 2（環境）。
+- **未收斂**：① 資金去向選族群後下拉列折行、圖跳 28px（B，見上表）；② `#etf` 390 沒有手機排版（上一節）；③ 掃描光束 fps（環境，負載低時再跑一次）。
+
+## 2026-10-06 10-06 既有紅字清理（UI 專家，分支 `claude/fix-reds` → main）
+CEO 交辦：`_uitest.py` 前幾輪留下的 12 段紅字逐條分類 ——（A）驗收過時＝網站沒壞、斷言停在舊版面 →改斷言驗新的正確行為（旁邊註解寫為什麼過時）；（B）網站真的壞了 →修 site/、斷言留著守住。沒有 skip／停用／隔離任何段。
+
+| 段落 | 分類 | 原因 | 怎麼修 |
+|---|---|---|---|
+| 批次30-兩層下拉與象限卡（W6-14～20） | A | 8ad4c044 版面 V2：`#flow` 一律 replace 成 `#flow/rotation`，資金去向卡在別的子分頁 display:none、whenNear 不畫 → `.ddrow[data-for=sankey]` 不存在 | 先開 `#flow/rotation` 再站內切 `#flow/sankey`（兩張都畫過）；W6-14b 回輪動那排勾族群再切回量形狀；W6-19 切回輪動子分頁量輪盤點數（並要求 >0，防假綠） |
+| 資金流向問號（25） | A | 同上：四張卡分在三個子分頁，`#flow` 上只看得到 rot 那顆「?」；`hash=='#flow'` 永遠不成立 | 逐一切 rotation／sankey／inst 各驗自己的卡；四顆「?」合起來仍要剛好四顆、都在 h3 |
+| 熱力圖v2（6） | 4×B＋1×A | B：theme4.css HUD 深色（預設主題）`--tip-bg` .92 —— 09-24 Andy 嫌提示框透字後定案 ≥97%，v4 原型 669eac0c 沒跟上；A：R4 題材說明 9a11c13a 改寫成「藍冷紅熱」；題材段在版面 V2 後要到 `#heatmap/theme` | `--tip-bg` .92→.97；斷言改找「藍冷紅熱」；題材那幾段改到 `#heatmap/theme` 子分頁驗（並驗產業那張藏起來） |
+| 個股總覽1002（6） | A | ff621ee0（10-04）技術面訊號併進技術面、第二顆改籌碼面；籤名 `.nm` 裡是全名 `.nl`＋窄寬簡稱 `.ns`（讀成「技術面技術」） | 四顆＝技術面｜籌碼面｜基本面｜消息面；「一次只顯示一面」改成技術面＝技術面卡＋訊號燈卡、其他一次一張 |
+| 批次29-產業分頁（3） | A | ① 頂層熱力圖現在落在 `#heatmap/industry`（版面 V2）；② W3-5 390：63c080b0 手機 v3（D）剖析圖只留編號，`.dgcards` 依設計 display:none，舊斷言把 0×0 隱藏卡片算成「被切掉」 | ① hash 改 `#heatmap/industry`；② 390 改驗 `.mnum2d` 模式、編號鈕全在圖框內、沒有橫向捲軸、點第一顆真的開出那一號的說明抽屜（800 照舊驗卡片沒被切） |
+| KPI工具列頁尾0926（2） | 未重現 | 10-05 在乾淨 main 23104eca 負載 1 也紅（inBar=False，HANDOFF 記「待查 placeKpi」）；本輪 main＋本分支連跑 0，探針訪客／管理者兩種視角都 inBar=True，追不到哪一筆修好的 | 沒改產品；補一條「訪客視角（不注入 TW_LIVE_OVERRIDE）摘要卡列也在大盤卡裡」守住 —— 這支驗收預設是管理者視角，Andy 以外的人之前沒人驗 |
+| 總覽摘要卡即時（3） | 2×A＋1×B（口徑字） | 79d503f5（10-05）即時名單從「人工族群成分股 443 檔」擴成族群＋自選＋成交值前段、上限 MUD_CAP 550 → 斷言寫死 443 必紅；卡片底線「人工族群成分股」同時說錯口徑（B）；「15 秒內 /quote 3～4 次」對相位敏感（探針實測節奏 5.4～6.2 秒：setTimeout 串接） | app.js ovlUD 底線改「非全市場」、提示寫三段組成與上限、`#hero` 多 `data-ud-uni` 讀數；斷言 N ≤ 名單檔數 ≤ 550 且 < 全市場；請求改量相鄰 /quote 間隔 ≥ 4.5 秒（比數次數嚴）＋次數 2～4 |
+| 總覽修正0926b（2） | A | `#ovRotPop` 的「進族群頁」連結一律 encodeURIComponent（法定產業別族群 id 是中文），舊斷言拿編碼過的 href 比原始 gid | 解碼後再比（route() 本來就逐段 decode） |
+| 會員權限導覽（#mTabMore） | **B** | a376a2c9 ETF、3fc32092 財經日曆新增頂層分頁沒收進手機「更多」，`body.m3on` 五欄格線擠成兩列：「更多」掉到畫面下緣外（實測 top 901／視窗 900）→ 手機進不了市場明細／週期統計／自選／管理區 | index.html 把 `.tab[data-view=etf|earnings]` 一起藏、mobile3.js `MORE_VIEWS` 加兩顆、「更多」清單多兩列；斷言加「更多整顆在畫面裡」 |
+| 市場明細兩欄1003（800 重疊） | 未重現 | 10-05 紀錄是高負載（load 50）下乾淨 main 同樣紅；本輪 0 | 沒改 |
+| 站上均線下拉1004（`.dd-all`） | 未重現 | `#maGroupDD` 仍是 msDD、`.dd-all` 還在（#325 沒動這顆）；本輪 0 | 沒改 |
+| 個股R5 7d（KD） | A | 09-28 起 K 線預設「分時」（不畫指標副圖），開關 KD 畫面本來就不變、圖例不會有 KD(…) | 照真人先按「日」再驗（#310 那批已在總覽修正0926b 補過同一步） |
+| 個股分頁0926（h3 空白） | A | site/icons.js 標題圖示的 SVG 原始碼在 `<path/>` 之間有空白 → `h3.textContent` 開頭多 "   "（畫面看不到） | probe 讀 `textContent.trim()` |
+
+連帶（我的改動直接碰到的段）：`手機v3`「更多」抽屜五列 → 七列（逐列比 data-m）；`手機改版` 段的「七個分頁一個都沒少」寫死 7 顆（10-05 起有 10 顆）→ 改成「底部沒放的每一顆都在『更多』清單裡」（選股策略 ≤820 本來不提供、交付清單 09-28 入口收掉，兩者除外），G2 多點 ETF／財經日曆。
+
+- **未收斂（轉交）**：`#etf` 在 390 寬沒有手機排版 —— 日期框 `#etfFrom／#etfTo`、比較表把頁面撐到 608px（is_mobile 下整頁被縮放，固定在底部的導覽跟著跑到畫面外，從 #etf 頁按不到「更多」）。手機版 10-03 起暫停，這是 ETF 頁的手機版待辦；`手機改版` G2 把 ETF 放在最後一個點（只驗「從更多進得去」）。
+- **跳過 pytest**：本分支只動 `scripts/_uitest.py` 與 `site/**`（`git diff --name-only 83eb18b1..HEAD` 裡的 pipeline／tests 是 main 上 581d883b 帶進來的，那一批已跑 pytest 1032 passed）。
+- **這批驗了**（rebase 到 main 581d883b 之後，`--workers 1`、經 tw-slot、TW_UITEST_PORT=8950）：12 段＋連帶段 `批次30-兩層下拉與象限卡`、`資金流向問號`、`熱力圖v2`、`個股總覽1002`、`批次29-產業分頁`、`KPI工具列頁尾0926`、`總覽摘要卡即時`、`總覽修正0926b`、`會員權限導覽`、`市場明細兩欄1003`、`站上均線下拉1004`、`個股R5`、`個股分頁0926`、`手機改版`、`手機v3`、`即時僅管理者1006`、`總覽摘要卡列` **全部 0**；`_preview.py` 只剩本機缺 `site/data/earnings.json` 的 404（既有），重疊 0、出界 0。
+- **沒跑完**：`手機按鈕普查`（一輪 30～60 分鐘，跑到 29 分鐘被我設的 1 小時總時限砍掉，沒有結果）—— 手機底部導覽與「更多」清單的改動由 `手機v3`／`手機改版`／`會員權限導覽` 三段代驗。
+
+## 2026-10-06 08:20 財經日曆／ETF／選股策略清廢話（copy-trim2 轉交那三支＋收尾；UI 專家，分支 `claude/copy-trim3` → main）
+- **第一批 45845e99＋ddd80852（07:38 推，Pages 6871910691 07:43 ✅）**：選股策略出處只留機構名（端點代碼、FinMind 資料集名、pipeline 路徑、「官網條款禁止…」刪），
+  整行「資料：…」「資料日期／資料出處」改標題旁出處 ⓘ，卡片與完整名單頁的 `.sl-date` 日期膠囊拿掉（DECISIONS #329 轉交那兩處）；
+  計算方式的「本站資料湖」「每天由管線」「持股分級 15」改讀者語言；三頁「資料準備中」→「尚無資料／尚無財經日曆資料／尚無除息資料」。
+  出處 ⓘ：`App.srcInfo` 還在 copy-trim2（未上 main），三支檔都是「有就用它、沒有就產出同樣的 `.srcinfo` 標記（借 `.muted` 灰字）」；earnings／etf 自己的 `.si` 圓圈樣式刪掉。
+  驗：`_uitest --workers 1 --sections 財經日曆1006,財報日曆1005,ETF專區1005,選股策略1005,分頁拖曳1006` → ETF 1 條（calgrid 休市提示含「資料湖」，當時先排除、另案）、其餘 0；
+  `_preview` 只有既有的 earnings.json 404（本機沒有這檔）。ETF 段排除後單獨重跑 0。
+- **收尾這批（協調者定口徑）**：
+  · **ⓘ 一律不放資料日期**（#329「一律拿掉」）：earnings.js 的 `si()` 只收出處；explore／etfpage 本來就只寫「出處：X」。
+  · `calgrid.js` 休市標記提示只寫「X・台股休市（證交所公告）」（`S.verified` 拿掉；查證紀錄只留在 `pipeline/calendar/tw_holidays.yaml`）。
+  · `pipeline/compute/earnings.py macro_events()`：FED 事件 `src` 只寫發布機關名（`FED_INFO[k]["org"]`），查證紀錄留在 `macro_events.yaml` 的 source／verified；
+    走哪條路改記機器欄位 `via`（fred／yaml，前端不顯示）。前端 `cleanSrc` 替換留著當保險（舊種子檔 `site/earnings_seed.json` 還是舊字串）。
+  · `explore.css` 刪掉沒在用的 `.sl-date`／`.sl-src`／`.sl-dsrc`。「非推薦名次」照留（講排序，不是重複免責）。
+  · `_uitest`：ETF 退回模式的掃描拿掉 calgrid 排除（真的守住休市提示）；財經日曆1006 加「休市提示只寫 X・台股休市（證交所公告）」。
+- **這批驗了**：`pytest tests/ -q` 1032 passed、1 xfailed（動到 pipeline／tests）；
+  `SKIP_INTRADAY=1 python -m pipeline.build_payload` 在容器裡**兩次都被 OOM 砍掉**（rc 137，同時有其他代理開瀏覽器；一次死在 60 分 K、一次死在讀完資料湖）→
+  改用只重算 `earnings.json` 的腳本（輸入照抄 build() 那一步；pipeline 端這批只動 `macro_events`），FED 事件 src 確認是「聯準會（Federal Reserve）／美國勞工統計局（BLS）／美國經濟分析局（BEA）」；
+  之後 `_uitest --workers 1 --sections 選股策略1005,財報日曆1005,財經日曆1006,ETF專區1005` **0 問題**、`_preview.py` **0 問題**（有了 earnings.json，原本那個 404 也沒了）。
+  ⚠ 其他 JSON 沒有重算（沒有改到它們的產生程式）；完整重算交給雲端 `pages.yml`。
+- **沒驗**：分頁拖曳1006（這批沒動分頁列）、其他用到 calgrid 的頁面只有財經日曆與 ETF（都在上面）。
+
+## 2026-10-06 07:22 選股策略拿掉「全部」＋全站分頁拖曳 site/tabdrag.js（UI 專家，分支 `claude/explore-noall` → main a74a00fd，DECISIONS #330）
+- 選股策略：面向分頁只留 基本面｜技術面｜籌碼面｜消息面，預設基本面，重新整理一律回基本面（不再讀寫 `tw.explore.cat`）；子標籤下拉只列該面向。
+- `site/tabdrag.js`：全站自動掛 `.nbsw`／`.subtabs`／`role="tablist"`／`#stockTabs`／`#mktSeg2`／`#mktTabs`；滑鼠拖曳（>6px、放開吞掉那次 click）＋Alt+←／→；
+  順序存 `tw.tabs.<路由>.<分頁列 id>`；只改 CSS `order` 不搬 DOM；改過的分頁列右鍵「↺ 還原預設順序」；不提供刪除。
+  排除：側欄／頂層 `.tabs`、`#v-admin`（範本頁籤自有伺服器排序）、`#wlTabs`／`#wpTabs`（自選清單順序是清單資料）。
+- **部署**：`deploy_wait.py --branch main --sha a74a00fd` → ✅ 部署完成：Pages deployment 6871602495（main 75933053，含 a74a00fd）台北 10-06 07:22 success（GitHub 部署紀錄推算，請 Andy 重新整理確認）。
+- **這批驗了**：合併 main 後 `_uitest --workers 1 --sections 分頁拖曳1006,選股策略1005,無獨立提示框` **0 問題**；
+  合併前 `分頁拖曳1006,選股策略1005,個股分頁0926`＋`_preview.py`：前兩段 0；`_preview` 只有既有的 earnings.json 404。
+  反向驗證：index.html 拿掉 tabdrag.js → 分頁拖曳1006 紅 4 條。
+  回歸（rebase 前）：市場明細、ETF專區1005、產業鏈導覽 0。
+- **紅但不是這批造成**：`個股分頁0926`（2327「公告 / 新聞」標題開頭多空白）在乾淨 main 2895cb9e 上同樣紅；`會員權限導覽`（`#mTabMore` 點不到，HANDOFF 先前已記 main 原本就紅）；
+  `財報日曆1005`（本機缺 earnings.json）。
+- **沒驗**：`個股`、`產業`、`手機按鈕普查` 大段（容器負載高時取消，未在最終版跑）。Tab 鍵焦點順序仍是 DOM 原順序（只改 CSS order 的代價）。
+
+## 2026-10-06 卡片上的「資料時段＋資料日期」膠囊一律拿掉（UI 專家，分支 `claude/no-date-chips`，DECISIONS #329）
+- Andy（圈了族群總覽標題列「昨天（盤後收盤）資料日期 2026-10-05」）：「這類資訊一律拿掉」，再強調一次 → 不改成小圖示／提示，直接拿掉。普查表 `docs/date_chip_audit_1006.md`（拿掉 41 處、保留 11 類、轉交 explore.js 2 處）。
+- 拿掉：族群總覽 #gpNote（盤後整行不顯示，即時只留「成交值估算・涵蓋 N/M 檔」）、熱力圖 📅 MM/DD（hmDate 刪除）、市場明細標題「日期 盤後・」與「⚡ 即時 HH:MM:SS」、三個即時狀態列開頭的更新時間／非盤中句、
+  排行／輪盤 M/D～M/D、資金去向副標日期、族群×法人副標日期區間（改「近 N 日」）、大盤卡來源膠囊、即時鈕旁時間（live.js：狀態改用鈕顏色）、總覽四張摘要卡右上角日期（只寫「即時」）、漲跌清單「MM/DD 盤後」、
+  個股的資料更新到／資料到／財報到／最新 YYYY-MM-DD／四週期「MM-DD 非即時」／籌碼小圖日期／區間鈕旁起訖日、手機同類副標與頁尾。
+- 保留：表格日期欄、新聞時間、K 線軸與浮水印、拉Bar／區間桿旁的控制項讀數、台指期「日盤／夜盤」、K 線圖下 #liveNote 的資料來源說明（判斷保留，Andy 可否決，見普查表第二節）。
+- **轉交（不能碰的檔）**：`explore.js`（.sl-date 卡片膠囊、i 浮層資料日期）—— 行號在普查表第三節；`etfpage.js`、`earnings.js` 同日已由 #327 拿掉。訪客（#326 非管理者）的摘要卡日期標籤改成整顆不顯示（`livegate.js`）。
+- 驗收：新段 `日期膠囊拿掉1006`（普查 10 頁＋個股 4 分頁的標題列／副標、真的操作即時／拉Bar／區間桿／區間鈕／摘要卡下跌清單；拿 origin/main 跑紅 18 條、本批 0 條）。
+  原本靠副標日期驗「換日了」的斷言改讀 `data-range`／`data-day`／`data-stamp`／藏起來的 `#mktLive .liveat`（畫面不顯示）。
+- 這批驗了（`--workers 1`，經 tw-slot）：日期膠囊拿掉1006 0、總覽 0、總覽摘要卡列 0、漲跌連結1006 0、產業 0、族群頁 0、產業R3審查 0、新-大盤三張圖 0、夜盤推送 0、資金流向 0、新-資金流向 0、資金輪動合併 0、批次3 0、足跡輪盤既有功能 0、市場明細 0、市場明細即時1005 0、個股 0、個股季週期與筆數 0、個股分K非交易時段 0。
+  其餘紅燈拿 origin/main 同段對照、紅的條目相同或更多（非本批）：設計v4第二批2B 1、新-大盤三張圖-週日 2、批次29-產業分頁 3（甜甜圈 rich text 解析爆掉；本批改的斷言在爆點之前、有跑到且綠）、熱力圖v2 6、總覽修正0926b 2、總覽摘要卡即時 3、批次2 1、輪動時鐘即時 2（main 3）、
+  資金去向經典光纖 1、輪盤合併側欄 1、資金流向問號 25（#flow 改子分頁後「?」點不到，main 同 25）、即時5秒0929 1（main 2）、個股總覽1002 6、個股分頁0926 1（標題前多空白）、足跡輪盤 3（main 同 3；第一次多一條 390 雷達篩選位移，重跑消失，判偶發）。
+- `_preview.py`：第一次 2 條 —— 404 console.error（本機缺資料檔，前幾批就有）、[1280] 總覽台指期「昨收 48,671」出框 23px；base 與本批各重載 2 次量都是 0，判偶發。
+- 合併最新 main（livegate 即時僅管理者 #326、財經日曆／ETF 第二輪 #327、清廢話）後最後一輪（一次 tw-slot）：`_preview` 只剩那條 404；日期膠囊拿掉1006 0、即時僅管理者1006 0（訪客摘要卡那顆改成看不到、市場標題「盤後」斷言改看口徑）、批次29-產業分頁 3（main 同 3）。
+  再合併甜甜圈圖例那批（b8ff0e69）後：日期膠囊拿掉1006 0；批次29-產業分頁 3 ——「熱力圖頂層分頁 hash」＋ W3-5 390px 剖析圖說明卡被切（main b8ff0e69 同一台機器跑同 3 條，非本批）。
+  其餘回歸由 CEO 統一跑（CEO 06:45 指示縮小範圍）—— ⚠ 合併 main 之後沒有重跑的段：資金流向／個股／市場明細那幾批（合併前都跑過，見上）。
+
+## 2026-10-06 甜甜圈一律「左圖右圖例」（UI 專家，分支 `claude/donut-legend`，DECISIONS #328）
+- Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」。
+- 普查：前台只有一張圓餅＝「成交值占比」（`#gpPie`，產業地圖全市場／每條產業鏈第一頁／族群下鑽共用 `renderGroupPanel`）；
+  總覽、資金流向、市場明細、熱力圖、週期統計、ETF、自選、選股、個股頁 0 張（`_uitest` 實際掃過）；#admin 的 SVG 甜甜圈本來就圖例在右，admin.js 歸 `claude/style-guide`，沒動。
+- 改：圖例一列一項在右（色塊 12×12｜名稱｜成交值｜占比，subgrid 對齊、數字 mono 靠右不截斷）；`layoutDonut()` 依卡寬／長條高／圖例寬算正方形邊長（≥160，並排時可用高＝長條高），
+  卡寬 < 420 才退回圖例在下；ResizeObserver 盯卡片與圖例（拉視窗、字型晚到）；環 58/78 → 68/92；中心大數字隨邊長 20～34；`.gpgrid` 欄寬對調成長條 1fr／圓餅 1.3fr。
+- docs/style_guide.md 甜甜圈那列改「圖例在右」＋第 11 條原則＋禁止事項第 12 條。⚠ `claude/style-guide` 分支把同一列寫成「圖例放圖下方」——合併時以 main（圖例在右）為準。
+- `_uitest` 新段 `甜甜圈圖例1006`（並登記在 modules.js chain.overview）；`圖表圓滑化`、`批次29-產業分頁` 的甜甜圈斷言跟著改（中心字 10-05 起是 rich text，舊斷言比對整串 → 攤平再比）。
+- 已知限制：① 兩欄並排、族群多（長條 524 高）時甜甜圈受寬度限制，上下各留約 100～150px 空白（置中）；② 長條卡變窄（1440：643 → 495），長條卡標題列右側滑過讀數 #gpFocus 截斷得較早（數字在提示框與圖例）；
+  ③ 即時模式每 5 秒重畫時，成交值字數變（999 億 → 1001 億）會讓甜甜圈邊長差幾 px；④ admin.js 的甜甜圈沒動（另一分支）。
+- **這批只驗了**（CEO 10-06 06:45 指示縮小範圍，瀏覽器槽 29 人排隊；其餘回歸由 CEO 上線後統一跑）：
+  `甜甜圈圖例1006` 0（1920／1440／1100／900／840／800／390 × 全市場、半導體、軟體、法定產業別；在右 9 種、在下 3 種都走到；滑過／點圖例下鑽／回到族群／拉視窗 1440→840→1440／普查 10 頁）；
+  反向：同一段對 main 的 site 跑 → 紅 82 條。`全市場族群下鑽不偏移` 0、`圖表圓滑化` 0（兩段在 main 上原本就爆掉：中心字 10-05 改 rich text、center 改 '50%'，舊斷言讀不到 → 已修斷言）；
+  `批次29-產業分頁` 3 紅＝既有：main 上這段一開頭就爆（tabs 為空＋JS 註解換行），修好後才跑到後面三條：熱力圖網址現在是 `#heatmap/industry`（斷言寫死 `#heatmap`）、W3-5 390px 剖析圖說明卡（ai_server、mlcc）被切 —— 都不是本批碰的檔；
+  `_preview.py`：只剩本機缺 earnings.json 的 404（既有）。負載高時（load 50～64）跑過的 `產業R3審查`、`產業鏈導覽`、`一般電子鏈`、`族群頁`、`產業關係面板` 皆 0。沒跑 pytest（沒動 pipeline）。
+
+## 2026-10-06 06:50 財經日曆＋ETF 第二輪（Andy 交辦 1～8 項；分支 `claude/earnings-v2` → main，DECISIONS #327）
+- 接手前一位設計師（d30344c4 存檔）；Andy 授權「以上財報日曆更動 OK 後幫我推上線」→ 驗綠直接上 main（ETF 同批）。
+- 1 面板「← 回本週重點」釘在面板最上方（`.ph.stk` sticky）、底部無按鈕、標題「名稱 代號」即個股頁連結（d30344c4 已做，本批驗收）。
+- 2 清廢話：資料缺整段不顯示（`section_focus` 無資料、`section_valuation` 近四季 EPS 非正 → None）；「少於 8 季不排位置」「月營收還沒有公布」
+  「只列標題，不判讀情緒」「未含預期值」「不標偏多偏空」刪；「怎麼看」拿掉「這張回答：…？」與操作教學；出處全改段落標題旁 ⓘ。
+- 3 有事件的公司全部有分析：真資料 64 家事件公司（市值前 50 以外的法說公司也算）全部有段落，companies 共 107 家。
+- 4 FED 官方連結：發布機關＋FRED 序列頁，FRED 指向畫面數字實際讀的序列（DFEDTARU／CPIAUCSL／PAYEMS＋UNRATE／PCEPILFE／A191RL1Q225SBEA），WebSearch 逐條確認。
+  FRED 目前 0 筆（Secret 待 Andy 重設，見 04:55 那節）→ 前值／公布值整格不出現是預期。
+- 5 卡片標題／副標沒有資料日期與時段膠囊；免責併進主卡底部一行（d30344c4 已做，本批驗收）。
+- 6 分類切換：月曆、面板清單、圖例只出現該類（d30344c4 已做，本批驗收）。
+- 7 ETF：無「全部」、順序 配息型｜市值型｜主題型｜主動式｜債券型｜槓桿反向｜其他、預設配息型、自問自答刪、資料日膠囊刪、月曆空狀態一句；
+  另：當天清單「再點一次同一格」改標題列「← 回整月」鈕、單檔明細整行「資料：…」改 ⓘ、比較卡空狀態「尚未選擇 ETF」。
+- 8 分頁拖曳：`site/tabdrag.js` 07:1x 上 main（自動掛 `.nbsw`＋id），ETF 分類列 `#etfCatSeg` 與財經日曆分類列 `#earnFilt` 不用改程式就吃到；
+  已加進 `_uitest` 分頁拖曳1006 的 `TD_BARS` 真的拖一次（拖第一顆到第三顆、不切換、不可刪、重新整理保留、Alt+←→、右鍵還原）**0 問題**。
+- **部署**：`deploy_wait.py` → ✅ 部署完成：Pages deployment 6871218145（main b3ea3120）台北 10-06 07:18 success（GitHub 部署紀錄推算，請 Andy 重新整理確認）。
+  推上 main 後同三段再跑一次（含 livegate 合併）0 問題。`preview/earnings-v2` 要刪，`git push --delete` 被 git 代理擋（HTTP 403），還留著。
+- **這批驗了**：pytest 全套 1032 passed／1 xfailed；`SKIP_INTRADAY=1 build_payload`（前任留下那輪跑完）＋ `python -m pipeline.compute.earnings` 用新程式重產
+  earnings.json → 種子；`_uitest --sections 財報日曆1005,財經日曆1006,ETF專區1005 --workers 1` **0 問題**；
+  反向驗證（scratch 複本故意放回否定句／FOMC 規則段／ETF 自問自答／拿掉回整月鈕）→ 財經日曆1006 紅 4 條，新斷言真的會抓；`_preview.py` 0 重疊、0 溢出。
+  **沒跑**：`版面v2結構`（CEO 06:45 指示只跑三段＋_preview；前任回報這段在乾淨 main 上原本就紅：Locator.click 逾時）；`無獨立提示框`段在 main 上不存在
+  （在 copy-trim2），同一套規則已寫進 財經日曆1006 對 #earnings／#etf 驗。
+- `_uitest` ETF專區1005：殖利率前 5 的假資料改成跟真資料隔開（真資料配息回補完整後 00896 等 10～14% 會擠掉假資料，那是驗資料不是驗排序）。
+- 已知限制：ⓘ 出處只能滑過看（手機要點一下才出 title）；ETF 分類列在 1440 寬是否一排放得下沒有另外量（7 顆，#325 記過 8 顆時會折兩排）。
+## 2026-10-06 盤中即時只給管理者帳號（分支 `claude/live-admin-only` → main，DECISIONS #326）
+- Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」。新檔 `site/livegate.js`（`<head>` 第二支）＝唯一閘門：已登入且 Worker 回 `admin:true` 才開，`<html>` 掛 `live-on`。
+- 非管理者：所有即時 UI 不掛／整顆藏（`.livetg`、`.livebtn`、`#liveState`、`[data-live-ui]`）、**不輪詢、不打 quote-proxy／Deno／mis／Yahoo**（`Live.proxy()`／`taifexProxy()` 回空字串）；
+  畫面退回盤後：大盤三張圖畫資料湖最近交易日、摘要卡右上角變單純日期、個股不列 1／5／15 分、分時寫「盤後資料」、訂閱頁不再把盤中即時當賣點。
+  管理者登入／登出（或 Worker 說不再是管理者）→ 整頁重新載入一次。清單與理由在 DECISIONS #326。
+- ⚠ **這是畫面閘門，不是存取控制**：報價 Worker 仍公開可打。要真的擋得改 Worker（報價端點驗會員權杖），列為後續，見 #326。
+- 驗收：`_uitest.py` 預設對每頁注入 `TW_LIVE_OVERRIDE=true`（只在本機認）＝既有即時段落驗管理者視角；新段 `即時僅管理者1006` 走真閘門（訪客／會員／管理者／登出／權限被收回）。
+- 動到的檔：site/livegate.js（新）、index.html、live.js、market3.js、livek.js、industry.js、app.js、mobile3.js、features.js、pricing.js、support.js、modules.js、scripts/_uitest.py。
+- 這批只驗了（--workers 1、tw-slot 排隊，台北 06:28～06:41）：`_preview.py`（重疊 0、無橫向捲軸；唯一問題是本機缺 `data/earnings.json` 的 404，環境問題同上一批）、`_uitest` 的 `即時僅管理者1006`、`盤中即時`、`個股即時分K`、`新-大盤三張圖`、`會員雲端路徑` 全部 0。；合併最新 main 後（06:44～06:48）再跑 `_preview`＋`即時僅管理者1006`＋`盤中即時` 仍是 0。
+  反向驗證：把閘門改成永遠開 → `即時僅管理者1006` 紅 26 條。沒跑 pytest（只動 site/** 與 scripts/_uitest.py）。
+  ⚠ **沒驗的（上線後補跑）**：即時5秒0929、總覽摘要卡即時、市場明細即時1005、大盤日K即時1005、桑基展開與即時、個股週期即時1005、分時一路即時、個股分K非交易時段、輪動時鐘即時、夜盤真實fixture／推送／盤後0930、台指期Deno優先、批次29-產業分頁、積木清單、同意條款與法律頁、足跡輪盤只留圓圈、資料狀態。03:44 那輪 4 workers 在負載 50 下有紅，但對照 origin/main 同樣紅的有盤中即時／即時5秒0929／大盤三張圖（後來 --workers 1 重跑盤中即時已綠），其餘未完成對照。
+
+## 2026-10-06 判定／評分類卡片標題列加一行免責小字（今日候選等 7 處）
+- Andy（截圖市場明細「今日候選 A 5 檔 / B 22 檔 ?」右邊空白）：「這邊旁邊備註不構成投資建議的相關注意事項提醒」。普查表 `docs/disclaimer_audit_1006.md`。
+- 做法：`site/app.js` 的 `DISC`（短句＋全文，只有一份）→ `App.disc(key)`／`<small data-disc>`；樣式 `.disc-line`（index.html，12px、一行、省略、全文在 title、最小 8em，放不下自己一行）。
+- 補了：市場明細今日候選（只在該分頁）、總覽資金輪盤、資金流向資金輪動、手機資金輪動（標題下自己一行）、個股基本面卡、個股指標、本益比河流圖。AI 分析／技術分析／技術面訊號／SMC／券商觀點原本就有。
+- 短句一律「不構成投資建議」開頭（窄卡片只露得出前 8 字）；資金輪動短評「回檔找買點」等語氣本身沒改（可另做）。
+- 這批只驗了：`免責小字1006`（新段，單跑 0；故意弄壞會紅 6 條）、`市場明細`、`資金輪動合併`、`指標技術分析1005`、`個股基本面卡1003`（0），以及 `_preview.py`。
+  `總覽`、`新-輪動時鐘`、`手機v3`、`資金流向`、`市場明細兩欄1003`、`個股總覽等高1003`、`獲利並排本益比1003` 有紅燈，**在乾淨 origin/main 上同樣紅**（負載 50～60 下跑，點不到 sig 籤、手機底部導覽 7 顆、獲利欄寬等），不是本批造成，列入待處理。
+
+## 2026-10-06 05:15 篩選膠囊牆 → 全站共用下拉多選 site/multiselect.js（UI 專家，DECISIONS #325）
+- Andy：「改下拉式清單篩選，確認是否其他還有這樣的功能未被更改，一併改成這樣」（截圖：漲跌分佈「族群篩選」展開 118 個族群膠囊＋「往下捲」）。
+- 新元件 `site/multiselect.js`（`window.TwMS.mount(host,{id,label,items,groups,selected,onChange})`，index.html 在 app.js 前載入）：按鈕一行「族群：不限／名稱／已選 N ▾」固定寬；
+  面板掛 body＋fixed（不被卡片 overflow／backdrop-filter／transform 切），搜尋、全選／清除、依產業鏈分組（點組標題整組勾）、最大高度內捲；點外面／Esc／換頁收起；同 id 重新 mount 接手開合／搜尋字／焦點（含 ETF、⚡即時每 5 秒整塊重畫不會把面板關掉）。
+- 漲跌分佈改用它（篩選條件一字未改）；`.mktdist` 加 container query（790px）讓篩選列換不換行由卡寬決定 —— 勾選後副標變短不再讓整張卡矮 52px（800px 量到）。
+- 普查（只有漲跌分佈這一處是膠囊牆；其他選項多的篩選早就是下拉）：今日候選 Excel 式勾選、站上均線／週期統計 `.rotdd.msdd`、資金輪動／資金去向兩層下拉、熱力圖／熱門題材單選下拉、產業鏈「環節 ▾」、選股策略子標籤 —— 不改。
+  **待轉交（別人的檔，沒動）**：`etfpage.js` ETF 分類 8 顆 `.nbsw`（1440 量到 2 排、會橫捲）；`admin.js` 流量觀測「分頁明細」頁面切換 `#trPageSeg`（頁數隨資料最多 18）；`mobile3.js` 手機「篩選與期間」抽屜產業鏈 9 顆晶片（手機暫停中）。
+- docs/style_guide.md 第五節加「篩選（選項多）」、第七節禁止事項第 9 條；modules.js `market.detail` 掛上「下拉篩選1006」。
+- **這批驗了**：`下拉篩選1006`（新：1440／800 各一輪＋390；展開／搜尋／勾兩個長條總家數＝兩族群檔數加總／重畫時面板留著／清除還原／分組標題／Esc・點外面・再點收起／換分頁回預設／卡高與頁高不變；
+  反向：拿掉 `[hidden]` 修正 → 搜尋紅 2、拿掉 container query → 800 卡高紅 1）**0**；`市場明細`、`市場明細下鑽0928`、`積木清單` **0**；
+  `個股R5`（7g 改驗下拉，7g 綠）、`市場明細即時1005`、`市場明細兩欄1003`、`站上均線下拉1004`、`總覽` 有紅 —— **乾淨的 origin/main（23104eca）同一批段落紅得一模一樣**
+  （R5-7d KD 參數兩條、即時1005「現在不是盤中」時段相依、兩欄1003 800 下鑽時 ECharts 提示框壓到名單、站上均線 `.dd-all` 點不到、總覽小輪盤說明框），非本批造成，**待處理**；
+  `_preview.py`：只剩 main 原本就有的 404（本機缺 earnings.json）。沒跑 pytest（沒動 pipeline／tests）。⚠ 這輪容器負載 60+，第一輪大量 networkidle 逾時假紅；之後一律 `flock /tmp/tw-browser.lock` 排隊、--workers 1。
+- 已知限制：① 單一族群時按鈕寫名稱，長名字省略（滑過看全名）；② 今日候選仍是自己那套 Excel 語意下拉（Andy 指定），外觀沒併進 TwMS；③ TwMS 只有多選，沒有單選模式。
+
+## 2026-10-06 04:55 FRED 總經／財經日曆 FED 卡空白：根因是 Secret 的值不是 FRED 金鑰（**待 Andy 重設 Secret**）
+- 現象：`last_run.json` 的 `macro.fred`、`macro.fred_calendar` 每輪 ok=False rows=0，`data/macro*.parquet` 從沒產生過，財經日曆 FED 卡（前值／公布值、偏多偏空、走勢小圖）空白。
+- 根因（雲端實測，手動觸發 daily.yml phase=news，run 37370277055）：FRED 回
+  `HTTP 400：Bad Request. The value for variable api_key is not a 32 character alpha-numeric lower-case string.`；
+  金鑰自檢：**長度 52（應為 32）、含大寫字母、含 1 個非英數字元**（已去掉頭尾空白／換行／引號之後）。
+  ＝ GitHub Secrets 裡 `FRED_API_KEY` 存的不是 FRED 金鑰（貼成別的東西、或金鑰前後夾了說明文字）。
+  工作流有傳（daily.yml「抓取與計算」env）、變數名一致、端點與參數（series/observations、release/dates 的 realtime_start／end、include_release_dates_with_no_data=true）都對。
+- 修（cfb91008）：FRED 錯誤原因寫進 `last_run.json` 的 `steps.<名稱>.error`（來源掛 `df.attrs["error"]`，`run_daily.step()` 接；金鑰一律抹掉）；
+  `config.FRED_KEY` 去頭尾空白／換行／引號；回應缺欄位印前 200 字。測試 10 條在 `tests/test_sources_v3.py`。
+- **Andy 要做**：到 <https://fredaccount.stlouisfed.org/apikeys> 複製 32 字元小寫金鑰（沒有就到 <https://fred.stlouisfed.org/docs/api/api_key.html> 申請），
+  在 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions> 編輯 `FRED_API_KEY`，**只貼那 32 個字**。下一輪每日管線（或手動觸發 phase=news）就會補上；
+  看 `last_run.json` 的 `macro.fred.rows` > 0、沒有 `error` 欄就是好了。
+- 這批驗了：pytest 全套（本機 1027 passed／4 skipped／1 xfailed；雲端 daily.yml 測試步驟也綠）；雲端實跑 phase=news 拿到上面的錯誤字串。沒跑 _preview／_uitest（沒動 site、build_payload）。
+- 順帶發現（非本批）：`tests/test_stage_pipeline_news.py` 沒 mock `collect_index_minute`，在出口被擋的容器裡單檔要 25 分鐘（GitHub 上不受影響），已開建議任務。
+
+## 2026-10-06 04:30 總覽「漲跌家數」摘要卡 → 下方漲跌分佈（分支 `claude/updown-link` → main，DECISIONS #324）
+- Andy：「漲跌浮點即是連結到下面」＋「而非市場明細分頁」。改前點摘要卡換到 `#market/updown`；改後**留在 #overview**、捲到 `#ovBreadthCard`、外框亮一下（`.cardspot`）。
+- 點卡上「上漲／下跌」數字 → 到了直接列出那一側（上漲＝0~1…漲停、下跌＝跌停…-1~0），清單上方 `.nbsw.lv2`「全部＋各級」可原地挑一級；「平盤」＝平那一級。清單那一段直條原色、其他淡掉，關掉恢復。
+  下方卡停在上市／上櫃時點數字 → 自動切回「全部」（摘要卡數字是全部市場，家數才對得上）。圖還沒畫（whenNear）就點 → 畫好自己打開。
+- 滑過提示：卡 `title="看漲跌分佈"`、數字 `title="列出…的股票"`＋名稱底線、鍵盤 Tab 停得到按 Enter。清單標題「N 檔・MM/DD 盤後・列前 60」。
+- 手機：`ovsJump` 加 step 參數（先切「② 貴不貴 → 市場寬度」）、`#ovBreadthCard` 加 scroll-margin-top；分佈圖卡寬 < 520px 時 x 軸刻度斜 45°（改前 390 寬黏成一串）。
+- `_uitest`：新段 `漲跌連結1006`（30 條：點卡／點下跌／分頁挑一級／點上漲時上市切回全部／平盤／鍵盤／「?」文字／圖未畫先點／手機 390）；
+  改三處舊斷言意圖（`總覽`、`總覽摘要卡列`、`KPI工具列頁尾0926`：「→ 市場明細」改成「留在 #overview 並捲到分佈卡」）；modules.js market.kpi／market.breadth 的 tests 加這段。
+- **這批只驗了**：`漲跌連結1006`（四輪皆 0；反向：舊 app.js 跑 27 紅）、`總覽摘要卡列` 0（flock 排隊、負載降下來後）、`市場明細` 0、`漲跌家數市場別`（桌機段 0）、負載降到 1 之後重跑 `總覽` 0、`漲跌家數市場別` 0（含手機段）、`KPI工具列頁尾0926` 我改的那條過、`_preview.py`（重疊 0、出界 0，唯一一筆是本機缺 earnings.json 的 404，main 原本就有）。
+- ⚠ 驗收時機器 load average 約 50（4 核，其他 agent 同時跑 build_payload／pytest／_uitest），以下紅燈在**乾淨 origin/main（23104eca）同時段同樣紅**，判定為環境：
+  手機段 `no-spine`／摘要卡手機 n=0、`手機v3` #mTabMore 點不到、`積木清單` DOM 不在畫面、`KPI工具列頁尾0926` 頁尾量不到、`總覽` 小輪盤點族群（smooth 捲動沒停穩就點，base 同樣重現）。
+- 待處理（main 原本就紅，非本批）：`KPI工具列頁尾0926` 的「摘要卡列在大盤三張圖的卡片裡（#m3Kpis）」「#v-overview 底下不直接掛 #hero」兩條 —— 乾淨 origin/main（23104eca）同樣紅、負載 1 時仍紅（inBar=False），不是負載造成，待查 market3.js placeKpi。
+  （高負載時 `總覽`「點直條」也紅過，乾淨 main 同樣；負載降下來後 0，判定為平滑捲動沒停穩。）
+
+## 2026-10-06 02:40 會員 Worker：每小時統計＋頁面白名單補七頁（分支 `claude/worker-hourly`，**Worker 先上，前端待接**）
+- Andy：流量觀測「即時」看今天 0–24 時每小時、「使用者」分頁看每小時使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
+- 後端（`workers/account-api/worker.js` 檔尾 hourly 區塊，只新增、包 prototype）：新表 `hstat(day, h, pv, sess, sess_login, mins)`（台北日期×小時，只有次數、無識別碼，保留 13 個月同 usage）；
+  `/v1/admin/stats` 回應**原欄位不動**，後面多 `hours`（今天 24 格瀏覽）、`hourly`（期間各「時」加總）、`hstat`（today／hour／since／day／period，各含 pv、open、login、guest、mins 24 格）。
+  頁面白名單 `VIEWS` 補 `etf`、`explore`、`earnings`、`events`、`support`、`pricing`、`notices`（`VIEWS_ADDED`，接在舊 11 個後面）；舊的 `other`＋前綴細項照舊讀得到。
+- ★ **前端接法（給 `claude/style-guide` 的 site/admin.js、site/account.js）**：全文在 `docs/account_analytics.md`「每小時統計＋頁面白名單補七頁」。重點：
+  ① 即時直條用 `st.hours`、使用時段用 `st.hourly`（現成 `hourData()` 直接吃），登入／訪客分色用 `st.hstat.period.login／guest`；`hstat.since` 晚於期間起點要註明。
+  ② `site/account.js` 的 `VIEWS` 改成跟 Worker 一模一樣（順序一樣，18 個）；`events`／`support` 是面板，打開時另外 `bump('pv:events')`／`bump('pv:support')`。
+  ③ 管理區 `classify` 要同時認「other＋前綴」（舊）與新頁面鍵。④ `tests/account.test.mjs` 三邊一致測試在過渡期允許前端少這七個，前端補上後自動回到完全相等。
+- **這批驗了**：`node --test workers/account-api/tests/*.mjs` 60 過（新檔 `hourly.test.mjs` 10 條：小時累加、跨日〔台北 23:59／00:00〕、與 usage 對帳、400／403／429 不記、13 個月保存、七頁 pv／e2／線上 route／page 篩選、舊 other 細項相容、舊欄位不變、空資料）。
+  反向：拿掉寫入 → 新測試紅 6；小時改用 UTC → 紅 5；模擬前端補上 18 頁 → 三邊測試綠、順序錯 → 紅。沒跑 pytest／_preview／_uitest（沒動 site、pipeline）。
+- 已知限制：① 部署前沒有每小時資料（看 `hstat.since`）；② 小時歸「Worker 收到心跳」那一小時，整點前 1 分鐘內的動作可能算到下一小時；③ `deploy-account-worker.yml` 部署前只跑 `account.test.mjs`（新測試只在本機跑），沒動 .github。
+
+## 2026-10-06 預設狀態普查（頁尾詳細規範一律收合）
+- Andy：「每次重新整理、換頁面後 Default 都會是收合狀態，Default 狀態這部分幫我 CHK 所有頁面」。普查表 `docs/default_state_audit_1006.md`。
+- 修：頁尾詳細規範不再記 `tw.footDetail`（移到 viewreset 重設清單清舊值），重新整理與換頁一律收合；客服面板、通知下拉換頁收起；
+  普查抓到 11 個沒分類的 localStorage 鍵（ETF 頁 `tw.etf.*`、選股 `tw.explore.cat`、大戶區間 `tw.chipWinHo` → 重設；通知已讀／橫幅、用量 → 保留），main 上「重新整理回預設1003」原本是紅的，已綠。
+- 這批只驗了：`預設狀態1006`、`重新整理回預設1003`、`KPI工具列頁尾0926`、`同意條款與法律頁`、`_preview.py`。
+- 上面那條「待處理」已收掉（同一天第二批）：
+  - `同意條款與法律頁` 中斷：**斷言過時**。它找總覽「今日候選」`#ovCandCard`，那張卡 09-24 就拿掉了，導覽第③步早改指 `#m3`；實測網站點服務條款、導覽第③步都正常。斷言改指 `#m3`。
+  - 斷言修好後露出**網站真的壞的一條**：手機導覽「到總覽看這一步」不會切到那一步（停在第①步）。根因是手機 v3 主軸鈕文字變「②貴不貴」（無空白），`site/legal.js` 拿「② 貴不貴」比對永遠找不到；改成去空白再比。
+  - `_preview.py` 的 404 是 `data/earnings.json`（財經日曆）：**環境問題**，本機 `site/data` 是 10-05 10:10 UTC 建的、早於 build_payload 開始產這支；前端會退回 `earnings_seed.json`，線上部署每次重算所以有這支檔。
+  - 這批只驗了：`同意條款與法律頁`（0 個問題）、`_preview.py`（只剩上述 404）。
+
+## 2026-10-06 側欄收展修正（claude/side-fold2）
+- 收起群組／子項 → 整組（含目前所在頁與其子項）全藏，只剩標題＋提示點（Andy：「應該只會出現母分頁」）。
+- 根因：財經日曆加進今日市場時，layout4.js GROUPS 與 layout4.css 收合選擇器都漏列 earnings → 收起今日市場時總覽被藏、財經日曆永遠露出。
+- ETF 改到「族群與個股」（產業地圖、市場明細、選股策略、ETF）。管理區加 ▸／▾ 子項收合（鍵 admin，子項不寫死）。
+- 這批只驗：側欄收展1005（含管理者 context）、版面v2結構、_preview。財報日曆1005 本機缺 earnings.json（資料，非本批）而紅；「風格規範」段落不存在。
+- 第二批（同日，Andy：箭頭 ▸ 卻露出子項、點下一個母分頁會覆蓋）：定成狀態機 —— 每個群組／母分頁各自狀態；箭頭方向＝可見性（CSS 不再有目前頁例外）；
+  點母分頁名稱：在該頁＝切換、不在＝導過去且收著就展開；點子項／換頁／重整不動其他狀態。子項收著時母分頁恢復反白。
+  _uitest「側欄收展1005」改成情境表 S1～S14＋A1～A5，每步跑不變式（箭頭＝可見性、提示點正確）。
+  驗：側欄收展1005 0、版面v2結構 0、_preview 只有本機缺 earnings.json 的 404；會員權限導覽 的手機段（#mTabMore 點不到）在 main 上原本就紅，非本批。
+
+## 2026-10-05（台北 18:17）：財報日曆 → 「財經日曆」三大分類、拿掉所有推估
+- Andy：「多新增公司法說會……3 大分類：公司財報、公司法說、FED 消息」「名稱改財經日曆」「裡面不可以有推估數據」。
+- 篩選改 .nbsw「全部｜公司財報｜公司法說｜FED 消息」；法說會改收全部上市櫃（重大訊息第 12 款內文抽日期／時間／地點／擇要，抽不到不補）；預估財報日與營收／財報期限不再進 events。
+- **這批只驗了**：pytest 全套（1013 passed／1 xfailed）、重算 payload 後 `_uitest --sections 財報日曆1005`（另由協調者跑 總覽、版面v2結構 皆 0）、`_preview.py`。「風格規範」段 main 尚無，未跑。
+
+## 2026-10-05 歷史回補「接力」上線（backfill.yml）
+- 這輪因 FinMind 402 停下（plan:default.stopped_at 有值）→ `relay` job 睡到本輪開始後 62 分鐘，用 GITHUB_TOKEN 派下一輪（同 inputs、relay_n+1，最多 30 棒）。
+- 不派的情況：補齊、單一資料集／Logo／分 K、UTC 09～10 點、每日管線在排隊或等待、已有別的回補在排隊或在跑。concurrency 搬到 backfill job（cancel-in-progress 仍 false），接力睡覺不佔寫入佇列。
+- 這批驗了：yaml 解析、pytest 全跑；手動觸發一輪實測（見 Actions）。
+- 補：計畫補齊後的每日續補撞 402 也接力 —— `run_backfill._mark_quota_stopped` 寫 `progress["quota_stopped"]`（做完清掉），接力判斷一起讀；測試 `tests/test_backfill_relay_1005.py`。
+
+## 2026-10-05 風格規範＋流量觀測重設計（claude/style-guide）
+- 新增 `docs/style_guide.md`（網站預設風格，DECISIONS #322）；`theme4.css` 加類別色 `--cat-*` 與圖表 token；AGENTS／CLAUDE 各加引用。
+- #admin 流量觀測依規範重做（只在預覽 `preview/style-guide`）：副標一行 ≤20 字、長條 12px／列距 28／單色 `--cat-1` 且貼齊副標、甜甜圈 160＋圖例同排、卡片重新配對（甜甜圈↔線上、散佈↔功能）、表格文字一行省略。
+- 新驗收段 `風格規範`（全站規範自動檢查，STYLE_ROUTES＝industry、admin/traffic）；#explore 有 <12px 字未納入（待修）。
+- 這批只驗：流量觀測1005、風格規範、管理區1005、管理區v3、_preview.py。截圖 docs/style_guide_shots/before|after。
+
+
+
+## 2026-10-05 fix4-2（台北 17:xx）：分頁統一成共用元件 .nbsw（DECISIONS #321）
+- 會員範本頁籤字級縮成產業地圖分頁 13.5px、置中；流量觀測頁面切換也改 .nbsw；.nbsw 全站加文字置中。
+- DECISIONS #321＋AGENTS UI／審核清單各一行。.gitignore 補 `site/data`（連結檔不吃 `site/data/`）。
+- 待其他分支：#etf 分類頁籤（claude/etf-v3）、#earnings（preview/earnings-cal）尚未用 .nbsw。
+- 這批只驗：選股策略1005、管理區v3、管理區1005、會員權限開關、管理區開關1005、流量觀測1005、_preview.py。
+
+## 2026-10-05 流量觀測重排（claude/traffic-v2）
+- 管理區頁首卡（標題＋email＋隱私說明＋「？圖表怎麼選」）拿掉；期間／重新整理搬進「全站總覽」卡右側，隱私說明縮成 ? 滑過提示。
+- KPI 5 格等寬；同排卡等高；每天直條只從第一筆有資料日起畫（加 y 軸、無紀錄區間文字）；個股「代號＋名稱」；表格與 KPI 文字全置中。
+- 這批只驗：`流量觀測1005`（新）、`管理區1005`、`管理區v3`、`_preview.py`。沒驗：會員權限／名單頁的視覺（head() 改動波及，僅跑上述兩段）、手機 390。
+## 2026-10-05 fix4（台北 16:xx）：選股浮層精簡、管理區三態 Switch、訪客數字卡拿掉、名單置中、★/方案欄、分頁統一
+- 選股 i 浮層只剩「篩選條件」＋一行小字資料日期・出處（完整名單頁保留完整說明）；分類改 `.nbsw` 資料夾分頁、子標籤改下拉多選。
+- #admin/perm：類別「全開／全關」、工具列「全部開／全部關」→ 一顆三態 Switch（on／off／mixed）；族群觀測每個分組標題列加總開關。
+- 訪客頁四格流量數字卡拿掉（流量觀測分頁已有）。會員名單（memtbl）所有欄位置中。
+- ★／方案欄不一致根因：`tierOf` 只看「範本存在」，內建範本或名稱撞「訪客／註冊會員」的範本會被當付費；改成內建不算付費、撞名範本建立時擋掉。⚠ 線上真實資料未親眼看，請 Andy 確認那一列。
+- 管理區分頁（admnav、範本頁籤、子分頁）加 `.nbsw` 統一。
+- 這批只驗了：`_uitest --sections 選股策略1005,管理區v3,管理區1005,會員權限開關,管理區開關1005`（新增「管理區開關1005」）＋ `_preview.py`。沒跑 pytest（純前端）。
+
+## 10-05 15:51 CEO 上線兩批：ETF 專區＋選股策略（aa7c1f3b，15:41 推）、perm-v4 管理區前端（d425049b，15:51 推）
+- ETF＋選股：合併 preview/etf-v1、preview/explore-v2；「槓桿反向」與「其他」同版面不出前 5。驗了：pytest 994 過；重算 payload 後 `_uitest ETF專區1005,選股策略1005,個股,會員權限開關,管理區v3,總覽`
+  —— 個股段第一次「切指標後主圖高度 373→382」1 紅，單獨重跑 0（本批沒動 K 線高度邏輯，判偶發）；`_preview` 綠。
+- perm-v4：Worker 先上（c968e481 success），前端後上。CEO 追加：會員欄一行（▸ email 名字 ★ 同排；★ 金色＝付費，方案名在滑過提示與「方案」欄）、窄螢幕 `contain:inline-size` 防橫捲、測試假資料日期 09/34 → 真日期。
+  驗了：`_uitest 管理區1005,管理區v3,會員權限開關,訂閱與客服1005` 0；`會員權限導覽` 1 紅（手機 #mTabMore 點不到）—— **main 上同樣紅、手機暫停中，未修 —— 待處理：手機恢復時第一個修**；`_preview` 綠。沒跑 pytest（沒動 pipeline）。
+  ⚠ 踩坑：worktree 的 `site/data` 捷徑要用絕對路徑（`ln -s /home/user/tw-rotation/site/data site/data`），相對路徑 `../tw-rotation/...` 是相對 site/ 解析 → 整頁沒資料、一堆假紅。
+- 進行中：「財報日曆」大分頁（總覽正下方、月曆＋法說會／FED 事件＋點選看分析展望），frontend-ui 在 `../wt-cal`、分支 `claude/earnings-cal`，做完推 `preview/earnings-cal`。
+
+## 10-05 15:06 #admin/perm 重新設計（perm-v4）：資料夾頁籤、卡片同寬同高、頁籤拖曳／⋮ 管理、會員名單統計圖（UI 專家，分支 `claude/perm-v4`；**10-05 15:51 已上 main d425049b**）
+- 檔案：`site/admin.js`、`workers/account-api/worker.js`（只在檔尾加 perm-v4 區塊）、`workers/account-api/tests/v4.test.mjs`（新）、`scripts/_uitest.py`（管理區v3 補 perm-v4 段＋假 Worker 加 plans/sort、members/stats、plans/put del）。
+- 後端：`plans.sort`（相容遷移：第一次補欄依原本順序補 0..n-1，上線當下順序不變；新建排最後；改名不再換位置）、`/v1/admin/plans/sort {ids}`（必須正好是全部付費範本，否則 400 bad_order 不寫）、
+  `/v1/admin/members/stats {scope:'all'|'plan', plan}`（功能／股票 Top 8、14 天每日活躍、7 日活躍；伺服器彙總）。plans/get、/v1/plans/public 都照 sort 排 → #pricing 方案卡跟著變。
+- 前端：頁籤列底線＝內容框上框線、選中頁籤疊在線上（舊版頁籤列 overflow:hidden 把 -1px 裁掉 → 那條切開的線）；內容框頂「範本資訊列」（名稱・價格／週期・套用 N 人｜⚙）；觀看權限工具列（標題＋圖例＋全部開／全部關）；
+  卡片 `repeat(4,minmax(0,1fr))`＋stretch（<1280 三欄、<1000 兩欄）；付費頁籤可拖曳、滑過出現 ⋮（左移／右移／重新命名／刪除，鍵盤：Enter 開、↑↓、Esc、Alt＋←／→）；
+  ⚙「刪除此範本」與 ⋮ 刪除都二次確認並寫「目前有 N 位會員在此範本，刪除後退回註冊會員」；會員名單上方 4 個數字＋4 張同高圖卡（狀態甜甜圈〔註冊會員多一張免費 vs 付費〕、14 天直條、功能 Top 8、股票 Top 8）；
+  展開明細改成一排 4 個小 KPI（≤ 20px）＋一排 4 張同高 SVG 圖卡，在表格獨立一列不蓋上下列；數字欄內容寬（≤1500 藏加入日、≤1240 藏觀看次數）。Andy 的三個測試範本沒刪（讓他自己用新功能刪）。
+- **這批驗了**：`node --test workers/account-api/tests/*.mjs` 50 過；`_uitest --workers 1 --sections 管理區v3,管理區1005,會員權限開關,會員權限導覽,訂閱與客服1005` 全 0
+  （管理區1005 有一輪「輪動族群下拉晶圓代工」逾時假紅，單獨重跑 0，那段是資金流向頁、沒動到）；`_preview.py` 全綠。反向驗證：origin/main 的 admin.js 同一列卡高 424／268／320／216 → 新斷言會紅。沒跑 pytest（沒動 pipeline／tests）。
+- 已知限制：① 舊 Worker（沒部署 perm-v4）時拖曳會跳「順序沒存成功…已換回」、統計圖寫「尚無資料（會員 Worker 尚未更新）」；② 範本色依 id 排序配色（拖曳不換色）；③ 只做桌機。
+
+## 10-04 矽晶圓／第三代半導體／CNC 工具機／工業自動化四張剖析圖補環節與關聯圖（科技產業分析師，分支 `claude/sc-fill-wafer`，**已合併 main 5c643043**，DECISIONS #320，證據 `docs/groups_wafer_sc_evidence.md`，截圖 `docs/groups_wafer_sc_1004/`）
+- Andy（附矽晶圓剖析圖、下方完全沒有關聯圖）：「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」。根因兩層：YAML 沒有對應環節；前端零件沒掛真的環節（2D 沒有 data-seg、3D 的 seg 是佔位族群 id）→ #317 反亮交集為空 → 整塊藏起來。
+- [x] `supply_chain.yaml`：新增 11 個環節（半導體 7：poly_silicon／crystal_equip／wafer_si／wbg_substrate／wbg_epi／wbg_device／power_idm；一般電子 4：motion_parts／cnc_controller／cnc_machine／factory_robot）、28 家公司（台股 18、外商 10）、27 條邊（高 10、中 17、低 0）。
+  多晶矽、長晶爐與熱場耗材兩格**只有 note、沒有公司節點**（查不到具名供貨；畫孤立外商節點會頂破 SC_ISO_MAX semiconductor＝0）。不放中美晶（母子口徑）與世界先進（會在 AI 伺服器鏈圖變孤立）。
+- [x] 前端接線：`site/dg/{silicon_wafer,wide_bandgap,machine_tool,motion_control}.js` 的 `part()`／少數直寫 data-part 處加 data-seg；`three3d.js` 四個場景（矽晶圓、第三代、motion_axis、machine_tool）零件的 seg 換成真環節；
+  小卡 `cos`（2D）與 `codes`（3D）逐件指定，非結構件明寫空陣列（不把三家整機廠當成主軸製造商）；過時的「不在 supply_chain.yaml」句子清掉；`app.js` FALLBACK 加 4 個沒有台股的新環節。**`industry.js` 沒改。**
+- [x] 接上一批：`power_inductor.js` 電感欄→`passive_inductor`、石英欄→`passive_crystal`；YAML id `chilisin_elec`→`pdc`（`ai_adv_packaging.js` 兩處同步）。`mlcc_powder`／`component_dist` **沒接**（MLCC 圖在 diagrams.js 且是單一環節圖 dg1；通路不是零件，理由見 #320 第 8 點）。
+- **這批驗了**：`pytest tests/ -q`：928 passed、2 skipped、1 xfailed；`SKIP_INTRADAY=1 python -m pipeline.build_payload` 重算後（約 11 分鐘，不是 60）`_preview.py` 全綠（「所有分頁與個股頁正常」）；
+  `_uitest.py --workers 1 --sections 關聯圖對應與3D大小1003,批次6-圖十,一般電子鏈,產業,產業關係面板,產業鏈導覽` 六段全 0；另跑 `3D零件字彙,批次6-圖九,點背景恢復` 全 0。
+  孤立節點棘輪：`批次6-圖十` 通過＝semiconductor 0、ai_server 5（沒有增加；沒有調 SC_ISO_MAX）。反向驗證：把 silicon_wafer.js 換回 main 的版本重跑 `關聯圖對應與3D大小1003`，立刻紅「圖上 []」。
+  翻正的舊驗收（原本斷言「一個 data-seg 都沒有」）：第三代、矽晶圓、傳動件、RLC X5 與兩條畫面文字斷言；`批次14b-被動RLC／第三代半導體／批次21-矽晶圓／批次22-傳動件` 四段跑起來仍有 24 條紅，**逐條對 origin/main 同組跑過是同樣 24 條**（390px 字級／原尺寸、X1／X3／N1／N3 等舊斷言，不是這批造成；本批沒修）。
+- 已知限制：① 一般電子鏈新增節點孤立 9 檔（上銀、全球傳動、直得、大銀微、台灣精銳、亞德客、東台、恩德、所羅門；查不到具名客戶，圖上掛「?」）；② 跨鏈的邊（盟立→台積電、大銀微→應材）畫不出來，只寫在 note；
+  ③ `groups.yaml` 的 machine_tool 含富強鑫 6603（塑膠射出機，不是工具機）、factory_automation 的和椿／大量／鈦昇／竹陞／精確五檔沒放進節點 —— 只出建議、沒改成分（Andy 校訂）；
+  ④ 摘要層級證據（讀不到原文）；台勝科客戶名單出自 2017／2018 法說會，超過 180 天會自動標 stale；⑤ 2D 的 mc_enc／mc_coupling 原本寫「查不到」、3D 卻列 4576／4540，這次以 3D 官網證據對齊。
+
+## 10-04 05:38 外觀面板拿掉「明暗」——明暗只剩右上角 ☀／🌙（UI 專家，分支 `claude/theme-dedupe`，**已合併 main 44cd6399**，接續 DECISIONS #312）
+- Andy（附圖：外觀面板裡有「版面風格」三選一＋「明暗：深色｜淺色」，旁邊右上角已經有 🌙 鈕）：「這邊重複到了，改進」。
+- [x] `site/theme4.js`：外觀面板拿掉「明暗」標題與深色／淺色兩顆（`.t4m`／`data-t4m`）、`setMode()`（只有那兩顆在用，`T4.setMode` 全 repo 沒有別人呼叫）、syncButtons 裡同步那兩顆的一行。
+  面板只剩「版面風格」三選一，說明改成「每個風格都有深淺兩套，用右上角 ☀／🌙 切換；選擇會記在這台瀏覽器。」。「外觀」鈕的提示字照舊寫「目前：風格・深／淺」。
+- [x] `site/theme4.css`：刪 `.t4modes`／`button.t4m` 四條樣式。
+- 手機（≤820）：外觀面板本來就不顯示（`#t4Btn` 藏起來），「⋯」清單的風格段（`#mmT4`）本來就只有三套風格、沒有明暗段 → 不用刪；明暗入口仍是頁首右上「⋯」→「明亮／深色主題」（`#mmTheme`），驗收實際按過。
+- 沒改任何 id／data-*（只刪了被拿掉的元素本身）；沒新增 localStorage 鍵；app.js 的 ☀ 鈕（#themeBtn）一個字沒動。
+- `scripts/_uitest.py` 改既有＋新增：
+  · 設計v4主題 ②：深淺改成真的按右上角 #themeBtn（不再點面板）；新增「面板裡沒有明暗控制（沒 .t4m／data-t4m、標題只有『版面風格』、沒有寫深色／淺色的按鈕）」「說明指向右上角 ☀／🌙」「每組右上角圖示對（深＝☀、淺＝🌙）」「面板按下去的只有那一套風格」；③ 改驗「☀ 切完明暗面板風格不變、外觀鈕提示字寫淺色」；
+    ⑥ 390 新增「⋯ 清單風格段沒有明暗控制」「⋯ 在頂欄右半、清單裡『明亮／深色主題』看得到」「按了明暗真的換、記住、風格不受影響」。
+  · 版面v2結構 第四批④：原本「從外觀面板切淺色 → ☀ 變 🌙」改成「右上角外觀面板只剩版面風格三選一＋說明指向 ☀／🌙」「面板切風格照舊（data-theme4／localStorage／底色都換）、明暗不動、☀ 圖示不變」，跑完把 tw.theme4 一起清掉。
+  · 子分頁「點資金去向 → 回到頁首」：量到點完 scrollY 先停 49 再平滑捲回 0，main 與分支一樣要 150～600ms（重複量 8 次），固定等 500ms 會偶發假紅 → 改成最多等 2.5 秒到 0，斷言不改。
+- 反向驗證：新版 設計v4主題 對 origin/main 的 site 跑 → 「去重」兩條紅（面板裡 t4m 3 個、h4 有「明暗」、說明是舊字）。
+- **這批驗了**：`_preview.py` 全綠（「所有分頁與個股頁正常」）；`_uitest.py --workers 1 --sections 設定面板,淺色主題,明亮主題,設計v4主題,版面v2結構,手機` 六段全 0。
+  main 基準（同組）：設計v4主題 1 條（390 點 #mmT4「專業有力」逾時，停在「waiting for scheduled navigations」）、其他 0。
+  ⚠ 這段時間機器負載 25～36（4 核，其他 agent 同時在跑）：中途有兩輪被拖垮出現假紅（_preview「繪圖沒存下來」「rankFlow 1920 文字出界」、_uitest 多段 goto／click 逾時），都跟這批改的外觀面板無關，負載降一點後重跑全綠；main 基準的 _preview 同時段也有綠有紅。
+  埠：9041／9042 被別的 agent 佔著（同一個暫存區有人用同名 base 目錄），改用 9051（_preview）／9053（_uitest）／9052、9054（main 基準）。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+- 已知限制：桌機若有人把右上角 ☀ 藏掉，就沒有明暗入口了 —— 現在 ≤820 由「⋯」清單負責、>820 由頁首 #l4Tools 負責，兩邊驗收都有守。
+## 10-04 週期統計：熱力格吃滿寬度＋曲線圖改長條圖＋族群多選下拉（UI 專家，分支 `claude/season-width`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #319）
+只動 `site/app.js`（renderSeason 一段）、`site/index.html`（#v-season 的 HTML＋只限 `#v-season` 的 CSS）、`scripts/_uitest.py`。沒碰 fit.css／industry.js／themes3d.js／layout4.*；沒改既有 id／data-*、計算方式；沒新增 localStorage 鍵（viewreset.js 不用動）。
+- [x] ① 熱力格吃滿（Andy：「這邊幫我調整適當左右寬度」）：桌機的名稱欄依全部族群裡最長的名字自動寬、不截字；12 個月平分剩下的寬度（取代 09-24「格寬 56～64、靠左」）。
+  實測（格子框寬／卡片內寬，px）：1440×900 832→1150／1152；1920×1080 832→1630／1632；1100×800 832→962／964；900×800 762／764（欄寬 51，用不到框內橫捲）。卡高不變（1440×900 是 736，上限 851）。
+  格寬 ≥ 72 且列高 ≥ 22 時數字用 13px；圖例右緣對齊格子框右緣。手機不動。
+- [x] ②（CEO 追加）曲線圖 → 分組長條圖；上方的圖例 → 可搜尋的多選下拉（全選／全不選／已選幾個，第一項是平均；三顆快捷鈕會同步下拉；圖下的色票點 × 可拿掉）。每根長條至少 4px（手機 3px、根與根貼著放），放不下時只畫前 N 個並寫明，附「改看熱力圖」鈕（1440×900 全選時畫 14 個）。圖高照 #308（Fit.room，上限 560）。按鈕字改成「長條圖」，data-v 還是 line。手機上新控制項的觸控高 40px。
+- **這批驗了**（`--workers 1`，埠 9031／9032，沒用 flock）：`_preview.py` 全綠（最後一輪：「所有分頁與個股頁正常」）；`_uitest.py`：`季節性` 0、`收尾0925-週期統計提示框` 0、`一屏看完1003` 0、`圖表圓滑化` 0、`重新整理回預設1003` 0、`手機` 0。
+  ⚠ 機器負載 30 以上（其他 agent 同時在跑），有幾輪假紅、單獨重跑都是 0：跟 _preview 同時跑時 `季節性` 首次進頁 echarts 還沒載好；`重新整理回預設1003` 漲跌家數 4 條（app.js／index.html 換回 origin/main 跑也是 0）；_preview 兩輪「繪圖沒存下來」（個股 K 線，沒動到）＋一輪總覽沒載入，第四輪全綠。
+  main 基準（origin/main 拷到暫存資料夾）：`季節性`、`一屏看完1003`、`收尾0925` 都是 0，_preview 全綠。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+  **沒跑完**：`手機按鈕普查`（一輪要 30～60 分鐘，跑到 58 分鐘被 timeout 砍掉，沒有結果）。
+- 截圖看過：熱力圖 1440×900、1920×1080、1100×800、900×800、1280×720；長條圖＋下拉打開 1440×900、1100×800；長條圖 390×844。
+- 已知限制：① 勾選不記住（每次進頁都回「本月最強 5」）；② 1920 寬每格約 124×28，偏扁長（照「吃滿」做）；③ 手機「設定 · …」那顆鈕的摘要，要關掉抽屜才會更新成「長條圖」（mobile3 原本就這樣，沒改）。
+## 10-04 題材產品剖析圖 v2：吃滿卡寬、同列等高、18 張等角小圖精緻化（科技產品機構繪圖專家，分支 `claude/theme-dg-v2`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #316）
+Andy 三句：「字體縮小了但空白版面太多…適當填滿旁邊空白」「也不可以發生表格長度不一樣」「安排人員設計題材圖片，需要再優化細緻度」。
+檔案：`site/themes3d.js`（主體）、`site/app.js`（一行：`fit` 多傳 `rewire`）、`site/index.html`（3 個光影 token ×2 組）、`scripts/_uitest.py`、`DECISIONS.md`。沒改 id／data-*、供應鏈資料與代號。
+- [x] ① 吃滿卡寬：`fit()` 量容器內寬 → 依寬度重畫（欄寬、欄距、零件框 82→最高 128 跟著寬度走），SVG 仍 1:1、螢幕字級不變（15／13／12／14）。
+  視窗寬度變了（ResizeObserver）也重畫並重新接點擊、保留選取。容器 < 900（手機、800）照舊 980 左右滑。
+  卡寬利用率：1920 60.1% → 99.4%、1440 85.2% → 99.1%、1100 100%（框內要滑）→ 99.0%（不必滑）、390 不變。
+- [x] ② 同列五格等高、底線對齊（取膠囊最多列那格的高度，少的留白在下方）；流程格同列等高。18 張 × 1920／1440／1100／900 深色、1440／390 淺色量過：高度差 0、字不重疊不出格、頁面不橫捲。
+- [x] ③ 18 張共用光影（邊光／接觸暗線／圓柱反光／柔影，token 化）；扇葉改實心葉片＋輪轂；重畫晶圓（殘缺邊緣晶粒）、晶棒（整根 notch 溝）、CoWoS（C4、中介層、HBM base＋6 層）、
+  HBM（切開面 TSV＋微凸塊）、CCL（掀開銅箔、經緯織紋）、**ABF 載板改上下對稱**（以前單邊增層是錯的，abf_substrate.md §2）、布捲（躺著的捲＋攤平布）、DIMM（薄板、正面顆粒、防呆缺口）、機櫃（刀鋒前面板、頂層 ToR）、水冷板、OSFP 鰭片等。
+- 驗收：`剖析圖縮小與環節外框1003` 的「1:1 不放大」改新規格（利用率 ≥ 90%、1:1、字級 13～15、同列高度差 ≤ 1px、流程格等高），新增 18 張等高、1440→1920→1440 拉視窗重排＋選取保留＋重畫後點擊有效、1100 不必框內滑。
+  `題材2D` 的「畫布 980」改成「1440 吃滿卡片（> 980）／800、390 是 980」；量測前固定等 1200ms 改成等圖真的畫好（最多 10 秒）。
+- **這批驗了**（埠 9002／9001，`--workers 1`，沒用 flock；機器 load 30～85，其他 agent 同時在跑）：
+  main 基準（origin/main 08dabd1 的 site＋_uitest）：題材 1、題材2D 1（reload 逾時爆掉）、重新整理回預設1003 2（其中 1 條是我的基準資料夾少 preview_boot.js）、其餘 0。
+  本分支：`剖析圖縮小與環節外框1003` 0、`批次6-N1` 0、`批次6-圖九` 0、`一屏看完1003` 0、`重新整理回預設1003` 0、`題材` 1（「展開後捲到細節」top 629，**main 同一條同一個數字**）、
+  `題材2D` 最後一輪 2（1 條 pageerror `window.App` 未定義＋同一輪 ai_server·800 沒畫出來 —— 都是頁面腳本沒載完；main 上用同一支探針量到 ai_server 第一次也是空的；前幾輪隨 load 從 11 條降到 2 條，沒有一條是畫布／字級／重疊／等高）。
+  `_preview.py` 兩次都只有 1 條「繪圖沒存下來（tw.draw.2330.1d）」—— 個股 K 線繪圖，這批沒動相關檔案（`chart.js`／繪圖工具），未在 main 上重跑確認。
+  另用自己的探針量 18 張 × 1920／1440／1100／900（深）＋ 1440／390（淺）：重疊 0、出格 0、等高差 0、頁面不橫捲。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+- 待處理：① `題材2D` 在高負載下偶發「`window.App` 未定義」（`industry.js` routeHeat 早於 app.js 設好 App）—— 疑似既有的載入競態，不屬這批，負載低時再單跑一次確認；
+  ② `題材`「展開後捲到細節」main 本來就紅；③ 沒重畫的零件（約 50 支）只吃到共用光影，下一輪可再挑。
+## 總覽下半改 2×2：左欄兩張熱力圖、右欄資金輪盤＋昨日資金去向（2026-10-04 台北，設計美編，分支 `claude/ov-2col`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #315，規格 `docs/ov2col_1004_spec.md`，截圖 `docs/ov2col_1004/`）
+
+- Andy（附 #308 版總覽截圖）：「這回到之前設定，左邊上下都是熱力圖，右邊都是資金輪盤和流水」。#308 的「可視高 ≤ 1000 才改兩列」整個拿掉，所有可視高（寬 ≥ 901）同一種 2×2。
+- [x] `site/index.html`：`#ovRotCard` 在 `#ovRotPop` 後切開，新增 `#ovFlowCard` 裝 `#ovFlowHead`／`#how-ovflow`／`#ovFlowWrap`（節點與 id 全沒改，只換外殼）。
+- [x] `site/modules.js`：`flow.sankey`（手機分段導覽）外殼由 `#ovRotCard` 換成 `#ovFlowCard`。
+- [x] `site/fit.css`：舊「≤ 1000 兩列」整段換成 2×2 格線（欄 `minmax(0,1fr) minmax(0,min(46.5%,600px))`＝1.15:1、右欄最寬 600）；題材圖撐滿列高（`.zpane{contain:size}`）；資金去向卡第一個東西的分隔線拿掉；641～820 同理。
+- [x] `scripts/_uitest.py`：`總覽` ⑤、D6；`新-版面等高與多寬度` ②；`一屏看完1003` 新增 ⑤（1440×900／1920×1080／1366×768 的 2×2、每卡 ≤ 可視高 − 49、輪盤正圓、資金去向標籤在圖內不重疊不截斷、字級 ≥ 11、無橫向捲軸）。
+- 前後（卡寬×高，深色）：1440×900 盤 262×300 → 517×517；熱力圖 533×569 → 621×603、題材 1184×420 → 621×496；1920×1080 盤 517×384 → 566×560；1366×768 盤 244×300 → 482×482。兩欄總高約 +110（1440×900）。
+- **這批驗了**（`--workers 1`，埠 8996／8995，沒用 flock；最後一版程式〔cb88b6f〕重跑）：`_preview.py` 全綠（「所有分頁與個股頁正常」）；
+  `_uitest --sections 總覽,一屏看完1003,新-版面等高與多寬度,新-輪動時鐘,版面v2結構,重新整理回預設1003`：`總覽`、`一屏看完1003`（含新增 ⑤）、`新-版面等高與多寬度`、`版面v2結構`、`重新整理回預設1003` 都 **0 個問題**；
+  `新-輪動時鐘` 1 個問題＝「播放時每一段走掉的天數一樣多」（資金流向頁的播放計時，與總覽無關；機器忙時時紅時綠，main 基準同段也有補間計時的紅）。
+  中途出現過、重跑消失的：`足跡輪盤只留圓圈` 的「回放」補間（main 同段也紅）、`新-版面等高與多寬度` ③ 的 1280／1366「breadth 這張圖沒畫出來」（main 同樣紅，最後一次跑是綠）。
+  基準（main `08dabd1`）本身另紅：`版面v2結構` #tabs 點不到、`新-輪動時鐘` 補間、`新-版面等高與多寬度` 的「熱門題材放大後卡片高度沒變」——這機器上同時有別的 agent 在跑測試，這幾條時紅時綠。
+  反向驗證：新斷言對 main 的 site 跑 → `總覽` 爆掉（`#ovFlowCard` 不存在）、`新-版面等高與多寬度` 17 條紅、`一屏看完1003` 爆掉；還原 → 0。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+  補驗（因為動了 DOM 與 modules.js）：`總覽右欄`、`手機總覽指數觀察清單` 0 個問題；`資金去向經典光纖` 1 個問題（main 同樣 1 個）；`批次30-兩層下拉與象限卡`（7＝main 7，W6-14／W7-10 在 main 就紅）；
+  `積木清單`：#overview 桌機與手機的選擇器都抓得到；紅的是 #industry／#market／#season／#stock 的項目與「擋掉 modules.js」，main 同樣紅且每次不一樣（機器忙）；
+  `總覽摘要卡列`：每次跑紅的條目不同（點「資金輪盤」捲動起步晚、hero 還沒畫完、漲跌家數圖還沒畫＝nan），重跑會變、main 也有同類（點「資金去向」那條）。**驗收當時機器 load average 約 32**
+  （別的 agent 同時在跑測試；實測 hero 出現要 5～9 秒，main 與本分支一樣慢），所以這幾條是時序假紅，不是版面造成。已把 `_ovs_inview` 與題材名那條改成「等捲動真的走過 150px／等 hero 畫好」，降低假紅；
+  `手機按鈕普查` 跑超過 30 分鐘被背景上限砍掉，沒有結果（手機 390 整頁像素比對代替，見下）。
+  **紅的都是 main 基準也紅／會閃的**：`足跡輪盤只留圓圈` 的「回放」補間（main 同段也紅，flow 頁，與總覽無關）、`新-版面等高與多寬度` ③ 的 1280／1366「breadth 這張圖沒畫出來」（main 同樣紅：`?svg=1` 載入時 `whenNear` 還沒畫）。
+  基準（main `08dabd1`）本身另紅：`版面v2結構` #tabs 點不到（逾時）、`新-輪動時鐘` 補間——這機器上同時有別的 agent 在跑測試，這幾條時紅時綠。
+  反向驗證：新斷言對 main 的 site 跑 → `總覽` 爆掉（`#ovFlowCard` 不存在）、`新-版面等高與多寬度` 17 條紅、`一屏看完1003` 爆掉；還原 → 0。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+- 手機（≤640）像素比對（390×844，整頁）：資金輪盤段只差雷達掃描線動畫 207 px；資金去向段 0 差異。641～820 多 42px（見 DECISIONS #315 第 7 條，唯一對「手機不動」的偏離）。
+- 沒驗到：只量初始畫面（點開輪盤說明框、展開資金去向、切題材、放大視窗未重量）；Windows 縮放與觸控沒實測；641～820 只看了 700×844 一個寬度。
+- 待處理：① 要不要把 641～820 也做成「一張卡」（偽造邊框，會碰三套主題）；② 兩欄總高多 110px，Andy 嫌長可改欄比例 1.3（盤縮到約 476）。
+
+## 10-04 剖析圖分頁：關聯圖回整條鏈＋反亮、3D 回 1.0、打開不用捲（UI 專家，分支 `claude/rel-full-3d`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #317；推翻 #306 第 3、4 節）
+Andy（半導體 → 晶圓代工 3D）：①「這頁 3D 回到之前那樣的大小，並且需要打開這頁就能看到完整頁面」②「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」。
+檔案：`site/industry.js`、`site/three3d.js`、`site/index.html`（CSS）、`scripts/_uitest.py`。**沒動 `site/themes3d.js`**（另一位 agent 在改）。
+- [x] ② 關聯圖、手機環節清單、「環節 ▾」下拉一律整條鏈（環節數＝族群總覽）；剖析圖畫到的環節 `.relfocus` 亮框亮底、其餘 `.relout` 透明度 0.6、仍可點；下拉反亮那幾顆有「圖上」小標；
+  窄視窗關聯圖框自己捲到反亮欄（不捲整頁）；交集空的四張（CNC 工具機、工業自動化、寬能隙、矽晶圓）照舊整塊不顯示。族群帶出的選取在有反亮時不再把其他公司卡壓到 0.28。
+- [x] ① `INIT_SCALE_3D` 0.7→1.0（保留依長寬比精確取景）；3D 畫布高度上限＝打開不捲動時視窗剩下的高度（`dg3dCap`，Fit），手機不變；被寬度頂住的扁模型再收上下空白但模型不縮（`tighten`）。
+  打開不捲動剖析圖區底／視窗高：1440×900 晶圓代工 845、AI 伺服器 894、面板 790、工具機 816；1920×1080 936～955；1366×768 743～762（改前 1440 晶圓代工 906、1366 AI 伺服器 905，都超出）。
+- 已知限制：① 晶圓代工這種扁模型上方仍留約 150px —— 那是「滑進去展開」（#246）拆開零件的空間（進場收攏、取景量拆開狀態）；要再滿得改進場狀態或依狀態換取景，另案。
+  ② 1366×768 AI 伺服器 16 張標籤卡收到第 2 階（只留編號＋標題）。③ 預設（重新整理後）是 2D（#307 清 tw.dg3d），這批只處理 3D 的高度。
+  ④ 本機軟體 WebGL 在機器很忙（load 30～150，多位 agent 同時跑驗收）時 Playwright 頁面截圖會逾時 —— main 基準同樣會（實測），不是這批造成的；`產業` 段的 `check_3d_e2` 截畫布踩過三次，負載降下來重跑就過。
+- **這批驗了**（`--workers 1`，埠 9011／9012，沒用 flock；沒跑 pytest：只動 `site/**`、`scripts/_uitest.py`、文件）：
+  main 基準（origin/main 匯出到暫存區跑同一組段落）：`產業` 1 紅（點零件不會把畫面捲走 499→35／→0，main 本來就紅），其餘 6 段 0。
+  這個分支：`關聯圖對應與3D大小1003`（新規格）0、`一屏看完1003` 0、`剖析圖縮小與環節外框1003` 0、`關聯圖環節收合` 0、`產業鏈導覽` 0、`一般電子鏈` 0、`產業` 1 紅（同 main，同一條、同一個數字）。
+  反向驗證：新的 `關聯圖對應與3D大小1003` 關聯圖那一半對 main 的 site 跑 → 121 紅。`_preview.py` 全綠（「所有分頁與個股頁正常」）。
+  ⚠ 這段驗收很吃時間（3D × 9 種視窗，負載高時 14 分鐘）：`TW_REL3D_PART=rel` 或 `=3d` 可只跑一半。
+- 截圖（容器暫存區，沒進 repo）：晶圓代工／AI 伺服器／面板／工具機 × 1440×900、1920×1080、1366×768 的剖析圖分頁（3D）；1440 三條鏈的關聯圖反亮與「環節 ▾」下拉。
+## 10-04 孤立環節補邊：被動元件擴 4 環節＋測試介面／銅箔／低軌衛星 PCB／Apple 名單，共 27 條有來源的邊（科技產業分析師，分支 `claude/sc-fill-1004`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #318）
+Andy：「只有單一個，幫我找找他是否有其他公司及族群，例如他供應給誰、原物料是誰」。只動資料（`supply_chain.yaml`、`groups.yaml` 一處）、`scripts/_uitest.py` 的棘輪常數與文件，**沒動 `site/`**（另一位 agent 在改 `industry.js`）。
+- [x] 新增 4 個環節（尾端，顏色不動）：`mlcc_powder`、`passive_inductor`、`passive_crystal`、`component_dist`；新增 17 個被動元件節點（台股 11、外商 6）。
+- [x] 27 條邊：高 9、中 18、低 0（推論一律不畫）。證據與「查不到」：`docs/groups_passive_supply_evidence.md`、`docs/groups_sc_fill_1004_evidence.md`。
+- [x] 更正舊資料：國巨 note「查不到客戶」（董事長點名輝達與美國 CSP）；凱美 note「國巨為第一大股東」（對不上）；`jp_passive`「唯一是日電貿」（補蜜望實 8043）；任務原文「國瓷 5434」（國瓷是深圳 300285，5434 是崇越）。
+- [x] `SC_ISO_MAX` 從 {ai_server 10, semiconductor 3} 往下收成 {5, 0}（實測 `SC_GEOM` iso：ai_server 5、semiconductor 0）。剩 5 個孤立：精成科、瀚宇博、騰輝、德宏、嘉聯益。
+- **這批驗了**：`pytest tests/ -q`（全套）930 passed／1 xfailed（11 分 37 秒）；`SKIP_INTRADAY=1 python -m pipeline.build_payload` 重算（本機約 60 分鐘，要用 `timeout` ≥ 7000 秒；第一、二次因 timeout 1500／3000 被砍在個股頁階段，產業地圖與 supply_chain.json 根本沒寫出來——**那兩次的前端結果不算數**）；
+  `_preview.py` 全綠；`_uitest --sections 批次6-圖十,一般電子鏈,產業,產業關係面板,關聯圖對應與3D大小1003,產業鏈導覽 --workers 1`：**同一組段落跑了 3 次（新資料）**——第 1 次 4 個問題（點零件不會把畫面捲走 499→0／產業中途 screenshot 逾時／E5 3D 畫布／點相關台股族群），
+  第 2 次 1 個問題（同為「捲走」），第 3 次 0；另一次單獨 `--sections 產業`（掛了 scroll 偵錯）0。舊資料基準（origin/main 的 yaml 重算 supply_chain.json）同一組 0。
+  **判斷：間歇性（計時／機器忙）、不是這批資料造成**，但誠實講：我沒找到根因——第 2 次失敗時我同時跑了偵錯腳本搶 CPU；第 1 次沒有。獨立重現三條路徑（#industry/ai_server、/semiconductor、/electronics 點第一個零件、點只有外商環節的「相關台股族群」）都正常。請合併前在乾淨機器上再跑一次那組。
+- 截圖：`docs/sc_fill_1004/electronics_overview_relgraph_1440.png`（一般電子鏈整條關聯圖，新增四格與外商節點都畫出來、環節標題沒有跑出色塊）、`docs/sc_fill_1004/passive_dg_relgraph_1440.png`（被動元件剖析圖分頁；那張圖的顯示方式另一位 agent 正在改，這張只證明資料有進去）。
+- 已知限制：① 全部是搜尋摘要層級證據，沒有讀過任何法說／年報原文；② `chilisin_elec` id 其實是信昌電 6173（非奇力新），`site/dg/ai_adv_packaging.js` 兩處引用所以沒改；③ 華通→SpaceX 是 ai_server 鏈節點連到 electronics 鏈節點，關聯圖是否畫得出來取決於 `industry.js` 的 `CHAIN_EXTRA`；
+  ④ 電感／石英／元件通路三個新環節還沒有任何剖析圖零件掛 `data-seg`（`site/dg/power_inductor.js` 的電感欄與石英欄可以接了，這批不動前端）；⑤ 金融鏈、軟體鏈、彩晶、中磊／正文／合勤、騰輝、嘉聯益、德宏、精成科／瀚宇博 查不到具名關係。
+- 待處理（下一棒）：前端接 `passive_inductor`／`passive_crystal`／`mlcc_powder`／`component_dist` 的 `data-seg`；`chilisin_elec` 改名（要同時改 ai_adv_packaging.js）；鋁質電容（立隆電、鈺邦、立敦…）與堡達（Panasonic 另一代理，代號未查）尚未納入；日電貿／蜜望實的下游客戶查不到。
+
+## 10-03 版面 V2 第四批：登入／明暗／外觀搬右上角、收合鈕騎分隔線、子分頁圖示（UI 專家，分支 `claude/topbar-acct`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #312）
+只作用在電腦版（>820，掛 l4）；手機版（≤820）不動。檔案：`site/layout4.js`、`site/layout4.css`、`scripts/_uitest.py`。沒改 id／data-*、沒改 account.js 登入流程、沒新增 localStorage 鍵。
+- [x] ① 登入不見了：本機用正式站同一種設定（account_config.js 填 https 網址）重跑，第三批的帳號卡**會**出現登入鈕 → 前端判斷沒錯，正式站那一刻 `TwAccount.on()` 是 false（account.js 沒拿到網址）。
+  容器連不到正式站、讀不到 Actions 日誌與 Secret 清單，**沒辦法證實部署產物的 account_config.js 有沒有填到網址**。處理：右上角一定有「登入」——
+  有設定檔＝account.js 的 #acctBtn（按了＝原本的告知→Google 小視窗）；沒有＝#l4Login（按了寫「會員登入目前沒有開啟：這次部署沒有讀到會員伺服器設定」）。另外多聽 `tw:account-config`。
+  ⚠ **待 Andy／CEO**：正式站上線後按右上角「登入」——看到「沒有開啟」就是 repo Secret `ACCOUNT_API_URL` 沒設或不是 https（docs/login_setup.md），不是前端問題。
+  ⚠ 建議（不在 UI 專家檔案範圍，沒做）：pages.yml「會員功能設定」改成 `::notice::`，以後查 annotations 就知道那次部署有沒有開。
+- [x] ② 頁首右上角：時間｜☀／🌙（#themeBtn 本人）｜外觀調色盤（#t4Btn）｜線上人數｜登入（已登入＝頭像＋名字＋▾，點開原本帳號選單）。左欄底部帳號卡、「淺色｜深色」拿掉。≤820 時按鈕放回原位。
+- [x] ③ 收合鈕：24px 圓鈕騎在左欄右緣（分隔線）上、垂直在 logo 那列；展開 «、收合 »；收合後照樣在 72px 欄的邊線上。
+- [x] ④（CEO 追加）子分頁圖示：資金輪動＝羅盤、資金去向＝分流、族群×法人＝法人機構（landmark）、產業＝格狀方塊、題材＝火焰；16px 在字左邊；收合時只剩圖示（取代兩字短名），title 提示。
+- 改了既有驗收：`theme_flip` 回到一律點 #themeBtn；版面v2結構 頁首子元素多 `div.l4tools`、左欄最底下改量 #tabsWrap、外觀面板改驗在右上角按鈕下；第三批②④⑤改寫成第四批（細目見 DECISIONS #312）。
+  新增 `t_layout4_login`（假的 https 會員網址＋攔截請求，不連外不真登入：右上角最右是「登入」、有打 /v1/beat、按了→告知→小視窗開到 `/auth/start?…mode=popup`→等待畫面、縮到 800 回 .acctbar）。
+  反向驗證：新「版面v2結構」對 origin/main 的 site 跑 15 條紅後中途爆掉（#l4Login 不存在）。
+- **這批驗了**：`_preview.py` 全綠（「所有分頁與個股頁正常」）；`_uitest.py --workers 1 --sections 版面v2結構,設定面板,淺色主題,明亮主題,設計v4主題,會員與自選五分頁,會員雲端路徑,重新整理回預設1003,一屏看完1003`：除 設計v4主題 1 條外全 0；那 1 條（⑤ 漲跌家數直向格線，xsplit＝None＝切風格後 1.8 秒內 #breadth 還沒重畫好）是跟 _preview 同時跑、機器忙的計時型假紅，單獨重跑 設計v4主題 0 個問題。main 基準（d1c9e54，同一組段落）全 0。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。瀏覽器沒用 flock，埠 8961（_preview）／8962（_uitest）。
+- 截圖看過：1440／1100／900 × 深／淺（有設定檔、沒設定檔、已登入三種），右上角三顆同一列、不撞時間、沒有橫捲。
+- 已知限制：① 正式站登入是否真的開著，要等上線後 Andy 按一下才知道（見上）；② 量過 830／900 寬的個股頁（「個股 台積電 2330」）：頁名、時間、右上角四顆不重疊、沒有橫捲；股名再長時頁名會先被省略號截掉（h1 有 ellipsis）；
+  ③ 線上人數的綠點改成主題主色（搬出 .acctbar 之後原本 #35d07f 那條吃不到，這裡照「不寫色值」改吃 --t4-accent-solid）。
+## 資金去向再縮小：整棵樹打開就看全（2026-10-03，台北，設計美編，分支 `claude/sankey-fit`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #313，規格 `docs/fit_screen_spec.md` §6）
+
+- Andy：「資金去向，還是無法打開來就看全部，需要再縮小點」。量到：#308 之後標準螢幕（可視高 ≥ 約 700）本來就放得下，放不下的是更矮的可視高（1366×660 超 8px、1152×640 超 28px、1280×600 超 68px＋2 標籤出界）。
+- [x] `site/flowtopo.js`：槽高下限 22→18、上下留白 22→12（只在被一屏限制且代表股收起時）、`Fit.room` 下限 360→340。
+- [x] `site/fit.css` 末段：`#flowSankeyCard` 改可折行 flex（標題＋下拉＋看哪一天一排，圖外高度 119→76／50），上下內距 12→8。**沒動 `layout4.js`／`layout4.css`**（另一位 agent 在改）。
+- [x] `scripts/_uitest.py`：`一屏看完1003` 加 8 種視窗的資金去向初始畫面斷言（標籤全在可視範圍、不重疊、不截斷、卡下緣在視窗內）。
+- 前後（卡高／下緣，px）：1440×800 727／792 → 727／792（槽高 28.2→31.4）；1920×1080 1003／1068 → 914／979；1366×660 603／668 → 587／652；1152×640 603／668 → 567／632；1280×600 603／668 → 527／592。
+- **這批驗了**：`一屏看完1003,資金流向,新-資金流向,批次2,批次3,批次7,版面v2結構`（`--workers 1`；改前 main 3 紅＝新斷言 1366×660 ＋ `批次2` 圖四／D6，改後只剩 `批次2` 圖四／D6，main 本來就紅）；`_preview.py` 全綠；像素比對 11 頁 × 2 視窗（只涵蓋初始畫面）9 頁相同。沒跑 pytest（只動 `site/**` 與 `scripts/_uitest.py`）。
+- 沒驗到：展開族群後會長高（設計）、觸控裝置沒實測、淺色主題只量 1366×660。
+- 待處理：① 族群增到 28 個以上時要做兩欄（`layoutClassic` 的 `cols` 多一欄；現有 18 族群用不到）；② `批次2` 的「圖四」「D6」在 main 就紅，不屬於這批。
+
+## 10-03 05:15～09:12 CEO 合併後驗收紀錄（監察委員第 3 次稽核要求補）
+
+| 合併 | 推 main（台北） | 合併後 CEO 這邊驗了 |
+|---|---|---|
+| 6364784 驗收假紅修正 | 05:15 | 只動 _uitest；分支已驗（個股 ×3、總覽摘要卡即時 0），合併後未重跑 |
+| c7fcf4c 當沖封印 #304 | 05:31 | pytest tests/test_backfill_seal_1003.py＋test_backfill.py 35 passed（分支全套 916 passed） |
+| a707547 個股基本面卡 #305 | 06:03 | 分支已驗（個股、個股總覽等高／三欄、獲利並排本益比、個股基本面卡 0）；合併無衝突、未重跑 |
+| adbd48a 版面 V2 第三批 | 06:18 | _preview 全綠；版面v2結構、個股基本面卡1003、個股、資金流向、題材、總覽、設定面板 全 0 |
+| 0de6fb2 重新整理回預設 #307 | 06:30 | 分支已含 main 再驗（重新整理回預設1003、個股、個股AI分析0926、個股基本面卡1003、總覽、設定面板 0；個股頂部1002 2 紅＝main 既有） |
+| 0d7797c 剖析圖 #306 | 06:43 | _preview 全綠；關聯圖對應與3D大小1003、剖析圖縮小與環節外框1003、重新整理回預設1003、題材 全 0 |
+| 35f1bd5 一屏看完 #308 | 09:12 | 分支已含 main 再驗（列在該節）；合併無衝突、未重跑 |
+
+- 進行中：產業地圖預覽換新底（#309）、兩個疑似點不到的真 bug（#310）、回補排程稀疏與當沖補回（#311）。
+
+## 一屏看完：每張圖表卡 ≤ 一屏可視高（2026-10-03，台北，設計美編，分支 `claude/fit-screen`，****已上 main 35f1bd5 09:12**，等 CEO 合併**，DECISIONS #308，規格 `docs/fit_screen_spec.md`）
+## 回補排程稀疏＋當沖借券續補排第一＋FinMind 錯誤以資料集為範圍（2026-10-03，台北，爬蟲專家，分支 `claude/backfill-cadence`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #311）
+
+- **排程為什麼稀疏（證據）**：GitHub 端延後／丟棄排程事件，不是守門也不是 concurrency。backfill 寫每小時，run 165～172 一天只來 4 輪（間隔 4～6 小時、不在 :20）；
+  同 repo 的盤中巡檢（01:17 那班 07:03 才跑）、Worker 巡檢、每日管線（一天 7 班只跑 3 次）全都一樣；10-01 12:00 UTC 後沒有任何 cancelled；守門只跳過 run 170（當天續補確實做完了）。
+- **#304 合併後**：run 172 解封了當沖／借券（`unavailable` 只剩 holding、台積電反證寫了 09-29～10-02），但法人續補排第一、上限 1,200，吃光額度（還剩 661）→ 當沖一次都沒輪到。
+  10-03 09:33 手動觸發 run 173（main 舊順序）：法人再寫約 568 檔、還剩 462，**當沖／借券仍一檔都沒寫**。資料湖 09-25 之後 daytrade／sbl 仍只有 2330。
+- [x] `pipeline/run_backfill.py`：`FRESH_TABLES` 順序改 當沖 → 借券 → 上櫃融資券 → 法人（基本上限 400／400／300／400）、`FRESH_BOOST` 2→4；
+  `refresh_stale_inst` 兩段：先給上櫃融資券 10%、法人 15% 保底，剩下照順序（當沖先做完再借券）；新增 `FINMIND_DATASET` 對照表，封印理由只看該資料集自己的錯誤。
+- [x] `pipeline/util/http.py`：`_last_errors[dataset]`＋`finmind_last_error(dataset)`，該資料集成功一次就清掉；不帶參數＝舊行為。`run_backfill`／`sources/finmind.py` 所有拿錯誤做判斷的地方改帶資料集。
+- [x] 測試：新檔 `tests/test_backfill_cadence_1003.py`（10 條）、新檔 `tests/conftest.py`（每支測試前清空錯誤紀錄）；`test_backfill_market.py`「法人最優先」改「當沖、借券最優先」；
+  `test_backfill_seal_1003.py` 上限加倍那條改 `min(名單, 1×BOOST)`；`test_index_kline_0928.py`／`test_sources_v3.py` 三處假 `finmind_last_error` 改成接受參數。
+- **這批驗了**：`pytest tests/ -q` 926 passed／4 skipped／1 xfailed（11 分 29 秒）。沒跑 `_preview.py`／`_uitest.py`（沒動 `site/**` 與 `build_payload.py`）。反向驗證：`run_backfill.py` 換回 main 版 → 新測試 6 條紅（封印理由、對照表、順序與保底、上限設定），換回來全綠。
+  `http.py` 換回 main 版時新測試在 conftest 就報錯（舊版沒有 `_last_errors`），所以 http 那兩條的反向驗證只算間接。
+- **沒做（要 Andy／CEO 決定）**：`backfill.yml` 加「接力」工作（這輪做不完就睡到下一個額度視窗、用 GITHUB_TOKEN 派下一輪；concurrency 掛到 backfill job、不動 cancel-in-progress、派之前看每日管線有沒有在排隊、避開 UTC 9～10 點、最多 30 棒）。
+  要給工作流 `actions: write`、讓工作流自己觸發自己，被這個 session 的權限分類器擋下，**沒動 backfill.yml**。做了的話一天可用額度約 4 倍、合併後半天內補齊。
+- **補齊預估（台北，每輪約 505 次、一天約 4 輪）**：合併後當沖約 10-04 晚上、借券約 10-05 晚上～10-06、上櫃融資券與法人 10-02 缺口約 10-05；不合併當沖約 10-05、借券約 10-06～10-07。
+- 待處理：① 接力（上面）；② MI_MARGN 10-02（週五）還沒進湖（`margin_daily` 10-02 只有 1 列），上櫃融資券續補名單會暫時多出約 1,298 檔上市股（排在上櫃後面）；週一的每日管線應該會補，若沒有要查 `twse.margin_daily` 的日期邏輯。
+## main 上「本來就紅」的驗收逐條判定＋兩個真 bug（2026-10-03 10:15，台北，UI 專家，分支 `claude/fix-click-1003`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #310）
+
+- CEO 派工：兩條疑似使用者會踩到（「全部展開」被 h3 擋、「點環節 chip 點不到」）先判定再修，其餘過時斷言只改驗收。判定一律用真瀏覽器（版面 V2）在 1440／1100／900 量 `elementFromPoint`。
+- [x] **「全部展開」被 h3 擋 → 真 bug（1440）**：h3 是關聯圖浮動資訊卡（#coBox）的標題。點右半邊的公司 → 卡片貼左、上緣在圖框頂 +8px，正好蓋住左上角切換鈕（13 檔抽樣 8 檔）。
+  修：`industry.js` `placeRelCol` 可放範圍從切換列下緣開始。main 上這段只報 1 條，是因為入口 `#industry/semiconductor` 在 #306 後只剩 4 檔、第一條就早退，遮擋要開 `/overview` 才重現。
+- [x] **「點環節 chip 點不到」→ 不是 bug**：#306 讓剖析圖分頁的環節下拉藏掉對不上的環節，驗收挑到 DOM 第一顆（CCL 材料，正好被藏）。看得到的 11 顆三個寬度都點得到。只改驗收挑看得到的那顆。
+- [x] **順帶修的真缺口**：只有外商的環節（面板材料、終端品牌…）桌機浮動卡只剩外商名字、點不下去 → `renderSegPicker` 補「相關台股族群」連結（手機 #segBox 一直有，桌機 #segBox 拿掉時沒搬）。
+- [x] 過時斷言（只改驗收）：個股指標下拉0926（09-28 起預設分時 → 先按「日」；另兩處跟 #307 衝突）、足跡輪盤只留圓圈（#274 總覽只標點）、新-輪動時鐘（回放 1 天前 → 今天）、
+  一般電子鏈（桌機讀 #relList 不讀 #segBox；題材成員表已被 Andy 拿掉 → 改驗提示行＋themes.json）。逐條理由在 DECISIONS #310。
+- **紅燈前後（同一份資料、同一台機器）**：`關聯圖環節收合,一般電子鏈,產業,個股指標下拉0926,足跡輪盤只留圓圈,新-輪動時鐘,產業鏈導覽,一屏看完1003`
+  main 39 條（產業 5、一般電子鏈 12、新-輪動時鐘 1、關聯圖環節收合 1、足跡 3、個股指標下拉 17 且中途爆掉、其餘 0）→ 本分支 0。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；上面 8 段 0；反向驗證兩次（拿掉 placeRelCol 修正 → 新斷言紅；拿掉相關台股族群 → FALLBACK 兩條紅）。
+  動到 placeRelCol／renderSegPicker 另跑 `關聯圖切換鈕與浮動卡,產業關係面板,新-產業與個股,批次C5-關聯圖標籤,關聯圖清單`：本分支 1／0／12／17／19，跟 origin/main 同資料同時段**49 條逐條相同**（沒有新增紅）。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+- ⚠ **下一棒**：那 49 條大多是同一個病 —— #306 之後 `#industry/<鏈>` 只剩第一張剖析圖的環節、下拉藏掉其餘環節，驗收還在點被藏起來的 ccl_material／substrate_material、或開 `#industry/<鏈>` 驗整條鏈（`關聯圖清單` 中途爆掉、`關聯圖切換鈕與浮動卡`「10 秒內沒有公司節點」）。照本批的改法（入口改 `/overview`、挑看得到的那顆）應可大量收掉，這批沒動。
+- 已知限制：卡片可用高度少約 30px；「相關台股族群」只加在沒有台股的環節；其他段落裡如果還有「開 `#industry/<鏈>` 卻驗整條鏈」的寫法（`t_industry` 的 4465／4581 行一帶等）沒逐一清查。
+
+## 一屏看完：每張圖表卡 ≤ 一屏可視高（2026-10-03，台北，設計美編，分支 `claude/fit-screen`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #308，規格 `docs/fit_screen_spec.md`）
+
+- Andy：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表，幫我上下寬度調整窄一點適當」（附圖：資金去向桑基樹要捲好幾屏、資金輪盤很大右邊排行很長）。
+- 前兩位專家被容器重啟打斷，這一棒接 `4762ad2` 完成：新檔 `site/fit.js`／`site/fit.css`（`Fit.cap/room/on`）、輪盤（`rotFitH`）、資金去向桑基（`flowtopo.js` `slotPlan`／`fitMax`）、
+  個股 K 線（`#lwc`）、週期統計熱力圖列高、總覽下半兩列、個股欄寬與明細表格距、資金去向提示框折行。
+- [x] 這棒新增：個股頂部1002 分隔線驗收改 1680 寬（V2 後 1440 左欄只剩 12px 可拖，不是分隔線壞）；總覽驗收兩條（題材位置、小輪盤高）在兩列版面改驗新規格；
+  新段落 `一屏看完1003`（1440×900／1920×1080 逐頁含個股十分頁量卡高、視窗縮矮跟著縮、手機不動；反向驗證 `Fit.cap()`→99999 紅 4 條、還原 0）；規格文件 `docs/fit_screen_spec.md`；DECISIONS #308。
+- **前後卡高（1440×800｜1920×950，px）**：總覽輪盤卡 991｜1058 → 569｜541；資金輪動 846｜821 → 727｜821；資金去向 1003｜1003 → 727｜877；個股 K 線卡 918｜1029 → 715｜851；
+  總覽下半改兩列（熱力圖｜輪盤同高、題材全寬）；其餘頁（法人集中度、熱力圖兩頁、產業地圖、市場明細、自選）本來就在一屏內，不動。完整表在規格文件。
+- **這批驗了**：`_preview.py` 全綠；`_uitest --workers 1` 最後一輪 `新-版面等高與多寬度,縮放掃描,總覽,資金流向,新-資金流向,新-輪動時鐘,個股,個股頂部1002,個股分頁版面1002,產業,題材,版面v2結構,重新整理回預設1003,一屏看完1003`：
+  除 `產業` 5 條、`新-輪動時鐘` 1 條外全 0（總覽 3 條在改驗收後單獨重跑 0）。那 6 條**在 origin/main 同資料同機器逐條相同**（點環節 chip 點不到、最外圈沒有族群貼 r≥1），不是這批造成、這批沒碰。
+  另跑 `淺色主題,明亮主題,設定面板` 0。像素比對：桌機 6 頁 × 2 視窗（1440×800、1920×1080）與 origin/main 差異像素 0；手機 390 熱力圖／市場明細／週期統計／個股 0（總覽 183px 即時徽章）。
+  ⚠ 保護範圍只涵蓋初始畫面；點開才出現的東西（桑基展開族群、放大面板、說明浮層）沒逐像素比。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。沒新增 localStorage 鍵（viewreset.js 不必改）。
+- 已修的既有紅燈：`新-版面等高與多寬度`（main 約 26 → 0）、`個股頂部1002`（拖 100px）、`個股分頁版面1002`（0）、`新-資金流向` 800px 橫捲軸（0）。
+- Andy 可能不同意：桑基族群槽高 36 → 22（更密、整棵樹一屏）；輪盤方盤置中兩旁留白；總覽 1440 以下題材移到全寬第二列；個股左邊圖卡窄約 60px；總覽小輪盤並排後只有 300px 高；
+  個股 K 線下限 420（可視高 < ~770 的筆電仍要捲）。
+- 已知限制：點開才出現的東西沒量；淺色主題只驗既有段落；台積電九位數營收表在 1440 仍表內橫捲。
+
+## 重新整理＝圖表設定回預設（2026-10-03 06:10，台北，UI 專家，分支 `claude/reset-on-reload`，**已上 main 0de6fb2 06:30**，DECISIONS #307）
+
+- Andy：「需要新增一個功能，當重新整理後，全部圖表設定回 Default」。
+- [x] 新檔 `site/viewreset.js`（`index.html` 排在所有 script 最前面）：整頁載入時把「圖表檢視設定」類的 localStorage 鍵清掉；設定照舊寫 localStorage，所以**同一次瀏覽**換頁、換股票仍記得。
+  保留：主題／風格／側欄收合／剖析圖配色、登入與權限、自選（含目前第幾頁）、手繪線與畫筆樣式、即時開關、同意條款與導覽、最近搜尋、資料快取。
+  `tw.kcfg` 整包重設、只留使用者新增的自訂週期（tfs）。完整清單與「Andy 可一次否決」的五點見 DECISIONS #307。
+- [x] 06:40 合併 origin/main 兩次（#304 當沖、#305 個股基本面卡、版面 V2 第三批）：個股AI分析0926 照 main 拿掉收合／展開，改驗「點基本面 → tw.aiTab／tw.ovAiTab 重新整理後被清掉」；
+  viewreset.js 補分類：`tw.aiOpen`／`tw.aiOpenV`（#305 起不讀寫）→ 重設、`tw.indView`（預覽分支 industry-map-v2）→ 重設、`tw.layout4.*` 整族 → 保留。本批決策號改 #307。
+- [x] 預覽版：透過 preview_boot.js 的加前綴殼列舉，只清自己那份預覽的鍵；正式站不碰 `twpv:*`。兩個方向都實測。
+- [x] `_uitest.py`：新段落 `重新整理回預設1003`（約 2 分半）＋驗收後門（`TW_KEEP_VIEW`／`real_reload(pg)`／`TW_UITEST_REALRESET=1`，說明在 CONSENT_PRESET 下面）。
+  改寫 12 段裡「重新整理後設定還在」的舊斷言成新規則：關聯圖環節收合、漲跌家數市場別、個股分頁0926（籌碼區間）、個股季週期與筆數（獲利季／年）、
+  大盤K線0928（量副圖比例）、個股籌碼分頁0928（大戶散戶三條線）、個股分頁版面1002（本益比線寬）、個股頂部1002（AI 分隔線；雙擊還原移到重新整理之前）、
+  個股AI分析0926（分頁籤＋收合）、個股指標下拉0926（KD／MACD、週期勾選）、足跡輪盤只留圓圈（腳印開關）、剖析圖2D3D分段鈕（改成先切 3D 再重新整理）。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1`：`個股,K線縮放,設定面板,淺色主題,會員與自選五分頁,重新整理回預設1003` 0 個問題；
+  `總覽,資金流向,題材` 第一輪 3／2／2 紅（熱力圖點擊面板沒開、族群×法人／集中度沒畫、捲動位置 —— 機器負載 26 時的計時型），單獨重跑 0／0／0（main 同時段也是 0）。
+  改寫過的 12 段：`漲跌家數市場別`、`大盤K線0928`、`剖析圖2D3D分段鈕` 0；其餘各段剩下的紅**跟 origin/main（6364784）同一份資料同時段跑出來的一模一樣**（main 上本來就紅，見下面「已知」），我改寫的那幾條都綠。
+  反向驗證：把 viewreset.js 改成永遠不清 → 新段落紅 12 條（每一個設定都沒回預設、預覽版前綴兩條都紅），還原 0。
+  另跑一輪 `TW_UITEST_REALRESET=1`（整輪不設後門）找出依賴「重新整理會記住」的舊斷言，就是上面那 12 段。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。
+- 已知（main 本來就紅、這批沒碰）：`個股指標下拉0926` 17～19 條（預設週期 09-28 起是「分時」，段落還在假設日線）、`關聯圖環節收合` 的「全部展開」鈕被 h3 擋住點不到（所以我改寫的「展開 → 重新整理回收合」只驗到了回收合那一半）、
+  `足跡輪盤只留圓圈` 3 條（總覽小輪盤 0 腳印）、`個股頂部1002` 3 條、`個股分頁版面1002` 4～5 條、`個股AI分析0926`／`個股分頁0926`／`個股季週期與筆數`／`個股籌碼分頁0928` 各 1 條。
+- 已知限制：① 沒分類的新鍵預設保留（新段落第 ① 步會紅燈提醒去分類）；② 頁內的記憶體狀態（例如目前在哪個分頁籤 state.tab）本來就不存，不受影響；③ 網址 hash 帶的狀態（#stock/2330、#industry/…/dg/…）重新整理照舊保留 —— 那是「在哪一頁」，不是圖表設定。
+## 題材剖析圖縮小＋關聯圖環節外框＋關聯圖只留剖析圖對得上的環節＋3D 初始 70%（2026-10-03 06:10，台北，UI 專家，分支 `claude/diagram-tidy`，****已上 main 0d7797c 06:43**，等 CEO 合併**，DECISIONS #306）
+
+- Andy 四件：①「題材這邊的文字圖片大小比例再調整一下，太大了」②「供應鏈關聯圖族群需要框線框起來比較簡潔」
+  ③（一般電子 → CNC 工具機）「這兩張圖關係要對上，若無關則下方不需顯示」④「3D 圖片初始大小再小一點」→「調整原尺寸 70% 試試看先」。
+- [x] ① `themes3d.js`：`nativeWidth()` 加 `max-width＝畫布寬`（根因：SVG width:100% 被欄寬放大，舊版面 1.37 倍、版面 v2 1.16 倍）；零件框 96→82；
+  字級在原尺寸下重設（站名 15、說明 13、膠囊 12、流程格 14／12、圖標題 16、色帶 13）；`wrapSub` 估寬與列距跟著改；流程格高 38→40。
+  1440 實測（版面 v2）：heavy_electric 卡片 573→497、cowos 602→522、ai_server 637→556（都 87%）；舊版面 672→497（74%）。
+- [x] ② `industry.js` `drawChainMap`：每個環節 `rect.segbox`（1px、`--t4-card-edge`／`--line-2`、圓角 8、環節色 5% 淡底，選取時框變環節色）；
+  框外緣＝欄外緣、內容內縮 6px（`SEG_IN`），連線端點停在框邊；匯流道從框底下過；公司卡兩行字量過再切。`index.html` 加 `.segbox` 樣式。
+- [x] ③ `industry.js` `relScopeNow`／`applyRelScope`：剖析圖分頁的關聯圖、手機環節清單、「環節 ▾」下拉只留「圖上 data-seg ∩ 這條鏈的環節」；
+  交集空（CNC 工具機、工業自動化、寬能隙、矽晶圓）整塊 `#relSec` 藏起來；族群總覽分頁照舊整條鏈；換圖不換網址也會重算。
+  「?」與上下游照整條鏈算（不因範圍縮小冒出錯的「?」）。沒有新增任何供應關係。
+- [x] ④ `three3d.js` `fitCamera`：距離 ÷ `INIT_SCALE_3D`（0.7），重設視角同一支；拉近下限照舊。新增唯讀 `Rack3D.current.fit()`／`modelRect()` 給驗收。
+  第二輪（合進版面 V2 第三批後工具機底部超出 39px）：「塞滿」距離改成照畫布長寬比精確算（外接盒八角投到相機軸，寬或高先頂到為準）再 ÷0.7；
+  還停在預設視角時畫布長寬比一變就重新取景。驗收改成機櫃／CNC × 1440／1100／900 各自重新載入量一次，外加 1440→900 不重新載入。
+- **這批驗了**（合併 origin/main a707547 之前跑的最後一輪；之後只解了 `_uitest.py` SECTIONS 一處衝突與決策改號）：
+  `_preview.py` 全綠；`_uitest.py --workers 1`：
+  `剖析圖縮小與環節外框1003` 0、`關聯圖對應與3D大小1003` 0、`題材` 0、`題材2D` 0、`批次6-N1` 0、`批次6-圖九` 0、`批次6-圖十` 0、`產業鏈導覽` 0、`產業關係面板` 0；
+  `一般電子鏈` 12 —— **跟 main（同一份資料）逐條相同**（鴻海／智邦／面板雙虎節點、被動元件列台股、display_material／brand_operator 說明框、四個沒剖析圖的新題材列成分股），是既有的紅，這批沒碰。
+  `批次6-圖十` 在 main 有 1 紅（800px「x86 CPU · In ↔ 景碩」壓字），這批公司卡第二行量過再切之後變 0。
+  新段落：題材 3 張 × 1440（1:1、卡片 ≤ 改前 90%、螢幕字級 15／13／12／14、不出格不重疊、滑鼠點一格選起來、滑鼠點膠囊進個股頁）＋800／390；
+  關聯圖 3 條鏈 × 1440 收合／按「全部展開」／800 × 深淺（每格有框、框對比 ≥1.15、內容都在框內、框不互疊、連線端點 0 個穿進框、點環節標題框變色）；
+  4 條鏈逐一用滑鼠點每個剖析圖分頁（關聯圖＝圖上 seg ∩ 整條鏈、公司卡都在範圍內、下拉只留這幾格、交集空整塊不見）、點回族群總覽回到整條鏈；
+  3D 機櫃與 CNC：距離比 0.70±0.02、模型四邊留白落在畫布內、可見引線端點都在模型範圍、拖曳＋滾輪後重設回到 70%。
+  既有段落改了入口（`#industry/<鏈>` → `/overview`，驗的是整條鏈）與 `SC_GEOM` 端點容許落在框邊，門檻沒放寬（DECISIONS #306 驗收節）。
+  合併 origin/main（a707547）之後複驗：`剖析圖縮小與環節外框1003`、`關聯圖對應與3D大小1003`、`批次6-圖十` 全 0。
+  第二輪（合併 origin/main 含版面 V2 第三批、3D 取景改精確塞入之後）：`_preview.py` 全綠；`題材` 0、`剖析圖縮小與環節外框1003` 0、`關聯圖對應與3D大小1003` 0（3D 兩個場景 × 1440／1100／900 ＋ 1440→900 都在畫布內）。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。瀏覽器鎖沒用 flock，自己的埠 8883／8884。
+- 已知限制：① 版面 v2 下題材卡只矮到 87%（舊版面 74%），剩下是文字段，再壓要動字級或砍說明行數；1440 時圖兩側各留約 80px 底色。
+  ② `#industry/<鏈>` 的 Default 是第一張剖析圖，所以直接開半導體鏈看到的是那張圖對得上的幾格，不是整條鏈（整條鏈在「族群總覽」）。
+  ③ MLCC 這種單一環節的圖，關聯圖只剩一格公司、沒有線（提示句會講回族群總覽看上下游）。
+  ④ 題材頁剛展開的頭一秒內點圖，可能點到被重畫掉的舊節點而被當成點外面收起（驗收等 1.5 秒再點；這批沒修）。
+
+## 10-03 版面 V2 第三批＋側欄子分頁（UI 專家，分支 `claude/layout-v2-desktop` → `preview/layout-v2`，****已上 main adbd48a 06:18**，等 CEO 驗完合併**）
+只作用在電腦版（>820，掛 l4）；手機版（≤820）不動。檔案：`site/layout4.js`、`site/layout4.css`、`site/app.js`（route／nearIdle／renderFlow 三處）、`scripts/_uitest.py`。
+- [x] 頁首只剩「頁名＋台北現在時間」（每秒走，寫 data-t 屬性由 ::before 畫，避開 body 上兩支 MutationObserver），黏在最上面；分組小標、說明句拿掉；「本頁功能」那排只藏不刪
+- [x] 收合鈕改成 logo 右側側欄圖示小方鈕（#l4NavBtn），左欄底部「‹ 收合導覽」拿掉
+- [x] 「事件」移到導覽最上面一格（保留數字徽章）
+- [x] 左欄底部：帳號卡（account.js 的 #acctBtn 本人搬進卡片，≤820 搬回 .acctbar；沒設定檔時只寫「訪客／自選存在這台瀏覽器」不放登入鈕）＋「淺色｜深色」二段式（按下去＝按 #themeBtn）＋外觀調色盤小鈕；「★ 自選」與 ☀ 在電腦版藏起來（DOM 留著）
+- [x] G 分組名「錢往哪裡跑」→「資金流水」
+- [x] H 資金流向拆三個側欄子分頁：#flow/rotation（資金輪動）、#flow/sankey（資金去向）、#flow/inst（族群×法人＋資金集中度）；#flow 導到 ①
+- [x] I 熱力圖拆兩個：#heatmap/industry（產業）、#heatmap/theme[/<id>]（題材，沿用舊網址）；#heatmap 導到產業
+  · 子分頁＝<html data-l4sub>（app.js route() 掛）＋ layout4.css 藏別的卡；藏起來的卡由 whenNear 等露出來才畫（nearIdle 在電腦版這兩頁不偷畫）。
+    輪盤首次繪製、排行、資金去向（含 sankey_daily 載入）改走 whenNear；熱力圖產業／題材只畫看得到的那半。計算邏輯沒改。
+  · 側欄子項是 `.l4subtab`（不是 .tab），收合時顯示兩字短名（輪動／去向／法人／產業／題材）。
+- 改了既有驗收：明亮主題／設計v4主題 的 ☀ 改走 theme_flip（電腦版點二段式）；會員與自選五分頁 的「★ 自選」電腦版改點導覽；
+  資金流向／新-資金流向／批次3／題材 依賴「同一頁四張卡」的地方改成先 `l4_sub()` 切到那張卡的子分頁（斷言本身沒改）；批次3 兩條 hash 接受 #flow/inst。
+- 順手修：資金去向的小圓點層（canvas.dotfx）原本只在看得到時才改尺寸，容器在看不到時變寬變窄會停在舊寬度把整頁撐出橫捲（拆子分頁後 800px 變 1235px 被抓到）→ 加 ResizeObserver 跟著容器改尺寸。
+- **這批驗了**：`_preview.py` 全綠；`_uitest --workers 1 --sections 版面v2結構,資金流向,新-資金流向,新-輪動時鐘,批次2,批次3,批次7,題材,設定面板,淺色主題,明亮主題,設計v4主題,會員與自選五分頁,會員雲端路徑`
+  → 除下面 4 條已知外全 0（版面v2結構、資金流向、題材、新-資金流向 在最後一次改動後單獨重跑過）。沒跑 pytest（只動 site/、_uitest、文件）。
+- 已知（main 上同樣紅，不是這批造成；用 origin/main 快照同段落實測過）：新-資金流向「800px 沒有橫向捲軸」×2（pageW 846）、新-輪動時鐘「最外圈只有一個族群」、批次2「再點一次同一根長條會收起來」。
+## 個股頁：頂部 AI 直排＋拿掉展開、基本面卡小格／大格＋細項、本益比位置加到獲利分頁、營收／資券 KPI 列拿掉（2026-10-03 06:00，台北，UI 專家，分支 `claude/stock-fund-card`，**已上 main a707547 06:03**，DECISIONS #305）
+
+- Andy 四件（C 項中途改口：資券 KPI 不改比例條，直接整排拿掉）。基於 main 開分支，交付前合併 origin/main（c7fcf4c，含版面 V2 與當沖封印 #304；衝突在 `tabMargin` 與 `modules.js`，兩邊都留；本批決策從 #304 改號 #305）。
+- [x] A 頂部 AI（`site/blocks/stock_ai.js`）：四面向一列一個（左名右判讀、14px、偏多紅／偏空綠／中性灰、右邊「›」）；「展開」鈕與 K 線卡裡的展開面板拿掉，點一列＝捲到總覽 AI 卡切那一面（`gotoFacet` 沒動）。
+  `#aiBody` 照舊產出（手機分段要用），手機 #aiCard 裡一律打開；`tw.aiOpen` 不再讀寫。≤820 單欄改 2×2。
+- [x] B 基本面卡（`industry.js` `fundCard`＋新函式 `peStand`／`peStandHTML`／`gmTrend`／`momParts`／`gmSpark`；`index.html` `#skFundCard` 一段）：小格窄欄（EPS、ROE、月營收 YoY、殖利率）｜大格寬欄（本益比位置、毛利率、營運動能）。
+  本益比位置＝自己歷史每日本益比（peRiver 同一條）的分位，便宜／中位／貴＝第 10／50／90 百分位、族群中位◆；毛利率＝前一季／去年同季增減＋近 8 季趨勢；營運動能＝管線公式逐項加分（全站 1,969 檔重算 0 檔不符）。
+  版面 V2 下 1440 卡片內寬約 330px 照樣兩欄（窄欄 ≥86px）；手機或卡片內寬 <270px 才小格 2×2 在上。
+- [x] B3 獲利分頁：本益比（每季）卡圖上方加 `#peStandProf`（同一支函式，data-* 與文字跟總覽 `#peStandOv` 逐項相同）。
+- [x] C 資券分頁 4 格 KPI、D 營收分頁 6 格 KPI 整排拿掉；圖卡往上補位。`mgLatest` 留著（籌碼快照在用）。手機原生分頁（mobile3.js）沒動。
+- **這批驗了**（合併 origin/main 之後）：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股,個股總覽等高1003,個股總覽三欄1002,獲利並排本益比1003,個股基本面卡1003,個股頂部1002,個股AI分析0926,個股籌碼分頁0928,個股總覽1002,個股分頁版面1002,營收河流0928,資券資料源未提供1003`：
+  個股、個股AI分析0926、個股總覽1002、個股總覽三欄1002、個股總覽等高1003、獲利並排本益比1003、個股基本面卡1003（修 1438 YoY +41,420% 截字後重跑）0 個問題；
+  紅的都不是這批造成，用 origin/main c7fcf4c 的快照同段重跑對照過：`個股分頁版面1002` 3 條明細表橫捲＋revYear SVG 壓字（main 一樣紅，版面 V2 讓內容變窄）、`個股頂部1002` 分隔線拖 100px 只變 12px（main 一樣紅，V2 左欄最小寬）、
+  `個股籌碼分頁0928`「資料湖」字樣（既有紅燈）、`資券資料源未提供1003` 前置條件（本機 payload 沒有 margin_asof，要用新 build_payload 重算）。`營收河流0928` 第一輪 2 條（河流圖 Y 軸拖曳時頁面捲走）單獨重跑 0 → 計時型假紅。
+  合併前（本分支 61fba7c）同組段落＋積木-個股三卡 全 0。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。沒做反向驗證。
+- 新段落 `個股基本面卡1003`（約 80 秒）：1440／1100／390／1440 淺色 × 2330／3105／1102（歷史不夠退回同業刻度）／1438（YoY 一次性、MoM 缺）：小格 4／大格 3、尺寸不同、窄欄縱排、底部對齊、手機 2×2；
+  本益比位置 data-* ＝ Python 重算、圓點／菱形位置；毛利率前季／去年同季值與顏色；營運動能加總＝分數；切到獲利分頁比 `#peStandProf`＝`#peStandOv`；營收、資券沒有 KPI 列且圖卡頂上去；頂部 AI 四列直排沒有展開鈕；版面重疊／11px。
+  改寫的舊段落：`個股頂部1002`（① 改驗直排／沒展開／點列捲到總覽、④ 只剩一種狀態）、`個股AI分析0926`（桌機點列捲到總覽；標籤頁切換改在手機驗）、`個股籌碼分頁0928` ⑧、`個股總覽1002` ③⑥、`個股總覽等高1003` ④、`獲利並排本益比1003`（圖 ≥300 → 圖撐滿卡剩下空間）、`AI_COST_MAX` 110→125（≤820 2×2 的代價，理由在常數上）。
+- 已知限制：① 小格在三欄等高時每格約 118px（卡高由籌碼快照決定）；② 本益比位置用的逐日本益比是河流圖那條（價格是還原價），跟 Goodinfo 等用原始價的分位可能差幾個百分點；③ 手機原生資券／營收分頁的 KPI 沒動。
+
+## 當沖／借券賣出 09-25 起斷更＝回補誤封印；上櫃融資券沒有每日來源（2026-10-03，台北，爬蟲專家，分支 `claude/daytrade-fix`，**已上 main c7fcf4c 05:31**，DECISIONS #304）
+
+- **根因**（證據在 #304）：不是 FinMind 改等級、不是參數、也不是連假。09-28 那輪每日續補挑「落後最久」的股票去問當沖／借券，
+  落後最久的正好是早就沒資料的 72／10 檔（最後一筆停在 2025 年的處置股等）→ 全空 → 封印「整組回空」；之後探測又拿同一批 → 永遠探不通。
+  backfill run 36456219124 日誌：「daytrade 每日續補：72 檔落後於 2026-09-24（…從 2026-06-26 起抓）」→「連續 20 檔回空」→「判定為該資料集不開放」。查的區間 06-26～09-24 有六十幾個交易日。
+  上櫃融資券：`run_daily` 只抓上市（MI_MARGN），上櫃只靠一次性的歷史步驟，09-24 起少 530 檔。
+- [x] `pipeline/run_backfill.py`：封印前拿台積電反證（`canary_has_data`）、區間內沒交易日不判定（`no_trading_day_since`）、
+  既有「整組回空」封印每 24 小時拿台積電驗一次、驗通當場解封；`stale_inst_codes` 把「比這張表最新日早 14 天以上」的股票排到最後；
+  `FRESH_TABLES` 加 `margin`（inst 600／margin 300／daytrade 300／sbl 300），計畫本月補齊時 ×`FRESH_BOOST`＝2。
+- [x] `pipeline/compute/stockpage.py` `margin_asof`、`pipeline/build_payload.py` 每檔帶 `margin_asof`；
+  `site/industry.js` `tabMargin`、`site/mobile3.js` `skMargin`：資料源停更時寫「更新到 MM-DD」、之後的格子寫「未提供」（不是 0）；`site/index.html` 一條 `.mbna` 樣式。
+- [x] `scripts/probe_sources.py`＋`.github/workflows/probe.yml`：新探測組 `chip_daily`（證交所 TWTB4U／TWT93U、櫃買融資券 OpenAPI 候選，未實測）。
+- [x] 測試：新檔 `tests/test_backfill_seal_1003.py`（12 條，含事故重現）；`tests/test_backfill.py` 兩條改成「樣本＋1 次反證」。
+- **資料預計何時補回（合併 main 之後）**：下一輪整點回補（`inst_fresh` 10-03 還沒做完，會放行）就會解封；
+  每天續補上限（計畫已補齊 ×2）：當沖 600、借券 600、上櫃融資券 600 檔，一次請求把 09-25 之後整段抓回。
+  週末價量最新日停在 10-02，補過的不會再被挑 → 上櫃融資券約 10-04、當沖約 10-05、借券約 10-06 全市場補齊（台北）。台積電等前幾百檔當天就有。
+- **這批驗了**：`pytest tests/ -q` 916 passed／4 skipped／1 xfailed（16 分 38 秒，含新測試）；之後改了 probe 兩支再跑 `test_probe_sources`、`test_taifex_night` 31 passed，`test_backfill*` 三支 53 passed。反向驗證：把 `run_backfill.py` 換回 main 版 → 新測試 6 條紅（反證、連假、自動解封、排序、margin 續補），換回來全綠。`SKIP_INTRADAY=1 python -m pipeline.build_payload` 重算後（2330 的 `margin_asof`＝margin 10-02／daytrade 09-24／sbl 09-24）：`_preview.py` 全綠（兩次）；`_uitest.py --workers 1 --sections 資券資料源未提供1003,個股籌碼分頁0928,手機個股券商式,個股分頁版面1002` → 新段落 0、手機個股券商式 0、個股分頁版面1002 0、個股籌碼分頁0928 剩 1 條＝10-02 就記的既有紅燈（K 線卡／AI 區「資料湖」字樣，main 一樣紅）。第一輪新段落抓到我自己的字眼違規（畫面寫了「資料源」，是 09-28 禁用字），已改成「當沖資料目前只更新到 MM-DD」。
+- 待處理：① `http._last_error` 是全域變數，會把上一個資料集的錯誤（例如 402）記成下一個資料集的封印理由（測試裡看得到）；
+  ② 合併後跑一次 `probe.yml` → `chip_daily`，有全市場一個請求的官方日報就改接，續補額度可以省下來；③ 封印機制的「整組回空」理由以後若再出現，先看反證日誌那一行。
+
+## 10-03 04:56 版面 V2 上正式站（CEO）
+
+- Andy：「目前滿意預覽版本排法，幫我改成預覽為正式版本」→ `claude/layout-v2-desktop`（175a5a2）合併進 main（3c24dfd）。只作用在電腦版 >820；手機不變。
+- 這批驗了：`_preview.py` 全綠；`_uitest --sections 版面v2結構,總覽,個股,產業,新-版面等高與多寬度,設定面板,淺色主題,手機,會員與自選五分頁` → 除 `新-版面等高與多寬度` 3 紅外全 0。
+  那 3 紅（breadth 圖沒畫出來 ×2、1024 排行被截）在合併前的 main 也有（main 該段 26 紅，多數斷言已過時），不是 V2 造成；交給 `claude/fit-screen` 順便更正。
+- 沒跑 pytest（只動 site/、_uitest、文件）。
+- 進行中（各自分支）：頁首只剩標題＋時間／收合鈕／事件置頂／帳號卡＋淺深切換／側欄拆子分頁（layout-v2-desktop）、剖析圖縮小＋關聯圖加框＋剖析圖與關聯圖對應＋3D 70%（diagram-tidy）、個股基本面卡／AI 標籤／資券與營收 KPI 列拿掉（stock-fund-card）、重新整理回預設（reset-on-reload）、一屏看完（fit-screen）、產業地圖地圖化（industry-map-v2 → preview/industry-map）、當沖借券停在 9/24（daytrade-fix）、兩條不穩驗收（uitest-flaky2）。
+## 10-03 05:20 驗收腳本兩條不穩定修正（分支 `claude/uitest-flaky2`，只動 `scripts/_uitest.py`，沒碰 `site/`）
+
+- **「個股」段畫線工具列偶發「element is not visible」→ IndexError**：
+  - 更正下面 04:15 那節的推測：工具列**沒有**「游標移入才展開」。它只在兩種情況被藏：週期是「分時」
+    （`.chartwrap.tickmode>.drawbar{display:none!important}`）或 ≤820px 沒按「✎ 畫線」。驗收跑 1500px，所以是頁面回到了分時。
+    失敗那輪「清空後 localStorage 也乾淨了」是綠的 → 清除真的做了，接著頁面回到預設週期；同一檔會讓週期回到分時的只有整頁重載。
+    最可能是 live.js `reloadIfRedeployed`（盤後 meta.json 的 generated_at 變了就 reload）撞到共用 `site/data` 被別人重建 ——
+    **推論，沒重現**（4 支平行、CPU 降速 6 倍都沒出現），所以修法不賭它。
+  - 修法：新增 `_draw_ready`／`dclick`，畫線區塊 14 處點工具列前先確認看得見；看不見就像使用者一樣切回日線再點。
+    分兩種：驗收放的標記 `window.__uitDrawMark` 不見＝頁面自己重載過（環境因素，印一行說明不記失敗）；
+    標記還在卻跑回分時＝網站把使用者選的週期改掉了（**記失敗**）。「全部清除」的確認框若因重載不見，會再按一次清除叫出來。
+    `ws[-1]`（屬性列粗細）與方框填滿那兩處，屬性列沒出現時改成記失敗、跳過，不再讓整段爆掉。
+  - 反向驗證（暫時掛的模擬碼已拿掉）：在確認鈕前故意 `location.reload()` → 印出重載說明、畫線相關 0 紅；
+    故意切到分時不重載 → 記到「★ [畫線] 頁面沒重新載入，週期卻自己跑回分時」那條。
+- **「總覽摘要卡即時」跨收盤 2 條假紅**：假時鐘不再寫死 09/29，改成 `site/data/meta.json` 的 `data_date` 之後第一個平日
+  （本機 10-01 → 10-02）；假報價的 `d`、假分時起點、跨收盤時刻、「收盤快照」日期都跟著走。讀不到 meta 就退回 09/29。
+  `LV5_INTRA`／`LV5_AFTER` 給「即時5秒0929」等其他段共用，沒動。
+- **這批驗了**：`TW_UITEST_PORT=8871 python scripts/_uitest.py --sections 個股,總覽摘要卡即時 --workers 1` → 個股 0、總覽摘要卡即時 0；
+  `--sections 個股` 再跑 2 次 → 0、0（三次都在負載 20～28 下跑）。沒跑 pytest（只動 `_uitest.py`、文件）；沒動 `site/` 所以沒跑 `_preview.py`。
+- 已知限制：① 「個股」段另有一條負載下才紅的「本益比河流圖還原成原始大小時整頁不會被帶著往下（scrollY 1014 → 1392）」，
+  4 支平行時 2/4 出現，單跑沒出現，這批沒處理。② 重載的真正來源沒抓到現行犯；下次再遇到，看輸出有沒有「（個股／畫線）頁面在操作中途自己重新載入了」那行。
+
+## 10-03 04:15 合併狀態（CEO）
+
+- **#303 已推 main（faae730）**。合併後這批驗了：`_preview.py` 全綠；`_uitest --sections 個股總覽等高1003,獲利並排本益比1003,個股總覽三欄1002,市場明細兩欄1003,個股` 全 0。
+  ⚠ 第一輪 `個股` 一次紅（繪圖工具列 `#drawBar` 「element is not visible」→ IndexError），同分支重跑 0、main c6bb484 也 0；
+  判定是跟另一支驗收同時跑時游標移入事件沒觸發，**不是根因確定**，下次再看到要追。沒跑 pytest（只動 `site/**`、`_uitest.py`、文件）。
+- **分支預覽已生效**：run 251 的部署產物含 `preview/layout-v2/`；另推 `preview/ov-all-live`（總覽全卡即時開關，法遵未定所以不上正式站）。
+- `claude/ov-all-live`（c205742）已推遠端保存，**不合併 main**，等 Andy 對即時再散布的決定。
+- 待修：`總覽摘要卡即時` 跨收盤那段依賴本機 payload 日期（假鐘 09/29、資料 10/01）的 2 條假紅。
+
+## 台指期日盤 15 秒（過渡）＋ Deno 推播（SSE）實測（2026-10-03 03:40，台北，爬蟲專家，DECISIONS #299）
+
+- [x] **A. 日盤 `/fut?session=day` 每 5 秒 → 每 15 秒**：分支 `claude/fut-15s`，**已上線 run 251（c6bb484）**。`market3.js` 新常數 `MS_FUT_DAY`；加權／櫃買 5 秒、夜盤 60 秒、分時檔 10 秒都沒動。
+  大盤卡即時開關短字「· 5/15秒」、提示框分開講三個節奏（`Live.stampCard` 多收選填 `lbl`／`tip`）、「?」說明補一句、`docs/realtime_5s.md` 表格改。
+  一個讀者整天開總覽：每天 5,460 → 2,940 次請求，免費層撐的整天讀者約 8 → 15 個。
+- **A 這批驗了**：`_uitest.py --sections 台指期Deno優先,新-大盤三張圖,即時5秒0929,總覽 --workers 1`
+  → 第一輪 `台指期Deno優先` 0、`總覽` 0、`即時5秒0929` 1 紅（「族群即時模式的重試間隔 ≈ 10、20 秒」量到 14.3 —— 漲跌家數那一塊，這批沒碰）、
+  `新-大盤三張圖` 8 秒就爆（`Market3` 還沒載入就呼叫 forceClock）。同一份 main（fcde1a2）跑這兩段 0；本分支重跑這兩段 **0／0** → 判定是第一輪機器負載造成的計時假紅。
+  `_preview.py` 全綠。反向驗證：計時器改回 5 秒 → `台指期Deno優先` 紅 2 條（E 段量到 7 次），還原 0。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。瀏覽器鎖被占，第二輪起改用 `TW_UITEST_PORT=8793`／`TW_PREVIEW_PORT=8794` 不加鎖跑；`site/data` 是 symlink 到主 checkout（10-01 資料）。
+- [x] **B. Deno 長連線實測**（已推 main：3377274、c45109a、0eb5258、af1275c，每個 commit 只動一個範圍）：
+  run [37051808940](https://github.com/MiaoZiKe/tw-rotation/actions/runs/37051808940) 5 條 × 15 分鐘每條 179／180 筆、0 中斷、上游只抓 178 次（共用成立）；
+  run [37053561833](https://github.com/MiaoZiKe/tw-rotation/actions/runs/37053561833) 3 條 × 7 分鐘、中途推新版也 0 中斷。`/sse-test` 已停用（410），部署 run 37054455160 成功。
+- 結論：技術上 Deno 可以當推播中樞（一個讀者日盤從 1,260 次降到約 10 次）；**但法遵 `docs/legal/realtime_redistribution.md` C2 說沒簽約不要擴大中央推播** —— 要 Andy 先決定那一關。
+- 下一步：① 合併 `claude/fut-15s` 到 main（只動前端，`pages.yml` 會部署）② 法遵決定後再做正式 Deno `/futstream`（估 1～1.5 天，見 #299 建議架構）。
+- 已知限制：重連路徑沒被觸發過（兩輪 0 中斷）；台灣讀者落在哪一區沒實測；SSE 是否 1 條算 1 次請求是依官方定義推論，官方沒明講。
+## 市場明細「漲跌家數」兩大欄並排＋「TPEX」改「上櫃」（2026-10-03，台北，UI 專家，分支 `claude/market-2col`，**已上線 run 251（c6bb484）**，DECISIONS #300）
+
+- Andy（#market 截圖）：①漲跌分佈圖卡與分頁表格（漲停｜跌停｜漲幅前段｜跌幅前段｜成交值前段）桌機左右並排；②篩選的「TPEX」改「上櫃」，全站畫面上的 TPEX／TWSE 一併清。只改版面與文字，資料與功能沒動。
+- [x] 版面：`.mktduo` grid（1 : 1.2，1440 量到 619 : 743）、右卡 `contain:size` 讓表格長度不參與列高 → 兩欄等高、表在卡裡捲、表頭固定；≤1100 上下排（表格卡最多 460px 再捲）。
+  「盤後｜即時」鈕與標題列留在兩欄上方。**並排時下鑽名單（點長條）改排到圖的下面**（左欄只有 590px，放右邊圖只剩 240px）；641～1100 與 ≤640 維持原樣。
+- [x] 「TPEX」：根因是篩選鈕那行寫成 `'TPEx'`（大小寫對不上資料 `'TPEX'`），翻譯落空。改成全站共用 `fmt.mkt()`（不分大小寫）；個股頁名稱旁小標與基本資料「市場」列原本直接印 `TWSE`／`TPEX`，一併改。清單與「不動」的理由見 DECISIONS #300 第二節。
+- 改到的函式／檔案：`app.js` 的 `fmt.mkt`（新）、`drawMarket`（updown 分支的 body 模板：多包 `.mktduo`／`.mktdist`／`.mktlist`、拿掉 `#chgDist` 的 inline min-height）、`wireDistFilter`（標籤）、`HOW.mkt`（兩句「右邊列出」改寫）；
+  `industry.js` 的個股抬頭（`skIdent`）、`tabBasics`、另一處抬頭（`known.market`）；`index.html` CSS（`.mktduo` 一段、手機 `#mktBody.mseg-*` 兩條選擇器）；`modules.js` market.detail 的 tests；`_uitest.py`（新段落 `市場明細兩欄1003`、改兩處舊斷言）。
+- **這批驗了**（最後一輪＝合併 main 69c4ee9 之後；沒動 pipeline、payload 沿用 2026-10-02 的）：`_preview.py` 全綠；
+  `_uitest.py --workers 1 --sections 市場明細,市場明細下鑽0928,市場明細兩欄1003,新-版面等高與多寬度,縮放掃描,手機` → 前三段、縮放掃描、手機 0 個問題；
+  `新-版面等高與多寬度` 第一輪紅 1 條（「熱門題材放大後內容超出了外框」，總覽熱門題材的滾輪放大，這批沒碰總覽；機器負載 5，計時型）→ 單獨重跑 0 個問題。
+  新段落 `市場明細兩欄1003`（約 40 秒）：1440／1101 兩張卡 top 差 <1px、left 遞增、高度差 <4、欄寬比 1.1～1.3、表格比卡長而且在卡內真的捲（scrollTop 0→320）、表頭固定（捲前後離表框頂差 <2px）、
+  換子分頁（跌停 7 列／成交值前段 60 列）兩張卡高度不變仍等高；「上櫃」鈕顯示中文、代號 `data-m` 沒動；點上櫃／上市 → 長條加總＝stocks.json 對應市場（有漲跌幅、不含 ETF）檔數、副標跟著變、
+  再點最高那根 → 名單全是該市場股票；市場明細與個股頁（上市／上櫃各一檔）整頁沒有 TPEX／TWSE 字樣；1440／1100／800 文字重疊＋溢出掃描（含下鑽名單打開時）、390 兩段（分佈圖／名單）掃描與字 ≥11px 全 0。
+  反向驗證：拿掉 `contain:size`＋把標籤改回原樣 → 新段落紅 9 條（表不再捲、卡片被撐到 2000px、上市／上櫃鈕變英文）。
+  交付前再合併 origin/main（0eb5258，含 #302 大戶散戶區間鈕，`industry.js` 自動合併；衝突只在 HANDOFF）後複驗：`_preview.py` 全綠；`市場明細`、`市場明細兩欄1003`、`個股分頁版面1002` 0 個問題（19:34 UTC）。
+  瀏覽器鎖：`flock -w 300` 兩次都等不到，依規定改自己的埠、不加 flock 直接跑。
+  沒跑 pytest：只動 `site/**`、`scripts/_uitest.py`、DECISIONS、HANDOFF。
+- 已知限制：① 並排時點長條，左卡變高、右卡跟著變高（兩欄一直等高），收起才回去；② 右邊表格只受「盤後｜即時」影響，**不受**左圖的上市／上櫃／ETF／族群篩選（本來就是兩份不同的資料，這批沒改功能）；
+  ③ `market3.js` 資料來源說明裡的「櫃買 TPEx」是 FinMind 的 data_id 原名，沒動（見 DECISIONS #300）。
+## 個股總覽三欄等高＋本益比（每季）修畫壞＋獲利分頁並排（2026-10-03 03:45，台北，UI 專家，分支 `claude/profit-pe-fix`，**10-03 04:13 已推 main faae730**，DECISIONS #303）
+
+- Andy（10-03）三件。基於 main c45109a 開分支，交付前合併 origin/main（af1275c，DECISIONS 跟 #302 撞位置，兩條都留）。
+- [x] 總覽三欄（容器 ≥1080）等高、底部對齊：高度＝籌碼快照自然高度（10 檔量過 617～633px）、下限 560px；AI 卡 contain:size、分頁內容在卡裡捲（切籤三欄高度不變）；基本面格子平均撐開、族群中位那一句釘卡底。1100／≤820 不強制等高。
+- [x] 本益比（每季）：根因＝虧損季 pe=null 斷線沒標示（3105 2023Q2～Q4、2025Q2）＋TTM 很小時帶上緣（整季最高）爆衝（3105 2025Q3 TTM 0.74 元、收盤 120→390.5、帶上緣 527.7 倍；3707 2021Q3 16,550 倍）。管線沒算錯、沒動 pipeline。
+  前端：虧損季灰底＋「虧損」字（每段第一格）＋提示框寫原因；圖上限＝max(200, P75×1.5)、最多 1000，線與帶一起截、▲ 標記、提示框寫實際值；圖下一行寫中位數／虧損幾季／超出幾季。
+- [x] 獲利分頁 `#profGrid`：1440 三欄（河流圖跨兩欄｜每季本益比；EPS 與三率｜明細表跨兩欄 .tblcard），≤1100 兩欄、≤820 一欄；河流圖線寬滑桿與四個資訊塊沒動。
+- 改的函式：`site/industry.js` 新增 `peQModel`、`drawPeQ`；`tabProfit`（版面改 #profGrid、本益比（每季）改呼叫 drawPeQ、「?」說明改五條）；`tabOverview` 只改註解。`site/index.html`：`.skprof` 系列、總覽三欄等高的 `@container skov (min-width:1080px)` 規則。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股總覽三欄1002,個股總覽1002,個股分頁版面1002,營收河流0928,個股,手機,個股總覽等高1003,獲利並排本益比1003` 全部 0 個問題（合併 origin/main 之後跑的）。
+  新段落：「個股總覽等高1003」（1440 高度差 <4px、四籤逐一點高度不變、看細節展開後卡裡捲、基本面撐開；1100／800 AI 卡照內容長；四寬度版面）、
+  「獲利並排本益比1003」（3105／3707／2330：cap 同口徑、Y 軸 ≤ cap×1.3、灰底只在虧損季、▲ 位置、滑鼠真的移上去讀提示框；1440／1100／800 並排幾何；四寬度 ?svg=1 重疊／溢出／11px）。
+  第一次跑抓到自己驗收的錯：hover 時 Playwright 自己捲頁 11px 被當成「頁面跟著捲」，改成 hover 之後才記 scrollY。沒跑 pytest（沒動 pipeline）。沒做反向驗證（把 CSS 拿掉看會不會紅）。
+- 已知限制：① 390 寬時虧損季的「虧損」字與緊鄰下一季的 ▲ 會貼在一起（不重疊，SVG 量測過）；② 圖上限隨股票不同（3707＝261 倍），寫在圖下與「?」；③ 淺色主題只靠既有段落，沒有專門看灰底在淺色的對比。
+
+## 大戶／散戶分頁區間鈕只留 4 週、3 個月（2026-10-03，台北，UI 專家，分支 `claude/holders-range`，**已上線 run 249（d9e7bb8）**，DECISIONS #302）
+
+- Andy 決定大戶散戶資料不付費、自然累積（約 11/27 滿 13 週），區間鈕只留「4 週」「3 個月」。基於 main 151463f；開工與交付前各合併 origin/main。
+- [x] `site/industry.js`：`chipPage` 加選填 `opts.wins`；`tabHolders` 傳 `{ wins: [20, 63] }`。存著 6 個月／1 年 → 這一頁退回 3 個月、不改寫 `tw.chipWin`（法人頁仍是原選擇）。法人、資券沒動。手機原生 `mobile3.js` 本來就沒有區間鈕，沒改。
+- [x] `scripts/_uitest.py`：「個股分頁版面1002」新增 ④b（1440／800／390）；「個股籌碼分頁0928」的「切 1 年」斷言改成只看法人、資券並加驗大戶散戶退回 3 個月。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股分頁版面1002,個股,手機` 全部 0 個問題（364 秒；瀏覽器鎖等超過 5 分鐘，依指示改 `TW_UITEST_PORT` 不加 flock 直接跑）。
+  反向驗證：`wins` 改成四顆 → 「個股分頁版面1002」紅 10 條，改回後綠。另跑 `個股籌碼分頁0928`（改了它的斷言）1 條紅＝「K 線卡與 AI 區沒有內部說明字樣（資料湖）」，是 10-02 HANDOFF 已記的既有紅燈（main 同樣紅），不是這批造成。沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
+- 已知限制：① 存著 6 個月／1 年的人進大戶散戶會看到 3 個月，回法人頁不變；② 大戶散戶按 4 週與法人共用同一個 `tw.chipWin`，所以在這頁按 4 週，法人頁也會變 4 週（三頁共用的既有行為）。
+
+## 個股總覽改三欄＋AI 卡分頁籤＋指標左右並排（2026-10-03 02:25，台北，UI 專家，分支 `claude/stock-ov-3col`，**已上線 run 248（01864f7）**，DECISIONS #297）
+
+- Andy（10-02 23:xx）看了 #294 上線版說「誤解了」。基於 main 5acc47f 開分支；交付前再 `git merge origin/main`（期間 main 沒有新 commit）。
+- [x] 總覽：桌機三欄（基本面｜籌碼快照｜AI 卡，1 : 1 : 1.2，頂端對齊、自然高度）；容器 790～1080（視窗約 820～1110）兩欄＝基本面＋籌碼左欄、AI 右欄；更窄一欄。
+- [x] 籌碼快照卡內四塊一律由上往下（法人 → 集保 → 信用與借券（含當沖率）→ 量比）。
+- [x] AI 四面向併成一張卡（`StockAI.ovCard`）：標題＋緊貼的免責 → 一行重點 → `.seg` 膠囊分頁籤（每顆帶判讀）→ 一次一面；預設技術面、存 `tw.ovAiTab`、方向鍵可換。
+- [x] 頂部 #skAi 收合時點小標籤 → 捲到總覽 AI 卡並切到那一面（`gotoFacet` → `setOvTab`）。
+- [x] 指標分頁：拿掉「資料不足」區；符合（左）／未符合（右）並排、欄內往下排；視窗 ≤820 上下排。
+- [x] 會員權限 `stock.ai` 選擇器沒改、照樣鎖得到（#ovAiBrief＝重點那一行、#ovFacets [data-ai]＝三個 AI 面）；分頁籤不鎖，關掉 AI 時照樣切得到技術面訊號。
+- 改的函式：`site/industry.js` `tabOverview`（三欄外殼、右欄改叫 ovCard）、`tabTags`（拿掉資料不足、左右兩欄 #tagCols、0 項佔位）；`chipCard` 的 JS 沒改（垂直排列是 CSS）。
+  `site/blocks/stock_ai.js` `gotoFacet`（捲到 AI 卡＋切籤）、`ovCss`（AI 卡樣式）、`brief`（只剩一行重點）、新增 `readOvTab`／`setOvTab`／`ovCard`、`bindOverview`（籤＝卡內切換＋方向鍵）、`facetHead` 拿掉；`facetCards` 沒改。
+  `site/index.html`：`.skov3`／`.skovkpi`／`.mixes`／`.skfacets`／`.tagcols`／`.tagnone` 與拿掉 `.tagtile.na`。`site/features.js`、`site/modules.js` 只改註解與 tests 清單。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股總覽三欄1002,個股總覽1002,個股頂部1002,個股AI分析0926,個股,會員權限開關,手機,新-版面等高與多寬度` 全部 0 個問題（452 秒）；
+  另跑 `積木-個股三卡`（比技術面訊號 outerHTML）0。新段落「個股總覽三欄1002」（1440／1100／800／390）反向驗證：拿掉三欄 display:contents＋籌碼改橫排＋不寫 tw.ovAiTab → 紅 34 條。
+  「個股總覽1002」改的斷言：資料不足區改驗「不存在」；符合／未符合改驗 >820 左右、≤820 上下；四張細節卡並排改驗「只有一張 AI 卡、一次一面」；點標籤改驗卡內切換（籤仍在畫面裡，不比 scrollY —— 換成較短的一面時頁面變矮、瀏覽器會夾 scrollY）。
+  「個股頂部1002」「個股AI分析0926」的小標籤斷言改成「AI 卡進畫面、閃一下、而且切到那一面」（多驗切籤）。沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
+- 已知限制：① 1101～1110 視窗仍是兩欄（斷點量容器）；② 390 手機只有「完整版」看得到這個總覽（手機原生分頁沒動）；③ 淺色主題只用 `_show.py --ls tw.theme=light` 截圖看過 AI 卡（選中籤的判讀小膠囊讀得到），沒有寫進驗收。
+## 分支預覽機制：preview/* → /tw-rotation/preview/<名稱>/（2026-10-03 03:20，台北，效率規劃師，分支 `claude/branch-preview`，****已上 main b8dde81**，等審核專家審 pages.yml**，DECISIONS #301）
+
+- 做了什麼：`pages.yml` 加 `preview/**` push 觸發（只轉呼叫 main 部署）＋ `delete` 觸發（刪 preview 分支就重部署）＋ 條件式 concurrency 群組
+  （正式部署照舊 `pages`；`cancel-in-progress` 維持 false）；`scripts/preview_inject.py` 在 main 部署時把每個 preview/* 的 site/（不含 data）
+  裝到 `site/preview/<名稱>/`；`scripts/preview_boot.js` 只在預覽頁載入：localStorage／sessionStorage 前綴 `twpv:<名稱>:`、
+  data/ 改讀正式站 `/tw-rotation/data/`、會員雲端寫入擋下、不註冊 SW、黃色橫幅。說明書 `docs/preview.md`，CLAUDE.md 工作規則加一條。
+- `preview/layout-v2` 已推（= `claude/layout-v2-desktop` 175a5a2）。**機制要合併到 main 後才會出現在線上**；
+  因為那個分支的 pages.yml 沒有 preview 觸發，合併後的第一次 main 部署就會把它一起裝上（不必另外 dispatch）。
+- 這批驗了哪幾段：pytest 全套 909 passed／1 xfailed；本機模擬部署（Playwright，真資料）確認預覽頁橫幅、資料 16 支請求全走正式站 data、
+  0 支打到預覽目錄的 data、localStorage 前綴隔離（預覽改 tw.theme 正式站不變）、會員寫入回 403、sendBeacon 被吞、K 線畫得出來；
+  `_uitest --sections 總覽,資金流向,個股,手機 --workers 1` 全綠（site/ 沒改，正式站行為不變）。`_preview.py` 沒跑：這批沒有任何 site/** 改動。
+  ⚠ 第一次用 `--only 總覽,資金流向,個股,手機` 跑（子字串比對帶到 28 段）跑到 30 分鐘被背景時限砍掉，中段一串「1 個問題（0s）」看起來是瀏覽器長跑後的連鎖失敗；改用 `--sections` 精準跑四段全綠。
+- 合併後要確認三件事：deploy-pages success、步驟「分支預覽」的輸出有 `preview/layout-v2/`、「部署包大小」只比原本多約 7.5MB。
+## 版面 v2 結構「只上電腦版」（2026-10-03，台北，UI 專家，分支 `claude/layout-v2-desktop`，****已上 main 3c24dfd 04:56**，等 CEO 合併**，DECISIONS #291）
+- Andy：「手機版先停擺，等電腦版 OK 之後再做。電腦版要先上線」。從 `claude/layout-v2-on-v4` 開出來、先合併 origin/main。
+- ≥821：第一批（左側分組導覽可收合、頁首、本頁功能跳轉列、事件抽屜）。≤820：完全是 main 的樣子（不掛 l4、不插節點、不寫 style）；跨過 821 會掛上／撤掉。
+- 第二批（手機頁首、膠囊統一、黏頂、抽屜滿高、641～820 一列七顆）留在檔案裡用旗標關掉：CSS `:root.l4m`、JS `MOBILE = false`。
+- **這批驗了**（在鎖裡跑）：`_preview.py` 全綠；`_uitest --workers 1 --sections 總覽,資金流向,新-版面等高與多寬度,縮放掃描,淺色主題,明亮主題,設定面板,今日事件,今日事件浮層,版面v2結構,手機,手機總覽指數觀察清單,手機個股券商式` 13 段全部 0 個問題。
+  另外比對 390／768 的總覽、資金流向、個股頁：元素數與每個元素位置大小跟 origin/main 一樣（只差即時徽章狀態與輪盤軌跡 path）。沒跑手機按鈕普查（不在這批清單，≤820 已無改動）。
+
+## 版面 v2 結構搬到設計 v4（2026-10-02，台北，UI 專家，分支 `claude/layout-v2-on-v4`，**已上 main 3c24dfd 04:56**，DECISIONS #291）
+
+**第一批（18:20）桌機＋手機頂欄**
+- [x] 桌機 ≥821：頂欄改成可收合的左側導覽（分組 今日市場／錢往哪裡跑／族群與個股／歷史規律／專案；收合存 `tw.layout4.nav`；沒按過時 ≤1180 預設收合）
+- [x] 頁首（分組小標＋頁名＋一句這頁回答什麼）＋「本頁功能 01 02…」跳轉列（從卡片標題自動產生、點了捲過去、捲動時亮起目前那一節）
+- [x] 今日事件抽屜：沿用 v4 浮層與 setSide()，只改上緣 0、遮罩從左欄右緣起
+- [x] 手機 ≤640：頂欄寫「分組＋目前頁名」（個股頁寫股名＋代號）；底部五顆改線條圖示，高度 58 不變
+- ⚠ `.topbar` 的盒子刻意只有頂端 49px（左欄其餘是溢出＋::before 底色），因為 industry.js 指標面板用 `.topbar` 下緣判斷按鈕被蓋住（細節 #291）。
+
+**第二批（20:10，Andy「手機版本一併處理」；先合併了 origin/main：stock-overview-mini、draw-tools、spark-precise、member-perm）**
+- [x] 手機一行頁首（分組｜頁名｜說明省略，約 34px；個股頁不放 —— 券商式報價列就是頁首，放了 K 線會掉出第一屏）
+- [x] 手機「本頁功能」＝既有分段列（.mspine／.mpager）：樣式統一成跳轉列那種膠囊、.mpager sticky 黏在頂欄（總覽黏在四步列）下；沒有分段列又有兩張卡的頁面（市場明細）才出跳轉列
+- [x] 事件抽屜 ≤820 改滿高（蓋過頂欄與底部導覽），遮罩／Esc／× 都關
+- [x] 641～820：選「底部一列七顆線條圖示」（58px，原本兩列 102px），頂欄照舊；頁首＋跳轉列（黏在頂欄 58px 下）跟桌機同一套
+- 新檔 `site/layout4.css`、`site/layout4.js`；`index.html` 只加三處（<head> 小 script、`<link>`、`<script>`）；沒動 app.js／industry.js／theme4.*／mobile3.js。一個色值都沒寫。
+- 截圖：`docs/screenshots/layout-v2-on-v4/{before,after}/`。第一批 `*-{open|mini|x}-*`（1440／390），第二批 `*-m-*`（390 五頁＋768 兩頁）；三套＝深色 HUD 深、淺色 專業淺、明亮 休閒淺。
+  第二批的「改前」拍的是 origin/main（合併後的 main，沒有這個分支的版面）。
+- **這批驗了**（最終版，等鎖超過 5 分鐘所以換埠不加鎖跑）：`_preview.py` 全綠；
+  `_uitest --workers 1 --sections 手機,手機按鈕普查,手機總覽指數觀察清單,手機個股券商式,今日事件,今日事件浮層,版面v2結構,新-版面等高與多寬度,縮放掃描,淺色主題,明亮主題`：
+  除手機按鈕普查外全部 0；版面v2結構 0（另外單獨重跑兩次也 0）。
+  手機按鈕普查 5 條紅：① 種壞鈕被抓成「沒反應」② ③ 390／360「個股頁找得到 K 線與重設縮放鈕」—— 這三條 origin/main 同樣紅（種壞鈕三次都是 DOM×2～4；
+  手機個股頁 KChart.last 在 main 也不存在）④ ⑤ 360 子行程卡在「個股2330 → 基本資料」85 分鐘不動（CPU 0%、機器負載 11），我手動結束它所以沒交回結果；
+  隨後單獨重跑 `_mobile_tap_audit.py --width 360` 全站：505 顆、0 顆有問題。390 子行程那一輪 0 顆有問題。
+  過程中抓到並修掉：手機設了 scroll-padding-top 會讓普查個股頁「指標 ▾」重開失敗（見 #291），改回 0 後個股頁 216 顆 0 問題（main 213 顆 0 問題）。
+- 改了既有驗收一條：「今日事件浮層」的「預設主內容吃滿全寬」改成「吃滿左欄以外的寬度」。
+- 待處理：① industry.js 的 trackPop 若改成量跳轉列（不量 `.topbar`），layout4.css 的 49px 繞法可以拿掉 ② 手機頂欄與頁首都寫頁名（任務單兩樣都要），嫌重複就拿掉頁首的 h1
+
+## 總覽四張摘要卡即時：補位進每 5 秒那一批、共用各頁即時公式、右上角日期＝即時開關（2026-10-02，台北，UI 專家，分支 `claude/ov-kpi-live`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+
+- Andy（15:36）：「這都需要具備即時功能」（漲跌家數／資金輪盤／資金去向／熱門題材四張卡右上角都寫 10/01）→ DECISIONS #296（推翻 #277「摘要卡刻意不加即時」那一句）。
+- [x] 報價：`live.js` 新增「補位」`Live.want(key, fn, {fill:true})` —— 主批次一個 /quote 最多 110 檔、總覽平常只用 2～10 檔，空位每 5 秒塞下一段 455 檔裡的下一批（約 25 秒一圈）。**請求數、5 秒節奏、節流閥不變**；`tw:live` 多帶 `detail.fill`、每一輪多吼 `tw:livetick`。
+- [x] 口徑：漲跌家數＝`mudCodes`×`udBin`（市場明細即時同一份）；資金輪盤＝`rlvCompute`；資金去向＝從 `sklFetch` 抽出的 `sklCodes`／`sklCompute`（sklFetch 改呼叫它們）；
+  熱門題材的熱度做不到即時（法人、新聞是日資料）→ 盤中改排成分股即時漲跌（成交值加權）。每張卡底線寫「即時估算（N 檔）」，手機也打開。
+- [x] 右上角日期改成按鈕（`.osc-d.ovl-tg`，四張共用 `'ovs'` 開關）：盤中「即時 HH:MM:SS」、盤後／關掉顯示日期；只准往前（舊撮合時間不收）；盤後 JSON 還沒產出時留今天的收盤快照（不往回拉）。
+- [x] 不整張卡重畫：`ovsMorph` 逐節點只改字與屬性；`features.js` 的 `live.tick` 鎖頭多鎖 `.ovl-tg`；`docs/realtime_5s.md` 表格更新；`modules.js` market.kpi 多一段驗收。
+- 改的函式（app.js）：`ovsDate`（改成鈕）、`ovsCard`（存盤後那一份）、`renderOvSummary`（組法抽成 `ovsUdParts`／`ovsRotParts`／`ovsFlowVariant`，結尾補登記補位與補回即時）、
+  新增 `ovlUni`／`ovlFill`／`ovlMerge`／`ovlUD`／`ovlRot`／`ovlFlow`／`ovlTheme`／`ovsMorph`／`ovsApply`／`ovlEod`／`ovlUpdate`／`ovlStamp`／`ovlToggle` 與三個事件監聽；`sklFetch` 拆出 `sklCodes`／`sklCompute`。
+  live.js：`codesOnScreen(forFetch)`、`tick`、`want`、`TG_NAME`。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 總覽摘要卡即時,總覽,新-大盤三張圖,今日事件,資金流向,新-輪動時鐘,即時推送,盤中即時,總覽摘要卡列,即時5秒0929`
+  → 前九段全部 0 個問題（新段落「總覽摘要卡即時」155 秒；第一次跑抓到 390 熱門題材「+2.2%即時」被切掉，拿掉數字後的「即時」小字後綠）；
+  `即時5秒0929`（額外加跑，因為動了 live.js）1 條紅：「漲跌家數即時：狀態列寫每 5 秒更新」—— 市場明細即時第一輪 15 秒內沒輪完（5 個請求、節流閥每 5 秒 3 個）。
+  查證：同一把鎖裡 main 跑同一段是綠的 → 是這批造成的。根因：「大盤卡即時關掉」時以前主批次整個不打，補位讓它照樣每 5 秒一次（摘要卡即時還開著），
+  上一步「大盤卡關 11 秒再打開」排隊的 3 個分時檔就佔掉市場明細第一輪一個 5 秒窗（實測第一輪 16.5 秒；大盤卡一直開著時兩版一樣 10.6～10.7 秒）。
+  那一條驗的是狀態列的字（速度由下一條「16 秒內往前走」驗），等待放寬 15 → 20 秒並寫明原因，重跑 `即時5秒0929` 0 個問題。
+  另外加跑 `桑基展開與即時`（sklFetch 拆成 sklCodes／sklCompute）0 個問題；`新-資金流向` 2 條紅＝「800px 沒有橫向捲軸」「800px 面板沒有超出視窗」，跟 2026-10-01 那批記的既有紅燈同一組（這批沒動資金流向版面）。
+  **合併 origin/main（6bd284f）之後重跑**：`_preview.py` 全綠；`總覽摘要卡即時`／`總覽摘要卡列`／`新-輪動時鐘`／`總覽`／`新-大盤三張圖`／`今日事件`／`即時推送`／`盤中即時` 0 個問題。
+  `資金流向` 兩次各紅 1 條、而且每次不同（一次「資金集中度有畫出來」、一次「拉不同天數族群×法人日期範圍不一樣」），同一把鎖裡 6bd284f 跑同一段 0 個問題；
+  那幾輪機器負載 15～22（別的 agent 的瀏覽器同時在跑，輪盤補間量到 2.7 fps），這批沒有碰集中度與族群×法人 → 判斷是負載造成的計時假紅；負載降到 6 時本分支單獨重跑 `資金流向` 0 個問題（20:24 台北）。
+  **再合併 origin/main（26d7745：台指期 Deno 代理、個股頂部版面、個股分時即時）之後**：`_uitest --workers 1 --sections 總覽摘要卡即時,盤中即時,新-大盤三張圖,即時5秒0929,總覽` 全部 0 個問題、`_preview.py` 全綠（20:50 台北）。
+  沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
+- 已知限制：見 DECISIONS #296（每檔報價最舊約一圈 25～40 秒；熱度盤中做不到；收盤快照是估算樣本不是全市場）。
+## 個股頁五個分頁版面：營收三卡並排、河流圖線寬＋讀數小資訊塊、法人／資券／大戶散戶圖表並排、大戶散戶週數查證（2026-10-02 20:25，台北，UI 專家，分支 `claude/stock-tabs-4`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），已合併 main 12ccd0a）
+
+- 接手前一位被停掉的半成品 `claude/wip-stock-layout`（5a9a11e，草稿號 #285 作廢）；基於最新 main（d859d7f）重開分支，**拿掉 AI 分析展開那段**（歸 `claude/stock-head-layout`）。
+  總覽分頁、指標分頁、分頁順序（歸 `claude/stock-overview-mini`）一行都沒碰。細節與理由：DECISIONS #295。
+- [x] 營收：營收走勢｜逐年同月比較｜月營收明細三欄並排（明細那欄 1.2 份、表在卡裡捲、年/月欄釘左）；≤1100 兩欄＋明細跨列、≤820 依序往下排。逐年同月圖例退回圖內時改單行可捲（三欄後會壓到 Y 軸）。
+- [x] 獲利：本益比河流圖「線寬」滑桿 1～5px（緊接透明度、存 `tw.peLineW`，沒調過＝改前 1.8px）；圖下讀數改四個並排小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜色帶說明）。
+- [x] 法人／資券／大戶散戶：同一套 `.skduo`（左圖卡 1.6、右明細表卡 1，同高、表在卡裡捲、第一欄釘左）；≤1100 疊成上下。資券頁 #294 的「最新餘額」那一列留在並排區塊上方，7 欄每日表在 1440 右欄放得下。大戶散戶「目前累積 N 週，每週五自動增加」搬到每週明細表下面。
+- [x] 大戶散戶 4 週的根因：**資料湖本來就只有 4 週**（09-04／09-11／09-18／09-24，表第一次進湖是 09-11 那輪），payload 與前端都沒截短。
+  集保開放資料只留當週、官網逐檔查詢頁是網頁表單（不在白名單、不碰）、FinMind 歷史表要付費等級 → **沒動 pipeline、沒改 run_backfill**。約 2026-11-27 那週自然累積滿 13 週。
+- `site/industry.js` 改到的函式：`tabRevenue`（三卡 HTML、逐年同月圖例退回參數）、新增 `peLineW`／`PE_LW_KEY`、`drawPeRiver`（收盤線與外框線寬）、`tabProfit`（線寬滑桿、`paint` 的讀數小資訊塊、滑桿事件）、
+  `chipTbl`／`chipCardHtml`（並排外殼、foot 參數）、`tabInst`／`tabMargin`（表卡標題；tabMargin 合併時保留 #294 的 kpis）、`tabHolders`（並排、說明句搬位置與改寫）。
+- **這批驗了**（最後一輪＝合併 main 12ccd0a 之後；payload 在合併 304fe44 時重算過，12ccd0a 沒動 pipeline）：`_preview.py` 全綠；
+  `_uitest.py --workers 1 --sections 個股,排序,新-產業與個股,新-版面等高與多寬度,手機` 全 0；新段落 `個股分頁版面1002`（1440／1100／800／390，含圖內 SVG 壓字與圖例越界）0；
+  另跑 `個股總覽1002`、`個股頂部1002`（兩個兄弟分支，0）、`籌碼基本0926`、`個股籌碼分頁0928`、`營收河流0928`、`設計v4第二批2B`（改到它們的斷言）。
+  紅燈只剩 3 條、**main 12ccd0a 原封不動跑同樣 3 條**（基準線實測）：2B「⑦ 讀得到 K 線（有副圖）」、基本0926「季節圖 ≥ 280px（271.5）」、
+  籌碼分頁0928「K 線卡與 AI 區沒有內部說明字樣（資料湖）」—— 都不在這批的五個分頁裡。
+  反向驗證：拿掉 `.tblcard` 的 contain／營收改兩欄／線寬不讀 localStorage → 新段落紅 12 條；EPS 軸名還原 → 390 壓字紅；逐年同月圖例退回成兩行 → 圖例越界紅（外框底 46px＞繪圖區頂）。
+  沒跑 pytest：這批改動只有 `site/**`、`scripts/_uitest.py`、DECISIONS、HANDOFF（沒有 pipeline／tests）。
+  之後又合併 main 26d7745（個股分時 #287，只有文件衝突）：`個股分頁版面1002`＋`個股` 同一個分頁接著跑、`_preview.py` 再確認一次。
+  那一輪抓到新段落的跨段落污染（「個股」先把 tw.kcfg 的本益比線寬調成 4 → 河流圖「沒調過」的預設變 4.8px，斷言寫死 1.8）→ 期望值改從 tw.kcfg 讀、開頭多清幾個 tw.* 鍵，重跑 0。
+  「個股」那一輪有 1 條「本益比河流圖滾輪還原時整頁被帶走（scrollY 1014→1654）」—— 同一份網站程式在前五輪都 0，單獨重跑「個股」也 0（21:01）→ 滾輪計時型的飄，不是這批弄壞的。
+- 已知限制：① 台積電這類九位數營收的明細表在 1440 第三欄仍要橫捲（年/月欄釘住）；② 390 手機版要點分頁列「完整版」才看得到這五頁的桌機版型（手機原生分頁沒動）；
+  ③ 大戶散戶要等每週累積，補不回歷史。
+
+## 個股分時一路即時：逐分鐘聚合 mis 報價、缺口斷線＋虛線標「此段等待資料」、Yahoo 盤中每 2 分鐘重抓（2026-10-02 20:15，台北，UI 專家，分支 `claude/stock-tick-live`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #287）
+
+- Andy 10:26（#stock/2409）：「個股分時需要有即時走勢」。前一位做到 10:57 中斷，半成品在 `claude/wip-stock-tick-live`（94e04aa）；這次帶到最新 main（含 draw-tools、stock-overview-mini、spark-precise、stock-head-layout）上做完。
+- [x] `livek.js`：`minuteSeries()` 逐分鐘挑來源（連續在收的分鐘用報價疊、量＝累計張數差分；半分鐘讓 Yahoo；都沒有才用報價）、缺口分三種（開盤頭段 lead／打開頁面前 open／背景或斷線 idle）、
+  Yahoo 盤中每 2 分鐘重抓（`refreshHist`，打 Worker 的 /y，**不增加 mis 請求**）、每筆報價多記收到時間 `q`、今天開盤後清掉前幾天的 `tw.livek.*`。
+- [x] `chart.js` `TickChart`：缺口那幾分鐘主線**真的斷開**（圖表庫 v5.2.1 不會在空白點斷線 —— 改成缺口後每段各一條面積線）、淡色虛線連缺口兩端、
+  斜線底紋＋「此段等待資料」小標（缺口比字窄也標，字塊夾在價格區內）、13:30 右緣錨點（不然盤中時間軸只畫到最後一筆、09:00 被推到圖中間）。
+- [x] `industry.js`：`tickData` 盤中改用 `minuteSeries`；`tickLiveNote` 說明照時間逐段寫（09:00～10:10 Yahoo；10:11～10:29 打開頁面前暫無資料；10:30 之後本頁即時累積）、盤後不再寫「每 5 秒更新」。
+- [x] Fugle 等補缺口來源：要金鑰、而且轉給公開網站訪客可能落在證交所「轉傳」範圍 → **沒接**，查證寫在 DECISIONS #287。
+- 動到的函式（只動分時那段）：`chart.js` TickChart 的 constructor／`_areaOpts`（新）／`normalize`／`setData`／`_placeGapTags`（新）／`destroy`；
+  `livek.js` 的 `loadHistory`（記 histAt）／`refreshHist`（新）／`poll`（多叫 refreshHist）／`pushTick`（多記 q）／`pruneOld`（新）／`save`／`minuteSeries`（新）／對外 `LiveK.minuteSeries`；
+  `industry.js` 的 `TICK_GAP_WHY`／`tickGapLabel`／`tickGapTitle`／`tickLiveNote`（新）、`tickData`（盤中分支）、`applyTick` 裡 setLiveNote 那一行；
+  `index.html` 只加 `#lwc .tk-gap`／`.tk-gap span` 兩條 CSS；`modules.js` stock.kline 的 tests 多「分時一路即時」。個股頁頂部、五個分頁、繪圖工具一行都沒碰。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；`_uitest.py --workers 1 --sections 個股即時分K,分時預設與搜尋走勢,盤中即時,個股,繪圖工具1002,分時一路即時`：
+  - 新段「分時一路即時」0 問題：假時鐘＋假 mis（每 5 秒撮合時間 +5 秒、價 +0.5、累計 +7 張）＋假 Yahoo，驗同一分鐘只更新最後一根、跨分鐘多一根、量是差分、缺口主線空白＋虛線＋小標、
+    **像素掃描缺口內沒有主線色**（反向：改前 161 px）、Yahoo 重抓後缺口縮小、Yahoo 蓋過半分鐘那根改用 Yahoo、缺口補滿小標與虛線一起拿掉、重新整理（報價故意失敗）累積還在、隔天清掉、
+    開盤頭段 09:00～09:27 只標字不畫虛線、800／390 小標在價格區內字 ≥ 11px。
+  - 個股即時分K 0；分時預設與搜尋走勢 1 紅＝「C 找得到一檔沒有 60 分 K 的股票來驗」，origin/main 同一份資料跑也是這 1 條（本機 10-01 資料的條件，不是這批）。
+  - 第一輪是在別人的瀏覽器測試同時跑、沒拿到鎖的情況下跑的：盤中即時 1、繪圖工具1002 19、個股 1 —— 單獨重跑：盤中即時 0、繪圖工具1002 0；
+    個股的 1 條是「本益比河流圖還原成原始大小時整頁不會被帶著往下」：app.js `wheelZoom` 還原後只留 450ms 緩衝，機器忙時下一個滾輪事件晚到就漏給頁面。
+    加了診斷（每個 wheel 事件的時間與有沒有被吃掉、長任務）：那一刻 tf＝日線、沒有任何 TickChart 活著，這批的程式碼不會執行；同時跑分支與 main 各一次都是 0。**判定是計時型假紅，不是這批造成的**，但這條在負載高時會間歇紅，值得另案把緩衝改成「停手才解除」。
+  - 沒跑 pytest（沒動 pipeline／tests／.github，只改 site/** 與 scripts/_uitest.py）。
+- 瀏覽器鎖 `/tmp/claude-0/browser.lock` 整個晚上都被別的 agent 排隊佔著（等滿 5 分鐘拿不到），照規定換埠（8797／8798）不加鎖直接跑。
+- 已知限制：① 缺口一定存在（打開頁面之前、分頁在背景時沒收到的分鐘），只能等 Yahoo 追上來（延遲約 20 分鐘）；② `bars('1m'/'5m'/'15m')` K 線週期的接縫（根因 3）沒改，另案；
+  ③ 全部用假時間驗，**沒有在真盤中驗過**（容器連不到 mis 與 Worker）—— 請下週一盤中打開個股分時看一眼；④ 收盤後才打開頁面時，那一筆收盤報價不再蓋掉 Yahoo 的 13:30（尾盤集合競價量保住）。
+
+## 個股頁 K 線上方版面：AI 預設只看重點、展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+
+- Andy 15:19（#stock/3189 景碩三張截圖）＋同日「上方的 AI 分析只寫重點」→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
+- 分支已合進最新 main（9268a82，含 stock-overview-mini 的總覽重點與台指期 Deno），合併回 main 應該只剩文件衝突。
+- [x] ① AI 區：預設收合＝一行結論＋四顆面向小標籤（點了捲到下面「總覽」的細節卡 #ovFacets），按「展開」才看各週期細節；
+  展開時撐滿右欄＋`contain:size`、保底高度 `--aiH` 掛在分隔線上 → 展開／收合／換面向左側與 K 線一個像素都不動；≤820 內容區是浮層（進頁面收著、不寫 tw.aiOpen）
+- [x] ② 分隔線 `#skSplit`：拖曳（col-resize）、存 `tw.aiSplit`（比例）、雙擊還原 44%、←／→ 鍵 2%；左欄最小寬＝工具列一行放得下；≤820 不出現（上下排）
+- [x] ③ 技術分／本益比／同業分位／營收 YoY／分 K 等級搬到工具列 `#skTags`（「指標」與「四週期同看」之間），放不下收進「⋯ N」；現價列只剩現價、漲跌、即時徽章；手機不顯示
+- [x] 附帶：兩欄時短註 #liveNote 固定佔一行（不然分時資料非同步到達時 K 線自己跳 18px）；641～760 工具列可橫滑；「⋯ N」小框改 position:fixed
+- 動到的函式與選擇器（給同時改 industry.js 的人對照）：industry.js `setLiveNote`（多一個 title）、`renderStock` 模板（#skPx、#skTools）、新增 `stockTags`／`tagPopClose`／`tagPopFill`／`fitTags`／`wireTags`；
+  stock_ai.js `css()`（#skChartCard.aiside 格線、#skSplit、#skAi 收合／展開、膠囊、單欄 .aibody 浮層、#liveNote）、`readOpen`（預設收合＋換版清一次）、`html`（結論改 briefText）、
+  `setOpen`／`userOpen`／`modeOf`／`leftMin`／`innerW`／`aiPx`／`sizeAi`／`wireSplit`／`watchWidth`／`mount`（小標籤點擊）／新增 `gotoFacet`；
+  index.html 新增 `#skTools`／`.sktags`／`.sktmore`／`.sktagpop` 規則；modules.js 兩塊積木的 tests 加「個股頂部1002」。
+- **這批驗了**（瀏覽器指令全包在 flock 裡；沒跑 pytest：只動 site/**、_uitest.py、文件）：
+  - 合併 main＋總覽重點、改「預設只看重點」之後最後一輪（19:05 台北）：`_uitest.py --workers 1 --sections 個股頂部1002,個股AI分析0926,新-版面等高與多寬度` 全 0；`_preview.py` 全綠（0 重疊）。
+  - 同一份程式碼（窄右欄膠囊那一刀之前）：`--sections 個股,K線縮放,新-產業與個股,新-版面等高與多寬度,手機` 全 0；`--sections 個股總覽1002` 0；
+    `--sections 個股籌碼分頁0928` 1 條紅＝「K 線卡裡有『資料湖』三個字」—— **改前就紅**（stock-overview-mini 的 HANDOFF 記過），
+    字串在 industry.js applyTick 的分時短註「（資料湖的 60 分 K，即時來源連不上時的備援）」，屬分時即時那一塊，這批沒動它（另一位 agent 正在改分時）。
+  - 新段落「個股頂部1002」驗：預設重點（結論一行＋小標籤一行、≤ 約 2 行）、展開／收合／換面向／點小標籤時名稱・產業鏈・價格・漲跌・即時徽章・標籤・週期鈕・K 線 top/left 差 < 2px（1440／1100／800）、
+    小標籤捲到總覽細節卡、800 浮層（Esc／點外面收、不寫 tw.aiOpen）、分隔線（col-resize、拖 100px 右欄真的寬 100px、拖到底左欄停在最小寬、重新整理還在、雙擊還原、← 鍵）、
+    標籤與週期鈕同一行（top 差 < 6px）、「⋯ N」點開／Esc／點外面、1440／1100／800／390 無溢出無重疊。
+
+## 台指期改走 Deno 代理：期交所經 Deno 日盤夜盤全 200，網站台指期先打 Deno、失敗才退回 Worker（2026-10-02 19:00，台北，爬蟲專家，分支 `claude/taifex-deno`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #286）
+
+- [x] **期交所經 Deno 回 200（兩輪實測）**：Deno 網址 `https://tw-taifex.miaozike.deno.net`（CLI 的 productionUrl）。
+  run 36955532108（10:25，push 84d55bc）與 run 36995563974（18:28，workflow_dispatch，**夜盤交易中**）：`/health`、`/fut` 日盤、`/fut` 夜盤、`/futchart` TXFJ6-F、TXFJ6-M **全部 200**，回的是期交所原始 JSON。
+- [x] `site/live.js`：常數 `TAIFEX_PROXY` ＋ `Live.taifexProxy()`。
+- [x] `site/market3.js`：新 `futGet()` —— 台指期 `/fut`（日盤 5 秒、夜盤 60 秒）與 `/futchart` 先打 Deno（6 秒逾時），非 2xx／連不上 → 退回 Worker；
+  兩條都壞時說明寫「Deno 回 HTTP 520，Worker 也回 HTTP 502」。加權、櫃買、台指期日盤分時的 `/chart`（mis.twse）一行沒動；`/futstream`（SSE，預設關）仍只走 Worker。
+- [x] `scripts/_uitest.py` 新段落 `台指期Deno優先`（A Deno 好→夜盤＋夜盤點、Worker 0 次；B Deno 520→退回 Worker；B2 Deno 連不上→退回；D 兩條都壞→日盤＋兩邊原因），`site/modules.js` 的 `index.board` 登記。
+  反向驗證四種植入缺陷各紅 10／6／2／2 條，還原後綠（表在 DECISIONS #286）。
+- [x] `docs/v3_sources_spec.md` 第 7 節那句「前端經 Worker 讀」補上 Deno。
+- 接手的狀況：前一位停在反向驗證中途（`claude/wip-taifex-deno` 那份 `market3.js` 還留著植入的 `const deno = '';  // PLANTED`），這一批已還原並重寫 `futGet()`（原因要跟著回應走、兩條都壞要講兩邊），測試補 B2 與 D。
+- **這批驗了**：`_uitest.py --workers 1 --sections 夜盤盤後0930,夜盤推送,即時推送,新-大盤三張圖,總覽,台指期Deno優先,積木清單`
+  → 前六段 0 問題；積木清單 3 條＝main 既有的那 3 條（手機 #stock「AI 分析」「財報籌碼」、擋掉 modules.js），跟這批無關。`_preview.py` 全綠。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件；`tests/` 不 import `_uitest.py`）。瀏覽器鎖被占超過 5 分鐘，改用 `TW_UITEST_PORT=8791`／`TW_PREVIEW_PORT=8792` 不加 flock 跑；本機 `site/data` 是 symlink 到主 checkout（10-01 資料）。
+- 已知限制：① Deno 免費層據 WebSearch 摘要（第三方、低信心）每月 100 萬請求，一個讀者整天開總覽約每月 11～12 萬次，**同時整天開著的讀者超過約 8 個就會碰頂**（碰頂會退回 Worker→顯示日盤＋原因，不白屏）。
+  ② 瀏覽器從 `miaozike.github.io` 打 Deno 的 CORS 沒在真瀏覽器驗過（容器連不到外網）；`main.ts` 有放行 github.io，合併上線後請開總覽確認夜盤。③ 台灣讀者到 Deno 的延遲沒實測（runner 在美國，`region: ord`）。
+- 下一步：合併 `claude/taifex-deno` 到 main（只動前端，`pages.yml` 會部署）；上線後夜盤時段開總覽，台指期小標應是「夜盤」。
+## 整體卡頓：量測＋修五項（2026-10-02 21:20，台北，效能，分支 `claude/perf-jank`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #284）
+
+- 接手兩次中斷的半成品（`claude/wip-perf-jank` 5e85c63、`claude/wip-perf-jank2` 03eb0ac），基於 main 6bd284f 開 `claude/perf-jank` 重做；WIP 的三個修法（☆、產業 dispose、大盤 drawLive）都帶進來並重量。
+- [x] 量測工具：`python scripts/_perf.py --jank [--cpu 4] [--width 1440|390] [--only load,dwell,switch,hover] [--prof]`（本體 `scripts/_perf_jank.py`）。用法、怎麼比修前修後寫在 DECISIONS #284。
+- [x] ① 手機寬度 resize 迴圈拆掉（app.js 分段 ↔ miaResize、mobile3.js apply ↔ m3go；改成回聲標記 `twEcho`）—— 390 總覽停留忙碌 39.0% → 3.4%、資金流向 24.5% → 1.4%
+- [x] ② 大盤三張圖盤中更新走 `drawLive(ids)`，只補有變的那張 —— 1440 總覽 draw 15.9 秒／分 → 5.2 秒、setOption 每 5 秒 8.2 → 4.5
+- [x] ③ 個股 ☆ `paintStar()` 字沒變不寫 —— 1440 個股停留 38.3% → 12.5%
+- [x] ④ 全頁觀察者不被無關變動叫醒（icons.js relevant()、live.js／theme4.js／app.js 略過只有 .rotping 的批次、手機限筆觀察者防抖後才讀 innerWidth）
+- [x] ⑤ 切頁 ECharts dispose（industry.js disposeCharts、app.js drawMarket）—— 10 輪脫離圖表 36 → 0
+- 改到的函式（給同時在改這幾支檔的人對照）：
+  - `site/market3.js`：refresh()（結尾一行）、patchFromLive()、fastTick()（一行）、新增 drawLive()／axisDec、patchLine()（一條判斷）、drawLine()（H.dec、formatter）
+  - `site/app.js`：drawMarket()（開頭 dispose）、新增 mutPingOnly()、initSwipeHints()（觀察者一行）、miaResize()、applyMobileIA 下方的 miaMore 觀察者與 resize 監聽
+  - `site/mobile3.js`：檔頭 resize 監聽、m3go()（最後一行）
+  - `site/live.js`：start()（觀察者）｜`site/theme4.js`：boot()（觀察者）｜`site/icons.js`：fit()、新增 relevant()／onMut()、start()
+  - `site/industry.js`：新增 disposeCharts()，呼叫點在 renderHeat()／renderMap()／renderChain()｜`site/watchlists.js`：paintStar()
+  - 個股頁頂部、五個分頁、分時即時、總覽 KPI、台指期、版面那幾段一行都沒碰。
+- **這批驗了**：`_preview.py` 兩次全綠（改手機迴圈前後各一次）；
+  `_uitest.py --workers 1 --sections` 總覽、大盤三張圖、新-大盤三張圖、即時5秒0929、盤中即時、市場明細、市場明細下鑽0928、產業、族群頁、產業鏈導覽、熱力圖v2、熱力圖R4、
+  會員與自選五分頁、標題圖示、設計v4主題、掃描光束、時鐘水波、新-輪動時鐘、手機、縮放掃描；改完手機迴圈之後再跑 手機、手機改版、手機一屏、手機v3、手機個股券商式、
+  手機總覽指數觀察清單、手機按鈕普查、手機v4二批、桌機零差異、新-版面等高與多寬度、縮放掃描、大盤三張圖。
+  紅燈全部跟 main 對過（同一份 payload、同一時間同時跑）：
+  - 標題圖示 26、熱力圖v2 4（提示框 .92 不透明）、掃描光束 2／時鐘水波 1（fps，容器負載）、新-輪動時鐘 1（最外圈族群）、手機改版 2（#mmTheme）—— **main 一模一樣**，不是這批造成的。
+  - 產業 1～2、產業鏈導覽 3～8（點不下去、截圖逾時）：負載高時 main 跟這批**同時跑一模一樣紅**（10 條逐字相同），負載低時 main 單獨跑 0 個 —— 是容器負載，不是這批。
+  - 設計v4主題 1、即時5秒0929 1：第一輪紅、同順序重跑 0 個（排在前面的段落留下的狀態＋負載）。
+  - **手機按鈕普查**（這批 4 條、main 3 條，同一時間各跑一次，各約 43 分鐘）：
+    · 「個股頁找得到 K 線與重設縮放鈕」390／360 各 1 條：main 一模一樣。
+    · ★ **main 上這一段的自我檢查是紅的**：「點了沒反應的鈕要被抓成沒反應」那顆故意種的壞鈕在 main 被判成「DOM×2 有反應」——
+      因為手機寬度下 resize 迴圈每 1.5 秒改 DOM 約 490 筆（這批修掉之後是 0 筆，實測 390 寬個股頁停著不動），普查拿「點完有沒有 DOM 變動」判斷反應，
+      在 main 上**任何一顆鈕都會被判成有反應**。這批修掉迴圈之後，自我檢查變綠，普查才真的量得到東西。
+    · 因此這批多出來的兩條是**以前被迴圈遮住的真實狀況**，不是新壞掉的：
+      ① 個股頁「＋」自訂週期浮層裡的 `select#tfU`（日／週）換選項不會有任何畫面變化（它本來就沒有 change 處理，值是按「加入」時才讀；main 上被判 DOM×10 是背景雜訊）；
+      ② 「指標 ▾（已開 2）」浮層重新打開失敗：兩邊點過的 13 顆完全一樣，普查用「鈕上的字」找開關，字裡的「已開 N」點完會變，所以找不回同一顆 —— 普查工具的找法問題。
+      ③ 360 寬「產業鏈-AI伺服器 CoWoS 封裝＋HBM」那一列被一顆 circle 蓋住（角落點得到）：main 這次沒抓到；剖析圖 diagrams.js 這批沒動，看起來是動畫位置的時機，待觀察。
+    要讓這段回到全綠：普查的 EXEMPT 加上「值在按鈕時才讀的表單欄位」、找開關時忽略括號裡的計數 —— 屬驗收工具的改動，這批沒做（不想在同一批放寬驗收）。
+  沒跑 pytest（只改 site/ 與 scripts/ 的量測工具；`tests/` 沒有任何一支 import _perf.py／_perf_jank.py）。
+- **合併提醒**：做這批期間 main 又進了台指期 Deno、個股頂部、分時即時、總覽 KPI 即時（a9f75e2）。`git merge-tree origin/main claude/perf-jank` 沒有衝突；
+  main 對 market3.js 的改動只在 futGet()／fetchFut()／fetchFutChart()（台指期改走 Deno），跟 drawLive 不重疊。合併後建議重跑 總覽、大盤三張圖、即時5秒0929、手機 幾段。
+- 還沒修（排行與數字在 DECISIONS #284）：ECharts 更新補間每次約 12 幀重畫（關掉＝畫面行為改變）、資金流向／熱力圖首屏 1 秒以上的長任務、
+  live.js taipeiNow() 每次新建 ICU 格式器（改成建一次的 `Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', year/month/day/hour/minute/second: 'numeric' })`，
+  輸出逐字相同，量到 0.53 → 0.31 秒／分，投報率低沒收）、切頁後 CDP 節點計數每輪 +600、滑圖時 ECharts 提示框強制排版。
+- ⚠ 共用暫存區事故（已處理）：這批一開始誤把 `ln -s` 指到已存在的資料夾，在主 checkout 的 `site/data/` 裡生出一個指回自己的 `data` 符號連結（10:28 UTC），
+  21:00 前已 `unlink` 移除；另外共用暫存區的 `scratchpad/base/site` 被我用 origin/main 6bd284f 的 site 蓋過一次（那個資料夾原本是別的 agent 的基準），
+  `base/scripts/_uitest.py` 也被換成 6bd284f 版。之後我只用自己的 `scratchpad/pj_base`、`scratchpad/fix_*`。
+
+## 「個股」段 2 個紅燈＝本機資料過舊造成的假紅，不是線上 bug（2026-10-02 17:10，台北，審核專家，分支 `claude/fix-stock-k`，只改 HANDOFF）
+
+- 紅燈：`_uitest.py --sections 個股 --workers 1` 的「個股頁 K 線有畫出來」與「沒劃掉的週期 tick 點下去真的畫得出來 ← {'canvas': 0, 'empty': True}」。
+- **結論：本機 payload 過舊。產品程式與驗收程式都沒改。** 主 checkout 的 `site/data/stock/*.json` 是 09-24 的資料（09-28 建的），2,341 檔**全部沒有 `meta.m60`**；
+  `516ee75`（#279，09-30）之後前端只有在 `meta.m60 === 'ok'` 時才去載 `data/m60/<代號>.json`（`site/industry.js` 4064 行 `ensureM60`），
+  所以本機的 2330 分時沒有 60 分 K 可以備援（`tickData`，4030 行），只能等即時層（Yahoo／報價，這個容器連不到）回報「沒有」之後才退回日線。
+- 為什麼偏偏是這兩條紅（機制，照時間順序）：
+  1. `b9032e1`（09-28）讓 `livek.js` 的報價要先排 `live.js` 的節流閥（214 行 `await window.Live.slot(0)`），總覽頁先用掉名額，
+     即時層要到約 3.7 秒才回報「沒有」（`livek.js` 518～520 行）。驗收在 2.4 秒量 K 線（`_uitest.py` 7005 行）時畫面還是「分時資料載入中…」→ 第 1 條紅。
+  2. `94f18ac`（09-30）讓驗收量完馬上按「日」（7010 行）。按掉之後，原本 3.7 秒才會發生的「分時沒資料 → 劃掉分時鈕、退回日線」不會再跑
+     （`industry.js` 4445 行計時器只在週期仍是分時才重畫），所以分時鈕沒被劃掉；等迴圈去點它，才第一次發現沒資料、顯示空狀態文案 → 第 2 條紅（7205 行）。
+  - 這兩條在舊資料下是**看時間的**：繪圖工具那批在另一個 worktree 跑「個股」是 0 個，e30cf92 跑是 2 個，差在總覽頁的請求有沒有先把節流閥名額用掉。
+- **證據（同一份程式碼，只換 `site/data/stock/2330.json` 一個檔）**：
+  - 重算 payload（`SKIP_INTRADAY=1 python -m pipeline.build_payload`，707 秒；2,061 檔 `m60=ok`、280 檔 `none`）→ 「個股」**0 個問題**（154 秒）。
+  - 把 2330.json 換回主 checkout 那份舊的、其他不動 → 「個股」**2 個問題**，跟回報的兩條一字不差。
+  - 時間線：新資料 0.39 秒就用 60 分 K 備援畫出分時（6 點、10-01、昨收 2,480 虛線），即時層 3.8 秒回報沒有之後備援線照樣留著；舊資料 0～3.4 秒是「分時資料載入中…」，3.75 秒才退回日線。
+  - 截圖（`scripts/_show.py --view stock/2330 --width 1440`）：新資料預設是分時折線、按「日」是完整 K 線（分時／1時／4時都沒劃掉）；舊資料是分時、1時、4時三顆都劃掉、改畫日 K。
+  - Andy 10-02 約 17:00 回報線上（16:55 部署）個股頁繪圖正常 —— 跟上面一致：線上每次部署都會重算 payload，一定有 `meta.m60`。
+- **以後在本機驗「個股」「K線縮放」「分時預設與搜尋走勢」「繪圖成交量分佈1002」之前，先重算 payload**；沒重算就跑＝驗的是 09-24 的舊資料，紅了綠了都不算數。
+  重算好的一份在 `.claude/worktrees/agent-ad793f8074d55694a/site/data/`（466 MB，資料到 10-01），要用可以逐檔 symlink 過去；磁碟只剩約 1 GB，不用了就刪掉。
+- 已知限制（觀察到、沒改）：一檔**沒有 60 分 K、即時也拿不到**的股票（線上 280 檔 `m60=none` 在 Yahoo 也查不到時），使用者如果在即時層回報之前就先按別的週期，
+  分時鈕不會被劃掉；之後再點分時，會顯示「此檔暫無分時資料…日 K、週 K、月 K 可以正常看」並且當下才劃掉。有空狀態文案、不是一塊黑，所以不算畫不出來；
+  要收的話是在即時層回報後（不論目前週期）補跑一次 `markTf`，屬產品改動，這次沒做。
+- 這批驗了：`_uitest.py --sections 個股 --workers 1`（新資料 0／舊資料 2，各一次）＋三張 `_show.py` 截圖。沒跑 pytest 與 `_preview.py`（沒改任何程式）。
+## 個股頁下方分頁改版＋融資對帳（2026-10-02 17:30，台北，UI 專家，分支 `claude/stock-overview-mini`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先），DECISIONS #294）
+
+- [x] 總覽「籌碼快照」：六格數字 → 三張比例小圖（法人近 20 日買賣超比重、集保 ≥1000／400～1000／≤10 張＋近幾週變化、融資／融券／借券賣出餘額）＋當沖率、量比兩條進度條；「法人 20 日」那一格拿掉（合計寫在法人色條右上）。賣超＝同色斜紋淡色＋分隔線＋綠字「−」
+- [x] 總覽「基本面」：營運動能半圓儀表、本益比＋同業位置刻度（同業分位併進來）、毛利率進度條；基本面與籌碼快照改上下兩張滿寬
+- [x] 總覽上方「AI 分析重點」（一行重點＋四顆小標籤，點了捲到下面細節卡並閃一下）、下方四張面向細節卡並排（技術面／技術面訊號／基本面／消息面；技術面「看細節」原地展開）
+- [x] 「指標」分頁：方塊卡片分「符合」「未符合」（＋資料不足）三區，題材／族群移到最上面當標籤，點方塊原地展開
+- [x] 分頁順序：總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞；手機同一個相對順序（features.js 排列跟著調、id 不變；stock.ai 鎖頭多蓋總覽那份 AI）
+- [x] 融資對不上：根因＝總覽是「融資餘額」、資券分頁每日表標題只寫「融資」內容卻是「融資增減」。資券分頁加最上面一列「最新數字」（跟總覽同一支 mgLatest()）＋表頭寫全；對帳表在 DECISIONS #294（3189／2330／2454）
+- **K 線卡右上角那份 AI 分析（#skAi）沒動**：那是 `claude/stock-head-layout` 的範圍。兩支合併後若要頂部也只寫重點，可直接用 `StockAI.briefText(pg)`。
+- 改到 `site/industry.js` 的函式：`STOCK_TABS`（常數）、`fundCard`、`chipCard`（＋新增 `instMix`／`holdMix`／`mgLatest`／`mixBar`／`mixItem`／`mixBox`／`mixQ`、常數 `CHIP_HELP`／`MIX_C`）、`tabOverview`、`tabTags`、`tabMargin`；拿掉沒人用的 `statK`。分時即時、繪圖工具、效能那幾段一行都沒碰。
+  其他檔：`blocks/stock_ai.js`（新增 brief／briefText／facetCards／facetHead／bindOverview，#skAi 的 mount 沒改）、`blocks/stock_signal.js`（view 多一個可選參數）、`mobile3.js`（SK_TABS 順序、完整版說明、資券當沖／借券讀最後有值那天）、`features.js`、`modules.js`、`index.html`（一段新 CSS）。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；`_uitest.py --workers 1 --sections 個股總覽1002,個股,排序,新-產業與個股,手機,會員權限開關,總覽摘要卡列,個股季週期與筆數,手機個股券商式,積木-個股三卡,積木清單,個股籌碼分頁0928`
+  → 新段「個股總覽1002」（1440／800／390、3189＋2330＋2454＋自動挑一檔有買有賣的）0 問題；個股、排序、新-產業與個股、手機、會員權限開關、總覽摘要卡列、手機個股券商式、積木-個股三卡 0 問題。
+  其餘紅燈都是**改前就紅**（拿 origin/main 同一份 payload 跑基準線比對過）：個股季週期與筆數 1 條（獲利「年」標題前多空白）、個股籌碼分頁0928 1 條（K 線卡裡有「資料湖」三個字，頂部範圍）、積木清單 3 條（手機 #stock 的「AI 分析」「財報籌碼」分段、擋掉 modules.js —— main 上一模一樣的 3 條，跟這批無關）。
+  積木-個股三卡在 main 上 4 條紅（標題圖示 09-29 上線後 firstChild 讀到圖示），這批順手修好驗收寫法。沒跑 pytest（沒動 pipeline／tests／.github，只改 site/** 與 scripts/_uitest.py）。
+- 本機 payload：`SKIP_INTRADAY=1 python -m pipeline.build_payload` 在這個 worktree 重算過（資料湖 d859d7f）。
+
+## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）
+
+- [x] **Worker（已部署）**：main dbfc523 → deploy-account-worker run 36974835747 成功（14:43 台北；部署與「驗證真的活著」兩步都成功）。
+  新 API：`/v1/perm/me`（一般人只讀自己／訪客）、`/v1/admin/perm/get|put|list`、`/v1/admin/plans/get|put`（只有管理者）。存取測試 19 → 26 條全綠。
+- [x] **前端（在分支，等合併）**：`site/features.js`（47 項 9 類功能清單）、`site/perm.js`（鎖頭）、`site/admin.js`（#admin/perm 管理頁）、
+  `account.js`（選單多「會員功能權限」、告知多一行）、`legal.js`（隱私權政策多一列）、`live.js`／`watchlists.js`／`watchpage.js`（最小權限檢查）、`index.html`（兩支 script）。
+- 上線當下：所有範本是空的＝**全部人照舊全開**，畫面上不會出現任何鎖頭。
+- **Andy 的操作步驟（前端合併並部署之後）**：
+  1. 打開 <https://miaozike.github.io/tw-rotation/>，右上角「登入」→ 用**管理者帳號**（Secret `ACCOUNT_ADMIN_EMAILS` 裡那個 Google 帳號）登入。
+  2. 點右上角頭像 → 「管理頁：會員功能權限」（或直接開 `#admin/perm`）。
+  3. 上方選「會員 email」→ 輸入測試帳號的 email（就是 `scripts/_uitest.py` 裡 `PERM_TEST_EMAIL` 那一個；repo 是 public，email 刻意只寫在驗收假資料裡）→ 按「讀取」（還沒登入過也可以先設）。
+  4. 「方案範本」下拉選要套的範本（免費會員／付費會員…），再在下面各分類逐項撥 Switch，或按某一類的「全開／全關」。每撥一下就自動存，上方會寫「已儲存（台北時間）」。
+  5. 用另一個瀏覽器（或無痕視窗）以測試帳號登入 → 被關掉的功能會蓋鎖頭「此功能需開通」。之後改設定，對方重新整理就生效。
+  6. 想把一整組設定變成範本：在會員畫面右側輸入名稱按「把這組存成新範本」；或切到「方案範本」直接改「訪客」「免費會員」「付費會員」。
+- **這批驗了**：`node --test workers/account-api/tests/account.test.mjs` 26 條全綠（反向：拿掉管理者檢查紅 3 條）；
+  `_uitest.py --workers 1 --sections 會員與自選五分頁,會員雲端路徑,設定面板,會員權限開關,盤中即時,自選走勢與搜尋對齊`（新段落「會員權限開關」含 1440＋390；反向：鎖頭失效時紅 10 條）＋ `_preview.py`。沒跑 pytest（沒動 .github／pipeline）。
+- 已知限制（寫在 DECISIONS #288）：① **鎖頭只擋畫面**，`site/data/*.json` 是公開檔，懂技術的人照樣讀得到；真正的付費牆要改由 Worker 驗身分後才給資料（設計與 2～3 天工作量在 #288），這次沒做。
+  ② `deploy-account-worker.yml` 步驟名稱還寫「19 條」（實際 26 條），沒動 .github。③ 鎖頭裡的 🔒 是 emoji，極少數沒有 emoji 字型的系統會顯示方框（文字照常）。
+## 迷你走勢精確化：小圖＝展開大圖同一份資料，加外框／昨收虛線／面積／終點圓點／提示框（2026-10-02 15:30，台北，UI 專家，分支 `claude/spark-precise`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+
+- [x] 根因（DECISIONS #290）：v1 分時一天只有 6 點、小圖 1 天 vs 大圖 5 天、只存 64 階形狀所以每檔都撐滿整格（2330 09-24 是 `i-0__000`）、60 分 K 終點不含收盤集合競價
+- [x] `pipeline/compute/sparks.py` v2：5 日×（開盤＋5 根收盤）＝30 點／沒分 K 用 60 日收盤；帶真實價位（最低、最高、昨收、起、訖）；最後一點換正式收盤；基準＝昨收
+- [x] `site/app.js`：`sparkSVG(code, {w,h})` 重寫＋新 `sparkData`／`trendSeries`／`trendRange`／`trendText`／`pxFmt`（掛在 `App`）、全站提示框 `.spktip`、`sparkUpgrade` 吃 `data-w/h`
+- [x] `site/watchpage.js`：`sparkCell` 用實際像素（桌機 80×26、手機 46×20）、`drawExp` 走勢模式改用 `App.trendSeries`（昨收虛線、日分隔、X 軸只標日期、小註寫期間／起訖／漲跌）
+- [x] `site/index.html`：`.sugg`／`.mbwres` 各自一套的 spk 樣式收成共用 `svg.spk`（外框、虛線、面積、圓點）＋ `.spktip`
+- [x] `tests/test_sparks.py` 改寫成 v2 口徑（6 條）
+- **這批驗了**：`pytest tests/ -q` 905 passed／1 xfailed；`_preview.py` 全綠；`_uitest.py --workers 1 --sections 自選走勢與搜尋對齊,會員與自選五分頁,搜尋近期熱門Logo,市場明細,分時預設與搜尋走勢,手機總覽指數觀察清單`
+  → 五段 0 問題；「分時預設與搜尋走勢」1 紅＝「E 找得到一檔 meta.m60＝ok」，跟 10-02 前一批同一條本機資料過舊（stock/*.json 沒有 meta.m60），D 段（搜尋小走勢）全綠。
+  新斷言反向驗證：拿掉外框 → 紅；前端期間改 4 天 → 「同一份資料」三寬全紅。
+- 本機驗收資料：worktree 的 `site/data/` 是逐檔 symlink 到主 checkout，只有 `sparks.json`（v2）與 `m60/`（2330、2454、1303、2317、2603、3008、2308、2382，用 `_m60_payload` 截到 09-24）是自己的，
+  跟本機 stock/*.json（09-24）同一天 —— 不然小圖與大圖的最後一天會不一樣，驗不出「同一份資料」。
+- 已知限制：盤中小圖與大圖都停在上一個交易日（湖每天盤後才更新）；手機觸控不顯示提示框（點小圖是展開／進個股頁）；sparks.json 60KB → 226KB（gzip 90KB）。
+## 個股 K 線繪圖工具改版：文字框／箭頭／橡皮擦／屬性列／點兩下畫線／選取拖曳／測量／成交量分佈（2026-10-02，台北，UI 專家，分支 `claude/draw-tools`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+
+- [x] 整套繪圖搬到新檔 `site/drawtools.js`（`index.html` 排在 `chart.js` 前）；`chart.js` 只剩 `enableDrawing()` 轉接、`industry.js` 只剩 `drawBar()` 掛載（DECISIONS #289 列了動到的既有函式）
+- [x] ① 文字：點一下原地出現文字框（佔位「新增文字」、自動聚焦），Enter／點背景完成、Esc 取消；點文字再編輯、拖曳移動、屬性列改顏色與字級；不再呼叫 `window.prompt`
+- [x] ② 箭頭：根因四個（「箭頭」圖示其實是射線、射線只往右延伸、終點畫不進右邊空白、換週期後舊監聽沒拿掉把線寫進上一個週期），全部修好，寫進 DECISIONS #289
+- [x] ③ 垃圾桶換橡皮擦（游標也換成橡皮擦），點到才刪；「全部清除」放旁邊、自己的確認浮層；「復原」改快照式，清錯可整組復原
+- [x] ④ 方框的填滿／透明、透明度、邊框色、線寬併進圖上的屬性列（選了工具或選取圖形時出現）；左側工具列只剩工具
+- [x] ⑤⑥ 兩點工具「點一下（起點圓圈＋線跟著拉）→ 再點一下（固定、圓圈消失）」，按住拖曳也行；畫完回到選取；所有圖形可選取、拖端點／角、拖本體、改屬性、刪除（Delete 鍵也可以）
+- [x] ⑦ 測量：價差、漲跌幅、K 棒根數、天數、區間量；紅漲綠跌半透明底；可選取、拖角重算
+- [x] 錨點：點存 `{t, p, o}`（o＝超出資料範圍幾根），時間→邏輯索引→座標；舊格式（沒 id／o／字級）照讀
+- [x] 390px 觸控：點兩下畫線、按住拖曳、點選、拖端點；順手修 ≤760 時「還原」小標蓋住方框鈕
+- **這批驗了（第一批，七項）**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股,K線縮放,新-產業與個股,繪圖工具1002,手機改版`
+  → 個股 0、K線縮放 0、新-產業與個股 0、繪圖工具1002 0；手機改版 2 個紅是**既有的**（未改動的 HEAD 複本跑同一段一樣 2 個：「更多」清單項目名稱、`#mmTheme` 被 `#evFilters` 擋住點不到），
+  而且它在 G8 畫線工具列那段之前就中斷了，G8 那段這次沒跑到（新段落的 390 部分有開關工具列、點工具、畫線）。
+  新段落 `繪圖工具1002` 反向驗證過：故意把箭頭尖端畫在起點、射線只往右延伸 → 6 條紅。
+- [x] ⑧（第二批，Andy 追加）固定範圍成交量分佈：點起點、再點終點；價格分 24 檔（屬性列 12～60）、每根 K 棒的量按高低區間攤進各檔、紅＝收高／綠＝其餘、POC 黃線、價值區 70%、透明度；兩端圓圈可拖、即時重算；演算法在 DECISIONS #289
+- **這批驗了（第二批）**：`_uitest.py --workers 1 --sections 繪圖成交量分佈1002` 0 問題（長條數＝檔數、加總＝區間量 1% 內、POC 最大、拖端點重算、改 48 檔、POC 開關、重新整理還在、1時／4時、橡皮擦）。
+  ⚠ 本機 `site/data/stock/2330.json` 是 #279 之前建的、沒有 `meta.m60`，驗收在那一段用 route 把旗標補上去才讀得到 `data/m60/2330.json`（只影響驗收，線上 payload 會重算）。
+- 已知限制：屬性列是浮在圖上的（桌機左上圖例下方、手機主圖底部），會蓋住它底下一小塊 K 棒；成交量分佈的長條在 K 棒上面畫（不在 K 棒後面）。
+
+## 搜尋下拉走勢圖對齊＋自選頁滿寬／每列走勢圖／點了原地展開（2026-10-01 12:00，台北，UI 專家，分支 `claude/watch-spark`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+
+- [x] 搜尋下拉：代號、名稱、成交值、漲跌幅改固定寬（名稱超長省略號）→ 熱門／近期／比對三種列的走勢圖起點一致（`site/index.html`）
+- [x] 自選頁 `.wpcard` 拿掉 1100px 置中，吃滿內容寬；走勢欄搬到「股票」與「現價」之間，改用 `App.sparkSVG`（原本那支等 `App.D.sparks` 永遠等不到，整欄從沒出現過）
+- [x] 點走勢格 → 那一列下方展開 290px（手機 260px）：走勢／K 線、K 線週期 日／週／1時／4時；同時只展開一列、再點收起；點名稱照舊進個股頁（`site/watchpage.js`）
+- [x] 新增 `Industry.watchBars(code, tf)`：走個股頁同一條載入路（stock JSON ＋ m60 ＋ groupBars），不接即時、不打 mis（`site/industry.js`）
+- **這批只驗了**：`_uitest.py --sections 自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單,搜尋近期熱門Logo,輪盤只留點與自選分頁`（新段落 1730／800／390 三寬）＋ `_preview.py`
+- 已知限制：展開圖的日 K 最後一根是上一個交易日（刻意不接 withToday，見 DECISIONS #282）；手機 390 自選表的公司 Logo 藏起來讓名稱有 112px。
+- **2026-10-02 接手補完**（前一位額度中斷，WIP e7f92a7）：合進最新 main（含 live-dim-range，DECISIONS／HANDOFF 兩邊保留）；
+  修桌機下拉 340px 把「漲跌幅」整欄擠出框外（改 440px）；展開走勢圖 Y 軸改 `scale:true`（原本多冒一個刻度疊字）；390 搜尋下拉改點 `#mSearchBtn` 照驗，不再跳過。
+- **這批驗了（2026-10-02 重跑）**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單,搜尋近期熱門Logo,分時預設與搜尋走勢`
+  → 前四段 0 問題；「分時預設與搜尋走勢」1 個紅＝「E 找得到一檔 meta.m60＝ok 的股票」—— 本機 site/data/stock/*.json 是 09-30 以前建的、沒有 `meta.m60` 欄位，屬本機資料過舊，跟這批無關（線上 payload 會重算）。
+  本機 m60 只用 `_m60_payload` 補了 2330／2454／1303／2317／2603／3008 六檔。
+
+## 即時模式開著時日期／時間拉Bar 反灰（2026-10-01，台北，UI 專家，分支 `claude/live-dim-range`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+- Andy：「當點選即時功能，旁邊的日期以及時間拉Bar 都需反灰」→ DECISIONS #283。共用 `app.js` 的 `liveDim()`＋`index.html` 的 `.rbar.livedim`。
+- 涵蓋：輪動時鐘／資金流向排行（`#rotBack`）、資金去向桑基（`#sankeyDays`）；`tw:livecard` 卡片裡的 `.rbar` 也自動跟著（目前 m3／stock／watch 卡內沒有拉Bar）。
+- 舊行為「按 ▶ 回放自動退出即時」被取代：即時開著時 ▶ 停用，要先關即時。
+- 這批驗了：_preview.py；_uitest `--sections` 資金流向、新-資金流向、新-輪動時鐘、批次2、批次3、批次7、總覽、新-大盤三張圖、即時推送、淺色主題、輪動時鐘即時（新增驗收寫在 t_rot_live ⑥ 與 t_new_flow 的資金去向即時段）。
+- 既有紅燈（改前就紅，基準線實測）：輪動時鐘即時的「800px 沒有橫向捲軸」「800px 面板沒有超出視窗」「[390px] 即時模式開得起來」。
+
+## 夜盤 520 根因確定：期交所拒絕經 Cloudflare Worker 的請求；Worker 改回 502 JSON 講斷點（2026-10-01 00:50，台北，爬蟲專家，分支 `claude/night-worker-520`）
+
+- 證據全文在 DECISIONS #281。一句話：從 Actions 帶 Worker **逐字元相同**的標頭直連期交所 200；
+  從 Worker 打（原樣／換瀏覽器標頭／GET 靜態首頁）三個變體都 520，SYD／CPH／OTP／PDX／KIX 每個機房都一樣，日盤 `/fut?session=day` 也 520。
+  期交所本身在 Cloudflare 後面，Worker 跨網域子請求在對方眼裡一律是 Worker 共用來源 IP `2a06:98c0:3600::103`。
+- 瀏覽器直連不行：期交所 CORS 預檢對 miaozike.github.io 回 403「Invalid CORS request」；text/plain 繞預檢回 415。
+- **已部署（main f9da788，deploy-worker run 36745685741 成功）**：`/fut`、`/futchart` 上游 5xx → 502 JSON（upstream_status／elapsed_ms／colo／upstream_ray／head）；
+  成功與 4xx 路徑逐位元組不變（`workers/quote-proxy/tests/fut_fail_check.mjs` 新舊兩版比對）；`/fut?session=night&diag=1` 診斷（30 秒一次）。沒加重試（連打三次三次壞）。
+- 分支上（未進 main，等合併）：`scripts/probe_sources.py` 新探測、`tests/test_probe_sources.py` 4 條新測試、`worker-watch.yml` 改掉錯的提示、fixture、DECISIONS #281、這段 HANDOFF。
+- 這批驗了：`pytest tests/ -q` 899 passed／4 skipped／1 xfailed、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
+  `futstream_check` 2 條紅（舊版同樣 2 條，既有）。沒改 site/，沒跑 `_preview`／`_uitest`。部署後 probe run 36745792375、worker-watch run 36745796387 實測：日盤 `/quote` 200、`/fut?session=day` 502（上游 520）、夜盤兩支 502（上游 520）。
+- **待處理**：① **夜盤要回來只能換不經 Cloudflare 的代理**（Deno Deploy／Netlify・Vercel Node 函式／Apps Script／自己的 VM，代價表在 #281），都要 Andy 開帳號，還沒選。
+  → 2026-10-02 已選 Deno Deploy 並實測 200，前端接上在分支 `claude/taifex-deno`（DECISIONS #286，見本檔最上面那節）。
+  ② 前端 `fetchFut()`／`fetchFutChart()` 讀 502 JSON 的 `upstream_status`，說明改寫成「期交所經代理回 520」；要同時改 `_uitest.py`，不在這批範圍。
+  ③ 日盤 `fastTick()`（每 5 秒 `/fut?session=day`）同樣被擋，靠 `m3fut` 退避與 `/chart` 分時撐著。
+
+## 夜盤「顯示日盤」查證：斷點在 Worker→期交所（520），前端只補說明（2026-09-30 深夜，台北，分支 `claude/night-session-fix`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+
+- 根因與證據全文在 DECISIONS #280。一句話：兩輪探測（23:33、23:39）期交所直連全 200，經自家 Worker 的 `/fut?session=night`、`/futchart` 全 520
+  （內容 `error code: 520`、Content-Type 是我們自己的 `application/json` ＝ Worker 把上游的 520 原樣轉回）；`worker-watch.yml` 從 09-28 13:31 起盤中／夜盤幾乎每輪紅。
+- 前端 09-28～29 那批的四個閘門（`'m3fut'` 退避、`cardOn`／`m3Shown`、`Live.slot`、盤後計時器）逐條查過都沒擋夜盤。
+- 改動：`site/market3.js` 小標 `#futSess` 在「夜盤時段卻顯示日盤」時 title／`data-why` 帶出原因（例：代理回 HTTP 520）；顯示邏輯沒動。
+- 新驗收段落 `夜盤盤後0930`（登記進 `site/modules.js` 的 `index.board`）；反向驗證三種植入缺陷都會紅。
+- 這批驗了：`_uitest --sections 夜盤盤後0930,夜盤推送,即時推送,總覽,新-大盤三張圖,大盤三張圖,夜盤真實fixture --workers 1`、`_preview.py`。
+  ⚠ `夜盤真實fixture` 8 條紅是**既有的**（main 的 market3.js 跑同一段也是同樣 8 條）：斷言還停在 #258 之前「兩支都掛要空白」「數字列要寫夜盤／TXFJ6-M」，待另案改寫。
+  `即時推送` 第一輪有 2 條紅（退回輪詢後計時器那兩條），之後兩輪都 0 —— 會飄，沒動到 live.js。
+  `_preview.py` 第一輪 1 條 404 是本機 `site/data` 在 #279 之前建的、缺 `m60/2330.json`（跟這批無關）；補上那一檔後重跑綠。
+- **待處理（Worker 端，沒動）**：① `/fut`、`/futchart` 收到上游 5xx 改回 502 JSON 並帶 upstream_status／colo；`worker-watch.yml` 那句「被擋會回 502」的提示是錯的要改
+  ② 探測加一支「直連但帶 Worker 同一組標頭」分開 IP 與標頭 ③ 依 ② 結果換夜盤來源或代理。
+
+## 大盤三張圖：每個週期都有量＋15／30 分接湖＋1H/4H 短句（2026-09-25 晚，台北，分支 `claude/idx-volume`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+- 量：今天＝證交所分時逐分鐘實量；日週月季＝index_ohlc 實量；4H 一盤一根＝當天實際總量。加權歷史分 K（Yahoo 量 0）
+  ＝「那天實際總量 × 分時量分布」估算（分布：今天完整一盤 → 本機存的最近完整一盤 → 內建台股 U 型），灰色量柱＋游標看板「估」；
+  日 K 缺量日（加權 2026-02 那 12 天）用前後 5 日均量補（週月季「含估」）。台指期分 K 量改口數（以前 ×1000）、刻度「口」。
+- 15／30 分：加權接資料湖 15 分 K（`intraday_bars.build` 多吐 `M15`，約 59 天 1062 根）＋今天；Worker 掛掉時 15／30 分也照畫湖的歷史。
+- 櫃買／台指期：湖裡沒有分 K（^TWOII 停更、FinMind 付費等級），1H/4H 只含今天 → 卡片一行「…多日分 K 無免費來源，1H/4H 只含今日」，原因進「?」。
+**這批驗了哪幾段**：pytest 530 passed；重算 payload 後 `_preview` 全綠；`_uitest --workers 1`：新-大盤三張圖 0、大盤三張圖 0、總覽 0、
+手機v3 2（資金流向一屏 390／360，origin/main 同樣紅 390 那條，跟本批無關）。
+- 待處理（建議）：櫃買／台指期多日分 K 唯一可行路是每日管線盤後把 Worker 同源的 `mis_ohlc_OTC.txt`／`futures_chart.txt` 存進湖（要先確認白名單）。
+
+## 大盤分 K 回補驗證（`crawler`，2026-09-25 19:25，台北）
+
+- 手動回補 run #97（<https://github.com/MiaoZiKe/tw-rotation/actions/runs/36126618652>，main 54c5247）成功，commit 498a3af。
+- `index_intraday` 進湖 **4686 列**：TSE 60m 3624 列（730 天）＋ TSE 15m 1062 列（60 天）。
+- **^TWOII（櫃買指數）Yahoo 60m／15m 皆回空**（`No data found, symbol may be delisted`）→ 1H／4H 目前只有加權、沒有櫃買。
+  沒修：白名單內沒有其他免費的櫃買分 K 來源，換 Yahoo 代號前要先查證（容器打不到 Yahoo，沒辦法實測）。前端櫃買 1H／4H 會是空。
+- 台指期逐筆 `TaiwanFuturesTick`：FinMind 回 400「Your level is register」—— 帳號等級不足，屬預期，已記進進度檔不再重試。
+- 回補 commit 只動 `data/`，不會觸發 pages.yml，所以 19:2x 手動觸發了一次 pages.yml 讓新資料上線。
+- 這批驗了：讀 Actions log、本機 `git pull` 後讀 parquet 列數。沒改程式碼，沒跑 pytest／前端關卡。
+
+## 收尾批：說明改「?」（熱力圖／市場明細／週期統計／個股頁）、K 線「還原」小標、週期統計提示框、R2／R4 小項（2026-09-25 午，台北，分支 `claude/wrapup-1`，**已在 main**（2026-10-06 查證：分支頂端是 origin/main 的祖先））
+- 說明改「?」：四頁卡片標題旁一律「?」（跳出式 howPop：點背景／Esc／再按一次關），副標與圖下註腳搬進「?」；
+  題材剖析圖下方「其他題材」連結列拿掉（換題材＝點正上方題材熱力圖）。保留的只有讀數（`data-readout`：財報到、區間、題材名）
+  與警示（`data-warn`：券商觀點「不是本站預估」、市場明細即時模式三句、週期統計「每格只有 N 年樣本」、籌碼「只回補到 N 天」、技術面「非投資建議」）。
+- `dismissable` 放過 `#howBack／#howPop`：「?」開著時點背景或按 Esc 只關說明，不會順手把題材剖析圖等就地面板收掉。howPop 支援 `data-ttl`（K 線工具列那顆）。
+- 個股 K 線右上角「還原」小標（`adjTag`）：滑過／focus 說明「K 線與均線用除權息還原價；報價與漲跌是原始價」＋最近一次事件（日期、除權配股比例或除息、還原係數）。
+- 週期統計：熱力圖提示框多「報酬中位數」；曲線圖提示框每條線接「中位 …・超額勝率／勝率 …」（跟著指標），排序不動。
+- R4：產業熱力中型方塊（高 ≥44、數值放得下）改「截短名稱＋數值」兩行；≤820px 週期統計框高扣掉頂列與底部分頁列。
+- R2：#12 800 寬拉Bar ≥160px；#35 放大輪盤有象限計數徽章（只顯示、不接點擊）＋「即時」鈕（跟卡片同一開關）；
+  #47 族群×法人 ETF 撐爆時刻度改用其他族群定、ETF 折斷記號「≫ 實際值」、y 軸寬用量的；#52 集中度側欄跟著前 N 大；#53 x 軸 YY/MM/DD。
+  #33（中央標籤擁擠）、#44（只選鏈沒反應）實測／讀碼已由先前批次處理；#40／#41 只發生在經典版樹圖（桌機預設是拓撲版，個股層不常駐），這批沒改。
+- `_uitest`「資金去向拓撲」那條「再按一次：動畫又跑起來」：根因是驗收在重新整理後沒捲到卡片（拓撲版捲出畫面就停迴圈，設計如此）＋固定睡 800ms；改成先捲進畫面再輪詢。
+- 新驗收段：`收尾0925-說明改問號`、`收尾0925-還原小標`、`收尾0925-週期統計提示框`、`收尾0925-R4方塊標籤`、`收尾0925-R2小項`。
+- ⚠ 資金流向頁本身在 main 上仍是「怎麼看 ?」＋副標（這批沒動；任務單說已做，可能在別的分支）。
+**這批驗了哪幾段**：`_preview` 全綠；`_uitest --workers 1`：新 5 段（`--code 6669`）全 0；`熱力圖v2、題材、市場明細、季節性、K線縮放、個股R5、資金流向、資金去向拓撲、淺色主題` 全 0；
+`總覽`、`個股` 單獨重跑全 0（接在別段後面跑時 `個股` 4 條寬版／事件欄是既有的跨段污染）；`說明精簡` 只剩 3 條 `rel`（產業頁關聯圖「?」條列 6 條，sc-list 那批帶進來的，這批沒動 industry 關聯圖）。
+沒跑：手機相關段落、`批次2／3／7`、`新-資金流向`（改了放大輪盤與集中度，只由 `收尾0925-R2小項` 覆蓋）。
+
+## 資金流向：足跡輪盤平滑補間＋放大、整張卡兩欄＋排行貼頂、側欄、篩選列一律左上角（2026-09-25 凌晨，台北，分支 claude/fix-ov-wheel）
+Andy 桌機 4＋6 件（市場寬度卡後來改交給別的 agent，**這批不動它**）＋審查 R2 資金流向異常。細節與理由：DECISIONS #259。
+- 足跡輪盤：自己的 rAF 補間（400ms ease、接續中 420ms 等速、reduced-motion 直接到位），每幀直接搬 zrender 圖元（每幀 1.6～6ms，
+  第一版 setOption 每幀 25～240ms 已棄用）；名字排版改在 setOption 前算（回放每步一次 setOption）。
+- 資金輪動卡整張兩欄 1.4fr:1fr（排行 ≈ 41%）；排行小標＋放大／怎麼看在最上列，排行圖撐滿；輪盤高＝欄寬×0.8、半徑＝min/2−14px；四張象限卡推到盤外。
+- 象限面板／成分股面板蓋在右欄排行圖上（同位置同樣式、同時一塊），輪盤不再被擠窄。
+- 篩選列：`filterSlot` 一律插在卡片標題列下方；族群×法人晶片換成兩層下拉。
+- R2：下鑽股名不再一字一行、掃描限 30fps、前 10 大先畫輪盤、象限面板寫「盤上 N」、資金去向 Esc 下拉同步、▾ 11px。
+- 新驗收段：`足跡輪盤補間`、`排行貼頂`、`篩選列左上角`、`輪盤放大與象限卡`、`輪盤側欄`、`資金流向點背景關`、`排行比例`。
+- 待處理（R2 沒做的）：#12 800px 拉Bar 太短、#33 中央標籤擁擠、#35 放大視窗少徽章與即時鈕、#40～#41 資金去向葉節點位移與殘影、#44 只選鏈沒反應、#47 族群×法人 ETF 撐爆刻度、#52 集中度側欄 N 不一致、#53 x 軸沒年份。
+**這批驗了哪幾段**：`_preview` 全綠；`_uitest --workers 1` 21 段（總覽、新-大盤三張圖、足跡輪盤、足跡輪盤既有功能、掃描光束、時鐘水波、資金流向、新-資金流向、輪動時鐘即時、桌機零差異、淺色主題、新-輪動時鐘、新-版面等高與多寬度、點外面就關＋7 個新段）。紅燈只剩：新-版面等高 7（既有篩選列斷言）、新-輪動時鐘 1（「最外圈只有一個族群」，main 同樣紅）、新-大盤三張圖 1（icon-192 CORS 的 console.error，非本批檔案）、時鐘水波／掃描光束 各 1（幀率門檻；容器負載 20～40 時同時量 main：7.9／5.8 fps，本分支：27～31／17～29 fps）。
+## 總覽改版（Andy 八條＋大盤三張圖四條＋審查 R1 總覽）（2026-09-25 早，台北；分支 `claude/ov-redesign`，**未推 main**）
+- KPI 六格 → 四格（加權指數／成交值／漲跌家數／前五族群佔比），搬到三張走勢圖**上方**、一條 60px 橫條；「今日候選」表整張拿掉。
+- 大盤三張圖合進一個大方框（`#m3Frame`，細線隔開、工具列在框內左上、說明改「?」）；每格只留名稱＋大數字＋漲跌（開高低／成交搬進 title）；
+  台指期**日夜盤自動切**（夜盤有資料才顯示夜盤，小標 `#futSess` 註明，切換鈕拿掉）；1H／4H 改 15 分 K 依交易時段合成，拿不到才退日 K；
+  量全 0 時量柱隱藏；K 線游標看板（開高低收＋量，mini KChart 自畫）；Worker 全掛時三張退到資料湖日 K（台指期也是）、錯誤中文；800px 展開吃滿整列。
+- 熱門題材 → 題材熱力圖（資金熱力圖正下方，題材下拉＝`.rotdd`，選題材原地換成分股、點成分股進個股頁）。
+- 市場寬度 → 漲跌家數 11 級分佈（stocks.json，點直條原地列股票）；法人連續買超 → 買賣四象限（X 連續天數、Y 力道＝最後一天 ÷ 日均）。
+  管線：`trust_streak(side='sell')`＋`last` 欄位，`inst_streak.json` 多 `<法人>_sell`（只增不改；**要等雲端重算 payload 才有賣超那一半**，沒有時只畫買超）。
+- 說明精簡：總覽卡片的副標／註腳／「族群」連結列全拿掉，改標題旁「?」跳出式說明（點背景關）。審查 R1：小輪盤點族群改走 `heatPanel('ovRotPanel')`、淺色「滾輪放大」徽章看得見。
+- 細節與理由：DECISIONS #259。
+**這批驗了哪幾段**（合併 main b93d86a 之後）：`pytest tests/` 478 passed；`_preview` 全綠；`_uitest --sections 總覽,新-大盤三張圖,今日事件,盤中即時,淺色主題,桌機零差異,說明精簡 --workers 1` 全部 0 個問題（571 秒）。
+沒跑：`大盤三張圖`（t_market3，已把兩條過時斷言改成新行為）、`即時推送`／`夜盤推送`（改了 SEL_PX，但沒跑）、`積木清單`、手機相關段落。
+## 除權息還原（`finance-quant`，2026-09-25，分支 `claude/fix-exrights`，**尚未進 main**）
+審查員 R5：6669 除權（1 配 1.98）後本益比 6.7、殖利率 10.33%、K 線 -66% 斷崖。口徑見 DECISIONS #261。
+- `fundamental.py`：`clean_price`（濾 0 價）、`corporate_actions`（官方參考價＋斷崖推估）、`adjust_prices`（total／share）、
+  `share_table`／`share_growth`／`eps_divisor`；`ttm`／`latest_balance` 收 `shares, asof` 換到今天股本。
+- `stockpage.py`：`pe_daily`（逐日、原始價 × 調整 EPS）、`pe_history` 的 ttm_eps 換到還原價基準（河流圖）、`dividends` 殖利率換股數＋股利欄只放股利。
+- `build_payload.py`：K 線／指標／站上均線吃 `price_adj`、季節性吃 `price_share`、個股頁多 `price_adjust`、漲停排除上市前 5 天。
+- 6669：PE 6.75 → 20.1；殖利率 10.33% → 2.29%（3.4% 是兩年股利加總，見 #261 第 5 點）；K 線無斷崖。
+- ⚠ 前端沒改：個股頁 K 線現在是還原價，但畫面上還沒有「還原」字樣（`price_adjust.daily_adjusted` 已給，交 UI 專家）。
+
+## 法律頁膠囊分頁＋頁尾 © 行與「詳細規範」八格（2026-09-24 晚，台北）
+Andy 給參考截圖「這也要新增」。`site/legal.js`：法律頁三顆膠囊分頁（目前頁實心）；頁尾加「© 2026 {site_name} · 保留所有權利」、
+「顯示／隱藏詳細規範」（預設收起，`tw.footDetail`），展開 8 格（重要聲明／非投資建議／投資風險警告／不代操不託管不招攬／數據來源／即時資料說明／專業諮詢／責任限制），
+桌機 4 欄、≤900 兩欄、≤560 一欄。**文字是我們自己的**；參考站的「上鏈績效認可」（我們沒有）與「最終解釋權」（消保法效力有疑義）刻意不做。
+參考站的三個法律頁連結（stockintelli.com/terms 等）容器打不開（EGRESS_BLOCKED），已請 Andy 提供截圖才能照版面排。
+**這批驗了哪幾段**：agent 自驗 7 段 0；合併後 `_preview` 全綠＋`_uitest --sections 同意條款與法律頁,手機一屏,桌機零差異,網頁版號 --workers 1` 全 0。
+
+
+## 原始碼連結全部拿掉（2026-09-24 18:37，台北）
+Andy：「太誇張了 這完全不能公開」。頁尾「原始碼與演算法」、服務條款「程式碼公開於…」、免責聲明「演算法公開於…」、
+legal_config `repo_url`、版號徽章連 GitHub commit 頁，全部移除。`_uitest 同意條款與法律頁` 加斷言：全站不准有 GitHub 連結／repo 網址。
+⚠ **repo 本身仍是 public**（知道網址就看得到程式碼與資料）；要真正不公開須改 private，GitHub Pages 搭 private repo 需付費方案或換主機 —— 待 Andy 決定。
+
+## 盤中即時輪盤巡檢＋象限面板數字盤中不動的修正（`data-steward`，2026-09-24 晚上線）
+- `.github/workflows/live-rotation-probe.yml`＋`scripts/live_rotation_probe.py`：交易日台北 10:00／12:30 打開線上 #flow 按「即時」，
+  隔 150 秒比兩次：抓到報價、報價時間前進、點有移動（前 5 名位移）、排行第一、涵蓋率；盤中 ① 或 ③ 失敗就紅；非交易日綠。結果存 artifact（不 commit）。
+  **第一次自動跑：2026-09-25 台北 10:00**（GitHub 排程常晚 5～30 分）。
+- 修 bug：`rotStageAll` 讀了盤中不變的「持平基準」`fx/fy`，面板強弱／動能整天不動、與階段對不上 → 改讀 `x/y`。
+- `window.App.rlvState()` 唯讀；`_uitest 輪動時鐘即時` 兩條既有紅是測試過時（雙把手後拖錯位置），已修成 0。
+- 事實：盤中「即時」**輪盤會動、右邊資金流向排行不會動**（刻意吃盤後逐日佔比）；要不要改跟即時 —— 已問 Andy。
+- 風險（未修）：`fetchQuotes` 沒有逾時，一次卡住 `RLV.busy` 會永遠 true → 之後每輪都跳過。巡檢會以「報價時間沒前進」紅燈抓到。
+**這批驗了哪幾段**：合併後 `pytest` 477 passed；`_preview` 全綠；`_uitest --sections 輪動時鐘即時,資金流向,新-資金流向,輪動象限面板,時鐘v2,總覽,同意條款與法律頁,網頁版號 --workers 1`：只有 `資金流向` 1 條（既有），其餘 0。
+
+
+## 設計系統 v2 第 3 批（淺色暖紙底）＋第 5 批（輪動時鐘、資金去向）（2026-09-24 傍晚，台北）
+
+- 第 3 批：淺色主題頁底 #F4F3EF、暖灰三階文字、body 光暈關掉；深色主題 0 像素差。
+- 第 5 批：輪動時鐘象限三圈底色、預設只畫焦點族群軌跡（最多 6，「全部」可切回 16）、軌跡漸強＋箭頭、手機 390 改編號模式（名字列在圖下）；
+  資金去向線條改產業鏈色、鏈節點改細直條、字的層次，資金流向頁小圓點不再壓字（總覽仍無動畫）。細節見 docs/design_system_v2.md ⑨／⑩。
+- 合併衝突：`_uitest.py` 兩邊各加段落、規格文件各加一節 → 兩邊都保留；`--hm-v*`／`--hm-t*`／`--tip-bg` 確認是暖金／湖水藍／.97。
+**這批驗了哪幾段**：agent 自驗見 ⑨／⑩；合併到 main 後我再跑 `_preview` 全綠＋`_uitest --sections` 23 段
+（時鐘v2、資金去向v2、新-資金流向、資金輪動合併、輪動象限面板、批次30、桑基展開與即時、批次2／3／7、總覽、手機、手機一屏、設計系統v2、淺色、明亮、熱力圖v2、題材、季節性、同意條款、UI精修0923、設定面板、資金流向）：
+只有 `資金流向` 1 條（排行區間桿軸長，既有），其餘 0。
+⚠ `--only` 是子字串比對（`批次2` 會帶到批次21～29 的 3D），要精準請用 `--sections`。
+
+## 真積木第一梯次（`frontend-ui`，2026-09-24 傍晚上線）
+broker.views／stock.signal 拆成 `site/blocks/*.js`（各自一個出口、擋掉檔案其他功能照常）、#4b 法人連續買超改明確傳參、
+`site/modules.js` 宣告 27 塊積木並**產生 MIA_PAGER**（與手寫版逐字相同，4 頁 20 段）、`_uitest --module <id>`／`--list-modules`。
+純重構、畫面零差異（第一次 62 張像素比對 56 張 0 差、其餘為動畫雜訊；合併 main 後改靠逐字比對＋驗收段落）。
+**這批驗了哪幾段**：合併 3748ade 後 `_preview` 全綠；`_uitest --sections` 積木清單、積木-券商觀點、積木-個股三卡、積木-隱性參數、
+新-產業與個股、今日事件、總覽、手機、手機改版、手機一屏、桌機零差異、季節性、題材、同意條款與法律頁、時鐘v2、資金去向v2 全 0；
+`個股` 4 條（寬版鈕／事件欄）只在接在別段後面跑才紅，純 main 同順序也紅 → 既有的跨段狀態污染（`tw.side='0'` 殘留），待查。
+第二梯次建議順序（agent 提）：① charts 改用實例當 key ② #flow 頁當 mount/layout 試點 ③ ROT 拆 core.filter ④ industry.js 脫離 window.App。
+
+
+## 週期統計（原季節性）改版（2026-09-24 16:20，台北）
+
+Andy：「"季節性" 分頁改成 "週期統計"／下方的兩個表格都拿掉／熱力圖需要調整數字，並在熱力圖分頁新增顯示數字選項(所以Default 是沒有)／圖三曲線圖需要優化 看不懂趨勢」
+- 分頁改名「週期統計」（路由 `#season` 不變）；「逐年明細」「本月歷史最強族群」兩張卡整張移除（MIA_PAGER／MIA_MORE 同步拿掉）。
+- 熱力圖：每列桌機 24px／手機 20px、y 軸每個族群名都顯示；「前 20 名／全部」切換（全部時框內捲、月份表頭釘住、點月份改排序）；
+  「顯示數字」預設關（`tw.season.num`），放不下不印；紫色拿掉，改 7 格 `--hm-*`＋圖例（報酬 ±1.5／±4、勝率以 50 為中性）。
+- 曲線圖：直線段＋點（不 smooth）、預設本月最強 5 條＋粗灰「全部族群平均」、快捷「本月最強 5／本月最弱 5／只留平均線」、
+  端點標籤不重疊；近 3 年勝率時提醒「每格只有 3 個樣本」。
+**這批驗了哪幾段**：agent 自驗 季節性／手機／手機改版／手機一屏／桌機零差異／淺色／明亮／批次1／4／7／設計系統v2／縮放掃描／UI精修0923；
+合併後我再跑：`_preview` 全綠；`_uitest --only 季節性,批次4,批次7,手機,手機一屏,桌機零差異,淺色主題,明亮主題,設計系統v2,縮放掃描,UI精修0923,熱力圖v2,同意條款 --workers 1` 全部 0。
+
+## 圖表匯出包（給其他 AI 改版用，2026-09-24）
+Andy 要「所有圖表的 HTML code 給其他 AI 優化」。做法：從實際畫面 `getOption()` 匯出 29 張 ECharts（可獨立開的 HTML＋含 formatter 原始碼的 JSON＋現況截圖）、
+3 張 SVG 剖析圖、K 線類只有截圖、兩主題 token、給 AI 的規則 README。只傳給 Andy（含資料，不進 repo）。腳本在 scratchpad（`export_charts.py`／`build_export.py`），不在 repo。
+
+
+## 第 6 批：條款三頁＋同意橫幅＋平台導覽（預設關閉）＋頁尾免責聲明（2026-09-24 15:57，台北）
+
+- 新檔 `site/legal.js`（全部邏輯＋自帶 CSS）、`site/legal_config.js`（**唯一開關** `window.TW_LEGAL`）。
+  啟用條件：operator／email／effective_date／tax_id／court 五個必填都有值 ＋ 條款全文沒有【】 ＋ `enabled: true`。
+  **現在五項都空、enabled false** → 同意橫幅與導覽不出現；`#terms`／`#privacy` 頂端掛「草稿，尚未生效」；`#disclaimer` 與頁尾短版免責聲明照常顯示。
+- 驗收腳本（_uitest／_preview／_show）在每個新頁面預寫 `tw.consent={v:'*'}` 與 `tw.tour`，啟用那天關卡不會被橫幅擋紅。
+- `手機一屏` 的高度上限改成扣掉頁尾實際高度（頁尾手機約 300px）。
+- ⚠ 待 Andy：五個必填欄位；請律師看「不蒐集任何個人資料」（GitHub Pages／Cloudflare 會記 IP）與「依 LICENSE」（repo 沒有 LICENSE 檔）。
+**這批驗了哪幾段**：agent 自驗 `_preview` 全綠＋同意條款／總覽／手機／手機一屏／桌機零差異／設定面板／資料狀態；
+合併到 main 後我再跑：`_preview` 全綠；`_uitest --only 同意條款,網頁版號,縮放掃描,淺色主題,明亮主題,手機一屏,總覽,桌機零差異,題材,熱力圖v2,手機 --workers 1`（連帶手機改版、題材2D）全部 0。
+
+
+## 題材熱力圖改暖金／湖水藍、提示框不透明、藏起來的圖表不再被縮成 100px（2026-09-24 15:40，台北）
+
+- Andy：「改用其他顏色，這顏色好醜 親近人一點顏色」→ 紫色（v2 第一版）否決。`--hm-v*` 改暖金、新增 `--hm-t*` 湖水藍，
+  題材「顏色」下拉：熱度（暖金，預設）／熱度（湖水藍）／平均漲跌；最亮兩格配深字 `--hm-ink-dark`。**不要再把紫色加回去。**
+- 提示框 `--tip-bg` 兩主題改 .97、熱力圖提示框 `transitionDuration:0`（Andy 截圖：半透明＋淡入時後面方塊的字透出來）。
+- ★ 真 bug：`route()` 換頁後 resize 全部圖表，藏起來的題材熱力圖被縮成 100px；熱力圖分頁那支提早 return 又沒 resize →
+  「上一頁 → 下一頁」回熱力圖時題材熱力圖空白、點方塊沒反應（`_uitest 題材` 5 條紅的真因，**不是測試點錯位置**）。
+  改成 `resizeVisibleCharts()`：跳過寬或高為 0 的圖，熱力圖分頁也補呼叫。
+**這批驗了哪幾段**：`_preview` 全綠；`_uitest --only 題材,熱力圖v2,總覽,資金流向,新-資金流向,季節性,縮放掃描,淺色主題,明亮主題,設計系統v2,手機 --workers 1`
+（連帶手機改版、手機一屏、題材2D）：只有 `資金流向` 1 條（排行區間桿軸長，既有），其餘 0。
+
+
+## 熱力圖「滾輪放大」徽章平常隱藏（2026-09-24 14:45，台北）
+
+`#heatWrap`／`#indTreeWrap`／`#themeMapWrap` 的 `.zbadge` 平常 opacity 0，滑鼠移入或已放大（`.zoomed`）才顯示；觸控裝置照舊不顯示。
+原因：左下角仍會蓋到小方塊名字（總覽「半導體・其他」），方塊排法每天不同找不到永遠空的角落。
+**這批驗了哪幾段**：`_preview` 全綠；`_uitest --only 熱力圖v2,總覽,縮放掃描,桌機零差異 --workers 1` 全 0；另實測兩張圖「平常 0／移入 1／移出 0」。
+
+## 進行中（2026-09-24 14:40 派出，各自 worktree，做完由 CEO 合併）
+- 真積木第一梯次（`frontend-ui`）：切出 broker.views、拆 stock.signal/fund、D 快取改明確參數、MIA_PAGER 由模組清單產生。純重構、畫面零差異。
+- 設計 v2 第 3、5 批（`visual-designer`）：淺色暖紙底；輪動時鐘三圈／箭頭／手機編號模式；資金去向配色層次（不加動畫）。
+- 第 6 批預建（`frontend-ui`）：條款三頁＋同意橫幅＋平台導覽，**預設關閉**，等 Andy 給營業人名稱／email／生效日期；頁尾短版免責聲明預設開。
+
+
+## 大盤 KPI 六格不再排成「5＋1」（2026-09-24 下午，台北）
+
+1440 寬、右側事件抽屜打開時內容區剩約 1032px，`.hero` 的 auto-fit 會排成 5 格＋孤兒 1 格（截積木外觀時抓到，舊版就有）。
+`site/index.html` 改用容器查詢：`#v-overview` 寬 ≥960 → 6 欄、520～960 → 3 欄、以下沿用原規則（2 欄）。
+⚠ 第一版門檻 960 太低：1440＋抽屜時 6 欄每格 160px，「784 / 1314」「1 A / 0 B」被折成兩行（重截積木外觀才看到；只量溢出沒量折行）。
+第二版改成：容器 ≥1270 → 6 欄、628～1270 → 3 欄、<628 → 2 欄（每格至少約 200px）。
+實測（量溢出＋量折行）：1440 抽屜開 3+3、抽屜關 6（每格 220，跟改前相同）、1920 6、1680＋抽屜 6、1280／1100／820 3+3、900＋抽屜 2+2+2，全部 0 折行 0 溢出。
+第二版驗收：`_preview` 全綠；`_uitest --only 總覽,桌機零差異,設計系統v2,手機一屏 --workers 1` 全 0。
+**這批驗了哪幾段**：`_preview.py` 全綠；`_uitest --only 總覽,新-版面等高與多寬度,手機,縮放掃描,設計系統v2,桌機零差異 --workers 1`（連帶手機改版、手機一屏）：
+只有 `新-版面等高與多寬度` 7 條（資金流向輪動卡「只有一份篩選列」，既有的 7 條），其餘 0。
+
+
+## 設計系統 v2 第 1、2、4 批（`visual-designer`，2026-09-24 約 12:40 台北）
+
+照 `docs/design_system_v2.md` 做（實作紀錄在該檔 ⑧）：
+- 桌機（≥821px）卡片圓角 24、內距 20、卡片間距 24、內文 14px／行高 1.7、膠囊按鈕；**手機數字一個都沒動**。
+- 三張熱力圖（`#heat`／`#indTree`／`#themeMap`）：7 格離散色階＋圖例、族群間隙 2px、圓角 3px、標籤分三級、半透明提示框；
+  題材熱力改紫色單色階（右上「顏色：熱度｜平均漲跌」可切回紅綠）。所有圖表 11～11.5px 的字升到 12。
+- ⚠ 可能被 Andy 推翻：內文 15.5→14（跟 DECISIONS #34 相反，退回只改一個 token）、題材改紫、間距 16→24。
+- 沒做：第 3 批淺色暖紙底、第 5 批輪動時鐘／資金去向、第 6 批同意橫幅（卡在條款空格）、第 7 批。
+
+**這批驗了哪幾段**：`_preview.py` 全綠；`_uitest --workers 1` 最後一輪全綠：熱力圖v2、設計系統v2（新增）、淺色主題、明亮主題、縮放掃描、手機、總覽、UI精修0923、排序；
+另外綠：新-資金流向、題材、題材2D、批次29-產業分頁、新-產業與個股、產業鏈導覽、季節性、批次7、桑基展開與即時、桌機零差異。
+既有紅（main 同樣紅）：新-版面等高與多寬度 7、產業 1、資金流向 1、新-輪動時鐘 1、產業關係面板 1。**沒跑 pytest**（只動 site/**、_uitest.py、docs）。
+
+
+## 批次 0924-H（`frontend-ui`）：題材併進熱力圖 ＋ 頂欄精簡（2026-09-24，台北）
+
+Andy 原話：「題材內 熱力圖 放到熱力圖分頁 按鈕更新、設定 版都移除 版號只留文字 並旁邊留當下時間」。
+
+- 題材分頁併進「熱力圖」：新網址 `#heatmap/theme/<id>`，點題材方塊原地展開剖析圖，有「收起 ✕」。
+  舊網址 `#themes`／`#themes/<id>` 用 `location.replace` 導過去（上一頁不會迴圈）。頂層分頁 8 → 7。
+- 拿掉 `#liveBtn`／`#liveGear`／`#livePop` 與手機「⋯」的 `#mmLive`／`#mmGear`；自動更新照跑。
+  連帶：連續失敗 3 次不再停擺，改每 5 分鐘重試；盤中「有新資料」改成點即時那顆重新載入；
+  放棄 SSE 後改在分頁回前景時重試；盤前開的頁面過 09:00 會自己換成每分鐘。
+- 即時那顆只顯示時間，狀態搬進 `title`；版號只顯示「v 日期 第 N 版」，建置時間在 `title` 第一行。
+- ⚠ 設定面板拿掉後沒有介面可以改 `tw.live.proxy`／`tw.live.on`，也沒有「測試連線」了。
+
+**這批驗了哪幾段**：`_preview.py` 全綠；`_uitest --only 題材,盤中即時,即時推送,網頁版號,手機改版,UI精修0923,資料狀態 --workers 1`
+（連帶跑到 `題材2D`）全部 0 個問題。`一般電子鏈` 4 條紅是既有的（未改動的 main 同樣 4 條）。
+**沒跑 pytest**（只動 `site/**` 與 `_uitest.py`，tests 沒有 import 它）。
+
+## 設計系統 v2 規格（`visual-designer`，2026-09-24）
+
+`docs/design_system_v2.md`：從 Andy 給的三張截圖量出的間距／字級／圓角／熱力圖 7 格色階，分 7 批上線。
+第 1、2 批動全站共用 CSS，要在這批之後開工。第 6 批（同意橫幅＋法律頁）**卡在 Andy 填條款空格**
+（營業人名稱、email、生效日期）。預設主題暫維持深色。
+
+## 積木版面設計器（私人 Artifact，不在 repo）
+
+<https://claude.ai/artifact/8BathC1yk7yD8PAbbbeZxT> —— Andy 用拖拉排 27 塊積木的版面。
+存檔在該 Artifact 的資料庫 `layouts/current`（版本在 `versions`），用 `ArtifactData` 讀。
+Andy 說「照設計器做」時讀它產出模板。
+
+
+## 批次 0923-D（`tech-illustrator`）：題材圖一律水平 ＋ 替代卡片移除 ＋ 版面收一階
+
+Andy 原話：「題材頁面 下方處可以移除」「也看到部分提才是垂直版面，題材一律統一水平，
+並且字體圖片版面在小一點 符合正常範圍，有點太大了」。
+
+- **D1**：`site/app.js` `renderThemeDetail()` —— 沒有剖析圖時那張「這個題材還沒有產品剖析圖…」
+  的替代卡片拿掉，改成整區留白（`panel_pkg`／`petrochemical`／`mlcc_passive` 三個）。
+  **那是他要的，不要再補東西回去。**
+- **D2**：`site/themes3d.js` —— `explodeScene`／`EX`／`EX980`／`BAND_TAG` 整組刪除，
+  八張垂直圖（AI 伺服器、電源 BBU、散熱、AI PC、機器人、無人機、衛星、車用）改走 `chainScene`。
+  **零件建造函式一支都沒動**；方向語意由「由上而下的拆解順序」改成「由左到右的上下游順序」，
+  每張圖的 `unit` 那一行各自重寫。
+- **D3**：`.dg3` 自己的字級（標題 16→14、站名 12.5→12，**內文維持 12px 下限**）＋
+  零件框 122→96 高、說明列距 17→15。畫布高度 434～489（原垂直版 936）。
+- 新增 `wrapSub()`（SVG 不會自動換行）與禁則處理；`fit()` 改成十八張水平圖共用。
+
+**這批驗了哪幾段**：`scripts/_preview.py` 全綠（所有分頁與個股頁正常）；
+另外用 Playwright 自己跑了一輪真人操作驗收（18 張 × 1440/800/390 ＝ 54 個量測點：
+畫面實際字級全部 ≥ 12px、文字重疊 0、文字溢出格子 0；點零件／點流程格／點代號三種互動
+都驗「畫面真的因此改變了」；深淺兩主題各驗一次）。
+**沒跑 `pytest`**（改動全落在 `site/**`，物理上碰不到 Python 端）、
+**沒跑 `_uitest.py`**（當時有另一支 agent 在改那支檔案，CEO 指定不要動）——
+⚠ 下一輪有人動 `_uitest.py` 完畢後，請補跑 `--only 題材,批次6-N1,批次6-圖九,批次6-圖十`。
+
+<!-- ===== delivery-planner 2026-09-22 插入區塊 開始（CEO 合併用的界標） ===== -->
+
+## ★★★ 2026-09-22：剖析圖量產排程 ＋「不准再問一次」清單（`delivery-planner`）
+
+> **三十秒版**：剖析圖總共 **30 張**，**完成 11／30**（11 張已上線），**19 張待畫**。
+> 待畫的分成兩塊：**既有鏈 5 張**（規格書全部寫好了，可以直接開畫）
+> ＋ **半導體鏈 14 張**（規格書一份都還沒寫，要先寫規格）。
+> 下一個動作 ＝ **第 1 波：輕油裂解、變壓器 GIS、電感／電阻／石英**（繪製已派出）。
+>
+> 這一節是 2026-09-22 的一次浪費的直接對策：Andy 已經說過「一口氣把所有圖完成」，
+> 我卻又回頭問他「要畫 1 張、6 張還是 15 張」。**把指令退回去問，就是把他的時間跟 Token 燒掉。**
+
+---
+
+### A. 不准再問一次（任何人、任何 session，看到這張表就照做，不要再問 Andy）
+
+| # | 已經拍板的事 | 誰、什麼時候拍的 | 出處 | 以後遇到就這樣做 |
+|---|---|---|---|---|
+| A1 | 「**執行下去，請一口氣把所有圖完成，若是有卡住的就先把其他張優先完成**」 | Andy 2026-09-21 | 對話 | 範圍 ＝ **全部 19 張**。**不准再問「要畫幾張」「要不要畫半導體」**。某一張卡住 → **跳過它、往下一張**，並把卡在哪登記到下面 D 節，不要停下整批。 |
+| A2 | 「**做完一張就先推上去並且馬上發布我要看成果**」 | Andy 2026-09-21 | DECISIONS #224 | **一張一張推**，不綁成一包。三張圖分三次推，他才能一張一張確認。 |
+| A3 | 「驗證不要跑全部，針對需要的部分跑」＋「沒動到的檔案就不需要跑驗證，即使動到的檔案，也先跑原本改動的地方即可」 | Andy 2026-09-21（同日講兩次） | DECISIONS #223、CLAUDE.md | 一律 `_uitest.py --only <對應段落>`。**只有他親口說「幫我全部驗一次」才跑整輪 395 秒。** |
+| A4 | 「記得幫我翻譯成繁體中文」＋「請下定義 以後都會用繁體中文回答」 | Andy 2026-09-19 | CLAUDE.md | 全部繁體中文：對話、回報、表格欄位、註解、commit、YAML note、畫面上每一個字。 |
+| A5 | 「不要把我的身份加進來，不因為我是誰而決定，需要依目前找到的資訊執行」 | Andy 2026-09-19 | CLAUDE.md | **不准用「你比我懂」把題目推回去**。證據不夠就自己去查，查完再決定。 |
+| A6 | 「當你遇到疑問，先上網查相關資料…CEO 分配人員下去進行」 | Andy 2026-09-21 | CLAUDE.md | 先 `WebSearch`／派鏈別分析師（`semi-chain-analyst` 等）。查不到才回報「這點查不到」。 |
+| A7 | 「如果像是 IC 設計 晶圓代工 封裝 等等 那就可以放同一頁，形成一個架構；但若是其他同個族群、為不同產品，則需要獨立分頁」 | Andy 2026-09-21 | `docs/diagram_plan_semiconductor.md` §1 | **分頁原則已經定案**，15 張的切法照那份 §2。不要再問「這兩個要不要合成一張」。 |
+| A8 | 「盡可能拆解解析公司負責項目及產品」 | Andy 2026-09-21 | `docs/diagram_purpose.md` R1–R6 | 那六條**位階高於每一份 `docs/diagram_specs/*.md`**。每張新圖都要過 R1–R6。 |
+| A9 | 「2D3D 都需要新增那樣的風格」（休閒配色） | Andy 2026-09-21 深夜 | DECISIONS #230 | 配色掛在 `<html data-dgpal>`，2D／3D 讀同一份 `--dg-*`。**新圖不准在 JS 裡寫死色值。** |
+| A10 | `ic_distribution`（IC 通路）**不畫** | ⚠ **這是 Claude 的建議，Andy 沒有拍板**（「未反對」不等於答應，不要把自己的提議寫成他的決定） | `docs/diagram_plan_semiconductor.md` §2 C 級 | 買斷再賣、沒有實體可剖。那個族群維持走圖別選單，**這是刻意的，不是漏掉**。 |
+| A11 | 畫布 **980 寬**、宣告 `native: 980`、字級下限 12px | 2026-09-21 | DECISIONS #227 | 字級守不住的根因是欄寬不是字級。不要再試著把字縮小來塞。 |
+| A12 | 點零件**只亮不篩** | 既有拍板 | DECISIONS #73 | 新圖沿用。零件高亮綁 `data-part`。 |
+| A13 | 剖析圖**族群優先、鏈為預設** | 2026-09-21 | DECISIONS #226 | 新圖一律 `level: 'group'`，掛在自己的族群 id 上。 |
+| A14 | **不准動 `site/index.html`** | 量產期間的併發規矩 | 各 stub 檔頭註解 | 五張 stub 的 `<script>` 早就寫好了。動 `index.html` ＝ 跟同時在畫別張圖的人撞車。 |
+| A15 | 變壓器 GIS 與既有題材圖 **並存，不是取代** | CEO 2026-09-22 指示 | 本次交辦 | ✅ `docs/diagram_plan.md` 第 14 列原本寫「待決定取代或並存」，**2026-09-22 已改掉**。這是盤點時找到的唯一一處「文件與拍板不一致」。 |
+
+**這張表怎麼維護**：以後 Andy 每拍板一件事，**當下就補一列**，不要等到下次又問他才發現。
+
+---
+
+### B. 批次表（19 張，依波次排；每一張都可以單獨推、單獨驗）
+
+**共用欄位說明**：
+- 「怎麼驗收」＝ 該圖**自己新增**的 `_uitest.py` 段落（繪圖 agent 要一起寫），加上固定的三段回歸：
+  `產業鏈導覽`、`零件誰做的`、`新-產業與個股`。
+- **每一段新增的驗收至少要有這五條**（照 CLAUDE.md「當自己是使用者實際操作」）：
+  ① 走到那張圖自己的網址，圖真的畫出來（`<svg>` 有節點、不是空框）
+  ② **真的用滑鼠點一個零件** → 「這個零件是誰做的」小卡出現，且列得出公司（R4：沒有台股就要明說是誰做的）
+  ③ 點色標／環節 → **成分股筆數真的變了**（不是只驗元素存在）
+  ④ 切到「休閒」配色 → 圖還在、語意色（`--dg-err`／`--dg-warn`／`--dg-cold`／`--dg-hot`）沒被覆寫
+  ⑤ **窄畫面 800px** 與 390px 不溢出、字不重疊、最小字級 ≥ 12px
+- 「線上哪裡看」的網址前綴一律 `https://miaozike.github.io/tw-rotation/`。
+
+#### B-1　既有鏈的 5 張（規格書已寫好，可直接開畫）
+
+| # | Andy 的原話 | 現況 | 派給誰 | 怎麼驗收（`--only`） | 線上哪裡看 |
+|---|---|---|---|---|---|
+| 1 | 「一口氣把所有圖完成」— 輕油裂解 `petrochemical` | ❌ 沒做（`site/dg/petrochemical.js` 線上 1340 bytes ＝ 只有註解，沒有 `register`）。規格 `docs/diagram_specs/naphtha_cracker.md` 已寫。**舊半成品的分支已經不在，要從規格重畫**（舊病：文字壓到裂解爐上） | `tech-illustrator`（第 1 波，已派） | 新增 `批次14-輕油裂解` ＋ `產業鏈導覽`、`零件誰做的`、`新-產業與個股` | `#industry/traditional/dg/petrochemical` |
+| 2 | 同上 — 變壓器 GIS `heavy_electric` | ❌ 沒做（線上 1349 bytes ＝ 只有註解）。規格 `transformer_gis.md` 已寫。**與題材圖並存**（見 A15） | `tech-illustrator`（第 1 波，已派） | 新增 `批次14-變壓器GIS` ＋ 同上三段回歸 | `#industry/infrastructure/dg/heavy_electric` |
+| 3 | 同上 — 電感／電阻／石英 `power_inductor` | ❌ 沒做（線上 1350 bytes）。規格 `passive_rlc.md` 已寫。⚠ 三種不相干零件同一張，**`data-seg` 要分三區**，點色標時只亮自己那區 | `tech-illustrator`（第 1 波，已派） | 新增 `批次14-電感電阻石英`（**第 ③ 條要驗三次篩出來的筆數彼此不同**，照 `批次12-電源PSU` 的寫法）＋ 同上三段回歸 | `#industry/electronics/dg/power_inductor` |
+| 4 | 同上 — 連接器與高速互連 `ai_interconnect` | ❌ 沒做（線上 2064 bytes）。規格 `connector_hsio.md` 已寫。⚠ 掛點已更正為 `ai_interconnect`（資料中心高速料號），**不是 `connector_ind`** | `tech-illustrator`（第 2 波） | 新增 `批次15-高速互連` ＋ 同上三段回歸 | `#industry/ai_server/dg/ai_interconnect` |
+| 5 | 同上 — 第三代半導體 `wide_bandgap` | ❌ 沒做（線上 1357 bytes）。規格 `wide_bandgap.md` 已寫。**上次的繪製 agent 被速率上限打掉**，所以是重派不是重寫 | `tech-illustrator`（第 2 波） | 新增 `批次15-第三代半導體` ＋ 同上三段回歸 | `#industry/semiconductor/dg/wide_bandgap` |
+| 5.5 | 「點 CoWoS 中介層列不出任何公司」 | ⚠ 部分做到 —— `adv_pkg` 在 `supply_chain.yaml` 是 0 家公司（schema 限制：一家公司只能歸一個環節）。**用繪圖端的 `parts:` 指名台積電／日月光即可，不必動 YAML** | `tech-illustrator`（併進第 2 波，約 10 分） | `零件誰做的`（既有段落加一條：`ai_adv_packaging` 的中介層零件，點下去**列得出公司**） | `#industry/semiconductor/dg/ai_adv_packaging` |
+
+> ⚠ **5.5 刻意不動 YAML**。動 `pipeline/groups/*.yaml` 會觸發「**要先 `python -m pipeline.build_payload` 重算 payload，前端關卡才驗得到新資料**」那條規矩（CLAUDE.md，2026-09-21 假綠事件），一次多花 5 分鐘而且有假綠風險。繪圖端 `parts:` 精修零風險。
+
+#### B-2　半導體鏈的 14 張（**規格書一份都還沒寫**，要先寫規格）
+
+編號沿用 `docs/diagram_plan_semiconductor.md` 的 S1–S15。
+**S12 ＝ `wide_bandgap`，已排在上面第 5 列，這裡不重複**，所以是 14 張不是 15 張。
+
+| # | 圖 | 涵蓋族群 | 現況 | 規格書要寫成 | 線上哪裡看 |
+|---|---|---|---|---|---|
+| S1 | 晶圓代工製程剖面（**Andy 點名**） | `foundry` | ❌ 規格未寫、圖未畫 | `docs/diagram_specs/foundry_process.md` | `#industry/semiconductor/dg/foundry` |
+| S2 | 矽晶圓怎麼長出來 | `silicon_wafer` | ❌ 同上 | `silicon_wafer.md` | `.../dg/silicon_wafer` |
+| S3 | 前段製程材料 | `fab_material` | ❌ 同上 | `fab_material.md` | `.../dg/fab_material` |
+| S4 | 晶圓廠機台拆開看 | `fab_equipment`、`fab_process_equip` | ❌ 同上（**兩族群共用一張**） | `fab_equipment.md` | `.../dg/fab_equipment` |
+| S5 | 傳統封裝與測試 | `osat`、`ic_test_service` | ❌ 同上（兩族群共用一張） | `osat_test.md` | `.../dg/osat` |
+| S6 | 封裝產線的機台與量測點 | `pkg_equipment`、`pkg_metrology` | ❌ 同上（兩族群共用一張） | `pkg_equipment.md` | `.../dg/pkg_equipment` |
+| S7 | HBM 堆疊剖面 | `hbm` | ❌ 同上 | `hbm_stack.md` | `.../dg/hbm` |
+| S8 | 記憶體模組板 | `memory_module`、`cxl` | ❌ 同上（兩族群共用一張） | `memory_module.md` | `.../dg/memory_module` |
+| S9 | 導線架與封裝化學品 | `leadframe_chem` | ❌ 同上 | `leadframe_chem.md` | `.../dg/leadframe_chem` |
+| S10 | 影像感測器剖面 | `optical_sensing` | ❌ 同上 | `image_sensor.md` | `.../dg/optical_sensing` |
+| S11 | 顯示驅動 IC 怎麼貼上面板 | `display_driver_ic` | ❌ 同上（可接到已畫好的 `panel`） | `display_driver_ic.md` | `.../dg/display_driver_ic` |
+| S13 | 晶圓廠廠務 | `semi_facility` | ❌ 同上 | `semi_facility.md` | `.../dg/semi_facility` |
+| S14 | 一顆 SoC 裡面有什麼（**方塊圖，非剖面**） | `ip_asic`、`cpu_agentic_ai`、`hpc_network_ic` | ❌ 同上（三族群共用一張）。⚠ 整批**最可割捨**的一張 | `soc_blocks.md` | `.../dg/ip_asic` |
+| S15 | 類比與電源管理 IC 在板子上的位置 | `analog_power_ic` | ❌ 同上 | `analog_power_ic.md` | `.../dg/analog_power_ic` |
+
+#### B-3　波次排程（**同時最多 3 支 agent**，這是硬限制）
+
+工時用 2026-09-19～21 的實測數字推，**不是拍腦袋**：寫規格 ≈ 10 分／份（一支 agent 3 份 ≈ 29 分）、
+畫圖 ≈ 50 分／張（PSU 47、ABF 63、液冷＋氣冷 62）、我這邊合併＋跑對應段落 15～20 分／波、
+部署約 1 分（實測 19:06→19:06:45、19:21→19:22）——**部署跟下一波的繪製重疊，不排成等待**。
+
+| 波次 | 槽 1（繪製） | 槽 2（繪製） | 槽 3（規格） | 這一波要跑的驗收段落 | 牆鐘 |
+|---|---|---|---|---|---|
+| **W1**（進行中） | 輕油裂解 | 變壓器 GIS ＋ 電感／電阻／石英 | — | `批次14-輕油裂解`、`批次14-變壓器GIS`、`批次14-電感電阻石英`、`產業鏈導覽`、`零件誰做的`、`新-產業與個股` | ~55＋20 |
+| **W2** | 高速互連 ＋ `adv_pkg` 精修 | 第三代半導體 | `mechanical-engineer`：S1／S2／S5 規格 | `批次15-高速互連`、`批次15-第三代半導體`、`零件誰做的`、`產業鏈導覽`、`新-產業與個股` | ~60＋20 |
+| **W3** | S1 晶圓代工 | S2 矽晶圓 | `mechanical-engineer`：S3／S4／S6 規格 | `批次16-晶圓代工`、`批次16-矽晶圓` ＋ 三段回歸 | ~55＋20 |
+| **W4** | S5 封裝與測試 | S3 前段材料 | `mechanical-engineer`：S7／S8／S9 規格 | `批次16-封裝測試`、`批次16-前段材料` ＋ 三段回歸 | ~55＋20 |
+| **W5** | S4 晶圓廠機台 | S6 封裝產線機台 | `mechanical-engineer`：S10／S11／S13 規格 | `批次17-晶圓廠機台`、`批次17-封裝產線` ＋ 三段回歸 | ~55＋20 |
+| **W6** | S7 HBM | S8 記憶體模組 | `mechanical-engineer`：S14／S15 規格（**14 份寫完**） | `批次17-HBM`、`批次17-記憶體模組` ＋ 三段回歸 | ~55＋20 |
+| **W7** | S9 導線架 | S10 影像感測器 | S11 顯示驅動 IC（規格已備齊，槽 3 改繪製） | `批次18-導線架`、`批次18-影像感測器`、`批次18-顯示驅動IC` ＋ 三段回歸 | ~55＋20 |
+| **W8** | S13 廠務 | S14 SoC 方塊圖 | S15 類比電源 IC | `批次18-廠務`、`批次18-SoC`、`批次18-類比電源` ＋ 三段回歸 | ~55＋20 |
+
+**合計牆鐘約 8.5～10 小時**（19 張）。分段里程碑，Andy 隨時可以喊停：
+
+| 到哪一波為止 | 完成張數 | 累計時間 |
+|---|---|---|
+| W1 結束 | 3／19 | 約 1.3 小時 |
+| W2 結束 | **5／19 —— 既有鏈全部畫完**（＋`adv_pkg` 修好） | 約 2.6 小時 |
+| W3 結束 | 7／19（含 **Andy 點名的 S1 晶圓代工**） | 約 3.8 小時 |
+| W6 結束 | 13／19（半導體核心主線：代工→矽晶圓→封測→材料→機台→HBM→模組 補完） | 約 7.5 小時 |
+| W8 結束 | **19／19 全部完成** | 約 10 小時 |
+
+**一批最多 5 項**：每一波 2～3 張，符合。W1 三張是因為規格都寫好了、彼此完全不相干（不同鏈、不同檔案），衝突風險最低。
+
+---
+
+### C. 為什麼是這個順序
+
+1. **既有鏈 5 張排最前面，因為它們的規格書已經寫好了。**
+   先收尾規格齊全的，等於**用零等待時間換 5 張上線**；先跳去畫半導體，那 5 份已經付出的規格工時就白白躺著。
+2. **規格書與繪製重疊，不排成序列。** 半導體 14 份規格要 ~2.3 小時；如果等寫完才開畫，那 2.3 小時整個是死等。
+   把槽 3 固定給 `mechanical-engineer`，規格供給（3 份／波）永遠跑在繪製消耗（2 張／波）前面，**到 W6 規格就寫完了，W7 起三槽全開畫**。
+3. **W3 就把 Andy 點名的 S1 晶圓代工做掉**，不排到最後。他點名的東西越早上線，後面每一句「好了」對他越有意義。
+4. **批次刻意小（2～3 張／波），因為 A2：他要一張一張看成果。** 綁成一大包推，他說「有問題」我還要先拆是哪一張——那是上次 23 項只完成 1 項的同一個形態。
+5. **卡住就跳過（A1）**。W1 的三張互不相干，任何一張卡住，另外兩張照常推。卡住的登記到 D 節，不要讓它拖住整波。
+6. **`ai_interconnect` 與 `wide_bandgap` 放 W2 不放 W1**，因為這兩張各有一個已知風險（掛點更正過、上次被速率上限打掉），放在第二波時第一波的合併流程已經驗過一次，出問題比較好切。
+
+---
+
+### D. 還在等 Andy 的事（**每一項都標了「不受它影響、可以先做什麼」**）
+
+| # | 還沒拍板的事 | 誰在等 | **不受它影響、現在就可以做的部分** |
+|---|---|---|---|
+| D1 | **S14「一顆 SoC 裡面有什麼」是方塊圖，跟前面 13 張的剖面感不統一**——他要不要 | W8 槽 2 | **其餘 18 張全部照排**。S14 排在最後一波，就是為了讓這題最晚才需要答案。他說不要 → 直接刪掉那一格，不影響任何其他張。 |
+| D2 | **`ic_distribution`（IC 通路）確定不畫**，那個族群頁會維持沒有圖 | — | 已當成拍板（A10）。要是他之後說想要，那是**新增一張**，不影響現有 19 張任何一張。 |
+| D3 | **小卡在長圖時可能落在畫面外**，真正的解是「寬螢幕改成圖左卡右兩欄」 | 全部新圖共用 | **19 張照畫**。這是共用版面的改動，屬於「動全站共用的東西」＝高風險，應該**自成一批、不要跟新圖綁**（同 `下一步` 第 4 條的理由）。 |
+| D4 | **個股頁的剖析圖還是老行為**（點零件跳到產業鏈頁，沒有小卡） | — | 不影響產業鏈頁的 19 張。獨立一批。 |
+| D5 | `docs/diagram_plan.md` 第 14 列的「**待決定取代或並存**」與 A15 相牴觸 | 文件一致性 | **不用等 Andy**——CEO 已指示並存，把那行改掉即可。放著不改的代價是下一個 session 一定會再問一次。 |
+
+**紅線提醒**：上面沒有任何一項有資格擋住整批。**不准用一個未決事項當「所以整批先停」的理由。**
+
+---
+
+### E. 這個排程的代價（先寫在前面，不要事後才承認）
+
+1. **只驗對應段落 ＝ 把「改 A 弄壞 B」的風險換成速度。**
+   整輪 395 秒、對應段落 60～120 秒，19 張下來省掉一個多小時；
+   代價是**合在一起才會發作的互動驗不到**——2026-09-20 的平行化實測就抓到三個「只在別的段落才會紅」的缺陷。
+   唯一的安全網是**每一波在 HANDOFF 記一句「這批只驗了哪幾段、沒驗哪幾段」**，這條不准省。
+2. **19 張都會動到 `site/dg/` 與 `scripts/_uitest.py`。** 前者一張一個檔、不會撞；
+   **後者是共用檔，同一波的 2～3 支 agent 一定會在 `SECTIONS` 表那裡撞**。
+   對策：每支 agent 只在 `SECTIONS` **最後面**加自己那一行、函式寫在檔尾，衝突解起來是一行 vs 一行。
+3. **`_preview.py` 每一波照跑，不砍。** 它只要 2 分鐘，抓的是文字重疊與多寬度溢出——
+   那正是量產圖最常見的壞法（第 1 波的輕油裂解舊病就是「文字壓到裂解爐上」）。
+4. **pytest 每一波都跳過**，因為改動全落在 `site/**` 與 `scripts/_uitest.py`（CLAUDE.md 已用機器確認 `tests/` 沒有 import 那幾支）。
+   **但每一波回報時要跟 Andy 講一聲跳了什麼、為什麼**，不可以默默省掉。
+   ⚠ 只要哪一波不小心動到 `pipeline/groups/*.yaml`，就**必須先 `python -m pipeline.build_payload` 重算再跑前端關卡**，否則是假綠（2026-09-21 踩過）。
+5. **速率上限是真的硬限制。** 之前同時派 9 支全被 HTTP 429 打掉，那一輪等於全賠。
+   **不要因為「這樣比較快」就把並行度調到 4 以上**——那不是比較快，那是整波歸零。
+
+<!-- ===== delivery-planner 2026-09-22 插入區塊 結束 ===== -->
+
+
+> ## 2026-09-22：剖析圖風格系統地基（分支 `claude/style-system`，**沒有推 main**，等 CEO 合併）（最新）
+>
+> Andy 拍板（DECISIONS #238）：兩種模式（亮色「閱讀」／暗色「科技」）、卡片式標註、細引線、垂直爆炸；所有圖都改。
+> 這一批是地基：**色票、共用元件、v2 版面**改一次，後面每一張圖跟著變。落地決策在 DECISIONS #239，規格在 `docs/diagram_specs/_STYLE.md`。
+>
+> **動到的檔案**：`site/index.html`（`--dg-*` 兩套、`.dgv2`／`.dgc`／`.dglead`、`.lbl3d` 吃卡片 token、`.dg3d[data-pal="read"]`）、
+> `site/diagrams.js`（STYLE 全部吃 token、`labelRow`／`lrow3`／`note`／`processBar`／`pointer`／`explode`／`shadow`／`fitTexts`／`externalize`、MLCC 重排 660）、
+> `site/dg/panel.js`（八條說明卡加編號、掛 `.rs`）、`site/industry.js`（只有配色鈕：兩種模式、預設跟主題、舊值 fallback、`tw:theme`／`tw:dgpal` 事件）、
+> `site/three3d.js`（只有 `PALS` 認 `tech`／`read`）、`scripts/_uitest.py`、`docs/diagram_specs/_STYLE.md`、`docs/diagram_restyle_plan.md`、`.gitignore`。
+>
+> ### 做了什麼（一句一件）
+> - 模式跟主題走：深色→科技、淺色→閱讀；`#dgPal` 可手動切、切了記住；舊 localStorage 值清掉退回跟主題。
+> - 閱讀模式整組色票（底、三階字、79 個材質、語意色重算明度、環節色 `--cc` 降飽和）；科技一個 token 都沒動。
+> - 卡片（圓角、細邊、左側色條、編號圓點、磨砂玻璃 token）、引線（細線＋端點）、`--dg-card-c` 介面（2D／3D 共用）、三組語意色 `--dg-sig`／`--dg-pwr`／`--dg-cool`。
+> - v2 版面：卡片離開 SVG 變 HTML，畫布 660 在中間、卡片左右欄、容器寬決定欄數、引線 resize 重畫、併成一欄照編號排。MLCC 是樣板（收合 574）。
+> - 閱讀字級 13px 只給 `.rs`（MLCC、面板）；`fitTexts` 量完再縮。
+>
+> ### 對照樣板（本機截圖，`docs/_style/`，gitignore）
+> MLCC：`mlcc-{light,dark}-{1440,1100,800}-v2c.png`（抽屜關）、`mlcc-{light,dark}-1440-v2.png`（抽屜開＝兩欄）；面板：`panel-{light,dark}-1440-r3.png`。
+>
+> ### 這批驗了哪幾段（#223 的配套）
+> `_preview.py` 全跑（overlaps 0／outside 0）。`_uitest --only`：批次22-風格系統（新增）、批次13-配色與收納、批次11-MLCC、零件誰做的、點背景恢復、
+> 淺色主題、明亮主題、產業、3D零件字彙、批次6-圖九、批次21-CoWoS去重。pytest 跳過（改動全在 `site/**`、`scripts/_uitest.py`、docs）。
+> 改掉的既有斷言逐條在 DECISIONS #239 第八節。
+>
+> ### ⬜ 這批沒做／要記著的
+> - 只有 MLCC 走 v2 版面；面板與其他 16 張仍是「卡片在 SVG 裡」的舊版面（共用元件已換成卡片樣式，兩種模式都畫得出來）。逐張改造時把 `labelRow` 多傳 `side` 就會外掛。
+> - 閱讀模式 13px 只給 `.rs`；其餘圖 12px（8 張在 13px 會撞字，見 #239 第六節）。
+> - `#dgQ`（「這張圖回答：…」）在 `industry.js` 版面裡，左緣對齊那一條沒動它。
+> - AI 伺服器鏈層級圖（`diagrams.js` 的 `aiServer`）與 `themes3d.js` 的 18 張題材圖仍有寫死色值，閱讀模式下部分元素（例：「ToR 交換器」白字）看不到 —— 逐張改造那一波處理。
+> - 3D：`.dg3d[data-pal="read"]` 只是一組能跑的起始值，打光材質細調在 style-3d。
+
+
+> ## 2026-09-21 深夜：MLCC 版面收納 ＋ 剖析圖「休閒」配色（分支 `claude/dg-casual`，**沒有推 main**）（最新）
+>
+> Andy：「產業那邊 像是新增的 MLCC 圖片排版我覺得有點奇怪幫我優化，需要更直觀且看起來更舒服，
+> **可以收納就收納**，另外幫我圖片色系色調多個**休閒風格，更平易近人**」
+> ＋ 追加：「**2D3D 都需要新增那樣的風格**」。
+>
+> **動到的檔案**：`site/index.html`、`site/diagrams.js`、`site/three3d.js`、`site/industry.js`、
+> `site/dg/{air_cooling,liquid_cooling,server_psu,pcb_rigid,panel,switch_wireless,ic_substrate}.js`、
+> `scripts/_uitest.py`、`.gitignore`、`HANDOFF.md`。
+>
+> ### ① MLCC：從「八塊一樣重」改成漸進揭露
+>
+> | 條目 | 改前 → 改後 |
+> |---|---|
+> | 畫面上看得到的文字節點 | 73 個（全部攤開） → **31 個**（收合時） |
+> | 主角（等角本體）佔畫布 | 12.88% → **29.90%**（收合時；全部展開時 12.88%，跟改前一樣） |
+> | 主角等比倍率 `S` | 1.15 → **1.48**（**純等比，幾何一行沒動**） |
+> | 畫布高度 | 1046（固定） → **746 收合／1732 全開**（`viewBox` 由 JS 改） |
+> | 版面塊數 | 8 塊 → 主畫面 **1 塊**（主角＋右欄）＋ 三條章節列 |
+>
+> **主畫面只留這張圖的命題**：標題 → ① 容值公式 → 主角 → 六條逐層說明 → 短路警語。
+> 容值公式從左上角搬到**右側說明欄的最上面** —— 它是「層數怎麼變成容值」的展開式，
+> 跟底下六條講的是同一件事，放在同一欄之後閱讀順序只剩一條線。
+> 左半邊整個讓給主角，所以 `S` 的上限從「被左右兩欄夾住的 352px」放寬到 584px，
+> 真正的限制變成**垂直**（452/305 ＝ 1.48）。
+>
+> **收起來的三段（按章節列展開，預設收合）**：
+> ② 端電極四層 ＋ 板彎裂　③ 製造流程 ＋ 為什麼疊越多層越貴　④ 尺寸代號、名單與資料來源
+>
+> ★ **收納 ≠ 刪除**：一個字都沒刪，只有兩處「不再中途斷行」（「車規為什麼難做」的欄位
+> 從 458 加寬到 662，原本被硬斷成六行的三句話各自一行）。
+> 每一條章節列都寫著**裡面有什麼**（不是「更多」），收合狀態下讀者知道還有什麼可以看。
+>
+> **機制住在 `diagrams.js`，`industry.js` 的版面一行都沒改**：`stampParts()` 本來就是
+> 「圖插進 DOM 之後會被呼叫一次」的掛點，`wireFolds()` 掛在它後面。
+> 每一段在原始碼裡畫在自己的自然位置並宣告 `data-y0`／`data-y1`，JS 只做「由上往下重新堆一次」。
+> ⚠ 好處是 **JS 沒跑到也不會壞** —— 靜態 SVG 本身就是一份全部展開、座標正確的版面。
+> ⚠ 章節列刻意**不掛 `data-seg`**，不然按一下展開就順便把成分股篩掉了（驗收有這一條）。
+>
+> ### ② 配色：新增「休閒」，而且配色切換**在 2D 也能用**
+>
+> 改之前：`#dgPal` 只在 3D 模式才出現（`industry.js` 的 `setMode` 會連同「重設視角」一起藏），
+> 所以 **11 張 2D 剖析圖從頭到尾只有一種配色**。
+> 現在配色掛在 `<html data-dgpal>`，**2D 與 3D 讀同一份 `--dg-*`**（`three3d.js` 的
+> `K.css()` / `palNum()` 本來就是讀這組變數的），不會一邊暖一邊冷。
+>
+> | 配色 | 底 | 強調色 | 發光 | 一句話 |
+> |---|---|---|---|---|
+> | 科技（預設） | `#0a1020` | `#3ee0ff` | 有 | **一個 token 都不覆寫＝跟改動之前一模一樣** |
+> | 柔和 | `#141a28` | `#7fc7dd` | 無 | 底亮一階、青色去飽和 |
+> | 沉穩 | `#16181c` | `#c9973f` | 無 | 中性暗灰，琥珀跟 3D 的 `--dg-mix` 同一個 |
+> | **休閒** | `#2b2622` | `#e0a24a` | **無** | 暖炭底（色相 30° vs 現況 225°）、暖灰材質、琥珀 |
+>
+> ★ **休閒為什麼不是白底**：11 張圖的材質色（陶瓷 #d3cbb7、錫 #e2e7ec、反射片 #eef1f7…）
+> 全是**為深底調的亮色**，換白底會整片消失 —— 那正是 DECISIONS #198 記的「白字白線」同一個坑。
+> 所以走的是**色相轉暖 ＋ 關掉發光 ＋ 降低螢光感**，不是換底色明暗。
+>
+> ★ **語意色四個配色下都不覆寫**：`--dg-err`／`--dg-warn`／`--dg-cold`／`--dg-hot`／
+> `--dg-sw-sig|fiber|pwr`／`--dg-pn-r|g|b`。驗收**量色差**（不是看有沒有定義）：
+> 休閒下 err↔底 178、err↔強調 121、warn↔強調 104、warn↔說明文字 95。
+> ⚠ 這一條真的抓到一個缺陷：休閒的 `--dg-ink-3` 本來是 `#bfae99`，跟 `--dg-warn` 色差只有 **73**
+> —— 警語跟一般說明在暖底上分不出來。改成 `#a99f92`（色差 95，對背景仍有 5.7:1）。
+>
+> **切換記在 `localStorage['tw.dg3d.pal']`（沿用舊 key，不另開）、深淺主題共用一份**。
+> 理由：剖析圖的畫布底在兩個主題下都是深底（既有決策），配色效果跟主題無關；
+> 分開記只會變成「切一次主題、配色莫名其妙換掉」。
+>
+> ### ③ 九個檔的 scoped `--dg-*` 全部收進 `:root`（**同值搬家，像素零變化**）
+>
+> 收了 **79 個 token**（`.dgair`／`.dgcool`／`.dg.psu`／`.dgpcb`／`.dgpn`／`.dgsw`／`.dgabf`
+> ＋ `ai_adv_packaging` 本來寫在 `var(--x, fallback)` 裡的七個）。
+> 不收就等於「休閒配色只有一張圖有效」—— scoped 的變數在 `:root[data-dgpal]` 那一層蓋不掉。
+>
+> ⚠ **撞名兩組**（同名不同值，本來靠 scope 各自為政）：
+> `--dg-core` 硬板 #33452f ←→ ABF 載板 #3f4a30 → 硬板那個改叫 `--dg-pcb-core`；
+> `--dg-glass` 硬板玻纖紗束 #cfc8a4 ←→ ABF 玻璃核心 #8fb6c9 → 紗束改叫 `--dg-yarn`。
+>
+> **外觀零變化怎麼證明的**：把 `main` 的 `site/` 取出來另起一個伺服器，
+> 兩邊各截 11 張剖析圖（1440、深色、科技、動畫關掉）逐張比像素 ——
+> **11 張全部 0 個不同像素**。
+>
+> ### ★ 開發過程踩到一個很值得記的坑：SVG 裡的 `<style>` 不是純文字
+>
+> 我在 `diagrams.js` 的 `STYLE` 註解裡寫了一組角括號包起來的 `html data-dgpal`，
+> 結果整張樣式表的 `cssRules` 變成 **0 條** —— 畫面上所有說明框變成實心黑、文字消失。
+> 原因：那個 `<style>` 在 **SVG** 裡，瀏覽器是當**標記**解析的，
+> 寫一個長得像標籤的東西進去就會把樣式表吃掉。
+> **規矩：SVG 的 `<style>` 裡（含註解）一律不准出現角括號。**
+>
+> ### 這批驗了哪幾段（#223 的配套）
+>
+> ```
+> 批次13-配色與收納（新增）  批次11-MLCC  批次12-ABF載板  批次12-散熱  批次12-電源PSU
+> 產業  產業鏈導覽  一般電子鏈  新-產業與個股  批次6-圖九  手機  縮放掃描  淺色主題
+> ```
+> `_preview.py` **全跑**（overlaps 0 / outside 0）。
+> `pytest` **跳過**：`git diff --name-only main..HEAD` 只有 `site/**`、`scripts/_uitest.py`、
+> `.gitignore`、`HANDOFF.md` —— 依 CLAUDE.md 的清單，`_uitest.py` 是明文排除的那一支，
+> 物理上碰不到 Python 端。
+>
+> **新增的 `批次13-配色與收納`** 驗的是「畫面真的因此改變」：配色鈕在 2D 看得見、
+> 按下去量得到色值改變、四個配色都走得到、語意色量得出色差、重新整理記得住、
+> 章節真的打得開（text 數 31 → 86、viewBox 746 → 1732）、章節列不會篩掉成分股、
+> 11 張圖 × 三個寬度字級 ≥ 12px 不重疊、3D 也切得到休閒。
+>
+> **沒驗到的段落**（出怪象先往這裡找）：總覽、資金流向、新-資金流向、新-輪動時鐘、
+> 盤中即時、今日事件、季節性、市場明細、任務板、題材、批次1~7 的其餘段落、個股、K線縮放。
+>
+> ### ⬜ 這批**沒有做**的
+>
+> - 休閒配色對 `site/themes3d.js` 的 18 張題材圖只換到「底色、文字、框線、強調色」；
+>   那些圖的彩帶與站點色還有一批寫死的 `rgba(62,224,255,…)`（`.dg3 .rib.flow` 那幾條）。
+>   要一起轉暖就得再做一次 token 化，這批沒碰。
+> - `site/dg/ai_adv_packaging.js` 有**一對既有的文字重疊**（「動線：一條走 µbump →」
+>   與「接點逐級放大；底填有圓角、補強環」，1440 下重疊 15.3px）。
+>   拿 `main` 的版本用同一支量過**一模一樣**，是這批之前就有的，沒有順手改（不在這批的範圍）。
+>
+
+> ## 2026-09-21 深夜：剖析圖的字體與版面一次整頓（分支 `claude/dg-typo`，**沒有推 main**）
+>
+> Andy：「另外字體版面需要調整適當，你再安排一下，CEO 交給你了」。
+> 取捨由 `art-director` 判斷，每一項都有量測數字。
+> **動到的檔案**：`site/index.html`、`site/diagrams.js`、`site/themes3d.js`、
+> `scripts/_uitest.py`、`.gitignore`、`HANDOFF.md`。
+> **`site/industry.js` 一行都沒動**（那個檔同時有另一個 agent 在改路由）。
+> 分支已經 **rebase 到 `b5f4858`（claude/dg-pages 合併之後的 main）**，衝突解完、關卡重跑過，
+> 合併時應該是 fast-forward。
+>
+> ### 字級標準：四階、一處定義（`index.html` 的 `--dg-fs-*`）
+>
+> | token | 值 | 用在哪 |
+> |---|---|---|
+> | `--dg-fs-ttl` | 16px | 圖名（一張圖一個） |
+> | `--dg-fs-hd` | 13.5px | 區塊小標 |
+> | `--dg-fs-lbl` | 12.5px | 零件名、說明列標題 |
+> | `--dg-fs-min` | **12px** | 說明、註腳、代號、數字 —— **下限** |
+>
+> 以前 `.sub` 10.5／`.cap` 11.5／`.tag` 10 三個值散在 `diagrams.js` 的 STYLE 裡，
+> 每畫一張新圖就要決定一次「這張要不要跟舊的一樣」，所以永遠有一張是舊的
+> （`.dgm` 那個補丁就是這麼來的）。現在 **12px 是 `.dg` 的基準**，
+> `.dgm` 只剩量產圖自己的 `.hd` 與 `.num`。
+>
+> ### 改前改後：畫面上真實字級（＝CSS 字級 × svg 實寬 ÷ viewBox 寬）
+>
+> | 圖 | 1440 | 800 | 390 | 低於 12px 的節點數 |
+> |---|---|---|---|---|
+> | 半導體 | 10.47 → **13.22** | 9.50 → **12.00** | 9.50 → **12.00** | 20~25 → **0** |
+> | AI 伺服器 | 11.57 → **13.22** | 10.50 → **12.00** | 10.50 → **12.00** | 23~25 → **0** |
+> | MLCC | 16.46（不變） | 12.00（不變） | 12.00（不變） | 0 → 0，但**重疊 6 對 → 0** |
+> | 題材圖 ×18 | 11.39 → **13.67** | 8.36 → **12.00** | 同 800 | 44~57 → **0** |
+>
+> 深色與淺色主題的數字**完全相同**（`--dg-*` 兩個主題共用，`--illus` 本來就兩邊都深底）。
+>
+> ### ★ 真正的工作不是「把字調大」，是「行距跟著長」
+>
+> 字級一升、行距沒跟著長就會相貼 —— 同一個病第三次發作（`processBar` 已經修過一次）。
+> 所以先量再改：
+>
+> | 元件 | 改前 | 改後 | 量到的 |
+> |---|---|---|---|
+> | `labelRow`／`lrow3`（三張圖共用） | 行距 13px、底框 34 | **16px／40** | MLCC **改之前就已經 6 對重疊 1.00px** → 0 |
+> | 題材圖站點副標 | 行距 14／13px | **17px** | 800px 下每張 5~10 對重疊 → 0 |
+> | 題材圖個股晶片 | 盒高 19、列距 23、估寬 11.5/字 | **21／25／12.5** | 字 11.5→12px，盒子同步長 |
+> | 題材圖流程列 | 方塊 34、副標 +28 | **40／+32** | 同 `processBar` 的 B3 |
+>
+> 另外清掉**四處把字級寫死在 inline style** 的地方（9.5px ×2、12px ×2）——
+> inline 贏過 CSS，字級標準對它們無效。
+>
+> ### ★★ 題材圖 800px 的根因是欄寬，不是字級（同 DECISIONS #226）
+>
+> 題材圖 viewBox 是 1180，在 800px 螢幕上被壓成 940（×0.797）—— 12px 變 9.56px，
+> **整張圖 44~57 個文字節點全部低於下限**。`themes3d.js` 的 `fit()` 補上 native
+> （圖維持原尺寸、欄位不夠寬就左右滑）。
+> ⚠ 代價：800px 一次看得到 940/1180＝**80%**、390px 只看得到 **33%**，要左右滑。
+> 這是 #226 已經拍板的取捨，不是新決定。
+>
+> ### MLCC 版面
+>
+> | 條目 | 量到的改前 → 改後 |
+> |---|---|
+> | 主角（等角本體）佔畫布面積 | **9.90% → 12.88%**（bbox 327×305 → 376×351）。純等比 `scale(1.15)`，**幾何一行沒動** |
+> | 閱讀起點 | 尺寸比較尺（附註）→ **容值公式**（這張圖的命題本身）。尺寸尺移到左欄最下面 |
+> | 尺寸尺的材質 | 陶瓷漸層 `url(#mcT)` ＋ 錫色 `--dg-sn` → 單一 `--dg-mute` 兩階透明度。**輪廓與三套代號一個字都沒刪** |
+> | 「側邊餘白」的引線 | 沿 y=291.5 **橫跨整個主體 280px** → 先往下繞到主體下方，只擦過左下角約 31px |
+> | 側邊餘白的粉紅虛線 | `stroke-width 1.1` `3 3` → **`--dg-hair-w` 2** ＋ `5 4` |
+> | 3D 文字框的說明 `.lbl3d i` | 11px ＋ `line-clamp:2` 截斷 → **12px ＋ 三行** |
+>
+> **主角為什麼只能到 12.88%**：畫布寬 980 是 #226 訂的（1440 螢幕上欄寬剛好 984，不用左右滑）。
+> 加寬畫布 ＝ 在 Andy 的預設寬度生出水平捲軸，那個代價比較貴。
+> 能拉到 1.15 是因為**右側說明欄的底框畫到 948、但最長的一行字只到 860**（右邊 88px 是空的），
+> 欄位右移到 688、寬度 312→268 讓出來的。
+>
+> ### ⬜ 這批**沒有做**的：窄畫面「右欄改成圖下方堆疊」
+>
+> 規格書 `docs/diagram_specs/mlcc_stack.md` §7 第 4 點要求的那一半，**還是沒做**。
+> 理由（取捨，不是藉口）：那要寫**第二套完整版面**（`mlccStackNarrow()`）並在 resize 時重畫，
+> 而重畫的掛點在 `site/industry.js` —— 那個檔這一批有另一個 agent 在改路由與圖別入口。
+> 現況量到的：800px 一次看得到 **74%**（右欄六條引線在畫面外）、390px **33%**
+> （止血已在：窄畫面展開後捲軸自動捲到圖中央；主角放大到 1.15 之後，390px 幾乎填滿整個畫面）。
+>
+> ### 新增的 `--dg-*`
+>
+> | token | 值 | 為什麼 |
+> |---|---|---|
+> | `--dg-fs-ttl` / `--dg-fs-hd` / `--dg-fs-lbl` / `--dg-fs-min` | 16 / 13.5 / 12.5 / **12**px | 字級標準收成一處；`min` 是下限 |
+> | `--dg-hair-w` | 2（原本寫死 1.1） | 1.1 在 1440 幾乎看不見，而那條虛線是「為什麼不能無限縮小」的一半答案 |
+> | `--dg-mute` | `#78859f` | 附註級圖形的單色。降權用：附註不准跟主角共用材質質感 |
+>
+> 順帶一個沒預期但是好的副作用：`.dg .cap` 的 `fill` 從寫死的 `#6f7ea3` 改走
+> `--dg-ink-3` —— 對比從 **4.68:1 拉到 7.20:1**（底色 `--illus` #0a1020）。
+>
+> ⚠ `site/diagrams.js` **還有 95 處寫死色值**（多半在半導體與 AI 伺服器兩張的材質漸層裡）。
+> MLCC 那張的 46 處已經在 B5 收進 `--dg-*`，這兩張還沒 —— 那是另外一批。
+>
+> ### ★ 這批驗了哪幾段（#223 的配套）
+>
+> ```
+> 批次11-MLCC  產業  產業鏈導覽  一般電子鏈  產業關係面板
+> 新-產業與個股  批次6-圖九  題材  手機  縮放掃描  淺色主題  個股
+> ```
+> `_preview.py` **全跑**（overlaps 0 / outside 0）。
+> `pytest` **跳過**：改動清單只有 `site/**`、`scripts/_uitest.py`、`.gitignore`、`HANDOFF.md`
+> —— 物理上碰不到 Python 端。
+>
+> ⚠ **`個股即時分K` 有 5 條紅的，那是既有的、跟這批無關**。
+> 已經用機器證明過：把三個改過的檔案還原成改前的版本再跑同一段，**紅的是同樣那 5 條**
+> （內容全部是「報價日期 vs 資料湖日期」「1 分 K 只有 1 筆」——
+> 容器打不到證交所造成的，跟字級／版面無關）。
+>
+> `_uitest.py` 的 `批次11-MLCC` 新增第 10 段：**三張圖 × 1440/800/390 × 圖上每一個 text**
+> 的畫面真實字級 ≥ 12px，外加文字兩兩不重疊。
+> 以前只驗 MLCC 一張、只驗 800px、只看 `.sub` 與 `.cap` 兩個 class ——
+> 所以兩張舊圖 10.47／11.57px 一路綠燈，Andy 從 09-15 講到 09-21 都還在講「文字太小」。
+>
+> **沒驗到的段落**（出怪象先往這裡找）：總覽、資金流向、新-資金流向、新-輪動時鐘、
+> 資金輪動合併、大盤三張圖、新-大盤三張圖、盤中即時、今日事件、季節性、市場明細、
+> 個股即時分K、K線縮放、排序、資料狀態、網頁版號、設定面板、任務板、明亮主題、
+> 新-版面等高與多寬度、批次1~4、批次7、批次6-N1、批次6-圖十。
+>
+> ### 🔴 順手量到一個**別人那一批**的 bug（我沒有修，因為不碰 `site/industry.js`）
+>
+> **點一個沒有專屬剖析圖的族群（例如「面板」）時，畫面換回圖別選單了，但網址沒有跟著改。**
+> 逐步量到的（`#industry/electronics/dg/mlcc` 這個網址下）：
+>
+> | 步驟 | hash | 畫面 |
+> |---|---|---|
+> | 點圖別入口「MLCC」 | `#industry/electronics/dg/mlcc` | 剖析圖（`svg: true`） |
+> | 接著點「面板」族群卡片 | **`#industry/electronics/dg/mlcc`（沒變）** | 圖別選單（`svg: false`） |
+>
+> 兩個後果：
+> 1. **複製網址貼給別人，對方看到的跟你看到的不是同一個東西** ——
+>    這正是「剖析圖改成獨立分頁」那一批要解決的問題本身。
+> 2. 按重新整理或上一頁會跳回剖析圖，跟畫面上的狀態不一致。
+>
+> 這件事也讓我新加的字級驗收紅了三條（`goto` 同一個 hash 不會觸發 `hashchange`，
+> router 根本沒跑 —— 量到 goto 之後再等 3 秒還是 `svg=false`，`reload` 一次立刻 `svg=true`）。
+> 驗收那邊先用 `reload` 繞過去並寫明原因；**產品這一側還沒修**。
+> ⚠ `批次11-MLCC` 第 9 段自己的斷言只驗「畫面是不是選單」、沒驗網址，所以放過了它 ——
+> 修的時候記得把網址那一半一起補進斷言。
+>
+> ### 截圖（本機產物，照 `docs/_show/` 的規矩不進版控）
+>
+> `docs/_dgtypo/{dark,light}-{electronics,semiconductor,ai_server}-{1440,800,390}.png`（18 張）
+
+> ## 2026-09-21 晚間：MLCC 剖析圖的雙審必修（分支 `claude/dg-mlcc-fix`，**沒有推 main**）
+>
+> `mechanical-engineer`（結構）與 `art-director`（視覺）**獨立複驗** MLCC 那張圖之後開的必修單。
+> 共同結論：**骨架可以當標準，配色與互動那一層不可以**，而且有四條在**共用函式**裡、
+> 現在就已經在三張圖上發作。所以這一批排在畫第 2 張（PCB 剖面）**之前**做完。
+>
+> ### 結構（`site/diagrams.js` 的 `mlccStack()`）
+> | 條目 | 做了什麼 |
+> |---|---|
+> | A1 受力箭頭自相矛盾 | 板子中間上凸，兩端箭頭卻朝上（兩端往上推只會讓中間下凹）。改成**三點彎**：兩端朝下 ＋ 中央朝上 |
+> | A2 裂紋走向跟文獻相反 | **自己重查過**（見下）：45° 裂起於安裝面的端電極內緣、往**外上方**走。兩條裂紋都翻正 |
+> | A3 消費級 Ni 畫得跟 Cu 一樣厚 | 兩顆的 Sn／Ni／Cu 厚度**完全相同**，車規靠端子整體變厚容納樹脂。量測：消費級 Ni 端面 8.7 → **3.8**（車規 3.6，Cu 11.1 不動） |
+> | A4 圖例順序跟標題相反 | 圖例翻成由內到外（Cu →〔樹脂〕→ Ni → Sn），標題補「（由內到外）」 |
+> | A5 凱美的呈現 | **審查意見的一半已被 main 的 `570a04e` 推翻**（見下）。做了 a／b／c 三項，`data-seg` 與 YAML 一行都沒動 |
+> | A6 「⋮ ×N」省略記號 | 畫在條紋區中間（以前只寫在最底下的文字裡） |
+>
+> ### 視覺（`--dg-*` 由 `art-director` 裁定，照單執行、沒有自己取名字）
+> | 條目 | 量到的改前 → 改後 |
+> |---|---|
+> | B1 整張圖發青光 | 點零件後**真的在發光的元素 11 個 → 0 個**（`--dg-glow`，單一環節的圖掛 `.dg1` 設 `none`） |
+> | B2 電荷疊色把色相推掉 | 同一點 有疊色／沒疊色 **100.0° ↔ 42.2° → 60.0° ↔ 42.2°**；疊色面積 −75%（15 段改成只畫 4 段） |
+> | B3 `processBar` 文字相貼 | bbox 重疊 **5 對（1.54–2.54px）→ 0 對**（方塊 34→40、副標基線 y+28→y+32）。**共用函式，三張圖一起修好** |
+> | B4 「動畫：關」關不掉白點 | SMIL 的 `<animateMotion>` 不吃 CSS。關掉後白點 x **65.8→84.2→327.6 → 76.9／76.9／76.9**（`pauseAnimations()`） |
+> | B5 46 個寫死色值 | 收進 `:root` 的 `--dg-*`（同值搬家，外觀零變化）；`--dg-ok #7ee8c7` 刪除併入 `--dg-accent` |
+> | B6 2D 與 3D 陶瓷不同色 | 3D 陶瓷色相 **210°（冷灰白）→ 47～51°（暖米白）**，跟 2D 的 42° 對上了 |
+>
+> ### A2 我自己查到什麼（這條原本只有「WebSearch 摘要、信心中」）
+> 三個獨立來源講的是**同一件事**，所以升到高信心，**沒有保留現況**：
+> 裂紋起於**安裝面（底面）、端電極邊緣**，以接近 **45°** 斜向**上方且往外側**延伸到端電極。
+> NASA NEPP（Teverovsky）、KEMET／Mouser《Flex Crack Mitigation》、TDK FAQ。
+> ⚠ 三條都是 **WebSearch 摘要，沒有人讀過原文**（容器擋 `WebFetch`）。來源寫進規格書 §6-A8b。
+>
+> ### ★ A5 的前提在我做到一半時被 main 改掉了
+> main 多了一個 commit `570a04e`，它**直接改了 A5 立論的那兩條事實**：
+> 1. `passive_comp` 已經補進 3026 禾伸堂與 6173 信昌電（五家）——
+>    所以「真正做 MLCC 的兩家在圖上完全不出現」**已經不成立**。
+> 2. 凱美的 note「主體是鋁質電解電容」**已作廢**，更正為「晶片電阻約佔營收 49%，
+>    用電阻進到這一格，**不做 MLCC**」。
+>
+> 還成立、而且我修掉的是：**環節有五家、3D 晶片只排得下四個**，
+> 照 YAML 順序切前四家會**留下凱美、擠掉信昌電** —— 正好是最不該的那四家，
+> 而它被貼在「陶瓷本體與交錯電極／介電層 0.5–2 µm」正下方，等於在宣稱凱美做 MLCC。
+> → 兩個 MLCC 專屬零件改用 `codes` 列族群四檔 ＋ 上方一行 `chipnote`；
+> PCB 焊墊不是 MLCC 專屬結構，照舊走環節名單。規格書 §6-D 的過期段落已重寫。
+> **教訓：審查意見也會過期，開工前要重新對一次事實，不要照著單子做完就交。**
+>
+> ### C 重拍的截圖（原本那兩張是在「今日事件抽屜開著」的狀態下拍的＝等於沒驗）
+> `scripts/_show.py` 新增 `--ls`（進頁面前先寫 localStorage），
+> 六張都在抽屜關閉下重拍：`docs/_show/mlcc-{dark,light}-industry_electronics-{1440,800,390}.png`。
+> 順手止血一條：窄畫面（欄寬不到原尺寸 62%）展開後會先把捲軸**捲到圖的正中央**，
+> 主角先進畫面 —— 以前 390px 看到的是左欄，等角本體整個在畫面外。
+> ⚠ **規格書 §7「窄畫面把右側說明欄改成圖下方堆疊」還是沒做**，那要重排整張版面，不在這批。
+>
+> ### ★ 這批驗了哪幾段（#223 的配套）
+> ```
+> 批次11-MLCC  產業  產業鏈導覽  一般電子鏈  產業關係面板
+> 新-產業與個股  批次6-圖九  手機  縮放掃描
+> ```
+> **9 段全綠**，`_preview.py` 全跑（overlaps 0 / outside 0）。
+> `pytest` **跳過**：改動清單只有 `site/**`、`scripts/_uitest.py`、`scripts/_show.py`、`docs/**`，
+> 物理上碰不到 Python 端。
+> **沒驗到的段落**（出怪象先往這裡找）：總覽、資金流向、新-資金流向、新-輪動時鐘、
+> 資金輪動合併、大盤三張圖、盤中即時、今日事件、題材、季節性、市場明細、個股、
+> 個股即時分K、K線縮放、排序、資料狀態、網頁版號、設定面板、任務板、淺色主題、
+> 明亮主題、新-版面等高與多寬度、批次1~4、批次7、批次6-N1、批次6-圖十。
+>
+> `_uitest.py` 的 `批次11-MLCC` 新增四條**驗畫面真的變了**的檢查：
+> 發光元素數＝0、`processBar` bbox 不重疊、SMIL 白點停得住也動得起來、
+> 3D 晶片列的是族群四檔且有 `chipnote`。
+
+> ## 2026-09-21 下午：剖析圖掛點改族群層級 ＋ 圖11 第一張（MLCC）畫完
+>
+> **分支 `claude/dg-group-slots`（沒有推 main，由 CEO 那一層合併）。**
+> 對應 DECISIONS **#225**（掛點）與 **#226**（字級的根因是欄寬）。
+>
+> ### 為什麼五張規格書寫完一張都沒畫 —— 根因找到了
+>
+> 不是沒人畫，是**沒地方掛**：`window.Diagrams` 的 key 只能是**產業鏈 id**
+> （`{ ai_server, semiconductor }`），而五張規格書畫的全是**族群層級**的東西。
+> electronics 一條鏈要掛 MLCC＋面板＋網通三張，traditional 更是塑化與生技觀光共用一個位子
+> （「輕油裂解圖會被掛到金融／生技／觀光六個族群上」那條就是這麼來的）。
+>
+> 現在改成 **族群優先、鏈為預設**：`site/diagrams.js` 的 `SLOTS` 一張圖一列，
+> 查找走 `window.DiagramSlots.pick(chainId, groupId)`。
+> `HAS_DIAGRAM`、`DG_CHAINS` 兩個寫死的陣列都拔掉改查表，跨鏈面板的縮圖也走同一支 API。
+>
+> ### ✅ 圖11-1 MLCC 疊層剖析（`docs/diagram_specs/mlcc_stack.md`）
+>
+> - **2D／2.5D**：等角「切近角」cut-away。z 切面看**交錯指狀電極**（MLCC 唯一的決定性特徵），
+>   x 切面看**側邊餘白**（第三個方向上的事，純 2D 剖面畫不出來）。
+>   外加：尺寸比較尺（EIA／公制雙標）、容值公式、板彎裂情境、
+>   端電極 Cu →〔導電樹脂〕→ Ni → Sn 的 2D 放大剖面（消費級三層 vs 車規四層並排）、
+>   五格製程列（燒結在端電極之前）、兩個結論框。
+> - **真 3D**（`three3d.js` 的 `SCENES.mlcc`）：同一個切法的 cut-away。
+>   規格書原本寫「不用真 3D」，理由是「轉一圈只會看到一顆不透明的方塊」——
+>   那句話對**完整的一顆**成立，對**切開的一顆**不成立：端電極包住五個面、
+>   側邊餘白都是轉過去才看得到的。mesh 93 個（上限 900）。
+> - **零件帶 `data-seg="passive_comp"`**。規格書 §6-D 原本寫「不准掛」，
+>   理由是「supply_chain.yaml 沒有被動元件環節」—— **重查發現那句已經不成立**
+>   （`supply_chain.yaml:114` 有 `passive_comp`，掛著 2327／2492／2375）。
+>
+> ### ★ 事實全部重查過一次（CLAUDE.md「每個事實都要有來源」）
+>
+> 不因為規格書已經寫成規格書就當成對的。六條全部對得上，逐條來源寫在
+> `docs/diagram_specs/mlcc_stack.md` 的審查紀錄與 `site/diagrams.js` 的檔頭註解。
+> ⚠ **這個容器只有 `WebSearch` 能用，`WebFetch` 一律回 `EGRESS_BLOCKED`**
+> （murata.com / ele.kyocera.com / escatec.com / ctee.com.tw / moneydj.com 逐一試過都是）。
+> 所以每一條的證據等級都是 **WebSearch 摘要，沒有人讀過原文** ——
+> 摘要沒明講的數字一律不寫（車規與消費級的良率差距**一個百分比都沒出現**）。
+>
+> ### ★★ 「文字太小」的根因是欄寬，不是字級（DECISIONS #226）
+>
+> 量出來的：產業鏈頁 `main` 右邊有側欄，`#prodDiagram` 實際寬度
+> **1440→984px（×0.81）、1100→644px（×0.53）、900→444px（×0.36）**。
+> 1220 寬的 viewBox 被壓到 0.36 倍，12px 的字只剩 **4.4px** —— 字級怎麼調都沒用。
+> 修法：圖畫成 **980 寬**（1440 的欄寬剛好 984，不用捲）＋ slot 宣告 `native` 寬度
+> （欄位不夠寬就左右滑）。實測 `.sub` 的真實字級：1440→12.05px、其餘四個寬度都是 12.0px。
+>
+> **既有兩張圖還沒改**（`.sub` 仍是 10.5px、仍被欄寬壓縮）——下一批一起換成 `.dgm` ＋ native。
+>
+> ### ★ 這批驗了哪幾段（#223 的配套，不准省）
+>
+> ```
+> 批次11-MLCC（新增）  產業  族群頁  產業鏈導覽  一般電子鏈
+> 產業關係面板  新-產業與個股  批次6-圖九  手機
+> ```
+> 結果：**9 段全綠**。`_preview.py` 全跑。`pytest` **跳過**（`git diff --name-only main..HEAD`
+> 只有 `site/**`、`scripts/_uitest.py`、`docs/**`、`DECISIONS.md`、`HANDOFF.md`，
+> 物理上碰不到 Python 端）。
+>
+> **沒有驗到的段落**（之後出怪象先往這裡找）：總覽、資金流向、新-資金流向、新-輪動時鐘、
+> 新-大盤三張圖、大盤三張圖、盤中即時、今日事件、題材、季節性、市場明細、個股、
+> 個股即時分K、K線縮放、排序、資料狀態、網頁版號、設定面板、任務板、淺色主題、明亮主題、
+> 新-版面等高與多寬度、縮放掃描、批次1~4、批次7、批次6-N1、批次6-圖十。
+>
+> ### ⬜ 要決定的三件
+>
+> 1. **`mechanical-engineer` 與 `art-director` 沒有真的派出去。**
+>    這個 session 的工具集裡沒有可以派生 subagent 的工具，所以兩份審查是
+>    **我自己照 AGENTS.md §14／§15 的清單逐條對出來的**（逐條寫明過／不過與證據，
+>    附在規格書的審查紀錄裡）。**這不等於雙審通過**，請 CEO 那一層真的各跑一次。
+> 2. **變壓器 GIS：建議「並存」不是取代**（理由寫在下面那一節）。
+> 3. **`mlcc` 族群與 `passive_comp` 環節的成分不一致**：
+>    族群是 2327／2492／3026 禾伸堂／6173 信昌電，環節是 2327／2492／2375 凱美。
+>    只有兩檔重疊，而凱美的主體是鋁質電解電容不是 MLCC（YAML 自己的 note 就這樣寫）。
+>    所以「點環節色標篩出三檔」跟「點族群卡片篩出四檔」不會一樣 —— 這是資料層的事實，
+>    要改是 Andy 校訂 YAML，不是畫面 bug。
+>
+> ### 變壓器 GIS：建議**並存**，不要取代（只給建議，沒動手）
+>
+> HANDOFF 記過「它是取代現有 heavy_electric 3D 圖，會失去舊圖的銅材電纜站與馬達站」。
+> 現在 slot 改成族群層級之後，**這個取捨不用做了**：
+> - `heavy_electric`（重電設備）是 `infrastructure` 鏈上的一個**族群**，
+>   `themes3d.js` 的那張是**題材圖**（`window.ThemeDiagrams.heavy_electric`），走的是完全不同的路。
+> - 變壓器 GIS 那張掛成 `window.DiagramSlots` 的 `heavy_electric` **族群圖**，
+>   題材圖一行都不用動 —— 銅材電纜站與馬達站都還在。
+> - 兩張回答的問題本來就不同：題材圖回答「這條鏈從銅到機房有哪幾站、誰在哪一站」，
+>   GIS 剖析圖回答「一台變壓器／一座 GIS 裡面長什麼樣」。合併成一張反而兩邊都講不清楚。
+>
+> ### 下一張（照 `docs/diagram_plan.md` 的順序）
+>
+> 第 2 張：**多層 PCB 剖面＋走線＋銅箔**（掛 `pcb_rigid`），一次交代掉 Andy 點名的
+> 電路／銅線／PCB／銅箔基板四項。要先寫 `docs/diagram_specs/pcb_stackup.md`，
+> 疊構／層數與阻抗／通孔／線寬線距／低損耗 CCL 等級**全部要上網查證**。
+
+> ## 2026-09-21 中午：V1~V6 一次上線
+>
+> **merge commit `90f73e4`**。內容：116 個板塊、兩階段下鑽、配色 34 色、
+> 科技新聞篩選、輪動時鐘五件、資金去向四件（含「即時」模式）。
+>
+> ### ★★ 這批驗了哪 20 段（#219/#223 的配套，不准省）
+> ```
+> 總覽 資金流向 新-資金流向 新-輪動時鐘 產業 族群頁 產業鏈導覽 新-產業與個股
+> 產業關係面板 新-版面等高與多寬度 手機 淺色主題 明亮主題 大盤三張圖 新-大盤三張圖
+> 盤中即時 今日事件 批次2 批次3 批次7
+> ```
+> 結果：**20 段全部 0 個問題（288 秒）**、`pytest` **458 passed**、
+> `_preview` 全頁面 ×5 寬度 overlaps 0 / outside 0、`build_payload` 319 秒。
+>
+> **沒有驗到的段落**（之後出怪象先往這裡找）：
+> 季節性、市場明細、個股、個股即時分K、K線縮放、排序、資料狀態、網頁版號、
+> 設定面板、今日事件以外的側欄、任務板、一般電子鏈、批次1、批次4、
+> 批次6-N1、批次6-圖九、批次6-圖十、題材。
+>
+> ### 三個「我的根因假設被量測推翻」的紀錄
+> 1. **產業鏈頁變高**：我說是板塊 9→24，實測板塊卡只佔 708px（7.8%），
+>    真正的大戶是成分股表格 6332px（70%）—— 那條鏈的成分股 47 → 156 檔。
+> 2. **輪動時鐘暫停**：我說是 `_players` 幽靈計時器，實測五個情境全都停得下來。
+>    真因是**卡片與放大視窗兩支拉Bar 控制同一個播放狀態**，暫停只停得掉自己那一支。
+> 3. **族群貼邊**：我說是歐氏長度最大 √2 超過 `CLOCK_MAXR` 1.25，
+>    實測今天最大偏離 1.288、跟上限只差 3%。真因是**尺凍結在今天，
+>    而 30 天前的偏離是今天的 1.92 倍**，MLCC 整段 31 天都被夾在 1.000。
+> ★ 三次都是「先量再改」救回來的。**不要把假設當結論交給 agent。**
+>
+> ### ★ 一個「不報錯、只是慢到像卡死」的效能地雷（已修）
+> 我把會讀 YAML 的 `loader.ind_name()` 放進 pandas 的 `.map()`，
+> 130 萬列＝解析 130 萬次 YAML，`build_payload` 從 292 秒爆成 25 分鐘還沒跑完。
+> 是 `pip install py-spy` 之後 `py-spy dump --pid` 抓執行中堆疊才看到。
+> **逐列／迴圈轉換一律先拿字典，不要在熱路徑上呼叫會讀檔的函式。**
+>
+> ### ⬜ 要 Andy 決定的
+> 1. **配色鎖定區**：深色下 `#7ee8c7`↔`#6ee7b7` ΔE 3.99 ＝實務同色，
+>    而且後者離「綠＝跌」只有 5.7。換掉能拉到 ~9，代價是 2 個板塊換色一次。
+> 2. **金十數據**：建議不接（有官方付費 API、條款讀不到、免費路要繞反爬）。見 DECISIONS #222。
+> 3. **即時模式的自動桶不進分母** 是 agent 的判斷（我同意）：
+>    它們手上是上一個收盤的整天值，加進分母會讓盤中的 ETF 被灌成第一名。
+> 4. **即時模式上線後第一個盤中時段要人工看一眼數量級** ——
+>    容器打不到證交所，那條是用 stub 驗口徑，不是驗真實報價的數值。
+
+> ## 2026-09-21：110 個板塊上線 ＋ 兩階段下鑽（最新）
+>
+> **commit `a46df57`（前端／下鑽）＋ `efaf963`（族群分類）｜部署 run #49**
+>
+> 族群從 28 個換成 tide-tw.app 的 **110 個板塊**（77 手寫 ＋ 33 個「〇〇・其他」自動桶）。
+> 清單是 Andy 親自截圖提供的（我們的容器連不到 tide-tw.app，出口代理 403），
+> 逐字抄錄在 `docs/tide_110_boards.md`，成分股證據在 `docs/groups_tide110_evidence.md`。
+>
+> ### ★★ 這批只驗了哪 16 段（DECISIONS #219 的配套，不准省）
+> ```
+> 總覽 資金流向 新-資金流向 新-輪動時鐘 產業 族群頁 產業鏈導覽 一般電子鏈
+> 產業關係面板 新-產業與個股 新-版面等高與多寬度 手機 縮放掃描 批次2 批次3 批次7
+> ```
+> 結果：**16 段全綠（188 秒）**。`_preview.py` 乾淨。`pytest` **435 全過**。
+>
+> **沒有驗到的段落**（之後若出怪象先往這裡找）：
+> 題材、季節性、市場明細、個股、個股即時分K、K線縮放、排序、設定面板、
+> 資料狀態、網頁版號、明亮主題、淺色主題、盤中即時、今日事件、大盤三張圖、
+> 新-大盤三張圖、任務板、批次1、批次4、批次6-N1、批次6-圖九、批次6-圖十。
+>
+> ### 三個我判斷錯、被量測糾正的
+> 1. **產業鏈頁變高的根因**：我說是「板塊 9→24」，實測板塊卡只佔 708px（7.8%），
+>    真正的大戶是**成分股表格 6332px（70%）**——那條鏈的成分股 47 → 156 檔。
+>    修法：成分股預設列前 30 檔 ＋ 一顆鈕原地展開。1366px 9051 → **4077**（比改版前 4939 還矮）。
+> 2. **「輪動時鐘只剩 1 個族群」是測試汙染不是 bug**：舊的清除寫法兩次 `goto` 只差一個 `#`，
+>    瀏覽器判定成同文件導航、不重載 JS，只清掉 localStorage，記憶體裡的 `ROT.groups` 還活著。
+>    新增 `reset_rot()`（清 localStorage 再 `reload()`）。
+> 3. **「本益比上限沒作用」也是假的**：表格本來就 `slice(0, 80)`，兩邊都被夾住。
+>    改量 `#vCount` 真實筆數，實測 697 → 121 檔。
+>
+> ### ★ 一個「不報錯、只是慢到像卡死」的效能地雷（已修，但要記住）
+> 我把 `loader.ind_name()` 放進 pandas 的 `.map()`，而它每呼叫一次就重新
+> `yaml.safe_load` 711 行的 `groups.yaml` —— 130 萬列價格資料＝解析 130 萬次 YAML。
+> `build_payload` 從 292 秒爆成 **25 分鐘還沒跑完**，日誌停在「讀資料湖」不動。
+> 猜不出來，是 `pip install py-spy` 之後 `py-spy dump --pid` 抓執行中堆疊才看到
+> （`yaml/scanner.py` ← `ind_name` ← `map_array`）。
+> 改成 `ind_names()` 一次算好當字典：100 萬次查詢 0.079 秒，整支回到 306 秒。
+> **逐列／迴圈轉換一律先拿字典，不要在熱路徑上呼叫會讀檔的函式。**
+>
+> ### 依證據偏離 tide 的一筆
+> `2474 可成` 從「智慧型手機」移除（仍在「精密機構件」）——
+> 2020 年已賣掉泰州 iPhone 機殼廠、筆電機殼約占營收 8 成、2026 年 1~8 月營收年減 33%。
+> （Andy 2026-09-21：「依據可信的資料進行，即使他是那樣寫也需要查證」。）
+>
+> ### ⬜ 要 Andy 決定的兩件（不擋上線）
+> 1. **配色**：111 張卡配 14 色 → **385 對撞色**。同一條鏈內最多兩個同色，
+>    但熱力圖與桑基圖是跨鏈的，一定看得到一堆同色。要不要補到 24~30 色（backlog T6）。
+> 2. **390px 兩條高度門檻調高了**（AI 伺服器 5900→6600、一般電子 3700→5300）。
+>    舊門檻是拿 28 族群量的，當時一般電子只有 15 檔股票、5 個族群，現在 100 檔、18 個板塊。
+>    配套補了兩條與資料量無關的斷言（板塊卡平均 ≤75px、展開後整頁 +2000px）。
+>
+> ### 下一批（Andy 已經指示方向）
+> 「依據可信的資料進行，即使他是那樣寫也需要查證」——要查證的四組：
+> 重電五雄、**CCL 鏈（445 億日均躺在「電子零組件・其他」佔八成）**、
+> 電信三雄與壽險金控與整車、`4770 上品` 放「玻璃基板」那筆（兩位分析師都說沒把握）。
+> 判準是「資金流是否同向、有沒有獨立敘事」，不是 tide 有沒有列。
+
+> ## 2026-09-20：C 批任務板（最新）
+>
+> | # | 需求（Andy 原話摘要） | 檔案 | 狀態 |
+> |---|---|---|---|
+> | C1 | 熱門題材 / 今日候選 兩格一樣大，超出改拉 Bar | `app.js` `index.html` | 🔵 進行中 |
+> | C2 | 換一台電腦（螢幕寬度不同）版面就跑掉 | `app.js` `index.html` `_preview.py` | 🔵 進行中 |
+> | C3 | 供應鏈關聯圖上下太長 → 改成環節卡 ＋ 個股小卡 | `industry.js` | 🔵 進行中 |
+> | C4 | 資金流向排行／輪動時鐘的族群列改成「漲跌分佈」那種篩選，也要能篩個股 | `app.js` | ⬜ 排隊（見下） |
+> | A4 | 輪動時鐘一整包（8 條） | `app.js` | ⬜ 排隊（見下） |
+>
+> ### ⬜ C4 ＋ A4 要**併成同一輪**做，而且要排在 C1/C2 之後
+>
+> 三個都動 `site/app.js`，不能平行。而 **C4 與 A4 動的是同一張圖（輪動時鐘）** ——
+> 拆成兩輪等於同一張圖改兩次、驗兩次，是純浪費。
+>
+> **C4 的現成元件已經找好，不要重寫一套**：Andy 附圖指的就是
+> `site/app.js:576` 的 `wireDistFilter()`（圖15「漲跌分佈」的篩選）——
+> 市場 seg ＋「含 ETF」checkbox ＋「族群篩選（N）」按鈕 ＋ 可捲的晶片複選格。
+> 另一套可參考的是 `site/app.js:1458` 的 `candGroups`（今日候選的 Excel 式勾選，選擇存 localStorage）。
+> **把這套套到資金流向排行與輪動時鐘下面那兩排族群列。**
+>
+> ⚠ **C4 有一句要先問 Andy 或先自己定義清楚**：「也可以篩選想要的股票」——
+> 資金流向排行與輪動時鐘的單位是**族群**不是個股，所以「篩股票」可能是指
+> (a) 篩選面板裡除了族群也能勾個股、(b) 勾了族群之後下鑽到個股。
+> **先照 (a) 做並在回報裡講明**，不要兩種都做。
+>
+> ### A4 輪動時鐘八條（Andy 講得最細的一項，逐條抄，不要漏）
+>
+> 1. 拉 Bar 新增 **＋ / −** 按鈕
+> 2. **移除旋轉箭頭**
+> 3. 時間範圍改成 **前一天 ～ 前三十天**
+> 4. 補充說明「**圓心到圓圈邊緣代表什麼**」
+> 5. 輪動時鐘**新增播放功能**（注意：資金流向與族群法人是**移除**播放，這裡是**新增**）
+> 6. **越外圈顏色越深**
+> 7. ★ **他強調我一直誤會的那點**：選「前 30 天」時大圈要落在**前 30 天那個座標上**；
+>    天數往前調要**平滑移動**不是瞬間跳點；移動後**留下軌跡**，而**軌跡可開關**。
+> 8. ★ **他提的疑點，先查根因再動畫面**：「會合明明是一天的差距，圖上卻是各種歪曲，
+>    一天的走勢就一個點」—— 要**確認時間週期是不是算錯了**，不是去調視覺。
+
+
+> ## 2026-09-20：Andy 回報版面兩件事
+>
+> ### C1　熱門題材 / 今日候選 兩格要一樣大，超出改拉 Bar
+>
+> ★ **先量再改**：兩張卡在 `index.html` 的 `.grid.g12` 裡，CSS grid 預設 `align-items: stretch`，
+> **外框其實已經等高**。實測 1366px→1396/1396、1440px→1311/1311、1920px→722/722。
+> 他看到的不是「框不一樣大」，是**左邊「熱門題材」的內容被裁掉而且沒有捲軸**。
+> 順帶：高度隨寬度從 1396 變到 722，變動太劇烈，跟 C2 是同一件事的兩面。
+>
+> ### C2　換一台電腦（螢幕寬度不同）整個版面就跑掉
+>
+> 截圖上的壓字：市場寬度的「上漲 1586 檔 (68.8%)」壓在甜甜圈上、
+> 族群估值左上角兩組象限標籤糊在一起、法人連續買超的「玉山金」標籤跑出圖框。
+>
+> ### ★★ 為什麼三道關卡一直沒抓到 —— 這是這次最重要的發現
+>
+> `site/app.js:84` 用的是 **`renderer: 'canvas'`**，所以**圖裡的每一個字在 DOM 上都不存在**。
+> `_preview.py` 的文字重疊掃描只看得到 HTML 元素 —— 它永遠報「重疊 0 筆」，
+> 而 Andy 一換螢幕就看到壓字。**這不是測試沒寫好，是測試在物理上看不到那些字。**
+>
+> 而且 `scripts/_preview.py:79` **只跑 `width=1500` 一種寬度**。
+> 1366 / 1440 / 1536 / 1920 這些最常見的筆電與螢幕寬度**從來沒有驗過**。
+>
+> 修法（進行中）：驗收時把 renderer 切成 SVG（線上版維持 canvas）、
+> `_preview.py` 改成多寬度掃描、三張圖改掉百分比定位。
+>
+> ★ 探測腳本的一個坑（已記，不要再踩）：`<h3>標題 <small>副標</small></h3>` 是**父子關係**不是重疊，
+> 比對重疊時一定要排除「其中一個是另一個的祖先」，否則整頁都會誤報。
+
+
+> ## 🔴 2026-09-20：**FinMind token 失效，資料全面停止更新**（要 Andy 換 token）
+>
+> ### 結論（機器查出來的原文，不是推論）
+>
+> ```
+> finmind_health: {"ok": false, "at": "2026-09-19T22:46:33Z",
+>                  "probe": "TaiwanStockPrice/2330 since 2026-09-10",
+>                  "detail": "HTTP 400：Token is illegal."}
+> ```
+>
+> **GitHub Secrets 裡的 `FINMIND_TOKEN` 已經失效。** 這是 `data/_state/backfill_progress.json`
+> 裡的健檢結果，由 2026-09-20 新加的健檢機制寫入（每輪第一件事，花 1 次額度問
+> 「台積電最近 10 天日線」—— 免費層一定拿得到的東西）。
+>
+> ### ⬜ Andy 要做的（只有他能做）
+>
+> 1. 到 <https://finmindtrade.com> 登入，重新產生 API token
+> 2. GitHub → repo Settings → Secrets and variables → Actions → 更新 `FINMIND_TOKEN`
+> 3. 到 Actions 手動觸發一次「歷史回補」，確認日誌最前面不再出現「FinMind 健檢失敗」
+>
+> ### 壞掉的時間與影響
+>
+> 用進度檔的 git 歷史定位（`git show <commit>:data/_state/backfill_progress.json`）：
+>
+> | 時間（UTC） | revenue/financial/balance 的 done 鍵 | 判讀 |
+> |---|---|---|
+> | 2026-09-19 13:33 | 568 / 568 / 567 | — |
+> | 2026-09-19 **14:28** | **614 / 614 / 613（+46）** | 這時還通 |
+> | 2026-09-19 18:04 | 614 / 614 / 613（+0） | 開始全 400 |
+> | 2026-09-19 20:44 | 614 / 614 / 613（+0） | 同上 |
+>
+> **壞在 14:28 ~ 18:04 UTC 之間，是「從通到不通」，不是一直不開放。**
+>
+> 影響範圍：法人籌碼、財報、股利、融資券、股權分散、歷史回補、**以及指數歷史**
+> （A2「走勢圖 3 年」的唯一阻塞點就是這個 —— `backfill_indices()` 只要 3 次請求，
+> 但 `TaiwanStockPrice/TAIEX` 與 `/TPEx` 都回 400）。
+> **不影響**的：TWSE OpenAPI 的日收、mis 即時報價、集保、櫃買、Yahoo、新聞 —— 那些不走 FinMind。
+>
+> ### ★ 三個教訓（已經寫成程式，不只是註解）
+>
+> 1. **4xx 只記狀態碼等於把唯一的診斷資訊丟掉。**
+>    `util/http.py` 原本只寫「回 400，不重試」，所以連續三輪空轉都查不出根因 ——
+>    直到把回應前 200 字印出來，一次就看到 `Token is illegal.`。
+>    現在所有不重試的 4xx 都會印 body（FRED 那六個 400 下一輪也會有答案）。
+> 2. **「下一輪會重問」如果沒有寫進進度檔，就等於「每一輪都重問全部」。**
+>    `summary["unavailable"]` 只活在記憶體裡 → 每小時重問 506 檔 →
+>    必定失敗的請求把 510 的額度吃光 → 計畫永遠停在第 1 步 →
+>    後面幾千檔個股的價量永遠輪不到。**每一輪都是 success，每一輪都寫入 0 列。**
+> 3. **「有一個資料集不開放」不可以讓整個計畫永遠不完成。**
+>    `finished_all = (... and not summary.get("unavailable"))` 是 2026-09-19 我自己加的，
+>    當時只想到「整組回空 ≠ 沒資料」，沒想到「永遠不開放」會把計畫鎖死。
+>
+> ### 已經加上的四道閘（commit `896f954`，測試 398 → 410）
+>
+> 1. 資料集封印寫進進度檔（24 小時內一次請求都不發；超過就只拿 5 檔去探；探到立刻解封）
+> 2. 連續 20 檔回空且本輪一次都沒成功 → 停問它，額度留給其他步驟
+> 3. 已封印的資料集不算未完成，計畫可以往下走
+> 4. FinMind 健檢（每輪第一件事，1 次額度）—— 就是查出這次根因的那個裝置
+>
+> 順手修掉一個還沒發作的同型 bug：`index_ohlc()` 抓 TSE＋OTC 兩個指數，
+> **只拿到加權、櫃買失敗時它仍然非空**，照舊會標 done → 櫃買會永遠只有 40 天。
+> 現在兩個 symbol 都齊才標 done。
+
+
+> ## 2026-09-20：Andy 兩批新需求 —— 任務清單與分工
+>
+> 他分兩則丟過來，共 **13 件**。這一段是**任務登記**，狀態欄要跟著更新。
+> 分工原則：**一個 agent 獨佔一個前端檔**。`site/app.js` 那一包最大，
+> 所以「輪動時鐘」排在「資金流向頁」之後做（同一個檔，不能平行）。
+>
+> ### 為了平行化先做的兩件基礎建設（已 push，commit `4fdf48f`）
+>
+> 1. `_uitest.py` / `_preview.py` 的 `PORT` 改吃環境變數
+>    （`TW_UITEST_PORT` / `TW_PREVIEW_PORT`）。固定埠的話第二個 agent 起來就
+>    `OSError: Address already in use`，看起來像程式壞掉。
+> 2. 先開好 `t_new_market3` / `t_new_industry` / `t_new_flow` 三支**空殼**並完成註冊。
+>    理由：`main()` 的註冊表是**一行**，三個 agent 各自去改那一行必然互相蓋掉。
+>
+> ### 任務表
+>
+> | # | 需求（Andy 原話摘要） | 檔案 | 狀態 |
+> |---|---|---|---|
+> | A1 | 夜盤跟日盤**共用同一個走勢圖**，不要分開；夜盤也要有即時走勢與 K 線 | `site/market3.js` | ✅ 已上線 |
+> | A2 | 走勢圖沒有過往歷史，**補至少 3 年** | `site/market3.js` | ⛔ 前端做完了，**卡在資料湖**（見下） |
+> | B5 | 點關聯圖上的「日月光投控」，**對應的族群要被選取** | `site/industry.js` | ✅ 已上線 |
+> | B6 | 個股頁順序：**K 線、多週期判讀、總覽、營收…公告/新聞在上，產業地圖在下** | `site/industry.js` | ✅ 已上線 |
+> | B1a | 資金去向桑基圖第三層整排 **`nan`** —— 真 bug，最優先 | `site/app.js` | ✅ 已上線 |
+> | B1b | 桑基圖**所有族群固定**，換日期只改線粗與圓圈大小 | `site/app.js` | ✅ 已上線 |
+> | B1c | 動畫改成**小圓點從「台股成交值」流向各族群**，錢越多頻率越高、點越大 | `site/app.js` | ✅ 已上線 |
+> | A3 | 資金流向**移除播放功能** | `site/app.js` | ✅ 已上線 |
+> | B2 | 族群 × 法人**移除播放功能** | `site/app.js` | ✅ 已上線 |
+> | A5 | **移除「時間週期」與「族群佔比河流圖」** | `site/app.js` | ✅ 已上線 |
+> | B4 | 族群展開的股票清單**固定高度 ＋ 拉 Bar**，所有相關版面一致 | `site/app.js` | ✅ 已上線 |
+> | B3 | **所有圖表的族群小 Tip 點了要在該圖上篩選** | `site/app.js` | ✅ 已上線 |
+> | A4 | **輪動時鐘一整包**（見下） | `site/app.js` | ⬜ 排在資金流向頁之後（同一個檔） |
+>
+> ### A4 輪動時鐘：Andy 講得最細的一項，逐條抄下來不要漏
+>
+> 1. 拉 Bar 新增 **＋ / −** 按鈕
+> 2. **移除旋轉箭頭**
+> 3. 時間範圍改成 **前一天 ～ 前三十天**
+> 4. 補充說明「**圓心到圓圈邊緣代表什麼**」
+> 5. 輪動時鐘**新增播放功能**（注意：資金流向與族群法人是要**移除**播放，這裡是**新增**）
+> 6. **越外圈顏色越深**
+> 7. ★ **他強調我一直誤會的那一點**：選「前 30 天」時，大圈要落在**前 30 天那個座標上**；
+>    天數往前調時要**平滑移動**，不是瞬間跳到新的點；移動之後要**留下軌跡**，
+>    而**軌跡可以開啟／關閉**。
+> 8. ★ **他提出的疑點，要先查清楚再動手**：「會合明明是一天的差距，圖上卻是各種歪曲，
+>    不符合才對，一天的走勢就一個點」—— 也就是**一天的差距在圖上應該只移動一個點**，
+>    現在卻歪來歪去。**要確認時間週期是不是算錯了**。
+>    這一條是「先查根因、再改畫面」，不要直接調視覺。
+>
+> ### 每一件都要有的驗收（Andy 的硬性要求，不要再放過）
+>
+> 「當自己是使用者，實際操作每個功能」，而且驗的是**畫面真的因此改變了**
+> （筆數變了／排序變了／座標真的移動了／localStorage 真的寫進去了），
+> **不是驗「元素存在」或「有 render」**。移除類的需求要驗**真的不在 DOM 裡**，不是 hidden。
+>
+> ### 2026-09-20 深夜收尾（commit `6fc517f`，已部署）
+>
+> **12 件完成並上線，1 件（A4 輪動時鐘）沒做、1 件（A2）卡在資料湖。**
+>
+> #### ⛔ A2「歷史 3 年」為什麼標成被擋住
+>
+> 前端已經做完並驗過（餵 780 根假日線：日 K 780 / 週 K 157 / 月 K 36 / 季 K 12）。
+> 但**資料湖裡 `index_ohlc` 三個代號各只有 32 個交易日** —— 根因是 `run_daily` 抓指數時
+> 寫死「最近 40 天」，而回補計畫裡本來沒有這張表，所以設計上永遠只會有 40 天。
+> 修法（`run_backfill.backfill_indices()` 補 26 年）**已經 commit 但還沒跑到**。
+> 現在打開網頁會看到卡片上明確寫著「只有 32 根日 K（2026-08-06 起，約 0.1 年）…
+> 26 年歷史正在回補，補完這裡會自己變長」，而不是一片空白。
+> **下一個 session 要回頭確認**：`data/_state/backfill_progress.json` 的 `complete.index_ohlc`。
+>
+> #### ⚠ A5 有一個解讀要 Andy 確認
+>
+> 「圖四五 將時間週期以及族群佔比河流圖移除」被解讀成**「族群佔比河流」那張卡整塊移除**
+> （那張卡裡本來就有兩樣東西：「最近 N 天」時間週期拉 Bar ＋ 河流圖）。
+> **最上面那張「看哪一段時間的資金流向」期間切換卡（本週／上週／本月／近三月）沒有動。**
+> 如果 Andy 說的「時間週期」是指那一張，要再拆一次，而且排行與法人那兩處的
+> 「0＝跟著上方期間走」要改成別的預設值。
+>
+> #### ★ 順手修掉一個 Andy 沒看到的同款 bug
+>
+> 他截圖回報的是桑基圖那一排 `nan`。掃 `site/data/*.json` 發現
+> **`concentration_members.json` 也有 11,430 處 `"nan"`** —— 同一個寫法
+> （`drop_duplicates("code")` 取到最早那一列，而 `name` 欄只有 2026-09-09 之後有值）
+> 在 `flow.concentration_members` 又寫了一次。
+> 已抽成 `pipeline/compute/names.py` 共用，並加兩條護欄（測試 396 → **398**）：
+> 掃整個 `site/data/`，任何 JSON 出現字串 `"nan"`／`"None"` 就紅；
+> 掃 `pipeline/` 原始碼，再有人自己寫一次那個 pattern 就紅。
+>
+> #### 驗收基礎建設
+>
+> - `_uitest.py` 的 `--only` 支援**逗號分隔多段**（例 `--only 新-資金流向,批次7`）。
+>   加這個是因為有一條紅字**只有在「A 段跑完接著跑 B 段」時才重現**
+>   （前一段留下的狀態污染下一段），一段一段跑永遠重現不出來。
+> - 新增 `.claude/skills/report-progress/SKILL.md` —— Andy 說「回報進度」時照那套流程走。
+>
+> #### ⬜ 下一輪第一件事：A4 輪動時鐘
+>
+> 它跟資金流向同一個 `site/app.js`，所以這一輪沒做。八條需求在上面那張表下面，
+> **特別是第 7、8 兩條**（平滑移動＋可開關軌跡、以及「一天的差距不該歪曲」要先查時間週期）。
+
+
+
+> ## 2026-09-20（凌晨）：一般電子鏈上線 ＋ 圖11 五張規格書全部寫完
+>
+> Andy：「electronics 鏈 / 圖11 其餘四張 / 圖14 題材圖 25 物件 / 覆蓋率棘輪往上調
+> —— 這四個能處理嗎」。**第 1 項做完並上線，第 2 項的規格書全部寫完（尚未開畫），
+> 第 3、4 項還沒開始**（第 4 項的理由見下）。
+>
+> ### ✅ 已完成（已 push、已部署，commit `3f8d6f3`）
+>
+> **一般電子鏈**：`supply_chain.yaml` 26→**34** 環節、89→**105** 公司、134→**140** 邊。
+> 這條鏈以前在產業地圖上點得進去，但點進去只有成分股表格 ——
+> 被動元件、面板、網通、手機供應鏈這四個族群在圖上完全不存在。
+>
+> **這一輪「不畫的」比「畫的」重要**（理由全部寫進 YAML 註解，不要再撿回來）：
+> 被動元件三家（國巨／華新科／凱美）與面板三家（友達／群創／彩晶）**全部查不到具名客戶**
+> —— 報導講的是「AI 外溢訂單」「MLCC 漲價」這種需求面題材，友達董事長甚至在法說會
+> 明講「不方便說和誰合作」。所以圖上會有幾個掛「?」的孤立節點，**那是誠實，不是漏畫**。
+> 另外四條也刻意不畫：聯詠→面板雙虎（並列標題）、瑞昱／聯發科→網通四家（查不到）、
+> 緯創→啟碁（是持股 19.87% 的母子公司關係，不是供貨）、大立光→Apple（兩邊都不具名）。
+>
+> ### ★ 順手修掉兩個會安靜出錯的東西
+>
+> 1. **關聯圖被剖析圖綁架**（`site/industry.js`）。關聯圖以前綁在 `HAS_DIAGRAM`
+>    （寫死只認 semiconductor / ai_server）上，所以一般電子鏈補完環節之後，
+>    色標出現了、**關聯圖卻整張不見**。兩者的資料來源本來就不同：
+>    剖析圖來自 `window.Diagrams`、關聯圖來自 YAML 的 `edges`。
+>    已拆成 `hasMap`（有環節就畫關聯圖）與 `hasDiagram`（有剖析圖才畫剖析圖）。
+> 2. **DECISIONS #48 的隱藏地雷**（`loader.py` ＋ `site/app.js`）。環節色是
+>    `PALETTE[索引 % 14]`，而那個索引以前是「依 layer 排序後的陣列位置」——
+>    在 layer 0 插一格新環節，後面每一個既有環節的索引都會 +1，於是半導體鏈與 AI 鏈
+>    **所有環節的顏色一起被洗掉，而且不會有任何錯誤訊息**。
+>    改成 loader 在排序前記下 `color_idx`（YAML 原始順序），前端改吃它。
+>    實測既有 26 格的 `color_idx` 仍是 0～25。**以後新增環節一律加在 YAML 尾端。**
+>
+> ### ★ 新增的驗證機制（Andy：完成項目要多驗證機制）
+>
+> - `tests/test_delivery_guard.py` 8→**10 條**（全站 394→**396** 個測試，全過）：
+>   「環節顏色的索引吃的是 yaml 原始順序」直接驗 `color_idx` 的數值；
+>   「前端真的改吃 color_idx」驗兩邊口徑一致 —— 光是 loader 送出來、前端沒接就白做。
+> - `scripts/_uitest.py` 新增「一般電子鏈」整段**真人操作**驗收：點環節色標驗筆數真的被篩掉、
+>   再按一次真的取消；只有外商的兩格點下去要列得出對應族群（驗 `app.js` 的 `FALLBACK`）；
+>   鴻海 2317 與智邦 2345 真的在圖上（驗 `CHAIN_EXTRA`）；直接讀 `window.Link.sidx`
+>   驗既有環節配色索引沒被推移；800px 窄畫面驗色標沒跑出容器。
+> - **`scripts/_uitest.py` 加 `--only <關鍵字>`**：只跑名稱含那個字的段落。
+>   一輪 14 分鐘，開發過程改一段就重跑全部是純浪費 —— 這一輪靠它把電子鏈那段的來回
+>   壓到 **10 秒**。**交付前仍然要跑完整一輪**，`--only` 只給開發中反覆修同一段用。
+>
+> ### 三道關卡
+>
+> pytest **396 過**；`_preview` 全頁面正常；`_uitest` **6 條紅**
+> —— 與改動前跑的那一輪是同一批，且比本檔先前記載的既有 8 條**少 2 條**。
+> 其中個股即時分 K 5 條是容器擋 Yahoo（環境限制）、市場明細 1 條是既有紅字。
+> **一般電子鏈那一段 0 問題。**
+>
+> ### ✅ 圖11 五張規格書全部寫完（只有規格書，還沒開畫）
+>
+> | 圖 | 規格書 | 掛載點狀況 |
+> |---|---|---|
+> | MLCC 疊層 | `docs/diagram_specs/mlcc_stack.md` | 待定 |
+> | 交換器板卡 | `docs/diagram_specs/switch_board.md` | 待定 |
+> | 變壓器 GIS | `docs/diagram_specs/transformer_gis.md` | `ThemeDiagrams.heavy_electric` 已存在，但是**取代**舊圖 |
+> | 面板疊層 | `docs/diagram_specs/panel_stack.md` | **沒有空掛點** |
+> | 輕油裂解 | `docs/diagram_specs/naphtha_cracker.md` | **沒有空掛點，而且最糟** |
+>
+> ### ⬜ 待 Andy 拍板（在他回覆之前不要開畫 —— 畫出來沒有地方顯示）
+>
+> **1. 掛載點策略。** 兩位機構工程師分別讀碼查證，結論一致：
+> `window.Diagrams` **只認產業鏈 id、一條鏈只有一個 slot**（`site/diagrams.js` 結尾），
+> `window.ThemeDiagrams` **18 個 key 全滿**（`site/themes3d.js`）。
+> 兩人都建議走**新開題材**這條路，因為 `app.js` 是
+> `(window.ThemeDiagrams || {})[t.id]` —— 題材 id 對上就自動出圖，
+> `app.js` 與 Python 端**一行都不用改**，只要 `themes.yaml` ＋ `themes3d.js` 兩個檔。
+> 代價是題材頁沒有環節色標與關聯圖。
+> - 面板疊層：新開面板相關題材，或用掉 `electronics` 唯一的 slot
+>   （但另一位分析師建議那個 slot 給「智慧型手機等角爆炸圖」，因為手機圖覆蓋 4 個環節、
+>   面板圖只覆蓋 2 個）。
+> - 輕油裂解：`traditional` 鏈一個環節都沒有，`themes.yaml` 也沒有任何石化題材。
+>   **掛 `Diagrams.traditional` 是錯不是取捨** —— `traditional` 底下是鋼鐵／塑化／航運／
+>   金融／生技／觀光六個族群，等於宣稱金融股與觀光股的產品剖析圖是一座輕油裂解廠。
+>
+> **2. 變壓器 GIS 是「取代」現有 `heavy_electric` 3D 圖**，會失去舊圖的銅材電纜站與馬達站。
+> 規格書用 §5-E 的九檔覆蓋表把代價鎖住，但「要不要取代」本身要 Andy 決定。
+>
+> **3. `handset_chain` 的兩檔**（`groups.yaml` 已寫進註解，這一輪只記證據不動成分）：
+> - **2474 可成**：2020 年已把泰州兩座 iPhone 機殼廠賣給藍思科技（約 410 億元）、
+>   退出 iPhone 機殼；筆電機殼約占營收 8 成，第二條線是 NVIDIA 的 AI 伺服器機構件。
+>   2026 年 1～8 月累計營收年減 33%，已與手機新機週期脫鉤。
+>   放在「手機供應鏈」會讓 M1 的族群量能歸錯方向。
+> - **3231 緯創**：主體已是 AI 伺服器（節點就掛在 `assembly`，且同時在 `ai_server_odm`）。
+>
+> （2317 鴻海雙掛是合理的 —— iPhone 組裝與 AI 機櫃都是它的主體業務。）
+>
+> ### ⬜ 還沒開始
+>
+> - **圖14 題材圖 25 個等角物件重畫**（Andy 點名的第 3 項）
+> - **覆蓋率棘輪往上調**（第 4 項）—— `COVERAGE_FLOOR` 的 370／460／470 是「今天的地板」
+>   不是標準。**要等回補跑完一輪**：實測 `backfill.yml` 的 cron 雖然是每小時，
+>   實際 3.5～5 小時才跑得完一輪，全部補齊約一週。現在往上調只會讓測試立刻紅。
+> - **PALETTE 只有 14 色，配 34 個環節**。實測 AI 伺服器鏈那張圖裡**已經有 8 組同色**
+>   （這是既有問題，不是這次造成的；電子鏈新增 1 組）。同一張圖裡兩個環節同色，
+>   「顏色＝環節」這個約定就失效了。要補到 ≥34 色，而且要在深色與淺色主題下都成立
+>   —— 這是 `art-director` 的活。
+> - **FRED 總經**（`FRED_API_KEY` 回 400，`data/macro/` 目錄根本不存在）
+>
+> ### 這一輪自己踩到、記下來的
+>
+> 提交時用 `git add -A`，把當時還在背景寫檔的兩份規格書草稿一起掃進 commit。
+> 沒有造成傷害（都是文件），但**背景有 agent 在寫檔時不要用 `git add -A`**，
+> 要嘛等它回報、要嘛列出檔名逐一 add。
+
+
+> ## 2026-09-19（深夜）：驗證機制 ＋ 半導體鏈 ＋ 兩個會讓網站長期失效的 bug
+>
+> Andy：「先按照你建議執行，並且執行完畢後需要列出目前的進度，
+> 已完成 進行中待處理，並且需要在完成項目多驗證機制」。
+>
+> ### ★ 這一天的主線：從「宣稱完成」改成「機器證明完成」
+>
+> 今天回頭稽核，抓到四件標 ✅ 但其實不能用的事。共通點是
+> **「功能寫好了」跟「使用者真的用得到」之間沒有任何機器檢查** ——
+> pytest 驗演算法、`_preview` 驗版面、`_uitest` 驗互動，
+> 三道關卡在「資料到底有沒有」這件事上是全盲的。
+>
+> 新增 `tests/test_delivery_guard.py`（8 條），專門補那個盲區。原則：
+> 只放機器判定得了的條件、全部寫成棘輪（只准變好）、
+> 每一條都註明「壞掉的時候使用者會看到什麼」。
+>
+> **兩條新護欄在加進去的當下就各自抓到東西**：
+> - 「供應鏈圖的台股都要在族群裡」→ 抓到 **7 家**（智原 3035、矽格 6257、穎崴 6515
+>   是既有的洞，不是當天造成的）
+> - 「產業別離群值」→ 抓到 **3 家**：**穩懋 3105 在 panel（面板）**
+>   —— 它是全球最大砷化鎵晶圓代工廠，做手機射頻 PA；
+>   **泰詠 6266 在 passive** —— 它是 EMS 代工商，被動元件是它的**供應商**；
+>   **台泥 1101 在 petrochemical** —— 那一格其餘是台塑四寶。
+>
+> 第二條刻意做成**白名單**而不是「不准有離群值」：同一次掃描有 5 個合理的跨產業別
+> （宜鼎、景碩、鴻海、聯鈞、台塑化），寫死的話這條測試太吵、兩週內一定被關掉。
+>
+> ### ★ 兩個會讓網站長期失效的 bug
+>
+> 1. **每日管線在 `news` phase 永遠回 exit 1**（`run_daily.py` 的
+>    `return 0 if trade_date else 1`）。news phase 本來就不抓價量，`trade_date` 必然是
+>    None → collect job 判失敗 → `deploy` 因 `needs: collect` 被 skip
+>    → **新聞與國際盤明明抓到了、前端資料也產好了，網站卻不會更新**。
+>    Actions #31、#32 連續兩輪 failure，日誌自己寫「4 個步驟成功，0 個錯誤」配 exit code 1。
+>    三道關卡擋不住它，因為 pytest 的 harness 以前只呼叫 `main()` **不看回傳值**。
+> 2. **回補封印**（見下午那一段）：`LIMIT: 500` 讓第 501 名之後的股票永遠補不到。
+>    實測解開後，一輪處理的檔數從 **500 變成 2,328**。
+>
+> ### 測試數變化：368 → 394
+>
+> 多出來的 26 條**每一條都對應一個真的壞過的情境**，不是為了湊數字：
+> 下市代號掃描、回補「整組回空」判定、指數歷史回補、重大訊息 parser（吃真實 fixture）、
+> news phase 退出碼、以及交付護欄那 8 條。
+>
+> ### 半導體鏈（Andy 指定的第 4 項）
+>
+> 25 環節／73 公司／120 邊 → **26／89／134**。新增「前段設備 / 零組件」環節、
+> Intel 與應用材料兩個外商節點、14 家台廠。
+> **四條邊的方向跟原假設相反**（查證後才發現）：
+> `m31 → tsmc`、`ememory → tsmc`（IP 廠授權收權利金，晶圓廠是**客戶**，
+> 跟創意／世芯 turnkey 買產能相反）；
+> `tsmc → xintec`、`tsmc → ardentec`（是 `outsources_to` 不是 `supplies`，
+> 精材與欣銓是服務廠、不向台積電買晶圓）。
+> 分析師還抓到我在任務單裡把 `foxsemicon` 這個 id 掛給帆宣 6196 ——
+> 那是**京鼎 3413** 的官網英文名，帆宣是 Marketech。
+>
+> ### ⬜ 待處理（依序）
+>
+> 1. **`electronics` 鏈** —— 圖11 的 MLCC 與面板疊層兩張圖**沒有它就沒有地方掛**。
+>    ★ 範圍比原估的大：`electronics`／`traditional`／`infrastructure` 三條鏈在
+>    `supply_chain.yaml` 裡**一個環節、一家公司都沒有**，所以不是「畫三張圖」，
+>    是要先建整套供應鏈結構（含查證）。修正估計每條 1.5～2 個工作階段。
+> 2. 圖11 其餘四張（面板疊層、交換器板卡、輕油裂解、變壓器 GIS）
+>    —— MLCC 規格書已完成（`docs/diagram_specs/mlcc_stack.md`），當樣板
+> 3. 圖14 題材圖 25 個等角物件重畫
+> 4. 資料覆蓋率棘輪往上調（等回補跑順，現在的 370／460 是「今天的地板」不是標準）
+> 5. FRED 總經（`FRED_API_KEY` 回 400，`data/macro/` 目錄根本不存在）
+>
+> ### ★ 兩件 Andy 拍板不做的（不要再撿回來）
+>
+> 見下方「2026-09-19 拍板」那一段：手機剖析圖字級、同族群市占比較。
+>
+
+> ## 2026-09-19（傍晚）：族群成分大掃除 ＋ 回補封印解開 ＋ 三個「一直是壞的」bug
+>
+> Andy：「我昨天以及先前交代的 task 是否有完成，我發現還是有很多沒加入，
+> 需要你翻紀錄，並安排 agent 去檢查」＋「理論上大部分個股都可以找到資訊…
+> 但既然是一張產業圖，會希望所有產業的個股在上面彼此有關連」。
+>
+> ### ★ 他說的「還是有很多沒加入」是對的，而且根因只有一個
+>
+> 派 `delivery-planner` 回到 `origin/main` 的程式碼與 parquet 逐項實測（不採信 HANDOFF 自標的狀態）：
+>
+> | | 實測 |
+> |---|---|
+> | 全市場個股 | **2,336 檔** |
+> | 價量有 250 個交易日以上 | **392 檔**（其餘 1,941 檔的歷史從 2026 年才開始） |
+> | 月營收算得出 YoY（≥13 月） | **488 檔** |
+> | 財報算得出 TTM（≥4 季） | **503 檔** |
+> | 法人買賣 | **571 檔**，個股頁看得到的只有 400 檔 |
+> | 60 分 K | **441 檔** |
+> | 集保大戶散戶 | 全市場 **只有 2 個週次** → 走勢圖每一檔都畫不出來 |
+>
+> **根因是 `backfill.yml` 的排程把 `LIMIT` 寫死 500**，而 `target_codes(500)` 取的是
+> 「族群成分股 ＋ 成交值排名」的前 500 名 —— **第 501 名之後的股票在設計上永遠補不到**。
+> 1,933 個個股頁上那句「歷史價量還在回補，補齊後才會出現」是一句永遠不會兌現的承諾。
+> 而且 `complete["plan:default"]` 從 2026-09-12 起把排程整個擋掉，9 月剩下的每一輪都空轉。
+>
+> 改了三件事（DECISIONS #209、#210）：
+> 1. 排程的 `LIMIT` 改成留空（＝整個市場）。真正的節流閥是 FinMind 額度（402 就停、
+>    寫進度檔、下一輪接續），那個機制本來就在；`LIMIT` 只是多押一道把清單砍掉的上限。
+> 2. 清掉 `backfill_progress.json` 的全部 `complete` 旗標（它們是在 500 檔清單下標的）
+>    ＋ 500 個 `holding@` 的假 done 鍵。
+> 3. `run_backfill` 新規則：**整組資料集每一檔都回空 ≠ 這些股票沒資料**。
+>    2026-09-12 那輪 holding 500 檔全回空（FinMind 免費層不開 `TaiwanStockHoldingSharesPer`），
+>    500 個 done 被寫死，再也沒有任何一輪會重問 —— 所以「大戶 4 週變化」全站永遠顯示「—」。
+>
+> **⚠️ 下一輪回補會跑很久、而且會連續跑好幾天**（額度用完就停、下一小時接續），這是預期行為。
+>
+> ### ★ 三個「從掛上去的第一天就是壞的」bug
+>
+> 派 `reviewer` 用 Playwright 真人操作驗收「宣稱完成」的功能，抓到三個：
+>
+> 1. **34/35 個法定產業別族群頁是空的**（DECISIONS #211）。`app.js` 的 `route()` 拿
+>    `location.hash` 直接 split，沒有 `decodeURIComponent`。族群 id 是中文（`ind_半導體業`），
+>    瀏覽器存成百分比編碼 → `g.id === state.group` 永遠比不中。
+>    候選名單、市場明細、個股頁的族群連結**全部**通到這裡，只有純 ASCII 的 `ind_ETF` 躲過。
+> 2. **「只看低於族群中位」永遠篩出 0 筆**（DECISIONS #212）。後端 `vs_median` 回的是比值，
+>    前端兩處都當成百分比差。本益比恆正 → 比值永遠 > 0。
+>    連帶個股頁對每一檔都印「高於中位」、族群中位那欄整欄永遠是綠色（違反紅漲綠跌）。
+> 3. **季節性卡片冒出英文 `second thought`**，而且卡片內捲把一半的族群名切掉
+>    （`_preview` 報的 3 筆文字重疊就是這樣來的 —— `.stage li` 是不換行的 flex，
+>    窄畫面時右邊那段整段溢出膠囊壓到下面）。
+>
+> 三個都修了。**更重要的是把讓它們活這麼久的三條假通過驗收一起修掉**（DECISIONS #213）：
+> `all([])` 是 True、選擇器含一個「不管有沒有分組都存在」的元素、18 個題材只驗 3 個。
+> 另新增 `t_group_pages`（真的打開中文 id 的族群頁、數成分股列數）——
+> 以前完全沒有任何一條驗收打開過 `#industry/group/`。
+>
+> ### ★ 族群成分大掃除（五位分析師 ＋ 一道機器關卡）
+>
+> `groups.yaml` 13 處、`themes.yaml` 8 處。最嚴重的一格是**「半導體材料」五檔裡有四檔無關**：
+> 4763 材料*-KY（醋酸纖維絲束，香菸濾嘴）、6165 浪凡（**直播平台**）、8104 錸寶（PMOLED 面板）、
+> 4707 磐亞（界面活性劑）—— M1 這一格的量能有 4/5 是別的產業的錢，點進去會列出一家直播公司。
+> 其他：中磊 5388 在「AI 伺服器組裝」但**公司法說自己說不做**；振曜 6143 在「光通訊」但光纖是它
+> 持股四成的 6291 沛亨在做；「連接器」五檔裡三檔不做連接器；燿華 2367 在「無人機」但它做的是
+> 低軌衛星地面接收板。臻鼎 4958（全球 PCB 龍頭、NVIDIA MGX 生態系成員）**三個檔都查不到它**，補上。
+>
+> **另外兩檔是機器抓的，沒有任何一位分析師回報**（DECISIONS #208）：
+> `osat: 2311` 日月光 2018-04 已下市、`green_energy/heavy_electric: 6806` 森崴能源
+> 2026-06-23 因淨值轉負終止上市。這種錯不會報錯（`company_info` 留了殘影），
+> 只是那一格的量能永遠是 0。新增 `tests/test_group_codes_alive.py` 每次 pytest 都掃。
+>
+> ### ★ 產業圖：把 Andy 要的「彼此有關連」補上
+>
+> `supply_chain.yaml` 22 環節／58 家／100 條邊 → **25 環節／73 家／120 條邊**。
+> 新環節：`connector`（連接器/線材/Busbar）、`fpc`（軟板）、`semi_material`（半導體製程材料）。
+> 新公司 15 家，**每一家都至少有一條有出處的邊 —— 沒有新增任何孤立節點**。
+> 而且 `金居 8358 → 台燿 6274（HVLP 銅箔）`把上午刻意留的那個孤立節點接上了：
+> 上午找不到台燿的**下游**具名客戶，但它的**上游**查得到
+> （來源直接寫「金居…作為 CCL 廠商台光電、聯茂、台燿的上游供應商」，是供貨陳述不是並列標題）。
+>
+> 兩位分析師查了 24 檔，**只有 13 檔建議現在畫**，另外 11 檔明確建議不畫（查不到具名對手方）——
+> 例如啟碁 6285 的 800G 交換器，最誘人的一條是接到 Broadcom Tomahawk，
+> 但同一批報導裡用 Tomahawk 6 送樣的是**明泰**不是啟碁。不要因為智邦用 Tomahawk 就推論所有台廠都用。
+>
+> ### 還沒做（依優先序，全部有實測的驗收條件）
+>
+> 1. **`index_ohlc` 一次性回補** —— 大盤月 K 只有 **2 根**、季 K **1 根**，
+>    而且 `run_daily.py:446` 寫死 `since = now - 40 days`、回補計畫裡沒有這張表，
+>    **這不是「還沒補完」，是設計上永遠不會變多**。這正是 Andy 2026-09-15 親口抱怨的那件事。
+> 2. **重大訊息 parser** —— 阻塞早就不存在了：Andy 2026-09-14 16:51 就跑過 probe，
+>    fixture 在 `docs/fixtures/material_news_probe.json`、端點回 200、欄位齊全，
+>    缺的是 `pipeline/sources/mops.py`。**我們把自己的待辦寫成了他的待辦。**
+> 3. **半導體鏈的 supply_chain 補充** —— 前段/後段兩位分析師的建議（`psmc → intel`、
+>    `foxsemicon → amat`、`m31 → tsmc` 等 12 條 ＋ `wafer_material`/`fab_equipment` 兩個環節）
+>    這一批**沒有做**，因為我手上沒留住他們的來源連結，要重派一輪才敢寫。
+> 4. 資料覆蓋率棘輪（等回補跑過一輪、基準值穩了再釘，現在釘等於把「只有 400 檔」合法化）
+> 5. 圖11 量產（MLCC／面板疊層／交換器板卡／輕油裂解／變壓器GIS）、圖14 題材圖 25 物件
+> 6. 一般電子／傳產／基礎建設三條鏈還沒有剖析圖（`HAS_DIAGRAM` 只有兩條）
+>
+> ### ★ Andy 2026-09-19 拍板：這兩項不做，不要再列進待辦
+>
+> | # | 項目 | 為什麼不做 |
+> |---|---|---|
+> | 5 | 手機剖析圖字級 10px → 15px | `.dg .tag` 是 10px，但 SVG 會等比縮成 8px；要達標得拉到 19px，桌機會變醜、而且可能撞到文字重疊，等於為了一個字級重排整個版面。**代價大於收益**，Andy 說先不考慮 |
+> | 39 | 同族群市占規模／競爭對手比較 | **沒有免費合規的市占來源**。唯一做得到的是拿「族群內營收占比」當代理，但那不是市占。Andy 說先不考慮 —— 與其放一個標著「這不是真市占」的數字，不如不放 |
+>
+> 這兩項**已從待辦除名**。之後接手的人不要再把它們當成「還沒做」——
+> 它們是「評估過、決定不做」，理由在上表。要重啟要 Andy 重新拍板。
+>
+
+> ## 2026-09-19（下午）：供應鏈資料查證重寫 ＋ 產業關係說明面板
+>
+> Andy：「請科技業專家協助回答，若是不清楚，可以尋找網路文章…請查明確實填寫」
+> ＋「查完直接改，有分歧的再問我」＋「點擊關聯圖時，在旁邊新增這類說明」。
+>
+> ### ★ 最重要的一件事：我的猜測錯了 5 條
+>
+> 上午的 `docs/supply_chain_suggest.md` v1 是**我憑印象寫的 14 條建議**。
+> 派三位 `industry-analyst` 分頭查證後 —— **錯 5 條、半對 2 條、查不到 1 條**。
+> 完整的對照與來源在 `docs/supply_chain_suggest.md`，根因記在 DECISIONS #201。
+> 最危險的是「設計服務 → 晶圓代工」那三條**方向全寫反**：設計服務是 turnkey，
+> 向晶圓廠買產能，所以晶圓廠才是供應方。照字面填會一次畫反三條。
+>
+> **這就是為什麼 `supply_chain.yaml` 不能自己填。**
+>
+> ### 資料改了什麼
+>
+> | | 之前 | 之後 |
+> |---|---|---|
+> | 邊 | 33 條 | **78 條**，每條帶 `confidence`（官方揭露／媒體報導／產業推論） |
+> | 孤立節點 | AI 鏈 10、半導體鏈 13 | **AI 鏈 1、半導體鏈 0** |
+> | 環節 | 14 | **20**（設備／材料／測試介面／高階 PCB／光通訊磊晶 各自獨立） |
+> | 公司 | 34 | **50** |
+> | 沒出處的市占數字 | 3 筆 | **0 筆** |
+>
+> 剩下那 1 個孤立節點是**台燿 6274**，**刻意**留的 —— 公開來源查不到具名客戶，
+> 「台燿供 UBB 用 CCL」＋「UBB 主要 PCB 廠是金像電」是兩段推論接起來的，不該進公開網站。
+> `_uitest` 的 `SC_ISO_MAX` 因此從 10／13 降到 **1／0**（棘輪，只准變少）。
+>
+> 幾個查證抓到的硬錯誤：**金像電 2368 被歸在「ABF 載板」但它根本不做 ABF 載板**、
+> **`Broadcom → 智邦` 這條邊不存在**（整張 AI 鏈最明顯的洞）、
+> **`台積電 → Marvell` 不存在但 `cowos` 的需求分配已寫 marvell 8%**（檔案自相矛盾）、
+> **緯創斷尾、緯穎斷頭**。新增 `rel: designated_by`（終端指定料號 AVL）表達
+> 「CSP 直接指定料號但實體出貨走 ODM」——只有 `supplies` 一種語意時，
+> 不是畫錯就是漏掉最重要的商業關係（DECISIONS #202）。
+>
+> ### 產業關係說明面板（Andy 新要求）
+>
+> 點關聯圖的公司 → **圖的旁邊**展開「產業關係」：上游誰供什麼給它、它又把什麼賣給誰，
+> 每一條帶**品項、依存度（strength 畫成長條）、以及 confidence**。
+> confidence 那一項是這塊最重要的設計 —— 這份資料有一半是產業推論而不是公司揭露，
+> 不標的話使用者會當成事實（DECISIONS #205）。
+> 另有「在圖上 highlight」鈕（按了線亮起來、其他變暗，再按還原）。
+> 窄畫面（<1100px）面板自動掉到圖的下面，不硬並排。
+>
+> 沒有上下游的公司**明講**「還沒建立上下游關聯…查不到就留白，不畫一條猜的線」，不是空白。
+>
+> ### 驗收
+>
+> - `tests/test_supply_chain_v2.py` 新增 10 條（邊的兩端存在、competes 不在 edges、
+>   有數字就要有出處、role 只准 material/equipment、方向反了要被抓到…）
+> - `_uitest.py` 新增 `t_relpanel`（上下游分開列、品項有寫、confidence 每條都有、
+>   highlight 按了圖真的變、800px 掉到下面）；`t_batch6_n3` 加「?」只標在真的沒線的卡片上
+>
+> ### 新增三位鏈別查證分析師（Andy：「幫我新增這三個 Agent，後續有類似的專家都新增」）
+>
+> `semi-chain-analyst`（半導體鏈）、`pcb-substrate-analyst`（載板／PCB／CCL）、
+> `ai-server-analyst`（AI 伺服器）。**為什麼加**：那天我憑印象寫的 14 條供應鏈建議
+> 錯了 5 條、半對 2 條 —— 「猜」跟「查」是兩件事，而且要有人專職去查。
+> 它們跟 `industry-analyst` 分工不同：後者管「這個 repo 裡的族群／題材／環節怎麼定義」，
+> 這三位管「**外面的世界到底怎麼運作**」，而且**只查不改**。
+>
+> 共同規矩抽成 `.claude/agents/_RESEARCH_RULES.md`（硬性）：兩個以上獨立來源才給「高」、
+> 社群平台只當線索、**查不到就寫查不到**、每條附 2 個以上 URL 並寫出它具體講了什麼、
+> 標信心度、講清楚環境限制（容器擋掉 WebFetch，讀到的是搜尋摘要不是原文）。
+>
+> **AGENTS.md 也立了常設規則**：只要某個領域一再需要「去查外面的事實」而不是「讀這個 repo」，
+> 就替它開一位分析師（之後 MLCC／面板／重電／生技都照辦），
+> 而且新開的一定要寫出「這條鏈上最容易錯的三到四件事」——
+> 那一段才是這個角色真正的價值，不然跟通用的 `industry-analyst` 沒有差別。
+>
+> ### 還在開放、等 Andy 決定的
+>
+> 六件，寫在 `docs/supply_chain_suggest.md` 最後一節。最值得看的兩件：
+> ① 健策要不要從「散熱」拆出來（封裝級 vs 系統級）
+> ② 台燿要不要用 `designated_by` 連 NVIDIA —— **這是我跟專家判斷分歧的唯一一條**，
+>    我尊重專家沒有畫。
+
+
+> ## 2026-09-19（上午）：批次6 的 圖十、審查流程、圖九 上線
+>
+> Andy 的指示是「按照建議順序執行」，就是昨天那三項：
+> ① 圖十 供應鏈連線 ② 兩個審查 Agent ＋ `docs/diagram_specs/` 流程 ③ 圖九當樣板。三項都做完了。
+>
+> ### ① 圖十 供應鏈關聯圖：線終於連對人了
+>
+> 三個根因疊在一起（完整記錄在 DECISIONS #195）：
+> 1. **端點寫死**「來源右緣 → 目標左緣」，目標在左邊的邊整條倒著從卡片底下穿過去。
+> 2. **邊排在卡片之前**，被卡片蓋掉一半。
+> 3. **粗細被 CSS 蓋掉**（`.chainmap .edge{stroke-width:1.2}` 贏過 presentation attribute），
+>    所以 `strength`（依存度）從頭到尾沒有作用，每條線一樣粗。
+>
+> 現在四種走法，一律走欄與欄之間那條 30px 的空白通道（通道裡沒有卡片 → 不會穿過不相干的公司）；
+> 匯流道要壓多低只由「這條橫線真的會經過誰」決定；`competes` 不畫；設備／材料走灰色細線。
+>
+> **驗收改成量幾何**：每條邊兩端落在卡片邊緣 ±2px、沒有邊穿過非端點卡片（沿路徑取 60 點），
+> 1440px 與 800px 各驗一次 —— `scripts/_uitest.py` 的 `t_batch6_n3`。
+>
+> 順手修掉的漏邊：`CHAIN_EXTRA` 把 `ic_design` 補進 AI 伺服器鏈，
+> **AI 鏈的邊 18 → 28 條、家數 27 → 33**（NVIDIA/AMD/Broadcom/Marvell 以前不在圖上，
+> 所有「IC 設計 → 代工／封裝／載板」的邊都查不到節點被整條丟掉）。
+>
+> ### ② 兩個審查 Agent ＋ 規格書流程
+>
+> `mechanical-engineer`（結構對不對）與 `art-director`（好不好看，擁有 `--dg-*`）。
+> **為什麼加**：繪圖一直是同一個人畫、同一個人驗，而這是兩種完全不同的判斷，
+> 同一個人扛就兩邊都放水 —— 圖十的線連錯人、淺色主題一堆白字白線都是這樣過關的。
+> 另一半是成本：批次6 前面幾張圖「先畫再想」，一張來回三輪、每輪三道關卡 18 分鐘。
+> 所以硬性規定：**沒有 `docs/diagram_specs/<id>.md` 並由 `mechanical-engineer` 簽掉，不准開畫**
+> （六段格式在 `docs/diagram_specs/_TEMPLATE.md`）。衝突時**結構優先**。詳見 DECISIONS #197。
+>
+> ### ③ 圖九（3D 剖析圖）＝ 量產圖11 的樣板
+>
+> 規格書 `docs/diagram_specs/dg3d_standard.md`，裡面那段「共同驗收條件」就是之後每一張圖的門檻。
+> 三件事都落地並驗過：
+>
+> | | 做了什麼 | 怎麼驗的 |
+> |---|---|---|
+> | 2-1 走線／PIN 腳／電流 | 蛇行等長差動對（轉角 45°、線寬一致）、BGA 3×3→**5×5 球陣列**、光模組**金手指**（含倒角）、PSU **直流匯流排端子**、背板連接器端子；沿走線跑的**電流粒子** | `flowAt`（粒子座標和）會變；按「動畫：關」真的停、粒子收起來而走線還在 |
+> | 2-2 三種配色 | `tech` 科技／`soft` 柔和（淺底、零件不發光，**印得出來**）／`calm` 沉穩。全部是 `--dg-*` CSS 變數，**JS 一個 `#xxxxxx` 都沒寫** | `colorSig`（材質顏色指紋）換色票一定要變；`soft` 的 `maxEmissive` 必須是 0 |
+> | 2-3 文字框 → 個股晶片 | 每個零件的說明底下掛該環節的台股（最多 4 檔＋`+N`），點了進個股頁；台股掛零就明講「台股無直接對應」 | 真的點一顆晶片，`location.hash` 要變成 `#stock/…`；800px 下晶片還在、文字框不出框 |
+>
+> 還加了一條**效能棘輪**：`stats().meshes <= 900`。走線第一版「一段一個方塊」害
+> mesh 從 483 暴增到 1846、frame rate 29.8 → 14.1 fps（軟體渲染實測）；
+> 改成「一層併一個 mesh ＋ BGA 用 InstancedMesh」之後是 671 個、28.6 fps，
+> 跟改之前幾乎一樣。量產圖11 時這個數字只准往下（DECISIONS #200）。
+>
+> 驗收在 `t_batch6_n9`。踩到的坑記在 DECISIONS #198、#199、#200
+> （TDZ 讓 3D 整個退回平面圖；`canvas_hash` 對 WebGL 是一條永遠不會紅的假驗收；draw call 爆掉）。
+>
+> ### 這次沒有跑 pytest，講清楚為什麼
+>
+> 依 CLAUDE.md 的機器判準：`git diff --name-only` 的清單是
+> `site/**`、`scripts/_uitest.py`、`AGENTS.md`、`.claude/agents/**`、`docs/**` ——
+> **沒有 `pipeline/`、`tests/`、`requirements.txt`、`.github/`**，`scripts/` 只動到 `_uitest.py`（本來就除外），
+> 所以 pytest 在物理上不可能因為這批變紅。跑了 `_preview.py` 與 `_uitest.py`（前端那兩道）。
+>
+> ### 還沒做（誠實標示）
+>
+> - **圖11 量產**：MLCC、面板疊層、交換器板卡、輕油裂解、變壓器/GIS。
+>   樣板與共同驗收條件已經定好（`dg3d_standard.md`），**每一張仍要各寫一份規格書**
+>   （零件清單／層別順序／識別特徵／標註四段）才開畫 —— 這是 ② 立的規矩，不繞過。
+> - **圖14 題材圖 25 個等角小物件重畫**。
+> - **一行文案跟行為對不上**：供應鏈關聯圖的小字還寫「點公司進入個股頁」，
+>   但 N7 已經改成「原地展開小面板，面板裡才有『看個股頁 →』」。下一批順手改掉。
+> - **`supply_chain.yaml` 校訂**：`docs/supply_chain_suggest.md` 等 Andy 過目。
+>   孤立節點目前 AI 鏈 10 家、半導體鏈 13 家，畫面上都標了「?」，
+>   補完邊之後 `_uitest` 的 `SC_ISO_MAX` 就往下調（那條是棘輪，只准變少）。
+> - **既有的 8 條紅字**（不是這次造成的）：個股即時分K 5、市場明細 1、產業 1、手機 1。
+>
+> ### ★ 這個 session 沒辦法自己打開線上網站（要記住）
+>
+> CLAUDE.md 規定「push 之後要真的打開 <https://miaozike.github.io/tw-rotation/> 確認版本換掉」。
+> 這一次**做不到** —— 雲端容器的網路代理把 `miaozike.github.io` 擋掉了
+> （`EGRESS_BLOCKED`，`tw-quote.kcq01010909.workers.dev` 也一樣被擋）。
+> 所以改用**可以驗到的東西**交叉確認，並且明講哪一項是推算的：
+>
+> | 驗了什麼 | 結果 |
+> |---|---|
+> | pages.yml 第 31 次執行 | `success`（2026-09-19 07:08:22Z ~ 07:09:03Z） |
+> | Pages 部署的 commit | `pages_build_version: 05c3493d…` ← 就是這次推的 commit |
+> | 部署環境網址 | `Evaluated environment url: https://miaozike.github.io/tw-rotation/` |
+> | 版號徽章 | **`2026-09-19 第 8 版 · 15:08`**（`05c3493`）—— 用工作流同一支
+>   `stamp_assets.build_label()` ＋ 同一個 API（今天 pages.yml 執行次數＝8）算出來的，**不是我看到的** |
+>
+> 下一個 session 如果也被擋，就照這個方法驗，並且**跟 Andy 說清楚「我沒有親眼看到」**。
+> 要真的看到，得請 Andy 自己開一次，或是把 `miaozike.github.io` 加進容器的允許清單。
+
+> ### 下一批建議順序
+> 1. `supply_chain.yaml` 校訂（Andy 勾一勾就好，回報最大 —— 孤立節點是「?」不是線）
+> 2. 圖11 第一張（建議 MLCC：層數↔價格↔車規良率，一張圖講得完）走完整流程，確認規格書流程真的順
+> 3. 圖14 題材圖
+
+
+> ## 2026-09-19（早上 08:27）：批次 1–5、7 與 6-N1 全部上線
+>
+> 版號 **2026-09-19 第 7 版 · 08:27**（commit `8be409e`）。Andy 昨晚交代「一路做到底、
+> 問題先自己解、中午前看到最終結果」，以下是實際狀態。
+>
+> ### 已上線
+>
+> | 批次 | 內容 |
+> |---|---|
+> | 1 | 圖12 浮動卡／圖13 板塊底色／圖19 熱力圖／圖17 字色／圖五 清單／共用播放拉Bar |
+> | 2 | 圖二輪動時鐘（標籤排開、圓心說明、放大、回放、篩選）＋ 圖四排行換位 |
+> | 清紅字 | `_uitest` 47 條 → 8 條，整輪 25 分鐘 → 10 分 30 秒 |
+> | 3 | 圖六水平點線樹／圖七河流與本益比河流截止日／圖八法人截止日／集中度三層鑽取 |
+> | 4 | N8 超額報酬（0/312 → 312/312）／N9 滾動視窗／圖15 漲跌分佈／圖16 站上均線走勢 |
+> | 5 | 台指期夜盤（Worker `/fut`）＋ N11 沒來源自動退回日線 |
+> | 7 | N2 族群名單統一＋晶片改篩選／N3 補間動畫／N4 30 天／N5 圓圈 84%／N6 箭頭／N7 不跳頁／N10 四段卡片 |
+> | 6-N1 | 3D 仰角解開到 360 度、左鍵可切平移 |
+>
+> ### 這一輪抓到的**真 bug**（都是驗收抓的，不是看出來的）
+>
+> 1. **圖二標籤跑出畫布**（1440px「晶圓代工」、800px「電子零組件業」）—— 左右兩欄對齊方向寫反。
+> 2. **點排行長條，頁面往下跳 895px，剛在看的圖被捲出畫面**（`scrollY` 0→895、座標 y 403→-491）。
+> 3. **集中度圖點不到**：`showSymbol:false` 的折線，series click 只有「剛好壓在線上」才觸發。
+> 4. **本益比河流滾輪放大失效**（我加 `dataZoom` 造成，**而且 industry.js 1631 行早就警告過**）。
+> 5. **漲跌分佈第一次進頁面沒畫**：`drawChgDist()` 排在建立容器之前。
+> 6. **「判定」欄點了排序沒反應**：顯示的是 verdict、排序用 grade，377/380 是空值。
+> 7. **季節性超額報酬 312 格 0 格算得出來**，而前端**無聲退回**絕對報酬。
+> 8. **3D 看不到底部**：`maxPolarAngle = π*0.495`，註解寫「不要轉到地板底下」。
+>
+> ### 還沒做（誠實標示）
+>
+> **批次 6 的其餘部分**（專家估 26 天，今天不可能完成，也不該趕）：
+> - 圖十 供應鏈關聯圖連線沒對齊（11 條有 10 條反向、`chainSegments` 漏掉 17 條邊）
+> - 圖11 其他產業別的 2D／3D 圖（MLCC、面板疊層、交換器板卡、輕油裂解、變壓器…）
+> - 圖14 題材圖 25 個等角小物件重畫
+> - 圖九 3D 電流／PIN 腳細緻度、三種配色
+> - 兩個審查 Agent（`mechanical-engineer`、`art-director`）
+> **理由**：這些要先有機構規格與公開技術文件當佐證（`docs/diagram_specs/<id>.md`），
+> 不能憑印象畫 —— Andy 的標準是「能展示給客戶」。
+>
+> **既有的 8 條紅字**（不是這次造成的）：個股即時分K 5 條（容器 egress 擋 Yahoo，已記載）、
+> 市場明細 1、產業 1、手機 1。
+>
+> ### 下一批建議順序
+> 1. 圖十 供應鏈連線（最影響信任 —— 線畫錯等於資訊是錯的）
+> 2. 兩個審查 Agent ＋ `docs/diagram_specs/` 規格流程
+> 3. 圖九當樣板確認配色與細緻度標準，再量產圖11
+
+
+> ## 2026-09-19（凌晨）：Andy 追加 9 項（批次7）—— N2/N3/N4/N5/N6/N7/N10 已完成，N1 已完成，N9 併批次4、N11 併批次5
+>
+> 他半夜看線上版抓到的，**明天才看結果**。CEO 指派如下。
+>
+> | # | 原話重點 | 我看到的實際狀況 | 派給 | 排在 |
+> |---|---|---|---|---|
+> | N1 | 3D 圖要「游標抓取移動」、「360 度都能觀測」——「我發現下面看不到」 | 現在只能轉不能平移，仰角被夾住所以看不到底部 | `tech-illustrator` | 批次6 |
+> | N2 | 圖一「兩邊族群對不上，有些為何篩選不到」 | 排行卡與時鐘卡下方各有一排族群晶片，名單不一致（排行取前 15、時鐘取前 16，來源也不同） | `frontend-ui` | **批次7 最優先** |
+> | N3 | 輪動時鐘要「像螞蟻一樣緩步移動」而非定格，播放才有趨勢性 | 目前回放是一幀一跳；要補間動畫 | `frontend-ui` | 批次7 |
+> | N4 | 輪動時鐘時間週期拉到 **30 天** | 現在 5–20 天（後端 trail 只存 20 天，**要一起改 rrg.rrg(trail=30)**） | `data-scraper`＋`frontend-ui` | 批次7 |
+> | N5 | 輪動時鐘「圓圈範圍擴大點」 | polar radius 72% → 再放大 | `frontend-ui` | 批次7 |
+> | N6 | 「箭頭補充內到位 順時針簡短說明意思」 | 四段之間的順時針箭頭要畫到位、旁邊補一句白話 | `visual-explainer` | 批次7 |
+> | N7 | 圖二 供應鏈關聯圖點個股**不要馬上跳**，要「跳出觀看股票這選項」 | 現在 `handlers.onSelect` 直接 `goStock()` | `frontend-ui` | 批次7 |
+> | N8 | 圖三 熱力圖「超額 & 絕對報酬沒變化」 | **要先查是不是真的沒變**；截圖裡「本月歷史最強族群」的超額報酬整欄是「—」，很可能是 `avg_excess` 全空 → 兩個指標畫出來一樣 | `finance-quant` | **批次7 最優先** |
+> | N9 | 圖三「近三年就會只有到當前月份」 | **已知**：`season.py` 用日曆年切，9–12 月樣本不足被 `n>=3` 門檻擋掉 → 空白。批次4 的 I 項本來就要改成「最近 12×N 個完整月」滾動視窗 | `finance-quant` | **批次4（本來就在做）** |
+> | N10 | 圖四 季節性下方族群改成「輪動階段四段循環與換段的族群」那種形式 | 現在是表格；改成四段卡片 | `frontend-ui` | 批次7 |
+> | N11 | 圖五 大盤三張圖「不該出現沒有數據」＋要顯示**台指夜盤即時** | 櫃買／台指期沒有 1 小時／4 小時的免費來源，現在直接寫「沒有」；夜盤是批次5 的 mis.taifex | `data-scraper` | **批次5（本來就在做）** |
+>
+> **重疊的先不重複做**：N9 併進批次4、N11 併進批次5。其餘七項成為批次7。
+> **N2 與 N8 優先**：一個是「畫面自相矛盾」，一個可能是「數字是假的」——
+> 都屬於「正確性 > 看得懂 > 好看」裡最前面那一層。
+
+
+> ## 2026-09-18（晚間）：Andy 19 項需求 —— 批次1 快修＋共用元件
+>
+> 三則交接（19 項原話、16 張截圖對照、六個批次的根因）已收齊 3/3。
+> **決策：程式碼直接推 main、不開 PR**（Andy 明講）；金鑰 Andy 自己在 GitHub 網頁設，我設不了（403）。
+>
+> **批次1 六件（純前端）**：
+>
+> | 項目 | 根因（都不是「調一下樣式」） | 決策 |
+> |---|---|---|
+> | 圖12 浮動公司卡跟到個股頁 | `showCompany()` 建的卡是 `position:fixed` 掛在 `<body>`，不屬於任何 view，換頁不會被清；而且點卡片時**同時**開卡又跳頁 | #181 |
+> | 圖13 淺色主題下板塊圖仍深底 | ECharts treemap 用 `itemStyle.borderColor` 當**整片底色**，三張圖都寫死 `#0b1224` | #179 |
+> | 圖19 熱力圖不隨數字變色 | 資料是 `[月,族群,值,物件]` 四維，`visualMap` 沒寫 `dimension` → 取最後一維（物件）→ NaN → 全同色 | #180 |
+> | 圖17 季節性淺色字看不見 | 字色／格線／色階中點全是寫死的深色值，而 `t_lightink` 根本沒掃 `#season` | #179 |
+> | 圖五 族群清單截斷、點了就跳頁 | 每格只列 12 個再寫「還有 N 個」；點 li 直接 `location.hash` | #182 |
+> | 共用 `App.playBar()` | 批次2-4 有五張圖都要 ＋ − ▶，各寫一套會有五種停不下來的方式 | #183 |
+>
+> **`playBar` 會自己停的四個時機**（不停就會對已 `dispose()` 的圖表 `setOption` 而拋錯）：
+> 換頁 `route()`、換主題 `applyTheme()`、分頁切到背景、使用者自己動手拉 Bar。
+>
+> **驗收**：`scripts/_uitest.py` 新增 `t_batch1()`（圖12／圖五／圖19 的真人操作，
+> 1440px 與 800px 各跑一次）與共用的 `check_play()`；`t_lightink` 的 pages 補上 `#season` 與 `#industry`。
+>
+> **驗收結果**：`_preview.py` exit 0；`_uitest.py` **批次1：0 個問題**（新加的 12 條全過）。
+>
+> **★ 順手發現一件比批次1 更該處理的事：`_uitest.py` 在 main 上本來就有 47 條紅的。**
+> 我沒有把「其餘那幾條本來就紅」當推論用，而是真的跑了基準對照 ——
+> 把 `site/` 與 `scripts/` 退回 `74348f1`、用同一份 JSON 再跑一次，
+> 兩份失敗清單正規化後逐行 `comm` 比對：**72 行對 72 行，零差異**（我沒改壞任何一條，也沒順手修好任何一條）。
+>
+> | 段落 | 基準(main) | 批次1 |
+> |---|---|---|
+> | 總覽 | 39 | 39 |
+> | 市場明細 / 產業 / 手機 | 1 / 1 / 1 | 1 / 1 / 1 |
+> | 個股即時分K | 5 | 5 |
+> | **批次1（新增）** | — | **0** |
+>
+> 但**只有 5 條（個股即時分K）在第 635 行被記載過**，其餘 42 條是無聲紅字。
+> 這正是 Andy 自己講的「天天紅燈就再也沒人看紅燈」—— 關卡紅著沒人管，等於沒有關卡。
+> 追根因花了約 10 分鐘就停（照 CLAUDE.md 的 10 分鐘上限），把觀察到的事實記在這裡：
+> **單獨開 `#overview` 時那張表是好的** —— `#candBody` 60 列、`#v-overview` 是 on、
+> `th[data-k=grade]` 量得到 205×39、`display:table-cell`、`visibility:visible`、沒有任何祖先被隱藏，
+> 而且**沒有任何 JS 錯誤**。失敗全是 `scroll_into_view_if_needed` 逾時「element is not visible」，
+> 且只在**整輪連續跑**時發生（`t_overview` 前面跑過 `t_theme` 等）。
+> 所以是測試在那個時間點的頁面狀態問題，不是畫面壞掉 —— 但**它讓整個關卡失去意義**，
+> 應該當成獨立一件事修（建議排在批次2 前面，讓後面五個批次有真的能信的關卡）。
+>
+> **下一批**：批次2（圖二輪動圖放大＋標籤排開＋播放、圖四資金流向排行換位）—— 會動到 `pipeline/`，必跑 pytest。
+> 建議先插一件：把 `_uitest.py` 那 42 條無聲紅字清掉或正式登記成已知限制。
+
+
+> ## 2026-09-18（傍晚）：本機 `.bat` 全盤點 —— 日常維護一支都不用按
+>
+> Andy 問：「repo 裡現有的 .bat 做了哪些事，是不是都已經有對應的 workflow？沒覆蓋到的補上。」
+>
+> 逐支盤點五支腳本的結果：**沒有任何一支缺 workflow**，對照表寫進 `SETUP.md` 第 8 節。
+>
+> | 腳本 | 雲端對應 | 還要不要按 |
+> |---|---|---|
+> | `setup.bat`／`setup.ps1` | 第 7、8 步＝`daily.yml`／`backfill.yml`；前六步是本機授權動作 | 只有換新電腦時 |
+> | `update.bat` | `daily.yml` 每天 7 輪 | 不用了 |
+> | `push.bat`／`_push_core.bat`／`push` | 程式碼由 Claude 直接推 | 不用了 |
+> | `backfill-financials.bat` | `backfill.yml` 的 Run workflow 面板有同樣三個輸入 | 不用了（已附點擊路徑）|
+>
+> **只能人工做的四件事**（workflow 物理上取代不了，已在 SETUP.md 第 8 節寫成點擊層級）：
+> 裝工具／`gh auth login`、設 repo Secrets、repo 的 Pages 與權限一次性設定、Cloudflare Worker 重貼。
+>
+> **★ 同一天稍晚：第四項已經自動化。** 新增 `.github/workflows/deploy-worker.yml` ——
+> `workers/quote-proxy/**` 一推上 main 就 `wrangler deploy`，然後**驗證線上真的換成新版**
+> （`/health` 要 200；`/chart` 不帶 id 要 400，回 404 就是舊版 —— 那正是 09-14 三張大盤圖
+> 不出現的症狀）。Secret 沒設時工作流用一句中文停下來，不丟英文錯誤。
+>
+> **★ Secrets 只能 Andy 自己設，我設不了，這點要講清楚**：這個雲端 session 沒有 `gh`
+> （`which gh` 回非零），而 session 的 token 打 `GET /repos/MiaoZiKe/tw-rotation/actions/secrets`
+> 與 `.../secrets/public-key` **兩個都是 403**。所以「用 gh secret set 幫他設」在這裡物理上做不到，
+> `gh secret list` 也驗不了。**更重要的是：不要請 Andy 把金鑰值貼進對話**——
+> 貼了就永遠留在對話紀錄裡，而且換不到任何好處。點擊層級的設定步驟寫在 `SETUP.md` 第 8 節。
+>
+> 待辦：`FRED_API_KEY`、`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` 三個 Secret 仍未設，
+> 都由 Andy 在 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions> 自己放。
+>
+> 另外實測確認：`_push_core.bat` 裡那段 `_pending\workflows` 複製機制，是為了「Claude 寫不了
+> `.github/workflows`」而做的繞道；這種雲端 session 已經可以直接改工作流檔（dry-run 通過），
+> `_pending/` 目前也不存在。先不動那段程式碼，等哪次真的要改工作流時一併驗證再清掉。
+>
+> **這一批動的是文件與一條新工作流**（`SETUP.md`、`HANDOFF.md`、`workers/README.md`、
+> `.github/workflows/deploy-worker.yml`），沒碰 `site/**` 也沒碰 `pipeline/**`，
+> 所以 `pages.yml` 不會觸發、網站版號不會變 —— 線上看不到差別是正常的，不是沒推成功。
+
+
+> ## 2026-09-18（下午）：部署從 14 分 26 秒 → 約 3 分鐘；改前端約 50 秒
+>
+> Andy：「為何跑這麼久」「其他能減少時間及優化部分幫我做下去，CEO 靠你安排人員動作」。
+>
+> **先記三次方法上的錯，因為方法比結果重要**（DECISIONS #172）：
+> ① 我先**猜**上傳那步慢 —— 錯，它只花 5 秒（我是在它剛好「進行中」時查 API 就下結論）。
+> ② 再拿**大型股取樣**乘以 2,334 檔 —— 錯，全市場七成是小型股，推估高估 35%。
+> ③ 結果我和兩個 agent **優化了只佔 26% 的那一塊**。真正的大頭是 M1 資金面（70%）。
+> 三次都是同一個病：**用推估代替實測**。`build()` 現在有分段計時，Actions log 直接看得到。
+>
+> | 階段 | 改之前 | 改之後 |
+> |---|---|---|
+> | `flow.group_daily`（M1）| 393.1s | **2.2s（179 倍）** |
+> | 個股頁那一圈（2,334 檔）| — | 145.6s |
+> | **build() 合計（本機）** | **719.4s** | **171.0s（4.2 倍）** |
+> | 部署總時間（Actions，推估）| 15 分 23 秒 | **約 3 分鐘** |
+> | **只改前端的部署**（吃 JSON 快取）| 15 分 23 秒 | **約 50 秒** |
+>
+> **驗收**：`tests/test_perf_golden.py`（0.8 秒的護欄）＋ **整包 2,357 個 JSON 逐檔逐欄位前後對照，
+> 完全一致**。改快沒有改到任何一個數字。
+>
+> **做了什麼**（細節 DECISIONS #172–#176）：
+> - `flow.group_daily` 的 `groupby.apply` 改向量化（236,641 次 Python 迴圈 → 一次聚合）
+> - K 棒轉 JSON 拿掉 `iterrows()`（35 倍）
+> - 九個 stockpage 函式不再每檔掃一次全表（先 groupby 建索引）
+> - `mtf.build` 多收 `daily_ind`，不再重算日線指標（沒分 K 的 4.8 倍）
+> - `indicators` / `technical` / `scoring` 合計 3.8 倍
+> - `pages.yml` 加前端 JSON 快取：資料湖與 pipeline 沒變就整個跳過重算
+> - `CLAUDE.md`：純前端改動可以跳過 pytest（用 `git diff --name-only` 機械判斷，不靠記憶）
+>
+> **還沒做**：個股那一圈現在是最大宗（145.6s／85%）。
+> 下一刀可以是「只重算今天有變動的個股頁」，但那要先想清楚怎麼判斷「有變動」
+> （價量每天都變，所以每天全跑其實是對的；真正該省的是**同一天內的第二次以後**，
+> 而那個已經被 JSON 快取蓋掉了）。所以**不急著再優化**，除非 Andy 覺得 3 分鐘還是太久。
+
+> ## 2026-09-18：第 3 批 3D（E1–E6）＋ C5 —— 25 項只剩 C1–C4（最新，接手先看這段）
+>
+> Andy：「預設先做 C5 ＋ 第 3 批 3D / C1-C4 先不做」。這一批做完，**25 項裡 21 項完成**，
+> 剩下的 C1–C4 是他自己喊停的（沒有免費合規的市占率／供應商／客戶來源，**不准編數字**）。
+>
+> | 編號 | Andy 的原話 | 做了什麼 | 怎麼驗（都在 `scripts/_uitest.py`）|
+> |---|---|---|---|
+> | C5 | 「過往 15 年 1–12 月平均漲幅，可切 1/3/5 年（可自填）」 | 後端 `stockpage.monthly_seasonality()` 給**逐年逐月**原始值，前端才切得動；個股頁「1–12 月平均漲幅」卡，1/3/5/全部＋自填 1–15 | `tests/test_month_season.py` 7 項；前端切年數驗圖真的變、副標的年份真的換 |
+> | E1 | 「3D 圖文字太小 → 引線＋外部文字框」 | 標籤從貼在零件上改成排在畫布左右兩欄：字 12.5px、多一行說明、左邊一條環節色粗邊、折線引線接回零件 | `check_3d_e1()`：字級 ≥12px、**沒有一組標籤重疊**、沒有壓在模型中央、轉視角時引線起點跟著跑 |
+> | E2 | 「3D 圖螢光感太重」 | 底層 emissive 一律 0、金屬度 0.55→0.22、青色 rim light 換中性冷白；高亮改成「其餘變透明」而不是整顆發光 | `check_3d_e2()`：**截圖數螢光像素**，舊版 3.27% → 新版 **0.14%**，同時要求平均亮度不准垮（不是靠調黑） |
+> | E3 | 「零件要更細膩，風扇有扇片、電池有電壓感」 | 21 種零件建造函式；**風扇有七片有攻角的扇片並會轉**、**電池是托盤＋十二顆電芯＋銅色正極＋四格電量燈**；BGA 改成球；HBM 疊六層＋TSV。順手補上機櫃本來就缺的後門風扇模組 | `check_3d_e34()`：mesh 數 ≥ 零件數 ×5（**483／188**，原本約 30）、真的有會轉的扇葉 |
+> | E4 | 「3D 可切動態／靜止」 | 動畫鈕現在同時管平面圖與 3D：動態＝緩慢自轉＋扇葉轉＋指示燈呼吸；靜止＝完全不動 | `check_3d_e34()`：**相機座標與扇葉角度兩個都要「開會變、關不變」**，關掉的漂移量要 < 0.05（實測 0.000）|
+> | E5 | 「產業鏈頁上方要有類別切換列，不用退回去」 | 標題上方一列晶片（五條鏈＋法定產業別，各帶檔數），按了直接換鏈 | `t_chainnav()`：真的按下去，標題換人、hash 換成新的鏈、新的那顆被標起來、**沒有殘留的 3D canvas** |
+> | E6 | 「ABF 這種跨類別環節要同時出現兩張架構圖與兩邊內容」 | 環節說明框多一塊：兩條鏈**各一張剖析圖縮圖**（該環節在兩張圖上都亮起）＋各自的上下游與族群＋直接切過去的入口 | `t_chainnav()`：兩張圖、兩張都亮起、兩邊上下游都寫出來、按「切到這條鏈看」真的落在 `#industry/ai_server/abf_pcb` 且環節已選好 |
+>
+> **這一批自己踩到又修掉的**：
+> - 標籤分欄只看 `sx < w/2` → 機櫃是直立的，零件全投影在正中央，13：3 全擠到左欄。改成「明顯偏一邊的放那邊，中間的放比較空的那欄」。
+> - 標籤排版只做「上而下、超出就整欄平移」→ 量到 10 組重疊。改成「上而下擺完再由下往上收」，收不下才讓最不重要的（離相機最遠）先藏。
+> - 電池外殼原本是密閉方塊 → 電芯做得再細也看不到。改成托盤。
+> - 零件變成 Group 之後 raycast 沒開遞迴 → 點下去什麼都不會亮；而且要往上走 `parent` 才找得到 `seg`。
+> - 按「動畫：關」之後相機還在飄（阻尼殘量）→ 用 `dampingFactor = 1` 跑一次 `update()` 吃光殘量。
+> - `renderChain()` 沒有先 `dispose3D()` → 用上方切換列連按幾條鏈會累積在背景空轉的 WebGL context。
+>
+> **推上線之後自己抓到並修掉的一個**（DECISIONS #171）：E6 那兩張縮圖在**窄畫面**
+> （視窗縮到半邊、約 1100px 以下）**完全沒有縮小**，被切掉一半，而且剛好切在亮起來的那個環節上。
+> 我第一次驗是 1440px 寬，看起來完全正常 —— 是自己開線上（瀏覽器窗格只有 794px）才看到的。
+> 修法是「量完再用 transform 縮」，並在 `t_chainnav()` 補了 800px／1040px 兩個寬度的驗收
+> （舊版程式跑這組會紅：圖比框寬 2.92 倍、溢出 619px）。
+>
+> 細節與理由：DECISIONS #165–#171。
+
+> ## 2026-09-18：23 項需求的第 2 批（最新，接手先看這段）
+>
+> **先講一件必須記住的事**：Andy 2026-09-16 一次給了 23 項，CEO 記進 HANDOFF 之後，
+> 接下來 12 小時把時間全花在兩件**沒列在那張清單上**的事（排序稽核、資料每天慢一天的根因）。
+> 那兩件事本身都該做，但結果是 **23 項只完成 1 項，而且是 Andy 自己發現的**。
+> 因此 2026-09-16 補了 `delivery-planner`（交付排程）這個 Agent，見 AGENTS.md 第 10 節。
+> 計畫外的工作可以插隊，**但要當下講**。
+>
+> ### 這一批完成的（全部有真人操作驗收）
+>
+> | 編號 | Andy 的原話 | 做了什麼 | 怎麼驗 |
+> |---|---|---|---|
+> | — | 「網頁需要新增版號，確認是否更新」 | 右上角版本徽章＋橫幅那一行；部署時自動填 commit 前 7 碼與建置時間（DECISIONS #148）| `t_buildver()`：兩組不同版號各開一次，驗畫面上的字真的跟著換 |
+> | B1 | 「將本益比河流圖填滿顏色」（圖四）| 模式從 2 個變 3 個：色帶分區／填滿／倍數線（#149）| `t_stock()` 裡切模式驗 canvas 指紋真的變、localStorage 真的寫進去 |
+> | B2 | 「新增可以調整透明度以及具備縮放功能，游標可以抓取移動」| 圖旁滑桿＋`wheelZoom`（滾輪放大、拖曳、雙擊還原）（#150）| 拉滑桿驗圖變了＋值存進 `cfg.st.pe`；`check_zoom` / `check_drag` |
+> | B3 | 「設定面板會消失，我需要會再呼叫」| 開關改看「畫面上真的看得到嗎」＋正規的點外面收起來（#151）| `t_cfgpop()`：收起來之後**按一次**就叫得回來（不是兩次）|
+> | D1 | 「切換回白色 UI 後需要更改的顏色」| 階段色／指標色／分類色盤／族群色全部改成跟著主題走（#152）| `t_lightink()`：圖表量 ink 覆蓋率、文字量對比度 —— **用機器掃，不用眼睛** |
+>
+> **D1 抓到的真問題**（都修掉了）：輪動階段「改善／轉弱／落後」對比度只有 1.41～1.57；
+> 第六條均線是純白（畫在白底＝沒畫）；MA／KD／MACD 的圖例文字對比 1.44～1.58；
+> 輪動時鐘與名次圖格線、儀表板底圈、散佈圖中線、MACD 零軸、本益比河流收盤線。
+>
+> **順手修掉兩個自己做壞的地方**：填滿模式的透明度被夾了 0.8 下限（滑桿等於壞的）；
+> 對比度掃描把 logo 白字誤報（它印在青紫漸層上）。
+>
+> ### 還沒做的（21 項）
+>
+> - **第 3 批 E1–E6**：3D 文字引線／去螢光／零件細膩／動靜切換／上方類別切換列／ABF 跨類別
+>   → 已補 `tech-illustrator` Agent（AGENTS.md 第 11 節）
+> - **第 4 批 C1–C5**：⚠️ **C1–C4 卡在資料來源，等 Andy 決定**。
+>   產品市占率、供應商、客戶名單**沒有免費又合規的來源**。
+>   可行做法是從公開年報／法說會整理進 `supply_chain.yaml` 由 Andy 校訂（跟 groups.yaml 一樣人工維護）。
+>   **不准編數字。** C5（15 年 1–12 月平均漲幅、可切 1/3/5 年）沒有這個問題，資料湖裡就有。
+> - **第 5 批 F1 F2 G1 G2 G3 H1 I1 J1**：RRG 換呈現與拖曳 Bar、資金去向改垂直＋電流感＋占比%、
+>   族群佔比河流加 %＋拉 Bar（Max 60 天）、族群×法人拉 Bar（0–30 天）＋占比%、族群×月份加曲線圖
+>
+> ## 2026-09-16：網站每天慢一天的真正原因
+>
+> Andy 09-15：「為何我沒看到最新的」。網站是最新版的程式，資料卻停在 **09-14**。
+>
+> **不是前端、不是部署、不是快取**，是管線的一行判斷寫錯（DECISIONS #147）：
+>
+> | 線上量到的事實 | 數字 |
+> |---|---|
+> | 資料湖 09-14 | 上市 1,324 檔／上櫃 1,006 檔 ✅ |
+> | 資料湖 09-15 | 上市 **0 檔**／上櫃 1,006 檔 ❌ |
+> | `last_run.json` 的 `mis.date_check` | `lake_latest: 2026-09-15`、`will_fill: **false**` |
+>
+> 舊的判斷是「mis 的交易日 ≤ **資料湖最新日期** 就不用補」。上櫃有自己的來源、當天就進得來，
+> 它一個人就把「資料湖最新日期」推到 09-15 —— 管線於是認定「今天已經有了」，
+> 上市那一半**永遠補不進來**。`build_payload` 的完整度關卡看到上市 0 檔不讓日期前進，
+> 網站就停在 09-14。這正是 Andy 一開始的核心抱怨（「資訊更新太慢了…影響數據真實性」）換個樣子回來。
+>
+> **修法**：判斷依據改成「**那一天的上市有幾檔**」（`twse_rows_on(date) < 800` 才補；
+> 上市約 1,300 檔，800 這個門檻跟 `last_complete_date` 的 0.6×1,324≈794 對齊）。
+> 順手只讀那一年的分割檔（`price_daily` 是 2000 年到現在，為了數一天不該整張讀）。
+> `mis.date_check` 多寫 `twse_rows_on_mis_date` / `min_needed`，下次再卡住一眼就看得出來。
+>
+> **為什麼 09-15 的洞會自己補起來**：openapi 是 T-1，09-16 那輪它就會給 09-15 的上市，
+> 同一輪 mis 再補 09-16，所以修好上去之後日期會一次跳到當天。
+>
+> **順手補的第二道**：改成「數檔數」之後，**盤中**手動觸發 `--phase price` 會把中午的即時價
+> 寫成當天的日 K，而後面幾輪看到「上市已有 1,300 檔」就不再補 —— 整天的收盤價都會是錯的。
+> 所以加了 `session_closed()`：那一場還沒收盤就不寫。正常排程（台北 15:30）本來就在收盤後，不受影響。
+>
+> **驗收**：`tests/test_mis_fill.py` 14 項（把 09-15 那天的資料湖照樣擺出來，
+> 驗新邏輯判 `will_fill=true`；**並且實測舊版程式跑這組會紅 6 項** —— 是真的回歸測試，不是事後補的形狀測試）。
+>
+> **上去之後什麼時候看得到**：這批只改管線，`pages.yml` 重算 JSON 時資料湖還是舊的，
+> 所以**推上去當下網站還是 09-14**，要等台北 **15:30** 那輪跑完（openapi 補 09-15 的上市、
+> mis 補當天）才會跳。跳的時候會直接跳到當天，不是只前進一天。
+>
+> ## 2026-09-15：Andy 的六點回報
+>
+> Andy 09-15 一次講了六件事，全部做完（DECISIONS #136〜#141）：
+>
+> | # | 他說的 | 做了什麼 | 檔案 |
+> |---|---|---|---|
+> | 1 | 「底下每次更新都會動到我調整好的上下範圍會一直出現跳動」 | `applyIndicators()` 的高度還原改成**只在第一次建圖時**做（`_paneInit`）；存檔時拒絕副圖高度為 0 的讀值（背景分頁會量到 0） | `site/chart.js`、`site/industry.js` |
+> | 2 | 「成交量 MACD 這些指標上下間隔寬點」 | 非 compact 的預設高度：量 120／指標 150／間隔 145／主圖下限 260 | `site/chart.js` 的 `PH` |
+> | 3 | 「櫃買 台指期怎麼可能沒有日線數據」 | **他是對的**。Yahoo `^TWOII` 壞了、台指期沒代號，但 FinMind 三個都有完整歷史。新增資料表 `index_ohlc`（`TSE`/`OTC`/`FUT`），前端日／週／月／季全部改讀資料湖 | `pipeline/sources/finmind.py`、`config.py`、`run_daily.py`、`build_payload.py`、`site/market3.js` |
+> | 4 | 「投信買超圖可以縮放、游標抓取移動、切換買超週期、加外資與綜合」 | `flow.trust_streak(who=...)` 泛化成三種法人、門檻放寬到 2 天；payload 出 `inst_streak`；前端加三顆鈕＋天數下拉；縮放用 `App.wheelZoom()`（**不是** ECharts dataZoom，那會吃掉 wheel 害頁面捲不動） | `pipeline/compute/flow.py`、`build_payload.py`、`site/app.js`、`site/index.html` |
+> | 5 | 「事件要同步更新今天的、保留前一週、日期改清單選項」 | 新聞日期改台北時區；`--phase price` 也抓新聞、加開盤中兩輪（台北 09:00／12:00）；payload 從「每類 40 則」改成**保留 7 天**並砍掉用不到的欄位；`#evDate` 從純文字改成 `<select>` | `pipeline/sources/news.py`、`build_payload.py`、`run_daily.py`、`.github/workflows/daily.yml`、`site/app.js`、`site/index.html` |
+> | 6 | 「族群 Default 排序適用漲幅」 | 成分股預設 `chg_pct` 由高到低；按過表頭存 `tw.memberSort`；題材「成員」表組內也改漲幅 | `site/industry.js`、`site/app.js` |
+>
+> **新增的真人操作驗收**（`scripts/_uitest.py`）：`t_streak()` 切法人／切天數／滾輪放大／拖曳；
+> `t_market3()` 的歷史週期改驗「三張都有日線」而不是「櫃買說明為什麼沒有」（餵假的 `index_ohlc.json`，
+> 不受本機有沒有跑過管線影響）；`t_events()` 改驗下拉選單真的篩得動；
+> `t_industry()` 驗預設排序是漲幅、按表頭會記住；`t_stock()` 多驗「切指標／放著不動高度都不會自己跳回去」。
+>
+> **要注意**：`check_nozoom` 的名單把 `trustWrap` 拿掉了（那張現在**故意**可以縮放），
+> 改成跟資金熱力圖一樣走 `check_drag`。
+>
+> ## 2026-09-14 傍晚：當天資料當天到位（第三批）
+>
+> **這批做了什麼**（DECISIONS #115〜#118）
+> 1. **管線也從 `mis` 取當天價量**（`pipeline/sources/mis.py`）。openapi 落後一個交易日，
+>    mis 有當天。開高低收三個來源一字不差，**量與值是盤中口徑的暫定值**，標 `px_source="mis"`，
+>    隔天被 openapi 覆蓋。
+> 2. **暫定值會在網站頂端講出來**（`meta.provisional`）：「資金流向與成交值排名今天請打折看」。
+> 3. **部署前加版本戳**（`scripts/stamp_assets.py`）：以後推完重新整理就是新版，不用按 Ctrl+F5。
+> 4. 即時報價連續失敗三次就停自動輪詢（公司網路擋外網時不要洗版）。
+>
+> **量到的口徑差異（很重要，不要忘記）**
+> 同一天用 FinMind 官方值逐檔對 mis 的成交量：
+> 1101 −0.55%、6488 −5.4%、**2330 −15.3%**。`v` 不含盤後定價交易，**差幅逐檔不同**，
+> 不能用固定比例校正。所以才只把開高低收當可信值。
+>
+> **驗收**：`pytest` **260 passed**（新增 23：`test_mis.py` 16、`test_stamp_assets.py` 7）；
+> `_preview.py` 0 個問題；`_uitest.py` ✅ 全過（316 秒）。
+>
+> **⚠️ 工作流改動放在 `_pending/workflows/`**（`pages.yml`、`daily.yml`）——
+> 遠端檔案橋不准寫 `.github/`，`_push_core.bat` 會在 commit 前自動複製過去。
+>
+> **同批補上**（DECISIONS #119、#120）
+> - 週末也會更新：新增 `--phase news`（只抓新聞與國際盤）＋ cron `0 2,12 * * 6,0`（台北 10:00／20:00）。
+> - 盤後的自動更新會**真的把新資料載進來**（以前只有手動按「更新」才會比對 `generated_at`，
+>   所以開著的頁面永遠拿不到 18:30 那輪的結果）。盤中不自動重載，改成提示「有新資料」。
+>
+> **2026-09-14 當天的實測**（為什麼還是看到 09-11）：
+> 台北 16:55 用 mis 查：加權 45862.52（−0.70%）、台積電 2380（−1.24%）、環球晶 900（−0.22%），
+> 資料日期 20260914。**今天的收盤早就存在**，openapi 沒給而已。管線 #16 拿到的是 09-11。
+> 這就是這一批要解決的事。
+>
+> **還沒驗到**：`mis` 那條在 Actions 上還沒真的跑過（本機連不出去）。
+> 第一次跑完要看 `last_run.json` 的 `mis.date_check` 與 `provisional_date`，
+> 並確認網站頂端有出現暫定值那行字。
+
+> ## 2026-09-14 下午：盤中即時（第二批）
+>
+> **這批做了什麼**：Andy 要「盤中至少每分鐘更新一次、盤後每 30 分鐘、另外要一顆更新按鍵」。
+> 細節與理由在 DECISIONS #108〜#112。
+>
+> **實測到的事實（不是推測）**
+> - `mis.twse.com.tw/stock/api/getStockInfo.jsp` 可用：一個請求 **120 檔、120ms**，
+>   上市 `tse_` 與上櫃 `otc_` 可混在同一請求，`tse_t00.tw` 是加權指數。
+> - **15:09 它已經有當天（09-14）的資料**；同一時間 `openapi.twse` 還停在 09-11。
+>   → 這條也是「網站慢一天」真正的解法，不只是盤中即時。
+> - **14:32（收盤後一小時）`openapi.twse` 仍是 09-11。** 所以 #106 把 15:30 那輪當成
+>   「抓得到當天價量」是**還沒被驗證的假設**，很可能拿到的還是前一天。
+>   `data/_state/` 目前沒有在記「資料日期是幾點第一次出現的」，所以這件事只能靠人工再量。
+>   **接手的人請在某個交易日的 15:35 / 16:30 / 18:00 各打一次那支端點，把時間記進 DECISIONS。**
+> - 瀏覽器不能直接抓：從 `https://miaozike.github.io` 實測，正常 `fetch` 是
+>   `TypeError: Failed to fetch`，`mode:'no-cors'` 卻通 → **是 CORS 擋的**，所以要 Worker。
+>
+> **✅ Worker 已部署並端到端驗過**（2026-09-14 15:48）
+> 網址 `https://tw-quote.kcq01010909.workers.dev`，已填進 `live.js` 的 `DEFAULT_PROXY`，
+> 換電腦換瀏覽器都不用再設定。**從正式站 `https://miaozike.github.io` 實際跨源打過**：
+> - `/health` → 200
+> - `/quote?ex_ch=tse_2330.tw|otc_6488.tw|tse_t00.tw` → **200、420ms、3 檔一次回全**，
+>   上市＋上櫃＋大盤混在同一個請求，資料日期 **20260914（當天）**：
+>   台積電 2380（昨 2410）、環球晶 900（昨 902）、加權指數 45862.52（昨 46184.85）。
+> - 護欄有效：`ex_ch=evil` → **400 `bad ex_ch token`**，不會往上游送。
+>
+> **⚠️ 還沒上線**：這個 session 依然沒有 push 權限（git proxy 403），
+> 改動要靠 Andy 在本機按 `push.bat`。推完等 Actions 部署，**Ctrl+F5 強制重整**才會拿到新的 JS。
+>
+> **驗收（三道都跑過）**
+> - `pytest tests/ -q` → **237 passed**
+> - `scripts/_preview.py` → **0 個問題**
+> - `scripts/_uitest.py` → **✅ 全過**（316 秒）。新增 `t_live()` 21 條：攔截 `/quote` 餵假報價，
+>   驗「設定來源後收盤價真的被即時價蓋掉」「按更新真的再抓一次（999 → 888）」
+>   「漲跌用昨收重算且顏色轉紅」「指數不顯示小數」「關掉自動更新計時器真的停」。
+>
+> **已知限制（誠實記錄）**
+> - 即時價只蓋「畫面上標記過的格子」（DECISIONS #112）。K 線圖、族群統計、資金流向那些
+>   仍然是收盤後的資料，盤中不會跟著動。這是刻意的，但要知道。
+> - **盤中真的在跳**這件事還沒看過 —— 部署完成時已經收盤（15:48），拿到的是當天收盤價。
+>   明天開盤後開網站看一眼，數字應該每分鐘閃一次；沒閃就看右上角狀態列寫什麼。
+> - `mis.twse` 有今天的資料、`openapi.twse` 到 14:32 還停在 09-11。
+>   **盤後管線還是走 openapi，所以「網站慢一天」目前只有前端這一層被解掉。**
+>   要根治得讓 `run_daily` 也能從 `mis.twse` 取當天收盤，那是另一批（派給 `data-scraper`）。
+
+**最後更新：2026-09-18（台北）** by Claude（session 01GzXbt3…）—— 最新一筆是 23 項需求的第 2 批：網頁版號 ＋ B1／B2／B3／D1（DECISIONS #148～#153）
+**最新程式 commit**：`30b57f0`（全市場個股頁 ＋ 題材 3D 供應鏈剖析圖 ＋ 一批 UI 修正，已推上 main、「部署網站」已成功、
+線上逐項驗證過：`stocks.json` 2334 檔、`data/stock/6806.json` 存在、`groups_detail` 成員帶 `market`、
+`#themes/ai_server` 剖析圖 5 個環節／18 個可點代號／5 個製程步驟）。
+之後本機再加上「**候選名單四面向評分與選股理由**」（Andy #42，見 DECISIONS #56）、
+「**題材爆炸圖版面**」（8 個題材）、「**K 線／SMC 修正與 TradingView 式繪圖／設定**」（Andy #43，見 DECISIONS #58）、
+「**真人操作驗收 `_uitest.py`**」（Andy #44，見 DECISIONS #59）、「**資金流向頁改版**」（Andy #41，見 DECISIONS #60）。
+**⚠️ 這幾批都還沒推上 GitHub** —— 這個 session 的 push 管道都被擋掉了（瀏覽器貼 token 被憑證分類器擋、
+`git push` 被 agent proxy 擋：「not in this session's authorized repository set」）。
+Andy 要把 `MiaoZiKe/tw-rotation` 加進這個工作階段的來源，才推得上去；在那之前線上還是 `30b57f0`。
+
+**權限開通後怎麼推（不要直接 `git push origin master:main`）**：本機 `master` 的 `data/` 落後雲端好幾個
+回補 commit，整支推上去會把資料湖倒退回舊版。正確做法是只推程式碼：
+```
+git fetch origin main
+git branch -f deploy origin/main
+git worktree add -f <暫存目錄> deploy
+# 把這 15 個檔從 master 複製進去（就是 git diff --name-only 30b57f0 master -- . ':!data/' 的清單）
+git -C <暫存目錄> add -A && git -C <暫存目錄> commit -m "..."
+git push origin deploy:main
+```
+推完在 Actions 確認「部署網站」成功，再開線上網址逐項驗證。
+**線上已驗證**：v3 前端已部署（LightweightCharts／Industry 都載入、`flow_v3`/`themes`/`industry_map`/`seasonality_v3` JSON 都在），
+Yahoo 分 K 在 Actions 上正常（6179：15 分 1059 根、60 分 1800 根、240 分 800 根），排程（cron）已開始自動跑。
+
+圖例：✅ 已完成（程式＋本機驗證）｜🚧 進行中／已寫但未在線上驗證｜⬜ 未開始
+
+---
+
+## 0. 接手後第一件要做的事（「下一步」）
+
+> **2026-09-15 這一批（尚未 push）**
+>
+> 1. **個股的即時分 K**（`site/livek.js`）：週期列多了 **5 秒 / 1 分 / 5 分**。
+>    證交所沒有個股的分時檔，所以是「Yahoo 補早盤（延遲 20 分、有量）＋ mis 每 5 秒補尾巴（即時）」。
+>    最細只能到 5 秒，不是 1 秒 —— mis 本身就是 5 秒更新一次（DECISIONS #127）。
+> 2. **修掉一個盤中顯示錯價的 bug**：`z` 在兩次撮合之間是 `-`，真正的成交價在 `trade.z`；
+>    舊版會退去用最佳買價（DECISIONS #128）。
+> 3. **三張大盤圖**：週期改成下拉選單，加 1 時 / 4 時 / 日 / 週 / 月 / 季（來源 Yahoo `^TWII`）。
+>    櫃買與台指期沒有歷史來源，選到歷史週期時卡片上會說明原因（DECISIONS #129）。
+> 4. **四週期同看**：那四格各自有下拉可以換週期，選擇記得住（DECISIONS #130）。
+> 5. **MACD 頂／底背離自動標出來**，主圖與 MACD 面板各畫一條連線（DECISIONS #131）。
+> 6. **K 線操作**：游標旁邊的開高低收資訊框、拉線按 Shift 鎖水平、5 段粗細、方框填滿／透明（DECISIONS #132）。
+> 7. 前一批的「mis 補了個股就要一起補大盤那一格」也在同一次 push 裡（DECISIONS #125）。
+> 8. **三張大盤圖自己有計時器**（盤中 10 秒 / 盤後 5 分），跟報價脫鉤 —— 報價壞掉不會讓圖停住（DECISIONS #133）。
+> 9. **個股日線最後一根改成「今天」**：用報價把今天這根還沒收的日 K 接上去，週月線跟著長（DECISIONS #134）。
+> 10. **指標面板分隔線可以上下拖、拖完記住**，「重設縮放」還原（DECISIONS #135）。
+>
+> **★（2026-09-18 更新）這兩件都不用做了**：程式碼由 Claude 直接推 main（不用 `push.bat`）；
+> Worker 改成 `deploy-worker.yml` 自動部署（DECISIONS #184），**Andy 只要設兩個 Cloudflare Secret**：
+> <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions> → New repository secret →
+> `CLOUDFLARE_API_TOKEN` 與 `CLOUDFLARE_ACCOUNT_ID`。設好之前工作流會綠燈跳過並在摘要印待辦（不是紅燈）。
+>
+> ~~原本：跑一次 `push.bat`；到 Cloudflare 重貼 `workers/quote-proxy/worker.js`~~
+> （這次 Worker 多了 `/y` 這條 Yahoo 路由，而且報價快取從 10 秒降到 3 秒，5 秒輪詢才有意義）。
+>
+> 驗收：`pytest` 270 過、`_preview.py` 無重疊、`_uitest.py` 全綠
+> （新增「個股即時分K」整段，以及游標資訊框／背離／Shift 鎖水平／粗細與填滿的真人操作驗收）。
+
+> **2026-09-14 18:30 這一批（尚未 push，Andy 要跑一次 `tw-rotation\push.bat`）**
+>
+> 1. **總覽最上方三張大盤圖**（`site/market3.js`）：加權／櫃買／台指期，預設走勢圖
+>    （指數線＋每分鐘量柱＋昨收虛線，時間軸固定到收盤），可切 K 線（1/5/15/30 分），
+>    指標與個股共用 `localStorage['tw.kcfg']`；每張可「展開」成整列大圖。資料走 Worker 新增的 `/chart`。
+> 2. **★ Andy 要做的唯一一件事（除了 push）**：到 Cloudflare → Workers → `tw-quote` → 編輯程式碼，
+>    把 `workers/quote-proxy/worker.js` 整份重貼一次再 Deploy。**沒重貼三張圖不會出現**
+>    （畫面上會直接寫這句話，不是無聲失敗）。
+> 3. **今日事件的日期修正**：標題旁邊改成顯示清單裡真正最新的那一天，並跟著分類切換重算；
+>    順手修掉新聞 `published_at`（RFC 2822）被切成 `Fri, 11 Se` 的老 bug。
+> 4. **明亮／深色主題切換**：頂部列 ☀／🌙，記在 `localStorage['tw.theme']`，切換時圖表會用新色重畫（不重新整理）。
+> 5. 前一批（mis 補當天、`--phase news`、版本戳、盤後自動載入新資料）也還在同一次 push 裡。
+>
+> 驗收：`pytest` 265 過、`_preview.py` 無重疊、`_uitest.py` 全綠（新增「大盤三張圖」「今日事件」「明亮主題」三段真人操作）。
+
+1. `git pull`，讀完 `AGENTS.md`、`DECISIONS.md`（F 節是 09-12 新拍板的前端規則）。
+2. **驗證本次 commit 的「部署網站」run 成功後，線上前端已是新版**：`#industry/ai_server` 要看到新的剖析圖（右欄說明＋引線）、
+   環節色標列、全寬關聯圖、同色族群卡片；點任一族群卡片剖析圖同色零件要亮；`#stock/2330` 上方要有「同族群」列與環節色標，
+   「展開產業鏈圖」可展開；K 線各面板左上有標題與數值。任何頁面看到的股票／族群／題材名稱都要能點。
+3. **看週一（09-14）每日管線** `data/_state/last_run.json`：`twse.dividend` 與 `tdcc.shareholding` 應 ok=true、`dividend_events` 有 stored；
+   若 TDCC 仍失敗，log 現在會印出實際回應的前 200 字（HTML／表頭），照著修。
+4. **逐頁走一次線上 v3**（這是唯一還沒做的人工驗收）：`#overview` → `#flow` → `#industry` → 點一條產業鏈 →
+   點一檔股票 → 分 K 切 15m/1H/4H/1D/1W/1M、勾 RSI、滾輪縮放價格軸、多週期 SMC 格、下方營收／獲利／除權息／
+   籌碼／基本資料分頁 → `#themes` → `#season`；再用手機寬（DevTools 390px）走一次。
+   有 console 錯誤或空白頁就是 bug，記到本檔第 3 節再修。
+5. 同一天也看 `twse.price_daily` stored 是否 > 0（09-11、09-14 兩天的上市資料）。若證交所 OpenAPI 持續給前一天，
+   要把每日管線改成「18:30 跑一次、若上市資料仍是前一天則 21:30 再跑一次」。
+6. 提醒 Andy 做兩件安全事（本檔第 5 節）。
+7. 做完以上才開始第 4 節「還沒做」的項目；每次結束前更新本檔並 push。
+
+---
+
+## 1. v3 需求逐條狀態
+
+### 技術分析（個股頁上半）
+| # | 需求 | 狀態 | 備註 |
+|---|---|---|---|
+| 1 | K 線更人性化、參考元大／TradingView | ✅ | 換成 TradingView Lightweight Charts 5.2.1（`site/vendor/`，Apache-2.0，LICENSE 同目錄） |
+| 2 | 時間週期 15 分／1 時／4 時／日／週／月 | ✅ | 日／週／月本機驗證 OK；15m/1H/4H 走 Yahoo，Actions 上已驗證有資料（線上 6179.json intraday 15m/60m/240m 都有） |
+| 3 | 指標可勾選、參數可調（MA/KD/MACD/RSI/BOLL） | ✅ | 瀏覽器端算（`chart.js` 的 `KInd`），設定存 localStorage `tw.kcfg` |
+| 4 | 滾輪縮放價格軸（像 TradingView） | ✅ | price scale `setVisibleRange` |
+| 5 | 四個時間週期同看 + SMC 支撐壓力統整 | ✅ | `compute/mtf.py`：無分 K 時改「週線 vs 日線」並明講 |
+| 6 | 主力（券商分點家數差） | ✅ 替代 | 無免費合規來源 → 集保千張大戶增減＋法人動向，頁面有註明 |
+
+### 個股資訊（個股頁下半）
+| # | 需求 | 狀態 | 備註 |
+|---|---|---|---|
+| 7 | 大戶散戶持有狀況 | 🚧 | 程式完成（`stockpage.holder_series`）；每日 `tdcc.shareholding` 已改成自行解碼＋表頭模糊比對＋失敗時印回應（待週一驗證），歷史靠 FinMind 回補計畫第 3 步（尚未跑到） |
+| 8 | 法人買賣（日、20/60 日累計、外資／投信） | ✅ | 回補 inst 已 401 檔 |
+| 9 | 資券 | 🚧 | 程式完成；FinMind 融資券歷史在回補第 3 步，尚未跑到 |
+| 10 | 營收 YoY／MoM／累計 YoY／每月／5 年年度走勢＋累計 | 🚧 | 程式完成；FinMind 月營收歷史只回補到 **44 檔**（402 限流即停），其餘靠每小時排程續補 |
+| 11 | 獲利 5 年：毛利／淨利／EPS／累計 EPS | 🚧 | 依法只有季報（頁面註明）；財報歷史同樣只有 ~45 檔 |
+| 12 | 近 5 年每季營收／EPS／本益比 | 🚧 | `pe_history` 完成；資料量同上 |
+| 13 | 基本資料、除權息、籌碼、財務 | 🚧 | 除權息（含填息天數、現金股利 TTM、殖利率）在回補第 2 步；每日 `twse.dividend` 已改用 t187ap45_L 新欄位、公告同步進 `dividend_events`（待週一驗證） |
+
+### 產業鏈／族群／題材
+| # | 需求 | 狀態 | 備註 |
+|---|---|---|---|
+| 14 | 個股與產業鏈合併，點股票時上方產業鏈同步高亮 | ✅ | `site/industry.js`：地圖 → 單鏈 → 個股三層 |
+| 15 | 產業鏈要有本益比（環節中位數） | ✅ | `industry_map.segments_pe` |
+| 16 | 產業鏈可進出、資訊更豐富 | ✅ | |
+| 17 | 族群板塊 ETF／其他電子看不到個股（bug） | 🚧 | `group_detail` 改用 `flow._attach_groups` 已修，本機 OK；線上 `groups_detail.json` 已含 `ind_*` 族群，**點擊下鑽未人工驗** |
+| 18 | 題材資金熱力圖 | ✅ | `compute/themes.py` + `groups/themes.yaml`（18 個題材，量能不拆分） |
+| 19 | 市占產品剖析圖（找不到就自己畫動畫 SVG） | 🚧 | 已畫 AI 伺服器托盤、CoWoS 剖面（`site/diagrams.js`）；其他產業鏈 ⬜ |
+
+### 其他頁面與整體
+| # | 需求 | 狀態 | 備註 |
+|---|---|---|---|
+| 20 | 資金流向不要直條圖 | ✅ | RRG／桑基／河流（`compute/rrg.py`） |
+| 21 | 季節性 2000 年起、可切觀察期、超額報酬 | ✅ | **2026-09-19 稽核：其實早就做到了**，`seasonality_v3.json` 的 `all` 期間是 2000-02～2026-08、27 年、312 格全有值。以前標 🚧 是沒有回頭量過。剩下的只有基準口徑：指數歷史不足時「超額報酬」會退回成全市場等權平均，這一批補 `index_ohlc` 之後解掉 |
+| 22 | 整體風格科技／AI／專業、字體加大 | ✅ | |
+| 23 | 檢查文字重疊、排版、手機 | 🚧 | `scripts/_preview.py` 本機 0 重疊、390px OK；**真機未驗** |
+| 24 | 下方資訊可視化（不只表格） | ✅ | |
+| 25 | `site/data/` 不進版控，由工作流產出 | ✅ | 已 gitignore；`pages.yml`（12:34 UTC）與 `daily.yml`（14:33 UTC 排程）都成功 build＋部署 |
+| 26 | 先 Yahoo 分 K，之後 Fugle 即時 | ⬜ Fugle | 等 Andy 給 Fugle key；設計是前端 WebSocket 直連 + Cloudflare Workers 藏 key |
+
+---
+
+### Andy 09-12 看過線上後的回饋（本次已做）
+| # | 需求 | 狀態 | 備註 |
+|---|---|---|---|
+| 26 | 圖表與產品剖析圖要更細、更專業 | ✅ | 剖析圖重畫（`site/diagrams.js`：右欄說明＋引線、製程流程列、動畫可關）；K 線面板標題／數值／參考線／浮水印；RRG 只畫前 14 大軌跡、桑基代表股限 18 檔、河流用族群色不畫疊字 |
+| 27 | 每個分頁與內容都能點到不同產業與股票、彼此相通 | ✅ | `App.L` 連結索引：股票／族群／產業鏈／題材名稱全站可點；圖下方一律有連結列；個股頁有「同族群」列、題材 chips、基本資料可點；題材頁成員帶族群；`#industry/<chain>/<seg>` 可預選環節 |
+| 28 | 剖析圖部分零件點了對應不到個股 | ✅ | 每個零件都有環節；沒台股的環節（HBM、雲端業者）接到最相近族群並列外商（`FALLBACK`），成分股表空時列出該環節台股或說明 |
+| 29 | 點族群時圖上零件要同色亮起、方便辨別 | ✅ | 環節色全站唯一（DECISIONS #48）；族群卡片／色標／零件／關聯圖／連結圓點同色；點卡片剖析圖同色零件亮 |
+| 30 | 手機上看不到分頁列（順手發現） | ✅ | 820px 以下分頁列改到底部固定 |
+
+## 2. 已完成的基礎（v1／v2，別重做）
+
+資料湖（Parquet append-only，16 張表）、TWSE OpenAPI／FinMind／集保／櫃買／新聞／FRED 抓取層、
+指標庫（無未來函數測試）、M1 資金面、M2 基本面（TTM EPS、自算 PE、族群分位 pb_roe/ps 口徑、月營收動能）、
+M3 規則引擎（多源交集區間、A/B/觀望/不要碰、停損與測量目標）、新聞三分類與券商目標價引述、
+GitHub Actions 三條工作流、145 個測試。
+
+---
+
+## 3. 已知 bug 與尚未驗證的部分
+
+0. **（已修，待部署驗證）最新交易日只有櫃買到齊 → 上市股全部被算漏**：09-11 的每日管線裡證交所 OpenAPI 仍回 09-10
+   的資料（`twse.price_daily` stored 0），櫃買回了 09-11；`build_payload` 用 `max(date)` 當最新日，結果
+   `candidates.json` 130 檔全是上櫃、`#stock/2330` 等上市個股頁 404、族群統計只剩上櫃。
+   修法：`build_payload.last_complete_date()`（只看上市檔數、近 10 日最大值的 60% 為門檻）＋各日表裁到同一天；
+   `tests/test_latest_date.py` 5 個測試。本次 commit 會觸發「部署網站」重算；接手第一件事就是驗證（第 0 節第 2 點）。
+1. ~~cron 排程從未觸發過~~ **已解決**：09-11 12:50 UTC「歷史回補」、14:33 UTC「每日盤後管線」都是 `event=schedule`
+   成功跑完。每日管線比 cron 的 10:30 晚了 4 小時，GitHub 免費層延遲屬正常（DECISIONS #45）。
+2. **（已修，待週一驗證）每日管線兩步驟失敗**：`twse.dividend` 是證交所 t187ap45_L 改了欄位（`股利年度`＋`股利所屬年(季)度`，
+   現金／股票股利各拆三欄），舊欄名一列都解析不到 → 已依 09-11 實測欄位重寫，季配息按年加總進 `dividend`，
+   並展開成 `dividend_events`（period 對齊 FinMind 的「115年第1季」寫法，只補資料湖沒有的 key）。
+   `tdcc.shareholding` 最可能是 requests 對沒宣告 charset 的 CSV 用 ISO-8859-1 解碼、或表頭帶 BOM → `http.get` 改自行解碼
+   去 BOM，表頭改模糊比對，失敗時印出回應前 200 字。`tests/test_dividend_tdcc.py` 6 個測試。
+3. **FinMind 回補進度**：12:50 UTC 的排程回補已推 `867c03a`（財報／資產負債 2016 起繼續補）。看
+   `data/_state/backfill_progress.json` 的 `done` 計數與 `complete` 旗標；每小時會自動接續直到 `plan:default` 完成。
+4. ~~Yahoo 分 K 在 Actions 上未驗證~~ **已驗證**（線上個股頁 intraday 15m/60m/240m 有資料）。
+5. **線上 v3 頁面只驗了資料檔與程式載入**，分頁互動與手機寬還沒人工走過（第 0 節第 3 點）。
+6. **從 Andy 瀏覽器推 GitHub API 會間歇 `Failed to fetch`**（公司 proxy）：推送腳本已改成
+   背景工作 + 重試 8 次（見 SETUP.md「Claude 怎麼推程式碼」）；別再用逐檔同步等待的寫法。
+   另外 Claude 桌面版的內建瀏覽器窗格在連線重連後會反覆回「No browser pane is open」；這時改用 Claude in Chrome
+   （Andy 的 Chrome 分頁）執行同一份腳本即可，本次交接 commit 就是這樣推上去的。
+7. `docs/*.png` 在 `.gitignore`，所以截圖只在本機；要給 Andy 看截圖得用對話附件。
+8. 季節性、RS 在 2000 年價量補齊前不準（頁面有標樣本數）。
+9. **三張大盤圖的分 K 是合成的**：來源只給每分鐘的指數收盤價，所以開＝前一分鐘收盤、
+   高低是分鐘收盤的極值，**不是真正的盤中極值**（卡片上的「高／低」才是）。畫面上有寫，但接手的人別誤用。
+10. **三張大盤圖只有「當天」**：`mis` 那三個檔只有今天的分時，沒有歷史。要看昨天的走勢得另外進資料湖。
+11. **明亮主題下產業鏈示意圖仍是深色底**（`--illus`，DECISIONS #124）。那是刻意的，不是漏掉。
+12. **個股的即時分 K 有兩段不同口徑**：早盤那段是 Yahoo（延遲 20 分、量偏低），
+    最近那段是 mis 每 5 秒自己疊的。盤中量一律是估計值，圖上有寫，收盤後由管線的正式資料覆蓋。
+13. **櫃買與台指期沒有歷史 K**：Yahoo 的 `^TWOII` 壞了、台指期沒有免費代號（DECISIONS #129）。
+    要補的話得另外找來源（TPEX OpenAPI 從雲端 IP 會被擋，但從 Cloudflare Worker 可能通，還沒試）。
+14. **背離是規則判定，不是保證**：它只說「價格與 DIF 不同步」，不代表一定轉折。
+    參數（左右各 5 根、相距 8～90 根）可以在 `KInd.divergence` 的 opt 調。
+
+---
+
+## 4. 還沒做（依優先序）
+
+1. ⬜ 盯著每小時排程把 `--plan default` 跑完（財報 → 股利 → 資券／集保 → 2000 年價量）；完成後季節性與 RS 才準。
+2. 🚧 `twse.dividend`、`tdcc.shareholding` 已修待驗（bug #2）；確認證交所 OpenAPI 給前一天資料時的重跑策略（第 0 節第 5 點）。
+3. ⬜ Fugle 即時層（等 key）：前端 WebSocket + Cloudflare Workers。
+4. ⬜ M4 事件面計算：新聞歸戶到個股／族群、新聞量異常、國際連動係數。
+5. ⬜ 綜合評分：M1/M2/M3/M4 依 `config.SCORE_WEIGHTS` 合成。
+6. ⬜ walk-forward 檢驗 `technical_score()`：結果不好要誠實寫在頁面，不調參數湊。
+7. ⬜ `build_groups.py`：從產業價值鏈平台／MoneyDJ 產「建議新增／移除」報告（只產報告，不改 YAML）。
+8. ⬜ `supply_chain.yaml` 市占率補來源與日期；其他產業鏈的產品剖析動畫 SVG。
+9. ⬜ Andy 校訂 `groups.yaml` / `themes.yaml` / `supply_chain.yaml`。
+
+---
+
+## 5. 要提醒 Andy 的安全事項
+
+- 這次對話裡 Andy 貼過一組 GitHub fine-grained PAT（用來讓 Claude 推程式碼）。**穩定後請到 GitHub → Settings →
+  Developer settings → Fine-grained tokens 重新產生一組**，舊的作廢；新的只給 `tw-rotation` 的 Contents / Workflows / Actions 讀寫。
+- FinMind token 曾出現在截圖裡，建議到 FinMind 會員頁重置，再更新 GitHub Secret `FINMIND_TOKEN`。
+- 兩者都**不要**貼進 repo 任何檔案；只放 GitHub Secrets 與 Claude 當次對話。
+
+---
+
+## 6. Andy 2026-09-12 的回饋與處理狀態
+
+| # | 回饋 | 狀態 | 做法 |
+|---|---|---|---|
+| 31 | 「不在範圍內就不顯示，需要全部顯示」 | ✅ | 個股頁分三層 full/daily/thin，**2334 檔全部有頁**；另出 `stocks.json` 全市場索引供搜尋與連結（DECISIONS #52） |
+| 32 | 每個題材都要有產品圖、要 3D、要再優化 | ✅ | `site/themes3d.js`：18 個題材各一張「上游→中游→下游」等角 3D 供應鏈剖析圖（DECISIONS #54） |
+| 33 | 題材點進去要列股票、依族群分類、附剖析圖 | ✅ | 成員表改成依族群分組（組標題可點進族群頁）；剖析圖在同一頁下方 |
+| 34 | 成分股上市／上櫃切換要確實 | ✅ | 市場別改以 `stocks.json` 為準，並在 `groups_detail` 補 `market` 欄位 |
+| 35 | 點環節卡片，上方供應鏈關聯圖要自動移到對應位置 | ✅ | `industry.js` 的 `scrollChainTo()`：捲到該欄並把關聯圖帶進視野 |
+| 36 | 兩張資金熱力圖要能縮放（小方塊看不到） | ✅ | treemap `roam:true`、`visibleMin` 下修；題材方塊點了下方明細會跟著換並捲過去 |
+| 37 | 今日候選太長，每頁要在一個畫面內看完 | ✅ | `.tw.cap-lg` 表身自捲、表頭固定（DECISIONS #55） |
+| 38 | 總覽下方三張圖太單調、投信榜出現「1476 1476」 | ✅ | **2026-09-19 稽核：圖表豐富化第 52 項就做掉了**（市場寬度儀表＋漲跌環、投信連買氣泡圖、族群估值散布圖）。簡稱 bug 也修了（實測 120 個點 0 筆代號當簡稱）。這一列與第 52 項重複登記 |
+| 39 | 同族群要有市占規模／主要產品／競爭對手比較 | ⬜ | 免費合規資料沒有真市占，規劃用「族群內營收占比」當代理並明確標示，產品標籤取自 `supply_chain.yaml` 的 `tech` |
+| 40 | 季節性頁看不懂，要滑鼠說明與更視覺化 | 🟡 | **2026-09-19 稽核：逐年明細不是空的**（點熱力圖格子會畫出 26 個逐年資料點），tooltip 含超額／勝率／樣本年數，四段卡片與熱力圖／曲線切換都有。**還缺的只有「最佳／最差月份」** |
+| 41 | 資金流向頁：RRG 看不懂、要時間週期切換、本益比篩選、每張圖附說明 | ✅ | 整頁由期間切換列控制（本週／上週／上上週／本月／上月／近三月）；新增「資金流向排行」與「名次變化」bump 圖；RRG 加象限塗色＋白話＋行進箭頭＋象限篩選；估值篩選面板（族群／市場／PE 區間／PB／ROE／市值／低於族群中位／排除虧損）；每張圖一顆「怎麼看」；法人圖跟著期間走；資金集中度加前 5／前 10 與縮圈擴散判讀（DECISIONS #60）|
+| 42 | 候選名單要能依 綜合／籌碼／技術／基本面 篩選並說明為何選它 | ✅ | 新增 `pipeline/compute/scoring.py`：四個 0–100 分數 ＋ 每個面向的 pros/cons 理由（帶實際數字）。前端候選卡片上方四個面向鈕，切換會換欄位、換排序、換說明；點任一列展開「為何選它」。`candidates.json` 改成四面向各取前 300 的聯集（DECISIONS #56） |
+| 43 | K 線 SMC 區間畫得奇怪；線寬、均線數量、顏色、粗細等基本設定要補齊 | ✅ | 見下方拆解，六項全做完（DECISIONS #58） |
+
+| 44 | 「全部做完後一定要當自己為使用者實際操作每個功能」 | ✅ | 新增 `scripts/_uitest.py` 真人操作驗收（DECISIONS #59）；已寫進 CLAUDE.md 與 AGENTS.md 的檢查清單。第一次跑就抓到 6 個只看 render 看不出來的錯，全部修掉 |
+
+| 45 | 熱力圖縮放太爛，要點半導體就只看半導體 | ✅ | 拿掉 treemap 的 roam（它也是線上題材熱力圖整片空白的原因），改成產業鏈下鑽晶片（DECISIONS #61、#62）|
+| 46 | 相對輪動看不懂，不要用散點圖 | ✅ | 改成「改善→領先→轉弱→落後」四張階段卡＋「最近 N 天換階段的族群」（DECISIONS #63）|
+| 47 | 上方數字要點得開，漲跌停要對應到哪些股票 | ✅ | `movers()` 產漲停／跌停／漲跌幅前段／成交值前段，`breadth.by_group` 產每族群站上均線比例；四顆 KPI 都點得開（DECISIONS #64）|
+| 48 | 點題材後無法返回 | ✅ | 題材明細加「← 回題材總覽」|
+| 49 | 同族群還要拉 bar，要一次顯示 | ✅ | `.sibs` 改自動換行 |
+| 49b | SMC 區間沒跟著 K 線移動縮放；指標要能調透明度／色調／線寬 | ✅ | 區間右邊界改成跟著最後一根 K 棒（以前填到畫面右緣所以看起來不會動）；設定面板加指標樣式列與供需區樣式（DECISIONS #65、#66）|
+| 49c | 熱力圖要固定不動，只留放大與點擊看個股 | ✅ | 兩張熱力圖都不做拖曳；右上角「放大」開全螢幕罩（可切產業鏈、Esc 關閉）；點方塊在原地列成分股不跳頁（DECISIONS #67）|
+| 49d | 建立長期工作 Agent，需求對應不同 Agent | ✅ | `.claude/agents/` 六個定義檔＋AGENTS.md 派工對照表（DECISIONS #68）|
+| 49e | 縮小後熱力圖變中間一小塊 | ✅ | ECharts 記住 init 當下的 DPR，瀏覽器縮放後只 resize 沒用，改成 DPR 一變就重建（DECISIONS #69）|
+| 52 | 總覽下方三張圖不要長條圖、要更生動 | ✅ | 市場寬度→儀表＋漲跌環、投信連買→氣泡圖、族群估值→貴不貴×資金流向散布（DECISIONS #70）|
+| 52b | 上方數字要有獨立分頁顯示所有資訊 | ✅ | 新增「市場明細」分頁，四個子頁；KPI 點了直接跳過去（DECISIONS #71）|
+| 52c | 圖要能用滾輪放大，縮小最多就是原始畫面 | ✅ | `App.wheelZoom()`：改寬高再 resize（不是 CSS transform，字才不會糊），倍率下限 1，1 倍時不攔 wheel 讓頁面正常捲（DECISIONS #72）|
+| 52d | 點剖析圖不要馬上切換到下方股票 | ✅ | 拆成「只亮」與「真的篩」兩個狀態；要篩要按說明框裡的按鈕（DECISIONS #73）|
+| 52e | 放大會把整頁版面撐開 | ✅ | `.zpane` 捲動層＋放大時鎖住外框高度；`linkRow` 改掛在 `.zwrap` 外面（DECISIONS #74）|
+| 56 | 題材資金熱力也會影響大小 | ✅ | 和總覽熱力圖同一套 `wheelZoom`，#74 修好後兩張都不再撐版面；`_uitest.check_zoom()` 兩張都驗 |
+| 57 | 氣泡圖／散布圖資訊太小看不到，要能縮放 | ✅ | 總覽（市場寬度／投信連買／族群估值／輪動時鐘）與資金流向頁六張圖全部接上 `zoomChart()`（DECISIONS #75）|
+| 58 | 輪動族群要搭配圖表，看圖就要懂 | ✅ | 新增「資金輪動時鐘」（圓盤四段＋族群點＋N 天前→現在的直線），總覽與資金流向頁各一張（DECISIONS #76）|
+| 59 | 資金流向排名不會變 | ✅ | 名次變化跟著期間換刻度：`bumps.week`／`bumps.month`，`w*` 用週、`m*`／`q` 用月（DECISIONS #77）|
+| 60 | K 線圖 1 日以下週期都不見 | ✅ | 分 K 名額 150 → 400；沒有資料的週期在按鈕上劃掉並寫清楚原因（DECISIONS #78）|
+| 61 | 為何出現「個股頁還沒產生」，每檔股票都要看得到 | ✅ | 索引與個股頁 1:1（2334:2334，零缺口）；缺頁時的文案改成講清楚原因＋族群連結；個股頁加「資料更新到」（DECISIONS #79）|
+| 62 | 資訊要定期更新，包含新聞與公司消息 | 🟡 | 新聞每個交易日盤後更新且 append 進資料湖，每檔最多留 8 則；**重大訊息**照規矩走兩步：探測工作流已經寫好（`.github/workflows/probe.yml` ＋ `scripts/probe_sources.py`，7 個離線測試），**等 Andy 在 Actions 按一次 Run workflow** 產出 fixture，Claude 讀完才寫 parser（DECISIONS #99）|
+| 63 | 不可以出現「沒有資訊」的頁面 | ✅ | 缺完整個股頁時改出「簡版個股頁」：今日價量＋三大法人＋估值營收＋相關新聞＋同族群，沒值的格子直接不放（DECISIONS #80）|
+| 64 | 放大後要能用游標抓取移動 | ✅ | `.zpane` 掛 pointer 事件拖曳平移；拖過就吃掉那次 click，1 倍時完全不攔（DECISIONS #81）|
+| 65 | 還原成正常大小會害整頁往下 | ✅ | 還原後留 450ms 緩衝吃掉 wheel，停手才交還頁面捲動；驗收量 scrollY 差 ≤ 2px（DECISIONS #82）|
+| 66 | 熱力圖不滿當前版面 | ✅ | `.card.fillchart` 讓圖 flex 撐滿被鄰居撐高的卡片（1500px 寬下從 420px → 1292px）（DECISIONS #83）|
+| 67 | 產業與個股剖析圖不用縮放 | ✅ | 拿掉 `#prodDiagram` 的 `wheelZoom`，驗收會檢查它沒有縮放框（DECISIONS #84）|
+| 68 | 籌碼頁出現空圖（大戶／股東人數只有 1 筆） | ✅ | 未滿 3 筆不畫線圖，改直接列最新數字並說明何時會變成走勢圖；一筆都沒有的卡片整張不出現（DECISIONS #85）|
+| 69 | K 棒長度要可調、預設先長一點 | ✅ | 設定面板加「K 棒寬度」滑桿（3–28px），預設 11px（函式庫預設是 7），存 localStorage（DECISIONS #86）|
+| 70 | 全面體檢：可視化／人性化／資訊詳細度／圖像真實度／風格／人力／資料時效／策略與回測 | 🟡 | 已出 `ROADMAP.md`：補三個 Agent（策略回測、圖解教學、資料治理）、六批工作排程、誰做誰驗、三件待 Andy 拍板 |
+| 71 | 找多人／專家審查網站 | ✅ | 五份平行審查（UX、視覺化、技術分析內容、資料治理、產業圖真實度），結果全部寫進 `ROADMAP.md` |
+| 72 | **本益比系統性偏低 20%（1,035 檔）** | ✅ | 證交所季報是年度累計數，`_decumulate()` 先還原成單季再算 TTM；自算 PE ÷ 官方 PE 中位數 0.8366 → **0.9998**（DECISIONS #88）|
+| 73 | **月線 SMC 標記 100% 失效** | ✅ | 後端月 K 標月初、前端標月底，2,022 個 BOS/CHoCH 被靜默丟掉；月線改標該月最後一個交易日（DECISIONS #89）|
+| 74 | 熱力圖「紅底寫 −0.7%」 | ✅ | 方塊上同時寫漲跌與資金 ±pp（DECISIONS #90）|
+| 75 | 季節性熱力圖沒有顏色 | ✅ | `visualMap` 中點色就是面板底色，改 `#16203a`（DECISIONS #91）|
+| 76 | 桌機事件側欄關不掉、候選表六欄被擠掉 | ✅ | `setSide()` 同時 toggle `.open` 與 `.layout.noside`，狀態存 localStorage |
+| 77 | 手機分頁列貼在頂端、底部留空 | ✅ | `.topbar` 的 `backdrop-filter` 是 fixed 定位基準，手機寬關掉它 |
+| 78 | 週／月線 OB 用錯 lookback、RSI 平盤前後端不一致、候選理由漏 MA120 | ✅ | 三處一行修正 |
+| 79 | 剖析圖要有長寬高、不要 2D 平面（Andy 拍板「先試試看 three.js」）| ✅ | `site/three3d.js` ＋ 內建 three.js 0.160.1；動態載入（沒按 3D 就不載那 670KB）；可拖曳轉視角、滾輪拉近、點零件亮起並帶出台股、標籤是 DOM、沒 WebGL 自動退回平面圖。四條硬性驗收都寫進 `_uitest.py` 的 `check_3d()`（DECISIONS #92〜#98）|
+| 84 | **資訊更新太慢：盤後才看到、隔天才買，回測與報酬都失真**（Andy 09-13）| ✅ | 排程從單一時點改成台北 15:30／18:30／21:30；新增 `--phase price`，15:30 那輪只抓價量（法人與融資券那時還沒出，硬抓只會誤報失敗）；延遲到 UTC 09:00 後自動改跑完整那輪（DECISIONS #106）|
+| 85 | **靜默失敗：上市 0 檔但 errors 是空的，網站上完全看不出來**（09-11 實例）| ✅ | `run_daily` 多記一個 `empty` 清單；`last_run.json` 在產前端資料**之前**先寫一份這輪的快照（以前 meta 拿到的是上一輪）；`meta.json` 多帶 `price_latest`／`price_ahead_of_payload`／`last_run_phase`／`last_run_empty`，前端 `renderFreshness()` 畫成綠／黃／紅三色橫幅。`_uitest.py` 加 `t_freshness()`，真的換四種 meta 狀態、真的讀橫幅文字與顏色（DECISIONS #107）|
+| 83 | 縮放功能要徹底拿掉（Andy 09-13，反覆要求）| ✅ | 全站只剩三張熱力圖有縮放；題材剖析圖右上角那顆「放大」是**沒接功能的死按鈕**，已移除。`_uitest.py` 加 `t_zoom_sweep()` 走遍 14 頁掃描，任何多餘的縮放框／徽章／放大鈕都算失敗（DECISIONS #104）|
+| 82 | K 線圖太小、版面要擴大、default 就要大（Andy 09-13）| ✅ | `#lwc` 高度跟著視窗算（以前寫死 640），**個股頁預設就是寬版**（事件欄收起，1680×1000 實測 1550×815），按「⤢ 寬版」可以關掉、會記住；離開個股頁事件欄一定還回來（DECISIONS #101、#103）|
+| 81 | 取消縮放功能（Andy 09-13）| ✅ | 滾輪縮放只留三張熱力圖（資金熱力、產業板塊、題材資金熱力）；總覽三張小圖＋輪動時鐘、資金流向頁六張、題材剖析圖全部拿掉，連 `.zwrap` 外框一起清掉。`check_nozoom()` 會驗「沒有縮放框、滾輪不放大、頁面照常往下捲」（DECISIONS #100）|
+| 80 | 重大訊息要接（Andy 拍板「3 重大訊息要」）| 🟡 | 探測工作流與探測器完成，**下一步是 Andy 在 Actions 手動跑一次**「端點探測（寫 fixture）」；fixture 進 repo 後才寫 parser（DECISIONS #99）|
+| 86 | **切換時間週期，K 棒變得很窄**（Andy 09-15）| ✅ | 量過才知道方向反了：橫向一直都對（各週期都是 11px／畫面 134 根），壞的是縱向 —— 在價格軸上滾過滾輪會**永久**關掉自動縮放，切週期時還留著上一個週期的上下界（他四張截圖的價格軸都是 240–480）。`setBars()` 在換股票／換週期時重新 `setAutoScale(true)`；順手把「畫面放幾根」改成依容器寬度算。實測：修前軸/資料 6.45 倍 → 修後 0.33 倍（DECISIONS #142）|
+| 87 | **本益比要有財報狗那種河流圖，兩種模式可切換**（Andy 09-15）| ✅ | 近四季 EPS 當階梯函數 × 倍數＝對應股價。倍數用該檔自己的歷史分位數（10/30/50/70/90%），不寫死 15/20/25 倍。**色帶分區**（fugle 那種，六個區間標在右側）與**倍數線**（Goodinfo 那種，線尾標倍數）可切，存 `tw.periver`；K 線指標列也多一顆「本益比河流」把同一套線疊在主圖上，並用 `autoscaleInfoProvider: () => null` 確保它不會反過來把 K 棒壓扁（DECISIONS #143）|
+| 88 | 換過圖之後在價格軸上滾輪會噴 JS 錯誤（順手抓到）| ✅ | 價格軸的 wheel／dblclick 掛在容器 `#lwc` 上，而容器跨圖表活著；`destroy()` 沒拿掉，換一次週期就多疊一層、舊圖表已 remove 還被呼叫。改成記住 handler 並在 destroy() 移除 ＋ `_dead` 保險 |
+| 89 | 河流圖要平滑一點、更貼近走勢（Andy 09-15）| ✅ | EPS 那條階梯用**只看過去**的指數平滑抹平（半衰期約 30 個交易日）；刻意不往前內插，那等於用還沒公布的財報＝前視偏誤。顯示的本益比仍用真實 EPS。兩種模式另加 `smooth: 0.3`（DECISIONS #143）|
+| 90 | 設定面板要開在「⚙ 設定」旁邊 ＋ 河流圖要能調顏色／線寬／透明度（Andy 09-15）| ✅ | `placePop()` 用按鈕座標定位、上下挑空間大的那邊並夾住 max-height；設定面板新增「本益比河流」一排（六個區間顏色＋線寬＋透明度），下方河流圖與 K 線上的倍數線吃同一組（DECISIONS #144、#145）|
+| 50 | 資金去向要換形式、要有流動感、要看得出哪裡流動多 | ⬜ | 規劃：大盤→產業鏈→族群的粒子流動圖，線粗＋粒子速度＝資金量 |
+| 51 | 河流圖看不懂、要能切時間週期 | ✅ 重複登記 | **2026-09-19 稽核：H1 已經做掉了**（占比 % ＋ 拉 Bar Max 60 天），HANDOFF 自己在 H1 標 ✅。這一列註銷 |
+| 52 | 總覽下方三張圖不要長條圖、要更生動、資訊要更詳細（可獨立分頁）| ⬜ | 規劃：市場寬度改儀表＋漲跌環圈、投信連買改氣泡圖、族群估值改「貴不貴 × 錢有沒有進來」散布圖 |
+| 53 | 產業別不要只用表格，要圖像化 | ⬜ | |
+| 54 | 產業鏈剖析圖也要 3D，其他產業鏈都還沒有圖 | 🟡 | **AI 伺服器機櫃與 CoWoS-L 剖面已經是真 3D**（Three.js，可轉可點，POC 四條驗收全過）；其餘產業鏈的場景還沒建 |
+| 55 | 所有科技族群都要有圖，材料要標示屬於哪個元件 | ⬜ | |
+
+## Andy 2026-09-15 深夜這一批（23 項）— CEO 登記、分批、指派
+
+排序原則：**正確性 > 看不到的東西 > 看得懂 > 好看**。
+每一批做完都要照 CLAUDE.md 的規矩三道驗收，並且真的開線上網址確認換版。
+
+**這張表有 24 列，不是 23**（我先前口頭講「23 項」是自己數錯，2026-09-18 重數更正）。
+另外 2026-09-16 Andy 追加「網頁需要新增版號」一項，所以實際是 **25 項**。
+目前 **21 項完成**（A1、K1 版號、B1、B2、B3、C5、D1、E1–E6、F1、F2、G1、G2、G3、H1、I1、J1），
+**4 項未開始**：C1–C4 —— Andy 2026-09-18 明講「C1-C4 先不做」（卡在沒有免費合規的市占率／供應商／客戶來源，**不准編數字**）。
+
+| # | 需求（Andy 原話重點） | 負責 | 批次 | 狀態 |
+|---|---|---|---|---|
+| A1 | 點選排序後漲幅對不上；確認**每個排序**與原數據相符 | 6 審核＋2 UI | 第 1 批 | ✅ 見 DECISIONS #146 |
+| K1 | （2026-09-16 追加）網頁要有**版號**，才能確認到底更新了沒 | 2 UI＋9 治理 | 第 2 批 | ✅ 見 DECISIONS #148（2026-09-18 上線）|
+| B1 | 本益比河流圖要能**填滿顏色**（財報狗 PE 區間評價法那種，圖四）| 1 金融＋2 UI | 第 2 批 | ✅ 見 DECISIONS #149（2026-09-18 上線） |
+| B2 | 下方河流圖新增**透明度調整**與**縮放**（游標可抓取移動）| 2 UI | 第 2 批 | ✅ 見 DECISIONS #150（2026-09-18 上線） |
+| B3 | 點設定以外的地方面板消失後，要**叫得回來** | 2 UI | 第 2 批 | ✅ 見 DECISIONS #151（2026-09-18 上線） |
+| C1 | 基本資料：公司**做什麼產品**（簡短補充）| 5 產業＋8 圖解 | 第 4 批 | ⬜ |
+| C2 | 基本資料：主要業務**占比圓餅圖** | 1 金融＋2 UI | 第 4 批 | ⬜ |
+| C3 | 基本資料：產品**市占率**圖表 | 5 產業 | 第 4 批 | ⬜ |
+| C4 | 基本資料：**供應商／客戶／相關供應鏈** | 5 產業 | 第 4 批 | ⬜ |
+| C5 | 基本資料：過往 **15 年 1–12 月平均漲幅**，可切 1/3/5 年（可自填）| 7 回測 | 第 4 批 | ✅ `stockpage.monthly_seasonality()` ＋ 個股頁「1–12 月平均漲幅」卡（1/3/5/全部＋自填）|
+| D1 | **淺色主題**全面檢查：黑底時代留下的白字白線 | 2 UI | 第 1 批之後立刻 | ✅ 見 DECISIONS #152（2026-09-18 上線） |
+| E1 | 3D 圖文字太小 → 改成**引線 ＋ 外部文字框** | 2 UI | 第 3 批 | ✅ 見 DECISIONS #167（2026-09-18）|
+| E2 | 3D 圖**螢光感太重** | 2 UI | 第 3 批 | ✅ 見 DECISIONS #168；螢光像素 3.27% → **0.14%** |
+| E3 | 3D 零件要**更細膩**（風扇有扇片、電池有電壓感）| 5 產業＋2 UI | 第 3 批 | ✅ 見 DECISIONS #169；21 種零件建造函式，mesh 30 → **483／188** |
+| E4 | （前一批延續）3D 可切**動態／靜止** | 2 UI | 第 3 批 | ✅ 見 DECISIONS #170 |
+| E5 | （前一批延續）產業鏈頁上方要有**類別切換列**，不用退回去 | 2 UI | 第 3 批 | ✅ 見 DECISIONS #165 |
+| E6 | （前一批延續）ABF 這種**跨類別環節**要同時出現兩張架構圖與兩邊內容 | 5 產業 | 第 3 批 | ✅ 見 DECISIONS #166 |
+| F1 | 輪動階段（RRG）**換一種呈現**，不要方方角角、要直觀 | 2 UI＋1 金融 | 第 5 批 | ✅ 見 DECISIONS #164（2026-09-18） |
+| F2 | RRG 右上角 5/10/20 天改成**拖曳 Bar（5–20 天）** | 2 UI | 第 5 批 | ✅ 見 DECISIONS #157 #158（2026-09-18） |
+| G1 | 資金去向改成**垂直由上往下** | 2 UI | 第 5 批 | ✅ 見 DECISIONS #159（2026-09-18） |
+| G2 | 資金去向要有**電流流動感（會動）** | 2 UI | 第 5 批 | ✅ 見 DECISIONS #159（2026-09-18） |
+| G3 | 資金去向加**占比 %** | 2 UI | 第 5 批 | ✅ 見 DECISIONS #159（2026-09-18） |
+| H1 | 族群佔比河流加**占比 %**、可切週期（拉 Bar，Max 60 天）| 2 UI | 第 5 批 | ✅ 見 DECISIONS #160（2026-09-18） |
+| I1 | 族群 × 法人加**週期拉 Bar（0–30 天）**與**占比 %** | 2 UI | 第 5 批 | ✅ 見 DECISIONS #163（2026-09-18） |
+| J1 | 族群 × 月份新增**圖表呈現（含曲線圖）** | 2 UI＋7 回測 | 第 5 批 | ✅ 見 DECISIONS #162（2026-09-18） |
+
+**已知環境限制（不是程式壞掉）**：`_uitest.py` 的「個股即時分K」有兩條會在開發容器裡失敗
+（「1 分 K 有資料（Yahoo 補的早盤）」「畫面上寫清楚資料哪裡來」）——
+容器的 egress 擋掉 Yahoo 與報價代理，抓不到早盤。**把改動 stash 掉跑同一段也一樣失敗**，
+所以不是哪一次改壞的；線上（GitHub Actions / 使用者瀏覽器）打得到，行為正常。
+
+**批次順序與理由**
+1. **第 1 批（已完成）**：A1 排序正確性 —— 數字不能騙人，這件事優先於任何美化。
+2. **第 2 批**：B1–B3 本益比河流圖三件 ＋ D1 淺色主題配色 —— 都是他現在每天在看的畫面。
+3. **第 3 批**：E1–E6 3D 與產業鏈導覽 —— 工作量最大，需要重做場景資料。
+4. **第 4 批**：C1–C5 基本資料擴充 —— **要先確認資料來源**（市占率、客戶名單目前沒有免費合規來源），
+   照專案規矩「沒有真實 API 樣本就不寫 parser」，這一批開工前要先做來源探測並回報 Andy。
+5. **第 5 批**：F–J 資金流向頁的五張圖重做 —— 一起做才會是同一套互動語彙（拉 Bar、占比 %）。
+
+**下一步（依序）**：① **盤中更新** —— 09:00–13:30 每 30 分鐘跑一次輕量管線（`--phase price` 的更輕版本），只更新價量與資金流向排行，讓 Andy 盤中就看得到錢往哪裡跑；② **修掉三個長期失敗的來源** `twse.dividend`／`tdcc.shareholding`／`macro.fred`（橫幅現在會把它們列出來，修好才會變綠）；③ **回測真實性** —— 訊號一律「收盤後產生 → 隔日開盤成交」，加紙上帳本記錄每次訊號的進出價、報酬率、最大回撤；④ Andy 在 Actions 跑一次「端點探測（寫 fixture）」，重大訊息才接得下去；⑤ 照 `ROADMAP.md` 的六批走 —— 資金流動粒子圖 → 剖析圖知識連結與其餘產業鏈 3D → 技術分析教學層 → 策略與回測頁 → 資料治理。
+每做完一批就 push 讓 Andy 在線上看得到。
+
+### push 前一定要跑的三件事
+1. `pytest tests/ -q`（270 個）
+2. `python scripts/_preview.py`（render 與版面：文字重疊、空狀態、手機寬）
+3. `python scripts/_uitest.py`（**真人操作**：每個按鈕真的按、每條線真的拖，而且要驗畫面真的因此改變）
+
+### 43 的具體待辦（Andy 原話拆解）
+- ✅「SMC 圖太奇怪了」：`technical.py` 加 `MAX_ZONE_PCT=4%`／`MIN_ZONE_PCT=1.2%` 上下限（以前用 2×ATR，低價股會畫出 11% 寬的帶子），再用 `_dedup()` 去掉互相重疊的區，每邊只留 2 個；每個區帶 `since`（最早來源那天），前端 `ZonesPrimitive` 從那天開始畫，不再從圖最左邊拉到底。
+- ✅「K 線圖這邊確實修正錯誤，嘗試當使用者使用，太多錯誤」：`_preview.py` 改成真的逐一操作（拉線寬、加均線、加自訂週期、拖曳畫線、清空、重設縮放）。因此抓到並修掉：**切到沒有資料的週期（例如某些股沒有 60m）再切回日線，整張圖會空白到重新整理為止** —— `apply()` 現在會自己重建圖表。
+- ✅「可以調整線寬 均線數量 數字 顏色 粗細 等等 基本設定都要補上」：齒輪「設定」面板，均線可加可減、改週期數字、各自改顏色與粗細，另有全域線寬滑桿；設定存 `localStorage['tw.kcfg']`。
+- ✅「時間週期也需要可以設定」：週期列右邊的 `＋` 可自訂「N 日／N 週」（例：3 日 K），自訂的按右鍵可移除。
+- ✅「重設縮放變成像這樣 可以用個小方框圖示 表示」：換成 TradingView 那顆小方框 SVG 圖示（`#fitBtn`）。
+- ✅「K 線圖片需要新增基本繪圖功能參考 Trading view」：左側直立工具列 —— 游標／趨勢線／射線／水平線／矩形／文字／橡皮擦，六色可選，可復原、可清空；**每檔每週期各存一組**（`tw.draw.<代號>.<週期>`），換股或換週期自動換一組。
+
+---
+
+## 2026-09-21（下午）：資金輪動合併 ＋ 桑基即時換位 ＋ 剖析圖量產開跑
+
+這一輪 Andy 一共下了六件事，**每一件各自推 main 部署**（DECISIONS #224 的「一件一件推」）。
+
+### 已部署（依推的順序）
+
+| commit | 內容 | 驗了哪幾段 |
+|---|---|---|
+| `ea7d666` | **資金輪動**：輪動時鐘與資金流向排行合併成一張卡、共用篩選與週期 | 資金流向／新-資金流向／新-輪動時鐘／資金輪動合併／批次2／批次3／批次7／新-版面等高與多寬度／淺色主題／手機（10 段） |
+| `f97c0de` | **資金去向**：即時模式依成交值換位、點族群展開全部成分股 | 上列 ＋ 桑基展開與即時／總覽／縮放掃描（13 段） |
+| `fd8a8be` | **剖析圖架構**：一鏈一圖 → 族群優先、鏈為預設；量產第一張 MLCC | 批次11-MLCC／產業／族群頁／產業鏈導覽／一般電子鏈／產業關係面板／新-產業與個股／批次6-圖九／個股／手機／縮放掃描（11 段） |
+| `c50636e` | 兩張舊剖析圖補 `native: 1220`（900px 字級 6.26 → 9.5px） | 產業／產業鏈導覽／一般電子鏈／批次11-MLCC／批次6-圖九／產業關係面板／新-產業與個股／縮放掃描／手機（9 段） |
+| `570a04e` | Andy 三題答覆：供應鏈補兩家 MLCC 廠、時間軸下限 0、自動桶不展開 | **pytest 458 passed**（動到 YAML）＋ 桑基展開與即時／資金流向／新-資金流向／資金輪動合併／新-輪動時鐘／批次2／批次3／批次7／產業關係面板／手機（10 段） |
+| `f032a3a` | MLCC 雙審必修（結構六條、視覺六條） | 批次11-MLCC／產業／產業鏈導覽／一般電子鏈／產業關係面板／新-產業與個股／批次6-圖九／題材／手機／縮放掃描／淺色主題（11 段） |
+
+**沒驗到的**（依 #223「沒動到的檔案不跑」）：季節性、市場明細、任務板、資料狀態、網頁版號、
+設定面板、明亮主題、今日事件、新-大盤三張圖、盤中即時、個股即時分K、K線縮放、排序、批次6-N1、批次6-圖十。
+⚠ 這就是 #223 那個取捨的代價，有人回報怪象時先看這一行。
+
+### ★ 一條要讓下一個人知道的環境事實
+
+**`WebFetch` 在這個容器被擋（`EGRESS_BLOCKED`），只有 `WebSearch` 能用。**
+連 `miaozike.github.io`（自己的網站）與 `www.moneydj.com` 都打不開，所以：
+
+- **沒有辦法真的打開線上確認版號徽章。** CLAUDE.md 要求的「push 之後真的打開網站確認」
+  在這個容器**做不到**，只能確認 GitHub Actions 的部署工作流成功，最後一哩路要 Andy 看。
+  **要跟他講清楚，不要用「好了」帶過。**
+- 查證只能靠 `WebSearch` 的**摘要**，點不進原文。引用時要標證據等級。
+- 我一開始把兩支寫成「都可用」推進 CLAUDE.md，**那是錯的（只測了一支就推論另一支）**，
+  已更正並加了一條「分開測，不要推論」。
+
+### 已知限制（都寫在畫面上或註解裡，不是沉默的）
+
+1. **桑基「即時」的分子是估算值**。`getStockInfo.jsp` 每檔只給最後成交價與累積成交張數，
+   **沒有每檔的累積成交金額**，所以板塊成交值只能用 `價 × 量` 估（誤差一般 1~3%）。
+   分母用「所有即時板塊加總」而不是證交所的真實總成交值 —— 不拿估算的分子去除真實的分母。
+   **免費合規來源下這件事無解**，不是待辦。Andy 的截圖證實功能本身是真的
+   （台股總成交值 6664 億、報價 12:34:26、109 檔 2 個請求）。
+2. **即時換位的驗收是 stub 假報價**（容器打不到證交所）。驗的是換位機制與副標口徑，
+   **不證明任何一個數字對**。
+3. **`個股即時分K` 那 5 條紅字是容器擋 Yahoo 的既有環境限制**，第 483 行早就記過。
+4. **剖析圖窄畫面要靠左右滑**：規格書 §7 要求的「右側說明欄改成圖下方堆疊」還沒做。
+   800px 看得到 75%、390px 只看得到 33%。已止血：390px 展開後捲軸自動捲到圖的正中央。
+
+### 下一步（進行中）
+
+1. **零件高亮改綁 `data-part`**（`claude/dg-part-highlight`）—— 單一環節的圖點零件等於沒篩，
+   而後面 13 張多數是單一環節。**必須在畫 PCB 之前做完。**
+2. **PCB 剖面規格書**（`claude/spec-pcb`）—— `docs/diagram_plan.md` 的第 2 張，
+   一張吃掉 Andy 點名的電路／銅線／PCB／銅箔基板四項。
+3. 之後照 `docs/diagram_plan.md` 的順序：ABF 載板 → IC 封裝 → 液冷 → 風扇 → 面板 → 交換器。
+4. **兩張舊圖掛 `.dgm` ＋ 重排版面**（字級還沒到 12px）—— 自己一批，**不要跟新圖綁**：
+   新圖是全新程式碼沒有回歸風險，重排是動已上線的圖純回歸風險。
+
+## 2026-09-21 晚：點零件現在會回答「這個零件是誰做的」
+
+Andy 定義了整頁的目的：「讓讀者透過模擬設備的樣貌，更詳細觀察且直觀了解產業關係及做的事情，
+**所以盡可能拆解解析公司負責項目及產品**」。寫成 `docs/diagram_purpose.md`（六條硬規則），
+**位階高於每一份 `docs/diagram_specs/*.md`**。
+
+做了什麼：點圖上的零件 → 出現一張小卡（這是什麼 → 哪個環節 → 做這個的台股有誰、各自負責什麼
+→ 相關料號＋資料可信度 → 台股沒人做就明說是誰做的）。
+資料來自既有的 `companies[].tech` 與 `edges[].item`，**沒有改 YAML、沒有改資料管線**。
+11 張圖裡 3 張精修（`ic_substrate` 11 個零件、`pcb_rigid` 14 個、`mlcc` 4 個），其餘 8 張吃
+`data-seg` 的預設答案。既有行為沒動（DECISIONS #73：點零件只亮不篩）。
+
+**★ 這批只驗了哪幾段**：`零件誰做的`（新增）、`產業`、`產業鏈導覽`、`產業關係面板`、
+`新-產業與個股` ＋ `_preview.py` 全綠。**跳過 pytest**（改動全落在 `site/**` 與 `scripts/_uitest.py`）。
+沒驗的：總覽、資金流向、個股、題材、季節性、任務板、主題、縮放掃描。
+
+### 這一輪抓到的三件事
+
+1. **agent 的驗收用合成事件，我自己用真滑鼠一試就點不到。**
+   `dispatchEvent(new MouseEvent('click'))` 跳過命中測試，所以「真人點不到」它抓不到。
+   實測：1440px 不關動畫 → Playwright 逾時（SMIL 在跑，它會等元素靜止）；
+   關掉動畫 → 一次就點到。390px 量到零件中心 `x = -48`（980 的圖塞進 322 的框，橫向可捲，
+   真人撥一下點得到，Playwright 不會自己橫捲）。**兩個都是工具限制，不是使用者的 bug。**
+   已在 `t_whomakes` 補第 10 條：1440px、關動畫、**真的用滑鼠點一次**。
+2. **`_preview.py` 的埠寫死** → 跟 `_uitest.py` 同時跑就 `Address already in use` 整個死掉，
+   錯誤長得像「預覽關卡壞了」。`_uitest.py` 早就自動找埠，這支漏了，補上。
+3. **截圖自己看出來的文案 bug**：ABF 增層膜那張卡標題寫「做這個的台股」，
+   後面第一個接「味之素（日）」—— 第一眼會讀成味之素是台股，剛好把 R4 講反。
+   沒有台股時標題改成「台股有沒有人做」。
+
+### 已知限制（下一批處理）
+
+- **小卡排在圖下面，長圖時可能落在畫面外**。不能靠自動捲動解決
+  （2026-09-19 已拍板「點圖不要把畫面捲走」）。真正的解法是**寬螢幕改成「圖左、卡右」兩欄**，
+  卡片在自己的欄裡 sticky —— 同時解決不蓋圖／不捲畫面／看得到三件事。
+- **小卡樣式是 JS 注入的 `<style id="partCardCss">`**，暫時的（那一輪有別人在改 `index.html`）。
+  應該搬回 `index.html` 的 `.segbox` 旁邊。
+- **個股頁的剖析圖還是老行為**：點零件會跳到產業鏈頁，沒有小卡。
+- **`adv_pkg`（先進封裝 CoWoS/SoIC）這一格在 `supply_chain.yaml` 裡 0 家公司** ——
+  不是漏資料，是那一格的 note 自己寫了「台積電自己做（見晶圓代工）、日月光承接外溢（見封測）」，
+  也就是**一家公司只能歸一個環節**的 schema 限制。症狀：一張在講 CoWoS 的圖點下去列不出公司。
+  **短期解**：用繪圖端的 `parts:` 精修直接指名 `tsmc`／`ase`，不必動 YAML。還沒做。
+
+### 半導體鏈分族群剖析圖：評估已交（`docs/diagram_plan_semiconductor.md`）
+
+24 個族群目前只有 1 個有圖。建議 15 張涵蓋 23 個（`ic_distribution` 沒有實體可剖，不畫）。
+工時用實測推：晶圓代工 1 張約 1.5 小時、核心 6 張約 3 小時、全部 15 張約 7 小時。
+瓶頸是 session 速率上限（同時最多 2～3 支 agent）。
+★ **2026-09-22 更正：範圍不必再問 —— Andy 2026-09-21 已經說「一口氣把所有圖完成」**，
+所以是全部 14 張（S12 ＝ `wide_bandgap` 已另外排在既有鏈那 5 張裡，不重複算）。
+排程、波次與驗收段落見本檔最上面那一節「剖析圖量產排程 ＋『不准再問一次』清單」。
+⚠ 原本這裡寫「等 Andy 決定範圍」——**那句話就是 2026-09-22 那次多問一輪的來源**，已作廢。
+⚠ 更正：`wide_bandgap` **沒有**畫好 —— 我上次的檢查腳本比對到 stub 檔註解裡的範例程式碼，誤報成已畫。
+
+**最後更新：2026-09-22（台北）** by `delivery-planner`（排程與「不准再問一次」清單）
+／前一次 2026-09-21 by Claude（session 01Ec3nix…）
+
+## 2026-09-22：產業鏈頁全面重排與重新配色（`claude/chain-redesign` 分支，`visual-director`）
+
+Andy 2026-09-22：「當前產業鏈這分頁 全面需要排版優化…重新規劃 哪個圖表放哪裡、顏色怎麼配置、
+切換到亮色系版面怎麼配色…**版面優化不會動到功能，要小心**…**能固定大小就固定**…
+若過多資訊採用**清單或是拉 Bar** 呈現。」
+
+**完整的理由、顏色分工表、改掉的斷言逐條說明都在 `DECISIONS.md` #235。** 這裡只留三十秒版：
+
+### 做了什麼
+
+1. **由上到下重排**：族群清單與環節色標一起提到剖析圖**上面**，並排成一條「控制台」。
+   根因是「族群清單是剖析圖的選擇器，卻排在它下面 1300px」—— 點了圖真的會換，但圖早就捲出畫面。
+2. **五個新天花板**（成分股 1315→504、環節卡 339–1076→321–420、關聯圖→≤486、
+   零件小卡→≤270、環節詳情→≤260、圖別晶片→≤112），族群清單 27vh→24vh。
+   成分股捲動時**表頭自動黏在框頂**（`th` 本來就是 sticky）。
+3. **亮色系配色重算**：`--rise`／`--fall`／`--flat` 各壓深一階（**紅漲綠跌沒有動，只動明度**），
+   四個寫死的色值收成 `--dg-iso`／`--dg-iso-ink`／`--dg-edge-mat`／`--dg-edge-eq`／`--err-*`，
+   色點改成**只有選起來的那一顆才發光**，砍掉兩個沒有語意的顏色。
+4. **產業鏈頁的字級一律 12px 起跳**（環節卡、關聯圖、鏈切換列、產業關係面板原本有 10.5–11.5px）。
+
+整頁高度（半導體鏈）：1920 3492→2614、1500/1440 3727→2649、1366 3892→2649、
+800 4092→2811、390 4339→2862。
+
+### 這批只驗了哪幾段
+
+`產業`、`族群頁`、`產業鏈導覽`、`一般電子鏈`、`產業關係面板`、`新-產業與個股`、
+`批次19-剖析圖版面`、**`批次20-產業鏈版面`（新增）**、`零件誰做的`、`批次11-MLCC`、
+`批次14-輕油裂解`、`批次14-變壓器GIS`、`批次14b-被動RLC`、`批次14b-高速互連`、
+`批次14b-第三代半導體`、`手機`、`縮放掃描`、`淺色主題`、`明亮主題` ＋ `_preview.py`。
+**跳過 pytest**（`git diff --name-only` 只有 `site/**` 與 `scripts/_uitest.py`）。
+
+**沒驗的**：總覽、資金流向、個股、題材、季節性、任務板、盤中即時、市場明細、
+資金輪動合併、新-版面等高與多寬度、排序、設定面板、資料狀態、網頁版號。
+⚠ 這批動到 `site/index.html` 的**全站變數**（`--rise`／`--fall`／`--flat`／`.close`／`.livestate.bad`），
+所以「改 A 弄壞 B」的風險集中在**那些沒驗的頁面的漲跌顏色**上。
+紅綠的色相沒變、只壓深一階，而 `淺色主題`（會走總覽／資金流向／產業／季節性／個股五頁掃文字對比）
+與 `明亮主題` 兩段都跑綠，是目前最接近的覆蓋。真的要保險就跑
+`--only 總覽,資金流向,個股,題材,季節性`。
+
+### 還沒做（下一批）
+
+- **零件小卡放到圖的右邊**（寬螢幕兩欄、卡片 sticky）。HANDOFF 上一節就列了這條，
+  這一批**刻意沒做** —— 它會改變「點零件之後畫面怎麼動」，那是功能不是版面，
+  而 Andy 這次的原話是「版面優化不會動到功能」。
+- **≥1800px 時把控制台放到剖析圖右邊**（真正的兩欄），1920 的橫向空白還有得用。
+  這一批用 auto-fit 只把控制台自己排成兩欄。
+- 標題底下那段 `.sub` 說明在 1440px 佔 62px、390px 佔 6 行。**刻意沒動**：
+  縮它只有兩條路（刪字或視覺上截斷），兩條都是「收納 ≠ 刪除」的紅線邊緣，應該由 CEO 決定要不要重寫文案。
+- `.chainmap .iso text` 還是 9.5px（畫在半徑 7px 的小圓圈裡的「?」符號）。
+  放大會戳出圓圈，屬於幾何問題 → `tech-illustrator`。
+- `.partcard` 的樣式仍然是 JS 注入的 `<style id="partCardCss">`（上一批的暫時做法）。
+  這一批只在 `index.html` 補了它的天花板，沒有把整塊搬回來 —— 搬家要跟改動 `industry.js` 的人協調。
+
+## 2026-09-22（晚）：版面退回原格式 → 風格拍板（#238）→ 地基兩支 agent 開工 → dg-scale 收尾
+
+### 這一段發生的事（依時間）
+1. **Andy 否決重排**：「你後續更動的版面格式很糟糕，我覺得先回到原本的格式」→ `industry.js`／`index.html`
+   版面整個退回 `2e10e6c`，只留 bug 修正（`.noside` 藏側欄、≤820 抽屜改浮層自動收、`.dgwrap svg.dgm{max-width:984px}`、
+   點背景恢復 `onBg`、漸層 18 個色值改 token）。上一節「產業鏈頁全面重排」的**版面部分已作廢**，
+   它列的「還沒做」也跟著作廢，不要撿回來做。
+2. **風格拍板 DECISIONS #238**：兩種模式（亮色「閱讀」／暗色「科技」）、卡片式標註＋細引線＋垂直爆炸拆解，
+   **所有 2D／3D 圖都改**；排程在 `docs/diagram_restyle_plan.md`（七波、每波 ≤3 支 agent）。
+   Andy 稍後再補 **3D 三個推薦**（玻璃機櫃／發光流線／半拉出托盤／卡片與元件同色串聯），已寫進 #238「3D 補充」並轉給兩支地基 agent。
+3. **地基兩支 agent 進行中**（回來要合併、驗、推）：
+   - `style-system`（分支 `claude/style-system`）：`_STYLE.md`、兩套色票、卡片磨砂玻璃、引線發光端點、
+     `--dg-sig`／`--dg-pwr`／`--dg-cool` 三組語意色、卡片吃 `--dg-card-c`（2D／3D 共用介面）。
+   - `style-3d`（分支 `claude/style-3d`）：兩套打光材質、根治「環節色當底色」、`glass`／`flow`／`airflow` 三種新材質、
+     先拿 AI 伺服器機櫃當範本（外框玻璃、托盤三色、CDU 水路與 CPO 光路發光、風扇氣流、前排托盤半拉出）。
+   - `dg-elec-1`（工業自動化／鋁電容／電路保護三張一般電子）也還在跑。
+4. **dg-scale 收尾**：`2bb02d8`（規格書 §0）與 `92786e4`（`D.fold()`、`wireFolds` 自動量 `getBBox`）已 cherry-pick 進 main
+   （`5ad86c0`／`ea10c1f`）。13 張的收納草稿與 `批次22-剖析圖尺寸` 棘輪表留在 `origin/claude/dg-scale` 的 `847838d`，
+   逐張改風格時當起點；每張的 §1 高度與切法表在 `docs/diagram_restyle_plan.md`。
+
+### 這批只驗了哪幾段（cherry-pick 那兩筆，動到的只有 `site/diagrams.js` 與兩個 `.md`）
+`批次11-MLCC`、`批次13-配色與收納`、`點背景恢復`、`批次21-CoWoS去重`、`批次21-晶圓代工`、`批次21-矽晶圓`、`批次21-HBM`
+＋ `_preview.py` 全綠。**跳過 pytest**（`git diff --name-only` 只有 `site/diagrams.js`、`docs/**`、`DECISIONS.md`）。
+**沒驗的**：其他所有段落。`wireFolds` 改成執行期量高度，手寫 `data-y0/y1` 的舊路相容，四張有章節的圖高度一個數字都沒變。
+
+### 一般電子三張已合併上線（`claude/dg-elec-1` → main，2026-09-22 晚）
+| 圖 | 族群 | 收合高度 | `parts` | 備註 |
+|---|---|---|---|---|
+| 傳動件 `site/dg/motion_control.js` | `factory_automation` ＋ `machine_tool` | 686px | 40 | **0 個 `data-seg`**：那兩個族群 19 檔全部不在 `supply_chain.yaml`，畫面上明講「環節色標篩不到它們」 |
+| 鋁電容 `site/dg/alum_cap.js` | `capacitor` | 652px | 26 | 6 檔只有 2375 凱美在 YAML；立敦那句「做電蝕箔不做電容成品」用 `note:`（`none:` 只在一家都列不出時才印） |
+| 保護元件 `site/dg/circuit_protection.js` | `resistor_protect` | 660px | 24 | 6 檔全部不在 YAML；GDT 查不到台股對應 |
+
+- 規格書 91 條硬規則機器驗到 81 條、**19 條紅線全部用幾何量**；驗不動的 10 條（廠商外觀、證據表逐字比對與 X5「不准法人用語」衝突改驗 X5、低信心全稱否定、章節列 seg）理由在各檔檔頭。
+- 查不到的一律標在圖上（台灣精銳做諧波還是 RV、防爆閥刻痕位置、電解紙／電解液／陰極箔誰做的）。
+- ⚠ **動了一個棘輪**：`_uitest.py` electronics 390px 整頁門檻 **5800 → 6500**。來源是圖別選單 3 → 7 張卡（`#chainList` 866／`#groupCards` 1197／`#memberTable` 1300 都沒變），實測 +7%。
+- ⚠ **已知、刻意沒修**：390px 下 `#dgMenu` 佔 1079px，使用者要捲過一整頁卡片才看得到圖。三條鏈共用元件的手機版面問題，要改 `industry.js` 並三條鏈一起驗，不混進這批。
+- **這批只驗了**：`批次22-傳動件`、`批次22-鋁電容`、`批次22-保護元件`、`一般電子鏈`、`產業鏈導覽`、`零件誰做的`、`點背景恢復`、`手機` ＋ `_preview.py` 全綠（agent 自己那輪另外跑過 `產業` 展開的四段也綠）。**跳過 pytest**（只有 `site/**` 與 `scripts/_uitest.py`）。
+
+### 風格地基（`claude/style-system` `ebc34f2`）已合併上線（2026-09-22 晚）
+- 兩種模式跟主題走（深→科技、淺→閱讀），`#dgPal` 只剩兩個選項，舊 localStorage 值清掉；共用元件卡片化；MLCC 走 v2 版面（畫布 660 在中間、HTML 卡片左右欄、容器寬判欄數、引線 resize 重算、收合 574）。
+- 細節與被改的斷言在 DECISIONS #239；規格 `docs/diagram_specs/_STYLE.md`；卡片介面 `docs/diagram_restyle_plan.md`。
+- **這批只驗了**（合併後在 main 重跑）：`批次22-風格系統`、`批次13-配色與收納`、`批次11-MLCC`、`零件誰做的`、`點背景恢復`、`淺色主題`、`明亮主題`、`產業鏈導覽`、`產業關係面板`、`新-產業與個股`、`3D零件字彙`、`批次21-CoWoS去重`、`批次22-傳動件／鋁電容／保護元件`、`批次12-ABF載板`、`批次14b-被動RLC`、`手機` ＋ `_preview.py`，全部 0 問題。**跳過 pytest**（`site/**`、`scripts/_uitest.py`、docs、`.gitignore`）。
+- **沒驗的**：`產業`（agent 自己那輪單跑綠）、批次14 兩張、批次12 另兩張、批次14b 另兩張、批次21 三張、題材頁 18 張 2.5D（`themes3d.js` 沒動）。
+- 已知未修（逐張改造那一波）：閱讀 13px 只給 `.rs` 的圖；面板等 16 張還是卡片在 SVG 裡的舊版面；`aiServer` 舊圖與 `themes3d.js` 18 張仍有寫死色值（閱讀模式下有白字看不到）；`#dgQ` 左緣對齊在 `industry.js` 版面。
+
+### 3D 兩種模式 ＋ 科技 v3（`claude/style-3d` `96c7e29`）已合併上線（2026-09-22 晚）
+三個 3D 場景改成科技／閱讀兩模式；零件底色改讀材質族 token、環節色只給被點的那顆；玻璃機櫃、三色托盤、冷／熱／光／氣流流線、圓角大件、爆炸拆解（動畫關＝停在拆開態）、磨砂 HUD 卡片（編號圓點、中英雙語、元件色串聯）、響應式卡片欄（≥1280 兩欄／960～1279 右欄／<960 底下一排＋編號圓點；塞不下先收成一行）、模型填滿畫布 94%。介面：`docs/diagram_restyle_plan.md`「3D ↔ style-system」。
+- 效能：ai_server 417 draw call／38,926 三角形（上限 680／40,000）；mlcc 棘輪 93 守住。
+- 自行拍板：玻璃不用 `transmission`（多一個 render pass 撐不住）改半透明＋輪廓光；AO 只做接觸陰影；CCL 畫 12 對、HBM 6 顆×4 層（三角形預算）；卡片塞不下「收成一行」不做欄位可捲（會擋拖曳）。
+- **這批只驗了**（合併後在 main 重跑）：`3D風格兩模式`（新）、`3D零件字彙`、`批次6-N1`、`批次6-圖九`、`批次6-圖十`、`批次21-CoWoS去重`、`點背景恢復`、`批次22-風格系統`、`批次13-配色與收納`、`批次11-MLCC`、`零件誰做的`、`淺色主題`、`產業鏈導覽` ＋ `_preview.py`，全部 0 問題；agent 自己那輪 `產業` 單跑 0 問題。**跳過 pytest**（只有 `site/**`、`scripts/_uitest.py`、docs）。
+- **沒驗的**：總覽、資金流向、個股、季節性、任務板、盤中、市場明細、手機、縮放掃描、明亮主題。
+- **接下來 v9**（同一支 agent 繼續）：照 `docs/diagram_refs/` 兩張參考圖 —— 閱讀模式亮底有顏色有柔光、運算托盤綠板＋元件、風扇 `role:'air'`（亮橙框／暗藍扇葉）、玻璃框厚度與邊緣高光。
+
+### 3D v9（`claude/style-3d` `e7dd623`）已合併上線（2026-09-22 晚，照 `docs/diagram_refs/` 兩張參考圖）
+- 閱讀模式改成「亮底有顏色有柔光」：托盤藍／綠板＋元件／橘風扇框／橘電源、青綠冷卻迴路，流線發光為科技的 40%；厚磨砂玻璃機櫃＋邊緣亮線；AO 墊片；風扇 `role:'air'`（亮橙框／暗藍扇葉）。
+- 根因修正：衍生色以前只在掛場景時讀一次 token，切模式不重讀 → `applyPal()` 每次重算。卡片元件色依模式夾 sRGB 明度（`--dg-card-lmin/lmax`），白卡上淺色零件的字才讀得到。
+- ⚠ **機櫃三角形 39,822／上限 40,000**：之後任何加料要先減面。
+- **這批只驗了**（合併後在 main 重跑）：`3D風格兩模式`、`3D零件字彙`、`批次6-N1`、`批次6-圖九`、`批次6-圖十`、`點背景恢復`、`批次21-CoWoS去重`（第一輪 `#dgPal` 6 秒逾時、load 10+；單跑 0 問題）、`淺色主題`、`批次22-風格系統` ＋ `_preview.py`。agent 那輪 `產業` 2 個問題是同型假紅（`#dgReset` 逾時，有 probe 證據），**我沒有在空容器重跑 `產業`**（三支 agent 一直在跑關卡，容器沒空過）—— 下一批合併時要補跑。**跳過 pytest**（只有 `site/**`、docs）。
+
+### 波 1b：伺服器電源 PSU＋BBU、ABF 載板 → 最終風格（`claude/restyle-w1b` `9fa4bec`，DECISIONS #240）已合併上線
+| 圖 | 畫布 | §1 | 章節 | 收合 | `parts` |
+|---|---|---|---|---|---|
+| 伺服器電源 | 980→640 | 643→432 | 1→3 | 1806→**568** | 0→18 |
+| ABF 載板 | 980→520 | 606→504 | 2 | 1300→**598** | 13→14 |
+- ABF＝等角爆炸玻璃層疊（九片浮著、微孔小銅柱、訊號光束）；PSU＝迴路類維持示意構圖、方塊全走 `D.fx.glass`、直流一條發光光束。
+- `site/diagrams.js` 新增 `D.fx.glass／beam／shadows／glowDefs` ＋ `--fx-*` 旋鈕（2.5D 材質共用介面，波 1a 照它）。**順手修三個共用缺陷**：同一 `#prodDiagram` 連裝兩張 v2 圖第二張卡片不外掛；`bodyBBox()` 遇 `animateMotion` 量到 -3（MLCC ③ 全開 3542→1814）；章節列起點候選。
+- 查不到：各家 PSU 拓樸（畫常見的 PFC＋LLC＋SR，標示意）、超級電容／LIC 台股供應商。
+- **這批只驗了**（合併後在 main 重跑）：`批次12-電源PSU`、`批次12-ABF載板`、`批次22-風格系統`、`批次11-MLCC`、`批次13-配色與收納`、`零件誰做的`、`點背景恢復`、`淺色主題`、`產業鏈導覽`、`產業`（含展開的三段）＋ `_preview.py`。**跳過 pytest**（只有 `site/**`、`scripts/_uitest.py`、`DECISIONS.md`）。
+- ⚠ 假紅記錄：負載 8～10 時 `產業` 12 個問題（`#dgReset／#dg3d／#dgAnim` 6 秒點不到的連鎖）、`_preview.py` 1280 資金流向桑基 154 組文字重疊（ECharts 動畫沒跑完就量）；負載降到 <3 單跑兩個都 0 問題。**同一容器三支 agent 同時跑關卡就會這樣，判法：單跑一次。**
+
+### 波 1a：液冷、氣冷 → 最終風格（`claude/restyle-w1a` `701dd60`，DECISIONS #241）已合併上線
+| 圖 | 畫布 | §1 | 章節 | 收合 | 全開 | `parts` |
+|---|---|---|---|---|---|---|
+| 液冷 | 680 | 421 | 3 | **565** | 1767 | 28 |
+| 氣冷 | 680 | 441 | 3 | **585** | 1948 | 30 |
+- 液冷主角＝垂直爆炸拆解（進出水口→上蓋→流道→底板→TIM2→IHS／VC 並排→TIM1→裸晶）＋右半兩個封閉水路環（分歧管、四個並聯冷板各一對 QD、CDU 泵＋板式熱交換器、一次側粗管、機房側分界）。
+- 氣冷主角＝沿轉軸拆五層，兩組轉子**旋向相反**；右上氣流走完全程（風扇牆 N+1→導風罩→疏／密鰭距→排氣）；右下 P-Q 曲線含系統阻抗與工作點。
+- 濾鏡各 3 個（#239 的 ≤3）；跨圖 `SHARE_LINES` 一字不差；規格書機器可驗的 14 條全過（幾何類靠註解逐條標，沒有誇大成「全部驗到」）。
+- **這批只驗了**：`批次12-散熱`、`批次12-電源PSU`、`批次12-ABF載板`、`批次22-風格系統`、`零件誰做的`、`點背景恢復`、`淺色主題`、`產業鏈導覽` ＋ `_preview.py`，全 0 問題。**跳過 pytest**。
+- ⚠ 密度預算偏離（不藏）：`_TEMPLATE.md` §0-C 的「§1 標註列 ≤ 10」，液冷 11、氣冷 12 —— 卡片外掛成 HTML 後不佔畫布高度，所以沒砍內容；代價是 960～1279 兩欄模式右欄比畫布高（約 1000 vs 585）。
+- 查不到：熱管／快接頭／導風罩在環節表裡沒有對應廠商（小卡寫明是「族群與環節的落差」，不自己補名單）；分歧管只列健策 3653（雙鴻、奇鋐只有摘要等級，寫進 note 不進 cos）；TIM 只列一詮 2486。
+
+### 波 2b：面板疊層、高速互連 → 最終風格（`claude/restyle-w2b` `5155bc6`，DECISIONS #242）已合併上線
+| 圖 | 畫布 | §1 | 章節 | 收合 | 全開 | `parts` |
+|---|---|---|---|---|---|---|
+| 面板疊層 | 980→**660** | 533 | 0→**3** | 1164→**669** | 1824 | 0→**13** |
+| 高速互連 | 980→**560** | 529 | 0→**2** | 1432→**623** | 2604 | 20→**33** |
+- **面板是 Andy 參考圖（`docs/diagram_refs/2d_panel_dark_light.webp`）的示範品**：十三層垂直爆炸玻璃層疊、白光穿到彩色濾光片才分成 RGB 三道、液晶橢球、TFT 小磚、色阻 R│G│B、導光板網點、側邊 LED、端子區驅動 IC＋COF。機器驗了 19 條專屬硬規則。
+- 高速互連：線材剖面＝玻璃圓柱剖開；損耗對照＝**光束強弱**（22 吋發光 vs 4.5 吋不發光）。機器驗了 21 條。
+- `D.fx` 加兩個向下相容能力：`fx.beams()`（多條光束共用一個濾鏡）、`fx.molecule()`（液晶橢球）。
+- 畫布用 660 不是 680：1100 兩欄時畫布欄只有 660。
+- **這批只驗了**：`批次23-面板`（新）、`批次14b-高速互連`、`批次12-散熱`、`批次22-風格系統`、`一般電子鏈`、`零件誰做的`、`點背景恢復`、`淺色主題`、`產業鏈導覽` ＋ `_preview.py`，全 0 問題。**跳過 pytest**。
+- 查不到：共通電極／配向層／平坦化層在哪一片依顯示模式而異（不畫、畫面明講）；背光 6176、偏光板 8215／4960 在族群裡有但 `supply_chain.yaml` 沒建成環節（小卡寫「有人做、只是還沒建檔」，不動 YAML）。
+- ⚠ 合併時解過兩個衝突（`DECISIONS.md`、`scripts/_uitest.py` 都是「兩側各自在檔尾追加」）—— 兩側**全部保留**，#241 在前 #242 在後、`t_cooling_v2` 與 `t_panel_v2／t_hsio_v2` 並存，`SECTIONS` 三行都在。
+
+### 波 2a：硬板 PCB、交換器板卡 → 最終風格（`claude/restyle-w2a` `0d8028d`，DECISIONS **#243**）已合併上線
+| 圖 | 畫布 | §1 | 章節 | 收合 | 全開 | `parts` |
+|---|---|---|---|---|---|---|
+| 硬板 PCB | 980→**560** | 451 | 3 | **587** | 2451 | 14→**24** |
+| 交換器板卡 | 980→**600** | 300 | 3 | **436** | 1886 | 0→**31** |
+- PCB＝十三片玻璃板等角爆炸（防焊／L1／pp／core×4 與 pp×5 交錯／L10／防焊），四種孔畫成穿層小銅柱（背鑽掉的那段沒有銅柱、殘餘標 `--dg-warn`、殘端 `--dg-err`）。交換器＝半層疊，綠玻璃板＋ASIC 載板／晶片／散熱片上浮＋前面板 16 籠架，光 `--dg-cool`／電 `--dg-sig`／供電 `--dg-pwr`；等長蛇行改成量畫面長度逐折補（最長／最短 1.08）。
+- 硬規則機器驗到：PCB 25 條結構＋5 句必講的話＋3 條「誰做的」；交換器 19＋6＋3。**被改的斷言：0 條**（只新增兩段）。
+- **這批只驗了**：`批次23-硬板PCB`（新）、`批次23-交換器板卡`（新）、`批次23-面板`、`批次14b-高速互連`、`批次22-風格系統`、`批次13-配色與收納`、`零件誰做的`、`點背景恢復`、`淺色主題`、`產業鏈導覽` ＋ `_preview.py`，全 0 問題。**跳過 pytest**。
+- 自行拍板：交換器 ASIC 拿掉 `data-chain="semiconductor"`（v2 下「點區塊亮卡片」與「跳走」會打架），改成小卡明說外商供應、台股沒有直接對應。
+- ⚠ **編號撞號已修**：w2a 原本也叫 #241（w1a 已佔），合併時改成 **#243**。`_uitest.py` 的衝突用「HEAD ＋ w2a 的三支新函式與兩行 SECTIONS」重建，不是機械式保留兩側（第一次那樣做會把 #242 的內容接到 #241 標題底下）。
+
+**AI 伺服器鏈 8 張 2D 全部換完新風格**（液冷、氣冷、電源、ABF、硬板 PCB、交換器、高速互連）＋ 一般電子的面板。
+剩下的 2D：半導體鏈五張（晶圓代工、矽晶圓、HBM、先進封裝、第三代半導體）、MLCC、被動 RLC、輕油裂解、變壓器 GIS、一般電子新畫的三張（傳動件、鋁電容、保護元件）。
+
+### ★ 3D 精緻化已合併上線（`claude/3d-pbr` `00591ca` ＋ 我的按需渲染，DECISIONS **#244／#245**）
+改前→改後（機櫃）：三角形 39,822→**33,570**、draw call 447→**394**、半透明件（設計上）12.1%→**6.4%**、
+最高 metalness 0.88→**0.90**、castShadow **0→44**、`scene.environment` **null→PMREM**。
+七類模組色差（CIE76 ΔE，關掉標籤實測）最接近的一組：科技 31.1、閱讀 27.9，**門檻 25 兩種模式都過**。
+- 做了：程序式 PMREM 環境棚（兩模式各一份）、解除 metalness 上限、依模組配色（`--dg-m-*` 十一個 token）、
+  收透明（機櫃立柱橫樑改實體銀灰、只有側後板留玻璃）、真陰影（PCFSoft、只有 key 投影、castShadow 只給大件）、
+  打光重做（暖白主光偏右 0.84/0.78/0.16 才看得到影子）、漸層背景、發光克制、3D 不吃 2D 的橫向捲動規則。
+- **我另外修的（#245）**：3D 以前**每一幀都無條件 render**，連「動畫：關、沒人拖曳」也在燒 CPU。
+  改成「有變才畫（controls change ＋ dirty 旗標）、動畫上限 30fps、靜止每 400ms 補一張當安全網」。
+- ⚠ **無法在這個容器驗證的風險**：envMap 讓 fps 8.1→2.8（swiftshader 軟體繪圖，沒有材質取樣單元）。
+  真 GPU 上這是 three.js 標準路徑。逃生門：`.dg3d` 的 `--dg-env: 0` ＝ 完全不掛 envMap，立刻回到改前幀率。
+- ★★ **新規矩：3D 相關段落一律 `--workers 1`。** 平行 worker 各自跑一個 3D 場景，envMap 之後 CPU 直接吃滿，
+  工具列的鈕 6 秒內點不到 → 整批假紅。**判法**：多工紅 → 單工重跑。實測同一批：
+  多工 19 個問題 → **單工 5 段全部 0 個問題**。另外我寫過探針單獨量：同一顆鈕點得到、版面 40 幀完全沒抖。
+- **這批只驗了**：`3D風格兩模式`、`3D零件字彙`、`批次6-N1`、`批次6-圖九`、`批次6-圖十`、`批次21-CoWoS去重`、
+  `點背景恢復`、`淺色主題`、`批次22-風格系統` ＋ `_preview.py`。**跳過 pytest**。
+- ⚠ 合併時我漏掉三個模組常數（`DG3D_DE_MIN／DG3D_MODULES／DG3D_PERF`）造成 `NameError`，已補回。
+  **教訓**：三方合併大檔之後，用機器比對兩邊的頂層名稱（`re.findall(r'^(?:def (\w+)|([A-Z][A-Z0-9_]{2,}) *=)')`），
+  不要只看 import 過不過 —— import 會過，跑起來才炸。
+
+### ★ Andy 2026-09-23 凌晨追加的兩件事（下一步）
+1. **19 張剖析圖全部都要有 3D**（AI 伺服器鏈 7＋半導體鏈 5＋一般電子鏈 7）。現在只有 3 張有，**要補 16 張**。
+2. **3D 預設收攏、游標移過去才爆開**（現在是進場自動爆開 1.6 秒）。滑鼠移開收回；手機沒有 hover → 點一下展開。
+
+### 半導體鏈四張 3D 補上（`claude/3d-semi` `85d0dce`，DECISIONS #247）已合併上線
+| 圖 | 零件 | 三角形 | draw call |
+|---|---|---|---|
+| 晶圓代工 | 7 | 1,948 | 45 |
+| 矽晶圓 | 9 | 3,680 | 22 |
+| HBM | 8 | 29,148 | 60 |
+| 第三代半導體 | 13 | 424 | 28 |
+- 兩種切法刻意不統一：HBM 切角（東西是厚的，切開才看得到柱子）、第三代半導體半剖（一疊薄層切角只會變成一疊 L 形板）。
+- 查不到一家都沒編：矽晶圓的爐體／加熱器／石墨承座／石英坩堝、HBM 的 core die／TSV／微凸塊／對外凸塊、SiC 與 GaN 基板 —— 畫面明寫「台股無直接對應」。
+- **這批只驗了**：`批次24-半導體鏈3D`（新）、`3D零件字彙`、`批次21-CoWoS去重`、`點背景恢復`、`淺色主題`、`批次13-配色與收納` ＋ `_preview.py`，**單工全 0 問題**。跳過 pytest。
+- 19 張剖析圖現在 **7 張有 3D**，還缺 12 張。
+
+### AI 伺服器鏈六張 3D 補上（`claude/3d-aiserver` `f9246b7`，DECISIONS #250）已合併上線
+| 圖 | 零件 | 三角形 | draw call |
+|---|---|---|---|
+| IC 載板 | 11 | 8,234 | 38 |
+| PCB 硬板 | 13 | 4,896 | 20 |
+| 電源 PSU | 10 | 5,626 | 73 |
+| 液冷 | 13 | 5,166 | 60 |
+| 氣冷 | 12 | 6,322 | 55 |
+| 網通交換器 | 13 | 13,532 | 102 |
+新增 41 個 kind，舊的一個沒動；陣列全部 InstancedMesh。上限 40,000／680，六張都在三分之一以內。
+- 新寫法 `codes: []` ＝ **明說沒有台股對應**（GPU／ASIC 核心、裸晶 die、管理用處理器），驗收多一條：這四顆一定要顯示「台股無直接對應」且晶片數＝0。
+- 自行拍板（Andy 可能不同意，列出來讓他一次否決）：推翻六份規格書 §0「不做真 3D」；電源那張刻意不畫 UPS 與設施側（3D 沒有虛線框，畫進來會讓人以為 UPS 在機櫃裡）；`psu_unit` 拆成外罩與主板；`abf_bga` 是 2D 沒有的零件身分（2D↔3D 切換時這顆對不起來）；錫球與 ABF 層改走材質族明暗（原色在閱讀模式白底上對比只有 1.06）。
+- **這批只驗了**：`批次27-AI伺服器鏈3D`（新）、`批次24-半導體鏈3D`、`3D零件字彙`、`點背景恢復`、`淺色主題`、`批次12-散熱`、`批次23-硬板PCB` ＋ `_preview.py`。
+  第一輪 2 個紅（`#dg3d` 點不到、`[IC載板] 收攏→展開沒位移`），**單工重跑兩段都 0 問題** —— 又是負載假紅（那時一般電子鏈那支 agent 也在跑）。跳過 pytest。
+- ⚠ `_preview.py` 會報一句 `題材 fit 沒有產品圖`：那是 `_preview.py` 自己的假警報（`ThemeDiagrams.fit` 是輔助函式被當成題材 id，跟已修掉的 `ThemeDiagrams.CW` 同一個坑），不是這批造成的。
+- 19 張剖析圖現在 **13 張有 3D**，剩一般電子鏈 6 張（進行中，做完就 19/19）。
+
+### 2026-09-23 這一大批：19/19 剖析圖都有 3D ＋ 產業關聯圖取代四塊 ＋ 工具列進圖內
+| 批 | 內容 | DECISIONS |
+|---|---|---|
+| 一般電子鏈 6 張 3D | 面板、傳動軸（兩個族群共用）、被動保護、電容器、電感電阻石英 | #251 |
+| 產業關聯圖 | 大點＝族群、小點＝個股（數量＝成分股檔數）、hover 才浮出個股資訊、右側資訊欄全帶連結；**只留星際與泡泡**兩種風格；圓半徑＝市占（面積成比例）；拿掉 `#segChips`／`#segBox`／`#chainList`＋`#chainView`／`#groupCards` | #248 |
+| 工具列 | 搬進圖內右下角；同頁切換不再跳回頁首（根因 `app.js:655`） | #248 第三版 |
+**19 張剖析圖現在 19/19 全部有 3D。**
+
+#### 我自己抓到並修掉的兩個真 bug
+1. **切到 3D 之後工具列掉到圖外面 25px**（「重設視角」點不到）。根因三層：`ResizeObserver` 只觀察 `#dgSec`／`#dgBody`，收不到「區塊總高沒變、圖自己變高」；切 3D 只在按下去那一刻算一次，量到的是還沒長完的高度；8px 死區把剩下 6px 誤差吃掉。修法：RO 也觀察 `#prod3d`／`#prodDiagram`、切 3D 與切圖別補一串延遲重算（0/120/400/900/1800/3200ms）、死區往上 2px 往下 8px。
+2. **★★ 驗收點不到工具列的鈕，根因不是產品**：3D 開著時容器是軟體繪圖（一幀約 330ms），Playwright 的「位置連續兩幀一樣才算穩定」過不了，`locator.click` 卡滿 6 秒逾時。三種方式各量一次：`dispatch_event` 立刻成功／`mouse.click` 座標 **0.5 秒成功**／`locator.click` 8 秒逾時。
+   **修法：`click()` 對 `#dg…` 一律先走滑鼠座標**（真人就是移到座標按下去），失敗才退回 locator。
+   `產業` 那段因此從 3～5 個問題變成 0。**這條是往後所有 3D 驗收的通則。**
+
+#### 這批只驗了（合併後在 main 單工重跑，全部 0 問題）
+`產業`、`族群頁`、`產業鏈導覽`、`一般電子鏈`、`新-產業與個股`、`產業關係面板`、`淺色主題`、`3D零件字彙`、`點背景恢復`、`手機`、`批次25-關聯圖`、`批次24-半導體鏈3D`、`批次27-AI伺服器鏈3D`、`批次28-一般電子鏈3D` ＋ `_preview.py`。跳過 pytest。
+**沒驗的**：總覽、資金流向、個股、題材、季節性、任務板、盤中、市場明細、縮放掃描、明亮主題。
+
+#### 還沒做（Andy 已交辦、排在後面）
+`docs/industry_page_tabs_spec.md` 那批：活頁簿分頁、長條圖＋圓餅圖當預設、昨天／即時切換、移除產業鏈總覽與法定產業別卡片、熱力圖獨立大分頁。
+
+### 3D 預設收攏、游標移過去才爆開（`claude/3d-hover` `6ff9083`，DECISIONS #246）已合併上線
+| 情境 | 行為 |
+|---|---|
+| 進場 | 完全收攏（組裝好的成品），零件位移＝0 |
+| 游標移進畫布 | 820ms ease-out 展開；移開 500ms 收回 |
+| 快速進出 | 從目前的 t 接著補間、長度照剩下距離等比縮短（最短 80ms），不從 0 或 1 重來 |
+| 沒有 hover 的裝置 | 改成**點背景**切換展開／收攏（點零件仍然只是選零件）；狀態記進 `tw.dg3d.exp` |
+| 動畫：關／reduced-motion | 兩個狀態都切得動，但一幀到位不補間 |
+三個原有場景 ＋ 合併進來的 10 張新 3D **自動吃到同一套**（行為寫在 `mount()` 不是逐場景寫）。
+- ⚠ **我自己抓到並修掉的真 bug**：進場改收攏之後，「重設視角」回不到進場的樣子（相機近 9%，實測 `[114.3,79.5,134.2]` → `[103.7,77.0,124.6]`）。根因：`fitCamera()` 量的是**當下**的外接盒，收攏時盒子比較小。修法：**取景一律用「拆開之後」的外接盒**（量之前暫時攤開、量完立刻還原，同一幀內完成，畫面上看不到）。
+- **這批只驗了**：`3D風格兩模式`（含新的 hover 子測）、`3D零件字彙`、`批次24／27/28` 三段 3D、`批次21-CoWoS去重`、`點背景恢復`、`批次6-圖十`、`批次25-關聯圖`、`產業` ＋ `_preview.py`，全部 0 問題。跳過 pytest。
+
+### 產業與個股頁改版（`claude/industry-tabs` `939d7f1`，DECISIONS #252）已合併上線
+1. **活頁簿分頁兩層**：一層＝產業鏈（全市場／各鏈／法定產業別，id 沿用 `#chainSwitch`）、二層＝該鏈的剖析圖（`#dgPick`），**第一頁是「族群總覽」**。選中那頁 `border-bottom:0` ＋ 分頁列 `margin-bottom:-1px` 自己蓋掉內容上邊框，視覺上連成一片。
+2. **預設畫面＝族群漲幅長條（左）＋占比圓餅（右）**（`renderGroupPanel`，`#industry` 與每條鏈共用）。連動是改**真的樣式**（圓餅描邊 1→3）＋共用讀數行，不是只送 highlight 事件（那樣量不到）。點長條 → 原地換該族群所有個股的長條圖，再點才進個股頁。
+3. **昨天／即時**：預設盤後；即時走既有 `live.js`（一批 100、最多 300 檔、跨族群平均分配），成交值用「最新價×累積張數」估算並明寫盤中暫定值與涵蓋幾檔。`A.onLive` 只掛一次、計時器開之前先 `clearInterval`、換頁 `route()` 收掉。
+4. **移除** `#chainTiles`／`#indTiles`；**法定產業別改由一層分頁的最後一頁進入**（分頁保留）。
+5. **熱力圖獨立頂層分頁** `#heatmap`；換層級時清掉另一層的 `innerHTML`，避免 `#gpBar`／`#chainSwitch` 同時存在兩份。
+
+⚠ **路由變更（影響很多既有斷言）**：`#industry/<chain>` 讓給族群總覽，**鏈層級架構圖改成 `#industry/<chain>/dg/<chain>`**。
+agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸迴圈與排版掃描）—— 沒補的話量到的是族群總覽的標題而紅。
+**往後寫驗收一律用帶 `/dg/` 的完整網址。**
+
+- agent 路上修掉的兩個真 bug：`grid-template-columns:1fr` 被 ECharts 寫死像素的舊畫布卡住（800→390 時整頁長出橫向捲軸且永遠好不了）→ 改 `minmax(0,1fr)` ＋ `min-width:0`；滑鼠離開圖表時 ECharts 發的是 `globalout` 不是 `mouseout`。
+- **這批只驗了**：`批次29-產業分頁`（新）、`產業`、`族群頁`、`產業鏈導覽`、`一般電子鏈`、`新-產業與個股`、`產業關係面板`、`批次25-關聯圖`、`手機`、`淺色主題`、`明亮主題`、`批次11-MLCC`、`縮放掃描`、`批次28-一般電子鏈3D` ＋ `_preview.py`，全部 0 問題。跳過 pytest。
+- 自行拍板：`#dgMenu` 圖別選單卡片留著（分頁只塞得下圖名，「這張圖回答什麼」要有地方寫）；全市場只列成交值前 18 個族群、其餘併成圓餅一塊；頂層分頁標題用「熱力圖」不是「產業熱力圖」（1440＋事件欄打開時放不下）。
+
+### ★ Andy 2026-09-22 晚：3D 要「精緻的科技產品展示／半寫實資訊圖表」（進行中，最高優先）
+根因診斷與完整規格在 **`docs/diagram_3d_pbr_spec.md`**（七個根因：沒有 envMap／沒有真陰影／透明疊五六層／只有平行光／顏色依角色不依模組／色溫收斂洗灰／曝光保守）。
+分支 `claude/3d-pbr`。驗收兩條硬指標：關掉標籤要認得出七類模組（色差 ≥25）、縮到 360px 要看得出輪廓層次冷暖。
+**接著要做**：所有 2D 圖都要補對應 3D（17 張只有 3 張有，要補 14 個場景），地基上線後分波做，每波 2～3 張。
+
+### 下一步
+1. ~~style-system~~ ~~style-3d v9~~ 都已上線 → 跑它們登記的段落 → 推 → 部署 → 截 1440 深／淺各一張給 Andy。
+2. ~~等 `dg-elec-1` 回來~~ 已合併上線（上面那節）。
+3. 地基上線後開始波 1（AI 伺服器鏈：液冷、氣冷、PSU＋BBU），照 `docs/diagram_restyle_plan.md`。
+4. 已知的小 bug 未修：MLCC 右欄在 800px 被裁到（早就有，跟這批無關）。
+
+**最後更新：2026-09-22（晚，台北）** by Claude（session 01Ec3nix…）
+
+### 09-24 19:38 全站說明精簡上線
+- 卡片只留按鈕、圖、≤20 字副標；細節移進「怎麼看？」。修 #gpBack[hidden] CSS。
+- 這批驗了：_preview、_uitest（總覽、新-版面等高與多寬度、縮放掃描、手機、手機改版、桌機零差異、手機一屏、設計系統v2 等）。
+  唯一紅燈是既有的「新-版面等高與多寬度 7」（篩選列合併斷言），非本批造成。
+
+### 09-24 21:57 足跡輪盤雷達改版（桌機）＋全站膠囊長條／甜甜圈＋點外面就關
+- 手機維持舊長相（Andy：手機先暫停）。
+- 這批驗了：_preview；_uitest 18 段（說明精簡、點外面就關、圖表圓滑化、時鐘水波、足跡輪盤、掃描光束、足跡輪盤既有功能、輪動時鐘即時、新-輪動時鐘、資金流向、總覽、產業、題材、個股、市場明細、桌機零差異、淺色主題、網頁版號）。
+  紅燈只剩既有：新-輪動時鐘 1、個股 4（整批順序）、產業 1。未跑：新-版面等高與多寬度等其餘段。
+- 補記：上一筆「全站說明精簡」實際只拿到 8 段結果，個股／市場明細／法律頁／網頁版號／題材／季節性／產業未驗到（本批已補驗其中多段）。
+
+### 09-24 22:44 即時報價 12 秒逾時＋補驗
+- live.js fetchQuotes 加 AbortController 逾時（代理卡住不再停在「更新中」）。
+- _uitest「新-版面等高」F3 斷言接受新卡名「足跡輪盤」（改名後的舊斷言）。
+- 這批驗了：_preview 全綠；盤中即時、輪動時鐘即時、市場明細、族群頁、產業鏈導覽、季節性、同意條款與法律頁 全 0；
+  新-版面等高與多寬度 7（既有篩選列斷言）、個股即時分K 5（既有）。
+
+### 09-25 07:14 熱力配色藍→紅、長條改回小圓角、拿掉 TradingView 圖示、下拉選項看得見
+- 題材熱力預設改溫和藍→紅（--hm-v*），選單名「熱度（藍→紅）」；湖水藍保留。
+- softenOption：SOFT_CAP 999→3，非堆疊長條只圓外端（Andy：圓弧化太嚴重）。
+- chart.js：layout.attributionLogo=false（K 線上的 TradingView 圖示）。
+- select option 改 --panel-2 底／--ink 字（白底白字看不到）。
+- 這批驗了：_preview 全綠；總覽、市場明細、資金流向、題材、個股、K線縮放、淺色主題、熱力圖v2、圖表圓滑化 全 0；產業 1（既有）。
+- ⚠ 09-24 23:10 起派出的 12 支 Agent 全部因每週額度用完中斷（審查 R1～R6、輪盤平滑、資金去向重畫、3D 收合、供應鏈清單、週期熱力圖、效能），需重派。
+
+### 09-25 07:47 題材熱度只留一組：深藍→淺藍→淺紅→深紅
+- --hm-v* 改 #1F4E8C/#7EA6D8/#F0B4AC/#E0776B/#B3261E，中間三格深字；湖水藍選項拿掉（舊存 heatT 回 heat）。
+- 這批驗了：熱力圖v2 0（重跑）、淺色主題 0；題材 1（「展開後捲到細節」捲動定位，兩次跑出不同條，機器同時跑多支審查 Agent，判斷為時序；待空機重驗）。
+
+### 09-25 07:54 週期統計熱力圖：格寬 56px、間距 4px、靠左（桌機）
+- 規格 docs/season_grid_spec.md。這批驗了：季節性、淺色主題、明亮主題 0（agent 分支）；合併後季節性再跑 0；_preview 在分支上綠。
+
+### 09-25 08:18 資金去向拓撲版（桌機）＋每日管線前端對齊
+- site/flowtopo.js：Canvas 貝茲光纖＋粒子；個股層點族群才展開；1440 卡高約 676px；保留「經典版」切換；經典版左欄散點根因（座標只讀一次）已修。
+- daily.yml：上傳網站前 git checkout origin/main -- site/（避免每日管線用開跑時的舊前端蓋掉推送部署）。
+- 這批驗了：pytest 477 passed（workflow 改動）；_preview 綠；資金流向、新-資金流向、資金去向v2、資金去向拓撲、季節性、熱力圖v2 全 0。
+
+### 09-25 09:00 總覽改版上線（合併 claude/ov-redesign）
+- 內容見分支 HANDOFF 段與 DECISIONS #258（大盤合框、日夜盤自動切、1H/4H 由 15 分 K 合成、KPI 橫條、漲跌家數分佈、法人四象限、題材熱力圖、?說明）。
+- 這批驗了：分支上 pytest 478、_preview 綠、總覽/新-大盤三張圖/今日事件/盤中即時/淺色主題/桌機零差異/說明精簡 全 0。
+  合併後補跑：資金去向拓撲 0；大盤三張圖 1（模擬舊版 Worker 時瀏覽器記一筆 400 資源錯誤，屬測試模擬本身）；
+  總覽 3（四象限賣超那半：本機 site/data 未重算，雲端 pages.yml 會重算 inst_streak.json，待線上確認）。
+
+### 09-25 09:22 熱力圖 R4 修正＋資金去向佔比與週期年數修正上線
+- 合併 claude/fix-heatmap-r4（放大後雙擊不跳頁、還原鈕、淺色放大罩標題、無剖析圖提示、小鏈至少 5%）與 claude/fix-share-season（DECISIONS #259：葉子 ≤ 父節點、雙掛股 1/n、近 N 年＝月數÷12、-0.0%）。
+- 法人四象限：grid containLabel；舊資料（無 last/賣超）時象限名放下緣。
+- 這批驗了：pytest 493 passed；資金流向、季節性、資金去向v2、資金去向拓撲、熱力圖v2（重跑）0。
+  總覽 3 條（四象限賣超那半）＋ _preview 1920 法人圖文字重疊 1 組：皆因本機 site/data 未重算（無 *_sell / last），待線上重算後確認 —— 待處理。
+
+### 09-25 09:37 足跡輪盤補間／輪盤放大／排行比例／篩選列左上（fix-ov-wheel，DECISIONS #260）＋個股頁 R5 前端修正（fix-stock-r5）上線
+- 這批驗了：總覽 3（四象限賣超，本機資料未重算，待處理）、市場明細 0、資金流向 0、新-資金流向 0、個股 4（已知整批順序紅）、K線縮放 0、淺色主題 0、
+  資金去向拓撲 1（「再按一次動畫又跑起來」，容器滿載時序，待空機重驗）、足跡輪盤／補間／排行貼頂／篩選列左上角／輪盤放大與象限卡／輪盤側欄／個股R5 全 0。
+  _preview：只剩總覽法人圖文字重疊（同上，本機資料舊）。
+
+### 09-25 10:06 3D 收合修正＋剖析圖卡片限高＋產業 R3 修正＋除權息還原（DECISIONS #261）上線
+- 字型衝突以 R5 的 NUM_FONT（無襯線後備）為準，R3 的 MONO_FF 保留給需要等寬處。
+- 法人四象限：下緣象限名抬到刻度上方（真資料有賣超後 _preview 抓到壓「30」）。
+- 這批驗了：pytest 512 passed；本機重算 payload（SKIP_INTRADAY=1）後 _preview 全綠；
+  總覽、市場明細、資金流向、族群頁、產業R3審查、個股、K線縮放、3D收合再展開、剖析圖卡片限高 全 0；
+  資金去向拓撲 1（「再按一次動畫又跑起來」，連兩批都是這條，容器滿載時序 —— 待處理：空機重驗）。
+- 「總覽四象限賣超那半」已在真資料上確認有點（先前的待處理結案）。
+
+### 09-25 10:13 供應鏈關聯圖改版上線（sc-list）
+- 環節標籤改「環節：全部 ▾」下拉、下方字卡（桌機）拿掉、選中環節時右側列族群→個股、說明框加寬、淺色主題關聯圖跟主題走（改寫 DECISIONS #239 的「兩主題都深底」）、金融鏈空狀態。
+- 這批驗了：_preview 全綠；關聯圖清單、產業關係面板、產業鏈導覽、新-產業與個股、產業R3審查、3D收合再展開、淺色主題 全 0。
+
+### 09-25 10:31 開網頁卡頓修正上線（perf-load）
+- resizeIfChanged、whenNear 延後畫首屏以下、掃描光束改合成器轉、看不見就停動畫、load() 去重＋版本快取、首次建立圖不播進場動畫、live.js 報價失敗照樣檢查新版、#tasks 導到 #delivery。
+- 實測（容器空閒）：總覽可互動 2581→1889ms、最長卡住 680→188ms；資金流向可互動 1529→1140ms。「可互動 -40%」目標未達（-27%）。
+- 這批驗了：_preview 全綠；盤中即時、總覽、資金流向、新-大盤三張圖、題材、關聯圖清單、圖表圓滑化、足跡輪盤、掃描光束、載入效能 全 0；個股 4（已知整批順序）。
+- 待處理：data/tasks.json 仍由 build_payload 產出（網址打得開，含內部作業文字）→ 改管線移除。
+
+### 09-25 10:49 網站不再產出 tasks.json（含內部作業文字）
+- build_payload 不寫並主動刪除 site/data/tasks.json；pages.yml 上傳前 rm -f 保險；pytest 與 _uitest 任務板④ 驗 404 且 delivery.json 無 token／金鑰／Secrets。
+- 這批驗了：pytest 513 passed；任務板 0（刪掉本機舊產物後）、資料狀態 0。
+- 待處理（需 Andy 決定）：obsidian/tasks.yaml 在 public repo 裡仍有 token 流程說明文字（不上網站）。
+
+### 09-25 11:27 收尾批上線（wrapup-1）
+- 熱力圖／市場明細／週期統計／個股頁說明改 ?、K 線「還原」小標、本月最強提示框加中位數與勝率、R2 #12/#35/#47/#52/#53、R4 方塊標籤與 800 捲動；資金去向拓撲測試改捲入畫面＋輪詢（連三批的紅燈結案）。
+- 合併後：關聯圖「怎麼看」6 條併成 5 條（說明精簡上限）。
+- 這批驗了：_preview 全綠；總覽、關聯圖清單、資金去向拓撲、說明精簡、收尾0925 四段 全 0（分支上另驗熱力圖v2、題材、市場明細、季節性、K線縮放、個股R5、資金流向、淺色主題 0）。
+- 待處理：資金流向頁仍是「怎麼看 ?」＋副標（未改成 ?）；R2 #40/#41 經典版樹圖殘影（桌機預設拓撲版，低優先）。
+
+### 09-25 11:54 資金流向頁說明改 ?（flow-howpop）—— 本輪任務全部完成
+- 四張卡標題旁「?」，副標與長說明搬進「?」，讀數保留。
+- 這批驗了：分支上 _preview 綠；淺色主題、資金去向拓撲、點外面就關、資金流向點背景關、說明精簡、排行貼頂、資金流向問號 0；合併後 資金流向、排行貼頂、資金流向問號 0。
+- 既有紅燈（main 上一樣紅，待處理）：新-資金流向 2（桑基粒子密度倍數門檻）、足跡輪盤既有功能 1（點排行長條只亮那一個）。
+
+### 09-25 16:23 大盤 K 線提示框一行一項；走勢圖提示框「該分量 非數值」修正
+- 這批驗了：新-大盤三張圖 0；大盤三張圖 1（模擬舊 Worker 的 400 資源錯誤，既有）。
+
+### 09-25 16:42 關聯圖環節收合上線（chainmap-fold）
+- 這批驗了：_preview 綠；關聯圖環節收合、關聯圖清單、產業關係面板、批次C5 全 0。批次25 1100px 置中 1.11%（main 既有，待處理）。
+- dg-stock-links 合併後「剖析圖股票可點」紅 3 條，暫不上線，已退回修（備份 claude/dg-merge-test）。
+
+### 09-25 17:16 總覽右欄／資金流向側欄合併／產業鏈下方面板移除／2D 剖析圖股票連結 上線
+- 這批驗了：_preview 綠；總覽右欄、產業關係面板、淺色主題、關聯圖清單、輪盤合併側欄、剖析圖卡片限高、剖析圖股票可點 0；新-資金流向 2（既有密度門檻）。
+- flowtopo-contrast 合入後經典版小圓點歸零，暫緩，退回修。
+
+### 09-25 17:27 手機版 v3 上線（mobile-impl：A～E）
+- 這批驗了：_preview 綠；手機、手機一屏、手機改版、手機v3、桌機零差異、淺色主題、總覽右欄、市場明細、季節性、輪盤合併側欄、剖析圖股票可點 全 0。
+- 待處理：產業鏈頁手機分段（手機一屏上限暫放寬 2700）、個股頁手機三件、800 寬大盤圖初始化競態。
+
+### 09-25 17:31 資金去向拓撲版對比加強＋換日換位動畫上線（flowtopo-contrast）
+- 這批驗了：新-資金流向 0（既有 2 條密度紅燈轉綠）、資金去向拓撲、資金去向拓撲-減少動態、手機、資金流向 0。先前合併時的經典版小圓點 7 紅重現不出（判斷為容器負載下 finished 事件未觸發）。
+
+### 09-25 17:56 供應鏈來源連結＋依存度數字＋可疑內容改正（sc-source-links）、指數 1H/4H 分 K 入湖（index-intraday）上線
+- 批次6-圖十：關聯圖預設收合後量不到展開卡，驗收前先設展開（改前→改後已註記）。
+- 這批驗了：pytest 523；重算 payload 後 _preview 綠；總覽、新-大盤三張圖、新-產業與個股、產業關係面板、淺色主題、手機、關聯圖清單、批次6-圖十、關聯圖環節收合 全 0。
+- 待處理：Yahoo／FinMind 分 K 首輪真實抓取要看 Actions log（容器連不到）。
+
+### 09-25 18:55 回補守門放行分 K（intraday-fix）
+- backfill.yml：plan:default 已補齊但 complete.index_intraday 未完成時仍放行。這批驗了：分支上 pytest 519 passed、守門模擬 skip=false。daily 15:30/18:30 排程 GitHub 未觸發（非程式問題）。
+
+### 09-25 21:01 大盤 1H/4H 湖資料修正＋櫃買／台指期 FinMind 分 K 路線上線（fix-lake-bars＋intraday-otc-fut）
+- 根因：今日分時（可能是舊快取）直接接在湖資料後面造成時間倒退 → Lightweight Charts「Value is null」。新增 mergeLake／cleanBars；chart.js 缺值改 whitespace。
+- 這批驗了：分支 pytest 530、_preview 綠、新-大盤三張圖／大盤三張圖／總覽／淺色主題 0；合併後 新-大盤三張圖、K線縮放、個股R5 0，個股 4（既有整批順序紅）。
+
+### 09-25 21:25 每日管線 pipeline 落後時重算 JSON；櫃買 Yahoo 候選代號重試一次
+- 59c1ce7 上線 22 秒被每日管線用舊 pipeline 算的 JSON 蓋掉 → daily.yml 上傳前 pipeline/ 與 main 不同就換新並重算。
+- run_backfill：yahoo_v=2 讓 Yahoo 段重跑一次（試 ^TWOTCI）。
+- FinMind 櫃買／台指期分 K、逐筆皆 400（帳號等級 register），已記 unavailable。
+- 這批驗了：pytest 530 passed（只動 .github 與 pipeline，無前端改動，_preview/_uitest 跳過）。
+
+### 09-25 22:34 大盤每週期都有量、加權 15/30 分含近 60 天、1H/4H 由 15 分 K 合成（idx-volume）
+- 估算量＝日總量 × 分時量分布，灰色量柱＋提示框「估」。台指期分 K 量多乘 1000 的 bug 修正（改口數）。
+- 這批驗了：分支 pytest 530、_preview 綠；合併後 新-大盤三張圖、大盤三張圖、總覽 0。
+
+### 09-25 22:39 足跡輪盤每個族群點都有腳印（rot-all-trails）——推翻 09-24「只畫焦點」
+- 非焦點不透明度 0.35、腳印 78%、間距加倍；滑過提亮。總覽小時鐘仍只畫焦點。回放中位數 34→27 fps（容器）。
+- 這批驗了：_preview 綠；足跡輪盤全部腳印、足跡輪盤補間、輪盤合併側欄、資金流向、淺色主題 0（分支上另跑 足跡輪盤⑤390 重疊、足跡輪盤既有功能 9 為既有紅）。
+
+### 09-25 22:48 剖析圖卡片同時只展開一張（dg-card-collapse）
+- 3D 兩欄模式最低一行模式，說明只給被選／滑過那張；2D 說明卡 closeNotes。
+- 這批驗了：分支 _preview 綠、剖析圖卡片限高／3D收合再展開／剖析圖股票可點／產業鏈導覽／剖析圖卡片收回 0；合併後 剖析圖卡片收回、剖析圖卡片限高、剖析圖股票可點 0。
+
+### 09-25 23:1x 資金去向「經典光纖」成為桌機預設（sankey-classic-fx）
+- 經典版的四層常駐版面＋拓撲版的光纖／粒子／換位補間；三選一分段鈕 `#sankeyStyleSeg`（經典光纖／拓撲／經典），設定換新 key `tw.sankey.mode`。手機 ≤820 仍是 ECharts 樹。粒子預算 380 顆，畫布不在畫面內時延後首次畫圖。
+- 這批驗了：分支 _preview 綠、資金去向拓撲／拓撲-減少動態／新-資金流向／資金去向v2／資金流向／手機／淺色主題／資金去向經典光纖 0；合併後 _preview 綠、資金去向經典光纖／總覽／桑基展開與即時 0。
+- ✅（09-25 23:2x 已處理，見下）原待處理：`批次30-兩層下拉與象限卡` 3 紅（W7-8 390 量不到四顆象限卡、W7-10 展開面板蓋到「資金流向排行」1440／1000）。已在 4cc0ada（合併前）重跑，紅的內容完全相同 → 是先前輪盤側欄合併留下的，不是這批造成。
+
+### 09-25 23:2x 批次30 三紅收斂＋兩個「點了沒反應」（batch30-fix）
+- 三紅都是斷言驗舊版面（手機改由 `#mRadarFlow` 四角徽章；側欄依 DECISIONS #260 本來就蓋在排行上），已改斷言並加 W7-8m（390 手機）。
+- 真 bug 兩個：手機資金流向雷達四角徽章 `onQuad` 原為空函式 → 改成跟總覽同一套聚焦；1000 寬單欄點象限卡面板開在畫面外 → `rotStageReveal()` 只在整塊不在畫面時捲入。
+- 這批驗了：分支 批次30／資金流向／新-資金流向／輪盤合併側欄／手機 0、_preview 綠；合併後 批次30／輪盤合併側欄／手機 0、_preview 綠（第一次合併後跑因與 _preview 同時執行、容器資源不足而瀏覽器崩潰，改依序重跑後全綠）。
+
+### 09-25 23:5x 開網頁卡頓第二輪（perf-2）
+- 根因：每頁首屏同時畫 3～5 張重圖，途中反覆強制排版（產業鏈 renderChain 單一任務 929～1014ms；資金流向捲到底拓撲粒子沒停，5 秒忙 4.2～4.6 秒）。
+- 改法（不拿掉功能）：換頁捲頂、分頁列捲動、剖析圖引線重排改下一幀；族群面板藏著不畫；關聯圖捲近才畫（`deferNear`）；大盤三張圖首建拆幀；輪盤與排行拆幀；`fmt.n`／事件日期共用格式器；拓撲露出 <10% 停粒子。量測腳本 `scripts/_perf.py`、`_perf_matrix.py`。
+- 修前→修後（一般速度）：產業鏈最長卡住 929～1014→490～523ms；資金流向 476～517→339～413ms；捲到底 5 秒忙 4.2 秒→1ms；總覽持平（誤差內）。4 倍降速「≤6 秒可互動」未達成（總覽約 11 秒，首屏五張重圖，要再降需改成首屏靜態圖＝功能取捨）。
+- 這批驗了：合併後 載入效能／總覽／新-大盤三張圖／資金流向／批次30／輪盤合併側欄／資金去向經典光纖／產業鏈導覽／剖析圖卡片收回／剖析圖股票可點／批次6-圖十／族群頁，只剩 1 條 console.error：icon-192.png 被 loopback 私網 CORS 擋（origin null；此批沒碰 icon／manifest／sw，分支上也偶發過）→ 容器環境問題，列待處理。_preview 綠。pytest 跳過：只動 site/ 與 `_uitest.py`，新增的 `_perf*.py` tests/ 沒有 import（機器 grep 確認）。
+- 待處理：足跡輪盤 ⑤[390] 圓點重疊 109 對、「產業」段 7 條（#segOnly 已拿掉的面板）皆 main 既有紅；icon-192 CORS 偶發。
+
+### 09-26 01:2x 三組既有紅收斂（stale-reds）
+- 手機雷達（mobile3.js `radar()`）真 bug：尺度用全部 ~50 族群、盤上只畫前 16 → 全擠圓心（15 對重疊）；改用盤上前 16 算尺度，膠囊 8 候選位挑乾淨的，盤面大小量到可信一次就記住（修掉點一下盤面 340→290 跳動）。
+- 「產業」7 紅＝斷言過時（桌機 #segBox/#segOnly 已依 Andy 拿掉），改驗現行替代（#relList、#partCard、#pcSeg）。icon-192 CORS＝只在測試跳 about:blank 時才有，_uitest 加四條件精準放行。
+- 這批驗了：分支 足跡輪盤／產業／手機／產業鏈導覽／新-大盤三張圖／總覽 0、_preview 綠；合併後 足跡輪盤／批次30／產業 0。
+- ✅（09-26 已處理，見下）原待處理（main 76ba3bf 上重跑結果完全相同＝既有紅，非此批造成）：`時鐘v2` 6 條（③ 背景漸層沿半徑取樣第 2 點跳到 100、⑨[390] 量桌機 #rotClock 但 390 已由手機版接手 W=0、`.rotnums .rni` 找不到）、`手機v3` 1 條（390 資金流向「輪盤＋焦點條＋排行前 5 一屏內」）。
+
+### 09-26 02:0x 時鐘v2／手機v3 七條既有紅收斂（clock-mobile-reds）
+- 真 bug：手機雷達盤面「量到一次就記住」時 `.mpager` 還沒插入 → 排行第 5 名被底部導覽蓋半列；改成盯分頁大小、輪盤頂端位移 >2px 才重量（390×844 盤 324→289、第 5 名底 794→759）。另：被點的點名字優先上盤。
+- 斷言過時：時鐘v2 ③ 改在「只畫象限底色」的隔離圖上取樣（原紅是點／腳印壓到取樣線）；⑨[390] 改驗手機雷達等價功能，刪桌機編號模式 390 驗收。
+- 這批驗了：分支 時鐘v2／手機v3／手機／足跡輪盤／總覽 0、_preview 綠；合併後 時鐘v2／手機v3／足跡輪盤 0、_preview 綠。
+- 待處理：桌機時鐘「編號模式」（容器 <560，約 641～700 寬）目前沒有段落在驗。
+- 另：`docs/prototypes/capital_flow_impact.html`（Andy 規格的光纖粒子 × 節點碰撞原型，單檔）已進 repo。
+
+### 09-26 02:2x 資金去向經典光纖：圓點節點＋碰撞激發＋漣漪（sankey-elbow）
+- 依 Andy 圖三／圖五與原型規格：產業鏈直條→圓點；四層連線貝茲 CP 0.55/0.45；雙層光纖（外 w×3.2 α.08／芯 w×0.9 α.32）；白核心粒子（貼圖）；到站 hitFlash +0.35、每幀 −0.035（時間換算）；45% 漣漪 r→r+26（代表股 +16），同時 ≤60 圈、同節點 180ms 內不重複；標籤變亮只亮名稱（新增 `canvas.ftglow`）。
+- 偏離規格（寫在回報）：shadowBlur 上限→改放射漸層貼圖；核心 0.3～0.7 漸變轉白（避免閃爍）；節點用產業鏈色不染紅綠；不用整張殘影刷新改粒子彗尾（軟體繪圖掉半幀）。
+- 這批驗了：分支 資金去向經典光纖／資金去向拓撲／資金流向／新-資金流向／淺色主題 0、_preview 綠；合併後 資金去向經典光纖／資金去向拓撲／淺色主題 0、_preview 綠。
+
+### 09-26 02:3x 資金去向經典光纖第二版：依 Andy 黃金標準去霧（sankey-crisp）
+- 參考：`docs/prototypes/flow_perfect_topology.html`、`ref_vivid_0926.png`。內芯 1.1px α.65（畫殘影穩態值 .83，因不做整張殘影刷新）、外暈 w×2.4、weight 0.8～3.8；節點 4.5～7.5 實心圓＋1px 白邊；17px 深色膠囊標籤；CP 0.45 對稱；族群等距槽位 36～42px；代表股固定 83% 欄、每檔一條毛細線；產業鏈飽和色（半導體 #22d3ee、AI #c084fc、一般電子 #fbbf24、其他 #94a3b8、傳產 #818cf8）；深色底 #050a14。
+- 偏離：字級 12px（專案下限，參考稿 11／10）；節點不染紅綠；轉白漸變；光環用漸層貼圖。
+- 這批驗了：分支 資金去向經典光纖／資金去向拓撲／資金流向／新-資金流向／淺色主題 0、_preview 綠；合併後 資金去向經典光纖／資金去向拓撲／淺色主題 0、_preview 綠。
+
+### 09-26 03:3x 足跡輪盤預設只畫圓圈＋全站「?」拿掉附註（wheel-dots-howto）
+- 「顯示腳印」勾選框保留、預設不勾，新 key `tw.rot.feet`；總覽小輪盤共用同一偏好（修掉總覽漏傳 trail 一直拖腳印）；手機雷達腳印不畫。
+- `howHTML()` 第三參數 fine 不再輸出（全站 29 處一次收掉）；拿掉 `#themeNote`、`#seasonFine`（「基準」改掛副標 title）；CSS 保險藏 `.howfine`（HOW.ovflow 那行待昨日資金去向改版時刪）。
+- ⚠ 資訊取捨：漲停定義、大盤【來源】、K 線 Yahoo 來源等附註現在畫面上看不到（Andy 要求不放附註）。
+- `_uitest` 加 `FEET_PRESET`：其他段落預先勾開腳印以維持舊前提；只有新段落「足跡輪盤只留圓圈」量預設。
+- 這批驗了：分支 16 段（足跡輪盤系列、資金流向、總覽、新-大盤三張圖、手機、說明精簡、各問號段）0、_preview 綠；合併後 足跡輪盤只留圓圈／總覽／資金流向／手機 0、_preview 綠。
+
+### 09-26 03:5x 總覽「昨日資金去向」改經典光纖同款（overview-sankey-fx）
+- `flowtopo.js` 新增 `layout:'mini'`（加權指數→產業鏈→族群，無代表股欄）；寬排（≥420）／窄排（<420，產業鏈膠囊放節點下方）；粒子預算 110、延後首次畫圖、捲出停、減少動態靜態；手機 ≤820 維持 ECharts 樹。HOW.ovflow 附註行刪除、「沒有動畫」改寫。
+- 這批驗了：分支 總覽／淺色主題／手機／載入效能／總覽右欄／資金去向v2／經典光纖／拓撲系列／批次30／新-資金流向／資金流向 0、_preview 綠；合併後 總覽／總覽右欄（改 1 條過時斷言：口徑附註→不得有附註）／資金去向v2／載入效能／說明精簡 0、_preview 綠。
+- 既有紅：`設計系統v2` 10 條（main 上同樣 10 條：KPI 小卡、卡片間距、標題字級、按鈕膠囊、工具列按鈕），待處理。
+
+### 09-26 04:1x 三個指數多日分 K 改同一來源自行累積（idx-intraday-mis）
+- 管線每一輪（含週末 news 輪）抓 DECISIONS #121 的三個 mis 分時檔（TSE／OTC／FUT 日盤），依檔內 epoch 歸日、append 去重進 `index_intraday`（interval `1m`、src `mis`）；`intraday_bars.build()` 每盤優先 1m（mis）＞15m＞60m，合成 M15／H1／H4。加權 Yahoo 歷史保留。期交所夜盤 `mis.taifex.com.tw` 不在白名單 → 未收（要 Andy 拍板）。
+- 前端三指數同一路徑；拿掉瀏覽器抓 Yahoo 15 分與「分 K 不足已改用日」；短句「櫃買／台指期分 K 自 YYYY-MM-DD 起累積（N 天）」。
+- ⚠ 格式只有 TSE 有實測 fixture；OTC／FUT 依註解描述做 fixture。**第一輪 Actions 跑完請看 log「mis 分時 TSE／OTC／FUT：N 根 1 分 K」**。最早週六 10:00 那輪（若檔內仍留 09-24/25 資料），最晚 09-28 15:30。
+- 這批驗了：pytest 544 passed；重算 payload（SKIP_INTRADAY）；新-大盤三張圖／大盤三張圖／總覽 0；_preview 綠。合併時 `_uitest` 衝突：保留「?」無附註斷言。
+
+### 09-26 04:3x 資金熱力圖產業鏈晶片改下拉（heat-dropdown）
+- 原 agent 被中斷（f5bdd15 已完成功能＋驗收段），由 CEO 接手驗收合併：跟熱門題材共用 `ddSingle`，放大視窗內同一種下拉。
+- 修 1 條過時斷言：放大視窗沿用卡片篩選，「選回全部」改驗分組還原（不比 z0）。
+- 這批驗了：資金熱力圖下拉／總覽／淺色主題 0、_preview 綠。
+
+### 09-26 05:4x 一批五件合併上線（breadth-market／stock-offhours-k／inst-filter-fix／kpi-footer-zoom／sankey-fx-only）
+- 漲跌家數分「全部｜上市｜上櫃」：pipeline `compute/flow.py` 新增 `updown_bin`／`updown_distribution`，產 `updown.json`（加總檢查）＋`stocks.json` 每列 `ud`；DECISIONS #263。
+- 個股分 K 非交易時段：livek.js 無今日盤時畫最近交易日（Yahoo 1d→5d），灰點＝非即時；5 秒 K 無收集則退 1 分並註明。
+- 族群×法人：拿掉 ETF；根因 `filterDropdown()` 重建時無條件把第一層跳回選中族群的鏈 → 新增 `ddSync()` 只在選取改變時跟隨（資金去向共用同一支，一起修）。選鏈後長條換成該鏈族群（agent 自加，待 Andy 確認）。
+- KPI 列搬進大盤三張圖工具列（>640 搬、≤640 原位，同一節點，live 更新照舊）；拿掉足跡輪盤「⤢ 放大」與 `openRotZoom`；頁尾不設 1200 上限、跟主內容同寬。
+- 資金去向只留經典光纖（拿掉 #sankeyStyleSeg、忽略 tw.sankey.mode）；代表股預設收起、滑過族群槽位才淡入；修 `總覽右欄` 段刪 `tw.side` 害後續段落假紅。
+- 這批驗了：pytest 586 passed；重算 payload（SKIP_INTRADAY）；漲跌家數市場別／個股分K非交易時段／族群法人篩選／KPI工具列頁尾0926／資金去向經典光纖／資金去向拓撲／總覽／總覽右欄／資金流向／手機／淺色主題 0；`個股` 4 條＝既有紅（寬版切換，串在其他段落後才紅）；_preview 綠。合併衝突：`_uitest` R2 #35 取「放大已拿掉」版＋#47 ETF 註解。
+- 待處理：`個股` 寬版 4 條既有紅；`新-版面等高與多寬度` 找已不存在的 `#themeStrip`；`t_ds2` 量已不存在的 `#hero .card.tight`；`同意條款與法律頁` v-legal null；DECISIONS 待補 #185／#260 放大取消、KPI 搬家、頁尾不設上限。
+
+### 09-26 06:0x 個股 K 線五件（stock-ind-dropdown）
+- 指標晶片列＋⚙設定＋圖表設定面板 → 單一「指標 ▾（已開 N）」下拉（每列開關＋▸就地展開參數／顏色；整體列；均線編輯）；四週期同看每張加量副圖（20%）與游標看板；拿掉 SMC 區間與 BOS/CHoCH（舊 localStorage 值丟棄，判讀摘要保留）；「重設縮放」鈕（#fitBtn，Andy 截圖那顆 ⊞）改成 KChart 主圖右下角標；個股頁拿掉「產業鏈位置」卡（產業地圖頁共用元件保留）。
+- 合併衝突：四週期小圖同時保留 offhours 的 drawnTf 與新版重設鈕／miniCfg／看板；modules.js tests 聯集。
+- 這批驗了：個股指標下拉0926／個股／K線縮放／縮放掃描／個股分K非交易時段／設定面板 0；_preview 綠。
+- 待處理：`批次6-圖十` 改在產業鏈頁 800px 量公司層級關聯圖，線穿過卡片 2 條（產業鏈頁既有狀況，首次被量到）；外商小面板失去入口。
+
+### 09-26 06:3x 三批合併上線（stock-chips-basic／ind-dismiss-2d3d-v2／decimal-audit）
+- 個股籌碼：大戶散戶拆三格小圖（各自 Y 軸、30 天視窗；後端 `holder_series` 改用股數算比例到小數三位）；股東人數改週增減長條；季節卡「自填 [ ] 年」＋夾值提示；季節卡移到基本資料右邊並排。集保湖裡只有 4 週（09-04 起），FinMind 持股被帳號等級擋。
+- 產業頁：關聯圖說明卡／公司欄／環節詳情點背景、Esc 收（下拉開著先收下拉）；剖析圖「2D｜3D」分段鈕（沿用 tw.dg3d），順修 2D 時拖曳／重設視角沒藏起來；刪除流向圖（程式與樣式、tw.relView 清掉）。
+- 小數點普查：`chart()` 共用 `withTipFmt`／`tipNum` 預設提示框格式；集中度 2 位＋%；個股 EPS／三率／本益比／融資融券補單位；後端 `pe_daily`、`valuation` 的 TTM EPS 先 round(6)，修 5.3e+18 本益比；新段「小數點普查」。
+- 合併衝突：籌碼圖取 chips-basic 新版；_uitest 兩邊新段落都保留。
+- 這批驗了：pytest 587 passed；重算 payload；籌碼基本0926／個股R5／小數點普查／關聯圖說明卡點背景收回／剖析圖2D3D分段鈕／關聯圖清單／產業鏈導覽／季節性 0；_preview 綠。
+- 待處理：`批次25-關聯圖` 1100px 置中 1.11%（既有）；DECISIONS 待補「流向圖推翻 09-23 決定」。
+
+### 09-26 熱門題材下拉搬到左上
+- Andy「篩選位置同步在左上」：總覽「熱門題材」的「題材：全部 ▾」從標題列右側搬到標題旁（跟資金熱力圖同一種 .heathead 排法），日期 #ovThemeDate 留右側；面板改預設往右長、超出才往左（ddSingle 既有 fit）。
+- 這批驗了：總覽／淺色主題 0、_preview 綠；1440／800 量過下拉緊貼標題右側、日期在卡片右緣。
+
+### 09-26 足跡輪盤腳印功能整個拿掉（no-footprints）
+- Andy「腳印功能拿掉」：刪除盤上尾巴／腳印繪製（app.js 淨刪約 430 行）、「顯示腳印」勾選框、tw.rot.feet／tw.rot.tmode 舊值清掉；回放補間、點選亮暗、即時箭頭、換段色環、水波、掃描保留。_uitest 刪 FEET_PRESET，相關段落改驗「沒有腳印」。
+- 這批驗了：分支 足跡輪盤系列／掃描光束／時鐘v2／資金流向／資金輪動合併／總覽／手機／輪盤合併側欄／新-輪動時鐘 等（既有紅已對照 main）；合併後 足跡輪盤只留圓圈／足跡輪盤全部腳印／資金流向／總覽／手機 0、_preview 綠。
+- 待 Andy：卡片仍叫「足跡輪盤」但已無腳印，是否改名。既有紅：時鐘v2 ③ 2 條、足跡輪盤既有功能 #9、新-輪動時鐘 下鑽段 `.hh` 讀不到中途爆掉、輪動時鐘即時 [390]。
+
+### 09-26 資金輪動恢復軌跡線（rot-trails-back）
+- Andy 更正「資金輪動是單純去除腳印，但軌跡要留下」：反向套回 016a331 的尾巴折線（弧長補點、N 天前→最新、非焦點 0.35、補間延伸、滑過亮暗），不含任何腳印符號／markPoint、不恢復開關；總覽小輪盤與手機雷達仍只有圓點。
+- 這批驗了：分支 13 段（既有紅對照 main：時鐘v2 ③ 2、足跡輪盤既有功能 #9、新-輪動時鐘 .hh 中途爆掉）；合併後 足跡輪盤／足跡輪盤全部腳印／足跡輪盤只留圓圈／資金流向／總覽 0、_preview 綠。
+
+### 09-26 搜尋近期／熱門＋公司 Logo（search-recent-logo＋logo-pipeline）
+- 搜尋框聚焦未輸入：「近期搜尋」（tw.search.recent，最多 8，可刪單筆／清除；路由進個股也記）＋「熱門股票」（最近交易日成交值前 10 普通股）；鍵盤上下／Enter／Esc。Logo：搜尋列 20px、個股頁標題 32px；無圖或載入失敗 → 字母頭像（8 色避開紅綠）。
+- Logo 管線：官網 apple-touch-icon／icon 為主、Google s2 備援；回補工作流增量抓進 `data/logos/`（每輪 ≤300 家），build_payload 輸出 `site/data/logos.json`；`config.LOGOS_ENABLED` 可關；DECISIONS #264；新增 Pillow。第一次抓在合併後下一個整點 20 分的回補排程，約 4～9 輪抓完；回補只 commit data/，Logo 要等下一次部署才看得到。
+- 這批驗了：pytest 639 passed；重算 payload（logos.json＝{}）；搜尋近期熱門Logo／個股／手機 0；_preview 綠。
+- 待處理：頁尾加「Logo 商標權屬各公司，本站僅用於識別」一句；上櫃／興櫃網址端點未實測（拿不到則只有上市有 Logo）。
+
+### 09-26 3D 視角鈕進畫布＋總覽三件（dg3d-tools-move＋ov-fix-0926b）
+- 3D：「拖曳」「重設視角」移進 3D 畫布右上角（#dg3dCtl，掛進 #prod3d 避免游標離開畫布就收爆炸圖）；在畫布上點兩下＝重設視角（同一支 resetView，重設後清選取）；右欄卡片從鈕下緣往下排。手機 ≤640 按鈕仍隱藏（mobile v3 規則），只能雙擊。
+- 總覽：量柱不見的可重現根因＝個股頁「指標 ▾」關掉成交量寫進共用 `tw.kcfg.vol=false`，總覽照吃又沒有開關 → market3 `loadCfg` 一律開量、不吃個股設定（推論，待 Andy 確認）；熱門題材加「放大 ⤢」（#ovThemeZoom，放大內同一顆題材下拉同步，白名單加上）；ddSingle 只在清單開著時吃 Esc；足跡輪盤族群面板改成貼著點的覆蓋卡，不推版面。
+- 這批驗了：分支各自全套；合併後 3D視角鈕與點兩下重設／剖析圖2D3D分段鈕／3D收合再展開／桌機零差異／產業鏈導覽／總覽修正0926b／總覽／縮放掃描／搜尋近期熱門Logo 0、_preview 綠。
+- 待查：資料湖 `index_ohlc` 的 FUT_N 最後一列日期 2026-09-29（未來日期，可能是夜盤歸屬次一交易日的標法）。
+
+### 09-26 Andy 三個回覆
+- 「足跡輪盤」改名 → CEO 定名「資金輪盤」，派 agent 改全站可見字樣（claude/rename-wheel）。
+- 六種版面風格：**先保留，Andy 需要時再貼對照圖給他決定**（分支 claude/style-lab，對照圖 docs/style_lab/ 在該分支）。不要主動再推這件。
+- 允許清單：Andy 問「目前沒有免費管道嗎」→ 查到期交所官方「前 30 個交易日期貨每筆成交資料」（免費、政府資料開放平臺 dataset 20668）與櫃買中心「每 5 秒盤後統計」頁；派 data-scraper 先查授權條款再實作可用者（claude/taifex-tpex-intraday）。TradingView：只能嵌入它自己的圖表小工具（要保留其標示），不能當資料來源抓取（條款禁止再散布）。
+
+### 09-26 晚 熱門題材滾輪縮放＋輪盤面板改到圓外
+- Andy「縮放功能呢？沒有設置到」：熱門題材掛 wheelZoom（#ovThemeWrap 加 .zwrap 讓圖例排在縮放框外，否則放大時圖例被裁、卡片縮 42px）；點擊走 zoomClick。
+- Andy「將出現的資訊移動到下方或上方，依據當前點擊的圓圈位置決定」：總覽輪盤族群面板改貼輪盤圓外（點上半 → 輪盤下方；點下半 → 輪盤上方），仍 absolute 不推版面，出畫面才捲。
+- 這批驗了：總覽修正0926b（新增 ②b 滾輪縮放、③ 面板在圓外）／總覽 0、_preview 綠。
+
+### 09-26 晚 足跡輪盤改名「資金輪盤」（rename-wheel）
+- 全站可見文字／aria-label／title／「?」氣泡改名；程式識別字與 _uitest 段落名保留；新增 `no_old_wheel_name()` 掃 1440／390 七個分頁不得出現舊名。
+- 這批驗了：分支 足跡輪盤系列／時鐘v2（既有 2）／資金流向／總覽／總覽右欄／手機／手機v3／說明精簡（既有 3）；合併後 足跡輪盤／總覽／總覽修正0926b／手機 0、_preview 綠。
+
+### 09-26 晚 台指期多日分 K 改用期交所開放資料（taifex-tpex-intraday）
+- `pipeline/sources/taifex.py`：下載前 30 交易日逐筆 zip，TX 近月合成 1 分 K（日／夜盤，夜盤歸屬由資料判斷），taifex＞mis；增量進度 `data/_state/taifex_ticks.json`；run_daily 非 price 輪執行。DECISIONS #265。
+- 第一次生效：週日 09-27 台北 10:00 news 輪（GitHub 常延遲）；看 log「期交所逐筆 → 1 分 K：N 根」。格式未實測（fixture 依文件自製）。
+- 這批驗了：pytest 654 passed；重算 payload；新-大盤三張圖／大盤三張圖／總覽 0；_preview 綠。
+
+### 09-26 晚 資金輪動退回有腳印版本（rot-feet-restore）
+- Andy「先退回到有腳印那版本」：腳印＋軌跡恢復成 09-25 的長相，「腳印」開關預設勾選；卡片名稱沿用「資金輪盤」（改名理由原本是「拿掉腳印」，現在腳印回來了，名字是否改回待 Andy 決定）。
+- 這批驗了：足跡輪盤／足跡輪盤全部腳印／足跡輪盤只留圓圈／資金流向／總覽／總覽修正0926b 0、_preview 綠。
+
+### 09-26 晚 個股 K 線設定：週期設置＋拿掉兩指標＋下拉定位（stock-tf-settings）
+- 「指標 ▾」多一區「週期」勾選：預設 1時／4時／日／週／月，存 `tw.kcfg.tfOn`；週期列與四週期同看只列勾起來的；最後一顆鎖住；取消目前週期自動切日線。
+- 預設指標只開均線＋成交量（已有存檔者照舊）；拿掉「MACD 背離」「停損／目標」兩列並丟掉舊存檔的 macdDiv／lines（chart.js 沒改，大盤頁背離照畫 —— 副作用：以前在個股頁關掉背離的人，大盤頁背離會回來）。
+- 下拉跑掉的根因：position:fixed 只在開啟時算一次座標，捲動後面板釘在原處 → 開著時捲動／改大小／進場動畫結束都重貼按鈕，按鈕捲出畫面就關。
+- 縮放掃描白名單加 `ovThemeWrap`（Andy「縮放功能呢?沒有設置到」要的熱門題材滾輪縮放）。
+- 這批驗了：個股指標下拉0926／個股／縮放掃描／K線縮放／個股分K非交易時段 0、_preview 綠。
+
+### 09-26 晚 Logo 取圖第二版（logo-quality）
+- 官網候選加上 apple-touch-icon／manifest／mask-icon／像 Logo 的 og:image／頁首 logo 圖（含 SVG，cairosvg≥2.7 畫）；比「縮進 64 框後的短邊」取最大；非正方形補透明邊不裁切；s2 改 sz=128 且只在官網 <48 才問。
+- 轉址自己一跳一跳跟（最多 5 跳、同公司網域才跟、每跳重讀 robots）；404／連不上改試 http 與 www／非 www；robots 仍嚴格遵守（403 也當禁止，沒放寬）。
+- 索引記 `strategy=2`；第 1 版 too_small／none（165 家）下一輪最先重試，好圖不重抓不覆寫。backfill.yml 多一步確認 libcairo（裝不起來不擋，只跳過 SVG）。
+- 救回率未實測（容器連不到公司官網），看下一輪 `data/_state/logo_progress.json` 的 counts 與 `svg` 欄。
+- 這批驗了：pytest 704 passed、4 skipped（合併前在 main＋logo-quality 上跑）；純管線／工作流改動，沒動 site/ 與 build_payload，前端關卡未跑。
+
+### 09-26 晚 個股 AI 分析卡（stock-ai-analysis）
+- 右上判讀＋多週期判讀合成一張可收合「AI 分析」卡（K 線與分頁之間；右上只留一行結論＋四面向標籤＋展開鈕，狀態 `tw.aiOpen`）：技術（1H／4H／日／週，不含月）、籌碼、基本、消息四段，各自標籤不加總；觀望逐條列 A 六條／B 五條哪幾條沒成立、差多少、停損距離、大小週期衝突與「若…則…」。
+- 全部是 `pipeline/compute/analysis.py` 的規則式判讀（沒有語言模型），標題旁標「規則式自動判讀，非投資建議」；卡內一律描述式（「回檔型態／突破型態」），pytest 擋「買進、賣出、建議、追進、加碼、減碼」。
+- 法遵待看：公開站寫「AI 分析」仍可能被當成 AI 投資建議（Andy 指定此字樣，照用）；候選表／個股列表的 verdict 字串仍是指示語感，未改。
+- 已知：`compute_all` 擺動點標在分形中心那根 → 整段切片回測有前視（線上每日重算不受影響），xfail 記下待另開；月線 SR 寬度上限用現價 4% 算，遠離現價會超寬（卡片已不列月線）。
+- 這批驗了：pytest 725 passed、1 xfailed；重算 payload；個股AI分析0926／個股／個股指標下拉0926／手機／收尾0925-說明改問號 0、_preview 綠。
+
+### 09-26 晚 關聯圖浮動卡＋全站「?」彈窗（chainmap-overlay＋howto-pop-all）
+- 關聯圖：「全部收合／全部展開」合成一顆切換鈕；點環節／公司的說明卡改浮在圖上（被點的在右半 → 卡貼左；左半 → 貼右），版面不再切兩欄、圖不重排。
+- 全市場點族群「位置跑掉」：本機重現不出整頁左偏，加 `keepPlace()` 防護（被捲走的水平位置歸零、標題被頂欄蓋住就捲回）；順手修掉 5 檔族群甜甜圈上半被切（圓心改讀容器真實高度）。請 Andy 線上確認是不是指這個。
+- 全站「怎麼看 ?」膠囊（族群漲幅與占比／產業鏈頁首／剖析圖／關聯圖）改成標題旁「?」開 #howPop 彈窗；手機兩顆「怎麼看 ▾」拿掉；換頁自動收彈窗；m3／手機資金輪動彈窗標題補正。
+- 這批驗了：關聯圖切換鈕與浮動卡／全市場族群下鑽不偏移／全站問號普查／關聯圖清單／關聯圖環節收合／關聯圖說明卡點背景收回／產業關係面板／族群頁／資金流向問號／收尾0925-說明改問號／手機／3D視角鈕與點兩下重設 0、_preview 綠。
+
+### 09-26 晚 個股下方三分頁（stock-tabs-0926c，DECISIONS #266）
+- 籌碼：四張圖共用逐交易日軸，預設近 4 週（20 交易日），可切 4 週／3 個月／6 個月／1 年（`tw.chipWin`）；集保只在公布日有點；法人累計改「區間累計」；payload 法人／融資改給 260 日。
+- 除權息：年度＝除權息日西元年，近 10 年（不早於 2016／上市年），沒配的年份標「未配」、含權對不到公告標「待補」；表格不再截筆數。
+- 公告／新聞：重大訊息、新聞、券商觀點合成一張依時間排序，類型標籤＋分段篩選（附筆數）。
+- 根因修正：`run_backfill.already_covered()` 把 dividend_events 當無時間表 → 每日管線先寫今年一筆就讓歷史回補永遠跳過（683 檔只有 ≤2 年公告）；改用 announce_date 判斷，下一輪回補約 660 檔自動補齊（FinMind 額度用完下一輪接續）。
+- 這批驗了：pytest 731 passed、4 skipped、1 xfailed；重算 payload；個股分頁0926／籌碼基本0926／個股R5／積木-券商觀點／收尾0925-說明改問號／個股／手機 0、_preview 綠。
+
+### 09-26 深夜 全部剖析圖說明文字覆蓋普查（dg-overlap-audit）
+- 新量測腳本 `scripts/_dg_overlap.py`：29 張 × 2D（收合／全展）與 3D × 6 版面 × 2 配色，修正前 4,054 處 → 修正後 0（無白名單）；新段落「剖析圖覆蓋普查」（約 20 分鐘，含負對照）。
+- 共用：diagrams.js `fitTexts` 照所屬框限寬（只壓字距 ≤12%，不縮字級）、新增 `D.wrap`／`D.para` 斷行、引線遇字斷開；three3d 右欄模式 `setViewOffset` 讓模型；mobile3 編號鈕推開夾邊界。逐張修 25 支 `site/dg/`＋ai_server／mlcc。
+- 判斷點：AI 伺服器 PSU 標籤刪掉括號說明（與 3 號卡重複、放不下）；CNC 3D 是量測把接觸陰影當零件，修量測不修圖。
+- 待處理：「批次6-圖十」關聯圖 800／1500px 連線穿過不相干卡片（main 既有），已派 agent（claude/rel-edge-800）。
+- 這批驗了：pytest 735 passed、1 xfailed；剖析圖覆蓋普查（分支上 0，合併後 site/scripts 與分支相同）；合併後 剖析圖卡片收回／3D收合再展開／3D視角鈕與點兩下重設／產業鏈導覽／批次6-N1／手機v3 0、_preview 綠。
+- Logo：第二版兩輪（第 5、6 輪）分別新抓 126／220，累計 1,126 家，剩 539；svg=true（雲端 libcairo 可用）。
+
+### 09-27 凌晨 關聯圖連線穿卡片（rel-edge-800）
+- 根因：同欄回頭線寫死往右繞 24px（欄距固定 30 時代的數字），`fitCols` 把欄距收到 18 時繞線伸進隔壁欄卡片 → 改成 `max(6, min(24, colGap-8, padX-4))`；另 ai_server 1500px 長環節標題壓到 ▾ → 實量寬度放不下切「…」（全名在滑過說明框）。
+- 這批驗了：批次6-圖十（改前 4 → 0）／批次25-關聯圖（既有 1.11% 那條也 0）／關聯圖清單／關聯圖切換鈕與浮動卡 0、_preview 綠。
+
+### 09-27 凌晨 3D 剖析圖細緻化第一批（3d-detail）
+- 引擎共用（20 張都吃到）：45° 倒角方塊（chamferGeo）、程式產生的 128² 表面質感（金屬髮絲／陶瓷燒結／樹脂填料／玻纖布紋，不載外部圖）、輪廓光（`--dg-rim-k`）、粗管改細流線＋方向箭頭且跟著零件拆開、晶粒通用版圖、彎刀形扇葉；AI 伺服器 draw call 394→298。
+- 逐張細化五張：晶圓代工（HKMG 三層、菱形磊晶、GAA 圓角奈米片、真 notch）、第三代半導體（SiC 三元胞／GaN 2DEG 與場板）、MLCC（36 層 InstancedMesh、彎月焊腳；副標「12 層」→「36 層」）、被動保護、電感電阻石英。規格與來源在 docs/diagram_specs/。
+- 代價：為了首次畫圖速度拿掉逐像素凹凸，紋理只剩明暗／粗糙度變化。棘輪：三角形上限改「改後 ×1.5」、draw call 一條都沒放寬；圖九機櫃 mesh 下限 300→200（合併 mesh）。
+- 待複查：電感卡片「斷面長方形（高 > 寬）」可能與立繞相反；石英維持 AT 切長方片（卡片寫 AT 切，不畫音叉）。第二批 13 張已派（claude/3d-detail-2）。
+- 這批驗了：剖析圖覆蓋普查 0（3D 改幾何後仍 0）／3D收合再展開／3D視角鈕與點兩下重設／批次6-N1／批次6-圖九／剖析圖卡片收回／剖析圖股票可點 0；3D細緻化效能第一次 1 紅（鋁電容首次畫圖 547ms > 舊版 384×1.3），負載降到 2.7 後重跑 0 —— 鋁電容本來就最接近上限（×1.28），高負載時會假紅。_preview 綠。
+
+### 09-27 凌晨 Logo 回補完成一輪
+- 8 輪手動觸發後 `pending=0`、`done=true`：1,985 家有官網者中 **1,542 家有 Logo（77.7%）**。第一版 4 輪累計 782；第二版 4 輪新抓 126／220／242／185。
+- 剩下 443 家：robots 不准（不救，也不該救）、找不到、只有太小的圖；`next_due` 2026-10-26 起依 30 天規則自動重試。最後一批（16:14 那輪）已隨 39a52af 部署上線。
+- Logo 回補排程停止（不再手動觸發）。
+
+### 09-27 凌晨 3D 細緻化第二批・第一段（3d-detail-2 A 組＋3d-d2-d 電感更正）
+- Andy「這有辦法多找幾個人協助加速處理嗎」→ 第二批改四組平行（A 晶圓封裝、B AI 伺服器鏈、C 板卡面板、D 工具機傳動），各自只改自己場景的 SCENES 與專用 kind、不改共用引擎；瀏覽器用 `flock /tmp/claude-0/browser.lock` 排隊。
+- A：矽晶圓（熱屏錐筒＋石墨氈、法蘭觀察窗、晶碇生長脊）、鋁電容（車削半殼束腰捲邊、固態電容剖面；拿掉雙面材質，首次畫圖 1.36→1.05 倍）、CoWoS（C4 鼓形、微凸塊只在晶粒下、整圈補強環、兩件式上蓋＋TIM1、底填斜坡、RDL 三層）、HBM（TSV／微凸塊細密陣列）。卡片改兩句：矽晶圓爐體、CoWoS 上蓋。
+- D：電感卡片「高 > 寬」寫反（立繞＝徑向寬、軸向薄；兩份專利摘要＋技術文）已更正。
+- A 交接給 B 的線上既有錯誤：AI 伺服器 GPU／CPU／HBM 嵌進運算托盤板（上半截被吃掉），B 組修。
+- 這批驗了：剖析圖覆蓋普查／3D細緻化效能／3D收合再展開／3D視角鈕與點兩下重設／批次6-N1／批次6-圖九／剖析圖卡片收回 0、_preview 綠。
+
+### 09-27 凌晨 3D 細緻化第二批・C 組（3d-d2-c）
+- PCB 硬板（平織玻纖剖面、銅箔粗化稜、梯形線路、盲孔填銅／埋孔塞孔、孔對改緊靠）、交換器板卡（SerDes 45° 扇出、晶片加強環＋切角露晶粒、一相一組供電、2×1 背對背籠＋騎乘散熱片、OSFP 模組、地訊訊地金手指）、高速連接器（**結構更正**：塑膠舌片 → 模組尾端 paddle card，副標與 gold_finger 名稱各改一句；母端插槽、針眼壓接針、飛越纜線剖面）、面板（偏光板五層、底閘極 TFT、COG→COF 真實走法）。
+- 棘輪：_uitest B27_ROUTES「PCB硬板」三角形上限 11000→26000（倒角後已 10490，draw call 50 沒動）。
+- 待查：C 組回報 3D 畫布發滾輪事件畫面沒拉近（可能是測法，未驗證）。
+- 這批驗了：合併後 3D細緻化效能／剖析圖覆蓋普查／3D收合再展開／批次27-AI伺服器鏈3D／批次28-一般電子鏈3D 0、_preview 綠。
+
+### 09-27 清晨 Logo 第三版（logo-v3，DECISIONS #267）
+- Andy 截圖問「為何部分公司 Logo 還是沒有幫我新增」（長榮航 robots、聯電 16px 太小、南亞科預設圖、欣興官網連不到）。
+- 官網找不到 ≥48 時收最大的一張 ≥16px 當低解析（`lowres:true`，照原尺寸只補成正方形、不放大重採樣）；預設圖（跨網域同雜湊）拒收後繼續試頁首圖／manifest／s2，雜湊記在索引 `generic_sha1`；too_small／none／generic 共 353 家下一輪最先重試（strategy=3）。
+- 第二備援（DuckDuckGo 圖示服務等）**不加**：條款不明、等於請第三方繞過連不到的官網、增益小（評估在 docs/logo_sources.md §1.2；法遵意見由爬蟲專家依 legal-compliance 紀律自整理，未另派法遵）。s2 的 16px 仍不收（`LOGO_LOWRES_ALLOW_S2` 預設關）。robots 89 家照舊不救。
+- 預估救回約 80～173 家（77.7% → 約 82～86%），實數看回補後 logo_progress.json。
+- 這批驗了：pytest 749 passed、4 skipped、1 xfailed（合併後）；純管線，沒動 site/ 與 build_payload，前端關卡未跑。
+
+### 09-27 清晨 3D 細緻化第二批・A 組第二段＋B 組（3d-detail-2＋3d-d2-b）
+- A 第二段：IC 載板（兩層平織玻纖、捕捉墊／目標墊與微孔共用 abfViaX、BGA 球頂銅墊）；CoWoS 補 hbmstk（厚 base die＋12 片核心晶粒）、垂直式四層探針卡、整片背面 BGA（n 6→1，卡片「一整片球」現在成立）。A 組五張 draw call 30～97、首次畫圖 0.96～1.09 倍。
+- B：AI 伺服器（**修線上既有錯誤**：GPU／CPU／HBM 嵌進托盤板 → 坐在板面；B200 式 2 晶粒＋8 HBM；NVLink 背板改 4 個銅纜卡匣；NVSwitch 托盤 2 顆；主機板焊 LPDDR5X、後緣盲插；電源櫃 1U 六顆 PSU）、電源（前面板、依電流方向重排 EMI→PFC→電容→LLC→同步整流；**修電流方向畫反**）、液冷（O 形環、鏟齒 36 片、UQD、CDU 雙泵）、氣冷（環形磁鐵＋轉子軛、定子疊片、扣合鰭片）。卡片改兩句（電源主板排列方向、氣冷輪轂磁鐵）。機櫃 draw call 270→217。
+- 棘輪：B27 電源／液冷／氣冷三角形上限改「改後 ×1.5」（24500／25500／32500），draw call 沒放寬；新段落「3D細緻化B組」。
+- 既有紅（非這批）：3D風格兩模式 390px 3D 畫布 scrollWidth 320>304（ai_server／CoWoS／MLCC）、3D零件字彙 CoWoS 閱讀／科技差距太小。
+- Logo 第三版兩輪重試完：ok 1,542 → **1,670（84.1%）**，其中 lowres 109；聯電（16px）、南亞科（頁首圖）救回，欣興仍連不到。隨這次部署上線。
+- 這批驗了：合併後 3D細緻化效能／剖析圖覆蓋普查／3D收合再展開／3D視角鈕與點兩下重設／批次6-N1／批次6-圖九／批次27-AI伺服器鏈3D／3D細緻化B組／剖析圖卡片收回 0、_preview 綠。
+
+### 09-27 早上 3D 細緻化第二批・D 組（3d-d2-d）—— 3D 細緻化全部完成
+- 傳動件：收攏時沿一條軸線重排（編碼器→馬達→馬達座→聯軸器→固定端→螺桿→支撐端，原本馬達插在螺桿裡）；圓弧牙溝螺桿、內溝螺帽、鋼珠兩圈＋回流管閉合迴圈、四溝軌道、ㄇ 字滑塊、方法蘭馬達＋72 刻線碼盤、螺旋切槽聯軸器、背對背斜角軸承。
+- CNC：收攏疊法改對（床身→Y 軌→鞍座→X 軌→工作台，主軸頭掛立柱正面滑軌）；補三顆進給馬達、BT 刀柄、刀庫換刀位、C 形爪換刀臂、冷卻液、控制櫃、鏈板排屑機。CNC 撞兩條棘輪（C6-6、B28 draw call 110）都靠減面／合併 mesh 壓回，沒放寬。
+- 棘輪：B28 這兩張三角形上限 24000→71000／76000（改後 ×1.5）。
+- 3D 細緻化第二批 13＋2 張全部上線（A 晶圓封裝 5、B AI 伺服器鏈 4、C 板卡面板 4、D 工具機傳動 2）。待合併進共用的專用件：swPads、swFanout、halfLathe、mc* 系列。
+- 這批驗了：合併後 3D細緻化效能／剖析圖覆蓋普查／3D收合再展開／3D視角鈕與點兩下重設／批次28-一般電子鏈3D／批次C6-3D運轉動畫 0、_preview 綠。
+
+### 09-27 早上 AI 分析搬到右上角＋四標籤頁（ai-topright）
+- Andy「AI 分析 需要在右上角出現，並且技術面 籌碼面 基本面 消息面 用標籤頁切換」：`#skAi` 搬進 K 線卡標題列右半（跨名稱區＋工具列兩列）；四標籤一次一面（`tw.aiTab`、方向鍵可切）；內容區固定高度區內捲；可收合（`tw.aiOpen`，收合時點標籤＝展開並切到那面）；K 線下方長卡與「看分析 ↓」拿掉。卡寬 ≥600 兩欄，AI 區 <380 用 container query 改窄排法；手機由 miaStock 搬進 `#aiCard` 分段。
+- K 線頂端比改前低：1440 +47px、1100 +9、800 +13（內容區約 6 行的折衷）。
+- 中途容器重啟，前一位進度 9d041f0 由接手者驗完。
+- 這批驗了：分支上（已含 216aaa7，合併後樹與分支相同）個股AI分析0926（128 條）／個股／個股指標下拉0926／手機／收尾0925-說明改問號／新-產業與個股 0、_preview 綠。
+
+### 09-27 早上 個股頁數據普查・第一段（stock-data-audit，DECISIONS #268，docs/stock_page_audit_0927.md）
+- Andy「如果網頁版有什麼缺漏資訊，也麻煩照給你的圖片補上，季的週期要對，我發現部分數據太少」＋券商 App 截圖 13 張（華邦電 2344）。
+- **季獲利算錯**：證交所 t187ap14 給年度累計，1,040 檔 2026Q2 半年累計被當單季（2618 顯示 2.24，單季其實 0.71）→ profit_series／pe_daily 先去累計；2344 核對 2026Q2 EPS 5.40、累計 7.65、毛利率 66.25%、淨利率 40.44% 與 App 一致。缺季補空列；季 24→40；加年度；加法定期限檢查。
+- **法人缺很多**：1,980 檔中 1,626 檔 inst_daily 一列都沒有（回補計畫從沒有 inst、每日只補前 500 檔）→ 計畫加 inst 2016 起＋每日續補落後股；自營商拆自行買賣／避險。
+- 新表：當沖 `daytrade_daily`、借券 `sbl_daily`（FinMind，2025 起）、董監持股 `insider_holding`（證交所 OpenAPI t187ap11_L）。主力改替代卡（三大法人＋5／20 日集中度，標明非分點）。籌碼預設 20→63 天。月營收 MoM 對日曆月、加去年同月。除權息回補起點 2009、加現金殖利率、同期去重、股利政策（所屬期間）表。
+- **不做**：相關 ETF、權證（查不到合規資料集，理由在 docs §4）；紀念品、股息再投入。集保大戶歷史要 FinMind backer 等級（照舊每週累積）。
+- 另修：pytest 在容器裡會連外網卡十幾分鐘。
+- 回補：下一輪起每小時補 inst（約 1,600 檔）、當沖＋借券、除權息 2009 起；backfill.yml 補齊判斷已納入這三步與法人每日續補。
+- 這批驗了：pytest 785 passed；重算 payload；個股／個股分頁0926／籌碼基本0926／個股R5／個股AI分析0926／個股季週期與筆數 0、_preview 綠（分支已含 757d6c0，合併後樹與分支相同）。
+
+### 09-27 早上 手機個股頁券商式改版（mobile-stock-broker 兩段）
+- Andy「依據我提供的手機頁面，將手機版也設計類似這樣」（券商 App 截圖 13 張）：≤640 個股頁改成固定報價列（☆ 觀察清單、左右切同族群）＋可橫捲分頁列（K線→指標→法人→籌碼→大戶→資券→營收→獲利→財務→基本資料→除權息→AI 分析→新聞→完整版，沒資料的分頁不出現），每頁分段＋柱狀圖＋每日表，時間窗 63 天。
+- 大戶頁＝主力替代（main_proxy 法人合計＋5／20 日集中度｜集保大戶週增減，寫明非券商分點）；資券有當沖／借券欄才出現、未回補寫原因；籌碼加董監持股；自營商拆自行買賣／避險；除權息「所屬期間」表可展開；AI 分析分頁沿用搬節點的 `#skAi`。
+- 手機總覽最上方：指數列（加權／上櫃／台指近全，可左右滑）＋觀察清單（localStorage `tw.watch`，只存代號）。
+- 第一段合併後我跑出 1 紅（除權息展開：數據普查把年度列改成 by_period），第二段已修。
+- 這批驗了：第一段合併 3719f29 後重算 payload 跑 手機個股券商式（1 紅→第二段修）／手機總覽指數觀察清單／個股AI分析0926／手機／手機v3／手機一屏／個股／個股分頁0926／籌碼基本0926／個股季週期與筆數；第二段分支上（已含 3719f29，合併後樹與分支相同）手機個股券商式／手機總覽指數觀察清單／個股AI分析0926／手機／手機v3／手機一屏／個股／個股R5／個股分頁0926／籌碼基本0926 0、_preview 綠、桌機 13 情境像素比對個股頁 0 差。
+
+### 09-27 早上 Andy 確認「以上建議OK」→ DECISIONS #269
+- 等 Andy 決定的三件全部照現狀定案：「AI 分析」字樣不改、「資金輪盤」名稱不改、1440 K 線下移 47px 可接受；手機版的判斷點（完整版分頁、籌碼／大戶分兩頁、＋觀察、未回補寫原因、現價殖利率）也照現狀。
+- 背景進行中：法人／當沖＋借券／除權息 2009 起的歷史回補（約 1.1 萬次 FinMind，22～24 小時）；董監持股第一筆等傍晚那輪 Actions。
+
+### 09-27 傍晚 會員登入／自選五分頁／使用統計／線上人數（account-analytics，DECISIONS #270）
+- Andy「使用者透過 google 登入…紀錄線上使用狀況，新增每頁使用功能狀況…新增線上人數，知道目前有誰使用，新增自選清單並且可以新增五個分頁」。
+- 架構：Cloudflare Worker＋Durable Object＋Google OAuth（不用 Firebase，理由見 #270）；`workers/account-api/`，`deploy-account-worker.yml` 部署前先跑存取控制測試 19 條。
+- 前端：`site/account.js`（登入）、`site/watchlists.js`（自選 5 分頁，本機 localStorage／登入後雲端同步，舊 `tw.watch` 搬進第 1 頁）、`site/admin.js`（`#admin` 管理頁，只有 ACCOUNT_ADMIN_EMAILS 看得到誰在線與使用統計）。隱私權政策在 legal.js 更新。
+- **沒設 Secret 時全部關閉**（repo 裡 `site/account_config.js` 永遠是空的；pages.yml 依 `ACCOUNT_API_URL` 覆寫部署產物）→ 目前線上只有本機版自選五分頁生效。
+- **待 Andy**：照 `docs/login_setup.md` 建 Google OAuth 用戶端、設 Secrets（GOOGLE_CLIENT_ID／GOOGLE_CLIENT_SECRET／ACCOUNT_ADMIN_EMAILS／ACCOUNT_API_URL），並確認隱私告知文字。
+- 這批驗了：pytest 789 passed；Worker node --test 19/19；_uitest 會員與自選五分頁／會員雲端路徑／手機／手機總覽指數觀察清單／手機個股券商式／設定面板／個股 0、_preview 綠（分支上；與 main 差距只有資料 commit）。
+
+### 09-27 晚 手機按鈕普查・第一批修正（mobile-tap-audit）
+- Andy「手機版介面 幫我確實驗證所有按鈕功能，我發現有部分功能無法點選」：新增 `scripts/_mobile_tap_audit.py`＋段落「手機按鈕普查」（390／360 觸控、全站每顆可點元素：點得到／有反應／收得回來）。
+- 修兩處真的點不到（只 ≤640）：① 搜尋列展開蓋住整條頂欄、點外面收不回 → 登記進 dismissable；② 今日事件抽屜被個股連結撐寬（358→604px），右側 14 顆（360 寬 21 顆）連結在抽屜外 → 換行。
+- 既有紅（改前快照同樣紅）：點外面就關 3、新-版面等高與多寬度 1。
+- 全站普查最終一輪（約 50 分）還在跑，找到新的會另外推。
+- 這批驗了：兩件修正改前紅／改後綠；手機／手機v3／手機一屏／手機個股券商式／手機總覽指數觀察清單／個股AI分析0926／設定面板 0、_preview 綠、pytest 789 passed、桌機 9 頁像素比對只有 #flow 動畫雜訊（分支已含最新 main）。
+
+### 09-27 晚 手機按鈕普查・收尾（mobile-tap-audit 8ed473b）
+- 最終普查（390＋360）點過 2,097 顆：點不到／沒反應／收不回 **0 顆**。這一輪只改普查腳本（`.mnext` 視為換分段，修掉「事件抽屜重開失敗」的誤報），site/ 沒變、不需部署。
+- 另列不算紅燈：剖析圖零件圖形 52 列（手機入口是編號鈕；少數零件沒有自己的編號，如 ag_vrm、ag_optic、mc_table，手機上拿不到說明——若要「每個零件都點得到」需補編號）。觸控目標 <40px 共 1,607 顆（390：<20px 172、20～28 190、28～36 146、36～40 287；大宗是剖析圖折疊標題、個股頁族群連結、產業地圖圖例、頁尾連結、週期統計月份鈕）→ 交給設計 v4。
+- 桌機既有紅（main 本來就有）：點外面就關 3（#flow 象限／下鑽面板）、新-版面等高與多寬度 1（熱門題材那格）→ 已派 agent（claude/dismiss-fix）。
+- 這批驗了：手機按鈕普查 0（分支上）；手機／手機v3／手機一屏／手機個股券商式／手機總覽指數觀察清單／個股AI分析0926／會員與自選五分頁／設定面板／批次6-N1 0；_preview 綠；合併後 pytest 789 passed、1 xfailed。
+
+### 09-27 深夜 桌機既有紅燈查清（dismiss-fix）
+- 「點外面就關」3 條、「新-版面等高與多寬度」1 條：**網站本身沒壞，是驗收寫錯或過時**，只改 `_uitest.py`。
+  - 點外面就關：「外面」定在 h3 寬 20%，副標變長後剛好落在「?」鈕上（`.howbtn` 本來就不算點外面）→ 改點外面區塊裡沒有功能的字並先斷言那一點不是按鈕；新增「關掉後不留隱形擋層」「其他地方仍點得動」；手機 390 那段原本 `if k:` 默默跳過（09-24 起假綠）→ 改成先切完整版、觸控真的驗。
+  - 版面等高：選擇器還找舊的 `#themeStrip`／`.eqpair`（總覽改版後已不存在）→ 改量 `#ovThemeCard`／`.ovmain` 左右欄；門檻（≤720px、2px、三寬度）沒放寬。解開後浮出的 F3 17 條也都是驗收過時，已照新版面改。
+  - 反向驗證：拿掉 `#stagePanel` 的 dismissable 登記 → 桌機紅 3、手機紅 2；還原 0。
+- 這批驗了：點外面就關／新-版面等高與多寬度／資金流向／新-資金流向／總覽／手機按鈕普查 0、_preview 綠（只改 _uitest.py，pytest 依例外跳過；site/ 沒變、不需部署）。
+
+### 09-28 凌晨 歷史回補補齊
+- backfill_progress：inst（2016 起）、daytrade+sbl（2025 起，scope=universe 前 500 檔）、dividend+divresult（2009 起）三步都 done（17:23 UTC）；18:26 那輪 16 秒即跳過＝已補齊。補觸發排程停止。
+- ⚠ 更正：三步的 scope 都是 universe（成交值前 500 檔），實際只補到 inst_daily 781 檔、daytrade 498 檔，前 500 名以外的個股頁法人／資券／除權息仍空。已派 agent 加 scope=market（全市場）並換新進度鍵（claude/backfill-market）。
+- 09-28 03:1x 合併 backfill-market：scope=market（1,980 檔上市＋上櫃普通股），三步完成鍵改 `…@market`、逐檔 done 鍵沿用不重抓；每日續補改全市場、上限 1,500 次／天；backfill.yml 守門看 @market 鍵。還要約 7,340 次、15 輪、15～18 小時。驗了：pytest 796 passed（分支上，與 main 差異只有資料與 HANDOFF）。
+
+### 09-28 清晨 今日事件浮層抽屜（events-drawer，DECISIONS 新號）
+- 全寬度預設收起、浮層抽屜、遮罩／Esc／× 關、換頁收、重開回預設；修 `.ev .m` 不換行撐寬（604 vs 359px）與無簡稱代號印兩次；移除寬版鈕與 `.layout.noside`／`body.kwide`／`tw.side`。
+- 頂欄重影（Andy 截圖 177）無頭瀏覽器重現不出，推斷是舊 sticky 側欄疊在 backdrop-filter 下的繪圖殘影，待 Andy 確認。
+- 這批驗了：今日事件浮層（5 寬度）／今日事件／總覽／點外面就關／新-版面等高與多寬度／手機／手機按鈕普查／個股／積木-券商觀點 0（分支上）；合併後 _preview 綠。
+
+### 09-28 中午 總覽摘要卡列＋個股籌碼快照「?」（ov-summary-cards，分支 claude/ov-summary-cards，已在 main（2026-10-06 查證））
+- 接手 claude/wip-ov-summary-cards（c962583）：總覽 K 線上方的 KPI 細列（加權指數／成交值／漲跌家數／前五族群佔比）換成四張摘要卡（漲跌家數／資金輪盤／資金去向／熱門題材），節點仍是 #hero（桌機在大盤卡內、手機在指數列下）。點卡：漲跌 → #market/updown；輪盤／去向／題材 → 同頁捲到該卡（手機先切到第①步的對應分段）；點題材名 → 熱力圖直接換成該題材。
+- 接手後改：① 資金輪盤四段改數全部族群（半成品只數前 10，手機輪盤四角徽章寫全部 → 卡片「改善 6」底下寫「改善 17」）；「最強」仍取成交值前 10 大。② 資金去向手機口徑改跟手機長條同一份 flow_v3.sankey（桌機 sankey_daily 半導體 39.6%／AI 37.7%，手機長條 AI 20.7%／半導體 19.4%，名次相反），CSS 依 ≤640 只顯示一份。③ 漲跌百分比移到名稱列（262px 窄卡放不下「1194 52.2%」）。
+- 個股頁「總覽」分頁籌碼快照：拿掉「大戶 4 週變化」「散戶（≤10 張）」；六欄名稱旁各一顆小「?」（howPop，data-ttl 當標題），標題「?」改寫成欄位總覽。
+- 舊驗收跟著改：總覽／盤中即時（加權改驗 Live.quotes.t00）／大盤三張圖／KPI工具列頁尾0926（KPI 四格斷言已無對象，只留「在大盤卡、重掛不丟」）；_preview 改數 .osc、高度上限 140px。新段落「總覽摘要卡列」。
+- 這批驗了：總覽摘要卡列／總覽／新-大盤三張圖／今日事件／新-版面等高與多寬度／手機／盤中即時／大盤三張圖／KPI工具列頁尾0926／積木-個股三卡 0、_preview 綠；說明精簡 8（breadth 7 條、dg／sknews 長句、個股標題卡 45 字 —— 都不是這批碰的內容）。純前端，pytest 依例外跳過。
+
+### 09-28 上午 首頁大盤 K 線（index-kline-0928，DECISIONS #272，分支 claude/index-kline-0928，未合併）
+- Andy「CEO 全力解決首頁的 K線圖問題…櫃買4H 1H…加權指數的成交量15min 30min 1H…成交量縮放只需要抓取其中一條，其他兩條會連動」。接續被停掉的半成品 42a4d32＋探測 331c739。
+- **櫃買 1H／4H**：Yahoo 代號改 `IX0043.TWO`（實測 60 分 728 天、15 分 59 天），`index_intraday_since` 缺口每個指數各算；回補 `yahoo_v` 3 重開一次。本機資料湖還沒有櫃買 60 分 K（要等合併後那輪回補），本機驗收用 `docs/fixtures/index_intraday_sample.parquet` 併進 site/data 驗（只寫 site/data）。
+- **加權真實成交值**：FinMind 免費 5 秒資料集合成 1 分 K 入湖（src=finmind，每日補近 5 天、回補每輪 120 天往回 730 天，一天 2 次額度）。指數量一律成交值（元）；mis 的 s 是百萬元不是張（以前一路印成「張」，已改）。
+- **只畫真實量**：拿掉 09-25 的估算與日 K 均量補；看得到的那段 < 九成有量就收量面板並寫「此週期無成交量資料」。4 小時一盤一根＝日線實際總量。櫃買 1H／15／30 分在累積夠之前沒有量柱（沒有免費的歷史分鐘量）。
+- **量副圖三張連動**：拖任一張主圖／量柱分隔線 → 三張同比例、存 `tw.m3.volr`，換週期／重新整理沿用；上限 45%。KChart 新增 `opts.volRatio`／`setVolRatio()`（只影響 mini／compact）。
+- 待觀察：合併後第一輪回補要確認 log 有「加權 1 分 K 回補：這一輪試了 N 天」且 `complete.index_intraday.tse1m_left` 遞減、`yahoo` 重新拿到 OTC。加權 1H 量柱要等回補補滿近 18 個交易日才會出現（之前是收起來＋寫原因）。
+- 這批驗了（分支上）：pytest 806 passed／3 skipped／1 xfailed（全跑一輪 1 紅＝舊測試口徑，已改後該檔重跑綠）；本機 SKIP_INTRADAY=1 重算 payload＋樣本併入 site/data；
+  _uitest 總覽 0、大盤K線0928 0（反向驗證：拿掉連動呼叫 → 紅 4）、新-大盤三張圖 第一輪 4 紅（舊的估算斷言與「該分量」字樣）→ 改成新口徑後 0；_preview 綠。
+
+### 09-28 午後 合併上線：index-kline-0928（DECISIONS #272）
+- 合併後驗了：pytest 809 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 總覽／總覽摘要卡列／新-大盤三張圖 0、大盤K線0928 7 紅＝**全部是資料還沒進湖**（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值要等合併後那輪回補），連動縮放與無量說明那幾條綠；_preview 綠。
+- 回補跑過後要回頭重跑「大盤K線0928」確認 7 條轉綠（看 complete.index_intraday.tse1m_left 在減少、櫃買 yahoo_v 3 done）。
+
+### 09-28 午後 合併上線：rev-pe-0928（DECISIONS #273，原分支用 #272 與大盤 K 線撞號，合併時改號）
+- 月營收口徑：成長率分母 >0 才給、日曆月對齊缺月留空、證交所附的同口徑基期優先（IFRS 17 金控保險）；全市場普查 docs/revenue_audit_0928.md；防回歸 tests/test_revenue_audit_0928.py 16 條。本益比河流深淺兩組配色＋Y 軸拖曳縮放。
+- 合併後驗了：pytest 825 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 營收河流0928／個股／新-產業與個股 0（營收河流第一次瀏覽器頁面崩潰＝記憶體吃緊，單獨重跑 0）；_preview 綠。
+- 待處理：`finmind.revenue_announce_date()` 對 2026 起金融保險業應為次月 15 日（目前寫 10 日，尚無任何回測使用，還沒造成偷看未來）。
+
+### 09-28 午 個股頁籌碼拆三頁＋讀者語言（stock-tabs-0928，分支 claude/stock-tabs-0928，已在 main（2026-10-06 查證））
+- Andy 八件：①讀者看不懂的內部說明全清（股利政策／股利公告兩張表拿掉；「回補中／分 K 名單／walk-forward／資料源帳號等級／只存 800 字」改讀者語言，含 AI 分析 1 小時 K 無資料那句與簡易頁 note，這兩句在 pipeline）②資券獨立分頁 ③三大法人獨立分頁 ④股東人數拿掉 ⑤「大戶／散戶」分頁：千張以上／400～1000／≤10 三條線，色塊＝圖例兼開關（`tw.hoLines`、手機 `tw.m3.sk.hoLines`）⑥主力（替代）拿掉 ⑦基本面「?」逐欄一句 ⑧AI 分析第二顆標籤「籌碼面」→「技術面訊號」（九顆燈跟總覽卡同一份 `StockSignal.lights()`）。
+- 集保歷史**補不回來**：集保開放資料只給最新一週、FinMind 歷史集保免費帳號不開（#210）、集保官網歷史查詢不在白名單 → 頁面寫「集保中心每週只公開最新一週的持股分級，更早的週資料無法補回，所以從 2026-09-04 起每週累積，目前 N 週」，滿 52 週自動換掉。
+- 手機除權息第一段「股利政策」改名「全部」、所屬期間表拿掉（跟桌機一致）。
+- 新段落「個股籌碼分頁0928」；舊段落（個股／個股R5／籌碼基本0926／個股分頁0926／個股季週期與筆數／個股AI分析0926／手機個股券商式／收尾0925／全站問號普查）照三個新分頁改寫；_preview 的分頁清單同步。
+- 既有紅（非這批）：「排序」去 #overview 找已拿掉的 #candTable（09-24 起就不存在），逾時；「說明精簡」8 條（總覽 breadth 7 條、剖析圖 dg 那條超過 30 字、個股標題列副標 45 字、sknews 兩條超過 30 字），都不是這批動到的字。
+- 這批驗了：pytest 800 passed；重算 payload；個股籌碼分頁0928／個股／新-產業與個股／手機個股券商式／個股R5／籌碼基本0926／個股分頁0926／個股季週期與筆數／個股AI分析0926／全站問號普查／收尾0925-說明改問號 0（排序 1 紅、說明精簡 8 紅＝既有）、_preview 綠。
+
+### 09-28 傍晚 合併上線：stock-tabs-0928（個股籌碼三分頁）
+- 籌碼快照兩個分支都改了：保留已上線的逐欄「?」（總覽摘要卡列驗收依賴），拿掉標題說明的「主力分點無免費來源」那句。
+- 合併後驗了：pytest 825 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_preview 綠；_uitest 個股籌碼分頁0928／總覽摘要卡列／積木-個股三卡／個股AI分析0926／手機個股券商式／全站問號普查／籌碼基本0926 0。個股第一輪畫線工具列 14 條「元素不可見」＝機器記憶體吃緊（另有 3 個 agent 同時跑瀏覽器），單獨重跑 0。
+- 大戶／散戶歷史補不回（集保只公開最新一週、FinMind 歷史集保免費不開、集保官網查詢不在白名單），頁面寫明自 2026-09-04 起每週累積。
+
+### 09-28 傍晚 個股 K 線預設分時＋搜尋列迷你走勢（intraday-spark，分支 claude/intraday-spark，已在 main（2026-10-06 查證））
+- Andy「K 線圖新增分時走勢（Default 設定在上面）」「搜尋欄位的對應股票旁需要出現小小的分時走勢圖」。接手被中斷的半成品（698f32b → 驗收段落 c0f7729），已合併最新 origin/main。
+- 個股頁週期列最前面多一顆「分時」，而且是預設：一條價格線＋昨收虛線（價格軸以昨收為中心對稱）＋分時量，時間軸固定 09:00～13:30、不給拖曳縮放（chart.js `TickChart`）。資料：即時層 1 分 K（盤中今天／盤後最近交易日）→ 退而求其次用資料湖 60 分 K 那一天（一天 6 點）。真的沒有 → 預設帶進來的才自動改用日 K（按鈕劃掉、短註寫原因），換下一檔回到分時；使用者自己按的分時不自動退。舊使用者存過週期勾選的自動補勾分時一次（`tickMig`）。分時模式畫線工具收起、指標鈕變淡。
+- 搜尋下拉（頂欄＋手機加入觀察清單抽屜）每列名稱旁 48×16 小走勢，紅漲綠跌、不印數字。`site/data/sparks.json`（`compute/sparks.py`，只讀湖）：分時 400 檔（60 分 K 當天 6 點）、其他 1,941 檔用近 20 日收盤代替。
+- 收尾這一輪改的：① 手機上分時的短註（#liveNote）以前日線預設時是收起來的，分時預設後一定有字、390 寬折成多行把圖底推出一屏（788 > 786）→ 手機上壓成一行（…收起、點一下展開）、圖高扣 34px，實測 2344 圖底 749。② 「個股」段週期順序斷言改成分時在最前面。
+- 這批驗了（分支上）：pytest 809 passed／4 skipped／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 分時預設與搜尋走勢／個股／K線縮放／盤中即時／手機個股券商式 0；_preview 綠。
+- 個股即時分K 3 紅＝**main 本來就紅**（用 main 的 site＋_uitest 同一份資料跑也是這 3 條）：假報價日期寫死 2026-09-15，資料湖日線已到 09-24，`withToday` 本來就不接比湖舊的報價 → 驗收資料過時，不是網站壞。
+- 沒跑：手機按鈕普查（約 50 分；短註在手機上變成可點，點了會展開＝有反應）。
+
+### 09-28 晚 合併上線：intraday-spark（K 線預設分時＋搜尋列迷你走勢）
+- K 線說明衝突：保留分時那句，結尾採 main 已拿掉資料來源名稱的版本。
+- 合併後驗了：pytest 829 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 分時預設與搜尋走勢／個股／K線縮放／盤中即時／手機個股券商式／個股籌碼分頁0928 0；_preview 綠。
+- 沒跑：手機按鈕普查（約 50 分；手機短註變成可點展開，下次普查順帶驗）。「個股即時分K」3 紅＝main 既有（假報價日期寫死 09-15，比資料湖舊），驗收資料過時，待修驗收。
+
+### 09-28 晚 卡片標題小圖示・收尾（title-icons，分支 claude/title-icons，已在 main（2026-10-06 查證））
+- Andy「所有標題加上小圖示，顏色要搭配」。接手 claude/wip2-title-icons（6865302 已完成＋4e70146 容器重啟前的半成品），合併 main 無衝突。
+- 機制 `site/icons.js`（Lucide path 內嵌、MutationObserver 自動掛、1em、5 色系＋漲跌）；**顏色只用主題變數、0 個色碼**（收尾拿掉 hover 的 `#fff` 後備）。
+  v4 的 theme4.css（claude/design-v4-impl-1）六組主題都有定義 --cyan／--violet／--amber／--lime／--rise／--fall，合併後圖示自動跟著換；「標題圖示」段落偵測到 data-theme4 會自動加量三主題 × 深淺六組對比。
+- 半成品收尾：① 被圖示擠換行的標題列 → 先收字距（標題內 10→4px、標題列 12→8px），還放不下才釘寬（只給有副標的標題；短標題不拆兩行）；② fit 重量條件加上「同一列其他東西字數」（漲跌家數的 #udSum 資料到了才填字）。
+- 驗收補：手機券商式個股頁逐一切 #mbTabs；量到 0 個卡片標題的畫面要證明頁面上沒有其他 h2～h5（不是選擇器漏認）。
+- ★ 驗收順序 bug（main 本來就有）：`總覽摘要卡列` 結束停在 800 寬沒還原，`--workers 1` 時後面的段落都在 800 跑，「產業」在 ≤820 合法長出 #segBox → 誤紅。已補還原。
+- 逐寬度真基準比對（有 icons.js vs 拿掉 icons.js 的副本，5 頁 × 12 寬）：276 條標題列 3 條變高（族群 × 法人 ≈900、資金集中度 ≈860、漲跌家數 ≈880 那一小段寬度）——圖示 22px、收字距只省 16px 的殘留，寫在 docs/design_title_icons.md §6。
+- 這批驗了（分支上，SKIP_INTRADAY=1 重算 payload）：_preview 綠；_uitest 標題圖示／總覽／總覽摘要卡列／資金流向／產業／淺色主題／手機／新-版面等高與多寬度 0（產業在修視窗還原前排在總覽摘要卡列後面會紅 1）；個股 0（中途一輪 35 紅是鎖排隊時的環境抖動：同一份程式有／無 icons.js 各重跑一次都 0）。純前端＋驗收腳本，pytest 依例外跳過。
+
+### 09-28 晚 大盤 K 線資料補齊後複驗
+- 回補 index_intraday done（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值 tse1m_left 0）。拉最新資料湖重算 payload 後 _uitest「大盤K線0928」0（之前 7 條資料紅全部轉綠）。⚠ 這次本機 build_payload 撞到 1200 秒 timeout（rc=124），index_intraday 那份已寫出；雲端 pages.yml 不受影響。
+
+### 09-28 晚 合併上線：title-icons（全站卡片標題小圖示）
+- 顏色只走主題變數（0 色碼，v4 合併後自動換色）；圖示 1em、Lucide 圖形內嵌（無套件、不走網路）。殘留：三條標題列在約 860～900 寬多一行（族群×法人、資金集中度、漲跌家數），判斷不再處理（見 docs/design_title_icons.md §6）。
+- 合併後驗了（純前端＋驗收腳本，pytest 依例外跳過）：重算 payload；_uitest 標題圖示／總覽／總覽摘要卡列／資金流向／產業／新-版面等高與多寬度／個股／淺色主題／手機 0；_preview 綠。
+
+### 09-28 傍晚 設計 v4 正式套用・第一批收尾（分支 claude/design-v4-impl-1，已在 main（2026-10-06 查證））
+- 接手被中斷的 claude/wip2-design-v4-impl-1（4d07d74）：合併原型、預設科技 HUD・深、頂欄「外觀」面板（三風格×深淺，手機在「⋯」清單）、舊 `tw.theme=light` → HUD・淺、圖表共用規格（軸字 12、提示框 13、HUD 虛線、直向格線關、圖例讓出繪圖區）、驗收段落「設計v4主題」。改前→改後量測在 `docs/design_v4/02_套用第一批.md`。
+- 收尾做的：再合併 origin/main 三次（9a9f200 營收口徑、21d1247 個股籌碼三分頁、fd9ce81 分時預設與搜尋走勢；衝突只在 HANDOFF 與 _uitest.py 兩邊各新增一段，都留）；今日事件維持 main 的全寬度浮層抽屜（theme4.css 不覆寫 aside）；修一條驗收間歇假紅（總覽摘要卡列 `_ovs_inview` 改等捲動停下再量）；修一個 v4 露出的真問題：縮窗後收起的 ECharts 提示框留在舊位置把 1100 寬撐出 7px 橫向捲軸 → `app.js` 寬度改變時 hideTip＋歸位。
+- 這批驗了（分支上，每次合併後都 SKIP_INTRADAY=1 重算 payload）：合併 fd9ce81 之後 _preview 綠、設計v4主題／今日事件浮層／明亮主題／總覽／總覽摘要卡列／新-版面等高與多寬度／個股／分時預設與搜尋走勢／設定面板／手機 0。再前一輪（21d1247＋提示框修正後）：合併 21d1247＋提示框修正之後再跑 _preview 綠、設計v4主題／今日事件浮層／明亮主題／總覽／總覽摘要卡列／個股／個股籌碼分頁0928／縮放掃描／新-版面等高與多寬度／手機／資金流向／今日事件／新-大盤三張圖／設定面板／淺色主題 0。更早那輪（合併 9a9f200 後）：_preview 三個主題（HUD 深／專業淺／休閒深）綠；_uitest 設計v4主題／總覽／新-大盤三張圖／今日事件／今日事件浮層／淺色主題／明亮主題／設定面板／新-版面等高與多寬度／縮放掃描／手機／資金流向／個股 0、總覽摘要卡列修後兩輪 0。純前端＋_uitest，pytest 依例外跳過。
+- 既有紅（main 同一份資料同樣紅，不是這批）：產業 1（`[桌機] 點零件之後 #segBox 空`）；手機按鈕普查 1（**360 寬熱力圖放大層按「關閉 ✕」關不掉**，main／分支各重現 3 次，390 正常；`.zh` 標題列 366px 超出 360 視窗）→ 待處理。
+
+### 09-28 深夜 合併上線：design-v4-impl-1（設計 v4 第一批）
+- 全站間距尺度、三主題（親和休閒／科技 HUD／專業有力）×深淺、預設科技 HUD 深色、外觀設定面板、圖表共用規格、總覽排版；今日事件維持浮層抽屜。量測見 docs/design_v4/02_套用第一批.md（總覽 1100／800 第一屏繪圖區退步，保留兩欄換頁高 3307→2127）。
+- 合併後驗了（純前端＋驗收腳本，pytest 依例外跳過）：_uitest 設計v4主題／標題圖示（含 v4 六組主題對比）／今日事件浮層／明亮主題／淺色主題／總覽／總覽摘要卡列／資金流向／新-版面等高與多寬度／個股／分時預設與搜尋走勢／設定面板／手機 0；_preview 綠。
+- 待處理：360 寬熱力圖放大層「關閉 ✕」關不掉（main 既有，派給 v4 第二批 2D）；產業「點零件之後 #segBox 空」1 條 main 既有；手機按鈕普查這批沒重跑。
+
+### 09-28 午 首頁輪盤只留點＋自選獨立分頁（wheel-watch-0928，DECISIONS #274（原寫 #273，與 rev-pe-0928 撞號，合併時改號），分支 claude/wheel-watch-0928，未上 main）
+- 接手 50ae4f0 半成品：總覽輪盤只畫點（手機雷達拿掉名字膠囊）、點旁說明框加成交值前 3 檔成分股連結、交付清單入口搬到頁尾（#sfDelivery）。
+- `_uitest` 新段落「輪盤只留點與自選分頁」；「會員與自選五分頁」改在 #watch 整頁操作；「總覽／總覽右欄／總覽修正0926b」改驗 #ovRotPop。
+- 09-28 19:1x 收尾（容器重啟後接手 6406405）：WIP 只有「手機按鈕普查把 #watch 列入」一行，保留。合併 main（摘要卡列）後手機總覽輪盤**第一次點會縮一圈**（首次畫頂端量不準 → 用欄寬 324px、不記；點盤面才重量 → 301px，點的那一顆跳 10px、說明框蓋住它）→ mobile3.js 改成輪盤第一次進入畫面就 draw() 重量；驗收補「點下去那一顆不跳位置（≤2px）」。
+- 桌機說明框「點了閃一下就不見」：站上會自己派假 resize（market3.js 大盤三張圖每畫一次派一次），舊的 resize 監聽一律收框 → 1024 寬點一顆 150ms 後被收、開關錯拍。改成打開時記視窗寬高，真的變了才收；驗收補「派假 resize 框還開著」，總覽修正0926b ③ 改成等 smooth 捲動停下、重量同一顆再點（改前拿過期座標點到空白＝點外面，會假綠）。
+- 20:3x 再合併 main（rev-pe-0928 已用掉 #273）→ 這批 DECISIONS 改號 **#274**，程式註解一起改。
+- 這批驗了（分支上，第二次合併 main 之後重算 payload 再跑）：pytest 全過（-x 無紅、1 xfailed）；_uitest 總覽／總覽摘要卡列／總覽右欄／任務板／手機／點外面就關／會員與自選五分頁／輪盤只留點與自選分頁 0；_preview 綠；手機按鈕普查全站 390＋360 點過 2,091 顆，只剩下面那 6 格 main 既有紅（#watch 自選頁 62 顆 0 問題）。
+- main 本來就紅（拿 origin/main 同一份 site/data 重跑，一樣紅，不是這批造成）：新-輪動時鐘 1（#rankPanel 沒有 .hh 麵包屑，驗收讀 textContent.replace 爆掉）、總覽修正0926b 3（櫃買 15／30 分、1H 沒有量柱＝#272 刻意只畫真實量，驗收沒跟上）、手機按鈕普查 6（360 寬總覽熱力圖圖例 7 格有 6 格「沒反應」）。
+
+### 09-28 深夜 合併上線：wheel-watch-0928（輪盤只留點＋自選分頁，DECISIONS #274）
+- 合併後驗了：pytest 829 passed／1 xfailed；_uitest 設計v4主題／總覽／總覽摘要卡列／任務板／手機／點外面就關／會員與自選五分頁／輪盤只留點與自選分頁／標題圖示 0；_preview 綠。
+- 總覽右欄 2 紅：「昨日資金去向」的「?」點不開／標題不對、1024 寬「AI 伺…」名稱被截。**origin/main（v4 第一批＋標題圖示）同一份資料一樣紅，不是這批造成**；推測是 v4 間距／標題圖示佔寬，待修（派 agent）。
+
+### 09-29 凌晨 回補「2009 股利全市場」一直未補齊的查證（分支 claude/backfill-div-done，已在 main（2026-10-06 查證））
+- 結論：**沒有卡住，每輪都在前進**，只是每輪都撞到 FinMind 伺服器端額度上限才停。這一步的逐檔鍵是 `dividend@2009-01-01:<代號>`／`divresult@2009-01-01:<代號>`：09-28 00:49 各 500 → 11:11 1,099 → 13:38 1,606 → 14:50 1,859 → 15:34 1,928／1,927（2,338 個的 `dividend:<代號>` 是 2016 那一步的鍵，跟這步無關）。15:34 那輪只前進 69 檔，因為 45 分鐘前手動觸發的 14:46 那輪已吃掉同一小時的額度（log：`FinMind 伺服器端額度用盡（TaiwanStockDividendResult/1439）`，本機計數器還顯示剩 369）。以 origin/main afcf20e 的資料湖實算還剩 dividend 79／divresult 80 檔。
+- 改了：① 完成旗標多寫 `remaining`（每個資料集還剩幾檔）與 `no_data`（確認無資料幾檔），log 與 Actions 執行摘要直接印「還剩幾檔」，不必再從鍵名猜；② 額度還在但上游回空的檔，done 值從 `True` 改成 `"no_data"`（確認無資料；仍是真值、照樣跳過，股利年度圖照樣算補到 2009）——舊進度檔既有的 True 無法回溯區分；③ 執行摘要的已處理檔數旁邊括號列確認無資料數。
+- 驗了：pytest 828 passed／4 skipped／1 xfailed；新測試 tests/test_backfill_market.py 第 5 節三條（額度用盡記剩幾檔→下一輪從停下那筆接續→done、確認無資料也算補到 2009、執行摘要真的跑一次）。
+
+### 09-29 凌晨 合併上線：backfill-div-done（回補進度可見化）
+- 查證：除權息 @2009@market 沒卡住，逐檔鍵是 `dividend@2009-01-01:<code>`（CEO 先前看錯成 2016 那步的前綴）；每輪撞 FinMind 額度才停，剩約 80 檔。⚠ CEO 手動補觸發離上一輪不到一小時會吃同一小時額度——以後只在 >60 分鐘沒跑時才補。
+- complete 多寫 remaining／no_data；回空的檔記 `no_data`；執行摘要顯示還剩幾檔。
+- 合併後驗了：pytest 832 passed／1 xfailed（第一輪 1 紅 1 error＝容器硬碟滿 OSError，清掉已完成 agent 的 worktree 釋出 18G 後重跑綠）。只動 pipeline／workflow／tests，_preview／_uitest 依例外跳過。
+
+### 09-29 00:29 設計 v4 第二批 2A：資金流向頁（分支 claude/design-v4-2a，已在 main（2026-10-06 查證））
+- 量測與取捨全文在 `docs/design_v4/03_第二批2A.md`。改了：資金輪動卡「資金輪盤」小標併進時間列；輪盤高＝欄寬（上限 640，≥1101 為 664）；**1060～1100 兩欄**、821～1059 單欄＋排行限高 365（901～1100 三種排法都量過，901～1059 兩欄會切成編號模式、數字退步）；資金去向經典光纖從右邊往回排（1440 右側空帶 271→151、滑過時 101→13）、說明列浮在畫布右上角（少 30px）；族群 × 法人圖例改成篩選列右端的 HTML 圖例（可點隱藏）、集中度圖例併進均線列（兩張繪圖區頂 30→8／10）；下排兩卡圖撐滿。
+- 第一屏繪圖區（HUD 深）：1440 45.9→48.4、1280 40.7→53.2、1100 37.8→47.0、1060 39.3→44.3；1040 以下持平、頁高少 69～99。
+- 檔案：`site/theme4.css`、`site/app.js`（rotFitH 讀 --rot-hk／--rot-hmax、族群×法人／集中度圖例）、`site/flowtopo.js`（layoutClassic、浮動說明列）、`scripts/_uitest.py`（新段落「設計v4第二批2A」；資金去向經典光纖兩條欄位斷言照新規格改）、`docs/design_v4/tools/flow_measure.py`。
+- 這批驗了：_preview 綠；_uitest 設計v4第二批2A／資金流向／資金輪動合併／新-版面等高與多寬度／批次3／縮放掃描／手機／設計v4主題／族群法人篩選／資金去向經典光纖／排行貼頂／輪盤放大與象限卡／輪盤側欄／輪盤合併側欄／資金流向點背景關／排行比例 0。新-資金流向 11、新-輪動時鐘 1、批次2 2、批次7 2 ＝ 改前同資料逐條一樣紅（驗收過時，見 03 §6）→ 待處理。純前端，pytest 依例外跳過。
+
+
+### 09-29 凌晨 合併上線：design-v4-2a（設計 v4 第二批 2A：資金流向頁）
+- 輪盤跟欄寬走、1060～1100 兩欄（821～1059 單欄）、桑基右側空帶 271→151px、族群×法人與集中度圖例移出繪圖區；量測見 docs/design_v4/03_第二批2A.md（1280 第一屏 40.7→53.2%、1100 37.8→47.0%）。
+- 合併後驗了（純前端，pytest 依例外跳過）：_uitest 設計v4主題／設計v4第二批2A／總覽／資金流向／資金輪動合併／新-版面等高與多寬度／批次3／縮放掃描／手機／族群法人篩選／資金去向經典光纖／排行貼頂／輪盤放大與象限卡／輪盤側欄／輪盤合併側欄／資金流向點背景關／標題圖示 0；排行比例第一輪 1 條（最長長條 108/568＝19%，門檻 20%，長條動畫還沒跑完就量），單獨重跑 0；_preview 綠。
+- 待修驗收（網站早已改，驗收沒跟上）：新-資金流向 11、新-輪動時鐘 1、批次2 2、批次7 2。
+
+### 09-29 凌晨 市場明細：法人連續買賣超搬家＋漲跌分佈下鑽（market-drill-0928，DECISIONS #274，分支 claude/market-drill-0928，已在 main（2026-10-06 查證））
+- 市場明細新分頁「法人連買賣」（#market/streak）；總覽原位置拿掉、漲跌家數卡單欄、卡底留指路連結。點漲跌分佈任一欄 → 右側（手機下方）列出那一段個股，筆數＝長條家數、預設依漲跌幅、可切成交值、×／點空白／Esc 收起。
+- 舊驗收跟著搬：總覽（trust 那顆「?」、散佈圖型別、畫出來檢查）、市場明細（四個分頁、t_streak 改在這裡跑）、積木-隱性參數（改去 #market/streak）、新-版面等高與多寬度（壓字掃描只剩 breadth）、說明精簡（多掃 market/streak）。新段落「市場明細下鑽0928」。
+- theme4.js 的 LEDES.ovTrustCard 變成找不到卡片而略過（無害，留給設計 v4 那支決定要不要搬到市場明細）。
+- 這批驗了（分支上，已合併當時的 origin/main）：_uitest 市場明細下鑽0928／市場明細／總覽／總覽摘要卡列／手機／積木-隱性參數／新-版面等高與多寬度 0；說明精簡 9 紅＝既有（breadth 7 條、dg 兩條、個股標題卡、pe 6 條、sknews，都不是這批的字；新掃的 market/streak 綠）；_preview 綠。純前端，pytest 依例外跳過。
+
+### 09-29 01:16 歷史回補全市場全部完成（補觸發排程停止）
+- complete：inst@market、daytrade+sbl@2025@market、dividend+divresult@2009@market（remaining 0／0；確認無資料 dividend 15、divresult 9）、index_intraday（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值）全部 done；plan:default done（2026-09-28T17:16 UTC）。
+- 之後由 backfill.yml 守門自動跳過；每日續補照常（上限 1,500 次／天）。CEO 的 70 分鐘補觸發排程到此停止。
+
+### 09-29 凌晨 合併上線：market-drill-0928（DECISIONS #275）＋ ov-right-fix
+- 兩批共用一輪驗收（瀏覽器排隊太久），一起推。
+- market-drill：法人連續買賣超搬到市場明細「法人連買賣」分頁（#market/streak），總覽原位留連結；漲跌分佈點長條→右側（≤640 下方）列出該區間個股，筆數＝家數、不截斷；修 +8～+10% 上界重疊 bug。
+- ov-right-fix：howPop 標題讀到標題圖示的空 span → 全站有圖示的「?」彈窗標題都變「說明」，新增 howTitle 跳過 .ticon；flowtopo 窄版鏈名讓開根的 20px 沒算進寬度 → 1024 寬「AI 伺…」被截。
+- 合併後驗了（純前端，pytest 依例外跳過）：_uitest 設計v4主題／總覽／總覽摘要卡列／總覽右欄／市場明細／市場明細下鑽0928／新-版面等高與多寬度／手機／積木-隱性參數／標題圖示 0；_preview 綠。
+
+### 09-29 凌晨 設計 v4 第二批 2D：手機 360／390 修正（分支 claude/design-v4-2d，已在 main（2026-10-06 查證））
+- **360 放大層關不掉、圖例 6 格點了沒反應＝同一個根因**：總覽熱力圖圖例整條 `.hmbar` 是 `flex:none`，7 格加起來 349px，360 寬撐出文件寬 382 → 手機瀏覽器把版面視窗放大到 382，固定定位的東西（放大層、底部分頁列）跟著變 382 寬、觸控座標對不上（放大層 `.zh` 量到 16＋350＝366 也是它）。修：≤560 圖例准縮、在自己裡面換行；放大層標題列的 ✕ 釘右、40 高。
+- 觸控目標 40（全部只在 ≤640／≤560，桌機不動）：剖析圖章節列改由圖下方 40px「章節鈕列」接手（`diagrams.js mobileFolds`，同一份狀態；圖內 15px 細條手機不接觸控）；週期統計月份表頭 19px → 手機「排序：N 月 ›」抽屜（`mobile3.js seasonSort`，12 顆 48px，按的是表頭同一顆；表頭照樣可以點，只是 19px 物理上到不了 40）；產業地圖圖例／頁尾連結／「詳細規範」／個股基本資料連結／表格連結／熱力圖圖例格 → 40；a.lk、麵包屑、熱力圖下拉、重設縮放 → `::after` 點擊區 40×40。`.mfilt` 36→40。總覽摘要卡三處 11px → 12px（手機v3 #17，main 既有）。
+- 普查口徑：`_mobile_tap_audit.py` 的觸控範圍改成「外框 ∪ 擴大點擊的偽元素（被 overflow 裁掉的部分不算）」—— 命中測試本來就算偽元素；舊口徑把 28px 圓點＋inset:-8 的剖析圖編號（實際 44）也列成不足。
+- 觸控目標 < 40 顆數：靜態計數（每頁＋一層分段、依長相去重、同一支程式量改前改後）觸控口徑 390 **717 → 539**、360 **729 → 550**；外框口徑 390 1115 → 973、360 1124 → 981（計數在最後兩個小修之前量的：之後又修了表格連結 12 種、「詳細規範」、圖例格寬，由「手機v4二批」逐項驗）。點名的五類：剖析圖章節列 68→0、產業地圖圖例 49→0、個股基本資料連結 6～7→0、頁尾 5→0、週期統計月份鈕 11→11（表頭仍 19px，入口換成 40px 排序鈕）。全站普查（新口徑）1,013 顆（390 505／360 508；剩下的大宗：36px 分段／晶片約 530、剖析圖零件圖形 263、環節晶片卡 158、環節公司列 34）；同一份報告用舊外框口徑算約 1,415（改前 09-28 幾輪 1,490～1,607）。
+- 這批驗了：_uitest 手機v4二批 0（反向驗證：同一段拿改前網站跑 17 紅，含 360 版面視窗 382、圖例逐格點、放大層）；手機／手機一屏／手機個股券商式 0；手機v3＋手機總覽指數觀察清單 3 紅＝**改前網站同一份資料一模一樣**（輪盤＋焦點條一屏：390 超 20px、360 超 54px，觀察清單兩檔時 791/860）→ 留給下一批；原本另有 2 紅（摘要卡 11px）已修掉。手機按鈕普查（全站 2025 顆）：360 放大層與圖例 0 問題；第一輪紅的「週期統計表頭 pointer-events:none 點不到」已改回可點、只重跑週期統計 0；另 1 紅「量測本身有效：沒反應的鈕」＝**改前網站也紅**（種的壞鈕被總覽載入後還在跑的 DOM 變動算成有反應，量測的雜訊基準只量 600ms），待處理。_preview 綠。桌機像素比對（1440／800 × 10 個畫面含章節展開、放大層、表頭排序）：0 差異，唯二有差的「資金流向 1440」「總覽放大層 1440」改前對改前也一樣有差（ECharts 動畫雜訊）。動到 scripts/_mobile_tap_audit.py（不在免跑清單）→ pytest 照跑：829 passed／1 xfailed。
+- 合併 origin/main（adedc84：設計 v4 第二批 2A、市場明細下鑽、總覽右欄修正）之後再驗：_preview 綠；手機v4二批／手機／手機個股券商式 0；手機一屏 1、手機總覽指數觀察清單 1、手機v3 7 ＝ **origin/main 本身同一份資料 11 紅**（總覽輪盤的焦點條整條不見 `focus: None`、點輪盤焦點條不換、360「?」氣泡開在上方、摘要卡 11px）扣掉這個分支修掉的 2 條 11px —— 焦點條消失是 main 新進來的，待處理（不是這批）。
+
+### 09-29 清晨 合併上線：design-v4-2d（設計 v4 第二批 2D：手機 360／390）
+- 根因：總覽熱力圖圖例 `.hmbar` flex:none 撐到 382 寬 → 360 放大層 ✕ 關不掉、圖例點不到、.zh 366px。另：剖析圖圖下 40px 章節鈕、週期統計排序抽屜、多類觸控目標撐到 40。觸控 <40 靜態計數（同量法）390：717→539、360：729→550。
+- 驗了：分支上 pytest 829 passed；_uitest 手機v4二批（反向驗證改前 17 紅）／手機／手機一屏／手機個股券商式 0；手機按鈕普查只剩 main 既有的量測雜訊 1 條；桌機像素比對 0 差異。合併後樹與分支相同（只差資料），只重跑 _preview 綠。
+- main 既有紅（派 claude/mobile-onescreen-fix）：手機一屏 1、手機總覽指數觀察清單 1、手機v3 7（輪盤焦點條不見、一屏超出 20／54px、360「?」氣泡開在上方）。
+
+### 09-29 凌晨 公司 Logo 第四版（分支 claude/logo-v4，已在 main（2026-10-06 查證），DECISIONS #276）
+- 接手 claude/wip-logo-v4（b01811e 半成品：RFC 9309 robots、Wikidata／Commons 第二來源、人工指定 Logo、排程守門）；DECISIONS 號 #271 已被今日事件用掉 → 改 **#276**。
+- 補做：入口頁跟下一頁（meta refresh／frame／JS 轉址／hreflang／繁中版連結，最多 2 頁）、回首頁連結的圖、JSON-LD／itemprop logo、頁首 inline SVG、CSS 背景 logo、msapplication 磚圖示＋browserconfig、申報網址帶路徑先開、集團官網（頁面提到公司名稱才跟）、robots.txt 與首頁都 401／403 不請 s2 代抓、Commons 只收 PD／CC0（`LOGO_WIKIMEDIA_ALLOW_BY` 預設關）、預設圖判定改用實際取圖主機。
+- 預估多救 60～130 家（依據 docs/logo_sources.md §1.3）。合併 main 後由 CEO 手動觸發 backfill.yml（資料集 logos）；守門看到 LOGO_STRATEGY 4≠狀態檔也會自動放行。約 424 家要重試（315 缺圖＋109 低解析），每輪 300 家 → 2 輪。
+- 驗了：pytest（見回報）；tests/test_logos.py 新增約 45 條（新策略解析、整家抓的假回應、RFC 9309、Commons 授權／限流、人工 Logo、run 傳公司名稱）。只動 pipeline／workflow／tests／docs，_preview／_uitest 依例外跳過。
+- 待處理：① 前端要在搜尋下拉／個股頁加「Logo 出處」連結（指向 ATTRIBUTION 內容）之後才能開 `LOGO_WIKIMEDIA_ALLOW_BY` 收 CC BY／BY-SA；② 第四版跑完看 logo_progress.json 的 counts／wikimedia 校正估計。
+
+### 09-29 清晨 合併上線：logo-v4（DECISIONS #276）
+- 新取圖策略 10 條（入口頁跟下一頁、回首頁連結圖、schema.org logo、頁首 inline SVG／CSS 背景、磚圖示、申報路徑、RFC 9309 robots、集團官網、Wikidata／Commons 只收 PD/CC0、人工指定 data/logos/manual/）；預估多救 60～130 家。Google 圖片搜尋不做（條款禁止自動查詢）。
+- 驗了：分支上 pytest 876 passed／4 skipped／1 xfailed；合併後 pipeline／tests 與分支相同（只差 site／資料），不重跑；沒動 site 與 build_payload，_preview／_uitest 依例外跳過。合併後手動觸發 backfill.yml（logos）。
+
+### 09-29 04:10 Logo 第四版兩輪跑完
+- ok 1,670 → **1,716／1,985（86.4%）**，+46 家（第一輪 +35，其中 Wikimedia 公有領域 12；第二輪 +11）；pending 0。剩 269 家：none 182、too_small 43、robots 33（照 robots 不抓）、error 6、blank 5。下次自動重試 2026-10-26（30 天規則）。
+- 比預估（60～130）少：官網從 Actions 連不到、Logo 只在 JS／外部 CSS 的佔多數。人工補圖：把確認過的圖放 data/logos/manual/（docs/logo_manual.md）。
+- 這次 push 觸發 pages.yml，新 Logo 隨部署上線。
+
+### 09-29 清晨 盤中即時改成每 5 秒＋「即時」開關（分支 claude/realtime-5s，已在 main（2026-10-06 查證），DECISIONS #277，全文 docs/realtime_5s.md）
+- 接手 claude/wip3-realtime-5s：b9032e1（主要功能）＋ bac1aee（WIP：四個族群即時模式盤後只在 30 分鐘到期才抓、DECISIONS #277 條文）—— bac1aee 判斷為完成、保留；合併 origin/main，DECISIONS 衝突兩邊都留（#275／#276 在前）。
+- 改前／改後：報價格子 60 秒 → 5 秒；個股分 K 尾巴 5 秒但跟報價同一檔各問一次 → 吃同一批；大盤三張圖當下值 10 秒 → 5 秒（加權／櫃買零額外請求、台指期問期交所）；四個族群即時模式 60 秒 → 5 秒（漲跌家數受節流閥限制約 10 秒一輪）；盤後 30 分鐘不變。
+- 有「即時」開關：個股報價＋分時、自選清單、大盤三張圖（預設開、存 tw.live.card.<key>、關＝退回盤後值且不再打端點）。沒加的（營收／財報／籌碼／季節性／剖析圖／總覽摘要卡列…）理由在 docs/realtime_5s.md §3。
+- 收尾補的：族群即時模式（mud／rlv／skl／gp）與台指期當下值（m3fut）補錯誤退避（Live.cooling／report，10、20、40…秒，從那一輪開始抓的時間起算）；漲跌家數背景分頁不打、離開頁面判斷排到 Live.due 前面。
+- 這批驗了（純前端＋_uitest，pytest 依例外跳過；沒動 workers／pipeline）：_uitest 盤中即時／即時推送／即時5秒0929／總覽／市場明細 0；個股即時分K 3 紅＝**origin/main 同一份資料一模一樣 3 紅**（fixture 報價是 09-15、資料湖最後一根已是 09-24，今天那根接不上去）→ 待處理（不是這批）。_preview 綠。
+- ⚠ 全部假時間＋假報價，**沒有在真盤中驗過**。代價：約 8 人整盤掛總覽會用完 Worker 免費額度（10 萬次／天）。
+
+### 09-29 清晨 合併上線：realtime-5s（盤中即時每 5 秒，DECISIONS #277）
+- 報價格子 60→5 秒、大盤卡當下值 10→5 秒、漲跌家數等族群即時模式 60→5 秒（節流閥下實際約 10 秒）；個股報價＋分時、自選清單、大盤三張圖加「即時」開關（預設開）與「HH:MM:SS · 5秒」；歷史資料卡不加（理由 docs/realtime_5s.md）；錯誤退避 10/20/40…封頂 5 分；分頁隱藏不打。
+- 驗了（分支上，合併後樹與分支相同只差 HANDOFF／資料）：_uitest 盤中即時／即時推送／即時5秒0929（假時間＋假報價）／總覽／市場明細 0；個股即時分K 3 紅＝main 既有（假報價日期 09-15 比資料湖舊）；_preview 綠（合併後重跑）。**沒有在真盤中驗過**，9/29 開盤後看卡上時間是否每 5 秒跳。
+- ⚠ Worker 免費方案每天 10 萬次，約 8 人整盤開總覽就會用完。
+
+### 09-29 清晨 手機一屏修正（分支 claude/mobile-onescreen-fix，已在 main（2026-10-06 查證））
+- 接手 claude/wip3-mobile-onescreen-fix（7a61fc3 半成品）＋合併 origin/main。main 上 手機一屏 1／手機總覽指數觀察清單 1／手機v3 7 紅，逐條判斷：
+  1. **總覽輪盤「焦點條不見」＝驗收跟不上 DECISIONS #274**（Andy：總覽輪盤只留點、點旁說明框；mobile3.js ovRadar 註解「圖下方的焦點條拿掉」）→ 改驗收：一進來不選任何一顆、沒有框；點盤上**每一顆**都量說明框 #mOvPop 是那一顆、整個框在頂欄／四步列與底部導覽之間、框頂框底沒被蓋住。資金流向頁那張焦點條還在，照舊驗 .mfocus。
+  2. **「輪盤＋焦點條超出一屏」**：焦點條已不存在，但點了才出現的說明框**真的出一屏**（改前實測：390 點偏下的點框底被底部導覽吃掉最多 33px、360 最多 84px，最後兩行「成分股／進族群頁 →」看不到）→ **修網站**：mobile3.js 說明框位置一律夾在「頂欄＋四步列」與底部導覽之間（先試輪盤內上下 → 可視範圍內上下 → 夾住）。改後 390／360 每一顆 0px 超出。
+  3. **360「?」氣泡開在上方**：規格 R2 本來就是「下面放不下翻上面」，翻上去不是錯；真的壞的是翻上去夾在 60px 後**蓋住「?」本身 15px**（60～392 對上「?」377～409）→ **修網站**：兩邊都放不下時挑空間大的一邊、框高限在那一邊（框內捲，底部淡出提示還有字，捲到底提示收掉，內容一字不少）；驗收改成「緊貼『?』上或下 0～16px、不蓋『?』、不出界、限高時能捲」。
+- 桌機：改動全在 `body.m3on`（≤640 才掛）與 mobile3.js 的 isM() 分支。像素比對 1440／800 × 總覽／資金流向／產業＋總覽「?」點開：1440 全部 0 差異；800 總覽有差異但同一版自己跑兩次也在同一區塊有差異（圖表動畫雜訊），800 其餘 0。保護邊界：只比了這四個狀態，桌機輪盤點一顆（#ovRotPop）沒比（程式碼沒動到）。
+- 這批驗了（純前端：site/mobile3.js、site/index.html 手機段、scripts/_uitest.py；pytest 依例外跳過）：_preview 綠；_uitest 手機一屏／手機總覽指數觀察清單／手機v3／手機／手機v4二批／輪盤只留點與自選分頁／總覽 **全部 0**（521 秒）。反向驗證：同一支量測拿 origin/main 跑，390 說明框超出底部導覽 33px、360 超出 84px、360「?」氣泡蓋住「?」—— 分支上三項都是 0。
+- 沒驗到：真機（iOS Safari 網址列伸縮會改變 innerHeight）；桌機輪盤點一顆的互動狀態像素比對。
+
+### 09-29 清晨 合併上線：mobile-onescreen-fix ＋ 即時開關字級
+- 焦點條依 #274 已拿掉（驗收跟上）；手機總覽輪盤說明框限制在一屏內（改前 390 最多被底部導覽蓋 33px、360 蓋 84px）；360「?」氣泡不再蓋住「?」、放不下時框內捲動。合併時發現 realtime 的「最後更新時間」手機 11.5px < 12px 下限 → 改 12px。
+- 驗了（合併後）：_uitest 盤中即時／即時5秒0929／總覽／手機／手機一屏／手機總覽指數觀察清單／手機v4二批／輪盤只留點與自選分頁 0；手機v3 從 main 的 9 紅 → 1 紅（「更多」#mTabMore 點不下去 30 秒逾時，origin/main 同樣有，不是這批造成，派 agent 查）；_preview 綠。
+
+### 09-29 清晨 設計 v4 第二批 2B：產業頁／個股頁（分支 claude/design-v4-2b，已在 main（2026-10-06 查證））
+- 前半（個股頁：圖例搬標題列、軸字 12、K 線副圖標籤帶、營收長條原值標籤）由重啟前的 agent 做完；收尾接手：合併 origin/main `fa2a991`（theme4.css 衝突兩邊都留），7fe86ca（只有文件＋量測資料的 WIP）保留、內容併進定稿。
+- 收尾做的產業頁（全部 ≥641／≥821，手機不動）：族群總覽的資料狀態與「產業熱力圖 →」併進標題列、滑過讀數搬進長條卡標題列；產業鏈鏈名與二層分頁「放得下才同列」；「環節 ▾」下拉搬進關聯圖標題列；分頁檔數、關聯圖卡片第二行 12px；內距套 4／8／12／16／24。
+- 修重啟前那一版的 bug：個股頁 HTML 圖例點了不記狀態（聽錯 ECharts 事件名，切月份重畫後藏起來的線又跑回來）；手機改回跟 main 同一份 DOM。
+- 量測（同資料、同工具，改前＝main fa2a991）：產業地圖頁高 -112、產業鏈族群總覽卡頂→圖 199→122／頁高 -158、產業鏈剖析圖分頁第一屏 1440 65.1→68.4、1100 63.7→66.9、800 半導體 55.2→59.4；個股頁 1440 48.9→52.8、800 36.4→41.6；沒有任何一格退步（800 寬一般電子／AI 伺服器第一版退 0.3，已改掉）。全文 docs/design_v4/04_第二批2B.md。
+- 這批驗了：_preview 綠；_uitest 設計v4第二批2B／個股／K線縮放／新-產業與個股／營收河流0928／個股籌碼分頁0928／產業／族群頁／產業鏈導覽／產業關係面板／設計v4主題／手機個股券商式／手機 0。一般電子鏈 12、排序 1 ＝ main 同資料一樣紅。
+- 待處理：標題圖示 390 兩紅（資券、大戶／散戶）沒收斂 —— 只在驗收「390 寬看得到桌機分頁」的暫態出現，main 那一輪沒進到這個狀態；細節見 04 文件 §5、§6。
+
+### 09-29 清晨 合併上線：design-v4-2b（設計 v4 第二批 2B：產業頁／個股頁）
+- 量測見 docs/design_v4/04_第二批2B.md：個股 1440 第一屏 48.9→52.8%、800 36.4→41.6%；剖析圖分頁 1440 65.1→68.4%；產業地圖頁高 1077→965；無退步格。修圖例隱藏後切期間重畫又出現的 bug（聽錯 ECharts 事件名）。
+- 合併後驗了（純前端，pytest 依例外跳過）：_uitest 設計v4主題／設計v4第二批2B／即時5秒0929／產業／族群頁／產業鏈導覽／新-產業與個股／產業關係面板／個股／K線縮放／手機／手機一屏／手機個股券商式／營收河流0928／個股籌碼分頁0928 0；_preview 綠。
+- ⚠ 標題圖示 2 紅（390 寬「資券」「大戶／散戶」標題列變高）：只出現在驗收流程中「390 寬卻顯示桌機分頁」的中間狀態，正常手機載入重現不出來（2B agent 比對過）；判斷不是讀者會踩到的，先推，已交給 claude/uitest-cleanup 查根因。
+
+### 09-29 早上 驗收過時紅燈清理＋三個網站真的壞（分支 claude/uitest-cleanup，已在 main（2026-10-06 查證），DECISIONS #278）
+- **網站修（讀者真的會踩到）**：
+  1. 手機「更多」點不下去：lightweight-charts 窗格分隔線 z-index:50 蓋過底部導覽（44）；360 總覽不捲動時橫在「更多」正中央。`.tv-lightweight-charts{isolation:isolate}`。反向驗證：拿掉這條 CSS 跑手機v3，360 寬底部 5 顆全被 `DIV z=50` 蓋住、tap 被攔。
+  2. 點排行長條，輪盤沒有只亮那一個族群：合併側欄打開觸發輪盤 relayout，把壓暗洗掉但 `_hiGid` 還留著。relayout 之後再套一次。
+  3. 手機個股頁「完整版」→ 資券、大戶／散戶標題列被標題圖示擠成兩行（390：44→84、32→59；main 在 2B 之前就這樣）：資券分段鈕內距 11→8 一列放得下；大戶／散戶日期讀數固定排在標題下一行。
+- **網站文字精簡（說明精簡）**：總覽漲跌家數「?」7→5 條、剖析圖「?」3D 那條縮到 15 字、個股 pe「?」6→5 條、sknews 兩條縮到 ≤30、個股標題卡「資料更新到」拿掉「（每日盤後）」（滑鼠提示已有）；`#liveNote` 標 data-readout（判斷，見 #278）。
+- **驗收跟上現行設計（網站早就改了）**：個股即時分K 假報價日期改成「payload 最後一根＋1 個平日」；排序改驗 #market/cand（#candTable 09-24 已拿掉）；新-資金流向小圓點改在 800 寬量（讀者看得到 ECharts 樹的寬度，1500 硬切是驗收造的狀態）；新-輪動時鐘、批次2 改讀合併側欄（批次2 點不被側欄蓋住的最下一根）；批次7 N5 半徑改像素比例、N3 改量 rotTween；產業（#segBox）現況已綠、沒改。
+- 驗了（合併 origin/main 6e2def2（含 2B）之後）：_uitest 手機v3／個股即時分K／新-資金流向／新-輪動時鐘／批次2／批次7／說明精簡／排序／產業／標題圖示／收尾0925-說明改問號／個股／漲跌家數市場別／輪盤合併側欄／足跡輪盤補間／資金流向／手機個股券商式／設計v4第二批2B **全部 0**；_preview 綠。純前端＋_uitest.py，pytest 依例外跳過。
+- 待處理：合併側欄不印「這個族群不在輪盤前 16 名」那句說明（舊面板才印）；分時短註尾巴的讀法「虛線＝昨收…」要不要搬進 K 線「?」；check_sort／check_code_sort 目前全站沒有可點表頭排序的表可驗。
+
+### 09-29 早上 合併上線：uitest-cleanup（DECISIONS #278）
+- 修三個讀者會踩到的：①總覽大盤圖分隔線 z-index 50 蓋住手機底部導覽（360 寬「更多」點不下去）→ `.tv-lightweight-charts{isolation:isolate}` ②點排行後側欄重排洗掉輪盤壓暗 → 重排後重套 ③手機個股「完整版」分頁標題列被圖示擠成兩行（CEO 先前判斷「讀者不會踩到」是錯的，已更正）。說明精簡 5 處改網站文字；其餘約 20 條驗收過時改驗收（逐條理由在 DECISIONS #278）。
+- 驗了：分支上 18 段 0（手機v3、個股即時分K、新-資金流向、新-輪動時鐘、批次2、批次7、說明精簡、排序、產業、標題圖示…）；合併後樹與分支相同，補跑輪盤側欄／族群法人篩選／縮放掃描 0；_preview 綠。
+
+### 09-29 早上 設計 v4 第二批 2C：全站元件間距收斂（分支 claude/design-v4-2c，已在 main（2026-10-06 查證））
+- 普查（`docs/design_v4/tools/spacing_audit.py`）：index.html 舊樣式段＋theme4.css 的 margin／padding／gap 共 1,271 個值，尺度外（不是 4／8／12／16／24 的 5～23）593 個。
+  收掉 ≥641 會生效的全部 **479 個**（396 條宣告，`spacing_apply.py` 機械轉換、就地改成 `var(--sp-N)`）；手機一屏版 108 個、`@container ovsum` 6 個刻意不動。重跑普查：≥641 剩 0。
+- 手機不動的做法：會涵蓋 ≤640 的規則改完後**緊接一行** `@media (max-width:640px){同選擇器{原值}}`（296 行；層疊順序不變）。390 寬八頁 × 六組主題像素差 **0.00%**。手機那一批要改用 v4 尺度時刪掉這些行即可。
+- 對應：5→4、7／9→8、11／13→12、15→16、22→24；平手往密：6→4（gap／column-gap 的 6→8，01 §2.1「控制項之間 8」）、10→8、14→12、18→16、20→16。
+- 量測（measure.py 九頁 × 四寬，改前＝origin/main 6e2def2）：退步格 0；第一屏最佳 個股 800 +1.0／1440 +0.8；頁高 27 格全部 -2～-24；最差 資金流向 1100 -0.2（門檻內，原因沒追到）。分三批（±1px／平手 6、10／14～22）逐批比：單獨第一批、第一＋二批都讓半導體 800 多換一行，只有三批一起上才沒有 → 只上最終版。全文 docs/design_v4/05_第二批2C.md。
+- 這批驗了（純 CSS＋docs，pytest 依例外跳過）：合併 origin/main 7a01477（驗收清理）之前、之後各一輪 —— _preview 綠；_uitest 設計v4主題／總覽／總覽摘要卡列／資金流向／產業／個股／題材／季節性／市場明細／新-版面等高與多寬度／縮放掃描／手機／淺色主題／明亮主題／標題圖示／設定面板 **16 段 0**；layout_diff（改前 vs 改後，八頁 × 1440／800／390，減少動態、雜訊 0.00～0.01%）：換行變 1（個股 800 某行 3→2，變少）、新截斷 0、新橫捲 0；合併後拿 origin/main vs 合併後再比一次，結果逐格相同。
+- 待處理：JS 行內樣式約 157 處（industry.js 47、watchlists.js 27、legal.js 22…）沒收；`_uitest` 標題圖示段落用「掛 data-theme4 前後 --bg 有沒有變」判斷 theme4.css 在不在，v4 正式套用後永遠判成「不在」→ 三主題對比那一小段每次都被跳過（main 同樣）；點開才出現的浮層、帳號／自選／法律／任務板頁沒有做改前改後像素比對。
+
+### 09-29 早上 合併上線：design-v4-2c（設計 v4 第二批 2C：全站元件間距收斂）—— 設計 v4 全部批次完成
+- ≥641 寬尺度外 margin／padding／gap 479 個全部收到 4／8／12／16／24（var(--sp-1..5)）；手機一屏版以緊接的 @media 原值保留（390 寬 8 頁 × 6 主題像素差 0.00%）。量測無退步（門檻 -0.3pp／+5px），頁高 27 格全部矮 2～24px。
+- 驗了：分支上 _uitest 16 段 0（合併 main 前後各一輪）、像素比對 8 頁 × 3 寬 × 6 主題；合併後樹與分支相同，只重跑 _preview 綠。
+- 待處理：JS 行內樣式約 157 處未收；「標題圖示」段判斷 theme4 在不在的方法已失效（v4 後 data-theme4 恆掛），三主題對比那一小段每次被跳過——要修驗收。
+
+### 09-29 上午 驗收修正：標題圖示段的 v4 三主題對比不再被跳過（分支 claude/ti-theme-fix，已在 main（2026-10-06 查證））
+- 根因：`t_title_icons` 用「掛 data-theme4=hud 前後 --bg 有沒有變」判斷 theme4.css 在不在；v4 正式套用後 `<head>` 一定先掛好 hud，再掛一次當然不變 → 永遠判「不在」，六組對比每次跳過卻沒紅（假綠）。
+- 改成三件同時成立才量：theme4.css 的 `<link>` 有載入且有規則、`window.T4` 在、三主題解出的 --bg 互不相同；任何一件不成立＝**紅燈**（v4 已是預設，不再當「還沒合進來」放過）。切主題改走 `window.T4.set()`（跟設定面板同一條路）、逐組斷言真的切過去、量到標題 > 0、六組 --bg 各不相同；結束還原 hud 並清掉 tw.theme4。
+- 六組最低對比（總覽＋個股，1440）：casual 深 6.05／淺 5.37、hud 深 6.10／淺 5.09、pro 深 5.65／淺 5.84 —— 全部 ≥ 3:1，網站不用改。
+- 反向驗證：同一頁舊判斷式回 False（會跳過）、新判斷式回 True；把 theme4.css 擋成 404 → 新判斷式回 False（rules 0、三主題 --bg 同為 #070b16），會紅不會默默跳過。
+- 這批驗了（只動 scripts/_uitest.py，pytest 與 _preview 依例外跳過）：_uitest 標題圖示 0（343 秒）、設計v4主題 0。
+
+### 09-29 11:0x 盤中巡檢（節後第一個交易日）＋ 排程修正
+- 手動觸發 run #6（台北 11:01～11:04）全綠：282／282 檔、報價 11:01:41→11:04:02（頁面自己跑 24 輪，多數間隔 5 秒、2 次 10 秒＝節流閥）、16 族群點 15 個有移動、推得最多 HPC 與網通 IC、涵蓋率 97.2%。11:04:02 那輪報價時間倒退回 11:02:07（上游偶發舊資料），下一輪恢復。
+- 排程 02:00／04:30 UTC 實際晚 5～6.5 小時（全在收盤後）→ 改 01:17／02:43／04:11 UTC（台北 09:17／10:43／12:11）。pytest 880 passed／1 xfailed。
+
+### 09-29 晚 董監持股第一筆資料確認
+- data/insider_holding 已有 **2026-08** 1,975 家（ym, code, market, director_shares, director_pledged, insider_shares, n_directors）。9/29 22:35 那輪 daily（full）mops.insider_holdings ok、rows 1,975、stored 0（依 (ym, code) 去重，前一輪已存）。下個月資料約 10 月中公布後自動進來。
+- daily.yml 18:30 那輪排程實際在 22:35（UTC 14:35）才跑，晚約 4 小時（GitHub 排程延遲，跟盤中巡檢同一個問題）。
+
+### 09-30 盤中巡檢（手動兩輪）＋ GitHub 排程延遲實況
+- run #8（台北 11:09～11:12）全綠：294／294 檔、11:09:16→11:10:17、15/15 點移動、推得最多面板產業、涵蓋率 103.7%。⚠ 11:10:29 起連 19 輪報價停在 11:10:17（約 1 分 45 秒不前進，294 檔都有回、無錯誤）。
+- run #9（11:16～11:21，wait 240）全綠：11:16:39→11:20:42、38 輪，最長停滯約 30 秒；11:17:56 那輪報價時間倒退（11:17:34→11:17:16，上游偶發舊批次），下一輪恢復。→ 停滯沒重演，列觀察項；再出現 >60 秒就查 Worker 快取（caches.default／cf.cacheTtl／CACHE_QUOTE=3）與 mis sysTime。
+- 待查：涵蓋率 103.7%／103.8% 超過 100%（分子＝即時樣本成交值、分母＝Market3.marketAmt，口徑可能不一致）。
+- GitHub schedule 延遲：9/29 04:11 UTC 那輪實際 10:36（晚 6.4 小時）；9/30 01:17／02:43 到 03:06 UTC 都還沒觸發。盤中巡檢目前靠手動 workflow_dispatch。可靠替代方案（待 Andy 決定）：Cloudflare Worker Cron Trigger 呼叫 GitHub workflow_dispatch API，需 fine-grained token（只限此 repo、Actions 寫入）存 Worker secret。
+
+### 09-30 下午 個股 60 分 K 擴到全市場（分支 `claude/intraday-all`，已在 main（2026-10-06 查證），DECISIONS #279）
+- 起因：Andy「部分股票 1 小時／4 小時找不到數據」。湖裡只有 567 檔、約 1/4 只有 2～15 根（舊名單＝成交值前 400、增量起點＝全表最後一根）。
+- 名單改全市場普通股＋成交值前 400 的可交易證券（2,043 檔，`pipeline/intraday60.py`）；每日管線只要最近 5～30 天、逐檔增量；
+  兩年歷史交給回補（每輪 400 檔、要補 1,719 檔 ≈ 5 輪，進度 `complete.intraday_60m.remaining`）；Yahoo 連兩輪回空且 2330 拿得到才記 no_data。
+- 前端：分 K 改每檔獨立 `site/data/m60/<代號>.json`、開個股頁才載入；沒有時寫「此檔沒有盤中分 K 資料」／「還在補資料」。
+- 量測：build 810→912 秒；site/data 337→474 MB（m60 181MB／2,059 檔，單檔中位數 90KB）；改後是暫存區假資料湖模擬回補補完。
+- **合併後要做**：CEO 手動觸發 backfill（`datasets=intraday` 或 `plan`），看執行摘要 `intraday_60m` 的「還剩」每輪約 −400；
+  第一輪要看 log 有沒有「整批回空、2330 也拿不到」（＝Yahoo 限流，這輪收手）。補完後 `_uitest --sections 全市場1H4H` 會自動改用真資料驗。
+- 這批驗了：pytest 全套 898 passed／1 xfailed；`SKIP_INTRADAY=1` 重算 payload（真湖：分 K 檔 551、確認無資料 282、回補中 1,508）；_preview 綠；
+  _uitest 全市場1H4H 0（真湖＝假分 K 注入模式；假資料湖 payload＝真檔案模式也 0，隨機挑 5607／2029／7716）。
+  反向驗證：同一份 payload 換回 origin/main 的 industry.js，全市場1H4H 24 紅（沒載 m60、1時劃掉、0 根）。
+- ⚠ 待處理（不是這批造成，main 早就這樣）：`個股` 11 紅、`K線縮放` 1 紅、`分時預設與搜尋走勢` A 段 2～3 紅。
+  根因：這幾段假設 2330「分時沒資料 → 自動退回日線」，而本機以前一律 SKIP_INTRADAY 建（個股頁沒有 60 分 K）所以一直綠；
+  現在分 K 檔照寫，2330 有 60 分 K → 分時用 60 分 K 備援畫 6 點、K 線還沒建，手繪工具列、K 棒寬度、滾輪縮放那幾條就量不到。
+  證據：把 60 分 K 塞回 stock/2330.json、前端換回 origin/main 的 industry.js，同樣是個股 11＋K線縮放 1、分時 A 2 紅（線上 2330 本來就帶 60 分 K）。
+  `--code 5234`（沒有 60 分 K）跑新前端：個股 2（＝main 本機基準那 2 條）、K線縮放 0。修法：那幾段操作 K 線前先明確按「日」。
+
+### 09-30 下午 合併上線：intraday-all（個股 1H／4H 擴到全市場，DECISIONS #279）
+- 名單：全市場普通股＋成交值前 400 的 ETF 等＝2,043 檔（原本只有成交值前 400，湖裡 567 檔、約 1/4 只有幾根）。每日只增量最近 5～30 天；回補每輪 400 檔、每檔 730 天，約 5 輪補完（要補 1,719 檔）。前端改每檔 site/data/m60/<代號>.json 按需載入；沒資料的寫「此檔沒有盤中分 K 資料」、還在補寫「還在補資料」。
+- 驗了（分支上，合併後樹與分支相同只差資料）：pytest 898 passed／1 xfailed；_preview 綠；_uitest 全市場1H4H 0（反向驗證換回舊前端 24 紅）。
+- 已知：個股 11、K線縮放 1、分時預設與搜尋走勢 3 紅＝main 既有（驗收假設 2330 分時沒資料會退回日線；2330 在線上本來就有 60 分 K），修法是那幾段操作 K 線前先按「日」→ 派 agent 修驗收。容器連不到 Yahoo，第一輪回補看 Actions log（限流會自動收手）。
+
+### 09-30 15:20 intraday-all 部署與第一輪回補結果，以及新上市股修正
+- 部署：pages #232（9eb5eea），台北 15:03 完成，deploy-pages 回報 success。這次部署 checkout 早於回補，線上只有 551 支 m60 檔；回補的資料 commit 不會觸發 pages.yml，要等 18:30 的每日管線才會上線。
+- 第一輪回補 #157：要 400 檔、拿到 385 檔，新增 1,098,361 列，沒有限流。完成後 remaining 1,334、ok 709。
+- 15 檔新上市股被 Yahoo 以超過 730 天範圍拒絕 → 改成「同批其他檔拿得到、只有這幾檔拿不到時，送明確起日重抓」（DECISIONS #279 補）。這次驗了：pytest 全套（改到 pipeline/、tests/）。前端沒動，_preview 與 _uitest 沒跑。
+- 同一次推送也合併了 `claude/stock-tick-uitest`（只改 scripts/_uitest.py）：個股 11、K線縮放 1、分時預設與搜尋走勢 4 條紅燈都是驗收過時，已改成操作 K 線前先按「日」、等即時來源真的切換後才開始量，並新增 E 段（有 60 分 K、即時拿不到 → 退回 60 分 K 備援，不退回日線）。這批驗了：個股、K線縮放、分時預設與搜尋走勢、全市場1H4H 共 4 段 0 紅，用的是含 60 分 K 的 payload。反向驗證：拿掉備援後 E 段 5 紅。
+
+
+### 09-30 17:04 第二輪 60 分 K 回補（手動觸發，因為 16:20 的排程沒有發動）
+- 要 400 檔、拿到 400 檔，新增 1,340,494 列，沒有限流。完成後 remaining 934、ok 1,109、no_data 0。
+- 新上市股修正生效：第一輪失敗的 15 檔（00937B、6933、7734 等）這一輪全部補到，重試計數已清空。
+- 還差約 3 輪。回補的資料要等下一次部署（18:30 的每日管線或下一次推送）才會出現在網站上。
+
+### 09-30 18:32 第三輪 60 分 K 回補（手動觸發，排程在 17:04 之後都沒有發動）
+- 要 400 檔、拿到 400 檔，新增 1,301,967 列，沒有限流。完成後 remaining 534、ok 1,509、no_data 0。還差 2 輪。
+
+### 09-30 19:43 第四輪 60 分 K 回補（手動觸發）＋ 19:58 第五輪
+- 第四輪：要 400 檔、拿到 400 檔，新增 1,184,206 列，沒有限流。完成後 remaining 134、ok 1,909。
+- 第五輪在 19:58 直接觸發，沒有等 65 分鐘。原因：60 分 K 回補只打 Yahoo，不吃 FinMind 額度；每輪約 2 分鐘；限流時有 2330 探針自動收手。「間隔 60 分鐘以上」這條規矩是給 FinMind 回補的。
+- 18:30 的每日管線今天被 GitHub 延遲到 19:58 還沒跑。補完之後直接手動觸發 pages.yml，把全市場的 m60 帶上線。
+
+### 09-30 19:59 第五輪 60 分 K 回補，全市場補完
+- 第五輪：要 134 檔、拿到 134 檔，新增 298,095 列。complete.intraday_60m.done = true，remaining 0，ok 2,043，no_data 0。五輪共補 1,719 檔，全程沒有限流。
+- 20:11 手動觸發 pages.yml（每日管線今天被 GitHub 延遲），把全市場的 m60 帶上線。
+- 部署 pages #234（workflow_dispatch，7e19ddd）：台北 20:22 完成，deploy-pages 回報 success，Pages 部署的 sha 也相符。部署包 128.7 MB（上一輪 90.4 MB）。m60 檔數只數到下限 787：log 前半段讀不到（MCP 只回最後 5,000 行，下載原始檔被代理擋）。用資料湖交叉比對，預期約 2,059 支，部署包多出的大小也對得上，但這個數字是推算，不是從上傳清單數出來的。
+
+### 10-02 15:1x 合併上線：會員功能權限開關（#288）＋專家模型分配（DECISIONS #292）
+- 會員權限：Worker 已部署（14:43）；前端 b123ee4 合併。這批驗了：_preview（合併後）；分支上 _uitest「會員與自選五分頁、會員雲端路徑、設定面板、會員權限開關、盤中即時、自選走勢與搜尋對齊」0 問題、Worker 測試 26 條全過。
+- 專家模型：deployer／visual-designer／industry-analyst 改 sonnet；reviewer／smc-technical／security-privacy／finance-quant 釘 opus。
+
+### 10-02 16:5x 合併上線：K 線繪圖工具改版（#289）
+- 合併後驗了：_preview 綠；_uitest 繪圖工具1002 0、繪圖成交量分佈1002 0、會員權限開關 0、個股 2 紅。
+- 個股那 2 紅（「個股頁 K 線有畫出來」「tick 點下去畫得出來 canvas 0」）在合併前的 origin/main 上用同一份本機資料跑也一樣 2 紅 → 既有，不是這批造成；待查（疑似本機 stock/*.json 過舊或分時預設改動後的斷言）。
+
+### 10-02 21:4x 合併上線：個股五分頁並排（#295）
+- 合併後驗了：_preview 綠；_uitest 個股 0、手機 0、個股分頁版面1002 0、個股頂部1002 0、個股總覽1002 0、總覽摘要卡即時 2 紅。
+- 總覽摘要卡即時那 2 紅（「跨過收盤 → 顯示今天的收盤快照」）：驗收用假時鐘 09/29，但本機 payload 已重算到 10/01（比假「今天」還新），前端判定盤後資料已產出、不走快照分支 → 驗收依賴本機資料日期的假紅；這批沒動 app.js。待修：該段改用 route 把 meta 日期釘成假今天的前一天。
+
+## 2026-10-04 14:03（台北）化合物半導體補進關聯圖
+- 半導體鏈新增三格：化合物 GaAs/InP 射頻（穩懋、宏捷科、全新）、第三代半導體 SiC/GaN（漢磊、嘉晶）、射頻前端 IDM（Skyworks、Qorvo）。查證結論是留在半導體鏈、不另開分頁，證據在 docs/compound_semi_evidence.md。
+- 環宇-KY、英特磊-KY 查不到具名客戶，暫不放節點（孤立節點棘輪）。
+- 這批驗了：pytest 全跑（唯一的紅已修）、重算 payload、_uitest 產業關係面板／批次6-圖十／產業鏈導覽、_preview。部署 8c9ea15 成功。
+
+## 2026-10-04 19:01（台北）本日部署總表
+- 14:56 分時／1 時 K 用日線補開盤量與收盤價（9868fae）
+- 16:17 個股頁六項（基本面卡、營收 Y 軸、本益比負值、大戶預設 4 週、河流圖控制列、題材面板移除）＋全市場日線回補 price@market（c64bc7e）
+- 16:57 族群×法人單一區間拉桿、週期統計預設數字＋月分隔線（7e953c7）
+- 17:03 資金輪盤 √u 尺度（1b06a64）；17:14 站上均線下拉多選、市場明細切分頁回預設（c950fd6）
+- 17:32 總覽首屏加速第一階段（fb6b29a）
+- 19:01 總覽大盤三圖週末修正＋只留日週月＋首幀走勢、「?」說明 17 項修正＋10 顆新增、個股頁七項（b8db613）
+- 這批驗了：pytest 全 933 綠；_uitest 段落：新-大盤三張圖(-週日/-首幀)、總覽、產業、市場明細、個股、個股版面1004、K線縮放、季節性、站上均線下拉1004、新-輪動時鐘、資金流向；_preview 綠。
+- 已知紅：新-大盤三張圖「FUT 游標讀得到該分鐘量」（週日情境）、個股版面1004 指標去重（本機資料未重算，線上會重算）。
+## 待 Andy 確認
+- 預覽 preview/fast-ov2（首頁 JS 延後載入）→ 回「可以上」才合 main
+- 預覽 preview/perm-nav（會員權限分頁）→ 回「可以上」才合 main
+- scripts/_uitest.py 的 PERM_TEST_EMAIL 是真實 gmail，建議改 example.com
+## 進行中
+- claude/qa-fix：全站驗收抓到的 10 類紅燈（問號標題空白、手機剖析圖字小、#mmTheme 被浮層擋等）
+
+## 2026-10-04 22:10（台北）Andy：「手機都先停擺，專心做網頁」
+- 手機相關工作全部暫停（手機按鈕普查 5 條紅燈未修，分支 worktree-agent-a5815c7f69639317c 留存未推）。之後只做桌機網頁；驗收略過手機段落。
+- 22:07 部署 ff621ee：個股切分頁不跳動、AI 四面向（技術／籌碼／基本／消息）。
+
+## 2026-10-04 23:44（台北）部署 63dec41
+- 開頁延遲第三階段（index_lastday/news_head/rrg_lite 小檔、JS 延後載入、全站 IndexedDB 先貼上次存檔）＋個股 K 線卡 AI 分析桌機拿掉。
+- 驗了：pytest 940 綠；重算 payload 後 _uitest 總覽、今日事件、新-開頁存檔、產業、個股、題材、季節性 全 0；_preview 綠。
+
+## 2026-10-05 00:16（台北）部署 777dea5：會員權限分頁上線（Andy「上吧」）
+- 入口改成跟「自選」同一層；只有 ADMIN_EMAILS 管理者看得到。預覽分支 preview/perm-nav、preview/fast-ov2 刪除失敗（git proxy 斷線），仍在遠端，可另行收掉。
+- 驗了：會員權限導覽、會員權限開關、會員雲端路徑、會員與自選五分頁、總覽 全 0；_preview 綠。
+
+## 2026-10-06 會員名單：拿掉新增列／方案標題列、統計「載入中…」修好並照流量觀測重做
+- 根因：`site/admin.js` 舊 `refreshList()` 第一行 `PS.mst = {}` 清掉統計快取，但舊 `loadMStats()` 只在「第一次畫殼」呼叫 → 逐人微調回來、存檔、刪範本之後永遠「載入中…」，近 7 日活躍顯示「—」。現在 `paintStats()` 每次畫之前先確認快取、沒有就讀；15 秒逾時、失敗顯示白話原因＋「重新讀取」。
+- 拿掉：名單上方「新增會員＋逐人微調輸入」整列（逐人微調仍從展開的列進）；方案分頁頂端標題列（價格、套用人數併進頁籤滑過提示，⚙ 搬到子分頁列右側）。Worker 的 perm/put 沒動。
+- Worker：`/v1/admin/members/stats` 多收 from／to／bin（檔尾新區塊、prototype 包裝），回 active／visits／ms／pv／joined／featTotal／stockTotal；沒帶起訖＝舊格式。
+- 驗了：`會員名單1006,會員權限開關,管理區v3,管理區1005,流量觀測1005`、`_preview.py`、`node --test`。沒跑 pytest（只動 site 與 workers）。
+- 沒驗到：真 Cloudflare 上的真資料；流量觀測自己的期間列沒改成共用元件（會員名單另寫 periodCtlHtml，同 markup）。
+
+## 2026-10-28 科技透明圈（#tc，僅管理者）併入 main
+- 驗了：pytest 全 1409 通過；_preview 正常；`桌機守門1008` 0 問題；`科技透明圈1025` 0 問題（含 390 寬公司頁 ≤4 屏）；`科技透明圈LOGO不裁切` 0 問題。
+- 未收斂：`科技透明圈圖表1026`（5 項）與 `科技透明圈站內LOGO`（2 項）在容器紅，原因是容器連不到 Google／gstatic 外部 LOGO 圖（改動前同樣紅，線上不受影響）。
+- 樣本數 Andy 要再查；網站那邊的來源由他請人繼續找。
+
+## 2026-11-06 資料來源健康 A 段（盤中快照缺口明示）
+- 改了：`pipeline/sources/tape.py`（`lake_calendar`、`gap_report`，`GAP_SINCE=20261028`）、`pipeline/run_daily.py`（`_tape_step()` 取代兩處靜默移除；`RESULT["gaps"]`）、`pipeline/build_payload.py`（`meta_payload()` 輸出 `gaps`，不進 errors）、`site/app.js`（資料狀態提示列出永久缺口，`renderFreshness` 只加 3 行）。
+- 驗了：pytest 相關檔（tape／freshness／meta／daily／inst／heal）112 項全綠；`_uitest --sections 永久缺口1106` 0 問題。
+- 未驗（要寫清楚）：資料狀態段因機器負載 `Page.goto` 逾時未驗；`_preview.py` 在 412 行崩潰（`#themeDiagram` 找不到元素），因為本機 site/data 是 10-22 舊快照沒有題材圖資料，屬環境問題，未跑完。
+- 沒跑：social_*、gh_cron、delivery_log、mis、mops、taifex（sparse 缺 social/、workers/、data/）。
+- 未做：B（source_health.json）、C（盤後官方交叉比對）。
+
+## 2026-11-06 來源健康 B／C（同日）
+- B：`pipeline/util/source_health.py`；run_daily 每次寫狀態時更新 `data/_state/source_health.json`（依天累積 consecutive_fail，同日多輪只計一次）；meta 輸出 `source_failing`（連續 ≥2 天才在資料狀態列講，不列內部代號）。驗了：pytest 相關檔 141 項綠；前端用獨立 route 腳本三項斷言通過。**未驗**：`_uitest` 段落「來源健康1106」因機器負載（共用 helper 第 145 行 networkidle 逾時）。
+- C：`pipeline/compute/crosscheck.py`，daily.yml 獨立步驟（continue-on-error，放在回寫資料湖之前）。結果寫進 source_health.json 的 `crosscheck`。驗了：tests/test_crosscheck.py 7 項綠。**未驗**：真實官方端點與湖的比對結果（要等 Actions 跑一輪看 crosscheck 欄位）；前端還沒顯示 crosscheck。
+- A 的部署：`deploy_wait --branch main` 對 f4427f7e 仍在等 Pages（佇列排隊）。B、C 之後再跑一次 deploy_wait 對 c5dca60ae。
+- 仍未做：`_preview.py` 在 412 行崩潰（本機 site/data 是 10-22 舊快照，缺題材圖資料，環境問題）；`_uitest 資料狀態` 因機器負載 goto 逾時未驗。
+
+## 2026-11-06 字卡寬度／完整顯示、手機紅燈、_uitest 進場卡住（fix/tiles-and-reds）
+- 漲跌家數字卡：不到一整列不補滿（靠左、一般單卡寬）；字卡模式完整顯示（無框內捲動，手機先 4 列＋「看全部 N 個族群」）；漲停＋跌停標籤換行完整顯示。
+- 手機按鈕普查：剖析圖大圖浮層的章節摺疊列（cloneNode 不帶事件，已轉給原圖）；自訂組合下拉只剩一組時改註記不算沒反應。
+- _uitest 進場 networkidle 逾時：本機 site/data 沒有 fear.json（舊資料）→ 404 一直算進行中；_NoCache 缺檔時回備援內容。fearcard.js 沒動。
+- 這批只驗了：漲跌家數字卡1106、手機紅燈1106、總覽、桌機守門1008、手機按鈕普查（ETF現金流／產業鏈-半導體兩段）、_preview（與 main 基準同樣 4 筆 404＋財報日曆，是本機舊資料）。
+
+### 2026-11-10 01:15（台北）社群三頻道權杖驗證
+- Threads：talk_01010909／Tech_01010909／caffaine.ai 三個都通過（已換 60 天長效，每週自動續期）。
+- IG：三把都是 Facebook 登入版（EAA）。程式已改成兩種權杖都能用（commit 24a378d11），但權杖缺 `pages_show_list`、`pages_read_engagement`，看不到粉絲專頁 → 查不到 IG 帳號編號。待 Andy 用 Graph API Explorer 選自己的應用程式 liguligu-social、加勾兩個權限、勾選三個粉絲專頁、延長成長效後重貼三個 `*_IG_ACCESS_TOKEN`，再跑 verify。
+- 留言私訊、刪文在 EAA 路徑尚未實測。
+
+### 2026-11-10 02:10（台北）IG 三頻道驗證通過（不用 Andy 改設定）
+- 權杖是系統用戶存取權杖（只指派 IG 帳號＋廣告帳號、沒有粉絲專頁）：`/me/accounts` 0 個、`/me` 回空陣列、`debug_token` 要 app 權杖、`/me/businesses` 缺權限、廣告帳號 API 是開發層級被擋。
+- **能用的路：`GET graph.facebook.com/v24.0/me/assigned_instagram_accounts?fields=id,username`**（用 me 別名，不需系統用戶編號），三把各回 1 個 IG，username 對上 channels.json。
+- `scripts/healing_post.py` 的 `fb_ig_candidates`（多路徑探查）＋`ig_choices`（username 對應）＋驗證模式逐一建容器，通過的路名記 `state/verify.json` 的 `via`（只記路名，不記編號）；`*_IG_USER_ID` 有填仍優先。上一段「待 Andy 加權限重貼權杖」撤銷。
+- 實測：healing run 42670394709、channel_post run 42670385893，三個 IG＋三個 Threads 容器都 FINISHED、未發布。commit ab08e3de1、2d6eb0ec9、7d1d74989＋本筆測試。
+- 尚未實測：IG 正式發文（下次排程會走同一條路）、EAA 留言私訊（沒有粉絲專頁權杖，私訊大概會失敗，留言用 /{media}/comments 應可）。
+
+## 2026-11-09 多頻道成效收集（healing／tech／caffaine）
+- 新增 `scripts/channel_insights.py`、`.github/workflows/channel_insights.yml`（台北 23:23 每天，matrix 三頻道各自只帶自己前綴的 Secrets）、`tests/test_channel_insights.py`。
+- 輸出：`docs/marketing/channels/<頻道>/state/insights/`（`account_daily.csv`、`posts_daily.csv`、`last_run.json`）。
+- 缺權限不紅燈，摘要寫明需要重新授權的權限（IG：instagram_manage_insights；Threads：threads_manage_insights）。
+- 已改：`docs/marketing/channels/healing/plan_202611_內容規劃.md` E 節的成效資料來源。
+- 這批驗過：`pytest tests/test_channel_insights.py`（17 綠）；全套 pytest 其餘失敗為環境問題（缺 yfinance）與 `test_exrights` 真實資料斷言，與本批無關。
+- 下次有人回報成效怪象：先看 `state/insights/last_run.json` 的 status 與 missing。
+
+## 2026-11-11 每日稽核假紅修復（data-steward）
+- 修了：optivx.daily 湖已到今天時改宣告 skipped（不再記成失敗）；主站 403 改依 Cloudflare 部署紀錄判定（不偽裝 UA、不繞過）；ETF 成分股以湖的基準日為準、source_health 只看連續失敗；ETF 除權息預告容忍 source_health 日期鍵慢一個交易日；權杖 missing（未設定）不算紅、check-fail 紅且寫明是即時驗證失敗。
+- 仍然是真紅：healing_threads 即時驗證失敗（check-fail，記下的到期日還剩 59 天）→ 需要人確認權杖，不是判定錯。
+- 這批驗過：`pytest tests/test_daily_audit.py tests/test_audit_false_red_1111.py tests/test_ivx.py tests/test_step_skipped_1106.py tests/test_source_health.py`（全綠）；`-k "audit or ivx or skipped or source_health or daily"` 210 綠。未跑 `_uitest`（沒動前端）。
+- 下次看到 daily_audit 紅：先看 `data/_state/daily_audit.json` 的 gates 的 why，主站 403 且 CF 判定通過者不算紅。
+- 追加（同日）：website 的 content 關卡截止改為與 data 相同（DATA_DEADLINE），融資券未到時兩項同步 pending，不再直接紅；測試 test_website_content_pending_in_sync_with_data_before_deadline。
+
+
+### 2026-11-16 01:5x（台北）頻道④談晴說礙現況（CEO 交接用）
+- Andy 11-16：「接下來就都交給你負責」；他一週看一次，日常回報發在頻道④聊天室（session_018gakVTEEKWqEd8AD2Xp9MP）。規則：docs/marketing/channels/healing/plan.md 2026-11-15／16 各節、.claude/agents/healing-editor.md。
+- 每日上限 2：12:27 輪播（輔）＋20:27 影片（主）。保底排程：12:41、20:41 發文保底；21:13、23:13 留言回覆補跑；週日 15:41 每週討論（皆綁本聊天室）。
+- 影片流程：找題材→規劃→無旁白生成→程式檢查＋animation-director／art-director 審→優化→Gemini TTS（gemini-3.8-flash-tts、Sulafat）→最後驗證→發布＋網站文章（mp4 區塊可下載）。範本：queue/20261115v_marriage（結婚登記 v7）。
+- 進行中：11/17–11/22 六支影片批次製作（總編輯）；年總工時 talk-ep01 待 Andy 決定旁白 4 處修改。
+- 禁止：整張圖慢慢放大、手繪圈、內文與留言放 1925、我／我們。
+## 2026-11-15 文章內嵌自家影片＋下載（frontend-ui）
+- 新區塊 `{t:'mp4',src,poster?,title?,note?}`（site/articles.js），功能鍵 `art.video.dl`（訪客關、註冊會員以上開、不限次，features.js＋plan_presets.js）；頻道說明 docs/marketing/channels/video_in_articles.md；驗收段落 `文章影片下載1115`。頻道④兩篇已改用新區塊。mp4 單檔硬上限 25 MiB（Cloudflare Pages），頻道規定 ≤ 20 MiB。

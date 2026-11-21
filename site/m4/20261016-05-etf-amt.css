@@ -1,0 +1,11 @@
+/* site/m4/20261016-05-etf-amt.css —— 2026-10-16 從 mobile4.css 尾巴原封搬出（31l 月配試算「自訂」金額（ETF月配金額1016））。
+   載入順序＝index.html 裡 mobile4.css 之後、依檔名排序（scripts/m4_css_links.py 產生），層疊順序跟搬出前一樣。 */
+/* ---- 31l. 2026-10-16 Andy（iPhone）：月配試算條件抽屜「自訂」點了原地變輸入框「自訂 [____] 萬」（mobile4.js 31j amtG）—— 限 html.m4／≤640
+   輸入框字 16px：iOS Safari 對小於 16px 的輸入框一聚焦就整頁放大，放大後版面歪掉回不來。 */
+@media (max-width:640px){
+  :root.m4 .msheet .m4dw .seg>.m4amtc{flex:none;display:inline-flex;align-items:center;gap:4px;min-height:40px;padding:0 8px;border-radius:var(--r-sm,8px);
+    background:var(--accent-soft,rgba(80,160,255,.14));box-shadow:inset 0 0 0 1px var(--accent,#4ea1ff);font-size:14px;white-space:nowrap}
+  :root.m4 .msheet .m4dw .seg>.m4amtc b{font-weight:600}
+  :root.m4 .msheet .m4dw .seg>.m4amtc input{width:52px;height:32px;padding:0 6px;font-size:16px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg-1,transparent);color:inherit;box-sizing:border-box}
+  :root.m4 .msheet .m4dw .seg>.m4amtc small{font-size:13px;color:var(--ink-2)}
+}

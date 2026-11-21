@@ -1,0 +1,15 @@
+/* 2026-10-20 市場明細第三輪（Andy 看預覽後）：桌機版面比例＋反灰期間鈕。手機（≤640）不動，桌機守門不受影響之處都限定在 min-width 區段。 */
+/* 三大法人日報：圖大表小（圖 35%／35%、表 30%；24% 實測放不下五欄，日期與數字會被切，所以放寬到能完整顯示）；明細表只留 日期／外資／投信／自營／合計（加權指數移到列 tooltip），字不小於 12px */
+@media (min-width:1101px){
+  .irtri{grid-template-columns:minmax(0,35fr) minmax(0,35fr) minmax(0,30fr)}
+  .irtri .irtbl table th,.irtri .irtbl table td{padding:6px 4px;font-size:12px}
+}
+.irspan{margin-left:8px;font-size:12px}
+/* 期間鈕資料不足：明顯反灰＋不給游標反應（title 寫「資料自 MM/DD 起」） */
+#instPer button[disabled],.fp-per button[disabled],#mfDays button[disabled]{opacity:.38;cursor:not-allowed}
+.irtbl td.est{box-shadow:inset 3px 0 0 var(--amber,#F59E0B)}
+/* 手機（≤640）：期貨籌碼最新一日卡的「多 N／空 N」放不下一行就換行，不要被切成「51…」 */
+@media (max-width:640px){
+  html body .fp-big3 .s{white-space:normal;line-height:1.35;overflow:visible}
+  .fp-lrow{gap:6px}
+}

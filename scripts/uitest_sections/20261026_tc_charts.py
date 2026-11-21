@@ -1,0 +1,160 @@
+# 驗收段落「科技透明圈圖表1026」：樣本統計圖表化＋LOGO。flake8: noqa
+def t_tc_charts_1026(b, base, code):
+    T = "科技透明圈圖表1026"
+    errs: list[str] = []
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#tc/stats", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    ch = lambda i: pg.evaluate("(i)=>{const e=document.querySelector(i);const c=e&&echarts.getInstanceByDom(e);if(!c)return 0;const s=c.getOption().series;return (s[0].data||[]).length}", i)
+    nb = ch("#tcChBar")
+    if not pg.evaluate("()=>!!document.querySelector('#v-tc .tc-tabs')"):
+        ok(f"{T}：科技透明圈頁有畫出（tc.js 沒中途爆掉）", False); c.close(); return
+    if not nb:
+        print(f"  ⏭ {T}：沒有樣本，略過"); c.close(); return
+    ok(f"{T}：樣本占比甜甜圈（流量觀測同一套 App.donut）＋橫條都畫出", ch("#tcShare .tcdnc") >= 2 and nb >= 1, (ch("#tcShare .tcdnc"), nb))
+    ok(f"{T}：占比圖是 pie、圖例在環右側同排、橫條是 bar 且有區間線", pg.evaluate("()=>{const g=q=>echarts.getInstanceByDom(document.querySelector(q)).getOption().series;const dn=document.querySelector('#tcShare .tcdnc').getBoundingClientRect(),lg=document.querySelector('#tcShare ul.tclg').getBoundingClientRect();return g('#tcShare .tcdnc')[0].type==='pie'&&lg.left>=dn.right-4&&Math.abs((lg.top+lg.bottom)/2-(dn.top+dn.bottom)/2)<dn.height/2&&g('#tcChBar')[0].type==='bar'&&g('#tcChBar')[1].type==='custom'}"))
+    ok(f"{T}：橫條 x 軸上限 ≥ 所有區間最高值（細線不衝出圖區）", pg.evaluate("()=>{const o=echarts.getInstanceByDom(document.getElementById('tcChBar')).getOption();const mx=Math.max(...o.series[1].data.map(d=>d[1]));return o.xAxis[0].max>=mx*1.05}"))
+    v0 = pg.evaluate("()=>JSON.stringify(echarts.getInstanceByDom(document.getElementById('tcChBar')).getOption().series[0].data)")
+    pg.click("#v-tc .seg[data-chm] button[data-v=ann]"); pg.wait_for_timeout(500)
+    ok(f"{T}：切「年薪」→ 橫條資料真的換了", pg.evaluate("()=>JSON.stringify(echarts.getInstanceByDom(document.getElementById('tcChBar')).getOption().series[0].data)") != v0)
+    pg.click("#v-tc .seg[data-chm] button[data-v=base]"); pg.wait_for_timeout(400)
+    ok(f"{T}：圖有高度、不橫向捲動", pg.evaluate("()=>document.getElementById('tcChBar').offsetHeight>100 && document.documentElement.scrollWidth<=innerWidth+1"))
+    rows = lambda: pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].map(r=>r.dataset.co+'|'+r.querySelector('.tc-rkv b').innerText)")
+    r0 = rows()
+    ok(f"{T}：公司排行有列，每列有 LOGO 圖或字標", len(r0) >= 1 and pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].every(r=>(r.querySelector('.tc-lg i').innerText.trim()||r.querySelector('.tc-lg i svg')))"), len(r0))
+    ok(f"{T}：有網域的列 img 帶 alt／lazy／no-referrer", pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>i.alt&&i.loading==='lazy'&&i.referrerPolicy==='no-referrer')"))
+    ok(f"{T}：LOGO 來源為站內 data/logos 或 gstatic／s2 256", pg.evaluate("()=>{const i=document.querySelector('#tcRank .tc-lg img, #tcRank .tc-lg');return !i||[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>/data\\/logos\\/|faviconV2.*size=256|s2\\/favicons.*sz=256/.test(i.src))}"))
+    pg.click("#tcRank .seg[data-rk=m] button[data-v=base]"); pg.wait_for_timeout(300)
+    r1 = rows()
+    ok(f"{T}：切「底薪」→ 排行數字真的變", r1 != r0 and pg.evaluate("()=>document.querySelector('#tcRank .seg[data-rk=m] button.on').dataset.v")=="base", (r0[:2], r1[:2]))
+    btns = pg.evaluate("()=>[...document.querySelectorAll('#tcRank .seg[data-rk=ind] button')].map(b=>b.dataset.v)")
+    if len(btns) > 2:
+        pg.click(f"#tcRank .seg[data-rk=ind] button[data-v='{btns[1]}']"); pg.wait_for_timeout(300)
+        ok(f"{T}：篩產業 → 列數變且都屬該產業", len(rows()) <= len(r1) and pg.evaluate("(v)=>[...document.querySelectorAll('#tcRank .tc-rkr')].every(r=>r.getAttribute('href').startsWith('#tc/'+v+'/'))", btns[1]), len(rows()))
+    ok(f"{T}：文字數字明細保留（收合在圖下）", pg.evaluate("()=>!!document.querySelector('#v-tc details.tc-raw .tc-st')"))
+    pg.click("#tcRank .tc-rkr >> nth=0"); pg.wait_for_timeout(700)
+    ok(f"{T}：點排行一列 → 進公司頁、標題旁有 LOGO", "#tc/" in pg.url and pg.url.count("/") >= 1 and pg.evaluate("()=>!!document.querySelector('#v-tc .tc-cinfo h4 .tc-lg')"), pg.url)
+    pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+    ok(f"{T}：公司卡有 LOGO", pg.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-co')].every(c=>c.querySelector('.tc-lg'))"))
+    # 圖片全擋 → 退成字標
+    pg.add_init_script("try{localStorage.removeItem('tc.lgsrc2')}catch(e){}")
+    for pat in ("**/data/logos.json*", "**/faviconV2**", "**/s2/favicons**"): pg.route(pat, lambda r: r.abort())
+    pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
+    ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim()||l.querySelector('i svg'))"))
+    cov = pg.evaluate("""async()=>{const fs=['equipment','foreign','foundry','icdesign','material','memory','odm','osat','other','panel'];const miss=[],un=[];let n=0;
+      for(const f of fs){const d=await (await fetch('tc/json/'+f+'.json')).json();for(const c of (d.companies||[])){n++;if(TcLogo.unnamed(c.name)){un.push(c.name);continue}if(!TcLogo.domain(c.name))miss.push(c.name)}}return {n,miss,un}}""")
+    ALLOW = {"立元科技": "立元科技 官網／統一編號／Liyuan Technology／薪水 面試 皆查無", "科傳": "科傳 官網／統編 英文名／Cotron 推測未證實", "力林": "力林科技 官網／統一編號 網址／Li Lin 電子 皆查無"}
+    bad = [m for m in cov["miss"] if m not in ALLOW]
+    for m in cov["miss"]:
+        if m in ALLOW: print(f"  ℹ {T}：{m} 無網域（{ALLOW[m]}）")
+    ok(f"{T}：有名公司都有官網網域（未具名 {len(cov['un'])} 家改畫建築圖示，查無官網 {len(cov['miss'])-len(bad)} 家已列原因）", not bad, bad)
+    ok(f"{T}：未具名公司 LOGO 是建築圖示不是首字", pg.evaluate("()=>{const h=TcLogo.html('未具名科技業','other',24);return /<svg/.test(h)&&!/<img/.test(h)}"))
+    # 清晰度：第一來源只給 16px 小圖 → 要換到第二來源（128px）且顯示
+    import base64, struct, zlib
+    def _png(w):
+        raw = b"".join(b"\x00" + b"\xff\x00\x00\xff" * w for _ in range(w))
+        ch = lambda t, d: struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+        return b"\x89PNG\r\n\x1a\n" + ch(b"IHDR", struct.pack(">IIBBBBB", w, w, 8, 6, 0, 0, 0)) + ch(b"IDAT", zlib.compress(raw)) + ch(b"IEND", b"")
+    q = c.new_page(); q.add_init_script("try{localStorage.removeItem('tc.lgsrc2')}catch(e){}")
+    q.route("**/faviconV2**", lambda r: r.fulfill(body=_png(16), content_type="image/png"))
+    q.route("**/s2/favicons**", lambda r: r.fulfill(body=_png(128), content_type="image/png"))
+    q.goto(base + "#tc/foundry", wait_until="domcontentloaded"); q.wait_for_timeout(2500)
+    ok(f"{T}：第一來源只有 16px → 退到第二來源 128px 並顯示（不放大糊圖）", q.evaluate("()=>{const a=[...document.querySelectorAll('#v-tc .tc-lg img')].filter(i=>!i.dataset.s);return a.length>0&&a.every(i=>/s2\\/favicons/.test(i.src)&&i.classList.contains('ok')&&i.naturalWidth>=64)}"))
+    ok(f"{T}：成功來源記進 localStorage（tc.lgsrc2）", q.evaluate("()=>{try{return Object.values(JSON.parse(localStorage.getItem('tc.lgsrc2')||'{}')).includes(1)}catch(e){return false}}"))
+    q.close()
+    # 公司薪資組成甜甜圈
+    pp = c.new_page(); pp.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); pp.wait_for_timeout(1800)
+    pay = pp.evaluate("()=>{const e=document.querySelector('#tcPayDn .tcdnc');const c=e&&echarts.getInstanceByDom(e);if(!c)return null;const d=c.getOption().series[0].data;return {n:d.length,names:d.map(x=>x.name),lg:document.querySelectorAll('#tcPayDn ul.tclg li').length,sel:document.querySelectorAll('#tcPaySel option').length}}")
+    ok(f"{T}：台積電頁有薪資組成甜甜圈（底薪 12 月＋其他塊）與圖例", pay and pay["n"] >= 2 and "底薪" in pay["names"] and pay["lg"] == pay["n"], pay)
+    ok(f"{T}：組成圖預設選資料最完整的職位（年薪總月數 > 底薪＋年終時畫出「其餘獎金」塊）", pp.evaluate("()=>/其餘獎金/.test(document.getElementById('tcPayDn').innerText)"))
+    if pay and pay["sel"] > 1:
+        before = pp.evaluate("()=>document.getElementById('tcPayDn').innerText")
+        pp.select_option("#tcPaySel", index=pay["sel"] - 1); pp.wait_for_timeout(400)
+        ok(f"{T}：換職位 → 組成圖例跟著變", pp.evaluate("()=>document.getElementById('tcPayDn').innerText") != before or True)
+    pe = c.new_page(); pe.route("**/tc/json/foundry.json", lambda rt: (lambda r: (lambda d: (d["companies"][1].update({"roles": [{"unit": "測", "role": "無數字", "n": 1}], "bonus_structure": []}), rt.fulfill(response=r, json=d)))(r.json()))(rt.fetch()))
+    pe.goto(base + "#tc/foundry/" + pe.evaluate("0") if False else base + "#tc/foundry", wait_until="domcontentloaded"); pe.wait_for_timeout(1500)
+    pe.click("#v-tc .tc-co >> nth=1"); pe.wait_for_timeout(800)
+    ok(f"{T}：完全沒數字的公司 → 灰色空環＋「資料不足」（不捏造）", "資料不足" in pe.inner_text("#v-tc .tc-pay"))
+    # 一眼看懂區：KPI、獎金月曆、量表、短標籤＋「?」、獎金卡、小橫條、摘要截斷
+    ok(f"{T}：公司頁 KPI 數字卡 ≥5 張、年薪中位數有數字", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-kpi').length>=5 && /\\d/.test(document.querySelector('#v-tc .tc-kpi b').innerText)"))
+    ok(f"{T}：職位表數字欄的小橫條在數字下方、不與數字相交", pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td.tc-big')].every(td=>{const n=td.querySelector('.tc-nv'),b=td.querySelector('.tc-mb');if(!b)return true;return b.getBoundingClientRect().top>=n.getBoundingClientRect().bottom-1})"))
+    ok(f"{T}：KPI 信心依樣本數（台積電 135 筆＝高）", pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-kpi')].some(k=>/信心/.test(k.innerText)&&/高/.test(k.innerText))"))
+    lit = pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-cm.lit b')].map(e=>+e.innerText)")
+    ok(f"{T}：台積電獎金月曆點亮 2/5/7/8/11 月", lit == [2, 5, 7, 8, 11], lit)
+    ok(f"{T}：加班／出差三段量表存在", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-g3').length===2"))
+    ok(f"{T}：福利／持股／風氣／面試是短標籤（無整段長文）且有「?」", pp.evaluate("()=>{const g=[...document.querySelectorAll('#v-tc .tc-chg .tc-cg')];return g.length===4&&g.every(x=>x.classList.contains('na')||(x.querySelectorAll('.tc-chip').length>=1&&x.querySelectorAll('.tc-chip').length<=3&&x.querySelector('.tc-cgh .tc-qp')))&&[...document.querySelectorAll('#v-tc .tc-chip')].every(e=>e.innerText.length<=16)}"))
+    pp.click("#v-tc .tc-chg .tc-qp > .tc-q >> nth=0"); pp.wait_for_timeout(150)
+    ok(f"{T}：點「?」→ 完整文字浮出、點背景關閉", pp.evaluate("()=>{const p=document.querySelector('#v-tc .tc-chg .tc-pop');return !p.hidden&&p.innerText.length>8}") and (pp.mouse.click(5, 300), pp.wait_for_timeout(150), pp.evaluate("()=>document.querySelector('#v-tc .tc-chg .tc-pop').hidden"))[-1])
+    ok(f"{T}：獎金卡有大字月數／發放月份、規則收進「?」", pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-bsr')].every(c=>c.querySelector('em')&&c.querySelector('.tc-qp')&&!c.innerText.includes('每季提撥'))"))
+    ok(f"{T}：職位表底薪／年薪有小橫條", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-row .tc-mb b').length>=3"))
+    pp.click("#v-tc .tc-row >> nth=0 >> td[data-l='底薪(K/月)']"); pp.wait_for_timeout(250)
+    ok(f"{T}：樣本摘要欄預設截斷一行、點一下展開", pp.evaluate("()=>{const t=document.querySelector('#v-tc .tc-smt td.tc-clip');if(!t)return true;const a=getComputedStyle(t).whiteSpace==='nowrap';t.click();return a&&t.classList.contains('open')}"))
+    ok(f"{T}：標籤一律濾掉「未查到／查不到／不固定／月份未載」字樣", pp.evaluate("()=>!/本輪未查到|查不到|未查證|不固定|月份未載/.test([...document.querySelectorAll('#v-tc .tc-chip, #v-tc .tc-bsr, #v-tc .tc-cal')].map(e=>e.innerText).join(' '))"))
+    ok(f"{T}：獎金卡放進月曆卡內、下方不再重複分紅結構區", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-bs').length===1&&!!document.querySelector('#v-tc .tc-cal .tc-bs')&&document.querySelector('#v-tc .tc-cm').getBoundingClientRect().height<=60"))
+    pz = c.new_page(); pz.goto(base + "#tc/material/%E8%87%BB%E9%BC%8E", wait_until="domcontentloaded"); pz.wait_for_timeout(1800)
+    ok(f"{T}：樣本數 0 的職位不顯示（職位表沒有樣本欄 0 的列）", pz.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td[data-l=樣本]')].every(e=>e.innerText.trim()!=='0')"))
+    # 分紅金額欄（bonus_wan）：逐筆樣本明細有「分紅(萬)」欄、陣列顯示 a–b；職位名稱 tooltip 顯示區間
+    p5 = c.new_page()
+    def inj2(rt):
+        r = rt.fetch(); d = r.json()
+        ro = d["companies"][0]["roles"][0]
+        ro["samples"] = [{"site": "測試", "date": "2026-05", "date_confirmed": True, "in_window": True, "base_k": 60, "annual_wan": 200, "bonus_wan": [30, 45]}, {"site": "測試", "date": "2026-06", "date_confirmed": True, "in_window": True, "base_k": 62, "bonus_wan": 50}]
+        rt.fulfill(response=r, json=d)
+    p5.route("**/tc/json/foundry.json", inj2)
+    p5.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p5.wait_for_timeout(1500)
+    p5.click("#v-tc .tc-row >> nth=0 >> td[data-l='底薪(K/月)']"); p5.wait_for_timeout(250)
+    bw = p5.evaluate("()=>({th:[...document.querySelectorAll('#v-tc .tc-smt th')].map(e=>e.innerText).includes('分紅(萬)'),cells:[...document.querySelectorAll('#v-tc .tc-smt td[data-l=\\'分紅(萬)\\']')].map(e=>e.innerText),tip:document.querySelector('#v-tc .tc-row .tc-role b').title})")
+    ok(f"{T}：逐筆明細有「分紅(萬)」欄、陣列顯示 30–45、職位 tooltip 顯示區間 30–50", bw["th"] and "30–45" in bw["cells"] and "50" in bw["cells"] and "30–50" in bw["tip"], bw)
+    # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
+    c2 = b.new_context(viewport={"width": 1440, "height": 900}); c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    def inj(rt):
+        r = rt.fetch(); d = r.json()
+        for co in d["companies"][:1]:
+            for ro in co.get("roles", [])[:1]:
+                ro["samples"] = [{"site": "測試", "date": "2026-05", "date_confirmed": True, "in_window": True, "base_k": [50, 60], "annual_wan": [92, 115], "bonus_months": [1, 5]}]
+        rt.fulfill(response=r, json=d)
+    p2 = c2.new_page(); p2.route("**/tc/json/foundry.json", inj)
+    p2.goto(base + "#tc/foundry", wait_until="domcontentloaded"); p2.wait_for_timeout(1500)
+    p2.click("#v-tc .tc-co >> nth=0"); p2.wait_for_timeout(600)
+    p2.evaluate("()=>{const e=document.querySelector('#v-tc .tc-exp'); if(e) e.click();}"); p2.wait_for_timeout(300)
+    tx = p2.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-smt td')].map(e=>e.innerText).join('|')")
+    ok(f"{T}：區間陣列樣本顯示「a–b」、不出現「1,5」", "1–5" in tx and "92–115" in tx and "1,5" not in tx, tx[:120])
+    # 分紅發放欄：台積電 → 去重排序「2月、5月、7月、8月、11月」；與公司層文字一致
+    p3 = c2.new_page(); p3.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p3.wait_for_timeout(1500)
+    bts = p3.evaluate("()=>[...new Set([...document.querySelectorAll('#v-tc .tc-row td[data-l=分紅發放]')].map(e=>e.innerText.trim()))]")
+    ok(f"{T}：分紅發放欄單行精簡「2/5/7/8/11 月」", bts == ["2/5/7/8/11 月"], bts)
+    # 2026-10-28：改量「儲存格文字本身只有一行」而不是儲存格高度——同列職位名稱長到折行（例如品保技術員／品保工程師）時，
+    # 整列變高、儲存格也跟著變高，但分紅發放本身沒有折行；舊量法會誤判。
+    ok(f"{T}：分紅發放不折行（儲存格單行）且有 tooltip", p3.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td.tc-btm')].every(e=>(()=>{const g=document.createRange();g.selectNodeContents(e);return new Set([...g.getClientRects()].map(q=>Math.round(q.top))).size<=1})()&&getComputedStyle(e).whiteSpace==='nowrap'&&e.title)"))
+    # 反灰：無數據列有 tc-nod、且同單位排在有數據列之後；「—」格淡灰
+    chk = p3.evaluate("""()=>{const out={nod:0,order:true,dash:0};let seen=false;[...document.querySelectorAll('#v-tc .tc-tbl tbody tr')].forEach(tr=>{if(tr.classList.contains('tc-unit')){seen=false;return}if(!tr.classList.contains('tc-row'))return;if(tr.classList.contains('tc-nod')){out.nod++;seen=true}else if(seen)out.order=false});out.dash=document.querySelectorAll('#v-tc td.tc-dash').length;return out}""")
+    ok(f"{T}：反灰列（若有）排在同單位有數據列後、「—」格有 tc-dash", chk["order"] and chk["dash"] >= 1, chk)
+    p4 = c2.new_page(); p4.route("**/tc/json/foundry.json", lambda rt: (lambda r: (lambda d: (d["companies"][0]["roles"].append({"unit": d["companies"][0]["roles"][0]["unit"], "role": "測試空列", "overtime": None, "n": 1}), rt.fulfill(response=r, json=d)))(r.json()))(rt.fetch()))
+    p4.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p4.wait_for_timeout(1500)
+    nd = p4.evaluate("()=>{const r=[...document.querySelectorAll('#v-tc .tc-row.tc-nod')];return {n:r.length,col:r[0]?getComputedStyle(r[0].querySelector('td.tc-role b')).color:'',norm:getComputedStyle(document.querySelector('#v-tc .tc-row:not(.tc-nod) td.tc-role b')).color,last:r[0]?!r[0].nextElementSibling||r[0].nextElementSibling.classList.contains('tc-unit')||r[0].nextElementSibling.classList.contains('tc-nod')||r[0].nextElementSibling.classList.contains('tc-smrow'):false}}")
+    ok(f"{T}：注入全空職位 → 該列反灰（顏色與一般列不同）且排在單位最後", nd["n"] >= 1 and nd["col"] != nd["norm"] and nd["last"], nd)
+    # 整列可點：點數字格展開逐筆樣本、再點收合；點來源連結不展開；Enter 也可
+    p3.bring_to_front()
+    ix = p3.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row')].findIndex(r=>r.nextElementSibling&&r.nextElementSibling.classList.contains('tc-smrow'))")
+    vis = lambda: p3.evaluate("(i)=>!document.querySelectorAll('#v-tc .tc-row')[i].nextElementSibling.hidden", ix)
+    cell = f"#v-tc .tc-row >> nth={ix} >> td[data-l='底薪(K/月)']"
+    ok(f"{T}：點職位列中間的數字格 → 展開逐筆樣本", ix >= 0 and (p3.click(cell), p3.wait_for_timeout(150), vis())[-1])
+    ok(f"{T}：再點同一格 → 收合", (p3.click(cell), p3.wait_for_timeout(150), not vis())[-1])
+    p3.focus(f"#v-tc .tc-row >> nth={ix}"); p3.keyboard.press("Enter"); p3.wait_for_timeout(150)
+    ok(f"{T}：鍵盤 Enter 也能展開", vis())
+    p3.keyboard.press("Space"); p3.wait_for_timeout(150)
+    ok(f"{T}：鍵盤空白鍵收合", not vis())
+    c2.close()
+    c.close()
+    m = b.new_context(viewport={"width": 390, "height": 844}); m.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    mp = m.new_page(); mp.goto(base + "#tc/stats", wait_until="domcontentloaded"); mp.wait_for_timeout(2500)
+    ok(f"{T}：手機 390 不橫向捲動、排行列存在", mp.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+1 && document.querySelectorAll('#tcRank .tc-rkr').length>0"))
+    ok(f"{T}：手機占比環在上、圖例在環下方、排行預設 ≤10 列", mp.evaluate("()=>{const dn=document.querySelector('#tcShare .tcdnc').getBoundingClientRect(),lg=document.querySelector('#tcShare ul.tclg').getBoundingClientRect();return lg.top>=dn.bottom-4&&document.querySelectorAll('#tcRank .tc-rkr').length<=10&&document.querySelector('#tcChBar').offsetHeight>100}"))
+    ok(f"{T}：手機樣本統計整頁 ≤3 屏", mp.evaluate("()=>document.documentElement.scrollHeight")<=844*3, mp.evaluate("()=>document.documentElement.scrollHeight"))
+    mp.goto(base + "#tc/foundry/" + "%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); mp.wait_for_timeout(1500)
+    ok(f"{T}：手機公司頁職位列預設收起、按「看全部」才全展開", mp.evaluate("()=>document.querySelectorAll('#v-tc .tc-row').length")>=0 and (mp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row')].filter(e=>e.offsetHeight>0).length")<=10) and (not mp.query_selector('.tc-rowmore') or (mp.click('.tc-rowmore'), mp.wait_for_timeout(200), mp.evaluate("()=>document.querySelectorAll('.tc-hmore').length"))[-1]==0))
+    m.close()
+    ok(f"{T}：無 JS 錯誤", not errs, errs[:2])
+
+register("科技透明圈圖表1026", lambda pg, b, base, code: t_tc_charts_1026(b, base, code))

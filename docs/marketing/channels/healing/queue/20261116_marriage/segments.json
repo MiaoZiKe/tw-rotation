@@ -1,0 +1,84 @@
+{
+ "audio": "narration_v7.wav",
+ "voiceLeadIn": 0.2,
+ "model": "gemini-3.8-flash-tts",
+ "voice": "Sulafat",
+ "atempo": 1.05,
+ "rate_incl_pauses": 4.4,
+ "rate_speech_only": 5.19,
+ "preamble_cut_sec": 33.76,
+ "segments": [
+  {
+   "id": "s1",
+   "text": "十年，結婚登記少了將近三成。",
+   "start": 0.0,
+   "end": 2.737,
+   "speech_start": 0.229,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s2",
+   "text": "內政部統計，二〇一六年，十四萬七千多對。",
+   "start": 2.706,
+   "end": 6.201,
+   "speech_start": 2.956,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s3",
+   "text": "二〇二五年，只剩十萬四千多對。",
+   "start": 6.194,
+   "end": 8.899,
+   "speech_start": 6.444,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s4",
+   "text": "常說是不想結；數據還看到，結婚越來越晚。",
+   "start": 8.892,
+   "end": 12.707,
+   "speech_start": 9.142,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s5",
+   "text": "平均初婚年齡，男三十三點四，女三十一點四歲。",
+   "start": 12.7,
+   "end": 16.621,
+   "speech_start": 12.95,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s6",
+   "text": "同一年，總生育率只有零點六九五。",
+   "start": 16.614,
+   "end": 19.473,
+   "speech_start": 16.864,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s7",
+   "text": "理由看不到：早點成家，還是等一等？",
+   "start": 19.465,
+   "end": 22.057,
+   "speech_start": 19.715,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s8",
+   "text": "下集：剛出社會的月薪中位數。",
+   "start": 22.049,
+   "end": 24.704,
+   "speech_start": 22.299,
+   "audio": "narration_v7.wav"
+  },
+  {
+   "id": "s9",
+   "text": "想看完整資料，留言結婚。",
+   "start": 24.824,
+   "end": 29.199,
+   "speech_start": 27.347,
+   "audio": "narration_v7.wav"
+  }
+ ]
+}

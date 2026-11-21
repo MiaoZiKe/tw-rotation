@@ -1,0 +1,23 @@
+name = "tw-tc-dm"
+main = "worker.js"
+compatibility_date = "2026-09-14"
+
+# 頻道②「科技透明圈」IG 留言關鍵字 → 私訊 → 回「好了」查追蹤 → 送整理（webhook 即時版）。
+# 2026-11-08 Andy：「讀主留言我自動傳訊息功能，傳之前還會檢查是否有追蹤」。說明：docs/marketing/channels/tc/autopost.md 第六節。
+# ★ 只有 social/tc/dm_config.json 的 ig_dm.mode = "webhook" 時才真的處理；預設 "poll"（Actions 輪詢版 scripts/tc_ig_dm.py），
+#   兩邊同時只開一個，避免重複私訊。webhook 要 Meta App 上線（Live）＋ Advanced Access（App Review），審過才切。
+# Secrets（部署工作流寫入，不進 repo）：IG_APP_SECRET（Instagram 應用程式密鑰，驗 X-Hub-Signature-256）、
+#   VERIFY_TOKEN（webhook 驗證字串）、IG_TOKEN（TC_IG_ACCESS_TOKEN_AUTO）。
+workers_dev = true
+
+[vars]
+CONFIG_URL = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/social/tc/dm_config.json"
+POSTED_URL = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/state/tc/posted.json"
+GRAPH = "https://graph.instagram.com/v24.0"
+
+# KV 命名空間 id 由 .github/workflows/deploy-tc-dm.yml 在部署時找或建（tw-tc-dm）後填入。
+# KV-BEGIN
+[[kv_namespaces]]
+binding = "KV"
+id = "__TC_DM_KV_ID__"
+# KV-END

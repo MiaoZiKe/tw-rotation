@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="台股資金輪動">
+<!-- 台股資金輪動 App 圖示 — 滿版底板（maskable：內容全部落在中央 80% 安全區內）
+     方向 D「單一轉針」，理由見 docs/product_strategy.md ⑥：
+     29×29 只放得下一個形狀，指針是唯一在該尺寸仍認得出來的高對比元素。
+     配色刻意避開紅綠（台股紅漲綠跌有既定語意），品牌色用琥珀 #ffb454。
+     ⚠ 這是暫時版：命名與視覺定案後要整組換掉（見 docs/mobile_release_plan.md）。 -->
+  <rect x="0" y="0" width="512" height="512" fill="#16203c"/>
+  <path d="M 109.41 359.36 A 156.0 156.0 0 0 1 102.37 278.91" fill="none" stroke="#93a2c4" stroke-width="17.0" stroke-linecap="round"/>
+  <path d="M 107.64 257.79 A 156.0 156.0 0 0 1 168.77 176.67" fill="none" stroke="#93a2c4" stroke-width="20.0" stroke-linecap="round"/>
+  <path d="M 187.61 165.79 A 156.0 156.0 0 0 1 329.24 168.26" fill="none" stroke="#93a2c4" stroke-width="23.0" stroke-linecap="round"/>
+  <path d="M 347.69 179.79 A 156.0 156.0 0 0 1 402.59 359.36" fill="none" stroke="#93a2c4" stroke-width="27.0" stroke-linecap="round"/>
+  <polygon points="332.86,196.23 227.16,317.55 255.01,337.05" fill="#ffb454"/>
+  <circle cx="256.0" cy="306.0" r="28.0" fill="#ffb454"/>
+  <circle cx="256.0" cy="306.0" r="10" fill="#16203c"/>
+</svg>

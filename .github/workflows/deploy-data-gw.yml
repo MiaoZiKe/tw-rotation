@@ -1,0 +1,85 @@
+name: 部署 Worker（付費資料閘道 data-gw）
+
+# 把 workers/data-gw/ 部署到 Cloudflare（Worker ＋ Durable Object ＋ R2 綁定）。設計：docs/datagw_plan.md。
+# ★ 第一階段只准手動觸發（Actions → 這個 workflow → Run workflow）。不掛 push：前端還沒改走它，正式站資料流不受影響。
+# 用到的 repo Secret：
+#   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID —— 沿用；權杖要多加「Workers R2 Storage: Edit」（docs/datagw_plan.md 第 5 節）
+#   DATA_GW_SECRET                              —— 資料權杖與浮水印的 HMAC 金鑰（隨機 32 位元組以上），寫進 Worker Secret，不會出現在 repo／log
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-data-gw
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 允許／拒絕測試（紅了就不准部署）
+        run: node --test workers/data-gw/tests/gw.test.mjs workers/data-gw/tests/quota.test.mjs workers/account-api/tests/susp.test.mjs workers/account-api/tests/quota.test.mjs
+
+      - id: guard
+        name: 檢查金鑰
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GW: ${{ secrets.DATA_GW_SECRET }}
+        run: |
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$GW" ] && miss="$miss DATA_GW_SECRET"
+          if [ -n "$miss" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            { echo "### data-gw 尚未部署"; echo ""; echo "**缺少這些 Secret：**$miss"; echo ""; echo "步驟見 docs/datagw_plan.md 第 5 節。"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 部署
+        if: steps.guard.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/data-gw
+          secrets: |
+            GW_SECRET
+        env:
+          GW_SECRET: ${{ secrets.DATA_GW_SECRET }}
+
+      - name: 驗證真的活著
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          sleep 5
+          code=$(curl -s -o /tmp/h.json -w '%{http_code}' "https://tw-data-gw.kcq01010909.workers.dev/health")
+          echo "HTTP $code"; head -c 300 /tmp/h.json; echo
+          test "$code" = "200"
+          grep -q '"configured":true' /tmp/h.json
+
+      # 選用的 Secret：有設才寫進 Worker（空值會讓 wrangler 失敗，所以不放進上面那個固定清單）。
+      # INTERNAL_KEY 沒設＝自動停權呼叫不出去（AUTO_SUSPEND 目前本來就是 0）；通知沒設＝只記錄。
+      - name: 選用 Secret（停權鑰匙、異常通知）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/data-gw
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INTERNAL_KEY: ${{ secrets.DATAGW_INTERNAL_KEY }}
+          ALERT_WEBHOOK: ${{ secrets.DATAGW_ALERT_WEBHOOK }}
+          ALERT_EMAIL: ${{ secrets.DATAGW_ALERT_EMAIL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          for k in INTERNAL_KEY ALERT_WEBHOOK ALERT_EMAIL RESEND_API_KEY; do
+            v="${!k}"
+            if [ -n "$v" ]; then printf '%s' "$v" | npx --yes wrangler@3 secret put "$k" >/dev/null && echo "已設定 $k"; else echo "未設定 $k（略過）"; fi
+          done

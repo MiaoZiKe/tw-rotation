@@ -1,0 +1,110 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+15%",
+ "pitch": "+15Hz",
+ "text": "台積電在法說會說過，2024、2025 年 CoWoS 產能都翻倍，還是供不應求。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "台積電",
+   "start": 0.093458,
+   "dur": 0.543458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "在",
+   "start": 0.658708,
+   "dur": 0.217375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "法",
+   "start": 0.952166,
+   "dur": 0.108708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "說",
+   "start": 1.180416,
+   "dur": 0.163041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "會",
+   "start": 1.408708,
+   "dur": 0.108708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "說",
+   "start": 1.593458,
+   "dur": 0.163041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "過",
+   "start": 1.810875,
+   "dur": 0.217375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2024",
+   "start": 2.310875,
+   "dur": 0.869583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2025",
+   "start": 3.452166,
+   "dur": 0.72825
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年",
+   "start": 4.256541,
+   "dur": 0.130416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 4.430416,
+   "dur": 0.684791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "產能",
+   "start": 5.180416,
+   "dur": 0.336958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "都",
+   "start": 5.593458,
+   "dur": 0.130416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "翻倍",
+   "start": 5.789125,
+   "dur": 0.391291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "還是",
+   "start": 6.55,
+   "dur": 0.326083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "供不",
+   "start": 6.952166,
+   "dur": 0.326083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "應求",
+   "start": 7.32175,
+   "dur": 0.391291
+  }
+ ]
+}

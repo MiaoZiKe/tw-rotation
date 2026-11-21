@@ -1,0 +1,7 @@
+# 簽章金鑰與密碼永遠不進 repo（public repo）。見 README.md。
+*.keystore
+*.jks
+*.p12
+*.pem
+key.properties
+build/

@@ -1,0 +1,37 @@
+/* 2026-10-28 科技透明圈人工刪除（Andy：「數據資訊太少，新增刪除功能給我，我會在人工審閱」）：刪除鈕、確認框、已刪除區、樣本少標記。
+   刪除鈕一律淡色小鈕、hover 才轉警示色，不搶薪資數字的視線；排行列用外層 .tc-rkrow 並排，不動原本 .tc-rkr 的欄位。 */
+#v-tc .tc-rkrow{display:flex;align-items:center;gap:var(--sp-1)}
+#v-tc .tc-rkrow>.tc-rkr{flex:1;min-width:0}
+#v-tc .tc-delbtn{flex:none;height:28px;min-width:28px;padding:0 var(--sp-2);border:1px solid var(--line-2);background:transparent;color:var(--ink-3);border-radius:var(--r-sm);cursor:pointer;font-size:12px;line-height:1;white-space:nowrap}
+#v-tc .tc-delbtn i{font-style:normal}
+#v-tc .tc-delbtn:hover,#v-tc .tc-delbtn:focus-visible{color:var(--amber);border-color:var(--amber);background:var(--panel-2)}
+#v-tc .tc-cinfo h4 .tc-delbtn{margin-left:auto;vertical-align:middle}
+#v-tc .tc-cinfo h4{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+#v-tc .tc-smh{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-2);font-size:12px;color:var(--ink-3)}
+#v-tc .tc-smd{width:1%;text-align:right}
+#v-tc .tc-smd .tc-delbtn{height:24px;min-width:24px;padding:0 6px}
+#v-tc .tc-few{display:inline-block;margin-left:var(--sp-2);padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);font-style:normal;font-size:11px;line-height:16px;opacity:.85}
+#v-tc .tc-delbox{margin-top:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2)}
+#v-tc .tc-delbox>summary{cursor:pointer;padding:var(--sp-2) var(--sp-3);font-size:13px;color:var(--ink-2)}
+#v-tc .tc-dellist{max-height:240px;overflow:auto;padding:0 68px var(--sp-2) var(--sp-3)}   /* 右留 68px：頁面捲到底時右下角客服鈕不蓋住「復原」 */
+#v-tc .tc-delrow{display:flex;align-items:center;gap:var(--sp-2);padding:4px 0;border-top:1px solid var(--line);font-size:13px}
+#v-tc .tc-dtype{flex:none;font-size:11px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:999px;padding:0 6px}
+#v-tc .tc-dlab{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+#v-tc .tc-undo{flex:none;height:28px;padding:0 var(--sp-3);border:1px solid var(--cyan);background:transparent;color:var(--cyan);border-radius:var(--r-sm);cursor:pointer;font-size:12px}
+.tc-dlg{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:var(--sp-4)}
+.tc-dlgb{width:min(420px,100%);background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:var(--r-md,10px);padding:var(--sp-4);box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.tc-dlgb h4{margin:0 0 var(--sp-2);font-size:15px}
+.tc-dlgb p{margin:0 0 var(--sp-4);font-size:13px;color:var(--ink-2);line-height:1.6}
+.tc-dlga{display:flex;justify-content:flex-end;gap:var(--sp-2)}
+.tc-dlga button{height:36px;padding:0 var(--sp-4);border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);cursor:pointer;font-size:13px}
+.tc-dlga .tc-dok{border-color:var(--amber);color:var(--amber)}
+.tc-toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9100;background:var(--panel);color:var(--ink);border:1px solid var(--amber);border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-4);font-size:13px;max-width:calc(100vw - 32px)}
+@media (max-width:640px){
+#v-tc .tc-delbtn i{display:none}
+#v-tc .tc-delbtn{height:32px;min-width:32px;padding:0}
+#v-tc .tc-delbtn.tc-dr{padding:0 var(--sp-2)}
+#v-tc .tc-smd .tc-delbtn{height:32px;min-width:32px}
+#v-tc .tc-smt td.tc-smd::before{content:none}
+#v-tc .tc-cinfo h4 .tc-delbtn{margin-left:0}
+.tc-toast{top:64px}
+}

@@ -1,0 +1,42 @@
+{
+ "slug": "cpi",
+ "date": "2026-11-13",
+ "summary": "主計總處：10 月 CPI 年增 2.33%，連續第 6 個月高於 2%；外食費年增 3.01%，房租 1.70%。",
+ "alts": [
+  "封面：外食年漲3%，物價連6月破2%",
+  "第 2 頁：資料從哪來與分項漲幅",
+  "第 3 頁：3 到 10 月的物價月曆"
+ ],
+ "sources": [
+  {
+   "title": "消費者物價指數（2026 年 10 月；年增率，外食費、房租為分項）",
+   "publisher": "行政院主計總處",
+   "date": "2026-11-05"
+  },
+  {
+   "title": "10月CPI年增2.33% 外食費續漲3.01%",
+   "publisher": "自由時報 自由財經",
+   "date": "2026-11-05",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5630664"
+  },
+  {
+   "title": "Taiwan's October CPI rises 2.33%",
+   "publisher": "中央社 Focus Taiwan",
+   "date": "2026-11-05",
+   "url": "https://focustaiwan.tw/business/202611050021"
+  },
+  {
+   "title": "4月CPI年增1.74%",
+   "publisher": "中央社",
+   "date": "2026-05-07",
+   "url": "https://www.cna.com.tw/news/afe/202605070242.aspx"
+  },
+  {
+   "title": "3、4 月 CPI 報導",
+   "publisher": "聯合報",
+   "date": "2026-05",
+   "url": "https://udn.com/news/story/7238/9488620"
+  }
+ ],
+ "confidence": "官方統計＋媒體一致"
+}

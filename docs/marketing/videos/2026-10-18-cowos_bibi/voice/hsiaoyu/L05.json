@@ -1,0 +1,62 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+10%",
+ "pitch": "+0Hz",
+ "text": "靠得近，跑得快，也更省電。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "靠",
+   "start": 0.095458,
+   "dur": 0.125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "得",
+   "start": 0.311375,
+   "dur": 0.090916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "近",
+   "start": 0.402291,
+   "dur": 0.238625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "跑得",
+   "start": 0.925,
+   "dur": 0.318166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "快",
+   "start": 1.265916,
+   "dur": 0.193166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "也",
+   "start": 1.629541,
+   "dur": 0.193166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "更",
+   "start": 1.902291,
+   "dur": 0.125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "省",
+   "start": 2.061375,
+   "dur": 0.204541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "電",
+   "start": 2.322708,
+   "dur": 0.238625
+  }
+ ]
+}

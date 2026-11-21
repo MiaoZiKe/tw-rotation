@@ -1,0 +1,53 @@
+name: ETF 申購買回清單補抓
+
+# 一次性維修（2026-11-09）：補 etf_holdings 缺的那一天，用法見 pipeline/etf_pcf_fill.py。
+# 只手動觸發；寫資料湖所以跟每日管線同一個 concurrency 群組排隊（不取消）。
+# ⚠ 群組只留一個 pending：派之前先確認沒有 daily／backfill 正在排隊，不然會被取代或取代別人。
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "要補的持股基準日 YYYY-MM-DD"
+        type: string
+        default: "2026-11-06"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+jobs:
+  fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 補抓
+        run: python -m pipeline.etf_pcf_fill "${{ inputs.date }}" 2>&1 | tee /tmp/fill.log
+      - name: 推資料（只動 data/etf_holdings，失敗重試）
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add data/etf_holdings
+          if git diff --staged --quiet; then echo "沒有資料變動"; exit 0; fi
+          git commit -m "補 ETF 申購買回清單 ${{ inputs.date }}"
+          for i in 1 2 3 4 5; do
+            if git push origin "${{ github.ref_name }}"; then echo "推送成功"; exit 0; fi
+            # parquet 是二進位檔不能 rebase：對齊遠端最新後重跑補抓（store.append 冪等）再 commit
+            git fetch origin "${{ github.ref_name }}"
+            git reset -q --hard "origin/${{ github.ref_name }}"
+            python -m pipeline.etf_pcf_fill "${{ inputs.date }}" > /tmp/fill2.log 2>&1 || true
+            git add data/etf_holdings
+            git commit -q -m "補 ETF 申購買回清單 ${{ inputs.date }} (重試)" || true
+            sleep $((i * 5))
+          done
+          echo "::error::推送連續失敗"; exit 1

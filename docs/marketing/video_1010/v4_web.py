@@ -1,0 +1,198 @@
+"""第 4 版網頁版逐鏡規格（storyboard_v4_web.md）：一頁一段連續操作、來源時間只往前、頁序固定。
+
+每鏡＝(頁, 素材, 來源起訖或分段, 大字, 泡泡, 比比待機序列)。點擊由錄影端事件自動帶入（比比踩下、漣漪、音效）。
+同一素材相鄰兩鏡：後一鏡起點自動 ≥ 前一鏡實際終點（停留規則把前一鏡拉長時，後一鏡跟著往後挪，不回頭）。
+"""
+from __future__ import annotations
+
+import v4_cards as K4
+from v3_core import Lay, Op, Rec4, Shot4, plan_dwell
+
+_LW = Lay("web")
+_CUR = {}      # 素材 -> 已播到的來源秒（給下一鏡接續用）
+
+
+# 四腳天竺鼠原則（brief 第 7 條）：舉掌、站立、前掌往外伸的素材全片禁用，一律換成四腳版（素材庫沒有的不用）
+SPR_SUB = {"wave": "celebrate", "talk_explain": "talk_happy", "face_think": "tilt", "face_determined": "face_proud", "pointer_r": "spotlight", "pointer_l": "coins",
+           "point_r": "face_curious", "point_ur": "face_nod", "point_dr": "face_nod", "point_l": "face_curious"}
+
+
+def idle_sub(idle):
+    if isinstance(idle, str):
+        return SPR_SUB.get(idle, idle)
+    return [(t, SPR_SUB.get(n, n)) for t, n in idle]
+
+
+_NF_OK = {}
+NOFAB_FOOTER_HIDDEN_AFTER = 1791755940.0     # 2026-10-12 05:59 台北時間（錄影端開始重錄「藏頁尾」版的時間）
+
+
+def _dur(path):
+    import subprocess
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)], capture_output=True)
+    try:
+        return float(r.stdout.decode().strip())
+    except ValueError:
+        return 0.0
+
+
+def _playable(path, orig):
+    """錄影端還在寫的重錄檔（沒收尾、讀不出、或比原檔短很多）不能用，退回原檔。"""
+    k = str(path)
+    if k not in _NF_OK:
+        _NF_OK[k] = _dur(path) >= _dur(orig) - 1.0
+    return _NF_OK[k]
+
+
+def fresh_nofab(clip):
+    """clip 的 _nofab 版存在、已收尾、而且是「頁尾也隱藏」之後（05:59 起）重錄的。"""
+    from v3_core import RAW3
+    p = RAW3 / f"{clip}_nofab.mp4"
+    return p.exists() and p.stat().st_mtime >= NOFAB_FOOTER_HIDDEN_AFTER and _dur(p) > 1.0
+
+
+def nofab(clip):
+    """錄影端的藏客服鈕重錄版（原檔名加 _nofab）到了且能播就自動換上。"""
+    import os
+    from v3_core import RAW3
+    if os.environ.get("NOFAB", "1") == "0":
+        return clip
+    p = RAW3 / f"{clip}_nofab.mp4"
+    # 錄影端 10-12 05:59（台北）起的重錄版才有「頁尾也隱藏」；更早的 _nofab 檔頁尾還在，不用
+    if p.exists() and p.stat().st_mtime >= NOFAB_FOOTER_HIDDEN_AFTER and _playable(p, RAW3 / f"{clip}.mp4"):
+        return clip + "_nofab"
+    return clip
+
+
+def _hl(head):
+    h = head.lstrip("①②③④⑤⑥⑦⑧⑨⑩⑪ ")
+    return h[-4:] if len(h) > 4 else h
+
+
+def shot(sid, page, clip, segs, head, sub, idle, chain=None, cont=False, main=None, hl=None, limit=None, win_max=None, win_keys=None, min_cap=None):
+    """segs＝[(來源起, 來源迄), ...]（原速，多段＝往前跳接）。"""
+    clip = nofab(clip)
+    a0 = segs[0][0]
+    prev = _CUR.get(clip)
+    if prev is not None and a0 < prev - 1e-6:
+        d = prev - a0
+        segs = [(a + d, b + d) for a, b in segs]
+    pts, loc = [], 0.0
+    for a, b in segs:
+        if pts:
+            pts.append((loc + 1e-4, a))
+        else:
+            pts.append((0.0, a))
+        loc += b - a
+        pts.append((loc, b))
+    D = round(loc, 2)
+    rec = Rec4(clip, pts, main=main)
+    rec.win_max = win_max
+    rec.win_keys = win_keys
+    op = Op(rec, idle=idle_sub(idle), chain=chain)
+    D, dw = plan_dwell(rec, op, D, sub, _LW, None, chain, cont=cont, min_cap=min_cap)
+    sh = Shot4(sid, D, [rec], pill=page, head=head, hl=hl or _hl(head), sub=sub, op=op)
+    if chain:
+        dw = {"units": 1, "min_req": 0, "reading": round(len(sub) / 6.5 + 0.3, 2), "D": D, "reached": True, "hold": 0.0, "note": "連續點擊（比比直接彈到下一顆）", "ok": True}
+    sh.dwell = dw
+    # 實際播到的來源秒
+    from v3_guard import used_ranges
+    if limit is not None and max(b for _, b in used_ranges(rec, D)) > limit:
+        # 停留規則把鏡頭拉長、但素材之後是避開時段：播到 limit 就停在那一格（凍結），不往後播
+        keep = [(l_, s_) for l_, s_ in pts if s_ <= limit + 1e-6]
+        l_last, s_last = keep[-1]
+        if s_last < limit - 1e-3:
+            keep.append((l_last + (limit - s_last), limit))
+        keep.append((max(D, keep[-1][0] + 0.01), keep[-1][1]))
+        rec.srcmap = keep
+        sh.dwell["note"] = (sh.dwell.get("note") or "") + f"素材播到 {limit}s 停格（之後是避開時段）"
+    _CUR[clip] = max(b for _, b in used_ranges(rec, D))
+    return sh
+
+
+def card(sid, D, fn, cues=()):
+    return Shot4(sid, D, [], kind="card", foot=False, custom=fn, cues=cues)
+
+
+def grid_card(sid, grid, D=3.0):
+    """3D 四宮格卡片：宣告用到的素材與來源區段，讓守門也檢查到（來回切換、壞畫面）。"""
+    sh = card(sid, D, K4.grid4_fn(GRID_W, GRID_M), [(0, "pop"), (0.4, "pop"), (0.8, "pop")])
+    sh.uses = [(c, st, st + D) for c, _, _, st in grid]
+    return sh
+
+
+# 四宮格：每格裁「整張 3D 畫布」（含兩側編號標籤，完整入格不被切），模型也完整。桌機畫布 src (538,290)-(3104,1600)；手機 (14,796)-(1156,1872)
+_GW = (538, 290, 3104, 1600)
+_GM = (14, 796, 1156, 1872)
+GRID_W = [("V12a_desktop", "AI 伺服器", _GW, 6.0), ("V12b_desktop", "CoWoS-L 先進封裝", _GW, 3.5),
+          ("V12c_desktop", "HBM 記憶體", _GW, 3.5), ("V12d_desktop", "液冷散熱", _GW, 3.5)]
+GRID_M = [("V12a_mobile", "AI 伺服器", _GM, 6.2), ("V12b_mobile", "CoWoS-L 先進封裝", _GM, 3.1),
+          ("V12c_mobile", "HBM 記憶體", _GM, 3.1), ("V12d_mobile", "液冷散熱", _GM, 3.1)]
+
+
+def build():
+    _CUR.clear()
+    S = []
+    # 0 開場（11.0 秒）
+    S.append(card("a01", 3.4, K4.opening_fn(1), [(0, "pop")]))
+    S.append(card("a02", 3.4, K4.opening_fn(2), [(0, "pop")]))
+    S.append(card("a03", 3.4, K4.opening_fn(3), [(0, "ding")]))
+    S.append(card("a04", 2.0, K4.logo_fn(), [(0, "swish"), (0.4, "ding")]))
+    S.append(card("a05", 3.0, K4.intro4_fn(), [(0.2, "pop")]))
+    # 1 總覽（含今日事件、搜尋）
+    S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_happy"), (1.2, "folder")]))
+    S.append(shot("b02", "總覽", "V02_desktop", [(2.2, 4.4)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
+    S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
+    # 2 財經日曆（一段連續錄影）
+    S.append(shot("c01", "財經日曆", "V03_desktop", [(5.2, 7.3)], "② 財經日曆", "財報法說都排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
+    S.append(shot("c02", "財經日曆", "V03_desktop", [(10.9, 13.0)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe")], min_cap=2.1))
+    # 3 資金流向（播放鏡用 60fps 素材）
+    S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
+    S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(4.5, 8.1)], "輪動一路播放", "族群怎麼輪，播給你看", [(0, "coins"), (2.2, "face_surprise_happy")]))
+    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.0, 4.2)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True, limit=4.25))
+    S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
+    # 4 熱力圖
+    S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 2.55)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=2.5))
+    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(7.0, 8.3)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
+    S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(8.3, 11.3)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
+    # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
+    S.append(shot("f01", "產業地圖", "V11_desktop_nofab", [(11.7, 14.7)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
+    S.append(shot("f02", "產業地圖", "V12a_desktop", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")]))
+    S.append(grid_card("f03", GRID_W))
+    S.append(shot("f04", "產業地圖", "V13_desktop", [(3.6, 6.5)], "上下游一張連", "滑過去，供貨關係就亮", [(0, "point_r"), (2.2, "face_love")]))
+    # 6 個股（K 線＋切一次週期 → 下方總覽 → 旁邊點營收、獲利）
+    # 個股：錄影端補錄的 D10（一開場就是日 K，沒有分時圖、沒有「非即時」浮水印）一段連續操作：日 K → 點週 → 往下看總覽 → 點營收 → 點獲利
+    D10 = "D10_desktop_v3j"
+    S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_happy"), (1.0, "face_curious")]))
+    S.append(shot("g02", "個股", D10, [(4.8, 7.0)], "週期一鍵切", "切到週線，趨勢更清楚", [(0, "face_nod")]))
+    # 「無資料」＝AI 分析卡 1 小時／4 小時 狀態標籤，非錯誤畫面（CEO 10-12 07:4x 目視確認），g03 恢復
+    S.append(shot("g03", "個股", D10, [(9.1, 11.5)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")]))
+    S.append(shot("g04", "個股", D10, [(14.0, 14.8), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
+    S.append(shot("g05", "個股", D10, [(22.0, 23.7)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
+    S.append(shot("h01", "市場明細", "V16_desktop", [(7.6, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")], min_cap=3.0))
+    S.append(shot("h02", "選股策略", "V17_desktop", [(7.0, 9.4)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")], min_cap=2.4))
+    S.append(shot("h03", "週期統計", "V18_desktop", [(4.2, 6.4)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")], min_cap=2.2))
+    # 10 ETF（I03 不用；報酬比較用 V21 勾選完成後的結果段）
+    S.append(shot("i01", "ETF", "V19_desktop", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
+    S.append(shot("i02", "ETF", "V20_desktop", [(3.3, 5.5)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")]))
+    S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
+    S.append(shot("i03", "ETF", "V20_desktop", [(5.75, 7.95)], "報酬一起比", "含息不含息分開算", [(0, "tilt"), (1.2, "face_nod")], limit=8.0, min_cap=3.2))
+    S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
+    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(8.2, 10.5)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=2.8))
+    S.append(shot("i05", "ETF", "V23_desktop", [(2.5, 5.6)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_proud"), (1.0, "growth")], hl="長大",
+                  win_keys=[(0.0, (0, 0, 3200, 1700))]))   # 裁掉頁尾（退款與取消訂閱）
+    # 11～13 自選清單／導覽／願望清單
+    S.append(shot("j01", "自選清單", "V24_desktop", [(8.4, 10.9)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
+                  win_keys=[(0.0, (0, 0, 2990, 1682))]))
+    S.append(shot("j02", "導覽", "V25_desktop", [(5.7, 7.9)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
+    # 願望清單：錄影端補錄的 V26w（打開就是願望清單分頁、沒有「錯誤回報」類別）到了就用；沒到退回 V26 的願望清單分頁段
+    if fresh_nofab("V26w_desktop"):
+        S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+                      win_keys=[(0.0, (1290, 716, 3170, 1726))]))
+    else:
+        S.append(shot("j03", "願望清單", "V26_desktop", [(15.0, 17.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+                      win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
+    # 14～15 片尾與警語
+    S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
+    S.append(card("k02", 5.0, K4.disclaimer4_fn()))
+    return S

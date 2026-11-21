@@ -1,0 +1,43 @@
+{
+ "txt": "範例2_ig輪播.txt",
+ "mode": "slides",
+ "series": "長輩的期待",
+ "slides": [
+  {
+   "name": "01_cover",
+   "type": "cover",
+   "n": 1,
+   "palette": "V",
+   "illus": "qtable"
+  },
+  {
+   "name": "02_inner",
+   "type": "inner",
+   "n": 2,
+   "palette": "V",
+   "illus": "scale",
+   "key": "43.12%"
+  },
+  {
+   "name": "03_inner",
+   "type": "inner",
+   "n": 3,
+   "palette": "V",
+   "illus": "steamq"
+  },
+  {
+   "name": "04_inner",
+   "type": "inner",
+   "n": 4,
+   "palette": "V",
+   "illus": "ring"
+  },
+  {
+   "name": "05_sources",
+   "type": "sources",
+   "n": 5,
+   "palette": "V"
+  }
+ ],
+ "channel": "我們這一代"
+}

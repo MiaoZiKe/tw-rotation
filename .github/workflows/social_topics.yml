@@ -1,0 +1,71 @@
+name: 社群選題清單
+
+# ★ 尚未合併進 main（2026-10-11 在 claude/wonderful-bardeen-kg2wg4 分支），需 CEO 決定何時合併。
+#   GitHub 排程只在預設分支生效，所以在分支上不會自動跑，只能手動觸發測試。
+#
+# 每天只讀資料湖產出 docs/marketing/social_unit/daily_topics/<日期>.md/.json，不連外、不動 data/。
+# 時間：台北週一到週五 21:50（UTC 13:50）—— 晚於 daily.yml 21:30 那輪，讓新聞先進湖。
+on:
+  schedule:
+    - cron: "50 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "目標日期 YYYY-MM-DD（留空＝今天，台北）"
+        type: string
+        default: ""
+
+# 與 daily.yml 共用同一個 group：兩者都會 commit 回 main，同時跑 push 會互相被拒。
+# 不取消進行中的（cancel-in-progress 維持 false，見 CLAUDE.md 第 6 條）。
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write     # 只為了把 daily_topics/ 新檔 commit 回 main，沒有其他權限
+
+jobs:
+  topics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依套件
+        run: pip install pandas pyarrow pyyaml
+
+      - name: 產出選題清單
+        run: |
+          if [ -n "${{ inputs.date }}" ]; then
+            python scripts/social_topics.py --date "${{ inputs.date }}"
+          else
+            python scripts/social_topics.py
+          fi
+
+      - name: 回寫 daily_topics（只 add 這個資料夾）
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add docs/marketing/social_unit/daily_topics
+          if git diff --staged --quiet; then
+            echo "沒有變動，跳過 commit"
+            exit 0
+          fi
+          git commit -m "社群選題清單 $(TZ=Asia/Taipei date '+%Y-%m-%d')"
+          for i in 1 2 3 4 5; do
+            if git push origin main; then
+              echo "推送成功"
+              exit 0
+            fi
+            echo "推送被拒（第 $i 次），重新對齊遠端後再試…"
+            git pull --rebase origin main || git rebase --abort
+            sleep $((i * 5))
+          done
+          echo "::error::推送連續失敗 5 次"
+          exit 1

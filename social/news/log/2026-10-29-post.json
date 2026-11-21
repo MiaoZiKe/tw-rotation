@@ -1,0 +1,31 @@
+{
+ "slot": "post",
+ "date": "2026-10-29",
+ "run_at": "2026-10-29T17:53+08:00",
+ "posted": [
+  {
+   "file": "2026-10-29_news-post-1.md",
+   "publish_at": "2026-10-29T18:23+08:00",
+   "title": "AI 伺服器散熱 氣冷與液冷",
+   "topic_category": "科技",
+   "content_type": "產業知識",
+   "layout": "D-知識卡(實景)",
+   "style": "常備文庫",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "0",
+   "news_ids": "",
+   "u_code": "newspost1",
+   "evergreen": "true",
+   "topic_id": "cooling",
+   "has_photo": "true",
+   "photo_kind": "類別",
+   "photo": "_category/散熱/photo_2.jpg"
+  }
+ ],
+ "skipped": [],
+ "evergreen": [
+  "cooling"
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}

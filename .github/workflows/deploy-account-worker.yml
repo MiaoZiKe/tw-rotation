@@ -1,0 +1,226 @@
+name: 部署 Worker（會員登入與使用統計）
+
+# 把 workers/account-api/ 自動部署到 Cloudflare（Worker ＋ Durable Object），並把 Google 登入的金鑰與管理者名單設成 Worker Secret。
+# 架構與取捨：DECISIONS #270；Andy 要做的設定：docs/login_setup.md。
+#
+# ★ 跟「部署 Worker（即時報價代理）」同一個原則：金鑰還沒設的時候「跳過並印出待辦」，不要紅燈。
+#   而且要講出「缺的是哪一個」—— 2026-09-18 踩過：只寫一句死字串，Andy 要自己一個一個猜。
+#
+# 用到的 repo Secret：
+#   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID  —— 報價代理已經在用，沿用
+#   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET       —— Google Cloud 的 OAuth 用戶端（docs/login_setup.md 第 2 步）
+#   ACCOUNT_ADMIN_EMAILS                          —— 管理者 email（逗號分隔），只有這些人看得到 #admin
+#   ECPAY_MERCHANT_ID / ECPAY_HASH_KEY / ECPAY_HASH_IV（選用，2026-10-11）—— 綠界正式金鑰；沒設＝測試環境
+#   BACKUP_TOKEN（選用）                           —— 筆電每日備份叫 /v1/admin/export 用的備份權杖（tools/laptop/README.md 第 7 步）
+#                                                    沒設就跳過、在摘要列成待辦，部署照樣綠燈
+# 這三個會用 `wrangler secret put` 寫進 Worker，**不會**出現在 repo、log 或網站上。
+
+on:
+  push:
+    branches: [main]
+    paths: ['workers/account-api/**', '.github/workflows/deploy-account-worker.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-account-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 部署前先跑存取控制測試（等同 Firebase 安全規則的測試）：規則紅了就不准部署
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 存取控制測試（19 條）
+        run: node --test workers/account-api/tests/account.test.mjs workers/account-api/tests/susp.test.mjs workers/account-api/tests/quota.test.mjs workers/account-api/tests/grants.test.mjs workers/account-api/tests/promo.test.mjs workers/account-api/tests/alerts.test.mjs workers/account-api/tests/alertmail.test.mjs
+
+      - name: 會員資料匯出／還原測試
+        run: node --test workers/account-api/tests/export.test.mjs
+
+      # 2026-10-11 金流（綠界＋銀行轉帳，docs/payment_checkout_1011.md）：CheckMacValue 官方範例、付款後開通的每一層保險、退款、冪等 —— 紅了就不准部署
+      - name: 金流訂單測試
+        run: node --test workers/account-api/tests/pay.test.mjs
+
+      # 2026-10-16 防白嫖：新文章全文只在後端（未登入拿不到、Plus 第 6 篇拒絕）、訪客累計 5 次的伺服器端計數 —— 紅了就不准部署
+      - name: 防白嫖測試
+        run: node --test workers/account-api/tests/anti_freeload.test.mjs workers/account-api/tests/articles.test.mjs workers/account-api/tests/margindash.test.mjs workers/account-api/tests/today.test.mjs
+
+      - id: guard
+        name: 檢查金鑰
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          G_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          G_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ADMINS: ${{ secrets.ACCOUNT_ADMIN_EMAILS }}
+          B_TOK: ${{ secrets.BACKUP_TOKEN }}
+        run: |
+          # BACKUP_TOKEN 是選用：沒設（或太短）就不寫進 Worker，列成待辦，不擋部署
+          if [ ${#B_TOK} -ge 16 ]; then
+            echo "backup=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backup=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::沒設 BACKUP_TOKEN（或少於 16 字）：跳過，筆電每日備份暫時備不到會員資料"
+            {
+              echo "### 待辦：BACKUP_TOKEN 還沒設"
+              echo ""
+              echo "已跳過（部署照常）。設定步驟見 tools/laptop/README.md 第 7 步：產生隨機字串 → 存成 repo Secret **BACKUP_TOKEN** → 同一個字串存進筆電憑證管理員 tw-ops-backup → 重跑這個工作流。"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$G_ID" ] && miss="$miss GOOGLE_CLIENT_ID"
+          [ -z "$G_SECRET" ] && miss="$miss GOOGLE_CLIENT_SECRET"
+          if [ -n "$miss" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "缺少：$miss"
+            {
+              echo "### 會員 Worker 尚未部署"
+              echo ""
+              echo "**缺少這些 Secret：**$miss"
+              echo ""
+              echo "步驟見 docs/login_setup.md。設定位置：Settings → Secrets and variables → Actions → New repository secret（放在 Repository secrets）。"
+              echo "在那之前網站照常運作，只是沒有登入鈕（自選清單只存在各自的裝置）。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            if [ -z "$ADMINS" ]; then echo "::warning::沒設 ACCOUNT_ADMIN_EMAILS：部署照做，但沒有人看得到 #admin 管理頁"; fi
+          fi
+
+      - name: 部署（含 Durable Object 與三個 Secret）
+        if: steps.guard.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/account-api
+          secrets: |
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+            ADMIN_EMAILS
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          # 沒設時給一個不是 email 的值：空字串的 Secret 會讓 wrangler 失敗；'none' 比對不到任何人＝沒有管理者
+          ADMIN_EMAILS: ${{ secrets.ACCOUNT_ADMIN_EMAILS || 'none' }}
+
+      # 2026-10-16 精選文章產出佇列的機器鑰匙：由 CLOUDFLARE_API_TOKEN 推導（sha256("tw-article-jobs|" + token)），
+      # article-jobs.yml 用同一個公式算 —— 不必另外設 Secret，值不進 repo、不進 log。
+      - name: 精選文章佇列鑰匙（ARTICLE_BOT_KEY）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          K=$(printf 'tw-article-jobs|%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -c1-48)
+          echo "::add-mask::$K"
+          printf '%s' "$K" | npx --yes wrangler@3 secret put ARTICLE_BOT_KEY >/dev/null && echo "已設定 ARTICLE_BOT_KEY"
+
+      # 2026-10-16 防白嫖：Claude 雲端環境把「新文章全文」傳進 Worker 用的最小權限鑰匙（選用）。
+      # 只能 put_body／del_body／list_bodies；Andy 自己想一串 24 字以上的隨機字串，同一串存成 repo Secret ARTICLE_PUT_KEY 與 Claude 環境變數 ARTICLE_BOT_KEY。沒設＝跳過（部署照常）。
+      - name: 精選文章全文上傳鑰匙（ARTICLE_PUT_KEY，有設才寫）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUT_KEY: ${{ secrets.ARTICLE_PUT_KEY }}
+        run: |
+          if [ ${#PUT_KEY} -ge 24 ]; then
+            printf '%s' "$PUT_KEY" | npx --yes wrangler@3 secret put ARTICLE_PUT_KEY >/dev/null && echo "已設定 ARTICLE_PUT_KEY"
+          else
+            echo "::notice::沒設 ARTICLE_PUT_KEY（或少於 24 字）：跳過；新文章全文暫時無法由 Claude 上傳（見 docs/articles/production_guide.md「一次性設定」）"
+          fi
+
+      # 2026-10-06 data-gw 停權端點的鑰匙（選用）：沒設＝/internal/suspend 不存在（404），其他功能不受影響
+      - name: 選用 Secret（data-gw 停權鑰匙）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INTERNAL_KEY: ${{ secrets.DATAGW_INTERNAL_KEY }}
+        run: |
+          if [ -n "$INTERNAL_KEY" ]; then printf '%s' "$INTERNAL_KEY" | npx --yes wrangler@3 secret put INTERNAL_KEY >/dev/null && echo "已設定 INTERNAL_KEY"; else echo "未設定 DATAGW_INTERNAL_KEY（停權端點維持關閉）"; fi
+
+      # 2026-10-11 綠界正式金鑰（選用）：三個都設了才寫進 Worker；沒設＝Worker 自動走綠界公開測試環境（結帳畫面標「測試模式」）
+      # ECPAY_CREDIT_CHECK_CODE（選用）：綠界後台的信用卡商家檢查碼，退款時用來查授權／關帳階段
+      - name: 選用 Secret（綠界金流）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          EC_ID: ${{ secrets.ECPAY_MERCHANT_ID }}
+          EC_KEY: ${{ secrets.ECPAY_HASH_KEY }}
+          EC_IV: ${{ secrets.ECPAY_HASH_IV }}
+          EC_CCC: ${{ secrets.ECPAY_CREDIT_CHECK_CODE }}
+          RS_KEY: ${{ secrets.RESEND_API_KEY }}
+          RS_FROM: ${{ secrets.MAIL_FROM }}
+        run: |
+          # 2026-10-12 會員帳務通知 email（選用）：RESEND_API_KEY＋MAIL_FROM（例如 哩股哩股 <notice@liguligu-puipui.com>）都設了才寄信；沒設＝只有站內通知
+          if [ -n "$RS_KEY" ] && [ -n "$RS_FROM" ]; then
+            printf '%s' "$RS_KEY" | npx --yes wrangler@3 secret put RESEND_API_KEY >/dev/null
+            printf '%s' "$RS_FROM" | npx --yes wrangler@3 secret put MAIL_FROM >/dev/null
+            echo "已設定通知信（Resend）"
+          else
+            { echo "### 待辦（選用）：會員通知信還沒設"; echo ""; echo "沒設 RESEND_API_KEY／MAIL_FROM：升級、退款等通知只出現在網站右上角鈴鐺，不寄 email。步驟見 docs/payment_checkout_1011.md 第 10 節。"; echo ""; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$EC_ID" ] && [ -n "$EC_KEY" ] && [ -n "$EC_IV" ]; then
+            printf '%s' "$EC_ID" | npx --yes wrangler@3 secret put ECPAY_MERCHANT_ID >/dev/null
+            printf '%s' "$EC_KEY" | npx --yes wrangler@3 secret put ECPAY_HASH_KEY >/dev/null
+            printf '%s' "$EC_IV" | npx --yes wrangler@3 secret put ECPAY_HASH_IV >/dev/null
+            echo "已設定綠界正式金鑰（正式收款）"
+          else
+            miss=""
+            [ -z "$EC_ID" ] && miss="$miss ECPAY_MERCHANT_ID"
+            [ -z "$EC_KEY" ] && miss="$miss ECPAY_HASH_KEY"
+            [ -z "$EC_IV" ] && miss="$miss ECPAY_HASH_IV"
+            echo "::notice::綠界金鑰沒設齊（缺：$miss）→ 結帳走綠界測試環境"
+            {
+              echo "### 待辦：綠界正式金鑰還沒設（目前是測試模式）"
+              echo ""
+              echo "缺少：$miss 。步驟見 docs/payment_checkout_1011.md 第 8 節。"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$EC_CCC" ]; then printf '%s' "$EC_CCC" | npx --yes wrangler@3 secret put ECPAY_CREDIT_CHECK_CODE >/dev/null && echo "已設定 ECPAY_CREDIT_CHECK_CODE"; fi
+
+      # 備份權杖另外一步寫進 Worker：上一步的 secrets 清單是固定的，空值會讓 wrangler 失敗，所以有設才跑這步
+      - name: 寫入 BACKUP_TOKEN（有設才跑）
+        if: steps.guard.outputs.ok == 'true' && steps.guard.outputs.backup == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/account-api
+          command: whoami
+          secrets: |
+            BACKUP_TOKEN
+        env:
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+
+      - name: 驗證真的活著
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          sleep 5
+          code=$(curl -s -o /tmp/h.json -w '%{http_code}' "https://tw-account.kcq01010909.workers.dev/health")
+          echo "HTTP $code"; head -c 300 /tmp/h.json; echo
+          test "$code" = "200"
+          grep -q '"configured":true' /tmp/h.json
+          {
+            echo "### 會員 Worker 部署成功"
+            echo ""
+            echo "網址：https://tw-account.kcq01010909.workers.dev"
+            echo "最後一步：把這個網址存成 repo Secret **ACCOUNT_API_URL**，再到 Actions 手動跑一次「部署網站」，登入鈕就會出現。"
+          } >> "$GITHUB_STEP_SUMMARY"

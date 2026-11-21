@@ -1,0 +1,20 @@
+{
+ "title": "10年，結婚登記少了近3成（影片樣片 v4，31.4 秒、8 鏡＋5 秒片尾卡，1080×1920）",
+ "platforms": [
+  "ig_reels",
+  "threads_video"
+ ],
+ "status": "draft",
+ "publish_at": null,
+ "file": "video_v4.mp4",
+ "cover": "video_v4_cover.jpg",
+ "caption": "caption.txt",
+ "narration": "narration.txt",
+ "keyword": {
+  "word": "結婚",
+  "card": "片尾卡「留言「結婚」拿完整資料」",
+  "narration": "s9｜想看完整資料，留言結婚。",
+  "why": "2026-11-15 Andy 經主控：「放吧」（plan.md 例外條款，只限影片片尾卡）"
+ },
+ "note": "2026-11-15 v4：Andy「不要出現圖片一直慢慢放大效果，有夠爛」「LOGO 動畫需要有吸引人的出場，配音效」。同題、同鏡頭結構與字幕；拿掉所有整張圖推近／平移（插圖面板外框、底板、縮放逐幀量測全片固定）；改成物件本身動作（年曆翻頁、蛋糕落定、蠟燭點亮、椅子被抽走、燈串閃熄、戒指盒彈開、搖籃單擺、窗燈依序亮、碰杯、吊牌擺盪）；資料圖彈性長出＋拖尾＋減速滾動；片尾 LOGO 彈入→太陽過衝→三道光→四字蓋印→收束光暈（每個動作同幀配音）。不排程，等 CEO 審片（animation-director、art-director）。"
+}

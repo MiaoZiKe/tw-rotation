@@ -1,0 +1,20 @@
+{
+ "title": "10年，結婚登記少了近3成（影片樣片 v6，31.4 秒）",
+ "platforms": [
+  "ig_reels",
+  "threads_video"
+ ],
+ "status": "draft",
+ "publish_at": null,
+ "file": "video_v6.mp4",
+ "cover": "video_v6_cover.jpg",
+ "caption": "caption.txt",
+ "narration": "narration.txt",
+ "keyword": {
+  "word": "結婚",
+  "card": "片尾卡「留言「結婚」拿完整資料」",
+  "narration": "s9｜想看完整資料，留言結婚。",
+  "why": "2026-11-15 Andy 經主控：「放吧」（plan.md 例外條款，只限影片片尾卡）"
+ },
+ "note": "2026-11-15 v6：v5 複審小修。鉤子大字下壓回彈 8px、換鏡掃條硬切 0 幀同框、s4 第二拍提前、s3 手繪圈改方圈不壓字、s2 開場殘影、s6 軸標 36/38px、s2 底部空白 248→66px。不排程。"
+}

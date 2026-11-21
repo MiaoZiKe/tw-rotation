@@ -1,0 +1,4 @@
+{
+ "夜版": {"bg": "#2B2A2E", "bg2": "#34323A", "dark": "#222124", "face": "#38363D", "face3": "#47444D", "line": "#CFC9C0", "lamp": "#F2B35E", "text": "#F3EEE6", "sub": "#B8B1A7", "hint": "#F2B35E", "cloudtxt": "#CFC9C0", "glow": ".55", "glow2": ".8", "grain": ".05"},
+ "晝版": {"bg": "#F6F1E8", "bg2": "#FBF8F1", "dark": "#E4DCCD", "face": "#EEE7DA", "face3": "#FBF8F1", "line": "#6E6A66", "lamp": "#D9822B", "text": "#2F2D2B", "sub": "#5C5753", "hint": "#9C530C", "cloudtxt": "#5F5B57", "glow": ".42", "glow2": ".6", "grain": ".08"}
+}

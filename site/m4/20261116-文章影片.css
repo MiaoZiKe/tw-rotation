@@ -1,0 +1,7 @@
+/* 2026-11-16 CEO 審稿：手機右下角固定的客服鈕（.supfab，42px＋右 16px）會壓在文章影片的「下載影片」鈕上，點不到。
+   手機把影片說明列拆成兩行：說明文字一行、下載鈕獨立一行靠左，且右側留出客服鈕寬度（58px）＋間距，捲到哪裡都不會被蓋住。
+   只限 ≤640 的 m4，桌機不受影響。 */
+@media (max-width:640px){
+  :root.m4 .artbody .artvid .avc{flex-direction:column;align-items:flex-start;gap:8px;padding-right:64px}
+  :root.m4 .artbody .artvid .avc .avdl{max-width:100%}
+}

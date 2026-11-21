@@ -1,0 +1,130 @@
+{
+ "id": "2026-11-12-healing-salary",
+ "cat": "healing",
+ "title": "近7成員工，領不到平均月薪",
+ "subtitle": "談晴說礙・IG／Threads 貼文存檔（圖、文案全文、出處）",
+ "date": "2026-11-12",
+ "updated": "2026-11-12",
+ "tags": [
+  "談晴說礙",
+  "平均薪資",
+  "中位數",
+  "主計總處",
+  "這一代",
+  "數字裡的日子"
+ ],
+ "summary": "主計總處：2025 年平均經常性薪資 47,884 元，中位數 38,406 元；69.74% 員工領不到平均，2026 上半年升到 70.03%。",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "貼文圖（3 張）"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-12-healing-salary-1.jpg",
+     "alt": "封面：近7成員工，領不到平均月薪",
+     "cap": "1／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-12-healing-salary-2.jpg",
+     "alt": "第 2 頁：資料從哪來與平均、中位數",
+     "cap": "2／3"
+    },
+    {
+     "src": "articles/healing/img/2026-11-12-healing-salary-3.jpg",
+     "alt": "第 3 頁：數字背後",
+     "cap": "3／3"
+    }
+   ],
+   "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "主計總處 2026 年 2 月 11 日公布，2025 年全體受僱員工每人每月經常性薪資平均 47,884 元，年增 3.09%；同一份統計裡，領不到這個平均數的員工占 69.74%。"
+  },
+  {
+   "t": "p",
+   "text": "中位數（把所有人由低到高排隊、站在正中間的那一位）是 38,406 元，和平均差了將近 1 萬元，因為少數高薪把平均往上拉。"
+  },
+  {
+   "t": "p",
+   "text": "2026 年上半年，平均升到 48,981 元，低於平均的比率升到 70.03%，是有這項統計以來首度超過 7 成。"
+  },
+  {
+   "t": "p",
+   "text": "口徑提醒：經常性薪資不含加班費與獎金，統計範圍也包含部分工時與外籍員工；主計總處說明，移工與部分工時人數增加得比本國籍員工快，是比率上升的原因之一，所以不能讀成「本國全職員工 7 成領不到」。"
+  },
+  {
+   "t": "p",
+   "text": "平均在漲，日子過得怎樣，每個人心裡各有一把尺。"
+  },
+  {
+   "t": "p",
+   "text": "平均數，離日常有多遠？"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "已於台北時間 2026-11-12 20:45 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/DfpFlpHl524/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DfpFqCbG_9_"
+    }
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "title": "薪資及生產力統計（2025 年全年；全體受僱員工每人每月經常性薪資，含部分工時與外籍員工）",
+   "publisher": "行政院主計總處",
+   "date": "2026-02-11"
+  },
+  {
+   "title": "2026 年上半年薪資統計",
+   "publisher": "行政院主計總處",
+   "date": "2026-08"
+  },
+  {
+   "title": "Taiwan's average regular monthly wage 2025",
+   "publisher": "中央社 Focus Taiwan",
+   "date": "2026-02-11",
+   "url": "https://focustaiwan.tw/business/202602110021"
+  },
+  {
+   "title": "Why 70% of Workers in Taiwan Still Earn Below Average Pay",
+   "publisher": "TaiwanPlus",
+   "date": "2026-08-11"
+  },
+  {
+   "title": "上半年低於平均薪資比率首度破 7 成",
+   "publisher": "聯合報",
+   "date": "2026-08"
+  }
+ ],
+ "confidence": "官方統計＋媒體一致；口徑含部分工時與外籍員工",
+ "status": "published",
+ "social": {
+  "ig": "https://www.instagram.com/p/DfpFlpHl524/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DfpFqCbG_9_",
+  "queue": "20261112_salary"
+ }
+}

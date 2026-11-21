@@ -1,0 +1,20 @@
+{
+ "title": "10年，結婚登記少了近3成（影片樣片 v3，30.3 秒、8 鏡＋片尾卡，1080×1920）",
+ "platforms": [
+  "ig_reels",
+  "threads_video"
+ ],
+ "status": "draft",
+ "publish_at": null,
+ "file": "video_v3.mp4",
+ "cover": "video_v3_cover.jpg",
+ "caption": "caption.txt",
+ "narration": "narration.txt",
+ "keyword": {
+  "word": "結婚",
+  "card": "片尾卡「留言「結婚」拿完整資料」",
+  "narration": "s9｜想看完整資料，留言結婚。",
+  "why": "2026-11-15 Andy 經主控：「放吧」（plan.md 例外條款，只限影片片尾卡）"
+ },
+ "note": "2026-11-15 v3：Andy「影片素材需要再豐富點」「動畫、效果等等需要優化」。同旁白稿與鏡頭結構（s1–s8）＋片尾卡 s9（LOGO 動畫＋卡林巴招牌音＋留言關鍵字「結婚」，念稿加一句 s9）。每鏡情境插圖＋資料圖兩層；背景紙紋、淡格線、光影視差；轉場遮罩擦除／圓形展開／共用元素變形。音軌：程式合成音效（sfx_v3.py），片尾約 −11.5 LUFS、true peak ≤ −1 dBTP；video_v3_audio.json 有量測與開頭起音；video_v3_outro_sfx.mp3 是片尾音效。重疊與留白：overlap_report_video_v3.json。目前無旁白；TTS 好了放 segments.json＋音檔重跑 gen_video.py 20261116_marriage_v3 與 render_video.js 即自動對齊。不排程，等 Andy 確認。"
+}

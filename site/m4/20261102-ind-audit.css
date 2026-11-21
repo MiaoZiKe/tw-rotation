@@ -1,0 +1,16 @@
+/* site/m4/20261102-ind-audit.css —— 2026-11-02 手機產業地圖普查修正（Andy iPhone：「編號不能點擊 無法看圖片」）。
+   全部限定手機（html.m4 且 ≤640），桌機一個字不動。
+   ① 「?」說明鈕：畫面上 18px 圓鈕，原本只外擴 8px（實測可點 30×30），改外擴 14px ＝ 可點 46×46，並把鈕疊到鄰居上面（z-index:3；原本下方的列蓋住外擴區，實測上下只剩 ±12px；彈窗開著時不加，免得壓在背景幕上面）（Andy 觸控規矩）。
+   ② 關聯圖的環節標題（.segtitle）：藥丸只有 19px 高，手指點不準。rect 加一圈看不見的描邊並開 pointer-events:all，
+      可點高度 ≈33px（上下兩列間距 34px，不會點到隔壁）。
+   ④ 矽光子／CPO 族群總覽「成員與階段」表裡的族群與個股連結只有 18 高（42 檔，一整排小字）；外擴 11px 上下 ＝ 可點約 40 高（表格列高 40），版面不變。
+   ③ 麵包屑「產業地圖」連結只有 56×22（所有產業鏈／族群／剖析圖頁頂端都有），外擴 12px 上下 ＝ 可點 46 高；版面高度不變。 */
+@media (max-width:640px){
+  :root.m4 body:not(:has(#howBack:not([hidden]))) .howbtn.pop{z-index:3}
+  :root.m4 body .howbtn.pop::after{inset:-14px}
+  :root.m4 .chainmap .segtitle>rect:first-child{stroke:rgba(0,0,0,0);stroke-width:15px;pointer-events:all}
+  :root.m4 #indCrumbs a{position:relative}
+  :root.m4 #indCrumbs a::after{content:'';position:absolute;inset:-12px -8px}
+  :root.m4 .siphtbl a.lk{position:relative}
+  :root.m4 .siphtbl a.lk::after{content:'';position:absolute;inset:-11px -6px}
+}

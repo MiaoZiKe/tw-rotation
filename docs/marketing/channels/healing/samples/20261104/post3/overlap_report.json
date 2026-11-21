@@ -1,0 +1,10 @@
+{
+ "01_quote": {
+  "n": 4,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28
+ }
+}

@@ -1,0 +1,467 @@
+"""Threads 排程發文：讀 social/threads/queue/*.md，把「已核准、時間到」的貼文用官方 Threads API 發出。
+
+用法：
+  python scripts/threads_post.py --check            只檢查格式與字數，不連外（本機、pytest 用）
+  python scripts/threads_post.py                    發出所有「approved 且 publish_at 已到」的貼文
+  python scripts/threads_post.py --file <檔名>      只處理指定的一個檔案（仍須 status: approved）
+  python scripts/threads_post.py --file <檔名> --now  忽略 publish_at，立刻發（仍須 status: approved）
+
+安全規則（Andy 要求：核准才發、金鑰只放 GitHub Secrets）：
+  · 只有 status: approved 的檔案會被發；draft／posted／error 一律不碰。
+  · 金鑰從環境變數 THREADS_ACCESS_TOKEN 讀，絕不印出、絕不寫進檔案或 log。
+  · 失敗不重試發文（避免重複發）：標 status: error 並寫原因，工作流程以失敗結束，GitHub 會通知。
+  · 串文（一則接一則）：檔案內用單獨一行 `-----` 分隔，第 2 則起以前一則為回覆對象。
+  · 每則 ≤ 500 字（Threads 單則上限）。
+
+檔案格式：
+  ---
+  status: draft | approved | posted | error
+  publish_at: 2026-10-26T20:30+08:00
+  title: 給人看的標題
+  ---
+  第一則內容
+  -----
+  第二則內容
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
+import threads_lint as TL  # noqa: E402  2026-11-03 不放網站網址（strip_urls）
+
+QUEUE = ROOT / "social" / "threads" / "queue"
+API = "https://graph.threads.net/v1.0"
+TAIPEI = timezone(timedelta(hours=8))
+MAX_LEN = 500
+STATUSES = {"draft", "approved", "posted", "error"}
+SEP = re.compile(r"^-{5,}\s*$", re.M)
+
+
+class PostError(Exception):
+    pass
+
+
+def _is_emoji(c: str) -> bool:
+    o = ord(c)
+    return o >= 0x1F000 or 0x2190 <= o <= 0x2BFF or o in (0xFE0F, 0x200D, 0x20E3)
+
+
+def _tlen(s: str) -> int:
+    """Threads 官方文件：表情符號以 UTF-8 位元組數計入 500 上限（一個 emoji 常占 3～4）。
+    這裡對 emoji 一律用 UTF-8 位元組數，其他字元算 1，寧可高估也不要發不出去。"""
+    return sum(len(c.encode("utf-8")) if _is_emoji(c) else 1 for c in s)
+
+
+def parse(text: str) -> tuple[dict, list[str]]:
+    """回傳 (front matter dict, 貼文清單)。格式不對丟 PostError。"""
+    m = re.match(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", text, re.S)
+    if not m:
+        raise PostError("缺少檔頭（開頭要有 --- … ---）")
+    meta: dict = {}
+    for line in m.group(1).splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        k, sep, v = line.partition(":")
+        if not sep:
+            raise PostError(f"檔頭格式錯誤：{line!r}")
+        meta[k.strip()] = v.strip()
+    posts = [p.strip() for p in SEP.split(m.group(2)) if p.strip()]
+    return meta, posts
+
+
+def validate(meta: dict, posts: list[str]) -> list[str]:
+    """回傳問題清單（空＝通過）。"""
+    errs: list[str] = []
+    st = meta.get("status", "")
+    if st not in STATUSES:
+        errs.append(f"status 必須是 {sorted(STATUSES)} 之一，目前是 {st!r}")
+    if not meta.get("publish_at"):
+        errs.append("缺少 publish_at")
+    else:
+        try:
+            when(meta)
+        except ValueError:
+            errs.append(f"publish_at 格式錯誤（要像 2026-10-26T20:30+08:00）：{meta['publish_at']!r}")
+    if not posts:
+        errs.append("沒有任何貼文內容")
+    for i, p in enumerate(posts, 1):
+        if _tlen(p) > MAX_LEN:
+            errs.append(f"第 {i} 則 {_tlen(p)} 字，超過 {MAX_LEN} 字")
+    v = str(meta.get("video") or "").strip()
+    if v and (not v.lower().endswith(".mp4") or not (ROOT / v).is_file()):
+        errs.append(f"video 要是 repo 裡的 mp4：{v!r}")
+    if "{連結}" in "".join(posts) or "{link}" in "".join(posts).lower():
+        errs.append("內容還有未填的 {連結} 佔位符")
+    return errs
+
+
+def when(meta: dict) -> datetime:
+    s = meta["publish_at"]
+    d = datetime.fromisoformat(s)
+    return d if d.tzinfo else d.replace(tzinfo=TAIPEI)
+
+
+def is_due(meta: dict, now: datetime) -> bool:
+    return meta.get("status") == "approved" and when(meta) <= now
+
+
+# ---------- Threads API ----------
+
+def _call(method: str, path: str, token: str, params: dict | None = None) -> dict:
+    params = dict(params or {})
+    params["access_token"] = token
+    data = urllib.parse.urlencode(params).encode()
+    url = f"{API}{path}"
+    if method == "GET":
+        req = urllib.request.Request(f"{url}?{data.decode()}")
+    else:
+        req = urllib.request.Request(url, data=data, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        # 錯誤內文不含權杖（權杖在請求裡，不在回應裡）；仍只截前 300 字
+        raise PostError(f"HTTP {e.code} {path}：{body[:300]}") from None
+    except urllib.error.URLError as e:
+        raise PostError(f"連線失敗 {path}：{e.reason}") from None
+
+
+RAW = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/"
+
+
+def images_of(meta: dict) -> list[str]:
+    """front matter 的 images:（空白或逗號分隔的 repo 相對路徑）。2026-10-29 Andy：「為何沒有貼文?」—— Threads 主題文章原本只發文字，封面圖沒帶上。"""
+    return [x for x in re.split(r"[\s,]+", str(meta.get("images") or "").strip()) if x]
+
+
+SITE = "https://liguligu-puipui.com/"   # 正式站（Cloudflare Pages；mp4 回 video/mp4）
+VIDEO_ATTEMPTS = 3                      # 影片檔失敗時最多試幾輪（每 15 分鐘一輪）；用完才標 error
+
+
+def video_urls(meta: dict) -> list[str]:
+    """2026-11-16 頻道①短影片（Andy：「沒有看到 LIGULIGU IG Thread 有影片 需要發布」）：front matter
+    video: <repo 相對 mp4 路徑>；video_url: <公開網址>（選填）。候選順序：video_url → 正式站（site/ 底下的檔）→ raw。"""
+    v = str(meta.get("video") or "").strip()
+    out = []
+    u = str(meta.get("video_url") or "").strip()
+    if u.startswith("https://"):
+        out.append(u)
+    if v.startswith("site/"):
+        out.append(SITE + urllib.parse.quote(v[len("site/"):]))
+    if v:
+        out.append(RAW + urllib.parse.quote(v))
+    return list(dict.fromkeys(out))
+
+
+def wait_video(cid: str, token: str, timeout: int = 900) -> None:
+    """Threads 影片容器要轉檔：輪詢 status 到 FINISHED（每 10 秒，最多 15 分鐘）；ERROR 帶回 error_message。"""
+    waited = 0
+    while True:
+        d = _call("GET", f"/{cid}", token, {"fields": "status,error_message"})
+        st = d.get("status")
+        if st == "FINISHED":
+            return
+        if st in ("ERROR", "EXPIRED"):
+            raise PostError(f"Threads 影片處理失敗：{st} {d.get('error_message', '')}".strip())
+        if waited >= timeout:
+            raise PostError(f"Threads 影片處理逾時（{timeout} 秒）狀態={st}")
+        time.sleep(10)
+        waited += 10
+
+
+def video_container(uid: str, token: str, urls: list[str], text: str) -> str:
+    """照 video_urls 的順序建 VIDEO 容器，一條失敗換下一條；全部失敗才丟錯（列出每條原因）。"""
+    errs = []
+    for u in urls:
+        try:
+            c = _call("POST", f"/{uid}/threads", token, {"media_type": "VIDEO", "video_url": u, "text": text})["id"]
+            wait_video(c, token)
+            return c
+        except PostError as e:
+            if "190" in str(e):
+                raise
+            errs.append(f"{u}：{e}")
+            print(f"::warning::Threads 影片網址失敗，換下一條：{u}：{str(e)[:200]}")
+    raise PostError("Threads 影片所有網址都失敗：" + "；".join(errs)[:400])
+
+
+def publish_chain(posts: list[str], token: str, images: list[str] | None = None,
+                  video: list[str] | None = None) -> list[dict]:
+    me = _call("GET", "/me", token, {"fields": "id,username"})
+    uid = me["id"]
+    out: list[dict] = []
+    reply_to = None
+    urls = [RAW + urllib.parse.quote(x) for x in (images or [])][:20]
+    for i, text in enumerate(posts, 1):
+        params = {"media_type": "TEXT", "text": text}
+        if i == 1 and video:               # 第一則是影片貼文（容器已等到 FINISHED，下面直接發布）
+            params = {"media_type": "VIDEO", "text": text}
+        elif i == 1 and len(urls) == 1:      # 第一則帶封面圖
+            params = {"media_type": "IMAGE", "image_url": urls[0], "text": text}
+        elif i == 1 and len(urls) > 1:     # 多張 → 輪播
+            kids = [_call("POST", f"/{uid}/threads", token, {"media_type": "IMAGE", "image_url": u, "is_carousel_item": "true"})["id"] for u in urls]
+            time.sleep(10)
+            params = {"media_type": "CAROUSEL", "children": ",".join(kids), "text": text}
+        if reply_to:
+            params["reply_to_id"] = reply_to
+        try:
+            if params["media_type"] == "VIDEO":
+                c = {"id": video_container(uid, token, video, text)}
+            else:
+                c = _call("POST", f"/{uid}/threads", token, params)
+        except PostError as e:
+            if params["media_type"] in ("TEXT", "VIDEO") or "190" in str(e):
+                raise
+            print(f"::warning::封面圖上傳失敗，改發純文字（不擋整篇）：{e}")
+            params = {"media_type": "TEXT", "text": text, **({"reply_to_id": reply_to} if reply_to else {})}
+            c = _call("POST", f"/{uid}/threads", token, params)
+        cid = c["id"]
+        time.sleep(15 if params["media_type"] != "TEXT" else 8)  # 讓容器建好；圖片要多等一下
+        p = None
+        for wait in (0, 10, 20, 30):  # 容器尚未就緒時重試「發布」；發布前重試不會重複發
+            time.sleep(wait)
+            try:
+                p = _call("POST", f"/{uid}/threads_publish", token, {"creation_id": cid})
+                break
+            except PostError as e:
+                if wait == 30 or "HTTP 4" not in str(e) or "190" in str(e):
+                    raise
+        mid = p["id"]
+        link = ""
+        try:
+            link = _call("GET", f"/{mid}", token, {"fields": "permalink"}).get("permalink", "")
+        except PostError:
+            pass
+        out.append({"id": mid, "permalink": link})
+        reply_to = mid
+        if i < len(posts):
+            time.sleep(3)
+    return out
+
+
+def legacy_v2(meta: dict, posts: list[str], imgs: list[str], now: datetime) -> tuple[list[str], list[str]]:
+    """2026-11-01 Threads v2（docs/marketing/social_unit/threads_rules.md）：檔頭沒有 format: threads_v2 的舊格式檔
+    （手動加發、舊排程）發文前自動改成 鉤子主文＋串文＋留言連結＋1 個事件標籤。改寫失敗 → 原文照發（不擋）。
+    圖：照原檔帶（11-02 起主題文章只留 1 張實景封面；2 張以上照發並在 log 警告）。"""
+    if meta.get("format") == "threads_v2" or os.environ.get("THREADS_V2_LEGACY", "1") != "1":
+        return posts, imgs
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import threads_v2 as V
+        v2 = V.from_posts(posts, len(imgs), now.astimezone(TAIPEI).strftime("%Y-%m-%d"),
+                          V.load_state(ROOT / "social" / "news" / "log" / "hook_history.json"))
+        out = [v2["main_post"], *v2["thread_posts"], v2["reply_post"]]
+        print(f"舊格式檔已改寫成 v2（{v2['hook_type']}／{v2['emotion']}／#{v2['tag']}，lint {'通過' if v2['checklist_passed'] else '未全過、照發'}）")
+        if len(imgs) > 1:
+            print("::warning::舊格式檔有 2 張以上的圖（11-02 起主題文章只留 1 張封面）；照原檔發，之後手動加發只附封面")
+        return out, imgs
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::舊格式檔改寫 v2 失敗，原文照發：{type(e).__name__} {e}")
+        return posts, imgs
+
+
+# ---------- 檔案寫回 ----------
+
+def rewrite_meta(path: Path, updates: dict) -> None:
+    text = path.read_text(encoding="utf-8")
+    m = re.match(r"\A(---\s*\n)(.*?)(\n---\s*\n?)(.*)\Z", text, re.S)
+    lines = m.group(2).splitlines()
+    done = set()
+    for idx, line in enumerate(lines):
+        k = line.partition(":")[0].strip()
+        if k in updates:
+            lines[idx] = f"{k}: {updates[k]}"
+            done.add(k)
+    for k, v in updates.items():
+        if k not in done:
+            lines.append(f"{k}: {v}")
+    path.write_text(m.group(1) + "\n".join(lines) + m.group(3) + m.group(4), encoding="utf-8")
+
+
+def scrub_posts(posts: list[str], name: str = "") -> list[str]:
+    """★ 2026-11-03 Andy：「網頁都不公開先」→ 送出前拿掉網址與導流句。自動主題文章：任何網址都拿掉；
+    手寫檔：只拿掉本站網域（liguligu-puipui.com／miaozike.github.io）與導流句。清完是空的那則不發；最後一則清空 → 補免責句。"""
+    if TL.PROMOTE_SITE:
+        return posts
+    site_only = not post_quota.is_auto_news(name)
+    out = []
+    for i, p in enumerate(posts):
+        if TL.has_url(p, site_only):
+            q = TL.strip_urls(p, site_only)
+            print(f"::notice::第 {i + 1} 則有網址／導流字，已自動移除（11-03 起不放網站網址）")
+            if not q and i == len(posts) - 1 and i > 0:
+                q = TL.DEFAULT_LEGAL
+            p = q
+        if p:
+            out.append(p)
+    return out
+
+
+def process(path: Path, now: datetime, token: str | None, force_now: bool = False) -> str:
+    meta, posts = parse(path.read_text(encoding="utf-8"))
+    errs = validate(meta, posts)
+    if errs:
+        raise PostError("；".join(errs))
+    if meta["status"] != "approved":
+        return "略過（status 不是 approved）"
+    if not force_now and not is_due(meta, now):
+        return f"略過（還沒到 {meta['publish_at']}）"
+    # 2026-11-02 降量模式（Andy：「同意降量」）：關掉的類別不連 Meta；改回 draft 並註記，之後放量也不會把舊稿補發出去
+    if not post_quota.queue_allowed("threads", path.name):
+        grp = "news" if post_quota.is_auto_news(path.name) else "manual"
+        rewrite_meta(path, {"status": "draft",
+                            "quota_skipped": f"{now.astimezone(TAIPEI).strftime('%Y-%m-%dT%H:%M+08:00')} post_quota.json queue.{grp}.threads=false"})
+        return f"{post_quota.SKIP_MSG}（post_quota.json queue.{grp}.threads=false；已改回 draft）"
+    if not token:
+        raise PostError("沒有 THREADS_ACCESS_TOKEN（請在 GitHub Secrets 設定）")
+    imgs = images_of(meta)
+    posts, imgs = legacy_v2(meta, posts, imgs, now)
+    posts = scrub_posts(posts, path.name)
+    vids = video_urls(meta)
+    res = publish_chain(posts, token, imgs, video=vids) if vids else publish_chain(posts, token, imgs)
+    upd = {
+        "status": "posted",
+        "posted_at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M+08:00"),
+        "urls": " ".join(r["permalink"] for r in res if r["permalink"]) or "(無)",
+    }
+    note = first_comment(meta, res, token)
+    if note:
+        upd.update(note)
+    rewrite_meta(path, upd)
+    return f"已發出 {len(res)} 則" + ("＋第一則留言" if note.get("comment_url") else "")
+
+
+def first_comment(meta: dict, res: list[dict], token: str) -> dict:
+    """front matter first_comment:（單行）→ 主文發出後回覆在第一則底下（2026-11-15 ig-threads-copy 第六節①：
+    影片貼文的網址放第一則留言）。不經 scrub（這是 Andy 指定的網站文章直連）。失敗只警告、不重發主文。"""
+    text = str(meta.get("first_comment") or "").strip()
+    if not text or not res:
+        return {}
+    try:
+        uid = _call("GET", "/me", token, {"fields": "id"})["id"]
+        c = _call("POST", f"/{uid}/threads", token, {"media_type": "TEXT", "text": text, "reply_to_id": res[0]["id"]})["id"]
+        time.sleep(8)
+        p = None
+        for wait in (0, 10, 20):
+            time.sleep(wait)
+            try:
+                p = _call("POST", f"/{uid}/threads_publish", token, {"creation_id": c})
+                break
+            except PostError:
+                if wait == 20:
+                    raise
+        link = ""
+        try:
+            link = _call("GET", f"/{p['id']}", token, {"fields": "permalink"}).get("permalink", "")
+        except PostError:
+            pass
+        return {"comment_url": link or p["id"]}
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::第一則留言沒發出（主文已發，不重發）：{str(e)[:200]}")
+        return {"comment_error": str(e)[:150].replace("\n", " ")}
+
+
+def fail_update(path: Path, e: Exception) -> dict:
+    """失敗寫回：一般檔照舊標 error（不重發）。影片檔（video:）在發布前失敗 → 保持 approved、attempts+1，
+    下一輪排程（每 15 分鐘）自動再試，試滿 VIDEO_ATTEMPTS 輪才標 error（工作流每次失敗都紅燈＋寄信，監工看得到）。"""
+    err = str(e)[:200].replace("\n", " ")
+    try:
+        meta, _ = parse(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        meta = {}
+    if meta.get("video") and meta.get("status") == "approved":
+        n = int(str(meta.get("attempts") or "0") or 0) + 1
+        if n < VIDEO_ATTEMPTS:
+            return {"attempts": str(n), "last_error": err}
+        return {"status": "error", "attempts": str(n), "error": err}
+    return {"status": "error", "error": err}
+
+
+def wait_for_due(files: list, wait_max_min: float) -> None:
+    """備援觸發用：早到的 job 在 wait_max_min 分鐘內等到 publish_at 再發，超過的留給下一輪。"""
+    deadline = time.time() + wait_max_min * 60
+    upcoming = []
+    for f in files:
+        try:
+            meta, _ = parse(f.read_text(encoding="utf-8"))
+            if meta.get("status") == "approved" and post_quota.queue_allowed("threads", f.name):   # 降量關掉的不等
+                upcoming.append((when(meta), f))
+        except Exception:
+            continue
+    upcoming.sort(key=lambda x: x[0])
+    for t, f in upcoming:
+        delta = (t - datetime.now(TAIPEI)).total_seconds()
+        if delta <= 0:
+            continue
+        if time.time() + delta > deadline:
+            print(f"{f.name}：{t.isoformat()} 超過等待上限，交給下一輪")
+            break
+        print(f"{f.name}：等 {int(delta)} 秒到 {t.isoformat()}", flush=True)
+        time.sleep(delta + 2)
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--check", action="store_true", help="只檢查格式，不連外")
+    ap.add_argument("--file", default="", help="只處理這個檔名（queue 內）")
+    ap.add_argument("--now", action="store_true", help="忽略 publish_at，立刻發")
+    ap.add_argument("--wait-max", type=float, default=0.0,
+                    help="publish_at 還沒到但 N 分鐘內會到的，在 job 內等到點再發（上限 20 分；超過交給下一輪）")
+    ap.add_argument("--queue", default=str(QUEUE))
+    a = ap.parse_args(argv)
+    q = Path(a.queue)
+    files = sorted(q.glob("*.md"))
+    if a.file:
+        files = [f for f in files if f.name == a.file or f.stem == a.file]
+        if not files:
+            print(f"找不到檔案：{a.file}", file=sys.stderr)
+            return 2
+    if a.wait_max > 0 and not a.check and not a.now:
+        wait_for_due(files, min(a.wait_max, 20.0))
+    now = datetime.now(TAIPEI)
+    token = os.environ.get("THREADS_ACCESS_TOKEN", "").strip() or None
+    bad = 0
+    for f in files:
+        try:
+            meta, posts = parse(f.read_text(encoding="utf-8"))
+            errs = validate(meta, posts)
+            if a.check:
+                if errs:
+                    bad += 1
+                    print(f"✗ {f.name}：{'；'.join(errs)}")
+                else:
+                    print(f"✓ {f.name}（{meta['status']}，{len(posts)} 則）")
+                continue
+            if errs:
+                if meta.get("status") == "approved":
+                    raise PostError("；".join(errs))
+                continue
+            msg = process(f, now, token, a.now)
+            print(f"{f.name}：{msg}")
+        except PostError as e:
+            bad += 1
+            print(f"✗ {f.name}：{e}", file=sys.stderr)
+            if not a.check:
+                try:
+                    rewrite_meta(f, fail_update(f, e))
+                except Exception:
+                    pass
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

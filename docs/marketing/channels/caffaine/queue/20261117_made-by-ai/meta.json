@@ -1,0 +1,19 @@
+{
+  "title": "這支影片的動畫，是我叫 AI 做的（50 秒）",
+  "hook_type": "結果先行",
+  "format": "video",
+  "platforms": [
+    "ig",
+    "threads"
+  ],
+  "status": "posted",
+  "publish_at": "2026-11-17T21:00+08:00",
+  "video_src": "media/caffaine/20261117_made-by-ai",
+  "keyword": "動畫",
+  "note": "2026-11-16 新版旁白成片（約 50～54 秒）已換上。文章：site/articles/caffaine/2026-11-17-made-by-ai.json。影片本體見 site/media/caffaine/20261117_made-by-ai/，Reels 用的 media 分支由 scripts/channel_media.py stage 推送。",
+  "urls": {
+    "ig": "https://www.instagram.com/reel/Df2B3jbBs9y/",
+    "threads": "https://www.threads.com/@caffaine.ai/post/Df2B9LoB0KM"
+  },
+  "comment_keyword": "動畫"
+}

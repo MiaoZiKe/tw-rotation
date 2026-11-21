@@ -1,0 +1,137 @@
+/* ==========================================================================================
+   哩股哩股 LOGO ⑤C 色系（2026-11-10，Andy：「好，使用 LOGO 5 …… 我網頁內容都需要多增加這版面風格的色系，
+   幫我全部修改，並且暗色系也一樣需要符合 LOGO 風格」）。對照表與依據：docs/brand/theme_5c.md。
+
+   做法：只換顏色、不動版面與功能。三種版面風格（casual 親和／hud 科技／pro 專業）× 淺／深 共六組變數，
+   全部改吃同一組 ⑤C 色票；各風格的圓角、字重、材質（格線、角框、毛玻璃）照舊，只有顏色換掉。
+   載入順序在 theme4.css 之後；選擇器特異度與 theme4.css 的主題變數段相同（0,3,0），靠順序蓋過。
+
+   色票（LOGO ⑤C，取自 docs/brand/logo_1103/round4/README.md）：
+     淺色  底 #FBFAF6　墨 #14213D　重點 #A8482A（銅紅）
+     深色  底 #0E1830　墨 #FBFAF6　重點 #D0643F（亮一階銅紅）
+
+   ⚠ 台股慣例不動：--rise／--fall／--flat 與熱力圖 --hm-n*／--hm-p* 在這個檔案裡一個都沒碰。
+     銅紅只用在「控制項／品牌」（按鈕、選中的分頁與膠囊、品牌標記），不用在數字、不用在圖表資料列，
+     所以不會被讀成「漲」。分辨方式與色差實測見 docs/brand/theme_5c.md 第三節。
+   ========================================================================================== */
+
+/* ------------------------------ 淺色（三種風格共用）------------------------------ */
+:root[data-theme="light"],
+:root[data-theme4="casual"][data-theme="light"],
+:root[data-theme4="hud"][data-theme="light"],
+:root[data-theme4="pro"][data-theme="light"]{
+  --bg:#F2EFE8; --bg-2:#ECE8DF; --panel:#FBFAF6; --panel-2:#F6F4EE; --panel-3:#EFECE3;
+  --line:#E3DED2; --line-2:#CFC8B8;
+  --ink:#14213D; --ink-2:#37425A; --ink-3:#576175;
+  --cyan:#2B4C8C; --violet:#6A4AA8; --amber:#8F5600; --lime:#5B6B12;
+  --accent:#A8482A; --on-accent:#FFFFFF;
+  --ontop:#FFFFFF; --chartbg:#FBFAF6;
+  --topbar:rgba(251,250,246,.82); --topbar-m:rgba(251,250,246,.96);
+  --ovl:rgba(251,250,246,.82);
+  --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(20,33,61,.28);
+  --grid:rgba(20,33,61,.07); --drop:rgba(20,33,61,.18);
+  --glow:0 0 0 1px rgba(43,76,140,.22), 0 4px 16px -8px rgba(43,76,140,.4);
+  --focus:#2B4C8C; --row-hover:#EFECE3;
+  --tip-bg:rgba(251,250,246,.97); --tip-line:#D9D3C4; --tip-sh:0 10px 28px -10px rgba(20,33,61,.25);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --hm-na:#E7E4DC;
+  --t4-accent:#A8482A; --t4-accent-solid:#A8482A; --t4-accent-glow:0 4px 14px -6px rgba(168,72,42,.45);
+  --t4-ctl:#F4F1E8; --t4-ctl-edge:#D9D3C4; --t4-th-bg:#EDE9DF;
+  --t4-topbar:rgba(251,250,246,.8);
+  --t4-card-bg:#FBFAF6; --t4-card-edge:#E3DED2;
+}
+:root[data-theme4="casual"][data-theme="light"]{
+  --t4-page:
+    radial-gradient(1100px 620px at 0% -10%, rgba(168,72,42,.07) 0, rgba(168,72,42,0) 62%),
+    radial-gradient(1000px 640px at 100% -6%, rgba(43,76,140,.07) 0, rgba(43,76,140,0) 58%),
+    #F2EFE8;
+  --t4-card-sh:0 1px 2px rgba(20,33,61,.05), 0 8px 24px -16px rgba(20,33,61,.22);
+  --t4-card-sheen:linear-gradient(180deg,rgba(168,72,42,.045),rgba(168,72,42,0) 64px);
+  --t4-accent-glow:0 6px 16px -8px rgba(168,72,42,.5);
+}
+:root[data-theme4="hud"][data-theme="light"]{
+  --t4-page:
+    linear-gradient(rgba(20,33,61,.045) 1px, transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg, rgba(20,33,61,.045) 1px, transparent 1px) 0 0/32px 32px,
+    radial-gradient(1000px 600px at 12% -12%, rgba(43,76,140,.10) 0, rgba(43,76,140,0) 60%),
+    #F2EFE8;
+  --t4-card-bg:rgba(251,250,246,.72); --t4-card-edge:rgba(20,33,61,.15);
+  --t4-card-tint:rgba(251,250,246,.72);
+  --t4-card-sh:inset 0 1px 0 rgba(255,255,255,.9), 0 12px 32px -20px rgba(20,33,61,.32);
+  --t4-card-sheen:linear-gradient(135deg,rgba(255,255,255,.6),rgba(255,255,255,0) 45%);
+  --t4-bracket:rgba(168,72,42,.7);
+  --t4-ctl:rgba(251,250,246,.7); --t4-ctl-edge:rgba(20,33,61,.2); --t4-th-bg:#EDE9DF;
+  --t4-topbar:rgba(251,250,246,.74);
+}
+:root[data-theme4="pro"][data-theme="light"]{
+  --t4-page:#F2EFE8;
+  --t4-card-sh:0 1px 0 rgba(20,33,61,.04);
+  --t4-accent-glow:none;
+  --t4-ctl:#F4F1E8; --t4-ctl-edge:#CFC8B8;
+  --t4-topbar:rgba(251,250,246,.94);
+  --glow:0 0 0 2px rgba(43,76,140,.28);
+}
+
+/* ------------------------------ 深色（三種風格共用）------------------------------ */
+:root:not([data-theme="light"]),
+:root[data-theme4="casual"]:not([data-theme="light"]),
+:root[data-theme4="hud"]:not([data-theme="light"]),
+:root[data-theme4="pro"]:not([data-theme="light"]){
+  --bg:#0E1830; --bg-2:#0A1326; --panel:#142142; --panel-2:#182749; --panel-3:#1D2D54;
+  --line:#26385F; --line-2:#3B4F7F;
+  --ink:#FBFAF6; --ink-2:#C8D0E2; --ink-3:#9BA8C4;
+  --cyan:#8FB2F2; --violet:#B39AF0; --amber:#FFB454; --lime:#B5C65A;
+  --accent:#D0643F; --on-accent:#0E1830;
+  --ontop:#0E1830; --chartbg:#142142;
+  --topbar:rgba(14,24,48,.8); --topbar-m:rgba(14,24,48,.96);
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -20px rgba(3,7,18,.9);
+  --grid:rgba(251,250,246,.06); --drop:rgba(3,7,18,.6);
+  --glow:0 0 0 1px rgba(143,178,242,.3), 0 0 22px -6px rgba(143,178,242,.45);
+  --focus:#8FB2F2; --row-hover:#1A2A50;
+  --tip-bg:rgba(24,39,73,.97); --tip-line:#3B4F7F; --tip-sh:0 12px 32px -10px rgba(3,7,18,.7);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --illus:#0B1428;
+  /* 漲色（紅）只在深色把明度拉亮一階：#FF4D6D／#FF5470／#FF4F62 → #FF5E75（色相 349°→351°，肉眼同一個紅）。
+     原因：新深藍底的 panel-3 比舊底亮，舊紅字落到 4.2:1（< AA 4.5）；新值對 panel-3 4.57:1、對頁底 5.96:1。跌色（綠）夠亮，不動。 */
+  --rise:#FF5E75;
+  --hm-0:#4A5671; --hm-na:#26385F;
+  /* 深色底上銅紅 #D0643F 當「文字」只有 4.2:1，所以填色用 #D0643F（字用深藍 #0E1830，4.68:1），
+     要當字／細線用的 --t4-accent-solid 再亮一階到 #E58A67（對 panel 6.0:1）。 */
+  --t4-accent:#D0643F; --t4-accent-solid:#E58A67; --t4-accent-glow:0 6px 18px -8px rgba(208,100,63,.6);
+  --t4-ctl:#1A2A50; --t4-ctl-edge:#33477A; --t4-th-bg:#1A2A50;
+  --t4-topbar:rgba(14,24,48,.8);
+  --t4-card-bg:#142142; --t4-card-edge:#26385F;
+}
+:root[data-theme4="casual"]:not([data-theme="light"]){
+  --t4-page:
+    radial-gradient(1100px 620px at 0% -10%, rgba(208,100,63,.12) 0, rgba(208,100,63,0) 60%),
+    radial-gradient(1000px 640px at 100% -6%, rgba(110,140,230,.16) 0, rgba(110,140,230,0) 58%),
+    #0E1830;
+  --t4-card-sh:0 10px 28px -18px rgba(3,7,18,.8);
+  --t4-card-sheen:linear-gradient(180deg,rgba(143,178,242,.07),rgba(143,178,242,0) 64px);
+}
+:root[data-theme4="hud"]:not([data-theme="light"]){
+  --t4-page:
+    linear-gradient(rgba(143,178,242,.04) 1px, transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg, rgba(143,178,242,.04) 1px, transparent 1px) 0 0/32px 32px,
+    radial-gradient(1000px 600px at 12% -12%, rgba(110,140,230,.16) 0, rgba(110,140,230,0) 60%),
+    radial-gradient(900px 600px at 100% 0%, rgba(208,100,63,.08) 0, rgba(208,100,63,0) 58%),
+    #0E1830;
+  --t4-card-bg:rgba(20,33,66,.6); --t4-card-edge:rgba(143,178,242,.2);
+  --t4-card-tint:rgba(20,33,66,.62); --t4-card-blur:blur(14px) saturate(140%);
+  --t4-card-sh:inset 0 1px 0 rgba(251,250,246,.07), 0 16px 40px -22px rgba(3,7,18,.9);
+  --t4-card-sheen:linear-gradient(135deg,rgba(143,178,242,.07),rgba(143,178,242,0) 40%);
+  --t4-bracket:rgba(208,100,63,.8);
+  --t4-ctl:rgba(143,178,242,.07); --t4-ctl-edge:rgba(143,178,242,.24);
+  --t4-topbar:rgba(14,24,48,.72);
+  --tip-line:rgba(143,178,242,.35); --tip-sh:0 0 0 1px rgba(143,178,242,.12), 0 12px 32px -10px rgba(3,7,18,.8);
+  --row-hover:rgba(143,178,242,.08);
+  --glow:0 0 0 1px rgba(143,178,242,.35), 0 0 22px -4px rgba(143,178,242,.5);
+}
+:root[data-theme4="pro"]:not([data-theme="light"]){
+  --t4-page:#0E1830;
+  --t4-card-sh:none; --t4-accent-glow:none;
+  --t4-ctl:#1A2A50; --t4-ctl-edge:#33477A;
+  --t4-topbar:rgba(14,24,48,.94);
+  --glow:0 0 0 2px rgba(143,178,242,.35);
+}

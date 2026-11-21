@@ -1,0 +1,10 @@
+ gavel:{draw(t,h){let g=`<rect x="0" y="${h-130}" width="888" height="130" fill="#B48A60"/><rect x="0" y="${h-140}" width="888" height="14" fill="#9C7450"/>`;
+  [[150,'#E9B98A'],[444,'#E0C9A6'],[738,'#E9B98A']].forEach(([x,c],i)=>{const on=clamp((t-1.0-i*.18)*6);g+=`<line x1="${x}" y1="${h-140}" x2="${x+30}" y2="${h-230}" stroke="${LINE}" stroke-width="5"/><circle cx="${x+34}" cy="${h-238}" r="12" fill="${on>.5?'#E36B4A':'#B9B2A8'}" stroke="${LINE}" stroke-width="2"/>`+(on>0?glow(x+34,h-238,30,.5*on):'')});
+  const hop=t>.55?-14*Math.abs(DECAY(t-.55,5,16)):0;g+=`<g transform="translate(0,${hop.toFixed(1)})"><rect x="200" y="${h-190}" width="200" height="40" rx="4" fill="#FFFDF8" stroke="${LINE}" stroke-width="2" transform="rotate(-3 300 ${h-170})"/><rect x="230" y="${h-180}" width="190" height="34" rx="4" fill="#F3EADB" stroke="${LINE}" stroke-width="2" transform="rotate(4 320 ${h-160})"/></g>`;
+  const jo=t>.55?3*DECAY(t-.55,8,30):0;g+=`<ellipse cx="560" cy="${h-150+jo}" rx="80" ry="18" fill="#6E4636" stroke="${LINE}" stroke-width="3"/>`;
+  let a=t<.35?-30*EO(t/.35):t<.55?-30+30*Math.pow((t-.35)/.2,2)+0:8*DECAY(t-.55,6,18);a-=0;const ang=t<.55?(t<.35?-40*EO(t/.35):-40+40*Math.pow((t-.35)/.2,2)):6*DECAY(t-.55,6,18);
+  g+=`<g transform="rotate(${ang.toFixed(1)} 700 ${h-210})"><line x1="700" y1="${h-210}" x2="590" y2="${h-180}" stroke="#8A5A44" stroke-width="16" stroke-linecap="round"/><rect x="530" y="${h-230}" width="70" height="90" rx="14" fill="#8A5A44" stroke="${LINE}" stroke-width="3" transform="rotate(-15 565 ${h-185})"/></g>`;
+  if(t>.55&&t<.95){const k=(t-.55)/.4;g+=`<ellipse cx="560" cy="${h-150}" rx="${90+90*k}" ry="${20+16*k}" fill="none" stroke="${LAMP}" stroke-width="4" opacity="${(.7*(1-k)).toFixed(2)}"/>`}
+  g+=`<rect x="300" y="40" width="288" height="70" rx="12" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/>`+T(444,88,'審議會',34,700,TXT);
+  return g},
+  sfx(t0,s,E){E(t0+.55,'thump',{g:.6});E(t0+.55,'click');[0,1,2].forEach(i=>E(t0+1.0+i*.18,'tick'))}}

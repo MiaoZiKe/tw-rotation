@@ -1,0 +1,80 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+5%",
+ "pitch": "+0Hz",
+ "text": "一片晶圓封得出的顆數變少，需求卻一直往上衝。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "一片",
+   "start": 0.097625,
+   "dur": 0.309541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶圓",
+   "start": 0.466666,
+   "dur": 0.309541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封",
+   "start": 0.823791,
+   "dur": 0.15475
+  },
+  {
+   "type": "WordBoundary",
+   "text": "得出的",
+   "start": 1.002375,
+   "dur": 0.416666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "顆數",
+   "start": 1.478583,
+   "dur": 0.321416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "變",
+   "start": 1.823791,
+   "dur": 0.142875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "少",
+   "start": 2.002375,
+   "dur": 0.297625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "需求",
+   "start": 2.561916,
+   "dur": 0.369041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "卻",
+   "start": 2.978583,
+   "dur": 0.142833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一直",
+   "start": 3.121416,
+   "dur": 0.226208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "往上",
+   "start": 3.419041,
+   "dur": 0.321416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "衝",
+   "start": 3.8,
+   "dur": 0.261916
+  }
+ ]
+}

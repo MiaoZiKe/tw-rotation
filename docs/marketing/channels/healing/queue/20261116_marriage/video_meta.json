@@ -1,0 +1,13 @@
+{
+ "title": "10年來，結婚登記少了近3成（影片樣片 v0，24 秒，1080×1920）",
+ "platforms": [
+  "ig_reels",
+  "threads_video"
+ ],
+ "status": "draft",
+ "publish_at": null,
+ "file": "video.mp4",
+ "cover": "video_cover.jpg",
+ "caption": "caption.txt",
+ "note": "2026-11-15 影片樣片，給 Andy 確認（Andy：「目前這平台影片才能吸引人，所以需要以影片為主、輪播為輔助」）。自動發文還不支援影片（見 plan_202611_影片為主.md 第五節 T5），所以這個檔不會被工作流發出；輪播照 meta.json 11/16 20:27 發。產生器：templates_tqsa_v3/video/；重疊檢查 overlap_report_video.json（每 0.5 秒抽一格，48 格 0 筆）。"
+}
