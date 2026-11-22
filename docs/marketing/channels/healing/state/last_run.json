@@ -1,11 +1,19 @@
 {
- "at": "2026-11-22T16:32:06+08:00",
+ "at": "2026-11-22T20:29:37+08:00",
  "mode": "live",
- "item": null,
- "posted": {},
- "errors": {
-  "queue": "20261124v_rent：caption.txt 是空的或不存在"
+ "item": "20261122v_firstmarriage",
+ "posted": {
+  "threads": {
+   "id": "17930631612428939",
+   "link": "https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg",
+   "at": "2026-11-22T20:29:37+08:00",
+   "format": "video",
+   "video_via": "site"
+  }
  },
- "notes": [],
- "summary": "佇列格式錯誤：20261124v_rent：caption.txt 是空的或不存在"
+ "errors": {},
+ "notes": [
+  "20261116v_worktime：還沒到 2026-11-23T20:27:00+08:00"
+ ],
+ "summary": "20261122v_firstmarriage：已發 threads https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg"
 }
