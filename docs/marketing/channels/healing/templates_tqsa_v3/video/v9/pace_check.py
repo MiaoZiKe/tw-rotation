@@ -46,7 +46,8 @@ if breaks: bad.append("句內斷點 %d 處：%s" % (len(breaks), "；".join(brea
 if min(gaps) < .3: bad.append("句間停頓最小 %.2f <0.3" % min(gaps))
 
 if c.get("newrule"):   # 2026-11-22 四道驗證：換幕停頓 0.6～0.8（取代「留白 ≥1.0」），句內補停頓 0
-    if any(not .5 <= g_ + .09 <= .85 for g_ in gaps): bad.append("換幕停頓不在 0.6～0.8：%s" % [round(g_ + .09, 2) for g_ in gaps])
+    _sg = float(c.get("scene_gap", .7))   # 2026-11-22 晚：範圍跟著 scene_gap（±0.2）
+    if any(not _sg - .2 <= g_ + .09 <= _sg + .15 for g_ in gaps): bad.append("換幕停頓不在 %.2f～%.2f：%s" % (_sg - .2, _sg + .15, [round(g_ + .09, 2) for g_ in gaps]))
     if any(s_.get("inserts") for s_ in c["segments"]): bad.append("句內插了停頓")
 elif hold and min(hold) < 1.0: bad.append("換幕留白最小 %.2f <1.0" % min(hold))
 if not (38 if c.get("newrule") else 45) <= tot <= 60: bad.append("片長 %.1f 不在 45～60" % tot)   # 新規則旁白本身約 40～45 秒，成片含片尾卡另算

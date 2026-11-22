@@ -20,13 +20,13 @@
  "voice_region_lufs": -16.0,
  "outro_lufs": -12.2,
  "full_lufs": -15.5,
- "true_peak_dbtp_max": -1.5,
+ "true_peak_dbtp_max": -1.4,
  "rate_speech_only": 5.04,
  "rate_incl_pauses": 4.63,
  "dur": 54.0,
  "overlap": 0,
  "oob": 0,
- "edge": 0,
+ "edge": 26,
  "coText": 0,
  "panelChanged": [],
  "logoGapMin": 41.5,
@@ -34,7 +34,7 @@
  "gapBotMax": 46,
  "static_runs_gt_1_2s": [],
  "static_max_s": 0.87,
- "emphasis_min_px": 21.0,
+ "emphasis_min_px": 76.0,
  "emphasis_fail": [],
  "sync": [
   {
@@ -259,5 +259,5 @@
   }
  ],
  "caption_bad": [],
- "pass": true
+ "pass": false
 }

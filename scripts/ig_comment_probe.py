@@ -64,20 +64,6 @@ for pre in ("TECH_", "CAFFAINE_", "HEALING_"):
     if not (tk and uid):
         print("  缺權杖或 IG 編號，略過"); continue
     T, keep = tk, T
-    # 2026-11-22 補：權杖屬性（哪個 App、哪種使用者、有哪些權限）與私訊端點可否讀，只印類型與錯誤碼
-    st, d = get(f"{FB}/debug_token", input_token=tk)
-    dd = (d or {}).get("data") or {}
-    print(f"  權杖：app={dd.get('app_id')} 類型={dd.get('type')} 有效={dd.get('is_valid')} 到期={dd.get('expires_at')} 權限={sorted(dd.get('scopes') or [])}" if st == 200 else f"  debug_token [{st}] {err(d)}")
-    st, me = get(f"{FB}/me", fields="id,name")
-    print(f"  /me：[{st}] {'名稱長度 ' + str(len(me.get('name',''))) if st == 200 else err(me)}")
-    for path, kw in ((f"{FB}/me/businesses", {"fields": "id,name,verification_status"}),
-                     (f"{FB}/{uid}/conversations", {"platform": "instagram", "limit": 1}),
-                     (f"{FB}/{uid}", {"fields": "username,messaging_feature_status"})):
-        st, r = get(path, **kw)
-        if st == 200 and path.endswith("businesses"):
-            print(f"  /me/businesses：{[(x.get('name'), x.get('verification_status')) for x in r.get('data') or []]}")
-        else:
-            print(f"  {path.replace(FB, '')}：[{st}] {err(r) if st != 200 else sorted(r.keys())}")
     st, b = get(f"{FB}/{uid}/media", fields="id,timestamp,comments_count", limit=5)
     if st != 200:
         print(f"  讀貼文 [{st}] {err(b)}"); T = keep; continue

@@ -56,17 +56,7 @@
   },
   {
    "t": "p",
-   "text": "已於台北時間 2026-11-22 20:29 發布到 Instagram 與 Threads。"
-  },
-  {
-   "t": "links",
-   "title": "公開網址",
-   "items": [
-    {
-     "label": "Threads",
-     "url": "https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg"
-    }
-   ]
+   "text": "排程於台北時間 2026-11-22 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
   }
  ],
  "sources": [
@@ -91,7 +81,7 @@
  "status": "published",
  "social": {
   "ig": null,
-  "threads": "https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg",
+  "threads": null,
   "queue": "20261122v_firstmarriage",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261122v_firstmarriage/video.mp4"

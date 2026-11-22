@@ -5,11 +5,8 @@
  "platforms": [
   "threads"
  ],
- "status": "posted",
+ "status": "approved",
  "publish_at": "2026-11-22T20:27+08:00",
  "comment_keyword": "初婚",
- "note": "2026-11-17 改 v9 量產：45–60 秒、旁白約 240 字。腳本 script.json；無旁白版經審查、Andy 看過有旁白成片 OK 才改 approved。 2026-11-17 Andy：「全部OK」，總編輯改 approved。｜2026-11-22 15:5x 總編輯：IG 帳號被 Meta 暫時限制（403 code 4／subcode 2207051「操作已遭封鎖」），今天不再呼叫 IG API → platforms 暫改只發 Threads，避免今晚 20:27～23:37 各輪重試一直打 IG。限制解除後再決定 IG 是否補發（補發要把 ig 加回 platforms）。",
- "urls": {
-  "threads": "https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg"
- }
+ "note": "2026-11-17 改 v9 量產：45–60 秒、旁白約 240 字。腳本 script.json；無旁白版經審查、Andy 看過有旁白成片 OK 才改 approved。 2026-11-17 Andy：「全部OK」，總編輯改 approved。｜2026-11-22 15:5x 總編輯：IG 帳號被 Meta 暫時限制（403 code 4／subcode 2207051「操作已遭封鎖」），今天不再呼叫 IG API → platforms 暫改只發 Threads，避免今晚 20:27～23:37 各輪重試一直打 IG。限制解除後再決定 IG 是否補發（補發要把 ig 加回 platforms）。"
 }

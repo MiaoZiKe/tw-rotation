@@ -50,16 +50,18 @@ for t0, t1 in runs:
         at = "%s「%s｜%s」" % (s["id"], ws[k][0] if k < len(ws) else "", ws[k + 1][0] if k + 1 < len(ws) else "")
     pauses.append({"t0": t0, "t1": t1, "dur": round(t1 - t0, 2), "kind": kind, "at": at})
 nsent = sum(len(re.findall(r"[。？！?!]", s["text"])) or 1 for s in segs)
+SG = float(cut.get("scene_gap", .7)); GLO, GHI = round(SG - .15, 2), round(SG + .15, 2)   # 2026-11-22 晚 Andy「速度可以在快點」：換幕停頓改 0.5 秒 → 合格範圍跟著 cut.json 的 scene_gap（±0.15）
 for p in pauses:
-    if p["kind"] == "換幕" and p["dur"] < .55: p["kind"] = "換幕短"   # 沒有補到 0.6～0.8 的換幕（GAP_OVERRIDE），不算「補停頓」那 6 處
+    if p["kind"] == "換幕" and p["dur"] < GLO: p["kind"] = "換幕短"   # 沒有補到 0.6～0.8 的換幕（GAP_OVERRIDE），不算「補停頓」那 6 處
 inner = [p for p in pauses if p["kind"] == "句內"]; scene = [p for p in pauses if p["kind"] == "換幕"]; comma = [p for p in pauses if p["kind"] == "逗號"]
 npc = len(pauses) - len(comma)   # 計入上限的停頓數（逗號自然停頓不算）
 bad = []
 if inner: bad.append("句內停頓 %d 處" % len(inner))
 if npc > nsent + 2: bad.append("停頓 %d 處 > 句數 %d＋2" % (npc, nsent))
-if len(scene) > 6: bad.append("換幕停頓 %d 處 >6" % len(scene))
+if len([p for p in scene if p["dur"] >= .55]) > 6: bad.append("換幕補停頓（≥0.55 秒）%d 處 >6" % len([p for p in scene if p["dur"] >= .55]))   # 2026-11-22 晚：「≤6 處」限的是補長的 0.6～0.8 停頓；換幕改 0.5 秒後與句號後自然停頓同長，不再算補停頓（總數仍受「≤ 句數＋2」限制）
 for p in scene:
-    if not .55 <= p["dur"] <= .85: bad.append("換幕停頓 %s %.2f 秒不在 0.6～0.8" % (p["at"], p["dur"]))
+    if cut.get("raw_keep"): break   # 聲音先定（規則 33）：換幕用原始錄音的自然停頓，不檢查補停頓長度
+    if not GLO <= p["dur"] <= GHI: bad.append("換幕停頓 %s %.2f 秒不在 %.2f～%.2f" % (p["at"], p["dur"], GLO, GHI))
 res = {"sentences": nsent, "pauses": pauses, "n_pauses": len(pauses), "n_inner": len(inner), "n_scene": len(scene), "narr_dur": round(len(x) / SR, 2)}
 # 停頓圖
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt

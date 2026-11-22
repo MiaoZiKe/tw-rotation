@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: posted
+status: approved
 scheduled_at: 2026-11-22T20:00+08:00
 weekday: 日
 platforms: ig, threads
@@ -9,18 +9,6 @@ video: tech-800v.mp4
 images: cover.jpg
 title: 科技透明圈影片：八百伏特，AI 機櫃為什麼要把電壓拉高（tech-800v v2）
 hook_type: 反差（#2）
-urls_ig: https://www.instagram.com/reel/DgCxixuk2rZ/
-ids_ig: 18660129076007417
-verified_ig: VIDEO
-urls_threads: https://www.threads.com/@tech_01010909/post/DgCxqghggH1
-ids_threads: 18000266919102325
-ids_threads_reply: 18044873867846076
-verified_threads: VIDEO
-urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgCxx5LoD7V
-done: ig, threads
-urls: https://www.instagram.com/reel/DgCxixuk2rZ/ https://www.threads.com/@tech_01010909/post/DgCxqghggH1 https://www.threads.com/@tech_01010909/post/DgCxx5LoD7V
-posted_at: 2026-11-22T20:10+08:00
-error: 
 ---
 # 頻道②「科技透明圈」：影片「八百伏特：AI 機櫃為什麼要把電壓拉高」
 

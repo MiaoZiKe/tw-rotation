@@ -40,3 +40,15 @@ s8｜工作讓人想走，下一代也越來越少。下週一看，小一新生
 - 視覺審查模型：gemini-3-flash-preview 免費額度當天用完（每日 20 次，四頻道共用），本支最後一輪改用 gemini-3.5-flash；同模型同方法校準 11/26 出生數（Andy 已核准）為 6.6。
 
 停頓圖 pause_chart.png；1 秒抽格 frames_1s.png；明細 verify4.json、gemini_listen.json、audio_check.json、video_art_review.json。
+
+## 2026-11-22 內部美編審查後修正（只重渲畫面，不重送 TTS）
+- 第 2 幕字幕「一一一一」→「1111」：script.json s2 加 `caption`（字幕專用；`say`／narration.txt 給 TTS 的中文念法不動），narration.srt 第 2 段同步改。原尺寸裁圖確認字幕顯示「這是1111人力銀行的」。
+- 旁白音檔未動（narration.wav 與前版同一份），片長 49.20 秒。
+- 重跑四道驗證：
+  | 項目 | 結果 |
+  |---|---|
+  | ① 句中 0 停頓 | 句中 0 處；換幕 6 處 0.75～0.80 秒（s3→s4 語意連續 0.40） |
+  | ② 聽感＋ASR | Gemini（GEMINI_MODEL=gemini-3.5-flash）被標 0 處、分數 10；faster-whisper 相似度 0.981，不一致 4 處皆同音字／數字寫法／漏辨一字 |
+  | ③ 停頓密度＋audio-check | 計入 11 ≤ 句數 12＋2；audio-check：數位靜音 0、斷音 0、死寂起音 0 |
+  | ④ 每秒抽格 | frames_1s.png 逐格看：無重疊、無 >1 秒空白（片尾卡靜止 1.47 秒為固定片尾） |
+- 重疊檢查：程式 1476 幀（抽檢 99）0 筆；人工 49 格 0 筆。

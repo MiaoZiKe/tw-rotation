@@ -8,6 +8,8 @@ segs = []
 for i, s in enumerate(c["segments"]):
     prev = c["segments"][i - 1] if i else None
     st = 0.0 if i == 0 else (round(prev["end"] + .12, 3) if s["speech_start"] - prev["end"] > 1.5 else round(s["speech_start"] - .25, 3))   # 前面有長停頓（片尾）：鏡頭在上一句一結束就換，開口晚一點
+    if i and c.get("raw_keep"):   # 2026-11-22 聲音先定：原始錄音句號後自然停頓常只有 0.1～0.3 秒 → 換幕放在上一句念完之後、下一句開口前（最多提前 0.25 秒）
+        st = round(min(s["speech_start"] - .05, max(prev["end"] - .06, s["speech_start"] - .25)), 3)
     segs.append({"id": s["id"], "text": s["text"], "start": st, "end": s["end"], "speech_start": s["speech_start"], "words": s.get("words", []), "audio": wn})
 json.dump({"audio": wn, "voiceLeadIn": c["voiceLeadIn"], "model": "gemini-3.8-flash-tts", "voice": "Sulafat", "atempo": c["atempo"], "rate_incl_pauses": c["rate_incl_pauses"], "rate_speech_only": c["rate_speech_only"], "preamble_cut_sec": c["preamble_cut_sec"], "segments": segs},
           open(os.path.join(q, "segments.json"), "w"), ensure_ascii=False, indent=1)
