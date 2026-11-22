@@ -19,11 +19,25 @@
    "text": "影片"
   },
   {
-   "t": "mp4",
-   "src": "media/healing/20261123v_overtime/video.mp4",
-   "title": "加班的人變少了，為什麼加班時數反而變多？",
-   "note": "影片 1080×1920（IG Reels／Threads 同一支）；可下載。",
-   "poster": "media/healing/20261123v_overtime/cover.jpg"
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-23-healing-overtime-video-cover.jpg",
+     "alt": "影片封面：加班的人變少，時數卻變多？有加班者每月16.2小時",
+     "cap": "影片封面"
+    }
+   ],
+   "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"
+  },
+  {
+   "t": "links",
+   "title": "影片檔",
+   "items": [
+    {
+     "label": "觀看影片（MP4）",
+     "url": "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/queue/20261123v_overtime/video.mp4"
+    }
+   ]
   },
   {
    "t": "h",
@@ -83,6 +97,6 @@
   "threads": null,
   "queue": "20261123v_overtime",
   "format": "video",
-  "video": "https://liguligu-puipui.com/media/healing/20261123v_overtime/video.mp4"
+  "video": "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/queue/20261123v_overtime/video.mp4"
  }
 }
