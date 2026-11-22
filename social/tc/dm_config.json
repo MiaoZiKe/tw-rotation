@@ -58,6 +58,9 @@
     ],
     "foundry": [
       "代工"
+    ],
+    "metrology": [
+      "量測"
     ]
   },
   "legal_pending": [],
@@ -96,7 +99,8 @@
       "deposition": "謝謝留言！「薄膜沉積：一層幾個原子厚的膜怎麼長上去」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-27-tech-deposition",
       "cmp": "謝謝留言！「化學機械研磨：每一層都要磨平」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-28-tech-cmp",
       "icdesign": "謝謝留言！「IC 設計：晶片公司沒有工廠，交出去的只是一張設計圖」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-23-tech-icdesign",
-      "foundry": "謝謝留言！「晶圓代工：超過七成二的營收，都是台積電的」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-24-tech-foundry"
+      "foundry": "謝謝留言！「晶圓代工：超過七成二的營收，都是台積電的」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-24-tech-foundry",
+      "metrology": "謝謝留言！「量測與檢測：每做完一步，都要量一次」完整解說放在這：https://liguligu-puipui.com/#article/2026-11-29-tech-metrology"
     },
     "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
@@ -160,6 +164,9 @@
       ],
       "foundry": [
         "已經將「晶圓代工：超過七成二的營收，都是台積電的」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-24-tech-foundry"
+      ],
+      "metrology": [
+        "已經將「量測與檢測：每做完一步，都要量一次」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-11-29-tech-metrology"
       ]
     }
   }
