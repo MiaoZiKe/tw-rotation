@@ -1,0 +1,16 @@
+{
+ "file": "user/wt-gap/docs/marketing/channels/healing/queue/20261127v_food/video.mp4",
+ "durationSec": 51.07,
+ "endCardSec": 44.57,
+ "onsetSec": 0.305,
+ "counts": {
+  "Z": 0,
+  "C": 0,
+  "R": 0,
+  "N": 0
+ },
+ "first6s": 0,
+ "issues": [],
+ "warns": [],
+ "pass": true
+}

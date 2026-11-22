@@ -44,6 +44,7 @@ def split(batch, dirs):
     for k, d in enumerate(dirs):
         mine = [s for s in segs if s["id"].split(":")[0] == str(k)]; assert mine, "批次裡找不到第 %d 支的行" % k
         a = mine[0]["src"][0]; b = mine[-1]["src"][1] + min(mine[-1]["gap_after"] + .09, .4)
+        # 2026-11-22 已知問題：批次對齊的段首可能落在第 1 個字之後（11/30 小一那支把「十五」切掉，ASR 把上一支句尾與「15」連在一起、中間沒有間隙）。切完一定要看各支 narration_take.asr.json 第 1 句是否完整；不完整就手動從較早的秒數重切（見 20261130v_grade1 request.json note）。
         s0 = on0 if k == 0 else max(a - .15, on0); e0 = b
         y = np.concatenate([x[:int(on0 * SR)], x[int(s0 * SR):int(e0 * SR)]]) if k else x[:int(e0 * SR)]
         with wave.open(os.path.join(d, "narration_take.wav"), "wb") as o: o.setnchannels(1); o.setsampwidth(2); o.setframerate(SR); o.writeframes(y.astype("<i2").tobytes())

@@ -1,0 +1,28 @@
+{
+ "slug": "food-video",
+ "date": "2026-11-27",
+ "summary": "主計總處 2026/11/5 公布：10 月 CPI 年增 2.33%，連續第 6 個月高於 2%；外食費年增 3.01%、房租 1.70%。（影片版，有旁白）",
+ "alts": [
+  "影片封面：外食比整體物價漲得快多少？10月外食費年增3.01%"
+ ],
+ "sources": [
+  {
+   "title": "2026 年 10 月消費者物價指數",
+   "publisher": "行政院主計總處",
+   "date": "2026-11-05"
+  },
+  {
+   "title": "10 月 CPI 年增 2.33%、外食 3.01%",
+   "publisher": "自由時報 自由財經",
+   "date": "2026-11-05",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5630664"
+  },
+  {
+   "title": "10 月 CPI 分項",
+   "publisher": "優分析 uanalyze",
+   "date": "2026-11-05",
+   "url": "https://uanalyze.com.tw/articles/6132958476"
+  }
+ ],
+ "confidence": "官方或一手發布者數字經兩個獨立來源一致；原表未能開啟，發布前人工複核"
+}
