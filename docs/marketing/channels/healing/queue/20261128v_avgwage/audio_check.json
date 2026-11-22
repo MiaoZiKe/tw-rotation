@@ -1,0 +1,16 @@
+{
+ "file": "user/wt-gap/docs/marketing/channels/healing/queue/20261128v_avgwage/video.mp4",
+ "durationSec": 50.18,
+ "endCardSec": 43.67,
+ "onsetSec": 0.3,
+ "counts": {
+  "Z": 0,
+  "C": 0,
+  "R": 0,
+  "N": 0
+ },
+ "first6s": 0,
+ "issues": [],
+ "warns": [],
+ "pass": true
+}
