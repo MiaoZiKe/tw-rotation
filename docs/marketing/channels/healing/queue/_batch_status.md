@@ -25,3 +25,10 @@
 - 片尾卡關鍵字已改成參數：script.json outro.keyword＝"@FIXED" 時顯示「留言拿完整資料」（runtime v8/_outro.js、video_runtime_v8.js 已支援）；之後改成指定內容只改這個值。
 - caption.txt 這 3 支還沒有；寫時結尾用「到留言區留言」不含關鍵字。
 - 12:20 完成：3 支 video.mp4 已渲染、驗證、寫 video_review.md／retro.md，推 main；meta 維持 draft＋await_andy。待做：animation-director／art-director 審片打分；Andy 看過才改 approved；固定結尾內容來了補配 s9。
+
+---
+# 談晴說礙 11/27～11/30 四支影片＋兩篇輪播（2026-11-22 總編輯，每週檢討日）
+- 已推 main：輪播 20261129_quit、20261130_grade1（approved，dfe6bef33）；影片 20261127v_food（b70087c85）、20261128v_avgwage（24603827c）、20261129v_quit（d4cb1b691）、20261130v_grade1（53cddceb2），meta 全是 awaiting_andy＋await_andy:true。
+- 四道驗證：句中停頓 0、聽感（Gemini）0 處（avgwage 6 次中 2 次有標、不重現，判誤報）、audio-check 0／0／0、程式重疊 0（avgwage s2 滾輪數字已知誤報）；片長 51.1／50.2／49.2／49.8 秒。
+- 還沒做：① art-director／animation-director 正式打分（外部模型分數 6.2～6.6，同方法審已核准的 11/26 出生數＝5.8～6.6，分數不能直接對 ≥7）；② Andy 聽過說 OK → 改 approved → `python3 scripts/healing_post.py --prepare`、`python -m scripts.healing_article <資料夾>`；③ 同批錄音 queue/_batch_11220754 只在本機（未推）。
+- Gemini：gemini-3-flash-preview 免費額度（每日 20 次、四頻道共用）11-22 已用完，到 11-23 約 15:00 才恢復；gemini-3.5-flash 還能用。TTS（gemini-3.8-flash-tts）今天用了 2 次（同批 1＋外食重配 1）。
