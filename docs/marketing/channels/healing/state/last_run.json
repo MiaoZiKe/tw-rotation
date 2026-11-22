@@ -1,26 +1,19 @@
 {
- "at": "2026-11-21T20:28:59+08:00",
+ "at": "2026-11-22T12:29:22+08:00",
  "mode": "live",
- "item": "20261121v_laborins",
+ "item": "20261122_firstmarriage",
  "posted": {
-  "ig": {
-   "id": "18198117127396083",
-   "link": "https://www.instagram.com/reel/DgAO5Z3EnOL/",
-   "at": "2026-11-21T20:28:59+08:00",
-   "format": "video",
-   "video_via": "site"
-  },
   "threads": {
-   "id": "18129302461883993",
-   "link": "https://www.threads.com/@talk_01010909/post/DgAPANggQ6e",
-   "at": "2026-11-21T20:28:59+08:00",
-   "format": "video",
-   "video_via": "site"
+   "id": "18204837781376506",
+   "link": "https://www.threads.com/@talk_01010909/post/DgB9CytkceG",
+   "at": "2026-11-22T12:29:22+08:00"
   }
  },
- "errors": {},
+ "errors": {
+  "ig": "HTTP 403 {\"message\": \"Application request limit reached\", \"code\": 4, \"type\": \"OAuthException\", \"error_subcode\": 2207051, \"is_transient\": false, \"error_user_msg\": \"為了保護社群安全，我們會限制特定活動。如果你認為處置有誤，請告訴我們。\", \"error_user_title\": \"操作已遭封鎖\", \"fbtrace_id\": \"AzVvTJmdLi3EawuIxABKEeM\"}"
+ },
  "notes": [
   "20261116v_worktime：還沒到 2026-11-23T20:27:00+08:00"
  ],
- "summary": "20261121v_laborins：已發 ig https://www.instagram.com/reel/DgAO5Z3EnOL/；threads https://www.threads.com/@talk_01010909/post/DgAPANggQ6e"
+ "summary": "20261122_firstmarriage：已發 threads https://www.threads.com/@talk_01010909/post/DgB9CytkceG；ig 失敗：HTTP 403 {\"message\": \"Application request limit reached\", \"code\": 4, \"type\": \"OAuthException\", \"error_subcode\": 2207051, \"is_transient\": false, \"error_user_msg\": \"為了保護社群安全，我們會限制特定活動。如果你認為處置有誤，請告訴我們。\", \"error_user_title\": \"操作已遭封鎖\", \"fbtrace_id\": \"AzVvTJmdLi3EawuIxABKEeM\"}"
 }
