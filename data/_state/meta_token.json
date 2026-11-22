@@ -1,26 +1,22 @@
 {
-  "updated_at": "2026-11-22T09:56:27+00:00",
-  "mode": "refresh",
+  "updated_at": "2026-11-22T08:53:38+00:00",
+  "mode": "check",
   "platforms": {
     "threads": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
-      "expires_at": "2027-01-21T09:56:26+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "expires_at": "2027-01-14T09:33:03+00:00",
+      "status": "check-ok",
+      "days_left": 53.0
     },
     "ig": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
-      "expires_at": "2027-01-21T09:56:27+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "expires_at": "2027-01-14T09:33:03+00:00",
+      "status": "check-ok",
+      "days_left": 53.0
     },
     "tc_threads": {
       "source": "original",
@@ -41,17 +37,15 @@
     "healing_threads": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
-      "expires_at": "2027-01-21T04:31:32+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 59.8
+      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "expires_at": "2027-01-14T09:33:03+00:00",
+      "status": "check-ok",
+      "days_left": 53.0
     },
     "healing_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
+      "last_ok_at": "2026-11-22T08:53:38+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@talk_01010909）",
@@ -63,17 +57,15 @@
     "tech_threads": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
-      "expires_at": "2027-01-21T09:56:27+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "expires_at": "2027-01-14T09:33:03+00:00",
+      "status": "check-ok",
+      "days_left": 53.0
     },
     "tech_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
+      "last_ok_at": "2026-11-22T08:53:38+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@tech_01010909）",
@@ -85,17 +77,15 @@
     "caffaine_threads": {
       "source": "auto",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
-      "expires_at": "2027-01-21T09:56:27+00:00",
-      "status": "refreshed",
-      "saved": "written",
-      "source_after": "auto",
-      "days_left": 60.0
+      "last_ok_at": "2026-11-15T09:33:03+00:00",
+      "expires_at": "2027-01-14T09:33:03+00:00",
+      "status": "check-ok",
+      "days_left": 53.0
     },
     "caffaine_ig": {
       "source": "original",
       "ok": true,
-      "last_ok_at": "2026-11-22T09:56:27+00:00",
+      "last_ok_at": "2026-11-22T08:53:38+00:00",
       "expires_at": null,
       "fb": true,
       "via": "assigned_instagram_accounts（@caffaine.ai）",
