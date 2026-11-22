@@ -514,6 +514,53 @@ def sc_mobile(H=560):
     return o
 
 
+def sc_resign(H=760):
+    """11/29 封面：辦公桌上一只寫著「離職信」的信封，旁邊螢幕與一杯冷掉的咖啡；牆上時鐘。"""
+    o = C(150, 120, 74, F1) + Ln(150, 120, 150, 70, at("none", 5, extra='stroke-linecap="round"')) + Ln(150, 120, 196, 140, at("none", 4, "var(--w-lamp)", extra='stroke-linecap="round"'))
+    fl = 560
+    o += R(520, fl - 300, 300, 210, 14, DK) + R(540, fl - 280, 260, 160, 8, F3) + R(650, fl - 90, 40, 90, 4, DK)
+    o += Ln(30, fl, 858, fl, at("none", SW)) + hatch(44, fl + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    x, y, w, h = 90, fl - 190, 360, 170
+    o += R(x, y, w, h, 12, F1) + P("M%d %d L%d %d L%d %d" % (x, y, x + w / 2, y + 96, x + w, y), at("none", 3))
+    o += T(x + w / 2, y + h - 22, "離職信", 38, 700, "var(--w-text)")
+    o += P("M%d %d q 30 -22 60 0 t 60 0 t 60 0" % (x + 60, y + 60), at("none", 4, "var(--w-lamp)", extra='stroke-linecap="round"'))
+    o += R(470, fl - 60, 56, 60, 8, F3) + P("M526 %d q 30 0 30 18 q 0 18 -30 18" % (fl - 50), at("none", 4))
+    o += T(444, 680, "每天都想離職：30.8%（受訪者）", 34, 700, "var(--w-text)")
+    return o
+
+def sc_chair(H=560):
+    """11/29 第 3 頁：沒人坐的辦公椅、旁邊落地燈（下班後的空位）。"""
+    fl = 470
+    o = Ln(30, fl, 858, fl, at("none", SW)) + hatch(44, fl + 2, 800, 18, 11, at("none", 1.1, op=.25))
+    o += R(260, fl - 330, 180, 170, 30, F3) + R(250, fl - 170, 200, 40, 14, F1) + Ln(350, fl - 130, 350, fl - 40, at("none", 7))
+    for dx in (-80, 0, 80): o += Ln(350, fl - 40, 350 + dx, fl - 10, at("none", 5)) + C(350 + dx, fl - 6, 10, DK)
+    o += Ln(680, fl, 680, fl - 380, at("none", 6)) + Ln(640, fl - 380, 720, fl - 380, at("none", 6))
+    o += P("M650 %d l -40 150 h 140 l -40 -150 Z" % (fl - 370), at("var(--w-face3)", SW))
+    o += R(280, fl - 214, 140, 70, 8, F1) + P("M280 %d L350 %d L420 %d" % (fl - 214, fl - 176, fl - 214), at("none", 2.4)) + T(350, fl - 240, "離職信", 30, 700, "var(--w-text)")
+    return o
+
+def sc_classroom(H=760):
+    """11/30 封面：教室兩排十張課桌，只有五張坐了人（114 學年→130 學年約 51%，等比例示意）；黑板寫「一年級」。"""
+    o = R(244, 20, 400, 100, 10, at("#5E7A62", SW)) + T(444, 86, "一年級", 40, 700, "#FFFFFF")
+    for i in range(10):
+        r, c = divmod(i, 5); cx = 124 + c * 160; cy = 260 + r * 230
+        o += R(cx - 58, cy, 116, 28, 6, F3) + Ln(cx - 46, cy + 28, cx - 46, cy + 80, at("none", 3)) + Ln(cx + 46, cy + 28, cx + 46, cy + 80, at("none", 3))
+        if i < 5: o += C(cx, cy - 46, 24, at("var(--w-face)", SW)) + P("M%d %d q 30 -46 60 0 Z" % (cx - 30, cy), HL)
+        else: o += R(cx - 26, cy - 72, 52, 66, 12, at("none", 3, dash="7 7", op=.6))
+    o += T(444, 720, "10 張剩 5 張：8.8 ÷ 17.4 ≈ 51%（示意）", 34, 700, "var(--w-text)")
+    return o
+
+def sc_bags(H=560):
+    """11/30 第 3 頁：教室後面一排書包掛鉤，掛了書包的只有一半，其餘只剩空鉤。"""
+    y0 = 150; o = R(40, y0, 808, 24, 8, F3)
+    for i in range(8):
+        x = 90 + i * 100; o += Ln(x, y0 + 24, x, y0 + 60, at("none", 4)) + C(x, y0 + 64, 6, DK)
+        if i % 2 == 0: o += R(x - 40, y0 + 70, 80, 110, 16, HL if i == 0 else F1) + P("M%d %d q 40 -34 80 0" % (x - 40, y0 + 70), at("none", 3)) + R(x - 24, y0 + 126, 48, 36, 8, F3) + Ln(x - 28, y0 + 80, x - 28, y0 + 176, at("none", 2.4, op=.6)) + Ln(x + 28, y0 + 80, x + 28, y0 + 176, at("none", 2.4, op=.6))
+        else: o += T(x, y0 + 124, "空", 36, 700, "var(--w-text)")
+    fl = 520
+    o += Ln(30, fl, 858, fl, at("none", SW)) + hatch(44, fl + 2, 800, 18, 11, at("none", 1.1, op=.25))
+    return o
+
 def head(theme="晝版"):
     p = PAL[theme]; W, H = 1080, 1350
     return ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--W:%dpx;--H:%dpx;%s}%s .hintuse{font-weight:700}</style></head><body>' % (W, H, css_vars(p), CSS), GRAIN % (W, H, W, H),
@@ -684,6 +731,24 @@ POSTS = {
     "scene": lambda: (sc_vbars([("2024 年", 134856, "134,856", False), ("2025 年", 107812, "107,812", False)], 160000, 520, hi=(1,)), 520)},
    {"title": "數字背後", "body": ["粗出生率：千分之 5.76 降到 4.62；", "連續第 10 年下降。"], "ask": "身邊，上次辦滿月是何時？",
     "scene": lambda: (sc_mobile(), 560)},
+  ]},
+ "20261129_quit": {
+  "src": "資料：1111〈2026青年轉職調查〉（民調）",
+  "pages": [
+   {"title": ["1111調查：3成青年", "上班族天天想離職"], "scene": lambda: (sc_resign(), 760)},
+   {"title": "資料從哪來", "body": ["1111 人力銀行網路問卷（民調）；", "18～35 歲求職會員 1,011 人；", "有轉職打算 60.4%。"],
+    "scene": lambda: (sc_hbars([("薪水太低", 35.5, "35.5%"), ("工作太累", 23.9, "23.9%"), ("主管問題", 20.9, "20.9%")], 40, 520, ticks=[0, 20, 40], tickfmt="%d%%", hi=(0,), lw=220), 520)},
+   {"title": "數字背後", "body": ["立意抽樣，不是全國統計；", "慰留平均要加薪 7,413 元；", "跳槽期待加 10,398 元。"], "ask": "讓人想走的，是什麼？",
+    "scene": lambda: (sc_chair(), 560)},
+  ]},
+ "20261130_grade1": {
+  "src": "資料：教育部學生數預測報告（115～130學年）",
+  "pages": [
+   {"title": ["15年後的小一新生，", "預測少近一半"], "scene": lambda: (sc_classroom(), 760)},
+   {"title": "資料從哪來", "body": ["教育部統計處學生數預測報告，", "以 104～114 學年實際人數推估；", "115 學年起為預測值。"],
+    "scene": lambda: (sc_vbars([("114 學年", 17.4, "17.4萬", False), ("115 學年", 16.5, "16.5萬", False), ("116 學年", 15.7, "15.7萬", False), ("117 學年", 14.4, "14.4萬", False)], 20, 520, hi=(3,)), 520)},
+   {"title": "數字背後", "body": ["130 學年約 8.8 萬，少近 5 成；", "平均每年少約 5,400 人；", "是預測，不是實際報到數。"], "ask": "母校現在一個年級幾班？",
+    "scene": lambda: (sc_bags(), 560)},
   ]},
 }
 
