@@ -1,0 +1,16 @@
+{
+ "file": "user/wt-gap/docs/marketing/channels/healing/queue/20261123v_overtime/video.mp4",
+ "durationSec": 54.02,
+ "endCardSec": 48.4,
+ "onsetSec": 0.4,
+ "counts": {
+  "Z": 0,
+  "C": 0,
+  "R": 0,
+  "N": 0
+ },
+ "first6s": 0,
+ "issues": [],
+ "warns": [],
+ "pass": true
+}

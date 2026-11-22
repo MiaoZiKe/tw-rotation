@@ -1,0 +1,27 @@
+{
+ "slug": "overtime-video",
+ "date": "2026-11-23",
+ "summary": "勞動部 114 年勞工生活及就業狀況調查（2025 年 5 月，樣本 4,029 份）：近一年 36.3% 曾延長工時、比前一年少 0.3 個百分點；有加班者平均每月延長工時 16.2 小時、比前一年多 1.5 小時。（影片版，有旁白）",
+ "alts": [
+  "影片封面：加班的人變少，時數卻變多？有加班者每月16.2小時"
+ ],
+ "sources": [
+  {
+   "title": "114 年勞工生活及就業狀況調查統計結果",
+   "publisher": "勞動部",
+   "date": "2025",
+   "url": "https://www.mol.gov.tw/1607/1632/1633/87690/"
+  },
+  {
+   "title": "勞工延長工時調查報導",
+   "publisher": "遠見 uanalyze",
+   "url": "https://uanalyze.com.tw/articles/4205946353"
+  },
+  {
+   "title": "勞工生活及就業狀況調查整理",
+   "publisher": "104 職場力",
+   "url": "https://blog.104.com.tw/survey-on-workers-living-and-employment-conditions/"
+  }
+ ],
+ "confidence": "官方調查經兩家以上媒體一致；本環境讀不到勞動部原表，36.3%、16.2 小時由第三方轉述核對；2024 年 14.7 小時為推算值，圖上已標「推算」"
+}

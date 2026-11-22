@@ -1,0 +1,102 @@
+{
+ "id": "2026-11-23-healing-overtime-video",
+ "cat": "healing",
+ "title": "加班的人變少了，為什麼加班時數反而變多？",
+ "subtitle": "談晴說礙・IG Reels／Threads 影片存檔（封面、影片、文案全文、出處）",
+ "date": "2026-11-23",
+ "updated": "2026-11-23",
+ "tags": [
+  "談晴說礙",
+  "加班",
+  "工時",
+  "數字裡的日子"
+ ],
+ "summary": "勞動部 114 年勞工生活及就業狀況調查（2025 年 5 月，樣本 4,029 份）：近一年 36.3% 曾延長工時、比前一年少 0.3 個百分點；有加班者平均每月延長工時 16.2 小時、比前一年多 1.5 小時。（影片版，有旁白）",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "影片"
+  },
+  {
+   "t": "img",
+   "items": [
+    {
+     "src": "articles/healing/img/2026-11-23-healing-overtime-video-cover.jpg",
+     "alt": "影片封面：加班的人變少，時數卻變多？有加班者每月16.2小時",
+     "cap": "影片封面"
+    }
+   ],
+   "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"
+  },
+  {
+   "t": "links",
+   "title": "影片檔",
+   "items": [
+    {
+     "label": "觀看影片（MP4）",
+     "url": "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/queue/20261123v_overtime/video.mp4"
+    }
+   ]
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "勞動部 114 年勞工生活及就業狀況調查：近一年有加班的受僱勞工占 36.3%，比前一年少 0.3 個百分點；但這些有加班的人，平均每月延長工時 16.2 小時，比前一年多 1.5 小時，約等於 2 個 8 小時工作天（換算是自行計算，不是官方統計）。"
+  },
+  {
+   "t": "p",
+   "text": "調查在 2025 年 5 月進行，樣本 4,029 份，對象是參加勞保、就保、職災保險的本國籍受僱勞工。"
+  },
+  {
+   "t": "p",
+   "text": "口徑提醒：16.2 小時是「有加班者」的平均，不是全體勞工的平均；大約三個人裡只有一個有加班。影片中 2024 年的 14.7 小時是由「多 1.5 小時」推算，不是另一份調查的原始數字。"
+  },
+  {
+   "t": "p",
+   "text": "你上個月加班幾小時？加班換來的錢，夠不夠付房租？下一集：25–29 歲租一間台北套房，要付掉多少月薪。"
+  },
+  {
+   "t": "p",
+   "text": "想看完整資料，到留言區留言。"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "排程於台北時間 2026-11-23 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "114 年勞工生活及就業狀況調查統計結果",
+   "publisher": "勞動部",
+   "date": "2025",
+   "url": "https://www.mol.gov.tw/1607/1632/1633/87690/"
+  },
+  {
+   "title": "勞工延長工時調查報導",
+   "publisher": "遠見 uanalyze",
+   "url": "https://uanalyze.com.tw/articles/4205946353"
+  },
+  {
+   "title": "勞工生活及就業狀況調查整理",
+   "publisher": "104 職場力",
+   "url": "https://blog.104.com.tw/survey-on-workers-living-and-employment-conditions/"
+  }
+ ],
+ "confidence": "官方調查經兩家以上媒體一致；本環境讀不到勞動部原表，36.3%、16.2 小時由第三方轉述核對；2024 年 14.7 小時為推算值，圖上已標「推算」",
+ "status": "published",
+ "social": {
+  "ig": null,
+  "threads": null,
+  "queue": "20261123v_overtime",
+  "format": "video",
+  "video": "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/docs/marketing/channels/healing/queue/20261123v_overtime/video.mp4"
+ }
+}

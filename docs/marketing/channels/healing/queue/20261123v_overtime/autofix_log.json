@@ -1,0 +1,20 @@
+[
+ {
+  "round": 0,
+  "issues": [
+   [
+    "tagtitle",
+    "s6",
+    "28.5s title×tag"
+   ]
+  ],
+  "fixed": [
+   "s6 tagAt 0.10→0.37（28.5s title×tag）"
+  ],
+  "manual": []
+ },
+ {
+  "round": 1,
+  "issues": []
+ }
+]
