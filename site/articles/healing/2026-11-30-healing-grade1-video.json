@@ -1,0 +1,88 @@
+{
+ "id": "2026-11-30-healing-grade1-video",
+ "cat": "healing",
+ "title": "15年後的小一新生剩多少？教育部預測不到9萬",
+ "subtitle": "談晴說礙・IG Reels／Threads 影片存檔（封面、影片、文案全文、出處）",
+ "date": "2026-11-30",
+ "updated": "2026-11-30",
+ "tags": [
+  "談晴說礙",
+  "少子化",
+  "小一新生",
+  "教育部",
+  "數字裡的日子"
+ ],
+ "summary": "教育部統計處預測：114 學年小一約 17.4 萬人，115 學年 16.5 萬、117 學年 14.4 萬，130 學年只剩約 8.8 萬，少近 5 成。（影片版，有旁白）",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "影片"
+  },
+  {
+   "t": "mp4",
+   "src": "media/healing/20261130v_grade1/video.mp4",
+   "title": "15年後的小一新生剩多少？教育部預測不到9萬",
+   "note": "影片 1080×1920（IG Reels／Threads 同一支）；可下載。",
+   "poster": "media/healing/20261130v_grade1/cover.jpg"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "教育部統計處《各教育階段學生數預測報告》（以 104～114 學年實際學生數推估 115～130 學年）：114 學年國小一年級約 17.4 萬人，115 學年預估 16.5 萬人、117 學年 14.4 萬人；到 130 學年（約 2041 年）只剩約 8.8 萬人，比 114 學年少近 5 成。"
+  },
+  {
+   "t": "p",
+   "text": "平均下來，未來 16 個學年，國小一年級每年約少 5,400 人、年減約 4.2%。"
+  },
+  {
+   "t": "p",
+   "text": "這是預測，不是各校實際報到人數；小一新生大多是約 6 年前出生的孩子，預測會隨出生數重新推估。"
+  },
+  {
+   "t": "p",
+   "text": "你讀過的小學，現在一個年級還有幾班？"
+  },
+  {
+   "t": "p",
+   "text": "想看完整資料，到留言區留言。"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "排程於台北時間 2026-11-30 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "各教育階段學生數預測報告（115～130 學年度）",
+   "publisher": "教育部統計處",
+   "url": "https://stats.moe.gov.tw/files/analysis/114_all_st.pdf"
+  },
+  {
+   "title": "新學年高一新生報導（引同報告小一數字）",
+   "publisher": "自由時報",
+   "url": "https://news.ltn.com.tw/news/life/breakingnews/5555784"
+  },
+  {
+   "title": "台灣小一新生恐減半",
+   "publisher": "風傳媒",
+   "url": "https://www.storm.mg/lifestyle/11178552"
+  }
+ ],
+ "confidence": "官方或一手發布者數字經兩個獨立來源一致；原表未能開啟，發布前人工複核",
+ "status": "published",
+ "social": {
+  "ig": null,
+  "threads": null,
+  "queue": "20261130v_grade1",
+  "format": "video",
+  "video": "https://liguligu-puipui.com/media/healing/20261130v_grade1/video.mp4"
+ }
+}

@@ -1,0 +1,90 @@
+{
+ "id": "2026-11-27-healing-food-video",
+ "cat": "healing",
+ "title": "外食比整體物價漲得快多少？10月外食費年增3.01%",
+ "subtitle": "談晴說礙・IG Reels／Threads 影片存檔（封面、影片、文案全文、出處）",
+ "date": "2026-11-27",
+ "updated": "2026-11-27",
+ "tags": [
+  "談晴說礙",
+  "物價",
+  "外食",
+  "CPI",
+  "數字裡的日子"
+ ],
+ "summary": "主計總處 2026/11/5 公布：10 月 CPI 年增 2.33%，連續第 6 個月高於 2%；外食費年增 3.01%、房租 1.70%。（影片版，有旁白）",
+ "reading_min": 2,
+ "blocks": [
+  {
+   "t": "h",
+   "text": "影片"
+  },
+  {
+   "t": "mp4",
+   "src": "media/healing/20261127v_food/video.mp4",
+   "title": "外食比整體物價漲得快多少？10月外食費年增3.01%",
+   "note": "影片 1080×1920（IG Reels／Threads 同一支）；可下載。",
+   "poster": "media/healing/20261127v_food/cover.jpg"
+  },
+  {
+   "t": "h",
+   "text": "文案全文"
+  },
+  {
+   "t": "p",
+   "text": "主計總處 2026 年 11 月 5 日公布：10 月消費者物價指數（CPI）年增 2.33%，從 5 月起連續第 6 個月高於 2%。"
+  },
+  {
+   "t": "p",
+   "text": "分項看，外食費年增 3.01%，比整體多 0.68 個百分點（自行計算）；房租年增 1.70%，反而低於整體。"
+  },
+  {
+   "t": "p",
+   "text": "這一輪漲最多的，是天天都要吃的那一餐。對常在外面吃午餐、晚餐的上班族來說，這個漲幅每天都碰得到。"
+  },
+  {
+   "t": "p",
+   "text": "你最近一餐外食花多少？物價在漲，薪水跟上了嗎？下一集：近 7 成員工，領不到平均月薪。"
+  },
+  {
+   "t": "p",
+   "text": "想看完整資料，到留言區留言。"
+  },
+  {
+   "t": "h",
+   "text": "發布紀錄"
+  },
+  {
+   "t": "p",
+   "text": "排程於台北時間 2026-11-27 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+  }
+ ],
+ "sources": [
+  {
+   "title": "2026 年 10 月消費者物價指數",
+   "publisher": "行政院主計總處",
+   "date": "2026-11-05"
+  },
+  {
+   "title": "10 月 CPI 年增 2.33%、外食 3.01%",
+   "publisher": "自由時報 自由財經",
+   "date": "2026-11-05",
+   "url": "https://ec.ltn.com.tw/article/breakingnews/5630664"
+  },
+  {
+   "title": "10 月 CPI 分項",
+   "publisher": "優分析 uanalyze",
+   "date": "2026-11-05",
+   "url": "https://uanalyze.com.tw/articles/6132958476"
+  }
+ ],
+ "confidence": "官方或一手發布者數字經兩個獨立來源一致；原表未能開啟，發布前人工複核",
+ "status": "published",
+ "social": {
+  "ig": null,
+  "threads": null,
+  "queue": "20261127v_food",
+  "format": "video",
+  "video": "https://liguligu-puipui.com/media/healing/20261127v_food/video.mp4"
+ }
+}
