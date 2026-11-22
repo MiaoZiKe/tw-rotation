@@ -13,7 +13,7 @@ def norm(t): return "".join(S2T.get(c, c) for c in re.sub(r"[，。、；：？�
 def scenes_of(folder):
     sc = json.load(open(os.path.join(folder, "script.json"), encoding="utf-8")); L = [(s["id"], s["say"]) for s in sc["scenes"] if s.get("say")]
     ou = sc.get("outro")
-    if ou: L.append((ou.get("id", "s9"), ou.get("say", "想看完整資料，留言%s。" % ou["keyword"])))
+    if ou and ou.get("say", "想看完整資料，留言%s。" % ou["keyword"]): L.append((ou.get("id", "s9"), ou.get("say", "想看完整資料，留言%s。" % ou["keyword"])))   # 2026-11-22：片尾無旁白（say=""，規則 28）就不放空行，否則對齊信心被空行拉成 0
     return L
 def prepare(batch, dirs):
     os.makedirs(batch, exist_ok=True); out = ["# 批次旁白稿（%d 支）；行 id＝序號:鏡 id" % len(dirs)]; n = 0

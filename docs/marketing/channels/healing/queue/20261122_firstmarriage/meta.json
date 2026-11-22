@@ -2,10 +2,9 @@
  "title": "平均初婚年齡：男33.4歲、女31.4歲（說明型 3 張，晝版）",
  "hook_type": "數據",
  "platforms": [
-  "ig",
   "threads"
  ],
  "status": "approved",
  "publish_at": "2026-11-22T12:27+08:00",
- "note": "2026-11-15 總編輯排程（Andy：影片量產等 TTS 旁白＋確認樣片，期間每天 20:27 輪播不空窗）。版型同 11/11～11/15 已確認規格（LOGO 上移到 56px：11-15 Andy 上下留白 ≤60px）。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；重疊與對比 overlap_report.json；審查 ai_review.md（自審，非 AI 生圖）；素材已登記 ../../素材登記.md。article.json 已放（網站精選文章「談晴說礙」隱藏分頁存檔）。 ／2026-11-16 總編輯：Andy 放寬每日上限為 2（影片為主、輪播為輔）→ 輪播改當天 12:27、同日 20:27 發影片（20261122v_firstmarriage）。"
+ "note": "2026-11-15 總編輯排程（Andy：影片量產等 TTS 旁白＋確認樣片，期間每天 20:27 輪播不空窗）。版型同 11/11～11/15 已確認規格（LOGO 上移到 56px：11-15 Andy 上下留白 ≤60px）。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；重疊與對比 overlap_report.json；審查 ai_review.md（自審，非 AI 生圖）；素材已登記 ../../素材登記.md。article.json 已放（網站精選文章「談晴說礙」隱藏分頁存檔）。 ／2026-11-16 總編輯：Andy 放寬每日上限為 2（影片為主、輪播為輔）→ 輪播改當天 12:27、同日 20:27 發影片（20261122v_firstmarriage）。｜2026-11-22 15:5x 總編輯：IG 帳號被 Meta 暫時限制（403 code 4／subcode 2207051「操作已遭封鎖」），今天不再呼叫 IG API → platforms 暫改只發 Threads，避免今晚 20:27～23:37 各輪重試一直打 IG。限制解除後再決定 IG 是否補發（補發要把 ig 加回 platforms）。"
 }
