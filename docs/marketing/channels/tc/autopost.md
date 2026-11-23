@@ -2,6 +2,8 @@
 
 > ★ 2026-11-20 Andy：**Instagram Reels 一律帶 `share_to_feed=false`，只進 Reels 分頁，不進主格狀版面。**（只對 `media_type=REELS` 容器；輪播、圖片、限動、輪播子項目、Threads 都不帶。共用函式：`scripts/healing_post.py` `ig_video_container`；①`scripts/ig_post.py`、②`scripts/tc_post.py` 各自帶。）
 
+> ★ 2026-11-23：**同步發 FB 粉專「科技透明圈」Reels（預設關閉）**。開關 `social/tc/fb.json`（`enabled`）；程式 `scripts/tc_fb.py`（三段式 `/{page-id}/video_reels`，說明文字用 ig.txt），影片稿在 IG／Threads 之後發，寫 `ids_fb`／`urls_fb`；失敗只寫 `fb_error` 並開 issue，不擋 IG／Threads。tc_post.yml 手動選項：`fb_check=true`（只讀檢查權杖）、`fb_only=<資料夾>`＋`dry_run=false`（把已發影片補發到 FB）。權杖 Secrets：`TECH_FB_PAGE_TOKEN`、`TECH_FB_PAGE_ID`。
+
 > Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。
 > 範本：`docs/marketing/channels/ai_intro/ops.md` 第 1～2 節（多頻道隔離設計）。本頁是實作後的操作說明。
 

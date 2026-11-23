@@ -30,6 +30,9 @@ Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。說
   · 自動刪文（2026-11-08 Andy：「還有自動刪文」）：post.md 檔頭可選填 delete_at。到時間：
       Threads → 用 API 先刪第 1 則留言再刪主文（需要 threads_delete 權限），回查確認刪掉，寫 deleted_threads；
       IG → Instagram 登入版 API 不能刪貼文，只開 issue 附 permalink 與手動刪除步驟，寫 ig_delete_notified。
+  · FB 粉專 Reels（2026-11-23）：social/tc/fb.json enabled=true 才發；影片稿在 IG／Threads 之後發，
+      寫 ids_fb／urls_fb；失敗只寫 fb_error＋輸出 fb_alert（工作流開 issue），不擋 IG／Threads、不改 status。
+      --fb-only <資料夾>：把已發影片補發到 FB（手動測試，不看開關；配 --dry-run 只檢查）。細節 scripts/tc_fb.py。
 """
 from __future__ import annotations
 
@@ -48,6 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import ig_post as IG  # noqa: E402  只借用 API 呼叫與檔頭讀寫；不讀它的佇列與權杖
 import post_quota  # noqa: E402
+import tc_fb as FB  # noqa: E402  2026-11-23 同步發 FB 粉專 Reels（開關 social/tc/fb.json）
 import threads_post as TP  # noqa: E402
 
 QUEUE = ROOT / "social" / "tc" / "queue"
@@ -622,6 +626,10 @@ def publish_one(p: dict, env: dict, tok: dict, now: datetime, state_dir: Path) -
             err = f"{plat}：{e}"
             log(f"✗ {p['id']}：{err}")
             break
+    fb = FB.sync(p, env, now)           # FB 放最後；任何錯誤都在裡面吞掉，不影響上面兩個平台
+    if fb.get("fb_error"):
+        p["fb_error"] = fb["fb_error"]
+    upd.update(fb)
     meta = p["meta"]
     all_urls = " ".join(x for x in (meta.get("urls_ig") or upd.get("urls_ig"), meta.get("urls_threads") or upd.get("urls_threads"),
                                     meta.get("urls_threads_reply") or upd.get("urls_threads_reply")) if x)
@@ -654,7 +662,8 @@ def _record(state_dir: Path, p: dict, now: datetime, upd: dict, meta: dict) -> N
     if e is None:
         e = {"id": p["id"], "first_posted_at": now.isoformat(timespec="seconds")}
         posts.append(e)
-    for k in ("urls_ig", "urls_threads", "urls_threads_reply", "verified_ig", "verified_threads", "ids_ig", "ids_threads"):
+    for k in ("urls_ig", "urls_threads", "urls_threads_reply", "verified_ig", "verified_threads", "ids_ig", "ids_threads",
+              "urls_fb", "ids_fb"):
         v = upd.get(k) or meta.get(k)
         if v:
             e[k.replace("urls_", "")] = v
@@ -737,7 +746,7 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
     tok = tokens_from(env)
     for k in ("TC_THREADS_USER_ID", "TC_IG_USER_ID", "THREADS_USER_ID", "IG_USER_ID"):
         mask((env.get(k) or "").strip())
-    res = {"alert": [], "posted": [], "skipped": [], "deferred": [], "errors": [], "ig_delete": [], "bad": []}
+    res = {"alert": [], "posted": [], "skipped": [], "deferred": [], "errors": [], "ig_delete": [], "bad": [], "fb_alert": []}
     dirs = sorted(d for d in queue.glob("*/") if (d / "post.md").is_file()) if queue.is_dir() else []
     if only:
         dirs = [d for d in dirs if d.name == only]
@@ -838,7 +847,34 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
         res["errors"].append(f"{cand['id']}：{e}")
         res["alert"].append(f"{cand['id']}：發文失敗（{str(e)[:120]}）")
         rc = 1
+    if cand.get("fb_error"):
+        res["fb_alert"].append(f"{cand['id']}：{cand['fb_error'][:150]}")
     return rc, res
+
+
+def fb_only(env: dict, now: datetime, name: str, dry_run: bool, queue: Path = QUEUE, state_dir: Path = STATE_DIR) -> tuple[int, dict]:
+    """把一支已發的影片補發到 FB 粉專（手動測試用）：不看 fb.json 開關、不改 status、不碰 IG／Threads。"""
+    res = {"alert": [], "posted": [], "skipped": [], "deferred": [], "errors": [], "ig_delete": [], "bad": [], "fb_alert": []}
+    d = queue / name
+    if not (d / "post.md").is_file():
+        res["errors"].append(f"{name}：找不到這個資料夾")
+        return 1, res
+    p = load(d)
+    if p["meta"].get("ids_fb"):
+        log(f"{name}：FB 已發過（{p['meta'].get('urls_fb', '')}），不重發")
+        return 0, res
+    upd = FB.sync(p, env, now, dry_run=dry_run, force=True)
+    if dry_run:
+        return (1 if upd.get("fb_error") else 0), res
+    if upd:
+        IG.rewrite_meta(d / "post.md", upd)
+    if upd.get("ids_fb"):
+        _record(state_dir, p, now, upd, p["meta"])
+        res["posted"].append(f"{name}（FB）")
+        return 0, res
+    res["fb_alert"].append(f"{name}：{upd.get('fb_error', '沒有發出')[:150]}")
+    res["errors"].append(f"{name}：FB 沒發出（{upd.get('fb_error', '')[:150]}）")
+    return 1, res
 
 
 def main(argv=None) -> int:
@@ -847,6 +883,7 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true", help="只檢查格式（不連外）")
     ap.add_argument("--post", default="", help="只處理這個資料夾名稱")
     ap.add_argument("--queue", default=str(QUEUE))
+    ap.add_argument("--fb-only", default="", help="只把這個資料夾的影片補發到 FB 粉專（不看開關、不動 IG／Threads）")
     a = ap.parse_args(argv)
     if a.check:
         bad = 0
@@ -861,7 +898,10 @@ def main(argv=None) -> int:
                 bad += 1
                 print(f"::warning::{d.name} 格式不合格（run 時只標這一篇、不讓整輪失敗）：{'；'.join(errs)[:200]}")
         return 0
-    rc, res = run(dict(os.environ), datetime.now(TAIPEI), a.dry_run, queue=Path(a.queue), only=a.post)
+    if a.fb_only:
+        rc, res = fb_only(dict(os.environ), datetime.now(TAIPEI), a.fb_only, a.dry_run, queue=Path(a.queue))
+    else:
+        rc, res = run(dict(os.environ), datetime.now(TAIPEI), a.dry_run, queue=Path(a.queue), only=a.post)
     for e in res["errors"]:
         log("✗ " + e)
     out = os.environ.get("GITHUB_OUTPUT")
@@ -871,11 +911,13 @@ def main(argv=None) -> int:
             f.write("reasons=" + redact("；".join(res["alert"])).replace("\n", " ") + "\n")
             f.write(f"ig_delete={'1' if res['ig_delete'] else '0'}\n")
             f.write("ig_delete_list=" + redact("；".join(res["ig_delete"])).replace("\n", " ") + "\n")
+            f.write(f"fb_alert={'1' if res['fb_alert'] else '0'}\n")
+            f.write("fb_reasons=" + FB.redact(redact("；".join(res["fb_alert"]))).replace("\n", " ") + "\n")
     summ = os.environ.get("GITHUB_STEP_SUMMARY")
     if summ:
         with open(summ, "a", encoding="utf-8") as f:
             f.write(f"### 頻道② 科技透明圈（{'dry-run' if a.dry_run else '正式'}）\n\n")
-            for k, label in (("posted", "已發"), ("deferred", "順延"), ("skipped", "沒權杖跳過"), ("alert", "告警"), ("errors", "錯誤")):
+            for k, label in (("posted", "已發"), ("deferred", "順延"), ("skipped", "沒權杖跳過"), ("alert", "告警"), ("fb_alert", "FB 失敗"), ("errors", "錯誤")):
                 for x in res[k]:
                     f.write(f"- {label}：{redact(x)}\n")
     return rc

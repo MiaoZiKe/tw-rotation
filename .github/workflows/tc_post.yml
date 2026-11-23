@@ -19,6 +19,14 @@ on:
         description: "只處理這個資料夾（例如 20261105_quanta）；留空＝全部"
         type: string
         default: ""
+      fb_check:
+        description: "只讀檢查 FB 粉專權杖（查粉專名稱、ID、權杖類型；不發文、不跑發文流程）"
+        type: boolean
+        default: false
+      fb_only:
+        description: "把這支已發影片補發到 FB 粉專 Reels（例如 20261122_800v；不看 fb.json 開關、不動 IG／Threads）；dry_run=true 時只檢查不發"
+        type: string
+        default: ""
 permissions:
   contents: write   # 回寫 post.md 的 urls／status 與 state/tc/posted.json
   issues: write     # 監工告警
@@ -39,10 +47,33 @@ jobs:
       - run: pip install -q requests   # EAA 權杖找 IG 帳號編號重用 healing_post（要 requests）
       - name: 先檢查格式（不連外）
         run: python scripts/tc_post.py --check
-      - name: 發文（或 dry-run）
-        id: post
+      # 2026-11-23 FB 粉專：只讀檢查（fb_check=true 時只跑這一步）
+      - name: FB 粉專權杖只讀檢查
+        if: github.event_name == 'workflow_dispatch' && inputs.fb_check
+        env:
+          TC_FB_PAGE_TOKEN: ${{ secrets.TECH_FB_PAGE_TOKEN }}
+          TC_FB_PAGE_ID: ${{ secrets.TECH_FB_PAGE_ID }}
+        run: python scripts/tc_fb.py --check
+      - name: FB 粉專補發一支已發影片（fb_only）
+        id: fbonly
+        if: github.event_name == 'workflow_dispatch' && !inputs.fb_check && inputs.fb_only != ''
         continue-on-error: true
         env:
+          TC_FB_PAGE_TOKEN: ${{ secrets.TECH_FB_PAGE_TOKEN }}
+          TC_FB_PAGE_ID: ${{ secrets.TECH_FB_PAGE_ID }}
+          IN_FB: ${{ inputs.fb_only }}
+        run: |
+          case "$IN_FB" in *[!A-Za-z0-9_-]*) echo "資料夾名稱不合法"; exit 1 ;; esac
+          args="--fb-only $IN_FB"
+          if [ "${{ inputs.dry_run }}" != "false" ]; then args="$args --dry-run"; fi
+          python scripts/tc_post.py $args
+      - name: 發文（或 dry-run）
+        id: post
+        if: ${{ !inputs.fb_check && !inputs.fb_only }}
+        continue-on-error: true
+        env:
+          TC_FB_PAGE_TOKEN: ${{ secrets.TECH_FB_PAGE_TOKEN }}
+          TC_FB_PAGE_ID: ${{ secrets.TECH_FB_PAGE_ID }}
           TC_THREADS_TOKEN: ${{ secrets.TECH_THREADS_ACCESS_TOKEN_AUTO || secrets.TECH_THREADS_ACCESS_TOKEN }}
           TC_IG_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO || secrets.TECH_IG_ACCESS_TOKEN }}
           TC_THREADS_USER_ID: ${{ secrets.TECH_THREADS_USER_ID }}
@@ -57,7 +88,7 @@ jobs:
           python scripts/tc_post.py $args
       # 2026-11-20 留言關鍵字回覆（Threads 公開回覆＋IG 私訊）拆到 tc_comments.yml，由 gh-cron Worker 每 10 分鐘派；這裡只管發文。
       - name: 回寫發文結果（只 add 頻道② 的佇列與紀錄）
-        if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)
+        if: always() && !(github.event_name == 'workflow_dispatch' && (inputs.dry_run != false || inputs.fb_check))
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
@@ -96,8 +127,20 @@ jobs:
           3. 刪完回這個 issue 留言「已刪」並關閉。
 
           這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || echo "::warning::開 issue 失敗"
+      - name: 監工：FB 粉專 Reels 沒發出 → 開 issue（不影響 IG／Threads）
+        if: always() && (steps.post.outputs.fb_alert == '1' || steps.fbonly.outputs.fb_alert == '1')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASONS: ${{ steps.post.outputs.fb_reasons }}${{ steps.fbonly.outputs.fb_reasons }}
+        run: |
+          N=$(gh issue list -R "${{ github.repository }}" --state open --search "in:title 頻道② 科技透明圈：FB 粉專 Reels 沒發出" --json number -q '.[0].number' || true)
+          if [ -n "$N" ]; then gh issue comment "$N" -R "${{ github.repository }}" --body "又一次：${REASONS}（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）" || true; exit 0; fi
+          gh issue create -R "${{ github.repository }}" --title "⚠️ 頻道② 科技透明圈：FB 粉專 Reels 沒發出" --body "原因：${REASONS}
+
+          IG／Threads 不受影響。這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          修好後用 tc_post.yml 手動觸發 fb_only=<資料夾>、dry_run=false 補發（已發過的不會重發）。" || echo "::warning::開 issue 失敗"
       - name: 發文失敗就讓流程失敗（會收到 GitHub 通知）
-        if: steps.post.outcome == 'failure'
+        if: steps.post.outcome == 'failure' || steps.fbonly.outcome == 'failure'
         run: |
           echo "發文失敗，請看上一步的訊息；post.md 已標 status: error"
           exit 1
