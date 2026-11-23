@@ -157,7 +157,17 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-23 12:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-23 12:29 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DgEh4n3kcGa"
+    }
+   ]
   }
  ],
  "sources": [
@@ -182,7 +192,7 @@
  "status": "published",
  "social": {
   "ig": null,
-  "threads": null,
+  "threads": "https://www.threads.com/@talk_01010909/post/DgEh4n3kcGa",
   "queue": "20261123_overtime"
  }
 }
