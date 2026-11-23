@@ -174,14 +174,17 @@
      "code": "ACLS",
      "name": "亞舍立（Axcelis）",
      "mkt": "NASDAQ",
-     "biz": "離子佈植機（Purion 系列）"
+     "biz": "離子佈植機（Purion 系列）",
+     "logo": "articles/logos/ACLS.png",
+     "logobg": "#1b2433"
     },
     {
      "code": "6302",
      "name": "住友重機械（Sumitomo Heavy Industries）",
      "mkt": "TSE",
      "biz": "離子佈植機（只查到市場報告列名）",
-     "why": "離子佈植機，影片只查到市場報告列名，未放入畫面。"
+     "why": "離子佈植機，影片只查到市場報告列名，未放入畫面。",
+     "logo": "articles/logos/6302.png"
     },
     {
      "code": "6959",

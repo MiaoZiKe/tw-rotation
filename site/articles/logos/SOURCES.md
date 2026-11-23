@@ -35,7 +35,25 @@
 | 3231 | 緯創 | 3231.svg | https://commons.wikimedia.org/wiki/File:Wistron_logo.svg | 共享資源 |
 | AMAT | 應用材料 | AMAT.svg | https://commons.wikimedia.org/wiki/File:Applied_Materials_Logo.svg | 共享資源 |
 | 8035 | 東京威力科創 | 8035.svg | https://commons.wikimedia.org/wiki/File:Tokyo_Electron_logo.svg | 共享資源 |
+| 6669 | 緯穎 | 6669.svg | https://www.wiwynn.com/hubfs/Wiwynn%20LOGO%20with%20NAME_Blue_Green.svg | 官網首頁 |
+| 2308 | 台達電 | 2308.png | https://www.deltaww.com/images/delta_logo.png | 官網導覽列 |
+| 3324 | 雙鴻 | 3324.png | https://www.auras.com.tw/assets/Logo-66ddb334.png | 官網（前端打包檔內的 logo 圖） |
+| 8210 | 勤誠 | 8210.svg | https://www.chenbro.com/_nuxt/logo.0f24011e.svg | 官網導覽列 |
+| 8996 | 高力 | 8996.svg | https://www.kaori.com.tw/en/themes/CADCH_00023C/images/logo.svg | 官網 |
+| 2301 | 光寶科 | 2301.svg | https://www.liteon.com/templates/default/images/common/liteon-logo.svg | 官網導覽列 |
+| 3443 | 創意 | 3443.png | https://www.guc-asic.com/dist/assets/img/logo_150x60.png | 官網 |
+| 3661 | 世芯-KY | 3661.svg | https://www.alchip.com/dist/assets/img/logo.svg | 官網 |
+| 6533 | 晶心科 | 6533.png | https://www.andestech.com/wp-content/uploads/Andes-New-Logo_TM-scaled.png | 官網；原檔 2560 寬，裁掉透明邊後等比縮到 600 寬 |
+| LRCX | 科林研發 | LRCX.svg | https://www.lamresearch.com/etc.clientlibs/lamresearch/clientlibs/clientlib-site/resources/images/sprite.svg（symbol #icon-logo） | 官網首頁導覽列 logo 在 SVG 精靈圖裡，原樣取出 symbol 的路徑包成獨立 svg |
+| ASM | ASM International | ASM.png | https://www.asm.com/media/uotnslj4/asm-logo2022_rgb_innovationpurple-1.png | 官網；原檔 1135 寬，等比縮到 600 寬 |
+| DD | 杜邦 | DD.png | https://www.dupont.com/content/dam/dupont/global-assets/logos/DuPont_logo_140x55_rgb1.png | 官網 |
+| ACLS | 亞舍立 | ACLS.png | https://www.axcelis.com/wp-content/uploads/2019/02/axcelis-logo.png | 官網；白字 logo，文章 JSON 以 logobg 指定深色底 |
+| 6525 | 國際電氣 | 6525.svg | https://www.kokusai-electric.com/common-kokusai-electric/img/contents/footer/logo.svg | 官網頁尾 logo（導覽列放的是同一標誌） |
+| 6302 | 住友重機械 | 6302.png | https://www.shi.co.jp/app-files/img/cmn_main_logo01.png | 官網 |
+| ENTG | 英特格 | ENTG.svg | https://www.entegris.com/content/dam/web/ux/global/footer/logo.svg | 官網頁尾 logo |
+| 0981 | 中芯國際 | 0981.svg | https://commons.wikimedia.org/wiki/File:SMIC_logo.svg | 共享資源（官網 logo 放在 CDN 被擋） |
+| 4901 | 富士軟片 | 4901.svg | https://commons.wikimedia.org/wiki/File:Fujifilm_logo.svg | 共享資源（官網連不上） |
 
 ## 沒有 logo
 3413 京鼎：官網（foxsemicon.com 各語系首頁）導覽列只放文字「京鼎集團」、沒有 logo 圖檔，沒放。
-2026-11-23 科技文章補強時取不到（本環境連官網被擋 403、共享資源 429 或沒有檔），暫用文字卡，待環境允許連官網後補：2317 鴻海、6640 均華、3711 日月光投控、AMKR 安靠、042700 韓美半導體、0522 ASMPT、6274 新川、6669 緯穎、2308 台達電、3017 奇鋐、3324 雙鴻、2059 川湖、8210 勤誠、6805 富世達、8996 高力、2301 光寶科、3443 創意、3661 世芯-KY、3529 力旺、6533 晶心科、LRCX 科林研發、ASM、6361 荏原、4901 富士軟片、DD 杜邦、ACLS、6525、6302 住友重機械、KLAC、ENTG、7735、0981 中芯、6501 日立、6959 兆捷。
+2026-11-23 科技文章補強時取不到（本環境連官網被擋 403、共享資源 429 或沒有檔），暫用文字卡，待環境允許連官網後補：2317 鴻海、6640 均華、3711 日月光投控、AMKR 安靠、042700 韓美半導體、0522 ASMPT、6274 新川、3017 奇鋐、2059 川湖、6805 富世達、3529 力旺、6361 荏原、KLAC、7735、6501 日立、6959 兆捷。取不到的原因：1. 官網擋機器人或首頁無 logo 檔（日月光 3711 403、安靠 AMKR 逾時、奇鋐 3017／富世達 6805 Incapsula 擋、川湖 2059 逾時、力旺 3529 403、荏原 6361 403、日立先端科技 6501 403、KLA 機器人驗證頁、韓美 042700 首頁引用的 logo2.png 回 404）；2. logo 檔放在 CDN 被擋（ASMPT 0522 的 d2o7emhzwey5ns.cloudfront.net、鴻海 2317 的 image.honhai.com、迪恩士 7735 的 hdjp-corporateweb-files.screen.co.jp，proxy 連線失敗）；3. 維基共享資源持續回 429（鴻海 Foxconn_logo.svg、ASMPT Asmpt_logo_2022.svg、日立先端科技 Hitachi_High-Tech.png 等）或查無檔案。

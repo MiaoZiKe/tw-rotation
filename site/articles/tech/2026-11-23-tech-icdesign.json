@@ -155,14 +155,16 @@
      "name": "創意",
      "mkt": "TWSE",
      "biz": "IC 設計服務與 ASIC 設計，台積電集團成員。",
-     "why": "設計服務（媒體報導）。"
+     "why": "設計服務（媒體報導）。",
+     "logo": "articles/logos/3443.png"
     },
     {
      "code": "3661",
      "name": "世芯-KY",
      "mkt": "TWSE",
      "biz": "ASIC 設計服務，專注高效能運算晶片。",
-     "why": "設計服務（媒體報導）。"
+     "why": "設計服務（媒體報導）。",
+     "logo": "articles/logos/3661.svg"
     },
     {
      "code": "3529",
@@ -176,7 +178,8 @@
      "name": "晶心科",
      "mkt": "TWSE",
      "biz": "RISC-V 處理器核心 IP 授權。",
-     "why": "矽智財：RISC-V CPU 授權（公司新聞稿）。"
+     "why": "矽智財：RISC-V CPU 授權（公司新聞稿）。",
+     "logo": "articles/logos/6533.png"
     },
     {
      "code": "SNPS",

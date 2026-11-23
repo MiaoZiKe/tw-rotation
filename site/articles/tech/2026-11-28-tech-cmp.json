@@ -186,21 +186,24 @@
      "name": "英特格（Entegris）",
      "mkt": "NASDAQ",
      "biz": "CMP 研磨液與半導體材料（2022 年併購 CMC Materials）",
-     "why": "CMP 研磨液供應商。"
+     "why": "CMP 研磨液供應商。",
+     "logo": "articles/logos/ENTG.svg"
     },
     {
      "code": "4901",
      "name": "富士軟片（Fujifilm）",
      "mkt": "TSE",
      "biz": "研磨液等半導體材料",
-     "why": "研磨液供應商（市場研究頁列名）。"
+     "why": "研磨液供應商（市場研究頁列名）。",
+     "logo": "articles/logos/4901.svg"
     },
     {
      "code": "DD",
      "name": "杜邦（DuPont）",
      "mkt": "NYSE",
      "biz": "CMP 研磨墊等電子材料",
-     "why": "CMP 研磨墊供應商。"
+     "why": "CMP 研磨墊供應商。",
+     "logo": "articles/logos/DD.png"
     },
     {
      "code": "7768",

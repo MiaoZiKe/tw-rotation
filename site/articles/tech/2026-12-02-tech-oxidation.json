@@ -179,7 +179,8 @@
      "code": "6525",
      "name": "國際電氣（KOKUSAI ELECTRIC）",
      "mkt": "TSE",
-     "biz": "立式批次爐管（氧化、擴散、成膜）"
+     "biz": "立式批次爐管（氧化、擴散、成膜）",
+     "logo": "articles/logos/6525.svg"
     },
     {
      "code": "8035",
@@ -194,7 +195,8 @@
      "name": "ASM International（台灣為先藝科技）",
      "mkt": "Euronext",
      "biz": "ALD 與磊晶、立式爐管設備",
-     "why": "立式爐管（氧化、退火、摻質活化）。"
+     "why": "立式爐管（氧化、退火、摻質活化）。",
+     "logo": "articles/logos/ASM.png"
     },
     {
      "code": "AMAT",
