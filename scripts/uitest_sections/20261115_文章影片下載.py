@@ -91,8 +91,8 @@ def t_article_mp4_1115(b, base, code):
         else:
             ok(f"[{T}（{W}）] 此瀏覽器無 H.264 解碼器，改驗檔案本身存在且可下載（見下方下載驗收）", True, "canPlayType 空字串")
         ok(f"★ [{T}（{W}）] 不撐爆：無橫向捲軸、影片高度 ≤ 視窗 80%", i["sw"] <= i["iw"] and i["h"] <= i["ih"] * 0.8 + 2, i)
-        d = pg.evaluate(dl)
-        ok(f"★ [{T}（{W}）] 訪客：下載鈕顯示「登入後可下載」、沒有 download 屬性", bool(d) and d["lock"] and "登入後" in d["t"] and d["d"] is None, d)
+        d = pg.evaluate("() => { const a = document.querySelector('#artPost a.avdl'); return a ? { hid: a.hidden, d: a.getAttribute('download'), h: a.getAttribute('href') } : null }")
+        ok(f"★ [{T}（{W}）] 訪客：下載鈕隱藏、沒有 href／download（11-23 起下載只有站主）", bool(d) and d["hid"] and d["d"] is None and d["h"] is None, d)
         pg.locator("#artPost .artvid.mp4").scroll_into_view_if_needed()
         pg.wait_for_timeout(400)
         if W <= 640:
@@ -108,16 +108,9 @@ def t_article_mp4_1115(b, base, code):
         # ── 註冊會員：下載鈕可用，真的下載
         c, pg = ctx("bob@example.com", W)
         open_(pg)
-        wait_until(pg, "() => { const a = document.querySelector('#artPost a.avdl'); return !!a && !a.classList.contains('lock'); }", 8000)
-        d = pg.evaluate(dl)
-        ok(f"★ [{T}（{W}）] 註冊會員：下載鈕為「下載影片」、download 屬性＝{_AV_NAME}", bool(d) and not d["lock"] and "下載影片" in d["t"] and d["d"] == _AV_NAME, d)
-        with pg.expect_download(timeout=15000) as dli:
-            pg.locator("#artPost a.avdl").click()
-        got = dli.value
-        pth = got.path()
-        size = _av_os.path.getsize(pth) if pth else 0
-        real = _av_os.path.getsize(_av_os.path.join(_av_repo_root(), "site", "media", "healing", "20261115v_marriage", "video.mp4"))
-        ok(f"★ [{T}（{W}）] 按下載鈕真的下載：檔名＝{_AV_NAME}、大小與站內檔案一致（{size} B）", got.suggested_filename == _AV_NAME and size == real and size > 100000, (got.suggested_filename, size, real))
+        pg.wait_for_timeout(800)
+        d = pg.evaluate("() => { const a = document.querySelector('#artPost a.avdl'); return a ? { hid: a.hidden, d: a.getAttribute('download'), h: a.getAttribute('href') } : null }")
+        ok(f"★ [{T}（{W}）] 註冊會員：下載鈕一樣隱藏（下載只有站主，站主下載見「文章下載與側欄1123」）", bool(d) and d["hid"] and d["d"] is None and d["h"] is None, d)
         pg.locator("#artPost .artvid.mp4").scroll_into_view_if_needed()
         pg.wait_for_timeout(400)
         if W <= 640:

@@ -226,6 +226,7 @@
 /* ⚠ 側欄用 div 不用 aside：全站 aside 規則是今日事件抽屜（position:fixed 貼右邊），用 aside 會整塊飛到畫面外。
    寬螢幕右側「快速瀏覽」：各分類篇數（受篩選影響）、熱門族群（點了就篩）、最近更新 */
 .artside{display:none}
+.artmain.noside{grid-template-columns:minmax(0,1fr)!important}.artmain.noside .artside{display:none!important}
 @media (min-width:1280px){.artside{display:flex;flex-direction:column;gap:var(--sp-3);position:sticky;top:var(--sp-3)}}
 .artside section{border:1px solid var(--line);border-radius:var(--r,12px);background:var(--panel-2);padding:var(--sp-3)}
 .artside h5{margin:0 0 var(--sp-2);font-size:var(--fs-sm);font-weight:700;color:var(--ink-2)}
@@ -282,9 +283,11 @@
 .artbody .artvid.x .avw{aspect-ratio:auto;height:min(640px,80vh);background:transparent}
 .artbody .artvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .artbody .artvid.x iframe{position:static;height:100%}
-.artbody .artvid.mp4 .avm{display:flex;justify-content:center;background:#000;border:1px solid var(--line);border-radius:var(--r-sm,8px);overflow:hidden}
-.artbody .artvid.mp4 video{display:block;width:auto;height:auto;max-width:100%;max-height:min(78vh,720px);background:#000}
+.artbody .artvid.mp4 .avm{width:fit-content;max-width:100%;margin:0 auto;display:flex;justify-content:center;background:#000;border:1px solid var(--line);border-radius:var(--r-sm,8px);overflow:hidden}
+.artbody .artvid.mp4 video{display:block;width:auto;height:auto;max-width:100%;max-height:min(70vh,640px);background:#000}
 .artbody .artvid .avdl{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid var(--accent,#3b82f6);border-radius:var(--r-sm,8px);font-weight:700;font-size:13px;color:var(--accent,#3b82f6)!important;text-decoration:none}
+.artbody .artvid .avdl[hidden]{display:none!important}
+.artbody .artvid.mp4 .avt{text-align:center}.artbody .artvid.mp4 .avc{justify-content:center}
 .artbody .artvid .avdl.lock{border-color:var(--line);color:var(--ink-2)!important;cursor:pointer}
 .artbody .artvid .avc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-2)}.artbody .artvid .avc a{color:var(--accent,#3b82f6);text-decoration:none}
 /* 10-19 稽核 #11：文章內嵌站內 3D／2.5D 剖析圖（scene 區塊）。外框跟其他圖卡同一組 token；捲到才載入，載入前是一塊固定高度的骨架（不跳版）。 */
@@ -1173,6 +1176,10 @@
   }
   function paintSide(root) {
     const side = $('#artSide', root); if (!side || !S.idx) return;
+    /* 11-23 Andy：快速瀏覽只有站主看得到；讀者／訪客完全不渲染，卡片格線吃滿原本側欄的寬度（.noside） */
+    const own = isAdminUser() || !!window.TW_PREVIEW, mn = side.parentNode;
+    if (mn && mn.classList) mn.classList.toggle('noside', !own);
+    if (!own) { side.innerHTML = ''; return; }
     const pool = filtered('all', true);
     const mx = Math.max(1, ...CAT_KEYS.map((k) => pool.filter((a) => a.cat === k).length));
     const gs = groupStats().slice(0, 14);
@@ -1431,7 +1438,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const e = $(`.arteye[data-cat="${k}"]`, root);
     if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
   }
-  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); if (!guardHidden() && (isAdminUser() || canPriv('tech'))) { if (PRIV[S.cat] && !S.idx && location.hash.replace(/^#/, '').split('/')[0] === 'articles') showList(S.cat); else loadTech().then(() => paintList()); } } });
+  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); try { paintSide(r); } catch (e) { /* 側欄只是輔助 */ } if (!guardHidden() && (isAdminUser() || canPriv('tech'))) { if (PRIV[S.cat] && !S.idx && location.hash.replace(/^#/, '').split('/')[0] === 'articles') showList(S.cat); else loadTech().then(() => paintList()); } } });
   window.addEventListener('tw:chunl', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) paintHide(r); });
   async function showList(cat) {
     css();
@@ -1814,20 +1821,15 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     root._sceneIO = io;
   }
 
-  /* 文章內 mp4 的下載鈕權限（功能鍵 art.video.dl）：沒權限＝鈕換成「登入後可下載」；權限晚到／換身分時重畫 */
-  function dlOk() { try { const P = window.TwPerm; return !(P && P.can) || P.can('art.video.dl'); } catch (e) { return true; } }
+  /* 11-23 Andy：下載影片只有站主可用；讀者看不到任何下載鈕（hidden＋不給 href／download），<video> 另有 nodownload＋禁右鍵 */
+  function dlOk() { try { return isAdminUser() || !!window.TW_PREVIEW; } catch (e) { return false; } }
   function paintDl(root) {
     const ok = dlOk();
     $$('a.avdl', root || document).forEach((a) => {
-      if (ok) { a.classList.remove('lock'); a.setAttribute('href', a.dataset.src || ''); if (a.dataset.dl) a.setAttribute('download', a.dataset.dl); a.textContent = '下載影片 ⬇'; a.removeAttribute('aria-disabled'); }
-      else { a.classList.add('lock'); a.removeAttribute('download'); a.setAttribute('href', '#'); a.setAttribute('aria-disabled', 'true'); a.textContent = '登入後可下載'; }
+      if (ok) { a.hidden = false; a.setAttribute('href', a.dataset.src || ''); if (a.dataset.dl) a.setAttribute('download', a.dataset.dl); }
+      else { a.hidden = true; a.removeAttribute('href'); a.removeAttribute('download'); }
     });
   }
-  document.addEventListener('click', (e) => {
-    const a = e.target && e.target.closest && e.target.closest('a.avdl.lock'); if (!a) return;
-    e.preventDefault();
-    try { window.TwAccount && TwAccount.login && TwAccount.login(); } catch (er) { /* 登入視窗開不起來就維持原狀 */ }
-  });
   window.addEventListener('tw:perm', () => paintDl());
   window.addEventListener('tw:account', () => paintDl());
   new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches('.artvid.mp4') || n.querySelector('.artvid.mp4'))))) paintDl(); }).observe(document.documentElement, { childList: true, subtree: true });
@@ -1862,8 +1864,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const poster = /^media\/[a-z0-9_-]{2,20}\/[\w.-]{1,80}\/[\w.-]{1,120}\.(jpg|jpeg|png|webp)$/.test(pst) && !pst.includes('..') ? pst : '';
         const folder = src.split('/')[2];
         const dlName = (String(b.title || '').replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 60) || folder) + '.mp4';
-        return `<figure class="artvid mp4" data-bi="${bi}">${b.title ? `<figcaption class="avt">${esc(b.title)}</figcaption>` : ''}<div class="avm"><video controls playsinline preload="metadata" src="${esc(src)}"${poster ? ` poster="${esc(poster)}"` : ''} aria-label="${esc(b.title || '影片')}"></video></div>`
-          + `<div class="avc">${b.note ? `<span>${esc(b.note)}</span>` : '<span></span>'}<a class="avdl" href="${esc(src)}" data-src="${esc(src)}" data-dl="${esc(dlName)}" download="${esc(dlName)}">下載影片 ⬇</a></div></figure>`;
+        return `<figure class="artvid mp4" data-bi="${bi}">${b.title ? `<figcaption class="avt">${esc(b.title)}</figcaption>` : ''}<div class="avm"><video controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" src="${esc(src)}"${poster ? ` poster="${esc(poster)}"` : ''} aria-label="${esc(b.title || '影片')}"></video></div>`
+          + `<div class="avc">${b.note ? `<span>${esc(String(b.note).replace(/[；，;,]?\s*(登入後)?可下載/g, ''))}</span>` : '<span></span>'}<a class="avdl" hidden data-src="${esc(src)}" data-dl="${esc(dlName)}">下載影片 ⬇</a></div></figure>`;
       }
       case 'table': {
         const head = Array.isArray(b.head) ? b.head : [], rows = Array.isArray(b.rows) ? b.rows : [];
@@ -1898,12 +1900,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && okId(x.id) && x.title);
         return its.length ? `<section class="arel"><div class="at">${esc(b.title || '延伸閱讀')}</div>${its.map((x) => `<a href="#article/${esc(x.id)}"><b>${esc(x.title)}</b>${x.why ? `<span>${esc(x.why)}</span>` : ''}</a>`).join('')}</section>` : '';
       }
-      case 'cover': {
-        const src = String(b.src || '');
-        if (!/^media\/[a-z0-9_-]{2,20}\/[\w.-]{1,80}\/[\w.-]{1,120}\.(jpg|jpeg|png|webp)$/.test(src) || src.includes('..')) return '';
-        const nm = (String(b.title || '').replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 60) || src.split('/')[2]) + '.' + src.split('.').pop();
-        return `<figure class="acover"><img src="${esc(src)}" alt="${esc(b.alt || b.title || '影片封面')}" loading="lazy">${b.note ? `<figcaption>${esc(b.note)}</figcaption>` : ''}<a class="acdl" href="${esc(src)}" download="${esc(nm)}">下載原圖 ⬇</a></figure>`;
-      }
+      /* 11-23 Andy：影片下方的封面原圖整塊不顯示（讀者與站主都不顯示）；JSON 內的 cover 區塊保留不用刪 */
+      case 'cover': return '';
       case 'kpi': return kpiHTML(b);
       case 'chart': return chartHTML(b, bi);
       case 'flow': return flowHTML(b, bi);
