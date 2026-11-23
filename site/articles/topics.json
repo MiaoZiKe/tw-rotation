@@ -1,6 +1,122 @@
 {
- "updated": "2026-11-20",
+ "updated": "2026-11-23",
  "topics": [
+  {
+   "id": "n_sox_crash_1120",
+   "cat": "news",
+   "title": "費半單日跌 10.73%：輝達跌 14% 市場怕什麼",
+   "why": "11/20 費半收 8,408.59 點、跌 10.73%，那斯達克跌 5.28%、單週跌約一成為 2020 年 3 月以來最大（中央社、三立 11/21）；讀者想知道這次跟前幾波 AI 股修正差在哪。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-23",
+   "site_links": [
+    "#flow",
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "n_flat_short_ban_1123",
+   "cat": "news",
+   "title": "平盤下全面禁空首日：台股為何反彈 778 點",
+   "why": "金管會第三波措施 11/23 上路，2015 年後首次全面禁止平盤以下放空、融券保證金 130%→150%（中央社 11/21、CTWANT）；當天加權收 36,811 點、漲 778 點、量破兆（聯合 11/23）。讀者會問禁空與國安基金到底撐住了什麼。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-11-23",
+   "site_links": [
+    "#overview",
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "n_dc_grid_bill",
+   "cat": "news",
+   "title": "資料中心要自付電網升級：美參院法案改了什麼",
+   "why": "美參院 11/19 以 62 比 33 通過能源許可改革法案，資料中心新增用電的發電、儲能、輸配電成本不得分攤給其他用戶（中央社 11/20、鉅亨）；讀者想知道 AI 機房成本會不會再墊高、眾議院過不過得了。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/heavy_electric"
+   ]
+  },
+  {
+   "id": "i_dc_power_grid",
+   "cat": "intro",
+   "title": "資料中心供電鏈：電網、變電站到機櫃電源",
+   "why": "美參院法案要資料中心自付電網升級，正好把「電從電廠到機櫃」的環節拉到檯面；站內有重電、電線電纜、伺服器電源族群頁可串成一條鏈。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/heavy_electric",
+    "#industry/group/wire_cable",
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "i_saas_chain",
+   "cat": "intro",
+   "title": "企業 SaaS 鏈：訂閱軟體從開發到企業端怎麼賣",
+   "why": "近期軟體股被 AI 疑慮連帶賣壓，讀者常分不清 SaaS 跟雲端機房、系統整合差在哪；站內有企業 SaaS 族群頁可畫環節分工。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/saas",
+    "#industry/group/cloud_msp"
+   ]
+  },
+  {
+   "id": "i_glass_core_chain",
+   "cat": "intro",
+   "title": "玻璃基板封裝鏈：玻璃、鑽孔到載板怎麼分工",
+   "why": "玻璃基板被視為 ABF 之後的下一代封裝載板，已有知識題講「是什麼」，這題改講環節：玻璃原片、雷射鑽孔與金屬化、載板廠、封裝廠各做哪段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/glass_substrate",
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "k_lc_manifold",
+   "cat": "know",
+   "title": "液冷分歧管是什麼？冷卻液怎麼分到每台主機",
+   "why": "用站內 3D 場景 liquid_cooling（從晶片到 CDU）：機櫃裡 CDU 送出的冷卻液靠分歧管分流到每片水冷板，已寫過水冷板、CDU、快接頭，分歧管是缺的那一段。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/liquid_cooling"
+   ]
+  },
+  {
+   "id": "k_flip_chip",
+   "cat": "know",
+   "title": "覆晶封裝是什麼？晶片為何要翻面接上載板",
+   "why": "用站內 3D 場景 ic_substrate（ABF 增層剖面）與 semiconductor（CoWoS-L 剖面）：晶片凸塊朝下直接接載板，是微凸塊、底部填充膠、載板這幾題的共同前提，目前還沒有一篇從頭講。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/ic_substrate",
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_ball_screw",
+   "cat": "know",
+   "title": "滾珠螺桿是什麼？馬達的轉動怎麼變成直線移動",
+   "why": "用站內 3D 場景 motion_axis（一個會動的軸）：已寫過線性滑軌與伺服軸，滾珠螺桿是把旋轉變直線的核心零件，工具機與機器人都會用到。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-23",
+   "site_links": [
+    "#industry/group/factory_automation",
+    "#industry/group/machine_tool"
+   ]
+  },
   {
    "id": "n_saas_selloff_ai",
    "cat": "news",
