@@ -147,7 +147,17 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-23 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-23 20:49 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DgFavzTNpWO"
+    }
+   ]
   }
  ],
  "sources": [
@@ -172,7 +182,7 @@
  "status": "published",
  "social": {
   "ig": null,
-  "threads": null,
+  "threads": "https://www.threads.com/@talk_01010909/post/DgFavzTNpWO",
   "queue": "20261123v_overtime",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261123v_overtime/video.mp4"
