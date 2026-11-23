@@ -1,4 +1,4 @@
 {
-  "enabled": false,
-  "note": "頻道②「科技透明圈」同步發 Facebook 粉專 Reels 的開關（2026-11-23）。false＝完全不連 Facebook；改成 true 推 main，之後的影片稿在 IG／Threads 發完後會同步發到粉專（說明文字用 ig.txt）。FB 失敗不擋 IG／Threads，只寫 post.md 的 fb_error 並開 issue。權杖：GitHub Secrets TECH_FB_PAGE_TOKEN／TECH_FB_PAGE_ID。程式：scripts/tc_fb.py。App 目前是開發（調整中）模式，發出的貼文可能只有管理員看得到。"
+  "enabled": true,
+  "note": "頻道②「科技透明圈」同步發 Facebook 粉專 Reels 的開關（2026-11-23）。false＝完全不連 Facebook；改成 true 推 main，之後的影片稿在 IG／Threads 發完後會同步發到粉專（說明文字用 ig.txt）。FB 失敗不擋 IG／Threads，只寫 post.md 的 fb_error 並開 issue。權杖：GitHub Secrets TECH_FB_PAGE_TOKEN／TECH_FB_PAGE_ID。程式：scripts/tc_fb.py。2026-11-23 12:40 試發 800v（https://www.facebook.com/reel/1627704606040910/），Andy 用無痕視窗確認一般人看得到，回「看得到」後開啟。粉專權杖永不過期，資料存取權限約 2027 年 2 月下旬到期要重新授權。"
 }
