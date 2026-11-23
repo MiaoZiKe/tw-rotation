@@ -100,3 +100,52 @@ def with_unlock(text: str, code: str) -> str:
     if not code or not re.fullmatch(r"[\w-]{4,40}", code):
         return text
     return re.sub(r"https://liguligu-puipui\.com/(?!\?tc=)", "https://liguligu-puipui.com/?tc=" + code, text)
+
+
+# ---- 2026-11-23 公開回覆改成一句話、不放網址（Andy：「幫我先把留言回覆改成"已經將XXX完整內容私訊您囉!~"」
+#      「Threads請他訊IG」）。IG 私訊改由 Meta Business Suite 的自動私訊規則「科技透明圈-索取來源」送連結。
+#      主題＝threads_reply.texts[代號] 第一句的「」裡那段（不另外維護清單）；取不到（default、待填、法遵待審）就用不帶主題的句子。
+TOPIC_RE = re.compile(r"「([^」]+)」")
+IG_ACK = "已經將「{topic}」完整內容私訊您囉!~"
+IG_ACK_DEFAULT = "已經將完整內容私訊您囉!~"
+TH_ASK = "「{topic}」完整內容請到 IG @{handle} 私訊「{keyword}」，馬上傳給您!~"
+TH_ASK_NOHANDLE = "「{topic}」完整內容請到 IG「科技透明圈」私訊「{keyword}」，馬上傳給您!~"
+TH_ASK_DEFAULT = "完整內容請到 IG 私訊我們，馬上傳給您!~"
+
+
+def topic_of(text) -> str:
+    """文字（或清單第一句）裡第一組「」的內容；沒有回空字串。"""
+    if isinstance(text, list):
+        text = text[0] if text else ""
+    m = TOPIC_RE.search(str(text or ""))
+    return m.group(1).strip() if m else ""
+
+
+def topic_for(cfg: dict, post: str | None) -> str:
+    """這篇的主題：threads_reply.texts[代號] 第一句的「」；沒設、待填、法遵待審、default → 空字串。"""
+    r = cfg.get("threads_reply") or {}
+    v = pick(r.get("texts"), post or "") if post and post != "default" else None
+    return topic_of(v) if ready(v) and not in_pending(post, cfg.get("legal_pending")) else ""
+
+
+def ig_public_ack(cfg: dict, post: str | None) -> str:
+    """IG 公開回覆留言那一句（不放網址）。"""
+    d = cfg.get("ig_dm") or {}
+    t = topic_for(cfg, post)
+    if not t:
+        return d.get("ack_public_default") or IG_ACK_DEFAULT
+    return (d.get("ack_public") or IG_ACK).replace("{topic}", t)
+
+
+def threads_ask_ig(cfg: dict, post: str | None) -> str:
+    """Threads 公開回覆：請對方到 IG 私訊這篇的關鍵字（Threads 不能私訊，不放網址）。"""
+    r = cfg.get("threads_reply") or {}
+    t = topic_for(cfg, post)
+    own = pick(cfg.get("post_keywords"), post or "") if post and post != "default" else None
+    own = [own] if isinstance(own, str) else list(own or [])
+    kws = own + list(cfg.get("keywords") or [])
+    if not t or not kws:
+        return r.get("ask_ig_default") or TH_ASK_DEFAULT
+    handle = str(r.get("ig_handle") or "").strip().lstrip("@")
+    tpl = (r.get("ask_ig") or TH_ASK) if handle else (r.get("ask_ig_nohandle") or TH_ASK_NOHANDLE)
+    return tpl.replace("{topic}", t).replace("{handle}", handle).replace("{keyword}", kws[0])

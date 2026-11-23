@@ -14,6 +14,10 @@ Threads API 沒有私訊、也查不到對方有沒有追蹤，所以 Threads �
   Threads 貼文 id → 貼文代號：state/tc/posted.json 的 ids_threads，或 permalink 的短碼（舊紀錄沒有 ids_threads）。
   比對字＝全域 keywords＋post_keywords[代號]；回覆文字＝threads_reply.texts[代號]，沒有或還有「待填」就用 threads_reply.text。
   規則與理由在 scripts/tc_dm_keys.py。
+
+2026-11-23 起（Andy：「Threads請他訊IG」）：回覆不再附網址，固定
+  「「主題」完整內容請到 IG @帳號 私訊「該篇第一個關鍵字」，馬上傳給您!~」（K.threads_ask_ig；
+  主題取 threads_reply.texts[代號] 的「」，帳號取 threads_reply.ig_handle；取不到主題用 ask_ig_default）。
 """
 from __future__ import annotations
 
@@ -127,7 +131,7 @@ def run(env: dict, now: datetime, dry_run: bool, config_path: Path = CONFIG, sta
             try:
                 cid = T.api("threads", "POST", f"/{uid}/threads", tok,
                             {"media_type": "TEXT", "reply_to_id": r["id"],
-                             "text": K.text_for(rcfg.get("texts"), code, rcfg.get("text", ""), cfg.get("legal_pending"), r["id"])})["id"]
+                             "text": K.threads_ask_ig(cfg, code)})["id"]
                 T.SLEEP(5)
                 T._threads_publish(uid, cid, tok)
             except T.PostError as e:

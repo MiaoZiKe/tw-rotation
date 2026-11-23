@@ -37,8 +37,10 @@ follow_gate（2026-11-09 法遵審後加的開關，預設 true）：
 
 ★ 私訊接不通時的保底（public_fallback，預設 true）：
   EAA 權杖看不到粉絲專頁 → 私訊做不到。以前是整段安靜跳過，留言的人什麼都收不到（文案寫了卻沒兌現）。
-  現在改成「公開回覆那則留言一句＋文章連結」（POST /{comment-id}/replies，權杖本來就有 instagram_manage_comments），
-  文字跟 Threads 同一份（threads_reply.texts[代號] → threads_reply.text），清單就用留言 id 雜湊輪流挑一句。
+  現在改成公開回覆那則留言一句（POST /{comment-id}/replies，權杖本來就有 instagram_manage_comments）。
+  2026-11-23 起（Andy：「幫我先把留言回覆改成"已經將XXX完整內容私訊您囉!~"」）文字固定
+  「已經將「主題」完整內容私訊您囉!~」、不放網址（ig_dm.ack_public；主題取 threads_reply.texts[代號] 的「」，
+  取不到用 ack_public_default）；連結由 Andy 在 Meta Business Suite 設的自動私訊規則「科技透明圈-索取來源」送。
   每則留言 1 次、每人每篇 1 次；防洗版：每輪（＝每分鐘）最多 public_max_per_minute（3）則、
   每篇每小時最多 public_max_per_post_hour（30）則，超過的留到下一輪（不丟、不算失敗）。
   每篇每小時的計數只存「貼文 id 雜湊 → 回覆時間」，1 小時後清掉。
@@ -98,8 +100,8 @@ def content_of(d: dict, post: str, pending=None, key: str = "") -> str:
 
 
 def public_text(cfg: dict, post: str, cid: str = "") -> str:
-    r = cfg.get("threads_reply") or {}
-    return K.text_for(r.get("texts"), post, r.get("text", ""), cfg.get("legal_pending"), cid)
+    """IG 公開回覆留言：2026-11-23 起固定一句「已經將「主題」完整內容私訊您囉!~」、不放網址（私訊由 Meta 自動私訊規則送）。"""
+    return K.ig_public_ack(cfg, post)
 
 
 CTX: dict = {}

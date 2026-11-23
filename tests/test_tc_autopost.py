@@ -437,7 +437,7 @@ def test_Threads關鍵字回覆每人一次且不存原文(monkeypatch, tmp_path
     rc, res = tr.run(dict(ENV), NOW, False, config_path=_cfg(tmp_path), state_path=tmp_path / "rep.json")
     sent = [c for c in api.calls if c[4].get("reply_to_id")]
     assert rc == 0 and res["replied"] == 1 and sent[0][4]["reply_to_id"] == "r1"
-    assert "liguligu-puipui.com" in sent[0][4]["text"]
+    assert sent[0][4]["text"] == "完整內容請到 IG 私訊我們，馬上傳給您!~"   # 2026-11-23 Andy：「Threads請他訊IG」；沒對到篇＝預設句、不放網址
     disk = (tmp_path / "rep.json").read_text()
     assert "amy" not in disk and "透明" not in disk and "r1" not in disk
     api2 = ReplyAPI()
@@ -576,7 +576,8 @@ def test_法遵審後的正式設定():
     assert c["legal_reviewed"] is True and "2026-11-09 法遵審過" in c["legal_note"]
     assert c["ig_dm"]["follow_gate"] is True
     assert "完整整理" not in blob and "FW 面談" not in blob and "網友分享的面試方向" in blob
-    assert c["threads_reply"]["text"] == "已經將完整資訊給你囉～整理放在這：https://liguligu-puipui.com/"   # 2026-11-20 Andy 改公開回覆措辭
+    assert c["threads_reply"]["ask_ig_default"] == "完整內容請到 IG 私訊我們，馬上傳給您!~"   # 2026-11-23 Andy：「Threads請他訊IG」
+    assert c["ig_dm"]["ack_public_default"] == "已經將完整內容私訊您囉!~"
     assert "僅保存去識別化的編號與時間，30 天後刪除" in (root / "docs/marketing/channels/tc/app_review/README.md").read_text(encoding="utf-8")
 
 
@@ -928,7 +929,8 @@ def test_專屬關鍵字只觸發該篇_Threads(monkeypatch, tmp_path):
             "/p2/replies": [{"id": "b1", "text": "2奈米", "username": "bob"}]}       # 廣達那篇留 2奈米：不觸發
     rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows)
     assert rc == 0 and [s["reply_to_id"] for s in sent] == ["a1"]
-    assert URL_2NM in sent[0]["text"]                                           # 回的是這篇的文章
+    assert sent[0]["text"] == "「2 奈米不是尺寸」完整內容請到 IG @tech_01010909 私訊「2奈米」，馬上傳給您!~"   # 回的是這篇的主題
+    assert "http" not in sent[0]["text"]
 
 
 def test_全域關鍵字仍然有效_兩篇都回(monkeypatch, tmp_path):
@@ -937,8 +939,9 @@ def test_全域關鍵字仍然有效_兩篇都回(monkeypatch, tmp_path):
     rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows)
     assert sorted(s["reply_to_id"] for s in sent) == ["a1", "b1"]
     by = {s["reply_to_id"]: s["text"] for s in sent}
-    assert URL_2NM in by["a1"]                                                  # 2nm 那篇回 2nm 的文章
-    assert URL_2NM not in by["b1"] and "liguligu-puipui.com" in by["b1"]         # 廣達回預設
+    assert "「2 奈米不是尺寸」" in by["a1"] and "私訊「2奈米」" in by["a1"]        # 2nm 那篇回 2nm 的主題
+    assert by["b1"] == "完整內容請到 IG 私訊我們，馬上傳給您!~"                  # 廣達沒有主題：回預設
+    assert all("http" not in t for t in by.values())
 
 
 def test_文章網址待填或法遵待審_改送預設文字不送半成品(monkeypatch, tmp_path):
@@ -956,7 +959,7 @@ def test_文章網址待填或法遵待審_改送預設文字不送半成品(mon
         monkeypatch.setattr(tc, "api", api)
         tr.run(dict(ENV), NOW, False, config_path=cp, state_path=tmp_path / f"rep_{case}.json", posted_path=_posted2(tmp_path))
         sent = [x[4] for x in api.calls if x[4].get("reply_to_id")]
-        assert len(sent) == 2 and all(x["text"] == c["threads_reply"]["text"] for x in sent), case   # 保底：照樣回，用預設
+        assert len(sent) == 2 and all(x["text"] == c["threads_reply"]["ask_ig_default"] for x in sent), case   # 保底：照樣回，用預設
 
 
 def test_專屬關鍵字_法遵閘照舊只記錄(monkeypatch, tmp_path):
@@ -1003,8 +1006,8 @@ def test_IG私訊接不通_保底公開回覆留言加連結(monkeypatch, tmp_pa
                      posted_path=_posted2(tmp_path))
     assert rc == 0 and res["public"] == 1 and res["prompted"] == 0
     cfg = json.loads(_cfg2(tmp_path, ready=True).read_text(encoding="utf-8"))
-    assert api.sent == [("/c-m1/replies", K.rotate(cfg["threads_reply"]["texts"]["2nm"], "c-m1"))]
-    assert URL_2NM in api.sent[0][1]
+    assert api.sent == [("/c-m1/replies", "已經將「2 奈米不是尺寸」完整內容私訊您囉!~")]   # 2026-11-23 Andy 指定措辭
+    assert "http" not in api.sent[0][1]
     assert not any(c[2].endswith("/messages") or c[2] == "/me/conversations" for c in api.calls)   # 沒有試私訊
     api2 = KwIGAPI()                                                            # 再跑一輪不重複回
     monkeypatch.setattr(tc, "api", api2)
@@ -1063,9 +1066,8 @@ def test_Threads回覆依留言輪流不同句(monkeypatch, tmp_path):
     rows = {"/p1/replies": [{"id": f"a{i}", "text": "2奈米", "username": f"u{i}"} for i in range(9)]}
     rc, res, sent = _threads_kw(monkeypatch, tmp_path, rows)
     cfg = json.loads(_cfg2(tmp_path, ready=True).read_text(encoding="utf-8"))
-    texts = cfg["threads_reply"]["texts"]["2nm"]
-    assert [s["text"] for s in sent] == [K.rotate(texts, s["reply_to_id"]) for s in sent]
-    assert len({s["text"] for s in sent}) >= 1
+    assert [s["text"] for s in sent] == [K.threads_ask_ig(cfg, "20261122_2nm")] * len(sent)   # 2026-11-23 起固定一句
+    assert len(sent) == 9
 
 
 class ManyIGAPI(KwIGAPI):
@@ -1180,3 +1182,58 @@ def test_IG已發成功_Threads容器ERROR三次_重跑只補Threads(monkeypatch
     (a / "post.md").write_text((a / "post.md").read_text().replace("status: error", "status: approved"), encoding="utf-8")
     rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(), now=VNOW + timedelta(hours=21))
     assert rc == 0 and api.posts("ig") == [] and len(api.posts("threads")) == 2   # IG 不重發
+
+
+# ---------------- 2026-11-23 公開回覆改一句話、不放網址（Andy：「幫我先把留言回覆改成"已經將XXX完整內容私訊您囉!~"」「Threads請他訊IG」） ----------------
+
+PENDING_POSTS = ["waferflow", "etch", "deposition", "cmp", "metrology", "clean", "icdesign", "foundry"]
+
+
+def _real_cfg():
+    return json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+
+
+def test_IG公開回覆_每篇帶主題_不含網址():
+    c = _real_cfg()
+    for code in PENDING_POSTS + ["2nm", "euv", "800v"]:
+        t = K.ig_public_ack(c, code)
+        topic = K.topic_of(c["threads_reply"]["texts"][code])
+        assert topic and t == f"已經將「{topic}」完整內容私訊您囉!~", code
+        assert "http" not in t
+    assert K.ig_public_ack(c, "20261128_cmp") == "已經將「化學機械研磨：每一層都要磨平」完整內容私訊您囉!~"
+    assert c["ig_dm"]["ack_public"] == "已經將「{topic}」完整內容私訊您囉!~"
+
+
+def test_IG與Threads公開回覆_default與取不到主題():
+    c = _real_cfg()
+    for code in ("default", "20261105_quanta", "implant", None):
+        assert K.ig_public_ack(c, code) == "已經將完整內容私訊您囉!~"
+        assert K.threads_ask_ig(c, code) == "完整內容請到 IG 私訊我們，馬上傳給您!~"
+    c2 = json.loads(json.dumps(c))
+    c2["legal_pending"] = ["cmp"]                                            # 法遵待審：不帶主題
+    assert K.ig_public_ack(c2, "cmp") == "已經將完整內容私訊您囉!~"
+    c2["threads_reply"]["texts"]["etch"] = ["【待填】"]
+    assert K.threads_ask_ig(c2, "etch") == "完整內容請到 IG 私訊我們，馬上傳給您!~"
+
+
+def test_Threads公開回覆_請到IG私訊該篇關鍵字_不含網址():
+    c = _real_cfg()
+    for code in PENDING_POSTS:
+        t = K.threads_ask_ig(c, code)
+        topic = K.topic_of(c["threads_reply"]["texts"][code])
+        kw = c["post_keywords"][code][0]
+        assert t == f"「{topic}」完整內容請到 IG @tech_01010909 私訊「{kw}」，馬上傳給您!~", code
+        assert "http" not in t
+    c2 = json.loads(json.dumps(c))
+    c2["threads_reply"]["ig_handle"] = ""                                     # 沒有帳號名稱：寫 IG「科技透明圈」
+    assert K.threads_ask_ig(c2, "cmp") == "「化學機械研磨：每一層都要磨平」完整內容請到 IG「科技透明圈」私訊「研磨」，馬上傳給您!~"
+    c2["post_keywords"].pop("cmp")                                            # 沒有專屬關鍵字：用全域「透明」
+    assert "私訊「透明」" in K.threads_ask_ig(c2, "cmp")
+
+
+def test_佇列每篇都對得到主題():
+    c = _real_cfg()
+    q = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue"
+    for d in sorted(x for x in q.iterdir() if (x / "post.md").is_file()):
+        if K.slug(d.name) in c["post_keywords"]:
+            assert K.topic_for(c, d.name), d.name
