@@ -341,6 +341,8 @@
   color:var(--ink);text-decoration:none;line-height:1.5}
 .artstk a:hover{border-color:var(--cyan)}
 .artstk a .h{display:flex;gap:8px;align-items:baseline;white-space:nowrap;overflow:hidden}
+.artstk a .h .lg{flex:none;align-self:center;display:inline-flex;align-items:center;justify-content:center;width:44px;height:24px;padding:2px 4px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px rgba(128,128,128,.28)}
+.artstk a .h .lg img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block}
 .artstk a .h b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--cyan)}
 .artstk a .h span{font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .artstk a .w{font-size:var(--fs-sm);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1871,11 +1873,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const head = Array.isArray(b.head) ? b.head : [], rows = Array.isArray(b.rows) ? b.rows : [];
         return `<div class="tbw"><table>${head.length ? `<thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${rows.map((r) => `<tr>${(Array.isArray(r) ? r : [r]).map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
       }
+      /* 11-23 Andy：有公司就盡量附 LOGO。logo 欄位只收站內 articles/logos/ 底下的圖（維基共享資源下載、授權記在 SOURCES.md）。 */
       case 'stocks': {
         const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && okCode(x.code));
         if (!its.length) return '';
         return `<div class="artstk"><div class="lbl">相關台股</div><div class="g">${its.map((x) => `<a href="#stock/${esc(x.code)}" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code)}：到個股頁看 K 線與基本面">
-          <div class="h"><b>${esc(x.code)}</b><span>${esc(x.name || '')}</span></div>${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}</a>`).join('')}</div></div>`;
+          <div class="h">${okLogo(x.logo) ? `<i class="lg"><img src="${esc(x.logo)}" alt="" loading="lazy" decoding="async"></i>` : ''}<b>${esc(x.code)}</b><span>${esc(x.name || '')}</span></div>${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}</a>`).join('')}</div></div>`;
       }
       /* 2026-11-15 頻道貼文存檔（談晴說礙等）：{t:'img', items:[{src:'articles/<頻道>/img/<檔名>.jpg', alt, cap?}], title?, note?}
          只收站內 articles/<小寫英文>/img/ 底下的 jpg／png／webp，JSON 字串進不了任意網址。 */
@@ -1915,6 +1918,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
 
   /* ------------------------------------------------------------------ 單篇：圖表（ECharts，走 App.chart 包裝層：提示框掛 body、長條漸層、尺寸自動跟） */
+  function okLogo(u) { return /^articles\/logos\/[\w.-]{1,40}\.(svg|png|jpg|webp)$/.test(String(u || '')); }
   function cssv(n, fb) { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb; } catch (e) { return fb; } }
   function chartOption(b) {
     /* ★ 2026-10-17（Andy：「圖表風格需要 Follow 我網頁內的風格」）：文章圖表改吃網站本體同一套（docs/chart_library.md C 直條／D 橫條／E 時間軸）。
