@@ -356,7 +356,6 @@
 /* 11-23 精簡剖析圖（scene size:'s'）：畫布矮一點、說明卡 3 欄小一號、預設只露前 6 張 */
 .artscene.s .asw{min-height:160px}
 .artscene.s .ash,.artscene.s .asx{min-height:160px}
-.artscene.s.k25d .asw>.dgwrap{max-width:66%;margin:0 auto}
 .artscene.s .dg3d .dgstage-b{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:6px 0 0}
 .artscene.s .dg3d .lbl3d.below{padding:6px 8px;font-size:12px}
 .artscene.s .dg3d .lbl3d.below b{font-size:12.5px}
@@ -1927,10 +1926,10 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && (isTwItem(x) ? okCode(x.code) : okForeign(x.code)));
         if (!its.length) return '';
         const anyF = its.some((x) => !isTwItem(x)), neo = its.some((x) => x.biz || x.mkt);
-        const ttl = esc(b.title || (anyF ? '相關公司' : '相關台股'));
+        const ttl = esc(b.title || (anyF ? '相關公司' : '相關台股'));   // 11-23：新版卡片的標題用文章小標（h4）樣式，文章裡不再另放一個同名小標（避免重複標題）
         if (neo) {
           const abbr = (n, c) => { n = String(n || '').trim(); if (/[A-Za-z]/.test(n) && !/[\u4e00-\u9fff]/.test(n)) { const w = n.split(/[\s.\-]+/).filter(Boolean); return (w.length > 1 ? w[0][0] + w[1][0] : n.slice(0, 2)).toUpperCase(); } return n ? Array.from(n).slice(0, 2).join('') : String(c).slice(0, 2); };
-          return `<div class="artstk neo"><div class="lbl">${ttl}</div><div class="g">${its.map((x) => {
+          return `<div class="artstk neo"><h4 class="sth">${ttl}</h4><div class="g">${its.map((x) => {
             const tw = isTwItem(x), mk = tw ? '' : String(x.mkt || '').replace(/[^\w .-]/g, '').slice(0, 12);
             const lg = okLogo(x.logo) ? `<i class="lg"${/^#[0-9a-f]{6}$/i.test(x.logobg || '') ? ` style="background:${x.logobg}"` : ''}><img src="${esc(x.logo)}" alt="" loading="lazy" decoding="async"></i>` : `<i class="lg tx" aria-hidden="true">${esc(abbr(x.name, x.code))}</i>`;
             const inner = `<div class="h">${lg}<div class="t"><b>${esc(x.code)}${mk ? `<em>・${esc(mk)}</em>` : ''}</b><span>${esc(x.name || '')}</span></div></div>${x.biz ? `<div class="bz">${esc(x.biz)}</div>` : ''}${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}`;
