@@ -199,9 +199,9 @@
      "logo": "articles/logos/AMAT.svg"
     },
     {
-     "code": "Hitachi High-Tech",
-     "name": "日立先端科技（Hitachi High-Tech）",
-     "mkt": "日立集團旗下",
+     "code": "6501",
+     "name": "日立先端科技（日立製作所集團）",
+     "mkt": "TSE",
      "biz": "CD-SEM 等量測與電子顯微設備",
      "why": "CD-SEM（線寬量測用的掃描式電子顯微鏡）。"
     },

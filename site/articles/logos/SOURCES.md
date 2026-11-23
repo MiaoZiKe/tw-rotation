@@ -19,6 +19,23 @@
 | 7768 | 頌勝科技 | 7768.png | https://www.pvichem.com.tw/archive/logo.png | 官網 |
 | 6983 | 華洋精機 | 6983.png | https://www.hua-yang.com.tw/images/logo.png | 官網 |
 | 3563 | 牧德 | 3563.svg | https://www.machvision.com.tw/images/header-logo.svg | 官網；logo 是純白字，文章 JSON 以 logobg 指定深色底 |
+| ASML | 艾司摩爾 | ASML.svg | https://commons.wikimedia.org/wiki/File:ASML_Holding_N.V._logo.svg | 共享資源（11-23 科技文章補強） |
+| IBM | IBM | IBM.svg | https://commons.wikimedia.org/wiki/File:IBM_logo.svg | 共享資源 |
+| AAPL | 蘋果 | AAPL.svg | https://commons.wikimedia.org/wiki/File:Apple_logo_black.svg | 共享資源 |
+| NVDA | 輝達 | NVDA.svg | https://commons.wikimedia.org/wiki/File:NVIDIA_logo.svg | 共享資源 |
+| 005930 | 三星電子 | 005930.svg | https://commons.wikimedia.org/wiki/File:Samsung_Logo.svg | 共享資源 |
+| 000660 | SK 海力士 | 000660.svg | https://commons.wikimedia.org/wiki/File:SK_Hynix.svg | 共享資源 |
+| MU | 美光 | MU.svg | https://commons.wikimedia.org/wiki/File:Micron_Technology_logo_2024.svg | 共享資源 |
+| INTC | 英特爾 | INTC.svg | https://commons.wikimedia.org/wiki/File:Intel_logo_2023.svg | 共享資源 |
+| ETN | 伊頓 | ETN.svg | https://commons.wikimedia.org/wiki/File:Eaton_Corporation_logo.svg | 共享資源 |
+| SNPS | 新思 | SNPS.svg | https://commons.wikimedia.org/wiki/File:Synopsys_Logo.svg | 共享資源 |
+| CDNS | 益華 | CDNS.svg | https://commons.wikimedia.org/wiki/File:Cadence-Logo.svg | 共享資源 |
+| SIE | 西門子 | SIE.svg | https://commons.wikimedia.org/wiki/File:Siemens-logo.svg | 共享資源 |
+| 2382 | 廣達 | 2382.svg | https://commons.wikimedia.org/wiki/File:Quanta_Computer_logo.svg | 共享資源 |
+| 3231 | 緯創 | 3231.svg | https://commons.wikimedia.org/wiki/File:Wistron_logo.svg | 共享資源 |
+| AMAT | 應用材料 | AMAT.svg | https://commons.wikimedia.org/wiki/File:Applied_Materials_Logo.svg | 共享資源 |
+| 8035 | 東京威力科創 | 8035.svg | https://commons.wikimedia.org/wiki/File:Tokyo_Electron_logo.svg | 共享資源 |
 
 ## 沒有 logo
 3413 京鼎：官網（foxsemicon.com 各語系首頁）導覽列只放文字「京鼎集團」、沒有 logo 圖檔，沒放。
+2026-11-23 科技文章補強時取不到（本環境連官網被擋 403、共享資源 429 或沒有檔），暫用文字卡，待環境允許連官網後補：2317 鴻海、6640 均華、3711 日月光投控、AMKR 安靠、042700 韓美半導體、0522 ASMPT、6274 新川、6669 緯穎、2308 台達電、3017 奇鋐、3324 雙鴻、2059 川湖、8210 勤誠、6805 富世達、8996 高力、2301 光寶科、3443 創意、3661 世芯-KY、3529 力旺、6533 晶心科、LRCX 科林研發、ASM、6361 荏原、4901 富士軟片、DD 杜邦、ACLS、6525、6302 住友重機械、KLAC、ENTG、7735、0981 中芯、6501 日立、6959 兆捷。
