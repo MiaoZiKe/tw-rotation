@@ -66,9 +66,10 @@ def run(monkeypatch, tmp_path, fb_on, api=None, fb=None, env=FENV):
     return rc, res, api, fb
 
 
-def test_預設設定檔是關閉():
-    assert FB.load_config() == {"enabled": False}
-    assert json.loads((Path(tc.ROOT) / "social" / "tc" / "fb.json").read_text())["enabled"] is False
+def test_正式設定檔已開啟_Andy確認後():
+    """2026-11-23 Andy 試發 800v 後回「看得到」，正式開啟。"""
+    assert FB.load_config() == {"enabled": True}
+    assert json.loads((Path(tc.ROOT) / "social" / "tc" / "fb.json").read_text())["enabled"] is True
 
 
 def test_設定檔壞掉視為關閉(tmp_path):
