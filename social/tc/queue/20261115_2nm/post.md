@@ -20,6 +20,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DfwvcWCjAyo/ https://www.threads.com/@tech_01010909/post/DfwviQ-Axpb https://www.threads.com/@tech_01010909/post/DfwvpR1lGFH
 posted_at: 2026-11-15T20:05+08:00
 error: 
+ids_fb: 1545516454298666
+urls_fb: https://www.facebook.com/reel/1545516454298666/
+fb_posted_at: 2026-11-24T06:08+08:00
+fb_error: 
+fb_slot: 2026-11-23T20:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「兩奈米不是尺寸」
 
