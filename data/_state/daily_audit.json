@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-11-24T04:19:53+08:00",
+  "checked_at": "2026-11-24T06:15:38+08:00",
   "today": "2026-11-24",
   "expected_price_date": "2026-11-23",
   "is_trading_day": true,
   "summary": {
-    "fail": 1,
-    "pending": 5,
+    "fail": 0,
+    "pending": 6,
     "ok": 2,
     "skip": 0,
     "disabled": 0
@@ -17,9 +17,12 @@
       "status": "pending",
       "gates": {
         "run": {
-          "ok": false,
-          "why": "social-live 窗口內沒有成功的執行（找到 0 次）",
-          "evidence": [],
+          "ok": true,
+          "why": "social-live 今天有成功執行 2 次",
+          "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45273755489",
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45258646186"
+          ],
           "busy": false,
           "hard": false
         },
@@ -34,14 +37,10 @@
         },
         "publish": {
           "ok": false,
-          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
-          "evidence": [
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": false
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": "2026-11-24T08:40:00+08:00",
@@ -70,14 +69,10 @@
         },
         "publish": {
           "ok": false,
-          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
-          "evidence": [
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": false
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": "2026-11-24T21:40:00+08:00",
@@ -89,12 +84,12 @@
       "status": "pending",
       "gates": {
         "run": {
-          "ok": false,
-          "why": "daily.yml price／full 輪正在執行中（還沒跑完）",
+          "ok": true,
+          "why": "daily.yml 今天有成功的 price／full 輪 4 次",
           "evidence": [
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45249278371"
           ],
-          "busy": true,
+          "busy": false,
           "hard": false,
           "deadline": "2026-11-23 16:15:00+08:00"
         },
@@ -179,14 +174,10 @@
         },
         "publish": {
           "ok": false,
-          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
-          "evidence": [
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": false
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": "2026-11-23T18:40:00+08:00",
@@ -328,15 +319,15 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "fail",
+      "status": "pending",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 39 次",
+          "why": "pages.yml 今天有成功執行 37 次",
           "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45258620893",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45193298852",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45177986849",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45176724932"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45177986849"
           ],
           "busy": false,
           "hard": false
@@ -351,23 +342,14 @@
         },
         "publish": {
           "ok": false,
-          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
-          "evidence": [
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
-            "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
-          ],
-          "busy": false,
-          "hard": false,
-          "cf_ok": false
+          "why": "pages.yml 正在部署中（還沒跑完）",
+          "evidence": [],
+          "busy": true,
+          "hard": false
         }
       },
       "deadline": null,
-      "remedy": {
-        "action": "dispatch",
-        "workflow": "pages.yml",
-        "inputs": {}
-      },
-      "remedy_note": "已派出 pages.yml（今天第 1 次）"
+      "remedy": null
     }
   ],
   "errors": [],
