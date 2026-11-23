@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-11-23T23:17:12+08:00",
-  "today": "2026-11-23",
+  "checked_at": "2026-11-24T04:19:53+08:00",
+  "today": "2026-11-24",
   "expected_price_date": "2026-11-23",
   "is_trading_day": true,
   "summary": {
-    "fail": 0,
-    "pending": 0,
-    "ok": 8,
+    "fail": 1,
+    "pending": 5,
+    "ok": 2,
     "skip": 0,
     "disabled": 0
   },
@@ -14,21 +14,17 @@
     {
       "id": "premarket",
       "name": "盤前消息（交易日 08:40 前）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "social-live 今天有成功執行 24 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45193325340",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45182892695",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45182869845"
-          ],
+          "ok": false,
+          "why": "social-live 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": true,
+          "ok": false,
           "why": "盤前消息日期 2026-11-23、5 則",
           "evidence": [
             "2026-11-23"
@@ -37,38 +33,34 @@
           "hard": false
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 777733f，已包含最新資料；Cloudflare 主站 部署到 777733f，已包含最新資料",
+          "ok": false,
+          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
           "evidence": [
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": true
+          "cf_ok": false
         }
       },
-      "deadline": "2026-11-23T08:40:00+08:00",
+      "deadline": "2026-11-24T08:40:00+08:00",
       "remedy": null
     },
     {
       "id": "postmarket",
       "name": "盤後消息（交易日 21:40 前）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "daily.yml 今天有成功執行 10 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45185969865",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45182339435",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45177519978"
-          ],
+          "ok": false,
+          "why": "daily.yml 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": true,
+          "ok": false,
           "why": "盤後消息日期 2026-11-23、5 則",
           "evidence": [
             "2026-11-23"
@@ -77,32 +69,32 @@
           "hard": false
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 777733f，已包含最新資料；Cloudflare 主站 部署到 777733f，已包含最新資料",
+          "ok": false,
+          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
           "evidence": [
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": true
+          "cf_ok": false
         }
       },
-      "deadline": "2026-11-23T21:40:00+08:00",
+      "deadline": "2026-11-24T21:40:00+08:00",
       "remedy": null
     },
     {
       "id": "data",
       "name": "每日資料更新（價量／法人／融資券／ETF）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "daily.yml 今天有成功的 price／full 輪 3 次",
+          "ok": false,
+          "why": "daily.yml price／full 輪正在執行中（還沒跑完）",
           "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45185969865"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45249278371"
           ],
-          "busy": false,
+          "busy": true,
           "hard": false,
           "deadline": "2026-11-23 16:15:00+08:00"
         },
@@ -142,8 +134,8 @@
           "deadline": "2026-11-23 18:40:00+08:00"
         },
         "screen": {
-          "ok": true,
-          "why": "主站 403（執行環境讀不到，改依 Cloudflare 部署紀錄：已含最新資料）；備援：總覽 2026-11-23／法人 2026-11-23／三大法人頁 2026-11-23（應有 2026-11-23）",
+          "ok": false,
+          "why": "主站讀不到（HTTP Error 403: Forbidden）；備援：總覽 2026-11-23／法人 2026-11-23／三大法人頁 2026-11-23（應有 2026-11-23）",
           "evidence": [],
           "busy": false,
           "hard": false,
@@ -178,23 +170,23 @@
           "deadline": "2026-11-23 21:40:00+08:00"
         },
         "etf_screen": {
-          "ok": true,
-          "why": "主站 403（執行環境讀不到 ETF 檔，改依 Cloudflare 部署紀錄）；備援：ETF 頁 2026-11-23／成分股 2026-11-23（應有 2026-11-23）",
+          "ok": false,
+          "why": "主站讀不到 ETF 檔（HTTP Error 403: Forbidden）；備援：ETF 頁 2026-11-23／成分股 2026-11-23（應有 2026-11-23）",
           "evidence": [],
           "busy": false,
           "hard": false,
           "deadline": "2026-11-23 21:40:00+08:00"
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 777733f，已包含最新資料；Cloudflare 主站 部署到 777733f，已包含最新資料",
+          "ok": false,
+          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
           "evidence": [
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": true
+          "cf_ok": false
         }
       },
       "deadline": "2026-11-23T18:40:00+08:00",
@@ -203,52 +195,42 @@
     {
       "id": "close_post",
       "name": "頻道①盤後主貼文（交易日 18:20 前）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "social-live 今天有成功執行 19 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45193325340",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45182892695",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45182869845"
-          ],
+          "ok": false,
+          "why": "social-live 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
         "content": {
-          "ok": true,
-          "why": "posted.json 有 close-2026-11-23",
+          "ok": false,
+          "why": "posted.json 沒有 close-2026-11-24",
           "evidence": [],
           "busy": false,
           "hard": false
         },
         "publish": {
-          "ok": true,
-          "why": "有發布網址",
-          "evidence": [
-            "https://www.threads.com/@liguligu0818/post/DgFKovroHsB"
-          ],
+          "ok": false,
+          "why": "沒有發布網址（查不到或沒發出）",
+          "evidence": [],
           "busy": false,
           "hard": false
         }
       },
-      "deadline": "2026-11-23T18:20:00+08:00",
+      "deadline": "2026-11-24T18:20:00+08:00",
       "remedy": null
     },
     {
       "id": "healing",
       "name": "頻道④談晴說礙（核准稿到時間就要發）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "healing_post 今天有成功執行 11 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45201876652",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45179226548",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45177388507"
-          ],
+          "ok": false,
+          "why": "healing_post 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
@@ -272,7 +254,7 @@
           "hard": false
         }
       },
-      "deadline": "2026-11-23T21:40:00+08:00",
+      "deadline": "2026-11-24T21:40:00+08:00",
       "remedy": null
     },
     {
@@ -346,11 +328,11 @@
     {
       "id": "website",
       "name": "網站部署（GitHub Pages＋Cloudflare 主站）",
-      "status": "ok",
+      "status": "fail",
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 42 次",
+          "why": "pages.yml 今天有成功執行 39 次",
           "evidence": [
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45193298852",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45177986849",
@@ -368,19 +350,24 @@
           "deadline": "2026-11-23 18:40:00+08:00"
         },
         "publish": {
-          "ok": true,
-          "why": "GitHub Pages（備援） 部署到 777733f，已包含最新資料；Cloudflare 主站 部署到 777733f，已包含最新資料",
+          "ok": false,
+          "why": "GitHub Pages（備援） 部署到 777733f，還沒包含最新資料；Cloudflare 主站 部署到 777733f，還沒包含最新資料",
           "evidence": [
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a",
             "777733f6d0284651d4a454f65ba0cfcdb282bb6a"
           ],
           "busy": false,
           "hard": false,
-          "cf_ok": true
+          "cf_ok": false
         }
       },
       "deadline": null,
-      "remedy": null
+      "remedy": {
+        "action": "dispatch",
+        "workflow": "pages.yml",
+        "inputs": {}
+      },
+      "remedy_note": "已派出 pages.yml（今天第 1 次）"
     }
   ],
   "errors": [],
@@ -406,15 +393,15 @@
       ]
     },
     "website": {
-      "date": "2026-11-23",
+      "date": "2026-11-24",
       "count": 1,
       "attempts": [
         {
-          "at": "2026-11-23T16:17:04+08:00",
+          "at": "2026-11-24T04:19:53+08:00",
           "workflow": "pages.yml",
           "inputs": {},
           "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45137415623",
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45258361763",
           "run_id": null,
           "run_status": null,
           "run_conclusion": null
