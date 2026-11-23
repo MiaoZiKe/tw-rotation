@@ -94,6 +94,9 @@
   const okUrl = (u) => /^https?:\/\/[^\s"'<>]+$/i.test(String(u || ''));
   const okHash = (h) => /^#[^\s"'<>]*$/.test(String(h || ''));   // 站內連結只收 # 開頭（族群 id 可能是中文：#industry/group/ind_半導體業）
   const okCode = (c) => /^[0-9A-Z]{4,6}$/.test(String(c || ''));
+  /* 11-23 外國公司（mkt 不是 TWSE／TPEx）：代號 1～6 碼英數、不連個股頁 */
+  const isTwItem = (x) => !x.mkt || /^(TWSE|TPEx)$/i.test(String(x.mkt));
+  const okForeign = (c) => /^[0-9A-Za-z]{1,6}$/.test(String(c || ''));
   const okDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
   const num = (v) => { const x = typeof v === 'string' ? Number(v.replace(/,/g, '')) : Number(v); return isFinite(x) ? x : null; };
   const fmtN = (v) => { const x = num(v); return x == null ? '—' : x.toLocaleString('zh-TW', { maximumFractionDigits: 2 }); };
@@ -337,6 +340,31 @@
 .artstk{margin:var(--sp-4) 0}
 .artstk .lbl{font-size:var(--fs-sm);font-weight:700;color:var(--ink-2);margin-bottom:var(--sp-2)}
 .artstk .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:var(--sp-2)}
+.artstk.neo .g{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-items:stretch}
+.artstk.neo .g>a,.artstk.neo .g>.sc{display:flex;flex-direction:column;gap:4px;min-width:0;height:100%;box-sizing:border-box;padding:var(--sp-2) var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel);color:var(--ink);text-decoration:none;line-height:1.5}
+.artstk.neo .g>a:hover{border-color:var(--cyan)}
+.artstk.neo .h{display:flex;gap:10px;align-items:center;min-width:0}
+.artstk.neo .lg{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:28px;min-width:28px;max-width:76px;padding:2px 5px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px rgba(128,128,128,.28);font-style:normal}
+.artstk.neo .lg img{height:100%;width:auto;max-width:100%;object-fit:contain;display:block}
+.artstk.neo .lg.tx{width:40px;padding:0;background:var(--panel-2,var(--line));color:var(--ink-2);font-size:12px;font-weight:700;letter-spacing:.5px}
+.artstk.neo .t{display:flex;flex-direction:column;min-width:0}
+.artstk.neo .t b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--cyan);font-size:var(--fs-sm);white-space:nowrap}
+.artstk.neo .t b em{font-style:normal;font-family:inherit;color:var(--ink-3);font-weight:500}
+.artstk.neo .t span{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artstk.neo .bz{font-size:var(--fs-sm);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artstk.neo .w{font-size:var(--fs-sm);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+/* 11-23 精簡剖析圖（scene size:'s'）：畫布矮一點、說明卡 3 欄小一號、預設只露前 6 張 */
+.artscene.s .asw{min-height:160px}
+.artscene.s .ash,.artscene.s .asx{min-height:160px}
+.artscene.s.k25d .asw>.dgwrap{max-width:66%;margin:0 auto}
+.artscene.s .dg3d .dgstage-b{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:6px 0 0}
+.artscene.s .dg3d .lbl3d.below{padding:6px 8px;font-size:12px}
+.artscene.s .dg3d .lbl3d.below b{font-size:12.5px}
+.artscene.s .dg3d .lbl3d.below small,.artscene.s .dg3d .lbl3d.below .chips3d{display:none!important}
+.artscene.s .dg3d .lbl3d.below i{font-size:11.5px;-webkit-line-clamp:1;line-clamp:1;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+.artscene.s:not(.all) .dg3d .dgstage-b>*:nth-child(n+7){display:none!important}
+.artscene .asmore{display:none;margin:6px auto 0;min-height:32px;padding:0 14px;border:1px solid var(--line-2,var(--line));border-radius:999px;background:var(--panel);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.artscene.s[data-more="1"] .asmore{display:block}
 .artstk a{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--sp-2) var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel);
   color:var(--ink);text-decoration:none;line-height:1.5}
 .artstk a:hover{border-color:var(--cyan)}
@@ -543,7 +571,10 @@
   .artbody{font-size:15px;line-height:1.8}
   .artlead{font-size:14.5px}
   .artbody h4{font-size:16px}
-  .artstk .g{grid-template-columns:minmax(0,1fr)}
+  .artstk .g,.artstk.neo .g{grid-template-columns:minmax(0,1fr)}
+  .artscene.s .dg3d .dgstage-b{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .artscene.s.pv .asw{max-height:240px}
+  .artscene.s.k25d .asw>.dgwrap{max-width:100%}
   .artfig{padding:var(--sp-3) var(--sp-2);margin-left:0;margin-right:0}
   .artchart .cv{height:260px}
   .artkpi{grid-template-columns:repeat(2,minmax(0,1fr))!important}
@@ -1713,9 +1744,10 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const k = sceneKind(b), id = String(b.id || '');
     if (!k || !okSid(id)) return '';
     const href = sceneHash(k, id);
-    return `<figure class="artscene k${k}" data-bi="${bi}" data-kind="${k}" data-sid="${esc(id)}" data-href="${esc(href)}" data-st="idle">`
+    return `<figure class="artscene k${k}${b.size === 's' ? ' s' : ''}" data-bi="${bi}" data-kind="${k}" data-sid="${esc(id)}" data-href="${esc(href)}" data-st="idle">`
       + `<figcaption class="asc"><span class="asb">${k === '3d' ? '3D 剖析圖' : '2.5D 剖析圖'}</span><b>${esc(b.title || '')}</b></figcaption>`
       + `<div class="asw"><div class="ash">捲到這裡就會載入互動圖…</div></div>`
+      + (b.size === 's' ? '<button type="button" class="asmore"></button>' : '')
       + `<div class="asf">${b.caption ? `<span>${esc(b.caption)}</span>` : '<span></span>'}<a class="asl" href="${esc(href)}">在站內完整頁面看 ↗</a></div></figure>`;
   }
   function lazyGroup(g) {
@@ -1748,6 +1780,18 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     nodes.forEach((n) => { n.style.cursor = 'pointer'; n.onclick = (e) => { e.stopPropagation(); cur = cur === n.dataset.part ? null : n.dataset.part; paint(); }; });
     $$('.scode', root).forEach((n) => { n.style.cursor = 'pointer'; n.onclick = (e) => { e.stopPropagation(); if (okCode(n.dataset.code)) location.hash = '#stock/' + n.dataset.code; }; });
     $$('[data-chain]', root).forEach((n) => { n.style.cursor = 'pointer'; n.onclick = (e) => { e.stopPropagation(); if (/^[\w-]{1,60}$/.test(n.dataset.chain)) location.hash = '#industry/' + n.dataset.chain; }; });
+  }
+  /* size:'s'：說明卡預設只露前 6 張，其餘收在按鈕後面（three3d 的卡片是非同步搬進 .dgstage-b，所以輪詢幾次等它出現） */
+  function wireMore(fig) {
+    const btn = $('.asmore', fig); if (!btn) return;
+    const upd = () => {
+      const n = $$('.dgstage-b > *', fig).length;
+      if (n > 6) { fig.dataset.more = '1'; btn.textContent = fig.classList.contains('all') ? '收合零件' : `展開全部 ${n} 個零件`; }
+      return n;
+    };
+    btn.onclick = () => { fig.classList.toggle('all'); upd(); };
+    let t = 0; const tick = () => { if (!fig.isConnected) return; if (!upd() && t++ < 20) setTimeout(tick, 250); };
+    tick();
   }
   function scenePreview(fig) {
     const w = $('.asw', fig); if (!w || $('.asov', w)) return;
@@ -1792,11 +1836,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
            maxH：給一個有限的高度上限，three3d.js 的 tighten() 才會把畫布收到模型剛好塞得下的高度（產業頁同一套），模型置中、不留上方空白。
            anim 一律關：動畫開著時零件會自己動（交換器那顆光模組會來回抽插、整台自轉），取景量到的範圍跟幾秒後畫面上的不一樣，
            實測桌機 1440 模型偏右上 10%；文章裡要的是一張穩定、置中的圖，想轉自己拖。 */
-        const capH = () => Math.round(Math.max(340, Math.min(560, (window.innerHeight || 800) * 0.7)));
+        const small = fig.classList.contains('s');
+        const capH = small ? () => (isPhone() ? 240 : 340) : () => Math.round(Math.max(340, Math.min(560, (window.innerHeight || 800) * 0.7)));
         const v = await R.mount(w.firstChild, id, { color: segC, anim: false, onSeg: () => {}, below: true, maxH: capH });
         if (!v) return fail();
         if (!fig.isConnected) { try { v.dispose(); } catch (e) { /* 已離開這篇 */ } return; }
         fig._v = v; fig.dataset.st = 'ready';
+        if (small) wireMore(fig);
         if (phone) scenePreview(fig);
       } else {
         await lazyGroup('thm');
@@ -1876,9 +1922,23 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       }
       /* 11-23 Andy：有公司就盡量附 LOGO。logo 欄位只收站內 articles/logos/ 底下的圖（維基共享資源下載、授權記在 SOURCES.md）。 */
       case 'stocks': {
-        const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && okCode(x.code));
+        /* 11-23：item 可加 biz（主要業務一句）、mkt（交易所）；mkt 不是台股（TWSE／TPEx／沒填）＝外國公司：不連 #stock、代號放寬 1～6 碼英數。
+           卡片有 biz／mkt 任一個才走新版（LOGO 或文字卡＋代號・交易所＋業務一行＋本文角色一行、等高）；舊資料維持原樣。 */
+        const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && (isTwItem(x) ? okCode(x.code) : okForeign(x.code)));
         if (!its.length) return '';
-        return `<div class="artstk"><div class="lbl">相關台股</div><div class="g">${its.map((x) => `<a href="#stock/${esc(x.code)}" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code)}：到個股頁看 K 線與基本面">
+        const anyF = its.some((x) => !isTwItem(x)), neo = its.some((x) => x.biz || x.mkt);
+        const ttl = esc(b.title || (anyF ? '相關公司' : '相關台股'));
+        if (neo) {
+          const abbr = (n, c) => { n = String(n || '').trim(); if (/[A-Za-z]/.test(n) && !/[\u4e00-\u9fff]/.test(n)) { const w = n.split(/[\s.\-]+/).filter(Boolean); return (w.length > 1 ? w[0][0] + w[1][0] : n.slice(0, 2)).toUpperCase(); } return n ? Array.from(n).slice(0, 2).join('') : String(c).slice(0, 2); };
+          return `<div class="artstk neo"><div class="lbl">${ttl}</div><div class="g">${its.map((x) => {
+            const tw = isTwItem(x), mk = tw ? '' : String(x.mkt || '').replace(/[^\w .-]/g, '').slice(0, 12);
+            const lg = okLogo(x.logo) ? `<i class="lg"${/^#[0-9a-f]{6}$/i.test(x.logobg || '') ? ` style="background:${x.logobg}"` : ''}><img src="${esc(x.logo)}" alt="" loading="lazy" decoding="async"></i>` : `<i class="lg tx" aria-hidden="true">${esc(abbr(x.name, x.code))}</i>`;
+            const inner = `<div class="h">${lg}<div class="t"><b>${esc(x.code)}${mk ? `<em>・${esc(mk)}</em>` : ''}</b><span>${esc(x.name || '')}</span></div></div>${x.biz ? `<div class="bz">${esc(x.biz)}</div>` : ''}${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}`;
+            return tw ? `<a href="#stock/${esc(x.code)}" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code)}：到個股頁看 K 線與基本面">${inner}</a>`
+              : `<div class="sc" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code + (mk ? '・' + mk : ''))}">${inner}</div>`;
+          }).join('')}</div></div>`;
+        }
+        return `<div class="artstk"><div class="lbl">${ttl}</div><div class="g">${its.map((x) => `<a href="#stock/${esc(x.code)}" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code)}：到個股頁看 K 線與基本面">
           <div class="h">${okLogo(x.logo) ? `<i class="lg"${/^#[0-9a-f]{6}$/i.test(x.logobg || '') ? ` style="background:${x.logobg}"` : ''}><img src="${esc(x.logo)}" alt="" loading="lazy" decoding="async"></i>` : (its.some((y) => okLogo(y.logo)) ? '<i class="lg e" aria-hidden="true"></i>' : '')}<b>${esc(x.code)}</b><span>${esc(x.name || '')}</span></div>${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}</a>`).join('')}</div></div>`;
       }
       /* 2026-11-15 頻道貼文存檔（談晴說礙等）：{t:'img', items:[{src:'articles/<頻道>/img/<檔名>.jpg', alt, cap?}], title?, note?}
@@ -2318,7 +2378,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const blocks = Array.isArray(d.blocks) ? d.blocks : [];
     const toc = blocks.map((b, i) => (b && b.t === 'h' && b.text ? `<button type="button" data-bi="${i}" title="${esc(b.text)}">${esc(b.text)}</button>` : '')).join('');
     const codes = [];
-    blocks.forEach((b) => { if (b && b.t === 'stocks' && Array.isArray(b.items)) b.items.forEach((x) => { if (x && okCode(x.code) && !codes.some((c) => c.code === x.code)) codes.push({ code: x.code, name: x.name || '' }); }); });
+    blocks.forEach((b) => { if (b && b.t === 'stocks' && Array.isArray(b.items)) b.items.forEach((x) => { if (x && isTwItem(x) && okCode(x.code) && !codes.some((c) => c.code === x.code)) codes.push({ code: x.code, name: x.name || '' }); }); });
     const listHash = CATS[cat] || (PRIV[cat] && canPriv(cat)) ? '#articles/' + cat : '#articles';   // 頻道分頁只有站主回得去，其他人回全部文章
     const endK = listHash === '#articles' ? 'all' : cat;
     return `
