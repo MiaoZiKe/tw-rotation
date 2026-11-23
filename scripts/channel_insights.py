@@ -193,14 +193,45 @@ def collect_threads(get: Getter, token: str, now: datetime, posts: list[dict]) -
     return res
 
 
-def posted_list(state: Path, plat: str, limit: int) -> list[dict]:
-    """state/posted.json → 這個平台最近 limit 則（沒刪除、有 id）。只取 id 與發文時間，不取網址以外的東西。"""
-    posted = HP.load_json(state / "posted.json", {})
+# 頻道另有發文紀錄檔（不在 channels.json 的 state 底下）。科技透明圈由 tc_post.py 寫 state/tc/posted.json，
+# 格式是 {"posts": [{id, first_posted_at, ig, threads, ids_ig, ids_threads, …}]}；頻道 state 下那份是空的 {}。
+EXTRA_POSTED = {"tech": [ROOT / "state" / "tc" / "posted.json"]}
+
+
+def _posted_rows(posted, plat: str) -> list[dict]:
+    """一份 posted.json → [{folder, id, posted_at, url}]。兩種格式都吃：
+      · 舊格式（healing_post）：{資料夾: {"ig": {"id", "at", "url"?, "deleted"?}, "threads": {...}}}
+      · 新格式（tc_post）：{"posts": [{"id": 資料夾, "ids_ig", "ids_threads", "ig": 網址, "threads": 網址,
+        "first_posted_at", "deleted_ig"?／"deleted"?}]}；也接受直接是 list 的 [{...}]。"""
     rows = []
-    for folder, rec in (posted.items() if isinstance(posted, dict) else []):
-        r = (rec or {}).get(plat) if isinstance(rec, dict) else None
-        if isinstance(r, dict) and r.get("id") and not r.get("deleted"):
-            rows.append({"folder": str(folder), "id": str(r["id"]), "posted_at": str(r.get("at") or "")})
+    items = posted.get("posts") if isinstance(posted, dict) and isinstance(posted.get("posts"), list) else posted
+    if isinstance(items, list):
+        for e in items:
+            if not isinstance(e, dict):
+                continue
+            pid = e.get(f"ids_{plat}")
+            if not pid or e.get("deleted") or e.get(f"deleted_{plat}"):
+                continue
+            url = e.get(plat) if isinstance(e.get(plat), str) else ""
+            rows.append({"folder": str(e.get("id") or ""), "id": str(pid),
+                         "posted_at": str(e.get("first_posted_at") or e.get("last_posted_at") or ""), "url": url})
+    elif isinstance(items, dict):
+        for folder, rec in items.items():
+            r = (rec or {}).get(plat) if isinstance(rec, dict) else None
+            if isinstance(r, dict) and r.get("id") and not r.get("deleted"):
+                rows.append({"folder": str(folder), "id": str(r["id"]), "posted_at": str(r.get("at") or ""),
+                             "url": str(r.get("url") or r.get("permalink") or "")})
+    return rows
+
+
+def posted_list(state: Path, plat: str, limit: int, extra: list[Path] | None = None) -> list[dict]:
+    """state/posted.json（＋extra 的其他紀錄檔）→ 這個平台最近 limit 則（沒刪除、有 id），同一 id 只留一筆。"""
+    seen, rows = set(), []
+    for f in [state / "posted.json", *(extra or [])]:
+        for r in _posted_rows(HP.load_json(f, {}), plat):
+            if r["id"] not in seen:
+                seen.add(r["id"])
+                rows.append(r)
     rows.sort(key=lambda x: x["posted_at"], reverse=True)
     return rows[:limit]
 
@@ -268,7 +299,7 @@ def run_channel(code: str, env: dict, now: datetime, get: Getter = live_get,
         if not tok:
             report["platforms"][plat] = pl
             continue
-        posts = posted_list(c["state"], plat, post_limit)
+        posts = posted_list(c["state"], plat, post_limit, EXTRA_POSTED.get(code))
         try:
             if plat == "ig":
                 via = (verify.get("ig") or {}).get("via", "")
@@ -341,8 +372,8 @@ def main(argv=None) -> int:
                 c = HP.channel(code)
                 toks = HP.tokens(env, c["prefix"])
                 print(f"[{code}] 空跑：權杖 IG={'有' if toks['ig'] else '沒有'} Threads={'有' if toks['threads'] else '沒有'}；"
-                      f"貼文 IG={len(posted_list(c['state'], 'ig', a.post_limit))} "
-                      f"Threads={len(posted_list(c['state'], 'threads', a.post_limit))}")
+                      f"貼文 IG={len(posted_list(c['state'], 'ig', a.post_limit, EXTRA_POSTED.get(code)))} "
+                      f"Threads={len(posted_list(c['state'], 'threads', a.post_limit, EXTRA_POSTED.get(code)))}")
                 continue
             rep = run_channel(code, env, now, post_limit=a.post_limit)
             md.append(render(rep))

@@ -42,6 +42,7 @@ def chan(tmp_path, monkeypatch):
     cfg = {"code": "tech", "prefix": "TECH_", "account": "Tech_01010909", "state": st,
            "queue": tmp_path / "queue", "quota": tmp_path / "q.json", "per_day": 1}
     monkeypatch.setattr(HP, "channel", lambda code, path=None: cfg)
+    monkeypatch.setattr(CI, "EXTRA_POSTED", {})   # 不讀真的 state/tc/posted.json
     monkeypatch.setattr(HP, "resolve_uid", lambda p, env_id, token, prefix=None, prefer_via="": UID)
     return cfg
 
@@ -227,3 +228,53 @@ def test_workflow_schedule_and_secret_scoping():
     text = (ROOT / ".github" / "workflows" / "channel_insights.yml").read_text(encoding="utf-8")
     assert "secrets.IG_ACCESS_TOKEN" not in text and "secrets.THREADS_ACCESS_TOKEN" not in text   # 不碰頻道①
     assert "concurrency" in wf["jobs"]["insights"]
+
+
+# ---------- posted.json 兩種格式（2026-11-23：tc_post 寫的是 {"posts": [...]}，舊版讀成 0 則） ----------
+def test_posted_list_old_dict_format(tmp_path):
+    st = _state(tmp_path, {
+        "20261108_a": {"ig": {"id": "ig1", "at": "2026-11-08T12:00+08:00"}, "threads": {"id": "th1", "at": "2026-11-08T12:00+08:00"}},
+        "20261109_b": {"ig": {"id": "ig2", "at": "2026-11-09T12:00+08:00", "deleted": True}},
+    })
+    assert [r["id"] for r in CI.posted_list(st, "ig", 30)] == ["ig1"]
+    assert [r["id"] for r in CI.posted_list(st, "threads", 30)] == ["th1"]
+
+
+def _tc_posts():
+    return [
+        {"id": "20261116_euv", "first_posted_at": "2026-11-16T20:13:16+08:00",
+         "ig": "https://www.instagram.com/reel/AAA/", "threads": "https://www.threads.com/@x/post/BBB",
+         "ids_ig": "180001", "ids_threads": "180002"},
+        {"id": "20261105_quanta", "first_posted_at": "2026-11-12T22:15:19+08:00",
+         "ig": "https://www.instagram.com/p/CCC/", "ids_ig": "170001"},   # 只有 IG
+    ]
+
+
+@pytest.mark.parametrize("wrap", [lambda p: {"posts": p}, lambda p: p], ids=["posts_dict", "list"])
+def test_posted_list_new_posts_format(tmp_path, wrap):
+    st = tmp_path / "state"
+    st.mkdir()
+    (st / "posted.json").write_text(json.dumps(wrap(_tc_posts())), encoding="utf-8")
+    ig = CI.posted_list(st, "ig", 30)
+    assert [(r["folder"], r["id"]) for r in ig] == [("20261116_euv", "180001"), ("20261105_quanta", "170001")]
+    assert ig[0]["url"] == "https://www.instagram.com/reel/AAA/" and ig[0]["posted_at"].startswith("2026-11-16")
+    th = CI.posted_list(st, "threads", 30)
+    assert [r["id"] for r in th] == ["180002"]
+
+
+def test_posted_list_extra_file_merged_and_deduped(tmp_path):
+    st = _state(tmp_path, {})                          # 頻道 state 下那份是空的（科技透明圈實況）
+    extra = tmp_path / "tc_posted.json"
+    extra.write_text(json.dumps({"posts": _tc_posts()}), encoding="utf-8")
+    assert len(CI.posted_list(st, "ig", 30, [extra, extra])) == 2   # 同一 id 不重複
+    assert CI.posted_list(st, "ig", 1, [extra])[0]["id"] == "180001"
+
+
+def test_tech_reads_real_tc_posted_file():
+    """真的 state/tc/posted.json（只讀、不連網）：科技透明圈要讀得到貼文。"""
+    f = ROOT / "state" / "tc" / "posted.json"
+    if not f.exists():
+        pytest.skip("sparse checkout 沒有 state/tc")
+    assert f in CI.EXTRA_POSTED["tech"]
+    rows = CI.posted_list(Path("/nonexistent"), "ig", 30, CI.EXTRA_POSTED["tech"])
+    assert rows and all(r["id"] and r["folder"] for r in rows)
