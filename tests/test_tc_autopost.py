@@ -874,6 +874,7 @@ def _cfg2(tmp_path, legal=True, ready=False):
         c["legal_pending"] = []
         c["threads_reply"]["texts"]["2nm"] = [t.split("https://")[0] + URL_2NM for t in c["threads_reply"]["texts"]["2nm"]]
         c["ig_dm"]["contents"]["2nm"] = "謝謝留言！「2 奈米不是尺寸」完整解說放在這：" + URL_2NM
+        c["ig_dm"]["public_fallback"] = True   # 測保底公開回覆的機制本身；正式設定 11-23 起關閉（見下一個測試）
     p.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
     return p
 
@@ -1237,3 +1238,10 @@ def test_佇列每篇都對得到主題():
     for d in sorted(x for x in q.iterdir() if (x / "post.md").is_file()):
         if K.slug(d.name) in c["post_keywords"]:
             assert K.topic_for(c, d.name), d.name
+
+
+def test_IG公開回覆_正式設定已關閉_改由Meta規則():
+    """2026-11-23 Andy：「關掉 IG 公開回覆」——IG 留言的公開回覆與私訊改由 Meta Business Suite 規則負責。"""
+    c = json.loads((Path(__file__).resolve().parent.parent / "social/tc/dm_config.json").read_text(encoding="utf-8"))
+    assert c["ig_dm"]["public_fallback"] is False
+    assert c["threads_reply"]["enabled"] is True   # Threads 公開回覆照舊
