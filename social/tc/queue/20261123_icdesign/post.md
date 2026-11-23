@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-23T18:00+08:00
 weekday: 一
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-icdesign.mp4
 images: cover.jpg
 title: 科技透明圈影片：IC 設計，沒有工廠的公司怎麼做晶片（tech-icdesign v4）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/DgFI1wcnJrb/
+ids_ig: 18152845621571984
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DgFI9VGsJ6m
+ids_threads: 18133243183697612
+ids_threads_reply: 18137223742709094
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgFJEmAm45c
+done: ig, threads
+urls: https://www.instagram.com/reel/DgFI1wcnJrb/ https://www.threads.com/@tech_01010909/post/DgFI9VGsJ6m https://www.threads.com/@tech_01010909/post/DgFJEmAm45c
+posted_at: 2026-11-23T18:12+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「IC 設計：晶片公司沒有工廠，交出去的只是一張設計圖」
 
