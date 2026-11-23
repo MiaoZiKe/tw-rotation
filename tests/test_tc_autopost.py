@@ -1206,7 +1206,7 @@ def test_IG公開回覆_每篇帶主題_不含網址():
 
 def test_IG與Threads公開回覆_default與取不到主題():
     c = _real_cfg()
-    for code in ("default", "20261105_quanta", "implant", None):
+    for code in ("default", "20261105_quanta", "no_such_post", None):   # 沒登記的代號（implant 已在 11-30 排程，改用不存在的鍵）
         assert K.ig_public_ack(c, code) == "已經將完整內容私訊您囉!~"
         assert K.threads_ask_ig(c, code) == "完整內容請到 IG 私訊我們，馬上傳給您!~"
     c2 = json.loads(json.dumps(c))
