@@ -63,6 +63,7 @@ def build(folder, cfg):
     # 摘要已在標題下的導讀顯示，這裡不再重複；文案末段的「資料來源：」不重貼，完整出處（含口徑與樣本數）在文末「資料來源」
     blocks = [{"t": "h", "text": "貼文圖（3 張）"}]
     blocks.append({"t": "img", "items": items, "note": "點圖看原尺寸（1080×1350）。圖上每個數字下方有一行出處。"})
+    blocks += cfg.get("extra_blocks") or []     # 2026-11-23 精選文章規範第二節：補充解說與圖表
     blocks.append({"t": "h", "text": "文案全文"})
     for x in paras:
         blocks.append({"t": "p", "text": x})
@@ -123,6 +124,7 @@ def build_video(folder, cfg, q, meta, title, paras, tags, pid):
                            "note": "影片封面（1080×1920）。影片本身請點下面的連結觀看。"})
         if (q / "video.mp4").exists():
             blocks.append({"t": "links", "title": "影片檔", "items": [{"label": "觀看影片（MP4）", "url": vurl}]})
+    blocks += cfg.get("extra_blocks") or []     # 2026-11-23 精選文章規範第二節：補充解說與圖表
     blocks.append({"t": "h", "text": "文案全文"})
     for x in paras:
         blocks.append({"t": "p", "text": x})
