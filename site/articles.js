@@ -341,7 +341,8 @@
   color:var(--ink);text-decoration:none;line-height:1.5}
 .artstk a:hover{border-color:var(--cyan)}
 .artstk a .h{display:flex;gap:8px;align-items:baseline;white-space:nowrap;overflow:hidden}
-.artstk a .h .lg{flex:none;align-self:center;display:inline-flex;align-items:center;justify-content:center;width:44px;height:24px;padding:2px 4px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px rgba(128,128,128,.28)}
+.artstk a .h .lg{flex:none;align-self:center;display:inline-flex;align-items:center;justify-content:center;width:68px;height:30px;padding:2px 4px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px rgba(128,128,128,.28)}
+.artstk a .h .lg.e{background:none;box-shadow:none}
 .artstk a .h .lg img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block}
 .artstk a .h b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--cyan)}
 .artstk a .h span{font-weight:600;overflow:hidden;text-overflow:ellipsis}
@@ -1878,7 +1879,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && okCode(x.code));
         if (!its.length) return '';
         return `<div class="artstk"><div class="lbl">相關台股</div><div class="g">${its.map((x) => `<a href="#stock/${esc(x.code)}" data-code="${esc(x.code)}" title="${esc((x.name || '') + ' ' + x.code)}：到個股頁看 K 線與基本面">
-          <div class="h">${okLogo(x.logo) ? `<i class="lg"><img src="${esc(x.logo)}" alt="" loading="lazy" decoding="async"></i>` : ''}<b>${esc(x.code)}</b><span>${esc(x.name || '')}</span></div>${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}</a>`).join('')}</div></div>`;
+          <div class="h">${okLogo(x.logo) ? `<i class="lg"${/^#[0-9a-f]{6}$/i.test(x.logobg || '') ? ` style="background:${x.logobg}"` : ''}><img src="${esc(x.logo)}" alt="" loading="lazy" decoding="async"></i>` : (its.some((y) => okLogo(y.logo)) ? '<i class="lg e" aria-hidden="true"></i>' : '')}<b>${esc(x.code)}</b><span>${esc(x.name || '')}</span></div>${x.why ? `<div class="w">${esc(x.why)}</div>` : ''}</a>`).join('')}</div></div>`;
       }
       /* 2026-11-15 頻道貼文存檔（談晴說礙等）：{t:'img', items:[{src:'articles/<頻道>/img/<檔名>.jpg', alt, cap?}], title?, note?}
          只收站內 articles/<小寫英文>/img/ 底下的 jpg／png／webp，JSON 字串進不了任意網址。 */
