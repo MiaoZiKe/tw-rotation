@@ -1,19 +1,19 @@
 {
- "at": "2026-11-22T20:29:37+08:00",
+ "at": "2026-11-23T12:29:58+08:00",
  "mode": "live",
- "item": "20261122v_firstmarriage",
+ "item": "20261123_overtime",
  "posted": {
   "threads": {
-   "id": "17930631612428939",
-   "link": "https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg",
-   "at": "2026-11-22T20:29:37+08:00",
-   "format": "video",
-   "video_via": "site"
+   "id": "17967337539238656",
+   "link": "https://www.threads.com/@talk_01010909/post/DgEh4n3kcGa",
+   "at": "2026-11-23T12:29:58+08:00"
   }
  },
- "errors": {},
+ "errors": {
+  "ig": "HTTP 403 {\"message\": \"Application request limit reached\", \"code\": 4, \"type\": \"OAuthException\", \"error_subcode\": 2207051, \"is_transient\": false, \"error_user_msg\": \"為了保護社群安全，我們會限制特定活動。如果你認為處置有誤，請告訴我們。\", \"error_user_title\": \"操作已遭封鎖\", \"fbtrace_id\": \"ALa4-7uiTNc32wiVEyzeLmt\"}"
+ },
  "notes": [
   "20261116v_worktime：還沒到 2026-11-23T20:27:00+08:00"
  ],
- "summary": "20261122v_firstmarriage：已發 threads https://www.threads.com/@talk_01010909/post/DgCzt-nBUbg"
+ "summary": "20261123_overtime：已發 threads https://www.threads.com/@talk_01010909/post/DgEh4n3kcGa；ig 失敗：HTTP 403 {\"message\": \"Application request limit reached\", \"code\": 4, \"type\": \"OAuthException\", \"error_subcode\": 2207051, \"is_transient\": false, \"error_user_msg\": \"為了保護社群安全，我們會限制特定活動。如果你認為處置有誤，請告訴我們。\", \"error_user_title\": \"操作已遭封鎖\", \"fbtrace_id\": \"ALa4-7uiTNc32wiVEyzeLmt\"}"
 }
