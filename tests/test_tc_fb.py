@@ -217,3 +217,141 @@ def test_工作流有fb選項且權杖只從Secret帶():
     y = (Path(tc.ROOT) / ".github" / "workflows" / "tc_post.yml").read_text()
     assert "fb_check:" in y and "fb_only:" in y and "scripts/tc_fb.py --check" in y
     assert "secrets.TECH_FB_PAGE_TOKEN" in y and "secrets.TECH_FB_PAGE_ID" in y
+
+
+# ---------- FB 追進度（2026-11-23 Andy：「08:00 和 20:00 發布」「直到發到下一步要發布的 迴歸跟IG一樣時間」） ----------
+from datetime import datetime as _dt  # noqa: E402
+
+BF = {"start": "20261115_2nm", "slots": ["08:00", "20:00"], "not_before": "2026-11-23T20:00+08:00", "max_tries": 3}
+
+
+def T(s):
+    return _dt.fromisoformat(s)
+
+
+def posted_video(q, name, ig_at, **extra):
+    d = mkvideo(q, name)
+    upd = {"status": "posted", "done": "ig, threads", "ids_ig": "1", "posted_at": ig_at}
+    upd.update(extra)
+    tc.IG.rewrite_meta(d / "post.md", upd)
+    return d
+
+
+def bf_env(monkeypatch, tmp_path, fb_on=True):
+    (tmp_path / "fb.json").write_text(json.dumps({"enabled": fb_on}))
+    monkeypatch.setattr(FB, "CONFIG", tmp_path / "fb.json")
+    fb = FakeFB()
+    monkeypatch.setattr(FB, "http", fb)
+    return fb
+
+
+def bfrun(tmp_path, now, bf=BF):
+    return tc.fb_backfill(dict(FENV), T(now), False, queue=tmp_path / "q", state_dir=tmp_path / "s", bf=bf)
+
+
+def test_正式補發設定檔_起點2nm_時段0800與2000():
+    bf = tc.load_backfill()
+    assert bf["start"] == "20261115_2nm" and bf["slots"] == ["08:00", "20:00"] and bf["max_tries"] == 3
+    assert T(bf["not_before"]) == T("2026-11-23T20:00+08:00")
+
+
+def test_待補清單_依IG時間排序_起點之前與已發FB與圖片稿不算(tmp_path):
+    q = tmp_path / "q"
+    posted_video(q, "20261105_quanta", "2026-11-12T22:15+08:00")
+    posted_video(q, "20261117_offer", "2026-11-17T12:34+08:00")
+    posted_video(q, "20261115_2nm", "2026-11-15T20:05+08:00")
+    posted_video(q, "20261122_800v", "2026-11-22T20:10+08:00", ids_fb="9")
+    posted_video(q, "20261121_cooling", "2026-11-21T18:13+08:00", media="image")
+    mkvideo(q, "20261124_foundry", when="2026-11-24T20:00+08:00")          # IG 還沒發
+    assert [p["id"] for p in tc.fb_pending(tc.load_all(q), BF)] == ["20261115_2nm", "20261117_offer"]
+
+
+def test_時間沒到不發(monkeypatch, tmp_path):
+    fb = bf_env(monkeypatch, tmp_path)
+    posted_video(tmp_path / "q", "20261115_2nm", "2026-11-15T20:05+08:00")
+    rc, res = bfrun(tmp_path, "2026-11-23T19:52+08:00")                  # 第一個時段 20:00 還沒到
+    assert rc == 0 and fb.calls == [] and not res["posted"]
+
+
+def test_時間到發1支_寫回post與posted_同時段不再發(monkeypatch, tmp_path):
+    fb = bf_env(monkeypatch, tmp_path)
+    q = tmp_path / "q"
+    a = posted_video(q, "20261115_2nm", "2026-11-15T20:05+08:00")
+    b = posted_video(q, "20261116_euv", "2026-11-16T20:13+08:00")
+    rc, res = bfrun(tmp_path, "2026-11-23T20:07+08:00")
+    assert rc == 0 and fb.steps().count("start") == 1                    # 一輪只發 1 支
+    head = (a / "post.md").read_text()
+    assert "ids_fb: 777" in head and "fb_slot: 2026-11-23T20:00+08:00" in head and "status: posted" in head
+    assert "ids_fb" not in (b / "post.md").read_text()
+    st = json.loads((tmp_path / "s" / "posted.json").read_text())["posts"][0]
+    assert st["id"] == "20261115_2nm" and st["ids_fb"] == "777"
+    rc, res = bfrun(tmp_path, "2026-11-23T20:22+08:00")                  # 同一時段下一輪：不發
+    assert fb.steps().count("start") == 1
+    rc, res = bfrun(tmp_path, "2026-11-24T08:07+08:00")                  # 下一個時段：發第 2 支
+    assert fb.steps().count("start") == 2 and "ids_fb: 777" in (b / "post.md").read_text()
+    rc, res = bfrun(tmp_path, "2026-11-24T20:07+08:00")                  # 都發過：不重發
+    assert fb.steps().count("start") == 2
+
+
+def test_開關關閉不發(monkeypatch, tmp_path):
+    fb = bf_env(monkeypatch, tmp_path, fb_on=False)
+    posted_video(tmp_path / "q", "20261115_2nm", "2026-11-15T20:05+08:00")
+    rc, res = bfrun(tmp_path, "2026-11-23T20:07+08:00")
+    assert rc == 0 and fb.calls == []
+
+
+def test_失敗開issue_下一輪重試_同一支最多3次(monkeypatch, tmp_path):
+    bf_env(monkeypatch, tmp_path)
+    fb = FakeFB(fail="start")
+    monkeypatch.setattr(FB, "http", fb)
+    q = tmp_path / "q"
+    a = posted_video(q, "20261115_2nm", "2026-11-15T20:05+08:00")
+    b = posted_video(q, "20261116_euv", "2026-11-16T20:13+08:00")
+    for i, t in enumerate(("20:07", "20:22", "20:37"), 1):
+        rc, res = bfrun(tmp_path, f"2026-11-23T{t}+08:00")
+        assert rc == 1 and res["fb_alert"] and f"第 {i}／3 次失敗" in res["fb_alert"][0]
+        assert f"fb_backfill_tries: {i}" in (a / "post.md").read_text()
+    assert "到點超過 30 分鐘" in res["fb_alert"][0] and "重試用完" in res["fb_alert"][0]
+    assert "status: posted" in (a / "post.md").read_text()                # 不改 status
+    monkeypatch.setattr(FB, "http", FakeFB())
+    rc, res = bfrun(tmp_path, "2026-11-23T20:52+08:00")                  # 第 4 輪改補下一支
+    assert rc == 0 and "ids_fb: 777" in (b / "post.md").read_text() and "ids_fb" not in (a / "post.md").read_text()
+
+
+def test_有待補時新影片IG照發但不馬上同步FB(monkeypatch, tmp_path):
+    fb = bf_env(monkeypatch, tmp_path)
+    monkeypatch.setattr(tc, "load_backfill", lambda path=None: BF)
+    q = tmp_path / "q"
+    posted_video(q, "20261115_2nm", "2026-11-15T20:05+08:00")
+    a = mkvideo(q, "20261123_icdesign", when="2026-11-23T18:00+08:00", extra="weekday: 一\n")
+    api = VideoAPI(seq=("FINISHED",))
+    monkeypatch.setattr(tc, "api", api)
+    rc, res = tc.run(dict(FENV), T("2026-11-23T18:07+08:00"), False, queue=q, state_dir=tmp_path / "s", cfg=CFG)
+    assert rc == 0 and res["posted"] == ["20261123_icdesign"] and len(api.posts("ig")) == 1
+    assert fb.calls == [] and "ids_fb" not in (a / "post.md").read_text()
+    assert [p["id"] for p in tc.fb_pending(tc.load_all(q), BF)] == ["20261115_2nm", "20261123_icdesign"]   # 排在最後
+
+
+def test_清單清空後新影片恢復馬上同步FB(monkeypatch, tmp_path):
+    fb = bf_env(monkeypatch, tmp_path)
+    monkeypatch.setattr(tc, "load_backfill", lambda path=None: BF)
+    q = tmp_path / "q"
+    posted_video(q, "20261201_clean", "2026-12-01T18:07+08:00", ids_fb="5")
+    a = mkvideo(q, "20261202_oxidation", when="2026-12-02T20:00+08:00", extra="weekday: 三\n")
+    monkeypatch.setattr(tc, "api", VideoAPI(seq=("FINISHED",)))
+    rc, res = tc.run(dict(FENV), T("2026-12-02T20:07+08:00"), False, queue=q, state_dir=tmp_path / "s", cfg=CFG)
+    assert rc == 0 and fb.steps().count("start") == 1 and "ids_fb: 777" in (a / "post.md").read_text()
+    assert "fb_slot" not in (a / "post.md").read_text()
+
+
+def test_800v試發紀錄已清_回到待補清單():
+    head = (Path(tc.ROOT) / "social" / "tc" / "queue" / "20261122_800v" / "post.md").read_text()
+    assert "ids_fb" not in head and "1627704606040910" not in head
+    st = json.loads((Path(tc.ROOT) / "state" / "tc" / "posted.json").read_text())
+    e = next(x for x in st["posts"] if x["id"] == "20261122_800v")
+    assert "fb" not in e and "ids_fb" not in e
+
+
+def test_工作流有追進度一步且監工看得到():
+    y = (Path(tc.ROOT) / ".github" / "workflows" / "tc_post.yml").read_text()
+    assert "--fb-backfill" in y and "steps.fbbackfill.outputs.fb_alert" in y and "steps.fbbackfill.outputs.fb_reasons" in y

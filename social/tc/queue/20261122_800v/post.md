@@ -21,9 +21,6 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgCxixuk2rZ/ https://www.threads.com/@tech_01010909/post/DgCxqghggH1 https://www.threads.com/@tech_01010909/post/DgCxx5LoD7V
 posted_at: 2026-11-22T20:10+08:00
 error: 
-ids_fb: 1627704606040910
-urls_fb: https://www.facebook.com/reel/1627704606040910/
-fb_posted_at: 2026-11-23T12:40+08:00
 fb_error: 
 ---
 # 頻道②「科技透明圈」：影片「八百伏特：AI 機櫃為什麼要把電壓拉高」
@@ -37,3 +34,4 @@ fb_error:
 - 留言關鍵字：供電 → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-11-22-tech-800v（dm_config post_keywords「800v」）。
 - 去 AI 味自查：不寫「非投資建議」（#46）、段與段有因果銜接（#47）。
 
+- 2026-11-23：FB 試發那篇（11-23 12:40）Andy 已在 FB 上手動刪除（「試發的 800V 那篇…刪」「因為影片有順序」），post.md 與 state/tc/posted.json 的 FB 紀錄清掉，排回 FB 待補清單（social/tc/fb_backfill.json），排在 cooling 之後補發。

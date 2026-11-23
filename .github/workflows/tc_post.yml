@@ -86,6 +86,19 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="--dry-run"; fi
           case "$IN_POST" in ''|*[!A-Za-z0-9_-]*) ;; *) args="$args --post $IN_POST" ;; esac
           python scripts/tc_post.py $args
+      # 2026-11-23 FB 追進度（Andy：「從 2 奈米影片一路發到今天，早上 08:00 和 20:00 發布」「直到發到下一步要發布的，回歸跟 IG 一樣時間」）
+      # 設定 social/tc/fb_backfill.json；待補清單不空時，時段到了之後第一輪補最舊的 1 支。獨立一步、continue-on-error，不影響上面 IG／Threads。
+      - name: FB 粉專追進度補發（每個時段最多 1 支）
+        id: fbbackfill
+        if: ${{ !inputs.fb_check && !inputs.fb_only && !inputs.post }}
+        continue-on-error: true
+        env:
+          TC_FB_PAGE_TOKEN: ${{ secrets.TECH_FB_PAGE_TOKEN }}
+          TC_FB_PAGE_ID: ${{ secrets.TECH_FB_PAGE_ID }}
+        run: |
+          args="--fb-backfill"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then args="$args --dry-run"; fi
+          python scripts/tc_post.py $args
       # 2026-11-20 留言關鍵字回覆（Threads 公開回覆＋IG 私訊）拆到 tc_comments.yml，由 gh-cron Worker 每 10 分鐘派；這裡只管發文。
       - name: 回寫發文結果（只 add 頻道② 的佇列與紀錄）
         if: always() && !(github.event_name == 'workflow_dispatch' && (inputs.dry_run != false || inputs.fb_check))
@@ -128,19 +141,19 @@ jobs:
 
           這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || echo "::warning::開 issue 失敗"
       - name: 監工：FB 粉專 Reels 沒發出 → 開 issue（不影響 IG／Threads）
-        if: always() && (steps.post.outputs.fb_alert == '1' || steps.fbonly.outputs.fb_alert == '1')
+        if: always() && (steps.post.outputs.fb_alert == '1' || steps.fbonly.outputs.fb_alert == '1' || steps.fbbackfill.outputs.fb_alert == '1')
         env:
           GH_TOKEN: ${{ github.token }}
-          REASONS: ${{ steps.post.outputs.fb_reasons }}${{ steps.fbonly.outputs.fb_reasons }}
+          REASONS: ${{ steps.post.outputs.fb_reasons }}${{ steps.fbonly.outputs.fb_reasons }}${{ steps.fbbackfill.outputs.fb_reasons }}
         run: |
           N=$(gh issue list -R "${{ github.repository }}" --state open --search "in:title 頻道② 科技透明圈：FB 粉專 Reels 沒發出" --json number -q '.[0].number' || true)
           if [ -n "$N" ]; then gh issue comment "$N" -R "${{ github.repository }}" --body "又一次：${REASONS}（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）" || true; exit 0; fi
           gh issue create -R "${{ github.repository }}" --title "⚠️ 頻道② 科技透明圈：FB 粉專 Reels 沒發出" --body "原因：${REASONS}
 
           IG／Threads 不受影響。這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          修好後用 tc_post.yml 手動觸發 fb_only=<資料夾>、dry_run=false 補發（已發過的不會重發）。" || echo "::warning::開 issue 失敗"
+          補發排程（social/tc/fb_backfill.json）失敗會在下一輪自動重試，同一支最多 3 次；重試用完的修好後用 tc_post.yml 手動觸發 fb_only=<資料夾>、dry_run=false 補發（已發過的不會重發）。" || echo "::warning::開 issue 失敗"
       - name: 發文失敗就讓流程失敗（會收到 GitHub 通知）
-        if: steps.post.outcome == 'failure' || steps.fbonly.outcome == 'failure'
+        if: steps.post.outcome == 'failure' || steps.fbonly.outcome == 'failure' || steps.fbbackfill.outcome == 'failure'
         run: |
           echo "發文失敗，請看上一步的訊息；post.md 已標 status: error"
           exit 1

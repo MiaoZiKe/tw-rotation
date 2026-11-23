@@ -33,6 +33,13 @@ Andy 原話：「開通自動發文，這部分幫我想辦法自動化」。說
   · FB 粉專 Reels（2026-11-23）：social/tc/fb.json enabled=true 才發；影片稿在 IG／Threads 之後發，
       寫 ids_fb／urls_fb；失敗只寫 fb_error＋輸出 fb_alert（工作流開 issue），不擋 IG／Threads、不改 status。
       --fb-only <資料夾>：把已發影片補發到 FB（手動測試，不看開關；配 --dry-run 只檢查）。細節 scripts/tc_fb.py。
+  · FB 追進度（2026-11-23 Andy：「從 2 奈米影片一路發到今天，早上 08:00 和 20:00 發布」「直到發到下一步要發布的，
+      回歸跟 IG 一樣時間」）：設定 social/tc/fb_backfill.json（起點、時段、最多重試次數）。
+      待補清單＝起點之後、IG 已發、還沒有 ids_fb 的影片稿，依 IG 發文時間從舊到新。
+      清單不空 → 新影片 IG／Threads 照發，但「發完馬上同步 FB」先不做（排進清單最後面）；
+      FB 只在每個時段（08:00、20:00）到了之後的第一輪發清單最舊的 1 支（--fb-backfill，每輪最多 1 支）。
+      失敗寫 fb_error、fb_backfill_tries＋1、輸出 fb_alert 開 issue，下一輪重試；同一支失敗 3 次就跳過（issue 照開）。
+      清單清空 → 回到原本：新影片 IG 發完馬上同步 FB。
 """
 from __future__ import annotations
 
@@ -55,6 +62,7 @@ import tc_fb as FB  # noqa: E402  2026-11-23 同步發 FB 粉專 Reels（開關 
 import threads_post as TP  # noqa: E402
 
 QUEUE = ROOT / "social" / "tc" / "queue"
+BACKFILL = ROOT / "social" / "tc" / "fb_backfill.json"
 STATE_DIR = ROOT / "state" / "tc"
 TAIPEI = timezone(timedelta(hours=8))
 STATUSES = {"draft", "approved", "posted", "error"}
@@ -587,7 +595,7 @@ def tokens_from(env: dict) -> dict:
     return t
 
 
-def publish_one(p: dict, env: dict, tok: dict, now: datetime, state_dir: Path) -> str:
+def publish_one(p: dict, env: dict, tok: dict, now: datetime, state_dir: Path, fb_hold: bool = False) -> str:
     todo = [x for x in p["platforms"] if x not in p["done"]]
     # 先確認帳號（兩個平台都先查，任何一個不對就整篇不發，避免發一半）
     ids = {}
@@ -626,7 +634,11 @@ def publish_one(p: dict, env: dict, tok: dict, now: datetime, state_dir: Path) -
             err = f"{plat}：{e}"
             log(f"✗ {p['id']}：{err}")
             break
-    fb = FB.sync(p, env, now)           # FB 放最後；任何錯誤都在裡面吞掉，不影響上面兩個平台
+    if fb_hold:                         # FB 還在追進度：這支排進待補清單最後面，由 --fb-backfill 依時段補發
+        log(f"{p['id']}：FB 待補清單還沒清空，先不同步 FB（排進待補清單，08:00／20:00 依序補發）")
+        fb = {}
+    else:
+        fb = FB.sync(p, env, now)       # FB 放最後；任何錯誤都在裡面吞掉，不影響上面兩個平台
     if fb.get("fb_error"):
         p["fb_error"] = fb["fb_error"]
     upd.update(fb)
@@ -741,7 +753,7 @@ def monitor(posts: list[dict], history: list[datetime], cfg: dict, now: datetime
 
 
 def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir: Path = STATE_DIR,
-        cfg: dict | None = None, only: str = "") -> tuple[int, dict]:
+        cfg: dict | None = None, only: str = "", bf: dict | None = None) -> tuple[int, dict]:
     cfg = cfg if cfg is not None else settings()
     tok = tokens_from(env)
     for k in ("TC_THREADS_USER_ID", "TC_IG_USER_ID", "THREADS_USER_ID", "IG_USER_ID"):
@@ -840,7 +852,8 @@ def run(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir:
     if load_json(sp, {}).get("no_token_since"):
         sp.write_text("{}\n", encoding="utf-8")
     try:
-        msg = publish_one(cand, env, tok, now, state_dir)
+        hold = bool(fb_pending(load_all(queue), load_backfill() if bf is None else bf)) and FB.load_config()["enabled"]
+        msg = publish_one(cand, env, tok, now, state_dir, fb_hold=hold)
         res["posted"].append(cand["id"])
         log(f"{cand['id']}：{msg}")
     except PostError as e:
@@ -877,6 +890,124 @@ def fb_only(env: dict, now: datetime, name: str, dry_run: bool, queue: Path = QU
     return 1, res
 
 
+# ---------- FB 追進度（2026-11-23） ----------
+
+def load_backfill(path: Path | None = None) -> dict:
+    """讀不到或格式壞 → 回 {}（不追進度，新影片照原本馬上同步）。"""
+    try:
+        d = json.loads((path or BACKFILL).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(d, dict) or not d.get("start") or not d.get("slots"):
+        return {}
+    return d
+
+
+def ig_time(p: dict) -> datetime:
+    v = p["meta"].get("posted_at") or p["meta"].get("scheduled_at") or "2000-01-01T00:00+08:00"
+    d = datetime.fromisoformat(v)
+    return d if d.tzinfo else d.replace(tzinfo=TAIPEI)
+
+
+def fb_tries(p: dict) -> int:
+    try:
+        return int(p["meta"].get("fb_backfill_tries") or 0)
+    except ValueError:
+        return 0
+
+
+def load_all(queue: Path) -> list[dict]:
+    out = []
+    for d in sorted(d for d in queue.glob("*/") if (d / "post.md").is_file()) if queue.is_dir() else []:
+        try:
+            out.append(load(d))
+        except Exception as e:  # noqa: BLE001
+            log(f"::warning::{d.name}：讀不到（{e}）")
+    return out
+
+
+def fb_pending(posts: list[dict], bf: dict) -> list[dict]:
+    """待補清單：起點之後、IG 已發、還沒有 ids_fb 的影片稿（重試用完的跳過），依 IG 發文時間從舊到新。"""
+    if not bf:
+        return []
+    mx = int(bf.get("max_tries", 3))
+    out = [p for p in posts if p["id"] >= bf["start"] and p.get("media") == "video" and "ig" in p["done"]
+           and not p["meta"].get("ids_fb") and fb_tries(p) < mx]
+    return sorted(out, key=lambda p: (ig_time(p), p["id"]))
+
+
+def current_slot(now: datetime, bf: dict) -> datetime | None:
+    """最近一個已經到了的時段（台北時間）；早於 not_before 回 None。"""
+    loc = now.astimezone(TAIPEI)
+    best = None
+    for day in (loc.date() - timedelta(days=1), loc.date()):
+        for hm in bf.get("slots") or []:
+            h, _, m = str(hm).partition(":")
+            t = datetime(day.year, day.month, day.day, int(h), int(m or 0), tzinfo=TAIPEI)
+            if t <= loc and (best is None or t > best):
+                best = t
+    nb = bf.get("not_before")
+    if best is not None and nb:
+        d = datetime.fromisoformat(nb)
+        if best < (d if d.tzinfo else d.replace(tzinfo=TAIPEI)):
+            return None
+    return best
+
+
+def fb_backfill(env: dict, now: datetime, dry_run: bool, queue: Path = QUEUE, state_dir: Path = STATE_DIR,
+                bf: dict | None = None, fbcfg: dict | None = None) -> tuple[int, dict]:
+    """每輪最多補 1 支：時段到了、這個時段還沒補過、fb.json 開著，就發待補清單最舊的 1 支。"""
+    res = {"alert": [], "posted": [], "skipped": [], "deferred": [], "errors": [], "ig_delete": [], "bad": [], "fb_alert": []}
+    bf = load_backfill() if bf is None else bf
+    fbcfg = fbcfg if fbcfg is not None else FB.load_config()
+    if not bf:
+        log("FB 追進度：沒有 fb_backfill.json 設定 → 不補")
+        return 0, res
+    if not fbcfg["enabled"]:
+        log("FB 追進度：fb.json 關閉 → 不補")
+        return 0, res
+    posts = load_all(queue)
+    pend = fb_pending(posts, bf)
+    log("FB 待補清單：" + ("、".join(p["id"] for p in pend) or "（空，新影片 IG 發完馬上同步 FB）"))
+    gave_up = [p["id"] for p in posts if p["id"] >= bf["start"] and p.get("media") == "video" and "ig" in p["done"]
+               and not p["meta"].get("ids_fb") and fb_tries(p) >= int(bf.get("max_tries", 3))]
+    if gave_up:
+        log(f"::warning::FB 補發重試用完、已跳過：{'、'.join(gave_up)}（修好後用 fb_only 手動補發）")
+    if not pend:
+        return 0, res
+    slot = current_slot(now, bf)
+    if slot is None:
+        log("FB 追進度：還沒到第一個時段 → 不補")
+        return 0, res
+    sl = fmt(slot)
+    if any(p["meta"].get("fb_slot") == sl for p in posts):
+        log(f"FB 追進度：{sl} 這個時段已補過 → 等下一個時段")
+        return 0, res
+    p = pend[0]
+    late = now > slot + timedelta(minutes=MONITOR_GRACE_MIN)
+    upd = FB.sync(p, env, now, dry_run=dry_run, cfg=fbcfg)
+    if dry_run:
+        log(f"[dry-run] FB 追進度：{sl} 時段會補 {p['id']}")
+        return 0, res
+    if upd.get("ids_fb"):
+        upd.update(fb_slot=sl, fb_via="backfill")
+        IG.rewrite_meta(p["dir"] / "post.md", upd)
+        _record(state_dir, p, now, upd, p["meta"])
+        res["posted"].append(f"{p['id']}（FB 補發 {sl} 時段）")
+        log(f"FB 追進度：{sl} 時段已補發 {p['id']}；剩 {len(pend) - 1} 支")
+        return 0, res
+    n = fb_tries(p) + 1
+    upd = dict(upd or {"fb_error": "沒有發出"})
+    upd["fb_backfill_tries"] = str(n)
+    IG.rewrite_meta(p["dir"] / "post.md", upd)
+    mx = int(bf.get("max_tries", 3))
+    tail = f"第 {n}／{mx} 次失敗" + ("，重試用完，跳過這支、下一輪改補下一支" if n >= mx else "，下一輪重試")
+    res["fb_alert"].append(f"{p['id']}：FB 補發（{sl} 時段）{'到點超過 30 分鐘仍沒發，' if late else ''}{tail}："
+                           f"{upd.get('fb_error', '')[:150]}")
+    res["errors"].append(f"{p['id']}：FB 補發失敗（{upd.get('fb_error', '')[:150]}）")
+    return 1, res
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="頻道② 科技透明圈 發文")
     ap.add_argument("--dry-run", action="store_true", help="只驗證，不發、不寫檔")
@@ -884,6 +1015,7 @@ def main(argv=None) -> int:
     ap.add_argument("--post", default="", help="只處理這個資料夾名稱")
     ap.add_argument("--queue", default=str(QUEUE))
     ap.add_argument("--fb-only", default="", help="只把這個資料夾的影片補發到 FB 粉專（不看開關、不動 IG／Threads）")
+    ap.add_argument("--fb-backfill", action="store_true", help="FB 追進度：時段到了就補待補清單最舊的 1 支")
     a = ap.parse_args(argv)
     if a.check:
         bad = 0
@@ -898,7 +1030,9 @@ def main(argv=None) -> int:
                 bad += 1
                 print(f"::warning::{d.name} 格式不合格（run 時只標這一篇、不讓整輪失敗）：{'；'.join(errs)[:200]}")
         return 0
-    if a.fb_only:
+    if a.fb_backfill:
+        rc, res = fb_backfill(dict(os.environ), datetime.now(TAIPEI), a.dry_run, queue=Path(a.queue))
+    elif a.fb_only:
         rc, res = fb_only(dict(os.environ), datetime.now(TAIPEI), a.fb_only, a.dry_run, queue=Path(a.queue))
     else:
         rc, res = run(dict(os.environ), datetime.now(TAIPEI), a.dry_run, queue=Path(a.queue), only=a.post)
