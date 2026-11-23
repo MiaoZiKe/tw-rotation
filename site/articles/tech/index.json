@@ -149,7 +149,7 @@
     "EDA",
     "光罩"
    ],
-   "reading_min": 4
+   "reading_min": 6
   },
   {
    "id": "2026-11-22-tech-800v",
@@ -164,7 +164,7 @@
     "AI伺服器",
     "銅排"
    ],
-   "reading_min": 4
+   "reading_min": 7
   },
   {
    "id": "2026-11-21-tech-cooling",
@@ -179,7 +179,7 @@
     "CDU",
     "AI伺服器"
    ],
-   "reading_min": 4
+   "reading_min": 7
   },
   {
    "id": "2026-11-20-tech-server",
@@ -194,7 +194,7 @@
     "機櫃",
     "液冷"
    ],
-   "reading_min": 4
+   "reading_min": 7
   },
   {
    "id": "2026-11-19-tech-hbm",
@@ -209,7 +209,7 @@
     "矽穿孔",
     "先進封裝"
    ],
-   "reading_min": 5
+   "reading_min": 8
   },
   {
    "id": "2026-11-18-tech-packaging",
@@ -224,7 +224,7 @@
     "中介層",
     "晶片"
    ],
-   "reading_min": 5
+   "reading_min": 7
   },
   {
    "id": "2026-11-17-tech-yield",
@@ -239,7 +239,7 @@
     "晶片",
     "先進封裝"
    ],
-   "reading_min": 4
+   "reading_min": 6
   },
   {
    "id": "2026-11-17-tech-offer",
@@ -254,7 +254,7 @@
     "年終",
     "加班費"
    ],
-   "reading_min": 4
+   "reading_min": 8
   },
   {
    "id": "2026-11-16-tech-euv",
@@ -269,7 +269,7 @@
     "EUV",
     "微影"
    ],
-   "reading_min": 4
+   "reading_min": 7
   },
   {
    "id": "2026-11-15-tech-2nm",
@@ -284,7 +284,7 @@
     "閘極全環繞",
     "製程節點"
    ],
-   "reading_min": 4
+   "reading_min": 7
   }
  ]
 }

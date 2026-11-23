@@ -13,7 +13,7 @@
   "光罩"
  ],
  "summary": "晶片公司沒有工廠，交出去的是什麼？（查證截至 2026/11/18）",
- "reading_min": 4,
+ "reading_min": 6,
  "blocks": [
   {
    "t": "lead",
@@ -85,6 +85,56 @@
   },
   {
    "t": "h",
+   "text": "設計這一行裡有哪些分工"
+  },
+  {
+   "t": "p",
+   "text": "【沒有工廠的晶片產業：四種角色】"
+  },
+  {
+   "t": "table",
+   "head": [
+    "角色",
+    "做什麼",
+    "本文提到的公司"
+   ],
+   "rows": [
+    [
+     "設計服務",
+     "幫客戶把設計做到能交給晶圓廠",
+     "創意、世芯-KY"
+    ],
+    [
+     "矽智財（IP）",
+     "賣現成的電路模組授權，讓別人不必從頭設計",
+     "力旺（嵌入式非揮發性記憶體）、晶心科（RISC-V CPU）"
+    ],
+    [
+     "設計軟體（EDA）",
+     "讓工程師描述、驗證、排線的工具",
+     "新思、益華、西門子（三大廠）"
+    ],
+    [
+     "晶圓代工",
+     "照設計圖把晶片製造出來",
+     "台積電"
+    ]
+   ]
+  },
+  {
+   "t": "p",
+   "text": "（角色整理自數位時代、科技新報、工商時報、iThome；只說明分工，不排名、不是推薦。）"
+  },
+  {
+   "t": "h",
+   "text": "設計和製造怎麼銜接"
+  },
+  {
+   "t": "p",
+   "text": "晶圓廠會提供製程設計套件（PDK）與標準元件庫，把「這個製程能做什麼、不能做什麼」寫成設計師看得懂的規則。設計師照規則畫，最後的設計檔（GDSII）才交得出去、做得出來（Wikipedia〈Process design kit〉）。所以有些公司沒有工廠，卻要很清楚工廠的規則。"
+  },
+  {
+   "t": "h",
    "text": "台灣有哪些公司（媒體報導與公司新聞稿）"
   },
   {
@@ -94,6 +144,72 @@
     "矽智財：力旺（嵌入式非揮發性記憶體）、晶心科（RISC-V CPU 授權）。",
     "設計軟體：新思、益華、西門子三大廠主導；各家合計市占口徑不一，本文不引用數字。",
     "以上整理自數位時代、科技新報、工商時報、iThome，供應名單會變，只說明產業分工，不是推薦。"
+   ]
+  },
+  {
+   "t": "stocks",
+   "title": "相關公司",
+   "items": [
+    {
+     "code": "3443",
+     "name": "創意",
+     "mkt": "TWSE",
+     "biz": "IC 設計服務與 ASIC 設計，台積電集團成員。",
+     "why": "設計服務（媒體報導）。"
+    },
+    {
+     "code": "3661",
+     "name": "世芯-KY",
+     "mkt": "TWSE",
+     "biz": "ASIC 設計服務，專注高效能運算晶片。",
+     "why": "設計服務（媒體報導）。"
+    },
+    {
+     "code": "3529",
+     "name": "力旺",
+     "mkt": "TPEx",
+     "biz": "矽智財（IP）：嵌入式非揮發性記憶體。",
+     "why": "矽智財：嵌入式非揮發性記憶體（公司新聞稿）。"
+    },
+    {
+     "code": "6533",
+     "name": "晶心科",
+     "mkt": "TWSE",
+     "biz": "RISC-V 處理器核心 IP 授權。",
+     "why": "矽智財：RISC-V CPU 授權（公司新聞稿）。"
+    },
+    {
+     "code": "SNPS",
+     "name": "新思（Synopsys）",
+     "mkt": "NASDAQ",
+     "biz": "電子設計自動化（EDA）軟體三大廠之一。",
+     "why": "EDA 三大廠之一（SemiAnalysis）。",
+     "logo": "articles/logos/SNPS.svg"
+    },
+    {
+     "code": "CDNS",
+     "name": "益華（Cadence）",
+     "mkt": "NASDAQ",
+     "biz": "電子設計自動化（EDA）軟體三大廠之一。",
+     "why": "EDA 三大廠之一（SemiAnalysis）。",
+     "logo": "articles/logos/CDNS.svg"
+    },
+    {
+     "code": "SIE",
+     "name": "西門子（Siemens）",
+     "mkt": "XETRA",
+     "biz": "德國工業集團，EDA 軟體三大廠之一（西門子 EDA）。",
+     "why": "EDA 三大廠之一（西門子 EDA，SemiAnalysis）。",
+     "logo": "articles/logos/SIE.svg"
+    },
+    {
+     "code": "2330",
+     "name": "台積電",
+     "mkt": "TWSE",
+     "biz": "全球最大晶圓代工廠，先進製程與先進封裝（CoWoS、SoIC）為主。",
+     "why": "照設計圖製造晶片的晶圓代工廠，下一篇主題。",
+     "logo": "articles/logos/2330.svg"
+    }
    ]
   },
   {
@@ -223,6 +339,12 @@
    "title": "EDA 三大廠（新思、益華、西門子）",
    "publisher": "SemiAnalysis；芯智訊轉載",
    "date": "查證 2026-11-18"
+  },
+  {
+   "title": "Process design kit",
+   "publisher": "Wikipedia",
+   "date": "查證日 2026-11-23",
+   "url": "https://en.wikipedia.org/wiki/Process_design_kit"
   }
  ],
  "confidence": "中高：流程與定義為通用說法（高）；市占與公司分工來自研究機構與媒體（中高）",
