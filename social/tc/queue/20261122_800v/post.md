@@ -21,6 +21,10 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgCxixuk2rZ/ https://www.threads.com/@tech_01010909/post/DgCxqghggH1 https://www.threads.com/@tech_01010909/post/DgCxx5LoD7V
 posted_at: 2026-11-22T20:10+08:00
 error: 
+ids_fb: 1627704606040910
+urls_fb: https://www.facebook.com/reel/1627704606040910/
+fb_posted_at: 2026-11-23T12:40+08:00
+fb_error: 
 ---
 # 頻道②「科技透明圈」：影片「八百伏特：AI 機櫃為什麼要把電壓拉高」
 
