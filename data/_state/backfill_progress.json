@@ -53421,7 +53421,7 @@
     "sbl@fresh2026-11-24:5285": true,
     "sbl@fresh2026-11-24:4976": true
   },
-  "updated_at": "2026-11-24T20:00:59.292858+00:00",
+  "updated_at": "2026-11-24T20:12:14.088296+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
@@ -53689,7 +53689,7 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-11-24T19:50:18.275640+00:00"
+      "at": "2026-11-24T20:12:13.479849+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -55595,10 +55595,10 @@
     }
   },
   "finmind_health": {
-    "ok": true,
-    "at": "2026-11-24T19:50:18.703118+00:00",
+    "ok": false,
+    "at": "2026-11-24T20:12:14.088191+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-11-15",
-    "detail": ""
+    "detail": "HTTP 402：Requests reach the upper limit. https://finmindtrade.com/"
   },
   "unavailable": {
     "holding": {
