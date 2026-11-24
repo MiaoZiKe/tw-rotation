@@ -1,6 +1,119 @@
 {
- "updated": "2026-11-23",
+ "updated": "2026-11-24",
  "topics": [
+  {
+   "id": "n_huang_return_tw_1124",
+   "cat": "news",
+   "title": "黃仁勳復職：台股一天大漲，一個人為何牽動整盤",
+   "why": "輝達董事會 11/23 恢復黃仁勳執行長職務，輝達收漲 31.48%、費半漲 14.03%（鉅亨 11/24、TVBS 11/24）；台股 11/24 跟著大漲、台積電開盤漲停（Yahoo 11/24，點數待盤後官方資料核對）。讀者會問：一個人回來為什麼整個盤都翻過來。",
+   "score": 5,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "n_huang_ceo_timeline",
+   "cat": "news",
+   "title": "輝達 11 天換帥又回鍋：這場風波怎麼走到今天",
+   "why": "11/12 董事會宣布黃仁勳辭職、財務長 Colette Kress 暫代（iThome 11/12、數位時代 11/12），11/23 復職、股價收 165.05 美元（鉅亨 11/24、TVBS 11/24）；辭職原因只有媒體引述、公司未說明，讀者想看完整時間線。",
+   "score": 4,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/group/ai_adv_packaging"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "n_us_rebound_1123",
+   "cat": "news",
+   "title": "標普一天漲 4.73%：大跌一週後的反彈算反轉嗎",
+   "why": "11/23 標普 500 漲 4.73%、那斯達克漲 6.51%，是 2025 年 4 月以來最大單日漲幅（Yahoo Finance 11/23、CNN 11/23）；前一週才跌近一成，讀者會問這是反轉還是反彈。",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#overview"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "i_memory_module_chain",
+   "cat": "intro",
+   "title": "記憶體模組鏈：顆粒、測試到模組廠怎麼出貨",
+   "why": "記憶體報價是今年焦點，已有 DRAM／HBM 大鏈與 DDR5 知識題，這題改講模組這一段：原廠顆粒、測試與 SPD、PCB 與組裝、通路出貨各由誰做；站內有記憶體模組族群頁。",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/memory_module",
+    "#industry/group/hbm"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "i_securities_chain",
+   "cat": "intro",
+   "title": "證券業鏈：經紀、自營到承銷各賺哪一段",
+   "why": "近期台股單日大漲大跌、成交值上下震盪，讀者會問券商獲利跟什麼連動；已有金融業總覽，這題只拆證券：經紀手續費、自營部位、承銷與財富管理。",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/securities_fhc"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "i_land_transport_chain",
+   "cat": "intro",
+   "title": "陸運與宅配鏈：車隊、轉運到最後一哩怎麼分",
+   "why": "已有電商物流與航空貨運題，陸運這段還沒拆：客運、貨運車隊、轉運中心、宅配最後一哩各做什麼；站內有陸運與宅配族群頁。",
+   "score": 2,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/land_transport"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "k_etch",
+   "cat": "know",
+   "title": "蝕刻是什麼？晶圓上的線路怎麼被挖出來",
+   "why": "用站內 3D 場景 foundry（一顆電晶體與一個製程迴圈）：已寫過曝光、光阻、薄膜沉積、CMP，製程迴圈裡缺「蝕刻」這一步，乾式與濕式蝕刻怎麼把圖案轉到膜上。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/foundry",
+    "#industry/group/fab_process_equip"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "k_nand_slc_qlc",
+   "cat": "know",
+   "title": "SLC 到 QLC 差在哪？一格 NAND 存幾位元",
+   "why": "用站內 3D 場景 ssd（M.2 固態硬碟切開見疊層晶粒）：已寫過 3D NAND 疊層與主控，還沒講一格存 1～4 位元的差別，以及速度、壽命、成本怎麼取捨。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/nor_niche_memory",
+    "#industry/group/memory_module"
+   ],
+   "added": "2026-11-24"
+  },
+  {
+   "id": "k_psu_efficiency",
+   "cat": "know",
+   "title": "鈦金級電源是什麼？轉換效率差 1% 為何很貴",
+   "why": "用站內 3D 場景 server_psu（PSU 拆開到晶片核心電壓）：已寫過 PSU 與 BBU 分工，這題講 80 PLUS 鈦金級與轉換效率，一座 AI 機房差 1% 就是大量電費與散熱。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/server_psu"
+   ],
+   "added": "2026-11-24"
+  },
   {
    "id": "n_sox_crash_1120",
    "cat": "news",
