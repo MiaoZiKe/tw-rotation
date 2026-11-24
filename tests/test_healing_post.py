@@ -290,3 +290,25 @@ def test_Threads真發測試再刪(box):
     t = json.loads((box["st"] / "tests.json").read_text(encoding="utf-8"))[-1]
     assert t["published"] and t["deleted"] and t["seconds"] < 60
     assert not (box["st"] / "posted.json").exists()      # 測試貼文不進正式紀錄
+
+
+def test_IG同一則失敗兩輪後停止自動重發_不擋下一則(box, monkeypatch):
+    """2026-11-24 IG 重複發文事故：IG 一直回錯其實有發出，每輪重試造成一則變 9～14 則。
+    同一則 IG 失敗兩輪 → 第三輪起不再呼叫發布（查帳號沒有就記 skipped），隔天的貼文照發。"""
+    mk_item(box["q"], "20261108_intro", publish_at="2026-11-10T12:27+08:00")
+    mk_item(box["q"], "20261108v_next", publish_at="2026-11-10T20:27+08:00")
+    n = {"ig": 0}
+
+    def bad_ig(uid, token, urls, c):
+        n["ig"] += 1
+        raise RuntimeError('HTTP 403 {"code": 4, "error_subcode": 2207051}')
+    pubs = {"ig": bad_ig, "threads": lambda uid, t, text, urls: {"id": "th", "link": "T"}}
+    monkeypatch.setattr(hp, "ig_find_existing", lambda *a, **k: None)
+    for k in range(2):
+        rc, _ = box["go"](pubs=pubs, now=NOW + timedelta(minutes=10 * k))
+        assert rc == 1
+    assert n["ig"] == 2
+    rc, res = box["go"](pubs=pubs, now=NOW + timedelta(minutes=30))
+    assert n["ig"] == 2, "第三輪不准再打 IG 發布"
+    assert posted(box)["20261108_intro"]["ig"].get("skipped")
+    assert any("停止自動重發" in x for x in res["notes"])

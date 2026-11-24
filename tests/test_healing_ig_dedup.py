@@ -93,3 +93,4 @@ def test_暫時錯誤且確認沒發_才重試(monkeypatch):
 def test_舊貼文同文案超過72小時不算(monkeypatch):
     fake_media(monkeypatch, lambda n: [{"id": "1", "caption": CAP, "timestamp": "2020-01-01T00:00:00+0000"}])
     assert HP.ig_publish_once("h", "u", "t", CAP, lambda: "new")["id"] == "new"
+

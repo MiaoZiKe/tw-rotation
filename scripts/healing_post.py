@@ -406,6 +406,7 @@ def _writeback(new: str, env: dict, notes: list[str], saver, why: str, prefix: s
 # 新規則：① 發之前先查帳號最近 72 小時有沒有同文案的貼文，有就直接記成已發、不再發；
 #         ② 每次失敗後先查一次，查到就停；③ 查不到「是否已發」（查詢本身失敗）或錯誤是不可重試的封鎖類，就不再重試。
 IG_DUP_HOURS = 72
+IG_MAX_FAILED_RUNS = 2      # 同一則 IG 最多失敗幾輪就停止自動重發
 _NON_TRANSIENT = ("2207051", '"is_transient": false', "Application request limit reached")
 
 
@@ -1490,7 +1491,32 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
     for p in missing:
         res["notes"].append(f"{p} 沒有權杖（{prefix}{p.upper()}_ACCESS_TOKEN），這個平台先不發；設好後下一輪會補")
     entry = posted.setdefault(it["name"], {})
+    # 第二道防線（2026-11-24 IG 重複發文事故）：同一則 IG 失敗累計 IG_MAX_FAILED_RUNS 輪就停止自動重發，
+    # 之後每輪只查帳號裡有沒有已發出的同文案貼文（有就補記），沒有就留給人工判斷，不再打 media_publish。
+    att_p = state / "ig_attempts.json"
+    att = load_json(att_p, {})
     for p in [x for x in todo if tok[x]]:
+        if p == "ig" and int(att.get(it["name"], 0)) >= IG_MAX_FAILED_RUNS:
+            try:
+                uid = resolve_uid(p, (env.get(f"{prefix}IG_USER_ID") or "").strip(), tok[p], prefix,
+                                  (load_json(state / "verify.json", {}).get(p) or {}).get("via", ""))
+                hit = ig_find_existing(ig_host(tok[p]), uid, tok[p], it["caption"]) if uid else None
+            except Exception as e:  # noqa: BLE001
+                hit = None
+                SP.log(f"[ig] 查已發貼文失敗：{SP.redact(e)}")
+            if hit:
+                entry[p] = {"id": hit.get("id", ""), "link": hit.get("link", ""),
+                            "at": now.astimezone(TAIPEI).isoformat(timespec="seconds"), "note": "補記：查到帳號裡已發出"}
+                entry.setdefault("at", entry[p]["at"])
+                res["posted"][p] = entry[p]
+                SP.log(f"[ig] 查到已發出 {hit.get('link')}，補記")
+            else:
+                # 記成「已放棄」，這則不再擋住後面的貼文（11/23 晚上的影片就是被這種半發的輪播卡住）
+                entry[p] = {"id": "", "link": "", "skipped": f"IG 失敗 {att[it['name']]} 輪，停止自動重發（防重複）",
+                            "at": now.astimezone(TAIPEI).isoformat(timespec="seconds")}
+                res["notes"].append(f"ig 這則已失敗 {att[it['name']]} 輪，停止自動重發（防重複）；確認 IG 帳號沒有這則再人工補發")
+                SP.log(f"[ig] {it['name']} 已失敗 {att[it['name']]} 輪，停止自動重發")
+            continue
         try:
             urls = ig_urls if p == "ig" else th_urls
             if not it["is_video"]:
@@ -1538,6 +1564,10 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             fail = True
             res["errors"][p] = SP.redact(e)[:300]
             SP.log(f"[{p}] 發布失敗（已重試）：{SP.redact(e)}")
+            if p == "ig":
+                att[it["name"]] = int(att.get(it["name"], 0)) + 1
+                att_p.parent.mkdir(parents=True, exist_ok=True)
+                att_p.write_text(json.dumps(att, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     if not entry:
         posted.pop(it["name"], None)
     else:
