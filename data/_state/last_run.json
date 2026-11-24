@@ -39,8 +39,8 @@
         },
         {
           "url": "https://openapi.twse.com.tw/v1/fund/TWT38U",
-          "http": 504,
-          "head": "<html>\r <head><title>504 Gateway Time-out</title></head>\r <body>\r <center><h1>504 Gateway Time-out</h1></center>\r <center>HiNetCDN is well functioning. Please contact your origin server for further as"
+          "http": 200,
+          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
         },
         {
           "url": "https://openapi.twse.com.tw/v1/fund/TWT43U",
@@ -173,19 +173,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 920,
-      "seconds": 0.3
+      "seconds": 0.4
     },
     "inst_daily": {
-      "stored": 70
+      "stored": 166
     },
     "institutional_codes": {
-      "requested": 468,
-      "returned": 70
+      "requested": 398,
+      "returned": 166
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 70,
-      "seconds": 100.3
+      "rows": 166,
+      "seconds": 34.0
     },
     "inst_flags": {
       "rebuild": true,
@@ -207,7 +207,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-24",
-        "rows": 990,
+        "rows": 1156,
         "median": 2224.0,
         "status": "pending",
         "reason": "thin"
@@ -249,10 +249,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-24T08:19:33.491606+00:00",
-  "finished_at": "2026-11-24T08:21:47.628561+00:00",
-  "duration_seconds": 134.1,
+  "started_at": "2026-11-24T08:59:29.842076+00:00",
+  "finished_at": "2026-11-24T09:00:32.760556+00:00",
+  "duration_seconds": 62.9,
   "trade_date": "2026-11-24",
   "complete": true,
-  "finmind_budget_left": 34
+  "finmind_budget_left": 0
 }
