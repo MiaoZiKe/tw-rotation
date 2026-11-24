@@ -40,6 +40,11 @@ def main() -> int:
     keep_keys = {D.key(m.get("caption", "")) for m in rows if code(m.get("permalink", "")) in KEEP}
     tok = L.tokens("HEALING_")[0]
     host = L.FB_HOST if tok.startswith("EAA") else L.IG_HOST
+    try:      # 刪除需要 instagram_manage_contents（11-24 第一次刪除回 #10 權限不足）→ 先印出權杖有哪些權限
+        perms = L.fetch(f"{host}/me/permissions", {"access_token": tok}).get("data", [])
+        print("權杖權限：" + "、".join(f"{x.get('permission')}={x.get('status')}" for x in perms))
+    except Exception as e:  # noqa: BLE001
+        print(f"查權杖權限失敗：{L.mask(str(e))[:200]}")
     ok = fail = 0
     for m in rows:
         c = code(m.get("permalink", ""))
