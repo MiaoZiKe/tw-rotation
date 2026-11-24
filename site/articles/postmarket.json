@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-23",
+ "updated": "2026-11-24",
  "days": [
+  {
+   "date": "2026-11-24",
+   "items": [
+    {
+     "cat": "事件",
+     "title": "川普親曝介入黃仁勳復職內幕！採訪時一直盯著螢幕股價、坦言股價暴跌改變決策",
+     "url": "https://news.cnyes.com/news/id/6670858",
+     "source": "鉅亨",
+     "time": "2026-11-24T14:10:03+08:00",
+     "desc": "川普稱透過政府官員與親自介入，說服輝達董事會讓黃仁勳復職，並指沒有他的介入他回不來；川普認為美國不能失去黃仁勳這類科技人才，稱政府調查數周後未發現足以阻止其回歸…"
+    },
+    {
+     "cat": "新聞",
+     "title": "黃仁勳回歸，投資人如何卡位新一波漲勢？ 四檔台股ETF，從科技成長到收益策略一次看",
+     "url": "https://news.cnyes.com/news/id/6670952",
+     "source": "鉅亨",
+     "time": "2026-11-24T14:58:31+08:00",
+     "desc": "黃仁勳11月23日回任輝達執行長後，全球科技股與台股震盪出現逆轉；台股修正後AI股估值回落，本文建議依投資目的挑選ETF布局；野村四檔台股ETF分別主打創新科技…"
+    },
+    {
+     "cat": "科技",
+     "title": "三星搶攻 AI 商機 西安廠 V9 NAND 產能拚增四倍",
+     "url": "https://technews.tw/2026/11/24/samsung-plans-to-expand-v9-nand-production-capacity-at-xi-an-plant/",
+     "source": "科技新報",
+     "time": "2026-11-24T13:50:07+08:00",
+     "desc": "全球 AI 資料中心建置熱潮帶動企業級固態硬碟（eSSD）需求激增，三星電子（Samsung Electron"
+    },
+    {
+     "cat": "科技",
+     "title": "AI 搶占玻纖布產能墊高 PCB 價格，4Q26 COB/SMD LED 顯示器成本季增 2%",
+     "url": "https://technews.tw/2026/11/24/ai-competition-fiberglass-fabric-capacity-pushes-up-pcb-prices-cob-smd-led-display-costs-rise-2-qoq-4q26/",
+     "source": "科技新報",
+     "time": "2026-11-24T15:40:37+08:00",
+     "desc": "根據 TrendForce 最新《LED 顯示器模組季度成本與市場分析》報告，2026 年第四季由於 PCB"
+    },
+    {
+     "cat": "新聞",
+     "title": "三大法人逆勢大賣1,230億元！台股暴漲3,310點創紀錄 自營商大砍810億元",
+     "url": "https://money.udn.com/money/story/5607/9898862",
+     "source": "聯合新聞網",
+     "time": "2026-11-24T15:24:10+08:00",
+     "desc": "黃仁勳回歸輝達（NVIDIA）執行長，重新點燃市場對AI產業的投資信心，台股24日上演史詩級反攻！集中市場指數狂飆3,368.49點，創下史上最大盤中漲點，最高…"
+    }
+   ]
+  },
   {
    "date": "2026-11-23",
    "items": [
