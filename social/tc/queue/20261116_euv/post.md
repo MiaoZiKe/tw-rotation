@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DfzVHHmiFtv/ https://www.threads.com/@tech_01010909/post/DfzVNaQOM3I https://www.threads.com/@tech_01010909/post/DfzVUmpm5qj
 posted_at: 2026-11-16T20:13+08:00
 error: 
+ids_fb: 1849137086231749
+urls_fb: https://www.facebook.com/reel/1849137086231749/
+fb_posted_at: 2026-11-24T14:02+08:00
+fb_error: 
+fb_slot: 2026-11-24T08:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「曝光機：光比線還粗」
 
