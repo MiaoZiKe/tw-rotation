@@ -1,0 +1,47 @@
+name: IG 重複發文檢查
+# Andy 2026-11-24：「IG有嚴重重複發文問題幫我檢查並處理 避免發生」→ 只讀列出四個 IG 帳號最近 10 天貼文、找文案重複，產生 docs/marketing/channels/IG重複發文檢查.md 並 commit。
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "11 15 * * *"   # 台北 23:11，每天晚上發文結束後檢查一次
+permissions:
+  contents: write
+concurrency:
+  group: ig-dup-check
+  cancel-in-progress: false
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+            docs/marketing/channels
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests pyyaml
+      - name: 檢查各帳號重複發文（只讀）
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN_AUTO: ${{ secrets.IG_ACCESS_TOKEN_AUTO }}
+          TECH_IG_ACCESS_TOKEN: ${{ secrets.TECH_IG_ACCESS_TOKEN }}
+          TECH_IG_ACCESS_TOKEN_AUTO: ${{ secrets.TECH_IG_ACCESS_TOKEN_AUTO }}
+          TECH_IG_USER_ID: ${{ secrets.TECH_IG_USER_ID }}
+          CAFFAINE_IG_ACCESS_TOKEN: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN }}
+          CAFFAINE_IG_ACCESS_TOKEN_AUTO: ${{ secrets.CAFFAINE_IG_ACCESS_TOKEN_AUTO }}
+          CAFFAINE_IG_USER_ID: ${{ secrets.CAFFAINE_IG_USER_ID }}
+          HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
+          HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+        run: python scripts/ig_dup_check.py --days 10 | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: commit 清單
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "docs/marketing/channels/IG重複發文檢查.md"
+          git diff --cached --quiet && exit 0
+          git commit -m "IG 重複發文檢查 $(TZ=Asia/Taipei date "+%F %H:%M")"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done
