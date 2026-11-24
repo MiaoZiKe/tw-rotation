@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-24T20:00+08:00
 weekday: 二
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-foundry.mp4
 images: cover.jpg
 title: 科技透明圈影片：晶圓代工有哪幾家，各家做什麼不同（tech-foundry v4）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/DgH7J6NkeG9/
+ids_ig: 18122917111951862
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DgH7RwyhVlf
+ids_threads: 17990165757121014
+ids_threads_reply: 18362303179220204
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgH7ZHKm9E4
+done: ig, threads
+urls: https://www.instagram.com/reel/DgH7J6NkeG9/ https://www.threads.com/@tech_01010909/post/DgH7RwyhVlf https://www.threads.com/@tech_01010909/post/DgH7ZHKm9E4
+posted_at: 2026-11-24T20:10+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「晶圓代工：超過七成二的營收，都是台積電的」
 

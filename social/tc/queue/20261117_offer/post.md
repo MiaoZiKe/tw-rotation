@@ -21,6 +21,12 @@ verified_threads: VIDEO
 urls_threads_reply: https://www.threads.com/@tech_01010909/post/Df1FmHBDsrE
 urls: https://www.instagram.com/reel/Df1FbhjDF9G/ https://www.threads.com/@tech_01010909/post/Df1FhR7CTt8 https://www.threads.com/@tech_01010909/post/Df1FmHBDsrE
 posted_at: 2026-11-17T12:34+08:00
+ids_fb: 1874200913937339
+urls_fb: https://www.facebook.com/reel/1874200913937339/
+fb_posted_at: 2026-11-24T20:13+08:00
+fb_error: 
+fb_slot: 2026-11-24T20:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「兩份 offer 怎麼比：月薪只是一半」
 
