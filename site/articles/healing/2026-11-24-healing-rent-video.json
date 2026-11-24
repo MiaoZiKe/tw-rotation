@@ -139,7 +139,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-24 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-24 20:30 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/reel/DgH9abWiX08/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DgH9hxFIHGI"
+    }
+   ]
   }
  ],
  "sources": [
@@ -169,8 +183,8 @@
  "confidence": "月薪數字經兩家媒體一致；租金 8,600 與北市獨立套房 15,000 由媒體轉述內政部統計，本環境讀不到原表；占比為自行計算，月薪（全國）與租金（北市／全國）口徑不同，已於圖與文案註明",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/reel/DgH9abWiX08/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DgH9hxFIHGI",
   "queue": "20261124v_rent",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261124v_rent/video.mp4"
