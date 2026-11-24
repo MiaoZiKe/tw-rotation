@@ -73,6 +73,10 @@
    "title": "公開網址",
    "items": [
     {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/DgB8zwzDX_Q/"
+    },
+    {
      "label": "Threads",
      "url": "https://www.threads.com/@talk_01010909/post/DgB9CytkceG"
     }
@@ -100,7 +104,7 @@
  "confidence": "官方年刊經兩家媒體一致；2024 年與 2016 年數字來源不足或不一致，未採用",
  "status": "published",
  "social": {
-  "ig": null,
+  "ig": "https://www.instagram.com/p/DgB8zwzDX_Q/",
   "threads": "https://www.threads.com/@talk_01010909/post/DgB9CytkceG",
   "queue": "20261122_firstmarriage"
  }

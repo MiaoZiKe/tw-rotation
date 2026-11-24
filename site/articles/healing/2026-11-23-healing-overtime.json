@@ -164,6 +164,10 @@
    "title": "公開網址",
    "items": [
     {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/DgEhqhuF5tM/"
+    },
+    {
      "label": "Threads",
      "url": "https://www.threads.com/@talk_01010909/post/DgEh4n3kcGa"
     }
@@ -191,7 +195,7 @@
  "confidence": "官方調查經兩家以上媒體一致；本環境讀不到勞動部原表，36.3%、16.2 小時由第三方轉述核對；2024 年 14.7 小時為推算值，圖上已標「推算」",
  "status": "published",
  "social": {
-  "ig": null,
+  "ig": "https://www.instagram.com/p/DgEhqhuF5tM/",
   "threads": "https://www.threads.com/@talk_01010909/post/DgEh4n3kcGa",
   "queue": "20261123_overtime"
  }
