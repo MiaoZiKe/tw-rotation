@@ -1152,7 +1152,7 @@ def test_IG影片容器ERROR一次後重建成功_用同一支影片(monkeypatch
     a = mkvideo(tmp_path / "q")
     rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(seq=("ERROR", "FINISHED")), now=VNOW)
     assert rc == 0 and res["posted"] == ["20261115_v"] and res["errors"] == []
-    creates = [c for c in api.calls if c[0] == "ig" and c[2] == "/222/media"]
+    creates = [c for c in api.calls if c[0] == "ig" and c[1] == "POST" and c[2] == "/222/media"]
     assert len(creates) == 2 and creates[0][4] == creates[1][4]           # 同一支影片重建
     assert len(api.posts("ig")) == 1                                       # 只發布一次
     assert any(30 <= x <= 60 for x in sleeps)
@@ -1162,7 +1162,7 @@ def test_IG影片容器ERROR一次後重建成功_用同一支影片(monkeypatch
 def test_容器ERROR三次就標error_已發平台不重發(monkeypatch, tmp_path):
     a = mkvideo(tmp_path / "q")
     rc, res, api = go(monkeypatch, tmp_path, api=VideoAPI(seq=("ERROR",)), now=VNOW)
-    creates = [c for c in api.calls if c[0] == "ig" and c[2] == "/222/media"]
+    creates = [c for c in api.calls if c[0] == "ig" and c[1] == "POST" and c[2] == "/222/media"]
     assert rc == 1 and len(creates) == 3 and api.posts("ig") == []        # 1 次 + 重試 2 次
     assert "status: error" in (a / "post.md").read_text() and res["alert"]
 

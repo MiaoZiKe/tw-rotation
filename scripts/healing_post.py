@@ -400,64 +400,15 @@ def _writeback(new: str, env: dict, notes: list[str], saver, why: str, prefix: s
         notes.append(f"Threads 權杖{why}，但寫回 {name} 失敗")
 
 
-# ---------- IG 防重複發文（2026-11-24 Andy：「IG有嚴重重複發文問題幫我檢查並處理 避免發生」）----------
-# 根因：media_publish 回錯（例如 403 code 4／2207051「操作已遭封鎖」）時 IG 有可能其實已經發出去，
-# 舊流程照樣「重建容器再 publish」重試 3 次，而且之後每一輪排程（20:27～23:37 共 8 輪）又重來一次。
-# 新規則：① 發之前先查帳號最近 72 小時有沒有同文案的貼文，有就直接記成已發、不再發；
-#         ② 每次失敗後先查一次，查到就停；③ 查不到「是否已發」（查詢本身失敗）或錯誤是不可重試的封鎖類，就不再重試。
-IG_DUP_HOURS = 72
+# ---------- IG 防重複發文：共用函式搬到 social_publish（2026-11-24，四頻道所有發布路徑共用）----------
+IG_DUP_HOURS = SP.IG_DUP_HOURS
+_NON_TRANSIENT = SP._NON_TRANSIENT
+_cap_key = SP._cap_key
+ig_find_existing = SP.ig_find_existing
+ig_publish_once = SP.ig_publish_once
 IG_MAX_FAILED_RUNS = 2      # 同一則 IG 最多失敗幾輪就停止自動重發
-_NON_TRANSIENT = ("2207051", '"is_transient": false', "Application request limit reached")
 
 
-def _cap_key(text: str) -> str:
-    s = re.sub(r"#\S+", "", text or "")
-    s = re.sub(r"[\s\u3000，。、！？：；「」『』（）()…・\-—|｜,.!?:;\"']", "", s)
-    return s[:40]
-
-
-def ig_find_existing(host: str, uid: str, token: str, caption: str, hours: int = IG_DUP_HOURS):
-    """回傳已發的同文案貼文 {id, link}；沒有回 None；查詢失敗丟例外（呼叫端據此不重試）。"""
-    want = _cap_key(caption)
-    if not want:
-        return None
-    since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    d = SP.http("GET", f"{host}/{uid}/media", params={"fields": "id,caption,timestamp,permalink", "limit": 25,
-                                                      "access_token": token})
-    for m in d.get("data", []):
-        try:
-            ts = datetime.strptime(str(m.get("timestamp", ""))[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
-        except ValueError:
-            continue
-        if ts >= since and _cap_key(m.get("caption", "")) == want:
-            return {"id": str(m.get("id", "")), "link": m.get("permalink", "")}
-    return None
-
-
-def ig_publish_once(host: str, uid: str, token: str, caption: str, go, tries: int = 3) -> dict:
-    """取代 SP.retry_once 用在 IG 發布：發前查重、失敗後查重，查不到就不冒險重發。"""
-    hit = ig_find_existing(host, uid, token, caption)
-    if hit:
-        SP.log(f"[ig] 帳號裡已有同文案貼文（{hit.get('link') or hit.get('id')}），不重發，直接記成已發")
-        return hit
-    for k in range(tries):
-        try:
-            return {"id": go(), "link": ""}
-        except Exception as e:  # noqa: BLE001
-            SP._sleep(10)
-            try:
-                hit = ig_find_existing(host, uid, token, caption)
-            except Exception as e2:  # noqa: BLE001
-                SP.log(f"[ig] 發布失敗後查不到是否已發出（{SP.redact(e2)}），為避免重複不再重試")
-                raise e
-            if hit:
-                SP.log(f"[ig] 回錯但其實已發出（{hit.get('link') or hit.get('id')}），不再重試")
-                return hit
-            if k == tries - 1 or any(x in str(e) for x in _NON_TRANSIENT):
-                raise
-            SP.log(f"[ig] 失敗，第 {k + 1} 次重試（已確認帳號裡沒有這則）：{SP.redact(e)}")
-            SP._sleep(5 if k == 0 else 15)
-    raise RuntimeError("ig 發布失敗")
 
 
 def _ig_link(host: str, token: str, r: dict) -> dict:

@@ -56,6 +56,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+import social_publish as SP  # noqa: E402  2026-11-24 共用 IG 防重複發文
 import ig_post as IG  # noqa: E402  只借用 API 呼叫與檔頭讀寫；不讀它的佇列與權杖
 import post_quota  # noqa: E402
 import tc_fb as FB  # noqa: E402  2026-11-23 同步發 FB 粉專 Reels（開關 social/tc/fb.json）
@@ -490,6 +491,15 @@ def _permalink(platform: str, mid: str, token: str) -> tuple[str, str]:
     return d.get("permalink", ""), d.get("media_type", "")
 
 
+def _ig_publish_once(uid: str, c: str, caption: str, token: str) -> str:
+    """media_publish 走共用防重複（發前查重、失敗後查重、封鎖類不重試）；EAA 與 IGAA 權杖都經 api() 分流。"""
+    def lister():
+        return api("ig", "GET", f"/{uid}/media", token, {"fields": "id,caption,timestamp,permalink", "limit": 25})
+    return SP.ig_publish_once("", uid, token, caption,
+                              lambda: api("ig", "POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"],
+                              lister=lister)["id"]
+
+
 def post_ig(uid: str, urls: list[str], caption: str, token: str) -> dict:
     for u in urls:
         check_public(u)
@@ -509,7 +519,7 @@ def post_ig(uid: str, urls: list[str], caption: str, token: str) -> dict:
         return c
 
     c = with_container_retry(build, "IG ")
-    mid = api("ig", "POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
+    mid = _ig_publish_once(uid, c, caption, token)
     link, mtype = _permalink("ig", mid, token)
     return {"id": mid, "permalink": link, "media_type": mtype}
 
@@ -529,7 +539,7 @@ def post_ig_reel(uid: str, vurl: str, caption: str, token: str, cover: str = "")
         return c
 
     c = with_container_retry(build, "IG 影片")
-    mid = api("ig", "POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
+    mid = _ig_publish_once(uid, c, caption, token)
     link, mtype = _permalink("ig", mid, token)
     return {"id": mid, "permalink": link, "media_type": mtype}
 

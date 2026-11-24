@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
 import threads_lint as TL  # noqa: E402  2026-11-03 不放網站網址（strip_urls）
+import social_publish as SP  # noqa: E402  2026-11-24 共用 IG 防重複發文（ig_publish_once）
 
 QUEUE = ROOT / "social" / "ig" / "queue"
 API = "https://graph.instagram.com"
@@ -164,6 +165,16 @@ def check_public(url: str) -> None:
         raise PostError(f"圖片網址連不上：{url}（{e.reason}）") from None
 
 
+def _publish_once(uid: str, c: str, caption: str, token: str) -> dict:
+    """media_publish 一律走共用防重複：發前查 72 小時內同文案、失敗後先查有沒有已發出、封鎖類不重試。"""
+    def lister():
+        return _call("GET", f"/{uid}/media", token, {"fields": "id,caption,timestamp,permalink", "limit": 25})
+    r = SP.ig_publish_once(API, uid, token, caption,
+                           lambda: _call("POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"],
+                           lister=lister)
+    return {"id": r["id"], "permalink": r.get("link", "")}
+
+
 def wait_ready(cid: str, token: str, tries: int = 12) -> None:
     for _ in range(tries):
         st = _call("GET", f"/{cid}", token, {"fields": "status_code"}).get("status_code", "")
@@ -219,12 +230,13 @@ def publish_reel(video: str, caption: str, token: str, meta: dict | None = None)
             c = None
     if not c:
         raise PostError("IG Reels 所有影片網址都失敗：" + "；".join(errs)[:400])
-    mid = _call("POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
-    link = ""
-    try:
-        link = _call("GET", f"/{mid}", token, {"fields": "permalink"}).get("permalink", "")
-    except PostError:
-        pass
+    r = _publish_once(uid, c, caption, token)
+    mid, link = r["id"], r["permalink"]
+    if not link:
+        try:
+            link = _call("GET", f"/{mid}", token, {"fields": "permalink"}).get("permalink", "")
+        except PostError:
+            pass
     return {"id": mid, "permalink": link}
 
 
@@ -246,12 +258,13 @@ def publish(imgs: list[str], caption: str, token: str) -> dict:
         c = _call("POST", f"/{uid}/media", token,
                   {"media_type": "CAROUSEL", "children": ",".join(kids), "caption": caption})["id"]
     wait_ready(c, token)
-    mid = _call("POST", f"/{uid}/media_publish", token, {"creation_id": c})["id"]
-    link = ""
-    try:
-        link = _call("GET", f"/{mid}", token, {"fields": "permalink"}).get("permalink", "")
-    except PostError:
-        pass
+    r = _publish_once(uid, c, caption, token)
+    mid, link = r["id"], r["permalink"]
+    if not link:
+        try:
+            link = _call("GET", f"/{mid}", token, {"fields": "permalink"}).get("permalink", "")
+        except PostError:
+            pass
     return {"id": mid, "permalink": link}
 
 

@@ -23,6 +23,7 @@ import argparse
 import json
 from datetime import datetime, timedelta, timezone
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -86,6 +87,70 @@ def retry_once(label, fn, tries: int = 3):
                 raise
             log(f"[{label}] 失敗，第 {k + 1} 次重試：{redact(e)}")
             _sleep(5 if k == 0 else 15)
+
+
+# ---------- IG 防重複發文（2026-11-24 Andy：「IG有嚴重重複發文問題幫我檢查並處理 避免發生」）----------
+# 根因：media_publish 回錯（例如 403 code 4／2207051「操作已遭封鎖」）時 IG 有可能其實已經發出去，
+# 舊流程照樣「重建容器再 publish」重試 3 次，之後每一輪排程又重來一次（④ 因此重複 21 則）。
+# 新規則：① 發之前先查帳號最近 72 小時有沒有同文案的貼文，有就直接記成已發、不再發；
+#         ② 每次失敗後先查一次，查到就停；③ 查不到「是否已發」（查詢本身失敗）或錯誤是不可重試的封鎖類，就不再重試。
+# 四個頻道的所有 IG 發布路徑（social_publish／healing_post／ig_post／tc_post）都走這組共用函式。
+IG_DUP_HOURS = 72
+_NON_TRANSIENT = ("2207051", '"is_transient": false', "Application request limit reached")
+
+
+def _cap_key(text: str) -> str:
+    s = re.sub(r"#\S+", "", text or "")
+    s = re.sub(r"[\s\u3000，。、！？：；「」『』（）()…・\-—|｜,.!?:;\"']", "", s)
+    return s[:40]
+
+
+def ig_find_existing(host: str, uid: str, token: str, caption: str, hours: int = IG_DUP_HOURS, lister=None):
+    """回傳已發的同文案貼文 {id, link}；沒有回 None；查詢失敗丟例外（呼叫端據此不重試）。
+    lister：ig_post／tc_post 用自己的 API 包裝時傳進來，呼叫後回 /{uid}/media 的 JSON；沒傳就走本檔 http。"""
+    want = _cap_key(caption)
+    if not want:
+        return None
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    if lister is not None:
+        d = lister()
+    else:
+        d = http("GET", f"{host}/{uid}/media", params={"fields": "id,caption,timestamp,permalink", "limit": 25,
+                                                      "access_token": token})
+    for m in d.get("data", []):
+        try:
+            ts = datetime.strptime(str(m.get("timestamp", ""))[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        if ts >= since and _cap_key(m.get("caption", "")) == want:
+            return {"id": str(m.get("id", "")), "link": m.get("permalink", "")}
+    return None
+
+
+def ig_publish_once(host: str, uid: str, token: str, caption: str, go, tries: int = 3, lister=None) -> dict:
+    """取代 retry_once 用在 IG 發布：發前查重、失敗後查重，查不到就不冒險重發。回 {id, link}。"""
+    hit = ig_find_existing(host, uid, token, caption, lister=lister)
+    if hit:
+        log(f"[ig] 帳號裡已有同文案貼文（{hit.get('link') or hit.get('id')}），不重發，直接記成已發")
+        return hit
+    for k in range(tries):
+        try:
+            return {"id": go(), "link": ""}
+        except Exception as e:  # noqa: BLE001
+            _sleep(10)
+            try:
+                hit = ig_find_existing(host, uid, token, caption, lister=lister)
+            except Exception as e2:  # noqa: BLE001
+                log(f"[ig] 發布失敗後查不到是否已發出（{redact(e2)}），為避免重複不再重試")
+                raise e
+            if hit:
+                log(f"[ig] 回錯但其實已發出（{hit.get('link') or hit.get('id')}），不再重試")
+                return hit
+            if k == tries - 1 or any(x in str(e) for x in _NON_TRANSIENT):
+                raise
+            log(f"[ig] 失敗，第 {k + 1} 次重試（已確認帳號裡沒有這則）：{redact(e)}")
+            _sleep(5 if k == 0 else 15)
+    raise RuntimeError("ig 發布失敗")
 
 
 def wait_ready(host, token, cid, label, field):
@@ -238,7 +303,7 @@ def publish_story(uid, token, url):
         wait_ready(IG_HOST, token, c["id"], "ig 限動", "status_code")
         return http("POST", f"{IG_HOST}/{uid}/media_publish", data={"creation_id": c["id"], "access_token": token})["id"]
 
-    pid = retry_once("ig", go)
+    pid = ig_publish_once(IG_HOST, uid, token, "", go)["id"]     # 限動沒文案可比對 → 只套「封鎖類不重試」
     link = ""
     try:
         link = http("GET", f"{IG_HOST}/{pid}", params={"fields": "permalink", "access_token": token}).get("permalink", "")
