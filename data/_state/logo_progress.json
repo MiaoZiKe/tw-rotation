@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-11-24T16:04:43.794000+00:00",
+ "at": "2026-11-24T17:07:05.757179+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -9,34 +9,23 @@
   "removed": []
  },
  "wikimedia": {
-  "asked": 1,
+  "asked": 0,
   "ok": 0,
-  "replaced_lowres": 0,
-  "matched": 0
+  "replaced_lowres": 0
  },
  "done": true,
  "pending": 0,
- "attempted": 7,
- "counts": {
-  "robots": 1,
-  "ok": 6
- },
+ "attempted": 0,
+ "counts": {},
  "generic": 0,
  "sites": 1995,
  "have": 1745,
  "next_due": "2026-11-27",
- "seconds": 7.1,
+ "seconds": 0.1,
  "deadline_hit": false,
  "strategy": 4,
  "svg": true,
- "failures": [
-  {
-   "code": "2640",
-   "status": "robots",
-   "domain": "55688develop.webflow.io",
-   "detail": "https://55688develop.webflow.io/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
-  }
- ],
+ "failures": [],
  "tc": {
   "domains": 101,
   "have": 68,
