@@ -1,0 +1,34 @@
+name: IG 重複貼文刪除（頻道④）
+# Andy 2026-11-24：「好 刪掉 每組留最早那則」。只刪 scripts/ig_dup_delete.py 寫死的 21 則；刪完重跑重複檢查。
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "試跑（只列出會刪哪些）"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: ig-dup-delete
+  cancel-in-progress: false
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+            docs/marketing/channels
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests pyyaml
+      - name: 刪除重複貼文
+        env:
+          HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
+          HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
+          HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+        run: python scripts/ig_dup_delete.py ${{ inputs.dry_run && '--dry-run' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
