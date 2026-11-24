@@ -38,7 +38,9 @@ def main() -> int:
         print("⚠️", err)
         return 1
     keep_keys = {D.key(m.get("caption", "")) for m in rows if code(m.get("permalink", "")) in KEEP}
-    tok = L.tokens("HEALING_")[0]
+    import os
+    tok = (os.environ.get("HEALING_IG_DELETE_TOKEN") or "").strip() or L.tokens("HEALING_")[0]   # 一次性刪除用權杖（含 instagram_manage_contents）
+    L.SECRETS.append(tok)
     host = L.FB_HOST if tok.startswith("EAA") else L.IG_HOST
     try:      # 刪除需要 instagram_manage_contents（11-24 第一次刪除回 #10 權限不足）→ 先印出權杖有哪些權限
         perms = L.fetch(f"{host}/me/permissions", {"access_token": tok}).get("data", [])

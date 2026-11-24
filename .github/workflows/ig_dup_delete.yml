@@ -31,4 +31,5 @@ jobs:
           HEALING_IG_ACCESS_TOKEN: ${{ secrets.HEALING_IG_ACCESS_TOKEN }}
           HEALING_IG_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_IG_ACCESS_TOKEN_AUTO }}
           HEALING_IG_USER_ID: ${{ secrets.HEALING_IG_USER_ID }}
+          HEALING_IG_DELETE_TOKEN: ${{ secrets.HEALING_IG_DELETE_TOKEN }}   # Andy 11-24 一次性產的刪除用權杖
         run: python scripts/ig_dup_delete.py ${{ inputs.dry_run && '--dry-run' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
