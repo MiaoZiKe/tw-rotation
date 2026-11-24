@@ -1,22 +1,26 @@
 {
- "at": "2026-11-24T12:32:30+08:00",
+ "at": "2026-11-24T20:30:21+08:00",
  "mode": "live",
- "item": "20261124_rent",
+ "item": "20261124v_rent",
  "posted": {
   "ig": {
-   "id": "18115059014134548",
-   "link": "https://www.instagram.com/p/DgHGx5wjsqX/",
-   "at": "2026-11-24T12:32:30+08:00"
+   "id": "17932568346430825",
+   "link": "https://www.instagram.com/reel/DgH9abWiX08/",
+   "at": "2026-11-24T20:30:21+08:00",
+   "format": "video",
+   "video_via": "site"
   },
   "threads": {
-   "id": "17977721778149916",
-   "link": "https://www.threads.com/@talk_01010909/post/DgHG3PtFBh_",
-   "at": "2026-11-24T12:32:30+08:00"
+   "id": "17954947620352283",
+   "link": "https://www.threads.com/@talk_01010909/post/DgH9hxFIHGI",
+   "at": "2026-11-24T20:30:21+08:00",
+   "format": "video",
+   "video_via": "site"
   }
  },
  "errors": {},
  "notes": [
   "20261116v_worktime：還沒到 2026-11-28T20:27:00+08:00"
  ],
- "summary": "20261124_rent：已發 ig https://www.instagram.com/p/DgHGx5wjsqX/；threads https://www.threads.com/@talk_01010909/post/DgHG3PtFBh_"
+ "summary": "20261124v_rent：已發 ig https://www.instagram.com/reel/DgH9abWiX08/；threads https://www.threads.com/@talk_01010909/post/DgH9hxFIHGI"
 }
