@@ -5799,11 +5799,11 @@
    "sha1": "1f56dd369f4e1d8e7a3f81407e9b63e13146ab00"
   },
   "2640": {
-   "status": "none",
-   "domain": "www.taiwantaxi.com.tw",
-   "fetched": "2026-10-29",
+   "status": "robots",
+   "domain": "55688develop.webflow.io",
+   "fetched": "2026-11-25",
    "strategy": 4,
-   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.taiwantaxi.com.tw&sz=128"
+   "detail": "https://55688develop.webflow.io/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "2641": {
    "status": "ok",
@@ -9864,16 +9864,16 @@
   },
   "3609": {
    "status": "ok",
-   "domain": "www.31hep.com",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "src": "site:og-image",
-   "url": "https://www.31hep.com/archive/banner/b3.jpg",
+   "domain": "31hep.ai",
+   "fetched": "2026-11-25",
+   "strategy": 4,
+   "src": "site:inline-svg",
+   "url": "https://31hep.ai/#inline-svg-1",
    "orig": [
-    1900,
-    1000
+    256,
+    256
    ],
-   "sha1": "a68d0dea37e9755ecbc8f7dae7611c1f524c4fc2"
+   "sha1": "89a9a61a58a3fa750537b392f5f994f48baeec18"
   },
   "3611": {
    "status": "ok",
@@ -17147,16 +17147,16 @@
   },
   "6474": {
    "status": "ok",
-   "domain": "www.wfe.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "src": "site:header-img",
-   "url": "http://www.wfe.com.tw/images/logo.png",
+   "domain": "holding.waferlock.com",
+   "fetched": "2026-11-25",
+   "strategy": 4,
+   "src": "site:css-logo",
+   "url": "https://holding.waferlock.com/Upload/20261021104714_40321.jpg",
    "orig": [
-    218,
-    66
+    900,
+    300
    ],
-   "sha1": "ac023eb01b0eea0150fc23808aff87ac1adbdeb7"
+   "sha1": "8ce657a391bdf8347c30a91ce2208044dcef71b7"
   },
   "6477": {
    "status": "ok",
@@ -19201,6 +19201,19 @@
    ],
    "sha1": "1f6817fd061499fa1baac39df2beb171460e3f71"
   },
+  "6825": {
+   "status": "ok",
+   "domain": "www.qbictechnology.com",
+   "fetched": "2026-11-25",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.qbictechnology.com/wp-content/uploads/2022/07/cropped-Qbic-Favicon-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "a143049a0d49f8439fe6009da58bbbc87883272a"
+  },
   "6829": {
    "status": "none",
    "domain": "www.cfprec.com.tw",
@@ -19620,6 +19633,19 @@
    ],
    "sha1": "3b5b7534b63105bb29e953ba18e21a65ba347e57"
   },
+  "6898": {
+   "status": "ok",
+   "domain": "www.chainsea.com.tw",
+   "fetched": "2026-11-25",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.chainsea.com.tw/wp-content/uploads/2019/07/cropped-LOGO_無線-e1562723661986-1-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "35375f8b7f7c1971251975b949ede7f56f910cbd"
+  },
   "6899": {
    "status": "ok",
    "domain": "www.amtouch.com.tw",
@@ -19963,6 +19989,19 @@
     64
    ],
    "sha1": "e78a14b84e8513d691584b1063af62eb58a4a054"
+  },
+  "6938": {
+   "status": "ok",
+   "domain": "www.newebinfo.com.tw",
+   "fetched": "2026-11-25",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.newebinfo.com.tw/images/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "4be62b023f98095c0287e75ea20c8ddf39f39e82"
   },
   "6944": {
    "status": "ok",
@@ -21236,6 +21275,19 @@
     512
    ],
    "sha1": "f90eeb402676f2a17ce46843ca492458a7da9504"
+  },
+  "7848": {
+   "status": "ok",
+   "domain": "www.chiyihsin.com",
+   "fetched": "2026-11-25",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.chiyihsin.com/assets/favicon-DyQ8dFtX.png",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "9f20867d293090fe5d35a51642ffdadeb999a9ac"
   },
   "7855": {
    "status": "none",
@@ -23917,7 +23969,7 @@
    "sha1": "a401f1b89092fbbb927aad9ab95e4c9ad76b9da0"
   }
  },
- "updated_at": "2026-11-24T15:02:11.772160+00:00",
+ "updated_at": "2026-11-24T16:04:50.876424+00:00",
  "generic_sha1": [
   "07667b594c83945d9d47a47b7abc7b6018ac3d50",
   "4cc17acf317825a6e9f40d28712ec3af511e80a3",
