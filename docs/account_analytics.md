@@ -167,6 +167,7 @@ Worker 的頁面白名單（`VIEWS`）沒有 etf／explore／support／events，
 | `draw.tool` | stock | 工具名稱 | 畫線工具列 |
 
 ### 管理區仍需 Worker 才能完整呈現的欄位（前端已先做好，預覽用示範資料；正式站目前顯示估算或「尚未提供」）
+- **註冊會員人數（2026-11-25 起是真實值）**：`/v1/admin/members/count` 回 `{total, new7, new30}`（users 表 COUNT、created 近 7／30 天）；流量觀測甜甜圈卡上方那行「註冊會員 N 人・近 7 天新增 M」讀這裡。甜甜圈裡的估算段已改名「登入開站次數（估算）」，那是開站次數不是人數。`/v1/admin/perm/list` 一頁 2000 人並回 `total`／`more`，前端 `permListAll` 自動接著抓下一頁。
 - **開站身分**（登入／訪客的甜甜圈拆「註冊會員＋各付費方案」）：Worker 的 `ev:session_login` 沒有分會員等級。目前前端用 `plans/get`＋`perm/list` 的名單人數比例估算（標「估算」）。要精準：心跳 `session_login` 改記 `session_tier:<plan id>`，或 `/v1/admin/stats` 回 `tiers: [{id, name, n, login}]`。
 - **使用時段**（使用者分頁的每小時直條）：需要 `/v1/admin/stats` 回 `hourly: [24 個數字]`（期間內每天每小時的頁面瀏覽加總，台北時間）。沒有就顯示說明文字。
 - **即時**（期間選單）：需要 `hours: [24 個數字]`（今天每小時瀏覽）；沒有時只畫 1 根（今天）。

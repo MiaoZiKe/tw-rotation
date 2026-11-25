@@ -39,6 +39,7 @@
  */
 
 /* ---------------------------------------------------------------- 可調參數 */
+const MEMBER_PAGE = 2000;   // 會員名單一頁上限（perm/list 與 v3Members 共用，2026-11-25）
 const TOKEN_DAYS = 60;                 // 權杖效期；剩不到一半時 /v1/me 會換一張新的
 const ONLINE_WINDOW_MS = 150 * 1000;   // 在線時間（visits.ms）的斷線判斷：兩次心跳相隔超過這個就不補中間那段（線上名單改用 PRESENCE_WINDOW_MS）
 const PRESENCE_TTL_MS = 1920 * 1000;   // 超過這個時間的在線紀錄直接刪（「離線即刪」的上限；要大於 PRESENCE_WINDOW_MS；11-02 隨在線區間放寬為 32 分鐘）
@@ -263,6 +264,7 @@ export class Hub {
         case '/v1/admin/perm/get': return await this.adminPermGet(req, b);
         case '/v1/admin/perm/put': return await this.adminPermPut(req, b);
         case '/v1/admin/perm/list': return await this.adminPermList(req, b);
+        case '/v1/admin/members/count': return await this.adminMembersCount(req, b);
         case '/v1/admin/plans/get': return await this.adminPlansGet(req, b);
         case '/v1/admin/plans/put': return await this.adminPlansPut(req, b);
         default: return this.json(req, { error: 'not_found' }, 404);
@@ -614,9 +616,19 @@ export class Hub {
     const from30 = tpeDay(this.now() - 29 * 86400 * 1000);
     const vis = {};
     this.q('SELECT uid, SUM(n) AS n FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r.n; });
-    const users = this.q('SELECT uid, name, email, seen, created FROM users ORDER BY seen DESC LIMIT 1000')
+    /* 2026-11-25（Andy：「訪客人數有變多但會員人數固定」）：原本 LIMIT 1000 會靜默截斷；改成與 v3Members 同上限 2000＋offset 分頁，
+       並回 total（真實 COUNT）與 more（還有下一頁）讓前端知道名單是否完整。*/
+    const total = this.q('SELECT COUNT(*) AS c FROM users')[0].c;
+    const off = Math.max(0, parseInt(b && b.offset, 10) || 0);
+    const users = this.q('SELECT uid, name, email, seen, created FROM users ORDER BY seen DESC LIMIT ? OFFSET ?', MEMBER_PAGE, off)
       .map((u) => ({ name: u.name, email: String(u.email || '').toLowerCase(), seen: u.seen || 0, created: u.created || 0, visits: vis[u.uid] || 0 }));
-    return this.json(req, { rows, users, now: this.now() });
+    return this.json(req, { rows, users, total, offset: off, more: off + users.length < total, now: this.now() });
+  }
+  /* 真實註冊會員人數（管理者）：users 表 COUNT＋近 7／30 天新註冊（created 毫秒）。會員概況的「註冊會員」讀這裡，不再用開站次數估算。*/
+  async adminMembersCount(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const now = this.now(), c = (since) => this.q('SELECT COUNT(*) AS c FROM users WHERE created >= ?', since)[0].c;
+    return this.json(req, { total: this.q('SELECT COUNT(*) AS c FROM users')[0].c, new7: c(now - 7 * 86400000), new30: c(now - 30 * 86400000), now });
   }
   async adminPlansGet(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
@@ -1052,7 +1064,7 @@ Hub.prototype.v3Members = function () {
   this.v3Init();
   const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000);
   const plans = {}; this.q('SELECT id, name FROM plans').forEach((r) => { plans[r.id] = r.name; });
-  const users = this.q('SELECT uid, name, email, created, seen FROM users ORDER BY seen DESC LIMIT 2000');
+  const users = this.q('SELECT uid, name, email, created, seen FROM users ORDER BY seen DESC LIMIT ?', MEMBER_PAGE);
   const vis = {}; this.q('SELECT uid, SUM(n) AS n, SUM(COALESCE(ms, 0)) AS ms, SUM(CASE WHEN n > 0 OR ms > 0 THEN 1 ELSE 0 END) AS d FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r; });
   const tot = {}; this.q('SELECT uid, SUM(COALESCE(ms, 0)) AS ms FROM visits GROUP BY uid').forEach((r) => { tot[r.uid] = r.ms || 0; });
   const pv = {}; this.q("SELECT uid, SUM(n) AS n FROM uev WHERE day >= ? AND comp = '_pv' GROUP BY uid", from30).forEach((r) => { pv[r.uid] = r.n; });

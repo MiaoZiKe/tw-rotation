@@ -7,6 +7,12 @@
 
 - 2026-11-16 頻道③ CaffAIne 第一支 Reels（AI 代理：看、做、檢查，ai-mp4 caffaine-agent-loop）：Andy 11-16 決定不發。佇列資料夾沒有推進 main、隱藏文章沒做、dm_config.json 沒動（留言私訊維持關閉）。⚠ 待清：影片已推到 `media/caffaine/20261116_agent_loop` 分支，但工作流 `clean` 只清佇列裡發過的資料夾、清不到它，這個 session 刪分支被代理擋（HTTP 403）；之後有權限的 session 執行 `git push origin --delete media/caffaine/20261116_agent_loop`（social-ops-lead）。
 
+## 2026-11-25 管理區會員概況改真實人數（維修；Andy：「訪客人數有變多但會員人數固定 是否有沒更新到?」；最後更新 11-25 台北）
+- 根因：流量觀測甜甜圈的「註冊會員」是 `ev:session_login` 開站次數 × 名單比例估算，不是人數；`perm/list` 的 users 另有 LIMIT 1000 靜默截斷（v3Members 是 2000）。
+- Worker：新增 `/v1/admin/members/count`（total／new7／new30）；`perm/list` 改一頁 2000＋offset 分頁、回 total／more（測試 `tests/member_count.test.mjs`，已加進 deploy-account-worker.yml）。
+- 前端（只管理區）：甜甜圈卡上方加「註冊會員 N 人・近 7 天新增 M・近 30 天」；估算段改名「登入開站次數（估算）」；`permListAll` 自動抓下一頁。
+- 這批只驗：node 測試全部、_uitest `會員概況真實人數1125`、`管理區重疊普查1017`、_preview.py。
+
 ## 2026-11-17 頻道①刪除範本之前的舊文（social-ops-lead；Andy：「並且在這之前的貼文幫我自動刪除」「Thread 也是」）
 - 範本＝11-09 20:30「黃仁勳坦承對妻子不忠，輝達董事會啟動獨立調查」：Threads 18098802215553949、IG 18133464223840109，這篇與之後全部保留。
 - ✅ 備份：social-snaps `archive/before_1109_template/`（commit 2d54cb83，Threads 278＋IG 30＋圖檔 452）。

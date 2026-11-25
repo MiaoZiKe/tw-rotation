@@ -58,6 +58,9 @@
     if (document.getElementById('admCss')) return;
     const s = document.createElement('style'); s.id = 'admCss';
     s.textContent = `
+#trDonut .memcnt{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin:2px 0 6px;font-size:13px;color:var(--muted,#9aa)}
+#trDonut .memcnt b{font:700 18px/1.2 var(--mono,ui-monospace,monospace);color:var(--fg,#e6e6e6)}
+#trDonut .memcnt .sub b{font-size:13px}
 /* ===== 流量觀測 1005 重設計（Andy 10-05：字級照其他分頁、圖表填滿卡片、其餘照 UI 專家設計）=====
    字級（量自總覽／資金流向／市場明細，1440 實測）：卡標 16/600、副標 13/400、頂部 KPI 24/700 mono、卡內 KPI 18/700 mono、
    表頭 12/600、表格內文 14、軸字／圖例註 12。版型：三欄格線，第一列 2:1（趨勢＋佔比）、第二列三張長條榜、第三列 2:1（表＋散佈）、第四列 1:2（在線＋會員）；
@@ -1061,6 +1064,16 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     };
     return { stats, online, members, mstats, mstatsFor, detail, users };
   })();
+  /* 2026-11-25：perm/list 一頁最多 2000 人（Worker 回 total／more），超過就接著抓下一頁，名單不再被靜默截斷 */
+  async function permListAll(A) {
+    const r = await A.call('/v1/admin/perm/list', {});
+    for (let i = 0; r && r._s === 200 && r.more && i < 20; i++) {
+      const n = await A.call('/v1/admin/perm/list', { offset: (r.users || []).length });
+      if (!n || n._s !== 200 || !(n.users || []).length) break;
+      r.users = r.users.concat(n.users); r.more = n.more;
+    }
+    return r;
+  }
   function demoWrap(A) {
     if (!IS_PREVIEW || !A || A.__demo) return A;
     const ok = (o) => Promise.resolve(Object.assign({ _s: 200 }, o));
@@ -1071,6 +1084,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       if (path === '/v1/admin/online') return ok(DEMO.online);
       if (path === '/v1/admin/members') return ok({ members: DEMO.members });
       if (path === '/v1/admin/members/stats') return ok(DEMO.mstatsFor(body || {}));
+      if (path === '/v1/admin/members/count') { const now = Date.now(), us = DEMO.users || [], c = (d) => us.filter((u) => u.created && u.created >= now - d * 86400000).length; return ok({ total: us.length, new7: c(7), new30: c(30), now }); }
       if (path === '/v1/admin/member/detail') return ok(DEMO.detail(String((body || {}).email || '').toLowerCase()));
       const r = await A.call(path, body);
       if (path === '/v1/admin/perm/list' && r && r._s === 200) {                  // 名單：真資料之外補示範會員（前 12 位掛第一個付費範本，其餘免費）
@@ -1222,6 +1236,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     S.firstDay = Object.keys(perDay).filter((d) => perDay[d] > 0).sort()[0] || ''; S.pvAll = sum(Object.values(pvT));
     data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
+    /* 2026-11-25（Andy：「訪客人數有變多但會員人數固定」）：註冊會員＝Worker 的 users 真實 COUNT＋近 7 天新增；讀不到才退回 stats 的 total */
+    try { const mc = await A.call('/v1/admin/members/count', {}); S.mc = mc && mc._s === 200 && Number.isInteger(mc.total) ? mc : null; } catch (e) { S.mc = null; }
+    if (!S.mc && stT.users && Number.isInteger(stT.users.total)) S.mc = { total: stT.users.total, new7: null };
     v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="admgrid trone">${funnelHtml()}</div><div class="admgrid trone">${usageHtml()}</div><div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     wireFunnel(v);
@@ -1358,7 +1375,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span>` })}</div>
       <div class="admgrid trtop">
         <div class="card s2" id="admDays">${S.period === 'live' || !bk ? '' : `<div class="seg tiny grtog" id="trGran" role="tablist" aria-label="統計單位">${[['day', '日'], ['week', '週'], ['month', '月']].map(([k, n]) => `<button type="button" role="tab" data-g="${k}" class="${bk.gran === k ? 'on' : ''}" aria-selected="${bk.gran === k}">${n}</button>`).join('')}</div>`}<h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
-        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
+        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p>${memCountHtml()}<div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
       </div>`;
   }
 
@@ -1374,9 +1391,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const total = Math.max(1, (st.users && st.users.total) || 0), paidP = (plans || []).filter((p) => !p.builtin && p.id !== 'guest' && p.id !== 'free' && !/^(訪客|註冊會員|免費會員|付費會員)/.test(p.name || ''));
     const cnt = {}; (perm || []).forEach((r) => { if (paidP.some((p) => p.id === r.plan) && !(r.expires && r.expires < Date.now())) cnt[r.plan] = (cnt[r.plan] || 0) + 1; });
     const paidN = Object.values(cnt).reduce((a, b) => a + b, 0);
-    list.unshift({ id: 'free', name: '註冊會員', n: Math.round(loginSess * Math.max(0, total - paidN) / total), col: 'var(--cat-1)', login: true });
+    list.unshift({ id: 'free', name: '登入開站次數（估算）', n: Math.round(loginSess * Math.max(0, total - paidN) / total), col: 'var(--cat-1)', login: true });
     paidP.forEach((p) => { if (cnt[p.id]) list.splice(list.length - 1, 0, { id: p.id, name: p.name, n: Math.round(loginSess * cnt[p.id] / total), col: planCol(p.id), login: true }); });
     return { list, est: true };
+  }
+  /* 真實註冊會員人數（只有管理區看得到）：甜甜圈是「開站次數」，這行才是「人數」 */
+  function memCountHtml() {
+    const m = S.mc; if (!m) return '';
+    return `<p class="memcnt" id="trMemCnt"><span>註冊會員 <b data-n="total">${nf(m.total)}</b> 人</span>${m.new7 == null ? '' : `<span class="sub">近 7 天新增 <b data-n="new7">${nf(m.new7)}</b>${m.new30 == null ? '' : `・近 30 天 <b data-n="new30">${nf(m.new30)}</b>`}</span>`}</p>`;
   }
   function loginDonut(list, sessions) {
     const tot = sum(list.map((t) => t.n)); if (!tot) return '<div class="empty">沒有資料</div>';
@@ -2064,7 +2086,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     colsFromServer();   // 2026-11-10 會員表欄位順序從伺服器取（不等名單；回來時若不同再重畫）
     await loadFeatures();
     if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">讀不到功能清單</p></div>'; return; }
-    const [pl, li, mm, gd, iv] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {}), A.call('/v1/admin/grants/defs/list', {}), A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
+    const [pl, li, mm, gd, iv] = await Promise.all([A.call('/v1/admin/plans/get', {}), permListAll(A), A.call('/v1/admin/members', {}), A.call('/v1/admin/grants/defs/list', {}), A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
     setInv(iv);
     if (tabOf() !== tab) return;
     if (!pl || pl._s !== 200) {
@@ -3145,7 +3167,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   async function refreshList() {
     PS.mst = {};      // 名單變了 → 上方統計重抓（狀態、人數由名單算，Top 8／活躍由伺服器算）
-    const [li, mm, gd, iv] = await Promise.all([PS.A.call('/v1/admin/perm/list', {}), PS.A.call('/v1/admin/members', {}), PS.A.call('/v1/admin/grants/defs/list', {}), PS.A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
+    const [li, mm, gd, iv] = await Promise.all([permListAll(PS.A), PS.A.call('/v1/admin/members', {}), PS.A.call('/v1/admin/grants/defs/list', {}), PS.A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
     setInv(iv);
     if (gd && gd._s === 200 && Array.isArray(gd.defs)) PS.gd = gd.defs;
     if (li && li._s === 200) PS.list = li;

@@ -42,7 +42,7 @@ jobs:
         run: node --test workers/account-api/tests/account.test.mjs workers/account-api/tests/susp.test.mjs workers/account-api/tests/quota.test.mjs workers/account-api/tests/grants.test.mjs workers/account-api/tests/promo.test.mjs workers/account-api/tests/alerts.test.mjs workers/account-api/tests/alertmail.test.mjs
 
       - name: 會員資料匯出／還原測試
-        run: node --test workers/account-api/tests/export.test.mjs
+        run: node --test workers/account-api/tests/export.test.mjs workers/account-api/tests/member_count.test.mjs
 
       # 2026-10-11 金流（綠界＋銀行轉帳，docs/payment_checkout_1011.md）：CheckMacValue 官方範例、付款後開通的每一層保險、退款、冪等 —— 紅了就不准部署
       - name: 金流訂單測試
