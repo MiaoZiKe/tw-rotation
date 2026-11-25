@@ -1,0 +1,62 @@
+name: healing_outreach
+# 頻道④ 外部回覆（到別人熱門串底下留有觀點的回覆）。2026-11-25 Andy 核准④自己經營。
+# 預設 dry_run=true：只做候選搜尋／權限查證與「會送什麼」，不發任何貼文或留言。說明：scripts/healing_outreach.py
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "probe＝只讀查 keyword_search 權限；collect＝取候選寫 drafts.json；send＝送 approved 草稿"
+        type: choice
+        options: [probe, collect, send]
+        default: probe
+      dry_run:
+        description: "true＝不送出、不寫送出紀錄（預設）；false 且 mode=send 才真的送"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: healing_outreach
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/data/
+            !/site/
+            !*.mp4
+            !*.mov
+            !*.png
+            !*.jpg
+            !*.parquet
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 執行
+        env:
+          HEALING_THREADS_ACCESS_TOKEN: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN }}
+          HEALING_THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.HEALING_THREADS_ACCESS_TOKEN_AUTO }}
+          MODE: ${{ inputs.mode }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          if [ "$MODE" = "send" ]; then
+            LIVE=""; [ "$DRY" = "false" ] && LIVE="--live"
+            python scripts/healing_outreach.py --send $LIVE | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            python scripts/healing_outreach.py --$MODE | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: 草稿與送出紀錄寫回 main
+        if: ${{ inputs.mode == 'collect' || (inputs.mode == 'send' && inputs.dry_run == false) }}
+        run: |
+          git config user.name "tw-rotation-bot"; git config user.email "actions@github.com"
+          git add docs/marketing/channels/healing/outreach/drafts.json docs/marketing/channels/healing/state/outreach_sent.json 2>/dev/null || true
+          git diff --staged --quiet && { echo "沒有變動"; exit 0; }
+          git commit -q -m "談晴說礙：外部回覆草稿／紀錄 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do git push origin HEAD:main && exit 0; sleep $((2**i)); git pull -q --rebase origin main; done; exit 1
