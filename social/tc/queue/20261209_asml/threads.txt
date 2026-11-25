@@ -17,14 +17,10 @@
 
 【第 1 則留言】
 出處（查證截至 2026/11/25）：
-・曝光機像投影機、縮小四倍、掃描式曝光＝ASML 官網〈Lithography principles〉〈How lithography works〉、Wikipedia〈Extreme ultraviolet lithography〉
-・錫滴每秒約五萬顆、打成電漿發出 13.5 奈米極紫外光＝ASML 官網〈The hottest thing about ASML machines〉（公司說法）；Wikipedia〈EUVL〉、Frontiers〈aot-2012-0125〉
-・極紫外光被空氣吸掉、整台抽真空、碗形收集鏡＝Wikipedia〈EUVL〉、Frontiers 同上
-・主要三家（艾司摩爾、尼康、佳能）＝36Kr〈2024 年三家出貨〉、Bits&Chips〈Nikon aims to challenge ASML in ArF immersion〉
-・極紫外光機只有艾司摩爾量產供貨＝Wikipedia〈EUVL〉、Tom's Hardware（媒體報導）
-・一台約兩億美元＝工商時報 2026/9/16、數位時代〈High NA EUV 一台要價 120 億〉（媒體報導；High-NA 另計，約 3.8～4 億美元）
-・2025 年出貨 48 台極紫外光機＝ASML 2025 年報（eeNews Europe、heise 轉述）（公司財報）
-・系統營收約 22% 來自台灣＝Nasdaq／Zacks、Tom's Hardware 轉述 ASML 財報（以系統營收計；以總營收計約 26%，口徑不同）
-・新竹總部＝ASML 官網〈Locations〉（公司說法）；林口新據點＝中央社 2022/11/16、Taipei Times（媒體報導，完工時間各報不同，不寫）
-・家登、帆宣、公準＝科技新報 2021/1/20、2026/9/9；工商時報 2023/8/29（媒體報導）
+・投影機原理、縮小四倍、掃描式曝光、極紫外光被空氣吸掉、真空、碗形鏡＝ASML 官網、Wikipedia〈EUVL〉、Frontiers
+・錫滴每秒約五萬顆、13.5 奈米＝ASML 官網（公司說法）
+・主要三家＝36Kr、Bits&Chips；僅艾司摩爾量產極紫外光機＝Tom's Hardware（媒體報導）
+・一台約兩億美元＝工商時報 2026/9/16、數位時代（媒體報導；High-NA 另計）
+・2025 年出貨 48 台＝ASML 年報（公司財報）；台灣約 22% 系統營收＝Nasdaq／Zacks（口徑：總營收約 26%）
+・新竹總部＝ASML 官網；林口＝中央社 2022/11/16；家登、帆宣、公準＝科技新報、工商時報（媒體報導）
 影片為示意動畫，非實際比例；極紫外光實際不可見。
