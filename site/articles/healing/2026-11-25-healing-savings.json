@@ -161,7 +161,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-25 12:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-25 12:30 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/p/DgJrUfiDQPO/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DgJrZw8DrsZ"
+    }
+   ]
   }
  ],
  "sources": [
@@ -187,8 +201,8 @@
  "confidence": "官方調查經多家媒體一致；本環境讀不到主計總處原表；「儲蓄中位數約 15 萬」為學者評論、非官方數字，已不採用",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/p/DgJrUfiDQPO/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DgJrZw8DrsZ",
   "queue": "20261125_savings"
  }
 }
