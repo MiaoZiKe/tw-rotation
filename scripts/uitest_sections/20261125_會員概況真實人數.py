@@ -25,11 +25,15 @@ def t_member_count_1125(b, base, code):
         r = pg.evaluate("""() => { const m = document.getElementById('trMemCnt'); const n = (k) => { const e = m.querySelector('[data-n=' + k + ']'); return e ? +e.textContent.replace(/,/g, '') : null; };
             const lg = [...document.querySelectorAll('#trDonut ul.lg li')].map((li) => li.textContent);
             return { total: n('total'), new7: n('new7'), txt: m.textContent, est: lg.some((t) => t.includes('登入開站次數（估算）')), oldName: lg.some((t) => /^註冊會員/.test(t.trim())) }; }""")
+        if fake is None and os.environ.get("TW_SHOT"):   # 交件截圖（不影響判定）
+            pg.wait_for_timeout(800); pg.screenshot(path=os.environ["TW_SHOT"])
+            pg.locator("#trDonut").screenshot(path=os.environ["TW_SHOT"].replace(".png", "_donut.png"))
         if fake is None:
             ok(f"{T}：顯示人數與近 7 天新增", r["total"] is not None and r["total"] > 0 and r["new7"] is not None and "近 7 天新增" in r["txt"], r)
-            ok(f"{T}：甜甜圈估算段改名「登入開站次數（估算）」、不再叫註冊會員", r["est"] and not r["oldName"], r)
         else:
             ok(f"{T}：端點值變了畫面跟著變（4321／17）", r["total"] == 4321 and r["new7"] == 17, r)
+            # 正式路徑（無示範 tiers）才走估算：估算段改名「登入開站次數（估算）」、不再叫註冊會員
+            ok(f"{T}：甜甜圈估算段改名「登入開站次數（估算）」、不再叫註冊會員", r["est"] and not r["oldName"], r)
         c.close()
 
 

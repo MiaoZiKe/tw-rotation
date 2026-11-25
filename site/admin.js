@@ -1050,7 +1050,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const pvSum = rows.filter((r) => r.k.startsWith('pv:')).reduce((x, r) => x + r.n, 0), scale = live ? 1.1 / 30 : pvSum / 54000, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
       const out = { from: dayKey(i0), to: dayKey(iB), rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
       const sess = rows.filter((r) => r.k === 'ev:session').reduce((x, r) => x + r.n, 0), lg = rows.filter((r) => r.k === 'ev:session_login').reduce((x, r) => x + r.n, 0);
-      const split = [['free', '註冊會員', 0.6, 'var(--cat-1)'], ['demo_basic', '基本方案（月）', 0.22, null], ['demo_pro', '進階方案（年）', 0.13, null], ['demo_team', '旗艦方案', 0.05, null]];
+      const split = [['free', '登入開站次數', 0.6, 'var(--cat-1)'], ['demo_basic', '基本方案（月）', 0.22, null], ['demo_pro', '進階方案（年）', 0.13, null], ['demo_team', '旗艦方案', 0.05, null]];
       out.tiers = { est: false, list: split.map(([id, name, f, col]) => ({ id, name, n: Math.round(lg * f), col: col || planCol(id), login: true })).concat([{ id: 'guest', name: '訪客', n: sess - lg, col: 'var(--cat-2)', login: false }]) };
       const HW = [0.4, 0.25, 0.18, 0.15, 0.2, 0.45, 1.1, 2.3, 4.6, 6.4, 6.9, 6.1, 5.2, 5.0, 5.8, 5.6, 4.4, 3.4, 3.1, 3.6, 4.6, 5.2, 4.1, 1.8], hs = HW.reduce((a, b) => a + b, 0);
       out.hourly = HW.map((w) => Math.round(rows.filter((r) => r.k.startsWith('pv:')).reduce((a, r) => a + r.n, 0) * w / hs));
