@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/Df4eatDDpp6/ https://www.threads.com/@tech_01010909/post/Df4eigJyKHt https://www.threads.com/@tech_01010909/post/Df4ept3Gy6Z
 posted_at: 2026-11-18T20:10+08:00
 error: 
+ids_fb: 1739493994508430
+urls_fb: https://www.facebook.com/reel/1739493994508430/
+fb_posted_at: 2026-11-25T12:13+08:00
+fb_error: 
+fb_slot: 2026-11-25T12:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「先進封裝：晶片太大做不好，拆小再拼回去」
 
