@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-24",
+ "updated": "2026-11-25",
  "days": [
+  {
+   "date": "2026-11-25",
+   "items": [
+    {
+     "cat": "新聞",
+     "title": "宏碁友善職場環境連獲三大肯定 首獲勞動部「工作生活平衡獎」",
+     "url": "https://news.cnyes.com/news/id/6671665",
+     "source": "鉅亨",
+     "time": "2026-11-25T15:00:06+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "科技",
+     "title": "黃仁勳回鍋難消AI融資疑慮！CoreWeave公司債創新低 未來5年違約機率估68%",
+     "url": "https://news.cnyes.com/news/id/6671199",
+     "source": "鉅亨",
+     "time": "2026-11-25T13:50:08+08:00",
+     "desc": "AI基建投資回報恐延後，市場憂科技企業償債與融資風險升高，企業債券及CDS同步承壓；CoreWeave多檔債券周二重挫，回吐前一日漲幅；軟銀5年期CDS利差升至…"
+    },
+    {
+     "cat": "總經",
+     "title": "記憶體供應緊縮衝擊手機市場 研調：歐洲Q3出貨量年減18%、拉美衰退24%",
+     "url": "https://news.cnyes.com/news/id/6671667",
+     "source": "鉅亨",
+     "time": "2026-11-25T14:56:30+08:00",
+     "desc": "記憶體短缺、零組件成本上漲衝擊手機市場，Counterpoint估歐洲Q3出貨年減18%，拉美年減24%；歐洲Samsung、Apple高階新品難撐需求，Sam…"
+    },
+    {
+     "cat": "科技",
+     "title": "攻面板級封裝商機！Resonac 開發感光絕緣薄膜，鎖定 2027 年量產",
+     "url": "https://technews.tw/2026/11/25/resonac-develops-rr-x/",
+     "source": "科技新報",
+     "time": "2026-11-25T14:31:00+08:00",
+     "desc": "日本化學材料大廠 Resonac 近期宣布，成功開發面板級封裝（PLP）用新型感光層間絕緣薄膜「RR-X」，目"
+    },
+    {
+     "cat": "事件",
+     "title": "301 關稅又來了？台經院：估稅率不超過 15% 不用太擔心",
+     "url": "https://technews.tw/2026/11/25/section-301-tariffs-returning-tier-estimates-rate-under-15-percent/",
+     "source": "科技新報",
+     "time": "2026-11-25T13:40:37+08:00",
+     "desc": "外電報導，美國貿易代表署（USTR）針對「製造業結構性產能過剩」301 條款調查結果最快本週公布。台經院院長張"
+    }
+   ]
+  },
   {
    "date": "2026-11-24",
    "items": [
