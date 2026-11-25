@@ -83,6 +83,7 @@
 - **負責**：主控（CEO）＋ `resource-auditor`；所有頻道適用。排程「Token 管理單位：每日用量檢查」每天 15:17（台北），週六週報併入週六網站週報。
 - **每日**：用 `get_session` 讀各頻道主對話 usage（不叫醒頻道、不再請各頻道跑 tally），記進 `token_ledger.json` 算 24 小時用量；列前一天最花 token 的 3 件事，可省的直接派頻道改流程。
 - **警戒**：80% 通知 Andy；95% 只做已排程發文、不開新製作；98% 全部暫停並回報進度。
+  - **11-25 Andy（②）：「然後 limit 到95%停止」**——週額度到 95% 就停止製作（只留排程發文與監工）。⚠ 工作階段讀不到確切百分比（get_session 的 rate_limit_info 只有 status：allowed／allowed_warning／超額），所以：① 每個耗時步驟（配音、派子 agent、觸發渲染）前先讀 rate_limit_info，status 一變成非 allowed_warning（拒絕或 isUsingOverage=true）立刻停；② 用 Andy 回報的 % 讀數與同期 cost_usd 換算「每 1% 約多少美元」，推估到 95% 的剩餘額度，接近時先停、回報讀數請 Andy 確認。
 - **模型分工（Andy 11-20 再更正：「Fable 是否乾脆不要使用 畢竟他消耗更多Token」）**：**全面停用 Fable**（含子 agent、排程、任何 model 參數）。頻道總指揮與主控用 Opus 5.5；子 agent 依下表帶 model＋effort（Andy 11-20：「好 照這樣做 並且每個頻道都是」，取代「子 agent 一律 Sonnet」）。每次回報附一句「用了哪個模型、大約多少」。
   - **子 agent 模型＋effort 搭配表**（詳細見 `model_effort.md`）：
     | 工作 | model | effort |
