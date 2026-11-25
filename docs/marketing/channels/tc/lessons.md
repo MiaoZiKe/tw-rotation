@@ -89,3 +89,4 @@
 | 82 | 11-25 | 「我看到影片中有台灣的台灣 需要描繪更清楚」 | 光阻-2「在台灣」卡的台灣是橢圓色塊 | 地圖輪廓照經緯度投影畫，城市標在真實位置；ai-mp4 tech-andy-fixes.md 第 11 條、HudTrk.tsx trk-tw（809f2b4）。 |
 | 83 | 11-25 | 主控轉交：系列 2 六支成片只放在舊②容器的 ai-mp4 out/，舊②封存後連成片與原始配音一起消失（out/、*.mp4、*.wav、public/audio/ 都不進 git） | 成片與配音只存在暫時容器 | 每支成片（含審片中的版本）做完當下就存到不會消失的地方：已排程的放 tw-rotation `social/tc/queue/<日期>_<名稱>/`；還在審的推 ai-mp4 `renders/series2` 分支（`renders/<slug>.<ver>.mp4` ＋ `renders/<slug>-take.orig.wav`）。交接檔寫路徑；沒存檔不算交件。 |
 | 84 | 11-25 | 「以後類似渲染這類型的工作一律都使用這種方式進行，能大幅減少Claude Loading 和 Token」 | 渲染在 Claude 4 核容器依序跑，一支 20～50 分鐘，Claude 全程盯 | 影片渲染一律丟 ai-mp4 GitHub Actions 多台分段渲染（render-chunks.yml），Claude 只觸發、驗收、傳成品；規則寫在 CLAUDE.md 工作規則（2026-11-25 那條）。 |
+| 85 | 11-25 | 「影片OK 但是後續頂片需要注意，每個畫面都要有適合的停頓，切換太快 節奏太快會讓觀眾看得很不清楚」 | 重渲時一律 atempo 1.23，光罩-2 v4 含停頓 4.95 字／秒、每幕平均 4.3 秒 | 12/9 起：atempo＝4.5÷原始語速、上限 1.12；每幕 ≥4.5 秒、鏡頭 ≥2 秒、標籤 ≥1.5 秒、換幕停 0.6～0.8 秒；交件寫字／秒。全文 ai-mp4 tech-andy-fixes.md 第 13 條。 |
