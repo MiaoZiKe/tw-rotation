@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/Df15k0dirNN/ https://www.threads.com/@tech_01010909/post/Df15rCuPiLZ https://www.threads.com/@tech_01010909/post/Df15yWIG9zn
 posted_at: 2026-11-17T20:10+08:00
 error: 
+ids_fb: 1710247467128890
+urls_fb: https://www.facebook.com/reel/1710247467128890/
+fb_posted_at: 2026-11-25T09:37+08:00
+fb_error: 
+fb_slot: 2026-11-25T08:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「晶圓良率：晶片越大，能用的比例越低」
 
