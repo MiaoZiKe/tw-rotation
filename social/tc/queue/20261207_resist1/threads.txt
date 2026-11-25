@@ -13,10 +13,10 @@
 
 【第 1 則留言】
 出處（查證截至 2026/11/24）：
-・光阻是感光高分子、正型與負型＝EPFL CMi〈Introduction to Photolithography〉、Wevolver〈Positive vs. Negative Photoresist〉
-・化學放大（光酸產生劑、一個酸催化數百次反應）＝IBM Research Report RJ10223、NIST／Schmid SPIE 5376（2004）
-・極紫外光光子數約為 ArF 的 1/14（同樣能量）＝arXiv 2405.11717、USPTO 11940728；隨機缺陷＝JM3 17(4) 041003、Semiconductor Engineering
-・金屬氧化物光阻＝Semiconductor Engineering、RSC Chemical Science 2026；JSR 收購 Inpria＝JSR 新聞稿 2025/9/16
-・供應商以日本廠為主＝Mizuho 產業報告、TechNews 轉日經（2026/5/5）；占比說法不一，不寫
-・捷時雅雲林廠最快 2028 年投產＝TechNews 轉日經 2026/5/5、Tom's Hardware（媒體報導）
+・感光高分子、正負型＝EPFL CMi、Wevolver
+・化學放大（光酸產生劑、一酸催化數百次）＝IBM RJ10223、NIST／Schmid SPIE 5376（2004）
+・極紫外光光子數約為 ArF 的 1/14（同能量）＝arXiv 2405.11717、USPTO 11940728；隨機缺陷＝JM3 17(4) 041003、Semiconductor Engineering
+・金屬氧化物光阻＝Semiconductor Engineering、RSC Chem. Sci. 2026；JSR 收購 Inpria＝JSR 新聞稿 2025/9/16
+・日本廠為主＝Mizuho、TechNews 轉日經（2026/5/5）；占比說法不一，不寫
+・雲林廠最快 2028 年投產＝TechNews、Tom's Hardware（媒體報導）
 影片為示意動畫，非實際比例。
