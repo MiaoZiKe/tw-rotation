@@ -1236,8 +1236,8 @@ def test_佇列每篇都對得到主題():
     c = _real_cfg()
     q = Path(__file__).resolve().parent.parent / "social" / "tc" / "queue"
     for d in sorted(x for x in q.iterdir() if (x / "post.md").is_file()):
-        if K.slug(d.name) in c["post_keywords"]:
-            assert K.topic_for(c, d.name), d.name
+        if K.slug(d.name) in c["post_keywords"] and not K.in_pending(d.name, c.get("legal_pending")):
+            assert K.topic_for(c, d.name), d.name   # 法遵待審的篇刻意不給主題（改送預設文字），不算缺
 
 
 def test_IG公開回覆_正式設定已關閉_改由Meta規則():
