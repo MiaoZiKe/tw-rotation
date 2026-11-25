@@ -146,7 +146,11 @@ def read_item(folder: Path) -> dict:
     caption = cap_p.read_text(encoding="utf-8").strip() if cap_p.exists() else ""
     imgs = images(folder)
     fmt = str(meta.get("format") or "carousel")
+    # 2026-11-25 談晴說礙流量診斷：Threads 主文可另寫短文（threads.txt），出處放第一則回覆（threads_reply.txt）
+    th_p, rp_p = folder / "threads.txt", folder / "threads_reply.txt"
     it = {"name": folder.name, "dir": folder, "meta": meta, "caption": caption, "images": imgs,
+          "threads_text": th_p.read_text(encoding="utf-8").strip() if th_p.exists() else "",
+          "threads_reply": rp_p.read_text(encoding="utf-8").strip() if rp_p.exists() else "",
           "format": fmt, "is_video": fmt == "video",
           "platforms": [p for p in (meta.get("platforms") or list(PLATFORMS))]}
     if folder.parent in MEDIA:          # video_host=release 的頻道才有這兩格
@@ -1151,7 +1155,7 @@ def run_verify(env: dict, now: datetime, dry_run: bool = False, queue: Path = QU
             res["notes"].append(f"{p} 沒有權杖，沒驗證")
             continue
         try:
-            body = it["caption"] if p == "ig" else _threads_text(it["caption"])
+            body = it["caption"] if p == "ig" else threads_body(it)
             if it["is_video"]:
                 used: dict = {}
 
@@ -1364,10 +1368,11 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
         quota_path: Path = QUOTA, publishers: dict | None = None, check=check_public, saver=None,
         verifiers: dict | None = None, prefix: str | None = None, per_day_max: int | None = None,
         video_publishers: dict | None = None, video_verifiers: dict | None = None,
-        slots: list | None = None) -> tuple[int, dict]:
+        slots: list | None = None, reply_publisher=None) -> tuple[int, dict]:
     """回傳（結束碼, 結果）。prefix＝權杖密碼前綴（預設頻道④）；per_day_max＝channels.json 的每日上限（取較小者）。結果的 summary 給工作流摘要用。
     某平台權杖第一次出現（state/verify.json 沒有 verified 紀錄）→ 先跑驗證模式（只建容器不發布），通過才正式發。"""
     pub = {"ig": publish_ig, "threads": SP.publish_threads, **(publishers or {})}
+    reply_pub = reply_publisher or SP.publish_threads_reply
     ver = {**VERIFIERS, **(verifiers or {})}
     vpub = {**VIDEO_PUBLISHERS, **(video_publishers or {})}
     vver = {**VIDEO_VERIFIERS, **(video_verifiers or {})}
@@ -1419,7 +1424,7 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             if not is_verified(state, p):
                 SP.log(f"[{p}] 權杖設好後第一輪會先跑驗證模式（只建輪播容器、等 FINISHED、不發布），通過才正式發")
         for p in todo:
-            text = it["caption"] if p == "ig" else _threads_text(it["caption"])
+            text = it["caption"] if p == "ig" else threads_body(it)
             if it["is_video"]:
                 SP.log(f"[{p}] 會發影片（{'Reels，同步到動態' if p == 'ig' else 'VIDEO'}），網址候選：")
                 for via, u, _ in video_sources(it, video_via(state, p)):
@@ -1433,6 +1438,8 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             for u in urls:
                 SP.log(f"    {u}")
             SP.log(f"[{p}] 文字（{len(text)} 字）：\n{text}")
+            if p == "threads" and it.get("threads_reply"):
+                SP.log(f"[threads] 發出後第一則回覆（{len(it['threads_reply'])} 字）：\n{it['threads_reply']}")
         res["summary"] = (f"空跑（--dry-run）：下一則 {it['name']}" if dry_run else
                           f"{wait_token_msg(prefix)}；下一則 {it['name']}")
         return 0, res
@@ -1480,7 +1487,7 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
             uid = resolve_uid(p, (env.get(f"{prefix}{p.upper()}_USER_ID") or "").strip(), token, prefix, via)
             if not uid:
                 raise RuntimeError(f"查不到帳號編號（權杖無效或權限不足：{token_hint(p, token)}）")
-            body = it["caption"] if p == "ig" else _threads_text(it["caption"])
+            body = it["caption"] if p == "ig" else threads_body(it)
             if not is_verified(state, p):
                 SP.log(f"[{p}] 這把權杖還沒驗證過 → 先跑驗證模式（只建容器、等 FINISHED，不發布）")
                 try:
@@ -1499,12 +1506,21 @@ def run(env: dict, now: datetime, dry_run: bool = False, queue: Path = QUEUE, st
                                           video_via(state, p), res["notes"])
                 r = dict(r, video_via=uv)
             elif p == "threads":      # publish_threads(uid, token, text, urls)：超過 500 字自己會截斷
-                r = pub[p](uid, token, _threads_text(it["caption"]), urls)
+                r = pub[p](uid, token, threads_body(it), urls)
             else:                   # publish_ig(uid, token, urls, caption)：IG 用 caption.txt 全文
                 r = pub[p](uid, token, urls, it["caption"])
             r = {"id": str(r.get("id")), "link": r.get("link") or r.get("permalink") or "",
                  "at": now.astimezone(TAIPEI).isoformat(timespec="seconds"),
                  **({"format": "video", "video_via": r.get("video_via", "")} if it["is_video"] else {})}
+            if p == "threads" and it.get("threads_reply") and r["id"]:
+                # 第一則回覆放出處；失敗只記 log，不算主文失敗、不重發主文
+                try:
+                    rr = reply_pub(uid, token, it["threads_reply"], r["id"])
+                    r["reply"] = {"id": str(rr.get("id")), "link": rr.get("link") or ""}
+                    SP.log(f"[threads] 出處回覆已發 id={r['reply']['id']}")
+                except Exception as e:  # noqa: BLE001
+                    res["notes"].append(f"threads 出處回覆失敗（主文已發，不重發）：{SP.redact(e)[:200]}")
+                    SP.log(f"[threads] 出處回覆失敗（主文已發，不重發）：{SP.redact(e)}")
             entry[p] = r
             entry.setdefault("at", r["at"])
             if skey:
@@ -1546,6 +1562,11 @@ def slot_key(now: datetime, slots: list) -> str:
     if past:
         return f"{t.date().isoformat()} {past[-1]}"
     return f"{(t - timedelta(days=1)).date().isoformat()} {hm[-1]}"
+
+
+def threads_body(it: dict) -> str:
+    """Threads 主文：資料夾有 threads.txt 就用它，沒有照舊用 caption.txt（超過 500 字截斷）。"""
+    return _threads_text(it.get("threads_text") or it["caption"])
 
 
 def _threads_text(caption: str) -> str:

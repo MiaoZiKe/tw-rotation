@@ -312,3 +312,50 @@ def test_IG同一則失敗兩輪後停止自動重發_不擋下一則(box, monke
     assert n["ig"] == 2, "第三輪不准再打 IG 發布"
     assert posted(box)["20261108_intro"]["ig"].get("skipped")
     assert any("停止自動重發" in x for x in res["notes"])
+
+
+def test_threads短文與出處回覆(box, capsys):
+    d = mk_item(box["q"], "20261126_births", caption="IG 長文案")
+    (d / "threads.txt").write_text("Threads 短文：一個數字。\n", encoding="utf-8")
+    (d / "threads_reply.txt").write_text("出處：內政部戶政司", encoding="utf-8")
+    # 空跑也看得到同一份文字
+    box["go"](dry=True)
+    out = capsys.readouterr().out
+    assert "Threads 短文：一個數字。" in out and "出處：內政部戶政司" in out
+    replies = []
+
+    def fake_reply(uid, token, text, reply_to):
+        replies.append((uid, text, reply_to))
+        return {"id": "r1", "link": "https://www.threads.com/@x/post/R1"}
+    rc, res = hp.run(dict(ENV), NOW, False, queue=box["q"], state=box["st"], quota_path=box["quota"],
+                     publishers={"ig": lambda *a: {"id": "ig1", "link": "L"},
+                                 "threads": lambda uid, tok, text, urls: box["calls"].append(("threads", text)) or
+                                 {"id": "th1", "link": "T"}},
+                     check=lambda u, w: None, saver=lambda *a: True, reply_publisher=fake_reply,
+                     verifiers={"ig": lambda *a: "c", "threads": lambda uid, tok, urls, text:
+                                box["calls"].append(("verify-threads", text)) or "c"})
+    assert rc == 0
+    assert ("threads", "Threads 短文：一個數字。") in box["calls"]
+    assert ("verify-threads", "Threads 短文：一個數字。") in box["calls"]
+    assert replies == [("9002", "出處：內政部戶政司", "th1")]
+    assert posted(box)["20261126_births"]["threads"]["reply"]["id"] == "r1"
+
+
+def test_threads回覆失敗不算主文失敗(box):
+    d = mk_item(box["q"], "20261126_births", caption="IG 長文案")
+    (d / "threads_reply.txt").write_text("出處", encoding="utf-8")
+
+    def bad_reply(*a):
+        raise RuntimeError("reply boom")
+    rc, res = hp.run(dict(ENV), NOW, False, queue=box["q"], state=box["st"], quota_path=box["quota"],
+                     publishers={"ig": lambda *a: {"id": "ig1", "link": "L"},
+                                 "threads": lambda uid, tok, text, urls: box["calls"].append(("threads", text)) or
+                                 {"id": "th1", "link": "T"}},
+                     check=lambda u, w: None, saver=lambda *a: True, reply_publisher=bad_reply,
+                     verifiers={"ig": lambda *a: "c", "threads": lambda *a: "c"})
+    assert rc == 0 and not res["errors"]
+    assert ("threads", "IG 長文案") in box["calls"]          # 沒有 threads.txt → 照舊用 caption
+    assert [c for c in box["calls"] if c[0] == "threads"] == [("threads", "IG 長文案")]   # 主文只發一次
+    assert any("出處回覆失敗" in n for n in res["notes"])
+    meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+    assert meta["status"] == "posted"
