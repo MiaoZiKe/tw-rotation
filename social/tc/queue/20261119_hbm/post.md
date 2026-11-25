@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/Df61rGLlGSc/ https://www.threads.com/@tech_01010909/post/Df61w7PuBf2 https://www.threads.com/@tech_01010909/post/Df611lalqi5
 posted_at: 2026-11-19T18:12+08:00
 error: 
+ids_fb: 3431957520345768
+urls_fb: https://www.facebook.com/reel/3431957520345768/
+fb_posted_at: 2026-11-25T18:07+08:00
+fb_error: 
+fb_slot: 2026-11-25T18:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「HBM：十二層記憶體，比一張信用卡還薄」
 

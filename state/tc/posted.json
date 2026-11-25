@@ -102,7 +102,9 @@
       "verified_threads": "VIDEO",
       "ids_ig": "18082784426402619",
       "ids_threads": "17948451378360739",
-      "last_posted_at": "2026-11-19T18:12:35+08:00"
+      "last_posted_at": "2026-11-25T18:07:09+08:00",
+      "fb": "https://www.facebook.com/reel/3431957520345768/",
+      "ids_fb": "3431957520345768"
     },
     {
       "id": "20261120_server",
@@ -163,6 +165,18 @@
       "ids_ig": "18122917111951862",
       "ids_threads": "17990165757121014",
       "last_posted_at": "2026-11-24T20:10:36+08:00"
+    },
+    {
+      "id": "20261125_waferflow",
+      "first_posted_at": "2026-11-25T18:04:31+08:00",
+      "ig": "https://www.instagram.com/reel/DgKRhpvBioN/",
+      "threads": "https://www.threads.com/@tech_01010909/post/DgKRpxJJttY",
+      "threads_reply": "https://www.threads.com/@tech_01010909/post/DgKRw3DoHqb",
+      "verified_ig": "VIDEO",
+      "verified_threads": "VIDEO",
+      "ids_ig": "18184625674437454",
+      "ids_threads": "18000140787019663",
+      "last_posted_at": "2026-11-25T18:04:31+08:00"
     }
   ]
 }

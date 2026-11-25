@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-25T18:00+08:00
 weekday: 三
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-waferflow.mp4
 images: cover.jpg
 title: 科技透明圈影片：一片晶圓要經過哪些流程（tech-waferflow v3）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/DgKRhpvBioN/
+ids_ig: 18184625674437454
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DgKRpxJJttY
+ids_threads: 18000140787019663
+ids_threads_reply: 18581552554074795
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgKRw3DoHqb
+done: ig, threads
+urls: https://www.instagram.com/reel/DgKRhpvBioN/ https://www.threads.com/@tech_01010909/post/DgKRpxJJttY https://www.threads.com/@tech_01010909/post/DgKRw3DoHqb
+posted_at: 2026-11-25T18:04+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「一片晶圓要經過哪些流程」
 
