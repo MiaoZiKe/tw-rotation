@@ -104,7 +104,7 @@ def t_healing_articles_1115(b, base, code):
         ok(f"★ [{T}（{W}）] 站主：分頁列（消息分頁之後）多一格「談晴說礙」", "healing" in pg.evaluate(vis) and pg.evaluate(vis).index("healing") > pg.evaluate(vis).index("postmarket"), pg.evaluate(vis))
         st = pg.evaluate("""() => { const t = document.querySelector('#artCats>button[data-cat=healing]'), s = t.querySelector(':scope > span:not(.arteye)'), e = t.querySelector('.arteye');
             return { hid: t.classList.contains('hid'), op: parseFloat(getComputedStyle(t).opacity), line: getComputedStyle(s).textDecorationLine, eye: e ? e.getClientRects().length : 0, title: t.title }; }""")
-        ok(f"★ [{T}（{W}）] 站主：分頁變淡（opacity<0.8）、文字刪除線、沒有眼睛（不能被打開成公開）", st["hid"] and st["op"] < 0.8 and "line-through" in st["line"] and st["eye"] == 0, st)
+        ok(f"★ [{T}（{W}）] 站主：分頁變淡（opacity<0.8）、文字刪除線、有眼睛（11-25 起站主可切顯示）", st["hid"] and st["op"] < 0.8 and "line-through" in st["line"] and st["eye"] > 0, st)
         ok(f"[{T}（{W}）] 站主：全部文章列表仍不列這篇", not any(_HL_ID in x for x in pg.evaluate(cards)), pg.evaluate(cards)[:3])
         pg.locator("#artCats>button[data-cat=healing]").scroll_into_view_if_needed()
         pg.click("#artCats>button[data-cat=healing]"); pg.wait_for_timeout(1200)

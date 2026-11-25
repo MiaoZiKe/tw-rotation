@@ -73,7 +73,7 @@ def t_articles_hide_1027(b, base, code):
             except Exception: pass
         wait_until(pg, "() => !!document.querySelector('#artCats>button[data-cat=postmarket]')", 20000)
         if admin:
-            wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden])').length === 6", 10000)
+            wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden]):not([data-cat=tech]):not([data-cat=ligu]):not([data-cat=caffaine]):not([data-cat=healing])').length === 6", 10000)
         pg.wait_for_timeout(900)   # 等 /v1/articles/tabs 回來並重畫
 
     vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length).map(b => b.dataset.cat)"
@@ -83,8 +83,8 @@ def t_articles_hide_1027(b, base, code):
         # ── 管理者：六個分頁、六顆眼睛（11-06 起全部那格也有）
         c, pg = ctx("andy@example.com", W)
         open_articles(pg, admin=True)
-        ok(f"★ [{T}（{W}）] 管理者：分頁順序 全部→快訊→產業鏈→知識→盤前→盤後（盤後在盤前右邊）", pg.evaluate(vis) == ["all", "news", "intro", "know", "premarket", "postmarket", "tech"], pg.evaluate(vis))   # 11-15 起管理者多一格「科技透明圈」（沒有眼睛）
-        geo = pg.evaluate("""() => [...document.querySelectorAll('#artCats .arteye:not([hidden])')].map(e => { const t = e.closest('button'), a = e.getBoundingClientRect(), r = t.getBoundingClientRect(), lb = t.querySelector(':scope > span:not(.arteye)').getBoundingClientRect();
+        ok(f"★ [{T}（{W}）] 管理者：分頁順序 全部→快訊→產業鏈→知識→盤前→盤後（盤後在盤前右邊）", pg.evaluate(vis) == ["all", "news", "intro", "know", "premarket", "postmarket", "tech", "ligu", "caffaine", "healing"], pg.evaluate(vis))   # 11-15 起管理者多一格「科技透明圈」（沒有眼睛）
+        geo = pg.evaluate("""() => [...document.querySelectorAll('#artCats .arteye:not([hidden]):not([data-cat=tech]):not([data-cat=ligu]):not([data-cat=caffaine]):not([data-cat=healing])')].map(e => { const t = e.closest('button'), a = e.getBoundingClientRect(), r = t.getBoundingClientRect(), lb = t.querySelector(':scope > span:not(.arteye)').getBoundingClientRect();
             return { cat: e.dataset.cat, own: t.dataset.cat === e.dataset.cat, inside: a.left >= r.left - 0.5 && a.right <= r.right + 0.5 && a.top >= r.top - 0.5 && a.bottom <= r.bottom + 0.5,
               right: (a.left + a.width / 2) > (r.left + r.width / 2), vc: Math.abs((a.top + a.height / 2) - (r.top + r.height / 2)) <= 3, noOverlap: a.left >= lb.right - 0.5, w: a.width, h: a.height }; })""")
         ok(f"★ [{T}（{W}）] 管理者：眼睛 6 顆都在自己標籤裡面、靠右半邊、垂直置中、不壓到標題文字、沒有分頁上方那一列", len(geo) == 6 and all(g["own"] and g["inside"] and g["right"] and g["vc"] and g["noOverlap"] for g in geo)
@@ -109,8 +109,8 @@ def t_articles_hide_1027(b, base, code):
         pg.click("#artCats .arteye[data-cat=postmarket]"); pg.wait_for_timeout(500)
         ok(f"[{T}（{W}）] 再點「盤後」眼睛 → 伺服器 ['premarket','postmarket']", sorted(st["hidden"]) == ["postmarket", "premarket"], st["hidden"])
         # 重新整理後設定還在（存在伺服器，不是只在畫面）
-        pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => !!document.querySelector('.arteye.off')", 15000); pg.wait_for_timeout(600)
-        ok(f"[{T}（{W}）] 管理者重新整理 → 兩顆眼睛仍是斜線", pg.locator(".arteye.off").count() == 2)
+        pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => !!document.querySelector('.arteye.off:not([data-cat=tech]):not([data-cat=ligu]):not([data-cat=caffaine]):not([data-cat=healing])')", 15000); pg.wait_for_timeout(600)
+        ok(f"[{T}（{W}）] 管理者重新整理 → 兩顆眼睛仍是斜線", pg.locator(".arteye.off:not([data-cat=tech]):not([data-cat=ligu]):not([data-cat=caffaine]):not([data-cat=healing])").count() == 2)
         c.close()
 
         # ── 訪客與一般會員：被隱藏的分頁不見、沒有眼睛列

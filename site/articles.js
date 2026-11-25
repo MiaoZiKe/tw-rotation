@@ -842,7 +842,11 @@
   const chUnlocked = (k) => !!(unlRead()[k] && unlRead()[k].ch);
   const memberOn = () => { try { const u = window.TwAccount && TwAccount.user && TwAccount.user(); return !!(u && (u.email || u.name || u.admin)); } catch (e) { return false; } };
   /* 這個頻道分頁此刻能不能給這個人看：站主永遠可；一般人＝已登入＋這台裝置有頻道憑證 */
-  const canPriv = (k) => !!PRIV[k] && (isAdminUser() || (memberOn() && chUnlocked(k)));
+  /* 2026-11-25 頻道分頁眼睛：站主打開眼睛＝這個頻道公開（任何人看得到分頁與清單）；預設仍是關。
+     「公開」記在伺服器的隱藏名單裡，用 'show'+key 當標記（例 showtech；Worker 的鍵格式 a-z 2～20 字剛好吃得下，不用改 Worker）。
+     沒有標記＝隱藏（讀不到、被清空都回到隱藏，不會意外公開）。 */
+  const privOpen = (k) => !!PRIV[k] && !!(S.hid && S.hid.has('show' + k));
+  const canPriv = (k) => !!PRIV[k] && (privOpen(k) || isAdminUser() || (memberOn() && chUnlocked(k)));
   async function sha256Hex(t) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
     return [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -1388,21 +1392,24 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      · 11-06 Andy：「補上隱藏功能」→ 「全部文章」也有眼睛、也能隱藏（以前不行，因為它是導回點）。
        被隱藏的分頁（一般人）一律導到第一個沒被隱藏的分頁；全部都隱藏就導回 #overview。文章本身不受影響：隱藏的是分頁入口，不是文章。 */
   const HID_KEY = window.TW_PREVIEW ? 'tw.art.hid.pv' : 'tw.art.hid';
-  const withPriv = (set) => { Object.keys(PRIV).forEach((k) => set.add(k)); return set; };   // 科技透明圈永遠在隱藏名單裡
-  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return withPriv(new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k)) : [])); } catch (e) { return withPriv(new Set()); } };
+  const isMark = (k) => typeof k === 'string' && k.startsWith('show') && !!PRIV[k.slice(4)];   // 'show'+頻道 key＝站主把這個頻道打開了
+  const tabOk = (k) => TAB_KEYS.includes(k) || isMark(k);
+  const withPriv = (set) => { Object.keys(PRIV).forEach((k) => { if (set.has('show' + k)) set.delete(k); else set.add(k); }); return set; };   // 頻道分頁預設隱藏，有 show 標記才公開
+  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return withPriv(new Set(Array.isArray(a) ? a.filter(tabOk) : [])); } catch (e) { return withPriv(new Set()); } };
   const hidSave = () => { try { localStorage.setItem(HID_KEY, JSON.stringify([...S.hid])); } catch (e) { /* 存不了就只留在記憶體 */ } };
   const hiddenNow = () => (S.hid || (S.hid = hidRead()));
   const canEye = () => !!window.TW_PREVIEW || isAdminUser();
   function loadHidden() {
-    if (window.TW_PREVIEW) { S.hid = hidRead(); return Promise.resolve(S.hid); }
+    if (window.TW_PREVIEW) { S.hid = hidRead(); S.hidDone = true; return Promise.resolve(S.hid); }
     if (!S.hidP) {
       const A = window.TwAccount;
       const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
       const ready = !(cfg && cfg.api) || (A && A.on && A.on()) ? Promise.resolve() : new Promise((res) => { const t = setTimeout(res, 3000); window.addEventListener('tw:account-config', () => { clearTimeout(t); res(); }, { once: true }); });
       S.hidP = ready.then(() => acctCall('/v1/articles/tabs', {})).then((j) => {
-        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = withPriv(new Set(j.hidden.filter((k) => TAB_KEYS.includes(k)))); hidSave(); }
+        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = withPriv(new Set(j.hidden.filter(tabOk))); hidSave(); }
+        S.hidDone = true;
         return hiddenNow();
-      }).catch(() => hiddenNow()).finally(() => { setTimeout(() => { S.hidP = null; }, 60000); });   // 一分鐘內不重問；回來看時會再讀一次
+      }).catch(() => { S.hidDone = true; return hiddenNow(); }).finally(() => { setTimeout(() => { S.hidP = null; }, 60000); });   // 一分鐘內不重問；回來看時會再讀一次
     }
     return S.hidP;
   }
@@ -1435,8 +1442,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const off = hid.has(b.dataset.cat);
       const pv = !!PRIV[b.dataset.cat], me = isAdminUser(), mine = pv && canPriv(b.dataset.cat);
       b.hidden = pv ? !mine : off && !adm;
-      b.classList.toggle('hid', pv ? me : off && adm);
-      b.title = pv ? catT(b.dataset.cat) + (me ? '（永遠隱藏：一般人與會員看不到，文章只能用直接連結打開）' : '（已解鎖：你從私訊連結解鎖了這個頻道的全部文章）') : off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
+      b.classList.toggle('hid', pv ? (me && off) : off && adm);
+      b.title = pv ? catT(b.dataset.cat) + (!off ? '（已公開：任何人看得到這個分頁）' : me ? '（目前隱藏：一般人與會員看不到，文章只能用直接連結打開）' : '（已解鎖：你從私訊連結解鎖了這個頻道的全部文章）') : off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
     });
     const n = tabs.filter((b) => !b.hidden).length;
     const cats = $('#artCats', root);
@@ -1445,8 +1452,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (cats) cats.classList.toggle('many7', n >= 7);   // 7 格以上手機改橫向拖（m4/20261115-articles-tabs7.css）
     if (cats) cats.classList.toggle('many', n >= 6);   // 手機六格塞不下圖示＋文字（m4 檔 .many 隱藏圖示）
     $$('#artCats .arteye', root).forEach((e) => {
-      e.hidden = !adm || !!PRIV[e.dataset.cat];   // 科技透明圈沒有眼睛：不能被打開
-      const off = hid.has(e.dataset.cat) && !PRIV[e.dataset.cat], nm = catT(e.dataset.cat);   // 科技透明圈等頻道分頁沒有眼睛，不算「被眼睛關掉」
+      e.hidden = !adm;   // 11-25 起頻道分頁也有眼睛
+      const off = hid.has(e.dataset.cat), nm = catT(e.dataset.cat);
       e.classList.toggle('off', off); e.innerHTML = off ? EYE_OFF : EYE_ON;
       e.setAttribute('aria-pressed', off ? 'true' : 'false');
       e.title = off ? `「${nm}」目前對外隱藏（一般訪客與會員看不到），點一下恢復顯示` : `「${nm}」目前對外顯示，點一下隱藏（一般訪客與會員將看不到這個分頁）`;
@@ -1459,14 +1466,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
   }
   async function toggleHide(k) {
-    if (!canEye() || !TAB_KEYS.includes(k) || PRIV[k]) return;   // PRIV 不歸眼睛管
+    if (!canEye() || !TAB_KEYS.includes(k)) return;
     const root = document.getElementById('v-articles'); if (!root) return;
     const was = new Set(hiddenNow()), next = new Set(was);
-    if (next.has(k)) next.delete(k); else next.add(k);
+    if (next.has(k)) { next.delete(k); if (PRIV[k]) next.add('show' + k); } else { next.add(k); next.delete('show' + k); }   // 頻道分頁：打開＝加 show 標記
     S.hid = next; hidSave(); paintHide(root);   // 先改畫面（點了馬上有感），伺服器回失敗再還原
     if (window.TW_PREVIEW) return;
-    const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next].filter((x) => !PRIV[x]) });   // PRIV 不存伺服器（本來就永遠隱藏）
-    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = withPriv(new Set(r.hidden.filter((x) => TAB_KEYS.includes(x)))); hidSave(); paintHide(root); return; }
+    const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next].filter((x) => !PRIV[x]) });   // 頻道 key 本身不存（預設就隱藏），只存 show 標記
+    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = withPriv(new Set(r.hidden.filter(tabOk))); hidSave(); paintHide(root); return; }
     S.hid = was; hidSave(); paintHide(root);
     const e = $(`.arteye[data-cat="${k}"]`, root);
     if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
@@ -1482,12 +1489,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     markSub(S.cat);
     if (!$('#artList', root)) { disposeCharts(root); skeletonList(root); }
     await S.unP;   // ?tc= 憑證先處理完，頻道分頁才判得準
+    if (PRIV[S.cat] && !S.hidDone && !canPriv(S.cat)) await Promise.race([loadHidden(), new Promise((r) => setTimeout(r, 4000))]);   // 一般人直接打已公開的頻道分頁：先等伺服器名單，免得被誤導回
     if (guardHidden()) return;
     paintList();
     loadStats();
     if (isAdminUser() || Object.keys(PRIV).some(canPriv)) loadTech().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] === 'articles') paintList(); });
     /* 隱藏設定不卡清單：回來了才補畫分頁列，被隱藏的分頁（一般人）導回「全部」 */
-    loadHidden().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return; const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { if (!guardHidden()) paintHide(r); } });
+    loadHidden().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return; const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { if (!guardHidden()) { paintHide(r); if (Object.keys(PRIV).some(privOpen)) loadTech().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] === 'articles') paintList(); }); } } });
     await Promise.all([loadIndex(), permReady()]);
     if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return;   // 讀清單的時候使用者已經換頁
     if (guardHidden()) return;
