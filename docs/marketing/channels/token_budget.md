@@ -124,7 +124,7 @@
   - 頻道對話（①②③④）換新時照舊由當下的主控開，掛在主控底下沒關係；只有主控本身要最上層。
   - **側欄只准兩層**（Andy 11-24：「至多就是其他頻道在主控底下」）：第一層＝現役主控（Andy 自己開）；第二層＝現役頻道①②③④（只能由現役主控 create_session 開）。不准出現「主控底下的主控」或「頻道底下的頻道」。
   - 因此**主控換新時，所有頻道也跟著搬到新主控底下**：新主控接手當天，請各頻道寫交接檔 `<頻道>_<日期>.md` 推 main → 新主控 create_session 開新頻道對話（開場讀交接檔）→ 頻道排程改綁 → 舊頻道確認沒漏事後封存。挑沒在渲染的空檔搬；做到一半的片子先做完再搬。
-  - **主控開頻道對話一律帶 `extra_allowed_tools: ["mcp__claude-code-remote__add_repo","mcp__claude-code-remote__register_repo_root"]`**（Andy 11-25 在主控聊天室授權：「以後主控開頻道對話時，允許預先開放加入 ai-mp4」）。原因：頻道對話的自動權限審查會擋 add_repo（專案設定的允許規則不被採用），主控對話要先 add_repo 過 MiaoZiKe/ai-mp4，才能把這個權限帶給子對話。開場提示第一步就是 add_repo ai-mp4，被擋就把拒絕訊息回主控，不再請 Andy 回「把 ai-mp4 加進來」。
+  - **（11-25 實測）做片頻道（②③④），主控 create_session 時 `source_url` 直接給 `https://github.com/MiaoZiKe/ai-mp4`＋`source_revision` 該頻道分支＋`clone_depth: 1`**：對話一開就有 ai-mp4，不必 add_repo，Andy 不用回「把 ai-mp4 加進來」。tw-rotation 是公開 repo，頻道用 `git clone --depth 1` 唯讀讀交接檔；要推 tw-rotation 的改動交給主控推。實測無效的做法：extra_allowed_tools 預先開放 add_repo、專案設定允許規則（頻道的自動審查照擋）。
   - 頻道對話自己不准 create_session 開新頻道對話（會變成頻道底下的頻道）；要換新一律回報主控，由主控開。
   - 新對話標題固定格式：主控「主控（CEO）MM-DD 起」、頻道「①哩股哩股 MM-DD 起」「②科技透明圈 MM-DD 起」「③CaffAIne MM-DD 起」「④談晴說礙 MM-DD 起」。
 - 舊對話處理（Andy 11-22「舊的聊天室需要刪除嗎?」）：**封存、不刪除**。新對話正常跑滿 24 小時（排程有叫醒成功、沒漏事）後，主控用 archive_session 封存舊對話；封存後不再耗 Token，紀錄留著可查，需要時還能解封。刪除無法復原，不做。
