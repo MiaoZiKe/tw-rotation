@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-24",
+ "updated": "2026-11-25",
  "days": [
+  {
+   "date": "2026-11-25",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "黃仁勳辭輝達執行長後 11 天復職，台積電股東人數創新高",
+     "url": "https://finance.technews.tw/2026/11/24/jensen-huang-controversy-drives-tsmc-shareholders-to-record-high/",
+     "source": "科技新報",
+     "time": "2026-11-24T16:50:55+08:00",
+     "desc": "輝達今天宣布創辦人黃仁勳復任執行長，距離他請辭僅 11 天。期間台股最低滑落至 35,442.41 點，累計大"
+    },
+    {
+     "cat": "科技",
+     "title": "回鍋CEO首日股價大比拚！黃仁勳帶動輝達飆31% 遠勝賈伯斯、達過往最高紀錄4倍",
+     "url": "https://news.cnyes.com/news/id/6670408",
+     "source": "鉅亨",
+     "time": "2026-11-24T12:30:16+08:00",
+     "desc": "黃仁勳辭任11天後復職輝達執行長，董事會一致通過，並稱他是領導輝達的合適人選；輝達股價周一飆漲約31%，市值增加約9,500億美元，創美企史上最大單日市值增幅；…"
+    },
+    {
+     "cat": "事件",
+     "title": "川普親曝介入黃仁勳復職內幕！採訪時一直盯著螢幕股價、坦言股價暴跌改變決策",
+     "url": "https://news.cnyes.com/news/id/6670858",
+     "source": "鉅亨",
+     "time": "2026-11-24T14:10:03+08:00",
+     "desc": "川普稱透過政府官員與親自介入，說服輝達董事會讓黃仁勳復職，並指沒有他的介入他回不來；川普認為美國不能失去黃仁勳這類科技人才，稱政府調查數周後未發現足以阻止其回歸…"
+    },
+    {
+     "cat": "新聞",
+     "title": "黃仁勳回鍋一人救全村！台股史詩級反彈3310點 57檔ETF集體漲停",
+     "url": "https://news.cnyes.com/news/id/6670961",
+     "source": "鉅亨",
+     "time": "2026-11-24T15:52:21+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "總經",
+     "title": "金融預測「小而美」完勝大模型！英國團隊訓練 600 多個模型，開源釋出獲央行與量化機構搶載",
+     "url": "https://finance.technews.tw/2026/11/24/isambard-ai-powers-600-finance-native-models-to-challenge-big-tech/",
+     "source": "科技新報",
+     "time": "2026-11-24T11:05:22+08:00",
+     "desc": "英國研究團隊利用布里斯托超級運算中心（Bristol Centre for Supercomputing）的"
+    }
+   ]
+  },
   {
    "date": "2026-11-24",
    "items": [
