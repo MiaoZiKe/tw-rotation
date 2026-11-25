@@ -1,7 +1,7 @@
 {
  "channel": "tech",
  "account": "Tech_01010909",
- "at": "2026-11-24T10:29:07+08:00",
+ "at": "2026-11-25T08:04:39+08:00",
  "platforms": {
   "ig": {
    "status": "partial",
@@ -15,28 +15,28 @@
     "total_interactions": "permission"
    },
    "need_permission": "instagram_manage_insights",
-   "posts_total": 12,
-   "posts_with_data": 12,
+   "posts_total": 13,
+   "posts_with_data": 13,
    "account_values": {
-    "followers": 534
+    "followers": 559
    },
-   "last_success": "2026-11-24T10:29:07+08:00"
+   "last_success": "2026-11-25T08:04:39+08:00"
   },
   "threads": {
    "status": "ok",
    "missing": {},
    "need_permission": "",
-   "posts_total": 10,
-   "posts_with_data": 10,
+   "posts_total": 11,
+   "posts_with_data": 11,
    "account_values": {
     "followers": 3,
-    "views": 26,
+    "views": 11,
     "likes": 0,
     "replies": 0,
     "reposts": 0,
     "quotes": 0
    },
-   "last_success": "2026-11-24T10:29:07+08:00"
+   "last_success": "2026-11-25T08:04:39+08:00"
   }
  }
 }
