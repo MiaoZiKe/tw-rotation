@@ -1,6 +1,119 @@
 {
- "updated": "2026-11-24",
+ "updated": "2026-11-25",
  "topics": [
+  {
+   "id": "n_tw_2day_4162",
+   "cat": "news",
+   "title": "台股兩天跌 4,162 點：賣壓從哪來",
+   "why": "本站資料湖：加權指數 11/18 收 40,194.9、11/19 收 38,426.9（-1,768）、11/20 收 36,033.3（-2,394），兩天跌 10.4%；櫃買同期 307.6→263.3（-14.4%）；ETtoday 報導外資連 5 日賣超台積電；11/24 已大彈回 40,122，讀者想知道那兩天到底誰在賣",
+   "score": 5,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "n_us_worst_week_1121",
+   "cat": "news",
+   "title": "美股一週跌 8.6%、那斯達克挫 10%：怕的是什麼",
+   "why": "CNBC、Swingfolio（2026-11-21）：11/16～11/20 標普 500 週跌約 8.6%、連 7 黑，那斯達克週跌約 10%、逾 6 年最大；另有來源寫 7.9%，數字發文前須再核對（信心度中）",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "n_vix_explained_1121",
+   "cat": "news",
+   "title": "恐慌指數 VIX 一週衝到 36：它到底在量什麼",
+   "why": "Swingfolio、marketcalls（2026-11-21）：VIX 一週由約 19 升到約 36、盤中破 40；大家聽過沒算過——講它怎麼從選擇權價格算出來、過去衝高後怎麼走（數字信心度中低，發文前須再查第二來源）",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "k_wafer_dicing",
+   "cat": "know",
+   "title": "晶圓切割是什麼？一片晶圓怎麼變成一顆顆晶粒",
+   "why": "封裝前必經的一步，先進封裝晶粒越薄越難切（雷射隱形切割、電漿切割）；用 3D 場景 silicon_wafer／foundry 從整片晶圓切到單顆晶粒",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/silicon_wafer",
+    "#industry/group/foundry"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "k_low_dk_glass",
+   "cat": "know",
+   "title": "Low-Dk 玻纖布是什麼？高速板為何要換特殊玻纖",
+   "why": "AI 伺服器板材從一般 E-glass 換成低介電玻纖、石英布，是板材缺貨討論的源頭；用 3D 場景 pcb_rigid 多層板剖面指出玻纖布在哪一層",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/glass_fiber",
+    "#industry/group/pcb_rigid"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "k_polymer_cap",
+   "cat": "know",
+   "title": "固態電容是什麼？伺服器主機板為何偏好它",
+   "why": "讀者分不清液態鋁電解與導電高分子固態電容；用 3D 場景 capacitor 縱剖面對照兩種電解質，講耐溫、壽命與低阻抗",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/capacitor"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "i_hv_auto_connector",
+   "cat": "intro",
+   "title": "車用高壓連接器鏈：800V 電動車線束怎麼分工",
+   "why": "電動車平台往 800V 走，高壓連接器、線束與充電座規格跟著換；本站有車用連接器族群頁，講端子、塑膠件、線束到整車廠的環節",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/connector_auto"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "i_optical_1p6t",
+   "cat": "intro",
+   "title": "1.6T 光模組鏈：雷射晶粒、DSP 到模組組裝",
+   "why": "光模組世代從 800G 換到 1.6T，單一模組雷射與 DSP 用量改變；拆解磊晶、雷射晶粒、光學元件、模組組裝四個環節（與既有『光模組到矽光子』『可插拔與 CPO』兩題不同，聚焦 1.6T 這一代）",
+   "score": 4,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/optical_module",
+    "#industry/group/siph_laser"
+   ],
+   "added": "2026-11-25"
+  },
+  {
+   "id": "i_server_l6_l11",
+   "cat": "intro",
+   "title": "伺服器組裝 L6 到 L11：主機板到整櫃怎麼分段",
+   "why": "新聞常說某廠做 L10、L11，讀者不懂代表什麼；用 L6 主機板、L10 整機、L11 整櫃的分段，對照本站 AI 伺服器組裝與機殼滑軌族群頁",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/ai_server_odm",
+    "#industry/group/chassis_rail"
+   ],
+   "added": "2026-11-25"
+  },
   {
    "id": "n_huang_return_tw_1124",
    "cat": "news",
