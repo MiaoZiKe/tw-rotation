@@ -115,7 +115,7 @@
       "化學品"
     ]
   },
-  "legal_pending": ["wafer1", "wafer2", "mask1", "mask2", "resist1", "resist2"],
+  "legal_pending": ["wafer1", "wafer2", "mask1", "mask2", "resist1", "resist2", "asml"],
   "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。",
   "ig_dm": {
     "enabled": true,
@@ -161,7 +161,8 @@
       "mask1": "謝謝留言！「光罩：晶片的底片」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-05-tech-mask1",
       "mask2": "謝謝留言！「光罩：誰做光罩、怎麼運送」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-06-tech-mask2",
       "resist1": "謝謝留言！「光阻：照到光就會變的膠」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-07-tech-resist1",
-      "resist2": "謝謝留言！「塗佈顯影機：塗上去、洗出來的機器」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-08-tech-resist2"
+      "resist2": "謝謝留言！「塗佈顯影機：塗上去、洗出來的機器」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-08-tech-resist2",
+      "asml": "謝謝留言！「曝光機：全世界只有一家做得出最先進的」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-09-tech-asml"
     },
     "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
@@ -263,6 +264,9 @@
       ],
       "resist2": [
         "已經將「塗佈顯影機：塗上去、洗出來的機器」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-08-tech-resist2"
+      ],
+      "asml": [
+        "已經將「曝光機：全世界只有一家做得出最先進的」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-09-tech-asml"
       ]
     }
   }
