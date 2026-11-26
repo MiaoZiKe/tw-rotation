@@ -1,7 +1,7 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2026-12-10T20:00+08:00
+scheduled_at: 2026-12-10T18:00+08:00
 weekday: 四
 platforms: ig, threads
 media: video

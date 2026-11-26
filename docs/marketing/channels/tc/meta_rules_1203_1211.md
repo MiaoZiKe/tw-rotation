@@ -28,7 +28,7 @@ Hi 您好～👋
    連結：https://liguligu-puipui.com/#article/2026-12-03-tech-wafer1
 
 2. 規則名稱：科技-磊晶
-   套用貼文：12/4（五）20:00 發的「矽晶圓-2」影片
+   套用貼文：12/4（五）18:00 發的「矽晶圓-2」影片
    關鍵字：磊晶
    主題：矽晶圓：台灣誰在做
    連結：https://liguligu-puipui.com/#article/2026-12-04-tech-wafer2
@@ -40,7 +40,7 @@ Hi 您好～👋
    連結：https://liguligu-puipui.com/#article/2026-12-05-tech-mask1
 
 4. 規則名稱：科技-光罩盒
-   套用貼文：12/6（日）20:00 發的「光罩-2」影片
+   套用貼文：12/6（日）18:00 發的「光罩-2」影片
    關鍵字：光罩盒
    主題：光罩：誰做光罩、怎麼運送
    連結：https://liguligu-puipui.com/#article/2026-12-06-tech-mask2
@@ -52,7 +52,7 @@ Hi 您好～👋
    連結：https://liguligu-puipui.com/#article/2026-12-07-tech-resist1
 
 6. 規則名稱：科技-顯影
-   套用貼文：12/8（二）20:00 發的「光阻-2」影片
+   套用貼文：12/8（二）18:00 發的「光阻-2」影片
    關鍵字：顯影
    主題：塗佈顯影機：塗上去、洗出來的機器
    連結：https://liguligu-puipui.com/#article/2026-12-08-tech-resist2
@@ -64,7 +64,7 @@ Hi 您好～👋
    連結：https://liguligu-puipui.com/#article/2026-12-09-tech-asml
 
 8. 規則名稱：科技-應材
-   套用貼文：12/10（四）20:00 發的「應用材料」影片
+   套用貼文：12/10（四）18:00 發的「應用材料」影片
    關鍵字：應材
    主題：薄膜誰來鋪：應用材料的集群機台
    連結：https://liguligu-puipui.com/#article/2026-12-10-tech-amat
