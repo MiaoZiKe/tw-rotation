@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-26T20:00+08:00
 weekday: 四
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-etch.mp4
 images: cover.jpg
 title: 科技透明圈影片：蝕刻機，把圖形刻進晶圓（tech-etch v3）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/DgNEDp1pZ2P/
+ids_ig: 18170618164468438
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DgNEKt5o6PW
+ids_threads: 17983235361173390
+ids_threads_reply: 17968989456231087
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgNERr7IDfT
+done: ig, threads
+urls: https://www.instagram.com/reel/DgNEDp1pZ2P/ https://www.threads.com/@tech_01010909/post/DgNEKt5o6PW https://www.threads.com/@tech_01010909/post/DgNERr7IDfT
+posted_at: 2026-11-26T20:04+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「蝕刻機：把圖形刻進晶圓」
 
