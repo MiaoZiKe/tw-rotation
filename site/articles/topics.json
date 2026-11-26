@@ -1,6 +1,118 @@
 {
- "updated": "2026-11-25",
+ "updated": "2026-11-26",
  "topics": [
+  {
+   "id": "n_sec301_tw15",
+   "cat": "news",
+   "title": "美方新關稅台灣列 15%：半導體為何傳出豁免",
+   "why": "11/25 美方提出依 301 條款的新一輪關稅方案，台日韓歐盟列最低級別 15%、中國疊加後最高恐破 40%，並傳半導體、汽車可豁免，最快明年 1 月生效（時報資訊、ETtoday、中時 11/25～26）；讀者會問「台灣到底被課多少、晶片算不算」。豁免範圍各媒體描述不一，成稿以美方正式公告為準並註明日期",
+   "score": 5,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/foundry"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "n_buyback_nov50",
+   "cat": "news",
+   "title": "11 月逾 50 家公司買庫藏股：護盤到底有沒有用",
+   "why": "證交所與櫃買中心致函呼籲後，11/23 經濟日報統計 47 家、11/26 工商時報統計上市櫃合計約 56 家宣布買回；大跌之際讀者會問「公司自己買股票擋不擋得住賣壓、宣布了一定會買嗎」。家數各媒體口徑不同，成稿以公開資訊觀測站統計並註明統計日，可對照過去執行率偏低的統計",
+   "score": 4,
+   "format_hint": "文章",
+   "site_links": [
+    "#overview"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "n_dram_2027_cut",
+   "cat": "news",
+   "title": "DRAM 明年漲幅被下修，記憶體股為何急跌",
+   "why": "11/25 TrendForce 下調明年 DRAM 合約價漲幅預期（消費級與老世代需求轉弱），美光、SK 海力士盤前跌逾 5%；同週高盛下調三星與 SK 海力士目標價（智通財經 11/25、新浪 11/24）。讀者會問「缺貨不是還在嗎，預期一下修為什麼就跌」；角度是預期下修與 HBM／通用 DRAM 分流，收盤跌幅成稿前再對第二來源",
+   "score": 4,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/memory_module",
+    "#industry/group/hbm"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "k_info_fanout",
+   "cat": "know",
+   "title": "InFO 扇出封裝是什麼？手機晶片怎麼包得更薄",
+   "why": "CoWoS、SoIC、FOPLP 都寫過，同家族的晶圓級扇出封裝 InFO 還沒介紹；讀者會問「手機處理器跟 AI 晶片的封裝差在哪」。文章＋3D 圖：借 semiconductor（CoWoS-L 立體剖面，#industry/group/ai_adv_packaging）對照講重佈線層往外扇出，只講原理不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/ai_adv_packaging",
+    "#heatmap/theme/cowos"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "k_gan_charger",
+   "cat": "know",
+   "title": "氮化鎵快充是什麼？充電頭為何越做越小",
+   "why": "既有題只講 SiC 與 GaN 材料差異，還沒講最貼近一般人的應用；讀者會問「GaN 充電頭為什麼又小又不燙」。文章＋3D 圖：用 wide_bandgap（SiC 與 GaN 功率元件，#industry/group/wide_bandgap）講高頻切換讓變壓器與電容縮小",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/wide_bandgap"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "k_servo_encoder",
+   "cat": "know",
+   "title": "編碼器是什麼？伺服馬達怎麼知道自己轉到哪",
+   "why": "滾珠螺桿、線性滑軌、機器人關節都寫過，伺服系統的「眼睛」編碼器還沒介紹；讀者會問「機器手臂怎麼停得那麼準」。文章＋3D 圖：用 motion_axis（一個會動的軸，#industry/group/factory_automation）標出編碼器位置與閉迴路",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/factory_automation"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "i_wifi7_chain",
+   "cat": "intro",
+   "title": "Wi-Fi 7 無線網路鏈：晶片、模組到路由器",
+   "why": "網通既有題都在資料中心交換器與光通訊，家用與企業無線這一段還沒寫；拆無線晶片、射頻前端、模組、路由器與企業 AP 整機四個環節，供應鏈圖用站內高速交換器與無線網路族群頁，講分工不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/switch_wireless"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "i_foplp_chain",
+   "cat": "intro",
+   "title": "面板級封裝鏈：玻璃大板、設備到封裝廠",
+   "why": "已有「FOPLP 是什麼」知識題，但還沒講這條鏈怎麼分工：面板廠轉做封裝、方形載板與玻璃、曝光與塗佈設備、封測廠四段；供應鏈圖用站內 2.5D 圖 panel_pkg（面板轉封裝），講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/panel_pkg",
+    "#industry/group/panel"
+   ],
+   "added": "2026-11-26"
+  },
+  {
+   "id": "i_dc_mep_chain",
+   "cat": "intro",
+   "title": "資料中心機電統包鏈：空調、消防到機電工程",
+   "why": "已有資料中心「供電鏈」，但機房蓋起來還要空調、消防、弱電與機電統包；拆設計、機電設備、統包工程、維運四段，供應鏈圖用站內廠務工程與重電族群頁，講分工不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/semi_facility",
+    "#industry/group/heavy_electric"
+   ],
+   "added": "2026-11-26"
+  },
   {
    "id": "n_tw_2day_4162",
    "cat": "news",
