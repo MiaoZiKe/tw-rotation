@@ -663,6 +663,11 @@ html.fab-off .supfab{display:none!important}`);
     const topSub = Object.entries(sm).sort((a, b) => b[1] - a[1])[0];
     const rNew = rq.filter((x) => x.status === 'new').length;
     const rqv = rq.filter((x) => !RQF || (x.type || 'subscribe') === RQF);
+    /* 2026-11-26 Andy：「確認每天是否有新訂單」→ 表頭顯示今天（台北）新增幾筆，並分出「預約開放通知」（冷啟動、不扣款）與真訂閱／取消／退款 */
+    const rqKind = (x) => { const t = x.type || 'subscribe'; return t !== 'subscribe' ? t : /^\s*\[預約開放通知\]/.test(x.note || '') ? 'reserve' : 'subscribe'; };
+    const rqToday = rq.filter((x) => dayOf(x.created) === todayTpe()), rqTc = {};
+    rqToday.forEach((x) => { const k = rqKind(x); rqTc[k] = (rqTc[k] || 0) + 1; });
+    const rqTodayTxt = rqToday.length ? `今日新增 ${rqToday.length} 筆（${[['subscribe', '真訂閱'], ['reserve', '預約開放通知・不扣款'], ['cancel', '取消'], ['refund', '退款']].filter(([k]) => rqTc[k]).map(([k, n]) => `${n} ${rqTc[k]}`).join('、')}）` : '今日新增 0 筆';
     const rqDone = (r) => ((r.type || 'subscribe') === 'subscribe' ? ['已開通', '標為已開通'] : ['已處理', '標為已處理']);
     const sel = (id, cur, opts) => `<select id="${id}">${opts.map(([k, n]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
     const subList = FL.cat ? ((TREE.find((x) => x[0] === FL.cat) || [])[2] || []) : [];
@@ -700,7 +705,7 @@ html.fab-off .supfab{display:none!important}`);
           <td class="fbact"><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`
           : `<td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
           <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`}`; }).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${inR.length ? '沒有符合篩選的反饋。' : '這段期間還沒有反饋。'}</p>`}</div>
-      <div class="card"><div class="fbflt"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><label>類型 ${sel('rqFType', RQF, [['', '全部'], ['subscribe', '訂閱'], ['cancel', '取消訂閱'], ['refund', '申請退款']])}</label></div><p class="muted">金流尚未串接：訂閱＝確認付款後到「會員管理」替他設定方案與到期日，再標成「已開通」；取消訂閱＝到期日留在本期結束、次期不再續；申請退款＝退款完成後把方案改回註冊會員，再標成「已處理」。</p>
+      <div class="card"><div class="fbflt"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><b id="rqToday" class="st ${rqToday.length ? 'new' : ''}">${rqTodayTxt}</b><label>類型 ${sel('rqFType', RQF, [['', '全部'], ['subscribe', '訂閱'], ['cancel', '取消訂閱'], ['refund', '申請退款']])}</label></div><p class="muted">金流尚未串接：訂閱＝確認付款後到「會員管理」替他設定方案與到期日，再標成「已開通」；取消訂閱＝到期日留在本期結束、次期不再續；申請退款＝退款完成後把方案改回註冊會員，再標成「已處理」。</p>
         ${rqv.length ? `<table id="rqTable"><thead><tr><th>時間（台北）</th><th>類型</th><th>會員</th><th>方案</th><th>週期</th><th>聯絡 email</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>${rqv.map((r) => `<tr data-id="${esc(r.id)}" data-type="${esc(r.type || 'subscribe')}">
           <td>${dstr(r.created)}</td><td>${esc(RQT[r.type || 'subscribe'] || r.type)}</td><td>${esc(r.name || '')}<br><small class="muted">${esc(r.email || '')}</small></td><td>${esc(r.plan)}</td><td>${r.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(r.contact)}</td><td>${esc(r.note || '')}</td>
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '待處理' : rqDone(r)[0]}</span></td>

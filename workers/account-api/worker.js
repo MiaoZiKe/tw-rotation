@@ -112,6 +112,7 @@ const CODE_RE = /^[0-9A-Z]{4,6}$/;
 
 import { installPay } from './pay.js';
 import { installArticles } from './articles.js';
+import { installNewOrders } from './neworders.js';
 import { installAlertMail } from './alertmail.js';
 import { installMarginDash } from './margindash.js';
 
@@ -2805,6 +2806,7 @@ for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.inclu
    ★ 同前面幾個區塊：包一層 prototype，既有函式一行不動；一定要在檔尾（要包住前面所有的 fetch／cleanup／deleteMe／expInit）。
    ============================================================================ */
 installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
+installNewOrders(Hub);   // 2026-11-26 每日新訂單檢查（neworders.js）
 installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
 installMarginDash(Hub);   // 2026-11-06 全市場信用風險（官方儀表板）人工登錄：/v1/mdash/get 公開讀、/v1/admin/mdash/put|del 管理者寫（margindash.js）
 installAlertMail(Hub, { tpeDay });    // 2026-11-02 自設提醒 email 通知（alertmail.js；cron 18:40 比對 digest.json、寫進 pay.js 的寄信佇列）

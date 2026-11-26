@@ -1,0 +1,60 @@
+name: 每日新訂單檢查
+
+# 2026-11-26 Andy：「需要新增這機制，確認每天是否有新訂單」。每天台北 09:07（UTC 01:07）叫 Worker 的 /v1/orders/daily/bot：
+#   回「上次確認之後」的新申請與新訂單（真訂閱／預約／取消／退款／金流訂單）。
+#   有新單 → 開一則 GitHub issue（Andy 的 GitHub 通知會寄信；只放數量與方案，不放 email，因為 repo 是 public）；
+#            Worker 同時寄信給站主（NOTIFY_EMAIL）並放管理者鈴鐺。
+#   issue 開成功才 ack 推進水位；失敗不推，隔天連同今天一起補報，不會漏。
+# 機器鑰匙：跟 deploy-account-worker.yml 寫進 Worker 的 ARTICLE_BOT_KEY 同一個公式（由 CLOUDFLARE_API_TOKEN 推導），Andy 不必設新金鑰。
+
+on:
+  schedule:
+    - cron: '7 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 檢查新訂單
+        env:
+          API: ${{ secrets.ACCOUNT_API_URL || 'https://tw-account.kcq01010909.workers.dev' }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          KEY=$(printf 'tw-article-jobs|%s' "$CF_TOKEN" | sha256sum | cut -c1-48)
+          echo "::add-mask::$KEY"
+          API="${API%/}"
+          code=$(curl -s -o r.json -w '%{http_code}' -X POST "$API/v1/orders/daily/bot" -H "Authorization: Bearer $KEY" -d '{"op":"check"}')
+          if [ "$code" != "200" ]; then echo "::error::Worker 回 HTTP $code（Worker 還沒部署這條路由，或鑰匙不對）"; cat r.json; exit 1; fi
+          python3 - <<'PY'
+          import json, os
+          r = json.load(open('r.json'))
+          tot = r['actionable'] + r['reserve']
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f"UPTO={r['upto']}\nTOT={tot}\nACT={r['actionable']}\n")
+          lines = [f"統計區間（台北）：{r['sinceTpe']} → {r['uptoTpe']}", "",
+                   "| 類型 | 筆數 |", "|---|---|",
+                   f"| 金流訂單（含未付款） | {r['orders']} |", f"| 真訂閱申請 | {r['subscribe']} |",
+                   f"| 取消申請 | {r['cancel']} |", f"| 退款申請 | {r['refund']} |",
+                   f"| 預約開放通知（不扣款、非訂閱） | {r['reserve']} |", "", "明細（不含個資）："]
+          for i in r['items']:
+              lines.append(f"- {i['at']}　{i['kind']}　{i.get('plan','')}／{i.get('period','')}" + (f"　NT$ {i['amount']}（{i.get('method','')}，{i.get('status','')}）" if i['kind']=='order' else ''))
+          lines += ["", "處理：管理區「付款與訂單」「意見反饋與訂閱申請」。處理完可關閉這則 issue。"]
+          open('body.md','w').write("\n".join(lines))
+          open(os.environ['GITHUB_ENV'], 'a').write("TITLE=" + ("【有新訂單】" if r['actionable'] else "【新預約】") + f"每日新訂單檢查\n")
+          PY
+          echo "新增 $TOT 筆（需處理 $ACT）"
+          if [ "$TOT" -gt 0 ]; then
+            DAY=$(TZ=Asia/Taipei date +%F)
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE $DAY" --body-file body.md
+          fi
+          code=$(curl -s -o a.json -w '%{http_code}' -X POST "$API/v1/orders/daily/bot" -H "Authorization: Bearer $KEY" -d "{\"op\":\"ack\",\"upto\":$UPTO}")
+          [ "$code" = "200" ] || { echo "::error::ack 失敗 HTTP $code"; exit 1; }
+          echo "已確認水位 $UPTO"
