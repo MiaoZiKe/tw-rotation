@@ -37,7 +37,7 @@ jobs:
           import json, os
           r = json.load(open('r.json'))
           tot = r['actionable'] + r['reserve']
-          with open(os.environ['GITHUB_ENV'], 'a') as f:
+          with open('vars.sh', 'w') as f:
               f.write(f"UPTO={r['upto']}\nTOT={tot}\nACT={r['actionable']}\n")
           lines = [f"統計區間（台北）：{r['sinceTpe']} → {r['uptoTpe']}", "",
                    "| 類型 | 筆數 |", "|---|---|",
@@ -48,8 +48,9 @@ jobs:
               lines.append(f"- {i['at']}　{i['kind']}　{i.get('plan','')}／{i.get('period','')}" + (f"　NT$ {i['amount']}（{i.get('method','')}，{i.get('status','')}）" if i['kind']=='order' else ''))
           lines += ["", "處理：管理區「付款與訂單」「意見反饋與訂閱申請」。處理完可關閉這則 issue。"]
           open('body.md','w').write("\n".join(lines))
-          open(os.environ['GITHUB_ENV'], 'a').write("TITLE=" + ("【有新訂單】" if r['actionable'] else "【新預約】") + f"每日新訂單檢查\n")
+          open('vars.sh', 'a').write("TITLE='" + ("【有新訂單】" if r['actionable'] else "【新預約】") + "每日新訂單檢查'\n")
           PY
+          . ./vars.sh
           echo "新增 $TOT 筆（需處理 $ACT）"
           if [ "$TOT" -gt 0 ]; then
             DAY=$(TZ=Asia/Taipei date +%F)
