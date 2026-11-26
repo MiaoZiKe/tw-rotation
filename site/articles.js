@@ -1746,6 +1746,25 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     return await new Promise((ok) => cv.toBlob(ok, 'image/png'));
   }
   window.addEventListener('tw:account', () => { const r = document.getElementById('artPost'); if (r) adminCopyBtns(r.parentElement || document); });
+  /* 11-26 Andy：「精選文章內所有資訊只有我可以下載 其他人不行」（docs/marketing/channels/article_standard.md 11-22「下載只給站主」）
+     非站主：文章內圖片／影片／圖表停用右鍵選單與拖曳另存；插圖組的「開原圖」連結拿掉 href（不能另開原檔）。站主照常。
+     ⚠ 只能擋畫面上的入口：截圖、錄影、開發者工具抓靜態檔，技術上無法完全擋。 */
+  const MEDIA_SEL = '#artPost img, #artPost video, #artPost canvas, #artPost svg, #artPost .aig';
+  ['contextmenu', 'dragstart'].forEach((ev) => document.addEventListener(ev, (e) => {
+    if (isAdminUser()) return;
+    const t = e.target && e.target.closest && e.target.closest(MEDIA_SEL);
+    if (t) e.preventDefault();
+  }, true));
+  function lockMedia(root) {
+    const own = isAdminUser();
+    $$('#artPost .aig', root).forEach((a) => {
+      if (!a.dataset.href) a.dataset.href = a.getAttribute('href') || '';
+      if (own) { if (a.dataset.href) a.setAttribute('href', a.dataset.href); }
+      else { a.removeAttribute('href'); a.removeAttribute('target'); }
+    });
+    $$('#artPost img, #artPost video', root).forEach((m) => { if (own) m.removeAttribute('draggable'); else m.setAttribute('draggable', 'false'); });
+  }
+  window.addEventListener('tw:account', () => { if (document.getElementById('artPost')) lockMedia(document); });
   function adminCopyBtns(root) {
     if (!isAdminUser()) return;
     $$('#artPost figure.artfig', root).forEach((fig, i) => {
@@ -2581,6 +2600,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     S.curData = d;
     hydrate(root, d);
     { const pp = $('#artPost', root); if (pp) pp.classList.toggle('arthidd', artHid(id)); }
+    lockMedia(root);
     paintHourly(id);
     adminCopyBtns(root);
     if (unl) unlAdd(unl.cat || 'tech', id, false);   // 用連結讀到的單篇，記在這台裝置（之後登入了仍看得到這篇）
