@@ -150,11 +150,11 @@
       ]
     },
     "margin_total": {
-      "stored": 0
+      "stored": 1
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 8
+      "rows": 9
     },
     "fut_inst": {
       "stored": 0
@@ -173,19 +173,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 891,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "inst_daily": {
-      "stored": 373
+      "stored": 77
     },
     "institutional_codes": {
-      "requested": 383,
-      "returned": 373
+      "requested": 90,
+      "returned": 77
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 373,
-      "seconds": 76.1
+      "rows": 77,
+      "seconds": 19.8
     },
     "inst_flags": {
       "rebuild": true,
@@ -207,7 +207,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-26",
-        "rows": 2144,
+        "rows": 2221,
         "median": 2228.5,
         "status": "ok",
         "reason": null
@@ -222,11 +222,11 @@
       },
       "margin_total": {
         "label": "整體融資融券",
-        "latest": "2026-11-25",
-        "rows": 0,
+        "latest": "2026-11-26",
+        "rows": 1,
         "median": 1.0,
-        "status": "warn",
-        "reason": "behind"
+        "status": "ok",
+        "reason": null
       },
       "fut_inst": {
         "label": "期貨三大法人",
@@ -245,20 +245,14 @@
         "reason": null
       }
     },
-    "warn": [
-      "margin_total"
-    ],
-    "warn_labels": [
-      "整體融資融券"
-    ]
+    "warn": [],
+    "warn_labels": []
   },
-  "warn": [
-    "margin_total"
-  ],
-  "started_at": "2026-11-26T11:49:55.061479+00:00",
-  "finished_at": "2026-11-26T11:51:35.127081+00:00",
-  "duration_seconds": 100.1,
+  "warn": [],
+  "started_at": "2026-11-26T12:49:53.582941+00:00",
+  "finished_at": "2026-11-26T12:50:25.247331+00:00",
+  "duration_seconds": 31.7,
   "trade_date": "2026-11-26",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 413
 }
