@@ -364,5 +364,22 @@
    "format": "video",
    "video_via": "site"
   }
+ },
+ "20261126_births": {
+  "ig": {
+   "id": "18201814147384201",
+   "link": "https://www.instagram.com/p/DgMQIEGk6aV/",
+   "at": "2026-11-26T12:30:29+08:00"
+  },
+  "at": "2026-11-26T12:30:29+08:00",
+  "threads": {
+   "id": "17983409361134949",
+   "link": "https://www.threads.com/@talk_01010909/post/DgMQN0qG_kP",
+   "at": "2026-11-26T12:30:29+08:00",
+   "reply": {
+    "id": "18105421472529612",
+    "link": "https://www.threads.com/@talk_01010909/post/DgMQO-TG9_5"
+   }
+  }
  }
 }

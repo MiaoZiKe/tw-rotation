@@ -1,26 +1,26 @@
 {
- "at": "2026-11-25T20:29:01+08:00",
+ "at": "2026-11-26T12:30:29+08:00",
  "mode": "live",
- "item": "20261125v_savings",
+ "item": "20261126_births",
  "posted": {
   "ig": {
-   "id": "18140749153641381",
-   "link": "https://www.instagram.com/reel/DgKiDLFhTiW/",
-   "at": "2026-11-25T20:29:01+08:00",
-   "format": "video",
-   "video_via": "site"
+   "id": "18201814147384201",
+   "link": "https://www.instagram.com/p/DgMQIEGk6aV/",
+   "at": "2026-11-26T12:30:29+08:00"
   },
   "threads": {
-   "id": "18418467595095444",
-   "link": "https://www.threads.com/@talk_01010909/post/DgKiJ_jNbBj",
-   "at": "2026-11-25T20:29:01+08:00",
-   "format": "video",
-   "video_via": "site"
+   "id": "17983409361134949",
+   "link": "https://www.threads.com/@talk_01010909/post/DgMQN0qG_kP",
+   "at": "2026-11-26T12:30:29+08:00",
+   "reply": {
+    "id": "18105421472529612",
+    "link": "https://www.threads.com/@talk_01010909/post/DgMQO-TG9_5"
+   }
   }
  },
  "errors": {},
  "notes": [
   "20261116v_worktime：還沒到 2026-11-28T20:27:00+08:00"
  ],
- "summary": "20261125v_savings：已發 ig https://www.instagram.com/reel/DgKiDLFhTiW/；threads https://www.threads.com/@talk_01010909/post/DgKiJ_jNbBj"
+ "summary": "20261126_births：已發 ig https://www.instagram.com/p/DgMQIEGk6aV/；threads https://www.threads.com/@talk_01010909/post/DgMQN0qG_kP"
 }
