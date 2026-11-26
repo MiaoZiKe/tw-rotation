@@ -53,6 +53,7 @@
 | ENTG | 英特格 | ENTG.svg | https://www.entegris.com/content/dam/web/ux/global/footer/logo.svg | 官網頁尾 logo |
 | 0981 | 中芯國際 | 0981.svg | https://commons.wikimedia.org/wiki/File:SMIC_logo.svg | 共享資源（官網 logo 放在 CDN 被擋） |
 | 4901 | 富士軟片 | 4901.svg | https://commons.wikimedia.org/wiki/File:Fujifilm_logo.svg | 共享資源（官網連不上） |
+| KLAC | 科磊 | KLAC.png | https://commons.wikimedia.org/wiki/File:KLA_Corp._logo.svg | 共享資源；原檔 SVG 下載被限流，改用 Wikimedia 由原檔轉出的 960×214 PNG（thumb.php），未重畫、未改色（同 ai-mp4 videos/tech-kla/assets.md） |
 
 ## 沒有 logo
 3413 京鼎：官網（foxsemicon.com 各語系首頁）導覽列只放文字「京鼎集團」、沒有 logo 圖檔，沒放。
