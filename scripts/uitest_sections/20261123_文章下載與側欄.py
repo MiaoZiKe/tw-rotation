@@ -67,16 +67,11 @@ def t_art_dl_1123(b, base, code):
     for W in (1440, 390):
         for who, email in (("訪客", None), ("站主", "admin@example.com")):
             c, pg = ctx(email, W)
-            open_(pg, "#articles", "#artSide")
-            if email:
-                wait_until(pg, "() => document.getElementById('artSide').innerHTML.length > 50", 8000)
+            open_(pg, "#articles", "#artList")
+            pg.wait_for_timeout(800)
             s = pg.evaluate(side)
-            if not email:
-                ok(f"★ [{T}（{W}）] 訪客：快速瀏覽側欄完全不渲染、格線吃滿（noside）", bool(s) and s["html"] == 0 and s["noside"] and (W < 1280 or s["lw"] >= s["mw"] - 2), s)
-            else:
-                ok(f"★ [{T}（{W}）] 站主：側欄有內容、沒有 noside", bool(s) and s["html"] > 50 and not s["noside"], s)
-                if W >= 1280:
-                    ok(f"[{T}（{W}）] 站主：寬螢幕側欄實際佔位（寬 > 200）", s["sw"] > 200, s)
+            # 11-26 Andy：「旁邊這邊拿掉」→ 所有人（含站主）都沒有側欄
+            ok(f"★ [{T}（{W}）{who}] 快速瀏覽側欄不存在", s is None, s)
             pg.screenshot(path=f"{_D3_SHOT}/list_{who}_{W}.png")
             for aid in _D3_ARTS:
                 open_(pg, "#article/" + aid, "#artPost")

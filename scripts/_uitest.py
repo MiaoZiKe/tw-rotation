@@ -71615,9 +71615,9 @@ def t_articles_1014(b, base):
         const tabs = [...document.querySelectorAll('#artCats>button')].filter(b => b.dataset.cat !== 'tech').map(b => [b.dataset.cat, b.textContent.trim(), getComputedStyle(b.querySelector('.artic')).color, !!b.querySelector('svg')]);
         const cards = [...document.querySelectorAll('#artList .artc')].map(a => [getComputedStyle(a, '::before').backgroundColor, !!a.querySelector('.artbadge svg')]);
         return { cols: getComputedStyle(L).gridTemplateColumns.split(' ').length, vw: Math.round(V.getBoundingClientRect().width), mw: Math.round(M.getBoundingClientRect().width), ch: Math.round(C.getBoundingClientRect().height),
-          side: (() => { const s = document.getElementById('artSide'); const r = s.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.right), s.querySelectorAll('.cr').length]; })(), tabs, cards }; }""")
-    ok(f"{T}：版面填滿 —— 主內容區＝主欄全寬（{st['vw']}/{st['mw']}）、卡片 ≥ 3 欄、卡片框至少跟視窗一樣高、右側快速瀏覽在畫面內",
-       st["vw"] >= st["mw"] - 40 and st["cols"] >= 3 and st["ch"] >= 900 - 130 and st["side"][0] >= 240 and st["side"][1] <= 1440 and st["side"][2] == 3, st)
+          side: !!document.getElementById('artSide'), lw: Math.round(L.getBoundingClientRect().width), tabs, cards }; }""")
+    ok(f"{T}：版面填滿 —— 主內容區＝主欄全寬（{st['vw']}/{st['mw']}）、卡片 ≥ 3 欄、卡片框至少跟視窗一樣高、沒有右側側欄（11-26 Andy：「旁邊這邊拿掉」）、卡片區吃滿",
+       st["vw"] >= st["mw"] - 40 and st["cols"] >= 3 and st["ch"] >= 900 - 130 and not st["side"] and st["lw"] >= st["vw"] - 80, st)
     ok(f"{T}：上方分頁＝全部文章／比比快訊／比比產業鏈／比比知識／盤前消息／盤後消息，每個都有小圖示、六種顏色兩兩不同；卡片有類別色條與圖示徽章",
        [t[1].rstrip("0123456789 ") for t in st["tabs"]] == ["全部文章", "比比快訊", "比比產業鏈", "比比知識", "盤前消息", "盤後消息"] and all(t[3] for t in st["tabs"]) and len({t[2] for t in st["tabs"]}) == 6
        and all(cc[1] and cc[0] not in ("", "rgba(0, 0, 0, 0)") for cc in st["cards"]), st)
@@ -71670,10 +71670,7 @@ def t_articles_1014(b, base):
     ok(f"{T}：勾「測試族群」→ 只剩含這個族群的 {want_g} 篇、按鈕寫測試族群", cnt(pg) == want_g and want_g < n_vis and all("zz_test_grp" in (x["g"] or "").split() for x in cards(pg)) and "測試族群" in st["btn"], [cnt(pg), st])
     pg.keyboard.press("Escape"); pg.click("#artClr"); pg.wait_for_timeout(250)
     ok(f"{T}：清除篩選 → 族群回到不限、{n_vis} 篇", cnt(pg) == n_vis and "不限" in pg.evaluate("() => document.querySelector('#artGrp .twms-btn').textContent"), cnt(pg))
-    pg.click(".artside .gps button[data-gid=foundry]"); pg.wait_for_timeout(250)
-    want_f = len([a for a in vis if any(g["id"] == "foundry" for g in (a.get("groups") or []))])
-    ok(f"{T}：右側「熱門族群」點晶圓代工 → 只剩 {want_f} 篇、下拉按鈕同步寫晶圓代工", cnt(pg) == want_f and "晶圓代工" in pg.evaluate("() => document.querySelector('#artGrp .twms-btn').textContent"), cnt(pg))
-    pg.click("#artClr"); pg.wait_for_timeout(250)
+    # 11-26 側欄「熱門族群」隨側欄一起拿掉（Andy：「旁邊這邊拿掉」）
     # 800 寬兩欄
     pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(500)
     # 10-17 起「全部文章」依類型分段：卡片在 #artList 裡每段的 .artgrid；不分段時 #artList 本身就是格線

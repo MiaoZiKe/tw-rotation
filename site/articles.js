@@ -184,7 +184,7 @@
 .artflt .cnt b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
 .artflt .cnt .rg{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-min);color:var(--ink-3);padding:1px 8px;border:1px solid var(--line);border-radius:999px}
 .artmain{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-4);align-items:start}
-@media (min-width:1280px){.artmain{grid-template-columns:minmax(0,1fr) 280px}}
+/* 11-26 Andy：「旁邊這邊拿掉」→ 右側快速瀏覽側欄（分類篇數／熱門族群／最近更新）對所有人（含站主）都不畫，卡片格線吃滿整列 */
 /* 卡片一律同寬同高（Andy 10-16：「這邊的大小需要一致」）：格線決定寬、固定高度決定高，內容過長一律截斷（標題 2 行、副標 1 行、摘要 3 行、族群 1 行） */
 .artlist,.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:var(--art-card-h,236px);gap:var(--gap-card,12px);align-items:stretch;align-content:start}
 /* 10-17 Andy：「這邊不同類型需要線條隔開」→ 全部文章依類型分段，段與段之間一條分隔線＋類型名稱 */
@@ -1185,7 +1185,6 @@
     </div>
     <div class="artmain">
       <div class="artlist" id="artList"></div>
-      <div class="artside" id="artSide" role="complementary" aria-label="快速瀏覽"></div>
     </div>
   </div>
   <p class="artfoot">${esc(DISC)}</p>
@@ -1212,7 +1211,7 @@
     } else S.ms.set({ items, selected: [...S.grp] });
   }
   function paintSide(root) {
-    const side = $('#artSide', root); if (!side || !S.idx) return;
+    const side = $('#artSide', root); if (!side || !S.idx) return;   // 11-26 起清單頁不放 #artSide，這支自然不做事
     /* 11-23 Andy：快速瀏覽只有站主看得到；讀者／訪客完全不渲染，卡片格線吃滿原本側欄的寬度（.noside） */
     const own = isAdminUser() || !!window.TW_PREVIEW, mn = side.parentNode;
     if (mn && mn.classList) mn.classList.toggle('noside', !own);
