@@ -345,7 +345,7 @@
   },
   "carmax.com.tw": {
    "status": "not_logo",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "車美仕"
    ],
@@ -485,7 +485,7 @@
   },
   "entegris.com": {
    "status": "not_logo",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "英特格（Entegris）"
    ],
@@ -682,7 +682,7 @@
   },
   "google.com": {
    "status": "robots",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "Google"
    ],
@@ -715,7 +715,7 @@
   },
   "himax.com.tw": {
    "status": "not_logo",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "奇景"
    ],
@@ -730,7 +730,7 @@
   },
   "hitachi-hightech.com": {
    "status": "none",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "日立先端（Hitachi High-Tech）"
    ],
@@ -862,7 +862,7 @@
   },
   "itri.org.tw": {
    "status": "not_logo",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "工研院"
    ],
@@ -927,7 +927,7 @@
   },
   "kneron.com": {
    "status": "not_logo",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "耐能智慧"
    ],
@@ -1033,7 +1033,7 @@
   },
   "merckgroup.com": {
    "status": "none",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "Merck"
    ],
@@ -1524,7 +1524,7 @@
   },
   "spil.com.tw": {
    "status": "error",
-   "fetched": "2026-10-28",
+   "fetched": "2026-11-27",
    "names": [
     "矽品"
    ],
@@ -1935,5 +1935,5 @@
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-10-28T17:19:48.575077+00:00"
+ "updated_at": "2026-11-26T16:09:49.857453+00:00"
 }

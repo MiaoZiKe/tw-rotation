@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-11-26T15:06:17.194386+00:00",
+ "at": "2026-11-26T16:09:09.961526+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -20,8 +20,8 @@
  "generic": 0,
  "sites": 1995,
  "have": 1745,
- "next_due": "2026-11-27",
- "seconds": 0.0,
+ "next_due": "2026-11-28",
+ "seconds": 0.1,
  "deadline_hit": false,
  "strategy": 4,
  "svg": true,
@@ -31,7 +31,12 @@
   "have": 68,
   "coverage": 0.673,
   "pending": 0,
-  "next_due": "2026-11-27",
-  "counts": {}
+  "next_due": "2026-11-28",
+  "counts": {
+   "not_logo": 5,
+   "robots": 1,
+   "none": 2,
+   "error": 1
+  }
  }
 }
