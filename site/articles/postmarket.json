@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-25",
+ "updated": "2026-11-26",
  "days": [
+  {
+   "date": "2026-11-26",
+   "items": [
+    {
+     "cat": "新聞",
+     "title": "科技股修正後還有機會？野村投信解析2027台股布局方向 「台股基金老字號」以研究實力掌握產業新局",
+     "url": "https://news.cnyes.com/news/id/6671284",
+     "source": "鉅亨",
+     "time": "2026-11-26T14:06:34+08:00",
+     "desc": "野村投信看2027年全球經濟續成長、台灣出口與企業盈餘仍有支撐，台股宜聚焦半導體、電源散熱、高速傳輸供應鏈；姚郁如稱AI需求擴至推論與代理型AI，雲端業者202…"
+    },
+    {
+     "cat": "科技",
+     "title": "華爾街罕見出現多空對決 同一家研究機構分析師對Anthropic股價看法分歧",
+     "url": "https://news.cnyes.com/news/id/6671890",
+     "source": "鉅亨",
+     "time": "2026-11-26T13:30:03+08:00",
+     "desc": "Hedgeye兩名分析師罕見對Anthropic上市後走勢唱反調：Freedman看多、Wang建議放空；Wang憂資料中心融資趨難、算力不足與長期需求疑慮；F…"
+    },
+    {
+     "cat": "新聞",
+     "title": "銅礦商 ETF 連跌 13 週、史上首見 反彈可期？",
+     "url": "https://finance.technews.tw/2026/11/26/copper-miners-etf-13-week-losing-streak-unprecedented-rebound-expected/",
+     "source": "科技新報",
+     "time": "2026-11-26T15:10:48+08:00",
+     "desc": "追蹤全球銅礦股的 Global X 銅礦業 ETF 已連 13 週下跌，創成立以來最長跌勢。然而，專家認為，這"
+    },
+    {
+     "cat": "總經",
+     "title": "日本AI Mechatec接60億日圓封裝設備訂單估2028財年認列",
+     "url": "https://news.cnyes.com/news/id/6672736",
+     "source": "鉅亨",
+     "time": "2026-11-26T14:00:17+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "事件",
+     "title": "美國擬對中國等經濟體加徵301關稅 中國商務部、外交部回應！",
+     "url": "https://news.cnyes.com/news/id/6672859",
+     "source": "鉅亨",
+     "time": "2026-11-26T15:29:46+08:00",
+     "desc": "美國貿易代表署公布製造業「結構性產能過剩」301 條款調查結果，提出對台灣、中國等 14 個經濟體加徵關稅的方案；美國表示，許多貿易夥伴長期透過扶植製造業、壓低…"
+    }
+   ]
+  },
   {
    "date": "2026-11-25",
    "items": [
