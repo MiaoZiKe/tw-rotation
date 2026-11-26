@@ -37709,7 +37709,8 @@ def t_wrap_r2(pg, base, code):
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
 
-CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
+CONSENT_PRESET = ("window.TW_SITE_MODE_OFF=1;"   # 2026-11-26 全站只開放文章模式（site/site_mode.js）：驗收要走完整網站，所以這裡關掉；驗文章模式的段落自己設回 0
+                  "try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
 # ★ 2026-10-03「重新整理＝圖表設定回預設」（DECISIONS #307，site/viewreset.js）：

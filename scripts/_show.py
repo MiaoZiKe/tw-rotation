@@ -56,7 +56,8 @@ class _Quiet(SimpleHTTPRequestHandler):
 #   · 只在「還沒有值」時才寫：有些段落會 localStorage.clear() 再重新整理，init script 會在下一次載入補回來。
 #   · 包在類別上而不是某一個 page：驗收裡有幾十個地方各自 new_page，逐一加一定會漏。
 #   · 「同意條款」那一段要刻意不寫，改用 Browser._tw_raw_new_context（原本那支）開乾淨的頁面。
-CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
+CONSENT_PRESET = (("" if os.environ.get("TW_SHOW_SITEMODE") == "1" else "window.TW_SITE_MODE_OFF=1;")   # TW_SHOW_SITEMODE=1：要看文章模式的真實樣子時不關   # 2026-11-26 全站只開放文章模式（site/site_mode.js）：驗收要走完整網站，所以這裡關掉；驗文章模式的段落自己設回 0
+                  + "try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
 # ★ 2026-10-18 主題自動切換（DECISIONS #360）：正式站沒手動選過＝看時鐘。這支釘回舊行為（沒存＝深色、tw.theme 永久），

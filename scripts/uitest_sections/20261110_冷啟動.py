@@ -43,7 +43,7 @@ def t_coldstart_1110(b, base, code):
     def cold_ctx(who, on, width=1440, **kw):
         """用 _sub_ctx 的假後端；設定檔用 route 換成「開」（原檔）或「關」（enabled:false）"""
         c, sent, st = _sub_ctx(b, who, width=width, **kw)
-        body = src.replace("enabled: false,", "enabled: true,", 1) if on else src.replace("enabled: true,", "enabled: false,", 1)  # 11-26 正式開賣後原檔是 false：「開」改成強制換 true
+        body = src if on else src.replace("enabled: true,", "enabled: false,", 1)
         c.route(re.compile(r"/coldstart_config\.js"), lambda r: r.fulfill(status=200, body=body, headers={"content-type": "application/javascript; charset=utf-8"}))
         c.add_init_script(_CS_INIT)
         return c, sent, st
@@ -68,7 +68,7 @@ def t_coldstart_1110(b, base, code):
                 print("   (截圖失敗)", name, ex)
 
     # ------------------------------------------------------------ A. 預設與備援網址
-    ok(f"{T} A1 設定檔有 enabled 開關（11-26 Andy「先開啟好了」起正式開賣＝false）", ("enabled: false," in src or "enabled: true," in src) and "window.TW_COLDSTART" in src)
+    ok(f"{T} A1 設定檔預設 enabled: true（冷啟動預設為開）", "enabled: true," in src and "window.TW_COLDSTART" in src)
     ok(f"{T} A2 備援網址 github.io 不論開關一律冷啟動（程式裡有 mirror 判斷、isOn 含 mirror）", "github\\.io" in src and "C.enabled || mirror" in src)
     c, _, _ = cold_ctx(None, False, plan="guest")
     pg = page(c, "#overview")
