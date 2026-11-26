@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/Df__YZoD2GV/ https://www.threads.com/@tech_01010909/post/Df__gMMKJ-s https://www.threads.com/@tech_01010909/post/Df__nP-GyfB
 posted_at: 2026-11-21T18:13+08:00
 error: 
+ids_fb: 29229438653376413
+urls_fb: https://www.facebook.com/reel/29229438653376413/
+fb_posted_at: 2026-11-26T12:04+08:00
+fb_error: 
+fb_slot: 2026-11-26T12:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「液冷：一櫃 AI 伺服器吃 120 千瓦，風扇吹不走」
 
