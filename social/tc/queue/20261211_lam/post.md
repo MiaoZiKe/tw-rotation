@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: draft
+status: approved
 scheduled_at: 2026-12-11T18:00+08:00
 weekday: 五
 platforms: ig, threads
