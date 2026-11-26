@@ -385,3 +385,40 @@ test('管理區設定：只有管理者能讀寫；壞鍵與過大被擋；null 
   assert.deepEqual((await pj(hub, '/v1/admin/ui', { t: andy })).j.ui.memcols, ['plan', 'created']);
   assert.deepEqual((await pj(hub, '/v1/admin/ui/put', { t: andy, k: 'memcols', v: null })).j.ui, {}, 'null 刪鍵');
 });
+
+/* 2026-11-26 觀看次數＋24H 逐時（站主限定）＋站主自己看不算＋批次查＋單篇隱藏（站主限定） */
+test('觀看：逐時只給站主、站主自己看不算、批次查、30 分鐘去重', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  const id = 'a-hour-0001';
+  clock = Date.parse('2026-11-26T05:10:00Z');
+  await pj(hub, '/v1/articles/view', { id }, '9.9.9.1');
+  await pj(hub, '/v1/articles/view', { id }, '9.9.9.1');                       // 同訪客 30 分鐘內不算
+  await pj(hub, '/v1/articles/view', { id, t: bob }, '9.9.9.2');                // 一般會員照算
+  assert.equal((await pj(hub, '/v1/articles/view', { id, t: andy }, '9.9.9.3')).j.views, 2, '站主自己看不算');
+  clock += 2 * 3600e3;
+  await pj(hub, '/v1/articles/view', { id }, '9.9.9.1');
+  const h = await pj(hub, '/v1/articles/stats/hourly', { t: andy, id });
+  assert.equal(h.s, 200); assert.equal(h.j.hours.length, 24);
+  assert.equal(h.j.hours[23], 1); assert.equal(h.j.hours[21], 2); assert.equal(h.j.hours.reduce((a, x) => a + x, 0), 3);
+  assert.equal((await pj(hub, '/v1/articles/stats/hourly', { t: bob, id })).s, 403, '一般會員拿不到逐時');
+  assert.equal((await pj(hub, '/v1/articles/stats/hourly', { id })).s, 403, '訪客拿不到逐時');
+  clock += 25 * 3600e3;
+  assert.equal((await pj(hub, '/v1/articles/stats/hourly', { t: andy, id })).j.hours.reduce((a, x) => a + x, 0), 0, '超過 24 小時不算進來');
+  assert.deepEqual((await pj(hub, '/v1/articles/stats', { ids: [id, 'a-none-0002'] })).j.views, { [id]: 3, 'a-none-0002': 0 }, '批次查');
+});
+
+test('單篇隱藏：只有站主能改；公開讀名單；隱藏後一般會員拿不到全文', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  const id = 'a-hide-0001';
+  assert.equal((await pj(hub, '/v1/articles/hidden/put', { t: bob, id, hide: true })).s, 403);
+  assert.equal((await pj(hub, '/v1/articles/hidden/put', { id, hide: true })).s, 403);
+  assert.equal((await pj(hub, '/v1/articles/hidden/put', { t: andy, id: '<x>', hide: true })).s, 400);
+  assert.deepEqual((await pj(hub, '/v1/articles/hidden/put', { t: andy, id, hide: true })).j.ids, [id]);
+  assert.deepEqual((await pj(hub, '/v1/articles/hidden', {})).j.ids, [id]);
+  hub.artInit && hub.artInit();
+  assert.equal((await pj(hub, '/v1/articles/get', { t: bob, id })).s, 404, '一般會員拿不到隱藏文章');
+  assert.deepEqual((await pj(hub, '/v1/articles/hidden/put', { t: andy, id, hide: false })).j.ids, []);
+  assert.deepEqual((await pj(hub, '/v1/articles/hidden', {})).j.ids, []);
+});

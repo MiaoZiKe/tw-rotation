@@ -71605,7 +71605,7 @@ def t_articles_1014(b, base):
        and not pg.evaluate("() => !!document.querySelector('#artList .artc.hero, #artList .artc .hx')"), sz)
     wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 6000)
     vw = pg.evaluate("() => [...document.querySelectorAll('#artList .artc')].map(a => { const v = a.querySelector('[data-vw]'); return [a.dataset.id, v && !v.hidden ? v.textContent.trim() : null, !!(v && v.querySelector('svg'))]; })")
-    want_vw = {k: f"{v:,} 次" for k, v in VIEWS.items()}
+    want_vw = {k: f"{v:,} 次觀看" for k, v in VIEWS.items()}
     ok(f"{T}：列表載入呼叫一次 /v1/articles/stats，卡片寫「眼睛圖示＋N 次」（{want_vw}），沒有數字的卡不寫（不顯示 0）",
        any(x[1] == "/v1/articles/stats" for x in api_log) and all((x[1] == want_vw.get(x[0])) and x[2] for x in vw if x[0] in want_vw)
        and all(x[1] is None for x in vw if x[0] not in want_vw) and all("0 次" != (x[1] or "") for x in vw), [vw, api_log[-3:]])
@@ -71706,8 +71706,8 @@ def t_articles_1014(b, base):
         wait_until(pg, "() => { const v = document.querySelector('#artPost .artmeta [data-vw]'); return v && !v.hidden; }", 6000)
         pv = pg.evaluate("() => { const v = document.querySelector('#artPost .artmeta [data-vw]'); return v && !v.hidden ? v.textContent.trim() : null; }")
         sent = [x for x in api_log if x[1] == "/v1/articles/view"]
-        ok(f"{T}：打開單篇 → POST /v1/articles/view 送一次（id＝{first['id']}）、標題下寫「{VIEWS.get(first['id'], 0):,} 次」",
-           len(sent) == 1 and sent[0][2].get("id") == first["id"] and pv == f"{VIEWS.get(first['id'], 0):,} 次", [pv, sent])
+        ok(f"{T}：打開單篇 → POST /v1/articles/view 送一次（id＝{first['id']}）、標題下寫「{VIEWS.get(first['id'], 0):,} 次觀看」",
+           len(sent) == 1 and sent[0][2].get("id") == first["id"] and pv == f"{VIEWS.get(first['id'], 0):,} 次觀看", [pv, sent])
         # 版面：內容欄填滿主欄扣右側目錄（Andy：「左右側還有空白處」）
         wd = pg.evaluate("""() => { const V = document.getElementById('v-articles'), P = document.querySelector('.artpage'), A = document.getElementById('artPost'), C = document.querySelector('.arttoc');
             const cs = getComputedStyle(V), vw = V.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
@@ -71725,7 +71725,7 @@ def t_articles_1014(b, base):
         pg.click(f"#artList .artc[data-id='{first['id']}']")
         wait_until(pg, "() => { const v = document.querySelector('#artPost .artmeta [data-vw]'); return v && !v.hidden; }", 8000)
         sent2 = [x for x in api_log if x[1] == "/v1/articles/view"]
-        ok(f"{T}：30 分鐘內再開同一篇 → 不再送 view（仍 1 次），數字照樣顯示", len(sent2) == 1 and pg.evaluate("() => document.querySelector('#artPost .artmeta [data-vw]').textContent.trim()") == f"{VIEWS.get(first['id'], 0):,} 次", sent2)
+        ok(f"{T}：30 分鐘內再開同一篇 → 不再送 view（仍 1 次），數字照樣顯示", len(sent2) == 1 and pg.evaluate("() => document.querySelector('#artPost .artmeta [data-vw]').textContent.trim()") == f"{VIEWS.get(first['id'], 0):,} 次觀看", sent2)
         pg.goto(base + "#articles"); wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 6000)
     # ⑦ 新區塊（假文章，直接開網址 → 返回走類別清單）
     p2 = c.new_page()

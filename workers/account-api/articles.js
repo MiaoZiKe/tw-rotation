@@ -11,7 +11,7 @@
 export const OPEN_ARTICLE_IDS = [];   // 10-20 錄完影片已關閉；開關機制保留，要再開就把 id 放回來並在 index.json 加 "open": true
 const OPEN_IDS = new Set(OPEN_ARTICLE_IDS);
 export function installArticles(Hub, EXPORT_TABLES) {
-  for (const t of ['article_views', 'article_views_day']) if (EXPORT_TABLES && !EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);   // 備份一起帶走
+  for (const t of ['article_views', 'article_views_day', 'article_views_hour']) if (EXPORT_TABLES && !EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);   // 備份一起帶走
   const ID_RE = /^[A-Za-z0-9._-]{4,80}$/;
   const DEDUP_MS = 30 * 60 * 1000, IP_HOUR_MAX = 120, MAX_ROWS = 3000;
   /* 備份匯出前要先有表（見 pay.js 的 expInit 做法）*/
@@ -22,6 +22,8 @@ export function installArticles(Hub, EXPORT_TABLES) {
     this.q('CREATE TABLE IF NOT EXISTS article_views (id TEXT PRIMARY KEY, views INTEGER DEFAULT 0, updated INTEGER)');
     /* 2026-10-16 每日點閱（Andy：「新增統計數據，可以統計文章點擊次數，可以篩選族群 類型，需要將資訊可視化」）：只記「台北日期＋文章＋次數」，不記是誰；保留 400 天 */
     this.q('CREATE TABLE IF NOT EXISTS article_views_day (day TEXT, id TEXT, n INTEGER, PRIMARY KEY (day, id))');
+    /* 2026-11-26 逐時觀看（Andy：「24H 以小時為單位的觀看統計……何時觀看的次數只有我可以看」）：hr＝UTC 毫秒/3600000 取整；只留 48 小時 */
+    this.q('CREATE TABLE IF NOT EXISTS article_views_hour (hr INTEGER, id TEXT, n INTEGER, PRIMARY KEY (hr, id))');
     this._artSeen = new Map();   // ip|id → 上次計數時間
     this._artIp = new Map();     // ip → [小時, 次數]
     this._artOk = true;
@@ -134,11 +136,44 @@ export function installArticles(Hub, EXPORT_TABLES) {
       return this.json(req, { ok: true, hidden: tcHidden(this) });
     },
   });
+  /* 單篇文章隱藏（2026-11-26）：Andy「每個文章都具備 隱藏功能 和觀看功能 隱藏功能只有我可以動」。
+     kv 鍵 articles_hidden_ids（JSON 陣列，最多 2000 篇），對所有人生效：
+     · 公開讀：/v1/articles/hidden {} → {ids:[…]}（前端清單要知道哪些不畫）
+     · 管理者寫：/v1/articles/hidden/put {t, id, hide:true|false} → {ids}；非管理者 403
+     · 被隱藏的文章：/v1/articles/get 對非管理者一律 404（直接連結也拿不到全文） */
+  const HID_KV = 'articles_hidden_ids', HID_MAX = 2000;
+  const hiddenIds = (hub) => { try { const a = JSON.parse(hub.kv(HID_KV) || '[]'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string' && ID_RE.test(x)).slice(0, HID_MAX) : []; } catch (e) { return []; } };
+  Hub.prototype.artHidden = function (id) { return hiddenIds(this).includes(id); };
+  /* 這一次請求是不是站主（管理者）：有帶 t 才驗；壞權杖當訪客，不回 401（觀看數是公開 API） */
+  const isAdm = async (hub, b) => { if (!b || !b.t) return false; try { const v = await hub.verify(b.t); return !!(v && hub.isAdmin(v.user)); } catch (e) { return false; } };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/articles/hidden': async function (req) { return this.json(req, { ids: hiddenIds(this) }); },
+    '/v1/articles/hidden/put': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      const id = String((b && b.id) || '');
+      if (!ID_RE.test(id) || typeof b.hide !== 'boolean') return this.json(req, { error: 'bad_input' }, 400);
+      const cur = new Set(hiddenIds(this));
+      if (b.hide) { if (!cur.has(id) && cur.size >= HID_MAX) return this.json(req, { error: 'full' }, 400); cur.add(id); } else cur.delete(id);
+      this.setKv(HID_KV, JSON.stringify([...cur]));
+      return this.json(req, { ok: true, ids: hiddenIds(this) });
+    },
+    /* 站主：單篇最近 24 小時逐時觀看 {t, id} → {id, end, hours:[24 個整數，最舊→最新]}；end＝最後一格（目前這一小時）的開始時間（毫秒）；非管理者 403 */
+    '/v1/articles/stats/hourly': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      this.artInit();
+      const id = String((b && b.id) || '');
+      if (!ID_RE.test(id)) return this.json(req, { error: 'bad_id' }, 400);
+      const hr = Math.floor(this.now() / 3600000), hours = new Array(24).fill(0);
+      for (const r of this.q('SELECT hr, n FROM article_views_hour WHERE id = ? AND hr > ?', id, hr - 24)) { const i = 23 - (hr - r.hr); if (i >= 0 && i < 24) hours[i] = r.n; }
+      return this.json(req, { id, end: hr * 3600000, hours });
+    },
+  });
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/articles/view': async function (req, b) {
       this.artInit();
       const id = String((b && b.id) || '');
       if (!ID_RE.test(id)) return this.json(req, { error: 'bad_id' }, 400);
+      if (await isAdm(this, b)) return this.json(req, { ok: true, id, views: views(this, id), self: true });   // 11-26：站主自己看不算
       const ip = req.headers.get('CF-Connecting-IP') || 'local', now = this.now(), hr = Math.floor(now / 3600000);
       const k = ip + '|' + id, last = this._artSeen.get(k);
       const r = this._artIp.get(ip);
@@ -149,6 +184,8 @@ export function installArticles(Hub, EXPORT_TABLES) {
           this.q('INSERT INTO article_views (id, views, updated) VALUES (?, 1, ?) ON CONFLICT(id) DO UPDATE SET views = views + 1, updated = excluded.updated', id, now);
           const day = new Date(now + 8 * 3600e3).toISOString().slice(0, 10);
           this.q('INSERT INTO article_views_day (day, id, n) VALUES (?, ?, 1) ON CONFLICT(day, id) DO UPDATE SET n = n + 1', day, id);
+          this.q('INSERT INTO article_views_hour (hr, id, n) VALUES (?, ?, 1) ON CONFLICT(hr, id) DO UPDATE SET n = n + 1', hr, id);
+          if (Math.random() < 0.02) this.q('DELETE FROM article_views_hour WHERE hr < ?', hr - 48);
           if (Math.random() < 0.01) this.q('DELETE FROM article_views_day WHERE day < ?', new Date(now + 8 * 3600e3 - 400 * 86400e3).toISOString().slice(0, 10));
           this._artSeen.set(k, now);
           if (this._artSeen.size > 20000) this._artSeen.clear();
@@ -167,9 +204,12 @@ export function installArticles(Hub, EXPORT_TABLES) {
       const first = (this.q('SELECT MIN(day) AS d FROM article_views_day')[0] || {}).d || null;
       return this.json(req, { first, rows: this.q('SELECT day, id, n FROM article_views_day WHERE day >= ? ORDER BY day', from).map((r) => [r.day, r.id, r.n]) });
     },
-    '/v1/articles/stats': async function (req) {
+    /* 公開：{} → 全部（前 1000）；{ids:[…]}（最多 200 篇）→ 只回這幾篇（批次查） */
+    '/v1/articles/stats': async function (req, b) {
       this.artInit();
       const out = {};
+      const ids = b && Array.isArray(b.ids) ? b.ids.filter((x) => typeof x === 'string' && ID_RE.test(x)).slice(0, 200) : null;
+      if (ids) { for (const id of ids) out[id] = views(this, id); return this.json(req, { views: out }); }
       for (const r of this.q('SELECT id, views FROM article_views ORDER BY views DESC LIMIT 1000')) out[r.id] = r.views;
       return this.json(req, { views: out });
     },
@@ -574,6 +614,7 @@ export function installArticles(Hub, EXPORT_TABLES) {
       }
       const v = b.t ? await this.verify(b.t) : null;
       if (!v) return this.json(req, { error: 'auth' }, 401);
+      if (this.artHidden(id) && !this.isAdmin(v.user)) return this.json(req, { error: 'not_found' }, 404);   // 11-26 站主隱藏的文章
       const lim = this.totLimitOf('art.read.n', v);
       const row = this.q('SELECT json FROM article_body WHERE id = ?', id)[0];
       if (!row) return this.json(req, { error: 'not_found' }, 404);          // 沒有這篇不扣額度
