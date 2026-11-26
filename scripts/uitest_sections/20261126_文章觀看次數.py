@@ -50,6 +50,9 @@ def t_art_views_1126(b, base, code):
             else:
                 (st["hidden"].add if body.get("hide") else st["hidden"].discard)(body.get("id"))
                 out = {"ok": True, "ids": sorted(st["hidden"])}
+        elif path == "/v1/articles/get":
+            out = {"ok": True, "post": {"id": body.get("id"), "cat": "know", "title": "驗收用文章", "date": "2026-10-20", "blocks": [{"t": "p", "text": "內文"}]}, "limit": None, "reads": []} if adm else {"error": "auth"}
+            s = 200 if adm else 401
         elif path == "/v1/articles/stats/hourly":
             st["hourly_calls"].append(adm)
             if not adm: out, s = {"error": "forbidden"}, 403
@@ -72,8 +75,10 @@ def t_art_views_1126(b, base, code):
         try:
             ag.first.wait_for(timeout=2500); ag.first.click(timeout=1500)
         except Exception: pass
-        wait_until(pg, "() => !!document.querySelector('%s')" % sel, 20000)
-        pg.wait_for_timeout(1500)
+        wait_until(pg, "() => !!document.querySelector('%s')" % sel.replace(" .artc", ""), 20000)
+        pg.wait_for_timeout(1200)
+        if pg.query_selector("#artFrom"):   # 文章都超過一個月：日期區間放寬，所有文章都進清單
+            pg.fill("#artFrom", "2020-01-01"); pg.dispatch_event("#artFrom", "change"); pg.wait_for_timeout(600)
 
     _v6_os.makedirs(_V6_SHOT, exist_ok=True)
     ids = "() => [...document.querySelectorAll('#artList .artc')].map(a => a.dataset.id)"
@@ -85,6 +90,7 @@ def t_art_views_1126(b, base, code):
     ok(f"[{T}] 訪客清單有文章", len(vis) >= 2, len(vis))
     for i, a in enumerate(vis):
         st["views"][a] = 1200 + i * 7
+    c.close(); c, pg = ctx(None)
     open_(pg, "#articles", "#artList .artc")
     wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 8000)
     vw = pg.evaluate("() => [...document.querySelectorAll('#artList .artc')].map(a => { const v = a.querySelector('[data-vw]'); return [a.dataset.id, v && !v.hidden ? v.textContent.trim() : null]; })")
@@ -122,6 +128,7 @@ def t_art_views_1126(b, base, code):
 
     pa.click(f"#artList .artc[data-id='{target}'] .artceye"); pa.wait_for_timeout(600)
     ok(f"★ [{T}] 站主再點眼睛 → 恢復", target not in st["hidden"] and not pa.evaluate(f"() => document.querySelector(\"#artList .artc[data-id='{target}']\").classList.contains('hidd')"))
+    cv.close(); cv, pv = ctx(None)
     open_(pv, "#articles", "#artList .artc")
     pv.wait_for_timeout(500)
     ok(f"★ [{T}] 恢復後訪客清單回到原本篇數", len(pv.evaluate(ids)) == len(vis), len(pv.evaluate(ids)))

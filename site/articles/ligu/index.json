@@ -14,7 +14,8 @@
     "AI",
     "那斯達克"
    ],
-   "reading_min": 4
+   "reading_min": 4,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-ligu-2008-check",
@@ -28,7 +29,8 @@
     "2008",
     "估值修正"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-ligu-power-bill",
@@ -42,7 +44,8 @@
     "PJM",
     "電費"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "ai"
   },
   {
    "id": "2026-11-16-ligu-nvda-kress",
@@ -56,7 +59,8 @@
     "8-K",
     "執行長交接"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-16-ligu-jensen",
@@ -71,7 +75,8 @@
     "8-K",
     "執行長交接"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   }
  ]
 }

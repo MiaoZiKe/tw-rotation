@@ -14,7 +14,8 @@
     "提示詞",
     "Gemini 實測"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-18-same-look",
@@ -29,7 +30,8 @@
     "做網頁",
     "Gemini 實測"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-two-answers",
@@ -44,7 +46,8 @@
     "會議紀錄",
     "Gemini 實測"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-trip-plan",
@@ -59,7 +62,8 @@
     "旅遊行程",
     "整理資料"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-pdf-quiz",
@@ -74,7 +78,8 @@
     "講義",
     "小考"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-mobile-broken",
@@ -89,7 +94,8 @@
     "做網站",
     "手機版"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-made-by-ai",
@@ -104,7 +110,8 @@
     "提示詞",
     "交代 AI"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-invite-page",
@@ -119,7 +126,8 @@
     "做網頁",
     "邀請網頁"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-excel-chart",
@@ -134,7 +142,8 @@
     "Excel",
     "圖表"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-budget-app",
@@ -149,7 +158,8 @@
     "做 App",
     "記帳"
    ],
-   "reading_min": 3
+   "reading_min": 3,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-15-caffaine-intro",
@@ -163,7 +173,8 @@
     "AI 工具",
     "上班族"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   }
  ]
 }

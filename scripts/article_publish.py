@@ -37,7 +37,7 @@ POSTS = ROOT / "site" / "articles" / "posts"
 DEFAULT_API = "https://tw-account.kcq01010909.workers.dev"     # 會員 Worker 網址（不是機密；ACCOUNT_API_URL 有設就用它）
 ID_RE = re.compile(r"^[A-Za-z0-9._-]{4,80}$")
 # 公開索引允許的欄位：不含任何內文（摘要、副標、標籤都算內文）
-PUBLIC_KEYS = ("id", "cat", "title", "date", "topic", "groups", "reading_min", "src", "status")
+PUBLIC_KEYS = ("id", "cat", "title", "date", "topic", "groups", "reading_min", "src", "status", "chain_stage")
 # src:'api' 的索引項目一律不得出現的欄位
 LEAK_KEYS = ("summary", "subtitle", "tags", "blocks", "sources", "site_links", "confidence")
 
@@ -58,7 +58,14 @@ def public_entry(post: dict, topic: str | None = None) -> dict:
         raise ValueError("缺 topic：沒有 topic 就不會自動標完成（見 production_guide.md）")
     groups = [{"id": g["id"], "name": g["name"]} for g in (post.get("groups") or []) if isinstance(g, dict) and g.get("id") and g.get("name")]
     return {"id": pid, "cat": post["cat"], "title": post["title"], "date": post["date"], "topic": t, "groups": groups,
-            "reading_min": int(post.get("reading_min") or 3), "src": "api"}
+            "reading_min": int(post.get("reading_min") or 3), "src": "api", "chain_stage": _stage(post)}
+
+
+def _stage(post: dict) -> str:
+    """上中下游分類（2026-11-26）：全文有合法 chain_stage 就用，否則依標題／族群推（scripts/article_stage.py）；推不出來＝other。"""
+    from scripts import article_stage as ast
+    v = post.get("chain_stage")
+    return v if v in ast.STAGES else ast.guess(post)
 
 
 CH_RE = re.compile(r"^[a-z]{2,20}$")
@@ -80,6 +87,7 @@ def publish_channel(post: dict, channel: str) -> dict:
     d.mkdir(parents=True, exist_ok=True)
     (d / f"{pid}.json").write_text(json.dumps({**post, "cat": channel}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     entry = {k: post[k] for k in CH_KEYS if k in post}
+    entry["chain_stage"] = _stage(post)
     ip = d / "index.json"
     try:
         idx = json.loads(ip.read_text(encoding="utf-8"))

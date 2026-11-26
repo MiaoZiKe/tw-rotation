@@ -159,6 +159,11 @@
 #artCats>button{position:relative}
 #artCats.adm>button{padding-right:30px}
 .arteye[hidden]{display:none}
+/* 11-26 上中下游分類鈕：單選膠囊；手機一列橫向拖 */
+.artstage{display:flex;flex-wrap:wrap;gap:6px;margin:var(--sp-2) 0}
+.artstage button{font:inherit;font-size:var(--fs-sm);height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);cursor:pointer;white-space:nowrap;flex:none}
+.artstage button.on{border-color:var(--t4-accent-solid,var(--cyan));color:var(--t4-accent-solid,var(--cyan));font-weight:700;background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 12%,transparent)}
+@media (max-width:640px){.artstage{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none}.artstage::-webkit-scrollbar{display:none}}
 /* 11-26 單篇隱藏眼睛（站主限定）＋隱藏中的卡片變灰 */
 .artceye{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;color:var(--k,var(--ink-2));cursor:pointer;flex:none;margin-left:auto}
 .artceye:hover{background:color-mix(in srgb,var(--k,var(--cyan)) 22%,transparent)}
@@ -1203,12 +1208,12 @@
   /* ------------------------------------------------------------------ 列表頁 */
   /* ★ 10-16 拿掉「最新一篇放大成 2×2 焦點卡」（Andy：「這邊的大小需要一致」）：所有卡片同一尺寸，見 .artlist／.artc 的 CSS */
   function ensureRange() { if (S.from == null || S.to == null) { const d = defRange(); S.from = d.from; S.to = d.to; } }
-  function resetFilters() { const d = defRange(); S.q = ''; S.from = d.from; S.to = d.to; S.grp = new Set(); if (S.ms) S.ms.set({ selected: [] }); }
+  function resetFilters() { const d = defRange(); S.stage = 'all'; S.q = ''; S.from = d.from; S.to = d.to; S.grp = new Set(); if (S.ms) S.ms.set({ selected: [] }); }
   function filtered(cat, ignoreCat) {
     const q = S.q.trim().toLowerCase();
     const src = PRIV[cat] && !ignoreCat ? (canPriv(cat) && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
     const own = isAdminUser();
-    return src.filter((a) => (own || !artHid(a.id)) && (ignoreCat || cat === 'all' || a.cat === cat)
+    return src.filter((a) => (own || !artHid(a.id)) && (S.stage === 'all' || stageOf(a) === S.stage) && (ignoreCat || cat === 'all' || a.cat === cat)
       && (!q || String(a.title).toLowerCase().includes(q))
       && (PRIV[cat] || ((!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)))   // 頻道隱藏分頁只有站主看、篇數少，不套日期區間（影片文章常寫隔天的上片日）
       && (!S.grp.size || (a.groups || []).some((g) => S.grp.has(g.id))));
@@ -1243,6 +1248,16 @@
   })();
   const EYE_ON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   const EYE_OFF = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9.9 4.2A10 10 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-3.2 4.4"/><path d="M6.6 6.6A17 17 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>';
+  /* 11-26 上中下游分類（Andy：「並且要幫我類別分類 例如半導體上 中下游等等 其他」）：索引欄位 chain_stage，缺值＝其他；單選＋全部 */
+  const STAGES = [['all', '全部'], ['up', '半導體上游'], ['mid', '半導體中游'], ['down', '半導體下游'], ['ai', 'AI 伺服器與應用'], ['other', '其他']];
+  const STAGE_TIP = { up: 'IC 設計／IP／EDA、材料（矽晶圓、光罩、光阻、化學品、氣體）、設備', mid: '晶圓製造與各製程步驟、晶圓代工、記憶體', down: '封裝、測試、先進封裝、載板', ai: '伺服器、散熱、電源、光通訊、網路', other: '待遇、產業總覽、無法歸類者' };
+  const stageOf = (a) => { const v = a && a.chain_stage; return STAGES.some((x) => x[0] === v && v !== 'all') ? v : 'other'; };
+  S.stage = 'all';
+  function paintStage(root) {
+    const box = $('#artStage', root); if (!box) return;
+    box.innerHTML = STAGES.map(([k, t]) => `<button type="button" data-stage="${k}" class="${S.stage === k ? 'on' : ''}" aria-pressed="${S.stage === k}"${STAGE_TIP[k] ? ` title="${esc(STAGE_TIP[k])}"` : ''}>${esc(t)}</button>`).join('');
+    box.onclick = (ev) => { const b = ev.target.closest('button[data-stage]'); if (!b) return; S.stage = b.dataset.stage; paintStage(root); paintList(); };
+  }
   function skeletonList(root) {
     root.innerHTML = `
 <div class="card artcard" id="artCard">
@@ -1256,6 +1271,7 @@
   <div class="nbbody">
     <div id="artPre"></div>
     <div id="artQuota" hidden></div>
+    <div class="artstage" id="artStage" role="group" aria-label="產業鏈分類"></div>
     <div class="artflt">
       <input type="search" id="artQ" placeholder="搜尋標題關鍵字" aria-label="搜尋標題關鍵字" autocomplete="off">
       <div id="artGrp" hidden></div>
@@ -1274,7 +1290,8 @@
     q.addEventListener('input', () => { S.q = q.value; paintList(); });
     f.addEventListener('change', () => { S.from = okDate(f.value) ? f.value : ''; paintList(); });
     t.addEventListener('change', () => { S.to = okDate(t.value) ? t.value : ''; paintList(); });
-    $('#artClr', root).onclick = () => { resetFilters(); paintList(); };
+    $('#artClr', root).onclick = () => { resetFilters(); paintStage(root); paintList(); };
+    paintStage(root);
     $$('#artCats>button', root).forEach((b) => {
       b.onclick = () => { const h = b.dataset.cat === 'all' ? '#articles' : '#articles/' + b.dataset.cat; if (location.hash !== h) location.hash = h; };
     });
@@ -2527,6 +2544,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       disposeCharts(root);
       root.innerHTML = lockedHTML(meta, acc, id);
       hydrate(root, {});
+      loadStats();   // 11-26：沒授權也看得到觀看次數（只讀、不記一次）
       document.title = (meta ? meta.title : '精選文章') + '｜精選文章';
     };
     let acc = access();
@@ -2586,7 +2604,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
 <article class="card artpost artlocked" id="artPost" data-id="${esc(id)}" data-lock="1">
   <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${cat ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(title)}</span></nav>
-  <div class="artmeta">${cat ? badge(cat) : ''}${meta ? `<span class="mono">${esc(meta.date || '')}</span>` : ''}</div>
+  <div class="artmeta">${cat ? badge(cat) : ''}${meta ? `<span class="mono">${esc(meta.date || '')}</span>` : ''}${meta ? vwHTML(meta.id) : ''}</div>
   <h2 class="artttl">${esc(title)}</h2>
   ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}</div>` : ''}
   <div class="artlock" id="artLock">${card}${unl}</div>

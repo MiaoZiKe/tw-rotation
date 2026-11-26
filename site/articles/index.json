@@ -9,7 +9,8 @@
    "topic": "sch-20261020-06-r1-know-3",
    "groups": [],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-20-intro-ai-networking",
@@ -32,7 +33,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-20-know-dividend",
@@ -42,7 +44,8 @@
    "topic": "k_dividend",
    "groups": [],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-20-know-rotation",
@@ -52,7 +55,8 @@
    "topic": "k_rotation",
    "groups": [],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-20-intro-thermal",
@@ -71,7 +75,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-20-news-nov-earnings-gap",
@@ -86,7 +91,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-20-intro-cowos-chain",
@@ -109,7 +115,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "down"
   },
   {
    "id": "2026-10-20-news-tesla-capex-optimus",
@@ -128,7 +135,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-20-news-fomc-oct",
@@ -147,7 +155,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-17-news-tesla",
@@ -170,7 +179,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-16-news-tsmc-q3-call",
@@ -193,7 +203,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-19-know-mlcc",
@@ -216,7 +227,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-17-know-cpo",
@@ -239,7 +251,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-19-know-wafer",
@@ -258,7 +271,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "up"
   },
   {
    "id": "2026-10-19-know-sic-gan",
@@ -273,7 +287,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "up"
   },
   {
    "id": "2026-10-17-know-hbm",
@@ -296,7 +311,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-14-know-cowos",
@@ -319,7 +335,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "down"
   },
   {
    "id": "2026-10-19-know-abf",
@@ -338,7 +355,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "down"
   },
   {
    "id": "2026-10-19-know-psu-bbu",
@@ -357,7 +375,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-19-know-foundry",
@@ -380,7 +399,8 @@
     }
    ],
    "reading_min": 4,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-19-know-ssd",
@@ -403,7 +423,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-19-know-institutional",
@@ -413,7 +434,8 @@
    "topic": "k_institutional",
    "groups": [],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-19-intro-ai-networking",
@@ -436,7 +458,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-19-know-dividend",
@@ -446,7 +469,8 @@
    "topic": "sch-20261019-06-r1-know-1",
    "groups": [],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-19-intro-cowos-chain",
@@ -469,7 +493,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "down"
   },
   {
    "id": "2026-10-19-intro-thermal",
@@ -488,7 +513,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   },
   {
    "id": "2026-10-19-news-week-flow",
@@ -503,7 +529,8 @@
     }
    ],
    "reading_min": 2,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-19-news-tsmc-aftermath",
@@ -518,7 +545,8 @@
     }
    ],
    "reading_min": 2,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-19-news-nanya-dram",
@@ -541,7 +569,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-17-news-sox",
@@ -568,7 +597,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "other"
   },
   {
    "id": "2026-10-14-news-tsmc-sep-revenue",
@@ -611,7 +641,8 @@
      "id": "fab_material",
      "name": "前段製程材料"
     }
-   ]
+   ],
+   "chain_stage": "mid"
   },
   {
    "id": "2026-10-14-intro-ai-server",
@@ -634,7 +665,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "chain_stage": "ai"
   }
  ]
 }

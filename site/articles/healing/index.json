@@ -14,7 +14,8 @@
     "教育部",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-30-healing-grade1",
@@ -29,7 +30,8 @@
     "教育部",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-29-healing-quit-video",
@@ -44,7 +46,8 @@
     "上班族",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-29-healing-quit",
@@ -59,7 +62,8 @@
     "上班族",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-28-healing-avgwage-video",
@@ -74,7 +78,8 @@
     "中位數",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-27-healing-food-video",
@@ -89,7 +94,8 @@
     "CPI",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-26-healing-births-video",
@@ -103,7 +109,8 @@
     "少子化",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-26-healing-births",
@@ -117,7 +124,8 @@
     "少子化",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-25-healing-savings-video",
@@ -131,7 +139,8 @@
     "家庭收支",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-25-healing-savings",
@@ -145,7 +154,8 @@
     "家庭收支",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-24-healing-rent-video",
@@ -160,7 +170,8 @@
     "中位數",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-24-healing-rent",
@@ -175,7 +186,8 @@
     "中位數",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-23-healing-overtime-video",
@@ -189,7 +201,8 @@
     "工時",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-23-healing-overtime",
@@ -203,7 +216,8 @@
     "工時",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-22-healing-firstmarriage-video",
@@ -218,7 +232,8 @@
     "初婚年齡",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-22-healing-firstmarriage",
@@ -233,7 +248,8 @@
     "初婚年齡",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-21-healing-laborins-video",
@@ -248,7 +264,8 @@
     "年輕人",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-21-healing-laborins",
@@ -263,7 +280,8 @@
     "年輕人",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-20-healing-mortgage-video",
@@ -279,7 +297,8 @@
     "房價",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-20-healing-mortgage",
@@ -295,7 +314,8 @@
     "房價",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-19-healing-young-video",
@@ -311,7 +331,8 @@
     "第一份工作",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-19-healing-young",
@@ -327,7 +348,8 @@
     "第一份工作",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-18-healing-minwage-video",
@@ -343,7 +365,8 @@
     "第一份工作",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-18-healing-minwage",
@@ -359,7 +382,8 @@
     "第一份工作",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-healing-studentloan-video",
@@ -375,7 +399,8 @@
     "第一份工作",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-17-healing-studentloan",
@@ -391,7 +416,8 @@
     "第一份工作",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-16-healing-worktime",
@@ -405,7 +431,8 @@
     "年總工時",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-16-healing-marriage",
@@ -421,7 +448,8 @@
     "內政部",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-15-healing-marriage-video",
@@ -437,7 +465,8 @@
     "內政部",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-15-healing-ai",
@@ -453,7 +482,8 @@
     "台北市勞動局",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-14-healing-resume",
@@ -470,7 +500,8 @@
     "這一代",
     "安心專線1925"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-13-healing-cpi",
@@ -486,7 +517,8 @@
     "主計總處",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-12-healing-salary",
@@ -502,7 +534,8 @@
     "這一代",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-11-healing-unemployment",
@@ -518,7 +551,8 @@
     "這一代",
     "數字裡的日子"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   },
   {
    "id": "2026-11-10-healing-intro",
@@ -532,7 +566,8 @@
     "這一代",
     "生活紀錄"
    ],
-   "reading_min": 2
+   "reading_min": 2,
+   "chain_stage": "other"
   }
  ]
 }
