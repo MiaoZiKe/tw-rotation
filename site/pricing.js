@@ -554,10 +554,10 @@
         <p>${cold() ? '目前為試營運期，進階功能開放免費體驗。' : fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
       ${S.layout === 'merged' ? compare(plans, look, hot, needF, { me, needIds }) : `<div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>`}
-      ${cold() ? `<p class="prapply"><b>目前為試營運期，所有功能免費體驗。</b>付費方案開放時會另行公告；想第一時間收到通知，請登入後按方案卡上的「預約通知」（不會扣款）。${S.src === 'fallback' ? '　（暫時讀不到方案資料）' : ''}</p>` : `<p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>`}
+      ${cold() ? `<p class="prapply"><b>目前為試營運期，所有功能免費體驗。</b>付費方案開放時會另行公告；想第一時間收到通知，請登入後按方案卡上的「預約通知」（不會扣款）。${S.src === 'fallback' ? '　（暫時讀不到方案資料）' : ''}</p>` : `<p class="prapply"><b>付費方案開放線上付款</b>（綠界金流；本站不經手卡號）。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>`}
       ${S.layout === 'merged' ? '' : compare(plans, look, hot, needF)}
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
-        ${cold() ? '付費方案尚未開賣，目前不收任何費用。' : '方案內容與價格以專人開通時的確認為準；申請送出不會扣款。'}詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
+        ${cold() ? '付費方案尚未開賣，目前不收任何費用。' : '方案內容與價格以結帳頁所示為準；付款前請確認方案與金額。'}詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
     S.look = look;
     v.querySelectorAll('#prLayout button[data-lay]').forEach((b) => { b.onclick = () => { if (S.layout === b.dataset.lay) return; S.layout = b.dataset.lay; paint(); }; });
     v.querySelectorAll('#prPeriod button[data-per]').forEach((b) => { b.onclick = () => { if (S.per === b.dataset.per) return; S.per = b.dataset.per; paint(); }; });
@@ -712,7 +712,7 @@
     const wc = watchCell(p);
     const gl = groups.map(([c, fs]) => `<h4>${esc(c.name)}</h4><ul>${fs.map((f) => { const n = limOf(p, f); return `<li>${CHECK}<span>${esc(f.name)}${n !== Infinity ? `<i>・每日 ${n} 次</i>` : ''}</span></li>`; }).join('')}${c.id === 'watch' && wc.c !== 'n' ? `<li>${CHECK}<span>自選清單<i>・${esc(wc.t)}</i></span></li>` : ''}</ul>`).join('');
     dialog(`<div class="coh"><span class="ic">${svgI(lk.icon)}</span><b>${esc(showName(p))}</b><small>${esc(whoOf(p))}</small><button type="button" data-close aria-label="關閉">×</button></div>
-      <div class="cob"><div class="cop">${ptop}<div class="big">${pbig}</div>${pr.orig ? `<small>${esc(pr.note)}</small>` : ''}<small>${per === 'year' ? '年繳' : '月繳'}・目前為申請制，專人開通；線上付款即將推出</small></div>
+      <div class="cob"><div class="cop">${ptop}<div class="big">${pbig}</div>${pr.orig ? `<small>${esc(pr.note)}</small>` : ''}<small>${per === 'year' ? '年繳' : '月繳'}</small></div>
         <div class="cog" id="subFeats">${gl}</div></div>
       <div class="cof"><div class="cof2"><div><label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200"></div>
         <div><label for="subNote">備註（選填，例如發票抬頭）</label><input type="text" id="subNote" maxlength="180"></div></div>
