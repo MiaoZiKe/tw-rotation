@@ -165,3 +165,19 @@ Andy 11-20 決定用 A 方案：Meta 內建自動回覆（免費、不用送審�
 - <https://blog.omnichat.ai/tw/instagram-automation-tw/>
 - <https://developers.facebook.com/docs/messenger-platform/instagram/features/send-message>（Meta 開發者文件：IG 專業帳號傳私訊不再需連粉絲專頁）
 - <https://www.facebook.com/business/help/205614130852988>（Meta：Business Suite 概述）
+
+## Andy 的偏好與現況（2026-11-26 由 `handoff/ch3_20261124.md` 歸檔；SYSTEM_PLAYBOOK 缺口 #9）
+**Andy 對這件事的做事偏好（以後所有要他動手的設定都照這個）**：
+- 不要一直要截圖；步驟一次給清楚（逐格寫點哪裡、填什麼、哪些不用動，附可直接點的連結；見 CLAUDE.md 10-16、11-10 兩條）。
+- 不准叫他用個人帳號 `kcq_01010909` 登入授權。
+
+**11-22～11-24 現況**
+| 帳號 | 狀態 |
+|---|---|
+| ① 哩股哩股 | 11-22 已給 Andy 連結＋擴充 Claude 提示詞（1 組「哩股哩股-索取來源」，關鍵字 來源／出處／連結／資料／查證，私訊 `#articles`，公開回覆開）；**未確認是否建好** |
+| ② 科技透明圈 | 11-22 Andy 用「以 Instagram 登入」進到 tech_01010909 的 Business Suite 成功（有收件匣）；已給 7 組提示詞（公開回覆關，因 tc 程式已公開回覆）；**等 Andy 回報擴充 Claude 是否建完**；測試法：別的帳號在 2 奈米那篇留言「2奈米」 |
+| ③④ | 加進 KCQ 組合時被擋「另一個商家資產管理組合受到限制」；改試 ② 的方法（無痕視窗→business.facebook.com→使用 Instagram 登入） |
+- 程式路線（不推薦短期）：App 993014640153379 開發模式，要商家驗證＋App Review，清單 `meta_app_golive_checklist.md`。
+- 診斷程式 `scripts/ig_comment_probe.py`（唯讀；11-22 加權杖屬性、所屬商家、私訊端點檢查）還沒跑過 workflow。
+- 固定的片尾留言關鍵字等 Andy 給，給了再改 `dm_config.json` 與 Business Suite（ai-mp4 §二十三）。
+- 這件事原由 ③ 對話代辦，搬家後由主控決定誰接。

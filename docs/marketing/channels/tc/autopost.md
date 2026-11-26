@@ -189,3 +189,9 @@ social/tc/queue/20261105_quanta/
 - 2026-11-14 加影片發文（social-ops-lead）：post.md `media: video`＋`video:`；IG Reels、Threads VIDEO，等容器 FINISHED 才發布；測試 tests/test_tc_autopost.py 補 9 條。
 - 2026-11-15 每篇專屬留言關鍵字（social-ops-lead，Andy：「往後製作影片後面可以補上 留言『XXXX』我就把資訊傳給他，IG Thread 都是」）：`dm_config.json` 加 `post_keywords`、`threads_reply.texts`、`legal_pending`、`ig_dm.public_fallback`；共用規則 `scripts/tc_dm_keys.py`；Threads 用 posted.json 的 ids_threads／permalink 對回貼文代號，tc_post 開始記 ids_threads；IG 私訊接不通時改公開回覆留言＋連結（保底）；Worker 同步；影片稿格式見三之一；「2nm」條目文章 id 待填、文案待法遵；測試補 9 條。
 - 2026-11-15 法遵再審後（social-ops-lead）：措辭「完整資料」改「完整解說」（回覆文字、影片稿最後一行、cta_check 同步）；預設文字改短、廣達出處句改「出處：網友公開分享，非公司公告；隨單位而異。」；防洗版：回覆 2～3 句依留言 id 雜湊輪流、IG 公開回覆每分鐘 3 則／每篇每小時 30 則。
+
+## FB 追進度（2026-11-26 由 `handoff/ch2_20261125.md` 歸檔；SYSTEM_PLAYBOOK 缺口 #11）
+- Andy 11-25 要把 FB 粉專「科技透明圈」Reels 追到跟 IG 同步：`social/tc/fb_backfill.json` 的 `slots` 設 **08:00、12:00、18:00**，依序補發尚未上 FB 的已發影片。
+- **紀錄寫在各篇 `post.md` 的 `urls_fb`（與 `ids_fb`、失敗的 `fb_error`），不在 `posted.json`**；要查某支有沒有上 FB 看 `post.md`。
+- 11-25 12:13 已補到「先進封裝」，預計 11/28 追上 IG。
+- 手動補發：`tc_post.yml` 選 `fb_only=<資料夾>`＋`dry_run=false`；只檢查權杖用 `fb_check=true`（見本檔開頭 11-23 說明）。

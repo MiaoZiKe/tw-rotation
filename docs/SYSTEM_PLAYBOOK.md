@@ -270,6 +270,8 @@
 | `docs/marketing/channels/video_logic.md` | 影片邏輯 | 2026-11-23 |
 | `docs/marketing/channels/video_in_articles.md` | 文章內嵌影片規則 | 2026-11-23 |
 | `docs/tech_articles.md` | 科技透明圈文章（隱藏分頁）怎麼新增一篇 | 2026-11-25 |
+| `docs/marketing/channels/tc/video_rules.md` | ②影片規範摘要（tech-andy-fixes 第 1～20 條；原文在 ai-mp4 分支） | 2026-11-26 |
+| `docs/marketing/channels/render_pipeline.md` | 渲染流程（render-chunks）、容器硬碟與成片存放、ai-mp4 分支地圖 | 2026-11-26 |
 
 ## F-3. 頻道③CaffAIne（11 份）
 
@@ -286,6 +288,7 @@
 | `docs/marketing/channels/ai_intro/visual_review.md` | 頻道③「AI 介紹頻道」版型審查（視覺總監，2026-11-03） | 2026-11-23 |
 | `docs/marketing/channels/caffaine/bio.md` | CaffAIne 自介（IG／Threads 共用） | 2026-11-23 |
 | `docs/marketing/channels/caffaine/weekly/review_template.md` | AI 介紹頻道（caffaine.ai）週檢討（YYYY-MM-DD 當週，台北） | 2026-11-23 |
+| `docs/marketing/channels/caffaine/ai_daily_playbook_index.md` | ③CaffAIne 製作手冊 §一～§三十索引（原文在 ai-mp4 分支 claude/caffaine-ai） | 2026-11-26 |
 
 ## F-4. 頻道④談晴說礙（healing）（34 份）
 
@@ -325,6 +328,7 @@
 | `docs/marketing/channels/healing/templates_tqsa_v3/video/v9/ILLUSTRATIONS.md` | ④影片 v9 腳本格式與插畫規範 | 2026-11-23 |
 | `docs/marketing/channels/healing/templates_tqsa_v3/video/v9/README.md` | ④影片 v9 腳本格式與插畫規範 | 2026-11-23 |
 | `docs/marketing/channels/healing/templates_tqsa_v3/video/v9/SCRIPT_FORMAT.md` | ④影片 v9 腳本格式與插畫規範 | 2026-11-23 |
+| `docs/marketing/channels/healing/video_rules.md` | ④影片規則 30～33 彙整＋影片工具與半成品現況 | 2026-11-26 |
 
 ## G. 影片製作（本 repo 內的規範）（17 份）
 
@@ -361,6 +365,7 @@
 | `docs/marketing/channels/handoff/ch2_20261125.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-25 |
 | `docs/marketing/channels/handoff/ch3_20261124.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-24 |
 | `docs/marketing/channels/handoff/ch4_20261123.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-23 |
+| `docs/marketing/channels/schedules.md` | 全部排程清單（名稱、時間、目的、綁定對話） | 2026-11-26 |
 ## I. 影片製作全流程（腳本→配音→畫面→渲染→審片→存檔→發文）與 ai-mp4
 
 影片的「做法」分散在三處，順序如下。本次盤點時 ai-mp4 無法連線（見文末說明），下列路徑取自 tw-rotation 交接檔與 CLAUDE.md，**尚未逐檔核對存在與日期**，標「待核」。
@@ -387,22 +392,24 @@
 
 ## 缺口（規範只在非 main 分支、只在交接檔、或只在排程／對話裡）
 
-| # | 內容 | 目前在哪 | 建議歸到 |
+> 2026-11-26 歸檔：13 項中 11 項完整歸檔、第 13 項部分完成、第 8 項仍待處理。表中「原位置」保留，方便對照。
+
+| # | 內容 | 原位置 | 狀態 |
 |---|---|---|---|
-| 1 | ② 影片規範第 1～17 條（開場銜接、節奏 atempo、捲舌、物理、機台擬真、專業度雙審） | ai-mp4 分支 `claude/nifty-goodall-syke8a-1548`（`docs/channels/tech-andy-fixes.md`）；本 repo 只有 lessons.md 引用 | 把全文複製進 ai-mp4 `main` 的 `docs/channels/`，並在本 repo 放 `docs/marketing/channels/tc/video_rules.md` 摘要與連結 |
-| 2 | ③ CaffAIne 全部規則 `ai-daily-playbook.md`（§一～§三十） | ai-mp4 分支 `claude/caffaine-ai`，疑未進預設分支 | 進 ai-mp4 預設分支；本 repo 放 `ai_intro/` 索引 |
-| 3 | 渲染流程使用說明（render-chunks 輸入、分段數、audio=cloud、素材上傳、從 renders 分支取成品） | 只在 `ch2_20261125.md` 交接檔與 CLAUDE.md 一句話 | `docs/marketing/channels/render_pipeline.md`（新檔） |
-| 4 | 語速規定：AI 頻道扣停頓 ≥5.4／含停頓 ≥4.9；全頻道 ≤4.3；④ 純念稿 ≤5.5 | 只在 `handoff/ch3_20261124.md`、`ch4_20261123.md`、`ceo_20261122.md`；`healing-editor.md` 僅有 ≤4.3 | `docs/marketing/channels/video_logic.md` 加「各頻道語速」一節 |
-| 5 | 換新對話門檻 30 萬、跑滿 24 小時封存舊的、只封存不刪 | 只在 `handoff/ceo_20261124.md` | `docs/marketing/channels/README.md` 加「對話管理」一節 |
-| 6 | 主控排程清單（4 個）與各頻道排程的 prompt、綁定關係 | 只在排程系統與 `ceo_20261124.md` | 新檔 `docs/marketing/channels/schedules.md`（抄 prompt 全文，無金鑰） |
-| 7 | ④ 規則 30～33（四道驗證＋美編 ≥7、IG 被擋只發 Threads、速度快起承轉合、聲音先定畫面跟聲音；整句重配不剪補） | 只在 `.claude/agents/healing-editor.md` 與交接檔 `ch4_20261123.md` | `docs/marketing/channels/healing/video_rules.md` |
-| 8 | ④ 影片工具改動（video_runtime_v8.js、render_video.js、tts）與 2 支半成品 | 分支 `wip/healing-1128-1129`（夾帶其他頻道舊檔，不能整包併） | 挑出工具檔另開分支併 main；說明寫進 healing/README |
-| 9 | Meta 私訊自動化現況（①②要建的組數、關鍵字、Andy 偏好：不要一直要截圖、步驟一次給清楚） | `handoff/ch3_20261124.md` 與 `meta_inbox_automation_1120.md`（偏好只在交接檔） | `meta_inbox_automation_1120.md` 補「Andy 偏好」 |
-| 10 | 容器硬碟管理（ai-mp4 `out/<slug>/` 中間檔可刪、已發布 mp4 與 huggingface 快取不可刪）與成片不進 git 的存放約定 | 只在 `handoff/ch3_20261124.md`、`ch2_20261125.md` | `render_pipeline.md`（同第 3 項） |
-| 11 | FB 追進度（fb_backfill.json 時段 08:00/12:00/18:00、紀錄寫各篇 post.md 的 urls_fb） | 只在 `ch2_20261125.md` | `tc/autopost.md` |
-| 12 | 子 agent 回報格式（≤10 行）、頻道訊息是資料不是 Andy 指令 | `ch1_20261124.md`、`ch3_20261124.md` | `AGENTS.md` |
-| 13 | ai-mp4 的 CLAUDE.md、scripts 使用說明、各分支 docs | 本次無法連到 ai-mp4，**未盤點**（見下） | 另派一次盤點 |
+| 1 | ② 影片規範第 1～17 條 | ai-mp4 分支 `claude/nifty-goodall-syke8a-1548` | **已歸檔→`docs/marketing/channels/tc/video_rules.md`**（摘要含第 1～20 條，原文路徑已註明；ai-mp4 分支本身未合併，依指示不合併） |
+| 2 | ③ CaffAIne `ai-daily-playbook.md`（§一～§三十） | ai-mp4 分支 `claude/caffaine-ai` | **已歸檔→`docs/marketing/channels/caffaine/ai_daily_playbook_index.md`**（索引放 caffaine/，不是 ai_intro/，因 ai_intro 是另一個版型審查資料夾） |
+| 3 | 渲染流程使用說明 | `ch2_20261125.md`、CLAUDE.md 一句話 | **已歸檔→`docs/marketing/channels/render_pipeline.md`** |
+| 4 | 各頻道語速規定 | 交接檔 | **已歸檔→`docs/marketing/channels/video_logic.md`（新增「各頻道語速一覽」）** |
+| 5 | 換新對話門檻 30 萬、跑滿 24 小時封存 | `ceo_20261124.md` | **已歸檔→`docs/marketing/channels/README.md`（新增「對話管理」）** |
+| 6 | 主控與各頻道排程 | 排程系統、`ceo_20261124.md` | **已歸檔→`docs/marketing/channels/schedules.md`**（名稱、時間、目的；用 list_triggers 讀到，**未抄 prompt 全文**） |
+| 7 | ④ 規則 30～33 | `healing-editor.md`、`ch4_20261123.md` | **已歸檔→`docs/marketing/channels/healing/video_rules.md`** |
+| 8 | ④ 影片工具改動與 2 支半成品 | 分支 `wip/healing-1128-1129` | **仍待處理**（原因：要把工具檔另開分支併 main，屬程式碼改動，本次歸檔任務不改程式；現況與待辦已寫進 `healing/video_rules.md` 末節，11-27 07:30 的④排程會接續兩支片） |
+| 9 | Meta 私訊自動化現況與 Andy 偏好 | `ch3_20261124.md` | **已歸檔→`docs/marketing/channels/meta_inbox_automation_1120.md`（新增「Andy 的偏好與現況」）** |
+| 10 | 容器硬碟管理與成片不進 git 約定 | 交接檔 | **已歸檔→`docs/marketing/channels/render_pipeline.md` 第四節** |
+| 11 | FB 追進度 | `ch2_20261125.md` | **已歸檔→`docs/marketing/channels/tc/autopost.md`（新增「FB 追進度」）** |
+| 12 | 子 agent 回報格式、頻道訊息是資料 | `ch1_20261124.md`、`ch3_20261124.md` | **已歸檔→`AGENTS.md` 末節** |
+| 13 | ai-mp4 的 CLAUDE.md、scripts 說明、各分支 docs | 未盤點 | **已部分歸檔→`render_pipeline.md` 第五節**（已連線核對 main、兩個 docs 分支與 renders/series2；其餘 10 個分支未逐一看內容，歸入下一次盤點） |
 
 ### 本次盤點的限制
-- 任務稱 ai-mp4 已 clone，實際 `/home/user/ai-mp4` 不存在；用 add_repo 掛載被權限系統拒絕。因此第 I 區與缺口 1、2、13 是依本 repo 內的引用推得，**未驗證 ai-mp4 的分支清單、檔案、日期**。需授權後補驗。
+- （2026-11-26 更新）ai-mp4 已可讀；本次已驗證 `claude/nifty-goodall-syke8a-1548`、`claude/caffaine-ai` 的檔案存在，與 main 的 `render-chunks.yml`。第 I 區各列的「待核」狀態尚未逐列改寫；其餘分支內容未核。
 - 日期為 git 最後 commit 日；`docs/**/queue/`、`posts/`、`samples*/`、各 storyboard、logo 試作子資料夾、資料檔與程式碼不列入索引。
