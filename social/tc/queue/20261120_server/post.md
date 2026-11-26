@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/Df9n_3FFG79/ https://www.threads.com/@tech_01010909/post/Df9oGOAhe8A https://www.threads.com/@tech_01010909/post/Df9oNTZFqF3
 posted_at: 2026-11-20T20:10+08:00
 error: 
+ids_fb: 1149445054343456
+urls_fb: https://www.facebook.com/reel/1149445054343456/
+fb_posted_at: 2026-11-26T08:04+08:00
+fb_error: 
+fb_slot: 2026-11-26T08:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「AI 伺服器：一櫃約 1.4 公噸，裡面到底裝了什麼」
 
