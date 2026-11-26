@@ -1,4 +1,4 @@
-# 科技透明圈 12/3～12/16 排程與留言關鍵字（2026-11-23 排）
+# 科技透明圈 12/3～12/24 排程與留言關鍵字（2026-11-23 排；11-26 依中游缺口查證擴到 12/24，Andy：「以上中游 接著納入在裡面」）
 
 Andy 11-23 原話：「有片接著做，並且原本提到以下改成通用，先改回原本的主題……後面的留言可以留言 XXX 主題，你先安排後面 1-2 週的主題，我再讓 claude 新增」。
 → 片尾與文案最後一行照舊每支自己的關鍵字「留言「X」」（蓋掉 lessons 第 77 條①的「一律留言透明圈」）；Meta 私訊規則由 Andy 定期用網頁 Claude 擴充依本表新增。
@@ -19,8 +19,16 @@ Andy 11-23 原話：「有片接著做，並且原本提到以下改成通用，
 | 12/12（六） | 20:00 | 設備五大-4：東京威力科創 | 東京威力 | https://liguligu-puipui.com/#article/2026-12-12-tech-tel |
 | 12/13（日） | 18:00 | 設備五大-5：KLA（量測檢測） | KLA | https://liguligu-puipui.com/#article/2026-12-13-tech-kla |
 | 12/14（一） | 20:00 | 台灣自己的設備廠 | 設備廠 | https://liguligu-puipui.com/#article/2026-12-14-tech-twequip |
-| 12/15（二） | 18:00 | 特用氣體 | 氣體 | https://liguligu-puipui.com/#article/2026-12-15-tech-gas |
-| 12/16（三） | 20:00 | 濕式化學品與研磨液 | 化學品 | https://liguligu-puipui.com/#article/2026-12-16-tech-chem |
+| 12/15（二） | 18:00 | 濺鍍靶材 | 靶材 | https://liguligu-puipui.com/#article/2026-12-15-tech-target |
+| 12/16（三） | 20:00 | 前驅物：原子層沉積的原料 | 前驅物 | https://liguligu-puipui.com/#article/2026-12-16-tech-precursor |
+| 12/17（四） | 18:00 | 特用氣體 | 氣體 | https://liguligu-puipui.com/#article/2026-12-17-tech-gas |
+| 12/18（五） | 20:00 | 濕式化學品與研磨液 | 化學品 | https://liguligu-puipui.com/#article/2026-12-18-tech-chem |
+| 12/19（六） | 18:00 | 研磨墊 | 研磨墊 | https://liguligu-puipui.com/#article/2026-12-19-tech-pad |
+| 12/20（日） | 20:00 | 零組件耗材：陶瓷、石英、矽零件與靜電吸盤 | 零件 | https://liguligu-puipui.com/#article/2026-12-20-tech-parts |
+| 12/21（一） | 18:00 | 廠務-1：無塵室 | 無塵室 | https://liguligu-puipui.com/#article/2026-12-21-tech-cleanroom |
+| 12/22（二） | 20:00 | 廠務-2：水、氣、電 | 廠務 | https://liguligu-puipui.com/#article/2026-12-22-tech-facility |
+| 12/23（三） | 18:00 | 探針卡-1：幾萬根針一次戳一整片 | 探針卡 | https://liguligu-puipui.com/#article/2026-12-23-tech-probe1 |
+| 12/24（四） | 20:00 | 探針卡-2：誰在做（系列收尾，預告系列 3） | 探針 | https://liguligu-puipui.com/#article/2026-12-24-tech-probe2 |
 
 ## Meta 規則（每支片發出後新增一條）
 
