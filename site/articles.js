@@ -875,7 +875,7 @@
     if (!S.idxP) {
       S.idxP = fetchJson('articles/index.json').then((j) => {
         const list = (j && Array.isArray(j.articles) ? j.articles : [])
-          .filter((a) => a && okId(a.id) && CATS[a.cat] && okDate(a.date) && (!a.status || a.status === 'published'))
+          .filter((a) => a && okId(a.id) && CATS[a.cat] && okDate(a.date) && a.date <= tpeToday() && (!a.status || a.status === 'published'))   // 2026-11-26 Andy：「後面還沒發布的需要先隱藏」—— 日期還沒到的不進清單
           .map((a) => Object.assign({}, a, { groups: cleanGroups(a.groups) }));
         list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.id).localeCompare(String(b.id))));
         S.idx = { updated: j && j.updated, list }; S.idxErr = false; return S.idx;
@@ -922,7 +922,7 @@
     if (S.tech) return Promise.resolve(S.tech);
     if (!S.techP) S.techP = Promise.all(Object.keys(PRIV).map((k) => fetchJson(PRIV[k].file).then((j) => ({ k, j })).catch(() => ({ k, j: null })))).then((rs) => {
       const list = [];
-      rs.forEach(({ k, j }) => (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date))
+      rs.forEach(({ k, j }) => (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date) && a.date <= tpeToday())   // 未來日期（排程中、還沒發）不進清單；直接連結照樣讀得到
         .forEach((a) => list.push(Object.assign({}, a, { cat: k, open: true, groups: cleanGroups(a.groups) }))));
       list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.id).localeCompare(String(b.id))));
       S.tech = { updated: rs.map((r) => r.j && r.j.updated).filter(Boolean).sort().pop(), list }; return S.tech;
