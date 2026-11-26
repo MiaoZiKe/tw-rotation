@@ -42,7 +42,7 @@ def t_art_dl_owner_1126(b, base, code):
 
     def ctx(email):
         c = b.new_context(viewport={"width": 1440, "height": 900})
-        init = "window.TW_ACCOUNT_OVERRIDE = " + _dl_json.dumps({"api": _DL_API}) + ";try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');"
+        init = "window.TW_ACCOUNT_OVERRIDE = " + _dl_json.dumps({"api": _DL_API}) + ";try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');localStorage.setItem('tw.art.stgfold','{\"pend\":1,\"up\":1,\"mid\":1,\"down\":1,\"ai\":1,\"other\":1}');"
         init += ("localStorage.setItem('tw.acct.tok'," + _dl_json.dumps("tok-" + email) + ");" if email else "localStorage.removeItem('tw.acct.tok');") + "}catch(e){}"
         c.add_init_script(init)
         c.route("**/fonts.googleapis.com/**", lambda r: r.abort())

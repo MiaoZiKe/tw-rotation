@@ -43,6 +43,26 @@ def t_art_stage_1126(b, base, code):
                 pg.screenshot(path=f"{_ST_SHOT}/stage_up_1440.png", full_page=True)
         pg.click("#artStage button[data-stage=all]"); pg.wait_for_timeout(300)
         ok(f"★ [{T}（{W}）] 點「全部」→ 回到 {len(all_ids)} 篇", len(ids()) == len(all_ids), len(ids()))
+        # 11-26 分組：每組標題＋篇數，預設收起、點標題展開、再點收起
+        g = pg.evaluate("() => [...document.querySelectorAll('#artList .artstg')].map(x => [x.dataset.stage, x.querySelector('.artgrid').hidden, +x.querySelector('em').textContent.replace(/\\D/g, ''), x.querySelectorAll('.artc').length])")
+        ok(f"★ [{T}（{W}）] 清單依上中下游分組、每組篇數對、超過一組時預設收起", len(g) >= 2 and all(x[2] == x[3] for x in g) and all(x[1] for x in g), g)
+        k0 = g[0][0]
+        pg.click(f"#artList .artstg[data-stage={k0}] .artsech"); pg.wait_for_timeout(200)
+        op = pg.evaluate(f"() => !document.querySelector('#artList .artstg[data-stage={k0}] .artgrid').hidden && JSON.parse(localStorage.getItem('tw.art.stgfold') || '{{}}')['{k0}'] === 1")
+        pg.click(f"#artList .artstg[data-stage={k0}] .artsech"); pg.wait_for_timeout(200)
+        cl = pg.evaluate(f"() => document.querySelector('#artList .artstg[data-stage={k0}] .artgrid').hidden")
+        ok(f"★ [{T}（{W}）] 點組標題 → 展開並記住、再點 → 收起", op and cl, [op, cl])
+        if W == 1440:
+            pg.screenshot(path=f"{_ST_SHOT}/stage_groups_guest_1440.png", full_page=True)
+        # 族群選項只算目前分頁
+        pg.click("#artCats>button[data-cat=know]"); pg.wait_for_timeout(400)
+        pg.fill("#artFrom", "2020-01-01"); pg.dispatch_event("#artFrom", "change"); pg.wait_for_timeout(300)
+        know = [a for a in idx if a["cat"] == "know"]
+        want = sorted({gg["id"] for a in know for gg in (a.get("groups") or [])})
+        pg.click("#artGrp .twms-btn"); pg.wait_for_timeout(300)
+        got = pg.evaluate("() => [...document.querySelectorAll('.twms-pan[data-ms=artGroups] input[data-v]')].map(i => i.dataset.v).sort()")
+        ok(f"★ [{T}（{W}）] 族群下拉只列目前分頁（比比知識）有的族群", got == want, [len(got), len(want), [x for x in got if x not in want][:3]])
+        pg.keyboard.press("Escape")
         if mob:
             m = pg.evaluate("() => { const s = document.getElementById('artStage'); return { ox: getComputedStyle(s).overflowX, sw: s.scrollWidth, cw: s.clientWidth, page: document.documentElement.scrollWidth - innerWidth } }")
             ok(f"[{T}（{W}）] 手機分類鈕一列、可橫向拖、頁面不橫向捲", m["ox"] == "auto" and m["page"] <= 0, m)

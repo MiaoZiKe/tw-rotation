@@ -61,7 +61,7 @@ def t_art_views_1126(b, base, code):
 
     def ctx(email, w=1440):
         c = b.new_context(viewport={"width": w, "height": 900})
-        init = "window.TW_ACCOUNT_OVERRIDE = " + _v6_json.dumps({"api": _V6_API}) + ";try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');sessionStorage.clear();"
+        init = "window.TW_ACCOUNT_OVERRIDE = " + _v6_json.dumps({"api": _V6_API}) + ";try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');localStorage.setItem('tw.art.stgfold','{\"pend\":1,\"up\":1,\"mid\":1,\"down\":1,\"ai\":1,\"other\":1}');sessionStorage.clear();"
         init += ("localStorage.setItem('tw.acct.tok'," + _v6_json.dumps("tok-" + email) + ");" if email else "localStorage.removeItem('tw.acct.tok');") + "}catch(e){}"
         c.add_init_script(init)
         c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -133,6 +133,18 @@ def t_art_views_1126(b, base, code):
     pv.wait_for_timeout(500)
     ok(f"★ [{T}] 恢復後訪客清單回到原本篇數", len(pv.evaluate(ids)) == len(vis), len(pv.evaluate(ids)))
     pv.screenshot(path=f"{_V6_SHOT}/views_list_guest_1440.png")
+    # 11-26 Andy：「其他後續的文章是隱藏的狀態顯示在上面，我也可看到」→ 日期未到的文章：站主看得到（最上方一組、灰色＋未發布標籤），訪客看不到
+    fut = "() => { const s = document.querySelector('#artList .artstg'); return { first: s ? s.dataset.stage : null, n: document.querySelectorAll('#artList .artc .artst.fut').length, gray: [...document.querySelectorAll('#artList .artc .artst.fut')].every(e => e.closest('.artc').classList.contains('hidd')) } }"
+    for p_ in (pa, pv):
+        try:
+            p_.click("#artCats>button[data-cat=tech]", timeout=3000)
+        except Exception:
+            p_.goto(base + "#articles/tech", wait_until="domcontentloaded")
+        p_.wait_for_timeout(2500)
+    fa, fv = pa.evaluate(fut), pv.evaluate(fut)
+    ok(f"★ [{T}] 站主：科技透明圈未上架文章排最上方一組、灰色＋「未發布・M/D 上架」", fa["n"] >= 1 and fa["first"] == "pend" and fa["gray"], fa)
+    ok(f"★ [{T}] 訪客：看不到未上架文章", fv["n"] == 0, fv)
+    pa.screenshot(path=f"{_V6_SHOT}/owner_tech_fut_1440.png", full_page=True)
     cv.close(); ca.close()
     ok(f"[{T}] 沒有 JS 錯誤", not errs, errs[:3])
 

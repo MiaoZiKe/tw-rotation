@@ -169,7 +169,12 @@
 .artceye:hover{background:color-mix(in srgb,var(--k,var(--cyan)) 22%,transparent)}
 .artceye.off{color:var(--ink-3)}
 .artceye svg{width:16px;height:16px}
-.artc.hidd{opacity:.5;filter:grayscale(1)}
+.artc.hidd{opacity:.55;filter:grayscale(1)}
+.artc .artst{align-self:flex-start;font-size:var(--fs-min);padding:1px 8px;border-radius:999px;border:1px dashed var(--ink-3);color:var(--ink-2)}
+.artstg>.artsech{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;padding:6px 0;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;text-align:left}
+.artstg>.artsech em{font-style:normal;font-weight:400;color:var(--ink-3);font-size:var(--fs-sm)}
+.artstg>.artsech .chev{width:1em;color:var(--ink-3)}
+.artstg.s-pend>.artsech{color:var(--ink-2)}
 .artc.hidd .tt{text-decoration:line-through}
 #artPost.arthidd .artttl{opacity:.55;text-decoration:line-through}
 .artmeta .artceye{margin-left:0}
@@ -901,8 +906,12 @@
     if (!S.idxP) {
       S.idxP = fetchJson('articles/index.json').then((j) => {
         const list = (j && Array.isArray(j.articles) ? j.articles : [])
-          .filter((a) => a && okId(a.id) && CATS[a.cat] && okDate(a.date) && a.date <= tpeToday() && (!a.status || a.status === 'published'))   // 2026-11-26 Andy：「後面還沒發布的需要先隱藏」—— 日期還沒到的不進清單
+          .filter((a) => a && okId(a.id) && CATS[a.cat] && okDate(a.date) && (!a.status || a.status === 'published'))
           .map((a) => Object.assign({}, a, { groups: cleanGroups(a.groups) }));
+        /* 2026-11-26 Andy：「後面還沒發布的需要先隱藏」—— 日期還沒到的不進一般清單；
+           同日 Andy：「其他後續的文章是隱藏的狀態顯示在上面，我也可看到」→ 另存 S.futIdx，只有站主的清單會併進來（排最上方、灰色＋未發布標籤） */
+        S.futIdx = list.filter((a) => a.date > tpeToday()).map((a) => Object.assign(a, { fut: true }));
+        for (let i = list.length - 1; i >= 0; i--) if (list[i].fut) list.splice(i, 1);
         list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.id).localeCompare(String(b.id))));
         S.idx = { updated: j && j.updated, list }; S.idxErr = false; return S.idx;
       }).catch(() => { S.idxP = null; S.idxErr = true; return null; });
@@ -948,8 +957,10 @@
     if (S.tech) return Promise.resolve(S.tech);
     if (!S.techP) S.techP = Promise.all(Object.keys(PRIV).map((k) => fetchJson(PRIV[k].file).then((j) => ({ k, j })).catch(() => ({ k, j: null })))).then((rs) => {
       const list = [];
-      rs.forEach(({ k, j }) => (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date) && a.date <= tpeToday())   // 未來日期（排程中、還沒發）不進清單；直接連結照樣讀得到
-        .forEach((a) => list.push(Object.assign({}, a, { cat: k, open: true, groups: cleanGroups(a.groups) }))));
+      const fut = [];
+      rs.forEach(({ k, j }) => (j && Array.isArray(j.articles) ? j.articles : []).filter((a) => a && okId(a.id) && okDate(a.date))   // 未來日期（排程中、還沒發）不進清單（只給站主看，S.futTech）；直接連結照樣讀得到
+        .forEach((a) => (a.date > tpeToday() ? fut : list).push(Object.assign({}, a, { cat: k, open: true, groups: cleanGroups(a.groups) }, a.date > tpeToday() ? { fut: true } : {}))));
+      S.futTech = fut;
       list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.id).localeCompare(String(b.id))));
       S.tech = { updated: rs.map((r) => r.j && r.j.updated).filter(Boolean).sort().pop(), list }; return S.tech;
     }).catch(() => { S.techP = null; return null; });
@@ -1189,9 +1200,9 @@
     const lk = free ? (acc.mode === 'full' ? '' : `<div class="lk ok free">${CHK_IC}<span>限時公開，免登入看全文</span></div>`)
       : open ? (acc.mode === 'full' ? '' : `<div class="lk ok">${CHK_IC}<span>已解鎖，可隨時重讀</span></div>`)
       : `<div class="lk">${LOCK_IC}<span>${may ? `點開會用掉 1 篇額度（剩 ${acc.lim - acc.used} 篇）` : acc.mode === 'none' ? '全文需 Plus 以上' : '額度已用完・只顯示標題'}</span></div>`;
-    return `<a class="artc k-${esc(a.cat)}${open ? '' : ' lkd'}${artHid(a.id) ? ' hidd' : ''}"${free ? ' data-free="1"' : ''} href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-lock="${open ? 0 : 1}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
+    return `<a class="artc k-${esc(a.cat)}${open ? '' : ' lkd'}${artHid(a.id) || a.fut ? ' hidd' : ''}"${free ? ' data-free="1"' : ''} href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-lock="${open ? 0 : 1}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
     <span class="wm">${icon(a.cat, 96)}</span>
-    <div class="r1">${badge(a.cat)}<span class="d">${esc(a.date)}</span><span class="rm" title="閱讀時間">約 ${esc(Number(a.reading_min) || 1)} 分鐘</span>${ceyeHTML(a.id)}</div>
+    <div class="r1">${badge(a.cat)}<span class="d">${esc(a.date)}</span><span class="rm" title="閱讀時間">約 ${esc(Number(a.reading_min) || 1)} 分鐘</span>${ceyeHTML(a.id)}</div>${a.fut ? `<div class="artst fut">未發布・${esc(Number(a.date.slice(5, 7)) + '/' + Number(a.date.slice(8, 10)))} 上架</div>` : artHid(a.id) ? '<div class="artst">已隱藏</div>' : ''}
     <div class="tt">${esc(a.title)}</div>${open && a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
     ${open && a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}${lk}
     <div class="fr"><div class="ft">${(a.groups || []).slice(0, 4).map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}${(a.groups || []).length ? '' : (Array.isArray(a.tags) ? a.tags.slice(0, 5).map((t) => `<span class="artgp">${esc(t)}</span>`).join('') : '')}</div>${vwHTML(a.id)}</div></a>`;
@@ -1209,18 +1220,20 @@
   /* ★ 10-16 拿掉「最新一篇放大成 2×2 焦點卡」（Andy：「這邊的大小需要一致」）：所有卡片同一尺寸，見 .artlist／.artc 的 CSS */
   function ensureRange() { if (S.from == null || S.to == null) { const d = defRange(); S.from = d.from; S.to = d.to; } }
   function resetFilters() { const d = defRange(); S.stage = 'all'; S.q = ''; S.from = d.from; S.to = d.to; S.grp = new Set(); if (S.ms) S.ms.set({ selected: [] }); }
-  function filtered(cat, ignoreCat) {
+  function filtered(cat, ignoreCat, noGrp) {
     const q = S.q.trim().toLowerCase();
-    const src = PRIV[cat] && !ignoreCat ? (canPriv(cat) && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
     const own = isAdminUser();
+    let src = PRIV[cat] && !ignoreCat ? (canPriv(cat) && S.tech ? S.tech.list : []) : (S.idx ? S.idx.list : []);   // 隱藏分頁的清單另外來；「全部文章」永遠只看 index.json
+    if (own) src = src.concat((PRIV[cat] && !ignoreCat ? S.futTech : S.futIdx) || []);   // 11-26 站主看得到還沒上架的
     return src.filter((a) => (own || !artHid(a.id)) && (S.stage === 'all' || stageOf(a) === S.stage) && (ignoreCat || cat === 'all' || a.cat === cat)
       && (!q || String(a.title).toLowerCase().includes(q))
-      && (PRIV[cat] || ((!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)))   // 頻道隱藏分頁只有站主看、篇數少，不套日期區間（影片文章常寫隔天的上片日）
-      && (!S.grp.size || (a.groups || []).some((g) => S.grp.has(g.id))));
+      && (a.fut || PRIV[cat] || ((!S.from || a.date >= S.from) && (!S.to || a.date <= S.to)))   // 頻道隱藏分頁只有站主看、篇數少，不套日期區間；未上架的（站主才有）不套
+      && (noGrp || !S.grp.size || (a.groups || []).some((g) => S.grp.has(g.id))));
   }
+  /* 11-26 Andy：「這邊篩選需要依據當前頁面進行」→ 族群選項與篇數只算目前分頁＋目前其他條件（不含族群本身）的文章 */
   function groupStats() {
     const m = new Map();
-    (S.idx ? S.idx.list : []).forEach((a) => (a.groups || []).forEach((g) => { const o = m.get(g.id) || { id: g.id, name: g.name, n: 0 }; o.n += 1; m.set(g.id, o); }));
+    filtered(S.cat, false, true).forEach((a) => (a.groups || []).forEach((g) => { const o = m.get(g.id) || { id: g.id, name: g.name, n: 0 }; o.n += 1; m.set(g.id, o); }));
     return [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, 'zh-Hant'));
   }
   /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有」）：卡片標題旁的「?」跟全站同一套（app.js wireHowto 委派、跳出式），
@@ -1253,6 +1266,8 @@
   const STAGE_TIP = { up: 'IC 設計／IP／EDA、材料（矽晶圓、光罩、光阻、化學品、氣體）、設備', mid: '晶圓製造與各製程步驟、晶圓代工、記憶體', down: '封裝、測試、先進封裝、載板', ai: '伺服器、散熱、電源、光通訊、網路', other: '待遇、產業總覽、無法歸類者' };
   const stageOf = (a) => { const v = a && a.chain_stage; return STAGES.some((x) => x[0] === v && v !== 'all') ? v : 'other'; };
   S.stage = 'all';
+  const STG_KEY = 'tw.art.stgfold';
+  const stgFold = () => { try { return JSON.parse(localStorage.getItem(STG_KEY) || '{}') || {}; } catch (e) { return {}; } };
   function paintStage(root) {
     const box = $('#artStage', root); if (!box) return;
     box.innerHTML = STAGES.map(([k, t]) => `<button type="button" data-stage="${k}" class="${S.stage === k ? 'on' : ''}" aria-pressed="${S.stage === k}"${STAGE_TIP[k] ? ` title="${esc(STAGE_TIP[k])}"` : ''}>${esc(t)}</button>`).join('');
@@ -1300,6 +1315,8 @@
   function mountGroups(root) {
     const host = $('#artGrp', root); if (!host) return;
     const gs = groupStats();
+    const have = new Set(gs.map((g) => g.id));
+    if ([...S.grp].some((g) => !have.has(g))) S.grp = new Set([...S.grp].filter((g) => have.has(g)));   // 換分頁後不存在的族群自動取消
     host.hidden = !gs.length;
     if (!gs.length || !window.TwMS) return;
     const items = gs.map((g) => ({ v: g.id, t: g.name, n: g.n }));
@@ -1386,12 +1403,22 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     paintQuota(root, acc);
     /* 10-17 Andy：「這邊不同類型需要線條隔開」→ 「全部文章」依類型分段（快訊 → 產業鏈 → 知識），每段上方一條分隔線＋類型名稱與篇數；
        只有一種類型、或在單一類型分頁時照舊一整片。卡片仍在 #artList 底下（.artc），每段自己一個同樣規格的格線（.artgrid）。 */
-    const grpCats = S.cat === 'all' ? Object.keys(CATS).filter((k) => list.some((a) => a.cat === k)) : [];
-    box.classList.toggle('grouped', grpCats.length > 1);
-    box.innerHTML = !list.length ? ''
-      : grpCats.length > 1 ? grpCats.map((k) => { const l = list.filter((a) => a.cat === k);
-        return `<section class="artsec k-${k}" data-cat="${k}"><div class="artsech" role="heading" aria-level="3">${icon(k, 16)}<span>${esc(CATS[k].t)}</span><em>${l.length} 篇</em></div><div class="artgrid">${l.map((a) => cardHTML(a, acc)).join('')}</div></section>`; }).join('')
-      : list.map((a) => cardHTML(a, acc)).join('');
+    /* 11-26 Andy：「我並沒有看到依據上中下游或是其他類別做分類，他是可以收納的」→ 清單依上中下游分組，每組標題＋篇數、點標題收合／展開
+       （預設收起、使用者展開過才記住；只有一組時直接展開 —— CLAUDE.md 手機五條第 5 條）。
+       站主：還沒上架與手動隱藏的文章另成一組「未發布／已隱藏」排最上方。 */
+    const own = isAdminUser();
+    const pend = own ? list.filter((a) => a.fut || artHid(a.id)) : [];
+    const rest = list.filter((a) => !pend.includes(a));
+    const secs = [];
+    if (pend.length) secs.push({ k: 'pend', t: '未發布／已隱藏（只有站主看得到）', l: pend });
+    STAGES.slice(1).forEach(([k, t]) => { const l = rest.filter((a) => stageOf(a) === k); if (l.length) secs.push({ k, t, l }); });
+    const fo = stgFold();
+    box.classList.toggle('grouped', secs.length > 1);
+    box.innerHTML = !list.length ? '' : secs.map((x) => {
+      const open = secs.length === 1 || !!fo[x.k];
+      return `<section class="artsec artstg s-${x.k}" data-stage="${x.k}"><button type="button" class="artsech" aria-expanded="${open}" data-stg="${x.k}"><span class="chev" aria-hidden="true">${open ? '▾' : '▸'}</span><span>${esc(x.t)}</span><em>${x.l.length} 篇</em></button><div class="artgrid"${open ? '' : ' hidden'}>${x.l.map((a) => cardHTML(a, acc)).join('')}</div></section>`;
+    }).join('');
+    $$('.artsech[data-stg]', box).forEach((h) => { h.onclick = () => { const k = h.dataset.stg, g = h.nextElementSibling, open = g.hidden; g.hidden = !open; h.setAttribute('aria-expanded', String(open)); $('.chev', h).textContent = open ? '▾' : '▸'; const m = stgFold(); m[k] = open ? 1 : 0; try { localStorage.setItem(STG_KEY, JSON.stringify(m)); } catch (e) { /* 私密視窗 */ } }; });
     if (!list.length) box.innerHTML = `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
         + `${dirty ? '<button type="button" class="btn small" data-clr>清除篩選</button>' : '<button type="button" class="btn small" data-wide>看全部日期</button>'}</div>`;
     const c2 = $('[data-clr]', box); if (c2) c2.onclick = () => { resetFilters(); paintList(); };

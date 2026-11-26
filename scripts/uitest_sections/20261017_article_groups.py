@@ -47,4 +47,6 @@ def t_article_groups_1017(b, base, code):
     ok(f"{T}：沒有網頁錯誤", not errs, errs[:3])
 
 
-register("文章分類分段1017", lambda pg, b, base, code: t_article_groups_1017(b, base, code))
+# 2026-11-26 退役：Andy「我並沒有看到依據上中下游或是其他類別做分類，他是可以收納的」→ 清單改依上中下游分組（可收合），
+# 類型分段由「文章上中下游1126」接手驗（scripts/uitest_sections/20261126_文章上中下游.py）。
+# register("文章分類分段1017", lambda pg, b, base, code: t_article_groups_1017(b, base, code))
