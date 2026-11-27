@@ -68,10 +68,5 @@
  },
  "old_folder": "1Na3jf4ZXqMzrB4l9rgsgc0RxmPFXfCTb",
  "_更新方式": "Drive 連接器不能改檔案內容：有變的檔先 create_file 上傳新版，再把舊版 update_file 移進 old_folder 並在檔名加「_至MMDD」。",
- "pending_move_old": {
-  "F-4_頻道④談晴說礙.md": "1ICMkMr8DVelNMfAWwrbMyW6W2zsyz3Cr",
-  "H_組織與對話管理.md": "1CCr5q5droIAKTmNN3fFA-33ald4ABCWk",
-  "I_影片製作_ai-mp4_科技透明圈分支.md": "1KdUuR0eFW_nCVfLUSNdWoykdIVDG8xWL",
-  "I_影片製作_ai-mp4_main.md": "1EsN_pTAO8mFKKY1NliT4-JRy8m0s9TrC"
- }
+ "pending_move_old": {}
 }
