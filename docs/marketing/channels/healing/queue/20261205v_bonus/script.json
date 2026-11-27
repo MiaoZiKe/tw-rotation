@@ -24,7 +24,8 @@
     "big": "1.61 個月",
     "mini": {
      "type": "bar2",
-     "label": "元（月薪 4 萬換算，自行計算）",
+     "label": "單位：元（月薪 4 萬換算，自行計算）",
+   "labelRight": true,
      "vmax": 100000,
      "w": 520,
      "rows": [

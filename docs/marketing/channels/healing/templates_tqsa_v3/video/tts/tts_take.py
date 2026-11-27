@@ -9,6 +9,8 @@ import json, sys, os, base64, subprocess, wave, datetime, tempfile
 # 2026-11-22 晚 Andy：「速度可以在快點 並且多點起承轉合」→ 指令改「語速自然偏快、輕快」（約 5.3 字／秒）；仍不在句中插停頓；2026-11-25 規則 36：平舌捲舌要分清楚（本行已合併）
 SETUP = "用台灣人平常講話的口音，平舌和捲舌要分清楚（ㄓㄔㄕ念捲舌，不要念成ㄗㄘㄙ，例如「上」不能念成「喪」、「罩」不能念成「掃」）、不兒化，用平常說話的音量和聲音。像一位做深度報導的記者，把剛查完的資料攤開來，跟觀眾一起拆解這則新聞：講數字時清楚、肯定，像在對著資料念；講到「但是」「其實」這種轉折時語氣明顯一轉、帶一點思考；講到結論時篤定收住。整體語速自然偏快、輕快，大約每秒 5.3 個字，逗號處短短停一下；每個句號、問號之後要換一口氣、停約 0.3 秒再接下一句（不要黏在一起）；句尾自然停頓，不拖尾音、不用氣音、不演，不像主播播報，也不像在講課。直接說："
 MODEL, VOICE = "gemini-3.8-flash-tts", "Sulafat"
+# 2026-11-27 bonus 第 7 輪：可用環境變數 SETUP_EXTRA 在「直接說：」前補一句單支片專用的念法指令（預設空＝行為不變）
+if os.environ.get("SETUP_EXTRA"): SETUP = SETUP[:-len("直接說：")] + os.environ["SETUP_EXTRA"] + "直接說："
 q, out = sys.argv[1], sys.argv[2]
 lines = [l.split("｜", 1) for l in open(os.path.join(q, "narration.txt"), encoding="utf-8") if "｜" in l and not l.startswith("#")]
 body = "".join(t.strip() for _, t in lines)

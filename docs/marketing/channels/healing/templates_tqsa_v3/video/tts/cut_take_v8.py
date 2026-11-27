@@ -55,10 +55,11 @@ def first_line_start():
             if re.match(r"\d", words[j][0].strip()): return j
     return None
 j0 = first_line_start()
-if j0 is None: sys.exit("前導判定失敗：「直接」之後 12 個字內找不到念稿第 1 行開頭「%s」（ASR 聽到：%s）。不切，請人工看 ASR 或用 ON0 環境變數指定起點。" % (texts[0][:6], "".join(w_[0] for w_ in words[k0:k0 + 12])))
-_sil = [z for z in runs_in(words[j0][1] - 1.5, words[j0][1] + .3, 6) if z[1] / 100 <= words[j0][1] + .3]
+# 2026-11-27 bonus：有 ON0 時不靠首行比對（例 ASR 把「年終」寫成同音「年中」、數字被 norm 吃掉而對不上）
+if j0 is None and not os.environ.get("ON0"): sys.exit("前導判定失敗：「直接」之後 12 個字內找不到念稿第 1 行開頭「%s」（ASR 聽到：%s）。不切，請人工看 ASR 或用 ON0 環境變數指定起點。" % (texts[0][:6], "".join(w_[0] for w_ in words[k0:k0 + 12])))
+_sil = [z for z in runs_in(words[j0][1] - 1.5, words[j0][1] + .3, 6) if z[1] / 100 <= words[j0][1] + .3] if j0 is not None else []
 on0 = float(os.environ["ON0"]) if os.environ.get("ON0") else (_sil[-1][1] / 100 - .1 if _sil else max(0.0, words[j0][1] - .1))
-if on0 > words[j0][1] + .3: sys.exit("前導判定錯誤：起點 %.2f 在第 1 行開頭字 %.2f 之後" % (on0, words[j0][1]))
+if j0 is not None and on0 > words[j0][1] + .3: sys.exit("前導判定錯誤：起點 %.2f 在第 1 行開頭字 %.2f 之後" % (on0, words[j0][1]))
 le = int((words[-1][2] - .05) * 100)
 while le < n and voiced[le]: le += 1
 last = le / 100 + .01; tail_noise = [round(i / 100, 2) for i in range(le, n) if voiced[i]]
