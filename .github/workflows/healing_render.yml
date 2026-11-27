@@ -201,7 +201,7 @@ jobs:
           git diff --cached --quiet && { echo "沒有變動"; exit 0; }
           git commit -q -m "談晴說礙：$F 渲染檢查小檔（healing_render 分段，run ${GITHUB_RUN_ID}）"
           for i in 1 2 3 4 5 6; do
-            git pull --rebase -q origin "$BR" && git push origin "HEAD:$BR" && exit 0
+            git -c rebase.autoStash=true pull --rebase -q origin "$BR" && git push origin "HEAD:$BR" && exit 0
             echo "push 失敗，第 $i 次重試"; sleep $((i*5))
           done
           echo "::error::push 回 $BR 失敗"; exit 1
