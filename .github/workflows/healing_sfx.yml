@@ -109,7 +109,7 @@ jobs:
             NF=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 /tmp/out_$N.mp4)
             PIXOK=1
             for FR in 0 $(( NF > 741 ? 741 : NF/2 )) $(( NF/2 )); do
-              M1=$(ffmpeg -loglevel error -i /tmp/in_$N.mp4 -vf "select=eq(n\,$FR)" -frames:v 1 -f md5 - 2>&1); M2=$(ffmpeg -loglevel error -i /tmp/out_$N.mp4 -vf "select=eq(n\,$FR)" -frames:v 1 -f md5 - 2>&1)
+              M1=$(ffmpeg -loglevel error -i /tmp/in_$N.mp4 -an -vf "select=eq(n\,$FR)" -frames:v 1 -f md5 - 2>&1); M2=$(ffmpeg -loglevel error -i /tmp/out_$N.mp4 -an -vf "select=eq(n\,$FR)" -frames:v 1 -f md5 - 2>&1)
               echo "畫面比對 第 $FR 幀：渲染 $M1 / 成片 $M2" | tee -a $D/sfx_guard.txt
               [ "$M1" = "$M2" ] && [ -n "$M1" ] || PIXOK=0
             done
