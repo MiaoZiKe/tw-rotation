@@ -13,7 +13,7 @@ hook_type: 問句（接上一支）
 # 頻道②「科技透明圈」：影片「ABF 載板：整塊載板怎麼一層層蓋出來」
 
 - status 寫 approved：Andy 11-28 04:00 前後「這都OK」（他看過兩支成片）。成片來源：ai-mp4 的 out/tech-abfsub.v1.mp4（57.4 秒、1080×1920、30fps、md5 b06b9383a1b94b47e04f1328ae61e012）。審片紀錄見 ai-mp4 videos/tech-abfsub/README.md。換版時只換 tech-abfsub.mp4 與 cover.jpg（網站 site/media/tech/20270101v_abfsub/ 同步換，網站用的是同一支重新壓縮的小檔）。
-- 法遵：LEGAL_PLACEHOLDER
+- 法遵：待 legal-compliance 審（貼文文案、IG 私訊與 Threads 回覆）；dm_config 的回覆代號已放 legal_pending，審過前留言一律改送預設文字。審完把結論寫在這一行並從 legal_pending 拿掉。
 - 排程：2027-01-01（五）18:00（`TZ=Asia/Taipei date -d 2027-01-01 +%a` 算出），接在 12/31 ABF 膜之後每天一集；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 2.0 秒畫面：kicker「接上集：膜備好了」＋大字「載板怎麼做？」。
 - 內容用 ai-mp4 videos/tech-abfsub/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。

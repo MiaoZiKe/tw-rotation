@@ -13,7 +13,7 @@ hook_type: 問句（接上一支）
 # 頻道②「科技透明圈」：影片「BT 載板：便宜的載板，為什麼也缺料」
 
 - status 寫 approved：Andy 11-28 04:00 前後「這都OK」（他看過兩支成片）。成片來源：ai-mp4 的 out/tech-bt.v1.mp4（61.2 秒、1080×1920、30fps、md5 71281dd7453494165bd514a0d183a548）。審片紀錄見 ai-mp4 videos/tech-bt/README.md。換版時只換 tech-bt.mp4 與 cover.jpg（網站 site/media/tech/20270102v_bt/ 同步換，網站用的是同一支重新壓縮的小檔）。
-- 法遵：LEGAL_PLACEHOLDER
+- 法遵：待 legal-compliance 審（貼文文案、IG 私訊與 Threads 回覆）；dm_config 的回覆代號已放 legal_pending，審過前留言一律改送預設文字。審完把結論寫在這一行並從 legal_pending 拿掉。
 - 排程：2027-01-02（六）18:00（`TZ=Asia/Taipei date -d 2027-01-02 +%a` 算出），接在 12/31 ABF 膜之後每天一集；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 2.0 秒畫面：kicker「接上集：貴的 ABF 載板」＋大字「便宜的載板？」。
 - 內容用 ai-mp4 videos/tech-bt/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
