@@ -1,0 +1,1 @@
+{"dur": 53.67, "digital_silence_ge50ms": [[47.14, 0.324]], "exact_zero_runs_ge1ms": [[53.668, 51], [53.67, 54]], "n_exact0": 2, "hard_onset": [], "abrupt_cut": [], "pauses_ge025": [[3.56, 0.55], [31.05, 0.44], [39.3, 0.26], [46.95, 0.51]], "n_pauses": 4, "thr": -47.1, "speech": [0.38, 47.06], "tail_db": -17.6}
