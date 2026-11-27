@@ -69,8 +69,18 @@ DEFAULT = [(0.3, 'paperslide', -2, {}, '主體入場')]
 WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
 MIN_SAME_GAP = 0.8   # 同種音效最短間隔（秒），避免連續叮聲太密
+MIN_GAP_BY_KIND = {'coin': 0.5}   # 金幣依畫面三枚先後落桌（間隔約 0.6 秒），不可被推開
 DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
 DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
+
+
+# 【接觸時間】撞擊類 cue 的秒數＝畫面「接觸／落下那一刻」，不是物件出現時間（第 9 輪審片逐幀量測）。
+# 逐片覆寫：(佇列資料夾, 鏡頭 id, 音效種類) → 畫面接觸的絕對秒數；覆寫在 snap 之後
+FIX_ABS = {
+    ('20261128v_avgwage', 's1', 'cashier'): 0.58,   # 入帳通知（原 1.01）
+    ('20261128v_avgwage', 's7', 'coin'): 35.95,     # 硬幣倒下（原 35.82）
+    ('20261129v_quit', 's3', 'stamp'): 12.23,       # 打卡（原 12.49）
+}
 
 
 def snap(t, words, lo, hi):
@@ -86,6 +96,7 @@ def snap(t, words, lo, hi):
 def main():
     a = sys.argv[1:]
     d = a[0]
+    qname = os.path.basename(os.path.normpath(d))
     sc = json.load(open(os.path.join(d, 'script.json')))
     sg = {s['id']: s for s in json.load(open(os.path.join(d, 'segments.json')))['segments']}
     vid = os.path.join(d, 'video.mp4')
@@ -107,6 +118,7 @@ def main():
         for off, kind, gdb, prm, what in acts:
             t = max(0.0, t0 + off)
             if kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
+            t = FIX_ABS.get((qname, s['id'], kind), t)
             if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
             if kind == 'whoosh': c['dur'] = 0.4
@@ -124,8 +136,9 @@ def main():
     last, keep = {}, []
     for c, r in cues_rows:
         p = last.get(c['kind'])
-        if p is not None and c['t'] - p < MIN_SAME_GAP:
-            nt = round(p + MIN_SAME_GAP, 2)
+        gap_min = MIN_GAP_BY_KIND.get(c['kind'], MIN_SAME_GAP)
+        if p is not None and c['t'] - p < gap_min:
+            nt = round(p + gap_min, 2)
             if nt >= end_card - 0.3: continue
             c['t'] = nt; r = (nt,) + tuple(r[1:])
         last[c['kind']] = c['t']; keep.append((c, r))
