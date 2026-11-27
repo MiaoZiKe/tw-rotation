@@ -2,7 +2,7 @@
 - 分支 **healing/video-1128-1129**（從 main 開，不推 main）。已合併舊存檔 wip/healing-1128-1129 的工具改動（含 main 的規則 36 平捲舌指令，並採 5.3 字／秒語速）、`raw_keep.py`、`make_video.sh --render-only`。
 - TTS：avgwage 1 次、quit 1 次（Gemini 額度各只用 1 次，沒有重送）。avgwage 「八十一」這次念對（ASR medium 聽到 48,981），整份念稿一次重配（235 字）；quit 念稿 233 字。兩支旁白＋時間戳（narration.wav、segments.json、pace_check.txt）都已定稿：avgwage 純念稿 5.31 字／秒、旁白 47.1 秒；quit 5.15 字／秒、47.3 秒。
 - 新增 `.github/workflows/healing_render.yml`（workflow_dispatch：folder 可逗號多個、branch）：每個資料夾一台機器，跑 `bash v9/make_video.sh queue/<名> --render-only`（autofix 渲染≤3 輪＋check_v8＋final_check＋video_sheet＋verify4 停頓圖／ASR／1 秒抽格），成品 commit 回該分支。
-- 狀態：workflow_dispatch 試過 404（workflow 檔不在 main 叫不動）→ 改用 push 觸發：推 queue/_render_request.txt 即觸發 healing_render（run id 見 Actions 頁，分支 healing/video-1128-1129）；容器沒有渲染。
+- 狀態：workflow_dispatch 試過 404（workflow 檔不在 main 叫不動）→ 改用 push 觸發：推 queue/_render_request.txt 即觸發 healing_render（run id 45916208874，https://github.com/MiaoZiKe/tw-rotation/actions/runs/45916208874；成品會 commit 回本分支，pull 後驗收）；容器沒有渲染。
 - 渲完還沒做的四道驗證（meta 維持 awaiting_andy＋await_andy:true）：
   1. ③ 停頓密度＋audio-check（數位靜音／斷音／硬起音 0）：verify4.json 看停頓；audio-check.py 不在這個 repo，要用 ai-mp4 的。
   2. ② 聽感：Gemini 聽整片（斷續／字被切）＋人工聽前 15 秒＋平捲舌（ㄓㄔㄕ vs ㄗㄘㄙ）；ASR 與念稿逐字比對。
