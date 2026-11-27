@@ -1,5 +1,5 @@
 #!/bin/bash
-# 複製自 MiaoZiKe/AI-Mp4 分支 claude/nifty-goodall-syke8a-1548 commit e8cfbc3（11-27 主控同步給④；原版更新時以 ai-mp4 為準再同步）
+# 複製自 MiaoZiKe/AI-Mp4 分支 claude/nifty-goodall-syke8a-1548 commit 1256d2d（11-27 主控同步給④；原版更新時以 ai-mp4 為準再同步）
 # 加音效後製（Andy 2026/11/27）。不重渲畫面：影像串流 copy，只換音軌。依賴：bash、python3＋numpy、ffmpeg／ffprobe。
 # 通用用法（任何頻道，不綁專案路徑）：
 #   bash scripts/three/add-sfx.sh <in.mp4> <cues.json 或 sfx.wav> <out.mp4> [--end <片尾卡開始秒>]
@@ -9,7 +9,13 @@
 # 流程：（科技片先排 cue 表）→ sfx-synth.py 合成 → 抽原片音軌（已含旁白與片尾招牌音）→ 旁白講話時自動壓低 sfx（−8 dB），
 #       sfx 比旁白低約 10 dB（講話時 ≈ 18 dB）→ 整條兩段式 loudnorm 回 −16 LUFS（TP ≤ −1.5，再接 −4 dBFS 限幅器吃掉 AAC 編碼的過衝）→ 影像 copy 封裝。
 # 片尾卡之後沒有運作音效（--end 或 cue 表的 endCardSec；片尾招牌音不動）。
+# 風格（Andy 2026/11/27，三版讓他用耳朵挑；預設不變）：任何位置加 --style A|B|C
+#   A 頻段分離（挖掉 300～4k、講話只輕壓 5 dB）｜B 底噪＋重點（穩定機房底噪，clunk／閥門搬到停頓）｜C 上一版改良（固定 −12 dB、長尾放開）
+#   不加 --style ＝ 2026/11/27 的舊混音（講話區段壓低）。說明與關卡見 sfx-styles.py 檔頭與 docs/three-stage.md 第十三節。
 set -e
+STYLE=""; ARGS=()
+while [ $# -gt 0 ]; do if [ "$1" = "--style" ]; then STYLE=$2; shift 2; else ARGS+=("$1"); shift; fi; done
+set -- "${ARGS[@]}"
 D=$(cd "$(dirname "$0")" && pwd); ROOT=$(cd "$D/../.." && pwd)
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 END=""
@@ -31,7 +37,14 @@ else
   esac
 fi
 ffmpeg -loglevel error -y -i "$IN" -vn -ac 2 -ar 48000 -c:a pcm_s16le "$TMP/voice.wav"
+if [ -n "$STYLE" ]; then
+  # 風格版吃 cue 表（要自己合成擬真音色）：科技片＝out/<slug>/sfx-table.json；通用＝你給的 cues.json
+  if [ "$1" = "--tech" ]; then TABLE="$ROOT/out/$SLUG/sfx-table.json"; else TABLE="$SRC"; fi
+  case "$TABLE" in *.json) ;; *) echo "錯誤：--style 需要 cue 表 json"; exit 1;; esac
+  python3 "$D/sfx-styles.py" mix "$STYLE" "$TMP/voice.wav" "$TABLE" "$TMP/mix.wav" ${END:+--end $END} --report "${OUT%.mp4}.sfx-$STYLE.json"
+else
 python3 "$D/sfx-synth.py" mix "$TMP/voice.wav" "$SFX" "$TMP/mix.wav" ${END:+--end $END}
+fi
 M=$(ffmpeg -nostats -i "$TMP/mix.wav" -af loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json -f null - 2>&1 | sed -n '/^{/,/^}/p')
 g() { echo "$M" | python3 -c "import sys,json;print(json.load(sys.stdin)['$1'])"; }
 ffmpeg -loglevel error -y -i "$TMP/mix.wav" -af "loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=$(g input_i):measured_TP=$(g input_tp):measured_LRA=$(g input_lra):measured_thresh=$(g input_thresh):offset=$(g target_offset):linear=true,aresample=48000,alimiter=limit=0.63:attack=3:release=60:level=disabled:latency=1" -ar 48000 -c:a pcm_s16le "$TMP/final.wav"
@@ -39,6 +52,7 @@ ffmpeg -loglevel error -y -i "$TMP/mix.wav" -af "loudnorm=I=-16:TP=-1.5:LRA=11:m
 ffmpeg -loglevel error -y -i "$IN" -i "$TMP/final.wav" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k -ar 48000 "$OUT"
 # 成片解碼後關卡（Andy 聽的是成片）：解碼成片音軌，講話窗逐窗殘差（sfx＋AAC 誤差）要比旁白低 ≥14 dB，不過就刪掉成品。
 ffmpeg -loglevel error -y -i "$OUT" -vn -ac 2 -ar 48000 -c:a pcm_s16le "$TMP/dec.wav"
-if ! python3 "$D/sfx-synth.py" check "$TMP/voice.wav" "$TMP/dec.wav" ${END:+--end $END}; then rm -f "$OUT"; echo "錯誤：成片解碼後講話段有 sfx 太大聲（<14 dB），已刪除 $OUT"; exit 1; fi
+if [ -n "$STYLE" ]; then CHK=(python3 "$D/sfx-styles.py" check "$STYLE" "$TMP/voice.wav" "$TMP/dec.wav" ${END:+--end $END} --report "${OUT%.mp4}.sfx-$STYLE.final.json"); else CUES="${OUT%.mp4}.sfx-cues.json"; CHK=(python3 "$D/sfx-synth.py" check "$TMP/voice.wav" "$TMP/dec.wav" ${END:+--end $END}); [ -f "$CUES" ] && [ -f "$TMP/mix.wav.sfxref.wav" ] && CHK+=(--cues "$CUES" --ref "$TMP/mix.wav.sfxref.wav"); fi
+if ! "${CHK[@]}"; then rm -f "$OUT"; echo "錯誤：成片解碼後講話段有 sfx 太大聲（<14 dB）或有音效被壓到聽不見，已刪除 $OUT"; exit 1; fi
 echo "完成：$OUT"
 [ -n "$SUMMARY" ] && python3 -c "import json;d=json.load(open('$SUMMARY'));print('音效',d['count'],d.get('byType',''))"
