@@ -1,12 +1,15 @@
 name: healing_render
-# 頻道④「談晴說礙」有旁白影片：渲染＋合成＋檢查（不含 TTS）。
+# 頻道④「談晴說礙」有旁白影片：分段渲染（多台交錯）→ 接段＋配音軌＋檢查 → 成品推存檔分支 renders/healing（不含 TTS）。
 # 2026-11-25 Andy：渲染這類重運算一律丟 GitHub Actions 多台分段跑，不在 Claude 雲端容器裡跑。
-# 2026-11-27 起：TTS／ASR／剪輯（narration.wav、segments.json 已在分支）在容器做完，這裡只跑
-#   bash v9/make_video.sh queue/<名> --render-only（autofix 渲染最多 3 輪＋check_v8＋final_check＋video_sheet＋verify4 抽格／停頓圖／ASR）。
-# 輸入 folder 可逗號分隔多個（例：20261128v_avgwage,20261129v_quit），每個資料夾一台機器同時跑。
-# 成品（video.mp4、cover.jpg、frames_1s.png、各檢查 json）commit 回輸入的 branch；不讀任何 secret、不動 main（除非 branch 填 main）。
-# Gemini 聽感驗證、audio-check、art-director／animation-director 打分不在這裡跑，由頻道 CEO 另做。
-# workflow_dispatch 只有 workflow 檔在預設分支（main）才叫得動；檔案還只在作業分支時，改推 queue/_render_request.txt（第一行＝逗號分隔的資料夾名）觸發 push 事件，效果相同。
+# 2026-11-27 Andy：照頻道②（ai-mp4 render-chunks.yml）的架構：matrix 分段、成品推存檔分支、第一次用要跟容器成品比對。
+# 流程：plan（算出 資料夾 × 台數 的 matrix）→ render（每台渲第 k、k+jobs… 段，每段 chunk 幀；render_video.js --chunk/--job/--jobs，段檔當 artifact）
+#       → finalize（每個資料夾一台：下載各段 → render_video.js --assemble 接段＋sfx＋旁白 → check_v8／final_check／make_sheet／verify4）。
+# 輸出：
+#   · renders/healing 分支（orphan）：renders/<資料夾>.<短sha>.mp4＋.final_check.json／.verify4.json／.overlap_report.json／.autofix_log.json（短 sha＝被渲染分支的 commit）
+#   · 工作分支（BR）：只回寫小檔（檢查 json、frames_1s.png、cover.jpg…）；video.mp4 ≤20MiB 才回寫（發文要用），超過就只在存檔分支
+# 觸發：推 queue/_render_request.txt（第一行＝逗號分隔的資料夾名；第二行選填：jobs=8 chunk=60 writeback=1）；workflow 檔不在 main 時 workflow_dispatch 會 404，所以保留 push 觸發。
+# 台數：預設 8，上限 12；資料夾 × 台數 超過 16 會自動降台數（帳號同時 20 個 job，留 4 個給部署與發文）。
+# 不讀任何自訂 secret（只用內建 GITHUB_TOKEN）、不動 main（除非 branch 填 main）。Gemini 聽感驗證、audio-check、art-director／animation-director 打分不在這裡跑。
 on:
   push:
     branches: ["healing/**"]
@@ -18,49 +21,78 @@ on:
         type: string
         required: true
       branch:
-        description: "要讀取並把成品推回去的分支"
+        description: "要讀取並把小檔推回去的分支"
         type: string
         required: true
         default: "healing/video-1128-1129"
+      jobs:
+        description: "每支片幾台同時渲（預設 8、上限 12）"
+        type: string
+        default: "8"
+      chunk:
+        description: "每段幾幀（要是 15 的倍數；預設 60）"
+        type: string
+        default: "60"
+      writeback:
+        description: "1＝小檔回寫工作分支；0＝只推存檔分支（比對用，不碰工作分支的資料夾）"
+        type: string
+        default: "1"
 permissions:
   contents: write
 concurrency:
   group: healing-render-${{ inputs.branch || github.ref_name }}
   cancel-in-progress: false
+env:
+  CH: docs/marketing/channels/healing
 jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.m.outputs.matrix }}
+      folders: ${{ steps.m.outputs.folders }}
+      chunk: ${{ steps.m.outputs.chunk }}
+      writeback: ${{ steps.m.outputs.writeback }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.branch || github.ref_name }}
           sparse-checkout: docs/marketing/channels/healing/queue/_render_request.txt
           sparse-checkout-cone-mode: false
       - id: m
         env:
-          FOLDERS: ${{ inputs.folder }}
+          IN_FOLDERS: ${{ inputs.folder }}
+          IN_JOBS: ${{ inputs.jobs }}
+          IN_CHUNK: ${{ inputs.chunk }}
+          IN_WB: ${{ inputs.writeback }}
         run: |
-          if [ -z "$FOLDERS" ]; then FOLDERS=$(head -1 "$GITHUB_WORKSPACE/docs/marketing/channels/healing/queue/_render_request.txt" | tr -d '\r'); fi
-          export FOLDERS
           python3 - <<'PY'
           import os, json, re
-          fs = [x.strip() for x in os.environ["FOLDERS"].split(",") if x.strip()]
+          p = os.path.join(os.environ["GITHUB_WORKSPACE"], "docs/marketing/channels/healing/queue/_render_request.txt")
+          req = open(p, encoding="utf-8").read().splitlines() if os.path.exists(p) else []
+          line1 = os.environ["IN_FOLDERS"] or (req[0].strip() if req else "")
+          kv = {}
+          if not os.environ["IN_FOLDERS"] and len(req) > 1:
+              for tok in req[1].split():
+                  if "=" in tok:
+                      k, v = tok.split("=", 1); kv[k.strip()] = v.strip()
+          jobs = int(os.environ["IN_JOBS"] or kv.get("jobs", 8)); chunk = int(os.environ["IN_CHUNK"] or kv.get("chunk", 60)); wb = os.environ["IN_WB"] or kv.get("writeback", "1")
+          fs = [x.strip() for x in line1.split(",") if x.strip()]
           assert fs and all(re.fullmatch(r"[0-9A-Za-z_]+", x) for x in fs), "資料夾名只能有英數與底線：%r" % fs
-          open(os.environ["GITHUB_OUTPUT"], "a").write("matrix=" + json.dumps({"folder": fs}) + "\n")
+          assert chunk % 15 == 0 and chunk > 0, "chunk 要是 15 的倍數"
+          jobs = max(1, min(12, jobs, 16 // len(fs)))
+          matrix = {"include": [{"folder": f, "k": k, "jobs": jobs} for f in fs for k in range(jobs)]}
+          o = open(os.environ["GITHUB_OUTPUT"], "a")
+          o.write("matrix=" + json.dumps(matrix) + "\n"); o.write("folders=" + json.dumps({"folder": fs}) + "\n"); o.write("chunk=%d\nwriteback=%s\n" % (chunk, wb))
+          print("資料夾", fs, "每支", jobs, "台，每段", chunk, "幀，回寫", wb)
           PY
   render:
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    env:
-      BR: ${{ inputs.branch || github.ref_name }}
-      F: ${{ matrix.folder }}
-      CH: docs/marketing/channels/healing
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,28 +105,63 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: 裝 ffmpeg、中文字型
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-noto-cjk
-          fc-list | grep -ci "Noto Sans CJK TC" || true
-      - name: 裝 Playwright（render_video.js 固定讀 /opt/node-tools）
-        run: |
-          sudo mkdir -p /opt/node-tools && sudo chown "$USER" /opt/node-tools
-          cd /opt/node-tools && npm init -y >/dev/null && npm install --silent playwright@1.63.0
-          npx playwright install --with-deps chromium
-      - name: 裝 Python 套件
-        run: pip install -q numpy scipy pillow matplotlib faster-whisper
+      - name: 裝 ffmpeg、字型、Playwright
+        run: bash $CH/templates_tqsa_v3/video/v9/ci_setup.sh --light
       - name: 檢查輸入（沒有聲音與時間戳就不跑）
         run: |
-          q="$CH/queue/$F"
+          q="$CH/queue/${{ matrix.folder }}"
           for f in script.json narration.wav narration.wav.cut.json segments.json narration_take.asr.json; do
-            [ -f "$q/$f" ] || { echo "::error::$q/$f 不存在（要先在容器做完 TTS／剪輯並推上 $BR）"; exit 1; }
+            [ -f "$q/$f" ] || { echo "::error::$q/$f 不存在（要先在容器做完 TTS／剪輯並推上分支）"; exit 1; }
           done
-      - name: 渲染＋合成＋檢查（不含 TTS）
+      - name: 產 html、渲第 ${{ matrix.k }} 台的段
         run: |
           cd "$CH/templates_tqsa_v3/video"
-          bash v9/make_video.sh "../../queue/$F" --render-only 2>&1 | tee "../../queue/$F/render_log.txt"
+          Q="../../queue/${{ matrix.folder }}"
+          python3 v9/build_spec.py "$Q" > /dev/null
+          python3 v9/gen_v9.py "$Q" > /dev/null
+          node render_video.js "${{ matrix.folder }}" --chunk ${{ needs.plan.outputs.chunk }} --job ${{ matrix.k }} --jobs ${{ matrix.jobs }} --tag j${{ matrix.k }} --seg "$PWD/seg_out"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seg-${{ matrix.folder }}-${{ matrix.k }}
+          path: ${{ env.CH }}/templates_tqsa_v3/video/seg_out
+          retention-days: 1
+          if-no-files-found: ignore
+  finalize:
+    needs: [plan, render]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.folders) }}
+    env:
+      BR: ${{ inputs.branch || github.ref_name }}
+      F: ${{ matrix.folder }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
+          sparse-checkout: |
+            docs/marketing/channels/healing
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 裝 ffmpeg、字型、Playwright、Python 套件
+        run: bash $CH/templates_tqsa_v3/video/v9/ci_setup.sh
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: seg-${{ matrix.folder }}-*
+          merge-multiple: true
+          path: ${{ env.CH }}/templates_tqsa_v3/video/seg_in
+      - name: 接段＋配音軌＋檢查
+        run: |
+          cd "$CH/templates_tqsa_v3/video"
+          ls seg_in | wc -l
+          HEALING_SEGDIR="$PWD/seg_in" bash v9/make_video.sh "../../queue/$F" --render-only 2>&1 | tee "../../queue/$F/render_log.txt"
+          rm -rf seg_in seg_out tmp
       - name: 摘要
         if: always()
         run: |
@@ -104,13 +171,35 @@ jobs:
             python3 -c "import json;d=json.load(open('$q/final_check.json'));print('final_check pass=',d.get('pass'),'sync_ok=',d.get('sync_ok'),'start_ok=',d.get('start_ok'),'caption_bad=',d.get('caption_bad'))" 2>&1
             python3 -c "import json;d=json.load(open('$q/verify4.json'));print('verify4 auto=',d.get('pass_auto'),d.get('bad'))" 2>&1
           } >> "$GITHUB_STEP_SUMMARY" || true
-      - name: 成品 commit 回分支
+      - name: 成品推存檔分支 renders/healing
         if: success()
         run: |
+          q="$PWD/$CH/queue/$F"; SHA=$(git rev-parse --short=8 HEAD); R="$F.$SHA"
+          mkdir -p /tmp/rp/renders && cp "$q/video.mp4" "/tmp/rp/renders/$R.mp4"
+          for p in final_check:final_check verify4:verify4 overlap_report_video:overlap_report autofix_log:autofix_log; do [ -f "$q/${p%%:*}.json" ] && cp "$q/${p%%:*}.json" "/tmp/rp/renders/$R.${p##*:}.json"; done
+          URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          for i in 1 2 3 4 5 6; do
+            rm -rf /tmp/rb
+            if git ls-remote --exit-code --heads "$URL" renders/healing >/dev/null 2>&1; then git clone -q --depth 1 -b renders/healing "$URL" /tmp/rb
+            else mkdir /tmp/rb && git -C /tmp/rb init -q -b renders/healing && git -C /tmp/rb remote add origin "$URL"; fi
+            mkdir -p /tmp/rb/renders && cp /tmp/rp/renders/* /tmp/rb/renders/
+            cd /tmp/rb && git config user.name "healing-render[bot]" && git config user.email "healing-render@users.noreply.github.com"
+            if git add -A renders && git commit -q -m "談晴說礙：$F 成品（$SHA，healing_render run ${GITHUB_RUN_ID}）" && git push -q origin HEAD:renders/healing; then
+              echo "已推 renders/healing：renders/$R.mp4"; echo "存檔：renders/$R.mp4（分支 renders/healing）" >> "$GITHUB_STEP_SUMMARY"; cd "$GITHUB_WORKSPACE"; exit 0
+            fi
+            echo "push 失敗，第 $i 次重試"; cd "$GITHUB_WORKSPACE"; sleep $((i*4))
+          done
+          echo "::error::推 renders/healing 失敗"; exit 1
+      - name: 小檔回寫工作分支
+        if: success() && needs.plan.outputs.writeback != '0'
+        run: |
           git config user.name "healing-render[bot]"; git config user.email "healing-render@users.noreply.github.com"
-          git add -A "$CH/queue/$F"
+          q="$CH/queue/$F"
+          git add -A "$q"
+          SZ=$(stat -c %s "$q/video.mp4" 2>/dev/null || echo 0)
+          if [ "$SZ" -gt 20971520 ]; then git reset -q -- "$q/video.mp4"; echo "video.mp4 ${SZ} bytes >20MiB，不回寫工作分支（見 renders/healing）"; fi
           git diff --cached --quiet && { echo "沒有變動"; exit 0; }
-          git commit -q -m "談晴說礙：$F 渲染＋合成＋檢查（healing_render，run ${GITHUB_RUN_ID}）"
+          git commit -q -m "談晴說礙：$F 渲染檢查小檔（healing_render 分段，run ${GITHUB_RUN_ID}）"
           for i in 1 2 3 4 5 6; do
             git pull --rebase -q origin "$BR" && git push origin "HEAD:$BR" && exit 0
             echo "push 失敗，第 $i 次重試"; sleep $((i*5))

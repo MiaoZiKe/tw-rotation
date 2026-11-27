@@ -14,11 +14,12 @@
 import os, sys, re, json, shutil, subprocess, glob
 B = os.path.dirname(os.path.abspath(__file__)); VD = os.path.join(B, ".."); sys.path.insert(0, B)
 TAGAT_DEF = {"versus": .1, "next": .25}
+SEGDIR = os.environ.get("HEALING_SEGDIR")   # 2026-11-27：Actions 分段渲染（healing_render.yml）接段模式：不自己渲，改接 SEGDIR 的各段；只跑 1 輪，要自動旗標的寫回 script.json 等下一次觸發重渲
 def run(cmd, **k): return subprocess.run(cmd, cwd=VD, capture_output=True, text=True, **k)
 def pipeline(folder, name, voice):
     cmd = ["python3", os.path.join(B, "gen_v9.py"), folder] + ([] if voice else ["--nv"]); r = run(cmd)
     if r.returncode: raise SystemExit("gen_v9 失敗：" + (r.stderr or r.stdout)[-600:])
-    r = run(["node", "render_video.js", name]); print("\n".join(l for l in r.stdout.splitlines() if not l.startswith("留白"))[-400:])
+    r = run(["node", "render_video.js", name] + (["--assemble", SEGDIR] if SEGDIR else [])); print("\n".join(l for l in r.stdout.splitlines() if not l.startswith("留白"))[-400:])
     if r.returncode: raise SystemExit("render 失敗：" + r.stderr[-600:])
     ck = os.path.join(folder, "check_v8.json" if voice else "check_v8_nv.json"); r = run(["python3", "v8/check_v8.py", name, ck]); print(r.stdout[-300:])
     if r.returncode: raise SystemExit("check_v8 失敗：" + r.stderr[-600:])
@@ -107,6 +108,7 @@ def fix(sc, issues):
     return done, left
 def main():
     a = sys.argv[1:]; voice = "--voice" in a; dry = "--dry" in a; R = int(a[a.index("--rounds") + 1]) if "--rounds" in a else 3
+    if SEGDIR: R = 0
     folder = os.path.abspath([x for x in a if not x.startswith("--") and not x.isdigit()][0]); name = os.path.basename(folder); sp = os.path.join(folder, "script.json"); log = []
     for rnd in range(R + 1):
         if not dry: pipeline(folder, name, voice)
@@ -114,6 +116,7 @@ def main():
         if not issues: print("第 %d 輪：檢查全過" % rnd); log.append({"round": rnd, "issues": []}); break
         sc = json.load(open(sp, encoding="utf-8")); done, left = fix(sc, issues); log.append({"round": rnd, "issues": [list(i) for i in issues], "fixed": done, "manual": left})
         print("第 %d 輪：%d 項問題；自動加旗標：%s" % (rnd, len(issues), done or "（無）"))
+        if SEGDIR and done and not dry: json.dump(sc, open(sp, "w", encoding="utf-8"), ensure_ascii=False, indent=1); print("  （接段模式：旗標已寫回 script.json，要重渲請再觸發一次 healing_render）")
         if dry or not done or rnd == R:
             print("要人看的項目：" if left else "（沒有要人看的項目）"); [print("  -", x) for x in left]
             if rnd == R and done: print("  - 已達 %d 輪上限，最後一輪的旗標已寫入 script.json 但尚未重渲染；請再跑一次確認" % R)

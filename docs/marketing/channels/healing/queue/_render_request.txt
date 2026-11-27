@@ -1,1 +1,2 @@
-20261128v_avgwage,20261129v_quit
+20261127v_food
+jobs=8 chunk=60 writeback=0

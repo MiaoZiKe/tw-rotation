@@ -1,3 +1,9 @@
+# 【最新】分段渲染改版＋第一次比對（2026-11-27 台北，影片製作棒）
+- 照頻道②架構改好 `healing_render.yml`（matrix 分段、每支 8 台、段 60 幀；接段＋配音＋檢查；成品推 `renders/healing`；工作分支只回寫小檔，video.mp4 ≤20MiB 才回寫）。`render_video.js` 加 `--from/--to/--chunk/--job/--jobs/--seg/--assemble`（不帶參數＝舊行為，已在容器只抽 30 幀驗過段檔可用）；`autofix.py` 加 `HEALING_SEGDIR` 接段模式。
+- 比對：已推 `_render_request.txt`＝`20261127v_food`（writeback=0），run id 見本節下方（待補）；跑完還差：① 取 renders/healing 的 `20261127v_food.<sha>.mp4` ② `python3 v9/compare_render.py queue/20261127v_food/video.mp4 <新片>`（片長 ≤0.05 秒、逐秒平均差 ≤2%）③ 結果填進 `render_check_20261127.md`。比對沒過之前，本流程不算正式啟用。
+- 注意：舊 run 45916208874（avgwage、quit）用的是舊單機版，讓它跑完；這兩支之後若要用新流程重渲，把 `_render_request.txt` 改回 `20261128v_avgwage,20261129v_quit` 再推。
+
+---
 # 談晴說礙 11/28 平均月薪、11/29 離職 影片重配＋渲染（2026-11-27 台北，影片製作棒）
 - 分支 **healing/video-1128-1129**（從 main 開，不推 main）。已合併舊存檔 wip/healing-1128-1129 的工具改動（含 main 的規則 36 平捲舌指令，並採 5.3 字／秒語速）、`raw_keep.py`、`make_video.sh --render-only`。
 - TTS：avgwage 1 次、quit 1 次（Gemini 額度各只用 1 次，沒有重送）。avgwage 「八十一」這次念對（ASR medium 聽到 48,981），整份念稿一次重配（235 字）；quit 念稿 233 字。兩支旁白＋時間戳（narration.wav、segments.json、pace_check.txt）都已定稿：avgwage 純念稿 5.31 字／秒、旁白 47.1 秒；quit 5.15 字／秒、47.3 秒。
