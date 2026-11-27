@@ -90,7 +90,7 @@
   {
    "id": "s2",
    "scene_start": 6.11,
-   "heard_from_scene_start_minus_0_15": "104人利益",
+   "heard_from_scene_start_minus_0_15": "104人力",
    "script_start": "104人力銀行調",
    "first_char_index": 0
   },
@@ -139,6 +139,26 @@
   }
  ],
  "frames": 53,
+ "smooth": {
+  "fps": 30.0,
+  "frames": 1601,
+  "expect": 1601,
+  "pts_back": 0,
+  "pts_gap": 0,
+  "dup_ratio": 0.421,
+  "stall": 0,
+  "stall_t": [],
+  "reverse": 1,
+  "reverse_t": [
+   49.37
+  ],
+  "seam_mean": 0.511,
+  "nonseam_mean": 0.482,
+  "seam_bad": [],
+  "chunk": 60,
+  "bad": [],
+  "pass": true
+ },
  "pass_auto": false,
  "bad": [
   "裁頭後前 1.5 秒單獨 ASR 出現念稿以外的字：聽到「年中一點留一個月」，念稿開頭「年終1.61個月入帳前」"
