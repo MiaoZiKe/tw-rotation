@@ -114,10 +114,22 @@
     ],
     "chem": [
       "化學品"
+    ],
+    "pad": [
+      "研磨墊"
+    ],
+    "utility": [
+      "水氣電"
+    ],
+    "probe1": [
+      "探針卡"
+    ],
+    "dicing": [
+      "切割"
     ]
   },
-  "legal_pending": ["wafer1", "wafer2", "mask1", "mask2", "resist1", "resist2", "asml", "amat", "lam", "tel", "kla"],
-  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。",
+  "legal_pending": ["wafer1", "wafer2", "mask1", "mask2", "resist1", "resist2", "asml", "amat", "lam", "tel", "kla", "gas", "pad", "utility", "probe1", "dicing"],
+  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。 2026-11-27：系列 2 的 gas、pad、utility、probe1 與系列 3 的 dicing（留言氣體、研磨墊、水氣電、探針卡、切割）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。",
   "ig_dm": {
     "enabled": true,
     "mode": "poll",
@@ -167,7 +179,12 @@
       "amat": "謝謝留言！「薄膜誰來鋪：應用材料的集群機台」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-10-tech-amat",
       "lam": "謝謝留言！「蝕刻機：怎麼把多的刻掉，又直又深」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-11-tech-lam",
       "tel": "謝謝留言！「東京威力科創：塗光阻、長薄膜的日本設備商」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-12-tech-tel",
-      "kla": "謝謝留言！「科磊：每一步做對了沒有，誰來檢查」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-13-tech-kla"
+      "kla": "謝謝留言！「科磊：每一步做對了沒有，誰來檢查」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-13-tech-kla",
+      "gas": "謝謝留言！「特用氣體：一瓶氣怎麼安全送進晶圓廠」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-17-tech-gas",
+      "pad": "謝謝留言！「研磨墊：誰來把晶圓真正磨平」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-19-tech-pad",
+      "utility": "謝謝留言！「水、氣、電：晶圓廠背後的廠務」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-22-tech-utility",
+      "probe1": "謝謝留言！「探針卡：哪顆晶片是好的，怎麼知道」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-23-tech-probe1",
+      "dicing": "謝謝留言！「晶圓切割與薄化：一片晶圓怎麼切成一顆顆」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-25-tech-dicing"
     },
     "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
@@ -284,6 +301,21 @@
       ],
       "kla": [
         "已經將「科磊：每一步做對了沒有，誰來檢查」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-13-tech-kla"
+      ],
+      "gas": [
+        "已經將「特用氣體：一瓶氣怎麼安全送進晶圓廠」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-17-tech-gas"
+      ],
+      "pad": [
+        "已經將「研磨墊：誰來把晶圓真正磨平」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-19-tech-pad"
+      ],
+      "utility": [
+        "已經將「水、氣、電：晶圓廠背後的廠務」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-22-tech-utility"
+      ],
+      "probe1": [
+        "已經將「探針卡：哪顆晶片是好的，怎麼知道」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-23-tech-probe1"
+      ],
+      "dicing": [
+        "已經將「晶圓切割與薄化：一片晶圓怎麼切成一顆顆」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-25-tech-dicing"
       ]
     }
   }
