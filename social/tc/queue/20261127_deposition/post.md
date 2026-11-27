@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-27T18:00+08:00
 weekday: 五
 platforms: ig, threads
@@ -9,6 +9,18 @@ video: tech-deposition.mp4
 images: cover.jpg
 title: 科技透明圈影片：薄膜沉積，一層幾個原子厚的膜怎麼長上去（tech-deposition v3）
 hook_type: 反差（#2）
+urls_ig: https://www.instagram.com/reel/DgPbNeABDGl/
+ids_ig: 17929207803200402
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DgPbVEpPX4-
+ids_threads: 18131730703883040
+ids_threads_reply: 18132079264855895
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgPbc2rkfkk
+done: ig, threads
+urls: https://www.instagram.com/reel/DgPbNeABDGl/ https://www.threads.com/@tech_01010909/post/DgPbVEpPX4- https://www.threads.com/@tech_01010909/post/DgPbc2rkfkk
+posted_at: 2026-11-27T18:05+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「薄膜沉積：一層幾個原子厚的膜怎麼長上去」
 

@@ -186,7 +186,9 @@
       "verified_threads": "VIDEO",
       "ids_ig": "18184625674437454",
       "ids_threads": "18000140787019663",
-      "last_posted_at": "2026-11-25T18:04:31+08:00"
+      "last_posted_at": "2026-11-27T18:08:01+08:00",
+      "fb": "https://www.facebook.com/reel/1518619376809232/",
+      "ids_fb": "1518619376809232"
     },
     {
       "id": "20261126_etch",
@@ -199,6 +201,18 @@
       "ids_ig": "18170618164468438",
       "ids_threads": "17983235361173390",
       "last_posted_at": "2026-11-26T20:04:33+08:00"
+    },
+    {
+      "id": "20261127_deposition",
+      "first_posted_at": "2026-11-27T18:05:34+08:00",
+      "ig": "https://www.instagram.com/reel/DgPbNeABDGl/",
+      "threads": "https://www.threads.com/@tech_01010909/post/DgPbVEpPX4-",
+      "threads_reply": "https://www.threads.com/@tech_01010909/post/DgPbc2rkfkk",
+      "verified_ig": "VIDEO",
+      "verified_threads": "VIDEO",
+      "ids_ig": "17929207803200402",
+      "ids_threads": "18131730703883040",
+      "last_posted_at": "2026-11-27T18:05:34+08:00"
     }
   ]
 }

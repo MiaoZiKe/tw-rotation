@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgKRhpvBioN/ https://www.threads.com/@tech_01010909/post/DgKRpxJJttY https://www.threads.com/@tech_01010909/post/DgKRw3DoHqb
 posted_at: 2026-11-25T18:04+08:00
 error: 
+ids_fb: 1518619376809232
+urls_fb: https://www.facebook.com/reel/1518619376809232/
+fb_posted_at: 2026-11-27T18:08+08:00
+fb_error: 
+fb_slot: 2026-11-27T18:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「一片晶圓要經過哪些流程」
 
