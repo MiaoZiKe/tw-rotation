@@ -48,7 +48,7 @@ jobs:
           F="${{ steps.req.outputs.folders }}"; B="${{ steps.req.outputs.branch }}"
           if [ -z "$F" ]; then
             R=$Q/_sfx_request.txt
-            L=$(sed -n 1p $R); case "$L" in branch=*) B="${L#branch=}"; sed -i 1d $R;; esac
+            L=$(grep -m1 -E '^\s*branch=' $R || true); [ -z "$L" ] || { B=$(echo "${L#*branch=}" | tr -d '[:space:]'); sed -i -E '/^\s*branch=/d' $R; }
             F=$(grep -vE '^\s*(#|$)' $R | tr '\n' ' ')
           fi
           [ -n "$F" ] || { echo "沒有資料夾"; exit 1; }
