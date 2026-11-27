@@ -22,12 +22,39 @@
    "dur": 0.4
   },
   {
-   "t": 7.52,
-   "kind": "paperslide",
-   "gain": -2,
+   "t": 7.77,
+   "kind": "thump",
+   "gain": 0,
    "pan": 0.5,
    "params": {},
-   "src": "s2 gavel_mw：主體入場"
+   "src": "s2 gavel_mw：議事槌敲下"
+  },
+  {
+   "t": 10.72,
+   "kind": "pageturn",
+   "gain": -6,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 gavel_mw：日曆翻到 10/1",
+   "dur": 0.15
+  },
+  {
+   "t": 11.76,
+   "kind": "stamp",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 gavel_mw：核定章蓋下"
+  },
+  {
+   "t": 13.76,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 2
+   },
+   "src": "s2 gavel_mw：金幣落上桌面"
   },
   {
    "t": 15.98,
