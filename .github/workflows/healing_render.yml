@@ -6,7 +6,11 @@ name: healing_render
 # 輸入 folder 可逗號分隔多個（例：20261128v_avgwage,20261129v_quit），每個資料夾一台機器同時跑。
 # 成品（video.mp4、cover.jpg、frames_1s.png、各檢查 json）commit 回輸入的 branch；不讀任何 secret、不動 main（除非 branch 填 main）。
 # Gemini 聽感驗證、audio-check、art-director／animation-director 打分不在這裡跑，由頻道 CEO 另做。
+# workflow_dispatch 只有 workflow 檔在預設分支（main）才叫得動；檔案還只在作業分支時，改推 queue/_render_request.txt（第一行＝逗號分隔的資料夾名）觸發 push 事件，效果相同。
 on:
+  push:
+    branches: ["healing/**"]
+    paths: ["docs/marketing/channels/healing/queue/_render_request.txt"]
   workflow_dispatch:
     inputs:
       folder:
@@ -21,7 +25,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: healing-render-${{ inputs.branch }}
+  group: healing-render-${{ inputs.branch || github.ref_name }}
   cancel-in-progress: false
 jobs:
   plan:
@@ -30,10 +34,16 @@ jobs:
     outputs:
       matrix: ${{ steps.m.outputs.matrix }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: docs/marketing/channels/healing/queue/_render_request.txt
+          sparse-checkout-cone-mode: false
       - id: m
         env:
           FOLDERS: ${{ inputs.folder }}
         run: |
+          if [ -z "$FOLDERS" ]; then FOLDERS=$(head -1 "$GITHUB_WORKSPACE/docs/marketing/channels/healing/queue/_render_request.txt" | tr -d '\r'); fi
+          export FOLDERS
           python3 - <<'PY'
           import os, json, re
           fs = [x.strip() for x in os.environ["FOLDERS"].split(",") if x.strip()]
@@ -48,13 +58,13 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
-      BR: ${{ inputs.branch }}
+      BR: ${{ inputs.branch || github.ref_name }}
       F: ${{ matrix.folder }}
       CH: docs/marketing/channels/healing
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.branch || github.ref_name }}
           sparse-checkout: |
             docs/marketing/channels/healing
       - uses: actions/setup-node@v4
