@@ -1,2 +1,2 @@
 20261203v_minwage
-jobs=8 chunk=60 writeback=1
+chunk=60 jobs=8 writeback=1
