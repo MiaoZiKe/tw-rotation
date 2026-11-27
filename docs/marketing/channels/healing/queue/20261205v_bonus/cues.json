@@ -39,7 +39,29 @@
    "class": "impact"
   },
   {
-   "t": 29.3,
+   "t": 25.02,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s5 taxreturn：5% 硬幣落上報稅單",
+   "class": "impact"
+  },
+  {
+   "t": 26.04,
+   "kind": "coin",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s5 taxreturn：退款硬幣落回年終袋",
+   "class": "impact"
+  },
+  {
+   "t": 29.43,
    "kind": "stamp",
    "gain": -4,
    "pan": 0.5,
@@ -57,7 +79,7 @@
    "class": "impact"
   },
   {
-   "t": 42.28,
+   "t": 42.46,
    "kind": "stamp",
    "gain": -4,
    "pan": 0.5,
