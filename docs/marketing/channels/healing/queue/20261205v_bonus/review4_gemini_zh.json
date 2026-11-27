@@ -1,0 +1,149 @@
+{
+ "transcript": "年終一點六個月入帳前會先扣稅嗎？月薪四萬其實一毛都不會先扣。一零四人力銀行調查，企業年終預估平均一點六個月。月薪四萬換算是六萬四千四。財政部規定，年終獎金一次發到九萬零五百零一元才先扣百分之五。但是月薪超過大約五萬六，一點六個月就會跨過這條線，整筆先扣百分之五。其實這是預扣不是多繳，隔年報稅併入所得，多退少補。要注意一點六一是企業預估平均，明年發的年終起扣標準看明年公告。所以答案是，月薪四萬年終多半全額入帳。你的年終比一點六個月多還是少？年終到手物價還在漲，下一集十一月物價薪水追得上嗎？",
+ "errors": [
+  {
+   "time_sec": 0.1,
+   "char": "終",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 1.5,
+   "char": "帳",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 2.8,
+   "char": "稅",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 4.5,
+   "char": "實",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 7.8,
+   "char": "查",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 11.5,
+   "char": "是",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 13.2,
+   "char": "政",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 14.1,
+   "char": "獎",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 17.5,
+   "char": "之",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 19.2,
+   "char": "超",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 21.3,
+   "char": "這",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 22.1,
+   "char": "整",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 24.2,
+   "char": "這",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 24.5,
+   "char": "是",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 26.1,
+   "char": "稅",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 28.5,
+   "char": "注",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 31.8,
+   "char": "準",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 34.5,
+   "char": "是",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 37.5,
+   "char": "帳",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 42.8,
+   "char": "漲",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 45.2,
+   "char": "追",
+   "expected": "捲舌",
+   "heard": "平舌"
+  },
+  {
+   "time_sec": 45.8,
+   "char": "上",
+   "expected": "捲舌",
+   "heard": "平舌"
+  }
+ ],
+ "rushed": [
+  {
+   "time_sec": 13.0,
+   "detail": "財政部規定至百分之五，語速較快且句間停頓不明顯。"
+  },
+  {
+   "time_sec": 28.0,
+   "detail": "要注意一點六一至明年公告，資訊量大且語氣較趕。"
+  }
+ ],
+ "zh_ch_sh_count_checked": 48,
+ "overall": "語速偏快，具有明顯的台灣國語特徵，捲舌音幾乎全部平舌化，但整體語意清晰。"
+}
