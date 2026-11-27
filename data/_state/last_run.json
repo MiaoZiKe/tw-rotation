@@ -150,11 +150,11 @@
       ]
     },
     "margin_total": {
-      "stored": 0
+      "stored": 1
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 8
+      "rows": 9
     },
     "fut_inst": {
       "stored": 0
@@ -176,89 +176,37 @@
       "seconds": 0.2
     },
     "inst_daily": {
-      "stored": 5
+      "stored": 0
     },
     "institutional_codes": {
-      "requested": 14,
-      "returned": 5
+      "requested": 9,
+      "returned": 0
     },
     "finmind.institutional": {
-      "ok": true,
-      "rows": 5,
-      "seconds": 3.4
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.9
     },
     "inst_flags": {
-      "rebuild": true,
+      "rebuild": false,
       "post": true
     },
     "build_payload": {
       "ok": true,
-      "deferred": true
+      "skipped": "沒有新增今天的法人"
     }
   },
   "errors": [],
-  "empty": [],
+  "empty": [
+    "finmind.institutional"
+  ],
   "gaps": [],
   "rebuilt": [],
   "phase": "inst",
-  "freshness": {
-    "trade_date": "2026-11-27",
-    "tables": {
-      "inst_daily": {
-        "label": "個股三大法人",
-        "latest": "2026-11-27",
-        "rows": 2204,
-        "median": 2228.5,
-        "status": "ok",
-        "reason": null
-      },
-      "inst_market_daily": {
-        "label": "全市場三大法人金額",
-        "latest": "2026-11-27",
-        "rows": 1,
-        "median": 1.0,
-        "status": "ok",
-        "reason": null
-      },
-      "margin_total": {
-        "label": "整體融資融券",
-        "latest": "2026-11-26",
-        "rows": 0,
-        "median": 1.0,
-        "status": "warn",
-        "reason": "behind"
-      },
-      "fut_inst": {
-        "label": "期貨三大法人",
-        "latest": "2026-11-27",
-        "rows": 9,
-        "median": 9.0,
-        "status": "ok",
-        "reason": null
-      },
-      "fut_oi": {
-        "label": "期貨全市場未平倉",
-        "latest": "2026-11-27",
-        "rows": 3,
-        "median": 3.0,
-        "status": "ok",
-        "reason": null
-      }
-    },
-    "warn": [
-      "margin_total"
-    ],
-    "warn_labels": [
-      "整體融資融券"
-    ]
-  },
-  "warn": [
-    "margin_total"
-  ],
-  "started_at": "2026-11-27T12:20:30.195440+00:00",
-  "finished_at": "2026-11-27T12:20:57.813282+00:00",
-  "duration_seconds": 27.6,
+  "started_at": "2026-11-27T12:52:16.846138+00:00",
+  "finished_at": "2026-11-27T12:52:31.451492+00:00",
+  "duration_seconds": 14.6,
   "trade_date": "2026-11-27",
   "complete": true,
-  "finmind_budget_left": 489
+  "finmind_budget_left": 494
 }
