@@ -1,0 +1,146 @@
+{
+ "sfx_interfere": [],
+ "cue_check": [
+  {
+   "time_sec": 0.3,
+   "listed_action": "手機震兩下",
+   "seen_on_screen": "手機震動動畫",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 1.01,
+   "listed_action": "入帳通知",
+   "seen_on_screen": "手機跳出通知",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 6.21,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 6.43,
+   "listed_action": "收據一格格吐出",
+   "seen_on_screen": "薪資單動畫",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 7.41,
+   "listed_action": "切紙刀落下",
+   "seen_on_screen": "薪資單切斷",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 13.25,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 13.46,
+   "listed_action": "辦公椅滑進",
+   "seen_on_screen": "辦公椅圖示滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 14.51,
+   "listed_action": "便利貼貼上",
+   "seen_on_screen": "便利貼圖示出現",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 17.43,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 17.75,
+   "listed_action": "主體入場",
+   "seen_on_screen": "圖表主體滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 26.3,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 26.52,
+   "listed_action": "樓層數字跳動",
+   "seen_on_screen": "數字跳動動畫",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 30.63,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 30.95,
+   "listed_action": "液面升起",
+   "seen_on_screen": "量杯液面上升",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 34.54,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 34.96,
+   "listed_action": "信封紙鈔探出",
+   "seen_on_screen": "紙鈔從信封探出",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 35.82,
+   "listed_action": "硬幣倒下",
+   "seen_on_screen": "硬幣出現",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 41.4,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 41.72,
+   "listed_action": "步道牌彈起",
+   "seen_on_screen": "下一集標牌彈出",
+   "match": "對",
+   "detail": ""
+  }
+ ],
+ "missing_or_extra": [],
+ "head2s_transcript": "平均月薪四萬八千多",
+ "head2s_extra_voice": false,
+ "retroflex_errors": [],
+ "outro": "片尾品牌音效音量適中，與整體風格一致。",
+ "sfx_score": 10,
+ "voice_score": 10,
+ "overall": "音效與畫面動作配合極佳，轉場與細節音效（如收據、硬幣）增強了資訊傳達感。旁白清晰，語速適中，整體製作水準高。"
+}
