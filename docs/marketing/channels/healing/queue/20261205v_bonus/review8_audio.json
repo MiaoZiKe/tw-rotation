@@ -1,0 +1,81 @@
+{
+ "whisper_head_0_1.5s": {
+  "small": [
+   "年中1.61個",
+   "年中1.61個。",
+   "年中1.61個"
+  ],
+  "medium": [
+   "年终1.61个月",
+   "年中1.61個月。",
+   "年終1.61個月"
+  ]
+ },
+ "gemini": {
+  "listen1": {
+   "issues": [],
+   "retroflex_ok": true,
+   "retroflex_note": "評審過程平捲舌音發音清晰標準，無明顯偏誤。",
+   "sfx_heard": [
+    {
+     "time_sec": 48.5,
+     "desc": "片尾招牌音效"
+    }
+   ],
+   "first_15s_choppy": false,
+   "overall_score": 10,
+   "summary": "語速控制在每秒約 4.6 至 5.5 字之間，符合深度報導記者之專業語調，數字發音清晰肯定，轉折處掌握適當，無漏字、多字、念錯字或音效蓋過人聲之情形。"
+  },
+  "listen2": {
+   "issues": [],
+   "retroflex_ok": true,
+   "retroflex_note": "平捲舌發音清晰正確，無明顯口音干擾。",
+   "sfx_heard": [
+    {
+     "time_sec": 48.5,
+     "desc": "片尾招牌音效"
+    }
+   ],
+   "first_15s_choppy": false,
+   "overall_score": 10,
+   "summary": "語速穩定，咬字清晰，數字與金額表達清楚，情感與語調符合深度報導之要求，無任何口誤或技術瑕疵。"
+  },
+  "head1": {
+   "transcript": "年中1.6一個",
+   "unclear": [],
+   "clarity_1to10": 10
+  },
+  "head2": {
+   "transcript": "年中1.6一個",
+   "unclear": [],
+   "clarity_1to10": 10
+  },
+  "head3": {
+   "transcript": "年中1.6一個",
+   "unclear": [],
+   "clarity_1to10": 10
+  },
+  "model": "gemini-3.5-flash-lite（temperature 1.0；head 為無引導逐字聽寫）"
+ },
+ "f0_head_liu_hz": {
+  "span": "1.06-1.34 秒（Whisper 字界 1.14-1.34）",
+  "track": "163→200（1.06～1.13，點的低調尾＋ㄌ過渡）→ 200～208 持平（1.13～1.28）→ 219（1.29～1.33，能量掉 6～10 dB 的字尾）",
+  "old_round7": "190→235 連續上揚 3.6 半音"
+ },
+ "sfx_check": "最差窗 15.1 dB @30.16 秒，<14 的窗 0，偏移 0",
+ "verify4_rerun": {
+  "pass_auto": true,
+  "n_inner": 0,
+  "head_heard": "年中1.6一个",
+  "asr_ratio": 0.836
+ },
+ "smooth": {
+  "frames": 1645,
+  "pts_back": 0,
+  "gap": 0,
+  "stall": 0,
+  "reverse": 0,
+  "seam_bad": 0,
+  "pass": true
+ }
+}

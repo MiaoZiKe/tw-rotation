@@ -1,0 +1,132 @@
+{
+ "total": 54.848,
+ "endCardSec": 48.65,
+ "cues": [
+  {
+   "t": 0.01,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s1 bonusenv：主體入場"
+  },
+  {
+   "t": 6.15,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s2 cabinet：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 6.28,
+   "kind": "paperslide",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 cabinet：抽屜拉出"
+  },
+  {
+   "t": 13.38,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s3 notice：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 13.7,
+   "kind": "stamp",
+   "gain": -3,
+   "pan": 0.5,
+   "params": {},
+   "src": "s3 notice：圖釘釘上",
+   "class": "impact"
+  },
+  {
+   "t": 18.77,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 taxline：主體入場"
+  },
+  {
+   "t": 24.92,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s5 taxreturn：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 25.66,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s5 taxreturn：5% 硬幣落上報稅單",
+   "class": "impact"
+  },
+  {
+   "t": 26.68,
+   "kind": "coin",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s5 taxreturn：退款硬幣落回年終袋",
+   "class": "impact"
+  },
+  {
+   "t": 30.05,
+   "kind": "stamp",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {},
+   "src": "s6 signpost：路牌彈起",
+   "class": "impact"
+  },
+  {
+   "t": 35.8,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s7 phonebank：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 36.52,
+   "kind": "cashier",
+   "gain": -3,
+   "pan": 0.5,
+   "params": {},
+   "src": "s7 phonebank：入帳通知",
+   "class": "impact"
+  },
+  {
+   "t": 43.75,
+   "kind": "stamp",
+   "gain": -1.0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s8 trail：步道牌彈起",
+   "class": "impact"
+  }
+ ]
+}

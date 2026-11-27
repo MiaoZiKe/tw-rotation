@@ -1,0 +1,14 @@
+{
+ "title": "年終1.61個月，入帳前會先扣稅嗎？月薪多少才會被扣（影片 v9，有旁白）",
+ "hook_type": "問題式",
+ "format": "video",
+ "platforms": [
+  "ig",
+  "threads"
+ ],
+ "status": "approved",
+ "await_andy": false,
+ "publish_at": "2026-12-05T20:27+08:00",
+ "note": "2026-11-27 總編輯（Andy 11-27 親自核准 12/3、12/5 影片排程）。有配音影片，先給 Andy 看，他說 OK 才改 approved（第 19 條）；不自編留言關鍵字（第 28 條）。渲染在 GitHub Actions（healing_render），渲完要跑四道驗證＋審片打分，結果寫 video_review.md。｜2026-11-27 Andy 看第 8 輪成片回覆「可以，照發」，核准發布；新④排入 main 發文佇列。發前照規則 30 重跑四道驗證。",
+ "andy_ok": "2026-11-27 Andy：可以，照發"
+}
