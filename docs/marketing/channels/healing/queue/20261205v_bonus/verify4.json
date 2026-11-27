@@ -184,21 +184,20 @@
    "first_char_index": 0
   }
  ],
+ "frames": 55,
  "smooth": {
   "fps": 30.0,
-  "frames": 1601,
-  "expect": 1601,
+  "frames": 1645,
+  "expect": 1645,
   "pts_back": 0,
   "pts_gap": 0,
-  "dup_ratio": 0.421,
+  "dup_ratio": 0.429,
   "stall": 0,
   "stall_t": [],
-  "reverse": 1,
-  "reverse_t": [
-   49.37
-  ],
-  "seam_mean": 0.509,
-  "nonseam_mean": 0.481,
+  "reverse": 0,
+  "reverse_t": [],
+  "seam_mean": 0.523,
+  "nonseam_mean": 0.48,
   "seam_bad": [],
   "chunk": 60,
   "bad": [],

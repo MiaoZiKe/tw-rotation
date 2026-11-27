@@ -5,7 +5,7 @@
    [
     "static",
     "s9",
-    "靜止 1.47 秒（51.90 秒起）"
+    "靜止 1.47 秒（53.37 秒起）"
    ],
    [
     "other",
@@ -20,22 +20,27 @@
    [
     "other",
     "s2",
-    "overlap：6.267s title×tag（逐幀）"
+    "overlap：6.333s title×tag（逐幀）"
    ],
    [
     "other",
     "s4",
-    "overlap：18.667s title×tag（逐幀）"
+    "overlap：18.867s title×tag（逐幀）"
    ],
    [
     "other",
-    "s6",
-    "overlap：29.267s title×tag（逐幀）"
+    "s5",
+    "overlap：25.067s title×tag（逐幀）"
+   ],
+   [
+    "other",
+    "s7",
+    "overlap：36.133s title×tag（逐幀）"
    ],
    [
     "other",
     "s8",
-    "overlap：42.267s title×tag（逐幀）"
+    "overlap：43.533s title×tag（逐幀）"
    ],
    [
     "other",
@@ -110,11 +115,6 @@
    [
     "other",
     "s3",
-    "edge：13.5s 小字 26.0px「資料：財政部稅務」"
-   ],
-   [
-    "other",
-    "s3",
     "edge：14.0s 小字 26.0px「資料：財政部稅務」"
    ],
    [
@@ -156,6 +156,11 @@
     "other",
     "s3",
     "edge：18.0s 小字 26.0px「資料：財政部稅務」"
+   ],
+   [
+    "other",
+    "s3",
+    "edge：18.5s 小字 26.0px「資料：財政部稅務」"
    ],
    [
     "other",
@@ -324,18 +329,18 @@
    ],
    [
     "other",
-    "s5",
-    "edge：24.5s 小字 22.0px「今年」"
+    "s4",
+    "edge：24.5s 小字 28.0px「月薪 4 萬」"
    ],
    [
     "other",
-    "s5",
-    "edge：25.0s 小字 22.0px「今年」"
+    "s4",
+    "edge：24.5s 小字 28.0px「月薪 5.6 萬」"
    ],
    [
     "other",
-    "s5",
-    "edge：25.0s 小字 28.0px「5%」"
+    "s4",
+    "edge：24.5s 小字 26.0px「資料：財政部 1」"
    ],
    [
     "other",
@@ -345,17 +350,22 @@
    [
     "other",
     "s5",
-    "edge：26.0s 小字 22.0px「隔年」"
+    "edge：25.5s 小字 28.0px「5%」"
    ],
    [
     "other",
     "s5",
-    "edge：26.0s 小字 24.0px「退」"
+    "edge：26.0s 小字 22.0px「今年」"
    ],
    [
     "other",
     "s5",
     "edge：26.5s 小字 22.0px「隔年」"
+   ],
+   [
+    "other",
+    "s5",
+    "edge：26.5s 小字 24.0px「退」"
    ],
    [
     "other",
@@ -384,8 +394,8 @@
    ],
    [
     "other",
-    "s6",
-    "edge：29.5s 小字 26.0px「資料：104 年」"
+    "s5",
+    "edge：29.5s 小字 22.0px「隔年」"
    ],
    [
     "other",
@@ -436,18 +446,36 @@
     "other",
     "s6",
     "edge：34.5s 小字 26.0px「資料：104 年」"
+   ],
+   [
+    "other",
+    "s6",
+    "edge：35.0s 小字 26.0px「資料：104 年」"
+   ],
+   [
+    "other",
+    "s6",
+    "edge：35.5s 小字 26.0px「資料：104 年」"
+   ],
+   [
+    "cap",
+    "s7",
+    "36.0s cap 下緣 1700>1700"
    ]
   ],
-  "fixed": [],
+  "fixed": [
+   "s7 capDy 18→8（36.0s cap 下緣 1700>1700）"
+  ],
   "manual": [
-   "s9 靜止 1.47 秒（51.90 秒起）",
+   "s9 靜止 1.47 秒（53.37 秒起）",
    "s1 overlap：0.533s ul×tag（逐幀）",
-   "s2 overlap：6.267s title×tag（逐幀）",
-   "s4 overlap：18.667s title×tag（逐幀）",
-   "s6 overlap：29.267s title×tag（逐幀）",
-   "s8 overlap：42.267s title×tag（逐幀）",
-   "s3 edge：13.5s 小字 26.0px「資料：財政部稅務」",
-   "s5 edge：24.5s 小字 22.0px「今年」"
+   "s2 overlap：6.333s title×tag（逐幀）",
+   "s4 overlap：18.867s title×tag（逐幀）",
+   "s5 overlap：25.067s title×tag（逐幀）",
+   "s7 overlap：36.133s title×tag（逐幀）",
+   "s8 overlap：43.533s title×tag（逐幀）",
+   "s3 edge：14.0s 小字 26.0px「資料：財政部稅務」",
+   "s6 edge：30.0s 小字 26.0px「資料：104 年」"
   ]
  }
 ]
