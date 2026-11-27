@@ -1,0 +1,108 @@
+name: healing_render
+# 頻道④「談晴說礙」有旁白影片：渲染＋合成＋檢查（不含 TTS）。
+# 2026-11-25 Andy：渲染這類重運算一律丟 GitHub Actions 多台分段跑，不在 Claude 雲端容器裡跑。
+# 2026-11-27 起：TTS／ASR／剪輯（narration.wav、segments.json 已在分支）在容器做完，這裡只跑
+#   bash v9/make_video.sh queue/<名> --render-only（autofix 渲染最多 3 輪＋check_v8＋final_check＋video_sheet＋verify4 抽格／停頓圖／ASR）。
+# 輸入 folder 可逗號分隔多個（例：20261128v_avgwage,20261129v_quit），每個資料夾一台機器同時跑。
+# 成品（video.mp4、cover.jpg、frames_1s.png、各檢查 json）commit 回輸入的 branch；不讀任何 secret、不動 main（除非 branch 填 main）。
+# Gemini 聽感驗證、audio-check、art-director／animation-director 打分不在這裡跑，由頻道 CEO 另做。
+on:
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: "queue 資料夾名，逗號分隔多個（例：20261128v_avgwage,20261129v_quit）"
+        type: string
+        required: true
+      branch:
+        description: "要讀取並把成品推回去的分支"
+        type: string
+        required: true
+        default: "healing/video-1128-1129"
+permissions:
+  contents: write
+concurrency:
+  group: healing-render-${{ inputs.branch }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        env:
+          FOLDERS: ${{ inputs.folder }}
+        run: |
+          python3 - <<'PY'
+          import os, json, re
+          fs = [x.strip() for x in os.environ["FOLDERS"].split(",") if x.strip()]
+          assert fs and all(re.fullmatch(r"[0-9A-Za-z_]+", x) for x in fs), "資料夾名只能有英數與底線：%r" % fs
+          open(os.environ["GITHUB_OUTPUT"], "a").write("matrix=" + json.dumps({"folder": fs}) + "\n")
+          PY
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      BR: ${{ inputs.branch }}
+      F: ${{ matrix.folder }}
+      CH: docs/marketing/channels/healing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          sparse-checkout: |
+            docs/marketing/channels/healing
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 裝 ffmpeg、中文字型
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-cjk
+          fc-list | grep -ci "Noto Sans CJK TC" || true
+      - name: 裝 Playwright（render_video.js 固定讀 /opt/node-tools）
+        run: |
+          sudo mkdir -p /opt/node-tools && sudo chown "$USER" /opt/node-tools
+          cd /opt/node-tools && npm init -y >/dev/null && npm install --silent playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: 裝 Python 套件
+        run: pip install -q numpy scipy pillow matplotlib faster-whisper
+      - name: 檢查輸入（沒有聲音與時間戳就不跑）
+        run: |
+          q="$CH/queue/$F"
+          for f in script.json narration.wav narration.wav.cut.json segments.json narration_take.asr.json; do
+            [ -f "$q/$f" ] || { echo "::error::$q/$f 不存在（要先在容器做完 TTS／剪輯並推上 $BR）"; exit 1; }
+          done
+      - name: 渲染＋合成＋檢查（不含 TTS）
+        run: |
+          cd "$CH/templates_tqsa_v3/video"
+          bash v9/make_video.sh "../../queue/$F" --render-only 2>&1 | tee "../../queue/$F/render_log.txt"
+      - name: 摘要
+        if: always()
+        run: |
+          q="$CH/queue/$F"
+          { echo "### $F"; ls -la "$q/video.mp4" "$q/cover.jpg" "$q/frames_1s.png" 2>&1 | sed 's/^/    /'
+            ffprobe -v error -show_entries format=duration -of csv=p=0 "$q/video.mp4" 2>/dev/null | sed 's/^/片長（秒）：/'
+            python3 -c "import json;d=json.load(open('$q/final_check.json'));print('final_check pass=',d.get('pass'),'sync_ok=',d.get('sync_ok'),'start_ok=',d.get('start_ok'),'caption_bad=',d.get('caption_bad'))" 2>&1
+            python3 -c "import json;d=json.load(open('$q/verify4.json'));print('verify4 auto=',d.get('pass_auto'),d.get('bad'))" 2>&1
+          } >> "$GITHUB_STEP_SUMMARY" || true
+      - name: 成品 commit 回分支
+        if: success()
+        run: |
+          git config user.name "healing-render[bot]"; git config user.email "healing-render@users.noreply.github.com"
+          git add -A "$CH/queue/$F"
+          git diff --cached --quiet && { echo "沒有變動"; exit 0; }
+          git commit -q -m "談晴說礙：$F 渲染＋合成＋檢查（healing_render，run ${GITHUB_RUN_ID}）"
+          for i in 1 2 3 4 5 6; do
+            git pull --rebase -q origin "$BR" && git push origin "HEAD:$BR" && exit 0
+            echo "push 失敗，第 $i 次重試"; sleep $((i*5))
+          done
+          echo "::error::push 回 $BR 失敗"; exit 1

@@ -6,15 +6,24 @@
 set -e
 cd "$(dirname "$0")/.."
 [ -n "$1" ] && [ -f "$1/script.json" ] || { echo "用法：bash v9/make_video.sh <佇列資料夾（要有 script.json）> [--voice]"; exit 1; }
-Q=$(cd "$1" && pwd); N=$(basename "$Q"); VOICE=0; for a in "${@:2}"; do [ "$a" = "--voice" ] && VOICE=1; done
+Q=$(cd "$1" && pwd); N=$(basename "$Q"); VOICE=0; RONLY=0; for a in "${@:2}"; do [ "$a" = "--voice" ] && VOICE=1; [ "$a" = "--render-only" ] && { VOICE=1; RONLY=1; }; done
 python3 v9/build_spec.py "$Q" > /dev/null || { echo "script.json 轉規格失敗"; exit 1; }
 python3 v9/gen_v9.py "$Q" --nv > /dev/null          # 重寫 narration.txt、順便確認整條路徑能產 html
-if [ $VOICE = 1 ]; then
+if [ $RONLY = 1 ]; then
+  # 2026-11-27：--render-only＝只做「渲染＋合成＋檢查」，不送 TTS、不重剪（要先有 narration.wav、segments.json）。給 .github/workflows/healing_render.yml 在 Actions 跑（渲染不在 Claude 容器跑，2026-11-25 Andy）
+  [ -f "$Q/narration.wav" ] && [ -f "$Q/segments.json" ] || { echo "--render-only 需要 narration.wav 與 segments.json"; exit 1; }
+  python3 v9/autofix.py "$Q" --voice || echo "（autofix 後仍有要人看的項目，見上方與 $Q/autofix_log.json）"
+  python3 v8/make_sheet.py "$Q/video.mp4" "$Q/overlap_report_video.json" "$Q/video_sheet.png"
+  python3 v9/verify4.py "$Q" || echo "（verify4 有要人看的項目，見 $Q/verify4.json）"
+  ls -la "$Q/video.mp4" "$Q/cover.jpg" "$Q/video_sheet.png" "$Q/frames_1s.png"
+elif [ $VOICE = 1 ]; then
   python3 v9/check_narration.py "$Q" || { echo "念稿檢查沒過，不送 TTS。改 script.json 的 say 再跑。"; exit 1; }
   [ -f "$Q/narration_take.wav" ] || python3 tts/tts_take.py "$Q" "$Q/narration_take.wav"
   [ -f "$Q/narration_take.asr.json" ] || python3 tts/asr.py "$Q/narration_take.wav" "$Q/narration_take.asr.json"
   [ -f "$Q/cut_env.sh" ] && . "$Q/cut_env.sh"   # 每篇的 TRIM／CUTS／BOUNDS 等重切參數（2026-11-17）
-  PRE_LAST=${PRE_LAST:-2.3} python3 tts/cut_take_v8.py "$Q/narration_take.wav" "$Q/narration_take.asr.json" "$Q" "$Q/narration.wav" 1.0 0.60 0.45 0.80
+  # 2026-11-22 聲音先定（healing-editor 規則 33）：cut_take_v8 只用來找每鏡在原始錄音的位置；成品＝原始錄音連續一段（只裁頭尾＋淡入）
+  INNER_MAX=9 SENT_MAX=9 COMMA_MAX=9 PRE_LAST=0 python3 tts/cut_take_v8.py "$Q/narration_take.wav" "$Q/narration_take.asr.json" "$Q" "$Q/_locate.wav" 1.0
+  python3 tts/raw_keep.py "$Q/narration_take.wav" "$Q/_locate.wav.cut.json" "$Q/narration.wav" && rm -f "$Q/_locate.wav" "$Q/_locate.wav.cut.json"
   python3 tts/make_segments.py "$Q" narration.wav
   python3 v9/pace_check.py "$Q" | tee "$Q/pace_check.txt"   # 語速／停頓稽核，不合格標「要人看」
   python3 v9/autofix.py "$Q" --voice || echo "（autofix 後仍有要人看的項目，見上方與 $Q/autofix_log.json）"

@@ -102,6 +102,15 @@ MINI.grid100=(m,lt)=>{let g='';const cs=19,gp=2,x0=4,y0=10;   // 方陣約 210px
 MINI.pair=(m,lt)=>{let g=T(0,40,m.label,38,700,TXT,'start');m.items.forEach((it,i)=>{const cx=220+i*440,p=SPR(lt-.1-i*.2,.5,14),hop=-8*DECAY(lt-1.6-i*.5,5,14);if(lt<.1+i*.2)return;
   g+=`<g transform="translate(${cx},${(150+(1-p)*30+hop).toFixed(1)})" opacity="${clamp((lt-.1-i*.2)*6)}"><circle cx="-120" cy="-38" r="22" fill="${it.hi?LAMP:'#B98A6A'}"/><path d="M-150 30 q0 -46 30 -46 q30 0 30 46Z" fill="${it.hi?LAMP:'#B98A6A'}"/>${T(-70,-6,it.lab,34,700,TXT,'start')}${T(-70,48,it.txt,56,700,TXT,'start')}</g>`});
  if(m.ref)g+=`<g opacity="${pr(lt,.8,.3)}">${T(888,40,m.ref,32,400,TXT,'end')}</g>`;return g};
+// ph2 示意長條：P.vals（由低到高）、P.avg（平均，同單位）、P.unit 比例尺 px、P.head、P.cnt、P.lineLab；低於平均的依序點亮、計數牌加上去
+function PH2BARS(P,t){const n=P.vals.length,bw=P.bw||56,gp=P.gp||28,x0=444-(n*bw+(n-1)*gp)/2,base=P.base||458,u=P.unit||34,ya=base-P.avg*u;let g='';
+ g+=T(x0,48,P.head,30,400,SUBC,'start');const below=P.vals.filter(v=>v<P.avg).length;
+ P.vals.forEach((v,i)=>{const p=pr(t,.05+i*.07,.4,BACK),hh=v*u*Math.min(1.03,p),on=v<P.avg&&t>=1.25+i*.12;
+  g+=`<rect x="${x0+i*(bw+gp)}" y="${(base-hh).toFixed(1)}" width="${bw}" height="${Math.max(0,hh).toFixed(1)}" rx="10" fill="${on?LAMP:'#B98A6A'}" ${v<P.avg?'':'opacity=".55"'}/>`});
+ const lp=pr(t,.8,.45);g+=`<line x1="${x0-10}" y1="${ya.toFixed(1)}" x2="${x0+n*(bw+gp)-gp+10}" y2="${ya.toFixed(1)}" stroke="${HINT}" stroke-width="5" stroke-dasharray="14 10" ${draw(lp)}/>`;
+ g+=`<g opacity="${pr(t,1.0,.3)}">${T(x0,ya-16,P.lineLab,30,700,HINT,'start')}</g>`;
+ const lit=P.vals.reduce((a,v,i)=>a+(v<P.avg&&t>=1.25+i*.12?1:0),0);g+=`<g opacity="${pr(t,1.2,.25)}">${T(888-x0,48,lit+' / '+n+' '+P.cnt,34,700,HINT,'end')}</g>`;
+ g+=`<g opacity="${pr(t,.6,.3)}">${T(x0+bw/2,base+44,P.lo||'低',30,400,SUBC)}${T(x0+(n-1)*(bw+gp)+bw/2,base+44,P.hi||'高',30,400,SUBC)}</g>`;return g}
 const SCV={
  hook(s,lt,d){let h=title(s.title,lt,{full:true});const u=pr(lt,.45,.4);
   h+=`<svg data-o="ul" class="abs" style="left:96px;top:398px" width="${s.ulw+10}" height="22"><path d="M4 12 C ${s.ulw*.25} 4, ${s.ulw*.55} 18, ${s.ulw} 8" stroke="${LAMP}" stroke-width="9" fill="none" stroke-linecap="round" ${draw(u)}/></svg>`;
@@ -109,7 +118,10 @@ const SCV={
   const bu=lt-.42;let bdy=bu<=0?0:bu<.08?18*Math.pow(bu/.08,2):18*(1-SPR(bu-.08,.3,22));for(let b=1.8;b<lt&&b<14;b+=2.0)bdy+=10*Math.abs(DECAY(lt-b,5,13));   // v8.1：鉤子大字下壓 18px 回彈；1.8、3.8…秒再輕跳一次
   h+=`<div data-o="big" class="abs bignum" style="top:${(492+bdy).toFixed(1)}px">${esc(s.big)}</div>`;   // v8.1：下壓 18px 不碰資料圖（上緣 734），回彈不碰標籤（下緣 482）
   h+=box('chart',734,232,MINI[s.mini.type](s.mini,lt),lt,d,{});
-  h+=ILLbox(s,lt,d,978,528);return h},
+  if(s.ph2){const P=s.ph2,k1=pr(lt,P.at,.25),k2=pr(lt,P.at+.25,.35),f=ILL[s.ill];   // 2026-11-22 美編：開頭兩句版面一樣 → 第二句插圖面板淡出換成示意長條（先淡出再淡入，兩邊文字不同時可見）
+   let inner=`<rect x="0" y="0" width="888" height="528" rx="26" fill="${FACE}"/>`;if(k1<1&&f)inner+=`<g opacity="${(1-k1).toFixed(3)}">${f.draw(lt,528,s)}</g>`;
+   if(k2>0)inner+=`<g opacity="${k2.toFixed(3)}">${PH2BARS(P,lt-P.at-.25)}</g>`;h+=box('illus',978,528,inner,lt,d,{})}
+  else h+=ILLbox(s,lt,d,978,528);return h},
  stack(s,lt,d){let h=head(s,lt)+ILLbox(s,lt,d);const c=s.stack,W=808,x0=40,tot=c.segs.reduce((a,b)=>a+b.v,0),y=170;let g=T(x0,70,c.label,40,700,TXT,'start'),x=x0;
   c.segs.forEach((sg,i)=>{const p=pr(lt,.1+i*.45,.5,BACK),w=W*sg.v/tot,ww=w*Math.min(1.02,p);
    g+=`<rect x="${x}" y="${y}" width="${Math.max(0,ww).toFixed(1)}" height="120" rx="${i?0:16}" fill="${sg.hi?LAMP:'#B98A6A'}" ${sg.dash?'opacity=".9"':''}/>`;
@@ -204,7 +216,13 @@ const SCV={
  hbars(s,lt,d){let h=head(s,lt)+ILLbox(s,lt,d);const c=s.hbars,x0=c.x0||260,W=c.w||560,rh=c.rh||96,gap=c.gap||40;let g=c.label?T(888,40,c.label,32,400,SUBC,'end'):'';
   c.rows.forEach((r,i)=>{const y=(c.y0||70)+i*(rh+gap),p=pr(lt,.1+i*.16,.55,BACK),w=W*(r.v/c.vmax)*Math.min(1.03,p);
    g+=T(0,y+rh/2+14,r.lab,38,r.hi?700:400,TXT,'start')+`<rect x="${x0}" y="${y}" width="${Math.max(0,w).toFixed(1)}" height="${rh}" rx="12" fill="${r.hi?LAMP:'#B98A6A'}" ${r.dash?`fill-opacity=".3" stroke="${LINE}" stroke-width="2.5" stroke-dasharray="10 8"`:''}/>`;
-   const q=pr(lt,.5+i*.16,.25);g+=`<g opacity="${q}">${T(x0+W*r.v/c.vmax+16,y+rh/2+14,r.txt,40,700,TXT,'start')}</g>`});
+   const GB=c.gapb,gk=GB&&GB.from===i?pr(lt,GB.at,.6,EO):0,lx=x0+W*(r.v+(GB&&GB.from===i?(c.rows[GB.to].v-r.v)*gk:0))/c.vmax;
+   if(gk>0){const gx=x0+W*r.v/c.vmax,gw=W*(c.rows[GB.to].v-r.v)/c.vmax*gk,pu=.22+.12*Math.sin(Math.max(0,lt-GB.at-.6)*4.2);g+=`<rect x="${gx.toFixed(1)}" y="${y}" width="${gw.toFixed(1)}" height="${rh}" rx="12" fill="${LAMP}" fill-opacity="${pu.toFixed(3)}" stroke="${LAMP}" stroke-width="3" stroke-dasharray="10 8"/>`;
+    const ty=(c.y0||70)+GB.to*(rh+gap)+rh,xt=x0+W*c.rows[GB.to].v/c.vmax;g+=`<line x1="${xt.toFixed(1)}" y1="${ty}" x2="${xt.toFixed(1)}" y2="${y}" stroke="${LAMP}" stroke-width="4" stroke-dasharray="8 8" opacity="${clamp(gk*2).toFixed(3)}"/>`}
+   const q=pr(lt,.5+i*.16,.25);g+=`<g opacity="${q}">${T(lx+16,y+rh/2+14,r.txt,40,700,TXT,'start')}</g>`});
+  if(c.gapb){const GB=c.gapb,yf=(c.y0||70)+GB.from*(rh+gap),xa=x0+W*c.rows[GB.from].v/c.vmax,xb=x0+W*c.rows[GB.to].v/c.vmax,yb=yf+rh+22,bp=pr(lt,GB.at+.55,.4);
+   if(bp>0)g+=`<path d="M${xa.toFixed(1)} ${yb-14} V${yb} H${xb.toFixed(1)} V${yb-14}" fill="none" stroke="${LAMP}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" ${draw(bp)}/>`;
+   g+=`<g opacity="${pr(lt,GB.at+.9,.3)}" transform="translate(0,${(beatHop(lt,GB.at+.9,6)).toFixed(1)})">${T(GB.tx||(xa+xb)/2,yb+52,GB.txt,36,700,HINT,GB.anchor||'middle')}</g>`}
   if(c.note)g+=`<g opacity="${pr(lt,1.0,.3)}">${T(0,(c.y0||70)+c.rows.length*(rh+gap)+30,c.note,34,400,TXT,'start')}</g>`;
   if(c.em){const e=c.em;if(e.kind==='bv')g+=bracketV(e.x,e.y0,e.y1,pr(lt,1.45,.5),e.txt,e.side||1);else g+=capsule(e.x,e.y,e.w,80,e.txt,38,SPR(lt-(e.at!=null?e.at:1.45),.45,16))}
   const hi=c.rows.findIndex(r=>r.hi);if(hi>=0){const y=(c.y0||70)+hi*(rh+gap);g+=sweepBar(x0,y,W*c.rows[hi].v/c.vmax,rh,lt,2.3)}
@@ -263,7 +281,7 @@ const SCV={
  odometer(s,lt,d){let h=head(s,lt)+ILLbox(s,lt,d);const c=s.odo,str=F1(c.v),n=str.length,cw=104,x0=444-n*cw/2;let g=T(444,60,c.lab,40,700,TXT);let di=0;
   for(let i=0;i<n;i++){const ch=str[i],x=x0+i*cw;if(ch===','){g+=T(x+cw/2,330,',',110,700,TXT);continue}
    const dig=+ch,p=clamp((lt-.15-di*.12)/(.9+di*.1)),e=1-Math.pow(1-p,3),roll=(dig+10*(2+(n-i)%3))*e,base=Math.floor(roll),fr=roll-base;di++;
-   g+=`<rect x="${x+6}" y="140" width="${cw-12}" height="250" rx="16" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/><clipPath id="od${i}"><rect x="${x+6}" y="146" width="${cw-12}" height="238" rx="12"/></clipPath><g clip-path="url(#od${i})">`+
+   g+=`<rect id="odc${s.id}_${i}" x="${x+6}" y="146" width="${cw-12}" height="238" fill="none" stroke="none"/><rect x="${x+6}" y="140" width="${cw-12}" height="250" rx="16" fill="${FACE3}" stroke="${LINE}" stroke-width="3"/><clipPath id="od${i}"><rect x="${x+6}" y="146" width="${cw-12}" height="238" rx="12"/></clipPath><g clip-path="url(#od${i})" data-cb="odc${s.id}_${i}">`+
     T(x+cw/2,330-fr*170,String(base%10),130,700,TXT)+T(x+cw/2,330+170-fr*170,String((base+1)%10),130,700,TXT)+`</g>`}
   g+=glide([[x0+6,396],[x0+n*cw-6,396]],lt,2.0,1.2);
   g+=`<g opacity="${pr(lt,1.2,.3)}">${T(444,470,c.unit,44,700,TXT)}</g>`;

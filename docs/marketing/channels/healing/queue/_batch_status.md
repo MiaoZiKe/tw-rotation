@@ -1,3 +1,16 @@
+# 談晴說礙 11/28 平均月薪、11/29 離職 影片重配＋渲染（2026-11-27 台北，影片製作棒）
+- 分支 **healing/video-1128-1129**（從 main 開，不推 main）。已合併舊存檔 wip/healing-1128-1129 的工具改動（含 main 的規則 36 平捲舌指令，並採 5.3 字／秒語速）、`raw_keep.py`、`make_video.sh --render-only`。
+- TTS：avgwage 1 次、quit 1 次（Gemini 額度各只用 1 次，沒有重送）。avgwage 「八十一」這次念對（ASR medium 聽到 48,981），整份念稿一次重配（235 字）；quit 念稿 233 字。兩支旁白＋時間戳（narration.wav、segments.json、pace_check.txt）都已定稿：avgwage 純念稿 5.31 字／秒、旁白 47.1 秒；quit 5.15 字／秒、47.3 秒。
+- 新增 `.github/workflows/healing_render.yml`（workflow_dispatch：folder 可逗號多個、branch）：每個資料夾一台機器，跑 `bash v9/make_video.sh queue/<名> --render-only`（autofix 渲染≤3 輪＋check_v8＋final_check＋video_sheet＋verify4 停頓圖／ASR／1 秒抽格），成品 commit 回該分支。
+- 狀態：**渲染已交給 Actions（run id 見本分支最新 commit 訊息或下面補記）**；容器沒有渲染。
+- 渲完還沒做的四道驗證（meta 維持 awaiting_andy＋await_andy:true）：
+  1. ③ 停頓密度＋audio-check（數位靜音／斷音／硬起音 0）：verify4.json 看停頓；audio-check.py 不在這個 repo，要用 ai-mp4 的。
+  2. ② 聽感：Gemini 聽整片（斷續／字被切）＋人工聽前 15 秒＋平捲舌（ㄓㄔㄕ vs ㄗㄘㄙ）；ASR 與念稿逐字比對。
+  3. ④ 畫面：frames_1s.png 逐格看重疊、空白 >1 秒、下半部空洞、字太小；寫「重疊檢查：程式 N 幀 0 筆；人工 M 格 0 筆」。
+  4. 審查 ≥7（art-director／animation-director 正式打分）＋ video_review.md 補起承轉合標註、「前 15 秒聽過，無斷續」。
+- 已知：換幕自然停頓很短（句間最小 0.04～0.06 秒，pace_check 標「要人看」），是規則 32「快一點」＋規則 33「不插停頓」的結果，聽感驗證時特別確認不黏口。quit 的「一一一一」念四個一（時間戳確認），字幕為「1111」。舊的 video.mp4／frames／final_check 是舊聲音的產物，渲完會被覆蓋。
+
+---
 # 談晴說礙 11/17–11/22＋工時 影片批次狀態（2026-11-16 15:2x 台北，總編輯停工交接）
 
 - 7 支無旁白版（v8.2）都過動畫導演＋美術總監複審；程式檢查全 0（重疊、出界、留白／小字、換鏡同框、面板縮放；主體靜止 ≤1.00 秒；字幕四項 0 筆）。旁白稿已依「寫稿前必做 8 條」改好，存在各資料夾 narration.txt（`python3 v8/gen_v8.py <名> --nv` 會照 v8/specs_v8.py 重寫）。
