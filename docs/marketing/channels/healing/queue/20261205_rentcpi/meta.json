@@ -1,11 +1,11 @@
 {
- "title": "房租一年漲1.70%，月薪漲2.81%（說明型 3 張，晝版）",
- "hook_type": "對比",
- "platforms": [
-  "ig",
-  "threads"
- ],
- "status": "approved",
- "publish_at": "2026-12-05T12:27+08:00",
- "note": "2026-11-27 總編輯（Andy 11-27 核准 12/1～12/7 主題清單）。版型同 11/11～12/4 已確認規格。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；審查 ai_review.md；分數 scores.md。"
+  "title": "房租一年漲1.70%，月薪漲2.81%（說明型 3 張，晝版）",
+  "hook_type": "對比",
+  "platforms": [
+    "ig",
+    "threads"
+  ],
+  "status": "draft",
+  "publish_at": "2026-12-05T12:27+08:00",
+  "note": "2026-11-27 總編輯（Andy 11-27 核准 12/1～12/7 主題清單）。版型同 11/11～12/4 已確認規格。產圖：templates_tqsa_v3/src/gen_posts.py；佐證 sources.md；審查 ai_review.md；分數 scores.md。 2026-11-27 Andy「做到周5即可」：12/5 起暫停，不排程（成品保留）"
 }
