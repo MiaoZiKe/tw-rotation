@@ -52,8 +52,10 @@ SLIDE_DUR = 0.28
 FADE_S = 0.12             # 每段持續音的淡入淡出秒數
 LEVEL_BELOW = -10.0       # 混音：sfx（動音段平均）比旁白低 dB（未壓低時）；壓低後在講話時約低 18 dB
 DUCK_DB = -8.0            # 混音：旁白講話時 sfx 再壓低
-DUCK_ATTACK_S = 0.03
-DUCK_RELEASE_S = 0.28
+DUCK_ATTACK_S = 0.04       # 壓下的時間常數（約 90 ms 到位）
+DUCK_RELEASE_S = 0.17      # 放開的時間常數（約 380 ms 回到原音量）
+DUCK_LEAD_S = 0.10         # 旁白開口前就先壓
+DUCK_GAP_FILL_S = 0.5      # 講話窗之間小於這個秒數的停頓當成句中停頓，不放開
 
 
 
@@ -253,6 +255,55 @@ def s_rain(dur=3.0, heavy=0.5):
     return norm(y) * env_fade(n, 0.4)
 
 
+
+# ---------------------------------------------------------------- 擬真模式（Andy 2026/11/27：音色偏假）
+# 只在 --style A／B／C 時開（REAL=True），預設音色不變。三招：①多層疊合（瞬間聲加低頻本體、金屬環、鬆動的碎片；持續聲加失諧雙層）
+# ②隨機微變化（每個 cue 播放速度 ±3%、音量 ±1 dB、左右 ±0.05，同一種聲音不會每次一模一樣）③輕微空間殘響（約 0.35 秒機房回音，濕度 12%）。
+REAL = False
+ROOM_RT = 0.35; ROOM_WET = 0.12; ROOM_PRE = 0.011
+
+def _resample(y, r):
+    n = int(len(y) / r); return np.interp(np.arange(n) * r, np.arange(len(y)), y)
+
+def _lay(y, z, at=0, g=1.0):
+    n = len(y); e = min(len(z), n - at)
+    if e > 0: y[at:at + e] += z[:e] * g
+    return y
+
+def realize(kind, y, g, pan):
+    y = np.asarray(y, float)
+    if kind in ('clunk', 'thump', 'slide', 'whoosh', 'valve', 'servo'):
+        y = _resample(y, rng.uniform(0.97, 1.03))
+    n = len(y); t = np.arange(n) / SR
+    if kind == 'clunk':       # 低頻本體（較長衰減）＋失諧金屬環（兩組隨機非整數倍泛音）＋極短的回彈碎片
+        f0 = rng.uniform(52, 66)
+        y = y + 0.55 * np.sin(2 * np.pi * f0 * t) * np.exp(-t / 0.22) * np.minimum(t / 0.004, 1)
+        for _ in range(3):
+            f = rng.uniform(900, 3200)
+            y += 0.14 * np.sin(2 * np.pi * f * t + rng.uniform(0, 6)) * np.exp(-t / rng.uniform(0.04, 0.11))
+        y = _lay(y, fft_filter(white(int(0.05 * SR)), 1500, 5500) * np.exp(-np.arange(int(0.05 * SR)) / SR / 0.012), int(rng.uniform(0.07, 0.13) * SR), 0.25)
+    elif kind == 'valve':     # click 之後加很短的低頻「噗」
+        y = y + 0.35 * np.sin(2 * np.pi * rng.uniform(150, 210) * t) * np.exp(-t / 0.03)
+    elif kind == 'thump':
+        y = y + 0.25 * fft_filter(white(n), 60, 400) * np.exp(-t / 0.08)
+    elif kind in ('motor', 'servo', 'buzz'):   # 失諧雙層（約 0.6%），像兩組軸承拍頻；加輕微不規則抖動
+        y2 = _resample(y, 1.006); y = y + 0.6 * np.pad(y2, (0, max(0, n - len(y2))))[:n]
+        y = y * (1 + 0.04 * fft_filter(white(n), None, 6.0) / (np.std(fft_filter(white(n), None, 6.0)) + 1e-9) * 0.5)
+    elif kind in ('hiss', 'liquid', 'plasma', 'heat'):   # 氣流／液體加一層低頻本體（有物理量感）
+        y = y + 0.3 * fft_filter(pink(n), 60, 350)
+    pk = np.max(np.abs(y)) + 1e-9
+    return y / pk * (np.max(np.abs(y)) > 0), g * db(rng.uniform(-1, 1)), float(np.clip(pan + rng.uniform(-0.05, 0.05), 0.05, 0.95))
+
+def room(buf):
+    n = int(ROOM_RT * 1.3 * SR); t = np.arange(n) / SR
+    out = buf.copy(); m = buf.shape[1]; L = m + n; nf = 1 << (L - 1).bit_length()
+    for ch in range(buf.shape[0]):
+        ir = fft_filter(white(n), None, 5500) * np.exp(-6.9 * t / ROOM_RT); ir[:int(ROOM_PRE * SR)] = 0
+        ir /= np.sqrt((ir ** 2).sum()) + 1e-9
+        w = np.fft.irfft(np.fft.rfft(buf[ch], nf) * np.fft.rfft(ir, nf), nf)[:m]
+        out[ch] = buf[ch] + ROOM_WET * w
+    return out
+
 # ---------------------------------------------------------------- 登錄表
 KINDS = {}   # kind -> (函式 fn(dur, **params) -> 單聲道陣列, 預設音量 dB)
 
@@ -303,12 +354,16 @@ def render_cues(cues, total_sec, end_t=None):
         y = fn(dur, **(c.get('params') or {}))
         if y is None or len(y) == 0: continue
         g = db(gdb + float(c.get('gain') or 0))
-        place(buf, y, t0, float(c.get('pan', 0.5)), g)
+        pan = float(c.get('pan', 0.5))
+        if REAL:      # 擬真模式（--style A／B／C 才開）：多層疊合＋隨機微變化
+            y, g, pan = realize(k, y, g, pan)
+        place(buf, y, t0, pan, g)
         out.append(dict(t=round(t0, 3), t_end=round(t0 + len(y) / SR, 3), type=k, src=c.get('src', ''), gain_db=round(gdb + float(c.get('gain') or 0), 1)))
     if end_t is not None:
         i = int(end_t * SR); k = int(0.1 * SR)
         buf[:, max(0, i - k):i] *= np.linspace(1, 0, min(k, i))
         buf[:, i:] = 0
+    if REAL: buf = room(buf)        # 輕微空間殘響
     pk = np.max(np.abs(buf)) + 1e-9
     return buf / pk * 0.5, out      # 內部參考：峰值 −6 dBFS；實際音量由 mix 依旁白決定
 
@@ -347,6 +402,7 @@ def frame_rms(x, hop):
 
 
 MIN_GAP_DB = 14.0         # 硬門檻：旁白講話的每一窗，sfx 要比旁白低至少這麼多 dB（Andy 2026/11/27：「不要影響旁白聲」）
+VANISH_DB = 20.0          # cue 在成片的殘差比設計音量低超過這麼多＝被壓到消失（④ 2026-11-27 建議）
 GUARD_MARGIN_DB = 1.5     # 逐窗天花板多留的餘裕
 
 def sp_full(speech, nf):
@@ -359,6 +415,7 @@ def sp_full(speech, nf):
 
 
 def cmd_mix(argv):
+    if '--style' in argv: sys.exit('--style 請走 sfx-styles.py（它自己讀 cue 表合成，不吃 sfx.wav）')
     voice, sfx, out = argv[0], argv[1], argv[2]
     end = float(argv[argv.index('--end') + 1]) if '--end' in argv else None
     v = read_wav(voice); s = read_wav(sfx)
@@ -373,15 +430,6 @@ def cmd_mix(argv):
     thr = max(np.max(vlim) * db(-26), 1e-4)         # 旁白在講話：比最大音量低 26 dB 以內
     speech = (vlim > thr).astype(float)
     speech = np.concatenate([speech, np.zeros(len(ve) - lim)])
-    # 旁白講話時壓低：attack／release 一階平滑
-    a_att = math.exp(-hop / SR / DUCK_ATTACK_S); a_rel = math.exp(-hop / SR / DUCK_RELEASE_S)
-    sm = np.zeros(len(speech)); c = 0.0
-    for i, sp in enumerate(speech):
-        c = (sp + (c - sp) * a_att) if sp > c else (sp + (c - sp) * a_rel)
-        sm[i] = c
-    duck = db(DUCK_DB) ** sm                         # 1 → −8 dB
-    duck_s = np.repeat(duck, hop)
-    duck_s = np.pad(duck_s, (0, n - len(duck_s)), constant_values=1.0)[:n]
     # 音量：sfx 動音段 RMS 比旁白講話段 RMS 低 LEVEL_BELOW（壓低前）
     sm_act = frame_rms(s, hop); act = sm_act > np.max(sm_act) * db(-40)
     sfx_rms = np.sqrt((sm_act[act] ** 2).mean()) if act.any() else 1e-6
@@ -393,27 +441,64 @@ def cmd_mix(argv):
     s = np.tanh(s / cap) * cap
     sfx_rms = np.sqrt((frame_rms(s, hop)[act] ** 2).mean()) if act.any() else sfx_rms
     g = voice_rms * db(LEVEL_BELOW) / sfx_rms
-    sd = s * g * duck_s[None, :]
-    # 硬性保護：旁白講話的每一個 20 ms 窗，sfx RMS ≤ 該窗旁白 RMS −(MIN_GAP_DB+MARGIN_DB)；
-    # 逐窗算增益上限（鄰窗取最小，再用線性內插平滑到每個樣本），撞擊聲落在講話中就被縮小。
+    # 平滑壓低（Andy 2026/11/27：「不要斷斷續續」）：以「講話區段」為單位，不逐字窗跳動。
+    #  ① 講話窗之間的小停頓（< DUCK_GAP_FILL_S，句中停頓）補起來，整句只壓一次、中間不放開；
+    #  ② 區段前 DUCK_LEAD_S 秒就開始壓（離線已知旁白何時開口），壓下用 DUCK_ATTACK_S、放開用 DUCK_RELEASE_S 的一階平滑（在 dB 上）；
+    #  ③ 每個區段一個固定壓低量（起始 DUCK_DB），混完量該區段最差窗，不夠 14 dB 就整段再多壓、重算（不剪掉任何音效，只縮小）。
     nf = len(ve)
-    se = frame_rms(sd, hop)
-    ceil_ = ve * db(-(MIN_GAP_DB + GUARD_MARGIN_DB))
-    gf = np.where(sp_full(speech, nf), np.minimum(1.0, ceil_ / np.maximum(se, 1e-9)), 1.0)
-    gf = np.minimum(gf, np.minimum(np.roll(gf, 1), np.roll(gf, -1)))       # 鄰窗取最小
-    gf = np.minimum(gf, np.minimum(np.roll(gf, 2), np.roll(gf, -2)))
+    spk = speech[:nf] > 0.5
+    filled = spk.copy()
+    idx = np.where(spk)[0]
+    for i0, i1 in zip(idx[:-1], idx[1:]):
+        if 1 < i1 - i0 <= int(DUCK_GAP_FILL_S / 0.02): filled[i0:i1] = True
+    # 區段切分
+    regs = []; st = None
+    for i in range(nf + 1):
+        on = i < nf and filled[i]
+        if on and st is None: st = i
+        if not on and st is not None: regs.append([st, i]); st = None
+    reg_db = [DUCK_DB] * len(regs)
+    lead = int(DUCK_LEAD_S / 0.02)
+    a_dn = math.exp(-0.02 / DUCK_ATTACK_S); a_up = math.exp(-0.02 / DUCK_RELEASE_S)
+
+    def gain_curve():
+        tgt = np.zeros(nf)
+        for (r0, r1), d in zip(regs, reg_db): tgt[max(0, r0 - lead):r1] = np.minimum(tgt[max(0, r0 - lead):r1], d)
+        cur = np.zeros(nf); c = 0.0
+        for i in range(nf):                       # dB 上的一階平滑：往下（壓低）快、往上（放開）慢
+            c = tgt[i] + (c - tgt[i]) * (a_dn if tgt[i] < c else a_up)
+            cur[i] = c
+        # 先往回再前進一次，讓「前導壓低」不被平滑吃掉：取 min(平滑曲線, 前導視窗內的平滑曲線)
+        return cur
+
+    s2 = s * g
+    se_raw = frame_rms(s2, hop)
     xs = (np.arange(nf) + 0.5) * hop
-    gs = np.interp(np.arange(n), xs, gf)
-    sd = sd * gs[None, :]
+    for it in range(40):
+        cur = gain_curve()
+        se = se_raw * 10 ** (cur / 20)
+        gaps = 20 * np.log10(ve / np.maximum(se, 1e-9))
+        bad = False
+        for k, (r0, r1) in enumerate(regs):
+            w = [i for i in range(r0, r1) if spk[i]]
+            if not w: continue
+            worst_r = min(gaps[i] for i in w)
+            if worst_r < MIN_GAP_DB + GUARD_MARGIN_DB:
+                reg_db[k] -= (MIN_GAP_DB + GUARD_MARGIN_DB - worst_r) + 0.2; bad = True
+        if not bad: break
+    gs = 10 ** (np.interp(np.arange(n), xs, cur) / 20)
+    sd = s2 * gs[None, :]
     mix = v + sd
-    # 量測：講話窗逐窗最小差距（旁白 RMS 對 sfx RMS）
-    se2 = frame_rms(sd, hop); spk = speech[:nf] > 0.5
+    se2 = frame_rms(sd, hop)
     gap = 20 * np.log10(ve[spk] / np.maximum(se2[spk], 1e-9))
     worst = float(gap.min()) if spk.any() else 99.0
-    print(f'講話段逐窗最小差距 {worst:.1f} dB（門檻 {MIN_GAP_DB} dB；講話窗 {int(spk.sum())} 個）')
+    print(f'講話段逐窗最小差距 {worst:.1f} dB（門檻 {MIN_GAP_DB} dB；講話窗 {int(spk.sum())} 個；講話區段 {len(regs)} 段，壓低 {min(reg_db):.1f}～{max(reg_db):.1f} dB）')
+    if os.environ.get('SFX_GAIN_DUMP'): np.save(os.environ['SFX_GAIN_DUMP'], cur)
     if worst < MIN_GAP_DB:
         sys.exit(f'錯誤：講話段有 sfx 只比旁白低 {worst:.1f} dB（<{MIN_GAP_DB}），不輸出')
     write_wav(out, mix)
+    # 2026-11-27 ④回報：音效被壓到消失。把「設計音量（壓低前）」的音效軌另存，給成片解碼後的 check 比對每個 cue 的殘差。
+    write_wav(out + '.sfxref.wav', np.clip(s2, -1, 1))
     info = dict(voice_rms_db=round(20 * math.log10(voice_rms), 1), sfx_rms_db=round(20 * math.log10(sfx_rms * g), 1),
                 gain=round(g, 4), duck_db=DUCK_DB, level_below_db=LEVEL_BELOW)
     print(json.dumps(info, ensure_ascii=False))
@@ -436,7 +521,25 @@ def cmd_check(argv):
     gap = 20 * np.log10(ve[spk] / np.maximum(se[spk], 1e-9)); worst = float(gap.min())
     w = int(np.where(spk)[0][int(gap.argmin())]) * 0.02
     print(f'成片解碼後講話段逐窗最小差距 {worst:.1f} dB（在 {w:.2f} 秒；門檻 {MIN_GAP_DB} dB；<14 的窗 {(gap < MIN_GAP_DB).sum()} 個；對齊偏移 {lag} 樣本）')
-    if worst < MIN_GAP_DB: sys.exit(1)
+    bad = worst < MIN_GAP_DB
+    # 2026-11-27 ④回報：落在字尾的撞擊音效被壓到聽不見，14 dB 關卡卻照樣合格。
+    # --cues <sfx-cues.json> --ref <mix 產的 .sfxref.wav>：逐個 cue 比「成片殘差」對「設計音量 × 整體增益 k」，衰減超過 VANISH_DB 就算消失。
+    if '--cues' in argv and '--ref' in argv:
+        rec = json.load(open(argv[argv.index('--cues') + 1])); rec = rec['cues'] if isinstance(rec, dict) else rec
+        r = read_wav(argv[argv.index('--ref') + 1])
+        if r.shape[0] == 1: r = np.vstack([r, r])
+        r = np.pad(r, ((0, 0), (0, max(0, n - r.shape[1]))))[:, :n] * k
+        gone = []
+        for c in rec:
+            a0 = int(c['t'] * SR); a1 = min(n, int(max(c.get('t_end', c['t'] + 0.2), c['t'] + 0.1) * SR))
+            if a1 - a0 < hop: continue
+            er = np.sqrt((r[:, a0:a1] ** 2).mean() + 1e-12); es = np.sqrt((res[:, a0:a1] ** 2).mean() + 1e-12)
+            if er < 1e-5: continue
+            att = 20 * math.log10(es / er)
+            if att < -VANISH_DB: gone.append((c['t'], c.get('type', ''), att))
+        print(f'cue 殘差檢查：{len(rec)} 個 cue，被壓超過 {VANISH_DB:.0f} dB（聽不見）的 {len(gone)} 個' + ''.join(f'\n  {t:.2f} 秒 {ty}：{a:.1f} dB' for t, ty, a in gone))
+        if gone and not os.environ.get('SFX_ALLOW_VANISH'): bad = True
+    if bad: sys.exit(1)
 
 
 def main():
