@@ -165,7 +165,9 @@
    "opts": {
     "dur": 5.4,
     "once": true,
-    "tagAll": true
+    "tagAll": true,
+    "tagAt": 0.42,
+    "capDy": 8
    }
   },
   {
