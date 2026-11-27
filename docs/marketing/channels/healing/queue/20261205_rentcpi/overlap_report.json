@@ -1,0 +1,71 @@
+{
+ "20261205_rentcpi/1": {
+  "n": 5,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 146,
+   "T": 315,
+   "R": 951,
+   "B": 851,
+   "box": [
+    96,
+    180,
+    984,
+    940
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261205_rentcpi/2": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 141,
+   "T": 191,
+   "R": 877,
+   "B": 685,
+   "box": [
+    96,
+    180,
+    984,
+    700
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 6.24,
+  "contrast_pass": true
+ },
+ "20261205_rentcpi/3": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob": [],
+  "minFont": 30,
+  "ink": {
+   "L": 176,
+   "T": 260,
+   "R": 942,
+   "B": 685,
+   "box": [
+    96,
+    180,
+    984,
+    740
+   ],
+   "inside": true
+  },
+  "scrollH": 1350,
+  "contrast_min": 4.69,
+  "contrast_pass": true
+ }
+}
