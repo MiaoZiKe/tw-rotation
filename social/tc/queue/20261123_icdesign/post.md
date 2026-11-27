@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgFI1wcnJrb/ https://www.threads.com/@tech_01010909/post/DgFI9VGsJ6m https://www.threads.com/@tech_01010909/post/DgFJEmAm45c
 posted_at: 2026-11-23T18:12+08:00
 error: 
+ids_fb: 1617008899640738
+urls_fb: https://www.facebook.com/reel/1617008899640738/
+fb_posted_at: 2026-11-27T08:04+08:00
+fb_error: 
+fb_slot: 2026-11-27T08:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「IC 設計：晶片公司沒有工廠，交出去的只是一張設計圖」
 
