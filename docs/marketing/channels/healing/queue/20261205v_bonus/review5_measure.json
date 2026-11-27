@@ -1,0 +1,89 @@
+{
+ "reviewer": "review5",
+ "video": "run 45949766136 / commit 237a92436",
+ "sfx_check": {
+  "cmd": "sfx-synth.py check narr48s.wav(2ch,48k) vid48s.wav(2ch,48k) --end 47.18",
+  "exit": 0,
+  "worst_window_db": 15.3,
+  "at": 42.42
+ },
+ "smooth_check": "{\"fps\": 30.0, \"frames\": 1601, \"expect\": 1601, \"pts_back\": 0, \"pts_gap\": 0, \"dup_ratio\": 0.421, \"stall\": 0, \"reverse\": 1, \"seam_mean\": 0.511, \"nonseam_mean\": 0.482, \"seam_bad\": [], \"chunk\": 60, \"bad\": [], \"pass\": true}\nexit=0",
+ "impact_contact": [
+  {
+   "cue": 13.37,
+   "what": "s3 圖釘釘上",
+   "contact": 13.37,
+   "diff": 0.0,
+   "ok": true
+  },
+  {
+   "cue": 29.3,
+   "what": "s6 路牌彈起",
+   "launch": 29.27,
+   "arrive": 29.425,
+   "overshoot_peak": 29.51,
+   "diff": 0.125,
+   "ok": false
+  },
+  {
+   "cue": 35.55,
+   "what": "s7 入帳通知",
+   "arrive": 35.635,
+   "diff": 0.085,
+   "ok": true
+  },
+  {
+   "cue": 42.28,
+   "what": "s8 步道牌彈起",
+   "launch": 42.3,
+   "arrive": 42.46,
+   "overshoot_peak": 42.58,
+   "diff": 0.18,
+   "ok": false
+  }
+ ],
+ "coin_overlap_per_frame_s5": {
+  "frames": 148,
+  "hits": [
+   {
+    "t": 24.717,
+    "on": "報稅單 標題（報字整個蓋住）",
+    "px": 549
+   },
+   {
+    "t": 24.75,
+    "on": "報稅單 標題",
+    "px": 573
+   },
+   {
+    "t": 24.783,
+    "on": "報稅單 標題",
+    "px": 90
+   }
+  ],
+  "minor": [
+   {
+    "t": 24.65,
+    "on": "月曆右上角框（未蓋到「今年」字）"
+   }
+  ]
+ },
+ "gemini_s7_second_yi": [
+  "g_s7_1: yi1 liu4 yi1",
+  "g_s7_2: yi1 liu4 yi1"
+ ],
+ "gemini_clip_sfx": {
+  "35.2+1.2": {
+   "heard": true,
+   "time_sec": 0.7,
+   "desc": "蓋章聲",
+   "masks_voice": true
+  },
+  "41.9+1.2": {
+   "heard": true,
+   "time_sec": 0.8,
+   "desc": "蓋章悶響聲",
+   "masks_voice": false
+  }
+ }
+}
