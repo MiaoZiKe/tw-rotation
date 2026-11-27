@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgH7J6NkeG9/ https://www.threads.com/@tech_01010909/post/DgH7RwyhVlf https://www.threads.com/@tech_01010909/post/DgH7ZHKm9E4
 posted_at: 2026-11-24T20:10+08:00
 error: 
+ids_fb: 1853314846801920
+urls_fb: https://www.facebook.com/reel/1853314846801920/
+fb_posted_at: 2026-11-27T12:04+08:00
+fb_error: 
+fb_slot: 2026-11-27T12:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「晶圓代工：超過七成二的營收，都是台積電的」
 
