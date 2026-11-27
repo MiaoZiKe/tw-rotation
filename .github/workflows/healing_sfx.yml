@@ -95,7 +95,7 @@ jobs:
             OSTART=$(python3 -c "import json;print(round(json.load(open('/tmp/clean_$N.align.json'))['outro_start'],2))")
             # make_cues 要讀 <資料夾>/video.mp4 量片長：暫時換成乾淨底片
             cp /tmp/clean_$N.mp4 $D/video.mp4
-            python3 $V/make_cues.py $D --cues /tmp/cues_$N.json --table $D/sfx_table.md --outro-start $OSTART
+            python3 $V/make_cues.py $D --voice /tmp/nar_$N.wav --cues /tmp/cues_$N.json --table $D/sfx_table.md --outro-start $OSTART
             END=$(python3 -c "import json;print(json.load(open('/tmp/cues_$N.json'))['endCardSec'] or '')")
             # 官方 add-sfx.sh（main 同步 ai-mp4 e8cfbc3）：講話段音效上限＝旁白 −15.5 dB、AAC 320k
             bash scripts/sfx/add-sfx.sh /tmp/clean_$N.mp4 /tmp/cues_$N.json /tmp/out_$N.mp4 2>&1 | tee -a $D/sfx_guard.txt || { echo "::error::$N add-sfx 不合格，不輸出"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
