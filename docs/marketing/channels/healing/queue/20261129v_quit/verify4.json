@@ -104,6 +104,74 @@
  "n_inner": 0,
  "n_scene": 7,
  "narr_dur": 51.95,
+ "asr_heard": "每天都想離職的年輕上班族 你才有多少一份調查說 大約三成這是1111人力銀行的網路問卷問了一千多位18到35歲的求職會員其中30.8%每天都想離職有轉職打算的超過6成原因第一是薪水太低第二是工作太累 第三是主管但其實要留住人沒有想像中南受訪者說 員工平均加薪7400多元就留得住比跳槽期待的一萬多還少要注意 這是網路民調只代表填問卷的求職會員不代表所有上班族所以答案是大約三成排第一的原因是薪水讓你想走的是薪水 還是太累工作讓人想走 下一代也越來越少下週一看小醫新生剩多少",
+ "asr_diffs": [
+  "replace 念稿「猜」→聽到「才」（念稿第 13 字）",
+  "replace 念稿「六」→聽到「6」（念稿第 81 字）",
+  "replace 念稿「難」→聽到「南」（念稿第 116 字）",
+  "replace 念稿「原公司」→聽到「員工」（念稿第 121 字）",
+  "replace 念稿「一」→聽到「醫」（念稿第 229 字）"
+ ],
+ "asr_ratio": 0.972,
+ "head_asr": {
+  "heard_first_1_5s": "每天都想離職的年",
+  "script_start": "每天都想離職的年輕上班",
+  "extra_leading": [],
+  "setup_words": [],
+  "ratio": 0.842
+ },
+ "scene_vs_onset": [
+  {
+   "id": "s2",
+   "scene_start": 5.46,
+   "heard_from_scene_start_minus_0_15": "這是1111人力",
+   "script_start": "這是1111人力",
+   "first_char_index": 0
+  },
+  {
+   "id": "s3",
+   "scene_start": 11.74,
+   "heard_from_scene_start_minus_0_15": "其中百分之三十",
+   "script_start": "其中30.8%每",
+   "first_char_index": 0
+  },
+  {
+   "id": "s4",
+   "scene_start": 17.54,
+   "heard_from_scene_start_minus_0_15": "原因第一是薪水",
+   "script_start": "原因第一是薪水太",
+   "first_char_index": 0
+  },
+  {
+   "id": "s5",
+   "scene_start": 22.26,
+   "heard_from_scene_start_minus_0_15": "但其實",
+   "script_start": "但其實要留住人沒",
+   "first_char_index": 0
+  },
+  {
+   "id": "s6",
+   "scene_start": 32.45,
+   "heard_from_scene_start_minus_0_15": "要注意 這是網路謎",
+   "script_start": "要注意這是網路民",
+   "first_char_index": 0
+  },
+  {
+   "id": "s7",
+   "scene_start": 38.16,
+   "heard_from_scene_start_minus_0_15": "所以答案是",
+   "script_start": "所以答案是大約三",
+   "first_char_index": 0
+  },
+  {
+   "id": "s8",
+   "scene_start": 45.53,
+   "heard_from_scene_start_minus_0_15": "工作讓人想走",
+   "script_start": "工作讓人想走下一",
+   "first_char_index": 0
+  }
+ ],
+ "frames": 57,
  "pass_auto": true,
  "bad": []
 }
