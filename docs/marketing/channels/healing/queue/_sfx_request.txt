@@ -1,3 +1,2 @@
-branch=healing/video-1203-1205
 # 第 8 輪：撞擊音效不挪時間（stamp 11.32）
 20261203v_minwage
