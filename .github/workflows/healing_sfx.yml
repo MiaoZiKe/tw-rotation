@@ -79,14 +79,22 @@ jobs:
             if [ -f $A/video_nosfx.mp4 ]; then cp $A/video_nosfx.mp4 /tmp/in_$N.mp4
             else [ -f $D/video.mp4 ] || { echo "::error::$N 沒有 video.mp4"; FAIL=1; continue; }
                  cp $D/video.mp4 $A/video_nosfx.mp4; cp $D/video.mp4 /tmp/in_$N.mp4; fi
-            # make_cues 要讀 <資料夾>/video.mp4 量片長：暫時換成原片
-            cp /tmp/in_$N.mp4 $D/video.mp4
-            python3 $V/make_cues.py $D --cues /tmp/cues_$N.json --table $D/sfx_table.md
+            for f in narration.wav video_outro_sfx.mp3; do [ -f $D/$f ] || { echo "::error::$N 缺 $f"; FAIL=1; continue 2; }; done
+            # 乾淨底片：原片音軌裡渲染時 sfx_v3 已烤進 60～80 個物件音效，不能再疊。
+            # 只用資料夾的 narration.wav（互相關對齊到原片音軌，誤差 ≤10 ms，寫進 log）＋片尾卡音效 mp3，影像 -c:v copy 封回。
+            python3 $V/rebuild_clean.py $D /tmp/in_$N.mp4 /tmp/clean_$N.mp4 /tmp/nar_$N.wav 2>&1 | tee $D/sfx_guard.txt || { echo "::error::$N 乾淨底片重建失敗（旁白對齊不合格）"; FAIL=1; continue; }
+            OSTART=$(python3 -c "import json;print(round(json.load(open('/tmp/clean_$N.align.json'))['outro_start'],2))")
+            # make_cues 要讀 <資料夾>/video.mp4 量片長：暫時換成乾淨底片
+            cp /tmp/clean_$N.mp4 $D/video.mp4
+            python3 $V/make_cues.py $D --cues /tmp/cues_$N.json --table $D/sfx_table.md --outro-start $OSTART
             END=$(python3 -c "import json;print(json.load(open('/tmp/cues_$N.json'))['endCardSec'] or '')")
-            # 官方 add-sfx.sh（main 同步 ai-mp4 e8cfbc3）：講話段音效上限＝旁白 −15.5 dB、AAC 320k、
-            # 出片後自動解碼跑 sfx-synth.py check（最差窗 <14 dB 就刪成品並報錯）
-            bash scripts/sfx/add-sfx.sh /tmp/in_$N.mp4 /tmp/cues_$N.json /tmp/out_$N.mp4 2>&1 | tee $D/sfx_guard.txt || { echo "::error::$N add-sfx 或旁白保護檢查不合格，不輸出"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
-            # 旁白原音軌＝原片（video_nosfx.mp4）自己的音軌（add-sfx.sh 內抽出）；narration.wav 與成片有剪接位移，不拿來對齊比對
+            # 官方 add-sfx.sh（main 同步 ai-mp4 e8cfbc3）：講話段音效上限＝旁白 −15.5 dB、AAC 320k
+            bash scripts/sfx/add-sfx.sh /tmp/clean_$N.mp4 /tmp/cues_$N.json /tmp/out_$N.mp4 2>&1 | tee -a $D/sfx_guard.txt || { echo "::error::$N add-sfx 不合格，不輸出"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
+            # 出片檢查：以「對齊後的原始 narration.wav」當人聲基準（不是渲染成品音軌），最差窗 ≥14 dB 才過
+            ffmpeg -loglevel error -y -i /tmp/out_$N.mp4 -vn -ac 2 -ar 48000 -c:a pcm_s16le /tmp/dec_$N.wav
+            echo "【對原始旁白的出片檢查】" | tee -a $D/sfx_guard.txt
+            python3 scripts/sfx/sfx-synth.py check /tmp/nar_$N.wav /tmp/dec_$N.wav ${END:+--end $END} 2>&1 | tee -a $D/sfx_guard.txt; RC=${PIPESTATUS[0]}
+            [ $RC = 0 ] || { echo "::error::$N 對原始旁白最差窗 <14 dB，不輸出"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
             LUFS=$(ffmpeg -nostats -i /tmp/out_$N.mp4 -af ebur128 -f null - 2>&1 | grep "I:" | tail -1 | awk '{print $2}')
             echo "全片響度 $LUFS LUFS" | tee -a $D/sfx_guard.txt
             python3 -c "import sys;v=float('$LUFS');sys.exit(0 if abs(v+16)<=1.0 else 1)" || { echo "::error::$N 響度 $LUFS 偏離 −16 LUFS"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
