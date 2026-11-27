@@ -90,7 +90,7 @@
   {
    "id": "s2",
    "scene_start": 6.11,
-   "heard_from_scene_start_minus_0_15": "104人力",
+   "heard_from_scene_start_minus_0_15": "104人利益",
    "script_start": "104人力銀行調",
    "first_char_index": 0
   },
@@ -152,8 +152,8 @@
   "reverse_t": [
    49.37
   ],
-  "seam_mean": 0.51,
-  "nonseam_mean": 0.482,
+  "seam_mean": 0.508,
+  "nonseam_mean": 0.481,
   "seam_bad": [],
   "chunk": 60,
   "bad": [],
