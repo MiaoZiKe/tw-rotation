@@ -1,0 +1,171 @@
+{
+ "sentences": 11,
+ "pauses": [
+  {
+   "t0": 4.29,
+   "t1": 4.77,
+   "dur": 0.48,
+   "kind": "句號後",
+   "at": "s1「多少｜答」"
+  },
+  {
+   "t0": 6.61,
+   "t1": 7.11,
+   "dur": 0.5,
+   "kind": "換幕",
+   "at": "s1→s2"
+  },
+  {
+   "t0": 7.19,
+   "t1": 7.52,
+   "dur": 0.33,
+   "kind": "換幕短",
+   "at": "s1→s2"
+  },
+  {
+   "t0": 29.82,
+   "t1": 30.32,
+   "dur": 0.5,
+   "kind": "換幕",
+   "at": "s5→s6"
+  },
+  {
+   "t0": 35.29,
+   "t1": 35.65,
+   "dur": 0.36,
+   "kind": "換幕",
+   "at": "s6→s7"
+  },
+  {
+   "t0": 39.55,
+   "t1": 39.81,
+   "dur": 0.26,
+   "kind": "句號後",
+   "at": "s7「800｜這」"
+  },
+  {
+   "t0": 42.18,
+   "t1": 42.44,
+   "dur": 0.26,
+   "kind": "換幕短",
+   "at": "s7→s8"
+  },
+  {
+   "t0": 44.69,
+   "t1": 44.97,
+   "dur": 0.28,
+   "kind": "句號後",
+   "at": "s8「了｜下一」"
+  },
+  {
+   "t0": 45.59,
+   "t1": 45.87,
+   "dur": 0.28,
+   "kind": "逗號",
+   "at": "s8「集｜年」"
+  }
+ ],
+ "n_pauses": 9,
+ "n_inner": 0,
+ "n_scene": 3,
+ "narr_dur": 49.68,
+ "asr_heard": "月零兩萬九千五的人明年一月起每個月會多拿多少答案是一千四百元勞動部最低工資審議會九月決議行政院十月一號合定明年起最低月薪從兩萬九千五漲到三萬零九百元換成一整年十二個月一共多一萬六千八百元如果是按實行打工每小時漲到兩百零五元一天做滿八小時多七十二元審議會估計大約兩百六十一萬人會受賄但是要注意這些都是稅潛數字還沒扣勞健保資符合入漲會再少一點所以答案是每月多一千四一年多一萬六千八這筆錢你會先補到哪一塊底薪往上漲年中也快入漲了下一集年中一點六一個月扣完稅剩多少",
+ "asr_diffs": [
+  "delete 念稿「領」→聽到「」（念稿第 1 字）",
+  "replace 念稿「日核」→聽到「號合」（念稿第 50 字）",
+  "replace 念稿「時薪」→聽到「實行」（念稿第 96 字）",
+  "replace 念稿「惠」→聽到「賄」（念稿第 137 字）",
+  "replace 念稿「前」→聽到「潛」（念稿第 148 字）",
+  "replace 念稿「自付額」→聽到「資符合」（念稿第 157 字）",
+  "replace 念稿「帳」→聽到「漲」（念稿第 161 字）",
+  "replace 念稿「4一」→聽到「1」（念稿第 178 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 204 字）",
+  "replace 念稿「帳」→聽到「漲」（念稿第 208 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 214 字）"
+ ],
+ "asr_ratio": 0.934,
+ "head_asr": {
+  "heard_first_1_5s": "月零兩萬九千五",
+  "script_start": "月領29005的人",
+  "extra_leading": [],
+  "setup_words": [],
+  "ratio": 0.8
+ },
+ "scene_vs_onset": [
+  {
+   "id": "s2",
+   "scene_start": 7.22,
+   "heard_from_scene_start_minus_0_15": "老洞布最低工資省",
+   "script_start": "勞動部最低工資審",
+   "first_char_index": null,
+   "note": "聽到的字與這句開頭對不上，無法判定"
+  },
+  {
+   "id": "s3",
+   "scene_start": 16.0,
+   "heard_from_scene_start_minus_0_15": "幻成一整年",
+   "script_start": "換成一整年12個",
+   "first_char_index": null,
+   "note": "聽到的字與這句開頭對不上，無法判定"
+  },
+  {
+   "id": "s4",
+   "scene_start": 20.23,
+   "heard_from_scene_start_minus_0_15": "如果是按十新打勾",
+   "script_start": "如果是按時薪打工",
+   "first_char_index": 0
+  },
+  {
+   "id": "s5",
+   "scene_start": 26.39,
+   "heard_from_scene_start_minus_0_15": "神音会估计",
+   "script_start": "審議會估計大約2",
+   "first_char_index": null,
+   "note": "聽到的字與這句開頭對不上，無法判定"
+  },
+  {
+   "id": "s6",
+   "scene_start": 30.07,
+   "heard_from_scene_start_minus_0_15": "但是要注意,这些都",
+   "script_start": "但是要注意這些都",
+   "first_char_index": 0
+  },
+  {
+   "id": "s7",
+   "scene_start": 35.4,
+   "heard_from_scene_start_minus_0_15": "所以答案是",
+   "script_start": "所以答案是每月多",
+   "first_char_index": 0
+  },
+  {
+   "id": "s8",
+   "scene_start": 42.19,
+   "heard_from_scene_start_minus_0_15": "底星網上漲年",
+   "script_start": "底薪往上漲年終也",
+   "first_char_index": 0
+  }
+ ],
+ "frames": 55,
+ "smooth": {
+  "fps": 30.0,
+  "frames": 1656,
+  "expect": 1656,
+  "pts_back": 0,
+  "pts_gap": 0,
+  "dup_ratio": 0.425,
+  "stall": 0,
+  "stall_t": [],
+  "reverse": 1,
+  "reverse_t": [
+   51.2
+  ],
+  "seam_mean": 0.631,
+  "nonseam_mean": 0.465,
+  "seam_bad": [],
+  "chunk": 60,
+  "bad": [],
+  "pass": true
+ },
+ "pass_auto": true,
+ "bad": []
+}
