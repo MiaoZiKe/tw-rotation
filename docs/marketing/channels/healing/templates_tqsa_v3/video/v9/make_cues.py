@@ -24,7 +24,7 @@ ACTIONS = {
  'regdesk': [(0.3, 'tick', 0, {'n': 6}, '號碼滾動'), (1.3, 'stamp', 0, {}, '印章蓋下')],
  'calendar6': [(0.4, 'paperslide', 0, {}, '月曆落上牆'), (1.2, 'stamp', 0, {}, '蓋「>2%」章')],
  'punchclock': [(0.4, 'paperslide', -2, {}, '卡片插入'), (0.75, 'stamp', 0, {}, '打卡咔一聲')],
- 'gavel_mw': [(0.55, 'thump', 0, {}, '議事槌敲下'), (3.5, 'pageturn', -6, {}, '日曆翻到 10/1'), (4.1, 'stamp', 0, {}, '核定章蓋下'), (6.2, 'coin', -2, {'bounces': 2}, '金幣落上桌面')],
+ 'gavel_mw': [(0.55, 'thump', 0, {}, '議事槌敲下'), (3.5, 'pageturn', -6, {}, '日曆翻到 10/1'), (4.1, 'stamp', 0, {}, '核定章蓋下'), (6.2, 'coin', -2, {'bounces': 2}, '金幣落上桌面'), (7.0, 'coin', -4, {'bounces': 1}, '第 2 枚金幣落桌'), (7.8, 'coin', -4, {'bounces': 1}, '第 3 枚金幣落桌')],
  'gavel': [(0.55, 'stamp', 2, {}, '議事槌敲下')],
  'notice': [(0.3, 'stamp', -3, {}, '圖釘釘上'), (1.0, 'paperslide', -2, {}, '放大鏡滑進')],
  'rateboard': [(0.3, 'tick', 0, {'n': 9, 'gap': 0.09}, '利率數字滾動')],
@@ -69,10 +69,14 @@ ACTIONS = {
 DEFAULT = [(0.3, 'paperslide', -2, {}, '主體入場')]
 WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
-MAXPER_BY_SUBJECT = {'gavel_mw': 5}   # 這鏡 8.8 秒較長：4 個動作音效＋換幕 whoosh
+MAXPER_BY_SUBJECT = {'gavel_mw': 7}   # 這鏡 8.8 秒較長：6 個動作音效＋換幕 whoosh
 MIN_SAME_GAP = 0.8   # 同種音效最短間隔（秒），避免連續叮聲太密
 DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
 DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
+
+
+# 撞擊類音效固定在畫面動作的時間，不經 snap()；撞上旁白致最差窗 <14 dB 時改降該條音量 4～6 dB，不准挪時間
+IMPACT = {'stamp', 'coin', 'thump', 'cashier'}
 
 
 def snap(t, words, lo, hi):
@@ -108,16 +112,16 @@ def main():
         if i: acts = [WHOOSH] + acts
         for off, kind, gdb, prm, what in acts:
             t = max(0.0, t0 + off)
-            if kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
+            if kind not in IMPACT and kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
             if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
             if kind == 'whoosh': c['dur'] = 0.4
             # 需要 dur 的種類（keyboard 等）：沒給就補預設，且依種類設下限，避免 int(dur*SR)=0 → zero-size array
             if kind in DUR_MIN:
-                d = float(prm.get('dur') or c.get('dur') or DUR_DEFAULT.get(kind, DUR_MIN[kind]))
-                d = max(d, DUR_MIN[kind]); d = min(d, end_card - 0.05 - t)
-                if d < DUR_MIN[kind]: continue    # 剩餘空間不夠就丟掉
-                c['dur'] = round(d, 2)
+                dd = float(prm.get('dur') or c.get('dur') or DUR_DEFAULT.get(kind, DUR_MIN[kind]))
+                dd = max(dd, DUR_MIN[kind]); dd = min(dd, end_card - 0.05 - t)
+                if dd < DUR_MIN[kind]: continue    # 剩餘空間不夠就丟掉
+                c['dur'] = round(dd, 2)
             cues.append(c)
             rows.append((c['t'], what, kind, gdb, s['id']))
     # 同種音效間隔 ≥ MIN_SAME_GAP：太近的後一個往後挪（挪完仍太晚或會撞進下一鏡就丟掉）

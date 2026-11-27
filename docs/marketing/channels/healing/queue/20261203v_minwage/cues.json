@@ -39,7 +39,7 @@
    "dur": 0.15
   },
   {
-   "t": 11.76,
+   "t": 11.32,
    "kind": "stamp",
    "gain": 0,
    "pan": 0.5,
@@ -47,7 +47,7 @@
    "src": "s2 gavel_mw：核定章蓋下"
   },
   {
-   "t": 13.76,
+   "t": 13.42,
    "kind": "coin",
    "gain": -2,
    "pan": 0.5,
@@ -55,6 +55,26 @@
     "bounces": 2
    },
    "src": "s2 gavel_mw：金幣落上桌面"
+  },
+  {
+   "t": 14.22,
+   "kind": "coin",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s2 gavel_mw：第 2 枚金幣落桌"
+  },
+  {
+   "t": 15.02,
+   "kind": "coin",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s2 gavel_mw：第 3 枚金幣落桌"
   },
   {
    "t": 15.98,
@@ -160,7 +180,7 @@
    "src": "s7 envelopes：信封紙鈔探出"
   },
   {
-   "t": 36.81,
+   "t": 37.0,
    "kind": "coin",
    "gain": -2,
    "pan": 0.5,
