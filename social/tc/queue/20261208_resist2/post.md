@@ -13,6 +13,7 @@ hook_type: 問句（接上一支）＋冷知識（#1）
 # 頻道②「科技透明圈」：影片「光阻-2：塗上去、洗出來的機器」
 
 - 11-25 Andy 確認成片 OK（光罩-2、光阻-1、光阻-2 都說 OK）；文案 Andy 還沒看過 → status 寫 draft，等 Andy 回「核准」才改 approved。成片來源：ai-mp4 的 out/tech-resist2.v4.mp4（md5 前 8 碼 9ecbe9c8），未重渲。
+- 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆、網站文章公司段無投資建議、無個股推薦或目標價，公司描述中立且標出處；原樣通過；dm_config 已從 legal_pending 拿掉。
 - 排程：2026-12-08（二）20:00（`TZ=Asia/Taipei date -d 2026-12-08 +%A` 已驗算星期），照 docs/marketing/channels/tc/schedule_1203.md。tc_post 照 scheduled_at 發，再套 per_day／min_gap_hours 順延。
 - 影片：1080×1920、30fps；佇列放成片原檔。封面：影片 0.5 秒畫面截圖 cover.jpg。
 - 內容只用 ai-mp4 videos/tech-resist2/research.md 與 script.json（旁白為主文骨架），不加 research 沒有的數字。查證截至 2026/11/24。
@@ -20,7 +21,7 @@ hook_type: 問句（接上一支）＋冷知識（#1）
 - 片尾預告：下一支設備五大-1 ASML（已排 12/9）。
 - 敘述銜接（因果）：光阻要塗薄又平→塗佈顯影機旋轉甩薄→轉越快越薄→烤乾、進曝光機、回來再烤→顯影洗出圖案→為什麼連在曝光機旁，因為曝光後的光阻怕等→TEL 說極紫外光用的幾乎是他們做的→台南有維修中心→圖案準不準看曝光機，所以下一支看艾司摩爾。
 - 社群文不放股票代號；塗佈顯影機整體市占（兩份估計八成五以上）、SCREEN 個別市占、「台灣 80 家供應商」單一來源，不寫（research 第 12、14、17 列）；TEL 的「幾乎都是他們做的」標公司說法。
-- 留言關鍵字：顯影 → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-08-tech-resist2（dm_config post_keywords「resist2」已登記；文章與回覆文字尚未建立）。
+- 留言關鍵字：顯影 → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-08-tech-resist2（dm_config post_keywords「resist2」已登記；文章與回覆文字已建立；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；不寫「非投資建議」（#46）、段與段有因果銜接（#47）、開頭接上一支＋問句（#81）；lessons 第 76～87 條自查全過（#85 節奏屬成片，成片 Andy 已 OK）。
 
 【主文】

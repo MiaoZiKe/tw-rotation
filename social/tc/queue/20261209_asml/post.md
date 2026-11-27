@@ -12,14 +12,15 @@ hook_type: 問句（接上一支）＋反差（全世界只有一家）
 ---
 # 頻道②「科技透明圈」：影片「設備五大-1：艾司摩爾 ASML（曝光）」
 
-- status 寫 draft，等 Andy 回「核准」才改 approved；法遵尚未過（dm_config 的 asml 放 legal_pending，過了拿掉）。成片來源：ai-mp4 的 out/tech-asml.v1.mp4（69.4 秒、md5 前 8 碼 ced4f7f9），未重渲。⚠ lessons 第 89 條：ASML v1 被評專業度 6 分，成片 Andy 還沒說 OK，要不要重做爆炸分解版由 Andy／CEO 決定；影片換版時只換 tech-asml.mp4 與 cover.jpg。
+- status 寫 draft，等 Andy 回「核准」才改 approved。成片來源：ai-mp4 的 out/tech-asml.v1.mp4（69.4 秒、md5 前 8 碼 ced4f7f9），未重渲。⚠ lessons 第 89 條：ASML v1 被評專業度 6 分，成片 Andy 還沒說 OK，要不要重做爆炸分解版由 Andy／CEO 決定；影片換版時只換 tech-asml.mp4 與 cover.jpg。
+- 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆、網站文章公司段無投資建議、無個股推薦或目標價，公司描述中立且標出處；原樣通過；dm_config 已從 legal_pending 拿掉。
 - 排程：2026-12-09（三）18:00（`TZ=Asia/Taipei date -d 2026-12-09 +%A` 驗算＝Wednesday），照 docs/marketing/channels/tc/schedule_1203.md。tc_post 照 scheduled_at 發，再套 per_day／min_gap_hours 順延。
 - 影片：1080×1920、30fps。封面：影片 0.5 秒畫面（kicker「接上集：看曝光機」＋大字「誰做得出來？」，完整句，不是半句）。
 - 內容只用 ai-mp4 videos/tech-asml/ 的 research.md、script.json（旁白為主文骨架）、optics-spec.md（只用於確認錫滴、真空、收集鏡的說法，不加沒有兩來源的數字）。不寫 research 第五節「片中不講」的項目（在台員工 5,000 人、高雄、2%）。
 - 系列 2「代工的供應商」第 7 集：上一支光阻-2 講塗佈顯影機（結尾說「下一篇來看艾司摩爾」），這支講曝光機誰做。片尾預告下一支應用材料（已排 12/10）。
 - 敘述銜接（因果）：上集晶圓要進曝光機→這台誰做得出來→只有一家→最難是光→極紫外光被空氣吸掉，所以抽真空用鏡子→要印滿整片，所以兩台座反向掃描、一格一格換→三家裡只有一家做得出極紫外光機→台灣的據點與供應鏈→照之前要先鋪薄膜，所以下一支看應用材料。
 - 社群文不放股票代號；市占「九成以上」只有研究機構估計，不寫；帆宣、公準無 LOGO，影片用文字名牌。
-- 留言關鍵字：ASML → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-09-tech-asml（dm_config 已登記；asml 放 legal_pending，等法遵）。
+- 留言關鍵字：ASML → 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-09-tech-asml（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；不寫「非投資建議」（#46）、段與段有因果銜接（#47）、開頭接上一支＋問句（#81）；lessons 第 76～89 條自查：#88、#89 畫面專業度不過（成片屬待 Andy 看），其餘過。
 
 【主文】
