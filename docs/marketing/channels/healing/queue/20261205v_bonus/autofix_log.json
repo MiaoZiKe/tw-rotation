@@ -8,6 +8,36 @@
     "靜止 1.47 秒（51.90 秒起）"
    ],
    [
+    "other",
+    "s1",
+    "overlap：0.533s ul×tag（逐幀）"
+   ],
+   [
+    "other",
+    "s1",
+    "overlap：0.667s tag×big（逐幀）"
+   ],
+   [
+    "other",
+    "s2",
+    "overlap：6.267s title×tag（逐幀）"
+   ],
+   [
+    "other",
+    "s4",
+    "overlap：18.667s title×tag（逐幀）"
+   ],
+   [
+    "other",
+    "s6",
+    "overlap：29.267s title×tag（逐幀）"
+   ],
+   [
+    "other",
+    "s8",
+    "overlap：42.267s title×tag（逐幀）"
+   ],
+   [
     "src",
     "s2",
     "oob：出處行出界"
@@ -199,14 +229,18 @@
    ]
   ],
   "fixed": [
-   "s2 出處拆兩行（oob：出處行出界）",
-   "s3 出處拆兩行（oob：出處行出界）",
-   "s4 出處拆兩行（oob：出處行出界）",
-   "s6 出處拆兩行（oob：出處行出界）"
+   "s2 srcFs 30→26（oob：出處行出界）",
+   "s3 srcFs 30→26（oob：出處行出界）",
+   "s4 srcFs 30→26（oob：出處行出界）",
+   "s6 srcFs 30→26（oob：出處行出界）"
   ],
   "manual": [
    "s9 靜止 1.47 秒（51.90 秒起）",
-   "s4 edge：19.0s 小字 28.0px「月薪 4 萬」",
+   "s1 overlap：0.533s ul×tag（逐幀）",
+   "s2 overlap：6.267s title×tag（逐幀）",
+   "s4 overlap：18.667s title×tag（逐幀）",
+   "s6 overlap：29.267s title×tag（逐幀）",
+   "s8 overlap：42.267s title×tag（逐幀）",
    "s5 edge：24.5s 小字 22.0px「今年」"
   ]
  }

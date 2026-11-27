@@ -1,7 +1,14 @@
 {
  "frames": 1601,
  "checked": 107,
- "overlap": [],
+ "overlap": [
+  "0.533s ul×tag（逐幀）",
+  "0.667s tag×big（逐幀）",
+  "6.267s title×tag（逐幀）",
+  "18.667s title×tag（逐幀）",
+  "29.267s title×tag（逐幀）",
+  "42.267s title×tag（逐幀）"
+ ],
  "oob": [
   "6.5s src",
   "7.0s src",
@@ -86,6 +93,8 @@
   "28.5s 小字 22.0px「隔年」",
   "29.0s 小字 22.0px「隔年」"
  ],
+ "dense": 2,
+ "denseChecked": 747,
  "logoGap": [
   {
    "t": 48.733,

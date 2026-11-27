@@ -1,9 +1,13 @@
-'gain': 0.38, 'lufs': -11.0, 'tp': -1.3}, {'gain': 0.32, 'lufs': -12.2, 'tp': -1.5}]
-時間戳檢查：幀數 1601 ／應有 1601 ；PTS 倒退或重複 0
-插圖面板外框／底板／縮放變動的鏡： 無（全片每幀每鏡固定）
+板外框／底板／縮放變動的鏡： 無（全片每幀每鏡固定）
 換鏡逐幀（舊鏡文字／新鏡文字同框的幀數）： 0 ；記錄幀數 32
 片尾四字與 LOGO 最小淨空 41.5 px；不足 24px 的幀： 0
-幀數 1601 抽檢 107 重疊 0 出界 46 上下留白錯誤 34 頂端最大留白 56 底端最大留白 46
+幀數 1601 抽檢 107 重疊 6 出界 46 上下留白錯誤 34 頂端最大留白 56 底端最大留白 46
+0.533s ul×tag（逐幀）
+0.667s tag×big（逐幀）
+6.267s title×tag（逐幀）
+18.667s title×tag（逐幀）
+29.267s title×tag（逐幀）
+42.267s title×tag（逐幀）
 出界 6.5s src
 出界 7.0s src
 出界 7.5s src
@@ -18,12 +22,16 @@ frames 1601
 靜止段最長 1.47 秒；>1.2 秒：[(51.9, 1.47)]
 強調淨空： [('s2', 65.0), ('s4', 76.0), ('s5', 29.6), ('s6', 76.0), ('s8', 21.0)]
 
-{"start_rms_db_20ms": [-82.3, -78.7, -67.8, -61.5, -58.5, -50.8, -49.6, -45.1, -41.5, -39.0, -37.2, -34.5, -34.5, -32.5, -33.0], "start_ok": true, "voice_region_lufs": -16.0, "outro_lufs": -12.2, "full_lufs": -15.5, "true_peak_dbtp_max": -1.5, "rate_speech_only": 5.13, "rate_incl_pauses": 4.95, "dur": 53.36666666666667, "overlap": 0, "oob": 46, "edge": 34, "coText": 0, "panelChanged": [], "logoGap
-第 0 輪：39 項問題；自動加旗標：['s2 出處拆兩行（oob：出處行出界）', 's3 出處拆兩行（oob：出處行出界）', 's4 出處拆兩行（oob：出處行出界）', 's6 出處拆兩行（oob：出處行出界）']
+{"start_rms_db_20ms": [-82.3, -78.7, -67.8, -61.5, -58.5, -50.8, -49.6, -45.1, -41.5, -39.0, -37.2, -34.5, -34.5, -32.5, -33.0], "start_ok": true, "voice_region_lufs": -16.0, "outro_lufs": -12.2, "full_lufs": -15.5, "true_peak_dbtp_max": -1.5, "rate_speech_only": 5.13, "rate_incl_pauses": 4.95, "dur": 53.36666666666667, "overlap": 6, "oob": 46, "edge": 34, "coText": 0, "panelChanged": [], "logoGap
+第 0 輪：45 項問題；自動加旗標：['s2 srcFs 30→26（oob：出處行出界）', 's3 srcFs 30→26（oob：出處行出界）', 's4 srcFs 30→26（oob：出處行出界）', 's6 srcFs 30→26（oob：出處行出界）']
   （接段模式：旗標已寫回 script.json，要重渲請再觸發一次 healing_render）
 要人看的項目：
   - s9 靜止 1.47 秒（51.90 秒起）
-  - s4 edge：19.0s 小字 28.0px「月薪 4 萬」
+  - s1 overlap：0.533s ul×tag（逐幀）
+  - s2 overlap：6.267s title×tag（逐幀）
+  - s4 overlap：18.667s title×tag（逐幀）
+  - s6 overlap：29.267s title×tag（逐幀）
+  - s8 overlap：42.267s title×tag（逐幀）
   - s5 edge：24.5s 小字 22.0px「今年」
   - 已達 0 輪上限，最後一輪的旗標已寫入 script.json 但尚未重渲染；請再跑一次確認
 （autofix 後仍有要人看的項目，見上方與 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/autofix_log.json）
@@ -32,7 +40,7 @@ frames 1601
 停頓：計入 5（換幕 0、句號後 5、句中 0）＋逗號自然 1（不計）／句數 11；句號後 0.48 s1「嗎｜月」；逗號 0.28 s6「均｜明」；句號後 0.46 s7「帳｜你的」；句號後 0.25 s7「帳｜你的」；換幕短 0.29 s7→s8；句號後 0.26 s8「漲｜下一」
 ASR 相似度 0.822；不一致 27：replace 念稿「終」→聽到「中」（念稿第 1 字）；delete 念稿「1」→聽到「」（念稿第 5 字）；replace 念稿「帳」→聽到「賬」（念稿第 9 字）；replace 念稿「0000」→聽到「萬」（念稿第 19 字）；replace 念稿「104」→聽到「一領四」（念稿第 32 字）；replace 念稿「終」→聽到「中」（念稿第 44 字）；delete 念稿「1」→聽到「」（念稿第 52 字）；replace 念稿「0000」→聽到「萬」（念稿第 58 字）；replace 念稿「4財政部」→聽到「0次才正不」（念稿第 69 字）；replace 念稿「終」→聽到「中」（念稿第 76 字）；delete 念稿「0」→聽到「」（念稿第 84 字）；replace 念稿「百分之五」→聽到「5%」（念稿第 92 字）；replace 念稿「000」→聽到「萬」（念稿第 105 字）；delete 念稿「1」→聽到「」（念稿第 112 字）；replace 念稿「筆」→聽到「比」（念稿第 123 字）；replace 念稿「百分之五」→聽到「5%」（念稿第 126 字）；replace 念稿「繳」→聽到「角」（念稿第 139 字）；replace 念稿「併入」→聽到「並如」（念稿第 144 字）；replace 念稿「1」→聽到「億」（念稿第 158 字）；replace 念稿「終」→聽到「中」（念稿第 171 字）；replace 念稿「0000」→聽到「萬」（念稿第 189 字）；replace 念稿「終」→聽到「中」（念稿第 194 字）；replace 念稿「帳」→聽到「賬」（念稿第 200 字）；replace 念稿「終」→聽到「中」（念稿第 204 字）；replace 念稿「1」→聽到「一」（念稿第 209 字）；replace 念稿「終」→聽到「中」（念稿第 217 字）；replace 念稿「嗎」→聽到「忙」（念稿第 238 字）
 自動檢查：不合格 → 裁頭後前 1.5 秒單獨 ASR 出現念稿以外的字：聽到「年中一點留一個月」，念稿開頭「年終1.61個月入帳前」
--rw-r--r-- 1 runner runner  239958 Nov 27 03:27 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/cover.jpg
--rw-r--r-- 1 runner runner 2550552 Nov 27 03:30 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/frames_1s.png
--rw-r--r-- 1 runner runner 7247354 Nov 27 03:27 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/video.mp4
--rw-r--r-- 1 runner runner 1127070 Nov 27 03:29 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/video_sheet.png
+-rw-r--r-- 1 runner runner  239958 Nov 27 06:34 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/cover.jpg
+-rw-r--r-- 1 runner runner 2547133 Nov 27 06:37 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/frames_1s.png
+-rw-r--r-- 1 runner runner 7244580 Nov 27 06:34 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/video.mp4
+-rw-r--r-- 1 runner runner 1126612 Nov 27 06:36 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261205v_bonus/video_sheet.png
