@@ -1,6 +1,6 @@
 {
- "total": 55.2,
- "endCardSec": 49.0,
+ "total": 55.21,
+ "endCardSec": 49.01,
  "cues": [
   {
    "t": 0.3,
@@ -18,16 +18,16 @@
    "params": {
     "strength": 0.35
    },
-   "src": "s2 gavel：換幕輕掃",
+   "src": "s2 gavel_mw：換幕輕掃",
    "dur": 0.4
   },
   {
-   "t": 7.77,
-   "kind": "stamp",
-   "gain": 2,
+   "t": 7.52,
+   "kind": "paperslide",
+   "gain": -2,
    "pan": 0.5,
    "params": {},
-   "src": "s2 gavel：議事槌敲下"
+   "src": "s2 gavel_mw：主體入場"
   },
   {
    "t": 15.98,
