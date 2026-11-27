@@ -24,7 +24,7 @@
  "rate_speech_only": 5.04,
  "rate_incl_pauses": 4.72,
  "dur": 55.2,
- "overlap": 5,
+ "overlap": 3,
  "oob": 32,
  "edge": 111,
  "coText": 0,

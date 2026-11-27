@@ -1,12 +1,11 @@
-鏡： 無（全片每幀每鏡固定）
+檢查：幀數 1656 ／應有 1656 ；PTS 倒退或重複 0
+插圖面板外框／底板／縮放變動的鏡： 無（全片每幀每鏡固定）
 換鏡逐幀（舊鏡文字／新鏡文字同框的幀數）： 0 ；記錄幀數 32
 片尾四字與 LOGO 最小淨空 41.5 px；不足 24px 的幀： 0
-幀數 1656 抽檢 111 重疊 5 出界 32 上下留白錯誤 111 頂端最大留白 56 底端最大留白 46
+幀數 1656 抽檢 111 重疊 3 出界 32 上下留白錯誤 111 頂端最大留白 56 底端最大留白 46
 0.0s txt:「薪資單」×「月領兩萬九千五的人，」
 0.0s txt:「2027 年 1 月」×「月領兩萬九千五的人，」
 0.0s txt:「本薪」×「月領兩萬九千五的人，」
-15.5s txt:「核定」×「+1,400」
-16.0s txt:「核定」×「+1,400」
 出界 0.0s src
 出界 0.5s src
 出界 1.0s src
@@ -21,14 +20,12 @@ frames 1656
 靜止段最長 1.47 秒；>1.2 秒：[(53.73, 1.47)]
 強調淨空： [('s2', 76.0), ('s3', 65.0), ('s4', 76.0), ('s5', 44.0), ('s6', 29.0), ('s8', 21.0)]
 
-{"start_rms_db_20ms": [-77.3, -72.5, -70.2, -67.4, -69.6, -62.0, -51.8, -45.9, -41.7, -39.5, -36.6, -36.6, -33.4, -34.4, -32.7], "start_ok": true, "voice_region_lufs": -16.0, "outro_lufs": -12.3, "full_lufs": -15.5, "true_peak_dbtp_max": -1.5, "rate_speech_only": 5.04, "rate_incl_pauses": 4.72, "dur": 55.2, "overlap": 5, "oob": 32, "edge": 111, "coText": 0, "panelChanged": [], "logoGapMin": 41.5, 
-第 0 輪：119 項問題；自動加旗標：['s1 出處拆兩行（oob：出處行出界）', 's2 出處拆兩行（oob：出處行出界）']
+{"start_rms_db_20ms": [-77.3, -72.5, -70.2, -67.4, -69.6, -62.0, -51.8, -45.9, -41.7, -39.5, -36.6, -36.6, -33.4, -34.4, -32.7], "start_ok": true, "voice_region_lufs": -16.0, "outro_lufs": -12.3, "full_lufs": -15.5, "true_peak_dbtp_max": -1.5, "rate_speech_only": 5.04, "rate_incl_pauses": 4.72, "dur": 55.2, "overlap": 3, "oob": 32, "edge": 111, "coText": 0, "panelChanged": [], "logoGapMin": 41.5, 
+第 0 輪：117 項問題；自動加旗標：['s1 srcFs 30→26（oob：出處行出界）', 's2 srcFs 30→26（oob：出處行出界）']
   （接段模式：旗標已寫回 script.json，要重渲請再觸發一次 healing_render）
 要人看的項目：
   - s9 靜止 1.47 秒（53.73 秒起）
   - s1 文字壓文字 「薪資單」×「月領兩萬九千五的人，」（沒有註腳可併入或下移，請人工改版面）
-  - s2 文字壓文字 「核定」×「+1,400」（沒有註腳可併入或下移，請人工改版面）
-  - s3 文字壓文字 「核定」×「+1,400」（沒有註腳可併入或下移，請人工改版面）
   - s1 edge：0.0s 小字 28.0px「2027 年 1」
   - s3 edge：16.5s 小字 24.0px「1月」
   - 已達 0 輪上限，最後一輪的旗標已寫入 script.json 但尚未重渲染；請再跑一次確認
@@ -38,7 +35,7 @@ frames 1656
 停頓：計入 8（換幕 3、句號後 5、句中 0）＋逗號自然 1（不計）／句數 11；句號後 0.48 s1「多少｜答」；換幕 0.50 s1→s2；換幕短 0.33 s1→s2；換幕 0.50 s5→s6；換幕 0.36 s6→s7；句號後 0.26 s7「800｜這」；換幕短 0.26 s7→s8；句號後 0.28 s8「了｜下一」；逗號 0.28 s8「集｜年」
 ASR 相似度 0.934；不一致 11：delete 念稿「領」→聽到「」（念稿第 1 字）；replace 念稿「日核」→聽到「號合」（念稿第 50 字）；replace 念稿「時薪」→聽到「實行」（念稿第 96 字）；replace 念稿「惠」→聽到「賄」（念稿第 137 字）；replace 念稿「前」→聽到「潛」（念稿第 148 字）；replace 念稿「自付額」→聽到「資符合」（念稿第 157 字）；replace 念稿「帳」→聽到「漲」（念稿第 161 字）；replace 念稿「4一」→聽到「1」（念稿第 178 字）；replace 念稿「終」→聽到「中」（念稿第 204 字）；replace 念稿「帳」→聽到「漲」（念稿第 208 字）；replace 念稿「終」→聽到「中」（念稿第 214 字）
 自動檢查：合格
--rw-r--r-- 1 runner runner  217453 Nov 27 04:09 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/cover.jpg
--rw-r--r-- 1 runner runner 2539724 Nov 27 04:11 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/frames_1s.png
--rw-r--r-- 1 runner runner 7517290 Nov 27 04:09 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/video.mp4
--rw-r--r-- 1 runner runner 1141402 Nov 27 04:10 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/video_sheet.png
+-rw-r--r-- 1 runner runner  217455 Nov 27 04:28 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/cover.jpg
+-rw-r--r-- 1 runner runner 2534946 Nov 27 04:31 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/frames_1s.png
+-rw-r--r-- 1 runner runner 7522643 Nov 27 04:27 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/video.mp4
+-rw-r--r-- 1 runner runner 1141216 Nov 27 04:30 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261203v_minwage/video_sheet.png
