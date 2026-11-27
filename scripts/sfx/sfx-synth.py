@@ -279,6 +279,12 @@ register('keyboard', s_keyboard, -4)
 register('pageturn', s_pageturn, -4)
 register('rain', s_rain, -6)
 
+try:    # ④ 生活類種類（healing_kinds.py，有就載入）
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import healing_kinds; healing_kinds.install(sys.modules[__name__])
+except ImportError:
+    pass
+
 def _servo_seq(dur, n):
     y = np.zeros(int(dur * SR) + int(SERVO_DUR * SR))
     for i in range(n):
@@ -380,7 +386,17 @@ def cmd_mix(argv):
     s = np.tanh(s / cap) * cap
     sfx_rms = np.sqrt((frame_rms(s, hop)[act] ** 2).mean()) if act.any() else sfx_rms
     g = voice_rms * db(LEVEL_BELOW) / sfx_rms
-    mix = v + s * g * duck_s[None, :]
+    sc = s * g * duck_s[None, :]
+    if '--guard' in argv:      # ④ 旁白保護：旁白講話的每個 20 ms 框，音效 RMS 不超過旁白 RMS 低 N dB（逐框限幅，前後框取小再線性內插）
+        gd = float(argv[argv.index('--guard') + 1])
+        se = frame_rms(sc, hop); m = min(len(se), len(ve), lim)
+        fac = np.ones(len(ve))
+        for i in range(m):
+            if ve[i] > thr and se[i] > 1e-9: fac[i] = min(1.0, ve[i] * db(-gd) / se[i])
+        fac = np.minimum(fac, np.minimum(np.roll(fac, 1), np.roll(fac, -1)))
+        xs = (np.arange(len(fac)) + 0.5) * hop
+        sc = sc * np.interp(np.arange(n), xs, fac)[None, :]
+    mix = v + sc
     write_wav(out, mix)
     info = dict(voice_rms_db=round(20 * math.log10(voice_rms), 1), sfx_rms_db=round(20 * math.log10(sfx_rms * g), 1),
                 gain=round(g, 4), duck_db=DUCK_DB, level_below_db=LEVEL_BELOW)
