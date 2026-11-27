@@ -1,9 +1,9 @@
 {
- "id": "2027-01-01-tech-abfsub",
+ "id": "2027-01-07-tech-abfsub",
  "cat": "tech",
  "title": "ABF 載板：整塊載板怎麼一層層蓋出來",
  "subtitle": "科技透明圈",
- "date": "2027-01-01",
+ "date": "2027-01-07",
  "updated": "2026-11-28",
  "tags": [
   "科技透明圈",
@@ -88,14 +88,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20270101v_abfsub/video.mp4",
-   "poster": "media/tech/20270101v_abfsub/cover.jpg",
+   "src": "media/tech/20270107v_abfsub/video.mp4",
+   "poster": "media/tech/20270107v_abfsub/cover.jpg",
    "title": "ABF 載板：整塊載板怎麼一層層蓋出來",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20270101v_abfsub/cover.jpg",
+   "src": "media/tech/20270107v_abfsub/cover.jpg",
    "alt": "ABF 載板：整塊載板怎麼一層層蓋出來：影片封面",
    "title": "ABF 載板：整塊載板怎麼一層層蓋出來",
    "note": "影片封面原圖（1080×1920），可直接下載。"
@@ -126,7 +126,7 @@
    "title": "延伸閱讀",
    "items": [
     {
-     "id": "2026-12-31-tech-abf",
+     "id": "2027-01-06-tech-abf",
      "title": "ABF 膜：載板裡的絕緣膜到底在隔什麼",
      "why": "上一篇：每一層貼的那張膜。"
     },

@@ -1,8 +1,8 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2027-01-01T18:00+08:00
-weekday: 五
+scheduled_at: 2027-01-07T18:00+08:00
+weekday: 四
 platforms: ig, threads
 media: video
 video: tech-abfsub.mp4
@@ -12,16 +12,16 @@ hook_type: 問句（接上一支）
 ---
 # 頻道②「科技透明圈」：影片「ABF 載板：整塊載板怎麼一層層蓋出來」
 
-- status 寫 approved：Andy 11-28 04:00 前後「這都OK」（他看過兩支成片）。成片來源：ai-mp4 的 out/tech-abfsub.v1.mp4（57.4 秒、1080×1920、30fps、md5 b06b9383a1b94b47e04f1328ae61e012）。審片紀錄見 ai-mp4 videos/tech-abfsub/README.md。換版時只換 tech-abfsub.mp4 與 cover.jpg（網站 site/media/tech/20270101v_abfsub/ 同步換，網站用的是同一支重新壓縮的小檔）。
+- status 寫 approved：Andy 11-28 04:00 前後「這都OK」（他看過兩支成片）。成片來源：ai-mp4 的 out/tech-abfsub.v1.mp4（57.4 秒、1080×1920、30fps、md5 b06b9383a1b94b47e04f1328ae61e012）。審片紀錄見 ai-mp4 videos/tech-abfsub/README.md。換版時只換 tech-abfsub.mp4 與 cover.jpg（網站 site/media/tech/20270107v_abfsub/ 同步換，網站用的是同一支重新壓縮的小檔）。
 - 法遵：2026-11-28 法遵審過（貼文文案、IG 私訊、Threads 回覆、網站文章），原樣通過：無投資建議、無個股推薦或目標價，台日廠標媒體報導、市占不寫，尺寸與層數標路線圖／研調出處；已從 legal_pending 拿掉。
-- 排程：2027-01-01（五）18:00（`TZ=Asia/Taipei date -d 2027-01-01 +%a` 算出），接在 12/31 ABF 膜之後每天一集；時間照 lessons 第 95 條固定 18:00。
+- 排程：2027-01-07（四）18:00（`TZ=Asia/Taipei date -d 2027-01-07 +%a` 算出），接在 1/6 ABF 膜之後每天一集；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 2.0 秒畫面：kicker「接上集：膜備好了」＋大字「載板怎麼做？」。
 - 內容用 ai-mp4 videos/tech-abfsub/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
-- 系列 3「晶片往下游走」第 8 集：上一支 12/31 ABF 膜（片頭「前一集，味之素的膜備好了」），下一支 系列 3 第 9 集 BT 載板（片尾「下一集，看另一種常見的載板」）。
+- 系列 3「晶片往下游走」第 8 集：上一支 1/6 ABF 膜（片頭「前一集，味之素的膜備好了」），下一支 系列 3 第 9 集 BT 載板（片尾「下一集，看另一種常見的載板」）。
 - 不寫 research 標「不上片」或查不到的：任何市占（欣興 22%、前五大 74%、台灣 41.3%）；良率數字（75–80%、73%→62%、SemiEngineering 假設例）；南電／欣興產能；高盛供需缺口；設備交期 30 個月；Nvidia 產能倍數；公司營收、EPS、目標價；揖斐電「Nvidia 主要供應商」；欣興「全球最大」；片中「跟日本大廠搶單」改成中立的「日本有揖斐電」；片中「這麼貴的載板」改成「這麼大、這麼多層」（ABF 與 BT 價差查不到數字）；「二十多層」照 research 寫「二十層以上」。
 - 敘述銜接（因果）：膜備好了→載板在晶片和主機板中間由密拉疏→先做核心板打地基→兩面對稱往外蓋、每層貼膜打洞鍍銅→AI 晶片要更大更多層→層數越多越容易出錯、越容易翹→誰在做→不是每顆晶片都需要這麼多層，下一支看 BT 載板。
 - 社群文不放股票代號；台灣廠標媒體報導；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：載板（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2027-01-01-tech-abfsub（dm_config 已登記）。
+- 留言關鍵字：載板（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2027-01-07-tech-abfsub（dm_config 已登記）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#20 weekday 由程式算、#26 hook_type、#27 文章 mp4 區塊、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-28 已看過說 OK。
 

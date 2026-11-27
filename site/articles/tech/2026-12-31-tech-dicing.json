@@ -1,9 +1,9 @@
 {
- "id": "2026-12-25-tech-dicing",
+ "id": "2026-12-31-tech-dicing",
  "cat": "tech",
  "title": "晶圓切割與薄化：一片晶圓怎麼切成一顆顆",
  "subtitle": "科技透明圈",
- "date": "2026-12-25",
+ "date": "2026-12-31",
  "updated": "2026-11-27",
  "tags": [
   "科技透明圈",
@@ -122,14 +122,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20261225v_dicing/video.mp4",
-   "poster": "media/tech/20261225v_dicing/cover.jpg",
+   "src": "media/tech/20261231v_dicing/video.mp4",
+   "poster": "media/tech/20261231v_dicing/cover.jpg",
    "title": "晶圓切割與薄化：一片晶圓怎麼切成一顆顆",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20261225v_dicing/cover.jpg",
+   "src": "media/tech/20261231v_dicing/cover.jpg",
    "alt": "晶圓切割與薄化：一片晶圓怎麼切成一顆顆：影片封面",
    "title": "晶圓切割與薄化：一片晶圓怎麼切成一顆顆",
    "note": "影片封面原圖（1080×1920），可直接下載。"

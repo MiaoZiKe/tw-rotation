@@ -1,8 +1,8 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2026-12-26T18:00+08:00
-weekday: 六
+scheduled_at: 2027-01-01T18:00+08:00
+weekday: 五
 platforms: ig, threads
 media: video
 video: tech-wirebond.mp4
@@ -12,16 +12,16 @@ hook_type: 問句（接上一支）
 ---
 # 頻道②「科技透明圈」：影片「封裝打線：晶片切好了，電怎麼接出來」
 
-- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-wirebond.v1.mp4（64.1 秒、1080×1920、30fps、md5 41205eaff04fb1225f14b06cdd71794a）。審片紀錄見 ai-mp4 videos/tech-wirebond/README.md。換版時只換 tech-wirebond.mp4 與 cover.jpg（網站 site/media/tech/20261226v_wirebond/ 同步換，網站用的是同一支重新壓縮的小檔）。
+- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-wirebond.v1.mp4（64.1 秒、1080×1920、30fps、md5 41205eaff04fb1225f14b06cdd71794a）。審片紀錄見 ai-mp4 videos/tech-wirebond/README.md。換版時只換 tech-wirebond.mp4 與 cover.jpg（網站 site/media/tech/20270101v_wirebond/ 同步換，網站用的是同一支重新壓縮的小檔）。
 - 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處；文案公司那句補上「（公司官網）」出處，其餘原樣；dm_config 已從 legal_pending 拿掉。
-- 排程：2026-12-26（六）18:00（`TZ=Asia/Taipei date -d 2026-12-26 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
+- 排程：2027-01-01（五）18:00（`TZ=Asia/Taipei date -d 2027-01-01 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 4.97 秒畫面：kicker「接上集：晶片切好了」＋大字「電怎麼接出來？」。
 - 內容用 ai-mp4 videos/tech-wirebond/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
-- 系列 3「晶片往下游走」第 2 集：上一支 12/25 晶圓切割與薄化（片頭「前一集切晶圓」），下一支 12/27 封裝材料（片尾「下一集看封裝材料：導線架、封裝膠、錫球」）。
+- 系列 3「晶片往下游走」第 2 集：上一支 12/31 晶圓切割與薄化（片頭「前一集切晶圓」），下一支 1/2 封裝材料（片尾「下一集看封裝材料：導線架、封裝膠、錫球」）。
 - 不寫 research 標「不上片」或查不到的：任何市占（打線占封裝 75～80%、球焊 93%、金線占比、接合機市占）、金價、單一機型每小時產量；不寫「焊錫融化黏住」；不寫台灣劈刀廠、台灣打線機廠；ASMPT 總部。
 - 敘述銜接（因果）：晶圓切好→電怎麼接出來→焊墊接到金屬腳→劈刀→放電成球→壓、熱、超音波→不是融化→拉弧、拉斷→一秒十條所以還在用→金換銅、要吹保護氣→公司→晶片還光著，下一支看封裝材料。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：打線（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-26-tech-wirebond（dm_config 已登記；法遵 2026-11-27 審過）。
+- 留言關鍵字：打線（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2027-01-01-tech-wirebond（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

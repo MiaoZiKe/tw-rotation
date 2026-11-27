@@ -1,8 +1,8 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2026-12-29T18:00+08:00
-weekday: 二
+scheduled_at: 2027-01-04T18:00+08:00
+weekday: 一
 platforms: ig, threads
 media: video
 video: tech-fanout.mp4
@@ -12,16 +12,16 @@ hook_type: 問句（接上一支）
 ---
 # 頻道②「科技透明圈」：影片「扇出型與晶圓級封裝：不用載板，線怎麼拉出去」
 
-- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-fanout.v1.mp4（63.4 秒、1080×1920、30fps、md5 57f27c8ed7e70a2784ac58317c99b5de）。審片紀錄見 ai-mp4 videos/tech-fanout/README.md。換版時只換 tech-fanout.mp4 與 cover.jpg（網站 site/media/tech/20261229v_fanout/ 同步換，網站用的是同一支重新壓縮的小檔）。
+- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-fanout.v1.mp4（63.4 秒、1080×1920、30fps、md5 57f27c8ed7e70a2784ac58317c99b5de）。審片紀錄見 ai-mp4 videos/tech-fanout/README.md。換版時只換 tech-fanout.mp4 與 cover.jpg（網站 site/media/tech/20270104v_fanout/ 同步換，網站用的是同一支重新壓縮的小檔）。
 - 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處，原樣通過；dm_config 已從 legal_pending 拿掉。
-- 排程：2026-12-29（二）18:00（`TZ=Asia/Taipei date -d 2026-12-29 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
+- 排程：2027-01-04（一）18:00（`TZ=Asia/Taipei date -d 2027-01-04 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 4.97 秒畫面：kicker「接上集：覆晶還得靠載板」＋大字「不用載板？」。
 - 內容用 ai-mp4 videos/tech-fanout/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
-- 系列 3「晶片往下游走」第 5 集：上一支 12/28 覆晶（片頭「前一集，覆晶還得靠載板拉線」），下一支 12/30 先進封裝設備（片尾「需要更精密的機台」）。
+- 系列 3「晶片往下游走」第 5 集：上一支 1/3 覆晶（片頭「前一集，覆晶還得靠載板拉線」），下一支 1/5 先進封裝設備（片尾「需要更精密的機台」）。
 - 不寫 research 標「不上片」或查不到的：力成「已量產」面板級扇出型、良率、客戶名單；各家扇出型市占；不寫「台積電發明扇出型」；不寫扇出型完全不用載板。
 - 敘述銜接（因果）：覆晶靠載板拉線→接點多塞不下→晶圓級封裝切開就跟晶片一樣大→接點只能擠在晶片範圍→扇出型拉開間距、模封成新晶圓→重佈線層拉到外圍→翹曲與偏移→公司→好幾顆封在一起要更精密機台，下一支看設備。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：扇出（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-29-tech-fanout（dm_config 已登記；法遵 2026-11-27 審過）。
+- 留言關鍵字：扇出（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2027-01-04-tech-fanout（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

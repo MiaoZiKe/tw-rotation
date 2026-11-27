@@ -1,9 +1,9 @@
 {
- "id": "2026-12-26-tech-wirebond",
+ "id": "2027-01-01-tech-wirebond",
  "cat": "tech",
  "title": "封裝打線：晶片切好了，電怎麼接出來",
  "subtitle": "科技透明圈",
- "date": "2026-12-26",
+ "date": "2027-01-01",
  "updated": "2026-11-27",
  "tags": [
   "科技透明圈",
@@ -88,14 +88,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20261226v_wirebond/video.mp4",
-   "poster": "media/tech/20261226v_wirebond/cover.jpg",
+   "src": "media/tech/20270101v_wirebond/video.mp4",
+   "poster": "media/tech/20270101v_wirebond/cover.jpg",
    "title": "封裝打線：晶片切好了，電怎麼接出來",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20261226v_wirebond/cover.jpg",
+   "src": "media/tech/20270101v_wirebond/cover.jpg",
    "alt": "封裝打線：晶片切好了，電怎麼接出來：影片封面",
    "title": "封裝打線：晶片切好了，電怎麼接出來",
    "note": "影片封面原圖（1080×1920），可直接下載。"
@@ -126,7 +126,7 @@
    "title": "延伸閱讀",
    "items": [
     {
-     "id": "2026-12-25-tech-dicing",
+     "id": "2026-12-31-tech-dicing",
      "title": "晶圓切割與薄化：一片晶圓怎麼切成一顆顆",
      "why": "上一篇：先把晶圓切開。"
     },

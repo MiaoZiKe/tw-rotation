@@ -1,8 +1,8 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2026-12-31T18:00+08:00
-weekday: 四
+scheduled_at: 2027-01-06T18:00+08:00
+weekday: 三
 platforms: ig, threads
 media: video
 video: tech-abf.mp4
@@ -12,16 +12,16 @@ hook_type: 問句（接上一支）
 ---
 # 頻道②「科技透明圈」：影片「ABF 膜：載板裡的絕緣膜到底在隔什麼」
 
-- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-abf.v1.mp4（58.4 秒、1080×1920、30fps、md5 fc6373259d322f0aa4b09912a357bc3e）。審片紀錄見 ai-mp4 videos/tech-abf/README.md。換版時只換 tech-abf.mp4 與 cover.jpg（網站 site/media/tech/20261231v_abf/ 同步換，網站用的是同一支重新壓縮的小檔）。
+- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-abf.v1.mp4（58.4 秒、1080×1920、30fps、md5 fc6373259d322f0aa4b09912a357bc3e）。審片紀錄見 ai-mp4 videos/tech-abf/README.md。換版時只換 tech-abf.mp4 與 cover.jpg（網站 site/media/tech/20270106v_abf/ 同步換，網站用的是同一支重新壓縮的小檔）。
 - 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處，原樣通過；dm_config 已從 legal_pending 拿掉。
-- 排程：2026-12-31（四）18:00（`TZ=Asia/Taipei date -d 2026-12-31 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
+- 排程：2027-01-06（三）18:00（`TZ=Asia/Taipei date -d 2027-01-06 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 2.0 秒畫面：kicker「接上集：訊號要靠載板拉出去」＋大字「絕緣膜隔什麼？」。
 - 內容用 ai-mp4 videos/tech-abf/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
-- 系列 3「晶片往下游走」第 7 集：上一支 12/30 先進封裝設備（片頭「前一集說，訊號要靠載板拉出去」），下一支 系列 3 第 8 集 ABF 載板（片尾「看味之素膜做成的載板」）。
+- 系列 3「晶片往下游走」第 7 集：上一支 1/5 先進封裝設備（片頭「前一集說，訊號要靠載板拉出去」），下一支 系列 3 第 8 集 ABF 載板（片尾「看味之素膜做成的載板」）。
 - 不寫 research 標「不上片」或查不到的：任何市占（含片中「超過九成五」、積水 5%、欣興 22%）；Blackwell 層數與用量增幅；味之素投資金額與漲價；晶化科技客戶、產能、代號；不寫「味精副產品」。
 - 敘述銜接（因果）：訊號靠載板拉出去→絕緣膜在隔什麼→載板像大樓、層間要絕緣→貼膜壓平加熱→雷射打孔接通→種子銅只鍍要的地方→AI 晶片要十幾層→味之素、晶化→整塊載板怎麼做，下一支看 ABF 載板。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：ABF（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-31-tech-abf（dm_config 已登記；法遵 2026-11-27 審過）。
+- 留言關鍵字：ABF（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2027-01-06-tech-abf（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

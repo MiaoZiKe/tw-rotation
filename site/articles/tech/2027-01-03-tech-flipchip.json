@@ -1,9 +1,9 @@
 {
- "id": "2026-12-28-tech-flipchip",
+ "id": "2027-01-03-tech-flipchip",
  "cat": "tech",
  "title": "覆晶：晶片翻過來，電怎麼接出去",
  "subtitle": "科技透明圈",
- "date": "2026-12-28",
+ "date": "2027-01-03",
  "updated": "2026-11-27",
  "tags": [
   "科技透明圈",
@@ -88,14 +88,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20261228v_flipchip/video.mp4",
-   "poster": "media/tech/20261228v_flipchip/cover.jpg",
+   "src": "media/tech/20270103v_flipchip/video.mp4",
+   "poster": "media/tech/20270103v_flipchip/cover.jpg",
    "title": "覆晶：晶片翻過來，電怎麼接出去",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20261228v_flipchip/cover.jpg",
+   "src": "media/tech/20270103v_flipchip/cover.jpg",
    "alt": "覆晶：晶片翻過來，電怎麼接出去：影片封面",
    "title": "覆晶：晶片翻過來，電怎麼接出去",
    "note": "影片封面原圖（1080×1920），可直接下載。"
@@ -126,7 +126,7 @@
    "title": "延伸閱讀",
    "items": [
     {
-     "id": "2026-12-27-tech-pkgmat",
+     "id": "2027-01-02-tech-pkgmat",
      "title": "封裝材料：晶片還光著，要怎麼保護",
      "why": "上一篇：錫球與底部填充。"
     },

@@ -1,9 +1,9 @@
 {
- "id": "2026-12-30-tech-pkgequip",
+ "id": "2027-01-05-tech-pkgequip",
  "cat": "tech",
  "title": "先進封裝設備：晶片怎麼精準疊在一起",
  "subtitle": "科技透明圈",
- "date": "2026-12-30",
+ "date": "2027-01-05",
  "updated": "2026-11-27",
  "tags": [
   "科技透明圈",
@@ -94,14 +94,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20261230v_pkgequip/video.mp4",
-   "poster": "media/tech/20261230v_pkgequip/cover.jpg",
+   "src": "media/tech/20270105v_pkgequip/video.mp4",
+   "poster": "media/tech/20270105v_pkgequip/cover.jpg",
    "title": "先進封裝設備：晶片怎麼精準疊在一起",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20261230v_pkgequip/cover.jpg",
+   "src": "media/tech/20270105v_pkgequip/cover.jpg",
    "alt": "先進封裝設備：晶片怎麼精準疊在一起：影片封面",
    "title": "先進封裝設備：晶片怎麼精準疊在一起",
    "note": "影片封面原圖（1080×1920），可直接下載。"

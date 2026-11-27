@@ -1,9 +1,9 @@
 {
- "id": "2027-01-02-tech-bt",
+ "id": "2027-01-08-tech-bt",
  "cat": "tech",
  "title": "BT 載板：便宜的載板，為什麼也缺料",
  "subtitle": "科技透明圈",
- "date": "2027-01-02",
+ "date": "2027-01-08",
  "updated": "2026-11-28",
  "tags": [
   "科技透明圈",
@@ -86,14 +86,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20270102v_bt/video.mp4",
-   "poster": "media/tech/20270102v_bt/cover.jpg",
+   "src": "media/tech/20270108v_bt/video.mp4",
+   "poster": "media/tech/20270108v_bt/cover.jpg",
    "title": "BT 載板：便宜的載板，為什麼也缺料",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20270102v_bt/cover.jpg",
+   "src": "media/tech/20270108v_bt/cover.jpg",
    "alt": "BT 載板：便宜的載板，為什麼也缺料：影片封面",
    "title": "BT 載板：便宜的載板，為什麼也缺料",
    "note": "影片封面原圖（1080×1920），可直接下載。"
@@ -124,12 +124,12 @@
    "title": "延伸閱讀",
    "items": [
     {
-     "id": "2027-01-01-tech-abfsub",
+     "id": "2027-01-07-tech-abfsub",
      "title": "ABF 載板：整塊載板怎麼一層層蓋出來",
      "why": "上一篇：又大又多層的 ABF 載板。"
     },
     {
-     "id": "2026-12-31-tech-abf",
+     "id": "2027-01-06-tech-abf",
      "title": "ABF 膜：載板裡的絕緣膜到底在隔什麼",
      "why": "沒有布的增層膜。"
     }

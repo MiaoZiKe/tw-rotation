@@ -1,8 +1,8 @@
 ---
 channel: tc
 status: approved
-scheduled_at: 2026-12-28T18:00+08:00
-weekday: 一
+scheduled_at: 2027-01-03T18:00+08:00
+weekday: 日
 platforms: ig, threads
 media: video
 video: tech-flipchip.mp4
@@ -12,16 +12,16 @@ hook_type: 問句（接上一支）
 ---
 # 頻道②「科技透明圈」：影片「覆晶：晶片翻過來，電怎麼接出去」
 
-- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-flipchip.v1.mp4（62.5 秒、1080×1920、30fps、md5 2a7f5b849f9bea2910b8a09683767f69）。審片紀錄見 ai-mp4 videos/tech-flipchip/README.md。換版時只換 tech-flipchip.mp4 與 cover.jpg（網站 site/media/tech/20261228v_flipchip/ 同步換，網站用的是同一支重新壓縮的小檔）。
+- status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-flipchip.v1.mp4（62.5 秒、1080×1920、30fps、md5 2a7f5b849f9bea2910b8a09683767f69）。審片紀錄見 ai-mp4 videos/tech-flipchip/README.md。換版時只換 tech-flipchip.mp4 與 cover.jpg（網站 site/media/tech/20270103v_flipchip/ 同步換，網站用的是同一支重新壓縮的小檔）。
 - 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處；文案公司那句補上「（公司官網）」出處，其餘原樣；dm_config 已從 legal_pending 拿掉。
-- 排程：2026-12-28（一）18:00（`TZ=Asia/Taipei date -d 2026-12-28 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
+- 排程：2027-01-03（日）18:00（`TZ=Asia/Taipei date -d 2027-01-03 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 5.37 秒畫面：kicker「接上集：倒過來好在哪？」＋大字「腳不夠用？」。
 - 內容用 ai-mp4 videos/tech-flipchip/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
-- 系列 3「晶片往下游走」第 4 集：上一支 12/27 封裝材料（片頭「前一集看完封裝材料」），下一支 12/29 扇出型與晶圓級封裝（片尾「把線直接做在晶圓」）。
+- 系列 3「晶片往下游走」第 4 集：上一支 1/2 封裝材料（片頭「前一集看完封裝材料」），下一支 1/4 扇出型與晶圓級封裝（片尾「把線直接做在晶圓」）。
 - 不寫 research 標「不上片」或查不到的：任何市占（含韓美 71.2% 是 HBM 熱壓接合機，不是覆晶接合機；Besi「領導者」為廠商自稱）、OSAT 營收、機台產量；不給覆晶散熱倍數；不寫所有覆晶都會自己對正。
 - 敘述銜接（因果）：上集問倒過來好在哪→翻面像蓋印章→整面接點、腳多路短→背面貼散熱蓋→凸塊晶圓上先做好→熔錫自己拉正→熱脹冷縮差五倍→點膠護住焊點→公司→還得靠載板拉線，下一支看扇出型。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：覆晶（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-28-tech-flipchip（dm_config 已登記；法遵 2026-11-27 審過）。
+- 留言關鍵字：覆晶（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2027-01-03-tech-flipchip（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

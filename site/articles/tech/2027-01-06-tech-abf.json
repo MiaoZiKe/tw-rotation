@@ -1,9 +1,9 @@
 {
- "id": "2026-12-31-tech-abf",
+ "id": "2027-01-06-tech-abf",
  "cat": "tech",
  "title": "ABF 膜：載板裡的絕緣膜到底在隔什麼",
  "subtitle": "科技透明圈",
- "date": "2026-12-31",
+ "date": "2027-01-06",
  "updated": "2026-11-27",
  "tags": [
   "科技透明圈",
@@ -73,14 +73,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20261231v_abf/video.mp4",
-   "poster": "media/tech/20261231v_abf/cover.jpg",
+   "src": "media/tech/20270106v_abf/video.mp4",
+   "poster": "media/tech/20270106v_abf/cover.jpg",
    "title": "ABF 膜：載板裡的絕緣膜到底在隔什麼",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20261231v_abf/cover.jpg",
+   "src": "media/tech/20270106v_abf/cover.jpg",
    "alt": "ABF 膜：載板裡的絕緣膜到底在隔什麼：影片封面",
    "title": "ABF 膜：載板裡的絕緣膜到底在隔什麼",
    "note": "影片封面原圖（1080×1920），可直接下載。"
@@ -111,7 +111,7 @@
    "title": "延伸閱讀",
    "items": [
     {
-     "id": "2026-12-30-tech-pkgequip",
+     "id": "2027-01-05-tech-pkgequip",
      "title": "先進封裝設備：晶片怎麼精準疊在一起",
      "why": "上一篇：封好了要靠載板拉線。"
     },

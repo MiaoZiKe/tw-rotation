@@ -1,9 +1,9 @@
 {
- "id": "2026-12-29-tech-fanout",
+ "id": "2027-01-04-tech-fanout",
  "cat": "tech",
  "title": "扇出型與晶圓級封裝：不用載板，線怎麼拉出去",
  "subtitle": "科技透明圈",
- "date": "2026-12-29",
+ "date": "2027-01-04",
  "updated": "2026-11-27",
  "tags": [
   "科技透明圈",
@@ -93,14 +93,14 @@
   },
   {
    "t": "mp4",
-   "src": "media/tech/20261229v_fanout/video.mp4",
-   "poster": "media/tech/20261229v_fanout/cover.jpg",
+   "src": "media/tech/20270104v_fanout/video.mp4",
+   "poster": "media/tech/20270104v_fanout/cover.jpg",
    "title": "扇出型與晶圓級封裝：不用載板，線怎麼拉出去",
    "note": "影片 1080×1920；影片為示意動畫，非特定機型、非實際比例。"
   },
   {
    "t": "cover",
-   "src": "media/tech/20261229v_fanout/cover.jpg",
+   "src": "media/tech/20270104v_fanout/cover.jpg",
    "alt": "扇出型與晶圓級封裝：不用載板，線怎麼拉出去：影片封面",
    "title": "扇出型與晶圓級封裝：不用載板，線怎麼拉出去",
    "note": "影片封面原圖（1080×1920），可直接下載。"
@@ -131,7 +131,7 @@
    "title": "延伸閱讀",
    "items": [
     {
-     "id": "2026-12-28-tech-flipchip",
+     "id": "2027-01-03-tech-flipchip",
      "title": "覆晶：晶片翻過來，電怎麼接出去",
      "why": "上一篇：覆晶還要靠載板。"
     },
