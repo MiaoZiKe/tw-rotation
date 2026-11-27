@@ -352,12 +352,15 @@
 | `docs/anim/README.md` | 動畫總說明 | 2026-11-23 |
 | `docs/anim/bibi_library/index.md` | 比比素材庫總表 | 2026-11-23 |
 
-## H. 組織與對話管理（9 份）
+## H. 組織與對話管理（12 份）
 
 | 路徑（tw-rotation／main） | 管什麼 | 最後更新 |
 |---|---|---|
 | `docs/marketing/channels/handoff/ceo_20261122.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-23 |
 | `docs/marketing/channels/handoff/ceo_20261124.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-24 |
+| `docs/ops/token_saving.md` | 省 token 五條＋用量監工（Andy 11-27） | 2026-11-27 |
+| `docs/marketing/channels/handoff/healing_20261127.md` | 頻道④換對話交接檔 | 2026-11-27 |
+| `docs/marketing/channels/handoff/ch1_20261127.md` | 頻道①換對話交接檔 | 2026-11-27 |
 | `docs/marketing/channels/handoff/ch1_20261122.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-23 |
 | `docs/marketing/channels/handoff/ch1_20261124.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-24 |
 | `docs/marketing/channels/handoff/ch2_20261123.md` | 主控與各頻道換對話交接檔（含最新規則） | 2026-11-23 |

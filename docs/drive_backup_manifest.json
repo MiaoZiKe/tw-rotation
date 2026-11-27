@@ -3,12 +3,12 @@
  "folder": "1rIT3-MXx8HdD0f7QKsejSISs6zs6SidL",
  "files": {
   "00_總索引_SYSTEM_PLAYBOOK.md": {
-   "id": "18dMo1vE3ymMwuTuXR0h0A_r1fz8b8c1b",
-   "sha256": "b68b5875a527e7c65a6e7c1650ea87ebd10b6287d19dde9e8be5dcc6689ca25d"
+   "id": "1-Qz4Xux1GuIYOtt4G15XNIggepG87xsb",
+   "sha256": "4c960f1d862172852b6a40f38dd2c7c615ca5facce6e96d324f25250c3c8b78d"
   },
   "A_入口與總規則.md": {
-   "id": "1W68VyKb03D5GeCEYBMEmicx5idx5o6zz",
-   "sha256": "45b60235aa73bb1d1f06677275043c7a9c52da319af6c5e5ef25a18746266aab"
+   "id": "1SGpW28TToQSHt0qlOJMgDP3Qd62q05c9",
+   "sha256": "3132674f3c32c83cd5f56506bff4b1f5b1c570db35aa1e86cd0a1d13d5aeab59"
   },
   "B_網站系統與資料管線.md": {
    "id": "1WwFNSW_WvGNkDr1wJDf7P0XiU1Ar7OcM",
@@ -19,46 +19,46 @@
    "sha256": "4187b8890cac65131ba3674c9fd92937c9278dbe3d553ffbd28b1678b84d89f4"
   },
   "D_專家 Agent 與技能.md": {
-   "id": "1Gr-6HXn3eApdAOExo9mQlKawAsw3onbq",
-   "sha256": "0d1078fa035888db3af5fde3b74eb4ed4db8ad3914a14bd8f902b2958336f9a9"
+   "id": "1SfIkk-PUzF5A0_o3TTEnCbfnaVpY2sGM",
+   "sha256": "da21cd474f9fdb2c6940e99584803822db83a4d65f0d54fd051576e02eac78f6"
   },
   "E_社群發文.md": {
-   "id": "1BmhXUyra1ktFwSZngvV-trD3qKUWG-sl",
-   "sha256": "fe5ec50398b8c3b5c2c67e661c09194b408cf272a111c689cb91dc1d4f447f28"
+   "id": "1QtTIiQUOV4_7DL226Kb9JHm20MdCWsOW",
+   "sha256": "cb69e7db5430c8d249f05e3b2eb1642bd1f78232fc6b876031ced08b85b90d90"
   },
   "F-1_頻道①哩股哩股.md": {
    "id": "1821uLjlJFC34fy9KWUuZLZdMA8C3QYJb",
    "sha256": "e41eef30ef2de5db0e779a6475d12a9810dd489c8f8edd87468e80089e52ac40"
   },
   "F-2_頻道②科技透明圈.md": {
-   "id": "1lO1c17NZv2ChD1QwHcjP2IWHqZ9bAdQy",
-   "sha256": "7f5bc42a9f5deb67d5be9792697de717f4df87630b4541e288b828bcdb062190"
+   "id": "18j5tRUdRLllx5ucop5CtaDLrYjVWnlA7",
+   "sha256": "38f4e77cb84b3113865094ae0486b134567d8e6a754e59babfdaa78ce64380de"
   },
   "F-3_頻道③CaffAIne.md": {
    "id": "1wyaIMfdOyu-FlHs1cJzTYWQoBnF9yuRz",
    "sha256": "8580ab7add6c7c49bb2d7b0db4e6cbc2c2f3960ab5c92e9b8ac2ee84318f4860"
   },
   "F-4_頻道④談晴說礙.md": {
-   "id": "1Qwfbl2PShAv1DNqqOI1NzYXDF12qLHkp",
-   "sha256": "9fb650ff74d2de3ec4e078a880c50d067f1784403e85f5ed2a27b7ca76a17c5a"
+   "id": "13ZTY4fnb-oSAx0mNxE-oew35k_9p8tYm",
+   "sha256": "48ae17ca1496e1e052ff045c0d21e84552ee13924d09ef838af3dd7628abbe2c"
   },
   "G_影片製作.md": {
    "id": "1ZBtBGyqRLTw_VNd95KAGcXrVJjPRhdHk",
    "sha256": "f523e62d5ae6e4d73ce4d750027cf50a78e222efc8468bbd9a0b8b242fa3f146"
   },
   "H_組織與對話管理.md": {
-   "id": "1kLJaiW6WlCKSIsUdiZUB0vvoaVSRJqwP",
-   "sha256": "5fb656207d9304db04faa1fd9e0a1a31bbccc8868f28635d0929448db18a3f2d"
+   "id": "1vWK_oZ1n6MZQj7RpCS-Iw99AOpeBUMKT",
+   "sha256": "a8e1444f92e6538d304bcfd9e016d354e0facfc1b0d36a749a8ffe7fd1073776"
   },
   "I_影片製作_ai-mp4_CaffAIne分支.md": {
-   "id": "19PzQvRuCHG8R7CgjY-ufGbPxCwKRTDNB",
+   "id": "1z8toiRhL05sgLRRgpVRBR5qv6ejR5qCJ",
    "branch": "claude/caffaine-ai",
-   "sha256": "90c7f7bc208862f34a7bdd06b8aaa2c4ebc5b0b583e1bfabb91f53d4ae75038b"
+   "sha256": "ee2b7b8eb98a57c52c1b733c715e01cf32041dab68c9ac084146e3624bfd6510"
   },
   "I_影片製作_ai-mp4_科技透明圈分支.md": {
-   "id": "1Z26Qnfpwd3gGaiQ2oAwQ7CY79n-FgcKB",
+   "id": "1f9YTMTy9H2ESIzGnPD0ZoB4FueJR3boW",
    "branch": "claude/nifty-goodall-syke8a-1548",
-   "sha256": "b46a84779d7ba2b1a3e247c021d073b31425884dc8a3040556e0151fcbf00e73"
+   "sha256": "4e365f06246c5d62d55feb59c1a03ecae47c1c3ea63ffba2f3f6f4228b4aee47"
   },
   "I_影片製作_ai-mp4_main.md": {
    "id": "1xfjrum08hGgGWVygiFRz2yVP6FnVEjZg",
@@ -68,5 +68,15 @@
  },
  "old_folder": "1Na3jf4ZXqMzrB4l9rgsgc0RxmPFXfCTb",
  "_更新方式": "Drive 連接器不能改檔案內容：有變的檔先 create_file 上傳新版，再把舊版 update_file 移進 old_folder 並在檔名加「_至MMDD」。",
- "pending_move_old": {}
+ "pending_move_old": {
+  "18dMo1vE3ymMwuTuXR0h0A_r1fz8b8c1b": "00_總索引_SYSTEM_PLAYBOOK_至1127.md",
+  "1W68VyKb03D5GeCEYBMEmicx5idx5o6zz": "A_入口與總規則_至1127.md",
+  "1Gr-6HXn3eApdAOExo9mQlKawAsw3onbq": "D_專家 Agent 與技能_至1127.md",
+  "1BmhXUyra1ktFwSZngvV-trD3qKUWG-sl": "E_社群發文_至1127.md",
+  "1lO1c17NZv2ChD1QwHcjP2IWHqZ9bAdQy": "F-2_頻道②科技透明圈_至1127.md",
+  "1Qwfbl2PShAv1DNqqOI1NzYXDF12qLHkp": "F-4_頻道④談晴說礙_至1127.md",
+  "1kLJaiW6WlCKSIsUdiZUB0vvoaVSRJqwP": "H_組織與對話管理_至1127.md",
+  "19PzQvRuCHG8R7CgjY-ufGbPxCwKRTDNB": "I_影片製作_ai-mp4_CaffAIne分支_至1127.md",
+  "1Z26Qnfpwd3gGaiQ2oAwQ7CY79n-FgcKB": "I_影片製作_ai-mp4_科技透明圈分支_至1127.md"
+ }
 }
