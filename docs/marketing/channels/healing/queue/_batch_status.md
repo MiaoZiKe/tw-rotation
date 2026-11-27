@@ -3,7 +3,7 @@
 - 已做：script.json（8 鏡＋片尾 @FIXED）、新插圖 6 個（paystub、yearcoins、deduct、bonusenv、taxline、taxreturn，已登記 index.json／ILLUSTRATIONS.md／素材登記.md）、caption／threads／threads_reply／sources／article.json（已跑 healing_article → site/articles/healing/2026-12-03-…、2026-12-05-…）、video_review.md（主旨、起承轉合、tts 全文）、retro.md 初稿。
 - TTS 各 1 次（minwage 念稿 228 字、旁白 48.68 秒、純念稿 5.04 字／秒；bonus 230 字、46.86 秒、5.13 字／秒）。raw_keep 一段、句中 0 插入；pace_check「要人看」＝句間自然停頓最短 0.12／0.07 秒（聽感要特別聽黏口）。
 - 注意：bonus 片 head_onset 誤停在「直接｜說」中間（成品開頭殘留「說」）→ 已改用 ASR 副本重裁，首字起音 46.77，前 2.5 秒 ASR 從「年」開始。head_onset 這個缺陷還沒修程式（見 retro.md）。
-- **渲染：推 `_render_request.txt`（`20261203v_minwage,20261205v_bonus`、jobs=8 chunk=60 writeback=1）觸發 healing_render；run id 見下一行（推送後補）。容器沒有渲染。**
+- **渲染：推 `_render_request.txt`（`20261203v_minwage,20261205v_bonus`、jobs=8 chunk=60 writeback=1）觸發 healing_render；run id **45926735151**（https://github.com/MiaoZiKe/tw-rotation/actions/runs/45926735151，commit 32af8e662，推送時 in_progress）；成品由 workflow 推回本分支與 renders/healing，pull 後驗收。容器沒有渲染。**
 - **渲完要四道驗證＋審片**（審查者，不是製作者）：① 句中 0 停頓／③ 停頓密度＋audio-check（數位靜音／斷音／硬起音 0）；② Gemini 聽感＋平捲舌＋黏口＋ASR 逐字＋前 1.5 秒 ASR（不得有「直接說」）；④ frames_1s.png 逐格看重疊與空白；五項打分 ≥7 寫 video_review.md。過了才 SendUserFile 給 Andy（附排程、片長、念稿、主旨、出處、分數、已知問題），他 OK 才改 approved 推 main。
 
 ---
