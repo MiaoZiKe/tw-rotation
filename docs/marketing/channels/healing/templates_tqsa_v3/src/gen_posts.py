@@ -561,6 +561,149 @@ def sc_bags(H=560):
     o += Ln(30, fl, 858, fl, at("none", SW)) + hatch(44, fl + 2, 800, 18, 11, at("none", 1.1, op=.25))
     return o
 
+def paybag(x, y, w, h, st, lab=None):
+    """薪資袋：長方袋＋上緣封口斜線＋小窗。"""
+    o = R(x, y, w, h, 10, st) + P('M%.1f %.1f L%.1f %.1f L%.1f %.1f' % (x + 4, y + 4, x + w / 2, y + h * .30, x + w - 4, y + 4), at("none", 1.8, op=.6))
+    o += R(x + w * .2, y + h * .48, w * .6, h * .22, 6, at("none", 1.6, op=.55))
+    return o
+
+def sc_bonusbar(H=760):
+    """12/1 封面：上方一個鼓起的年終袋「64,400」；下方等比例長條：1 個月 40,000（實色）＋0.61 個月 24,400（晴光）＋剩下 0.39 個月虛線。"""
+    o = paybag(294, 100, 300, 250, F1) + T(444, 296, "64,400 元", 44, 700, "var(--w-text)") + T(444, 66, "年終袋", 32, 700, "var(--w-text)")
+    o += Ln(444, 360, 444, 404, at("none", 2.4, dash="6 8", op=.6))
+    x0, x1, y, h = 60, 828, 420, 96; m = (x1 - x0) / 2       # 2 個月＝整條，1 個月＝一半
+    o += R(x0, y, m, h, 8, F3) + R(x0 + m, y, m * .61, h, 8, HL) + R(x0 + m * 1.61, y, m * .39, h, 8, at("none", 2, dash="8 8", op=.55))
+    o += T(x0 + m / 2, y + 62, "1 個月", 34, 700, "var(--w-text)") + T(x0 + m * 1.305, y + 62, "0.61", 34, 700, "var(--w-text)")
+    o += T(x0 + m / 2, y + h + 50, "40,000", 32, 400, "var(--w-text)") + T(x0 + m * 1.305, y + h + 50, "24,400", 32, 400, "var(--w-text)")
+    by = y + h + 96
+    o += P('M%.1f %.1f v 18 H %.1f v -18' % (x0, by, x0 + m * 1.61), at("none", 2.4, "var(--w-lamp)")) + T(x0 + m * .805, by + 64, "月薪 4 萬 × 1.61 個月（自算）", 30)
+    return o
+
+def sc_gate(H=560):
+    """12/1 第 3 頁：刻度尺 0～10 萬，9.05 萬處立一根起扣閘門柱＋抬起的欄杆；64,400 的年終袋停在閘門前（不預扣）。"""
+    y = 360; x0, x1 = 60, 828; sx = lambda v: x0 + (x1 - x0) * v / 100000
+    o = Ln(x0, y, x1, y, at("none", SW))
+    for v in range(0, 100001, 10000):
+        big = v % 50000 == 0
+        o += Ln(sx(v), y, sx(v), y + (26 if big else 14), at("none", 2 if big else 1.4, op=1 if big else .55))
+        if big: o += T(sx(v), y + 70, "0" if v == 0 else "%d 萬" % (v // 10000), 30)
+    gx = sx(90501)
+    o += R(gx - 12, y - 250, 24, 250, 4, DK) + C(gx, y - 250, 16, LP)
+    o += P('M%.1f %.1f L%.1f %.1f' % (gx, y - 236, gx - 230, y - 330), at("none", 10, "var(--w-lamp)", op=.85))
+    o += T(gx - 6, y + 112, "起扣 90,501", 30, 700, "var(--w-text)") + T(gx - 140, y - 290, "達到才先扣 5%", 30, 700, "var(--w-text)", "end")
+    o += T(sx(64400) - 90, y - 150, "未達：不預扣", 30, 700, "var(--w-text)", "end")
+    bx = sx(64400)
+    o += paybag(bx - 70, y - 120, 140, 110, HL) + Ln(bx, y, bx, y - 8, at("none", 2.4)) + T(bx, y + 112, "64,400", 30, 700, "var(--w-text)")
+    o += Ln(bx, y + 4, bx, y + 30, at("none", 3, "var(--w-lamp)"))
+    return o
+
+def bank(x, y, w, h, st, lit):
+    """銀行建築：三角山牆＋四根柱子；lit＝門口放一個晴光年終袋。"""
+    o = poly([(x - 10, y + 40), (x + w / 2, y - 10), (x + w + 10, y + 40)], st) + R(x, y + 40, w, 16, 2, st)
+    for k in range(4): o += R(x + 10 + k * (w - 40) / 3, y + 64, 20, h - 110, 2, at("none", 2) if st is not F1 else F3)
+    o += R(x - 10, y + h - 40, w + 20, 18, 2, st)
+    o += paybag(x + w / 2 - 34, y + h + 4, 68, 54, HL if lit else at("none", 2, dash="6 6", op=.6))
+    return o
+
+def sc_banks(H=760):
+    """12/2 封面：左＝2.85 個月疊高（2 整塊＋0.85 塊，晴光）；右＝四棟銀行，3 棟門口有年終袋、1 棟是虛線空位（75%）。"""
+    base = 600; bh = 150; x = 70; w = 180
+    o = ""
+    for i, f in enumerate((1, 1, .85)):
+        hh = bh * f; o_y = base - bh * i - hh
+        st = HL if i == 2 else F3
+        o += R(x, o_y, w, hh - 6, 10, st)
+    o += T(x + w / 2, base - bh * 2.85 - 24, "2.85 個月", 40, 700, "var(--w-text)")
+    o += Ln(30, base, 858, base, at("none", SW)) + hatch(44, base + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    for j in range(4):
+        bx = 330 + (j % 2) * 270; by = 60 + (j // 2) * 270
+        o += bank(bx, by, 190, 200, F1, j < 3)
+    o += T(600, base + 70, "每 4 家約 3 家會發", 30, 700, "var(--w-text)")
+    o += T(x + w / 2, base + 70, "金融業・各業第一", 30, 700, "var(--w-text)")
+    return o
+
+def sc_gauges(items, H=520):
+    """12/2 第 3 頁：三個半圓儀表（0～100%），指針與晴光弧＝發放比例。"""
+    import math as _m
+    o = ""; n = len(items); r = 120
+    for i, (lab, v, vt, hi) in enumerate(items):
+        cx = 148 + i * 296; cy = 260
+        o += P('M%.1f %.1f A %d %d 0 0 1 %.1f %.1f' % (cx - r, cy, r, r, cx + r, cy), at("none", 2, dash="6 8", op=.6))   # 0～100% 空軌（虛線）
+        a = _m.pi * (1 - v / 100); ex, ey = cx + r * _m.cos(a), cy - r * _m.sin(a)
+        o += P('M%.1f %.1f A %d %d 0 0 1 %.1f %.1f' % (cx - r, cy, r, r, ex, ey), at("none", 26, "var(--w-lamp)" if hi else "var(--w-line)", op=.9 if hi else .7))
+        o += Ln(cx, cy, cx + (r - 40) * _m.cos(a), cy - (r - 40) * _m.sin(a), at("none", 5)) + C(cx, cy, 12, DK)
+        o += T(cx, cy + 74, vt, 40, 700, "var(--w-text)") + T(cx, cy + 124, lab, 32, 400, "var(--w-text)")
+    return o
+
+def sc_twobags(H=760):
+    """12/3 封面：兩個薪資袋並排：2026 年 29,500、2027 年 30,900；右袋上緣多一條晴光「+1,400」夾層；兩袋高度等比例（差 4.75%）。"""
+    base = 600; k = 420 / 30900
+    o = ""
+    for i, (yr, v) in enumerate((("2026 年", 29500), ("2027 年", 30900))):
+        x = 150 + i * 330; h = v * k; w = 260
+        o += paybag(x, base - h, w, h, F3 if i == 0 else F1) + T(x + w / 2, base - h * .30, "{:,}".format(v), 40, 700, "var(--w-text)") + T(x + w / 2, base + 52, yr, 32, 400, "var(--w-text)")
+    hx = 480; h1 = 29500 * k; h2 = 30900 * k
+    o += R(hx, base - h2, 260, h2 - h1, 4, HL)
+    o += T(hx + 130, base - h2 - 26, "+1,400", 44, 700, "var(--w-text)")
+    o += Ln(30, base, 858, base, at("none", SW)) + hatch(44, base + 2, 800, 14, 11, at("none", 1.1, op=.25))
+    return o
+
+def sc_waterfall(H=520):
+    """12/3 第 2 頁：瀑布圖（0 起算，等比例）：2026 年 29,500 → 加 1,400 → 2027 年 30,900。"""
+    base = H - 70; k = (base - 90) / 32000; w = 170; xs = (90, 359, 628)
+    o = Ln(40, base, 860, base, at("none", SW))
+    h0 = 29500 * k; h1 = 30900 * k
+    o += R(xs[0], base - h0, w, h0, 4, F3) + T(xs[0] + w / 2, base - h0 - 18, "29,500", 38, 700, "var(--w-text)") + T(xs[0] + w / 2, base + 46, "2026 年", 30)
+    o += R(xs[1], base - h1, w, h1 - h0, 4, HL) + T(xs[1] + w / 2, base - h1 - 18, "+1,400", 38, 700, "var(--w-text)") + T(xs[1] + w / 2, base + 46, "調升 4.75%", 30)
+    o += R(xs[2], base - h1, w, h1, 4, F1) + T(xs[2] + w / 2, base - h1 - 18, "30,900", 38, 700, "var(--w-text)") + T(xs[2] + w / 2, base + 46, "2027 年", 30)
+    o += Ln(xs[0] + w, base - h0, xs[1], base - h0, at("none", 1.8, dash="6 6", op=.6)) + Ln(xs[1] + w, base - h1, xs[2], base - h1, at("none", 1.8, dash="6 6", op=.6))
+    return o
+
+def sc_hours(H=560):
+    """12/3 第 3 頁：一天 8 格工時，每格 196 元的硬幣上多一枚「+9」小硬幣（晴光）；右側合計「+72」。"""
+    o = ""; y = 210
+    for i in range(8):
+        x = 70 + i * 92
+        o += R(x, y, 80, 150, 10, F3) + T(x + 40, y + 96, "%d" % (i + 1), 30, 400, "var(--w-sub)")
+        o += C(x + 40, y - 50, 28, HL) + T(x + 40, y - 40, "+9", 30, 700, "var(--w-text)")
+    o += P('M70 %d v 22 H 802 v -22' % (y + 176), at("none", 2.4, "var(--w-lamp)")) + T(436, y + 246, "8 小時 × 9 元 = +72 元（自算）", 32, 700, "var(--w-text)")
+    o += T(436, y - 130, "時薪 196 → 205 元", 34, 700, "var(--w-text)")
+    return o
+
+def sc_floorplans(H=760):
+    """12/4 封面：左＝獨立套房平面圖（床、自己的衛浴與小廚房）；右＝分租雅房的一層公寓（三房中一間亮、共用衛浴廚房）。"""
+    o = ""
+    x, y, w, h = 40, 60, 370, 470
+    o += R(x, y, w, h, 6, F1) + R(x + 20, y + 20, 160, 230, 8, F3)            # 床
+    o += R(x + 40, y + 34, 120, 50, 10, F1)                                    # 枕頭
+    o += R(x + w - 140, y + 20, 120, 150, 6, at("none", 2.2)) + C(x + w - 80, y + 70, 24, at("none", 2)) + T(x + w - 80, y + 150, "衛浴", 30, 400, "var(--w-sub)")
+    o += R(x + 20, y + h - 120, 200, 90, 6, at("none", 2.2)) + C(x + 70, y + h - 75, 16, at("none", 2)) + C(x + 120, y + h - 75, 16, at("none", 2)) + T(x + 290, y + h - 60, "小廚房", 30, 400, "var(--w-sub)")
+    o += T(x + w / 2, y + h + 60, "獨立套房", 32, 700, "var(--w-text)") + T(x + w / 2, y + h + 108, "15,000", 44, 700, "var(--w-text)")
+    x2 = 478
+    o += R(x2, y, w, h, 6, F1)
+    for i in range(3):
+        rx = x2 + 14 + i * 118
+        o += R(rx, y + 14, 106, 200, 4, HL if i == 1 else F3)
+    o += T(x2 + 14 + 118 + 53, y + 128, "這間", 30, 700, "var(--w-text)")
+    o += R(x2 + 14, y + 240, 150, 216, 4, at("none", 2.2)) + T(x2 + 89, y + 360, "共用衛浴", 30, 400, "var(--w-sub)")
+    o += R(x2 + 180, y + 240, 176, 216, 4, at("none", 2.2)) + T(x2 + 268, y + 360, "共用廚房", 30, 400, "var(--w-sub)")
+    o += T(x2 + w / 2, y + h + 60, "分租套雅房", 32, 700, "var(--w-text)") + T(x2 + w / 2, y + h + 108, "9,800", 44, 700, "var(--w-text)")
+    return o
+
+def sc_passbook(H=560):
+    """12/4 第 3 頁：打開的存摺，12 行月份，每行存入 5,200，最右欄累計到 62,400（最後一行晴光）。"""
+    x, y, w, h = 110, 20, 668, 520
+    o = R(x - 10, y - 6, w + 20, h + 12, 12, F3) + R(x, y, w, h, 8, F1) + Ln(x + w / 2, y, x + w / 2, y + h, at("none", 1.6, op=.5))
+    o += T(x + 70, y + 50, "月", 30, 700, "var(--w-text)") + T(x + 260, y + 50, "存入", 30, 700, "var(--w-text)") + T(x + 520, y + 50, "累計", 30, 700, "var(--w-text)")
+    for i in range(12):
+        ry = y + 70 + i * 37
+        if i == 11: o += R(x + 16, ry, w - 32, 34, 6, HL)
+        if i in (0, 5, 11):
+            o += T(x + 70, ry + 28, "%d" % (i + 1), 28 if False else 30, 400, "var(--w-text)") + T(x + 260, ry + 28, "5,200", 30, 400, "var(--w-text)") + T(x + 520, ry + 28, "{:,}".format(5200 * (i + 1)), 30, 700 if i == 11 else 400, "var(--w-text)")
+        else:
+            o += Ln(x + 50, ry + 18, x + 90, ry + 18, at("none", 1.4, op=.4)) + Ln(x + 220, ry + 18, x + 300, ry + 18, at("none", 1.4, op=.4)) + Ln(x + 470, ry + 18, x + 570, ry + 18, at("none", 1.4, op=.4))
+    return o
+
 def head(theme="晝版"):
     p = PAL[theme]; W, H = 1080, 1350
     return ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>:root{--W:%dpx;--H:%dpx;%s}%s .hintuse{font-weight:700}</style></head><body>' % (W, H, css_vars(p), CSS), GRAIN % (W, H, W, H),
@@ -750,6 +893,42 @@ POSTS = {
    {"title": "數字背後", "body": ["130 學年約 8.8 萬，少近 5 成；", "平均每年少約 5,400 人；", "是預測，不是實際報到數。"], "ask": "母校現在一個年級幾班？",
     "scene": lambda: (sc_bags(), 560)},
   ]},
+ "20261201_bonus": {
+  "src": "資料：104年終調查2026/11（1,055份）、財政部",
+  "pages": [
+   {"title": ["年終1.61個月，", "月薪4萬入帳多少？"], "scene": lambda: (sc_bonusbar(), 760)},
+   {"title": "資料從哪來", "body": ["104 人力銀行企業人資問卷，", "2026/10/6–11/2，有效 1,055 份；", "今年預估平均 1.61 個月。"],
+    "scene": lambda: (sc_vbars([("2025 實發", 1.65, "1.65 個月", False), ("2026 預估", 1.61, "1.61 個月", False)], 2, 520, hi=(1,)), 520)},
+   {"title": "數字背後", "body": ["6.44 萬未達 90,501 元起扣標準，", "發放時不預扣 5%，報稅再併計；", "樣本是企業人資。"], "ask": "年終入帳先放哪？",
+    "scene": lambda: (sc_gate(), 560)},
+  ]},
+ "20261202_bonusgap": {
+  "src": "資料：104年終調查2026/11（企業1,055份）",
+  "pages": [
+   {"title": ["金融業年終2.85個月，", "發放比例卻只有75%"], "scene": lambda: (sc_banks(), 760)},
+   {"title": "資料從哪來", "body": ["104 人力銀行企業人資問卷，", "2026/10/6–11/2，有效 1,055 份；", "企業預估的年終月數。"],
+    "scene": lambda: (sc_hbars([("金融業", 2.85, "2.85"), ("半導體業", 2.09, "2.09"), ("批發業", 1.81, "1.81"), ("全體平均", 1.61, "1.61")], 3.2, 520, ticks=[0, 1, 2, 3], tickfmt="%d 個月", hi=(0,), lw=200), 520)},
+   {"title": "數字背後", "body": ["發放比例：半導體 88.9% 最高，", "全體 78.5%，金融 75%；", "月數高，不代表每家都發。"], "ask": "同一行，年終差多少？",
+    "scene": lambda: (sc_gauges([("半導體業", 88.9, "88.9%", False), ("全體", 78.5, "78.5%", False), ("金融業", 75, "75%", True)]), 520)},
+  ]},
+ "20261203_minwage": {
+  "src": "資料：勞動部最低工資審議會2026/9/24",
+  "pages": [
+   {"title": ["明年起最低月薪，", "每月多1,400元"], "scene": lambda: (sc_twobags(), 760)},
+   {"title": "資料從哪來", "body": ["勞動部最低工資審議會，", "2026/9/24 決議，2027/1/1 起；", "月薪調幅約 4.75%。"],
+    "scene": lambda: (sc_waterfall(), 520)},
+   {"title": "數字背後", "body": ["一年多 16,800 元；", "時薪多 9 元，8 小時多 72 元；", "仍待行政院核定公告。"], "ask": "第一份薪水，離 30,900 多遠？",
+    "scene": lambda: (sc_hours(), 560)},
+  ]},
+ "20261204_rentshare": {
+  "src": "資料：內政部租金補貼租約2026上半年、主計總處",
+  "pages": [
+   {"title": ["北市一個人住套房，", "比分租雅房每月多5,200"], "scene": lambda: (sc_floorplans(), 760)},
+   {"title": "資料從哪來", "body": ["內政部租金補貼有效租約，", "2026 年上半年，臺北市中位數；", "台灣房屋趨勢中心整理。"],
+    "scene": lambda: (sc_vbars([("獨立套房", 15000, "15,000", False), ("分租套雅房", 9800, "9,800", False)], 18000, 520, hi=(1,)), 520)},
+   {"title": "數字背後", "body": ["以 25–29 歲月薪中位數 36,312 計，", "房租占 41% 和 27%（自算）；", "一年差 62,400 元。"], "ask": "省下的錢，換到什麼？",
+    "scene": lambda: (sc_passbook(), 560)},
+  ]}
 }
 
 def count(post):

@@ -1,0 +1,42 @@
+{
+ "slug": "bonus",
+ "date": "2026-12-01",
+ "summary": "104 人力銀行調查：企業預估年終平均 1.61 個月；月薪 4 萬約 64,400 元，低於 115 年度起扣標準 90,501 元，發放時不預扣 5%。",
+ "alts": [
+  "封面：年終 1.61 個月，月薪 4 萬入帳多少（64,400 元）",
+  "第 2 頁：資料從哪來與 2025 實發、2026 預估年終月數",
+  "第 3 頁：數字背後（起扣標準 90,501 元、不預扣、樣本口徑）"
+ ],
+ "sources": [
+  {
+   "title": "2026 企業年終及 2027 薪酬趨勢大調查",
+   "publisher": "104 人力銀行",
+   "date": "2026-11-17",
+   "url": "https://blog.104.com.tw/?p=264039"
+  },
+  {
+   "title": "78.5% 企業將發年終 平均 1.61 個月",
+   "publisher": "三立新聞網",
+   "date": "2026-11-17",
+   "url": "https://www.setn.com/news/1940153"
+  },
+  {
+   "title": "薪資所得扣繳規定（115 年度起扣標準 90,501 元）",
+   "publisher": "財政部稅務入口網",
+   "date": "2026-04-10",
+   "url": "https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/withheld-rule/rule/NM11BZY"
+  },
+  {
+   "title": "年終達 90,501 元 要先扣稅",
+   "publisher": "聯合報",
+   "date": "2026-02",
+   "url": "https://udn.com/news/story/7243/9294846"
+  },
+  {
+   "title": "補充保險費（獎金超過投保金額 4 倍部分 2.11%）",
+   "publisher": "衛福部中央健保署",
+   "url": "https://www.nhi.gov.tw/ch/dl-26429-47de962ef1464d8f91828d4421028290-1.pdf"
+  }
+ ],
+ "confidence": "一手發布者數字經兩個獨立來源一致；原表未能開啟（只有 WebSearch），發布前人工複核"
+}
