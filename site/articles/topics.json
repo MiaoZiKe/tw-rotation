@@ -1,6 +1,120 @@
 {
- "updated": "2026-11-26",
+ "updated": "2026-11-27",
  "topics": [
+  {
+   "id": "n_anthropic_ipo_retail",
+   "cat": "news",
+   "title": "Anthropic 上市散戶最高配兩成：怎麼買得到",
+   "why": "Anthropic 11/19 於 Nasdaq 掛牌，多篇報導稱散戶配額最高占公開發行 20%；讀者會問散戶怎麼拿到、會不會分流台股 AI 資金。各來源發行規模口徑不一，寫稿須並列口徑不挑定論。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-27",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_btc_15pct_11days",
+   "cat": "news",
+   "title": "比特幣 11 天跌 15%：新股抽資金還是避險",
+   "why": "天下雜誌報導比特幣 11 天跌約 15%、11/15 一度約 6.2 萬美元，美國現貨 ETF 連日淨流出；讀者會問錢是不是被 AI 新股抽走。流出天數與金額各來源口徑不同，須依資料日期分開寫，『資金分流』只能當推測。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-27",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_tw_rebound_1113_2d",
+   "cat": "news",
+   "title": "台股兩天彈 1,113 點：PCB 光通訊為何轉弱",
+   "why": "11/26 漲 956.38 點收 39,151.81、11/27 再漲 156.27 點收 39,308.08（中央社、鉅亨、聯合報），但 11/27 櫃買收黑、PCB 與光通訊走弱；讀者會問指數反彈為何主流族群反而跌。本站族群漲跌與法人買賣超可直接上圖。",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-11-27",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "i_machine_tool_chain",
+   "cat": "intro",
+   "title": "工具機產業鏈：主軸、控制器到整機怎麼分工",
+   "why": "站內已有工具機族群頁與 CNC 3D 圖，但產業鏈類還沒拆過工具機；讀者常問台廠做整機還是做零件、控制器為何多半外購。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-27",
+   "site_links": [
+    "#industry/group/machine_tool",
+    "#industry/group/factory_automation"
+   ]
+  },
+  {
+   "id": "i_airline_chain",
+   "cat": "intro",
+   "title": "航空客運鏈：飛機租賃、航空公司到機場服務",
+   "why": "站內已有航空族群頁；既有文章只寫航空貨運，客運端的租機、航空公司、地勤空廚分工還沒講過，年底旅遊旺季讀者會問。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-27",
+   "site_links": [
+    "#industry/group/airline"
+   ]
+  },
+  {
+   "id": "i_abf_substrate_chain",
+   "cat": "intro",
+   "title": "ABF 載板鏈：增層膜、載板廠到封裝廠怎麼接",
+   "why": "站內 IC 載板族群頁有 ABF 增層 3D 剖面；既有『從銅箔到載板』偏板材，這題專講 ABF 膜→載板→封裝這一段的交棒順序。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-27",
+   "site_links": [
+    "#industry/group/ic_substrate",
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_crystal_oscillator",
+   "cat": "know",
+   "title": "石英振盪器：每秒震 2500 萬次給晶片打拍子",
+   "why": "站內 3D 場景 power_inductor（電感・電阻・石英三顆各切一半）有石英剖面可用；知識類還沒有寫過石英頻率元件，25MHz 是網通晶片常見規格。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-27",
+   "site_links": [
+    "#industry/group/power_inductor",
+    "#industry/group/crystal"
+   ]
+  },
+  {
+   "id": "k_224g_connector",
+   "cat": "know",
+   "title": "224G 連接器：一個接點怎麼撐每秒 224Gb",
+   "why": "站內 3D 場景 ai_interconnect（一個接點拆開）可直接用；既有 k_connector 只講入門，這題講 AI 機櫃單通道 224Gbps 對接點設計、損耗的要求。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-27",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_pcie5_ssd_heat",
+   "cat": "know",
+   "title": "PCIe 5 SSD 讀 14GB/s 為何要散熱片",
+   "why": "站內 3D 場景 ssd（M.2 2280 NVMe 切開）可用；既有 k_ssd、k_ssd_controller 講結構，這題講傳輸代數翻倍後主控發熱與降速問題。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-27",
+   "site_links": [
+    "#industry/semiconductor/dg/memory_module"
+   ]
+  },
   {
    "id": "n_sec301_tw15",
    "cat": "news",
