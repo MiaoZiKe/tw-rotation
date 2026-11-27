@@ -14,10 +14,10 @@
    // 核定章：t=4.1 蓋下（核 11.34）
    const sp=T0-S1;if(sp>0){const sc=1+1.2*Math.max(0,1-sp/.18)+(-.06)*DECAY(sp-.18,9,22);const rot=-10;
     g+=`<g transform="translate(830,92) rotate(${rot}) scale(${sc.toFixed(3)})"><circle r="44" fill="none" stroke="#E36B4A" stroke-width="6" opacity="${clamp(sp*8).toFixed(2)}"/>`+T(0,14,'核定',40,700,'#E36B4A')+`</g>`}
-   // 金幣：從兩萬九千五起（6.2）三枚依序落到桌上，8.0 起 +1,400 箭頭（漲到三萬零九百 8.3）
+   // 金幣：從兩萬九千五起（6.2）三枚依序落到桌上，6.85 起（旁白「漲到」14.06 秒＝本鏡 6.84）在桌面左側奶油色底牌上出現 +1,400 箭頭，離核定章與落幣區各 ≥24px，換幕前停 ≥1.6 秒
    [6.2,6.8,7.4].forEach((c0,k)=>{const q=T0-c0;if(q<=0)return;const fall=clamp(q/.28);const y=300-k*18-(1-fall*fall)*130-(q>.28?10*Math.abs(DECAY(q-.28,7,16)):0);
     g+=`<ellipse cx="770" cy="${(y+8).toFixed(1)}" rx="48" ry="13" fill="#D9A441" stroke="${LINE}" stroke-width="3"/><ellipse cx="770" cy="${y.toFixed(1)}" rx="48" ry="13" fill="#F4B860" stroke="${LINE}" stroke-width="3"/>`});
-   const ap=clamp((T0-7.9)*4);if(ap>0){g+=`<g opacity="${ap.toFixed(2)}" transform="translate(0,${((1-ap)*18).toFixed(1)})"><path d="M628 92 L654 56 L680 92 L664 92 L664 104 L644 104 L644 92 Z" fill="#E36B4A" stroke="${LINE}" stroke-width="3" stroke-linejoin="round"/>`+T(740,92,'+1,400',34,700,'#E36B4A')+`</g>`}
+   const ap=clamp((T0-6.85)*4);if(ap>0){g+=`<g opacity="${ap.toFixed(2)}" transform="translate(0,${((1-ap)*14).toFixed(1)})"><rect x="494" y="276" width="200" height="64" rx="14" fill="#FFFDF8" stroke="${LINE}" stroke-width="3"/><path d="M512 322 L538 286 L564 322 L548 322 L548 330 L528 330 L528 322 Z" fill="#E36B4A" stroke="${LINE}" stroke-width="3" stroke-linejoin="round"/>`+T(630,320,'+1,400',34,700,'#E36B4A')+`</g>`}
   }
   return g},
   sfx(t0,s,E){E(t0+4.1,'thump',{g:.6});E(t0+4.1,'stamp',{g:.7});E(t0+.55,'thump',{g:.6});E(t0+.55,'click');[0,1,2].forEach(i=>E(t0+1.0+i*.18,'tick'))}}

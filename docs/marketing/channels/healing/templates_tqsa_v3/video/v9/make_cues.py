@@ -24,6 +24,7 @@ ACTIONS = {
  'regdesk': [(0.3, 'tick', 0, {'n': 6}, '號碼滾動'), (1.3, 'stamp', 0, {}, '印章蓋下')],
  'calendar6': [(0.4, 'paperslide', 0, {}, '月曆落上牆'), (1.2, 'stamp', 0, {}, '蓋「>2%」章')],
  'punchclock': [(0.4, 'paperslide', -2, {}, '卡片插入'), (0.75, 'stamp', 0, {}, '打卡咔一聲')],
+ 'gavel_mw': [(0.55, 'thump', 0, {}, '議事槌敲下'), (3.5, 'pageturn', -6, {}, '日曆翻到 10/1'), (4.1, 'stamp', 0, {}, '核定章蓋下'), (6.2, 'coin', -2, {'bounces': 2}, '金幣落上桌面')],
  'gavel': [(0.55, 'stamp', 2, {}, '議事槌敲下')],
  'notice': [(0.3, 'stamp', -3, {}, '圖釘釘上'), (1.0, 'paperslide', -2, {}, '放大鏡滑進')],
  'rateboard': [(0.3, 'tick', 0, {'n': 9, 'gap': 0.09}, '利率數字滾動')],
@@ -68,6 +69,7 @@ ACTIONS = {
 DEFAULT = [(0.3, 'paperslide', -2, {}, '主體入場')]
 WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
+MAXPER_BY_SUBJECT = {'gavel_mw': 5}   # 這鏡 8.8 秒較長：4 個動作音效＋換幕 whoosh
 MIN_SAME_GAP = 0.8   # 同種音效最短間隔（秒），避免連續叮聲太密
 DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
 DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
@@ -102,7 +104,7 @@ def main():
         subj = (s.get('subject') or {}).get('id')
         acts = list(ACTIONS.get(subj) or ([] if s.get('layout') in ('ask',) and not subj else DEFAULT))
         if s.get('layout') == 'odometer' and not acts: acts = ACTIONS['odometer']
-        acts = acts[:MAXPER - (1 if i else 0)]
+        acts = acts[:MAXPER_BY_SUBJECT.get(subj, MAXPER) - (1 if i else 0)]
         if i: acts = [WHOOSH] + acts
         for off, kind, gdb, prm, what in acts:
             t = max(0.0, t0 + off)
