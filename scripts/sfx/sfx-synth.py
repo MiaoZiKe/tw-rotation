@@ -405,14 +405,14 @@ def cmd_mix(argv):
     nf = len(ve)
     se = frame_rms(sd, hop)
     ceil_ = ve * db(-(MIN_GAP_DB + GUARD_MARGIN_DB))
-    spw = sp_full(speech, nf)
+    spw = sp_full(speech, nf); spk0 = speech[:nf] > 0.5      # spk0＝真正講話窗（不含放寬的前後窗）
     gf = np.where(spw, np.minimum(1.0, ceil_ / np.maximum(se, 1e-9)), 1.0)
     # 鄰窗取最小：④ 本地修正（2026/11/27）——只在「兩個講話窗之間」做，非講話窗的上限照常（=1）。
     # 原版對所有窗取最小，字尾緊接近乎靜音窗時會把上限拉到 −85 dB，撞擊音效被壓到聽不見。
     for d in (1, 2):
         for sgn in (1, -1):
-            nb = np.roll(gf, sgn * d); nbm = np.roll(spw, sgn * d)
-            gf = np.where(spw & nbm, np.minimum(gf, nb), gf)
+            nb = np.roll(gf, sgn * d); nbm = np.roll(spk0, sgn * d)
+            gf = np.where(spk0 & nbm, np.minimum(gf, nb), gf)
     xs = (np.arange(nf) + 0.5) * hop
     gs = np.interp(np.arange(n), xs, gf)
     sd = sd * gs[None, :]
