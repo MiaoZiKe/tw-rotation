@@ -33,3 +33,11 @@ Andy 原話：「修正後的影片 要馬是影片正常 旁白斷續，或是�
 - 分支 `wip/healing-1128-1129`（735319b06，不部署）：11/28 `20261128v_avgwage`、11/29 `20261129v_quit` 兩支做到一半的檔案（含 video.mp4、narration.wav、script.json），**夾帶共用工具改動**：`templates_tqsa_v3/video/video_runtime_v8.js`、`render_video.js`、`tts/tts_take.py`、`tts/make_segments.py`、`tts/raw_keep.py`。這分支夾帶其他頻道舊檔，不能整包併。
 - 要做的事：只挑出上述工具檔另開分支併 main（動到程式碼，不屬於歸檔任務）；兩支片的接續工作（avgwage 的「九→八」剪接要整句重配）由 11-27 07:30 的「談晴說礙檢討＋優化」排程（見 `schedules.md`）處理。
 - 在工具檔併入前，本檔 33 條提到的 `raw_keep.py` 只存在於該 wip 分支。
+
+## 2026-11-27 一個主題一個子聊天室（Andy，全頻道，主控轉達）
+Andy 原話：「以後製作影片 一個主題開一個子聊天室協助處理，從現在開始 所有頻道都是，至多3個先，誰跑完了就再給那個跑完的繼續」。
+- 每支新影片（一個主題）由④用 create_session 開一個子聊天室（同 repo tw-rotation、該片的影片分支），同時最多 3 個。
+- 子聊天室只做：腳本與規格 → 插圖／建模 → 預檢 → 雙審（animation-director＋art-director）；渲染、配音效一律走 GitHub Actions（healing_render.yml、healing_sfx.yml），不在容器渲染。
+- 子聊天室做完回報④；④再把下一個主題交給**同一個**跑完的子聊天室（不另開新的）。
+- ④換新對話時，子聊天室清單（session id、各做哪支、做到哪）寫進交接檔一起交接。
+- 這條是主控轉達 Andy 的指令，蓋過先前「④不准自己開新對話」中針對影片子聊天室的部分；④本身換新仍由主控開。
