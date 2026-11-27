@@ -1,26 +1,26 @@
-接段： 27 段 h264 5787329 bytes，幀數 1610
-片尾 LUFS -12.2、true peak -1.5 dBTP；調整紀錄 [{'gain': 1.0, 'lufs': -5.0, 'tp': -0.5}, {'gain': 0.389, 'lufs': -10.8, 'tp': -1.4}, {'gain': 0.32, 'lufs': -12.2, 'tp': -1.5}]
+接段： 27 段 h264 5852645 bytes，幀數 1585
+片尾 LUFS -12.2、true peak -1.4 dBTP；調整紀錄 [{'gain': 1.0, 'lufs': -5.0, 'tp': -0.4}, {'gain': 0.385, 'lufs': -10.9, 'tp': -1.4}, {'gain': 0.32, 'lufs': -12.2, 'tp': -1.4}]
 插圖面板外框／底板／縮放變動的鏡： 無（全片每幀每鏡固定）
 換鏡逐幀（舊鏡文字／新鏡文字同框的幀數）： 0 ；記錄幀數 32
-片尾四字與 LOGO 最小淨空 41.5 px；不足 24px 的幀： 0
-幀數 1610 抽檢 108 重疊 1 出界 0 上下留白錯誤 0 頂端最大留白 56 底端最大留白 46
-7.5s title×tag
-frames 1610
-靜止段最長 1.47 秒；>1.2 秒：[(52.2, 1.47)]
+片尾四字與 LOGO 最小淨空 41.6 px；不足 24px 的幀： 0
+幀數 1585 抽檢 106 重疊 1 出界 0 上下留白錯誤 1 頂端最大留白 56 底端最大留白 46
+26.5s title×tag
+frames 1585
+靜止段最長 1.47 秒；>1.2 秒：[(51.37, 1.47)]
 強調淨空： [('s2', 66.0), ('s3', 44.0), ('s5', 76.0), ('s6', 28.0), ('s8', 21.0)]
 
-{"start_rms_db_20ms": [-68.7, -58.8, -54.1, -51.6, -52.3, -50.7, -50.3, -51.5, -50.5, -49.1, -48.9, -50.6, -51.5, -52.6, -55.0], "start_ok": true, "voice_region_lufs": -16.0, "outro_lufs": -12.2, "full_lufs": -15.4, "true_peak_dbtp_max": -1.5, "rate_speech_only": 5.31, "rate_incl_pauses": 5.02, "dur": 53.666666666666664, "overlap": 1, "oob": 0, "edge": 0, "coText": 0, "panelChanged": [], "logoGapM
-第 0 輪：2 項問題；自動加旗標：['s2 tagAt 0.42→0.69（7.5s title×tag）']
+{"start_rms_db_20ms": [-83.4, -82.4, -72.0, -65.5, -68.4, -57.3, -65.4, -45.0, -40.2, -38.0, -41.3, -42.8, -43.6, -46.1, -48.8], "start_ok": true, "voice_region_lufs": -16.0, "outro_lufs": -12.2, "full_lufs": -15.5, "true_peak_dbtp_max": -1.4, "rate_speech_only": 5.41, "rate_incl_pauses": 5.12, "dur": 52.833333333333336, "overlap": 1, "oob": 0, "edge": 1, "coText": 0, "panelChanged": [], "logoGapM
+第 0 輪：3 項問題；自動加旗標：['s5 tagAt 0.15→0.42（26.5s title×tag）', 's5 capDy 18→8（26.5s cap 下緣 1700>1700）']
   （接段模式：旗標已寫回 script.json，要重渲請再觸發一次 healing_render）
 要人看的項目：
-  - s9 靜止 1.47 秒（52.20 秒起）
+  - s9 靜止 1.47 秒（51.37 秒起）
   - 已達 0 輪上限，最後一輪的旗標已寫入 script.json 但尚未重渲染；請再跑一次確認
 （autofix 後仍有要人看的項目，見上方與 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/autofix_log.json）
 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/video_sheet.png (1440, 1920)
 停頓：計入 8（換幕 3、句號後 5、句中 0）＋逗號自然 0（不計）／句數 12；句號後 0.55 s1「嗎?｜今年」；換幕短 0.31 s3→s4；句號後 0.35 s4「均｜少」；換幕 0.39 s4→s5；換幕 0.99 s5→s6；換幕 0.52 s6→s7；句號後 0.26 s7「下｜你的」；換幕短 0.29 s7→s8
-ASR 相似度 0.932；不一致 11：insert 念稿「」→聽到「子爹說」（念稿第 0 字）；insert 念稿「」→聽到「萬」（念稿第 5 字）；replace 念稿「000」→聽到「千」（念稿第 6 字）；replace 念稿「班族」→聽到「半組」（念稿第 25 字）；replace 念稿「主計」→聽到「足跡」（念稿第 32 字）；replace 念稿「處」→聽到「數」（念稿第 35 字）；replace 念稿「性」→聽到「薪」（念稿第 45 字）；replace 念稿「出」→聽到「處」（念稿第 95 字）；replace 念稿「0000」→聽到「萬」（念稿第 131 字）；replace 念稿「含」→聽到「和」（念稿第 160 字）；replace 念稿「班」→聽到「半」（念稿第 168 字）
+ASR 相似度 0.961；不一致 7：replace 念稿「班族」→聽到「半組」（念稿第 25 字）；replace 念稿「主計」→聽到「足跡」（念稿第 32 字）；replace 念稿「處」→聽到「數」（念稿第 35 字）；replace 念稿「性」→聽到「新」（念稿第 45 字）；replace 念稿「出」→聽到「處」（念稿第 95 字）；replace 念稿「含」→聽到「和」（念稿第 160 字）；replace 念稿「班」→聽到「半」（念稿第 168 字）
 自動檢查：合格
--rw-r--r-- 1 runner runner  227232 Nov 27 01:02 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/cover.jpg
--rw-r--r-- 1 runner runner 2477123 Nov 27 01:04 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/frames_1s.png
--rw-r--r-- 1 runner runner 7127105 Nov 27 01:02 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/video.mp4
--rw-r--r-- 1 runner runner 1124289 Nov 27 01:03 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/video_sheet.png
+-rw-r--r-- 1 runner runner  224282 Nov 27 01:49 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/cover.jpg
+-rw-r--r-- 1 runner runner 2543853 Nov 27 01:51 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/frames_1s.png
+-rw-r--r-- 1 runner runner 7172243 Nov 27 01:49 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/video.mp4
+-rw-r--r-- 1 runner runner 1134284 Nov 27 01:51 /home/runner/work/tw-rotation/tw-rotation/docs/marketing/channels/healing/queue/20261128v_avgwage/video_sheet.png
