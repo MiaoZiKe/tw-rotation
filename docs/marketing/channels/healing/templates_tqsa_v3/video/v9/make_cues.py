@@ -68,6 +68,7 @@ ACTIONS = {
 DEFAULT = [(0.3, 'paperslide', -2, {}, '主體入場')]
 WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
+MIN_SAME_GAP = 0.8   # 同種音效最短間隔（秒），避免連續叮聲太密
 DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
 DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
 
@@ -117,6 +118,18 @@ def main():
                 c['dur'] = round(d, 2)
             cues.append(c)
             rows.append((c['t'], what, kind, gdb, s['id']))
+    # 同種音效間隔 ≥ MIN_SAME_GAP：太近的後一個往後挪（挪完仍太晚或會撞進下一鏡就丟掉）
+    rowd = {id(r): r for r in rows}
+    cues_rows = sorted(zip(cues, rows), key=lambda x: x[0]['t'])
+    last, keep = {}, []
+    for c, r in cues_rows:
+        p = last.get(c['kind'])
+        if p is not None and c['t'] - p < MIN_SAME_GAP:
+            nt = round(p + MIN_SAME_GAP, 2)
+            if nt >= end_card - 0.3: continue
+            c['t'] = nt; r = (nt,) + tuple(r[1:])
+        last[c['kind']] = c['t']; keep.append((c, r))
+    cues = [c for c, _ in keep]; rows = [r for _, r in keep]
     cues.sort(key=lambda c: c['t'])
     out = {'total': total, 'endCardSec': round(end_card, 2), 'cues': cues}
     cp = a[a.index('--cues') + 1] if '--cues' in a else os.path.join(d, 'cues.json')
@@ -124,9 +137,12 @@ def main():
     tb = ['| 秒數 | 動作 | 音效 | 音量 |', '|---|---|---|---|']
     for t, what, kind, gdb, sid in sorted(rows):
         tb.append(f'| {t:.2f} 秒（{sid}） | {what} | {kind} | 比預設 {gdb:+d} dB，整體低旁白 14～18 dB |')
+    # 片尾卡招牌音效（原片自帶，乾淨底片裡保留）：成片裡全部音效都列出
+    os_ = float(a[a.index('--outro-start') + 1]) if '--outro-start' in a else end_card
+    tb.append(f'| {os_:.2f} 秒（片尾卡） | 片尾卡招牌音 | video_outro_sfx.mp3 | 原片音量（底片自帶），片尾卡後不加運作音效 |')
     tp = a[a.index('--table') + 1] if '--table' in a else os.path.join(d, 'sfx_table.md')
     open(tp, 'w').write('音效清單：秒數｜動作｜音效｜音量\n\n' + '\n'.join(tb) + '\n')
-    print(f'{len(cues)} 個音效，片尾卡 {end_card:.2f} 秒 → {cp}、{tp}')
+    print(f'{len(cues)} 個音效（另含片尾卡招牌音 1 筆），片尾卡 {end_card:.2f} 秒 → {cp}、{tp}')
 
 
 if __name__ == '__main__':
