@@ -307,6 +307,18 @@ def room(buf):
 # ---------------------------------------------------------------- 登錄表
 KINDS = {}   # kind -> (函式 fn(dur, **params) -> 單聲道陣列, 預設音量 dB)
 
+# 2026-11-27 主控決定（④實測）：音效分兩類。impact（撞擊、蓋章、硬幣、敲槌、閥門、腳步…短促的「動作聲」）講話中只壓到比旁白低 14～16 dB，
+# 守住 ≥14 dB 下限但不深壓，才聽得到「音效配對應動作」；bed（馬達、氣流、液體…鋪陳底聲）照區段深壓。cue 可寫 "class": "impact"｜"bed" 覆蓋。
+IMPACT_KINDS = {'clunk', 'valve', 'thump', 'footstep', 'door', 'cup', 'pageturn', 'slide'}
+IMPACT_RE = re.compile(r'stamp|coin|gavel|hit|knock|click|tap|clink|bang')
+LAST_IMPACT = None   # render_cues 最後一次產生的 impact 分軌（與總軌同一個正規化係數）
+
+def cls_of(c):
+    k = c.get('class')
+    if k in ('impact', 'bed'): return k
+    return 'impact' if (c['kind'] in IMPACT_KINDS or IMPACT_RE.search(c['kind'])) else 'bed'
+
+
 def register(kind, fn, gain_db=0.0):
     KINDS[kind] = (fn, gain_db)
 
@@ -341,7 +353,8 @@ def _servo_seq(dur, n):
 
 def render_cues(cues, total_sec, end_t=None):
     """cue 表 → (2, N) 立體聲 buffer 與實際排出的紀錄。"""
-    buf = np.zeros((2, int(total_sec * SR)))
+    global LAST_IMPACT
+    buf = np.zeros((2, int(total_sec * SR))); ibuf = np.zeros_like(buf)
     out = []
     cutoff = end_t if end_t is not None else total_sec + 1
     for c in sorted(cues, key=lambda z: z['t']):
@@ -358,13 +371,15 @@ def render_cues(cues, total_sec, end_t=None):
         if REAL:      # 擬真模式（--style A／B／C 才開）：多層疊合＋隨機微變化
             y, g, pan = realize(k, y, g, pan)
         place(buf, y, t0, pan, g)
-        out.append(dict(t=round(t0, 3), t_end=round(t0 + len(y) / SR, 3), type=k, src=c.get('src', ''), gain_db=round(gdb + float(c.get('gain') or 0), 1)))
+        if cls_of(c) == 'impact': place(ibuf, y, t0, pan, g)
+        out.append(dict(t=round(t0, 3), t_end=round(t0 + len(y) / SR, 3), type=k, cls=cls_of(c), src=c.get('src', ''), gain_db=round(gdb + float(c.get('gain') or 0), 1)))
     if end_t is not None:
         i = int(end_t * SR); k = int(0.1 * SR)
         buf[:, max(0, i - k):i] *= np.linspace(1, 0, min(k, i))
-        buf[:, i:] = 0
-    if REAL: buf = room(buf)        # 輕微空間殘響
+        buf[:, i:] = 0; ibuf[:, max(0, i - k):i] *= np.linspace(1, 0, min(k, i)); ibuf[:, i:] = 0
+    if REAL: buf = room(buf); ibuf = room(ibuf)        # 輕微空間殘響（線性，兩軌一致）
     pk = np.max(np.abs(buf)) + 1e-9
+    LAST_IMPACT = ibuf / pk * 0.5
     return buf / pk * 0.5, out      # 內部參考：峰值 −6 dBFS；實際音量由 mix 依旁白決定
 
 
@@ -402,6 +417,7 @@ def frame_rms(x, hop):
 
 
 MIN_GAP_DB = 14.0         # 硬門檻：旁白講話的每一窗，sfx 要比旁白低至少這麼多 dB（Andy 2026/11/27：「不要影響旁白聲」）
+VANISH_BED_DB = 40.0      # 鋪陳類（bed）講話中本來就深壓 −25～−28 dB，壓超過 40 dB 才算消失
 VANISH_DB = 20.0          # cue 在成片的殘差比設計音量低超過這麼多＝被壓到消失（④ 2026-11-27 建議）
 GUARD_MARGIN_DB = 1.5     # 逐窗天花板多留的餘裕
 
@@ -422,6 +438,11 @@ def cmd_mix(argv):
     n = v.shape[1]
     if s.shape[1] < n: s = np.pad(s, ((0, 0), (0, n - s.shape[1])))
     s = s[:, :n]
+    imp = None
+    if os.path.exists(sfx + '.impact.wav'):          # render／sfx-ops 產的 impact 分軌（同正規化）
+        imp = read_wav(sfx + '.impact.wav')
+        if imp.shape[1] < n: imp = np.pad(imp, ((0, 0), (0, n - imp.shape[1])))
+        imp = imp[:, :n]
     if v.shape[0] == 1: v = np.vstack([v, v])
     hop = int(0.02 * SR)
     ve = frame_rms(v, hop)
@@ -438,7 +459,10 @@ def cmd_mix(argv):
     g = voice_rms * db(LEVEL_BELOW) / sfx_rms
     # 軟限幅：瞬間聲（clunk、閥門）峰值不超過 sfx 平均 RMS 的 3 倍，避免蓋過旁白字尾
     cap = 3.0 * sfx_rms
-    s = np.tanh(s / cap) * cap
+    s_pre = s; s = np.tanh(s / cap) * cap
+    if imp is not None:   # 軟限幅是逐樣本縮放，撞擊分軌照同一個比例縮，兩軌相加仍等於總軌
+        r = np.where(np.abs(s_pre) > 1e-9, s / np.where(np.abs(s_pre) > 1e-9, s_pre, 1), 1.0); imp = imp * r
+    bed = s - imp if imp is not None else s
     sfx_rms = np.sqrt((frame_rms(s, hop)[act] ** 2).mean()) if act.any() else sfx_rms
     g = voice_rms * db(LEVEL_BELOW) / sfx_rms
     # 平滑壓低（Andy 2026/11/27：「不要斷斷續續」）：以「講話區段」為單位，不逐字窗跳動。
@@ -471,7 +495,7 @@ def cmd_mix(argv):
         # 先往回再前進一次，讓「前導壓低」不被平滑吃掉：取 min(平滑曲線, 前導視窗內的平滑曲線)
         return cur
 
-    s2 = s * g
+    s2 = bed * g                    # 區段深壓只作用在鋪陳類（bed）
     se_raw = frame_rms(s2, hop)
     xs = (np.arange(nf) + 0.5) * hop
     for it in range(40):
@@ -488,6 +512,21 @@ def cmd_mix(argv):
         if not bad: break
     gs = 10 ** (np.interp(np.arange(n), xs, cur) / 20)
     sd = s2 * gs[None, :]
+    ig = np.ones(n)
+    if imp is not None:
+        # 撞擊類：講話窗逐窗天花板＝旁白 −(14＋餘裕)，扣掉同窗已壓低的鋪陳聲能量；不講話的窗維持設計音量。
+        # 鄰窗取最小只在講話窗之間做（④修法），不講話的窗只承接相鄰講話窗的值，避免內插時把高增益漏進講話窗。
+        i2 = imp * g; ie = frame_rms(i2, hop); be = frame_rms(sd, hop)
+        ceil_ = ve * db(-(MIN_GAP_DB + GUARD_MARGIN_DB))
+        allow = np.sqrt(np.maximum(ceil_ ** 2 - be ** 2, 0))
+        gi = np.ones(nf)
+        gi[spk] = np.minimum(1.0, allow[spk] / np.maximum(ie[spk], 1e-9))
+        g0 = gi.copy()
+        for i in range(nf):
+            nb = [g0[j] for j in (i - 1, i, i + 1) if 0 <= j < nf and spk[j]]
+            if nb: gi[i] = min(nb + ([g0[i]] if spk[i] else []))
+        ig = np.interp(np.arange(n), xs, gi)
+        sd = sd + i2 * ig[None, :]
     mix = v + sd
     se2 = frame_rms(sd, hop)
     gap = 20 * np.log10(ve[spk] / np.maximum(se2[spk], 1e-9))
@@ -498,7 +537,7 @@ def cmd_mix(argv):
         sys.exit(f'錯誤：講話段有 sfx 只比旁白低 {worst:.1f} dB（<{MIN_GAP_DB}），不輸出')
     write_wav(out, mix)
     # 2026-11-27 ④回報：音效被壓到消失。把「設計音量（壓低前）」的音效軌另存，給成片解碼後的 check 比對每個 cue 的殘差。
-    write_wav(out + '.sfxref.wav', np.clip(s2, -1, 1))
+    write_wav(out + '.sfxref.wav', np.clip(s * g, -1, 1))
     info = dict(voice_rms_db=round(20 * math.log10(voice_rms), 1), sfx_rms_db=round(20 * math.log10(sfx_rms * g), 1),
                 gain=round(g, 4), duck_db=DUCK_DB, level_below_db=LEVEL_BELOW)
     print(json.dumps(info, ensure_ascii=False))
@@ -529,15 +568,18 @@ def cmd_check(argv):
         r = read_wav(argv[argv.index('--ref') + 1])
         if r.shape[0] == 1: r = np.vstack([r, r])
         r = np.pad(r, ((0, 0), (0, max(0, n - r.shape[1]))))[:, :n] * k
-        gone = []
+        gone = []; n_imp = 0
         for c in rec:
             a0 = int(c['t'] * SR); a1 = min(n, int(max(c.get('t_end', c['t'] + 0.2), c['t'] + 0.1) * SR))
             if a1 - a0 < hop: continue
             er = np.sqrt((r[:, a0:a1] ** 2).mean() + 1e-12); es = np.sqrt((res[:, a0:a1] ** 2).mean() + 1e-12)
             if er < 1e-5: continue
             att = 20 * math.log10(es / er)
-            if att < -VANISH_DB: gone.append((c['t'], c.get('type', ''), att))
-        print(f'cue 殘差檢查：{len(rec)} 個 cue，被壓超過 {VANISH_DB:.0f} dB（聽不見）的 {len(gone)} 個' + ''.join(f'\n  {t:.2f} 秒 {ty}：{a:.1f} dB' for t, ty, a in gone))
+            cl = c.get('cls') or cls_of(dict(kind=c.get('type', '')))
+            n_imp += cl == 'impact'
+            lim = VANISH_DB if cl == 'impact' else VANISH_BED_DB       # 撞擊類 20 dB；鋪陳類照區段深壓，40 dB 才算消失
+            if att < -lim: gone.append((c['t'], f"{c.get('type', '')}（{cl}）", att))
+        print(f'cue 殘差檢查：{len(rec)} 個 cue（撞擊類 {n_imp}），被壓到聽不見的 {len(gone)} 個（撞擊類門檻 {VANISH_DB:.0f} dB、鋪陳類 {VANISH_BED_DB:.0f} dB）' + ''.join(f'\n  {t:.2f} 秒 {ty}：{a:.1f} dB' for t, ty, a in gone))
         if gone and not os.environ.get('SFX_ALLOW_VANISH'): bad = True
     if bad: sys.exit(1)
 
@@ -552,6 +594,7 @@ def main():
     total = float(a[a.index('--total') + 1]) if '--total' in a else (cj.get('total') if isinstance(cj, dict) and cj.get('total') else max(c['t'] + (c.get('dur') or 0) for c in cues) + 1.5)
     buf, rec = render_cues(cues, total, end)
     write_wav(a[2], buf)
+    write_wav(a[2] + '.impact.wav', LAST_IMPACT)     # 撞擊類分軌，mix 自動讀
     if '--cues-out' in a:
         os.makedirs(os.path.dirname(a[a.index('--cues-out') + 1]) or '.', exist_ok=True)
         json.dump(dict(count=len(rec), endCardSec=end, cues=rec), open(a[a.index('--cues-out') + 1], 'w'), ensure_ascii=False, indent=1)
