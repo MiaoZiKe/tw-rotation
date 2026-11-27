@@ -20,7 +20,7 @@
   },
   "airoha.com": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "達發"
    ],
@@ -128,7 +128,7 @@
   },
   "apmemory.com": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "愛普"
    ],
@@ -285,17 +285,17 @@
   },
   "avc.co": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "奇鋐"
    ],
    "tried": {
-    "site": "ok [16, 16]",
+    "site": "too_small 16x16 https://www.google.com/s2/favicons?domain=avc.co&sz=128",
     "wikimedia": "none Wikidata 查不到官網是 avc.co 的 Asia Vital Components／沒有標誌圖",
     "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=avc.co&sz=256"
    },
    "rv": 7,
-   "detail": ""
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=avc.co&sz=128"
   },
   "benq.com": {
    "status": "ok",
@@ -376,7 +376,7 @@
   },
   "chicony.com": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "群光"
    ],
@@ -456,7 +456,7 @@
   },
   "eink.com": {
    "status": "not_logo",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "元太"
    ],
@@ -471,7 +471,7 @@
   },
   "emc.com.tw": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "義隆"
    ],
@@ -519,7 +519,7 @@
   },
   "eternal-group.com": {
    "status": "not_logo",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "長興材料"
    ],
@@ -551,7 +551,7 @@
   },
   "fitipower.com": {
    "status": "not_logo",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "天鈺"
    ],
@@ -566,7 +566,7 @@
   },
   "focaltech-electronics.com": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "敦泰"
    ],
@@ -790,7 +790,7 @@
   },
   "innolux.com": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "群創"
    ],
@@ -895,18 +895,19 @@
    "sha1": "3b059ed2d21bee2f5588e57e185892ba6a79150c"
   },
   "kinsus.com.tw": {
-   "status": "none",
-   "fetched": "2026-10-29",
+   "status": "not_logo",
+   "fetched": "2026-11-28",
    "names": [
     "景碩"
    ],
    "tried": {
-    "site": "none HTTP 401 https://www.kinsus.com.tw/apple-touch-icon.png",
+    "site": "ok [48, 48]",
     "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
+    "quality": "人工排除：官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
    "rv": 7,
-   "detail": "HTTP 401 https://www.kinsus.com.tw/apple-touch-icon.png"
+   "detail": "人工排除：官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼"
   },
   "kla.com": {
    "status": "ok",
@@ -942,7 +943,7 @@
   },
   "ksmt.com.tw": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "雍智"
    ],
@@ -973,7 +974,7 @@
   },
   "largan.com.tw": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "大立光"
    ],
@@ -1165,7 +1166,7 @@
   },
   "nantex.com.tw": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "南帝化工"
    ],
@@ -1277,7 +1278,7 @@
   },
   "princeton.com.tw": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "普誠"
    ],
@@ -1459,7 +1460,7 @@
   },
   "soinc.com.tw": {
    "status": "robots",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "晶相光電"
    ],
@@ -1473,7 +1474,7 @@
   },
   "solartech.com.tw": {
    "status": "not_logo",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "光洋應材"
    ],
@@ -1572,7 +1573,7 @@
   },
   "stl-tech.com": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "新盛力科技"
    ],
@@ -1763,7 +1764,7 @@
   },
   "unimicron.com": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "欣興"
    ],
@@ -1823,7 +1824,7 @@
   },
   "winbond.com": {
    "status": "too_small",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "華邦電"
    ],
@@ -1879,7 +1880,7 @@
   },
   "wistron.com": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "緯創"
    ],
@@ -1893,7 +1894,7 @@
   },
   "wiwynn.com": {
    "status": "not_logo",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "緯穎"
    ],
@@ -1908,7 +1909,7 @@
   },
   "xintec.com.tw": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "精材"
    ],
@@ -1922,7 +1923,7 @@
   },
   "zdtco.com": {
    "status": "none",
-   "fetched": "2026-10-29",
+   "fetched": "2026-11-28",
    "names": [
     "臻鼎"
    ],
@@ -1935,5 +1936,5 @@
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-11-26T16:09:49.857453+00:00"
+ "updated_at": "2026-11-27T16:31:08.252756+00:00"
 }
