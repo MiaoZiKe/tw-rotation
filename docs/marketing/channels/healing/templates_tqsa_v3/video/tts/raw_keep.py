@@ -14,11 +14,12 @@ off = S[0]["src"][0] - lead                        # 原始錄音裡對應成品
 # 裁頭（2026-11-27 重寫：avgwage／quit 審片「片頭殘留設定句尾巴『直接說』」）：舊版只用能量找「開口」，會把設定句本身當成念稿開口；
 # 現在先用 ASR 找「直接說」，再找它之後第一段 ≥0.15 秒的安靜，安靜的結尾才是念稿第一個字（head_onset.py）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from head_onset import script_onset
+from head_onset import script_onset, first_line, OnsetError
 asrp = os.path.splitext(raw)[0] + ".asr.json"
 on_info = None
 if os.path.exists(asrp):
-    on_info = script_onset(x, SR, json.load(open(asrp)))
+    try: on_info = script_onset(x, SR, json.load(open(asrp)), first_line(os.path.join(os.path.dirname(os.path.abspath(raw)), "narration.txt")))
+    except OnsetError as e: sys.exit("裁頭定位失敗，不輸出（請人工確認首字起音）：%s" % e)   # 2026-11-27：有 ASR 卻對不上就報錯，不退回舊能量法
 if on_info:
     onset = on_info["onset"]                       # 念稿第一個字的起音（原始錄音秒數）
     off0 = off; off = onset - .04 - lead
