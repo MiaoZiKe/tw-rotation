@@ -115,3 +115,8 @@ TTS：gemini-3.8-flash-tts／Sulafat，整份念稿一次送出（規則 33：�
 1. 四道驗證其餘：③ audio-check（數位靜音／斷音／硬起音）、② Gemini 聽感＋平捲舌（ㄓㄔㄕ vs ㄗㄘㄙ）人工聽前 15 秒、④ 1 秒抽格逐格看（workflow 會產 frames_1s.png、video_sheet.png、verify4.json）。
 2. art-director／animation-director 打分（≥7）。
 3. 起承轉合標註、重疊檢查那一行（程式 N 幀 0 筆；人工 M 格 0 筆）。
+
+## 2026-11-27 規則 23 剪停頓已執行（影片製作棒）
+- narration.wav 3.30～4.00 秒（−56～−60 dB 錄音底噪、無字；silencedetect 與逐 0.1 秒能量確認）剪掉 0.70 秒，接縫 15 毫秒等功率交叉淡化；「你猜有多少？」後停頓 1.24→0.56 秒。依規則 23，句間純底噪，非句內插入；未拉伸、未重配 TTS、其他停頓未動。
+- 旁白 52.65→51.95 秒；cut.json 加 `rule23_cut` 備查，後面時間戳全部 −0.70；已重跑 make_segments、verify4 --no-sheet（pass_auto 合格，最長停頓 0.97 秒＜1.0，句內 0）。
+- 待重渲後補驗：成品停頓表、換幕對起音、重疊報告。原檔備份：scratchpad narration_before_cut23.wav（不進 repo）。
