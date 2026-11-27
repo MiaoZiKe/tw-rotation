@@ -3,9 +3,9 @@
 const {chromium}=require('/opt/node-tools/node_modules/playwright');const fs=require('fs');const path=require('path');const {execFileSync}=require('child_process');
 const name=process.argv[2];const A=process.argv.slice(3);const arg=k=>{const i=A.indexOf(k);return i<0?null:A[i+1]};
 // 2026-11-27 分段渲染（給 .github/workflows/healing_render.yml 多台同時跑；不帶下列參數＝原行為，整片一台渲完）：
-//   --from A --to B --seg DIR   只渲第 A～B-1 幀（A 要是 fps/2 的倍數）→ DIR/seg_<A>.h264（只有畫面、各段獨立 IDR 起頭）＋DIR/rep_<tag>.json（該段的重疊檢查）＋含封面幀的段會存 DIR/cover.png
+//   --from A --to B --seg DIR   只渲第 A～B-1 幀（A 要是 fps/2 的倍數）→ DIR/seg_<A>.mp4（只有畫面、各段獨立 IDR 起頭、自帶時間戳）＋DIR/rep_<tag>.json（該段的重疊檢查）＋含封面幀的段會存 DIR/cover.png
 //   --chunk C --job K --jobs J --seg DIR   總幀數依 C 幀切段，這台渲第 K、K+J、K+2J… 段（交錯）
-//   --assemble DIR   不渲染；把 DIR 的各段 h264 依序接起來、合併各段檢查報告，再配音軌（含 sfx）出 video.mp4／cover.jpg／overlap_report_video.json（與整片版同樣的檔名與內容）
+//   --assemble DIR   不渲染；把 DIR 的各段 mp4 用 concat 分離器依序接起來、合併各段檢查報告，再配音軌（含 sfx）出 video.mp4／cover.jpg／overlap_report_video.json（與整片版同樣的檔名與內容）
 const SEG=arg('--seg'),ASM=arg('--assemble');const html=path.join(__dirname,'html',name+'.html');
 const tmp=path.join(__dirname,'tmp',name);
 fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
@@ -50,15 +50,18 @@ const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
    r.ov.forEach(x=>rep.overlap.push(t.toFixed(1)+'s '+x));r.oob.forEach(x=>rep.oob.push(t.toFixed(1)+'s '+x));
    if(V.edge60){(rep.edge=rep.edge||[]).push(...r.ws.map(x=>t.toFixed(1)+'s '+x));rep.gapTopMax=Math.max(rep.gapTopMax||0,r.top);rep.gapBotMax=Math.max(rep.gapBotMax||0,r.bot)}}}
   if(SEG){fs.mkdirSync(SEG,{recursive:true});const P5=x=>String(x).padStart(5,'0')+'.png';
-   execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(V.fps),'-start_number',String(r0),'-i',path.join(tmp,'%05d.png'),'-frames:v',String(r1-r0),'-c:v','libx264','-pix_fmt','yuv420p','-profile:v','high','-crf','20','-r',String(V.fps),'-f','h264',path.join(SEG,'seg_'+String(r0).padStart(6,'0')+'.h264')]);
+   execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(V.fps),'-start_number',String(r0),'-i',path.join(tmp,'%05d.png'),'-frames:v',String(r1-r0),'-c:v','libx264','-pix_fmt','yuv420p','-profile:v','high','-crf','20','-r',String(V.fps),'-f','mp4',path.join(SEG,'seg_'+String(r0).padStart(6,'0')+'.mp4')]);
    const ci=Math.round(CT*V.fps);if(ci>=r0&&ci<r1)fs.copyFileSync(path.join(tmp,P5(ci)),path.join(SEG,'cover.png'));
    for(let f=r0;f<r1;f++)fs.rmSync(path.join(tmp,P5(f)),{force:true})}}
  await b.close();
  if(SEG){fs.mkdirSync(SEG,{recursive:true});fs.writeFileSync(path.join(SEG,'rep_'+(arg('--tag')||RANGES.map(r=>r[0]).join('_'))+'.json'),JSON.stringify(rep));console.log('分段完成',RANGES.map(r=>r.join('-')).join(','),'抽檢',rep.checked,'重疊',rep.overlap.length,'出界',rep.oob.length);return}
  let ALLH=null;
- if(ASM){   // 接段：各段 h264 依幀序串起（各段獨立 IDR＋SPS/PPS，直接 cat 即可）＋合併各段檢查報告
-  const segs=fs.readdirSync(ASM).filter(x=>/^seg_\d+\.h264$/.test(x)).sort();ALLH=path.join(ASM,'all.h264');
-  fs.writeFileSync(ALLH,Buffer.concat(segs.map(x=>fs.readFileSync(path.join(ASM,x)))));
+ if(ASM){   // 接段：各段 mp4 依幀序用 concat 分離器接起（各段獨立 IDR）＋合併各段檢查報告
+  // 2026-11-27 修卡頓：舊版各段輸出裸 h264（含 B 幀）再 cat 接起來、-f h264 -c:v copy 封裝 → 裸流沒有時間戳，封裝時 PTS 照解碼順序配，
+  //   B 幀顯示順序整片錯亂（外食片 1530 幀有 673 幀 PTS 倒退、還掉 2 幀）＝播放器前後跳格「卡卡」。改成每段 mp4（自帶 PTS/DTS）＋ffmpeg concat 分離器 -c copy 接段。
+  const segs=fs.readdirSync(ASM).filter(x=>/^seg_\d+\.mp4$/.test(x)).sort();ALLH=path.join(ASM,'concat.txt');
+  if(fs.readdirSync(ASM).some(x=>/^seg_\d+\.h264$/.test(x)))throw new Error('接段：看到舊格式 seg_*.h264（時間戳會錯亂），請用新版 render_video.js 重渲各段');
+  fs.writeFileSync(ALLH,segs.map(x=>"file '"+path.join(ASM,x).replace(/'/g,"'\\''")+"'").join('\n')+'\n');
   const reps=fs.readdirSync(ASM).filter(x=>/^rep_.*\.json$/.test(x)).map(x=>JSON.parse(fs.readFileSync(path.join(ASM,x),'utf8')));
   const tt=x=>parseFloat(typeof x==='string'?x:x.t);
   for(const r of reps){rep.checked+=r.checked;['overlap','oob','edge','coText','transitionFrames','logoGap','logoOverlap'].forEach(k=>{if(r[k]){rep[k]=(rep[k]||[]).concat(r[k])}});
@@ -67,7 +70,7 @@ const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
    if(r.panel){rep.panel=rep.panel||{};for(const [sid,v] of Object.entries(r.panel)){const d=(rep.panel[sid]=rep.panel[sid]||{frame:{},base:{},transform:{}});['frame','base','transform'].forEach(k=>{for(const [kk,c] of Object.entries(v[k]))d[k][kk]=(d[k][kk]||0)+c})}}}
   ['overlap','oob','edge','coText','transitionFrames','logoGap','logoOverlap'].forEach(k=>{if(rep[k])rep[k].sort((a,c)=>tt(a)-tt(c))});
   if(rep.checked!==Math.ceil(n/HF))throw new Error('接段：抽檢格數 '+rep.checked+' ≠ 應有 '+Math.ceil(n/HF)+'，有段漏掉');
-  const sz=fs.statSync(ALLH).size;console.log('接段：',segs.length,'段 h264',sz,'bytes，幀數',n)}
+  const sz=segs.reduce((a,x)=>a+fs.statSync(path.join(ASM,x)).size,0);console.log('接段：',segs.length,'段 mp4',sz,'bytes，幀數',n)}
  // 有旁白音檔（segments.json 的 audio）就用旁白；沒有就放靜音音軌（相容性）
  let AIN=V.audio&&fs.existsSync(V.audio)?['-i',V.audio]:['-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=44100'];
  // v3：音效（video_runtime_v3.js 的 sfxEvents）＋旁白 → sfx_v3.py 合成、限幅、量片尾響度與開頭起音 → AAC，直接接進影片
@@ -76,8 +79,10 @@ const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
   const ot=(V.scenes.find(x=>x.type==='outro')||{t0:V.dur}).t0,am=path.join(tmp,'audio.m4a'),base=OUT.replace(/\.mp4$/,'');
   execFileSync('python3',[path.join(__dirname,'sfx_v3.py'),evp,String(n/V.fps),String(ot),am,path.join(out,base+'_audio.json'),V.audio&&fs.existsSync(V.audio)?V.audio:'',path.join(out,base+'_outro_sfx.mp3')],{stdio:'inherit',env:Object.assign({},process.env,{OUTRO_LUFS:String(V.outro_lufs||-11.5)})});
   AIN=['-i',am]}
- execFileSync('ffmpeg',['-y','-loglevel','error',...(ASM?['-framerate',String(V.fps),'-f','h264','-i',ALLH]:['-framerate',String(V.fps),'-i',path.join(tmp,'%05d.png')]),...AIN,
+ execFileSync('ffmpeg',['-y','-loglevel','error',...(ASM?['-f','concat','-safe','0','-i',ALLH]:['-framerate',String(V.fps),'-i',path.join(tmp,'%05d.png')]),...AIN,
   '-t',String(n/V.fps),...(ASM?['-c:v','copy']:['-c:v','libx264','-pix_fmt','yuv420p','-profile:v','high','-crf','20','-r',String(V.fps)]),...(V.sfx?['-c:a','copy']:['-c:a','aac','-b:a','128k']),'-movflags','+faststart',path.join(out,OUT)]);
+ {const pts=execFileSync('ffprobe',['-v','error','-select_streams','v','-show_entries','frame=pts_time','-of','csv=p=0',path.join(out,OUT)]).toString().split('\n').map(x=>parseFloat(x)).filter(x=>!isNaN(x));let bad=0;for(let i=1;i<pts.length;i++)if(pts[i]<=pts[i-1])bad++;
+  console.log('時間戳檢查：幀數',pts.length,'／應有',n,'；PTS 倒退或重複',bad);if(bad||pts.length!==n)throw new Error('成品時間戳錯亂（倒退 '+bad+'、幀數 '+pts.length+'≠'+n+'），播放會卡頓')}
  execFileSync('ffmpeg',['-y','-loglevel','error','-i',ASM?path.join(ASM,'cover.png'):path.join(tmp,String(Math.round(CT*V.fps)).padStart(5,'0')+'.png'),'-q:v','3',path.join(out,COVER)]);
  rep.dur=n/V.fps;rep.timing=V.timing||'default';rep.scenes=(V.scenes||[]).map(x=>({id:x.id,type:x.type,t0:x.t0,t1:x.t1}));
  fs.writeFileSync(path.join(out,REP),JSON.stringify(rep,null,1));

@@ -6,6 +6,8 @@
     合格：句內 0、全片停頓數 ≤ 句數＋2、換幕停頓 0.6～0.8 秒且 ≤6 處。輸出停頓圖 pause_chart.png。
  ② ASR：faster-whisper 辨識成品旁白，與念稿逐字比對（中文數字換阿拉伯、簡轉繁後 difflib），列出不一致的字。
  ④ 抽格：video.mp4 每 1 秒抽一格拼成 frames_1s.png（人工逐格看重疊、空白、下半部空洞、字太小）。
+ ⑤ 流暢度（2026-11-27 Andy：「看起來感覺卡卡的 幫我避免」）：v9/smooth_check.py —— 時間戳（PTS 不准倒退／重複、幀距固定 1/fps、幀數＝片長×fps）
+    ＋逐幀畫面變化量（動態中途的孤立停格、顯示順序倒退、每 chunk 幀的段接縫變化量異常）。結果寫 verify4.json 的 smooth。
 結果寫 verify4.json。"""
 import json, os, re, subprocess, sys, wave, difflib
 import numpy as np
@@ -146,6 +148,11 @@ if "--no-sheet" not in a and os.path.exists(VID):
     fs = sorted(os.listdir(od)); cols = 10; rows = (len(fs) + cols - 1) // cols
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(od, "f%03d.png"), "-vf", "tile=%dx%d:padding=4:color=black" % (cols, rows), "-frames:v", "1", os.path.join(q, "frames_1s.png")], check=True)
     res["frames"] = len(fs)
+# ⑤ 流暢度
+if os.path.exists(VID):
+    sys.path.insert(0, HERE); from smooth_check import smooth_check
+    sm = smooth_check(VID, chunk=int(opt("--chunk", "60"))); res["smooth"] = sm; bad += sm["bad"]
+    print("流暢度：幀數 %d／應有 %d；PTS 倒退 %d；幀距異常 %d；動態中孤立停格 %d；順序倒退 %d；接縫異常 %d" % (sm["frames"], sm["expect"], sm["pts_back"], sm["pts_gap"], sm["stall"], sm["reverse"], len(sm["seam_bad"])))
 res["pass_auto"] = not bad; res["bad"] = bad
 json.dump(res, open(os.path.join(q, "verify4.json"), "w"), ensure_ascii=False, indent=1)
 print("停頓：計入 %d（換幕 %d、句號後 %d、句中 %d）＋逗號自然 %d（不計）／句數 %d；%s" % (npc, len(scene), npc - len(scene) - len(inner), len(inner), len(comma), nsent, "；".join("%s %.2f %s" % (p["kind"], p["dur"], p["at"]) for p in pauses)))
