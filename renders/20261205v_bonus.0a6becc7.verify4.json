@@ -1,0 +1,146 @@
+{
+ "sentences": 11,
+ "pauses": [
+  {
+   "t0": 3.31,
+   "t1": 3.79,
+   "dur": 0.48,
+   "kind": "句號後",
+   "at": "s1「嗎｜月」"
+  },
+  {
+   "t0": 31.91,
+   "t1": 32.19,
+   "dur": 0.28,
+   "kind": "逗號",
+   "at": "s6「均｜明」"
+  },
+  {
+   "t0": 38.51,
+   "t1": 38.97,
+   "dur": 0.46,
+   "kind": "句號後",
+   "at": "s7「帳｜你的」"
+  },
+  {
+   "t0": 39.04,
+   "t1": 39.29,
+   "dur": 0.25,
+   "kind": "句號後",
+   "at": "s7「帳｜你的」"
+  },
+  {
+   "t0": 41.75,
+   "t1": 42.04,
+   "dur": 0.29,
+   "kind": "換幕短",
+   "at": "s7→s8"
+  },
+  {
+   "t0": 43.72,
+   "t1": 43.98,
+   "dur": 0.26,
+   "kind": "句號後",
+   "at": "s8「漲｜下一」"
+  }
+ ],
+ "n_pauses": 6,
+ "n_inner": 0,
+ "n_scene": 0,
+ "narr_dur": 47.86,
+ "asr_heard": "年中1.6個月入賬前會先扣稅嗎?月薪4萬其實一毛都不會先扣一領四人力銀行調查企業年中預估平均1.6個月月薪4萬換算是64000次才正不規定年中獎金一次發到9501元才先扣5%但是月薪超過大約5萬61.6個月就會跨過這條線整比先扣5%其實這是預扣不是多角隔年報稅並如所得多退少補要注意1.6億是企業預估平均明年發的年中起扣標準看明年公告所以答案是月薪4萬年中多半全額入賬你的年中比1.6一個月多還是少年中到手物價還在漲下一集11月物價薪水追得上忙",
+ "asr_diffs": [
+  "replace 念稿「終」→聽到「中」（念稿第 1 字）",
+  "delete 念稿「1」→聽到「」（念稿第 5 字）",
+  "replace 念稿「帳」→聽到「賬」（念稿第 9 字）",
+  "replace 念稿「0000」→聽到「萬」（念稿第 19 字）",
+  "replace 念稿「104」→聽到「一領四」（念稿第 32 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 44 字）",
+  "delete 念稿「1」→聽到「」（念稿第 52 字）",
+  "replace 念稿「0000」→聽到「萬」（念稿第 58 字）",
+  "replace 念稿「4財政部」→聽到「0次才正不」（念稿第 69 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 76 字）",
+  "delete 念稿「0」→聽到「」（念稿第 84 字）",
+  "replace 念稿「百分之五」→聽到「5%」（念稿第 92 字）",
+  "replace 念稿「000」→聽到「萬」（念稿第 105 字）",
+  "delete 念稿「1」→聽到「」（念稿第 112 字）",
+  "replace 念稿「筆」→聽到「比」（念稿第 123 字）",
+  "replace 念稿「百分之五」→聽到「5%」（念稿第 126 字）",
+  "replace 念稿「繳」→聽到「角」（念稿第 139 字）",
+  "replace 念稿「併入」→聽到「並如」（念稿第 144 字）",
+  "replace 念稿「1」→聽到「億」（念稿第 158 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 171 字）",
+  "replace 念稿「0000」→聽到「萬」（念稿第 189 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 194 字）",
+  "replace 念稿「帳」→聽到「賬」（念稿第 200 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 204 字）",
+  "replace 念稿「1」→聽到「一」（念稿第 209 字）",
+  "replace 念稿「終」→聽到「中」（念稿第 217 字）",
+  "replace 念稿「嗎」→聽到「忙」（念稿第 238 字）"
+ ],
+ "asr_ratio": 0.822,
+ "head_asr": {
+  "heard_first_1_5s": "年中一點留一個月",
+  "script_start": "年終1.61個月入帳前",
+  "extra_leading": [],
+  "setup_words": [],
+  "ratio": 0.316
+ },
+ "scene_vs_onset": [
+  {
+   "id": "s2",
+   "scene_start": 6.11,
+   "heard_from_scene_start_minus_0_15": "104人利益",
+   "script_start": "104人力銀行調",
+   "first_char_index": 0
+  },
+  {
+   "id": "s3",
+   "scene_start": 13.07,
+   "heard_from_scene_start_minus_0_15": "彩中部規定",
+   "script_start": "財政部規定年終獎",
+   "first_char_index": null,
+   "note": "聽到的字與這句開頭對不上，無法判定"
+  },
+  {
+   "id": "s4",
+   "scene_start": 18.49,
+   "heard_from_scene_start_minus_0_15": "但是月星超過大",
+   "script_start": "但是月薪超過大約",
+   "first_char_index": 0
+  },
+  {
+   "id": "s5",
+   "scene_start": 24.31,
+   "heard_from_scene_start_minus_0_15": "其實這是預扣",
+   "script_start": "其實這是預扣不是",
+   "first_char_index": 0
+  },
+  {
+   "id": "s6",
+   "scene_start": 29.1,
+   "heard_from_scene_start_minus_0_15": "要注意 1.61",
+   "script_start": "要注意1.61是",
+   "first_char_index": 0
+  },
+  {
+   "id": "s7",
+   "scene_start": 34.855,
+   "heard_from_scene_start_minus_0_15": "所以答案是",
+   "script_start": "所以答案是月薪4",
+   "first_char_index": 0
+  },
+  {
+   "id": "s8",
+   "scene_start": 41.98,
+   "heard_from_scene_start_minus_0_15": "年中到手物價還低",
+   "script_start": "年終到手物價還在",
+   "first_char_index": 0
+  }
+ ],
+ "frames": 53,
+ "pass_auto": false,
+ "bad": [
+  "裁頭後前 1.5 秒單獨 ASR 出現念稿以外的字：聽到「年中一點留一個月」，念稿開頭「年終1.61個月入帳前」"
+ ]
+}
