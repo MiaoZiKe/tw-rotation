@@ -13,7 +13,7 @@ hook_type: 問句（接上一支）
 # 頻道②「科技透明圈」：影片「濕式化學品與研磨液：一桶藥水為什麼連一粒灰都不行」
 
 - status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-chem.v1.mp4（64.1 秒、1080×1920、30fps、md5 90f824f96fab7d3290b5426553bdcb8c）。審片紀錄見 ai-mp4 videos/tech-chem/README.md。換版時只換 tech-chem.mp4 與 cover.jpg（網站 site/media/tech/20261218v_chem/ 同步換，網站用的是同一支重新壓縮的小檔）。
-- 法遵：這版文案與留言回覆還沒過 legal-compliance；dm_config 的 chem 放在 legal_pending，審過才拿掉。
+- 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處，原樣通過；dm_config 已從 legal_pending 拿掉。
 - 排程：2026-12-18（五）18:00（`TZ=Asia/Taipei date -d 2026-12-18 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 5.5 秒畫面：kicker「接上集：看完氣體，換看液體」＋大字「一粒灰都不行？」。
 - 內容用 ai-mp4 videos/tech-chem/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
@@ -21,7 +21,7 @@ hook_type: 問句（接上一支）
 - 不寫 research 標「不上片」或查不到的：台塑大金 55% 市占、中華化產能與稼動率、三福化 TMAH 年產能、任何研磨液市占；不寫崇越、華立做研磨液；不寫達興量產研磨液；不寫長興現在供應研磨液；三福化不提氣體。
 - 敘述銜接（因果）：氣體講完換液體→濕式化學品做什麼→要多乾淨→廠外儲槽、循環管路、持續過濾→管子用塑膠→研磨液＝磨粒＋藥水→磨粒怕結塊所以一直攪→公司→液體有了還缺墊子，下一支看研磨墊。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：化學品（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-18-tech-chem（dm_config 已登記；放 legal_pending，等法遵）。
+- 留言關鍵字：化學品（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-18-tech-chem（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

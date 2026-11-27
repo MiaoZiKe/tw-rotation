@@ -13,7 +13,7 @@ hook_type: 問句（接上一支）
 # 頻道②「科技透明圈」：影片「濺鍍靶材：一塊會被打掉原子的金屬板」
 
 - status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-target.v2.mp4（72.3 秒、1080×1920、30fps、md5 5d20492e9a249aedf7e421d3b9ec9dc5）。審片紀錄見 ai-mp4 videos/tech-target/README.md。換版時只換 tech-target.mp4 與 cover.jpg（網站 site/media/tech/20261215v_target/ 同步換，網站用的是同一支重新壓縮的小檔）。
-- 法遵：這版文案與留言回覆還沒過 legal-compliance；dm_config 的 target 放在 legal_pending，審過才拿掉。
+- 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處，原樣通過；dm_config 已從 legal_pending 拿掉。
 - 排程：2026-12-15（二）18:00（`TZ=Asia/Taipei date -d 2026-12-15 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 5.13 秒畫面：kicker「接上集：看濺鍍靶材」＋大字「靶材是什麼？」。
 - 內容用 ai-mp4 videos/tech-target/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
@@ -21,7 +21,7 @@ hook_type: 問句（接上一支）
 - 不寫 research 標「不上片」或查不到的：任何市占（含片中「JX 約六成」、Fuji Keizai 64%、Solstice「最大」）；JX 投資金額、光洋科營收結構與「唯一」；靶材回收率；製程電壓與溫度數字。
 - 敘述銜接（因果）：洗乾淨要鍍膜→鍍膜用的金屬從哪來＝靶材→拆陰極→氬電漿撞靶→原子落成薄膜→磁鐵圈住電漿吃出溝→只用一成半到四成就得換→靶材怎麼做→公司→更薄的膜改用氣體原料，下一支看前驅物。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：靶材（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-15-tech-target（dm_config 已登記；放 legal_pending，等法遵）。
+- 留言關鍵字：靶材（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-15-tech-target（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

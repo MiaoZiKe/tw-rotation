@@ -13,7 +13,7 @@ hook_type: 問句（接上一支）
 # 頻道②「科技透明圈」：影片「零組件耗材：機台裡哪些零件一直被吃掉」
 
 - status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-parts.v1.mp4（58.7 秒、1080×1920、30fps、md5 cbc2514b8946464263f0e5ffb41bff22）。審片紀錄見 ai-mp4 videos/tech-parts/README.md。換版時只換 tech-parts.mp4 與 cover.jpg（網站 site/media/tech/20261220v_parts/ 同步換，網站用的是同一支重新壓縮的小檔）。
-- 法遵：這版文案與留言回覆還沒過 legal-compliance；dm_config 的 parts 放在 legal_pending，審過才拿掉。
+- 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處，原樣通過；dm_config 已從 legal_pending 拿掉。
 - 排程：2026-12-20（日）18:00（`TZ=Asia/Taipei date -d 2026-12-20 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 5.33 秒畫面：kicker「接上集：研磨墊磨壞就換」＋大字「一直被打薄」。
 - 內容用 ai-mp4 videos/tech-parts/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
@@ -21,7 +21,7 @@ hook_type: 問句（接上一支）
 - 不寫 research 標「不上片」或查不到的：石英環壽命小時數、碳化矽環倍數、靜電吸盤市占、台灣精材與翔名營收；不寫台灣精材或翔名做靜電吸盤、客戶名；不寫精材科技（3374，不是耗材廠）。
 - 敘述銜接（因果）：研磨墊會磨壞→腔體裡的零件也被消耗→電漿像海浪打礁石→邊緣環讓邊緣均勻→靜電吸盤、陶瓷內壁→打薄就要換→周邊保養→公司→零件和機台放在乾淨房間，下一支看無塵室。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：耗材（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-20-tech-parts（dm_config 已登記；放 legal_pending，等法遵）。
+- 留言關鍵字：耗材（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-20-tech-parts（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 

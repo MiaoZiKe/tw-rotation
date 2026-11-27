@@ -13,7 +13,7 @@ hook_type: 問句（接上一支）
 # 頻道②「科技透明圈」：影片「前驅物：鍍膜用的氣體從哪來」
 
 - status 寫 approved：Andy 11-27 22:52「上面有的影片都 OK」（他看過成片）。成片來源：ai-mp4 的 out/tech-precursor.v2.mp4（65.2 秒、1080×1920、30fps、md5 c2ca79eea35f0686891839b55a25b68f）。審片紀錄見 ai-mp4 videos/tech-precursor/README.md。換版時只換 tech-precursor.mp4 與 cover.jpg（網站 site/media/tech/20261216v_precursor/ 同步換，網站用的是同一支重新壓縮的小檔）。
-- 法遵：這版文案與留言回覆還沒過 legal-compliance；dm_config 的 precursor 放在 legal_pending，審過才拿掉。
+- 法遵 2026-11-27 審過：貼文文案、IG 私訊與 Threads 回覆無投資建議、無個股推薦或目標價，公司描述中立且標出處，原樣通過；dm_config 已從 legal_pending 拿掉。
 - 排程：2026-12-16（三）18:00（`TZ=Asia/Taipei date -d 2026-12-16 +%a` 算出），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 4.23 秒畫面：kicker「接上集：改用氣體原料」＋大字「氣體從哪來？」。
 - 內容用 ai-mp4 videos/tech-precursor/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
@@ -21,7 +21,7 @@ hook_type: 問句（接上一支）
 - 不寫 research 標「不上片」或查不到的：任何前驅物市占與「全球僅四家」；宇川營收、毛利率、客戶名（不寫台積電）、擴產時程；TMA 蒸氣壓、脈衝秒數、純度 ppb 數字；台特化矽乙烷（留給特用氣體）。
 - 敘述銜接（因果）：靶材是固體板→更薄的膜用氣體原料→前驅物是什麼→起泡器吹出蒸氣→管路要更熱→閥一開一關送一小團→一圈長一層原子→要非常乾淨→公司→本來就是氣體的那批，下一支看特用氣體。
 - 社群文不放股票代號；廠商說法標公司說法；台灣廠標媒體報導或出處；不用沒有出處的市場地位字眼（主要是、龍頭、第一、最大）；市占一律不寫；不寫「非投資建議」（#46）；不放比比。
-- 留言關鍵字：前驅物（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-16-tech-precursor（dm_config 已登記；放 legal_pending，等法遵）。
+- 留言關鍵字：前驅物（與 script.json 最後一幕 endCard.comment 一致）→ 回覆隱藏文章 https://liguligu-puipui.com/#article/2026-12-16-tech-precursor（dm_config 已登記；法遵 2026-11-27 審過）。
 - 去 AI 味自查：第 1～12 類 0 筆；段與段有因果（#47）、開頭接上一支＋問句（#81）；白話用詞（#92）。
 - lessons 自查（逐條比對 1～96）：文案相關全過——#5 無保留語／AI 腔、#8 每個數字標出處、#11 無單一公司比全國、#16 出處只放文案、#31／#40／#81 接上一支＋預告下一支、#46 不寫非投資建議、#79 片尾與文案關鍵字一致且寫進 dm_config、#92 白話用詞、#95 固定 18:00。影片類（節奏、捲舌、物理感、擬真度）屬成片審查，Andy 11-27 已看過說 OK。
 
