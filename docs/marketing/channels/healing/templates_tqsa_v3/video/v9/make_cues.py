@@ -4,7 +4,10 @@
 讀 script.json（每鏡插圖主體 subject.id、版型 layout）＋segments.json（每鏡開始秒、字詞起點）；
 依插圖動作表 ACTIONS（秒數＝動作在該鏡開始後第幾秒觸發，取自 illustrations/index.json 的 desc）排 cue：
   · 每鏡 1～3 個動作音效，換幕（第 2 鏡起）加一個很輕的 whoosh；
-  · 動作若落在旁白字詞密集處，挪到 ±0.5 秒內最近的字間停頓（間距 ≥ 0.22 秒）；
+  · 2026-11-27 不壓旁白規則：「講話區段」判法與官方 scripts/sfx/sfx-synth.py 的 cmd_mix 相同（--voice 對齊旁白 wav：
+    20 ms 窗 RMS > 最大值 −26 dB 為講話、間隔 ≤0.5 秒補起來、區段前 0.1 秒就算）；
+    撞擊類（stamp/coin/thump/cashier）落在講話區段內 → 直接不放（不挪時間、不硬塞）；
+    鋪陳類（whoosh/paperslide/pageturn/tick 等）落在講話區段內 → 挪到 ±0.5 秒內最近的句間停頓，找不到就不放；
   · 片尾卡（outro）之後不排；輸出 cues.json（add-sfx.sh 格式，含 endCardSec）與「音效清單」表。
 """
 import json, sys, os, subprocess
@@ -24,6 +27,7 @@ ACTIONS = {
  'regdesk': [(0.3, 'tick', 0, {'n': 6}, '號碼滾動'), (1.3, 'stamp', 0, {}, '印章蓋下')],
  'calendar6': [(0.4, 'paperslide', 0, {}, '月曆落上牆'), (1.2, 'stamp', 0, {}, '蓋「>2%」章')],
  'punchclock': [(0.4, 'paperslide', -2, {}, '卡片插入'), (0.75, 'stamp', 0, {}, '打卡咔一聲')],
+ 'gavel_mw': [(0.55, 'thump', 0, {}, '議事槌敲下'), (3.5, 'pageturn', -6, {}, '日曆翻到 10/1'), (4.1, 'stamp', 0, {}, '核定章蓋下'), (6.48, 'coin', -2, {'bounces': 2}, '金幣落上桌面'), (7.08, 'coin', -4, {'bounces': 1}, '第 2 枚金幣落桌'), (7.68, 'coin', -4, {'bounces': 1}, '第 3 枚金幣落桌')],
  'gavel': [(0.55, 'stamp', 2, {}, '議事槌敲下')],
  'notice': [(0.3, 'stamp', -3, {}, '圖釘釘上'), (1.0, 'paperslide', -2, {}, '放大鏡滑進')],
  'rateboard': [(0.3, 'tick', 0, {'n': 9, 'gap': 0.09}, '利率數字滾動')],
@@ -68,19 +72,71 @@ ACTIONS = {
 DEFAULT = [(0.3, 'paperslide', -2, {}, '主體入場')]
 WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
+MAXPER_BY_SUBJECT = {'gavel_mw': 7}   # 這鏡 8.8 秒較長：6 個動作音效＋換幕 whoosh
 MIN_SAME_GAP = 0.8   # 同種音效最短間隔（秒），避免連續叮聲太密
 MIN_GAP_BY_KIND = {'coin': 0.5}   # 金幣依畫面三枚先後落桌（間隔約 0.6 秒），不可被推開
 DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
 DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
 
 
-# 【接觸時間】撞擊類 cue 的秒數＝畫面「接觸／落下那一刻」，不是物件出現時間（第 9 輪審片逐幀量測）。
-# 逐片覆寫：(佇列資料夾, 鏡頭 id, 音效種類) → 畫面接觸的絕對秒數；覆寫在 snap 之後
+# 【接觸時間對照｜第 9 輪審片逐幀量測】撞擊類 cue 的秒數＝插圖「接觸／落下那一刻」（相對本鏡開頭），不是物件出現時間：
+#   gavel_mw 金幣：插圖 6.2／6.8／7.4 秒開始落，落地 0.28 秒 → 接觸 6.48／7.08／7.68；核定章 4.1、議事槌 0.55 本來就是接觸點
+#   其餘（打卡、入帳通知、硬幣倒下）因各片鏡頭起點與旁白停頓不同，用下面 FIX_ABS 逐片寫審片量到的接觸絕對秒數
+# 逐片覆寫：(佇列資料夾, 鏡頭 id, 音效種類) → 畫面接觸的絕對秒數（第 9 輪審片逐幀量到；覆寫在 snap 之後）
 FIX_ABS = {
     ('20261128v_avgwage', 's1', 'cashier'): 0.58,   # 入帳通知（原 1.01）
     ('20261128v_avgwage', 's7', 'coin'): 35.95,     # 硬幣倒下（原 35.82）
     ('20261129v_quit', 's3', 'stamp'): 12.23,       # 打卡（原 12.49）
 }
+# 撞擊類音效固定在畫面動作的時間，不經 snap()；撞上旁白致最差窗 <14 dB 時改降該條音量 4～6 dB，不准挪時間
+IMPACT = {'stamp', 'coin', 'thump', 'cashier'}
+
+
+# ── 講話區段（與官方 sfx-synth.py cmd_mix 同判法）──
+HOP = 0.02; SPEECH_DB = -26.0; GAP_FILL = 0.5; LEAD = 0.10; TAIL = 0.12   # TAIL：旁白結束後多留的放開餘裕
+EST_DUR = {'tick': None, 'paperslide': 0.3, 'pageturn': 0.35, 'whoosh': 0.4, 'keyboard': 0.8, 'calculator': None}
+
+
+def speech_regions(voice_path):
+    """回傳 [(起秒, 迄秒)]（含前導 LEAD、已補句中停頓）；判法照官方 cmd_mix。"""
+    import importlib.util
+    import numpy as np
+    here = os.path.dirname(os.path.abspath(__file__))
+    syn = None
+    for up in range(3, 9):
+        c = os.path.join(here, *(['..'] * up), 'scripts', 'sfx', 'sfx-synth.py')
+        if os.path.exists(c): syn = c; break
+    if not syn: raise SystemExit('找不到 scripts/sfx/sfx-synth.py（判斷講話區段要用官方函式）')
+    sp = importlib.util.spec_from_file_location('sfx_synth_official', syn); m = importlib.util.module_from_spec(sp); sys.modules['sfx_synth_official'] = m; sys.path.insert(0, os.path.dirname(syn)); sp.loader.exec_module(m)
+    v = m.read_wav(voice_path)
+    hop = int(HOP * m.SR); ve = m.frame_rms(v, hop)
+    thr = max(np.max(ve) * m.db(SPEECH_DB), 1e-4)
+    spk = ve > thr
+    filled = spk.copy(); idx = np.where(spk)[0]
+    for i0, i1 in zip(idx[:-1], idx[1:]):
+        if 1 < i1 - i0 <= int(GAP_FILL / HOP): filled[i0:i1] = True
+    regs, st = [], None
+    for i in range(len(filled) + 1):
+        on = i < len(filled) and filled[i]
+        if on and st is None: st = i
+        if not on and st is not None: regs.append((max(0.0, st * HOP - LEAD), i * HOP + TAIL)); st = None
+    return regs
+
+
+def in_speech(t, regs, dur=0.0):
+    """cue 的 [t, t+dur] 是否碰到講話區段。"""
+    return any(t < b and t + dur > a for a, b in regs)
+
+
+def snap_pause(t, regs, dur, lo, hi):
+    """挪到 ±0.5 秒內最近、且整段 cue 不碰講話區段的句間停頓；找不到回 None。"""
+    best = None
+    k = -0.5
+    while k <= 0.5001:
+        c = round(t + k, 2)
+        if lo <= c <= hi and not in_speech(c, regs, dur) and (best is None or abs(c - t) < abs(best - t) - 1e-9): best = c
+        k += 0.01
+    return best
 
 
 def snap(t, words, lo, hi):
@@ -96,11 +152,13 @@ def snap(t, words, lo, hi):
 def main():
     a = sys.argv[1:]
     d = a[0]
-    qname = os.path.basename(os.path.normpath(d))
     sc = json.load(open(os.path.join(d, 'script.json')))
     sg = {s['id']: s for s in json.load(open(os.path.join(d, 'segments.json')))['segments']}
     vid = os.path.join(d, 'video.mp4')
     total = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', vid]).decode()) if os.path.exists(vid) else None
+    regs = speech_regions(a[a.index('--voice') + 1]) if '--voice' in a else None
+    if regs is None: print('警告：沒給 --voice，退回只用字詞時間判斷（不執行不壓旁白規則）')
+    dropped = []
     outro = sc.get('outro') or {}
     scenes = sc['scenes']
     last_end = max(s['end'] for s in sg.values())
@@ -113,21 +171,36 @@ def main():
         subj = (s.get('subject') or {}).get('id')
         acts = list(ACTIONS.get(subj) or ([] if s.get('layout') in ('ask',) and not subj else DEFAULT))
         if s.get('layout') == 'odometer' and not acts: acts = ACTIONS['odometer']
-        acts = acts[:MAXPER - (1 if i else 0)]
+        acts = acts[:MAXPER_BY_SUBJECT.get(subj, MAXPER) - (1 if i else 0)]
         if i: acts = [WHOOSH] + acts
         for off, kind, gdb, prm, what in acts:
             t = max(0.0, t0 + off)
-            if kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
-            t = FIX_ABS.get((qname, s['id'], kind), t)
+            fx = FIX_ABS.get((os.path.basename(os.path.normpath(d)), s['id'], kind))
+            if regs is None:
+                if kind not in IMPACT and kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
+                if fx is not None: t = fx
+            else:
+                if fx is not None: t = fx
+                if kind in IMPACT:
+                    # 撞擊音效固定在畫面接觸時間：碰到講話區段就不放（不挪、不硬塞）
+                    if in_speech(t, regs, 0.0):
+                        dropped.append((round(t, 2), what, kind, s['id'], '撞擊落在講話中')); continue
+                else:
+                    ed = EST_DUR.get(kind) or (prm.get('n', 4) * prm.get('gap', 0.1) + 0.1 if kind in ('tick', 'calculator') else 0.3)
+                    if in_speech(t, regs, ed):
+                        nt = snap_pause(t, regs, ed, max(0.0, t0 - 0.05), nxt - 0.1)
+                        if nt is None:
+                            dropped.append((round(t, 2), what, kind, s['id'], '鋪陳音找不到 ±0.5 秒內的停頓')); continue
+                        t = nt
             if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
             if kind == 'whoosh': c['dur'] = 0.4
             # 需要 dur 的種類（keyboard 等）：沒給就補預設，且依種類設下限，避免 int(dur*SR)=0 → zero-size array
             if kind in DUR_MIN:
-                d = float(prm.get('dur') or c.get('dur') or DUR_DEFAULT.get(kind, DUR_MIN[kind]))
-                d = max(d, DUR_MIN[kind]); d = min(d, end_card - 0.05 - t)
-                if d < DUR_MIN[kind]: continue    # 剩餘空間不夠就丟掉
-                c['dur'] = round(d, 2)
+                dd = float(prm.get('dur') or c.get('dur') or DUR_DEFAULT.get(kind, DUR_MIN[kind]))
+                dd = max(dd, DUR_MIN[kind]); dd = min(dd, end_card - 0.05 - t)
+                if dd < DUR_MIN[kind]: continue    # 剩餘空間不夠就丟掉
+                c['dur'] = round(dd, 2)
             cues.append(c)
             rows.append((c['t'], what, kind, gdb, s['id']))
     # 同種音效間隔 ≥ MIN_SAME_GAP：太近的後一個往後挪（挪完仍太晚或會撞進下一鏡就丟掉）
@@ -142,6 +215,14 @@ def main():
             if nt >= end_card - 0.3: continue
             c['t'] = nt; r = (nt,) + tuple(r[1:])
         last[c['kind']] = c['t']; keep.append((c, r))
+    if regs is not None:   # 同種間隔挪動後再檢查一次：撞擊類碰到講話就丟；鋪陳類碰到講話就丟
+        k2 = []
+        for c, r in keep:
+            ed = 0.0 if c['kind'] in IMPACT else (c.get('dur') or EST_DUR.get(c['kind']) or 0.3)
+            if in_speech(c['t'], regs, ed):
+                dropped.append((c['t'], r[1], c['kind'], r[4], '同種間隔挪動後落入講話')); continue
+            k2.append((c, r))
+        keep = k2
     cues = [c for c, _ in keep]; rows = [r for _, r in keep]
     cues.sort(key=lambda c: c['t'])
     out = {'total': total, 'endCardSec': round(end_card, 2), 'cues': cues}
@@ -150,11 +231,17 @@ def main():
     tb = ['| 秒數 | 動作 | 音效 | 音量 |', '|---|---|---|---|']
     for t, what, kind, gdb, sid in sorted(rows):
         tb.append(f'| {t:.2f} 秒（{sid}） | {what} | {kind} | 比預設 {gdb:+d} dB，整體低旁白 14～18 dB |')
+    for t, what, kind, sid, why in dropped:
+        tb.append(f'| {t:.2f} 秒（{sid}） | {what}（講話中，依不壓旁白規則不放音效） | — | — |')
     # 片尾卡招牌音效（原片自帶，乾淨底片裡保留）：成片裡全部音效都列出
     os_ = float(a[a.index('--outro-start') + 1]) if '--outro-start' in a else end_card
     tb.append(f'| {os_:.2f} 秒（片尾卡） | 片尾卡招牌音 | video_outro_sfx.mp3 | 原片音量（底片自帶），片尾卡後不加運作音效 |')
     tp = a[a.index('--table') + 1] if '--table' in a else os.path.join(d, 'sfx_table.md')
     open(tp, 'w').write('音效清單：秒數｜動作｜音效｜音量\n\n' + '\n'.join(tb) + '\n')
+    print('保留：'); [print(f"  {c['t']:.2f} {c['kind']} {c['src']}") for c in cues]
+    print('拿掉：'); [print(f'  {t:.2f} {k} {sid} {w}（{why}）') for t, w, k, sid, why in sorted(dropped)]
+    ni = lambda L: sum(1 for x in L if (x['kind'] if isinstance(x, dict) else x[2]) in IMPACT)
+    print(f'撞擊音效：保留 {ni(cues)}、拿掉 {sum(1 for x in dropped if x[2] in IMPACT)}')
     print(f'{len(cues)} 個音效（另含片尾卡招牌音 1 筆），片尾卡 {end_card:.2f} 秒 → {cp}、{tp}')
 
 
