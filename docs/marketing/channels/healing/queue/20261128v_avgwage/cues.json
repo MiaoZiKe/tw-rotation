@@ -1,0 +1,193 @@
+{
+ "total": 52.833333,
+ "endCardSec": 46.63,
+ "cues": [
+  {
+   "t": 0.3,
+   "kind": "tick",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "n": 2,
+    "gap": 0.2
+   },
+   "src": "s1 phonebank：手機震兩下"
+  },
+  {
+   "t": 1.01,
+   "kind": "cashier",
+   "gain": -3,
+   "pan": 0.5,
+   "params": {},
+   "src": "s1 phonebank：入帳通知"
+  },
+  {
+   "t": 6.21,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s2 printer：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 6.43,
+   "kind": "tick",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "n": 8,
+    "gap": 0.11
+   },
+   "src": "s2 printer：收據一格格吐出"
+  },
+  {
+   "t": 7.41,
+   "kind": "cashier",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 printer：切紙刀落下"
+  },
+  {
+   "t": 13.25,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s3 officedesk：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 13.46,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s3 officedesk：辦公椅滑進"
+  },
+  {
+   "t": 14.51,
+   "kind": "paperslide",
+   "gain": -3,
+   "pan": 0.5,
+   "params": {},
+   "src": "s3 officedesk：便利貼貼上"
+  },
+  {
+   "t": 17.43,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s4 queue：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 17.75,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 queue：主體入場"
+  },
+  {
+   "t": 26.3,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s5 elevator：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 26.52,
+   "kind": "tick",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "n": 6,
+    "gap": 0.17
+   },
+   "src": "s5 elevator：樓層數字跳動"
+  },
+  {
+   "t": 30.63,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s6 mixing：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 30.95,
+   "kind": "tick",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "n": 6,
+    "gap": 0.15
+   },
+   "src": "s6 mixing：液面升起"
+  },
+  {
+   "t": 34.54,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s7 envelopes：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 34.96,
+   "kind": "paperslide",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s7 envelopes：信封紙鈔探出"
+  },
+  {
+   "t": 35.82,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s7 envelopes：硬幣倒下"
+  },
+  {
+   "t": 41.4,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s8 trail：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 41.72,
+   "kind": "stamp",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {},
+   "src": "s8 trail：步道牌彈起"
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+19 個音效 → /tmp/tmp.PhdaVTP6PX/sfx.wav
+講話段逐窗最小差距 15.5 dB（門檻 14.0 dB；講話窗 1678 個）
+{"voice_rms_db": -18.0, "sfx_rms_db": -28.0, "gain": 0.9336, "duck_db": -8.0, "level_below_db": -10.0}
+成片解碼後講話段逐窗最小差距 15.0 dB（在 41.74 秒；門檻 14.0 dB；<14 的窗 0 個；對齊偏移 0 樣本）
+完成：/tmp/out_20261128v_avgwage.mp4
+音效 19 
+全片響度 -16.1 LUFS
