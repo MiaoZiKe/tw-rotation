@@ -171,7 +171,25 @@
    "first_char_index": 0
   }
  ],
- "frames": 57,
+ "frames": 58,
+ "smooth": {
+  "fps": 30.0,
+  "frames": 1725,
+  "expect": 1725,
+  "pts_back": 0,
+  "pts_gap": 0,
+  "dup_ratio": 0.342,
+  "stall": 0,
+  "stall_t": [],
+  "reverse": 0,
+  "reverse_t": [],
+  "seam_mean": 0.425,
+  "nonseam_mean": 0.415,
+  "seam_bad": [],
+  "chunk": 60,
+  "bad": [],
+  "pass": true
+ },
  "pass_auto": true,
  "bad": []
 }
