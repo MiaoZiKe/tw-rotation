@@ -126,10 +126,49 @@
     ],
     "dicing": [
       "切割"
+    ],
+    "twequip": [
+      "設備廠"
+    ],
+    "target": [
+      "靶材"
+    ],
+    "precursor": [
+      "前驅物"
+    ],
+    "chem": [
+      "化學品"
+    ],
+    "parts": [
+      "耗材"
+    ],
+    "cleanroom": [
+      "無塵室"
+    ],
+    "probe2": [
+      "探針卡廠"
+    ],
+    "wirebond": [
+      "打線"
+    ],
+    "pkgmat": [
+      "錫球"
+    ],
+    "flipchip": [
+      "覆晶"
+    ],
+    "fanout": [
+      "扇出"
+    ],
+    "pkgequip": [
+      "封裝設備"
+    ],
+    "abf": [
+      "ABF"
     ]
   },
-  "legal_pending": ["wafer1", "wafer2", "mask1", "mask2", "resist1", "resist2", "asml", "amat", "lam", "tel", "kla"],
-  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。 2026-11-27：系列 2 的 gas、pad、utility、probe1 與系列 3 的 dicing（留言氣體、研磨墊、水氣電、探針卡、切割）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。2026-11-27 法遵審完這 5 支（貼文文案＋IG 私訊＋Threads 回覆）：無投資建議、無個股推薦或目標價，公司描述中立且標出處；dicing 把「切割研磨機主要是日本迪思科」改成「國際有日本迪思科」（市占查不到一致數字，「主要是」無出處）並補「（媒體報導）」，其餘原樣通過，已拿掉。",
+  "legal_pending": ["wafer1", "wafer2", "mask1", "mask2", "resist1", "resist2", "asml", "amat", "lam", "tel", "kla", "twequip", "target", "precursor", "chem", "parts", "cleanroom", "probe2", "wirebond", "pkgmat", "flipchip", "fanout", "pkgequip", "abf"],
+  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。 2026-11-27：系列 2 的 gas、pad、utility、probe1 與系列 3 的 dicing（留言氣體、研磨墊、水氣電、探針卡、切割）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。2026-11-27 法遵審完這 5 支（貼文文案＋IG 私訊＋Threads 回覆）：無投資建議、無個股推薦或目標價，公司描述中立且標出處；dicing 把「切割研磨機主要是日本迪思科」改成「國際有日本迪思科」（市占查不到一致數字，「主要是」無出處）並補「（媒體報導）」，其餘原樣通過，已拿掉。 2026-11-27 晚：Andy 22:52「上面有的影片都 OK」，系列 2 的 twequip、target、precursor、chem、parts、cleanroom、probe2 與系列 3 的 wirebond、pkgmat、flipchip、fanout、pkgequip、abf（留言設備廠、靶材、前驅物、化學品、耗材、無塵室、探針卡廠、打線、錫球、覆晶、扇出、封裝設備、ABF）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。",
   "ig_dm": {
     "enabled": true,
     "mode": "poll",
@@ -184,7 +223,20 @@
       "pad": "謝謝留言！「研磨墊：誰來把晶圓真正磨平」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-19-tech-pad",
       "utility": "謝謝留言！「水、氣、電：晶圓廠背後的廠務」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-22-tech-utility",
       "probe1": "謝謝留言！「探針卡：哪顆晶片是好的，怎麼知道」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-23-tech-probe1",
-      "dicing": "謝謝留言！「晶圓切割與薄化：一片晶圓怎麼切成一顆顆」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-25-tech-dicing"
+      "dicing": "謝謝留言！「晶圓切割與薄化：一片晶圓怎麼切成一顆顆」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-25-tech-dicing",
+      "twequip": "謝謝留言！「台灣自己的設備廠：晶圓怎麼洗乾淨」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-14-tech-twequip",
+      "target": "謝謝留言！「濺鍍靶材：一塊會被打掉原子的金屬板」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-15-tech-target",
+      "precursor": "謝謝留言！「前驅物：鍍膜用的氣體從哪來」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-16-tech-precursor",
+      "chem": "謝謝留言！「濕式化學品與研磨液：一桶藥水為什麼連一粒灰都不行」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-18-tech-chem",
+      "parts": "謝謝留言！「零組件耗材：機台裡哪些零件一直被吃掉」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-20-tech-parts",
+      "cleanroom": "謝謝留言！「無塵室：機台住的房間到底多乾淨」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-21-tech-cleanroom",
+      "probe2": "謝謝留言！「探針卡-2：好幾萬根針的卡，誰做得出來」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-24-tech-probe2",
+      "wirebond": "謝謝留言！「封裝打線：晶片切好了，電怎麼接出來」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-26-tech-wirebond",
+      "pkgmat": "謝謝留言！「封裝材料：晶片還光著，要怎麼保護」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-27-tech-pkgmat",
+      "flipchip": "謝謝留言！「覆晶：晶片翻過來，電怎麼接出去」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-28-tech-flipchip",
+      "fanout": "謝謝留言！「扇出型與晶圓級封裝：不用載板，線怎麼拉出去」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-29-tech-fanout",
+      "pkgequip": "謝謝留言！「先進封裝設備：晶片怎麼精準疊在一起」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-30-tech-pkgequip",
+      "abf": "謝謝留言！「ABF 膜：載板裡的絕緣膜到底在隔什麼」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-31-tech-abf"
     },
     "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
@@ -316,6 +368,45 @@
       ],
       "dicing": [
         "已經將「晶圓切割與薄化：一片晶圓怎麼切成一顆顆」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-25-tech-dicing"
+      ],
+      "twequip": [
+        "已經將「台灣自己的設備廠：晶圓怎麼洗乾淨」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-14-tech-twequip"
+      ],
+      "target": [
+        "已經將「濺鍍靶材：一塊會被打掉原子的金屬板」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-15-tech-target"
+      ],
+      "precursor": [
+        "已經將「前驅物：鍍膜用的氣體從哪來」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-16-tech-precursor"
+      ],
+      "chem": [
+        "已經將「濕式化學品與研磨液：一桶藥水為什麼連一粒灰都不行」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-18-tech-chem"
+      ],
+      "parts": [
+        "已經將「零組件耗材：機台裡哪些零件一直被吃掉」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-20-tech-parts"
+      ],
+      "cleanroom": [
+        "已經將「無塵室：機台住的房間到底多乾淨」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-21-tech-cleanroom"
+      ],
+      "probe2": [
+        "已經將「探針卡-2：好幾萬根針的卡，誰做得出來」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-24-tech-probe2"
+      ],
+      "wirebond": [
+        "已經將「封裝打線：晶片切好了，電怎麼接出來」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-26-tech-wirebond"
+      ],
+      "pkgmat": [
+        "已經將「封裝材料：晶片還光著，要怎麼保護」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-27-tech-pkgmat"
+      ],
+      "flipchip": [
+        "已經將「覆晶：晶片翻過來，電怎麼接出去」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-28-tech-flipchip"
+      ],
+      "fanout": [
+        "已經將「扇出型與晶圓級封裝：不用載板，線怎麼拉出去」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-29-tech-fanout"
+      ],
+      "pkgequip": [
+        "已經將「先進封裝設備：晶片怎麼精準疊在一起」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-30-tech-pkgequip"
+      ],
+      "abf": [
+        "已經將「ABF 膜：載板裡的絕緣膜到底在隔什麼」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-31-tech-abf"
       ]
     }
   }
