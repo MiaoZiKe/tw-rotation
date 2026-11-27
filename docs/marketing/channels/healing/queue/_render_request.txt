@@ -1,2 +1,3 @@
-20261203v_minwage
+20261205v_bonus
 chunk=60 jobs=8 writeback=1
+# 第 14 輪重跑（第 5 輪審片：5% 硬幣低空路徑、--dense 2 逐幀重疊）

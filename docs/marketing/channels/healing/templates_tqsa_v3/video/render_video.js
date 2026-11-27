@@ -5,6 +5,7 @@ const name=process.argv[2];const A=process.argv.slice(3);const arg=k=>{const i=A
 // 2026-11-27 分段渲染（給 .github/workflows/healing_render.yml 多台同時跑；不帶下列參數＝原行為，整片一台渲完）：
 //   --from A --to B --seg DIR   只渲第 A～B-1 幀（A 要是 fps/2 的倍數）→ DIR/seg_<A>.mp4（只有畫面、各段獨立 IDR 起頭、自帶時間戳）＋DIR/rep_<tag>.json（該段的重疊檢查）＋含封面幀的段會存 DIR/cover.png
 //   --chunk C --job K --jobs J --seg DIR   總幀數依 C 幀切段，這台渲第 K、K+J、K+2J… 段（交錯）
+//   --dense N   （2026-11-27 起）除了每 0.5 秒一格，另每 N 幀（建議 2）加查一次「這一幀與上一次抽檢相比位置有動」的元素／文字重疊（只報有動的那邊參與的重疊；不查出界與留白）；不帶＝原行為
 //   --assemble DIR   不渲染；把 DIR 的各段 mp4 用 concat 分離器依序接起來、合併各段檢查報告，再配音軌（含 sfx）出 video.mp4／cover.jpg／overlap_report_video.json（與整片版同樣的檔名與內容）
 const SEG=arg('--seg'),ASM=arg('--assemble');const html=path.join(__dirname,'html',name+'.html');
 const tmp=path.join(__dirname,'tmp',name);
@@ -17,7 +18,7 @@ fs.rmSync(tmp,{recursive:true,force:true});fs.mkdirSync(tmp,{recursive:true});
  else if(arg('--chunk')){const C=+arg('--chunk'),J=+(arg('--jobs')||1),K=+(arg('--job')||0);if(C%HF)throw new Error('--chunk 要是 '+HF+' 的倍數');RANGES=[];for(let i=0,a=0;a<n;i++,a+=C)if(i%J===K)RANGES.push([a,Math.min(n,a+C)])}
  if(RANGES.some(r=>r[0]%HF))throw new Error('起始幀要是 '+HF+' 的倍數（抽檢每 0.5 秒一格）');
  if(!SEG&&!ASM&&RANGES.length&&(RANGES[0][0]!==0||RANGES[0][1]!==n))throw new Error('只渲一部分幀要加 --seg DIR');
-const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
+const DENSE=+(arg('--dense')||0);let PREV={};const rep={frames:n,checked:0,overlap:[],oob:[]};if(DENSE)rep.dense=DENSE,rep.denseChecked=0;if(V.edge60)rep.edge=[];
  for(const [r0,r1] of (ASM?[]:RANGES)){for(let f=r0;f<r1;f++){const t=f/V.fps;await pg.evaluate(t=>window.renderAt(t),t);
   if(V.runtime&&/v[678]/.test(V.runtime)){   // v6：換鏡 5 幀逐幀記錄「舊鏡文字數／新鏡文字數」，同一幀兩邊都 >0＝前後鏡文字同框
    const co=await pg.evaluate(()=>{const ls=[...document.querySelectorAll('#stage .layer[data-L]')];if(!ls.length)return null;const r={old:0,new:0};
@@ -32,23 +33,23 @@ const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
    const q=await pg.evaluate(()=>{const e=document.querySelector('#stage [data-o=illus]');if(!e)return null;const r=e.getBoundingClientRect(),b=e.querySelector('svg g > rect'),br=b?b.getBoundingClientRect():null,g=e.querySelector('svg > g');return{o:[r.left,r.top,r.width,r.height].map(x=>+x.toFixed(2)).join(','),b:br?[br.left,br.top,br.width,br.height].map(x=>+x.toFixed(2)).join(','):'',tf:g?(g.getAttribute('transform')||''):''}});
    if(q){const sc=V.scenes.find(x=>t>=x.t0&&t<x.t1)||V.scenes[V.scenes.length-1];const m=(rep.panel=rep.panel||{});const r=(m[sc.id]=m[sc.id]||{frame:{},base:{},transform:{}});r.frame[q.o]=(r.frame[q.o]||0)+1;r.base[q.b]=(r.base[q.b]||0)+1;r.transform[q.tf||'（無）']=(r.transform[q.tf||'（無）']||0)+1}}
   await pg.screenshot({path:path.join(tmp,String(f).padStart(5,'0')+'.png')});
-  if(f%Math.round(V.fps/2)===0){rep.checked++;
-   const r=await pg.evaluate((E)=>{const els=[...document.querySelectorAll('[data-o]')].filter(e=>{let x=e;while(x&&x!==document.body){if(parseFloat(getComputedStyle(x).opacity)<0.02)return false;x=x.parentElement}return true}).map(e=>{const q=e.getBoundingClientRect();return{o:e.dataset.o,x:q.left,y:q.top,r:q.right,b:q.bottom}});
+  const FULL=f%HF===0,DN=!FULL&&DENSE>0&&f%DENSE===0;if(FULL||DN){if(FULL)rep.checked++;else rep.denseChecked++;
+   const r=await pg.evaluate(([E,PV,DN])=>{const POS={};const els=[...document.querySelectorAll('[data-o]')].filter(e=>{let x=e;while(x&&x!==document.body){if(parseFloat(getComputedStyle(x).opacity)<0.02)return false;x=x.parentElement}return true}).map(e=>{const q=e.getBoundingClientRect();return{o:e.dataset.o,x:q.left,y:q.top,r:q.right,b:q.bottom}});els.forEach((e,i)=>{const k='o'+i+e.o,p=PV[k];POS[k]=[e.x,e.y];e.mv=!!DN&&(!p||Math.abs(p[0]-e.x)>.5||Math.abs(p[1]-e.y)>.5)});
     const ov=[],oob=[],ws=[];
     // v1：Reels 安全區（上 220／下 420）。v2（V.edge60）：2026-11-15 Andy「紅框處還有空間」→ 上下留白各 ≤60px、字幕卡下緣 ≤1700、1700 以下只放出處與頁尾帶
     const Y0=E?40:220,Y1=E?1880:1500;
-    if(E&&els.length){const top=Math.min(...els.map(e=>e.y)),bot=1920-Math.max(...els.map(e=>e.b));if(top>60)ws.push('頂端留白 '+Math.round(top)+'px');if(bot>60)ws.push('底端留白 '+Math.round(bot)+'px');
+    if(E&&els.length&&!DN){const top=Math.min(...els.map(e=>e.y)),bot=1920-Math.max(...els.map(e=>e.b));if(top>60)ws.push('頂端留白 '+Math.round(top)+'px');if(bot>60)ws.push('底端留白 '+Math.round(bot)+'px');
      els.forEach(e=>{if(e.b>1700&&!['src','foot'].includes(e.o))ws.push(e.o+' 下緣 '+Math.round(e.b)+'>1700')});ws.top=top;ws.bot=bot}
     // v3 起：小字檢查。v5 修正：舊版只看 CSS font-size，漏掉被 svg 縮放的字；改用「字級 × 實際螢幕縮放」（svg 取 getScreenCTM），且只量完全可見（不透明度 ≥.9）的字
-    if(E){[...document.querySelectorAll('#stage text, #stage div')].forEach(e=>{if(!e.textContent.trim()||e.children.length&&e.tagName!=='text'||e.closest('clipPath'))return;let x=e,vis=1;while(x&&x!==document.body){vis*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}
+    if(E&&!DN){[...document.querySelectorAll('#stage text, #stage div')].forEach(e=>{if(!e.textContent.trim()||e.children.length&&e.tagName!=='text'||e.closest('clipPath'))return;let x=e,vis=1;while(x&&x!==document.body){vis*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}
      let fs=parseFloat(getComputedStyle(e).fontSize);if(e.tagName==='text'&&e.getScreenCTM){const m=e.getScreenCTM();fs*=Math.hypot(m.a,m.b)}
      if(vis>=.9&&fs<29.5&&!e.closest('[data-x]'))ws.push('小字 '+fs.toFixed(1)+'px「'+e.textContent.trim().slice(0,8)+'」')})}
     // v9：文字壓文字（2026-11-17 審片：註腳被標籤壓住、容器級檢查抓不到）——任兩個可見文字元素的外框相交即算重疊（外框上下各縮 12%、左右縮 2px 去掉字體留白），寫成「txt:「甲」×「乙」」
-    try{const tx=[...document.querySelectorAll('#stage text, #stage div.cap')].filter(e=>{if(!e.textContent.trim()||e.closest('clipPath')||e.closest('defs')||e.querySelector('text'))return false;let x=e,v=1;while(x&&x!==document.body){v*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}return v>=.3}).map(e=>{const q=e.getBoundingClientRect(),h=q.bottom-q.top;let o={t:e.textContent.trim().slice(0,10),x:q.left+2,r:q.right-2,y:q.top+h*.12,b:q.bottom-h*.12};const cg=e.closest('[data-cb]'),cr=cg&&document.getElementById(cg.getAttribute('data-cb'));if(cr){const k=cr.getBoundingClientRect();o.x=Math.max(o.x,k.left);o.r=Math.min(o.r,k.right);o.y=Math.max(o.y,k.top);o.b=Math.min(o.b,k.bottom);if(o.b<=o.y)o.r=o.x}return o});   // 2026-11-22：翻牌數字只算牌面內可見部分（被牌面裁掉的上下一位不算重疊）
-     for(let i=0;i<tx.length;i++)for(let j=i+1;j<tx.length;j++){const a=tx[i],c=tx[j];if(a.r<=a.x||c.r<=c.x)continue;if(!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push('txt:「'+a.t+'」×「'+c.t+'」')}}catch(err){}
-    for(let i=0;i<els.length;i++){const a=els[i];if(a.x<90||a.r>990||a.y<Y0||a.b>Y1)oob.push(a.o);for(let j=i+1;j<els.length;j++){const c=els[j];if(!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push(a.o+'×'+c.o)}}return{ov,oob,ws,top:ws.top,bot:ws.bot}},!!V.edge60);
-   r.ov.forEach(x=>rep.overlap.push(t.toFixed(1)+'s '+x));r.oob.forEach(x=>rep.oob.push(t.toFixed(1)+'s '+x));
-   if(V.edge60){(rep.edge=rep.edge||[]).push(...r.ws.map(x=>t.toFixed(1)+'s '+x));rep.gapTopMax=Math.max(rep.gapTopMax||0,r.top);rep.gapBotMax=Math.max(rep.gapBotMax||0,r.bot)}}}
+    try{const tx=[...document.querySelectorAll('#stage text, #stage div.cap')].filter(e=>{if(!e.textContent.trim()||e.closest('clipPath')||e.closest('defs')||e.querySelector('text'))return false;let x=e,v=1;while(x&&x!==document.body){v*=parseFloat(getComputedStyle(x).opacity);x=x.parentElement}return v>=.3}).map(e=>{const q=e.getBoundingClientRect(),h=q.bottom-q.top;let o={t:e.textContent.trim().slice(0,10),x:q.left+2,r:q.right-2,y:q.top+h*.12,b:q.bottom-h*.12};const cg=e.closest('[data-cb]'),cr=cg&&document.getElementById(cg.getAttribute('data-cb'));if(cr){const k=cr.getBoundingClientRect();o.x=Math.max(o.x,k.left);o.r=Math.min(o.r,k.right);o.y=Math.max(o.y,k.top);o.b=Math.min(o.b,k.bottom);if(o.b<=o.y)o.r=o.x}POS['t'+e.textContent.trim().slice(0,10)+Math.round(q.width)]=[o.x,o.y];const pp=PV['t'+e.textContent.trim().slice(0,10)+Math.round(q.width)];o.mv=!!DN&&(!pp||Math.abs(pp[0]-o.x)>.5||Math.abs(pp[1]-o.y)>.5);return o});   // 2026-11-22：翻牌數字只算牌面內可見部分（被牌面裁掉的上下一位不算重疊）
+     for(let i=0;i<tx.length;i++)for(let j=i+1;j<tx.length;j++){const a=tx[i],c=tx[j];if(a.r<=a.x||c.r<=c.x)continue;if((!DN||a.mv||c.mv)&&!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push('txt:「'+a.t+'」×「'+c.t+'」')}}catch(err){}
+    for(let i=0;i<els.length;i++){const a=els[i];if(!DN&&(a.x<90||a.r>990||a.y<Y0||a.b>Y1))oob.push(a.o);for(let j=i+1;j<els.length;j++){const c=els[j];if((!DN||a.mv||c.mv)&&!(a.r<=c.x||c.r<=a.x||a.b<=c.y||c.b<=a.y))ov.push(a.o+'×'+c.o)}}return{ov,oob,ws,top:ws.top,bot:ws.bot,POS}},[!!V.edge60,PREV,DN]);PREV=r.POS;
+   r.ov.forEach(x=>rep.overlap.push(t.toFixed(FULL?1:3)+'s '+x+(FULL?'':'（逐幀）')));r.oob.forEach(x=>rep.oob.push(t.toFixed(1)+'s '+x));
+   if(V.edge60&&FULL){(rep.edge=rep.edge||[]).push(...r.ws.map(x=>t.toFixed(1)+'s '+x));rep.gapTopMax=Math.max(rep.gapTopMax||0,r.top);rep.gapBotMax=Math.max(rep.gapBotMax||0,r.bot)}}}
   if(SEG){fs.mkdirSync(SEG,{recursive:true});const P5=x=>String(x).padStart(5,'0')+'.png';
    execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(V.fps),'-start_number',String(r0),'-i',path.join(tmp,'%05d.png'),'-frames:v',String(r1-r0),'-c:v','libx264','-pix_fmt','yuv420p','-profile:v','high','-crf','20','-r',String(V.fps),'-f','mp4',path.join(SEG,'seg_'+String(r0).padStart(6,'0')+'.mp4')]);
    const ci=Math.round(CT*V.fps);if(ci>=r0&&ci<r1)fs.copyFileSync(path.join(tmp,P5(ci)),path.join(SEG,'cover.png'));
@@ -64,7 +65,7 @@ const rep={frames:n,checked:0,overlap:[],oob:[]};if(V.edge60)rep.edge=[];
   fs.writeFileSync(ALLH,segs.map(x=>"file '"+path.join(ASM,x).replace(/'/g,"'\\''")+"'").join('\n')+'\n');
   const reps=fs.readdirSync(ASM).filter(x=>/^rep_.*\.json$/.test(x)).map(x=>JSON.parse(fs.readFileSync(path.join(ASM,x),'utf8')));
   const tt=x=>parseFloat(typeof x==='string'?x:x.t);
-  for(const r of reps){rep.checked+=r.checked;['overlap','oob','edge','coText','transitionFrames','logoGap','logoOverlap'].forEach(k=>{if(r[k]){rep[k]=(rep[k]||[]).concat(r[k])}});
+  for(const r of reps){rep.checked+=r.checked;if(r.dense){rep.dense=r.dense;rep.denseChecked=(rep.denseChecked||0)+(r.denseChecked||0)}['overlap','oob','edge','coText','transitionFrames','logoGap','logoOverlap'].forEach(k=>{if(r[k]){rep[k]=(rep[k]||[]).concat(r[k])}});
    if(r.gapTopMax!=null)rep.gapTopMax=Math.max(rep.gapTopMax||0,r.gapTopMax);if(r.gapBotMax!=null)rep.gapBotMax=Math.max(rep.gapBotMax||0,r.gapBotMax);
    if(r.logoGapMin!=null)rep.logoGapMin=Math.min(rep.logoGapMin==null?1e9:rep.logoGapMin,r.logoGapMin);
    if(r.panel){rep.panel=rep.panel||{};for(const [sid,v] of Object.entries(r.panel)){const d=(rep.panel[sid]=rep.panel[sid]||{frame:{},base:{},transform:{}});['frame','base','transform'].forEach(k=>{for(const [kk,c] of Object.entries(v[k]))d[k][kk]=(d[k][kk]||0)+c})}}}
