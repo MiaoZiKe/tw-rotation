@@ -3,7 +3,7 @@
  "endCardSec": 51.31,
  "cues": [
   {
-   "t": 0.2,
+   "t": 0.01,
    "kind": "paperslide",
    "gain": 0,
    "pan": 0.5,
@@ -11,88 +11,22 @@
    "src": "s1 resign：信封滑進桌面"
   },
   {
-   "t": 0.8,
-   "kind": "keyboard",
-   "gain": -6,
-   "pan": 0.5,
-   "params": {
-    "rate": 5
-   },
-   "src": "s1 resign：筆畫一條線",
-   "dur": 0.8
-  },
-  {
-   "t": 5.44,
-   "kind": "whoosh",
-   "gain": 0,
-   "pan": 0.5,
-   "params": {
-    "strength": 0.35
-   },
-   "src": "s2 notice：換幕輕掃",
-   "dur": 0.4
-  },
-  {
    "t": 5.76,
    "kind": "stamp",
    "gain": -3,
    "pan": 0.5,
    "params": {},
-   "src": "s2 notice：圖釘釘上"
+   "src": "s2 notice：圖釘釘上",
+   "class": "impact"
   },
   {
-   "t": 6.46,
-   "kind": "paperslide",
-   "gain": -2,
-   "pan": 0.5,
-   "params": {},
-   "src": "s2 notice：放大鏡滑進"
-  },
-  {
-   "t": 11.72,
-   "kind": "whoosh",
-   "gain": 0,
-   "pan": 0.5,
-   "params": {
-    "strength": 0.35
-   },
-   "src": "s3 punchclock：換幕輕掃",
-   "dur": 0.4
-  },
-  {
-   "t": 12.14,
-   "kind": "paperslide",
-   "gain": -2,
-   "pan": 0.5,
-   "params": {},
-   "src": "s3 punchclock：卡片插入"
-  },
-  {
-   "t": 12.49,
+   "t": 12.23,
    "kind": "stamp",
    "gain": 0,
    "pan": 0.5,
    "params": {},
-   "src": "s3 punchclock：打卡咔一聲"
-  },
-  {
-   "t": 17.52,
-   "kind": "whoosh",
-   "gain": 0,
-   "pan": 0.5,
-   "params": {
-    "strength": 0.35
-   },
-   "src": "s4 overtime：換幕輕掃",
-   "dur": 0.4
-  },
-  {
-   "t": 17.84,
-   "kind": "paperslide",
-   "gain": -2,
-   "pan": 0.5,
-   "params": {},
-   "src": "s4 overtime：主體入場"
+   "src": "s3 punchclock：打卡咔一聲",
+   "class": "impact"
   },
   {
    "t": 22.24,
@@ -106,7 +40,7 @@
    "dur": 0.4
   },
   {
-   "t": 22.56,
+   "t": 22.5,
    "kind": "paperslide",
    "gain": -2,
    "pan": 0.5,
@@ -114,62 +48,13 @@
    "src": "s5 compass：主體入場"
   },
   {
-   "t": 32.43,
-   "kind": "whoosh",
-   "gain": 0,
-   "pan": 0.5,
-   "params": {
-    "strength": 0.35
-   },
-   "src": "s6 megaphone：換幕輕掃",
-   "dur": 0.4
-  },
-  {
-   "t": 33.25,
-   "kind": "pageturn",
-   "gain": -2,
-   "pan": 0.5,
-   "params": {},
-   "src": "s6 megaphone：文件翻開一頁",
-   "dur": 0.15
-  },
-  {
-   "t": 38.14,
-   "kind": "whoosh",
-   "gain": 0,
-   "pan": 0.5,
-   "params": {
-    "strength": 0.35
-   },
-   "src": "s7 gears：換幕輕掃",
-   "dur": 0.4
-  },
-  {
-   "t": 38.46,
-   "kind": "paperslide",
-   "gain": -2,
-   "pan": 0.5,
-   "params": {},
-   "src": "s7 gears：主體入場"
-  },
-  {
-   "t": 45.51,
-   "kind": "whoosh",
-   "gain": 0,
-   "pan": 0.5,
-   "params": {
-    "strength": 0.35
-   },
-   "src": "s8 mailbox：換幕輕掃",
-   "dur": 0.4
-  },
-  {
    "t": 45.93,
    "kind": "stamp",
    "gain": -5,
    "pan": 0.5,
    "params": {},
-   "src": "s8 mailbox：信箱旗翻起"
+   "src": "s8 mailbox：信箱旗翻起",
+   "class": "impact"
   }
  ]
 }
