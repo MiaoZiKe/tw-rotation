@@ -1,3 +1,12 @@
+# 【最新】12/3 最低工資、12/5 年終 兩支有旁白影片（2026-11-27 台北，總編輯；分支 healing/video-1203-1205，不推 main）
+- Andy 11-27 親自核准排程：20261203v_minwage（12/3 20:27）、20261205v_bonus（12/5 20:27）；meta 皆 awaiting_andy＋await_andy:true。
+- 已做：script.json（8 鏡＋片尾 @FIXED）、新插圖 6 個（paystub、yearcoins、deduct、bonusenv、taxline、taxreturn，已登記 index.json／ILLUSTRATIONS.md／素材登記.md）、caption／threads／threads_reply／sources／article.json（已跑 healing_article → site/articles/healing/2026-12-03-…、2026-12-05-…）、video_review.md（主旨、起承轉合、tts 全文）、retro.md 初稿。
+- TTS 各 1 次（minwage 念稿 228 字、旁白 48.68 秒、純念稿 5.04 字／秒；bonus 230 字、46.86 秒、5.13 字／秒）。raw_keep 一段、句中 0 插入；pace_check「要人看」＝句間自然停頓最短 0.12／0.07 秒（聽感要特別聽黏口）。
+- 注意：bonus 片 head_onset 誤停在「直接｜說」中間（成品開頭殘留「說」）→ 已改用 ASR 副本重裁，首字起音 46.77，前 2.5 秒 ASR 從「年」開始。head_onset 這個缺陷還沒修程式（見 retro.md）。
+- **渲染：推 `_render_request.txt`（`20261203v_minwage,20261205v_bonus`、jobs=8 chunk=60 writeback=1）觸發 healing_render；run id 見下一行（推送後補）。容器沒有渲染。**
+- **渲完要四道驗證＋審片**（審查者，不是製作者）：① 句中 0 停頓／③ 停頓密度＋audio-check（數位靜音／斷音／硬起音 0）；② Gemini 聽感＋平捲舌＋黏口＋ASR 逐字＋前 1.5 秒 ASR（不得有「直接說」）；④ frames_1s.png 逐格看重疊與空白；五項打分 ≥7 寫 video_review.md。過了才 SendUserFile 給 Andy（附排程、片長、念稿、主旨、出處、分數、已知問題），他 OK 才改 approved 推 main。
+
+---
 # 【最新】11/28 平均月薪、11/29 離職 審片不合格修片（2026-11-27 台北，影片製作棒）
 - 審片紀錄：`20261128v_avgwage/video_review.md`、`20261129v_quit/video_review.md` 最上面（獨立審片 commit 309cf42e6 已挑進本分支）。兩支都因片頭殘留設定句尾「直接說」不合格；quit 另有句間黏口與 s7 換幕落後聲音 0.7 秒。
 - avgwage：**沒有重配 TTS**。原始錄音重裁頭（念稿首字起音 40.42 秒，裁頭起點 40.15 秒＋0.15 秒同錄音底噪墊），旁白 46.32 秒（≥45.5）；純念稿 5.41 字／秒。

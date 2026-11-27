@@ -1,2 +1,2 @@
-20261128v_avgwage,20261129v_quit
+20261203v_minwage,20261205v_bonus
 jobs=8 chunk=60 writeback=1
