@@ -159,10 +159,16 @@
     ],
     "abf": [
       "ABF"
+    ],
+    "abfsub": [
+      "載板"
+    ],
+    "bt": [
+      "BT"
     ]
   },
-  "legal_pending": [],
-  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。 2026-11-27：系列 2 的 gas、pad、utility、probe1 與系列 3 的 dicing（留言氣體、研磨墊、水氣電、探針卡、切割）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。2026-11-27 法遵審完這 5 支（貼文文案＋IG 私訊＋Threads 回覆）：無投資建議、無個股推薦或目標價，公司描述中立且標出處；dicing 把「切割研磨機主要是日本迪思科」改成「國際有日本迪思科」（市占查不到一致數字，「主要是」無出處）並補「（媒體報導）」，其餘原樣通過，已拿掉。 2026-11-27 晚：Andy 22:52「上面有的影片都 OK」，系列 2 的 twequip、target、precursor、chem、parts、cleanroom、probe2 與系列 3 的 wirebond、pkgmat、flipchip、fanout、pkgequip、abf（留言設備廠、靶材、前驅物、化學品、耗材、無塵室、探針卡廠、打線、錫球、覆晶、扇出、封裝設備、ABF）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。 2026-11-27 法遵審完這 13 支（貼文文案＋IG 私訊＋Threads 回覆＋網站文章公司段）：無投資建議、無個股推薦或目標價，公司描述中立且標出處、市占一律不寫；twequip「前段清洗機多是外商」有 TechNews 出處保留；wirebond、flipchip 文案公司句補「（公司官網）」，其餘原樣通過，已拿掉。 2026-11-27 法遵審完系列 2 剩下 11 支 wafer1～kla（貼文文案＋IG 私訊＋Threads 回覆＋網站文章公司段）：無投資建議、無個股推薦或目標價，公司描述中立且標出處；wafer2「台灣最大」、mask1 空白光罩來源、mask2 專業光罩廠、resist1「以日本廠為主」補出處標籤；amat 把「答案是應用材料」改「其中一家大廠是」（沉積另有其他設備商）；tel「約九成」是公司引述 Gartner 並列第三方 86.6%、影片也念這個數字，標出處保留；其餘原樣通過，已拿掉。",
+  "legal_pending": ["abfsub", "bt"],
+  "legal_pending_note": "列在這裡的代號＝新增文案還沒過法遵：程式照樣回覆，但改送 default（已審過的那份）。法遵審過後把代號拿掉。2nm：2026-11-15 法遵審完「改完可發」，文章 2026-11-15-tech-2nm 已上 main（1419d8ebb），已拿掉。2026-11-25：系列 2 的 wafer1、wafer2、mask1、mask2、resist1、resist2（留言拉晶、磊晶、光罩、光罩盒、光阻、顯影）回覆文字新增，先放這裡，待法遵審過再拿掉；審過前一律改送預設文字。 2026-11-27：系列 2 的 gas、pad、utility、probe1 與系列 3 的 dicing（留言氣體、研磨墊、水氣電、探針卡、切割）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。2026-11-27 法遵審完這 5 支（貼文文案＋IG 私訊＋Threads 回覆）：無投資建議、無個股推薦或目標價，公司描述中立且標出處；dicing 把「切割研磨機主要是日本迪思科」改成「國際有日本迪思科」（市占查不到一致數字，「主要是」無出處）並補「（媒體報導）」，其餘原樣通過，已拿掉。 2026-11-27 晚：Andy 22:52「上面有的影片都 OK」，系列 2 的 twequip、target、precursor、chem、parts、cleanroom、probe2 與系列 3 的 wirebond、pkgmat、flipchip、fanout、pkgequip、abf（留言設備廠、靶材、前驅物、化學品、耗材、無塵室、探針卡廠、打線、錫球、覆晶、扇出、封裝設備、ABF）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。 2026-11-27 法遵審完這 13 支（貼文文案＋IG 私訊＋Threads 回覆＋網站文章公司段）：無投資建議、無個股推薦或目標價，公司描述中立且標出處、市占一律不寫；twequip「前段清洗機多是外商」有 TechNews 出處保留；wirebond、flipchip 文案公司句補「（公司官網）」，其餘原樣通過，已拿掉。 2026-11-27 法遵審完系列 2 剩下 11 支 wafer1～kla（貼文文案＋IG 私訊＋Threads 回覆＋網站文章公司段）：無投資建議、無個股推薦或目標價，公司描述中立且標出處；wafer2「台灣最大」、mask1 空白光罩來源、mask2 專業光罩廠、resist1「以日本廠為主」補出處標籤；amat 把「答案是應用材料」改「其中一家大廠是」（沉積另有其他設備商）；tel「約九成」是公司引述 Gartner 並列第三方 86.6%、影片也念這個數字，標出處保留；其餘原樣通過，已拿掉。 2026-11-28：Andy 04:00 前後「這都OK」，系列 3 的 abfsub、bt（留言載板、BT）回覆文字新增，措辭照科磊那套只換標題與文章網址，待法遵審過再拿掉。",
   "ig_dm": {
     "enabled": true,
     "mode": "poll",
@@ -230,7 +236,9 @@
       "flipchip": "謝謝留言！「覆晶：晶片翻過來，電怎麼接出去」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-28-tech-flipchip",
       "fanout": "謝謝留言！「扇出型與晶圓級封裝：不用載板，線怎麼拉出去」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-29-tech-fanout",
       "pkgequip": "謝謝留言！「先進封裝設備：晶片怎麼精準疊在一起」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-30-tech-pkgequip",
-      "abf": "謝謝留言！「ABF 膜：載板裡的絕緣膜到底在隔什麼」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-31-tech-abf"
+      "abf": "謝謝留言！「ABF 膜：載板裡的絕緣膜到底在隔什麼」完整解說放在這：https://liguligu-puipui.com/#article/2026-12-31-tech-abf",
+      "abfsub": "謝謝留言！「ABF 載板：整塊載板怎麼一層層蓋出來」完整解說放在這：https://liguligu-puipui.com/#article/2027-01-01-tech-abfsub",
+      "bt": "謝謝留言！「BT 載板：便宜的載板，為什麼也缺料」完整解說放在這：https://liguligu-puipui.com/#article/2027-01-02-tech-bt"
     },
     "unlock_note": "2026-11-16：私訊（確認追蹤後才發）的網站連結，程式會自動在網址後接 ?tc=頻道憑證（來自 GitHub Secret TC_UNLOCK_CODE，scripts/tc_dm_keys.with_unlock）。註冊會員用這個連結開啟就解鎖「科技透明圈」全部文章；沒設 Secret 就原樣送（只能看單篇）。公開回覆（threads_reply／public_fallback）不帶憑證。contents 裡連結照舊寫 https://liguligu-puipui.com/#article/…，不用手動加。",
     "per_user_per_day": 1,
@@ -401,6 +409,12 @@
       ],
       "abf": [
         "已經將「ABF 膜：載板裡的絕緣膜到底在隔什麼」完整資訊給你囉～https://liguligu-puipui.com/#article/2026-12-31-tech-abf"
+      ],
+      "abfsub": [
+        "已經將「ABF 載板：整塊載板怎麼一層層蓋出來」完整資訊給你囉～https://liguligu-puipui.com/#article/2027-01-01-tech-abfsub"
+      ],
+      "bt": [
+        "已經將「BT 載板：便宜的載板，為什麼也缺料」完整資訊給你囉～https://liguligu-puipui.com/#article/2027-01-02-tech-bt"
       ]
     }
   }
