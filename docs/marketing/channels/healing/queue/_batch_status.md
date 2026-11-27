@@ -1,3 +1,9 @@
+# 【最新】影片「卡卡」修正＋重渲（2026-11-27 11:01 台北；Andy 11-27：「影片很棒，但是看起來感覺卡卡的 幫我避免」「請優化他們」）
+- 根因：Actions 分段渲染接段時，各段輸出裸 h264（含 B 幀）→ cat 接起 → `-f h264 -c:v copy` 封裝；裸流沒時間戳，PTS 照解碼順序配，B 幀顯示順序整片錯亂＝播放器前後跳格。量測：平均月薪 695／1583 幀 PTS 倒退、想離職 757／1723；外食片 673／1530 且少 2 幀；容器單機版 0／1532。畫面內容本身逐幀與容器版一致（平均差 ≤0.77／255），接縫變化量正常，所以每秒抽一格看不出來。非接縫原因（幀率、緩動、靜止後跳、換幕、字幕）逐幀量過無異常：動態中孤立停格 0～2、30fps 維持（60fps 會讓渲染時間加倍、檔案多 4～6 成，非根因）。
+- 修法：render_video.js 每段改輸出 seg_*.mp4（自帶 PTS/DTS），接段用 ffmpeg concat 分離器 `-c copy`；接段後自量 PTS，倒退或幀數不符直接報錯不出片。新增 v9/smooth_check.py，verify4 ⑤ 自動跑（PTS／幀距／幀數、孤立停格、順序倒退、每 60 幀接縫跳格停格）。規則寫進 healing-editor.md 規則 30 ④。
+- 驗證：外食片用新流程重渲（run 45930740601，分支 healing/smooth-fix，writeback=0）→ PTS 倒退 0、幀數 1532／1532、與容器版逐幀差最大 0.773、平均 0.526（皆 /255），變化量序列差全片最大 0.30；verify4 pass_auto=true。成品 renders/healing：renders/20261127v_food.66b78ca3.mp4。
+- 已觸發重渲：20261128v_avgwage、20261129v_quit，run 45931729753（writeback=1）。完成後要看 verify4.json 的 smooth.pass＝true 才交件；舊成品（有 PTS 錯亂）不要再發。
+
 # 【最新】quit 規則 23 剪停頓重渲（2026-11-27，影片製作棒）
 - 旁白 3.30～4.00 秒純底噪剪 0.70 秒（15 ms 等功率交叉淡化，依規則 23、句間非句內），旁白 52.65→51.95 秒；make_segments＋verify4 --no-sheet 合格。已推 `_render_request.txt`＝`20261129v_quit`（jobs=8 chunk=60 writeback=1）觸發 healing_render，run id 見下方回報；渲完重跑成品停頓表／換幕對起音／重疊。meta 維持 awaiting_andy，不推 main。
 
