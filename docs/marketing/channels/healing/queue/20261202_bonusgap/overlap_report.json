@@ -18,9 +18,7 @@
    ],
    "inside": true
   },
-  "scrollH": 1350,
-  "contrast_min": 6.24,
-  "contrast_pass": true
+  "scrollH": 1350
  },
  "20261202_bonusgap/2": {
   "n": 6,
@@ -41,9 +39,7 @@
    ],
    "inside": true
   },
-  "scrollH": 1350,
-  "contrast_min": 6.24,
-  "contrast_pass": true
+  "scrollH": 1350
  },
  "20261202_bonusgap/3": {
   "n": 7,
@@ -64,8 +60,6 @@
    ],
    "inside": true
   },
-  "scrollH": 1350,
-  "contrast_min": 5.02,
-  "contrast_pass": true
+  "scrollH": 1350
  }
 }
