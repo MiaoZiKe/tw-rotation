@@ -32,4 +32,4 @@ bash scripts/three/add-sfx.sh <in.mp4> <cues.json 或 sfx.wav> <out.mp4> [--end 
 本資料夾 `sfx-synth.py`、`add-sfx.sh` 以 main（ai-mp4 e8cfbc3 同步版）為準，旁白保護與出片後解碼檢查用官方的（`add-sfx.sh` 結尾自動跑 `sfx-synth.py check`，最差窗 <14 dB 就刪成品報錯）。④ 只多兩處：① `healing_kinds.py`（coin／cashier／calculator／stamp／paperslide／tick，whoosh 用內建 strength 0.35），由 `sfx-synth.py` 在 register 區塊後自動載入（那 5 行 try/import 是 ④ 加的，重新同步 ai-mp4 原版時補回）；② 排 cue：`docs/marketing/channels/healing/templates_tqsa_v3/video/v9/make_cues.py <佇列資料夾>`；整批：`.github/workflows/healing_sfx.yml`。
 
 ### ④ 本地修正（2026/11/27，第 9 輪審片）：旁白保護「鄰窗取最小」只在兩個講話窗之間做
-`sfx-synth.py` 的逐窗保護原本對所有窗取鄰窗最小，講話字尾緊接近乎靜音窗時，上限被拉到約 −85 dB，撞擊音效被壓到聽不見（minwage 11.32 秒核定章殘差只剩 −64 dB）。④ 改成：鄰窗取最小只在「兩個講話窗之間」做，非講話窗的上限照常。`check` 關卡（最差窗 ≥14 dB）不變。**主控日後從 AI-Mp4 同步 `sfx-synth.py` 時要保留這段，或由 ② 併入。**
+`sfx-synth.py` 的逐窗保護原本對所有窗取鄰窗最小，講話字尾緊接近乎靜音窗時，上限被拉到約 −85 dB，撞擊音效被壓到聽不見（minwage 11.32 秒核定章殘差只剩 −64 dB）。④ 改成：鄰窗取最小只在「兩個有實際聲音的講話窗之間」做（比旁白最大音量低於 35 dB 的近乎靜音窗不參與），非講話窗的上限照常。`check` 關卡（最差窗 ≥14 dB）不變。**主控日後從 AI-Mp4 同步 `sfx-synth.py` 時要保留這段，或由 ② 併入。**
