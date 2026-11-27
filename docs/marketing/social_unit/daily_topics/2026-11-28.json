@@ -1,0 +1,457 @@
+{
+  "target_date": "2026-11-28",
+  "data_date": "2026-11-28",
+  "warning": "",
+  "n": 8,
+  "track_a": {
+    "name": "A 總經",
+    "schedule": [
+      {
+        "date_et": "2026-12-04",
+        "tw_time": "12/04 21:30",
+        "kind": "nfp",
+        "title": "美國非農就業",
+        "ref": "",
+        "org": "美國勞工統計局（BLS）",
+        "via": "fred",
+        "phase": "未來",
+        "confidence": "待查證"
+      }
+    ],
+    "news": [
+      {
+        "title": "美國10月商品貿易逆差擴至1,495億美元資本財占進口增額近64%",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6674151",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "全球柴油2027年第二季恐再現缺口中東出口僅戰前三分之一",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6674152",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "美股大跌為何帶來美元買盤？外資回補匯率避險部位",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6674126",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "倫敦期銅盤中反彈近4%洋山溢價較高點降36%、上海庫存續增",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6674027",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "AI 仍供不應求，主計總處估明年出口破 1 兆美元創新高",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/11/27/ai-supply-shortage-dgbass-forecasts-next-year-exports-1-trillion-record-high/",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "歐元區民眾一年期通膨預期升至3.5%法、西11月物價漲幅放緩",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6673944",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "東京11月核心CPI微幅低於預期 日本央行12月升息機率仍高",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6673732",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "法國11月通膨降至2.9%第三季GDP下修至季減0.2%",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6673862",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      }
+    ]
+  },
+  "track_b": {
+    "name": "B 科技",
+    "news": [
+      {
+        "title": "〈美股盤後〉AI強勢回血！標普創2025年4月來最佳單周 Sandisk飆16% Anthropic重返IPO價",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6674256",
+        "date": "2026-11-28",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "馬斯克預言：Optimus機器人18個月內包辦家務 人人會想買一至兩台",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6673835",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "高盛拆解機器人產業：中國物理AI迎爆發潮 出貨量2035年將占全球過半",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6673831",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "廣達退出、矽品接手，友達華亞廠 197 億元交易案再拍板",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/11/27/auo-spil/",
+        "date": "2026-11-27",
+        "groups": [
+          "AI 伺服器組裝",
+          "系統組裝 / 機櫃",
+          "面板產業",
+          "面板 TFT-LCD"
+        ],
+        "companies": [
+          {
+            "code": "2382",
+            "name": "廣達"
+          },
+          {
+            "code": "2409",
+            "name": "友達"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "AI 伺服器組裝（ODM）的流程與主要客戶關係",
+          "伺服器供應鏈上下游誰跟誰合作",
+          "為何 AI 伺服器需求強（雲端業者資本支出與模型訓練）",
+          "AI 伺服器供應鏈介紹：哪個零件由誰做",
+          "上下游合作關係：誰供貨給誰"
+        ]
+      },
+      {
+        "title": "矽光子、CPO 聚焦量產落地！台灣首屆矽光子應用展明年四月登場",
+        "source": "technews",
+        "url": "https://technews.tw/2026/11/27/teeia-2027-cpo/",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "整合感測通訊！愛立信推 ISAC 系統，將無人機偵測導入行動網路",
+        "source": "technews",
+        "url": "https://technews.tw/2026/11/27/ericsson-isac/",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "美出口限令加速轉變！瑞銀：中國產 AI 晶片 2028 年市占率將突破 88%",
+        "source": "technews",
+        "url": "https://technews.tw/2026/11/27/ubs-see-chinese-ai-chip-market-by-2028/",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "哈佛開發微型紫外光晶片，輸出功率提升 120 倍、助量子電腦微縮",
+        "source": "technews",
+        "url": "https://technews.tw/2026/11/27/harvard-micro-uv-chip/",
+        "date": "2026-11-27",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      }
+    ],
+    "lectures": [
+      {
+        "date": "2026-11-30",
+        "code": "2355",
+        "name": "敬鵬",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "2369",
+        "name": "菱生",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "2891",
+        "name": "中信金",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "2906",
+        "name": "高林",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "3622",
+        "name": "洋華",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "5283",
+        "name": "禾聯碩",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "5880",
+        "name": "合庫金",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-11-30",
+        "code": "6671",
+        "name": "三能-KY",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-01",
+        "code": "2308",
+        "name": "台達電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-01",
+        "code": "3518",
+        "name": "柏騰",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-01",
+        "code": "6446",
+        "name": "藥華藥",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-01",
+        "code": "6670",
+        "name": "復盛應用",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "2308",
+        "name": "台達電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "2881",
+        "name": "富邦金",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "3022",
+        "name": "威強電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "4588",
+        "name": "玖鼎電力",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "4906",
+        "name": "正文",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "4935",
+        "name": "茂林-KY",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-02",
+        "code": "8481",
+        "name": "政伸",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-03",
+        "code": "1752",
+        "name": "南光",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-03",
+        "code": "2461",
+        "name": "光群雷",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-12-03",
+        "code": "2883",
+        "name": "凱基金",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      }
+    ]
+  }
+}
