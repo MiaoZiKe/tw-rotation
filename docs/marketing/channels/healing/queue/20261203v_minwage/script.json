@@ -45,7 +45,8 @@
    "opts": {
     "dur": 6.6,
     "once": true,
-    "tagAll": true
+    "tagAll": true,
+    "srcFs": 30
    }
   },
   {
@@ -88,7 +89,8 @@
    "opts": {
     "dur": 7.6,
     "once": true,
-    "tagAll": true
+    "tagAll": true,
+    "srcFs": 30
    }
   },
   {

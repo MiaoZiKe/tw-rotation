@@ -1,0 +1,49 @@
+{
+ "frames": 1656,
+ "static_runs_gt_1_2s": [
+  [
+   53.73,
+   1.47
+  ]
+ ],
+ "static_max_s": 1.47,
+ "emphasis": [
+  {
+   "id": "s2",
+   "t": 9.52,
+   "min_px": 76.0,
+   "ok": true
+  },
+  {
+   "id": "s3",
+   "t": 18.3,
+   "min_px": 65.0,
+   "ok": true
+  },
+  {
+   "id": "s4",
+   "t": 22.53,
+   "min_px": 76.0,
+   "ok": true
+  },
+  {
+   "id": "s5",
+   "t": 28.69,
+   "min_px": 44.0,
+   "ok": true
+  },
+  {
+   "id": "s6",
+   "t": 32.37,
+   "min_px": 29.0,
+   "ok": true
+  },
+  {
+   "id": "s8",
+   "t": 44.49,
+   "min_px": 21.0,
+   "ok": true
+  }
+ ],
+ "emphasis_fail": []
+}
