@@ -1,2 +1,2 @@
-20261205v_bonus
+20261203v_minwage,20261205v_bonus
 jobs=8 chunk=60 writeback=1
