@@ -320,7 +320,8 @@
    "opts": {
     "dur": 5.8,
     "once": true,
-    "tagAll": true
+    "tagAll": true,
+    "tagAt": 0.52
    }
   }
  ],
