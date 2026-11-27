@@ -1,6 +1,51 @@
 {
- "updated": "2026-11-26",
+ "updated": "2026-11-27",
  "days": [
+  {
+   "date": "2026-11-27",
+   "items": [
+    {
+     "cat": "科技",
+     "title": "需求能見度低、供應鏈轉趨保守，2028 年 DRAM 合約價走跌風險升溫",
+     "url": "https://technews.tw/2026/11/27/low-demand-visibility-conservative-supply-chains-2028-dram-contract-price-decline-risk/",
+     "source": "科技新報",
+     "time": "2026-11-27T15:25:39+08:00",
+     "desc": "根據 TrendForce 最新記憶體產業研究，2026 年第四季上旬起，供應鏈考量美國期中選舉結果可能影響後"
+    },
+    {
+     "cat": "新聞",
+     "title": "台股修正期ETF怎麼選？看懂「這指標」檢視配息底氣，五檔12月除息ETF實測",
+     "url": "https://news.cnyes.com/news/id/6673687",
+     "source": "鉅亨",
+     "time": "2026-11-27T13:59:50+08:00",
+     "desc": "台股自10月高點49,968點回落至11月下旬35,442點，波段跌幅近3成，市場憂心高股息ETF 12月配息縮水；文中指出配息關鍵不在單日漲跌，而在股利所得與…"
+    },
+    {
+     "cat": "科技",
+     "title": "帶近半公斤摺疊機去旅行，iPhone Duo、Galaxy Z Fold8 實拍心得",
+     "url": "https://technews.tw/2026/11/27/iphone-duo-galaxy-z-fold8/",
+     "source": "科技新報",
+     "time": "2026-11-27T15:43:17+08:00",
+     "desc": "隨著蘋果今年正式推出首款摺疊手機 iPhone Duo，摺疊手機市場也迎來新的競爭局面。一邊是在摺疊手機領域耕"
+    },
+    {
+     "cat": "事件",
+     "title": "中東不平靜、沙烏地煉油廠遭襲 油價跳高",
+     "url": "https://finance.technews.tw/2026/11/27/middle-east-unrest-saudi-refinery-attack-surging-oil-prices/",
+     "source": "科技新報",
+     "time": "2026-11-27T15:30:52+08:00",
+     "desc": "中東局勢仍動盪，沙烏地國營石油公司 Saudi Aramco 旗下煉油廠遇襲，部分作業暫停，伊朗也稱有油輪在荷"
+    },
+    {
+     "cat": "總經",
+     "title": "全球黃金「大搬風」！法國率先結束近一世紀託管 全球3.6萬噸儲備版圖重劃",
+     "url": "https://news.cnyes.com/news/id/6673670",
+     "source": "鉅亨",
+     "time": "2026-11-27T14:10:03+08:00",
+     "desc": "各國央行加速把黃金自紐約、倫敦撤回本國或更可控司法區，重塑全球儲備版圖；WGC：央行黃金儲備逾3.6萬噸；法國處置在美129噸、印度海外占比3年降至22%、波蘭…"
+    }
+   ]
+  },
   {
    "date": "2026-11-26",
    "items": [
