@@ -2,7 +2,7 @@
  "outro_t0": 49.0,
  "dur": 55.2,
  "outro_lufs": -12.3,
- "outro_true_peak_dbtp": -1.4,
+ "outro_true_peak_dbtp": -1.5,
  "tune": [
   {
    "gain": 1.0,
@@ -17,11 +17,11 @@
   {
    "gain": 0.316,
    "lufs": -12.3,
-   "tp": -1.4
+   "tp": -1.5
   }
  ],
  "limiter": "alimiter limit 0.84/0.82, latency=1",
- "narration": "/tmp/tmpdg7medby/voice.wav",
+ "narration": "/tmp/tmpjgo1f_g8/voice.wav",
  "voice": {
   "voice_in_lufs": -14.2,
   "voice_gain_db": -1.8,
@@ -165,6 +165,16 @@
     19
    ],
    "g": 0.35
+  },
+  {
+   "t": 11.32,
+   "type": "thump",
+   "g": 0.6
+  },
+  {
+   "t": 11.32,
+   "type": "stamp",
+   "g": 0.7
   },
   {
    "t": 16,
@@ -718,6 +728,6 @@
   }
  ],
  "full_lufs": -15.5,
- "full_true_peak_dbtp": -1.4,
+ "full_true_peak_dbtp": -1.5,
  "voice_region_note": "旁白段落人聲 −16 LUFS；片尾前物件音效 ×0.35、人聲出現時再閃避 −9 dB"
 }
