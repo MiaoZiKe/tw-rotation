@@ -21,7 +21,7 @@
   }
  ],
  "limiter": "alimiter limit 0.84/0.82, latency=1",
- "narration": "/tmp/tmpeux3i3tm/voice.wav",
+ "narration": "/tmp/tmp1jshy4li/voice.wav",
  "voice": {
   "voice_in_lufs": -14.6,
   "voice_gain_db": -1.4,

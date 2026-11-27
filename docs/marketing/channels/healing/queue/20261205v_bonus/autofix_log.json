@@ -228,12 +228,7 @@
     "edge：29.0s 小字 22.0px「隔年」"
    ]
   ],
-  "fixed": [
-   "s2 srcFs 30→26（oob：出處行出界）",
-   "s3 srcFs 30→26（oob：出處行出界）",
-   "s4 srcFs 30→26（oob：出處行出界）",
-   "s6 srcFs 30→26（oob：出處行出界）"
-  ],
+  "fixed": [],
   "manual": [
    "s9 靜止 1.47 秒（51.90 秒起）",
    "s1 overlap：0.533s ul×tag（逐幀）",
@@ -241,6 +236,10 @@
    "s4 overlap：18.667s title×tag（逐幀）",
    "s6 overlap：29.267s title×tag（逐幀）",
    "s8 overlap：42.267s title×tag（逐幀）",
+   "s2 oob：出處行出界（srcFs 與兩行都已用）",
+   "s3 oob：出處行出界（srcFs 與兩行都已用）",
+   "s4 oob：出處行出界（srcFs 與兩行都已用）",
+   "s6 oob：出處行出界（srcFs 與兩行都已用）",
    "s5 edge：24.5s 小字 22.0px「今年」"
   ]
  }
