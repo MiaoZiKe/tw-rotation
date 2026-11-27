@@ -68,6 +68,8 @@ ACTIONS = {
 DEFAULT = [(0.3, 'paperslide', -2, {}, '主體入場')]
 WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
+DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
+DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
 
 
 def snap(t, words, lo, hi):
@@ -104,9 +106,15 @@ def main():
         for off, kind, gdb, prm, what in acts:
             t = max(0.0, t0 + off)
             if kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
-            if t >= end_card - 0.2: continue
+            if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
             if kind == 'whoosh': c['dur'] = 0.4
+            # 需要 dur 的種類（keyboard 等）：沒給就補預設，且依種類設下限，避免 int(dur*SR)=0 → zero-size array
+            if kind in DUR_MIN:
+                d = float(prm.get('dur') or c.get('dur') or DUR_DEFAULT.get(kind, DUR_MIN[kind]))
+                d = max(d, DUR_MIN[kind]); d = min(d, end_card - 0.05 - t)
+                if d < DUR_MIN[kind]: continue    # 剩餘空間不夠就丟掉
+                c['dur'] = round(d, 2)
             cues.append(c)
             rows.append((c['t'], what, kind, gdb, s['id']))
     cues.sort(key=lambda c: c['t'])
