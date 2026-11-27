@@ -4,7 +4,7 @@
 - quit：**重配 TTS 1 次**（念稿只改 s7「所以，答案是」；TTS 指令加「每個句號、問號後換一口氣、停約 0.3 秒」，保留平捲舌指令）。新旁白 51.65 秒；純念稿 4.95、含停頓 4.54 字／秒（句號後停頓加長，語速比 5.3 慢，仍在 ≤5.5 內）；句間最小停頓 0.32 秒（舊的 0.04～0.05）；ASR 與念稿只差 2 字（難→南、一→醫，小模型聽錯）。
 - 共同：旁白檔尾端接 1 秒該錄音底噪（填掉旁白結束到片尾音效之間的 −96 dB 數位靜音）；`raw_keep.py` 重跑 → `make_segments.py` → `pace_check.py` 已跑。
 - verify4.py 新增兩條自動檢查（前 1.5 秒單獨 ASR、換幕不得晚於下一句第一字起音）；拿舊 quit 驗證：抓得到「直接說」與 s7 落後；兩支新片本機 `verify4.py --no-sheet` 皆 pass_auto=true。
-- **渲染已推 `_render_request.txt`（兩支、jobs=8 chunk=60 writeback=1）觸發 healing_render；run id 見下一行（推完才有）。渲完要重跑四道驗證**：① 句中 0 停頓／③ 停頓密度＋audio-check（數位靜音 0）；② Gemini 聽感＋平捲舌＋ASR 前 1.5 秒；④ 1 秒抽格逐格看重疊與空白；再補審查分數（≥7）。meta 維持 awaiting_andy，不推 main。
+- **渲染已推 `_render_request.txt`（兩支、jobs=8 chunk=60 writeback=1）觸發 healing_render；run id **45924286707**（https://github.com/MiaoZiKe/tw-rotation/actions/runs/45924286707，commit 711020810，推送時 queued）；成品由 workflow 推回本分支與 renders/healing，pull 後驗收。渲完要重跑四道驗證**：① 句中 0 停頓／③ 停頓密度＋audio-check（數位靜音 0）；② Gemini 聽感＋平捲舌＋ASR 前 1.5 秒；④ 1 秒抽格逐格看重疊與空白；再補審查分數（≥7）。meta 維持 awaiting_andy，不推 main。
 - 未處理（審片附帶項，聲音以外）：標籤入場旋轉框與標題 ≥8 px、quit 字幕下緣貼邊 1 px，程式重疊報告各剩 1 筆，渲完看報告再處理。
 
 ---
