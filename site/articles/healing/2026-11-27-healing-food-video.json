@@ -56,7 +56,21 @@
   },
   {
    "t": "p",
-   "text": "排程於台北時間 2026-11-27 20:27 發布到 Instagram 與 Threads；發出後補上公開網址。"
+   "text": "已於台北時間 2026-11-27 20:31 發布到 Instagram 與 Threads。"
+  },
+  {
+   "t": "links",
+   "title": "公開網址",
+   "items": [
+    {
+     "label": "Instagram",
+     "url": "https://www.instagram.com/reel/DgPr4S-lGj6/"
+    },
+    {
+     "label": "Threads",
+     "url": "https://www.threads.com/@talk_01010909/post/DgPr9GuP3cL"
+    }
+   ]
   }
  ],
  "sources": [
@@ -81,8 +95,8 @@
  "confidence": "官方或一手發布者數字經兩個獨立來源一致；原表未能開啟，發布前人工複核",
  "status": "published",
  "social": {
-  "ig": null,
-  "threads": null,
+  "ig": "https://www.instagram.com/reel/DgPr4S-lGj6/",
+  "threads": "https://www.threads.com/@talk_01010909/post/DgPr9GuP3cL",
   "queue": "20261127v_food",
   "format": "video",
   "video": "https://liguligu-puipui.com/media/healing/20261127v_food/video.mp4"
