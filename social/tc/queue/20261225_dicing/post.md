@@ -12,7 +12,7 @@ hook_type: 問句（接上一支）
 ---
 # 頻道②「科技透明圈」：影片「晶圓切割與薄化：一片晶圓怎麼切成一顆顆」
 
-- status 寫 approved：Andy 11-27 19:15「我剛剛說 OK 的都是可以安排發布」（他 11-27 看過成片說 OK）。法遵尚未審這版文案與留言回覆：dm_config 的 dicing 放 legal_pending，審過拿掉。成片來源：ai-mp4 的 out/tech-dicing.v1.mp4（62.6 秒、1080×1920、30fps、md5 前 8 碼 6bd701d0）。審片紀錄見 ai-mp4 videos/tech-dicing/README.md。換版時只換 tech-dicing.mp4 與 cover.jpg（網站 site/media/tech/20261225v_dicing/ 同步換，網站用的是同一支重新壓縮的小檔）。
+- status 寫 approved：Andy 11-27 19:15「我剛剛說 OK 的都是可以安排發布」（他 11-27 看過成片說 OK）。法遵 2026-11-27 審過這版文案與留言回覆（可發），dm_config 的 dicing 已從 legal_pending 拿掉；改了「切割研磨機主要是日本迪思科」→「國際有日本迪思科」並補（媒體報導）。成片來源：ai-mp4 的 out/tech-dicing.v1.mp4（62.6 秒、1080×1920、30fps、md5 前 8 碼 6bd701d0）。審片紀錄見 ai-mp4 videos/tech-dicing/README.md。換版時只換 tech-dicing.mp4 與 cover.jpg（網站 site/media/tech/20261225v_dicing/ 同步換，網站用的是同一支重新壓縮的小檔）。
 - 排程：2026-12-25（五）18:00（`TZ=Asia/Taipei date -d 2026-12-25 +%A`＝Friday），日期照 docs/marketing/channels/tc/series_plan.md（2-11 科磊＝12/13 起每天一集）；時間照 lessons 第 95 條固定 18:00。
 - 影片：封面取 1.5 秒畫面：kicker「接上集：晶圓測完了」＋大字「怎麼切開？」，字幕「怎麼切成一顆顆？」。
 - 內容用 ai-mp4 videos/tech-dicing/ 的 script.json（旁白為主文骨架）、research.md（狀態標籤與出處）；數字只用 research 有出處的。
@@ -38,7 +38,7 @@ hook_type: 問句（接上一支）
 
 為什麼要磨薄？因為要疊好幾層。12 吋晶圓原本約 775 微米，快一公釐；高頻寬記憶體每層要磨到約 30～50 微米。做法是正面貼膠帶、翻過來，用鑽石砂輪磨背面，先粗後細，最後露出埋好的銅柱，叫矽穿孔，像電梯井貫穿疊起來的晶片。
 
-切割研磨機主要是日本迪思科；台灣有鈦昇做雷射切割設備、昇陽半導體做晶圓薄化代工。
+切割研磨機國際有日本迪思科；台灣有鈦昇做雷射切割設備、昇陽半導體做晶圓薄化代工（媒體報導）。
 
 晶片切好了，電怎麼接出來？下一支看封裝打線。
 
