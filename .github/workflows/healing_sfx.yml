@@ -1,0 +1,105 @@
+name: healing_sfx
+# 頻道④ 影片後製音效（規則 38）：只混音軌、不重渲畫面。不讀任何 secret。
+# 觸發：① 手動（輸入資料夾清單與分支）② 推 healing/** 分支且改了 queue/_sfx_request.txt
+#   _sfx_request.txt 格式：每行一個佇列資料夾名（例 20261203v_minwage）；可選第一行 branch=healing/xxx（省略＝觸發的分支）
+on:
+  workflow_dispatch:
+    inputs:
+      folders:
+        description: "佇列資料夾名，空白分隔（例：20261203v_minwage 20261204v_xxx）"
+        required: true
+      branch:
+        description: "要處理並 commit 回去的分支（例：healing/sfx）"
+        required: true
+  push:
+    branches: ['healing/**']
+    paths: ['docs/marketing/channels/healing/queue/_sfx_request.txt']
+permissions:
+  contents: write
+concurrency:
+  group: healing-sfx-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  sfx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      Q: docs/marketing/channels/healing/queue
+      V: docs/marketing/channels/healing/templates_tqsa_v3/video/v9
+    steps:
+      - name: 決定分支與資料夾
+        id: req
+        env:
+          IN_FOLDERS: ${{ github.event.inputs.folders }}
+          IN_BRANCH: ${{ github.event.inputs.branch }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "branch=$IN_BRANCH" >> $GITHUB_OUTPUT; echo "folders=$IN_FOLDERS" >> $GITHUB_OUTPUT
+          else
+            echo "branch=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.req.outputs.branch }}
+          fetch-depth: 0
+      - name: 讀請求檔
+        id: list
+        run: |
+          F="${{ steps.req.outputs.folders }}"; B="${{ steps.req.outputs.branch }}"
+          if [ -z "$F" ]; then
+            R=$Q/_sfx_request.txt
+            L=$(sed -n 1p $R); case "$L" in branch=*) B="${L#branch=}"; sed -i 1d $R;; esac
+            F=$(grep -vE '^\s*(#|$)' $R | tr '\n' ' ')
+          fi
+          [ -n "$F" ] || { echo "沒有資料夾"; exit 1; }
+          case "$B" in healing/*) ;; *) echo "只處理 healing/** 分支，收到：$B"; exit 1;; esac
+          echo "folders=$F" >> $GITHUB_OUTPUT; echo "branch=$B" >> $GITHUB_OUTPUT
+          [ "$B" = "${{ steps.req.outputs.branch }}" ] || git checkout -B "$B" "origin/$B"
+      - name: 裝依賴
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q numpy
+      - name: 取封存分支（原片 video_nosfx.mp4 存這裡，不進工作分支）
+        run: |
+          mkdir -p /tmp/arch
+          if git ls-remote --exit-code --heads origin renders/healing >/dev/null 2>&1; then
+            git fetch -q origin renders/healing && git worktree add /tmp/arch/wt FETCH_HEAD --detach
+          else
+            git worktree add --detach /tmp/arch/wt HEAD && (cd /tmp/arch/wt && git checkout -q --orphan renders-healing && git rm -rfq . && git commit -q --allow-empty -m "封存分支 renders/healing 初始化")
+          fi
+      - name: 逐支加音效
+        run: |
+          set -eo pipefail; FAIL=0
+          for N in ${{ steps.list.outputs.folders }}; do
+            D=$Q/$N; A=/tmp/arch/wt/$N
+            echo "::group::$N"
+            for f in script.json segments.json; do [ -f $D/$f ] || { echo "::error::$N 缺 $f"; FAIL=1; continue 2; }; done
+            mkdir -p $A
+            # 原片：封存分支已有 video_nosfx.mp4 就用它（避免重複疊音效）；否則取工作分支現有 video.mp4 並封存
+            if [ -f $A/video_nosfx.mp4 ]; then cp $A/video_nosfx.mp4 /tmp/in_$N.mp4
+            else [ -f $D/video.mp4 ] || { echo "::error::$N 沒有 video.mp4"; FAIL=1; continue; }
+                 cp $D/video.mp4 $A/video_nosfx.mp4; cp $D/video.mp4 /tmp/in_$N.mp4; fi
+            # make_cues 要讀 <資料夾>/video.mp4 量片長：暫時換成原片
+            cp /tmp/in_$N.mp4 $D/video.mp4
+            python3 $V/make_cues.py $D --cues /tmp/cues_$N.json --table $D/sfx_table.md
+            END=$(python3 -c "import json;print(json.load(open('/tmp/cues_$N.json'))['endCardSec'] or '')")
+            # 官方 add-sfx.sh（main 同步 ai-mp4 e8cfbc3）：講話段音效上限＝旁白 −15.5 dB、AAC 320k、
+            # 出片後自動解碼跑 sfx-synth.py check（最差窗 <14 dB 就刪成品並報錯）
+            bash scripts/sfx/add-sfx.sh /tmp/in_$N.mp4 /tmp/cues_$N.json /tmp/out_$N.mp4 2>&1 | tee $D/sfx_guard.txt || { echo "::error::$N add-sfx 或旁白保護檢查不合格，不輸出"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
+            # 旁白原音軌＝原片（video_nosfx.mp4）自己的音軌（add-sfx.sh 內抽出）；narration.wav 與成片有剪接位移，不拿來對齊比對
+            LUFS=$(ffmpeg -nostats -i /tmp/out_$N.mp4 -af ebur128 -f null - 2>&1 | grep "I:" | tail -1 | awk '{print $2}')
+            echo "全片響度 $LUFS LUFS" | tee -a $D/sfx_guard.txt
+            python3 -c "import sys;v=float('$LUFS');sys.exit(0 if abs(v+16)<=1.0 else 1)" || { echo "::error::$N 響度 $LUFS 偏離 −16 LUFS"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
+            cp /tmp/out_$N.mp4 $D/video.mp4; cp /tmp/cues_$N.json $D/cues.json
+            echo "::endgroup::"
+          done
+          [ $FAIL = 0 ] || { echo "有資料夾失敗，不 commit"; git checkout -- $Q 2>/dev/null || true; exit 1; }
+      - name: commit 回工作分支與封存分支
+        run: |
+          B="${{ steps.list.outputs.branch }}"
+          git config user.name "healing-sfx"; git config user.email "healing-sfx@users.noreply.github.com"
+          git add $Q
+          git diff --cached --quiet || git commit -q -m "④ 影片加動作音效（healing_sfx）：${{ steps.list.outputs.folders }}"
+          git -c rebase.autoStash=true pull --rebase origin "$B" || true
+          git push origin "HEAD:$B"
+          cd /tmp/arch/wt && git add -A && (git diff --cached --quiet || git commit -q -m "封存 video_nosfx：${{ steps.list.outputs.folders }}") && git push origin "HEAD:refs/heads/renders/healing"
