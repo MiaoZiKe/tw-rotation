@@ -1,5 +1,5 @@
 #!/bin/bash
-# 複製自 MiaoZiKe/AI-Mp4 分支 claude/nifty-goodall-syke8a-1548 commit 1256d2d（11-27 主控同步給④；原版更新時以 ai-mp4 為準再同步）
+# 複製自 MiaoZiKe/AI-Mp4 分支 claude/nifty-goodall-syke8a-1548 commit e8e6556（11-27 主控同步；原版更新時以 ai-mp4 為準再同步）
 # 加音效後製（Andy 2026/11/27）。不重渲畫面：影像串流 copy，只換音軌。依賴：bash、python3＋numpy、ffmpeg／ffprobe。
 # 通用用法（任何頻道，不綁專案路徑）：
 #   bash scripts/three/add-sfx.sh <in.mp4> <cues.json 或 sfx.wav> <out.mp4> [--end <片尾卡開始秒>]
