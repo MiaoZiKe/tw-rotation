@@ -1,17 +1,77 @@
-{"_說明":"規範備份到 Google 雲端硬碟（Andy 11-26）。每日 23:23 排程：照 docs/SYSTEM_PLAYBOOK.md 各區把檔案串成一份 .md（與 ai-mp4 三個分支的 CLAUDE.md、docs/**/*.md、.github/workflows/*.yml），內容 sha256 有變才用 update_file 更新對應 id。",
-"folder":"1rIT3-MXx8HdD0f7QKsejSISs6zs6SidL",
-"files":{"00_總索引_SYSTEM_PLAYBOOK.md":{"id":"1gnp9CevG7chSKlN4bu60Vx1g_UT8uvWa","sha256":"8d54522ee4cf80865e2b9f4a538b95738fee9ebe7b54ff37ab7dbafcad816e5f"},
-"A_入口與總規則.md":{"id":"1jEGbd-d4YEv091_cT65uBF1ErNhsS38i","sha256":"878541779d7190c83f70e8b26f6d9c96b6168fa29b9965b4d7c1529c1c2760b6"},
-"B_網站系統與資料管線.md":{"id":"1WwFNSW_WvGNkDr1wJDf7P0XiU1Ar7OcM","sha256":"9c45db05ded81806cc212c69848b28f46dc00791a95702b0297540e2de3ca439"},
-"C_前端與 UI 規範.md":{"id":"1Jrd9G7Myj8GpU47wUiKfkqLLD8BGnYPI","sha256":"4187b8890cac65131ba3674c9fd92937c9278dbe3d553ffbd28b1678b84d89f4"},
-"D_專家 Agent 與技能.md":{"id":"1Gr-6HXn3eApdAOExo9mQlKawAsw3onbq","sha256":"0d1078fa035888db3af5fde3b74eb4ed4db8ad3914a14bd8f902b2958336f9a9"},
-"E_社群發文.md":{"id":"1c_q80myRzevQsCk9pTkhPNmfPd375fdl","sha256":"b2592a32308d2ce548423650cc5880de810d563f0088cbbfe3ac24e3ce4e9fa4"},
-"F-1_頻道①哩股哩股.md":{"id":"1821uLjlJFC34fy9KWUuZLZdMA8C3QYJb","sha256":"e41eef30ef2de5db0e779a6475d12a9810dd489c8f8edd87468e80089e52ac40"},
-"F-2_頻道②科技透明圈.md":{"id":"1OERdn03-kXfPET5UYrOxA-yO59rWgL94","sha256":"3ae4d3ffda96d600218c48f7e9fbcbdb96164b6958a4f66cb3aefb2c5a6d09fb"},
-"F-3_頻道③CaffAIne.md":{"id":"192btUN-jnzqEEVlAR0txEJ7pdQ5EiZo9","sha256":"9a1d8d4984a15268216fb6c3e49646f57d3092fda591014edd38950b4d7f11ee"},
-"F-4_頻道④談晴說礙.md":{"id":"1ICMkMr8DVelNMfAWwrbMyW6W2zsyz3Cr","sha256":"a1d3f76a48784d886b1d4089aa3054f6dec6a2b79641c574587639a16b6f6b12"},
-"G_影片製作.md":{"id":"1ZBtBGyqRLTw_VNd95KAGcXrVJjPRhdHk","sha256":"f523e62d5ae6e4d73ce4d750027cf50a78e222efc8468bbd9a0b8b242fa3f146"},
-"H_組織與對話管理.md":{"id":"1CCr5q5droIAKTmNN3fFA-33ald4ABCWk","sha256":"236fb7d4a2ca996981b52279eb9a76939285deec6b449df67cb23750974ddd26"},
-"I_影片製作_ai-mp4_CaffAIne分支.md":{"id":"19PzQvRuCHG8R7CgjY-ufGbPxCwKRTDNB","branch":"claude/caffaine-ai","sha256":"90c7f7bc208862f34a7bdd06b8aaa2c4ebc5b0b583e1bfabb91f53d4ae75038b"},
-"I_影片製作_ai-mp4_科技透明圈分支.md":{"id":"1KdUuR0eFW_nCVfLUSNdWoykdIVDG8xWL","branch":"claude/nifty-goodall-syke8a-1548","sha256":"df9c6751d8610204c2271fc18bba955dfa8c98ef84cda1aeb324d085b89cdbc6"},
-"I_影片製作_ai-mp4_main.md":{"id":"1EsN_pTAO8mFKKY1NliT4-JRy8m0s9TrC","branch":"main","sha256":"0cd043c04e87bb880e91890030e2e7ce151c25fd8ab6c7b0fb6e5a76c143561d"}}}
+{
+ "_說明": "規範備份到 Google 雲端硬碟（Andy 11-26）。每日 23:23 排程：照 docs/SYSTEM_PLAYBOOK.md 各區把檔案串成一份 .md（與 ai-mp4 三個分支的 CLAUDE.md、docs/**/*.md、.github/workflows/*.yml），內容 sha256 有變才用 update_file 更新對應 id。",
+ "folder": "1rIT3-MXx8HdD0f7QKsejSISs6zs6SidL",
+ "files": {
+  "00_總索引_SYSTEM_PLAYBOOK.md": {
+   "id": "18dMo1vE3ymMwuTuXR0h0A_r1fz8b8c1b",
+   "sha256": "b68b5875a527e7c65a6e7c1650ea87ebd10b6287d19dde9e8be5dcc6689ca25d"
+  },
+  "A_入口與總規則.md": {
+   "id": "1W68VyKb03D5GeCEYBMEmicx5idx5o6zz",
+   "sha256": "45b60235aa73bb1d1f06677275043c7a9c52da319af6c5e5ef25a18746266aab"
+  },
+  "B_網站系統與資料管線.md": {
+   "id": "1WwFNSW_WvGNkDr1wJDf7P0XiU1Ar7OcM",
+   "sha256": "9c45db05ded81806cc212c69848b28f46dc00791a95702b0297540e2de3ca439"
+  },
+  "C_前端與 UI 規範.md": {
+   "id": "1Jrd9G7Myj8GpU47wUiKfkqLLD8BGnYPI",
+   "sha256": "4187b8890cac65131ba3674c9fd92937c9278dbe3d553ffbd28b1678b84d89f4"
+  },
+  "D_專家 Agent 與技能.md": {
+   "id": "1Gr-6HXn3eApdAOExo9mQlKawAsw3onbq",
+   "sha256": "0d1078fa035888db3af5fde3b74eb4ed4db8ad3914a14bd8f902b2958336f9a9"
+  },
+  "E_社群發文.md": {
+   "id": "1BmhXUyra1ktFwSZngvV-trD3qKUWG-sl",
+   "sha256": "fe5ec50398b8c3b5c2c67e661c09194b408cf272a111c689cb91dc1d4f447f28"
+  },
+  "F-1_頻道①哩股哩股.md": {
+   "id": "1821uLjlJFC34fy9KWUuZLZdMA8C3QYJb",
+   "sha256": "e41eef30ef2de5db0e779a6475d12a9810dd489c8f8edd87468e80089e52ac40"
+  },
+  "F-2_頻道②科技透明圈.md": {
+   "id": "1lO1c17NZv2ChD1QwHcjP2IWHqZ9bAdQy",
+   "sha256": "7f5bc42a9f5deb67d5be9792697de717f4df87630b4541e288b828bcdb062190"
+  },
+  "F-3_頻道③CaffAIne.md": {
+   "id": "1wyaIMfdOyu-FlHs1cJzTYWQoBnF9yuRz",
+   "sha256": "8580ab7add6c7c49bb2d7b0db4e6cbc2c2f3960ab5c92e9b8ac2ee84318f4860"
+  },
+  "F-4_頻道④談晴說礙.md": {
+   "id": "1Qwfbl2PShAv1DNqqOI1NzYXDF12qLHkp",
+   "sha256": "9fb650ff74d2de3ec4e078a880c50d067f1784403e85f5ed2a27b7ca76a17c5a"
+  },
+  "G_影片製作.md": {
+   "id": "1ZBtBGyqRLTw_VNd95KAGcXrVJjPRhdHk",
+   "sha256": "f523e62d5ae6e4d73ce4d750027cf50a78e222efc8468bbd9a0b8b242fa3f146"
+  },
+  "H_組織與對話管理.md": {
+   "id": "1kLJaiW6WlCKSIsUdiZUB0vvoaVSRJqwP",
+   "sha256": "5fb656207d9304db04faa1fd9e0a1a31bbccc8868f28635d0929448db18a3f2d"
+  },
+  "I_影片製作_ai-mp4_CaffAIne分支.md": {
+   "id": "19PzQvRuCHG8R7CgjY-ufGbPxCwKRTDNB",
+   "branch": "claude/caffaine-ai",
+   "sha256": "90c7f7bc208862f34a7bdd06b8aaa2c4ebc5b0b583e1bfabb91f53d4ae75038b"
+  },
+  "I_影片製作_ai-mp4_科技透明圈分支.md": {
+   "id": "1Z26Qnfpwd3gGaiQ2oAwQ7CY79n-FgcKB",
+   "branch": "claude/nifty-goodall-syke8a-1548",
+   "sha256": "b46a84779d7ba2b1a3e247c021d073b31425884dc8a3040556e0151fcbf00e73"
+  },
+  "I_影片製作_ai-mp4_main.md": {
+   "id": "1xfjrum08hGgGWVygiFRz2yVP6FnVEjZg",
+   "branch": "main",
+   "sha256": "061f9eab01c4d018cf4fc2e19c0e2feb87504b5f04494f076600315f1eb00ddc"
+  }
+ },
+ "old_folder": "1Na3jf4ZXqMzrB4l9rgsgc0RxmPFXfCTb",
+ "_更新方式": "Drive 連接器不能改檔案內容：有變的檔先 create_file 上傳新版，再把舊版 update_file 移進 old_folder 並在檔名加「_至MMDD」。",
+ "pending_move_old": {
+  "F-4_頻道④談晴說礙.md": "1ICMkMr8DVelNMfAWwrbMyW6W2zsyz3Cr",
+  "H_組織與對話管理.md": "1CCr5q5droIAKTmNN3fFA-33ald4ABCWk",
+  "I_影片製作_ai-mp4_科技透明圈分支.md": "1KdUuR0eFW_nCVfLUSNdWoykdIVDG8xWL",
+  "I_影片製作_ai-mp4_main.md": "1EsN_pTAO8mFKKY1NliT4-JRy8m0s9TrC"
+ }
+}
