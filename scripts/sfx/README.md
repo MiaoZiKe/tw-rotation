@@ -27,6 +27,3 @@ bash scripts/three/add-sfx.sh <in.mp4> <cues.json 或 sfx.wav> <out.mp4> [--end 
 | 不加 | 標籤出現、字卡、overlay、reveal、片尾卡 |
 
 生活類（給沒有 3D 模型的頻道，只能手寫 cue 表）：`footstep` 腳步、`door` 開關門、`cup` 杯子、`keyboard` 打字、`pageturn` 翻書、`rain` 雨聲。加新種類：在 `sfx-synth.py` 寫 `fn(dur, **params)` 再 `register("名字", fn, 預設dB)`。cue 表格式：`[{"t": 3.2, "dur": 1.5, "kind": "rain", "gain": 0, "pan": 0.5, "params": {}}]`，格式說明在 `sfx-synth.py` 檔頭。
-
-## ④ 談晴說礙（healing）補充：2026/11/27
-本資料夾 `sfx-synth.py`、`add-sfx.sh` 以 main（ai-mp4 1256d2d 同步版）為準，旁白保護與出片後解碼檢查用官方的（`add-sfx.sh` 結尾自動跑 `sfx-synth.py check`，最差窗 <14 dB 就刪成品報錯）。④ 只多兩處：① `healing_kinds.py`（coin／cashier／calculator／stamp／paperslide／tick，whoosh 用內建 strength 0.35），由 `sfx-synth.py` 在 register 區塊後自動載入（那 5 行 try/import 是 ④ 加的，重新同步 ai-mp4 原版時補回）；② 排 cue：`docs/marketing/channels/healing/templates_tqsa_v3/video/v9/make_cues.py <佇列資料夾>`；整批：`.github/workflows/healing_sfx.yml`。

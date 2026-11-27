@@ -75,23 +75,14 @@ jobs:
             echo "::group::$N"
             for f in script.json segments.json; do [ -f $D/$f ] || { echo "::error::$N 缺 $f"; FAIL=1; continue 2; }; done
             mkdir -p $A
-            # 原片選擇（封存檔名帶輸入畫面雜湊 video_nosfx.<sha8>.mp4）：
-            #   工作分支 video.mp4 的 sha256 ＝ 上次配音效的輸出（sfx_out.sha256）→ 還是舊畫面，用封存版避免重複疊音效；
-            #   不等於 → 是新渲染（healing_render 回寫）→ 以它為準，換新封存並刪掉舊封存。
-            [ -f $D/video.mp4 ] || { [ -n "$(ls $A/video_nosfx*.mp4 2>/dev/null)" ] || { echo "::error::$N 沒有 video.mp4"; FAIL=1; continue; }; }
-            CUR=$([ -f $D/video.mp4 ] && sha256sum $D/video.mp4 | cut -d' ' -f1 || echo none)
-            if [ -f $A/sfx_out.sha256 ] && [ "$CUR" = "$(cat $A/sfx_out.sha256)" ] || [ "$CUR" = none ]; then
-              SRC=$(ls -t $A/video_nosfx*.mp4 | head -1); echo "用封存原片 $SRC（video.mp4 仍是上次配音效的輸出）"
-            else
-              S8=${CUR:0:8}; rm -f $A/video_nosfx*.mp4 $A/sfx_out.sha256
-              SRC=$A/video_nosfx.$S8.mp4; cp $D/video.mp4 $SRC; echo "偵測到新渲染畫面，封存為 $SRC"
-            fi
-            echo "輸入畫面 $(basename $SRC)" | tee $D/sfx_guard.txt
-            cp $SRC /tmp/in_$N.mp4
+            # 原片：封存分支已有 video_nosfx.mp4 就用它（避免重複疊音效）；否則取工作分支現有 video.mp4 並封存
+            if [ -f $A/video_nosfx.mp4 ]; then cp $A/video_nosfx.mp4 /tmp/in_$N.mp4
+            else [ -f $D/video.mp4 ] || { echo "::error::$N 沒有 video.mp4"; FAIL=1; continue; }
+                 cp $D/video.mp4 $A/video_nosfx.mp4; cp $D/video.mp4 /tmp/in_$N.mp4; fi
             for f in narration.wav video_outro_sfx.mp3; do [ -f $D/$f ] || { echo "::error::$N 缺 $f"; FAIL=1; continue 2; }; done
             # 乾淨底片：原片音軌裡渲染時 sfx_v3 已烤進 60～80 個物件音效，不能再疊。
             # 只用資料夾的 narration.wav（互相關對齊到原片音軌，誤差 ≤10 ms，寫進 log）＋片尾卡音效 mp3，影像 -c:v copy 封回。
-            python3 $V/rebuild_clean.py $D /tmp/in_$N.mp4 /tmp/clean_$N.mp4 /tmp/nar_$N.wav 2>&1 | tee -a $D/sfx_guard.txt || { echo "::error::$N 乾淨底片重建失敗（旁白對齊不合格）"; FAIL=1; continue; }
+            python3 $V/rebuild_clean.py $D /tmp/in_$N.mp4 /tmp/clean_$N.mp4 /tmp/nar_$N.wav 2>&1 | tee $D/sfx_guard.txt || { echo "::error::$N 乾淨底片重建失敗（旁白對齊不合格）"; FAIL=1; continue; }
             OSTART=$(python3 -c "import json;print(round(json.load(open('/tmp/clean_$N.align.json'))['outro_start'],2))")
             # make_cues 要讀 <資料夾>/video.mp4 量片長：暫時換成乾淨底片
             cp /tmp/clean_$N.mp4 $D/video.mp4
@@ -107,7 +98,7 @@ jobs:
             LUFS=$(ffmpeg -nostats -i /tmp/out_$N.mp4 -af ebur128 -f null - 2>&1 | grep "I:" | tail -1 | awk '{print $2}')
             echo "全片響度 $LUFS LUFS" | tee -a $D/sfx_guard.txt
             python3 -c "import sys;v=float('$LUFS');sys.exit(0 if abs(v+16)<=1.0 else 1)" || { echo "::error::$N 響度 $LUFS 偏離 −16 LUFS"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
-            cp /tmp/out_$N.mp4 $D/video.mp4; cp /tmp/cues_$N.json $D/cues.json; sha256sum $D/video.mp4 | cut -d' ' -f1 > $A/sfx_out.sha256
+            cp /tmp/out_$N.mp4 $D/video.mp4; cp /tmp/cues_$N.json $D/cues.json
             echo "::endgroup::"
           done
           [ $FAIL = 0 ] || { echo "有資料夾失敗，不 commit"; git checkout -- $Q 2>/dev/null || true; exit 1; }

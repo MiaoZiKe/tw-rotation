@@ -6,7 +6,7 @@
   · 每鏡 1～3 個動作音效，換幕（第 2 鏡起）加一個很輕的 whoosh；
   · 2026-11-27 不壓旁白規則：「講話區段」判法與官方 scripts/sfx/sfx-synth.py 的 cmd_mix 相同（--voice 對齊旁白 wav：
     20 ms 窗 RMS > 最大值 −26 dB 為講話、間隔 ≤0.5 秒補起來、區段前 0.1 秒就算）；
-    撞擊類（stamp/coin/thump/cashier）落在講話區段內 → 直接不放（不挪時間、不硬塞）；
+    撞擊類（stamp/coin/thump/cashier）一律固定在畫面接觸時間並標 "class":"impact"（不挪、不丟；官方工具講話中只壓到旁白下約 15.5 dB）；
     鋪陳類（whoosh/paperslide/pageturn/tick 等）落在講話區段內 → 挪到 ±0.5 秒內最近的句間停頓，找不到就不放；
   · 片尾卡（outro）之後不排；輸出 cues.json（add-sfx.sh 格式，含 endCardSec）與「音效清單」表。
 """
@@ -182,9 +182,7 @@ def main():
             else:
                 if fx is not None: t = fx
                 if kind in IMPACT:
-                    # 撞擊音效固定在畫面接觸時間：碰到講話區段就不放（不挪、不硬塞）
-                    if in_speech(t, regs, 0.0):
-                        dropped.append((round(t, 2), what, kind, s['id'], '撞擊落在講話中')); continue
+                    pass   # 撞擊音效固定在畫面接觸時間（不挪、不丟）；講話中由官方工具標 impact 類只壓到旁白下約 15.5 dB
                 else:
                     ed = EST_DUR.get(kind) or (prm.get('n', 4) * prm.get('gap', 0.1) + 0.1 if kind in ('tick', 'calculator') else 0.3)
                     if in_speech(t, regs, ed):
@@ -194,6 +192,7 @@ def main():
                         t = nt
             if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
+            if kind in IMPACT: c['class'] = 'impact'
             if kind == 'whoosh': c['dur'] = 0.4
             # 需要 dur 的種類（keyboard 等）：沒給就補預設，且依種類設下限，避免 int(dur*SR)=0 → zero-size array
             if kind in DUR_MIN:
@@ -218,6 +217,7 @@ def main():
     if regs is not None:   # 同種間隔挪動後再檢查一次：撞擊類碰到講話就丟；鋪陳類碰到講話就丟
         k2 = []
         for c, r in keep:
+            if c['kind'] in IMPACT: k2.append((c, r)); continue
             ed = 0.0 if c['kind'] in IMPACT else (c.get('dur') or EST_DUR.get(c['kind']) or 0.3)
             if in_speech(c['t'], regs, ed):
                 dropped.append((c['t'], r[1], c['kind'], r[4], '同種間隔挪動後落入講話')); continue
