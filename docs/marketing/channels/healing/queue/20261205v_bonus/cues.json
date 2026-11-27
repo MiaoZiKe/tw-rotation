@@ -81,7 +81,7 @@
   {
    "t": 42.46,
    "kind": "stamp",
-   "gain": -4,
+   "gain": -1.0,
    "pan": 0.5,
    "params": {},
    "src": "s8 trail：步道牌彈起",
