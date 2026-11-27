@@ -26,8 +26,8 @@
   "url": "https://openapi.twse.com.tw/v1/fund/T86"
  },
  {
-  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
-  "http": 200,
+  "head": "<html>\r <head><title>504 Gateway Time-out</title></head>\r <body>\r <center><h1>504 Gateway Time-out</h1></center>\r <center>HiNetCDN is well functioning. Please contact your origin server for further as",
+  "http": 504,
   "url": "https://openapi.twse.com.tw/v1/fund/TWT38U"
  },
  {
@@ -41,7 +41,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
  },
  {
-  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"250\",\"ShareNumber\":\"310315289260\",\"ForeignMainlandAreaShare\":\"5647117716\",\"Percentage\":\"1.82\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"250\",\"ShareNumber\":\"309872289260\",\"ForeignMainlandAreaShare\":\"6501118745\",\"Percentage\":\"2.10\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
@@ -57,7 +57,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
-  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"7579946\",\"SharesHeld\":\"1732717036\",\"AvailableInvestPer\":\"0.43\",\"SharesHeldPer\":\"99.56\",\"Upperlimit\":\"100.00\"}, {",
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"7451671\",\"SharesHeld\":\"1732845311\",\"AvailableInvestPer\":\"0.42\",\"SharesHeldPer\":\"99.57\",\"Upperlimit\":\"100.00\"}, {",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
  },
