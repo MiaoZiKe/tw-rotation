@@ -1,5 +1,5 @@
 #!/bin/bash
-# 複製自 MiaoZiKe/AI-Mp4 分支 claude/nifty-goodall-syke8a-1548 commit 69773ad（11-27 主控複製給④用；原版有更新時以 ai-mp4 為準再同步）
+# 複製自 MiaoZiKe/AI-Mp4 分支 claude/nifty-goodall-syke8a-1548 commit e8cfbc3（11-27 主控同步給④；原版更新時以 ai-mp4 為準再同步）
 # 加音效後製（Andy 2026/11/27）。不重渲畫面：影像串流 copy，只換音軌。依賴：bash、python3＋numpy、ffmpeg／ffprobe。
 # 通用用法（任何頻道，不綁專案路徑）：
 #   bash scripts/three/add-sfx.sh <in.mp4> <cues.json 或 sfx.wav> <out.mp4> [--end <片尾卡開始秒>]
@@ -35,6 +35,10 @@ python3 "$D/sfx-synth.py" mix "$TMP/voice.wav" "$SFX" "$TMP/mix.wav" ${END:+--en
 M=$(ffmpeg -nostats -i "$TMP/mix.wav" -af loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json -f null - 2>&1 | sed -n '/^{/,/^}/p')
 g() { echo "$M" | python3 -c "import sys,json;print(json.load(sys.stdin)['$1'])"; }
 ffmpeg -loglevel error -y -i "$TMP/mix.wav" -af "loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=$(g input_i):measured_TP=$(g input_tp):measured_LRA=$(g input_lra):measured_thresh=$(g input_thresh):offset=$(g target_offset):linear=true,aresample=48000,alimiter=limit=0.63:attack=3:release=60:level=disabled:latency=1" -ar 48000 -c:a pcm_s16le "$TMP/final.wav"
-ffmpeg -loglevel error -y -i "$IN" -i "$TMP/final.wav" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -ar 48000 "$OUT"
+[ -n "$KEEP_FINAL" ] && cp "$TMP/final.wav" "$KEEP_FINAL"
+ffmpeg -loglevel error -y -i "$IN" -i "$TMP/final.wav" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k -ar 48000 "$OUT"
+# 成片解碼後關卡（Andy 聽的是成片）：解碼成片音軌，講話窗逐窗殘差（sfx＋AAC 誤差）要比旁白低 ≥14 dB，不過就刪掉成品。
+ffmpeg -loglevel error -y -i "$OUT" -vn -ac 2 -ar 48000 -c:a pcm_s16le "$TMP/dec.wav"
+if ! python3 "$D/sfx-synth.py" check "$TMP/voice.wav" "$TMP/dec.wav" ${END:+--end $END}; then rm -f "$OUT"; echo "錯誤：成片解碼後講話段有 sfx 太大聲（<14 dB），已刪除 $OUT"; exit 1; fi
 echo "完成：$OUT"
 [ -n "$SUMMARY" ] && python3 -c "import json;d=json.load(open('$SUMMARY'));print('音效',d['count'],d.get('byType',''))"

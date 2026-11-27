@@ -14,6 +14,7 @@
 
 二、混進原片音軌（旁白講話時自動壓低）
     python3 sfx-synth.py mix <原片音軌.wav 48k16bit> <sfx.wav> <輸出.wav> [--end <片尾卡開始秒>]
+    python3 sfx-synth.py check <原旁白音軌.wav> <成片解碼音軌.wav> [--end 秒]   成片解碼後關卡，<14 dB 結束碼 1
 
 三、可用的 kind（KINDS 登錄表；加新種類＝寫一個 fn(dur, **params)→單聲道 numpy 陣列，再 register("名字", fn, 預設dB)）
   機械類（科技片用）：motor 轉軸嗡聲｜servo 伺服 whir｜hiss 氣流｜liquid 液體｜plasma 電漿電流｜sputter 濺鍍劈啪｜heat 爐火｜
@@ -345,6 +346,18 @@ def frame_rms(x, hop):
     return np.sqrt((x[:, :n * hop].reshape(x.shape[0], n, hop) ** 2).mean(axis=(0, 2)) + 1e-12)
 
 
+MIN_GAP_DB = 14.0         # 硬門檻：旁白講話的每一窗，sfx 要比旁白低至少這麼多 dB（Andy 2026/11/27：「不要影響旁白聲」）
+GUARD_MARGIN_DB = 1.5     # 逐窗天花板多留的餘裕
+
+def sp_full(speech, nf):
+    # 講話窗往前後各放寬 2 窗（含壓低的 attack／release 區），這些窗也受天花板限制
+    m = speech[:nf] > 0.5
+    k = m.copy()
+    for d in (1, 2):
+        k |= np.roll(m, d) | np.roll(m, -d)
+    return k
+
+
 def cmd_mix(argv):
     voice, sfx, out = argv[0], argv[1], argv[2]
     end = float(argv[argv.index('--end') + 1]) if '--end' in argv else None
@@ -380,7 +393,26 @@ def cmd_mix(argv):
     s = np.tanh(s / cap) * cap
     sfx_rms = np.sqrt((frame_rms(s, hop)[act] ** 2).mean()) if act.any() else sfx_rms
     g = voice_rms * db(LEVEL_BELOW) / sfx_rms
-    mix = v + s * g * duck_s[None, :]
+    sd = s * g * duck_s[None, :]
+    # 硬性保護：旁白講話的每一個 20 ms 窗，sfx RMS ≤ 該窗旁白 RMS −(MIN_GAP_DB+MARGIN_DB)；
+    # 逐窗算增益上限（鄰窗取最小，再用線性內插平滑到每個樣本），撞擊聲落在講話中就被縮小。
+    nf = len(ve)
+    se = frame_rms(sd, hop)
+    ceil_ = ve * db(-(MIN_GAP_DB + GUARD_MARGIN_DB))
+    gf = np.where(sp_full(speech, nf), np.minimum(1.0, ceil_ / np.maximum(se, 1e-9)), 1.0)
+    gf = np.minimum(gf, np.minimum(np.roll(gf, 1), np.roll(gf, -1)))       # 鄰窗取最小
+    gf = np.minimum(gf, np.minimum(np.roll(gf, 2), np.roll(gf, -2)))
+    xs = (np.arange(nf) + 0.5) * hop
+    gs = np.interp(np.arange(n), xs, gf)
+    sd = sd * gs[None, :]
+    mix = v + sd
+    # 量測：講話窗逐窗最小差距（旁白 RMS 對 sfx RMS）
+    se2 = frame_rms(sd, hop); spk = speech[:nf] > 0.5
+    gap = 20 * np.log10(ve[spk] / np.maximum(se2[spk], 1e-9))
+    worst = float(gap.min()) if spk.any() else 99.0
+    print(f'講話段逐窗最小差距 {worst:.1f} dB（門檻 {MIN_GAP_DB} dB；講話窗 {int(spk.sum())} 個）')
+    if worst < MIN_GAP_DB:
+        sys.exit(f'錯誤：講話段有 sfx 只比旁白低 {worst:.1f} dB（<{MIN_GAP_DB}），不輸出')
     write_wav(out, mix)
     info = dict(voice_rms_db=round(20 * math.log10(voice_rms), 1), sfx_rms_db=round(20 * math.log10(sfx_rms * g), 1),
                 gain=round(g, 4), duck_db=DUCK_DB, level_below_db=LEVEL_BELOW)
@@ -388,10 +420,30 @@ def cmd_mix(argv):
 
 
 
+def cmd_check(argv):
+    """成片解碼後關卡：旁白原音軌 vs 成片音軌，講話窗逐窗（成片 − 旁白）殘差（＝sfx＋轉碼誤差）比旁白低 ≥ MIN_GAP_DB。"""
+    v = read_wav(argv[0]); f = read_wav(argv[1])
+    end = float(argv[argv.index('--end') + 1]) if '--end' in argv else None
+    n = min(v.shape[1], f.shape[1]); v = v[:, :n]; f = f[:, :n]
+    c = np.fft.irfft(np.fft.rfft(f[0]) * np.conj(np.fft.rfft(v[0])), n=2 * n)      # 對齊（AAC 編碼延遲）
+    lag = int(np.argmax(c)); lag = lag if lag < n else lag - 2 * n
+    if abs(lag) > 0: f = np.roll(f, -lag, axis=1)
+    k = (f * v).sum() / (v * v).sum()
+    res = f - k * v; hop = int(0.02 * SR); m = n // hop
+    ve = frame_rms(k * v, hop); se = frame_rms(res, hop)
+    lim = int((end if end is not None else n / SR) * SR) // hop
+    spk = np.zeros(len(ve), bool); spk[:lim] = ve[:lim] > ve[:lim].max() * db(-26)
+    gap = 20 * np.log10(ve[spk] / np.maximum(se[spk], 1e-9)); worst = float(gap.min())
+    w = int(np.where(spk)[0][int(gap.argmin())]) * 0.02
+    print(f'成片解碼後講話段逐窗最小差距 {worst:.1f} dB（在 {w:.2f} 秒；門檻 {MIN_GAP_DB} dB；<14 的窗 {(gap < MIN_GAP_DB).sum()} 個；對齊偏移 {lag} 樣本）')
+    if worst < MIN_GAP_DB: sys.exit(1)
+
+
 def main():
     a = sys.argv[1:]
-    if not a or a[0] not in ('render', 'mix'): print(__doc__); sys.exit(1)
+    if not a or a[0] not in ('render', 'mix', 'check'): print(__doc__); sys.exit(1)
     if a[0] == 'mix': return cmd_mix(a[1:])
+    if a[0] == 'check': return cmd_check(a[1:])
     cj = json.load(open(a[1])); cues = cj['cues'] if isinstance(cj, dict) else cj
     end = float(a[a.index('--end') + 1]) if '--end' in a else (cj.get('endCardSec') if isinstance(cj, dict) else None)
     total = float(a[a.index('--total') + 1]) if '--total' in a else (cj.get('total') if isinstance(cj, dict) and cj.get('total') else max(c['t'] + (c.get('dur') or 0) for c in cues) + 1.5)
