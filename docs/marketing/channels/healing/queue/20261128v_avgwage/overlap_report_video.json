@@ -1,13 +1,9 @@
 {
  "frames": 1585,
  "checked": 106,
- "overlap": [
-  "26.5s title×tag"
- ],
+ "overlap": [],
  "oob": [],
- "edge": [
-  "26.5s cap 下緣 1700>1700"
- ],
+ "edge": [],
  "transitionFrames": [
   {
    "t": 6.233,
