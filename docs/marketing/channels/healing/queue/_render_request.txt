@@ -1,3 +1,4 @@
 20261205v_bonus
 chunk=60 jobs=8 writeback=1
 # 第 15 輪重渲（第 6 輪審片：舊畫面；s2/s4 出處字級 26 重渲）1795762845
+# 第 15 輪重渲 b（srcHTML 吃 srcFs）1795763500
