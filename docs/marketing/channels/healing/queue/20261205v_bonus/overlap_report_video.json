@@ -1,10 +1,7 @@
 {
  "frames": 1601,
  "checked": 107,
- "overlap": [
-  "25.0s txt:「報稅單」×「5%」",
-  "26.0s txt:「年終」×「退」"
- ],
+ "overlap": [],
  "oob": [
   "6.5s src",
   "7.0s src",
