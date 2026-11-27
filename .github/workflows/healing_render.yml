@@ -176,6 +176,8 @@ jobs:
         run: |
           q="$PWD/$CH/queue/$F"; SHA=$(git rev-parse --short=8 HEAD); R="$F.$SHA"
           mkdir -p /tmp/rp/renders && cp "$q/video.mp4" "/tmp/rp/renders/$R.mp4"
+          # 最新指標：healing_sfx 一律取這個檔指到的底片（不再沿用舊 video_nosfx 封存）
+          printf '%s\n' "$R" > "/tmp/rp/renders/$F.latest"
           for p in final_check:final_check verify4:verify4 overlap_report_video:overlap_report autofix_log:autofix_log; do [ -f "$q/${p%%:*}.json" ] && cp "$q/${p%%:*}.json" "/tmp/rp/renders/$R.${p##*:}.json"; done
           URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           for i in 1 2 3 4 5 6; do

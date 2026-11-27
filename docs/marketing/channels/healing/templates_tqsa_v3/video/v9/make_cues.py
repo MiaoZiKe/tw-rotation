@@ -90,6 +90,10 @@ FIX_ABS = {
     ('20261205v_bonus', 's6', 'stamp'): 29.43,      # 路牌到定位（第 5 輪量：原 29.30 早 0.125）；只改本片，通用 signpost 0.2 不動
     ('20261205v_bonus', 's8', 'stamp'): 42.46,      # 步道牌到定位（第 5 輪量：原 42.28 早 0.18）；通用 trail 0.3 不動
 }
+# 逐片加增益（dB，加在原 gain 上；仍受官方工具守旁白下 ≥14 dB）
+FIX_GAIN = {
+    ('20261205v_bonus', 's8', 'stamp'): 3.0,        # 第 6 輪：步道牌落地音偏輕 +3 dB
+}
 # 撞擊類音效固定在畫面動作的時間，不經 snap()；撞上旁白致最差窗 <14 dB 時改降該條音量 4～6 dB，不准挪時間
 IMPACT = {'stamp', 'coin', 'thump', 'cashier'}
 
@@ -194,6 +198,8 @@ def main():
                         t = nt
             if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
+            fg = FIX_GAIN.get((os.path.basename(os.path.normpath(d)), s['id'], kind))
+            if fg is not None: c['gain'] = round(c['gain'] + fg, 2)
             if kind in IMPACT: c['class'] = 'impact'
             if kind == 'whoosh': c['dur'] = 0.4
             # 需要 dur 的種類（keyboard 等）：沒給就補預設，且依種類設下限，避免 int(dur*SR)=0 → zero-size array
