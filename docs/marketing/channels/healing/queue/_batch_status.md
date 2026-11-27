@@ -70,3 +70,8 @@
 - 四道驗證：句中停頓 0、聽感（Gemini）0 處（avgwage 6 次中 2 次有標、不重現，判誤報）、audio-check 0／0／0、程式重疊 0（avgwage s2 滾輪數字已知誤報）；片長 51.1／50.2／49.2／49.8 秒。
 - 還沒做：① art-director／animation-director 正式打分（外部模型分數 6.2～6.6，同方法審已核准的 11/26 出生數＝5.8～6.6，分數不能直接對 ≥7）；② Andy 聽過說 OK → 改 approved → `python3 scripts/healing_post.py --prepare`、`python -m scripts.healing_article <資料夾>`；③ 同批錄音 queue/_batch_11220754 只在本機（未推）。
 - Gemini：gemini-3-flash-preview 免費額度（每日 20 次、四頻道共用）11-22 已用完，到 11-23 約 15:00 才恢復；gemini-3.5-flash 還能用。TTS（gemini-3.8-flash-tts）今天用了 2 次（同批 1＋外食重配 1）。
+
+---
+# 【最新】12/5 年終片 硬幣停位修正（2026-11-27 台北）
+- 審片只差畫面：taxreturn.js「5%」硬幣終點 (640,h-200)→(670,h-100)，到達後 0.85 秒前淡出（不再蓋「報稅單」標題）；「退」硬幣終點 (210,h-160)→(210,h-235)，落在年終袋上方外側（不碰「年終」字）。_gen 由 workflow 的 gen_v9 重生。不重配 TTS、容器未渲染。
+- 重渲只推 20261205v_bonus（jobs=8 chunk=60 writeback=1）；渲完重跑 ④ 1 秒抽格看 24.7～25.2、26.0～26.6 秒。不推 main。
