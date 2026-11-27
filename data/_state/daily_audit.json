@@ -1,87 +1,29 @@
 {
-  "checked_at": "2026-11-27T22:18:30+08:00",
-  "today": "2026-11-27",
+  "checked_at": "2026-11-28T02:21:51+08:00",
+  "today": "2026-11-28",
   "expected_price_date": "2026-11-27",
-  "is_trading_day": true,
+  "is_trading_day": false,
   "summary": {
     "fail": 1,
-    "pending": 4,
-    "ok": 3,
-    "skip": 0,
+    "pending": 3,
+    "ok": 1,
+    "skip": 3,
     "disabled": 0
   },
   "items": [
     {
       "id": "premarket",
       "name": "盤前消息（交易日 08:40 前）",
-      "status": "pending",
-      "gates": {
-        "run": {
-          "ok": true,
-          "why": "social-live 今天有成功執行 26 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46006410173",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46005881778",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46002345395"
-          ],
-          "busy": false,
-          "hard": false
-        },
-        "content": {
-          "ok": true,
-          "why": "盤前消息日期 2026-11-27、5 則",
-          "evidence": [
-            "2026-11-27"
-          ],
-          "busy": false,
-          "hard": false
-        },
-        "publish": {
-          "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
-        }
-      },
-      "deadline": "2026-11-27T08:40:00+08:00",
-      "remedy": null
+      "status": "skip",
+      "gates": {},
+      "why": "今天不該做（非交易日）"
     },
     {
       "id": "postmarket",
       "name": "盤後消息（交易日 21:40 前）",
-      "status": "pending",
-      "gates": {
-        "run": {
-          "ok": true,
-          "why": "daily.yml 今天有成功執行 11 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46008897431",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46005727981",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46001498164"
-          ],
-          "busy": false,
-          "hard": false
-        },
-        "content": {
-          "ok": true,
-          "why": "盤後消息日期 2026-11-27、5 則",
-          "evidence": [
-            "2026-11-27"
-          ],
-          "busy": false,
-          "hard": false
-        },
-        "publish": {
-          "ok": false,
-          "why": "pages.yml 正在部署中（還沒跑完）",
-          "evidence": [],
-          "busy": true,
-          "hard": false
-        }
-      },
-      "deadline": "2026-11-27T21:40:00+08:00",
-      "remedy": null
+      "status": "skip",
+      "gates": {},
+      "why": "今天不該做（非交易日）"
     },
     {
       "id": "data",
@@ -191,52 +133,19 @@
     {
       "id": "close_post",
       "name": "頻道①盤後主貼文（交易日 18:20 前）",
-      "status": "ok",
-      "gates": {
-        "run": {
-          "ok": true,
-          "why": "social-live 今天有成功執行 19 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46006410173",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46005881778",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46002345395"
-          ],
-          "busy": false,
-          "hard": false
-        },
-        "content": {
-          "ok": true,
-          "why": "posted.json 有 close-2026-11-27",
-          "evidence": [],
-          "busy": false,
-          "hard": false
-        },
-        "publish": {
-          "ok": true,
-          "why": "有發布網址",
-          "evidence": [
-            "https://www.threads.com/@liguligu0818/post/DgPiDFlIaBG"
-          ],
-          "busy": false,
-          "hard": false
-        }
-      },
-      "deadline": "2026-11-27T18:20:00+08:00",
-      "remedy": null
+      "status": "skip",
+      "gates": {},
+      "why": "今天不該做（非交易日）"
     },
     {
       "id": "healing",
       "name": "頻道④談晴說礙（核准稿到時間就要發）",
-      "status": "ok",
+      "status": "pending",
       "gates": {
         "run": {
-          "ok": true,
-          "why": "healing_post 今天有成功執行 15 次",
-          "evidence": [
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46013250366",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46002995529",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46000925606"
-          ],
+          "ok": false,
+          "why": "healing_post 窗口內沒有成功的執行（找到 0 次）",
+          "evidence": [],
           "busy": false,
           "hard": false
         },
@@ -260,7 +169,7 @@
           "hard": false
         }
       },
-      "deadline": "2026-11-27T21:40:00+08:00",
+      "deadline": "2026-11-28T21:40:00+08:00",
       "remedy": null
     },
     {
@@ -334,7 +243,7 @@
         "workflow": "meta_token_refresh.yml",
         "inputs": {}
       },
-      "remedy_note": "今天已自動補救 3 次，不再自動派（等人工看）"
+      "remedy_note": "已派出 meta_token_refresh.yml（今天第 1 次）"
     },
     {
       "id": "website",
@@ -343,11 +252,11 @@
       "gates": {
         "run": {
           "ok": true,
-          "why": "pages.yml 今天有成功執行 44 次",
+          "why": "pages.yml 今天有成功執行 43 次",
           "evidence": [
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46014694357",
             "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46005866001",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45999533273",
-            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45991049324"
+            "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45999533273"
           ],
           "busy": false,
           "hard": false
@@ -391,38 +300,18 @@
       ]
     },
     "meta": {
-      "date": "2026-11-27",
-      "count": 3,
+      "date": "2026-11-28",
+      "count": 1,
       "attempts": [
         {
-          "at": "2026-11-27T02:30:48+08:00",
+          "at": "2026-11-28T02:21:51+08:00",
           "workflow": "meta_token_refresh.yml",
           "inputs": {},
           "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45876583554",
-          "run_id": 45876583554,
-          "run_status": "completed",
-          "run_conclusion": "success"
-        },
-        {
-          "at": "2026-11-27T03:08:47+08:00",
-          "workflow": "meta_token_refresh.yml",
-          "inputs": {},
-          "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45881456165",
-          "run_id": 45881456165,
-          "run_status": "completed",
-          "run_conclusion": "success"
-        },
-        {
-          "at": "2026-11-27T03:50:46+08:00",
-          "workflow": "meta_token_refresh.yml",
-          "inputs": {},
-          "ok": true,
-          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/45886702812",
-          "run_id": 45886702812,
-          "run_status": "completed",
-          "run_conclusion": "success"
+          "msg": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/46048950042",
+          "run_id": null,
+          "run_status": null,
+          "run_conclusion": null
         }
       ]
     },
