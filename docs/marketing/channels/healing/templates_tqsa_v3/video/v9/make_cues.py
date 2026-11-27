@@ -24,7 +24,7 @@ ACTIONS = {
  'regdesk': [(0.3, 'tick', 0, {'n': 6}, '號碼滾動'), (1.3, 'stamp', 0, {}, '印章蓋下')],
  'calendar6': [(0.4, 'paperslide', 0, {}, '月曆落上牆'), (1.2, 'stamp', 0, {}, '蓋「>2%」章')],
  'punchclock': [(0.4, 'paperslide', -2, {}, '卡片插入'), (0.75, 'stamp', 0, {}, '打卡咔一聲')],
- 'gavel_mw': [(0.55, 'thump', 0, {}, '議事槌敲下'), (3.5, 'pageturn', -6, {}, '日曆翻到 10/1'), (4.1, 'stamp', 0, {}, '核定章蓋下'), (6.2, 'coin', -2, {'bounces': 2}, '金幣落上桌面'), (7.0, 'coin', -4, {'bounces': 1}, '第 2 枚金幣落桌'), (7.8, 'coin', -4, {'bounces': 1}, '第 3 枚金幣落桌')],
+ 'gavel_mw': [(0.55, 'thump', 0, {}, '議事槌敲下'), (3.5, 'pageturn', -6, {}, '日曆翻到 10/1'), (4.1, 'stamp', 0, {}, '核定章蓋下'), (6.48, 'coin', -2, {'bounces': 2}, '金幣落上桌面'), (7.08, 'coin', -4, {'bounces': 1}, '第 2 枚金幣落桌'), (7.68, 'coin', -4, {'bounces': 1}, '第 3 枚金幣落桌')],
  'gavel': [(0.55, 'stamp', 2, {}, '議事槌敲下')],
  'notice': [(0.3, 'stamp', -3, {}, '圖釘釘上'), (1.0, 'paperslide', -2, {}, '放大鏡滑進')],
  'rateboard': [(0.3, 'tick', 0, {'n': 9, 'gap': 0.09}, '利率數字滾動')],
@@ -71,10 +71,20 @@ WHOOSH = (-0.02, 'whoosh', 0, {'strength': 0.35}, '換幕輕掃')
 MAXPER = 3
 MAXPER_BY_SUBJECT = {'gavel_mw': 7}   # 這鏡 8.8 秒較長：6 個動作音效＋換幕 whoosh
 MIN_SAME_GAP = 0.8   # 同種音效最短間隔（秒），避免連續叮聲太密
+MIN_GAP_BY_KIND = {'coin': 0.5}   # 金幣依畫面三枚先後落桌（間隔約 0.6 秒），不可被推開
 DUR_MIN = {'keyboard': 0.3, 'whoosh': 0.15, 'pageturn': 0.15}   # 秒；依種類合理下限（全域不得 <0.15）
 DUR_DEFAULT = {'keyboard': 0.8, 'whoosh': 0.4}
 
 
+# 【接觸時間對照｜第 9 輪審片逐幀量測】撞擊類 cue 的秒數＝插圖「接觸／落下那一刻」（相對本鏡開頭），不是物件出現時間：
+#   gavel_mw 金幣：插圖 6.2／6.8／7.4 秒開始落，落地 0.28 秒 → 接觸 6.48／7.08／7.68；核定章 4.1、議事槌 0.55 本來就是接觸點
+#   其餘（打卡、入帳通知、硬幣倒下）因各片鏡頭起點與旁白停頓不同，用下面 FIX_ABS 逐片寫審片量到的接觸絕對秒數
+# 逐片覆寫：(佇列資料夾, 鏡頭 id, 音效種類) → 畫面接觸的絕對秒數（第 9 輪審片逐幀量到；覆寫在 snap 之後）
+FIX_ABS = {
+    ('20261128v_avgwage', 's1', 'cashier'): 0.58,   # 入帳通知（原 1.01）
+    ('20261128v_avgwage', 's7', 'coin'): 35.95,     # 硬幣倒下（原 35.82）
+    ('20261129v_quit', 's3', 'stamp'): 12.23,       # 打卡（原 12.49）
+}
 # 撞擊類音效固定在畫面動作的時間，不經 snap()；撞上旁白致最差窗 <14 dB 時改降該條音量 4～6 dB，不准挪時間
 IMPACT = {'stamp', 'coin', 'thump', 'cashier'}
 
@@ -113,6 +123,7 @@ def main():
         for off, kind, gdb, prm, what in acts:
             t = max(0.0, t0 + off)
             if kind not in IMPACT and kind != 'whoosh': t = snap(t, g.get('words', []), t0, nxt - 0.3)
+            t = FIX_ABS.get((os.path.basename(os.path.normpath(d)), s['id'], kind), t)
             if t < 0 or t >= end_card - 0.2: continue
             c = {'t': round(t, 2), 'kind': kind, 'gain': gdb, 'pan': 0.5, 'params': prm, 'src': f"{s['id']} {subj or s.get('layout')}：{what}"}
             if kind == 'whoosh': c['dur'] = 0.4
@@ -130,8 +141,9 @@ def main():
     last, keep = {}, []
     for c, r in cues_rows:
         p = last.get(c['kind'])
-        if p is not None and c['t'] - p < MIN_SAME_GAP:
-            nt = round(p + MIN_SAME_GAP, 2)
+        gap_min = MIN_GAP_BY_KIND.get(c['kind'], MIN_SAME_GAP)
+        if p is not None and c['t'] - p < gap_min:
+            nt = round(p + gap_min, 2)
             if nt >= end_card - 0.3: continue
             c['t'] = nt; r = (nt,) + tuple(r[1:])
         last[c['kind']] = c['t']; keep.append((c, r))
