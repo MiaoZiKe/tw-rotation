@@ -1,0 +1,7 @@
+17 個音效 → /tmp/tmp.bPBfYJza1w/sfx.wav
+講話段逐窗最小差距 15.5 dB（門檻 14.0 dB；講話窗 1840 個）
+{"voice_rms_db": -17.9, "sfx_rms_db": -27.9, "gain": 1.5918, "duck_db": -8.0, "level_below_db": -10.0}
+成片解碼後講話段逐窗最小差距 15.3 dB（在 7.76 秒；門檻 14.0 dB；<14 的窗 0 個；對齊偏移 0 樣本）
+完成：/tmp/out_20261203v_minwage.mp4
+音效 17 
+全片響度 -16.0 LUFS

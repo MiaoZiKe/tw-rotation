@@ -1,0 +1,165 @@
+{
+ "total": 55.2,
+ "endCardSec": 49.0,
+ "cues": [
+  {
+   "t": 0.3,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s1 paystub：主體入場"
+  },
+  {
+   "t": 7.2,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s2 gavel：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 7.77,
+   "kind": "stamp",
+   "gain": 2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 gavel：議事槌敲下"
+  },
+  {
+   "t": 15.98,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s3 yearcoins：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 16.3,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s3 yearcoins：主體入場"
+  },
+  {
+   "t": 20.21,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s4 punchclock：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 20.63,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 punchclock：卡片插入"
+  },
+  {
+   "t": 20.98,
+   "kind": "stamp",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 punchclock：打卡咔一聲"
+  },
+  {
+   "t": 26.37,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s5 uniforms：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 26.59,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s5 uniforms：制服滑進掛架"
+  },
+  {
+   "t": 30.05,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s6 deduct：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 30.37,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s6 deduct：主體入場"
+  },
+  {
+   "t": 35.38,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s7 envelopes：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 35.8,
+   "kind": "paperslide",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s7 envelopes：信封紙鈔探出"
+  },
+  {
+   "t": 36.81,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s7 envelopes：硬幣倒下"
+  },
+  {
+   "t": 42.17,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s8 trail：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 42.49,
+   "kind": "stamp",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {},
+   "src": "s8 trail：步道牌彈起"
+  }
+ ]
+}
