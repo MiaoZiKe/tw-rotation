@@ -1,6 +1,6 @@
 {
- "total": 53.376,
- "endCardSec": 47.18,
+ "total": 54.848,
+ "endCardSec": 48.65,
  "cues": [
   {
    "t": 0.01,
@@ -11,7 +11,7 @@
    "src": "s1 bonusenv：主體入場"
   },
   {
-   "t": 6.19,
+   "t": 6.15,
    "kind": "whoosh",
    "gain": 0,
    "pan": 0.5,
@@ -22,7 +22,7 @@
    "dur": 0.4
   },
   {
-   "t": 6.3,
+   "t": 6.28,
    "kind": "paperslide",
    "gain": 0,
    "pan": 0.5,
@@ -30,7 +30,18 @@
    "src": "s2 cabinet：抽屜拉出"
   },
   {
-   "t": 13.37,
+   "t": 13.38,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s3 notice：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 13.7,
    "kind": "stamp",
    "gain": -3,
    "pan": 0.5,
@@ -39,7 +50,26 @@
    "class": "impact"
   },
   {
-   "t": 25.02,
+   "t": 18.77,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 taxline：主體入場"
+  },
+  {
+   "t": 24.92,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s5 taxreturn：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 25.66,
    "kind": "coin",
    "gain": -2,
    "pan": 0.5,
@@ -50,7 +80,7 @@
    "class": "impact"
   },
   {
-   "t": 26.04,
+   "t": 26.68,
    "kind": "coin",
    "gain": -4,
    "pan": 0.5,
@@ -61,7 +91,7 @@
    "class": "impact"
   },
   {
-   "t": 29.43,
+   "t": 30.05,
    "kind": "stamp",
    "gain": -4,
    "pan": 0.5,
@@ -70,7 +100,18 @@
    "class": "impact"
   },
   {
-   "t": 35.55,
+   "t": 35.8,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s7 phonebank：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 36.52,
    "kind": "cashier",
    "gain": -3,
    "pan": 0.5,
@@ -79,7 +120,7 @@
    "class": "impact"
   },
   {
-   "t": 42.46,
+   "t": 43.75,
    "kind": "stamp",
    "gain": -1.0,
    "pan": 0.5,
