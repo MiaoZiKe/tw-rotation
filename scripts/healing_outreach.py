@@ -263,6 +263,16 @@ def main(argv=None) -> int:
             except Exception as e:  # noqa: BLE001
                 cands, st = [], "error:" + str(e)[:120]
         print(f"keyword_search 權限狀態：{st}（approved＝可用；own_only／error 403＝未過審）；候選 {len(cands)} 則")
+        if a.probe and tok:
+            # 2026-11-27：keyword_search 沒權限時，改驗 threads_profile_discovery（查公開帳號近期貼文），只讀只印數量
+            for path, params in (("/profile_lookup", {"username": "zuck"}),
+                                 ("/profile_posts", {"username": "zuck", "fields": "id,permalink", "limit": 3})):
+                try:
+                    r = _tcall("GET", path, tok, params)
+                    n = len(r.get("data", [])) if isinstance(r, dict) and "data" in r else (1 if r else 0)
+                    print(f"{path}：可用（回 {n} 筆）")
+                except Exception as e:  # noqa: BLE001
+                    print(f"{path}：不可用 {str(e)[:160]}")
         if a.collect:
             cands += load_manual() if not cands else []
             n = collect(cands, drafts, sent, now)
