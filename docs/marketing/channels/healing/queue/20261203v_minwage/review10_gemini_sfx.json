@@ -1,0 +1,10 @@
+{
+ "voice_clear": true,
+ "voice_issues": [],
+ "sfx_issues": [],
+ "extra_sounds": [],
+ "voice_score": 7,
+ "sfx_score": 7,
+ "overall": "旁白口齒清晰且咬字肯定，音效點位精準且音量平衡良好。",
+ "_model": "gemini-3.8-flash"
+}

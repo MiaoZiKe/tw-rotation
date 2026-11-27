@@ -1,0 +1,33 @@
+{
+ "sfx_interfere": [],
+ "cue_check": [
+  {
+   "time_sec": 0.8,
+   "listed_action": "筆畫一條線",
+   "seen_on_screen": "筆畫一條線",
+   "match": "不太搭",
+   "detail": "清單標註音效為 keyboard，但實際聽起來是筆劃聲或勾選聲（tick），與動作相符但清單名稱錯誤。"
+  }
+ ],
+ "missing_or_extra": [
+  {
+   "time_sec": 12.14,
+   "detail": "畫面出現時鐘時，背景有滴答聲（clock ticking），清單未列出。"
+  },
+  {
+   "time_sec": 18.0,
+   "detail": "畫面出現時鐘時，背景有滴答聲（clock ticking），清單未列出。"
+  },
+  {
+   "time_sec": 38.0,
+   "detail": "畫面出現時鐘時，背景有滴答聲（clock ticking），清單未列出。"
+  }
+ ],
+ "head2s_transcript": "每天都想離職的年輕上班族，你猜有多少？",
+ "head2s_extra_voice": false,
+ "retroflex_errors": [],
+ "outro": "片尾卡音效與畫面同步，音量適中，無突兀感。",
+ "sfx_score": 9,
+ "voice_score": 10,
+ "overall": "整體製作水準優良，旁白咬字清晰，音效與畫面動作配合精準。僅 0.8 秒處的音效名稱在清單中標註為 keyboard 較為奇怪，且背景的時鐘滴答聲未列入清單。"
+}

@@ -1,0 +1,121 @@
+{
+ "total": 55.21,
+ "endCardSec": 49.01,
+ "cues": [
+  {
+   "t": 0.01,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s1 paystub：主體入場"
+  },
+  {
+   "t": 7.77,
+   "kind": "thump",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 gavel_mw：議事槌敲下",
+   "class": "impact"
+  },
+  {
+   "t": 11.32,
+   "kind": "stamp",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 gavel_mw：核定章蓋下",
+   "class": "impact"
+  },
+  {
+   "t": 13.7,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 2
+   },
+   "src": "s2 gavel_mw：金幣落上桌面",
+   "class": "impact"
+  },
+  {
+   "t": 14.3,
+   "kind": "coin",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s2 gavel_mw：第 2 枚金幣落桌",
+   "class": "impact"
+  },
+  {
+   "t": 14.9,
+   "kind": "coin",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s2 gavel_mw：第 3 枚金幣落桌",
+   "class": "impact"
+  },
+  {
+   "t": 20.98,
+   "kind": "stamp",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 punchclock：打卡咔一聲",
+   "class": "impact"
+  },
+  {
+   "t": 26.54,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s5 uniforms：制服滑進掛架"
+  },
+  {
+   "t": 35.38,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s7 envelopes：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 35.6,
+   "kind": "paperslide",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s7 envelopes：信封紙鈔探出"
+  },
+  {
+   "t": 37.6,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s7 envelopes：硬幣倒下",
+   "class": "impact"
+  },
+  {
+   "t": 42.49,
+   "kind": "stamp",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {},
+   "src": "s8 trail：步道牌彈起",
+   "class": "impact"
+  }
+ ]
+}

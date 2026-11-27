@@ -1,0 +1,93 @@
+{
+ "total": 52.842,
+ "endCardSec": 46.64,
+ "cues": [
+  {
+   "t": 0.58,
+   "kind": "cashier",
+   "gain": -3,
+   "pan": 0.5,
+   "params": {},
+   "src": "s1 phonebank：入帳通知",
+   "class": "impact"
+  },
+  {
+   "t": 7.73,
+   "kind": "cashier",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 printer：切紙刀落下",
+   "class": "impact"
+  },
+  {
+   "t": 17.5,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s4 queue：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 17.65,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s4 queue：主體入場"
+  },
+  {
+   "t": 26.3,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s5 elevator：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 34.54,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s7 envelopes：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 34.68,
+   "kind": "paperslide",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s7 envelopes：信封紙鈔探出"
+  },
+  {
+   "t": 36.76,
+   "kind": "coin",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {
+    "bounces": 1
+   },
+   "src": "s7 envelopes：硬幣倒下",
+   "class": "impact"
+  },
+  {
+   "t": 41.72,
+   "kind": "stamp",
+   "gain": -4,
+   "pan": 0.5,
+   "params": {},
+   "src": "s8 trail：步道牌彈起",
+   "class": "impact"
+  }
+ ]
+}

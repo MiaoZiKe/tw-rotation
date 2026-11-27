@@ -1,8 +1,8 @@
 {
  "file": "user/wt-gap/docs/marketing/channels/healing/queue/20261129v_quit/video.mp4",
- "durationSec": 49.22,
- "endCardSec": 42.7,
- "onsetSec": 0.3,
+ "durationSec": 55.74,
+ "endCardSec": 49.15,
+ "onsetSec": 0.015,
  "counts": {
   "Z": 0,
   "C": 0,
@@ -11,6 +11,8 @@
  },
  "first6s": 0,
  "issues": [],
- "warns": [],
+ "warns": [
+  "片頭留空不足：第一個字起音 0.01 秒（建議 ≥0.3 秒，片頭再淡入）"
+ ],
  "pass": true
 }

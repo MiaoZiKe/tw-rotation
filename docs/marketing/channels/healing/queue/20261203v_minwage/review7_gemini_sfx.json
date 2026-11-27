@@ -1,0 +1,148 @@
+{
+ "sfx_interfere": [],
+ "cue_check": [
+  {
+   "time_sec": 0.3,
+   "listed_action": "主體入場",
+   "seen_on_screen": "標題與數字滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 7.2,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至審議會",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 7.52,
+   "listed_action": "主體入場",
+   "seen_on_screen": "薪資條滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 15.98,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至年度計算",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 16.3,
+   "listed_action": "主體入場",
+   "seen_on_screen": "年度總額數字滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 20.21,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至時薪",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 20.63,
+   "listed_action": "卡片插入",
+   "seen_on_screen": "時薪卡片滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 20.98,
+   "listed_action": "打卡咔一聲",
+   "seen_on_screen": "打卡鐘動作",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 26.37,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至受惠人數",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 26.59,
+   "listed_action": "制服滑進掛架",
+   "seen_on_screen": "職業圖示滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 30.05,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至稅前稅後說明",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 30.37,
+   "listed_action": "主體入場",
+   "seen_on_screen": "薪資結構圖滑入",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 35.38,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至總結提問",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 35.8,
+   "listed_action": "信封紙鈔探出",
+   "seen_on_screen": "信封內紙鈔升起",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 36.81,
+   "listed_action": "硬幣倒下",
+   "seen_on_screen": "硬幣掉落動畫",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 42.17,
+   "listed_action": "換幕輕掃",
+   "seen_on_screen": "畫面切換至下一集預告",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 42.49,
+   "listed_action": "步道牌彈起",
+   "seen_on_screen": "下一集標籤彈出",
+   "match": "對",
+   "detail": ""
+  },
+  {
+   "time_sec": 49.0,
+   "listed_action": "片尾卡招牌音",
+   "seen_on_screen": "品牌 Logo 出現",
+   "match": "對",
+   "detail": ""
+  }
+ ],
+ "missing_or_extra": [
+  {
+   "time_sec": 1.1,
+   "detail": "畫面出現「+1,400」時有額外的輕微彈出音效（Pop），清單未列出。"
+  },
+  {
+   "time_sec": 8.2,
+   "detail": "長條圖增長時有細微的上升音效，清單未列出。"
+  }
+ ],
+ "head2s_transcript": "月領兩萬九千五的人",
+ "head2s_extra_voice": false,
+ "retroflex_errors": [],
+ "outro": "片尾音效為品牌識別音，音量適中，與整體風格一致，無突兀感。",
+ "sfx_score": 10,
+ "voice_score": 10,
+ "overall": "音效與畫面動作配合精準，旁白發音標準且語速適中，整體製作水準極高，資訊傳達清晰。"
+}

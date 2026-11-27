@@ -1,0 +1,60 @@
+{
+ "total": 57.514,
+ "endCardSec": 51.31,
+ "cues": [
+  {
+   "t": 0.01,
+   "kind": "paperslide",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s1 resign：信封滑進桌面"
+  },
+  {
+   "t": 5.76,
+   "kind": "stamp",
+   "gain": -3,
+   "pan": 0.5,
+   "params": {},
+   "src": "s2 notice：圖釘釘上",
+   "class": "impact"
+  },
+  {
+   "t": 12.23,
+   "kind": "stamp",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {},
+   "src": "s3 punchclock：打卡咔一聲",
+   "class": "impact"
+  },
+  {
+   "t": 22.24,
+   "kind": "whoosh",
+   "gain": 0,
+   "pan": 0.5,
+   "params": {
+    "strength": 0.35
+   },
+   "src": "s5 compass：換幕輕掃",
+   "dur": 0.4
+  },
+  {
+   "t": 22.5,
+   "kind": "paperslide",
+   "gain": -2,
+   "pan": 0.5,
+   "params": {},
+   "src": "s5 compass：主體入場"
+  },
+  {
+   "t": 45.93,
+   "kind": "stamp",
+   "gain": -5,
+   "pan": 0.5,
+   "params": {},
+   "src": "s8 mailbox：信箱旗翻起",
+   "class": "impact"
+  }
+ ]
+}

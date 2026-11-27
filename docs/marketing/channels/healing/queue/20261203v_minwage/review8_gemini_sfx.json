@@ -1,0 +1,71 @@
+{
+ "cues": [
+  {
+   "listed_sec": 7.2,
+   "heard_sec": 7.2,
+   "action_on_screen_sec": 7.2,
+   "sync": "同步",
+   "offset_sec": 0.0,
+   "natural": "自然",
+   "steals_voice": false,
+   "detail": "換幕轉場輕掃聲，與畫面切換同步"
+  },
+  {
+   "listed_sec": 7.77,
+   "heard_sec": 7.77,
+   "action_on_screen_sec": 7.75,
+   "sync": "同步",
+   "offset_sec": 0.02,
+   "natural": "自然",
+   "steals_voice": false,
+   "detail": "議事槌敲擊聲清脆紮實，與槌子落下動作同步"
+  },
+  {
+   "listed_sec": 10.72,
+   "heard_sec": 10.72,
+   "action_on_screen_sec": 10.7,
+   "sync": "同步",
+   "offset_sec": 0.02,
+   "natural": "自然",
+   "steals_voice": false,
+   "detail": "日曆翻牌至 10/1 的翻動音效，輕巧自然"
+  },
+  {
+   "listed_sec": 11.76,
+   "heard_sec": 11.76,
+   "action_on_screen_sec": 11.75,
+   "sync": "同步",
+   "offset_sec": 0.01,
+   "natural": "自然",
+   "steals_voice": false,
+   "detail": "「核定」紅章蓋下音效到位且清脆"
+  },
+  {
+   "listed_sec": 13.76,
+   "heard_sec": 13.76,
+   "action_on_screen_sec": 13.75,
+   "sync": "同步",
+   "offset_sec": 0.01,
+   "natural": "自然",
+   "steals_voice": false,
+   "detail": "金幣與加額標籤彈出落下的清脆金屬聲，精準貼合"
+  },
+  {
+   "listed_sec": 15.98,
+   "heard_sec": 15.98,
+   "action_on_screen_sec": 16.0,
+   "sync": "同步",
+   "offset_sec": -0.02,
+   "natural": "自然",
+   "steals_voice": false,
+   "detail": "切換至下一主題畫面的滑動轉場音效"
+  }
+ ],
+ "unvoiced_actions": [],
+ "extra_sounds": [],
+ "voice_issues": [],
+ "sfx_score": 10,
+ "voice_score": 10,
+ "overall": "音效與畫面節奏點對位極為精準，音量層次分明且不遮蔽配音，旁白咬字流暢清晰。",
+ "model": "gemini-3.8-flash"
+}
