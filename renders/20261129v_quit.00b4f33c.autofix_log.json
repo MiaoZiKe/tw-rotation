@@ -1,0 +1,23 @@
+[
+ {
+  "round": 0,
+  "issues": [
+   [
+    "static",
+    "s9",
+    "靜止 1.47 秒（56.73 秒起）"
+   ],
+   [
+    "tagtitle",
+    "s8",
+    "46.5s title×tag"
+   ]
+  ],
+  "fixed": [
+   "s8 tagAt 0.25→0.52（46.5s title×tag）"
+  ],
+  "manual": [
+   "s9 靜止 1.47 秒（56.73 秒起）"
+  ]
+ }
+]
