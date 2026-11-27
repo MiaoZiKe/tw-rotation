@@ -402,5 +402,26 @@
     "link": "https://www.threads.com/@talk_01010909/post/DgNHxCooe7a"
    }
   }
+ },
+ "20261127v_food": {
+  "ig": {
+   "id": "18103069847423183",
+   "link": "https://www.instagram.com/reel/DgPr4S-lGj6/",
+   "at": "2026-11-27T20:31:06+08:00",
+   "format": "video",
+   "video_via": "site"
+  },
+  "at": "2026-11-27T20:31:06+08:00",
+  "threads": {
+   "id": "18505314229096780",
+   "link": "https://www.threads.com/@talk_01010909/post/DgPr9GuP3cL",
+   "at": "2026-11-27T20:31:06+08:00",
+   "format": "video",
+   "video_via": "site",
+   "reply": {
+    "id": "18085503191392569",
+    "link": "https://www.threads.com/@talk_01010909/post/DgPsAjjkQna"
+   }
+  }
  }
 }
