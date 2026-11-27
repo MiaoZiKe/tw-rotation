@@ -75,9 +75,16 @@ jobs:
             echo "::group::$N"
             for f in script.json segments.json; do [ -f $D/$f ] || { echo "::error::$N 缺 $f"; FAIL=1; continue 2; }; done
             mkdir -p $A
-            # 原片：封存分支已有 video_nosfx.mp4 就用它（避免重複疊音效）；否則取工作分支現有 video.mp4 並封存
-            if [ -f $A/video_nosfx.mp4 ]; then cp $A/video_nosfx.mp4 /tmp/in_$N.mp4
+            # 原片：一律取「該資料夾最近一次 healing_render 的輸出」（renders/healing 的 renders/<資料夾>.latest 指標 → renders/<資料夾>.<sha>.mp4），
+            # 不再沿用舊 video_nosfx 封存（第 6 輪：重渲後沒更新，成片疊在舊畫面上）。沒有指標（舊資料夾）才退回舊行為並警告。
+            LATEST=""; [ -f /tmp/arch/wt/renders/$N.latest ] && LATEST=$(tr -d '[:space:]' < /tmp/arch/wt/renders/$N.latest)
+            if [ -n "$LATEST" ] && [ -f /tmp/arch/wt/renders/$LATEST.mp4 ]; then
+              echo "底片來源：renders/healing 的 renders/$LATEST.mp4（最新渲染輸出，指標 $N.latest）" | tee $D/sfx_base.txt
+              cp /tmp/arch/wt/renders/$LATEST.mp4 /tmp/in_$N.mp4; cp /tmp/in_$N.mp4 $A/video_nosfx.mp4
+            elif [ -f $A/video_nosfx.mp4 ]; then
+              echo "::warning::$N 沒有 renders/$N.latest 指標，退回舊 video_nosfx 封存" | tee $D/sfx_base.txt; cp $A/video_nosfx.mp4 /tmp/in_$N.mp4
             else [ -f $D/video.mp4 ] || { echo "::error::$N 沒有 video.mp4"; FAIL=1; continue; }
+                 echo "::warning::$N 沒有指標也沒封存，取工作分支 video.mp4" | tee $D/sfx_base.txt
                  cp $D/video.mp4 $A/video_nosfx.mp4; cp $D/video.mp4 /tmp/in_$N.mp4; fi
             for f in narration.wav video_outro_sfx.mp3; do [ -f $D/$f ] || { echo "::error::$N 缺 $f"; FAIL=1; continue 2; }; done
             # 乾淨底片：原片音軌裡渲染時 sfx_v3 已烤進 60～80 個物件音效，不能再疊。
@@ -98,6 +105,16 @@ jobs:
             LUFS=$(ffmpeg -nostats -i /tmp/out_$N.mp4 -af ebur128 -f null - 2>&1 | grep "I:" | tail -1 | awk '{print $2}')
             echo "全片響度 $LUFS LUFS" | tee -a $D/sfx_guard.txt
             python3 -c "import sys;v=float('$LUFS');sys.exit(0 if abs(v+16)<=1.0 else 1)" || { echo "::error::$N 響度 $LUFS 偏離 −16 LUFS"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
+            # 畫面逐像素比對：成片抽 3 幀（第 0、741 與中段）對渲染輸出，不同就失敗不 commit
+            NF=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 /tmp/out_$N.mp4)
+            PIXOK=1
+            for FR in 0 $(( NF > 741 ? 741 : NF/2 )) $(( NF/2 )); do
+              M1=$(ffmpeg -loglevel error -i /tmp/in_$N.mp4 -vf "select=eq(n\,$FR)" -frames:v 1 -f md5 - 2>&1); M2=$(ffmpeg -loglevel error -i /tmp/out_$N.mp4 -vf "select=eq(n\,$FR)" -frames:v 1 -f md5 - 2>&1)
+              echo "畫面比對 第 $FR 幀：渲染 $M1 / 成片 $M2" | tee -a $D/sfx_guard.txt
+              [ "$M1" = "$M2" ] && [ -n "$M1" ] || PIXOK=0
+            done
+            [ $PIXOK = 1 ] || { echo "::error::$N 成片畫面與渲染輸出不一致，不輸出"; cp /tmp/in_$N.mp4 $D/video.mp4; FAIL=1; continue; }
+            echo "畫面逐像素比對通過（3 幀）" | tee -a $D/sfx_guard.txt
             cp /tmp/out_$N.mp4 $D/video.mp4; cp /tmp/cues_$N.json $D/cues.json
             echo "::endgroup::"
           done
