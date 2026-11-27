@@ -157,14 +157,14 @@
       "rows": 8
     },
     "fut_inst": {
-      "stored": 0
+      "stored": 9
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 72
+      "rows": 81
     },
     "fut_oi": {
-      "stored": 3
+      "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
@@ -185,7 +185,7 @@
     "finmind.institutional": {
       "ok": false,
       "rows": 0,
-      "seconds": 2.9
+      "seconds": 3.2
     },
     "inst_flags": {
       "rebuild": false,
@@ -203,9 +203,9 @@
   "gaps": [],
   "rebuilt": [],
   "phase": "inst",
-  "started_at": "2026-11-27T06:49:42.583351+00:00",
-  "finished_at": "2026-11-27T06:50:47.008997+00:00",
-  "duration_seconds": 64.4,
+  "started_at": "2026-11-27T07:19:54.275734+00:00",
+  "finished_at": "2026-11-27T07:20:13.555384+00:00",
+  "duration_seconds": 19.3,
   "trade_date": "2026-11-26",
   "complete": true,
   "finmind_budget_left": 490
