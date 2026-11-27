@@ -1,0 +1,22 @@
+{
+ "updated": "2026-11-28T07:28:26+08:00",
+ "window_days": 14,
+ "posts": [],
+ "agg": {
+  "topic_category": {},
+  "content_type": {},
+  "layout": {},
+  "style": {},
+  "has_ai_image": {},
+  "slot": {},
+  "hook_type": {},
+  "emotion": {}
+ },
+ "weights": {
+  "explore": 0.2,
+  "topic_category": {},
+  "content_type": {},
+  "style": {},
+  "layout": {}
+ }
+}

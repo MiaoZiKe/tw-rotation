@@ -1,0 +1,22 @@
+{
+  "kind": "close",
+  "taken_at": "2026-10-22T22:07:43+08:00",
+  "data_date": "2026-10-22",
+  "threads": {
+    "text": "台股盤後籌碼｜10/22\n三大法人當日買賣超：外資 -815.8億、投信 +94.9億、自營 -273.8億、合計 -994.7億 → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_1022#market/inst\n外資買超 精材、雙鴻、信昌電；賣超 欣銓、環球晶、中美晶\n投信買超 精測、欣銓、旺矽；賣超 穩懋、富喬、力旺\n台指期三大法人淨未平倉：外資 -87,297、投信 +83,601、自營商 +3,260 → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_1022#market/fut\n散戶多空比：大台 +0.37%、小台 +33.81%、微台 +47.79%\n資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議\n#台股 #法人買賣超 #投信 #外資",
+    "images": [
+      "threads_inst-today.png",
+      "threads_streak-foreign.png",
+      "threads_streak-trust.png",
+      "threads_fut-oi.png",
+      "threads_retail-ratio.png"
+    ]
+  },
+  "story": [
+    "story_inst-today.png",
+    "story_streak-foreign.png",
+    "story_streak-trust.png",
+    "story_fut-oi.png",
+    "story_retail-ratio.png"
+  ]
+}

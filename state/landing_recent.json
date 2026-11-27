@@ -1,0 +1,84 @@
+{
+ "intraday": [
+  {
+   "d": "20261027",
+   "r": "flow/rotation"
+  },
+  {
+   "d": "20261028",
+   "r": "flow/rotation"
+  },
+  {
+   "d": "20261029",
+   "r": "industry/traditional"
+  },
+  {
+   "d": "20261030",
+   "r": "industry/traditional"
+  },
+  {
+   "d": "20261102",
+   "r": "industry/semiconductor"
+  }
+ ],
+ "close": [
+  {
+   "d": "20261116",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261117",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261118",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261119",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261120",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261123",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261124",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261125",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261126",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261127",
+   "r": "market/inst"
+  }
+ ],
+ "premarket": [
+  {
+   "d": "20261028",
+   "r": "earnings"
+  },
+  {
+   "d": "20261029",
+   "r": "earnings"
+  },
+  {
+   "d": "20261030",
+   "r": "industry/semiconductor"
+  },
+  {
+   "d": "20261102",
+   "r": "earnings"
+  }
+ ]
+}

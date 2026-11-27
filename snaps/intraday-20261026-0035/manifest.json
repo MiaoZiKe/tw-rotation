@@ -1,0 +1,24 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-10-26T00:39:13+08:00",
+  "data_date": "2026-10-22",
+  "threads": {
+    "text": "台股資金地圖｜10/26 00:39\n資金輪盤：領先 CCL 銅箔基板、PCB 硬板製造；落後 晶圓代工、PCB 載板 → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=intraday_1026#flow/rotation\n資金分流樹：流入 CCL 銅箔基板、ETF；流出 AI 伺服器組裝、HPC 與網通 IC → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=intraday_1026#flow/sankey\n熱力圖：漲最多 CNC 工具機 +6.0%、資安防護 +2.9%；跌最多 軟板 -9.1%、電阻與被動保護 -8.8%\n漲跌家數：上漲 85 家、下跌 451 家\n資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議\n#台股 #資金流向 #熱力圖 #族群輪動",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_rotation-rank.png",
+      "threads_sankey-tree.png",
+      "threads_heat.png",
+      "threads_market-index.png",
+      "threads_market-breadth.png"
+    ]
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_rotation-rank.png",
+    "story_sankey-tree.png",
+    "story_heat.png",
+    "story_market-index.png",
+    "story_market-breadth.png"
+  ]
+}

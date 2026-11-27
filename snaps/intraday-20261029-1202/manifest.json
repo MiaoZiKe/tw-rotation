@@ -1,0 +1,20 @@
+{
+  "kind": "intraday",
+  "taken_at": "2026-10-29T12:07:22+08:00",
+  "data_date": "2026-10-29",
+  "threads": {
+    "text": "🕛 盤中3分鐘\n🧭 盤面分析：\n・族群普跌：83 個族群 17 漲 66 跌，族群平均 -1.88%\n・成交比重增加但族群走低：NOR Flash 利基記憶體 -1.5%、PCB 載板 -5.6%\n・權值族群成交比重下降：晶圓代工 -0.4%\n🎡 資金輪盤：\n・領先 石化與塑膠產業、PCB 硬板製造；\n・落後 晶圓代工、PCB 載板\n🌳 資金分流樹：\n・流入 NOR Flash 利基記憶體、PCB 載板；\n・流出 ETF、CCL 銅箔基板\n🔥 熱力圖：\n・漲最多 太陽能產業 +6.1%、功率電感 +3.7%；\n・跌最多 AR VR XR 光學 -9.7%、光學鏡頭 -6.2%\n📰 新聞焦點：\n・AI 零組件成本狂飆吃不消\n・聯準會維持利率在 3.75% 至 4% 不變\n・AI掀起大型併購潮\n・日本晶片設備銷售旺\n・「中國製造」轉型\n#台股 #資金流向 #熱力圖 #族群輪動\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-id-20261029#industry/traditional",
+    "images": [
+      "threads_rotation-wheel.png",
+      "threads_sankey-tree.png",
+      "threads_rotation-rank.png",
+      "threads_heat.png"
+    ]
+  },
+  "story": [
+    "story_rotation-wheel.png",
+    "story_sankey-tree.png",
+    "story_rotation-rank.png",
+    "story_heat.png"
+  ]
+}
