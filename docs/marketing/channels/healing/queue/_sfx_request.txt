@@ -1,2 +1,2 @@
-# 重跑：乾淨底片＋對原始旁白出片檢查
+branch=healing/video-1203-1205
 20261203v_minwage
