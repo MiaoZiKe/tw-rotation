@@ -1,3 +1,13 @@
+# 【最新】11/28 平均月薪、11/29 離職 審片不合格修片（2026-11-27 台北，影片製作棒）
+- 審片紀錄：`20261128v_avgwage/video_review.md`、`20261129v_quit/video_review.md` 最上面（獨立審片 commit 309cf42e6 已挑進本分支）。兩支都因片頭殘留設定句尾「直接說」不合格；quit 另有句間黏口與 s7 換幕落後聲音 0.7 秒。
+- avgwage：**沒有重配 TTS**。原始錄音重裁頭（念稿首字起音 40.42 秒，裁頭起點 40.15 秒＋0.15 秒同錄音底噪墊），旁白 46.32 秒（≥45.5）；純念稿 5.41 字／秒。
+- quit：**重配 TTS 1 次**（念稿只改 s7「所以，答案是」；TTS 指令加「每個句號、問號後換一口氣、停約 0.3 秒」，保留平捲舌指令）。新旁白 51.65 秒；純念稿 4.95、含停頓 4.54 字／秒（句號後停頓加長，語速比 5.3 慢，仍在 ≤5.5 內）；句間最小停頓 0.32 秒（舊的 0.04～0.05）；ASR 與念稿只差 2 字（難→南、一→醫，小模型聽錯）。
+- 共同：旁白檔尾端接 1 秒該錄音底噪（填掉旁白結束到片尾音效之間的 −96 dB 數位靜音）；`raw_keep.py` 重跑 → `make_segments.py` → `pace_check.py` 已跑。
+- verify4.py 新增兩條自動檢查（前 1.5 秒單獨 ASR、換幕不得晚於下一句第一字起音）；拿舊 quit 驗證：抓得到「直接說」與 s7 落後；兩支新片本機 `verify4.py --no-sheet` 皆 pass_auto=true。
+- **渲染已推 `_render_request.txt`（兩支、jobs=8 chunk=60 writeback=1）觸發 healing_render；run id 見下一行（推完才有）。渲完要重跑四道驗證**：① 句中 0 停頓／③ 停頓密度＋audio-check（數位靜音 0）；② Gemini 聽感＋平捲舌＋ASR 前 1.5 秒；④ 1 秒抽格逐格看重疊與空白；再補審查分數（≥7）。meta 維持 awaiting_andy，不推 main。
+- 未處理（審片附帶項，聲音以外）：標籤入場旋轉框與標題 ≥8 px、quit 字幕下緣貼邊 1 px，程式重疊報告各剩 1 筆，渲完看報告再處理。
+
+---
 # 【最新】分段渲染改版＋第一次比對（2026-11-27 台北，影片製作棒）
 - 照頻道②架構改好 `healing_render.yml`（matrix 分段、每支 8 台、段 60 幀；接段＋配音＋檢查；成品推 `renders/healing`；工作分支只回寫小檔，video.mp4 ≤20MiB 才回寫）。`render_video.js` 加 `--from/--to/--chunk/--job/--jobs/--seg/--assemble`（不帶參數＝舊行為，已在容器只抽 30 幀驗過段檔可用）；`autofix.py` 加 `HEALING_SEGDIR` 接段模式。
 - 比對：已推 `_render_request.txt`＝`20261127v_food`（writeback=0），run id **45917047985**（https://github.com/MiaoZiKe/tw-rotation/actions/runs/45917047985；排在舊 run 45916208874 後面，同一 concurrency 組）；跑完還差：① 取 renders/healing 的 `20261127v_food.<sha>.mp4` ② `python3 v9/compare_render.py queue/20261127v_food/video.mp4 <新片>`（片長 ≤0.05 秒、逐秒平均差 ≤2%）③ 結果填進 `render_check_20261127.md`。比對沒過之前，本流程不算正式啟用。

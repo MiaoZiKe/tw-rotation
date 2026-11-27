@@ -12,6 +12,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, os.path.join(HERE, "..", "tts"))
 from punct_align import punct_boundaries, canon_chars
 a = sys.argv[1:]; q = os.path.abspath(a[0])
+def cz(s_): return "".join(c for c, _ in canon_chars([(c, i) for i, c in enumerate(s_)]))
 def opt(k, d):
     return a[a.index(k) + 1] if k in a else d
 WAV = os.path.join(q, opt("--wav", "narration.wav")); VID = os.path.join(q, opt("--video", "video.mp4"))
@@ -46,7 +47,13 @@ for t0, t1 in runs:
         kc = [e for e in allp if e + 1 < len(wo) and wo[e] - .05 <= mid <= wo[e + 1] + .35]
         if ke: k = ke[0]
         elif kc: k = kc[0]
-        kind = "句號後" if ke else ("逗號" if kc and t1 - t0 <= .45 else "句內")   # 2026-11-22 定義：逗號處 TTS 自然 ≤0.45 秒不算句中停頓、不計總數
+        kind = "句號後" if ke else ("逗號" if kc and t1 - t0 <= .45 else "句內")
+        if kind == "句內":   # 2026-11-27：ASR 聽錯字（例：難→南）會讓標點對位失敗，真正的句號停頓被誤判成句內；改用「停頓前聽到的字」與「念稿各標點前的字」做模糊比對
+            _raw0 = cut.get("raw_range", [0])[0]; hp_ = cz("".join(w_[0] for w_ in ws if w_[1] < t0 + _raw0 - .02)); tx_ = s["text"]
+            for m_ in re.finditer(r"[。？！?!，、；：,;:]", tx_[:-1]):
+                rp_ = cz(tx_[:m_.start()]); kk = difflib.SequenceMatcher(None, rp_[-4:], hp_[-4:]).ratio()
+                if abs(len(rp_) - len(hp_)) <= 3 and kk >= .5:
+                    kind = "句號後" if m_.group() in "。？！?!" else ("逗號" if t1 - t0 <= .45 else "句內"); break   # 2026-11-22 定義：逗號處 TTS 自然 ≤0.45 秒不算句中停頓、不計總數
         at = "%s「%s｜%s」" % (s["id"], ws[k][0] if k < len(ws) else "", ws[k + 1][0] if k + 1 < len(ws) else "")
     pauses.append({"t0": t0, "t1": t1, "dur": round(t1 - t0, 2), "kind": kind, "at": at})
 nsent = sum(len(re.findall(r"[。？！?!]", s["text"])) or 1 for s in segs)
@@ -87,6 +94,50 @@ if "--no-asr" not in a:
     for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, ref, hyp, autojunk=False).get_opcodes():
         if op != "equal": diffs.append("%s 念稿「%s」→聽到「%s」（念稿第 %d 字）" % (op, ref[i1:i2], hyp[j1:j2], i1))
     res["asr_heard"] = hw; res["asr_diffs"] = diffs; res["asr_ratio"] = round(difflib.SequenceMatcher(None, ref, hyp, autojunk=False).ratio(), 3)
+# ── 2026-11-27 新增兩條自動檢查（avgwage／quit 審片：片頭殘留設定句「直接說」、s7 換幕晚於聲音 0.7 秒；之後每支有旁白的片都要過）──
+# ⑤ 裁頭後前 1.5 秒單獨 ASR：出現念稿以外的字（尤其「直接說」）＝不合格
+if "--no-asr" not in a:
+    import tempfile
+    tmpw = os.path.join(tempfile.mkdtemp(), "head.wav"); k15 = int(1.5 * SR)
+    with wave.open(tmpw, "wb") as o: o.setnchannels(1); o.setsampwidth(2); o.setframerate(SR); o.writeframes((np.clip(x[:k15], -1, 1) * 32767).astype("<i2").tobytes())
+    hj = os.path.join(q, "verify4_head_asr.json")
+    subprocess.run([sys.executable, os.path.join(HERE, "..", "tts", "asr.py"), tmpw, hj], check=True, capture_output=True)
+    hh = "".join(t["w"] for t in json.load(open(hj))); hyp = cz(hh); ref = cz(segs[0]["text"])[:len(hyp) + 3]
+    extra = []
+    if hyp:
+        for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, ref, hyp, autojunk=False).get_opcodes():
+            if op in ("insert", "replace") and j1 == 0: extra.append(hyp[j1:j2])   # 開頭多出念稿沒有的字
+    setup = [w_ for w_ in ("直接說", "直接说", "直接", "子爹說") if w_ in hh]
+    ratio = difflib.SequenceMatcher(None, ref, hyp, autojunk=False).ratio() if hyp else 1.0
+    res["head_asr"] = {"heard_first_1_5s": hh, "script_start": ref, "extra_leading": extra, "setup_words": setup, "ratio": round(ratio, 3)}
+    if setup or extra or ratio < .5: bad.append("裁頭後前 1.5 秒單獨 ASR 出現念稿以外的字：聽到「%s」，念稿開頭「%s」%s" % (hh, ref, "（含設定句「%s」）" % "、".join(setup) if setup else ""))
+# ⑥ 換幕不准晚於下一句第一字起音 0.15 秒（2026-11-27 quit 的 s7 換幕落後聲音 0.7 秒）。
+#    ASR 的逐字時間戳會漂 0.3 秒以上，不能拿來量秒數，所以只用「辨識出的字」：每個換幕點 st，從 st−0.15 秒起切 1.6 秒單獨 ASR；
+#    聽到的開頭應該是下一句的第 1 個字（或還在念上一句的尾巴）。若開頭已經是下一句的第 3 個字以後＝這句開頭的字在換幕前就念掉了（≥約 0.4 秒）＝換幕太晚。
+#    第 2 個字（k=1）可能只是 ASR 漏掉首字，只記在報告裡不判錯。
+sgj = json.load(open(os.path.join(q, "segments.json")))["segments"]
+if "--no-asr" not in a and len(sgj) == len(segs):
+    import tempfile
+    chk = []; late = []; td = tempfile.mkdtemp()
+    for i in range(1, len(segs)):
+        st = sgj[i]["start"]; t0_ = max(0.0, st - .15); pw = os.path.join(td, "w%d.wav" % i); pj = os.path.join(td, "w%d.json" % i)
+        with wave.open(pw, "wb") as o: o.setnchannels(1); o.setsampwidth(2); o.setframerate(SR); o.writeframes((np.clip(x[int(t0_ * SR):int((t0_ + 1.6) * SR)], -1, 1) * 32767).astype("<i2").tobytes())
+        subprocess.run([sys.executable, os.path.join(HERE, "..", "tts", "asr.py"), pw, pj], check=True, capture_output=True)
+        hw_ = "".join(t["w"] for t in json.load(open(pj))); hy = cz(hw_); rf = cz(segs[i]["text"]); tail = cz(segs[i - 1]["text"])[-5:]
+        k = None
+        for kk in range(0, 10):
+            if hy[:2] and rf[kk:kk + 2] == hy[:2]: k = kk; break
+        if k is None and hy[:1]:
+            for kk in range(0, 10):
+                if rf[kk:kk + 1] == hy[:1]: k = kk; break
+        in_tail = bool(hy[:2]) and hy[:2] in tail
+        if in_tail: k = -1   # 窗口一開始還在念上一句的尾巴＝換幕沒落後
+        item = {"id": segs[i]["id"], "scene_start": st, "heard_from_scene_start_minus_0_15": hw_, "script_start": rf[:8], "first_char_index": k}
+        if k is None: item["note"] = "聽到的字與這句開頭對不上，無法判定"
+        elif k >= 2: late.append("%s 換幕 %.2f 秒時，聽到的已是這句第 %d 個字（「%s」）＝這句開頭的字在換幕前就念了（約晚 %.1f 秒以上）" % (segs[i]["id"], st, k + 1, hw_, k * .19))
+        chk.append(item)
+    res["scene_vs_onset"] = chk
+    if late: bad.append("換幕晚於下一句第一字起音：" + "；".join(late))
 # 1 秒抽格拼圖
 if "--no-sheet" not in a and os.path.exists(VID):
     od = os.path.join(q, "_frames1s"); os.makedirs(od, exist_ok=True)
