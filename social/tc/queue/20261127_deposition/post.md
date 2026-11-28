@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgPbNeABDGl/ https://www.threads.com/@tech_01010909/post/DgPbVEpPX4- https://www.threads.com/@tech_01010909/post/DgPbc2rkfkk
 posted_at: 2026-11-27T18:05+08:00
 error: 
+ids_fb: 1752906435771664
+urls_fb: https://www.facebook.com/reel/1752906435771664/
+fb_posted_at: 2026-11-28T12:06+08:00
+fb_error: 
+fb_slot: 2026-11-28T12:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「薄膜沉積：一層幾個原子厚的膜怎麼長上去」
 
