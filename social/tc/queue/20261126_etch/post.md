@@ -21,6 +21,12 @@ done: ig, threads
 urls: https://www.instagram.com/reel/DgNEDp1pZ2P/ https://www.threads.com/@tech_01010909/post/DgNEKt5o6PW https://www.threads.com/@tech_01010909/post/DgNERr7IDfT
 posted_at: 2026-11-26T20:04+08:00
 error: 
+ids_fb: 2722600508193059
+urls_fb: https://www.facebook.com/reel/2722600508193059/
+fb_posted_at: 2026-11-28T08:06+08:00
+fb_error: 
+fb_slot: 2026-11-28T08:00+08:00
+fb_via: backfill
 ---
 # 頻道②「科技透明圈」：影片「蝕刻機：把圖形刻進晶圓」
 
