@@ -1,6 +1,6 @@
 ---
 channel: tc
-status: approved
+status: posted
 scheduled_at: 2026-11-28T18:00+08:00
 weekday: 六
 platforms: ig, threads
@@ -9,6 +9,22 @@ video: tech-cmp.mp4
 images: cover.jpg
 title: 科技透明圈影片：化學機械研磨，每一層都要磨平（tech-cmp v1）
 hook_type: 問句（承上一支）
+urls_ig: https://www.instagram.com/reel/DgSAK3KuDbx/
+ids_ig: 18145401019721074
+verified_ig: VIDEO
+urls_threads: https://www.threads.com/@tech_01010909/post/DgSASWHICC4
+ids_threads: 18138728449655533
+ids_threads_reply: 18112598425911978
+verified_threads: VIDEO
+urls_threads_reply: https://www.threads.com/@tech_01010909/post/DgSAZbBHBgn
+ids_fb: 937420672669720
+urls_fb: https://www.facebook.com/reel/937420672669720/
+fb_posted_at: 2026-11-28T18:07+08:00
+fb_error: 
+done: ig, threads
+urls: https://www.instagram.com/reel/DgSAK3KuDbx/ https://www.threads.com/@tech_01010909/post/DgSASWHICC4 https://www.threads.com/@tech_01010909/post/DgSAZbBHBgn
+posted_at: 2026-11-28T18:07+08:00
+error: 
 ---
 # 頻道②「科技透明圈」：影片「化學機械研磨：每一層都要磨平」
 
